@@ -1,12 +1,20 @@
 
-namespace Shark {
+#include <Shark.h>
 
-	__declspec(dllimport) void Print();
-
-}
-
-int main()
+class Sandbox : public Shark::Application
 {
-	Shark::Print();
-	while ( true );
+public:
+	Sandbox()
+	{
+	}
+
+	~Sandbox()
+	{
+	}
+
+};
+
+Shark::Application* Shark::CreateApplication()
+{
+	return new Sandbox;
 }
