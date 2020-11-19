@@ -1,0 +1,3 @@
+[submodule "Shark/dependecies/spdlog"]
+	path = Shark/dependecies/spdlog
+	url = https://github.com/gabime/spdlog

@@ -25,7 +25,7 @@ project "Shark"
 
 	includedirs
 	{
-
+		"Shark/dependecies/spdlog/include/"
 	}
 
 	filter "system:windows"
@@ -68,6 +68,7 @@ project "Sandbox"
 	
 	includedirs
 	{
+		"Shark/dependecies/spdlog/include/",
 		"Shark/src"
 	}
 
