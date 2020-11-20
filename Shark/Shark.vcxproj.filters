@@ -19,6 +19,7 @@
     <ClInclude Include="src\Shark\Log.h">
       <Filter>Shark</Filter>
     </ClInclude>
+    <ClInclude Include="src\skpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Shark\Application.cpp">
@@ -27,5 +28,6 @@
     <ClCompile Include="src\Shark\Log.cpp">
       <Filter>Shark</Filter>
     </ClCompile>
+    <ClCompile Include="src\skpch.cpp" />
   </ItemGroup>
 </Project>

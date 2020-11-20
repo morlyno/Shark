@@ -1,3 +1,4 @@
+#include "skpch.h"
 #include "Application.h"
 
 Shark::Application::Application()

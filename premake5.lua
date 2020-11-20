@@ -17,6 +17,9 @@ project "Shark"
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
+	pchheader "skpch.h"
+	pchsource "Shark/src/skpch.cpp"
+
 	files
 	{
 		"%{prj.name}/src/**.h",
@@ -25,6 +28,7 @@ project "Shark"
 
 	includedirs
 	{
+		"Shark/src",
 		"Shark/dependecies/spdlog/include/"
 	}
 
