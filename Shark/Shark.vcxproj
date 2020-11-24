@@ -105,6 +105,10 @@
     <ClInclude Include="src\Shark\Application.h" />
     <ClInclude Include="src\Shark\Core.h" />
     <ClInclude Include="src\Shark\EntryPoint.h" />
+    <ClInclude Include="src\Shark\Event\Event.h" />
+    <ClInclude Include="src\Shark\Event\KeyEvent.h" />
+    <ClInclude Include="src\Shark\Event\MouseEvent.h" />
+    <ClInclude Include="src\Shark\Event\WindowEvent.h" />
     <ClInclude Include="src\Shark\Log.h" />
     <ClInclude Include="src\skpch.h" />
   </ItemGroup>

@@ -23,3 +23,5 @@
 #define SK_CLIENT_LOG_ERROR(...)	::Shark::Log::GetClientLogger()->error(__VA_ARGS__)
 #define SK_CLIENT_LOG_CRITICAL(...)	::Shark::Log::GetClientLogger()->critical(__VA_ARGS__)
 #define SK_CLIENT_LOG_DEBUG(...)	::Shark::Log::GetClientLogger()->debug(__VA_ARGS__)
+
+#define BIT(x) (1 << x)
