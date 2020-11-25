@@ -49,11 +49,18 @@ project "Shark"
 		}
 
 	filter "configurations:Debug"
-		defines "SK_DEBUG"
+		defines
+		{
+			"SK_DEBUG",
+			"SK_ENABLE_ASSERT",
+		}
 		symbols "On"
 		
 	filter "configurations:Release"
-		defines "SK_RELEASE"
+		defines
+		{
+			"SK_RELEASE",
+		}
 		optimize "On"
 
 project "Sandbox"
@@ -92,7 +99,11 @@ project "Sandbox"
 		}
 
 	filter "configurations:Debug"
-		defines "SK_DEBUG"
+		defines
+		{
+			"SK_DEBUG",
+			"SK_ENABLE_ASSERT"
+		}
 		symbols "On"
 		
 	filter "configurations:Release"

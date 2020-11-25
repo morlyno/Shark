@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Log.h"
+#include "Windows/Window.h"
 
 namespace Shark {
 
@@ -15,10 +16,10 @@ namespace Shark {
 
 	void Application::Run()
 	{
-		WindowResizeEvent e( 1280,900 );
-		SK_CLIENT_LOG_TRACE( e );
-		
-		while ( true );
+		Window wnd = Window( 1280,720,L"Shark Window" );
+		while ( Window::ProcessMessages() ) 
+		{
+		}
 	}
 
 }

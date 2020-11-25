@@ -7,6 +7,9 @@
     <Filter Include="Shark\Event">
       <UniqueIdentifier>{EF0498C4-5BBA-10BA-E4AE-0A91506307BE}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shark\Windows">
+      <UniqueIdentifier>{588D8F96-C44D-0BCD-8D88-544AF90750A9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Shark.h" />
@@ -34,6 +37,9 @@
     <ClInclude Include="src\Shark\Log.h">
       <Filter>Shark</Filter>
     </ClInclude>
+    <ClInclude Include="src\Shark\Windows\Window.h">
+      <Filter>Shark\Windows</Filter>
+    </ClInclude>
     <ClInclude Include="src\skpch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -42,6 +48,9 @@
     </ClCompile>
     <ClCompile Include="src\Shark\Log.cpp">
       <Filter>Shark</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shark\Windows\Window.cpp">
+      <Filter>Shark\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\skpch.cpp" />
   </ItemGroup>
