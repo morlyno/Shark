@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "Application.h"
 #include "Shark/Log.h"
+#include "Event/KeyEvent.h"
 
 namespace Shark {
 
@@ -18,24 +19,39 @@ namespace Shark {
 	{
 	}
 
-	void Application::OnEvent( Event& e )
-	{
-		EventDispacher dispacher( e );
-		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( OnWindowClose ) );
-
-		if ( e.IsInCategory( EventCategoryWindow ) )
-		{
-			SK_CORE_TRACE( "{0}",e );
-		}
-	}
-
 	int Application::Run()
 	{
-		while ( running ) 
+		while ( running )
 		{
 			window->Process();
 		}
 		return exitCode;
+	}
+
+	void Application::OnEvent( Event& e )
+	{
+		EventDispacher dispacher( e );
+		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( OnWindowClose ) );
+	}
+
+	void Application::AddLayer( Layer* layer )
+	{
+		layerStack.AddLayer( layer );
+	}
+
+	void Application::RemoveLayer( Layer* layer )
+	{
+		layerStack.RemoveLayer( layer );
+	}
+
+	void Application::AddOverlay( Layer* layer )
+	{
+		layerStack.AddOverlay( layer );
+	}
+
+	void Application::RemoveOverlay( Layer* layer )
+	{
+		layerStack.RemoveOverlay( layer );
 	}
 
 	bool Application::OnWindowClose( WindowCloseEvent& e )

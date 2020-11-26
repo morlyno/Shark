@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "Window.h"
 #include "Event/WindowEvent.h"
+#include "Layer/LayerStack.h"
 
 namespace Shark {
 
@@ -12,15 +13,23 @@ namespace Shark {
 		Application();
 		virtual ~Application();
 
-		void OnEvent( Event& e );
-
 		int Run();
 
-		bool OnWindowClose( WindowCloseEvent& e );
+		void OnEvent( Event& e );
+
+		void AddLayer( Layer* layer );
+		void RemoveLayer( Layer* layer );
+		void AddOverlay( Layer* layer );
+		void RemoveOverlay( Layer* layer );
+
 	private:
+		bool OnWindowClose( WindowCloseEvent& e );
+
+
 		bool running = true;
 		int exitCode = -1;
 		std::unique_ptr<Window> window;
+		LayerStack layerStack;
 	};
 
 	Application* CreateApplication();

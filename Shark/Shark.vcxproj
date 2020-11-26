@@ -109,6 +109,8 @@
     <ClInclude Include="src\Shark\Event\KeyEvent.h" />
     <ClInclude Include="src\Shark\Event\MouseEvent.h" />
     <ClInclude Include="src\Shark\Event\WindowEvent.h" />
+    <ClInclude Include="src\Shark\Layer\Layer.h" />
+    <ClInclude Include="src\Shark\Layer\LayerStack.h" />
     <ClInclude Include="src\Shark\Log.h" />
     <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Shark\Window.h" />
@@ -116,6 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Shark\Application.cpp" />
+    <ClCompile Include="src\Shark\Layer\LayerStack.cpp" />
     <ClCompile Include="src\Shark\Log.cpp" />
     <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\skpch.cpp">
