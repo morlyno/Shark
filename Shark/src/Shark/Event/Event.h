@@ -9,28 +9,31 @@ namespace Shark {
 	enum class EventTypes
 	{
 		None = 0,
-		WindowClose,WindowResize,WindowMove,WindowFocus,WindowLostFocus,
-		MouseMove,MousButtonPressed,MouseButtonReleasd,MouseScrolled,
-		KeyPressed,KeyReleased,KeyCharacter
+		WindowClose,WindowResize,WindowMove,WindowFocus,WindowLostFocus,WindowMinimized,WindowMaximized,WindowEventBase,
+		MouseMove,MousButtonPressed,MouseButtonReleasd,MouseScrolled,MouseEventBase,
+		KeyPressed,KeyReleased,KeyCharacter,KeyEventBase
 	};
 
 	enum EventCategory
 	{
 		None = 0,
-		EventCategoryWindow = BIT( 0 ),
-		EventCategoryInput = BIT( 1 ),
-		EventCategoryMouse = BIT( 2 ),
-		EventCategoryKeyboard = BIT( 3 ),
+		EventCategoryWindow = SK_BIT( 0 ),
+		EventCategoryInput = SK_BIT( 1 ),
+		EventCategoryMouse = SK_BIT( 2 ),
+		EventCategoryKeyboard = SK_BIT( 3 ),
 	};
+	typedef int EventCategory_t;
 
 	#define SK_EVENT_FUNCTIONS(type)	static EventTypes GetStaticType() { return EventTypes::##type; } \
 										virtual EventTypes GetEventType() const override { return GetStaticType(); } \
 										virtual const char* GetName() const override { return #type; }
 
-	#define SK_GET_CATEGORY_FLAGS_FUNC(category) unsigned int GetEventCategoryFlags() const override { return category; }
+	#define SK_GET_CATEGORY_FLAGS_FUNC(category)	static unsigned int GetStaticEventCategoryFlags() { return category; } \
+													unsigned int GetEventCategoryFlags() const override { return category; }
 
 	class SHARK_API Event
 	{
+		friend class EventDispacher;
 	public:
 		virtual EventTypes GetEventType() const = 0;
 		virtual const char* GetName() const = 0;
@@ -40,8 +43,45 @@ namespace Shark {
 		{
 			return GetEventCategoryFlags() & category;
 		}
+		bool IsInCategory( EventCategory_t category ) const
+		{
+			return GetEventCategoryFlags() & category;
+		}
 	private:
 		bool Handled = false;
+	};
+
+	class SHARK_API EventDispacher
+	{
+		template<typename T>
+		using EventFunc = std::function<bool( T& )>;
+	public:
+		EventDispacher( Event& e )
+			:
+			e( e )
+		{}
+		template<typename T>
+		bool DispachEvent( EventFunc<T> func )
+		{
+			if ( T::GetStaticType() == e.GetEventType() )
+			{
+				e.Handled = func( SK_TYPE_PUN(T,e) );
+				return true;
+			}
+			return false;
+		}
+		template<typename T>
+		bool DispachEventCategory( EventFunc<T> func )
+		{
+			if ( T::GetStaticEventCategoryFlags() & e.GetEventCategoryFlags() )
+			{
+				e.Handled = func( SK_TYPE_PUN( T,e ) );
+				return true;
+			}
+			return false;
+		}
+	private:
+		Event& e;
 	};
 
 	inline std::ostream& operator<<( std::ostream& os,const Event& e )

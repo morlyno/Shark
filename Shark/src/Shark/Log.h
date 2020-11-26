@@ -20,22 +20,23 @@ namespace Shark {
 
 }
 
-#define SK_CORE_LOG_TRACE(...)		::Shark::Log::GetCoreLogger()->trace(__VA_ARGS__)
-#define SK_CORE_LOG_INFO(...)		::Shark::Log::GetCoreLogger()->info(__VA_ARGS__)
-#define SK_CORE_LOG_WARN(...)		::Shark::Log::GetCoreLogger()->warn(__VA_ARGS__)
-#define SK_CORE_LOG_ERROR(...)		::Shark::Log::GetCoreLogger()->error(__VA_ARGS__)
-#define SK_CORE_LOG_CRITICAL(...)	::Shark::Log::GetCoreLogger()->critical(__VA_ARGS__)
+#define SK_CORE_TRACE(...)		::Shark::Log::GetCoreLogger()->trace(__VA_ARGS__)
+#define SK_CORE_INFO(...)		::Shark::Log::GetCoreLogger()->info(__VA_ARGS__)
+#define SK_CORE_WARN(...)		::Shark::Log::GetCoreLogger()->warn(__VA_ARGS__)
+#define SK_CORE_ERROR(...)		::Shark::Log::GetCoreLogger()->error(__VA_ARGS__)
+#define SK_CORE_CRITICAL(...)	::Shark::Log::GetCoreLogger()->critical(__VA_ARGS__)
 
-#define SK_LOG_TRACE(...)			::Shark::Log::GetClientLogger()->trace(__VA_ARGS__)
-#define SK_LOG_INFO(...)			::Shark::Log::GetClientLogger()->info(__VA_ARGS__)
-#define SK_LOG_WARN(...)			::Shark::Log::GetClientLogger()->warn(__VA_ARGS__)
-#define SK_LOG_ERROR(...)			::Shark::Log::GetClientLogger()->error(__VA_ARGS__)
-#define SK_LOG_CRITICAL(...)		::Shark::Log::GetClientLogger()->critical(__VA_ARGS__)
+#define SK_TRACE(...)			::Shark::Log::GetClientLogger()->trace(__VA_ARGS__)
+#define SK_INFO(...)			::Shark::Log::GetClientLogger()->info(__VA_ARGS__)
+#define SK_WARN(...)			::Shark::Log::GetClientLogger()->warn(__VA_ARGS__)
+#define SK_ERROR(...)			::Shark::Log::GetClientLogger()->error(__VA_ARGS__)
+#define SK_CRITICAL(...)		::Shark::Log::GetClientLogger()->critical(__VA_ARGS__)
+
+
+#define SK_CORE_ERROR_IF(con,...) if ( (con) ) { ::Shark::Log::GetCoreLogger()->error(__VA_ARGS__); }
 
 #ifdef SK_DEBUG
-#define SK_CORE_LOG_DEBUG(...)	::Shark::Log::GetCoreLogger()->debug(__VA_ARGS__)
-#define SK_LOG_DEBUG(...)		::Shark::Log::GetClientLogger()->debug(__VA_ARGS__)
+#define SK_CORE_DEBUG(...)		::Shark::Log::GetCoreLogger()->debug(__VA_ARGS__)
 #else
 #define SK_CORE_DEBUG(...)
-#define SK_CLINET_DEBUG(...)
 #endif

@@ -10,10 +10,20 @@
 	#error Shark only supports Windows
 #endif
 
-#define BIT(x) (1 << x)
+#define SK_BIT(x) (1 << x)
 
 #ifdef SK_ENABLE_ASSERT
 	#define SK_ASSERT(x) if(!(x)) __debugbreak()
 #else
 	#define SK_ASSERT(...)
 #endif
+
+#ifdef SK_DEBUG
+#define SK_BREAK_IF(x) if ((x)) __debugbreak()
+#define SK_BREAK()  __debugbreak()
+#else
+#define SK_BREAK_IF(x)
+#define SK_BREAK(x)
+#endif
+
+#define SK_TYPE_PUN(type,x) *reinterpret_cast<type*>(&x)

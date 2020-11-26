@@ -10,6 +10,15 @@ namespace Shark {
 	public:
 		unsigned char GetKeyCode() const { return KeyCode; }
 
+		virtual std::string ToString() const override
+		{
+			std::ostringstream oss;
+			oss << GetName() << " " << KeyCode;
+			return oss.str();
+		}
+
+		static EventTypes GetStaticType() { return EventTypes::KeyEventBase; }
+
 		SK_GET_CATEGORY_FLAGS_FUNC( EventCategoryInput | EventCategoryKeyboard )
 	protected:
 		KeyEvent( unsigned char KeyCode )
@@ -29,6 +38,13 @@ namespace Shark {
 		{}
 		unsigned int GetRepeatCount() const { return RepeatCount; }
 
+		std::string ToString() const override
+		{
+			std::ostringstream oss;
+			oss << GetName() << " " << KeyCode << " " << RepeatCount;
+			return oss.str();
+		}
+
 		SK_EVENT_FUNCTIONS( KeyPressed )
 	private:
 		unsigned int RepeatCount;
@@ -44,14 +60,14 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( KeyReleased )
 	};
 
-	//class SHARK_API KeyCharacterEvent : public KeyEvent
-	//{
-	//public:
-	//	KeyCharacterEvent( unsigned char KeyCode ) // TODO: Change to Character not KeyCode
-	//		:
-	//		KeyEvent( KeyCode )
-	//	{}
-	//	SK_EVENT_FUNCTIONS( KeyCharacter )
-	//};
+	class SHARK_API KeyCharacterEvent : public KeyEvent
+	{
+	public:
+		KeyCharacterEvent( unsigned char Character )
+			:
+			KeyEvent( Character )
+		{}
+		SK_EVENT_FUNCTIONS( KeyCharacter )
+	};
 
 }

@@ -10,6 +10,15 @@ namespace Shark {
 		int GetX() const { return x; }
 		int GetY() const { return y; }
 
+		virtual std::string ToString() const override
+		{
+			std::ostringstream oss;
+			oss << GetName() << " " << x << ", " << y;
+			return oss.str();
+		}
+
+		static EventTypes GetStaticType() { return EventTypes::MouseEventBase; }
+
 		SK_GET_CATEGORY_FLAGS_FUNC( EventCategoryInput | EventCategoryMouse )
 	protected:
 		MouseEvent( int x,int y )
@@ -41,10 +50,10 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( MousButtonPressed )
 	};
 
-	class SHARK_API MouseLeftReleasdEvent : public MouseEvent
+	class SHARK_API MouseLeftReleasedEvent : public MouseEvent
 	{
 	public:
-		MouseLeftReleasdEvent( int x,int y )
+		MouseLeftReleasedEvent( int x,int y )
 			:
 			MouseEvent( x,y )
 		{}
@@ -61,10 +70,10 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( MousButtonPressed )
 	};
 
-	class SHARK_API MouseRightReleasdEvent : public MouseEvent
+	class SHARK_API MouseRightReleasedEvent : public MouseEvent
 	{
 	public:
-		MouseRightReleasdEvent( int x,int y )
+		MouseRightReleasedEvent( int x,int y )
 			:
 			MouseEvent( x,y )
 		{}
@@ -79,7 +88,15 @@ namespace Shark {
 			MouseEvent( x,y ),
 			delta( delta )
 		{}
+
 		int GetDelta() const { return delta; }
+
+		std::string ToString() const override
+		{
+			std::ostringstream oss;
+			oss << GetName() << " " << x << ", " << y << " Delta: " << delta;
+			return oss.str();
+		}
 
 		SK_EVENT_FUNCTIONS( MouseButtonReleasd )
 	private:

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core.h"
+#include "Window.h"
+#include "Event/WindowEvent.h"
 
 namespace Shark {
 
@@ -10,7 +12,15 @@ namespace Shark {
 		Application();
 		virtual ~Application();
 
-		void Run();
+		void OnEvent( Event& e );
+
+		int Run();
+
+		bool OnWindowClose( WindowCloseEvent& e );
+	private:
+		bool running = true;
+		int exitCode = -1;
+		std::unique_ptr<Window> window;
 	};
 
 	Application* CreateApplication();

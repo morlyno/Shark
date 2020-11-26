@@ -110,13 +110,14 @@
     <ClInclude Include="src\Shark\Event\MouseEvent.h" />
     <ClInclude Include="src\Shark\Event\WindowEvent.h" />
     <ClInclude Include="src\Shark\Log.h" />
-    <ClInclude Include="src\Shark\Windows\Window.h" />
+    <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h" />
+    <ClInclude Include="src\Shark\Window.h" />
     <ClInclude Include="src\skpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Shark\Application.cpp" />
     <ClCompile Include="src\Shark\Log.cpp" />
-    <ClCompile Include="src\Shark\Windows\Window.cpp" />
+    <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\skpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
