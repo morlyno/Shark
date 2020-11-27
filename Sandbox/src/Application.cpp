@@ -1,23 +1,8 @@
 
 #include <Shark.h>
+#include <Shark/Core/EntryPoint.h>
 
-class TestLayer : public Shark::Layer
-{
-public:
-	TestLayer( const std::string& name = std::string{} )
-		:
-		Layer( "TestLayer" + name )
-	{
-	}
-
-	void OnUpdate() override
-	{
-	}
-	void OnEvent( Shark::Event& e ) override
-	{
-	}
-};
-
+#include "TestLayer.h"
 
 class Sandbox : public Shark::Application
 {

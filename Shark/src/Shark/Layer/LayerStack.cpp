@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "Layer.h"
 #include "LayerStack.h"
+#include "Shark/Core/Log.h"
 
 namespace Shark {
 
@@ -9,6 +10,8 @@ namespace Shark {
 		for ( auto l : Layers )
 			if ( l )
 				delete l;
+			else
+				SK_CORE_DEBUG( "l [{0}] was nullptr",(uint64_t)l );
 	}
 
 	void LayerStack::AddLayer( Layer* layer )

@@ -2,7 +2,7 @@
 #pragma warning(push)
 #pragma warning(disable : 26812)
 #include "skpch.h"
-#include "Shark/Core.h"
+#include "Shark/Core/Core.h"
 
 namespace Shark {
 

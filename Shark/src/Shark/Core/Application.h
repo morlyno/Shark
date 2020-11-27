@@ -2,8 +2,8 @@
 
 #include "Core.h"
 #include "Window.h"
-#include "Event/WindowEvent.h"
-#include "Layer/LayerStack.h"
+#include "Shark/Event/WindowEvent.h"
+#include "Shark/Layer/LayerStack.h"
 
 namespace Shark {
 

@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "Application.h"
-#include "Shark/Log.h"
-#include "Event/KeyEvent.h"
+#include "Shark/Core/Log.h"
+#include "Shark/Event/KeyEvent.h"
 
 namespace Shark {
 

@@ -1,6 +1,6 @@
 #include "skpch.h"
 #include "WindowsWindow.h"
-#include "Shark/Log.h"
+#include "Shark/Core/Log.h"
 #include "Shark/Event/MouseEvent.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/KeyEvent.h"

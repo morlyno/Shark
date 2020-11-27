@@ -102,24 +102,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Shark.h" />
-    <ClInclude Include="src\Shark\Application.h" />
-    <ClInclude Include="src\Shark\Core.h" />
-    <ClInclude Include="src\Shark\EntryPoint.h" />
+    <ClInclude Include="src\Shark\Core\Application.h" />
+    <ClInclude Include="src\Shark\Core\Core.h" />
+    <ClInclude Include="src\Shark\Core\EntryPoint.h" />
     <ClInclude Include="src\Shark\Event\Event.h" />
     <ClInclude Include="src\Shark\Event\KeyEvent.h" />
     <ClInclude Include="src\Shark\Event\MouseEvent.h" />
     <ClInclude Include="src\Shark\Event\WindowEvent.h" />
     <ClInclude Include="src\Shark\Layer\Layer.h" />
     <ClInclude Include="src\Shark\Layer\LayerStack.h" />
-    <ClInclude Include="src\Shark\Log.h" />
+    <ClInclude Include="src\Shark\Core\Log.h" />
     <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h" />
-    <ClInclude Include="src\Shark\Window.h" />
+    <ClInclude Include="src\Shark\Core\Window.h" />
     <ClInclude Include="src\skpch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Shark\Application.cpp" />
+    <ClCompile Include="src\Shark\Core\Application.cpp" />
     <ClCompile Include="src\Shark\Layer\LayerStack.cpp" />
-    <ClCompile Include="src\Shark\Log.cpp" />
+    <ClCompile Include="src\Shark\Core\Log.cpp" />
     <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\skpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

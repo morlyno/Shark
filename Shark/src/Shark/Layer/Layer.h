@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Core.h"
+#include "Shark/Core/Core.h"
 #include "Shark/Event/Event.h"
 
 namespace Shark {

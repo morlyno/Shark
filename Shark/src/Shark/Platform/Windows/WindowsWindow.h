@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Shark/Core.h"
-#include "Shark/Window.h"
+#include "Shark/Core/Core.h"
+#include "Shark/Core/Window.h"
 
 #ifdef SK_PLATFORM_WINDOWS
 

@@ -19,15 +19,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Shark.h" />
-    <ClInclude Include="src\Shark\Application.h">
-      <Filter>Shark</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Shark\Core.h">
-      <Filter>Shark</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Shark\EntryPoint.h">
-      <Filter>Shark</Filter>
-    </ClInclude>
     <ClInclude Include="src\Shark\Event\Event.h">
       <Filter>Shark\Event</Filter>
     </ClInclude>
@@ -46,30 +37,39 @@
     <ClInclude Include="src\Shark\Layer\LayerStack.h">
       <Filter>Shark\Layer</Filter>
     </ClInclude>
-    <ClInclude Include="src\Shark\Log.h">
-      <Filter>Shark</Filter>
-    </ClInclude>
     <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h">
       <Filter>Shark\Platform\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="src\Shark\Window.h">
+    <ClInclude Include="src\skpch.h" />
+    <ClInclude Include="src\Shark\Core\Core.h">
       <Filter>Shark</Filter>
     </ClInclude>
-    <ClInclude Include="src\skpch.h" />
+    <ClInclude Include="src\Shark\Core\EntryPoint.h">
+      <Filter>Shark</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\Log.h">
+      <Filter>Shark</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\Application.h">
+      <Filter>Shark</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\Window.h">
+      <Filter>Shark</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Shark\Application.cpp">
-      <Filter>Shark</Filter>
-    </ClCompile>
     <ClCompile Include="src\Shark\Layer\LayerStack.cpp">
       <Filter>Shark\Layer</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Shark\Log.cpp">
-      <Filter>Shark</Filter>
     </ClCompile>
     <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp">
       <Filter>Shark\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\skpch.cpp" />
+    <ClCompile Include="src\Shark\Core\Log.cpp">
+      <Filter>Shark</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shark\Core\Application.cpp">
+      <Filter>Shark</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

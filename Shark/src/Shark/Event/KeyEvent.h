@@ -1,6 +1,6 @@
 #pragma once
 #include "skpch.h"
-#include "Shark/Core.h"
+#include "Shark/Core/Core.h"
 #include "Event.h"
 
 namespace Shark {
