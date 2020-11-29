@@ -27,3 +27,23 @@
 #endif
 
 #define SK_TYPE_PUN(type,x) *reinterpret_cast<type*>(&x)
+
+namespace Shark {
+	struct SHARK_API F32RGBA
+	{
+		union
+		{
+			struct { float r,g,b,a; };
+			float rgba[4];
+		};
+		F32RGBA( float r,float g,float b,float a = 1.0f )
+			: r( r ),g( g ),b( b ),a( a )
+		{}
+	};
+}
+
+#ifdef SK_PLATFORM_WINDOWS
+	#define SK_WINDOW_HANDLE HWND
+#else
+#error Shark only supports Windows
+#endif

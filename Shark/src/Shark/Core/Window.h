@@ -5,7 +5,7 @@
 
 namespace Shark {
 
-	struct WindowProps
+	struct SHARK_API WindowProps
 	{
 		int width;
 		int height;
@@ -21,7 +21,7 @@ namespace Shark {
 	public:
 		using EventCallbackFunc = std::function<void( Event& e )>;
 
-		virtual ~Window() {}
+		virtual ~Window() = default;
 
 		virtual void SetEventCallbackFunc( const EventCallbackFunc& callback ) = 0;
 
@@ -29,6 +29,7 @@ namespace Shark {
 
 		virtual inline int GetWidth() const = 0;
 		virtual inline int GetHeight() const = 0;
+		virtual inline SK_WINDOW_HANDLE GetWindowHandle() const = 0;
 
 		virtual inline bool IsFocused() const = 0;
 

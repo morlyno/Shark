@@ -8,4 +8,5 @@
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Layer/Layer.h"
 #include "Shark/Layer/LayerStack.h"
-
+#include "Shark/Core/Window.h"
+#include "Shark/Core/Renderer.h"

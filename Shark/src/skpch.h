@@ -47,5 +47,13 @@
 	#define NOIMAGE
 	#define NOTAPE
 	#define NOMINMAX
-#include <Windows.h>
+
+	#include <Windows.h>
+	#ifdef SK_RENDERER_DIRECTX11
+		#include <d3d11.h>
+		#include <d3dcompiler.h>
+		#include <wrl.h>
+		#include <DirectXMath.h>
+		#include <DirectXColors.h>
+	#endif
 #endif

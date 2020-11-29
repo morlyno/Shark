@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Window.h"
+#include "Renderer.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Layer/LayerStack.h"
 
@@ -25,10 +26,10 @@ namespace Shark {
 	private:
 		bool OnWindowClose( WindowCloseEvent& e );
 
-
 		bool running = true;
 		int exitCode = -1;
 		std::unique_ptr<Window> window;
+		std::unique_ptr<Renderer> renderer;
 		LayerStack layerStack;
 	};
 

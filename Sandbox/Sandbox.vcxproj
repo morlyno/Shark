@@ -58,7 +58,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>SK_PLATFORM_WINDOWS;SK_DEBUG;SK_ENABLE_ASSERT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SK_PLATFORM_WINDOWS;SK_RENDERER_DIRECTX11;SK_DEBUG;SK_ENABLE_ASSERT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\Shark\dependecies\spdlog\include;..\Shark\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
@@ -74,7 +74,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>SK_PLATFORM_WINDOWS;SK_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SK_PLATFORM_WINDOWS;SK_RENDERER_DIRECTX11;SK_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\Shark\dependecies\spdlog\include;..\Shark\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -91,15 +91,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\TestLayer.h" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shark\Shark.vcxproj">
       <Project>{1EA5170E-8AB9-3FBF-533B-E31EBF0E3CF0}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\TestLayer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

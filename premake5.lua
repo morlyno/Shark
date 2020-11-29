@@ -40,6 +40,7 @@ project "Shark"
 		defines
 		{
 			"SK_PLATFORM_WINDOWS",
+			"SK_RENDERER_DIRECTX11",
 			"SK_BUILD_DLL"
 		}
 
@@ -57,10 +58,7 @@ project "Shark"
 		symbols "On"
 		
 	filter "configurations:Release"
-		defines
-		{
-			"SK_RELEASE",
-		}
+		defines "SK_RELEASE"
 		optimize "On"
 
 project "Sandbox"
@@ -96,6 +94,7 @@ project "Sandbox"
 		defines
 		{
 			"SK_PLATFORM_WINDOWS",
+			"SK_RENDERER_DIRECTX11"
 		}
 
 	filter "configurations:Debug"

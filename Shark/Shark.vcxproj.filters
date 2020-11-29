@@ -4,6 +4,9 @@
     <Filter Include="Shark">
       <UniqueIdentifier>{1EA5170E-8AB9-3FBF-533B-E31EBF0E3CF0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shark\Core">
+      <UniqueIdentifier>{36AC1AA1-2264-5CEE-8B6B-354A7742F7DE}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Shark\Event">
       <UniqueIdentifier>{EF0498C4-5BBA-10BA-E4AE-0A91506307BE}</UniqueIdentifier>
     </Filter>
@@ -13,12 +16,33 @@
     <Filter Include="Shark\Platform">
       <UniqueIdentifier>{32836CBC-1E51-60C2-07E5-D0E8F3513C27}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shark\Platform\DirectX11">
+      <UniqueIdentifier>{764B8F80-6270-DE00-8BBB-C390773FDD1E}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Shark\Platform\Windows">
       <UniqueIdentifier>{6C3F9B5C-5839-C4AE-41A6-5ABF2D3F2A1B}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Shark.h" />
+    <ClInclude Include="src\Shark\Core\Application.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\Core.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\EntryPoint.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\Log.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\Renderer.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\Window.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Shark\Event\Event.h">
       <Filter>Shark\Event</Filter>
     </ClInclude>
@@ -37,39 +61,30 @@
     <ClInclude Include="src\Shark\Layer\LayerStack.h">
       <Filter>Shark\Layer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Shark\Platform\DirectX11\DirectXRenderer.h">
+      <Filter>Shark\Platform\DirectX11</Filter>
+    </ClInclude>
     <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h">
       <Filter>Shark\Platform\Windows</Filter>
     </ClInclude>
     <ClInclude Include="src\skpch.h" />
-    <ClInclude Include="src\Shark\Core\Core.h">
-      <Filter>Shark</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Shark\Core\EntryPoint.h">
-      <Filter>Shark</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Shark\Core\Log.h">
-      <Filter>Shark</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Shark\Core\Application.h">
-      <Filter>Shark</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Shark\Core\Window.h">
-      <Filter>Shark</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Shark\Core\Application.cpp">
+      <Filter>Shark\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shark\Core\Log.cpp">
+      <Filter>Shark\Core</Filter>
+    </ClCompile>
     <ClCompile Include="src\Shark\Layer\LayerStack.cpp">
       <Filter>Shark\Layer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shark\Platform\DirectX11\DirectXRenderer.cpp">
+      <Filter>Shark\Platform\DirectX11</Filter>
     </ClCompile>
     <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp">
       <Filter>Shark\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\skpch.cpp" />
-    <ClCompile Include="src\Shark\Core\Log.cpp">
-      <Filter>Shark</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Shark\Core\Application.cpp">
-      <Filter>Shark</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

@@ -11,6 +11,8 @@ namespace Shark {
 	{
 		window = std::unique_ptr<Window>( Window::Create() );
 		SK_CORE_INFO( "Window Init" );
+		renderer = std::unique_ptr<Renderer>( Renderer::Create( RendererProps( window.get() ) ) );
+		SK_CORE_INFO( "Renderer Init" );
 		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( OnEvent ) );
 		SK_CORE_INFO( "Window Event Callback Set" );
 	}
@@ -24,6 +26,8 @@ namespace Shark {
 		while ( running )
 		{
 			window->Process();
+			renderer->ClearBuffer( F32RGBA( 0.1f,0.3f,0.5f ) );
+			renderer->EndFrame();
 		}
 		return exitCode;
 	}
