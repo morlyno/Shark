@@ -11,7 +11,7 @@ public:
 		:
 		layer( new TestLayer() )
 	{
-		AddLayer( layer );
+		PushLayer( layer );
 	}
 
 	~Sandbox()

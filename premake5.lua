@@ -1,5 +1,6 @@
 workspace "Shark"
 	architecture "x64"
+	startproject "Sandbox"
 
 	configurations
 	{
@@ -11,8 +12,10 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 project "Shark"
 	location "Shark"
-	kind "SharedLib"
-	language "C++"
+	kind "StaticLib"
+	language "c++"
+	cppdialect "c++17"
+	staticruntime "on"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -33,38 +36,34 @@ project "Shark"
 	}
 
 	filter "system:windows"
-		cppdialect "c++17"
-		staticruntime "On"
 		systemversion "latest"
 
 		defines
 		{
-			"SK_PLATFORM_WINDOWS",
-			"SK_RENDERER_DIRECTX11",
 			"SK_BUILD_DLL"
 		}
 
-		postbuildcommands
+		links
 		{
-			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Sandbox")
+			"d3d11.lib"
 		}
 
 	filter "configurations:Debug"
-		defines
-		{
-			"SK_DEBUG",
-			"SK_ENABLE_ASSERT",
-		}
-		symbols "On"
+		defines "SK_DEBUG"
+		runtime "Debug"
+		symbols "on"
 		
 	filter "configurations:Release"
 		defines "SK_RELEASE"
-		optimize "On"
+		runtime "Release"
+		optimize "on"
 
 project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
-	language "C++"
+	language "c++"
+	cppdialect "c++17"
+	staticruntime "on"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -77,8 +76,8 @@ project "Sandbox"
 	
 	includedirs
 	{
-		"Shark/dependecies/spdlog/include/",
-		"Shark/src"
+		"Shark/src",
+		"Shark/dependecies/spdlog/include/"
 	}
 
 	links
@@ -87,24 +86,16 @@ project "Sandbox"
 	}
 	
 	filter "system:windows"
-		cppdialect "c++17"
-		staticruntime "On"
 		systemversion "latest"
 
-		defines
-		{
-			"SK_PLATFORM_WINDOWS",
-			"SK_RENDERER_DIRECTX11"
-		}
+		defines {}
 
 	filter "configurations:Debug"
-		defines
-		{
-			"SK_DEBUG",
-			"SK_ENABLE_ASSERT"
-		}
-		symbols "On"
+		defines "SK_DEBUG"
+		runtime "Debug"
+		symbols "on"
 		
 	filter "configurations:Release"
 		defines "SK_RELEASE"
-		optimize "On"
+		runtime "Release"
+		optimize "on"

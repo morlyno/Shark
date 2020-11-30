@@ -3,19 +3,22 @@
 #include "skpch.h"
 #include "Core.h"
 #include "Shark/Event/Event.h"
+#include "Shark/Utils/Color.h"
 
 namespace Shark {
 
-	struct SHARK_API RendererProps
+	struct RendererProps
 	{
-		const class Window* const pWnd;
+		int width;
+		int height;
+		void* pWindowHandle;
 
-		RendererProps( const class Window* const pWnd )
-			: pWnd( pWnd)
+		RendererProps( int width,int height,void* pWindowHandle )
+			: width( width ),height( height ),pWindowHandle( pWindowHandle)
 		{}
 	};
 
-	class SHARK_API Renderer
+	class Renderer
 	{
 	public:
 		using EventCallbackFunc = std::function<void( Event& e )>;
@@ -23,7 +26,7 @@ namespace Shark {
 		virtual ~Renderer() = default;
 
 		virtual void EndFrame() = 0;
-		virtual void ClearBuffer( const F32RGBA& color ) = 0;
+		virtual void ClearBuffer( const Color::F32RGBA& color ) = 0;
 
 		static Renderer* Create( const RendererProps& properties );
 	};

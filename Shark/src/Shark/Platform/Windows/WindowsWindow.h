@@ -7,7 +7,7 @@
 
 namespace Shark {
 
-	class SHARK_API WindowsWindow : public Window
+	class WindowsWindow : public Window
 	{
 	private:
 		class WindowClass
@@ -33,7 +33,7 @@ namespace Shark {
 
 		inline int GetWidth() const override { return data.width; }
 		inline int GetHeight() const override { return data.height; }
-		inline SK_WINDOW_HANDLE GetWindowHandle() const override { return data.hWnd; }
+		inline void* GetWindowHandle() const override { return data.hWnd; }
 
 		inline bool IsFocused() const override { return data.isFocused; }
 

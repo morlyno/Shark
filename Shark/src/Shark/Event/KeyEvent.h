@@ -5,7 +5,7 @@
 
 namespace Shark {
 
-	class SHARK_API KeyEvent : public Event
+	class KeyEvent : public Event
 	{
 	public:
 		unsigned char GetKeyCode() const { return KeyCode; }
@@ -28,7 +28,7 @@ namespace Shark {
 		unsigned char KeyCode;
 	};
 
-	class SHARK_API KeyPressedEvent : public KeyEvent
+	class KeyPressedEvent : public KeyEvent
 	{
 	public:
 		KeyPressedEvent( unsigned char KeyCode,unsigned int RepeatCount )
@@ -50,7 +50,7 @@ namespace Shark {
 		unsigned int RepeatCount;
 	};
 
-	class SHARK_API KeyReleasedEvent : public KeyEvent
+	class KeyReleasedEvent : public KeyEvent
 	{
 	public:
 		KeyReleasedEvent( unsigned char KeyCode )
@@ -60,7 +60,7 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( KeyReleased )
 	};
 
-	class SHARK_API KeyCharacterEvent : public KeyEvent
+	class KeyCharacterEvent : public KeyEvent
 	{
 	public:
 		KeyCharacterEvent( unsigned char Character )

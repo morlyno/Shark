@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	class SHARK_API Log
+	class Log
 	{
 	public:
 		static void Init();

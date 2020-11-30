@@ -2,20 +2,20 @@
 
 #include "Shark/Core/Core.h"
 #include "Shark/Core/Renderer.h"
+#include "Shark/Utils/Color.h"
 
 #ifdef SK_PLATFORM_WINDOWS
-#ifdef SK_RENDERER_DIRECTX11
 
 namespace Shark {
 
-	class SHARK_API DirectXRenderer : public Renderer
+	class DirectXRenderer : public Renderer
 	{
 	public:
 		DirectXRenderer( const RendererProps& props );
 		~DirectXRenderer();
 
 		void EndFrame() override;
-		void ClearBuffer( const F32RGBA& color ) override;
+		void ClearBuffer( const Color::F32RGBA& color ) override;
 	private:
 		struct RendererData
 		{
@@ -33,9 +33,4 @@ namespace Shark {
 
 }
 
-#else
-#error DirectX11 is not enabled
-#endif
-#else
-#error Windows is not enabled
 #endif

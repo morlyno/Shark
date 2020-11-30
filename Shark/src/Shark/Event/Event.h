@@ -31,7 +31,7 @@ namespace Shark {
 	#define SK_GET_CATEGORY_FLAGS_FUNC(category)	static unsigned int GetStaticEventCategoryFlags() { return category; } \
 													unsigned int GetEventCategoryFlags() const override { return category; }
 
-	class SHARK_API Event
+	class Event
 	{
 		friend class EventDispacher;
 	public:
@@ -51,7 +51,7 @@ namespace Shark {
 		bool Handled = false;
 	};
 
-	class SHARK_API EventDispacher
+	class EventDispacher
 	{
 		template<typename T>
 		using EventFunc = std::function<bool( T& )>;

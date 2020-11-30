@@ -4,7 +4,7 @@
 
 namespace Shark {
 
-	class SHARK_API WindowEvent : public Event
+	class WindowEvent : public Event
 	{
 	public:
 		static EventTypes GetStaticType() { return EventTypes::WindowEventBase; }
@@ -12,7 +12,7 @@ namespace Shark {
 		SK_GET_CATEGORY_FLAGS_FUNC( EventCategoryWindow )
 	};
 
-	class SHARK_API WindowCloseEvent : public WindowEvent
+	class WindowCloseEvent : public WindowEvent
 	{
 	public:
 		WindowCloseEvent( int ExitCode )
@@ -33,7 +33,7 @@ namespace Shark {
 		int ExitCode;
 	};
 
-	class SHARK_API WindowResizeEvent : public WindowEvent
+	class WindowResizeEvent : public WindowEvent
 	{
 	public:
 		WindowResizeEvent( unsigned int width,unsigned int height )
@@ -57,7 +57,7 @@ namespace Shark {
 		unsigned int height;
 	};
 
-	class SHARK_API WindowMoveEvent : public WindowEvent
+	class WindowMoveEvent : public WindowEvent
 	{
 	public:
 		WindowMoveEvent( int x,int y )
@@ -81,7 +81,7 @@ namespace Shark {
 		int y;
 	};
 
-	class SHARK_API WindowFocusEvent : public WindowEvent
+	class WindowFocusEvent : public WindowEvent
 	{
 	public:
 		WindowFocusEvent( int x,int y )
@@ -105,13 +105,13 @@ namespace Shark {
 		int y;
 	};
 
-	class SHARK_API WindowLostFocusEvent : public WindowEvent
+	class WindowLostFocusEvent : public WindowEvent
 	{
 	public:
 		SK_EVENT_FUNCTIONS( WindowLostFocus )
 	};
 
-	class SHARK_API WindowMaximizedEvent : public WindowEvent
+	class WindowMaximizedEvent : public WindowEvent
 	{
 	public:
 		WindowMaximizedEvent( unsigned int width,unsigned int height )
@@ -135,7 +135,7 @@ namespace Shark {
 		unsigned int height;
 	};
 
-	class SHARK_API WindowMinimizedEvent : public WindowEvent
+	class WindowMinimizedEvent : public WindowEvent
 	{
 	public:
 		SK_EVENT_FUNCTIONS( WindowMinimized )

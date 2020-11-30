@@ -8,7 +8,7 @@
 
 namespace Shark {
 
-	class SHARK_API Application
+	class Application
 	{
 	public:
 		Application();
@@ -18,13 +18,16 @@ namespace Shark {
 
 		void OnEvent( Event& e );
 
-		void AddLayer( Layer* layer );
-		void RemoveLayer( Layer* layer );
-		void AddOverlay( Layer* layer );
-		void RemoveOverlay( Layer* layer );
+		void PushLayer( Layer* layer );
+		void PopLayer( Layer* layer );
+		void PushOverlay( Layer* layer );
+		void PopOverlay( Layer* layer );
 
 	private:
 		bool OnWindowClose( WindowCloseEvent& e );
+
+	private:
+		static Application* instance;
 
 		bool running = true;
 		int exitCode = -1;

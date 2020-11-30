@@ -14,18 +14,18 @@ namespace Shark {
 				SK_CORE_DEBUG( "l [{0}] was nullptr",(uint64_t)l );
 	}
 
-	void LayerStack::AddLayer( Layer* layer )
+	void LayerStack::PushLayer( Layer* layer )
 	{
 		Layers.emplace( Layers.begin() + LayerStackIndex,layer );
 		++LayerStackIndex;
 	}
 
-	void LayerStack::AddOverlay( Layer* layer )
+	void LayerStack::PushOverlay( Layer* layer )
 	{
 		Layers.emplace_back( layer );
 	}
 
-	void LayerStack::RemoveLayer( Layer* layer )
+	void LayerStack::PopLayer( Layer* layer )
 	{
 		auto it = std::find( Layers.begin(),Layers.end(),layer );
 		if ( it != Layers.end() )
@@ -35,7 +35,7 @@ namespace Shark {
 		}
 	}
 
-	void LayerStack::RemoveOverlay( Layer* layer )
+	void LayerStack::PopOverlay( Layer* layer )
 	{
 		auto it = std::find( Layers.begin(),Layers.end(),layer );
 		if ( it != Layers.end() )

@@ -22,6 +22,9 @@
     <Filter Include="Shark\Platform\Windows">
       <UniqueIdentifier>{6C3F9B5C-5839-C4AE-41A6-5ABF2D3F2A1B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shark\Utils">
+      <UniqueIdentifier>{FE84B8C5-6A3A-31BB-F32E-2B925FE327BF}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Shark.h" />
@@ -35,6 +38,9 @@
       <Filter>Shark\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Shark\Core\Log.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\PlatformDetection.h">
       <Filter>Shark\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Shark\Core\Renderer.h">
@@ -66,6 +72,9 @@
     </ClInclude>
     <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h">
       <Filter>Shark\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Utils\Color.h">
+      <Filter>Shark\Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\skpch.h" />
   </ItemGroup>

@@ -4,7 +4,7 @@
 
 namespace Shark {
 
-	class SHARK_API MouseEvent : public Event
+	class MouseEvent : public Event
 	{
 	public:
 		int GetX() const { return x; }
@@ -30,7 +30,7 @@ namespace Shark {
 		int y;
 	};
 
-	class SHARK_API MouseMoveEvent : public MouseEvent
+	class MouseMoveEvent : public MouseEvent
 	{
 	public:
 		MouseMoveEvent( int x,int y )
@@ -40,7 +40,7 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( MouseMove )
 	};
 
-	class SHARK_API MouseLeftPressedEvent : public MouseEvent
+	class MouseLeftPressedEvent : public MouseEvent
 	{
 	public:
 		MouseLeftPressedEvent( int x,int y )
@@ -50,7 +50,7 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( MousButtonPressed )
 	};
 
-	class SHARK_API MouseLeftReleasedEvent : public MouseEvent
+	class MouseLeftReleasedEvent : public MouseEvent
 	{
 	public:
 		MouseLeftReleasedEvent( int x,int y )
@@ -60,7 +60,7 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( MouseButtonReleasd )
 	};
 
-	class SHARK_API MouseRightPressedEvent : public MouseEvent
+	class MouseRightPressedEvent : public MouseEvent
 	{
 	public:
 		MouseRightPressedEvent( int x,int y )
@@ -70,7 +70,7 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( MousButtonPressed )
 	};
 
-	class SHARK_API MouseRightReleasedEvent : public MouseEvent
+	class MouseRightReleasedEvent : public MouseEvent
 	{
 	public:
 		MouseRightReleasedEvent( int x,int y )
@@ -80,7 +80,7 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( MouseButtonReleasd )
 	};
 
-	class SHARK_API MouseScrolledEvent : public MouseEvent
+	class MouseScrolledEvent : public MouseEvent
 	{
 	public:
 		MouseScrolledEvent( int x,int y,int delta )

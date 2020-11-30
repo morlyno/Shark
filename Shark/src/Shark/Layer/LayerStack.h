@@ -5,17 +5,17 @@
 
 namespace Shark {
 
-	class SHARK_API LayerStack
+	class LayerStack
 	{
 		using Iterator = std::vector<Layer*>::iterator;
 	public:
 		LayerStack() = default;
 		~LayerStack();
 
-		void AddLayer( Layer* layer );
-		void AddOverlay( Layer* layer );
-		void RemoveLayer( Layer* layer );
-		void RemoveOverlay( Layer* layer );
+		void PushLayer( Layer* layer );
+		void PushOverlay( Layer* layer );
+		void PopLayer( Layer* layer );
+		void PopOverlay( Layer* layer );
 
 		Iterator begin() { return Layers.begin(); }
 		Iterator end() { return Layers.end(); }

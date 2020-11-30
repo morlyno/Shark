@@ -1,19 +1,19 @@
 #pragma once
 
-#ifdef SK_PLATFORM_WINDOWS
-	#ifdef SK_BUILD_DLL
-		#define SHARK_API __declspec(dllexport)
-	#else
-		#define SHARK_API __declspec(dllimport)
-	#endif
-#else
-	#error Shark only supports Windows
-#endif
+#include "PlatformDetection.h"
 
 #define SK_BIT(x) (1 << x)
 
+#define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
+
+#ifdef SK_DEBUG
+	#define SK_ENABLE_ASSERT
+#endif
+
 #ifdef SK_ENABLE_ASSERT
-	#define SK_ASSERT(x) if(!(x)) __debugbreak()
+	#ifdef SK_PLATFORM_WINDOWS
+		#define SK_ASSERT(x) if(!(x)) __debugbreak()
+	#endif
 #else
 	#define SK_ASSERT(...)
 #endif
@@ -27,23 +27,3 @@
 #endif
 
 #define SK_TYPE_PUN(type,x) *reinterpret_cast<type*>(&x)
-
-namespace Shark {
-	struct SHARK_API F32RGBA
-	{
-		union
-		{
-			struct { float r,g,b,a; };
-			float rgba[4];
-		};
-		F32RGBA( float r,float g,float b,float a = 1.0f )
-			: r( r ),g( g ),b( b ),a( a )
-		{}
-	};
-}
-
-#ifdef SK_PLATFORM_WINDOWS
-	#define SK_WINDOW_HANDLE HWND
-#else
-#error Shark only supports Windows
-#endif

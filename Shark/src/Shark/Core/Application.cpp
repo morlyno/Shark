@@ -5,15 +5,18 @@
 
 namespace Shark {
 
-#define SK_BIND_EVENT_FN(x) std::bind( &Application::x,this,std::placeholders::_1 )
+	Application* Application::instance = nullptr;
 
 	Application::Application()
 	{
+		SK_ASSERT( !instance );
+		instance = this;
+
 		window = std::unique_ptr<Window>( Window::Create() );
 		SK_CORE_INFO( "Window Init" );
-		renderer = std::unique_ptr<Renderer>( Renderer::Create( RendererProps( window.get() ) ) );
+		renderer = std::unique_ptr<Renderer>( Renderer::Create( RendererProps( window->GetWidth(),window->GetHeight(),window->GetWindowHandle() ) ) );
 		SK_CORE_INFO( "Renderer Init" );
-		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( OnEvent ) );
+		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
 		SK_CORE_INFO( "Window Event Callback Set" );
 	}
 
@@ -26,7 +29,7 @@ namespace Shark {
 		while ( running )
 		{
 			window->Process();
-			renderer->ClearBuffer( F32RGBA( 0.1f,0.3f,0.5f ) );
+			renderer->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
 			renderer->EndFrame();
 		}
 		return exitCode;
@@ -35,27 +38,31 @@ namespace Shark {
 	void Application::OnEvent( Event& e )
 	{
 		EventDispacher dispacher( e );
-		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( OnWindowClose ) );
+		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( Application::OnWindowClose ) );
 	}
 
-	void Application::AddLayer( Layer* layer )
+	void Application::PushLayer( Layer* layer )
 	{
-		layerStack.AddLayer( layer );
+		layerStack.PushLayer( layer );
+		layer->OnAttach();
 	}
 
-	void Application::RemoveLayer( Layer* layer )
+	void Application::PopLayer( Layer* layer )
 	{
-		layerStack.RemoveLayer( layer );
+		layerStack.PopLayer( layer );
+		layer->OnDetach();
 	}
 
-	void Application::AddOverlay( Layer* layer )
+	void Application::PushOverlay( Layer* layer )
 	{
-		layerStack.AddOverlay( layer );
+		layerStack.PushOverlay( layer );
+		layer->OnAttach();
 	}
 
-	void Application::RemoveOverlay( Layer* layer )
+	void Application::PopOverlay( Layer* layer )
 	{
-		layerStack.RemoveOverlay( layer );
+		layerStack.PopOverlay( layer );
+		layer->OnDetach();
 	}
 
 	bool Application::OnWindowClose( WindowCloseEvent& e )

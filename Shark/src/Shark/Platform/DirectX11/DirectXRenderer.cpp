@@ -2,13 +2,6 @@
 #include "DirectXRenderer.h"
 #include "Shark/Core/Window.h"
 
-#ifdef SK_PLATFORM_WINDOWS
-	#ifdef SK_RENDERER_DIRECTX11
-		#pragma comment(lib,"d3d11.lib")
-		#pragma comment(lib,"D3DCompiler.lib")
-	#endif
-#endif
-
 namespace Shark {
 
 	Renderer* Renderer::Create( const RendererProps& properties )
@@ -18,8 +11,8 @@ namespace Shark {
 
 	DirectXRenderer::DirectXRenderer( const RendererProps& props )
 	{
-		data.width = props.pWnd->GetWidth();
-		data.height = props.pWnd->GetHeight();
+		data.width = props.width;
+		data.height = props.height;
 
 		DXGI_SWAP_CHAIN_DESC scd = { 0 };
 		scd.BufferDesc.Width = data.width;
@@ -33,7 +26,7 @@ namespace Shark {
 		scd.SampleDesc.Quality = 0u;
 		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		scd.BufferCount = 1u;
-		scd.OutputWindow = props.pWnd->GetWindowHandle();
+		scd.OutputWindow = (HWND)props.pWindowHandle;
 		scd.Windowed = TRUE;
 		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		scd.Flags = 0u;
@@ -86,7 +79,7 @@ namespace Shark {
 		data.pSwapChain->Present( 1u,0u );
 	}
 
-	void DirectXRenderer::ClearBuffer( const F32RGBA& color )
+	void DirectXRenderer::ClearBuffer( const Color::F32RGBA& color )
 	{
 		data.pContex->ClearRenderTargetView( data.pRenderTargetView.Get(),color.rgba );
 	}
