@@ -18,11 +18,13 @@ namespace Shark {
 	{
 		Layers.emplace( Layers.begin() + LayerStackIndex,layer );
 		++LayerStackIndex;
+		layer->OnAttach();
 	}
 
 	void LayerStack::PushOverlay( Layer* layer )
 	{
 		Layers.emplace_back( layer );
+		layer->OnAttach();
 	}
 
 	void LayerStack::PopLayer( Layer* layer )
@@ -32,6 +34,7 @@ namespace Shark {
 		{
 			Layers.erase( it );
 			--LayerStackIndex;
+			layer->OnDetach();
 		}
 	}
 
@@ -41,6 +44,7 @@ namespace Shark {
 		if ( it != Layers.end() )
 		{
 			Layers.erase( it );
+			layer->OnDetach();
 		}
 	}
 

@@ -10,6 +10,12 @@ workspace "Shark"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+includeDir = {}
+includeDir["spdlog"] = "Shark/dependencies/spdlog/include"
+includeDir["ImGui"] = "Shark/dependencies/ImGui"
+
+include "Shark/dependencies"
+
 project "Shark"
 	location "Shark"
 	kind "StaticLib"
@@ -32,7 +38,9 @@ project "Shark"
 	includedirs
 	{
 		"Shark/src",
-		"Shark/dependecies/spdlog/include/"
+		"%{includeDir.spdlog}",
+		"%{includeDir.ImGui}"
+
 	}
 
 	filter "system:windows"
@@ -45,7 +53,8 @@ project "Shark"
 
 		links
 		{
-			"d3d11.lib"
+			"d3d11.lib",
+			"ImGui"
 		}
 
 	filter "configurations:Debug"
@@ -77,7 +86,8 @@ project "Sandbox"
 	includedirs
 	{
 		"Shark/src",
-		"Shark/dependecies/spdlog/include/"
+		"%{includeDir.spdlog}",
+		"%{includeDir.ImGui}"
 	}
 
 	links

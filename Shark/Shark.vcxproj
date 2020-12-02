@@ -58,7 +58,7 @@
       <PrecompiledHeaderFile>skpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>SK_BUILD_DLL;SK_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;dependecies\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;dependencies\spdlog\include;dependencies\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -78,7 +78,7 @@
       <PrecompiledHeaderFile>skpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>SK_BUILD_DLL;SK_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;dependecies\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;dependencies\spdlog\include;dependencies\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -109,6 +109,7 @@
     <ClInclude Include="src\Shark\Event\KeyEvent.h" />
     <ClInclude Include="src\Shark\Event\MouseEvent.h" />
     <ClInclude Include="src\Shark\Event\WindowEvent.h" />
+    <ClInclude Include="src\Shark\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Shark\Layer\Layer.h" />
     <ClInclude Include="src\Shark\Layer\LayerStack.h" />
     <ClInclude Include="src\Shark\Platform\DirectX11\DirectXRenderer.h" />
@@ -119,6 +120,8 @@
   <ItemGroup>
     <ClCompile Include="src\Shark\Core\Application.cpp" />
     <ClCompile Include="src\Shark\Core\Log.cpp" />
+    <ClCompile Include="src\Shark\ImGui\ImGuiBuild.cpp" />
+    <ClCompile Include="src\Shark\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Shark\Layer\LayerStack.cpp" />
     <ClCompile Include="src\Shark\Platform\DirectX11\DirectXRenderer.cpp" />
     <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp" />
@@ -126,7 +129,12 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="dependencies\ImGui\ImGui.vcxproj">
+      <Project>{C0FF640D-2C14-8DBE-F595-301E616989EF}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-</Project>
+</Project> 

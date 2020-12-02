@@ -1,6 +1,6 @@
-[submodule "Shark/dependencies/ImGui"]
-	path = Shark/dependencies/ImGui
-	url = https://github.com/ocornut/imgui
 [submodule "Shark/dependencies/spdlog"]
 	path = Shark/dependencies/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "Shark/dependencies/ImGui"]
+	path = Shark/dependencies/ImGui
+	url = https://github.com/ocornut/imgui

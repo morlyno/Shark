@@ -18,6 +18,9 @@ namespace Shark {
 		SK_CORE_INFO( "Renderer Init" );
 		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
 		SK_CORE_INFO( "Window Event Callback Set" );
+		pImGuiLayer = new ImGuiLayer();
+		PushLayer( pImGuiLayer );
+		SK_CORE_INFO( "ImGui Init" );
 	}
 
 	Application::~Application()
@@ -30,6 +33,15 @@ namespace Shark {
 		{
 			window->Process();
 			renderer->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
+
+			for ( auto layer : layerStack )
+				layer->OnUpdate();
+
+			pImGuiLayer->Begin();
+			for ( auto layer : layerStack )
+				layer->OnImGuiRender();
+			pImGuiLayer->End();
+
 			renderer->EndFrame();
 		}
 		return exitCode;

@@ -20,7 +20,7 @@ namespace Shark {
 		virtual void OnUpdate() {};
 		virtual void OnEvent( Event& e ) {};
 
-		virtual void OnRender() {};
+		virtual void OnImGuiRender() {};
 
 		inline std::string GetName() const { return LayerName; }
 	protected:

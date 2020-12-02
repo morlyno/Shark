@@ -43,7 +43,7 @@ namespace Shark {
 			&data.pSwapChain,
 			&data.pDevice,
 			nullptr,
-			&data.pContex
+			&data.pContext
 		);
 
 		Microsoft::WRL::ComPtr<ID3D11Resource> pBackBuffer;
@@ -54,7 +54,7 @@ namespace Shark {
 			&data.pRenderTargetView
 		);
 
-		data.pContex->OMSetRenderTargets(
+		data.pContext->OMSetRenderTargets(
 			1u,
 			data.pRenderTargetView.GetAddressOf(),
 			nullptr
@@ -67,7 +67,7 @@ namespace Shark {
 		vp.Height = (float)data.height;
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
-		data.pContex->RSSetViewports( 1u,&vp );
+		data.pContext->RSSetViewports( 1u,&vp );
 	}
 
 	DirectXRenderer::~DirectXRenderer()
@@ -81,7 +81,7 @@ namespace Shark {
 
 	void DirectXRenderer::ClearBuffer( const Color::F32RGBA& color )
 	{
-		data.pContex->ClearRenderTargetView( data.pRenderTargetView.Get(),color.rgba );
+		data.pContext->ClearRenderTargetView( data.pRenderTargetView.Get(),color.rgba );
 	}
 
 }

@@ -16,6 +16,9 @@ namespace Shark {
 
 		void EndFrame() override;
 		void ClearBuffer( const Color::F32RGBA& color ) override;
+
+		inline ID3D11Device* GetDevice() { return data.pDevice.Get(); }
+		inline ID3D11DeviceContext* GetContext() { return data.pContext.Get(); }
 	private:
 		struct RendererData
 		{
@@ -24,7 +27,7 @@ namespace Shark {
 
 			Microsoft::WRL::ComPtr<IDXGISwapChain> pSwapChain;
 			Microsoft::WRL::ComPtr<ID3D11Device> pDevice;
-			Microsoft::WRL::ComPtr<ID3D11DeviceContext> pContex;
+			Microsoft::WRL::ComPtr<ID3D11DeviceContext> pContext;
 			Microsoft::WRL::ComPtr<ID3D11RenderTargetView> pRenderTargetView;
 		};
 

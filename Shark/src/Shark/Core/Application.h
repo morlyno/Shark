@@ -5,6 +5,7 @@
 #include "Renderer.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Layer/LayerStack.h"
+#include "Shark/ImGui/ImGuiLayer.h"
 
 namespace Shark {
 
@@ -23,6 +24,9 @@ namespace Shark {
 		void PushOverlay( Layer* layer );
 		void PopOverlay( Layer* layer );
 
+		static inline Application* Get() { return instance; }
+		inline Window* GetWindow() { return window.get(); }
+		inline Renderer* GetRenderer() { return renderer.get(); }
 	private:
 		bool OnWindowClose( WindowCloseEvent& e );
 
@@ -33,6 +37,7 @@ namespace Shark {
 		int exitCode = -1;
 		std::unique_ptr<Window> window;
 		std::unique_ptr<Renderer> renderer;
+		ImGuiLayer* pImGuiLayer;
 		LayerStack layerStack;
 	};
 

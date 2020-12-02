@@ -10,6 +10,9 @@
     <Filter Include="Shark\Event">
       <UniqueIdentifier>{EF0498C4-5BBA-10BA-E4AE-0A91506307BE}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shark\ImGui">
+      <UniqueIdentifier>{C8F8DAC4-34AE-53BA-BDA2-4D9129574ABE}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Shark\Layer">
       <UniqueIdentifier>{6A800BC5-D635-84BA-5F2A-7E91CBDE7ABE}</UniqueIdentifier>
     </Filter>
@@ -61,6 +64,9 @@
     <ClInclude Include="src\Shark\Event\WindowEvent.h">
       <Filter>Shark\Event</Filter>
     </ClInclude>
+    <ClInclude Include="src\Shark\ImGui\ImGuiLayer.h">
+      <Filter>Shark\ImGui</Filter>
+    </ClInclude>
     <ClInclude Include="src\Shark\Layer\Layer.h">
       <Filter>Shark\Layer</Filter>
     </ClInclude>
@@ -84,6 +90,12 @@
     </ClCompile>
     <ClCompile Include="src\Shark\Core\Log.cpp">
       <Filter>Shark\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shark\ImGui\ImGuiBuild.cpp">
+      <Filter>Shark\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shark\ImGui\ImGuiLayer.cpp">
+      <Filter>Shark\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="src\Shark\Layer\LayerStack.cpp">
       <Filter>Shark\Layer</Filter>

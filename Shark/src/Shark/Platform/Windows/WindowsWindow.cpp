@@ -5,6 +5,11 @@
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/KeyEvent.h"
 
+#ifndef SK_DISABLE_IMGUI_WNDPROCHANDLER
+#include <backends/imgui_impl_win32.h>
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam );
+#endif
+
 namespace Shark {
 
 	WindowsWindow::WindowClass WindowsWindow::WindowClass::wndClass;
@@ -111,9 +116,12 @@ namespace Shark {
 		return pWindow->HandleMsg( hWnd,uMsg,wParam,lParam );
 	}
 
-	LRESULT __stdcall WindowsWindow::HandleMsg( HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam )
+	LRESULT __stdcall WindowsWindow::HandleMsg( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam )
 	{
-		switch ( uMsg )
+#ifndef SK_DISABLE_IMGUI_WNDPROCHANDLER
+		ImGui_ImplWin32_WndProcHandler( hWnd,msg,wParam,lParam );
+#endif
+		switch ( msg )
 		{
 			case WM_DESTROY:
 			{
@@ -241,7 +249,7 @@ namespace Shark {
 			}
 		}
 
-		return DefWindowProc( hWnd,uMsg,wParam,lParam );
+		return DefWindowProc( hWnd,msg,wParam,lParam );
 	}
 
 }
