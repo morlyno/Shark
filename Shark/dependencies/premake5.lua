@@ -20,10 +20,6 @@ project "ImGui"
 		"%{prj.name}/imstb_textedit.h",
 		"%{prj.name}/imstb_truetype.h",
 		"%{prj.name}/imgui_demo.cpp"
-		--"%{prj.name}/backends/imgui_impl_win32.h",
-		--"%{prj.name}/backends/imgui_impl_win32.cpp",
-		--"%{prj.name}/backends/imgui_impl_dx11.h",
-		--"%{prj.name}/backends/imgui_impl_dx11.cpp"
 	}
 	
 	filter "system:windows"

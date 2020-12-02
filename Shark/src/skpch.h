@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <string>
 #include <sstream>
+#include <bitset>
 
 
 #ifdef SK_PLATFORM_WINDOWS

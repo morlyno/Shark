@@ -101,7 +101,10 @@
     <ClInclude Include="src\Shark\Core\Application.h" />
     <ClInclude Include="src\Shark\Core\Core.h" />
     <ClInclude Include="src\Shark\Core\EntryPoint.h" />
+    <ClInclude Include="src\Shark\Core\Input.h" />
+    <ClInclude Include="src\Shark\Core\KeyCodes.h" />
     <ClInclude Include="src\Shark\Core\Log.h" />
+    <ClInclude Include="src\Shark\Core\MouseCodes.h" />
     <ClInclude Include="src\Shark\Core\PlatformDetection.h" />
     <ClInclude Include="src\Shark\Core\Renderer.h" />
     <ClInclude Include="src\Shark\Core\Window.h" />
@@ -119,6 +122,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Shark\Core\Application.cpp" />
+    <ClCompile Include="src\Shark\Core\Input.cpp" />
     <ClCompile Include="src\Shark\Core\Log.cpp" />
     <ClCompile Include="src\Shark\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\Shark\ImGui\ImGuiLayer.cpp" />
@@ -137,4 +141,4 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-</Project> 
+</Project>

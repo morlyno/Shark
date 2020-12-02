@@ -1,8 +1,13 @@
 # directories
-.vs/
-bin/
-bin-int/
+**/bin/
+**/bin-int/
 
 # files
-*.user
 imgui.ini
+
+# Visual Studios files
+.vs/
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user

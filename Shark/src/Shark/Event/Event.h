@@ -10,7 +10,7 @@ namespace Shark {
 	{
 		None = 0,
 		WindowClose,WindowResize,WindowMove,WindowFocus,WindowLostFocus,WindowMinimized,WindowMaximized,WindowEventBase,
-		MouseMove,MousButtonPressed,MouseButtonReleasd,MouseScrolled,MouseEventBase,
+		MouseMove,MouseButtonPressed,MouseButtonReleasd,MouseScrolled,MouseEventBase,
 		KeyPressed,KeyReleased,KeyCharacter,KeyEventBase
 	};
 

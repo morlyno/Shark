@@ -1,7 +1,9 @@
 #include "skpch.h"
 #include "Application.h"
+
 #include "Shark/Core/Log.h"
 #include "Shark/Event/KeyEvent.h"
+#include "Shark/Core/Input.h"
 
 namespace Shark {
 
@@ -43,12 +45,22 @@ namespace Shark {
 			pImGuiLayer->End();
 
 			renderer->EndFrame();
+			auto[x,y] = MouseInput::GetPos();
+			SK_CORE_TRACE( "{0},{1}",x,y );
+			if ( KeyInput::KeyPressed( Key::F ) )
+				SK_CORE_TRACE( "F is Pressed" );
+			if ( KeyInput::KeyPressed( Key::F1 ) )
+				SK_CORE_TRACE( "F1 is Pressed" );
 		}
 		return exitCode;
 	}
 
 	void Application::OnEvent( Event& e )
 	{
+		if ( e.IsInCategory( EventCategoryMouse ) )
+			MouseInput::OnCaptureInputs( static_cast<MouseEvent&>( e ) );
+		else if ( e.IsInCategory( EventCategoryKeyboard ) )
+			KeyInput::OnCaptureInputs( static_cast<KeyEvent&>( e ) );
 		EventDispacher dispacher( e );
 		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( Application::OnWindowClose ) );
 	}

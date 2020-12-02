@@ -2,18 +2,19 @@
 #include "skpch.h"
 #include "Shark/Core/Core.h"
 #include "Event.h"
+#include "Shark/Core/KeyCodes.h"
 
 namespace Shark {
 
 	class KeyEvent : public Event
 	{
 	public:
-		unsigned char GetKeyCode() const { return KeyCode; }
+		KeyCode GetKeyCode() const { return keycode; }
 
 		virtual std::string ToString() const override
 		{
 			std::ostringstream oss;
-			oss << GetName() << " " << KeyCode;
+			oss << GetName() << " " << keycode;
 			return oss.str();
 		}
 
@@ -21,19 +22,19 @@ namespace Shark {
 
 		SK_GET_CATEGORY_FLAGS_FUNC( EventCategoryInput | EventCategoryKeyboard )
 	protected:
-		KeyEvent( unsigned char KeyCode )
+		KeyEvent( KeyCode keycode )
 			:
-			KeyCode( KeyCode )
+			keycode( keycode )
 		{}
-		unsigned char KeyCode;
+		KeyCode keycode;
 	};
 
 	class KeyPressedEvent : public KeyEvent
 	{
 	public:
-		KeyPressedEvent( unsigned char KeyCode,unsigned int RepeatCount )
+		KeyPressedEvent( KeyCode keycode,unsigned int RepeatCount )
 			:
-			KeyEvent( KeyCode ),
+			KeyEvent( keycode ),
 			RepeatCount( RepeatCount )
 		{}
 		unsigned int GetRepeatCount() const { return RepeatCount; }
@@ -41,7 +42,7 @@ namespace Shark {
 		std::string ToString() const override
 		{
 			std::ostringstream oss;
-			oss << GetName() << " " << KeyCode << " " << RepeatCount;
+			oss << GetName() << " " << keycode << " " << RepeatCount;
 			return oss.str();
 		}
 
@@ -53,9 +54,9 @@ namespace Shark {
 	class KeyReleasedEvent : public KeyEvent
 	{
 	public:
-		KeyReleasedEvent( unsigned char KeyCode )
+		KeyReleasedEvent( KeyCode keycode )
 			:
-			KeyEvent( KeyCode )
+			KeyEvent( keycode )
 		{}
 		SK_EVENT_FUNCTIONS( KeyReleased )
 	};
@@ -63,7 +64,7 @@ namespace Shark {
 	class KeyCharacterEvent : public KeyEvent
 	{
 	public:
-		KeyCharacterEvent( unsigned char Character )
+		KeyCharacterEvent( KeyCode Character )
 			:
 			KeyEvent( Character )
 		{}

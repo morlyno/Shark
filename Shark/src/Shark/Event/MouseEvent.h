@@ -1,6 +1,7 @@
 #pragma once
 #include "Shark/Core/Core.h"
 #include "Event.h"
+#include "Shark/Core/MouseCodes.h"
 
 namespace Shark {
 
@@ -40,44 +41,48 @@ namespace Shark {
 		SK_EVENT_FUNCTIONS( MouseMove )
 	};
 
-	class MouseLeftPressedEvent : public MouseEvent
+	class MousePressedEvent : public MouseEvent
 	{
 	public:
-		MouseLeftPressedEvent( int x,int y )
+		MousePressedEvent( int x,int y,MouseCode button )
 			:
-			MouseEvent( x,y )
+			MouseEvent( x,y ),
+			button( button )
 		{}
-		SK_EVENT_FUNCTIONS( MousButtonPressed )
+		inline int GetButton() { return button; }
+
+		std::string ToString() const override
+		{
+			std::ostringstream oss;
+			oss << GetName() << " " << x << ", " << y << " Button: " << button;
+			return oss.str();
+		}
+
+		SK_EVENT_FUNCTIONS( MouseButtonPressed )
+	private:
+		MouseCode button;
 	};
 
-	class MouseLeftReleasedEvent : public MouseEvent
+	class MouseReleasedEvent : public MouseEvent
 	{
 	public:
-		MouseLeftReleasedEvent( int x,int y )
+		MouseReleasedEvent( int x,int y,MouseCode button )
 			:
-			MouseEvent( x,y )
+			MouseEvent( x,y ),
+			button( button )
 		{}
+		inline int GetButton() { return button; }
+
+		std::string ToString() const override
+		{
+			std::ostringstream oss;
+			oss << GetName() << " " << x << ", " << y << " Button: " << button;
+			return oss.str();
+		}
+
 		SK_EVENT_FUNCTIONS( MouseButtonReleasd )
-	};
-
-	class MouseRightPressedEvent : public MouseEvent
-	{
-	public:
-		MouseRightPressedEvent( int x,int y )
-			:
-			MouseEvent( x,y )
-		{}
-		SK_EVENT_FUNCTIONS( MousButtonPressed )
-	};
-
-	class MouseRightReleasedEvent : public MouseEvent
-	{
-	public:
-		MouseRightReleasedEvent( int x,int y )
-			:
-			MouseEvent( x,y )
-		{}
-		SK_EVENT_FUNCTIONS( MouseButtonReleasd )
+	private:
+		MouseCode button;
 	};
 
 	class MouseScrolledEvent : public MouseEvent
@@ -89,7 +94,7 @@ namespace Shark {
 			delta( delta )
 		{}
 
-		int GetDelta() const { return delta; }
+		inline int GetDelta() const { return delta; }
 
 		std::string ToString() const override
 		{

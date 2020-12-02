@@ -4,6 +4,8 @@
 #include "Shark/Event/MouseEvent.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/KeyEvent.h"
+#include "Shark/Core/KeyCodes.h"
+#include "Shark/Core/MouseCodes.h"
 
 #ifndef SK_DISABLE_IMGUI_WNDPROCHANDLER
 #include <backends/imgui_impl_win32.h>
@@ -201,25 +203,25 @@ namespace Shark {
 			case WM_LBUTTONDOWN:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				data.callbackfunc( MouseLeftPressedEvent( pt.x,pt.y ) );
+				data.callbackfunc( MousePressedEvent( pt.x,pt.y,Mouse::LeftButton ) );
 				break;
 			}
 			case WM_RBUTTONDOWN:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				data.callbackfunc( MouseRightPressedEvent( pt.x,pt.y ) );
+				data.callbackfunc( MousePressedEvent( pt.x,pt.y,Mouse::RightButton ) );
 				break;
 			}
 			case WM_LBUTTONUP:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				data.callbackfunc( MouseLeftReleasedEvent( pt.x,pt.y ) );
+				data.callbackfunc( MouseReleasedEvent( pt.x,pt.y,Mouse::LeftButton ) );
 				break;
 			}
 			case WM_RBUTTONUP:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				data.callbackfunc( MouseRightReleasedEvent( pt.x,pt.y ) );
+				data.callbackfunc( MouseReleasedEvent( pt.x,pt.y,Mouse::RightButton ) );
 				break;
 			}
 			case WM_MOUSEWHEEL:
@@ -234,17 +236,17 @@ namespace Shark {
 			case WM_KEYDOWN:
 			{
 				const unsigned int repeat = lParam & 0xFFFF;
-				data.callbackfunc( KeyPressedEvent( (unsigned char)wParam,repeat ) );
+				data.callbackfunc( KeyPressedEvent( (KeyCode)wParam,repeat ) );
 				break;
 			}
 			case WM_KEYUP:
 			{
-				data.callbackfunc( KeyReleasedEvent( (unsigned char)wParam ) );
+				data.callbackfunc( KeyReleasedEvent( (KeyCode)wParam ) );
 				break;
 			}
 			case WM_CHAR:
 			{
-				data.callbackfunc( KeyCharacterEvent( (unsigned char)wParam ) );
+				data.callbackfunc( KeyCharacterEvent( (KeyCode)wParam ) );
 				break;
 			}
 		}

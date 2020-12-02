@@ -40,7 +40,16 @@
     <ClInclude Include="src\Shark\Core\EntryPoint.h">
       <Filter>Shark\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Shark\Core\Input.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\KeyCodes.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Shark\Core\Log.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Core\MouseCodes.h">
       <Filter>Shark\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Shark\Core\PlatformDetection.h">
@@ -86,6 +95,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Shark\Core\Application.cpp">
+      <Filter>Shark\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shark\Core\Input.cpp">
       <Filter>Shark\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Shark\Core\Log.cpp">
