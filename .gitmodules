@@ -3,4 +3,4 @@
 	url = https://github.com/gabime/spdlog
 [submodule "Shark/dependencies/ImGui"]
 	path = Shark/dependencies/ImGui
-	url = https://github.com/ocornut/imgui
+	url = https://github.com/morlyno/imgui

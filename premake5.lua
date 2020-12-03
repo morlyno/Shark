@@ -14,7 +14,7 @@ includeDir = {}
 includeDir["spdlog"] = "Shark/dependencies/spdlog/include"
 includeDir["ImGui"] = "Shark/dependencies/ImGui"
 
-include "Shark/dependencies"
+include "Shark/dependencies/ImGui"
 
 project "Shark"
 	location "Shark"
@@ -40,7 +40,6 @@ project "Shark"
 		"Shark/src",
 		"%{includeDir.spdlog}",
 		"%{includeDir.ImGui}"
-
 	}
 
 	filter "system:windows"

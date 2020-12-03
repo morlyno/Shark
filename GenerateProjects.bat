@@ -1,2 +1,2 @@
-call dependencies\bin\Premake\premake5.exe vs2019
+call dependencies\Premake\premake5.exe vs2019
 PAUSE
