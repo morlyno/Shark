@@ -121,7 +121,8 @@ namespace Shark {
 	LRESULT __stdcall WindowsWindow::HandleMsg( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam )
 	{
 #ifndef SK_DISABLE_IMGUI_WNDPROCHANDLER
-		ImGui_ImplWin32_WndProcHandler( hWnd,msg,wParam,lParam );
+		if ( ImGui_ImplWin32_WndProcHandler( hWnd,msg,wParam,lParam ) )
+			return true;
 #endif
 		switch ( msg )
 		{

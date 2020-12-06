@@ -37,8 +37,8 @@ namespace Shark {
 		int exitCode = -1;
 		std::unique_ptr<Window> window;
 		std::unique_ptr<Renderer> renderer;
-		ImGuiLayer* pImGuiLayer;
 		LayerStack layerStack;
+		ImGuiLayer* pImGuiLayer;
 	};
 
 	Application* CreateApplication();

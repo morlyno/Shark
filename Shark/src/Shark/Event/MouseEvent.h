@@ -103,7 +103,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( MouseButtonReleasd )
+		SK_EVENT_FUNCTIONS( MouseScrolled )
 	private:
 		int delta;
 	};

@@ -5,6 +5,8 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/Input.h"
 
+#include "imgui.h"
+
 namespace Shark {
 
 	Application* Application::instance = nullptr;
@@ -45,12 +47,6 @@ namespace Shark {
 			pImGuiLayer->End();
 
 			renderer->EndFrame();
-			auto[x,y] = MouseInput::GetPos();
-			SK_CORE_TRACE( "{0},{1}",x,y );
-			if ( KeyInput::KeyPressed( Key::F ) )
-				SK_CORE_TRACE( "F is Pressed" );
-			if ( KeyInput::KeyPressed( Key::F1 ) )
-				SK_CORE_TRACE( "F1 is Pressed" );
 		}
 		return exitCode;
 	}

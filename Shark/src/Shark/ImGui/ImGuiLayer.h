@@ -22,6 +22,8 @@ namespace Shark {
 		void End();
 		void OnEvent( Event& e ) override;
 
+		void OnImGuiRender() override;
+
 	};
 
 }

@@ -21,13 +21,8 @@ public:
 
 	void OnImGuiRender() override
 	{
-		if ( ImGui::Begin( "Test" ) )
-		{
-			ImGui::Text( "Test" );
-		}
+		ImGui::Begin( "Test" );
+		ImGui::Text( "Hi" );
 		ImGui::End();
-
-		static bool open = true;
-		ImGui::ShowDemoWindow( &open );
 	}
 };
