@@ -8,8 +8,6 @@
 #include "Shark/Core/Application.h"
 #include "Shark/Platform/DirectX11/DirectXRenderer.h"
 
-#include "Shark/Core/Log.h"
-
 namespace Shark {
 
 	ImGuiLayer::ImGuiLayer()

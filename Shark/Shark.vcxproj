@@ -99,6 +99,7 @@
   <ItemGroup>
     <ClInclude Include="src\Shark.h" />
     <ClInclude Include="src\Shark\Core\Application.h" />
+    <ClInclude Include="src\Shark\Core\Assert.h" />
     <ClInclude Include="src\Shark\Core\Core.h" />
     <ClInclude Include="src\Shark\Core\EntryPoint.h" />
     <ClInclude Include="src\Shark\Core\Input.h" />
@@ -141,4 +142,4 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-</Project>
+</Project> 

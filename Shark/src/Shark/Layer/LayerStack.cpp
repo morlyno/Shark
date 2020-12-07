@@ -1,7 +1,6 @@
 #include "skpch.h"
 #include "Layer.h"
 #include "LayerStack.h"
-#include "Shark/Core/Log.h"
 
 namespace Shark {
 

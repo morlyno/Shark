@@ -34,6 +34,9 @@
     <ClInclude Include="src\Shark\Core\Application.h">
       <Filter>Shark\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Shark\Core\Assert.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Shark\Core\Core.h">
       <Filter>Shark\Core</Filter>
     </ClInclude>
@@ -112,10 +115,12 @@
     <ClCompile Include="src\Shark\Platform\DirectX11\DirectXRenderer.cpp">
       <Filter>Shark\Platform\DirectX11</Filter>
     </ClCompile>
+    <ClCompile Include="src\Shark\Platform\Windows\WindowsInputs.cpp">
+      <Filter>Shark\Platform\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp">
       <Filter>Shark\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\skpch.cpp" />
-    <ClCompile Include="src\Shark\Platform\Windows\WindowsInputs.cpp" />
   </ItemGroup>
 </Project>

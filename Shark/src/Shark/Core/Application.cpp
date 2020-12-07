@@ -1,7 +1,6 @@
 #include "skpch.h"
 #include "Application.h"
 
-#include "Shark/Core/Log.h"
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/Input.h"
 
@@ -13,7 +12,7 @@ namespace Shark {
 
 	Application::Application()
 	{
-		SK_ASSERT( !s_inst );
+		SK_CORE_ASSERT( !s_inst,"Application allready set" );
 		s_inst = this;
 
 		SK_CORE_INFO( "Window Init" );
@@ -50,9 +49,6 @@ namespace Shark {
 			pImGuiLayer->End();
 
 			renderer->EndFrame();
-
-			auto [x,y] = Input::ScreenMousePos();
-			SK_CORE_TRACE( "{0}, {1}",x,y );
 		}
 		return exitCode;
 	}
@@ -61,26 +57,6 @@ namespace Shark {
 	{
 		EventDispacher dispacher( e );
 		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( Application::OnWindowClose ) );
-	}
-
-	void Application::PushLayer( Layer* layer )
-	{
-		layerStack.PushLayer( layer );
-	}
-
-	void Application::PopLayer( Layer* layer )
-	{
-		layerStack.PopLayer( layer );
-	}
-
-	void Application::PushOverlay( Layer* layer )
-	{
-		layerStack.PushOverlay( layer );
-	}
-
-	void Application::PopOverlay( Layer* layer )
-	{
-		layerStack.PopOverlay( layer );
 	}
 
 	bool Application::OnWindowClose( WindowCloseEvent& e )

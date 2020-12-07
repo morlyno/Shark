@@ -65,7 +65,7 @@ namespace Shark {
 		{
 			if ( T::GetStaticType() == e.GetEventType() )
 			{
-				e.Handled = func( SK_TYPE_PUN(T,e) );
+				e.Handled = func( *reinterpret_cast<T*>( &e ) );
 				return true;
 			}
 			return false;
@@ -75,7 +75,7 @@ namespace Shark {
 		{
 			if ( T::GetStaticEventCategoryFlags() & e.GetEventCategoryFlags() )
 			{
-				e.Handled = func( SK_TYPE_PUN( T,e ) );
+				e.Handled = func( *reinterpret_cast<T*>( &e ) );
 				return true;
 			}
 			return false;

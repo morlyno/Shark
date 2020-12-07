@@ -19,10 +19,10 @@ namespace Shark {
 
 		void OnEvent( Event& e );
 
-		void PushLayer( Layer* layer );
-		void PopLayer( Layer* layer );
-		void PushOverlay( Layer* layer );
-		void PopOverlay( Layer* layer );
+		void PushLayer( Layer* layer ) { layerStack.PushLayer( layer ); }
+		void PopLayer( Layer* layer ) { layerStack.PopLayer( layer ); }
+		void PushOverlay( Layer* layer ) { layerStack.PushOverlay( layer ); }
+		void PopOverlay( Layer* layer ) { layerStack.PopOverlay( layer ); }
 
 		static inline Application* Get() { return s_inst; }
 		inline Window* GetWindow() { return window.get(); }
