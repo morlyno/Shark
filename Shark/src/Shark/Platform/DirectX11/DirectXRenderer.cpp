@@ -81,6 +81,7 @@ namespace Shark {
 
 	void DirectXRenderer::ClearBuffer( const Color::F32RGBA& color )
 	{
+		data.pContext->OMSetRenderTargets( 1u,data.pRenderTargetView.GetAddressOf(),nullptr );
 		data.pContext->ClearRenderTargetView( data.pRenderTargetView.Get(),color.rgba );
 	}
 

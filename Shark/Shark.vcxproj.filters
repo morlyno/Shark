@@ -97,9 +97,6 @@
     <ClCompile Include="src\Shark\Core\Application.cpp">
       <Filter>Shark\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Shark\Core\Input.cpp">
-      <Filter>Shark\Core</Filter>
-    </ClCompile>
     <ClCompile Include="src\Shark\Core\Log.cpp">
       <Filter>Shark\Core</Filter>
     </ClCompile>
@@ -119,5 +116,6 @@
       <Filter>Shark\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\skpch.cpp" />
+    <ClCompile Include="src\Shark\Platform\Windows\WindowsInputs.cpp" />
   </ItemGroup>
 </Project>

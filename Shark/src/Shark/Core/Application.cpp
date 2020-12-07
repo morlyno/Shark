@@ -9,22 +9,25 @@
 
 namespace Shark {
 
-	Application* Application::instance = nullptr;
+	Application* Application::s_inst = nullptr;
 
 	Application::Application()
 	{
-		SK_ASSERT( !instance );
-		instance = this;
+		SK_ASSERT( !s_inst );
+		s_inst = this;
 
-		window = std::unique_ptr<Window>( Window::Create() );
 		SK_CORE_INFO( "Window Init" );
-		renderer = std::unique_ptr<Renderer>( Renderer::Create( RendererProps( window->GetWidth(),window->GetHeight(),window->GetWindowHandle() ) ) );
+		window = std::unique_ptr<Window>( Window::Create() );
+
 		SK_CORE_INFO( "Renderer Init" );
-		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
+		renderer = std::unique_ptr<Renderer>( Renderer::Create( RendererProps( window->GetWidth(),window->GetHeight(),window->GetHandle() ) ) );
+
 		SK_CORE_INFO( "Window Event Callback Set" );
+		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
+
+		SK_CORE_INFO( "ImGui Init" );
 		pImGuiLayer = new ImGuiLayer();
 		PushLayer( pImGuiLayer );
-		SK_CORE_INFO( "ImGui Init" );
 	}
 
 	Application::~Application()
@@ -47,16 +50,15 @@ namespace Shark {
 			pImGuiLayer->End();
 
 			renderer->EndFrame();
+
+			auto [x,y] = Input::ScreenMousePos();
+			SK_CORE_TRACE( "{0}, {1}",x,y );
 		}
 		return exitCode;
 	}
 
 	void Application::OnEvent( Event& e )
 	{
-		if ( e.IsInCategory( EventCategoryMouse ) )
-			MouseInput::OnCaptureInputs( static_cast<MouseEvent&>( e ) );
-		else if ( e.IsInCategory( EventCategoryKeyboard ) )
-			KeyInput::OnCaptureInputs( static_cast<KeyEvent&>( e ) );
 		EventDispacher dispacher( e );
 		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( Application::OnWindowClose ) );
 	}
@@ -64,25 +66,21 @@ namespace Shark {
 	void Application::PushLayer( Layer* layer )
 	{
 		layerStack.PushLayer( layer );
-		layer->OnAttach();
 	}
 
 	void Application::PopLayer( Layer* layer )
 	{
 		layerStack.PopLayer( layer );
-		layer->OnDetach();
 	}
 
 	void Application::PushOverlay( Layer* layer )
 	{
 		layerStack.PushOverlay( layer );
-		layer->OnAttach();
 	}
 
 	void Application::PopOverlay( Layer* layer )
 	{
 		layerStack.PopOverlay( layer );
-		layer->OnDetach();
 	}
 
 	bool Application::OnWindowClose( WindowCloseEvent& e )

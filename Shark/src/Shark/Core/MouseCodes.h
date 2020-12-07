@@ -8,11 +8,12 @@ namespace Shark {
 
 		enum : MouseCode
 		{
-			LeftButton		= 0,
-			RightButton		= 1,
-			MiddleButton	= 2,
-			X1Button		= 3,
-			X2Button		= 4
+			LeftButton		= 0x01,
+			RightButton		= 0x02,
+			Cancel			= 0x03,
+			Middle	        = 0x04,
+			XButton1		= 0x05,
+			XButton2		= 0x06
 		};
 
 	}

@@ -24,21 +24,22 @@ namespace Shark {
 		void PushOverlay( Layer* layer );
 		void PopOverlay( Layer* layer );
 
-		static inline Application* Get() { return instance; }
+		static inline Application* Get() { return s_inst; }
 		inline Window* GetWindow() { return window.get(); }
 		inline Renderer* GetRenderer() { return renderer.get(); }
 	private:
 		bool OnWindowClose( WindowCloseEvent& e );
 
 	private:
-		static Application* instance;
+		static Application* s_inst;
 
 		bool running = true;
 		int exitCode = -1;
 		std::unique_ptr<Window> window;
 		std::unique_ptr<Renderer> renderer;
-		LayerStack layerStack;
+		// Owned by LayerStack
 		ImGuiLayer* pImGuiLayer;
+		LayerStack layerStack;
 	};
 
 	Application* CreateApplication();

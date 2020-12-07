@@ -30,7 +30,7 @@ namespace Shark {
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
 		ImGui::StyleColorsDark();
 
@@ -42,7 +42,7 @@ namespace Shark {
 		}
 
 		auto app = Application::Get();
-		ImGui_ImplWin32_Init( app->GetWindow()->GetWindowHandle() );
+		ImGui_ImplWin32_Init( app->GetWindow()->GetHandle() );
 
 		auto dxr = static_cast<DirectXRenderer*>(app->GetRenderer());
 		ImGui_ImplDX11_Init( dxr->GetDevice(),dxr->GetContext() );
@@ -66,7 +66,7 @@ namespace Shark {
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		auto window = Application::Get()->GetWindow();
-		io.DisplaySize = ImVec2( window->GetWidth(),window->GetHeight() );
+		io.DisplaySize = ImVec2( (float)window->GetWidth(),(float)window->GetHeight() );
 
 		ImGui::Render();
 		ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData() );

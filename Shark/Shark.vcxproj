@@ -122,12 +122,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Shark\Core\Application.cpp" />
-    <ClCompile Include="src\Shark\Core\Input.cpp" />
     <ClCompile Include="src\Shark\Core\Log.cpp" />
     <ClCompile Include="src\Shark\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\Shark\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Shark\Layer\LayerStack.cpp" />
     <ClCompile Include="src\Shark\Platform\DirectX11\DirectXRenderer.cpp" />
+    <ClCompile Include="src\Shark\Platform\Windows\WindowsInputs.cpp" />
     <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\skpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
