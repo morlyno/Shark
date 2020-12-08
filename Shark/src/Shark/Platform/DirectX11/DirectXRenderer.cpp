@@ -85,4 +85,44 @@ namespace Shark {
 		data.pContext->ClearRenderTargetView( data.pRenderTargetView.Get(),color.rgba );
 	}
 
+	void DirectXRenderer::OnResize( int width,int height )
+	{
+		data.width = width;
+		data.height = height;
+
+		data.pContext->OMSetRenderTargets( 0,0,0 );
+		data.pRenderTargetView->Release();
+		
+		data.pSwapChain->ResizeBuffers(
+			0u,
+			(UINT)data.width,
+			(UINT)data.height,
+			DXGI_FORMAT_UNKNOWN,
+			0u
+		);
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> pBackBuffer;
+		data.pSwapChain->GetBuffer( 0u,__uuidof(ID3D11Texture2D),&pBackBuffer );
+		data.pDevice->CreateRenderTargetView(
+			pBackBuffer.Get(),
+			nullptr,
+			&data.pRenderTargetView
+		);
+
+		data.pContext->OMSetRenderTargets(
+			1u,
+			data.pRenderTargetView.GetAddressOf(),
+			nullptr
+		);
+
+		D3D11_VIEWPORT vp = { 0 };
+		vp.TopLeftX = 0.0f;
+		vp.TopLeftY = 0.0f;
+		vp.Width = (float)data.width;
+		vp.Height = (float)data.height;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		data.pContext->RSSetViewports( 1u,&vp );
+	}
+
 }

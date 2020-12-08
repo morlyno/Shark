@@ -33,8 +33,9 @@ namespace Shark {
 
 	class Event
 	{
-		friend class EventDispacher;
 	public:
+		virtual ~Event() = default;
+
 		virtual EventTypes GetEventType() const = 0;
 		virtual const char* GetName() const = 0;
 		virtual std::string ToString() const { return GetName(); }
@@ -47,7 +48,7 @@ namespace Shark {
 		{
 			return GetEventCategoryFlags() & category;
 		}
-	private:
+	public:
 		bool Handled = false;
 	};
 
@@ -65,11 +66,12 @@ namespace Shark {
 		{
 			if ( T::GetStaticType() == e.GetEventType() )
 			{
-				e.Handled = func( *reinterpret_cast<T*>( &e ) );
+				e.Handled |= func( static_cast<T&>( e ) );
 				return true;
 			}
 			return false;
 		}
+#if 0
 		template<typename T>
 		bool DispachEventCategory( EventFunc<T> func )
 		{
@@ -80,6 +82,7 @@ namespace Shark {
 			}
 			return false;
 		}
+#endif
 	private:
 		Event& e;
 	};

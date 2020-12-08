@@ -29,6 +29,7 @@ namespace Shark {
 		inline Renderer* GetRenderer() { return renderer.get(); }
 	private:
 		bool OnWindowClose( WindowCloseEvent& e );
+		bool OnWindowResize( WindowResizeEvent& e );
 
 	private:
 		static Application* s_inst;

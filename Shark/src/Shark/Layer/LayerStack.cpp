@@ -7,10 +7,7 @@ namespace Shark {
 	LayerStack::~LayerStack()
 	{
 		for ( auto l : Layers )
-			if ( l )
-				delete l;
-			else
-				SK_CORE_DEBUG( "l [{0}] was nullptr",(uint64_t)l );
+			delete l;
 	}
 
 	void LayerStack::PushLayer( Layer* layer )

@@ -14,17 +14,10 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT( !s_inst,"Application allready set" );
 		s_inst = this;
-
-		SK_CORE_INFO( "Window Init" );
 		window = std::unique_ptr<Window>( Window::Create() );
-
-		SK_CORE_INFO( "Renderer Init" );
+		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
 		renderer = std::unique_ptr<Renderer>( Renderer::Create( RendererProps( window->GetWidth(),window->GetHeight(),window->GetHandle() ) ) );
 
-		SK_CORE_INFO( "Window Event Callback Set" );
-		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
-
-		SK_CORE_INFO( "ImGui Init" );
 		pImGuiLayer = new ImGuiLayer();
 		PushLayer( pImGuiLayer );
 	}
@@ -35,9 +28,12 @@ namespace Shark {
 
 	int Application::Run()
 	{
-		while ( running )
+		while ( true )
 		{
 			window->Process();
+			if ( !running )
+				return exitCode;
+
 			renderer->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
 
 			for ( auto layer : layerStack )
@@ -57,13 +53,21 @@ namespace Shark {
 	{
 		EventDispacher dispacher( e );
 		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( Application::OnWindowClose ) );
+		dispacher.DispachEvent<WindowResizeEvent>( SK_BIND_EVENT_FN( Application::OnWindowResize ) );
 	}
 
 	bool Application::OnWindowClose( WindowCloseEvent& e )
 	{
-		SK_CORE_WARN( "{0}",e );
+		SK_CORE_WARN( e );
 		running = false;
 		exitCode = e.GetExitCode();
+		return true;
+	}
+
+	bool Application::OnWindowResize( WindowResizeEvent& e )
+	{
+		SK_CORE_TRACE( e );
+		renderer->OnResize( e.GetWidth(),e.GetHeight() );
 		return true;
 	}
 

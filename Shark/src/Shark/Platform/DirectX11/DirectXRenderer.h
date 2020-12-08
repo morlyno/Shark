@@ -17,6 +17,8 @@ namespace Shark {
 		void EndFrame() override;
 		void ClearBuffer( const Color::F32RGBA& color ) override;
 
+		void OnResize( int width,int height ) override;
+
 		inline ID3D11Device* GetDevice() { return data.pDevice.Get(); }
 		inline ID3D11DeviceContext* GetContext() { return data.pContext.Get(); }
 	private:

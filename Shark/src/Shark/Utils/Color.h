@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Shark/Core/Core.h"
-
 namespace Shark {
 
 	namespace Color {

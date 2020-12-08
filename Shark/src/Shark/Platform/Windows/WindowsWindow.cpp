@@ -138,17 +138,14 @@ namespace Shark {
 				data.height = HIWORD( lParam );
 				if ( data.callbackfunc )
 				{
-					if ( wParam == SIZE_RESTORED )
+					data.callbackfunc( WindowResizeEvent( data.width,data.height ) );
+					if ( wParam == SIZE_MAXIMIZED )
 					{
-						data.callbackfunc( WindowResizeEvent( data.width,data.height ) );
+						data.callbackfunc( WindowMaximizedEvent( data.width,data.height ) );
 					}
 					else if ( wParam == SIZE_MINIMIZED )
 					{
 						data.callbackfunc( WindowMinimizedEvent() );
-					}
-					else if ( wParam == SIZE_MAXIMIZED )
-					{
-						data.callbackfunc( WindowMaximizedEvent( data.width,data.height ) );
 					}
 				}
 				break;
