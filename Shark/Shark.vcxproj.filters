@@ -123,4 +123,8 @@
     </ClCompile>
     <ClCompile Include="src\skpch.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="src\Shark\Platform\DirectX11\Shaders\VertexShader.hlsl" />
+    <FxCompile Include="src\Shark\Platform\DirectX11\Shaders\PixelShader.hlsl" />
+  </ItemGroup>
 </Project>

@@ -6,6 +6,8 @@
 
 #include "imgui.h"
 
+#include "Shark/Platform/DirectX11/DirectXRenderer.h"
+
 namespace Shark {
 
 	Application* Application::s_inst = nullptr;
@@ -16,10 +18,14 @@ namespace Shark {
 		s_inst = this;
 		window = std::unique_ptr<Window>( Window::Create() );
 		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
-		renderer = std::unique_ptr<Renderer>( Renderer::Create( RendererProps( window->GetWidth(),window->GetHeight(),window->GetHandle() ) ) );
+
+		renderer = std::unique_ptr<Renderer>( Renderer::Create( *window ) );
 
 		pImGuiLayer = new ImGuiLayer();
 		PushLayer( pImGuiLayer );
+
+		auto dxr = static_cast<DirectXRenderer*>(renderer.get());
+		dxr->InitDrawTrinagle();
 	}
 
 	Application::~Application()
@@ -34,8 +40,6 @@ namespace Shark {
 			if ( !running )
 				return exitCode;
 
-			renderer->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
-
 			for ( auto layer : layerStack )
 				layer->OnUpdate();
 
@@ -44,7 +48,12 @@ namespace Shark {
 				layer->OnImGuiRender();
 			pImGuiLayer->End();
 
-			renderer->EndFrame();
+			renderer->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
+
+			auto dxr = static_cast<DirectXRenderer*>(renderer.get());
+			dxr->DrawTriangle();
+			
+			renderer->PresentFrame();
 		}
 		return exitCode;
 	}

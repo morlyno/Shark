@@ -41,31 +41,38 @@ namespace Shark {
 		UnregisterClass( ClassName,hInst );
 	}
 
-	Window* Window::Create( const WindowProps& properties )
+	Window* Window::Create( const WindowProps& props )
 	{
-		return new WindowsWindow( properties );
+		return new WindowsWindow( props.width,props.height,props.name );
 	}
 
-	WindowsWindow::WindowsWindow( const WindowProps& props )
+	WindowsWindow::WindowsWindow( int width,int height,const std::wstring& name )
+		:
+		m_Width( width ),
+		m_Height( height ),
+		m_Name( name )
 	{
-		data.width = props.width;
-		data.height = props.height;
-		data.name = props.name;
-		data.isFocused = false;
+		const std::string str = { name.begin(),name.end() };
+		SK_CORE_INFO( "Init Windows Window {0} {1} {2}",width,height,str );
+
+		m_Width = width;
+		m_Height = height;
+		m_Name = name;
+		m_IsFocused = false;
 
 		unsigned int flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 
 		RECT rect;
 		rect.left = 100;
-		rect.right = data.width + rect.left;
+		rect.right = m_Width + rect.left;
 		rect.top = 100;
-		rect.bottom = data.height + rect.top;
+		rect.bottom = m_Height + rect.top;
 		AdjustWindowRect( &rect,flags,FALSE );
 
-		data.hWnd = CreateWindowEx(
+		m_Window = CreateWindowExW(
 			0,
 			WindowClass::GetName(),
-			props.name.c_str(),
+			m_Name.c_str(),
 			flags,
 			600,
 			180,
@@ -76,14 +83,14 @@ namespace Shark {
 			WindowClass::GetHInst(),
 			this
 		);
-		SK_ASSERT( data.hWnd );
+		SK_ASSERT( m_Window );
 
-		ShowWindow( data.hWnd,SW_SHOWDEFAULT );
+		ShowWindow( m_Window,SW_SHOWDEFAULT );
 	}
 
 	WindowsWindow::~WindowsWindow()
 	{
-		DestroyWindow( data.hWnd );
+		DestroyWindow( m_Window );
 	}
 
 	bool WindowsWindow::Process() const
@@ -127,25 +134,25 @@ namespace Shark {
 		{
 			case WM_DESTROY:
 			{
-				data.callbackfunc( WindowCloseEvent( 0 ) );
+				m_Callbackfunc( WindowCloseEvent( 0 ) );
 				return 0;
 				break;
 			}
 
 			case WM_SIZE:
 			{
-				data.width = LOWORD( lParam );
-				data.height = HIWORD( lParam );
-				if ( data.callbackfunc )
+				m_Width = LOWORD( lParam );
+				m_Height = HIWORD( lParam );
+				if ( m_Callbackfunc )
 				{
-					data.callbackfunc( WindowResizeEvent( data.width,data.height ) );
+					m_Callbackfunc( WindowResizeEvent( m_Width,m_Height ) );
 					if ( wParam == SIZE_MAXIMIZED )
 					{
-						data.callbackfunc( WindowMaximizedEvent( data.width,data.height ) );
+						m_Callbackfunc( WindowMaximizedEvent( m_Width,m_Height ) );
 					}
 					else if ( wParam == SIZE_MINIMIZED )
 					{
-						data.callbackfunc( WindowMinimizedEvent() );
+						m_Callbackfunc( WindowMinimizedEvent() );
 					}
 				}
 				break;
@@ -153,9 +160,9 @@ namespace Shark {
 			case WM_MOVE:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				if ( data.callbackfunc )
+				if ( m_Callbackfunc )
 				{
-					data.callbackfunc( WindowMoveEvent( pt.x,pt.y ) );
+					m_Callbackfunc( WindowMoveEvent( pt.x,pt.y ) );
 				}
 				break;
 			}
@@ -164,28 +171,28 @@ namespace Shark {
 			case WM_MOUSEMOVE:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				if ( pt.x >= 0 && pt.x < (short)data.width && pt.y >= 0 && pt.y < (short)data.height )
+				if ( pt.x >= 0 && pt.x < (short)m_Width && pt.y >= 0 && pt.y < (short)m_Height )
 				{
-					if ( !data.isFocused )
+					if ( !m_IsFocused )
 					{
-						data.callbackfunc( WindowFocusEvent( pt.x,pt.y ) );
-						SetCapture( data.hWnd );
-						data.isFocused = true;
+						m_Callbackfunc( WindowFocusEvent( pt.x,pt.y ) );
+						SetCapture( m_Window );
+						m_IsFocused = true;
 					}
-					data.callbackfunc( MouseMoveEvent( pt.x,pt.y ) );
+					m_Callbackfunc( MouseMoveEvent( pt.x,pt.y ) );
 				}
 				else
 				{
-					if ( data.isFocused )
+					if ( m_IsFocused )
 					{
 						if ( wParam & (MK_LBUTTON | MK_RBUTTON) )
 						{
-							data.callbackfunc( MouseMoveEvent( pt.x,pt.y ) );
+							m_Callbackfunc( MouseMoveEvent( pt.x,pt.y ) );
 						}
 						else
 						{
-							data.callbackfunc( WindowLostFocusEvent() );
-							data.isFocused = false;
+							m_Callbackfunc( WindowLostFocusEvent() );
+							m_IsFocused = false;
 							ReleaseCapture();
 						}
 					}
@@ -194,38 +201,38 @@ namespace Shark {
 			}
 			case WM_CAPTURECHANGED:
 			{
-				data.isFocused = false;
+				m_IsFocused = false;
 				break;
 			}
 			case WM_LBUTTONDOWN:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				data.callbackfunc( MousePressedEvent( pt.x,pt.y,Mouse::LeftButton ) );
+				m_Callbackfunc( MousePressedEvent( pt.x,pt.y,Mouse::LeftButton ) );
 				break;
 			}
 			case WM_RBUTTONDOWN:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				data.callbackfunc( MousePressedEvent( pt.x,pt.y,Mouse::RightButton ) );
+				m_Callbackfunc( MousePressedEvent( pt.x,pt.y,Mouse::RightButton ) );
 				break;
 			}
 			case WM_LBUTTONUP:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				data.callbackfunc( MouseReleasedEvent( pt.x,pt.y,Mouse::LeftButton ) );
+				m_Callbackfunc( MouseReleasedEvent( pt.x,pt.y,Mouse::LeftButton ) );
 				break;
 			}
 			case WM_RBUTTONUP:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
-				data.callbackfunc( MouseReleasedEvent( pt.x,pt.y,Mouse::RightButton ) );
+				m_Callbackfunc( MouseReleasedEvent( pt.x,pt.y,Mouse::RightButton ) );
 				break;
 			}
 			case WM_MOUSEWHEEL:
 			{
 				const POINTS pt = MAKEPOINTS( lParam );
 				const int delta = (int)GET_WHEEL_DELTA_WPARAM( wParam );
-				data.callbackfunc( MouseScrolledEvent( pt.x,pt.y,delta ) );
+				m_Callbackfunc( MouseScrolledEvent( pt.x,pt.y,delta ) );
 				break;
 			}
 
@@ -233,17 +240,17 @@ namespace Shark {
 			case WM_KEYDOWN:
 			{
 				const unsigned int repeat = lParam & 0xFFFF;
-				data.callbackfunc( KeyPressedEvent( (KeyCode)wParam,repeat ) );
+				m_Callbackfunc( KeyPressedEvent( (KeyCode)wParam,repeat ) );
 				break;
 			}
 			case WM_KEYUP:
 			{
-				data.callbackfunc( KeyReleasedEvent( (KeyCode)wParam ) );
+				m_Callbackfunc( KeyReleasedEvent( (KeyCode)wParam ) );
 				break;
 			}
 			case WM_CHAR:
 			{
-				data.callbackfunc( KeyCharacterEvent( (KeyCode)wParam ) );
+				m_Callbackfunc( KeyCharacterEvent( (KeyCode)wParam ) );
 				break;
 			}
 		}

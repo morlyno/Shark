@@ -4,19 +4,21 @@
 
 namespace Shark {
 
-	Renderer* Renderer::Create( const RendererProps& properties )
+	Renderer* Renderer::Create( const Window& window )
 	{
-		return new DirectXRenderer( properties );
+		return new DirectXRenderer( window );
 	}
 
-	DirectXRenderer::DirectXRenderer( const RendererProps& props )
+	DirectXRenderer::DirectXRenderer( const Window& window )
 	{
-		data.width = props.width;
-		data.height = props.height;
+		SK_CORE_INFO( "Init DirectX Renderer" );
+
+		m_Width = window.GetWidth();
+		m_Height = window.GetHeight();
 
 		DXGI_SWAP_CHAIN_DESC scd = { 0 };
-		scd.BufferDesc.Width = data.width;
-		scd.BufferDesc.Height = data.height;
+		scd.BufferDesc.Width = window.GetWidth();
+		scd.BufferDesc.Height = window.GetHeight();
 		scd.BufferDesc.RefreshRate.Denominator = 0u;
 		scd.BufferDesc.RefreshRate.Numerator = 0u;
 		scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -26,7 +28,7 @@ namespace Shark {
 		scd.SampleDesc.Quality = 0u;
 		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		scd.BufferCount = 1u;
-		scd.OutputWindow = (HWND)props.pWindowHandle;
+		scd.OutputWindow = (HWND)window.GetHandle();
 		scd.Windowed = TRUE;
 		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		scd.Flags = 0u;
@@ -40,89 +42,158 @@ namespace Shark {
 			0u,
 			D3D11_SDK_VERSION,
 			&scd,
-			&data.pSwapChain,
-			&data.pDevice,
+			&m_SwapChain,
+			&m_Device,
 			nullptr,
-			&data.pContext
+			&m_Context
 		);
 
 		Microsoft::WRL::ComPtr<ID3D11Resource> pBackBuffer;
-		data.pSwapChain->GetBuffer( 0u,__uuidof(ID3D11Texture2D),&pBackBuffer );
-		data.pDevice->CreateRenderTargetView(
+		m_SwapChain->GetBuffer( 0u,__uuidof(ID3D11Texture2D),&pBackBuffer );
+		m_Device->CreateRenderTargetView(
 			pBackBuffer.Get(),
 			nullptr,
-			&data.pRenderTargetView
+			&m_RenderTargetView
 		);
 
-		data.pContext->OMSetRenderTargets(
+		m_Context->OMSetRenderTargets(
 			1u,
-			data.pRenderTargetView.GetAddressOf(),
+			m_RenderTargetView.GetAddressOf(),
 			nullptr
 		);
 
 		D3D11_VIEWPORT vp = { 0 };
 		vp.TopLeftX = 0.0f;
 		vp.TopLeftY = 0.0f;
-		vp.Width = (float)data.width;
-		vp.Height = (float)data.height;
+		vp.Width = (float)window.GetWidth();
+		vp.Height = (float)window.GetHeight();
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
-		data.pContext->RSSetViewports( 1u,&vp );
+		m_Context->RSSetViewports( 1u,&vp );
 	}
 
 	DirectXRenderer::~DirectXRenderer()
 	{
 	}
 
-	void DirectXRenderer::EndFrame()
+	void DirectXRenderer::PresentFrame()
 	{
-		data.pSwapChain->Present( 1u,0u );
+		m_SwapChain->Present( 1u,0u );
 	}
 
 	void DirectXRenderer::ClearBuffer( const Color::F32RGBA& color )
 	{
-		data.pContext->OMSetRenderTargets( 1u,data.pRenderTargetView.GetAddressOf(),nullptr );
-		data.pContext->ClearRenderTargetView( data.pRenderTargetView.Get(),color.rgba );
+		m_Context->OMSetRenderTargets( 1u,m_RenderTargetView.GetAddressOf(),nullptr );
+		m_Context->ClearRenderTargetView( m_RenderTargetView.Get(),color.rgba );
 	}
 
 	void DirectXRenderer::OnResize( int width,int height )
 	{
-		data.width = width;
-		data.height = height;
+		m_Width = width;
+		m_Height = height;
 
-		data.pContext->OMSetRenderTargets( 0,0,0 );
-		data.pRenderTargetView->Release();
+		// TODO:
+
+		// --- delete --- //
+		m_Context->OMSetRenderTargets( 0,0,0 );
+		// --- ______ --- //
+		m_RenderTargetView->Release();
 		
-		data.pSwapChain->ResizeBuffers(
+		m_SwapChain->ResizeBuffers(
 			0u,
-			(UINT)data.width,
-			(UINT)data.height,
+			(UINT)width,
+			(UINT)height,
 			DXGI_FORMAT_UNKNOWN,
 			0u
 		);
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> pBackBuffer;
-		data.pSwapChain->GetBuffer( 0u,__uuidof(ID3D11Texture2D),&pBackBuffer );
-		data.pDevice->CreateRenderTargetView(
+		m_SwapChain->GetBuffer( 0u,__uuidof(ID3D11Texture2D),&pBackBuffer );
+		m_Device->CreateRenderTargetView(
 			pBackBuffer.Get(),
 			nullptr,
-			&data.pRenderTargetView
+			&m_RenderTargetView
 		);
 
-		data.pContext->OMSetRenderTargets(
+		// --- delete --- //
+		m_Context->OMSetRenderTargets(
 			1u,
-			data.pRenderTargetView.GetAddressOf(),
+			m_RenderTargetView.GetAddressOf(),
 			nullptr
 		);
 
 		D3D11_VIEWPORT vp = { 0 };
 		vp.TopLeftX = 0.0f;
 		vp.TopLeftY = 0.0f;
-		vp.Width = (float)data.width;
-		vp.Height = (float)data.height;
+		vp.Width = (float)width;
+		vp.Height = (float)height;
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
-		data.pContext->RSSetViewports( 1u,&vp );
+		m_Context->RSSetViewports( 1u,&vp );
+		// --- ______ --- //
+	}
+
+	void DirectXRenderer::InitDrawTrinagle()
+	{
+		// Vertexbuffer
+
+		D3D11_BUFFER_DESC bd = {};
+		bd.ByteWidth = sizeof( vertecies );
+		bd.StructureByteStride = sizeof( Vertex );
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bd.CPUAccessFlags = 0u;
+		bd.MiscFlags = 0u;
+
+		D3D11_SUBRESOURCE_DATA srd = {};
+		srd.pSysMem = vertecies;
+
+		m_Device->CreateBuffer( &bd,&srd,&VertexBuffer );
+
+		// Shader
+
+		Microsoft::WRL::ComPtr<ID3DBlob> VSblob;
+		D3DReadFileToBlob( L"../bin/Debug-windows-x86_64/Shark/VertexShader.cso",&VSblob );
+		m_Device->CreateVertexShader( VSblob->GetBufferPointer(),VSblob->GetBufferSize(),nullptr,&VertexShader );
+
+		Microsoft::WRL::ComPtr<ID3DBlob> PSblob;
+		D3DReadFileToBlob( L"../bin/Debug-windows-x86_64/Shark/PixelShader.cso",&PSblob );
+		m_Device->CreatePixelShader( PSblob->GetBufferPointer(),PSblob->GetBufferSize(),nullptr,&PixelShader );
+
+		// Input Layout
+
+		const D3D11_INPUT_ELEMENT_DESC ied[] =
+		{
+			{ "Position",0u,DXGI_FORMAT_R32G32B32_FLOAT,0u,0u,D3D11_INPUT_PER_VERTEX_DATA,0u }
+		};
+		m_Device->CreateInputLayout( ied,(UINT)std::size( ied ),VSblob->GetBufferPointer(),VSblob->GetBufferSize(),&InputLayout );
+	}
+
+	void DirectXRenderer::DrawTriangle()
+	{
+		// Vertexbuffer
+
+		const UINT stride = sizeof( Vertex );
+		const UINT offset = 0u;
+		m_Context->IASetVertexBuffers( 0u,1u,VertexBuffer.GetAddressOf(),&stride,&offset );
+
+		// Shader
+
+		m_Context->VSSetShader( VertexShader.Get(),nullptr,0u );
+
+		m_Context->PSSetShader( PixelShader.Get(),nullptr,0u );
+
+		// Input layout
+
+		m_Context->IASetInputLayout( InputLayout.Get() );
+
+		// Topology
+
+		m_Context->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+
+		// Draw
+
+		m_Context->Draw( (UINT)std::size( vertecies ),0u );
 	}
 
 }

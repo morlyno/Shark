@@ -7,17 +7,6 @@
 
 namespace Shark {
 
-	struct RendererProps
-	{
-		int width;
-		int height;
-		void* pWindowHandle;
-
-		RendererProps( int width,int height,void* pWindowHandle )
-			: width( width ),height( height ),pWindowHandle( pWindowHandle)
-		{}
-	};
-
 	class Renderer
 	{
 	public:
@@ -25,12 +14,12 @@ namespace Shark {
 
 		virtual ~Renderer() = default;
 
-		virtual void EndFrame() = 0;
+		virtual void PresentFrame() = 0;
 		virtual void ClearBuffer( const Color::F32RGBA& color ) = 0;
 
 		virtual void OnResize( int width,int height ) = 0;
 
-		static Renderer* Create( const RendererProps& properties );
+		static Renderer* Create( const class Window& window );
 	};
 
 }
