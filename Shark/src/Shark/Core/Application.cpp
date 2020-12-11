@@ -4,7 +4,7 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/Input.h"
 
-#include "imgui.h"
+#include <imgui.h>
 
 #include "Shark/Platform/DirectX11/DirectXRenderer.h"
 
@@ -43,16 +43,16 @@ namespace Shark {
 			for ( auto layer : layerStack )
 				layer->OnUpdate();
 
+			renderer->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
+
+			auto dxr = static_cast<DirectXRenderer*>(renderer.get());
+			dxr->DrawTriangle();
+
 			pImGuiLayer->Begin();
 			for ( auto layer : layerStack )
 				layer->OnImGuiRender();
 			pImGuiLayer->End();
 
-			renderer->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
-
-			auto dxr = static_cast<DirectXRenderer*>(renderer.get());
-			dxr->DrawTriangle();
-			
 			renderer->PresentFrame();
 		}
 		return exitCode;

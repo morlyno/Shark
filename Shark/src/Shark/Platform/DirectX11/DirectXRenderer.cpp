@@ -29,6 +29,7 @@ namespace Shark {
 		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		scd.BufferCount = 1u;
 		scd.OutputWindow = (HWND)window.GetHandle();
+
 		scd.Windowed = TRUE;
 		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		scd.Flags = 0u;
@@ -153,11 +154,11 @@ namespace Shark {
 		// Shader
 
 		Microsoft::WRL::ComPtr<ID3DBlob> VSblob;
-		D3DReadFileToBlob( L"../bin/Debug-windows-x86_64/Shark/VertexShader.cso",&VSblob );
+		D3DReadFileToBlob( L"../bin/Debug-windows-x86_64/Shark/Shader_VS.cso",&VSblob );
 		m_Device->CreateVertexShader( VSblob->GetBufferPointer(),VSblob->GetBufferSize(),nullptr,&VertexShader );
 
 		Microsoft::WRL::ComPtr<ID3DBlob> PSblob;
-		D3DReadFileToBlob( L"../bin/Debug-windows-x86_64/Shark/PixelShader.cso",&PSblob );
+		D3DReadFileToBlob( L"../bin/Debug-windows-x86_64/Shark/Shader_PS.cso",&PSblob );
 		m_Device->CreatePixelShader( PSblob->GetBufferPointer(),PSblob->GetBufferSize(),nullptr,&PixelShader );
 
 		// Input Layout

@@ -18,5 +18,7 @@
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
 
+//#define IM_ASSERT(_EXPR) SK_ASSERT(_EXPR)
+
 #include "Shark/Core/Log.h"
 #include "Shark/Core/Assert.h"
