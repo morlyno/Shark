@@ -7,6 +7,7 @@
 #include <imgui.h>
 
 #include "Shark/Platform/DirectX11/DirectXRenderer.h"
+#include <backends/imgui_impl_dx11.h>
 
 namespace Shark {
 
@@ -16,15 +17,13 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT( !s_inst,"Application allready set" );
 		s_inst = this;
-		window = std::unique_ptr<Window>( Window::Create() );
-		window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
+		m_Window = std::unique_ptr<Window>( Window::Create() );
+		m_Window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
 
-		renderer = std::unique_ptr<Renderer>( Renderer::Create( *window ) );
+		m_pImGuiLayer = new ImGuiLayer();
+		PushLayer( m_pImGuiLayer );
 
-		pImGuiLayer = new ImGuiLayer();
-		PushLayer( pImGuiLayer );
-
-		auto dxr = static_cast<DirectXRenderer*>(renderer.get());
+		auto dxr = static_cast<DirectXRenderer*>(m_Window->GetRenderer());
 		dxr->InitDrawTrinagle();
 	}
 
@@ -36,33 +35,46 @@ namespace Shark {
 	{
 		while ( true )
 		{
-			window->Process();
+			m_Window->Process();
 			if ( !running )
 				return exitCode;
 
-			for ( auto layer : layerStack )
+			for ( auto layer : m_LayerStack )
 				layer->OnUpdate();
 
-			renderer->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
+			m_Window->GetRenderer()->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
 
-			auto dxr = static_cast<DirectXRenderer*>(renderer.get());
+			auto dxr = static_cast<DirectXRenderer*>(m_Window->GetRenderer());
 			dxr->DrawTriangle();
 
-			pImGuiLayer->Begin();
-			for ( auto layer : layerStack )
+			m_pImGuiLayer->Begin();
+			for ( auto layer : m_LayerStack )
 				layer->OnImGuiRender();
-			pImGuiLayer->End();
-
-			renderer->PresentFrame();
+			ImGui::ShowMetricsWindow();
+			m_pImGuiLayer->End();
+			
+			m_Window->GetRenderer()->PresentFrame();
 		}
 		return exitCode;
 	}
 
 	void Application::OnEvent( Event& e )
 	{
+		if ( e.GetEventType() == EventTypes::KeyPressed )
+		{
+			auto ke = static_cast<KeyPressedEvent&>(e);
+			if ( ke.GetKeyCode() == Key::V )
+			{
+				auto renderer = m_Window->GetRenderer();
+				renderer->SetVSync( !renderer->IsVSync() );
+			}
+		}
+
 		EventDispacher dispacher( e );
 		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( Application::OnWindowClose ) );
 		dispacher.DispachEvent<WindowResizeEvent>( SK_BIND_EVENT_FN( Application::OnWindowResize ) );
+		for ( auto layer : m_LayerStack )
+			layer->OnEvent( e );
 	}
 
 	bool Application::OnWindowClose( WindowCloseEvent& e )
@@ -76,7 +88,7 @@ namespace Shark {
 	bool Application::OnWindowResize( WindowResizeEvent& e )
 	{
 		SK_CORE_TRACE( e );
-		renderer->OnResize( e.GetWidth(),e.GetHeight() );
+		m_Window->GetRenderer()->OnResize( e.GetWidth(),e.GetHeight() );
 		return true;
 	}
 

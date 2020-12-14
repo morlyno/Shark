@@ -2,7 +2,6 @@
 
 #include "Core.h"
 #include "Window.h"
-#include "Renderer.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
@@ -19,14 +18,13 @@ namespace Shark {
 
 		void OnEvent( Event& e );
 
-		void PushLayer( Layer* layer ) { layerStack.PushLayer( layer ); }
-		void PopLayer( Layer* layer ) { layerStack.PopLayer( layer ); }
-		void PushOverlay( Layer* layer ) { layerStack.PushOverlay( layer ); }
-		void PopOverlay( Layer* layer ) { layerStack.PopOverlay( layer ); }
+		void PushLayer( Layer* layer ) { m_LayerStack.PushLayer( layer ); }
+		void PopLayer( Layer* layer ) { m_LayerStack.PopLayer( layer ); }
+		void PushOverlay( Layer* layer ) { m_LayerStack.PushOverlay( layer ); }
+		void PopOverlay( Layer* layer ) { m_LayerStack.PopOverlay( layer ); }
 
 		static inline Application* Get() { return s_inst; }
-		inline Window* GetWindow() { return window.get(); }
-		inline Renderer* GetRenderer() { return renderer.get(); }
+		inline Window* GetWindow() { return m_Window.get(); }
 	private:
 		bool OnWindowClose( WindowCloseEvent& e );
 		bool OnWindowResize( WindowResizeEvent& e );
@@ -36,11 +34,10 @@ namespace Shark {
 
 		bool running = true;
 		int exitCode = -1;
-		std::unique_ptr<Window> window;
-		std::unique_ptr<Renderer> renderer;
+		std::unique_ptr<Window> m_Window;
 		// Owned by LayerStack
-		ImGuiLayer* pImGuiLayer;
-		LayerStack layerStack;
+		ImGuiLayer* m_pImGuiLayer;
+		LayerStack m_LayerStack;
 	};
 
 	Application* CreateApplication();

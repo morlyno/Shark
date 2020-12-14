@@ -39,12 +39,16 @@ namespace Shark {
 
 		void SetEventCallbackFunc( const EventCallbackFunc& callback ) override { m_Callbackfunc = callback; }
 
+		inline Renderer* GetRenderer() override { return m_Renderer.get(); }
+
 	private:
 		static LRESULT WINAPI WindowProcStartUp( HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam );
 		static LRESULT WINAPI WindowProc( HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam );
 		LRESULT WINAPI HandleMsg( HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam );
 	private:
 		HWND m_Window;
+		std::unique_ptr<Renderer> m_Renderer;
+
 		unsigned int m_Width;
 		unsigned int m_Height;
 		std::wstring m_Name;

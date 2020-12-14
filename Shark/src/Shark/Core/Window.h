@@ -2,6 +2,7 @@
 #include "skpch.h"
 #include "Core.h"
 #include "Shark/Event/Event.h"
+#include "Shark/Core/Renderer.h"
 
 namespace Shark {
 
@@ -32,6 +33,8 @@ namespace Shark {
 		virtual inline void* GetHandle() const = 0;
 
 		virtual inline bool IsFocused() const = 0;
+
+		virtual inline Renderer* GetRenderer() = 0;
 
 		static Window* Create( const WindowProps& properties = WindowProps() );
 	};

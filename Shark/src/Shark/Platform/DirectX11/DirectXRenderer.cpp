@@ -4,31 +4,32 @@
 
 namespace Shark {
 
-	Renderer* Renderer::Create( const Window& window )
+	Renderer* Renderer::Create( const Window* window )
 	{
 		return new DirectXRenderer( window );
 	}
 
-	DirectXRenderer::DirectXRenderer( const Window& window )
+	DirectXRenderer::DirectXRenderer( const Window* window )
+		:
+		m_Width( window->GetWidth() ),
+		m_Height( window->GetHeight() ),
+		m_VSync( true )
 	{
 		SK_CORE_INFO( "Init DirectX Renderer" );
 
-		m_Width = window.GetWidth();
-		m_Height = window.GetHeight();
-
 		DXGI_SWAP_CHAIN_DESC scd = { 0 };
-		scd.BufferDesc.Width = window.GetWidth();
-		scd.BufferDesc.Height = window.GetHeight();
+		scd.BufferDesc.Width = window->GetWidth();
+		scd.BufferDesc.Height = window->GetHeight();
 		scd.BufferDesc.RefreshRate.Denominator = 0u;
 		scd.BufferDesc.RefreshRate.Numerator = 0u;
 		scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-		scd.BufferDesc.Scaling = DXGI_MODE_SCALING_CENTERED;
+		scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 		scd.SampleDesc.Count = 1u;
 		scd.SampleDesc.Quality = 0u;
 		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		scd.BufferCount = 1u;
-		scd.OutputWindow = (HWND)window.GetHandle();
+		scd.OutputWindow = (HWND)window->GetHandle();
 
 		scd.Windowed = TRUE;
 		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
@@ -66,8 +67,8 @@ namespace Shark {
 		D3D11_VIEWPORT vp = { 0 };
 		vp.TopLeftX = 0.0f;
 		vp.TopLeftY = 0.0f;
-		vp.Width = (float)window.GetWidth();
-		vp.Height = (float)window.GetHeight();
+		vp.Width = (float)window->GetWidth();
+		vp.Height = (float)window->GetHeight();
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
 		m_Context->RSSetViewports( 1u,&vp );
@@ -79,7 +80,7 @@ namespace Shark {
 
 	void DirectXRenderer::PresentFrame()
 	{
-		m_SwapChain->Present( 1u,0u );
+		m_SwapChain->Present( m_VSync ? 1u : 0u,0u );
 	}
 
 	void DirectXRenderer::ClearBuffer( const Color::F32RGBA& color )
@@ -94,17 +95,13 @@ namespace Shark {
 		m_Height = height;
 
 		// TODO:
-
-		// --- delete --- //
-		m_Context->OMSetRenderTargets( 0,0,0 );
-		// --- ______ --- //
 		m_RenderTargetView->Release();
 		
 		m_SwapChain->ResizeBuffers(
 			0u,
 			(UINT)width,
 			(UINT)height,
-			DXGI_FORMAT_UNKNOWN,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
 			0u
 		);
 
@@ -117,20 +114,18 @@ namespace Shark {
 		);
 
 		// --- delete --- //
-		m_Context->OMSetRenderTargets(
-			1u,
-			m_RenderTargetView.GetAddressOf(),
-			nullptr
-		);
+
+		m_Context->OMSetRenderTargets( 1u,m_RenderTargetView.GetAddressOf(),nullptr );
 
 		D3D11_VIEWPORT vp = { 0 };
 		vp.TopLeftX = 0.0f;
 		vp.TopLeftY = 0.0f;
-		vp.Width = (float)width;
-		vp.Height = (float)height;
+		vp.Width = (float)m_Width;
+		vp.Height = (float)m_Height;
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
 		m_Context->RSSetViewports( 1u,&vp );
+
 		// --- ______ --- //
 	}
 

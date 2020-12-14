@@ -45,7 +45,7 @@ namespace Shark {
 		auto app = Application::Get();
 		ImGui_ImplWin32_Init( app->GetWindow()->GetHandle() );
 
-		auto dxr = static_cast<DirectXRenderer*>(app->GetRenderer());
+		auto dxr = static_cast<DirectXRenderer*>(app->GetWindow()->GetRenderer());
 		ImGui_ImplDX11_Init( dxr->GetDevice(),dxr->GetContext() );
 	}
 
@@ -82,7 +82,8 @@ namespace Shark {
 	void ImGuiLayer::OnEvent( Event& e )
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		e.Handled |= e.IsInCategory( EventCategoryMouse | EventCategoryKeyboard ) & io.WantCaptureKeyboard;
+		e.Handled |= e.IsInCategory( EventCategoryKeyboard ) & io.WantCaptureKeyboard;
+		e.Handled |= e.IsInCategory( EventCategoryMouse ) & io.WantCaptureMouse;
 	}
 
 	void ImGuiLayer::OnImGuiRender()

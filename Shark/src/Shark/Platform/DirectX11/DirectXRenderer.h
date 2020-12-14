@@ -11,7 +11,7 @@ namespace Shark {
 	class DirectXRenderer : public Renderer
 	{
 	public:
-		DirectXRenderer( const Window& window );
+		DirectXRenderer( const Window* window );
 		~DirectXRenderer();
 
 		void PresentFrame() override;
@@ -19,6 +19,9 @@ namespace Shark {
 
 		void InitDrawTrinagle();
 		void DrawTriangle();
+
+		inline bool IsVSync() const override { return m_VSync; }
+		void SetVSync( bool enabled ) override { m_VSync = enabled; }
 
 		void OnResize( int width,int height ) override;
 
@@ -28,6 +31,7 @@ namespace Shark {
 	private:
 		int m_Width;
 		int m_Height;
+		bool m_VSync;
 
 		Microsoft::WRL::ComPtr<IDXGISwapChain> m_SwapChain;
 		Microsoft::WRL::ComPtr<ID3D11Device> m_Device;
@@ -44,9 +48,9 @@ namespace Shark {
 		struct Vertex { float x,y,z; };
 		const Vertex vertecies[3] =
 		{
-			{ -0.5f,-0.5f,0.0f },
-			{  0.0f, 0.5f,0.0f },
-			{  0.5f,-0.5f,0.0f },
+			{ -0.5f,-1.0f,0.0f },
+			{  0.0f, 1.0f,0.0f },
+			{  0.5f,-1.0f,0.0f },
 		};
 
 	};

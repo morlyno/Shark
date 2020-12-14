@@ -50,15 +50,11 @@ namespace Shark {
 		:
 		m_Width( width ),
 		m_Height( height ),
-		m_Name( name )
+		m_Name( name ),
+		m_IsFocused( false )
 	{
 		const std::string str = { name.begin(),name.end() };
 		SK_CORE_INFO( "Init Windows Window {0} {1} {2}",width,height,str );
-
-		m_Width = width;
-		m_Height = height;
-		m_Name = name;
-		m_IsFocused = false;
 
 		unsigned int flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 
@@ -84,6 +80,8 @@ namespace Shark {
 			this
 		);
 		SK_ASSERT( m_Window );
+
+		m_Renderer = std::unique_ptr<Renderer>( Renderer::Create( this ) );
 
 		ShowWindow( m_Window,SW_SHOWDEFAULT );
 	}
