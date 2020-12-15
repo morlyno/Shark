@@ -32,8 +32,10 @@ namespace Shark {
 	private:
 		static Application* s_inst;
 
-		bool running = true;
-		int exitCode = -1;
+		bool m_Running = true;
+		int m_ExitCode = -1;
+		float m_LastFrameTime = 0.0f;
+
 		std::unique_ptr<Window> m_Window;
 		// Owned by LayerStack
 		ImGuiLayer* m_pImGuiLayer;

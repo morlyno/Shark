@@ -64,6 +64,9 @@
     <ClInclude Include="src\Shark\Core\Renderer.h">
       <Filter>Shark\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Shark\Core\TimeStep.h">
+      <Filter>Shark\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Shark\Core\Window.h">
       <Filter>Shark\Core</Filter>
     </ClInclude>
@@ -94,7 +97,7 @@
     <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h">
       <Filter>Shark\Platform\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="src\Shark\Utils\Color.h">
+    <ClInclude Include="src\Shark\Utils\Utility.h">
       <Filter>Shark\Utils</Filter>
     </ClInclude>
     <ClInclude Include="src\skpch.h" />
@@ -123,6 +126,9 @@
     </ClCompile>
     <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp">
       <Filter>Shark\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shark\Utils\Utility.cpp">
+      <Filter>Shark\Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\skpch.cpp" />
   </ItemGroup>

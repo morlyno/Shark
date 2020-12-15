@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Core.h"
 #include "Shark/Event/Event.h"
+#include "Shark/Core/TimeStep.h"
 
 namespace Shark {
 
@@ -17,7 +18,7 @@ namespace Shark {
 		virtual void OnAttach() {};
 		virtual void OnDetach() {};
 
-		virtual void OnUpdate() {};
+		virtual void OnUpdate( TimeStep t ) {};
 		virtual void OnEvent( Event& e ) {};
 
 		virtual void OnImGuiRender() {};

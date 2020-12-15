@@ -1,13 +1,14 @@
 #include "skpch.h"
 #include "Application.h"
 
+#include "Shark/Utils/Utility.h"
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/Input.h"
+#include "Shark/Core/TimeStep.h"
 
 #include <imgui.h>
 
 #include "Shark/Platform/DirectX11/DirectXRenderer.h"
-#include <backends/imgui_impl_dx11.h>
 
 namespace Shark {
 
@@ -33,14 +34,18 @@ namespace Shark {
 
 	int Application::Run()
 	{
-		while ( true )
+		while ( m_Running )
 		{
 			m_Window->Process();
-			if ( !running )
-				return exitCode;
+			if ( !m_Running )
+				continue;
+
+			const float Time = (float)ApplicationTime::GetSeconts();
+			TimeStep timeStep = Time - m_LastFrameTime;
+			m_LastFrameTime = Time;
 
 			for ( auto layer : m_LayerStack )
-				layer->OnUpdate();
+				layer->OnUpdate( timeStep );
 
 			m_Window->GetRenderer()->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
 
@@ -50,12 +55,11 @@ namespace Shark {
 			m_pImGuiLayer->Begin();
 			for ( auto layer : m_LayerStack )
 				layer->OnImGuiRender();
-			ImGui::ShowMetricsWindow();
 			m_pImGuiLayer->End();
 			
 			m_Window->GetRenderer()->PresentFrame();
 		}
-		return exitCode;
+		return m_ExitCode;
 	}
 
 	void Application::OnEvent( Event& e )
@@ -80,8 +84,8 @@ namespace Shark {
 	bool Application::OnWindowClose( WindowCloseEvent& e )
 	{
 		SK_CORE_WARN( e );
-		running = false;
-		exitCode = e.GetExitCode();
+		m_Running = false;
+		m_ExitCode = e.GetExitCode();
 		return true;
 	}
 

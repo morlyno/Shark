@@ -3,7 +3,7 @@
 #include "skpch.h"
 #include "Core.h"
 #include "Shark/Event/Event.h"
-#include "Shark/Utils/Color.h"
+#include "Shark/Utils/Utility.h"
 
 namespace Shark {
 

@@ -11,7 +11,7 @@ public:
 	{
 	}
 
-	void OnUpdate() override
+	void OnUpdate( Shark::TimeStep t ) override
 	{
 	}
 

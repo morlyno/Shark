@@ -4,7 +4,7 @@
 
 #include "Shark/Core/Application.h"
 
-#include "Shark/ImGui/ImGuiLayer.h"
+#include "Shark/Core/TimeStep.h"
 
 #include "Shark/Event/Event.h"
 #include "Shark/Event/KeyEvent.h"
@@ -13,6 +13,8 @@
 
 #include "Shark/Layer/Layer.h"
 #include "Shark/Layer/LayerStack.h"
+
+#include "Shark/ImGui/ImGuiLayer.h"
 
 #include "Shark/Core/Window.h"
 #include "Shark/Core/Renderer.h"

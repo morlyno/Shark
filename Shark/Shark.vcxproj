@@ -108,6 +108,7 @@
     <ClInclude Include="src\Shark\Core\MouseCodes.h" />
     <ClInclude Include="src\Shark\Core\PlatformDetection.h" />
     <ClInclude Include="src\Shark\Core\Renderer.h" />
+    <ClInclude Include="src\Shark\Core\TimeStep.h" />
     <ClInclude Include="src\Shark\Core\Window.h" />
     <ClInclude Include="src\Shark\Event\Event.h" />
     <ClInclude Include="src\Shark\Event\KeyEvent.h" />
@@ -118,7 +119,7 @@
     <ClInclude Include="src\Shark\Layer\LayerStack.h" />
     <ClInclude Include="src\Shark\Platform\DirectX11\DirectXRenderer.h" />
     <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h" />
-    <ClInclude Include="src\Shark\Utils\Color.h" />
+    <ClInclude Include="src\Shark\Utils\Utility.h" />
     <ClInclude Include="src\skpch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -130,6 +131,7 @@
     <ClCompile Include="src\Shark\Platform\DirectX11\DirectXRenderer.cpp" />
     <ClCompile Include="src\Shark\Platform\Windows\WindowsInputs.cpp" />
     <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp" />
+    <ClCompile Include="src\Shark\Utils\Utility.cpp" />
     <ClCompile Include="src\skpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -150,4 +152,4 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-</Project>
+</Project> 

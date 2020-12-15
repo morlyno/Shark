@@ -2,7 +2,6 @@
 
 #include "Shark/Core/Core.h"
 #include "Shark/Core/Renderer.h"
-#include "Shark/Utils/Color.h"
 
 #ifdef SK_PLATFORM_WINDOWS
 

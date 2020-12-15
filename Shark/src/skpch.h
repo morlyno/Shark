@@ -14,6 +14,8 @@
 #include <sstream>
 #include <bitset>
 
+#include <chrono>
+
 
 #ifdef SK_PLATFORM_WINDOWS
 	#ifndef NOMINMAX

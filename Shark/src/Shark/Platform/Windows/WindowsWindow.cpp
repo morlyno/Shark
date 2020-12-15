@@ -53,7 +53,10 @@ namespace Shark {
 		m_Name( name ),
 		m_IsFocused( false )
 	{
-		const std::string str = { name.begin(),name.end() };
+		std::string str;
+		str.reserve( m_Name.size() );
+		for ( auto wc : m_Name )
+			str += static_cast<char>(wc);
 		SK_CORE_INFO( "Init Windows Window {0} {1} {2}",width,height,str );
 
 		unsigned int flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
@@ -98,6 +101,10 @@ namespace Shark {
 		{
 			TranslateMessage( &msg );
 			DispatchMessageW( &msg );
+			if ( msg.message == WM_QUIT )
+			{
+				return false;
+			}
 		}
 		return true;
 	}
