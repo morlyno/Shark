@@ -2,7 +2,8 @@
 #include "skpch.h"
 #include "Core.h"
 #include "Shark/Event/Event.h"
-#include "Shark/Core/Renderer.h"
+#include "Shark/Event/WindowEvent.h"
+#include "Shark/Render/Renderer.h"
 
 namespace Shark {
 
@@ -26,13 +27,18 @@ namespace Shark {
 
 		virtual void SetEventCallbackFunc( const EventCallbackFunc& callback ) = 0;
 
-		virtual bool Process() const = 0;
+		virtual void OnWindowResize( WindowResizeEvent& e ) = 0;
+
+		virtual void Update() const = 0;
 
 		virtual inline int GetWidth() const = 0;
 		virtual inline int GetHeight() const = 0;
 		virtual inline void* GetHandle() const = 0;
 
 		virtual inline bool IsFocused() const = 0;
+
+		virtual inline bool IsVSync() const = 0;
+		virtual void SetVSync( bool VSync ) = 0;
 
 		virtual inline Renderer* GetRenderer() = 0;
 

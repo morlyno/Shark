@@ -1,7 +1,7 @@
 #pragma once
 
 #include "skpch.h"
-#include "Core.h"
+#include "Shark/Core/Core.h"
 #include "Shark/Event/Event.h"
 #include "Shark/Utils/Utility.h"
 
@@ -12,11 +12,8 @@ namespace Shark {
 	public:
 		virtual ~Renderer() = default;
 
-		virtual void PresentFrame() = 0;
+		virtual void SwapBuffers( bool VSync ) = 0;
 		virtual void ClearBuffer( const Color::F32RGBA& color ) = 0;
-
-		virtual inline bool IsVSync() const = 0;
-		virtual void SetVSync( bool enabled ) = 0;
 
 		virtual void OnResize( int width,int height ) = 0;
 

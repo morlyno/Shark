@@ -6,6 +6,9 @@
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
 
+#include "Shark/Render/Shaders.h"
+#include "Shark/Render/Buffers.h"
+
 namespace Shark {
 
 	class Application
@@ -29,6 +32,18 @@ namespace Shark {
 		bool OnWindowClose( WindowCloseEvent& e );
 		bool OnWindowResize( WindowResizeEvent& e );
 
+		void InitDrawTrinagle();
+		void DrawTriangle();
+
+		std::unique_ptr<Shaders> m_Shaders;
+		std::unique_ptr<IndexBuffer> m_IndexBuffer;
+		std::unique_ptr<VertexBuffer> m_VertexBuffer;
+		//Microsoft::WRL::ComPtr<ID3D11Buffer> VertexBuffer;
+		//Microsoft::WRL::ComPtr<ID3D11Buffer> IndexBuffer;
+		//Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader;
+		//Microsoft::WRL::ComPtr<ID3D11PixelShader> PixelShader;
+		//Microsoft::WRL::ComPtr<ID3D11InputLayout> InputLayout;
+		//Microsoft::WRL::ComPtr<ID3D11Buffer> PSConstantBuffer;
 	private:
 		static Application* s_inst;
 

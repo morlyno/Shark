@@ -8,4 +8,6 @@ imgui.ini
 # Visual Studios files
 .vs/
 **.sln
-**.vcxproj*
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user

@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Core.h"
 #include "Shark/Core/Window.h"
+#include "Shark/Render/Renderer.h"
 
 #ifdef SK_PLATFORM_WINDOWS
 
@@ -29,13 +30,18 @@ namespace Shark {
 		WindowsWindow( int width,int height,const std::wstring& name );
 		~WindowsWindow();
 
-		bool Process() const override;
+		void OnWindowResize( WindowResizeEvent& e ) override;
+
+		void Update() const override;
 
 		inline int GetWidth() const override { return m_Width; }
 		inline int GetHeight() const override { return m_Height; }
 		inline void* GetHandle() const override { return m_Window; }
 
 		inline bool IsFocused() const override { return m_IsFocused; }
+
+		inline bool IsVSync() const override { return m_VSync; }
+		void SetVSync( bool VSync ) override { m_VSync = VSync; }
 
 		void SetEventCallbackFunc( const EventCallbackFunc& callback ) override { m_Callbackfunc = callback; }
 
@@ -53,6 +59,7 @@ namespace Shark {
 		unsigned int m_Height;
 		std::wstring m_Name;
 		bool m_IsFocused;
+		bool m_VSync;
 
 		EventCallbackFunc m_Callbackfunc;
 

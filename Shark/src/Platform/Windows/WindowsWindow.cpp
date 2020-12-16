@@ -51,7 +51,8 @@ namespace Shark {
 		m_Width( width ),
 		m_Height( height ),
 		m_Name( name ),
-		m_IsFocused( false )
+		m_IsFocused( false ),
+		m_VSync( true )
 	{
 		std::string str;
 		str.reserve( m_Name.size() );
@@ -87,6 +88,7 @@ namespace Shark {
 		m_Renderer = std::unique_ptr<Renderer>( Renderer::Create( this ) );
 
 		ShowWindow( m_Window,SW_SHOWDEFAULT );
+		UpdateWindow( m_Window );
 	}
 
 	WindowsWindow::~WindowsWindow()
@@ -95,19 +97,22 @@ namespace Shark {
 		SK_CORE_INFO( "WindowsWindow detor" );
 	}
 
-	bool WindowsWindow::Process() const
+	void WindowsWindow::OnWindowResize( WindowResizeEvent& e )
+	{
+		m_Renderer->OnResize( e.GetWidth(),e.GetHeight() );
+	}
+
+	void WindowsWindow::Update() const
 	{
 		MSG msg = {};
 		while ( PeekMessage( &msg,nullptr,0,0,PM_REMOVE ) )
 		{
+			if ( msg.message == WM_QUIT )
+				return;
 			TranslateMessage( &msg );
 			DispatchMessageW( &msg );
-			if ( msg.message == WM_QUIT )
-			{
-				return false;
-			}
 		}
-		return true;
+		m_Renderer->SwapBuffers( m_VSync );
 	}
 
 	LRESULT WINAPI WindowsWindow::WindowProcStartUp( HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam )

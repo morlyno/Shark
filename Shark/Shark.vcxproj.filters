@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{2AC788B4-1694-E3BF-3FAD-D1672BD9184E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\DirectX11">
+      <UniqueIdentifier>{6EE5EAC0-5AC9-AB16-C329-A669AF2C9698}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Windows">
+      <UniqueIdentifier>{64FBD71A-50F4-F66C-7926-DCF1657ED678}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Shark">
       <UniqueIdentifier>{1EA5170E-8AB9-3FBF-533B-E31EBF0E3CF0}</UniqueIdentifier>
     </Filter>
@@ -16,20 +25,26 @@
     <Filter Include="Shark\Layer">
       <UniqueIdentifier>{6A800BC5-D635-84BA-5F2A-7E91CBDE7ABE}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shark\Platform">
-      <UniqueIdentifier>{32836CBC-1E51-60C2-07E5-D0E8F3513C27}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shark\Platform\DirectX11">
-      <UniqueIdentifier>{764B8F80-6270-DE00-8BBB-C390773FDD1E}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shark\Platform\Windows">
-      <UniqueIdentifier>{6C3F9B5C-5839-C4AE-41A6-5ABF2D3F2A1B}</UniqueIdentifier>
+    <Filter Include="Shark\Render">
+      <UniqueIdentifier>{CDD5BC74-B938-4C19-62BE-84CF4E00189C}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shark\Utils">
       <UniqueIdentifier>{FE84B8C5-6A3A-31BB-F32E-2B925FE327BF}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Platform\DirectX11\DirectXBuffers.h">
+      <Filter>Platform\DirectX11</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\DirectX11\DirectXRenderer.h">
+      <Filter>Platform\DirectX11</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\DirectX11\DirectXShaders.h">
+      <Filter>Platform\DirectX11</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Windows\WindowsWindow.h">
+      <Filter>Platform\Windows</Filter>
+    </ClInclude>
     <ClInclude Include="src\Shark.h" />
     <ClInclude Include="src\Shark\Core\Application.h">
       <Filter>Shark\Core</Filter>
@@ -56,9 +71,6 @@
       <Filter>Shark\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Shark\Core\PlatformDetection.h">
-      <Filter>Shark\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Shark\Core\Renderer.h">
       <Filter>Shark\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Shark\Core\TimeStep.h">
@@ -88,11 +100,14 @@
     <ClInclude Include="src\Shark\Layer\LayerStack.h">
       <Filter>Shark\Layer</Filter>
     </ClInclude>
-    <ClInclude Include="src\Shark\Platform\DirectX11\DirectXRenderer.h">
-      <Filter>Shark\Platform\DirectX11</Filter>
+    <ClInclude Include="src\Shark\Render\Buffers.h">
+      <Filter>Shark\Render</Filter>
     </ClInclude>
-    <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h">
-      <Filter>Shark\Platform\Windows</Filter>
+    <ClInclude Include="src\Shark\Render\Renderer.h">
+      <Filter>Shark\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shark\Render\Shaders.h">
+      <Filter>Shark\Render</Filter>
     </ClInclude>
     <ClInclude Include="src\Shark\Utils\Utility.h">
       <Filter>Shark\Utils</Filter>
@@ -100,6 +115,21 @@
     <ClInclude Include="src\skpch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Platform\DirectX11\DirectXBuffers.cpp">
+      <Filter>Platform\DirectX11</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\DirectX11\DirectXRenderer.cpp">
+      <Filter>Platform\DirectX11</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\DirectX11\DirectXShaders.cpp">
+      <Filter>Platform\DirectX11</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Windows\WindowsInputs.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="src\Shark\Core\Application.cpp">
       <Filter>Shark\Core</Filter>
     </ClCompile>
@@ -114,15 +144,6 @@
     </ClCompile>
     <ClCompile Include="src\Shark\Layer\LayerStack.cpp">
       <Filter>Shark\Layer</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Shark\Platform\DirectX11\DirectXRenderer.cpp">
-      <Filter>Shark\Platform\DirectX11</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Shark\Platform\Windows\WindowsInputs.cpp">
-      <Filter>Shark\Platform\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp">
-      <Filter>Shark\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\Shark\Utils\Utility.cpp">
       <Filter>Shark\Utils</Filter>

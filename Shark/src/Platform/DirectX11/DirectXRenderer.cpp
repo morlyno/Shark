@@ -12,8 +12,7 @@ namespace Shark {
 	DirectXRenderer::DirectXRenderer( const Window* window )
 		:
 		m_Width( window->GetWidth() ),
-		m_Height( window->GetHeight() ),
-		m_VSync( true )
+		m_Height( window->GetHeight() )
 	{
 		SK_CORE_INFO( "Init DirectX Renderer" );
 
@@ -84,9 +83,9 @@ namespace Shark {
 		SK_CORE_INFO( "DirectXRenderer detor" );
 	}
 
-	void DirectXRenderer::PresentFrame()
+	void DirectXRenderer::SwapBuffers( bool VSync )
 	{
-		m_SwapChain->Present( m_VSync ? 1u : 0u,0u );
+		m_SwapChain->Present( VSync ? 1u : 0u,0u );
 	}
 
 	void DirectXRenderer::ClearBuffer( const Color::F32RGBA& color )
@@ -116,7 +115,7 @@ namespace Shark {
 		m_Device->CreateRenderTargetView(
 			pBackBuffer.Get(),
 			nullptr,
-			&m_RenderTargetView
+			m_RenderTargetView.GetAddressOf()
 		);
 
 		// --- delete --- //

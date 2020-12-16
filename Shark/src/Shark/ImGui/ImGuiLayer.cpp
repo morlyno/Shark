@@ -5,7 +5,7 @@
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_win32.h>
 
-#include "Shark/Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
 #include "Shark/Core/Application.h"
 
 namespace Shark {

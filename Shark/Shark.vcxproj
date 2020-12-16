@@ -97,6 +97,10 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Platform\DirectX11\DirectXBuffers.h" />
+    <ClInclude Include="src\Platform\DirectX11\DirectXRenderer.h" />
+    <ClInclude Include="src\Platform\DirectX11\DirectXShaders.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Shark.h" />
     <ClInclude Include="src\Shark\Core\Application.h" />
     <ClInclude Include="src\Shark\Core\Assert.h" />
@@ -107,7 +111,6 @@
     <ClInclude Include="src\Shark\Core\Log.h" />
     <ClInclude Include="src\Shark\Core\MouseCodes.h" />
     <ClInclude Include="src\Shark\Core\PlatformDetection.h" />
-    <ClInclude Include="src\Shark\Core\Renderer.h" />
     <ClInclude Include="src\Shark\Core\TimeStep.h" />
     <ClInclude Include="src\Shark\Core\Window.h" />
     <ClInclude Include="src\Shark\Event\Event.h" />
@@ -117,20 +120,23 @@
     <ClInclude Include="src\Shark\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Shark\Layer\Layer.h" />
     <ClInclude Include="src\Shark\Layer\LayerStack.h" />
-    <ClInclude Include="src\Shark\Platform\DirectX11\DirectXRenderer.h" />
-    <ClInclude Include="src\Shark\Platform\Windows\WindowsWindow.h" />
+    <ClInclude Include="src\Shark\Render\Buffers.h" />
+    <ClInclude Include="src\Shark\Render\Renderer.h" />
+    <ClInclude Include="src\Shark\Render\Shaders.h" />
     <ClInclude Include="src\Shark\Utils\Utility.h" />
     <ClInclude Include="src\skpch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Platform\DirectX11\DirectXBuffers.cpp" />
+    <ClCompile Include="src\Platform\DirectX11\DirectXRenderer.cpp" />
+    <ClCompile Include="src\Platform\DirectX11\DirectXShaders.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsInputs.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\Shark\Core\Application.cpp" />
     <ClCompile Include="src\Shark\Core\Log.cpp" />
     <ClCompile Include="src\Shark\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\Shark\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Shark\Layer\LayerStack.cpp" />
-    <ClCompile Include="src\Shark\Platform\DirectX11\DirectXRenderer.cpp" />
-    <ClCompile Include="src\Shark\Platform\Windows\WindowsInputs.cpp" />
-    <ClCompile Include="src\Shark\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\Shark\Utils\Utility.cpp" />
     <ClCompile Include="src\skpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

@@ -8,7 +8,7 @@
 
 #include <imgui.h>
 
-#include "Shark/Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
 
 namespace Shark {
 
@@ -24,8 +24,7 @@ namespace Shark {
 		m_pImGuiLayer = new ImGuiLayer();
 		PushLayer( m_pImGuiLayer );
 
-		auto dxr = static_cast<DirectXRenderer*>(m_Window->GetRenderer());
-		dxr->InitDrawTrinagle();
+		this->InitDrawTrinagle();
 	}
 
 	Application::~Application()
@@ -36,10 +35,6 @@ namespace Shark {
 	{
 		while ( m_Running )
 		{
-			m_Window->Process();
-			if ( !m_Running )
-				continue;
-
 			const float Time = (float)ApplicationTime::GetSeconts();
 			TimeStep timeStep = Time - m_LastFrameTime;
 			m_LastFrameTime = Time;
@@ -49,21 +44,21 @@ namespace Shark {
 
 			m_Window->GetRenderer()->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
 
-			auto dxr = static_cast<DirectXRenderer*>(m_Window->GetRenderer());
-			dxr->DrawTriangle();
+			this->DrawTriangle();
 
 			m_pImGuiLayer->Begin();
 			for ( auto layer : m_LayerStack )
 				layer->OnImGuiRender();
 			m_pImGuiLayer->End();
-			
-			m_Window->GetRenderer()->PresentFrame();
+
+			m_Window->Update();
 		}
 		return m_ExitCode;
 	}
 
 	void Application::OnEvent( Event& e )
 	{
+#if 0
 		if ( e.GetEventType() == EventTypes::KeyPressed )
 		{
 			auto ke = static_cast<KeyPressedEvent&>(e);
@@ -73,6 +68,7 @@ namespace Shark {
 				renderer->SetVSync( !renderer->IsVSync() );
 			}
 		}
+#endif
 
 		EventDispacher dispacher( e );
 		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( Application::OnWindowClose ) );
@@ -92,80 +88,95 @@ namespace Shark {
 	bool Application::OnWindowResize( WindowResizeEvent& e )
 	{
 		SK_CORE_TRACE( e );
-		m_Window->GetRenderer()->OnResize( e.GetWidth(),e.GetHeight() );
+		m_Window->OnWindowResize( e );
 		return true;
 	}
 
-	void DirectXRenderer::InitDrawTrinagle()
+	void Application::InitDrawTrinagle()
 	{
 		// Vertexbuffer
 
-		D3D11_BUFFER_DESC bd = {};
-		bd.ByteWidth = sizeof( vertecies );
-		bd.StructureByteStride = sizeof( Vertex );
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = 0u;
-		bd.MiscFlags = 0u;
+		float vertices[3 * 8] =
+		{
+			-0.5f,-0.5f, 0.0f, 0.8f, 0.3f,0.1f, 1.0f, 0.0f,
+			 0.0f, 0.5f, 0.0f, 0.1f, 0.7f,0.4f, 1.0f, 0.0f,
+			 0.5f,-0.5f, 0.0f, 0.3f, 0.1f,0.5f, 1.0f, 0.0f
+		};
 
-		D3D11_SUBRESOURCE_DATA srd = {};
-		srd.pSysMem = vertecies;
+		VertexLayout layout =
+		{
+			{ VertexElementType::Float3,"Position" },
+			{ VertexElementType::Float4,"Color" },
+			{ VertexElementType::Float,"TEST" }
+		};
 
-		m_Device->CreateBuffer( &bd,&srd,&VertexBuffer );
+		m_VertexBuffer = std::unique_ptr<VertexBuffer>( VertexBuffer::Create( layout ) );
+		m_VertexBuffer->SetData( vertices,3 );
 
-		// Shader
+		// IndexBuffer
+
+		uint32_t indices[] = { 0,1,2 };
+
+		m_IndexBuffer = std::unique_ptr<IndexBuffer>( IndexBuffer::Create( indices,3 ) );
+
+		// Shader + Input Layout
 
 		const std::string VSSrc = R"(
-			float4 main( float3 pos : Position ) : SV_POSITION
+			struct VSOUT
 			{
-			    return float4(pos, 1.0f);
+				float4 c : Color;
+				float4 pos : SV_POSITION;
+			};
+
+			VSOUT main( float3 pos : Position,float4 color : Color )
+			{
+				VSOUT vso;
+				vso.pos = float4(pos, 1.0f);
+			    vso.c = color;
+				return vso;
 			}
 		)";
 
 		const std::string PSSrc = R"(
-			float4 main() : SV_TARGET
+			float4 main( float4 c : Color ) : SV_TARGET
 			{
-				return float4(1.0f, 1.0f, 1.0f, 1.0f);
+				return c;
 			}
 		)";
 
+		m_Shaders = std::unique_ptr<Shaders>( Shaders::Create( VSSrc,PSSrc ) );
+		m_Shaders->SetInputs( layout );
 
-		Microsoft::WRL::ComPtr<ID3DBlob> VSblob;
-		if ( D3DCompile( VSSrc.c_str(),VSSrc.size(),nullptr,nullptr,nullptr,"main","vs_4_0",0u,0u,&VSblob,nullptr ) != S_OK )
-			SK_CORE_ASSERT( false,"Shader Compile Failed" );
-		m_Device->CreateVertexShader( VSblob->GetBufferPointer(),VSblob->GetBufferSize(),nullptr,&VertexShader );
 
-		Microsoft::WRL::ComPtr<ID3DBlob> PSblob;
-		if ( D3DCompile( PSSrc.c_str(),PSSrc.size(),nullptr,nullptr,nullptr,"main","ps_4_0",0u,0u,&PSblob,nullptr ) != S_OK )
-			SK_CORE_ASSERT( false,"Shader Compile Failed" );
-		m_Device->CreatePixelShader( PSblob->GetBufferPointer(),PSblob->GetBufferSize(),nullptr,&PixelShader );
-
-		// Input Layout
-
-		const D3D11_INPUT_ELEMENT_DESC ied[] =
+#if 0
+		struct ConstentBuffer
 		{
-			{ "Position",0u,DXGI_FORMAT_R32G32B32_FLOAT,0u,0u,D3D11_INPUT_PER_VERTEX_DATA,0u }
-		};
-		m_Device->CreateInputLayout( ied,(UINT)std::size( ied ),VSblob->GetBufferPointer(),VSblob->GetBufferSize(),&InputLayout );
+			float r,g,b,a;
+		} color;
+
+		color.r = 0.8f;
+		color.g = 0.3f;
+		color.b = 0.2f;
+		color.a = 1.0f;
+
+		m_Shaders->SetConstBuffer( ConstBufferType::PixelShaderBuffer,color );
+#endif
 	}
 
-	void DirectXRenderer::DrawTriangle()
+	void Application::DrawTriangle()
 	{
+		auto dxr = static_cast<DirectXRenderer*>(m_Window->GetRenderer());
+		auto m_Context = dxr->GetContext();
+
 		// Vertexbuffer
 
-		const UINT stride = sizeof( Vertex );
-		const UINT offset = 0u;
-		m_Context->IASetVertexBuffers( 0u,1u,VertexBuffer.GetAddressOf(),&stride,&offset );
+		m_VertexBuffer->Bind();
 
-		// Shader
+		m_IndexBuffer->Bind();
 
-		m_Context->VSSetShader( VertexShader.Get(),nullptr,0u );
+		// Shader + Input layout + Constant Buffer
 
-		m_Context->PSSetShader( PixelShader.Get(),nullptr,0u );
-
-		// Input layout
-
-		m_Context->IASetInputLayout( InputLayout.Get() );
+		m_Shaders->Bind();
 
 		// Topology
 
@@ -173,7 +184,7 @@ namespace Shark {
 
 		// Draw
 
-		m_Context->Draw( (UINT)std::size( vertecies ),0u );
+		m_Context->DrawIndexed( m_IndexBuffer->GetCount(),0u,0u );
 	}
 
 

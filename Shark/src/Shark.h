@@ -17,4 +17,4 @@
 #include "Shark/ImGui/ImGuiLayer.h"
 
 #include "Shark/Core/Window.h"
-#include "Shark/Core/Renderer.h"
+#include "Shark/Render/Renderer.h"
