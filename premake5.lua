@@ -68,16 +68,16 @@ project "Shark"
 
 	--hlsl Shaders
 
-	ShaderPath = "%{prj.name}/src/Shark/Platform/DirectX11/Shaders"
-
-	filter "system:windows"
-		files "%{prj.name}/src/Shark/Platform/**.hlsl"
-
-		filter "files:**_PS.hlsl"
-			shadertype "Pixel"
-
-		filter "files:**_VS.hlsl"
-			shadertype "Vertex"
+	--ShaderPath = "%{prj.name}/src/Shark/Platform/DirectX11/Shaders"
+	--
+	--filter "system:windows"
+	--	files "%{prj.name}/src/Shark/Platform/**.hlsl"
+	--
+	--	filter "files:**_PS.hlsl"
+	--		shadertype "Pixel"
+	--
+	--	filter "files:**_VS.hlsl"
+	--		shadertype "Vertex"
 
 
 project "Sandbox"

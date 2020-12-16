@@ -92,6 +92,7 @@ namespace Shark {
 	WindowsWindow::~WindowsWindow()
 	{
 		DestroyWindow( m_Window );
+		SK_CORE_INFO( "WindowsWindow detor" );
 	}
 
 	bool WindowsWindow::Process() const

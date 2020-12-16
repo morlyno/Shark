@@ -96,4 +96,85 @@ namespace Shark {
 		return true;
 	}
 
+	void DirectXRenderer::InitDrawTrinagle()
+	{
+		// Vertexbuffer
+
+		D3D11_BUFFER_DESC bd = {};
+		bd.ByteWidth = sizeof( vertecies );
+		bd.StructureByteStride = sizeof( Vertex );
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bd.CPUAccessFlags = 0u;
+		bd.MiscFlags = 0u;
+
+		D3D11_SUBRESOURCE_DATA srd = {};
+		srd.pSysMem = vertecies;
+
+		m_Device->CreateBuffer( &bd,&srd,&VertexBuffer );
+
+		// Shader
+
+		const std::string VSSrc = R"(
+			float4 main( float3 pos : Position ) : SV_POSITION
+			{
+			    return float4(pos, 1.0f);
+			}
+		)";
+
+		const std::string PSSrc = R"(
+			float4 main() : SV_TARGET
+			{
+				return float4(1.0f, 1.0f, 1.0f, 1.0f);
+			}
+		)";
+
+
+		Microsoft::WRL::ComPtr<ID3DBlob> VSblob;
+		if ( D3DCompile( VSSrc.c_str(),VSSrc.size(),nullptr,nullptr,nullptr,"main","vs_4_0",0u,0u,&VSblob,nullptr ) != S_OK )
+			SK_CORE_ASSERT( false,"Shader Compile Failed" );
+		m_Device->CreateVertexShader( VSblob->GetBufferPointer(),VSblob->GetBufferSize(),nullptr,&VertexShader );
+
+		Microsoft::WRL::ComPtr<ID3DBlob> PSblob;
+		if ( D3DCompile( PSSrc.c_str(),PSSrc.size(),nullptr,nullptr,nullptr,"main","ps_4_0",0u,0u,&PSblob,nullptr ) != S_OK )
+			SK_CORE_ASSERT( false,"Shader Compile Failed" );
+		m_Device->CreatePixelShader( PSblob->GetBufferPointer(),PSblob->GetBufferSize(),nullptr,&PixelShader );
+
+		// Input Layout
+
+		const D3D11_INPUT_ELEMENT_DESC ied[] =
+		{
+			{ "Position",0u,DXGI_FORMAT_R32G32B32_FLOAT,0u,0u,D3D11_INPUT_PER_VERTEX_DATA,0u }
+		};
+		m_Device->CreateInputLayout( ied,(UINT)std::size( ied ),VSblob->GetBufferPointer(),VSblob->GetBufferSize(),&InputLayout );
+	}
+
+	void DirectXRenderer::DrawTriangle()
+	{
+		// Vertexbuffer
+
+		const UINT stride = sizeof( Vertex );
+		const UINT offset = 0u;
+		m_Context->IASetVertexBuffers( 0u,1u,VertexBuffer.GetAddressOf(),&stride,&offset );
+
+		// Shader
+
+		m_Context->VSSetShader( VertexShader.Get(),nullptr,0u );
+
+		m_Context->PSSetShader( PixelShader.Get(),nullptr,0u );
+
+		// Input layout
+
+		m_Context->IASetInputLayout( InputLayout.Get() );
+
+		// Topology
+
+		m_Context->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+
+		// Draw
+
+		m_Context->Draw( (UINT)std::size( vertecies ),0u );
+	}
+
+
 }

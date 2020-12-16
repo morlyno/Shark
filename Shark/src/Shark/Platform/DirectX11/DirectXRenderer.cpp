@@ -30,16 +30,21 @@ namespace Shark {
 		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		scd.BufferCount = 1u;
 		scd.OutputWindow = (HWND)window->GetHandle();
-
 		scd.Windowed = TRUE;
 		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		scd.Flags = 0u;
+
+#ifdef SK_DEBUG
+		UINT CreateDeviceflags = D3D11_CREATE_DEVICE_DEBUG;
+#else
+		UINT CreateDeviceflags = 0u;
+#endif
 
 		D3D11CreateDeviceAndSwapChain(
 			nullptr,
 			D3D_DRIVER_TYPE_HARDWARE,
 			nullptr,
-			0u,
+			CreateDeviceflags,
 			nullptr,
 			0u,
 			D3D11_SDK_VERSION,
@@ -76,6 +81,7 @@ namespace Shark {
 
 	DirectXRenderer::~DirectXRenderer()
 	{
+		SK_CORE_INFO( "DirectXRenderer detor" );
 	}
 
 	void DirectXRenderer::PresentFrame()
@@ -127,69 +133,6 @@ namespace Shark {
 		m_Context->RSSetViewports( 1u,&vp );
 
 		// --- ______ --- //
-	}
-
-	void DirectXRenderer::InitDrawTrinagle()
-	{
-		// Vertexbuffer
-
-		D3D11_BUFFER_DESC bd = {};
-		bd.ByteWidth = sizeof( vertecies );
-		bd.StructureByteStride = sizeof( Vertex );
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = 0u;
-		bd.MiscFlags = 0u;
-
-		D3D11_SUBRESOURCE_DATA srd = {};
-		srd.pSysMem = vertecies;
-
-		m_Device->CreateBuffer( &bd,&srd,&VertexBuffer );
-
-		// Shader
-
-		Microsoft::WRL::ComPtr<ID3DBlob> VSblob;
-		D3DReadFileToBlob( L"../bin/Debug-windows-x86_64/Shark/Shader_VS.cso",&VSblob );
-		m_Device->CreateVertexShader( VSblob->GetBufferPointer(),VSblob->GetBufferSize(),nullptr,&VertexShader );
-
-		Microsoft::WRL::ComPtr<ID3DBlob> PSblob;
-		D3DReadFileToBlob( L"../bin/Debug-windows-x86_64/Shark/Shader_PS.cso",&PSblob );
-		m_Device->CreatePixelShader( PSblob->GetBufferPointer(),PSblob->GetBufferSize(),nullptr,&PixelShader );
-
-		// Input Layout
-
-		const D3D11_INPUT_ELEMENT_DESC ied[] =
-		{
-			{ "Position",0u,DXGI_FORMAT_R32G32B32_FLOAT,0u,0u,D3D11_INPUT_PER_VERTEX_DATA,0u }
-		};
-		m_Device->CreateInputLayout( ied,(UINT)std::size( ied ),VSblob->GetBufferPointer(),VSblob->GetBufferSize(),&InputLayout );
-	}
-
-	void DirectXRenderer::DrawTriangle()
-	{
-		// Vertexbuffer
-
-		const UINT stride = sizeof( Vertex );
-		const UINT offset = 0u;
-		m_Context->IASetVertexBuffers( 0u,1u,VertexBuffer.GetAddressOf(),&stride,&offset );
-
-		// Shader
-
-		m_Context->VSSetShader( VertexShader.Get(),nullptr,0u );
-
-		m_Context->PSSetShader( PixelShader.Get(),nullptr,0u );
-
-		// Input layout
-
-		m_Context->IASetInputLayout( InputLayout.Get() );
-
-		// Topology
-
-		m_Context->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
-
-		// Draw
-
-		m_Context->Draw( (UINT)std::size( vertecies ),0u );
 	}
 
 }

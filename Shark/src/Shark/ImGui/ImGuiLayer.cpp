@@ -18,6 +18,7 @@ namespace Shark {
 
 	ImGuiLayer::~ImGuiLayer()
 	{
+		OnDetach();
 	}
 
 	void ImGuiLayer::OnAttach()
@@ -54,6 +55,7 @@ namespace Shark {
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
+		SK_CORE_INFO( "ImGuiLayer OnDetach" );
 	}
 
 	void ImGuiLayer::Begin()

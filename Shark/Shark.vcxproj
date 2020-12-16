@@ -137,14 +137,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\Shark\Platform\DirectX11\Shaders\Shader_PS.hlsl">
-      <ShaderType>Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile Include="src\Shark\Platform\DirectX11\Shaders\Shader_VS.hlsl">
-      <ShaderType>Vertex</ShaderType>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="dependencies\ImGui\ImGui.vcxproj">
       <Project>{C0FF640D-2C14-8DBE-F595-301E616989EF}</Project>
     </ProjectReference>
@@ -152,4 +144,4 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-</Project> 
+</Project>

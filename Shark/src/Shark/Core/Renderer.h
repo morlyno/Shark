@@ -10,8 +10,6 @@ namespace Shark {
 	class Renderer
 	{
 	public:
-		using EventCallbackFunc = std::function<void( Event& e )>;
-
 		virtual ~Renderer() = default;
 
 		virtual void PresentFrame() = 0;
@@ -25,4 +23,4 @@ namespace Shark {
 		static Renderer* Create( const class Window* window );
 	};
 
-}	
+}

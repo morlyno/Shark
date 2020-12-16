@@ -22,9 +22,6 @@
     <Filter Include="Shark\Platform\DirectX11">
       <UniqueIdentifier>{764B8F80-6270-DE00-8BBB-C390773FDD1E}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shark\Platform\DirectX11\Shaders">
-      <UniqueIdentifier>{4F86EA14-3BD7-D556-643B-C41850EB68C0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shark\Platform\Windows">
       <UniqueIdentifier>{6C3F9B5C-5839-C4AE-41A6-5ABF2D3F2A1B}</UniqueIdentifier>
     </Filter>
@@ -131,13 +128,5 @@
       <Filter>Shark\Utils</Filter>
     </ClCompile>
     <ClCompile Include="src\skpch.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="src\Shark\Platform\DirectX11\Shaders\Shader_PS.hlsl">
-      <Filter>Shark\Platform\DirectX11\Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="src\Shark\Platform\DirectX11\Shaders\Shader_VS.hlsl">
-      <Filter>Shark\Platform\DirectX11\Shaders</Filter>
-    </FxCompile>
   </ItemGroup>
 </Project>
