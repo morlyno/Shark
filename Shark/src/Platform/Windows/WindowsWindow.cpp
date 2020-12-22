@@ -5,11 +5,11 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/KeyCodes.h"
 #include "Shark/Core/MouseCodes.h"
+#include "Shark/Render/RendererCommand.h"
 
-#ifndef SK_DISABLE_IMGUI_WNDPROCHANDLER
+
 #include <backends/imgui_impl_win32.h>
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam );
-#endif
 
 namespace Shark {
 
@@ -85,7 +85,7 @@ namespace Shark {
 		);
 		SK_ASSERT( m_Window );
 
-		m_Renderer = std::unique_ptr<Renderer>( Renderer::Create( this ) );
+
 
 		ShowWindow( m_Window,SW_SHOWDEFAULT );
 		UpdateWindow( m_Window );
@@ -95,11 +95,6 @@ namespace Shark {
 	{
 		DestroyWindow( m_Window );
 		SK_CORE_INFO( "WindowsWindow detor" );
-	}
-
-	void WindowsWindow::OnWindowResize( WindowResizeEvent& e )
-	{
-		m_Renderer->OnResize( e.GetWidth(),e.GetHeight() );
 	}
 
 	void WindowsWindow::Update() const
@@ -112,7 +107,7 @@ namespace Shark {
 			TranslateMessage( &msg );
 			DispatchMessageW( &msg );
 		}
-		m_Renderer->SwapBuffers( m_VSync );
+		RendererCommand::SwapBuffer( m_VSync );
 	}
 
 	LRESULT WINAPI WindowsWindow::WindowProcStartUp( HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam )
@@ -137,10 +132,9 @@ namespace Shark {
 
 	LRESULT __stdcall WindowsWindow::HandleMsg( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam )
 	{
-#ifndef SK_DISABLE_IMGUI_WNDPROCHANDLER
 		if ( ImGui_ImplWin32_WndProcHandler( hWnd,msg,wParam,lParam ) )
 			return true;
-#endif
+
 		switch ( msg )
 		{
 			case WM_DESTROY:

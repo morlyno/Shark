@@ -6,9 +6,9 @@
 #include "Shark/Core/Input.h"
 #include "Shark/Core/TimeStep.h"
 
-#include <imgui.h>
+#include "Shark/Render/RendererCommand.h"
 
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include <imgui.h>
 
 namespace Shark {
 
@@ -20,11 +20,10 @@ namespace Shark {
 		s_inst = this;
 		m_Window = std::unique_ptr<Window>( Window::Create() );
 		m_Window->SetEventCallbackFunc( SK_BIND_EVENT_FN( Application::OnEvent ) );
+		RendererCommand::InitRendererAPI( *m_Window );
 
 		m_pImGuiLayer = new ImGuiLayer();
 		PushLayer( m_pImGuiLayer );
-
-		this->InitDrawTrinagle();
 	}
 
 	Application::~Application()
@@ -39,18 +38,21 @@ namespace Shark {
 			TimeStep timeStep = Time - m_LastFrameTime;
 			m_LastFrameTime = Time;
 
+			RendererCommand::ClearBuffer();
+
 			for ( auto layer : m_LayerStack )
 				layer->OnUpdate( timeStep );
 
-			m_Window->GetRenderer()->ClearBuffer( Color::F32RGBA( 0.1f,0.3f,0.5f ) );
-
-			this->DrawTriangle();
+			for ( auto layer : m_LayerStack )
+				layer->OnRender();
 
 			m_pImGuiLayer->Begin();
 			for ( auto layer : m_LayerStack )
 				layer->OnImGuiRender();
+			ImGui::Begin( "VSync Test" );
+			ImGui::Text( "%.3f",timeStep.GetSeconts() );
+			ImGui::End();
 			m_pImGuiLayer->End();
-
 			m_Window->Update();
 		}
 		return m_ExitCode;
@@ -58,23 +60,20 @@ namespace Shark {
 
 	void Application::OnEvent( Event& e )
 	{
-#if 0
-		if ( e.GetEventType() == EventTypes::KeyPressed )
-		{
-			auto ke = static_cast<KeyPressedEvent&>(e);
-			if ( ke.GetKeyCode() == Key::V )
-			{
-				auto renderer = m_Window->GetRenderer();
-				renderer->SetVSync( !renderer->IsVSync() );
-			}
-		}
-#endif
-
 		EventDispacher dispacher( e );
 		dispacher.DispachEvent<WindowCloseEvent>( SK_BIND_EVENT_FN( Application::OnWindowClose ) );
 		dispacher.DispachEvent<WindowResizeEvent>( SK_BIND_EVENT_FN( Application::OnWindowResize ) );
 		for ( auto layer : m_LayerStack )
 			layer->OnEvent( e );
+
+		if ( e.GetEventType() == EventTypes::KeyPressed )
+		{
+			KeyPressedEvent& ke = static_cast<KeyPressedEvent&>(e);
+			if ( ke.GetKeyCode() == Key::V )
+			{
+				m_Window->SetVSync( !m_Window->IsVSync() );
+			}
+		}
 	}
 
 	bool Application::OnWindowClose( WindowCloseEvent& e )
@@ -88,104 +87,8 @@ namespace Shark {
 	bool Application::OnWindowResize( WindowResizeEvent& e )
 	{
 		SK_CORE_TRACE( e );
-		m_Window->OnWindowResize( e );
+		RendererCommand::Resize( e.GetWidth(),e.GetHeight() );
 		return true;
 	}
-
-	void Application::InitDrawTrinagle()
-	{
-		// Vertexbuffer
-
-		float vertices[3 * 8] =
-		{
-			-0.5f,-0.5f, 0.0f, 0.8f, 0.3f,0.1f, 1.0f, 0.0f,
-			 0.0f, 0.5f, 0.0f, 0.1f, 0.7f,0.4f, 1.0f, 0.0f,
-			 0.5f,-0.5f, 0.0f, 0.3f, 0.1f,0.5f, 1.0f, 0.0f
-		};
-
-		VertexLayout layout =
-		{
-			{ VertexElementType::Float3,"Position" },
-			{ VertexElementType::Float4,"Color" },
-			{ VertexElementType::Float,"TEST" }
-		};
-
-		m_VertexBuffer = std::unique_ptr<VertexBuffer>( VertexBuffer::Create( layout ) );
-		m_VertexBuffer->SetData( vertices,3 );
-
-		// IndexBuffer
-
-		uint32_t indices[] = { 0,1,2 };
-
-		m_IndexBuffer = std::unique_ptr<IndexBuffer>( IndexBuffer::Create( indices,3 ) );
-
-		// Shader + Input Layout
-
-		const std::string VSSrc = R"(
-			struct VSOUT
-			{
-				float4 c : Color;
-				float4 pos : SV_POSITION;
-			};
-
-			VSOUT main( float3 pos : Position,float4 color : Color )
-			{
-				VSOUT vso;
-				vso.pos = float4(pos, 1.0f);
-			    vso.c = color;
-				return vso;
-			}
-		)";
-
-		const std::string PSSrc = R"(
-			float4 main( float4 c : Color ) : SV_TARGET
-			{
-				return c;
-			}
-		)";
-
-		m_Shaders = std::unique_ptr<Shaders>( Shaders::Create( VSSrc,PSSrc ) );
-		m_Shaders->SetInputs( layout );
-
-
-#if 0
-		struct ConstentBuffer
-		{
-			float r,g,b,a;
-		} color;
-
-		color.r = 0.8f;
-		color.g = 0.3f;
-		color.b = 0.2f;
-		color.a = 1.0f;
-
-		m_Shaders->SetConstBuffer( ConstBufferType::PixelShaderBuffer,color );
-#endif
-	}
-
-	void Application::DrawTriangle()
-	{
-		auto dxr = static_cast<DirectXRenderer*>(m_Window->GetRenderer());
-		auto m_Context = dxr->GetContext();
-
-		// Vertexbuffer
-
-		m_VertexBuffer->Bind();
-
-		m_IndexBuffer->Bind();
-
-		// Shader + Input layout + Constant Buffer
-
-		m_Shaders->Bind();
-
-		// Topology
-
-		m_Context->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
-
-		// Draw
-
-		m_Context->DrawIndexed( m_IndexBuffer->GetCount(),0u,0u );
-	}
-
 
 }

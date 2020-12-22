@@ -2,7 +2,8 @@
 
 #include "Shark/Core/Core.h"
 #include "Shark/Render/Shaders.h"
-#include "DirectXRenderer.h"
+#include "DirectXRendererAPI.h"
+#include <d3d11.h>
 
 namespace Shark {
 
@@ -20,8 +21,6 @@ namespace Shark {
 		void Bind() override;
 		void UnBind() override;
 	private:
-		DirectXRenderer& m_RenderRef;
-
 		ID3D11VertexShader* m_VertexShader = nullptr;
 		ID3D11PixelShader* m_PixelShader = nullptr;
 		ID3D11InputLayout* m_InputLayout = nullptr;

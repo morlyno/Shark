@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Shark/Render/Buffers.h"
-#include "DirectXRenderer.h"
+#include "DirectXRendererAPI.h"
+#include <d3d11.h>
 
 namespace Shark {
 
@@ -19,8 +20,6 @@ namespace Shark {
 		void Bind() override;
 		void UnBind() override;
 	private:
-		DirectXRenderer& m_RenderRef;
-
 		ID3D11Buffer* m_VertexBuffer = nullptr;
 	};
 
@@ -36,8 +35,6 @@ namespace Shark {
 		void Bind() override;
 		void UnBind() override;
 	private:
-		DirectXRenderer& m_RenderRef;
-
 		ID3D11Buffer* m_IndexBuffer = nullptr;
 	};
 

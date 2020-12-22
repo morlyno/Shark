@@ -26,24 +26,12 @@ namespace Shark {
 		void PushOverlay( Layer* layer ) { m_LayerStack.PushOverlay( layer ); }
 		void PopOverlay( Layer* layer ) { m_LayerStack.PopOverlay( layer ); }
 
-		static inline Application* Get() { return s_inst; }
-		inline Window* GetWindow() { return m_Window.get(); }
+		static inline Application& Get() { return *s_inst; }
+		inline Window& GetWindow() { return *m_Window; }
 	private:
 		bool OnWindowClose( WindowCloseEvent& e );
 		bool OnWindowResize( WindowResizeEvent& e );
 
-		void InitDrawTrinagle();
-		void DrawTriangle();
-
-		std::unique_ptr<Shaders> m_Shaders;
-		std::unique_ptr<IndexBuffer> m_IndexBuffer;
-		std::unique_ptr<VertexBuffer> m_VertexBuffer;
-		//Microsoft::WRL::ComPtr<ID3D11Buffer> VertexBuffer;
-		//Microsoft::WRL::ComPtr<ID3D11Buffer> IndexBuffer;
-		//Microsoft::WRL::ComPtr<ID3D11VertexShader> VertexShader;
-		//Microsoft::WRL::ComPtr<ID3D11PixelShader> PixelShader;
-		//Microsoft::WRL::ComPtr<ID3D11InputLayout> InputLayout;
-		//Microsoft::WRL::ComPtr<ID3D11Buffer> PSConstantBuffer;
 	private:
 		static Application* s_inst;
 

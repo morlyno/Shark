@@ -27,7 +27,6 @@ namespace Shark {
 
 		virtual void SetEventCallbackFunc( const EventCallbackFunc& callback ) = 0;
 
-		virtual void OnWindowResize( WindowResizeEvent& e ) = 0;
 
 		virtual void Update() const = 0;
 
@@ -39,8 +38,6 @@ namespace Shark {
 
 		virtual inline bool IsVSync() const = 0;
 		virtual void SetVSync( bool VSync ) = 0;
-
-		virtual inline Renderer* GetRenderer() = 0;
 
 		static Window* Create( const WindowProps& properties = WindowProps() );
 	};

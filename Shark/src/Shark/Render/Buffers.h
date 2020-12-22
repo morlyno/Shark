@@ -90,8 +90,8 @@ namespace Shark {
 
 		const VertexLayout& GetLayout() { return m_Layout; }
 
-		static VertexBuffer* Create( const VertexLayout& layout );
-		static VertexBuffer* Create( const VertexLayout& layout,float* data,uint32_t count );
+		static std::unique_ptr<VertexBuffer> Create( const VertexLayout& layout );
+		static std::unique_ptr<VertexBuffer> Create( const VertexLayout& layout,float* data,uint32_t count );
 	protected:
 		VertexLayout m_Layout;
 		uint32_t m_Count = 0u;
@@ -110,7 +110,7 @@ namespace Shark {
 
 		uint32_t GetCount() { return m_Count; }
 
-		static IndexBuffer* Create( uint32_t* indices,uint32_t count );
+		static std::unique_ptr<IndexBuffer> Create( uint32_t* indices,uint32_t count );
 	private:
 		uint32_t m_Count;
 		uint32_t* m_Indices = nullptr;

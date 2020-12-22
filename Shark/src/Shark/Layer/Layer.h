@@ -15,13 +15,15 @@ namespace Shark {
 		{}
 		virtual ~Layer() = default;
 
-		virtual void OnAttach() {};
-		virtual void OnDetach() {};
+		virtual void OnAttach() {}
+		virtual void OnDetach() {}
 
-		virtual void OnUpdate( TimeStep t ) {};
-		virtual void OnEvent( Event& e ) {};
+		virtual void OnUpdate( TimeStep t ) {}
+		virtual void OnEvent( Event& e ) {}
 
-		virtual void OnImGuiRender() {};
+		virtual void OnRender() {}
+
+		virtual void OnImGuiRender() {}
 
 		inline std::string GetName() const { return LayerName; }
 	protected:

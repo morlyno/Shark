@@ -1,33 +1,24 @@
 #include "skpch.h"
 #include "DirectXBuffers.h"
 #include "Shark/Core/Application.h"
+#include "Shark/Render/RendererCommand.h"
+
+#define SK_GET_RENDERERAPI() static_cast<::Shark::DirectXRendererAPI&>(::Shark::RendererCommand::GetRendererAPI())
 
 namespace Shark {
 
 	 //////////////////////////////////////////////////////////////////////////
 	/// VertexBuffer /////////////////////////////////////////////////////////
 
-	VertexBuffer* VertexBuffer::Create( const VertexLayout& layout )
-	{
-		return new DirectXVertexBuffer( layout );
-	}
-
-	VertexBuffer* VertexBuffer::Create( const VertexLayout& layout,float* data,uint32_t size )
-	{
-		return new DirectXVertexBuffer( layout,data,size );
-	}
-
 	DirectXVertexBuffer::DirectXVertexBuffer( const VertexLayout& layout )
 		:
-		VertexBuffer( layout ),
-		m_RenderRef( *static_cast<DirectXRenderer*>(Application::Get()->GetWindow()->GetRenderer()) )
+		VertexBuffer( layout )
 	{
 	}
 
 	DirectXVertexBuffer::DirectXVertexBuffer( const VertexLayout& layout,float* data,uint32_t count )
 		:
-		VertexBuffer( layout,data,count ),
-		m_RenderRef( *static_cast<DirectXRenderer*>(Application::Get()->GetWindow()->GetRenderer()) )
+		VertexBuffer( layout,data,count )
 	{
 		Init( data,count );
 	}
@@ -50,7 +41,7 @@ namespace Shark {
 		D3D11_SUBRESOURCE_DATA srd = {};
 		srd.pSysMem = data;
 
-		m_RenderRef.GetDevice()->CreateBuffer( &bd,&srd,&m_VertexBuffer );
+		SK_GET_RENDERERAPI().GetDevice()->CreateBuffer( &bd,&srd,&m_VertexBuffer );
 	}
 
 	void DirectXVertexBuffer::SetData( void* data,uint32_t count )
@@ -63,27 +54,21 @@ namespace Shark {
 	{
 		const UINT stride = m_Layout.GetVertexSize();
 		constexpr UINT offset = 0u;
-		m_RenderRef.GetContext()->IASetVertexBuffers( 0u,1u,&m_VertexBuffer,&stride,&offset );
+		SK_GET_RENDERERAPI().GetContext()->IASetVertexBuffers( 0u,1u,&m_VertexBuffer,&stride,&offset );
 	}
 
 	void DirectXVertexBuffer::UnBind()
 	{
 		constexpr UINT null = 0u;
-		m_RenderRef.GetContext()->IASetVertexBuffers( 0u,0u,nullptr,&null,&null );
+		SK_GET_RENDERERAPI().GetContext()->IASetVertexBuffers( 0u,0u,nullptr,&null,&null );
 	}
 
 	 //////////////////////////////////////////////////////////////////////////
 	/// IndexBuffer //////////////////////////////////////////////////////////
 
-	IndexBuffer* IndexBuffer::Create( uint32_t* indices,uint32_t count )
-	{
-		return new DirectXIndexBuffer( indices,count );
-	}
-
 	DirectXIndexBuffer::DirectXIndexBuffer( uint32_t* indices,uint32_t count )
 		:
-		IndexBuffer( indices,count ),
-		m_RenderRef( *static_cast<DirectXRenderer*>(Application::Get()->GetWindow()->GetRenderer()) )
+		IndexBuffer( indices,count )
 	{
 		Init( indices,count );
 	}
@@ -106,17 +91,17 @@ namespace Shark {
 		D3D11_SUBRESOURCE_DATA i_srd = {};
 		i_srd.pSysMem = indices;
 
-		m_RenderRef.GetDevice()->CreateBuffer( &i_bd,&i_srd,&m_IndexBuffer );
+		SK_GET_RENDERERAPI().GetDevice()->CreateBuffer( &i_bd,&i_srd,&m_IndexBuffer );
 	}
 
 	void DirectXIndexBuffer::Bind()
 	{
-		m_RenderRef.GetContext()->IASetIndexBuffer( m_IndexBuffer,DXGI_FORMAT_R32_UINT,0u );
+		SK_GET_RENDERERAPI().GetContext()->IASetIndexBuffer( m_IndexBuffer,DXGI_FORMAT_R32_UINT,0u );
 	}
 	
 	void DirectXIndexBuffer::UnBind()
 	{
-		m_RenderRef.GetContext()->IASetIndexBuffer( nullptr,DXGI_FORMAT_UNKNOWN,0u );
+		SK_GET_RENDERERAPI().GetContext()->IASetIndexBuffer( nullptr,DXGI_FORMAT_UNKNOWN,0u );
 	}
 
 }

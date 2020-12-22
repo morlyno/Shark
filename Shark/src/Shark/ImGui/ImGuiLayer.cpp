@@ -5,8 +5,9 @@
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_win32.h>
 
-#include "Platform/DirectX11/DirectXRenderer.h"
 #include "Shark/Core/Application.h"
+#include "Shark/Render/RendererCommand.h"
+#include "Platform/DirectX11/DirectXRendererAPI.h"
 
 namespace Shark {
 
@@ -43,11 +44,11 @@ namespace Shark {
 			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
 
-		auto app = Application::Get();
-		ImGui_ImplWin32_Init( app->GetWindow()->GetHandle() );
+		Window& window = Application::Get().GetWindow();
+		ImGui_ImplWin32_Init( window.GetHandle() );
 
-		auto dxr = static_cast<DirectXRenderer*>(app->GetWindow()->GetRenderer());
-		ImGui_ImplDX11_Init( dxr->GetDevice(),dxr->GetContext() );
+		DirectXRendererAPI& dxr = static_cast<DirectXRendererAPI&>(RendererCommand::GetRendererAPI());
+		ImGui_ImplDX11_Init( dxr.GetDevice(),dxr.GetContext() );
 	}
 
 	void ImGuiLayer::OnDetach()
@@ -68,8 +69,8 @@ namespace Shark {
 	void ImGuiLayer::End()
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		auto window = Application::Get()->GetWindow();
-		io.DisplaySize = ImVec2( (float)window->GetWidth(),(float)window->GetHeight() );
+		auto& window = Application::Get().GetWindow();
+		io.DisplaySize = ImVec2( (float)window.GetWidth(),(float)window.GetHeight() );
 
 		ImGui::Render();
 		ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData() );
@@ -87,12 +88,5 @@ namespace Shark {
 		e.Handled |= e.IsInCategory( EventCategoryKeyboard ) & io.WantCaptureKeyboard;
 		e.Handled |= e.IsInCategory( EventCategoryMouse ) & io.WantCaptureMouse;
 	}
-
-	void ImGuiLayer::OnImGuiRender()
-	{
-		static bool show = true;
-		ImGui::ShowDemoWindow( &show );
-	}
-
 
 }

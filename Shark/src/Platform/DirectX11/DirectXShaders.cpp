@@ -1,29 +1,20 @@
 #include "skpch.h"
 #include "DirectXShaders.h"
 #include "Shark/Core/Application.h"
+#include "Shark/Render/RendererCommand.h"
+#include <d3dcompiler.h>
+
+#define SK_GET_RENDERERAPI() static_cast<::Shark::DirectXRendererAPI&>(::Shark::RendererCommand::GetRendererAPI())
+
 
 namespace Shark {
 
-	Shaders* Shaders::Create( const std::string& vertexshaderSrc,const std::string& pixelshaderSrc )
-	{
-		return new DirectXShaders( vertexshaderSrc,pixelshaderSrc );
-	}
-
-	Shaders* Shaders::Create( VertexLayout& layout,const std::string& vertexshaderSrc,const std::string& pixelshaderSrc )
-	{
-		return new DirectXShaders( layout,vertexshaderSrc,pixelshaderSrc );
-	}
-
 	DirectXShaders::DirectXShaders( const std::string& vertexshaderSrc,const std::string& pixelshaderSrc )
-		:
-		m_RenderRef( *static_cast<DirectXRenderer*>(Application::Get()->GetWindow()->GetRenderer()) )
 	{
 		Init( vertexshaderSrc,pixelshaderSrc );
 	}
 
 	DirectXShaders::DirectXShaders( VertexLayout& layout,const std::string& vertexshaderSrc,const std::string& pixelshaderSrc )
-		:
-		m_RenderRef( *static_cast<DirectXRenderer*>(Application::Get()->GetWindow()->GetRenderer()) )
 	{
 		Init( vertexshaderSrc,pixelshaderSrc );
 		SetInputs( layout );
@@ -47,7 +38,7 @@ namespace Shark {
 		}
 		if ( ErrorMsg ) { ErrorMsg->Release(); ErrorMsg = nullptr; }
 
-		m_RenderRef.GetDevice()->CreateVertexShader( m_VSBlob->GetBufferPointer(),m_VSBlob->GetBufferSize(),nullptr,&m_VertexShader );
+		SK_GET_RENDERERAPI().GetDevice()->CreateVertexShader( m_VSBlob->GetBufferPointer(),m_VSBlob->GetBufferSize(),nullptr,&m_VertexShader );
 
 		ID3DBlob* PSblob;
 		if ( D3DCompile( pixelshaderSrc.c_str(),pixelshaderSrc.size(),nullptr,nullptr,nullptr,"main","ps_4_0",0u,0u,&PSblob,&ErrorMsg ) != S_OK )
@@ -57,7 +48,7 @@ namespace Shark {
 		}
 		if ( ErrorMsg ) { ErrorMsg->Release(); ErrorMsg = nullptr; }
 
-		m_RenderRef.GetDevice()->CreatePixelShader( PSblob->GetBufferPointer(),PSblob->GetBufferSize(),nullptr,&m_PixelShader );
+		SK_GET_RENDERERAPI().GetDevice()->CreatePixelShader( PSblob->GetBufferPointer(),PSblob->GetBufferSize(),nullptr,&m_PixelShader );
 		PSblob->Release();
 
 		// Temporary
@@ -89,23 +80,21 @@ namespace Shark {
 		{
 			m_InputElements.emplace_back( D3D11_INPUT_ELEMENT_DESC{ l.name.c_str(),0u,GetDXGIFormat( l.type ),0u,l.offset,D3D11_INPUT_PER_VERTEX_DATA,0u } );
 		}
-		m_RenderRef.GetDevice()->CreateInputLayout( m_InputElements.data(),(UINT)m_InputElements.size(),m_VSBlob->GetBufferPointer(),m_VSBlob->GetBufferSize(),&m_InputLayout );
+		SK_GET_RENDERERAPI().GetDevice()->CreateInputLayout( m_InputElements.data(),(UINT)m_InputElements.size(),m_VSBlob->GetBufferPointer(),m_VSBlob->GetBufferSize(),&m_InputLayout );
 	}
 
 	void DirectXShaders::Bind()
 	{
-		SK_ASSERT( static_cast<DirectXRenderer*>(Application::Get()->GetWindow()->GetRenderer()),"Renderer was null" );
-		m_RenderRef.GetContext()->VSSetShader( m_VertexShader,nullptr,0u );
-		m_RenderRef.GetContext()->PSSetShader( m_PixelShader,nullptr,0u );
-		m_RenderRef.GetContext()->IASetInputLayout( m_InputLayout );
+		SK_GET_RENDERERAPI().GetContext()->VSSetShader( m_VertexShader,nullptr,0u );
+		SK_GET_RENDERERAPI().GetContext()->PSSetShader( m_PixelShader,nullptr,0u );
+		SK_GET_RENDERERAPI().GetContext()->IASetInputLayout( m_InputLayout );
 	}
 
 	void DirectXShaders::UnBind()
 	{
-		SK_ASSERT( static_cast<DirectXRenderer*>(Application::Get()->GetWindow()->GetRenderer()),"Renderer was null" );
-		m_RenderRef.GetContext()->VSSetShader( nullptr,nullptr,0u );
-		m_RenderRef.GetContext()->PSSetShader( nullptr,nullptr,0u );
-		m_RenderRef.GetContext()->IASetInputLayout( nullptr );
+		SK_GET_RENDERERAPI().GetContext()->VSSetShader( nullptr,nullptr,0u );
+		SK_GET_RENDERERAPI().GetContext()->PSSetShader( nullptr,nullptr,0u );
+		SK_GET_RENDERERAPI().GetContext()->IASetInputLayout( nullptr );
 	}
 
 }

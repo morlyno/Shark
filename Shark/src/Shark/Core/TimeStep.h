@@ -10,7 +10,7 @@ namespace Shark {
 			m_Time( time )
 		{}
 
-		float operator()() { return m_Time; }
+		operator float() const { return m_Time; }
 
 		float GetSeconts() { return m_Time; }
 		float GetMilliSeconts() { return m_Time * 1000.0f; }

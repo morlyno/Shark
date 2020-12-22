@@ -5,24 +5,13 @@
 class TestLayer : public Shark::Layer
 {
 public:
-	TestLayer( const std::string& name = std::string{} )
-		:
-		Layer( "TestLayer" + name )
-	{
-	}
+	TestLayer( const std::string& name = std::string{} );
+	void OnAttach() override;
+	void OnRender() override;
+	void OnImGuiRender() override;
 
-	void OnUpdate( Shark::TimeStep t ) override
-	{
-	}
-
-	void OnEvent( Shark::Event& e ) override
-	{
-	}
-
-	void OnImGuiRender() override
-	{
-		ImGui::Begin( "Test" );
-		ImGui::Text( "Hi" );
-		ImGui::End();
-	}
+private:
+	std::unique_ptr<Shark::VertexBuffer> m_VertexBuffer;
+	std::unique_ptr<Shark::IndexBuffer> m_IndexBuffer;
+	std::shared_ptr<Shark::Shaders> m_Shaders;
 };

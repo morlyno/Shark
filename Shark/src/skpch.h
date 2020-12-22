@@ -22,9 +22,4 @@
 		#define NOMINMAX
 	#endif
 	#include <Windows.h>
-	#include <d3d11.h>
-	#include <d3dcompiler.h>
-	#include <wrl.h>
-	#include <DirectXMath.h>
-	#include <DirectXColors.h>
 #endif
