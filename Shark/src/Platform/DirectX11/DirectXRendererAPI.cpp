@@ -94,6 +94,9 @@ namespace Shark {
 
 	void DirectXRendererAPI::OnResize( int width,int height )
 	{
+		if ( width <= 0 || height <= 0 )
+			return;
+
 		m_Context->OMSetRenderTargets( 0u,nullptr,nullptr );
 		m_RenderTarget->Release();
 
@@ -113,5 +116,6 @@ namespace Shark {
 		vp.MinDepth = 0u;
 		vp.MaxDepth = 1u;
 		m_Context->RSSetViewports( 1u,&vp );
-	}
+	};
+
 }

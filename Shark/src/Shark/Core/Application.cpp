@@ -24,6 +24,8 @@ namespace Shark {
 
 		m_pImGuiLayer = new ImGuiLayer();
 		PushLayer( m_pImGuiLayer );
+
+		Shark::RendererCommand::SetClearColor( clear_color );
 	}
 
 	Application::~Application()
@@ -49,10 +51,14 @@ namespace Shark {
 			m_pImGuiLayer->Begin();
 			for ( auto layer : m_LayerStack )
 				layer->OnImGuiRender();
-			ImGui::Begin( "VSync Test" );
-			ImGui::Text( "%.3f",timeStep.GetSeconts() );
+
+			ImGui::Begin( "Background" );
+			if ( ImGui::ColorEdit4( "Color",clear_color ) )
+				RendererCommand::SetClearColor( clear_color );
 			ImGui::End();
+
 			m_pImGuiLayer->End();
+
 			m_Window->Update();
 		}
 		return m_ExitCode;

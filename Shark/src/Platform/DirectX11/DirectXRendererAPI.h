@@ -14,7 +14,7 @@ namespace Shark {
 
 		virtual void SetClearColor( const float color[4] ) override;
 		virtual void ClearBuffer() override;
-		virtual void SwapBuffer( bool VSync ) override;
+		virtual void SwapBuffer(bool VSync) override;
 
 		virtual void DrawIndexed( uint32_t count ) override;
 
@@ -27,7 +27,7 @@ namespace Shark {
 		ID3D11DeviceContext* m_Context = nullptr;
 		IDXGISwapChain* m_SwapChain = nullptr;
 		ID3D11RenderTargetView* m_RenderTarget = nullptr;
-
+		
 		float clear_color[4];
 	};
 

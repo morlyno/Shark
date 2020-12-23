@@ -4,25 +4,25 @@
 
 namespace Shark {
 
-	enum class VertexElementType
+	enum class VertexElement
 	{
 		None = 0,
 		Float,Float2,Float3,Float4,
 		Int,Int2,Int3,Int4,
 	};
 
-	static uint32_t GetElementSize( VertexElementType type )
+	static uint32_t GetElementSize( VertexElement type )
 	{
 		switch ( type )
 		{
-			case VertexElementType::Float:   return 4u;
-			case VertexElementType::Float2:  return 4u * 2u;
-			case VertexElementType::Float3:  return 4u * 3u;
-			case VertexElementType::Float4:  return 4u * 4u;
-			case VertexElementType::Int:     return 4u;
-			case VertexElementType::Int2:    return 4u * 2u;
-			case VertexElementType::Int3:    return 4u * 3u;
-			case VertexElementType::Int4:    return 4u * 4u;
+			case VertexElement::Float:   return 4u;
+			case VertexElement::Float2:  return 4u * 2u;
+			case VertexElement::Float3:  return 4u * 3u;
+			case VertexElement::Float4:  return 4u * 4u;
+			case VertexElement::Int:     return 4u;
+			case VertexElement::Int2:    return 4u * 2u;
+			case VertexElement::Int3:    return 4u * 3u;
+			case VertexElement::Int4:    return 4u * 4u;
 		}
 
 		SK_CORE_ASSERT( false,"Unknown Element Type" );
@@ -34,9 +34,9 @@ namespace Shark {
 		std::string name;
 		uint32_t size;
 		uint32_t offset;
-		VertexElementType type;
+		VertexElement type;
 
-		ElementDesc( VertexElementType type,const std::string& name )
+		ElementDesc( VertexElement type,const std::string& name )
 			: type( type ),name( name ),size( GetElementSize( type ) ),offset( 0u ) {}
 
 		ElementDesc() = default;

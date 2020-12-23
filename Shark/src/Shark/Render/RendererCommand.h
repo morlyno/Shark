@@ -14,7 +14,7 @@ namespace Shark {
 
 		inline static void DrawIndexed( uint32_t count ) { s_RendererAPI->DrawIndexed( count ); }
 
-		
+
 		inline static void Resize( int width,int height ) { s_RendererAPI->OnResize( width,height ); }
 
 		static void InitRendererAPI( const class Window& window ) { s_RendererAPI->Init( window ); }

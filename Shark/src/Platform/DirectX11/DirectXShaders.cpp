@@ -22,10 +22,10 @@ namespace Shark {
 
 	DirectXShaders::~DirectXShaders()
 	{
-		if ( m_PixelShader )   { m_PixelShader->Release(); }
-		if ( m_VertexShader )  { m_VertexShader->Release(); }
-		if ( m_InputLayout )   { m_InputLayout->Release(); }
-		if ( m_VSBlob )        { m_VSBlob->Release(); }
+		if (m_PixelShader)    { m_PixelShader->Release();   m_PixelShader  = nullptr; }
+		if (m_VertexShader)   { m_VertexShader->Release();  m_VertexShader = nullptr; }
+		if (m_InputLayout)    { m_InputLayout->Release();   m_InputLayout  = nullptr; }
+		if (m_VSBlob)         { m_VSBlob->Release();        m_VSBlob       = nullptr; }
 	}
 
 	void DirectXShaders::Init( const std::string& vertexshaderSrc,const std::string& pixelshaderSrc )
@@ -49,23 +49,22 @@ namespace Shark {
 		if ( ErrorMsg ) { ErrorMsg->Release(); ErrorMsg = nullptr; }
 
 		SK_GET_RENDERERAPI().GetDevice()->CreatePixelShader( PSblob->GetBufferPointer(),PSblob->GetBufferSize(),nullptr,&m_PixelShader );
-		PSblob->Release();
 
-		// Temporary
+		PSblob->Release();
 	}
 
-	static DXGI_FORMAT GetDXGIFormat( VertexElementType type )
+	static DXGI_FORMAT GetDXGIFormat( VertexElement type )
 	{
 		switch ( type )
 		{
-			case VertexElementType::Float:   return DXGI_FORMAT_R32_FLOAT;
-			case VertexElementType::Float2:  return DXGI_FORMAT_R32G32_FLOAT;
-			case VertexElementType::Float3:  return DXGI_FORMAT_R32G32B32_FLOAT;
-			case VertexElementType::Float4:  return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case VertexElementType::Int:     return DXGI_FORMAT_R32_SINT;
-			case VertexElementType::Int2:	 return DXGI_FORMAT_R32G32_SINT;
-			case VertexElementType::Int3:	 return DXGI_FORMAT_R32G32B32_SINT;
-			case VertexElementType::Int4:	 return DXGI_FORMAT_R32G32B32A32_SINT;
+			case VertexElement::Float:   return DXGI_FORMAT_R32_FLOAT;
+			case VertexElement::Float2:  return DXGI_FORMAT_R32G32_FLOAT;
+			case VertexElement::Float3:  return DXGI_FORMAT_R32G32B32_FLOAT;
+			case VertexElement::Float4:  return DXGI_FORMAT_R32G32B32A32_FLOAT;
+			case VertexElement::Int:     return DXGI_FORMAT_R32_SINT;
+			case VertexElement::Int2:    return DXGI_FORMAT_R32G32_SINT;
+			case VertexElement::Int3:    return DXGI_FORMAT_R32G32B32_SINT;
+			case VertexElement::Int4:    return DXGI_FORMAT_R32G32B32A32_SINT;
 		}
 
 		SK_CORE_ASSERT( false,"Unknown Element Type" );
@@ -81,6 +80,31 @@ namespace Shark {
 			m_InputElements.emplace_back( D3D11_INPUT_ELEMENT_DESC{ l.name.c_str(),0u,GetDXGIFormat( l.type ),0u,l.offset,D3D11_INPUT_PER_VERTEX_DATA,0u } );
 		}
 		SK_GET_RENDERERAPI().GetDevice()->CreateInputLayout( m_InputElements.data(),(UINT)m_InputElements.size(),m_VSBlob->GetBufferPointer(),m_VSBlob->GetBufferSize(),&m_InputLayout );
+	}
+
+	void DirectXShaders::SetSceanData(ShaderType target, uint32_t slot, void* data, uint32_t size)
+	{
+		D3D11_BUFFER_DESC bd = {};
+		bd.ByteWidth = size;
+		bd.Usage = D3D11_USAGE_DYNAMIC;
+		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bd.MiscFlags = 0u;
+		bd.StructureByteStride = 0u;
+
+		D3D11_SUBRESOURCE_DATA srd = {};
+		srd.pSysMem = data;
+
+		ID3D11Buffer* buffer;
+		SK_GET_RENDERERAPI().GetDevice()->CreateBuffer(&bd, &srd, &buffer);
+
+		switch (target)
+		{
+			case Shark::ShaderType::VertexShader:   SK_GET_RENDERERAPI().GetContext()->VSSetConstantBuffers(slot, 1u, &buffer); break;
+			case Shark::ShaderType::PixelShader:    SK_GET_RENDERERAPI().GetContext()->PSSetConstantBuffers(slot, 1u, &buffer); break;
+			default: SK_CORE_ASSERT("Unkown Shader Type"); break;
+		}
+		buffer->Release();
 	}
 
 	void DirectXShaders::Bind()

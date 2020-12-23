@@ -6,9 +6,6 @@
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
 
-#include "Shark/Render/Shaders.h"
-#include "Shark/Render/Buffers.h"
-
 namespace Shark {
 
 	class Application
@@ -38,6 +35,8 @@ namespace Shark {
 		bool m_Running = true;
 		int m_ExitCode = -1;
 		float m_LastFrameTime = 0.0f;
+
+		float clear_color[4] = { 0.1f,0.1f,0.1f,1.0f };
 
 		std::unique_ptr<Window> m_Window;
 		// Owned by LayerStack

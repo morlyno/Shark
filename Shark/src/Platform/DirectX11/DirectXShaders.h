@@ -4,6 +4,7 @@
 #include "Shark/Render/Shaders.h"
 #include "DirectXRendererAPI.h"
 #include <d3d11.h>
+#include <d3d11shader.h>
 
 namespace Shark {
 
@@ -17,6 +18,8 @@ namespace Shark {
 		void Init( const std::string& vertexshaderSrc,const std::string& pixelshaderSrc );
 
 		void SetInputs( VertexLayout& layout ) override;
+
+		virtual void SetSceanData(ShaderType target, uint32_t slot, void* data, uint32_t size) override;
 
 		void Bind() override;
 		void UnBind() override;
