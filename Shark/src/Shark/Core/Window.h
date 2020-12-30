@@ -1,9 +1,7 @@
 #pragma once
-#include "skpch.h"
 #include "Core.h"
 #include "Shark/Event/Event.h"
 #include "Shark/Event/WindowEvent.h"
-#include "Shark/Render/Renderer.h"
 
 namespace Shark {
 
@@ -39,7 +37,7 @@ namespace Shark {
 		virtual inline bool IsVSync() const = 0;
 		virtual void SetVSync( bool VSync ) = 0;
 
-		static Window* Create( const WindowProps& properties = WindowProps() );
+		static Scope<Window> Create( const WindowProps& properties = WindowProps() );
 	};
 
 }

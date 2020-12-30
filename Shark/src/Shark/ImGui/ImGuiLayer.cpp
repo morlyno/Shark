@@ -13,7 +13,7 @@ namespace Shark {
 
 	ImGuiLayer::ImGuiLayer()
 		:
-		Layer( "ImGuiLayer" )
+		Layer("ImGuiLayer")
 	{
 	}
 
@@ -38,17 +38,17 @@ namespace Shark {
 		ImGui::StyleColorsDark();
 
 		ImGuiStyle& style = ImGui::GetStyle();
-		if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable )
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			style.WindowRounding = 0.0f;
 			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
 
 		Window& window = Application::Get().GetWindow();
-		ImGui_ImplWin32_Init( window.GetHandle() );
+		ImGui_ImplWin32_Init(window.GetHandle());
 
 		DirectXRendererAPI& dxr = static_cast<DirectXRendererAPI&>(RendererCommand::GetRendererAPI());
-		ImGui_ImplDX11_Init( dxr.GetDevice(),dxr.GetContext() );
+		ImGui_ImplDX11_Init(dxr.GetDevice(), dxr.GetContext());
 	}
 
 	void ImGuiLayer::OnDetach()
@@ -56,7 +56,6 @@ namespace Shark {
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
-		SK_CORE_INFO( "ImGuiLayer OnDetach" );
 	}
 
 	void ImGuiLayer::Begin()
@@ -70,23 +69,23 @@ namespace Shark {
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		auto& window = Application::Get().GetWindow();
-		io.DisplaySize = ImVec2( (float)window.GetWidth(),(float)window.GetHeight() );
+		io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
 
 		ImGui::Render();
-		ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData() );
-		
-		if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable )
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
 		}
 	}
 
-	void ImGuiLayer::OnEvent( Event& e )
+	void ImGuiLayer::OnEvent(Event& e)
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		e.Handled |= e.IsInCategory( EventCategoryKeyboard ) & io.WantCaptureKeyboard;
-		e.Handled |= e.IsInCategory( EventCategoryMouse ) & io.WantCaptureMouse;
+		e.Handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
+		e.Handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
 	}
 
 }

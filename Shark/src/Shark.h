@@ -23,3 +23,5 @@
 #include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shaders.h"
+#include <Shark/Render/OrtographicCamera.h>
+// --- ------ -----------------

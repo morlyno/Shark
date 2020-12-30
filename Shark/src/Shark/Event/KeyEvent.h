@@ -1,5 +1,4 @@
 #pragma once
-#include "skpch.h"
 #include "Shark/Core/Core.h"
 #include "Event.h"
 #include "Shark/Core/KeyCodes.h"
@@ -20,11 +19,11 @@ namespace Shark {
 
 		static EventTypes GetStaticType() { return EventTypes::KeyEventBase; }
 
-		SK_GET_CATEGORY_FLAGS_FUNC( EventCategoryInput | EventCategoryKeyboard )
+		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryInput | EventCategoryKeyboard)
 	protected:
-		KeyEvent( KeyCode keycode )
+		KeyEvent(KeyCode keycode)
 			:
-			keycode( keycode )
+			keycode(keycode)
 		{}
 		KeyCode keycode;
 	};
@@ -32,10 +31,10 @@ namespace Shark {
 	class KeyPressedEvent : public KeyEvent
 	{
 	public:
-		KeyPressedEvent( KeyCode keycode,unsigned int RepeatCount )
+		KeyPressedEvent(KeyCode keycode, unsigned int RepeatCount)
 			:
-			KeyEvent( keycode ),
-			RepeatCount( RepeatCount )
+			KeyEvent(keycode),
+			RepeatCount(RepeatCount)
 		{}
 		unsigned int GetRepeatCount() const { return RepeatCount; }
 
@@ -46,7 +45,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( KeyPressed )
+		SK_EVENT_FUNCTIONS(KeyPressed)
 	private:
 		unsigned int RepeatCount;
 	};
@@ -54,21 +53,21 @@ namespace Shark {
 	class KeyReleasedEvent : public KeyEvent
 	{
 	public:
-		KeyReleasedEvent( KeyCode keycode )
+		KeyReleasedEvent(KeyCode keycode)
 			:
-			KeyEvent( keycode )
+			KeyEvent(keycode)
 		{}
-		SK_EVENT_FUNCTIONS( KeyReleased )
+		SK_EVENT_FUNCTIONS(KeyReleased)
 	};
 
 	class KeyCharacterEvent : public KeyEvent
 	{
 	public:
-		KeyCharacterEvent( KeyCode Character )
+		KeyCharacterEvent(KeyCode Character)
 			:
-			KeyEvent( Character )
+			KeyEvent(Character)
 		{}
-		SK_EVENT_FUNCTIONS( KeyCharacter )
+		SK_EVENT_FUNCTIONS(KeyCharacter)
 	};
 
 }

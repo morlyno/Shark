@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Shark/Core/Core.h"
+#include "RendererCommand.h"
+
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shaders.h"
 #include "Shark/Render/OrtographicCamera.h"
@@ -12,10 +14,13 @@ namespace Shark {
 	class Renderer
 	{
 	public:
+		static void Init(const class Window& window);
+		static void ShutDown();
+
 		static void BeginScean(OrtographicCamera& camera);
 		static void EndScean();
 
-		static void Submit(std::unique_ptr<VertexBuffer>& vertexbuffer, std::unique_ptr<IndexBuffer>& indexbuffer, std::shared_ptr<Shaders>& shaders);
+		static void Submit(Ref<VertexBuffer>& vertexbuffer, Ref<IndexBuffer>& indexbuffer, Ref<Shaders>& shaders);
 	private:
 		struct SceanData
 		{

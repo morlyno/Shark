@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shark/Core/Core.h"
-#include "Shark/Core/Window.h"
 
 namespace Shark {
 
@@ -15,7 +14,8 @@ namespace Shark {
 	public:
 		virtual ~RendererAPI() = default;
 
-		virtual void Init( const Window& window ) = 0;
+		virtual void Init( const class Window& window ) = 0;
+		virtual void ShutDown() = 0;
 
 		virtual void SetClearColor( const float color[4] ) = 0;
 		virtual void ClearBuffer() = 0;
@@ -27,7 +27,7 @@ namespace Shark {
 
 		static API GetAPI() { return s_API; }
 
-		static std::unique_ptr<RendererAPI> Create();
+		static Scope<RendererAPI> Create();
 	private:
 		static API s_API;
 	};

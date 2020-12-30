@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shark/Core/Core.h"
 #include "RendererAPI.h"
 
 namespace Shark {
@@ -7,20 +8,20 @@ namespace Shark {
 	class RendererCommand
 	{
 	public:
-		inline static void SwapBuffer( bool VSync ) { s_RendererAPI->SwapBuffer( VSync ); }
+		static inline void Init(const class Window& window) { s_RendererAPI->Init(window); }
+		static inline void ShutDown() { s_RendererAPI->ShutDown(); }
 
-		inline static void SetClearColor( const float color[4] ) { s_RendererAPI->SetClearColor( color ); }
-		inline static void ClearBuffer() { s_RendererAPI->ClearBuffer(); }
+		static inline void Resize(int width, int height) { s_RendererAPI->OnResize(width, height); }
 
-		inline static void DrawIndexed( uint32_t count ) { s_RendererAPI->DrawIndexed( count ); }
+		static inline void SwapBuffer(bool VSync) { s_RendererAPI->SwapBuffer(VSync); }
+		static inline void SetClearColor(const float color[4]) { s_RendererAPI->SetClearColor(color); }
+		static inline void ClearBuffer() { s_RendererAPI->ClearBuffer(); }
 
+		static inline void DrawIndexed(uint32_t count) { s_RendererAPI->DrawIndexed(count); }
 
-		inline static void Resize( int width,int height ) { s_RendererAPI->OnResize( width,height ); }
-
-		static void InitRendererAPI( const class Window& window ) { s_RendererAPI->Init( window ); }
-		inline static RendererAPI& GetRendererAPI() { return *s_RendererAPI; }
+		static inline RendererAPI& GetRendererAPI() { return *s_RendererAPI; }
 	private:
-		static std::unique_ptr<RendererAPI> s_RendererAPI;
+		static Scope<RendererAPI> s_RendererAPI;
 	};
 
 }

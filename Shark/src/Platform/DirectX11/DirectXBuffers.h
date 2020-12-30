@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shark/Render/Buffers.h"
-#include "DirectXRendererAPI.h"
 #include <d3d11.h>
 
 namespace Shark {
@@ -10,10 +9,10 @@ namespace Shark {
 	{
 	public:
 		DirectXVertexBuffer( const VertexLayout& layout );
-		DirectXVertexBuffer( const VertexLayout& layout,float* data,uint32_t count );
+		DirectXVertexBuffer( const VertexLayout& layout,float* data,uint32_t size );
 		~DirectXVertexBuffer();
 
-		void Init( void* data,uint32_t count );
+		void Init( void* data,uint32_t size );
 
 		void SetData( void* data,uint32_t count ) override;
 

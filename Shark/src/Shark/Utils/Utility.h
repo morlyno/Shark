@@ -2,20 +2,6 @@
 
 namespace Shark {
 
-	namespace Color {
-		struct F32RGBA
-		{
-			union
-			{
-				struct { float r,g,b,a; };
-				float rgba[4];
-			};
-			F32RGBA( float r,float g,float b,float a = 1.0f )
-				: r( r ),g( g ),b( b ),a( a )
-			{}
-		};
-	}
-
 	class ApplicationTime
 	{
 	public:

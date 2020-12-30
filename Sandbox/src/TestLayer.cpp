@@ -40,8 +40,8 @@ void TestLayer::OnAttach()
 
 	Shark::VertexLayout layout =
 	{
-		{ Shark::VertexElement::Float3,"Position" },
-		{ Shark::VertexElement::Float4,"Color" }
+		{ Shark::ShaderDataType::Float3,"Position" },
+		{ Shark::ShaderDataType::Float4,"Color" }
 	};
 
 	m_Shaders = Shark::Shaders::Create(layout, vs, ps);
@@ -55,7 +55,7 @@ void TestLayer::OnAttach()
 	};
 	uint32_t Triangleindices[] = { 0,1,2 };
 
-	m_VertexBufferTriangle = Shark::VertexBuffer::Create(layout, Trianglevertices, 3);
+	m_VertexBufferTriangle = Shark::VertexBuffer::Create(layout, Trianglevertices, sizeof(Trianglevertices));
 	m_IndexBufferTriangle = Shark::IndexBuffer::Create(Triangleindices, (uint32_t)std::size(Triangleindices));
 
 
@@ -69,7 +69,7 @@ void TestLayer::OnAttach()
 	};
 	uint32_t Squareindices[] = { 0,1,2, 2,3,0 };
 
-	m_VertexBufferSquare = Shark::VertexBuffer::Create(layout, Squarevertices, 4);
+	m_VertexBufferSquare = Shark::VertexBuffer::Create(layout, Squarevertices, sizeof(Squarevertices));
 	m_IndexBufferSquare = Shark::IndexBuffer::Create(Squareindices, (uint32_t)std::size(Squareindices));
 }
 
@@ -97,4 +97,4 @@ bool TestLayer::OnWindowResize(Shark::WindowResizeEvent e)
 	float ratio = (float)e.GetWidth() / (float)e.GetHeight();
 	m_Camera.SetProjection(-ratio, ratio, -1.0, 1.0f);
 	return false;
-};
+}

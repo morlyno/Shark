@@ -1,8 +1,10 @@
 #pragma once
 #pragma warning(push)
 #pragma warning(disable : 26812)
-#include "skpch.h"
+
 #include "Shark/Core/Core.h"
+
+#include <sstream>
 
 namespace Shark {
 
@@ -20,7 +22,7 @@ namespace Shark {
 		EventCategoryWindow = SK_BIT( 0 ),
 		EventCategoryInput = SK_BIT( 1 ),
 		EventCategoryMouse = SK_BIT( 2 ),
-		EventCategoryKeyboard = SK_BIT( 3 ),
+		EventCategoryKeyboard = SK_BIT( 3 )
 	};
 	typedef int EventCategory_t;
 
@@ -71,18 +73,6 @@ namespace Shark {
 			}
 			return false;
 		}
-#if 0
-		template<typename T>
-		bool DispachEventCategory( EventFunc<T> func )
-		{
-			if ( T::GetStaticEventCategoryFlags() & e.GetEventCategoryFlags() )
-			{
-				e.Handled = func( *reinterpret_cast<T*>( &e ) );
-				return true;
-			}
-			return false;
-		}
-#endif
 	private:
 		Event& e;
 	};

@@ -16,18 +16,18 @@ namespace Shark {
 
 		int Run();
 
-		void OnEvent( Event& e );
+		void OnEvent(Event& e);
 
-		void PushLayer( Layer* layer ) { m_LayerStack.PushLayer( layer ); }
-		void PopLayer( Layer* layer ) { m_LayerStack.PopLayer( layer ); }
-		void PushOverlay( Layer* layer ) { m_LayerStack.PushOverlay( layer ); }
-		void PopOverlay( Layer* layer ) { m_LayerStack.PopOverlay( layer ); }
+		void PushLayer(Layer* layer) { m_LayerStack.PushLayer(layer); }
+		void PopLayer(Layer* layer) { m_LayerStack.PopLayer(layer); }
+		void PushOverlay(Layer* layer) { m_LayerStack.PushOverlay(layer); }
+		void PopOverlay(Layer* layer) { m_LayerStack.PopOverlay(layer); }
 
 		static inline Application& Get() { return *s_inst; }
 		inline Window& GetWindow() { return *m_Window; }
 	private:
-		bool OnWindowClose( WindowCloseEvent& e );
-		bool OnWindowResize( WindowResizeEvent& e );
+		bool OnWindowClose(WindowCloseEvent& e);
+		bool OnWindowResize(WindowResizeEvent& e);
 
 	private:
 		static Application* s_inst;
@@ -38,7 +38,7 @@ namespace Shark {
 
 		float clear_color[4] = { 0.1f,0.1f,0.1f,1.0f };
 
-		std::unique_ptr<Window> m_Window;
+		Scope<Window> m_Window;
 		// Owned by LayerStack
 		ImGuiLayer* m_pImGuiLayer;
 		LayerStack m_LayerStack;

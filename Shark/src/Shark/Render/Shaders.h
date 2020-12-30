@@ -23,8 +23,8 @@ namespace Shark {
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
 
-		static std::shared_ptr<Shaders> Create( const std::string& vertexshaderSrc,const std::string& pixelshaderSrc );
-		static std::shared_ptr<Shaders> Create( VertexLayout& layout,const std::string& vertexshaderSrc,const std::string& pixelshaderSrc );
+		static Ref<Shaders> Create( const std::string& vertexshaderSrc,const std::string& pixelshaderSrc );
+		static Ref<Shaders> Create( VertexLayout& layout,const std::string& vertexshaderSrc,const std::string& pixelshaderSrc );
 	};
 
 }

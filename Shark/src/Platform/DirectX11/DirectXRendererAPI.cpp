@@ -18,10 +18,10 @@ namespace Shark {
 		scd.SampleDesc.Count = 1u;
 		scd.SampleDesc.Quality = 0u;
 		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		scd.BufferCount = 2u;
+		scd.BufferCount = 1u;
 		scd.OutputWindow = (HWND)window.GetHandle();
 		scd.Windowed = TRUE;
-		scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		scd.Flags = 0u;
  
 		UINT flags = 0u;
@@ -63,12 +63,17 @@ namespace Shark {
 		m_Context->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 	}
 
+	void DirectXRendererAPI::ShutDown()
+	{
+		if (m_Device) { m_Device->Release();         m_Device = nullptr; }
+		if (m_Context) { m_Context->Release();        m_Context = nullptr; }
+		if (m_SwapChain) { m_SwapChain->Release();      m_SwapChain = nullptr; }
+		if (m_RenderTarget) { m_RenderTarget->Release();   m_RenderTarget = nullptr; }
+	}
+
 	DirectXRendererAPI::~DirectXRendererAPI()
 	{
-		if ( m_Device )         { m_Device->Release();         m_Device = nullptr; }
-		if ( m_Context )        { m_Context->Release();        m_Context = nullptr; }
-		if ( m_SwapChain )      { m_SwapChain->Release();      m_SwapChain = nullptr; }
-		if ( m_RenderTarget )   { m_RenderTarget->Release();   m_RenderTarget = nullptr; }
+		ShutDown();
 	}
 
 	void DirectXRendererAPI::SetClearColor( const float color[4] )

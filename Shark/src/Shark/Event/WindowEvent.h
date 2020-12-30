@@ -9,15 +9,15 @@ namespace Shark {
 	public:
 		static EventTypes GetStaticType() { return EventTypes::WindowEventBase; }
 
-		SK_GET_CATEGORY_FLAGS_FUNC( EventCategoryWindow )
+		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryWindow)
 	};
 
 	class WindowCloseEvent : public WindowEvent
 	{
 	public:
-		WindowCloseEvent( int ExitCode )
+		WindowCloseEvent(int ExitCode)
 			:
-			ExitCode( ExitCode )
+			ExitCode(ExitCode)
 		{}
 		int GetExitCode() const { return ExitCode; }
 
@@ -28,7 +28,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( WindowClose )
+		SK_EVENT_FUNCTIONS(WindowClose)
 	private:
 		int ExitCode;
 	};
@@ -36,10 +36,10 @@ namespace Shark {
 	class WindowResizeEvent : public WindowEvent
 	{
 	public:
-		WindowResizeEvent( unsigned int width,unsigned int height )
+		WindowResizeEvent(unsigned int width, unsigned int height)
 			:
-			width( width ),
-			height( height )
+			width(width),
+			height(height)
 		{}
 		unsigned int GetWidth() const { return width; }
 		unsigned int GetHeight() const { return height; }
@@ -51,7 +51,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( WindowResize )
+		SK_EVENT_FUNCTIONS(WindowResize)
 	private:
 		unsigned int width;
 		unsigned int height;
@@ -60,10 +60,10 @@ namespace Shark {
 	class WindowMoveEvent : public WindowEvent
 	{
 	public:
-		WindowMoveEvent( int x,int y )
+		WindowMoveEvent(int x, int y)
 			:
-			x( x ),
-			y( y )
+			x(x),
+			y(y)
 		{}
 		int GetX() const { return x; }
 		int GetY() const { return y; }
@@ -75,7 +75,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( WindowMove )
+		SK_EVENT_FUNCTIONS(WindowMove)
 	private:
 		int x;
 		int y;
@@ -84,10 +84,10 @@ namespace Shark {
 	class WindowFocusEvent : public WindowEvent
 	{
 	public:
-		WindowFocusEvent( int x,int y )
+		WindowFocusEvent(int x, int y)
 			:
-			x( x ),
-			y( y )
+			x(x),
+			y(y)
 		{}
 		int GetX() const { return x; }
 		int GetY() const { return y; }
@@ -99,7 +99,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( WindowFocus )
+		SK_EVENT_FUNCTIONS(WindowFocus)
 	private:
 		int x;
 		int y;
@@ -108,16 +108,16 @@ namespace Shark {
 	class WindowLostFocusEvent : public WindowEvent
 	{
 	public:
-		SK_EVENT_FUNCTIONS( WindowLostFocus )
+		SK_EVENT_FUNCTIONS(WindowLostFocus)
 	};
 
 	class WindowMaximizedEvent : public WindowEvent
 	{
 	public:
-		WindowMaximizedEvent( unsigned int width,unsigned int height )
+		WindowMaximizedEvent(unsigned int width, unsigned int height)
 			:
-			width( width ),
-			height( height )
+			width(width),
+			height(height)
 		{}
 		unsigned int GetWidth() const { return width; }
 		unsigned int GetHeight() const { return height; }
@@ -129,7 +129,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( WindowMaximized )
+		SK_EVENT_FUNCTIONS(WindowMaximized)
 	private:
 		unsigned int width;
 		unsigned int height;
@@ -138,7 +138,7 @@ namespace Shark {
 	class WindowMinimizedEvent : public WindowEvent
 	{
 	public:
-		SK_EVENT_FUNCTIONS( WindowMinimized )
+		SK_EVENT_FUNCTIONS(WindowMinimized)
 	};
 
 }

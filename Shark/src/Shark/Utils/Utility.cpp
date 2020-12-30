@@ -15,7 +15,7 @@ namespace Shark {
 	double ApplicationTime::GetMilliSeconts()
 	{
 		auto time = std::chrono::steady_clock::now();
-		std::chrono::duration<double,std::milli> dur = time - s_Instance.m_TimerStart;
+		std::chrono::duration<double, std::milli> dur = time - s_Instance.m_TimerStart;
 		return dur.count();
 	}
 

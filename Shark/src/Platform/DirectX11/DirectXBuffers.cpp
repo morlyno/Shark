@@ -2,6 +2,7 @@
 #include "DirectXBuffers.h"
 #include "Shark/Core/Application.h"
 #include "Shark/Render/RendererCommand.h"
+#include "Platform/DirectX11/DirectXRendererAPI.h"
 
 #define SK_GET_RENDERERAPI() static_cast<::Shark::DirectXRendererAPI&>(::Shark::RendererCommand::GetRendererAPI())
 
@@ -16,11 +17,11 @@ namespace Shark {
 	{
 	}
 
-	DirectXVertexBuffer::DirectXVertexBuffer( const VertexLayout& layout,float* data,uint32_t count )
+	DirectXVertexBuffer::DirectXVertexBuffer( const VertexLayout& layout,float* data,uint32_t size )
 		:
-		VertexBuffer( layout,data,count )
+		VertexBuffer( layout,data,size )
 	{
-		Init( data,count );
+		Init( data,size );
 	}
 
 	DirectXVertexBuffer::~DirectXVertexBuffer()
@@ -28,11 +29,11 @@ namespace Shark {
 		if ( m_VertexBuffer ) { m_VertexBuffer->Release(); }
 	}
 
-	void DirectXVertexBuffer::Init( void* data,uint32_t count )
+	void DirectXVertexBuffer::Init( void* data,uint32_t size )
 	{
 		D3D11_BUFFER_DESC bd = {};
-		bd.ByteWidth = m_Layout.GetVertexSize() * count;
-		bd.StructureByteStride = m_Layout.GetVertexSize() * count;
+		bd.ByteWidth = size;
+		bd.StructureByteStride = m_Layout.GetVertexSize();
 		bd.Usage = D3D11_USAGE_DEFAULT;
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bd.CPUAccessFlags = 0u;

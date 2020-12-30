@@ -4,25 +4,25 @@
 
 namespace Shark {
 
-	enum class VertexElement
+	enum class ShaderDataType
 	{
 		None = 0,
 		Float,Float2,Float3,Float4,
 		Int,Int2,Int3,Int4,
 	};
 
-	static uint32_t GetElementSize( VertexElement type )
+	static uint32_t GetShaderDataTyeSize( ShaderDataType type )
 	{
 		switch ( type )
 		{
-			case VertexElement::Float:   return 4u;
-			case VertexElement::Float2:  return 4u * 2u;
-			case VertexElement::Float3:  return 4u * 3u;
-			case VertexElement::Float4:  return 4u * 4u;
-			case VertexElement::Int:     return 4u;
-			case VertexElement::Int2:    return 4u * 2u;
-			case VertexElement::Int3:    return 4u * 3u;
-			case VertexElement::Int4:    return 4u * 4u;
+			case ShaderDataType::Float:   return 4u;
+			case ShaderDataType::Float2:  return 4u * 2u;
+			case ShaderDataType::Float3:  return 4u * 3u;
+			case ShaderDataType::Float4:  return 4u * 4u;
+			case ShaderDataType::Int:     return 4u;
+			case ShaderDataType::Int2:    return 4u * 2u;
+			case ShaderDataType::Int3:    return 4u * 3u;
+			case ShaderDataType::Int4:    return 4u * 4u;
 		}
 
 		SK_CORE_ASSERT( false,"Unknown Element Type" );
@@ -34,10 +34,10 @@ namespace Shark {
 		std::string name;
 		uint32_t size;
 		uint32_t offset;
-		VertexElement type;
+		ShaderDataType type;
 
-		ElementDesc( VertexElement type,const std::string& name )
-			: type( type ),name( name ),size( GetElementSize( type ) ),offset( 0u ) {}
+		ElementDesc( ShaderDataType type,const std::string& name )
+			: type( type ),name( name ),size( GetShaderDataTyeSize( type ) ),offset( 0u ) {}
 
 		ElementDesc() = default;
 	};
@@ -79,22 +79,22 @@ namespace Shark {
 	public:
 		VertexBuffer( const VertexLayout& layout )
 			: m_Layout( layout ) {}
-		VertexBuffer( const VertexLayout& layout,void* data,uint32_t count )
-			: m_Layout( layout ),m_Data( data ),m_Count( count ) {}
+		VertexBuffer( const VertexLayout& layout,void* data,uint32_t size )
+			: m_Layout( layout ),m_Data( data ),m_Size( size ) {}
 		virtual ~VertexBuffer() = default;
 
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
 
-		virtual void SetData( void* data,uint32_t count ) = 0;
+		virtual void SetData( void* data,uint32_t size ) = 0;
 
 		const VertexLayout& GetLayout() { return m_Layout; }
 
-		static std::unique_ptr<VertexBuffer> Create( const VertexLayout& layout );
-		static std::unique_ptr<VertexBuffer> Create( const VertexLayout& layout,float* data,uint32_t count );
+		static Ref<VertexBuffer> Create( const VertexLayout& layout );
+		static Ref<VertexBuffer> Create( const VertexLayout& layout,float* data,uint32_t size );
 	protected:
 		VertexLayout m_Layout;
-		uint32_t m_Count = 0u;
+		uint32_t m_Size = 0u;
 		void* m_Data = nullptr;
 	};
 
@@ -110,7 +110,7 @@ namespace Shark {
 
 		uint32_t GetCount() { return m_Count; }
 
-		static std::unique_ptr<IndexBuffer> Create( uint32_t* indices,uint32_t count );
+		static Ref<IndexBuffer> Create( uint32_t* indices,uint32_t count );
 	private:
 		uint32_t m_Count;
 		uint32_t* m_Indices = nullptr;

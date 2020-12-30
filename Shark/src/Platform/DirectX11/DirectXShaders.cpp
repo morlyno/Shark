@@ -1,7 +1,10 @@
 #include "skpch.h"
 #include "DirectXShaders.h"
-#include "Shark/Core/Application.h"
+#include "Shark/Render/Buffers.h"
 #include "Shark/Render/RendererCommand.h"
+#include "DirectXRendererAPI.h"
+#include "Shark/Core/Application.h"
+
 #include <d3dcompiler.h>
 
 #define SK_GET_RENDERERAPI() static_cast<::Shark::DirectXRendererAPI&>(::Shark::RendererCommand::GetRendererAPI())
@@ -53,18 +56,18 @@ namespace Shark {
 		PSblob->Release();
 	}
 
-	static DXGI_FORMAT GetDXGIFormat( VertexElement type )
+	static DXGI_FORMAT GetDXGIFormat(ShaderDataType type )
 	{
 		switch ( type )
 		{
-			case VertexElement::Float:   return DXGI_FORMAT_R32_FLOAT;
-			case VertexElement::Float2:  return DXGI_FORMAT_R32G32_FLOAT;
-			case VertexElement::Float3:  return DXGI_FORMAT_R32G32B32_FLOAT;
-			case VertexElement::Float4:  return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case VertexElement::Int:     return DXGI_FORMAT_R32_SINT;
-			case VertexElement::Int2:    return DXGI_FORMAT_R32G32_SINT;
-			case VertexElement::Int3:    return DXGI_FORMAT_R32G32B32_SINT;
-			case VertexElement::Int4:    return DXGI_FORMAT_R32G32B32A32_SINT;
+			case ShaderDataType::Float:   return DXGI_FORMAT_R32_FLOAT;
+			case ShaderDataType::Float2:  return DXGI_FORMAT_R32G32_FLOAT;
+			case ShaderDataType::Float3:  return DXGI_FORMAT_R32G32B32_FLOAT;
+			case ShaderDataType::Float4:  return DXGI_FORMAT_R32G32B32A32_FLOAT;
+			case ShaderDataType::Int:     return DXGI_FORMAT_R32_SINT;
+			case ShaderDataType::Int2:    return DXGI_FORMAT_R32G32_SINT;
+			case ShaderDataType::Int3:    return DXGI_FORMAT_R32G32B32_SINT;
+			case ShaderDataType::Int4:    return DXGI_FORMAT_R32G32B32A32_SINT;
 		}
 
 		SK_CORE_ASSERT( false,"Unknown Element Type" );

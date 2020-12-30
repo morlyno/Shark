@@ -3,6 +3,6 @@
 
 namespace Shark {
 
-	std::unique_ptr<RendererAPI> RendererCommand::s_RendererAPI = RendererAPI::Create();
+	Scope<RendererAPI> RendererCommand::s_RendererAPI = RendererAPI::Create();
 
 }

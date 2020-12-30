@@ -1,12 +1,25 @@
 #include "skpch.h"
 #include "Renderer.h"
-#include "RendererCommand.h"
+#include "Shark/Core/Window.h"
 
 #include "Platform/DirectX11/DirectXRendererAPI.h"
 
 namespace Shark {
 
-	Renderer::SceanData* Renderer::m_SceanData = new Renderer::SceanData();
+	Renderer::SceanData* Renderer::m_SceanData = nullptr;
+
+	void Renderer::Init(const Window& window)
+	{
+		RendererCommand::Init(window);
+		SK_CORE_ASSERT(m_SceanData == nullptr, "SceanData already set");
+		m_SceanData = new Renderer::SceanData();
+	}
+
+	void Renderer::ShutDown()
+	{
+		RendererCommand::ShutDown();
+		delete m_SceanData;
+	}
 
 	void Renderer::BeginScean(OrtographicCamera& camera)
 	{
@@ -17,7 +30,7 @@ namespace Shark {
 	{
 	}
 
-	void Renderer::Submit(std::unique_ptr<VertexBuffer>& vertexbuffer,std::unique_ptr<IndexBuffer>& indexbuffer,std::shared_ptr<Shaders>& shaders)
+	void Renderer::Submit(Ref<VertexBuffer>& vertexbuffer, Ref<IndexBuffer>& indexbuffer, Ref<Shaders>& shaders)
 	{
 		vertexbuffer->Bind();
 		indexbuffer->Bind();

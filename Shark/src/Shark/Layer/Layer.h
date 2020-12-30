@@ -9,17 +9,17 @@ namespace Shark {
 	class Layer
 	{
 	public:
-		Layer( const std::string& LayerName = "Layer" )
+		Layer(const std::string& LayerName = "Layer")
 			:
-			LayerName( LayerName )
+			LayerName(LayerName)
 		{}
 		virtual ~Layer() = default;
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
 
-		virtual void OnUpdate( TimeStep t ) {}
-		virtual void OnEvent( Event& e ) {}
+		virtual void OnUpdate(TimeStep t) {}
+		virtual void OnEvent(Event& e) {}
 
 		virtual void OnRender() {}
 

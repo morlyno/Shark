@@ -32,9 +32,6 @@ namespace Shark {
 #define SK_ERROR(...)			::Shark::Log::GetClientLogger()->error(__VA_ARGS__)
 #define SK_CRITICAL(...)		::Shark::Log::GetClientLogger()->critical(__VA_ARGS__)
 
-
-#define SK_CORE_ERROR_IF(con,...) if ( (con) ) { ::Shark::Log::GetCoreLogger()->error(__VA_ARGS__); }
-
 #ifdef SK_DEBUG
 #define SK_CORE_DEBUG(...)		::Shark::Log::GetCoreLogger()->debug(__VA_ARGS__)
 #else

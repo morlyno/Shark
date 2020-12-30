@@ -15,8 +15,8 @@ namespace Shark {
 		private:
 			WindowClass();
 			~WindowClass();
-			WindowClass( const WindowClass& ) = delete;
-			WindowClass& operator=( const WindowClass& ) = delete;
+			WindowClass(const WindowClass&) = delete;
+			WindowClass& operator=(const WindowClass&) = delete;
 		public:
 			static inline const wchar_t* GetName() { return wndClass.ClassName; }
 			static inline HINSTANCE GetHInst() { return wndClass.hInst; }
@@ -26,26 +26,26 @@ namespace Shark {
 			const wchar_t* ClassName = L"Shark\0";
 		};
 	public:
-		WindowsWindow( int width,int height,const std::wstring& name );
-		~WindowsWindow();
+		WindowsWindow(int width, int height, const std::wstring& name);
+		virtual ~WindowsWindow();
 
-		void Update() const override;
+		virtual void Update() const override;
 
-		inline int GetWidth() const override { return m_Width; }
-		inline int GetHeight() const override { return m_Height; }
-		inline void* GetHandle() const override { return m_Window; }
+		virtual inline int GetWidth() const override { return m_Width; }
+		virtual inline int GetHeight() const override { return m_Height; }
+		virtual inline void* GetHandle() const override { return m_Window; }
 
-		inline bool IsFocused() const override { return m_IsFocused; }
+		virtual inline bool IsFocused() const override { return m_IsFocused; }
 
-		inline bool IsVSync() const override { return m_VSync; }
-		void SetVSync( bool VSync ) override { m_VSync = VSync; }
+		virtual inline bool IsVSync() const override { return m_VSync; }
+		virtual void SetVSync(bool VSync) override { m_VSync = VSync; }
 
-		void SetEventCallbackFunc( const EventCallbackFunc& callback ) override { m_Callbackfunc = callback; }
+		virtual void SetEventCallbackFunc(const EventCallbackFunc& callback) override { m_Callbackfunc = callback; }
 
 	private:
-		static LRESULT WINAPI WindowProcStartUp( HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam );
-		static LRESULT WINAPI WindowProc( HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam );
-		LRESULT WINAPI HandleMsg( HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam );
+		static LRESULT WINAPI WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		static LRESULT WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		LRESULT WINAPI HandleMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	private:
 		HWND m_Window;
 

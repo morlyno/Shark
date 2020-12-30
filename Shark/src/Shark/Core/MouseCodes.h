@@ -2,7 +2,7 @@
 
 namespace Shark {
 
-	typedef unsigned short MouseCode;
+	using MouseCode = uint16_t;
 
 	namespace Mouse {
 

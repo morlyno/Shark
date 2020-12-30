@@ -5,9 +5,9 @@ namespace Shark {
 	class TimeStep
 	{
 	public:
-		TimeStep( float time = 0.0f )
+		TimeStep(float time = 0.0f)
 			:
-			m_Time( time )
+			m_Time(time)
 		{}
 
 		operator float() const { return m_Time; }

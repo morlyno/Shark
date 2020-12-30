@@ -4,22 +4,22 @@
 
 namespace Shark {
 
-	bool Input::KeyButtonPressed( KeyCode key )
+	bool Input::KeyButtonPressed(KeyCode key)
 	{
-		return (bool)(GetKeyState( key ) >> 8);
+		return (bool)(GetKeyState(key) >> 8);
 	}
 
-	bool Input::MouseButtonPressed( MouseCode button )
+	bool Input::MouseButtonPressed(MouseCode button)
 	{
-		return (bool)(GetKeyState( button ) >> 8);
+		return (bool)(GetKeyState(button) >> 8);
 	}
 
-	std::pair<int,int> Input::MousePos()
+	std::pair<int, int> Input::MousePos()
 	{
 		POINT pos;
-		GetCursorPos( &pos );
+		GetCursorPos(&pos);
 		auto& window = Application::Get().GetWindow();
-		ScreenToClient( (HWND)window.GetHandle(),&pos );
+		ScreenToClient((HWND)window.GetHandle(), &pos);
 		return { pos.x,pos.y };
 	}
 
@@ -33,10 +33,10 @@ namespace Shark {
 		return MousePos().second;
 	}
 
-	std::pair<int,int> Input::ScreenMousePos()
+	std::pair<int, int> Input::ScreenMousePos()
 	{
 		POINT pos;
-		GetCursorPos( &pos );
+		GetCursorPos(&pos);
 		return { pos.x,pos.y };
 	}
 

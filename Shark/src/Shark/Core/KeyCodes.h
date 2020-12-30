@@ -4,7 +4,7 @@
 
 namespace Shark {
 
-	typedef unsigned short KeyCode;
+	using KeyCode = uint16_t;
 
 	namespace Key {
 

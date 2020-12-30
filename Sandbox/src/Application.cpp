@@ -9,9 +9,9 @@ class Sandbox : public Shark::Application
 public:
 	Sandbox()
 		:
-		layer( new TestLayer() )
+		layer(new TestLayer())
 	{
-		PushLayer( layer );
+		PushLayer(layer);
 	}
 
 	~Sandbox()

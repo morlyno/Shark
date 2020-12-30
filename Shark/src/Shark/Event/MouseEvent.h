@@ -20,12 +20,12 @@ namespace Shark {
 
 		static EventTypes GetStaticType() { return EventTypes::MouseEventBase; }
 
-		SK_GET_CATEGORY_FLAGS_FUNC( EventCategoryInput | EventCategoryMouse )
+		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryInput | EventCategoryMouse)
 	protected:
-		MouseEvent( int x,int y )
+		MouseEvent(int x, int y)
 			:
-			x( x ),
-			y( y )
+			x(x),
+			y(y)
 		{}
 		int x;
 		int y;
@@ -34,20 +34,20 @@ namespace Shark {
 	class MouseMoveEvent : public MouseEvent
 	{
 	public:
-		MouseMoveEvent( int x,int y )
+		MouseMoveEvent(int x, int y)
 			:
-			MouseEvent( x,y )
+			MouseEvent(x, y)
 		{}
-		SK_EVENT_FUNCTIONS( MouseMove )
+		SK_EVENT_FUNCTIONS(MouseMove)
 	};
 
 	class MousePressedEvent : public MouseEvent
 	{
 	public:
-		MousePressedEvent( int x,int y,MouseCode button )
+		MousePressedEvent(int x, int y, MouseCode button)
 			:
-			MouseEvent( x,y ),
-			button( button )
+			MouseEvent(x, y),
+			button(button)
 		{}
 		inline int GetButton() { return button; }
 
@@ -58,7 +58,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( MouseButtonPressed )
+		SK_EVENT_FUNCTIONS(MouseButtonPressed)
 	private:
 		MouseCode button;
 	};
@@ -66,10 +66,10 @@ namespace Shark {
 	class MouseReleasedEvent : public MouseEvent
 	{
 	public:
-		MouseReleasedEvent( int x,int y,MouseCode button )
+		MouseReleasedEvent(int x, int y, MouseCode button)
 			:
-			MouseEvent( x,y ),
-			button( button )
+			MouseEvent(x, y),
+			button(button)
 		{}
 		inline int GetButton() { return button; }
 
@@ -80,7 +80,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( MouseButtonReleasd )
+		SK_EVENT_FUNCTIONS(MouseButtonReleasd)
 	private:
 		MouseCode button;
 	};
@@ -88,10 +88,10 @@ namespace Shark {
 	class MouseScrolledEvent : public MouseEvent
 	{
 	public:
-		MouseScrolledEvent( int x,int y,int delta )
+		MouseScrolledEvent(int x, int y, int delta)
 			:
-			MouseEvent( x,y ),
-			delta( delta )
+			MouseEvent(x, y),
+			delta(delta)
 		{}
 
 		inline int GetDelta() const { return delta; }
@@ -103,7 +103,7 @@ namespace Shark {
 			return oss.str();
 		}
 
-		SK_EVENT_FUNCTIONS( MouseScrolled )
+		SK_EVENT_FUNCTIONS(MouseScrolled)
 	private:
 		int delta;
 	};
