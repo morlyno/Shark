@@ -4,12 +4,12 @@
 
 namespace Shark {
 
-	bool Input::KeyButtonPressed(KeyCode key)
+	bool Input::KeyPressed(KeyCode key)
 	{
 		return (bool)(GetKeyState(key) >> 8);
 	}
 
-	bool Input::MouseButtonPressed(MouseCode button)
+	bool Input::MousePressed(MouseCode button)
 	{
 		return (bool)(GetKeyState(button) >> 8);
 	}

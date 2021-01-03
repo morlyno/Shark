@@ -5,24 +5,24 @@
 
 namespace Shark {
 
-	class Input
-	{
-	public:
-		static bool KeyButtonPressed(KeyCode key);
+	namespace Input {
 
-		static bool MouseButtonPressed(MouseCode button);
+		bool KeyPressed(KeyCode key);
+
+		bool MousePressed(MouseCode button);
 
 		// First is x, Second is y
 		// Relative to Window
-		static std::pair<int, int> MousePos();
-		static int MousePosX();
-		static int MousePosY();
+		std::pair<int, int> MousePos();
+		int MousePosX();
+		int MousePosY();
 
 		// First is x, Second is y
 		// Relative to Screen
-		static std::pair<int, int> ScreenMousePos();
-		static int ScreenMousePosX();
-		static int ScreenMousePosY();
-	};
+		std::pair<int, int> ScreenMousePos();
+		int ScreenMousePosX();
+		int ScreenMousePosY();
+
+	}
 
 }

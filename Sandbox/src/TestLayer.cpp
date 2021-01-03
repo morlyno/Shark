@@ -73,6 +73,11 @@ void TestLayer::OnAttach()
 	m_IndexBufferSquare = Shark::IndexBuffer::Create(Squareindices, (uint32_t)std::size(Squareindices));
 }
 
+void TestLayer::OnUpdate(Shark::TimeStep ts)
+{
+	m_Camera.OnUpdate(ts);
+}
+
 void TestLayer::OnRender()
 {
 	Shark::Renderer::BeginScean(m_Camera);
@@ -84,6 +89,7 @@ void TestLayer::OnRender()
 void TestLayer::OnImGuiRender()
 {
 	ImGui::ShowDemoWindow();
+	m_Camera.OnImGui();
 }
 
 void TestLayer::OnEvent(Shark::Event& e)
