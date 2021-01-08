@@ -1,11 +1,39 @@
 #include "skpch.h"
 #include "DirectXRendererAPI.h"
+#include <stdlib.h>
+
+// TODO: Temp
+#pragma comment(lib, "dxgi")
 
 namespace Shark {
 
-	void DirectXRendererAPI::Init( const Window& window )
+	void DirectXRendererAPI::Init(const Window& window)
 	{
-		SK_CORE_ASSERT( m_Device == nullptr,"RendererAPI already initialized" );
+		SK_CORE_ASSERT(m_Device == nullptr, "RendererAPI already initialized");
+		SK_CORE_INFO("Init RendererAPI");
+
+		if (CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)) != S_OK)
+			SK_CORE_STOP_APPLICATION("Create DXGI Factore Failed");
+
+		IDXGIAdapter* gpu = nullptr;
+		if (HRESULT hr = m_Factory->EnumAdapters(1u, &gpu); FAILED(hr))
+		{
+			SK_CORE_ASSERT(hr != DXGI_ERROR_INVALID_CALL);
+			if (hr == DXGI_ERROR_NOT_FOUND)
+			{
+				SK_CORE_WARN("Adapter not found default Adapter seleted instead");
+				if (m_Factory->EnumAdapters(0u, &gpu) == DXGI_ERROR_NOT_FOUND)
+					SK_CORE_STOP_APPLICATION("!!! No Adapter could be found !!!");
+			}
+		}
+
+		{
+			DXGI_ADAPTER_DESC ad;
+			gpu->GetDesc(&ad);
+			char gpudesc[128];
+			wcstombs_s(nullptr, gpudesc, ad.Description, 128);
+			SK_CORE_INFO("GPU: {0}", gpudesc);
+		}
 
 		DXGI_SWAP_CHAIN_DESC scd = {};
 		scd.BufferDesc.Width = window.GetWidth();
@@ -23,17 +51,17 @@ namespace Shark {
 		scd.Windowed = TRUE;
 		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		scd.Flags = 0u;
- 
-		UINT flags = 0u;
-#ifdef SK_DEBUG
-		flags |= D3D11_CREATE_DEVICE_DEBUG;
+
+		UINT createdeviceFalgs = 0u;
+#if SK_DEBUG
+		createdeviceFalgs |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
 		D3D11CreateDeviceAndSwapChain(
+			gpu,
+			D3D_DRIVER_TYPE_UNKNOWN,
 			nullptr,
-			D3D_DRIVER_TYPE_HARDWARE,
-			nullptr,
-			flags,
+			createdeviceFalgs,
 			nullptr,
 			0u,
 			D3D11_SDK_VERSION,
@@ -44,12 +72,14 @@ namespace Shark {
 			&m_Context
 		);
 
-		ID3D11Resource* buffer;
-		m_SwapChain->GetBuffer( 0u,__uuidof(ID3D11Texture2D),(void**)&buffer );
-		m_Device->CreateRenderTargetView( buffer,nullptr,&m_RenderTarget );
-		m_Context->OMSetRenderTargets( 1u,&m_RenderTarget,nullptr );
+		if (gpu) { gpu->Release(); gpu = nullptr; }
+
+		ID3D11Texture2D* buffer;
+		m_SwapChain->GetBuffer(0u, __uuidof(ID3D11Texture2D), (void**)&buffer);
+		m_Device->CreateRenderTargetView(buffer, nullptr, &m_RenderTarget);
+		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, nullptr);
 		buffer->Release();
-		
+
 		D3D11_VIEWPORT vp = {};
 		vp.TopLeftX = 0u;
 		vp.TopLeftY = 0u;
@@ -57,18 +87,19 @@ namespace Shark {
 		vp.Height = (float)window.GetHeight();
 		vp.MinDepth = 0u;
 		vp.MaxDepth = 1u;
-		m_Context->RSSetViewports( 1u,&vp );
+		m_Context->RSSetViewports(1u, &vp);
 
 		// TODO: Make chanchable in the future
-		m_Context->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+		m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 	void DirectXRendererAPI::ShutDown()
 	{
-		if (m_Device) { m_Device->Release();         m_Device = nullptr; }
-		if (m_Context) { m_Context->Release();        m_Context = nullptr; }
-		if (m_SwapChain) { m_SwapChain->Release();      m_SwapChain = nullptr; }
-		if (m_RenderTarget) { m_RenderTarget->Release();   m_RenderTarget = nullptr; }
+		if (m_Device) { m_Device->Release(); m_Device = nullptr; }
+		if (m_Context) { m_Context->Release(); m_Context = nullptr; }
+		if (m_SwapChain) { m_SwapChain->Release(); m_SwapChain = nullptr; }
+		if (m_RenderTarget) { m_RenderTarget->Release(); m_RenderTarget = nullptr; }
+		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
 	}
 
 	DirectXRendererAPI::~DirectXRendererAPI()
@@ -76,41 +107,41 @@ namespace Shark {
 		ShutDown();
 	}
 
-	void DirectXRendererAPI::SetClearColor( const float color[4] )
+	void DirectXRendererAPI::SetClearColor(const float color[4])
 	{
-		memcpy( clear_color,color,sizeof( float ) * 4 );
+		memcpy(clear_color, color, sizeof(float) * 4);
 	}
 
 	void DirectXRendererAPI::ClearBuffer()
 	{
-		m_Context->OMSetRenderTargets( 1u,&m_RenderTarget,nullptr );
-		m_Context->ClearRenderTargetView( m_RenderTarget,clear_color );
+		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, nullptr);
+		m_Context->ClearRenderTargetView(m_RenderTarget, clear_color);
+	};
+
+	void DirectXRendererAPI::SwapBuffer(bool VSync)
+	{
+		m_SwapChain->Present(VSync ? 1u : 0u, 0u);
 	}
 
-	void DirectXRendererAPI::SwapBuffer( bool VSync )
+	void DirectXRendererAPI::DrawIndexed(uint32_t count)
 	{
-		m_SwapChain->Present( VSync ? 1u : 0u,0u );
+		m_Context->DrawIndexed(count, 0u, 0u);
 	}
 
-	void DirectXRendererAPI::DrawIndexed( uint32_t count )
+	void DirectXRendererAPI::OnResize(int width, int height)
 	{
-		m_Context->DrawIndexed( count,0u,0u );
-	}
-
-	void DirectXRendererAPI::OnResize( int width,int height )
-	{
-		if ( width <= 0 || height <= 0 )
+		if (width <= 0 || height <= 0)
 			return;
 
-		m_Context->OMSetRenderTargets( 0u,nullptr,nullptr );
+		m_Context->OMSetRenderTargets(0u, nullptr, nullptr);
 		m_RenderTarget->Release();
 
-		m_SwapChain->ResizeBuffers( 0u,width,height,DXGI_FORMAT_R8G8B8A8_UNORM,0u );
+		m_SwapChain->ResizeBuffers(0u, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0u);
 
 		ID3D11Buffer* buffer = nullptr;
-		m_SwapChain->GetBuffer( 0u,__uuidof(ID3D11Texture2D),(void**)&buffer );
-		m_Device->CreateRenderTargetView( buffer,nullptr,&m_RenderTarget );
-		m_Context->OMSetRenderTargets( 1u,&m_RenderTarget,nullptr );
+		m_SwapChain->GetBuffer(0u, __uuidof(ID3D11Texture2D), (void**)&buffer);
+		m_Device->CreateRenderTargetView(buffer, nullptr, &m_RenderTarget);
+		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, nullptr);
 		buffer->Release();
 
 		D3D11_VIEWPORT vp;
@@ -120,7 +151,7 @@ namespace Shark {
 		vp.Height = (float)height;
 		vp.MinDepth = 0u;
 		vp.MaxDepth = 1u;
-		m_Context->RSSetViewports( 1u,&vp );
+		m_Context->RSSetViewports(1u, &vp);
 	};
 
 }

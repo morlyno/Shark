@@ -8,7 +8,6 @@ namespace Shark {
 	{
 		for (auto l : Layers)
 			delete l;
-		SK_CORE_INFO("LayerStack detor");
 	}
 
 	void LayerStack::PushLayer(Layer* layer)

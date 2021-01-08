@@ -3,8 +3,11 @@
 #include "PlatformDetection.h"
 
 #ifdef SK_PLATFORM_WINDOWS
-#define SK_DEBUG_BREAK __debugbreak()
+#define SK_DEBUG_BREAK() __debugbreak()
 #endif
+
+// Always stops Application in Debug and Release
+#define SK_CORE_STOP_APPLICATION(...) { SK_CORE_ERROR(__VA_ARGS__); __debugbreak(); } // TODO: Probably popup window / exeption
 
 #define SK_ENABLE_ASSERT
 
