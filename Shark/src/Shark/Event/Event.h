@@ -2,7 +2,7 @@
 #pragma warning(push)
 #pragma warning(disable : 26812)
 
-#include "Shark/Core/Core.h"
+#include "Shark/Core/Base.h"
 
 #include <sstream>
 

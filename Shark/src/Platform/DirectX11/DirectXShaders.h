@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Core/Core.h"
+#include "Shark/Core/Base.h"
 #include "Shark/Render/Shaders.h"
 #include <d3d11.h>
 

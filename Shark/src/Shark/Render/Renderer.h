@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Core/Core.h"
+#include "Shark/Core/Base.h"
 #include "RendererCommand.h"
 
 #include "Shark/Render/Buffers.h"

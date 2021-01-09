@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Shark/Core/Core.h"
+#include "Shark/Core/Base.h"
 #include "Layer.h"
 
 namespace Shark {
 
 	class LayerStack
 	{
-		using Iterator = std::vector<Layer*>::iterator;
 	public:
 		LayerStack() = default;
 		~LayerStack();
@@ -17,8 +16,8 @@ namespace Shark {
 		void PopLayer(Layer* layer);
 		void PopOverlay(Layer* layer);
 
-		Iterator begin() { return Layers.begin(); }
-		Iterator end() { return Layers.end(); }
+		std::vector<Layer*>::iterator begin() { return Layers.begin(); }
+		std::vector<Layer*>::iterator end() { return Layers.end(); }
 	private:
 		std::vector<Layer*> Layers;
 		unsigned int LayerStackIndex = 0;

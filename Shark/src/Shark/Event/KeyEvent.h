@@ -1,5 +1,5 @@
 #pragma once
-#include "Shark/Core/Core.h"
+#include "Shark/Core/Base.h"
 #include "Event.h"
 #include "Shark/Core/KeyCodes.h"
 

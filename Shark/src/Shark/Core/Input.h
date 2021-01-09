@@ -1,5 +1,5 @@
 #pragma once
-#include "Shark/Core/Core.h"
+#include "Shark/Core/Base.h"
 #include "Shark/Core/KeyCodes.h"
 #include "Shark/Core/MouseCodes.h"
 

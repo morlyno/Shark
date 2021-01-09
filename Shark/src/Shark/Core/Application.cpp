@@ -4,7 +4,6 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/Input.h"
 
-#include "Shark/Utils/Utility.h"
 #include "Shark/Core/TimeStep.h"
 
 #include "Shark/Render/Renderer.h"
@@ -27,6 +26,13 @@ namespace Shark {
 		PushLayer(m_pImGuiLayer);
 
 		RendererCommand::SetClearColor(clear_color);
+
+		m_Window->SetVSync(false);
+
+		if (!::QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency)))
+			SK_CORE_ASSERT(false, "Query Performance Frequency Failed" + std::to_string(::GetLastError()));
+		if (!::QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&m_LastFrameTime)))
+			SK_CORE_ASSERT(false, "Query Performance Counter Failed" + std::to_string(::GetLastError()));
 	}
 
 	Application::~Application()
@@ -37,9 +43,11 @@ namespace Shark {
 	{
 		while (m_Running)
 		{
-			const float Time = (float)ApplicationTime::GetSeconts();
-			TimeStep timeStep = Time - m_LastFrameTime;
-			m_LastFrameTime = Time;
+			int64_t time;
+			if(!::QueryPerformanceCounter((LARGE_INTEGER*)&time))
+				SK_CORE_ASSERT(false, "Query Performance Counter Failed" + std::to_string(::GetLastError()));
+			TimeStep timeStep = (float)(time - m_LastFrameTime) / m_Frequency;
+			m_LastFrameTime = time;
 
 			RendererCommand::ClearBuffer();
 
@@ -65,36 +73,27 @@ namespace Shark {
 		return m_ExitCode;
 	}
 
-	void Application::OnEvent(Event& e)
+	void Application::OnEvent(Event& event)
 	{
-		EventDispacher dispacher(e);
+		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(Application::OnWindowResize));
-		for (auto layer : m_LayerStack)
-			layer->OnEvent(e);
 
-		if (e.GetEventType() == EventTypes::KeyPressed)
-		{
-			KeyPressedEvent& ke = static_cast<KeyPressedEvent&>(e);
-			if (ke.GetKeyCode() == Key::V)
-			{
-				m_Window->SetVSync(!m_Window->IsVSync());
-			}
-		}
+		for (auto it = m_LayerStack.begin(); it != m_LayerStack.end() && !event.Handled; ++it)
+			(*it)->OnEvent(event);
 	}
 
-	bool Application::OnWindowClose(WindowCloseEvent& e)
+	bool Application::OnWindowClose(WindowCloseEvent& event)
 	{
-		SK_CORE_WARN(e);
+		SK_CORE_WARN(event);
 		m_Running = false;
-		m_ExitCode = e.GetExitCode();
+		m_ExitCode = event.GetExitCode();
 		return true;
 	}
 
-	bool Application::OnWindowResize(WindowResizeEvent& e)
+	bool Application::OnWindowResize(WindowResizeEvent& event)
 	{
-		SK_CORE_TRACE(e);
-		RendererCommand::Resize(e.GetWidth(), e.GetHeight());
+		RendererCommand::Resize(event.GetWidth(), event.GetHeight());
 		return true;
 	}
 
