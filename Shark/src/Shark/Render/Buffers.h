@@ -7,13 +7,13 @@ namespace Shark {
 	enum class ShaderDataType
 	{
 		None = 0,
-		Float,Float2,Float3,Float4,
-		Int,Int2,Int3,Int4,
+		Float, Float2, Float3, Float4,
+		Int, Int2, Int3, Int4,
 	};
 
-	static uint32_t GetShaderDataTyeSize( ShaderDataType type )
+	static uint32_t GetShaderDataTyeSize(ShaderDataType type)
 	{
-		switch ( type )
+		switch (type)
 		{
 			case ShaderDataType::Float:   return 4u;
 			case ShaderDataType::Float2:  return 4u * 2u;
@@ -25,7 +25,7 @@ namespace Shark {
 			case ShaderDataType::Int4:    return 4u * 4u;
 		}
 
-		SK_CORE_ASSERT( false,"Unknown Element Type" );
+		SK_CORE_ASSERT(false, "Unknown Element Type");
 		return 0u;
 	}
 
@@ -36,8 +36,8 @@ namespace Shark {
 		uint32_t offset;
 		ShaderDataType type;
 
-		ElementDesc( ShaderDataType type,const std::string& name )
-			: type( type ),name( name ),size( GetShaderDataTyeSize( type ) ),offset( 0u ) {}
+		ElementDesc(ShaderDataType type, const std::string& name)
+			: type(type), name(name), size(GetShaderDataTyeSize(type)), offset(0u) {}
 
 		ElementDesc() = default;
 	};
@@ -45,8 +45,22 @@ namespace Shark {
 	class VertexLayout
 	{
 	public:
-		VertexLayout( std::initializer_list<ElementDesc> elements )
-			: m_Elements( elements )
+		VertexLayout() = default;
+		VertexLayout(std::initializer_list<ElementDesc> elements)
+		{
+			Set(elements);
+		}
+		void Set(std::initializer_list<ElementDesc> elements)
+		{
+			m_Elements = elements;
+			CalcOffsetAndStride();
+		}
+
+		void Add(const ElementDesc& element)
+		{
+			m_Elements.emplace_back(element);
+		}
+		void Init()
 		{
 			CalcOffsetAndStride();
 		}
@@ -62,7 +76,7 @@ namespace Shark {
 		{
 			uint32_t offset = 0u;
 			m_VertexSize = 0u;
-			for ( auto& e : m_Elements )
+			for (auto& e : m_Elements)
 			{
 				e.offset = offset;
 				offset += e.size;
@@ -77,21 +91,21 @@ namespace Shark {
 	class VertexBuffer
 	{
 	public:
-		VertexBuffer( const VertexLayout& layout )
-			: m_Layout( layout ) {}
-		VertexBuffer( const VertexLayout& layout,void* data,uint32_t size )
-			: m_Layout( layout ),m_Data( data ),m_Size( size ) {}
+		VertexBuffer(const VertexLayout& layout)
+			: m_Layout(layout) {}
+		VertexBuffer(const VertexLayout& layout, void* data, uint32_t size)
+			: m_Layout(layout), m_Data(data), m_Size(size) {}
 		virtual ~VertexBuffer() = default;
 
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
 
-		virtual void SetData( void* data,uint32_t size ) = 0;
+		virtual void SetData(void* data, uint32_t size) = 0;
 
 		const VertexLayout& GetLayout() { return m_Layout; }
 
-		static Ref<VertexBuffer> Create( const VertexLayout& layout );
-		static Ref<VertexBuffer> Create( const VertexLayout& layout,float* data,uint32_t size );
+		static Ref<VertexBuffer> Create(const VertexLayout& layout);
+		static Ref<VertexBuffer> Create(const VertexLayout& layout, float* data, uint32_t size);
 	protected:
 		VertexLayout m_Layout;
 		uint32_t m_Size = 0u;
@@ -101,8 +115,8 @@ namespace Shark {
 	class IndexBuffer
 	{
 	public:
-		IndexBuffer( uint32_t* indices,uint32_t count )
-			: m_Indices( indices ),m_Count( count ) {}
+		IndexBuffer(uint32_t* indices, uint32_t count)
+			: m_Indices(indices), m_Count(count) {}
 		virtual ~IndexBuffer() = default;
 
 		virtual void Bind() = 0;
@@ -110,7 +124,7 @@ namespace Shark {
 
 		uint32_t GetCount() { return m_Count; }
 
-		static Ref<IndexBuffer> Create( uint32_t* indices,uint32_t count );
+		static Ref<IndexBuffer> Create(uint32_t* indices, uint32_t count);
 	private:
 		uint32_t m_Count;
 		uint32_t* m_Indices = nullptr;

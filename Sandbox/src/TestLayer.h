@@ -9,7 +9,6 @@ public:
 	void OnAttach() override;
 
 	void OnUpdate(Shark::TimeStep ts) override;
-	void OnRender() override;
 	void OnImGuiRender() override;
 
 	void OnEvent(Shark::Event& e) override;

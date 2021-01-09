@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Render/Buffers.h"
 
 #include <DirectXMath.h>
 
@@ -16,15 +17,14 @@ namespace Shark {
 	public:
 		virtual ~Shaders() = default;
 
-		virtual void SetInputs( class VertexLayout& layout ) = 0;
+		virtual void UploudData(const std::string& bufferName, ShaderType type, void* data, uint32_t size) = 0;
 
-		virtual void SetSceanData(ShaderType target, uint32_t slot, void* data, uint32_t size) = 0;
+		virtual VertexLayout& GetVertexLayout() = 0;
 
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
 
-		static Ref<Shaders> Create( const std::string& vertexshaderSrc,const std::string& pixelshaderSrc );
-		static Ref<Shaders> Create( VertexLayout& layout,const std::string& vertexshaderSrc,const std::string& pixelshaderSrc );
+		static Ref<Shaders> Create(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
 	};
 
 }

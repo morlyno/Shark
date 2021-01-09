@@ -21,8 +21,6 @@ namespace Shark {
 		virtual void OnUpdate(TimeStep t) {}
 		virtual void OnEvent(Event& e) {}
 
-		virtual void OnRender() {}
-
 		virtual void OnImGuiRender() {}
 
 		inline std::string GetName() const { return LayerName; }

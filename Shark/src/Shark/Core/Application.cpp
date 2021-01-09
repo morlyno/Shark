@@ -54,9 +54,6 @@ namespace Shark {
 			for (auto layer : m_LayerStack)
 				layer->OnUpdate(timeStep);
 
-			for (auto layer : m_LayerStack)
-				layer->OnRender();
-
 			m_pImGuiLayer->Begin();
 			for (auto layer : m_LayerStack)
 				layer->OnImGuiRender();

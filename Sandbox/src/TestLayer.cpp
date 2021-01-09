@@ -10,7 +10,7 @@ TestLayer::TestLayer(const std::string& name)
 void TestLayer::OnAttach()
 {
 	std::string vs = R"(
-			cbuffer cbuff : register(b0)
+			cbuffer SceanData : register(b0)
 			{
 				float4x4 ViewProjection;
 			}
@@ -38,14 +38,9 @@ void TestLayer::OnAttach()
 			}
 		)";
 
-	Shark::VertexLayout layout =
-	{
-		{ Shark::ShaderDataType::Float3,"Position" },
-		{ Shark::ShaderDataType::Float4,"Color" }
-	};
+	m_Shaders = Shark::Shaders::Create(vs, ps);
 
-	m_Shaders = Shark::Shaders::Create(layout, vs, ps);
-
+	Shark::VertexLayout layout = m_Shaders->GetVertexLayout();
 
 	float Trianglevertices[3 * 7] =
 	{
@@ -76,10 +71,7 @@ void TestLayer::OnAttach()
 void TestLayer::OnUpdate(Shark::TimeStep ts)
 {
 	m_Camera.OnUpdate(ts);
-}
 
-void TestLayer::OnRender()
-{
 	Shark::Renderer::BeginScean(m_Camera);
 	Shark::Renderer::Submit(m_VertexBufferSquare, m_IndexBufferSquare, m_Shaders);
 	Shark::Renderer::Submit(m_VertexBufferTriangle, m_IndexBufferTriangle, m_Shaders);

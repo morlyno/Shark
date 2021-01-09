@@ -35,7 +35,7 @@ namespace Shark {
 		vertexbuffer->Bind();
 		indexbuffer->Bind();
 		shaders->Bind();
-		shaders->SetSceanData(ShaderType::VertexShader, 0u, m_SceanData, sizeof(SceanData));
+		shaders->UploudData("SceanData",ShaderType::VertexShader, m_SceanData, sizeof(SceanData));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());
 	}
