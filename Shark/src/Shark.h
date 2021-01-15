@@ -3,7 +3,6 @@
 #include "Shark/Core/Base.h"
 
 #include "Shark/Core/Application.h"
-
 #include "Shark/Core/TimeStep.h"
 
 #include "Shark/Event/Event.h"
@@ -13,8 +12,9 @@
 
 #include "Shark/Layer/Layer.h"
 #include "Shark/Layer/LayerStack.h"
-
 #include "Shark/ImGui/ImGuiLayer.h"
+
+#include "Shark/Render/OrtographicCameraController.h"
 
 #include "Shark/Core/Window.h"
 

@@ -12,10 +12,9 @@ public:
 	void OnImGuiRender() override;
 
 	void OnEvent(Shark::Event& e) override;
-	bool OnWindowResize(Shark::WindowResizeEvent e);
 
 private:
-	Shark::OrtographicCamera m_Camera;
+	Shark::OrtographicCameraController m_CameraController;
 
 	Shark::Ref<Shark::Shaders> m_Shaders;
 	Shark::Ref<Shark::VertexBuffer> m_VertexBufferTriangle;

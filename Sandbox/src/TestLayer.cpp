@@ -3,7 +3,7 @@
 TestLayer::TestLayer(const std::string& name)
 	:
 	Layer("TestLayer" + name),
-	m_Camera(-(16.0f / 9.0f), 16.0f / 9.0f, -1.0, 1.0f)
+	m_CameraController(1280.0f / 720.0f)
 {
 }
 
@@ -70,9 +70,9 @@ void TestLayer::OnAttach()
 
 void TestLayer::OnUpdate(Shark::TimeStep ts)
 {
-	m_Camera.OnUpdate(ts);
+	m_CameraController.OnUpdate(ts);
 
-	Shark::Renderer::BeginScean(m_Camera);
+	Shark::Renderer::BeginScean(m_CameraController.GetCamera());
 	Shark::Renderer::Submit(m_VertexBufferSquare, m_IndexBufferSquare, m_Shaders);
 	Shark::Renderer::Submit(m_VertexBufferTriangle, m_IndexBufferTriangle, m_Shaders);
 	Shark::Renderer::EndScean();
@@ -81,18 +81,9 @@ void TestLayer::OnUpdate(Shark::TimeStep ts)
 void TestLayer::OnImGuiRender()
 {
 	ImGui::ShowDemoWindow();
-	m_Camera.OnImGui();
 }
 
 void TestLayer::OnEvent(Shark::Event& e)
 {
-	Shark::EventDispacher dispacher(e);
-	dispacher.DispachEvent<Shark::WindowResizeEvent>(SK_BIND_EVENT_FN(TestLayer::OnWindowResize));
-}
-
-bool TestLayer::OnWindowResize(Shark::WindowResizeEvent e)
-{
-	float ratio = (float)e.GetWidth() / (float)e.GetHeight();
-	m_Camera.SetProjection(-ratio, ratio, -1.0, 1.0f);
-	return false;
+	m_CameraController.OnEvent(e);
 }

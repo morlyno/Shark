@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/TimeStep.h"
 #include <DirectXMath.h>
 
 namespace Shark {
@@ -10,15 +9,15 @@ namespace Shark {
 	{
 	public:
 		OrtographicCamera(float left, float right, float bottem, float top);
-
-		void OnUpdate(TimeStep ts);
-		void OnImGui();
-
 		void SetProjection(float left, float right, float bottem, float top);
-		void SetPosition(const DirectX::XMFLOAT3 position) { m_Position = position; RecalculateViewProjection(); }
-
+		void SetProjection(float width, float height);
 		const DirectX::XMMATRIX& GetViewProjection() const { return m_ViewProjection; }
-
+		
+		const DirectX::XMFLOAT3& GetPosition() const { return m_Position; }
+		void SetPosition(const DirectX::XMFLOAT3 position) { m_Position = position; RecalculateViewProjection(); }
+		
+		void SetRotation(float rotation) { m_Rotation = rotation; RecalculateViewProjection(); }
+		float GetRotation() const { return m_Rotation; }
 	private:
 		void RecalculateViewProjection();
 
@@ -28,11 +27,7 @@ namespace Shark {
 		DirectX::XMMATRIX m_ViewProjection;
 
 		DirectX::XMFLOAT3 m_Position;
-		const float m_MoveSpeed = 1.0f;
-
 		float m_Rotation = 0.0f;
-		const float m_RotationSpeed = 1.0f;
-
 	};
 
 }

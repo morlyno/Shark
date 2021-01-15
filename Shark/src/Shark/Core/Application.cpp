@@ -49,16 +49,20 @@ namespace Shark {
 			TimeStep timeStep = (float)(time - m_LastFrameTime) / m_Frequency;
 			m_LastFrameTime = time;
 
-			RendererCommand::ClearBuffer();
+			if (!m_Minimized)
+			{
+				RendererCommand::ClearBuffer();
 
-			for (auto layer : m_LayerStack)
-				layer->OnUpdate(timeStep);
+				for (auto layer : m_LayerStack)
+					layer->OnUpdate(timeStep);
+			}
 
 			m_pImGuiLayer->Begin();
 			for (auto layer : m_LayerStack)
 				layer->OnImGuiRender();
 
 			ImGui::Begin("Background");
+			ImGui::Text("FPS: %.1f", 1.0f / timeStep);
 			if (ImGui::ColorEdit4("Color", clear_color))
 				RendererCommand::SetClearColor(clear_color);
 			ImGui::End();
@@ -85,13 +89,20 @@ namespace Shark {
 		SK_CORE_WARN(event);
 		m_Running = false;
 		m_ExitCode = event.GetExitCode();
-		return true;
+		return false;
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& event)
 	{
+		if (event.GetWidth() == 0 || event.GetHeight() == 0)
+		{
+			m_Minimized = true;
+			return false;
+		}
+		m_Minimized = false;
+
 		RendererCommand::Resize(event.GetWidth(), event.GetHeight());
-		return true;
+		return false;
 	}
 
 }

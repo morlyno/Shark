@@ -235,7 +235,7 @@ namespace Shark {
 			case WM_MOUSEWHEEL:
 			{
 				const POINTS pt = MAKEPOINTS(lParam);
-				const int delta = (int)GET_WHEEL_DELTA_WPARAM(wParam);
+				const int delta = (int)GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA;
 				m_Callbackfunc(MouseScrolledEvent(pt.x, pt.y, delta));
 				break;
 			}

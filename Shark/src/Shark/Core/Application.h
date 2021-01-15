@@ -35,6 +35,7 @@ namespace Shark {
 	private:
 		static Application* s_inst;
 
+		bool m_Minimized = false;
 		bool m_Running = true;
 		int m_ExitCode = -1;
 		int64_t m_LastFrameTime = 0;
