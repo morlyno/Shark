@@ -30,12 +30,13 @@ namespace Shark {
 	{
 	}
 
-	void Renderer::Submit(Ref<VertexBuffer>& vertexbuffer, Ref<IndexBuffer>& indexbuffer, Ref<Shaders>& shaders)
+	void Renderer::Submit(Ref<VertexBuffer>& vertexbuffer, Ref<IndexBuffer>& indexbuffer, Ref<Shaders>& shaders, const DirectX::XMMATRIX& translation)
 	{
 		vertexbuffer->Bind();
 		indexbuffer->Bind();
 		shaders->Bind();
 		shaders->UploudData("SceanData",ShaderType::VertexShader, m_SceanData, sizeof(SceanData));
+		shaders->UploudData("ObjectData", ShaderType::VertexShader, (void*)&translation, sizeof(translation));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());
 	}

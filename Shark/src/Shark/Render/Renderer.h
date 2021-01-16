@@ -20,7 +20,7 @@ namespace Shark {
 		static void BeginScean(OrtographicCamera& camera);
 		static void EndScean();
 
-		static void Submit(Ref<VertexBuffer>& vertexbuffer, Ref<IndexBuffer>& indexbuffer, Ref<Shaders>& shaders);
+		static void Submit(Ref<VertexBuffer>& vertexbuffer, Ref<IndexBuffer>& indexbuffer, Ref<Shaders>& shaders, const DirectX::XMMATRIX& translation);
 	private:
 		struct SceanData
 		{

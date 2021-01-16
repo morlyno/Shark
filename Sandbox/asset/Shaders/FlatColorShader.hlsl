@@ -2,7 +2,12 @@
 
 cbuffer SceanData : register(b0)
 {
-    float4x4 ViewProjection;
+    matrix ViewProjection;
+}
+
+cbuffer ObjectData : register(b1)
+{
+    matrix Translation;
 }
 
 struct VSOUT
@@ -14,7 +19,8 @@ struct VSOUT
 VSOUT main(float3 pos : Position, float4 color : Color)
 {
     VSOUT vsout;
-    vsout.pos = mul(ViewProjection, float4(pos, 1.0f));
+    matrix mat = mul(ViewProjection, Translation);
+    vsout.pos = mul(mat, float4(pos, 1.0f));
     vsout.color = color;
     return vsout;
 }

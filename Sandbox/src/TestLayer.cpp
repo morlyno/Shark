@@ -42,14 +42,27 @@ void TestLayer::OnUpdate(Shark::TimeStep ts)
 	m_CameraController.OnUpdate(ts);
 
 	Shark::Renderer::BeginScean(m_CameraController.GetCamera());
-	Shark::Renderer::Submit(m_VertexBufferSquare, m_IndexBufferSquare, m_Shaders);
-	Shark::Renderer::Submit(m_VertexBufferTriangle, m_IndexBufferTriangle, m_Shaders);
+	//DirectX::XMMATRIX translation = DirectX::XMMatrixRotationZ(0.5f) * DirectX::XMMatrixTranslation(2.0f, 0.0f, 0.0f) * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
+	Shark::Renderer::Submit(m_VertexBufferSquare, m_IndexBufferSquare, m_Shaders, m_SquareTranslation);
+	Shark::Renderer::Submit(m_VertexBufferTriangle, m_IndexBufferTriangle, m_Shaders, DirectX::XMMatrixIdentity());
 	Shark::Renderer::EndScean();
 }
 
 void TestLayer::OnImGuiRender()
 {
-	ImGui::ShowDemoWindow();
+	bool changed = false;
+	if (ImGui::Begin("Squera Translation"))
+	{
+		changed |= ImGui::SliderAngle("Rotation", &rotation);
+		changed |= ImGui::DragFloat3("Position", &pos.x);
+		changed |= ImGui::DragFloat3("Scaling", &scal.x);
+	}
+	ImGui::End();
+
+	if (changed)
+	{
+		m_SquareTranslation = DirectX::XMMatrixScaling(scal.x, scal.y, scal.z) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+	}
 }
 
 void TestLayer::OnEvent(Shark::Event& e)

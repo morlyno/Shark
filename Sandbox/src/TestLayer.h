@@ -22,4 +22,9 @@ private:
 
 	Shark::Ref<Shark::VertexBuffer> m_VertexBufferSquare;
 	Shark::Ref<Shark::IndexBuffer> m_IndexBufferSquare;
+
+	DirectX::XMMATRIX m_SquareTranslation = DirectX::XMMatrixIdentity();
+	float rotation = 0;
+	DirectX::XMFLOAT3 pos = { 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT3 scal = { 1.0f, 1.0f, 1.0f };
 };

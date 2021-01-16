@@ -27,8 +27,6 @@ namespace Shark {
 
 		RendererCommand::SetClearColor(clear_color);
 
-		m_Window->SetVSync(false);
-
 		if (!::QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency)))
 			SK_CORE_ASSERT(false, "Query Performance Frequency Failed" + std::to_string(::GetLastError()));
 		if (!::QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&m_LastFrameTime)))
