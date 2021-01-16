@@ -6,6 +6,9 @@
 #include "Shark/Core/Application.h"
 
 #include <d3dcompiler.h>
+#include <fstream>
+
+#include <chrono>
 
 #define SK_GET_RENDERERAPI() static_cast<::Shark::DirectXRendererAPI&>(::Shark::RendererCommand::GetRendererAPI())
 
@@ -31,6 +34,63 @@ namespace Shark {
 		}
 		SK_CORE_ASSERT(false, "Unkown format");
 		return ShaderDataType::None;
+	}
+
+	static std::string ReadFile(const std::string& filepath)
+	{
+		std::string result;
+		std::ifstream in(filepath);
+		if (in)
+		{
+			in.seekg(0u, std::ios::end);
+			result.resize((size_t)in.tellg());
+			in.seekg(0u, std::ios::beg);
+			in.read(&result[0], result.size());
+			in.close();
+		}
+		return std::move(result);
+	}
+
+	static ShaderType StringToShaderEnum(const std::string& typestr)
+	{
+		if (typestr == "Vertex")
+			return ShaderType::VertexShader;
+		if (typestr == "Pixel")
+			return ShaderType::PixelShader;
+		SK_CORE_ASSERT(false, "could not detect shader type");
+		return ShaderType::None;
+	}
+
+	DirectXShaders::DirectXShaders(const std::string& filepath)
+	{
+		std::string src = ReadFile(filepath);
+		std::string VertexShader;
+		std::string PixelShader;
+
+		const char* typeToken = "#type";
+		size_t TokenLength = strlen(typeToken);
+
+		size_t offset = 0;
+		while (true)
+		{
+			size_t tokenPos = src.find(typeToken, offset);
+			if (tokenPos != std::string::npos)
+			{
+				size_t typePos = tokenPos + TokenLength + 1;
+				size_t eol = src.find_first_of("\r\n", typePos);
+				ShaderType shaderType = StringToShaderEnum(src.substr(typePos, eol - typePos));
+				size_t end = src.find(typeToken, eol);
+				if (shaderType == ShaderType::VertexShader)
+					VertexShader = src.substr(eol, end - eol);
+				else if (shaderType == ShaderType::PixelShader)
+					PixelShader = src.substr(eol, end - eol);
+				offset = end;
+				continue;
+			}
+			break;
+		}
+
+		Init(VertexShader, PixelShader);
 	}
 
 	DirectXShaders::DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc)
@@ -192,15 +252,17 @@ namespace Shark {
 		if (type == ShaderType::PixelShader)
 		{
 			Buffer& buffer = m_PixelShader.constBuffers.find(bufferName)->second;
+			SK_CORE_ASSERT(size == buffer.size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
 			D3D11_MAPPED_SUBRESOURCE ms;
 			context->Map(buffer.buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms);
-			memcpy(ms.pData, data, size);
+			memcpy(ms.pData, data, buffer.size);
 			context->Unmap(buffer.buffer, 0u);
 			context->PSSetConstantBuffers(buffer.slot, 1u, &buffer.buffer);
 		}
 		else if (type == ShaderType::VertexShader)
 		{
 			Buffer& buffer = m_VertexShader.constBuffers.find(bufferName)->second;
+			SK_CORE_ASSERT(size == buffer.size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
 			D3D11_MAPPED_SUBRESOURCE ms;
 			context->Map(buffer.buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms);
 			memcpy(ms.pData, data, size);

@@ -9,38 +9,7 @@ TestLayer::TestLayer(const std::string& name)
 
 void TestLayer::OnAttach()
 {
-	std::string vs = R"(
-			cbuffer SceanData : register(b0)
-			{
-				float4x4 ViewProjection;
-			}
-
-			struct VSOUT
-			{
-				float4 color : Color;
-				float4 pos : SV_POSITION;
-			};
-
-			VSOUT main( float3 pos : Position,float4 color : Color )
-			{
-				VSOUT vsout;
-				vsout.pos = mul(ViewProjection, float4(pos, 1.0f));
-				//vsout.pos = float4(pos, 1.0f);
-				vsout.color = color;
-				return vsout;
-			}
-		)";
-
-	std::string ps = R"(
-			float4 main( float4 color : Color ) : SV_TARGET
-			{
-				return color;
-			}
-		)";
-
-	m_Shaders = Shark::Shaders::Create(vs, ps);
-
-	Shark::VertexLayout layout = m_Shaders->GetVertexLayout();
+	m_Shaders = Shark::Shaders::Create("asset/Shaders/FlatColorShader.hlsl");
 
 	float Trianglevertices[3 * 7] =
 	{
@@ -50,7 +19,7 @@ void TestLayer::OnAttach()
 	};
 	uint32_t Triangleindices[] = { 0,1,2 };
 
-	m_VertexBufferTriangle = Shark::VertexBuffer::Create(layout, Trianglevertices, sizeof(Trianglevertices));
+	m_VertexBufferTriangle = Shark::VertexBuffer::Create(m_Shaders->GetVertexLayout(), Trianglevertices, sizeof(Trianglevertices));
 	m_IndexBufferTriangle = Shark::IndexBuffer::Create(Triangleindices, (uint32_t)std::size(Triangleindices));
 
 
@@ -64,7 +33,7 @@ void TestLayer::OnAttach()
 	};
 	uint32_t Squareindices[] = { 0,1,2, 2,3,0 };
 
-	m_VertexBufferSquare = Shark::VertexBuffer::Create(layout, Squarevertices, sizeof(Squarevertices));
+	m_VertexBufferSquare = Shark::VertexBuffer::Create(m_Shaders->GetVertexLayout(), Squarevertices, sizeof(Squarevertices));
 	m_IndexBufferSquare = Shark::IndexBuffer::Create(Squareindices, (uint32_t)std::size(Squareindices));
 }
 

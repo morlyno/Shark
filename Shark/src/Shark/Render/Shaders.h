@@ -9,6 +9,7 @@ namespace Shark {
 
 	enum class ShaderType
 	{
+		None = 0,
 		VertexShader, PixelShader
 	};
 
@@ -24,6 +25,7 @@ namespace Shark {
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
 
+		static Ref<Shaders> Create(const std::string& filepath);
 		static Ref<Shaders> Create(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
 	};
 

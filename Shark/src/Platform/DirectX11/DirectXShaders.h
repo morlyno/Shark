@@ -31,6 +31,7 @@ namespace Shark {
 	class DirectXShaders : public Shaders
 	{
 	public:
+		DirectXShaders(const std::string& filepath);
 		DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
 		~DirectXShaders();
 
