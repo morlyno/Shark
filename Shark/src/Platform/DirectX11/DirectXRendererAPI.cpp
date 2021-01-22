@@ -16,6 +16,7 @@ namespace Shark {
 			SK_CORE_STOP_APPLICATION("Create DXGI Factore Failed");
 
 		IDXGIAdapter* gpu = nullptr;
+#if 0
 		if (HRESULT hr = m_Factory->EnumAdapters(1u, &gpu); FAILED(hr))
 		{
 			SK_CORE_ASSERT(hr != DXGI_ERROR_INVALID_CALL);
@@ -25,6 +26,13 @@ namespace Shark {
 				if (m_Factory->EnumAdapters(0u, &gpu) == DXGI_ERROR_NOT_FOUND)
 					SK_CORE_STOP_APPLICATION("!!! No Adapter could be found !!!");
 			}
+		}
+#endif
+		if (HRESULT hr = m_Factory->EnumAdapters(0u, &gpu); FAILED(hr))
+		{
+			SK_CORE_ASSERT(hr != DXGI_ERROR_INVALID_CALL);
+			if (hr == DXGI_ERROR_NOT_FOUND)
+				SK_CORE_STOP_APPLICATION("!!! No Adapter could be found !!!");
 		}
 
 		{
@@ -91,6 +99,24 @@ namespace Shark {
 
 		// TODO: Make chanchable in the future
 		m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+		D3D11_BLEND_DESC bd;
+		bd.AlphaToCoverageEnable = false;
+		bd.IndependentBlendEnable = false;
+		bd.RenderTarget[0].BlendEnable = TRUE;
+		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		HRESULT hr = m_Device->CreateBlendState(&bd, &m_BlendState);
+		SK_CORE_ASSERT(SUCCEEDED(hr));
+
+		const UINT mask = 0xFFFFFFFF;
+		m_Context->OMSetBlendState(m_BlendState, nullptr, mask);
 	}
 
 	void DirectXRendererAPI::ShutDown()
@@ -100,6 +126,7 @@ namespace Shark {
 		if (m_SwapChain) { m_SwapChain->Release(); m_SwapChain = nullptr; }
 		if (m_RenderTarget) { m_RenderTarget->Release(); m_RenderTarget = nullptr; }
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
+		if (m_BlendState) { m_BlendState->Release(); m_BlendState = nullptr; }
 	}
 
 	DirectXRendererAPI::~DirectXRendererAPI()

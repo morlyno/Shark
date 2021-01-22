@@ -15,24 +15,24 @@ namespace Shark {
 
 	void OrtographicCameraController::OnUpdate(TimeStep ts)
 	{
-		if (Input::KeyPressed(Key::Up))
+		if (Input::KeyPressed(Key::W))
 			m_Position.y += m_MoveSpeed * ts;
 
-		if (Input::KeyPressed(Key::Down))
+		if (Input::KeyPressed(Key::S))
 			m_Position.y -= m_MoveSpeed * ts;
 
-		if (Input::KeyPressed(Key::Left))
+		if (Input::KeyPressed(Key::A))
 			m_Position.x -= m_MoveSpeed * ts;
 
-		if (Input::KeyPressed(Key::Right))
+		if (Input::KeyPressed(Key::D))
 			m_Position.x += m_MoveSpeed * ts;
 
 		if (m_DoRotation)
 		{
-			if (Input::KeyPressed(Key::A))
+			if (Input::KeyPressed(Key::Q))
 				m_Rotation -= m_MoveSpeed * ts;
 
-			if (Input::KeyPressed(Key::D))
+			if (Input::KeyPressed(Key::E))
 				m_Rotation += m_MoveSpeed * ts;
 
 			m_Camera.SetRotation(m_Rotation);

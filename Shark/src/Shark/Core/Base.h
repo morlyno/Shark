@@ -7,7 +7,7 @@
 #endif
 
 // Always stops Application in Debug and Release
-#define SK_CORE_STOP_APPLICATION(...) { SK_CORE_ERROR(__VA_ARGS__); __debugbreak(); } // TODO: Probably popup window / exeption
+#define SK_CORE_STOP_APPLICATION(...) { SK_CORE_ERROR(__VA_ARGS__); abort(); } // TODO: Probably popup window / exeption
 
 #define SK_ENABLE_ASSERT
 

@@ -17,11 +17,16 @@ private:
 	Shark::OrtographicCameraController m_CameraController;
 
 	Shark::Ref<Shark::Shaders> m_Shaders;
+	Shark::Ref<Shark::Shaders> m_TextureShaders;
 	Shark::Ref<Shark::VertexBuffer> m_VertexBufferTriangle;
 	Shark::Ref<Shark::IndexBuffer> m_IndexBufferTriangle;
 
 	Shark::Ref<Shark::VertexBuffer> m_VertexBufferSquare;
+	Shark::Ref<Shark::VertexBuffer> m_VertexBufferSquareTexture;
 	Shark::Ref<Shark::IndexBuffer> m_IndexBufferSquare;
+
+	Shark::Ref<Shark::Texture2D> m_Texture;
+	Shark::Ref<Shark::Texture2D> m_TextureS;
 
 	DirectX::XMMATRIX m_SquareTranslation = DirectX::XMMatrixIdentity();
 	float rotation = 0;

@@ -30,6 +30,7 @@ namespace Shark {
 		ID3D11DeviceContext* m_Context = nullptr;
 		IDXGISwapChain* m_SwapChain = nullptr;
 		ID3D11RenderTargetView* m_RenderTarget = nullptr;
+		ID3D11BlendState* m_BlendState = nullptr;
 
 		float clear_color[4];
 	};

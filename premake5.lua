@@ -13,6 +13,7 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 includeDir = {}
 includeDir["spdlog"] = "Shark/dependencies/spdlog/include"
 includeDir["ImGui"] = "Shark/dependencies/ImGui"
+includeDir["stb_image"] = "Shark/dependencies/stb_image"
 
 include "Shark/dependencies/ImGui"
 
@@ -33,13 +34,16 @@ project "Shark"
 	{
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
+		"%{includeDir.stb_image}/*.h",
+		"%{includeDir.stb_image}/*.cpp"
 	}
 
 	includedirs
 	{
 		"Shark/src",
 		"%{includeDir.spdlog}",
-		"%{includeDir.ImGui}"
+		"%{includeDir.ImGui}",
+		"%{includeDir.stb_image}"
 	}
 
 	filter "system:windows"
@@ -65,19 +69,6 @@ project "Shark"
 		defines "SK_RELEASE"
 		runtime "Release"
 		optimize "on"
-
-	--hlsl Shaders
-
-	--ShaderPath = "%{prj.name}/src/Shark/Platform/DirectX11/Shaders"
-	--
-	--filter "system:windows"
-	--	files "%{prj.name}/src/Shark/Platform/**.hlsl"
-	--
-	--	filter "files:**_PS.hlsl"
-	--		shadertype "Pixel"
-	--
-	--	filter "files:**_VS.hlsl"
-	--		shadertype "Vertex"
 
 
 project "Sandbox"
