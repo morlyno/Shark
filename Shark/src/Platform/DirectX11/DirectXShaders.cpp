@@ -15,9 +15,11 @@
 
 namespace Shark {
 
-	//None = 0,
-	//	Float, Float2, Float3, Float4,
-	//	Int, Int2, Int3, Int4,
+	enum class ShaderType
+	{
+		None = 0,
+		VertexShader, PixelShader
+	};
 
 	static ShaderDataType DXGIFormatToShaderDataType(DXGI_FORMAT format)
 	{
@@ -40,6 +42,7 @@ namespace Shark {
 	{
 		std::string result;
 		std::ifstream in(filepath);
+		SK_CORE_ASSERT(in, "File not found! Filepath: " + filepath);
 		if (in)
 		{
 			in.seekg(0u, std::ios::end);
@@ -80,6 +83,7 @@ namespace Shark {
 				size_t eol = src.find_first_of("\r\n", typePos);
 				ShaderType shaderType = StringToShaderEnum(src.substr(typePos, eol - typePos));
 				size_t end = src.find(typeToken, eol);
+				// TODO: detect w/ string not w/ enum
 				if (shaderType == ShaderType::VertexShader)
 					VertexShader = src.substr(eol, end - eol);
 				else if (shaderType == ShaderType::PixelShader)
@@ -245,30 +249,22 @@ namespace Shark {
 		blob->Release(); blob = nullptr;
 	}
 
-	void DirectXShaders::UploudData(const std::string& bufferName, ShaderType type, void* data, uint32_t size)
+	void DirectXShaders::SetBuffer(const std::string& bufferName, void* data, uint32_t size)
+	{
+		UploudBuffer(bufferName, data, size);
+	}
+
+	void DirectXShaders::UploudBuffer(const std::string& bufferName, void* data, uint32_t size)
 	{
 		auto context = SK_GET_RENDERERAPI().GetContext();
 
-		if (type == ShaderType::PixelShader)
-		{
-			Buffer& buffer = m_PixelShader.constBuffers.find(bufferName)->second;
-			SK_CORE_ASSERT(size == buffer.size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
-			D3D11_MAPPED_SUBRESOURCE ms;
-			context->Map(buffer.buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms);
-			memcpy(ms.pData, data, buffer.size);
-			context->Unmap(buffer.buffer, 0u);
-			context->PSSetConstantBuffers(buffer.slot, 1u, &buffer.buffer);
-		}
-		else if (type == ShaderType::VertexShader)
-		{
-			Buffer& buffer = m_VertexShader.constBuffers.find(bufferName)->second;
-			SK_CORE_ASSERT(size == buffer.size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
-			D3D11_MAPPED_SUBRESOURCE ms;
-			context->Map(buffer.buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms);
-			memcpy(ms.pData, data, size);
-			context->Unmap(buffer.buffer, 0u);
-			context->VSSetConstantBuffers(buffer.slot, 1u, &buffer.buffer);
-		}
+		Buffer& buffer = m_VertexShader.constBuffers.find(bufferName)->second;
+		SK_CORE_ASSERT(size == buffer.size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
+		D3D11_MAPPED_SUBRESOURCE ms;
+		context->Map(buffer.buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms);
+		memcpy(ms.pData, data, size);
+		context->Unmap(buffer.buffer, 0u);
+		context->VSSetConstantBuffers(buffer.slot, 1u, &buffer.buffer);
 	}
 
 	void DirectXShaders::Bind()

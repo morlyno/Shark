@@ -82,10 +82,46 @@ namespace Shark {
 
 		if (gpu) { gpu->Release(); gpu = nullptr; }
 
+		D3D11_DEPTH_STENCIL_DESC ds = {};
+		ds.DepthEnable = TRUE;
+		ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		ds.DepthFunc = D3D11_COMPARISON_LESS;
+
+		ID3D11DepthStencilState* depthState = nullptr;
+		m_Device->CreateDepthStencilState(&ds, &depthState);
+		m_Context->OMSetDepthStencilState(depthState, 1u);
+		depthState->Release();
+
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
+		dsv.Format = DXGI_FORMAT_D32_FLOAT;
+		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		dsv.Texture2D.MipSlice = 0u;
+		dsv.Flags = 0u;
+
+		D3D11_TEXTURE2D_DESC t2d;
+		t2d.Width = window.GetWidth();
+		t2d.Height = window.GetHeight();
+		t2d.MipLevels = 1u;
+		t2d.ArraySize = 1u;
+		t2d.Format = dsv.Format;
+		t2d.SampleDesc.Count = 1u;
+		t2d.SampleDesc.Quality = 0u;
+		t2d.Usage = D3D11_USAGE_DEFAULT;
+		t2d.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		t2d.CPUAccessFlags = 0u;
+		t2d.MiscFlags = 0u;
+
+		ID3D11Texture2D* texture = nullptr;
+		m_Device->CreateTexture2D(&t2d, nullptr, &texture);
+
+		m_Device->CreateDepthStencilView(texture, &dsv, &m_DepthStencil);
+		texture->Release();
+
 		ID3D11Texture2D* buffer;
 		m_SwapChain->GetBuffer(0u, __uuidof(ID3D11Texture2D), (void**)&buffer);
 		m_Device->CreateRenderTargetView(buffer, nullptr, &m_RenderTarget);
-		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, nullptr);
+		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, m_DepthStencil);
 		buffer->Release();
 
 		D3D11_VIEWPORT vp = {};
@@ -112,8 +148,7 @@ namespace Shark {
 		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		HRESULT hr = m_Device->CreateBlendState(&bd, &m_BlendState);
-		SK_CORE_ASSERT(SUCCEEDED(hr));
+		m_Device->CreateBlendState(&bd, &m_BlendState);
 
 		const UINT mask = 0xFFFFFFFF;
 		m_Context->OMSetBlendState(m_BlendState, nullptr, mask);
@@ -127,11 +162,7 @@ namespace Shark {
 		if (m_RenderTarget) { m_RenderTarget->Release(); m_RenderTarget = nullptr; }
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
 		if (m_BlendState) { m_BlendState->Release(); m_BlendState = nullptr; }
-	}
-
-	DirectXRendererAPI::~DirectXRendererAPI()
-	{
-		ShutDown();
+		if (m_DepthStencil) { m_DepthStencil->Release(); m_DepthStencil = nullptr; }
 	}
 
 	void DirectXRendererAPI::SetClearColor(const float color[4])
@@ -141,8 +172,9 @@ namespace Shark {
 
 	void DirectXRendererAPI::ClearBuffer()
 	{
-		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, nullptr);
+		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, m_DepthStencil);
 		m_Context->ClearRenderTargetView(m_RenderTarget, clear_color);
+		m_Context->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
 	};
 
 	void DirectXRendererAPI::SwapBuffer(bool VSync)
@@ -157,15 +189,34 @@ namespace Shark {
 
 	void DirectXRendererAPI::OnResize(int width, int height)
 	{
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
+		m_DepthStencil->GetDesc(&dsv);
+
+		ID3D11Texture2D* resource;
+		m_DepthStencil->GetResource((ID3D11Resource**)&resource);
+
+		D3D11_TEXTURE2D_DESC t2d;
+		resource->GetDesc(&t2d);
+		t2d.Width = width;
+		t2d.Height = height;
+		resource->Release();
+
+
 		m_Context->OMSetRenderTargets(0u, nullptr, nullptr);
 		m_RenderTarget->Release();
+		m_DepthStencil->Release();
 
 		m_SwapChain->ResizeBuffers(0u, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0u);
+
+		ID3D11Texture2D* texture;
+		m_Device->CreateTexture2D(&t2d, nullptr, &texture);
+		m_Device->CreateDepthStencilView(texture, &dsv, &m_DepthStencil);
+		texture->Release();
 
 		ID3D11Buffer* buffer = nullptr;
 		m_SwapChain->GetBuffer(0u, __uuidof(ID3D11Texture2D), (void**)&buffer);
 		m_Device->CreateRenderTargetView(buffer, nullptr, &m_RenderTarget);
-		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, nullptr);
+		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, m_DepthStencil);
 		buffer->Release();
 
 		D3D11_VIEWPORT vp;

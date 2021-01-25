@@ -5,7 +5,7 @@
 class TestLayer : public Shark::Layer
 {
 public:
-	TestLayer(const std::string& name = std::string{});
+	TestLayer(const std::string& name);
 	void OnAttach() override;
 
 	void OnUpdate(Shark::TimeStep ts) override;

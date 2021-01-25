@@ -20,6 +20,7 @@
 
 // --- Render ----------------
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shaders.h"

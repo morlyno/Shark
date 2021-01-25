@@ -21,10 +21,10 @@ namespace Shark {
 	public:
 		void OnEvent(Event& e);
 
-		void PushLayer(Layer* layer) { m_LayerStack.PushLayer(layer); }
-		void PopLayer(Layer* layer) { m_LayerStack.PopLayer(layer); }
-		void PushOverlay(Layer* layer) { m_LayerStack.PushOverlay(layer); }
-		void PopOverlay(Layer* layer) { m_LayerStack.PopOverlay(layer); }
+		void PushLayer(Layer* layer) { m_LayerStack.PushLayer(layer); layer->OnAttach(); }
+		void PopLayer(Layer* layer) { m_LayerStack.PopLayer(layer); layer->OnDetach(); }
+		void PushOverlay(Layer* layer) { m_LayerStack.PushOverlay(layer); layer->OnAttach(); }
+		void PopOverlay(Layer* layer) { m_LayerStack.PopOverlay(layer); layer->OnDetach(); }
 
 		static inline Application& Get() { return *s_inst; }
 		inline Window& GetWindow() { return *m_Window; }

@@ -5,36 +5,36 @@
 
 namespace Shark {
 
-	Ref<VertexBuffer> VertexBuffer::Create( const VertexLayout& layout )
+	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout)
 	{
-		switch ( RendererAPI::GetAPI() )
+		switch (RendererAPI::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT( false,"RendererAPI not specified" ); return nullptr;
-			case RendererAPI::API::DirectX11: return Create_Ref<DirectXVertexBuffer>( layout );
+			case RendererAPI::API::None: SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
+			case RendererAPI::API::DirectX11: return Create_Ref<DirectXVertexBuffer>(layout);
 		}
-		SK_CORE_ASSERT( false,"Unknown RendererAPI" );
+		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
 	}
 
-	Ref<VertexBuffer> VertexBuffer::Create( const VertexLayout& layout,float* data,uint32_t count )
+	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout, void* data, uint32_t count)
 	{
-		switch ( RendererAPI::GetAPI() )
+		switch (RendererAPI::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT( false,"RendererAPI not specified" ); return nullptr;
-			case RendererAPI::API::DirectX11: return Create_Ref<DirectXVertexBuffer>( layout,data,count );
+			case RendererAPI::API::None: SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
+			case RendererAPI::API::DirectX11: return Create_Ref<DirectXVertexBuffer>(layout, data, count);
 		}
-		SK_CORE_ASSERT( false,"Unknown RendererAPI" );
+		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
 	}
 
-	Ref<IndexBuffer> IndexBuffer::Create( uint32_t* indices,uint32_t count )
+	Ref<IndexBuffer> IndexBuffer::Create(uint32_t* indices, uint32_t count)
 	{
-		switch ( RendererAPI::GetAPI() )
+		switch (RendererAPI::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT( false,"RendererAPI not specified" ); return nullptr;
-			case RendererAPI::API::DirectX11: return Create_Ref<DirectXIndexBuffer>( indices,count );
+			case RendererAPI::API::None: SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
+			case RendererAPI::API::DirectX11: return Create_Ref<DirectXIndexBuffer>(indices, count);
 		}
-		SK_CORE_ASSERT( false,"Unknown RendererAPI" );
+		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
 	}
 }

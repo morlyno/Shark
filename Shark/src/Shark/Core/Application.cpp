@@ -6,7 +6,7 @@
 
 #include "Shark/Core/TimeStep.h"
 
-#include "Shark/Render/Renderer.h"
+#include "Shark/Render/Renderer2D.h"
 
 #include <imgui.h>
 
@@ -20,7 +20,7 @@ namespace Shark {
 		s_inst = this;
 		m_Window = Window::Create();
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
-		Renderer::Init(*m_Window);
+		Renderer2D::Init(*m_Window);
 
 		m_pImGuiLayer = new ImGuiLayer();
 		PushLayer(m_pImGuiLayer);
@@ -35,6 +35,7 @@ namespace Shark {
 
 	Application::~Application()
 	{
+		Renderer2D::ShutDown();
 	}
 
 	int Application::Run()

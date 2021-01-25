@@ -19,6 +19,7 @@ namespace Shark {
 	{
 		RendererCommand::ShutDown();
 		delete m_SceanData;
+		m_SceanData = nullptr;
 	}
 
 	void Renderer::BeginScean(OrtographicCamera& camera)
@@ -35,8 +36,8 @@ namespace Shark {
 		vertexbuffer->Bind();
 		indexbuffer->Bind();
 		shaders->Bind();
-		shaders->UploudData("SceanData",ShaderType::VertexShader, m_SceanData, sizeof(SceanData));
-		shaders->UploudData("ObjectData", ShaderType::VertexShader, (void*)&translation, sizeof(translation));
+		shaders->SetBuffer("SceanData", m_SceanData, sizeof(SceanData));
+		shaders->SetBuffer("ObjectData", (void*)&translation, sizeof(translation));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());
 	}
@@ -47,8 +48,8 @@ namespace Shark {
 		indexbuffer->Bind();
 		shaders->Bind();
 		texture->Bind();
-		shaders->UploudData("SceanData", ShaderType::VertexShader, m_SceanData, sizeof(SceanData));
-		shaders->UploudData("ObjectData", ShaderType::VertexShader, (void*)&translation, sizeof(translation));
+		shaders->SetBuffer("SceanData", m_SceanData, sizeof(SceanData));
+		shaders->SetBuffer("ObjectData", (void*)&translation, sizeof(translation));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());
 	}

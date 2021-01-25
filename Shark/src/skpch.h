@@ -24,3 +24,5 @@
 	#endif
 	#include <Windows.h>
 #endif
+
+#include "Shark/Core/Log.h"

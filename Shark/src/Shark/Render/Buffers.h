@@ -105,13 +105,14 @@ namespace Shark {
 		const VertexLayout& GetLayout() { return m_Layout; }
 
 		static Ref<VertexBuffer> Create(const VertexLayout& layout);
-		static Ref<VertexBuffer> Create(const VertexLayout& layout, float* data, uint32_t size);
+		static Ref<VertexBuffer> Create(const VertexLayout& layout, void* data, uint32_t size);
 	protected:
 		VertexLayout m_Layout;
 		uint32_t m_Size = 0u;
 		void* m_Data = nullptr;
 	};
 
+	// 32-Bit IndexBuffer
 	class IndexBuffer
 	{
 	public:

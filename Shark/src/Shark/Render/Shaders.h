@@ -7,18 +7,18 @@
 
 namespace Shark {
 
-	enum class ShaderType
-	{
-		None = 0,
-		VertexShader, PixelShader
-	};
+	//enum class ShaderType
+	//{
+	//	None = 0,
+	//	VertexShader, PixelShader
+	//};
 
 	class Shaders
 	{
 	public:
 		virtual ~Shaders() = default;
 
-		virtual void UploudData(const std::string& bufferName, ShaderType type, void* data, uint32_t size) = 0;
+		virtual void SetBuffer(const std::string& bufferName, void* data, uint32_t size) = 0;
 
 		virtual VertexLayout& GetVertexLayout() = 0;
 

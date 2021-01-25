@@ -21,6 +21,7 @@ namespace Shark {
 		virtual ~Texture2D() = default;
 
 		static Ref<Texture2D> Create(const std::string& filepath);
+		static Ref<Texture2D> Create(uint32_t width, uint32_t height, uint32_t color);
 	};
 
 }

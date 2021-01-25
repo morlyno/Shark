@@ -2,14 +2,14 @@
 
 TestLayer::TestLayer(const std::string& name)
 	:
-	Layer("TestLayer" + name),
+	Layer(name),
 	m_CameraController(1280.0f / 720.0f, true)
 {
 }
 
 void TestLayer::OnAttach()
 {
-	m_Shaders = Shark::Shaders::Create("assets/Shaders/FlatColorShader.hlsl");
+	m_Shaders = Shark::Shaders::Create("assets/Shaders/TestShader.hlsl");
 	m_TextureShaders = Shark::Shaders::Create("assets/Shaders/TextureShader.hlsl");
 	m_Texture = Shark::Texture2D::Create("assets/Textures/Checkerboard.png");
 	m_TextureS = Shark::Texture2D::Create("assets/Textures/S.png");

@@ -8,13 +8,13 @@ namespace Shark {
 	class DirectXVertexBuffer : public VertexBuffer
 	{
 	public:
-		DirectXVertexBuffer( const VertexLayout& layout );
-		DirectXVertexBuffer( const VertexLayout& layout,float* data,uint32_t size );
+		DirectXVertexBuffer(const VertexLayout& layout);
+		DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size);
 		~DirectXVertexBuffer();
 
-		void Init( void* data,uint32_t size );
+		void Init(void* data, uint32_t size);
 
-		void SetData( void* data,uint32_t count ) override;
+		void SetData(void* data, uint32_t count) override;
 
 		void Bind() override;
 		void UnBind() override;
@@ -26,10 +26,10 @@ namespace Shark {
 	class DirectXIndexBuffer : public IndexBuffer
 	{
 	public:
-		DirectXIndexBuffer( uint32_t* indices,uint32_t count );
+		DirectXIndexBuffer(uint32_t* indices, uint32_t count);
 		~DirectXIndexBuffer();
 
-		void Init( uint32_t* indices,uint32_t count );
+		void Init(uint32_t* indices, uint32_t count);
 
 		void Bind() override;
 		void UnBind() override;

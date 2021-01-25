@@ -9,8 +9,6 @@ namespace Shark {
 	class DirectXRendererAPI : public RendererAPI
 	{
 	public:
-		~DirectXRendererAPI();
-
 		virtual void Init(const Window& window) override;
 		virtual void ShutDown() override;
 
@@ -31,6 +29,7 @@ namespace Shark {
 		IDXGISwapChain* m_SwapChain = nullptr;
 		ID3D11RenderTargetView* m_RenderTarget = nullptr;
 		ID3D11BlendState* m_BlendState = nullptr;
+		ID3D11DepthStencilView* m_DepthStencil = nullptr;
 
 		float clear_color[4];
 	};

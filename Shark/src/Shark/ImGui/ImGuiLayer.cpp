@@ -15,15 +15,6 @@ namespace Shark {
 		:
 		Layer("ImGuiLayer")
 	{
-	}
-
-	ImGuiLayer::~ImGuiLayer()
-	{
-		OnDetach();
-	}
-
-	void ImGuiLayer::OnAttach()
-	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 
@@ -51,11 +42,19 @@ namespace Shark {
 		ImGui_ImplDX11_Init(dxr.GetDevice(), dxr.GetContext());
 	}
 
-	void ImGuiLayer::OnDetach()
+	ImGuiLayer::~ImGuiLayer()
 	{
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
+	}
+
+	void ImGuiLayer::OnAttach()
+	{
+	}
+
+	void ImGuiLayer::OnDetach()
+	{
 	}
 
 	void ImGuiLayer::Begin()
