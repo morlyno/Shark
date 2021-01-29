@@ -6,7 +6,7 @@
 
 #include "Shark/Core/TimeStep.h"
 
-#include "Shark/Render/Renderer2D.h"
+#include "Shark/Render/Renderer.h"
 
 #include <imgui.h>
 
@@ -20,11 +20,12 @@ namespace Shark {
 		s_inst = this;
 		m_Window = Window::Create();
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
-		Renderer2D::Init(*m_Window);
+		Renderer::Init(*m_Window);
 
 		m_pImGuiLayer = new ImGuiLayer();
 		PushLayer(m_pImGuiLayer);
 
+		const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 		RendererCommand::SetClearColor(clear_color);
 
 		if (!::QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency)))
@@ -35,7 +36,7 @@ namespace Shark {
 
 	Application::~Application()
 	{
-		Renderer2D::ShutDown();
+		Renderer::ShutDown();
 	}
 
 	int Application::Run()
@@ -59,13 +60,6 @@ namespace Shark {
 			m_pImGuiLayer->Begin();
 			for (auto layer : m_LayerStack)
 				layer->OnImGuiRender();
-
-			ImGui::Begin("Background");
-			ImGui::Text("FPS: %.1f", 1.0f / timeStep);
-			if (ImGui::ColorEdit4("Color", clear_color))
-				RendererCommand::SetClearColor(clear_color);
-			ImGui::End();
-
 			m_pImGuiLayer->End();
 
 			m_Window->Update();
@@ -75,6 +69,13 @@ namespace Shark {
 
 	void Application::OnEvent(Event& event)
 	{
+		if (event.GetEventType() == EventTypes::WindowResize)
+			SK_CORE_TRACE("Window Resize");
+		if (event.GetEventType() == EventTypes::WindowMinimized)
+			SK_CORE_TRACE("Window Minimized");
+		if (event.GetEventType() == EventTypes::WindowMaximized)
+			SK_CORE_TRACE("Window Maximized");
+
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(Application::OnWindowResize));

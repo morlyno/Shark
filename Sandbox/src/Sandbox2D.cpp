@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "Sandbox2D.h"
 
+#include <imgui.h>
+
 Sandbox2D::Sandbox2D(const std::string& name)
 	:
 	Layer(name),
@@ -50,17 +52,33 @@ void Sandbox2D::OnEvent(Shark::Event& event)
 {
 	m_CameraController.OnEvent(event);
 
-	if (event.GetEventType() == Shark::EventTypes::KeyPressed)
+	Shark::EventDispacher dispacher(event);
+	dispacher.DispachEvent<Shark::KeyPressedEvent>(SK_BIND_EVENT_FN(Sandbox2D::OnKeyPressedEvent));
+}
+
+bool Sandbox2D::OnKeyPressedEvent(Shark::KeyPressedEvent event)
+{
+	if (event.GetKeyCode() == Shark::Key::V)
 	{
-		auto kpe = static_cast<Shark::KeyPressedEvent&>(event);
-		if (kpe.GetKeyCode() == Shark::Key::V)
-		{
-			auto& w = Shark::Application::Get().GetWindow();
-			w.SetVSync(!w.IsVSync());
-		}
+		auto& w = Shark::Application::Get().GetWindow();
+		w.SetVSync(!w.IsVSync());
+		return true;
 	}
+	SK_TRACE(event);
+	if (event.GetKeyCode() == Shark::Key::Escape)
+	{
+		Shark::Application::Get().GetWindow().Kill(69);
+		return true;
+	}
+	return false;
 }
 
 void Sandbox2D::OnImGuiRender()
 {
+	ImGui::Begin("Background");
+	//ImGui::Text("FPS: %.1f", 1.0f / timeStep);
+	static float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+	if (ImGui::ColorEdit4("Color", clear_color))
+		Shark::RendererCommand::SetClearColor(clear_color);
+	ImGui::End();
 }

@@ -7,12 +7,6 @@
 
 namespace Shark {
 
-	//enum class ShaderType
-	//{
-	//	None = 0,
-	//	VertexShader, PixelShader
-	//};
-
 	class Shaders
 	{
 	public:
@@ -25,8 +19,26 @@ namespace Shark {
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
 
+		virtual const std::string& GetName() = 0;
+
 		static Ref<Shaders> Create(const std::string& filepath);
 		static Ref<Shaders> Create(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
+	};
+
+	class ShaderLib
+	{
+	public:
+		static void Add(const std::string& name, Ref<Shaders> shaders);
+		static void Add(Ref<Shaders> shaders);
+
+		static Ref<Shaders> Load(const std::string& name, const std::string& filepath);
+		static Ref<Shaders> Load(const std::string& filepath);
+
+		static Ref<Shaders> Get(const std::string& name);
+
+		static bool Exits(const std::string& name);
+	private:
+		static std::unordered_map<std::string, Ref<Shaders>> m_Shaders;
 	};
 
 }

@@ -29,6 +29,8 @@ namespace Shark {
 		WindowsWindow(int width, int height, const std::wstring& name);
 		virtual ~WindowsWindow();
 
+		virtual void SetEventCallbackFunc(const EventCallbackFunc& callback) override { m_Callbackfunc = callback; }
+
 		virtual void Update() const override;
 
 		virtual inline int GetWidth() const override { return m_Width; }
@@ -39,8 +41,8 @@ namespace Shark {
 
 		virtual inline bool IsVSync() const override { return m_VSync; }
 		virtual void SetVSync(bool VSync) override { m_VSync = VSync; }
-
-		virtual void SetEventCallbackFunc(const EventCallbackFunc& callback) override { m_Callbackfunc = callback; }
+		
+		virtual void Kill(int32_t exitcode = 0) override { DestroyWindow(m_Window); }
 
 	private:
 		static LRESULT WINAPI WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

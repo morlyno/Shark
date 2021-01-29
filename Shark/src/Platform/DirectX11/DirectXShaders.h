@@ -45,6 +45,8 @@ namespace Shark {
 
 		void Bind() override;
 		void UnBind() override;
+
+		virtual const std::string& GetName() override { return m_Name; }
 	private:
 		PixelShader m_PixelShader;
 		VertexShader m_VertexShader;
@@ -52,6 +54,8 @@ namespace Shark {
 		ID3D11InputLayout* m_InputLayout = nullptr;
 
 		VertexLayout m_VertexLayout;
+
+		std::string m_Name;
 	};
 
 }

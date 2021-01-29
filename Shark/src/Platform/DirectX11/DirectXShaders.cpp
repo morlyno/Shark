@@ -70,6 +70,10 @@ namespace Shark {
 		std::string VertexShader;
 		std::string PixelShader;
 
+		size_t ls = filepath.find_last_of("/\\");
+		size_t en = filepath.find('.', ls);
+		m_Name = filepath.substr(ls + 1, en - ls - 1);
+
 		const char* typeToken = "#type";
 		size_t TokenLength = strlen(typeToken);
 

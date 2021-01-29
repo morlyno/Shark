@@ -26,5 +26,43 @@ namespace Shark {
 		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
 	}
-	
+
+	std::unordered_map<std::string, Ref<Shaders>> ShaderLib::m_Shaders;
+
+	void ShaderLib::Add(const std::string& name, Ref<Shaders> shaders)
+	{
+		SK_CORE_ASSERT(!Exits(name), "Shader already exists!");
+		m_Shaders[name] = shaders;
+	}
+
+	void ShaderLib::Add(Ref<Shaders> shaders)
+	{
+		SK_CORE_ASSERT(!Exits(shaders->GetName()), "Shader already exists!");
+		m_Shaders[shaders->GetName()] = shaders;
+	}
+
+	Ref<Shaders> ShaderLib::Load(const std::string& name, const std::string& filepath)
+	{
+		Ref<Shaders> shader = Shaders::Create(filepath);
+		Add(name, shader);
+		return shader;
+	}
+
+	Ref<Shaders> ShaderLib::Load(const std::string& filepath)
+	{
+		Ref<Shaders> shader = Shaders::Create(filepath);
+		Add(shader);
+		return shader;
+	}
+
+	Ref<Shaders> ShaderLib::Get(const std::string& name)
+	{
+		return m_Shaders[name];
+	}
+
+	bool ShaderLib::Exits(const std::string& name)
+	{
+		return !(m_Shaders.find(name) == m_Shaders.end());
+	}
+
 }

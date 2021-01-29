@@ -1,25 +1,24 @@
 #include "skpch.h"
 #include "Renderer.h"
 #include "Shark/Core/Window.h"
+#include "Shark/Render/Renderer2D.h"
 
 #include "Platform/DirectX11/DirectXRendererAPI.h"
 
 namespace Shark {
 
-	Renderer::SceanData* Renderer::m_SceanData = nullptr;
+	Scope<Renderer::SceanData> Renderer::m_SceanData = Create_Scope<Renderer::SceanData>();
 
 	void Renderer::Init(const Window& window)
 	{
 		RendererCommand::Init(window);
-		SK_CORE_ASSERT(m_SceanData == nullptr, "SceanData already set");
-		m_SceanData = new Renderer::SceanData();
+		Renderer2D::Init(window);
 	}
 
 	void Renderer::ShutDown()
 	{
+		Renderer2D::ShutDown();
 		RendererCommand::ShutDown();
-		delete m_SceanData;
-		m_SceanData = nullptr;
 	}
 
 	void Renderer::BeginScean(OrtographicCamera& camera)
@@ -36,7 +35,7 @@ namespace Shark {
 		vertexbuffer->Bind();
 		indexbuffer->Bind();
 		shaders->Bind();
-		shaders->SetBuffer("SceanData", m_SceanData, sizeof(SceanData));
+		shaders->SetBuffer("SceanData", m_SceanData.get(), sizeof(SceanData));
 		shaders->SetBuffer("ObjectData", (void*)&translation, sizeof(translation));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());
@@ -48,7 +47,7 @@ namespace Shark {
 		indexbuffer->Bind();
 		shaders->Bind();
 		texture->Bind();
-		shaders->SetBuffer("SceanData", m_SceanData, sizeof(SceanData));
+		shaders->SetBuffer("SceanData", m_SceanData.get(), sizeof(SceanData));
 		shaders->SetBuffer("ObjectData", (void*)&translation, sizeof(translation));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());

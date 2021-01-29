@@ -41,8 +41,6 @@ namespace Shark {
 		int64_t m_LastFrameTime = 0;
 		int64_t m_Frequency;
 
-		float clear_color[4] = { 0.1f,0.1f,0.1f,1.0f };
-
 		Scope<Window> m_Window;
 		// Owned by LayerStack
 		ImGuiLayer* m_pImGuiLayer;

@@ -101,8 +101,6 @@ namespace Shark {
 		MSG msg = {};
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
-			if (msg.message == WM_QUIT)
-				return;
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
 		}
@@ -140,7 +138,6 @@ namespace Shark {
 			{
 				m_Callbackfunc(WindowCloseEvent(0));
 				return 0;
-				break;
 			}
 
 			case WM_SIZE:

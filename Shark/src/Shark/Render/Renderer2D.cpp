@@ -37,11 +37,10 @@ namespace Shark {
 
 	void Renderer2D::Init(const Window& window)
 	{
-		RendererCommand::Init(window);
 		SK_CORE_ASSERT(s_SceanData == nullptr, "SceanData already set");
 		s_SceanData = new SceanData();
 
-		s_Data.Shaders = Shaders::Create("assets/Shaders/MainShader.hlsl");
+		s_Data.Shaders = ShaderLib::Load("assets/Shaders/MainShader.hlsl");
 
 		s_Data.WhiteTexture = Texture2D::Create(1, 1, 0xFFFFFFFF);
 
@@ -61,7 +60,6 @@ namespace Shark {
 	void Renderer2D::ShutDown()
 	{
 		delete s_SceanData;
-		RendererCommand::ShutDown();
 	}
 
 	void Renderer2D::BeginScean(OrtographicCamera& camera)

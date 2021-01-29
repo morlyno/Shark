@@ -11,20 +11,19 @@ namespace Shark {
 		int height;
 		std::wstring name;
 
-		WindowProps( const std::wstring& name = L"Shark Engin",unsigned int width = 1280u,unsigned int height = 720u )
-			: width( width ), height( height ), name( name )
+		WindowProps(const std::wstring& name = L"Shark Engin", unsigned int width = 1280u, unsigned int height = 720u)
+			: width(width), height(height), name(name)
 		{}
 	};
 
 	class Window
 	{
 	public:
-		using EventCallbackFunc = std::function<void( Event& e )>;
+		using EventCallbackFunc = std::function<void(Event& e)>;
 
 		virtual ~Window() = default;
 
-		virtual void SetEventCallbackFunc( const EventCallbackFunc& callback ) = 0;
-
+		virtual void SetEventCallbackFunc(const EventCallbackFunc& callback) = 0;
 
 		virtual void Update() const = 0;
 
@@ -35,9 +34,11 @@ namespace Shark {
 		virtual inline bool IsFocused() const = 0;
 
 		virtual inline bool IsVSync() const = 0;
-		virtual void SetVSync( bool VSync ) = 0;
+		virtual void SetVSync(bool VSync) = 0;
 
-		static Scope<Window> Create( const WindowProps& properties = WindowProps() );
+		virtual void Kill(int32_t exitcode = 0) = 0;
+
+		static Scope<Window> Create(const WindowProps& properties = WindowProps());
 	};
 
 }

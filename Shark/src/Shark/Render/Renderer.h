@@ -28,7 +28,7 @@ namespace Shark {
 		{
 			DirectX::XMMATRIX ViewProjectionMatrix;
 		};
-		static SceanData* m_SceanData;
+		static Scope<SceanData> m_SceanData;
 	};
 
 }
