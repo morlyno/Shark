@@ -56,7 +56,8 @@ project "Shark"
 
 		links
 		{
-			"d3d11.lib",
+			"d3d11",
+			"dxgi",
 			"ImGui"
 		}
 

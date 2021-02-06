@@ -7,7 +7,6 @@
 #include "Shark/Core/MouseCodes.h"
 #include "Shark/Render/RendererCommand.h"
 
-
 #include <backends/imgui_impl_win32.h>
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -43,7 +42,7 @@ namespace Shark {
 
 	Scope<Window> Window::Create(const WindowProps& props)
 	{
-		return Create_Scope<WindowsWindow>(props.width, props.height, props.name);
+		return CreateScope<WindowsWindow>(props.width, props.height, props.name);
 	}
 
 	WindowsWindow::WindowsWindow(int width, int height, const std::wstring& name)
@@ -54,10 +53,9 @@ namespace Shark {
 		m_IsFocused(false),
 		m_VSync(true)
 	{
-		std::string str;
-		str.reserve(m_Name.size());
-		for (auto wc : m_Name)
-			str += static_cast<char>(wc);
+		std::string str(name.size(), '\000');
+		str.resize(name.size());
+		wcstombs_s(nullptr, str.data(), str.size(), name.data(), std::numeric_limits<size_t>::max());
 		SK_CORE_INFO("Init Windows Window {0} {1} {2}", width, height, str);
 
 		unsigned int flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
@@ -83,9 +81,7 @@ namespace Shark {
 			WindowClass::GetHInst(),
 			this
 		);
-		SK_ASSERT(m_Window);
-
-
+		SK_CORE_ASSERT(m_Window, "Failed to Create Window");
 
 		ShowWindow(m_Window, SW_SHOWDEFAULT);
 		UpdateWindow(m_Window);
@@ -127,7 +123,7 @@ namespace Shark {
 		return pWindow->HandleMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	LRESULT __stdcall WindowsWindow::HandleMsg( HWND hWnd,UINT msg,WPARAM wParam,LPARAM lParam )
+	LRESULT __stdcall WindowsWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 			return true;
@@ -136,7 +132,7 @@ namespace Shark {
 		{
 			case WM_DESTROY:
 			{
-				m_Callbackfunc(WindowCloseEvent(0));
+				m_Callbackfunc(WindowCloseEvent());
 				return 0;
 			}
 
@@ -146,15 +142,16 @@ namespace Shark {
 				m_Height = HIWORD(lParam);
 				if (m_Callbackfunc)
 				{
-					m_Callbackfunc(WindowResizeEvent(m_Width, m_Height));
+					WindowResizeEvent::State state = WindowResizeEvent::State::None;
 					if (wParam == SIZE_MAXIMIZED)
 					{
-						m_Callbackfunc(WindowMaximizedEvent(m_Width, m_Height));
+						state = WindowResizeEvent::State::Maximized;
 					}
 					else if (wParam == SIZE_MINIMIZED)
 					{
-						m_Callbackfunc(WindowMinimizedEvent());
+						state = WindowResizeEvent::State::Minimized;
 					}
+					m_Callbackfunc(WindowResizeEvent(m_Width, m_Height, state));
 				}
 				break;
 			}

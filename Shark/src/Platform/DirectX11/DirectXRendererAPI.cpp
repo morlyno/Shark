@@ -2,8 +2,6 @@
 #include "DirectXRendererAPI.h"
 #include <stdlib.h>
 
-// TODO: Temp
-#pragma comment(lib, "dxgi")
 
 namespace Shark {
 
@@ -13,7 +11,7 @@ namespace Shark {
 		SK_CORE_INFO("Init RendererAPI");
 
 		if (CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)) != S_OK)
-			SK_CORE_STOP_APPLICATION("Create DXGI Factore Failed");
+			SK_CORE_ASSERT(false, "Create DXGI Factore Failed");
 
 		IDXGIAdapter* gpu = nullptr;
 #if 0
@@ -32,7 +30,10 @@ namespace Shark {
 		{
 			SK_CORE_ASSERT(hr != DXGI_ERROR_INVALID_CALL);
 			if (hr == DXGI_ERROR_NOT_FOUND)
-				SK_CORE_STOP_APPLICATION("!!! No Adapter could be found !!!");
+			{
+				SK_CORE_CRITICAL("!!! No Adapter could be found !!!");
+				throw std::exception("Failed to find a GPU Adapter");
+			}
 		}
 
 		{

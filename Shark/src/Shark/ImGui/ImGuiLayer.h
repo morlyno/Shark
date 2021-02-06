@@ -15,7 +15,6 @@ namespace Shark {
 		void OnDetach() override;
 		void Begin();
 		void End();
-		void OnEvent(Event& e) override;
 
 	};
 

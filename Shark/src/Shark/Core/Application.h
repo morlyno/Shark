@@ -3,6 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Window.h"
 #include "Shark/Event/WindowEvent.h"
+#include "Shark/Event/ApplicationEvent.h"
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
 
@@ -17,27 +18,29 @@ namespace Shark {
 		Application();
 		virtual ~Application();
 	private:
-		int Run();
+		void Run();
 	public:
-		void OnEvent(Event& e);
+		void OnEvent(Event& event);
 
 		void PushLayer(Layer* layer) { m_LayerStack.PushLayer(layer); layer->OnAttach(); }
 		void PopLayer(Layer* layer) { m_LayerStack.PopLayer(layer); layer->OnDetach(); }
 		void PushOverlay(Layer* layer) { m_LayerStack.PushOverlay(layer); layer->OnAttach(); }
 		void PopOverlay(Layer* layer) { m_LayerStack.PopOverlay(layer); layer->OnDetach(); }
 
-		static inline Application& Get() { return *s_inst; }
+		void CloseApplication() { m_Running = false; OnEvent(ApplicationCloseEvent()); }
+
+		static inline Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
 	private:
 		bool OnWindowClose(WindowCloseEvent& event);
+		bool OnApplicationClose(ApplicationCloseEvent& event);
 		bool OnWindowResize(WindowResizeEvent& event);
 
 	private:
-		static Application* s_inst;
+		static Application* s_Instance;
 
 		bool m_Minimized = false;
 		bool m_Running = true;
-		int m_ExitCode = -1;
 		int64_t m_LastFrameTime = 0;
 		int64_t m_Frequency;
 

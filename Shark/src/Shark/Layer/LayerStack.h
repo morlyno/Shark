@@ -18,9 +18,11 @@ namespace Shark {
 
 		std::vector<Layer*>::iterator begin() { return Layers.begin(); }
 		std::vector<Layer*>::iterator end() { return Layers.end(); }
+		std::vector<Layer*>::reverse_iterator rbegin() { return Layers.rbegin(); }
+		std::vector<Layer*>::reverse_iterator rend() { return Layers.rend(); }
 	private:
 		std::vector<Layer*> Layers;
-		unsigned int LayerStackIndex = 0;
+		uint32_t LayerStackIndex = 0;
 	};
 
 }

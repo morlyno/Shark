@@ -7,12 +7,12 @@
 
 namespace Shark {
 
-	Scope<Renderer::SceanData> Renderer::m_SceanData = Create_Scope<Renderer::SceanData>();
+	Scope<Renderer::SceanData> Renderer::m_SceanData = CreateScope<Renderer::SceanData>();
 
 	void Renderer::Init(const Window& window)
 	{
 		RendererCommand::Init(window);
-		Renderer2D::Init(window);
+		Renderer2D::Init();
 	}
 
 	void Renderer::ShutDown()

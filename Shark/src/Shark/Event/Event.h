@@ -1,37 +1,47 @@
 #pragma once
-#pragma warning(push)
-#pragma warning(disable : 26812)
-
 #include "Shark/Core/Base.h"
 
 #include <sstream>
+
+#ifndef SK_EVENT_TYPES_EXTENTION
+#define SK_EVENT_TYPES_EXTENTION
+#endif
+
+#ifndef SK_EVENT_CATEGORY_EXTENTION
+#define SK_EVENT_CATEGORY_EXTENTION
+#endif
+
+
+#define SK_EVENT_FUNCTIONS(type)	static constexpr ::Shark::EventTypes GetStaticType() { return ::Shark::EventTypes::##type; } \
+										virtual ::Shark::EventTypes GetEventType() const override { return GetStaticType(); } \
+										virtual const char* GetName() const override { return #type; }
+
+#define SK_GET_CATEGORY_FLAGS_FUNC(category)	static constexpr unsigned int GetStaticEventCategoryFlags() { return category; } \
+													unsigned int GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
 
 namespace Shark {
 
 	enum class EventTypes
 	{
 		None = 0,
-		WindowClose,WindowResize,WindowMove,WindowFocus,WindowLostFocus,WindowMinimized,WindowMaximized,WindowEventBase,
-		MouseMove,MouseButtonPressed,MouseButtonReleasd,MouseScrolled,MouseEventBase,
-		KeyPressed,KeyReleased,KeyCharacter,KeyEventBase
+		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus, WindowMinimized, WindowMaximized,
+		MouseMove, MouseButtonPressed, MouseButtonReleasd, MouseScrolled,
+		KeyPressed, KeyReleased, KeyCharacter,
+		ApplicationClosed,
+		SK_EVENT_TYPES_EXTENTION
 	};
 
-	enum EventCategory
+	enum EventCategory_ : uint32_t
 	{
 		None = 0,
-		EventCategoryWindow = SK_BIT( 0 ),
-		EventCategoryInput = SK_BIT( 1 ),
-		EventCategoryMouse = SK_BIT( 2 ),
-		EventCategoryKeyboard = SK_BIT( 3 )
+		EventCategoryWindow = SK_BIT(0),
+		EventCategoryInput = SK_BIT(1),
+		EventCategoryMouse = SK_BIT(2),
+		EventCategoryKeyboard = SK_BIT(3),
+		EventCategoryApplication = SK_BIT(4),
+		SK_EVENT_CATEGORY_EXTENTION
 	};
-	typedef int EventCategory_t;
-
-	#define SK_EVENT_FUNCTIONS(type)	static EventTypes GetStaticType() { return EventTypes::##type; } \
-										virtual EventTypes GetEventType() const override { return GetStaticType(); } \
-										virtual const char* GetName() const override { return #type; }
-
-	#define SK_GET_CATEGORY_FLAGS_FUNC(category)	static unsigned int GetStaticEventCategoryFlags() { return category; } \
-													unsigned int GetEventCategoryFlags() const override { return category; }
+	using EventCategory = uint32_t;
 
 	class Event
 	{
@@ -42,11 +52,7 @@ namespace Shark {
 		virtual const char* GetName() const = 0;
 		virtual std::string ToString() const { return GetName(); }
 		virtual unsigned int GetEventCategoryFlags() const = 0;
-		bool IsInCategory( EventCategory category ) const
-		{
-			return GetEventCategoryFlags() & category;
-		}
-		bool IsInCategory( EventCategory_t category ) const
+		bool IsInCategory(EventCategory category) const
 		{
 			return GetEventCategoryFlags() & category;
 		}
@@ -56,32 +62,27 @@ namespace Shark {
 
 	class EventDispacher
 	{
-		template<typename T>
-		using EventFunc = std::function<bool( T& )>;
 	public:
-		EventDispacher( Event& e )
-			:
-			e( e )
-		{}
-		template<typename T>
-		bool DispachEvent( EventFunc<T> func )
+		EventDispacher(Event& event)
+			: m_Event(event) {}
+
+		template<typename T, typename Func>
+		bool DispachEvent(const Func& func)
 		{
-			if ( T::GetStaticType() == e.GetEventType() )
+			if (T::GetStaticType() == m_Event.GetEventType())
 			{
-				e.Handled |= func( static_cast<T&>( e ) );
+				m_Event.Handled |= func(static_cast<T&>(m_Event));
 				return true;
 			}
 			return false;
 		}
 	private:
-		Event& e;
+		Event& m_Event;
 	};
 
-	inline std::ostream& operator<<( std::ostream& os,const Event& e )
+	inline std::ostream& operator<<(std::ostream& os, const Event& e)
 	{
 		return os << e.ToString();
 	}
 
 }
-
-#pragma warning(pop)

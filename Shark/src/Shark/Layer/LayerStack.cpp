@@ -1,5 +1,4 @@
 #include "skpch.h"
-#include "Layer.h"
 #include "LayerStack.h"
 
 namespace Shark {

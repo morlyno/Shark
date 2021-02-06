@@ -18,8 +18,6 @@ namespace Shark {
 			return oss.str();
 		}
 
-		static EventTypes GetStaticType() { return EventTypes::MouseEventBase; }
-
 		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryInput | EventCategoryMouse)
 	protected:
 		MouseEvent(int x, int y)
@@ -47,20 +45,20 @@ namespace Shark {
 		MousePressedEvent(int x, int y, MouseCode button)
 			:
 			MouseEvent(x, y),
-			button(button)
+			m_Button(button)
 		{}
-		inline int GetButton() { return button; }
+		inline MouseCode GetButton() { return m_Button; }
 
 		std::string ToString() const override
 		{
 			std::ostringstream oss;
-			oss << GetName() << " " << x << ", " << y << " Button: " << button;
+			oss << GetName() << " " << x << ", " << y << " Button: " << m_Button;
 			return oss.str();
 		}
 
 		SK_EVENT_FUNCTIONS(MouseButtonPressed)
 	private:
-		MouseCode button;
+		MouseCode m_Button;
 	};
 
 	class MouseReleasedEvent : public MouseEvent
@@ -69,20 +67,20 @@ namespace Shark {
 		MouseReleasedEvent(int x, int y, MouseCode button)
 			:
 			MouseEvent(x, y),
-			button(button)
+			m_Button(button)
 		{}
-		inline int GetButton() { return button; }
+		inline int GetButton() { return m_Button; }
 
 		std::string ToString() const override
 		{
 			std::ostringstream oss;
-			oss << GetName() << " " << x << ", " << y << " Button: " << button;
+			oss << GetName() << " " << x << ", " << y << " Button: " << m_Button;
 			return oss.str();
 		}
 
 		SK_EVENT_FUNCTIONS(MouseButtonReleasd)
 	private:
-		MouseCode button;
+		MouseCode m_Button;
 	};
 
 	class MouseScrolledEvent : public MouseEvent
@@ -91,21 +89,21 @@ namespace Shark {
 		MouseScrolledEvent(int x, int y, int delta)
 			:
 			MouseEvent(x, y),
-			delta(delta)
+			m_Delta(delta)
 		{}
 
-		inline int GetDelta() const { return delta; }
+		inline int GetDelta() const { return m_Delta; }
 
 		std::string ToString() const override
 		{
 			std::ostringstream oss;
-			oss << GetName() << " " << x << ", " << y << " Delta: " << delta;
+			oss << GetName() << " " << x << ", " << y << " Delta: " << m_Delta;
 			return oss.str();
 		}
 
 		SK_EVENT_FUNCTIONS(MouseScrolled)
 	private:
-		int delta;
+		int m_Delta;
 	};
 
 }

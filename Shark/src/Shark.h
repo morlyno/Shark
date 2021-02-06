@@ -9,6 +9,7 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/MouseEvent.h"
 #include "Shark/Event/WindowEvent.h"
+#include "Shark/Event/ApplicationEvent.h"
 
 #include "Shark/Layer/Layer.h"
 #include "Shark/Layer/LayerStack.h"

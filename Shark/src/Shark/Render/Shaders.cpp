@@ -10,7 +10,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Create_Ref<DirectXShaders>(filepath);
+			case RendererAPI::API::DirectX11: return CreateRef<DirectXShaders>(filepath);
 		}
 		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
@@ -21,24 +21,24 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Create_Ref<DirectXShaders>(vertexshaderSrc, pixelshaderSrc);
+			case RendererAPI::API::DirectX11: return CreateRef<DirectXShaders>(vertexshaderSrc, pixelshaderSrc);
 		}
 		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
 	}
 
-	std::unordered_map<std::string, Ref<Shaders>> ShaderLib::m_Shaders;
+	std::unordered_map<std::string, Ref<Shaders>> ShaderLib::s_Shaders;
 
 	void ShaderLib::Add(const std::string& name, Ref<Shaders> shaders)
 	{
 		SK_CORE_ASSERT(!Exits(name), "Shader already exists!");
-		m_Shaders[name] = shaders;
+		s_Shaders[name] = shaders;
 	}
 
 	void ShaderLib::Add(Ref<Shaders> shaders)
 	{
 		SK_CORE_ASSERT(!Exits(shaders->GetName()), "Shader already exists!");
-		m_Shaders[shaders->GetName()] = shaders;
+		s_Shaders[shaders->GetName()] = shaders;
 	}
 
 	Ref<Shaders> ShaderLib::Load(const std::string& name, const std::string& filepath)
@@ -57,12 +57,12 @@ namespace Shark {
 
 	Ref<Shaders> ShaderLib::Get(const std::string& name)
 	{
-		return m_Shaders[name];
+		return s_Shaders[name];
 	}
 
 	bool ShaderLib::Exits(const std::string& name)
 	{
-		return !(m_Shaders.find(name) == m_Shaders.end());
+		return !(s_Shaders.find(name) == s_Shaders.end());
 	}
 
 }

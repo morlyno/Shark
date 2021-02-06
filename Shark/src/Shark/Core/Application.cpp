@@ -3,21 +3,20 @@
 
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/Input.h"
-
 #include "Shark/Core/TimeStep.h"
-
 #include "Shark/Render/Renderer.h"
 
 #include <imgui.h>
 
 namespace Shark {
 
-	Application* Application::s_inst = nullptr;
+	Application* Application::s_Instance = nullptr;
 
 	Application::Application()
 	{
-		SK_CORE_ASSERT(!s_inst, "Application allready set");
-		s_inst = this;
+		SK_CORE_ASSERT(!s_Instance, "Application allready set");
+		s_Instance = this;
+
 		m_Window = Window::Create();
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		Renderer::Init(*m_Window);
@@ -28,10 +27,8 @@ namespace Shark {
 		const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 		RendererCommand::SetClearColor(clear_color);
 
-		if (!::QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency)))
-			SK_CORE_ASSERT(false, "Query Performance Frequency Failed" + std::to_string(::GetLastError()));
-		if (!::QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&m_LastFrameTime)))
-			SK_CORE_ASSERT(false, "Query Performance Counter Failed" + std::to_string(::GetLastError()));
+		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency));
+		QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&m_LastFrameTime));
 	}
 
 	Application::~Application()
@@ -39,13 +36,12 @@ namespace Shark {
 		Renderer::ShutDown();
 	}
 
-	int Application::Run()
+	void Application::Run()
 	{
 		while (m_Running)
 		{
 			int64_t time;
-			if(!::QueryPerformanceCounter((LARGE_INTEGER*)&time))
-				SK_CORE_ASSERT(false, "Query Performance Counter Failed" + std::to_string(::GetLastError()));
+			QueryPerformanceCounter((LARGE_INTEGER*)&time);
 			TimeStep timeStep = (float)(time - m_LastFrameTime) / m_Frequency;
 			m_LastFrameTime = time;
 
@@ -55,29 +51,22 @@ namespace Shark {
 
 				for (auto layer : m_LayerStack)
 					layer->OnUpdate(timeStep);
-			}
 
-			m_pImGuiLayer->Begin();
-			for (auto layer : m_LayerStack)
-				layer->OnImGuiRender();
-			m_pImGuiLayer->End();
+				m_pImGuiLayer->Begin();
+				for (auto layer : m_LayerStack)
+					layer->OnImGuiRender();
+				m_pImGuiLayer->End();
+			}
 
 			m_Window->Update();
 		}
-		return m_ExitCode;
 	}
 
 	void Application::OnEvent(Event& event)
 	{
-		if (event.GetEventType() == EventTypes::WindowResize)
-			SK_CORE_TRACE("Window Resize");
-		if (event.GetEventType() == EventTypes::WindowMinimized)
-			SK_CORE_TRACE("Window Minimized");
-		if (event.GetEventType() == EventTypes::WindowMaximized)
-			SK_CORE_TRACE("Window Maximized");
-
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
+		dispacher.DispachEvent<ApplicationCloseEvent>(SK_BIND_EVENT_FN(Application::OnApplicationClose));
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(Application::OnWindowResize));
 
 		for (auto it = m_LayerStack.begin(); it != m_LayerStack.end() && !event.Handled; ++it)
@@ -86,15 +75,20 @@ namespace Shark {
 
 	bool Application::OnWindowClose(WindowCloseEvent& event)
 	{
+		OnEvent(ApplicationCloseEvent());
+		return false;
+	}
+
+	bool Application::OnApplicationClose(ApplicationCloseEvent& event)
+	{
 		SK_CORE_WARN(event);
 		m_Running = false;
-		m_ExitCode = event.GetExitCode();
 		return false;
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& event)
 	{
-		if (event.GetWidth() == 0 || event.GetHeight() == 0)
+		if (event.GetState() == WindowResizeEvent::State::Minimized)
 		{
 			m_Minimized = true;
 			return false;

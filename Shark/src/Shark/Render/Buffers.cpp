@@ -10,7 +10,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Create_Ref<DirectXVertexBuffer>(layout);
+			case RendererAPI::API::DirectX11: return CreateRef<DirectXVertexBuffer>(layout);
 		}
 		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
@@ -21,7 +21,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Create_Ref<DirectXVertexBuffer>(layout, data, count);
+			case RendererAPI::API::DirectX11: return CreateRef<DirectXVertexBuffer>(layout, data, count);
 		}
 		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
@@ -32,7 +32,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Create_Ref<DirectXIndexBuffer>(indices, count);
+			case RendererAPI::API::DirectX11: return CreateRef<DirectXIndexBuffer>(indices, count);
 		}
 		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;

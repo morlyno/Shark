@@ -5,7 +5,6 @@
 #include <memory>
 #include <utility>
 #include <functional>
-#include <optional>
 #include <algorithm>
 #include <math.h>
 
@@ -15,8 +14,9 @@
 #include <string>
 #include <sstream>
 #include <bitset>
+#include <optional>
 
-#include <chrono>
+#include <exception>
 
 
 #ifdef SK_PLATFORM_WINDOWS
@@ -26,4 +26,5 @@
 	#include <Windows.h>
 #endif
 
+#include "Shark/Core/Base.h"
 #include "Shark/Core/Log.h"

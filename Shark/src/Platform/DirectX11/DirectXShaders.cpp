@@ -8,10 +8,7 @@
 #include <d3dcompiler.h>
 #include <fstream>
 
-#include <chrono>
-
 #define SK_GET_RENDERERAPI() static_cast<::Shark::DirectXRendererAPI&>(::Shark::RendererCommand::GetRendererAPI())
-
 
 namespace Shark {
 

@@ -8,12 +8,12 @@ namespace Shark {
 
 	Scope<RendererAPI> RendererAPI::Create()
 	{
-		switch ( s_API )
+		switch (s_API)
 		{
-			case API::None:        SK_CORE_ASSERT( false,"RendererAPI not specified" ); return nullptr;
-			case API::DirectX11:   return Create_Scope<DirectXRendererAPI>();
+			case API::None:        SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
+			case API::DirectX11:   return CreateScope<DirectXRendererAPI>();
 		}
-		SK_CORE_ASSERT( false,"Unknown RendererAPI" );
+		SK_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
 	}
 

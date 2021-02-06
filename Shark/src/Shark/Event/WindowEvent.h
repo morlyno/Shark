@@ -7,54 +7,42 @@ namespace Shark {
 	class WindowEvent : public Event
 	{
 	public:
-		static EventTypes GetStaticType() { return EventTypes::WindowEventBase; }
-
 		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryWindow)
 	};
 
 	class WindowCloseEvent : public WindowEvent
 	{
 	public:
-		WindowCloseEvent(int ExitCode)
-			:
-			ExitCode(ExitCode)
-		{}
-		int GetExitCode() const { return ExitCode; }
-
-		std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << ExitCode;
-			return oss.str();
-		}
-
 		SK_EVENT_FUNCTIONS(WindowClose)
-	private:
-		int ExitCode;
 	};
 
 	class WindowResizeEvent : public WindowEvent
 	{
 	public:
-		WindowResizeEvent(unsigned int width, unsigned int height)
+		enum class State { None = 0, Maximized, Minimized };
+	public:
+		WindowResizeEvent(uint32_t width, uint32_t height, State state)
 			:
-			width(width),
-			height(height)
+			m_Width(width),
+			m_Height(height),
+			m_State(state)
 		{}
-		unsigned int GetWidth() const { return width; }
-		unsigned int GetHeight() const { return height; }
+		uint32_t GetWidth() const { return m_Width; }
+		uint32_t GetHeight() const { return m_Height; }
+		State GetState() const { return m_State; }
 
 		std::string ToString() const override
 		{
 			std::ostringstream oss;
-			oss << GetName() << " " << width << " , " << height;
+			oss << GetName() << " " << m_Width << " , " << m_Height << ", " << (uint32_t)m_State;
 			return oss.str();
 		}
 
 		SK_EVENT_FUNCTIONS(WindowResize)
 	private:
-		unsigned int width;
-		unsigned int height;
+		uint32_t m_Width;
+		uint32_t m_Height;
+		State m_State;
 	};
 
 	class WindowMoveEvent : public WindowEvent
@@ -109,36 +97,6 @@ namespace Shark {
 	{
 	public:
 		SK_EVENT_FUNCTIONS(WindowLostFocus)
-	};
-
-	class WindowMaximizedEvent : public WindowEvent
-	{
-	public:
-		WindowMaximizedEvent(unsigned int width, unsigned int height)
-			:
-			width(width),
-			height(height)
-		{}
-		unsigned int GetWidth() const { return width; }
-		unsigned int GetHeight() const { return height; }
-
-		std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << width << " , " << height;
-			return oss.str();
-		}
-
-		SK_EVENT_FUNCTIONS(WindowMaximized)
-	private:
-		unsigned int width;
-		unsigned int height;
-	};
-
-	class WindowMinimizedEvent : public WindowEvent
-	{
-	public:
-		SK_EVENT_FUNCTIONS(WindowMinimized)
 	};
 
 }

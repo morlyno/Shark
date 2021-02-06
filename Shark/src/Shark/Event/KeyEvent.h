@@ -8,46 +8,43 @@ namespace Shark {
 	class KeyEvent : public Event
 	{
 	public:
-		KeyCode GetKeyCode() const { return keycode; }
+		KeyCode GetKeyCode() const { return m_KeyCode; }
 
 		virtual std::string ToString() const override
 		{
 			std::ostringstream oss;
-			oss << GetName() << " " << keycode;
+			oss << GetName() << " " << m_KeyCode;
 			return oss.str();
 		}
-
-		static EventTypes GetStaticType() { return EventTypes::KeyEventBase; }
-
 		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryInput | EventCategoryKeyboard)
 	protected:
 		KeyEvent(KeyCode keycode)
 			:
-			keycode(keycode)
+			m_KeyCode(keycode)
 		{}
-		KeyCode keycode;
+		KeyCode m_KeyCode;
 	};
 
 	class KeyPressedEvent : public KeyEvent
 	{
 	public:
-		KeyPressedEvent(KeyCode keycode, unsigned int RepeatCount)
+		KeyPressedEvent(KeyCode keycode, uint32_t RepeatCount)
 			:
 			KeyEvent(keycode),
-			RepeatCount(RepeatCount)
+			m_RepeatCount(RepeatCount)
 		{}
-		unsigned int GetRepeatCount() const { return RepeatCount; }
+		uint32_t GetRepeatCount() const { return m_RepeatCount; }
 
 		std::string ToString() const override
 		{
 			std::ostringstream oss;
-			oss << GetName() << " " << keycode << " " << RepeatCount;
+			oss << GetName() << " " << m_KeyCode << " " << m_RepeatCount;
 			return oss.str();
 		}
 
 		SK_EVENT_FUNCTIONS(KeyPressed)
 	private:
-		unsigned int RepeatCount;
+		uint32_t m_RepeatCount;
 	};
 
 	class KeyReleasedEvent : public KeyEvent

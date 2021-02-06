@@ -42,6 +42,7 @@ namespace Shark {
 		ElementDesc() = default;
 	};
 
+	// TODO: Move VertexLayout to Shaders + Rename to InputLayout/VertexInputLayout
 	class VertexLayout
 	{
 	public:

@@ -3,8 +3,6 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Window.h"
 
-#ifdef SK_PLATFORM_WINDOWS
-
 namespace Shark {
 
 	class WindowsWindow : public Window
@@ -51,8 +49,8 @@ namespace Shark {
 	private:
 		HWND m_Window;
 
-		unsigned int m_Width;
-		unsigned int m_Height;
+		uint32_t m_Width;
+		uint32_t m_Height;
 		std::wstring m_Name;
 		bool m_IsFocused;
 		bool m_VSync;
@@ -62,7 +60,3 @@ namespace Shark {
 	};
 
 }
-
-#else
-#error Windows is not enabled
-#endif

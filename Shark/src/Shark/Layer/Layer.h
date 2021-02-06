@@ -10,9 +10,7 @@ namespace Shark {
 	{
 	public:
 		Layer(const std::string& LayerName = "Layer")
-			:
-			LayerName(LayerName)
-		{}
+			: LayerName(LayerName) {}
 		virtual ~Layer() = default;
 
 		virtual void OnAttach() {}
@@ -23,7 +21,7 @@ namespace Shark {
 
 		virtual void OnImGuiRender() {}
 
-		inline std::string GetName() const { return LayerName; }
+		inline const std::string& GetName() const { return LayerName; }
 	protected:
 		std::string LayerName;
 	};

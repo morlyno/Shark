@@ -1,0 +1,35 @@
+Change Log Shark Graphics/Game Engine
+
+[26.01.2021] ShaderLib + Shader name
+
+Current:
+[29.01.2021] -> Current: Maintenance: Events + Checkup on Files
+
+TODO:
+ - Renderer API Test (Game)
+ - 2D Batch Renderer
+ - Profiling
+ - Sprite Sheet/Texture Atlases
+ - Texture Lib
+ - Framebuffers
+ - ImGui Dockspace
+ - ImGui -> Camera Controll, ...
+ - Entitis/Components
+ - DirectXMath Wrapper
+ - Platform Time Wrapper
+ - Event Queue
+ - Graphics context
+
+Plan:
+ - Imprufe DirectX11
+ - DirectX12
+ - Vulkan
+ - (OpenGL)
+ - 3D
+
+Issue:
+ - Shader Reflection ConstantBuffer Create
+   -> probably an issue when bufferinices have gabes gaps
+ - ConstantBuffer find takes long
+ - Move VertexLayout to Shaders
+ - Ortographic -Camera / -CameraController redo

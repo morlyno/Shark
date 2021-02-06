@@ -38,7 +38,7 @@ namespace Shark {
 
 		static bool Exits(const std::string& name);
 	private:
-		static std::unordered_map<std::string, Ref<Shaders>> m_Shaders;
+		static std::unordered_map<std::string, Ref<Shaders>> s_Shaders;
 	};
 
 }

@@ -67,7 +67,7 @@ bool Sandbox2D::OnKeyPressedEvent(Shark::KeyPressedEvent event)
 	SK_TRACE(event);
 	if (event.GetKeyCode() == Shark::Key::Escape)
 	{
-		Shark::Application::Get().GetWindow().Kill(69);
+		Shark::Application::Get().CloseApplication();
 		return true;
 	}
 	return false;
