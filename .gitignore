@@ -1,5 +1,6 @@
 # directories
 **/bin/
+!dependencies/Premake/bin/
 **/bin-int/
 
 # files

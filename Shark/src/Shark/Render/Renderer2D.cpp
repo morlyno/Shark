@@ -123,6 +123,18 @@ namespace Shark {
 		s_BatchData.Textures[0] = s_BatchData.WitheTexture;
 	}
 
+	Renderer2D::Statistiks Renderer2D::GetStats()
+	{
+		return s_BatchData.Stats;
+	}
+
+	void ResetStats()
+	{
+		s_BatchData.Stats.DrawCalls = 0;
+		s_BatchData.Stats.QuadCount = 0;
+		s_BatchData.Stats.TextureCount = 0;
+	}
+
 	void Renderer2D::BeginScean(OrtographicCamera& camera)
 	{
 		ResetStats();
@@ -145,15 +157,15 @@ namespace Shark {
 		DrawQuad(translation, color);
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& scaling, Ref<Texture2D>& texture, const DirectX::XMFLOAT4& color, float tilingfactor)
+	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& scaling, Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tint_color)
 	{
-		DrawQuad({ pos.x, pos.y, 0.0f }, scaling, texture, color, tilingfactor);
+		DrawQuad({ pos.x, pos.y, 0.0f }, scaling, texture, tilingfactor, tint_color);
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& scaling, Ref<Texture2D>& texture, const DirectX::XMFLOAT4& color, float tilingfactor)
+	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& scaling, Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tint_color)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		DrawQuad(translation, texture, color);
+		DrawQuad(translation, texture, tilingfactor, tint_color);
 	}
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color)
@@ -167,15 +179,15 @@ namespace Shark {
 		DrawQuad(translation, color);
 	}
 
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, float rotation, const DirectX::XMFLOAT2& scaling, Ref<Texture2D>& texture, const DirectX::XMFLOAT4& color, float tilingfactor)
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, float rotation, const DirectX::XMFLOAT2& scaling, Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tint_color)
 	{
-		DrawRotatedQuad({ pos.x, pos.y, 0.0f }, rotation, scaling, texture, color);
+		DrawRotatedQuad({ pos.x, pos.y, 0.0f }, rotation, scaling, texture, tilingfactor, tint_color);
 	}
 
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& pos, float rotation, const DirectX::XMFLOAT2& scaling, Ref<Texture2D>& texture, const DirectX::XMFLOAT4& color, float tilingfactor)
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& pos, float rotation, const DirectX::XMFLOAT2& scaling, Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tint_color)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		DrawQuad(translation, texture, color, tilingfactor);
+		DrawQuad(translation, texture, tilingfactor, tint_color);
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMMATRIX& translation, const DirectX::XMFLOAT4& color)
@@ -219,7 +231,7 @@ namespace Shark {
 		s_BatchData.QuadCount++;
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMMATRIX& translation, Ref<Texture2D>& texture, const DirectX::XMFLOAT4& color, float tilingfactor)
+	void Renderer2D::DrawQuad(const DirectX::XMMATRIX& translation, Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tint_color)
 	{
 		if (s_BatchData.QuadCount >= s_BatchData.MaxQuads)
 			DrawBatch();
@@ -246,50 +258,38 @@ namespace Shark {
 
 		constexpr DirectX::XMFLOAT3 TopLeft = { -0.5f,  0.5f, 0.0f };
 		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&TopLeft), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = color;
+		s_BatchData.QuadVertexIndexPtr->Color = tint_color;
 		s_BatchData.QuadVertexIndexPtr->Tex = { 0.0f, 0.0f };
 		s_BatchData.QuadVertexIndexPtr->TextureIndex = slot;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = 1.0f;
+		s_BatchData.QuadVertexIndexPtr->TilingFactor = tilingfactor;
 		s_BatchData.QuadVertexIndexPtr++;
 
 		constexpr DirectX::XMFLOAT3 TopRight = { 0.5f,  0.5f, 0.0f };
 		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&TopRight), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = color;
+		s_BatchData.QuadVertexIndexPtr->Color = tint_color;
 		s_BatchData.QuadVertexIndexPtr->Tex = { 1.0f, 0.0f };
 		s_BatchData.QuadVertexIndexPtr->TextureIndex = slot;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = 1.0f;
+		s_BatchData.QuadVertexIndexPtr->TilingFactor = tilingfactor;
 		s_BatchData.QuadVertexIndexPtr++;
 
 		constexpr DirectX::XMFLOAT3 BottemRight = { 0.5f, -0.5f, 0.0f };
 		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&BottemRight), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = color;
+		s_BatchData.QuadVertexIndexPtr->Color = tint_color;
 		s_BatchData.QuadVertexIndexPtr->Tex = { 1.0f, 1.0f };
 		s_BatchData.QuadVertexIndexPtr->TextureIndex = slot;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = 1.0f;
+		s_BatchData.QuadVertexIndexPtr->TilingFactor = tilingfactor;
 		s_BatchData.QuadVertexIndexPtr++;
 
 		constexpr DirectX::XMFLOAT3 BottemLeft = { -0.5f, -0.5f, 0.0f };
 		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&BottemLeft), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = color;
+		s_BatchData.QuadVertexIndexPtr->Color = tint_color;
 		s_BatchData.QuadVertexIndexPtr->Tex = { 0.0f, 1.0f };
 		s_BatchData.QuadVertexIndexPtr->TextureIndex = slot;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = 1.0f;
+		s_BatchData.QuadVertexIndexPtr->TilingFactor = tilingfactor;
 		s_BatchData.QuadVertexIndexPtr++;
 
 
 		s_BatchData.QuadCount++;
-	}
-
-	Renderer2D::Statistiks Renderer2D::GetStats()
-	{
-		return s_BatchData.Stats;
-	}
-
-	void Renderer2D::ResetStats()
-	{
-		s_BatchData.Stats.DrawCalls = 0;
-		s_BatchData.Stats.QuadCount = 0;
-		s_BatchData.Stats.TextureCount = 0;
 	}
 
 }

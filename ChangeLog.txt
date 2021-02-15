@@ -3,17 +3,13 @@ Change Log Shark Graphics/Game Engine
 [26.01.2021] ShaderLib + Shader name
 [29.01.2021] -> [06.02.2021] Maintenance + ApplicationClose Event
 [14.02.2021] -> [15.02.2021] 2D Batch Renderer
+[15.02.2021] Splitted Premake Files up
 
 Current:
- - [14.02.2021] -> [Current] 2D Batch Renderer
-   -> [14.02.2021] Finished Basic Batch Renderer
-   -> [14.02.2021] Finished Texture Render
-   -> [15.02.2021] Finished Testing
 
 TODO:
  - Renderer API Test (Game)
  - Profiling
- - Sprite Sheet/Texture Atlases
  - Texture Lib
  - Framebuffers
  - ImGui Dockspace
