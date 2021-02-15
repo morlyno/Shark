@@ -8,18 +8,20 @@ namespace Shark {
 	class DirectXVertexBuffer : public VertexBuffer
 	{
 	public:
-		DirectXVertexBuffer(const VertexLayout& layout);
-		DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size);
+		DirectXVertexBuffer(const VertexLayout& layout, bool dynamic);
+		DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic);
 		~DirectXVertexBuffer();
 
-		void Init(void* data, uint32_t size);
+		void Init(void* data, uint32_t size, bool dynamic);
 
-		void SetData(void* data, uint32_t count) override;
+		void SetData(void* data, uint32_t size) override;
+		virtual void UpdateData(void* data, uint32_t size) override;
 
 		void Bind() override;
 		void UnBind() override;
 	private:
 		ID3D11Buffer* m_VertexBuffer = nullptr;
+		bool m_Dynamic;
 	};
 
 

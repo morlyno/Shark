@@ -28,17 +28,17 @@ namespace Shark {
 	class ShaderLib
 	{
 	public:
-		static void Add(const std::string& name, Ref<Shaders> shaders);
-		static void Add(Ref<Shaders> shaders);
+		void Add(const std::string& name, Ref<Shaders> shaders);
+		void Add(Ref<Shaders> shaders);
 
-		static Ref<Shaders> Load(const std::string& name, const std::string& filepath);
-		static Ref<Shaders> Load(const std::string& filepath);
+		Ref<Shaders> Load(const std::string& name, const std::string& filepath);
+		Ref<Shaders> Load(const std::string& filepath);
 
-		static Ref<Shaders> Get(const std::string& name);
+		Ref<Shaders> Get(const std::string& name);
 
-		static bool Exits(const std::string& name);
+		bool Exits(const std::string& name);
 	private:
-		static std::unordered_map<std::string, Ref<Shaders>> s_Shaders;
+		std::unordered_map<std::string, Ref<Shaders>> s_Shaders;
 	};
 
 }

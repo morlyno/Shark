@@ -27,8 +27,6 @@ namespace Shark {
 		return nullptr;
 	}
 
-	std::unordered_map<std::string, Ref<Shaders>> ShaderLib::s_Shaders;
-
 	void ShaderLib::Add(const std::string& name, Ref<Shaders> shaders)
 	{
 		SK_CORE_ASSERT(!Exits(name), "Shader already exists!");

@@ -94,31 +94,30 @@ namespace Shark {
 	public:
 		VertexBuffer(const VertexLayout& layout)
 			: m_Layout(layout) {}
-		VertexBuffer(const VertexLayout& layout, void* data, uint32_t size)
-			: m_Layout(layout), m_Data(data), m_Size(size) {}
 		virtual ~VertexBuffer() = default;
 
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
 
+		// Recreate Buffer
 		virtual void SetData(void* data, uint32_t size) = 0;
+		// Updates existing Buffer
+		virtual void UpdateData(void* data, uint32_t size) = 0;
 
 		const VertexLayout& GetLayout() { return m_Layout; }
 
-		static Ref<VertexBuffer> Create(const VertexLayout& layout);
-		static Ref<VertexBuffer> Create(const VertexLayout& layout, void* data, uint32_t size);
+		static Ref<VertexBuffer> Create(const VertexLayout& layout, bool dynamic = false);
+		static Ref<VertexBuffer> Create(const VertexLayout& layout, void* data, uint32_t size, bool dynamic = false);
 	protected:
 		VertexLayout m_Layout;
-		uint32_t m_Size = 0u;
-		void* m_Data = nullptr;
 	};
 
 	// 32-Bit IndexBuffer
 	class IndexBuffer
 	{
 	public:
-		IndexBuffer(uint32_t* indices, uint32_t count)
-			: m_Indices(indices), m_Count(count) {}
+		IndexBuffer(uint32_t count)
+			: m_Count(count) {}
 		virtual ~IndexBuffer() = default;
 
 		virtual void Bind() = 0;
@@ -129,7 +128,6 @@ namespace Shark {
 		static Ref<IndexBuffer> Create(uint32_t* indices, uint32_t count);
 	private:
 		uint32_t m_Count;
-		uint32_t* m_Indices = nullptr;
 	};
 
 }

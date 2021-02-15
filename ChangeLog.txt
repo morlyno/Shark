@@ -1,13 +1,17 @@
 Change Log Shark Graphics/Game Engine
 
 [26.01.2021] ShaderLib + Shader name
+[29.01.2021] -> [06.02.2021] Maintenance + ApplicationClose Event
+[14.02.2021] -> [15.02.2021] 2D Batch Renderer
 
 Current:
-[29.01.2021] -> Current: Maintenance: Events + Checkup on Files
+ - [14.02.2021] -> [Current] 2D Batch Renderer
+   -> [14.02.2021] Finished Basic Batch Renderer
+   -> [14.02.2021] Finished Texture Render
+   -> [15.02.2021] Finished Testing
 
 TODO:
  - Renderer API Test (Game)
- - 2D Batch Renderer
  - Profiling
  - Sprite Sheet/Texture Atlases
  - Texture Lib
@@ -18,7 +22,6 @@ TODO:
  - DirectXMath Wrapper
  - Platform Time Wrapper
  - Event Queue
- - Graphics context
 
 Plan:
  - Imprufe DirectX11
@@ -26,10 +29,11 @@ Plan:
  - Vulkan
  - (OpenGL)
  - 3D
+ - GPU Selection
 
 Issue:
  - Shader Reflection ConstantBuffer Create
-   -> probably an issue when bufferinices have gabes gaps
+   -> probably an issue when Bufferindices are not ongoing
  - ConstantBuffer find takes long
  - Move VertexLayout to Shaders
  - Ortographic -Camera / -CameraController redo

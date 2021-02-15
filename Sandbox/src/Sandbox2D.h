@@ -21,5 +21,5 @@ private:
 	Shark::OrtographicCameraController m_CameraController;
 
 	Shark::Ref<Shark::Texture2D> m_CheckerBoardTexture;
-	float rotation = 0.0f;
+	Shark::Ref<Shark::Texture2D> m_STexture;
 };
