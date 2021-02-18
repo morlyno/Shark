@@ -123,6 +123,9 @@ namespace Shark {
 		return pWindow->HandleMsg(hWnd, uMsg, wParam, lParam);
 	}
 
+	static bool g_IsResized = false;
+	static WindowResizeEvent g_LastReizeEvent = WindowResizeEvent(0, 0, WindowResizeEvent::State::None);
+
 	LRESULT __stdcall WindowsWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
@@ -140,21 +143,27 @@ namespace Shark {
 			{
 				m_Width = LOWORD(lParam);
 				m_Height = HIWORD(lParam);
-				if (m_Callbackfunc)
+				g_IsResized = true;
+				WindowResizeEvent::State state = WindowResizeEvent::State::None;
+				if (wParam == SIZE_MAXIMIZED)
 				{
-					WindowResizeEvent::State state = WindowResizeEvent::State::None;
-					if (wParam == SIZE_MAXIMIZED)
-					{
-						state = WindowResizeEvent::State::Maximized;
-					}
-					else if (wParam == SIZE_MINIMIZED)
-					{
-						state = WindowResizeEvent::State::Minimized;
-					}
-					m_Callbackfunc(WindowResizeEvent(m_Width, m_Height, state));
+					state = WindowResizeEvent::State::Maximized;
 				}
+				else if (wParam == SIZE_MINIMIZED)
+				{
+					state = WindowResizeEvent::State::Minimized;
+				}
+				g_LastReizeEvent = WindowResizeEvent(m_Width, m_Height, state);
 				break;
 			}
+
+			case WM_EXITSIZEMOVE:
+			{
+				if (g_IsResized)
+					m_Callbackfunc(g_LastReizeEvent);
+				break;
+			}
+
 			case WM_MOVE:
 			{
 				const POINTS pt = MAKEPOINTS(lParam);

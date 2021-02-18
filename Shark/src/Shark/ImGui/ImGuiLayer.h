@@ -16,6 +16,10 @@ namespace Shark {
 		void Begin();
 		void End();
 
+		void SetDockSpace(bool enabeld) { m_DockSpace = enabeld; }
+		bool DockSpaceEnabeld() const { return m_DockSpace; }
+	private:
+		bool m_DockSpace = true;
 	};
 
 }

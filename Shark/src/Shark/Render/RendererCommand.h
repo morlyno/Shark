@@ -13,9 +13,15 @@ namespace Shark {
 
 		static inline void Resize(int width, int height) { s_RendererAPI->OnResize(width, height); }
 
+		static inline void GetFramebufferContent(const Ref<Texture2D>& texture) { s_RendererAPI->GetFramebufferContent(texture); }
+
 		static inline void SwapBuffer(bool VSync) { s_RendererAPI->SwapBuffer(VSync); }
 		static inline void SetClearColor(const float color[4]) { s_RendererAPI->SetClearColor(color); }
+		static inline const float* GetClearColor() { s_RendererAPI->GetClearColor(); }
 		static inline void ClearBuffer() { s_RendererAPI->ClearBuffer(); }
+
+		static inline void SetBlendState(bool blend) { s_RendererAPI->SetBlendState(blend); }
+		static inline bool GetBlendState() { s_RendererAPI->GeBlendState(); }
 
 		static inline void DrawIndexed(uint32_t count) { s_RendererAPI->DrawIndexed(count); }
 

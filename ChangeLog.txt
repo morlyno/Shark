@@ -4,14 +4,17 @@ Change Log Shark Graphics/Game Engine
 [29.01.2021] -> [06.02.2021] Maintenance + ApplicationClose Event
 [14.02.2021] -> [15.02.2021] 2D Batch Renderer
 [15.02.2021] Splitted Premake Files up
+[17.02.2021] Window Resize Events are now only distreputed when resizeing is finished
+[16.02.2021] ImGui Dockspace + FrameBuffer Capture
 
-Current:
+[16.02.2021] -> Current:
+ - ImGui Dockspace
 
 TODO:
  - Renderer API Test (Game)
  - Profiling
  - Texture Lib
- - Framebuffers
+ - Double Buffering
  - ImGui Dockspace
  - ImGui -> Camera Controll, ...
  - Entitis/Components
@@ -33,3 +36,4 @@ Issue:
  - ConstantBuffer find takes long
  - Move VertexLayout to Shaders
  - Ortographic -Camera / -CameraController redo
+ - Doubletap to maximize window dosent work right

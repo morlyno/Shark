@@ -151,8 +151,11 @@ namespace Shark {
 		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		m_Device->CreateBlendState(&bd, &m_BlendState);
 
-		const UINT mask = 0xFFFFFFFF;
-		m_Context->OMSetBlendState(m_BlendState, nullptr, mask);
+		bd.RenderTarget[0].BlendEnable = FALSE;
+		m_Device->CreateBlendState(&bd, &m_BlendStateNoAlpha);
+
+		m_Context->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
+		m_BlendEnabled = true;
 	}
 
 	void DirectXRendererAPI::ShutDown()
@@ -163,24 +166,70 @@ namespace Shark {
 		if (m_RenderTarget) { m_RenderTarget->Release(); m_RenderTarget = nullptr; }
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
 		if (m_BlendState) { m_BlendState->Release(); m_BlendState = nullptr; }
+		if (m_BlendStateNoAlpha) { m_BlendStateNoAlpha->Release(); m_BlendStateNoAlpha = nullptr; }
 		if (m_DepthStencil) { m_DepthStencil->Release(); m_DepthStencil = nullptr; }
+	}
+
+	void DirectXRendererAPI::GetFramebufferContent(const Ref<Texture2D>& texture)
+	{
+		ID3D11Texture2D* backbuffer;
+		m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backbuffer);
+
+		D3D11_TEXTURE2D_DESC t2ddesc;
+		backbuffer->GetDesc(&t2ddesc);
+		t2ddesc.BindFlags = 0;
+		t2ddesc.Usage = D3D11_USAGE_STAGING;
+		t2ddesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+		ID3D11Texture2D* TempData;
+		m_Device->CreateTexture2D(&t2ddesc, nullptr, &TempData);
+
+		m_Context->CopyResource(TempData, backbuffer);
+		D3D11_MAPPED_SUBRESOURCE ms;
+		m_Context->Map(TempData, 0, D3D11_MAP_READ, 0, &ms);
+
+		void* alignedData = new char[(uint64_t)t2ddesc.Width * t2ddesc.Height * 4];
+		uint8_t* dest = (uint8_t*)alignedData;
+		const uint8_t* src = (uint8_t*)ms.pData;
+		const uint32_t destPitch = t2ddesc.Width * 4;
+		const uint32_t srcPitch = ms.RowPitch;
+		for (uint32_t cnt = 0; cnt < t2ddesc.Height; ++cnt)
+		{
+			memcpy(dest, src, destPitch);
+			dest += destPitch;
+			src += srcPitch;
+		}
+		texture->SetData(alignedData);
+		delete[] alignedData;
+
+		backbuffer->Release();
+		TempData->Release();
 	}
 
 	void DirectXRendererAPI::SetClearColor(const float color[4])
 	{
-		memcpy(clear_color, color, sizeof(float) * 4);
+		memcpy(m_ClearColor, color, sizeof(float) * 4);
 	}
 
 	void DirectXRendererAPI::ClearBuffer()
 	{
 		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, m_DepthStencil);
-		m_Context->ClearRenderTargetView(m_RenderTarget, clear_color);
+		m_Context->ClearRenderTargetView(m_RenderTarget, m_ClearColor);
 		m_Context->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
 	};
 
 	void DirectXRendererAPI::SwapBuffer(bool VSync)
 	{
 		m_SwapChain->Present(VSync ? 1u : 0u, 0u);
+	}
+
+	void DirectXRendererAPI::SetBlendState(bool blend)
+	{
+		m_BlendEnabled = blend;
+		if (blend)
+			m_Context->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
+		else
+			m_Context->OMSetBlendState(m_BlendStateNoAlpha, nullptr, 0xFFFFFFFF);
 	}
 
 	void DirectXRendererAPI::DrawIndexed(uint32_t count)
@@ -214,7 +263,7 @@ namespace Shark {
 		m_Device->CreateDepthStencilView(texture, &dsv, &m_DepthStencil);
 		texture->Release();
 
-		ID3D11Buffer* buffer = nullptr;
+		ID3D11Texture2D* buffer = nullptr;
 		m_SwapChain->GetBuffer(0u, __uuidof(ID3D11Texture2D), (void**)&buffer);
 		m_Device->CreateRenderTargetView(buffer, nullptr, &m_RenderTarget);
 		m_Context->OMSetRenderTargets(1u, &m_RenderTarget, m_DepthStencil);

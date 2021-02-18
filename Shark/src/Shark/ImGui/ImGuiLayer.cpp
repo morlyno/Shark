@@ -22,8 +22,7 @@ namespace Shark {
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		io.ConfigDockingTransparentPayload = true;
-		io.ConfigDockingWithShift = true;
+		//io.ConfigDockingTransparentPayload = true;
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
 
 		ImGui::StyleColorsDark();
@@ -62,6 +61,9 @@ namespace Shark {
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+
+		if (m_DockSpace)
+			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 	}
 
 	void ImGuiLayer::End()

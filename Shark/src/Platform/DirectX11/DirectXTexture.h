@@ -13,6 +13,9 @@ namespace Shark {
 		DirectXTexture2D(uint32_t width, uint32_t height, uint32_t color, const std::string& name);
 		virtual ~DirectXTexture2D();
 
+		virtual void SetData(void* data) override;
+		virtual void* GetHandle() const override { return m_Texture; }
+
 		virtual const std::string& GetName() const override { return m_Name; }
 
 		virtual uint32_t GetWidth() const override { return m_Width; }

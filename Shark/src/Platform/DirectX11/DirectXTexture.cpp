@@ -80,9 +80,9 @@ namespace Shark {
 		td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		td.SampleDesc.Count = 1u;
 		td.SampleDesc.Quality = 0u;
-		td.Usage = D3D11_USAGE_DEFAULT;
+		td.Usage = D3D11_USAGE_DYNAMIC;
 		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		td.CPUAccessFlags = 0u;
+		td.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		td.MiscFlags = 0u;
 
 		D3D11_SUBRESOURCE_DATA srd;
@@ -113,8 +113,40 @@ namespace Shark {
 
 	DirectXTexture2D::~DirectXTexture2D()
 	{
-		if (m_Texture) { m_Texture->Release(); m_Texture = 0; }
-		if (m_Sampler) { m_Sampler->Release(); m_Sampler = 0; }
+		if (m_Texture) { m_Texture->Release(); m_Texture = nullptr; }
+		if (m_Sampler) { m_Sampler->Release(); m_Sampler = nullptr; }
+	}
+
+	void DirectXTexture2D::SetData(void* data)
+	{
+		auto device = SK_API().GetDevice();
+		auto context = SK_API().GetContext();
+
+		ID3D11Resource* resource;
+		m_Texture->GetResource(&resource);
+		SK_CORE_ASSERT(resource, "Failed to get Resource");
+
+		ID3D11Texture2D* texture;
+		HRESULT hr = resource->QueryInterface(&texture);
+		SK_CORE_ASSERT(texture, "Failed to get Texture");
+		SK_CORE_ASSERT(SUCCEEDED(hr));
+
+		D3D11_TEXTURE2D_DESC desc;
+		texture->GetDesc(&desc);
+
+		D3D11_SUBRESOURCE_DATA srd;
+		srd.pSysMem = data;
+		srd.SysMemPitch = desc.Width * 4;
+
+		ID3D11Texture2D* newTexture;
+		hr = device->CreateTexture2D(&desc, &srd, &newTexture);
+		SK_CORE_ASSERT(SUCCEEDED(hr));
+
+		context->CopyResource(texture, newTexture);
+		newTexture->Release();
+		texture->Release();
+		resource->Release();
+
 	}
 
 	void DirectXTexture2D::Bind()

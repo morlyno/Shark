@@ -16,10 +16,9 @@ public:
 
 	virtual void OnImGuiRender() override;
 private:
-	bool OnKeyPressedEvent(Shark::KeyPressedEvent event);
+	bool OnKeyPressedEvent(Shark::KeyPressedEvent& event);
+	bool OnWindowResizeEvent(Shark::WindowResizeEvent& event);
 private:
 	Shark::OrtographicCameraController m_CameraController;
-
-	Shark::Ref<Shark::Texture2D> m_CheckerBoardTexture;
-	Shark::Ref<Shark::Texture2D> m_STexture;
+	Shark::Ref<Shark::Texture2D> m_FrameBufferTexture;
 };
