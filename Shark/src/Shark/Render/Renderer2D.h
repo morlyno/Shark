@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Render/EditorCamera.h"
 #include "Shark/Render/OrtographicCamera.h"
 #include "Shark/Render/Texture.h"
 
@@ -13,6 +14,7 @@ namespace Shark {
 		static void ShutDown();
 
 		static void BeginScean(OrtographicCamera& camera);
+		static void BeginScean(EditorCamera& camera);
 		static void EndScean();
 
 		static void DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color);
@@ -38,6 +40,8 @@ namespace Shark {
 			uint32_t IndexCount() const { return QuadCount * 6; }
 		};
 		static Statistiks GetStats();
+	private:
+		static void ResetStats();
 	};
 
 }

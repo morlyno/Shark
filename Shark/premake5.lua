@@ -23,7 +23,8 @@ project "Shark"
         "%{wks.location}/Shark/src",
         "%{includeDir.spdlog}",
         "%{includeDir.ImGui}",
-        "%{includeDir.stb_image}"
+        "%{includeDir.stb_image}",
+        "%{includeDir.EnTT}"
     }
 
     filter "system:windows"

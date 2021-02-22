@@ -1,6 +1,6 @@
 workspace "Shark"
 	architecture "x64"
-	startproject "Sandbox"
+	startproject "SharkFin"
 
 	configurations
 	{
@@ -14,6 +14,7 @@ includeDir = {}
 includeDir["spdlog"] = "%{wks.location}/Shark/dependencies/spdlog/include"
 includeDir["ImGui"] = "%{wks.location}/Shark/dependencies/ImGui"
 includeDir["stb_image"] = "%{wks.location}/Shark/dependencies/stb_image"
+includeDir["EnTT"] = "%{wks.location}/Shark/dependencies/EnTT/include"
 
 group "Dependencies"
 	include "dependencies/Premake"
@@ -22,3 +23,4 @@ group ""
 
 include "Shark"
 include "Sandbox"
+include "SharkFin"

@@ -79,10 +79,6 @@ namespace Shark {
 
 		s_BatchData.QuadIndexBuffer = IndexBuffer::Create(indices, s_BatchData.MaxQuadIndices);
 		delete[] indices;
-
-		s_BatchData.Shader->Bind();
-		s_BatchData.QuadVertexBuffer->Bind();
-		s_BatchData.QuadIndexBuffer->Bind();
 	}
 
 	void Renderer2D::ShutDown()
@@ -91,6 +87,7 @@ namespace Shark {
 		s_BatchData.QuadVertexBuffer.reset();
 		s_BatchData.QuadIndexBuffer.reset();
 		s_BatchData.Shader.reset();
+		s_BatchData.Textures.swap(std::array<Ref<Texture2D>, 32>{});
 	}
 
 	static void ReBind()
@@ -128,7 +125,7 @@ namespace Shark {
 		return s_BatchData.Stats;
 	}
 
-	void ResetStats()
+	void Renderer2D::ResetStats()
 	{
 		s_BatchData.Stats.DrawCalls = 0;
 		s_BatchData.Stats.QuadCount = 0;
@@ -136,6 +133,12 @@ namespace Shark {
 	}
 
 	void Renderer2D::BeginScean(OrtographicCamera& camera)
+	{
+		ResetStats();
+		s_SceanData.ViewProjectionMatrix = camera.GetViewProjection();
+	}
+
+	void Renderer2D::BeginScean(EditorCamera& camera)
 	{
 		ResetStats();
 		s_SceanData.ViewProjectionMatrix = camera.GetViewProjection();

@@ -15,6 +15,8 @@ namespace Shark {
 		OrtographicCameraController(float aspectratio, bool doRotation = false);
 		OrtographicCamera& GetCamera() { return m_Camera; }
 
+		void OnResize(float width, float height);
+
 		void OnUpdate(TimeStep ts);
 		void OnEvent(Event& e);
 	private:

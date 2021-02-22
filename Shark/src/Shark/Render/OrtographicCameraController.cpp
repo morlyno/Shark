@@ -13,6 +13,12 @@ namespace Shark {
 	{
 	}
 
+	void OrtographicCameraController::OnResize(float width, float height)
+	{
+		m_Aspectratio = width / height;
+		m_Camera.SetProjection(m_Aspectratio * m_ZoomLevel * 2.0f, m_ZoomLevel * 2.0f);
+	}
+
 	void OrtographicCameraController::OnUpdate(TimeStep ts)
 	{
 		if (Input::KeyPressed(Key::W))
@@ -61,8 +67,7 @@ namespace Shark {
 		if (event.GetWidth() == 0 || event.GetHeight() == 0)
 			return false;
 
-		m_Aspectratio = (float)event.GetWidth() / (float)event.GetHeight();
-		m_Camera.SetProjection(m_Aspectratio * m_ZoomLevel * 2.0f, m_ZoomLevel * 2.0f);
+		OnResize(event.GetWidth(), event.GetHeight());
 		return false;
 	}
 
