@@ -27,10 +27,11 @@ namespace Shark {
 		void PushOverlay(Layer* layer) { m_LayerStack.PushOverlay(layer); layer->OnAttach(); }
 		void PopOverlay(Layer* layer) { m_LayerStack.PopOverlay(layer); layer->OnDetach(); }
 
-		void CloseApplication() { m_Running = false; OnEvent(ApplicationCloseEvent()); }
+		void CloseApplication() { m_Running = false; }
 
 		static inline Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
+		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
 	private:
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnApplicationClose(ApplicationCloseEvent& event);
@@ -46,7 +47,7 @@ namespace Shark {
 
 		Scope<Window> m_Window;
 		// Owned by LayerStack
-		ImGuiLayer* m_pImGuiLayer;
+		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 	};
 

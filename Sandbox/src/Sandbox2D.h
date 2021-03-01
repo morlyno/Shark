@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Shark.h>
+#include <Shark/Render/OrtographicCameraController.h>
 
 class Sandbox2D : public Shark::Layer
 {

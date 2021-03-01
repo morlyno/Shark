@@ -4,6 +4,7 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Core/TimeStep.h"
+#include "Shark/Core/Input.h"
 
 #include "Shark/Event/Event.h"
 #include "Shark/Event/KeyEvent.h"
@@ -15,11 +16,9 @@
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
 
-#include "Shark/Render/OrtographicCameraController.h"
-
 #include "Shark/Core/Window.h"
 
-// --- Render ----------------
+// --- Render ---------------------------
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/RendererCommand.h"
@@ -27,5 +26,9 @@
 #include "Shark/Render/Shaders.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Camera.h"
-#include "Shark/Render/OrtographicCamera.h"
-// --- ------ -----------------
+#include "Shark/Render/EditorCamera.h"
+// --------------------------------------
+
+#include "Shark/Scean/Scean.h"
+#include "Shark/Scean/Entity.h"
+#include "Shark/Scean/Components.h"

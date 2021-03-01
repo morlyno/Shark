@@ -19,9 +19,10 @@ namespace Shark {
 		void SetProjection(float aspectratio, float fov, float nearClip, float farClip);
 		DirectX::XMMATRIX GetViewProjection() const { return m_View * m_Projection; }
 
-		void SetViewportSize(float width, float height) { m_ViewportWidth = width; m_ViewportHeight = height; m_AspectRatio = m_ViewportWidth / m_ViewportHeight; UpdateProjection(); }
-		float GetViewporWidth() const { return m_ViewportWidth; }
-		float GetViewportHeight() const { return m_ViewportHeight; }
+		void SetViewportSize(const DirectX::XMFLOAT2 size) { m_ViewportSize = size; m_AspectRatio = m_ViewportSize.x / m_ViewportSize.y; UpdateProjection(); }
+		const DirectX::XMFLOAT2& GetViewportSize() const { return m_ViewportSize; }
+		float GetViewporWidth() const { return m_ViewportSize.x; }
+		float GetViewportHeight() const { return m_ViewportSize.y; }
 
 		void SetAspectRatio(float aspectratio) { m_AspectRatio = aspectratio; }
 		void SetFOV(float fov) { m_FOV = DirectX::XMConvertToRadians(fov); }
@@ -61,7 +62,7 @@ namespace Shark {
 
 		DirectX::XMFLOAT2 m_LastMousePos = { 0.0f, 0.0f };
 
-		float m_ViewportWidth = 0.0f, m_ViewportHeight = 0.0f;
+		DirectX::XMFLOAT2 m_ViewportSize = { 0.0f, 0.0f };
 	};
 
 }

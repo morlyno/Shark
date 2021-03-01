@@ -24,7 +24,7 @@ namespace Shark {
 			const wchar_t* ClassName = L"Shark\0";
 		};
 	public:
-		WindowsWindow(int width, int height, const std::wstring& name);
+		WindowsWindow(const WindowProps& props);
 		virtual ~WindowsWindow();
 
 		virtual void SetEventCallbackFunc(const EventCallbackFunc& callback) override { m_Callbackfunc = callback; }
@@ -33,21 +33,21 @@ namespace Shark {
 
 		virtual inline int GetWidth() const override { return m_Width; }
 		virtual inline int GetHeight() const override { return m_Height; }
-		virtual inline void* GetHandle() const override { return m_Window; }
+		virtual inline void* GetHandle() const override { return m_hWnd; }
 
 		virtual inline bool IsFocused() const override { return m_IsFocused; }
 
 		virtual inline bool IsVSync() const override { return m_VSync; }
 		virtual void SetVSync(bool VSync) override { m_VSync = VSync; }
 		
-		virtual void Kill(int32_t exitcode = 0) override { DestroyWindow(m_Window); }
+		virtual void Kill() override { DestroyWindow(m_hWnd); }
 
 	private:
 		static LRESULT WINAPI WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		static LRESULT WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		LRESULT WINAPI HandleMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	private:
-		HWND m_Window;
+		HWND m_hWnd;
 
 		uint32_t m_Width;
 		uint32_t m_Height;

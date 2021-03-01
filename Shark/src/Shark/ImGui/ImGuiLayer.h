@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Layer/Layer.h"
+#include "Shark/Event/Event.h"
 
 namespace Shark {
 
@@ -11,15 +12,17 @@ namespace Shark {
 		ImGuiLayer();
 		~ImGuiLayer();
 
-		void OnAttach() override;
-		void OnDetach() override;
+		virtual void OnAttach() override;
+		virtual void OnDetach() override;
+		
+		virtual void OnEvent(Event& event) override;
+		
 		void Begin();
 		void End();
 
-		void SetDockSpace(bool enabeld) { m_DockSpace = enabeld; }
-		bool DockSpaceEnabeld() const { return m_DockSpace; }
+		void BlockEvents(bool block) { m_BlockEvents = block; }
 	private:
-		bool m_DockSpace = true;
+		bool m_BlockEvents = false;
 	};
 
 }

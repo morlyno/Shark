@@ -21,8 +21,8 @@ namespace Shark {
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		Renderer::Init(*m_Window);
 
-		m_pImGuiLayer = new ImGuiLayer();
-		PushLayer(m_pImGuiLayer);
+		m_ImGuiLayer = new ImGuiLayer();
+		PushLayer(m_ImGuiLayer);
 
 		const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 		RendererCommand::SetClearColor(clear_color);
@@ -52,10 +52,10 @@ namespace Shark {
 				for (auto layer : m_LayerStack)
 					layer->OnUpdate(timeStep);
 
-				m_pImGuiLayer->Begin();
+				m_ImGuiLayer->Begin();
 				for (auto layer : m_LayerStack)
 					layer->OnImGuiRender();
-				m_pImGuiLayer->End();
+				m_ImGuiLayer->End();
 			}
 
 			m_Window->Update();
@@ -81,14 +81,14 @@ namespace Shark {
 
 	bool Application::OnApplicationClose(ApplicationCloseEvent& event)
 	{
-		SK_CORE_WARN(event);
+		SK_CORE_INFO(event);
 		m_Running = false;
 		return false;
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& event)
 	{
-		if (event.GetState() == WindowResizeEvent::State::Minimized)
+		if (event.IsMinimized())
 		{
 			m_Minimized = true;
 			return false;

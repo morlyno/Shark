@@ -6,12 +6,14 @@ namespace Shark {
 
 	struct WindowProps
 	{
-		int width;
-		int height;
-		std::wstring name;
+		std::wstring Name = L"Shark Game Engine\0";
+		int Width = 1280;
+		int Height = 720;
+		bool VSync = true;
 
-		WindowProps(const std::wstring& name = L"Shark Engin", unsigned int width = 1280u, unsigned int height = 720u)
-			: width(width), height(height), name(name)
+		WindowProps() = default;
+		WindowProps(const std::wstring& name, int width, int height, bool VSync)
+			: Name(name), Width(width), Height(height), VSync(VSync)
 		{}
 	};
 
@@ -35,7 +37,7 @@ namespace Shark {
 		virtual inline bool IsVSync() const = 0;
 		virtual void SetVSync(bool VSync) = 0;
 
-		virtual void Kill(int32_t exitcode = 0) = 0;
+		virtual void Kill() = 0;
 
 		static Scope<Window> Create(const WindowProps& properties = WindowProps());
 	};

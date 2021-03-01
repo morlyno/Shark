@@ -30,6 +30,8 @@ namespace Shark {
 		uint32_t GetWidth() const { return m_Width; }
 		uint32_t GetHeight() const { return m_Height; }
 		State GetState() const { return m_State; }
+		bool IsMinimized() const { return m_State == State::Minimized; }
+		bool IsMaximized() const { return m_State == State::Maximized; }
 
 		std::string ToString() const override
 		{

@@ -138,6 +138,12 @@ namespace Shark {
 		s_SceanData.ViewProjectionMatrix = camera.GetViewProjection();
 	}
 
+	void Renderer2D::BeginScean(Camera& camera, const DirectX::XMMATRIX& transform)
+	{
+		ResetStats();
+		s_SceanData.ViewProjectionMatrix = transform * camera.GetProjection();
+	}
+
 	void Renderer2D::BeginScean(EditorCamera& camera)
 	{
 		ResetStats();

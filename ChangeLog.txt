@@ -8,16 +8,16 @@ Change Log Shark Graphics/Game Engine
 [18.02.2021] ImGui Dockspace + FrameBuffer Capture
 [18.02.2021] Editor Layer (SharkFin)
 [22.02.2021] Editor Camera
+[01.03.2021] Entity Component System
+[01.03.2021] Scean Hirachy Panel
 
 Current:
- - Entitis/Components (EnTT)
 
 TODO:
  - Renderer API Test (Game)
  - Profiling
  - Texture Lib
  - Double Buffering
- - ImGui -> Camera Controll, ...
  - Entitis/Components
  - DirectXMath Wrapper
  - Platform Time Wrapper

@@ -40,25 +40,20 @@ namespace Shark {
 		UnregisterClass(ClassName, hInst);
 	}
 
-	Scope<Window> Window::Create(const WindowProps& props)
-	{
-		return CreateScope<WindowsWindow>(props.width, props.height, props.name);
-	}
-
-	WindowsWindow::WindowsWindow(int width, int height, const std::wstring& name)
+	WindowsWindow::WindowsWindow(const WindowProps& props)
 		:
-		m_Width(width),
-		m_Height(height),
-		m_Name(name),
+		m_Width(props.Width),
+		m_Height(props.Height),
+		m_Name(props.Name),
 		m_IsFocused(false),
-		m_VSync(true)
+		m_VSync(props.VSync)
 	{
-		std::string str(name.size(), '\000');
-		str.resize(name.size());
-		wcstombs_s(nullptr, str.data(), str.size(), name.data(), std::numeric_limits<size_t>::max());
-		SK_CORE_INFO("Init Windows Window {0} {1} {2}", width, height, str);
+		std::string str(props.Name.size(), '\000');
+		str.resize(props.Name.size());
+		wcstombs_s(nullptr, str.data(), str.size(), props.Name.data(), std::numeric_limits<size_t>::max());
+		SK_CORE_INFO("Init Windows Window {0} {1} {2}", props.Width, props.Height, str);
 
-		unsigned int flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+		constexpr DWORD flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 
 		RECT rect;
 		rect.left = 100;
@@ -67,13 +62,13 @@ namespace Shark {
 		rect.bottom = m_Height + rect.top;
 		AdjustWindowRect(&rect, flags, FALSE);
 
-		m_Window = CreateWindowExW(
+		m_hWnd = CreateWindowExW(
 			0,
 			WindowClass::GetName(),
 			m_Name.c_str(),
 			flags,
-			600,
-			180,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
 			rect.right - rect.left,
 			rect.bottom - rect.top,
 			nullptr,
@@ -81,15 +76,22 @@ namespace Shark {
 			WindowClass::GetHInst(),
 			this
 		);
-		SK_CORE_ASSERT(m_Window, "Failed to Create Window");
-
-		ShowWindow(m_Window, SW_SHOWDEFAULT);
-		UpdateWindow(m_Window);
+#ifdef SK_DEBUG
+		if (!m_hWnd)
+		{
+			DWORD LastErrorCode = GetLastError();
+			SK_CORE_ERROR("Faled to create Window");
+			SK_CORE_ERROR("Last ErrorCode: {0:x}", LastErrorCode);
+			SK_DEBUG_BREAK();
+		}
+#endif
+		ShowWindow(m_hWnd, SW_SHOWDEFAULT);
+		UpdateWindow(m_hWnd);
 	}
 
 	WindowsWindow::~WindowsWindow()
 	{
-		DestroyWindow(m_Window);
+		DestroyWindow(m_hWnd);
 	}
 
 	void WindowsWindow::Update() const
@@ -123,13 +125,17 @@ namespace Shark {
 		return pWindow->HandleMsg(hWnd, uMsg, wParam, lParam);
 	}
 
-	static bool g_IsResized = false;
+	static bool g_IsRezised = false;
+	static bool g_EnterSizing = false;
 	static WindowResizeEvent g_LastReizeEvent = WindowResizeEvent(0, 0, WindowResizeEvent::State::None);
 
 	LRESULT __stdcall WindowsWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 			return true;
+
+		if (!m_Callbackfunc)
+			return DefWindowProc(hWnd, msg, wParam, lParam);
 
 		switch (msg)
 		{
@@ -141,25 +147,33 @@ namespace Shark {
 
 			case WM_SIZE:
 			{
+				g_IsRezised = true;
+
 				m_Width = LOWORD(lParam);
 				m_Height = HIWORD(lParam);
-				g_IsResized = true;
 				WindowResizeEvent::State state = WindowResizeEvent::State::None;
+
 				if (wParam == SIZE_MAXIMIZED)
-				{
 					state = WindowResizeEvent::State::Maximized;
-				}
 				else if (wParam == SIZE_MINIMIZED)
-				{
 					state = WindowResizeEvent::State::Minimized;
-				}
+
 				g_LastReizeEvent = WindowResizeEvent(m_Width, m_Height, state);
+				if (!g_EnterSizing)
+					m_Callbackfunc(g_LastReizeEvent);
+				break;
+			}
+
+			case WM_ENTERSIZEMOVE:
+			{
+				g_EnterSizing = true;
 				break;
 			}
 
 			case WM_EXITSIZEMOVE:
 			{
-				if (g_IsResized)
+				g_EnterSizing = false;
+				if (g_IsRezised)
 					m_Callbackfunc(g_LastReizeEvent);
 				break;
 			}
@@ -167,10 +181,7 @@ namespace Shark {
 			case WM_MOVE:
 			{
 				const POINTS pt = MAKEPOINTS(lParam);
-				if (m_Callbackfunc)
-				{
-					m_Callbackfunc(WindowMoveEvent(pt.x, pt.y));
-				}
+				m_Callbackfunc(WindowMoveEvent(pt.x, pt.y));
 				break;
 			}
 
@@ -183,7 +194,7 @@ namespace Shark {
 					if (!m_IsFocused)
 					{
 						m_Callbackfunc(WindowFocusEvent(pt.x, pt.y));
-						SetCapture(m_Window);
+						SetCapture(m_hWnd);
 						m_IsFocused = true;
 					}
 					m_Callbackfunc(MouseMoveEvent(pt.x, pt.y));

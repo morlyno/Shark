@@ -56,14 +56,21 @@ namespace Shark {
 	{
 	}
 
+	void ImGuiLayer::OnEvent(Event& event)
+	{
+		if (m_BlockEvents)
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			event.Handled |= event.IsInCategory(EventCategoryMouse) && io.WantCaptureMouse;
+			event.Handled |= event.IsInCategory(EventCategoryKeyboard) && io.WantCaptureKeyboard;
+		}
+	}
+
 	void ImGuiLayer::Begin()
 	{
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-
-		if (m_DockSpace)
-			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 	}
 
 	void ImGuiLayer::End()
