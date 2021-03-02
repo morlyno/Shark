@@ -14,7 +14,7 @@ namespace Shark {
 		static void ShutDown();
 
 		static void BeginScean(OrtographicCamera& camera);
-		static void BeginScean(Camera& camera, const DirectX::XMMATRIX& transform);
+		static void BeginScean(Camera& camera, const DirectX::XMMATRIX& view);
 		static void BeginScean(EditorCamera& camera);
 		static void EndScean();
 

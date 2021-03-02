@@ -10,6 +10,7 @@ Change Log Shark Graphics/Game Engine
 [22.02.2021] Editor Camera
 [01.03.2021] Entity Component System
 [01.03.2021] Scean Hirachy Panel
+[01.03.2021] Scean Camera + UI stuff
 
 Current:
 

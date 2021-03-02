@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Render/Camera.h"
+#include "Shark/Scean/SceanCamera.h"
 
 #include <DirectXMath.h>
 
@@ -65,12 +65,13 @@ namespace Shark {
 		CameraComponent() = default;
 		CameraComponent(const Camera& camera)
 			: Camera(camera) {}
+		CameraComponent(const SceanCamera& camera)
+			: Camera(camera) {}
 		CameraComponent(const DirectX::XMMATRIX& projection)
 			: Camera(projection) {}
 		~CameraComponent() = default;
 
-		Camera Camera;
-		bool Primary = false;
+		SceanCamera Camera;
 	};
 
 }

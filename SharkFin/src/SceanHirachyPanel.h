@@ -22,6 +22,9 @@ namespace Shark {
 	private:
 		Ref<Scean> m_Context;
 		Entity m_SelectedEntity;
+
+		int m_SelectedProjectionIndex = -1;
+		static constexpr const char* m_ProjectionItems[2] = { "Perspective", "Orthographic" };
 	};
 
 }

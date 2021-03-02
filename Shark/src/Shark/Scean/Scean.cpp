@@ -17,29 +17,14 @@ namespace Shark {
 
 	void Scean::OnUpdateRuntime(TimeStep ts)
 	{
-		Camera* mainCamera = nullptr;
-		DirectX::XMMATRIX cameraTransform;
-
-		auto view = m_Registry.view<CameraComponent, TransformComponent>();
-		for (auto entity : view)
+		if (!m_Registry.valid(m_ActiveCameraID) || !m_Registry.has<CameraComponent, TransformComponent>(m_ActiveCameraID))
 		{
-			auto [camera, transform] = view.get<CameraComponent, TransformComponent>(entity);
-
-			if (camera.Primary)
-			{
-				mainCamera = &camera.Camera;
-				cameraTransform = DirectX::XMMatrixInverse(nullptr, transform.GetTranform());
-				break;
-			}
-		}
-
-		if (!mainCamera)
-		{
-			SK_CORE_WARN("No Scean Camera found");
+			SK_CORE_WARN("Active Camera Entity is Invalid");
 			return;
 		}
+		auto [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCameraID);
 
-		Renderer2D::BeginScean(*mainCamera, cameraTransform);
+		Renderer2D::BeginScean(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 
 		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 		for (auto entity : group)

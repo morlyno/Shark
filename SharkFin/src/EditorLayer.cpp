@@ -25,13 +25,13 @@ namespace Shark {
 		m_ActiveScean = CreateRef<Scean>();
 		m_SceanHirachyPanel.SetContext(m_ActiveScean);
 
-		m_CameraEntity = m_ActiveScean->CreateEntity("Scean Camera");
+		Entity m_CameraEntity = m_ActiveScean->CreateEntity("Scean Camera");
 		m_CameraEntity.AddComponent<CameraComponent>();
 
-		m_BlueSquare = m_ActiveScean->CreateEntity("BlueSquare");
+		Entity m_BlueSquare = m_ActiveScean->CreateEntity("BlueSquare");
 		m_BlueSquare.AddComponent<SpriteRendererComponent>(DirectX::XMFLOAT4{ 0.0f, 0.0f, 1.0f, 1.0f });
 
-		m_RedSquare = m_ActiveScean->CreateEntity("RedSauare");
+		Entity m_RedSquare = m_ActiveScean->CreateEntity("RedSauare");
 		m_RedSquare.AddComponent<SpriteRendererComponent>(DirectX::XMFLOAT4{ 1.0f, 0.0f, 0.0f, 1.0f });
 		auto& tc = m_RedSquare.GetComponent<TransformComponent>();
 		tc.Position = { 2.0f, 0.0f, 0.0f };
@@ -43,8 +43,15 @@ namespace Shark {
 
 	void EditorLayer::OnUpdate(TimeStep ts)
 	{
-		if (m_ViewportSize.x != 0.0f && m_ViewportSize.y != 0.0f && m_EditorCamera.GetViewportSize().x != m_ViewportSize.x || m_EditorCamera.GetViewportSize().y != m_ViewportSize.y)
+		if (m_ViewportSizeChanged)
+		{
 			m_EditorCamera.SetViewportSize(m_ViewportSize);
+			m_ActiveScean->ForEach<CameraComponent>([=](Entity& entity)
+				{
+					auto& cc = entity.GetComponent<CameraComponent>();
+					cc.Camera.Resize(m_ViewportSize.x, m_ViewportSize.y);
+				});
+		}
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
@@ -116,7 +123,11 @@ namespace Shark {
 
 		ImVec2 pos = ImGui::GetWindowPos();
 		ImVec2 size = ImGui::GetWindowSize();
-		m_ViewportSize = { size.x, size.y };
+		if (m_ViewportSize.x != size.x || m_ViewportSize.y != size.y)
+		{
+			m_ViewportSize = { size.x, size.y };
+			m_ViewportSizeChanged = true;
+		}
 
 		ImDrawList* dl = ImGui::GetWindowDrawList();
 		dl->AddCallback(CallbackFunctionBlend, (bool*)0);

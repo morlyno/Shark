@@ -28,12 +28,9 @@ namespace Shark {
 		Ref<Scean> m_ActiveScean;
 		SceanHirachyPanel m_SceanHirachyPanel;
 
-		Entity m_CameraEntity;
-		Entity m_RedSquare;
-		Entity m_BlueSquare;
-
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
 		DirectX::XMFLOAT2 m_ViewportSize = { 0.0f, 0.0f };
+		bool m_ViewportSizeChanged = false;
 
 		bool m_UpdateRuntime = false;
 	};
