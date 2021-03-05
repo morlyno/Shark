@@ -4,3 +4,6 @@
 [submodule "Shark/dependencies/ImGui"]
 	path = Shark/dependencies/ImGui
 	url = https://github.com/morlyno/imgui
+[submodule "Shark/dependencies/yaml-cpp"]
+	path = Shark/dependencies/yaml-cpp
+	url = https://github.com/morlyno/yaml-cpp

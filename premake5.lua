@@ -15,10 +15,12 @@ includeDir["spdlog"] = "%{wks.location}/Shark/dependencies/spdlog/include"
 includeDir["ImGui"] = "%{wks.location}/Shark/dependencies/ImGui"
 includeDir["stb_image"] = "%{wks.location}/Shark/dependencies/stb_image"
 includeDir["EnTT"] = "%{wks.location}/Shark/dependencies/EnTT/include"
+includeDir["yaml_cpp"] = "%{wks.location}/Shark/dependencies/yaml-cpp/include"
 
 group "Dependencies"
 	include "dependencies/Premake"
 	include "Shark/dependencies/ImGui"
+	include "Shark/dependencies/yaml-cpp"
 group ""
 
 include "Shark"

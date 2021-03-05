@@ -47,8 +47,6 @@ namespace Shark {
 
 			if (!m_Minimized)
 			{
-				RendererCommand::ClearBuffer();
-
 				for (auto layer : m_LayerStack)
 					layer->OnUpdate(timeStep);
 

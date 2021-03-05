@@ -14,6 +14,7 @@ namespace Shark {
 	{
 		friend class Entity;
 		friend class SceanHirachyPanel;
+		friend class SceanSerializer;
 	public:
 		Scean();
 		~Scean();

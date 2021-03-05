@@ -24,7 +24,8 @@ project "Shark"
         "%{includeDir.spdlog}",
         "%{includeDir.ImGui}",
         "%{includeDir.stb_image}",
-        "%{includeDir.EnTT}"
+        "%{includeDir.EnTT}",
+        "%{includeDir.yaml_cpp}"
     }
 
     filter "system:windows"
@@ -34,7 +35,8 @@ project "Shark"
         {
             "d3d11",
             "dxgi",
-            "ImGui"
+            "ImGui",
+            "yaml-cpp"
         }
 
     filter "configurations:Debug"

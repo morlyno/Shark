@@ -15,11 +15,18 @@ namespace Shark {
 	void SceanHirachyPanel::SetContext(Ref<Scean> context)
 	{
 		m_Context = context;
+		m_SelectedEntity = {};
 	}
 
 	void SceanHirachyPanel::OnImGuiRender()
 	{
 		ImGui::Begin("Scean Hirachy");
+
+		if (!m_Context)
+		{
+			ImGui::End();
+			return;
+		}
 
 		m_Context->m_Registry.each([&](auto entityID)
 		{

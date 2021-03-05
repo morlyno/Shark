@@ -2,8 +2,12 @@
 
 #include <Shark/Scean/Components.h>
 
+#include <Shark/Scean/SceanSerialization.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
+
+#include <yaml-cpp/yaml.h>
 
 namespace Shark {
 
@@ -24,17 +28,6 @@ namespace Shark {
 		m_FrameBufferTexture = Texture2D::Create(window.GetWidth(), window.GetHeight(), 0x0);
 		m_ActiveScean = CreateRef<Scean>();
 		m_SceanHirachyPanel.SetContext(m_ActiveScean);
-
-		Entity m_CameraEntity = m_ActiveScean->CreateEntity("Scean Camera");
-		m_CameraEntity.AddComponent<CameraComponent>();
-
-		Entity m_BlueSquare = m_ActiveScean->CreateEntity("BlueSquare");
-		m_BlueSquare.AddComponent<SpriteRendererComponent>(DirectX::XMFLOAT4{ 0.0f, 0.0f, 1.0f, 1.0f });
-
-		Entity m_RedSquare = m_ActiveScean->CreateEntity("RedSauare");
-		m_RedSquare.AddComponent<SpriteRendererComponent>(DirectX::XMFLOAT4{ 1.0f, 0.0f, 0.0f, 1.0f });
-		auto& tc = m_RedSquare.GetComponent<TransformComponent>();
-		tc.Position = { 2.0f, 0.0f, 0.0f };
 	}
 
 	void EditorLayer::OnDetach()
@@ -43,6 +36,9 @@ namespace Shark {
 
 	void EditorLayer::OnUpdate(TimeStep ts)
 	{
+		RendererCommand::ClearBuffer();
+		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
+
 		if (m_ViewportSizeChanged)
 		{
 			m_EditorCamera.SetViewportSize(m_ViewportSize);
@@ -53,15 +49,19 @@ namespace Shark {
 				});
 		}
 
-		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
+		if (m_ActiveScean)
+		{
+			if (m_PlayScean)
+				m_ActiveScean->OnUpdateRuntime(ts);
+			else
+			{
+				if (m_ViewportHovered)
+					m_EditorCamera.OnUpdate(ts);
+				m_ActiveScean->OnUpdateEditor(ts, m_EditorCamera);
+			}
+		}
 
-		if (m_ViewportHovered)
-			m_EditorCamera.OnUpdate(ts);
-
-		if (m_UpdateRuntime)
-			m_ActiveScean->OnUpdateRuntime(ts);
-		else
-			m_ActiveScean->OnUpdateEditor(ts, m_EditorCamera);
+		RendererCommand::GetFramebufferContent(m_FrameBufferTexture);
 	}
 
 	void EditorLayer::OnEvent(Event& event)
@@ -70,12 +70,13 @@ namespace Shark {
 		if (dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize)))
 			return;
 		
-		m_EditorCamera.OnEvent(event);
+		if (!m_PlayScean)
+			m_EditorCamera.OnEvent(event);
 	}
 
 	static void CallbackFunctionBlend(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 	{
-		Shark::RendererCommand::SetBlendState((bool)cmd->UserCallbackData);
+		::Shark::RendererCommand::SetBlendState((bool)cmd->UserCallbackData);
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -100,6 +101,19 @@ namespace Shark {
 
         if (ImGui::BeginMenuBar())
         {
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("New Scean"))
+					NewScean();
+				if (ImGui::MenuItem("Save Scean"))
+					SaveScean();
+				if (ImGui::MenuItem("Load Scean"))
+					LoadScean();
+
+				ImGui::EndMenu();
+			}
+
+
             if (ImGui::BeginMenu("Options"))
             {
 				if (ImGui::MenuItem("Exit"))
@@ -113,10 +127,11 @@ namespace Shark {
 
         ImGui::End();
 
-		// i dont like this here
-		RendererCommand::GetFramebufferContent(m_FrameBufferTexture);
-
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Viewport");
+		ImGui::PopStyleVar(3);
 
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		m_ViewportFocused = ImGui::IsWindowFocused();
@@ -145,7 +160,7 @@ namespace Shark {
 		ImGui::End();
 
 		ImGui::Begin("Scean");
-		ImGui::Checkbox("Show Runtime", &m_UpdateRuntime);
+		ImGui::Checkbox("Show Runtime", &m_PlayScean);
 		ImGui::End();
 
 		m_SceanHirachyPanel.OnImGuiRender();
@@ -157,6 +172,28 @@ namespace Shark {
 			return false;
 		m_FrameBufferTexture = Texture2D::Create(event.GetWidth(), event.GetHeight(), 0x0);
 		return false;
+	}
+
+	void EditorLayer::NewScean()
+	{
+		m_ActiveScean = CreateRef<Scean>();
+		m_SceanHirachyPanel.SetContext(m_ActiveScean);
+	}
+
+	void EditorLayer::SaveScean()
+	{
+		SceanSerializer serializer(m_ActiveScean);
+		serializer.Serialize("assets/Sceans/TestScean.shark");
+	}
+
+	void EditorLayer::LoadScean()
+	{
+		m_ActiveScean = CreateRef<Scean>();
+		m_SceanHirachyPanel.SetContext(m_ActiveScean);
+		SceanSerializer serializer(m_ActiveScean);
+		serializer.Deserialize("assets/Sceans/TestScean.shark");
+
+		m_SceanHirachyPanel.SetContext(m_ActiveScean);
 	}
 
 }

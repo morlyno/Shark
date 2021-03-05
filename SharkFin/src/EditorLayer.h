@@ -21,6 +21,10 @@ namespace Shark {
 		virtual void OnImGuiRender() override;
 	private:
 		bool OnWindowResize(WindowResizeEvent& event);
+
+		void NewScean();
+		void SaveScean();
+		void LoadScean();
 	private:
 		EditorCamera m_EditorCamera;
 		Ref<Texture2D> m_FrameBufferTexture;
@@ -32,7 +36,7 @@ namespace Shark {
 		DirectX::XMFLOAT2 m_ViewportSize = { 0.0f, 0.0f };
 		bool m_ViewportSizeChanged = false;
 
-		bool m_UpdateRuntime = false;
+		bool m_PlayScean = false;
 	};
 
 }

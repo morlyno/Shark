@@ -26,7 +26,6 @@ namespace Shark {
 		virtual void SwapBuffer(bool VSync) = 0;
 
 		virtual void SetBlendState(bool blend) = 0;
-		virtual bool GeBlendState() const = 0;
 
 		virtual void DrawIndexed(uint32_t count) = 0;
 

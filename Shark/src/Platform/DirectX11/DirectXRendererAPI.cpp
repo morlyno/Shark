@@ -155,7 +155,6 @@ namespace Shark {
 		m_Device->CreateBlendState(&bd, &m_BlendStateNoAlpha);
 
 		m_Context->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
-		m_BlendEnabled = true;
 	}
 
 	void DirectXRendererAPI::ShutDown()
@@ -225,7 +224,6 @@ namespace Shark {
 
 	void DirectXRendererAPI::SetBlendState(bool blend)
 	{
-		m_BlendEnabled = blend;
 		if (blend)
 			m_Context->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
 		else

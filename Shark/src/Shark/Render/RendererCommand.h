@@ -21,7 +21,6 @@ namespace Shark {
 		static inline void ClearBuffer() { s_RendererAPI->ClearBuffer(); }
 
 		static inline void SetBlendState(bool blend) { s_RendererAPI->SetBlendState(blend); }
-		static inline bool GetBlendState() { s_RendererAPI->GeBlendState(); }
 
 		static inline void DrawIndexed(uint32_t count) { s_RendererAPI->DrawIndexed(count); }
 

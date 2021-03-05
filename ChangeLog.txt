@@ -13,6 +13,8 @@ Change Log Shark Graphics/Game Engine
 [01.03.2021] Scean Camera + UI stuff
 
 Current:
+ - Scean Serialization
+   - TODO: Active Scean Camera
 
 TODO:
  - Renderer API Test (Game)

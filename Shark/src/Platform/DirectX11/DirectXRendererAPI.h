@@ -20,7 +20,6 @@ namespace Shark {
 		virtual void SwapBuffer(bool VSync) override;
 
 		virtual void SetBlendState(bool blend) override;
-		virtual bool GeBlendState() const override { return m_BlendEnabled; }
 
 		virtual void DrawIndexed(uint32_t count) override;
 
@@ -39,7 +38,6 @@ namespace Shark {
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;
 
 		float m_ClearColor[4];
-		bool m_BlendEnabled;
 	};
 
 }

@@ -18,7 +18,8 @@ project "SharkFin"
         "%{wks.location}/Shark/src",
         "%{includeDir.spdlog}",
         "%{includeDir.ImGui}",
-        "%{includeDir.EnTT}"
+        "%{includeDir.EnTT}",
+        "%{includeDir.yaml_cpp}"
     }
 
     links
