@@ -7,11 +7,52 @@
 #include "Platform/DirectX11/DirectXRendererAPI.h"
 
 #define SK_API() static_cast<::Shark::DirectXRendererAPI&>(::Shark::RendererCommand::GetRendererAPI())
-#define SK_CHECK(call) if(HRESULT hr = (call); hr != S_OK) { ::std::ostringstream oss; oss << ::std::hex << hr; SK_CORE_ASSERT(false, oss.str()); }
+#ifdef SK_ENABLE_ASSERT
+#define SK_CHECK(call) if(HRESULT hr = (call); hr != S_OK) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
+#else
+#define SK_CHECK(call) call
+#endif
 
 namespace Shark {
 
-	DirectXTexture2D::DirectXTexture2D(const std::string& filepath)
+	static D3D11_TEXTURE_ADDRESS_MODE TextureAddressModeToDirectX(AddressMode mode)
+	{
+		switch (mode)
+		{
+		case AddressMode::Wrap: return D3D11_TEXTURE_ADDRESS_WRAP;
+		case AddressMode::Clamp: return D3D11_TEXTURE_ADDRESS_CLAMP;
+		case AddressMode::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
+		}
+		SK_CORE_ASSERT(false);
+		return D3D11_TEXTURE_ADDRESS_WRAP;
+	}
+
+	static D3D11_FILTER FilterModeToDirectX(FilterMode minmag, FilterMode mipmap)
+	{
+		switch (minmag)
+		{
+		case FilterMode::Linera:
+		{
+			switch (mipmap)
+			{
+				case FilterMode::Linera: return D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+				case FilterMode::Point: return D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+			}
+		}
+		case FilterMode::Point:
+		{
+			switch (mipmap)
+			{
+				case FilterMode::Linera: return D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR;
+				case FilterMode::Point: return D3D11_FILTER_MIN_MAG_MIP_POINT;
+			}
+		}
+		}
+		SK_CORE_ASSERT(false);
+		return D3D11_FILTER_MIN_MAG_MIP_POINT;
+	}
+
+	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification & specs, const std::string& filepath)
 	{
 		auto device = SK_API().GetDevice();
 
@@ -54,17 +95,18 @@ namespace Shark {
 		SK_CHECK(device->CreateShaderResourceView(texture, &srv, &m_Texture));
 		texture->Release();
 
-		// TODO: Find Better place for this
-		D3D11_SAMPLER_DESC sd = {};
-		sd.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-		sd.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		sd.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		sd.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		D3D11_SAMPLER_DESC sd;
+		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));
+		sd.Filter = FilterModeToDirectX(specs.MinMag, specs.Mipmap);
+		sd.AddressU = TextureAddressModeToDirectX(specs.AddressU);
+		sd.AddressV = TextureAddressModeToDirectX(specs.AddressV);
+		sd.AddressW = TextureAddressModeToDirectX(specs.AddressW);
+		memcpy(sd.BorderColor, &specs.BorderColor, sizeof(float) * 4);
 
 		device->CreateSamplerState(&sd, &m_Sampler);
 	}
 
-	DirectXTexture2D::DirectXTexture2D(uint32_t width, uint32_t height, uint32_t color, const std::string& name)
+	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t color, const std::string& name)
 		: m_Name(name), m_Width(width), m_Height(height)
 	{
 		auto device = SK_API().GetDevice();
@@ -101,20 +143,21 @@ namespace Shark {
 		SK_CHECK(device->CreateShaderResourceView(texture, &srv, &m_Texture));
 		texture->Release();
 
-		// TODO: Find Better place for this
-		D3D11_SAMPLER_DESC sd = {};
-		sd.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-		sd.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		sd.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		sd.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		D3D11_SAMPLER_DESC sd;
+		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));
+		sd.Filter = FilterModeToDirectX(specs.MinMag, specs.Mipmap);
+		sd.AddressU = TextureAddressModeToDirectX(specs.AddressU);
+		sd.AddressV = TextureAddressModeToDirectX(specs.AddressV);
+		sd.AddressW = TextureAddressModeToDirectX(specs.AddressW);
+		memcpy(sd.BorderColor, &specs.BorderColor, sizeof(float) * 4);
 
-		device->CreateSamplerState(&sd, &m_Sampler);
+		SK_CHECK(device->CreateSamplerState(&sd, &m_Sampler));
 	}
 
 	DirectXTexture2D::~DirectXTexture2D()
 	{
-		if (m_Texture) { m_Texture->Release(); m_Texture = nullptr; }
-		if (m_Sampler) { m_Sampler->Release(); m_Sampler = nullptr; }
+		if (m_Texture) { m_Texture->Release(); }
+		if (m_Sampler) { m_Sampler->Release(); }
 	}
 
 	void DirectXTexture2D::SetData(void* data)
@@ -153,8 +196,16 @@ namespace Shark {
 	{
 		auto context = SK_API().GetContext();
 
-		context->PSSetSamplers(0u, 1u, &m_Sampler);
+		context->PSSetSamplers(m_Slot, 1u, &m_Sampler);
 		context->PSSetShaderResources(m_Slot, 1u, &m_Texture);
+	}
+
+	void DirectXTexture2D::Bind(uint32_t slot)
+	{
+		auto context = SK_API().GetContext();
+
+		context->PSSetSamplers(slot, 1u, &m_Sampler);
+		context->PSSetShaderResources(slot, 1u, &m_Texture);
 	}
 
 }

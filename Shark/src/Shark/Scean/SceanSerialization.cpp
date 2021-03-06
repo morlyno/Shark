@@ -48,20 +48,6 @@ namespace YAML {
 
 namespace Shark {
 
-	//// bool
-	//template <>
-	//struct convert<bool> {
-	//	static Node encode(bool rhs) { return rhs ? Node("true") : Node("false"); }
-	//
-	//	YAML_CPP_API static bool decode(const Node& node, bool& rhs);
-	//};
-	//
-	//static bool decode(const Node& node, std::pair<T, U>& rhs) {
-	//	if (!node.IsSequence())
-	//		return false;
-	//	if (node.size() != 2)
-	//		return false;
-
 	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& f3)
 	{
 		out << YAML::Flow;
@@ -260,6 +246,7 @@ namespace Shark {
 					float orthographicFar = cameraComponent["OrthographicFar"].as<float>();
 							
 					SceanCamera sceancamera;
+					sceancamera.SetProjectionType(type);
 					sceancamera.SetPerspective(aspecratio, perspectiveFOV, perspectiveNear, perspectiveFar);
 					sceancamera.SetOrthographic(aspecratio, orthographicZoom, orthographicNear, orthographicFar);
 

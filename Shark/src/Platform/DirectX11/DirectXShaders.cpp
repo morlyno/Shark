@@ -130,7 +130,7 @@ namespace Shark {
 		if (D3DCompile(vertexshaderSrc.c_str(), vertexshaderSrc.size(), nullptr, nullptr, nullptr, "main", "vs_4_0", 0u, 0u, &blob, &ErrorMsg) != S_OK)
 		{
 			std::string msg = reinterpret_cast<const char*>(ErrorMsg->GetBufferPointer());
-			SK_CORE_ASSERT(false, "Shader Compile Failed" + msg);
+			SK_CORE_ASSERT(false, "Shader Compile Failed: " + msg);
 			ErrorMsg->Release(); ErrorMsg = nullptr;
 		}
 		device->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &m_VertexShader.shader);
@@ -215,7 +215,7 @@ namespace Shark {
 		if (D3DCompile(pixelshaderSrc.c_str(), pixelshaderSrc.size(), nullptr, nullptr, nullptr, "main", "ps_4_0", 0u, 0u, &blob, &ErrorMsg) != S_OK)
 		{
 			std::string msg = reinterpret_cast<const char*>(ErrorMsg->GetBufferPointer());
-			SK_CORE_ASSERT(false, "Shader Compile Failed" + msg);
+			SK_CORE_ASSERT(false, "Shader Compile Failed: " + msg);
 			ErrorMsg->Release(); ErrorMsg = nullptr;
 		}
 		device->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &m_PixelShader.shader);

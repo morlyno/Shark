@@ -8,7 +8,7 @@ namespace Shark {
 	namespace Input {
 
 		bool KeyPressed(KeyCode key);
-
+		
 		bool MousePressed(MouseCode button);
 
 		// First is x, Second is y

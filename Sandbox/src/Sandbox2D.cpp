@@ -9,7 +9,7 @@ Sandbox2D::Sandbox2D(const std::string& name)
 	m_CameraController(1280.0f / 720.0f)
 {
 	auto& window = Shark::Application::Get().GetWindow();
-	m_FrameBufferTexture = Shark::Texture2D::Create(window.GetWidth(), window.GetHeight(), 0x0, "Viewport Texture");
+	m_FrameBufferTexture = Shark::Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0, "Viewport Texture");
 }
 
 Sandbox2D::~Sandbox2D()
@@ -61,7 +61,7 @@ bool Sandbox2D::OnKeyPressedEvent(Shark::KeyPressedEvent& event)
 
 bool Sandbox2D::OnWindowResizeEvent(Shark::WindowResizeEvent& event)
 {
-	m_FrameBufferTexture = Shark::Texture2D::Create(event.GetWidth(), event.GetHeight(), 0x0, m_FrameBufferTexture->GetName());
+	m_FrameBufferTexture = Shark::Texture2D::Create({}, event.GetWidth(), event.GetHeight(), 0x0, m_FrameBufferTexture->GetName());
 
 	return false;
 }

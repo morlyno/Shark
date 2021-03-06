@@ -45,7 +45,6 @@ namespace Shark {
 		m_Width(props.Width),
 		m_Height(props.Height),
 		m_Name(props.Name),
-		m_IsFocused(false),
 		m_VSync(props.VSync)
 	{
 		std::string str(props.Name.size(), '\000');
@@ -132,17 +131,20 @@ namespace Shark {
 	LRESULT __stdcall WindowsWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-			return true;
+			return 1;
 
 		if (!m_Callbackfunc)
 			return DefWindowProc(hWnd, msg, wParam, lParam);
 
+		m_IsFocused = m_hWnd == GetFocus();
+
+		LRESULT retVal = 0;
 		switch (msg)
 		{
 			case WM_DESTROY:
 			{
 				m_Callbackfunc(WindowCloseEvent());
-				return 0;
+				break;
 			}
 
 			case WM_SIZE:
@@ -191,17 +193,17 @@ namespace Shark {
 				const POINTS pt = MAKEPOINTS(lParam);
 				if (pt.x >= 0 && pt.x < (short)m_Width && pt.y >= 0 && pt.y < (short)m_Height)
 				{
-					if (!m_IsFocused)
+					if (!m_IsCaptured)
 					{
 						m_Callbackfunc(WindowFocusEvent(pt.x, pt.y));
 						SetCapture(m_hWnd);
-						m_IsFocused = true;
+						m_IsCaptured = true;
 					}
 					m_Callbackfunc(MouseMoveEvent(pt.x, pt.y));
 				}
 				else
 				{
-					if (m_IsFocused)
+					if (m_IsCaptured)
 					{
 						if (wParam & (MK_LBUTTON | MK_RBUTTON))
 						{
@@ -210,21 +212,29 @@ namespace Shark {
 						else
 						{
 							m_Callbackfunc(WindowLostFocusEvent());
-							m_IsFocused = false;
+							m_IsCaptured = false;
 							ReleaseCapture();
 						}
 					}
 				}
 				break;
 			}
+
 			case WM_CAPTURECHANGED:
 			{
-				m_IsFocused = false;
+				m_IsCaptured = false;
 				break;
 			}
+
 			case WM_LBUTTONDOWN:
 			{
 				const POINTS pt = MAKEPOINTS(lParam);
+				if (!m_IsFocused)
+				{
+					m_IsFocused = true;
+					SetFocus(m_hWnd);
+					m_Callbackfunc(WindowFocusEvent(pt.x, pt.y));
+				}
 				m_Callbackfunc(MousePressedEvent(pt.x, pt.y, Mouse::LeftButton));
 				break;
 			}
@@ -271,9 +281,22 @@ namespace Shark {
 				m_Callbackfunc(KeyCharacterEvent((KeyCode)wParam));
 				break;
 			}
+			default: retVal = DefWindowProc(hWnd, msg, wParam, lParam);
 		}
 
-		return DefWindowProc(hWnd, msg, wParam, lParam);
+		//bool checkfocus = m_hWnd == GetFocus();
+		//if (m_IsFocused != checkfocus)
+		//	SK_CORE_TRACE("Focus Mismatch | {0} : {1}", m_IsFocused, checkfocus);
+
+		//if (m_IsCaptured != (m_hWnd == GetCapture()))
+		//	SK_CORE_TRACE("Capture Mismatch");
+
+		//if (m_IsFocused != m_IsCaptured)
+		//	SK_CORE_TRACE("Mismatch");
+
+		//SK_CORE_TRACE("DefWindowProc msg: {0:x}", msg);
+
+		return retVal;
 	}
 
 }

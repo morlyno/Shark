@@ -52,7 +52,8 @@ namespace Shark {
 		uint32_t m_Width;
 		uint32_t m_Height;
 		std::wstring m_Name;
-		bool m_IsFocused;
+		bool m_IsFocused = false;
+		bool m_IsCaptured = false;
 		bool m_VSync;
 
 		EventCallbackFunc m_Callbackfunc;

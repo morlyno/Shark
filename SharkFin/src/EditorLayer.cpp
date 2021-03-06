@@ -3,6 +3,7 @@
 #include <Shark/Scean/Components.h>
 
 #include <Shark/Scean/SceanSerialization.h>
+#include <Shark/Utility/FileDialogs.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -25,7 +26,7 @@ namespace Shark {
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& window = Application::Get().GetWindow();
-		m_FrameBufferTexture = Texture2D::Create(window.GetWidth(), window.GetHeight(), 0x0);
+		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0);
 		m_ActiveScean = CreateRef<Scean>();
 		m_SceanHirachyPanel.SetContext(m_ActiveScean);
 	}
@@ -67,11 +68,26 @@ namespace Shark {
 	void EditorLayer::OnEvent(Event& event)
 	{
 		EventDispacher dispacher(event);
-		if (dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize)))
-			return;
-		
+		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
+
 		if (!m_PlayScean)
 			m_EditorCamera.OnEvent(event);
+
+		if (event.GetEventType() == KeyPressedEvent::GetStaticType())
+		{
+			if (Input::KeyPressed(Key::Control))
+			{
+				auto kpe = static_cast<KeyPressedEvent&>(event);
+				switch (kpe.GetKeyCode())
+				{
+					case Key::N: NewScean(); break;
+					case Key::O: OpenScean(); break;
+					case Key::S: SaveScean(); break;
+					case Key::P: m_PlayScean = true; break;
+					case Key::E: m_PlayScean = false; break;
+				}
+			}
+		}
 	}
 
 	static void CallbackFunctionBlend(const ImDrawList* parent_list, const ImDrawCmd* cmd)
@@ -81,7 +97,46 @@ namespace Shark {
 
 	void EditorLayer::OnImGuiRender()
 	{
-		constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking |
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("New Scean", "strg+N"))
+					NewScean();
+				if (ImGui::MenuItem("Save Scean...", "strg+S"))
+					SaveScean();
+				if (ImGui::MenuItem("Open Scean...", "strg+O"))
+					OpenScean();
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Options"))
+			{
+				if (m_PlayScean)
+				{
+					if (ImGui::MenuItem("Stop Scean", "strg+E"))
+						m_PlayScean = false;
+				}
+				else
+				{
+					if (ImGui::MenuItem("Play Scean", "strg+P"))
+						m_PlayScean = true;
+				}
+
+				if (ImGui::MenuItem("Batch Renderer Stats", nullptr, m_ShowRendererStats))
+					m_ShowRendererStats = !m_ShowRendererStats;
+
+				if (ImGui::MenuItem("Exit"))
+					Application::Get().CloseApplication();
+
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMainMenuBar();
+		}
+
+		constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking |
 										ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
 										ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
@@ -98,32 +153,6 @@ namespace Shark {
 
 		ImGuiID dockspace_id = ImGui::GetID("DockSpace");
 		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
-
-        if (ImGui::BeginMenuBar())
-        {
-			if (ImGui::BeginMenu("File"))
-			{
-				if (ImGui::MenuItem("New Scean"))
-					NewScean();
-				if (ImGui::MenuItem("Save Scean"))
-					SaveScean();
-				if (ImGui::MenuItem("Load Scean"))
-					LoadScean();
-
-				ImGui::EndMenu();
-			}
-
-
-            if (ImGui::BeginMenu("Options"))
-            {
-				if (ImGui::MenuItem("Exit"))
-					Application::Get().CloseApplication();
-
-				ImGui::EndMenu();
-            }
-
-            ImGui::EndMenuBar();
-        }
 
         ImGui::End();
 
@@ -150,18 +179,17 @@ namespace Shark {
 		dl->AddCallback(CallbackFunctionBlend, (bool*)1);
 		ImGui::End();
 
-		auto stats = Renderer2D::GetStats();
-		ImGui::Begin("BatchStats");
-		ImGui::Text("DrawCalls: %d", stats.DrawCalls);
-		ImGui::Text("QuadCount: %d", stats.QuadCount);
-		ImGui::Text("TextureCount: %d", stats.TextureCount);
-		ImGui::Text("Total Vertices: %d", stats.VertexCount());
-		ImGui::Text("Total Indices: %d", stats.IndexCount());
-		ImGui::End();
-
-		ImGui::Begin("Scean");
-		ImGui::Checkbox("Show Runtime", &m_PlayScean);
-		ImGui::End();
+		if (m_ShowRendererStats)
+		{
+			auto stats = Renderer2D::GetStats();
+			ImGui::Begin("BatchStats", &m_ShowRendererStats);
+			ImGui::Text("DrawCalls: %d", stats.DrawCalls);
+			ImGui::Text("Quad Count: %d", stats.QuadCount);
+			ImGui::Text("Texture Count: %d", stats.TextureCount);
+			ImGui::Text("Total Vertices: %d", stats.VertexCount());
+			ImGui::Text("Total Indices: %d", stats.IndexCount());
+			ImGui::End();
+		}
 
 		m_SceanHirachyPanel.OnImGuiRender();
 	}
@@ -170,7 +198,7 @@ namespace Shark {
 	{
 		if (event.GetWidth() == 0 || event.GetHeight() == 0)
 			return false;
-		m_FrameBufferTexture = Texture2D::Create(event.GetWidth(), event.GetHeight(), 0x0);
+		m_FrameBufferTexture = Texture2D::Create({} , event.GetWidth(), event.GetHeight(), 0x0);
 		return false;
 	}
 
@@ -182,18 +210,28 @@ namespace Shark {
 
 	void EditorLayer::SaveScean()
 	{
-		SceanSerializer serializer(m_ActiveScean);
-		serializer.Serialize("assets/Sceans/TestScean.shark");
+		auto filepath = FileDialogs::SaveFile("Shark Scean (*.shark)\0*.shark\0");
+		if (filepath)
+		{
+			SceanSerializer serializer(m_ActiveScean);
+			serializer.Serialize(*filepath);
+		}
+
 	}
 
-	void EditorLayer::LoadScean()
+	void EditorLayer::OpenScean()
 	{
-		m_ActiveScean = CreateRef<Scean>();
-		m_SceanHirachyPanel.SetContext(m_ActiveScean);
-		SceanSerializer serializer(m_ActiveScean);
-		serializer.Deserialize("assets/Sceans/TestScean.shark");
+		auto filepath = FileDialogs::OpenFile("Shark Scean (*.shark)\0*.shark\0");
+		if (filepath)
+		{
+			m_PlayScean = false;
+			m_ActiveScean = CreateRef<Scean>();
+			m_SceanHirachyPanel.SetContext(m_ActiveScean);
+			SceanSerializer serializer(m_ActiveScean);
+			serializer.Deserialize(*filepath);
 
-		m_SceanHirachyPanel.SetContext(m_ActiveScean);
+			m_SceanHirachyPanel.SetContext(m_ActiveScean);
+		}
 	}
 
 }

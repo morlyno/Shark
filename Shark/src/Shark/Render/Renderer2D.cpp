@@ -24,7 +24,7 @@ namespace Shark {
 		static constexpr uint32_t MaxQuadVertices = MaxQuads * 4;
 		static constexpr uint32_t MaxQuadIndices = MaxQuads * 6;
 		static constexpr uint32_t MaxQuadVerticesSize = MaxQuadVertices * sizeof(QuadVertex);
-		static constexpr uint32_t MaxTextureSlots = 32; // TODO: Look up max Texture Slots
+		static constexpr uint32_t MaxTextureSlots = 16; // 16 is the max for samplers
 
 		Ref<VertexBuffer> QuadVertexBuffer;
 		Ref<IndexBuffer> QuadIndexBuffer;
@@ -56,7 +56,7 @@ namespace Shark {
 		s_BatchData.QuadVertexIndexPtr = s_BatchData.QuadVertexBasePtr;
 
 		s_BatchData.Shader = Shaders::Create("assets/Shaders/MainShader.hlsl");
-		s_BatchData.WitheTexture = Texture2D::Create(1, 1, 0xFFFFFFFF);
+		s_BatchData.WitheTexture = Texture2D::Create({}, 1, 1, 0xFFFFFFFF);
 		s_BatchData.Textures[0] = s_BatchData.WitheTexture;
 
 		s_BatchData.QuadVertexBuffer = VertexBuffer::Create(s_BatchData.Shader->GetVertexLayout(), true);
@@ -79,6 +79,13 @@ namespace Shark {
 
 		s_BatchData.QuadIndexBuffer = IndexBuffer::Create(indices, s_BatchData.MaxQuadIndices);
 		delete[] indices;
+
+#ifdef SK_DEBUG
+		for (uint32_t i = 0; i < s_BatchData.MaxTextureSlots; ++i)
+		{
+			s_BatchData.Textures[0]->Bind(i);
+		}
+#endif
 	}
 
 	void Renderer2D::ShutDown()
@@ -87,7 +94,7 @@ namespace Shark {
 		s_BatchData.QuadVertexBuffer.reset();
 		s_BatchData.QuadIndexBuffer.reset();
 		s_BatchData.Shader.reset();
-		s_BatchData.Textures.swap(std::array<Ref<Texture2D>, 32>{});
+		s_BatchData.Textures = {};
 	}
 
 	static void ReBind()
@@ -116,7 +123,7 @@ namespace Shark {
 		s_BatchData.QuadCount = 0;
 
 		s_BatchData.TextureCount = 1;
-		s_BatchData.Textures.swap(std::array<Ref<Texture2D>, s_BatchData.MaxTextureSlots>{});
+		s_BatchData.Textures = {};
 		s_BatchData.Textures[0] = s_BatchData.WitheTexture;
 	}
 
@@ -257,7 +264,7 @@ namespace Shark {
 
 		if (slot == 0)
 		{
-			if (s_BatchData.TextureCount == s_BatchData.MaxTextureSlots)
+			if (s_BatchData.TextureCount >= s_BatchData.MaxTextureSlots)
 				DrawBatch();
 
 			s_BatchData.Textures[s_BatchData.TextureCount] = texture;

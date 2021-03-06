@@ -24,7 +24,7 @@ namespace Shark {
 
 		void NewScean();
 		void SaveScean();
-		void LoadScean();
+		void OpenScean();
 	private:
 		EditorCamera m_EditorCamera;
 		Ref<Texture2D> m_FrameBufferTexture;
@@ -37,6 +37,8 @@ namespace Shark {
 		bool m_ViewportSizeChanged = false;
 
 		bool m_PlayScean = false;
+		bool m_ShowRendererStats = false;
+		Ref<Texture2D> m_SceaPlayButtonImage;
 	};
 
 }

@@ -11,10 +11,11 @@ Change Log Shark Graphics/Game Engine
 [01.03.2021] Entity Component System
 [01.03.2021] Scean Hirachy Panel
 [01.03.2021] Scean Camera + UI stuff
+[05.03.2021] Scean Serialization
 
 Current:
- - Scean Serialization
-   - TODO: Active Scean Camera
+ - FileDialogs
+ - Sampler Specification
 
 TODO:
  - Renderer API Test (Game)
