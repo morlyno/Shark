@@ -7,3 +7,6 @@
 [submodule "Shark/dependencies/yaml-cpp"]
 	path = Shark/dependencies/yaml-cpp
 	url = https://github.com/morlyno/yaml-cpp
+[submodule "Shark/dependencies/box2d"]
+	path = Shark/dependencies/box2d
+	url = https://github.com/morlyno/box2d
