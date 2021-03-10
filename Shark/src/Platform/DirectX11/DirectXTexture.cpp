@@ -19,9 +19,9 @@ namespace Shark {
 	{
 		switch (mode)
 		{
-		case AddressMode::Wrap: return D3D11_TEXTURE_ADDRESS_WRAP;
-		case AddressMode::Clamp: return D3D11_TEXTURE_ADDRESS_CLAMP;
-		case AddressMode::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
+			case AddressMode::Wrap: return D3D11_TEXTURE_ADDRESS_WRAP;
+			case AddressMode::Clamp: return D3D11_TEXTURE_ADDRESS_CLAMP;
+			case AddressMode::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
 		}
 		SK_CORE_ASSERT(false);
 		return D3D11_TEXTURE_ADDRESS_WRAP;
@@ -53,18 +53,15 @@ namespace Shark {
 	}
 
 	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification & specs, const std::string& filepath)
+		: m_FilePath(filepath)
 	{
 		auto device = SK_API().GetDevice();
-
 		int width, height;
 		stbi_uc* data = stbi_load(filepath.c_str(), &width, &height, nullptr, 4);
-		SK_CORE_ASSERT(data, "Failed to load Imiage!");
+		SK_CORE_ASSERT(data, "Failed to load Imiage! " + (std::string)stbi_failure_reason());
 
 		m_Width = width;
 		m_Height = height;
-
-		size_t bn = filepath.find_last_of("/\\") + 1;
-		m_Name = filepath.substr(bn, std::string::npos);
 
 		D3D11_TEXTURE2D_DESC td;
 		td.Width = m_Width;
@@ -106,8 +103,8 @@ namespace Shark {
 		device->CreateSamplerState(&sd, &m_Sampler);
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t color, const std::string& name)
-		: m_Name(name), m_Width(width), m_Height(height)
+	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t color)
+		: m_FilePath(std::string{}), m_Width(width), m_Height(height)
 	{
 		auto device = SK_API().GetDevice();
 

@@ -12,8 +12,12 @@ namespace Shark {
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application()
+	Application::Application(int argc, char** argv)
 	{
+		std::string str = argv[0];
+		size_t i = str.find("bin\\");
+		m_ProjectRootDirectory = str.substr(0, i - 4);
+
 		SK_CORE_ASSERT(!s_Instance, "Application allready set");
 		s_Instance = this;
 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Shark/Core/Base.h"
-
 #include <optional>
 
 namespace Shark {

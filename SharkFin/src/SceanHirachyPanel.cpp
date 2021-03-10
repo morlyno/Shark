@@ -1,6 +1,9 @@
 #include "SceanHirachyPanel.h"
 
 #include <Shark/Scean/Components.h>
+#include <Shark/Utility/FileDialogs.h>
+#include <Shark/Utility/Utils.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <entt.hpp>
@@ -28,11 +31,40 @@ namespace Shark {
 			return;
 		}
 
-		m_Context->m_Registry.each([&](auto entityID)
+		constexpr ImGuiTreeNodeFlags treenodeflags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+		if (ImGui::TreeNodeEx("Cameras", treenodeflags))
 		{
-			Entity entity{ entityID, m_Context.get() };
-			DrawEntityNode(entity);
-		});
+			auto view = m_Context->m_Registry.view<CameraComponent>();
+			for (auto entityID : view)
+				DrawEntityNode({ entityID, m_Context.get() });
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("Renderable", treenodeflags))
+		{
+			auto view = m_Context->m_Registry.view<SpriteRendererComponent>();
+			for (auto entityID : view)
+				DrawEntityNode({ entityID, m_Context.get() });
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("Rest", treenodeflags))
+		{
+			auto view = m_Context->m_Registry.view<TagComponent>(entt::exclude<CameraComponent, SpriteRendererComponent>);
+			for (auto entityID : view)
+				DrawEntityNode({ entityID, m_Context.get() });
+
+			ImGui::TreePop();
+		}
+
+
+		//m_Context->m_Registry.each([&](auto entityID)
+		//{
+		//	Entity entity{ entityID, m_Context.get() };
+		//	DrawEntityNode(entity);
+		//});
 
 		if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
 			m_SelectedEntity = {};
@@ -41,7 +73,7 @@ namespace Shark {
 		{
 			if (ImGui::Selectable("Add Entity"))
 			{
-				m_Context->CreateEntity("New Entity");
+				m_SelectedEntity = m_Context->CreateEntity("New Entity");
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -57,8 +89,15 @@ namespace Shark {
 	void SceanHirachyPanel::DrawEntityNode(Entity entity)
 	{
 		const auto& tag = entity.GetComponent<TagComponent>();
-		constexpr auto trenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
-		bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)(uint32_t)entity, trenodefalgs, tag.Tag.c_str());
+		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+		if (m_SelectedEntity == entity)
+			treenodefalgs |= ImGuiTreeNodeFlags_Selected;
+
+		// if entity dosend have child entitys
+		// Darw TreeNode with bullet
+		treenodefalgs |= ImGuiTreeNodeFlags_Bullet;
+
+		bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)(uint32_t)entity, treenodefalgs, tag.Tag.c_str());
 
 		if (ImGui::IsItemClicked())
 			m_SelectedEntity = entity;
@@ -126,7 +165,7 @@ namespace Shark {
 	{
 		if (entity.HasComponent<Comp>())
 		{
-			ImGui::PushID(entity);
+			ImGui::PushID(typeid(Comp).name());
 			bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
 			ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
 			bool removed = ImGui::Button("x", { 19, 19 });
@@ -188,15 +227,51 @@ namespace Shark {
 				DrawVec3Control("Scaling", comp.Scaling, 1.0f);
 			});
 
-		DrawComponet<SpriteRendererComponent>(entity, "SptrieRenderer", [](auto& comp)
+		DrawComponet<SpriteRendererComponent>(entity, "SptrieRenderer", [=](SpriteRendererComponent& comp)
 			{
 				ImGui::Columns(2);
 				ImGui::SetColumnWidth(0, 100);
+				
 				ImGui::Text("Color");
 				ImGui::NextColumn();
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
 				ImGui::ColorEdit4("##Color", &comp.Color.x);
+
+				ImGui::NextColumn();
+				ImGui::Separator();
+
+				ImGui::Text("Texture");
+				if (ImGui::ImageButton(comp.Texture ? comp.Texture->GetHandle() : m_ImGuiNoTextureSelectedTexture->GetHandle(), { 48, 48 }))
+				{
+					std::optional<std::string> imagePath = FileDialogs::OpenFile(nullptr);
+					if (imagePath)
+					{
+						comp.Texture = Texture2D::Create({}, Utils::MakePathRelative(*imagePath));
+					}
+				}
+
+				ImGui::NextColumn();
+				if (comp.Texture)
+				{
+					ImGui::Text(comp.Texture->GetFilePath().c_str());
+					ImGui::Text("Width: %d, Height: %d", comp.Texture->GetWidth(), comp.Texture->GetHeight());
+				}
+				else
+				{
+					ImGui::Text("No Texture Selected");
+					ImGui::Text("Width: 0, Height: 0");
+				}
+				ImGui::NextColumn();
+				ImGui::Text("Tiling");
+				ImGui::NextColumn();
+				if (ImGui::Button("R##TilingFactor", { 19, 19 }))
+					comp.TilingFactor = 1.0f;
+				ImGui::SameLine(0.0f, 0.0f);
+				ImGui::DragFloat("##TilingFactor", &comp.TilingFactor);
+				if (comp.TilingFactor < 0.0f)
+					comp.TilingFactor = 0.0f;
 				ImGui::Columns();
+
 			});
 
 		DrawComponet<CameraComponent>(entity, "Scean Camera", [&](CameraComponent& comp)
@@ -229,7 +304,9 @@ namespace Shark {
 					}
 					ImGui::SameLine(0.0f, 0.0f);
 					ImGui::SetNextItemWidth(itemwidth);
-					changed |= ImGui::DragFloat("##FOV", &fov);
+					changed |= ImGui::DragFloat("##FOV", &fov, 1.0f, 1.0f, 179.0f);
+					if (fov < 1.0f)
+						fov = 1.0f;
 
 					ImGui::NextColumn();
 					ImGui::Text("NearClip");

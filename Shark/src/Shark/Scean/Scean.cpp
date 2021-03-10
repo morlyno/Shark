@@ -17,6 +17,13 @@ namespace Shark {
 
 	void Scean::OnUpdateRuntime(TimeStep ts)
 	{
+		auto view = m_Registry.view<NativeScriptComponent>();
+		for (auto entityID : view)
+		{
+			auto& nsc = view.get<NativeScriptComponent>(entityID);
+			nsc.Script->OnUpdate(ts);
+		}
+
 		if (!m_Registry.valid(m_ActiveCameraID) || !m_Registry.has<CameraComponent, TransformComponent>(m_ActiveCameraID))
 		{
 			SK_CORE_WARN("Active Camera Entity is Invalid");
@@ -29,8 +36,11 @@ namespace Shark {
 		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 		for (auto entity : group)
 		{
-			auto [transform, color] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-			Renderer2D::DrawQuad(transform.GetTranform(), color.Color);
+			auto [transform, spriterenderer] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+			if (spriterenderer.Texture)
+				Renderer2D::DrawQuad(transform.GetTranform(), spriterenderer.Texture, spriterenderer.TilingFactor, spriterenderer.Color);
+			else
+				Renderer2D::DrawQuad(transform.GetTranform(), spriterenderer.Color);
 		}
 
 		Renderer2D::EndScean();
@@ -43,9 +53,11 @@ namespace Shark {
 		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 		for (auto entity : group)
 		{
-			auto [transform, color] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-
-			Renderer2D::DrawQuad(transform.GetTranform(), color.Color);
+			auto [transform, spriterenderer] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+			if (spriterenderer.Texture)
+				Renderer2D::DrawQuad(transform.GetTranform(), spriterenderer.Texture, spriterenderer.TilingFactor, spriterenderer.Color);
+			else
+				Renderer2D::DrawQuad(transform.GetTranform(), spriterenderer.Color);
 		}
 
 		Renderer2D::EndScean();
@@ -63,6 +75,11 @@ namespace Shark {
 	void Scean::DestroyEntity(Entity entity)
 	{
 		m_Registry.destroy(entity);
+	}
+
+	Entity Scean::GetActiveCamera()
+	{
+		return { m_ActiveCameraID, this };
 	}
 
 }

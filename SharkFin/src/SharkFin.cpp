@@ -9,7 +9,8 @@ namespace Shark {
 	class SharkFin : public Application
 	{
 	public:
-		SharkFin()
+		SharkFin(int argc, char** argv)
+			: Application(argc, argv)
 		{
 			PushLayer(new EditorLayer());
 		}
@@ -20,9 +21,9 @@ namespace Shark {
 
 	};
 
-	Application* CreateApplication()
+	Application* CreateApplication(int argc, char** argv)
 	{
-		return new SharkFin();
+		return new SharkFin(argc, argv);
 	}
 
 }

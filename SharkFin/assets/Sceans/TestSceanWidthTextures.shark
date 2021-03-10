@@ -2,6 +2,17 @@ Scean: Untitled
 Entities:
   - Entity: 54758432
     TagComponent:
+      Tag: S
+    TransformComponent:
+      Position: [0, 4, 7.5]
+      Rotation: [0, 0, 0]
+      Scaling: [10, 10, 1]
+    SpriteRendererComponent:
+      Color: [1, 1, 1, 1]
+      Texture: assets\Textures\S.png
+      TilingFactor: 6.40999985
+  - Entity: 54758432
+    TagComponent:
       Tag: Cube Right
     TransformComponent:
       Position: [-4, 0.5, 3]
@@ -26,13 +37,13 @@ Entities:
     TagComponent:
       Tag: Floor
     TransformComponent:
-      Position: [0, -1.05999994, 0]
+      Position: [0, -1, 0]
       Rotation: [1.57079637, 0, 0]
       Scaling: [15, 15, 1]
     SpriteRendererComponent:
       Color: [0.258353472, 0.0784313679, 0.313725471, 1]
-      Texture: ""
-      TilingFactor: 1
+      Texture: assets\Textures\Checkerboard.png
+      TilingFactor: 2
   - Entity: 54758432
     TagComponent:
       Tag: Cube Top
@@ -48,19 +59,19 @@ Entities:
     TagComponent:
       Tag: Scean Camera
     TransformComponent:
-      Position: [0.0200000014, 4.00999975, -9.51000023]
-      Rotation: [0.405262619, 0, 0]
+      Position: [4.24000025, 6.04999971, -11.5699997]
+      Rotation: [0.309616357, -0.300195813, 0]
       Scaling: [1, 1, 1]
     CameraComponent:
       Type: 0
       Aspecratio: 1.48502135
-      PerspectiveFOV: 44.9999809
+      PerspectiveFOV: 45
       PerspectiveNear: 0.00999999978
       PerspectiveFar: 1000
       OrthographicZoom: 10
       OrthographicNear: -1
-      OrthographicFar: 1
-      IsMainCamera: false
+      OrthographicFar: 31
+      IsMainCamera: true
   - Entity: 54758432
     TagComponent:
       Tag: Green Square
@@ -93,7 +104,7 @@ Entities:
     CameraComponent:
       Type: 0
       Aspecratio: 1.48502135
-      PerspectiveFOV: 22.9999962
+      PerspectiveFOV: 22.9999905
       PerspectiveNear: 0.00999999978
       PerspectiveFar: 1000
       OrthographicZoom: 10

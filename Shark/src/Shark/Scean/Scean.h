@@ -25,6 +25,8 @@ namespace Shark {
 		Entity CreateEntity(const std::string& tag = std::string{});
 		void DestroyEntity(Entity entity);
 
+		Entity GetActiveCamera();
+
 		template<typename... Components, typename Function>
 		void ForEach(Function func)
 		{

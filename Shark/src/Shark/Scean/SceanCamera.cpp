@@ -5,10 +5,7 @@ namespace Shark {
 
 	SceanCamera::SceanCamera()
 	{
-		if (m_ProjectionType == Projection::Perspective)
-			RecaluclatePerspetive();
-		else
-			RecaluclateOrthographic();
+		Recalcualte();
 	}
 
 	SceanCamera::SceanCamera(const Camera& camera)
@@ -25,6 +22,11 @@ namespace Shark {
 	{
 		m_Aspectratio = width / height;
 
+		Recalcualte();
+	}
+
+	void SceanCamera::Recalcualte()
+	{
 		if (m_ProjectionType == Projection::Perspective)
 			RecaluclatePerspetive();
 		else

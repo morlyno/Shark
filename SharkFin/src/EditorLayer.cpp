@@ -29,6 +29,38 @@ namespace Shark {
 		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0);
 		m_ActiveScean = CreateRef<Scean>();
 		m_SceanHirachyPanel.SetContext(m_ActiveScean);
+
+#if 0
+		class TestScript : public NativeScript
+		{
+		public:
+			virtual void OnCreate() override { SK_CORE_TRACE("OnCreate"); }
+			virtual void OnDestroy() override { SK_CORE_TRACE("OnDestroy"); }
+
+			virtual void OnUpdate(TimeStep ts) override
+			{
+				//SK_CORE_TRACE("OnUpdate");
+
+				auto& tc = m_Entity.GetComponent<TransformComponent>();
+				
+				if (Input::KeyPressed(Key::W))
+					tc.Position.y += 0.1f;
+				if (Input::KeyPressed(Key::S))
+					tc.Position.y -= 0.1f;
+				if (Input::KeyPressed(Key::A))
+					tc.Position.x -= 0.1f;
+				if (Input::KeyPressed(Key::D))
+					tc.Position.x += 0.1f;
+
+			}
+		};
+
+		Entity ScriptedEntity = m_ActiveScean->CreateEntity("Scripted Entity");
+		auto& nsc = ScriptedEntity.AddComponent<NativeScriptComponent>();
+		nsc.Bind<TestScript>();
+		nsc.Script = nsc.CreateScript(ScriptedEntity);
+		nsc.Script->OnCreate();
+#endif
 	}
 
 	void EditorLayer::OnDetach()
@@ -48,6 +80,7 @@ namespace Shark {
 					auto& cc = entity.GetComponent<CameraComponent>();
 					cc.Camera.Resize(m_ViewportSize.x, m_ViewportSize.y);
 				});
+			m_ViewportSizeChanged = false;
 		}
 
 		if (m_ActiveScean)
@@ -77,7 +110,7 @@ namespace Shark {
 		{
 			if (Input::KeyPressed(Key::Control))
 			{
-				auto kpe = static_cast<KeyPressedEvent&>(event);
+				auto& kpe = static_cast<KeyPressedEvent&>(event);
 				switch (kpe.GetKeyCode())
 				{
 					case Key::N: NewScean(); break;

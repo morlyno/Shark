@@ -3,6 +3,7 @@
 #include <Shark/Core/Base.h>
 #include <Shark/Scean/Scean.h>
 #include <Shark/Scean/Entity.h>
+#include <Shark/Render/Texture.h>
 
 namespace Shark {
 
@@ -25,6 +26,7 @@ namespace Shark {
 
 		int m_SelectedProjectionIndex = -1;
 		static constexpr const char* m_ProjectionItems[2] = { "Perspective", "Orthographic" };
+		Ref<Texture2D> m_ImGuiNoTextureSelectedTexture = Texture2D::Create({}, 1, 1, 0x050505FF);
 	};
 
 }

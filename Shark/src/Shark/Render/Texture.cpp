@@ -18,12 +18,12 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t color, const std::string& name)
+	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t color)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "RendererAPI not specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return CreateRef<DirectXTexture2D>(specs, width, height, color, name);
+			case RendererAPI::API::DirectX11: return CreateRef<DirectXTexture2D>(specs, width, height, color);
 		}
 
 		SK_CORE_ASSERT(false, "Unknown RendererAPI");

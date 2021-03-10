@@ -15,7 +15,7 @@ namespace Shark {
 	{
 		friend int ::main(int argc, char** argv);
 	public:
-		Application();
+		Application(int argc, char** argv);
 		virtual ~Application();
 	private:
 		void Run();
@@ -32,6 +32,8 @@ namespace Shark {
 		static inline Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
+
+		static const std::string& GetRootDirectory() { return s_Instance->m_ProjectRootDirectory; }
 	private:
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnApplicationClose(ApplicationCloseEvent& event);
@@ -39,6 +41,7 @@ namespace Shark {
 
 	private:
 		static Application* s_Instance;
+		std::string m_ProjectRootDirectory;
 
 		bool m_Minimized = false;
 		bool m_Running = true;
@@ -51,7 +54,7 @@ namespace Shark {
 		LayerStack m_LayerStack;
 	};
 
-	Application* CreateApplication();
+	Application* CreateApplication(int argc, char** argv);
 
 }
 

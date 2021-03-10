@@ -82,7 +82,7 @@ namespace Shark {
 		}
 	}
 
-	static bool SerializeEntity(YAML::Emitter& out, Entity entity)
+	static bool SerializeEntity(YAML::Emitter& out, Entity entity, const Ref<Scean>& scean)
 	{
 		if (!out.good())
 		{
@@ -134,6 +134,8 @@ namespace Shark {
 
 			auto& comp = entity.GetComponent<SpriteRendererComponent>();
 			out << YAML::Key << "Color" << YAML::Value << comp.Color;
+			out << YAML::Key << "Texture" << YAML::Value << (comp.Texture ? comp.Texture->GetFilePath() : "");
+			out << YAML::Key << "TilingFactor" << YAML::Value << comp.TilingFactor;
 
 			out << YAML::EndMap;
 		}
@@ -157,6 +159,9 @@ namespace Shark {
 			out << YAML::Key << "OrthographicNear" << YAML::Value << cam.GetOrthographicNear();
 			out << YAML::Key << "OrthographicFar" << YAML::Value << cam.GetOrthographicFar();
 
+			bool mainCamera = entity == scean->GetActiveCamera();
+			out << YAML::Key << "IsMainCamera" << YAML::Value << mainCamera;
+
 			out << YAML::EndMap;
 		}
 
@@ -177,7 +182,7 @@ namespace Shark {
 		m_Scean->m_Registry.each([&](auto& entityID)
 			{
 				Entity entity{ entityID, m_Scean.get() };
-				SerializeEntity(out, entity);
+				SerializeEntity(out, entity, m_Scean);
 			});
 
 
@@ -205,13 +210,14 @@ namespace Shark {
 				entt::entity entityID = m_Scean->m_Registry.create();
 				Entity deserializedEntity = { entityID, m_Scean.get() };
 
+				SK_CORE_TRACE("Deserializing Entity ID: {0}", (uint32_t)entityID);
 
 				auto tagComponent = entity["TagComponent"];
 				if (tagComponent)
 				{
 					auto tag = tagComponent["Tag"].as<std::string>();
 					deserializedEntity.AddComponent<TagComponent>(tag);
-					SK_CORE_TRACE("Deserializing Entity. ID: {0}, Tag: {1}", (uint32_t)entityID, tag);
+					SK_CORE_TRACE(" - Tag Compoenent: {0}", tag);
 				}
 
 
@@ -222,15 +228,17 @@ namespace Shark {
 					auto rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
 					auto scaling = transformComponent["Scaling"].as<DirectX::XMFLOAT3>();
 					deserializedEntity.AddComponent<TransformComponent>(position, rotation, scaling);
-					SK_CORE_TRACE("Added Transfrom Component");
+					SK_CORE_TRACE(" - Transfrom Component");
 				}
 
 				auto spriteRendererComponent = entity["SpriteRendererComponent"];
 				if (spriteRendererComponent)
 				{
 					auto color = spriteRendererComponent["Color"].as<DirectX::XMFLOAT4>();
-					deserializedEntity.AddComponent<SpriteRendererComponent>(color);
-					SK_CORE_TRACE("Added Sprite Renderer Component");
+					auto textureFilePath = spriteRendererComponent["Texture"].as<std::string>();
+					auto tilingfactor = spriteRendererComponent["TilingFactor"].as<float>();
+					deserializedEntity.AddComponent<SpriteRendererComponent>(color, textureFilePath.empty() ? nullptr : Texture2D::Create({}, textureFilePath), tilingfactor);
+					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
 				}
 
 				auto cameraComponent = entity["CameraComponent"];
@@ -244,14 +252,17 @@ namespace Shark {
 					float orthographicZoom = cameraComponent["OrthographicZoom"].as<float>();
 					float orthographicNear = cameraComponent["OrthographicNear"].as<float>();
 					float orthographicFar = cameraComponent["OrthographicFar"].as<float>();
+					bool isMainCamera = cameraComponent["IsMainCamera"].as<bool>();
 							
 					SceanCamera sceancamera;
-					sceancamera.SetProjectionType(type);
 					sceancamera.SetPerspective(aspecratio, perspectiveFOV, perspectiveNear, perspectiveFar);
 					sceancamera.SetOrthographic(aspecratio, orthographicZoom, orthographicNear, orthographicFar);
+					sceancamera.SetProjectionType(type);
 
 					deserializedEntity.AddComponent<CameraComponent>(sceancamera);
-					SK_CORE_TRACE("Added Camera Component");
+					if (isMainCamera)
+						m_Scean->m_ActiveCameraID = deserializedEntity;
+					SK_CORE_TRACE(" - Camera Component: Type {0}, MainCamera {0}", type == SceanCamera::Projection::Perspective ? "Perspective" : "Othographic", isMainCamera);
 				}
 			}
 		}

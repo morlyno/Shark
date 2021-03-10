@@ -16,18 +16,18 @@ namespace Shark {
 		SceanCamera(const Camera& camera);
 		SceanCamera(const DirectX::XMMATRIX& projection);
 
-		void SetProjectionType(Projection projection) { m_ProjectionType = projection; }
+		void SetProjectionType(Projection projection) { m_ProjectionType = projection; Recalcualte(); }
 		Projection GetProjectionType() const { return m_ProjectionType; }
 
-		void SetPerspective(float aspectratio, float fov, float clipnear, float clipfar) { m_Aspectratio = aspectratio; m_PerspectiveFOV = DirectX::XMConvertToRadians(fov), m_PerspectiveNear = clipnear, m_PerspectiveFar = clipfar; RecaluclatePerspetive(); }
-		void SetOrthographic(float aspectratio, float zoom, float clipnear, float clipfar) { m_Aspectratio = aspectratio; m_OrthographicZoom = zoom; m_OrthographicNear = clipnear; m_OrthographicFar = clipfar; RecaluclateOrthographic(); }
+		void SetPerspective(float aspectratio, float fov, float clipnear, float clipfar) { m_Aspectratio = aspectratio; m_PerspectiveFOV = DirectX::XMConvertToRadians(fov), m_PerspectiveNear = clipnear, m_PerspectiveFar = clipfar; Recalcualte(); }
+		void SetOrthographic(float aspectratio, float zoom, float clipnear, float clipfar) { m_Aspectratio = aspectratio; m_OrthographicZoom = zoom; m_OrthographicNear = clipnear; m_OrthographicFar = clipfar; Recalcualte(); }
 
 		float GetAspectratio() const { return m_Aspectratio; }
 
-		void SetPerspectiveFOV(float fov) { m_PerspectiveFOV = DirectX::XMConvertToRadians(fov); RecaluclatePerspetive(); }
-		void SetPerspectiveNear(float clipnear) { m_PerspectiveNear = clipnear; RecaluclatePerspetive(); }
-		void SetPerspectiveFar(float clipfar) { m_PerspectiveFar = clipfar; RecaluclatePerspetive(); }
-		void SetPerspectiveClip(float clipnear, float clipfar) { m_PerspectiveNear = clipnear; m_PerspectiveFar = clipfar; RecaluclatePerspetive(); }
+		void SetPerspectiveFOV(float fov) { m_PerspectiveFOV = DirectX::XMConvertToRadians(fov); Recalcualte(); }
+		void SetPerspectiveNear(float clipnear) { m_PerspectiveNear = clipnear; Recalcualte(); }
+		void SetPerspectiveFar(float clipfar) { m_PerspectiveFar = clipfar; Recalcualte(); }
+		void SetPerspectiveClip(float clipnear, float clipfar) { m_PerspectiveNear = clipnear; m_PerspectiveFar = clipfar; Recalcualte(); }
 
 		float GetPerspectiveFOV() const { return DirectX::XMConvertToDegrees(m_PerspectiveFOV); }
 		float GetPerspectiveNear() const { return m_PerspectiveNear; }
@@ -35,10 +35,10 @@ namespace Shark {
 		DirectX::XMFLOAT2 GetPerspetiveClip() const { return { m_PerspectiveNear, m_PerspectiveFar }; }
 
 		
-		void SetOrthographicZoom(float zoom) { m_OrthographicZoom = zoom; RecaluclateOrthographic(); }
-		void SetOrthographicNear(float clipnear) { m_OrthographicNear = clipnear; RecaluclateOrthographic(); }
-		void SetOrthographicFar(float clipfar) { m_OrthographicFar = clipfar; RecaluclateOrthographic(); }
-		void SetOrthographicClip(float clipnear, float clipfar) { m_OrthographicNear = clipnear; m_OrthographicFar = clipfar; RecaluclateOrthographic(); }
+		void SetOrthographicZoom(float zoom) { m_OrthographicZoom = zoom; Recalcualte(); }
+		void SetOrthographicNear(float clipnear) { m_OrthographicNear = clipnear; Recalcualte(); }
+		void SetOrthographicFar(float clipfar) { m_OrthographicFar = clipfar; Recalcualte(); }
+		void SetOrthographicClip(float clipnear, float clipfar) { m_OrthographicNear = clipnear; m_OrthographicFar = clipfar; Recalcualte(); }
 
 		float GetOrthographicZoom() const { return m_OrthographicZoom; }
 		float GetOrthographicNear() const { return m_OrthographicNear; }
@@ -47,6 +47,7 @@ namespace Shark {
 
 		void Resize(float width, float height);
 	private:
+		void Recalcualte();
 		void RecaluclatePerspetive();
 		void RecaluclateOrthographic();
 	private:

@@ -265,22 +265,27 @@ namespace Shark {
 			}
 
 			// ----- Keyboard ----- //
+			case WM_SYSKEYDOWN:
 			case WM_KEYDOWN:
 			{
+				//SK_CORE_TRACE("0x{0:x}", wParam);
 				const unsigned int repeat = lParam & 0xFFFF;
 				m_Callbackfunc(KeyPressedEvent((KeyCode)wParam, repeat));
 				break;
 			}
+
 			case WM_KEYUP:
 			{
 				m_Callbackfunc(KeyReleasedEvent((KeyCode)wParam));
 				break;
 			}
+
 			case WM_CHAR:
 			{
 				m_Callbackfunc(KeyCharacterEvent((KeyCode)wParam));
 				break;
 			}
+
 			default: retVal = DefWindowProc(hWnd, msg, wParam, lParam);
 		}
 

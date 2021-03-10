@@ -39,6 +39,7 @@ namespace Shark {
 		operator entt::entity() { return m_EntityHandle; }
 		operator bool() { return m_EntityHandle != entt::null; }
 		operator uint32_t() { return (uint32_t)m_EntityHandle; }
+		bool operator==(const Entity& rhs) { return m_EntityHandle == rhs.m_EntityHandle && m_Scean == rhs.m_Scean; }
 	private:
 		entt::entity m_EntityHandle{ entt::null };
 		Scean* m_Scean = nullptr;

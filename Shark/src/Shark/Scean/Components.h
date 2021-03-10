@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Shark/Scean/SceanCamera.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Scean/NativeScript.h"
 
 #include <DirectXMath.h>
 
@@ -42,23 +44,16 @@ namespace Shark {
 		SpriteRendererComponent() = default;
 		SpriteRendererComponent(const DirectX::XMFLOAT4& color)
 			: Color(color) {}
+		SpriteRendererComponent(const Ref<Texture2D>& texture)
+			: Texture(texture) {}
+		SpriteRendererComponent(const DirectX::XMFLOAT4& color, const Ref<Texture2D>& texture, float tilingfactor)
+			: Color(color), Texture(texture), TilingFactor(tilingfactor) {}
 		~SpriteRendererComponent() = default;
 
 		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f};
-	};
-
-#if 0
-	// For Later
-	struct TextureComponent
-	{
-		TextureComponent() = default;
-		TextureComponent(const Ref<Texture2D>& texture)
-			: Texture(texture) {}
-		~TextureComponent() = default;
-
 		Ref<Texture2D> Texture;
+		float TilingFactor = 1.0f;
 	};
-#endif
 
 	struct CameraComponent
 	{
@@ -72,6 +67,21 @@ namespace Shark {
 		~CameraComponent() = default;
 
 		SceanCamera Camera;
+	};
+
+	struct NativeScriptComponent
+	{
+		NativeScript* Script;
+
+		NativeScript* (*CreateScript)(Entity entity);
+		void (*DestroyScript)(NativeScript* ns);
+
+		template<typename Type>
+		void Bind()
+		{
+			CreateScript = [](Entity entity) { NativeScript* s = reinterpret_cast<NativeScript*>(new Type()); s->SetEntity(entity); return s; };
+			DestroyScript = [](NativeScript* ns) { delete ns; ns = nullptr; };
+		}
 	};
 
 }
