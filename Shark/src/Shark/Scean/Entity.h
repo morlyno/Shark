@@ -15,7 +15,9 @@ namespace Shark {
 		template<typename Component, typename... Args>
 		Component& AddComponent(Args&&... args)
 		{
-			return m_Scean->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+			auto& comp = m_Scean->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+			m_Scean->OnComponentAdded(*this, comp);
+			return comp;
 		}
 
 		template<typename Component>

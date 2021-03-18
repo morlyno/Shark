@@ -2,7 +2,7 @@
 #include "SceanSerialization.h"
 
 #include "Shark/Scean/Entity.h"
-#include "Shark/Scean/Components.h"
+#include "Shark/Scean/Components/Components.h"
 
 #include <yaml-cpp/yaml.h>
 #include <fstream>
@@ -10,6 +10,21 @@
 #include <DirectXMath.h>
 
 namespace YAML {
+
+	template<>
+	struct convert<DirectX::XMFLOAT2>
+	{
+		static bool decode(const Node& node, DirectX::XMFLOAT2& f2)
+		{
+			if (!node.IsSequence() || node.size() != 2)
+				return false;
+
+			f2.x = node[0].as<float>();
+			f2.y = node[1].as<float>();
+
+			return true;
+		}
+	};
 
 	template<>
 	struct convert<DirectX::XMFLOAT3>
@@ -47,6 +62,13 @@ namespace YAML {
 }
 
 namespace Shark {
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT2& f2)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << f2.x << f2.y << YAML::EndSeq;
+		return out;
+	}
 
 	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& f3)
 	{
@@ -165,6 +187,31 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<RigidBodyComponent>())
+		{
+			out << YAML::Key << "RigidBodyComponent" << YAML::Value;
+			out << YAML::BeginMap;
+
+			auto& comp = entity.GetComponent<RigidBodyComponent>();
+			auto& body = comp.Body;
+
+			out << YAML::Key << "Type" << YAML::Value << (int)body.GetType();
+			out << YAML::Key << "AllowSleep" << YAML::Value << body.IsSleepingAllowed();
+			out << YAML::Key << "Awake" << YAML::Value << body.IsAwake();
+			out << YAML::Key << "Enabled" << YAML::Value << body.IsEnabled();
+			out << YAML::Key << "FixedRotation" << YAML::Value << body.IsFixedRoation();
+			out << YAML::Key << "Shape" << YAML::Value << (int)body.GetShape();
+			out << YAML::Key << "Friction" << YAML::Value << body.GetFriction();
+			out << YAML::Key << "Density" << YAML::Value << body.GetDensity();
+			out << YAML::Key << "Restitution" << YAML::Value << body.GetRestituion();
+			out << YAML::Key << "Position" << YAML::Value << body.GetPosition();
+			out << YAML::Key << "Angle" << YAML::Value << body.GetAngle();
+			out << YAML::Key << "Size" << YAML::Value << body.GetSize();
+
+			out << YAML::EndMap;
+
+		}
+
 		out << YAML::EndMap;
 
 		return true;
@@ -263,6 +310,28 @@ namespace Shark {
 					if (isMainCamera)
 						m_Scean->m_ActiveCameraID = deserializedEntity;
 					SK_CORE_TRACE(" - Camera Component: Type {0}, MainCamera {0}", type == SceanCamera::Projection::Perspective ? "Perspective" : "Othographic", isMainCamera);
+				}
+
+				auto rigidbodyComponent = entity["RigidBodyComponent"];
+				if (rigidbodyComponent)
+				{
+					RigidBodySpecs specs;
+					specs.Type = (BodyType)rigidbodyComponent["Type"].as<int>();
+					specs.AllowSleep = rigidbodyComponent["AllowSleep"].as<bool>();
+					specs.Awake = rigidbodyComponent["Awake"].as<bool>();
+					specs.Enabled = rigidbodyComponent["Enabled"].as<bool>();
+					specs.FixedRotation = rigidbodyComponent["FixedRotation"].as<bool>();
+					specs.Shape = (ShapeType)rigidbodyComponent["Shape"].as<int>();
+					specs.Friction = rigidbodyComponent["Friction"].as<float>();
+					specs.Density = rigidbodyComponent["Density"].as<float>();
+					specs.Restitution = rigidbodyComponent["Restitution"].as<float>();
+					specs.Position = rigidbodyComponent["Position"].as<DirectX::XMFLOAT2>();
+					specs.Angle = rigidbodyComponent["Angle"].as<float>();
+					specs.Size = rigidbodyComponent["Size"].as<DirectX::XMFLOAT2>();
+				
+					RigidBody rigidbody = m_Scean->m_World.CreateBody(specs);
+					deserializedEntity.AddComponent<RigidBodyComponent>(rigidbody);
+					SK_CORE_TRACE(" - RigidBody Component: Type {0}", specs.Type == BodyType::Static ? "Static" : "Dinamic");
 				}
 			}
 		}

@@ -1,6 +1,6 @@
 #include "SceanHirachyPanel.h"
 
-#include <Shark/Scean/Components.h>
+#include <Shark/Scean/Components/Components.h>
 #include <Shark/Utility/FileDialogs.h>
 #include <Shark/Utility/Utils.h>
 
@@ -120,6 +120,85 @@ namespace Shark {
 		}
 	}
 
+	static bool DrawFloatControl(const char* lable, float& val, float resetVal = 0.0f, const char* fmt = "%.2f")
+	{
+		ImGui::PushID(lable);
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, 100);
+
+		ImGui::Text(lable);
+		ImGui::NextColumn();
+
+		const ImVec2 buttonSize = { 19, 19 };
+		const float itemWidth = ImGui::GetColumnWidth() - buttonSize.x - 8.0f;
+		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_NoRoundToFormat;
+
+		bool valchanged = false;
+
+		ImGui::PushItemWidth(itemWidth);
+
+		if (ImGui::Button("X", buttonSize))
+		{
+			val = resetVal;
+			valchanged |= true;
+		}
+		ImGui::SameLine(0.0f, 0.0f);
+		valchanged |= ImGui::DragFloat("##X", &val, 1.0f, 0.0f, 0.0f, fmt, sliderFalgs);
+
+		ImGui::PopItemWidth();
+
+		ImGui::Columns();
+
+		ImGui::PopID();
+
+		return valchanged;
+	}
+
+	static bool DrawVec2Control(const char* lable, DirectX::XMFLOAT2& vec, float resetVal = 0.0f, const char* fmt = "%.2f")
+	{
+		ImGui::PushID(lable);
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, 100);
+
+		ImGui::Text(lable);
+		ImGui::NextColumn();
+
+		const ImVec2 buttonSize = { 19, 19 };
+		const float itemWidth = ImGui::GetColumnWidth() / 2.0f - buttonSize.x - 8.0f;
+		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_NoRoundToFormat;
+
+		bool valchanged = false;
+
+		ImGui::PushItemWidth(itemWidth);
+
+		if (ImGui::Button("X", buttonSize))
+		{
+			vec.x = resetVal;
+			valchanged |= true;
+		}
+		ImGui::SameLine(0.0f, 0.0f);
+		valchanged |= ImGui::DragFloat("##X", &vec.x, 1.0f, 0.0f, 0.0f, fmt, sliderFalgs);
+
+		ImGui::SameLine();
+		if (ImGui::Button("Y", buttonSize))
+		{
+			vec.y = resetVal;
+			valchanged |= true;
+		}
+		ImGui::SameLine(0.0f, 0.0f);
+		valchanged |= ImGui::DragFloat("##Y", &vec.y, 1.0f, 0.0f, 0.0f, fmt, sliderFalgs);
+
+		ImGui::PopItemWidth();
+
+		ImGui::Columns();
+
+		ImGui::PopID();
+
+		return valchanged;
+	}
+
 	static void DrawVec3Control(const char* lable, DirectX::XMFLOAT3& vec, float resetVal = 0.0f, const char* fmt = "%.2f")
 	{
 		ImGui::PushID(lable);
@@ -215,6 +294,12 @@ namespace Shark {
 				entity.AddComponent<CameraComponent>();
 				ImGui::CloseCurrentPopup();
 			}
+			if (ImGui::Selectable("Rigid Body", false, entity.HasComponent<RigidBodyComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			{
+				auto rigidbody = m_Context->GetWorld().CreateBody();
+				entity.AddComponent<RigidBodyComponent>(rigidbody);
+				ImGui::CloseCurrentPopup();
+			}
 			ImGui::EndPopup();
 		}
 
@@ -241,7 +326,8 @@ namespace Shark {
 				ImGui::Separator();
 
 				ImGui::Text("Texture");
-				if (ImGui::ImageButton(comp.Texture ? comp.Texture->GetHandle() : m_ImGuiNoTextureSelectedTexture->GetHandle(), { 48, 48 }))
+				ImTextureID image = comp.Texture ? comp.Texture->GetHandle() : m_ImGuiNoTextureSelectedTexture->GetHandle();
+				if (ImGui::ImageButton(image, { 48, 48 }))
 				{
 					std::optional<std::string> imagePath = FileDialogs::OpenFile(nullptr);
 					if (imagePath)
@@ -403,6 +489,70 @@ namespace Shark {
 				bool isMainCamera = m_Context->m_ActiveCameraID == entity;
 				if (ImGui::Checkbox("Is Active", &isMainCamera))
 					m_Context->m_ActiveCameraID = entity;
+			});
+
+		DrawComponet<RigidBodyComponent>(entity, "Rigid Body", [&](RigidBodyComponent& comp)
+			{
+				auto& body = comp.Body;
+
+				int curritem = body.GetType() == BodyType::Static ? 0 : 1;
+				if (ImGui::Combo("##BodyType", &curritem, "Static\0Dynamic\0"))
+					body.SetType(curritem == 0 ? BodyType::Static : BodyType::Dynamic);
+				ImGui::SameLine();
+				if (ImGui::Button("Reset"))
+				{
+					if (entity.HasComponent<TransformComponent>())
+					{
+						auto& tc = entity.GetComponent<TransformComponent>();
+						body.SetPosition(tc.Position.x, tc.Position.y);
+						body.SetAngle(tc.Rotation.z);
+						body.Resize(tc.Scaling.x, tc.Scaling.y);
+					}
+				}
+
+				auto pos = body.GetPosition();
+				if (DrawVec2Control("Position", pos))
+					body.SetPosition(pos.x, pos.y);
+
+				float angle = DirectX::XMConvertToDegrees(body.GetAngle());
+				if (DrawFloatControl("Angle", angle))
+					body.SetAngle(DirectX::XMConvertToRadians(angle));
+
+				auto size = body.GetSize();
+				if (DrawVec2Control("Size", size, 1.0f))
+					body.Resize(size.x, size.y);
+
+				ImGui::Separator();
+
+				bool sleepingallowed = body.IsSleepingAllowed();
+				if (ImGui::Checkbox("Sleeping Allowed", &sleepingallowed))
+					body.SetSleepingAllowed(sleepingallowed);
+
+				bool enabled = body.IsEnabled();
+				if (ImGui::Checkbox("Enabled", &enabled))
+					body.SetEnabled(enabled);
+
+				bool awake = body.IsAwake();
+				if (ImGui::Checkbox("Awake", &awake))
+					body.SetAwake(awake);
+
+				bool fixedroation = body.IsFixedRoation();
+				if (ImGui::Checkbox("Fixed Rotation", &fixedroation))
+					body.SetFixedRotation(fixedroation);
+
+				ImGui::Separator();
+
+				float friction = body.GetFriction();
+				if (DrawFloatControl("Friction", friction))
+					body.SetFriction(friction);
+
+				float density = body.GetDensity();
+				if (DrawFloatControl("Density", density))
+					body.SetDensity(density);
+
+				float restitution = body.GetRestituion();
+				if (DrawFloatControl("Restitution", restitution))
+					body.SetRestitution(restitution);
 			});
 
 		ImGui::End();

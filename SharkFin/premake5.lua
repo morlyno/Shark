@@ -19,7 +19,8 @@ project "SharkFin"
         "%{includeDir.spdlog}",
         "%{includeDir.ImGui}",
         "%{includeDir.EnTT}",
-        "%{includeDir.yaml_cpp}"
+        "%{includeDir.yaml_cpp}",
+        "%{includeDir.box2d}"
     }
 
     links

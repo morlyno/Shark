@@ -19,16 +19,17 @@ namespace Shark {
 		void SetProjection(float aspectratio, float fov, float nearClip, float farClip);
 		DirectX::XMMATRIX GetViewProjection() const { return m_View * m_Projection; }
 
-		void SetViewportSize(const DirectX::XMFLOAT2 size) { m_ViewportSize = size; m_AspectRatio = m_ViewportSize.x / m_ViewportSize.y; UpdateProjection(); }
+		void Resize(float width, float height) { m_ViewportSize = { width, height }; m_AspectRatio = width / height; UpdateProjection(); }
+
 		const DirectX::XMFLOAT2& GetViewportSize() const { return m_ViewportSize; }
 		float GetViewporWidth() const { return m_ViewportSize.x; }
 		float GetViewportHeight() const { return m_ViewportSize.y; }
 
-		void SetAspectRatio(float aspectratio) { m_AspectRatio = aspectratio; }
-		void SetFOV(float fov) { m_FOV = DirectX::XMConvertToRadians(fov); }
-		void SetFarClip(float farClip) { m_FarClip = farClip; }
-		void SetNearClip(float nearClip) { m_NearClip = nearClip; }
-		void SetDistance(float distance) { m_Distance = distance; }
+		void SetAspectRatio(float aspectratio) { m_AspectRatio = aspectratio; UpdateProjection(); }
+		void SetFOV(float fov) { m_FOV = DirectX::XMConvertToRadians(fov); UpdateProjection(); }
+		void SetFarClip(float farClip) { m_FarClip = farClip; UpdateProjection(); }
+		void SetNearClip(float nearClip) { m_NearClip = nearClip; UpdateProjection(); }
+		void SetDistance(float distance) { m_Distance = distance; UpdatePosition(); UpdateView(); }
 
 		float GetAspectRatio() { return m_AspectRatio; }
 		float GetFOV() { return DirectX::XMConvertToDegrees(m_FOV); }
@@ -43,6 +44,9 @@ namespace Shark {
 		DirectX::XMVECTOR GetUpwardsDirection() const;
 		DirectX::XMVECTOR GetRightDirection() const;
 		DirectX::XMVECTOR GetRotation() const;
+
+		DirectX::XMFLOAT2 GetMoveSpeed();
+		float GetZoomSpeed();
 
 		void UpdateView();
 		void UpdateProjection();

@@ -7,7 +7,6 @@ namespace Shark {
 
 	class NativeScript
 	{
-		friend struct NaticeScriptComponent;
 	public:
 		virtual ~NativeScript() = default;
 

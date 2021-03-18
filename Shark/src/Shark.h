@@ -29,6 +29,8 @@
 #include "Shark/Render/EditorCamera.h"
 // --------------------------------------
 
+// --- ECS ------------------------------
 #include "Shark/Scean/Scean.h"
 #include "Shark/Scean/Entity.h"
-#include "Shark/Scean/Components.h"
+#include "Shark/Scean/Components/Components.h"
+// --------------------------------------

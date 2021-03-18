@@ -4,6 +4,10 @@
 #include <Shark/Render/EditorCamera.h>
 #include "SceanHirachyPanel.h"
 
+#include <box2d/box2d.h>
+
+//#define SHARK_BOX2D_TEST
+
 namespace Shark {
 
 	class EditorLayer : public Layer
@@ -21,6 +25,7 @@ namespace Shark {
 		virtual void OnImGuiRender() override;
 	private:
 		bool OnWindowResize(WindowResizeEvent& event);
+		bool OnKeyPressed(KeyPressedEvent& event);
 
 		void NewScean();
 		void SaveScean();
@@ -33,12 +38,19 @@ namespace Shark {
 		SceanHirachyPanel m_SceanHirachyPanel;
 
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
-		DirectX::XMFLOAT2 m_ViewportSize = { 0.0f, 0.0f };
+		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		bool m_ViewportSizeChanged = false;
 
 		bool m_PlayScean = false;
 		bool m_ShowRendererStats = false;
-		Ref<Texture2D> m_SceaPlayButtonImage;
+
+		// Box2D Test
+#ifdef SHARK_BOX2D_TEST
+		b2World* m_World;
+		b2Body* m_Groundbody;
+		b2Body* m_DynamicBody;
+		b2Body* m_DynamicBody1;
+#endif
 	};
 
 }
