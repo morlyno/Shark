@@ -8,6 +8,7 @@ namespace Shark {
 
 	EditorCamera::EditorCamera()
 	{
+		UpdatePosition();
 		UpdateProjection();
 		UpdateView();
 	}
@@ -16,6 +17,7 @@ namespace Shark {
 		: Camera(DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(fov), aspectratio, nearClip, farClip)),
 		m_AspectRatio(aspectratio), m_FOV(DirectX::XMConvertToRadians(fov)), m_NearClip(nearClip), m_FarClip(farClip)
 	{
+		UpdatePosition();
 		UpdateView();
 	}
 
@@ -62,17 +64,17 @@ namespace Shark {
 
 	DirectX::XMVECTOR EditorCamera::GetForwardDirection() const
 	{
-		return DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(DirectX::XMLoadFloat3(&m_FocusPoint), DirectX::XMLoadFloat3(&m_Position)));
+		return DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), DirectX::XMMatrixRotationQuaternion(GetRotation()));
 	}
 
 	DirectX::XMVECTOR EditorCamera::GetUpwardsDirection() const
 	{
-		return DirectX::XMVector3Normalize(DirectX::XMVector3Cross(GetForwardDirection(), GetRightDirection()));
+		return DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), DirectX::XMMatrixRotationQuaternion(GetRotation()));
 	}
 
 	DirectX::XMVECTOR EditorCamera::GetRightDirection() const
 	{
-		return DirectX::XMVector3Normalize(DirectX::XMVector3Rotate(GetForwardDirection(), DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), DirectX::g_XMHalfPi[0])));
+		return DirectX::XMVector3Transform(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), DirectX::XMMatrixRotationQuaternion(GetRotation()));
 	}
 
 	DirectX::XMVECTOR EditorCamera::GetRotation() const
@@ -114,9 +116,11 @@ namespace Shark {
 
 	void EditorCamera::UpdatePosition()
 	{
-		auto pos = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), DirectX::XMMatrixTranslation(0.0f, 0.0f, -m_Distance) *
-			DirectX::XMMatrixRotationQuaternion(GetRotation()) * DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&m_FocusPoint)));
-		DirectX::XMStoreFloat3(&m_Position, pos);
+		using namespace DirectX;
+
+		auto focuspoint = XMLoadFloat3(&m_FocusPoint);
+		auto pos = focuspoint - GetForwardDirection() * m_Distance;
+		XMStoreFloat3(&m_Position, pos);
 	}
 
 	void EditorCamera::OnMouseRotate(const DirectX::XMFLOAT2& delta)
@@ -131,8 +135,8 @@ namespace Shark {
 	void EditorCamera::OnMouseMove(const DirectX::XMFLOAT2& delta)
 	{
 		using namespace DirectX;
-		auto pos = DirectX::XMLoadFloat3(&m_Position);
-		auto focuspos = DirectX::XMLoadFloat3(&m_FocusPoint);
+		auto pos = XMLoadFloat3(&m_Position);
+		auto focuspos = XMLoadFloat3(&m_FocusPoint);
 
 		auto [xSpeed, ySpeed] = GetMoveSpeed();
 

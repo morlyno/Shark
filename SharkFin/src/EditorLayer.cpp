@@ -4,6 +4,7 @@
 
 #include <Shark/Scean/SceanSerialization.h>
 #include <Shark/Utility/FileDialogs.h>
+#include <Shark/Utility/ImGuiUtils.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -59,67 +60,6 @@ namespace Shark {
 		auto& nsc = ScriptedEntity.AddComponent<NativeScriptComponent>();
 		nsc.Bind<TestScript>();
 #endif
-
-		// Box2D Test
-#ifdef SHARK_BOX2D_TEST
-		m_World = new b2World({ 0.0f, -10.0f });
-
-		b2BodyDef groundbodydef;
-		groundbodydef.type = b2_staticBody;
-		groundbodydef.position = { 0.0f, -8.0f };
-		groundbodydef.angle = DirectX::XMConvertToRadians(0.0f);
-		m_Groundbody = m_World->CreateBody(&groundbodydef);
-
-		b2PolygonShape groundbodyshape;
-		groundbodyshape.SetAsBox(25.0f, 0.5f);
-
-		m_Groundbody->CreateFixture(&groundbodyshape, 0.0f);
-
-
-		b2BodyDef dynamicbodydef;
-		dynamicbodydef.type = b2_dynamicBody;
-		dynamicbodydef.position = { 0.0f, 4.0f };
-		dynamicbodydef.awake = true;
-		dynamicbodydef.enabled = true;
-		//dynamicbodydef.linearVelocity = { 5.0f, 5.0f };
-		//dynamicbodydef.angularVelocity = 0.0f;
-
-		m_DynamicBody = m_World->CreateBody(&dynamicbodydef);
-
-		b2PolygonShape dynamicbodyshape;
-		dynamicbodyshape.SetAsBox(0.5f, 0.5f);
-
-		b2FixtureDef fixturedef;
-		fixturedef.shape = &dynamicbodyshape;
-		fixturedef.density = 1.0f;
-		fixturedef.friction = 0.3f;
-		fixturedef.restitution = 0.0f;
-
-		m_DynamicBody->CreateFixture(&fixturedef);
-		
-
-		b2BodyDef dynamicbodydef1;
-		dynamicbodydef1.type = b2_dynamicBody;
-		dynamicbodydef1.position = { 0.0f, 8.0f };
-		dynamicbodydef1.awake = true;
-		dynamicbodydef1.enabled = true;
-		//dynamicbodydef1.angularVelocity = 0.0f;
-
-		m_DynamicBody1 = m_World->CreateBody(&dynamicbodydef1);
-
-		b2PolygonShape dynamicbodyshape1;
-		dynamicbodyshape1.SetAsBox(0.5f, 0.5f);
-
-		b2FixtureDef fixturedef1;
-		fixturedef1.shape = &dynamicbodyshape1;
-		fixturedef1.density = 1.0f;
-		fixturedef1.friction = 0.3f;
-
-		m_DynamicBody1->CreateFixture(&fixturedef1);
-
-		m_EditorCamera.SetDistance(50);
-#endif
-
 	}
 
 	void EditorLayer::OnDetach()
@@ -148,19 +88,6 @@ namespace Shark {
 				m_ActiveScean->OnUpdateEditor(ts, m_EditorCamera);
 			}
 		}
-
-		// Box2D Test
-#ifdef SHARK_BOX2D_TEST
-		m_World->Step(1.0f / 60.0f, 8, 3);
-
-		Renderer2D::BeginScean(m_EditorCamera);
-
-		Renderer2D::DrawRotatedQuad({ m_Groundbody->GetPosition().x, m_Groundbody->GetPosition().y }, m_Groundbody->GetAngle(), { 50, 1 }, { 0.2f, 0.8f, 0.2f, 1.0f });
-		Renderer2D::DrawRotatedQuad({ m_DynamicBody->GetPosition().x, m_DynamicBody->GetPosition().y }, m_DynamicBody->GetAngle(), { 1, 1 }, { 0.2f, 0.2f, 0.8f, 1.0f });
-		Renderer2D::DrawRotatedQuad({ m_DynamicBody1->GetPosition().x, m_DynamicBody1->GetPosition().y }, m_DynamicBody1->GetAngle(), { 1, 1 }, { 0.8f, 0.2f, 0.2f, 1.0f });
-
-		Renderer2D::EndScean();
-#endif
 
 		RendererCommand::GetFramebufferContent(m_FrameBufferTexture);
 	}
@@ -198,28 +125,11 @@ namespace Shark {
 		return false;
 	}
 
-	static void CallbackFunctionBlend(const ImDrawList* parent_list, const ImDrawCmd* cmd)
-	{
-		::Shark::RendererCommand::SetBlendState((bool)cmd->UserCallbackData);
-	}
-
 	void EditorLayer::OnImGuiRender()
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
-			if (ImGui::BeginMenu("File"))
-			{
-				if (ImGui::MenuItem("New Scean", "strg+N"))
-					NewScean();
-				if (ImGui::MenuItem("Save Scean...", "strg+S"))
-					SaveScean();
-				if (ImGui::MenuItem("Open Scean...", "strg+O"))
-					OpenScean();
-
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::BeginMenu("Options"))
+			if (ImGui::BeginMenu("Scean"))
 			{
 				if (m_PlayScean)
 				{
@@ -237,10 +147,22 @@ namespace Shark {
 						m_ActiveScean->OnSceanPlay();
 					}
 				}
+				if (ImGui::MenuItem("New", "strg+N"))
+					NewScean();
+				if (ImGui::MenuItem("Save As..", "strg+S"))
+					SaveScean();
+				if (ImGui::MenuItem("Open..", "strg+O"))
+					OpenScean();
 
+				ImGui::EndMenu();
+			}
 
-				if (ImGui::MenuItem("Batch Renderer Stats", nullptr, m_ShowRendererStats))
-					m_ShowRendererStats = !m_ShowRendererStats;
+			if (ImGui::BeginMenu("Panels"))
+			{
+				
+				ImGui::MenuItem("Scean Hirachy", nullptr, &m_ShowSceanHirachyPanel);
+				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
+				ImGui::MenuItem("Batch Renderer Stats", nullptr, &m_ShowRendererStats);
 
 				if (ImGui::MenuItem("Exit"))
 					Application::Get().CloseApplication();
@@ -252,8 +174,8 @@ namespace Shark {
 		}
 
 		constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking |
-										ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-										ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+										          ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+										          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->GetWorkPos());
@@ -271,6 +193,7 @@ namespace Shark {
 
         ImGui::End();
 
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -280,8 +203,7 @@ namespace Shark {
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
-		ImVec2 pos = ImGui::GetWindowPos();
-		ImVec2 size = ImGui::GetWindowSize();
+		ImVec2 size = ImGui::GetContentRegionAvail();
 
 		m_ViewportSizeChanged = false;
 		if (m_ViewportWidth != size.x || m_ViewportHeight != size.y)
@@ -291,10 +213,7 @@ namespace Shark {
 			m_ViewportSizeChanged = true;
 		}
 
-		ImDrawList* dl = ImGui::GetWindowDrawList();
-		dl->AddCallback(CallbackFunctionBlend, (bool*)0);
-		dl->AddImage(m_FrameBufferTexture->GetHandle(), pos, { pos.x + size.x, pos.y + size.y });
-		dl->AddCallback(CallbackFunctionBlend, (bool*)1);
+		UI::NoAlpaImage(m_FrameBufferTexture->GetHandle(), size);
 		ImGui::End();
 
 		if (m_ShowRendererStats)
@@ -309,7 +228,33 @@ namespace Shark {
 			ImGui::End();
 		}
 
-		m_SceanHirachyPanel.OnImGuiRender();
+		if (m_ShowEditorCameraControlls)
+		{
+			ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls);
+
+			UI::DrawVec3Show("Position", m_EditorCamera.GetPosition());
+
+			auto focuspoint = m_EditorCamera.GetFocusPoint();
+			if (UI::DrawVec3Control("FocusPoint", focuspoint))
+				m_EditorCamera.SetFocusPoint(focuspoint);
+
+			DirectX::XMFLOAT2 py = { m_EditorCamera.GetPitch(), m_EditorCamera.GetYaw() };
+			if (UI::DrawVec2Control("Orientation", py))
+			{
+				m_EditorCamera.SetPicht(py.x);
+				m_EditorCamera.SetYaw(py.y);
+			}
+
+			float distance = m_EditorCamera.GetDistance();
+			if (UI::DrawFloatControl("Distance", distance, 10))
+				if (distance >= 0.25f)
+					m_EditorCamera.SetDistance(distance);
+
+			ImGui::End();
+		}
+
+		if (m_ShowSceanHirachyPanel)
+			m_SceanHirachyPanel.OnImGuiRender();
 	}
 
 	void EditorLayer::NewScean()

@@ -52,14 +52,27 @@ namespace Shark {
 		wcstombs_s(nullptr, str.data(), str.size(), props.Name.data(), std::numeric_limits<size_t>::max());
 		SK_CORE_INFO("Init Windows Window {0} {1} {2}", props.Width, props.Height, str);
 
-		constexpr DWORD flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+		int width, height;
+		DWORD flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+		
+		if (props.Maximized)
+		{
+			flags |= WS_MAXIMIZE;
+			width = CW_USEDEFAULT;
+			height = CW_USEDEFAULT;
+		}
+		else
+		{
+			RECT rect;
+			rect.left = 100;
+			rect.right = m_Width + rect.left;
+			rect.top = 100;
+			rect.bottom = m_Height + rect.top;
+			AdjustWindowRectEx(&rect, flags, FALSE, 0);
 
-		RECT rect;
-		rect.left = 100;
-		rect.right = m_Width + rect.left;
-		rect.top = 100;
-		rect.bottom = m_Height + rect.top;
-		AdjustWindowRect(&rect, flags, FALSE);
+			width = rect.right - rect.left;
+			height = rect.bottom - rect.top;
+		}
 
 		m_hWnd = CreateWindowExW(
 			0,
@@ -68,8 +81,8 @@ namespace Shark {
 			flags,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
-			rect.right - rect.left,
-			rect.bottom - rect.top,
+			width,
+			height,
 			nullptr,
 			nullptr,
 			WindowClass::GetHInst(),
@@ -84,7 +97,7 @@ namespace Shark {
 			SK_DEBUG_BREAK();
 		}
 #endif
-		ShowWindow(m_hWnd, SW_SHOWDEFAULT);
+		ShowWindow(m_hWnd, SW_SHOW);
 		UpdateWindow(m_hWnd);
 	}
 
@@ -134,7 +147,14 @@ namespace Shark {
 			return 1;
 
 		if (!m_Callbackfunc)
+		{
+			if (msg == WM_SIZE)
+			{
+				m_Width = LOWORD(lParam);
+				m_Height = HIWORD(lParam);
+			}
 			return DefWindowProc(hWnd, msg, wParam, lParam);
+		}
 
 		m_IsFocused = m_hWnd == GetFocus();
 

@@ -10,6 +10,7 @@ namespace Shark {
 		int Width = 1280;
 		int Height = 720;
 		bool VSync = true;
+		bool Maximized = false;
 
 		WindowProps() = default;
 		WindowProps(const std::wstring& name, int width, int height, bool VSync)
@@ -38,6 +39,8 @@ namespace Shark {
 		virtual void SetVSync(bool VSync) = 0;
 
 		virtual void Kill() = 0;
+
+		virtual void Maximize() = 0;
 
 		static Scope<Window> Create(const WindowProps& properties = WindowProps());
 	};

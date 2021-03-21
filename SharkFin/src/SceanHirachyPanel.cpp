@@ -3,6 +3,7 @@
 #include <Shark/Scean/Components/Components.h>
 #include <Shark/Utility/FileDialogs.h>
 #include <Shark/Utility/Utils.h>
+#include <Shark/Utility/ImGuiUtils.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -59,22 +60,35 @@ namespace Shark {
 			ImGui::TreePop();
 		}
 
-
-		//m_Context->m_Registry.each([&](auto entityID)
-		//{
-		//	Entity entity{ entityID, m_Context.get() };
-		//	DrawEntityNode(entity);
-		//});
-
 		if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
 			m_SelectedEntity = {};
 
-		if (ImGui::BeginPopupContextWindow("Add Entity Popup",ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+		if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 		{
-			if (ImGui::Selectable("Add Entity"))
+			if (ImGui::BeginMenu("Create"))
 			{
-				m_SelectedEntity = m_Context->CreateEntity("New Entity");
-				ImGui::CloseCurrentPopup();
+				if (ImGui::MenuItem("Empty Entity"))
+					m_Context->CreateEntity("New Entity");
+				if (ImGui::MenuItem("Camera"))
+				{
+					Entity e = m_Context->CreateEntity("New Camera");
+					e.AddComponent<CameraComponent>();
+					m_SelectedEntity = e;
+				}
+				if (ImGui::MenuItem("Quad"))
+				{
+					Entity e = m_Context->CreateEntity("New Quad");
+					e.AddComponent<SpriteRendererComponent>();
+					m_SelectedEntity = e;
+				}
+				if (ImGui::MenuItem("RigidBody"))
+				{
+					Entity e = m_Context->CreateEntity("New RigidBody");
+					auto& comp = e.AddComponent<RigidBodyComponent>();
+					comp.Body = m_Context->GetWorld().CreateBody();
+					m_SelectedEntity = e;
+				}
+				ImGui::EndMenu();
 			}
 			ImGui::EndPopup();
 		}
@@ -120,125 +134,6 @@ namespace Shark {
 		}
 	}
 
-	static bool DrawFloatControl(const char* lable, float& val, float resetVal = 0.0f, const char* fmt = "%.2f")
-	{
-		ImGui::PushID(lable);
-
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 100);
-
-		ImGui::Text(lable);
-		ImGui::NextColumn();
-
-		const ImVec2 buttonSize = { 19, 19 };
-		const float itemWidth = ImGui::GetColumnWidth() - buttonSize.x - 8.0f;
-		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_NoRoundToFormat;
-
-		bool valchanged = false;
-
-		ImGui::PushItemWidth(itemWidth);
-
-		if (ImGui::Button("X", buttonSize))
-		{
-			val = resetVal;
-			valchanged |= true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		valchanged |= ImGui::DragFloat("##X", &val, 1.0f, 0.0f, 0.0f, fmt, sliderFalgs);
-
-		ImGui::PopItemWidth();
-
-		ImGui::Columns();
-
-		ImGui::PopID();
-
-		return valchanged;
-	}
-
-	static bool DrawVec2Control(const char* lable, DirectX::XMFLOAT2& vec, float resetVal = 0.0f, const char* fmt = "%.2f")
-	{
-		ImGui::PushID(lable);
-
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 100);
-
-		ImGui::Text(lable);
-		ImGui::NextColumn();
-
-		const ImVec2 buttonSize = { 19, 19 };
-		const float itemWidth = ImGui::GetColumnWidth() / 2.0f - buttonSize.x - 8.0f;
-		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_NoRoundToFormat;
-
-		bool valchanged = false;
-
-		ImGui::PushItemWidth(itemWidth);
-
-		if (ImGui::Button("X", buttonSize))
-		{
-			vec.x = resetVal;
-			valchanged |= true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		valchanged |= ImGui::DragFloat("##X", &vec.x, 1.0f, 0.0f, 0.0f, fmt, sliderFalgs);
-
-		ImGui::SameLine();
-		if (ImGui::Button("Y", buttonSize))
-		{
-			vec.y = resetVal;
-			valchanged |= true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		valchanged |= ImGui::DragFloat("##Y", &vec.y, 1.0f, 0.0f, 0.0f, fmt, sliderFalgs);
-
-		ImGui::PopItemWidth();
-
-		ImGui::Columns();
-
-		ImGui::PopID();
-
-		return valchanged;
-	}
-
-	static void DrawVec3Control(const char* lable, DirectX::XMFLOAT3& vec, float resetVal = 0.0f, const char* fmt = "%.2f")
-	{
-		ImGui::PushID(lable);
-
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 100);
-
-		ImGui::Text(lable);
-		ImGui::NextColumn();
-
-		const ImVec2 buttonSize = { 19, 19 };
-		const float itemWidth = ImGui::GetColumnWidth() / 3.0f - buttonSize.x - 8.0f;
-		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_NoRoundToFormat;
-
-		ImGui::PushItemWidth(itemWidth);
-
-		if (ImGui::Button("X", buttonSize))
-			vec.x = resetVal;
-		ImGui::SameLine(0.0f, 0.0f);
-		ImGui::DragFloat("##X", &vec.x, 1.0f, 0.0f, 0.0f, fmt, sliderFalgs);
-
-		ImGui::SameLine();
-		if (ImGui::Button("Y", buttonSize))
-			vec.y = resetVal;
-		ImGui::SameLine(0.0f, 0.0f);
-		ImGui::DragFloat("##Y", &vec.y, 1.0f, 0.0f, 0.0f, fmt, sliderFalgs);
-
-		ImGui::SameLine();
-		if (ImGui::Button("Z", buttonSize))
-			vec.z = resetVal;
-		ImGui::SameLine(0.0f, 0.0f);
-		ImGui::DragFloat("##Z", &vec.z, 1.0f, 0.0f, 0.0f, fmt, sliderFalgs);
-
-		ImGui::PopItemWidth();
-
-		ImGui::Columns();
-
-		ImGui::PopID();
-	}
-	
 	template<typename Comp, typename UIFunction>
 	static void DrawComponet(Entity entity, const char* lable, UIFunction func)
 	{
@@ -305,11 +200,11 @@ namespace Shark {
 
 		DrawComponet<TransformComponent>(entity, "Transform", [](auto& comp)
 			{
-				DrawVec3Control("Position", comp.Position);
+				UI::DrawVec3Control("Position", comp.Position);
 				DirectX::XMFLOAT3 rotation = { DirectX::XMConvertToDegrees(comp.Rotation.x), DirectX::XMConvertToDegrees(comp.Rotation.y), DirectX::XMConvertToDegrees(comp.Rotation.z) };
-				DrawVec3Control("Rotation", rotation);
+				UI::DrawVec3Control("Rotation", rotation);
 				comp.Rotation = { DirectX::XMConvertToRadians(rotation.x), DirectX::XMConvertToRadians(rotation.y), DirectX::XMConvertToRadians(rotation.z) };
-				DrawVec3Control("Scaling", comp.Scaling, 1.0f);
+				UI::DrawVec3Control("Scaling", comp.Scaling, 1.0f);
 			});
 
 		DrawComponet<SpriteRendererComponent>(entity, "SptrieRenderer", [=](SpriteRendererComponent& comp)
@@ -511,15 +406,15 @@ namespace Shark {
 				}
 
 				auto pos = body.GetPosition();
-				if (DrawVec2Control("Position", pos))
+				if (UI::DrawVec2Control("Position", pos))
 					body.SetPosition(pos.x, pos.y);
 
 				float angle = DirectX::XMConvertToDegrees(body.GetAngle());
-				if (DrawFloatControl("Angle", angle))
+				if (UI::DrawFloatControl("Angle", angle))
 					body.SetAngle(DirectX::XMConvertToRadians(angle));
 
 				auto size = body.GetSize();
-				if (DrawVec2Control("Size", size, 1.0f))
+				if (UI::DrawVec2Control("Size", size, 1.0f))
 					body.Resize(size.x, size.y);
 
 				ImGui::Separator();
@@ -543,15 +438,15 @@ namespace Shark {
 				ImGui::Separator();
 
 				float friction = body.GetFriction();
-				if (DrawFloatControl("Friction", friction))
+				if (UI::DrawFloatControl("Friction", friction))
 					body.SetFriction(friction);
 
 				float density = body.GetDensity();
-				if (DrawFloatControl("Density", density))
+				if (UI::DrawFloatControl("Density", density))
 					body.SetDensity(density);
 
 				float restitution = body.GetRestituion();
-				if (DrawFloatControl("Restitution", restitution))
+				if (UI::DrawFloatControl("Restitution", restitution))
 					body.SetRestitution(restitution);
 			});
 

@@ -2,6 +2,47 @@ Scean: Untitled
 Entities:
   - Entity: 54758432
     TagComponent:
+      Tag: camera
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scaling: [1, 1, 1]
+    CameraComponent:
+      Type: 1
+      Aspecratio: 1.36172342
+      PerspectiveFOV: 44.9999771
+      PerspectiveNear: 0.00999999978
+      PerspectiveFar: 1000
+      OrthographicZoom: 20
+      OrthographicNear: -1
+      OrthographicFar: 1
+      IsMainCamera: true
+  - Entity: 54758432
+    TagComponent:
+      Tag: Ground
+    TransformComponent:
+      Position: [0, -10, 0]
+      Rotation: [0, 0, 0.174532712]
+      Scaling: [50, 1, 1]
+    SpriteRendererComponent:
+      Color: [0.0298683271, 0.55392158, 0.0298683271, 1]
+      Texture: ""
+      TilingFactor: 1
+    RigidBodyComponent:
+      Type: 0
+      AllowSleep: true
+      Awake: false
+      Enabled: true
+      FixedRotation: false
+      Shape: 0
+      Friction: 0
+      Density: 0
+      Restitution: 0.300000012
+      Position: [0, -10]
+      Angle: 0.174532712
+      Size: [50, 1]
+  - Entity: 54758432
+    TagComponent:
       Tag: Body
     TransformComponent:
       Position: [0, 5, 0]
@@ -24,44 +65,3 @@ Entities:
       Position: [0, 5]
       Angle: 0
       Size: [1, 1]
-  - Entity: 54758432
-    TagComponent:
-      Tag: Ground
-    TransformComponent:
-      Position: [0, -10, 0]
-      Rotation: [0, 0, 0]
-      Scaling: [50, 1, 1]
-    SpriteRendererComponent:
-      Color: [0.0298683271, 0.55392158, 0.0298683271, 1]
-      Texture: ""
-      TilingFactor: 1
-    RigidBodyComponent:
-      Type: 0
-      AllowSleep: true
-      Awake: false
-      Enabled: true
-      FixedRotation: false
-      Shape: 0
-      Friction: 0
-      Density: 0
-      Restitution: 0
-      Position: [0, -10]
-      Angle: 0
-      Size: [50, 1]
-  - Entity: 54758432
-    TagComponent:
-      Tag: camera
-    TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scaling: [1, 1, 1]
-    CameraComponent:
-      Type: 1
-      Aspecratio: 1.57615232
-      PerspectiveFOV: 44.9999809
-      PerspectiveNear: 0.00999999978
-      PerspectiveFar: 1000
-      OrthographicZoom: 20
-      OrthographicNear: -1
-      OrthographicFar: 1
-      IsMainCamera: true

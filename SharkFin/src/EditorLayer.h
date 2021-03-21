@@ -42,7 +42,9 @@ namespace Shark {
 		bool m_ViewportSizeChanged = false;
 
 		bool m_PlayScean = false;
-		bool m_ShowRendererStats = false;
+		bool m_ShowRendererStats = true;
+		bool m_ShowSceanHirachyPanel = true;
+		bool m_ShowEditorCameraControlls = true;
 
 		// Box2D Test
 #ifdef SHARK_BOX2D_TEST

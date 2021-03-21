@@ -16,12 +16,16 @@ namespace Shark {
 	{
 		std::string str = argv[0];
 		size_t i = str.find("bin\\");
-		m_ProjectRootDirectory = str.substr(0, i - 4);
+		m_ProjectRootDirectory = str.substr(0, i - 1);
+		m_ProjectRootDirectory += "\\SharkFin";
+		SK_CORE_INFO("Project Directroy: {0}", m_ProjectRootDirectory);
 
 		SK_CORE_ASSERT(!s_Instance, "Application allready set");
 		s_Instance = this;
 
-		m_Window = Window::Create();
+		WindowProps windowprops;
+		windowprops.Maximized = true;
+		m_Window = Window::Create(windowprops);
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		Renderer::Init(*m_Window);
 

@@ -89,21 +89,6 @@ namespace Shark {
 	{
 	}
 
-	template<typename Component, typename SerializeFunction>
-	void SerializeComponent(YAML::Emitter& out, Entity entity, SerializeFunction func)
-	{
-		if (entity.HasComponent<Component>())
-		{
-			out << YAML::Key << "Component" << YAML::Value << "asdfe";
-			out << YAML::BeginMap;
-
-			auto& comp = entity.GetComponent<Component>();
-			func(out, comp);
-
-			out << YAML::EndMap;
-		}
-	}
-
 	static bool SerializeEntity(YAML::Emitter& out, Entity entity, const Ref<Scean>& scean)
 	{
 		if (!out.good())
