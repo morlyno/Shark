@@ -3,12 +3,8 @@
 
 #include <stb_image.h>
 
-#include "Shark/Render/RendererCommand.h"
-#include "Platform/DirectX11/DirectXRendererAPI.h"
-
-#define SK_API() static_cast<::Shark::DirectXRendererAPI&>(::Shark::RendererCommand::GetRendererAPI())
 #ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); hr != S_OK) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
+#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
 #else
 #define SK_CHECK(call) call
 #endif
@@ -52,10 +48,9 @@ namespace Shark {
 		return D3D11_FILTER_MIN_MAG_MIP_POINT;
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification & specs, const std::string& filepath)
-		: m_FilePath(filepath)
+	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification & specs, const std::string& filepath, APIContext apicontext)
+		: m_FilePath(filepath), m_APIContext(apicontext)
 	{
-		auto device = SK_API().GetDevice();
 		int width, height;
 		stbi_uc* data = stbi_load(filepath.c_str(), &width, &height, nullptr, 4);
 		SK_CORE_ASSERT(data, "Failed to load Imiage! " + (std::string)stbi_failure_reason());
@@ -81,7 +76,7 @@ namespace Shark {
 		srd.SysMemPitch = m_Width * 4;
 
 		ID3D11Texture2D* texture;
-		SK_CHECK(device->CreateTexture2D(&td, &srd, &texture));
+		SK_CHECK(m_APIContext.Device->CreateTexture2D(&td, &srd, &texture));
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srv;
 		srv.Format = td.Format;
@@ -89,7 +84,7 @@ namespace Shark {
 		srv.Texture2D.MipLevels = 1u;
 		srv.Texture2D.MostDetailedMip = 0u;
 
-		SK_CHECK(device->CreateShaderResourceView(texture, &srv, &m_Texture));
+		SK_CHECK(m_APIContext.Device->CreateShaderResourceView(texture, &srv, &m_Texture));
 		texture->Release();
 
 		D3D11_SAMPLER_DESC sd;
@@ -100,16 +95,14 @@ namespace Shark {
 		sd.AddressW = TextureAddressModeToDirectX(specs.AddressW);
 		memcpy(sd.BorderColor, &specs.BorderColor, sizeof(float) * 4);
 
-		device->CreateSamplerState(&sd, &m_Sampler);
+		SK_CHECK(m_APIContext.Device->CreateSamplerState(&sd, &m_Sampler));
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t color)
-		: m_FilePath(std::string{}), m_Width(width), m_Height(height)
+	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t flatcolor, APIContext apicontext)
+		: m_FilePath(std::string{}), m_Width(width), m_Height(height), m_APIContext(apicontext)
 	{
-		auto device = SK_API().GetDevice();
-
 		std::vector<uint32_t> data;
-		data.resize((uint64_t)width * height, color);
+		data.resize((uint64_t)width * height, flatcolor);
 
 		D3D11_TEXTURE2D_DESC td;
 		td.Width = m_Width;
@@ -129,7 +122,7 @@ namespace Shark {
 		srd.SysMemPitch = m_Width * 4;
 
 		ID3D11Texture2D* texture;
-		SK_CHECK(device->CreateTexture2D(&td, &srd, &texture));
+		SK_CHECK(m_APIContext.Device->CreateTexture2D(&td, &srd, &texture));
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srv;
 		srv.Format = td.Format;
@@ -137,7 +130,7 @@ namespace Shark {
 		srv.Texture2D.MipLevels = 1u;
 		srv.Texture2D.MostDetailedMip = 0u;
 
-		SK_CHECK(device->CreateShaderResourceView(texture, &srv, &m_Texture));
+		SK_CHECK(m_APIContext.Device->CreateShaderResourceView(texture, &srv, &m_Texture));
 		texture->Release();
 
 		D3D11_SAMPLER_DESC sd;
@@ -148,7 +141,49 @@ namespace Shark {
 		sd.AddressW = TextureAddressModeToDirectX(specs.AddressW);
 		memcpy(sd.BorderColor, &specs.BorderColor, sizeof(float) * 4);
 
-		SK_CHECK(device->CreateSamplerState(&sd, &m_Sampler));
+		SK_CHECK(m_APIContext.Device->CreateSamplerState(&sd, &m_Sampler));
+	}
+	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, void* data, APIContext apicontext)
+		: m_FilePath(std::string{}), m_Width(width), m_Height(height), m_APIContext(apicontext)
+	{
+		D3D11_TEXTURE2D_DESC td;
+		td.Width = m_Width;
+		td.Height = m_Height;
+		td.MipLevels = 1u;
+		td.ArraySize = 1u;
+		td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		td.SampleDesc.Count = 1u;
+		td.SampleDesc.Quality = 0u;
+		td.Usage = D3D11_USAGE_DYNAMIC;
+		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		td.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		td.MiscFlags = 0u;
+
+		D3D11_SUBRESOURCE_DATA srd;
+		srd.pSysMem = data;
+		srd.SysMemPitch = m_Width * 4;
+
+		ID3D11Texture2D* texture;
+		SK_CHECK(m_APIContext.Device->CreateTexture2D(&td, &srd, &texture));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srv;
+		srv.Format = td.Format;
+		srv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srv.Texture2D.MipLevels = 1u;
+		srv.Texture2D.MostDetailedMip = 0u;
+
+		SK_CHECK(m_APIContext.Device->CreateShaderResourceView(texture, &srv, &m_Texture));
+		texture->Release();
+
+		D3D11_SAMPLER_DESC sd;
+		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));
+		sd.Filter = FilterModeToDirectX(specs.MinMag, specs.Mipmap);
+		sd.AddressU = TextureAddressModeToDirectX(specs.AddressU);
+		sd.AddressV = TextureAddressModeToDirectX(specs.AddressV);
+		sd.AddressW = TextureAddressModeToDirectX(specs.AddressW);
+		memcpy(sd.BorderColor, &specs.BorderColor, sizeof(float) * 4);
+
+		SK_CHECK(m_APIContext.Device->CreateSamplerState(&sd, &m_Sampler));
 	}
 
 	DirectXTexture2D::~DirectXTexture2D()
@@ -159,9 +194,6 @@ namespace Shark {
 
 	void DirectXTexture2D::SetData(void* data)
 	{
-		auto device = SK_API().GetDevice();
-		auto context = SK_API().GetContext();
-
 		ID3D11Resource* resource;
 		m_Texture->GetResource(&resource);
 		SK_CORE_ASSERT(resource, "Failed to get Resource");
@@ -179,10 +211,9 @@ namespace Shark {
 		srd.SysMemPitch = desc.Width * 4;
 
 		ID3D11Texture2D* newTexture;
-		hr = device->CreateTexture2D(&desc, &srd, &newTexture);
-		SK_CORE_ASSERT(SUCCEEDED(hr));
+		SK_CHECK(m_APIContext.Device->CreateTexture2D(&desc, &srd, &newTexture));
 
-		context->CopyResource(texture, newTexture);
+		m_APIContext.Context->CopyResource(texture, newTexture);
 		newTexture->Release();
 		texture->Release();
 		resource->Release();
@@ -191,18 +222,14 @@ namespace Shark {
 
 	void DirectXTexture2D::Bind()
 	{
-		auto context = SK_API().GetContext();
-
-		context->PSSetSamplers(m_Slot, 1u, &m_Sampler);
-		context->PSSetShaderResources(m_Slot, 1u, &m_Texture);
+		m_APIContext.Context->PSSetSamplers(m_Slot, 1u, &m_Sampler);
+		m_APIContext.Context->PSSetShaderResources(m_Slot, 1u, &m_Texture);
 	}
 
 	void DirectXTexture2D::Bind(uint32_t slot)
 	{
-		auto context = SK_API().GetContext();
-
-		context->PSSetSamplers(slot, 1u, &m_Sampler);
-		context->PSSetShaderResources(slot, 1u, &m_Texture);
+		m_APIContext.Context->PSSetSamplers(slot, 1u, &m_Sampler);
+		m_APIContext.Context->PSSetShaderResources(slot, 1u, &m_Texture);
 	}
 
 }

@@ -21,9 +21,9 @@ namespace Shark {
 		RendererCommand::ShutDown();
 	}
 
-	void Renderer::BeginScean(OrtographicCamera& camera)
+	void Renderer::BeginScean(/*OrtographicCamera& camera*/)
 	{
-		m_SceanData->ViewProjectionMatrix = camera.GetViewProjection();
+		/*m_SceanData->ViewProjectionMatrix = camera.GetViewProjection();*/
 	}
 
 	void Renderer::EndScean()

@@ -27,9 +27,25 @@ namespace Shark {
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& window = Application::Get().GetWindow();
-		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0);
+		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0u);
 		m_ActiveScean = CreateRef<Scean>();
+		{
+			SceanSerializer serializer(m_ActiveScean);
+			serializer.Deserialize("assets/Sceans/TwoSquares.shark");
+		}
 		m_SceanHirachyPanel.SetContext(m_ActiveScean);
+
+		FrameBufferSpecification fbspecs;
+		fbspecs.Width = window.GetWidth();
+		fbspecs.Height = window.GetHeight();
+		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::Depth32 };
+		fbspecs.Atachments[0].SwapChainTarget = true;
+
+		m_FrameBuffer = FrameBuffer::Create(fbspecs);
+		m_FrameBuffer->Bind();
+
+		m_Viewport = Viewport::Create(window.GetWidth(), window.GetHeight());
+		m_Viewport->Bind();
 
 #if 0
 		class TestScript : public NativeScript
@@ -68,13 +84,29 @@ namespace Shark {
 
 	void EditorLayer::OnUpdate(TimeStep ts)
 	{
-		RendererCommand::ClearBuffer();
+		if (m_ViewportWidth != 0 && m_ViewportHeight != 0)
+		{
+			m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
+		}
+
+		m_FrameBuffer->Bind();
+		float clearcolor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+		m_FrameBuffer->Clear(clearcolor);
+		m_Viewport->Bind();
+
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
 		if (m_ViewportSizeChanged)
 		{
+			SK_CORE_INFO("Size Changed: {0}, {1}", m_ViewportWidth, m_ViewportHeight);
+			m_FrameBufferTexture = Texture2D::Create({}, m_ViewportWidth, m_ViewportHeight, 0u);
+			//m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			//m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
+
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 			m_ActiveScean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+
 		}
 
 		if (m_ActiveScean)
@@ -89,7 +121,16 @@ namespace Shark {
 			}
 		}
 
-		RendererCommand::GetFramebufferContent(m_FrameBufferTexture);
+		m_FrameBuffer->GetFramBufferContent(0, m_FrameBufferTexture);
+
+		auto& window = Application::Get().GetWindow();
+		uint32_t width = window.GetWidth();
+		uint32_t height = window.GetHeight();
+		if (width != 0 && height != 0)
+		{
+			m_FrameBuffer->Resize(width, height);
+			m_Viewport->Resize(width, height);
+		}
 	}
 
 	void EditorLayer::OnEvent(Event& event)
@@ -106,7 +147,12 @@ namespace Shark {
 	{
 		if (event.GetWidth() == 0 || event.GetHeight() == 0)
 			return false;
-		m_FrameBufferTexture = Texture2D::Create({}, event.GetWidth(), event.GetHeight(), 0x0);
+
+		SK_CORE_INFO(event);
+		//m_FrameBufferTexture = Texture2D::Create({}, event.GetWidth(), event.GetHeight(), 0u);
+		//m_FrameBuffer->Resize(event.GetWidth(), event.GetHeight());
+		//m_Viewport->Resize(event.GetWidth(), event.GetHeight());
+
 		return false;
 	}
 
@@ -127,6 +173,25 @@ namespace Shark {
 
 	void EditorLayer::OnImGuiRender()
 	{
+
+		constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking |
+										          ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+										          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->GetWorkPos());
+        ImGui::SetNextWindowSize(viewport->GetWorkSize());
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+        ImGui::Begin("Shark Editor DockSpace", nullptr, window_flags);
+        ImGui::PopStyleVar(3);
+
+		ImGuiID dockspace_id = ImGui::GetID("DockSpace");
+		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
 		if (ImGui::BeginMainMenuBar())
 		{
 			if (ImGui::BeginMenu("Scean"))
@@ -159,7 +224,7 @@ namespace Shark {
 
 			if (ImGui::BeginMenu("Panels"))
 			{
-				
+
 				ImGui::MenuItem("Scean Hirachy", nullptr, &m_ShowSceanHirachyPanel);
 				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
 				ImGui::MenuItem("Batch Renderer Stats", nullptr, &m_ShowRendererStats);
@@ -172,24 +237,6 @@ namespace Shark {
 
 			ImGui::EndMainMenuBar();
 		}
-
-		constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking |
-										          ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-										          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->GetWorkPos());
-        ImGui::SetNextWindowSize(viewport->GetWorkSize());
-        ImGui::SetNextWindowViewport(viewport->ID);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-        ImGui::Begin("Shark Editor DockSpace", nullptr, window_flags);
-        ImGui::PopStyleVar(3);
-
-		ImGuiID dockspace_id = ImGui::GetID("DockSpace");
-		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
         ImGui::End();
 

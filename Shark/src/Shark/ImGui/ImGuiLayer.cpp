@@ -2,6 +2,7 @@
 #include "ImGuiLayer.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_win32.h>
 
@@ -24,6 +25,7 @@ namespace Shark {
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 		//io.ConfigDockingTransparentPayload = true;
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
+		//io.ConfigViewportsNoAutoMerge = true;
 
 		ImGui::StyleColorsDark();
 

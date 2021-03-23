@@ -2,21 +2,76 @@ Scean: Untitled
 Entities:
   - Entity: 54758432
     TagComponent:
-      Tag: camera
+      Tag: Rody Red
     TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
+      Position: [0.0499999858, 3.06000018, 0]
+      Rotation: [0, 0, 1.60356855]
+      Scaling: [2, 0.5, 1]
+    SpriteRendererComponent:
+      Color: [0.671568632, 0.0296280161, 0.0296280161, 1]
+      Texture: ""
+      TilingFactor: 1
+    RigidBodyComponent:
+      Type: 2
+      AllowSleep: true
+      Awake: true
+      Enabled: true
+      FixedRotation: false
+      Shape: 0
+      Friction: 0.300000012
+      Density: 1
+      Restitution: 0.150000006
+      Position: [0.0499999858, 3.06000018]
+      Angle: 1.60356855
+      Size: [2, 0.5]
+  - Entity: 54758432
+    TagComponent:
+      Tag: Body Purple
+    TransformComponent:
+      Position: [0.730000019, 8.2300005, 0]
+      Rotation: [0, 0, -0.531625628]
+      Scaling: [1.5, 1, 1]
+    SpriteRendererComponent:
+      Color: [0.479939193, 0.0393598489, 0.617647052, 1]
+      Texture: ""
+      TilingFactor: 1
+    RigidBodyComponent:
+      Type: 2
+      AllowSleep: true
+      Awake: true
+      Enabled: true
+      FixedRotation: false
+      Shape: 0
+      Friction: 0.300000012
+      Density: 1.5
+      Restitution: 0.100000001
+      Position: [0.730000019, 8.2300005]
+      Angle: -0.531625628
+      Size: [1.5, 1]
+  - Entity: 54758432
+    TagComponent:
+      Tag: Body Blue
+    TransformComponent:
+      Position: [0, 5, 0]
+      Rotation: [0, 0, 0.872664511]
       Scaling: [1, 1, 1]
-    CameraComponent:
-      Type: 1
-      Aspecratio: 1.36172342
-      PerspectiveFOV: 44.9999771
-      PerspectiveNear: 0.00999999978
-      PerspectiveFar: 1000
-      OrthographicZoom: 20
-      OrthographicNear: -1
-      OrthographicFar: 1
-      IsMainCamera: true
+    SpriteRendererComponent:
+      Color: [0.050173007, 0.0979677513, 0.852941155, 1]
+      Texture: ""
+      TilingFactor: 1
+    RigidBodyComponent:
+      Type: 2
+      AllowSleep: true
+      Awake: true
+      Enabled: true
+      FixedRotation: false
+      Shape: 0
+      Friction: 0.300000012
+      Density: 1
+      Restitution: 0.100000001
+      Position: [0, 5]
+      Angle: 0.872664511
+      Size: [1, 1]
   - Entity: 54758432
     TagComponent:
       Tag: Ground
@@ -37,31 +92,24 @@ Entities:
       Shape: 0
       Friction: 0
       Density: 0
-      Restitution: 0.300000012
+      Restitution: 0.400000006
       Position: [0, -10]
       Angle: 0.174532712
       Size: [50, 1]
   - Entity: 54758432
     TagComponent:
-      Tag: Body
+      Tag: camera
     TransformComponent:
-      Position: [0, 5, 0]
+      Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scaling: [1, 1, 1]
-    SpriteRendererComponent:
-      Color: [0.050173007, 0.0979677513, 0.852941155, 1]
-      Texture: ""
-      TilingFactor: 1
-    RigidBodyComponent:
-      Type: 2
-      AllowSleep: true
-      Awake: true
-      Enabled: true
-      FixedRotation: false
-      Shape: 0
-      Friction: 0.300000012
-      Density: 1
-      Restitution: 0
-      Position: [0, 5]
-      Angle: 0
-      Size: [1, 1]
+    CameraComponent:
+      Type: 1
+      Aspecratio: 1.41675174
+      PerspectiveFOV: 44.9999733
+      PerspectiveNear: 0.00999999978
+      PerspectiveFar: 1000
+      OrthographicZoom: 20
+      OrthographicNear: -1
+      OrthographicFar: 1
+      IsMainCamera: true

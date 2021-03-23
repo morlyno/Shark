@@ -2,7 +2,6 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/EditorCamera.h"
-#include "Shark/Render/OrtographicCamera.h"
 #include "Shark/Render/Texture.h"
 
 namespace Shark {
@@ -13,7 +12,6 @@ namespace Shark {
 		static void Init();
 		static void ShutDown();
 
-		static void BeginScean(OrtographicCamera& camera);
 		static void BeginScean(Camera& camera, const DirectX::XMMATRIX& view);
 		static void BeginScean(EditorCamera& camera);
 		static void EndScean();

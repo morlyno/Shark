@@ -2,6 +2,9 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Shaders.h"
+
+#include "Platform/DirectX11/DirectXRendererAPI.h"
+
 #include <d3d11.h>
 #include <d3d11shader.h>
 
@@ -31,8 +34,8 @@ namespace Shark {
 	class DirectXShaders : public Shaders
 	{
 	public:
-		DirectXShaders(const std::string& filepath);
-		DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
+		DirectXShaders(const std::string& filepath, APIContext apicontext);
+		DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc, APIContext apicontext);
 		~DirectXShaders();
 
 		void Init(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
@@ -56,6 +59,8 @@ namespace Shark {
 		VertexLayout m_VertexLayout;
 
 		std::string m_Name;
+
+		APIContext m_APIContext;
 	};
 
 }

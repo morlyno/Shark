@@ -2,6 +2,8 @@
 
 #include "Shark/Render/Texture.h"
 
+#include "Platform/DirectX11/DirectXRendererAPI.h"
+
 #include <d3d11.h>
 
 namespace Shark {
@@ -9,8 +11,9 @@ namespace Shark {
 	class DirectXTexture2D : public Texture2D
 	{
 	public:
-		DirectXTexture2D(const SamplerSpecification& specs, const std::string& filepath);
-		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t color);
+		DirectXTexture2D(const SamplerSpecification& specs, const std::string& filepath, APIContext apicontext);
+		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t flatcolor, APIContext apicontext);
+		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, void* data, APIContext apicontext);
 		virtual ~DirectXTexture2D();
 
 		virtual void SetData(void* data) override;
@@ -33,6 +36,8 @@ namespace Shark {
 		uint32_t m_Slot = 0;
 		ID3D11ShaderResourceView* m_Texture = nullptr;
 		ID3D11SamplerState* m_Sampler = nullptr;
+
+		APIContext m_APIContext;
 	};
 
 }

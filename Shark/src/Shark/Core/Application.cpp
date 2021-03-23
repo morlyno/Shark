@@ -32,9 +32,6 @@ namespace Shark {
 		m_ImGuiLayer = new ImGuiLayer();
 		PushLayer(m_ImGuiLayer);
 
-		const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
-		RendererCommand::SetClearColor(clear_color);
-
 		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency));
 		QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&m_LastFrameTime));
 	}
@@ -101,7 +98,7 @@ namespace Shark {
 		}
 		m_Minimized = false;
 
-		RendererCommand::Resize(event.GetWidth(), event.GetHeight());
+		//RendererCommand::Resize(event.GetWidth(), event.GetHeight());
 		return false;
 	}
 

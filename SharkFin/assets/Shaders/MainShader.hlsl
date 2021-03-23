@@ -48,27 +48,33 @@ struct PSIN
     float TilingFactor : TilingFactor;
 };
 
-float4 main(PSIN psin) : SV_TARGET
+struct PSOUT
 {
-    float4 color = { 0.2f, 0.4f, 0.6f, 0.8f };
+    float4 Color : SV_TARGET0;
+};
+
+PSOUT main(PSIN psin)
+{
+    PSOUT psout;
+    
     switch (psin.TexIndex)
     {
-        case 0: color = g_Textures[0].Sample(g_SamplerState[0], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 1: color = g_Textures[1].Sample(g_SamplerState[1], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 2: color = g_Textures[2].Sample(g_SamplerState[2], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 3: color = g_Textures[3].Sample(g_SamplerState[3], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 4: color = g_Textures[4].Sample(g_SamplerState[4], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 5: color = g_Textures[5].Sample(g_SamplerState[5], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 6: color = g_Textures[6].Sample(g_SamplerState[6], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 7: color = g_Textures[7].Sample(g_SamplerState[7], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 8: color = g_Textures[8].Sample(g_SamplerState[8], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 9: color = g_Textures[9].Sample(g_SamplerState[9], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 10: color = g_Textures[10].Sample(g_SamplerState[10], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 11: color = g_Textures[11].Sample(g_SamplerState[11], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 12: color = g_Textures[12].Sample(g_SamplerState[12], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 13: color = g_Textures[13].Sample(g_SamplerState[13], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 14: color = g_Textures[14].Sample(g_SamplerState[14], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 15: color = g_Textures[15].Sample(g_SamplerState[15], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  0: psout.Color = g_Textures[ 0].Sample(g_SamplerState[ 0], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  1: psout.Color = g_Textures[ 1].Sample(g_SamplerState[ 1], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  2: psout.Color = g_Textures[ 2].Sample(g_SamplerState[ 2], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  3: psout.Color = g_Textures[ 3].Sample(g_SamplerState[ 3], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  4: psout.Color = g_Textures[ 4].Sample(g_SamplerState[ 4], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  5: psout.Color = g_Textures[ 5].Sample(g_SamplerState[ 5], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  6: psout.Color = g_Textures[ 6].Sample(g_SamplerState[ 6], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  7: psout.Color = g_Textures[ 7].Sample(g_SamplerState[ 7], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  8: psout.Color = g_Textures[ 8].Sample(g_SamplerState[ 8], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  9: psout.Color = g_Textures[ 9].Sample(g_SamplerState[ 9], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 10: psout.Color = g_Textures[10].Sample(g_SamplerState[10], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 11: psout.Color = g_Textures[11].Sample(g_SamplerState[11], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 12: psout.Color = g_Textures[12].Sample(g_SamplerState[12], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 13: psout.Color = g_Textures[13].Sample(g_SamplerState[13], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 14: psout.Color = g_Textures[14].Sample(g_SamplerState[14], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 15: psout.Color = g_Textures[15].Sample(g_SamplerState[15], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
     }
-    return color;
+    return psout;
 }

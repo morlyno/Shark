@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Shark/Render/Buffers.h"
+
+#include "Platform/DirectX11/DirectXRendererAPI.h"
+
 #include <d3d11.h>
 
 namespace Shark {
@@ -8,8 +11,8 @@ namespace Shark {
 	class DirectXVertexBuffer : public VertexBuffer
 	{
 	public:
-		DirectXVertexBuffer(const VertexLayout& layout, bool dynamic);
-		DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic);
+		DirectXVertexBuffer(const VertexLayout& layout, bool dynamic, APIContext apicontext);
+		DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic, APIContext apicontext);
 		~DirectXVertexBuffer();
 
 		void Init(void* data, uint32_t size, bool dynamic);
@@ -22,13 +25,15 @@ namespace Shark {
 	private:
 		ID3D11Buffer* m_VertexBuffer = nullptr;
 		bool m_Dynamic;
+
+		APIContext m_APIContext;
 	};
 
 
 	class DirectXIndexBuffer : public IndexBuffer
 	{
 	public:
-		DirectXIndexBuffer(uint32_t* indices, uint32_t count);
+		DirectXIndexBuffer(uint32_t* indices, uint32_t count, APIContext apicontext);
 		~DirectXIndexBuffer();
 
 		void Init(uint32_t* indices, uint32_t count);
@@ -37,6 +42,8 @@ namespace Shark {
 		void UnBind() override;
 	private:
 		ID3D11Buffer* m_IndexBuffer = nullptr;
+
+		APIContext m_APIContext;
 	};
 
 }

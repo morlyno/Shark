@@ -82,9 +82,7 @@ namespace Shark {
 
 #ifdef SK_DEBUG
 		for (uint32_t i = 0; i < s_BatchData.MaxTextureSlots; ++i)
-		{
 			s_BatchData.Textures[0]->Bind(i);
-		}
 #endif
 	}
 
@@ -137,12 +135,6 @@ namespace Shark {
 		s_BatchData.Stats.DrawCalls = 0;
 		s_BatchData.Stats.QuadCount = 0;
 		s_BatchData.Stats.TextureCount = 0;
-	}
-
-	void Renderer2D::BeginScean(OrtographicCamera& camera)
-	{
-		ResetStats();
-		s_SceanData.ViewProjectionMatrix = camera.GetViewProjection();
 	}
 
 	void Renderer2D::BeginScean(Camera& camera, const DirectX::XMMATRIX& view)

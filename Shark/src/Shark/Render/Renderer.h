@@ -6,7 +6,6 @@
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shaders.h"
 #include "Shark/Render/Texture.h"
-#include "Shark/Render/OrtographicCamera.h"
 
 #include <DirectXMath.h>
 
@@ -18,7 +17,7 @@ namespace Shark {
 		static void Init(const class Window& window);
 		static void ShutDown();
 
-		static void BeginScean(OrtographicCamera& camera);
+		static void BeginScean(/*OrtographicCamera& camera*/);
 		static void EndScean();
 
 		static void Submit(Ref<VertexBuffer>& vertexbuffer, Ref<IndexBuffer>& indexbuffer, Ref<Shaders>& shaders, const DirectX::XMMATRIX& translation);

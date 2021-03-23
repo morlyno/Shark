@@ -10,7 +10,7 @@ namespace Shark {
 
 	void Log::Init()
 	{
-		spdlog::set_pattern("[%H:%M:%S] <%L> %n: %v%$");
+		spdlog::set_pattern("[%H:%M:%S] %n: %v%$");
 		s_Core_Logger = spdlog::stdout_color_mt("SHARK");
 		s_Core_Logger->set_level(spdlog::level::trace);
 

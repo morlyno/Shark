@@ -2,6 +2,7 @@
 
 #include <Shark.h>
 #include <Shark/Render/EditorCamera.h>
+
 #include "SceanHirachyPanel.h"
 
 #include <box2d/box2d.h>
@@ -32,7 +33,8 @@ namespace Shark {
 		void OpenScean();
 	private:
 		EditorCamera m_EditorCamera;
-		Ref<Texture2D> m_FrameBufferTexture;
+		Ref<FrameBuffer> m_FrameBuffer;
+		Ref<Viewport> m_Viewport;
 
 		Ref<Scean> m_ActiveScean;
 		SceanHirachyPanel m_SceanHirachyPanel;
@@ -45,6 +47,8 @@ namespace Shark {
 		bool m_ShowRendererStats = true;
 		bool m_ShowSceanHirachyPanel = true;
 		bool m_ShowEditorCameraControlls = true;
+
+		Ref<Texture2D> m_FrameBufferTexture;
 
 		// Box2D Test
 #ifdef SHARK_BOX2D_TEST

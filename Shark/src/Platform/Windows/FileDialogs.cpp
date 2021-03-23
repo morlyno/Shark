@@ -10,8 +10,8 @@ namespace Shark {
 		OPENFILENAMEA ofn;
 		CHAR szFile[260] = { 0 };
 		CHAR currentDir[256] = { 0 };
-		ZeroMemory(&ofn, sizeof(OPENFILENAME));
-		ofn.lStructSize = sizeof(OPENFILENAME);
+		ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
+		ofn.lStructSize = sizeof(OPENFILENAMEA);
 		ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetHandle();
 		ofn.lpstrFile = szFile;
 		ofn.nMaxFile = sizeof(szFile);
@@ -31,8 +31,8 @@ namespace Shark {
 		OPENFILENAMEA ofn;
 		CHAR szFile[260] = { 0 };
 		CHAR currentDir[256] = { 0 };
-		ZeroMemory(&ofn, sizeof(OPENFILENAME));
-		ofn.lStructSize = sizeof(OPENFILENAME);
+		ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
+		ofn.lStructSize = sizeof(OPENFILENAMEA);
 		ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetHandle();
 		ofn.lpstrFile = szFile;
 		ofn.nMaxFile = sizeof(szFile);
