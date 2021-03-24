@@ -27,7 +27,7 @@ namespace Shark {
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& window = Application::Get().GetWindow();
-		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0u);
+		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0);
 		m_ActiveScean = CreateRef<Scean>();
 		{
 			SceanSerializer serializer(m_ActiveScean);
@@ -100,7 +100,7 @@ namespace Shark {
 		if (m_ViewportSizeChanged)
 		{
 			SK_CORE_INFO("Size Changed: {0}, {1}", m_ViewportWidth, m_ViewportHeight);
-			m_FrameBufferTexture = Texture2D::Create({}, m_ViewportWidth, m_ViewportHeight, 0u);
+			m_FrameBufferTexture = Texture2D::Create({}, m_ViewportWidth, m_ViewportHeight, 0);
 			//m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			//m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
 
@@ -149,7 +149,7 @@ namespace Shark {
 			return false;
 
 		SK_CORE_INFO(event);
-		//m_FrameBufferTexture = Texture2D::Create({}, event.GetWidth(), event.GetHeight(), 0u);
+		//m_FrameBufferTexture = Texture2D::Create({}, event.GetWidth(), event.GetHeight(), 0);
 		//m_FrameBuffer->Resize(event.GetWidth(), event.GetHeight());
 		//m_Viewport->Resize(event.GetWidth(), event.GetHeight());
 

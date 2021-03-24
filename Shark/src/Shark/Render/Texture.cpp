@@ -15,7 +15,7 @@ namespace Shark {
 		return RendererCommand::CreateTexture2D(specs, width, height, flatcolor);
 	}
 
-	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specs, uint32_t width, uint32_t height, void* data)
+	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specs, uint32_t width, uint32_t height, const Buffer& data)
 	{
 		return RendererCommand::CreateTexture2D(specs, width, height, data);
 	}

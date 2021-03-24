@@ -35,8 +35,8 @@ namespace Shark {
 		vertexbuffer->Bind();
 		indexbuffer->Bind();
 		shaders->Bind();
-		shaders->SetBuffer("SceanData", m_SceanData.get(), sizeof(SceanData));
-		shaders->SetBuffer("ObjectData", (void*)&translation, sizeof(translation));
+		shaders->SetBuffer("SceanData", Buffer::Ref(*m_SceanData));
+		shaders->SetBuffer("ObjectData", Buffer::Ref(translation));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());
 	}
@@ -47,8 +47,8 @@ namespace Shark {
 		indexbuffer->Bind();
 		shaders->Bind();
 		texture->Bind();
-		shaders->SetBuffer("SceanData", m_SceanData.get(), sizeof(SceanData));
-		shaders->SetBuffer("ObjectData", (void*)&translation, sizeof(translation));
+		shaders->SetBuffer("SceanData", Buffer::Ref(*m_SceanData));
+		shaders->SetBuffer("ObjectData", Buffer::Ref(translation));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());
 	}

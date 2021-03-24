@@ -35,13 +35,13 @@ namespace Shark {
 		static Scope<RendererAPI> Create();
 
 		virtual Ref<VertexBuffer> CreateVertexBuffer(const VertexLayout& layout, bool dynamic = false) = 0;
-		virtual Ref<VertexBuffer> CreateVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic = false) = 0;
-		virtual Ref<IndexBuffer> CreateIndexBuffer(uint32_t* indices, uint32_t count) = 0;
+		virtual Ref<VertexBuffer> CreateVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic = false) = 0;
+		virtual Ref<IndexBuffer> CreateIndexBuffer(const Buffer& data) = 0;
 		virtual Ref<Shaders> CreateShaders(const std::string& filepath) = 0;
 		virtual Ref<Shaders> CreateShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc) = 0;
 		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, const std::string& filepath) = 0;
 		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, uint32_t flatcolor) = 0;
-		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, void* data) = 0;
+		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, const Buffer& data) = 0;
 		virtual Ref<FrameBuffer> CreateFrameBuffer(const FrameBufferSpecification& specs) = 0;
 		virtual Ref<Viewport> CreateViewport(uint32_t widht, uint32_t height) = 0;
 	private:

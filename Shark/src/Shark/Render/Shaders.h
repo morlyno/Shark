@@ -12,7 +12,7 @@ namespace Shark {
 	public:
 		virtual ~Shaders() = default;
 
-		virtual void SetBuffer(const std::string& bufferName, void* data, uint32_t size) = 0;
+		virtual void SetBuffer(const std::string& bufferName, const Buffer& data) = 0;
 
 		virtual VertexLayout& GetVertexLayout() = 0;
 

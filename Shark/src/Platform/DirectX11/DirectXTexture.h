@@ -13,10 +13,10 @@ namespace Shark {
 	public:
 		DirectXTexture2D(const SamplerSpecification& specs, const std::string& filepath, APIContext apicontext);
 		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t flatcolor, APIContext apicontext);
-		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, void* data, APIContext apicontext);
+		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, const Buffer& data, APIContext apicontext);
 		virtual ~DirectXTexture2D();
 
-		virtual void SetData(void* data) override;
+		virtual void SetData(const Buffer& data) override;
 		virtual void* GetHandle() const override { return m_Texture; }
 
 		virtual const std::string& GetFilePath() const override { return m_FilePath; }

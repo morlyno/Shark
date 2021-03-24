@@ -195,7 +195,7 @@ namespace Shark {
 			D3D11_SHADER_BUFFER_DESC sb;
 			SK_CHECK(cbuff->GetDesc(&sb));
 
-			Buffer& buffer = m_VertexShader.constBuffers[sb.Name];
+			ConstBuffer& buffer = m_VertexShader.constBuffers[sb.Name];
 
 			buffer.size = sb.Size;
 			buffer.slot = i;
@@ -232,7 +232,7 @@ namespace Shark {
 			D3D11_SHADER_BUFFER_DESC sb;
 			SK_CHECK(cbuff->GetDesc(&sb));
 
-			Buffer& buffer = m_PixelShader.constBuffers[sb.Name];
+			ConstBuffer& buffer = m_PixelShader.constBuffers[sb.Name];
 
 			buffer.size = sb.Size;
 			buffer.slot = i;
@@ -251,18 +251,18 @@ namespace Shark {
 		blob->Release(); blob = nullptr;
 	}
 
-	void DirectXShaders::SetBuffer(const std::string& bufferName, void* data, uint32_t size)
+	void DirectXShaders::SetBuffer(const std::string& bufferName, const Buffer& data)
 	{
-		UploudBuffer(bufferName, data, size);
+		UploudBuffer(bufferName, data);
 	}
 
-	void DirectXShaders::UploudBuffer(const std::string& bufferName, void* data, uint32_t size)
+	void DirectXShaders::UploudBuffer(const std::string& bufferName, const Buffer& data)
 	{
-		Buffer& buffer = m_VertexShader.constBuffers.find(bufferName)->second;
-		SK_CORE_ASSERT(size == buffer.size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
+		ConstBuffer& buffer = m_VertexShader.constBuffers.find(bufferName)->second;
+		SK_CORE_ASSERT(data.Size() == buffer.size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
 		D3D11_MAPPED_SUBRESOURCE ms;
 		SK_CHECK(m_APIContext.Context->Map(buffer.buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms));
-		memcpy(ms.pData, data, size);
+		data.CopyInto(ms.pData);
 		m_APIContext.Context->Unmap(buffer.buffer, 0u);
 		m_APIContext.Context->VSSetConstantBuffers(buffer.slot, 1u, &buffer.buffer);
 	}

@@ -20,13 +20,13 @@ namespace Shark {
 	{
 	}
 
-	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic, APIContext apicontext)
+	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic, APIContext apicontext)
 		:
 		VertexBuffer(layout),
 		m_Dynamic(dynamic),
 		m_APIContext(apicontext)
 	{
-		Init(data, size, dynamic);
+		Init(data, dynamic);
 	}
 
 	DirectXVertexBuffer::~DirectXVertexBuffer()
@@ -34,10 +34,10 @@ namespace Shark {
 		if (m_VertexBuffer) { m_VertexBuffer->Release(); }
 	}
 
-	void DirectXVertexBuffer::Init(void* data, uint32_t size, bool dynamic)
+	void DirectXVertexBuffer::Init(const Buffer& data, bool dynamic)
 	{
 		D3D11_BUFFER_DESC bd = {};
-		bd.ByteWidth = size;
+		bd.ByteWidth = data.Size();
 		bd.StructureByteStride = m_Layout.GetVertexSize();
 		bd.Usage = dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -45,24 +45,24 @@ namespace Shark {
 		bd.MiscFlags = 0u;
 
 		D3D11_SUBRESOURCE_DATA srd = {};
-		srd.pSysMem = data;
+		srd.pSysMem = data.Data();
 
 		SK_CHECK(m_APIContext.Device->CreateBuffer(&bd, &srd, &m_VertexBuffer));
 	}
 
-	void DirectXVertexBuffer::SetData(void* data, uint32_t count)
+	void DirectXVertexBuffer::SetData(const Buffer& data)
 	{
 		if (m_VertexBuffer) { m_VertexBuffer->Release(); m_VertexBuffer = nullptr; }
-		Init(data, count, m_Dynamic);
+		Init(data, m_Dynamic);
 	}
 
-	void DirectXVertexBuffer::UpdateData(void* data, uint32_t size)
+	void DirectXVertexBuffer::UpdateData(const Buffer& data)
 	{
 		SK_CORE_ASSERT(m_Dynamic, "Buffer needs to be dynamic");
 
 		D3D11_MAPPED_SUBRESOURCE ms;
 		SK_CHECK(m_APIContext.Context->Map(m_VertexBuffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms));
-		memcpy(ms.pData, data, size);
+		data.CopyInto(ms.pData);
 		m_APIContext.Context->Unmap(m_VertexBuffer, 0u);
 	}
 
@@ -82,12 +82,12 @@ namespace Shark {
 	//////////////////////////////////////////////////////////////////////////
    /// IndexBuffer //////////////////////////////////////////////////////////
 
-	DirectXIndexBuffer::DirectXIndexBuffer(uint32_t* indices, uint32_t count, APIContext apicontext)
+	DirectXIndexBuffer::DirectXIndexBuffer(const Buffer& data, APIContext apicontext)
 		:
-		IndexBuffer(count),
+		IndexBuffer(data.Count<uint32_t>()),
 		m_APIContext(apicontext)
 	{
-		Init(indices, count);
+		Init(data);
 	}
 
 	DirectXIndexBuffer::~DirectXIndexBuffer()
@@ -95,10 +95,10 @@ namespace Shark {
 		if (m_IndexBuffer) { m_IndexBuffer->Release(); }
 	}
 
-	void DirectXIndexBuffer::Init(uint32_t* indices, uint32_t count)
+	void DirectXIndexBuffer::Init(const Buffer& data)
 	{
 		D3D11_BUFFER_DESC i_bd = {};
-		i_bd.ByteWidth = sizeof(uint32_t) * count;
+		i_bd.ByteWidth = data.Size();
 		i_bd.StructureByteStride = sizeof(uint32_t);
 		i_bd.Usage = D3D11_USAGE_DEFAULT;
 		i_bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -106,7 +106,7 @@ namespace Shark {
 		i_bd.MiscFlags = 0u;
 
 		D3D11_SUBRESOURCE_DATA i_srd = {};
-		i_srd.pSysMem = indices;
+		i_srd.pSysMem = data.Data();
 
 		SK_CHECK(m_APIContext.Device->CreateBuffer(&i_bd, &i_srd, &m_IndexBuffer));
 	}

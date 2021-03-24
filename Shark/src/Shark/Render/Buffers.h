@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Utility/Buffer.h"
 
 namespace Shark {
 
@@ -100,14 +101,14 @@ namespace Shark {
 		virtual void UnBind() = 0;
 
 		// Recreate Buffer
-		virtual void SetData(void* data, uint32_t size) = 0;
+		virtual void SetData(const Buffer& data) = 0;
 		// Updates existing Buffer
-		virtual void UpdateData(void* data, uint32_t size) = 0;
+		virtual void UpdateData(const Buffer& data) = 0;
 
 		const VertexLayout& GetLayout() { return m_Layout; }
 
 		static Ref<VertexBuffer> Create(const VertexLayout& layout, bool dynamic = false);
-		static Ref<VertexBuffer> Create(const VertexLayout& layout, void* data, uint32_t size, bool dynamic = false);
+		static Ref<VertexBuffer> Create(const VertexLayout& layout, const Buffer& data, bool dynamic = false);
 	protected:
 		VertexLayout m_Layout;
 	};
@@ -125,7 +126,7 @@ namespace Shark {
 
 		uint32_t GetCount() { return m_Count; }
 
-		static Ref<IndexBuffer> Create(uint32_t* indices, uint32_t count);
+		static Ref<IndexBuffer> Create(const Buffer& data);
 	private:
 		uint32_t m_Count;
 	};

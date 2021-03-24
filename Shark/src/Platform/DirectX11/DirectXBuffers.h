@@ -12,13 +12,13 @@ namespace Shark {
 	{
 	public:
 		DirectXVertexBuffer(const VertexLayout& layout, bool dynamic, APIContext apicontext);
-		DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic, APIContext apicontext);
+		DirectXVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic, APIContext apicontext);
 		~DirectXVertexBuffer();
 
-		void Init(void* data, uint32_t size, bool dynamic);
+		void Init(const Buffer& data, bool dynamic);
 
-		void SetData(void* data, uint32_t size) override;
-		virtual void UpdateData(void* data, uint32_t size) override;
+		void SetData(const Buffer& data) override;
+		virtual void UpdateData(const Buffer& data) override;
 
 		void Bind() override;
 		void UnBind() override;
@@ -33,10 +33,10 @@ namespace Shark {
 	class DirectXIndexBuffer : public IndexBuffer
 	{
 	public:
-		DirectXIndexBuffer(uint32_t* indices, uint32_t count, APIContext apicontext);
+		DirectXIndexBuffer(const Buffer& data, APIContext apicontext);
 		~DirectXIndexBuffer();
 
-		void Init(uint32_t* indices, uint32_t count);
+		void Init(const Buffer& data);
 
 		void Bind() override;
 		void UnBind() override;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Utility/Buffer.h"
 
 #include <DirectXMath.h>
 
@@ -30,7 +31,7 @@ namespace Shark {
 	public:
 		virtual ~Texture() = default;
 
-		virtual void SetData(void* data) = 0;
+		virtual void SetData(const Buffer& data) = 0;
 		virtual void* GetHandle() const = 0;
 
 		virtual const std::string& GetFilePath() const = 0;
@@ -52,7 +53,7 @@ namespace Shark {
 
 		static Ref<Texture2D> Create(const SamplerSpecification& sampler, const std::string& filepath);
 		static Ref<Texture2D> Create(const SamplerSpecification& sampler, uint32_t width, uint32_t height, uint32_t flatcolor);
-		static Ref<Texture2D> Create(const SamplerSpecification& sampler, uint32_t width, uint32_t height, void* data);
+		static Ref<Texture2D> Create(const SamplerSpecification& sampler, uint32_t width, uint32_t height, const Buffer& data);
 	};
 
 }

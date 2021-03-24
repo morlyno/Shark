@@ -10,7 +10,7 @@
 
 namespace Shark {
 
-	struct Buffer
+	struct ConstBuffer
 	{
 		ID3D11Buffer* buffer;
 		UINT size;
@@ -21,14 +21,14 @@ namespace Shark {
 	{
 		ID3D11PixelShader* shader = nullptr;
 		ID3D11ShaderReflection* reflection = nullptr;
-		std::unordered_map<std::string, Buffer> constBuffers;
+		std::unordered_map<std::string, ConstBuffer> constBuffers;
 	};
 
 	struct VertexShader
 	{
 		ID3D11VertexShader* shader = nullptr;
 		ID3D11ShaderReflection* reflection = nullptr;
-		std::unordered_map<std::string, Buffer> constBuffers;
+		std::unordered_map<std::string, ConstBuffer> constBuffers;
 	};
 
 	class DirectXShaders : public Shaders
@@ -40,9 +40,9 @@ namespace Shark {
 
 		void Init(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
 
-		virtual void SetBuffer(const std::string& bufferName, void* data, uint32_t size) override;
+		virtual void SetBuffer(const std::string& bufferName, const Buffer& data) override;
 
-		void UploudBuffer(const std::string& bufferName, void* data, uint32_t size);
+		void UploudBuffer(const std::string& bufferName, const Buffer& data);
 
 		virtual VertexLayout& GetVertexLayout() override { return m_VertexLayout; };
 

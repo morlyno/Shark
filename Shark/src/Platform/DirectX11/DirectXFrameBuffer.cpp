@@ -133,7 +133,7 @@ namespace Shark {
 		}
 
 		Ref<Texture2D> texture = Texture2D::Create({}, m_Specification.Width, m_Specification.Height, 0u);
-		texture->SetData(alignedData);
+		texture->SetData(Buffer::Ref( alignedData, 0 ));
 		delete[] alignedData;
 
 		buffer->Release();
@@ -176,7 +176,7 @@ namespace Shark {
 			dest += destPitch;
 			src += srcPitch;
 		}
-		texture->SetData(alignedData);
+		texture->SetData(Buffer::Ref( alignedData, 0 ));
 		delete[] alignedData;
 
 		buffer->Release();

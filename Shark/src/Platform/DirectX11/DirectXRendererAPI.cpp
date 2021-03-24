@@ -143,14 +143,14 @@ namespace Shark {
 		return CreateRef<DirectXVertexBuffer>(layout, dynamic, APIContext{ m_Device, m_Context });
 	}
 
-	Ref<VertexBuffer> DirectXRendererAPI::CreateVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic)
+	Ref<VertexBuffer> DirectXRendererAPI::CreateVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic)
 	{
-		return CreateRef<DirectXVertexBuffer>(layout, data, size, dynamic, APIContext{ m_Device, m_Context });
+		return CreateRef<DirectXVertexBuffer>(layout, data, dynamic, APIContext{ m_Device, m_Context });
 	}
 
-	Ref<IndexBuffer> DirectXRendererAPI::CreateIndexBuffer(uint32_t* indices, uint32_t count)
+	Ref<IndexBuffer> DirectXRendererAPI::CreateIndexBuffer(const Buffer& data)
 	{
-		return CreateRef<DirectXIndexBuffer>(indices, count, APIContext{ m_Device, m_Context });
+		return CreateRef<DirectXIndexBuffer>(data, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<Shaders> DirectXRendererAPI::CreateShaders(const std::string& filepath)
@@ -173,7 +173,7 @@ namespace Shark {
 		return CreateRef<DirectXTexture2D>(sampler, width, height, flatcolor, APIContext{ m_Device, m_Context });
 	}
 	
-	Ref<Texture2D> DirectXRendererAPI::CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, void* data)
+	Ref<Texture2D> DirectXRendererAPI::CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, const Buffer& data)
 	{
 		return CreateRef<DirectXTexture2D>(sampler, width, height, data, APIContext{ m_Device, m_Context });
 	}

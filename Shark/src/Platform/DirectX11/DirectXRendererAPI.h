@@ -34,13 +34,13 @@ namespace Shark {
 		ID3D11DeviceContext* GetContext() { return m_Context; }
 
 		virtual Ref<VertexBuffer> CreateVertexBuffer(const VertexLayout& layout, bool dynamic = false) override;
-		virtual Ref<VertexBuffer> CreateVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic = false) override;
-		virtual Ref<IndexBuffer> CreateIndexBuffer(uint32_t* indices, uint32_t count) override;
+		virtual Ref<VertexBuffer> CreateVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic = false) override;
+		virtual Ref<IndexBuffer> CreateIndexBuffer(const Buffer& data) override;
 		virtual Ref<Shaders> CreateShaders(const std::string& filepath) override;
 		virtual Ref<Shaders> CreateShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc) override;
 		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, const std::string& filepath) override;
 		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, uint32_t flatcolor) override;
-		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, void* data) override;
+		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, const Buffer& data) override;
 		virtual Ref<FrameBuffer> CreateFrameBuffer(const FrameBufferSpecification& specs) override;
 		virtual Ref<Viewport> CreateViewport(uint32_t width, uint32_t height) override;
 	private:
