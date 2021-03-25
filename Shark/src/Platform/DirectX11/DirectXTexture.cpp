@@ -188,8 +188,8 @@ namespace Shark {
 
 	DirectXTexture2D::~DirectXTexture2D()
 	{
-		if (m_Texture) { m_Texture->Release(); }
-		if (m_Sampler) { m_Sampler->Release(); }
+		if (m_Texture) { m_Texture->Release(); m_Texture = nullptr; }
+		if (m_Sampler) { m_Sampler->Release(); m_Sampler = nullptr; }
 	}
 
 	void DirectXTexture2D::SetData(const Buffer& data)

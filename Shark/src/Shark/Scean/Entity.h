@@ -9,7 +9,7 @@ namespace Shark {
 	{
 	public:
 		Entity() = default;
-		Entity(entt::entity entityhandle, Scean* scean);
+		Entity(entt::entity entityhandle, const WeakRef<Scean>& scean);
 		Entity(const Entity&) = default;
 
 		template<typename Component, typename... Args>
@@ -44,7 +44,7 @@ namespace Shark {
 		bool operator==(const Entity& rhs) { return m_EntityHandle == rhs.m_EntityHandle && m_Scean == rhs.m_Scean; }
 	private:
 		entt::entity m_EntityHandle{ entt::null };
-		Scean* m_Scean = nullptr;
+		WeakRef<Scean> m_Scean;
 	};
 
 }

@@ -116,7 +116,7 @@ namespace Shark {
 			for (auto entityID : view)
 			{
 				auto& comp = view.get<NativeScriptComponent>(entityID);
-				Entity entity{ entityID, this };
+				Entity entity{ entityID, WeakRef<Scean>::Create(this) };
 				comp.CreateScript(entity);
 				comp.Script->OnCreate();
 			}
@@ -157,7 +157,7 @@ namespace Shark {
 
 	Entity Scean::CreateEntity(const std::string& tag)
 	{
-		Entity entity{ m_Registry.create(), this };
+		Entity entity{ m_Registry.create(), WeakRef<Scean>::Create(this) };
 		auto& tagcomp = entity.AddComponent<TagComponent>();
 		tagcomp.Tag = tag.empty() ? "Entity" : tag;
 		entity.AddComponent<TransformComponent>();
@@ -171,7 +171,7 @@ namespace Shark {
 
 	Entity Scean::GetActiveCamera()
 	{
-		return { m_ActiveCameraID, this };
+		return { m_ActiveCameraID, WeakRef<Scean>::Create(this) };
 	}
 
 	void Scean::ResizeCameras(float width, float height)

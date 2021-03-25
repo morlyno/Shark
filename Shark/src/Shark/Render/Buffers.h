@@ -90,7 +90,7 @@ namespace Shark {
 		uint32_t m_VertexSize = 0u;
 	};
 
-	class VertexBuffer
+	class VertexBuffer : public RefCount
 	{
 	public:
 		VertexBuffer(const VertexLayout& layout)
@@ -114,7 +114,7 @@ namespace Shark {
 	};
 
 	// 32-Bit IndexBuffer
-	class IndexBuffer
+	class IndexBuffer : public RefCount
 	{
 	public:
 		IndexBuffer(uint32_t count)

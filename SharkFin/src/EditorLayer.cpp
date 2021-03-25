@@ -28,7 +28,7 @@ namespace Shark {
 
 		auto& window = Application::Get().GetWindow();
 		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0);
-		m_ActiveScean = CreateRef<Scean>();
+		m_ActiveScean = Ref<Scean>::Create();
 		{
 			SceanSerializer serializer(m_ActiveScean);
 			serializer.Deserialize("assets/Sceans/TwoSquares.shark");
@@ -306,7 +306,7 @@ namespace Shark {
 
 	void EditorLayer::NewScean()
 	{
-		m_ActiveScean = CreateRef<Scean>();
+		m_ActiveScean = Ref<Scean>::Create();
 		m_SceanHirachyPanel.SetContext(m_ActiveScean);
 		m_ActiveScean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 	}
@@ -328,8 +328,8 @@ namespace Shark {
 		if (filepath)
 		{
 			m_PlayScean = false;
-			m_ActiveScean = CreateRef<Scean>();
-			m_SceanHirachyPanel.SetContext(m_ActiveScean);
+			m_ActiveScean = Ref<Scean>::Create();
+
 			SceanSerializer serializer(m_ActiveScean);
 			serializer.Deserialize(*filepath);
 

@@ -37,7 +37,7 @@ namespace Shark {
 		{
 			auto view = m_Context->m_Registry.view<CameraComponent>();
 			for (auto entityID : view)
-				DrawEntityNode({ entityID, m_Context.get() });
+				DrawEntityNode({ entityID, m_Context.CreateWeak() });
 
 			ImGui::TreePop();
 		}
@@ -46,7 +46,7 @@ namespace Shark {
 		{
 			auto view = m_Context->m_Registry.view<SpriteRendererComponent>();
 			for (auto entityID : view)
-				DrawEntityNode({ entityID, m_Context.get() });
+				DrawEntityNode({ entityID, m_Context.CreateWeak() });
 
 			ImGui::TreePop();
 		}
@@ -55,7 +55,7 @@ namespace Shark {
 		{
 			auto view = m_Context->m_Registry.view<TagComponent>(entt::exclude<CameraComponent, SpriteRendererComponent>);
 			for (auto entityID : view)
-				DrawEntityNode({ entityID, m_Context.get() });
+				DrawEntityNode({ entityID, m_Context.CreateWeak() });
 
 			ImGui::TreePop();
 		}

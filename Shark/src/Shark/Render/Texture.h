@@ -26,7 +26,7 @@ namespace Shark {
 		{}
 	};
 
-	class Texture
+	class Texture : public RefCount
 	{
 	public:
 		virtual ~Texture() = default;

@@ -89,9 +89,9 @@ namespace Shark {
 	void Renderer2D::ShutDown()
 	{
 		delete[] s_BatchData.QuadVertexBasePtr;
-		s_BatchData.QuadVertexBuffer.reset();
-		s_BatchData.QuadIndexBuffer.reset();
-		s_BatchData.Shader.reset();
+		s_BatchData.QuadVertexBuffer.Release();
+		s_BatchData.QuadIndexBuffer.Release();
+		s_BatchData.Shader.Release();
 		s_BatchData.Textures = {};
 	}
 

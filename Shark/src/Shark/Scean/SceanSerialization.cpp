@@ -213,7 +213,7 @@ namespace Shark {
 		
 		m_Scean->m_Registry.each([&](auto& entityID)
 			{
-				Entity entity{ entityID, m_Scean.get() };
+				Entity entity{ entityID, m_Scean.CreateWeak() };
 				SerializeEntity(out, entity, m_Scean);
 			});
 
@@ -240,7 +240,7 @@ namespace Shark {
 			for (auto entity : entities)
 			{
 				entt::entity entityID = m_Scean->m_Registry.create();
-				Entity deserializedEntity = { entityID, m_Scean.get() };
+				Entity deserializedEntity = { entityID, m_Scean.CreateWeak() };
 
 				SK_CORE_TRACE("Deserializing Entity ID: {0}", (uint32_t)entityID);
 

@@ -7,7 +7,7 @@
 
 namespace Shark {
 
-	class Shaders
+	class Shaders : public RefCount
 	{
 	public:
 		virtual ~Shaders() = default;

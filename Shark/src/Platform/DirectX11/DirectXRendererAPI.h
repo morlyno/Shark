@@ -13,7 +13,11 @@ namespace Shark {
 
 		APIContext() = delete;
 		APIContext(ID3D11Device* device, ID3D11DeviceContext* context)
-			: Device(device), Context(context) {}
+			: Device(device), Context(context)
+		{
+			//Device->AddRef();
+			//Context->AddRef();
+		}
 		~APIContext() { /*Device->Release(); Context->Release();*/ }
 	};
 

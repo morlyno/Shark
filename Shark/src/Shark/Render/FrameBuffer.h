@@ -31,7 +31,7 @@ namespace Shark {
 			: Width(width), Height(height), Atachments(atachments) {}
 	};
 
-	class FrameBuffer
+	class FrameBuffer : public RefCount
 	{
 	public:
 		virtual ~FrameBuffer() = default;

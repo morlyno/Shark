@@ -140,52 +140,52 @@ namespace Shark {
 
 	Ref<VertexBuffer> DirectXRendererAPI::CreateVertexBuffer(const VertexLayout& layout, bool dynamic)
 	{
-		return CreateRef<DirectXVertexBuffer>(layout, dynamic, APIContext{ m_Device, m_Context });
+		return Ref<DirectXVertexBuffer>::Create(layout, dynamic, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<VertexBuffer> DirectXRendererAPI::CreateVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic)
 	{
-		return CreateRef<DirectXVertexBuffer>(layout, data, dynamic, APIContext{ m_Device, m_Context });
+		return Ref<DirectXVertexBuffer>::Create(layout, data, dynamic, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<IndexBuffer> DirectXRendererAPI::CreateIndexBuffer(const Buffer& data)
 	{
-		return CreateRef<DirectXIndexBuffer>(data, APIContext{ m_Device, m_Context });
+		return Ref<DirectXIndexBuffer>::Create(data, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<Shaders> DirectXRendererAPI::CreateShaders(const std::string& filepath)
 	{
-		return CreateRef<DirectXShaders>(filepath, APIContext{ m_Device, m_Context });
+		return Ref<DirectXShaders>::Create(filepath, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<Shaders> DirectXRendererAPI::CreateShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc)
 	{
-		return CreateRef<DirectXShaders>(vertexshaderSrc, pixelshaderSrc, APIContext{ m_Device, m_Context });
+		return Ref<DirectXShaders>::Create(vertexshaderSrc, pixelshaderSrc, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<Texture2D> DirectXRendererAPI::CreateTexture2D(const SamplerSpecification& sampler, const std::string& filepath)
 	{
-		return CreateRef<DirectXTexture2D>(sampler, filepath, APIContext{ m_Device, m_Context });
+		return Ref<DirectXTexture2D>::Create(sampler, filepath, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<Texture2D> DirectXRendererAPI::CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, uint32_t flatcolor)
 	{
-		return CreateRef<DirectXTexture2D>(sampler, width, height, flatcolor, APIContext{ m_Device, m_Context });
+		return Ref<DirectXTexture2D>::Create(sampler, width, height, flatcolor, APIContext{ m_Device, m_Context });
 	}
 	
 	Ref<Texture2D> DirectXRendererAPI::CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, const Buffer& data)
 	{
-		return CreateRef<DirectXTexture2D>(sampler, width, height, data, APIContext{ m_Device, m_Context });
+		return Ref<DirectXTexture2D>::Create(sampler, width, height, data, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<FrameBuffer> DirectXRendererAPI::CreateFrameBuffer(const FrameBufferSpecification& specs)
 	{
-		return CreateRef<DirectXFrameBuffer>(specs, APIContext{ m_Device, m_Context }, m_SwapChain);
+		return Ref<DirectXFrameBuffer>::Create(specs, APIContext{ m_Device, m_Context }, m_SwapChain);
 	}
 
 	Ref<Viewport> DirectXRendererAPI::CreateViewport(uint32_t width, uint32_t height)
 	{
-		return CreateRef<DirectXViewport>(width, height, APIContext{ m_Device, m_Context });
+		return Ref<DirectXViewport>::Create(width, height, APIContext{ m_Device, m_Context });
 	}
 
 }

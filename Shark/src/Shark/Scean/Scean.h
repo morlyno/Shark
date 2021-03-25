@@ -11,7 +11,7 @@ namespace Shark {
 
 	class Entity;
 
-	class Scean
+	class Scean : public RefCount
 	{
 		friend class Entity;
 		friend class SceanHirachyPanel;

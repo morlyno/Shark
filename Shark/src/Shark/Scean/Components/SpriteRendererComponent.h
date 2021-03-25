@@ -7,6 +7,11 @@ namespace Shark {
 	struct SpriteRendererComponent
 	{
 		SpriteRendererComponent() = default;
+		SpriteRendererComponent(const SpriteRendererComponent&) = default;
+		SpriteRendererComponent& operator=(SpriteRendererComponent&) = default;
+		SpriteRendererComponent(SpriteRendererComponent&&) = default;
+		SpriteRendererComponent& operator=(SpriteRendererComponent&&) = default;
+
 		SpriteRendererComponent(const DirectX::XMFLOAT4& color)
 			: Color(color) {}
 		SpriteRendererComponent(const Ref<Texture2D>& texture)
@@ -16,7 +21,7 @@ namespace Shark {
 		~SpriteRendererComponent() = default;
 
 		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Ref<Texture2D> Texture;
+		Ref<Texture2D> Texture = nullptr;
 		float TilingFactor = 1.0f;
 	};
 

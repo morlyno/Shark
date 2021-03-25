@@ -44,10 +44,12 @@ namespace Shark {
 
 	DirectXFrameBuffer::~DirectXFrameBuffer()
 	{
-		for (uint32_t i = 0; i < m_FrameBuffers.size(); ++i)
-			m_FrameBuffers[i]->Release();
+		for (auto buffer : m_FrameBuffers)
+			if (buffer)
+				buffer->Release();
 
-		m_DepthStencil->Release();
+		if (m_DepthStencil)
+			m_DepthStencil->Release();
 	}
 
 	void DirectXFrameBuffer::Clear(float ClearColor[4])

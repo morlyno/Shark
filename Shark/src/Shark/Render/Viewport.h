@@ -2,7 +2,7 @@
 
 namespace Shark {
 
-	class Viewport
+	class Viewport : public RefCount
 	{
 	public:
 		virtual ~Viewport() = default;
