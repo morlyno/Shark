@@ -60,7 +60,10 @@ namespace Shark {
 				SK_CORE_ASSERT(m_Instance->GetRefCount() != 0, "Release was called but refcount was 0");
 				if (m_Instance->DecRef() == 0)
 				{
-					SK_IF_DEBUG(if (uint32_t wc = m_Instance->GetWeakCount(); wc > 0) SK_CORE_INFO("Insteance is going to be deleated but there are still {0} Weak Refrences", wc););
+					SK_IF_DEBUG(
+						if (uint32_t wc = m_Instance->GetWeakCount(); wc > 0)
+							SK_CORE_INFO("Insteance of {0} is going to be deleated but there are still {1} Weak Refrences", typeid(T).name(), wc);
+					);
 					delete m_Instance;
 				}
 				m_Instance = nullptr;
@@ -68,6 +71,11 @@ namespace Shark {
 		}
 
 		WeakRef<T> GetWeak() const { return WeakRef<T>::Create(*this); }
+
+		template<typename T2>
+		Ref<T2> CastTo() { m_Instance->AddRef(); return Ref<T2>(reinterpret_cast<T2*>(m_Instance)); }
+		template<typename T2>
+		Ref<T2> DynamicCastTo() { return Ref<T2>(dynamic_cast<T2*>(m_Instance)); }
 
 		T* operator->() const { return m_Instance; }
 		T& operator*() const { return *m_Instance; }
@@ -112,6 +120,11 @@ namespace Shark {
 		const WeakRef& operator=(WeakRef<T2>&& other) { m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
 
 		void Release() { if (m_Instance) { SK_CORE_ASSERT(m_Instance->GetWeakCount() != 0, "Release was called but WeakCount was 0"); m_Instance->DecWeak(); } m_Instance = nullptr; }
+
+		template<typename T2>
+		WeakRef<T2> CastTo() { return WeakRef<T2>(reinterpret_cast<T2*>(m_Instance)); }
+		template<typename T2>
+		WeakRef<T2> DynamicCastTo() { return WeakRef<T2>(dynamic_cast<T2*>(m_Instance)); }
 
 		T& operator*() const { return *m_Instance; }
 		T* operator->() const { return m_Instance; }

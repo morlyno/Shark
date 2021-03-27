@@ -8,13 +8,14 @@ namespace Shark {
 	class DirectXFrameBuffer : public FrameBuffer
 	{
 	public:
-		DirectXFrameBuffer(const FrameBufferSpecification& specs, APIContext apicontext, IDXGISwapChain* swapchain);
+		DirectXFrameBuffer(const FrameBufferSpecification& specs, APIContext apicontext);
 		virtual ~DirectXFrameBuffer();
 
-		virtual void Clear(float ClearColor[4]) override;
-		virtual void ClearAtachment(uint32_t index, float clearcolor[4]) override;
+		virtual void Clear(Utils::ColorF32 clearcolor) override;
+		virtual void ClearAtachment(uint32_t index, Utils::ColorF32 clearcolor) override;
 
-		virtual void Resize(uint32_t width, uint32_t height);
+		virtual void Release() override;
+		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) override;
 		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) override;
@@ -24,9 +25,10 @@ namespace Shark {
 	private:
 		void CreateSwapChainBuffer(uint32_t index);
 		void CreateDepthBuffer();
-		void CreateBuffer(uint32_t index, DXGI_FORMAT dxgiformat);
+		void CreateFrameBuffer(uint32_t index, DXGI_FORMAT dxgiformat);
 
-		void ResizeSwapChainBuffer(uint32_t width, uint32_t height);
+		void CreateBuffers();
+
 	private:
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;
@@ -34,6 +36,5 @@ namespace Shark {
 		FrameBufferSpecification m_Specification;
 
 		APIContext m_APIContext;
-		IDXGISwapChain* m_SwapChain;
 	};
 }

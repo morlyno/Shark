@@ -59,7 +59,7 @@ namespace Shark {
 		s_BatchData.WitheTexture = Texture2D::Create({}, 1, 1, 0xFFFFFFFF);
 		s_BatchData.Textures[0] = s_BatchData.WitheTexture;
 
-		s_BatchData.QuadVertexBuffer = VertexBuffer::Create(s_BatchData.Shader->GetVertexLayout(), true);
+		s_BatchData.QuadVertexBuffer = VertexBuffer::Create(s_BatchData.Shader->GetVertexLayout(), {}, true);
 		s_BatchData.QuadVertexBuffer->SetData(Buffer::Ref( s_BatchData.QuadVertexBasePtr, sizeof(QuadVertex) * s_BatchData.MaxQuadVertices ));
 
 		uint32_t* indices = new uint32_t[s_BatchData.MaxQuadIndices];
@@ -110,7 +110,7 @@ namespace Shark {
 		ReBind();
 
 		s_BatchData.Shader->SetBuffer("SceanData", Buffer::Ref(s_SceanData));
-		s_BatchData.QuadVertexBuffer->UpdateData(Buffer::Ref( s_BatchData.QuadVertexBasePtr, s_BatchData.MaxQuadVerticesSize ));
+		s_BatchData.QuadVertexBuffer->SetData(Buffer::Ref( s_BatchData.QuadVertexBasePtr, s_BatchData.MaxQuadVerticesSize ));
 
 		RendererCommand::DrawIndexed(s_BatchData.QuadCount * 6);
 

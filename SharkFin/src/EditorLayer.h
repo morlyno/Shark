@@ -49,6 +49,7 @@ namespace Shark {
 		bool m_ShowEditorCameraControlls = true;
 
 		Ref<Texture2D> m_FrameBufferTexture;
+		Ref<SwapChain> m_SwapChain;
 
 		// Box2D Test
 #ifdef SHARK_BOX2D_TEST

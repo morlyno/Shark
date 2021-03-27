@@ -5,7 +5,6 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/KeyCodes.h"
 #include "Shark/Core/MouseCodes.h"
-#include "Shark/Render/RendererCommand.h"
 
 #include <backends/imgui_impl_win32.h>
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -114,7 +113,6 @@ namespace Shark {
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
 		}
-		RendererCommand::SwapBuffer(m_VSync);
 	}
 
 	LRESULT WINAPI WindowsWindow::WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

@@ -5,18 +5,13 @@
 
 namespace Shark {
 
-	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout, bool dynamic)
-	{
-		return RendererCommand::CreateVertexBuffer(layout, dynamic);
-	}
-
 	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout, const Buffer& data, bool dynamic)
 	{
 		return RendererCommand::CreateVertexBuffer(layout, data, dynamic);
 	}
 
-	Ref<IndexBuffer> IndexBuffer::Create(const Buffer& data)
+	Ref<IndexBuffer> IndexBuffer::Create(const Buffer& data, bool dynamic)
 	{
-		return RendererCommand::CreateIndexBuffer(data);
+		return RendererCommand::CreateIndexBuffer(data, dynamic);
 	}
 }

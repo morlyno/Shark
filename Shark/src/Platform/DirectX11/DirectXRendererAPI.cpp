@@ -7,6 +7,7 @@
 #include "Platform/DirectX11/DirectXTexture.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
 #include "Platform/DirectX11/DirectXViewport.h"
+#include "Platform/DirectX11/DirectXSwapChain.h"
 
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR(SK_STRINGIFY(call) "0x{0:x}", hr); SK_DEBUG_BREAK(); }
@@ -42,23 +43,6 @@ namespace Shark {
 			SK_CORE_INFO("GPU: {0}", gpudesc);
 		}
 
-		DXGI_SWAP_CHAIN_DESC scd = {};
-		scd.BufferDesc.Width = window.GetWidth();
-		scd.BufferDesc.Height = window.GetHeight();
-		scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-		scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-		scd.BufferDesc.RefreshRate.Denominator = 0u;
-		scd.BufferDesc.RefreshRate.Numerator = 0u;
-		scd.SampleDesc.Count = 1u;
-		scd.SampleDesc.Quality = 0u;
-		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		scd.BufferCount = 1u;
-		scd.OutputWindow = (HWND)window.GetHandle();
-		scd.Windowed = TRUE;
-		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-		scd.Flags = 0u;
-
 		UINT createdeviceFalgs = 0u;
 #if SK_DEBUG
 		createdeviceFalgs |= D3D11_CREATE_DEVICE_DEBUG;
@@ -76,8 +60,6 @@ namespace Shark {
 			nullptr,
 			&m_Context
 		));
-
-		SK_CHECK(m_Factory->CreateSwapChain(m_Device, &scd, &m_SwapChain));
 
 		if (gpu) { gpu->Release(); gpu = nullptr; }
 
@@ -109,15 +91,9 @@ namespace Shark {
 	{
 		if (m_Device) { m_Device->Release(); m_Device = nullptr; }
 		if (m_Context) { m_Context->Release(); m_Context = nullptr; }
-		if (m_SwapChain) { m_SwapChain->Release(); m_SwapChain = nullptr; }
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
 		if (m_BlendState) { m_BlendState->Release(); m_BlendState = nullptr; }
 		if (m_BlendStateNoAlpha) { m_BlendStateNoAlpha->Release(); m_BlendStateNoAlpha = nullptr; }
-	}
-
-	void DirectXRendererAPI::SwapBuffer(bool VSync)
-	{
-		SK_CHECK(m_SwapChain->Present(VSync ? 1u : 0u, 0u));
 	}
 
 	void DirectXRendererAPI::SetBlendState(bool blend)
@@ -138,19 +114,14 @@ namespace Shark {
 		m_Context->Flush();
 	}
 
-	Ref<VertexBuffer> DirectXRendererAPI::CreateVertexBuffer(const VertexLayout& layout, bool dynamic)
-	{
-		return Ref<DirectXVertexBuffer>::Create(layout, dynamic, APIContext{ m_Device, m_Context });
-	}
-
 	Ref<VertexBuffer> DirectXRendererAPI::CreateVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic)
 	{
 		return Ref<DirectXVertexBuffer>::Create(layout, data, dynamic, APIContext{ m_Device, m_Context });
 	}
 
-	Ref<IndexBuffer> DirectXRendererAPI::CreateIndexBuffer(const Buffer& data)
+	Ref<IndexBuffer> DirectXRendererAPI::CreateIndexBuffer(const Buffer& data, bool dynamic)
 	{
-		return Ref<DirectXIndexBuffer>::Create(data, APIContext{ m_Device, m_Context });
+		return Ref<DirectXIndexBuffer>::Create(data, dynamic, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<Shaders> DirectXRendererAPI::CreateShaders(const std::string& filepath)
@@ -180,12 +151,17 @@ namespace Shark {
 
 	Ref<FrameBuffer> DirectXRendererAPI::CreateFrameBuffer(const FrameBufferSpecification& specs)
 	{
-		return Ref<DirectXFrameBuffer>::Create(specs, APIContext{ m_Device, m_Context }, m_SwapChain);
+		return Ref<DirectXFrameBuffer>::Create(specs, APIContext{ m_Device, m_Context });
 	}
 
 	Ref<Viewport> DirectXRendererAPI::CreateViewport(uint32_t width, uint32_t height)
 	{
 		return Ref<DirectXViewport>::Create(width, height, APIContext{ m_Device, m_Context });
+	}
+
+	Ref<SwapChain> DirectXRendererAPI::CreateSwapChain(const SwapChainSpecifications& specs)
+	{
+		return Ref<DirectXSwapChain>::Create(specs, APIContextEx{ m_Device, m_Context, m_Factory });
 	}
 
 }

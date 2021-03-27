@@ -12,23 +12,23 @@ namespace Shark {
 
 	struct ConstBuffer
 	{
-		ID3D11Buffer* buffer;
-		UINT size;
-		UINT slot;
+		ID3D11Buffer* buffer = nullptr;
+		UINT size = 0;
+		UINT slot = 0;
 	};
 
 	struct PixelShader
 	{
 		ID3D11PixelShader* shader = nullptr;
 		ID3D11ShaderReflection* reflection = nullptr;
-		std::unordered_map<std::string, ConstBuffer> constBuffers;
+		std::vector<std::pair<std::string, ConstBuffer>> constBuffers;
 	};
 
 	struct VertexShader
 	{
 		ID3D11VertexShader* shader = nullptr;
 		ID3D11ShaderReflection* reflection = nullptr;
-		std::unordered_map<std::string, ConstBuffer> constBuffers;
+		std::vector<std::pair<std::string, ConstBuffer>> constBuffers;
 	};
 
 	class DirectXShaders : public Shaders
@@ -49,7 +49,7 @@ namespace Shark {
 		void Bind() override;
 		void UnBind() override;
 
-		virtual const std::string& GetName() override { return m_Name; }
+		virtual const std::string& GetName() const override { return m_Name; }
 	private:
 		PixelShader m_PixelShader;
 		VertexShader m_VertexShader;

@@ -1,5 +1,6 @@
 #include "skpch.h"
 #include "DirectXFrameBuffer.h"
+#include "Platform/DirectX11/DirectXSwapChain.h"
 
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
@@ -25,20 +26,10 @@ namespace Shark {
 
 	}
 
-	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs, APIContext apicontext, IDXGISwapChain* swapchain)
-		: m_Specification(specs), m_APIContext(apicontext), m_SwapChain(swapchain)
+	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs, APIContext apicontext)
+		: m_Specification(specs), m_APIContext(apicontext)
 	{
-		uint32_t index = 0;
-		for (auto atachment : m_Specification.Atachments)
-		{
-			if (atachment.SwapChainTarget)
-				CreateSwapChainBuffer(index++);
-			else if (atachment.Atachment == FrameBufferColorAtachment::Depth32)
-				CreateDepthBuffer();
-			else
-				CreateBuffer(index++, Utils::FBAtachmentToDXGIFormat(atachment.Atachment));
-		}
-		m_Count = index;
+		CreateBuffers();
 		Bind();
 	}
 
@@ -52,17 +43,36 @@ namespace Shark {
 			m_DepthStencil->Release();
 	}
 
-	void DirectXFrameBuffer::Clear(float ClearColor[4])
+	void DirectXFrameBuffer::Clear(Utils::ColorF32 clearcolor)
 	{
 		for (auto buffer : m_FrameBuffers)
-			m_APIContext.Context->ClearRenderTargetView(buffer, ClearColor);
+			m_APIContext.Context->ClearRenderTargetView(buffer, clearcolor.rgba);
 
 		m_APIContext.Context->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
 	}
 
-	void DirectXFrameBuffer::ClearAtachment(uint32_t index, float clearcolor[4])
+	void DirectXFrameBuffer::ClearAtachment(uint32_t index, Utils::ColorF32 clearcolor)
 	{
-		m_APIContext.Context->ClearRenderTargetView(m_FrameBuffers[index], clearcolor);
+		m_APIContext.Context->ClearRenderTargetView(m_FrameBuffers[index], clearcolor.rgba);
+	}
+
+	void DirectXFrameBuffer::Release()
+	{
+		m_APIContext.Context->OMSetRenderTargets(0, nullptr, nullptr);
+
+		for (auto& buffer : m_FrameBuffers)
+		{
+			if (buffer)
+			{
+				buffer->Release();
+				buffer = nullptr;
+			}
+		}
+		if (m_DepthStencil)
+		{
+			m_DepthStencil->Release();
+			m_DepthStencil = nullptr;
+		}
 	}
 
 	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)
@@ -72,29 +82,14 @@ namespace Shark {
 
 		m_APIContext.Context->OMSetRenderTargets(0, nullptr, nullptr);
 
-		for (auto& buffer : m_FrameBuffers)
-		{
-			buffer->Release();
-			buffer = nullptr;
-		}
-		m_DepthStencil->Release();
-		m_DepthStencil = nullptr;
+		SK_CORE_ASSERT(m_DepthStencil == nullptr, "Release must be called befor Resize");
+		SK_IF_DEBUG(
+			for (auto buffer : m_FrameBuffers)
+				SK_CORE_ASSERT(buffer == nullptr, "Release must be called befor Resize");
+		);
+		
+		CreateBuffers();
 
-		const auto it = std::find_if(m_Specification.Atachments.begin(), m_Specification.Atachments.end(), [](auto& atachment) { return atachment.SwapChainTarget; });
-		if (it != m_Specification.Atachments.end())
-			ResizeSwapChainBuffer(width, height);
-
-		uint32_t index = 0;
-		for (auto& atachment : m_Specification.Atachments)
-		{
-			if (atachment.SwapChainTarget)
-				CreateSwapChainBuffer(index++);
-			else if (atachment.Atachment == FrameBufferColorAtachment::Depth32)
-				CreateDepthBuffer();
-			else
-				CreateBuffer(index++, Utils::FBAtachmentToDXGIFormat(atachment.Atachment));
-
-		}
 		Bind();
 	}
 
@@ -133,7 +128,7 @@ namespace Shark {
 		}
 
 		Ref<Texture2D> texture = Texture2D::Create({}, m_Specification.Width, m_Specification.Height, 0u);
-		texture->SetData(Buffer::Ref( alignedData, 0 ));
+		texture->SetData(Buffer::Ref(alignedData, 0));
 		delete[] alignedData;
 
 		buffer->Release();
@@ -196,7 +191,10 @@ namespace Shark {
 	void DirectXFrameBuffer::CreateSwapChainBuffer(uint32_t index)
 	{
 		ID3D11Texture2D* buffer;
-		SK_CHECK(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&buffer));
+
+		WeakRef<DirectXSwapChain> dxsc = m_Specification.SwapChain.CastTo<DirectXSwapChain>();
+		dxsc->GetBackBuffer(0, &buffer);
+
 		if (index >= m_FrameBuffers.size())
 			m_FrameBuffers.push_back(nullptr);
 		SK_CHECK(m_APIContext.Device->CreateRenderTargetView(buffer, nullptr, &m_FrameBuffers[index]));
@@ -242,7 +240,7 @@ namespace Shark {
 
 	}
 
-	void DirectXFrameBuffer::CreateBuffer(uint32_t index, DXGI_FORMAT dxgiformat)
+	void DirectXFrameBuffer::CreateFrameBuffer(uint32_t index, DXGI_FORMAT dxgiformat)
 	{
 		ID3D11Texture2D* texture;
 		D3D11_TEXTURE2D_DESC td;
@@ -266,9 +264,28 @@ namespace Shark {
 		texture->Release();
 	}
 
-	void DirectXFrameBuffer::ResizeSwapChainBuffer(uint32_t width, uint32_t height)
+	void DirectXFrameBuffer::CreateBuffers()
 	{
-		SK_CHECK(m_SwapChain->ResizeBuffers(0u, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0u));
+		uint32_t index = 0;
+
+		auto atachemnt = m_Specification.Atachments.begin();
+		if (m_Specification.SwapChainTarget)
+		{
+			CreateSwapChainBuffer(index++);
+			++atachemnt;
+		}
+
+		while (atachemnt != m_Specification.Atachments.end())
+		{
+			if (atachemnt->Atachment == FrameBufferColorAtachment::Depth32)
+				CreateDepthBuffer();
+			else
+				CreateFrameBuffer(index++, Utils::FBAtachmentToDXGIFormat(atachemnt->Atachment));
+
+			++atachemnt;
+		}
+
+		m_Count = index;
 	}
 
 }

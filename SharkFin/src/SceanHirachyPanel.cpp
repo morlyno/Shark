@@ -18,8 +18,8 @@ namespace Shark {
 
 	void SceanHirachyPanel::SetContext(Ref<Scean> context)
 	{
-		m_Context = context;
 		m_SelectedEntity = {};
+		m_Context = context;
 	}
 
 	void SceanHirachyPanel::OnImGuiRender()

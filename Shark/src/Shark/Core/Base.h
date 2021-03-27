@@ -16,7 +16,7 @@
 #define SK_EXPAND(x) x
 
 #ifdef SK_DEBUG
-#define SK_IF_DEBUG(x) x
+#define SK_IF_DEBUG(x) { x }
 #else
 #define SK_IF_DEBUG(...)
 #endif

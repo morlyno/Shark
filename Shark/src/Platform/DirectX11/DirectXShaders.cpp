@@ -19,21 +19,21 @@ namespace Shark {
 		VertexShader, PixelShader
 	};
 
-	static ShaderDataType DXGIFormatToShaderDataType(DXGI_FORMAT format)
+	static VertexDataType DXGIFormatToVertexDataType(DXGI_FORMAT format)
 	{
 		switch (format)
 		{
-			case DXGI_FORMAT_R32_FLOAT:             return ShaderDataType::Float;
-			case DXGI_FORMAT_R32G32_FLOAT:          return ShaderDataType::Float2;
-			case DXGI_FORMAT_R32G32B32_FLOAT:       return ShaderDataType::Float3;
-			case DXGI_FORMAT_R32G32B32A32_FLOAT:    return ShaderDataType::Float4;
-			case DXGI_FORMAT_R32_SINT:              return ShaderDataType::Int;
-			case DXGI_FORMAT_R32G32_SINT:           return ShaderDataType::Int2;
-			case DXGI_FORMAT_R32G32B32_SINT:        return ShaderDataType::Int3;
-			case DXGI_FORMAT_R32G32B32A32_SINT:     return ShaderDataType::Int4;
+			case DXGI_FORMAT_R32_FLOAT:             return VertexDataType::Float;
+			case DXGI_FORMAT_R32G32_FLOAT:          return VertexDataType::Float2;
+			case DXGI_FORMAT_R32G32B32_FLOAT:       return VertexDataType::Float3;
+			case DXGI_FORMAT_R32G32B32A32_FLOAT:    return VertexDataType::Float4;
+			case DXGI_FORMAT_R32_SINT:              return VertexDataType::Int;
+			case DXGI_FORMAT_R32G32_SINT:           return VertexDataType::Int2;
+			case DXGI_FORMAT_R32G32B32_SINT:        return VertexDataType::Int3;
+			case DXGI_FORMAT_R32G32B32A32_SINT:     return VertexDataType::Int4;
 		}
 		SK_CORE_ASSERT(false, "Unkown format");
-		return ShaderDataType::None;
+		return VertexDataType::None;
 	}
 
 	static std::string ReadFile(const std::string& filepath)
@@ -181,7 +181,7 @@ namespace Shark {
 				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 			}
 			m_InputElements.push_back(elementDesc);
-			m_VertexLayout.Add({ DXGIFormatToShaderDataType(elementDesc.Format), elementDesc.SemanticName });
+			m_VertexLayout.Add({ DXGIFormatToVertexDataType(elementDesc.Format), elementDesc.SemanticName });
 		}
 		m_VertexLayout.Init();
 
@@ -195,7 +195,7 @@ namespace Shark {
 			D3D11_SHADER_BUFFER_DESC sb;
 			SK_CHECK(cbuff->GetDesc(&sb));
 
-			ConstBuffer& buffer = m_VertexShader.constBuffers[sb.Name];
+			ConstBuffer& buffer = m_VertexShader.constBuffers.emplace_back(sb.Name, ConstBuffer{}).second;
 
 			buffer.size = sb.Size;
 			buffer.slot = i;
@@ -232,7 +232,7 @@ namespace Shark {
 			D3D11_SHADER_BUFFER_DESC sb;
 			SK_CHECK(cbuff->GetDesc(&sb));
 
-			ConstBuffer& buffer = m_PixelShader.constBuffers[sb.Name];
+			ConstBuffer& buffer = m_PixelShader.constBuffers.emplace_back(sb.Name, ConstBuffer{}).second;
 
 			buffer.size = sb.Size;
 			buffer.slot = i;
@@ -258,13 +258,21 @@ namespace Shark {
 
 	void DirectXShaders::UploudBuffer(const std::string& bufferName, const Buffer& data)
 	{
-		ConstBuffer& buffer = m_VertexShader.constBuffers.find(bufferName)->second;
-		SK_CORE_ASSERT(data.Size() == buffer.size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
+		ConstBuffer* buffer = nullptr;
+		for (auto b : m_VertexShader.constBuffers)
+			if (b.first == bufferName)
+			{
+				buffer = &b.second;
+				break;
+			}
+
+		SK_CORE_ASSERT(buffer != nullptr, "Could not find buffername");
+		SK_CORE_ASSERT(data.Size() == buffer->size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
 		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_CHECK(m_APIContext.Context->Map(buffer.buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms));
+		SK_CHECK(m_APIContext.Context->Map(buffer->buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms));
 		data.CopyInto(ms.pData);
-		m_APIContext.Context->Unmap(buffer.buffer, 0u);
-		m_APIContext.Context->VSSetConstantBuffers(buffer.slot, 1u, &buffer.buffer);
+		m_APIContext.Context->Unmap(buffer->buffer, 0u);
+		m_APIContext.Context->VSSetConstantBuffers(buffer->slot, 1u, &buffer->buffer);
 	}
 
 	void DirectXShaders::Bind()

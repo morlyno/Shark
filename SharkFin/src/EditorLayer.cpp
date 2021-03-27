@@ -35,11 +35,18 @@ namespace Shark {
 		}
 		m_SceanHirachyPanel.SetContext(m_ActiveScean);
 
+		SwapChainSpecifications scspecs;
+		scspecs.Widht = window.GetWidth();
+		scspecs.Height = window.GetHeight();
+		scspecs.WindowHandle = window.GetHandle();
+		m_SwapChain = SwapChain::Create(scspecs);
+
 		FrameBufferSpecification fbspecs;
 		fbspecs.Width = window.GetWidth();
 		fbspecs.Height = window.GetHeight();
 		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::Depth32 };
-		fbspecs.Atachments[0].SwapChainTarget = true;
+		fbspecs.SwapChainTarget = true;
+		fbspecs.SwapChain = m_SwapChain.GetWeak();
 
 		m_FrameBuffer = FrameBuffer::Create(fbspecs);
 		m_FrameBuffer->Bind();
@@ -84,28 +91,18 @@ namespace Shark {
 
 	void EditorLayer::OnUpdate(TimeStep ts)
 	{
-		if (m_ViewportWidth != 0 && m_ViewportHeight != 0)
-		{
-			m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
-			m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
-		}
+		m_SwapChain->SwapBuffers(true);
 
 		m_FrameBuffer->Bind();
-		float clearcolor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
-		m_FrameBuffer->Clear(clearcolor);
+		m_FrameBuffer->Clear({ 0.1f, 0.1f, 0.1f, 1.0f });
 		m_Viewport->Bind();
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
 		if (m_ViewportSizeChanged)
 		{
-			m_FrameBufferTexture = Texture2D::Create({}, m_ViewportWidth, m_ViewportHeight, 0);
-			//m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
-			//m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
-
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 			m_ActiveScean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-
 		}
 
 		if (m_ActiveScean)
@@ -122,14 +119,6 @@ namespace Shark {
 
 		m_FrameBuffer->GetFramBufferContent(0, m_FrameBufferTexture);
 
-		auto& window = Application::Get().GetWindow();
-		uint32_t width = window.GetWidth();
-		uint32_t height = window.GetHeight();
-		if (width != 0 && height != 0)
-		{
-			m_FrameBuffer->Resize(width, height);
-			m_Viewport->Resize(width, height);
-		}
 	}
 
 	void EditorLayer::OnEvent(Event& event)
@@ -147,9 +136,11 @@ namespace Shark {
 		if (event.GetWidth() == 0 || event.GetHeight() == 0)
 			return false;
 
-		//m_FrameBufferTexture = Texture2D::Create({}, event.GetWidth(), event.GetHeight(), 0);
-		//m_FrameBuffer->Resize(event.GetWidth(), event.GetHeight());
-		//m_Viewport->Resize(event.GetWidth(), event.GetHeight());
+		m_FrameBufferTexture = Texture2D::Create({}, event.GetWidth(), event.GetHeight(), 0);
+		m_FrameBuffer->Release();
+		m_SwapChain->Resize(event.GetWidth(), event.GetHeight());
+		m_FrameBuffer->Resize(event.GetWidth(), event.GetHeight());
+		m_Viewport->Resize(event.GetWidth(), event.GetHeight());
 
 		return false;
 	}

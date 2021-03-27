@@ -12,22 +12,35 @@ namespace Shark {
 		ID3D11DeviceContext* Context;
 
 		APIContext() = delete;
-		APIContext(ID3D11Device* device, ID3D11DeviceContext* context)
-			: Device(device), Context(context)
-		{
-			//Device->AddRef();
-			//Context->AddRef();
-		}
-		~APIContext() { /*Device->Release(); Context->Release();*/ }
+		APIContext(ID3D11Device* device, ID3D11DeviceContext* context) { Device = device; Context = context; Device->AddRef(); Context->AddRef(); }
+		APIContext(const APIContext& other) { Device = other.Device; Context = other.Context; Device->AddRef(); Context->AddRef(); }
+		APIContext(APIContext&& other) { Device = other.Device; Context = other.Context; other.Context = nullptr; other.Device = nullptr; }
+		APIContext& operator=(const APIContext& other) { Device = other.Device; Context = other.Context; Device->AddRef(); Context->AddRef(); return *this; }
+		APIContext& operator=(APIContext&& other) { Device = other.Device; Context = other.Context; other.Device = nullptr; other.Device = nullptr; return *this; }
+		~APIContext() { if (Device) { Device->Release(); } if (Context) { Context->Release(); } }
 	};
+
+	struct APIContextEx
+	{
+		ID3D11Device* Device;
+		ID3D11DeviceContext* Context;
+		IDXGIFactory* Factory;
+
+		APIContextEx() = delete;
+		APIContextEx(ID3D11Device* device, ID3D11DeviceContext* context, IDXGIFactory* factory) { Device = device; Context = context; Factory = factory; Device->AddRef(); Context->AddRef(); Factory->AddRef(); }
+		APIContextEx(const APIContextEx& other) { Device = other.Device; Context = other.Context; Factory = other.Factory; Device->AddRef(); Context->AddRef(); Factory->AddRef(); }
+		APIContextEx(APIContextEx&& other) { Device = other.Device; Context = other.Context; Factory = other.Factory; other.Context = nullptr; other.Device = nullptr; other.Factory = nullptr; }
+		APIContextEx& operator=(const APIContextEx& other) { Device = other.Device; Context = other.Context; Factory = other.Factory; Device->AddRef(); Context->AddRef(); Factory->AddRef(); return *this; }
+		APIContextEx& operator=(APIContextEx&& other) { Device = other.Device; Context = other.Context; Factory = other.Factory; other.Device = nullptr; other.Device = nullptr; other.Factory = nullptr; return *this; }
+		~APIContextEx() { if (Device) { Device->Release(); } if (Context) { Context->Release(); } if (Factory) { Factory->Release(); } }
+	};
+
 
 	class DirectXRendererAPI : public RendererAPI
 	{
 	public:
 		virtual void Init(const Window& window) override;
 		virtual void ShutDown() override;
-
-		virtual void SwapBuffer(bool VSync) override;
 
 		virtual void SetBlendState(bool blend) override;
 
@@ -37,9 +50,8 @@ namespace Shark {
 		ID3D11Device* GetDevice() { return m_Device; }
 		ID3D11DeviceContext* GetContext() { return m_Context; }
 
-		virtual Ref<VertexBuffer> CreateVertexBuffer(const VertexLayout& layout, bool dynamic = false) override;
 		virtual Ref<VertexBuffer> CreateVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic = false) override;
-		virtual Ref<IndexBuffer> CreateIndexBuffer(const Buffer& data) override;
+		virtual Ref<IndexBuffer> CreateIndexBuffer(const Buffer& data, bool dynamic) override;
 		virtual Ref<Shaders> CreateShaders(const std::string& filepath) override;
 		virtual Ref<Shaders> CreateShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc) override;
 		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, const std::string& filepath) override;
@@ -47,11 +59,11 @@ namespace Shark {
 		virtual Ref<Texture2D> CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, const Buffer& data) override;
 		virtual Ref<FrameBuffer> CreateFrameBuffer(const FrameBufferSpecification& specs) override;
 		virtual Ref<Viewport> CreateViewport(uint32_t width, uint32_t height) override;
+		virtual Ref<SwapChain> CreateSwapChain(const SwapChainSpecifications& specs) override;
 	private:
 		IDXGIFactory* m_Factory = nullptr;
 		ID3D11Device* m_Device = nullptr;
 		ID3D11DeviceContext* m_Context = nullptr;
-		IDXGISwapChain* m_SwapChain = nullptr;
 		ID3D11BlendState* m_BlendState = nullptr;
 		ID3D11BlendState* m_BlendStateNoAlpha = nullptr;
 	};

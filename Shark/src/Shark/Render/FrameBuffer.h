@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Shark/Render/Texture.h"
+#include "Shark/Render/SwapChain.h"
+#include "Shark/Utility/Utils.h"
 
 namespace Shark {
 
@@ -15,16 +17,17 @@ namespace Shark {
 	struct FrmeBufferTextureAtachment
 	{
 		FrameBufferColorAtachment Atachment;
-		bool SwapChainTarget;
 
-		FrmeBufferTextureAtachment(FrameBufferColorAtachment atachment, bool swapchaintarget = false)
-			: Atachment(atachment), SwapChainTarget(swapchaintarget) {}
+		FrmeBufferTextureAtachment(FrameBufferColorAtachment atachment)
+			: Atachment(atachment) {}
 	};
 
 	struct FrameBufferSpecification
 	{
 		uint32_t Width = 0, Height = 0;
 		std::vector<FrmeBufferTextureAtachment> Atachments;
+		bool SwapChainTarget = false;
+		WeakRef<SwapChain> SwapChain = nullptr;
 
 		FrameBufferSpecification() = default;
 		FrameBufferSpecification(uint32_t width, uint32_t height, std::initializer_list<FrmeBufferTextureAtachment> atachments)
@@ -36,9 +39,10 @@ namespace Shark {
 	public:
 		virtual ~FrameBuffer() = default;
 
-		virtual void Clear(float ClearColor[4]) = 0;
-		virtual void ClearAtachment(uint32_t index, float clearcolor[4]) = 0;
+		virtual void Clear(Utils::ColorF32 clearcolor) = 0;
+		virtual void ClearAtachment(uint32_t index, Utils::ColorF32 clearcolor) = 0;
 
+		virtual void Release() = 0;
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) = 0;
