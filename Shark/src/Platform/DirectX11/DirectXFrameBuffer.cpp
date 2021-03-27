@@ -67,8 +67,6 @@ namespace Shark {
 
 	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)
 	{
-		SK_CORE_TRACE("FrameBuffer Resized: {0}, {1}", width, height);
-
 		m_Specification.Width = width;
 		m_Specification.Height = height;
 
@@ -270,7 +268,6 @@ namespace Shark {
 
 	void DirectXFrameBuffer::ResizeSwapChainBuffer(uint32_t width, uint32_t height)
 	{
-		SK_CORE_TRACE("SwapChain Resied: {0}, {1}", width, height);
 		SK_CHECK(m_SwapChain->ResizeBuffers(0u, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0u));
 	}
 

@@ -8,7 +8,7 @@ namespace Shark {
 #ifdef SK_PLATFORM_WINDOWS
 	Scope<Window> Window::Create(const WindowProps& properties)
 	{
-		return CreateScope<WindowsWindow>(properties);
+		return Scope<WindowsWindow>::Create(properties);
 	}
 #endif
 

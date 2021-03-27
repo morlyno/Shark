@@ -27,4 +27,3 @@
 #endif
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Log.h"

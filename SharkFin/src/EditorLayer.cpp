@@ -99,7 +99,6 @@ namespace Shark {
 
 		if (m_ViewportSizeChanged)
 		{
-			SK_CORE_INFO("Size Changed: {0}, {1}", m_ViewportWidth, m_ViewportHeight);
 			m_FrameBufferTexture = Texture2D::Create({}, m_ViewportWidth, m_ViewportHeight, 0);
 			//m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			//m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -148,7 +147,6 @@ namespace Shark {
 		if (event.GetWidth() == 0 || event.GetHeight() == 0)
 			return false;
 
-		SK_CORE_INFO(event);
 		//m_FrameBufferTexture = Texture2D::Create({}, event.GetWidth(), event.GetHeight(), 0);
 		//m_FrameBuffer->Resize(event.GetWidth(), event.GetHeight());
 		//m_Viewport->Resize(event.GetWidth(), event.GetHeight());
@@ -173,7 +171,6 @@ namespace Shark {
 
 	void EditorLayer::OnImGuiRender()
 	{
-
 		constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking |
 										          ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
 										          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;

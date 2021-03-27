@@ -93,6 +93,7 @@ namespace Shark {
 		s_BatchData.QuadIndexBuffer.Release();
 		s_BatchData.Shader.Release();
 		s_BatchData.Textures = {};
+		s_BatchData.WitheTexture.Release();
 	}
 
 	static void ReBind()

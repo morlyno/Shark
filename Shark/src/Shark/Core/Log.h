@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Shark/Core/Base.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
@@ -8,11 +7,19 @@ namespace Shark {
 
 	class Log
 	{
+	private:
+		static std::shared_ptr<spdlog::logger> InitPtrCore() { Log::Init(); return s_Core_Logger; }
+		static std::shared_ptr<spdlog::logger> InitPtrClient() { Log::Init(); return s_Client_Logger; }
+
+		static std::shared_ptr<spdlog::logger> GetCoreLoggerImpl() { return s_Core_Logger; }
+		static std::shared_ptr<spdlog::logger> GetClientLoggerImpl() { return s_Client_Logger; }
+
 	public:
 		static void Init();
 
-		static std::shared_ptr<spdlog::logger> GetCoreLogger() { return s_Core_Logger; }
-		static std::shared_ptr<spdlog::logger> GetClientLogger() { return s_Client_Logger; }
+		static std::shared_ptr<spdlog::logger>(*GetCoreLogger)();
+		static std::shared_ptr<spdlog::logger>(*GetClientLogger)();
+
 	private:
 		static std::shared_ptr<spdlog::logger> s_Core_Logger;
 		static std::shared_ptr<spdlog::logger> s_Client_Logger;

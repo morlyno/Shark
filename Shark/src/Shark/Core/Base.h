@@ -15,21 +15,14 @@
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
 
-#include <memory>
-
-namespace Shark {
-
-	template<typename T>
-	using Scope = std::unique_ptr<T>;
-
-	template<typename T, typename... Args>
-	constexpr Scope<T> CreateScope(Args&&... args)
-	{
-		return std::make_unique<T>(std::forward<Args>(args)...);
-	}
-
-}
+#ifdef SK_DEBUG
+#define SK_IF_DEBUG(x) x
+#else
+#define SK_IF_DEBUG(...)
+#endif
 
 #include "Shark/Core/Log.h"
 #include "Shark/Core/Assert.h"
+
 #include "Shark/Core/RefCount.h"
+#include "Shark/Core/Scope.h"

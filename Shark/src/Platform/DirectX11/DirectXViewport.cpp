@@ -31,8 +31,6 @@ namespace Shark {
 
 	void DirectXViewport::Resize(uint32_t width, uint32_t height)
 	{
-		SK_CORE_TRACE("Viewport Resized: {0}, {1}", width, height);
-
 		m_Width = width;
 		m_Height = height;
 
