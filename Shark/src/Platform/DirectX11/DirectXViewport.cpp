@@ -1,11 +1,14 @@
 #include "skpch.h"
 #include "DirectXViewport.h"
 
+#include "Shark/Render/RendererCommand.h"
+
 namespace Shark {
 
-	DirectXViewport::DirectXViewport(uint32_t width, uint32_t height, APIContext apicontext)
-		: m_ApiContext(apicontext), m_Width(width), m_Height(height)
+	DirectXViewport::DirectXViewport(uint32_t width, uint32_t height)
+		: m_Width(width), m_Height(height)
 	{
+		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>();
 	}
 
 	DirectXViewport::~DirectXViewport()
@@ -21,12 +24,12 @@ namespace Shark {
 		vp.Height = (float)m_Height;
 		vp.MinDepth = 0u;
 		vp.MaxDepth = 1u;
-		m_ApiContext.Context->RSSetViewports(1, &vp);
+		m_DXApi->GetContext()->RSSetViewports(1, &vp);
 	}
 
 	void DirectXViewport::UnBind()
 	{
-		m_ApiContext.Context->RSSetViewports(0, nullptr);
+		m_DXApi->GetContext()->RSSetViewports(0, nullptr);
 	}
 
 	void DirectXViewport::Resize(uint32_t width, uint32_t height)

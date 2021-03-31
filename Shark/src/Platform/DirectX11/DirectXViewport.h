@@ -8,7 +8,7 @@ namespace Shark {
 	class DirectXViewport : public Viewport
 	{
 	public:
-		DirectXViewport(uint32_t width, uint32_t height, APIContext apicontext);
+		DirectXViewport(uint32_t width, uint32_t height);
 		virtual ~DirectXViewport();
 
 		virtual void Bind() override;
@@ -20,7 +20,7 @@ namespace Shark {
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 	private:
-		APIContext m_ApiContext;
+		Ref<DirectXRendererAPI> m_DXApi;
 
 		uint32_t m_Width;
 		uint32_t m_Height;

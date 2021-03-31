@@ -1,22 +1,40 @@
 #include "skpch.h"
 #include "Texture.h"
 
-#include "Shark/Render/RendererCommand.h"
+#include "Platform/DirectX11/DirectXTexture.h"
 
 namespace Shark {
 	
 	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specs, const std::string& filepath)
 	{
-		return RendererCommand::CreateTexture2D(specs, filepath);
+		switch (RendererAPI::GetAPI())
+		{
+			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, filepath);
+		}
+		SK_CORE_ASSERT(false, "Unknown API");
+		return nullptr;
 	}
 
 	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t flatcolor)
 	{
-		return RendererCommand::CreateTexture2D(specs, width, height, flatcolor);
+		switch (RendererAPI::GetAPI())
+		{
+			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, width, height, flatcolor);
+		}
+		SK_CORE_ASSERT(false, "Unknown API");
+		return nullptr;
 	}
 
 	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specs, uint32_t width, uint32_t height, const Buffer& data)
 	{
-		return RendererCommand::CreateTexture2D(specs, width, height, data);
+		switch (RendererAPI::GetAPI())
+		{
+			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, width, height, data);
+		}
+		SK_CORE_ASSERT(false, "Unknown API");
+		return nullptr;
 	}
 }

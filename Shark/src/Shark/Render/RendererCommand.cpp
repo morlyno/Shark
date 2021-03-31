@@ -3,6 +3,6 @@
 
 namespace Shark {
 
-	Scope<RendererAPI> RendererCommand::s_RendererAPI = RendererAPI::Create();
+	Ref<RendererAPI> RendererCommand::s_RendererAPI = RendererAPI::Create();
 
 }

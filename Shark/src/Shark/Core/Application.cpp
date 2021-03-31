@@ -27,7 +27,7 @@ namespace Shark {
 		windowprops.Maximized = true;
 		m_Window = Window::Create(windowprops);
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
-		Renderer::Init(*m_Window);
+		Renderer::Init();
 
 		m_ImGuiLayer = new ImGuiLayer();
 		PushLayer(m_ImGuiLayer);

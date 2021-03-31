@@ -8,7 +8,7 @@ namespace Shark {
 	class DirectXFrameBuffer : public FrameBuffer
 	{
 	public:
-		DirectXFrameBuffer(const FrameBufferSpecification& specs, APIContext apicontext);
+		DirectXFrameBuffer(const FrameBufferSpecification& specs);
 		virtual ~DirectXFrameBuffer();
 
 		virtual void Clear(Utils::ColorF32 clearcolor) override;
@@ -16,6 +16,8 @@ namespace Shark {
 
 		virtual void Release() override;
 		virtual void Resize(uint32_t width, uint32_t height) override;
+		virtual void SetBlend(uint32_t index, bool blend) override;
+		virtual bool GetBlend(uint32_t index) const override { return m_Specification.Atachments[index].Blend; }
 
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) override;
 		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) override;
@@ -30,11 +32,12 @@ namespace Shark {
 		void CreateBuffers();
 
 	private:
+		Ref<DirectXRendererAPI> m_DXApi;
+
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;
+		ID3D11BlendState* m_BlendState;
 		uint32_t m_Count = 0;
 		FrameBufferSpecification m_Specification;
-
-		APIContext m_APIContext;
 	};
 }

@@ -2,13 +2,6 @@
 #include "DirectXRendererAPI.h"
 #include <stdlib.h>
 
-#include "Platform/DirectX11/DirectXBuffers.h"
-#include "Platform/DirectX11/DirectXShaders.h"
-#include "Platform/DirectX11/DirectXTexture.h"
-#include "Platform/DirectX11/DirectXFrameBuffer.h"
-#include "Platform/DirectX11/DirectXViewport.h"
-#include "Platform/DirectX11/DirectXSwapChain.h"
-
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR(SK_STRINGIFY(call) "0x{0:x}", hr); SK_DEBUG_BREAK(); }
 #else
@@ -17,7 +10,7 @@
 
 namespace Shark {
 
-	void DirectXRendererAPI::Init(const Window& window)
+	void DirectXRendererAPI::Init()
 	{
 		SK_CORE_ASSERT(m_Device == nullptr, "RendererAPI already initialized");
 		SK_CORE_INFO("Init RendererAPI");
@@ -62,29 +55,9 @@ namespace Shark {
 		));
 
 		if (gpu) { gpu->Release(); gpu = nullptr; }
-
 		
 		// TODO: Make chanchable in the future
 		m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-
-		D3D11_BLEND_DESC bd;
-		bd.AlphaToCoverageEnable = false;
-		bd.IndependentBlendEnable = false;
-		bd.RenderTarget[0].BlendEnable = TRUE;
-		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-		bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-		bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		SK_CHECK(m_Device->CreateBlendState(&bd, &m_BlendState));
-
-		bd.RenderTarget[0].BlendEnable = FALSE;
-		SK_CHECK(m_Device->CreateBlendState(&bd, &m_BlendStateNoAlpha));
-
-		m_Context->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
 	}
 
 	void DirectXRendererAPI::ShutDown()
@@ -92,16 +65,6 @@ namespace Shark {
 		if (m_Device) { m_Device->Release(); m_Device = nullptr; }
 		if (m_Context) { m_Context->Release(); m_Context = nullptr; }
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
-		if (m_BlendState) { m_BlendState->Release(); m_BlendState = nullptr; }
-		if (m_BlendStateNoAlpha) { m_BlendStateNoAlpha->Release(); m_BlendStateNoAlpha = nullptr; }
-	}
-
-	void DirectXRendererAPI::SetBlendState(bool blend)
-	{
-		if (blend)
-			m_Context->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
-		else
-			m_Context->OMSetBlendState(m_BlendStateNoAlpha, nullptr, 0xFFFFFFFF);
 	}
 
 	void DirectXRendererAPI::DrawIndexed(uint32_t count)
@@ -112,56 +75,6 @@ namespace Shark {
 	void DirectXRendererAPI::Flush()
 	{
 		m_Context->Flush();
-	}
-
-	Ref<VertexBuffer> DirectXRendererAPI::CreateVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic)
-	{
-		return Ref<DirectXVertexBuffer>::Create(layout, data, dynamic, APIContext{ m_Device, m_Context });
-	}
-
-	Ref<IndexBuffer> DirectXRendererAPI::CreateIndexBuffer(const Buffer& data, bool dynamic)
-	{
-		return Ref<DirectXIndexBuffer>::Create(data, dynamic, APIContext{ m_Device, m_Context });
-	}
-
-	Ref<Shaders> DirectXRendererAPI::CreateShaders(const std::string& filepath)
-	{
-		return Ref<DirectXShaders>::Create(filepath, APIContext{ m_Device, m_Context });
-	}
-
-	Ref<Shaders> DirectXRendererAPI::CreateShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc)
-	{
-		return Ref<DirectXShaders>::Create(vertexshaderSrc, pixelshaderSrc, APIContext{ m_Device, m_Context });
-	}
-
-	Ref<Texture2D> DirectXRendererAPI::CreateTexture2D(const SamplerSpecification& sampler, const std::string& filepath)
-	{
-		return Ref<DirectXTexture2D>::Create(sampler, filepath, APIContext{ m_Device, m_Context });
-	}
-
-	Ref<Texture2D> DirectXRendererAPI::CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, uint32_t flatcolor)
-	{
-		return Ref<DirectXTexture2D>::Create(sampler, width, height, flatcolor, APIContext{ m_Device, m_Context });
-	}
-	
-	Ref<Texture2D> DirectXRendererAPI::CreateTexture2D(const SamplerSpecification& sampler, uint32_t width, uint32_t height, const Buffer& data)
-	{
-		return Ref<DirectXTexture2D>::Create(sampler, width, height, data, APIContext{ m_Device, m_Context });
-	}
-
-	Ref<FrameBuffer> DirectXRendererAPI::CreateFrameBuffer(const FrameBufferSpecification& specs)
-	{
-		return Ref<DirectXFrameBuffer>::Create(specs, APIContext{ m_Device, m_Context });
-	}
-
-	Ref<Viewport> DirectXRendererAPI::CreateViewport(uint32_t width, uint32_t height)
-	{
-		return Ref<DirectXViewport>::Create(width, height, APIContext{ m_Device, m_Context });
-	}
-
-	Ref<SwapChain> DirectXRendererAPI::CreateSwapChain(const SwapChainSpecifications& specs)
-	{
-		return Ref<DirectXSwapChain>::Create(specs, APIContextEx{ m_Device, m_Context, m_Factory });
 	}
 
 }

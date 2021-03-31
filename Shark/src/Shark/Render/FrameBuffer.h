@@ -17,6 +17,8 @@ namespace Shark {
 	struct FrmeBufferTextureAtachment
 	{
 		FrameBufferColorAtachment Atachment;
+		bool Blend = false;
+		// TODO: Blend Desc
 
 		FrmeBufferTextureAtachment(FrameBufferColorAtachment atachment)
 			: Atachment(atachment) {}
@@ -44,6 +46,9 @@ namespace Shark {
 
 		virtual void Release() = 0;
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
+
+		virtual void SetBlend(uint32_t index, bool blend) = 0;
+		virtual bool GetBlend(uint32_t index) const = 0;
 
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) = 0;
 		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) = 0;

@@ -33,8 +33,10 @@ namespace Shark {
 		void OpenScean();
 	private:
 		EditorCamera m_EditorCamera;
-		Ref<FrameBuffer> m_FrameBuffer;
+		Ref<SwapChain> m_SwapChain;
+		Ref<FrameBuffer> m_SwapChainFrameBuffer;
 		Ref<Viewport> m_Viewport;
+		Ref<FrameBuffer> m_FrameBuffer;
 
 		Ref<Scean> m_ActiveScean;
 		SceanHirachyPanel m_SceanHirachyPanel;
@@ -49,7 +51,6 @@ namespace Shark {
 		bool m_ShowEditorCameraControlls = true;
 
 		Ref<Texture2D> m_FrameBufferTexture;
-		Ref<SwapChain> m_SwapChain;
 
 		// Box2D Test
 #ifdef SHARK_BOX2D_TEST

@@ -234,20 +234,25 @@ namespace Shark::UI {
 		return valchanged;
 	}
 
-	static void ImGuiCallbackFunctionBlend(const ImDrawList* parent_list, const ImDrawCmd* cmd)
+	static void ImGuiCallbackFunctionBlendOff(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 	{
-		::Shark::RendererCommand::SetBlendState((bool)cmd->UserCallbackData);
+		(*(Ref<FrameBuffer>*)cmd->UserCallbackData)->SetBlend(0, false);
 	}
 
-	void NoAlpaImage(ImTextureID textureID, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tintcolor, const ImVec4& bordercolor)
+	static void ImGUiCallbackFunctionBlendOn(const ImDrawList* parent_list, const ImDrawCmd* cmd)
+	{
+		(*(Ref<FrameBuffer>*)cmd->UserCallbackData)->SetBlend(0, true);
+	}
+
+	void NoAlpaImage(const Ref<FrameBuffer>& framebuffer, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tintcolor, const ImVec4& bordercolor)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)
 			return;
 
-		window->DrawList->AddCallback(ImGuiCallbackFunctionBlend, (void*)0);
+		window->DrawList->AddCallback(ImGuiCallbackFunctionBlendOff, (void*)&framebuffer);
 		ImGui::Image(textureID, size, uv0, uv1, tintcolor, bordercolor);
-		window->DrawList->AddCallback(ImGuiCallbackFunctionBlend, (void*)1);
+		window->DrawList->AddCallback(ImGUiCallbackFunctionBlendOn, (void*)&framebuffer);
 
 	}
 

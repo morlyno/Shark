@@ -14,7 +14,7 @@ namespace Shark {
 	class Renderer
 	{
 	public:
-		static void Init(const class Window& window);
+		static void Init();
 		static void ShutDown();
 
 		static void BeginScean(/*OrtographicCamera& camera*/);

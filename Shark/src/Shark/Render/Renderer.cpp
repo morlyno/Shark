@@ -1,6 +1,5 @@
 #include "skpch.h"
 #include "Renderer.h"
-#include "Shark/Core/Window.h"
 #include "Shark/Render/Renderer2D.h"
 
 #include "Platform/DirectX11/DirectXRendererAPI.h"
@@ -9,9 +8,9 @@ namespace Shark {
 
 	Scope<Renderer::SceanData> Renderer::m_SceanData = Scope<Renderer::SceanData>::Create();
 
-	void Renderer::Init(const Window& window)
+	void Renderer::Init()
 	{
-		RendererCommand::Init(window);
+		RendererCommand::Init();
 		Renderer2D::Init();
 	}
 

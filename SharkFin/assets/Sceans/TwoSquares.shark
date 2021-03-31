@@ -36,6 +36,6 @@ Entities:
       Rotation: [0, 0, 0]
       Scaling: [1, 1, 1]
     SpriteRendererComponent:
-      Color: [0.600000024, 0, 0, 1]
+      Color: [0.600000024, 0, 0, 0.5]
       Texture: ""
       TilingFactor: 1

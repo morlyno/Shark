@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Shark/Render/FrameBuffer.h"
+
 #include <imgui.h>
 
 #include <DirectXMath.h>
@@ -18,6 +20,6 @@ namespace Shark::UI {
 
 	bool DrawVec3Control(const char* lable, DirectX::XMFLOAT3& vec, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f);
 
-	void NoAlpaImage(ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, const ImVec4& tintcolor = { 1, 1, 1, 1 }, const ImVec4& bordercolor = { 0, 0 , 0, 0 });
+	void NoAlpaImage(const Ref<FrameBuffer>& framebuffer, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, const ImVec4& tintcolor = { 1, 1, 1, 1 }, const ImVec4& bordercolor = { 0, 0 , 0, 0 });
 
 }

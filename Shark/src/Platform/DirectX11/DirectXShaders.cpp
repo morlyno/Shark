@@ -2,6 +2,8 @@
 #include "DirectXShaders.h"
 #include "Shark/Render/Buffers.h"
 
+#include "Shark/Render/RendererCommand.h"
+
 #include <d3dcompiler.h>
 #include <fstream>
 
@@ -62,9 +64,10 @@ namespace Shark {
 		return ShaderType::None;
 	}
 
-	DirectXShaders::DirectXShaders(const std::string& filepath, APIContext apicontext)
-		: m_APIContext(apicontext)
+	DirectXShaders::DirectXShaders(const std::string& filepath)
 	{
+		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>();
+
 		std::string src = ReadFile(filepath);
 		std::string VertexShader;
 		std::string PixelShader;
@@ -100,9 +103,10 @@ namespace Shark {
 		Init(VertexShader, PixelShader);
 	}
 
-	DirectXShaders::DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc, APIContext apicontext)
-		: m_APIContext(apicontext)
+	DirectXShaders::DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc)
 	{
+		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>();
+
 		Init(vertexshaderSrc, pixelshaderSrc);
 	}
 
@@ -134,7 +138,7 @@ namespace Shark {
 			SK_CORE_ASSERT(false, "Shader Compile Failed: " + msg);
 			ErrorMsg->Release(); ErrorMsg = nullptr;
 		}
-		m_APIContext.Device->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &m_VertexShader.shader);
+		m_DXApi->GetDevice()->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &m_VertexShader.shader);
 
 		SK_CHECK(D3DReflect(blob->GetBufferPointer(), blob->GetBufferSize(), __uuidof(ID3D11ShaderReflection), (void**)&m_VertexShader.reflection));
 
@@ -185,7 +189,7 @@ namespace Shark {
 		}
 		m_VertexLayout.Init();
 
-		SK_CHECK(m_APIContext.Device->CreateInputLayout(m_InputElements.data(), (UINT)m_InputElements.size(), blob->GetBufferPointer(), blob->GetBufferSize(), &m_InputLayout));
+		SK_CHECK(m_DXApi->GetDevice()->CreateInputLayout(m_InputElements.data(), (UINT)m_InputElements.size(), blob->GetBufferPointer(), blob->GetBufferSize(), &m_InputLayout));
 
 		blob->Release(); blob = nullptr;
 
@@ -208,7 +212,7 @@ namespace Shark {
 			bd.MiscFlags = 0u;
 			bd.StructureByteStride = 0u;
 
-			SK_CHECK(m_APIContext.Device->CreateBuffer(&bd, nullptr, &buffer.buffer));
+			SK_CHECK(m_DXApi->GetDevice()->CreateBuffer(&bd, nullptr, &buffer.buffer));
 		}
 
 		// Pixel Shader
@@ -219,7 +223,7 @@ namespace Shark {
 			SK_CORE_ASSERT(false, "Shader Compile Failed: " + msg);
 			ErrorMsg->Release(); ErrorMsg = nullptr;
 		}
-		SK_CHECK(m_APIContext.Device->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &m_PixelShader.shader));
+		SK_CHECK(m_DXApi->GetDevice()->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &m_PixelShader.shader));
 
 		SK_CHECK(D3DReflect(blob->GetBufferPointer(), blob->GetBufferSize(), __uuidof(ID3D11ShaderReflection), (void**)&m_PixelShader.reflection));
 
@@ -245,7 +249,7 @@ namespace Shark {
 			bd.MiscFlags = 0u;
 			bd.StructureByteStride = 0u;
 
-			SK_CHECK(m_APIContext.Device->CreateBuffer(&bd, nullptr, &buffer.buffer));
+			SK_CHECK(m_DXApi->GetDevice()->CreateBuffer(&bd, nullptr, &buffer.buffer));
 		}
 
 		blob->Release(); blob = nullptr;
@@ -269,24 +273,24 @@ namespace Shark {
 		SK_CORE_ASSERT(buffer != nullptr, "Could not find buffername");
 		SK_CORE_ASSERT(data.Size() == buffer->size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
 		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_CHECK(m_APIContext.Context->Map(buffer->buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms));
+		SK_CHECK(m_DXApi->GetContext()->Map(buffer->buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms));
 		data.CopyInto(ms.pData);
-		m_APIContext.Context->Unmap(buffer->buffer, 0u);
-		m_APIContext.Context->VSSetConstantBuffers(buffer->slot, 1u, &buffer->buffer);
+		m_DXApi->GetContext()->Unmap(buffer->buffer, 0u);
+		m_DXApi->GetContext()->VSSetConstantBuffers(buffer->slot, 1u, &buffer->buffer);
 	}
 
 	void DirectXShaders::Bind()
 	{
-		m_APIContext.Context->VSSetShader(m_VertexShader.shader, nullptr, 0u);
-		m_APIContext.Context->PSSetShader(m_PixelShader.shader, nullptr, 0u);
-		m_APIContext.Context->IASetInputLayout(m_InputLayout);
+		m_DXApi->GetContext()->VSSetShader(m_VertexShader.shader, nullptr, 0u);
+		m_DXApi->GetContext()->PSSetShader(m_PixelShader.shader, nullptr, 0u);
+		m_DXApi->GetContext()->IASetInputLayout(m_InputLayout);
 	}
 
 	void DirectXShaders::UnBind()
 	{
-		m_APIContext.Context->VSSetShader(nullptr, nullptr, 0u);
-		m_APIContext.Context->PSSetShader(nullptr, nullptr, 0u);
-		m_APIContext.Context->IASetInputLayout(nullptr);
+		m_DXApi->GetContext()->VSSetShader(nullptr, nullptr, 0u);
+		m_DXApi->GetContext()->PSSetShader(nullptr, nullptr, 0u);
+		m_DXApi->GetContext()->IASetInputLayout(nullptr);
 	}
 
 }

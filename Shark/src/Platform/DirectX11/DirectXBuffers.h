@@ -11,7 +11,7 @@ namespace Shark {
 	class DirectXVertexBuffer : public VertexBuffer
 	{
 	public:
-		DirectXVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic, APIContext apicontext);
+		DirectXVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic);
 		virtual ~DirectXVertexBuffer();
 
 		virtual void SetData(const Buffer& data) override;
@@ -21,17 +21,17 @@ namespace Shark {
 	private:
 		void CreateBuffer(const Buffer& data);
 	private:
+		Ref<DirectXRendererAPI> m_DXApi;
+
 		ID3D11Buffer* m_VertexBuffer = nullptr;
 		bool m_Dynamic;
-
-		APIContext m_APIContext;
 	};
 
 
 	class DirectXIndexBuffer : public IndexBuffer
 	{
 	public:
-		DirectXIndexBuffer(const Buffer& data, bool dynamic, APIContext apicontext);
+		DirectXIndexBuffer(const Buffer& data, bool dynamic);
 		virtual ~DirectXIndexBuffer();
 
 		virtual void SetData(const Buffer& data) override;
@@ -41,10 +41,10 @@ namespace Shark {
 	private:
 		void CreateBuffer(const Buffer& data);
 	private:
+		Ref<DirectXRendererAPI> m_DXApi;
+
 		ID3D11Buffer* m_IndexBuffer = nullptr;
 		bool m_Dynamic;
-
-		APIContext m_APIContext;
 	};
 
 }

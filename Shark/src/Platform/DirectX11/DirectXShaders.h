@@ -34,8 +34,8 @@ namespace Shark {
 	class DirectXShaders : public Shaders
 	{
 	public:
-		DirectXShaders(const std::string& filepath, APIContext apicontext);
-		DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc, APIContext apicontext);
+		DirectXShaders(const std::string& filepath);
+		DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
 		~DirectXShaders();
 
 		void Init(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
@@ -51,6 +51,8 @@ namespace Shark {
 
 		virtual const std::string& GetName() const override { return m_Name; }
 	private:
+		Ref<DirectXRendererAPI> m_DXApi;
+
 		PixelShader m_PixelShader;
 		VertexShader m_VertexShader;
 		
@@ -59,8 +61,6 @@ namespace Shark {
 		VertexLayout m_VertexLayout;
 
 		std::string m_Name;
-
-		APIContext m_APIContext;
 	};
 
 }

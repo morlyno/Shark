@@ -11,9 +11,9 @@ namespace Shark {
 	class DirectXTexture2D : public Texture2D
 	{
 	public:
-		DirectXTexture2D(const SamplerSpecification& specs, const std::string& filepath, APIContext apicontext);
-		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t flatcolor, APIContext apicontext);
-		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, const Buffer& data, APIContext apicontext);
+		DirectXTexture2D(const SamplerSpecification& specs, const std::string& filepath);
+		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t flatcolor);
+		DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, const Buffer& data);
 		virtual ~DirectXTexture2D();
 
 		virtual void SetData(const Buffer& data) override;
@@ -30,14 +30,14 @@ namespace Shark {
 		virtual void Bind() override;
 		virtual void Bind(uint32_t slot) override;
 	private:
+		Ref<DirectXRendererAPI> m_DXApi;
+
 		std::string m_FilePath;
 		uint32_t m_Width;
 		uint32_t m_Height;
 		uint32_t m_Slot = 0;
 		ID3D11ShaderResourceView* m_Texture = nullptr;
 		ID3D11SamplerState* m_Sampler = nullptr;
-
-		APIContext m_APIContext;
 	};
 
 }

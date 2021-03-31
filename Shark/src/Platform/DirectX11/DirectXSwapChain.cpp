@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "DirectXSwapChain.h"
 
+#include "Shark/Render/RendererCommand.h"
+
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
 #else
@@ -9,9 +11,12 @@
 
 namespace Shark {
 
-	DirectXSwapChain::DirectXSwapChain(const SwapChainSpecifications& specs, APIContextEx apicontext)
-		: m_ApiContext(apicontext)
+	DirectXSwapChain::DirectXSwapChain(const SwapChainSpecifications& specs)
+		: m_BufferCount(specs.BufferCount)
 	{
+		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>();
+
+		SK_CORE_ASSERT(specs.BufferCount == 1, "Multi buffering not implemented");
 		DXGI_SWAP_CHAIN_DESC scd;
 		memset(&scd, 0, sizeof(DXGI_SWAP_CHAIN_DESC));
 		scd.BufferDesc.Width = specs.Widht;
@@ -24,13 +29,13 @@ namespace Shark {
 		scd.SampleDesc.Count = 1u;
 		scd.SampleDesc.Quality = 0u;
 		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		scd.BufferCount = 1u;
+		scd.BufferCount = specs.BufferCount;
 		scd.OutputWindow = (HWND)specs.WindowHandle;
 		scd.Windowed = TRUE;
 		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		scd.Flags = 0u;
 
-		SK_CHECK(m_ApiContext.Factory->CreateSwapChain(m_ApiContext.Device, &scd, &m_SwapChain));
+		SK_CHECK(m_DXApi->GetFactory()->CreateSwapChain(m_DXApi->GetDevice(), &scd, &m_SwapChain));
 	}
 
 	DirectXSwapChain::~DirectXSwapChain()
