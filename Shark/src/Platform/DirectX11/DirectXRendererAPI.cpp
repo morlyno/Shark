@@ -55,9 +55,6 @@ namespace Shark {
 		));
 
 		if (gpu) { gpu->Release(); gpu = nullptr; }
-		
-		// TODO: Make chanchable in the future
-		m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 	void DirectXRendererAPI::ShutDown()

@@ -28,6 +28,8 @@
 #include "Shark/Render/FrameBuffer.h"
 #include "Shark/Render/Viewport.h"
 #include "Shark/Render/SwapChain.h"
+#include "Shark/Render/Topology.h"
+#include "Shark/Render/Rasterizer.h"
 #include "Shark/Render/Camera.h"
 #include "Shark/Render/EditorCamera.h"
 // --------------------------------------

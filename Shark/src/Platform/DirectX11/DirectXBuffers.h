@@ -21,7 +21,7 @@ namespace Shark {
 	private:
 		void CreateBuffer(const Buffer& data);
 	private:
-		Ref<DirectXRendererAPI> m_DXApi;
+		WeakRef<DirectXRendererAPI> m_DXApi;
 
 		ID3D11Buffer* m_VertexBuffer = nullptr;
 		bool m_Dynamic;
@@ -41,7 +41,7 @@ namespace Shark {
 	private:
 		void CreateBuffer(const Buffer& data);
 	private:
-		Ref<DirectXRendererAPI> m_DXApi;
+		WeakRef<DirectXRendererAPI> m_DXApi;
 
 		ID3D11Buffer* m_IndexBuffer = nullptr;
 		bool m_Dynamic;

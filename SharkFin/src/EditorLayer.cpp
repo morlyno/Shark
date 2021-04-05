@@ -59,8 +59,16 @@ namespace Shark {
 		fbspecs.Atachments[0].Blend = true;
 		m_FrameBuffer = FrameBuffer::Create(fbspecs);
 
-
 		m_Viewport = Viewport::Create(window.GetWidth(), window.GetHeight());
+
+		m_Topology = Topology::Create(TopologyMode::Triangle);
+
+		RasterizerSpecification rrspecs;
+		rrspecs.Fill = FillMode::Solid;
+		rrspecs.Cull = CullMode::Back;
+		rrspecs.Multisample = false;
+		rrspecs.Antialising = false;
+		m_Rasterizer = Rasterizer::Create(rrspecs);
 
 #if 0
 		class TestScript : public NativeScript
@@ -101,6 +109,8 @@ namespace Shark {
 	{
 		m_SwapChain->SwapBuffers(true);
 
+		m_Rasterizer->Bind();
+		m_Topology->Bind();
 		m_Viewport->Bind();
 		m_FrameBuffer->Bind();
 		m_FrameBuffer->Clear({ 0.1f, 0.1f, 0.1f, 1.0f });

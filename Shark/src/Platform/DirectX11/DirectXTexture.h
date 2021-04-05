@@ -30,7 +30,7 @@ namespace Shark {
 		virtual void Bind() override;
 		virtual void Bind(uint32_t slot) override;
 	private:
-		Ref<DirectXRendererAPI> m_DXApi;
+		WeakRef<DirectXRendererAPI> m_DXApi;
 
 		std::string m_FilePath;
 		uint32_t m_Width;

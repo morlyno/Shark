@@ -18,7 +18,7 @@ namespace Shark {
 
 		void GetBackBuffer(uint32_t index, ID3D11Texture2D** buffer);
 	private:
-		Ref<DirectXRendererAPI> m_DXApi;
+		WeakRef<DirectXRendererAPI> m_DXApi;
 
 		IDXGISwapChain* m_SwapChain = nullptr;
 		uint32_t m_BufferCount;

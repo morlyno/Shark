@@ -31,7 +31,7 @@ namespace Shark {
 	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs)
 		: m_Specification(specs)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>();
+		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
 
 		CreateBuffers();
 		Bind();
@@ -45,6 +45,9 @@ namespace Shark {
 
 		if (m_DepthStencil)
 			m_DepthStencil->Release();
+
+		if (m_BlendState)
+			m_BlendState->Release();
 	}
 
 	void DirectXFrameBuffer::Clear(Utils::ColorF32 clearcolor)
@@ -77,6 +80,12 @@ namespace Shark {
 			m_DepthStencil->Release();
 			m_DepthStencil = nullptr;
 		}
+		if (m_BlendState)
+		{
+			m_BlendState->Release();
+			m_BlendState = nullptr;
+		}
+
 	}
 
 	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)
@@ -113,7 +122,7 @@ namespace Shark {
 		}
 
 		m_BlendState->Release();
-		m_DXApi->GetDevice()->CreateBlendState(&bd, &m_BlendState);
+		SK_CHECK(m_DXApi->GetDevice()->CreateBlendState(&bd, &m_BlendState));
 		m_DXApi->GetContext()->OMSetBlendState(m_BlendState, nullptr, 0xffffffff);
 	}
 
@@ -195,7 +204,7 @@ namespace Shark {
 			dest += destPitch;
 			src += srcPitch;
 		}
-		texture->SetData(Buffer::Ref( alignedData, 0 ));
+		texture->SetData(Buffer::Ref(alignedData, 0));
 		delete[] alignedData;
 
 		buffer->Release();

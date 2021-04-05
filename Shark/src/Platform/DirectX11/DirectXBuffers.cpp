@@ -17,7 +17,7 @@ namespace Shark {
 	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic)
 		: VertexBuffer(layout), m_Dynamic(dynamic)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>();
+		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
 
 		if (data)
 			CreateBuffer(data);
@@ -88,7 +88,7 @@ namespace Shark {
 		IndexBuffer(data.Count<uint32_t>()),
 		m_Dynamic(dynamic)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>();
+		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
 
 		if (data)
 			CreateBuffer(data);

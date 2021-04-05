@@ -66,7 +66,7 @@ namespace Shark {
 
 	DirectXShaders::DirectXShaders(const std::string& filepath)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>();
+		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
 
 		std::string src = ReadFile(filepath);
 		std::string VertexShader;
@@ -105,7 +105,7 @@ namespace Shark {
 
 	DirectXShaders::DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>();
+		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
 
 		Init(vertexshaderSrc, pixelshaderSrc);
 	}

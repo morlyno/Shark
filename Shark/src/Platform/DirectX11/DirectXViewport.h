@@ -20,7 +20,7 @@ namespace Shark {
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 	private:
-		Ref<DirectXRendererAPI> m_DXApi;
+		WeakRef<DirectXRendererAPI> m_DXApi;
 
 		uint32_t m_Width;
 		uint32_t m_Height;
