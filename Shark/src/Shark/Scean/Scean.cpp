@@ -53,14 +53,8 @@ namespace Shark {
 		Renderer2D::BeginScean(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 		{
 			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-			for (auto entity : group)
-			{
-				auto [transform, spriterenderer] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-				if (spriterenderer.Texture)
-					Renderer2D::DrawQuad(transform.GetTranform(), spriterenderer.Texture, spriterenderer.TilingFactor, spriterenderer.Color);
-				else
-					Renderer2D::DrawQuad(transform.GetTranform(), spriterenderer.Color);
-			}
+			for (auto entityID : group)
+				Renderer2D::DrawEntity({ entityID, WeakRef<Scean>::Create(this) });
 		}
 		Renderer2D::EndScean();
 	}
@@ -71,13 +65,8 @@ namespace Shark {
 
 		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 		for (auto entity : group)
-		{
-			auto [transform, spriterenderer] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-			if (spriterenderer.Texture)
-				Renderer2D::DrawQuad(transform.GetTranform(), spriterenderer.Texture, spriterenderer.TilingFactor, spriterenderer.Color);
-			else
-				Renderer2D::DrawQuad(transform.GetTranform(), spriterenderer.Color);
-		}
+			for (auto entityID : group)
+				Renderer2D::DrawEntity({ entityID, WeakRef<Scean>::Create(this) });
 
 		Renderer2D::EndScean();
 	}

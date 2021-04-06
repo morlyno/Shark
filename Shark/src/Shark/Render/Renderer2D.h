@@ -4,6 +4,8 @@
 #include "Shark/Render/EditorCamera.h"
 #include "Shark/Render/Texture.h"
 
+#include "Shark/Scean/Entity.h"
+
 namespace Shark {
 
 	class Renderer2D
@@ -28,6 +30,8 @@ namespace Shark {
 
 		static void DrawQuad(const DirectX::XMMATRIX& translation, const DirectX::XMFLOAT4& color);
 		static void DrawQuad(const DirectX::XMMATRIX& translation, Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tint_color);
+
+		static void DrawEntity(Entity entity);
 		
 		struct Statistiks
 		{

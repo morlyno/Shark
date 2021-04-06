@@ -4,6 +4,10 @@
 
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shaders.h"
+#include "Shark/Render/Rasterizer.h"
+
+#include "Shark/Scean/Components/TransformComponent.h"
+#include "Shark/Scean/Components/SpriteRendererComponent.h"
 
 #include <DirectXMath.h>
 
@@ -105,8 +109,11 @@ namespace Shark {
 			s_BatchData.Textures[i]->Bind();
 	}
 
-	static void DrawBatch()
+	static void Flush()
 	{
+		if (s_BatchData.QuadCount == 0)
+			return;
+
 		ReBind();
 
 		s_BatchData.Shader->SetBuffer("SceanData", Buffer::Ref(s_SceanData));
@@ -152,7 +159,7 @@ namespace Shark {
 
 	void Renderer2D::EndScean()
 	{
-		DrawBatch();
+		Flush();
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color)
@@ -199,51 +206,9 @@ namespace Shark {
 		DrawQuad(translation, texture, tilingfactor, tint_color);
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMMATRIX& translation, const DirectX::XMFLOAT4& color)
+	static void AddTexture(Ref<Texture2D> texture)
 	{
-		if (s_BatchData.QuadCount >= s_BatchData.MaxQuads)
-			DrawBatch();
-
-		constexpr DirectX::XMFLOAT3 TopLeft = { -0.5f,  0.5f, 0.0f };
-		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&TopLeft), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = color;
-		s_BatchData.QuadVertexIndexPtr->Tex = { 0.0f, 0.0f };
-		s_BatchData.QuadVertexIndexPtr->TextureIndex = 0;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = 1.0f;
-		s_BatchData.QuadVertexIndexPtr++;
-
-		constexpr DirectX::XMFLOAT3 TopRight = { 0.5f,  0.5f, 0.0f };
-		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&TopRight), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = color;
-		s_BatchData.QuadVertexIndexPtr->Tex = { 1.0f, 0.0f };
-		s_BatchData.QuadVertexIndexPtr->TextureIndex = 0;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = 1.0f;
-		s_BatchData.QuadVertexIndexPtr++;
-
-		constexpr DirectX::XMFLOAT3 BottemRight = { 0.5f, -0.5f, 0.0f };
-		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&BottemRight), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = color;
-		s_BatchData.QuadVertexIndexPtr->Tex = { 1.0f, 1.0f };
-		s_BatchData.QuadVertexIndexPtr->TextureIndex = 0;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = 1.0f;
-		s_BatchData.QuadVertexIndexPtr++;
-
-		constexpr DirectX::XMFLOAT3 BottemLeft = { -0.5f, -0.5f, 0.0f };
-		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&BottemLeft), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = color;
-		s_BatchData.QuadVertexIndexPtr->Tex = { 0.0f, 1.0f };
-		s_BatchData.QuadVertexIndexPtr->TextureIndex = 0;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = 1.0f;
-		s_BatchData.QuadVertexIndexPtr++;
-
-
-		s_BatchData.QuadCount++;
-	}
-
-	void Renderer2D::DrawQuad(const DirectX::XMMATRIX& translation, Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tint_color)
-	{
-		if (s_BatchData.QuadCount >= s_BatchData.MaxQuads)
-			DrawBatch();
+		SK_CORE_ASSERT(texture != s_BatchData.WitheTexture, "BatchRendererData::WitheTexture Cant Be Added");
 
 		uint32_t slot = 0;
 		for (uint32_t i = 0; i < s_BatchData.TextureCount; ++i)
@@ -251,6 +216,7 @@ namespace Shark {
 			if (s_BatchData.Textures[i] == texture)
 			{
 				slot = i;
+				texture->SetSlot(slot);
 				break;
 			}
 		}
@@ -258,47 +224,69 @@ namespace Shark {
 		if (slot == 0)
 		{
 			if (s_BatchData.TextureCount >= s_BatchData.MaxTextureSlots)
-				DrawBatch();
+				Flush();
 
 			s_BatchData.Textures[s_BatchData.TextureCount] = texture;
-			slot = s_BatchData.TextureCount++;
-			texture->SetSlot(slot);
+			texture->SetSlot(s_BatchData.TextureCount++);
+		}
+	}
+
+	static void AddQuad(const DirectX::XMMATRIX& translation, const Ref<Texture2D> texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor)
+	{
+		constexpr DirectX::XMFLOAT3 Vertices[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
+		constexpr DirectX::XMFLOAT2 TexCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
+
+		for (uint32_t i = 0; i < 4; i++)
+		{
+			DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&Vertices[i]), translation));
+			s_BatchData.QuadVertexIndexPtr->Color = tintcolor;
+			s_BatchData.QuadVertexIndexPtr->Tex = TexCoords[i];
+			s_BatchData.QuadVertexIndexPtr->TextureIndex = texture->GetSlot();
+			s_BatchData.QuadVertexIndexPtr->TilingFactor = tilingfactor;
+			s_BatchData.QuadVertexIndexPtr++;
 		}
 
-		constexpr DirectX::XMFLOAT3 TopLeft = { -0.5f,  0.5f, 0.0f };
-		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&TopLeft), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = tint_color;
-		s_BatchData.QuadVertexIndexPtr->Tex = { 0.0f, 0.0f };
-		s_BatchData.QuadVertexIndexPtr->TextureIndex = slot;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = tilingfactor;
-		s_BatchData.QuadVertexIndexPtr++;
-
-		constexpr DirectX::XMFLOAT3 TopRight = { 0.5f,  0.5f, 0.0f };
-		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&TopRight), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = tint_color;
-		s_BatchData.QuadVertexIndexPtr->Tex = { 1.0f, 0.0f };
-		s_BatchData.QuadVertexIndexPtr->TextureIndex = slot;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = tilingfactor;
-		s_BatchData.QuadVertexIndexPtr++;
-
-		constexpr DirectX::XMFLOAT3 BottemRight = { 0.5f, -0.5f, 0.0f };
-		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&BottemRight), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = tint_color;
-		s_BatchData.QuadVertexIndexPtr->Tex = { 1.0f, 1.0f };
-		s_BatchData.QuadVertexIndexPtr->TextureIndex = slot;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = tilingfactor;
-		s_BatchData.QuadVertexIndexPtr++;
-
-		constexpr DirectX::XMFLOAT3 BottemLeft = { -0.5f, -0.5f, 0.0f };
-		DirectX::XMStoreFloat3(&s_BatchData.QuadVertexIndexPtr->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&BottemLeft), translation));
-		s_BatchData.QuadVertexIndexPtr->Color = tint_color;
-		s_BatchData.QuadVertexIndexPtr->Tex = { 0.0f, 1.0f };
-		s_BatchData.QuadVertexIndexPtr->TextureIndex = slot;
-		s_BatchData.QuadVertexIndexPtr->TilingFactor = tilingfactor;
-		s_BatchData.QuadVertexIndexPtr++;
-
-
 		s_BatchData.QuadCount++;
+
+	}
+
+	void Renderer2D::DrawQuad(const DirectX::XMMATRIX& translation, const DirectX::XMFLOAT4& color)
+	{
+		if (s_BatchData.QuadCount >= s_BatchData.MaxQuads)
+			Flush();
+
+		AddQuad(translation, s_BatchData.WitheTexture, 1.0f, color);
+	}
+
+	void Renderer2D::DrawQuad(const DirectX::XMMATRIX& translation, Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tint_color)
+	{
+		if (s_BatchData.QuadCount >= s_BatchData.MaxQuads)
+			Flush();
+
+		AddQuad(translation, texture, tilingfactor, tint_color);
+	}
+
+	void Renderer2D::DrawEntity(Entity entity)
+	{
+		SK_CORE_ASSERT(entity.HasComponent<TransformComponent>(), "Tried to Draw Entity without Transform Component");
+		SK_CORE_ASSERT(entity.HasComponent<SpriteRendererComponent>(), "Tried to Draw Entity without Sprite Renderer Component")
+
+		if (s_BatchData.QuadCount >= s_BatchData.MaxQuads)
+			Flush();
+
+		
+		auto& src = entity.GetComponent<SpriteRendererComponent>();
+		auto& tc = entity.GetComponent<TransformComponent>();
+		if (src.Texture)
+		{
+			AddTexture(src.Texture);
+			AddQuad(tc.GetTranform(), src.Texture, src.TilingFactor, src.Color);
+		}
+		else
+		{
+			AddQuad(tc.GetTranform(), s_BatchData.WitheTexture, src.TilingFactor, src.Color);
+		}
+		
 	}
 
 }
