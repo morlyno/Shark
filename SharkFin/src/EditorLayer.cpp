@@ -31,7 +31,7 @@ namespace Shark {
 		m_ActiveScean = Ref<Scean>::Create();
 		{
 			SceanSerializer serializer(m_ActiveScean);
-			serializer.Deserialize("assets/Sceans/TwoSquares.shark");
+			serializer.Deserialize("assets/Sceans/PhysiksTestScean.shark");
 		}
 		m_SceanHirachyPanel.SetContext(m_ActiveScean);
 

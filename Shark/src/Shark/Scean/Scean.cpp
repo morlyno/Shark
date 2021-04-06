@@ -20,23 +20,20 @@ namespace Shark {
 		m_World.Update();
 
 		{
-			auto group = m_Registry.group<RigidBodyComponent>(entt::get<TransformComponent>);
-			for (auto entityID : group)
 			{
-				auto& tc = group.get<TransformComponent>(entityID);
-				auto& body = group.get<RigidBodyComponent>(entityID).Body;
+				auto group = m_Registry.group<RigidBodyComponent>(entt::get<TransformComponent>);
+				for (auto entityID : group)
+				{
+					auto& tc = group.get<TransformComponent>(entityID);
+					auto& body = group.get<RigidBodyComponent>(entityID).Body;
 
-				tc.Position.x = body.GetPosition().x;
-				tc.Position.y = body.GetPosition().y;
+					tc.Position.x = body.GetPosition().x;
+					tc.Position.y = body.GetPosition().y;
 
-				tc.Rotation.z = body.GetAngle();
-
-				tc.Scaling.x = body.GetSize().x;
-				tc.Scaling.y = body.GetSize().y;
+					tc.Rotation.z = body.GetAngle();
+				}
 			}
-		}
 
-		{
 			auto view = m_Registry.view<NativeScriptComponent>();
 			for (auto entityID : view)
 			{
@@ -108,6 +105,12 @@ namespace Shark {
 					m_SceanState.Registry.emplace<RigidBodyComponent>(id, rbc);
 					m_SceanState.RigidBodyStates[(uint32_t)entityID] = rbc.Body.GetCurrentState();
 				}
+				if (m_Registry.has<BoxColliderComponent>(entityID))
+				{
+					auto& cc = m_Registry.get<BoxColliderComponent>(entityID);
+					m_SceanState.Registry.emplace<BoxColliderComponent>(id, cc);
+					m_SceanState.ColliderStates[(uint32_t)entityID] = cc.Collider.GetCurrentState();
+				}
 			});
 		m_SceanState.ActiveCameraID = m_ActiveCameraID;
 
@@ -148,6 +151,15 @@ namespace Shark {
 			{
 				auto& body = group.get<RigidBodyComponent>(entityID).Body;
 				body.SetState(m_SceanState.RigidBodyStates[(uint32_t)entityID]);
+			}
+		}
+
+		{
+			auto group = m_Registry.group<BoxColliderComponent>(entt::get<TransformComponent>);
+			for (auto entityID : group)
+			{
+				auto& collider = group.get<BoxColliderComponent>(entityID).Collider;
+				collider.SetState(m_SceanState.ColliderStates[(uint32_t)entityID]);
 			}
 		}
 
@@ -218,6 +230,11 @@ namespace Shark {
 
 	template<>
 	void Scean::OnComponentAdded<RigidBodyComponent>(Entity entity, RigidBodyComponent& comp)
+	{
+	}
+
+	template<>
+	void Scean::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& comp)
 	{
 	}
 

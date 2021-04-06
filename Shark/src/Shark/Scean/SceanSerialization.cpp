@@ -185,16 +185,28 @@ namespace Shark {
 			out << YAML::Key << "Awake" << YAML::Value << body.IsAwake();
 			out << YAML::Key << "Enabled" << YAML::Value << body.IsEnabled();
 			out << YAML::Key << "FixedRotation" << YAML::Value << body.IsFixedRoation();
-			out << YAML::Key << "Shape" << YAML::Value << (int)body.GetShape();
-			out << YAML::Key << "Friction" << YAML::Value << body.GetFriction();
-			out << YAML::Key << "Density" << YAML::Value << body.GetDensity();
-			out << YAML::Key << "Restitution" << YAML::Value << body.GetRestituion();
 			out << YAML::Key << "Position" << YAML::Value << body.GetPosition();
 			out << YAML::Key << "Angle" << YAML::Value << body.GetAngle();
-			out << YAML::Key << "Size" << YAML::Value << body.GetSize();
 
 			out << YAML::EndMap;
 
+		}
+
+		if (entity.HasComponent<BoxColliderComponent>())
+		{
+			out << YAML::Key << "ColliderComponent" << YAML::Value;
+			out << YAML::BeginMap;
+
+			auto& comp = entity.GetComponent<BoxColliderComponent>();
+			auto& collider = comp.Collider;
+
+			out << YAML::Key << "Shape" << YAML::Value << (int)collider.GetShape();
+			out << YAML::Key << "Friction" << YAML::Value << collider.GetFriction();
+			out << YAML::Key << "Density" << YAML::Value << collider.GetDensity();
+			out << YAML::Key << "Restitution" << YAML::Value << collider.GetRestituion();
+			out << YAML::Key << "Size" << YAML::Value << collider.GetSize();
+
+			out << YAML::EndMap;
 		}
 
 		out << YAML::EndMap;
@@ -306,17 +318,33 @@ namespace Shark {
 					specs.Awake = rigidbodyComponent["Awake"].as<bool>();
 					specs.Enabled = rigidbodyComponent["Enabled"].as<bool>();
 					specs.FixedRotation = rigidbodyComponent["FixedRotation"].as<bool>();
-					specs.Shape = (ShapeType)rigidbodyComponent["Shape"].as<int>();
-					specs.Friction = rigidbodyComponent["Friction"].as<float>();
-					specs.Density = rigidbodyComponent["Density"].as<float>();
-					specs.Restitution = rigidbodyComponent["Restitution"].as<float>();
 					specs.Position = rigidbodyComponent["Position"].as<DirectX::XMFLOAT2>();
 					specs.Angle = rigidbodyComponent["Angle"].as<float>();
-					specs.Size = rigidbodyComponent["Size"].as<DirectX::XMFLOAT2>();
 				
-					RigidBody rigidbody = m_Scean->m_World.CreateBody(specs);
+					RigidBody rigidbody = m_Scean->m_World.CreateRigidBody(specs);
 					deserializedEntity.AddComponent<RigidBodyComponent>(rigidbody);
 					SK_CORE_TRACE(" - RigidBody Component: Type {0}", specs.Type == BodyType::Static ? "Static" : "Dinamic");
+				}
+
+				auto colliderComponent = entity["ColliderComponent"];
+				if (colliderComponent)
+				{
+					ColliderSpecs specs;
+					specs.Shape = (ShapeType)colliderComponent["Shape"].as<int>();
+					specs.Friction = colliderComponent["Friction"].as<float>();
+					specs.Density = colliderComponent["Density"].as<float>();
+					specs.Restitution = colliderComponent["Restitution"].as<float>();
+					auto [width, height] = colliderComponent["Size"].as<DirectX::XMFLOAT2>();
+					specs.Width = width;
+					specs.Height = height;
+
+					if (deserializedEntity.HasComponent<RigidBodyComponent>())
+					{
+						auto& body = deserializedEntity.GetComponent<RigidBodyComponent>().Body;
+						BoxCollider collider = body.CreateBoxCollider(specs);
+						deserializedEntity.AddComponent<BoxColliderComponent>(collider);
+						SK_CORE_TRACE(" - Collider Component: Type Box");
+					}
 				}
 			}
 		}

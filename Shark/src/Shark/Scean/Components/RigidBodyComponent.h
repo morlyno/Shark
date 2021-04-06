@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Scean/RigidBody.h"
+#include "Shark/Physiks/RigidBody.h"
 
 namespace Shark {
 

@@ -85,7 +85,7 @@ namespace Shark {
 				{
 					Entity e = m_Context->CreateEntity("New RigidBody");
 					auto& comp = e.AddComponent<RigidBodyComponent>();
-					comp.Body = m_Context->GetWorld().CreateBody();
+					comp.Body = m_Context->GetWorld().CreateRigidBody();
 					m_SelectedEntity = e;
 				}
 				ImGui::EndMenu();
@@ -191,9 +191,23 @@ namespace Shark {
 			}
 			if (ImGui::Selectable("Rigid Body", false, entity.HasComponent<RigidBodyComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				auto rigidbody = m_Context->GetWorld().CreateBody();
+				auto rigidbody = m_Context->GetWorld().CreateRigidBody();
 				entity.AddComponent<RigidBodyComponent>(rigidbody);
 				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::Selectable("Box Collider", false, entity.HasComponent<BoxColliderComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			{
+				if (entity.HasComponent<RigidBodyComponent>())
+				{
+					auto& rigidbody = entity.GetComponent<RigidBodyComponent>().Body;
+					entity.AddComponent<BoxColliderComponent>(rigidbody.CreateBoxCollider());
+				}
+				else
+				{
+					auto rigidbody = m_Context->GetWorld().CreateRigidBody();
+					entity.AddComponent<RigidBodyComponent>(rigidbody);
+					entity.AddComponent<BoxColliderComponent>(rigidbody.CreateBoxCollider());
+				}
 			}
 			ImGui::EndPopup();
 		}
@@ -401,7 +415,6 @@ namespace Shark {
 						auto& tc = entity.GetComponent<TransformComponent>();
 						body.SetPosition(tc.Position.x, tc.Position.y);
 						body.SetAngle(tc.Rotation.z);
-						body.Resize(tc.Scaling.x, tc.Scaling.y);
 					}
 				}
 
@@ -412,10 +425,6 @@ namespace Shark {
 				float angle = DirectX::XMConvertToDegrees(body.GetAngle());
 				if (UI::DrawFloatControl("Angle", angle))
 					body.SetAngle(DirectX::XMConvertToRadians(angle));
-
-				auto size = body.GetSize();
-				if (UI::DrawVec2Control("Size", size, 1.0f))
-					body.Resize(size.x, size.y);
 
 				ImGui::Separator();
 
@@ -434,20 +443,38 @@ namespace Shark {
 				bool fixedroation = body.IsFixedRoation();
 				if (ImGui::Checkbox("Fixed Rotation", &fixedroation))
 					body.SetFixedRotation(fixedroation);
+			});
+
+		DrawComponet<BoxColliderComponent>(entity, "Box Collider", [&entity](BoxColliderComponent& comp)
+			{
+				auto& collider = comp.Collider;
+
+				if (ImGui::Button("Reset"))
+				{
+					if (entity.HasComponent<TransformComponent>())
+					{
+						auto& tc = entity.GetComponent<TransformComponent>();
+						collider.Resize(tc.Scaling.x, tc.Scaling.y);
+					}
+				}
 
 				ImGui::Separator();
 
-				float friction = body.GetFriction();
+				auto size = collider.GetSize();
+				if (UI::DrawVec2Control("Size", size, 1.0f))
+					collider.Resize(size.x, size.y);
+
+				float friction = collider.GetFriction();
 				if (UI::DrawFloatControl("Friction", friction))
-					body.SetFriction(friction);
+					collider.SetFriction(friction);
 
-				float density = body.GetDensity();
+				float density = collider.GetDensity();
 				if (UI::DrawFloatControl("Density", density))
-					body.SetDensity(density);
+					collider.SetDensity(density);
 
-				float restitution = body.GetRestituion();
+				float restitution = collider.GetRestituion();
 				if (UI::DrawFloatControl("Restitution", restitution))
-					body.SetRestitution(restitution);
+					collider.SetRestitution(restitution);
 			});
 
 		ImGui::End();

@@ -3,7 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Render/EditorCamera.h"
-#include "Shark/Scean/RigidBody.h"
+#include "Shark/Physiks/World.h"
 
 #include <entt.hpp>
 
@@ -79,6 +79,7 @@ namespace Shark {
 			entt::registry Registry;
 			entt::entity ActiveCameraID;
 			std::unordered_map<uint32_t, RigidBodySpecs> RigidBodyStates;
+			std::unordered_map<uint32_t, ColliderSpecs> ColliderStates;
 		};
 		SceanState m_SceanState;
 	};
