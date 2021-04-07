@@ -6,7 +6,10 @@ namespace Shark {
 	LayerStack::~LayerStack()
 	{
 		for (auto l : Layers)
+		{
+			l->OnDetach();
 			delete l;
+		}
 	}
 
 	void LayerStack::PushLayer(Layer* layer)

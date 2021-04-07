@@ -64,9 +64,8 @@ namespace Shark {
 		Renderer2D::BeginScean(camera);
 
 		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-		for (auto entity : group)
-			for (auto entityID : group)
-				Renderer2D::DrawEntity({ entityID, WeakRef<Scean>::Create(this) });
+		for (auto entityID : group)
+			Renderer2D::DrawEntity({ entityID, WeakRef<Scean>::Create(this) });
 
 		Renderer2D::EndScean();
 	}

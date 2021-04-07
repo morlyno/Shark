@@ -81,8 +81,8 @@ namespace Shark {
 		T& operator*() const { return *m_Instance; }
 
 		operator bool() { return m_Instance != nullptr; }
-		bool operator==(const Ref& rhs) { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetRefCount() == rhs.m_Instance->GetRefCount() : true)); return m_Instance == rhs.m_Instance; }
-		bool operator!=(const Ref& rhs) { return !(*this == rhs); }
+		bool operator==(const Ref& rhs) const { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetRefCount() == rhs.m_Instance->GetRefCount() : true)); return m_Instance == rhs.m_Instance; }
+		bool operator!=(const Ref& rhs) const { return !(*this == rhs); }
 
 		template<typename... Args>
 		static Ref Create(Args&&... args) { return Ref(new T(std::forward<Args>(args)...)); }
@@ -130,8 +130,8 @@ namespace Shark {
 		T* operator->() const { return m_Instance; }
 
 		operator bool() { return m_Instance != nullptr; }
-		bool operator==(const WeakRef& rhs) { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetWeakCount() == rhs.m_Instance->GetWeakCount() : true)); return m_Instance == rhs.m_Instance; }
-		bool operator!=(const WeakRef& rhs) { return !(*this == rhs); }
+		bool operator==(const WeakRef& rhs) const { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetWeakCount() == rhs.m_Instance->GetWeakCount() : true)); return m_Instance == rhs.m_Instance; }
+		bool operator!=(const WeakRef& rhs) const { return !(*this == rhs); }
 
 
 		static WeakRef Create(T* inst) { return WeakRef(inst); }

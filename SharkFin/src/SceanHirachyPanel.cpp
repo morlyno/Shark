@@ -162,14 +162,22 @@ namespace Shark {
 
 		const float AddButtonWidth = ImGui::CalcTextSize("Add", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 
+		const float IDSpacingWidth = ImGui::CalcTextSize("123456", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+
+		const float WindowWidth = ImGui::GetContentRegionAvailWidth();
+
 		auto& tag = entity.GetComponent<TagComponent>();
 		char buf[128];
 		strcpy_s(buf, tag.Tag.c_str());
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth() - AddButtonWidth - 8);
+		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - 8 - IDSpacingWidth - 8);
 		if (ImGui::InputText("##Tag", buf, std::size(buf)))
 			tag.Tag = buf;
 
 		ImGui::SameLine();
+		ImGui::SetNextItemWidth(IDSpacingWidth);
+		ImGui::Text("%d", (uint32_t)entity);
+
+		ImGui::SameLine(WindowWidth - AddButtonWidth + 8);
 		if (ImGui::Button("Add"))
 			ImGui::OpenPopup("Add Component List");
 		if (ImGui::BeginPopup("Add Component List"))

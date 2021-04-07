@@ -30,8 +30,8 @@ namespace Shark {
 		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0);
 		m_ActiveScean = Ref<Scean>::Create();
 		{
-			SceanSerializer serializer(m_ActiveScean);
-			serializer.Deserialize("assets/Sceans/PhysiksTestScean.shark");
+			//SceanSerializer serializer(m_ActiveScean);
+			//serializer.Deserialize("assets/Sceans/PhysiksTestScean.shark");
 		}
 		m_SceanHirachyPanel.SetContext(m_ActiveScean);
 
@@ -275,13 +275,29 @@ namespace Shark {
 
 		if (m_ShowRendererStats)
 		{
-			auto stats = Renderer2D::GetStats();
 			ImGui::Begin("BatchStats", &m_ShowRendererStats);
-			ImGui::Text("DrawCalls: %d", stats.DrawCalls);
-			ImGui::Text("Quad Count: %d", stats.QuadCount);
-			ImGui::Text("Texture Count: %d", stats.TextureCount);
-			ImGui::Text("Total Vertices: %d", stats.VertexCount());
-			ImGui::Text("Total Indices: %d", stats.IndexCount());
+			auto s = Renderer2D::GetBatchStatistics();
+
+			ImGui::Text("DrawCalls: %d", s.DrawCalls);
+			ImGui::Text("Total Geometry: %d", s.GeometryCount());
+			ImGui::Text("Total Texture: %d", s.TextureCount());
+			ImGui::Text("Total Vertices: %d", s.VertexCount());
+			ImGui::Text("Total Indices: %d", s.IndexCount());
+
+			ImGui::NewLine();
+
+			ImGui::Text("Quad Count: %d", s.QuadCount);
+			ImGui::Text("Quad Textures: %d", s.QuadTextureCount);
+			ImGui::Text("Quad Vertices: %d", s.QuadVertexCount());
+			ImGui::Text("Quad Indices: %d", s.QuadIndexCount());
+
+			ImGui::NewLine();
+
+			ImGui::Text("Circle Count: %d", s.CircleCount);
+			ImGui::Text("Circle Textures: %d", s.CircleTextureCount);
+			ImGui::Text("Circle Vertices: %d", s.CircleVertexCount());
+			ImGui::Text("Circle Indices: %d", s.CircleIndexCount());
+
 			ImGui::End();
 		}
 
