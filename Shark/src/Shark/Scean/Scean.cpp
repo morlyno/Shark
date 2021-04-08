@@ -34,11 +34,13 @@ namespace Shark {
 				}
 			}
 
-			auto view = m_Registry.view<NativeScriptComponent>();
-			for (auto entityID : view)
 			{
-				auto& nsc = view.get<NativeScriptComponent>(entityID);
-				nsc.Script->OnUpdate(ts);
+				auto view = m_Registry.view<NativeScriptComponent>();
+				for (auto entityID : view)
+				{
+					auto& nsc = view.get<NativeScriptComponent>(entityID);
+					nsc.Script->OnUpdate(ts);
+				}
 			}
 		}
 

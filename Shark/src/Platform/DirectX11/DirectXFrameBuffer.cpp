@@ -48,6 +48,9 @@ namespace Shark {
 
 		if (m_BlendState)
 			m_BlendState->Release();
+
+		if (m_DepthStencilState)
+			m_DepthStencilState->Release();
 	}
 
 	void DirectXFrameBuffer::Clear(Utils::ColorF32 clearcolor)
@@ -124,6 +127,15 @@ namespace Shark {
 		m_BlendState->Release();
 		SK_CHECK(m_DXApi->GetDevice()->CreateBlendState(&bd, &m_BlendState));
 		m_DXApi->GetContext()->OMSetBlendState(m_BlendState, nullptr, 0xffffffff);
+	}
+
+	void DirectXFrameBuffer::SetDepth(bool enabled)
+	{
+		D3D11_DEPTH_STENCIL_DESC dsd;
+		m_DepthStencilState->GetDesc(&dsd);
+		dsd.DepthEnable = enabled;
+		m_DepthStencilState->Release();
+		m_DXApi->GetDevice()->CreateDepthStencilState(&dsd, &m_DepthStencilState);
 	}
 
 	Ref<Texture2D> DirectXFrameBuffer::GetFramBufferContent(uint32_t index)
@@ -213,12 +225,14 @@ namespace Shark {
 
 	void DirectXFrameBuffer::Bind()
 	{
+		m_DXApi->GetContext()->OMSetDepthStencilState(m_DepthStencilState, 1);
 		m_DXApi->GetContext()->OMSetRenderTargets(m_Count, m_FrameBuffers.data(), m_DepthStencil);
 		m_DXApi->GetContext()->OMSetBlendState(m_BlendState, nullptr, 0xffffffff);
 	}
 
 	void DirectXFrameBuffer::UnBind()
 	{
+		m_DXApi->GetContext()->OMSetDepthStencilState(nullptr, 0);
 		m_DXApi->GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
 		m_DXApi->GetContext()->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 	}
@@ -243,10 +257,8 @@ namespace Shark {
 		ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 		ds.DepthFunc = D3D11_COMPARISON_LESS;
 
-		ID3D11DepthStencilState* depthState = nullptr;
-		SK_CHECK(m_DXApi->GetDevice()->CreateDepthStencilState(&ds, &depthState));
-		m_DXApi->GetContext()->OMSetDepthStencilState(depthState, 1u);
-		depthState->Release();
+		SK_CHECK(m_DXApi->GetDevice()->CreateDepthStencilState(&ds, &m_DepthStencilState));
+		m_DXApi->GetContext()->OMSetDepthStencilState(m_DepthStencilState, 1u);
 
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;

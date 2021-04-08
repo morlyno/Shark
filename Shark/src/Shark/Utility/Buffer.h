@@ -39,6 +39,12 @@ namespace Shark {
 		}
 
 		template<typename T>
+		static Buffer Ref(const std::vector<T>& data)
+		{
+			return Ref(data.data(), data.size() * sizeof(T));
+		}
+
+		template<typename T>
 		static Buffer Copy(T* data, uint32_t size)
 		{
 			Buffer b;
@@ -72,9 +78,9 @@ namespace Shark {
 		uint32_t Count() const { return m_Size / sizeof(T); }
 
 		template<typename T>
-		T* as() { return (T*)m_Buffer; }
+		T& as() { return *(T*)m_Buffer; }
 		template<typename T>
-		const T* as() const { return (T*)m_Buffer; }
+		const T& as() const { return *(T*)m_Buffer; }
 
 		template<typename T>
 		T& Index(uint32_t index) { SK_CORE_ASSERT(index < m_Size / sizeof(T)); return ((T*)m_Buffer)[index] }

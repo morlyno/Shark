@@ -64,9 +64,9 @@ namespace Shark {
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
 	}
 
-	void DirectXRendererAPI::DrawIndexed(uint32_t count)
+	void DirectXRendererAPI::DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset)
 	{
-		m_Context->DrawIndexed(count, 0u, 0u);
+		m_Context->DrawIndexed(count, indexoffset, vertexoffset);
 	}
 
 	void DirectXRendererAPI::Flush()

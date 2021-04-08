@@ -136,8 +136,33 @@ namespace Shark {
 				if (m_ViewportHovered)
 					m_EditorCamera.OnUpdate(ts);
 				m_ActiveScean->OnUpdateEditor(ts, m_EditorCamera);
+
+				if (auto entity = m_SceanHirachyPanel.GetSelectedEntity())
+				{
+					if (!entity.HasComponent<CameraComponent>())
+					{
+						Renderer2D::BeginScean(m_EditorCamera);
+						Renderer2D::Submit([=]()
+						{
+							m_Rasterizer->SetSpecification(RasterizerSpecification(FillMode::Framed, CullMode::None, false, false));
+							m_FrameBuffer->SetDepth(false);
+							m_Rasterizer->Bind();
+							m_FrameBuffer->Bind();
+						});
+						Renderer2D::DrawTransform(entity.GetComponent<TransformComponent>(), { 1.0f, 0.5f, 0.0f, 1.0f });
+						Renderer2D::Submit([=]()
+						{
+							m_Rasterizer->SetSpecification(RasterizerSpecification(FillMode::Solid, CullMode::Back, false, false));
+							m_FrameBuffer->SetDepth(true);
+							m_Rasterizer->Bind();
+							m_FrameBuffer->Bind();
+						});
+						Renderer2D::EndScean();
+					}
+				}
 			}
 		}
+
 
 		m_FrameBuffer->GetFramBufferContent(0, m_FrameBufferTexture);
 
@@ -276,27 +301,27 @@ namespace Shark {
 		if (m_ShowRendererStats)
 		{
 			ImGui::Begin("BatchStats", &m_ShowRendererStats);
-			auto s = Renderer2D::GetBatchStatistics();
-
-			ImGui::Text("DrawCalls: %d", s.DrawCalls);
-			ImGui::Text("Total Geometry: %d", s.GeometryCount());
-			ImGui::Text("Total Texture: %d", s.TextureCount());
-			ImGui::Text("Total Vertices: %d", s.VertexCount());
-			ImGui::Text("Total Indices: %d", s.IndexCount());
-
-			ImGui::NewLine();
-
-			ImGui::Text("Quad Count: %d", s.QuadCount);
-			ImGui::Text("Quad Textures: %d", s.QuadTextureCount);
-			ImGui::Text("Quad Vertices: %d", s.QuadVertexCount());
-			ImGui::Text("Quad Indices: %d", s.QuadIndexCount());
-
-			ImGui::NewLine();
-
-			ImGui::Text("Circle Count: %d", s.CircleCount);
-			ImGui::Text("Circle Textures: %d", s.CircleTextureCount);
-			ImGui::Text("Circle Vertices: %d", s.CircleVertexCount());
-			ImGui::Text("Circle Indices: %d", s.CircleIndexCount());
+			//auto s = Renderer2D::GetBatchStatistics();
+			//
+			//ImGui::Text("DrawCalls: %d", s.DrawCalls);
+			//ImGui::Text("Total Geometry: %d", s.GeometryCount());
+			//ImGui::Text("Total Texture: %d", s.TextureCount());
+			//ImGui::Text("Total Vertices: %d", s.VertexCount());
+			//ImGui::Text("Total Indices: %d", s.IndexCount());
+			//
+			//ImGui::NewLine();
+			//
+			//ImGui::Text("Quad Count: %d", s.QuadCount);
+			//ImGui::Text("Quad Textures: %d", s.QuadTextureCount);
+			//ImGui::Text("Quad Vertices: %d", s.QuadVertexCount());
+			//ImGui::Text("Quad Indices: %d", s.QuadIndexCount());
+			//
+			//ImGui::NewLine();
+			//
+			//ImGui::Text("Circle Count: %d", s.CircleCount);
+			//ImGui::Text("Circle Textures: %d", s.CircleTextureCount);
+			//ImGui::Text("Circle Vertices: %d", s.CircleVertexCount());
+			//ImGui::Text("Circle Indices: %d", s.CircleIndexCount());
 
 			ImGui::End();
 		}

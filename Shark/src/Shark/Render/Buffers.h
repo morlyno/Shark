@@ -15,6 +15,8 @@ namespace Shark {
 
 		virtual void SetData(const Buffer& data) = 0;
 
+		virtual uint32_t GetSize() const = 0;
+
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
 
@@ -27,6 +29,8 @@ namespace Shark {
 	class IndexBuffer : public RefCount
 	{
 	public:
+		using IndexType = uint32_t;
+	public:
 		IndexBuffer(uint32_t count)
 			: m_Count(count) {}
 		virtual ~IndexBuffer() = default;
@@ -34,6 +38,8 @@ namespace Shark {
 		virtual void SetData(const Buffer& data) = 0;
 
 		uint32_t GetCount() { return m_Count; }
+
+		virtual uint32_t GetSize() const = 0;
 
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;

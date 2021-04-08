@@ -16,6 +16,8 @@ namespace Shark {
 
 		virtual void SetData(const Buffer& data) override;
 
+		virtual uint32_t GetSize() const { return m_Size; }
+
 		virtual void Bind() override;
 		virtual void UnBind() override;
 	private:
@@ -24,6 +26,7 @@ namespace Shark {
 		WeakRef<DirectXRendererAPI> m_DXApi;
 
 		ID3D11Buffer* m_VertexBuffer = nullptr;
+		uint32_t m_Size = 0;
 		bool m_Dynamic;
 	};
 
@@ -36,6 +39,8 @@ namespace Shark {
 
 		virtual void SetData(const Buffer& data) override;
 
+		virtual uint32_t GetSize() const { return m_Size; }
+
 		virtual void Bind() override;
 		virtual void UnBind() override;
 	private:
@@ -44,6 +49,7 @@ namespace Shark {
 		WeakRef<DirectXRendererAPI> m_DXApi;
 
 		ID3D11Buffer* m_IndexBuffer = nullptr;
+		uint32_t m_Size = 0;
 		bool m_Dynamic;
 	};
 

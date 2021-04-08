@@ -50,6 +50,8 @@ namespace Shark {
 		virtual void SetBlend(uint32_t index, bool blend) = 0;
 		virtual bool GetBlend(uint32_t index) const = 0;
 
+		virtual void SetDepth(bool enabled) = 0;
+
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) = 0;
 		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) = 0;
 

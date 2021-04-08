@@ -15,6 +15,8 @@ namespace Shark {
 		void SetContext(Ref<Scean> context);
 		Ref<Scean> GetContext() const { return m_Context; }
 
+		Entity GetSelectedEntity() const { return m_SelectedEntity; }
+
 		void OnImGuiRender();
 
 	private:

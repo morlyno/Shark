@@ -17,7 +17,7 @@ namespace Shark {
 		virtual void Init() = 0;
 		virtual void ShutDown() = 0;
 		
-		virtual void DrawIndexed(uint32_t count) = 0;
+		virtual void DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset) = 0;
 		virtual void Flush() = 0;
 
 		static API GetAPI() { return s_API; }

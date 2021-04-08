@@ -11,7 +11,7 @@ namespace Shark {
 		virtual void Init() override;
 		virtual void ShutDown() override;
 
-		virtual void DrawIndexed(uint32_t count) override;
+		virtual void DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset) override;
 		virtual void Flush() override;
 
 		ID3D11Device* GetDevice() const { return m_Device; }

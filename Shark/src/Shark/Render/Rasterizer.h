@@ -19,6 +19,10 @@ namespace Shark {
 		CullMode Cull = CullMode::Back;
 		bool Multisample = false;
 		bool Antialising = false;
+
+		RasterizerSpecification() = default;
+		RasterizerSpecification(FillMode fill, CullMode cull, bool multisample, bool antialising)
+			: Fill(fill), Cull(cull), Multisample(multisample), Antialising(antialising) {}
 	};
 
 	class Rasterizer : public RefCount

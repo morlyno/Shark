@@ -37,7 +37,7 @@ namespace Shark {
 			SK_IF_DEBUG(
 				D3D11_BUFFER_DESC bd;
 				m_VertexBuffer->GetDesc(&bd);
-				SK_CORE_ASSERT(bd.ByteWidth == data.Size(), "The size of the Buffer and the data must be equal");
+				SK_CORE_ASSERT(data.Size() <= bd.ByteWidth, "The Size of the Data is to big");
 			);
 
 			D3D11_MAPPED_SUBRESOURCE ms;
@@ -66,6 +66,8 @@ namespace Shark {
 
 	void DirectXVertexBuffer::CreateBuffer(const Buffer& data)
 	{
+		m_Size = data.Size();
+
 		D3D11_BUFFER_DESC bd = {};
 		bd.ByteWidth = data.Size();
 		bd.StructureByteStride = m_Layout.GetVertexSize();
@@ -108,7 +110,7 @@ namespace Shark {
 			SK_IF_DEBUG(
 				D3D11_BUFFER_DESC bd;
 				m_IndexBuffer->GetDesc(&bd);
-				SK_CORE_ASSERT(bd.ByteWidth == data.Size(), "The size of the Buffer and the data must be equal");
+				SK_CORE_ASSERT(data.Size() <= bd.ByteWidth, "The size of the Buffer and the data must be equal");
 			);
 
 			D3D11_MAPPED_SUBRESOURCE ms;
@@ -134,6 +136,8 @@ namespace Shark {
 
 	void DirectXIndexBuffer::CreateBuffer(const Buffer& data)
 	{
+		m_Size = data.Size();
+
 		D3D11_BUFFER_DESC i_bd = {};
 		i_bd.ByteWidth = data.Size();
 		i_bd.StructureByteStride = sizeof(uint32_t);
