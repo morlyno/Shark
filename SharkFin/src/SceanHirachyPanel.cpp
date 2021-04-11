@@ -4,12 +4,82 @@
 #include <Shark/Utility/FileDialogs.h>
 #include <Shark/Utility/Utils.h>
 #include <Shark/Utility/ImGuiUtils.h>
+#include <Shark/Core/Input.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <entt.hpp>
 
 namespace Shark {
+
+	namespace Utils {
+
+		static void AddTransformComponent(Entity e)
+		{
+			e.AddComponent<CameraComponent>();
+		}
+
+		static void AddCameraComponent(Entity e)
+		{
+			e.AddComponent<CameraComponent>();
+		}
+
+		static void AddSpriteRendererComponent(Entity e)
+		{
+			e.AddComponent<SpriteRendererComponent>();
+		}
+
+		static void AddRigidBodyComponent(Entity e, const Ref<Scean>& context)
+		{
+			auto& rbc = e.AddComponent<RigidBodyComponent>();
+			rbc.Body = context->GetWorld().CreateRigidBody();
+
+			if (e.HasComponent<TransformComponent>())
+			{
+				auto& tc = e.GetComponent<TransformComponent>();
+				rbc.Body.SetTransform(tc.Position.x, tc.Position.y, tc.Rotation.z);
+			}
+		}
+
+		static void AddBoxColliderComponent(Entity e, const Ref<Scean>& context)
+		{
+			if (!e.HasComponent<RigidBodyComponent>())
+				Utils::AddRigidBodyComponent(e, context);
+
+			auto& rbc = e.GetComponent<RigidBodyComponent>();
+			auto& bcc = e.AddComponent<BoxColliderComponent>();
+			bcc.Collider = rbc.Body.CreateBoxCollider();
+
+			if (e.HasComponent<TransformComponent>())
+			{
+				auto& tc = e.GetComponent<TransformComponent>();
+				bcc.Collider.Resize(tc.Scaling.x, tc.Scaling.y);
+			}
+		}
+
+		template<typename Comp, typename UIFunction>
+		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
+		{
+			if (entity.HasComponent<Comp>())
+			{
+				ImGui::PushID(typeid(Comp).name());
+				bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
+				ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
+				bool removed = ImGui::Button("x", { 19, 19 });
+
+				if (opened)
+				{
+					auto& comp = entity.GetComponent<Comp>();
+					func(comp);
+				}
+
+				if (removed)
+					entity.RemoveComponent<Comp>();
+				ImGui::PopID();
+			}
+		}
+
+	}
 
 	SceanHirachyPanel::SceanHirachyPanel(Ref<Scean> context)
 		: m_Context(context)
@@ -72,20 +142,27 @@ namespace Shark {
 				if (ImGui::MenuItem("Camera"))
 				{
 					Entity e = m_Context->CreateEntity("New Camera");
-					e.AddComponent<CameraComponent>();
+					Utils::AddCameraComponent(e);
 					m_SelectedEntity = e;
 				}
 				if (ImGui::MenuItem("Quad"))
 				{
 					Entity e = m_Context->CreateEntity("New Quad");
-					e.AddComponent<SpriteRendererComponent>();
+					Utils::AddSpriteRendererComponent(e);
 					m_SelectedEntity = e;
 				}
 				if (ImGui::MenuItem("RigidBody"))
 				{
 					Entity e = m_Context->CreateEntity("New RigidBody");
-					auto& comp = e.AddComponent<RigidBodyComponent>();
-					comp.Body = m_Context->GetWorld().CreateRigidBody();
+					Utils::AddSpriteRendererComponent(e);
+					Utils::AddRigidBodyComponent(e, m_Context);
+					m_SelectedEntity = e;
+				}
+				if (ImGui::MenuItem("Box Collider"))
+				{
+					Entity e = m_Context->CreateEntity("New RigidBody");
+					Utils::AddSpriteRendererComponent(e);
+					Utils::AddBoxColliderComponent(e, m_Context);
 					m_SelectedEntity = e;
 				}
 				ImGui::EndMenu();
@@ -116,6 +193,12 @@ namespace Shark {
 		if (ImGui::IsItemClicked())
 			m_SelectedEntity = entity;
 
+		if ((m_SelectedEntity == entity) && ImGui::IsWindowFocused() && Input::KeyPressed(Key::Entf))
+		{
+			m_Context->DestroyEntity(entity);
+			m_SelectedEntity = {};
+		}
+
 		if (ImGui::BeginPopupContextItem())
 		{
 			if (ImGui::Selectable("Delete Entity"))
@@ -133,37 +216,13 @@ namespace Shark {
 			ImGui::TreePop();
 		}
 	}
-
-	template<typename Comp, typename UIFunction>
-	static void DrawComponet(Entity entity, const char* lable, UIFunction func)
-	{
-		if (entity.HasComponent<Comp>())
-		{
-			ImGui::PushID(typeid(Comp).name());
-			bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
-			ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
-			bool removed = ImGui::Button("x", { 19, 19 });
-
-			if (opened)
-			{
-				auto& comp = entity.GetComponent<Comp>();
-				func(comp);
-			}
-
-			if (removed)
-				entity.RemoveComponent<Comp>();
-			ImGui::PopID();
-		}
-	}
 	
 	void SceanHirachyPanel::DrawEntityProperties(Entity entity)
 	{
-		ImGui::Begin("Properties");
+		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
 		const float AddButtonWidth = ImGui::CalcTextSize("Add", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-
 		const float IDSpacingWidth = ImGui::CalcTextSize("123456", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-
 		const float WindowWidth = ImGui::GetContentRegionAvailWidth();
 
 		auto& tag = entity.GetComponent<TagComponent>();
@@ -184,306 +243,282 @@ namespace Shark {
 		{
 			if (ImGui::Selectable("Transform", false, entity.HasComponent<TransformComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				entity.AddComponent<TransformComponent>();
+				Utils::AddTransformComponent(entity);
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Sprite Renderer", false, entity.HasComponent<SpriteRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				entity.AddComponent<SpriteRendererComponent>();
+				Utils::AddSpriteRendererComponent(entity);
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Scean Camera", false, entity.HasComponent<CameraComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				entity.AddComponent<CameraComponent>();
+				Utils::AddCameraComponent(entity);
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Rigid Body", false, entity.HasComponent<RigidBodyComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				auto rigidbody = m_Context->GetWorld().CreateRigidBody();
-				entity.AddComponent<RigidBodyComponent>(rigidbody);
+				Utils::AddRigidBodyComponent(entity, m_Context);
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Box Collider", false, entity.HasComponent<BoxColliderComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				if (entity.HasComponent<RigidBodyComponent>())
-				{
-					auto& rigidbody = entity.GetComponent<RigidBodyComponent>().Body;
-					entity.AddComponent<BoxColliderComponent>(rigidbody.CreateBoxCollider());
-				}
-				else
-				{
-					auto rigidbody = m_Context->GetWorld().CreateRigidBody();
-					entity.AddComponent<RigidBodyComponent>(rigidbody);
-					entity.AddComponent<BoxColliderComponent>(rigidbody.CreateBoxCollider());
-				}
+				Utils::AddBoxColliderComponent(entity, m_Context);
+				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
 		}
 
-		DrawComponet<TransformComponent>(entity, "Transform", [](auto& comp)
-			{
-				UI::DrawVec3Control("Position", comp.Position);
-				DirectX::XMFLOAT3 rotation = { DirectX::XMConvertToDegrees(comp.Rotation.x), DirectX::XMConvertToDegrees(comp.Rotation.y), DirectX::XMConvertToDegrees(comp.Rotation.z) };
-				UI::DrawVec3Control("Rotation", rotation);
-				comp.Rotation = { DirectX::XMConvertToRadians(rotation.x), DirectX::XMConvertToRadians(rotation.y), DirectX::XMConvertToRadians(rotation.z) };
-				UI::DrawVec3Control("Scaling", comp.Scaling, 1.0f);
-			});
+		Utils::DrawComponet<TransformComponent>(entity, "Transform", [](auto& comp)
+		{
+			UI::DrawVec3Control("Position", comp.Position);
+			DirectX::XMFLOAT3 rotation = { DirectX::XMConvertToDegrees(comp.Rotation.x), DirectX::XMConvertToDegrees(comp.Rotation.y), DirectX::XMConvertToDegrees(comp.Rotation.z) };
+			UI::DrawVec3Control("Rotation", rotation);
+			comp.Rotation = { DirectX::XMConvertToRadians(rotation.x), DirectX::XMConvertToRadians(rotation.y), DirectX::XMConvertToRadians(rotation.z) };
+			UI::DrawVec3Control("Scaling", comp.Scaling, 1.0f);
+		});
 
-		DrawComponet<SpriteRendererComponent>(entity, "SptrieRenderer", [=](SpriteRendererComponent& comp)
+		Utils::DrawComponet<SpriteRendererComponent>(entity, "SptrieRenderer", [](SpriteRendererComponent& comp)
+		{
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100);
+				
+			ImGui::Text("Color");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
+			ImGui::ColorEdit4("##Color", &comp.Color.x);
+
+			ImGui::NextColumn();
+			ImGui::Separator();
+
+			ImGui::Text("Texture");
+			ImTextureID image = comp.Texture ? comp.Texture->GetHandle() : nullptr;
+			if (ImGui::ImageButton(image, { 48, 48 }, { 0, 0 }, { 1, 1 }, -1, { 0.0f, 0.0f, 0.0f, 1.0f }, Utils::ToImVec4(comp.Color)))
 			{
+				std::optional<std::string> imagePath = FileDialogs::OpenFile("Texture (*.)\0*.\0");
+				if (imagePath)
+					comp.Texture = Texture2D::Create({}, Utils::MakePathRelative(*imagePath));
+			}
+
+			ImGui::NextColumn();
+			if (comp.Texture)
+			{
+				ImGui::Text(comp.Texture->GetFilePath().c_str());
+				ImGui::Text("Width: %d, Height: %d", comp.Texture->GetWidth(), comp.Texture->GetHeight());
+			}
+			else
+			{
+				ImGui::Text("No Texture Selected");
+				ImGui::Text("Width: 0, Height: 0");
+			}
+			if (ImGui::Button("R##TilingFactor", { 19, 19 }))
+				comp.TilingFactor = 1.0f;
+			ImGui::SameLine(0.0f, 0.0f);
+			ImGui::DragFloat("##TilingFactor", &comp.TilingFactor);
+			if (comp.TilingFactor < 0.0f)
+				comp.TilingFactor = 0.0f;
+			ImGui::Columns();
+
+		});
+
+		Utils::DrawComponet<CameraComponent>(entity, "Scean Camera", [&](CameraComponent& comp)
+		{
+			m_SelectedProjectionIndex = (int)comp.Camera.GetProjectionType();
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
+			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, m_ProjectionItems, (int)std::size(m_ProjectionItems));
+			if (m_SelectedProjectionIndex == (int)SceanCamera::Projection::Perspective)
+			{
+				comp.Camera.SetProjectionType(SceanCamera::Projection::Perspective);
+					
+				bool changed = false;
+
+				float fov = comp.Camera.GetPerspectiveFOV();
+				float clipnear = comp.Camera.GetPerspectiveNear();
+				float clipfar = comp.Camera.GetPerspectiveFar();
+
 				ImGui::Columns(2);
 				ImGui::SetColumnWidth(0, 100);
-				
-				ImGui::Text("Color");
 				ImGui::NextColumn();
-				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
-				ImGui::ColorEdit4("##Color", &comp.Color.x);
+				const float itemwidth = ImGui::GetContentRegionAvailWidth() - 19;
+				ImGui::NextColumn();
 
+				ImGui::Text("FOV");
 				ImGui::NextColumn();
-				ImGui::Separator();
-
-				ImGui::Text("Texture");
-				ImTextureID image = comp.Texture ? comp.Texture->GetHandle() : m_ImGuiNoTextureSelectedTexture->GetHandle();
-				if (ImGui::ImageButton(image, { 48, 48 }))
+				if (ImGui::Button("R##Fov", { 19, 19 }))
 				{
-					std::optional<std::string> imagePath = FileDialogs::OpenFile(nullptr);
-					if (imagePath)
-					{
-						comp.Texture = Texture2D::Create({}, Utils::MakePathRelative(*imagePath));
-					}
+					changed |= true;
+					fov = 45.0f;
 				}
-
-				ImGui::NextColumn();
-				if (comp.Texture)
-				{
-					ImGui::Text(comp.Texture->GetFilePath().c_str());
-					ImGui::Text("Width: %d, Height: %d", comp.Texture->GetWidth(), comp.Texture->GetHeight());
-				}
-				else
-				{
-					ImGui::Text("No Texture Selected");
-					ImGui::Text("Width: 0, Height: 0");
-				}
-				ImGui::NextColumn();
-				ImGui::Text("Tiling");
-				ImGui::NextColumn();
-				if (ImGui::Button("R##TilingFactor", { 19, 19 }))
-					comp.TilingFactor = 1.0f;
 				ImGui::SameLine(0.0f, 0.0f);
-				ImGui::DragFloat("##TilingFactor", &comp.TilingFactor);
-				if (comp.TilingFactor < 0.0f)
-					comp.TilingFactor = 0.0f;
+				ImGui::SetNextItemWidth(itemwidth);
+				changed |= ImGui::DragFloat("##FOV", &fov, 1.0f, 1.0f, 179.0f);
+				if (fov < 1.0f)
+					fov = 1.0f;
+
+				ImGui::NextColumn();
+				ImGui::Text("NearClip");
+				ImGui::NextColumn();
+				if (ImGui::Button("R##Near", { 19, 19 }))
+				{
+					changed |= true;
+					clipnear = 0.01f;
+				}
+				ImGui::SameLine(0.0f, 0.0f);
+				ImGui::SetNextItemWidth(itemwidth);
+				changed |= ImGui::DragFloat("##Near", &clipnear);
+
+				ImGui::NextColumn();
+				ImGui::Text("FarClip");
+				ImGui::NextColumn();
+				if (ImGui::Button("R##Far", { 19, 19 }))
+				{
+					changed |= true;
+					clipfar = 1000.0f;
+				}
+				ImGui::SameLine(0.0f, 0.0f);
+				ImGui::SetNextItemWidth(itemwidth);
+				changed |= ImGui::DragFloat("##Far", &clipfar);
+
+				if (changed)
+					comp.Camera.SetPerspective(comp.Camera.GetAspectratio(), fov, clipnear, clipfar);
+
 				ImGui::Columns();
-
-			});
-
-		DrawComponet<CameraComponent>(entity, "Scean Camera", [&](CameraComponent& comp)
+			}
+			else if (m_SelectedProjectionIndex == (int)SceanCamera::Projection::Orthographic)
 			{
-				m_SelectedProjectionIndex = (int)comp.Camera.GetProjectionType();
-				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
-				ImGui::Combo("##Projection", &m_SelectedProjectionIndex, m_ProjectionItems, (int)std::size(m_ProjectionItems));
-				if (m_SelectedProjectionIndex == (int)SceanCamera::Projection::Perspective)
+				comp.Camera.SetProjectionType(SceanCamera::Projection::Orthographic);
+
+				bool changed = false;
+
+				float zoom = comp.Camera.GetOrthographicZoom();
+				float clipnear = comp.Camera.GetOrthographicNear();
+				float clipfar = comp.Camera.GetOrthographicFar();
+
+				ImGui::Columns(2);
+				ImGui::SetColumnWidth(0, 100);
+				ImGui::NextColumn();
+				const float itemwidth = ImGui::GetContentRegionAvailWidth() - 19;
+				ImGui::NextColumn();
+
+				ImGui::Text("Zoom");
+				ImGui::NextColumn();
+				if (ImGui::Button("R##Zoom", { 19, 19 }))
 				{
-					comp.Camera.SetProjectionType(SceanCamera::Projection::Perspective);
-					
-					bool changed = false;
-
-					float fov = comp.Camera.GetPerspectiveFOV();
-					float clipnear = comp.Camera.GetPerspectiveNear();
-					float clipfar = comp.Camera.GetPerspectiveFar();
-
-					ImGui::Columns(2);
-					ImGui::SetColumnWidth(0, 100);
-					ImGui::NextColumn();
-					const float itemwidth = ImGui::GetContentRegionAvailWidth() - 19;
-					ImGui::NextColumn();
-
-					ImGui::Text("FOV");
-					ImGui::NextColumn();
-					if (ImGui::Button("R##Fov", { 19, 19 }))
-					{
-						changed |= true;
-						fov = 45.0f;
-					}
-					ImGui::SameLine(0.0f, 0.0f);
-					ImGui::SetNextItemWidth(itemwidth);
-					changed |= ImGui::DragFloat("##FOV", &fov, 1.0f, 1.0f, 179.0f);
-					if (fov < 1.0f)
-						fov = 1.0f;
-
-					ImGui::NextColumn();
-					ImGui::Text("NearClip");
-					ImGui::NextColumn();
-					if (ImGui::Button("R##Near", { 19, 19 }))
-					{
-						changed |= true;
-						clipnear = 0.01f;
-					}
-					ImGui::SameLine(0.0f, 0.0f);
-					ImGui::SetNextItemWidth(itemwidth);
-					changed |= ImGui::DragFloat("##Near", &clipnear);
-
-					ImGui::NextColumn();
-					ImGui::Text("FarClip");
-					ImGui::NextColumn();
-					if (ImGui::Button("R##Far", { 19, 19 }))
-					{
-						changed |= true;
-						clipfar = 1000.0f;
-					}
-					ImGui::SameLine(0.0f, 0.0f);
-					ImGui::SetNextItemWidth(itemwidth);
-					changed |= ImGui::DragFloat("##Far", &clipfar);
-
-					if (changed)
-						comp.Camera.SetPerspective(comp.Camera.GetAspectratio(), fov, clipnear, clipfar);
-
-					ImGui::Columns();
+					changed |= true;
+					zoom = 10.0f;
 				}
-				else if (m_SelectedProjectionIndex == (int)SceanCamera::Projection::Orthographic)
+				ImGui::SameLine(0.0f, 0.0f);
+				ImGui::SetNextItemWidth(itemwidth);
+				changed |= ImGui::DragFloat("##Zoom", &zoom);
+				if (zoom < 0.25f)
+					zoom = 0.25f;
+
+				ImGui::NextColumn();
+				ImGui::Text("NearClip");
+				ImGui::NextColumn();
+				if (ImGui::Button("R##Near", { 19, 19 }))
 				{
-					comp.Camera.SetProjectionType(SceanCamera::Projection::Orthographic);
-
-					bool changed = false;
-
-					float zoom = comp.Camera.GetOrthographicZoom();
-					float clipnear = comp.Camera.GetOrthographicNear();
-					float clipfar = comp.Camera.GetOrthographicFar();
-
-					ImGui::Columns(2);
-					ImGui::SetColumnWidth(0, 100);
-					ImGui::NextColumn();
-					const float itemwidth = ImGui::GetContentRegionAvailWidth() - 19;
-					ImGui::NextColumn();
-
-					ImGui::Text("Zoom");
-					ImGui::NextColumn();
-					if (ImGui::Button("R##Zoom", { 19, 19 }))
-					{
-						changed |= true;
-						zoom = 10.0f;
-					}
-					ImGui::SameLine(0.0f, 0.0f);
-					ImGui::SetNextItemWidth(itemwidth);
-					changed |= ImGui::DragFloat("##Zoom", &zoom);
-					if (zoom < 0.25f)
-						zoom = 0.25f;
-
-					ImGui::NextColumn();
-					ImGui::Text("NearClip");
-					ImGui::NextColumn();
-					if (ImGui::Button("R##Near", { 19, 19 }))
-					{
-						changed |= true;
-						clipnear = -1.0f;
-					}
-					ImGui::SameLine(0.0f, 0.0f);
-					ImGui::SetNextItemWidth(itemwidth);
-					changed |= ImGui::DragFloat("##Near", &clipnear);
-					if (clipnear > -0.01f)
-						clipnear = -0.01f;
-
-					ImGui::NextColumn();
-					ImGui::Text("FarClip");
-					ImGui::NextColumn();
-					if (ImGui::Button("R##Far", { 19, 19 }))
-					{
-						changed |= true;
-						clipfar = 1.0f;
-					}
-					ImGui::SameLine(0.0f, 0.0f);
-					ImGui::SetNextItemWidth(itemwidth);
-					changed |= ImGui::DragFloat("##Far", &clipfar);
-					if (clipfar < 0.01f)
-						clipfar = 0.01f;
-
-					if (changed)
-						comp.Camera.SetOrthographic(comp.Camera.GetAspectratio(), zoom, clipnear, clipfar);
-
-					ImGui::Columns();
+					changed |= true;
+					clipnear = -1.0f;
 				}
+				ImGui::SameLine(0.0f, 0.0f);
+				ImGui::SetNextItemWidth(itemwidth);
+				changed |= ImGui::DragFloat("##Near", &clipnear);
+				if (clipnear > -0.01f)
+					clipnear = -0.01f;
 
-				bool isMainCamera = m_Context->m_ActiveCameraID == entity;
-				if (ImGui::Checkbox("Is Active", &isMainCamera))
-					m_Context->m_ActiveCameraID = entity;
-			});
-
-		DrawComponet<RigidBodyComponent>(entity, "Rigid Body", [&](RigidBodyComponent& comp)
-			{
-				auto& body = comp.Body;
-
-				int curritem = body.GetType() == BodyType::Static ? 0 : 1;
-				if (ImGui::Combo("##BodyType", &curritem, "Static\0Dynamic\0"))
-					body.SetType(curritem == 0 ? BodyType::Static : BodyType::Dynamic);
-				ImGui::SameLine();
-				if (ImGui::Button("Reset"))
+				ImGui::NextColumn();
+				ImGui::Text("FarClip");
+				ImGui::NextColumn();
+				if (ImGui::Button("R##Far", { 19, 19 }))
 				{
-					if (entity.HasComponent<TransformComponent>())
-					{
-						auto& tc = entity.GetComponent<TransformComponent>();
-						body.SetPosition(tc.Position.x, tc.Position.y);
-						body.SetAngle(tc.Rotation.z);
-					}
+					changed |= true;
+					clipfar = 1.0f;
 				}
+				ImGui::SameLine(0.0f, 0.0f);
+				ImGui::SetNextItemWidth(itemwidth);
+				changed |= ImGui::DragFloat("##Far", &clipfar);
+				if (clipfar < 0.01f)
+					clipfar = 0.01f;
 
-				auto pos = body.GetPosition();
-				if (UI::DrawVec2Control("Position", pos))
-					body.SetPosition(pos.x, pos.y);
+				if (changed)
+					comp.Camera.SetOrthographic(comp.Camera.GetAspectratio(), zoom, clipnear, clipfar);
 
-				float angle = DirectX::XMConvertToDegrees(body.GetAngle());
-				if (UI::DrawFloatControl("Angle", angle))
-					body.SetAngle(DirectX::XMConvertToRadians(angle));
+				ImGui::Columns();
+			}
 
-				ImGui::Separator();
+			bool isMainCamera = m_Context->m_ActiveCameraID == entity;
+			if (ImGui::Checkbox("Is Active", &isMainCamera))
+				m_Context->m_ActiveCameraID = entity;
+		});
 
-				bool sleepingallowed = body.IsSleepingAllowed();
-				if (ImGui::Checkbox("Sleeping Allowed", &sleepingallowed))
-					body.SetSleepingAllowed(sleepingallowed);
+		Utils::DrawComponet<RigidBodyComponent>(entity, "Rigid Body", [entity](RigidBodyComponent& comp)
+		{
+			auto& body = comp.Body;
 
-				bool enabled = body.IsEnabled();
-				if (ImGui::Checkbox("Enabled", &enabled))
-					body.SetEnabled(enabled);
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
 
-				bool awake = body.IsAwake();
-				if (ImGui::Checkbox("Awake", &awake))
-					body.SetAwake(awake);
+			int curritem = body.GetType() == BodyType::Static ? 0 : 1;
+			if (ImGui::Combo("##BodyType", &curritem, "Static\0Dynamic\0"))
+				body.SetType(curritem == 0 ? BodyType::Static : BodyType::Dynamic);
 
-				bool fixedroation = body.IsFixedRoation();
-				if (ImGui::Checkbox("Fixed Rotation", &fixedroation))
-					body.SetFixedRotation(fixedroation);
-			});
+			auto pos = body.GetPosition();
+			if (UI::DrawVec2Control("Position", pos))
+				body.SetPosition(pos.x, pos.y);
 
-		DrawComponet<BoxColliderComponent>(entity, "Box Collider", [&entity](BoxColliderComponent& comp)
-			{
-				auto& collider = comp.Collider;
+			float angle = DirectX::XMConvertToDegrees(body.GetAngle());
+			if (UI::DrawFloatControl("Angle", angle))
+				body.SetAngle(DirectX::XMConvertToRadians(angle));
 
-				if (ImGui::Button("Reset"))
-				{
-					if (entity.HasComponent<TransformComponent>())
-					{
-						auto& tc = entity.GetComponent<TransformComponent>();
-						collider.Resize(tc.Scaling.x, tc.Scaling.y);
-					}
-				}
+			ImGui::Separator();
 
-				ImGui::Separator();
+			bool sleepingallowed = body.IsSleepingAllowed();
+			if (ImGui::Checkbox("Sleeping Allowed", &sleepingallowed))
+				body.SetSleepingAllowed(sleepingallowed);
 
-				auto size = collider.GetSize();
-				if (UI::DrawVec2Control("Size", size, 1.0f))
-					collider.Resize(size.x, size.y);
+			bool enabled = body.IsEnabled();
+			if (ImGui::Checkbox("Enabled", &enabled))
+				body.SetEnabled(enabled);
 
-				float friction = collider.GetFriction();
-				if (UI::DrawFloatControl("Friction", friction))
-					collider.SetFriction(friction);
+			bool awake = body.IsAwake();
+			if (ImGui::Checkbox("Awake", &awake))
+				body.SetAwake(awake);
 
-				float density = collider.GetDensity();
-				if (UI::DrawFloatControl("Density", density))
-					collider.SetDensity(density);
+			bool fixedroation = body.IsFixedRoation();
+			if (ImGui::Checkbox("Fixed Rotation", &fixedroation))
+				body.SetFixedRotation(fixedroation);
+		});
 
-				float restitution = collider.GetRestituion();
-				if (UI::DrawFloatControl("Restitution", restitution))
-					collider.SetRestitution(restitution);
-			});
+		Utils::DrawComponet<BoxColliderComponent>(entity, "Box Collider", [entity](BoxColliderComponent& comp)
+		{
+			auto& collider = comp.Collider;
+
+			auto center = collider.GetCenter();
+			if (UI::DrawVec2Control("Center", center))
+				collider.SetCenter(center);
+
+			auto rotation = collider.GetRotation();
+			if (UI::DrawFloatControl("Rotation", rotation))
+				collider.SetRotation(rotation);
+
+			ImGui::Separator();
+
+			auto size = collider.GetSize();
+			if (UI::DrawVec2Control("Size", size, 1.0f))
+				collider.Resize(size.x, size.y);
+
+			float friction = collider.GetFriction();
+			if (UI::DrawFloatControl("Friction", friction))
+				collider.SetFriction(friction);
+
+			float density = collider.GetDensity();
+			if (UI::DrawFloatControl("Density", density))
+				collider.SetDensity(density);
+
+			float restitution = collider.GetRestituion();
+			if (UI::DrawFloatControl("Restitution", restitution))
+				collider.SetRestitution(restitution);
+		});
 
 		ImGui::End();
 	}

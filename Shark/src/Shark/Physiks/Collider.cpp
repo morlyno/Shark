@@ -10,6 +10,8 @@ namespace Shark {
 		m_Width = specs.Width;
 		m_Height = specs.Height;
 		m_ColliderIndex = index;
+		m_Center = specs.Center;
+		m_Rotation = specs.Rotation;
 	}
 
 	void BoxCollider::Resize(float width, float height)
@@ -31,7 +33,32 @@ namespace Shark {
 		body->DestroyFixture(m_Fixture);
 
 		b2PolygonShape shape;
-		shape.SetAsBox(width * 0.5f, height * 0.5f);
+		shape.SetAsBox(width * 0.5f, height * 0.5f, { m_Center.x, m_Center.y }, m_Rotation);
+
+		fd.shape = &shape;
+
+		m_Fixture = body->CreateFixture(&fd);
+	}
+
+	void BoxCollider::SetTransform(const DirectX::XMFLOAT2& center, float rotation)
+	{
+		SK_CORE_ASSERT(m_Fixture, "Fixture not Created");
+		SK_CORE_ASSERT(m_Fixture->GetBody(), "Fixture not attached");
+		SK_CORE_ASSERT(m_Fixture->GetType() == b2Shape::Type::e_polygon, "Other Shaped not implemented");
+
+		m_Center = center;
+
+		b2Body* body = m_Fixture->GetBody();
+
+		b2FixtureDef fd;
+		fd.friction = m_Fixture->GetFriction();
+		fd.density = m_Fixture->GetDensity();
+		fd.restitution = m_Fixture->GetRestitution();
+
+		body->DestroyFixture(m_Fixture);
+
+		b2PolygonShape shape;
+		shape.SetAsBox(m_Width * 0.5f, m_Height * 0.5f, { center.x, center.y }, rotation);
 
 		fd.shape = &shape;
 

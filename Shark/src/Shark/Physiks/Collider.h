@@ -15,11 +15,10 @@ namespace Shark {
 		float Density = 0.0f;
 		float Restitution = 0.0f;
 
-		// Box
-		float Width = 0.0f, Height = 0.0f;
-		// Circle
-		//float Radius = 0.0f;
+		DirectX::XMFLOAT2 Center = { 0.0f, 0.0f };
+		float Rotation = 0.0f;
 
+		float Width = 0.0f, Height = 0.0f;
 	};
 
 	class BoxCollider
@@ -30,6 +29,12 @@ namespace Shark {
 
 		void Resize(float width, float height);
 		DirectX::XMFLOAT2 GetSize() const { return { m_Width, m_Height }; }
+
+		void SetTransform(const DirectX::XMFLOAT2& center, float rotation);
+		void SetCenter(const DirectX::XMFLOAT2& center) { SetTransform(center, m_Rotation); }
+		void SetRotation(float rotation) { SetTransform(m_Center, rotation); }
+		DirectX::XMFLOAT2 GetCenter() const { return m_Center; }
+		float GetRotation() const { return m_Rotation; }
 
 		float GetFriction() const { return m_Fixture->GetFriction(); }
 		float GetDensity() const { return m_Fixture->GetDensity(); }
@@ -50,7 +55,9 @@ namespace Shark {
 		b2Fixture* m_Fixture = nullptr;
 
 		ShapeType m_Shape;
-		float m_Width = 0.0f, m_Height = 0.0f;
+		float m_Width, m_Height;
+		DirectX::XMFLOAT2 m_Center;
+		float m_Rotation;
 
 		uint32_t m_ColliderIndex = 0;
 	};

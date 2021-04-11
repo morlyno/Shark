@@ -5,23 +5,29 @@
 #include "Shark/Core/Application.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Core/Input.h"
+#include "Shark/Utility/Utils.h"
 
+// --- Event ----------------------------
 #include "Shark/Event/Event.h"
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/MouseEvent.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/ApplicationEvent.h"
+// --------------------------------------
 
+// --- Layer ----------------------------
 #include "Shark/Layer/Layer.h"
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
+// --------------------------------------
 
 #include "Shark/Core/Window.h"
 
 // --- Render ---------------------------
+#include "Shark/Render/RendererAPI.h"
+#include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
-#include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shaders.h"
 #include "Shark/Render/Texture.h"
@@ -34,8 +40,19 @@
 #include "Shark/Render/EditorCamera.h"
 // --------------------------------------
 
-// --- ECS ------------------------------
+// --- Scean ----------------------------
 #include "Shark/Scean/Scean.h"
 #include "Shark/Scean/Entity.h"
+#include "Shark/Scean/SceanCamera.h"
+#include "Shark/Scean/NativeScript.h"
 #include "Shark/Scean/Components/Components.h"
+#include "Shark/Scean/SceanSerialization.h"
 // --------------------------------------
+
+// --- Physiks --------------------------
+#include "Shark/Physiks/World.h"
+#include "Shark/Physiks/RigidBody.h"
+#include "Shark/Physiks/Collider.h"
+// --------------------------------------
+
+

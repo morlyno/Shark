@@ -1,4 +1,4 @@
-#include <skpch.h>
+#include "skpch.h"
 #include "Utils.h"
 
 #include "Shark/Core/Application.h"
@@ -12,6 +12,11 @@ namespace Shark::Utils {
 		std::string rootdir = Application::GetRootDirectory();
 		auto relativePath = path.lexically_relative(rootdir).string();
 		return relativePath;
+	}
+
+	ImVec4 ToImVec4(const DirectX::XMFLOAT4& color)
+	{
+		return ImVec4{ color.x, color.y, color.z, color.w };
 	}
 
 }

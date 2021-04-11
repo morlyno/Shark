@@ -8,7 +8,7 @@ namespace Shark {
 	BoxCollider RigidBody::CreateBoxCollider(const ColliderSpecs& specs)
 	{
 		b2PolygonShape shape;
-		shape.SetAsBox(specs.Width * 0.5f, specs.Height * 0.5f);
+		shape.SetAsBox(specs.Width * 0.5f, specs.Height * 0.5f, { specs.Center.x, specs.Center.y }, specs.Rotation);
 		b2FixtureDef def;
 		def.shape = &shape;
 		def.friction = specs.Friction;
