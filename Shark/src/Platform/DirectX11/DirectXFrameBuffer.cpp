@@ -21,6 +21,7 @@ namespace Shark {
 				case Shark::FrameBufferColorAtachment::None: SK_CORE_ASSERT(false, "No Foramt Specified"); return DXGI_FORMAT_UNKNOWN;
 				case Shark::FrameBufferColorAtachment::Depth32: SK_CORE_ASSERT(false, "Invalid Format"); return DXGI_FORMAT_UNKNOWN;
 				case Shark::FrameBufferColorAtachment::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
+				case Shark::FrameBufferColorAtachment::R32_SINT: return DXGI_FORMAT_R32_SINT;
 			}
 			SK_CORE_ASSERT(false, "Unkown Format Type");
 			return DXGI_FORMAT_UNKNOWN;
@@ -190,7 +191,6 @@ namespace Shark {
 		ID3D11Resource* resourcebuffer;
 		m_FrameBuffers[index]->GetResource(&resourcebuffer);
 		SK_CHECK(resourcebuffer->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&buffer));
-		resourcebuffer->Release();
 
 		D3D11_TEXTURE2D_DESC t2ddesc;
 		buffer->GetDesc(&t2ddesc);
@@ -221,6 +221,37 @@ namespace Shark {
 
 		buffer->Release();
 		TempData->Release();
+	}
+
+	int DirectXFrameBuffer::ReadPixel(uint32_t index, int x, int y)
+	{
+		SK_CORE_ASSERT(index < m_Count, "Index out of range");
+
+		ID3D11Texture2D* buffer;
+		ID3D11Resource* resourcebuffer;
+		m_FrameBuffers[index]->GetResource(&resourcebuffer);
+		SK_CHECK(resourcebuffer->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&buffer));
+
+		D3D11_TEXTURE2D_DESC t2ddesc;
+		buffer->GetDesc(&t2ddesc);
+		t2ddesc.BindFlags = 0;
+		t2ddesc.Usage = D3D11_USAGE_STAGING;
+		t2ddesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+		ID3D11Texture2D* TempData;
+		m_DXApi->GetDevice()->CreateTexture2D(&t2ddesc, nullptr, &TempData);
+
+		m_DXApi->GetContext()->CopyResource(TempData, buffer);
+		D3D11_MAPPED_SUBRESOURCE ms;
+		m_DXApi->GetContext()->Map(TempData, 0, D3D11_MAP_READ, 0, &ms);
+
+		int pitch = ms.RowPitch / 4;
+		int data = ((int*)ms.pData)[y * pitch + x];
+
+		buffer->Release();
+		TempData->Release();
+
+		return data;
 	}
 
 	void DirectXFrameBuffer::Bind()

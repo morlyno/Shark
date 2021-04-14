@@ -24,19 +24,19 @@ namespace Shark {
 		template<typename T>
 		static Buffer Ref(const T& data)
 		{
-			return Ref(&data, sizeof(T));
+			return Ref((void*)&data, sizeof(T));
 		}
 
 		template<typename T, uint32_t Count>
 		static Buffer Ref(T (&data)[Count])
 		{
-			return Ref(data, Count * sizeof(T));
+			return Ref((void*)data, Count * sizeof(T));
 		}
 
 		template<typename T>
 		static Buffer Ref(const std::vector<T>& data)
 		{
-			return Ref(data.data(), (uint32_t)(data.size() * sizeof(T)));
+			return Ref((void*)data.data(), (uint32_t)(data.size() * sizeof(T)));
 		}
 
 		static Buffer Copy(void* data, uint32_t size)
@@ -51,13 +51,13 @@ namespace Shark {
 		template<typename T>
 		static Buffer Copy(const T& data)
 		{
-			return Copy(&data, sizeof(T));
+			return Copy((void*)&data, sizeof(T));
 		}
 
 		template<typename T, uint32_t Count>
 		static Buffer Copy(T (&data)[Count])
 		{
-			return Copy(data, Count * sizeof(T));
+			return Copy((void*)data, Count * sizeof(T));
 		}
 
 

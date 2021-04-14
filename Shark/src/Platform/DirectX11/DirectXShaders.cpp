@@ -271,7 +271,7 @@ namespace Shark {
 			}
 
 		SK_CORE_ASSERT(buffer != nullptr, "Could not find buffername");
-		SK_CORE_ASSERT(data.Size() == buffer->size, "data size and buffer size are not equal, sizes are: data:{0}, buffer:{1}");
+		SK_CORE_ASSERT(data.Size() <= buffer->size, "data size cant be gread than buffer size");
 		D3D11_MAPPED_SUBRESOURCE ms;
 		SK_CHECK(m_DXApi->GetContext()->Map(buffer->buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms));
 		data.CopyInto(ms.pData);

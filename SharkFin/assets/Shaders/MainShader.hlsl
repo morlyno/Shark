@@ -12,6 +12,7 @@ struct VSIN
     float2 TexCoord : TexCoord;
     int TexIndex : TextureIndex;
     float TilingFactor : TilingFactor;
+    int ID : ID;
 };
 
 struct VSOUT
@@ -20,6 +21,7 @@ struct VSOUT
     float2 TexCoord : TexCoord;
     int TexIndex : TextureIndex;
     float TilingFactor : TilingFactor;
+    int ID : ID;
     float4 Pos : SV_POSITION;
 };
 
@@ -31,6 +33,7 @@ VSOUT main(VSIN vsin)
     vsout.TexCoord = vsin.TexCoord;
     vsout.TexIndex = vsin.TexIndex;
     vsout.TilingFactor = vsin.TilingFactor;
+    vsout.ID = vsin.ID;
     return vsout;
 }
 
@@ -46,11 +49,13 @@ struct PSIN
     float2 TexCoord : TexCoord;
     int TexIndex : TextureIndex;
     float TilingFactor : TilingFactor;
+    int ID : ID;
 };
 
 struct PSOUT
 {
     float4 Color : SV_TARGET0;
+    int ID : SV_Target1;
 };
 
 PSOUT main(PSIN psin)
@@ -76,5 +81,8 @@ PSOUT main(PSIN psin)
         case 14: psout.Color = g_Textures[14].Sample(g_SamplerState[14], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
         case 15: psout.Color = g_Textures[15].Sample(g_SamplerState[15], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
     }
+    
+    psout.ID = 50;
+    
     return psout;
 }

@@ -51,8 +51,9 @@ namespace Shark {
 		FrameBufferSpecification fbspecs;
 		fbspecs.Width = window.GetWidth();
 		fbspecs.Height = window.GetHeight();
-		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::Depth32 };
+		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::R32_SINT, FrameBufferColorAtachment::Depth32 };
 		fbspecs.Atachments[0].Blend = true;
+		//fbspecs.ClearShader = Shaders::Create("assets/Shaders/MainShaderClear.hlsl");
 		m_FrameBuffer = FrameBuffer::Create(fbspecs);
 
 		m_Viewport = Viewport::Create(window.GetWidth(), window.GetHeight());
@@ -110,6 +111,8 @@ namespace Shark {
 		m_Viewport->Bind();
 		m_FrameBuffer->Bind();
 		m_FrameBuffer->Clear({ 0.1f, 0.1f, 0.1f, 1.0f });
+		//struct { DirectX::XMFLOAT4 color = { 0.1f, 0.1f, 0.1f, 1.0f }; int id = -1; } ClearData;
+		//Renderer::ClearFrameBuffer(m_FrameBuffer, m_FrameBuffer->GetClearShader(), Buffer::Ref(ClearData));
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
@@ -402,6 +405,15 @@ namespace Shark {
 		}
 
 		UI::NoAlpaImage(m_SwapChainFrameBuffer, m_FrameBufferTexture->GetHandle(), size);
+
+		auto [mx, my] = ImGui::GetMousePos();
+		auto [wx, wy] = ImGui::GetWindowPos();
+		int x = mx - wx;
+		int y = my - wy;
+		int data = -2;
+		if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight)
+			data = m_FrameBuffer->ReadPixel(1, x, y);
+
 		ImGui::End();
 
 		if (m_ShowRendererStats)
@@ -437,6 +449,12 @@ namespace Shark {
 			ImGui::Text("Index Count: %d", s.IndexCount);
 			ImGui::Text("Textur Count: %d", s.TextureCount);
 			ImGui::Text("Callback Count: %d", s.Callbacks);
+
+			ImGui::NewLine();
+			ImGui::Text("ID: %d", data);
+			ImGui::Text("mouse: %f, %f", mx, my);
+			ImGui::Text("window: %f, %f", wx, wy);
+			ImGui::Text("pos: %d, %d", x, y);
 
 			ImGui::End();
 		}
