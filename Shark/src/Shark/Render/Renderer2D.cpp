@@ -57,11 +57,25 @@ namespace Shark {
 		std::vector<Ref<Texture2D>> Textures;
 		std::vector<DrawCommand> DrawCmdList;
 		DrawCommand* Cmd;
+
+		Renderer2D::Statistics Stats;
 	};
 
 	static DrawData s_DrawData;
 
 	namespace Utils {
+
+		static void ResetStates()
+		{
+			auto& s = s_DrawData.Stats;
+			s.DrawCalls = 0;
+			s.DrawCommands = 0;
+			s.ElementCount = 0;
+			s.VertexCount = 0;
+			s.IndexCount = 0;
+			s.TextureCount = 0;
+			s.Callbacks = 0;
+		}
 
 		static void Flush()
 		{
@@ -90,13 +104,22 @@ namespace Shark {
 				DrawCommand& cmd = s_DrawData.DrawCmdList[i];
 
 				if (cmd.Callback)
+				{
 					cmd.Callback();
+					s_DrawData.Stats.Callbacks++;
+				}
 
 				for (uint32_t i = 0; i < cmd.TextureCount; i++)
 					s_DrawData.Textures[i + cmd.TextureOffset]->Bind();
 
 				RendererCommand::DrawIndexed(cmd.IndexCount, cmd.IndexOffset, 0);
+				s_DrawData.Stats.DrawCalls++;
 			}
+			
+			s_DrawData.Stats.DrawCommands += s_DrawData.DrawCmdList.size();
+			s_DrawData.Stats.VertexCount += s_DrawData.VertexBufferData.size();
+			s_DrawData.Stats.IndexCount += s_DrawData.IndexBufferData.size();
+			s_DrawData.Stats.TextureCount += s_DrawData.Textures.size();
 
 			s_DrawData.VertexBufferData.clear();
 			s_DrawData.IndexBufferData.clear();
@@ -171,6 +194,8 @@ namespace Shark {
 
 			cmd->VertexCount += 4;
 			cmd->IndexCount += 6;
+
+			s_DrawData.Stats.ElementCount++;
 		}
 
 	}
@@ -205,11 +230,13 @@ namespace Shark {
 
 	void Renderer2D::BeginScean(Camera& camera, const DirectX::XMMATRIX& view)
 	{
+		Utils::ResetStates();
 		s_SceanData.ViewProjectionMatrix = view * camera.GetProjection();
 	}
 
 	void Renderer2D::BeginScean(EditorCamera& camera)
 	{
+		Utils::ResetStates();
 		s_SceanData.ViewProjectionMatrix = camera.GetViewProjection();
 	}
 
@@ -266,6 +293,11 @@ namespace Shark {
 	void Renderer2D::DrawTransform(const TransformComponent& transform, const DirectX::XMFLOAT4& color)
 	{
 		Utils::AddQuad(transform.GetTranform(), s_DrawData.WitheTexture, 1.0f, color);
+	}
+
+	Renderer2D::Statistics Renderer2D::GetStatistics()
+	{
+		return s_DrawData.Stats;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -40,7 +40,7 @@ namespace Shark {
 		Ref<Topology> m_Topology;
 		Ref<Rasterizer> m_Rasterizer;
 
-		Ref<Scean> m_ActiveScean;
+		SceanController m_Scean;
 		SceanHirachyPanel m_SceanHirachyPanel;
 
 		bool m_ViewportHovered = false, m_ViewportFocused = false;

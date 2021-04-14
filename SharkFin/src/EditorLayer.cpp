@@ -28,12 +28,8 @@ namespace Shark {
 
 		auto& window = Application::Get().GetWindow();
 		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0);
-		m_ActiveScean = Ref<Scean>::Create();
-		{
-			//SceanSerializer serializer(m_ActiveScean);
-			//serializer.Deserialize("assets/Sceans/PhysiksTestScean.shark");
-		}
-		m_SceanHirachyPanel.SetContext(m_ActiveScean);
+		m_Scean = Ref<Scean>::Create();
+		m_SceanHirachyPanel.SetContext(*m_Scean);
 
 
 		SwapChainSpecifications scspecs;
@@ -124,18 +120,18 @@ namespace Shark {
 			m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
 
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
-			m_ActiveScean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+			m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
-		if (m_ActiveScean)
+		if (m_Scean)
 		{
 			if (m_PlayScean)
-				m_ActiveScean->OnUpdateRuntime(ts);
+				m_Scean->OnUpdateRuntime(ts);
 			else
 			{
 				if (m_ViewportHovered)
 					m_EditorCamera.OnUpdate(ts);
-				m_ActiveScean->OnUpdateEditor(ts, m_EditorCamera);
+				m_Scean->OnUpdateEditor(ts, m_EditorCamera);
 
 				if (auto entity = m_SceanHirachyPanel.GetSelectedEntity())
 				{
@@ -196,14 +192,46 @@ namespace Shark {
 	{
 		if (Input::KeyPressed(Key::Control))
 		{
+			if (Input::KeyPressed(Key::LeftShift))
+			{
+				switch (event.GetKeyCode())
+				{
+					case Key::S: m_Scean.Serialize(); return true;
+				}
+			}
+
 			switch (event.GetKeyCode())
 			{
 				case Key::N: NewScean(); return true;
 				case Key::O: OpenScean(); return true;
 				case Key::S: SaveScean(); return true;
-				case Key::P: if (m_PlayScean) { m_PlayScean = false; m_ActiveScean->OnSceanStop(); } else { m_PlayScean = true; m_ActiveScean->OnSceanPlay(); } return true;
+				case Key::P:
+				{
+					if (m_PlayScean)
+					{
+						m_SceanHirachyPanel.SetSelectedEntity({});
+						m_PlayScean = false;
+						m_Scean->OnSceanStop();
+						m_Scean.LoadState();
+					}
+					else
+					{
+						m_Scean.SaveState();
+						m_Scean->OnSceanPlay();
+						m_PlayScean = true;
+					}
+					return true;
+				}
+
+				case Key::D:
+				{
+					Entity e = m_Scean->CreateEntity(m_SceanHirachyPanel.GetSelectedEntity());
+					e.GetComponent<TagComponent>().Tag += " (Copy)";
+					m_SceanHirachyPanel.SetSelectedEntity(e);
+				}
 			}
 		}
+
 		return false;
 	}
 
@@ -233,26 +261,102 @@ namespace Shark {
 			{
 				if (m_PlayScean)
 				{
-					if (ImGui::MenuItem("Stop Scean", "strg+P"))
+					if (ImGui::MenuItem("Stop Scean", "ctrl+P"))
 					{
 						m_PlayScean = false;
-						m_ActiveScean->OnSceanStop();
+						m_Scean->OnSceanStop();
+						m_Scean.LoadState();
+						m_SceanHirachyPanel.SetSelectedEntity({});
 					}
 				}
 				else
 				{
-					if (ImGui::MenuItem("Play Scean", "strg+P"))
+					if (ImGui::MenuItem("Play Scean", "ctrl+P"))
 					{
 						m_PlayScean = true;
-						m_ActiveScean->OnSceanPlay();
+						m_Scean->OnSceanPlay();
+						m_Scean.SaveState();
 					}
 				}
-				if (ImGui::MenuItem("New", "strg+N"))
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("New", "ctrl+N"))
 					NewScean();
-				if (ImGui::MenuItem("Save As..", "strg+S"))
+				if (ImGui::MenuItem("Save", "ctrl+S"))
+					m_Scean.Serialize();
+				if (ImGui::MenuItem("Save As..", "ctrl+shift+S"))
 					SaveScean();
-				if (ImGui::MenuItem("Open..", "strg+O"))
+				if (ImGui::MenuItem("Open..", "ctrl+O"))
 					OpenScean();
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Save State"))
+					m_Scean.SaveState();
+				if (ImGui::MenuItem("Load State"))
+				{
+					m_Scean.LoadState();
+					m_SceanHirachyPanel.SetSelectedEntity({});
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Entity"))
+			{
+				Entity se = m_SceanHirachyPanel.GetSelectedEntity();
+				if (ImGui::MenuItem("Add"))
+				{
+					auto e = m_Scean->CreateEntity("New Entity");
+					m_SceanHirachyPanel.SetSelectedEntity(e);
+				}
+				if (ImGui::MenuItem("Destroy", "delete", nullptr, se))
+				{
+					m_Scean->DestroyEntity(se);
+					m_SceanHirachyPanel.SetSelectedEntity({});
+				}
+				if (ImGui::MenuItem("Copy", "ctrl+D", nullptr, se))
+				{
+					se = m_Scean->CreateEntity(se);
+					se.GetComponent<TagComponent>().Tag += " (Copy)";
+					m_SceanHirachyPanel.SetSelectedEntity(se);
+				}
+
+				ImGui::Separator();
+
+				if (ImGui::BeginMenu("Add Component", se))
+				{
+					if (ImGui::MenuItem("Transform", nullptr, nullptr, !se.HasComponent<TransformComponent>()))
+						se.AddComponent<TransformComponent>();
+					if (ImGui::MenuItem("Sprite Renderer", nullptr, nullptr, !se.HasComponent<SpriteRendererComponent>()))
+						se.AddComponent<SpriteRendererComponent>();
+					if (ImGui::MenuItem("Scean Camera", nullptr, nullptr, !se.HasComponent<CameraComponent>()))
+						se.AddComponent<CameraComponent>();
+					if (ImGui::MenuItem("Rigid Body", nullptr, nullptr, !se.HasComponent<RigidBodyComponent>()))
+						se.AddComponent<RigidBodyComponent>();
+					if (ImGui::MenuItem("Box Collider", nullptr, nullptr, !se.HasComponent<BoxColliderComponent>()))
+						se.AddComponent<BoxColliderComponent>();
+
+					ImGui::EndMenu();
+				}
+
+				if (ImGui::BeginMenu("Remove Component", se))
+				{
+					if (ImGui::MenuItem("Transform", nullptr, nullptr, se.HasComponent<TransformComponent>()))
+						se.RemoveComponent<TransformComponent>();
+					if (ImGui::MenuItem("Sprite Renderer", nullptr, nullptr, se.HasComponent<SpriteRendererComponent>()))
+						se.RemoveComponent<SpriteRendererComponent>();
+					if (ImGui::MenuItem("Scean Camera", nullptr, nullptr, se.HasComponent<CameraComponent>()))
+						se.RemoveComponent<CameraComponent>();
+					if (ImGui::MenuItem("Rigid Body", nullptr, nullptr, se.HasComponent<RigidBodyComponent>()))
+						se.RemoveComponent<RigidBodyComponent>();
+					if (ImGui::MenuItem("Box Collider", nullptr, nullptr, se.HasComponent<BoxColliderComponent>()))
+						se.RemoveComponent<BoxColliderComponent>();
+
+					ImGui::EndMenu();
+				}
+
 
 				ImGui::EndMenu();
 			}
@@ -263,6 +367,8 @@ namespace Shark {
 				ImGui::MenuItem("Scean Hirachy", nullptr, &m_ShowSceanHirachyPanel);
 				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
 				ImGui::MenuItem("Batch Renderer Stats", nullptr, &m_ShowRendererStats);
+
+				ImGui::Separator();
 
 				if (ImGui::MenuItem("Exit"))
 					Application::Get().CloseApplication();
@@ -323,6 +429,15 @@ namespace Shark {
 			//ImGui::Text("Circle Vertices: %d", s.CircleVertexCount());
 			//ImGui::Text("Circle Indices: %d", s.CircleIndexCount());
 
+			auto s = Renderer2D::GetStatistics();
+			ImGui::Text("Draw Calls: %d", s.DrawCalls);
+			ImGui::Text("Draw Commands: %d", s.DrawCommands);
+			ImGui::Text("Element Count: %d", s.ElementCount);
+			ImGui::Text("Vertex Count: %d", s.VertexCount);
+			ImGui::Text("Index Count: %d", s.IndexCount);
+			ImGui::Text("Textur Count: %d", s.TextureCount);
+			ImGui::Text("Callback Count: %d", s.Callbacks);
+
 			ImGui::End();
 		}
 
@@ -357,9 +472,9 @@ namespace Shark {
 
 	void EditorLayer::NewScean()
 	{
-		m_ActiveScean = Ref<Scean>::Create();
-		m_SceanHirachyPanel.SetContext(m_ActiveScean);
-		m_ActiveScean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		m_Scean = Ref<Scean>::Create();
+		m_SceanHirachyPanel.SetContext(*m_Scean);
+		m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 	}
 
 	void EditorLayer::SaveScean()
@@ -367,8 +482,7 @@ namespace Shark {
 		auto filepath = FileDialogs::SaveFile("Shark Scean (*.shark)\0*.shark\0");
 		if (filepath)
 		{
-			SceanSerializer serializer(m_ActiveScean);
-			serializer.Serialize(*filepath);
+			m_Scean.Serialize(*filepath);
 		}
 
 	}
@@ -379,13 +493,10 @@ namespace Shark {
 		if (filepath)
 		{
 			m_PlayScean = false;
-			m_ActiveScean = Ref<Scean>::Create();
+			m_Scean.Deserialize(*filepath);
 
-			SceanSerializer serializer(m_ActiveScean);
-			serializer.Deserialize(*filepath);
-
-			m_SceanHirachyPanel.SetContext(m_ActiveScean);
-			m_ActiveScean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+			m_SceanHirachyPanel.SetContext(*m_Scean);
+			m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 	}
 

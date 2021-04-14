@@ -30,6 +30,12 @@ namespace Shark {
 		RigidBody() = default;
 		RigidBody(b2Body* body);
 
+		RigidBody(const RigidBody& other) = default;
+		RigidBody& operator=(const RigidBody& other) = default;
+
+		RigidBody(RigidBody&& other) = default;
+		RigidBody& operator=(RigidBody&& other) = default;
+
 		BoxCollider CreateBoxCollider(const ColliderSpecs& specs = ColliderSpecs{});
 		void DestroyBoxCollider(BoxCollider& collider);
 

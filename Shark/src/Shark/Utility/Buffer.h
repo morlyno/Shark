@@ -8,17 +8,12 @@ namespace Shark {
 	{
 	public:
 		Buffer() = default;
-		Buffer(const Buffer& other) { m_Buffer = other.m_Buffer; m_Size = other.m_Size; }
-		Buffer(Buffer&& other) { m_Buffer = other.m_Buffer; m_Size = other.m_Size; other.m_Buffer = nullptr; other.m_Size = 0; }
-		Buffer& operator=(const Buffer& other) { m_Buffer = other.m_Buffer; m_Size = other.m_Size; return *this; }
-		Buffer& operator=(Buffer&& other) { m_Buffer = other.m_Buffer; m_Size = other.m_Size; other.m_Buffer = nullptr; other.m_Size = 0; return *this; }
 		~Buffer() = default;
 
 		// Use only if Buffer is Created with Copy
 		void Release() { delete m_Buffer; memset(this, 0, sizeof(Buffer)); }
 
-		template<typename T>
-		static Buffer Ref(T* data, uint32_t size)
+		static Buffer Ref(void* data, uint32_t size)
 		{
 			Buffer b;
 			b.m_Size = size;
@@ -41,11 +36,10 @@ namespace Shark {
 		template<typename T>
 		static Buffer Ref(const std::vector<T>& data)
 		{
-			return Ref(data.data(), data.size() * sizeof(T));
+			return Ref(data.data(), (uint32_t)(data.size() * sizeof(T)));
 		}
 
-		template<typename T>
-		static Buffer Copy(T* data, uint32_t size)
+		static Buffer Copy(void* data, uint32_t size)
 		{
 			Buffer b;
 			b.m_Size = size;

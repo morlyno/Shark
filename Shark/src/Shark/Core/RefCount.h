@@ -38,10 +38,10 @@ namespace Shark {
 	public:
 		Ref() = default;
 		Ref(std::nullptr_t) {}
-		Ref(Ref& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } }
+		Ref(const Ref& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } }
 		Ref(Ref&& other) noexcept { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; other.m_Instance = nullptr; }
-		const Ref& operator=(Ref& other) { Release(); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
-		const Ref& operator=(Ref&& other) noexcept { Release();  m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		Ref& operator=(const Ref& other) { Release(); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
+		Ref& operator=(Ref&& other) noexcept { Release();  m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
 		~Ref() { Release(); }
 
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
@@ -49,9 +49,9 @@ namespace Shark {
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
 		Ref(Ref<T2>&& other) noexcept { Release();  m_Instance = other.m_Instance; other.m_Instance = nullptr; }
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		const Ref& operator=(const Ref<T2>& other) { Release();  m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
+		Ref& operator=(const Ref<T2>& other) { Release();  m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		const Ref& operator=(Ref<T2>&& other) noexcept { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		Ref& operator=(Ref<T2>&& other) noexcept { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
 
 		void Release()
 		{
@@ -80,7 +80,7 @@ namespace Shark {
 		T* operator->() const { return m_Instance; }
 		T& operator*() const { return *m_Instance; }
 
-		operator bool() { return m_Instance != nullptr; }
+		operator bool() const { return m_Instance != nullptr; }
 		bool operator==(const Ref& rhs) const { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetRefCount() == rhs.m_Instance->GetRefCount() : true)); return m_Instance == rhs.m_Instance; }
 		bool operator!=(const Ref& rhs) const { return !(*this == rhs); }
 
@@ -129,7 +129,7 @@ namespace Shark {
 		T& operator*() const { return *m_Instance; }
 		T* operator->() const { return m_Instance; }
 
-		operator bool() { return m_Instance != nullptr; }
+		operator bool() const { return m_Instance != nullptr; }
 		bool operator==(const WeakRef& rhs) const { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetWeakCount() == rhs.m_Instance->GetWeakCount() : true)); return m_Instance == rhs.m_Instance; }
 		bool operator!=(const WeakRef& rhs) const { return !(*this == rhs); }
 

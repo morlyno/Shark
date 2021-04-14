@@ -2,34 +2,6 @@ Scean: Untitled
 Entities:
   - Entity: 54758432
     TagComponent:
-      Tag: Camera
-    TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scaling: [1, 1, 1]
-    CameraComponent:
-      Type: 1
-      Aspecratio: 1.41675174
-      PerspectiveFOV: 44.9999733
-      PerspectiveNear: 0.00999999978
-      PerspectiveFar: 1000
-      OrthographicZoom: 4
-      OrthographicNear: -1
-      OrthographicFar: 1
-      IsMainCamera: true
-  - Entity: 54758432
-    TagComponent:
-      Tag: Blue Square
-    TransformComponent:
-      Position: [2, 1, 0]
-      Rotation: [0, 0, 0]
-      Scaling: [1, 1, 1]
-    SpriteRendererComponent:
-      Color: [0.0346941724, 0, 0.737254918, 1]
-      Texture: ""
-      TilingFactor: 1
-  - Entity: 54758432
-    TagComponent:
       Tag: Red Square
     TransformComponent:
       Position: [0, 0, 0]
@@ -39,3 +11,31 @@ Entities:
       Color: [0.600000024, 0, 0, 0.5]
       Texture: ""
       TilingFactor: 1
+  - Entity: 54758432
+    TagComponent:
+      Tag: Blue Square
+    TransformComponent:
+      Position: [2, 1, 0]
+      Rotation: [0, 0, 0.785398185]
+      Scaling: [1, 1, 1]
+    SpriteRendererComponent:
+      Color: [0.0346941724, 0, 0.737254918, 1]
+      Texture: ""
+      TilingFactor: 1
+  - Entity: 54758432
+    TagComponent:
+      Tag: Camera
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scaling: [1, 1, 1]
+    CameraComponent:
+      Type: 1
+      Aspecratio: 1.22144294
+      PerspectiveFOV: 44.9999733
+      PerspectiveNear: 0.00999999978
+      PerspectiveFar: 1000
+      OrthographicZoom: 4
+      OrthographicNear: -1
+      OrthographicFar: 1
+      IsMainCamera: true

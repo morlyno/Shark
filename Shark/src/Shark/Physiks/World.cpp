@@ -4,15 +4,37 @@
 namespace Shark {
 	
 	World::World(const DirectX::XMFLOAT2& gravity)
-		: m_World({ gravity.x, gravity.y })
 	{
+		m_World = new b2World({ gravity.x, gravity.y });
 	}
 
-	void World::Update(float timeStep) { m_World.Step(timeStep, 8, 3); }
+	World::~World()
+	{
+		delete m_World;
+	}
+
+	World::World(World&& other)
+	{
+		m_World = other.m_World;
+		other.m_World = nullptr;
+	}
+
+	World& World::operator=(World&& other)
+	{
+		m_World = other.m_World;
+		other.m_World = nullptr;
+
+		return *this;
+	}
+
+	void World::Update(float timeStep)
+	{
+		m_World->Step(timeStep, 8, 3);
+	}
 
 	void World::Flush()
 	{
-		b2Body* bodylist = m_World.GetBodyList();
+		b2Body* bodylist = m_World->GetBodyList();
 		while (bodylist)
 		{
 			bodylist->SetLinearVelocity({ 0.0f, 0.0f });
@@ -33,12 +55,12 @@ namespace Shark {
 		bodydef.position = { specs.Position.x, specs.Position.y };
 		bodydef.angle = specs.Angle;
 
-		return RigidBody(m_World.CreateBody(&bodydef));
+		return RigidBody(m_World->CreateBody(&bodydef));
 	}
 
 	void World::DestroyRigidBody(RigidBody& rigidbody)
 	{
-		m_World.DestroyBody(rigidbody);
+		m_World->DestroyBody(rigidbody);
 	}
 
 }

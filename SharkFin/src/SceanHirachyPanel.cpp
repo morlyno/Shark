@@ -14,49 +14,6 @@ namespace Shark {
 
 	namespace Utils {
 
-		static void AddTransformComponent(Entity e)
-		{
-			e.AddComponent<CameraComponent>();
-		}
-
-		static void AddCameraComponent(Entity e)
-		{
-			e.AddComponent<CameraComponent>();
-		}
-
-		static void AddSpriteRendererComponent(Entity e)
-		{
-			e.AddComponent<SpriteRendererComponent>();
-		}
-
-		static void AddRigidBodyComponent(Entity e, const Ref<Scean>& context)
-		{
-			auto& rbc = e.AddComponent<RigidBodyComponent>();
-			rbc.Body = context->GetWorld().CreateRigidBody();
-
-			if (e.HasComponent<TransformComponent>())
-			{
-				auto& tc = e.GetComponent<TransformComponent>();
-				rbc.Body.SetTransform(tc.Position.x, tc.Position.y, tc.Rotation.z);
-			}
-		}
-
-		static void AddBoxColliderComponent(Entity e, const Ref<Scean>& context)
-		{
-			if (!e.HasComponent<RigidBodyComponent>())
-				Utils::AddRigidBodyComponent(e, context);
-
-			auto& rbc = e.GetComponent<RigidBodyComponent>();
-			auto& bcc = e.AddComponent<BoxColliderComponent>();
-			bcc.Collider = rbc.Body.CreateBoxCollider();
-
-			if (e.HasComponent<TransformComponent>())
-			{
-				auto& tc = e.GetComponent<TransformComponent>();
-				bcc.Collider.Resize(tc.Scaling.x, tc.Scaling.y);
-			}
-		}
-
 		template<typename Comp, typename UIFunction>
 		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
 		{
@@ -142,27 +99,27 @@ namespace Shark {
 				if (ImGui::MenuItem("Camera"))
 				{
 					Entity e = m_Context->CreateEntity("New Camera");
-					Utils::AddCameraComponent(e);
+					e.AddComponent<CameraComponent>();
 					m_SelectedEntity = e;
 				}
 				if (ImGui::MenuItem("Quad"))
 				{
 					Entity e = m_Context->CreateEntity("New Quad");
-					Utils::AddSpriteRendererComponent(e);
+					e.AddComponent<SpriteRendererComponent>();
 					m_SelectedEntity = e;
 				}
 				if (ImGui::MenuItem("RigidBody"))
 				{
 					Entity e = m_Context->CreateEntity("New RigidBody");
-					Utils::AddSpriteRendererComponent(e);
-					Utils::AddRigidBodyComponent(e, m_Context);
+					e.AddComponent<SpriteRendererComponent>();
+					e.AddComponent<RigidBodyComponent>();
 					m_SelectedEntity = e;
 				}
 				if (ImGui::MenuItem("Box Collider"))
 				{
 					Entity e = m_Context->CreateEntity("New RigidBody");
-					Utils::AddSpriteRendererComponent(e);
-					Utils::AddBoxColliderComponent(e, m_Context);
+					e.AddComponent<SpriteRendererComponent>();
+					e.AddComponent<BoxColliderComponent>();
 					m_SelectedEntity = e;
 				}
 				ImGui::EndMenu();
@@ -243,27 +200,27 @@ namespace Shark {
 		{
 			if (ImGui::Selectable("Transform", false, entity.HasComponent<TransformComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				Utils::AddTransformComponent(entity);
+				entity.AddComponent<TransformComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Sprite Renderer", false, entity.HasComponent<SpriteRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				Utils::AddSpriteRendererComponent(entity);
+				entity.AddComponent<SpriteRendererComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Scean Camera", false, entity.HasComponent<CameraComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				Utils::AddCameraComponent(entity);
+				entity.AddComponent<CameraComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Rigid Body", false, entity.HasComponent<RigidBodyComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				Utils::AddRigidBodyComponent(entity, m_Context);
+				entity.AddComponent<RigidBodyComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Box Collider", false, entity.HasComponent<BoxColliderComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				Utils::AddBoxColliderComponent(entity, m_Context);
+				entity.AddComponent<BoxColliderComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -295,7 +252,7 @@ namespace Shark {
 			ImTextureID image = comp.Texture ? comp.Texture->GetHandle() : nullptr;
 			if (ImGui::ImageButton(image, { 48, 48 }, { 0, 0 }, { 1, 1 }, -1, { 0.0f, 0.0f, 0.0f, 1.0f }, Utils::ToImVec4(comp.Color)))
 			{
-				std::optional<std::string> imagePath = FileDialogs::OpenFile("Texture (*.)\0*.\0");
+				std::optional<std::string> imagePath = FileDialogs::OpenFile("Texture (*.*)\0*.*\0");
 				if (imagePath)
 					comp.Texture = Texture2D::Create({}, Utils::MakePathRelative(*imagePath));
 			}
@@ -305,20 +262,17 @@ namespace Shark {
 			{
 				ImGui::Text(comp.Texture->GetFilePath().c_str());
 				ImGui::Text("Width: %d, Height: %d", comp.Texture->GetWidth(), comp.Texture->GetHeight());
+				if (ImGui::Button("Remove"))
+					comp.Texture = nullptr;
 			}
 			else
 			{
 				ImGui::Text("No Texture Selected");
 				ImGui::Text("Width: 0, Height: 0");
 			}
-			if (ImGui::Button("R##TilingFactor", { 19, 19 }))
-				comp.TilingFactor = 1.0f;
-			ImGui::SameLine(0.0f, 0.0f);
-			ImGui::DragFloat("##TilingFactor", &comp.TilingFactor);
-			if (comp.TilingFactor < 0.0f)
-				comp.TilingFactor = 0.0f;
 			ImGui::Columns();
 
+			UI::DrawFloatControl("TilingFactor", comp.TilingFactor, 1.0f, "%.2f", 100.0f, "R");
 		});
 
 		Utils::DrawComponet<CameraComponent>(entity, "Scean Camera", [&](CameraComponent& comp)

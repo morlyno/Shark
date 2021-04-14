@@ -42,6 +42,7 @@
 
 // --- Scean ----------------------------
 #include "Shark/Scean/Scean.h"
+#include "Shark/Scean/SceanController.h"
 #include "Shark/Scean/Entity.h"
 #include "Shark/Scean/SceanCamera.h"
 #include "Shark/Scean/NativeScript.h"

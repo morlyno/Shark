@@ -27,6 +27,12 @@ namespace Shark {
 		BoxCollider() = default;
 		BoxCollider(b2Fixture* fixture, uint32_t index, const ColliderSpecs& specs);
 
+		BoxCollider(const BoxCollider&) = default;
+		BoxCollider& operator=(const BoxCollider&) = default;
+
+		BoxCollider(BoxCollider&&) = default;
+		BoxCollider& operator=(BoxCollider&&) = default;
+
 		void Resize(float width, float height);
 		DirectX::XMFLOAT2 GetSize() const { return { m_Width, m_Height }; }
 

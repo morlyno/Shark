@@ -6,13 +6,6 @@ namespace Shark {
 
 	struct TransformComponent
 	{
-		TransformComponent() = default;
-		TransformComponent(const DirectX::XMFLOAT3& position)
-			: Position(position) {}
-		TransformComponent(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling)
-			: Position(position), Rotation(rotation), Scaling(scaling) {}
-		~TransformComponent() = default;
-
 		DirectX::XMMATRIX GetTranform() const
 		{
 			return DirectX::XMMatrixScaling(Scaling.x, Scaling.y, Scaling.z) *

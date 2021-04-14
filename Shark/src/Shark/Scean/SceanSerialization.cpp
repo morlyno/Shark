@@ -260,7 +260,8 @@ namespace Shark {
 				if (tagComponent)
 				{
 					auto tag = tagComponent["Tag"].as<std::string>();
-					deserializedEntity.AddComponent<TagComponent>(tag);
+					auto& comp = deserializedEntity.AddComponent<TagComponent>();
+					comp.Tag = tag;
 					SK_CORE_TRACE(" - Tag Compoenent: {0}", tag);
 				}
 
@@ -271,7 +272,8 @@ namespace Shark {
 					auto position = transformComponent["Position"].as<DirectX::XMFLOAT3>();
 					auto rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
 					auto scaling = transformComponent["Scaling"].as<DirectX::XMFLOAT3>();
-					deserializedEntity.AddComponent<TransformComponent>(position, rotation, scaling);
+					auto& comp = deserializedEntity.AddComponent<TransformComponent>();
+					comp = { position, rotation, scaling };
 					SK_CORE_TRACE(" - Transfrom Component");
 				}
 
@@ -281,7 +283,8 @@ namespace Shark {
 					auto color = spriteRendererComponent["Color"].as<DirectX::XMFLOAT4>();
 					auto textureFilePath = spriteRendererComponent["Texture"].as<std::string>();
 					auto tilingfactor = spriteRendererComponent["TilingFactor"].as<float>();
-					deserializedEntity.AddComponent<SpriteRendererComponent>(color, textureFilePath.empty() ? nullptr : Texture2D::Create({}, textureFilePath), tilingfactor);
+					auto& comp = deserializedEntity.AddComponent<SpriteRendererComponent>();
+					comp = { color, textureFilePath.empty() ? nullptr : Texture2D::Create({}, textureFilePath), tilingfactor };
 					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
 				}
 
@@ -303,7 +306,8 @@ namespace Shark {
 					sceancamera.SetOrthographic(aspecratio, orthographicZoom, orthographicNear, orthographicFar);
 					sceancamera.SetProjectionType(type);
 
-					deserializedEntity.AddComponent<CameraComponent>(sceancamera);
+					auto& comp = deserializedEntity.AddComponent<CameraComponent>();
+					comp = { sceancamera };
 					if (isMainCamera)
 						m_Scean->m_ActiveCameraID = deserializedEntity;
 					SK_CORE_TRACE(" - Camera Component: Type {0}, MainCamera {0}", type == SceanCamera::Projection::Perspective ? "Perspective" : "Othographic", isMainCamera);
@@ -322,7 +326,8 @@ namespace Shark {
 					specs.Angle = rigidbodyComponent["Angle"].as<float>();
 				
 					RigidBody rigidbody = m_Scean->m_World.CreateRigidBody(specs);
-					deserializedEntity.AddComponent<RigidBodyComponent>(rigidbody);
+					auto& comp = deserializedEntity.AddComponent<RigidBodyComponent>();
+					comp = { rigidbody };
 					SK_CORE_TRACE(" - RigidBody Component: Type {0}", specs.Type == BodyType::Static ? "Static" : "Dinamic");
 				}
 
@@ -342,7 +347,8 @@ namespace Shark {
 					{
 						auto& body = deserializedEntity.GetComponent<RigidBodyComponent>().Body;
 						BoxCollider collider = body.CreateBoxCollider(specs);
-						deserializedEntity.AddComponent<BoxColliderComponent>(collider);
+						auto& comp = deserializedEntity.AddComponent<BoxColliderComponent>();
+						comp = { collider };
 						SK_CORE_TRACE(" - Collider Component: Type Box");
 					}
 				}

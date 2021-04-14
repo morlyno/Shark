@@ -20,4 +20,6 @@ namespace Shark::Utils {
 
 	ImVec4 ToImVec4(const DirectX::XMFLOAT4& color);
 
+	std::vector<std::string> StringSplit(const std::string& str, const std::string& splitter = " ");
+
 }

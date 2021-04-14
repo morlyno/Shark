@@ -12,10 +12,20 @@ namespace Shark {
 		Entity(entt::entity entityhandle, const WeakRef<Scean>& scean);
 		Entity(const Entity&) = default;
 
-		template<typename Component, typename... Args>
-		Component& AddComponent(Args&&... args)
+		template<typename Component>
+		Component& AddComponent()
 		{
-			auto& comp = m_Scean->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+			SK_CORE_ASSERT(!HasComponent<Component>());
+			auto& comp = m_Scean->m_Registry.emplace<Component>(m_EntityHandle);
+			m_Scean->OnComponentAdded(*this, comp);
+			return comp;
+		}
+
+		template<typename Component>
+		Component& AddComponent(const Component& c)
+		{
+			SK_CORE_ASSERT(!HasComponent<Component>());
+			auto& comp = m_Scean->m_Registry.emplace<Component>(m_EntityHandle, c);
 			m_Scean->OnComponentAdded(*this, comp);
 			return comp;
 		}
@@ -23,12 +33,14 @@ namespace Shark {
 		template<typename Component>
 		void RemoveComponent()
 		{
+			SK_CORE_ASSERT(HasComponent<Component>());
 			m_Scean->m_Registry.remove<Component>(m_EntityHandle);
 		}
 
 		template<typename... Components>
 		decltype(auto) GetComponent()
 		{
+			SK_CORE_ASSERT(HasComponent<Components...>());
 			return m_Scean->m_Registry.get<Components...>(m_EntityHandle);
 		}
 

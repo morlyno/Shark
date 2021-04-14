@@ -34,6 +34,18 @@ namespace Shark {
 		static void DrawEntity(Entity entity);
 		static void DrawTransform(const TransformComponent& transform, const DirectX::XMFLOAT4& color);
 
+		struct Statistics
+		{
+			uint32_t DrawCalls;
+			uint32_t DrawCommands;
+			uint32_t ElementCount;
+			uint32_t VertexCount;
+			uint32_t IndexCount;
+			uint32_t TextureCount;
+			uint32_t Callbacks;
+		};
+		static Statistics GetStatistics();
+
 	private:
 		static void AddCallbackFunction(const std::function<void()>& func);
 	};
