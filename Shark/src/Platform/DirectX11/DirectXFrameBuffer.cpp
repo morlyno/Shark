@@ -67,6 +67,11 @@ namespace Shark {
 		m_DXApi->GetContext()->ClearRenderTargetView(m_FrameBuffers[index], clearcolor.rgba);
 	}
 
+	void DirectXFrameBuffer::ClearDepth()
+	{
+		m_DXApi->GetContext()->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
+	}
+
 	void DirectXFrameBuffer::Release()
 	{
 		m_DXApi->GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
@@ -83,6 +88,11 @@ namespace Shark {
 		{
 			m_DepthStencil->Release();
 			m_DepthStencil = nullptr;
+		}
+		if (m_DepthStencilState)
+		{
+			m_DepthStencilState->Release();
+			m_DepthStencilState = nullptr;
 		}
 		if (m_BlendState)
 		{
@@ -132,11 +142,15 @@ namespace Shark {
 
 	void DirectXFrameBuffer::SetDepth(bool enabled)
 	{
+		if (m_DepthEnabled == enabled)
+			return;
+		m_DepthEnabled = enabled;
+
 		D3D11_DEPTH_STENCIL_DESC dsd;
 		m_DepthStencilState->GetDesc(&dsd);
 		dsd.DepthEnable = enabled;
 		m_DepthStencilState->Release();
-		m_DXApi->GetDevice()->CreateDepthStencilState(&dsd, &m_DepthStencilState);
+		SK_CHECK(m_DXApi->GetDevice()->CreateDepthStencilState(&dsd, &m_DepthStencilState));
 	}
 
 	Ref<Texture2D> DirectXFrameBuffer::GetFramBufferContent(uint32_t index)
@@ -147,6 +161,7 @@ namespace Shark {
 		ID3D11Resource* resourcebuffer;
 		m_FrameBuffers[index]->GetResource(&resourcebuffer);
 		SK_CHECK(resourcebuffer->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&buffer));
+		resourcebuffer->Release();
 
 		D3D11_TEXTURE2D_DESC t2ddesc;
 		buffer->GetDesc(&t2ddesc);
@@ -191,6 +206,7 @@ namespace Shark {
 		ID3D11Resource* resourcebuffer;
 		m_FrameBuffers[index]->GetResource(&resourcebuffer);
 		SK_CHECK(resourcebuffer->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&buffer));
+		resourcebuffer->Release();
 
 		D3D11_TEXTURE2D_DESC t2ddesc;
 		buffer->GetDesc(&t2ddesc);
@@ -231,6 +247,7 @@ namespace Shark {
 		ID3D11Resource* resourcebuffer;
 		m_FrameBuffers[index]->GetResource(&resourcebuffer);
 		SK_CHECK(resourcebuffer->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&buffer));
+		resourcebuffer->Release();
 
 		D3D11_TEXTURE2D_DESC t2ddesc;
 		buffer->GetDesc(&t2ddesc);
@@ -360,31 +377,34 @@ namespace Shark {
 		}
 
 		uint32_t index = 0;
-		auto atachemnt = m_Specification.Atachments.begin();
+		auto atachment = m_Specification.Atachments.begin();
 		if (m_Specification.SwapChainTarget)
 		{
 			SK_CORE_ASSERT(m_Specification.SwapChain->GetBufferCount() == 1, "Multi buffering not implemented");
 
-			if (atachemnt->Blend)
+			if (atachment->Blend)
 				for (uint32_t i = 0; i < m_Specification.SwapChain->GetBufferCount(); i++)
 					bd.RenderTarget[index + i].BlendEnable = TRUE;
 			for (uint32_t cnt = 0; cnt < m_Specification.SwapChain->GetBufferCount(); cnt++)
 				CreateSwapChainBuffer(index++);
 
-			++atachemnt;
+			++atachment;
 		}
 
-		while (atachemnt != m_Specification.Atachments.end())
+		while (atachment != m_Specification.Atachments.end())
 		{
-			if (atachemnt->Atachment == FrameBufferColorAtachment::Depth32)
+			if (atachment->Atachment == FrameBufferColorAtachment::Depth32)
+			{
+				m_DepthEnabled = true;
 				CreateDepthBuffer();
+			}
 			else
 			{
-				bd.RenderTarget[index].BlendEnable = atachemnt->Blend;
-				CreateFrameBuffer(index++, Utils::FBAtachmentToDXGIFormat(atachemnt->Atachment));
+				bd.RenderTarget[index].BlendEnable = atachment->Blend;
+				CreateFrameBuffer(index++, Utils::FBAtachmentToDXGIFormat(atachment->Atachment));
 			}
 
-			++atachemnt;
+			++atachment;
 		}
 
 		SK_CHECK(m_DXApi->GetDevice()->CreateBlendState(&bd, &m_BlendState));

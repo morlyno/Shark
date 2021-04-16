@@ -82,7 +82,7 @@ PSOUT main(PSIN psin)
         case 15: psout.Color = g_Textures[15].Sample(g_SamplerState[15], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
     }
     
-    psout.ID = 50;
+    psout.ID = psin.ID;
     
     return psout;
 }

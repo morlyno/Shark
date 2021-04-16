@@ -247,30 +247,30 @@ namespace Shark {
 		Utils::Flush();
 	}
 
-	void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color)
+	void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Utils::AddQuad(translation, s_DrawData.WitheTexture, 1.0f, color, -1);
+		Utils::AddQuad(translation, s_DrawData.WitheTexture, 1.0f, color, id);
 	}
 
-	void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor)
+	void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
 		Utils::AddTexture(texture);
-		Utils::AddQuad(translation, texture, tilingfactor, tintcolor, -1);
+		Utils::AddQuad(translation, texture, tilingfactor, tintcolor, id);
 	}
 
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color)
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Utils::AddQuad(translation, s_DrawData.WitheTexture, 1.0f, color, -1);
+		Utils::AddQuad(translation, s_DrawData.WitheTexture, 1.0f, color, id);
 	}
 
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor)
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
 		Utils::AddTexture(texture);
-		Utils::AddQuad(translation, texture, tilingfactor, tintcolor, -1);
+		Utils::AddQuad(translation, texture, tilingfactor, tintcolor, id);
 	}
 
 	void Renderer2D::AddCallbackFunction(const std::function<void()>& func)
@@ -292,9 +292,9 @@ namespace Shark {
 		Utils::AddQuad(tc.GetTranform(), texture, src.TilingFactor, src.Color, (int)(uint32_t)entity);
 	}
 
-	void Renderer2D::DrawTransform(const TransformComponent& transform, const DirectX::XMFLOAT4& color)
+	void Renderer2D::DrawTransform(const TransformComponent& transform, const DirectX::XMFLOAT4& color, int id)
 	{
-		Utils::AddQuad(transform.GetTranform(), s_DrawData.WitheTexture, 1.0f, color, -1);
+		Utils::AddQuad(transform.GetTranform(), s_DrawData.WitheTexture, 1.0f, color, id);
 	}
 
 	Renderer2D::Statistics Renderer2D::GetStatistics()

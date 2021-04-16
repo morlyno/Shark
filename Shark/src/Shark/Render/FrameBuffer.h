@@ -47,6 +47,7 @@ namespace Shark {
 
 		virtual void Clear(Utils::ColorF32 clearcolor) = 0;
 		virtual void ClearAtachment(uint32_t index, Utils::ColorF32 clearcolor) = 0;
+		virtual void ClearDepth() = 0;
 
 		virtual bool HasClearShader() const = 0;
 		virtual const Ref<Shaders>& GetClearShader() const = 0;
@@ -59,6 +60,7 @@ namespace Shark {
 		virtual bool GetBlend(uint32_t index) const = 0;
 
 		virtual void SetDepth(bool enabled) = 0;
+		virtual bool GetDepth() const = 0;
 
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) = 0;
 		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) = 0;

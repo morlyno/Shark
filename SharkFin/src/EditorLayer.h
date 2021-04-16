@@ -39,6 +39,7 @@ namespace Shark {
 		Ref<FrameBuffer> m_FrameBuffer;
 		Ref<Topology> m_Topology;
 		Ref<Rasterizer> m_Rasterizer;
+		Ref<Rasterizer> m_HilightRasterizer;
 
 		SceanController m_Scean;
 		SceanHirachyPanel m_SceanHirachyPanel;

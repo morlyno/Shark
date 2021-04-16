@@ -53,7 +53,7 @@ namespace Shark {
 		fbspecs.Height = window.GetHeight();
 		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::R32_SINT, FrameBufferColorAtachment::Depth32 };
 		fbspecs.Atachments[0].Blend = true;
-		//fbspecs.ClearShader = Shaders::Create("assets/Shaders/MainShaderClear.hlsl");
+		fbspecs.ClearShader = Shaders::Create("assets/Shaders/MainShaderClear.hlsl");
 		m_FrameBuffer = FrameBuffer::Create(fbspecs);
 
 		m_Viewport = Viewport::Create(window.GetWidth(), window.GetHeight());
@@ -62,10 +62,13 @@ namespace Shark {
 
 		RasterizerSpecification rrspecs;
 		rrspecs.Fill = FillMode::Solid;
-		rrspecs.Cull = CullMode::Back;
+		rrspecs.Cull = CullMode::None;
 		rrspecs.Multisample = false;
 		rrspecs.Antialising = false;
 		m_Rasterizer = Rasterizer::Create(rrspecs);
+		rrspecs.Fill = FillMode::Framed;
+		rrspecs.Cull = CullMode::None;
+		m_HilightRasterizer = Rasterizer::Create(rrspecs);
 
 #if 0
 		class TestScript : public NativeScript
@@ -110,9 +113,10 @@ namespace Shark {
 		m_Topology->Bind();
 		m_Viewport->Bind();
 		m_FrameBuffer->Bind();
-		m_FrameBuffer->Clear({ 0.1f, 0.1f, 0.1f, 1.0f });
-		//struct { DirectX::XMFLOAT4 color = { 0.1f, 0.1f, 0.1f, 1.0f }; int id = -1; } ClearData;
-		//Renderer::ClearFrameBuffer(m_FrameBuffer, m_FrameBuffer->GetClearShader(), Buffer::Ref(ClearData));
+
+		struct { DirectX::XMFLOAT4 color = { 0.1f, 0.1f, 0.1f, 1.0f }; int id = -1; } ClearData;
+		Renderer::ClearFrameBuffer(m_FrameBuffer, Buffer::Ref(ClearData));
+		m_FrameBuffer->ClearDepth();
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
@@ -140,19 +144,18 @@ namespace Shark {
 				{
 					if (!entity.HasComponent<CameraComponent>())
 					{
+						bool olddepth = m_FrameBuffer->GetDepth();
 						Renderer2D::BeginScean(m_EditorCamera);
 						Renderer2D::Submit([=]()
 						{
-							m_Rasterizer->SetSpecification(RasterizerSpecification(FillMode::Framed, CullMode::None, false, false));
 							m_FrameBuffer->SetDepth(false);
-							m_Rasterizer->Bind();
+							m_HilightRasterizer->Bind();
 							m_FrameBuffer->Bind();
 						});
-						Renderer2D::DrawTransform(entity.GetComponent<TransformComponent>(), { 1.0f, 0.5f, 0.0f, 1.0f });
+						Renderer2D::DrawTransform(entity.GetComponent<TransformComponent>(), { 1.0f, 0.5f, 0.0f, 1.0f }, (int)(uint32_t)entity);
 						Renderer2D::Submit([=]()
 						{
-							m_Rasterizer->SetSpecification(RasterizerSpecification(FillMode::Solid, CullMode::Back, false, false));
-							m_FrameBuffer->SetDepth(true);
+							m_FrameBuffer->SetDepth(olddepth);
 							m_Rasterizer->Bind();
 							m_FrameBuffer->Bind();
 						});
@@ -410,36 +413,22 @@ namespace Shark {
 		auto [wx, wy] = ImGui::GetWindowPos();
 		int x = mx - wx;
 		int y = my - wy;
-		int data = -2;
+		int ID = -1;
 		if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight)
-			data = m_FrameBuffer->ReadPixel(1, x, y);
+		{
+			ID = m_FrameBuffer->ReadPixel(1, x, y);
+			if (Input::MousePressed(Mouse::LeftButton) && ID != -1)
+			{
+				Entity entity{ (entt::entity)(uint32_t)ID, (*m_Scean).GetWeak() };
+				m_SceanHirachyPanel.SetSelectedEntity(entity);
+			}
+		}
 
 		ImGui::End();
 
 		if (m_ShowRendererStats)
 		{
 			ImGui::Begin("BatchStats", &m_ShowRendererStats);
-			//auto s = Renderer2D::GetBatchStatistics();
-			//
-			//ImGui::Text("DrawCalls: %d", s.DrawCalls);
-			//ImGui::Text("Total Geometry: %d", s.GeometryCount());
-			//ImGui::Text("Total Texture: %d", s.TextureCount());
-			//ImGui::Text("Total Vertices: %d", s.VertexCount());
-			//ImGui::Text("Total Indices: %d", s.IndexCount());
-			//
-			//ImGui::NewLine();
-			//
-			//ImGui::Text("Quad Count: %d", s.QuadCount);
-			//ImGui::Text("Quad Textures: %d", s.QuadTextureCount);
-			//ImGui::Text("Quad Vertices: %d", s.QuadVertexCount());
-			//ImGui::Text("Quad Indices: %d", s.QuadIndexCount());
-			//
-			//ImGui::NewLine();
-			//
-			//ImGui::Text("Circle Count: %d", s.CircleCount);
-			//ImGui::Text("Circle Textures: %d", s.CircleTextureCount);
-			//ImGui::Text("Circle Vertices: %d", s.CircleVertexCount());
-			//ImGui::Text("Circle Indices: %d", s.CircleIndexCount());
 
 			auto s = Renderer2D::GetStatistics();
 			ImGui::Text("Draw Calls: %d", s.DrawCalls);
@@ -451,10 +440,21 @@ namespace Shark {
 			ImGui::Text("Callback Count: %d", s.Callbacks);
 
 			ImGui::NewLine();
-			ImGui::Text("ID: %d", data);
-			ImGui::Text("mouse: %f, %f", mx, my);
-			ImGui::Text("window: %f, %f", wx, wy);
-			ImGui::Text("pos: %d, %d", x, y);
+			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && ID != -1)
+			{
+				Entity e{ (entt::entity)ID, (*m_Scean).GetWeak() };
+				if (e.IsValid())
+				{
+					const auto& tag = e.GetComponent<TagComponent>().Tag;
+					ImGui::Text("Hoverted Entity: ID: %d, Tag: %s", ID, tag.c_str());
+				}
+				else
+				{
+					ImGui::Text("Hovered Entity: UnValid Entity");
+				}
+			}
+			else
+				ImGui::Text("Hovered Entity: No Entity");
 
 			ImGui::End();
 		}

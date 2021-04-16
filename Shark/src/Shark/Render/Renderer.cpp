@@ -17,10 +17,11 @@ namespace Shark {
 
 	static void InitClearData()
 	{
-		VertexLayout layout({ { VertexDataType::Int, "VertexIndex" } });
-		int vertices[4] = { 0, 1, 2, 3 };
-		s_ClearData.VertexBuffer = VertexBuffer::Create(layout, Buffer::Ref(vertices));
-		int indices[4] = { 0, 1, 2, 4 };
+		VertexLayout layout({ { VertexDataType::Float2, "Vertex" } });
+
+		constexpr DirectX::XMFLOAT2 Vertices[4] = { { -1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, -1.0f }, { -1.0f, -1.0f } };
+		s_ClearData.VertexBuffer = VertexBuffer::Create(layout, Buffer::Ref(Vertices));
+		int indices[6] = { 0, 1, 2, 2, 3, 0 };
 		s_ClearData.IndexBuffer = IndexBuffer::Create(Buffer::Ref(indices));
 	}
 
@@ -76,17 +77,24 @@ namespace Shark {
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());
 	}
 
-	void Renderer::ClearFrameBuffer(const Ref<FrameBuffer>& framebuffer, Ref<Shaders> clearshader, const Buffer& cleardata)
+	void Renderer::ClearFrameBuffer(const Ref<FrameBuffer>& framebuffer, const Buffer& cleardata)
 	{
-		framebuffer->Bind();
+		bool depth = framebuffer->GetDepth();
+		framebuffer->SetDepth(false);
+		
 		s_ClearData.VertexBuffer->Bind();
 		s_ClearData.IndexBuffer->Bind();
-		clearshader->Bind();
-		//clearshader->SetBuffer("ClearData", cleardata);
+
+		framebuffer->GetClearShader()->Bind();
+		framebuffer->GetClearShader()->SetBuffer("ClearData", cleardata);
+		
 		RendererCommand::DrawIndexed(s_ClearData.IndexBuffer->GetCount());
-		clearshader->UnBind();
-		s_ClearData.IndexBuffer->Bind();
+		
+		framebuffer->GetClearShader()->UnBind();
+		s_ClearData.IndexBuffer->UnBind();
 		s_ClearData.VertexBuffer->UnBind();
+
+		framebuffer->SetDepth(depth);
 	}
 
 }

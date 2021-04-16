@@ -13,6 +13,7 @@ namespace Shark {
 
 		virtual void Clear(Utils::ColorF32 clearcolor) override;
 		virtual void ClearAtachment(uint32_t index, Utils::ColorF32 clearcolor) override;
+		virtual void ClearDepth() override;
 
 		virtual bool HasClearShader() const override { return m_Specification.ClearShader; }
 		virtual const Ref<Shaders>& GetClearShader() const override { return m_Specification.ClearShader; }
@@ -25,6 +26,7 @@ namespace Shark {
 		virtual bool GetBlend(uint32_t index) const override { return m_Specification.Atachments[index].Blend; }
 
 		virtual void SetDepth(bool enabled) override;
+		virtual bool GetDepth() const override { return m_DepthEnabled; }
 
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) override;
 		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) override;
@@ -45,8 +47,9 @@ namespace Shark {
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;
 		ID3D11DepthStencilState* m_DepthStencilState = nullptr;
-		ID3D11BlendState* m_BlendState;
+		ID3D11BlendState* m_BlendState = nullptr;
 		uint32_t m_Count = 0;
 		FrameBufferSpecification m_Specification;
+		bool m_DepthEnabled = false;
 	};
 }

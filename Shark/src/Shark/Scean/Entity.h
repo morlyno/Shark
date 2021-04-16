@@ -45,10 +45,9 @@ namespace Shark {
 		}
 
 		template<typename Component>
-		bool HasComponent()
-		{
-			return m_Scean->m_Registry.has<Component>(m_EntityHandle);
-		}
+		bool HasComponent() const { return m_Scean->m_Registry.has<Component>(m_EntityHandle); }
+
+		bool IsValid() const { return m_Scean->m_Registry.valid(m_EntityHandle); }
 
 		operator entt::entity() { return m_EntityHandle; }
 		operator bool() { return m_EntityHandle != entt::null; }

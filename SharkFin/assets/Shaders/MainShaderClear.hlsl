@@ -8,7 +8,7 @@ cbuffer ClearData : register(b0)
 
 struct Input
 {
-    int VertexIndex : VertexIndex;
+    float2 Position : Vertex;
 };
 
 struct Output
@@ -18,12 +18,10 @@ struct Output
     float4 Pos : SV_Position;
 };
 
-float2 g_Vertices[4] = { { -1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, -1.0f }, { -1.0f, -1.0f } };
-
 Output main(Input input)
 {
     Output output;
-    output.Pos = float4(g_Vertices[input.VertexIndex], 0.0f, 1.0f);
+    output.Pos = float4(input.Position, 0.0f, 1.0f);
     output.ClearColor = ClearColor;
     output.ClearID = ClearID;
     return output;
