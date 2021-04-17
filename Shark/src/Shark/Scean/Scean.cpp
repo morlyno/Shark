@@ -11,11 +11,10 @@ namespace Shark {
 	{
 		Scean dest;
 		dest.m_World.SetGravity(src.m_World.GetGravity());
-		auto weak = Weak(const_cast<Scean*>(&src));
-		src.m_Registry.each([weak, &dest](auto ID)
+		src.m_Registry.each([&src, &dest](auto ID)
 		{
-			Entity o{ ID, weak };
-			dest.CreateEntity(o);
+			Entity e{ ID, Weak((Scean*)&src) };
+			dest.CreateEntity(e, true);
 		});
 
 		dest.m_ActiveCameraID = src.m_ActiveCameraID;
@@ -52,9 +51,9 @@ namespace Shark {
 		m_ViewportWidth = other.m_ViewportWidth;
 		m_ViewportHeight = other.m_ViewportHeight;
 
-		m_ActiveCameraID = entt::null;
-		m_ViewportWidth = 0;
-		m_ViewportHeight = 0;
+		other.m_ActiveCameraID = entt::null;
+		other.m_ViewportWidth = 0;
+		other.m_ViewportHeight = 0;
 	}
 
 	Scean& Scean::operator=(Scean&& other)
@@ -65,9 +64,9 @@ namespace Shark {
 		m_ViewportWidth = other.m_ViewportWidth;
 		m_ViewportHeight = other.m_ViewportHeight;
 
-		m_ActiveCameraID = entt::null;
-		m_ViewportWidth = 0;
-		m_ViewportHeight = 0;
+		other.m_ActiveCameraID = entt::null;
+		other.m_ViewportWidth = 0;
+		other.m_ViewportHeight = 0;
 		return *this;
 	}
 
@@ -178,10 +177,17 @@ namespace Shark {
 			e.AddComponent<NativeScriptComponent>(other.GetComponent<NativeScriptComponent>());
 
 		if (other.HasComponent<RigidBodyComponent>())
-			e.AddComponent<RigidBodyComponent>(other.GetComponent<RigidBodyComponent>());
-
+		{
+			auto& othercomp = other.GetComponent<RigidBodyComponent>();
+			auto& comp = e.AddComponent<RigidBodyComponent>(othercomp);
+			comp.Body.SetState(othercomp.Body.GetCurrentState());
+		}
 		if (other.HasComponent<BoxColliderComponent>())
-			e.AddComponent<BoxColliderComponent>(other.GetComponent<BoxColliderComponent>());
+		{
+			auto& othercomp = other.GetComponent<BoxColliderComponent>();
+			auto& comp = e.AddComponent<BoxColliderComponent>(othercomp);
+			comp.Collider.SetState(othercomp.Collider.GetCurrentState());
+		}
 
 		return e;
 	}

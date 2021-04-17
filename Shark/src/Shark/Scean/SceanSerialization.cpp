@@ -307,7 +307,7 @@ namespace Shark {
 					sceancamera.SetProjectionType(type);
 
 					auto& comp = deserializedEntity.AddComponent<CameraComponent>();
-					comp = { sceancamera };
+					comp.Camera = sceancamera;
 					if (isMainCamera)
 						m_Scean->m_ActiveCameraID = deserializedEntity;
 					SK_CORE_TRACE(" - Camera Component: Type {0}, MainCamera {0}", type == SceanCamera::Projection::Perspective ? "Perspective" : "Othographic", isMainCamera);
@@ -325,9 +325,8 @@ namespace Shark {
 					specs.Position = rigidbodyComponent["Position"].as<DirectX::XMFLOAT2>();
 					specs.Angle = rigidbodyComponent["Angle"].as<float>();
 				
-					RigidBody rigidbody = m_Scean->m_World.CreateRigidBody(specs);
 					auto& comp = deserializedEntity.AddComponent<RigidBodyComponent>();
-					comp = { rigidbody };
+					comp.Body.SetState(specs);
 					SK_CORE_TRACE(" - RigidBody Component: Type {0}", specs.Type == BodyType::Static ? "Static" : "Dinamic");
 				}
 
@@ -343,14 +342,9 @@ namespace Shark {
 					specs.Width = width;
 					specs.Height = height;
 
-					if (deserializedEntity.HasComponent<RigidBodyComponent>())
-					{
-						auto& body = deserializedEntity.GetComponent<RigidBodyComponent>().Body;
-						BoxCollider collider = body.CreateBoxCollider(specs);
-						auto& comp = deserializedEntity.AddComponent<BoxColliderComponent>();
-						comp = { collider };
-						SK_CORE_TRACE(" - Collider Component: Type Box");
-					}
+					auto& comp = deserializedEntity.AddComponent<BoxColliderComponent>();
+					comp.Collider.SetState(specs);
+					SK_CORE_TRACE(" - Collider Component: Type Box");
 				}
 			}
 		}
