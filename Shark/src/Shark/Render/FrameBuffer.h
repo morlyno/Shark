@@ -32,7 +32,7 @@ namespace Shark {
 		uint32_t Width = 0, Height = 0;
 		std::vector<FrmeBufferTextureAtachment> Atachments;
 		bool SwapChainTarget = false;
-		WeakRef<SwapChain> SwapChain = nullptr;
+		Weak<SwapChain> SwapChain = nullptr;
 		Ref<Shaders> ClearShader = nullptr;
 
 		FrameBufferSpecification() = default;

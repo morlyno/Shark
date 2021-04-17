@@ -32,7 +32,7 @@ namespace Shark {
 	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs)
 		: m_Specification(specs)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
+		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
 		CreateBuffers();
 		Bind();
@@ -289,7 +289,7 @@ namespace Shark {
 	{
 		ID3D11Texture2D* buffer;
 
-		WeakRef<DirectXSwapChain> dxsc = m_Specification.SwapChain.CastTo<DirectXSwapChain>();
+		Weak<DirectXSwapChain> dxsc = StaticCast<DirectXSwapChain>(m_Specification.SwapChain);
 		dxsc->GetBackBuffer(0, &buffer);
 
 		if (index >= m_FrameBuffers.size())

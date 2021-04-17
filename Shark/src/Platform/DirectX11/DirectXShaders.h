@@ -51,7 +51,7 @@ namespace Shark {
 
 		virtual const std::string& GetName() const override { return m_Name; }
 	private:
-		WeakRef<DirectXRendererAPI> m_DXApi;
+		Weak<DirectXRendererAPI> m_DXApi;
 
 		PixelShader m_PixelShader;
 		VertexShader m_VertexShader;

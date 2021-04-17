@@ -31,7 +31,7 @@ namespace Shark {
     DirectXRasterizer::DirectXRasterizer(const RasterizerSpecification& specs)
         : m_Specification(specs)
     {
-        m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
+        m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
         SetSpecification(specs);
     }

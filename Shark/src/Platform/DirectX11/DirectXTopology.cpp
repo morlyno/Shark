@@ -33,7 +33,7 @@ namespace Shark {
     DirectXTopology::DirectXTopology(TopologyMode topology)
         : m_D3DTopology(TopologyToD3D11(topology))
     {
-        m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
+        m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
     }
 
     DirectXTopology::~DirectXTopology()

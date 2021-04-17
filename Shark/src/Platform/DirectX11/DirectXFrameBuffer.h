@@ -42,7 +42,7 @@ namespace Shark {
 		void CreateBuffers();
 
 	private:
-		WeakRef<DirectXRendererAPI> m_DXApi;
+		Weak<DirectXRendererAPI> m_DXApi;
 
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;

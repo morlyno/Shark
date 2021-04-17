@@ -30,7 +30,7 @@ namespace Shark {
 		virtual const RasterizerSpecification& GetSpecification() const override { return m_Specification; }
 
 	private:
-		WeakRef<DirectXRendererAPI> m_DXApi;
+		Weak<DirectXRendererAPI> m_DXApi;
 
 		ID3D11RasterizerState* m_Rasterizer = nullptr;
 		RasterizerSpecification m_Specification;

@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	Scope<Renderer::SceanData> Renderer::m_SceanData = Scope<Renderer::SceanData>::Create();
+	Scope<Renderer::SceanData> Renderer::m_SceanData = Scope<Renderer::SceanData>::Allocate();
 
 	struct ClearData
 	{

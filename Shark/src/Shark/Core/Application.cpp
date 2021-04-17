@@ -25,7 +25,7 @@ namespace Shark {
 
 		WindowProps windowprops;
 		windowprops.Maximized = true;
-		m_Window = Window::Create(windowprops);
+		m_Window = Scope<Window>::Create(windowprops);
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		Renderer::Init();
 
@@ -97,8 +97,6 @@ namespace Shark {
 			return false;
 		}
 		m_Minimized = false;
-
-		//RendererCommand::Resize(event.GetWidth(), event.GetHeight());
 		return false;
 	}
 

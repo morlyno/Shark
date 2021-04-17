@@ -11,7 +11,7 @@ namespace Shark {
 	{
 		Scean dest;
 		dest.m_World.SetGravity(src.m_World.GetGravity());
-		auto weak = WeakRef<Scean>::Create(const_cast<Scean*>(&src));
+		auto weak = Weak(const_cast<Scean*>(&src));
 		src.m_Registry.each([weak, &dest](auto ID)
 		{
 			Entity o{ ID, weak };
@@ -112,7 +112,7 @@ namespace Shark {
 		{
 			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 			for (auto entityID : group)
-				Renderer2D::DrawEntity({ entityID, WeakRef<Scean>::Create(this) });
+				Renderer2D::DrawEntity({ entityID, Weak(this) });
 		}
 		Renderer2D::EndScean();
 	}
@@ -123,7 +123,7 @@ namespace Shark {
 
 		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 		for (auto entityID : group)
-			Renderer2D::DrawEntity({ entityID, WeakRef<Scean>::Create(this) });
+			Renderer2D::DrawEntity({ entityID, Weak(this) });
 
 		Renderer2D::EndScean();
 	}
@@ -136,7 +136,7 @@ namespace Shark {
 		for (auto entityID : view)
 		{
 			auto& comp = view.get<NativeScriptComponent>(entityID);
-			Entity entity{ entityID, WeakRef<Scean>::Create(this) };
+			Entity entity{ entityID, Weak(this) };
 			comp.CreateScript(entity);
 			comp.Script->OnCreate();
 		}
@@ -160,7 +160,7 @@ namespace Shark {
 	Entity Scean::CreateEntity(Entity other, bool hint)
 	{
 		entt::entity entityID = hint ? m_Registry.create(other) : m_Registry.create();
-		Entity e{ entityID, WeakRef<Scean>::Create(this) };
+		Entity e{ entityID, Weak(this) };
 
 		if (other.HasComponent<TagComponent>())
 			e.AddComponent<TagComponent>(other.GetComponent<TagComponent>());
@@ -188,7 +188,7 @@ namespace Shark {
 
 	Entity Scean::CreateEntity(const std::string& tag)
 	{
-		Entity entity{ m_Registry.create(), WeakRef<Scean>::Create(this) };
+		Entity entity{ m_Registry.create(), Weak(this) };
 		auto& tagcomp = entity.AddComponent<TagComponent>();
 		tagcomp.Tag = tag.empty() ? "Entity" : tag;
 		entity.AddComponent<TransformComponent>();
@@ -202,7 +202,7 @@ namespace Shark {
 
 	Entity Scean::GetActiveCamera()
 	{
-		return { m_ActiveCameraID, WeakRef<Scean>::Create(this) };
+		return { m_ActiveCameraID, Weak(this) };
 	}
 
 	void Scean::ResizeCameras(float width, float height)
@@ -214,6 +214,13 @@ namespace Shark {
 			cc.Camera.Resize(width, height);
 		}
 	}
+
+	Ref<Scean> Scean::Create()
+	{
+		return Ref<Scean>::Allocate();
+	}
+
+
 
 	template<typename Component>
 	void Scean::OnComponentAdded(Entity entity, Component& comp)

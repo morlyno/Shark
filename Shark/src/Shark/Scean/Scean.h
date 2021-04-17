@@ -47,6 +47,8 @@ namespace Shark {
 		void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
 
 		World& GetWorld() { return m_World; }
+
+		static Ref<Scean> Create();
 	private:
 		entt::registry m_Registry;
 		entt::entity m_ActiveCameraID{ entt::null };

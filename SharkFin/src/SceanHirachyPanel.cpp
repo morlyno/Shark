@@ -22,7 +22,9 @@ namespace Shark {
 				ImGui::PushID(typeid(Comp).name());
 				bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
 				ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
+				ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
 				bool removed = ImGui::Button("x", { 19, 19 });
+				ImGui::PopStyleColor();
 
 				if (opened)
 				{
@@ -38,12 +40,12 @@ namespace Shark {
 
 	}
 
-	SceanHirachyPanel::SceanHirachyPanel(Ref<Scean> context)
+	SceanHirachyPanel::SceanHirachyPanel(const Ref<Scean>& context)
 		: m_Context(context)
 	{
 	}
 
-	void SceanHirachyPanel::SetContext(Ref<Scean> context)
+	void SceanHirachyPanel::SetContext(const Ref<Scean>& context)
 	{
 		m_SelectedEntity = {};
 		m_Context = context;
@@ -59,33 +61,11 @@ namespace Shark {
 			return;
 		}
 
-		constexpr ImGuiTreeNodeFlags treenodeflags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
-		if (ImGui::TreeNodeEx("Cameras", treenodeflags))
+		m_Context->m_Registry.each([=](auto entityID)
 		{
-			auto view = m_Context->m_Registry.view<CameraComponent>();
-			for (auto entityID : view)
-				DrawEntityNode({ entityID, m_Context.GetWeak() });
-
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNodeEx("Renderable", treenodeflags))
-		{
-			auto view = m_Context->m_Registry.view<SpriteRendererComponent>();
-			for (auto entityID : view)
-				DrawEntityNode({ entityID, m_Context.GetWeak() });
-
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNodeEx("Rest", treenodeflags))
-		{
-			auto view = m_Context->m_Registry.view<TagComponent>(entt::exclude<CameraComponent, SpriteRendererComponent>);
-			for (auto entityID : view)
-				DrawEntityNode({ entityID, m_Context.GetWeak() });
-
-			ImGui::TreePop();
-		}
+			Entity entity{ entityID, Weak(m_Context) };
+			DrawEntityNode(entity);
+		});
 
 		if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
 			m_SelectedEntity = {};
@@ -129,8 +109,10 @@ namespace Shark {
 
 		ImGui::End();
 
+		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 		if (m_SelectedEntity)
 			DrawEntityProperties(m_SelectedEntity);
+		ImGui::End();
 
 	}
 
@@ -176,8 +158,6 @@ namespace Shark {
 	
 	void SceanHirachyPanel::DrawEntityProperties(Entity entity)
 	{
-		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
-
 		const float AddButtonWidth = ImGui::CalcTextSize("Add", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 		const float IDSpacingWidth = ImGui::CalcTextSize("123456", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 		const float WindowWidth = ImGui::GetContentRegionAvailWidth();
@@ -473,8 +453,6 @@ namespace Shark {
 			if (UI::DrawFloatControl("Restitution", restitution))
 				collider.SetRestitution(restitution);
 		});
-
-		ImGui::End();
 	}
 
 }

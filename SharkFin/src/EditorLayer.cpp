@@ -27,7 +27,7 @@ namespace Shark {
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& window = Application::Get().GetWindow();
-		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0x0);
+		m_FrameBufferTexture = Ref<Texture2D>::Create(SamplerSpecification{}, window.GetWidth(), window.GetHeight(), 0x0);
 		m_Scean = Ref<Scean>::Create();
 		m_SceanHirachyPanel.SetContext(*m_Scean);
 
@@ -36,7 +36,7 @@ namespace Shark {
 		scspecs.Widht = window.GetWidth();
 		scspecs.Height = window.GetHeight();
 		scspecs.WindowHandle = window.GetHandle();
-		m_SwapChain = SwapChain::Create(scspecs);
+		m_SwapChain = Ref<SwapChain>::Create(scspecs);
 
 
 		FrameBufferSpecification scfbspecs;
@@ -45,30 +45,31 @@ namespace Shark {
 		scfbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::Depth32 };
 		scfbspecs.Atachments[0].Blend = true;
 		scfbspecs.SwapChainTarget = true;
-		scfbspecs.SwapChain = m_SwapChain.GetWeak();
-		m_SwapChainFrameBuffer = FrameBuffer::Create(scfbspecs);
+		scfbspecs.SwapChain = Weak(m_SwapChain);
+		m_SwapChainFrameBuffer = Ref<FrameBuffer>::Create(scfbspecs);
 
 		FrameBufferSpecification fbspecs;
 		fbspecs.Width = window.GetWidth();
 		fbspecs.Height = window.GetHeight();
 		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::R32_SINT, FrameBufferColorAtachment::Depth32 };
 		fbspecs.Atachments[0].Blend = true;
-		fbspecs.ClearShader = Shaders::Create("assets/Shaders/MainShaderClear.hlsl");
-		m_FrameBuffer = FrameBuffer::Create(fbspecs);
+		fbspecs.ClearShader = Ref<Shaders>::Create("assets/Shaders/MainShaderClear.hlsl");
+		m_FrameBuffer = Ref<FrameBuffer>::Create(fbspecs);
 
-		m_Viewport = Viewport::Create(window.GetWidth(), window.GetHeight());
+		m_Viewport = Ref<Viewport>::Create(window.GetWidth(), window.GetHeight());
 
-		m_Topology = Topology::Create(TopologyMode::Triangle);
+		m_Topology = Ref<Topology>::Create(TopologyMode::Triangle);
 
 		RasterizerSpecification rrspecs;
 		rrspecs.Fill = FillMode::Solid;
 		rrspecs.Cull = CullMode::None;
 		rrspecs.Multisample = false;
 		rrspecs.Antialising = false;
-		m_Rasterizer = Rasterizer::Create(rrspecs);
+		m_Rasterizer = Ref<Rasterizer>::Create(rrspecs);
+
 		rrspecs.Fill = FillMode::Framed;
 		rrspecs.Cull = CullMode::None;
-		m_HilightRasterizer = Rasterizer::Create(rrspecs);
+		m_HilightRasterizer = Ref<Rasterizer>::Create(rrspecs);
 
 #if 0
 		class TestScript : public NativeScript
@@ -419,7 +420,7 @@ namespace Shark {
 			ID = m_FrameBuffer->ReadPixel(1, x, y);
 			if (Input::MousePressed(Mouse::LeftButton) && ID != -1)
 			{
-				Entity entity{ (entt::entity)(uint32_t)ID, (*m_Scean).GetWeak() };
+				Entity entity{ (entt::entity)(uint32_t)ID, Weak(*m_Scean) };
 				m_SceanHirachyPanel.SetSelectedEntity(entity);
 			}
 		}
@@ -442,7 +443,7 @@ namespace Shark {
 			ImGui::NewLine();
 			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && ID != -1)
 			{
-				Entity e{ (entt::entity)ID, (*m_Scean).GetWeak() };
+				Entity e{ (entt::entity)ID, Weak(*m_Scean) };
 				if (e.IsValid())
 				{
 					const auto& tag = e.GetComponent<TagComponent>().Tag;

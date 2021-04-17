@@ -18,7 +18,7 @@ namespace Shark {
 		virtual void SetTopology(TopologyMode toplogy) override;
 		virtual TopologyMode GetTopology() const override;
 	private:
-		WeakRef<DirectXRendererAPI> m_DXApi;
+		Weak<DirectXRendererAPI> m_DXApi;
 		D3D11_PRIMITIVE_TOPOLOGY m_D3DTopology;
 	};
 

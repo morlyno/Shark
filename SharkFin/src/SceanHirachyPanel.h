@@ -11,9 +11,9 @@ namespace Shark {
 	{
 	public:
 		SceanHirachyPanel() = default;
-		SceanHirachyPanel(Ref<Scean> context);
-		void SetContext(Ref<Scean> context);
-		Ref<Scean> GetContext() const { return m_Context; }
+		SceanHirachyPanel(const Ref<Scean>& context);
+		void SetContext(const Ref<Scean>& context);
+		const Ref<Scean>& GetContext() const { return m_Context; }
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		void SetSelectedEntity(Entity selectedentity) { m_SelectedEntity = selectedentity; }

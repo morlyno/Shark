@@ -10,7 +10,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, filepath);
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Allocate(specs, filepath);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;
@@ -21,7 +21,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, width, height, flatcolor);
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Allocate(specs, width, height, flatcolor);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;
@@ -32,7 +32,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, width, height, data);
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Allocate(specs, width, height, data);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;

@@ -14,7 +14,7 @@ namespace Shark {
 	DirectXSwapChain::DirectXSwapChain(const SwapChainSpecifications& specs)
 		: m_BufferCount(specs.BufferCount)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
+		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
 		SK_CORE_ASSERT(specs.BufferCount == 1, "Multi buffering not implemented");
 		DXGI_SWAP_CHAIN_DESC scd;

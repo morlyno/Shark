@@ -41,7 +41,8 @@ namespace Shark {
 		Window& window = Application::Get().GetWindow();
 		ImGui_ImplWin32_Init(window.GetHandle());
 
-		WeakRef<DirectXRendererAPI> dxr = RendererCommand::GetRendererAPI().GetWeak().CastTo<DirectXRendererAPI>();
+
+		auto dxr = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 		ImGui_ImplDX11_Init(dxr->GetDevice(), dxr->GetContext());
 	}
 

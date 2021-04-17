@@ -26,11 +26,11 @@ namespace Shark {
 		template<typename T>
 		friend class Ref;
 		template<typename T>
-		friend class WeakRef;
+		friend class Weak;
 	};
 
 	template<typename T>
-	class WeakRef;
+	class Weak;
 
 	template<typename T>
 	class Ref
@@ -40,18 +40,20 @@ namespace Shark {
 		Ref(std::nullptr_t) {}
 		Ref(const Ref& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } }
 		Ref(Ref&& other) noexcept { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; other.m_Instance = nullptr; }
-		Ref& operator=(const Ref& other) { Release(); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
-		Ref& operator=(Ref&& other) noexcept { Release();  m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		const Ref& operator=(const Ref& other) { Release(); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
+		const Ref& operator=(Ref&& other) noexcept { Release();  m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
 		~Ref() { Release(); }
+
+		explicit Ref(T* inst) { m_Instance = inst; if (m_Instance) { m_Instance->AddRef(); } }
 
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
 		Ref(const Ref<T2>& other) { Release();  m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); }  }
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
 		Ref(Ref<T2>&& other) noexcept { Release();  m_Instance = other.m_Instance; other.m_Instance = nullptr; }
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		Ref& operator=(const Ref<T2>& other) { Release();  m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
+		const Ref& operator=(const Ref<T2>& other) { Release();  m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		Ref& operator=(Ref<T2>&& other) noexcept { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		const Ref& operator=(Ref<T2>&& other) noexcept { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
 
 		void Release()
 		{
@@ -70,13 +72,6 @@ namespace Shark {
 			}
 		}
 
-		WeakRef<T> GetWeak() const { return WeakRef<T>::Create(*this); }
-
-		template<typename T2>
-		Ref<T2> CastTo() { m_Instance->AddRef(); return Ref<T2>(reinterpret_cast<T2*>(m_Instance)); }
-		template<typename T2>
-		Ref<T2> DynamicCastTo() { return Ref<T2>(dynamic_cast<T2*>(m_Instance)); }
-
 		T* operator->() const { return m_Instance; }
 		T& operator*() const { return *m_Instance; }
 
@@ -85,67 +80,93 @@ namespace Shark {
 		bool operator!=(const Ref& rhs) const { return !(*this == rhs); }
 
 		template<typename... Args>
-		static Ref Create(Args&&... args) { return Ref(new T(std::forward<Args>(args)...)); }
-		static Ref Create(T* inst) { return Ref(inst); }
-	private:
-		explicit Ref(T* inst) { m_Instance = inst; if (m_Instance) { m_Instance->AddRef(); } }
+		static Ref Create(Args&&... args) { return T::Create(std::forward<Args>(args)...); }
+		template<typename... Args>
+		static Ref Allocate(Args&&... args) { return Ref(new T(std::forward<Args>(args)...)); }
 
-	public:
+	private:
 		T* m_Instance = nullptr;
 
-		template<typename T2>
-		friend class Ref;
+		template<typename T2> friend class Ref;
+		template<typename T> friend class Weak;
+
+		template<typename T1, typename T2> friend Ref<T1> StaticCast(const Ref<T2>& ref);
+		template<typename T1, typename T2> friend Ref<T1> DynamicCast(const Ref<T2>& ref);
 	};
 
+
 	template<typename T>
-	class WeakRef
+	class Weak
 	{
 	public:
-		WeakRef() = default;
-		WeakRef(std::nullptr_t) {}
-		WeakRef(const WeakRef& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddWeak(); } }
-		WeakRef(WeakRef&& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; other.m_Instance = nullptr; }
-		const WeakRef& operator=(const WeakRef& other) { Release(); m_Instance = other.m_Instance; if (m_Instance) m_Instance->AddWeak(); return *this; }
-		const WeakRef& operator=(WeakRef&& other) { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
-		~WeakRef() { Release(); }
+		Weak() = default;
+		Weak(std::nullptr_t) {}
+		Weak(const Weak& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddWeak(); } }
+		Weak(Weak&& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; other.m_Instance = nullptr; }
+		const Weak& operator=(const Weak& other) { Release(); m_Instance = other.m_Instance; if (m_Instance) m_Instance->AddWeak(); return *this; }
+		const Weak& operator=(Weak&& other) { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		~Weak() { Release(); }
+
+		explicit Weak(T* inst) { m_Instance = inst; if (m_Instance) m_Instance->AddWeak(); }
+		explicit Weak(const Ref<T>& ref) { m_Instance = ref.m_Instance; if (m_Instance) m_Instance->AddWeak(); }
 
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		WeakRef(const WeakRef<T2>& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddWeak(); } }
+		Weak(const Weak<T2>& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddWeak(); } }
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		WeakRef(WeakRef<T2>&& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; other.m_Instamnce = nullptr; }
+		Weak(Weak<T2>&& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; other.m_Instamnce = nullptr; }
 
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		const WeakRef& operator=(const WeakRef<T2>& other) { m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddWeak(); } return *this; }
+		const Weak& operator=(const Weak<T2>& other) { m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddWeak(); } return *this; }
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		const WeakRef& operator=(WeakRef<T2>&& other) { m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		const Weak& operator=(Weak<T2>&& other) { m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
 
 		void Release() { if (m_Instance) { SK_CORE_ASSERT(m_Instance->GetWeakCount() != 0, "Release was called but WeakCount was 0"); m_Instance->DecWeak(); } m_Instance = nullptr; }
-
-		template<typename T2>
-		WeakRef<T2> CastTo() { return WeakRef<T2>(reinterpret_cast<T2*>(m_Instance)); }
-		template<typename T2>
-		WeakRef<T2> DynamicCastTo() { return WeakRef<T2>(dynamic_cast<T2*>(m_Instance)); }
 
 		T& operator*() const { return *m_Instance; }
 		T* operator->() const { return m_Instance; }
 
 		operator bool() const { return m_Instance != nullptr; }
-		bool operator==(const WeakRef& rhs) const { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetWeakCount() == rhs.m_Instance->GetWeakCount() : true)); return m_Instance == rhs.m_Instance; }
-		bool operator!=(const WeakRef& rhs) const { return !(*this == rhs); }
-
-
-		static WeakRef Create(T* inst) { return WeakRef(inst); }
-		static WeakRef Create(const Ref<T>& ref) { return WeakRef(ref); }
-
-	private:
-		explicit WeakRef(T* inst) { m_Instance = inst; if (m_Instance) m_Instance->AddWeak(); }
-		explicit WeakRef(const Ref<T>& ref) { m_Instance = ref.m_Instance; if (m_Instance) m_Instance->AddWeak(); }
+		bool operator==(const Weak& rhs) const { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetWeakCount() == rhs.m_Instance->GetWeakCount() : true)); return m_Instance == rhs.m_Instance; }
+		bool operator!=(const Weak& rhs) const { return !(*this == rhs); }
 
 	private:
 		T* m_Instance = nullptr;
 
 		template<typename T2>
-		friend class WeakRef;
+		friend class Weak;
+
+		template<typename T1, typename T2> friend Weak<T1> StaticCast(const Weak<T2>&);
+		template<typename T1, typename T2> friend Weak<T2> DynamicCast(const Weak<T2>&);
 	};
+
+	template<typename T1, typename T2>
+	Ref<T1> StaticCast(const Ref<T2>& ref)
+	{
+		return Ref(static_cast<T1*>(ref.m_Instance));
+	}
+
+	template<typename T1, typename T2>
+	Ref<T1> DynamicCast(const Ref<T2>& ref)
+	{
+		T1* ptr = dynamic_cast<T1*>(ref.m_Instance);
+		if (ptr)
+			return Ref(ptr);
+		return nullptr;
+	}
+
+	template<typename T1, typename T2>
+	Weak<T1> StaticCast(const Weak<T2>& weak)
+	{
+		return Weak(static_cast<T1*>(weak.m_Instance));
+	}
+
+	template<typename T1, typename T2>
+	Weak<T1> DynamicCast(const Weak<T2>& weak)
+	{
+		T1* ptr = dynamic_cast<T1*>(weak.m_Instance);
+		if (ptr)
+			return Ref(ptr);
+		return nullptr;
+	}
 
 }

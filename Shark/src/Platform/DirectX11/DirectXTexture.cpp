@@ -53,7 +53,7 @@ namespace Shark {
 	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, const std::string& filepath)
 		: m_FilePath(filepath)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
+		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
 		int width, height;
 		stbi_uc* data = stbi_load(filepath.c_str(), &width, &height, nullptr, 4);
@@ -105,7 +105,7 @@ namespace Shark {
 	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t flatcolor)
 		: m_FilePath(std::string{}), m_Width(width), m_Height(height)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
+		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
 		std::vector<uint32_t> data;
 		data.resize((uint64_t)width * height, flatcolor);
@@ -152,7 +152,7 @@ namespace Shark {
 	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, const Buffer& data)
 		: m_FilePath(std::string{}), m_Width(width), m_Height(height)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
+		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
 		D3D11_TEXTURE2D_DESC td;
 		td.Width = m_Width;

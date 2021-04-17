@@ -8,7 +8,7 @@ namespace Shark {
 	DirectXViewport::DirectXViewport(uint32_t width, uint32_t height)
 		: m_Width(width), m_Height(height)
 	{
-		m_DXApi = RendererCommand::GetRendererAPI().CastTo<DirectXRendererAPI>().GetWeak();
+		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 	}
 
 	DirectXViewport::~DirectXViewport()

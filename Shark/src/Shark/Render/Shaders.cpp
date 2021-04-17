@@ -10,7 +10,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXShaders>::Create(filepath);
+			case RendererAPI::API::DirectX11: return Ref<DirectXShaders>::Allocate(filepath);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;
@@ -21,7 +21,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXShaders>::Create(vertexshaderSrc, pixelshaderSrc);
+			case RendererAPI::API::DirectX11: return Ref<DirectXShaders>::Allocate(vertexshaderSrc, pixelshaderSrc);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;
