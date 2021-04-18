@@ -33,9 +33,9 @@ namespace Shark {
 		bool operator!=(const Scope& rhs) { return !(*this == rhs); }
 
 		template<typename... Args>
-		constexpr static Scope Create(Args&&... args) { return T::Create(std::forward<Args>(args)...); }
+		static Scope Create(Args&&... args) { return std::move(T::Create(std::forward<Args>(args)...)); }
 		template<typename... Args>
-		constexpr static Scope Allocate(Args&&... args) { return Scope(new T(std::forward<Args>(args)...)); }
+		static Scope Allocate(Args&&... args) { return std::move(Scope(new T(std::forward<Args>(args)...))); }
 
 	private:
 		T* m_Instance = nullptr;

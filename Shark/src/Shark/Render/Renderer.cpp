@@ -6,8 +6,6 @@
 
 namespace Shark {
 
-	Scope<Renderer::SceanData> Renderer::m_SceanData = Scope<Renderer::SceanData>::Allocate();
-
 	struct ClearData
 	{
 		Ref<VertexBuffer> VertexBuffer;
@@ -59,7 +57,7 @@ namespace Shark {
 		vertexbuffer->Bind();
 		indexbuffer->Bind();
 		shaders->Bind();
-		shaders->SetBuffer("SceanData", Buffer::Ref(*m_SceanData));
+		//shaders->SetBuffer("SceanData", Buffer::Ref(*m_SceanData));
 		shaders->SetBuffer("ObjectData", Buffer::Ref(translation));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());
@@ -71,7 +69,7 @@ namespace Shark {
 		indexbuffer->Bind();
 		shaders->Bind();
 		texture->Bind();
-		shaders->SetBuffer("SceanData", Buffer::Ref(*m_SceanData));
+		//shaders->SetBuffer("SceanData", Buffer::Ref(*m_SceanData));
 		shaders->SetBuffer("ObjectData", Buffer::Ref(translation));
 
 		RendererCommand::DrawIndexed(indexbuffer->GetCount());

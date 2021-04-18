@@ -7,23 +7,6 @@
 
 namespace Shark {
 
-	Scean Scean::Copy(const Scean& src)
-	{
-		Scean dest;
-		dest.m_World.SetGravity(src.m_World.GetGravity());
-		src.m_Registry.each([&src, &dest](auto ID)
-		{
-			Entity e{ ID, Weak((Scean*)&src) };
-			dest.CreateEntity(e, true);
-		});
-
-		dest.m_ActiveCameraID = src.m_ActiveCameraID;
-		dest.m_ViewportWidth = src.m_ViewportWidth;
-		dest.m_ViewportHeight = src.m_ViewportHeight;
-
-		return std::move(dest);
-	}
-
 	Scean::Scean()
 	{
 	}
@@ -34,12 +17,35 @@ namespace Shark {
 
 	Scean::Scean(const Scean& other)
 	{
-		*this = Copy(other);
+		m_World.SetGravity(other.m_World.GetGravity());
+		other.m_Registry.each([this, &other](auto ID)
+		{
+			Entity e{ ID, Weak((Scean*)&other) };
+			CreateEntity(e, true);
+		});
+
+		m_ActiveCameraID = other.m_ActiveCameraID;
+		m_ViewportWidth = other.m_ViewportWidth;
+		m_ViewportHeight = other.m_ViewportHeight;
 	}
 
 	Scean& Scean::operator=(const Scean& other)
 	{
-		*this = Copy(other);
+		m_World = World{};
+		m_Registry = entt::registry{};
+		m_Registry.reserve(other.m_Registry.capacity());
+
+		m_World.SetGravity(other.m_World.GetGravity());
+		other.m_Registry.each([this, &other](auto ID)
+		{
+			Entity e{ ID, Weak((Scean*)&other) };
+			CreateEntity(e, true);
+		});
+
+		m_ActiveCameraID = other.m_ActiveCameraID;
+		m_ViewportWidth = other.m_ViewportWidth;
+		m_ViewportHeight = other.m_ViewportHeight;
+
 		return *this;
 	}
 

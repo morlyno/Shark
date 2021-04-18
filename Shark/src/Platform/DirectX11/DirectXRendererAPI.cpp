@@ -37,7 +37,7 @@ namespace Shark {
 		}
 
 		UINT createdeviceFalgs = 0u;
-#if SK_DEBUG
+#ifdef SK_DEBUG
 		createdeviceFalgs |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 

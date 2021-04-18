@@ -19,7 +19,6 @@ includeDir["yaml_cpp"] = "%{wks.location}/Shark/dependencies/yaml-cpp/include"
 includeDir["box2d"] = "%{wks.location}/Shark/dependencies/box2d/include"
 
 group "Dependencies"
-	include "dependencies/Premake"
 	include "Shark/dependencies/ImGui"
 	include "Shark/dependencies/yaml-cpp"
 	include "Shark/dependencies/box2d"

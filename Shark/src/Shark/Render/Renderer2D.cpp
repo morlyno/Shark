@@ -86,9 +86,9 @@ namespace Shark {
 			if (totalindices == 0 || totalvertices == 0)
 				return;
 
-			if (totalvertices * sizeof(Vertex) >= s_DrawData.VertexBuffer->GetSize())
+			if (totalvertices * sizeof(Vertex) > s_DrawData.VertexBuffer->GetSize())
 				s_DrawData.VertexBuffer = VertexBuffer::Create(s_DrawData.Shaders->GetVertexLayout(), Buffer{}, true);
-			if (totalindices * sizeof(Index) >= s_DrawData.IndexBuffer->GetSize())
+			if (totalindices * sizeof(Index) > s_DrawData.IndexBuffer->GetSize())
 				s_DrawData.IndexBuffer = IndexBuffer::Create(Buffer{}, true);
 
 			s_DrawData.VertexBuffer->SetData(Buffer::Ref(s_DrawData.VertexBufferData));

@@ -13,11 +13,6 @@ namespace Shark {
 
 	class Scean : public RefCount
 	{
-		friend class Entity;
-		friend class SceanHirachyPanel;
-		friend class SceanSerializer;
-
-		static Scean Copy(const Scean& src);
 	public:
 		Scean();
 		~Scean();
@@ -55,6 +50,10 @@ namespace Shark {
 		World m_World;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
+
+		friend class Entity;
+		friend class SceanHirachyPanel;
+		friend class SceanSerializer;
 	};
 
 }

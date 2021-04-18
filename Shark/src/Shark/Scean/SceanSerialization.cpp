@@ -234,6 +234,7 @@ namespace Shark {
 
 		std::ofstream fout(filepath);
 		fout << out.c_str();
+		fout.close();
 
 		return true;
 	}

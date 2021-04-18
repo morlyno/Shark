@@ -209,7 +209,7 @@ namespace Shark {
 
 			switch (event.GetKeyCode())
 			{
-				case Key::N: NewScean(); return true;
+				case Key::N: NewScean(); return true; 
 				case Key::O: OpenScean(); return true;
 				case Key::S: SaveScean(); return true;
 				case Key::P:
@@ -456,6 +456,30 @@ namespace Shark {
 			}
 			else
 				ImGui::Text("Hovered Entity: No Entity");
+
+			static MemoryMetrics s_LastMemory;
+
+			ImGui::NewLine();
+			ImGui::NewLine();
+			auto m = MemoryManager::GetMetrics();
+			ImGui::Text("Memory Usage: %llu", m.MemoryUsage());
+			ImGui::Text("Memory Allocated: %llu", m.MemoryAllocated);
+			ImGui::Text("Memory Freed: %llu", m.MemoryFreed);
+			ImGui::NewLine();
+			ImGui::Text("Total Count: %llu", m.TotalAllocated - m.TotalFreed);
+			ImGui::Text("Total Allocated: %llu", m.TotalAllocated);
+			ImGui::Text("Total Freed: %llu", m.TotalFreed);
+
+			ImGui::NewLine();
+
+			ImGui::Text("Memory Usage Delta: %llu", (m.MemoryAllocated - s_LastMemory.MemoryAllocated) - (m.MemoryFreed - s_LastMemory.MemoryFreed));
+			ImGui::Text("Memory Allocated Delta: %llu", m.MemoryAllocated - s_LastMemory.MemoryAllocated);
+			ImGui::Text("Memory Freed Delta: %llu", m.MemoryFreed - s_LastMemory.MemoryFreed);
+			ImGui::NewLine();
+			ImGui::Text("Total Count: %llu", (m.TotalAllocated - s_LastMemory.TotalAllocated) - (m.TotalFreed - s_LastMemory.TotalFreed));
+			ImGui::Text("Total Allocated Delta: %llu", m.TotalAllocated - s_LastMemory.TotalAllocated);
+			ImGui::Text("Total Freed Delta: %llu", m.TotalFreed - s_LastMemory.TotalFreed);
+			s_LastMemory = m;
 
 			ImGui::End();
 		}

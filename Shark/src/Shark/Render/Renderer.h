@@ -25,12 +25,6 @@ namespace Shark {
 		static void Submit(Ref<VertexBuffer>& vertexbuffer, Ref<IndexBuffer>& indexbuffer, Ref<Shaders>& shaders, Ref<Texture> texture, const DirectX::XMMATRIX& translation);
 
 		static void ClearFrameBuffer(const Ref<FrameBuffer>& framebuffer, const Buffer& cleardata);
-	private:
-		struct SceanData
-		{
-			DirectX::XMMATRIX ViewProjectionMatrix;
-		};
-		static Scope<SceanData> m_SceanData;
 	};
 
 }

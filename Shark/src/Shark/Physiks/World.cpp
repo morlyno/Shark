@@ -15,12 +15,15 @@ namespace Shark {
 
 	World::World(World&& other)
 	{
+		SK_CORE_ASSERT(m_World == nullptr);
 		m_World = other.m_World;
 		other.m_World = nullptr;
 	}
 
 	World& World::operator=(World&& other)
 	{
+		if (m_World)
+			delete m_World;
 		m_World = other.m_World;
 		other.m_World = nullptr;
 
