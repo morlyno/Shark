@@ -31,6 +31,9 @@ namespace Shark {
 		void NewScean();
 		void SaveScean();
 		void OpenScean();
+
+		void OnPlayScean();
+		void OnStopScean();
 	private:
 		EditorCamera m_EditorCamera;
 		Ref<SwapChain> m_SwapChain;

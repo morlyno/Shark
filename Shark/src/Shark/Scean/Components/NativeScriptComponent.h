@@ -4,18 +4,38 @@
 
 namespace Shark {
 
+	namespace EditorData {
+
+		struct NaticeScriptComponent
+		{
+			bool Found = false;
+			bool Bound = false;
+		};
+
+	}
+
 	struct NativeScriptComponent
 	{
-		NativeScript* Script;
+		std::string ScriptTypeName;
+		NativeScript* Script = nullptr;
 
 		NativeScript* (*CreateScript)(Entity entity);
 		void (*DestroyScript)(NativeScript* ns);
 
-		template<typename Type>
+		template<typename T>
 		void Bind()
 		{
-			CreateScript = [](Entity entity) { NativeScript* s = reinterpret_cast<NativeScript*>(new Type()); s->SetEntity(entity); return s; };
+			CreateScript = [](Entity entity) { NativeScript* s = new T(); s->m_Entity = entity; s->m_Scean = entity.GetScean(); return s; };
 			DestroyScript = [](NativeScript* ns) { delete ns; ns = nullptr; };
+		}
+
+		void UnBind()
+		{
+			if (Script)
+				DestroyScript(Script);
+
+			CreateScript = nullptr;
+			DestroyScript = nullptr;
 		}
 	};
 

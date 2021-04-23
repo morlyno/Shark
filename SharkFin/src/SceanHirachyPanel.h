@@ -18,6 +18,8 @@ namespace Shark {
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		void SetSelectedEntity(Entity selectedentity) { m_SelectedEntity = selectedentity; }
 
+		void SetSceanPlaying(bool playing) { m_SceanPlaying = playing; }
+
 		void OnImGuiRender();
 
 	private:
@@ -26,6 +28,8 @@ namespace Shark {
 	private:
 		Ref<Scean> m_Context;
 		Entity m_SelectedEntity;
+
+		bool m_SceanPlaying = false;
 
 		int m_SelectedProjectionIndex = -1;
 		static constexpr const char* m_ProjectionItems[2] = { "Perspective", "Orthographic" };

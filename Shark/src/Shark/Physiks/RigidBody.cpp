@@ -3,54 +3,10 @@
 
 namespace Shark {
 
-	RigidBody::RigidBody(b2Body* body) : m_Body(body) {}
-
-#if 0
-	RigidBody::RigidBody(const RigidBody& other)
+	RigidBody::RigidBody(b2Body* body)
+		: m_Body(body)
 	{
-		b2World* w = other.m_Body->GetWorld();
-		b2Body* b = other.m_Body;
-		b2BodyDef def;
-		def.type = b->GetType();
-		def.position = b->GetPosition();
-		def.angle = b->GetAngle();
-		def.linearVelocity = b->GetLinearVelocity();
-		def.angularVelocity = b->GetAngularVelocity();
-		def.linearDamping = b->GetLinearDamping();
-		def.angularDamping = b->GetAngularDamping();
-		def.allowSleep = b->IsSleepingAllowed();
-		def.awake = b->IsAwake();
-		def.fixedRotation = b->IsFixedRotation();
-		def.bullet = b->IsBullet();
-		def.enabled = b->IsEnabled();
-		def.userData = b->GetUserData();
-		def.gravityScale = b->GetGravityScale();
-		m_Body = w->CreateBody(&def);
 	}
-
-	RigidBody& RigidBody::operator=(const RigidBody& other)
-	{
-		b2World* w = other.m_Body->GetWorld();
-		b2Body* b = other.m_Body;
-		b2BodyDef def;
-		def.type = b->GetType();
-		def.position = b->GetPosition();
-		def.angle = b->GetAngle();
-		def.linearVelocity = b->GetLinearVelocity();
-		def.angularVelocity = b->GetAngularVelocity();
-		def.linearDamping = b->GetLinearDamping();
-		def.angularDamping = b->GetAngularDamping();
-		def.allowSleep = b->IsSleepingAllowed();
-		def.awake = b->IsAwake();
-		def.fixedRotation = b->IsFixedRotation();
-		def.bullet = b->IsBullet();
-		def.enabled = b->IsEnabled();
-		def.userData = b->GetUserData();
-		def.gravityScale = b->GetGravityScale();
-		m_Body = w->CreateBody(&def);
-		return *this;
-	}
-#endif
 
 	BoxCollider RigidBody::CreateBoxCollider(const ColliderSpecs& specs)
 	{

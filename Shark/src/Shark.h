@@ -9,6 +9,7 @@
 #include "Shark/Core/Application.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Core/Input.h"
+#include "Shark/Core/Random.h"
 #include "Shark/Utility/Utils.h"
 
 // --- Event ----------------------------
@@ -52,6 +53,7 @@
 #include "Shark/Scean/NativeScript.h"
 #include "Shark/Scean/Components/Components.h"
 #include "Shark/Scean/SceanSerialization.h"
+#include "Shark/Scean/NativeScriptFactory.h"
 // --------------------------------------
 
 // --- Physiks --------------------------

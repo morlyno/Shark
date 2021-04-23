@@ -100,7 +100,8 @@ namespace Shark {
 				for (auto entityID : view)
 				{
 					auto& nsc = view.get<NativeScriptComponent>(entityID);
-					nsc.Script->OnUpdate(ts);
+					if (nsc.Script)
+						nsc.Script->OnUpdate(ts);
 				}
 			}
 		}
@@ -130,7 +131,26 @@ namespace Shark {
 		for (auto entityID : group)
 			Renderer2D::DrawEntity({ entityID, Weak(this) });
 
+		// TODO: Draw Selected Entity
+		//if (selectedentity)
+			// Draw Selcted Entity
+
 		Renderer2D::EndScean();
+	}
+
+	void Scean::OnEventRuntime(Event& event)
+	{
+		auto view = m_Registry.view<NativeScriptComponent>();
+		for (auto entityID : view)
+		{
+			auto nsc = view.get<NativeScriptComponent>(entityID);
+			if (nsc.Script)
+				nsc.Script->OnEvent(event);
+		}
+	}
+
+	void Scean::OnEventEditor(Event& event)
+	{
 	}
 
 	void Scean::OnSceanPlay()
@@ -142,8 +162,11 @@ namespace Shark {
 		{
 			auto& comp = view.get<NativeScriptComponent>(entityID);
 			Entity entity{ entityID, Weak(this) };
-			comp.CreateScript(entity);
-			comp.Script->OnCreate();
+			if (comp.CreateScript)
+			{
+				comp.Script = comp.CreateScript(entity);
+				comp.Script->OnCreate();
+			}
 		}
 
 		ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
@@ -155,8 +178,11 @@ namespace Shark {
 		for (auto entityID : view)
 		{
 			auto& comp = view.get<NativeScriptComponent>(entityID);
-			comp.DestroyScript(comp.Script);
-			comp.Script->OnDestroy();
+			if (comp.Script)
+			{
+				comp.Script->OnDestroy();
+				comp.DestroyScript(comp.Script);
+			}
 		}
 
 		m_World.Flush();
@@ -180,7 +206,11 @@ namespace Shark {
 			e.AddComponent<CameraComponent>(other.GetComponent<CameraComponent>());
 
 		if (other.HasComponent<NativeScriptComponent>())
+		{
 			e.AddComponent<NativeScriptComponent>(other.GetComponent<NativeScriptComponent>());
+			if (m_AddEditorData && other.HasComponent<EditorData::NaticeScriptComponent>())
+				e.GetComponent<EditorData::NaticeScriptComponent>() = other.GetComponent<EditorData::NaticeScriptComponent>();
+		}
 
 		if (other.HasComponent<RigidBodyComponent>())
 		{
@@ -217,6 +247,11 @@ namespace Shark {
 		return { m_ActiveCameraID, Weak(this) };
 	}
 
+	void Scean::SetActiveCamera(Entity cameraentity)
+	{
+		m_ActiveCameraID = cameraentity;
+	}
+
 	void Scean::ResizeCameras(float width, float height)
 	{
 		auto view = m_Registry.view<CameraComponent>();
@@ -225,6 +260,11 @@ namespace Shark {
 			auto& cc = view.get<CameraComponent>(entityID);
 			cc.Camera.Resize(width, height);
 		}
+	}
+
+	bool Scean::IsValidEntity(Entity entity)
+	{
+		return m_Registry.valid(entity);
 	}
 
 	Ref<Scean> Scean::Create()
@@ -264,6 +304,8 @@ namespace Shark {
 	template<>
 	void Scean::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& comp)
 	{
+		if (m_AddEditorData)
+			entity.AddComponent<EditorData::NaticeScriptComponent>();
 	}
 
 	template<>
@@ -290,7 +332,13 @@ namespace Shark {
 		comp.Collider = rb.Body.CreateBoxCollider();
 
 		auto& tc = entity.GetComponent<TransformComponent>();
-		comp.Collider.Resize(tc.Scaling.x * 2.0f, tc.Scaling.y * 2.0f);
+		comp.Collider.Resize(tc.Scaling.x, tc.Scaling.y);
+	}
+
+	template<>
+	void Scean::OnComponentAdded<EditorData::NaticeScriptComponent>(Entity entity, EditorData::NaticeScriptComponent& comp)
+	{
+		return;
 	}
 
 }

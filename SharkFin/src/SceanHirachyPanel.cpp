@@ -5,6 +5,7 @@
 #include <Shark/Utility/Utils.h>
 #include <Shark/Utility/ImGuiUtils.h>
 #include <Shark/Core/Input.h>
+#include <Shark/Scean/NativeScriptFactory.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -201,6 +202,11 @@ namespace Shark {
 			if (ImGui::Selectable("Box Collider", false, entity.HasComponent<BoxColliderComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<BoxColliderComponent>();
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::Selectable("Native Script", false, entity.HasComponent<NativeScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			{
+				entity.AddComponent<NativeScriptComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -453,6 +459,69 @@ namespace Shark {
 			if (UI::DrawFloatControl("Restitution", restitution))
 				collider.SetRestitution(restitution);
 		});
+
+		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [entity](NativeScriptComponent& comp) mutable
+		{
+			auto& ed = entity.GetComponent<EditorData::NaticeScriptComponent>();
+
+			char inputbuffer[128];
+			strcpy(inputbuffer, comp.ScriptTypeName.c_str());
+
+			if (!ed.Found)
+				ImGui::PushStyleColor(ImGuiCol_Text, { 0.8f, 0.0f, 0.0f, 1.0f });
+
+			bool changed = ImGui::InputText("##ScriptNameInput", inputbuffer, std::size(inputbuffer));
+
+			if (!ed.Found)
+				ImGui::PopStyleColor();
+
+			if (ImGui::IsItemFocused())
+			{
+				for (auto m : NativeScriptFactory::GetMap())
+				{
+					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Bullet;
+					if (m.first == comp.ScriptTypeName)
+						flags |= ImGuiTreeNodeFlags_Selected;
+
+					ImGui::TreeNodeEx(m.first.c_str(), flags);
+					if (ImGui::IsItemClicked())
+					{
+						strcpy(inputbuffer, m.first.c_str());
+						changed = true;
+						break;
+					}
+				}
+			}
+
+			if (changed)
+			{
+				comp.ScriptTypeName = inputbuffer;
+				if (NativeScriptFactory::Exist(inputbuffer))
+					ed.Found = true;
+				else
+					ed.Found = false;
+			}
+
+
+			if (ed.Found)
+			{
+				if (ImGui::Checkbox("Bound", &ed.Bound))
+				{
+					if (ed.Bound)
+					{
+						NativeScriptFactory::Bind(inputbuffer, comp);
+						SK_CORE_TRACE("Script Bound: {0}", comp.ScriptTypeName);
+					}
+					else
+					{
+						comp.UnBind();
+						SK_CORE_TRACE("Script UnBound: {0}", comp.ScriptTypeName);
+					}
+				}
+			}
+
+		});
+
 	}
 
 }

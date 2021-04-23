@@ -12,6 +12,8 @@ namespace Shark {
 		Entity(entt::entity entityhandle, const Weak<Scean>& scean);
 		Entity(const Entity&) = default;
 
+		Weak<Scean> GetScean() const { return m_Scean; }
+
 		template<typename Component>
 		Component& AddComponent()
 		{

@@ -11,6 +11,7 @@ project "SharkFin"
     {
         "src/**.h",
         "src/**.cpp",
+        "assets/NativeScripts/*.cpp"
     }
 
     includedirs

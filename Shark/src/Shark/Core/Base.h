@@ -21,6 +21,12 @@
 #define SK_IF_DEBUG(...)
 #endif
 
+namespace Shark {
+
+	struct Empty { template<typename T> Empty(const T&) {} };
+
+}
+
 #include "Shark/Core/Memory.h"
 #include "Shark/Core/Allocator.h"
 

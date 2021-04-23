@@ -59,6 +59,8 @@ namespace Shark {
 		void SetAwake(bool awake) { m_Body->SetAwake(awake); }
 		void SetFixedRotation(bool fixed) { m_Body->SetFixedRotation(fixed); }
 
+		void AplyForce(const DirectX::XMFLOAT2& directction, bool awake) { m_Body->ApplyForceToCenter({ directction.x, directction.y }, awake); }
+
 		RigidBodySpecs GetCurrentState() const;
 		void SetState(const RigidBodySpecs& specs);
 

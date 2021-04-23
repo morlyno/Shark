@@ -29,6 +29,8 @@ namespace Shark {
 		auto& window = Application::Get().GetWindow();
 		m_FrameBufferTexture = Ref<Texture2D>::Create(SamplerSpecification{}, window.GetWidth(), window.GetHeight(), 0x0);
 		m_Scean = Ref<Scean>::Create();
+		m_Scean->AddEditorData(true);
+		m_Scean.GetSaveState()->AddEditorData(true);
 		m_SceanHirachyPanel.SetContext(*m_Scean);
 
 
@@ -179,8 +181,15 @@ namespace Shark {
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 
-		if (!m_PlayScean)
+		if (m_PlayScean)
+		{
+			m_Scean->OnEventRuntime(event);
+		}
+		else
+		{
 			m_EditorCamera.OnEvent(event);
+			m_Scean->OnEventEditor(event);
+		}
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -212,23 +221,7 @@ namespace Shark {
 				case Key::N: NewScean(); return true; 
 				case Key::O: OpenScean(); return true;
 				case Key::S: SaveScean(); return true;
-				case Key::P:
-				{
-					if (m_PlayScean)
-					{
-						m_SceanHirachyPanel.SetSelectedEntity({});
-						m_PlayScean = false;
-						m_Scean->OnSceanStop();
-						m_Scean.LoadState();
-					}
-					else
-					{
-						m_Scean.SaveState();
-						m_Scean->OnSceanPlay();
-						m_PlayScean = true;
-					}
-					return true;
-				}
+				case Key::P: if (m_PlayScean) OnStopScean(); else OnPlayScean(); return true;
 
 				case Key::D:
 				{
@@ -269,21 +262,12 @@ namespace Shark {
 				if (m_PlayScean)
 				{
 					if (ImGui::MenuItem("Stop Scean", "ctrl+P"))
-					{
-						m_PlayScean = false;
-						m_Scean->OnSceanStop();
-						m_Scean.LoadState();
-						m_SceanHirachyPanel.SetSelectedEntity({});
-					}
+						OnStopScean();
 				}
 				else
 				{
 					if (ImGui::MenuItem("Play Scean", "ctrl+P"))
-					{
-						m_PlayScean = true;
-						m_Scean->OnSceanPlay();
-						m_Scean.SaveState();
-					}
+						OnPlayScean();
 				}
 
 				ImGui::Separator();
@@ -304,7 +288,8 @@ namespace Shark {
 				if (ImGui::MenuItem("Load State"))
 				{
 					m_Scean.LoadState();
-					m_SceanHirachyPanel.SetSelectedEntity({});
+					if (!m_Scean->IsValidEntity(m_SceanHirachyPanel.GetSelectedEntity()))
+						m_SceanHirachyPanel.SetSelectedEntity({});
 				}
 
 				ImGui::EndMenu();
@@ -418,10 +403,17 @@ namespace Shark {
 		if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight)
 		{
 			ID = m_FrameBuffer->ReadPixel(1, x, y);
-			if (Input::MousePressed(Mouse::LeftButton) && ID != -1)
+			if (Input::MousePressed(Mouse::LeftButton) && m_ViewportHovered)
 			{
-				Entity entity{ (entt::entity)(uint32_t)ID, Weak(*m_Scean) };
-				m_SceanHirachyPanel.SetSelectedEntity(entity);
+				if (ID != -1)
+				{
+					Entity entity{ (entt::entity)(uint32_t)ID, Weak(*m_Scean) };
+					m_SceanHirachyPanel.SetSelectedEntity(entity);
+				}
+				else
+				{
+					m_SceanHirachyPanel.SetSelectedEntity({});
+				}
 			}
 		}
 
@@ -516,6 +508,7 @@ namespace Shark {
 	void EditorLayer::NewScean()
 	{
 		m_Scean = Ref<Scean>::Create();
+		m_Scean->AddEditorData(true);
 		m_SceanHirachyPanel.SetContext(*m_Scean);
 		m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 	}
@@ -537,10 +530,31 @@ namespace Shark {
 		{
 			m_PlayScean = false;
 			m_Scean.Deserialize(*filepath);
+			m_Scean->AddEditorData(true);
 
 			m_SceanHirachyPanel.SetContext(*m_Scean);
 			m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
+	}
+
+	void EditorLayer::OnPlayScean()
+	{
+		m_PlayScean = true;
+		m_Scean.SaveState();
+		m_Scean->AddEditorData(false);
+		m_Scean->OnSceanPlay();
+		m_SceanHirachyPanel.SetSceanPlaying(true);
+	}
+
+	void EditorLayer::OnStopScean()
+	{
+		m_PlayScean = false;
+		m_Scean->OnSceanStop();
+		m_Scean->AddEditorData(true);
+		m_Scean.LoadState();
+		m_SceanHirachyPanel.SetSceanPlaying(false);
+		if (!m_Scean->IsValidEntity(m_SceanHirachyPanel.GetSelectedEntity()))
+			m_SceanHirachyPanel.SetSelectedEntity({});
 	}
 
 }
