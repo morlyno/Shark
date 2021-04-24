@@ -31,7 +31,7 @@ namespace Shark {
 
 	Scean& Scean::operator=(const Scean& other)
 	{
-		m_World = World{};
+		m_World = World(other.m_World.GetGravity());
 		m_Registry = entt::registry{};
 		m_Registry.reserve(other.m_Registry.capacity());
 
@@ -143,7 +143,7 @@ namespace Shark {
 		auto view = m_Registry.view<NativeScriptComponent>();
 		for (auto entityID : view)
 		{
-			auto nsc = view.get<NativeScriptComponent>(entityID);
+			auto& nsc = view.get<NativeScriptComponent>(entityID);
 			if (nsc.Script)
 				nsc.Script->OnEvent(event);
 		}
@@ -215,13 +215,13 @@ namespace Shark {
 		if (other.HasComponent<RigidBodyComponent>())
 		{
 			auto& othercomp = other.GetComponent<RigidBodyComponent>();
-			auto& comp = e.AddComponent<RigidBodyComponent>(othercomp);
+			auto& comp = e.AddComponent<RigidBodyComponent>();
 			comp.Body.SetState(othercomp.Body.GetCurrentState());
 		}
 		if (other.HasComponent<BoxColliderComponent>())
 		{
 			auto& othercomp = other.GetComponent<BoxColliderComponent>();
-			auto& comp = e.AddComponent<BoxColliderComponent>(othercomp);
+			auto& comp = e.AddComponent<BoxColliderComponent>();
 			comp.Collider.SetState(othercomp.Collider.GetCurrentState());
 		}
 
@@ -327,6 +327,10 @@ namespace Shark {
 			entity.AddComponent<TransformComponent>();
 
 		comp.Body = m_World.CreateRigidBody();
+		BodyUserData* userdata = new BodyUserData();
+		userdata->Entity = entity;
+		userdata->RigidBody = &comp.Body;
+		comp.Body.SetUserData(userdata);
 
 		auto& tc = entity.GetComponent<TransformComponent>();
 		comp.Body.SetTransform(tc.Position.x, tc.Position.y, tc.Rotation.z);

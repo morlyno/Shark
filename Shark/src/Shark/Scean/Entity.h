@@ -9,6 +9,7 @@ namespace Shark {
 	{
 	public:
 		Entity() = default;
+		Entity(uint32_t entityhandle, const Weak<Scean>& scean);
 		Entity(entt::entity entityhandle, const Weak<Scean>& scean);
 		Entity(const Entity&) = default;
 
@@ -50,9 +51,10 @@ namespace Shark {
 		bool HasComponent() const { return m_Scean->m_Registry.has<Component>(m_EntityHandle); }
 
 		bool IsValid() const { return m_Scean->m_Registry.valid(m_EntityHandle); }
+		bool IsNull() const { return m_EntityHandle == entt::null; }
 
 		operator entt::entity() { return m_EntityHandle; }
-		operator bool() { return m_EntityHandle != entt::null; }
+		operator bool() { return !IsNull() && IsValid(); }
 		operator uint32_t() { return (uint32_t)m_EntityHandle; }
 		bool operator==(const Entity& rhs) { return m_EntityHandle == rhs.m_EntityHandle && m_Scean == rhs.m_Scean; }
 	private:

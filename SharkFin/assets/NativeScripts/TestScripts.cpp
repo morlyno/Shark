@@ -32,6 +32,7 @@ public:
 	float m_JumpForce;
 
 	bool m_CameraAtached = false;
+	DirectX::XMFLOAT4 m_Color;
 
 public:
 	virtual void OnCreate() override
@@ -54,10 +55,15 @@ public:
 
 		m_MoveForce = 25.0f;
 		m_JumpForce = 500.0f;
+
+		m_Color = m_Entity.GetComponent<Shark::SpriteRendererComponent>().Color;
 	}
+
 	virtual void OnUpdate(Shark::TimeStep ts) override
 	{
 		auto& rb = m_Entity.GetComponent<Shark::RigidBodyComponent>();
+		auto& collider = m_Entity.GetComponent<Shark::BoxColliderComponent>().Collider;
+		auto& sr = m_Entity.GetComponent<Shark::SpriteRendererComponent>();
 
 		DirectX::XMFLOAT2 dir = { 0.0f, 0.0f };
 		if (Shark::Input::KeyPressed(Shark::Key::A))
@@ -67,6 +73,10 @@ public:
 
 		if (dir.x != 0 || dir.y != 0)
 			rb.Body.AplyForce(dir, true);
+
+		sr.Color = m_Color;
+		if (collider.IsColliding())
+			sr.Color = { 1.0f, 1.0f, 0.0f, 1.0f };
 
 		if (m_CameraAtached)
 		{

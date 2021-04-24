@@ -1,11 +1,42 @@
 #include "skpch.h"
 #include "RigidBody.h"
 
+#include "Shark/Physiks/Collider.h"
+
 namespace Shark {
 
 	RigidBody::RigidBody(b2Body* body)
 		: m_Body(body)
 	{
+	}
+
+	RigidBody::RigidBody(RigidBody&& other)
+	{
+		m_Body = other.m_Body;
+		m_ColliderCount = other.m_ColliderCount;
+		other.m_Body = nullptr;
+		other.m_ColliderCount = 0;
+	}
+
+	RigidBody& RigidBody::operator=(RigidBody&& other)
+	{
+		m_Body = other.m_Body;
+		m_ColliderCount = other.m_ColliderCount;
+		other.m_Body = nullptr;
+		other.m_ColliderCount = 0;
+
+		return *this;
+	}
+
+	RigidBody::~RigidBody()
+	{
+		if (m_UserData)
+			delete m_UserData;
+	}
+
+	BoxCollider RigidBody::CreateBoxCollider()
+	{
+		return CreateBoxCollider(ColliderSpecs{});
 	}
 
 	BoxCollider RigidBody::CreateBoxCollider(const ColliderSpecs& specs)
@@ -17,6 +48,7 @@ namespace Shark {
 		def.friction = specs.Friction;
 		def.density = specs.Density;
 		def.restitution = specs.Restitution;
+		def.isSensor = specs.IsSensor;
 
 		return BoxCollider(m_Body->CreateFixture(&def), m_ColliderCount++, specs);
 	}
@@ -24,6 +56,7 @@ namespace Shark {
 	void RigidBody::DestroyBoxCollider(BoxCollider& collider)
 	{
 		m_Body->DestroyFixture(collider);
+		collider.m_Fixture = nullptr;
 	}
 
 	RigidBodySpecs RigidBody::GetCurrentState() const

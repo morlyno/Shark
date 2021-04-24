@@ -1,11 +1,31 @@
 #include "skpch.h"
 #include "World.h"
 
+#include "Shark/Physiks/RigidBody.h"
+#include "Shark/Physiks/Collider.h"
+
 namespace Shark {
+
+	void CollisionDetector::BeginContact(b2Contact* contact)
+	{
+		auto& colliderA = *reinterpret_cast<BoxCollider*>(contact->GetFixtureA()->GetUserData().pointer);
+		auto& colliderB = *reinterpret_cast<BoxCollider*>(contact->GetFixtureB()->GetUserData().pointer);
+		colliderA.CollisionBegin(colliderB);
+		colliderB.CollisionBegin(colliderA);
+	}
+
+	void CollisionDetector::EndContact(b2Contact* contact)
+	{
+		auto& colliderA = *reinterpret_cast<BoxCollider*>(contact->GetFixtureA()->GetUserData().pointer);
+		auto& colliderB = *reinterpret_cast<BoxCollider*>(contact->GetFixtureB()->GetUserData().pointer);
+		colliderA.CollisionEnd(colliderB);
+		colliderB.CollisionEnd(colliderA);
+	}
 	
 	World::World(const DirectX::XMFLOAT2& gravity)
 	{
 		m_World = new b2World({ gravity.x, gravity.y });
+		m_World->SetContactListener(&m_CollisionDetector);
 	}
 
 	World::~World()
@@ -17,6 +37,9 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(m_World == nullptr);
 		m_World = other.m_World;
+		m_CollisionDetector = other.m_CollisionDetector;
+		m_World->SetContactListener(&m_CollisionDetector);
+
 		other.m_World = nullptr;
 	}
 
@@ -25,6 +48,9 @@ namespace Shark {
 		if (m_World)
 			delete m_World;
 		m_World = other.m_World;
+		m_CollisionDetector = other.m_CollisionDetector;
+		m_World->SetContactListener(&m_CollisionDetector);
+
 		other.m_World = nullptr;
 
 		return *this;
@@ -47,6 +73,11 @@ namespace Shark {
 		}
 	}
 
+	RigidBody World::CreateRigidBody()
+	{
+		return CreateRigidBody({});
+	}
+
 	RigidBody World::CreateRigidBody(const RigidBodySpecs& specs)
 	{
 		b2BodyDef bodydef;
@@ -64,6 +95,7 @@ namespace Shark {
 	void World::DestroyRigidBody(RigidBody& rigidbody)
 	{
 		m_World->DestroyBody(rigidbody);
+		rigidbody.m_Body = nullptr;
 	}
 
 }
