@@ -3,21 +3,13 @@
 
 #include <sstream>
 
-#ifndef SK_EVENT_TYPES_EXTENTION
-#define SK_EVENT_TYPES_EXTENTION
-#endif
 
-#ifndef SK_EVENT_CATEGORY_EXTENTION
-#define SK_EVENT_CATEGORY_EXTENTION
-#endif
+#define SK_EVENT_FUNCTIONS(type) static constexpr ::Shark::EventTypes GetStaticType() { return ::Shark::EventTypes::##type; } \
+								 virtual ::Shark::EventTypes GetEventType() const override { return GetStaticType(); } \
+								 virtual const char* GetName() const override { return #type; }
 
-
-#define SK_EVENT_FUNCTIONS(type)	static constexpr ::Shark::EventTypes GetStaticType() { return ::Shark::EventTypes::##type; } \
-										virtual ::Shark::EventTypes GetEventType() const override { return GetStaticType(); } \
-										virtual const char* GetName() const override { return #type; }
-
-#define SK_GET_CATEGORY_FLAGS_FUNC(category)	static constexpr unsigned int GetStaticEventCategoryFlags() { return category; } \
-													unsigned int GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
+#define SK_GET_CATEGORY_FLAGS_FUNC(category) static constexpr unsigned int GetStaticEventCategoryFlags() { return category; } \
+											 unsigned int GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
 
 namespace Shark {
 
@@ -28,18 +20,17 @@ namespace Shark {
 		MouseMove, MouseButtonPressed, MouseButtonReleasd, MouseScrolled,
 		KeyPressed, KeyReleased, KeyCharacter,
 		ApplicationClosed,
-		SK_EVENT_TYPES_EXTENTION
+		SelectionChanged
 	};
 
 	enum EventCategory_ : uint32_t
 	{
-		None = 0,
-		EventCategoryWindow = SK_BIT(0),
-		EventCategoryInput = SK_BIT(1),
-		EventCategoryMouse = SK_BIT(2),
-		EventCategoryKeyboard = SK_BIT(3),
-		EventCategoryApplication = SK_BIT(4),
-		SK_EVENT_CATEGORY_EXTENTION
+		None                      = 0,
+		EventCategoryWindow       = SK_BIT(0),
+		EventCategoryInput        = SK_BIT(1),
+		EventCategoryMouse        = SK_BIT(2),
+		EventCategoryKeyboard     = SK_BIT(3),
+		EventCategoryApplication  = SK_BIT(4),
 	};
 	using EventCategory = uint32_t;
 
@@ -52,10 +43,7 @@ namespace Shark {
 		virtual const char* GetName() const = 0;
 		virtual std::string ToString() const { return GetName(); }
 		virtual unsigned int GetEventCategoryFlags() const = 0;
-		bool IsInCategory(EventCategory category) const
-		{
-			return GetEventCategoryFlags() & category;
-		}
+		bool IsInCategory(EventCategory category) const { return GetEventCategoryFlags() & category; }
 	public:
 		bool Handled = false;
 	};
@@ -64,7 +52,8 @@ namespace Shark {
 	{
 	public:
 		EventDispacher(Event& event)
-			: m_Event(event) {}
+			: m_Event(event)
+		{}
 
 		template<typename T, typename Func>
 		bool DispachEvent(const Func& func)

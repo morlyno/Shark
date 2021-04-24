@@ -7,6 +7,8 @@
 #include <Shark/Core/Input.h>
 #include <Shark/Scean/NativeScriptFactory.h>
 
+#include <Shark/Core/Application.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <entt.hpp>
@@ -14,6 +16,11 @@
 namespace Shark {
 
 	namespace Utils {
+
+		static void ChangeSelectedEntity(Entity newSelectedEntity)
+		{
+			Application::Get().OnEvent(SelectionChangedEvent(newSelectedEntity));
+		}
 
 		template<typename Comp, typename UIFunction>
 		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
@@ -48,7 +55,7 @@ namespace Shark {
 
 	void SceanHirachyPanel::SetContext(const Ref<Scean>& context)
 	{
-		m_SelectedEntity = {};
+		Utils::ChangeSelectedEntity({});
 		m_Context = context;
 	}
 
@@ -69,39 +76,42 @@ namespace Shark {
 		});
 
 		if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
-			m_SelectedEntity = {};
+			Utils::ChangeSelectedEntity({});
 
 		if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 		{
 			if (ImGui::BeginMenu("Create"))
 			{
 				if (ImGui::MenuItem("Empty Entity"))
-					m_Context->CreateEntity("New Entity");
+				{
+					Entity e = m_Context->CreateEntity("New Entity");
+					Utils::ChangeSelectedEntity(e);
+				}
 				if (ImGui::MenuItem("Camera"))
 				{
 					Entity e = m_Context->CreateEntity("New Camera");
 					e.AddComponent<CameraComponent>();
-					m_SelectedEntity = e;
+					Utils::ChangeSelectedEntity(e);
 				}
 				if (ImGui::MenuItem("Quad"))
 				{
 					Entity e = m_Context->CreateEntity("New Quad");
 					e.AddComponent<SpriteRendererComponent>();
-					m_SelectedEntity = e;
+					Utils::ChangeSelectedEntity(e);
 				}
 				if (ImGui::MenuItem("RigidBody"))
 				{
 					Entity e = m_Context->CreateEntity("New RigidBody");
 					e.AddComponent<SpriteRendererComponent>();
 					e.AddComponent<RigidBodyComponent>();
-					m_SelectedEntity = e;
+					Utils::ChangeSelectedEntity(e);
 				}
 				if (ImGui::MenuItem("Box Collider"))
 				{
 					Entity e = m_Context->CreateEntity("New RigidBody");
 					e.AddComponent<SpriteRendererComponent>();
 					e.AddComponent<BoxColliderComponent>();
-					m_SelectedEntity = e;
+					Utils::ChangeSelectedEntity(e);
 				}
 				ImGui::EndMenu();
 			}
@@ -115,6 +125,12 @@ namespace Shark {
 			DrawEntityProperties(m_SelectedEntity);
 		ImGui::End();
 
+	}
+
+	void SceanHirachyPanel::OnEvent(Event& event)
+	{
+		EventDispacher dispacher(event);
+		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(SceanHirachyPanel::OnSelectionChanged));
 	}
 
 	void SceanHirachyPanel::DrawEntityNode(Entity entity)
@@ -131,12 +147,12 @@ namespace Shark {
 		bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)(uint32_t)entity, treenodefalgs, tag.Tag.c_str());
 
 		if (ImGui::IsItemClicked())
-			m_SelectedEntity = entity;
+			Utils::ChangeSelectedEntity(entity);
 
 		if ((m_SelectedEntity == entity) && ImGui::IsWindowFocused() && Input::KeyPressed(Key::Entf))
 		{
 			m_Context->DestroyEntity(entity);
-			m_SelectedEntity = {};
+			Utils::ChangeSelectedEntity({});
 		}
 
 		if (ImGui::BeginPopupContextItem())
@@ -522,6 +538,12 @@ namespace Shark {
 
 		});
 
+	}
+
+	bool SceanHirachyPanel::OnSelectionChanged(SelectionChangedEvent& event)
+	{
+		m_SelectedEntity = event.GetSelectedEntity();
+		return false;
 	}
 
 }

@@ -224,15 +224,20 @@ namespace Shark {
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		
 		m_Scean->m_Registry.each([&](auto& entityID)
-			{
-				Entity entity{ entityID, Weak(m_Scean) };
-				SerializeEntity(out, entity, m_Scean);
-			});
+		{
+			Entity entity{ entityID, Weak(m_Scean) };
+			SerializeEntity(out, entity, m_Scean);
+		});
 
 
 		out << YAML::EndSeq << YAML::EndMap;
 
 		std::ofstream fout(filepath);
+		if (!fout.good())
+		{
+			SK_CORE_ERROR("Output File Stream Failed!");
+			return false;
+		}
 		fout << out.c_str();
 		fout.close();
 

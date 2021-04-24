@@ -13,7 +13,23 @@ namespace Shark {
 	class ApplicationCloseEvent : public ApplicationEvent
 	{
 	public:
-		SK_EVENT_FUNCTIONS(ApplicationClosed)
+		SK_EVENT_FUNCTIONS(ApplicationClosed);
+	};
+
+	class Entity;
+	class Scean;
+
+	class SelectionChangedEvent : public ApplicationEvent
+	{
+	public:
+		SelectionChangedEvent(Entity entity);
+
+		SK_EVENT_FUNCTIONS(SelectionChanged);
+
+		Entity GetSelectedEntity();
+	private:
+		uint32_t m_EntityID;
+		Weak<Scean> m_Scean;
 	};
 
 }

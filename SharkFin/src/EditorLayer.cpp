@@ -13,6 +13,15 @@
 
 namespace Shark {
 
+	namespace Utils {
+
+		static void ChangeSelectedEntity(Entity newSelectedEntity)
+		{
+			Application::Get().OnEvent(SelectionChangedEvent(newSelectedEntity));
+		}
+
+	}
+
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
 	{
@@ -72,36 +81,6 @@ namespace Shark {
 		rrspecs.Fill = FillMode::Framed;
 		rrspecs.Cull = CullMode::None;
 		m_HilightRasterizer = Ref<Rasterizer>::Create(rrspecs);
-
-#if 0
-		class TestScript : public NativeScript
-		{
-		public:
-			virtual void OnCreate() override { SK_CORE_TRACE("OnCreate"); }
-			virtual void OnDestroy() override { SK_CORE_TRACE("OnDestroy"); }
-
-			virtual void OnUpdate(TimeStep ts) override
-			{
-				//SK_CORE_TRACE("OnUpdate");
-
-				auto& tc = m_Entity.GetComponent<TransformComponent>();
-				
-				if (Input::KeyPressed(Key::W))
-					tc.Position.y += 0.1f;
-				if (Input::KeyPressed(Key::S))
-					tc.Position.y -= 0.1f;
-				if (Input::KeyPressed(Key::A))
-					tc.Position.x -= 0.1f;
-				if (Input::KeyPressed(Key::D))
-					tc.Position.x += 0.1f;
-
-			}
-		};
-
-		Entity ScriptedEntity = m_ActiveScean->CreateEntity("Scripted Entity");
-		auto& nsc = ScriptedEntity.AddComponent<NativeScriptComponent>();
-		nsc.Bind<TestScript>();
-#endif
 	}
 
 	void EditorLayer::OnDetach()
@@ -125,7 +104,7 @@ namespace Shark {
 
 		if (m_ViewportSizeChanged)
 		{
-			m_FrameBufferTexture = Texture2D::Create({}, m_ViewportWidth, m_ViewportHeight, 0);
+			m_FrameBufferTexture = Ref<Texture2D>::Create(SamplerSpecification{}, m_ViewportWidth, m_ViewportHeight, 0);
 			m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
 
@@ -181,6 +160,9 @@ namespace Shark {
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 
+		m_Scean->OnEvent(event);
+		m_SceanHirachyPanel.OnEvent(event);
+
 		if (m_PlayScean)
 		{
 			m_Scean->OnEventRuntime(event);
@@ -206,29 +188,66 @@ namespace Shark {
 
 	bool EditorLayer::OnKeyPressed(KeyPressedEvent& event)
 	{
-		if (Input::KeyPressed(Key::Control))
+		bool control = Input::KeyPressed(Key::Control);
+		bool shift = Input::KeyPressed(Key::LeftShift);
+
+		switch (event.GetKeyCode())
 		{
-			if (Input::KeyPressed(Key::LeftShift))
+			case Key::N: // New Scean
 			{
-				switch (event.GetKeyCode())
+				if (control)
 				{
-					case Key::S: m_Scean.Serialize(); return true;
+					NewScean();
+					return true;
 				}
+				break;
+			}
+			case Key::O: // Open Scean
+			{
+				if (control)
+				{
+					OpenScean();
+					return true;
+				}
+				break;
+			}
+			case Key::S: // Save Scean
+			{
+				if (control && shift)
+				{
+					SaveScean();
+					return true;
+				}
+				if (control)
+				{
+					m_Scean.Serialize();
+					return true;
+				}
+				break;
+			}
+			case Key::P: // Play Scean
+			{
+				if (control)
+				{
+					if (m_PlayScean)
+						OnStopScean();
+					else
+						OnPlayScean();
+					return true;
+				}
+				break;
 			}
 
-			switch (event.GetKeyCode())
+			case Key::D: // Copy Entity
 			{
-				case Key::N: NewScean(); return true; 
-				case Key::O: OpenScean(); return true;
-				case Key::S: SaveScean(); return true;
-				case Key::P: if (m_PlayScean) OnStopScean(); else OnPlayScean(); return true;
-
-				case Key::D:
+				if (control)
 				{
 					Entity e = m_Scean->CreateEntity(m_SceanHirachyPanel.GetSelectedEntity());
 					e.GetComponent<TagComponent>().Tag += " (Copy)";
-					m_SceanHirachyPanel.SetSelectedEntity(e);
+					Utils::ChangeSelectedEntity(e);
+					return true;
 				}
+				break;
 			}
 		}
 
@@ -289,7 +308,7 @@ namespace Shark {
 				{
 					m_Scean.LoadState();
 					if (!m_Scean->IsValidEntity(m_SceanHirachyPanel.GetSelectedEntity()))
-						m_SceanHirachyPanel.SetSelectedEntity({});
+						Utils::ChangeSelectedEntity({});
 				}
 
 				ImGui::EndMenu();
@@ -301,18 +320,18 @@ namespace Shark {
 				if (ImGui::MenuItem("Add"))
 				{
 					auto e = m_Scean->CreateEntity("New Entity");
-					m_SceanHirachyPanel.SetSelectedEntity(e);
+					Utils::ChangeSelectedEntity(e);
 				}
 				if (ImGui::MenuItem("Destroy", "delete", nullptr, se))
 				{
 					m_Scean->DestroyEntity(se);
-					m_SceanHirachyPanel.SetSelectedEntity({});
+					Utils::ChangeSelectedEntity({});
 				}
 				if (ImGui::MenuItem("Copy", "ctrl+D", nullptr, se))
 				{
 					se = m_Scean->CreateEntity(se);
 					se.GetComponent<TagComponent>().Tag += " (Copy)";
-					m_SceanHirachyPanel.SetSelectedEntity(se);
+					Utils::ChangeSelectedEntity(se);
 				}
 
 				ImGui::Separator();
@@ -408,11 +427,11 @@ namespace Shark {
 				if (ID != -1)
 				{
 					Entity entity{ (entt::entity)(uint32_t)ID, Weak(*m_Scean) };
-					m_SceanHirachyPanel.SetSelectedEntity(entity);
+					Utils::ChangeSelectedEntity(entity);
 				}
 				else
 				{
-					m_SceanHirachyPanel.SetSelectedEntity({});
+					Utils::ChangeSelectedEntity({});
 				}
 			}
 		}
@@ -554,7 +573,7 @@ namespace Shark {
 		m_Scean.LoadState();
 		m_SceanHirachyPanel.SetSceanPlaying(false);
 		if (!m_Scean->IsValidEntity(m_SceanHirachyPanel.GetSelectedEntity()))
-			m_SceanHirachyPanel.SetSelectedEntity({});
+			Utils::ChangeSelectedEntity({});
 	}
 
 }
