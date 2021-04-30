@@ -273,11 +273,6 @@ namespace Shark {
 		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(Scean::OnSelectionChanged));
 	}
 
-	Ref<Scean> Scean::Create()
-	{
-		return Ref<Scean>::Allocate();
-	}
-
 	bool Scean::OnSelectionChanged(SelectionChangedEvent& event)
 	{
 		m_SelectedEntity = event.GetSelectedEntity();

@@ -40,9 +40,9 @@ namespace Shark {
 
 		void Init(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
 
-		virtual void SetBuffer(const std::string& bufferName, const Buffer& data) override;
+		virtual void SetBuffer(const std::string& bufferName, void* data) override;
 
-		void UploudBuffer(const std::string& bufferName, const Buffer& data);
+		void UploudBuffer(const std::string& bufferName, void* data);
 
 		virtual VertexLayout& GetVertexLayout() override { return m_VertexLayout; };
 

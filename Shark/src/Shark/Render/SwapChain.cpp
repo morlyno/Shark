@@ -10,7 +10,7 @@ namespace Shark {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXSwapChain>::Allocate(specs);
+			case RendererAPI::API::DirectX11: return Ref<DirectXSwapChain>::Create(specs);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;

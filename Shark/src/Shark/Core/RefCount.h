@@ -80,9 +80,7 @@ namespace Shark {
 		bool operator!=(const Ref& rhs) const { return !(*this == rhs); }
 
 		template<typename... Args>
-		static Ref Create(Args&&... args) { return T::Create(std::forward<Args>(args)...); }
-		template<typename... Args>
-		static Ref Allocate(Args&&... args) { return Ref(new T(std::forward<Args>(args)...)); }
+		static Ref Create(Args&&... args) { return Ref(new T(std::forward<Args>(args)...)); }
 
 	private:
 		T* m_Instance = nullptr;

@@ -10,7 +10,9 @@
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Core/Input.h"
 #include "Shark/Core/Random.h"
-#include "Shark/Utility/Utils.h"
+#include "Shark/Utility/PlatformUtils.h"
+#include "Shark/Utility/Utility.h"
+#include "Shark/Utility/ImGuiUtils.h"
 
 // --- Event ----------------------------
 #include "Shark/Event/Event.h"

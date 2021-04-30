@@ -3,7 +3,7 @@
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/SwapChain.h"
 #include "Shark/Render/Shaders.h"
-#include "Shark/Utility/Utils.h"
+#include "Shark/Utility/Utility.h"
 #include <any>
 
 namespace Shark {
@@ -33,7 +33,6 @@ namespace Shark {
 		std::vector<FrmeBufferTextureAtachment> Atachments;
 		bool SwapChainTarget = false;
 		Weak<SwapChain> SwapChain = nullptr;
-		Ref<Shaders> ClearShader = nullptr;
 
 		FrameBufferSpecification() = default;
 		FrameBufferSpecification(uint32_t width, uint32_t height, std::initializer_list<FrmeBufferTextureAtachment> atachments)
@@ -45,13 +44,9 @@ namespace Shark {
 	public:
 		virtual ~FrameBuffer() = default;
 
-		virtual void Clear(Utils::ColorF32 clearcolor) = 0;
-		virtual void ClearAtachment(uint32_t index, Utils::ColorF32 clearcolor) = 0;
+		virtual void Clear(Utility::ColorF32 clearcolor) = 0;
+		virtual void ClearAtachment(uint32_t index, Utility::ColorF32 clearcolor) = 0;
 		virtual void ClearDepth() = 0;
-
-		virtual bool HasClearShader() const = 0;
-		virtual const Ref<Shaders>& GetClearShader() const = 0;
-		virtual void SetClearShader(const Ref<Shaders>& clearshader) = 0;
 
 		virtual void Release() = 0;
 		virtual void Resize(uint32_t width, uint32_t height) = 0;

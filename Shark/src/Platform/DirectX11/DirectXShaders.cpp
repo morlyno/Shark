@@ -255,12 +255,12 @@ namespace Shark {
 		blob->Release(); blob = nullptr;
 	}
 
-	void DirectXShaders::SetBuffer(const std::string& bufferName, const Buffer& data)
+	void DirectXShaders::SetBuffer(const std::string& bufferName, void* data)
 	{
 		UploudBuffer(bufferName, data);
 	}
 
-	void DirectXShaders::UploudBuffer(const std::string& bufferName, const Buffer& data)
+	void DirectXShaders::UploudBuffer(const std::string& bufferName, void* data)
 	{
 		ConstBuffer* buffer = nullptr;
 		for (auto b : m_VertexShader.constBuffers)
@@ -271,10 +271,10 @@ namespace Shark {
 			}
 
 		SK_CORE_ASSERT(buffer != nullptr, "Could not find buffername");
-		SK_CORE_ASSERT(data.Size() <= buffer->size, "data size cant be gread than buffer size");
+		//SK_CORE_ASSERT(data.Size() <= buffer->size, "data size cant be gread than buffer size");
 		D3D11_MAPPED_SUBRESOURCE ms;
 		SK_CHECK(m_DXApi->GetContext()->Map(buffer->buffer, 0u, D3D11_MAP_WRITE_DISCARD, 0u, &ms));
-		data.CopyInto(ms.pData);
+		memcpy(ms.pData, data, buffer->size);
 		m_DXApi->GetContext()->Unmap(buffer->buffer, 0u);
 		m_DXApi->GetContext()->VSSetConstantBuffers(buffer->slot, 1u, &buffer->buffer);
 	}

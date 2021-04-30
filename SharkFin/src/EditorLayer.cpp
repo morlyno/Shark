@@ -3,7 +3,7 @@
 #include <Shark/Scean/Components/Components.h>
 
 #include <Shark/Scean/SceanSerialization.h>
-#include <Shark/Utility/FileDialogs.h>
+#include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/ImGuiUtils.h>
 
 #include <imgui.h>
@@ -36,7 +36,7 @@ namespace Shark {
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& window = Application::Get().GetWindow();
-		m_FrameBufferTexture = Ref<Texture2D>::Create(SamplerSpecification{}, window.GetWidth(), window.GetHeight(), 0x0);
+		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0u);
 		m_Scean = Ref<Scean>::Create();
 		m_Scean->AddEditorData(true);
 		m_Scean.GetSaveState()->AddEditorData(true);
@@ -47,7 +47,7 @@ namespace Shark {
 		scspecs.Widht = window.GetWidth();
 		scspecs.Height = window.GetHeight();
 		scspecs.WindowHandle = window.GetHandle();
-		m_SwapChain = Ref<SwapChain>::Create(scspecs);
+		m_SwapChain = SwapChain::Create(scspecs);
 
 
 		FrameBufferSpecification scfbspecs;
@@ -57,30 +57,29 @@ namespace Shark {
 		scfbspecs.Atachments[0].Blend = true;
 		scfbspecs.SwapChainTarget = true;
 		scfbspecs.SwapChain = Weak(m_SwapChain);
-		m_SwapChainFrameBuffer = Ref<FrameBuffer>::Create(scfbspecs);
+		m_SwapChainFrameBuffer = FrameBuffer::Create(scfbspecs);
 
 		FrameBufferSpecification fbspecs;
 		fbspecs.Width = window.GetWidth();
 		fbspecs.Height = window.GetHeight();
 		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::R32_SINT, FrameBufferColorAtachment::Depth32 };
 		fbspecs.Atachments[0].Blend = true;
-		fbspecs.ClearShader = Ref<Shaders>::Create("assets/Shaders/MainShaderClear.hlsl");
-		m_FrameBuffer = Ref<FrameBuffer>::Create(fbspecs);
+		m_FrameBuffer = FrameBuffer::Create(fbspecs);
 
-		m_Viewport = Ref<Viewport>::Create(window.GetWidth(), window.GetHeight());
+		m_Viewport = Viewport::Create(window.GetWidth(), window.GetHeight());
 
-		m_Topology = Ref<Topology>::Create(TopologyMode::Triangle);
+		m_Topology = Topology::Create(TopologyMode::Triangle);
 
 		RasterizerSpecification rrspecs;
 		rrspecs.Fill = FillMode::Solid;
 		rrspecs.Cull = CullMode::None;
 		rrspecs.Multisample = false;
 		rrspecs.Antialising = false;
-		m_Rasterizer = Ref<Rasterizer>::Create(rrspecs);
+		m_Rasterizer = Rasterizer::Create(rrspecs);
 
 		rrspecs.Fill = FillMode::Framed;
 		rrspecs.Cull = CullMode::None;
-		m_HilightRasterizer = Ref<Rasterizer>::Create(rrspecs);
+		m_HilightRasterizer = Rasterizer::Create(rrspecs);
 	}
 
 	void EditorLayer::OnDetach()
@@ -96,15 +95,15 @@ namespace Shark {
 		m_Viewport->Bind();
 		m_FrameBuffer->Bind();
 
-		struct { DirectX::XMFLOAT4 color = { 0.1f, 0.1f, 0.1f, 1.0f }; int id = -1; } ClearData;
-		Renderer::ClearFrameBuffer(m_FrameBuffer, Buffer::Ref(ClearData));
+		m_FrameBuffer->ClearAtachment(0, { 0.1f, 0.1f, 0.1f, 1.0f });
+		m_FrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
 		m_FrameBuffer->ClearDepth();
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
 		if (m_ViewportSizeChanged)
 		{
-			m_FrameBufferTexture = Ref<Texture2D>::Create(SamplerSpecification{}, m_ViewportWidth, m_ViewportHeight, 0);
+			m_FrameBufferTexture = Texture2D::Create({}, m_ViewportWidth, m_ViewportHeight, 0u);
 			m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
 

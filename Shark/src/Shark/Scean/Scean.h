@@ -52,7 +52,6 @@ namespace Shark {
 
 		void OnEvent(Event& event);
 
-		static Ref<Scean> Create();
 	private:
 		bool OnSelectionChanged(SelectionChangedEvent& event);
 

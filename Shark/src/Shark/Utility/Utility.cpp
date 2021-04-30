@@ -1,10 +1,10 @@
 #include "skpch.h"
-#include "Utils.h"
+#include "Utility.h"
 
 #include "Shark/Core/Application.h"
 #include <filesystem>
 
-namespace Shark::Utils {
+namespace Shark::Utility {
 
 	std::string MakePathRelative(const std::string& filepath)
 	{

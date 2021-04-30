@@ -149,7 +149,7 @@ namespace Shark {
 
 		SK_CHECK(m_DXApi->GetDevice()->CreateSamplerState(&sd, &m_Sampler));
 	}
-	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, const Buffer& data)
+	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, void* data)
 		: m_FilePath(std::string{}), m_Width(width), m_Height(height)
 	{
 		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
@@ -168,7 +168,7 @@ namespace Shark {
 		td.MiscFlags = 0u;
 
 		D3D11_SUBRESOURCE_DATA srd;
-		srd.pSysMem = data.Data();
+		srd.pSysMem = data;
 		srd.SysMemPitch = m_Width * 4;
 
 		ID3D11Texture2D* texture;
@@ -200,7 +200,7 @@ namespace Shark {
 		if (m_Sampler) { m_Sampler->Release(); m_Sampler = nullptr; }
 	}
 
-	void DirectXTexture2D::SetData(const Buffer& data)
+	void DirectXTexture2D::SetData(void* data)
 	{
 		ID3D11Resource* resource;
 		m_Texture->GetResource(&resource);
@@ -215,7 +215,7 @@ namespace Shark {
 		texture->GetDesc(&desc);
 
 		D3D11_SUBRESOURCE_DATA srd;
-		srd.pSysMem = data.Data();
+		srd.pSysMem = data;
 		srd.SysMemPitch = desc.Width * 4;
 
 		ID3D11Texture2D* newTexture;

@@ -39,7 +39,7 @@ namespace Shark {
 
 		int m_SelectedProjectionIndex = -1;
 		static constexpr const char* m_ProjectionItems[2] = { "Perspective", "Orthographic" };
-		Ref<Texture2D> m_ImGuiNoTextureSelectedTexture = Ref<Texture2D>::Create(SamplerSpecification{}, 1, 1, 0x050505FF);
+		Ref<Texture2D> m_ImGuiNoTextureSelectedTexture = Texture2D::Create(SamplerSpecification{}, 1, 1, 0x050505FF);
 	};
 
 }

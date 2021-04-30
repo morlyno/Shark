@@ -1,8 +1,8 @@
 #include "SceanHirachyPanel.h"
 
 #include <Shark/Scean/Components/Components.h>
-#include <Shark/Utility/FileDialogs.h>
-#include <Shark/Utility/Utils.h>
+#include <Shark/Utility/PlatformUtils.h>
+#include <Shark/Utility/Utility.h>
 #include <Shark/Utility/ImGuiUtils.h>
 #include <Shark/Core/Input.h>
 #include <Shark/Scean/NativeScriptFactory.h>
@@ -252,11 +252,11 @@ namespace Shark {
 
 			ImGui::Text("Texture");
 			ImTextureID image = comp.Texture ? comp.Texture->GetHandle() : nullptr;
-			if (ImGui::ImageButton(image, { 48, 48 }, { 0, 0 }, { 1, 1 }, -1, { 0.0f, 0.0f, 0.0f, 1.0f }, Utils::ToImVec4(comp.Color)))
+			if (ImGui::ImageButton(image, { 48, 48 }, { 0, 0 }, { 1, 1 }, -1, { 0.0f, 0.0f, 0.0f, 1.0f }, Utility::ToImVec4(comp.Color)))
 			{
 				std::optional<std::string> imagePath = FileDialogs::OpenFile("Texture (*.*)\0*.*\0");
 				if (imagePath)
-					comp.Texture = Texture2D::Create({}, Utils::MakePathRelative(*imagePath));
+					comp.Texture = Texture2D::Create({}, Utility::MakePathRelative(*imagePath));
 			}
 
 			ImGui::NextColumn();

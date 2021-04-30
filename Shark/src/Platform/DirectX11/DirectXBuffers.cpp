@@ -14,13 +14,13 @@ namespace Shark {
 	//////////////////////////////////////////////////////////////////////////
    /// VertexBuffer /////////////////////////////////////////////////////////
 
-	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, const Buffer& data, bool dynamic)
-		: VertexBuffer(layout), m_Dynamic(dynamic)
+	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic)
+		: m_Layout(layout), m_Dynamic(dynamic)
 	{
 		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
 		if (data)
-			CreateBuffer(data);
+			CreateBuffer(data, size);
 	}
 
 	DirectXVertexBuffer::~DirectXVertexBuffer()
@@ -29,7 +29,7 @@ namespace Shark {
 			m_VertexBuffer->Release();
 	}
 
-	void DirectXVertexBuffer::SetData(const Buffer& data)
+	void DirectXVertexBuffer::SetData(void* data, uint32_t size)
 	{
 		if (m_VertexBuffer)
 		{
@@ -37,17 +37,17 @@ namespace Shark {
 			SK_IF_DEBUG(
 				D3D11_BUFFER_DESC bd;
 				m_VertexBuffer->GetDesc(&bd);
-				SK_CORE_ASSERT(data.Size() <= bd.ByteWidth, "The Size of the Data is to big");
+				SK_CORE_ASSERT(size <= bd.ByteWidth, "The Size of the Data is to big");
 			);
 
 			D3D11_MAPPED_SUBRESOURCE ms;
 			SK_CHECK(m_DXApi->GetContext()->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-			data.CopyInto(ms.pData);
+			memcpy(ms.pData, data, size);
 			m_DXApi->GetContext()->Unmap(m_VertexBuffer, 0);
 		}
 		else
 		{
-			CreateBuffer(data);
+			CreateBuffer(data, size);
 		}
 	}
 
@@ -64,12 +64,12 @@ namespace Shark {
 		m_DXApi->GetContext()->IASetVertexBuffers(0u, 0u, nullptr, &null, &null);
 	}
 
-	void DirectXVertexBuffer::CreateBuffer(const Buffer& data)
+	void DirectXVertexBuffer::CreateBuffer(void* data, uint32_t size)
 	{
-		m_Size = data.Size();
+		m_Size = size;
 
 		D3D11_BUFFER_DESC bd = {};
-		bd.ByteWidth = data.Size();
+		bd.ByteWidth = size;
 		bd.StructureByteStride = m_Layout.GetVertexSize();
 		bd.Usage = m_Dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -77,7 +77,7 @@ namespace Shark {
 		bd.MiscFlags = 0u;
 
 		D3D11_SUBRESOURCE_DATA srd = {};
-		srd.pSysMem = data.Data();
+		srd.pSysMem = data;
 
 		SK_CHECK(m_DXApi->GetDevice()->CreateBuffer(&bd, &srd, &m_VertexBuffer));
 	}
@@ -85,15 +85,13 @@ namespace Shark {
 	//////////////////////////////////////////////////////////////////////////
    /// IndexBuffer //////////////////////////////////////////////////////////
 
-	DirectXIndexBuffer::DirectXIndexBuffer(const Buffer& data, bool dynamic)
-		:
-		IndexBuffer(data.Count<uint32_t>()),
-		m_Dynamic(dynamic)
+	DirectXIndexBuffer::DirectXIndexBuffer(IndexType* data, uint32_t count, bool dynamic)
+		: m_Count(count), m_Size(count * sizeof(IndexType)), m_Dynamic(dynamic)
 	{
 		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
 		if (data)
-			CreateBuffer(data);
+			CreateBuffer(data, count);
 	}
 
 	DirectXIndexBuffer::~DirectXIndexBuffer()
@@ -102,25 +100,28 @@ namespace Shark {
 			m_IndexBuffer->Release();
 	}
 
-	void DirectXIndexBuffer::SetData(const Buffer& data)
+	void DirectXIndexBuffer::SetData(IndexType* data, uint32_t count)
 	{
+		m_Count = count;
+
 		if (m_IndexBuffer)
 		{
 			SK_CORE_ASSERT(m_Dynamic, "Buffer must be dynamic");
 			SK_IF_DEBUG(
 				D3D11_BUFFER_DESC bd;
 				m_IndexBuffer->GetDesc(&bd);
-				SK_CORE_ASSERT(data.Size() <= bd.ByteWidth, "The size of the Buffer and the data must be equal");
+				SK_CORE_ASSERT(m_Size == bd.ByteWidth, "The size of the Buffer and the data must be equal");
+				SK_CORE_ASSERT(m_Count * sizeof(IndexType) <= bd.ByteWidth);
 			);
 
 			D3D11_MAPPED_SUBRESOURCE ms;
 			SK_CHECK(m_DXApi->GetContext()->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-			data.CopyInto(ms.pData);
+			memcpy(ms.pData, data, m_Size);
 			m_DXApi->GetContext()->Unmap(m_IndexBuffer, 0);
 		}
 		else
 		{
-			CreateBuffer(data);
+			CreateBuffer(data, count);
 		}
 	}
 
@@ -134,20 +135,20 @@ namespace Shark {
 		m_DXApi->GetContext()->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0u);
 	}
 
-	void DirectXIndexBuffer::CreateBuffer(const Buffer& data)
+	void DirectXIndexBuffer::CreateBuffer(IndexType* data, uint32_t count)
 	{
-		m_Size = data.Size();
-
+		m_Count = count;
+		m_Size = count * sizeof(IndexType);
 		D3D11_BUFFER_DESC i_bd = {};
-		i_bd.ByteWidth = data.Size();
-		i_bd.StructureByteStride = sizeof(uint32_t);
+		i_bd.ByteWidth = m_Size;
+		i_bd.StructureByteStride = sizeof(IndexType);
 		i_bd.Usage = m_Dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		i_bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		i_bd.CPUAccessFlags = m_Dynamic ? D3D11_CPU_ACCESS_WRITE : 0u;
 		i_bd.MiscFlags = 0u;
 
 		D3D11_SUBRESOURCE_DATA i_srd = {};
-		i_srd.pSysMem = data.Data();
+		i_srd.pSysMem = data;
 
 		SK_CHECK(m_DXApi->GetDevice()->CreateBuffer(&i_bd, &i_srd, &m_IndexBuffer));
 	}

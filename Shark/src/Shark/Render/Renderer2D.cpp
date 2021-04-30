@@ -87,18 +87,18 @@ namespace Shark {
 				return;
 
 			if (totalvertices * sizeof(Vertex) > s_DrawData.VertexBuffer->GetSize())
-				s_DrawData.VertexBuffer = VertexBuffer::Create(s_DrawData.Shaders->GetVertexLayout(), Buffer{}, true);
+				s_DrawData.VertexBuffer = VertexBuffer::Create(s_DrawData.Shaders->GetVertexLayout(), nullptr, 0, true);
 			if (totalindices * sizeof(Index) > s_DrawData.IndexBuffer->GetSize())
-				s_DrawData.IndexBuffer = IndexBuffer::Create(Buffer{}, true);
+				s_DrawData.IndexBuffer = IndexBuffer::Create(nullptr, 0, true);
 
-			s_DrawData.VertexBuffer->SetData(Buffer::Ref(s_DrawData.VertexBufferData));
-			s_DrawData.IndexBuffer->SetData(Buffer::Ref(s_DrawData.IndexBufferData));
+			s_DrawData.VertexBuffer->SetData(s_DrawData.VertexBufferData.data(), s_DrawData.VertexBufferData.size() * sizeof(Vertex));
+			s_DrawData.IndexBuffer->SetData(s_DrawData.IndexBufferData.data(), s_DrawData.IndexBufferData.size());
 
 			s_DrawData.Shaders->Bind();
 			s_DrawData.VertexBuffer->Bind();
 			s_DrawData.IndexBuffer->Bind();
 
-			s_DrawData.Shaders->SetBuffer("SceanData", Buffer::Ref(s_SceanData));
+			s_DrawData.Shaders->SetBuffer("SceanData", &s_SceanData);
 
 			for (uint32_t i = 0; i < s_DrawData.DrawCmdList.size(); i++)
 			{
@@ -205,8 +205,8 @@ namespace Shark {
 	void Renderer2D::Init()
 	{
 		s_DrawData.Shaders = Shaders::Create("assets/Shaders/MainShader.hlsl");
-		s_DrawData.VertexBuffer = VertexBuffer::Create(s_DrawData.Shaders->GetVertexLayout(), Buffer{}, true);
-		s_DrawData.IndexBuffer = IndexBuffer::Create(Buffer{}, true);
+		s_DrawData.VertexBuffer = VertexBuffer::Create(s_DrawData.Shaders->GetVertexLayout(), nullptr, 0, true);
+		s_DrawData.IndexBuffer = IndexBuffer::Create(nullptr, 0, true);
 		s_DrawData.WitheTexture = Texture2D::Create({}, 1, 1, 0xFFFFFFFF);
 
 		s_DrawData.VertexBufferData.reserve(1000 * 4);

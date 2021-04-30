@@ -3,7 +3,7 @@
 #include <imgui.h>
 #include <DirectXMath.h>
 
-namespace Shark::Utils {
+namespace Shark::Utility {
 
 	struct ColorF32
 	{

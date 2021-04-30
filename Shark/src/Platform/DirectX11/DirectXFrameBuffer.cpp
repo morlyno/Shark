@@ -54,7 +54,7 @@ namespace Shark {
 			m_DepthStencilState->Release();
 	}
 
-	void DirectXFrameBuffer::Clear(Utils::ColorF32 clearcolor)
+	void DirectXFrameBuffer::Clear(Utility::ColorF32 clearcolor)
 	{
 		for (auto buffer : m_FrameBuffers)
 			m_DXApi->GetContext()->ClearRenderTargetView(buffer, clearcolor.rgba);
@@ -62,7 +62,7 @@ namespace Shark {
 		m_DXApi->GetContext()->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
 	}
 
-	void DirectXFrameBuffer::ClearAtachment(uint32_t index, Utils::ColorF32 clearcolor)
+	void DirectXFrameBuffer::ClearAtachment(uint32_t index, Utility::ColorF32 clearcolor)
 	{
 		m_DXApi->GetContext()->ClearRenderTargetView(m_FrameBuffers[index], clearcolor.rgba);
 	}
@@ -189,7 +189,7 @@ namespace Shark {
 		}
 
 		Ref<Texture2D> texture = Texture2D::Create({}, m_Specification.Width, m_Specification.Height, 0u);
-		texture->SetData(Buffer::Ref(alignedData, 0));
+		texture->SetData(alignedData);
 		delete[] alignedData;
 
 		buffer->Release();
@@ -232,7 +232,7 @@ namespace Shark {
 			dest += destPitch;
 			src += srcPitch;
 		}
-		texture->SetData(Buffer::Ref(alignedData, 0));
+		texture->SetData(alignedData);
 		delete[] alignedData;
 
 		buffer->Release();
