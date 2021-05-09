@@ -10,57 +10,45 @@
 
 namespace Shark {
 
-	struct ConstBuffer
+	enum class Shader
 	{
-		ID3D11Buffer* buffer = nullptr;
-		UINT size = 0;
-		UINT slot = 0;
-	};
-
-	struct PixelShader
-	{
-		ID3D11PixelShader* shader = nullptr;
-		ID3D11ShaderReflection* reflection = nullptr;
-		std::vector<std::pair<std::string, ConstBuffer>> constBuffers;
-	};
-
-	struct VertexShader
-	{
-		ID3D11VertexShader* shader = nullptr;
-		ID3D11ShaderReflection* reflection = nullptr;
-		std::vector<std::pair<std::string, ConstBuffer>> constBuffers;
+		None = 0,
+		Vertex, Pixel
 	};
 
 	class DirectXShaders : public Shaders
 	{
 	public:
 		DirectXShaders(const std::string& filepath);
-		DirectXShaders(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
-		~DirectXShaders();
-
-		void Init(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc);
-
-		virtual void SetBuffer(const std::string& bufferName, void* data) override;
-
-		void UploudBuffer(const std::string& bufferName, void* data);
+		virtual ~DirectXShaders();
+		void Release();
 
 		virtual VertexLayout& GetVertexLayout() override { return m_VertexLayout; };
 
-		void Bind() override;
-		void UnBind() override;
+		virtual void Bind() override;
+		virtual void UnBind() override;
 
-		virtual const std::string& GetName() const override { return m_Name; }
+	private:
+		std::string ReadFile(const std::string& filepath);
+		std::unordered_map<Shader, std::string> PreProzess(const std::string& file);
+		void CompileOrGetCached(std::unordered_map<Shader, std::string>& shaderSources);
+		void Reflect();
+		void CreateInputlayout(const std::vector<byte>& vtx_src);
+		void CreateShaders();
+
 	private:
 		Weak<DirectXRendererAPI> m_DXApi;
 
-		PixelShader m_PixelShader;
-		VertexShader m_VertexShader;
+		ID3D11PixelShader* m_PixelShader;
+		ID3D11VertexShader* m_VertexShader;
 		
 		ID3D11InputLayout* m_InputLayout = nullptr;
 
-		VertexLayout m_VertexLayout;
+		std::unordered_map<Shader, std::vector<byte>> m_ShaderBinarys;
+		std::string m_FilePath;
+		std::string m_FileName;
 
-		std::string m_Name;
+		VertexLayout m_VertexLayout;
 	};
 
 }

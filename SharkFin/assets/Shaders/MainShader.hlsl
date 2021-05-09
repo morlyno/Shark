@@ -1,4 +1,5 @@
 #type Vertex
+#version vs_4_0
 
 cbuffer SceanData : register(b0)
 {
@@ -39,6 +40,7 @@ VSOUT main(VSIN vsin)
 
 
 #type Pixel
+#version ps_4_0
 
 Texture2D g_Textures[16] : register(t0);
 SamplerState g_SamplerState[16];

@@ -2,7 +2,7 @@
 #include "SceanController.h"
 
 #include "Shark/Scean/SceanSerialization.h"
-#include "Shark/Utility/FileDialogs.h"
+#include "Shark/Utility/PlatformUtils.h"
 
 namespace Shark {
 

@@ -215,11 +215,11 @@ namespace Shark {
 		t2ddesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 
 		ID3D11Texture2D* TempData;
-		m_DXApi->GetDevice()->CreateTexture2D(&t2ddesc, nullptr, &TempData);
+		SK_CHECK(m_DXApi->GetDevice()->CreateTexture2D(&t2ddesc, nullptr, &TempData));
 
 		m_DXApi->GetContext()->CopyResource(TempData, buffer);
 		D3D11_MAPPED_SUBRESOURCE ms;
-		m_DXApi->GetContext()->Map(TempData, 0, D3D11_MAP_READ, 0, &ms);
+		SK_CHECK(m_DXApi->GetContext()->Map(TempData, 0, D3D11_MAP_READ, 0, &ms));
 
 		void* alignedData = new char[(uint64_t)t2ddesc.Width * t2ddesc.Height * 4];
 		uint8_t* dest = (uint8_t*)alignedData;

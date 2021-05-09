@@ -22,4 +22,6 @@ namespace Shark::Utility {
 
 	std::vector<std::string> StringSplit(const std::string& str, const std::string& splitter = " ");
 
+	std::string ToLower(const std::string& src);
+
 }

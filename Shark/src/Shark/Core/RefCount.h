@@ -10,6 +10,7 @@ namespace Shark {
 		RefCount(RefCount&& other) noexcept { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount; other.m_RefCount = 0; other.m_WeakCount = 0; }
 		const RefCount& operator=(const RefCount& other) { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount; }
 		const RefCount& operator=(RefCount&& other) noexcept { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount;other.m_RefCount = 0;other.m_WeakCount = 0;return *this; }
+		virtual ~RefCount() = default;
 
 	protected:
 		uint32_t AddRef() { return ++m_RefCount; }

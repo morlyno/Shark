@@ -33,4 +33,15 @@ namespace Shark::Utility {
 		return std::move(strings);
 	}
 
+	std::string ToLower(const std::string& src)
+	{
+		std::string str;
+		str.resize(src.size());
+		std::transform(src.cbegin(), src.cend(), str.begin(), [](auto c)
+		{
+			return std::tolower(c);
+		});
+		return str;
+	}
+
 }

@@ -2,7 +2,7 @@ project "SharkFin"
     kind "ConsoleApp"
     language "c++"
     cppdialect "c++17"
-    staticruntime "on"
+    staticruntime "off"
 
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")

@@ -16,15 +16,4 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Shaders> Shaders::Create(const std::string& vertexshaderSrc, const std::string& pixelshaderSrc)
-	{
-		switch (RendererAPI::GetAPI())
-		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXShaders>::Create(vertexshaderSrc, pixelshaderSrc);
-		}
-		SK_CORE_ASSERT(false, "Unknown API");
-		return nullptr;
-	}
-
 }
