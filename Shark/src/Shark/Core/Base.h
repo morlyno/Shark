@@ -21,9 +21,21 @@
 #define SK_IF_DEBUG(...)
 #endif
 
+#include <stdint.h>
+
 namespace Shark {
 
 	struct Empty { template<typename T> Empty(const T&) {} };
+	 
+	struct RenderID
+	{
+		uintptr_t ID;
+		
+		RenderID(uintptr_t id) : ID(id) {}
+		RenderID(void* id) : ID((uintptr_t)id) {}
+		operator uintptr_t() const { return ID; }
+		operator void*() const { return (void*)ID; }
+	};
 
 }
 

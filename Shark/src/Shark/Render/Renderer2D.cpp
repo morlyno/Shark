@@ -211,7 +211,8 @@ namespace Shark {
 		s_DrawData.ConstantBuffer = ConstantBuffer::Create(64, 0);
 		s_DrawData.VertexBuffer = VertexBuffer::Create(s_DrawData.Shaders->GetVertexLayout(), nullptr, 0, true);
 		s_DrawData.IndexBuffer = IndexBuffer::Create(nullptr, 0, true);
-		s_DrawData.WitheTexture = Texture2D::Create({}, 1, 1, 0xFFFFFFFF);
+		uint32_t textureColor = 0xFFFFFFFF;
+		s_DrawData.WitheTexture = Texture2D::Create({}, 1, 1, &textureColor);
 
 		s_DrawData.VertexBufferData.reserve(1000 * 4);
 		s_DrawData.IndexBufferData.reserve(1000 * 6);

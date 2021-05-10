@@ -4,7 +4,7 @@
 
 namespace Shark {
 
-	RendererAPI::API RendererAPI::s_API = RendererAPI::API::DirectX11;
+	RendererAPI::API RendererAPI::s_API = RendererAPI::API::None;
 
 	Ref<RendererAPI> RendererAPI::Create()
 	{

@@ -24,7 +24,6 @@ namespace Shark {
 		virtual void SetDepth(bool enabled) override;
 		virtual bool GetDepth() const override { return m_DepthEnabled; }
 
-		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) override;
 		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) override;
 		virtual int ReadPixel(uint32_t index, int x, int y) override;
 
@@ -44,6 +43,8 @@ namespace Shark {
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;
 		ID3D11DepthStencilState* m_DepthStencilState = nullptr;
 		ID3D11BlendState* m_BlendState = nullptr;
+		D3D11_VIEWPORT m_Viewport;
+
 		uint32_t m_Count = 0;
 		FrameBufferSpecification m_Specification;
 		bool m_DepthEnabled = false;

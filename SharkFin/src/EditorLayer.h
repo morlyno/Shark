@@ -38,7 +38,6 @@ namespace Shark {
 		EditorCamera m_EditorCamera;
 		Ref<SwapChain> m_SwapChain;
 		Ref<FrameBuffer> m_SwapChainFrameBuffer;
-		Ref<Viewport> m_Viewport;
 		Ref<FrameBuffer> m_FrameBuffer;
 		Ref<Topology> m_Topology;
 		Ref<Rasterizer> m_Rasterizer;

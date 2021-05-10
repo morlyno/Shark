@@ -9,7 +9,7 @@ namespace Shark {
 		RefCount(const RefCount& other) { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount; }
 		RefCount(RefCount&& other) noexcept { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount; other.m_RefCount = 0; other.m_WeakCount = 0; }
 		const RefCount& operator=(const RefCount& other) { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount; }
-		const RefCount& operator=(RefCount&& other) noexcept { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount;other.m_RefCount = 0;other.m_WeakCount = 0;return *this; }
+		const RefCount& operator=(RefCount&& other) noexcept { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount;other.m_RefCount = 0;other.m_WeakCount = 0; return *this; }
 		virtual ~RefCount() = default;
 
 	protected:
@@ -43,6 +43,7 @@ namespace Shark {
 		Ref(Ref&& other) noexcept { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; other.m_Instance = nullptr; }
 		const Ref& operator=(const Ref& other) { Release(); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
 		const Ref& operator=(Ref&& other) noexcept { Release();  m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		const Ref& operator=(std::nullptr_t) { Release(); return *this; }
 		~Ref() { Release(); }
 
 		explicit Ref(T* inst) { m_Instance = inst; if (m_Instance) { m_Instance->AddRef(); } }
@@ -104,6 +105,7 @@ namespace Shark {
 		Weak(Weak&& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; other.m_Instance = nullptr; }
 		const Weak& operator=(const Weak& other) { Release(); m_Instance = other.m_Instance; if (m_Instance) m_Instance->AddWeak(); return *this; }
 		const Weak& operator=(Weak&& other) { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		const Weak& operator=(std::nullptr_t) { Release(); return *this; }
 		~Weak() { Release(); }
 
 		explicit Weak(T* inst) { m_Instance = inst; if (m_Instance) m_Instance->AddWeak(); }

@@ -23,6 +23,7 @@ namespace Shark {
 
 	Application* CreateApplication(int argc, char** argv)
 	{
+		RendererAPI::SetAPI(RendererAPI::API::DirectX11);
 		return new SharkFin(argc, argv);
 	}
 

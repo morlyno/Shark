@@ -36,7 +36,7 @@ namespace Shark {
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& window = Application::Get().GetWindow();
-		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), 0u);
+		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), nullptr);
 		m_Scean = Ref<Scean>::Create();
 		m_Scean->AddEditorData(true);
 		m_Scean.GetSaveState()->AddEditorData(true);
@@ -66,8 +66,6 @@ namespace Shark {
 		fbspecs.Atachments[0].Blend = true;
 		m_FrameBuffer = FrameBuffer::Create(fbspecs);
 
-		m_Viewport = Viewport::Create(window.GetWidth(), window.GetHeight());
-
 		m_Topology = Topology::Create(TopologyMode::Triangle);
 
 		RasterizerSpecification rrspecs;
@@ -92,7 +90,6 @@ namespace Shark {
 
 		m_Rasterizer->Bind();
 		m_Topology->Bind();
-		m_Viewport->Bind();
 		m_FrameBuffer->Bind();
 
 		m_FrameBuffer->ClearAtachment(0, { 0.1f, 0.1f, 0.1f, 1.0f });
@@ -105,7 +102,6 @@ namespace Shark {
 		{
 			m_FrameBufferTexture = Texture2D::Create({}, m_ViewportWidth, m_ViewportHeight, 0u);
 			m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
-			m_Viewport->Resize(m_ViewportWidth, m_ViewportHeight);
 
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 			m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
@@ -411,7 +407,7 @@ namespace Shark {
 			m_ViewportSizeChanged = true;
 		}
 
-		UI::NoAlpaImage(m_SwapChainFrameBuffer, m_FrameBufferTexture->GetHandle(), size);
+		UI::NoAlpaImage(m_SwapChainFrameBuffer, m_FrameBufferTexture->GetRenderID(), size);
 
 		auto [mx, my] = ImGui::GetMousePos();
 		auto [wx, wy] = ImGui::GetWindowPos();

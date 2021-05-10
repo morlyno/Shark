@@ -50,7 +50,7 @@ namespace Shark {
 		return D3D11_FILTER_MIN_MAG_MIP_POINT;
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, const std::string& filepath)
+	DirectXTexture2D::DirectXTexture2D(const SamplerProps& props, const std::string& filepath)
 		: m_FilePath(filepath)
 	{
 		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
@@ -62,136 +62,19 @@ namespace Shark {
 		m_Width = width;
 		m_Height = height;
 
-		D3D11_TEXTURE2D_DESC td;
-		td.Width = m_Width;
-		td.Height = m_Height;
-		td.MipLevels = 1u;
-		td.ArraySize = 1u;
-		td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		td.SampleDesc.Count = 1u;
-		td.SampleDesc.Quality = 0u;
-		td.Usage = D3D11_USAGE_DEFAULT;
-		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		td.CPUAccessFlags = 0u;
-		td.MiscFlags = 0u;
+		CreateTexture(data);
+		CreateSampler(props);
 
-		D3D11_SUBRESOURCE_DATA srd;
-		srd.pSysMem = data;
-		srd.SysMemPitch = m_Width * 4;
-
-		ID3D11Texture2D* texture;
-		SK_CHECK(m_DXApi->GetDevice()->CreateTexture2D(&td, &srd, &texture));
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srv;
-		srv.Format = td.Format;
-		srv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		srv.Texture2D.MipLevels = 1u;
-		srv.Texture2D.MostDetailedMip = 0u;
-
-		SK_CHECK(m_DXApi->GetDevice()->CreateShaderResourceView(texture, &srv, &m_Texture));
-		texture->Release();
-
-		D3D11_SAMPLER_DESC sd;
-		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));
-		sd.Filter = FilterModeToDirectX(specs.MinMag, specs.Mipmap);
-		sd.AddressU = TextureAddressModeToDirectX(specs.AddressU);
-		sd.AddressV = TextureAddressModeToDirectX(specs.AddressV);
-		sd.AddressW = TextureAddressModeToDirectX(specs.AddressW);
-		memcpy(sd.BorderColor, &specs.BorderColor, sizeof(float) * 4);
-
-		SK_CHECK(m_DXApi->GetDevice()->CreateSamplerState(&sd, &m_Sampler));
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, uint32_t flatcolor)
+	DirectXTexture2D::DirectXTexture2D(const SamplerProps& props, uint32_t width, uint32_t height, void* data)
 		: m_FilePath(std::string{}), m_Width(width), m_Height(height)
 	{
 		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
-		std::vector<uint32_t> data;
-		data.resize((uint64_t)width * height, flatcolor);
+		CreateTexture(data);
+		CreateSampler(props);
 
-		D3D11_TEXTURE2D_DESC td;
-		td.Width = m_Width;
-		td.Height = m_Height;
-		td.MipLevels = 1u;
-		td.ArraySize = 1u;
-		td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		td.SampleDesc.Count = 1u;
-		td.SampleDesc.Quality = 0u;
-		td.Usage = D3D11_USAGE_DYNAMIC;
-		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		td.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		td.MiscFlags = 0u;
-
-		D3D11_SUBRESOURCE_DATA srd;
-		srd.pSysMem = data.data();
-		srd.SysMemPitch = m_Width * 4;
-
-		ID3D11Texture2D* texture;
-		SK_CHECK(m_DXApi->GetDevice()->CreateTexture2D(&td, &srd, &texture));
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srv;
-		srv.Format = td.Format;
-		srv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		srv.Texture2D.MipLevels = 1u;
-		srv.Texture2D.MostDetailedMip = 0u;
-
-		SK_CHECK(m_DXApi->GetDevice()->CreateShaderResourceView(texture, &srv, &m_Texture));
-		texture->Release();
-
-		D3D11_SAMPLER_DESC sd;
-		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));
-		sd.Filter = FilterModeToDirectX(specs.MinMag, specs.Mipmap);
-		sd.AddressU = TextureAddressModeToDirectX(specs.AddressU);
-		sd.AddressV = TextureAddressModeToDirectX(specs.AddressV);
-		sd.AddressW = TextureAddressModeToDirectX(specs.AddressW);
-		memcpy(sd.BorderColor, &specs.BorderColor, sizeof(float) * 4);
-
-		SK_CHECK(m_DXApi->GetDevice()->CreateSamplerState(&sd, &m_Sampler));
-	}
-	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specs, uint32_t width, uint32_t height, void* data)
-		: m_FilePath(std::string{}), m_Width(width), m_Height(height)
-	{
-		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
-
-		D3D11_TEXTURE2D_DESC td;
-		td.Width = m_Width;
-		td.Height = m_Height;
-		td.MipLevels = 1u;
-		td.ArraySize = 1u;
-		td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		td.SampleDesc.Count = 1u;
-		td.SampleDesc.Quality = 0u;
-		td.Usage = D3D11_USAGE_DYNAMIC;
-		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		td.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		td.MiscFlags = 0u;
-
-		D3D11_SUBRESOURCE_DATA srd;
-		srd.pSysMem = data;
-		srd.SysMemPitch = m_Width * 4;
-
-		ID3D11Texture2D* texture;
-		SK_CHECK(m_DXApi->GetDevice()->CreateTexture2D(&td, &srd, &texture));
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srv;
-		srv.Format = td.Format;
-		srv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		srv.Texture2D.MipLevels = 1u;
-		srv.Texture2D.MostDetailedMip = 0u;
-
-		SK_CHECK(m_DXApi->GetDevice()->CreateShaderResourceView(texture, &srv, &m_Texture));
-		texture->Release();
-
-		D3D11_SAMPLER_DESC sd;
-		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));
-		sd.Filter = FilterModeToDirectX(specs.MinMag, specs.Mipmap);
-		sd.AddressU = TextureAddressModeToDirectX(specs.AddressU);
-		sd.AddressV = TextureAddressModeToDirectX(specs.AddressV);
-		sd.AddressW = TextureAddressModeToDirectX(specs.AddressW);
-		memcpy(sd.BorderColor, &specs.BorderColor, sizeof(float) * 4);
-
-		SK_CHECK(m_DXApi->GetDevice()->CreateSamplerState(&sd, &m_Sampler));
 	}
 
 	DirectXTexture2D::~DirectXTexture2D()
@@ -202,42 +85,105 @@ namespace Shark {
 
 	void DirectXTexture2D::SetData(void* data)
 	{
+		auto* ctx = m_DXApi->GetContext();
+		auto* dev = m_DXApi->GetDevice();
+
+		if (!m_Texture)
+		{
+			CreateTexture(data);
+			return;
+		}
+
 		ID3D11Resource* resource;
 		m_Texture->GetResource(&resource);
 		SK_CORE_ASSERT(resource, "Failed to get Resource");
-
+		
 		ID3D11Texture2D* texture;
 		HRESULT hr = resource->QueryInterface(&texture);
 		SK_CORE_ASSERT(texture, "Failed to get Texture");
 		SK_CORE_ASSERT(SUCCEEDED(hr));
-
+		
 		D3D11_TEXTURE2D_DESC desc;
 		texture->GetDesc(&desc);
-
+		
 		D3D11_SUBRESOURCE_DATA srd;
 		srd.pSysMem = data;
 		srd.SysMemPitch = desc.Width * 4;
-
+		
 		ID3D11Texture2D* newTexture;
-		SK_CHECK(m_DXApi->GetDevice()->CreateTexture2D(&desc, &srd, &newTexture));
-
-		m_DXApi->GetContext()->CopyResource(texture, newTexture);
+		SK_CHECK(dev->CreateTexture2D(&desc, &srd, &newTexture));
+		
+		ctx->CopyResource(texture, newTexture);
 		newTexture->Release();
 		texture->Release();
 		resource->Release();
-
-	}
-
-	void DirectXTexture2D::Bind()
-	{
-		m_DXApi->GetContext()->PSSetSamplers(m_Slot, 1u, &m_Sampler);
-		m_DXApi->GetContext()->PSSetShaderResources(m_Slot, 1u, &m_Texture);
 	}
 
 	void DirectXTexture2D::Bind(uint32_t slot)
 	{
-		m_DXApi->GetContext()->PSSetSamplers(slot, 1u, &m_Sampler);
-		m_DXApi->GetContext()->PSSetShaderResources(slot, 1u, &m_Texture);
+		auto* ctx = m_DXApi->GetContext();
+		ctx->PSSetSamplers(slot, 1u, &m_Sampler);
+		ctx->PSSetShaderResources(slot, 1u, &m_Texture);
+	}
+
+	void DirectXTexture2D::UnBind(uint32_t slot)
+	{
+		auto* ctx = m_DXApi->GetContext();
+		ctx->PSSetSamplers(slot, 1u, nullptr);
+		ctx->PSSetShaderResources(slot, 1u, nullptr);
+	}
+
+	void DirectXTexture2D::CreateTexture(void* data)
+	{
+		auto* dev = m_DXApi->GetDevice();
+		auto* ctx = m_DXApi->GetContext();
+
+		D3D11_TEXTURE2D_DESC td;
+		td.Width = m_Width;
+		td.Height = m_Height;
+		td.MipLevels = 1u;
+		td.ArraySize = 1u;
+		td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		td.SampleDesc.Count = 1u;
+		td.SampleDesc.Quality = 0u;
+		td.Usage = D3D11_USAGE_DEFAULT;
+		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		td.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		td.MiscFlags = 0u;
+
+		D3D11_SUBRESOURCE_DATA srd;
+		srd.pSysMem = data;
+		srd.SysMemPitch = m_Width * 4;
+
+		ID3D11Texture2D* texture;
+		SK_CHECK(m_DXApi->GetDevice()->CreateTexture2D(&td, data ? &srd : nullptr, &texture));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srv;
+		srv.Format = td.Format;
+		srv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srv.Texture2D.MipLevels = 1u;
+		srv.Texture2D.MostDetailedMip = 0u;
+
+		SK_CHECK(m_DXApi->GetDevice()->CreateShaderResourceView(texture, &srv, &m_Texture));
+		texture->Release();
+
+	}
+
+	void DirectXTexture2D::CreateSampler(const SamplerProps& props)
+	{
+		auto* dev = m_DXApi->GetDevice();
+		auto* ctx = m_DXApi->GetContext();
+
+		D3D11_SAMPLER_DESC sd;
+		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));
+		sd.Filter = FilterModeToDirectX(props.MinMag, props.Mipmap);
+		sd.AddressU = TextureAddressModeToDirectX(props.AddressU);
+		sd.AddressV = TextureAddressModeToDirectX(props.AddressV);
+		sd.AddressW = TextureAddressModeToDirectX(props.AddressW);
+		memcpy(sd.BorderColor, &props.BorderColor, sizeof(float) * 4);
+
+		SK_CHECK(m_DXApi->GetDevice()->CreateSamplerState(&sd, &m_Sampler));
+
 	}
 
 }

@@ -21,6 +21,7 @@ namespace Shark {
 		virtual void Flush() = 0;
 
 		static API GetAPI() { return s_API; }
+		static void SetAPI(API api) { s_API = api; }
 
 		static Ref<RendererAPI> Create();
 	private:

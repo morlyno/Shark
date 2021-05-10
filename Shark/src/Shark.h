@@ -41,7 +41,6 @@
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/FrameBuffer.h"
-#include "Shark/Render/Viewport.h"
 #include "Shark/Render/SwapChain.h"
 #include "Shark/Render/Topology.h"
 #include "Shark/Render/Rasterizer.h"

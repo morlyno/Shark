@@ -9,7 +9,8 @@ namespace Shark {
 		Scope() = default;
 		Scope(std::nullptr_t) {}
 		Scope(Scope&& other) { m_Instance = other.m_Instance; other.m_Instance = nullptr; }
-		const Scope& operator=(Scope&& other) { m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		const Scope& operator=(Scope&& other) { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		const Scope& operator=(std::nullptr_t) { Release(); return *this; }
 
 		Scope(const Scope&) = delete;
 		const Scope& operator=(const Scope&) = delete;
@@ -18,12 +19,12 @@ namespace Shark {
 
 		explicit Scope(T* inst) { m_Instance = inst; }
 
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		Scope(Scope<T2>&& other) { m_Instance = other.m_Instance;other.m_Instance = nullptr; }
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		const Scope& operator=(Scope<T2>&& other) { m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
+		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, int> = 0>
+		Scope(Scope<T2>&& other) { Release(); m_Instance = other.m_Instance;other.m_Instance = nullptr; }
+		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, int> = 0>
+		const Scope& operator=(Scope<T2>&& other) { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
 
-		void Release() { delete m_Instance; }
+		void Release() { delete m_Instance; m_Instance = nullptr; }
 
 		T& operator*() const { return *m_Instance; }
 		T* operator->() const { return m_Instance; }

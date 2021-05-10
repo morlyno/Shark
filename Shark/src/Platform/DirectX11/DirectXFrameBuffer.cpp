@@ -35,7 +35,6 @@ namespace Shark {
 		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
 
 		CreateBuffers();
-		Bind();
 	}
 
 	DirectXFrameBuffer::~DirectXFrameBuffer()
@@ -108,10 +107,7 @@ namespace Shark {
 		m_Specification.Height = height;
 
 		Release();
-
 		CreateBuffers();
-
-		Bind();
 	}
 
 	void DirectXFrameBuffer::SetBlend(uint32_t index, bool blend)
@@ -153,95 +149,29 @@ namespace Shark {
 		SK_CHECK(m_DXApi->GetDevice()->CreateDepthStencilState(&dsd, &m_DepthStencilState));
 	}
 
-	Ref<Texture2D> DirectXFrameBuffer::GetFramBufferContent(uint32_t index)
-	{
-		SK_CORE_ASSERT(index < m_Count, "Index out of range");
-
-		ID3D11Texture2D* buffer;
-		ID3D11Resource* resourcebuffer;
-		m_FrameBuffers[index]->GetResource(&resourcebuffer);
-		SK_CHECK(resourcebuffer->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&buffer));
-		resourcebuffer->Release();
-
-		D3D11_TEXTURE2D_DESC t2ddesc;
-		buffer->GetDesc(&t2ddesc);
-		t2ddesc.BindFlags = 0;
-		t2ddesc.Usage = D3D11_USAGE_STAGING;
-		t2ddesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-
-		ID3D11Texture2D* TempData;
-		SK_CHECK(m_DXApi->GetDevice()->CreateTexture2D(&t2ddesc, nullptr, &TempData));
-
-		m_DXApi->GetContext()->CopyResource(TempData, buffer);
-		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_CHECK(m_DXApi->GetContext()->Map(TempData, 0, D3D11_MAP_READ, 0, &ms));
-
-		void* alignedData = new char[(uint64_t)t2ddesc.Width * t2ddesc.Height * 4];
-		uint8_t* dest = (uint8_t*)alignedData;
-		const uint8_t* src = (uint8_t*)ms.pData;
-		const uint32_t destPitch = t2ddesc.Width * 4;
-		const uint32_t srcPitch = ms.RowPitch;
-		for (uint32_t cnt = 0; cnt < t2ddesc.Height; ++cnt)
-		{
-			memcpy(dest, src, destPitch);
-			dest += destPitch;
-			src += srcPitch;
-		}
-
-		Ref<Texture2D> texture = Texture2D::Create({}, m_Specification.Width, m_Specification.Height, 0u);
-		texture->SetData(alignedData);
-		delete[] alignedData;
-
-		buffer->Release();
-		TempData->Release();
-
-		return texture;
-	}
-
 	void DirectXFrameBuffer::GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture)
 	{
 		SK_CORE_ASSERT(index < m_Count, "Index out of range");
+		auto* ctx = m_DXApi->GetContext();
+		auto* dev = m_DXApi->GetDevice();
 
-		ID3D11Texture2D* buffer;
-		ID3D11Resource* resourcebuffer;
-		m_FrameBuffers[index]->GetResource(&resourcebuffer);
-		SK_CHECK(resourcebuffer->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&buffer));
-		resourcebuffer->Release();
+		ID3D11Resource* buffer;
+		m_FrameBuffers[index]->GetResource(&buffer);
 
-		D3D11_TEXTURE2D_DESC t2ddesc;
-		buffer->GetDesc(&t2ddesc);
-		t2ddesc.BindFlags = 0;
-		t2ddesc.Usage = D3D11_USAGE_STAGING;
-		t2ddesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		auto* srv = (ID3D11ShaderResourceView*)texture->GetRenderID().ID;
+		ID3D11Resource* res;
+		srv->GetResource(&res);
+		ctx->CopyResource(res, buffer);
 
-		ID3D11Texture2D* TempData;
-		SK_CHECK(m_DXApi->GetDevice()->CreateTexture2D(&t2ddesc, nullptr, &TempData));
-
-		m_DXApi->GetContext()->CopyResource(TempData, buffer);
-		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_CHECK(m_DXApi->GetContext()->Map(TempData, 0, D3D11_MAP_READ, 0, &ms));
-
-		void* alignedData = new char[(uint64_t)t2ddesc.Width * t2ddesc.Height * 4];
-		uint8_t* dest = (uint8_t*)alignedData;
-		const uint8_t* src = (uint8_t*)ms.pData;
-		const uint32_t destPitch = t2ddesc.Width * 4;
-		const uint32_t srcPitch = ms.RowPitch;
-		for (uint32_t cnt = 0; cnt < t2ddesc.Height; ++cnt)
-		{
-			memcpy(dest, src, destPitch);
-			dest += destPitch;
-			src += srcPitch;
-		}
-		texture->SetData(alignedData);
-		delete[] alignedData;
-
+		res->Release();
 		buffer->Release();
-		TempData->Release();
 	}
 
 	int DirectXFrameBuffer::ReadPixel(uint32_t index, int x, int y)
 	{
 		SK_CORE_ASSERT(index < m_Count, "Index out of range");
+		auto* ctx = m_DXApi->GetContext();
+		auto* dev = m_DXApi->GetDevice();
 
 		ID3D11Texture2D* buffer;
 		ID3D11Resource* resourcebuffer;
@@ -256,14 +186,16 @@ namespace Shark {
 		t2ddesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 
 		ID3D11Texture2D* TempData;
-		m_DXApi->GetDevice()->CreateTexture2D(&t2ddesc, nullptr, &TempData);
+		SK_CHECK(dev->CreateTexture2D(&t2ddesc, nullptr, &TempData));
 
-		m_DXApi->GetContext()->CopyResource(TempData, buffer);
+		ctx->CopyResource(TempData, buffer);
 		D3D11_MAPPED_SUBRESOURCE ms;
-		m_DXApi->GetContext()->Map(TempData, 0, D3D11_MAP_READ, 0, &ms);
+		SK_CHECK(ctx->Map(TempData, 0, D3D11_MAP_READ, 0, &ms));
 
 		int pitch = ms.RowPitch / 4;
 		int data = ((int*)ms.pData)[y * pitch + x];
+
+		ctx->Unmap(TempData, 0);
 
 		buffer->Release();
 		TempData->Release();
@@ -273,16 +205,22 @@ namespace Shark {
 
 	void DirectXFrameBuffer::Bind()
 	{
-		m_DXApi->GetContext()->OMSetDepthStencilState(m_DepthStencilState, 1);
-		m_DXApi->GetContext()->OMSetRenderTargets(m_Count, m_FrameBuffers.data(), m_DepthStencil);
-		m_DXApi->GetContext()->OMSetBlendState(m_BlendState, nullptr, 0xffffffff);
+		auto* ctx = m_DXApi->GetContext();
+
+		ctx->OMSetDepthStencilState(m_DepthStencilState, 1);
+		ctx->OMSetRenderTargets(m_Count, m_FrameBuffers.data(), m_DepthStencil);
+		ctx->OMSetBlendState(m_BlendState, nullptr, 0xffffffff);
+		ctx->RSSetViewports(1, &m_Viewport);
 	}
 
 	void DirectXFrameBuffer::UnBind()
 	{
-		m_DXApi->GetContext()->OMSetDepthStencilState(nullptr, 0);
-		m_DXApi->GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
-		m_DXApi->GetContext()->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+		auto* ctx = m_DXApi->GetContext();
+
+		ctx->OMSetDepthStencilState(nullptr, 0);
+		ctx->OMSetRenderTargets(0, nullptr, nullptr);
+		ctx->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+		ctx->RSSetViewports(1, nullptr);
 	}
 
 	void DirectXFrameBuffer::CreateSwapChainBuffer(uint32_t index)
@@ -306,7 +244,6 @@ namespace Shark {
 		ds.DepthFunc = D3D11_COMPARISON_LESS;
 
 		SK_CHECK(m_DXApi->GetDevice()->CreateDepthStencilState(&ds, &m_DepthStencilState));
-		m_DXApi->GetContext()->OMSetDepthStencilState(m_DepthStencilState, 1u);
 
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
@@ -355,12 +292,20 @@ namespace Shark {
 		SK_CHECK(m_DXApi->GetDevice()->CreateTexture2D(&td, nullptr, &texture));
 		if (index >= m_FrameBuffers.size())
 			m_FrameBuffers.push_back(nullptr);
+
 		SK_CHECK(m_DXApi->GetDevice()->CreateRenderTargetView(texture, nullptr, &m_FrameBuffers[index]));
 		texture->Release();
 	}
 
 	void DirectXFrameBuffer::CreateBuffers()
 	{
+		m_Viewport.TopLeftX = 0;
+		m_Viewport.TopLeftY = 0;
+		m_Viewport.Width = m_Specification.Width;
+		m_Viewport.Height = m_Specification.Height;
+		m_Viewport.MinDepth = 0;
+		m_Viewport.MaxDepth = 1;
+
 		D3D11_BLEND_DESC bd;
 		bd.AlphaToCoverageEnable = false;
 		bd.IndependentBlendEnable = true;
