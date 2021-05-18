@@ -13,11 +13,14 @@ namespace Shark::UI {
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
+		ImGui::AlignTextToFramePadding();
 		ImGui::Text(lable);
 		ImGui::NextColumn();
 
-		const ImVec2 buttonSize = { 19, 19 };
-		const float itemWidth = ImGui::GetColumnWidth() - buttonSize.x - 8.0f;
+		auto& style = ImGui::GetStyle();
+		const float buttonHeight = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
+		const ImVec2 buttonSize = { buttonHeight, buttonHeight };
+		const float itemWidth = ImGui::GetColumnWidth() - buttonSize.x - style.FramePadding.x * 2.0f;
 		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_ReadOnly | ImGuiSliderFlags_NoInput;
 
 		ImGui::PushItemWidth(itemWidth);
@@ -40,11 +43,14 @@ namespace Shark::UI {
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
+		ImGui::AlignTextToFramePadding();
 		ImGui::Text(lable);
 		ImGui::NextColumn();
 
-		const ImVec2 buttonSize = { 19, 19 };
-		const float itemWidth = ImGui::GetColumnWidth() / 2.0f - buttonSize.x - 8.0f;
+		auto& style = ImGui::GetStyle();
+		const float buttonHeight = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
+		const ImVec2 buttonSize = { buttonHeight, buttonHeight };
+		const float itemWidth = ImGui::GetColumnWidth() / 2.0f - buttonSize.x - style.FramePadding.x * 2.0f;
 		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_ReadOnly | ImGuiSliderFlags_NoInput;
 
 		ImGui::PushItemWidth(itemWidth);
@@ -72,11 +78,14 @@ namespace Shark::UI {
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
+		ImGui::AlignTextToFramePadding();
 		ImGui::Text(lable);
 		ImGui::NextColumn();
 
-		const ImVec2 buttonSize = { 19, 19 };
-		const float itemWidth = ImGui::GetColumnWidth() / 3.0f - buttonSize.x - 8.0f;
+		auto& style = ImGui::GetStyle();
+		const float buttonHeight = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
+		const ImVec2 buttonSize = { buttonHeight, buttonHeight };
+		const float itemWidth = ImGui::GetColumnWidth() / 3.0f - buttonSize.x - style.FramePadding.x * 2.0f;
 		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_ReadOnly | ImGuiSliderFlags_NoInput;
 
 		ImGui::PushItemWidth(itemWidth);
@@ -109,11 +118,14 @@ namespace Shark::UI {
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
+		ImGui::AlignTextToFramePadding();
 		ImGui::Text(lable);
 		ImGui::NextColumn();
 
-		const ImVec2 buttonSize = { 19, 19 };
-		const float itemWidth = ImGui::GetColumnWidth() - buttonSize.x - 8.0f;
+		auto& style = ImGui::GetStyle();
+		const float buttonHeight = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
+		const ImVec2 buttonSize = { buttonHeight, buttonHeight };
+		const float itemWidth = ImGui::GetColumnWidth() - buttonSize.x - style.FramePadding.x * 2.0f;
 		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_NoRoundToFormat;
 
 		bool valchanged = false;
@@ -144,11 +156,14 @@ namespace Shark::UI {
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
+		ImGui::AlignTextToFramePadding();
 		ImGui::Text(lable);
 		ImGui::NextColumn();
 
-		const ImVec2 buttonSize = { 19, 19 };
-		const float itemWidth = ImGui::GetColumnWidth() / 2.0f - buttonSize.x - 8.0f;
+		auto& style = ImGui::GetStyle();
+		const float buttonHeight = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
+		const ImVec2 buttonSize = { buttonHeight, buttonHeight };
+		const float itemWidth = ImGui::GetColumnWidth() / 2.0f - buttonSize.x - style.FramePadding.x * 2.0f;
 		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_NoRoundToFormat;
 
 		bool valchanged = false;
@@ -188,11 +203,14 @@ namespace Shark::UI {
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
+		ImGui::AlignTextToFramePadding();
 		ImGui::Text(lable);
 		ImGui::NextColumn();
 
-		const ImVec2 buttonSize = { 19, 19 };
-		const float itemWidth = ImGui::GetColumnWidth() / 3.0f - buttonSize.x - 8.0f;
+		auto& style = ImGui::GetStyle();
+		const float buttonHeight = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
+		const ImVec2 buttonSize = { buttonHeight, buttonHeight };
+		const float itemWidth = ImGui::GetColumnWidth() / 3.0f - buttonSize.x - style.FramePadding.x * 2.0f;
 		constexpr ImGuiSliderFlags sliderFalgs = ImGuiSliderFlags_NoRoundToFormat;
 
 		bool valchanged = false;

@@ -25,4 +25,6 @@ namespace Shark::Utility {
 
 	std::filesystem::path CreatePathFormIterator(const std::filesystem::path::const_iterator& begin, const std::filesystem::path::const_iterator& end);
 
+	std::filesystem::path MakeAbsolutePathRelative(const std::filesystem::path& path);
+
 }

@@ -413,15 +413,15 @@ namespace Shark {
 		auto [wx, wy] = ImGui::GetWindowPos();
 		int x = mx - wx;
 		int y = my - wy;
-		int ID = -1;
+		m_HoveredEntityID = -1;
 		if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight)
 		{
-			ID = m_FrameBuffer->ReadPixel(1, x, y);
+			m_HoveredEntityID = m_FrameBuffer->ReadPixel(1, x, y);
 			if (Input::MousePressed(Mouse::LeftButton) && m_ViewportHovered)
 			{
-				if (ID != -1)
+				if (m_HoveredEntityID != -1)
 				{
-					Entity entity{ (entt::entity)(uint32_t)ID, Weak(*m_Scean) };
+					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, Weak(*m_Scean) };
 					Utils::ChangeSelectedEntity(entity);
 				}
 				else
@@ -430,6 +430,49 @@ namespace Shark {
 				}
 			}
 		}
+
+		// DragDrop
+		if (ImGui::BeginDragDropTarget())
+		{
+			// Scean Payload
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DragDropType::Scean);
+				if (payload)
+				{
+					std::string path = std::string((const char*)payload->Data, payload->DataSize);
+
+					m_PlayScean = false;
+					m_Scean.Deserialize(path);
+					m_Scean->AddEditorData(true);
+
+					m_SceanHirachyPanel.SetContext(*m_Scean);
+					m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+				}
+			}
+			// Texture Payload
+			{
+				if (m_HoveredEntityID != -1)
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DragDropType::Texture);
+					if (payload)
+					{
+						Entity entity{ (entt::entity)m_HoveredEntityID, Weak(*m_Scean) };
+						SK_CORE_ASSERT(entity.IsValid());
+						if (entity.HasComponent<SpriteRendererComponent>())
+						{
+							std::string path = std::string((const char*)payload->Data, payload->DataSize);
+							auto& sr = entity.GetComponent<SpriteRendererComponent>();
+							sr.Texture = Texture2D::Create({}, path);
+						}
+					}
+				}
+			}
+
+			
+
+			ImGui::EndDragDropTarget();
+		}
+
 
 		ImGui::End();
 
@@ -447,13 +490,13 @@ namespace Shark {
 			ImGui::Text("Callback Count: %d", s.Callbacks);
 
 			ImGui::NewLine();
-			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && ID != -1)
+			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && m_HoveredEntityID != -1)
 			{
-				Entity e{ (entt::entity)ID, Weak(*m_Scean) };
+				Entity e{ (entt::entity)m_HoveredEntityID, Weak(*m_Scean) };
 				if (e.IsValid())
 				{
 					const auto& tag = e.GetComponent<TagComponent>().Tag;
-					ImGui::Text("Hoverted Entity: ID: %d, Tag: %s", ID, tag.c_str());
+					ImGui::Text("Hoverted Entity: ID: %d, Tag: %s", m_HoveredEntityID, tag.c_str());
 				}
 				else
 				{
@@ -519,6 +562,8 @@ namespace Shark {
 			m_SceanHirachyPanel.OnImGuiRender();
 
 		m_AssetsPanel.OnImGuiRender();
+
+		ImGui::ShowDemoWindow();
 	}
 
 	void EditorLayer::NewScean()

@@ -43,4 +43,12 @@ namespace Shark::Utility {
 		return std::move(path);
 	}
 
+	std::filesystem::path MakeAbsolutePathRelative(const std::filesystem::path& path)
+	{
+		SK_CORE_ASSERT(path.is_absolute(), "Path must be absolute");
+		auto& str = path.string();
+		auto&& currPath = std::filesystem::current_path().string();
+		return str.substr(currPath.length() + 1);
+	}
+
 }

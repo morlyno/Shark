@@ -13,6 +13,7 @@ namespace Shark {
 			std::filesystem::directory_entry Entry;
 			std::filesystem::path Path;
 			std::string PathString;
+			std::string PathExtenstion;
 			std::string FileName;
 			std::string FileNameShort;
 			DirectoryEntry(const std::filesystem::directory_entry& entry)
@@ -22,6 +23,7 @@ namespace Shark {
 				PathString = Path.string();
 				FileName = Path.filename().string();
 				FileNameShort = Path.filename().replace_extension().string();
+				PathExtenstion = Path.extension().string();
 			}
 		};
 	public:

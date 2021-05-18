@@ -57,6 +57,8 @@ namespace Shark {
 		bool m_ShowSceanHirachyPanel = true;
 		bool m_ShowEditorCameraControlls = true;
 
+		int m_HoveredEntityID = -1;
+
 		Ref<Texture2D> m_FrameBufferTexture;
 
 		// Box2D Test

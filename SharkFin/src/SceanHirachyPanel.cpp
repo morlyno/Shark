@@ -31,7 +31,8 @@ namespace Shark {
 				bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
 				ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
 				ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-				bool removed = ImGui::Button("x", { 19, 19 });
+				float LineHeight = ImGui::GetItemRectSize().y;
+				bool removed = ImGui::Button("x", { LineHeight, LineHeight });
 				ImGui::PopStyleColor();
 
 				if (opened)
@@ -241,7 +242,8 @@ namespace Shark {
 		{
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100);
-				
+			
+			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Color");
 			ImGui::NextColumn();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
@@ -261,6 +263,19 @@ namespace Shark {
 					comp.Texture = Texture2D::Create({}, relativePaht.string());
 				}
 			}
+
+			// Drag Drop
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DragDropType::Texture);
+				if (payload)
+				{
+					std::string path = std::string((const char*)payload->Data, payload->DataSize);
+					comp.Texture = Texture2D::Create({}, path);
+				}
+				ImGui::EndDragDropTarget();
+			}
+
 
 			ImGui::NextColumn();
 			if (comp.Texture)

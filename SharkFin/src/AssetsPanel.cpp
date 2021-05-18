@@ -13,6 +13,16 @@ namespace Shark {
 			return std::filesystem::current_path() / "assets\\";
 		}
 
+		static const char* GetDragDropType(const std::filesystem::path& file)
+		{
+			auto&& extension = file.extension();
+			if (extension == ".shark")
+				return DragDropType::Scean;
+			if (extension == ".png")
+				return DragDropType::Texture;
+			return DragDropType::Typeless;
+		}
+
 	}
 
 	AssetsPanel::AssetsPanel()
@@ -33,11 +43,18 @@ namespace Shark {
 
 	void AssetsPanel::OnImGuiRender()
 	{
-		ImGui::Begin("Assets");
+		if (!ImGui::Begin("Assets"))
+		{
+			ImGui::End();
+			return;
+		}
 
 		ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.5f, 0.5f, 0.5f, 0.1f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.5f, 0.5f, 0.5f, 0.3f });
+
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		window->DC.CursorPos.y -= ImGui::GetStyle().FramePadding.y;
 
 		// Navigation Buttons
 		DrawNavigationButtons();
@@ -50,9 +67,6 @@ namespace Shark {
 		ImGui::SameLine();
 		DrawCurrentPath();
 
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		window->DC.CursorPos.y += 8.0f;
-
 		ImGui::Separator();
 
 		if (ImGui::BeginTable("AssetsPanel", 2, ImGuiTableFlags_Resizable))
@@ -61,7 +75,8 @@ namespace Shark {
 
 			// Directorys
 			ImGui::TableSetColumnIndex(0);
-			const bool opened = ImGui::TreeNodeEx("assets", ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow);
+			constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen;
+			const bool opened = ImGui::TreeNodeEx("assets", flags);
 
 			if (ImGui::IsItemClicked())
 				OnDirectoryClicked(Utils::AssetsDirectory());
@@ -93,20 +108,12 @@ namespace Shark {
 	void AssetsPanel::OnDirectoryClicked(const std::filesystem::path& path)
 	{
 		m_WantResetFilter = true;
-		SK_CORE_TRACE("Folder Clicked: {0}", path);
 		m_CurrentPath = path;
 
 		if (m_DirHistoryIndex != m_DirectoryHistory.size() - 1)
 		{
-			SK_CORE_TRACE("------- History overriden -------");
-			for (auto& d : m_DirectoryHistory)
-				SK_CORE_TRACE("Old: {0}", d);
 			auto& d = m_DirectoryHistory;
 			d.erase(d.begin() + m_DirHistoryIndex + 1, d.end());
-			for (auto& d : m_DirectoryHistory)
-				SK_CORE_TRACE("New: {0}", d);
-			SK_CORE_TRACE("New: {0}", path);
-
 		}
 
 		m_DirHistoryIndex = m_DirectoryHistory.size();
@@ -123,10 +130,8 @@ namespace Shark {
 	{
 		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
 
-		for (auto&& e : std::filesystem::directory_iterator(directory))
+		for (DirectoryEntry&& entry : std::filesystem::directory_iterator(directory))
 		{
-			DirectoryEntry entry{ e };
-
 			if (entry.Entry.is_directory())
 			{
 				const bool isOpen = ImGui::TreeNodeEx(entry.FileName.c_str(), flags);
@@ -166,9 +171,10 @@ namespace Shark {
 
 	void AssetsPanel::DrawCurrentPath()
 	{
-		// TODO: Create owne relative funtion (this bullshit uses aroung 50 allocations!!!!)
-		std::filesystem::path relativePath = std::filesystem::relative(m_CurrentPath);
-		for (auto&& pathElem = relativePath.begin(); pathElem != relativePath.end(); ++pathElem)
+		std::filesystem::path relativePath = Utility::MakeAbsolutePathRelative(m_CurrentPath);
+		const auto begin = relativePath.begin();
+		const auto end = relativePath.end();
+		for (auto pathElem = begin; pathElem != end; ++pathElem)
 		{
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
 			const ImVec2 prevCursor = window->DC.CursorPos;
@@ -183,28 +189,23 @@ namespace Shark {
 			const bool isHoverd = ImGui::IsItemHovered();
 
 			window->DC.CursorPos = prevCursor;
-			float fontSize = ImGui::GetFontSize();
-			float cursorOffsetY = (size.y - fontSize) * 0.5f;
-			window->DC.CursorPos.y += cursorOffsetY;
 
+			ImGui::AlignTextToFramePadding();
 			if (isHoverd)
 				ImGui::Text(label.c_str());
 			else
 				ImGui::TextDisabled(label.c_str());
 
-			window->DC.CursorPosPrevLine.y -= cursorOffsetY;
-
 			if (pathElem != --relativePath.end())
 			{
 				ImGui::SameLine(0.0f, 0.0f);
-				window->DC.CursorPos.y += cursorOffsetY;
+				ImGui::AlignTextToFramePadding();
 				ImGui::TextDisabled("\\\\");
-				window->DC.CursorPosPrevLine.y -= cursorOffsetY;
 				ImGui::SameLine(0.0f, 0.0f);
 			}
 
 			if (isClicked)
-				OnDirectoryClicked(Utility::CreatePathFormIterator(relativePath.begin(), std::next(pathElem)));
+				OnDirectoryClicked(Utility::CreatePathFormIterator(begin, std::next(pathElem)));
 		}
 	}
 
@@ -215,13 +216,12 @@ namespace Shark {
 
 		if (ImGui::BeginTable("FilesAndFolders", Collums))
 		{
-			for (auto&& entry : std::filesystem::directory_iterator(m_CurrentPath))
+			for (DirectoryEntry entry : std::filesystem::directory_iterator(m_CurrentPath))
 			{
 				ImGui::TableNextColumn();
-				DirectoryEntry temp{ entry };
-				const bool isDirectory = entry.is_directory();
+				const bool isDirectory = entry.Entry.is_directory();
 				const RenderID imageID = isDirectory ? m_DirectoryImage->GetRenderID() : m_FileImage->GetRenderID();
-				DrawDirectoryEntry(imageID, temp);
+				DrawDirectoryEntry(imageID, entry);
 			}
 
 			ImGui::EndTable();
@@ -244,15 +244,14 @@ namespace Shark {
 
 		if (ImGui::BeginTable("FilesAndFolders", Collums))
 		{
-			for (auto&& e : std::filesystem::recursive_directory_iterator(Utils::AssetsDirectory()))
+			for (DirectoryEntry entry : std::filesystem::recursive_directory_iterator(Utils::AssetsDirectory()))
 			{
-				DirectoryEntry entry{ e };
 				const bool passedFilter = CheckFileOnFilter(entry.FileName);
 
 				if (passedFilter)
 				{
 					ImGui::TableNextColumn();
-					const bool isDirectory = e.is_directory();
+					const bool isDirectory = entry.Entry.is_directory();
 					const RenderID imageID = isDirectory ? m_DirectoryImage->GetRenderID() : m_FileImage->GetRenderID();
 
 					DrawDirectoryEntry(imageID, entry);
@@ -283,19 +282,36 @@ namespace Shark {
 		ImGui::PushID(entry.FileName.c_str());
 
 		const bool pressed = ImGui::ImageButton(imageID, m_ImageSize);
+		const bool hovered = ImGui::IsItemHovered();
 
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(entry.PathString.c_str());
-
-		ImGui::TextWrapped(entry.FileNameShort.c_str());
+		if (entry.Entry.is_regular_file())
+		{
+			if (ImGui::BeginDragDropSource())
+			{
+				SK_CORE_ASSERT(sizeof(*entry.PathString.data()) == 1);
+				SK_CORE_ASSERT(!entry.PathString.empty());
+				ImGui::SetDragDropPayload(Utils::GetDragDropType(entry.Path), entry.PathString.c_str(), entry.PathString.length());
+				ImGui::EndDragDropSource();
+			}
+		}
 
 		if (pressed)
 		{
 			if (entry.Entry.is_directory())
 				OnDirectoryClicked(entry.Path);
-			else
+			else if (entry.Entry.is_regular_file())
+			{
 				OnFileClicked(entry.Path);
+			}
+			else
+				SK_CORE_ASSERT(false);
 		}
+
+		if (hovered)
+			ImGui::SetTooltip(entry.PathString.c_str());
+
+
+		ImGui::TextWrapped(entry.FileNameShort.c_str());
 
 		ImGui::PopID();
 	}

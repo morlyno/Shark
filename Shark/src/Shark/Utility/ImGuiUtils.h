@@ -6,20 +6,31 @@
 
 #include <DirectXMath.h>
 
-namespace Shark::UI {
+namespace Shark {
 
-	void DrawFloatShow(const char* lable, float val, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacter = "X");
+	struct DragDropType
+	{
+		static constexpr const char* Scean = "Scean";
+		static constexpr const char* Texture = "Texture";
+		static constexpr const char* Typeless = "Typeless";
+	};
 
-	void DrawVec2Show(const char* lable, DirectX::XMFLOAT2 vec, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y");
+	namespace UI {
 
-	void DrawVec3Show(const char* lable, DirectX::XMFLOAT3 vec, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y\0Z");
+		void DrawFloatShow(const char* lable, float val, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacter = "X");
 
-	bool DrawFloatControl(const char* lable, float& val, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacter = "X");
+		void DrawVec2Show(const char* lable, DirectX::XMFLOAT2 vec, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y");
 
-	bool DrawVec2Control(const char* lable, DirectX::XMFLOAT2& vec, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y");
+		void DrawVec3Show(const char* lable, DirectX::XMFLOAT3 vec, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y\0Z");
 
-	bool DrawVec3Control(const char* lable, DirectX::XMFLOAT3& vec, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y\0Z");
+		bool DrawFloatControl(const char* lable, float& val, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacter = "X");
 
-	void NoAlpaImage(const Ref<FrameBuffer>& framebuffer, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, const ImVec4& tintcolor = { 1, 1, 1, 1 }, const ImVec4& bordercolor = { 0, 0 , 0, 0 });
+		bool DrawVec2Control(const char* lable, DirectX::XMFLOAT2& vec, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y");
+
+		bool DrawVec3Control(const char* lable, DirectX::XMFLOAT3& vec, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y\0Z");
+
+		void NoAlpaImage(const Ref<FrameBuffer>& framebuffer, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, const ImVec4& tintcolor = { 1, 1, 1, 1 }, const ImVec4& bordercolor = { 0, 0 , 0, 0 });
+
+	}
 
 }
