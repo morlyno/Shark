@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 #include <DirectXMath.h>
+#include <filesystem>
 
 namespace Shark::Utility {
 
@@ -16,12 +17,12 @@ namespace Shark::Utility {
 			: r(r), g(g), b(b), a(a) {}
 	};
 
-	std::string MakePathRelative(const std::string& filepath);
-
 	ImVec4 ToImVec4(const DirectX::XMFLOAT4& color);
 
 	std::vector<std::string> StringSplit(const std::string& str, const std::string& splitter = " ");
 
 	std::string ToLower(const std::string& src);
+
+	std::filesystem::path CreatePathFormIterator(const std::filesystem::path::const_iterator& begin, const std::filesystem::path::const_iterator& end);
 
 }

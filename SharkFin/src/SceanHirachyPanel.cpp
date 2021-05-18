@@ -254,9 +254,12 @@ namespace Shark {
 			RenderID image = comp.Texture ? comp.Texture->GetRenderID() : nullptr;
 			if (ImGui::ImageButton(image, { 48, 48 }, { 0, 0 }, { 1, 1 }, -1, { 0.0f, 0.0f, 0.0f, 1.0f }, Utility::ToImVec4(comp.Color)))
 			{
-				std::optional<std::string> imagePath = FileDialogs::OpenFile("Texture (*.*)\0*.*\0");
-				if (imagePath)
-					comp.Texture = Texture2D::Create({}, Utility::MakePathRelative(*imagePath));
+				std::string imagePath = FileDialogs::OpenFile("Texture (*.*)\0*.*\0");
+				if (!imagePath.empty())
+				{
+					auto relativePaht = std::filesystem::relative(imagePath);
+					comp.Texture = Texture2D::Create({}, relativePaht.string());
+				}
 			}
 
 			ImGui::NextColumn();

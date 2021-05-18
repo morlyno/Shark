@@ -6,8 +6,8 @@ namespace Shark {
 
 	namespace FileDialogs {
 
-		std::optional<std::string> OpenFile(const char* filter);
-		std::optional<std::string> SaveFile(const char* filter);
+		std::string OpenFile(const char* filter);
+		std::string SaveFile(const char* filter);
 
 	};
 

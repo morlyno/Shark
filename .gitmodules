@@ -1,12 +1,12 @@
 [submodule "Shark/dependencies/spdlog"]
 	path = Shark/dependencies/spdlog
 	url = https://github.com/gabime/spdlog
-[submodule "Shark/dependencies/ImGui"]
-	path = Shark/dependencies/ImGui
-	url = https://github.com/morlyno/imgui
 [submodule "Shark/dependencies/yaml-cpp"]
 	path = Shark/dependencies/yaml-cpp
 	url = https://github.com/morlyno/yaml-cpp
 [submodule "Shark/dependencies/box2d"]
 	path = Shark/dependencies/box2d
 	url = https://github.com/morlyno/box2d
+[submodule "Shark/dependencies/ImGui"]
+	path = Shark/dependencies/ImGui
+	url = https://github.com/morlyno/imgui.git

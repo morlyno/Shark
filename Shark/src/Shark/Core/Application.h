@@ -7,6 +7,8 @@
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
 
+#include <filesystem>
+
 int main(int argc, char** argb);
 
 namespace Shark {
@@ -29,11 +31,10 @@ namespace Shark {
 
 		void CloseApplication() { m_Running = false; }
 
-		static inline Application& Get() { return *s_Instance; }
-		inline Window& GetWindow() { return *m_Window; }
+		static Application& Get() { return *s_Instance; }
+		Window& GetWindow() { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
 
-		static const std::string& GetRootDirectory() { return s_Instance->m_ProjectRootDirectory; }
 	private:
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnApplicationClose(ApplicationCloseEvent& event);
@@ -41,7 +42,7 @@ namespace Shark {
 
 	private:
 		static Application* s_Instance;
-		std::string m_ProjectRootDirectory;
+		std::filesystem::path m_WorkingDirectory;
 
 		bool m_Minimized = false;
 		bool m_Running = true;

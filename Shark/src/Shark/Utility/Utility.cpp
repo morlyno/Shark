@@ -1,18 +1,9 @@
 #include "skpch.h"
 #include "Utility.h"
 
-#include "Shark/Core/Application.h"
 #include <filesystem>
 
 namespace Shark::Utility {
-
-	std::string MakePathRelative(const std::string& filepath)
-	{
-		std::filesystem::path path = filepath;
-		std::string rootdir = Application::GetRootDirectory();
-		auto relativePath = path.lexically_relative(rootdir).string();
-		return relativePath;
-	}
 
 	ImVec4 ToImVec4(const DirectX::XMFLOAT4& color)
 	{
@@ -42,6 +33,14 @@ namespace Shark::Utility {
 			return std::tolower(c);
 		});
 		return str;
+	}
+
+	std::filesystem::path CreatePathFormIterator(const std::filesystem::path::const_iterator& begin, const std::filesystem::path::const_iterator& end)
+	{
+		std::filesystem::path path;
+		for (auto it = begin; it != end; ++it)
+			path /= *it;
+		return std::move(path);
 	}
 
 }

@@ -256,8 +256,8 @@ namespace Shark {
 										          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
         ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->GetWorkPos());
-        ImGui::SetNextWindowSize(viewport->GetWorkSize());
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
         ImGui::SetNextWindowViewport(viewport->ID);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -517,6 +517,8 @@ namespace Shark {
 
 		if (m_ShowSceanHirachyPanel)
 			m_SceanHirachyPanel.OnImGuiRender();
+
+		m_AssetsPanel.OnImGuiRender();
 	}
 
 	void EditorLayer::NewScean()
@@ -530,20 +532,18 @@ namespace Shark {
 	void EditorLayer::SaveScean()
 	{
 		auto filepath = FileDialogs::SaveFile("Shark Scean (*.shark)\0*.shark\0");
-		if (filepath)
-		{
-			m_Scean.Serialize(*filepath);
-		}
+		if (!filepath.empty())
+			m_Scean.Serialize(filepath);
 
 	}
 
 	void EditorLayer::OpenScean()
 	{
 		auto filepath = FileDialogs::OpenFile("Shark Scean (*.shark)\0*.shark\0");
-		if (filepath)
+		if (!filepath.empty())
 		{
 			m_PlayScean = false;
-			m_Scean.Deserialize(*filepath);
+			m_Scean.Deserialize(filepath);
 			m_Scean->AddEditorData(true);
 
 			m_SceanHirachyPanel.SetContext(*m_Scean);

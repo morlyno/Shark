@@ -14,11 +14,8 @@ namespace Shark {
 
 	Application::Application(int argc, char** argv)
 	{
-		std::string str = argv[0];
-		size_t i = str.find("bin\\");
-		m_ProjectRootDirectory = str.substr(0, i - 1);
-		m_ProjectRootDirectory += "\\SharkFin";
-		SK_CORE_INFO("Project Directroy: {0}", m_ProjectRootDirectory);
+		m_WorkingDirectory = std::filesystem::current_path();
+		std::filesystem::current_path(m_WorkingDirectory);
 
 		SK_CORE_ASSERT(!s_Instance, "Application allready set");
 		s_Instance = this;

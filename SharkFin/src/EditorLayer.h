@@ -4,6 +4,7 @@
 #include <Shark/Render/EditorCamera.h>
 
 #include "SceanHirachyPanel.h"
+#include "AssetsPanel.h"
 
 #include <box2d/box2d.h>
 
@@ -45,6 +46,7 @@ namespace Shark {
 
 		SceanController m_Scean;
 		SceanHirachyPanel m_SceanHirachyPanel;
+		AssetsPanel m_AssetsPanel;
 
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
