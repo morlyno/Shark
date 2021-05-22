@@ -3,6 +3,6 @@
 
 namespace Shark {
 
-	Ref<RendererAPI> RendererCommand::s_RendererAPI = nullptr;
+	Scope<RendererAPI> RendererCommand::s_RendererAPI = nullptr;
 
 }

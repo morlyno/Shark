@@ -2,8 +2,6 @@
 
 #include "Shark/Render/Texture.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
-
 #include <d3d11.h>
 
 namespace Shark {
@@ -30,12 +28,12 @@ namespace Shark {
 		virtual void UnBind() override { UnBind(m_Slot); }
 		virtual void Bind(uint32_t slot) override;
 		virtual void UnBind(uint32_t slot) override;
+
 	private:
 		void CreateTexture(void* data);
 		void CreateSampler(const SamplerProps& props);
-	private:
-		Weak<DirectXRendererAPI> m_DXApi;
 
+	private:
 		std::string m_FilePath;
 		uint32_t m_Width;
 		uint32_t m_Height;

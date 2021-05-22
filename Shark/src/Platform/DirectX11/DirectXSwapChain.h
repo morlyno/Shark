@@ -1,27 +1,88 @@
 #pragma once
 
-#include "Shark/Render/SwapChain.h"
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXFrameBuffer.h"
+#include <d3d11.h>
 
 namespace Shark {
 
-	class DirectXSwapChain : public SwapChain
+	enum class DepthAtachment
+	{
+		None = 0,
+		Depth32,
+
+		Depth = Depth32
+	};
+
+	struct SwapChainFrameBufferSpecification
+	{
+		DepthAtachment DepthAtachment = DepthAtachment::None;
+		uint32_t Width = 0, Height = 0;
+		bool Blend = false;
+	};
+
+	class DirectXSwapChainFrameBuffer : public RefCount
+	{
+	public:
+		DirectXSwapChainFrameBuffer(IDXGISwapChain* swapchain, const SwapChainFrameBufferSpecification& specs);
+		~DirectXSwapChainFrameBuffer();
+
+		void Release();
+		void Resize(IDXGISwapChain* swapchain, uint32_t width, uint32_t height);
+
+		void Clear(Utility::ColorF32 clearcolor);
+
+		void SetBlend(bool blend);
+		bool GetBlend() const;
+
+		void SetDepth(bool enabled);
+		bool GetDepth() const;
+
+		void Bind();
+		void UnBind();
+	private:
+		void Create(IDXGISwapChain* swapchain);
+
+	private:
+		ID3D11RenderTargetView* m_FrameBuffer = nullptr;
+		ID3D11DepthStencilView* m_DepthStencil = nullptr;
+		ID3D11DepthStencilState* m_DepthStencilState = nullptr;
+		ID3D11BlendState* m_BlendState = nullptr;
+		D3D11_VIEWPORT m_Viewport;
+
+		SwapChainFrameBufferSpecification m_Specification;
+		bool m_DepthEnabled = false;
+	};
+
+	struct SwapChainSpecifications
+	{
+		uint32_t Widht;
+		uint32_t Height;
+		WindowHandle WindowHandle;
+
+		uint32_t BufferCount = 1;
+	};
+
+	class DirectXSwapChain : public RefCount
 	{
 	public:
 		DirectXSwapChain(const SwapChainSpecifications& specs);
-		virtual ~DirectXSwapChain();
+		~DirectXSwapChain();
 
-		virtual void SwapBuffers(bool vsync) override;
-		virtual void Resize(uint32_t width, uint32_t height) override;
+		void SwapBuffers(bool vsync);
+		void Resize(uint32_t width, uint32_t height);
 
-		virtual uint32_t GetBufferCount() const override { return m_BufferCount; }
+		uint32_t GetBufferCount() const { return m_BufferCount; }
+		
+		Ref<DirectXSwapChainFrameBuffer> GetMainFrameBuffer() const { return m_FrameBuffer; }
 
-		void GetBackBuffer(uint32_t index, ID3D11Texture2D** buffer);
+		void Bind() { m_FrameBuffer->Bind(); }
+
 	private:
-		Weak<DirectXRendererAPI> m_DXApi;
-
 		IDXGISwapChain* m_SwapChain = nullptr;
 		uint32_t m_BufferCount;
+
+		Ref<DirectXSwapChainFrameBuffer> m_FrameBuffer = nullptr;
+
 	};
 
 }

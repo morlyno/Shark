@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Shark/Render/FrameBuffer.h"
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include <d3d11.h>
 
 namespace Shark {
 
@@ -29,16 +29,14 @@ namespace Shark {
 
 		virtual void Bind() override;
 		virtual void UnBind() override;
+
 	private:
-		void CreateSwapChainBuffer(uint32_t index);
 		void CreateDepthBuffer();
 		void CreateFrameBuffer(uint32_t index, DXGI_FORMAT dxgiformat);
 
 		void CreateBuffers();
 
 	private:
-		Weak<DirectXRendererAPI> m_DXApi;
-
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;
 		ID3D11DepthStencilState* m_DepthStencilState = nullptr;
@@ -48,5 +46,6 @@ namespace Shark {
 		uint32_t m_Count = 0;
 		FrameBufferSpecification m_Specification;
 		bool m_DepthEnabled = false;
+
 	};
 }

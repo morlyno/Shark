@@ -1,10 +1,8 @@
 #pragma once
 
 #include "Shark/Render/Texture.h"
-#include "Shark/Render/SwapChain.h"
 #include "Shark/Render/Shaders.h"
 #include "Shark/Utility/Utility.h"
-#include <any>
 
 namespace Shark {
 
@@ -14,7 +12,9 @@ namespace Shark {
 		RGBA8,
 		R32_SINT,
 
-		Depth32
+		Depth32,
+
+		Depth = Depth32
 	};
 
 	struct FrmeBufferTextureAtachment
@@ -31,8 +31,6 @@ namespace Shark {
 	{
 		uint32_t Width = 0, Height = 0;
 		std::vector<FrmeBufferTextureAtachment> Atachments;
-		bool SwapChainTarget = false;
-		Weak<SwapChain> SwapChain = nullptr;
 
 		FrameBufferSpecification() = default;
 		FrameBufferSpecification(uint32_t width, uint32_t height, std::initializer_list<FrmeBufferTextureAtachment> atachments)

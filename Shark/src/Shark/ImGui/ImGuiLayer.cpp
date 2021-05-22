@@ -7,7 +7,6 @@
 #include <backends/imgui_impl_win32.h>
 
 #include "Shark/Core/Application.h"
-#include "Shark/Render/RendererCommand.h"
 #include "Platform/DirectX11/DirectXRendererAPI.h"
 
 namespace Shark {
@@ -42,8 +41,8 @@ namespace Shark {
 		ImGui_ImplWin32_Init(window.GetHandle());
 
 
-		auto dxr = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
-		ImGui_ImplDX11_Init(dxr->GetDevice(), dxr->GetContext());
+		auto& dxr = DirectXRendererAPI::Get();
+		ImGui_ImplDX11_Init(dxr.GetDevice(), dxr.GetContext());
 	}
 
 	ImGuiLayer::~ImGuiLayer()

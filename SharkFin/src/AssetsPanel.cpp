@@ -171,7 +171,7 @@ namespace Shark {
 
 	void AssetsPanel::DrawCurrentPath()
 	{
-		std::filesystem::path relativePath = Utility::MakeAbsolutePathRelative(m_CurrentPath);
+		std::filesystem::path relativePath = std::filesystem::relative(m_CurrentPath);
 		const auto begin = relativePath.begin();
 		const auto end = relativePath.end();
 		for (auto pathElem = begin; pathElem != end; ++pathElem)

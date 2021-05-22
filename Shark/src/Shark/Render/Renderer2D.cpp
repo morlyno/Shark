@@ -300,6 +300,7 @@ namespace Shark {
 
 	void Renderer2D::DrawTransform(const TransformComponent& transform, const DirectX::XMFLOAT4& color, int id)
 	{
+		Utils::AddTexture(s_DrawData.WitheTexture);
 		Utils::AddQuad(transform.GetTranform(), s_DrawData.WitheTexture, 1.0f, color, id);
 	}
 

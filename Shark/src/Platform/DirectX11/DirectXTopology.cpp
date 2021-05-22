@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "DirectXTopology.h"
 
-#include "Shark/Render/RendererCommand.h"
+#include "Platform/DirectX11/DirectXRendererAPI.h"
 
 namespace Shark {
 
@@ -33,7 +33,6 @@ namespace Shark {
     DirectXTopology::DirectXTopology(TopologyMode topology)
         : m_D3DTopology(TopologyToD3D11(topology))
     {
-        m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
     }
 
     DirectXTopology::~DirectXTopology()
@@ -42,12 +41,12 @@ namespace Shark {
 
     void DirectXTopology::Bind()
     {
-        m_DXApi->GetContext()->IASetPrimitiveTopology(m_D3DTopology);
+        DirectXRendererAPI::GetContext()->IASetPrimitiveTopology(m_D3DTopology);
     }
 
     void DirectXTopology::UnBind()
     {
-        m_DXApi->GetContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED);
+        DirectXRendererAPI::GetContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED);
     }
 
     void DirectXTopology::SetTopology(TopologyMode toplogy)

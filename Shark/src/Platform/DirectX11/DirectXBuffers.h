@@ -2,8 +2,6 @@
 
 #include "Shark/Render/Buffers.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
-
 #include <d3d11.h>
 
 namespace Shark {
@@ -20,11 +18,11 @@ namespace Shark {
 
 		virtual void Bind() override;
 		virtual void UnBind() override;
+
 	private:
 		void CreateBuffer(void* data, uint32_t size);
-	private:
-		Weak<DirectXRendererAPI> m_DXApi;
 
+	private:
 		VertexLayout m_Layout;
 
 		ID3D11Buffer* m_VertexBuffer = nullptr;
@@ -46,15 +44,16 @@ namespace Shark {
 
 		virtual void Bind() override;
 		virtual void UnBind() override;
+
 	private:
 		void CreateBuffer(IndexType* data, uint32_t count);
-	private:
-		Weak<DirectXRendererAPI> m_DXApi;
 
+	private:
 		ID3D11Buffer* m_IndexBuffer = nullptr;
 		uint32_t m_Count;
 		uint32_t m_Size;
 		bool m_Dynamic;
+
 	};
 
 }

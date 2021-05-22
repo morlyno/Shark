@@ -2,7 +2,7 @@
 
 #include "Shark/Render/Topology.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include <d3d11.h>
 
 namespace Shark {
 
@@ -17,9 +17,10 @@ namespace Shark {
 
 		virtual void SetTopology(TopologyMode toplogy) override;
 		virtual TopologyMode GetTopology() const override;
+
 	private:
-		Weak<DirectXRendererAPI> m_DXApi;
 		D3D11_PRIMITIVE_TOPOLOGY m_D3DTopology;
+
 	};
 
 }

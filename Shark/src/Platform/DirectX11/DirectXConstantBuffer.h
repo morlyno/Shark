@@ -2,7 +2,7 @@
 
 #include "Shark/Render/ConstantBuffer.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include <d3d11.h>
 
 namespace Shark {
 
@@ -20,11 +20,10 @@ namespace Shark {
 		virtual void Set(void* data) override;
 
 	private:
-		Weak<DirectXRendererAPI> m_DXApi;
-
 		ID3D11Buffer* m_ConstBuffer = nullptr;
 		uint32_t m_Size = 0;
 		uint32_t m_Slot = 0;
+
 	};
 
 }

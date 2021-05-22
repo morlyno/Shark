@@ -31,7 +31,7 @@ namespace Shark {
 
 		virtual inline int GetWidth() const = 0;
 		virtual inline int GetHeight() const = 0;
-		virtual inline void* GetHandle() const = 0;
+		virtual inline WindowHandle GetHandle() const = 0;
 
 		virtual inline bool IsFocused() const = 0;
 

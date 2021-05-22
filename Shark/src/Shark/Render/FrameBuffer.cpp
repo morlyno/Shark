@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "FrameBuffer.h"
 
+#include "Shark/Render/RendererAPI.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
 
 namespace Shark {

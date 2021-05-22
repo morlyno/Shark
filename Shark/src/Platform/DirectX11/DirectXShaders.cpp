@@ -3,7 +3,7 @@
 #include "Shark/Utility/Utility.h"
 #include "Shark/Core/Timer.h"
 
-#include "Shark/Render/RendererCommand.h"
+#include "Platform/DirectX11/DirectXRendererAPI.h"
 
 #include <d3dcompiler.h>
 
@@ -147,8 +147,6 @@ namespace Shark {
 
 	DirectXShaders::DirectXShaders(const std::string& filepath)
 	{
-		m_DXApi = Weak(StaticCast<DirectXRendererAPI>(RendererCommand::GetRendererAPI()));
-
 		m_FilePath = filepath;
 		m_FileName = std::filesystem::path(filepath).filename().replace_extension().string();
 
@@ -197,16 +195,18 @@ namespace Shark {
 
 	void DirectXShaders::Bind()
 	{
-		m_DXApi->GetContext()->VSSetShader(m_VertexShader, nullptr, 0u);
-		m_DXApi->GetContext()->PSSetShader(m_PixelShader, nullptr, 0u);
-		m_DXApi->GetContext()->IASetInputLayout(m_InputLayout);
+		auto* ctx = DirectXRendererAPI::GetContext();
+		ctx->VSSetShader(m_VertexShader, nullptr, 0u);
+		ctx->PSSetShader(m_PixelShader, nullptr, 0u);
+		ctx->IASetInputLayout(m_InputLayout);
 	}
 
 	void DirectXShaders::UnBind()
 	{
-		m_DXApi->GetContext()->VSSetShader(nullptr, nullptr, 0u);
-		m_DXApi->GetContext()->PSSetShader(nullptr, nullptr, 0u);
-		m_DXApi->GetContext()->IASetInputLayout(nullptr);
+		auto* ctx = DirectXRendererAPI::GetContext();
+		ctx->VSSetShader(nullptr, nullptr, 0u);
+		ctx->PSSetShader(nullptr, nullptr, 0u);
+		ctx->IASetInputLayout(nullptr);
 	}
 
 	std::string DirectXShaders::ReadFile(const std::string& filepath)
@@ -438,14 +438,15 @@ namespace Shark {
 		}
 		m_VertexLayout.Init();
 
-		SK_CHECK(m_DXApi->GetDevice()->CreateInputLayout(m_InputElements.data(), (UINT)m_InputElements.size(), (void*)vtx_src.data(), (UINT)vtx_src.size(), &m_InputLayout));
+		auto dev = DirectXRendererAPI::GetDevice();
+		SK_CHECK(dev->CreateInputLayout(m_InputElements.data(), (UINT)m_InputElements.size(), (void*)vtx_src.data(), (UINT)vtx_src.size(), &m_InputLayout));
 		reflection->Release();
 
 	}
 
 	void DirectXShaders::CreateShaders()
 	{
-		auto* dev = m_DXApi->GetDevice();
+		auto* dev = DirectXRendererAPI::GetDevice();
 
 		for (auto&& [stage, binary] : m_ShaderBinarys)
 		{

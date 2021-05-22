@@ -1,6 +1,6 @@
 #include "skpch.h"
 #include "DirectXRendererAPI.h"
-#include <stdlib.h>
+#include "Shark/Core/Application.h"
 
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR(SK_STRINGIFY(call) "0x{0:x}", hr); SK_DEBUG_BREAK(); }
@@ -10,31 +10,31 @@
 
 namespace Shark {
 
-	void DirectXRendererAPI::Init()
-	{
-		SK_CORE_ASSERT(m_Device == nullptr, "RendererAPI already initialized");
-		SK_CORE_INFO("Init RendererAPI");
+	DirectXRendererAPI* DirectXRendererAPI::s_Instance = nullptr;
 
-		SK_CHECK(CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)));
+	namespace Utils {
 
-		IDXGIAdapter* gpu = nullptr;
-		if (HRESULT hr = m_Factory->EnumAdapters(0u, &gpu); FAILED(hr))
-		{
-			SK_CORE_ASSERT(hr != DXGI_ERROR_INVALID_CALL);
-			if (hr == DXGI_ERROR_NOT_FOUND)
-			{
-				SK_CORE_CRITICAL("!!! No Adapter could be found !!!");
-				throw std::exception("Failed to find a GPU Adapter");
-			}
-		}
-
+		static void LogAdapter(IDXGIAdapter* adapter)
 		{
 			DXGI_ADAPTER_DESC ad;
-			SK_CHECK(gpu->GetDesc(&ad));
+			SK_CHECK(adapter->GetDesc(&ad));
 			char gpudesc[128];
 			wcstombs_s(nullptr, gpudesc, ad.Description, 128);
 			SK_CORE_INFO("GPU: {0}", gpudesc);
 		}
+
+	}
+
+	void DirectXRendererAPI::Init()
+	{
+		SK_CORE_ASSERT(s_Instance == nullptr);
+		s_Instance = this;
+
+		SK_CHECK(CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)));
+
+		IDXGIAdapter* adapter = nullptr;
+		SK_CHECK(m_Factory->EnumAdapters(0, &adapter));
+		Utils::LogAdapter(adapter);
 
 		UINT createdeviceFalgs = 0u;
 #ifdef SK_DEBUG
@@ -42,7 +42,7 @@ namespace Shark {
 #endif
 
 		SK_CHECK(D3D11CreateDevice(
-			gpu,
+			adapter,
 			D3D_DRIVER_TYPE_UNKNOWN,
 			nullptr,
 			createdeviceFalgs,
@@ -54,14 +54,25 @@ namespace Shark {
 			&m_Context
 		));
 
-		if (gpu) { gpu->Release(); gpu = nullptr; }
+		adapter->Release();
+
+		auto& window = Application::Get().GetWindow();
+
+		SwapChainSpecifications specs;
+		specs.Widht = window.GetWidth();
+		specs.Height = window.GetHeight();
+		specs.WindowHandle = window.GetHandle();
+		m_SwapChain = Ref<DirectXSwapChain>::Create(specs);
 	}
 
 	void DirectXRendererAPI::ShutDown()
 	{
+		m_SwapChain.Release();
 		if (m_Device) { m_Device->Release(); m_Device = nullptr; }
 		if (m_Context) { m_Context->Release(); m_Context = nullptr; }
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
+
+		s_Instance = nullptr;
 	}
 
 	void DirectXRendererAPI::DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset)

@@ -37,6 +37,8 @@ namespace Shark {
 		operator void*() const { return (void*)ID; }
 	};
 
+	using WindowHandle = void*;
+
 }
 
 #include "Shark/Core/Memory.h"

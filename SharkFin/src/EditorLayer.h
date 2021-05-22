@@ -37,8 +37,6 @@ namespace Shark {
 		void OnStopScean();
 	private:
 		EditorCamera m_EditorCamera;
-		Ref<SwapChain> m_SwapChain;
-		Ref<FrameBuffer> m_SwapChainFrameBuffer;
 		Ref<FrameBuffer> m_FrameBuffer;
 		Ref<Topology> m_Topology;
 		Ref<Rasterizer> m_Rasterizer;
@@ -53,21 +51,15 @@ namespace Shark {
 		bool m_ViewportSizeChanged = false;
 
 		bool m_PlayScean = false;
-		bool m_ShowRendererStats = true;
 		bool m_ShowSceanHirachyPanel = true;
-		bool m_ShowEditorCameraControlls = true;
+		bool m_ShowAssetsPanel = true;
+
+		bool m_ShowRendererStats = false;
+		bool m_ShowEditorCameraControlls = false;
 
 		int m_HoveredEntityID = -1;
 
 		Ref<Texture2D> m_FrameBufferTexture;
-
-		// Box2D Test
-#ifdef SHARK_BOX2D_TEST
-		b2World* m_World;
-		b2Body* m_Groundbody;
-		b2Body* m_DynamicBody;
-		b2Body* m_DynamicBody1;
-#endif
 	};
 
 }

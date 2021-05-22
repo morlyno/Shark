@@ -4,6 +4,7 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/Input.h"
 #include "Shark/Core/TimeStep.h"
+#include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Renderer.h"
 
 #include <imgui.h>
@@ -46,6 +47,8 @@ namespace Shark {
 			QueryPerformanceCounter((LARGE_INTEGER*)&time);
 			TimeStep timeStep = (float)(time - m_LastFrameTime) / m_Frequency;
 			m_LastFrameTime = time;
+
+			RendererCommand::SwapBuffers(true);
 
 			if (!m_Minimized)
 			{

@@ -3,8 +3,6 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Shaders.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
-
 #include <d3d11.h>
 #include <d3d11shader.h>
 
@@ -37,8 +35,6 @@ namespace Shark {
 		void CreateShaders();
 
 	private:
-		Weak<DirectXRendererAPI> m_DXApi;
-
 		ID3D11PixelShader* m_PixelShader;
 		ID3D11VertexShader* m_VertexShader;
 		
@@ -49,6 +45,7 @@ namespace Shark {
 		std::string m_FileName;
 
 		VertexLayout m_VertexLayout;
+
 	};
 
 }

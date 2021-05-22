@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Shark/Render/Rasterizer.h"
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include <d3d11.h>
 
 namespace Shark {
 
@@ -30,10 +30,9 @@ namespace Shark {
 		virtual const RasterizerSpecification& GetSpecification() const override { return m_Specification; }
 
 	private:
-		Weak<DirectXRendererAPI> m_DXApi;
-
 		ID3D11RasterizerState* m_Rasterizer = nullptr;
 		RasterizerSpecification m_Specification;
+
 	};
 
 }

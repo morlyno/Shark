@@ -42,27 +42,10 @@ namespace Shark {
 		m_Scean.GetSaveState()->AddEditorData(true);
 		m_SceanHirachyPanel.SetContext(*m_Scean);
 
-
-		SwapChainSpecifications scspecs;
-		scspecs.Widht = window.GetWidth();
-		scspecs.Height = window.GetHeight();
-		scspecs.WindowHandle = window.GetHandle();
-		m_SwapChain = SwapChain::Create(scspecs);
-
-
-		FrameBufferSpecification scfbspecs;
-		scfbspecs.Width = window.GetWidth();
-		scfbspecs.Height = window.GetHeight();
-		scfbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::Depth32 };
-		scfbspecs.Atachments[0].Blend = true;
-		scfbspecs.SwapChainTarget = true;
-		scfbspecs.SwapChain = Weak(m_SwapChain);
-		m_SwapChainFrameBuffer = FrameBuffer::Create(scfbspecs);
-
 		FrameBufferSpecification fbspecs;
 		fbspecs.Width = window.GetWidth();
 		fbspecs.Height = window.GetHeight();
-		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::R32_SINT, FrameBufferColorAtachment::Depth32 };
+		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::R32_SINT, FrameBufferColorAtachment::Depth };
 		fbspecs.Atachments[0].Blend = true;
 		m_FrameBuffer = FrameBuffer::Create(fbspecs);
 
@@ -86,8 +69,6 @@ namespace Shark {
 
 	void EditorLayer::OnUpdate(TimeStep ts)
 	{
-		m_SwapChain->SwapBuffers(true);
-
 		m_Rasterizer->Bind();
 		m_Topology->Bind();
 		m_FrameBuffer->Bind();
@@ -96,7 +77,7 @@ namespace Shark {
 		m_FrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
 		m_FrameBuffer->ClearDepth();
 
-		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
+		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered && !m_ViewportFocused);
 
 		if (m_ViewportSizeChanged)
 		{
@@ -145,8 +126,7 @@ namespace Shark {
 
 		m_FrameBuffer->GetFramBufferContent(0, m_FrameBufferTexture);
 
-		m_SwapChainFrameBuffer->Bind();
-		m_SwapChainFrameBuffer->Clear({ 0.1f, 0.1f, 0.1f, 1.0f });
+		RendererCommand::BindMainFrameBuffer();
 	}
 
 	void EditorLayer::OnEvent(Event& event)
@@ -173,11 +153,7 @@ namespace Shark {
 	{
 		if (event.GetWidth() == 0 || event.GetHeight() == 0)
 			return false;
-
-		m_SwapChainFrameBuffer->Release();
-		m_SwapChain->Resize(event.GetWidth(), event.GetHeight());
-		m_SwapChainFrameBuffer->Resize(event.GetWidth(), event.GetHeight());
-
+		
 		return false;
 	}
 
@@ -407,7 +383,7 @@ namespace Shark {
 			m_ViewportSizeChanged = true;
 		}
 
-		UI::NoAlpaImage(m_SwapChainFrameBuffer, m_FrameBufferTexture->GetRenderID(), size);
+		UI::NoAlpaImage(nullptr, m_FrameBufferTexture->GetRenderID(), size);
 
 		auto [mx, my] = ImGui::GetMousePos();
 		auto [wx, wy] = ImGui::GetWindowPos();
@@ -561,7 +537,8 @@ namespace Shark {
 		if (m_ShowSceanHirachyPanel)
 			m_SceanHirachyPanel.OnImGuiRender();
 
-		m_AssetsPanel.OnImGuiRender();
+		if (m_ShowAssetsPanel)
+			m_AssetsPanel.OnImGuiRender();
 
 		ImGui::ShowDemoWindow();
 	}
