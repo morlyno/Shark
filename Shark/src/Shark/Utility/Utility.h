@@ -27,4 +27,7 @@ namespace Shark::Utility {
 
 	std::filesystem::path MakeAbsolutePathRelative(const std::filesystem::path& path);
 
+	template<typename T>
+	float* GetValuePtr(const T& vec);
+
 }

@@ -53,6 +53,8 @@ namespace Shark {
 		virtual uint32_t GetHeight() const = 0;
 
 
+		static Ref<Texture2D> Create(const std::string& filepath);
+		static Ref<Texture2D> Create(uint32_t width, uint32_t height, void* data);
 		static Ref<Texture2D> Create(const SamplerProps& props, const std::string& filepath);
 		static Ref<Texture2D> Create(const SamplerProps& props, uint32_t width, uint32_t height, void* data);
 	};

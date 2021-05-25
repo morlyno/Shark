@@ -5,7 +5,17 @@
 #include "Platform/DirectX11/DirectXTexture.h"
 
 namespace Shark {
-	
+
+	Ref<Texture2D> Texture2D::Create(const std::string& filepath)
+	{
+		return Create({}, filepath);
+	}
+
+	Ref<Texture2D> Texture2D::Create(uint32_t width, uint32_t height, void* data)
+	{
+		return Create({}, width, height, data);
+	}
+
 	Ref<Texture2D> Texture2D::Create(const SamplerProps& props, const std::string& filepath)
 	{
 		switch (RendererAPI::GetAPI())

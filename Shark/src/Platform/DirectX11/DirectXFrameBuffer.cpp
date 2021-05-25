@@ -50,21 +50,20 @@ namespace Shark {
 			m_DepthStencilState->Release();
 	}
 
-	void DirectXFrameBuffer::Clear(Utility::ColorF32 clearcolor)
+	void DirectXFrameBuffer::Clear(const DirectX::XMFLOAT4& clearcolor)
 	{
 		auto ctx = DirectXRendererAPI::GetContext();
 
 		for (auto buffer : m_FrameBuffers)
-			ctx->ClearRenderTargetView(buffer, clearcolor.rgba);
+			ctx->ClearRenderTargetView(buffer, Utility::GetValuePtr(clearcolor));
 
 		ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
 	}
 
-	void DirectXFrameBuffer::ClearAtachment(uint32_t index, Utility::ColorF32 clearcolor)
+	void DirectXFrameBuffer::ClearAtachment(uint32_t index, const DirectX::XMFLOAT4& clearcolor)
 	{
 		auto ctx = DirectXRendererAPI::GetContext();
-
-		ctx->ClearRenderTargetView(m_FrameBuffers[index], clearcolor.rgba);
+		ctx->ClearRenderTargetView(m_FrameBuffers[index], Utility::GetValuePtr(clearcolor));
 	}
 
 	void DirectXFrameBuffer::ClearDepth()
@@ -176,7 +175,16 @@ namespace Shark {
 
 	int DirectXFrameBuffer::ReadPixel(uint32_t index, int x, int y)
 	{
+		if (x < 0 || y < 0 || x >= m_Specification.Width || y >= m_Specification.Height)
+		{
+			SK_CORE_WARN("Tried to read Pixel out of bounds");
+			return -1;
+		}
+
 		SK_CORE_ASSERT(index < m_Count, "Index out of range");
+		if (index >= m_Count)
+			return -1;
+
 		auto* ctx = DirectXRendererAPI::GetContext();
 		auto* dev = DirectXRendererAPI::GetDevice();
 

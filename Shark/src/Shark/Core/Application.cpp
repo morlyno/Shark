@@ -48,7 +48,7 @@ namespace Shark {
 			TimeStep timeStep = (float)(time - m_LastFrameTime) / m_Frequency;
 			m_LastFrameTime = time;
 
-			RendererCommand::SwapBuffers(true);
+			RendererCommand::SwapBuffers(m_Window->IsVSync());
 
 			if (!m_Minimized)
 			{

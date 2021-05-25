@@ -78,7 +78,7 @@ namespace Shark {
 
 	void Scean::OnUpdateRuntime(TimeStep ts)
 	{
-		m_World.Update();
+		m_World.Update(ts);
 
 		{
 			{

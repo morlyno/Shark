@@ -44,6 +44,8 @@ namespace Shark {
 		virtual std::string ToString() const { return GetName(); }
 		virtual unsigned int GetEventCategoryFlags() const = 0;
 		bool IsInCategory(EventCategory category) const { return GetEventCategoryFlags() & category; }
+
+		static void Distribute(Event& event);
 	public:
 		bool Handled = false;
 	};

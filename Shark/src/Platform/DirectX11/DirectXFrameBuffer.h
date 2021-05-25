@@ -11,11 +11,14 @@ namespace Shark {
 		DirectXFrameBuffer(const FrameBufferSpecification& specs);
 		virtual ~DirectXFrameBuffer();
 
-		virtual void Clear(Utility::ColorF32 clearcolor) override;
-		virtual void ClearAtachment(uint32_t index, Utility::ColorF32 clearcolor) override;
+		virtual void Clear() override { Clear(m_Specification.ClearColor); }
+		virtual void Clear(const DirectX::XMFLOAT4& clearcolor) override;
+		virtual void ClearAtachment(uint32_t index) override { ClearAtachment(index, m_Specification.ClearColor); }
+		virtual void ClearAtachment(uint32_t index, const DirectX::XMFLOAT4& clearcolor) override;
 		virtual void ClearDepth() override;
 
 		virtual void Release() override;
+		virtual std::pair<uint32_t, uint32_t> GetSize() const override { return { m_Specification.Width, m_Specification.Height }; }
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual void SetBlend(uint32_t index, bool blend) override;

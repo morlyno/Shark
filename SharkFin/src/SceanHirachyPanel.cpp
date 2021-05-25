@@ -62,7 +62,14 @@ namespace Shark {
 
 	void SceanHirachyPanel::OnImGuiRender()
 	{
-		ImGui::Begin("Scean Hirachy");
+		if (!m_ShowPanel)
+			return;
+
+		if (!ImGui::Begin("Scean Hirachy", &m_ShowPanel))
+		{
+			ImGui::End();
+			return;
+		}
 
 		if (!m_Context)
 		{
@@ -511,7 +518,7 @@ namespace Shark {
 
 			if (ImGui::IsItemFocused())
 			{
-				for (auto m : NativeScriptFactory::GetMap())
+				for (const auto& m : NativeScriptFactory::GetMap())
 				{
 					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Bullet;
 					if (m.first == comp.ScriptTypeName)

@@ -30,6 +30,9 @@ namespace Shark {
 		AssetsPanel();
 		~AssetsPanel();
 
+		void ShowPanel(bool show) { m_ShowPanel = show; }
+		bool IsShowen() const { return m_ShowPanel; }
+
 		void OnImGuiRender();
 
 	private:
@@ -47,6 +50,8 @@ namespace Shark {
 		void DrawDirectoryEntry(RenderID imageID, const DirectoryEntry& entry);
 
 	private:
+		bool m_ShowPanel = true;
+
 		std::filesystem::path m_CurrentPath;
 		std::vector<std::filesystem::path> m_DirectoryHistory;
 		uint32_t m_DirHistoryIndex = 0;

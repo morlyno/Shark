@@ -17,6 +17,9 @@ namespace Shark {
 		void SetContext(const Ref<Scean>& context);
 		const Ref<Scean>& GetContext() const { return m_Context; }
 
+		void ShowPanel(bool show) { m_ShowPanel = show; }
+		bool IsShowen() const { return m_ShowPanel; }
+
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		//void SetSelectedEntity(Entity selectedentity) { m_SelectedEntity = selectedentity; }
 
@@ -32,6 +35,8 @@ namespace Shark {
 
 		bool OnSelectionChanged(SelectionChangedEvent& event);
 	private:
+		bool m_ShowPanel = true;
+
 		Ref<Scean> m_Context;
 		Entity m_SelectedEntity;
 

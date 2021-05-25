@@ -51,4 +51,23 @@ namespace Shark::Utility {
 		return str.substr(currPath.length() + 1);
 	}
 
+	template<>
+	float* GetValuePtr(const DirectX::XMFLOAT4& vec)
+	{
+		return (float*)&vec;
+	}
+
+	template<>
+	float* GetValuePtr(const DirectX::XMFLOAT3& vec)
+	{
+		return (float*)&vec;
+	}
+
+	template<>
+	float* GetValuePtr(const DirectX::XMFLOAT2& vec)
+	{
+		return (float*)&vec;
+	}
+
+
 }

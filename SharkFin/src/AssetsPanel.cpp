@@ -43,7 +43,10 @@ namespace Shark {
 
 	void AssetsPanel::OnImGuiRender()
 	{
-		if (!ImGui::Begin("Assets"))
+		if (!m_ShowPanel)
+			return;
+
+		if (!ImGui::Begin("Assets", &m_ShowPanel))
 		{
 			ImGui::End();
 			return;
@@ -214,7 +217,7 @@ namespace Shark {
 		const float Padding = 8.0f;
 		const int Collums = ImGui::GetContentRegionAvailWidth() / (m_ImageSize.x + Padding);
 
-		if (ImGui::BeginTable("FilesAndFolders", Collums))
+		if (ImGui::BeginTable("FilesAndFolders", std::clamp(Collums, 1, 64)))
 		{
 			for (DirectoryEntry entry : std::filesystem::directory_iterator(m_CurrentPath))
 			{

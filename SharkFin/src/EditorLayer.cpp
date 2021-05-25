@@ -9,18 +9,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include <yaml-cpp/yaml.h>
-
 namespace Shark {
-
-	namespace Utils {
-
-		static void ChangeSelectedEntity(Entity newSelectedEntity)
-		{
-			Application::Get().OnEvent(SelectionChangedEvent(newSelectedEntity));
-		}
-
-	}
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
@@ -46,10 +35,9 @@ namespace Shark {
 		fbspecs.Width = window.GetWidth();
 		fbspecs.Height = window.GetHeight();
 		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::R32_SINT, FrameBufferColorAtachment::Depth };
+		fbspecs.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 		fbspecs.Atachments[0].Blend = true;
 		m_FrameBuffer = FrameBuffer::Create(fbspecs);
-
-		m_Topology = Topology::Create(TopologyMode::Triangle);
 
 		RasterizerSpecification rrspecs;
 		rrspecs.Fill = FillMode::Solid;
@@ -69,11 +57,12 @@ namespace Shark {
 
 	void EditorLayer::OnUpdate(TimeStep ts)
 	{
+		m_TimeStep = ts;
+
 		m_Rasterizer->Bind();
-		m_Topology->Bind();
 		m_FrameBuffer->Bind();
 
-		m_FrameBuffer->ClearAtachment(0, { 0.1f, 0.1f, 0.1f, 1.0f });
+		m_FrameBuffer->ClearAtachment(0);
 		m_FrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
 		m_FrameBuffer->ClearDepth();
 
@@ -215,10 +204,16 @@ namespace Shark {
 				{
 					Entity e = m_Scean->CreateEntity(m_SceanHirachyPanel.GetSelectedEntity());
 					e.GetComponent<TagComponent>().Tag += " (Copy)";
-					Utils::ChangeSelectedEntity(e);
+					Event::Distribute(SelectionChangedEvent(e));
 					return true;
 				}
 				break;
+			}
+
+			case Key::V:
+			{
+				auto& window = Application::Get().GetWindow();
+				window.SetVSync(!window.IsVSync());
 			}
 		}
 
@@ -279,7 +274,7 @@ namespace Shark {
 				{
 					m_Scean.LoadState();
 					if (!m_Scean->IsValidEntity(m_SceanHirachyPanel.GetSelectedEntity()))
-						Utils::ChangeSelectedEntity({});
+						Event::Distribute(SelectionChangedEvent({}));
 				}
 
 				ImGui::EndMenu();
@@ -291,18 +286,18 @@ namespace Shark {
 				if (ImGui::MenuItem("Add"))
 				{
 					auto e = m_Scean->CreateEntity("New Entity");
-					Utils::ChangeSelectedEntity(e);
+					Event::Distribute(SelectionChangedEvent(e));
 				}
 				if (ImGui::MenuItem("Destroy", "delete", nullptr, se))
 				{
 					m_Scean->DestroyEntity(se);
-					Utils::ChangeSelectedEntity({});
+					Event::Distribute(SelectionChangedEvent({}));
 				}
 				if (ImGui::MenuItem("Copy", "ctrl+D", nullptr, se))
 				{
 					se = m_Scean->CreateEntity(se);
 					se.GetComponent<TagComponent>().Tag += " (Copy)";
-					Utils::ChangeSelectedEntity(se);
+					Event::Distribute(SelectionChangedEvent(se));
 				}
 
 				ImGui::Separator();
@@ -345,10 +340,16 @@ namespace Shark {
 
 			if (ImGui::BeginMenu("Panels"))
 			{
+				bool show = m_SceanHirachyPanel.IsShowen();
+				if (ImGui::MenuItem("Scean Hirachy", nullptr, &show))
+					m_SceanHirachyPanel.ShowPanel(show);
 
-				ImGui::MenuItem("Scean Hirachy", nullptr, &m_ShowSceanHirachyPanel);
+				show = m_AssetsPanel.IsShowen();
+				if (ImGui::MenuItem("Assets", nullptr, &show))
+					m_AssetsPanel.ShowPanel(show);
+
 				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
-				ImGui::MenuItem("Batch Renderer Stats", nullptr, &m_ShowRendererStats);
+				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
 
 				ImGui::Separator();
 
@@ -390,19 +391,21 @@ namespace Shark {
 		int x = mx - wx;
 		int y = my - wy;
 		m_HoveredEntityID = -1;
-		if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight)
+
+		auto&& [width, height] = m_FrameBuffer->GetSize();
+		if (x >= 0 && x < width && y >= 0 && y < height)
 		{
 			m_HoveredEntityID = m_FrameBuffer->ReadPixel(1, x, y);
-			if (Input::MousePressed(Mouse::LeftButton) && m_ViewportHovered)
+			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
 			{
 				if (m_HoveredEntityID != -1)
 				{
 					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, Weak(*m_Scean) };
-					Utils::ChangeSelectedEntity(entity);
+					Event::Distribute(SelectionChangedEvent(entity));
 				}
 				else
 				{
-					Utils::ChangeSelectedEntity({});
+					Event::Distribute(SelectionChangedEvent({}));
 				}
 			}
 		}
@@ -438,7 +441,7 @@ namespace Shark {
 						{
 							std::string path = std::string((const char*)payload->Data, payload->DataSize);
 							auto& sr = entity.GetComponent<SpriteRendererComponent>();
-							sr.Texture = Texture2D::Create({}, path);
+							sr.Texture = Texture2D::Create(path);
 						}
 					}
 				}
@@ -452,9 +455,14 @@ namespace Shark {
 
 		ImGui::End();
 
-		if (m_ShowRendererStats)
+		if (m_ShowInfo)
 		{
-			ImGui::Begin("BatchStats", &m_ShowRendererStats);
+			ImGui::Begin("Info", &m_ShowInfo);
+
+			ImGui::Text("FPS: %.1f", 1.0f / m_TimeStep);
+			ImGui::Text("FrameTime: %f", m_TimeStep.GetMilliSeconts());
+
+			ImGui::NewLine();
 
 			auto s = Renderer2D::GetStatistics();
 			ImGui::Text("Draw Calls: %d", s.DrawCalls);
@@ -483,14 +491,11 @@ namespace Shark {
 				ImGui::Text("Hovered Entity: No Entity");
 
 			static MemoryMetrics s_LastMemory;
-
 			ImGui::NewLine();
-			ImGui::NewLine();
-			auto m = MemoryManager::GetMetrics();
+			const auto& m = MemoryManager::GetMetrics();
 			ImGui::Text("Memory Usage: %llu", m.MemoryUsage());
 			ImGui::Text("Memory Allocated: %llu", m.MemoryAllocated);
 			ImGui::Text("Memory Freed: %llu", m.MemoryFreed);
-			ImGui::NewLine();
 			ImGui::Text("Total Count: %llu", m.TotalAllocated - m.TotalFreed);
 			ImGui::Text("Total Allocated: %llu", m.TotalAllocated);
 			ImGui::Text("Total Freed: %llu", m.TotalFreed);
@@ -500,8 +505,7 @@ namespace Shark {
 			ImGui::Text("Memory Usage Delta: %llu", (m.MemoryAllocated - s_LastMemory.MemoryAllocated) - (m.MemoryFreed - s_LastMemory.MemoryFreed));
 			ImGui::Text("Memory Allocated Delta: %llu", m.MemoryAllocated - s_LastMemory.MemoryAllocated);
 			ImGui::Text("Memory Freed Delta: %llu", m.MemoryFreed - s_LastMemory.MemoryFreed);
-			ImGui::NewLine();
-			ImGui::Text("Total Count: %llu", (m.TotalAllocated - s_LastMemory.TotalAllocated) - (m.TotalFreed - s_LastMemory.TotalFreed));
+			ImGui::Text("Total Count Delta: %llu", (m.TotalAllocated - s_LastMemory.TotalAllocated) - (m.TotalFreed - s_LastMemory.TotalFreed));
 			ImGui::Text("Total Allocated Delta: %llu", m.TotalAllocated - s_LastMemory.TotalAllocated);
 			ImGui::Text("Total Freed Delta: %llu", m.TotalFreed - s_LastMemory.TotalFreed);
 			s_LastMemory = m;
@@ -511,36 +515,32 @@ namespace Shark {
 
 		if (m_ShowEditorCameraControlls)
 		{
-			ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls);
-
-			UI::DrawVec3Show("Position", m_EditorCamera.GetPosition());
-
-			auto focuspoint = m_EditorCamera.GetFocusPoint();
-			if (UI::DrawVec3Control("FocusPoint", focuspoint))
-				m_EditorCamera.SetFocusPoint(focuspoint);
-
-			DirectX::XMFLOAT2 py = { m_EditorCamera.GetPitch(), m_EditorCamera.GetYaw() };
-			if (UI::DrawVec2Control("Orientation", py))
+			if (ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls))
 			{
-				m_EditorCamera.SetPicht(py.x);
-				m_EditorCamera.SetYaw(py.y);
+
+				UI::DrawVec3Show("Position", m_EditorCamera.GetPosition());
+
+				auto focuspoint = m_EditorCamera.GetFocusPoint();
+				if (UI::DrawVec3Control("FocusPoint", focuspoint))
+					m_EditorCamera.SetFocusPoint(focuspoint);
+
+				DirectX::XMFLOAT2 py = { m_EditorCamera.GetPitch(), m_EditorCamera.GetYaw() };
+				if (UI::DrawVec2Control("Orientation", py))
+				{
+					m_EditorCamera.SetPicht(py.x);
+					m_EditorCamera.SetYaw(py.y);
+				}
+
+				float distance = m_EditorCamera.GetDistance();
+				if (UI::DrawFloatControl("Distance", distance, 10))
+					if (distance >= 0.25f)
+						m_EditorCamera.SetDistance(distance);
 			}
-
-			float distance = m_EditorCamera.GetDistance();
-			if (UI::DrawFloatControl("Distance", distance, 10))
-				if (distance >= 0.25f)
-					m_EditorCamera.SetDistance(distance);
-
 			ImGui::End();
 		}
 
-		if (m_ShowSceanHirachyPanel)
-			m_SceanHirachyPanel.OnImGuiRender();
-
-		if (m_ShowAssetsPanel)
-			m_AssetsPanel.OnImGuiRender();
-
-		ImGui::ShowDemoWindow();
+		m_SceanHirachyPanel.OnImGuiRender();
+		m_AssetsPanel.OnImGuiRender();
 	}
 
 	void EditorLayer::NewScean()
@@ -590,7 +590,7 @@ namespace Shark {
 		m_Scean.LoadState();
 		m_SceanHirachyPanel.SetSceanPlaying(false);
 		if (!m_Scean->IsValidEntity(m_SceanHirachyPanel.GetSelectedEntity()))
-			Utils::ChangeSelectedEntity({});
+			Event::Distribute(SelectionChangedEvent({}));
 	}
 
 }

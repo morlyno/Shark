@@ -63,6 +63,8 @@ namespace Shark {
 		specs.Height = window.GetHeight();
 		specs.WindowHandle = window.GetHandle();
 		m_SwapChain = Ref<DirectXSwapChain>::Create(specs);
+
+		m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 	void DirectXRendererAPI::ShutDown()
@@ -77,6 +79,7 @@ namespace Shark {
 
 	void DirectXRendererAPI::DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset)
 	{
+		m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_Context->DrawIndexed(count, indexoffset, vertexoffset);
 	}
 

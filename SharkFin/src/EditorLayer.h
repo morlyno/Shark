@@ -1,14 +1,15 @@
 #pragma once
 
-#include <Shark.h>
 #include <Shark/Render/EditorCamera.h>
+#include <Shark/Render/FrameBuffer.h>
+#include <Shark/Render/Rasterizer.h>
+#include <Shark/Scean/Scean.h>
+#include <Shark/Scean/Entity.h>
+#include <Shark/Scean/SceanController.h>
+#include <Shark/Render/Texture.h>
 
 #include "SceanHirachyPanel.h"
 #include "AssetsPanel.h"
-
-#include <box2d/box2d.h>
-
-//#define SHARK_BOX2D_TEST
 
 namespace Shark {
 
@@ -38,7 +39,6 @@ namespace Shark {
 	private:
 		EditorCamera m_EditorCamera;
 		Ref<FrameBuffer> m_FrameBuffer;
-		Ref<Topology> m_Topology;
 		Ref<Rasterizer> m_Rasterizer;
 		Ref<Rasterizer> m_HilightRasterizer;
 
@@ -51,15 +51,15 @@ namespace Shark {
 		bool m_ViewportSizeChanged = false;
 
 		bool m_PlayScean = false;
-		bool m_ShowSceanHirachyPanel = true;
-		bool m_ShowAssetsPanel = true;
 
-		bool m_ShowRendererStats = false;
+		bool m_ShowInfo = false;
 		bool m_ShowEditorCameraControlls = false;
 
 		int m_HoveredEntityID = -1;
 
 		Ref<Texture2D> m_FrameBufferTexture;
+
+		TimeStep m_TimeStep;
 	};
 
 }

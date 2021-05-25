@@ -21,7 +21,6 @@ namespace Shark {
 	{
 		FrameBufferColorAtachment Atachment;
 		bool Blend = false;
-		// TODO: Blend Desc
 
 		FrmeBufferTextureAtachment(FrameBufferColorAtachment atachment)
 			: Atachment(atachment) {}
@@ -31,6 +30,7 @@ namespace Shark {
 	{
 		uint32_t Width = 0, Height = 0;
 		std::vector<FrmeBufferTextureAtachment> Atachments;
+		DirectX::XMFLOAT4 ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		FrameBufferSpecification() = default;
 		FrameBufferSpecification(uint32_t width, uint32_t height, std::initializer_list<FrmeBufferTextureAtachment> atachments)
@@ -42,11 +42,14 @@ namespace Shark {
 	public:
 		virtual ~FrameBuffer() = default;
 
-		virtual void Clear(Utility::ColorF32 clearcolor) = 0;
-		virtual void ClearAtachment(uint32_t index, Utility::ColorF32 clearcolor) = 0;
+		virtual void Clear() = 0;
+		virtual void Clear(const DirectX::XMFLOAT4& clearcolor) = 0;
+		virtual void ClearAtachment(uint32_t index) = 0;
+		virtual void ClearAtachment(uint32_t index, const DirectX::XMFLOAT4& clearcolor) = 0;
 		virtual void ClearDepth() = 0;
 
 		virtual void Release() = 0;
+		virtual std::pair<uint32_t, uint32_t> GetSize() const = 0;
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual void SetBlend(uint32_t index, bool blend) = 0;

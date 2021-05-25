@@ -16,7 +16,7 @@ namespace Shark {
 		float GetMilliSeconts() { return m_Time * 1000.0f; }
 
 	private:
-		const float m_Time;
+		float m_Time;
 	};
 
 }
