@@ -6,8 +6,9 @@
 #define SK_DEBUG_BREAK() __debugbreak()
 #endif
 
-#define SK_ENABLE_ASSERT
+#define SK_ENABLE_ASSERT 1
 
+#define BIT(x) (1 << x)
 #define SK_BIT(x) (1 << x)
 
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
@@ -21,9 +22,13 @@
 #define SK_IF_DEBUG(...)
 #endif
 
+#define SK_TEST_RENDERER 1
+
 #include <stdint.h>
 
 namespace Shark {
+
+	using byte = unsigned char;
 
 	struct Empty { template<typename T> Empty(const T&) {} };
 	 

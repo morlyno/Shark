@@ -41,6 +41,9 @@ namespace Shark {
 
 	void DirectXSwapChainFrameBuffer::Resize(IDXGISwapChain* swapchain, uint32_t width, uint32_t height)
 	{
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+
 		Release();
 		Create(swapchain);
 	}
@@ -137,6 +140,7 @@ namespace Shark {
 		ID3D11Texture2D* backBuffer;
 		SK_CHECK(swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer));
 		dev->CreateRenderTargetView(backBuffer, nullptr, &m_FrameBuffer);
+		backBuffer->Release();
 
 		if (m_Specification.DepthAtachment != DepthAtachment::None)
 		{
@@ -239,6 +243,7 @@ namespace Shark {
 
 	void DirectXSwapChain::Resize(uint32_t width, uint32_t height)
 	{
+		m_FrameBuffer->UnBind();
 		m_FrameBuffer->Release();
 		DXGI_SWAP_CHAIN_DESC scd;
 		SK_CHECK(m_SwapChain->GetDesc(&scd));

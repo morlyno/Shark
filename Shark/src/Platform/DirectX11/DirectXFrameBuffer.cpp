@@ -107,8 +107,6 @@ namespace Shark {
 
 	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)
 	{
-		SK_CORE_INFO("FrameBuffer Resize: {0}, {1}", width, height);
-
 		m_Specification.Width = width;
 		m_Specification.Height = height;
 

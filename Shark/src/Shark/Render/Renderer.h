@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Render/Shaders.h"
 
 namespace Shark {
 
@@ -9,6 +10,8 @@ namespace Shark {
 	public:
 		static void Init();
 		static void ShutDown();
+
+		static ShaderLibrary& ShaderLib();
 	};
 
 }

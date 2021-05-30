@@ -2,6 +2,7 @@
 #include "Scean.h"
 
 #include "Shark/Render/Renderer2D.h"
+#include "Shark/Render/TestRenderer2D.h"
 #include "Shark/Scean/Entity.h"
 #include "Shark/Scean/Components/Components.h"
 
@@ -113,7 +114,15 @@ namespace Shark {
 		}
 		auto [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCameraID);
 
-
+#ifdef SK_TEST_RENDERER
+		TestRenderer::BeginScean(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
+		{
+			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+			for (auto entityID : group)
+				TestRenderer::DrawEntity({ entityID, Weak(this) });
+		}
+		TestRenderer::EndScean();
+#else
 		Renderer2D::BeginScean(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 		{
 			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
@@ -121,10 +130,18 @@ namespace Shark {
 				Renderer2D::DrawEntity({ entityID, Weak(this) });
 		}
 		Renderer2D::EndScean();
+#endif
 	}
 
 	void Scean::OnUpdateEditor(TimeStep ts, EditorCamera& camera)
 	{
+#ifdef SK_TEST_RENDERER
+		TestRenderer::BeginScean(camera);
+		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+		for (auto entityID : group)
+			TestRenderer::DrawEntity({ entityID, Weak(this) });
+		TestRenderer::EndScean();
+#else
 		Renderer2D::BeginScean(camera);
 
 		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
@@ -136,6 +153,7 @@ namespace Shark {
 			// Draw Selcted Entity
 
 		Renderer2D::EndScean();
+#endif
 	}
 
 	void Scean::OnEventRuntime(Event& event)

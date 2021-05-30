@@ -30,6 +30,8 @@ namespace Shark {
 		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) override;
 		virtual int ReadPixel(uint32_t index, int x, int y) override;
 
+		virtual FrameBufferSpecification GetSpecification() const { return m_Specification; }
+
 		virtual void Bind() override;
 		virtual void UnBind() override;
 

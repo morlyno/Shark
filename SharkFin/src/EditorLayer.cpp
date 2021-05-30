@@ -9,6 +9,8 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <Shark/Render/TestRenderer2D.h>
+
 namespace Shark {
 
 	EditorLayer::EditorLayer()
@@ -49,10 +51,13 @@ namespace Shark {
 		rrspecs.Fill = FillMode::Framed;
 		rrspecs.Cull = CullMode::None;
 		m_HilightRasterizer = Rasterizer::Create(rrspecs);
+
+		TestRenderer::Init();
 	}
 
 	void EditorLayer::OnDetach()
 	{
+		TestRenderer::ShutDown();
 	}
 
 	void EditorLayer::OnUpdate(TimeStep ts)
@@ -75,6 +80,7 @@ namespace Shark {
 
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 			m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+			m_FrameBuffer->Bind();
 		}
 
 		if (m_Scean)
@@ -87,6 +93,8 @@ namespace Shark {
 					m_EditorCamera.OnUpdate(ts);
 				m_Scean->OnUpdateEditor(ts, m_EditorCamera);
 
+#ifdef SK_TEST_RENDERER
+#else
 				if (auto entity = m_SceanHirachyPanel.GetSelectedEntity())
 				{
 					if (!entity.HasComponent<CameraComponent>())
@@ -109,9 +117,9 @@ namespace Shark {
 						Renderer2D::EndScean();
 					}
 				}
+#endif
 			}
 		}
-
 
 		m_FrameBuffer->GetFramBufferContent(0, m_FrameBufferTexture);
 
@@ -142,7 +150,9 @@ namespace Shark {
 	{
 		if (event.GetWidth() == 0 || event.GetHeight() == 0)
 			return false;
-		
+
+		RendererCommand::ResizeSwapChain(event.GetWidth(), event.GetHeight());
+
 		return false;
 	}
 
@@ -400,6 +410,7 @@ namespace Shark {
 			{
 				if (m_HoveredEntityID != -1)
 				{
+					// TODO: Check if valid
 					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, Weak(*m_Scean) };
 					Event::Distribute(SelectionChangedEvent(entity));
 				}
@@ -474,7 +485,7 @@ namespace Shark {
 			ImGui::Text("Callback Count: %d", s.Callbacks);
 
 			ImGui::NewLine();
-			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && m_HoveredEntityID != -1)
+			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && m_HoveredEntityID >= 0)
 			{
 				Entity e{ (entt::entity)m_HoveredEntityID, Weak(*m_Scean) };
 				if (e.IsValid())
@@ -488,7 +499,13 @@ namespace Shark {
 				}
 			}
 			else
-				ImGui::Text("Hovered Entity: No Entity");
+			{
+				if (m_HoveredEntityID == -1)
+					ImGui::Text("Hovered Entity: No Entity");
+				else
+					ImGui::Text("Hovered Entity: No Entity, %d", m_HoveredEntityID);
+			}
+			ImGui::Text("Selected Entity ID: %d", (uint32_t)m_SceanHirachyPanel.GetSelectedEntity());
 
 			static MemoryMetrics s_LastMemory;
 			ImGui::NewLine();
@@ -511,7 +528,29 @@ namespace Shark {
 			s_LastMemory = m;
 
 			ImGui::End();
+
+
 		}
+		
+		if (ImGui::Begin("Render Settings"))
+		{
+			for (auto&& [key, shader] : Renderer::ShaderLib())
+			{
+				if (ImGui::TreeNodeEx(key.c_str()))
+				{
+					ImGui::Text("Path: %s", shader->GetFilePath().c_str());
+					if (ImGui::Button("ReCompile"))
+						shader->ReCompile();
+					if (ImGui::Button("Reflect"))
+						shader->Reflect();
+					ImGui::TreePop();
+				}
+			}
+
+		}
+		ImGui::End();
+
+
 
 		if (m_ShowEditorCameraControlls)
 		{

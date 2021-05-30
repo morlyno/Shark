@@ -6,6 +6,8 @@
 
 namespace Shark {
 
+	static ShaderLibrary s_ShaderLib;
+
 	void Renderer::Init()
 	{
 		RendererCommand::Init();
@@ -14,8 +16,14 @@ namespace Shark {
 
 	void Renderer::ShutDown()
 	{
+		s_ShaderLib.Clear();
 		Renderer2D::ShutDown();
 		RendererCommand::ShutDown();
+	}
+
+	ShaderLibrary& Renderer::ShaderLib()
+	{
+		return s_ShaderLib;
 	}
 
 }

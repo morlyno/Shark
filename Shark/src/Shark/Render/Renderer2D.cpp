@@ -2,6 +2,8 @@
 #include "Renderer2D.h"
 #include "Shark/Render/RendererCommand.h"
 
+#include "Shark/Render/Renderer.h"
+
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shaders.h"
 #include "Shark/Render/ConstantBuffer.h"
@@ -207,7 +209,8 @@ namespace Shark {
 
 	void Renderer2D::Init()
 	{
-		s_DrawData.Shaders = Shaders::Create("assets/Shaders/MainShader.hlsl");
+		s_DrawData.Shaders = Renderer::ShaderLib().Load("assets/Shaders/MainShader.hlsl");
+		//s_DrawData.Shaders = Shaders::Create("assets/Shaders/MainShader.hlsl");
 		s_DrawData.ConstantBuffer = ConstantBuffer::Create(64, 0);
 		s_DrawData.VertexBuffer = VertexBuffer::Create(s_DrawData.Shaders->GetVertexLayout(), nullptr, 0, true);
 		s_DrawData.IndexBuffer = IndexBuffer::Create(nullptr, 0, true);
@@ -253,13 +256,13 @@ namespace Shark {
 		Utils::Flush();
 	}
 
-	void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
 		Utils::AddQuad(translation, s_DrawData.WitheTexture, 1.0f, color, id);
 	}
 
-	void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
 		Utils::AddTexture(texture);

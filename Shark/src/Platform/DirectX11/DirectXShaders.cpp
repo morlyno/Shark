@@ -143,6 +143,13 @@ namespace Shark {
 			return nullptr;
 		}
 
+		static void CreateCacheDirectoryIfNeeded()
+		{
+			const char* cacheDirectory = Utils::CacheDirectory();
+			if (!std::filesystem::exists(cacheDirectory))
+				std::filesystem::create_directories(cacheDirectory);
+		}
+
 	}
 
 	DirectXShaders::DirectXShaders(const std::string& filepath)
@@ -191,6 +198,23 @@ namespace Shark {
 			m_InputLayout = nullptr;
 		}
 
+	}
+
+	bool DirectXShaders::ReCompile()
+	{
+		std::string file = ReadFile(m_FilePath);
+		auto shaderSources = PreProzess(file);
+
+		if (!TryReCompile(shaderSources))
+			return false;
+
+		Release();
+
+		CreateShaders();
+		CreateInputlayout(m_ShaderBinarys[Shader::Vertex]);
+		//Reflect();
+
+		return true;
 	}
 
 	void DirectXShaders::Bind()
@@ -257,11 +281,54 @@ namespace Shark {
 
 	}
 
+	bool DirectXShaders::TryReCompile(std::unordered_map<Shader, std::string>& shaderSources)
+	{
+		std::filesystem::path cacheDirectory = Utils::CacheDirectory();
+		Utils::CreateCacheDirectoryIfNeeded();
+
+		std::unordered_map<Shader, std::vector<byte>> tempShaderBinarys;
+		for (auto&& [stage, src] : shaderSources)
+		{
+			D3D_SHADER_MACRO define[1];
+			define[0].Name = "DIRECTX";
+			define[0].Definition = "1";
+
+			auto version = Utils::ExtractVersion(src);
+
+			ID3DBlob* shaderBinary = nullptr;
+			ID3DBlob* errorMsg = nullptr;
+			if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), 0, 0, &shaderBinary, &errorMsg)))
+			{
+				SK_CORE_ERROR("Shader Compile Failed");
+				SK_CORE_ERROR(" - File: {0}", Utils::StageToString(stage));
+				SK_CORE_ERROR(" - Error Msg: {0}", (char*)errorMsg->GetBufferPointer());
+				return false;
+			}
+
+			auto& binary = tempShaderBinarys[stage];
+			binary.resize(shaderBinary->GetBufferSize());
+			memcpy(binary.data(), shaderBinary->GetBufferPointer(), shaderBinary->GetBufferSize());
+		}
+
+		for (auto&& [stage, binary] : tempShaderBinarys)
+		{
+			std::filesystem::path cacheFile = cacheDirectory / (m_FileName + Utils::FileExtension(stage));
+			std::ofstream out(cacheFile, std::ios::out | std::ios::binary);
+			SK_CORE_ASSERT(out);
+			if (out)
+			{
+				out.write((const char*)(binary.data()), binary.size());
+				out.close();
+			}
+		}
+		m_ShaderBinarys = std::move(tempShaderBinarys);
+		return true;
+	}
+
 	void DirectXShaders::CompileOrGetCached(std::unordered_map<Shader, std::string>& shaderSources)
 	{
 		std::filesystem::path cacheDirectory = Utils::CacheDirectory();
-		if (!std::filesystem::exists(cacheDirectory))
-			std::filesystem::create_directories(cacheDirectory);
+		Utils::CreateCacheDirectoryIfNeeded();
 
 		m_ShaderBinarys.clear();
 		for (auto&& [stage, src] : shaderSources)
@@ -447,6 +514,9 @@ namespace Shark {
 	void DirectXShaders::CreateShaders()
 	{
 		auto* dev = DirectXRendererAPI::GetDevice();
+
+		SK_CORE_ASSERT(m_VertexShader == nullptr);
+		SK_CORE_ASSERT(m_PixelShader == nullptr);
 
 		for (auto&& [stage, binary] : m_ShaderBinarys)
 		{
