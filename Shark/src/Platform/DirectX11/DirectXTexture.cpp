@@ -50,6 +50,12 @@ namespace Shark {
 		return D3D11_FILTER_MIN_MAG_MIP_POINT;
 	}
 
+	DirectXTexture2D::DirectXTexture2D(ID3D11ShaderResourceView* texture, uint32_t width, uint32_t height, const SamplerProps& props)
+		: m_Texture(texture), m_Width(width), m_Height(height)
+	{
+		CreateSampler(props);
+	}
+
 	DirectXTexture2D::DirectXTexture2D(const SamplerProps& props, const std::string& filepath)
 		: m_FilePath(filepath)
 	{
@@ -106,6 +112,9 @@ namespace Shark {
 		
 		ID3D11Texture2D* newTexture;
 		SK_CHECK(dev->CreateTexture2D(&desc, &srd, &newTexture));
+
+		// TODO: Test if this works
+		//ctx->UpdateSubresource(texture, 0, nullptr, data, desc.Width * 4, 0)
 		
 		ctx->CopyResource(texture, newTexture);
 		newTexture->Release();
@@ -123,8 +132,8 @@ namespace Shark {
 	void DirectXTexture2D::UnBind(uint32_t slot)
 	{
 		auto* ctx = DirectXRendererAPI::GetContext();
-		ctx->PSSetSamplers(slot, 1u, nullptr);
-		ctx->PSSetShaderResources(slot, 1u, nullptr);
+		ctx->PSSetSamplers(slot, 0, nullptr);
+		ctx->PSSetShaderResources(slot, 0, nullptr);
 	}
 
 	void DirectXTexture2D::CreateTexture(void* data)

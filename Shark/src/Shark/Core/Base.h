@@ -22,7 +22,7 @@
 #define SK_IF_DEBUG(...)
 #endif
 
-#define SK_TEST_RENDERER 1
+#define SK_TEST_RENDERER 0
 
 #include <stdint.h>
 
@@ -40,6 +40,9 @@ namespace Shark {
 		RenderID(void* id) : ID((uintptr_t)id) {}
 		operator uintptr_t() const { return ID; }
 		operator void*() const { return (void*)ID; }
+
+		template<typename T>
+		T* As() { return (T*)ID; }
 	};
 
 	using WindowHandle = void*;

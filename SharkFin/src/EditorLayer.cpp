@@ -27,7 +27,6 @@ namespace Shark {
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& window = Application::Get().GetWindow();
-		m_FrameBufferTexture = Texture2D::Create({}, window.GetWidth(), window.GetHeight(), nullptr);
 		m_Scean = Ref<Scean>::Create();
 		m_Scean->AddEditorData(true);
 		m_Scean.GetSaveState()->AddEditorData(true);
@@ -36,7 +35,7 @@ namespace Shark {
 		FrameBufferSpecification fbspecs;
 		fbspecs.Width = window.GetWidth();
 		fbspecs.Height = window.GetHeight();
-		fbspecs.Atachments = { FrameBufferColorAtachment::RGBA8, FrameBufferColorAtachment::R32_SINT, FrameBufferColorAtachment::Depth };
+		fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
 		fbspecs.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 		fbspecs.Atachments[0].Blend = true;
 		m_FrameBuffer = FrameBuffer::Create(fbspecs);
@@ -75,7 +74,6 @@ namespace Shark {
 
 		if (m_ViewportSizeChanged)
 		{
-			m_FrameBufferTexture = Texture2D::Create({}, m_ViewportWidth, m_ViewportHeight, 0u);
 			m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
@@ -93,7 +91,7 @@ namespace Shark {
 					m_EditorCamera.OnUpdate(ts);
 				m_Scean->OnUpdateEditor(ts, m_EditorCamera);
 
-#ifdef SK_TEST_RENDERER
+#if SK_TEST_RENDERER
 #else
 				if (auto entity = m_SceanHirachyPanel.GetSelectedEntity())
 				{
@@ -119,9 +117,8 @@ namespace Shark {
 				}
 #endif
 			}
-		}
 
-		m_FrameBuffer->GetFramBufferContent(0, m_FrameBufferTexture);
+		}
 
 		RendererCommand::BindMainFrameBuffer();
 	}
@@ -394,7 +391,8 @@ namespace Shark {
 			m_ViewportSizeChanged = true;
 		}
 
-		UI::NoAlpaImage(nullptr, m_FrameBufferTexture->GetRenderID(), size);
+		auto fbtex = m_FrameBuffer->GetFramBufferContent(0);
+		UI::NoAlpaImage(nullptr, fbtex->GetRenderID(), size);
 
 		auto [mx, my] = ImGui::GetMousePos();
 		auto [wx, wy] = ImGui::GetWindowPos();
@@ -541,8 +539,8 @@ namespace Shark {
 					ImGui::Text("Path: %s", shader->GetFilePath().c_str());
 					if (ImGui::Button("ReCompile"))
 						shader->ReCompile();
-					if (ImGui::Button("Reflect"))
-						shader->Reflect();
+					//if (ImGui::Button("Reflect"))
+					//	shader->Reflect();
 					ImGui::TreePop();
 				}
 			}

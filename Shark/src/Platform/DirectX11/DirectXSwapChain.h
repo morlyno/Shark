@@ -5,52 +5,17 @@
 
 namespace Shark {
 
-	enum class DepthAtachment
-	{
-		None = 0,
-		Depth32,
-
-		Depth = Depth32
-	};
-
-	struct SwapChainFrameBufferSpecification
-	{
-		DepthAtachment DepthAtachment = DepthAtachment::None;
-		uint32_t Width = 0, Height = 0;
-		bool Blend = false;
-	};
-
-	class DirectXSwapChainFrameBuffer : public RefCount
+	class DirectXSwapChainFrameBuffer : public DirectXFrameBuffer
 	{
 	public:
-		DirectXSwapChainFrameBuffer(IDXGISwapChain* swapchain, const SwapChainFrameBufferSpecification& specs);
-		~DirectXSwapChainFrameBuffer();
-
-		void Release();
-		void Resize(IDXGISwapChain* swapchain, uint32_t width, uint32_t height);
-
-		void Clear(Utility::ColorF32 clearcolor);
-
-		void SetBlend(bool blend);
-		bool GetBlend() const;
-
-		void SetDepth(bool enabled);
-		bool GetDepth() const;
-
-		void Bind();
-		void UnBind();
-	private:
-		void Create(IDXGISwapChain* swapchain);
+		DirectXSwapChainFrameBuffer(IDXGISwapChain* swapchain, const FrameBufferSpecification& specs);
+		virtual ~DirectXSwapChainFrameBuffer();
 
 	private:
-		ID3D11RenderTargetView* m_FrameBuffer = nullptr;
-		ID3D11DepthStencilView* m_DepthStencil = nullptr;
-		ID3D11DepthStencilState* m_DepthStencilState = nullptr;
-		ID3D11BlendState* m_BlendState = nullptr;
-		D3D11_VIEWPORT m_Viewport;
+		virtual void CreateSwapChainBuffer() override;
 
-		SwapChainFrameBufferSpecification m_Specification;
-		bool m_DepthEnabled = false;
+	private:
+		IDXGISwapChain* m_SwapChain = nullptr;
 	};
 
 	struct SwapChainSpecifications

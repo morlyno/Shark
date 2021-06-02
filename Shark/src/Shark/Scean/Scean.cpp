@@ -114,7 +114,7 @@ namespace Shark {
 		}
 		auto [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCameraID);
 
-#ifdef SK_TEST_RENDERER
+#if SK_TEST_RENDERER
 		TestRenderer::BeginScean(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 		{
 			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
@@ -135,7 +135,7 @@ namespace Shark {
 
 	void Scean::OnUpdateEditor(TimeStep ts, EditorCamera& camera)
 	{
-#ifdef SK_TEST_RENDERER
+#if SK_TEST_RENDERER
 		TestRenderer::BeginScean(camera);
 		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 		for (auto entityID : group)

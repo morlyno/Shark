@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	enum class FrameBufferColorAtachment
+	enum class ImageFormat
 	{
 		None = 0,
 		RGBA8,
@@ -14,26 +14,27 @@ namespace Shark {
 
 		Depth32,
 
+		SwapChain,
 		Depth = Depth32
 	};
 
-	struct FrmeBufferTextureAtachment
+	struct FrameBufferAtachment
 	{
-		FrameBufferColorAtachment Atachment;
 		bool Blend = false;
+		ImageFormat Format;
 
-		FrmeBufferTextureAtachment(FrameBufferColorAtachment atachment)
-			: Atachment(atachment) {}
+		FrameBufferAtachment(ImageFormat format)
+			: Format(format) {}
 	};
 
 	struct FrameBufferSpecification
 	{
 		uint32_t Width = 0, Height = 0;
-		std::vector<FrmeBufferTextureAtachment> Atachments;
+		std::vector<FrameBufferAtachment> Atachments;
 		DirectX::XMFLOAT4 ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		FrameBufferSpecification() = default;
-		FrameBufferSpecification(uint32_t width, uint32_t height, std::initializer_list<FrmeBufferTextureAtachment> atachments)
+		FrameBufferSpecification(uint32_t width, uint32_t height, std::initializer_list<FrameBufferAtachment> atachments)
 			: Width(width), Height(height), Atachments(atachments) {}
 	};
 
@@ -58,10 +59,10 @@ namespace Shark {
 		virtual void SetDepth(bool enabled) = 0;
 		virtual bool GetDepth() const = 0;
 
-		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) = 0;
+		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) = 0;
 		virtual int ReadPixel(uint32_t index, int x, int y) = 0;
 
-		virtual FrameBufferSpecification GetSpecification() const = 0;
+		virtual const FrameBufferSpecification& GetSpecification() const = 0;
 
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;

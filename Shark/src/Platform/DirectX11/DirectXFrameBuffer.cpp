@@ -13,14 +13,14 @@ namespace Shark {
 
 	namespace Utils {
 
-		static DXGI_FORMAT FBAtachmentToDXGIFormat(FrameBufferColorAtachment format)
+		static DXGI_FORMAT FBAtachmentToDXGIFormat(ImageFormat format)
 		{
 			switch (format)
 			{
-				case Shark::FrameBufferColorAtachment::None: SK_CORE_ASSERT(false, "No Foramt Specified"); return DXGI_FORMAT_UNKNOWN;
-				case Shark::FrameBufferColorAtachment::Depth32: SK_CORE_ASSERT(false, "Invalid Format"); return DXGI_FORMAT_UNKNOWN;
-				case Shark::FrameBufferColorAtachment::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
-				case Shark::FrameBufferColorAtachment::R32_SINT: return DXGI_FORMAT_R32_SINT;
+				case ImageFormat::None:      SK_CORE_ASSERT(false, "No Foramt Specified");  return DXGI_FORMAT_UNKNOWN;
+				case ImageFormat::Depth32:   SK_CORE_ASSERT(false, "Invalid Format");       return DXGI_FORMAT_UNKNOWN;
+				case ImageFormat::RGBA8:     return DXGI_FORMAT_R8G8B8A8_UNORM;
+				case ImageFormat::R32_SINT:  return DXGI_FORMAT_R32_SINT;
 			}
 			SK_CORE_ASSERT(false, "Unkown Format Type");
 			return DXGI_FORMAT_UNKNOWN;
@@ -28,10 +28,11 @@ namespace Shark {
 
 	}
 
-	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs)
-		: m_Specification(specs)
+	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs, bool isSwapChainTarget)
+		: m_Specification(specs), m_IsSwapChainTarget(isSwapChainTarget)
 	{
-		CreateBuffers();
+		if (!isSwapChainTarget)
+			CreateBuffers();
 	}
 
 	DirectXFrameBuffer::~DirectXFrameBuffer()
@@ -39,6 +40,8 @@ namespace Shark {
 		for (auto buffer : m_FrameBuffers)
 			if (buffer)
 				buffer->Release();
+
+		m_FrameBufferTextures.clear();
 
 		if (m_DepthStencil)
 			m_DepthStencil->Release();
@@ -87,6 +90,9 @@ namespace Shark {
 				buffer = nullptr;
 			}
 		}
+		m_FrameBuffers.clear();
+		m_FrameBufferTextures.clear();
+
 		if (m_DepthStencil)
 		{
 			m_DepthStencil->Release();
@@ -153,22 +159,9 @@ namespace Shark {
 		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateDepthStencilState(&dsd, &m_DepthStencilState));
 	}
 
-	void DirectXFrameBuffer::GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture)
+	Ref<Texture2D> DirectXFrameBuffer::GetFramBufferContent(uint32_t index)
 	{
-		SK_CORE_ASSERT(index < m_Count, "Index out of range");
-		auto* ctx = DirectXRendererAPI::GetContext();
-		auto* dev = DirectXRendererAPI::GetDevice();
-
-		ID3D11Resource* buffer;
-		m_FrameBuffers[index]->GetResource(&buffer);
-
-		auto* srv = (ID3D11ShaderResourceView*)texture->GetRenderID().ID;
-		ID3D11Resource* res;
-		srv->GetResource(&res);
-		ctx->CopyResource(res, buffer);
-
-		res->Release();
-		buffer->Release();
+		return m_FrameBufferTextures[index];
 	}
 
 	int DirectXFrameBuffer::ReadPixel(uint32_t index, int x, int y)
@@ -206,7 +199,6 @@ namespace Shark {
 		SK_CHECK(ctx->Map(TempData, 0, D3D11_MAP_READ, 0, &ms));
 
 		int pitch = ms.RowPitch / 4;
-		// TODO: Fix Access Violation (Additional info in consol)
 		int data = ((int*)ms.pData)[y * pitch + x];
 
 		ctx->Unmap(TempData, 0);
@@ -223,7 +215,7 @@ namespace Shark {
 
 		ctx->OMSetDepthStencilState(m_DepthStencilState, 1);
 		ctx->OMSetRenderTargets(m_Count, m_FrameBuffers.data(), m_DepthStencil);
-		ctx->OMSetBlendState(m_BlendState, nullptr, 0xffffffff);
+		ctx->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
 		ctx->RSSetViewports(1, &m_Viewport);
 	}
 
@@ -233,7 +225,7 @@ namespace Shark {
 
 		ctx->OMSetDepthStencilState(nullptr, 0);
 		ctx->OMSetRenderTargets(0, nullptr, nullptr);
-		ctx->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+		ctx->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
 		ctx->RSSetViewports(1, nullptr);
 	}
 
@@ -275,7 +267,7 @@ namespace Shark {
 
 	}
 
-	void DirectXFrameBuffer::CreateFrameBuffer(uint32_t index, DXGI_FORMAT dxgiformat)
+	void DirectXFrameBuffer::CreateFrameBuffer(DXGI_FORMAT dxgiformat)
 	{
 		auto dev = DirectXRendererAPI::GetDevice();
 
@@ -290,20 +282,26 @@ namespace Shark {
 		td.SampleDesc.Count = 1u;
 		td.SampleDesc.Quality = 0u;
 		td.Usage = D3D11_USAGE_DEFAULT;
-		td.BindFlags = D3D11_BIND_RENDER_TARGET;
+		td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 		td.CPUAccessFlags = 0u;
 		td.MiscFlags = 0u;
 
+		auto*& fb = m_FrameBuffers.emplace_back(nullptr);
+		
 		SK_CHECK(dev->CreateTexture2D(&td, nullptr, &texture));
-		if (index >= m_FrameBuffers.size())
-			m_FrameBuffers.push_back(nullptr);
 
-		SK_CHECK(dev->CreateRenderTargetView(texture, nullptr, &m_FrameBuffers[index]));
+		D3D11_RENDER_TARGET_VIEW_DESC desc;
+		desc.Format = dxgiformat;
+		desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		desc.Texture2D = D3D11_TEX2D_RTV{};
+		SK_CHECK(dev->CreateRenderTargetView(texture, &desc, &fb));
 		texture->Release();
 	}
 
 	void DirectXFrameBuffer::CreateBuffers()
 	{
+		auto dev = DirectXRendererAPI::GetDevice();
+
 		m_Viewport.TopLeftX = 0;
 		m_Viewport.TopLeftY = 0;
 		m_Viewport.Width = m_Specification.Width;
@@ -327,9 +325,13 @@ namespace Shark {
 		}
 
 		uint32_t index = 0;
-		for (auto atachment = m_Specification.Atachments.begin(); atachment != m_Specification.Atachments.end(); ++atachment)
+		for (auto atachment = m_Specification.Atachments.begin(); atachment != m_Specification.Atachments.end(); ++atachment, index++)
 		{
-			if (atachment->Atachment == FrameBufferColorAtachment::Depth32)
+			if (atachment->Format == ImageFormat::SwapChain)
+			{
+				CreateSwapChainBuffer();
+			}
+			else if (atachment->Format == ImageFormat::Depth32)
 			{
 				m_DepthEnabled = true;
 				CreateDepthBuffer();
@@ -337,13 +339,45 @@ namespace Shark {
 			else
 			{
 				bd.RenderTarget[index].BlendEnable = atachment->Blend;
-				CreateFrameBuffer(index++, Utils::FBAtachmentToDXGIFormat(atachment->Atachment));
+				CreateFrameBuffer(Utils::FBAtachmentToDXGIFormat(atachment->Format));
 			}
 		}
 
 		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBlendState(&bd, &m_BlendState));
 
-		m_Count = index;
+		m_Count = m_FrameBuffers.size();
+
+		if (!m_IsSwapChainTarget)
+		{
+			m_FrameBufferTextures.resize(m_Count);
+			for (uint32_t i = 0; i < m_Count; i++)
+			{
+				auto&& framebuffer = m_FrameBuffers[i];
+				auto&& texture = m_FrameBufferTextures[i];
+
+				ID3D11Resource* resource;
+				framebuffer->GetResource(&resource);
+				ID3D11Texture2D* tex2d;
+				SK_CHECK(resource->QueryInterface(&tex2d));
+
+				D3D11_TEXTURE2D_DESC texdesc;
+				tex2d->GetDesc(&texdesc);
+
+				D3D11_SHADER_RESOURCE_VIEW_DESC desc;
+				desc.Format = texdesc.Format;
+				desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+				desc.Texture2D.MipLevels = 1;
+				desc.Texture2D.MostDetailedMip = 0;
+
+				ID3D11ShaderResourceView* view;
+				SK_CHECK(dev->CreateShaderResourceView(tex2d, &desc, &view));
+				texture = Ref<DirectXTexture2D>::Create(view, texdesc.Width, texdesc.Height);
+
+				tex2d->Release();
+				resource->Release();
+			}
+		}
+
 	}
 
 }

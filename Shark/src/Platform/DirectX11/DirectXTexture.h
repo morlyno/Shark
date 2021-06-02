@@ -9,6 +9,7 @@ namespace Shark {
 	class DirectXTexture2D : public Texture2D
 	{
 	public:
+		DirectXTexture2D(ID3D11ShaderResourceView* texture, uint32_t width, uint32_t height, const SamplerProps& props = {});
 		DirectXTexture2D(const SamplerProps& props, const std::string& filepath);
 		DirectXTexture2D(const SamplerProps& props, uint32_t width, uint32_t height, void* data);
 		virtual ~DirectXTexture2D();
@@ -28,6 +29,8 @@ namespace Shark {
 		virtual void UnBind() override { UnBind(m_Slot); }
 		virtual void Bind(uint32_t slot) override;
 		virtual void UnBind(uint32_t slot) override;
+
+		ID3D11ShaderResourceView* GetView() const { return m_Texture; }
 
 	private:
 		void CreateTexture(void* data);

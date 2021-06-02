@@ -17,7 +17,7 @@ namespace Shark {
 		virtual void BindMainFrameBuffer() override { m_SwapChain->Bind(); }
 
 		// Temp
-		virtual void MainFrameBufferSetBlend(bool blend) override { m_SwapChain->GetMainFrameBuffer()->SetBlend(blend); }
+		virtual void MainFrameBufferSetBlend(bool blend) override { m_SwapChain->GetMainFrameBuffer()->SetBlend(0, blend); }
 
 		virtual void DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset) override;
 		virtual void Flush() override;

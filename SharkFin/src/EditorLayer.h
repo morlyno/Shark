@@ -57,8 +57,6 @@ namespace Shark {
 
 		int m_HoveredEntityID = -1;
 
-		Ref<Texture2D> m_FrameBufferTexture;
-
 		TimeStep m_TimeStep;
 	};
 

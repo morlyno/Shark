@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Render/FrameBuffer.h"
+#include "Platform/DirectX11/DirectXTexture.h"
 #include <d3d11.h>
 
 namespace Shark {
@@ -8,7 +9,7 @@ namespace Shark {
 	class DirectXFrameBuffer : public FrameBuffer
 	{
 	public:
-		DirectXFrameBuffer(const FrameBufferSpecification& specs);
+		DirectXFrameBuffer(const FrameBufferSpecification& specs, bool isSwapChainTarget = false);
 		virtual ~DirectXFrameBuffer();
 
 		virtual void Clear() override { Clear(m_Specification.ClearColor); }
@@ -27,22 +28,26 @@ namespace Shark {
 		virtual void SetDepth(bool enabled) override;
 		virtual bool GetDepth() const override { return m_DepthEnabled; }
 
-		virtual void GetFramBufferContent(uint32_t index, const Ref<Texture2D>& texture) override;
+		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) override;
 		virtual int ReadPixel(uint32_t index, int x, int y) override;
 
-		virtual FrameBufferSpecification GetSpecification() const { return m_Specification; }
+		virtual const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
 
 		virtual void Bind() override;
 		virtual void UnBind() override;
 
-	private:
+	protected:
 		void CreateDepthBuffer();
-		void CreateFrameBuffer(uint32_t index, DXGI_FORMAT dxgiformat);
+		void CreateFrameBuffer(DXGI_FORMAT dxgiformat);
 
 		void CreateBuffers();
 
-	private:
+		virtual void CreateSwapChainBuffer() { SK_CORE_ASSERT(false, "this is Swapchain Target but no override vor CreateSwapChainBuffer was provided!"); }
+
+	protected:
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;
+		std::vector<Ref<DirectXTexture2D>> m_FrameBufferTextures;
+
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;
 		ID3D11DepthStencilState* m_DepthStencilState = nullptr;
 		ID3D11BlendState* m_BlendState = nullptr;
@@ -51,6 +56,7 @@ namespace Shark {
 		uint32_t m_Count = 0;
 		FrameBufferSpecification m_Specification;
 		bool m_DepthEnabled = false;
+		bool m_IsSwapChainTarget;
 
 	};
 }
