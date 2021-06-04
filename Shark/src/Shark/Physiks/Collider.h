@@ -3,7 +3,7 @@
 #include <box2d/box2d.h>
 #include <DirectXMath.h>
 
-#include "Shark/Scean/Entity.h"
+#include "Shark/Scene/Entity.h"
 
 namespace Shark {
 

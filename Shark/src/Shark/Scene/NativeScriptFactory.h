@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Shark/Scean/NativeScript.h"
-#include "Shark/Scean/Components/NativeScriptComponent.h"
+#include "Shark/Scene/NativeScript.h"
+#include "Shark/Scene/Components/NativeScriptComponent.h"
 
 #define SK_REGISTER_SCRIPT(script_type) ::Shark::Empty impl_##script_type##_inst = ::Shark::NativeScriptFactory::Add<script_type>(SK_STRINGIFY(script_type))
 #define SK_SCRIPT_CLASS(script_name) class script_name; SK_REGISTER_SCRIPT(script_name); class script_name : public ::Shark::NativeScript

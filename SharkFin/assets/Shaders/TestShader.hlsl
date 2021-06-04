@@ -1,7 +1,7 @@
 #type Vertex
 #version vs_4_0
 
-cbuffer SceanData : register(b0)
+cbuffer SceneData : register(b0)
 {
     matrix c_ViewProjection;
 }

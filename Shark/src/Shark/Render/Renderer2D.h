@@ -4,8 +4,8 @@
 #include "Shark/Render/EditorCamera.h"
 #include "Shark/Render/Texture.h"
 
-#include "Shark/Scean/Entity.h"
-#include "Shark/Scean/Components/TransformComponent.h"
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components/TransformComponent.h"
 
 //#define SK_OLD_RENDERER2D
 
@@ -17,9 +17,9 @@ namespace Shark {
 		static void Init();
 		static void ShutDown();
 
-		static void BeginScean(Camera& camera, const DirectX::XMMATRIX& view);
-		static void BeginScean(EditorCamera& camera);
-		static void EndScean();
+		static void BeginScene(Camera& camera, const DirectX::XMMATRIX& view);
+		static void BeginScene(EditorCamera& camera);
+		static void EndScene();
 
 		template<typename Function>
 		static void Submit(const Function& function) { AddCallbackFunction(std::function<void()>(function)); }

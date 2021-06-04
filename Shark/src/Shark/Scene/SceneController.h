@@ -1,15 +1,15 @@
 #pragma once
 
-#include "Shark/Scean/Scean.h"
+#include "Shark/Scene/Scene.h"
 
 namespace Shark {
 
-	class SceanController
+	class SceneController
 	{
 	public:
-		SceanController() = default;
-		SceanController(const Ref<Scean>& scean);
-		void SetScean(const Ref<Scean>& scean);
+		SceneController() = default;
+		SceneController(const Ref<Scene>& scene);
+		void SetScene(const Ref<Scene>& scene);
 
 		void SaveState();
 		void LoadState();
@@ -21,17 +21,17 @@ namespace Shark {
 		bool Serialize(const std::string& filepath);
 		bool Deserialize(const std::string& filepath);
 
-		Ref<Scean> Get() const { return m_Active; }
-		Ref<Scean> GetSaveState() const { return m_SaveState; }
+		Ref<Scene> Get() const { return m_Active; }
+		Ref<Scene> GetSaveState() const { return m_SaveState; }
 
-		const Ref<Scean>& operator->() const { return m_Active; }
-		const Ref<Scean>& operator*() const { return m_Active; }
+		const Ref<Scene>& operator->() const { return m_Active; }
+		const Ref<Scene>& operator*() const { return m_Active; }
 
 		operator bool() const { return m_Active.operator bool(); }
 	private:
 		std::string m_SavePath;
-		Ref<Scean> m_Active;
-		Ref<Scean> m_SaveState;
+		Ref<Scene> m_Active;
+		Ref<Scene> m_SaveState;
 	};
 
 }

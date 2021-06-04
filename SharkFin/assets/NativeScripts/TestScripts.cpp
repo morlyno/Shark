@@ -1,6 +1,6 @@
 
-#include <Shark/Scean/NativeScriptFactory.h>
-#include <Shark/Scean/Components/Components.h>
+#include <Shark/Scene/NativeScriptFactory.h>
+#include <Shark/Scene/Components/Components.h>
 #include <Shark/Core/Input.h>
 #include <Shark/Core/Random.h>
 #include <Shark/Event/KeyEvent.h>
@@ -80,7 +80,7 @@ public:
 
 		if (m_CameraAtached)
 		{
-			Shark::Entity camera = m_Scean->GetActiveCamera();
+			Shark::Entity camera = m_Scene->GetActiveCamera();
 			auto& tf = camera.GetComponent<Shark::TransformComponent>();
 			auto [x, y] = rb.Body.GetPosition();
 			tf.Position.x = x;
@@ -130,7 +130,7 @@ public:
 		m_MoveSpeed = 4.0f;
 		m_CameraSpeed = 1.0f;
 
-		m_Scean->SetActiveCamera(m_Entity);
+		m_Scene->SetActiveCamera(m_Entity);
 
 	}
 
@@ -170,7 +170,7 @@ public:
 			auto& kpe = static_cast<Shark::KeyPressedEvent&>(event);
 			if (kpe.GetKeyCode() == Shark::Key::N)
 			{
-				Shark::Entity entity = m_Entity.GetScean()->CreateEntity();
+				Shark::Entity entity = m_Entity.GetScene()->CreateEntity();
 				auto& sr = entity.AddComponent<Shark::SpriteRendererComponent>();
 				sr.Color = { Shark::Random::Float(), Shark::Random::Float(), Shark::Random::Float(), 1.0f };
 				auto& tf = entity.GetComponent<Shark::TransformComponent>();

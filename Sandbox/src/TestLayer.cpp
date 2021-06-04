@@ -52,13 +52,13 @@ void TestLayer::OnUpdate(Shark::TimeStep ts)
 {
 	m_CameraController.OnUpdate(ts);
 
-	Shark::Renderer::BeginScean(m_CameraController.GetCamera());
+	Shark::Renderer::BeginScene(m_CameraController.GetCamera());
 	DirectX::XMMATRIX translation = DirectX::XMMatrixRotationZ(0.5f) * DirectX::XMMatrixTranslation(2.0f, 0.0f, 0.0f) * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 	Shark::Renderer::Submit(m_VertexBufferSquare, m_IndexBufferSquare, m_Shaders, m_SquareTranslation);
 	Shark::Renderer::Submit(m_VertexBufferTriangle, m_IndexBufferTriangle, m_Shaders, translation);
 	//Shark::Renderer::Submit(m_VertexBufferSquareTexture, m_IndexBufferSquare, m_TextureShaders, m_Texture, DirectX::XMMatrixIdentity());
 	Shark::Renderer::Submit(m_VertexBufferSquareTexture, m_IndexBufferSquare, m_TextureShaders, m_TextureS, DirectX::XMMatrixIdentity());
-	Shark::Renderer::EndScean();
+	Shark::Renderer::EndScene();
 }
 
 void TestLayer::OnImGuiRender()

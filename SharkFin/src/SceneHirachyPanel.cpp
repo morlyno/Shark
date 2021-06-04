@@ -1,11 +1,11 @@
-#include "SceanHirachyPanel.h"
+#include "SceneHirachyPanel.h"
 
-#include <Shark/Scean/Components/Components.h>
+#include <Shark/Scene/Components/Components.h>
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/Utility.h>
 #include <Shark/Utility/ImGuiUtils.h>
 #include <Shark/Core/Input.h>
-#include <Shark/Scean/NativeScriptFactory.h>
+#include <Shark/Scene/NativeScriptFactory.h>
 
 #include <Shark/Core/Application.h>
 
@@ -51,23 +51,23 @@ namespace Shark {
 
 	}
 
-	SceanHirachyPanel::SceanHirachyPanel(const Ref<Scean>& context)
+	SceneHirachyPanel::SceneHirachyPanel(const Ref<Scene>& context)
 		: m_Context(context)
 	{
 	}
 
-	void SceanHirachyPanel::SetContext(const Ref<Scean>& context)
+	void SceneHirachyPanel::SetContext(const Ref<Scene>& context)
 	{
 		Utils::ChangeSelectedEntity({});
 		m_Context = context;
 	}
 
-	void SceanHirachyPanel::OnImGuiRender()
+	void SceneHirachyPanel::OnImGuiRender()
 	{
 		if (!m_ShowPanel)
 			return;
 
-		if (!ImGui::Begin("Scean Hirachy", &m_ShowPanel))
+		if (!ImGui::Begin("Scene Hirachy", &m_ShowPanel))
 		{
 			ImGui::End();
 			return;
@@ -142,13 +142,13 @@ namespace Shark {
 
 	}
 
-	void SceanHirachyPanel::OnEvent(Event& event)
+	void SceneHirachyPanel::OnEvent(Event& event)
 	{
 		EventDispacher dispacher(event);
-		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(SceanHirachyPanel::OnSelectionChanged));
+		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(SceneHirachyPanel::OnSelectionChanged));
 	}
 
-	void SceanHirachyPanel::DrawEntityNode(Entity entity)
+	void SceneHirachyPanel::DrawEntityNode(Entity entity)
 	{
 		const auto& tag = entity.GetComponent<TagComponent>();
 		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
@@ -188,7 +188,7 @@ namespace Shark {
 		}
 	}
 	
-	void SceanHirachyPanel::DrawEntityProperties(Entity entity)
+	void SceneHirachyPanel::DrawEntityProperties(Entity entity)
 	{
 		const float AddButtonWidth = ImGui::CalcTextSize("Add", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 		const float IDSpacingWidth = ImGui::CalcTextSize("123456", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
@@ -220,7 +220,7 @@ namespace Shark {
 				entity.AddComponent<SpriteRendererComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("Scean Camera", false, entity.HasComponent<CameraComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("Scene Camera", false, entity.HasComponent<CameraComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<CameraComponent>();
 				ImGui::CloseCurrentPopup();
@@ -292,14 +292,14 @@ namespace Shark {
 			UI::DrawFloatControl("TilingFactor", comp.TilingFactor, 1.0f, "%.2f", 100.0f, "R");
 		});
 
-		Utils::DrawComponet<CameraComponent>(entity, "Scean Camera", [&](CameraComponent& comp)
+		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)
 		{
 			m_SelectedProjectionIndex = (int)comp.Camera.GetProjectionType();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
 			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, m_ProjectionItems, (int)std::size(m_ProjectionItems));
-			if (m_SelectedProjectionIndex == (int)SceanCamera::Projection::Perspective)
+			if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Perspective)
 			{
-				comp.Camera.SetProjectionType(SceanCamera::Projection::Perspective);
+				comp.Camera.SetProjectionType(SceneCamera::Projection::Perspective);
 					
 				bool changed = false;
 
@@ -355,9 +355,9 @@ namespace Shark {
 
 				ImGui::Columns();
 			}
-			else if (m_SelectedProjectionIndex == (int)SceanCamera::Projection::Orthographic)
+			else if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Orthographic)
 			{
-				comp.Camera.SetProjectionType(SceanCamera::Projection::Orthographic);
+				comp.Camera.SetProjectionType(SceneCamera::Projection::Orthographic);
 
 				bool changed = false;
 
@@ -555,7 +555,7 @@ namespace Shark {
 
 	}
 
-	void SceanHirachyPanel::DrawMaterial(Entity entity)
+	void SceneHirachyPanel::DrawMaterial(Entity entity)
 	{
 		if (!entity.HasComponent<MaterialComponent>())
 			return;
@@ -609,7 +609,7 @@ namespace Shark {
 
 	}
 
-	bool SceanHirachyPanel::OnSelectionChanged(SelectionChangedEvent& event)
+	bool SceneHirachyPanel::OnSelectionChanged(SelectionChangedEvent& event)
 	{
 		m_SelectedEntity = event.GetSelectedEntity();
 		return false;

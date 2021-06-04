@@ -7,12 +7,12 @@
 #include "Shark/Render/Shaders.h"
 #include "Shark/Render/ConstantBuffer.h"
 
-#include "Shark/Scean/Components/SpriteRendererComponent.h"
-#include "Shark/Scean/Components/TransformComponent.h"
+#include "Shark/Scene/Components/SpriteRendererComponent.h"
+#include "Shark/Scene/Components/TransformComponent.h"
 
 #include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Material.h"
-#include "Shark/Scean/Components/MaterialComponent.h"
+#include "Shark/Scene/Components/MaterialComponent.h"
 
 namespace Shark {
 
@@ -58,7 +58,7 @@ namespace Shark {
 		s_Data->VertexBuffer = VertexBuffer::Create(s_Data->Shaders->GetVertexLayout(), vertices, sizeof(vertices));
 		s_Data->IndexBuffer = IndexBuffer::Create(indices, std::size(indices));
 		
-		s_Data->ViewProjection = s_Data->Shaders->CreateConstantBuffer("SceanData");
+		s_Data->ViewProjection = s_Data->Shaders->CreateConstantBuffer("SceneData");
 
 		//s_Data->ViewProjection = ConstantBuffer::Create(64, 0);
 		//s_Data->Material = ConstantBuffer::Create(96, 1);
@@ -71,19 +71,19 @@ namespace Shark {
 		delete s_Data;
 	}
 
-	void TestRenderer::BeginScean(Camera& camera, const DirectX::XMMATRIX& view)
+	void TestRenderer::BeginScene(Camera& camera, const DirectX::XMMATRIX& view)
 	{
 		DirectX::XMMATRIX vp = view * camera.GetProjection();
 		s_Data->ViewProjection->Set(&vp);
 	}
 
-	void TestRenderer::BeginScean(EditorCamera& camera)
+	void TestRenderer::BeginScene(EditorCamera& camera)
 	{
 		DirectX::XMMATRIX vp = camera.GetViewProjection();
 		s_Data->ViewProjection->Set(&vp);
 	}
 
-	void TestRenderer::EndScean()
+	void TestRenderer::EndScene()
 	{
 	}
 

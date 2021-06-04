@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Shark/Scean/SceanCamera.h"
+#include "Shark/Scene/SceneCamera.h"
 
 namespace Shark{
 
 	struct CameraComponent
 	{
-		SceanCamera Camera;
+		SceneCamera Camera;
 	};
 
 }

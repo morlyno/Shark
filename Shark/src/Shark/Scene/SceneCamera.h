@@ -7,14 +7,14 @@
 
 namespace Shark {
 
-	class SceanCamera : public Camera
+	class SceneCamera : public Camera
 	{
 	public:
 		enum class Projection { Perspective, Orthographic };
 	public:
-		SceanCamera();
-		SceanCamera(const Camera& camera);
-		SceanCamera(const DirectX::XMMATRIX& projection);
+		SceneCamera();
+		SceneCamera(const Camera& camera);
+		SceneCamera(const DirectX::XMMATRIX& projection);
 
 		void SetProjectionType(Projection projection) { m_ProjectionType = projection; Recalcualte(); }
 		Projection GetProjectionType() const { return m_ProjectionType; }

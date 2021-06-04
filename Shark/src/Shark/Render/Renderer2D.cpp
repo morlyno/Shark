@@ -8,18 +8,18 @@
 #include "Shark/Render/Shaders.h"
 #include "Shark/Render/ConstantBuffer.h"
 
-#include "Shark/Scean/Components/TransformComponent.h"
-#include "Shark/Scean/Components/SpriteRendererComponent.h"
+#include "Shark/Scene/Components/TransformComponent.h"
+#include "Shark/Scene/Components/SpriteRendererComponent.h"
 
 #include <DirectXMath.h>
 
 namespace Shark {
 
-	struct SceanData
+	struct SceneData
 	{
 		DirectX::XMMATRIX ViewProjectionMatrix;
 	};
-	static SceanData s_SceanData;
+	static SceneData s_SceneData;
 
 	using Index = IndexBuffer::IndexType;
 
@@ -102,7 +102,7 @@ namespace Shark {
 			s_DrawData->IndexBuffer->Bind();
 			s_DrawData->ViewProjection->Bind();
 
-			s_DrawData->ViewProjection->Set(&s_SceanData);
+			s_DrawData->ViewProjection->Set(&s_SceneData);
 
 			for (uint32_t i = 0; i < s_DrawData->DrawCmdList.size(); i++)
 			{
@@ -234,19 +234,19 @@ namespace Shark {
 		delete s_DrawData;
 	}
 
-	void Renderer2D::BeginScean(Camera& camera, const DirectX::XMMATRIX& view)
+	void Renderer2D::BeginScene(Camera& camera, const DirectX::XMMATRIX& view)
 	{
 		Utils::ResetStates();
-		s_SceanData.ViewProjectionMatrix = view * camera.GetProjection();
+		s_SceneData.ViewProjectionMatrix = view * camera.GetProjection();
 	}
 
-	void Renderer2D::BeginScean(EditorCamera& camera)
+	void Renderer2D::BeginScene(EditorCamera& camera)
 	{
 		Utils::ResetStates();
-		s_SceanData.ViewProjectionMatrix = camera.GetViewProjection();
+		s_SceneData.ViewProjectionMatrix = camera.GetViewProjection();
 	}
 
-	void Renderer2D::EndScean()
+	void Renderer2D::EndScene()
 	{
 		Utils::Flush();
 	}

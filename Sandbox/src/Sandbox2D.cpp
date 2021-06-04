@@ -28,12 +28,12 @@ void Sandbox2D::OnUpdate(Shark::TimeStep ts)
 {
 	m_CameraController.OnUpdate(ts);
 	
-	Shark::Renderer2D::BeginScean(m_CameraController.GetCamera());
+	Shark::Renderer2D::BeginScene(m_CameraController.GetCamera());
 
 	Shark::Renderer2D::DrawQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f });
 	Shark::Renderer2D::DrawQuad({ 0.5f, 0.0f,-0.1f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f, 0.5f });
 
-	Shark::Renderer2D::EndScean();
+	Shark::Renderer2D::EndScene();
 }
 
 void Sandbox2D::OnEvent(Shark::Event& event)

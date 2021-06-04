@@ -87,7 +87,7 @@ namespace Shark {
 
 		static bool ShouldBeIgnored(const std::string& bufferName)
 		{
-			if (bufferName == "SceanData")
+			if (bufferName == "SceneData")
 				return true;
 			return false;
 		}

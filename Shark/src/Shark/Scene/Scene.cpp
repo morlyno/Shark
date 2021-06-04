@@ -1,27 +1,27 @@
 #include "skpch.h"
-#include "Scean.h"
+#include "Scene.h"
 
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/TestRenderer.h"
-#include "Shark/Scean/Entity.h"
-#include "Shark/Scean/Components/Components.h"
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components/Components.h"
 
 namespace Shark {
 
-	Scean::Scean()
+	Scene::Scene()
 	{
 	}
 
-	Scean::~Scean()
+	Scene::~Scene()
 	{
 	}
 
-	Scean::Scean(const Scean& other)
+	Scene::Scene(const Scene& other)
 	{
 		m_World.SetGravity(other.m_World.GetGravity());
 		other.m_Registry.each([this, &other](auto ID)
 		{
-			Entity e{ ID, Weak((Scean*)&other) };
+			Entity e{ ID, Weak((Scene*)&other) };
 			CreateEntity(e, true);
 		});
 
@@ -30,7 +30,7 @@ namespace Shark {
 		m_ViewportHeight = other.m_ViewportHeight;
 	}
 
-	Scean& Scean::operator=(const Scean& other)
+	Scene& Scene::operator=(const Scene& other)
 	{
 		m_World = World(other.m_World.GetGravity());
 		m_Registry = entt::registry{};
@@ -39,7 +39,7 @@ namespace Shark {
 		m_World.SetGravity(other.m_World.GetGravity());
 		other.m_Registry.each([this, &other](auto ID)
 		{
-			Entity e{ ID, Weak((Scean*)&other) };
+			Entity e{ ID, Weak((Scene*)&other) };
 			CreateEntity(e, true);
 		});
 
@@ -50,7 +50,7 @@ namespace Shark {
 		return *this;
 	}
 
-	Scean::Scean(Scean&& other)
+	Scene::Scene(Scene&& other)
 	{
 		m_Registry = std::move(other.m_Registry);
 		m_World = std::move(other.m_World);
@@ -63,7 +63,7 @@ namespace Shark {
 		other.m_ViewportHeight = 0;
 	}
 
-	Scean& Scean::operator=(Scean&& other)
+	Scene& Scene::operator=(Scene&& other)
 	{
 		m_Registry = std::move(other.m_Registry);
 		m_World = std::move(other.m_World);
@@ -77,7 +77,7 @@ namespace Shark {
 		return *this;
 	}
 
-	void Scean::OnUpdateRuntime(TimeStep ts)
+	void Scene::OnUpdateRuntime(TimeStep ts)
 	{
 		m_World.Update(ts);
 
@@ -115,34 +115,34 @@ namespace Shark {
 		auto [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCameraID);
 
 #if SK_TEST_RENDERER
-		TestRenderer::BeginScean(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
+		TestRenderer::BeginScene(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 		{
 			auto group = m_Registry.group<TransformComponent>(entt::get<MaterialComponent>);
 			for (auto entityID : group)
 				TestRenderer::DrawEntity({ entityID, Weak(this) });
 		}
-		TestRenderer::EndScean();
+		TestRenderer::EndScene();
 #else
-		Renderer2D::BeginScean(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
+		Renderer2D::BeginScene(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 		{
 			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 			for (auto entityID : group)
 				Renderer2D::DrawEntity({ entityID, Weak(this) });
 		}
-		Renderer2D::EndScean();
+		Renderer2D::EndScene();
 #endif
 	}
 
-	void Scean::OnUpdateEditor(TimeStep ts, EditorCamera& camera)
+	void Scene::OnUpdateEditor(TimeStep ts, EditorCamera& camera)
 	{
 #if SK_TEST_RENDERER
-		TestRenderer::BeginScean(camera);
+		TestRenderer::BeginScene(camera);
 		auto group = m_Registry.group<TransformComponent>(entt::get<MaterialComponent>);
 		for (auto entityID : group)
 			TestRenderer::DrawEntity({ entityID, Weak(this) });
-		TestRenderer::EndScean();
+		TestRenderer::EndScene();
 #else
-		Renderer2D::BeginScean(camera);
+		Renderer2D::BeginScene(camera);
 
 		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 		for (auto entityID : group)
@@ -152,11 +152,11 @@ namespace Shark {
 		//if (selectedentity)
 			// Draw Selcted Entity
 
-		Renderer2D::EndScean();
+		Renderer2D::EndScene();
 #endif
 	}
 
-	void Scean::OnEventRuntime(Event& event)
+	void Scene::OnEventRuntime(Event& event)
 	{
 		auto view = m_Registry.view<NativeScriptComponent>();
 		for (auto entityID : view)
@@ -167,11 +167,11 @@ namespace Shark {
 		}
 	}
 
-	void Scean::OnEventEditor(Event& event)
+	void Scene::OnEventEditor(Event& event)
 	{
 	}
 
-	void Scean::OnSceanPlay()
+	void Scene::OnScenePlay()
 	{
 		m_World.Flush();
 
@@ -190,7 +190,7 @@ namespace Shark {
 		ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
 	}
 
-	void Scean::OnSceanStop()
+	void Scene::OnSceneStop()
 	{
 		auto view = m_Registry.view<NativeScriptComponent>();
 		for (auto entityID : view)
@@ -206,7 +206,7 @@ namespace Shark {
 		m_World.Flush();
 	}
 
-	Entity Scean::CreateEntity(Entity other, bool hint)
+	Entity Scene::CreateEntity(Entity other, bool hint)
 	{
 		entt::entity entityID = hint ? m_Registry.create(other) : m_Registry.create();
 		Entity e{ entityID, Weak(this) };
@@ -246,7 +246,7 @@ namespace Shark {
 		return e;
 	}
 
-	Entity Scean::CreateEntity(const std::string& tag)
+	Entity Scene::CreateEntity(const std::string& tag)
 	{
 		Entity entity{ m_Registry.create(), Weak(this) };
 		auto& tagcomp = entity.AddComponent<TagComponent>();
@@ -255,22 +255,22 @@ namespace Shark {
 		return entity;
 	}
 
-	void Scean::DestroyEntity(Entity entity)
+	void Scene::DestroyEntity(Entity entity)
 	{
 		m_Registry.destroy(entity);
 	}
 
-	Entity Scean::GetActiveCamera()
+	Entity Scene::GetActiveCamera()
 	{
 		return { m_ActiveCameraID, Weak(this) };
 	}
 
-	void Scean::SetActiveCamera(Entity cameraentity)
+	void Scene::SetActiveCamera(Entity cameraentity)
 	{
 		m_ActiveCameraID = cameraentity;
 	}
 
-	void Scean::ResizeCameras(float width, float height)
+	void Scene::ResizeCameras(float width, float height)
 	{
 		auto view = m_Registry.view<CameraComponent>();
 		for (auto entityID : view)
@@ -280,18 +280,18 @@ namespace Shark {
 		}
 	}
 
-	bool Scean::IsValidEntity(Entity entity)
+	bool Scene::IsValidEntity(Entity entity)
 	{
 		return m_Registry.valid(entity);
 	}
 
-	void Scean::OnEvent(Event& event)
+	void Scene::OnEvent(Event& event)
 	{
 		EventDispacher dispacher(event);
-		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(Scean::OnSelectionChanged));
+		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(Scene::OnSelectionChanged));
 	}
 
-	bool Scean::OnSelectionChanged(SelectionChangedEvent& event)
+	bool Scene::OnSelectionChanged(SelectionChangedEvent& event)
 	{
 		m_SelectedEntity = event.GetSelectedEntity();
 		return false;
@@ -300,41 +300,41 @@ namespace Shark {
 
 
 	template<typename Component>
-	void Scean::OnComponentAdded(Entity entity, Component& comp)
+	void Scene::OnComponentAdded(Entity entity, Component& comp)
 	{
 		static_assert(false);
 	}
 	
 	template<>
-	void Scean::OnComponentAdded<TagComponent>(Entity entity, TagComponent& comp)
+	void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& comp)
 	{
 	}
 	
 	template<>
-	void Scean::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& comp)
+	void Scene::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& comp)
 	{
 	}
 	
 	template<>
-	void Scean::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& comp)
+	void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& comp)
 	{
 	}
 	
 	template<>
-	void Scean::OnComponentAdded<CameraComponent>(Entity entity,CameraComponent& comp)
+	void Scene::OnComponentAdded<CameraComponent>(Entity entity,CameraComponent& comp)
 	{
 		comp.Camera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 	}
 
 	template<>
-	void Scean::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& comp)
+	void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& comp)
 	{
 		if (m_AddEditorData)
 			entity.AddComponent<EditorData::NaticeScriptComponent>();
 	}
 
 	template<>
-	void Scean::OnComponentAdded<RigidBodyComponent>(Entity entity, RigidBodyComponent& comp)
+	void Scene::OnComponentAdded<RigidBodyComponent>(Entity entity, RigidBodyComponent& comp)
 	{
 		if (!entity.HasComponent<TransformComponent>())
 			entity.AddComponent<TransformComponent>();
@@ -350,7 +350,7 @@ namespace Shark {
 	}
 
 	template<>
-	void Scean::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& comp)
+	void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& comp)
 	{
 		if (!entity.HasComponent<TransformComponent>())
 			entity.AddComponent<TransformComponent>();
@@ -365,12 +365,12 @@ namespace Shark {
 	}
 
 	template<>
-	void Scean::OnComponentAdded<MaterialComponent>(Entity entity, MaterialComponent& comp)
+	void Scene::OnComponentAdded<MaterialComponent>(Entity entity, MaterialComponent& comp)
 	{
 	}
 
 	template<>
-	void Scean::OnComponentAdded<EditorData::NaticeScriptComponent>(Entity entity, EditorData::NaticeScriptComponent& comp)
+	void Scene::OnComponentAdded<EditorData::NaticeScriptComponent>(Entity entity, EditorData::NaticeScriptComponent& comp)
 	{
 		return;
 	}

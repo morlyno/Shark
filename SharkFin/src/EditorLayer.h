@@ -3,12 +3,12 @@
 #include <Shark/Render/EditorCamera.h>
 #include <Shark/Render/FrameBuffer.h>
 #include <Shark/Render/Rasterizer.h>
-#include <Shark/Scean/Scean.h>
-#include <Shark/Scean/Entity.h>
-#include <Shark/Scean/SceanController.h>
+#include <Shark/Scene/Scene.h>
+#include <Shark/Scene/Entity.h>
+#include <Shark/Scene/SceneController.h>
 #include <Shark/Render/Texture.h>
 
-#include "SceanHirachyPanel.h"
+#include "SceneHirachyPanel.h"
 #include "AssetsPanel.h"
 
 namespace Shark {
@@ -30,27 +30,27 @@ namespace Shark {
 		bool OnWindowResize(WindowResizeEvent& event);
 		bool OnKeyPressed(KeyPressedEvent& event);
 
-		void NewScean();
-		void SaveScean();
-		void OpenScean();
+		void NewScene();
+		void SaveScene();
+		void OpenScene();
 
-		void OnPlayScean();
-		void OnStopScean();
+		void OnPlayScene();
+		void OnStopScene();
 	private:
 		EditorCamera m_EditorCamera;
 		Ref<FrameBuffer> m_FrameBuffer;
 		Ref<Rasterizer> m_Rasterizer;
 		Ref<Rasterizer> m_HilightRasterizer;
 
-		SceanController m_Scean;
-		SceanHirachyPanel m_SceanHirachyPanel;
+		SceneController m_Scene;
+		SceneHirachyPanel m_SceneHirachyPanel;
 		AssetsPanel m_AssetsPanel;
 
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		bool m_ViewportSizeChanged = false;
 
-		bool m_PlayScean = false;
+		bool m_PlayScene = false;
 
 		bool m_ShowInfo = false;
 		bool m_ShowEditorCameraControlls = false;

@@ -46,15 +46,15 @@
 #include "Shark/Render/EditorCamera.h"
 // --------------------------------------
 
-// --- Scean ----------------------------
-#include "Shark/Scean/Scean.h"
-#include "Shark/Scean/SceanController.h"
-#include "Shark/Scean/Entity.h"
-#include "Shark/Scean/SceanCamera.h"
-#include "Shark/Scean/NativeScript.h"
-#include "Shark/Scean/Components/Components.h"
-#include "Shark/Scean/SceanSerialization.h"
-#include "Shark/Scean/NativeScriptFactory.h"
+// --- Scene ----------------------------
+#include "Shark/Scene/Scene.h"
+#include "Shark/Scene/SceneController.h"
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/SceneCamera.h"
+#include "Shark/Scene/NativeScript.h"
+#include "Shark/Scene/Components/Components.h"
+#include "Shark/Scene/SceneSerialization.h"
+#include "Shark/Scene/NativeScriptFactory.h"
 // --------------------------------------
 
 // --- Physiks --------------------------

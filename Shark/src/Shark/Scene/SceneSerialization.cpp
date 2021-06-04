@@ -1,8 +1,8 @@
 #include "skpch.h"
-#include "SceanSerialization.h"
+#include "SceneSerialization.h"
 
-#include "Shark/Scean/Entity.h"
-#include "Shark/Scean/Components/Components.h"
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components/Components.h"
 
 #include <yaml-cpp/yaml.h>
 #include <fstream>
@@ -84,12 +84,12 @@ namespace Shark {
 		return out;
 	}
 
-	SceanSerializer::SceanSerializer(const Ref<Scean>& scean)
-		: m_Scean(scean)
+	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
+		: m_Scene(scene)
 	{
 	}
 
-	static bool SerializeEntity(YAML::Emitter& out, Entity entity, const Ref<Scean>& scean)
+	static bool SerializeEntity(YAML::Emitter& out, Entity entity, const Ref<Scene>& scene)
 	{
 		if (!out.good())
 		{
@@ -166,7 +166,7 @@ namespace Shark {
 			out << YAML::Key << "OrthographicNear" << YAML::Value << cam.GetOrthographicNear();
 			out << YAML::Key << "OrthographicFar" << YAML::Value << cam.GetOrthographicFar();
 
-			bool mainCamera = entity == scean->GetActiveCamera();
+			bool mainCamera = entity == scene->GetActiveCamera();
 			out << YAML::Key << "IsMainCamera" << YAML::Value << mainCamera;
 
 			out << YAML::EndMap;
@@ -214,19 +214,19 @@ namespace Shark {
 		return true;
 	}
 
-	bool SceanSerializer::Serialize(const std::string& filepath)
+	bool SceneSerializer::Serialize(const std::string& filepath)
 	{
 		YAML::Emitter out;
 
-		SK_CORE_TRACE("Searializing Scean to {0}", filepath);
+		SK_CORE_TRACE("Searializing Scene to {0}", filepath);
 
-		out << YAML::BeginMap << YAML::Key << "Scean" << YAML::Value << "Untitled";
+		out << YAML::BeginMap << YAML::Key << "Scene" << YAML::Value << "Untitled";
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		
-		m_Scean->m_Registry.each([&](auto& entityID)
+		m_Scene->m_Registry.each([&](auto& entityID)
 		{
-			Entity entity{ entityID, Weak(m_Scean) };
-			SerializeEntity(out, entity, m_Scean);
+			Entity entity{ entityID, Weak(m_Scene) };
+			SerializeEntity(out, entity, m_Scene);
 		});
 
 
@@ -244,21 +244,21 @@ namespace Shark {
 		return true;
 	}
 
-	bool SceanSerializer::Deserialize(const std::string& filepath)
+	bool SceneSerializer::Deserialize(const std::string& filepath)
 	{
 		YAML::Node in = YAML::LoadFile(filepath);
-		if (!in["Scean"])
+		if (!in["Scene"])
 			return false;
 
-		SK_CORE_TRACE("Deserializing Scean from: {0}", filepath);
+		SK_CORE_TRACE("Deserializing Scene from: {0}", filepath);
 
 		auto entities = in["Entities"];
 		if (entities)
 		{
 			for (auto entity : entities)
 			{
-				entt::entity entityID = m_Scean->m_Registry.create();
-				Entity deserializedEntity = { entityID, Weak(m_Scean) };
+				entt::entity entityID = m_Scene->m_Registry.create();
+				Entity deserializedEntity = { entityID, Weak(m_Scene) };
 
 				SK_CORE_TRACE("Deserializing Entity ID: {0}", (uint32_t)entityID);
 
@@ -297,7 +297,7 @@ namespace Shark {
 				auto cameraComponent = entity["CameraComponent"];
 				if (cameraComponent)
 				{
-					SceanCamera::Projection type = (SceanCamera::Projection)cameraComponent["Type"].as<int>();
+					SceneCamera::Projection type = (SceneCamera::Projection)cameraComponent["Type"].as<int>();
 					float aspecratio = cameraComponent["Aspecratio"].as<float>();
 					float perspectiveFOV = cameraComponent["PerspectiveFOV"].as<float>();
 					float perspectiveNear = cameraComponent["PerspectiveNear"].as<float>();
@@ -307,16 +307,16 @@ namespace Shark {
 					float orthographicFar = cameraComponent["OrthographicFar"].as<float>();
 					bool isMainCamera = cameraComponent["IsMainCamera"].as<bool>();
 							
-					SceanCamera sceancamera;
-					sceancamera.SetPerspective(aspecratio, perspectiveFOV, perspectiveNear, perspectiveFar);
-					sceancamera.SetOrthographic(aspecratio, orthographicZoom, orthographicNear, orthographicFar);
-					sceancamera.SetProjectionType(type);
+					SceneCamera Scenecamera;
+					Scenecamera.SetPerspective(aspecratio, perspectiveFOV, perspectiveNear, perspectiveFar);
+					Scenecamera.SetOrthographic(aspecratio, orthographicZoom, orthographicNear, orthographicFar);
+					Scenecamera.SetProjectionType(type);
 
 					auto& comp = deserializedEntity.AddComponent<CameraComponent>();
-					comp.Camera = sceancamera;
+					comp.Camera = Scenecamera;
 					if (isMainCamera)
-						m_Scean->m_ActiveCameraID = deserializedEntity;
-					SK_CORE_TRACE(" - Camera Component: Type {0}, MainCamera {0}", type == SceanCamera::Projection::Perspective ? "Perspective" : "Othographic", isMainCamera);
+						m_Scene->m_ActiveCameraID = deserializedEntity;
+					SK_CORE_TRACE(" - Camera Component: Type {0}, MainCamera {0}", type == SceneCamera::Projection::Perspective ? "Perspective" : "Othographic", isMainCamera);
 				}
 
 				auto rigidbodyComponent = entity["RigidBodyComponent"];

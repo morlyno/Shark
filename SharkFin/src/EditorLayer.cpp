@@ -1,8 +1,8 @@
 #include "EditorLayer.h"
 
-#include <Shark/Scean/Components/Components.h>
+#include <Shark/Scene/Components/Components.h>
 
-#include <Shark/Scean/SceanSerialization.h>
+#include <Shark/Scene/SceneSerialization.h>
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/ImGuiUtils.h>
 
@@ -28,10 +28,10 @@ namespace Shark {
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& window = Application::Get().GetWindow();
-		m_Scean = Ref<Scean>::Create();
-		m_Scean->AddEditorData(true);
-		m_Scean.GetSaveState()->AddEditorData(true);
-		m_SceanHirachyPanel.SetContext(*m_Scean);
+		m_Scene = Ref<Scene>::Create();
+		m_Scene->AddEditorData(true);
+		m_Scene.GetSaveState()->AddEditorData(true);
+		m_SceneHirachyPanel.SetContext(*m_Scene);
 
 		FrameBufferSpecification fbspecs;
 		fbspecs.Width = window.GetWidth();
@@ -75,28 +75,28 @@ namespace Shark {
 			m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
-			m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+			m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 			m_FrameBuffer->Bind();
 		}
 
-		if (m_Scean)
+		if (m_Scene)
 		{
-			if (m_PlayScean)
-				m_Scean->OnUpdateRuntime(ts);
+			if (m_PlayScene)
+				m_Scene->OnUpdateRuntime(ts);
 			else
 			{
 				if (m_ViewportHovered)
 					m_EditorCamera.OnUpdate(ts);
-				m_Scean->OnUpdateEditor(ts, m_EditorCamera);
+				m_Scene->OnUpdateEditor(ts, m_EditorCamera);
 
 #if SK_TEST_RENDERER
 #else
-				if (auto entity = m_SceanHirachyPanel.GetSelectedEntity())
+				if (auto entity = m_SceneHirachyPanel.GetSelectedEntity())
 				{
 					if (!entity.HasComponent<CameraComponent>())
 					{
 						bool olddepth = m_FrameBuffer->GetDepth();
-						Renderer2D::BeginScean(m_EditorCamera);
+						Renderer2D::BeginScene(m_EditorCamera);
 						Renderer2D::Submit([=]()
 						{
 							m_FrameBuffer->SetDepth(false);
@@ -110,7 +110,7 @@ namespace Shark {
 							m_Rasterizer->Bind();
 							m_FrameBuffer->Bind();
 						});
-						Renderer2D::EndScean();
+						Renderer2D::EndScene();
 					}
 				}
 #endif
@@ -127,17 +127,17 @@ namespace Shark {
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 
-		m_Scean->OnEvent(event);
-		m_SceanHirachyPanel.OnEvent(event);
+		m_Scene->OnEvent(event);
+		m_SceneHirachyPanel.OnEvent(event);
 
-		if (m_PlayScean)
+		if (m_PlayScene)
 		{
-			m_Scean->OnEventRuntime(event);
+			m_Scene->OnEventRuntime(event);
 		}
 		else
 		{
 			m_EditorCamera.OnEvent(event);
-			m_Scean->OnEventEditor(event);
+			m_Scene->OnEventEditor(event);
 		}
 	}
 
@@ -158,46 +158,46 @@ namespace Shark {
 
 		switch (event.GetKeyCode())
 		{
-			case Key::N: // New Scean
+			case Key::N: // New Scene
 			{
 				if (control)
 				{
-					NewScean();
+					NewScene();
 					return true;
 				}
 				break;
 			}
-			case Key::O: // Open Scean
+			case Key::O: // Open Scene
 			{
 				if (control)
 				{
-					OpenScean();
+					OpenScene();
 					return true;
 				}
 				break;
 			}
-			case Key::S: // Save Scean
+			case Key::S: // Save Scene
 			{
 				if (control && shift)
 				{
-					SaveScean();
+					SaveScene();
 					return true;
 				}
 				if (control)
 				{
-					m_Scean.Serialize();
+					m_Scene.Serialize();
 					return true;
 				}
 				break;
 			}
-			case Key::P: // Play Scean
+			case Key::P: // Play Scene
 			{
 				if (control)
 				{
-					if (m_PlayScean)
-						OnStopScean();
+					if (m_PlayScene)
+						OnStopScene();
 					else
-						OnPlayScean();
+						OnPlayScene();
 					return true;
 				}
 				break;
@@ -207,7 +207,7 @@ namespace Shark {
 			{
 				if (control)
 				{
-					Entity e = m_Scean->CreateEntity(m_SceanHirachyPanel.GetSelectedEntity());
+					Entity e = m_Scene->CreateEntity(m_SceneHirachyPanel.GetSelectedEntity());
 					e.GetComponent<TagComponent>().Tag += " (Copy)";
 					Event::Distribute(SelectionChangedEvent(e));
 					return true;
@@ -247,38 +247,38 @@ namespace Shark {
 
 		if (ImGui::BeginMainMenuBar())
 		{
-			if (ImGui::BeginMenu("Scean"))
+			if (ImGui::BeginMenu("Scene"))
 			{
-				if (m_PlayScean)
+				if (m_PlayScene)
 				{
-					if (ImGui::MenuItem("Stop Scean", "ctrl+P"))
-						OnStopScean();
+					if (ImGui::MenuItem("Stop Scene", "ctrl+P"))
+						OnStopScene();
 				}
 				else
 				{
-					if (ImGui::MenuItem("Play Scean", "ctrl+P"))
-						OnPlayScean();
+					if (ImGui::MenuItem("Play Scene", "ctrl+P"))
+						OnPlayScene();
 				}
 
 				ImGui::Separator();
 
 				if (ImGui::MenuItem("New", "ctrl+N"))
-					NewScean();
+					NewScene();
 				if (ImGui::MenuItem("Save", "ctrl+S"))
-					m_Scean.Serialize();
+					m_Scene.Serialize();
 				if (ImGui::MenuItem("Save As..", "ctrl+shift+S"))
-					SaveScean();
+					SaveScene();
 				if (ImGui::MenuItem("Open..", "ctrl+O"))
-					OpenScean();
+					OpenScene();
 
 				ImGui::Separator();
 
 				if (ImGui::MenuItem("Save State"))
-					m_Scean.SaveState();
+					m_Scene.SaveState();
 				if (ImGui::MenuItem("Load State"))
 				{
-					m_Scean.LoadState();
-					if (!m_Scean->IsValidEntity(m_SceanHirachyPanel.GetSelectedEntity()))
+					m_Scene.LoadState();
+					if (!m_Scene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
 						Event::Distribute(SelectionChangedEvent({}));
 				}
 
@@ -287,20 +287,20 @@ namespace Shark {
 
 			if (ImGui::BeginMenu("Entity"))
 			{
-				Entity se = m_SceanHirachyPanel.GetSelectedEntity();
+				Entity se = m_SceneHirachyPanel.GetSelectedEntity();
 				if (ImGui::MenuItem("Add"))
 				{
-					auto e = m_Scean->CreateEntity("New Entity");
+					auto e = m_Scene->CreateEntity("New Entity");
 					Event::Distribute(SelectionChangedEvent(e));
 				}
 				if (ImGui::MenuItem("Destroy", "delete", nullptr, se))
 				{
-					m_Scean->DestroyEntity(se);
+					m_Scene->DestroyEntity(se);
 					Event::Distribute(SelectionChangedEvent({}));
 				}
 				if (ImGui::MenuItem("Copy", "ctrl+D", nullptr, se))
 				{
-					se = m_Scean->CreateEntity(se);
+					se = m_Scene->CreateEntity(se);
 					se.GetComponent<TagComponent>().Tag += " (Copy)";
 					Event::Distribute(SelectionChangedEvent(se));
 				}
@@ -313,7 +313,7 @@ namespace Shark {
 						se.AddComponent<TransformComponent>();
 					if (ImGui::MenuItem("Sprite Renderer", nullptr, nullptr, !se.HasComponent<SpriteRendererComponent>()))
 						se.AddComponent<SpriteRendererComponent>();
-					if (ImGui::MenuItem("Scean Camera", nullptr, nullptr, !se.HasComponent<CameraComponent>()))
+					if (ImGui::MenuItem("Scene Camera", nullptr, nullptr, !se.HasComponent<CameraComponent>()))
 						se.AddComponent<CameraComponent>();
 					if (ImGui::MenuItem("Rigid Body", nullptr, nullptr, !se.HasComponent<RigidBodyComponent>()))
 						se.AddComponent<RigidBodyComponent>();
@@ -329,7 +329,7 @@ namespace Shark {
 						se.RemoveComponent<TransformComponent>();
 					if (ImGui::MenuItem("Sprite Renderer", nullptr, nullptr, se.HasComponent<SpriteRendererComponent>()))
 						se.RemoveComponent<SpriteRendererComponent>();
-					if (ImGui::MenuItem("Scean Camera", nullptr, nullptr, se.HasComponent<CameraComponent>()))
+					if (ImGui::MenuItem("Scene Camera", nullptr, nullptr, se.HasComponent<CameraComponent>()))
 						se.RemoveComponent<CameraComponent>();
 					if (ImGui::MenuItem("Rigid Body", nullptr, nullptr, se.HasComponent<RigidBodyComponent>()))
 						se.RemoveComponent<RigidBodyComponent>();
@@ -345,9 +345,9 @@ namespace Shark {
 
 			if (ImGui::BeginMenu("Panels"))
 			{
-				bool show = m_SceanHirachyPanel.IsShowen();
-				if (ImGui::MenuItem("Scean Hirachy", nullptr, &show))
-					m_SceanHirachyPanel.ShowPanel(show);
+				bool show = m_SceneHirachyPanel.IsShowen();
+				if (ImGui::MenuItem("Scene Hirachy", nullptr, &show))
+					m_SceneHirachyPanel.ShowPanel(show);
 
 				show = m_AssetsPanel.IsShowen();
 				if (ImGui::MenuItem("Assets", nullptr, &show))
@@ -407,7 +407,7 @@ namespace Shark {
 				if (m_HoveredEntityID != -1)
 				{
 					// TODO: Check if valid
-					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, Weak(*m_Scean) };
+					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, Weak(*m_Scene) };
 					Event::Distribute(SelectionChangedEvent(entity));
 				}
 				else
@@ -426,18 +426,18 @@ namespace Shark {
 				AssetPayload* asset = (AssetPayload*)payload->Data;
 				if (asset->Type == AssetType::Scene)
 				{
-					m_PlayScean = false;
-					m_Scean.Deserialize(asset->FilePath);
-					m_Scean->AddEditorData(true);
+					m_PlayScene = false;
+					m_Scene.Deserialize(asset->FilePath);
+					m_Scene->AddEditorData(true);
 
-					m_SceanHirachyPanel.SetContext(*m_Scean);
-					m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+					m_SceneHirachyPanel.SetContext(*m_Scene);
+					m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 				}
 				else if (asset->Type == AssetType::Texture)
 				{
 					if (m_HoveredEntityID != -1)
 					{
-						Entity entity{ (entt::entity)m_HoveredEntityID, Weak(*m_Scean) };
+						Entity entity{ (entt::entity)m_HoveredEntityID, Weak(*m_Scene) };
 						SK_CORE_ASSERT(entity.IsValid());
 						if (entity.HasComponent<SpriteRendererComponent>())
 						{
@@ -485,7 +485,7 @@ namespace Shark {
 			ImGui::NewLine();
 			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && m_HoveredEntityID >= 0)
 			{
-				Entity e{ (entt::entity)m_HoveredEntityID, Weak(*m_Scean) };
+				Entity e{ (entt::entity)m_HoveredEntityID, Weak(*m_Scene) };
 				if (e.IsValid())
 				{
 					const auto& tag = e.GetComponent<TagComponent>().Tag;
@@ -503,7 +503,7 @@ namespace Shark {
 				else
 					ImGui::Text("Hovered Entity: No Entity, %d", m_HoveredEntityID);
 			}
-			ImGui::Text("Selected Entity ID: %d", (uint32_t)m_SceanHirachyPanel.GetSelectedEntity());
+			ImGui::Text("Selected Entity ID: %d", (uint32_t)m_SceneHirachyPanel.GetSelectedEntity());
 
 			static MemoryMetrics s_LastMemory;
 			ImGui::NewLine();
@@ -652,57 +652,57 @@ namespace Shark {
 			ImGui::End();
 		}
 
-		m_SceanHirachyPanel.OnImGuiRender();
+		m_SceneHirachyPanel.OnImGuiRender();
 		m_AssetsPanel.OnImGuiRender();
 	}
 
-	void EditorLayer::NewScean()
+	void EditorLayer::NewScene()
 	{
-		m_Scean = Ref<Scean>::Create();
-		m_Scean->AddEditorData(true);
-		m_SceanHirachyPanel.SetContext(*m_Scean);
-		m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		m_Scene = Ref<Scene>::Create();
+		m_Scene->AddEditorData(true);
+		m_SceneHirachyPanel.SetContext(*m_Scene);
+		m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 	}
 
-	void EditorLayer::SaveScean()
+	void EditorLayer::SaveScene()
 	{
-		auto filepath = FileDialogs::SaveFile("Shark Scean (*.shark)\0*.shark\0");
+		auto filepath = FileDialogs::SaveFile("Shark Scene (*.shark)\0*.shark\0");
 		if (!filepath.empty())
-			m_Scean.Serialize(filepath);
+			m_Scene.Serialize(filepath);
 
 	}
 
-	void EditorLayer::OpenScean()
+	void EditorLayer::OpenScene()
 	{
-		auto filepath = FileDialogs::OpenFile("Shark Scean (*.shark)\0*.shark\0");
+		auto filepath = FileDialogs::OpenFile("Shark Scene (*.shark)\0*.shark\0");
 		if (!filepath.empty())
 		{
-			m_PlayScean = false;
-			m_Scean.Deserialize(filepath);
-			m_Scean->AddEditorData(true);
+			m_PlayScene = false;
+			m_Scene.Deserialize(filepath);
+			m_Scene->AddEditorData(true);
 
-			m_SceanHirachyPanel.SetContext(*m_Scean);
-			m_Scean->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+			m_SceneHirachyPanel.SetContext(*m_Scene);
+			m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 	}
 
-	void EditorLayer::OnPlayScean()
+	void EditorLayer::OnPlayScene()
 	{
-		m_PlayScean = true;
-		m_Scean.SaveState();
-		m_Scean->AddEditorData(false);
-		m_Scean->OnSceanPlay();
-		m_SceanHirachyPanel.SetSceanPlaying(true);
+		m_PlayScene = true;
+		m_Scene.SaveState();
+		m_Scene->AddEditorData(false);
+		m_Scene->OnScenePlay();
+		m_SceneHirachyPanel.SetScenePlaying(true);
 	}
 
-	void EditorLayer::OnStopScean()
+	void EditorLayer::OnStopScene()
 	{
-		m_PlayScean = false;
-		m_Scean->OnSceanStop();
-		m_Scean->AddEditorData(true);
-		m_Scean.LoadState();
-		m_SceanHirachyPanel.SetSceanPlaying(false);
-		if (!m_Scean->IsValidEntity(m_SceanHirachyPanel.GetSelectedEntity()))
+		m_PlayScene = false;
+		m_Scene->OnSceneStop();
+		m_Scene->AddEditorData(true);
+		m_Scene.LoadState();
+		m_SceneHirachyPanel.SetScenePlaying(false);
+		if (!m_Scene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
 			Event::Distribute(SelectionChangedEvent({}));
 	}
 

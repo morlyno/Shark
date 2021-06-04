@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Shark/Core/TimeStep.h>
-#include <Shark/Scean/Entity.h>
+#include <Shark/Scene/Entity.h>
 
 namespace Shark {
 
@@ -18,7 +18,7 @@ namespace Shark {
 
 	public:
 		Entity m_Entity;
-		Weak<Scean> m_Scean;
+		Weak<Scene> m_Scene;
 	};
 
 }

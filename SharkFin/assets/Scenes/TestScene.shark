@@ -1,4 +1,4 @@
-Scean: Untitled
+Scene: Untitled
 Entities:
   - Entity: 54758432
     TagComponent:
@@ -46,7 +46,7 @@ Entities:
       TilingFactor: 1
   - Entity: 54758432
     TagComponent:
-      Tag: Scean Camera
+      Tag: Scene Camera
     TransformComponent:
       Position: [0.0200000014, 4.00999975, -9.51000023]
       Rotation: [0.405262619, 0, 0]

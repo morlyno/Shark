@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Scean/NativeScript.h"
+#include "Shark/Scene/NativeScript.h"
 
 namespace Shark {
 
@@ -25,7 +25,7 @@ namespace Shark {
 		template<typename T>
 		void Bind()
 		{
-			CreateScript = [](Entity entity) { NativeScript* s = new T(); s->m_Entity = entity; s->m_Scean = entity.GetScean(); return s; };
+			CreateScript = [](Entity entity) { NativeScript* s = new T(); s->m_Entity = entity; s->m_Scene = entity.GetScene(); return s; };
 			DestroyScript = [](NativeScript* ns) { delete ns; ns = nullptr; };
 		}
 

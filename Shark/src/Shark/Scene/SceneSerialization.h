@@ -1,20 +1,20 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Scean/Scean.h"
+#include "Shark/Scene/Scene.h"
 
 namespace Shark {
 
-	class SceanSerializer
+	class SceneSerializer
 	{
 	public:
-		SceanSerializer(const Ref<Scean>& scean);
-		~SceanSerializer() = default;
+		SceneSerializer(const Ref<Scene>& scene);
+		~SceneSerializer() = default;
 
 		bool Serialize(const std::string& filepath);
 		bool Deserialize(const std::string& filepath);
 	private:
-		Ref<Scean> m_Scean;
+		Ref<Scene> m_Scene;
 	};
 
 }

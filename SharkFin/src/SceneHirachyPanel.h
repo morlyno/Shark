@@ -1,21 +1,21 @@
 #pragma once
 
 #include <Shark/Core/Base.h>
-#include <Shark/Scean/Scean.h>
-#include <Shark/Scean/Entity.h>
+#include <Shark/Scene/Scene.h>
+#include <Shark/Scene/Entity.h>
 #include <Shark/Render/Texture.h>
 #include <Shark/Event/Event.h>
 #include <Shark/Event/ApplicationEvent.h>
 
 namespace Shark {
 
-	class SceanHirachyPanel
+	class SceneHirachyPanel
 	{
 	public:
-		SceanHirachyPanel() = default;
-		SceanHirachyPanel(const Ref<Scean>& context);
-		void SetContext(const Ref<Scean>& context);
-		const Ref<Scean>& GetContext() const { return m_Context; }
+		SceneHirachyPanel() = default;
+		SceneHirachyPanel(const Ref<Scene>& context);
+		void SetContext(const Ref<Scene>& context);
+		const Ref<Scene>& GetContext() const { return m_Context; }
 
 		void ShowPanel(bool show) { m_ShowPanel = show; }
 		bool IsShowen() const { return m_ShowPanel; }
@@ -23,7 +23,7 @@ namespace Shark {
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		//void SetSelectedEntity(Entity selectedentity) { m_SelectedEntity = selectedentity; }
 
-		void SetSceanPlaying(bool playing) { m_SceanPlaying = playing; }
+		void SetScenePlaying(bool playing) { m_ScenePlaying = playing; }
 
 		void OnImGuiRender();
 
@@ -38,10 +38,10 @@ namespace Shark {
 	private:
 		bool m_ShowPanel = true;
 
-		Ref<Scean> m_Context;
+		Ref<Scene> m_Context;
 		Entity m_SelectedEntity;
 
-		bool m_SceanPlaying = false;
+		bool m_ScenePlaying = false;
 
 		int m_SelectedProjectionIndex = -1;
 		static constexpr const char* m_ProjectionItems[2] = { "Perspective", "Orthographic" };

@@ -14,20 +14,20 @@ namespace Shark {
 
 	class Entity;
 
-	class Scean : public RefCount
+	class Scene : public RefCount
 	{
 	public:
-		Scean();
-		~Scean();
+		Scene();
+		~Scene();
 
-		Scean(const Scean& other);
-		Scean& operator=(const Scean& other);
+		Scene(const Scene& other);
+		Scene& operator=(const Scene& other);
 
-		Scean(Scean&& other);
-		Scean& operator=(Scean&& other);
+		Scene(Scene&& other);
+		Scene& operator=(Scene&& other);
 
-		void OnSceanPlay();
-		void OnSceanStop();
+		void OnScenePlay();
+		void OnSceneStop();
 
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts, EditorCamera& camera);
@@ -67,8 +67,8 @@ namespace Shark {
 		bool m_AddEditorData = false;
 
 		friend class Entity;
-		friend class SceanHirachyPanel;
-		friend class SceanSerializer;
+		friend class SceneHirachyPanel;
+		friend class SceneSerializer;
 	};
 
 }

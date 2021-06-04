@@ -17,7 +17,7 @@ namespace Shark {
 	};
 
 	class Entity;
-	class Scean;
+	class Scene;
 
 	class SelectionChangedEvent : public ApplicationEvent
 	{
@@ -29,7 +29,7 @@ namespace Shark {
 		Entity GetSelectedEntity();
 	private:
 		uint32_t m_EntityID;
-		Weak<Scean> m_Scean;
+		Weak<Scene> m_Scene;
 	};
 
 }
