@@ -217,6 +217,23 @@ namespace Shark {
 		return true;
 	}
 
+	Ref<ConstantBuffer> DirectXShaders::CreateConstantBuffer(const std::string& name)
+	{
+		ID3D11ShaderReflection* reflection;
+		auto&& binary = m_ShaderBinarys[Shader::Vertex];
+		SK_CHECK(D3DReflect(binary.data(), binary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
+		ID3D11ShaderReflectionConstantBuffer* constantBuffer = reflection->GetConstantBufferByName(name.c_str());
+		SK_CORE_ASSERT(constantBuffer);
+		D3D11_SHADER_BUFFER_DESC bufferDesc;
+		constantBuffer->GetDesc(&bufferDesc);
+		D3D11_SHADER_INPUT_BIND_DESC inputDesc;
+		reflection->GetResourceBindingDescByName(name.c_str(), &inputDesc);
+
+		reflection->Release();
+
+		return ConstantBuffer::Create(bufferDesc.Size, inputDesc.BindPoint);
+	}
+
 	void DirectXShaders::Bind()
 	{
 		auto* ctx = DirectXRendererAPI::GetContext();

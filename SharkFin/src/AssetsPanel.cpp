@@ -13,14 +13,13 @@ namespace Shark {
 			return std::filesystem::current_path() / "assets\\";
 		}
 
-		static const char* GetDragDropType(const std::filesystem::path& file)
+		static AssetType GetAssetType(const std::string& extension)
 		{
-			auto&& extension = file.extension();
-			if (extension == ".shark")
-				return DragDropType::Scean;
 			if (extension == ".png")
-				return DragDropType::Texture;
-			return DragDropType::Typeless;
+				return AssetType::Texture;
+			if (extension == ".shark")
+				return AssetType::Scene;
+			return AssetType::None;
 		}
 
 	}
@@ -293,7 +292,12 @@ namespace Shark {
 			{
 				SK_CORE_ASSERT(sizeof(*entry.PathString.data()) == 1);
 				SK_CORE_ASSERT(!entry.PathString.empty());
-				ImGui::SetDragDropPayload(Utils::GetDragDropType(entry.Path), entry.PathString.c_str(), entry.PathString.length());
+				SK_CORE_ASSERT(entry.PathString.size() < 256);
+				AssetPayload payload;
+				strcpy(payload.FilePath, entry.PathString.c_str());
+				payload.Type = Utils::GetAssetType(entry.PathExtenstion);
+				ImGui::SetDragDropPayload(AssetPayload::ID, &payload, sizeof(AssetPayload));
+
 				ImGui::EndDragDropSource();
 			}
 		}

@@ -46,8 +46,8 @@ VSOUT main(VSIN vsin)
 #type Pixel
 #version ps_4_0
 
-Texture2D in_Textures;
-SamplerState in_SamplerState;
+Texture2D in_Texture : register(t0);
+SamplerState in_SamplerState : register(s0);
 
 struct PSIN
 {
@@ -67,7 +67,7 @@ PSOUT main(PSIN psin)
 {
     PSOUT psout;
 
-    psout.Color = in_Textures.Sample(in_SamplerState, psin.TexCoord * psin.TilingFactor) * psin.Color;
+    psout.Color = in_Texture.Sample(in_SamplerState, psin.TexCoord * psin.TilingFactor) * psin.Color;
 	//psout.Color = float4(0.2f, 0.8f, 0.2f, 1.0f);
     psout.ID = psin.ID;
 

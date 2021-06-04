@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/VertexLayout.h"
+#include "Shark/Render/ConstantBuffer.h"
 
 namespace Shark {
 
@@ -13,9 +14,11 @@ namespace Shark {
 		virtual VertexLayout& GetVertexLayout() = 0;
 
 		virtual const std::string& GetFilePath() const = 0;
-		virtual const std::string& GetName() const = 0;
+		virtual const std::string& GetFileName() const = 0;
 
 		virtual bool ReCompile() = 0;
+
+		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name) = 0;
 
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;

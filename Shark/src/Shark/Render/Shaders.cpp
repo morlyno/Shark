@@ -33,7 +33,7 @@ namespace Shark {
 
 	void ShaderLibrary::Add(Ref<Shaders> shader)
 	{
-		Add(shader, shader->GetName());
+		Add(shader, shader->GetFileName());
 	}
 
 	void ShaderLibrary::Add(Ref<Shaders> shader, const std::string& name)

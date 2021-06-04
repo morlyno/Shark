@@ -4,6 +4,12 @@
 #include <DirectXMath.h>
 #include <filesystem>
 
+namespace Shark {
+
+	enum class DataType;
+
+}
+
 namespace Shark::Utility {
 
 	struct ColorF32
@@ -29,5 +35,13 @@ namespace Shark::Utility {
 
 	template<typename T>
 	float* GetValuePtr(const T& vec);
+
+	template<typename T>
+	T& As(void* data)
+	{
+		return *(T*)data;
+	}
+
+	uint32_t GetSizeFromDataType(DataType type);
 
 }

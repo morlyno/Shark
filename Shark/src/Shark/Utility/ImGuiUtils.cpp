@@ -4,6 +4,8 @@
 #include <imgui_internal.h>
 #include "Shark/Render/RendererCommand.h"
 
+#include "Shark/Utility/PlatformUtils.h"
+
 namespace Shark::UI {
 
 	void DrawFloatShow(const char* lable, float val, const char* fmt, float textWidth, const char* buttoncharacter)
@@ -252,6 +254,34 @@ namespace Shark::UI {
 		return valchanged;
 	}
 
+	bool DrawFloatXControl(const char* lable, float* data, uint32_t count, float resetVal, const char* fmt, float textWidth)
+	{
+		switch (count)
+		{
+			case 1:
+			{
+				float& val = *data;
+				return DrawFloatControl(lable, val, resetVal, fmt, textWidth);
+			}
+			case 2:
+			{
+				DirectX::XMFLOAT2& val = *(DirectX::XMFLOAT2*)data;
+				return DrawVec2Control(lable, val, resetVal, fmt, textWidth);
+			}
+			case 3:
+			{
+				DirectX::XMFLOAT3& val = *(DirectX::XMFLOAT3*)data;
+				return DrawVec3Control(lable, val, resetVal, fmt, textWidth);
+			}
+			case 4:
+			{
+				return ImGui::ColorEdit4("lable", data);
+			}
+		}
+		SK_CORE_ASSERT(false);
+		return false;
+	}
+
 	static void ImGuiCallbackFunctionBlend(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 	{
 		RendererCommand::MainFrameBufferSetBlend((bool)cmd->UserCallbackData);
@@ -267,6 +297,39 @@ namespace Shark::UI {
 		ImGui::Image(textureID, size, uv0, uv1, tintcolor, bordercolor);
 		window->DrawList->AddCallback(ImGuiCallbackFunctionBlend, (void*)true);
 
+	}
+
+	bool SelectTextureImageButton(Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, float framepadding, const ImVec4& bgColor, const ImVec4& tintcolor)
+	{
+		bool changed = false;
+
+		RenderID textureID = texture ? texture->GetRenderID() : nullptr;
+		if (ImGui::ImageButton(textureID, size, uv0, uv1, framepadding, bgColor, tintcolor))
+		{
+			auto path = FileDialogs::OpenFile("Texture (*.*)\0*.*\0");
+			if (!path.empty())
+			{
+				texture = Texture2D::Create(path);
+				changed = true;
+			}
+		}
+
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(AssetPayload::ID);
+			if (payload)
+			{
+				auto* data = (AssetPayload*)payload->Data;
+				if (data->Type == AssetType::Texture)
+				{
+					texture = Texture2D::Create(data->FilePath);
+					changed = true;
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		return changed;
 	}
 
 }

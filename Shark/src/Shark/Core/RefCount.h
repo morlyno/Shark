@@ -46,7 +46,7 @@ namespace Shark {
 		const Ref& operator=(std::nullptr_t) { Release(); return *this; }
 		~Ref() { Release(); }
 
-		explicit Ref(T* inst) { m_Instance = inst; if (m_Instance) { m_Instance->AddRef(); } }
+		Ref(T* inst) { m_Instance = inst; if (m_Instance) { m_Instance->AddRef(); } }
 
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
 		Ref(const Ref<T2>& other) { Release();  m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); }  }

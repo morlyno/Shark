@@ -3,7 +3,7 @@
 #define SK_CURR_MEMROY ::Shark::MemoryManager::GetMetrics()
 #define SK_LOG_MEMORY(memory) \
 { \
-	auto m = (memory); \
+	const auto&& m = (memory); \
 	SK_CORE_INFO("========== Memory =========="); \
 	SK_CORE_INFO("Memory Uage:       {0}", m.MemoryUsage()); \
 	SK_CORE_INFO("Memory Allocated:  {0}", m.MemoryAllocated); \

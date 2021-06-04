@@ -4,6 +4,7 @@ extern Shark::Application* Shark::CreateApplication(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
+	Shark::Log::Init();
 	Shark::Application* app = nullptr;
 
 	{

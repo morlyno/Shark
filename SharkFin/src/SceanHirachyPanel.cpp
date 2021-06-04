@@ -13,6 +13,8 @@
 #include <imgui_internal.h>
 #include <entt.hpp>
 
+#include <Shark/Render/Renderer.h>
+
 namespace Shark {
 
 	namespace Utils {
@@ -132,6 +134,11 @@ namespace Shark {
 		if (m_SelectedEntity)
 			DrawEntityProperties(m_SelectedEntity);
 		ImGui::End();
+		
+		ImGui::Begin("Material");
+		if (m_SelectedEntity)
+			DrawMaterial(m_SelectedEntity);
+		ImGui::End();
 
 	}
 
@@ -233,6 +240,11 @@ namespace Shark {
 				entity.AddComponent<NativeScriptComponent>();
 				ImGui::CloseCurrentPopup();
 			}
+			if (ImGui::Selectable("Material", false, entity.HasComponent<MaterialComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			{
+				entity.AddComponent<MaterialComponent>();
+				ImGui::CloseCurrentPopup();
+			}
 			ImGui::EndPopup();
 		}
 
@@ -260,29 +272,7 @@ namespace Shark {
 			ImGui::Separator();
 
 			ImGui::Text("Texture");
-			RenderID image = comp.Texture ? comp.Texture->GetRenderID() : nullptr;
-			if (ImGui::ImageButton(image, { 48, 48 }, { 0, 0 }, { 1, 1 }, -1, { 0.0f, 0.0f, 0.0f, 1.0f }, Utility::ToImVec4(comp.Color)))
-			{
-				std::string imagePath = FileDialogs::OpenFile("Texture (*.*)\0*.*\0");
-				if (!imagePath.empty())
-				{
-					auto relativePaht = std::filesystem::relative(imagePath);
-					comp.Texture = Texture2D::Create({}, relativePaht.string());
-				}
-			}
-
-			// Drag Drop
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DragDropType::Texture);
-				if (payload)
-				{
-					std::string path = std::string((const char*)payload->Data, payload->DataSize);
-					comp.Texture = Texture2D::Create({}, path);
-				}
-				ImGui::EndDragDropTarget();
-			}
-
+			UI::SelectTextureImageButton(comp.Texture, { 48, 48 });
 
 			ImGui::NextColumn();
 			if (comp.Texture)
@@ -562,6 +552,60 @@ namespace Shark {
 			}
 
 		});
+
+	}
+
+	void SceanHirachyPanel::DrawMaterial(Entity entity)
+	{
+		if (!entity.HasComponent<MaterialComponent>())
+			return;
+
+		auto& comp = entity.GetComponent<MaterialComponent>();
+		if (!comp.Material)
+			comp.Material = Material::Create(Renderer::GetStandartShader(), "Standart Material");
+
+		auto material = comp.Material;
+		auto resources = material->GetDescriptor().Resources;
+
+		if (material->GetShaders()->GetFileName() != Renderer::GetStandartShader()->GetFileName())
+		{
+			ImGui::Text("No Layout Provided for this Shader");
+			return;
+		}
+
+		if (ImGui::CollapsingHeader("Texture"))
+		{
+			auto& textureDesc = resources["in_Texture"];
+			SK_CORE_ASSERT(textureDesc.Type == DataType::Texture2D);
+			auto texture = Utility::As<Ref<Texture2D>>(textureDesc.Data);
+			if (!texture)
+				texture = Renderer::GetWidthTexture();
+
+			if (UI::SelectTextureImageButton(texture, { 48, 48 }))
+				material->Set("in_Texture", texture);
+
+			ImGui::SameLine();
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			ImGuiStyle& style = ImGui::GetStyle();
+			ImVec2 cursor = window->DC.CursorPos;
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text(texture->GetFilePath().c_str());
+
+			float offsetY = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
+			window->DC.CursorPos = cursor;
+			window->DC.CursorPos.y += offsetY;
+			cursor = window->DC.CursorPos;
+
+			auto& colorDesc = resources["c_Color"];
+			SK_CORE_ASSERT(colorDesc.Rows == 1 && colorDesc.Collums == 4);
+			SK_CORE_ASSERT(colorDesc.Type == DataType::Float);
+
+			if (ImGui::ColorEdit4("##TintColor", (float*)colorDesc.Data))
+				material->Set("c_Color", colorDesc.Data, Utility::GetSizeFromDataType(colorDesc.Type) * colorDesc.Rows * colorDesc.Collums);
+
+			float tilingfactor = 1.0f;
+			material->Set("c_TilingFactor", &tilingfactor, sizeof(float));
+		}
 
 	}
 

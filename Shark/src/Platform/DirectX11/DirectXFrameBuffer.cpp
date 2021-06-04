@@ -226,7 +226,7 @@ namespace Shark {
 		ctx->OMSetDepthStencilState(nullptr, 0);
 		ctx->OMSetRenderTargets(0, nullptr, nullptr);
 		ctx->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
-		ctx->RSSetViewports(1, nullptr);
+		ctx->RSSetViewports(0, nullptr);
 	}
 
 	void DirectXFrameBuffer::CreateDepthBuffer()

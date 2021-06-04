@@ -2,7 +2,7 @@
 #include "Scean.h"
 
 #include "Shark/Render/Renderer2D.h"
-#include "Shark/Render/TestRenderer2D.h"
+#include "Shark/Render/TestRenderer.h"
 #include "Shark/Scean/Entity.h"
 #include "Shark/Scean/Components/Components.h"
 
@@ -117,7 +117,7 @@ namespace Shark {
 #if SK_TEST_RENDERER
 		TestRenderer::BeginScean(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 		{
-			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+			auto group = m_Registry.group<TransformComponent>(entt::get<MaterialComponent>);
 			for (auto entityID : group)
 				TestRenderer::DrawEntity({ entityID, Weak(this) });
 		}
@@ -137,7 +137,7 @@ namespace Shark {
 	{
 #if SK_TEST_RENDERER
 		TestRenderer::BeginScean(camera);
-		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+		auto group = m_Registry.group<TransformComponent>(entt::get<MaterialComponent>);
 		for (auto entityID : group)
 			TestRenderer::DrawEntity({ entityID, Weak(this) });
 		TestRenderer::EndScean();
@@ -362,6 +362,11 @@ namespace Shark {
 
 		auto& tc = entity.GetComponent<TransformComponent>();
 		comp.Collider.Resize(tc.Scaling.x, tc.Scaling.y);
+	}
+
+	template<>
+	void Scean::OnComponentAdded<MaterialComponent>(Entity entity, MaterialComponent& comp)
+	{
 	}
 
 	template<>

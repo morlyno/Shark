@@ -22,7 +22,7 @@
 #define SK_IF_DEBUG(...)
 #endif
 
-#define SK_TEST_RENDERER 0
+#define SK_TEST_RENDERER 1
 
 #include <stdint.h>
 

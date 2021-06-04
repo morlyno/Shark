@@ -24,9 +24,11 @@ namespace Shark {
 		virtual VertexLayout& GetVertexLayout() override { return m_VertexLayout; };
 
 		virtual const std::string& GetFilePath() const override { return m_FilePath; }
-		virtual const std::string& GetName() const override { return m_FileName; }
+		virtual const std::string& GetFileName() const override { return m_FileName; }
 
 		virtual bool ReCompile() override;
+
+		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name);
 
 		virtual void Bind() override;
 		virtual void UnBind() override;
@@ -49,6 +51,7 @@ namespace Shark {
 		std::unordered_map<Shader, std::vector<byte>> m_ShaderBinarys;
 		std::string m_FilePath;
 		std::string m_FileName;
+		std::string m_CacheFilePath;
 
 		VertexLayout m_VertexLayout;
 

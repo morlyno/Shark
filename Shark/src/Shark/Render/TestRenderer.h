@@ -5,14 +5,13 @@
 #include "Shark/Render/Texture.h"
 
 #include "Shark/Scean/Entity.h"
+#include "Shark/Render/Material.h"
 
 namespace Shark {
 
 	class TestRenderer
 	{
 	public:
-		static Ref<Texture2D> BaseTexture;
-
 		static void Init();
 		static void ShutDown();
 
@@ -25,8 +24,9 @@ namespace Shark {
 
 		static void DrawEntity(Entity entity);
 
-		static void DrawQuad(const DirectX::XMMATRIX& transform, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id);
+		static void DrawQuad(const Ref<Material>& material);
 
+		static Ref<Material> GetMaterial();
 	};
 
 }

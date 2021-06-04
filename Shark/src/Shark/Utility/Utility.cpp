@@ -3,6 +3,8 @@
 
 #include <filesystem>
 
+#include "Shark/Render/Material.h"
+
 namespace Shark::Utility {
 
 	ImVec4 ToImVec4(const DirectX::XMFLOAT4& color)
@@ -67,6 +69,19 @@ namespace Shark::Utility {
 	float* GetValuePtr(const DirectX::XMFLOAT2& vec)
 	{
 		return (float*)&vec;
+	}
+
+	uint32_t GetSizeFromDataType(DataType type)
+	{
+		switch (type)
+		{
+			case DataType::Void:   return 0;
+			case DataType::Bool:   return 4;
+			case DataType::Int:    return 4;
+			case DataType::Float:  return 4;
+		}
+		SK_CORE_ASSERT(false);
+		return 0;
 	}
 
 

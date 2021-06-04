@@ -8,11 +8,17 @@
 
 namespace Shark {
 
-	struct DragDropType
+	enum class AssetType
 	{
-		static constexpr const char* Scean = "Scean";
-		static constexpr const char* Texture = "Texture";
-		static constexpr const char* Typeless = "Typeless";
+		None = 0,
+		Texture, Scene
+	};
+
+	struct AssetPayload
+	{
+		static constexpr const char* ID = "Asset";
+		char FilePath[256];
+		AssetType Type;
 	};
 
 	namespace UI {
@@ -29,7 +35,11 @@ namespace Shark {
 
 		bool DrawVec3Control(const char* lable, DirectX::XMFLOAT3& vec, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y\0Z");
 
-		void NoAlpaImage(const Ref<FrameBuffer>& framebuffer, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, const ImVec4& tintcolor = { 1, 1, 1, 1 }, const ImVec4& bordercolor = { 0, 0 , 0, 0 });
+		bool DrawFloatXControl(const char* lable, float* data, uint32_t count, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f);
+
+		void NoAlpaImage(const Ref<FrameBuffer>& framebuffer, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, const ImVec4& tintcolor = { 1, 1, 1, 1 }, const ImVec4& bordercolor = { 0, 0, 0, 0 });
+
+		bool SelectTextureImageButton(Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, float framepadding = -1, const ImVec4& bgColor = { 0, 0, 0, 0 }, const ImVec4& tintcolor = { 1, 1, 1, 1 });
 
 	}
 
