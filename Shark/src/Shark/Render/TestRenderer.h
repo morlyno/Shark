@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 #include "Shark/Render/Camera.h"
 #include "Shark/Render/EditorCamera.h"
 #include "Shark/Render/Texture.h"
@@ -30,3 +31,4 @@ namespace Shark {
 	};
 
 }
+#endif

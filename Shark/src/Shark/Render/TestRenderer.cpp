@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "TestRenderer.h"
 
+#if 0
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/Render/Buffers.h"
@@ -12,7 +13,6 @@
 
 #include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Material.h"
-#include "Shark/Scene/Components/MaterialComponent.h"
 
 namespace Shark {
 
@@ -89,7 +89,7 @@ namespace Shark {
 
 	void TestRenderer::DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
-		DrawRotatedQuad(position, rotation, scaling, Renderer::GetWidthTexture(), 1.0f, color, id);
+		DrawRotatedQuad(position, rotation, scaling, Renderer::GetWhiteTexture(), 1.0f, color, id);
 	}
 
 	void TestRenderer::DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
@@ -133,3 +133,4 @@ namespace Shark {
 	}
 
 }
+#endif

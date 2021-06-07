@@ -10,7 +10,6 @@
 #include <imgui_internal.h>
 
 #include <Shark/Render/TestRenderer.h>
-#include <Shark/Render/Material.h>
 
 namespace Shark {
 
@@ -82,40 +81,15 @@ namespace Shark {
 		if (m_Scene)
 		{
 			if (m_PlayScene)
+			{
 				m_Scene->OnUpdateRuntime(ts);
+			}
 			else
 			{
 				if (m_ViewportHovered)
 					m_EditorCamera.OnUpdate(ts);
 				m_Scene->OnUpdateEditor(ts, m_EditorCamera);
-
-#if SK_TEST_RENDERER
-#else
-				if (auto entity = m_SceneHirachyPanel.GetSelectedEntity())
-				{
-					if (!entity.HasComponent<CameraComponent>())
-					{
-						bool olddepth = m_FrameBuffer->GetDepth();
-						Renderer2D::BeginScene(m_EditorCamera);
-						Renderer2D::Submit([=]()
-						{
-							m_FrameBuffer->SetDepth(false);
-							m_HilightRasterizer->Bind();
-							m_FrameBuffer->Bind();
-						});
-						Renderer2D::DrawTransform(entity.GetComponent<TransformComponent>(), { 1.0f, 0.5f, 0.0f, 1.0f }, (int)(uint32_t)entity);
-						Renderer2D::Submit([=]()
-						{
-							m_FrameBuffer->SetDepth(olddepth);
-							m_Rasterizer->Bind();
-							m_FrameBuffer->Bind();
-						});
-						Renderer2D::EndScene();
-					}
-				}
-#endif
 			}
-
 		}
 
 		RendererCommand::BindMainFrameBuffer();
@@ -406,8 +380,8 @@ namespace Shark {
 			{
 				if (m_HoveredEntityID != -1)
 				{
-					// TODO: Check if valid
-					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, Weak(*m_Scene) };
+					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, *m_Scene };
+					SK_CORE_ASSERT(m_Scene->IsValidEntity(entity));
 					Event::Distribute(SelectionChangedEvent(entity));
 				}
 				else
@@ -437,17 +411,12 @@ namespace Shark {
 				{
 					if (m_HoveredEntityID != -1)
 					{
-						Entity entity{ (entt::entity)m_HoveredEntityID, Weak(*m_Scene) };
+						Entity entity{ (entt::entity)m_HoveredEntityID, *m_Scene };
 						SK_CORE_ASSERT(entity.IsValid());
 						if (entity.HasComponent<SpriteRendererComponent>())
 						{
 							auto& sr = entity.GetComponent<SpriteRendererComponent>();
 							sr.Texture = Texture2D::Create(asset->FilePath);
-						}
-						else if (entity.HasComponent<MaterialComponent>())
-						{
-							auto& mt = entity.GetComponent<MaterialComponent>();
-							mt.Material->Set("in_Texture", Texture2D::Create(asset->FilePath));
 						}
 					}
 				}
@@ -467,11 +436,7 @@ namespace Shark {
 
 			ImGui::NewLine();
 
-#if SK_TEST_RENDERER
-			ImGui::Text("Renderer: TestRenderer");
-#else
 			ImGui::Text("Renderer: Renderer2D");
-#endif
 
 			auto s = Renderer2D::GetStatistics();
 			ImGui::Text("Draw Calls: %d", s.DrawCalls);
@@ -485,7 +450,7 @@ namespace Shark {
 			ImGui::NewLine();
 			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && m_HoveredEntityID >= 0)
 			{
-				Entity e{ (entt::entity)m_HoveredEntityID, Weak(*m_Scene) };
+				Entity e{ (entt::entity)m_HoveredEntityID, *m_Scene };
 				if (e.IsValid())
 				{
 					const auto& tag = e.GetComponent<TagComponent>().Tag;
@@ -505,8 +470,8 @@ namespace Shark {
 			}
 			ImGui::Text("Selected Entity ID: %d", (uint32_t)m_SceneHirachyPanel.GetSelectedEntity());
 
-			static MemoryMetrics s_LastMemory;
 			ImGui::NewLine();
+			static MemoryMetrics s_LastMemory;
 			const auto& m = MemoryManager::GetMetrics();
 			ImGui::Text("Memory Usage: %llu", m.MemoryUsage());
 			ImGui::Text("Memory Allocated: %llu", m.MemoryAllocated);
@@ -525,82 +490,6 @@ namespace Shark {
 			ImGui::Text("Total Freed Delta: %llu", m.TotalFreed - s_LastMemory.TotalFreed);
 			s_LastMemory = m;
 
-			ImGui::NewLine();
-			ImGui::Text("Material");
-			auto material = TestRenderer::GetMaterial();
-			const auto& desc = material->GetDescriptor();
-			for (auto&& [name, r] : desc.Resources)
-			{
-				ImGui::Separator();
-				if (ImGui::TreeNode(name.c_str()))
-				{
-					ImGui::PushID(name.c_str());
-					switch (r.Type)
-					{
-						case Shark::DataType::Int:
-						{
-							SK_CORE_ASSERT(r.Rows == 1 && r.Collums == 1);
-							ImGui::Text("Type Int 1x1");
-							ImGui::DragInt("##int1x1", (int*)r.Data);
-							break;
-						}
-						case Shark::DataType::Float:
-						{
-							SK_CORE_ASSERT(r.Rows == 1 || r.Rows == 4);
-							if (r.Rows == 4)
-							{
-								SK_CORE_ASSERT(r.Collums == 4);
-								ImGui::Text("Type Float 4x4");
-								for (uint32_t i = 0; i < 4; i++)
-								{
-									auto lable = "##float4x4" + std::to_string(i);
-									ImGui::DragFloat4(lable.c_str(), ((float*)r.Data) + (i * 4));
-								}
-								break;
-							}
-							if (r.Rows == 1)
-							{
-								if (r.Collums == 1)
-								{
-									ImGui::Text("Type Float 1x1");
-									ImGui::DragFloat("##float1x1", (float*)r.Data);
-									break;
-								}
-								if (r.Collums == 2)
-								{
-									ImGui::Text("Type Float 1x2");
-									ImGui::DragFloat2("##float1x2", (float*)r.Data);
-									break;
-								}
-								if (r.Collums == 3)
-								{
-									ImGui::Text("Type Float 1x3");
-									ImGui::DragFloat3("##float1x3", (float*)r.Data);
-									break;
-								}
-								if (r.Collums == 4)
-								{
-									ImGui::Text("Tpye Float 1x4");
-									ImGui::DragFloat4("##float1x4", (float*)r.Data);
-									break;
-								}
-							}
-							break;
-						}
-						case Shark::DataType::Texture2D:
-						{
-							ImGui::Text("Type Texture 2D");
-							auto text = Ref<Texture2D>(*(Texture2D**)r.Data);
-							if (text)
-								ImGui::Image(text->GetRenderID(), { 48, 48 });
-							break;
-						}
-					}
-					ImGui::PopID();
-					ImGui::TreePop();
-				}
-			}
-
 			ImGui::End();
 
 
@@ -615,8 +504,7 @@ namespace Shark {
 					ImGui::Text("Path: %s", shader->GetFilePath().c_str());
 					if (ImGui::Button("ReCompile"))
 						shader->ReCompile();
-					//if (ImGui::Button("Reflect"))
-					//	shader->Reflect();
+					// IDEA: Print Shader Detailes (From Reflection)
 					ImGui::TreePop();
 				}
 			}

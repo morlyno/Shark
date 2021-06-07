@@ -12,7 +12,12 @@ namespace Shark {
 		DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic);
 		virtual ~DirectXVertexBuffer();
 
+		virtual void Resize(uint32_t size) override;
+
 		virtual void SetData(void* data, uint32_t size) override;
+
+		virtual void* Map() override;
+		virtual void UnMap() override;
 
 		virtual uint32_t GetSize() const { return m_Size; }
 
@@ -37,7 +42,12 @@ namespace Shark {
 		DirectXIndexBuffer(IndexType* data, uint32_t count, bool dynamic);
 		virtual ~DirectXIndexBuffer();
 
+		virtual void Resize(uint32_t count) override;
+
 		virtual void SetData(IndexType* data, uint32_t count) override;
+
+		virtual void* Map() override;
+		virtual void UnMap() override;
 
 		virtual uint32_t GetCount() const override { return m_Count; }
 		virtual uint32_t GetSize() const override { return m_Size; }
@@ -54,6 +64,7 @@ namespace Shark {
 		uint32_t m_Size;
 		bool m_Dynamic;
 
+		D3D11_MAPPED_SUBRESOURCE m_MappedSubresource;
 	};
 
 }

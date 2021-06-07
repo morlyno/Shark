@@ -106,7 +106,7 @@ namespace Shark {
 			return false;
 
 		out << YAML::BeginMap;
-		out << YAML::Key << "Entity" << YAML::Value << "54758432"; // TODO: Entity ID;
+		out << YAML::Key << "Entity" << YAML::Value << "54758432"; // TODO: Entity UUID;
 
 		if (entity.HasComponent<TagComponent>())
 		{
@@ -290,7 +290,9 @@ namespace Shark {
 					auto textureFilePath = spriteRendererComponent["Texture"].as<std::string>();
 					auto tilingfactor = spriteRendererComponent["TilingFactor"].as<float>();
 					auto& comp = deserializedEntity.AddComponent<SpriteRendererComponent>();
-					comp = { color, textureFilePath.empty() ? nullptr : Texture2D::Create({}, textureFilePath), tilingfactor };
+					comp.Color = color;
+					comp.Texture = textureFilePath.empty() ? nullptr : Texture2D::Create(textureFilePath);
+					comp.TilingFactor = tilingfactor;
 					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
 				}
 

@@ -3,6 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Shaders.h"
 #include "Shark/Render/Texture.h"
+#include "Shark/Render/Material.h"
 
 namespace Shark {
 
@@ -13,8 +14,9 @@ namespace Shark {
 		static void ShutDown();
 
 		static ShaderLibrary& GetShaderLib();
-		static Ref<Texture2D> GetWidthTexture();
-		static Ref<Shaders> GetStandartShader();
+		static Ref<Texture2D> GetWhiteTexture();
+		static Ref<Shaders> GetDefault2DShader();
+		static Ref<Material> GetDefault2DMaterial();
 	};
 
 }

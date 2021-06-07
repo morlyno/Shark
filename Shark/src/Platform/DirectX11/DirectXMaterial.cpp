@@ -241,13 +241,21 @@ namespace Shark {
 
 							if (inputDesc.Type == D3D_SIT_TEXTURE)
 							{
-								Resource resource;
-								resource.BindPoint = inputDesc.BindPoint;
-								m_Textures[inputDesc.Name] = resource;
+								for (uint32_t i = 0; i < inputDesc.BindCount; i++)
+								{
+									std::string name = inputDesc.Name;
 
-								auto& resouceDesc = m_Descriptor.Resources[inputDesc.Name];
-								resouceDesc.Type = Utils::DataTypeFromTextureDimension(inputDesc.Dimension);
-								resouceDesc.Data = &m_Textures[inputDesc.Name].Texture;
+									if (inputDesc.BindCount > 1)
+										name += std::to_string(i);
+
+									Resource resource;
+									resource.BindPoint = inputDesc.BindPoint + i;
+									m_Textures[name] = resource;
+
+									auto& resouceDesc = m_Descriptor.Resources[name];
+									resouceDesc.Type = Utils::DataTypeFromTextureDimension(inputDesc.Dimension);
+									resouceDesc.Data = &m_Textures[name].Texture;
+								}
 							}
 
 						}

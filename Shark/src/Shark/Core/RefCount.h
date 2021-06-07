@@ -108,8 +108,8 @@ namespace Shark {
 		const Weak& operator=(std::nullptr_t) { Release(); return *this; }
 		~Weak() { Release(); }
 
-		explicit Weak(T* inst) { m_Instance = inst; if (m_Instance) m_Instance->AddWeak(); }
-		explicit Weak(const Ref<T>& ref) { m_Instance = ref.m_Instance; if (m_Instance) m_Instance->AddWeak(); }
+		Weak(T* inst) { m_Instance = inst; if (m_Instance) m_Instance->AddWeak(); }
+		Weak(const Ref<T>& ref) { m_Instance = ref.m_Instance; if (m_Instance) m_Instance->AddWeak(); }
 
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
 		Weak(const Weak<T2>& other) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddWeak(); } }

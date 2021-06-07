@@ -7,4 +7,3 @@
 #include "Shark/Scene/Components/NativeScriptComponent.h"
 #include "Shark/Scene/Components/RigidBodyComponent.h"
 #include "Shark/Scene/Components/ColliderComponent.h"
-#include "Shark/Scene/Components/MaterialComponent.h"

@@ -6,6 +6,7 @@
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components/TransformComponent.h"
+#include "Shark/Render/Material.h"
 
 //#define SK_OLD_RENDERER2D
 
@@ -21,9 +22,6 @@ namespace Shark {
 		static void BeginScene(EditorCamera& camera);
 		static void EndScene();
 
-		template<typename Function>
-		static void Submit(const Function& function) { AddCallbackFunction(std::function<void()>(function)); }
-
 		static void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
 		static void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
 
@@ -33,6 +31,10 @@ namespace Shark {
 
 		static void DrawEntity(Entity entity);
 		static void DrawTransform(const TransformComponent& transform, const DirectX::XMFLOAT4& color, int id = -1);
+
+		static Ref<Material> TryGetMaterial(const std::string& name);
+		static Ref<Material> AddMaterial(const Ref<Material>& material);
+		static const std::unordered_map<std::string, Ref<Material>>& GetMaterialMap();
 
 		struct Statistics
 		{
@@ -46,8 +48,6 @@ namespace Shark {
 		};
 		static Statistics GetStatistics();
 
-	private:
-		static void AddCallbackFunction(const std::function<void()>& func);
 	};
 
 }

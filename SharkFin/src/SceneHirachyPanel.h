@@ -6,11 +6,23 @@
 #include <Shark/Render/Texture.h>
 #include <Shark/Event/Event.h>
 #include <Shark/Event/ApplicationEvent.h>
+#include <Shark/Render/Material.h>
 
 namespace Shark {
 
 	class SceneHirachyPanel
 	{
+	private:
+		struct MaterialEditData
+		{
+			bool Active = false;
+			bool Finished = false;
+			bool Changed = false;
+			Ref<Material> Material = nullptr;
+			Ref<Shaders> MaterialShader = nullptr;
+			Entity Entity = {};
+			bool OpenWindow = false;
+		};
 	public:
 		SceneHirachyPanel() = default;
 		SceneHirachyPanel(const Ref<Scene>& context);
@@ -21,7 +33,6 @@ namespace Shark {
 		bool IsShowen() const { return m_ShowPanel; }
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
-		//void SetSelectedEntity(Entity selectedentity) { m_SelectedEntity = selectedentity; }
 
 		void SetScenePlaying(bool playing) { m_ScenePlaying = playing; }
 
@@ -45,6 +56,8 @@ namespace Shark {
 
 		int m_SelectedProjectionIndex = -1;
 		static constexpr const char* m_ProjectionItems[2] = { "Perspective", "Orthographic" };
+
+		MaterialEditData m_EditData;
 	};
 
 }

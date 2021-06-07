@@ -11,9 +11,11 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
 
 #include <Shark/Render/Renderer.h>
+#include <Shark/Render/Renderer2D.h>
 
 namespace Shark {
 
@@ -140,6 +142,104 @@ namespace Shark {
 			DrawMaterial(m_SelectedEntity);
 		ImGui::End();
 
+		if (m_EditData.Active)
+		{
+			if (m_EditData.OpenWindow)
+			{
+				ImGui::OpenPopup("Material Editor");
+				m_EditData.OpenWindow = false;
+			}
+
+			bool isOpend = true;
+			if (ImGui::BeginPopupModal("Material Editor", &isOpend))
+			{
+				if (ImGui::BeginCombo("##Select Shader", m_EditData.MaterialShader->GetFileName().c_str()))
+				{
+					for (auto&& [key, shader] : Renderer::GetShaderLib())
+					{
+						bool selected = shader == m_EditData.MaterialShader;
+						if (ImGui::Selectable(key.c_str(), selected))
+							m_EditData.MaterialShader = shader;
+					}
+
+					ImGui::EndCombo();
+				}
+
+				if (ImGui::BeginCombo("##Select Material", m_EditData.Material->GetName().c_str()))
+				{
+					for (auto&& [key, material] : Renderer2D::GetMaterialMap())
+					{
+						bool selected = material == m_EditData.Material;
+						if (ImGui::Selectable(key.c_str(), selected))
+							m_EditData.Material = material;
+					}
+					ImGui::EndCombo();
+				}
+
+				if (ImGui::Button("Create new Material"))
+					m_EditData.Material = Material::Create(m_EditData.MaterialShader, "New Material");
+
+				if (Renderer2D::GetMaterialMap().find(m_EditData.Material->GetName()) != Renderer2D::GetMaterialMap().end())
+				{
+					if (ImGui::BeginPopupModal("Material Name Conflict"))
+					{
+						auto name = m_EditData.Material->GetName();
+						if (ImGui::InputText("##Input Material Name", &name))
+							m_EditData.Material->SetName(name);
+						if (ImGui::Button("Finished"))
+							ImGui::CloseCurrentPopup();
+						ImGui::EndPopup();
+					}
+				}
+
+				auto name = m_EditData.Material->GetName();
+				if (ImGui::InputText("##Input Name", &name))
+					m_EditData.Material->SetName(name);
+
+				ImGui::Separator();
+
+				auto material = m_EditData.Material;
+
+				bool depthtest = material->IsFalgSet(MaterialFlag::DepthTest);
+				if (ImGui::Checkbox("Depth Test", &depthtest))
+					material->SetFlag(MaterialFlag::DepthTest, depthtest);
+
+				bool blend= material->IsFalgSet(MaterialFlag::Blend);
+				if (ImGui::Checkbox("Blend", &blend))
+					material->SetFlag(MaterialFlag::Blend, blend);
+
+				bool twosided= material->IsFalgSet(MaterialFlag::TwoSided);
+				if (ImGui::Checkbox("Two Sided", &twosided))
+					material->SetFlag(MaterialFlag::TwoSided, twosided);
+
+				bool outline = material->IsFalgSet(MaterialFlag::OutLine);
+				if (ImGui::Checkbox("Outline", &outline))
+					material->SetFlag(MaterialFlag::OutLine, outline);
+
+				bool blur = material->IsFalgSet(MaterialFlag::Blur);
+				if (ImGui::Checkbox("Blur", &blur))
+					material->SetFlag(MaterialFlag::Blur, blur);
+	
+				bool bloom = material->IsFalgSet(MaterialFlag::Bloom);
+				if (ImGui::Checkbox("Bloom", &bloom))
+					material->SetFlag(MaterialFlag::Bloom, bloom);
+
+				ImGui::Separator();
+
+				if (ImGui::Button("Create"))
+				{
+					m_EditData.Finished = true;
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+
+			if (!isOpend)
+				m_EditData.Finished = true;
+
+		}
+
 	}
 
 	void SceneHirachyPanel::OnEvent(Event& event)
@@ -238,11 +338,6 @@ namespace Shark {
 			if (ImGui::Selectable("Native Script", false, entity.HasComponent<NativeScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<NativeScriptComponent>();
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Selectable("Material", false, entity.HasComponent<MaterialComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<MaterialComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -557,56 +652,61 @@ namespace Shark {
 
 	void SceneHirachyPanel::DrawMaterial(Entity entity)
 	{
-		if (!entity.HasComponent<MaterialComponent>())
-			return;
-
-		auto& comp = entity.GetComponent<MaterialComponent>();
-		if (!comp.Material)
-			comp.Material = Material::Create(Renderer::GetStandartShader(), "Standart Material");
-
-		auto material = comp.Material;
-		auto resources = material->GetDescriptor().Resources;
-
-		if (material->GetShaders()->GetFileName() != Renderer::GetStandartShader()->GetFileName())
+		if (entity.HasComponent<SpriteRendererComponent>())
 		{
-			ImGui::Text("No Layout Provided for this Shader");
-			return;
+			auto& sr = entity.GetComponent<SpriteRendererComponent>();
+			auto material = sr.Material;
+
+			ImGui::Text("Name: %s", material->GetName().c_str());
+			ImGui::Text("Shader: %s", material->GetShaders()->GetFileName().c_str());
+			
+			ImGui::Separator();
+
+			bool depthtest = material->IsFalgSet(MaterialFlag::DepthTest);
+			ImGui::Checkbox("Depth Test", &depthtest);
+
+			bool blend = material->IsFalgSet(MaterialFlag::Blend);
+			ImGui::Checkbox("Blend", &blend);
+
+			bool twosided = material->IsFalgSet(MaterialFlag::TwoSided);
+			ImGui::Checkbox("Two Sided", &twosided);
+
+			bool outLine = material->IsFalgSet(MaterialFlag::OutLine);
+			ImGui::Checkbox("Outline", &outLine);
+
+			bool blur = material->IsFalgSet(MaterialFlag::Blur);
+			ImGui::Checkbox("Blur", &blur);
+
+			bool bloom = material->IsFalgSet(MaterialFlag::Bloom);
+			ImGui::Checkbox("Bloom", &bloom);
+			
+			ImGui::Separator();
+
+			if (ImGui::Button("Edit Material"))
+			{
+				m_EditData.Active = true;
+				m_EditData.OpenWindow = true;
+				m_EditData.Finished = false;
+				m_EditData.Changed = false;
+				m_EditData.Entity = entity;
+				m_EditData.Material = material;
+				m_EditData.MaterialShader = material->GetShaders();
+			}
+
+			if (m_EditData.Finished && m_EditData.Entity && entity)
+			{
+				sr.Material = m_EditData.Material;
+
+				m_EditData.Active = false;
+				m_EditData.OpenWindow = false;
+				m_EditData.Finished = false;
+				m_EditData.Changed = false;
+				m_EditData.Entity = Entity{};
+				m_EditData.Material = nullptr;
+				m_EditData.MaterialShader = nullptr;
+			}
+
 		}
-
-		if (ImGui::CollapsingHeader("Texture"))
-		{
-			auto& textureDesc = resources["in_Texture"];
-			SK_CORE_ASSERT(textureDesc.Type == DataType::Texture2D);
-			auto texture = Utility::As<Ref<Texture2D>>(textureDesc.Data);
-			if (!texture)
-				texture = Renderer::GetWidthTexture();
-
-			if (UI::SelectTextureImageButton(texture, { 48, 48 }))
-				material->Set("in_Texture", texture);
-
-			ImGui::SameLine();
-			ImGuiWindow* window = ImGui::GetCurrentWindow();
-			ImGuiStyle& style = ImGui::GetStyle();
-			ImVec2 cursor = window->DC.CursorPos;
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text(texture->GetFilePath().c_str());
-
-			float offsetY = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
-			window->DC.CursorPos = cursor;
-			window->DC.CursorPos.y += offsetY;
-			cursor = window->DC.CursorPos;
-
-			auto& colorDesc = resources["c_Color"];
-			SK_CORE_ASSERT(colorDesc.Rows == 1 && colorDesc.Collums == 4);
-			SK_CORE_ASSERT(colorDesc.Type == DataType::Float);
-
-			if (ImGui::ColorEdit4("##TintColor", (float*)colorDesc.Data))
-				material->Set("c_Color", colorDesc.Data, Utility::GetSizeFromDataType(colorDesc.Type) * colorDesc.Rows * colorDesc.Collums);
-
-			float tilingfactor = 1.0f;
-			material->Set("c_TilingFactor", &tilingfactor, sizeof(float));
-		}
-
 	}
 
 	bool SceneHirachyPanel::OnSelectionChanged(SelectionChangedEvent& event)

@@ -52,7 +52,7 @@ namespace Shark {
 
 		bool m_PlayScene = false;
 
-		bool m_ShowInfo = false;
+		bool m_ShowInfo = true;
 		bool m_ShowEditorCameraControlls = false;
 
 		int m_HoveredEntityID = -1;

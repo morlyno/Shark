@@ -27,7 +27,7 @@ namespace Shark {
 		std::unordered_map<std::string, ResourceDescriptor> Resources;
 	};
 
-	enum MaterialFlag
+	enum MaterialFlag : uint32_t
 	{
 		DepthTest = BIT(0),
 		Blend = BIT(1),
@@ -46,10 +46,12 @@ namespace Shark {
 		virtual Ref<Shaders> GetShaders() const = 0;
 
 		virtual const std::string& GetName() const = 0;
+		virtual void SetName(const std::string& name) = 0;
 		virtual const MaterialDescriptor& GetDescriptor() const = 0;
 
 		virtual void SetFlag(MaterialFlag flag, bool enabled) = 0;
 		virtual bool IsFalgSet(MaterialFlag flag) = 0;
+		virtual uint32_t GetFalgs() const = 0;
 
 		virtual void Set(const std::string& name, const void* data, uint32_t size) = 0;
 		virtual void Set(const std::string& name, const Ref<Texture2D>& texture) = 0;

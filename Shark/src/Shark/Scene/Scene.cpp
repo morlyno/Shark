@@ -5,6 +5,7 @@
 #include "Shark/Render/TestRenderer.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components/Components.h"
+#include "Shark/Render/Renderer.h"
 
 namespace Shark {
 
@@ -114,15 +115,6 @@ namespace Shark {
 		}
 		auto [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCameraID);
 
-#if SK_TEST_RENDERER
-		TestRenderer::BeginScene(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
-		{
-			auto group = m_Registry.group<TransformComponent>(entt::get<MaterialComponent>);
-			for (auto entityID : group)
-				TestRenderer::DrawEntity({ entityID, Weak(this) });
-		}
-		TestRenderer::EndScene();
-#else
 		Renderer2D::BeginScene(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 		{
 			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
@@ -130,30 +122,17 @@ namespace Shark {
 				Renderer2D::DrawEntity({ entityID, Weak(this) });
 		}
 		Renderer2D::EndScene();
-#endif
 	}
 
 	void Scene::OnUpdateEditor(TimeStep ts, EditorCamera& camera)
 	{
-#if SK_TEST_RENDERER
-		TestRenderer::BeginScene(camera);
-		auto group = m_Registry.group<TransformComponent>(entt::get<MaterialComponent>);
-		for (auto entityID : group)
-			TestRenderer::DrawEntity({ entityID, Weak(this) });
-		TestRenderer::EndScene();
-#else
 		Renderer2D::BeginScene(camera);
-
-		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-		for (auto entityID : group)
-			Renderer2D::DrawEntity({ entityID, Weak(this) });
-
-		// TODO: Draw Selected Entity
-		//if (selectedentity)
-			// Draw Selcted Entity
-
+		{
+			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+			for (auto entityID : group)
+				Renderer2D::DrawEntity({ entityID, Weak(this) });
+		}
 		Renderer2D::EndScene();
-#endif
 	}
 
 	void Scene::OnEventRuntime(Event& event)
@@ -318,6 +297,7 @@ namespace Shark {
 	template<>
 	void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& comp)
 	{
+		comp.Material = Renderer::GetDefault2DMaterial();
 	}
 	
 	template<>
@@ -362,11 +342,6 @@ namespace Shark {
 
 		auto& tc = entity.GetComponent<TransformComponent>();
 		comp.Collider.Resize(tc.Scaling.x, tc.Scaling.y);
-	}
-
-	template<>
-	void Scene::OnComponentAdded<MaterialComponent>(Entity entity, MaterialComponent& comp)
-	{
 	}
 
 	template<>

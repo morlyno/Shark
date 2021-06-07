@@ -35,10 +35,12 @@ namespace Shark {
 		virtual Ref<Shaders> GetShaders() const override { return m_Shaders; }
 
 		virtual const std::string& GetName() const override { return m_Name; }
+		virtual void SetName(const std::string& name) override { m_Name = name; }
 		virtual const MaterialDescriptor& GetDescriptor() const override { return m_Descriptor; }
 
 		virtual void SetFlag(MaterialFlag flag, bool enabled) override { m_Flags = m_Flags & ~flag | flag & -(int)enabled; }
 		virtual bool IsFalgSet(MaterialFlag flag) override { return m_Flags & flag; }
+		virtual uint32_t GetFalgs() const override { return m_Flags; }
 
 		virtual void Set(const std::string& name, const void* data, uint32_t size) override;
 		virtual void Set(const std::string& name, const Ref<Texture2D>& texture) override;

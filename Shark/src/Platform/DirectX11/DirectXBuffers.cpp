@@ -27,6 +27,23 @@ namespace Shark {
 			m_VertexBuffer->Release();
 	}
 
+	void DirectXVertexBuffer::Resize(uint32_t size)
+	{
+		SK_CORE_ASSERT(m_Dynamic);
+		m_Size = size;
+		D3D11_BUFFER_DESC bd = {};
+		bd.ByteWidth = size;
+		bd.StructureByteStride = m_Layout.GetVertexSize();
+		bd.Usage = D3D11_USAGE_DYNAMIC;
+		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bd.MiscFlags = 0u;
+
+		if (m_VertexBuffer)
+			m_VertexBuffer->Release();
+		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
+	}
+
 	void DirectXVertexBuffer::SetData(void* data, uint32_t size)
 	{
 		auto ctx = DirectXRendererAPI::GetContext();
@@ -48,6 +65,20 @@ namespace Shark {
 		{
 			CreateBuffer(data, size);
 		}
+	}
+
+	void* DirectXVertexBuffer::Map()
+	{
+		auto* ctx = DirectXRendererAPI::GetContext();
+		D3D11_MAPPED_SUBRESOURCE ms;
+		SK_CHECK(ctx->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
+		return ms.pData;
+	}
+
+	void DirectXVertexBuffer::UnMap()
+	{
+		auto* ctx = DirectXRendererAPI::GetContext();
+		ctx->Unmap(m_VertexBuffer, 0);
 	}
 
 	void DirectXVertexBuffer::Bind()
@@ -97,6 +128,24 @@ namespace Shark {
 			m_IndexBuffer->Release();
 	}
 
+	void DirectXIndexBuffer::Resize(uint32_t count)
+	{
+		SK_CORE_ASSERT(m_Dynamic);
+		m_Count = count;
+		m_Size = count * sizeof(IndexType);
+		D3D11_BUFFER_DESC i_bd = {};
+		i_bd.ByteWidth = m_Size;
+		i_bd.StructureByteStride = sizeof(IndexType);
+		i_bd.Usage = D3D11_USAGE_DYNAMIC;
+		i_bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		i_bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		i_bd.MiscFlags = 0u;
+
+		if (m_IndexBuffer)
+			m_IndexBuffer->Release();
+		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
+	}
+
 	void DirectXIndexBuffer::SetData(IndexType* data, uint32_t count)
 	{
 		auto ctx = DirectXRendererAPI::GetContext();
@@ -122,6 +171,20 @@ namespace Shark {
 		{
 			CreateBuffer(data, count);
 		}
+	}
+
+	void* DirectXIndexBuffer::Map()
+	{
+		auto* ctx = DirectXRendererAPI::GetContext();
+		D3D11_MAPPED_SUBRESOURCE ms;
+		SK_CHECK(ctx->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
+		return ms.pData;
+	}
+
+	void DirectXIndexBuffer::UnMap()
+	{
+		auto* ctx = DirectXRendererAPI::GetContext();
+		ctx->Unmap(m_IndexBuffer, 0);
 	}
 
 	void DirectXIndexBuffer::Bind()
