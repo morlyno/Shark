@@ -114,8 +114,7 @@ namespace Shark {
 			if (auto&& it = map.find(material->GetName()); it == map.end())
 			{
 				map.insert({ material->GetName(), material });
-				SK_CORE_INFO("New Material Added");
-				SK_CORE_INFO("Name: {0}", material->GetName());
+				SK_CORE_INFO("New Material Added: {0}", material->GetName());
 			}
 
 			s_DrawData->SelectedCommand = AddDrawCommand(material);

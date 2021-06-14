@@ -132,8 +132,10 @@ namespace Shark {
 	void DirectXTexture2D::UnBind(uint32_t slot)
 	{
 		auto* ctx = DirectXRendererAPI::GetContext();
-		ctx->PSSetSamplers(slot, 0, nullptr);
-		ctx->PSSetShaderResources(slot, 0, nullptr);
+		ID3D11SamplerState* nullsplr = nullptr;
+		ID3D11ShaderResourceView* nullsrv = nullptr;
+		ctx->PSSetSamplers(slot, 1, &nullsplr);
+		ctx->PSSetShaderResources(slot, 1, &nullsrv);
 	}
 
 	void DirectXTexture2D::CreateTexture(void* data)

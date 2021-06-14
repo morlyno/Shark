@@ -17,15 +17,48 @@ namespace Shark {
 		{
 			switch (format)
 			{
-				case ImageFormat::None:      SK_CORE_ASSERT(false, "No Foramt Specified");  return DXGI_FORMAT_UNKNOWN;
-				case ImageFormat::Depth32:   SK_CORE_ASSERT(false, "Invalid Format");       return DXGI_FORMAT_UNKNOWN;
-				case ImageFormat::RGBA8:     return DXGI_FORMAT_R8G8B8A8_UNORM;
-				case ImageFormat::R32_SINT:  return DXGI_FORMAT_R32_SINT;
+				case ImageFormat::None:                      SK_CORE_ASSERT(false, "No Foramt Specified");  return DXGI_FORMAT_UNKNOWN;
+				case ImageFormat::Depth32:                   SK_CORE_ASSERT(false, "Invalid Format");       return DXGI_FORMAT_UNKNOWN;
+				case ImageFormat::RGBA8:                     return DXGI_FORMAT_R8G8B8A8_UNORM;
+				case ImageFormat::R32_SINT:                  return DXGI_FORMAT_R32_SINT;
 			}
 			SK_CORE_ASSERT(false, "Unkown Format Type");
 			return DXGI_FORMAT_UNKNOWN;
 		}
 
+		static D3D11_COMPARISON_FUNC ToD3DComparison(StencilComparison comp)
+		{
+			switch (comp)
+			{
+				case StencilComparison::Never:               return D3D11_COMPARISON_NEVER;
+				case StencilComparison::Less:                return D3D11_COMPARISON_LESS;
+				case StencilComparison::Equal:               return D3D11_COMPARISON_EQUAL;
+				case StencilComparison::LessEqual:           return D3D11_COMPARISON_LESS_EQUAL;
+				case StencilComparison::Greater:             return D3D11_COMPARISON_GREATER;
+				case StencilComparison::NotEqual:            return D3D11_COMPARISON_NOT_EQUAL;
+				case StencilComparison::GreaterEqual:        return D3D11_COMPARISON_GREATER_EQUAL;
+				case StencilComparison::Always:              return D3D11_COMPARISON_ALWAYS;
+			}
+			SK_CORE_ASSERT(false);
+			return (D3D11_COMPARISON_FUNC)0;
+		}
+
+		static D3D11_STENCIL_OP ToD3DStencilOp(StencilOperation operation)
+		{
+			switch (operation)
+			{
+				case StencilOperation::Keep:                 return D3D11_STENCIL_OP_KEEP;
+				case StencilOperation::Zero:                 return D3D11_STENCIL_OP_ZERO;
+				case StencilOperation::Replace:              return D3D11_STENCIL_OP_REPLACE;
+				case StencilOperation::IncrementClamped:     return D3D11_STENCIL_OP_INCR_SAT;
+				case StencilOperation::DecrementClamped:     return D3D11_STENCIL_OP_DECR_SAT;
+				case StencilOperation::Invert:               return D3D11_STENCIL_OP_INVERT;
+				case StencilOperation::Increment:            return D3D11_STENCIL_OP_INCR;
+				case StencilOperation::Decrement:            return D3D11_STENCIL_OP_DECR;
+			}
+			SK_CORE_ASSERT(false);
+			return (D3D11_STENCIL_OP)0;
+		}
 	}
 
 	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs, bool isSwapChainTarget)
@@ -60,7 +93,8 @@ namespace Shark {
 		for (auto buffer : m_FrameBuffers)
 			ctx->ClearRenderTargetView(buffer, Utility::GetValuePtr(clearcolor));
 
-		ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
+		if (m_DepthStencil)
+			ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
 	}
 
 	void DirectXFrameBuffer::ClearAtachment(uint32_t index, const DirectX::XMFLOAT4& clearcolor)
@@ -159,6 +193,22 @@ namespace Shark {
 		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateDepthStencilState(&dsd, &m_DepthStencilState));
 	}
 
+	void DirectXFrameBuffer::SetStencilSpecs(const StencilSpecification& specs, bool enabled)
+	{
+		D3D11_DEPTH_STENCIL_DESC ds;
+		m_DepthStencilState->GetDesc(&ds);
+		m_StencilEnabled = enabled;
+		ds.StencilEnable = enabled;
+		ds.FrontFace.StencilFunc = Utils::ToD3DComparison(specs.Comparison);
+		ds.FrontFace.StencilPassOp = Utils::ToD3DStencilOp(specs.Passed);
+		ds.FrontFace.StencilFailOp = Utils::ToD3DStencilOp(specs.StencilFailed);
+		ds.FrontFace.StencilDepthFailOp = Utils::ToD3DStencilOp(specs.DepthFailed);
+		ds.BackFace = ds.FrontFace;
+
+		m_DepthStencilState->Release();
+		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateDepthStencilState(&ds, &m_DepthStencilState));
+	}
+
 	Ref<Texture2D> DirectXFrameBuffer::GetFramBufferContent(uint32_t index)
 	{
 		return m_FrameBufferTextures[index];
@@ -213,7 +263,7 @@ namespace Shark {
 	{
 		auto* ctx = DirectXRendererAPI::GetContext();
 
-		ctx->OMSetDepthStencilState(m_DepthStencilState, 1);
+		ctx->OMSetDepthStencilState(m_DepthStencilState, m_StencilReplace);
 		ctx->OMSetRenderTargets(m_Count, m_FrameBuffers.data(), m_DepthStencil);
 		ctx->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
 		ctx->RSSetViewports(1, &m_Viewport);
@@ -229,9 +279,11 @@ namespace Shark {
 		ctx->RSSetViewports(0, nullptr);
 	}
 
-	void DirectXFrameBuffer::CreateDepthBuffer()
+	void DirectXFrameBuffer::CreateDepth32Buffer()
 	{
 		auto dev = DirectXRendererAPI::GetDevice();
+
+		m_DepthEnabled = true;
 
 		D3D11_DEPTH_STENCIL_DESC ds = {};
 		ds.DepthEnable = TRUE;
@@ -243,6 +295,55 @@ namespace Shark {
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
 		dsv.Format = DXGI_FORMAT_D32_FLOAT;
+		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		dsv.Texture2D.MipSlice = 0u;
+		dsv.Flags = 0u;
+
+		D3D11_TEXTURE2D_DESC t2d;
+		t2d.Width = m_Specification.Width;
+		t2d.Height = m_Specification.Height;
+		t2d.MipLevels = 1u;
+		t2d.ArraySize = 1u;
+		t2d.Format = dsv.Format;
+		t2d.SampleDesc.Count = 1u;
+		t2d.SampleDesc.Quality = 0u;
+		t2d.Usage = D3D11_USAGE_DEFAULT;
+		t2d.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		t2d.CPUAccessFlags = 0u;
+		t2d.MiscFlags = 0u;
+
+		ID3D11Texture2D* texture = nullptr;
+		SK_CHECK(dev->CreateTexture2D(&t2d, nullptr, &texture));
+		SK_CHECK(dev->CreateDepthStencilView(texture, &dsv, &m_DepthStencil));
+		texture->Release();
+
+	}
+
+	void DirectXFrameBuffer::CreateDepth24Stencil8Buffer(StencilSpecification& specs)
+	{
+		auto dev = DirectXRendererAPI::GetDevice();
+
+		m_StencilReplace = specs.StencilReplace;
+		m_StencilEnabled = true;
+
+		D3D11_DEPTH_STENCIL_DESC ds = {};
+		ds.DepthEnable = TRUE;
+		ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		ds.DepthFunc = D3D11_COMPARISON_LESS;
+		ds.StencilEnable = TRUE;
+		ds.StencilReadMask = 0xFF;
+		ds.StencilWriteMask = 0xFF;
+		ds.FrontFace.StencilFunc = Utils::ToD3DComparison(specs.Comparison);
+		ds.FrontFace.StencilPassOp = Utils::ToD3DStencilOp(specs.Passed);
+		ds.FrontFace.StencilFailOp = Utils::ToD3DStencilOp(specs.StencilFailed);
+		ds.FrontFace.StencilDepthFailOp = Utils::ToD3DStencilOp(specs.DepthFailed);
+		ds.BackFace = ds.FrontFace;
+
+		SK_CHECK(dev->CreateDepthStencilState(&ds, &m_DepthStencilState));
+
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
+		dsv.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		dsv.Texture2D.MipSlice = 0u;
 		dsv.Flags = 0u;
@@ -327,19 +428,15 @@ namespace Shark {
 		uint32_t index = 0;
 		for (auto atachment = m_Specification.Atachments.begin(); atachment != m_Specification.Atachments.end(); ++atachment, index++)
 		{
-			if (atachment->Format == ImageFormat::SwapChain)
+			switch (atachment->Format)
 			{
-				CreateSwapChainBuffer();
-			}
-			else if (atachment->Format == ImageFormat::Depth32)
-			{
-				m_DepthEnabled = true;
-				CreateDepthBuffer();
-			}
-			else
-			{
-				bd.RenderTarget[index].BlendEnable = atachment->Blend;
-				CreateFrameBuffer(Utils::FBAtachmentToDXGIFormat(atachment->Format));
+				case ImageFormat::SwapChain:          bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateSwapChainBuffer();                            break;
+				case ImageFormat::RGBA8:              bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(DXGI_FORMAT_R8G8B8A8_UNORM);      break;
+				case ImageFormat::R32_SINT:           bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(DXGI_FORMAT_R32_SINT);            break;
+				case ImageFormat::Depth32:            m_DepthStencilAtachment = atachment._Ptr;                 CreateDepth32Buffer();                              break;
+				case ImageFormat::Depth24Stencil8:    m_DepthStencilAtachment = atachment._Ptr;                 CreateDepth24Stencil8Buffer(atachment->Stencil);    break;
+
+				default:                              SK_CORE_ASSERT(false);                                                                                        break;
 			}
 		}
 
@@ -371,7 +468,10 @@ namespace Shark {
 
 				ID3D11ShaderResourceView* view;
 				SK_CHECK(dev->CreateShaderResourceView(tex2d, &desc, &view));
-				texture = Ref<DirectXTexture2D>::Create(view, texdesc.Width, texdesc.Height);
+				SamplerProps props;
+				props.AddressU = AddressMode::Clamp;
+				props.AddressV = AddressMode::Clamp;
+				texture = Ref<DirectXTexture2D>::Create(view, texdesc.Width, texdesc.Height, props);
 
 				tex2d->Release();
 				resource->Release();

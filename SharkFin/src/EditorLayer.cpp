@@ -32,13 +32,32 @@ namespace Shark {
 		m_Scene.GetSaveState()->AddEditorData(true);
 		m_SceneHirachyPanel.SetContext(*m_Scene);
 
-		FrameBufferSpecification fbspecs;
-		fbspecs.Width = window.GetWidth();
-		fbspecs.Height = window.GetHeight();
-		fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
-		fbspecs.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
-		fbspecs.Atachments[0].Blend = true;
-		m_FrameBuffer = FrameBuffer::Create(fbspecs);
+		FrameBufferSpecification geofbspecs;
+		geofbspecs.Width = window.GetWidth();
+		geofbspecs.Height = window.GetHeight();
+		geofbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
+		geofbspecs.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+		geofbspecs.Atachments[0].Blend = true;
+		m_GemometryFrameBuffer = FrameBuffer::Create(geofbspecs);
+
+		FrameBufferSpecification effectfbspecs;
+		effectfbspecs.Width = window.GetWidth();
+		effectfbspecs.Height = window.GetHeight();
+		effectfbspecs.Atachments = { ImageFormat::RGBA8 };
+
+
+		effectfbspecs.ClearColor = { 0.4f, 0.8f, 0.4f, 1.0f };
+		m_NegativeFrameBuffer = FrameBuffer::Create(effectfbspecs);
+
+		effectfbspecs.ClearColor = { 0.8f, 0.4f, 0.4f, 1.0f };
+		m_BlurFrameBuffer = FrameBuffer::Create(effectfbspecs);
+
+		FrameBufferSpecification compositfbspecs;
+		compositfbspecs.Width = window.GetWidth();
+		compositfbspecs.Height = window.GetHeight();
+		compositfbspecs.Atachments = { ImageFormat::RGBA8 };
+		compositfbspecs.ClearColor = { 0.4f, 0.4f, 0.8f, 1.0f };
+		m_CompositFrameBuffer = FrameBuffer::Create(compositfbspecs);
 
 		RasterizerSpecification rrspecs;
 		rrspecs.Fill = FillMode::Solid;
@@ -61,21 +80,25 @@ namespace Shark {
 		m_TimeStep = ts;
 
 		m_Rasterizer->Bind();
-		m_FrameBuffer->Bind();
-
-		m_FrameBuffer->ClearAtachment(0);
-		m_FrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
-		m_FrameBuffer->ClearDepth();
+		m_GemometryFrameBuffer->Bind();
+		m_GemometryFrameBuffer->ClearAtachment(0);
+		m_GemometryFrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
+		m_GemometryFrameBuffer->ClearDepth();
+		m_CompositFrameBuffer->Clear();
+		m_NegativeFrameBuffer->Clear();
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered && !m_ViewportFocused);
 
 		if (m_ViewportSizeChanged)
 		{
-			m_FrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_GemometryFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_NegativeFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_BlurFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_CompositFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 			m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-			m_FrameBuffer->Bind();
+			m_GemometryFrameBuffer->Bind();
 		}
 
 		if (m_Scene)
@@ -90,6 +113,45 @@ namespace Shark {
 					m_EditorCamera.OnUpdate(ts);
 				m_Scene->OnUpdateEditor(ts, m_EditorCamera);
 			}
+
+			{
+				m_CompositFrameBuffer->Bind();
+				m_GemometryFrameBuffer->BindAsTexture(0, 0);
+				Renderer::GetShaderLib().Get("FullScreen")->Bind();
+				Renderer::SubmitFullScreenQuad();
+				m_GemometryFrameBuffer->UnBindAsTexture(0, 0);
+			}
+
+			if (m_NegativeEffect)
+			{
+				m_NegativeFrameBuffer->Bind();
+				m_GemometryFrameBuffer->BindAsTexture(0, 0);
+				Renderer::GetShaderLib().Get("NegativeEffect")->Bind();
+				Renderer::SubmitFullScreenQuad();
+				m_GemometryFrameBuffer->UnBindAsTexture(0, 0);
+
+				m_CompositFrameBuffer->Bind();
+				m_NegativeFrameBuffer->BindAsTexture(0, 0);
+				Renderer::GetShaderLib().Get("FullScreen")->Bind();
+				Renderer::SubmitFullScreenQuad();
+				m_NegativeFrameBuffer->UnBindAsTexture(0, 0);
+			}
+
+			{
+				m_BlurFrameBuffer->Bind();
+				m_GemometryFrameBuffer->BindAsTexture(0, 0);
+				Renderer::GetShaderLib().Get("BlurEffect")->Bind();
+				Renderer::SubmitFullScreenQuad();
+				m_GemometryFrameBuffer->UnBindAsTexture(0, 0);
+
+				m_CompositFrameBuffer->Bind();
+				m_BlurFrameBuffer->BindAsTexture(0, 0);
+				Renderer::GetShaderLib().Get("FullScreen")->Bind();
+				Renderer::SubmitFullScreenQuad();
+				m_BlurFrameBuffer->UnBindAsTexture(0, 0);
+			}
+
+
 		}
 
 		RendererCommand::BindMainFrameBuffer();
@@ -363,7 +425,7 @@ namespace Shark {
 			m_ViewportSizeChanged = true;
 		}
 
-		auto fbtex = m_FrameBuffer->GetFramBufferContent(0);
+		auto fbtex = m_CompositFrameBuffer->GetFramBufferContent(0);
 		UI::NoAlpaImage(nullptr, fbtex->GetRenderID(), size);
 
 		auto [mx, my] = ImGui::GetMousePos();
@@ -372,10 +434,10 @@ namespace Shark {
 		int y = my - wy;
 		m_HoveredEntityID = -1;
 
-		auto&& [width, height] = m_FrameBuffer->GetSize();
+		auto&& [width, height] = m_GemometryFrameBuffer->GetSize();
 		if (x >= 0 && x < width && y >= 0 && y < height)
 		{
-			m_HoveredEntityID = m_FrameBuffer->ReadPixel(1, x, y);
+			m_HoveredEntityID = m_GemometryFrameBuffer->ReadPixel(1, x, y);
 			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
 			{
 				if (m_HoveredEntityID != -1)
@@ -489,6 +551,8 @@ namespace Shark {
 			ImGui::Text("Total Allocated Delta: %llu", m.TotalAllocated - s_LastMemory.TotalAllocated);
 			ImGui::Text("Total Freed Delta: %llu", m.TotalFreed - s_LastMemory.TotalFreed);
 			s_LastMemory = m;
+
+			ImGui::Checkbox("Negative Effect", &m_NegativeEffect);
 
 			ImGui::End();
 

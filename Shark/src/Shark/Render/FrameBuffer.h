@@ -13,15 +13,29 @@ namespace Shark {
 		R32_SINT,
 
 		Depth32,
+		Depth24Stencil8,
 
 		SwapChain,
 		Depth = Depth32
+	};
+
+	enum class StencilComparison { Never, Less, Equal, LessEqual, Greater, NotEqual, GreaterEqual, Always };
+	enum class StencilOperation { Keep, Zero, Replace, IncrementClamped, DecrementClamped, Invert, Increment, Decrement };
+
+	struct StencilSpecification
+	{
+		StencilComparison Comparison = StencilComparison::Never;
+		StencilOperation StencilFailed = StencilOperation::Keep;
+		StencilOperation DepthFailed = StencilOperation::Keep;
+		StencilOperation Passed = StencilOperation::Keep;
+		uint32_t StencilReplace = 0xFFFFFFFF;
 	};
 
 	struct FrameBufferAtachment
 	{
 		bool Blend = false;
 		ImageFormat Format;
+		StencilSpecification Stencil;
 
 		FrameBufferAtachment(ImageFormat format)
 			: Format(format) {}
@@ -59,6 +73,9 @@ namespace Shark {
 		virtual void SetDepth(bool enabled) = 0;
 		virtual bool GetDepth() const = 0;
 
+		virtual void SetStencilSpecs(const StencilSpecification& specs, bool enabled) = 0;
+		virtual bool IsStencilEnabled() const = 0;
+
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) = 0;
 		virtual int ReadPixel(uint32_t index, int x, int y) = 0;
 
@@ -66,6 +83,9 @@ namespace Shark {
 
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
+
+		virtual void BindAsTexture(uint32_t index, uint32_t slot = 0) = 0;
+		virtual void UnBindAsTexture(uint32_t index, uint32_t slot = 0) = 0;
 
 		static Ref<FrameBuffer> Create(const FrameBufferSpecification& specs);
 	};
