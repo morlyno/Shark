@@ -29,19 +29,26 @@ namespace Shark {
 	using byte = unsigned char;
 
 	struct Empty { template<typename T> Empty(const T&) {} };
-	 
+
 	struct RenderID
 	{
 		uintptr_t ID;
 		
-		RenderID(uintptr_t id) : ID(id) {}
-		RenderID(void* id) : ID((uintptr_t)id) {}
+		constexpr RenderID(std::nullptr_t) : ID((uintptr_t)nullptr) {}
+		constexpr RenderID(uintptr_t id) : ID(id) {}
+		constexpr RenderID(void* id) : ID((uintptr_t)id) {}
 		operator uintptr_t() const { return ID; }
 		operator void*() const { return (void*)ID; }
+
+		bool operator==(const RenderID& rhs) const { return ID == rhs.ID; }
+		bool operator!=(const RenderID& rhs) const { return !(*this == rhs); }
+		operator bool() const { return ID; }
 
 		template<typename T>
 		T* As() { return (T*)ID; }
 	};
+
+	constexpr RenderID NullID = nullptr;
 
 	using WindowHandle = void*;
 

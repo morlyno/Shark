@@ -84,5 +84,41 @@ namespace Shark::Utility {
 		return 0;
 	}
 
+	std::string_view GetPathName(std::string_view path)
+	{
+#if SK_DEBUG
+		std::string_view name = path;
+		auto namebeg = path.find_last_of("/\\");
+		if (namebeg != std::string_view::npos)
+			name = path.substr(namebeg + 1);
+		SK_CORE_ASSERT(name.back() != '\0', "String View dosen't end with \0");
+		return name;
+#else
+		auto namebeg = path.find_last_of("/\\");
+		if (namebeg != std::string_view::npos)
+			return path.substr(namebeg + 1);
+		return path;
+#endif
+	}
+
+	std::string_view GetFileExtention(std::string_view path)
+	{
+#if SK_DEBUG
+		std::string_view extention = path;
+		auto offset = path.find_last_of("/\\");
+		auto extbeg = path.find_first_of(".", offset);
+		if (extbeg != std::string_view::npos)
+			extention = extention.substr(extbeg);
+		SK_CORE_ASSERT(extention.back() != '\0', "String View dosen't end with \0");
+		return extention;
+#else
+		auto offset = path.find_last_of("/\\");
+		auto extbeg = path.find_first_of(".", offset);
+		if (extbeg != std::string_view::npos)
+			return path.substr(extbeg);
+		return path;
+#endif
+	}
+
 
 }

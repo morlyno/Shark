@@ -334,7 +334,7 @@ namespace Shark {
 
 	void Renderer2D::DrawEntity(Entity entity)
 	{
-		auto tag = entity.GetComponent<TagComponent>().Tag;
+		const auto& tag = entity.GetComponent<TagComponent>().Tag;
 
 		SK_CORE_ASSERT(entity.HasComponent<TransformComponent>(), "Tried to Draw Entity without Transform Component");
 		SK_CORE_ASSERT(entity.HasComponent<SpriteRendererComponent>(), "Tried to Draw Entity without Sprite Renderer Component");

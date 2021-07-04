@@ -44,4 +44,8 @@ namespace Shark::Utility {
 
 	uint32_t GetSizeFromDataType(DataType type);
 
+	std::string_view GetPathName(std::string_view path);
+
+	std::string_view GetFileExtention(std::string_view path);
+
 }

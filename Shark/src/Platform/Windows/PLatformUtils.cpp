@@ -50,4 +50,10 @@ namespace Shark {
 		return std::string{};
 	}
 
+	void Utility::OpenExplorer(const std::string& path)
+	{
+		auto&& cmd = "explorer " + path;
+		system(cmd.c_str());
+	}
+
 }

@@ -332,4 +332,21 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	bool ImageButton(const char* strID, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
+	{
+		ImGuiID id = ImGui::GetID(strID);
+		return ImageButton(id, textureID, size, uv0, uv1, frame_padding, bg_col, tint_col);
+	}
+
+	bool ImageButton(ImGuiID id, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
+	{
+		ImGuiContext& g = *ImGui::GetCurrentContext();
+		ImGuiWindow* window = g.CurrentWindow;
+		if (window->SkipItems)
+			return false;
+
+		const ImVec2 padding = (frame_padding >= 0) ? ImVec2((float)frame_padding, (float)frame_padding) : g.Style.FramePadding;
+		return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, padding, bg_col, tint_col);
+	}
+
 }

@@ -11,4 +11,10 @@ namespace Shark {
 
 	};
 
+	namespace Utility {
+
+		void OpenExplorer(const std::string& path);
+
+	}
+
 }
