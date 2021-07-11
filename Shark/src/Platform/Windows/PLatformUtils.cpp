@@ -5,55 +5,102 @@
 
 namespace Shark {
 
-	std::string FileDialogs::OpenFile(const char* filter)
+	static std::string GetLastErrorMsg(DWORD lasterror)
 	{
-		OPENFILENAMEA ofn;
-		CHAR szFile[260] = { 0 };
-		CHAR currentDir[256] = { 0 };
-		ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
-		ofn.lStructSize = sizeof(OPENFILENAMEA);
-		ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetHandle();
-		ofn.lpstrFile = szFile;
-		ofn.nMaxFile = sizeof(szFile);
-		if (GetCurrentDirectoryA(256, currentDir))
-			ofn.lpstrInitialDir = currentDir;
-		ofn.lpstrFilter = filter;
-		ofn.nFilterIndex = 1;
-		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR | OFN_DONTADDTORECENT;
+		LPSTR messageBuffer = NULL;
+		DWORD size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, lasterror, 0, messageBuffer, 0, NULL);
 
-		if (GetOpenFileNameA(&ofn) == TRUE)
-			return ofn.lpstrFile;
-		return std::string{};
+		auto message = std::string(messageBuffer, size);
+
+		LocalFree(messageBuffer);
+
+		return message;
 	}
 
-	std::string FileDialogs::SaveFile(const char* filter)
-	{
-		OPENFILENAMEA ofn;
-		CHAR szFile[260] = { 0 };
-		CHAR currentDir[256] = { 0 };
-		ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
-		ofn.lStructSize = sizeof(OPENFILENAMEA);
-		ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetHandle();
-		ofn.lpstrFile = szFile;
-		ofn.nMaxFile = sizeof(szFile);
-		if (GetCurrentDirectoryA(256, currentDir))
-			ofn.lpstrInitialDir = currentDir;
-		ofn.lpstrFilter = filter;
-		ofn.nFilterIndex = 1;
-		ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR | OFN_DONTADDTORECENT;
+	namespace FileDialogs {
 
-		// Sets the default extension by extracting it from the filter
-		ofn.lpstrDefExt = strchr(filter, '\0') + 1;
+		std::string OpenFile(const char* filter)
+		{
+			OPENFILENAMEA ofn;
+			CHAR szFile[260] = { 0 };
+			CHAR currentDir[256] = { 0 };
+			ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
+			ofn.lStructSize = sizeof(OPENFILENAMEA);
+			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetHandle();
+			ofn.lpstrFile = szFile;
+			ofn.nMaxFile = sizeof(szFile);
+			if (GetCurrentDirectoryA(256, currentDir))
+				ofn.lpstrInitialDir = currentDir;
+			ofn.lpstrFilter = filter;
+			ofn.nFilterIndex = 1;
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR | OFN_DONTADDTORECENT;
 
-		if (GetSaveFileNameA(&ofn) == TRUE)
-			return ofn.lpstrFile;
-		return std::string{};
+			if (GetOpenFileNameA(&ofn) == TRUE)
+				return ofn.lpstrFile;
+			return std::string{};
+		}
+
+		std::string SaveFile(const char* filter)
+		{
+			OPENFILENAMEA ofn;
+			CHAR szFile[260] = { 0 };
+			CHAR currentDir[256] = { 0 };
+			ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
+			ofn.lStructSize = sizeof(OPENFILENAMEA);
+			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetHandle();
+			ofn.lpstrFile = szFile;
+			ofn.nMaxFile = sizeof(szFile);
+			if (GetCurrentDirectoryA(256, currentDir))
+				ofn.lpstrInitialDir = currentDir;
+			ofn.lpstrFilter = filter;
+			ofn.nFilterIndex = 1;
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR | OFN_DONTADDTORECENT;
+
+			// Sets the default extension by extracting it from the filter
+			ofn.lpstrDefExt = strchr(filter, '\0') + 1;
+
+			if (GetSaveFileNameA(&ofn) == TRUE)
+				return ofn.lpstrFile;
+			return std::string{};
+		}
+
 	}
 
-	void Utility::OpenExplorer(const std::string& path)
-	{
-		auto&& cmd = "explorer " + path;
-		system(cmd.c_str());
+	namespace Utility {
+
+		void OpenExplorer(const std::string& path)
+		{
+			auto&& cmd = "explorer " + path;
+			system(cmd.c_str());
+		}
+
+		void OpenFile(const std::string& path)
+		{
+			auto&& cmd = "call " + path;
+			system(cmd.c_str());
+		}
+
+	}
+
+	namespace Platform {
+
+		bool Platform::Create_File(const std::string& path, bool createAllways)
+		{
+			HANDLE file = CreateFileA(path.c_str(), GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, createAllways ? CREATE_ALWAYS : CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+
+#if SK_LOG_FILESYSTEM
+			if (file == INVALID_HANDLE_VALUE)
+			{
+				DWORD lasterror = GetLastError();
+				auto message = GetLastErrorMsg(lasterror);
+				SK_CORE_ERROR(message);
+			}
+#endif
+
+			CloseHandle(file);
+			return true;
+		}
+
 	}
 
 }

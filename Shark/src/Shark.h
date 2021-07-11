@@ -11,9 +11,13 @@
 #include "Shark/Core/Input.h"
 #include "Shark/Core/Random.h"
 #include "Shark/Core/Timer.h"
+
+// --- Utility --------------------------
 #include "Shark/Utility/PlatformUtils.h"
 #include "Shark/Utility/Utility.h"
 #include "Shark/Utility/ImGuiUtils.h"
+#include "Shark/Utility/FileSystem.h"
+// --------------------------------------
 
 // --- Event ----------------------------
 #include "Shark/Event/Event.h"

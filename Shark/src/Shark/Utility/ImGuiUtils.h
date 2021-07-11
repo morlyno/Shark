@@ -11,6 +11,7 @@ namespace Shark {
 	enum class AssetType
 	{
 		None = 0,
+		Unkown = -1,
 		Texture, Scene
 	};
 
