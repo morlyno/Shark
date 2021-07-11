@@ -1,31 +1,40 @@
 #pragma once
 
 #include <Shark.h>
-#include <queue>
+#include <unordered_map>
+
+#include <imgui.h>
+#include <imgui_internal.h>
 
 namespace Shark {
 
+	enum class ContentType
+	{
+		None = 0,
+		Directory, File
+	};
+
+	struct Directory;
+
+	struct Entry
+	{
+		ContentType Type = ContentType::None;
+		uint32_t ByteSize = 0;
+		Directory* Directory = nullptr;
+	};
+
+	struct Directory
+	{
+		static constexpr ContentType Type = ContentType::Directory;
+		std::unordered_map<std::string, Entry> Entrys;
+		uint32_t Files = 0;
+		uint32_t Directorys = 0;
+		uint32_t TotalFiles = 0;
+		uint32_t TotalDirectorys = 0;
+	};
+
 	class AssetsPanel
 	{
-	private:
-		struct DirectoryEntry
-		{
-			std::filesystem::directory_entry Entry;
-			std::filesystem::path Path;
-			std::string PathString;
-			std::string PathExtenstion;
-			std::string FileName;
-			std::string FileNameShort;
-			DirectoryEntry(const std::filesystem::directory_entry& entry)
-			{
-				Entry = entry;
-				Path = entry.path();
-				PathString = Path.string();
-				FileName = Path.filename().string();
-				FileNameShort = Path.filename().replace_extension().string();
-				PathExtenstion = Path.extension().string();
-			}
-		};
 	public:
 		AssetsPanel();
 		~AssetsPanel();
@@ -36,35 +45,56 @@ namespace Shark {
 		void OnImGuiRender();
 
 	private:
-		void OnDirectoryClicked(const std::filesystem::path& path);
-		void OnFileClicked(const std::filesystem::path& path);
+		void SaveCurrentAssetDirectory();
+		Directory* SaveDirectory(const std::filesystem::path& directoryPath);
 
-		void DrawDirectory(const std::filesystem::path& directory);
-		void DrawNavigationButtons();
+		// Navigation
+		void DrawHistoryNavigationButtons();
 		void DrawCurrentPath();
-		void DrawDirectoryContent();
-		void DrawFilterInput();
-		void DrawAssetsFiltered();
-		bool CheckFileOnFilter(const std::string& str);
-		void ResetFilter();
-		void DrawDirectoryEntry(RenderID imageID, const DirectoryEntry& entry);
+
+		// TreeView
+		void DrawAsTree(const std::string& directory);
+		void DrawTreeNode(const std::string& directory);
+
+		// Current Directory Content View
+		void DrawCurrentDirectory();
+
+		// Helpers
+		void CheckOnCell(const Entry& entry, const std::string& path, const ImRect& rec);
+		void CheckOnTreeLeaf(const Entry& entry, const std::string& path);
+		void SelectCurrentDirectory(const std::filesystem::path& directoryPath);
+		void UpdateCurrentPathVec();
+		RenderID GetContentTextureID(const Entry& entry);
+		void StartDragDrop(const std::string& path);
+		void DrawContentPopup(const std::string& path, const Entry& entry);
+		void StartRename(const std::string& path);
+		void DrawRenameInput();
 
 	private:
 		bool m_ShowPanel = true;
 
-		std::filesystem::path m_CurrentPath;
+		std::filesystem::path m_CurrentDirectory;
+		std::string m_CurrentDirectoryString;
+		std::unordered_map<std::string, Directory> m_Directorys;
+		bool m_ReloadRequierd = false;
+
 		std::vector<std::filesystem::path> m_DirectoryHistory;
 		uint32_t m_DirHistoryIndex = 0;
 
-		std::string m_FilterBuffer;
-		std::string m_FilterAsLower;
-		bool m_ShowFiltered = false;
+		std::vector<std::string> m_CurrentPathVec;
 
-		Ref<Texture2D> m_FileImage = nullptr;
-		Ref<Texture2D> m_DirectoryImage = nullptr;
+		const float m_ContentItemSize = 80.0f;
 
-		const ImVec2 m_ImageSize = { 64, 64 };
-		bool m_WantResetFilter = false;
+		Ref<Texture2D> m_FolderImage;
+		Ref<Texture2D> m_FileImage;
+
+		std::string m_SelectedEntry;
+		bool m_IgnoreNextSelectionCheck = false;
+		bool m_DoNotHilight = false;
+
+		bool m_OnRenameEntry = false;
+		std::string m_EntryRenameBuffer;
+		std::string m_RenameTarget;
 
 	};
 
