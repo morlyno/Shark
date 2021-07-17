@@ -44,6 +44,8 @@ namespace Shark {
 
 		void OnImGuiRender();
 
+		void Relaod() { SaveCurrentAssetDirectory(); }
+
 	private:
 		void SaveCurrentAssetDirectory();
 		Directory* SaveDirectory(const std::filesystem::path& directoryPath);

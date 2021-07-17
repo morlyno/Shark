@@ -1,7 +1,6 @@
 #include "AssetsPanel.h"
 
 #include <misc/cpp/imgui_stdlib.h>
-#include <fstream>
 #include <Shark/Utility/PlatformUtils.h>
 
 namespace Shark {
@@ -56,10 +55,18 @@ namespace Shark {
 
 		m_FolderImage = Texture2D::Create("assets/Textures/folder_open.png");
 		m_FileImage = Texture2D::Create("assets/Textures/file.png");
+
+		Counter::Add("AP Reload", 10.0f, true, [this]()
+		{
+			SK_CORE_TRACE("Asset Panel Reload");
+			this->Relaod();
+		});
 	}
 
 	AssetsPanel::~AssetsPanel()
 	{
+		SK_DEBUG_RETURN_VAL(temp) Counter::Remove("AP Reload");
+		SK_IF_DEBUG(SK_CORE_ASSERT(temp, "Failed to remove Counter"));
 	}
 
 	void AssetsPanel::OnImGuiRender()

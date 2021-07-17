@@ -6,6 +6,7 @@
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Core/Counter.h"
 
 #include <imgui.h>
 
@@ -47,6 +48,9 @@ namespace Shark {
 			QueryPerformanceCounter((LARGE_INTEGER*)&time);
 			TimeStep timeStep = (float)(time - m_LastFrameTime) / m_Frequency;
 			m_LastFrameTime = time;
+
+			// TODO: Remove (Counter Get owne thread)
+			Counter::Update(timeStep);
 
 			RendererCommand::SwapBuffers(m_Window->IsVSync());
 

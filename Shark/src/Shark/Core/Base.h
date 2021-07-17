@@ -17,11 +17,19 @@
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
 
+#define SK_LINE_VAR3(name, line) name##line
+#define SK_VAR_NAME_CURR_LINE(name, line) SK_LINE_VAR3(name, line)
+
 #ifdef SK_DEBUG
 #define SK_IF_DEBUG(x) { x }
+#define SK_DEBUG_RETURN_VAL(x) auto&& (x) =
+#define SK_DEBUG_RETURN_TEMP SK_DEBUG_RETURN_VAL(SK_VAR_NAME_CURR_LINE(_TEMP_VAR_, __LINE__))
 #else
 #define SK_IF_DEBUG(...)
+#define SK_DEBUG_RETURN_TEMP
+#define SK_DEBUG_RETURN_VAL(x)
 #endif
+
 
 #include <stdint.h>
 
