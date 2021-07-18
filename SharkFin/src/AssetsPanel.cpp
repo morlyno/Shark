@@ -30,7 +30,7 @@ namespace Shark {
 			return AssetType::Unkown;
 		}
 
-		static const char* GetContentTypeAsString(ContentType type)
+		static std::string GetContentTypeAsString(ContentType type)
 		{
 			switch (type)
 			{
@@ -46,11 +46,11 @@ namespace Shark {
 
 	AssetsPanel::AssetsPanel()
 	{
+		m_ReloadRequierd = true;
+		m_DirectoryHistory.emplace_back(s_AsstesDirectory);
 		m_CurrentDirectory = s_AsstesDirectory;
 		m_CurrentDirectoryString = m_CurrentDirectory.string();
-		m_DirectoryHistory.emplace_back(m_CurrentDirectory);
-		m_DirHistoryIndex;
-		SaveCurrentAssetDirectory();
+
 		UpdateCurrentPathVec();
 
 		m_FolderImage = Texture2D::Create("assets/Textures/folder_open.png");
@@ -61,6 +61,7 @@ namespace Shark {
 			SK_CORE_TRACE("Asset Panel Reload");
 			this->Relaod();
 		});
+		Counter::Pause("AP Reload");
 	}
 
 	AssetsPanel::~AssetsPanel()
@@ -86,19 +87,49 @@ namespace Shark {
 			m_ReloadRequierd = false;
 		}
 
-		auto window = ImGui::GetCurrentWindow();
-		auto& style = ImGui::GetStyle();
+		if (!m_SelectedEntry.empty())
+		{
+			if (ImGui::IsKeyPressed(Key::F2, false))
+				StartRename(m_SelectedEntry);
+			if (ImGui::IsKeyPressed(Key::Entf, false))
+				StartDelete(m_SelectedEntry);
+		}
+
+		if (m_ShowDeletePopup)
+			DeletePopup(m_SelectedEntry, GetEntry(m_SelectedEntry));
+
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		const ImGuiStyle& style = ImGui::GetStyle();
 		window->DC.CursorPos.y -= style.FramePadding.y;
 
 		DrawHistoryNavigationButtons();
+		
 		ImGui::SameLine();
 		if (ImGui::Button("Reload"))
 			SaveCurrentAssetDirectory();
+		
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(150);
 		ImGui::InputTextWithHint("##EntrySceach", "Sceach...", &s_TempInputString);
 		ImGui::SameLine();
+
 		DrawCurrentPath();
+
+		ImGui::SameLine();
+		const ImVec2 label_size = ImGui::CalcTextSize("Settings", NULL, true);
+		ImVec2 size = ImGui::CalcItemSize({ 0, 0 }, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - size.x - style.FramePadding.x);
+		if (ImGui::Button("Settings"))
+			ImGui::OpenPopup("AssetsPanelSettings");
+		if (ImGui::BeginPopup("AssetsPanelSettings"))
+		{
+			bool doReload = !Counter::IsPaused("AP Reload");
+			if (ImGui::Checkbox("Auto Reload", &doReload))
+				Counter::SetPause("AP Reload", !doReload);
+
+			ImGui::EndPopup();
+		}
+
 
 		ImGui::Separator();
 
@@ -281,12 +312,12 @@ namespace Shark {
 
 	void AssetsPanel::DrawCurrentDirectory()
 	{
-		const int collumns = ImGui::GetContentRegionAvailWidth() / m_ContentItemSize;
+		const int maxCollumns = std::clamp((int)(ImGui::GetContentRegionAvailWidth() / m_ContentItemSize), 1, 64);
 
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		ImGuiStyle& style = ImGui::GetStyle();
 
-		if (ImGui::BeginTable("Directory Content", collumns))
+		if (ImGui::BeginTable("Directory Content", maxCollumns))
 		{
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
@@ -307,13 +338,28 @@ namespace Shark {
 				else
 					ImGui::TextWrapped("%s", name.data());
 
-				int collumnindex = ImGui::TableGetColumnIndex();
-				ImGui::TableNextColumn();
+				
 				ImGuiTable* table = ImGui::GetCurrentTable();
-				ImRect cellrect = ImGui::TableGetCellBgRect(table, collumnindex);
+				const int collumnIndex = table->CurrentColumn;
+
+				// check if next next collumn is in a new row and save y values vor correct cell rect
+				float top = 0.0f;
+				if (collumnIndex == maxCollumns - 1)
+				{
+					ImRect r = ImGui::TableGetCellBgRect(table, 0);
+					top = r.Min.y;
+				}
+
+				ImGui::TableNextColumn();
+				ImRect cellrect = ImGui::TableGetCellBgRect(table, collumnIndex);
+				if (top != 0.0f)
+				{
+					cellrect.Min.y = top;
+					cellrect.Max.y -= style.FramePadding.x;
+				}
 				window->DC.LastItemId = buttonid;
 				CheckOnCell(entry, path, cellrect);
-				
+
 			}
 
 			if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered())
@@ -402,6 +448,7 @@ namespace Shark {
 				break;
 			}
 		}
+
 
 		if (isItemClicked_Right)
 			ImGui::OpenPopup(path.c_str());
@@ -507,7 +554,7 @@ namespace Shark {
 
 			std::string_view name = Utility::GetPathName(path);
 			ImGui::Text("Name:        %s", name.data());
-			ImGui::Text("Type:        %s", Utils::GetContentTypeAsString(entry.Type));
+			ImGui::Text("Type:        %s", Utils::GetContentTypeAsString(entry.Type).c_str());
 			ImGui::Text("Full Path:   %s", path.c_str());
 
 			if (isDirectory)
@@ -539,34 +586,12 @@ namespace Shark {
 
 			// Delete Content
 			ImGui::Separator();
-			if (ImGui::Selectable("Delete", false, ImGuiSelectableFlags_DontClosePopups))
-				ImGui::OpenPopup("Delete Entry");
-
-			if (ImGui::BeginPopupModal("Delete Entry"))
-			{
-				ImGui::Text("Do you want to delete this entry");
-				ImGui::Text("Path: %s", path.c_str());
-				ImGui::Separator();
-				if (ImGui::Button("Delete") || ImGui::IsKeyPressed(ImGuiKey_Enter))
-				{
-					if (isDirectory)
-					{
-						FileSystem::DeleteAll(path);
-					}
-					else if (isFile)
-					{
-						FileSystem::Delete(path);
-					}
-					m_ReloadRequierd = true;
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Cancle"))
-					ImGui::CloseCurrentPopup();
-				ImGui::EndPopup();
-			}
+			const bool startDelete = ImGui::MenuItem("Delete", "del", false, ImGuiSelectableFlags_DontClosePopups);
 
 			ImGui::EndPopup();
+
+			if (startDelete)
+				StartDelete(path);
 		}
 
 	}
@@ -592,9 +617,6 @@ namespace Shark {
 				auto newPath = std::filesystem::path(m_RenameTarget).parent_path() / m_EntryRenameBuffer;
 
 				FileSystem::Rename(m_RenameTarget, newPath);
-				//if (FileSystem::Rename(m_RenameTarget, newPath))
-				//	if (std::filesystem::is_directory(newPath) && m_RenameTarget == m_SelectedEntry)
-				//		SelectCurrentDirectory(newPath);
 			}
 			
 			m_EntryRenameBuffer.clear();
@@ -603,6 +625,59 @@ namespace Shark {
 			m_ReloadRequierd = true;
 			m_DoNotHilight = false;
 		}
+	}
+
+	void AssetsPanel::StartDelete(const std::string& path)
+	{
+		m_SelectedEntry = path;
+		m_ShowDeletePopup = true;
+		m_IgnoreNextSelectionCheck = true;
+		
+		
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		ImGui::PushOverrideID(window->ID);
+		ImGui::OpenPopupEx(window->GetID("Delete Entry"));
+		ImGui::PopID();
+	}
+
+	void AssetsPanel::DeletePopup(const std::string& path, const Entry& entry)
+	{
+		m_IgnoreNextSelectionCheck = true;
+		const bool isDirectory = entry.Type == ContentType::Directory;
+		const bool isFile = entry.Type == ContentType::File;
+
+		if (ImGui::BeginPopupModal("Delete Entry"))
+		{
+			ImGui::Text("Do you want to delete this entry");
+			ImGui::Text("Path: %s", path.c_str());
+			ImGui::Separator();
+			if (ImGui::Button("Delete") || ImGui::IsKeyPressed(ImGuiKey_Enter))
+			{
+				if (isDirectory)
+				{
+					FileSystem::DeleteAll(path);
+				}
+				else if (isFile)
+				{
+					FileSystem::Delete(path);
+				}
+				m_ReloadRequierd = true;
+				m_SelectedEntry.clear();
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancle") || ImGui::IsKeyPressed(ImGuiKey_Escape))
+				ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+		}
+		if (!ImGui::IsPopupOpen("Delete Entry", ImGuiPopupFlags_None))
+			m_ShowDeletePopup = false;
+	}
+
+	Entry& AssetsPanel::GetEntry(const std::string& path)
+	{
+		SK_CORE_ASSERT(!path.empty());
+		return m_Directorys.at(m_CurrentDirectoryString).Entrys.at(path);
 	}
 
 }

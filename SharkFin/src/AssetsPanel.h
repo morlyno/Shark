@@ -47,6 +47,7 @@ namespace Shark {
 		void Relaod() { SaveCurrentAssetDirectory(); }
 
 	private:
+
 		void SaveCurrentAssetDirectory();
 		Directory* SaveDirectory(const std::filesystem::path& directoryPath);
 
@@ -71,6 +72,9 @@ namespace Shark {
 		void DrawContentPopup(const std::string& path, const Entry& entry);
 		void StartRename(const std::string& path);
 		void DrawRenameInput();
+		void StartDelete(const std::string& path);
+		void DeletePopup(const std::string& path, const Entry& entry);
+		Entry& GetEntry(const std::string& path);
 
 	private:
 		bool m_ShowPanel = true;
@@ -78,7 +82,7 @@ namespace Shark {
 		std::filesystem::path m_CurrentDirectory;
 		std::string m_CurrentDirectoryString;
 		std::unordered_map<std::string, Directory> m_Directorys;
-		bool m_ReloadRequierd = false;
+		bool m_ReloadRequierd = true;
 
 		std::vector<std::filesystem::path> m_DirectoryHistory;
 		uint32_t m_DirHistoryIndex = 0;
@@ -97,6 +101,8 @@ namespace Shark {
 		bool m_OnRenameEntry = false;
 		std::string m_EntryRenameBuffer;
 		std::string m_RenameTarget;
+
+		bool m_ShowDeletePopup = false;
 
 	};
 
