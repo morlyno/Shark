@@ -349,4 +349,18 @@ namespace Shark::UI {
 		return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, padding, bg_col, tint_col);
 	}
 
+	ImVec2 GetItemSize(const char* lable)
+	{
+		const ImGuiStyle& style = ImGui::GetStyle();
+
+		const ImVec2 label_size = ImGui::CalcTextSize("Settings", NULL, true);
+		return ImGui::CalcItemSize({ 0, 0 }, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+	}
+
+	ImVec2 GetFramePadding()
+	{
+		const ImGuiStyle& style = ImGui::GetStyle();
+		return style.FramePadding;
+	}
+
 }

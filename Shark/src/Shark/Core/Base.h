@@ -8,6 +8,7 @@
 
 #define SK_ENABLE_ASSERT 1
 #define SK_LOG_FILESYSTEM 1
+#define IMGUI_DEFINE_MATH_OPERATORS
 
 #define BIT(x) (1 << x)
 #define SK_BIT(x) (1 << x)

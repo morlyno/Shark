@@ -9,15 +9,16 @@ namespace Shark {
 		bool Repead;
 		std::function<void()> Func;
 
-		bool Paused;
+		bool Active;
 		double TimePassed;
 		std::string Tag;
 
 		Entry(double time, bool repead, const std::function<void()>& func, const std::string& tag)
-			: Time(time), Repead(repead), Func(func), TimePassed(0.0), Paused(false), Tag(tag)
+			: Time(time), Repead(repead), Func(func), TimePassed(0.0), Active(false), Tag(tag)
 		{}
 	};
 
+	// TODO: chage vector into unorder_map or add name savety
 	static std::vector<Entry> s_Counters;
 
 	namespace Utils {
@@ -29,7 +30,7 @@ namespace Shark {
 				return entry.Tag == tag;
 			});
 		}
-		
+
 	}
 
 	void Counter::Add(const std::string& tag, double time, bool repead, const std::function<void()>& func)
@@ -37,12 +38,12 @@ namespace Shark {
 		s_Counters.emplace_back(time, repead, func, tag);
 	}
 
-	void Counter::SetPause(const std::string& tag, bool pause)
+	void Counter::SetActivce(const std::string& tag, bool active)
 	{
 		const auto& it = Utils::Find(tag);
 		SK_CORE_ASSERT(it != s_Counters.end());
 		if (it != s_Counters.end())
-			it->Paused = pause;
+			it->Active = active;
 	}
 
 	bool Counter::IsPaused(const std::string& tag)
@@ -50,8 +51,25 @@ namespace Shark {
 		const auto& it = Utils::Find(tag);
 		SK_CORE_ASSERT(it != s_Counters.end());
 		if (it != s_Counters.end())
-			return it->Paused;
+			return it->Active;
 		return false;
+	}
+
+	double Counter::GetTime(const std::string& tag)
+	{
+		const auto& it = Utils::Find(tag);
+		SK_CORE_ASSERT(it != s_Counters.end());
+		if (it != s_Counters.end())
+			return it->Time;
+		return 0.0f;
+	}
+
+	void Counter::SetTime(const std::string& tag, double time)
+	{
+		const auto& it = Utils::Find(tag);
+		SK_CORE_ASSERT(it != s_Counters.end());
+		if (it != s_Counters.end() && time > 0.0f)
+			it->Time = time;
 	}
 
 	bool Counter::Remove(const std::string& tag)
@@ -74,11 +92,15 @@ namespace Shark {
 		for (size_t i = 0; i < s_Counters.size();)
 		{
 			auto& entry = s_Counters[i];
-			if (!entry.Paused)
+			if (entry.Active)
 			{
 				entry.TimePassed += ts;
 				if (entry.TimePassed >= entry.Time)
 				{
+					SK_IF_DEBUG(
+						if (int n = (int)(entry.TimePassed / entry.Time); n >= 2)
+							SK_CORE_INFO("{0} Callbackes of counter {1} are skipped", n - 1, entry.Tag);
+					);
 					entry.Func();
 					entry.TimePassed = fmod(entry.TimePassed, entry.Time);
 					if (!entry.Repead)

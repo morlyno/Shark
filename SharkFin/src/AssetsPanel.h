@@ -41,13 +41,11 @@ namespace Shark {
 
 		void ShowPanel(bool show) { m_ShowPanel = show; }
 		bool IsShowen() const { return m_ShowPanel; }
+		void ReCache() { SaveCurrentAssetDirectory(); }
 
 		void OnImGuiRender();
 
-		void Relaod() { SaveCurrentAssetDirectory(); }
-
 	private:
-
 		void SaveCurrentAssetDirectory();
 		Directory* SaveDirectory(const std::filesystem::path& directoryPath);
 
@@ -62,47 +60,62 @@ namespace Shark {
 		// Current Directory Content View
 		void DrawCurrentDirectory();
 
+		// ...
+		void DrawContentPopup(const std::string& path, const Entry& entry);
+		void DrawRenameInput();
+		void DeletePopup(const std::string& path, const Entry& entry);
+		void SettingsPopup();
+
+
 		// Helpers
 		void CheckOnCell(const Entry& entry, const std::string& path, const ImRect& rec);
 		void CheckOnTreeLeaf(const Entry& entry, const std::string& path);
+
 		void SelectCurrentDirectory(const std::filesystem::path& directoryPath);
 		void UpdateCurrentPathVec();
-		RenderID GetContentTextureID(const Entry& entry);
+
 		void StartDragDrop(const std::string& path);
-		void DrawContentPopup(const std::string& path, const Entry& entry);
 		void StartRename(const std::string& path);
-		void DrawRenameInput();
 		void StartDelete(const std::string& path);
-		void DeletePopup(const std::string& path, const Entry& entry);
+
 		Entry& GetEntry(const std::string& path);
+		RenderID GetContentTextureID(const Entry& entry);
 
 	private:
 		bool m_ShowPanel = true;
+		
+		Ref<Texture2D> m_DirectoryIcon;
+		Ref<Texture2D> m_StandartFileIcon;
+		const float m_ContentItemSize = 80.0f;
+
+
+		std::unordered_map<std::string, Directory> m_Directorys;
+		bool m_ReloadRequierd = true;
+
 
 		std::filesystem::path m_CurrentDirectory;
 		std::string m_CurrentDirectoryString;
-		std::unordered_map<std::string, Directory> m_Directorys;
-		bool m_ReloadRequierd = true;
+		std::vector<std::string> m_CurrentPathVec;
+
 
 		std::vector<std::filesystem::path> m_DirectoryHistory;
 		uint32_t m_DirHistoryIndex = 0;
 
-		std::vector<std::string> m_CurrentPathVec;
-
-		const float m_ContentItemSize = 80.0f;
-
-		Ref<Texture2D> m_FolderImage;
-		Ref<Texture2D> m_FileImage;
 
 		std::string m_SelectedEntry;
 		bool m_IgnoreNextSelectionCheck = false;
 		bool m_DoNotHilight = false;
 
+
 		bool m_OnRenameEntry = false;
 		std::string m_EntryRenameBuffer;
 		std::string m_RenameTarget;
 
+
 		bool m_ShowDeletePopup = false;
+
+		bool m_AutoReCache = false;
+		float m_ReCacheTime = 10.0f;
 
 	};
 
