@@ -122,33 +122,34 @@ namespace Shark {
 				m_GemometryFrameBuffer->UnBindAsTexture(0, 0);
 			}
 
-			if (m_NegativeEffect)
-			{
-				m_NegativeFrameBuffer->Bind();
-				m_GemometryFrameBuffer->BindAsTexture(0, 0);
-				Renderer::GetShaderLib().Get("NegativeEffect")->Bind();
-				Renderer::SubmitFullScreenQuad();
-				m_GemometryFrameBuffer->UnBindAsTexture(0, 0);
-
-				m_CompositFrameBuffer->Bind();
-				m_NegativeFrameBuffer->BindAsTexture(0, 0);
-				Renderer::GetShaderLib().Get("FullScreen")->Bind();
-				Renderer::SubmitFullScreenQuad();
-				m_NegativeFrameBuffer->UnBindAsTexture(0, 0);
-			}
-
+			if (m_BlurEffect)
 			{
 				m_BlurFrameBuffer->Bind();
-				m_GemometryFrameBuffer->BindAsTexture(0, 0);
+				m_CompositFrameBuffer->BindAsTexture(0, 0);
 				Renderer::GetShaderLib().Get("BlurEffect")->Bind();
 				Renderer::SubmitFullScreenQuad();
-				m_GemometryFrameBuffer->UnBindAsTexture(0, 0);
+				m_CompositFrameBuffer->UnBindAsTexture(0, 0);
 
 				m_CompositFrameBuffer->Bind();
 				m_BlurFrameBuffer->BindAsTexture(0, 0);
 				Renderer::GetShaderLib().Get("FullScreen")->Bind();
 				Renderer::SubmitFullScreenQuad();
 				m_BlurFrameBuffer->UnBindAsTexture(0, 0);
+			}
+
+			if (m_NegativeEffect)
+			{
+				m_NegativeFrameBuffer->Bind();
+				m_CompositFrameBuffer->BindAsTexture(0, 0);
+				Renderer::GetShaderLib().Get("NegativeEffect")->Bind();
+				Renderer::SubmitFullScreenQuad();
+				m_CompositFrameBuffer->UnBindAsTexture(0, 0);
+
+				m_CompositFrameBuffer->Bind();
+				m_NegativeFrameBuffer->BindAsTexture(0, 0);
+				Renderer::GetShaderLib().Get("FullScreen")->Bind();
+				Renderer::SubmitFullScreenQuad();
+				m_NegativeFrameBuffer->UnBindAsTexture(0, 0);
 			}
 
 
@@ -553,6 +554,7 @@ namespace Shark {
 			s_LastMemory = m;
 
 			ImGui::Checkbox("Negative Effect", &m_NegativeEffect);
+			ImGui::Checkbox("Blur Effect", &m_BlurEffect);
 
 			ImGui::End();
 

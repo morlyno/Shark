@@ -63,6 +63,7 @@ namespace Shark {
 		TimeStep m_TimeStep;
 
 		bool m_NegativeEffect = false;
+		bool m_BlurEffect = false;
 	};
 
 }

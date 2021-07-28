@@ -42,8 +42,9 @@ float4 main(float2 texCoords : TexCoords) : SV_Target0
     }
     
     
-    color = color / (Distance * Distance);
-    color = max(Frame.Sample(Sampler, texCoords), color);
+    color = color / pow(Distance, 2);
+    float4 originalColor = Frame.Sample(Sampler, texCoords);
+    float4 newColor = max(originalColor, color);
     
     return color;
 }
