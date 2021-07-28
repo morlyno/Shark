@@ -13,6 +13,8 @@ namespace Shark {
 		static void Init();
 		static void ShutDown();
 
+		static void SubmitFullScreenQuad();
+
 		static ShaderLibrary& GetShaderLib();
 		static Ref<Texture2D> GetWhiteTexture();
 		static Ref<Shaders> GetDefault2DShader();

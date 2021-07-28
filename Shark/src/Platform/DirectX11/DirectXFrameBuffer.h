@@ -28,6 +28,9 @@ namespace Shark {
 		virtual void SetDepth(bool enabled) override;
 		virtual bool GetDepth() const override { return m_DepthEnabled; }
 
+		virtual void SetStencilSpecs(const StencilSpecification& specs, bool enabled) override;
+		virtual bool IsStencilEnabled() const override { return m_StencilEnabled; }
+
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) override;
 		virtual int ReadPixel(uint32_t index, int x, int y) override;
 
@@ -36,8 +39,12 @@ namespace Shark {
 		virtual void Bind() override;
 		virtual void UnBind() override;
 
+		virtual void BindAsTexture(uint32_t index, uint32_t slot) override { m_FrameBufferTextures[index]->Bind(slot); }
+		virtual void UnBindAsTexture(uint32_t index, uint32_t slot = 0) override { m_FrameBufferTextures[index]->UnBind(slot); }
+
 	protected:
-		void CreateDepthBuffer();
+		void CreateDepth32Buffer();
+		void CreateDepth24Stencil8Buffer(StencilSpecification& specs);
 		void CreateFrameBuffer(DXGI_FORMAT dxgiformat);
 
 		void CreateBuffers();
@@ -55,7 +62,10 @@ namespace Shark {
 
 		uint32_t m_Count = 0;
 		FrameBufferSpecification m_Specification;
+		FrameBufferAtachment* m_DepthStencilAtachment = nullptr;
+		uint32_t m_StencilReplace;
 		bool m_DepthEnabled = false;
+		bool m_StencilEnabled = false;
 		bool m_IsSwapChainTarget;
 
 	};
