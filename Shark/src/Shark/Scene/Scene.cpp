@@ -272,6 +272,7 @@ namespace Shark {
 
 	bool Scene::OnSelectionChanged(SelectionChangedEvent& event)
 	{
+		// TODO: not used. can probably be removed.
 		m_SelectedEntity = event.GetSelectedEntity();
 		return false;
 	}

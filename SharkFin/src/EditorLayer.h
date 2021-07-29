@@ -11,6 +11,8 @@
 #include "SceneHirachyPanel.h"
 #include "AssetsPanel.h"
 
+#include <ImGuizmo.h>
+
 namespace Shark {
 
 	class EditorLayer : public Layer
@@ -29,6 +31,7 @@ namespace Shark {
 	private:
 		bool OnWindowResize(WindowResizeEvent& event);
 		bool OnKeyPressed(KeyPressedEvent& event);
+		bool OnSelectionChanged(SelectionChangedEvent& event);
 
 		void NewScene();
 		void SaveScene();
@@ -64,6 +67,9 @@ namespace Shark {
 
 		bool m_NegativeEffect = false;
 		bool m_BlurEffect = false;
+
+		int m_CurrentOperation = 0;
+		Entity m_SelectetEntity;
 	};
 
 }

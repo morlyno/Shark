@@ -18,7 +18,7 @@ namespace Shark {
 
 		void SetProjection(float aspectratio, float fov, float nearClip, float farClip);
 		DirectX::XMMATRIX GetViewProjection() const { return m_View * m_Projection; }
-
+		DirectX::XMMATRIX GetView() const { return m_View; }
 
 		void Resize(float width, float height) { m_ViewportSize = { width, height }; m_AspectRatio = width / height; UpdateProjection(); }
 		

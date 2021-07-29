@@ -26,7 +26,8 @@ project "Shark"
         "%{includeDir.stb_image}",
         "%{includeDir.EnTT}",
         "%{includeDir.yaml_cpp}",
-        "%{includeDir.box2d}"
+        "%{includeDir.box2d}",
+        "%{includeDir.ImGuizmo}"
     }
 
     filter "system:windows"
@@ -38,7 +39,8 @@ project "Shark"
             "dxgi",
             "ImGui",
             "yaml-cpp",
-            "box2d"
+            "box2d",
+            "ImGuizmo"
         }
 
     filter "configurations:Debug"

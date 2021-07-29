@@ -18,6 +18,7 @@
 #include "Shark/Utility/Utility.h"
 #include "Shark/Utility/ImGuiUtils.h"
 #include "Shark/Utility/FileSystem.h"
+#include "Shark/Utility/Math.h"
 // --------------------------------------
 
 // --- Event ----------------------------

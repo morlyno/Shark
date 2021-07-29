@@ -17,11 +17,13 @@ includeDir["stb_image"] = "%{wks.location}/Shark/dependencies/stb_image"
 includeDir["EnTT"] = "%{wks.location}/Shark/dependencies/EnTT/include"
 includeDir["yaml_cpp"] = "%{wks.location}/Shark/dependencies/yaml-cpp/include"
 includeDir["box2d"] = "%{wks.location}/Shark/dependencies/box2d/include"
+includeDir["ImGuizmo"] = "%{wks.location}/Shark/dependencies/ImGuizmo"
 
 group "Dependencies"
 	include "Shark/dependencies/ImGui"
 	include "Shark/dependencies/yaml-cpp"
 	include "Shark/dependencies/box2d"
+	include "Shark/dependencies/ImGuizmo"
 group ""
 
 include "Shark"

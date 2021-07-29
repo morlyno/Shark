@@ -21,7 +21,8 @@ project "SharkFin"
         "%{includeDir.ImGui}",
         "%{includeDir.EnTT}",
         "%{includeDir.yaml_cpp}",
-        "%{includeDir.box2d}"
+        "%{includeDir.box2d}",
+        "%{includeDir.ImGuizmo}"
     }
 
     links

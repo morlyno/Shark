@@ -6,6 +6,8 @@
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_win32.h>
 
+#include <ImGuizmo.h>
+
 #include "Shark/Core/Application.h"
 #include "Platform/DirectX11/DirectXRendererAPI.h"
 
@@ -15,6 +17,14 @@ namespace Shark {
 		:
 		Layer("ImGuiLayer")
 	{
+	}
+
+	ImGuiLayer::~ImGuiLayer()
+	{
+	}
+
+	void ImGuiLayer::OnAttach()
+	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 
@@ -22,13 +32,9 @@ namespace Shark {
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		//io.ConfigDockingTransparentPayload = true;
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
-		//io.ConfigViewportsNoAutoMerge = true;
 
-		ImGui::StyleColorsDark();
 		SetDarkStyle();
-
 
 		ImGuiStyle& style = ImGui::GetStyle();
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -40,24 +46,15 @@ namespace Shark {
 		Window& window = Application::Get().GetWindow();
 		ImGui_ImplWin32_Init(window.GetHandle());
 
-
 		auto& dxr = DirectXRendererAPI::Get();
 		ImGui_ImplDX11_Init(dxr.GetDevice(), dxr.GetContext());
 	}
 
-	ImGuiLayer::~ImGuiLayer()
+	void ImGuiLayer::OnDetach()
 	{
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
-	}
-
-	void ImGuiLayer::OnAttach()
-	{
-	}
-
-	void ImGuiLayer::OnDetach()
-	{
 	}
 
 	void ImGuiLayer::OnEvent(Event& event)
@@ -75,6 +72,7 @@ namespace Shark {
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
 	}
 
 	void ImGuiLayer::End()
@@ -95,6 +93,8 @@ namespace Shark {
 
 	void ImGuiLayer::SetDarkStyle()
 	{
+		ImGui::StyleColorsDark();
+
 		ImVec4* colors = ImGui::GetStyle().Colors;
 		colors[ImGuiCol_WindowBg] = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
 		colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);

@@ -163,6 +163,8 @@ namespace Shark {
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
+		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnSelectionChanged));
+
 
 		m_Scene->OnEvent(event);
 		m_SceneHirachyPanel.OnEvent(event);
@@ -252,13 +254,50 @@ namespace Shark {
 				break;
 			}
 
-			case Key::V:
+			case Key::V: // VSync
 			{
 				auto& window = Application::Get().GetWindow();
 				window.SetVSync(!window.IsVSync());
+				break;
+			}
+
+			case Key::Q:
+			{
+				m_CurrentOperation = 0;
+				break;
+			}
+			case Key::W:
+			{
+				m_CurrentOperation = ImGuizmo::TRANSLATE;
+				break;
+			}
+			case Key::E:
+			{
+				m_CurrentOperation = ImGuizmo::ROTATE;
+				break;
+			}
+			case Key::R:
+			{
+				m_CurrentOperation = ImGuizmo::SCALE;
+				break;
+			}
+
+			case Key::F:
+			{
+				if (m_SelectetEntity)
+				{
+					const auto& tf = m_SelectetEntity.GetComponent<TransformComponent>();
+					m_EditorCamera.SetFocusPoint(tf.Position);
+				}
 			}
 		}
 
+		return false;
+	}
+
+	bool EditorLayer::OnSelectionChanged(SelectionChangedEvent& event)
+	{
+		m_SelectetEntity = event.GetSelectedEntity();
 		return false;
 	}
 
@@ -429,27 +468,84 @@ namespace Shark {
 		auto fbtex = m_CompositFrameBuffer->GetFramBufferContent(0);
 		UI::NoAlpaImage(nullptr, fbtex->GetRenderID(), size);
 
-		auto [mx, my] = ImGui::GetMousePos();
-		auto [wx, wy] = ImGui::GetWindowPos();
-		int x = mx - wx;
-		int y = my - wy;
-		m_HoveredEntityID = -1;
 
-		auto&& [width, height] = m_GemometryFrameBuffer->GetSize();
-		if (x >= 0 && x < width && y >= 0 && y < height)
+		// ImGuizmo
+
+		if (m_CurrentOperation != 0 && m_SelectetEntity && m_SelectetEntity.HasComponent<TransformComponent>())
 		{
-			m_HoveredEntityID = m_GemometryFrameBuffer->ReadPixel(1, x, y);
-			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
+			ImVec2 windowPos = ImGui::GetWindowPos();
+			ImVec2 windowSize = ImGui::GetWindowSize();
+
+			ImGuizmo::SetOrthographic(false);
+			ImGuizmo::SetDrawlist();
+			ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
+
+
+			DirectX::XMFLOAT4X4 view;
+			DirectX::XMFLOAT4X4 projection;
+			DirectX::XMStoreFloat4x4(&view, m_EditorCamera.GetView());
+			DirectX::XMStoreFloat4x4(&projection, m_EditorCamera.GetProjection());
+
+			auto& tf = m_SelectetEntity.GetComponent<TransformComponent>();
+			DirectX::XMFLOAT4X4 transform;
+			DirectX::XMStoreFloat4x4(&transform, tf.GetTranform());
+
+			DirectX::XMFLOAT4X4 delta;
+			ImGuizmo::Manipulate(&view.m[0][0], &projection.m[0][0], (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::MODE::LOCAL, &transform.m[0][0], &delta.m[0][0]);
+
+			if (ImGuizmo::IsUsing())
 			{
-				if (m_HoveredEntityID != -1)
+				DirectX::XMVECTOR position;
+				DirectX::XMVECTOR rotQuat;
+				DirectX::XMVECTOR scale;
+				DirectX::XMMatrixDecompose(&scale, &rotQuat, &position, DirectX::XMLoadFloat4x4(&transform));
+				if (m_CurrentOperation == ImGuizmo::OPERATION::TRANSLATE)
 				{
-					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, *m_Scene };
-					SK_CORE_ASSERT(m_Scene->IsValidEntity(entity));
-					Event::Distribute(SelectionChangedEvent(entity));
+					DirectX::XMMatrixDecompose(&scale, &rotQuat, &position, DirectX::XMLoadFloat4x4(&transform));
+					DirectX::XMStoreFloat3(&tf.Position, position);
 				}
-				else
+				else if (m_CurrentOperation == ImGuizmo::OPERATION::SCALE)
 				{
-					Event::Distribute(SelectionChangedEvent({}));
+					DirectX::XMMatrixDecompose(&scale, &rotQuat, &position, DirectX::XMLoadFloat4x4(&transform));
+					DirectX::XMStoreFloat3(&tf.Scaling, scale);
+				}
+				else if (m_CurrentOperation == ImGuizmo::OPERATION::ROTATE)
+				{
+					tf.Rotation = Math::GetRotation(transform);
+				}
+			}
+
+		}
+		bool m_GizmoUsed = ImGuizmo::IsUsing();
+
+		// Mouse Picking
+
+		int x = -1;
+		int y = -1;
+		if (!m_GizmoUsed)
+		{
+			auto [mx, my] = ImGui::GetMousePos();
+			auto [wx, wy] = ImGui::GetWindowPos();
+			x = mx - wx;
+			y = my - wy;
+			m_HoveredEntityID = -1;
+
+			auto&& [width, height] = m_GemometryFrameBuffer->GetSize();
+			if (x >= 0 && x < width && y >= 0 && y < height)
+			{
+				m_HoveredEntityID = m_GemometryFrameBuffer->ReadPixel(1, x, y);
+				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
+				{
+					if (m_HoveredEntityID != -1)
+					{
+						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, *m_Scene };
+						SK_CORE_ASSERT(m_Scene->IsValidEntity(entity));
+						Event::Distribute(SelectionChangedEvent(entity));
+					}
+					else
+					{
+						Event::Distribute(SelectionChangedEvent({}));
+					}
 				}
 			}
 		}
