@@ -14,9 +14,6 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
 
-#include <Shark/Render/Renderer.h>
-#include <Shark/Render/Renderer2D.h>
-
 namespace Shark {
 
 	namespace Utils {
@@ -105,12 +102,25 @@ namespace Shark {
 					e.AddComponent<CameraComponent>();
 					Utils::ChangeSelectedEntity(e);
 				}
-				if (ImGui::MenuItem("Quad"))
+				if (ImGui::BeginMenu("Geometry"))
 				{
-					Entity e = m_Context->CreateEntity("New Quad");
-					e.AddComponent<SpriteRendererComponent>();
-					Utils::ChangeSelectedEntity(e);
+					if (ImGui::MenuItem("Quad"))
+					{
+						Entity e = m_Context->CreateEntity("New Quad");
+						auto& sr = e.AddComponent<SpriteRendererComponent>();
+						sr.Geometry = Geometry::Quad;
+						Utils::ChangeSelectedEntity(e);
+					}
+					if (ImGui::MenuItem("Circle"))
+					{
+						Entity e = m_Context->CreateEntity("New Circle");
+						auto& sr = e.AddComponent<SpriteRendererComponent>();
+						sr.Geometry = Geometry::Circle;
+						Utils::ChangeSelectedEntity(e);
+					}
+					ImGui::EndMenu();
 				}
+
 				if (ImGui::MenuItem("RigidBody"))
 				{
 					Entity e = m_Context->CreateEntity("New RigidBody");
@@ -137,109 +147,6 @@ namespace Shark {
 			DrawEntityProperties(m_SelectedEntity);
 		ImGui::End();
 		
-		ImGui::Begin("Material");
-		if (m_SelectedEntity)
-			DrawMaterial(m_SelectedEntity);
-		ImGui::End();
-
-		if (m_EditData.Active)
-		{
-			if (m_EditData.OpenWindow)
-			{
-				ImGui::OpenPopup("Material Editor");
-				m_EditData.OpenWindow = false;
-			}
-
-			bool isOpend = true;
-			if (ImGui::BeginPopupModal("Material Editor", &isOpend))
-			{
-				if (ImGui::BeginCombo("##Select Shader", m_EditData.MaterialShader->GetFileName().c_str()))
-				{
-					for (auto&& [key, shader] : Renderer::GetShaderLib())
-					{
-						bool selected = shader == m_EditData.MaterialShader;
-						if (ImGui::Selectable(key.c_str(), selected))
-							m_EditData.MaterialShader = shader;
-					}
-
-					ImGui::EndCombo();
-				}
-
-				if (ImGui::BeginCombo("##Select Material", m_EditData.Material->GetName().c_str()))
-				{
-					for (auto&& [key, material] : Renderer2D::GetMaterialMap())
-					{
-						bool selected = material == m_EditData.Material;
-						if (ImGui::Selectable(key.c_str(), selected))
-							m_EditData.Material = material;
-					}
-					ImGui::EndCombo();
-				}
-
-				if (ImGui::Button("Create new Material"))
-					m_EditData.Material = Material::Create(m_EditData.MaterialShader, "New Material");
-
-				if (Renderer2D::GetMaterialMap().find(m_EditData.Material->GetName()) != Renderer2D::GetMaterialMap().end())
-				{
-					if (ImGui::BeginPopupModal("Material Name Conflict"))
-					{
-						auto name = m_EditData.Material->GetName();
-						if (ImGui::InputText("##Input Material Name", &name))
-							m_EditData.Material->SetName(name);
-						if (ImGui::Button("Finished"))
-							ImGui::CloseCurrentPopup();
-						ImGui::EndPopup();
-					}
-				}
-
-				auto name = m_EditData.Material->GetName();
-				if (ImGui::InputText("##Input Name", &name))
-					m_EditData.Material->SetName(name);
-
-				ImGui::Separator();
-
-				auto material = m_EditData.Material;
-
-				bool depthtest = material->IsFalgSet(MaterialFlag::DepthTest);
-				if (ImGui::Checkbox("Depth Test", &depthtest))
-					material->SetFlag(MaterialFlag::DepthTest, depthtest);
-
-				bool blend= material->IsFalgSet(MaterialFlag::Blend);
-				if (ImGui::Checkbox("Blend", &blend))
-					material->SetFlag(MaterialFlag::Blend, blend);
-
-				bool twosided= material->IsFalgSet(MaterialFlag::TwoSided);
-				if (ImGui::Checkbox("Two Sided", &twosided))
-					material->SetFlag(MaterialFlag::TwoSided, twosided);
-
-				bool outline = material->IsFalgSet(MaterialFlag::OutLine);
-				if (ImGui::Checkbox("Outline", &outline))
-					material->SetFlag(MaterialFlag::OutLine, outline);
-
-				bool blur = material->IsFalgSet(MaterialFlag::Blur);
-				if (ImGui::Checkbox("Blur", &blur))
-					material->SetFlag(MaterialFlag::Blur, blur);
-	
-				bool bloom = material->IsFalgSet(MaterialFlag::Bloom);
-				if (ImGui::Checkbox("Bloom", &bloom))
-					material->SetFlag(MaterialFlag::Bloom, bloom);
-
-				ImGui::Separator();
-
-				if (ImGui::Button("Create"))
-				{
-					m_EditData.Finished = true;
-					ImGui::CloseCurrentPopup();
-				}
-
-				ImGui::EndPopup();
-			}
-
-			if (!isOpend)
-				m_EditData.Finished = true;
-
-		}
-
 	}
 
 	void SceneHirachyPanel::OnEvent(Event& event)
@@ -385,13 +292,18 @@ namespace Shark {
 			ImGui::Columns();
 
 			UI::DrawFloatControl("TilingFactor", comp.TilingFactor, 1.0f, "%.2f", 100.0f, "R");
+			ImGui::Separator();
+			int geometry = (int)comp.Geometry;
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
+			if (ImGui::Combo("##Geometry", &geometry, s_GeomatryTypes, std::size(s_GeomatryTypes)))
+				comp.Geometry = (Geometry)geometry;
 		});
 
 		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)
 		{
 			m_SelectedProjectionIndex = (int)comp.Camera.GetProjectionType();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
-			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, m_ProjectionItems, (int)std::size(m_ProjectionItems));
+			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, s_ProjectionItems, (int)std::size(s_ProjectionItems));
 			if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Perspective)
 			{
 				comp.Camera.SetProjectionType(SceneCamera::Projection::Perspective);
@@ -648,65 +560,6 @@ namespace Shark {
 
 		});
 
-	}
-
-	void SceneHirachyPanel::DrawMaterial(Entity entity)
-	{
-		if (entity.HasComponent<SpriteRendererComponent>())
-		{
-			auto& sr = entity.GetComponent<SpriteRendererComponent>();
-			auto material = sr.Material;
-
-			ImGui::Text("Name: %s", material->GetName().c_str());
-			ImGui::Text("Shader: %s", material->GetShaders()->GetFileName().c_str());
-			
-			ImGui::Separator();
-
-			bool depthtest = material->IsFalgSet(MaterialFlag::DepthTest);
-			ImGui::Checkbox("Depth Test", &depthtest);
-
-			bool blend = material->IsFalgSet(MaterialFlag::Blend);
-			ImGui::Checkbox("Blend", &blend);
-
-			bool twosided = material->IsFalgSet(MaterialFlag::TwoSided);
-			ImGui::Checkbox("Two Sided", &twosided);
-
-			bool outLine = material->IsFalgSet(MaterialFlag::OutLine);
-			ImGui::Checkbox("Outline", &outLine);
-
-			bool blur = material->IsFalgSet(MaterialFlag::Blur);
-			ImGui::Checkbox("Blur", &blur);
-
-			bool bloom = material->IsFalgSet(MaterialFlag::Bloom);
-			ImGui::Checkbox("Bloom", &bloom);
-			
-			ImGui::Separator();
-
-			if (ImGui::Button("Edit Material"))
-			{
-				m_EditData.Active = true;
-				m_EditData.OpenWindow = true;
-				m_EditData.Finished = false;
-				m_EditData.Changed = false;
-				m_EditData.Entity = entity;
-				m_EditData.Material = material;
-				m_EditData.MaterialShader = material->GetShaders();
-			}
-
-			if (m_EditData.Finished && m_EditData.Entity && entity)
-			{
-				sr.Material = m_EditData.Material;
-
-				m_EditData.Active = false;
-				m_EditData.OpenWindow = false;
-				m_EditData.Finished = false;
-				m_EditData.Changed = false;
-				m_EditData.Entity = Entity{};
-				m_EditData.Material = nullptr;
-				m_EditData.MaterialShader = nullptr;
-			}
-
-		}
 	}
 
 	bool SceneHirachyPanel::OnSelectionChanged(SelectionChangedEvent& event)

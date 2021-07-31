@@ -298,7 +298,6 @@ namespace Shark {
 	template<>
 	void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& comp)
 	{
-		comp.Material = Renderer::GetDefault2DMaterial();
 	}
 	
 	template<>

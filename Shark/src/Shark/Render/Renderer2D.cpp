@@ -14,17 +14,13 @@
 
 #include <DirectXMath.h>
 
-namespace Shark {
+#include "Shark/Utility/Math.h"
 
-	struct SceneData
-	{
-		DirectX::XMMATRIX ViewProjectionMatrix;
-	};
-	static SceneData s_SceneData;
+namespace Shark {
 
 	using Index = IndexBuffer::IndexType;
 
-	struct Vertex
+	struct QuadVertex
 	{
 		DirectX::XMFLOAT3 Pos;
 		DirectX::XMFLOAT4 Color;
@@ -34,194 +30,129 @@ namespace Shark {
 		int ID;
 	};
 
-	struct DrawCommand
+	struct CircleVertex
 	{
-		static constexpr uint32_t MaxTextures = 16;
-
-		std::vector<Vertex> VertexBase;
-		std::vector<Index> IndexBase;
-		uint32_t TextureBaseIndex = 0;
-
-		uint32_t VertexCount = 0;
-		uint32_t IndexCount = 0;
-		uint32_t TextureCount = 0;
-
-		bool IsLocked = false;
-
-		Ref<Material> Material;
+		DirectX::XMFLOAT3 Pos;
+		DirectX::XMFLOAT3 Center;
+		float Radius;
+		DirectX::XMFLOAT4 Color;
+		DirectX::XMFLOAT2 Tex;
+		int TextureIndex;
+		float TilingFactor;
+		int ID;
 	};
 
-	struct DrawData
+	struct BatchData
 	{
+		static constexpr uint32_t MaxTextures = 16;
+		static constexpr uint32_t MaxGeometry = 20000;
+		static constexpr uint32_t MaxVertices = MaxGeometry * 4;
+		static constexpr uint32_t MaxIndices = MaxGeometry * 6;
+		static constexpr uint32_t QuadBatchTextureBaseIndex = MaxTextures * 0;
+		static constexpr uint32_t CircleBatchTextureBaseIndex = MaxTextures * 1;
+
+		struct QuadBatch
+		{
+			QuadVertex* VertexBasePtr = nullptr;
+			QuadVertex* VertexIndexPtr = nullptr;
+			std::array<Ref<Texture2D>, BatchData::MaxTextures> Textures;
+			uint32_t TextureCount = 0;
+			uint32_t Count = 0;
+		};
+		struct CircleBatch
+		{
+			CircleVertex* VertexBasePtr = nullptr;
+			CircleVertex* VertexIndexPtr = nullptr;
+			std::array<Ref<Texture2D>, BatchData::MaxTextures> Textures;
+			uint32_t TextureCount = 0;
+			uint32_t Count = 0;
+		};
+
+		Ref<Texture2D> WhiteTexture;
 		Ref<ConstantBuffer> ViewProjection;
-		Ref<VertexBuffer> VertexBuffer;
+		Ref<VertexBuffer> QuadVertexBuffer;
+		Ref<VertexBuffer> CircleVertexBuffer;
 		Ref<IndexBuffer> IndexBuffer;
 
-		uint32_t TotalVertexCount = 0;
-		uint32_t TotalIndexCount = 0;
-		std::vector<Ref<Texture2D>> Textures;
+		Ref<Material> QuadMaterial;
+		Ref<Material> CircleMaterial;
 
-		std::vector<DrawCommand> DrawCmdList;
-		uint32_t ActiveCommands = 0;
-		std::unordered_map<std::string, Ref<Material>> MaterialMap;
-		DrawCommand* SelectedCommand = nullptr;
+		QuadBatch QuadBatch;
+		CircleBatch CircleBatch;
 
 		Renderer2D::Statistics Stats;
 	};
 
-	static DrawData* s_DrawData;
+	static BatchData* s_Data;
 
-	namespace Utils {
+	namespace Internal {
 
 		static void ResetStates()
 		{
-			auto& s = s_DrawData->Stats;
+			auto& s = s_Data->Stats;
 			s.DrawCalls = 0;
-			s.DrawCommands = 0;
 			s.ElementCount = 0;
 			s.VertexCount = 0;
 			s.IndexCount = 0;
 			s.TextureCount = 0;
-			s.Callbacks = 0;
 		}
 
-		static DrawCommand* AddDrawCommand(Ref<Material> material)
+		static void FlushQuad()
 		{
-			if (s_DrawData->ActiveCommands >= s_DrawData->DrawCmdList.size())
-				s_DrawData->DrawCmdList.emplace_back();
-			DrawCommand* cmd = &s_DrawData->DrawCmdList[s_DrawData->ActiveCommands];
-			cmd->VertexBase.reserve(10000 * 4);
-			cmd->IndexBase.reserve(10000 * 6);
-			cmd->TextureBaseIndex = s_DrawData->ActiveCommands * DrawCommand::MaxTextures;
-			cmd->Material = material;
-			s_DrawData->ActiveCommands++;
-			return cmd;
-		}
+			auto& batch = s_Data->QuadBatch;
 
-		static void SelectDrawCommand(const Ref<Material>& material)
-		{
-			s_DrawData->SelectedCommand = nullptr;
-			for (auto& cmd : s_DrawData->DrawCmdList)
-			{
-				if (cmd.Material == material)
-				{
-					s_DrawData->SelectedCommand = &cmd;
-					return;
-				}
-			}
-
-			auto& map = s_DrawData->MaterialMap;
-			if (auto&& it = map.find(material->GetName()); it == map.end())
-			{
-				map.insert({ material->GetName(), material });
-				SK_CORE_INFO("New Material Added: {0}", material->GetName());
-			}
-
-			s_DrawData->SelectedCommand = AddDrawCommand(material);
-		}
-
-		static void Flush()
-		{
-			if (s_DrawData->TotalVertexCount == 0 || s_DrawData->TotalIndexCount == 0)
+			if (batch.Count == 0)
 				return;
 
-			if (s_DrawData->TotalVertexCount * sizeof(Vertex) > s_DrawData->VertexBuffer->GetSize())
-				s_DrawData->VertexBuffer->Resize(s_DrawData->TotalVertexCount * sizeof(Vertex));
-			if (s_DrawData->TotalIndexCount * sizeof(Index) > s_DrawData->IndexBuffer->GetSize())
-				s_DrawData->IndexBuffer->Resize(s_DrawData->TotalIndexCount);
+			s_Data->QuadVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxVertices);
 
-			{
-				byte* vtx = (byte*)s_DrawData->VertexBuffer->Map();
-				byte* idx = (byte*)s_DrawData->IndexBuffer->Map();
+			s_Data->ViewProjection->Bind();
+			s_Data->QuadVertexBuffer->Bind();
+			s_Data->IndexBuffer->Bind();
+			s_Data->QuadMaterial->GetShaders()->Bind();
 
-				uint32_t vtxOffset = 0;
-				uint32_t idxOffset = 0;
-				for (auto& cmd : s_DrawData->DrawCmdList)
-				{
-					memcpy(vtx + vtxOffset, cmd.VertexBase.data(), cmd.VertexCount * sizeof(Vertex));
-					memcpy(idx + idxOffset, cmd.IndexBase.data(), cmd.IndexCount * sizeof(Index));
-					vtxOffset += cmd.VertexCount * sizeof(Vertex);
-					idxOffset += cmd.IndexCount * sizeof(Index);
-				}
+			for (uint32_t i = 0; i < batch.TextureCount; i++)
+				batch.Textures[i]->Bind(i);
 
-				s_DrawData->VertexBuffer->UnMap();
-				s_DrawData->IndexBuffer->UnMap();
-			}
+			RendererCommand::DrawIndexed(batch.Count * 6);
 
-			s_DrawData->VertexBuffer->Bind();
-			s_DrawData->IndexBuffer->Bind();
-			s_DrawData->ViewProjection->Bind();
+			s_Data->Stats.DrawCalls++;
+			s_Data->Stats.TextureCount += batch.TextureCount;
 
-			s_DrawData->ViewProjection->Set(&s_SceneData);
-
-			uint32_t vtxOffset = 0;
-			uint32_t idxOffset = 0;
-
-			auto& cmdList = s_DrawData->DrawCmdList;
-			for (uint32_t i = 0; i < s_DrawData->DrawCmdList.size(); i++)
-			{
-				DrawCommand* cmd = &s_DrawData->DrawCmdList[i];
-				cmd->Material->GetShaders()->Bind();
-
-				for (uint32_t i = 0; i < cmd->TextureCount; i++)
-					s_DrawData->Textures[i + cmd->TextureBaseIndex]->Bind();
-
-				RendererCommand::DrawIndexed(cmd->IndexCount, idxOffset, vtxOffset);
-				idxOffset += cmd->IndexCount;
-				vtxOffset += cmd->VertexCount;
-
-				s_DrawData->Stats.DrawCalls++;
-			}
-			
-			s_DrawData->Stats.DrawCommands += s_DrawData->DrawCmdList.size();
-			s_DrawData->Stats.VertexCount += s_DrawData->TotalVertexCount;
-			s_DrawData->Stats.IndexCount += s_DrawData->TotalIndexCount;
-			s_DrawData->Stats.TextureCount += s_DrawData->Textures.size();
-
-			for (auto& cmd : s_DrawData->DrawCmdList)
-			{
-				cmd.VertexBase.clear();
-				cmd.IndexBase.clear();
-				cmd.TextureBaseIndex = 0;
-				cmd.VertexCount = 0;
-				cmd.IndexCount = 0;
-				cmd.TextureCount = 0;
-				cmd.IsLocked = false;
-				cmd.Material = nullptr;
-			}
-			s_DrawData->ActiveCommands = 0;
-			s_DrawData->TotalVertexCount = 0;
-			s_DrawData->TotalIndexCount = 0;
-			for (auto& tex : s_DrawData->Textures)
-				tex = nullptr;
-
+			batch.VertexIndexPtr = batch.VertexBasePtr;
+			batch.TextureCount = 1;
+			batch.Textures.fill(nullptr);
+			batch.Textures[0] = s_Data->WhiteTexture;
+			batch.Count = 0;
 		}
 
-		static void AddTexture(const Ref<Texture2D>& texture)
+		static void FlushCircle()
 		{
-			DrawCommand* cmd = s_DrawData->SelectedCommand;
+			auto& batch = s_Data->CircleBatch;
 
-			for (uint32_t i = 0; i < cmd->TextureCount; i++)
-			{
-				if (texture == s_DrawData->Textures[i + cmd->TextureBaseIndex])
-				{
-					texture->SetSlot(i);
-					return;
-				}
-			}
+			if (batch.Count == 0)
+				return;
 
-			if (cmd->TextureCount >= DrawCommand::MaxTextures)
-			{
-				s_DrawData->SelectedCommand->IsLocked = true;
-				cmd = AddDrawCommand(cmd->Material);
-				s_DrawData->SelectedCommand = cmd;
-			}
+			s_Data->CircleVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxVertices);
 
-			uint32_t index = cmd->TextureBaseIndex + cmd->TextureCount;
-			if (index >= s_DrawData->Textures.size())
-				s_DrawData->Textures.resize(index + 1);
-			s_DrawData->Textures[index] = texture;
-			texture->SetSlot(cmd->TextureCount++);
+			s_Data->ViewProjection->Bind();
+			s_Data->CircleVertexBuffer->Bind();
+			s_Data->IndexBuffer->Bind();
+			s_Data->CircleMaterial->GetShaders()->Bind();
+
+			for (uint32_t i = 0; i < batch.TextureCount; i++)
+				batch.Textures[i]->Bind(i);
+
+			RendererCommand::DrawIndexed(batch.Count * 6);
+
+			s_Data->Stats.DrawCalls++;
+			s_Data->Stats.TextureCount += batch.TextureCount;
+
+			batch.VertexIndexPtr = batch.VertexBasePtr;
+			batch.TextureCount = 1;
+			batch.Textures.fill(nullptr);
+			batch.Textures[0] = s_Data->WhiteTexture;
+			batch.Count = 0;
 		}
 
 		static void AddQuad(const DirectX::XMMATRIX& translation, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
@@ -229,106 +160,209 @@ namespace Shark {
 			constexpr DirectX::XMFLOAT3 Vertices[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
 			constexpr DirectX::XMFLOAT2 TexCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
 
-			DrawCommand* cmd = s_DrawData->SelectedCommand;
-			cmd->VertexBase.resize(cmd->VertexCount + 4);
-			cmd->IndexBase.resize(cmd->IndexCount + 6);
+			auto& batch = s_Data->QuadBatch;
+
+			if (batch.Count >= BatchData::MaxGeometry || batch.TextureCount >= BatchData::MaxTextures)
+				FlushQuad();
+
+			uint32_t index = 0;
+			if (texture != s_Data->WhiteTexture)
+			{
+				for (uint32_t i = 1; i < batch.TextureCount; i++)
+					if (batch.Textures[i] == texture)
+						index = i;
+
+				if (index == 0)
+				{
+					index = batch.TextureCount;
+					batch.Textures[batch.TextureCount++] = texture;
+				}
+			}
 
 			for (uint32_t i = 0; i < 4; i++)
 			{
-				Vertex* vtx = cmd->VertexBase.data() + cmd->VertexCount + i;
+				QuadVertex* vtx = batch.VertexIndexPtr++;
 				DirectX::XMStoreFloat3(&vtx->Pos, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&Vertices[i]), translation));
 				vtx->Color = tintcolor;
 				vtx->Tex = TexCoords[i];
-				vtx->TextureIndex = texture->GetSlot();
+				vtx->TextureIndex = index;
 				vtx->TilingFactor = tilingfactor;
 				vtx->ID = id;
 			}
 
-			Index* idx = cmd->IndexBase.data() + cmd->IndexCount;
-			idx[0] = 0 + cmd->VertexCount;
-			idx[1] = 1 + cmd->VertexCount;
-			idx[2] = 2 + cmd->VertexCount;
+			batch.Count++;
 
-			idx[3] = 2 + cmd->VertexCount;
-			idx[4] = 3 + cmd->VertexCount;
-			idx[5] = 0 + cmd->VertexCount;
+			s_Data->Stats.ElementCount++;
+			s_Data->Stats.VertexCount += 4;
+			s_Data->Stats.IndexCount += 6;
+		}
 
+		static void AddCircle(const DirectX::XMMATRIX& translation, float radius, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+		{
+			constexpr DirectX::XMFLOAT3 Vertices[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
+			constexpr DirectX::XMFLOAT2 TexCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
 
-			cmd->VertexCount += 4;
-			cmd->IndexCount += 6;
-			s_DrawData->TotalVertexCount += 4;
-			s_DrawData->TotalIndexCount += 6;
+			auto& batch = s_Data->CircleBatch;
 
-			s_DrawData->Stats.ElementCount++;
+			if (batch.Count >= BatchData::MaxGeometry || batch.TextureCount >= BatchData::MaxTextures)
+				FlushCircle();
+
+			uint32_t index = 0;
+			if (texture != s_Data->WhiteTexture)
+			{
+				for (uint32_t i = 1; i < batch.TextureCount; i++)
+					if (batch.Textures[i] == texture)
+						index = i;
+
+				if (index == 0)
+				{
+					index = batch.TextureCount;
+					batch.Textures[batch.TextureCount++] = texture;
+				}
+			}
+
+			for (uint32_t i = 0; i < 4; i++)
+			{
+				CircleVertex* vtx = batch.VertexIndexPtr++;
+				vtx->Pos = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(Vertices[i]), translation));
+				vtx->Center = DXMath::Store3(DirectX::XMVector3Transform(DirectX::XMVectorZero(), translation));
+				vtx->Radius = radius;
+
+				vtx->Color = tintcolor;
+				vtx->Tex = TexCoords[i];
+				vtx->TextureIndex = index;
+				vtx->TilingFactor = tilingfactor;
+				vtx->ID = id;
+			}
+
+			batch.Count++;
+
+			s_Data->Stats.ElementCount++;
+			s_Data->Stats.VertexCount += 4;
+			s_Data->Stats.IndexCount += 6;
 		}
 
 	}
 
 	void Renderer2D::Init()
 	{
-		s_DrawData = new DrawData;
-		s_DrawData->ViewProjection = ConstantBuffer::Create(64, 0);
-		s_DrawData->VertexBuffer = VertexBuffer::Create(Renderer::GetDefault2DShader()->GetVertexLayout(), nullptr, 0, true);
-		s_DrawData->IndexBuffer = IndexBuffer::Create(nullptr, 0, true);
+		s_Data = new BatchData;
+		s_Data->ViewProjection = ConstantBuffer::Create(64, 0);
+
+		s_Data->QuadBatch.VertexBasePtr = new QuadVertex[BatchData::MaxVertices];
+		s_Data->QuadBatch.VertexIndexPtr = s_Data->QuadBatch.VertexBasePtr;
+		s_Data->CircleBatch.VertexBasePtr = new CircleVertex[BatchData::MaxVertices];
+		s_Data->CircleBatch.VertexIndexPtr = s_Data->CircleBatch.VertexBasePtr;
+
+		auto quadShader = Renderer::GetShaderLib().Get("QuadShader");
+		auto circleShader = Renderer::GetShaderLib().Get("CircleShader");
+
+		s_Data->QuadVertexBuffer = VertexBuffer::Create(quadShader->GetVertexLayout(), s_Data->QuadBatch.VertexBasePtr, BatchData::MaxVertices, true);
+		s_Data->CircleVertexBuffer = VertexBuffer::Create(circleShader->GetVertexLayout(), s_Data->CircleBatch.VertexBasePtr, BatchData::MaxVertices, true);
 		
+		s_Data->QuadMaterial = Material::Create(quadShader, std::string{});
+		s_Data->CircleMaterial = Material::Create(circleShader, std::string{});
+
+		Index* indices = new Index[BatchData::MaxIndices];
+		for (uint32_t i = 0, j = 0; i < BatchData::MaxIndices; i += 6, j += 4)
+		{
+			indices[i + 0] = j + 0;
+			indices[i + 1] = j + 1;
+			indices[i + 2] = j + 2;
+
+			indices[i + 3] = j + 2;
+			indices[i + 4] = j + 3;
+			indices[i + 5] = j + 0;
+		}
+		s_Data->IndexBuffer = IndexBuffer::Create(indices, BatchData::MaxIndices);
+		delete[] indices;
+
+		s_Data->WhiteTexture = Renderer::GetWhiteTexture();
+		s_Data->QuadBatch.TextureCount = 1;
+		s_Data->QuadBatch.Textures[0] = s_Data->WhiteTexture;
+		s_Data->CircleBatch.TextureCount = 1;
+		s_Data->CircleBatch.Textures[0] = s_Data->WhiteTexture;
 
 #ifdef SK_DEBUG
-		auto texture = Renderer::GetWhiteTexture();
-		for (uint32_t i = 0; i < DrawCommand::MaxTextures; i++)
-			texture->Bind(i);
+		for (uint32_t i = 0; i < BatchData::MaxTextures; i++)
+			s_Data->WhiteTexture->Bind(i);
 #endif
 	}
 
 	void Renderer2D::ShutDown()
 	{
-		delete s_DrawData;
+		delete s_Data->QuadBatch.VertexBasePtr;
+		delete s_Data->CircleBatch.VertexBasePtr;
+
+		delete s_Data;
 	}
 
 	void Renderer2D::BeginScene(Camera& camera, const DirectX::XMMATRIX& view)
 	{
-		Utils::ResetStates();
-		s_SceneData.ViewProjectionMatrix = view * camera.GetProjection();
+		Internal::ResetStates();
+		auto mat = view * camera.GetProjection();
+		s_Data->ViewProjection->Set(&mat);
 	}
 
 	void Renderer2D::BeginScene(EditorCamera& camera)
 	{
-		Utils::ResetStates();
-		s_SceneData.ViewProjectionMatrix = camera.GetViewProjection();
+		Internal::ResetStates();
+		auto mat = camera.GetViewProjection();
+		s_Data->ViewProjection->Set(&mat);
 	}
 
 	void Renderer2D::EndScene()
 	{
-		Utils::Flush();
+		Internal::FlushQuad();
+		Internal::FlushCircle();
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Utils::SelectDrawCommand(Renderer::GetDefault2DMaterial());
-		Utils::AddQuad(translation, Renderer::GetWhiteTexture(), 1.0f, color, id);
+		Internal::AddQuad(translation, s_Data->WhiteTexture, 1.0f, color, id);
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Utils::SelectDrawCommand(Renderer::GetDefault2DMaterial());
-		Utils::AddTexture(texture);
-		Utils::AddQuad(translation, texture, tilingfactor, tintcolor, id);
+		Internal::AddQuad(translation, texture, tilingfactor, tintcolor, id);
 	}
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Utils::SelectDrawCommand(Renderer::GetDefault2DMaterial());
-		Utils::AddQuad(translation, Renderer::GetWhiteTexture(), 1.0f, color, id);
+		Internal::AddQuad(translation, s_Data->WhiteTexture, 1.0f, color, id);
 	}
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Utils::SelectDrawCommand(Renderer::GetDefault2DMaterial());
-		Utils::AddTexture(texture);
-		Utils::AddQuad(translation, texture, tilingfactor, tintcolor, id);
+		Internal::AddQuad(translation, texture, tilingfactor, tintcolor, id);
+	}
+
+	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, int id)
+	{
+		const auto translation = DirectX::XMMatrixScaling(radius, radius, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		Internal::AddCircle(translation, radius, s_Data->WhiteTexture, 1.0f, color, id);
+	}
+
+	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, float radius, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+	{
+		const auto translation = DirectX::XMMatrixScaling(radius, radius, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		Internal::AddCircle(translation, radius, texture, tilingfactor, tintcolor, id);
+	}
+
+	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation, float radius, const DirectX::XMFLOAT4& color, int id)
+	{
+		const auto translation = DirectX::XMMatrixScaling(radius, radius, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		Internal::AddCircle(translation, radius, s_Data->WhiteTexture, 1.0f, color, id);
+	}
+
+	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation, float radius, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+	{
+		const auto translation = DirectX::XMMatrixScaling(radius, radius, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		Internal::AddCircle(translation, radius, texture, tilingfactor, tintcolor, id);
 	}
 
 	void Renderer2D::DrawEntity(Entity entity)
@@ -341,37 +375,17 @@ namespace Shark {
 		auto& tf = entity.GetComponent<TransformComponent>();
 		auto& sr = entity.GetComponent<SpriteRendererComponent>();
 
-		SK_CORE_ASSERT(sr.Material);
-
-		Ref<Texture2D> texture = sr.Texture ? sr.Texture : Renderer::GetWhiteTexture();
-		Utils::SelectDrawCommand(sr.Material);
-		Utils::AddTexture(texture);
-		Utils::AddQuad(tf.GetTranform(), texture, sr.TilingFactor, sr.Color, (int)(uint32_t)entity);
-	}
-
-	void Renderer2D::DrawTransform(const TransformComponent& transform, const DirectX::XMFLOAT4& color, int id)
-	{
-		Utils::SelectDrawCommand(Renderer::GetDefault2DMaterial());
-		Utils::AddTexture(Renderer::GetWhiteTexture());
-		Utils::AddQuad(transform.GetTranform(), Renderer::GetWhiteTexture(), 1.0f, color, id);
-	}
-
-	Ref<Material> Renderer2D::TryGetMaterial(const std::string& name)
-	{
-		const auto i = s_DrawData->MaterialMap.find(name);
-		if (i == s_DrawData->MaterialMap.end())
-			return nullptr;
-		return i->second;
-	}
-
-	const std::unordered_map<std::string, Ref<Material>>& Renderer2D::GetMaterialMap()
-	{
-		return s_DrawData->MaterialMap;
+		Ref<Texture2D> texture = sr.Texture ? sr.Texture : s_Data->WhiteTexture;
+		switch (sr.Geometry)
+		{
+			case Geometry::Quad:                                   Internal::AddQuad(tf.GetTranform(), texture, sr.TilingFactor, sr.Color, (int)(uint32_t)entity);                           break;
+			case Geometry::Circle:   tf.Scaling.y = tf.Scaling.x;  Internal::AddCircle(tf.GetTranform(), tf.Scaling.x * 0.5f, texture, sr.TilingFactor, sr.Color, (int)(uint32_t)(entity));  break;
+		}
 	}
 
 	Renderer2D::Statistics Renderer2D::GetStatistics()
 	{
-		return s_DrawData->Stats;
+		return s_Data->Stats;
 	}
 
 }

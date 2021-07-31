@@ -11,7 +11,6 @@ namespace Shark {
 	{
 		ShaderLibrary ShaderLib;
 		Ref<Texture2D> WhiteTexture;
-		Ref<Material> Default2DMaterial;
 
 		Ref<VertexBuffer> QuadVB;
 		Ref<IndexBuffer> QuadIB;
@@ -23,16 +22,16 @@ namespace Shark {
 		RendererCommand::Init();
 
 		s_BaseData = new RendererBaseData;
-		uint32_t color = 0xFFFFFFFF;
 
-		s_BaseData->ShaderLib.Load("assets/Shaders/TestShader.hlsl");
-		auto mainshader = s_BaseData->ShaderLib.Load("assets/Shaders/MainShader.hlsl");
+		s_BaseData->ShaderLib.Load("assets/Shaders/QuadShader.hlsl");
+		s_BaseData->ShaderLib.Load("assets/Shaders/CircleShader.hlsl");
+
 		s_BaseData->ShaderLib.Load("assets/Shaders/FullScreen.hlsl");
 		s_BaseData->ShaderLib.Load("assets/Shaders/NegativeEffect.hlsl");
 		s_BaseData->ShaderLib.Load("assets/Shaders/BlurEffect.hlsl");
 		
+		uint32_t color = 0xFFFFFFFF;
 		s_BaseData->WhiteTexture = Texture2D::Create(1, 1, &color);
-		s_BaseData->Default2DMaterial = Material::Create(mainshader, "Default2DMaterial");
 
 		float vertices[4 * 2] = {
 			-1.0f,  1.0f,
@@ -78,16 +77,6 @@ namespace Shark {
 	Ref<Texture2D> Renderer::GetWhiteTexture()
 	{
 		return s_BaseData->WhiteTexture;
-	}
-
-	Ref<Shaders> Renderer::GetDefault2DShader()
-	{
-		return s_BaseData->ShaderLib.Get("MainShader");
-	}
-
-	Ref<Material> Renderer::GetDefault2DMaterial()
-	{
-		return s_BaseData->Default2DMaterial;
 	}
 
 }

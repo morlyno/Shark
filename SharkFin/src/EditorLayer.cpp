@@ -540,7 +540,8 @@ namespace Shark {
 					{
 						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, *m_Scene };
 						SK_CORE_ASSERT(m_Scene->IsValidEntity(entity));
-						Event::Distribute(SelectionChangedEvent(entity));
+						if (m_Scene->IsValidEntity(entity))
+							Event::Distribute(SelectionChangedEvent(entity));
 					}
 					else
 					{
@@ -599,12 +600,10 @@ namespace Shark {
 
 			auto s = Renderer2D::GetStatistics();
 			ImGui::Text("Draw Calls: %d", s.DrawCalls);
-			ImGui::Text("Draw Commands: %d", s.DrawCommands);
 			ImGui::Text("Element Count: %d", s.ElementCount);
 			ImGui::Text("Vertex Count: %d", s.VertexCount);
 			ImGui::Text("Index Count: %d", s.IndexCount);
 			ImGui::Text("Textur Count: %d", s.TextureCount);
-			ImGui::Text("Callback Count: %d", s.Callbacks);
 
 			ImGui::NewLine();
 			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && m_HoveredEntityID >= 0)

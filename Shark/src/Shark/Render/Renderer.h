@@ -17,8 +17,6 @@ namespace Shark {
 
 		static ShaderLibrary& GetShaderLib();
 		static Ref<Texture2D> GetWhiteTexture();
-		static Ref<Shaders> GetDefault2DShader();
-		static Ref<Material> GetDefault2DMaterial();
 	};
 
 }
