@@ -500,17 +500,17 @@ namespace Shark {
 
 		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [entity](NativeScriptComponent& comp) mutable
 		{
-			auto& ed = entity.GetComponent<EditorData::NaticeScriptComponent>();
-
 			char inputbuffer[128];
 			strcpy(inputbuffer, comp.ScriptTypeName.c_str());
 
-			if (!ed.Found)
+			const bool found = NativeScriptFactory::Exist(inputbuffer);
+
+			if (!found)
 				ImGui::PushStyleColor(ImGuiCol_Text, { 0.8f, 0.0f, 0.0f, 1.0f });
 
 			bool changed = ImGui::InputText("##ScriptNameInput", inputbuffer, std::size(inputbuffer));
 
-			if (!ed.Found)
+			if (!found)
 				ImGui::PopStyleColor();
 
 			if (ImGui::IsItemFocused())
@@ -532,20 +532,14 @@ namespace Shark {
 			}
 
 			if (changed)
-			{
 				comp.ScriptTypeName = inputbuffer;
-				if (NativeScriptFactory::Exist(inputbuffer))
-					ed.Found = true;
-				else
-					ed.Found = false;
-			}
 
 
-			if (ed.Found)
+			if (found)
 			{
-				if (ImGui::Checkbox("Bound", &ed.Bound))
+				if (ImGui::Checkbox("Bound", &comp.Bound))
 				{
-					if (ed.Bound)
+					if (comp.Bound)
 					{
 						NativeScriptFactory::Bind(inputbuffer, comp);
 						SK_CORE_TRACE("Script Bound: {0}", comp.ScriptTypeName);

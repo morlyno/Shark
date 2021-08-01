@@ -20,11 +20,14 @@ namespace Shark {
 		Scene();
 		~Scene();
 
-		Scene(const Scene& other);
-		Scene& operator=(const Scene& other);
+		Scene(const Scene& other) = delete;
+		Scene& operator=(const Scene& other) = delete;
 
 		Scene(Scene&& other);
 		Scene& operator=(Scene&& other);
+
+		Ref<Scene> Copy();
+		void Copy(Ref<Scene> scene);
 
 		void OnScenePlay();
 		void OnSceneStop();
@@ -47,8 +50,8 @@ namespace Shark {
 
 		void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
 
-		void AddEditorData(bool editordata) { m_AddEditorData = editordata; }
-		bool AddEditorDataEnabled() const { return m_AddEditorData; }
+		void SetFilePath(const std::string& filepath) { m_FilePath = filepath; }
+		const std::string& GetFilePath() const { return m_FilePath; }
 
 		void OnEvent(Event& event);
 
@@ -64,7 +67,8 @@ namespace Shark {
 		World m_World;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
-		bool m_AddEditorData = false;
+
+		std::string m_FilePath;
 
 		friend class Entity;
 		friend class SceneHirachyPanel;

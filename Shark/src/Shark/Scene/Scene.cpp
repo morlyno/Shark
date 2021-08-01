@@ -17,40 +17,6 @@ namespace Shark {
 	{
 	}
 
-	Scene::Scene(const Scene& other)
-	{
-		m_World.SetGravity(other.m_World.GetGravity());
-		other.m_Registry.each([this, &other](auto ID)
-		{
-			Entity e{ ID, Weak((Scene*)&other) };
-			CreateEntity(e, true);
-		});
-
-		m_ActiveCameraID = other.m_ActiveCameraID;
-		m_ViewportWidth = other.m_ViewportWidth;
-		m_ViewportHeight = other.m_ViewportHeight;
-	}
-
-	Scene& Scene::operator=(const Scene& other)
-	{
-		m_World = World(other.m_World.GetGravity());
-		m_Registry = entt::registry{};
-		m_Registry.reserve(other.m_Registry.capacity());
-
-		m_World.SetGravity(other.m_World.GetGravity());
-		other.m_Registry.each([this, &other](auto ID)
-		{
-			Entity e{ ID, Weak((Scene*)&other) };
-			CreateEntity(e, true);
-		});
-
-		m_ActiveCameraID = other.m_ActiveCameraID;
-		m_ViewportWidth = other.m_ViewportWidth;
-		m_ViewportHeight = other.m_ViewportHeight;
-
-		return *this;
-	}
-
 	Scene::Scene(Scene&& other)
 	{
 		m_Registry = std::move(other.m_Registry);
@@ -76,6 +42,29 @@ namespace Shark {
 		other.m_ViewportWidth = 0;
 		other.m_ViewportHeight = 0;
 		return *this;
+	}
+
+	Ref<Scene> Scene::Copy()
+	{
+		auto scene = Ref<Scene>::Create();
+		Copy(scene);
+		return scene;
+	}
+
+	void Scene::Copy(Ref<Scene> dest)
+	{
+		dest->m_World = World(m_World.GetGravity());
+		dest->m_Registry = entt::registry{};
+		dest->m_Registry.reserve(m_Registry.capacity());
+		m_Registry.each([this, dest](auto entity)
+		{
+			Entity e{ entity, this };
+			dest->CreateEntity(e, true);
+		});
+
+		dest->m_ActiveCameraID = m_ActiveCameraID;
+		dest->m_ViewportWidth = m_ViewportWidth;
+		dest->m_ViewportHeight = m_ViewportHeight;
 	}
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
@@ -203,11 +192,7 @@ namespace Shark {
 			e.AddComponent<CameraComponent>(other.GetComponent<CameraComponent>());
 
 		if (other.HasComponent<NativeScriptComponent>())
-		{
 			e.AddComponent<NativeScriptComponent>(other.GetComponent<NativeScriptComponent>());
-			if (m_AddEditorData && other.HasComponent<EditorData::NaticeScriptComponent>())
-				e.GetComponent<EditorData::NaticeScriptComponent>() = other.GetComponent<EditorData::NaticeScriptComponent>();
-		}
 
 		if (other.HasComponent<RigidBodyComponent>())
 		{
@@ -309,8 +294,6 @@ namespace Shark {
 	template<>
 	void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& comp)
 	{
-		if (m_AddEditorData)
-			entity.AddComponent<EditorData::NaticeScriptComponent>();
 	}
 
 	template<>
@@ -342,12 +325,6 @@ namespace Shark {
 
 		auto& tc = entity.GetComponent<TransformComponent>();
 		comp.Collider.Resize(tc.Scaling.x, tc.Scaling.y);
-	}
-
-	template<>
-	void Scene::OnComponentAdded<EditorData::NaticeScriptComponent>(Entity entity, EditorData::NaticeScriptComponent& comp)
-	{
-		return;
 	}
 
 }

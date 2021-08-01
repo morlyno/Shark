@@ -4,19 +4,10 @@
 
 namespace Shark {
 
-	namespace EditorData {
-
-		struct NaticeScriptComponent
-		{
-			bool Found = false;
-			bool Bound = false;
-		};
-
-	}
-
 	struct NativeScriptComponent
 	{
 		std::string ScriptTypeName;
+		bool Bound = false;
 		NativeScript* Script = nullptr;
 
 		NativeScript* (*CreateScript)(Entity entity);

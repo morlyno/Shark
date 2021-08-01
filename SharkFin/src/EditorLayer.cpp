@@ -562,6 +562,7 @@ namespace Shark {
 				{
 					m_PlayScene = false;
 					m_Scene.Deserialize(asset->FilePath);
+					m_Scene->SetFilePath(asset->FilePath);
 					m_Scene->AddEditorData(true);
 
 					m_SceneHirachyPanel.SetContext(*m_Scene);

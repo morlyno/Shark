@@ -20,12 +20,12 @@ namespace Shark {
 
 	void SceneController::SaveState()
 	{
-		*m_SaveState = *m_Active;
+		m_Active->Copy(m_SaveState);
 	}
 
 	void SceneController::LoadState()
 	{
-		*m_Active = *m_SaveState;
+		m_SaveState->Copy(m_Active);
 	}
 
 	bool SceneController::Serialize(const std::string& filepath)

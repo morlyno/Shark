@@ -44,6 +44,8 @@ namespace Shark {
 		int m_SelectedProjectionIndex = -1;
 		static constexpr const char* s_ProjectionItems[] = { "Perspective", "Orthographic" };
 		static constexpr const char* s_GeomatryTypes[] = { "None", "Quad", "Circle" };
+
+		bool m_ScriptFound = false;
 	};
 
 }
