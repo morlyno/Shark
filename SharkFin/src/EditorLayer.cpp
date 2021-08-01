@@ -28,8 +28,6 @@ namespace Shark {
 
 		auto& window = Application::Get().GetWindow();
 		m_Scene = Ref<Scene>::Create();
-		m_Scene->AddEditorData(true);
-		m_Scene.GetSaveState()->AddEditorData(true);
 		m_SceneHirachyPanel.SetContext(*m_Scene);
 
 		FrameBufferSpecification geofbspecs;
@@ -563,7 +561,6 @@ namespace Shark {
 					m_PlayScene = false;
 					m_Scene.Deserialize(asset->FilePath);
 					m_Scene->SetFilePath(asset->FilePath);
-					m_Scene->AddEditorData(true);
 
 					m_SceneHirachyPanel.SetContext(*m_Scene);
 					m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
@@ -709,7 +706,6 @@ namespace Shark {
 	void EditorLayer::NewScene()
 	{
 		m_Scene = Ref<Scene>::Create();
-		m_Scene->AddEditorData(true);
 		m_SceneHirachyPanel.SetContext(*m_Scene);
 		m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 	}
@@ -729,7 +725,6 @@ namespace Shark {
 		{
 			m_PlayScene = false;
 			m_Scene.Deserialize(filepath);
-			m_Scene->AddEditorData(true);
 
 			m_SceneHirachyPanel.SetContext(*m_Scene);
 			m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
@@ -740,7 +735,6 @@ namespace Shark {
 	{
 		m_PlayScene = true;
 		m_Scene.SaveState();
-		m_Scene->AddEditorData(false);
 		m_Scene->OnScenePlay();
 		m_SceneHirachyPanel.SetScenePlaying(true);
 	}
@@ -749,7 +743,6 @@ namespace Shark {
 	{
 		m_PlayScene = false;
 		m_Scene->OnSceneStop();
-		m_Scene->AddEditorData(true);
 		m_Scene.LoadState();
 		m_SceneHirachyPanel.SetScenePlaying(false);
 		if (!m_Scene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
