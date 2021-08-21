@@ -33,9 +33,15 @@ namespace Shark {
 		bool OnKeyPressed(KeyPressedEvent& event);
 		bool OnSelectionChanged(SelectionChangedEvent& event);
 
+		void OnImGuiRender_Project();
+
 		void NewScene();
 		void SaveScene();
 		void OpenScene();
+
+		void SetActiveScene(Ref<Scene> scene);
+		void LoadScene();
+		void LoadNewScene(const std::filesystem::path& filepath);
 
 		void OnPlayScene();
 		void OnStopScene();
@@ -60,6 +66,7 @@ namespace Shark {
 
 		bool m_ShowInfo = true;
 		bool m_ShowEditorCameraControlls = false;
+		bool m_ShowProject = false;
 
 		int m_HoveredEntityID = -1;
 

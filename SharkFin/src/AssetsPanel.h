@@ -8,16 +8,15 @@
 
 namespace Shark {
 
-	enum class ContentType
-	{
-		None = 0,
-		Directory, File
-	};
-
 	struct Directory;
 
 	struct Entry
 	{
+		enum class ContentType
+		{
+			None = 0,
+			Directory, File
+		};
 		ContentType Type = ContentType::None;
 		uint32_t ByteSize = 0;
 		Directory* Directory = nullptr;
@@ -25,7 +24,7 @@ namespace Shark {
 
 	struct Directory
 	{
-		static constexpr ContentType Type = ContentType::Directory;
+		static constexpr Entry::ContentType Type = Entry::ContentType::Directory;
 		std::unordered_map<std::string, Entry> Entrys;
 		uint32_t Files = 0;
 		uint32_t Directorys = 0;
@@ -74,7 +73,7 @@ namespace Shark {
 		void SelectCurrentDirectory(const std::filesystem::path& directoryPath);
 		void UpdateCurrentPathVec();
 
-		void StartDragDrop(const std::string& path);
+		void StartDragDrop(const std::string& path, Entry::ContentType type);
 		void StartRename(const std::string& path);
 		void StartDelete(const std::string& path);
 
@@ -83,7 +82,8 @@ namespace Shark {
 
 	private:
 		bool m_ShowPanel = true;
-		
+		const Project& m_Project;
+
 		Ref<Texture2D> m_DirectoryIcon;
 		Ref<Texture2D> m_StandartFileIcon;
 		const float m_ContentItemSize = 80.0f;

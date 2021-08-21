@@ -6,17 +6,19 @@
 
 #include "Shark/Utility/PlatformUtils.h"
 
+#include <misc/cpp/imgui_stdlib.h>
+
 namespace Shark::UI {
 
-	void DrawFloatShow(const char* lable, float val, const char* fmt, float textWidth, const char* buttoncharacter)
+	void DrawFloatShow(const std::string& label, float val, const char* fmt, float textWidth, const char* buttoncharacter)
 	{
-		ImGui::PushID(lable);
+		ImGui::PushID(label.c_str());
 
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
 		ImGui::AlignTextToFramePadding();
-		ImGui::Text(lable);
+		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 
 		auto& style = ImGui::GetStyle();
@@ -38,15 +40,15 @@ namespace Shark::UI {
 		ImGui::PopID();
 	}
 
-	void DrawVec2Show(const char* lable, DirectX::XMFLOAT2 vec, const char* fmt, float textWidth, const char* buttoncharacters)
+	void DrawVec2Show(const std::string& label, DirectX::XMFLOAT2 vec, const char* fmt, float textWidth, const char* buttoncharacters)
 	{
-		ImGui::PushID(lable);
+		ImGui::PushID(label.c_str());
 
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
 		ImGui::AlignTextToFramePadding();
-		ImGui::Text(lable);
+		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 
 		auto& style = ImGui::GetStyle();
@@ -73,15 +75,15 @@ namespace Shark::UI {
 		ImGui::PopID();
 	}
 
-	void DrawVec3Show(const char* lable, DirectX::XMFLOAT3 vec, const char* fmt, float textWidth, const char* buttoncharacters)
+	void DrawVec3Show(const std::string& label, DirectX::XMFLOAT3 vec, const char* fmt, float textWidth, const char* buttoncharacters)
 	{
-		ImGui::PushID(lable);
+		ImGui::PushID(label.c_str());
 
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
 		ImGui::AlignTextToFramePadding();
-		ImGui::Text(lable);
+		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 
 		auto& style = ImGui::GetStyle();
@@ -113,15 +115,15 @@ namespace Shark::UI {
 		ImGui::PopID();
 	}
 
-	bool DrawFloatControl(const char* lable, float& val, float resetVal, const char* fmt, float textWidth, const char* buttoncharacter)
+	bool DrawFloatControl(const std::string& label, float& val, float resetVal, const char* fmt, float textWidth, const char* buttoncharacter)
 	{
-		ImGui::PushID(lable);
+		ImGui::PushID(label.c_str());
 
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
 		ImGui::AlignTextToFramePadding();
-		ImGui::Text(lable);
+		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 
 		auto& style = ImGui::GetStyle();
@@ -151,15 +153,15 @@ namespace Shark::UI {
 		return valchanged;
 	}
 
-	bool DrawVec2Control(const char* lable, DirectX::XMFLOAT2& vec, float resetVal, const char* fmt, float textWidth, const char* buttoncharacters)
+	bool DrawVec2Control(const std::string& label, DirectX::XMFLOAT2& vec, float resetVal, const char* fmt, float textWidth, const char* buttoncharacters)
 	{
-		ImGui::PushID(lable);
+		ImGui::PushID(label.c_str());
 
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
 		ImGui::AlignTextToFramePadding();
-		ImGui::Text(lable);
+		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 
 		auto& style = ImGui::GetStyle();
@@ -198,15 +200,15 @@ namespace Shark::UI {
 		return valchanged;
 	}
 
-	bool DrawVec3Control(const char* lable, DirectX::XMFLOAT3& vec, float resetVal, const char* fmt, float textWidth, const char* buttoncharacters)
+	bool DrawVec3Control(const std::string& label, DirectX::XMFLOAT3& vec, float resetVal, const char* fmt, float textWidth, const char* buttoncharacters)
 	{
-		ImGui::PushID(lable);
+		ImGui::PushID(label.c_str());
 
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, textWidth);
 
 		ImGui::AlignTextToFramePadding();
-		ImGui::Text(lable);
+		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 
 		auto& style = ImGui::GetStyle();
@@ -254,29 +256,29 @@ namespace Shark::UI {
 		return valchanged;
 	}
 
-	bool DrawFloatXControl(const char* lable, float* data, uint32_t count, float resetVal, const char* fmt, float textWidth)
+	bool DrawFloatXControl(const std::string& label, float* data, uint32_t count, float resetVal, const char* fmt, float textWidth)
 	{
 		switch (count)
 		{
-			case 1:
-			{
-				float& val = *data;
-				return DrawFloatControl(lable, val, resetVal, fmt, textWidth);
-			}
-			case 2:
-			{
-				DirectX::XMFLOAT2& val = *(DirectX::XMFLOAT2*)data;
-				return DrawVec2Control(lable, val, resetVal, fmt, textWidth);
-			}
-			case 3:
-			{
-				DirectX::XMFLOAT3& val = *(DirectX::XMFLOAT3*)data;
-				return DrawVec3Control(lable, val, resetVal, fmt, textWidth);
-			}
-			case 4:
-			{
-				return ImGui::ColorEdit4("lable", data);
-			}
+		case 1:
+		{
+			float& val = *data;
+			return DrawFloatControl(label, val, resetVal, fmt, textWidth);
+		}
+		case 2:
+		{
+			DirectX::XMFLOAT2& val = *(DirectX::XMFLOAT2*)data;
+			return DrawVec2Control(label, val, resetVal, fmt, textWidth);
+		}
+		case 3:
+		{
+			DirectX::XMFLOAT3& val = *(DirectX::XMFLOAT3*)data;
+			return DrawVec3Control(label, val, resetVal, fmt, textWidth);
+		}
+		case 4:
+		{
+			return ImGui::ColorEdit4("label", data);
+		}
 		}
 		SK_CORE_ASSERT(false);
 		return false;
@@ -287,7 +289,7 @@ namespace Shark::UI {
 		RendererCommand::MainFrameBufferSetBlend((bool)cmd->UserCallbackData);
 	}
 
-	void NoAlpaImage(const Ref<FrameBuffer>& framebuffer, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tintcolor, const ImVec4& bordercolor)
+	void NoAlpaImage(ImTextureID textureID, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tintcolor, const ImVec4& bordercolor)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)
@@ -316,13 +318,13 @@ namespace Shark::UI {
 
 		if (ImGui::BeginDragDropTarget())
 		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(AssetPayload::ID);
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
 			if (payload)
 			{
-				auto* data = (AssetPayload*)payload->Data;
-				if (data->Type == AssetType::Texture)
+				auto* data = (UI::ContentPayload*)payload->Data;
+				if (data->Type == UI::ContentType::Texture)
 				{
-					texture = Texture2D::Create(data->FilePath);
+					texture = Texture2D::Create(data->Path);
 					changed = true;
 				}
 			}
@@ -332,9 +334,9 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool ImageButton(const char* strID, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
+	bool ImageButton(const std::string& strID, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
 	{
-		ImGuiID id = ImGui::GetID(strID);
+		ImGuiID id = ImGui::GetID(strID.c_str());
 		return ImageButton(id, textureID, size, uv0, uv1, frame_padding, bg_col, tint_col);
 	}
 
@@ -349,11 +351,11 @@ namespace Shark::UI {
 		return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, padding, bg_col, tint_col);
 	}
 
-	ImVec2 GetItemSize(const char* lable)
+	ImVec2 GetItemSize(const std::string& label)
 	{
 		const ImGuiStyle& style = ImGui::GetStyle();
 
-		const ImVec2 label_size = ImGui::CalcTextSize("Settings", NULL, true);
+		const ImVec2 label_size = ImGui::CalcTextSize(label.c_str(), NULL, true);
 		return ImGui::CalcItemSize({ 0, 0 }, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
 	}
 
@@ -361,6 +363,143 @@ namespace Shark::UI {
 	{
 		const ImGuiStyle& style = ImGui::GetStyle();
 		return style.FramePadding;
+	}
+
+	void TextWithBackGround(const std::string& text)
+	{
+		TextWithBackGround(text, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+	}
+
+	void TextWithBackGround(const std::string& text, const ImVec4& bgColor)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Header, bgColor);
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, bgColor);
+		ImGui::PushStyleColor(ImGuiCol_HeaderActive, bgColor);
+
+		ImGui::CollapsingHeader(text.c_str(), ImGuiTreeNodeFlags_Leaf);
+
+		ImGui::PopStyleColor(3);
+
+		ImGui::IsItemClicked();
+	}
+
+	bool InputText(const char* label, std::string& str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
+	{
+		auto& g = *GImGui;
+		if (!(g.NextItemData.Flags & ImGuiNextItemDataFlags_HasWidth))
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+		return ImGui::InputText(label, &str, flags, callback, user_data);
+	}
+
+	bool InputText(const char* label, std::filesystem::path& path, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
+	{
+		auto str = path.string();
+		bool retval = InputText(label, str, flags, callback, user_data);
+		path = std::move(str);
+		return retval;
+
+	}
+
+	void Text(const char* str)
+	{
+		ImGui::Text(str);
+	}
+
+	void Text(const std::string& str)
+	{
+		Text(str.c_str());
+	}
+
+	void Text(const std::filesystem::path& path)
+	{
+		Text(path.string());
+	}
+
+	void MoveCurserPos(ImVec2 delta)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		window->DC.CursorPos += delta;
+	}
+
+	void MoveCurserPosX(float deltaX)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		window->DC.CursorPos.x += deltaX;
+
+	}
+
+	void MoveCurserPosY(float deltaY)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		window->DC.CursorPos.y += deltaY;
+	}
+
+	bool ButtonRightAligned(const std::string& label, const ImVec2& size, ImGuiButtonFlags flags)
+	{
+		ImVec2 itemSize;
+		itemSize = GetItemSize(label);
+		if (size.x) itemSize.x = size.x;
+		if (size.y) itemSize.y = size.y;
+		ImGui::SameLine();
+		MoveCurserPosX(ImGui::GetContentRegionAvail().x - itemSize.x);
+		return ImGui::ButtonEx(label.c_str(), itemSize, flags);
+	}
+	
+	bool BeginPopup(const std::string& label, ImGuiWindowFlags flags)
+	{
+		return BeginPopup(ImGui::GetID(label.c_str()), flags);
+	}
+
+	bool BeginPopup(ImGuiID id, ImGuiWindowFlags flags)
+	{
+		ImGuiContext& g = *GImGui;
+		if (g.OpenPopupStack.Size <= g.BeginPopupStack.Size) // Early out for performance
+		{
+			g.NextWindowData.ClearFlags(); // We behave like Begin() and need to consume those values
+			return false;
+		}
+		flags |= ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings;
+		return ImGui::BeginPopupEx(id, flags);
+	}
+
+	bool GetContentPayload(std::string& out_Path, ContentType type)
+	{
+		bool accepted = false;
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(ContentPayload::ID);
+			if (payload)
+			{
+				auto* content = (ContentPayload*)payload->Data;
+				if (content->Type == type)
+				{
+					out_Path = content->Path;
+					accepted = true;
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+		return accepted;
+	}
+
+	bool GetContentPayload(std::filesystem::path& out_Path, ContentType type)
+	{
+		bool accepted = false;
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(ContentPayload::ID);
+			if (payload)
+			{
+				auto* content = (ContentPayload*)payload->Data;
+				if (content->Type == type)
+				{
+					out_Path = content->Path;
+					accepted = true;
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+		return accepted;
 	}
 
 }

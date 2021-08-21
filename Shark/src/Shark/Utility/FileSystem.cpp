@@ -16,24 +16,6 @@
 
 namespace Shark::FileSystem {
 
-	bool CreateFile(const std::string& path);
-	bool CreateDirectory(const std::string& path);
-	bool CreateDirectorys(const std::string& path);
-	bool Rename(const std::string& Path, const std::string& newPath);
-	bool Delete(const std::string& path);
-	uint32_t DeleteAll(const std::string& path);
-
-	bool CreateFile(const std::filesystem::path& path);
-	bool CreateDirectory(const std::filesystem::path& path);
-	bool CreateDirectorys(const std::filesystem::path& path);
-	bool Rename(const std::filesystem::path& Path, const std::filesystem::path& newPath);
-	bool Delete(const std::filesystem::path& path);
-	uint32_t DeleteAll(const std::filesystem::path& path);
-
-}
-
-namespace Shark::FileSystem {
-
 	bool CreateFile(const std::filesystem::path& path)                        { return CreateFile(path.string()); }
 
 	bool CreateDirectory(const std::string& path)                             { return CreateDirectory(std::filesystem::path(path)); }
@@ -41,6 +23,7 @@ namespace Shark::FileSystem {
 	bool Rename(const std::string& oldPath, const std::string& newPath)       { return Rename(std::filesystem::path(oldPath), std::filesystem::path(newPath)); }
 	bool Delete(const std::string& path)                                      { return Delete(std::filesystem::path(path)); }
 	uint32_t DeleteAll(const std::string& path)                               { return DeleteAll(std::filesystem::path(path)); }
+	bool Exists(const std::string& path)                                      { return Exists(std::filesystem::path(path)); }
 
 
 	bool CreateFile(const std::string& path)
@@ -117,6 +100,11 @@ namespace Shark::FileSystem {
 		}
 		SK_FS_INFO("Deleted {0} in [{1}]", deleted, path);
 		return deleted;
+	}
+
+	bool Exists(const std::filesystem::path& path)
+	{
+		return std::filesystem::exists(path);
 	}
 
 }

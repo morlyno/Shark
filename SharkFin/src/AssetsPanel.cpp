@@ -5,38 +5,37 @@
 
 namespace Shark {
 
-	const std::string s_AsstesDirectory = "assets";
 	static std::string s_TempInputString;
 
 	namespace Utils {
 
-		static ContentType GetEntryTypeFromDirectoryEntry(const std::filesystem::directory_entry& entry)
+		static Entry::ContentType GetEntryTypeFromDirectoryEntry(const std::filesystem::directory_entry& entry)
 		{
 			if (entry.is_directory())
-				return ContentType::Directory;
+				return Entry::ContentType::Directory;
 			if (entry.is_regular_file())
-				return ContentType::File;
+				return Entry::ContentType::File;
 			SK_CORE_ASSERT(false);
-			return ContentType::None;
+			return Entry::ContentType::None;
 		}
 
-		static AssetType GetPaylodType(const std::string& filepath)
+		static UI::ContentType GetPaylodType(const std::string& filepath)
 		{
 			auto&& extension = Utility::GetFileExtention(filepath);
 			if (extension == ".shark")
-				return AssetType::Scene;
+				return UI::ContentType::Scene;
 			if (extension == ".png")
-				return AssetType::Texture;
-			return AssetType::Unkown;
+				return UI::ContentType::Texture;
+			return UI::ContentType::Unkown;
 		}
 
-		static std::string GetContentTypeAsString(ContentType type)
+		static std::string GetContentTypeAsString(Entry::ContentType type)
 		{
 			switch (type)
 			{
-				case ContentType::None:         return "None";
-				case ContentType::Directory:    return "Directory";
-				case ContentType::File:         return "File";
+				case Entry::ContentType::None:         return "None";
+				case Entry::ContentType::Directory:    return "Directory";
+				case Entry::ContentType::File:         return "File";
 			}
 			SK_CORE_ASSERT(false);
 			return "Unkown";
@@ -45,12 +44,13 @@ namespace Shark {
 	}
 
 	AssetsPanel::AssetsPanel()
+		: m_Project(Application::Get().GetProject())
 	{
 		m_DirectoryIcon = Texture2D::Create("assets/Textures/folder_open.png");
 		m_StandartFileIcon = Texture2D::Create("assets/Textures/file.png");
 
-		m_DirectoryHistory.emplace_back(s_AsstesDirectory);
-		m_CurrentDirectory = s_AsstesDirectory;
+		m_DirectoryHistory.emplace_back(m_Project.GetAssetsPath());
+		m_CurrentDirectory = m_Project.GetAssetsPath();
 		m_CurrentDirectoryString = m_CurrentDirectory.string();
 
 		UpdateCurrentPathVec();
@@ -126,7 +126,9 @@ namespace Shark {
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
 
-			DrawAsTree(s_AsstesDirectory);
+			char temp[260];
+			wcstombs_s(nullptr, temp, m_Project.GetAssetsPath().c_str(), -1);
+			DrawAsTree(temp);
 
 			ImGui::TableSetColumnIndex(1);
 
@@ -145,7 +147,7 @@ namespace Shark {
 	void AssetsPanel::SaveCurrentAssetDirectory()
 	{
 		m_Directorys.clear();
-		SaveDirectory(std::filesystem::absolute(s_AsstesDirectory));
+		SaveDirectory(std::filesystem::absolute(m_Project.GetAssetsPath()));
 	}
 
 	Directory* AssetsPanel::SaveDirectory(const std::filesystem::path& directoryPath)
@@ -160,13 +162,13 @@ namespace Shark {
 			auto&& entry = directory.Entrys[stringPath];
 
 			entry.Type = Utils::GetEntryTypeFromDirectoryEntry(directoryEntry);
-			if (entry.Type == ContentType::File)
+			if (entry.Type == Entry::ContentType::File)
 			{
 				entry.ByteSize = directoryEntry.file_size();
 				directory.Files++;
 			}
 
-			if (entry.Type == ContentType::Directory)
+			if (entry.Type == Entry::ContentType::Directory)
 			{
 				directory.Directorys++;
 				entry.Directory = SaveDirectory(path);
@@ -260,7 +262,7 @@ namespace Shark {
 		if (directory == m_SelectedEntry)
 			flags |= ImGuiTreeNodeFlags_Selected;
 		bool opened = ImGui::TreeNodeEx(name.data(), flags);
-		CheckOnTreeLeaf({ ContentType::Directory }, directory);
+		CheckOnTreeLeaf({ Entry::ContentType::Directory }, directory);
 		if (opened)
 		{
 			DrawTreeNode(directory);
@@ -275,7 +277,7 @@ namespace Shark {
 		for (auto&& [subpath, subentry] : entrys)
 		{
 			ImGuiTreeNodeFlags nodeflags = baseFlags;
-			if (subentry.Type == ContentType::File)
+			if (subentry.Type == Entry::ContentType::File)
 				nodeflags |= ImGuiTreeNodeFlags_Bullet;
 			if (subpath == m_SelectedEntry)
 				nodeflags |= ImGuiTreeNodeFlags_Selected;
@@ -285,7 +287,7 @@ namespace Shark {
 			CheckOnTreeLeaf(subentry, subpath);
 			if (opened)
 			{
-				if (subentry.Type == ContentType::Directory)
+				if (subentry.Type == Entry::ContentType::Directory)
 					DrawTreeNode(subpath);
 
 				ImGui::TreePop();
@@ -314,7 +316,7 @@ namespace Shark {
 				const RenderID textureID = GetContentTextureID(entry);
 
 				window->DC.CursorPos.x -= style.FramePadding.x;
-				UI::ImageButton(path.c_str(), textureID, { m_ContentItemSize, m_ContentItemSize });
+				UI::ImageButton(path, textureID, { m_ContentItemSize, m_ContentItemSize });
 				ImGuiID buttonid = window->DC.LastItemId;
 				if (m_OnRenameEntry && m_RenameTarget == path)
 					DrawRenameInput();
@@ -400,8 +402,8 @@ namespace Shark {
 	{
 		if (ImGui::BeginPopup(path.c_str()))
 		{
-			const bool isDirectory = entry.Type == ContentType::Directory;
-			const bool isFile = entry.Type == ContentType::File;
+			const bool isDirectory = entry.Type == Entry::ContentType::Directory;
+			const bool isFile = entry.Type == Entry::ContentType::File;
 
 			std::string_view name = Utility::GetPathName(path);
 			ImGui::Text("Name:        %s", name.data());
@@ -473,8 +475,8 @@ namespace Shark {
 	void AssetsPanel::DeletePopup(const std::string& path, const Entry& entry)
 	{
 		m_IgnoreNextSelectionCheck = true;
-		const bool isDirectory = entry.Type == ContentType::Directory;
-		const bool isFile = entry.Type == ContentType::File;
+		const bool isDirectory = entry.Type == Entry::ContentType::Directory;
+		const bool isFile = entry.Type == Entry::ContentType::File;
 
 		if (ImGui::BeginPopupModal("Delete Entry"))
 		{
@@ -545,21 +547,10 @@ namespace Shark {
 				m_SelectedEntry.clear();
 		}
 
-		switch (entry.Type)
-		{
-			case ContentType::Directory:
-			{
-				if (isItemHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-					SelectCurrentDirectory(path);
-				break;
-			}
-			case ContentType::File:
-			{
-				StartDragDrop(path);
-				break;
-			}
-		}
+		if (entry.Type == Entry::ContentType::Directory && isItemHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+			SelectCurrentDirectory(path);
 
+		StartDragDrop(path, entry.Type);
 
 		if (isItemClicked_Right)
 			ImGui::OpenPopup(path.c_str());
@@ -590,20 +581,10 @@ namespace Shark {
 				m_SelectedEntry.clear();
 		}
 
-		switch (entry.Type)
-		{
-			case ContentType::Directory:
-			{
-				if (isItemClicked_Left)
-					SelectCurrentDirectory(path);
-				break;
-			}
-			case ContentType::File:
-			{
-				StartDragDrop(path);
-				break;
-			}
-		}
+		if (entry.Type == Entry::ContentType::Directory && isItemClicked_Left)
+			SelectCurrentDirectory(path);
+		
+		StartDragDrop(path, entry.Type);
 
 		if (isItemClicked_Right)
 			ImGui::OpenPopup(path.c_str());
@@ -630,18 +611,20 @@ namespace Shark {
 			m_CurrentPathVec.emplace_back(pathElem->string());
 	}
 
-	void AssetsPanel::StartDragDrop(const std::string& path)
+	void AssetsPanel::StartDragDrop(const std::string& path, Entry::ContentType t)
 	{
-		AssetType type = Utils::GetPaylodType(path);
-		if (type == AssetType::Unkown)
+		UI::ContentType type = UI::ContentType::Directory;
+		if (t == Entry::ContentType::File)
+			type = Utils::GetPaylodType(path);
+		if (type == UI::ContentType::Unkown)
 			return;
 
 		if (ImGui::BeginDragDropSource())
 		{
-			AssetPayload payload;
-			strcpy(payload.FilePath, path.c_str());
+			UI::ContentPayload payload;
+			strcpy(payload.Path, path.c_str());
 			payload.Type = type;
-			ImGui::SetDragDropPayload(AssetPayload::ID, &payload, sizeof(AssetPayload));
+			ImGui::SetDragDropPayload(UI::ContentPayload::ID, &payload, sizeof(UI::ContentPayload));
 			ImGui::EndDragDropSource();
 		}
 	}
@@ -675,9 +658,9 @@ namespace Shark {
 
 	RenderID AssetsPanel::GetContentTextureID(const Entry& entry)
 	{
-		if (entry.Type == ContentType::Directory)
+		if (entry.Type == Entry::ContentType::Directory)
 			return m_DirectoryIcon->GetRenderID();
-		if (entry.Type == ContentType::File)
+		if (entry.Type == Entry::ContentType::File)
 			return m_StandartFileIcon->GetRenderID();
 		SK_CORE_ASSERT(false);
 		return NullID;

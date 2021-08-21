@@ -45,14 +45,6 @@ namespace Shark::Utility {
 		return std::move(path);
 	}
 
-	std::filesystem::path MakeAbsolutePathRelative(const std::filesystem::path& path)
-	{
-		SK_CORE_ASSERT(path.is_absolute(), "Path must be absolute");
-		auto& str = path.string();
-		auto&& currPath = std::filesystem::current_path().string();
-		return str.substr(currPath.length() + 1);
-	}
-
 	template<>
 	float* GetValuePtr(const DirectX::XMFLOAT4& vec)
 	{
@@ -104,11 +96,11 @@ namespace Shark::Utility {
 	std::string_view GetFileExtention(std::string_view path)
 	{
 #if SK_DEBUG
-		std::string_view extention = path;
+		std::string_view extention;
 		auto offset = path.find_last_of("/\\");
 		auto extbeg = path.find_first_of(".", offset);
 		if (extbeg != std::string_view::npos)
-			extention = extention.substr(extbeg);
+			extention = path.substr(extbeg);
 		SK_CORE_ASSERT(extention.empty() ? true : extention.back() != '\0', "String View dosen't end with \0");
 		return extention;
 #else
@@ -116,7 +108,7 @@ namespace Shark::Utility {
 		auto extbeg = path.find_first_of(".", offset);
 		if (extbeg != std::string_view::npos)
 			return path.substr(extbeg);
-		return path;
+		return std::string_view{};
 #endif
 	}
 

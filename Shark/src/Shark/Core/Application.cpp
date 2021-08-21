@@ -16,9 +16,6 @@ namespace Shark {
 
 	Application::Application(int argc, char** argv)
 	{
-		m_WorkingDirectory = std::filesystem::current_path();
-		std::filesystem::current_path(m_WorkingDirectory);
-
 		SK_CORE_ASSERT(!s_Instance, "Application allready set");
 		s_Instance = this;
 

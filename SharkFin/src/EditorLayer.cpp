@@ -8,6 +8,7 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 #include <Shark/Render/TestRenderer.h>
 
@@ -26,9 +27,17 @@ namespace Shark {
 	{
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
-		auto& window = Application::Get().GetWindow();
+		auto& app = Application::Get();
+		auto& window = app.GetWindow();
+		auto& proj = app.GetProject();
+
 		m_Scene = Ref<Scene>::Create();
-		m_SceneHirachyPanel.SetContext(*m_Scene);
+		m_SceneHirachyPanel.SetContext(m_Scene);
+		if (proj.HasStartupScene())
+		{
+			m_Scene->SetFilePath(proj.GetStartupScene().string());
+			LoadScene();
+		}
 
 		FrameBufferSpecification geofbspecs;
 		geofbspecs.Width = window.GetWidth();
@@ -67,6 +76,7 @@ namespace Shark {
 		rrspecs.Fill = FillMode::Framed;
 		rrspecs.Cull = CullMode::None;
 		m_HilightRasterizer = Rasterizer::Create(rrspecs);
+
 	}
 
 	void EditorLayer::OnDetach()
@@ -427,6 +437,8 @@ namespace Shark {
 				if (ImGui::MenuItem("Assets", nullptr, &show))
 					m_AssetsPanel.ShowPanel(show);
 
+				ImGui::MenuItem("Project", nullptr, &m_ShowProject);
+
 				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
 				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
 
@@ -464,7 +476,7 @@ namespace Shark {
 		}
 
 		auto fbtex = m_CompositFrameBuffer->GetFramBufferContent(0);
-		UI::NoAlpaImage(nullptr, fbtex->GetRenderID(), size);
+		UI::NoAlpaImage(fbtex->GetRenderID(), size);
 
 
 		// ImGuizmo
@@ -552,20 +564,20 @@ namespace Shark {
 		// DragDrop
 		if (ImGui::BeginDragDropTarget())
 		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(AssetPayload::ID);
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
 			if (payload)
 			{
-				AssetPayload* asset = (AssetPayload*)payload->Data;
-				if (asset->Type == AssetType::Scene)
+				UI::ContentPayload* content = (UI::ContentPayload*)payload->Data;
+				if (content->Type == UI::ContentType::Scene)
 				{
 					m_PlayScene = false;
-					m_Scene.Deserialize(asset->FilePath);
-					m_Scene->SetFilePath(asset->FilePath);
+					m_Scene.Deserialize(content->Path);
+					m_Scene->SetFilePath(content->Path);
 
 					m_SceneHirachyPanel.SetContext(*m_Scene);
 					m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 				}
-				else if (asset->Type == AssetType::Texture)
+				else if (content->Type == UI::ContentType::Texture)
 				{
 					if (m_HoveredEntityID != -1)
 					{
@@ -574,16 +586,15 @@ namespace Shark {
 						if (entity.HasComponent<SpriteRendererComponent>())
 						{
 							auto& sr = entity.GetComponent<SpriteRendererComponent>();
-							sr.Texture = Texture2D::Create(asset->FilePath);
+							sr.Texture = Texture2D::Create(content->Path);
 						}
 					}
 				}
 			}
 			ImGui::EndDragDropTarget();
 		}
-
-
 		ImGui::End();
+
 
 		if (m_ShowInfo)
 		{
@@ -699,8 +710,142 @@ namespace Shark {
 			ImGui::End();
 		}
 
+		OnImGuiRender_Project();
 		m_SceneHirachyPanel.OnImGuiRender();
 		m_AssetsPanel.OnImGuiRender();
+	}
+
+	void EditorLayer::OnImGuiRender_Project()
+	{
+		if (!m_ShowProject)
+			return;
+
+		if (ImGui::Begin("Project", &m_ShowProject))
+		{
+			Project& proj = Application::Get().GetProject();
+			ImGui::BeginTable("Table", 2, ImGuiTableFlags_BordersInnerV);
+			ImGui::TableSetupColumn("LabelCollumn", ImGuiTableColumnFlags_WidthFixed, 100);
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("Name");
+			ImGui::TableSetColumnIndex(1);
+			UI::InputText("##ProjectName", proj.GetProjectName());
+			UI::GetContentPayload(proj.GetProjectName(), UI::ContentType::Directory);
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("Assets");
+			ImGui::TableSetColumnIndex(1);
+			UI::InputText("##AssetsPath", proj.GetAssetsPath());
+			UI::GetContentPayload(proj.GetAssetsPath(), UI::ContentType::Directory);
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("Textures");
+			ImGui::TableSetColumnIndex(1);
+			UI::InputText("##TexturesPath", proj.GetTexturesPath());
+			UI::GetContentPayload(proj.GetTexturesPath(), UI::ContentType::Directory);
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("Scens");
+			ImGui::TableSetColumnIndex(1);
+			UI::InputText("##ScenesPath", proj.GetScenesPath());
+			UI::GetContentPayload(proj.GetScenesPath(), UI::ContentType::Directory);
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("Startup Scene");
+			ImGui::TableSetColumnIndex(1);
+			UI::InputText("##StartupScene", proj.GetStartupScene());
+			UI::GetContentPayload(proj.GetStartupScene(), UI::ContentType::Scene);
+
+			ImGui::EndTable();
+
+			ImGui::Separator();
+
+			ImGuiStyle& style = ImGui::GetStyle();
+
+			if (ImGui::Button("Add Current Scene"))
+			{
+				std::filesystem::path path = m_Scene->GetFilePath();
+				if (!Utility::Contains(proj.GetScenes(), path))
+					proj.AddScene(path);
+			}
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, { 0.5f, 0.5f, 0.5f, 0.05f });
+			const float itemheight = ImGui::GetFontSize() + UI::GetFramePadding().y * 2.0f;
+			const float height = std::max(ImGui::GetContentRegionAvail().y - (itemheight + UI::GetFramePadding().y) - 1, itemheight);
+			if (ImGui::BeginChild("ProjectScenes", { 0, height }, true))
+			{
+				UI::MoveCurserPosY(-UI::GetFramePadding().y);
+				for (size_t index = 0; index < proj.GetNumScenes();)
+				{
+					ImGui::PushID((int)index);
+					bool incement = true;
+
+					UI::Text(proj.GetSceneAt(index));
+
+					float size = ImGui::GetFontSize();
+					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 });
+					ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
+					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.8f, 0.8f, 0.8f, 0.1f });
+					ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.8f, 0.8f, 0.8f, 0.2f });
+					const bool pressed = UI::ButtonRightAligned("+", { size, size });
+					ImGui::PopStyleColor(3);
+					ImGui::PopStyleVar();
+
+					const ImGuiID popupID = ImGui::GetID("EditScene_PopUp");
+					if (pressed)
+						ImGui::OpenPopupEx(popupID);
+					if (UI::BeginPopup(popupID, ImGuiWindowFlags_None))
+					{
+						if (ImGui::Selectable("Move Up", false, index == 0 ? ImGuiSelectableFlags_Disabled : 0))
+							std::swap(proj.GetSceneAt(index), proj.GetSceneAt(index - 1));
+
+						if (ImGui::Selectable("Move Down", false, index == proj.GetNumScenes() - 1 ? ImGuiSelectableFlags_Disabled : 0))
+							std::swap(proj.GetSceneAt(index), proj.GetSceneAt(index + 1));
+
+						ImGui::Separator();
+
+						if (ImGui::Selectable("Remove"))
+						{
+							proj.Remove(index);
+							incement = false;
+						}
+						ImGui::EndPopup();
+					}
+
+					if (incement)
+						index++;
+
+					ImGui::PopID();
+					ImGui::Separator();
+				}
+			}
+			ImGui::EndChild();
+			ImGui::PopStyleColor();
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
+				if (payload)
+				{
+					UI::ContentPayload* content = (UI::ContentPayload*)payload->Data;
+					if (content->Type == UI::ContentType::Scene)
+						if (!Utility::Contains(proj.GetScenes(), content->Path))
+							proj.AddScene(content->Path);
+				}
+				ImGui::EndDragDropTarget();
+			}
+			if (ImGui::Button("Save Project"))
+				proj.SaveProjectFile();
+			ImGui::SameLine();
+			if (ImGui::Button("Load Project"))
+				proj.LoadProject();
+
+		}
+		ImGui::End();
 	}
 
 	void EditorLayer::NewScene()
@@ -729,6 +874,35 @@ namespace Shark {
 			m_SceneHirachyPanel.SetContext(*m_Scene);
 			m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
+	}
+
+	void EditorLayer::SetActiveScene(Ref<Scene> scene)
+	{
+		m_Scene = scene;
+		m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		m_SceneHirachyPanel.SetContext(scene);
+	}
+
+	void EditorLayer::LoadScene()
+	{
+		SK_CORE_ASSERT(m_Scene);
+
+		SceneSerializer serializer(m_Scene);
+		serializer.Deserialize(m_Scene->GetFilePath());
+	}
+
+	void EditorLayer::LoadNewScene(const std::filesystem::path& filepath)
+	{
+		SK_CORE_ASSERT(!filepath.empty(), "Tried to load scene but filepath is empty!");
+		SK_CORE_ASSERT(FileSystem::Exists(filepath), "Tried to load scene but filepath dosen't exist!");
+
+		auto scene = Ref<Scene>::Create();
+		scene->SetFilePath(filepath.string());
+
+		SceneSerializer serializer(scene);
+		serializer.Deserialize(scene->GetFilePath());
+
+		SetActiveScene(scene);
 	}
 
 	void EditorLayer::OnPlayScene()

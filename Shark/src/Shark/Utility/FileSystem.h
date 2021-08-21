@@ -4,6 +4,13 @@
 #undef CreateDirectory
 #undef DeleteFile
 
+namespace Shark {
+
+	using namespace std::string_literals;
+	inline std::filesystem::path operator"" p(const char* str, size_t size) { return std::filesystem::path(str); }
+
+}
+
 namespace Shark::FileSystem {
 
 	bool CreateFile(const std::string& path);
@@ -12,6 +19,7 @@ namespace Shark::FileSystem {
 	bool Rename(const std::string& oldPath, const std::string& newPath);
 	bool Delete(const std::string& path);
 	uint32_t DeleteAll(const std::string& path);
+	bool Exists(const std::string& path);
 
 	bool CreateFile(const std::filesystem::path& path);
 	bool CreateDirectory(const std::filesystem::path& path);
@@ -19,5 +27,6 @@ namespace Shark::FileSystem {
 	bool Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
 	bool Delete(const std::filesystem::path& path);
 	uint32_t DeleteAll(const std::filesystem::path& path);
+	bool Exists(const std::filesystem::path& path);
 
 }

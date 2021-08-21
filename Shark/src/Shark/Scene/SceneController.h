@@ -26,6 +26,7 @@ namespace Shark {
 
 		const Ref<Scene>& operator->() const { return m_Active; }
 		const Ref<Scene>& operator*() const { return m_Active; }
+		operator Ref<Scene>() const { return m_Active; }
 
 		operator bool() const { return m_Active.operator bool(); }
 	private:
