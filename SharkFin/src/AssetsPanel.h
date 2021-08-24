@@ -86,7 +86,7 @@ namespace Shark {
 
 		Ref<Texture2D> m_DirectoryIcon;
 		Ref<Texture2D> m_StandartFileIcon;
-		int m_IconSize = 80.0f;
+		int m_IconSize = 80;
 
 
 		std::unordered_map<std::string, Directory> m_Directorys;

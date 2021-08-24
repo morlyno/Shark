@@ -105,7 +105,7 @@ namespace Shark {
 	bool Project::LoadProject()
 	{
 		m_Scenes.clear();
-		if (!FileSystem::Exists("project.skproj"p))
+		if (!FileSystem::Exists(std::filesystem::path("project.skproj")))
 		{
 			SK_CORE_INFO("Project File not found");
 			return false;

@@ -181,7 +181,7 @@ namespace Shark {
 			entry.Type = Utils::GetEntryTypeFromDirectoryEntry(directoryEntry);
 			if (entry.Type == Entry::ContentType::File)
 			{
-				entry.ByteSize = directoryEntry.file_size();
+				entry.ByteSize = (uint32_t)directoryEntry.file_size();
 				directory.Files++;
 			}
 
@@ -642,7 +642,7 @@ namespace Shark {
 		if (ImGui::BeginDragDropSource())
 		{
 			UI::ContentPayload payload;
-			strcpy(payload.Path, path.c_str());
+			strcpy_s(payload.Path, path.c_str());
 			payload.Type = type;
 			ImGui::SetDragDropPayload(UI::ContentPayload::ID, &payload, sizeof(UI::ContentPayload));
 			ImGui::EndDragDropSource();

@@ -42,7 +42,7 @@ namespace Shark {
 		void DestroyEntity(Entity entity);
 
 		bool IsValidEntity(Entity entity) const;
-		uint32_t AliveEntitys() const { return m_Registry.alive(); }
+		uint32_t AliveEntitys() const { return (uint32_t)m_Registry.alive(); }
 
 		Entity GetActiveCamera();
 		uint32_t GetActiveCameraID() const { return (uint32_t)m_ActiveCameraID; }

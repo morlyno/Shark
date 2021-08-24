@@ -302,7 +302,7 @@ namespace Shark {
 			ImGui::Separator();
 			int geometry = (int)comp.Geometry;
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
-			if (ImGui::Combo("##Geometry", &geometry, s_GeomatryTypes, std::size(s_GeomatryTypes)))
+			if (ImGui::Combo("##Geometry", &geometry, s_GeomatryTypes, (int)Utility::ArraySize(s_GeomatryTypes)))
 				comp.Geometry = (Geometry)geometry;
 		});
 
@@ -508,7 +508,7 @@ namespace Shark {
 		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [entity](NativeScriptComponent& comp) mutable
 		{
 			char inputbuffer[128];
-			strcpy(inputbuffer, comp.ScriptTypeName.c_str());
+			strcpy_s(inputbuffer, comp.ScriptTypeName.c_str());
 
 			const bool found = NativeScriptFactory::Exist(inputbuffer);
 
@@ -531,7 +531,7 @@ namespace Shark {
 					ImGui::TreeNodeEx(m.first.c_str(), flags);
 					if (ImGui::IsItemClicked())
 					{
-						strcpy(inputbuffer, m.first.c_str());
+						strcpy_s(inputbuffer, m.first.c_str());
 						changed = true;
 						break;
 					}

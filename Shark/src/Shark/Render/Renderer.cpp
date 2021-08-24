@@ -4,6 +4,7 @@
 #include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/Buffers.h"
+#include "Shark/Utility/Utility.h"
 
 namespace Shark {
 
@@ -48,8 +49,7 @@ namespace Shark {
 		};
 
 		s_BaseData->QuadVB = VertexBuffer::Create(layout, vertices, sizeof(vertices));
-		s_BaseData->QuadIB = IndexBuffer::Create(indices, std::size(indices));
-
+		s_BaseData->QuadIB = IndexBuffer::Create(indices, Utility::ArraySize(indices));
 		Renderer2D::Init();
 	}
 

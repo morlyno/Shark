@@ -214,7 +214,7 @@ namespace Shark {
 		return m_FrameBufferTextures[index];
 	}
 
-	int DirectXFrameBuffer::ReadPixel(uint32_t index, int x, int y)
+	int DirectXFrameBuffer::ReadPixel(uint32_t index, uint32_t x, uint32_t y)
 	{
 		if (x < 0 || y < 0 || x >= m_Specification.Width || y >= m_Specification.Height)
 		{
@@ -405,8 +405,8 @@ namespace Shark {
 
 		m_Viewport.TopLeftX = 0;
 		m_Viewport.TopLeftY = 0;
-		m_Viewport.Width = m_Specification.Width;
-		m_Viewport.Height = m_Specification.Height;
+		m_Viewport.Width = (FLOAT)m_Specification.Width;
+		m_Viewport.Height = (FLOAT)m_Specification.Height;
 		m_Viewport.MinDepth = 0;
 		m_Viewport.MaxDepth = 1;
 
@@ -442,7 +442,7 @@ namespace Shark {
 
 		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBlendState(&bd, &m_BlendState));
 
-		m_Count = m_FrameBuffers.size();
+		m_Count = (uint32_t)m_FrameBuffers.size();
 
 		if (!m_IsSwapChainTarget)
 		{

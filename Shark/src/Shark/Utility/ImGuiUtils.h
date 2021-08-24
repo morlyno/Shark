@@ -44,7 +44,7 @@ namespace Shark {
 		bool DrawFloatXControl(const std::string& label, float* data, uint32_t count, float resetVal = 0.0f, const char* fmt = "%.2f", float textWidth = 100.0f);
 
 		void NoAlpaImage(ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, const ImVec4& tintcolor = { 1, 1, 1, 1 }, const ImVec4& bordercolor = { 0, 0, 0, 0 });
-		bool SelectTextureImageButton(Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, float framepadding = -1, const ImVec4& bgColor = { 0, 0, 0, 0 }, const ImVec4& tintcolor = { 1, 1, 1, 1 });
+		bool SelectTextureImageButton(Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, int framepadding = -1, const ImVec4& bgColor = { 0, 0, 0, 0 }, const ImVec4& tintcolor = { 1, 1, 1, 1 });
 
 		bool ImageButton(const std::string& strID, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, int frame_padding = -1, const ImVec4& bg_col = { 0, 0, 0, 0 }, const ImVec4& tint_col = { 1, 1, 1, 1 });
 		bool ImageButton(ImGuiID id, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, int frame_padding = -1, const ImVec4& bg_col = { 0, 0, 0, 0 }, const ImVec4& tint_col = { 1, 1, 1, 1 });

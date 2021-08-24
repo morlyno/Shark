@@ -206,7 +206,7 @@ namespace Shark {
 								BufferValue val;
 								val.Size = variableDesc.Size;
 								val.Offset = variableDesc.StartOffset;
-								val.BufferIndex = m_ConstantBuffers.size() - 1;
+								val.BufferIndex = (uint32_t)m_ConstantBuffers.size() - 1;
 								SK_CORE_ASSERT(m_Values.find(variableDesc.Name) == m_Values.end());
 								m_Values[variableDesc.Name] = val;
 

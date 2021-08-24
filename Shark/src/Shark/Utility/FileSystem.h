@@ -7,7 +7,6 @@
 namespace Shark {
 
 	using namespace std::string_literals;
-	inline std::filesystem::path operator"" p(const char* str, size_t size) { return std::filesystem::path(str); }
 
 }
 

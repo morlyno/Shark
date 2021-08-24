@@ -537,12 +537,12 @@ namespace Shark {
 		{
 			auto [mx, my] = ImGui::GetMousePos();
 			auto [wx, wy] = window->WorkRect.Min;
-			x = mx - wx;
-			y = my - wy;
+			x = (int)(mx - wx);
+			y = (int)(my - wy);
 			m_HoveredEntityID = -1;
 
 			auto&& [width, height] = m_GemometryFrameBuffer->GetSize();
-			if (x >= 0 && x < width && y >= 0 && y < height)
+			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 			{
 				m_HoveredEntityID = m_GemometryFrameBuffer->ReadPixel(1, x, y);
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
@@ -616,7 +616,7 @@ namespace Shark {
 			ImGui::Text("Textur Count: %d", s.TextureCount);
 
 			ImGui::NewLine();
-			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && m_HoveredEntityID >= 0)
+			if (x >= 0 && x < (int)m_ViewportWidth && y >= 0 && y < (int)m_ViewportHeight && m_HoveredEntityID >= 0)
 			{
 				Entity e{ (entt::entity)m_HoveredEntityID, *m_ActiveScene };
 				if (e.IsValid())
@@ -789,7 +789,7 @@ namespace Shark {
 			if (ImGui::BeginChild("ProjectScenes", { 0, height }, true))
 			{
 				UI::MoveCurserPosY(-UI::GetFramePadding().y);
-				for (size_t index = 0; index < proj.GetNumScenes();)
+				for (uint32_t index = 0; index < proj.GetNumScenes();)
 				{
 					ImGui::PushID((int)index);
 					bool incement = true;

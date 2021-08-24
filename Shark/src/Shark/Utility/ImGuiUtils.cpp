@@ -301,7 +301,7 @@ namespace Shark::UI {
 
 	}
 
-	bool SelectTextureImageButton(Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, float framepadding, const ImVec4& bgColor, const ImVec4& tintcolor)
+	bool SelectTextureImageButton(Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int framepadding, const ImVec4& bgColor, const ImVec4& tintcolor)
 	{
 		bool changed = false;
 

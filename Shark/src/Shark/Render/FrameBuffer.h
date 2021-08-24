@@ -77,7 +77,7 @@ namespace Shark {
 		virtual bool IsStencilEnabled() const = 0;
 
 		virtual Ref<Texture2D> GetFramBufferContent(uint32_t index) = 0;
-		virtual int ReadPixel(uint32_t index, int x, int y) = 0;
+		virtual int ReadPixel(uint32_t index, uint32_t x, uint32_t y) = 0;
 
 		virtual const FrameBufferSpecification& GetSpecification() const = 0;
 

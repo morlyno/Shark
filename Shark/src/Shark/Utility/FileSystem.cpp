@@ -92,7 +92,7 @@ namespace Shark::FileSystem {
 	uint32_t DeleteAll(const std::filesystem::path& path)
 	{
 		std::error_code err;
-		uint32_t deleted = std::filesystem::remove_all(path, err);
+		uint32_t deleted = (uint32_t)std::filesystem::remove_all(path, err);
 		if (err)
 		{
 			SK_FS_ERROR(err.message());

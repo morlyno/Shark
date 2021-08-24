@@ -70,5 +70,7 @@ namespace Shark::Utility {
 	template<> struct IntTypeFromSize<4> { using Signed = int32_t; using Unsigned = uint32_t; };
 	template<> struct IntTypeFromSize<8> { using Signed = int64_t; using Unsigned = uint64_t; };
 
+	template<typename T, uint32_t _Count>
+	constexpr uint32_t ArraySize(const T(&)[_Count]) { return _Count; }
 
 }

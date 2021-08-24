@@ -35,7 +35,7 @@ namespace Shark {
 		void SetStartupScene(const std::filesystem::path& starupScene)   { m_StartupScene = starupScene; }
 
 
-		uint32_t GetNumScenes() const                                    { return m_Scenes.size(); }
+		uint32_t GetNumScenes() const                                    { return (uint32_t)m_Scenes.size(); }
 		std::filesystem::path& GetSceneAt(uint32_t index)                { return m_Scenes[index]; }
 		const std::filesystem::path& GetSceneAt(uint32_t index) const    { return m_Scenes[index]; }
 		void AddScene(const std::filesystem::path& filepath)             { m_Scenes.emplace_back(filepath); }
