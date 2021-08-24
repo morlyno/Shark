@@ -54,7 +54,7 @@ namespace Shark {
 		Ref<Rasterizer> m_Rasterizer;
 		Ref<Rasterizer> m_HilightRasterizer;
 
-		SceneController m_Scene;
+		SceneController m_ActiveScene;
 		SceneHirachyPanel m_SceneHirachyPanel;
 		AssetsPanel m_AssetsPanel;
 
@@ -66,7 +66,7 @@ namespace Shark {
 
 		bool m_ShowInfo = true;
 		bool m_ShowEditorCameraControlls = false;
-		bool m_ShowProject = false;
+		bool m_ShowProject = true;
 
 		int m_HoveredEntityID = -1;
 

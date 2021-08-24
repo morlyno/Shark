@@ -43,9 +43,12 @@ namespace Shark {
 			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
 
+
+		SK_CORE_ASSERT(SK_PLATFORM_WINDOWS, "ImGui currently only works with Windows!");
 		Window& window = Application::Get().GetWindow();
 		ImGui_ImplWin32_Init(window.GetHandle());
 
+		SK_CORE_ASSERT(RendererAPI::GetAPI() == RendererAPI::API::DirectX11, "ImGui currently only works with DirectX11!");
 		auto& dxr = DirectXRendererAPI::Get();
 		ImGui_ImplDX11_Init(dxr.GetDevice(), dxr.GetContext());
 	}
@@ -120,6 +123,7 @@ namespace Shark {
 		colors[ImGuiCol_Header] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
 		colors[ImGuiCol_HeaderHovered] = ImVec4(0.47f, 0.47f, 0.47f, 1.00f);
 		colors[ImGuiCol_HeaderActive] = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
+		colors[ImGuiCol_ChildBg] = ImVec4(0.5f, 0.5f, 0.5f, 0.05f);
 	}
 
 }

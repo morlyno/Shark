@@ -1,3 +1,4 @@
+#include "skfpch.h"
 
 #include <Shark/Scene/NativeScriptFactory.h>
 #include <Shark/Scene/Components/Components.h>

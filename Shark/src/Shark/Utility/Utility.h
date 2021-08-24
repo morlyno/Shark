@@ -64,4 +64,11 @@ namespace Shark::Utility {
 		container.erase(container.cbegin() + index);
 	}
 
+	template<size_t S> struct IntTypeFromSize {};
+	template<> struct IntTypeFromSize<1> { using Signed = int8_t;  using Unsigned = uint8_t;  };
+	template<> struct IntTypeFromSize<2> { using Signed = int16_t; using Unsigned = uint16_t; };
+	template<> struct IntTypeFromSize<4> { using Signed = int32_t; using Unsigned = uint32_t; };
+	template<> struct IntTypeFromSize<8> { using Signed = int64_t; using Unsigned = uint64_t; };
+
+
 }

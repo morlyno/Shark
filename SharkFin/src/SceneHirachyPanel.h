@@ -19,6 +19,8 @@ namespace Shark {
 
 		void ShowPanel(bool show) { m_ShowPanel = show; }
 		bool IsShowen() const { return m_ShowPanel; }
+		void ShwoProerties(bool show) { m_ShowProperties = show; }
+		bool PropertiesShown() const { return m_ShowProperties; }
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 
@@ -35,6 +37,7 @@ namespace Shark {
 		bool OnSelectionChanged(SelectionChangedEvent& event);
 	private:
 		bool m_ShowPanel = true;
+		bool m_ShowProperties = false;
 
 		Ref<Scene> m_Context;
 		Entity m_SelectedEntity;
@@ -46,6 +49,8 @@ namespace Shark {
 		static constexpr const char* s_GeomatryTypes[] = { "None", "Quad", "Circle" };
 
 		bool m_ScriptFound = false;
+
+		std::string m_FilePathInputBuffer;
 	};
 
 }

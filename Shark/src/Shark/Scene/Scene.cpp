@@ -44,14 +44,14 @@ namespace Shark {
 		return *this;
 	}
 
-	Ref<Scene> Scene::Copy()
+	Ref<Scene> Scene::GetCopy()
 	{
 		auto scene = Ref<Scene>::Create();
-		Copy(scene);
+		CopyInto(scene);
 		return scene;
 	}
 
-	void Scene::Copy(Ref<Scene> dest)
+	void Scene::CopyInto(Ref<Scene> dest)
 	{
 		dest->m_World = World(m_World.GetGravity());
 		dest->m_Registry = entt::registry{};
@@ -59,7 +59,7 @@ namespace Shark {
 		m_Registry.each([this, dest](auto entity)
 		{
 			Entity e{ entity, this };
-			dest->CreateEntity(e, true);
+			dest->CopyEntity(e, true);
 		});
 
 		dest->m_ActiveCameraID = m_ActiveCameraID;
@@ -174,38 +174,18 @@ namespace Shark {
 		m_World.Flush();
 	}
 
-	Entity Scene::CreateEntity(Entity other, bool hint)
+	Entity Scene::CopyEntity(Entity other, bool hint)
 	{
 		entt::entity entityID = hint ? m_Registry.create(other) : m_Registry.create();
-		Entity e{ entityID, Weak(this) };
+		auto e = Entity{ entityID, this };
 
-		if (other.HasComponent<TagComponent>())
-			e.AddComponent<TagComponent>(other.GetComponent<TagComponent>());
-
-		if (other.HasComponent<TransformComponent>())
-			e.AddComponent<TransformComponent>(other.GetComponent<TransformComponent>());
-
-		if (other.HasComponent<SpriteRendererComponent>())
-			e.AddComponent<SpriteRendererComponent>(other.GetComponent<SpriteRendererComponent>());
-
-		if (other.HasComponent<CameraComponent>())
-			e.AddComponent<CameraComponent>(other.GetComponent<CameraComponent>());
-
-		if (other.HasComponent<NativeScriptComponent>())
-			e.AddComponent<NativeScriptComponent>(other.GetComponent<NativeScriptComponent>());
-
-		if (other.HasComponent<RigidBodyComponent>())
-		{
-			auto& othercomp = other.GetComponent<RigidBodyComponent>();
-			auto& comp = e.AddComponent<RigidBodyComponent>();
-			comp.Body.SetState(othercomp.Body.GetCurrentState());
-		}
-		if (other.HasComponent<BoxColliderComponent>())
-		{
-			auto& othercomp = other.GetComponent<BoxColliderComponent>();
-			auto& comp = e.AddComponent<BoxColliderComponent>();
-			comp.Collider.SetState(othercomp.Collider.GetCurrentState());
-		}
+		TryCopyComponent<TagComponent>(other, e);
+		TryCopyComponent<TransformComponent>(other, e);
+		TryCopyComponent<SpriteRendererComponent>(other, e);
+		TryCopyComponent<CameraComponent>(other, e);
+		TryCopyComponent<NativeScriptComponent>(other, e);
+		TryCopyComponent<RigidBodyComponent>(other, e);
+		TryCopyComponent<BoxColliderComponent>(other, e);
 
 		return e;
 	}
@@ -222,6 +202,11 @@ namespace Shark {
 	void Scene::DestroyEntity(Entity entity)
 	{
 		m_Registry.destroy(entity);
+	}
+
+	bool Scene::IsValidEntity(Entity entity)const
+	{
+		return m_Registry.valid(entity);
 	}
 
 	Entity Scene::GetActiveCamera()
@@ -244,23 +229,90 @@ namespace Shark {
 		}
 	}
 
-	bool Scene::IsValidEntity(Entity entity)
+
+	template<typename Comp>
+	void Scene::CopyComponent(Entity src, Entity dest)
 	{
-		return m_Registry.valid(entity);
+		static_assert(false);
 	}
 
-	void Scene::OnEvent(Event& event)
+	template<>
+	void Scene::CopyComponent<TagComponent>(Entity src, Entity dest)
 	{
-		EventDispacher dispacher(event);
-		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(Scene::OnSelectionChanged));
+		SK_CORE_ASSERT(IsValidEntity(src));
+		SK_CORE_ASSERT(src.HasComponent<TagComponent>());
+		TagComponent& destComp = dest.TryAddComponent<TagComponent>();
+		TagComponent& srcComp = src.GetComponent<TagComponent>();
+		destComp.Tag = srcComp.Tag;
 	}
 
-	bool Scene::OnSelectionChanged(SelectionChangedEvent& event)
+	template<>
+	void Scene::CopyComponent<TransformComponent>(Entity src, Entity dest)
 	{
-		// TODO: not used. can probably be removed.
-		m_SelectedEntity = event.GetSelectedEntity();
-		return false;
+		SK_CORE_ASSERT(IsValidEntity(src));
+		SK_CORE_ASSERT(src.HasComponent<TransformComponent>());
+		auto& destComp = dest.TryAddComponent<TransformComponent>();
+		auto& srcComp = src.GetComponent<TransformComponent>();
+		destComp.Position = srcComp.Position;
+		destComp.Rotation = srcComp.Rotation;
+		destComp.Scaling = srcComp.Scaling;
 	}
+
+	template<>
+	void Scene::CopyComponent<SpriteRendererComponent>(Entity src, Entity dest)
+	{
+		SK_CORE_ASSERT(IsValidEntity(src));
+		SK_CORE_ASSERT(src.HasComponent<SpriteRendererComponent>());
+		auto& destComp = dest.TryAddComponent<SpriteRendererComponent>();
+		auto& srcComp = src.GetComponent<SpriteRendererComponent>();
+		destComp.Color = srcComp.Color;
+		destComp.Texture = srcComp.Texture;
+		destComp.TilingFactor = srcComp.TilingFactor;
+		destComp.Geometry = srcComp.Geometry;
+	}
+
+	template<>
+	void Scene::CopyComponent<CameraComponent>(Entity src, Entity dest)
+	{
+		SK_CORE_ASSERT(IsValidEntity(src));
+		SK_CORE_ASSERT(src.HasComponent<CameraComponent>());
+		auto& destComp = dest.TryAddComponent<CameraComponent>();
+		auto& srcComp = src.GetComponent<CameraComponent>();
+		destComp.Camera = srcComp.Camera;
+	}
+
+	template<>
+	void Scene::CopyComponent<NativeScriptComponent>(Entity src, Entity dest)
+	{
+		SK_CORE_ASSERT(IsValidEntity(src));
+		SK_CORE_ASSERT(src.HasComponent<NativeScriptComponent>());
+		auto& destComp = dest.TryAddComponent<NativeScriptComponent>();
+		auto& srcComp = src.GetComponent<NativeScriptComponent>();
+		destComp.ScriptTypeName = srcComp.ScriptTypeName;
+		destComp.CreateScript = srcComp.CreateScript;
+		destComp.DestroyScript = srcComp.DestroyScript;
+	}
+	
+	template<>
+	void Scene::CopyComponent<RigidBodyComponent>(Entity src, Entity dest)
+	{
+		SK_CORE_ASSERT(IsValidEntity(src));
+		SK_CORE_ASSERT(src.HasComponent<RigidBodyComponent>());
+		auto& destComp = dest.TryAddComponent<RigidBodyComponent>();
+		auto& srcComp = src.GetComponent<RigidBodyComponent>();
+		destComp.Body.SetState(srcComp.Body.GetCurrentState());
+	}
+	
+	template<>
+	void Scene::CopyComponent<BoxColliderComponent>(Entity src, Entity dest)
+	{
+		SK_CORE_ASSERT(IsValidEntity(src));
+		SK_CORE_ASSERT(src.HasComponent<BoxColliderComponent>());
+		auto& destComp = dest.TryAddComponent<BoxColliderComponent>();
+		auto& srcComp = src.GetComponent<BoxColliderComponent>();
+		destComp.Collider.SetState(srcComp.Collider.GetCurrentState());
+	}
+
 
 
 

@@ -393,7 +393,7 @@ namespace Shark::UI {
 
 	bool InputText(const char* label, std::filesystem::path& path, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
 	{
-		auto str = path.string();
+		auto&& str = path.string();
 		bool retval = InputText(label, str, flags, callback, user_data);
 		path = std::move(str);
 		return retval;

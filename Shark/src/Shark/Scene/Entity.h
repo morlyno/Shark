@@ -48,6 +48,14 @@ namespace Shark {
 		}
 
 		template<typename Component>
+		Component& TryAddComponent()
+		{
+			if (!HasComponent<Component>())
+				return AddComponent<Component>();
+			return GetComponent<Component>();
+		}
+
+		template<typename Component>
 		bool HasComponent() const { return m_Scene->m_Registry.has<Component>(m_EntityHandle); }
 
 		bool IsValid() const { return m_Scene->m_Registry.valid(m_EntityHandle); }

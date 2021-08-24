@@ -14,10 +14,7 @@ namespace Shark {
 		void SaveState();
 		void LoadState();
 
-		void SetSavePath(const std::string& savepath) { m_SavePath = savepath; }
-		const std::string GetSavePath() const { return m_SavePath; }
-
-		bool Serialize() { return Serialize(m_SavePath); }
+		bool Serialize() { return Serialize(m_Active->GetFilePath()); }
 		bool Serialize(const std::string& filepath);
 		bool Deserialize(const std::string& filepath);
 
@@ -30,7 +27,6 @@ namespace Shark {
 
 		operator bool() const { return m_Active.operator bool(); }
 	private:
-		std::string m_SavePath;
 		Ref<Scene> m_Active;
 		Ref<Scene> m_SaveState;
 	};

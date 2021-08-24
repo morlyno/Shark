@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Shark/Core/PlatformDetection.h"
-
 #include <memory>
 #include <utility>
 #include <functional>
@@ -22,7 +20,7 @@
 
 #include <chrono>
 
-#ifdef SK_PLATFORM_WINDOWS
+#if SK_PLATFORM_WINDOWS
 	#ifndef NOMINMAX
 		#define NOMINMAX
 	#endif

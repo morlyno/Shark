@@ -32,6 +32,7 @@ project "Shark"
 
     filter "system:windows"
         systemversion "latest"
+        defines "SK_PLATFORM_WINDOWS"
 
         links
         {

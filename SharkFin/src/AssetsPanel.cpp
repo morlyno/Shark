@@ -1,3 +1,4 @@
+#include "skfpch.h"
 #include "AssetsPanel.h"
 
 #include <misc/cpp/imgui_stdlib.h>
@@ -121,6 +122,7 @@ namespace Shark {
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.5f, 0.5f, 0.5f, 0.1f });
 		ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
 
+		const float maxHeight = ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing();
 		if (ImGui::BeginTable("Assets", 2, ImGuiTableFlags_Resizable))
 		{
 			ImGui::TableNextRow();
@@ -140,6 +142,21 @@ namespace Shark {
 		m_IgnoreNextSelectionCheck = false;
 
 		ImGui::PopStyleColor(3);
+
+		UI::MoveCurserPosY(ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing());
+		ImGui::Separator();
+		
+		const float widthAvailable = ImGui::GetContentRegionAvail().x;
+		const float textSize = UI::GetItemSize("Icon Size").x;
+		const float sliderSize = (widthAvailable - textSize - UI::GetFramePadding().x) * 0.2f;
+		const float offset = widthAvailable - textSize - sliderSize;
+		
+		UI::MoveCurserPosX(offset);
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Icon Size");
+		ImGui::SameLine();
+		ImGui::PushItemWidth(sliderSize);
+		ImGui::SliderInt("##Icon Size", &m_IconSize, 40, 180);
 
 		ImGui::End();
 	}
@@ -297,13 +314,16 @@ namespace Shark {
 
 	void AssetsPanel::DrawCurrentDirectory()
 	{
-		const int maxCollumns = std::clamp((int)(ImGui::GetContentRegionAvailWidth() / m_ContentItemSize), 1, 64);
-
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		ImGuiStyle& style = ImGui::GetStyle();
-
-		if (ImGui::BeginTable("Directory Content", maxCollumns))
+		const int maxCollumns = std::clamp((int)(ImGui::GetContentRegionAvailWidth() / m_IconSize), 1, 64);
+		const float maxHeight = ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() - 1;
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, { 0.0f, 0.0f, 0.0f, 0.0f });
+		const bool tableActive = ImGui::BeginTable("Directory Content", maxCollumns, ImGuiTableFlags_ScrollY, { 0, maxHeight });
+		ImGui::PopStyleColor();
+		if (tableActive)
 		{
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			ImGuiStyle& style = ImGui::GetStyle();
+
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
 			const auto& directory = m_Directorys[m_CurrentDirectoryString];
@@ -316,7 +336,7 @@ namespace Shark {
 				const RenderID textureID = GetContentTextureID(entry);
 
 				window->DC.CursorPos.x -= style.FramePadding.x;
-				UI::ImageButton(path, textureID, { m_ContentItemSize, m_ContentItemSize });
+				UI::ImageButton(path, textureID, { (float)m_IconSize, (float)m_IconSize });
 				ImGuiID buttonid = window->DC.LastItemId;
 				if (m_OnRenameEntry && m_RenameTarget == path)
 					DrawRenameInput();

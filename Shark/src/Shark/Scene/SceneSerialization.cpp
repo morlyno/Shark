@@ -3,86 +3,14 @@
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components/Components.h"
+#include "Shark/Utility/YAMLUtils.h"
 
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 
 #include <DirectXMath.h>
 
-namespace YAML {
-
-	template<>
-	struct convert<DirectX::XMFLOAT2>
-	{
-		static bool decode(const Node& node, DirectX::XMFLOAT2& f2)
-		{
-			if (!node.IsSequence() || node.size() != 2)
-				return false;
-
-			f2.x = node[0].as<float>();
-			f2.y = node[1].as<float>();
-
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<DirectX::XMFLOAT3>
-	{
-		static bool decode(const Node& node, DirectX::XMFLOAT3& f3)
-		{
-			if (!node.IsSequence() || node.size() != 3)
-				return false;
-
-			f3.x = node[0].as<float>();
-			f3.y = node[1].as<float>();
-			f3.z = node[2].as<float>();
-
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<DirectX::XMFLOAT4>
-	{
-		static bool decode(const Node& node, DirectX::XMFLOAT4& f4)
-		{
-			if (!node.IsSequence() || node.size() != 4)
-				return false;
-
-			f4.x = node[0].as<float>();
-			f4.y = node[1].as<float>();
-			f4.z = node[2].as<float>();
-			f4.w = node[3].as<float>();
-
-			return true;
-		}
-	};
-
-}
-
 namespace Shark {
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT2& f2)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << f2.x << f2.y << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& f3)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << f3.x << f3.y << f3.z << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT4& f4)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << f4.x << f4.y << f4.z << f4.w << YAML::EndSeq;
-		return out;
-	}
 
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
 		: m_Scene(scene)
@@ -143,6 +71,7 @@ namespace Shark {
 			out << YAML::Key << "Color" << YAML::Value << comp.Color;
 			out << YAML::Key << "Texture" << YAML::Value << (comp.Texture ? comp.Texture->GetFilePath() : "");
 			out << YAML::Key << "TilingFactor" << YAML::Value << comp.TilingFactor;
+			out << YAML::Key << "Geometry" << YAML::Value << comp.Geometry;
 
 			out << YAML::EndMap;
 		}
@@ -218,7 +147,8 @@ namespace Shark {
 	{
 		YAML::Emitter out;
 
-		SK_CORE_TRACE("Searializing Scene to {0}", filepath);
+		SK_CORE_INFO("==========================================================================================");
+		SK_CORE_INFO("Searializing Scene to {0}", filepath);
 
 		out << YAML::BeginMap << YAML::Key << "Scene" << YAML::Value << "Untitled";
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -240,6 +170,7 @@ namespace Shark {
 		}
 		fout << out.c_str();
 		fout.close();
+		SK_CORE_INFO("==========================================================================================");
 
 		return true;
 	}
@@ -250,7 +181,8 @@ namespace Shark {
 		if (!in["Scene"])
 			return false;
 
-		SK_CORE_TRACE("Deserializing Scene from: {0}", filepath);
+		SK_CORE_INFO("==========================================================================================");
+		SK_CORE_INFO("Deserializing Scene from: {0}", filepath);
 
 		auto entities = in["Entities"];
 		if (entities)
@@ -289,10 +221,13 @@ namespace Shark {
 					auto color = spriteRendererComponent["Color"].as<DirectX::XMFLOAT4>();
 					auto textureFilePath = spriteRendererComponent["Texture"].as<std::string>();
 					auto tilingfactor = spriteRendererComponent["TilingFactor"].as<float>();
+					auto geometry = spriteRendererComponent["Geometry"].as<Geometry>();
+
 					auto& comp = deserializedEntity.AddComponent<SpriteRendererComponent>();
 					comp.Color = color;
 					comp.Texture = textureFilePath.empty() ? nullptr : Texture2D::Create(textureFilePath);
 					comp.TilingFactor = tilingfactor;
+					comp.Geometry = geometry;
 					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
 				}
 
@@ -356,6 +291,7 @@ namespace Shark {
 				}
 			}
 		}
+		SK_CORE_INFO("==========================================================================================");
 		return true;
 	}
 

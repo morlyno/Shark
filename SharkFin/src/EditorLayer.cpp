@@ -1,3 +1,4 @@
+#include "skfpch.h"
 #include "EditorLayer.h"
 
 #include <Shark/Scene/Components/Components.h>
@@ -13,6 +14,9 @@
 #include <Shark/Render/TestRenderer.h>
 
 namespace Shark {
+
+	static bool showDemoWindow = false;
+
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
@@ -31,11 +35,11 @@ namespace Shark {
 		auto& window = app.GetWindow();
 		auto& proj = app.GetProject();
 
-		m_Scene = Ref<Scene>::Create();
-		m_SceneHirachyPanel.SetContext(m_Scene);
+		m_ActiveScene = Ref<Scene>::Create();
+		m_SceneHirachyPanel.SetContext(m_ActiveScene);
 		if (proj.HasStartupScene())
 		{
-			m_Scene->SetFilePath(proj.GetStartupScene().string());
+			m_ActiveScene->SetFilePath(proj.GetStartupScene().string());
 			LoadScene();
 		}
 
@@ -105,21 +109,21 @@ namespace Shark {
 			m_CompositFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
-			m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+			m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 			m_GemometryFrameBuffer->Bind();
 		}
 
-		if (m_Scene)
+		if (m_ActiveScene)
 		{
 			if (m_PlayScene)
 			{
-				m_Scene->OnUpdateRuntime(ts);
+				m_ActiveScene->OnUpdateRuntime(ts);
 			}
 			else
 			{
 				if (m_ViewportHovered)
 					m_EditorCamera.OnUpdate(ts);
-				m_Scene->OnUpdateEditor(ts, m_EditorCamera);
+				m_ActiveScene->OnUpdateEditor(ts, m_EditorCamera);
 			}
 
 			{
@@ -174,17 +178,16 @@ namespace Shark {
 		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnSelectionChanged));
 
 
-		m_Scene->OnEvent(event);
 		m_SceneHirachyPanel.OnEvent(event);
 
 		if (m_PlayScene)
 		{
-			m_Scene->OnEventRuntime(event);
+			m_ActiveScene->OnEventRuntime(event);
 		}
 		else
 		{
 			m_EditorCamera.OnEvent(event);
-			m_Scene->OnEventEditor(event);
+			m_ActiveScene->OnEventEditor(event);
 		}
 	}
 
@@ -225,14 +228,15 @@ namespace Shark {
 			}
 			case Key::S: // Save Scene
 			{
-				if (control && shift)
-				{
-					SaveScene();
-					return true;
-				}
 				if (control)
 				{
-					m_Scene.Serialize();
+					if (shift)
+					{
+						SaveScene();
+						return true;
+					}
+					SceneSerializer serializer(m_ActiveScene);
+					serializer.Serialize();
 					return true;
 				}
 				break;
@@ -254,7 +258,7 @@ namespace Shark {
 			{
 				if (control)
 				{
-					Entity e = m_Scene->CreateEntity(m_SceneHirachyPanel.GetSelectedEntity());
+					Entity e = m_ActiveScene->CopyEntity(m_SceneHirachyPanel.GetSelectedEntity());
 					e.GetComponent<TagComponent>().Tag += " (Copy)";
 					Event::Distribute(SelectionChangedEvent(e));
 					return true;
@@ -266,28 +270,28 @@ namespace Shark {
 			{
 				auto& window = Application::Get().GetWindow();
 				window.SetVSync(!window.IsVSync());
-				break;
+				return true;
 			}
 
 			case Key::Q:
 			{
 				m_CurrentOperation = 0;
-				break;
+				return true;
 			}
 			case Key::W:
 			{
 				m_CurrentOperation = ImGuizmo::TRANSLATE;
-				break;
+				return true;
 			}
 			case Key::E:
 			{
 				m_CurrentOperation = ImGuizmo::ROTATE;
-				break;
+				return true;
 			}
 			case Key::R:
 			{
 				m_CurrentOperation = ImGuizmo::SCALE;
-				break;
+				return true;
 			}
 
 			case Key::F:
@@ -296,7 +300,9 @@ namespace Shark {
 				{
 					const auto& tf = m_SelectetEntity.GetComponent<TransformComponent>();
 					m_EditorCamera.SetFocusPoint(tf.Position);
+					return true;
 				}
+				break;
 			}
 		}
 
@@ -349,22 +355,16 @@ namespace Shark {
 				if (ImGui::MenuItem("New", "ctrl+N"))
 					NewScene();
 				if (ImGui::MenuItem("Save", "ctrl+S"))
-					m_Scene.Serialize();
+					m_ActiveScene.Serialize();
 				if (ImGui::MenuItem("Save As..", "ctrl+shift+S"))
 					SaveScene();
 				if (ImGui::MenuItem("Open..", "ctrl+O"))
 					OpenScene();
 
 				ImGui::Separator();
-
-				if (ImGui::MenuItem("Save State"))
-					m_Scene.SaveState();
-				if (ImGui::MenuItem("Load State"))
-				{
-					m_Scene.LoadState();
-					if (!m_Scene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
-						Event::Distribute(SelectionChangedEvent({}));
-				}
+				bool show = m_SceneHirachyPanel.PropertiesShown();
+				if (ImGui::MenuItem("Properties", nullptr, &show))
+					m_SceneHirachyPanel.ShwoProerties(show);
 
 				ImGui::EndMenu();
 			}
@@ -374,17 +374,17 @@ namespace Shark {
 				Entity se = m_SceneHirachyPanel.GetSelectedEntity();
 				if (ImGui::MenuItem("Add"))
 				{
-					auto e = m_Scene->CreateEntity("New Entity");
+					auto e = m_ActiveScene->CreateEntity("New Entity");
 					Event::Distribute(SelectionChangedEvent(e));
 				}
 				if (ImGui::MenuItem("Destroy", "delete", nullptr, se))
 				{
-					m_Scene->DestroyEntity(se);
+					m_ActiveScene->DestroyEntity(se);
 					Event::Distribute(SelectionChangedEvent({}));
 				}
 				if (ImGui::MenuItem("Copy", "ctrl+D", nullptr, se))
 				{
-					se = m_Scene->CreateEntity(se);
+					se = m_ActiveScene->CopyEntity(se);
 					se.GetComponent<TagComponent>().Tag += " (Copy)";
 					Event::Distribute(SelectionChangedEvent(se));
 				}
@@ -441,6 +441,7 @@ namespace Shark {
 
 				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
 				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
+				ImGui::MenuItem("ImGui Demo Window", nullptr, &showDemoWindow);
 
 				ImGui::Separator();
 
@@ -452,7 +453,6 @@ namespace Shark {
 
 			ImGui::EndMainMenuBar();
 		}
-
         ImGui::End();
 
 
@@ -478,13 +478,16 @@ namespace Shark {
 		auto fbtex = m_CompositFrameBuffer->GetFramBufferContent(0);
 		UI::NoAlpaImage(fbtex->GetRenderID(), size);
 
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
 
 		// ImGuizmo
-
-		if (m_CurrentOperation != 0 && m_SelectetEntity && m_SelectetEntity.HasComponent<TransformComponent>())
+		if (m_CurrentOperation != 0 && m_SelectetEntity)
 		{
-			ImVec2 windowPos = ImGui::GetWindowPos();
-			ImVec2 windowSize = ImGui::GetWindowSize();
+			// Every entity has a Transform Component
+			SK_CORE_ASSERT(m_SelectetEntity.HasComponent<TransformComponent>());
+
+			ImVec2 windowPos = window->WorkRect.Min;
+			ImVec2 windowSize = window->WorkRect.GetSize();
 
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
@@ -526,16 +529,14 @@ namespace Shark {
 			}
 
 		}
-		bool m_GizmoUsed = ImGuizmo::IsUsing();
 
 		// Mouse Picking
-
 		int x = -1;
 		int y = -1;
-		if (!m_GizmoUsed)
+		if (!ImGuizmo::IsUsing())
 		{
 			auto [mx, my] = ImGui::GetMousePos();
-			auto [wx, wy] = ImGui::GetWindowPos();
+			auto [wx, wy] = window->WorkRect.Min;
 			x = mx - wx;
 			y = my - wy;
 			m_HoveredEntityID = -1;
@@ -548,9 +549,9 @@ namespace Shark {
 				{
 					if (m_HoveredEntityID != -1)
 					{
-						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, *m_Scene };
-						SK_CORE_ASSERT(m_Scene->IsValidEntity(entity));
-						if (m_Scene->IsValidEntity(entity))
+						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, *m_ActiveScene };
+						SK_CORE_ASSERT(m_ActiveScene->IsValidEntity(entity));
+						if (m_ActiveScene->IsValidEntity(entity))
 							Event::Distribute(SelectionChangedEvent(entity));
 					}
 					else
@@ -571,17 +572,17 @@ namespace Shark {
 				if (content->Type == UI::ContentType::Scene)
 				{
 					m_PlayScene = false;
-					m_Scene.Deserialize(content->Path);
-					m_Scene->SetFilePath(content->Path);
+					m_ActiveScene.Deserialize(content->Path);
+					m_ActiveScene->SetFilePath(content->Path);
 
-					m_SceneHirachyPanel.SetContext(*m_Scene);
-					m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+					m_SceneHirachyPanel.SetContext(*m_ActiveScene);
+					m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 				}
 				else if (content->Type == UI::ContentType::Texture)
 				{
 					if (m_HoveredEntityID != -1)
 					{
-						Entity entity{ (entt::entity)m_HoveredEntityID, *m_Scene };
+						Entity entity{ (entt::entity)m_HoveredEntityID, *m_ActiveScene };
 						SK_CORE_ASSERT(entity.IsValid());
 						if (entity.HasComponent<SpriteRendererComponent>())
 						{
@@ -617,7 +618,7 @@ namespace Shark {
 			ImGui::NewLine();
 			if (x >= 0 && x < m_ViewportWidth && y >= 0 && y < m_ViewportHeight && m_HoveredEntityID >= 0)
 			{
-				Entity e{ (entt::entity)m_HoveredEntityID, *m_Scene };
+				Entity e{ (entt::entity)m_HoveredEntityID, *m_ActiveScene };
 				if (e.IsValid())
 				{
 					const auto& tag = e.GetComponent<TagComponent>().Tag;
@@ -665,7 +666,7 @@ namespace Shark {
 
 		}
 		
-		if (ImGui::Begin("Render Settings"))
+		if (ImGui::Begin("Shaders"))
 		{
 			for (auto&& [key, shader] : Renderer::GetShaderLib())
 			{
@@ -678,7 +679,6 @@ namespace Shark {
 					ImGui::TreePop();
 				}
 			}
-
 		}
 		ImGui::End();
 
@@ -706,6 +706,14 @@ namespace Shark {
 				if (UI::DrawFloatControl("Distance", distance, 10))
 					if (distance >= 0.25f)
 						m_EditorCamera.SetDistance(distance);
+
+				if (ImGui::Button("Reset"))
+				{
+					m_EditorCamera.SetFocusPoint({ 0.0f, 0.0f, 0.0f });
+					m_EditorCamera.SetPicht(0.0f);
+					m_EditorCamera.SetYaw(0.0f);
+					m_EditorCamera.SetDistance(10.0f);
+				}
 			}
 			ImGui::End();
 		}
@@ -713,6 +721,9 @@ namespace Shark {
 		OnImGuiRender_Project();
 		m_SceneHirachyPanel.OnImGuiRender();
 		m_AssetsPanel.OnImGuiRender();
+
+		if (showDemoWindow)
+			ImGui::ShowDemoWindow(&showDemoWindow);
 	}
 
 	void EditorLayer::OnImGuiRender_Project()
@@ -769,11 +780,10 @@ namespace Shark {
 
 			if (ImGui::Button("Add Current Scene"))
 			{
-				std::filesystem::path path = m_Scene->GetFilePath();
+				std::filesystem::path path = m_ActiveScene->GetFilePath();
 				if (!Utility::Contains(proj.GetScenes(), path))
 					proj.AddScene(path);
 			}
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, { 0.5f, 0.5f, 0.5f, 0.05f });
 			const float itemheight = ImGui::GetFontSize() + UI::GetFramePadding().y * 2.0f;
 			const float height = std::max(ImGui::GetContentRegionAvail().y - (itemheight + UI::GetFramePadding().y) - 1, itemheight);
 			if (ImGui::BeginChild("ProjectScenes", { 0, height }, true))
@@ -824,7 +834,6 @@ namespace Shark {
 				}
 			}
 			ImGui::EndChild();
-			ImGui::PopStyleColor();
 
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -850,16 +859,16 @@ namespace Shark {
 
 	void EditorLayer::NewScene()
 	{
-		m_Scene = Ref<Scene>::Create();
-		m_SceneHirachyPanel.SetContext(*m_Scene);
-		m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		m_ActiveScene = Ref<Scene>::Create();
+		m_SceneHirachyPanel.SetContext(*m_ActiveScene);
+		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 	}
 
 	void EditorLayer::SaveScene()
 	{
 		auto filepath = FileDialogs::SaveFile("Shark Scene (*.shark)\0*.shark\0");
 		if (!filepath.empty())
-			m_Scene.Serialize(filepath);
+			m_ActiveScene.Serialize(filepath);
 
 	}
 
@@ -869,26 +878,26 @@ namespace Shark {
 		if (!filepath.empty())
 		{
 			m_PlayScene = false;
-			m_Scene.Deserialize(filepath);
+			m_ActiveScene.Deserialize(filepath);
 
-			m_SceneHirachyPanel.SetContext(*m_Scene);
-			m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+			m_SceneHirachyPanel.SetContext(*m_ActiveScene);
+			m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 	}
 
 	void EditorLayer::SetActiveScene(Ref<Scene> scene)
 	{
-		m_Scene = scene;
-		m_Scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		m_ActiveScene = scene;
+		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		m_SceneHirachyPanel.SetContext(scene);
 	}
 
 	void EditorLayer::LoadScene()
 	{
-		SK_CORE_ASSERT(m_Scene);
+		SK_CORE_ASSERT(m_ActiveScene);
 
-		SceneSerializer serializer(m_Scene);
-		serializer.Deserialize(m_Scene->GetFilePath());
+		SceneSerializer serializer(m_ActiveScene);
+		serializer.Deserialize(m_ActiveScene->GetFilePath());
 	}
 
 	void EditorLayer::LoadNewScene(const std::filesystem::path& filepath)
@@ -908,18 +917,18 @@ namespace Shark {
 	void EditorLayer::OnPlayScene()
 	{
 		m_PlayScene = true;
-		m_Scene.SaveState();
-		m_Scene->OnScenePlay();
+		m_ActiveScene.SaveState();
+		m_ActiveScene->OnScenePlay();
 		m_SceneHirachyPanel.SetScenePlaying(true);
 	}
 
 	void EditorLayer::OnStopScene()
 	{
 		m_PlayScene = false;
-		m_Scene->OnSceneStop();
-		m_Scene.LoadState();
+		m_ActiveScene->OnSceneStop();
+		m_ActiveScene.LoadState();
 		m_SceneHirachyPanel.SetScenePlaying(false);
-		if (!m_Scene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
+		if (!m_ActiveScene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
 			Event::Distribute(SelectionChangedEvent({}));
 	}
 

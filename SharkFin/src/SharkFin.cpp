@@ -1,3 +1,4 @@
+#include "skfpch.h"
 
 #include <Shark.h>
 #include <Shark/Core/EntryPoint.h>

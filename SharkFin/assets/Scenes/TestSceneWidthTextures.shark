@@ -11,6 +11,7 @@ Entities:
       Color: [1, 1, 1, 1]
       Texture: assets\Textures\S.png
       TilingFactor: 6.40999985
+      Geometry: 1
   - Entity: 54758432
     TagComponent:
       Tag: Cube Right
@@ -22,6 +23,7 @@ Entities:
       Color: [0, 0.167012677, 0.709803939, 1]
       Texture: ""
       TilingFactor: 1
+      Geometry: 1
   - Entity: 54758432
     TagComponent:
       Tag: Cube Front
@@ -33,6 +35,7 @@ Entities:
       Color: [0, 0.20761244, 0.882352948, 1]
       Texture: ""
       TilingFactor: 1
+      Geometry: 1
   - Entity: 54758432
     TagComponent:
       Tag: Floor
@@ -44,6 +47,7 @@ Entities:
       Color: [0.258353472, 0.0784313679, 0.313725471, 1]
       Texture: assets\Textures\Checkerboard.png
       TilingFactor: 2
+      Geometry: 1
   - Entity: 54758432
     TagComponent:
       Tag: Cube Top
@@ -55,6 +59,7 @@ Entities:
       Color: [0, 0.235294104, 1, 1]
       Texture: ""
       TilingFactor: 1
+      Geometry: 1
   - Entity: 54758432
     TagComponent:
       Tag: Scene Camera
@@ -64,7 +69,7 @@ Entities:
       Scaling: [1, 1, 1]
     CameraComponent:
       Type: 0
-      Aspecratio: 1.48502135
+      Aspecratio: 1.80424881
       PerspectiveFOV: 45
       PerspectiveNear: 0.00999999978
       PerspectiveFar: 1000
@@ -83,6 +88,7 @@ Entities:
       Color: [0.0294117928, 1, 0, 1]
       Texture: ""
       TilingFactor: 1
+      Geometry: 1
   - Entity: 54758432
     TagComponent:
       Tag: Red Square
@@ -94,6 +100,7 @@ Entities:
       Color: [1, 0, 0, 1]
       Texture: ""
       TilingFactor: 1
+      Geometry: 1
   - Entity: 54758432
     TagComponent:
       Tag: Second Camera
@@ -103,7 +110,7 @@ Entities:
       Scaling: [1, 1, 1]
     CameraComponent:
       Type: 0
-      Aspecratio: 1.48502135
+      Aspecratio: 1.80424881
       PerspectiveFOV: 22.9999905
       PerspectiveNear: 0.00999999978
       PerspectiveFar: 1000

@@ -7,6 +7,9 @@ project "SharkFin"
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 
+    pchheader "skfpch.h"
+    pchsource "src/skfpch.cpp"
+
     files
     {
         "src/**.h",
@@ -17,6 +20,7 @@ project "SharkFin"
     includedirs
     {
         "%{wks.location}/Shark/src",
+        "%{wks.location}/SharkFin/src",
         "%{includeDir.spdlog}",
         "%{includeDir.ImGui}",
         "%{includeDir.EnTT}",
@@ -32,6 +36,7 @@ project "SharkFin"
 
     filter "system:windows"
         systemversion "latest"
+        defines "SK_PLATFORM_WINDOWS"
 
     filter "configurations:Debug"
         defines "SK_DEBUG"

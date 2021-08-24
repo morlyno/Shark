@@ -1,3 +1,4 @@
+#include "skfpch.h"
 #include "SceneHirachyPanel.h"
 
 #include <Shark/Scene/Components/Components.h>
@@ -51,102 +52,108 @@ namespace Shark {
 	}
 
 	SceneHirachyPanel::SceneHirachyPanel(const Ref<Scene>& context)
-		: m_Context(context)
 	{
+		SetContext(context);
 	}
 
 	void SceneHirachyPanel::SetContext(const Ref<Scene>& context)
 	{
 		Utils::ChangeSelectedEntity({});
 		m_Context = context;
+		m_FilePathInputBuffer = m_Context->GetFilePath();
 	}
 
 	void SceneHirachyPanel::OnImGuiRender()
 	{
-		if (!m_ShowPanel)
-			return;
-
-		if (!ImGui::Begin("Scene Hirachy", &m_ShowPanel))
+		if (m_ShowPanel)
 		{
-			ImGui::End();
-			return;
-		}
-
-		if (!m_Context)
-		{
-			ImGui::End();
-			return;
-		}
-
-		m_Context->m_Registry.each([=](auto entityID)
-		{
-			Entity entity{ entityID, Weak(m_Context) };
-			DrawEntityNode(entity);
-		});
-
-		if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
-			Utils::ChangeSelectedEntity({});
-
-		if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
-		{
-			if (ImGui::BeginMenu("Create"))
+			if (ImGui::Begin("Scene Hirachy", &m_ShowPanel) && m_Context)
 			{
-				if (ImGui::MenuItem("Empty Entity"))
+				m_Context->m_Registry.each([=](auto entityID)
 				{
-					Entity e = m_Context->CreateEntity("New Entity");
-					Utils::ChangeSelectedEntity(e);
-				}
-				if (ImGui::MenuItem("Camera"))
-				{
-					Entity e = m_Context->CreateEntity("New Camera");
-					e.AddComponent<CameraComponent>();
-					Utils::ChangeSelectedEntity(e);
-				}
-				if (ImGui::BeginMenu("Geometry"))
-				{
-					if (ImGui::MenuItem("Quad"))
-					{
-						Entity e = m_Context->CreateEntity("New Quad");
-						auto& sr = e.AddComponent<SpriteRendererComponent>();
-						sr.Geometry = Geometry::Quad;
-						Utils::ChangeSelectedEntity(e);
-					}
-					if (ImGui::MenuItem("Circle"))
-					{
-						Entity e = m_Context->CreateEntity("New Circle");
-						auto& sr = e.AddComponent<SpriteRendererComponent>();
-						sr.Geometry = Geometry::Circle;
-						Utils::ChangeSelectedEntity(e);
-					}
-					ImGui::EndMenu();
-				}
+					Entity entity{ entityID, Weak(m_Context) };
+					DrawEntityNode(entity);
+				});
 
-				if (ImGui::MenuItem("RigidBody"))
+				if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
+					Utils::ChangeSelectedEntity({});
+
+				if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 				{
-					Entity e = m_Context->CreateEntity("New RigidBody");
-					e.AddComponent<SpriteRendererComponent>();
-					e.AddComponent<RigidBodyComponent>();
-					Utils::ChangeSelectedEntity(e);
+					if (ImGui::BeginMenu("Create"))
+					{
+						if (ImGui::MenuItem("Empty Entity"))
+						{
+							Entity e = m_Context->CreateEntity("New Entity");
+							Utils::ChangeSelectedEntity(e);
+						}
+						if (ImGui::MenuItem("Camera"))
+						{
+							Entity e = m_Context->CreateEntity("New Camera");
+							e.AddComponent<CameraComponent>();
+							Utils::ChangeSelectedEntity(e);
+						}
+						if (ImGui::BeginMenu("Geometry"))
+						{
+							if (ImGui::MenuItem("Quad"))
+							{
+								Entity e = m_Context->CreateEntity("New Quad");
+								auto& sr = e.AddComponent<SpriteRendererComponent>();
+								sr.Geometry = Geometry::Quad;
+								Utils::ChangeSelectedEntity(e);
+							}
+							if (ImGui::MenuItem("Circle"))
+							{
+								Entity e = m_Context->CreateEntity("New Circle");
+								auto& sr = e.AddComponent<SpriteRendererComponent>();
+								sr.Geometry = Geometry::Circle;
+								Utils::ChangeSelectedEntity(e);
+							}
+							ImGui::EndMenu();
+						}
+
+						if (ImGui::MenuItem("RigidBody"))
+						{
+							Entity e = m_Context->CreateEntity("New RigidBody");
+							e.AddComponent<SpriteRendererComponent>();
+							e.AddComponent<RigidBodyComponent>();
+							Utils::ChangeSelectedEntity(e);
+						}
+						if (ImGui::MenuItem("Box Collider"))
+						{
+							Entity e = m_Context->CreateEntity("New RigidBody");
+							e.AddComponent<SpriteRendererComponent>();
+							e.AddComponent<BoxColliderComponent>();
+							Utils::ChangeSelectedEntity(e);
+						}
+						ImGui::EndMenu();
+					}
+					ImGui::EndPopup();
 				}
-				if (ImGui::MenuItem("Box Collider"))
-				{
-					Entity e = m_Context->CreateEntity("New RigidBody");
-					e.AddComponent<SpriteRendererComponent>();
-					e.AddComponent<BoxColliderComponent>();
-					Utils::ChangeSelectedEntity(e);
-				}
-				ImGui::EndMenu();
 			}
-			ImGui::EndPopup();
+			ImGui::End();
+
+			ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+			if (m_SelectedEntity)
+				DrawEntityProperties(m_SelectedEntity);
+			ImGui::End();
 		}
 
-		ImGui::End();
+		if (m_ShowProperties)
+		{
+			if (ImGui::Begin("Scene Properties", &m_ShowProperties))
+			{
+				UI::TextWithBackGround(m_Context->GetFilePath());
+				std::string filePath;
+				if (UI::GetContentPayload(filePath, UI::ContentType::Scene))
+					m_Context->SetFilePath(filePath);
 
-		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
-		if (m_SelectedEntity)
-			DrawEntityProperties(m_SelectedEntity);
-		ImGui::End();
-		
+				ImGui::Text("Entitys: %d", m_Context->AliveEntitys());
+
+			}
+			ImGui::End();
+		}
+
 	}
 
 	void SceneHirachyPanel::OnEvent(Event& event)
@@ -164,7 +171,7 @@ namespace Shark {
 
 		// if entity dosend have child entitys
 		// Darw TreeNode with bullet
-		treenodefalgs |= ImGuiTreeNodeFlags_Bullet;
+		treenodefalgs |= ImGuiTreeNodeFlags_Leaf;
 
 		bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)(uint32_t)entity, treenodefalgs, tag.Tag.c_str());
 

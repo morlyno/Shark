@@ -1,8 +1,10 @@
 #pragma once
 
-#include "PlatformDetection.h"
+#if SK_PLATFORM_WINDOWS == 0
+#error Platform other than Windows are currently not supported
+#endif
 
-#ifdef SK_PLATFORM_WINDOWS
+#if SK_PLATFORM_WINDOWS
 #define SK_DEBUG_BREAK() __debugbreak()
 #endif
 

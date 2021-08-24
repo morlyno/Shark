@@ -164,7 +164,7 @@ namespace Shark {
 			Timer timer;
 			CompileOrGetCached(shaderSources);
 
-			SK_CORE_TRACE("Shader Compile tock {0} ms", timer.Stop());
+			SK_CORE_TRACE("Shader Compile tock {0} ms [File: {1}]", timer.Stop(), filepath);
 		}
 
 		CreateShaders();
@@ -205,9 +205,13 @@ namespace Shark {
 		std::string file = ReadFile(m_FilePath);
 		auto shaderSources = PreProzess(file);
 
-		if (!TryReCompile(shaderSources))
-			return false;
+		{
+			Timer timer;
+			if (!TryReCompile(shaderSources))
+				return false;
 
+			SK_CORE_TRACE("Shader ReCompile tock {0} ms [File: {1}]", timer.Stop(), m_FilePath);
+		}
 		Release();
 
 		CreateShaders();
