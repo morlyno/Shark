@@ -76,7 +76,7 @@ namespace Shark {
 
 		void OpenFile(const std::string& path)
 		{
-			auto&& cmd = "call " + path;
+			auto&& cmd = "start " + path;
 			system(cmd.c_str());
 		}
 
