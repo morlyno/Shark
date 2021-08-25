@@ -383,6 +383,16 @@ namespace Shark::UI {
 		ImGui::IsItemClicked();
 	}
 
+	void TextWithBackGround(const std::filesystem::path& filePath)
+	{
+		TextWithBackGround(filePath, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+	}
+
+	void TextWithBackGround(const std::filesystem::path& filePath, const ImVec4& bgColor)
+	{
+		TextWithBackGround(filePath.string(), bgColor);
+	}
+
 	bool InputText(const char* label, std::string& str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
 	{
 		auto& g = *GImGui;

@@ -38,7 +38,7 @@ namespace Shark {
 
 	bool Internal_DeSerialize(Project& proj)
 	{
-		YAML::Node in = YAML::LoadFile("project.skproj");
+		YAML::Node in = YAML::LoadFile("project.skproj"s);
 		SK_CORE_ASSERT(in);
 		if (!in)
 			return false;
@@ -115,7 +115,7 @@ namespace Shark {
 
 	bool Project::HasStartupScene() const
 	{
-		SK_CORE_ASSERT(m_StartupScene.empty() ? true : FileSystem::Exists(m_StartupScene), "Startup Scene dosn't exist");
+		SK_CORE_ASSERT(m_StartupScene.empty() ? true : FileSystem::Exists(m_StartupScene), "Startup Scene is set but the file dosn't exist!");
 		return !m_StartupScene.empty();
 	}
 

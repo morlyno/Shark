@@ -107,4 +107,9 @@ namespace Shark::FileSystem {
 		return std::filesystem::exists(path);
 	}
 
+	std::string FileName(const std::filesystem::path& path)
+	{
+		return std::move(path.filename().replace_extension().string());
+	}
+
 }

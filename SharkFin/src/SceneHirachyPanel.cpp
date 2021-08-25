@@ -60,7 +60,7 @@ namespace Shark {
 	{
 		Utils::ChangeSelectedEntity({});
 		m_Context = context;
-		m_FilePathInputBuffer = m_Context->GetFilePath();
+		m_FilePathInputBuffer = m_Context->GetFilePath().string();
 	}
 
 	void SceneHirachyPanel::OnImGuiRender()
@@ -144,7 +144,7 @@ namespace Shark {
 			if (ImGui::Begin("Scene Properties", &m_ShowProperties))
 			{
 				UI::TextWithBackGround(m_Context->GetFilePath());
-				std::string filePath;
+				std::filesystem::path filePath;
 				if (UI::GetContentPayload(filePath, UI::ContentType::Scene))
 					m_Context->SetFilePath(filePath);
 

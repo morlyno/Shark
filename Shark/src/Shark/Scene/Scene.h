@@ -51,8 +51,8 @@ namespace Shark {
 
 		void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
 
-		void SetFilePath(const std::string& filepath) { m_FilePath = filepath; }
-		const std::string& GetFilePath() const { return m_FilePath; }
+		void SetFilePath(const std::filesystem::path& filepath) { m_FilePath = filepath; }
+		const std::filesystem::path& GetFilePath() const { return m_FilePath; }
 
 		template<typename Comp>
 		void TryCopyComponent(Entity src, Entity dest)
@@ -75,7 +75,7 @@ namespace Shark {
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
-		std::string m_FilePath;
+		std::filesystem::path m_FilePath;
 
 		friend class Entity;
 		friend class SceneHirachyPanel;

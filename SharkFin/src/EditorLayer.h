@@ -5,7 +5,6 @@
 #include <Shark/Render/Rasterizer.h>
 #include <Shark/Scene/Scene.h>
 #include <Shark/Scene/Entity.h>
-#include <Shark/Scene/SceneController.h>
 #include <Shark/Render/Texture.h>
 
 #include "SceneHirachyPanel.h"
@@ -36,12 +35,16 @@ namespace Shark {
 		void OnImGuiRender_Project();
 
 		void NewScene();
-		void SaveScene();
-		void OpenScene();
+
+		/*
+		bool SaveSceneWithDialogBox();
+		bool OpenSceneWithDialogBox();
+		*/
 
 		void SetActiveScene(Ref<Scene> scene);
-		void LoadScene();
-		void LoadNewScene(const std::filesystem::path& filepath);
+		bool LoadNewScene(const std::filesystem::path& filepath);
+		bool LoadScene();
+		bool SaveScene();
 
 		void OnPlayScene();
 		void OnStopScene();
@@ -54,7 +57,7 @@ namespace Shark {
 		Ref<Rasterizer> m_Rasterizer;
 		Ref<Rasterizer> m_HilightRasterizer;
 
-		SceneController m_ActiveScene;
+		Ref<Scene> m_WorkScene;
 		SceneHirachyPanel m_SceneHirachyPanel;
 		AssetsPanel m_AssetsPanel;
 

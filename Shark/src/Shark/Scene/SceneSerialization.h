@@ -13,8 +13,8 @@ namespace Shark {
 
 		bool Serialize() { return Serialize(m_Scene->GetFilePath()); }
 		bool Deserialize() { return Deserialize(m_Scene->GetFilePath()); }
-		bool Serialize(const std::string& filepath);
-		bool Deserialize(const std::string& filepath);
+		bool Serialize(const std::filesystem::path& filepath);
+		bool Deserialize(const std::filesystem::path& filepath);
 	private:
 		Ref<Scene> m_Scene;
 	};

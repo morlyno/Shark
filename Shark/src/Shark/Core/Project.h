@@ -40,7 +40,7 @@ namespace Shark {
 		const std::filesystem::path& GetSceneAt(uint32_t index) const    { return m_Scenes[index]; }
 		void AddScene(const std::filesystem::path& filepath)             { m_Scenes.emplace_back(filepath); }
 		void Remove(uint32_t index)                                      { Utility::Erase(m_Scenes, index); }
-		const std::vector<std::filesystem::path> GetScenes() const       { return m_Scenes; }
+		const std::vector<std::filesystem::path>& GetScenes() const      { return m_Scenes; }
 
 	private:
 		void CreateStandartProject();

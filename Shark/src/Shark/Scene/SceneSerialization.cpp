@@ -143,7 +143,7 @@ namespace Shark {
 		return true;
 	}
 
-	bool SceneSerializer::Serialize(const std::string& filepath)
+	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
 	{
 		YAML::Emitter out;
 
@@ -175,7 +175,7 @@ namespace Shark {
 		return true;
 	}
 
-	bool SceneSerializer::Deserialize(const std::string& filepath)
+	bool SceneSerializer::Deserialize(const std::filesystem::path& filepath)
 	{
 		YAML::Node in = YAML::LoadFile(filepath);
 		if (!in["Scene"])

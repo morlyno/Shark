@@ -27,5 +27,6 @@ namespace Shark::FileSystem {
 	bool Delete(const std::filesystem::path& path);
 	uint32_t DeleteAll(const std::filesystem::path& path);
 	bool Exists(const std::filesystem::path& path);
+	std::string FileName(const std::filesystem::path& path);
 
 }

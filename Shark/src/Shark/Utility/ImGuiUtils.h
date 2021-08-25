@@ -54,6 +54,8 @@ namespace Shark {
 
 		void TextWithBackGround(const std::string& text);
 		void TextWithBackGround(const std::string& text, const ImVec4& bgColor);
+		void TextWithBackGround(const std::filesystem::path& filePath);
+		void TextWithBackGround(const std::filesystem::path& filePath, const ImVec4& bgColor);
 
 		bool InputText(const char* label, std::string& str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = NULL, void* user_data = NULL);
 		bool InputText(const char* label, std::filesystem::path& path, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = NULL, void* user_data = NULL);

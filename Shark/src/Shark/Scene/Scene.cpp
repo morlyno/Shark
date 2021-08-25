@@ -24,6 +24,7 @@ namespace Shark {
 		m_ActiveCameraID = other.m_ActiveCameraID;
 		m_ViewportWidth = other.m_ViewportWidth;
 		m_ViewportHeight = other.m_ViewportHeight;
+		m_FilePath = std::move(other.m_FilePath);
 
 		other.m_ActiveCameraID = entt::null;
 		other.m_ViewportWidth = 0;
@@ -37,6 +38,7 @@ namespace Shark {
 		m_ActiveCameraID = other.m_ActiveCameraID;
 		m_ViewportWidth = other.m_ViewportWidth;
 		m_ViewportHeight = other.m_ViewportHeight;
+		m_FilePath = std::move(other.m_FilePath);
 
 		other.m_ActiveCameraID = entt::null;
 		other.m_ViewportWidth = 0;
@@ -65,6 +67,7 @@ namespace Shark {
 		dest->m_ActiveCameraID = m_ActiveCameraID;
 		dest->m_ViewportWidth = m_ViewportWidth;
 		dest->m_ViewportHeight = m_ViewportHeight;
+		dest->m_FilePath = m_FilePath;
 	}
 
 	void Scene::OnUpdateRuntime(TimeStep ts)

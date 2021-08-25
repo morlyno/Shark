@@ -116,4 +116,7 @@ namespace YAML {
 		return out;
 	}
 
+
+	Node LoadFile(const std::filesystem::path& filename);
+
 }
