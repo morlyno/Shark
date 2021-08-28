@@ -13,6 +13,8 @@
 
 #include <Shark/Render/TestRenderer.h>
 
+#include <Shark/Debug/Instrumentor.h>
+
 namespace Shark {
 
 	static bool showDemoWindow = false;
@@ -21,14 +23,18 @@ namespace Shark {
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	EditorLayer::~EditorLayer()
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	void EditorLayer::OnAttach()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& app = Application::Get();
@@ -85,10 +91,13 @@ namespace Shark {
 
 	void EditorLayer::OnDetach()
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	void EditorLayer::OnUpdate(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_TimeStep = ts;
 
 		m_Rasterizer->Bind();
@@ -103,6 +112,8 @@ namespace Shark {
 
 		if (m_ViewportSizeChanged)
 		{
+			SK_PROFILE_SCOPE("Viewport Size Changed");
+
 			m_GemometryFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_NegativeFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_BlurFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -117,16 +128,22 @@ namespace Shark {
 		{
 			if (m_PlayScene)
 			{
+				SK_PROFILE_SCOPE("Update Scene Runtime");
+
 				SceneManager::GetActiveScene()->OnUpdateRuntime(ts);
 			}
 			else
 			{
+				SK_PROFILE_SCOPE("Update Scene Editor");
+
 				if (m_ViewportHovered)
 					m_EditorCamera.OnUpdate(ts);
 				m_WorkScene->OnUpdateEditor(ts, m_EditorCamera);
 			}
 
 			{
+				SK_PROFILE_SCOPE("Composite Geometry FrameBuffer");
+
 				m_CompositFrameBuffer->Bind();
 				m_GemometryFrameBuffer->BindAsTexture(0, 0);
 				Renderer::GetShaderLib().Get("FullScreen")->Bind();
@@ -136,6 +153,8 @@ namespace Shark {
 
 			if (m_BlurEffect)
 			{
+				SK_PROFILE_SCOPE("Blur Effect");
+
 				m_BlurFrameBuffer->Bind();
 				m_CompositFrameBuffer->BindAsTexture(0, 0);
 				Renderer::GetShaderLib().Get("BlurEffect")->Bind();
@@ -151,6 +170,8 @@ namespace Shark {
 
 			if (m_NegativeEffect)
 			{
+				SK_PROFILE_SCOPE("Negative Effect");
+
 				m_NegativeFrameBuffer->Bind();
 				m_CompositFrameBuffer->BindAsTexture(0, 0);
 				Renderer::GetShaderLib().Get("NegativeEffect")->Bind();
@@ -318,6 +339,8 @@ namespace Shark {
 
 	void EditorLayer::OnImGuiRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		constexpr ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking |
 										          ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
 										          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
@@ -537,6 +560,8 @@ namespace Shark {
 		int y = -1;
 		if (!ImGuizmo::IsUsing())
 		{
+			SK_PROFILE_SCOPE("Mouse Picking");
+
 			auto [mx, my] = ImGui::GetMousePos();
 			auto [wx, wy] = window->WorkRect.Min;
 			x = (int)(mx - wx);
@@ -546,7 +571,12 @@ namespace Shark {
 			auto&& [width, height] = m_GemometryFrameBuffer->GetSize();
 			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 			{
-				m_HoveredEntityID = m_GemometryFrameBuffer->ReadPixel(1, x, y);
+				{
+					SK_PROFILE_SCOPE("Read Pixel");
+
+					m_HoveredEntityID = m_GemometryFrameBuffer->ReadPixel(1, x, y);
+				}
+
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
 				{
 					if (m_HoveredEntityID != -1)
@@ -921,6 +951,8 @@ namespace Shark {
 
 	void EditorLayer::OnPlayScene()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_PlayScene = true;
 		m_SceneHirachyPanel.SetScenePlaying(true);
 		SceneManager::SetActiveScene(m_WorkScene->GetCopy());
@@ -929,6 +961,8 @@ namespace Shark {
 
 	void EditorLayer::OnStopScene()
 	{
+		SK_PROFILE_FUNCTION();
+
 		SceneManager::GetActiveScene()->OnSceneStop();
 		SceneManager::SetActiveScene(nullptr);
 		m_SceneHirachyPanel.SetScenePlaying(false);

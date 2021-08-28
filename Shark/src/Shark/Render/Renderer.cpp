@@ -6,6 +6,8 @@
 #include "Shark/Render/Buffers.h"
 #include "Shark/Utility/Utility.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 namespace Shark {
 
 	struct RendererBaseData
@@ -20,6 +22,8 @@ namespace Shark {
 
 	void Renderer::Init()
 	{
+		SK_PROFILE_FUNCTION();
+
 		RendererCommand::Init();
 
 		s_BaseData = new RendererBaseData;
@@ -55,6 +59,8 @@ namespace Shark {
 
 	void Renderer::ShutDown()
 	{
+		SK_PROFILE_FUNCTION();
+
 		Renderer2D::ShutDown();
 
 		delete s_BaseData;

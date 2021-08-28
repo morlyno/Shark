@@ -5,10 +5,14 @@
 #include "Shark/Utility/YAMLUtils.h"
 #include "Shark/Utility/FileSystem.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 namespace Shark {
 
 	bool Internal_Serialize(const Project& proj)
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "ProjectName"   << YAML::Value << proj.m_ProjectName;
@@ -38,6 +42,8 @@ namespace Shark {
 
 	bool Internal_DeSerialize(Project& proj)
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Node in = YAML::LoadFile("project.skproj"s);
 		SK_CORE_ASSERT(in);
 		if (!in)
@@ -90,6 +96,8 @@ namespace Shark {
 
 	Project::Project()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!LoadProject())
 		{
 			SK_CORE_WARN("Load Project Failed! Creating Standart Projet");
@@ -99,11 +107,15 @@ namespace Shark {
 
 	bool Project::SaveProjectFile()
 	{
+		SK_PROFILE_FUNCTION();
+
 		return Internal_Serialize(*this);
 	}
 
 	bool Project::LoadProject()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Scenes.clear();
 		if (!FileSystem::Exists(std::filesystem::path("project.skproj")))
 		{
@@ -121,6 +133,8 @@ namespace Shark {
 
 	void Project::CreateStandartProject()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_ProjectName = "Untiled";
 		m_AssetsPath = "assets";
 		m_TexturesPath = "assets/Textures";

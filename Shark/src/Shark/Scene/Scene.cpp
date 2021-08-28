@@ -7,18 +7,24 @@
 #include "Shark/Scene/Components/Components.h"
 #include "Shark/Render/Renderer.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 namespace Shark {
 
 	Scene::Scene()
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	Scene::~Scene()
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	Scene::Scene(Scene&& other)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Registry = std::move(other.m_Registry);
 		m_World = std::move(other.m_World);
 		m_ActiveCameraID = other.m_ActiveCameraID;
@@ -33,6 +39,8 @@ namespace Shark {
 
 	Scene& Scene::operator=(Scene&& other)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Registry = std::move(other.m_Registry);
 		m_World = std::move(other.m_World);
 		m_ActiveCameraID = other.m_ActiveCameraID;
@@ -48,6 +56,8 @@ namespace Shark {
 
 	Ref<Scene> Scene::GetCopy()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto scene = Ref<Scene>::Create();
 		CopyInto(scene);
 		return scene;
@@ -55,6 +65,8 @@ namespace Shark {
 
 	void Scene::CopyInto(Ref<Scene> dest)
 	{
+		SK_PROFILE_FUNCTION();
+
 		dest->m_World = World(m_World.GetGravity());
 		dest->m_Registry = entt::registry{};
 		dest->m_Registry.reserve(m_Registry.capacity());
@@ -72,6 +84,8 @@ namespace Shark {
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_World.Update(ts);
 
 		{
@@ -107,24 +121,33 @@ namespace Shark {
 		}
 		auto [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCameraID);
 
-		Renderer2D::BeginScene(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 		{
-			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-			for (auto entityID : group)
-				Renderer2D::DrawEntity({ entityID, Weak(this) });
+			SK_PROFILE_SCOPE("Render Scene Runtime");
+
+			Renderer2D::BeginScene(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
+			{
+				auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+				for (auto entityID : group)
+					Renderer2D::DrawEntity({ entityID, this });
+			}
+			Renderer2D::EndScene();
 		}
-		Renderer2D::EndScene();
 	}
 
 	void Scene::OnUpdateEditor(TimeStep ts, EditorCamera& camera)
 	{
-		Renderer2D::BeginScene(camera);
+		SK_PROFILE_FUNCTION();
 		{
-			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-			for (auto entityID : group)
-				Renderer2D::DrawEntity({ entityID, Weak(this) });
+			SK_PROFILE_SCOPE("Render Scene Editor");
+
+			Renderer2D::BeginScene(camera);
+			{
+				auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+				for (auto entityID : group)
+					Renderer2D::DrawEntity({ entityID, this });
+			}
+			Renderer2D::EndScene();
 		}
-		Renderer2D::EndScene();
 	}
 
 	void Scene::OnEventRuntime(Event& event)
@@ -144,6 +167,8 @@ namespace Shark {
 
 	void Scene::OnScenePlay()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_World.Flush();
 
 		auto view = m_Registry.view<NativeScriptComponent>();
@@ -163,6 +188,8 @@ namespace Shark {
 
 	void Scene::OnSceneStop()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto view = m_Registry.view<NativeScriptComponent>();
 		for (auto entityID : view)
 		{
@@ -179,6 +206,8 @@ namespace Shark {
 
 	Entity Scene::CopyEntity(Entity other, bool hint)
 	{
+		SK_PROFILE_FUNCTION();
+
 		entt::entity entityID = hint ? m_Registry.create(other) : m_Registry.create();
 		auto e = Entity{ entityID, this };
 
@@ -195,6 +224,8 @@ namespace Shark {
 
 	Entity Scene::CreateEntity(const std::string& tag)
 	{
+		SK_PROFILE_FUNCTION();
+
 		Entity entity{ m_Registry.create(), Weak(this) };
 		auto& tagcomp = entity.AddComponent<TagComponent>();
 		tagcomp.Tag = tag.empty() ? "Entity" : tag;
@@ -204,11 +235,15 @@ namespace Shark {
 
 	void Scene::DestroyEntity(Entity entity)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Registry.destroy(entity);
 	}
 
 	bool Scene::IsValidEntity(Entity entity)const
 	{
+		SK_PROFILE_FUNCTION();
+
 		return m_Registry.valid(entity);
 	}
 
@@ -224,6 +259,8 @@ namespace Shark {
 
 	void Scene::ResizeCameras(float width, float height)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto view = m_Registry.view<CameraComponent>();
 		for (auto entityID : view)
 		{

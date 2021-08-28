@@ -2,6 +2,7 @@
 **/bin/
 !dependencies/Premake/bin/
 **/bin-int/
+*.json
 
 # files
 imgui.ini

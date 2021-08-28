@@ -24,12 +24,16 @@ namespace Shark {
 	
 	World::World(const DirectX::XMFLOAT2& gravity)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_World = new b2World({ gravity.x, gravity.y });
 		m_World->SetContactListener(&m_CollisionDetector);
 	}
 
 	World::~World()
 	{
+		SK_PROFILE_FUNCTION();
+
 		delete m_World;
 	}
 
@@ -58,11 +62,15 @@ namespace Shark {
 
 	void World::Update(float timeStep)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_World->Step(timeStep, 8, 3);
 	}
 
 	void World::Flush()
 	{
+		SK_PROFILE_FUNCTION();
+
 		b2Body* bodylist = m_World->GetBodyList();
 		while (bodylist)
 		{
@@ -80,6 +88,8 @@ namespace Shark {
 
 	RigidBody World::CreateRigidBody(const RigidBodySpecs& specs)
 	{
+		SK_PROFILE_FUNCTION();
+
 		b2BodyDef bodydef;
 		bodydef.type = (b2BodyType)specs.Type;
 		bodydef.allowSleep = specs.AllowSleep;
@@ -94,6 +104,8 @@ namespace Shark {
 
 	void World::DestroyRigidBody(RigidBody& rigidbody)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_World->DestroyBody(rigidbody);
 		rigidbody.m_Body = nullptr;
 	}

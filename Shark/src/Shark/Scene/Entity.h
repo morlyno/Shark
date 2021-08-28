@@ -3,6 +3,8 @@
 #include "Shark/Scene/Scene.h"
 #include <entt.hpp>
 
+#include "Shark/Debug/Instrumentor.h"
+
 namespace Shark {
 
 	class Entity
@@ -18,15 +20,20 @@ namespace Shark {
 		template<typename Component>
 		Component& AddComponent()
 		{
+			SK_PROFILE_FUNCTION();
+
 			SK_CORE_ASSERT(!HasComponent<Component>());
 			auto& comp = m_Scene->m_Registry.emplace<Component>(m_EntityHandle);
 			m_Scene->OnComponentAdded(*this, comp);
 			return comp;
 		}
 
+		// Function will be removed in the future. DO NOT USE!
 		template<typename Component>
 		Component& AddComponent(const Component& c)
 		{
+			SK_CORE_TRACE("Function will be removed in the future. DO NOT USE!");
+
 			SK_CORE_ASSERT(!HasComponent<Component>());
 			auto& comp = m_Scene->m_Registry.emplace<Component>(m_EntityHandle, c);
 			m_Scene->OnComponentAdded(*this, comp);
@@ -36,6 +43,8 @@ namespace Shark {
 		template<typename Component>
 		void RemoveComponent()
 		{
+			SK_PROFILE_FUNCTION();
+
 			SK_CORE_ASSERT(HasComponent<Component>());
 			m_Scene->m_Registry.remove<Component>(m_EntityHandle);
 		}
@@ -43,6 +52,8 @@ namespace Shark {
 		template<typename... Components>
 		decltype(auto) GetComponent()
 		{
+			SK_PROFILE_FUNCTION();
+
 			SK_CORE_ASSERT(HasComponent<Components...>());
 			return m_Scene->m_Registry.get<Components...>(m_EntityHandle);
 		}
@@ -50,15 +61,17 @@ namespace Shark {
 		template<typename Component>
 		Component& TryAddComponent()
 		{
+			SK_PROFILE_FUNCTION();
+
 			if (!HasComponent<Component>())
 				return AddComponent<Component>();
 			return GetComponent<Component>();
 		}
 
 		template<typename Component>
-		bool HasComponent() const { return m_Scene->m_Registry.has<Component>(m_EntityHandle); }
+		bool HasComponent() const { SK_PROFILE_FUNCTION(); return m_Scene->m_Registry.has<Component>(m_EntityHandle); }
 
-		bool IsValid() const { return m_Scene->m_Registry.valid(m_EntityHandle); }
+		bool IsValid() const { SK_PROFILE_FUNCTION(); return m_Scene->m_Registry.valid(m_EntityHandle); }
 		bool IsNull() const { return m_EntityHandle == entt::null; }
 
 		operator entt::entity() { return m_EntityHandle; }

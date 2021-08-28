@@ -59,6 +59,8 @@ namespace Shark {
 
 	void BoxCollider::Resize(float width, float height)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_Fixture, "Fixture not Created");
 		SK_CORE_ASSERT(m_Fixture->GetBody(), "Fixture not attached");
 		SK_CORE_ASSERT(m_Fixture->GetType() == b2Shape::Type::e_polygon, "Other Shaped not implemented");
@@ -87,6 +89,8 @@ namespace Shark {
 
 	void BoxCollider::SetTransform(const DirectX::XMFLOAT2& center, float rotation)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(m_Fixture, "Fixture not Created");
 		SK_CORE_ASSERT(m_Fixture->GetBody(), "Fixture not attached");
 		SK_CORE_ASSERT(m_Fixture->GetType() == b2Shape::Type::e_polygon, "Other Shaped not implemented");
@@ -114,6 +118,8 @@ namespace Shark {
 
 	ColliderSpecs BoxCollider::GetCurrentState() const
 	{
+		SK_PROFILE_FUNCTION();
+
 		ColliderSpecs specs;
 		specs.Density = GetDensity();
 		specs.Friction = GetFriction();
@@ -127,6 +133,8 @@ namespace Shark {
 
 	void BoxCollider::SetState(const ColliderSpecs& specs)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(specs.Shape == GetShape());
 		SetDensity(specs.Density);
 		SetFriction(specs.Friction);

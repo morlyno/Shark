@@ -85,6 +85,10 @@ namespace Shark {
 
 	void DirectXTexture2D::SetData(void* data)
 	{
+		// TODO: Check if this still works after the change for the CPU access!
+		//       Function not available untill then further investigation
+		SK_CORE_ASSERT(false);
+
 		auto* ctx = DirectXRendererAPI::GetContext();
 		auto* dev = DirectXRendererAPI::GetDevice();
 
@@ -152,7 +156,7 @@ namespace Shark {
 		td.SampleDesc.Quality = 0u;
 		td.Usage = D3D11_USAGE_DEFAULT;
 		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		td.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		td.CPUAccessFlags = /*D3D11_CPU_ACCESS_WRITE*/0;
 		td.MiscFlags = 0u;
 
 		D3D11_SUBRESOURCE_DATA srd;

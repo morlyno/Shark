@@ -4,6 +4,8 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <Shark/Utility/PlatformUtils.h>
 
+#include <Shark/Debug/Instrumentor.h>
+
 namespace Shark {
 
 	static std::string s_TempInputString;
@@ -47,6 +49,8 @@ namespace Shark {
 	AssetsPanel::AssetsPanel()
 		: m_Project(Application::Get().GetProject())
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_DirectoryIcon = Texture2D::Create("assets/Textures/folder_open.png");
 		m_StandartFileIcon = Texture2D::Create("assets/Textures/file.png");
 
@@ -63,11 +67,15 @@ namespace Shark {
 
 	AssetsPanel::~AssetsPanel()
 	{
+		SK_PROFILE_FUNCTION();
+
 		Counter::Remove("AP_ReCache");
 	}
 
 	void AssetsPanel::OnImGuiRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_ShowPanel)
 			return;
 
@@ -163,12 +171,16 @@ namespace Shark {
 
 	void AssetsPanel::SaveCurrentAssetDirectory()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Directorys.clear();
 		SaveDirectory(std::filesystem::absolute(m_Project.GetAssetsPath()));
 	}
 
 	Directory* AssetsPanel::SaveDirectory(const std::filesystem::path& directoryPath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::filesystem::path relative = std::filesystem::relative(directoryPath);
 		Directory& directory = m_Directorys[relative.string()];
 		for (auto&& directoryEntry : std::filesystem::directory_iterator(directoryPath))
@@ -204,6 +216,8 @@ namespace Shark {
 
 	void AssetsPanel::DrawHistoryNavigationButtons()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (ImGui::ArrowButton("DirectoryBack", ImGuiDir_Left))
 		{
 			if (m_DirHistoryIndex > 0)
@@ -228,6 +242,8 @@ namespace Shark {
 
 	void AssetsPanel::DrawCurrentPath()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto&& begin = m_CurrentPathVec.begin();
 		auto&& end = m_CurrentPathVec.end();
 		for (auto&& pathElem = begin; pathElem != end; std::advance(pathElem, 1))
@@ -274,6 +290,8 @@ namespace Shark {
 
 	void AssetsPanel::DrawAsTree(const std::string& directory)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto name = Utility::GetPathName(directory);
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen;
 		if (directory == m_SelectedEntry)
@@ -289,6 +307,8 @@ namespace Shark {
 
 	void AssetsPanel::DrawTreeNode(const std::string& directory)
 	{
+		SK_PROFILE_FUNCTION();
+
 		constexpr ImGuiTreeNodeFlags baseFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 		auto&& entrys = m_Directorys[directory].Entrys;
 		for (auto&& [subpath, subentry] : entrys)
@@ -314,6 +334,8 @@ namespace Shark {
 
 	void AssetsPanel::DrawCurrentDirectory()
 	{
+		SK_PROFILE_FUNCTION();
+
 		const int maxCollumns = std::clamp((int)(ImGui::GetContentRegionAvailWidth() / m_IconSize), 1, 64);
 		const float maxHeight = ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() - 1;
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -420,6 +442,8 @@ namespace Shark {
 
 	void AssetsPanel::DrawContentPopup(const std::string& path, const Entry& entry)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (ImGui::BeginPopup(path.c_str()))
 		{
 			const bool isDirectory = entry.Type == Entry::ContentType::Directory;
@@ -471,6 +495,8 @@ namespace Shark {
 
 	void AssetsPanel::DrawRenameInput()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImGuiTable* table = ImGui::GetCurrentTable();
 		ImGuiTableColumn* collumn = &table->Columns[table->CurrentColumn];
 		ImGui::SetNextItemWidth(collumn->WidthGiven);
@@ -494,6 +520,8 @@ namespace Shark {
 
 	void AssetsPanel::DeletePopup(const std::string& path, const Entry& entry)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_IgnoreNextSelectionCheck = true;
 		const bool isDirectory = entry.Type == Entry::ContentType::Directory;
 		const bool isFile = entry.Type == Entry::ContentType::File;
@@ -528,6 +556,8 @@ namespace Shark {
 
 	void AssetsPanel::SettingsPopup()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (ImGui::BeginPopup("AssetsPanelSettings"))
 		{
 			if (ImGui::Checkbox("Auto ReCache", &m_AutoReCache))
@@ -546,6 +576,8 @@ namespace Shark {
 
 	void AssetsPanel::CheckOnCell(const Entry& entry, const std::string& path, const ImRect& rec)
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImGui::PushID(path.c_str());
 
 		ImVec2 mousepos = ImGui::GetMousePos();
@@ -581,6 +613,8 @@ namespace Shark {
 
 	void AssetsPanel::CheckOnTreeLeaf(const Entry& entry, const std::string& path)
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImGui::PushID(path.c_str());
 
 		const bool isItemHovered = ImGui::IsItemHovered();
@@ -615,6 +649,8 @@ namespace Shark {
 
 	void AssetsPanel::SelectCurrentDirectory(const std::filesystem::path& directoryPath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		++m_DirHistoryIndex;
 		m_DirectoryHistory.erase(m_DirectoryHistory.begin() + m_DirHistoryIndex, m_DirectoryHistory.end());
 		m_DirectoryHistory.emplace(m_DirectoryHistory.begin() + m_DirHistoryIndex, directoryPath);
@@ -626,6 +662,8 @@ namespace Shark {
 
 	void AssetsPanel::UpdateCurrentPathVec()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_CurrentPathVec.clear();
 		for (auto&& pathElem = m_CurrentDirectory.begin(); pathElem != m_CurrentDirectory.end(); ++pathElem)
 			m_CurrentPathVec.emplace_back(pathElem->string());
@@ -633,6 +671,8 @@ namespace Shark {
 
 	void AssetsPanel::StartDragDrop(const std::string& path, Entry::ContentType t)
 	{
+		SK_PROFILE_FUNCTION();
+
 		UI::ContentType type = UI::ContentType::Directory;
 		if (t == Entry::ContentType::File)
 			type = Utils::GetPaylodType(path);
@@ -651,6 +691,8 @@ namespace Shark {
 
 	void AssetsPanel::StartRename(const std::string& path)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_EntryRenameBuffer = Utility::GetPathName(path);
 		m_OnRenameEntry = true;
 		m_RenameTarget = path;
@@ -659,6 +701,8 @@ namespace Shark {
 
 	void AssetsPanel::StartDelete(const std::string& path)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_SelectedEntry = path;
 		m_ShowDeletePopup = true;
 		m_IgnoreNextSelectionCheck = true;
@@ -672,12 +716,16 @@ namespace Shark {
 
 	Entry& AssetsPanel::GetEntry(const std::string& path)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(!path.empty());
 		return m_Directorys.at(m_CurrentDirectoryString).Entrys.at(path);
 	}
 
 	RenderID AssetsPanel::GetContentTextureID(const Entry& entry)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (entry.Type == Entry::ContentType::Directory)
 			return m_DirectoryIcon->GetRenderID();
 		if (entry.Type == Entry::ContentType::File)

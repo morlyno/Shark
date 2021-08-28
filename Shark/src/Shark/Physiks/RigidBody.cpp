@@ -3,6 +3,8 @@
 
 #include "Shark/Physiks/Collider.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 namespace Shark {
 
 	RigidBody::RigidBody(b2Body* body)
@@ -41,6 +43,8 @@ namespace Shark {
 
 	BoxCollider RigidBody::CreateBoxCollider(const ColliderSpecs& specs)
 	{
+		SK_PROFILE_FUNCTION();
+
 		b2PolygonShape shape;
 		shape.SetAsBox(specs.Width * 0.5f, specs.Height * 0.5f, { specs.Center.x, specs.Center.y }, specs.Rotation);
 		b2FixtureDef def;
@@ -55,12 +59,16 @@ namespace Shark {
 
 	void RigidBody::DestroyBoxCollider(BoxCollider& collider)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Body->DestroyFixture(collider);
 		collider.m_Fixture = nullptr;
 	}
 
 	RigidBodySpecs RigidBody::GetCurrentState() const
 	{
+		SK_PROFILE_FUNCTION();
+
 		RigidBodySpecs specs;
 		specs.AllowSleep = IsSleepingAllowed();
 		specs.Angle = GetAngle();
@@ -75,6 +83,8 @@ namespace Shark {
 
 	void RigidBody::SetState(const RigidBodySpecs& specs)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SetSleepingAllowed(specs.AllowSleep);
 		SetAngle(specs.Angle);
 		SetAwake(specs.Awake);

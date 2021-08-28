@@ -8,6 +8,8 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Core/Counter.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 #include <imgui.h>
 
 namespace Shark {
@@ -16,6 +18,8 @@ namespace Shark {
 
 	Application::Application(int argc, char** argv)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(!s_Instance, "Application allready set");
 		s_Instance = this;
 
@@ -34,6 +38,8 @@ namespace Shark {
 
 	Application::~Application()
 	{
+		SK_PROFILE_FUNCTION();
+
 		Renderer::ShutDown();
 	}
 
@@ -41,6 +47,8 @@ namespace Shark {
 	{
 		while (m_Running)
 		{
+			SK_PROFILE_SCOPE("Main Loop");
+
 			int64_t time;
 			QueryPerformanceCounter((LARGE_INTEGER*)&time);
 			TimeStep timeStep = (float)(time - m_LastFrameTime) / m_Frequency;
@@ -49,20 +57,35 @@ namespace Shark {
 			// TODO: Remove (Counter Get owne thread)
 			Counter::Update(timeStep);
 
-			RendererCommand::SwapBuffers(m_Window->IsVSync());
-
 			if (!m_Minimized)
 			{
-				for (auto layer : m_LayerStack)
-					layer->OnUpdate(timeStep);
+				{
+					SK_PROFILE_SCOPE("Update Layers");
 
-				m_ImGuiLayer->Begin();
-				for (auto layer : m_LayerStack)
-					layer->OnImGuiRender();
-				m_ImGuiLayer->End();
+					for (auto layer : m_LayerStack)
+						layer->OnUpdate(timeStep);
+				}
+
+				{
+					SK_PROFILE_SCOPE("ImGui");
+
+					m_ImGuiLayer->Begin();
+					for (auto layer : m_LayerStack)
+						layer->OnImGuiRender();
+					m_ImGuiLayer->End();
+				}
 			}
 
-			m_Window->Update();
+			{
+				SK_PROFILE_SCOPE("Update Window");
+				m_Window->Update();
+			}
+
+			{
+				SK_PROFILE_SCOPE("Swap Buffers");
+
+				RendererCommand::SwapBuffers(m_Window->IsVSync());
+			}
 		}
 	}
 

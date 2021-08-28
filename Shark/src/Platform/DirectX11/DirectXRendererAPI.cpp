@@ -2,6 +2,8 @@
 #include "DirectXRendererAPI.h"
 #include "Shark/Core/Application.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR(SK_STRINGIFY(call) "0x{0:x}", hr); SK_DEBUG_BREAK(); }
 #else
@@ -27,6 +29,8 @@ namespace Shark {
 
 	void DirectXRendererAPI::Init()
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(s_Instance == nullptr);
 		s_Instance = this;
 
@@ -79,6 +83,8 @@ namespace Shark {
 
 	void DirectXRendererAPI::DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_Context->DrawIndexed(count, indexoffset, vertexoffset);
 	}

@@ -6,6 +6,8 @@
 #include "Shark/Core/KeyCodes.h"
 #include "Shark/Core/MouseCodes.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 #include <backends/imgui_impl_win32.h>
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -17,6 +19,8 @@ namespace Shark {
 		:
 		hInst(GetModuleHandle(nullptr))
 	{
+		SK_PROFILE_FUNCTION();
+
 		WNDCLASSEX wc = { 0 };
 		wc.cbSize = sizeof(wc);
 		wc.style = CS_OWNDC;
@@ -36,6 +40,7 @@ namespace Shark {
 
 	WindowsWindow::WindowClass::~WindowClass()
 	{
+		SK_PROFILE_FUNCTION();
 		UnregisterClass(ClassName, hInst);
 	}
 
@@ -46,6 +51,8 @@ namespace Shark {
 		m_Name(props.Name),
 		m_VSync(props.VSync)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::string str(props.Name.size(), '\000');
 		str.resize(props.Name.size());
 		wcstombs_s(nullptr, str.data(), str.size(), props.Name.data(), std::numeric_limits<size_t>::max());
@@ -73,20 +80,24 @@ namespace Shark {
 			height = rect.bottom - rect.top;
 		}
 
-		m_hWnd = CreateWindowExW(
-			0,
-			WindowClass::GetName(),
-			m_Name.c_str(),
-			flags,
-			CW_USEDEFAULT,
-			CW_USEDEFAULT,
-			width,
-			height,
-			nullptr,
-			nullptr,
-			WindowClass::GetHInst(),
-			this
-		);
+		{
+			SK_PROFILE_SCOPE("[Windows] Create Window");
+
+			m_hWnd = CreateWindowExW(
+				0,
+				WindowClass::GetName(),
+				m_Name.c_str(),
+				flags,
+				CW_USEDEFAULT,
+				CW_USEDEFAULT,
+				width,
+				height,
+				nullptr,
+				nullptr,
+				WindowClass::GetHInst(),
+				this
+			);
+		}
 #ifdef SK_DEBUG
 		if (!m_hWnd)
 		{
@@ -102,11 +113,15 @@ namespace Shark {
 
 	WindowsWindow::~WindowsWindow()
 	{
+		SK_PROFILE_FUNCTION();
+
 		DestroyWindow(m_hWnd);
 	}
 
 	void WindowsWindow::Update() const
 	{
+		SK_PROFILE_FUNCTION();
+
 		MSG msg = {};
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
@@ -117,6 +132,8 @@ namespace Shark {
 
 	LRESULT WINAPI WindowsWindow::WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (uMsg == WM_NCCREATE)
 		{
 			const CREATESTRUCTW* const pCreateStruct = reinterpret_cast<CREATESTRUCTW*>(lParam);
@@ -131,6 +148,8 @@ namespace Shark {
 
 	LRESULT WINAPI WindowsWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		SK_PROFILE_FUNCTION();
+
 		WindowsWindow* const pWindow = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 		return pWindow->HandleMsg(hWnd, uMsg, wParam, lParam);
 	}
@@ -141,6 +160,8 @@ namespace Shark {
 
 	LRESULT __stdcall WindowsWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 			return 1;
 

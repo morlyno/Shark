@@ -10,6 +10,8 @@
 
 #include <DirectXMath.h>
 
+#include "Shark/Debug/Instrumentor.h"
+
 namespace Shark {
 
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
@@ -145,6 +147,8 @@ namespace Shark {
 
 	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
+			
 		YAML::Emitter out;
 
 		SK_CORE_INFO("==========================================================================================");
@@ -177,6 +181,8 @@ namespace Shark {
 
 	bool SceneSerializer::Deserialize(const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Node in = YAML::LoadFile(filepath);
 		if (!in["Scene"])
 			return false;

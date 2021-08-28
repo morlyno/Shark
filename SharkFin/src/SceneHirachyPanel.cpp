@@ -15,6 +15,8 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
 
+#include <Shark/Debug/Instrumentor.h>
+
 namespace Shark {
 
 	namespace Utils {
@@ -53,11 +55,15 @@ namespace Shark {
 
 	SceneHirachyPanel::SceneHirachyPanel(const Ref<Scene>& context)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SetContext(context);
 	}
 
 	void SceneHirachyPanel::SetContext(const Ref<Scene>& context)
 	{
+		SK_PROFILE_FUNCTION();
+
 		Utils::ChangeSelectedEntity({});
 		m_Context = context;
 		m_FilePathInputBuffer = m_Context->GetFilePath().string();
@@ -65,10 +71,14 @@ namespace Shark {
 
 	void SceneHirachyPanel::OnImGuiRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_ShowPanel)
 		{
 			if (ImGui::Begin("Scene Hirachy", &m_ShowPanel) && m_Context)
 			{
+				SK_PROFILE_SCOPE("Scene Hirachy");
+
 				m_Context->m_Registry.each([=](auto entityID)
 				{
 					Entity entity{ entityID, Weak(m_Context) };
@@ -143,6 +153,8 @@ namespace Shark {
 		{
 			if (ImGui::Begin("Scene Properties", &m_ShowProperties))
 			{
+				SK_PROFILE_SCOPE("Scene Properties");
+
 				UI::TextWithBackGround(m_Context->GetFilePath());
 				std::filesystem::path filePath;
 				if (UI::GetContentPayload(filePath, UI::ContentType::Scene))
@@ -164,6 +176,8 @@ namespace Shark {
 
 	void SceneHirachyPanel::DrawEntityNode(Entity entity)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto& tag = entity.GetComponent<TagComponent>();
 		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 		if (m_SelectedEntity == entity)
@@ -204,6 +218,8 @@ namespace Shark {
 	
 	void SceneHirachyPanel::DrawEntityProperties(Entity entity)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const float AddButtonWidth = ImGui::CalcTextSize("Add", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 		const float IDSpacingWidth = ImGui::CalcTextSize("123456", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 		const float WindowWidth = ImGui::GetContentRegionAvailWidth();
