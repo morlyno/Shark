@@ -27,7 +27,8 @@ project "Shark"
         "%{includeDir.EnTT}",
         "%{includeDir.yaml_cpp}",
         "%{includeDir.box2d}",
-        "%{includeDir.ImGuizmo}"
+        "%{includeDir.ImGuizmo}",
+        "%{includeDir.fmt}"
     }
 
     filter "system:windows"
@@ -41,7 +42,8 @@ project "Shark"
             "ImGui",
             "yaml-cpp",
             "box2d",
-            "ImGuizmo"
+            "ImGuizmo",
+            "fmt"
         }
 
     filter "configurations:Debug"
