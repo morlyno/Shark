@@ -258,7 +258,7 @@ namespace Shark {
 	{
 		std::string result;
 		std::ifstream in(filepath, std::ios::in, std::ios::binary);
-		SK_CORE_ASSERT(in, "File not found! Filepath: " + filepath);
+		SK_CORE_ASSERT(in, fmt::format("File not found! Filepath: {}", filepath));
 		if (in)
 		{
 			in.seekg(0u, std::ios::end);

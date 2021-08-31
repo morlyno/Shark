@@ -61,7 +61,7 @@ namespace Shark {
 	{
 		int width, height;
 		stbi_uc* data = stbi_load(filepath.c_str(), &width, &height, nullptr, 4);
-		SK_CORE_ASSERT(data, "Failed to load Imiage! " + (std::string)stbi_failure_reason());
+		SK_CORE_ASSERT(data, fmt::format("Failed to load Imiage! {}", stbi_failure_reason()));
 
 		m_Width = width;
 		m_Height = height;

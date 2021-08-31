@@ -20,6 +20,8 @@
 
 #include <chrono>
 
+#include <fmt/format.h>
+
 #if SK_PLATFORM_WINDOWS
 	#ifndef NOMINMAX
 		#define NOMINMAX
