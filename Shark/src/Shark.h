@@ -20,6 +20,7 @@
 #include "Shark/Utility/ImGuiUtils.h"
 #include "Shark/Utility/FileSystem.h"
 #include "Shark/Utility/Math.h"
+#include "Shark/Utility/FileWatcher.h"
 // --------------------------------------
 
 // --- Event ----------------------------

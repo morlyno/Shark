@@ -3,19 +3,9 @@
 
 #include "Shark/Core/Application.h"
 
+#include "Platform/Windows/WindowsUtility.h"
+
 namespace Shark {
-
-	static std::string GetLastErrorMsg(DWORD lasterror)
-	{
-		LPSTR messageBuffer = NULL;
-		DWORD size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, lasterror, 0, messageBuffer, 0, NULL);
-
-		auto message = std::string(messageBuffer, size);
-
-		LocalFree(messageBuffer);
-
-		return message;
-	}
 
 	namespace FileDialogs {
 

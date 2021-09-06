@@ -47,7 +47,7 @@ namespace Shark {
 	}
 
 	AssetsPanel::AssetsPanel()
-		: m_Project(Application::Get().GetProject())
+		: m_Project(Application::Get().GetProject()), m_Watcher(m_Project.GetAssetsPath(), true)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -60,16 +60,38 @@ namespace Shark {
 
 		UpdateCurrentPathVec();
 
+		const auto& watcher = m_Watcher;
+		m_Watcher.OnChanged = [&watcher](const std::filesystem::path& filePath)
+		{
+			if (std::filesystem::is_regular_file(filePath))
+			{
+				SK_CORE_TRACE("Callback OnChanged [{}], FileSize: {}", filePath, std::filesystem::file_size(watcher.GetWatchingDirectory() / filePath));
+				return;
+			}
+			SK_CORE_TRACE("Callback OnChanged [{}]", filePath);
+		};
+		m_Watcher.OnCreated = [](const std::filesystem::path& filePath)
+		{
+			SK_CORE_TRACE("Callback OnCreated [{}]", filePath);
+		};
+		m_Watcher.OnDeleted = [](const std::filesystem::path& filePath)
+		{
+			SK_CORE_TRACE("Callback OnDeleted [{}]", filePath);
+		};
+		m_Watcher.OnRename = [](const std::filesystem::path& filePath, const std::filesystem::path& oldfilePath)
+		{
+			SK_CORE_TRACE("Callback OnRename From [{}] to [{}]", oldfilePath, filePath);
+		};
 
-		Counter::Add("AP_ReCache", m_ReCacheTime, true, [this]() { this->ReCache(); });
-		Counter::SetActivce("AP_ReCache", m_AutoReCache);
+		m_Watcher.Start();
+
 	}
 
 	AssetsPanel::~AssetsPanel()
 	{
 		SK_PROFILE_FUNCTION();
 
-		Counter::Remove("AP_ReCache");
+		m_Watcher.Stop();
 	}
 
 	void AssetsPanel::OnImGuiRender()
@@ -83,6 +105,12 @@ namespace Shark {
 		{
 			ImGui::End();
 			return;
+		}
+
+		if (m_AdditionalInit)
+		{
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			m_DeleteEntryID = window->GetID(m_DeletrEntryName);
 		}
 
 		if (m_ReloadRequierd)
@@ -526,7 +554,8 @@ namespace Shark {
 		const bool isDirectory = entry.Type == Entry::ContentType::Directory;
 		const bool isFile = entry.Type == Entry::ContentType::File;
 
-		if (ImGui::BeginPopupModal("Delete Entry"))
+		ImGuiWindow* debug = ImGui::GetCurrentWindow();
+		if (ImGui::BeginPopupModal(m_DeletrEntryName))
 		{
 			ImGui::Text("Do you want to delete this entry");
 			ImGui::Text("Path: %s", path.c_str());
@@ -550,7 +579,7 @@ namespace Shark {
 				ImGui::CloseCurrentPopup();
 			ImGui::EndPopup();
 		}
-		if (!ImGui::IsPopupOpen("Delete Entry", ImGuiPopupFlags_None))
+		if (!ImGui::IsPopupOpen(m_DeleteEntryID, ImGuiPopupFlags_None))
 			m_ShowDeletePopup = false;
 	}
 
@@ -708,10 +737,7 @@ namespace Shark {
 		m_IgnoreNextSelectionCheck = true;
 		
 		
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		ImGui::PushOverrideID(window->ID);
-		ImGui::OpenPopupEx(window->GetID("Delete Entry"));
-		ImGui::PopID();
+		ImGui::OpenPopupEx(m_DeleteEntryID);
 	}
 
 	Entry& AssetsPanel::GetEntry(const std::string& path)

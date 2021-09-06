@@ -8,8 +8,17 @@
 #define SK_DEBUG_BREAK() __debugbreak()
 #endif
 
+
 #define SK_ENABLE_ASSERT 1
-#define SK_LOG_FILESYSTEM 1
+#if SK_DEBUG
+#define SK_ENABLE_VERIFY 1
+#elif SK_RELEASE
+#define SK_ENABLE_VERIFY 2
+#else
+#define SK_ENABLE_VERIFY 2
+#endif
+
+#define SK_LOG_FILESYSTEM 0
 #define IMGUI_DEFINE_MATH_OPERATORS
 #define SPDLOG_FMT_EXTERNAL
 

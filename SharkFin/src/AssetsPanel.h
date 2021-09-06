@@ -83,6 +83,7 @@ namespace Shark {
 	private:
 		bool m_ShowPanel = true;
 		const Project& m_Project;
+		FileWatcher m_Watcher;
 
 		Ref<Texture2D> m_DirectoryIcon;
 		Ref<Texture2D> m_StandartFileIcon;
@@ -116,6 +117,10 @@ namespace Shark {
 
 		bool m_AutoReCache = false;
 		float m_ReCacheTime = 10.0f;
+
+		bool m_AdditionalInit = true;
+		const char* m_DeletrEntryName = "Delete Entry";
+		ImGuiID m_DeleteEntryID;
 
 	};
 
