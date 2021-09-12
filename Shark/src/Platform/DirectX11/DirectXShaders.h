@@ -17,13 +17,13 @@ namespace Shark {
 	class DirectXShaders : public Shaders
 	{
 	public:
-		DirectXShaders(const std::string& filepath);
+		DirectXShaders(const std::filesystem::path& filepath);
 		virtual ~DirectXShaders();
 		void Release();
 
 		virtual VertexLayout& GetVertexLayout() override { return m_VertexLayout; };
 
-		virtual const std::string& GetFilePath() const override { return m_FilePath; }
+		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
 		virtual const std::string& GetFileName() const override { return m_FileName; }
 
 		virtual bool ReCompile() override;
@@ -34,7 +34,7 @@ namespace Shark {
 		virtual void UnBind() override;
 
 	private:
-		std::string ReadFile(const std::string& filepath);
+		std::string ReadFile(const std::filesystem::path& filepath);
 		std::unordered_map<Shader, std::string> PreProzess(const std::string& file);
 		bool TryReCompile(std::unordered_map<Shader, std::string>& shaderSources);
 		void CompileOrGetCached(std::unordered_map<Shader, std::string>& shaderSources);
@@ -43,15 +43,15 @@ namespace Shark {
 		void CreateShaders();
 
 	private:
-		ID3D11PixelShader* m_PixelShader;
-		ID3D11VertexShader* m_VertexShader;
+		ID3D11PixelShader* m_PixelShader = nullptr;
+		ID3D11VertexShader* m_VertexShader = nullptr;
 		
 		ID3D11InputLayout* m_InputLayout = nullptr;
 
 		std::unordered_map<Shader, std::vector<byte>> m_ShaderBinarys;
-		std::string m_FilePath;
+		std::filesystem::path m_FilePath;
 		std::string m_FileName;
-		std::string m_CacheFilePath;
+		std::filesystem::path m_CacheFilePath;
 
 		VertexLayout m_VertexLayout;
 

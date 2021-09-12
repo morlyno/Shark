@@ -13,7 +13,7 @@ namespace Shark {
 
 		virtual VertexLayout& GetVertexLayout() = 0;
 
-		virtual const std::string& GetFilePath() const = 0;
+		virtual const std::filesystem::path& GetFilePath() const = 0;
 		virtual const std::string& GetFileName() const = 0;
 
 		virtual bool ReCompile() = 0;
@@ -23,7 +23,7 @@ namespace Shark {
 		virtual void Bind() = 0;
 		virtual void UnBind() = 0;
 
-		static Ref<Shaders> Create(const std::string& filepath);
+		static Ref<Shaders> Create(const std::filesystem::path& filepath);
 	};
 
 	class ShaderLibrary
@@ -35,8 +35,8 @@ namespace Shark {
 		ShaderLibrary(const ShaderLibrary&) = delete;
 		ShaderLibrary& operator=(const ShaderLibrary&) = delete;
 
-		Ref<Shaders> Load(const std::string& filepath);
-		Ref<Shaders> Load(const std::string& filepath, const std::string name);
+		Ref<Shaders> Load(const std::filesystem::path& filepath);
+		Ref<Shaders> Load(const std::filesystem::path& filepath, const std::string name);
 
 		void Add(Ref<Shaders> shader);
 		void Add(Ref<Shaders> shader, const std::string& name);

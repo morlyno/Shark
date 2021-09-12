@@ -2,47 +2,30 @@ Scene: Untitled
 Entities:
   - Entity: 54758432
     TagComponent:
-      Tag: Camera
+      Tag: New Quad
     TransformComponent:
-      Position: [0, 0, 0]
+      Position: [-16, -7, 0]
       Rotation: [0, 0, 0]
-      Scaling: [1, 1, 1]
-    CameraComponent:
-      Type: 1
-      Aspecratio: 1.80424881
-      PerspectiveFOV: 44.9999771
-      PerspectiveNear: 0.00999999978
-      PerspectiveFar: 1000
-      OrthographicZoom: 15
-      OrthographicNear: -1
-      OrthographicFar: 1
-      IsMainCamera: true
-  - Entity: 54758432
-    TagComponent:
-      Tag: Player
-    TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scaling: [1, 1, 1]
+      Scaling: [10.9299994, 1, 1]
     SpriteRendererComponent:
-      Color: [0.0404411852, 0.500820279, 0.75, 1]
+      Color: [0.569125056, 0.784313738, 0.119184934, 1]
       Texture: ""
       TilingFactor: 1
       Geometry: 1
     RigidBodyComponent:
-      Type: 2
+      Type: 0
       AllowSleep: true
-      Awake: true
+      Awake: false
       Enabled: true
       FixedRotation: false
-      Position: [0, 0]
+      Position: [-16, -7]
       Angle: 0
     ColliderComponent:
       Shape: 0
-      Friction: 0.300000012
-      Density: 1
+      Friction: 0
+      Density: 0
       Restitution: 0
-      Size: [1, 1]
+      Size: [10.9299994, 1]
   - Entity: 54758432
     TagComponent:
       Tag: Ground
@@ -71,27 +54,44 @@ Entities:
       Size: [50, 1]
   - Entity: 54758432
     TagComponent:
-      Tag: New Quad
+      Tag: Player
     TransformComponent:
-      Position: [-16, -7, 0]
+      Position: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scaling: [10.9299994, 1, 1]
+      Scaling: [1, 1, 1]
     SpriteRendererComponent:
-      Color: [0.569125056, 0.784313738, 0.119184934, 1]
+      Color: [0.0404411852, 0.500820279, 0.75, 1]
       Texture: ""
       TilingFactor: 1
       Geometry: 1
     RigidBodyComponent:
-      Type: 0
+      Type: 2
       AllowSleep: true
-      Awake: false
+      Awake: true
       Enabled: true
       FixedRotation: false
-      Position: [-16, -7]
+      Position: [0, 0]
       Angle: 0
     ColliderComponent:
       Shape: 0
-      Friction: 0
-      Density: 0
+      Friction: 0.300000012
+      Density: 1
       Restitution: 0
-      Size: [10.9299994, 1]
+      Size: [1, 1]
+  - Entity: 54758432
+    TagComponent:
+      Tag: Camera
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scaling: [1, 1, 1]
+    CameraComponent:
+      Type: 1
+      Aspectratio: 1.95325541
+      PerspectiveFOV: 2578.30859
+      PerspectiveNear: 0.00999999978
+      PerspectiveFar: 1000
+      OrthographicZoom: 15
+      OrthographicNear: -1
+      OrthographicFar: 1
+      IsMainCamera: true

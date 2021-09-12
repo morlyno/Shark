@@ -58,4 +58,14 @@ namespace Shark::Math {
         return GetRotation(XMLoadFloat4x4(&matrix));
     }
 
+	float ToRadians(float degrees)
+	{
+        return DirectX::XMConvertToRadians(degrees);
+	}
+
+	float ToDegrees(float radians)
+	{
+        return DirectX::XMConvertToDegrees(radians);
+	}
+
 }

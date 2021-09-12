@@ -3,6 +3,7 @@
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components/Components.h"
+#define SK_YAMLUTILS_ALL 1
 #include "Shark/Utility/YAMLUtils.h"
 
 #include <yaml-cpp/yaml.h>
@@ -87,7 +88,7 @@ namespace Shark {
 			auto& cam = comp.Camera;
 
 			out << YAML::Key << "Type" << YAML::Value << (int)cam.GetProjectionType();
-			out << YAML::Key << "Aspecratio" << YAML::Value << cam.GetAspectratio();
+			out << YAML::Key << "Aspectratio" << YAML::Value << cam.GetAspectratio();
 
 			out << YAML::Key << "PerspectiveFOV" << YAML::Value << cam.GetPerspectiveFOV();
 			out << YAML::Key << "PerspectiveNear" << YAML::Value << cam.GetPerspectiveNear();
@@ -159,7 +160,7 @@ namespace Shark {
 		
 		m_Scene->m_Registry.each([&](auto& entityID)
 		{
-			Entity entity{ entityID, Weak(m_Scene) };
+			Entity entity{ entityID, m_Scene };
 			SerializeEntity(out, entity, m_Scene);
 		});
 
@@ -203,9 +204,10 @@ namespace Shark {
 				auto tagComponent = entity["TagComponent"];
 				if (tagComponent)
 				{
-					auto tag = tagComponent["Tag"].as<std::string>();
+					auto tag = tagComponent["Tag"];
+					SK_CORE_VERIFY(tag, "Couldn't deserialize TagComponent::Tag")
 					auto& comp = deserializedEntity.AddComponent<TagComponent>();
-					comp.Tag = tag;
+					comp.Tag = tag.as<std::string>("Unkown Deserialized Entity");
 					SK_CORE_TRACE(" - Tag Compoenent: {0}", tag);
 				}
 
@@ -213,83 +215,202 @@ namespace Shark {
 				auto transformComponent = entity["TransformComponent"];
 				if (transformComponent)
 				{
-					auto position = transformComponent["Position"].as<DirectX::XMFLOAT3>();
-					auto rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
-					auto scaling = transformComponent["Scaling"].as<DirectX::XMFLOAT3>();
+					auto position = transformComponent["Position"];
+					auto rotation = transformComponent["Rotation"];
+					auto scaling = transformComponent["Scaling"];
 					auto& comp = deserializedEntity.AddComponent<TransformComponent>();
-					comp = { position, rotation, scaling };
+
+					SK_CORE_VERIFY(position, "Couldn't deserialize TransformComponent::Position");
+					if (position)
+						comp.Position = position.as<DirectX::XMFLOAT3>();
+
+					SK_CORE_VERIFY(rotation, "Couldn't deserialize TransformComponent::Rotation");
+					if (rotation)
+						comp.Rotation = rotation.as<DirectX::XMFLOAT3>();
+
+					SK_CORE_VERIFY(scaling, "Couldn't deserialize TransformComponent::Scaling");
+					if (scaling)
+						comp.Scaling = scaling.as<DirectX::XMFLOAT3>();
+
 					SK_CORE_TRACE(" - Transfrom Component");
 				}
 
 				auto spriteRendererComponent = entity["SpriteRendererComponent"];
 				if (spriteRendererComponent)
 				{
-					auto color = spriteRendererComponent["Color"].as<DirectX::XMFLOAT4>();
-					auto textureFilePath = spriteRendererComponent["Texture"].as<std::string>();
-					auto tilingfactor = spriteRendererComponent["TilingFactor"].as<float>();
-					auto geometry = spriteRendererComponent["Geometry"].as<Geometry>();
+					auto color = spriteRendererComponent["Color"];
+					auto textureFilePath = spriteRendererComponent["Texture"];
+					auto tilingfactor = spriteRendererComponent["TilingFactor"];
+					auto geometry = spriteRendererComponent["Geometry"];
 
 					auto& comp = deserializedEntity.AddComponent<SpriteRendererComponent>();
-					comp.Color = color;
-					comp.Texture = textureFilePath.empty() ? nullptr : Texture2D::Create(textureFilePath);
-					comp.TilingFactor = tilingfactor;
-					comp.Geometry = geometry;
+
+					SK_CORE_VERIFY(color, "Couldn't deserialize SpriteRendererComponent::Color");
+					if (color)
+						comp.Color = color.as<DirectX::XMFLOAT4>();
+
+					SK_CORE_VERIFY(textureFilePath, "Couldn't deserialize SpriteRendererComponent::Texture")
+					if (textureFilePath)
+					{
+						auto texFilePath = textureFilePath.as<std::filesystem::path>();
+						if (!texFilePath.empty())
+							comp.Texture = Texture2D::Create(texFilePath);
+					}
+
+					SK_CORE_VERIFY(tilingfactor, "Couldn't deserialize SpriteRendererComponent::TilingFactor");
+					if (tilingfactor)
+						comp.TilingFactor = tilingfactor.as<float>();
+
+					SK_CORE_VERIFY(geometry, "Couldn't deserialize SpriteRendererComponent::Geometry");
+					if (geometry)
+						comp.Geometry = geometry.as<Geometry>();
+
+
 					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
 				}
 
 				auto cameraComponent = entity["CameraComponent"];
 				if (cameraComponent)
 				{
-					SceneCamera::Projection type = (SceneCamera::Projection)cameraComponent["Type"].as<int>();
-					float aspecratio = cameraComponent["Aspecratio"].as<float>();
-					float perspectiveFOV = cameraComponent["PerspectiveFOV"].as<float>();
-					float perspectiveNear = cameraComponent["PerspectiveNear"].as<float>();
-					float perspectiveFar = cameraComponent["PerspectiveFar"].as<float>();
-					float orthographicZoom = cameraComponent["OrthographicZoom"].as<float>();
-					float orthographicNear = cameraComponent["OrthographicNear"].as<float>();
-					float orthographicFar = cameraComponent["OrthographicFar"].as<float>();
-					bool isMainCamera = cameraComponent["IsMainCamera"].as<bool>();
-							
-					SceneCamera Scenecamera;
-					Scenecamera.SetPerspective(aspecratio, perspectiveFOV, perspectiveNear, perspectiveFar);
-					Scenecamera.SetOrthographic(aspecratio, orthographicZoom, orthographicNear, orthographicFar);
-					Scenecamera.SetProjectionType(type);
+					SceneCamera::Projection projection = SceneCamera::Projection::Perspective;
+					SceneCamera::PerspectiveSpecs ps;
+					SceneCamera::OrthographicSpecs os;
+					float aspecRatio = 1.77778f;
+					bool mainCam = false;
+
+					auto aspectratio = cameraComponent["Aspectratio"];
+					auto perspectiveFOV = cameraComponent["PerspectiveFOV"];
+					auto perspectiveNear = cameraComponent["PerspectiveNear"];
+					auto perspectiveFar = cameraComponent["PerspectiveFar"];
+					auto orthographicZoom = cameraComponent["OrthographicZoom"];
+					auto orthographicNear = cameraComponent["OrthographicNear"];
+					auto orthographicFar = cameraComponent["OrthographicFar"];
+					auto isMainCamera = cameraComponent["IsMainCamera"];
+
+					auto type = cameraComponent["Type"];
+					SK_CORE_VERIFY(type, "Couldn't deserialize CameraComponent::Projection");
+					if (type)
+						projection = type.as<SceneCamera::Projection>();
+
+					SK_CORE_VERIFY(aspectratio, "Couldn't deserialize CameraComponent::AspectRatio");
+					if (aspectratio)
+						aspecRatio = aspectratio.as<float>();
+
+					SK_CORE_VERIFY(perspectiveFOV, "Couldn't deserialize CameraComponent::PerspectiveFOV");
+					if (perspectiveFOV)
+						ps.FOV = perspectiveFOV.as<float>();
+
+					SK_CORE_VERIFY(perspectiveNear, "Couldn't deserialize CameraComponent::PerspectiveNear");
+					if (perspectiveNear)
+						ps.Near = perspectiveNear.as<float>();
+
+					SK_CORE_VERIFY(perspectiveFar, "Couldn't deserialize CameraComponent::PerspectiveFar");
+					if (perspectiveFar)
+						ps.Far = perspectiveFar.as<float>();
+
+					SK_CORE_VERIFY(orthographicZoom, "Couldn't deserialize CameraComponent::OrthographicZoom");
+					if (orthographicZoom)
+						os.Zoom = orthographicZoom.as<float>();
+
+					SK_CORE_VERIFY(orthographicNear, "Couldn't deserialize CameraComponent::OrthographicNear");
+					if (orthographicNear)
+						os.Near = orthographicNear.as<float>();
+
+					SK_CORE_VERIFY(orthographicNear, "Couldn't deserialize CameraComponent::OrthographicNear");
+					if (orthographicNear)
+						os.Far = orthographicFar.as<float>();
+
+					SK_CORE_VERIFY(isMainCamera, "Couldn't deserialize IsMainCamera");
+					if (isMainCamera)
+						mainCam = isMainCamera.as<bool>();
 
 					auto& comp = deserializedEntity.AddComponent<CameraComponent>();
-					comp.Camera = Scenecamera;
-					if (isMainCamera)
+					comp.Camera = SceneCamera(projection, aspecRatio, ps, os);
+					if (mainCam)
 						m_Scene->m_ActiveCameraID = deserializedEntity;
-					SK_CORE_TRACE(" - Camera Component: Type {0}, MainCamera {0}", type == SceneCamera::Projection::Perspective ? "Perspective" : "Othographic", isMainCamera);
+					SK_CORE_TRACE(" - Camera Component: Type {}, MainCamera {}", projection == SceneCamera::Projection::Perspective ? "Perspective" : "Othographic", mainCam);
 				}
 
 				auto rigidbodyComponent = entity["RigidBodyComponent"];
 				if (rigidbodyComponent)
 				{
+					auto type = rigidbodyComponent["Type"];
+					auto allowSleep = rigidbodyComponent["AllowSleep"];
+					auto awake = rigidbodyComponent["Awake"];
+					auto enabled = rigidbodyComponent["Enabled"];
+					auto fixedRotation = rigidbodyComponent["FixedRotation"];
+					auto position = rigidbodyComponent["Position"];
+					auto angle = rigidbodyComponent["Angle"];
+
 					RigidBodySpecs specs;
-					specs.Type = (BodyType)rigidbodyComponent["Type"].as<int>();
-					specs.AllowSleep = rigidbodyComponent["AllowSleep"].as<bool>();
-					specs.Awake = rigidbodyComponent["Awake"].as<bool>();
-					specs.Enabled = rigidbodyComponent["Enabled"].as<bool>();
-					specs.FixedRotation = rigidbodyComponent["FixedRotation"].as<bool>();
-					specs.Position = rigidbodyComponent["Position"].as<DirectX::XMFLOAT2>();
-					specs.Angle = rigidbodyComponent["Angle"].as<float>();
-				
+
+					SK_CORE_VERIFY(type, "Couldn't deserialize RigigBodyComponent::Type");
+					if (type)
+						specs.Type = type.as<Shark::BodyType>();
+
+					SK_CORE_VERIFY(allowSleep, "Couldn't deserialize RigigBodyComponent::AllowSleep");
+					if (allowSleep)
+						specs.AllowSleep = allowSleep.as<bool>();
+					
+					SK_CORE_VERIFY(awake, "Couldn't deserialize RigigBodyComponent::Awake");
+					if (awake)
+						specs.Awake = awake.as<bool>();
+
+					SK_CORE_VERIFY(enabled, "Couldn't deserialize RigigBodyComponent::Enabled");
+					if (enabled)
+						specs.Enabled = enabled.as<bool>();
+
+					SK_CORE_VERIFY(fixedRotation, "Couldn't deserialize RigigBodyComponent::FixedRotation");
+					if (fixedRotation)
+						specs.FixedRotation = fixedRotation.as<bool>();
+
+					SK_CORE_VERIFY(position, "Couldn't deserialize RigigBodyComponent::Position");
+					if (position)
+						specs.Position = position.as<DirectX::XMFLOAT2>();
+
+					SK_CORE_VERIFY(angle, "Couldn't deserialize RigigBodyComponent::Angle");
+					if (angle)
+						specs.Angle = angle.as<float>();
+
 					auto& comp = deserializedEntity.AddComponent<RigidBodyComponent>();
 					comp.Body.SetState(specs);
-					SK_CORE_TRACE(" - RigidBody Component: Type {0}", specs.Type == BodyType::Static ? "Static" : "Dinamic");
+					SK_CORE_TRACE(" - RigidBody Component: Type {}", specs.Type == BodyType::Static ? "Static" : "Dinamic");
 				}
 
 				auto colliderComponent = entity["ColliderComponent"];
 				if (colliderComponent)
 				{
+					auto shape = colliderComponent["Shape"];
+					auto friction = colliderComponent["Friction"];
+					auto density = colliderComponent["Density"];
+					auto restitution = colliderComponent["Restitution"];
+					auto size = colliderComponent["Size"];
+					
 					ColliderSpecs specs;
-					specs.Shape = (ShapeType)colliderComponent["Shape"].as<int>();
-					specs.Friction = colliderComponent["Friction"].as<float>();
-					specs.Density = colliderComponent["Density"].as<float>();
-					specs.Restitution = colliderComponent["Restitution"].as<float>();
-					auto [width, height] = colliderComponent["Size"].as<DirectX::XMFLOAT2>();
-					specs.Width = width;
-					specs.Height = height;
+
+					SK_CORE_VERIFY(shape, "Couldn't deserialize ColliderComponent::Shape");
+					if (shape)
+						specs.Shape = shape.as<ShapeType>();
+
+					SK_CORE_VERIFY(friction, "Couldn't deserialize ColliderComponent::Firction");
+					if (friction)
+						specs.Friction = friction.as<float>();
+
+					SK_CORE_VERIFY(density, "Couldn't deserialize ColliderComponent::Density");
+					if (density)
+						specs.Density = density.as<float>();
+
+					SK_CORE_VERIFY(restitution, "Couldn't deserialize ColliderComponent::Restitution");
+					if (restitution)
+						specs.Restitution = restitution.as<float>();
+
+					SK_CORE_VERIFY(size, "Couldn't deserialize ColliderComponent::Size");
+					if (size)
+					{
+						auto [width, height] = size.as<DirectX::XMFLOAT2>();
+						specs.Width = width;
+						specs.Height = height;
+					}
 
 					auto& comp = deserializedEntity.AddComponent<BoxColliderComponent>();
 					comp.Collider.SetState(specs);

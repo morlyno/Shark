@@ -1,47 +1,36 @@
 #pragma once
 
-#if SK_PLATFORM_WINDOWS == 0
-#error Platform other than Windows are currently not supported
-#endif
-
 #if SK_PLATFORM_WINDOWS
-#define SK_DEBUG_BREAK() __debugbreak()
-#endif
-
-
-#define SK_ENABLE_ASSERT 1
-#if SK_DEBUG
-#define SK_ENABLE_VERIFY 1
-#elif SK_RELEASE
-#define SK_ENABLE_VERIFY 2
+	#define SK_DEBUG_BREAK() __debugbreak()
 #else
-#define SK_ENABLE_VERIFY 2
+	#error Platform other than Windows are currently not supported
 #endif
 
-#define SK_LOG_FILESYSTEM 0
+#if SK_DEBUG
+	#define SK_ENABLE_MEMORY_TRACING 0
+	#define SK_ENABLE_ASSERT 1
+	#define SK_ENABLE_VERIFY 1
+	#define SK_IF_DEBUG(x) { x }
+#endif
+
+#if SK_RELEASE
+	#define SK_ENABLE_MEMORY_TRACING 0
+	#define SK_ENABLE_ASSERT 1
+	#define SK_ENABLE_VERIFY 2
+	#define SK_IF_DEBUG(...)
+#endif
+
+
 #define IMGUI_DEFINE_MATH_OPERATORS
 #define SPDLOG_FMT_EXTERNAL
 
 #define BIT(x) (1 << x)
 #define SK_BIT(x) (1 << x)
 
-#define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
-
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
 
-#define SK_LINE_VAR3(name, line) name##line
-#define SK_VAR_NAME_CURR_LINE(name, line) SK_LINE_VAR3(name, line)
-
-#ifdef SK_DEBUG
-#define SK_IF_DEBUG(x) { x }
-#define SK_DEBUG_RETURN_VAL(x) auto&& (x) =
-#define SK_DEBUG_RETURN_TEMP SK_DEBUG_RETURN_VAL(SK_VAR_NAME_CURR_LINE(_TEMP_VAR_, __LINE__))
-#else
-#define SK_IF_DEBUG(...)
-#define SK_DEBUG_RETURN_TEMP
-#define SK_DEBUG_RETURN_VAL(x)
-#endif
+#define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 
 
 #include <stdint.h>
@@ -56,28 +45,38 @@ namespace Shark {
 	{
 		uintptr_t ID;
 		
+		constexpr RenderID() : ID((uintptr_t)nullptr) {}
 		constexpr RenderID(std::nullptr_t) : ID((uintptr_t)nullptr) {}
 		constexpr RenderID(uintptr_t id) : ID(id) {}
 		constexpr RenderID(void* id) : ID((uintptr_t)id) {}
-		operator uintptr_t() const { return ID; }
-		operator void*() const { return (void*)ID; }
+		constexpr operator uintptr_t() const { return ID; }
+		constexpr operator void*() const { return (void*)ID; }
 
-		bool operator==(const RenderID& rhs) const { return ID == rhs.ID; }
-		bool operator!=(const RenderID& rhs) const { return !(*this == rhs); }
-		operator bool() const { return ID; }
-
-		template<typename T>
-		T* As() { return (T*)ID; }
+		constexpr bool operator==(const RenderID& rhs) const { return ID == rhs.ID; }
+		constexpr bool operator!=(const RenderID& rhs) const { return !(*this == rhs); }
+		constexpr operator bool() const { return ID; }
 	};
-
-	constexpr RenderID NullID = nullptr;
 
 	using WindowHandle = void*;
 
 }
 
-#include "Shark/Core/Memory.h"
-#include "Shark/Core/Allocator.h"
+static_assert(sizeof(uint8_t) == 1);
+static_assert(sizeof(uint16_t) == 2);
+static_assert(sizeof(uint32_t) == 4);
+static_assert(sizeof(uint64_t) == 8);
+
+static_assert(sizeof(int8_t) == 1);
+static_assert(sizeof(int16_t) == 2);
+static_assert(sizeof(int32_t) == 4);
+static_assert(sizeof(int64_t) == 8);
+
+static_assert(sizeof(char) == 1);
+static_assert(sizeof(wchar_t) == 2);
+static_assert(sizeof(int) == 4);
+static_assert(sizeof(byte) == 1);
+
+#include "Shark/Memory/Allocator.h"
 
 #include "Shark/Core/Log.h"
 #include "Shark/Core/Assert.h"

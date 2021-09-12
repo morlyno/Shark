@@ -72,8 +72,7 @@ namespace Shark {
 		dest->m_Registry.reserve(m_Registry.capacity());
 		m_Registry.each([this, dest](auto entity)
 		{
-			Entity e{ entity, this };
-			dest->CopyEntity(e, true);
+			dest->CopyEntity({ entity, this });
 		});
 
 		dest->m_ActiveCameraID = m_ActiveCameraID;
@@ -204,31 +203,41 @@ namespace Shark {
 		m_World.Flush();
 	}
 
-	Entity Scene::CopyEntity(Entity other, bool hint)
+	Entity Scene::CopyEntity(Entity srcEntity)
 	{
 		SK_PROFILE_FUNCTION();
 
-		entt::entity entityID = hint ? m_Registry.create(other) : m_Registry.create();
-		auto e = Entity{ entityID, this };
+		Entity newEntity = CreateEntity(srcEntity);
 
-		TryCopyComponent<TagComponent>(other, e);
-		TryCopyComponent<TransformComponent>(other, e);
-		TryCopyComponent<SpriteRendererComponent>(other, e);
-		TryCopyComponent<CameraComponent>(other, e);
-		TryCopyComponent<NativeScriptComponent>(other, e);
-		TryCopyComponent<RigidBodyComponent>(other, e);
-		TryCopyComponent<BoxColliderComponent>(other, e);
+		CopyComponentIfExists<TagComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<TransformComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<SpriteRendererComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<CameraComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<NativeScriptComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<RigidBodyComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<BoxColliderComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 
-		return e;
+		return newEntity;
 	}
 
 	Entity Scene::CreateEntity(const std::string& tag)
 	{
 		SK_PROFILE_FUNCTION();
 
-		Entity entity{ m_Registry.create(), Weak(this) };
+		Entity entity{ m_Registry.create(), this };
 		auto& tagcomp = entity.AddComponent<TagComponent>();
-		tagcomp.Tag = tag.empty() ? "Entity" : tag;
+		tagcomp.Tag = tag.empty() ? "new Entity" : tag;
+		entity.AddComponent<TransformComponent>();
+		return entity;
+	}
+
+	Entity Scene::CreateEntity(entt::entity hint, const std::string& tag)
+	{
+		SK_PROFILE_FUNCTION();
+
+		Entity entity{ m_Registry.create(hint), this };
+		auto& tagcomp = entity.AddComponent<TagComponent>();
+		tagcomp.Tag = tag.empty() ? "new Entity" : tag;
 		entity.AddComponent<TransformComponent>();
 		return entity;
 	}
@@ -267,90 +276,6 @@ namespace Shark {
 			auto& cc = view.get<CameraComponent>(entityID);
 			cc.Camera.Resize(width, height);
 		}
-	}
-
-
-	template<typename Comp>
-	void Scene::CopyComponent(Entity src, Entity dest)
-	{
-		static_assert(false);
-	}
-
-	template<>
-	void Scene::CopyComponent<TagComponent>(Entity src, Entity dest)
-	{
-		SK_CORE_ASSERT(IsValidEntity(src));
-		SK_CORE_ASSERT(src.HasComponent<TagComponent>());
-		TagComponent& destComp = dest.TryAddComponent<TagComponent>();
-		TagComponent& srcComp = src.GetComponent<TagComponent>();
-		destComp.Tag = srcComp.Tag;
-	}
-
-	template<>
-	void Scene::CopyComponent<TransformComponent>(Entity src, Entity dest)
-	{
-		SK_CORE_ASSERT(IsValidEntity(src));
-		SK_CORE_ASSERT(src.HasComponent<TransformComponent>());
-		auto& destComp = dest.TryAddComponent<TransformComponent>();
-		auto& srcComp = src.GetComponent<TransformComponent>();
-		destComp.Position = srcComp.Position;
-		destComp.Rotation = srcComp.Rotation;
-		destComp.Scaling = srcComp.Scaling;
-	}
-
-	template<>
-	void Scene::CopyComponent<SpriteRendererComponent>(Entity src, Entity dest)
-	{
-		SK_CORE_ASSERT(IsValidEntity(src));
-		SK_CORE_ASSERT(src.HasComponent<SpriteRendererComponent>());
-		auto& destComp = dest.TryAddComponent<SpriteRendererComponent>();
-		auto& srcComp = src.GetComponent<SpriteRendererComponent>();
-		destComp.Color = srcComp.Color;
-		destComp.Texture = srcComp.Texture;
-		destComp.TilingFactor = srcComp.TilingFactor;
-		destComp.Geometry = srcComp.Geometry;
-	}
-
-	template<>
-	void Scene::CopyComponent<CameraComponent>(Entity src, Entity dest)
-	{
-		SK_CORE_ASSERT(IsValidEntity(src));
-		SK_CORE_ASSERT(src.HasComponent<CameraComponent>());
-		auto& destComp = dest.TryAddComponent<CameraComponent>();
-		auto& srcComp = src.GetComponent<CameraComponent>();
-		destComp.Camera = srcComp.Camera;
-	}
-
-	template<>
-	void Scene::CopyComponent<NativeScriptComponent>(Entity src, Entity dest)
-	{
-		SK_CORE_ASSERT(IsValidEntity(src));
-		SK_CORE_ASSERT(src.HasComponent<NativeScriptComponent>());
-		auto& destComp = dest.TryAddComponent<NativeScriptComponent>();
-		auto& srcComp = src.GetComponent<NativeScriptComponent>();
-		destComp.ScriptTypeName = srcComp.ScriptTypeName;
-		destComp.CreateScript = srcComp.CreateScript;
-		destComp.DestroyScript = srcComp.DestroyScript;
-	}
-	
-	template<>
-	void Scene::CopyComponent<RigidBodyComponent>(Entity src, Entity dest)
-	{
-		SK_CORE_ASSERT(IsValidEntity(src));
-		SK_CORE_ASSERT(src.HasComponent<RigidBodyComponent>());
-		auto& destComp = dest.TryAddComponent<RigidBodyComponent>();
-		auto& srcComp = src.GetComponent<RigidBodyComponent>();
-		destComp.Body.SetState(srcComp.Body.GetCurrentState());
-	}
-	
-	template<>
-	void Scene::CopyComponent<BoxColliderComponent>(Entity src, Entity dest)
-	{
-		SK_CORE_ASSERT(IsValidEntity(src));
-		SK_CORE_ASSERT(src.HasComponent<BoxColliderComponent>());
-		auto& destComp = dest.TryAddComponent<BoxColliderComponent>();
-		auto& srcComp = src.GetComponent<BoxColliderComponent>();
-		destComp.Collider.SetState(srcComp.Collider.GetCurrentState());
 	}
 
 

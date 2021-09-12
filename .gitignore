@@ -2,10 +2,12 @@
 **/bin/
 !dependencies/Premake/bin/
 **/bin-int/
-*.json
+SharkFin/assets/
 
 # files
 imgui.ini
+**.log
+*.json
 
 # Visual Studios files
 .vs/

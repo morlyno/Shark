@@ -2,9 +2,8 @@
 
 #include "Shark/Core/Base.h"
 
-#include "Shark/Core/Allocator.h"
-#include "Shark/Core/Memory.h"
-#include "Shark/Core/MemoryManager.h"
+#include "Shark/Memory/Allocator.h"
+#include "Shark/Memory/MemoryManager.h"
 
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Project.h"

@@ -4,7 +4,10 @@
 #include "Shark/Utility/Utility.h"
 
 namespace Shark {
+	class SceneCamera;
 	enum class Geometry;
+	enum class BodyType;
+	enum class ShapeType;
 }
 
 namespace YAML {
@@ -79,12 +82,48 @@ namespace YAML {
 	{
 		static Node encode(const Shark::Geometry& val)
 		{
-			return Node((Shark::Utility::IntTypeFromSize<sizeof(Shark::Geometry)>::Signed)val);
+			static_assert(sizeof(Shark::Geometry) <= sizeof(int));
+			return Node((int)val);
 		}
 
 		static bool decode(const Node& node, Shark::Geometry& val)
 		{
-			val = (Shark::Geometry)node.as<Shark::Utility::IntTypeFromSize<sizeof(Shark::Geometry)>::Signed>();
+			static_assert(sizeof(Shark::Geometry) <= sizeof(int));
+			val = (Shark::Geometry)node.as<int>();
+			return true;
+		}
+	};
+
+	template<>
+	struct convert<Shark::BodyType>
+	{
+		static Node encode(const Shark::BodyType& val)
+		{
+			static_assert(sizeof(Shark::BodyType) <= sizeof(int));
+			return Node((int)val);
+		}
+
+		static bool decode(const Node& node, Shark::BodyType& val)
+		{
+			static_assert(sizeof(Shark::BodyType) <= sizeof(int));
+			val = (Shark::BodyType)node.as<int>();
+			return true;
+		}
+	};
+
+	template<>
+	struct convert<Shark::ShapeType>
+	{
+		static Node encode(const Shark::ShapeType& val)
+		{
+			static_assert(sizeof(Shark::ShapeType) <= sizeof(int));
+			return Node((int)val);
+		}
+
+		static bool decode(const Node& node, Shark::ShapeType& val)
+		{
+			static_assert(sizeof(Shark::ShapeType) <= sizeof(int));
+			val = (Shark::ShapeType)node.as<int>();
 			return true;
 		}
 	};
@@ -95,28 +134,43 @@ namespace YAML {
 		return emitter.Write(convert<T>::encode(v).as<std::string>());
 	}
 
-	inline Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT2& f2)
-	{
-		out << Flow;
-		out << BeginSeq << f2.x << f2.y << EndSeq;
-		return out;
-	}
+	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT2& f2);
 
-	inline Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT3& f3)
-	{
-		out << Flow;
-		out << BeginSeq << f3.x << f3.y << f3.z << EndSeq;
-		return out;
-	}
+	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT3& f3);
 
-	inline Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT4& f4)
-	{
-		out << Flow;
-		out << BeginSeq << f4.x << f4.y << f4.z << f4.w << EndSeq;
-		return out;
-	}
+	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT4& f4);
 
 
 	Node LoadFile(const std::filesystem::path& filename);
+	Node LoadFile(const char* filename);
 
 }
+
+#if SK_YAMLUTILS_ALL
+
+namespace Shark {
+	enum class SceneCamera::Projection;
+}
+
+namespace YAML {
+
+	template<>
+	struct convert<Shark::SceneCamera::Projection>
+	{
+		static Node encode(const Shark::SceneCamera::Projection& val)
+		{
+			static_assert(sizeof(Shark::SceneCamera::Projection) <= sizeof(int));
+			return Node((int)val);
+		}
+
+		static bool decode(const Node& node, Shark::SceneCamera::Projection& val)
+		{
+			static_assert(sizeof(Shark::SceneCamera::Projection) <= sizeof(int));
+			val = (Shark::SceneCamera::Projection)node.as<int>();
+			return true;
+		}
+	};
+
+}
+
+#endif

@@ -31,6 +31,11 @@ project "Shark"
         "%{includeDir.fmt}"
     }
 
+    flags
+    {
+        "MultiProcessorCompile"
+    }
+
     filter "system:windows"
         systemversion "latest"
         defines "SK_PLATFORM_WINDOWS"

@@ -44,51 +44,47 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		YAML::Node in = YAML::LoadFile("project.skproj"s);
+		YAML::Node in = YAML::LoadFile("project.skproj");
 		SK_CORE_ASSERT(in);
-		if (!in)
-			return false;
 
 		auto projName = in["ProjectName"];
-		SK_CORE_ASSERT(projName);
-		if (!projName)
-			return false;
+		SK_CORE_VERIFY(projName, "Project Name not found! Use Fallback \"Untitled\"");
 
 		auto assetsPath = in["AssetsPath"];
-		SK_CORE_ASSERT(assetsPath);
-		if (!assetsPath)
-			return false;
+		SK_CORE_VERIFY(assetsPath, "Asset Path not found! Use Fallback \"assets\"");
 
 		auto texturesPath = in["TexturesPath"];
-		SK_CORE_ASSERT(texturesPath);
-		if (!texturesPath)
-			return false;
+		SK_CORE_VERIFY(texturesPath, "Textures Path not found! Use Fallback \"assets/Textures\"");
 
 		auto scenesPath = in["ScenesPath"];
-		SK_CORE_ASSERT(scenesPath);
-		if (!scenesPath)
-			return false;
+		SK_CORE_VERIFY(scenesPath, "Scenes Path not found! use Fallback \"assets/Textures\"");
 
 		auto startup = in["StartupScene"];
-		SK_CORE_ASSERT(startup);
-		if (!startup)
-			return false;
+		SK_CORE_VERIFY(startup, "Starup Scene not found! use Fallback \"\"");
 
 		auto scenes = in["Scenes"];
-		SK_CORE_ASSERT(scenes);
-		if (!scenes)
-			return false;
+		SK_CORE_VERIFY(scenes, "No Scenes Section found!");
 
 
-		proj.m_ProjectName = projName.as<std::string>();
-		proj.m_AssetsPath = assetsPath.as<std::filesystem::path>();
-		proj.m_TexturesPath = texturesPath.as<std::filesystem::path>();
-		proj.m_ScenesPath = scenesPath.as<std::filesystem::path>();
-		proj.m_StartupScene = startup.as<std::filesystem::path>();
+		proj.m_ProjectName = projName.as<std::string>("Untitled");
+		proj.m_AssetsPath = assetsPath.as<std::filesystem::path>("assets");
+		proj.m_TexturesPath = texturesPath.as<std::filesystem::path>("assets/Textures");
+		proj.m_ScenesPath = scenesPath.as<std::filesystem::path>("assets/Scenes");
+		proj.m_StartupScene = startup.as<std::filesystem::path>(std::filesystem::path{});
 
 		for (auto&& s : scenes)
 			proj.m_Scenes.emplace_back(s.as<std::filesystem::path>());
 
+		SK_CORE_INFO("Project Deserialized");
+		SK_CORE_TRACE("Project Name: {}", proj.m_ProjectName);
+		SK_CORE_TRACE("Assets Path: {}", proj.m_AssetsPath);
+		SK_CORE_TRACE("scenes Path: {}", proj.m_ScenesPath);
+		SK_CORE_TRACE("Textures Path: {}", proj.m_TexturesPath);
+		SK_CORE_TRACE("Startup Scene: {}", proj.m_StartupScene);
+		SK_CORE_TRACE("Scenes: {}", proj.m_Scenes.size());
+		uint32_t i = 0;
+		for (const auto& s : proj.m_Scenes)
+			SK_CORE_TRACE(" - [{}] {}", i++, s);
 
 		return true;
 	}
@@ -100,8 +96,8 @@ namespace Shark {
 
 		if (!LoadProject())
 		{
-			SK_CORE_WARN("Load Project Failed! Creating Standart Projet");
-			CreateStandartProject();
+			CreateDefautlProject();
+			SaveProjectFile();
 		}
 	}
 
@@ -117,12 +113,11 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_Scenes.clear();
-		if (!FileSystem::Exists(std::filesystem::path("project.skproj")))
-		{
-			SK_CORE_INFO("Project File not found");
-			return false;
-		}
-		return Internal_DeSerialize(*this);
+		if (FileSystem::Exists(std::filesystem::path("project.skproj")))
+			return Internal_DeSerialize(*this);
+
+		SK_CORE_WARN("Project File not found!");
+		return false;
 	}
 
 	bool Project::HasStartupScene() const
@@ -131,15 +126,13 @@ namespace Shark {
 		return !m_StartupScene.empty();
 	}
 
-	void Project::CreateStandartProject()
+	void Project::CreateDefautlProject()
 	{
-		SK_PROFILE_FUNCTION();
-
-		m_ProjectName = "Untiled";
+		m_ProjectName = "Untitled";
 		m_AssetsPath = "assets";
 		m_TexturesPath = "assets/Textures";
 		m_ScenesPath = "assets/Scenes";
-		m_Scenes.clear();
+		m_StartupScene = std::filesystem::path{};
 	}
 
 }

@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	Ref<Texture2D> Texture2D::Create(const std::string& filepath)
+	Ref<Texture2D> Texture2D::Create(const std::filesystem::path& filepath)
 	{
 		return Create({}, filepath);
 	}
@@ -16,7 +16,7 @@ namespace Shark {
 		return Create({}, width, height, data);
 	}
 
-	Ref<Texture2D> Texture2D::Create(const SamplerProps& props, const std::string& filepath)
+	Ref<Texture2D> Texture2D::Create(const SamplerProps& props, const std::filesystem::path& filepath)
 	{
 		switch (RendererAPI::GetAPI())
 		{

@@ -52,10 +52,11 @@ namespace Shark {
 	{
 		if (event.GetEventType() == MouseScrolledEvent::GetStaticType())
 		{
+			constexpr float scroll = 2.0f;
 			auto& mse = static_cast<MouseScrolledEvent&>(event);
-			m_Distance += mse.GetDelta() * 0.25f;
-			if (m_Distance < 0.25f)
-				m_Distance = 0.25f;
+			m_Distance -= mse.GetDelta() * scroll;
+			if (m_Distance < scroll)
+				m_Distance = scroll;
 
 			UpdatePosition();
 			UpdateView();

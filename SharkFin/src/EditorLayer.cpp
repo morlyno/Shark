@@ -20,6 +20,43 @@ namespace Shark {
 	static bool showDemoWindow = false;
 
 
+	void EditorLayer::EffectesTest()
+	{
+		if (m_BlurEffect)
+		{
+			SK_PROFILE_SCOPE("Blur Effect");
+
+			m_BlurFrameBuffer->Bind();
+			m_CompositFrameBuffer->BindAsTexture(0, 0);
+			Renderer::GetShaderLib().Get("BlurEffect")->Bind();
+			Renderer::SubmitFullScreenQuad();
+			m_CompositFrameBuffer->UnBindAsTexture(0, 0);
+
+			m_CompositFrameBuffer->Bind();
+			m_BlurFrameBuffer->BindAsTexture(0, 0);
+			Renderer::GetShaderLib().Get("FullScreen")->Bind();
+			Renderer::SubmitFullScreenQuad();
+			m_BlurFrameBuffer->UnBindAsTexture(0, 0);
+		}
+
+		if (m_NegativeEffect)
+		{
+			SK_PROFILE_SCOPE("Negative Effect");
+
+			m_NegativeFrameBuffer->Bind();
+			m_CompositFrameBuffer->BindAsTexture(0, 0);
+			Renderer::GetShaderLib().Get("NegativeEffect")->Bind();
+			Renderer::SubmitFullScreenQuad();
+			m_CompositFrameBuffer->UnBindAsTexture(0, 0);
+
+			m_CompositFrameBuffer->Bind();
+			m_NegativeFrameBuffer->BindAsTexture(0, 0);
+			Renderer::GetShaderLib().Get("FullScreen")->Bind();
+			Renderer::SubmitFullScreenQuad();
+			m_NegativeFrameBuffer->UnBindAsTexture(0, 0);
+		}
+	}
+
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
 	{
@@ -48,6 +85,11 @@ namespace Shark {
 			m_WorkScene->SetFilePath(proj.GetStartupScene());
 			LoadScene();
 		}
+
+		m_PlayIcon = Texture2D::Create("Resources/PlayButton.png");
+		m_StopIcon = Texture2D::Create("Resources/StopButton.png");
+
+
 
 		FrameBufferSpecification geofbspecs;
 		geofbspecs.Width = window.GetWidth();
@@ -124,69 +166,38 @@ namespace Shark {
 			m_GemometryFrameBuffer->Bind();
 		}
 
-		if (m_WorkScene)
+		SK_CORE_ASSERT(m_WorkScene);
+
+		switch (m_SceneState)
 		{
-			if (m_PlayScene)
+			case SceneState::Edit:
 			{
-				SK_PROFILE_SCOPE("Update Scene Runtime");
-
-				SceneManager::GetActiveScene()->OnUpdateRuntime(ts);
-			}
-			else
-			{
-				SK_PROFILE_SCOPE("Update Scene Editor");
-
 				if (m_ViewportHovered)
 					m_EditorCamera.OnUpdate(ts);
+
 				m_WorkScene->OnUpdateEditor(ts, m_EditorCamera);
+				break;
 			}
-
+			case SceneState::Play:
 			{
-				SK_PROFILE_SCOPE("Composite Geometry FrameBuffer");
-
-				m_CompositFrameBuffer->Bind();
-				m_GemometryFrameBuffer->BindAsTexture(0, 0);
-				Renderer::GetShaderLib().Get("FullScreen")->Bind();
-				Renderer::SubmitFullScreenQuad();
-				m_GemometryFrameBuffer->UnBindAsTexture(0, 0);
+				auto runtimeScene = SceneManager::GetActiveScene();
+				runtimeScene->OnUpdateRuntime(ts);
+				break;
 			}
-
-			if (m_BlurEffect)
-			{
-				SK_PROFILE_SCOPE("Blur Effect");
-
-				m_BlurFrameBuffer->Bind();
-				m_CompositFrameBuffer->BindAsTexture(0, 0);
-				Renderer::GetShaderLib().Get("BlurEffect")->Bind();
-				Renderer::SubmitFullScreenQuad();
-				m_CompositFrameBuffer->UnBindAsTexture(0, 0);
-
-				m_CompositFrameBuffer->Bind();
-				m_BlurFrameBuffer->BindAsTexture(0, 0);
-				Renderer::GetShaderLib().Get("FullScreen")->Bind();
-				Renderer::SubmitFullScreenQuad();
-				m_BlurFrameBuffer->UnBindAsTexture(0, 0);
-			}
-
-			if (m_NegativeEffect)
-			{
-				SK_PROFILE_SCOPE("Negative Effect");
-
-				m_NegativeFrameBuffer->Bind();
-				m_CompositFrameBuffer->BindAsTexture(0, 0);
-				Renderer::GetShaderLib().Get("NegativeEffect")->Bind();
-				Renderer::SubmitFullScreenQuad();
-				m_CompositFrameBuffer->UnBindAsTexture(0, 0);
-
-				m_CompositFrameBuffer->Bind();
-				m_NegativeFrameBuffer->BindAsTexture(0, 0);
-				Renderer::GetShaderLib().Get("FullScreen")->Bind();
-				Renderer::SubmitFullScreenQuad();
-				m_NegativeFrameBuffer->UnBindAsTexture(0, 0);
-			}
-
-
 		}
+
+
+		{
+			SK_PROFILE_SCOPE("Composite Geometry FrameBuffer");
+
+			m_CompositFrameBuffer->Bind();
+			m_GemometryFrameBuffer->BindAsTexture(0, 0);
+			Renderer::GetShaderLib().Get("FullScreen")->Bind();
+			Renderer::SubmitFullScreenQuad();
+			m_GemometryFrameBuffer->UnBindAsTexture(0, 0);
+		}
+
+		EffectesTest();
 
 		RendererCommand::BindMainFrameBuffer();
 	}
@@ -201,14 +212,19 @@ namespace Shark {
 
 		m_SceneHirachyPanel.OnEvent(event);
 
-		if (m_PlayScene)
+		switch (m_SceneState)
 		{
-			SceneManager::GetActiveScene()->OnEventRuntime(event);
-		}
-		else
-		{
-			m_EditorCamera.OnEvent(event);
-			m_WorkScene->OnEventEditor(event);
+			case SceneState::Edit:
+			{
+				m_EditorCamera.OnEvent(event);
+				m_WorkScene->OnEventEditor(event);
+				break;
+			}
+			case SceneState::Play:
+			{
+				auto activeScene = SceneManager::GetActiveScene();
+				activeScene->OnEventRuntime(event);
+			}
 		}
 	}
 
@@ -267,10 +283,11 @@ namespace Shark {
 			{
 				if (control)
 				{
-					if (m_PlayScene)
-						OnStopScene();
-					else
-						OnPlayScene();
+					switch (m_SceneState)
+					{
+						case SceneState::Edit: OnScenePlay(); break;
+						case SceneState::Play: OnSceneStop(); break;
+					}
 					return true;
 				}
 				break;
@@ -359,19 +376,114 @@ namespace Shark {
 		ImGuiID dockspace_id = ImGui::GetID("DockSpace");
 		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
+
+		UI_MainMenuBar();
+
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		ImGui::Begin("Viewport");
+		ImGui::PopStyleVar(3);
+
+		m_ViewportHovered = ImGui::IsWindowHovered();
+		m_ViewportFocused = ImGui::IsWindowFocused();
+
+		ImVec2 size = ImGui::GetContentRegionAvail();
+
+		m_ViewportSizeChanged = false;
+		if (m_ViewportWidth != size.x || m_ViewportHeight != size.y)
+		{
+			m_ViewportWidth = (uint32_t)size.x;
+			m_ViewportHeight = (uint32_t)size.y;
+			m_ViewportSizeChanged = true;
+		}
+
+		auto fbtex = m_CompositFrameBuffer->GetFramBufferContent(0);
+		UI::NoAlpaImage(fbtex->GetRenderID(), size);
+
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+
+		UI_Gizmo();
+
+		// Mouse Picking
+		if (!ImGuizmo::IsUsing())
+		{
+			SK_PROFILE_SCOPE("Mouse Picking");
+			// TODO: Move to EditorLayer::OnUpdate()
+
+			int x = -1;
+			int y = -1;
+			auto [mx, my] = ImGui::GetMousePos();
+			auto [wx, wy] = window->WorkRect.Min;
+			x = (int)(mx - wx);
+			y = (int)(my - wy);
+			m_HoveredEntityID = -1;
+
+			auto&& [width, height] = m_GemometryFrameBuffer->GetSize();
+			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
+			{
+				{
+					SK_PROFILE_SCOPE("Read Pixel");
+
+					m_HoveredEntityID = m_GemometryFrameBuffer->ReadPixel(1, x, y);
+				}
+
+				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
+				{
+					if (m_HoveredEntityID != -1)
+					{
+						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, m_WorkScene };
+						SK_CORE_ASSERT(m_WorkScene->IsValidEntity(entity));
+						if (m_WorkScene->IsValidEntity(entity))
+							Event::Distribute(SelectionChangedEvent(entity));
+					}
+					else
+					{
+						Event::Distribute(SelectionChangedEvent({}));
+					}
+				}
+			}
+		}
+
+		UI_DragDrop();
+
+		// End Viewport
+		ImGui::End();
+
+		UI_Info();
+		UI_Shaders();
+		UI_EditorCamera();
+		UI_Project();
+		UI_ToolBar();
+
+		m_SceneHirachyPanel.OnImGuiRender();
+		m_AssetsPanel.OnImGuiRender();
+
+		if (showDemoWindow)
+			ImGui::ShowDemoWindow(&showDemoWindow);
+	}
+
+	void EditorLayer::UI_MainMenuBar()
+	{
 		if (ImGui::BeginMainMenuBar())
 		{
 			if (ImGui::BeginMenu("Scene"))
 			{
-				if (m_PlayScene)
+				switch (m_SceneState)
 				{
-					if (ImGui::MenuItem("Stop Scene", "ctrl+P"))
-						OnStopScene();
-				}
-				else
-				{
-					if (ImGui::MenuItem("Play Scene", "ctrl+P"))
-						OnPlayScene();
+					case SceneState::Edit:
+					{
+						if (ImGui::MenuItem("Stop Scene", "ctrl+P"))
+							OnSceneStop();
+						break;
+					}
+					case Shark::EditorLayer::SceneState::Play:
+					{
+						if (ImGui::MenuItem("Play Scene", "ctrl+P"))
+							OnScenePlay();
+						break;
+					}
 				}
 
 				ImGui::Separator();
@@ -479,37 +591,16 @@ namespace Shark {
 
 			ImGui::EndMainMenuBar();
 		}
-        ImGui::End();
+		ImGui::End();
+	}
 
-
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("Viewport");
-		ImGui::PopStyleVar(3);
-
-		m_ViewportHovered = ImGui::IsWindowHovered();
-		m_ViewportFocused = ImGui::IsWindowFocused();
-
-		ImVec2 size = ImGui::GetContentRegionAvail();
-
-		m_ViewportSizeChanged = false;
-		if (m_ViewportWidth != size.x || m_ViewportHeight != size.y)
-		{
-			m_ViewportWidth = (uint32_t)size.x;
-			m_ViewportHeight = (uint32_t)size.y;
-			m_ViewportSizeChanged = true;
-		}
-
-		auto fbtex = m_CompositFrameBuffer->GetFramBufferContent(0);
-		UI::NoAlpaImage(fbtex->GetRenderID(), size);
-
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-
-		// ImGuizmo
+	void EditorLayer::UI_Gizmo()
+	{
 		if (m_CurrentOperation != 0 && m_SelectetEntity)
 		{
 			SK_CORE_ASSERT(m_SelectetEntity.HasComponent<TransformComponent>(), "Every entity is requiert to have a Transform Component");
+
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
 
 			ImVec2 windowPos = window->WorkRect.Min;
 			ImVec2 windowSize = window->WorkRect.GetSize();
@@ -552,79 +643,11 @@ namespace Shark {
 					tf.Rotation = Math::GetRotation(transform);
 				}
 			}
-
 		}
+	}
 
-		// Mouse Picking
-		int x = -1;
-		int y = -1;
-		if (!ImGuizmo::IsUsing())
-		{
-			SK_PROFILE_SCOPE("Mouse Picking");
-
-			auto [mx, my] = ImGui::GetMousePos();
-			auto [wx, wy] = window->WorkRect.Min;
-			x = (int)(mx - wx);
-			y = (int)(my - wy);
-			m_HoveredEntityID = -1;
-
-			auto&& [width, height] = m_GemometryFrameBuffer->GetSize();
-			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
-			{
-				{
-					SK_PROFILE_SCOPE("Read Pixel");
-
-					m_HoveredEntityID = m_GemometryFrameBuffer->ReadPixel(1, x, y);
-				}
-
-				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
-				{
-					if (m_HoveredEntityID != -1)
-					{
-						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, m_WorkScene };
-						SK_CORE_ASSERT(m_WorkScene->IsValidEntity(entity));
-						if (m_WorkScene->IsValidEntity(entity))
-							Event::Distribute(SelectionChangedEvent(entity));
-					}
-					else
-					{
-						Event::Distribute(SelectionChangedEvent({}));
-					}
-				}
-			}
-		}
-
-		// DragDrop
-		if (ImGui::BeginDragDropTarget())
-		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
-			if (payload)
-			{
-				UI::ContentPayload* content = (UI::ContentPayload*)payload->Data;
-				if (content->Type == UI::ContentType::Scene)
-				{
-					m_PlayScene = false;
-					LoadNewScene(content->Path);
-				}
-				else if (content->Type == UI::ContentType::Texture)
-				{
-					if (m_HoveredEntityID != -1)
-					{
-						Entity entity{ (entt::entity)m_HoveredEntityID, m_WorkScene };
-						SK_CORE_ASSERT(entity.IsValid());
-						if (entity.HasComponent<SpriteRendererComponent>())
-						{
-							auto& sr = entity.GetComponent<SpriteRendererComponent>();
-							sr.Texture = Texture2D::Create(content->Path);
-						}
-					}
-				}
-			}
-			ImGui::EndDragDropTarget();
-		}
-		ImGui::End();
-
-
+	void EditorLayer::UI_Info()
+	{
 		if (m_ShowInfo)
 		{
 			ImGui::Begin("Info", &m_ShowInfo);
@@ -634,37 +657,41 @@ namespace Shark {
 
 			ImGui::NewLine();
 
-			ImGui::Text("Renderer: Renderer2D");
-
 			auto s = Renderer2D::GetStatistics();
 			ImGui::Text("Draw Calls: %d", s.DrawCalls);
 			ImGui::Text("Element Count: %d", s.ElementCount);
 			ImGui::Text("Vertex Count: %d", s.VertexCount);
 			ImGui::Text("Index Count: %d", s.IndexCount);
-			ImGui::Text("Textur Count: %d", s.TextureCount);
+			ImGui::Text("Texture Count: %d", s.TextureCount);
 
 			ImGui::NewLine();
-			if (x >= 0 && x < (int)m_ViewportWidth && y >= 0 && y < (int)m_ViewportHeight && m_HoveredEntityID >= 0)
+			if (m_ViewportHovered && m_HoveredEntityID > -1)
 			{
 				Entity e{ (entt::entity)m_HoveredEntityID, m_WorkScene };
 				if (e.IsValid())
 				{
 					const auto& tag = e.GetComponent<TagComponent>().Tag;
-					ImGui::Text("Hoverted Entity: ID: %d, Tag: %s", m_HoveredEntityID, tag.c_str());
+					ImGui::Text("Hovered Entity: ID: %d, Tag: %s", m_HoveredEntityID, tag.c_str());
 				}
 				else
 				{
-					ImGui::Text("Hovered Entity: UnValid Entity");
+					ImGui::Text("Hovered Entity: InValid Entity");
 				}
 			}
 			else
 			{
-				if (m_HoveredEntityID == -1)
-					ImGui::Text("Hovered Entity: No Entity");
-				else
-					ImGui::Text("Hovered Entity: No Entity, %d", m_HoveredEntityID);
+				ImGui::Text("Hovered Entity: InValid Entity");
 			}
-			ImGui::Text("Selected Entity ID: %d", (uint32_t)m_SceneHirachyPanel.GetSelectedEntity());
+			
+			if (Entity entity{ (entt::entity)m_SelectetEntity, m_WorkScene })
+			{
+				const auto& tag = entity.GetComponent<TagComponent>().Tag;
+				ImGui::Text("Selected Entity: ID: %d, Tag: %s", (uint32_t)m_SelectetEntity, tag.c_str());
+			}
+			else
+			{
+				ImGui::Text("Selected Entity: InValid");
+			}
 
 			ImGui::NewLine();
 			static MemoryMetrics s_LastMemory;
@@ -690,17 +717,18 @@ namespace Shark {
 			ImGui::Checkbox("Blur Effect", &m_BlurEffect);
 
 			ImGui::End();
-
-
 		}
-		
+	}
+
+	void EditorLayer::UI_Shaders()
+	{
 		if (ImGui::Begin("Shaders"))
 		{
 			for (auto&& [key, shader] : Renderer::GetShaderLib())
 			{
 				if (ImGui::TreeNodeEx(key.c_str()))
 				{
-					ImGui::Text("Path: %s", shader->GetFilePath().c_str());
+					UI::Text(fmt::format("Path: {}", shader->GetFilePath()));
 					if (ImGui::Button("ReCompile"))
 						shader->ReCompile();
 					// IDEA: Print Shader Detailes (From Reflection)
@@ -709,9 +737,10 @@ namespace Shark {
 			}
 		}
 		ImGui::End();
+	}
 
-
-
+	void EditorLayer::UI_EditorCamera()
+	{
 		if (m_ShowEditorCameraControlls)
 		{
 			if (ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls))
@@ -745,16 +774,9 @@ namespace Shark {
 			}
 			ImGui::End();
 		}
-
-		OnImGuiRender_Project();
-		m_SceneHirachyPanel.OnImGuiRender();
-		m_AssetsPanel.OnImGuiRender();
-
-		if (showDemoWindow)
-			ImGui::ShowDemoWindow(&showDemoWindow);
 	}
 
-	void EditorLayer::OnImGuiRender_Project()
+	void EditorLayer::UI_Project()
 	{
 		if (!m_ShowProject)
 			return;
@@ -885,6 +907,79 @@ namespace Shark {
 		ImGui::End();
 	}
 
+	void EditorLayer::UI_DragDrop()
+	{
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
+			if (payload)
+			{
+				SK_CORE_ASSERT(m_SceneState == SceneState::Edit, "Drag Drop Payloads can only be accepted in the Edit State");
+				UI::ContentPayload* content = (UI::ContentPayload*)payload->Data;
+				if (content->Type == UI::ContentType::Scene)
+				{
+					LoadNewScene(content->Path);
+				}
+				else if (content->Type == UI::ContentType::Texture)
+				{
+					if (m_HoveredEntityID != -1)
+					{
+						Entity entity{ (entt::entity)m_HoveredEntityID, m_WorkScene };
+						SK_CORE_ASSERT(entity.IsValid());
+						if (entity.HasComponent<SpriteRendererComponent>())
+						{
+							auto& sr = entity.GetComponent<SpriteRendererComponent>();
+							sr.Texture = Texture2D::Create(content->Path);
+						}
+					}
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+	}
+
+	void EditorLayer::UI_ToolBar()
+	{
+		constexpr ImGuiWindowFlags falgs = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 2 });
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, { 0, 0 });
+		auto colHovered = UI::GetColor(ImGuiCol_ButtonHovered);
+		auto colActive = UI::GetColor(ImGuiCol_ButtonActive);
+		colHovered.w = colActive.w = 0.5f;
+
+		ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colHovered);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, colActive);
+		ImGui::Begin("##ViewPortToolBar", nullptr, falgs);
+
+		const float size = ImGui::GetContentRegionAvail().y;
+		UI::MoveCurserPosX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size * 0.5f) - UI::GetFramePadding().x);
+
+		switch (m_SceneState)
+		{
+			case SceneState::Edit:
+			{
+				RenderID iconID = m_PlayIcon->GetRenderID();
+				if (ImGui::ImageButton(iconID, { size, size }, { 0, 0 }, { 1, 1 }, 0))
+					OnScenePlay();
+				break;
+			}
+			case SceneState::Play:
+			{
+				RenderID iconID = m_StopIcon->GetRenderID();
+				if (ImGui::ImageButton(iconID, { size, size }, { 0, 0 }, { 1, 1 }, 0))
+					OnSceneStop();
+				break;
+			}
+		}
+
+		ImGui::End();
+
+		ImGui::PopStyleVar(2);
+		ImGui::PopStyleColor(3);
+	}
+
 	void EditorLayer::NewScene()
 	{
 		SetActiveScene(Ref<Scene>::Create());
@@ -949,24 +1044,24 @@ namespace Shark {
 		return serializer.Serialize();
 	}
 
-	void EditorLayer::OnPlayScene()
+	void EditorLayer::OnScenePlay()
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_PlayScene = true;
+		m_SceneState = SceneState::Play;
 		m_SceneHirachyPanel.SetScenePlaying(true);
 		SceneManager::SetActiveScene(m_WorkScene->GetCopy());
 		SceneManager::GetActiveScene()->OnScenePlay();
 	}
 
-	void EditorLayer::OnStopScene()
+	void EditorLayer::OnSceneStop()
 	{
 		SK_PROFILE_FUNCTION();
 
 		SceneManager::GetActiveScene()->OnSceneStop();
 		SceneManager::SetActiveScene(nullptr);
 		m_SceneHirachyPanel.SetScenePlaying(false);
-		m_PlayScene = false;
+		m_SceneState = SceneState::Edit;
 
 		if (!m_WorkScene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
 			Event::Distribute(SelectionChangedEvent({}));

@@ -10,14 +10,14 @@ namespace Shark {
 	{
 	public:
 		DirectXTexture2D(ID3D11ShaderResourceView* texture, uint32_t width, uint32_t height, const SamplerProps& props = {});
-		DirectXTexture2D(const SamplerProps& props, const std::string& filepath);
+		DirectXTexture2D(const SamplerProps& props, const std::filesystem::path& filepath);
 		DirectXTexture2D(const SamplerProps& props, uint32_t width, uint32_t height, void* data);
 		virtual ~DirectXTexture2D();
 
 		virtual void SetData(void* data) override;
 		virtual RenderID GetRenderID() const override { return m_Texture; }
 
-		virtual const std::string& GetFilePath() const override { return m_FilePath; }
+		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
 
 		virtual uint32_t GetWidth() const override { return m_Width; }
 		virtual uint32_t GetHeight() const override { return m_Height; }
@@ -37,7 +37,7 @@ namespace Shark {
 		void CreateSampler(const SamplerProps& props);
 
 	private:
-		std::string m_FilePath;
+		std::filesystem::path m_FilePath;
 		uint32_t m_Width;
 		uint32_t m_Height;
 		uint32_t m_Slot = 0;

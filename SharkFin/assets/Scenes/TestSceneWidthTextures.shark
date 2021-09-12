@@ -69,7 +69,7 @@ Entities:
       Scaling: [1, 1, 1]
     CameraComponent:
       Type: 0
-      Aspecratio: 1.80424881
+      Aspectratio: 1.95325541
       PerspectiveFOV: 45
       PerspectiveNear: 0.00999999978
       PerspectiveFar: 1000
@@ -110,8 +110,8 @@ Entities:
       Scaling: [1, 1, 1]
     CameraComponent:
       Type: 0
-      Aspecratio: 1.80424881
-      PerspectiveFOV: 22.9999905
+      Aspectratio: 1.95325541
+      PerspectiveFOV: 247866656
       PerspectiveNear: 0.00999999978
       PerspectiveFar: 1000
       OrthographicZoom: 10

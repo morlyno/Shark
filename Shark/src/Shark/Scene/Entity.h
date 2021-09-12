@@ -16,6 +16,7 @@ namespace Shark {
 		Entity(const Entity&) = default;
 
 		Weak<Scene> GetScene() const { return m_Scene; }
+		entt::entity GetHandle() const { return m_EntityHandle; }
 
 		template<typename Component>
 		Component& AddComponent()
@@ -81,6 +82,8 @@ namespace Shark {
 	private:
 		entt::entity m_EntityHandle{ entt::null };
 		Weak<Scene> m_Scene;
+
+		friend Scene;
 	};
 
 }

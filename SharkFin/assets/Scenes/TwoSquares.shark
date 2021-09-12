@@ -2,21 +2,16 @@ Scene: Untitled
 Entities:
   - Entity: 54758432
     TagComponent:
-      Tag: Camera
+      Tag: Red Square
     TransformComponent:
       Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scaling: [1, 1, 1]
-    CameraComponent:
-      Type: 1
-      Aspecratio: 1.80424881
-      PerspectiveFOV: 44.9999733
-      PerspectiveNear: 0.00999999978
-      PerspectiveFar: 1000
-      OrthographicZoom: 4
-      OrthographicNear: -1
-      OrthographicFar: 1
-      IsMainCamera: true
+    SpriteRendererComponent:
+      Color: [0.600000024, 0, 0, 0.5]
+      Texture: ""
+      TilingFactor: 1
+      Geometry: 1
   - Entity: 54758432
     TagComponent:
       Tag: Blue Square
@@ -31,13 +26,18 @@ Entities:
       Geometry: 1
   - Entity: 54758432
     TagComponent:
-      Tag: Red Square
+      Tag: Camera
     TransformComponent:
       Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scaling: [1, 1, 1]
-    SpriteRendererComponent:
-      Color: [0.600000024, 0, 0, 0.5]
-      Texture: ""
-      TilingFactor: 1
-      Geometry: 1
+    CameraComponent:
+      Type: 1
+      Aspectratio: 1.95325541
+      PerspectiveFOV: 2578.30835
+      PerspectiveNear: 0.00999999978
+      PerspectiveFar: 1000
+      OrthographicZoom: 4
+      OrthographicNear: -1
+      OrthographicFar: 1
+      IsMainCamera: true

@@ -10,7 +10,7 @@
 #define SK_FS_ERROR(...) SK_CORE_ERROR(__VA_ARGS__)
 #define SK_FS_INFO(...) SK_CORE_INFO(__VA_ARGS__)
 #else
-#define SK_FS_ERROR(...)
+#define SK_FS_ERROR(...) SK_CORE_ERROR(__VA_ARGS__)
 #define SK_FS_INFO(...)
 #endif
 

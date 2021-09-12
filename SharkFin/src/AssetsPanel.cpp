@@ -51,8 +51,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_DirectoryIcon = Texture2D::Create("assets/Textures/folder_open.png");
-		m_StandartFileIcon = Texture2D::Create("assets/Textures/file.png");
+		m_DirectoryIcon = Texture2D::Create("Resources/AssetsPanel/folder_open.png");
+		m_StandartFileIcon = Texture2D::Create("Resources/AssetsPanel/file.png");
 
 		m_DirectoryHistory.emplace_back(m_Project.GetAssetsPath());
 		m_CurrentDirectory = m_Project.GetAssetsPath();
@@ -300,7 +300,7 @@ namespace Shark {
 			{
 				ImGui::SameLine(0.0f, 0.0f);
 				ImGui::AlignTextToFramePadding();
-				ImGui::TextDisabled("\\\\");
+				ImGui::TextDisabled("/");
 				ImGui::SameLine(0.0f, 0.0f);
 			}
 
@@ -757,7 +757,7 @@ namespace Shark {
 		if (entry.Type == Entry::ContentType::File)
 			return m_StandartFileIcon->GetRenderID();
 		SK_CORE_ASSERT(false);
-		return NullID;
+		return RenderID{};
 	}
 
 }

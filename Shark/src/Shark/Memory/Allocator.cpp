@@ -38,3 +38,13 @@ namespace Shark {
 	}
 
 }
+
+#if SK_ENABLE_MEMORY_TRACING
+
+void* operator new(size_t size) { return Shark::Allocator::Allocate(size); }
+void* operator new[](size_t size) { return Shark::Allocator::Allocate(size); }
+
+void operator delete(void* block) { Shark::Allocator::Free(block); }
+void operator delete[](void* block) { Shark::Allocator::Free(block); }
+
+#endif

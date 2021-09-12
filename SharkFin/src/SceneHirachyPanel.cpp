@@ -302,7 +302,7 @@ namespace Shark {
 			ImGui::NextColumn();
 			if (comp.Texture)
 			{
-				ImGui::Text(comp.Texture->GetFilePath().c_str());
+				UI::Text(comp.Texture->GetFilePath());
 				ImGui::Text("Width: %d, Height: %d", comp.Texture->GetWidth(), comp.Texture->GetHeight());
 				if (ImGui::Button("Remove"))
 					comp.Texture = nullptr;

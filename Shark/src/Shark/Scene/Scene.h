@@ -37,8 +37,9 @@ namespace Shark {
 		void OnEventRuntime(Event& event);
 		void OnEventEditor(Event& event);
 
-		Entity CopyEntity(Entity other, bool hint = false);
+		Entity CopyEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});
+		Entity CreateEntity(entt::entity hint, const std::string& tag = std::string{});
 		void DestroyEntity(Entity entity);
 
 		bool IsValidEntity(Entity entity) const;
@@ -54,15 +55,35 @@ namespace Shark {
 		void SetFilePath(const std::filesystem::path& filepath) { m_FilePath = filepath; }
 		const std::filesystem::path& GetFilePath() const { return m_FilePath; }
 
+	private:
 		template<typename Comp>
-		void TryCopyComponent(Entity src, Entity dest)
+		void CopyComponentIfExists(entt::entity srcEntity, entt::registry& srcRegistry, entt::entity destEntity, entt::registry& destRegistry)
 		{
-			if (src.HasComponent<Comp>())
-				CopyComponent<Comp>(src, dest);
-		}
+			constexpr bool isRigidBodyComponent = std::is_same_v<Comp, RigidBodyComponent>;
+			constexpr bool isBoxColliderComponent = std::is_same_v<Comp, BoxColliderComponent>;
 
-		template<typename Comp>
-		void CopyComponent(Entity src, Entity dest);
+			if constexpr (isRigidBodyComponent || isBoxColliderComponent)
+			{
+				// TODO: Make all components createable with a constructor
+				Comp* srcComp = srcRegistry.try_get<Comp>(srcEntity);
+				if (srcComp)
+				{
+					Comp& destComp = destRegistry.get_or_emplace<Comp>(destEntity);
+					SK_CORE_ASSERT(&destRegistry == &m_Registry);
+					OnComponentAdded<Comp>(Entity(destEntity, this), destComp);
+					if constexpr (isRigidBodyComponent)
+						destComp.Body.SetState(srcComp->Body.GetCurrentState());
+					if constexpr (isBoxColliderComponent)
+						destComp.Collider.SetState(srcComp->Collider.GetCurrentState());
+				}
+			}
+			else
+			{
+				auto srcComp = srcRegistry.try_get<Comp>(srcEntity);
+				if (srcComp)
+					destRegistry.emplace_or_replace<Comp>(destEntity, *srcComp);
+			}
+		}
 
 	private:
 		template<typename Component>

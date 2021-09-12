@@ -22,7 +22,6 @@ namespace Shark {
 		std::function<void(const std::filesystem::path&)> OnCreated;
 		std::function<void(const std::filesystem::path&)> OnDeleted;
 
-		// TODO: Callbacks
 	private:
 		void StartThread();
 

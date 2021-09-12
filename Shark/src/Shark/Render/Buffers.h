@@ -5,8 +5,6 @@
 
 namespace Shark {
 
-	// TODO: Make buffers resizable
-
 	class VertexBuffer : public RefCount
 	{
 	public:

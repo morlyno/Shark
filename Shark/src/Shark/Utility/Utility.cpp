@@ -3,27 +3,11 @@
 
 #include <filesystem>
 
-#include "Shark/Render/Material.h"
-
 namespace Shark::Utility {
 
 	ImVec4 ToImVec4(const DirectX::XMFLOAT4& color)
 	{
 		return ImVec4{ color.x, color.y, color.z, color.w };
-	}
-
-	std::vector<std::string> StringSplit(const std::string& str, const std::string& splitter)
-	{
-		std::vector<std::string> strings;
-		size_t offset = 0;
-		size_t end = 0;
-		while (end != std::string::npos)
-		{
-			end = str.find_first_of(splitter, offset);
-			strings.emplace_back(str.substr(offset, end - offset));
-			offset = end + 1;
-		}
-		return std::move(strings);
 	}
 
 	std::string ToLower(const std::string& src)
@@ -61,19 +45,6 @@ namespace Shark::Utility {
 	float* GetValuePtr(const DirectX::XMFLOAT2& vec)
 	{
 		return (float*)&vec;
-	}
-
-	uint32_t GetSizeFromDataType(DataType type)
-	{
-		switch (type)
-		{
-			case DataType::Void:   return 0;
-			case DataType::Bool:   return 4;
-			case DataType::Int:    return 4;
-			case DataType::Float:  return 4;
-		}
-		SK_CORE_ASSERT(false);
-		return 0;
 	}
 
 	std::string_view GetPathName(std::string_view path)

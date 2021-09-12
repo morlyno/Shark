@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shark/Render/Texture.h"
-#include "Shark/Render/Material.h"
 
 namespace Shark {
 
@@ -9,6 +8,7 @@ namespace Shark {
 	{
 		None = 0,
 		Quad, Circle
+		// TODO: Polygon
 	};
 
 	struct SpriteRendererComponent

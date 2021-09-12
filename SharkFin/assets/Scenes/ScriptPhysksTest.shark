@@ -2,30 +2,21 @@ Scene: Untitled
 Entities:
   - Entity: 54758432
     TagComponent:
-      Tag: Ground
+      Tag: Camera
     TransformComponent:
-      Position: [0, -10, 0]
+      Position: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scaling: [50, 1, 1]
-    SpriteRendererComponent:
-      Color: [0.0712226182, 0.558823526, 0.143782109, 1]
-      Texture: ""
-      TilingFactor: 1
-      Geometry: 1
-    RigidBodyComponent:
-      Type: 0
-      AllowSleep: true
-      Awake: false
-      Enabled: true
-      FixedRotation: false
-      Position: [0, -10]
-      Angle: 0
-    ColliderComponent:
-      Shape: 0
-      Friction: 0.300000012
-      Density: 0
-      Restitution: 0
-      Size: [50, 1]
+      Scaling: [1, 1, 1]
+    CameraComponent:
+      Type: 1
+      Aspectratio: 1.95325541
+      PerspectiveFOV: 2578.30884
+      PerspectiveNear: 0.00999999978
+      PerspectiveFar: 1000
+      OrthographicZoom: 15
+      OrthographicNear: -1
+      OrthographicFar: 1
+      IsMainCamera: true
   - Entity: 54758432
     TagComponent:
       Tag: Player
@@ -54,18 +45,27 @@ Entities:
       Size: [1, 1]
   - Entity: 54758432
     TagComponent:
-      Tag: Camera
+      Tag: Ground
     TransformComponent:
-      Position: [0, 0, 0]
+      Position: [0, -10, 0]
       Rotation: [0, 0, 0]
-      Scaling: [1, 1, 1]
-    CameraComponent:
-      Type: 1
-      Aspecratio: 1.80424881
-      PerspectiveFOV: 44.9999809
-      PerspectiveNear: 0.00999999978
-      PerspectiveFar: 1000
-      OrthographicZoom: 15
-      OrthographicNear: -1
-      OrthographicFar: 1
-      IsMainCamera: true
+      Scaling: [50, 1, 1]
+    SpriteRendererComponent:
+      Color: [0.0712226182, 0.558823526, 0.143782109, 1]
+      Texture: ""
+      TilingFactor: 1
+      Geometry: 1
+    RigidBodyComponent:
+      Type: 0
+      AllowSleep: true
+      Awake: false
+      Enabled: true
+      FixedRotation: false
+      Position: [0, -10]
+      Angle: 0
+    ColliderComponent:
+      Shape: 0
+      Friction: 0.300000012
+      Density: 0
+      Restitution: 0
+      Size: [50, 1]

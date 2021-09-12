@@ -1,7 +1,5 @@
 #pragma once
 
-#include <optional>
-
 namespace Shark {
 
 	namespace FileDialogs {

@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	Ref<Shaders> Shaders::Create(const std::string& filepath)
+	Ref<Shaders> Shaders::Create(const std::filesystem::path& filepath)
 	{
 		switch (RendererAPI::GetAPI())
 		{
@@ -17,14 +17,14 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Shaders> ShaderLibrary::Load(const std::string& filepath)
+	Ref<Shaders> ShaderLibrary::Load(const std::filesystem::path& filepath)
 	{
 		auto shaders = Shaders::Create(filepath);
 		Add(shaders);
 		return shaders;
 	}
 
-	Ref<Shaders> ShaderLibrary::Load(const std::string& filepath, const std::string name)
+	Ref<Shaders> ShaderLibrary::Load(const std::filesystem::path& filepath, const std::string name)
 	{
 		auto shaders = Shaders::Create(filepath);
 		Add(shaders, name);

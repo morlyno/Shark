@@ -2,10 +2,13 @@
 #include "DirectXShaders.h"
 #include "Shark/Utility/Utility.h"
 #include "Shark/Core/Timer.h"
+#include "Shark/Utility/FileSystem.h"
 
 #include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Shark/Core/Application.h"
 
 #include <d3dcompiler.h>
+
 
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
@@ -127,9 +130,10 @@ namespace Shark {
 			return version;
 		}
 
-		static const char* CacheDirectory()
+		static std::filesystem::path CacheDirectory()
 		{
-			return "assets/Cache/Shaders/DirectX";
+			auto& proj = Application::Get().GetProject();
+			return proj.GetCacheDirectory() / "Shaders/DirectX";
 		}
 
 		static const char* FileExtension(Shader stage)
@@ -145,17 +149,17 @@ namespace Shark {
 
 		static void CreateCacheDirectoryIfNeeded()
 		{
-			const char* cacheDirectory = Utils::CacheDirectory();
-			if (!std::filesystem::exists(cacheDirectory))
-				std::filesystem::create_directories(cacheDirectory);
+			const auto cacheDirectory = Utils::CacheDirectory();
+			if (!FileSystem::Exists(cacheDirectory))
+				FileSystem::CreateDirectorys(cacheDirectory);
 		}
 
 	}
 
-	DirectXShaders::DirectXShaders(const std::string& filepath)
+	DirectXShaders::DirectXShaders(const std::filesystem::path& filepath)
 	{
 		m_FilePath = filepath;
-		m_FileName = std::filesystem::path(filepath).filename().replace_extension().string();
+		m_FileName = filepath.filename().replace_extension().string();
 
 		std::string file = ReadFile(filepath);
 		auto shaderSources = PreProzess(file);
@@ -254,7 +258,7 @@ namespace Shark {
 		ctx->IASetInputLayout(nullptr);
 	}
 
-	std::string DirectXShaders::ReadFile(const std::string& filepath)
+	std::string DirectXShaders::ReadFile(const std::filesystem::path& filepath)
 	{
 		std::string result;
 		std::ifstream in(filepath, std::ios::in, std::ios::binary);

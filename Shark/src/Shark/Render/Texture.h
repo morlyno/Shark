@@ -33,7 +33,7 @@ namespace Shark {
 		virtual void SetData(void* data) = 0;
 		virtual RenderID GetRenderID() const = 0;
 
-		virtual const std::string& GetFilePath() const = 0;
+		virtual const std::filesystem::path& GetFilePath() const = 0;
 
 		virtual void SetSlot(uint32_t slot) = 0;
 		virtual uint32_t GetSlot() const = 0;
@@ -53,9 +53,9 @@ namespace Shark {
 		virtual uint32_t GetHeight() const = 0;
 
 
-		static Ref<Texture2D> Create(const std::string& filepath);
+		static Ref<Texture2D> Create(const std::filesystem::path& filepath);
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height, void* data);
-		static Ref<Texture2D> Create(const SamplerProps& props, const std::string& filepath);
+		static Ref<Texture2D> Create(const SamplerProps& props, const std::filesystem::path& filepath);
 		static Ref<Texture2D> Create(const SamplerProps& props, uint32_t width, uint32_t height, void* data);
 	};
 

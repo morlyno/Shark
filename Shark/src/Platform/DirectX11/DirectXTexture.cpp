@@ -56,11 +56,12 @@ namespace Shark {
 		CreateSampler(props);
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const SamplerProps& props, const std::string& filepath)
+	DirectXTexture2D::DirectXTexture2D(const SamplerProps& props, const std::filesystem::path& filepath)
 		: m_FilePath(filepath)
 	{
 		int width, height;
-		stbi_uc* data = stbi_load(filepath.c_str(), &width, &height, nullptr, 4);
+		auto filepathstr = filepath.string();
+		stbi_uc* data = stbi_load(filepathstr.c_str(), &width, &height, nullptr, 4);
 		SK_CORE_ASSERT(data, fmt::format("Failed to load Imiage! {}", stbi_failure_reason()));
 
 		m_Width = width;
@@ -156,7 +157,8 @@ namespace Shark {
 		td.SampleDesc.Quality = 0u;
 		td.Usage = D3D11_USAGE_DEFAULT;
 		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		td.CPUAccessFlags = /*D3D11_CPU_ACCESS_WRITE*/0;
+		//td.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		td.CPUAccessFlags = 0;
 		td.MiscFlags = 0u;
 
 		D3D11_SUBRESOURCE_DATA srd;

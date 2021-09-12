@@ -56,4 +56,7 @@ namespace Shark::Math {
 	DirectX::XMFLOAT3 GetRotation(DirectX::XMMATRIX matrix);
 	DirectX::XMFLOAT3 GetRotation(const DirectX::XMFLOAT4X4& matrix);
 
+	float ToRadians(float degrees);
+	float ToDegrees(float radians);
+
 }

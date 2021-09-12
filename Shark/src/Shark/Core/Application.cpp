@@ -41,6 +41,8 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		Renderer::ShutDown();
+
+		s_Instance = nullptr;
 	}
 
 	void Application::Run()

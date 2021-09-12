@@ -16,6 +16,8 @@ namespace Shark {
 
 	class EditorLayer : public Layer
 	{
+		// Temp: Test Functions
+		void EffectesTest();
 	public:
 		EditorLayer();
 		~EditorLayer();
@@ -32,7 +34,14 @@ namespace Shark {
 		bool OnKeyPressed(KeyPressedEvent& event);
 		bool OnSelectionChanged(SelectionChangedEvent& event);
 
-		void OnImGuiRender_Project();
+		void UI_MainMenuBar();
+		void UI_Gizmo();
+		void UI_Info();
+		void UI_Shaders();
+		void UI_EditorCamera();
+		void UI_Project();
+		void UI_DragDrop();
+		void UI_ToolBar();
 
 		void NewScene();
 
@@ -46,8 +55,8 @@ namespace Shark {
 		bool LoadScene();
 		bool SaveScene();
 
-		void OnPlayScene();
-		void OnStopScene();
+		void OnScenePlay();
+		void OnSceneStop();
 	private:
 		EditorCamera m_EditorCamera;
 		Ref<FrameBuffer> m_GemometryFrameBuffer;
@@ -65,7 +74,7 @@ namespace Shark {
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		bool m_ViewportSizeChanged = false;
 
-		bool m_PlayScene = false;
+		TimeStep m_TimeStep;
 
 		bool m_ShowInfo = true;
 		bool m_ShowEditorCameraControlls = false;
@@ -73,13 +82,21 @@ namespace Shark {
 
 		int m_HoveredEntityID = -1;
 
-		TimeStep m_TimeStep;
-
 		bool m_NegativeEffect = false;
 		bool m_BlurEffect = false;
 
 		int m_CurrentOperation = 0;
 		Entity m_SelectetEntity;
+
+		enum class SceneState
+		{
+			Edit = 0, Play = 1
+		};
+		SceneState m_SceneState = SceneState::Edit;
+
+		// ToolBar icons
+		Ref<Texture2D> m_PlayIcon;
+		Ref<Texture2D> m_StopIcon;
 	};
 
 }

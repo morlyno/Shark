@@ -512,4 +512,9 @@ namespace Shark::UI {
 		return accepted;
 	}
 
+	const ImVec4& GetColor(ImGuiCol color)
+	{
+		return ImGui::GetStyleColorVec4(color);
+	}
+
 }

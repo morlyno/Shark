@@ -76,6 +76,8 @@ namespace Shark {
 		bool GetContentPayload(std::string& out_Path, ContentType type);
 		bool GetContentPayload(std::filesystem::path& out_Path, ContentType type);
 
+		const ImVec4& GetColor(ImGuiCol color);
+
 	}
 
 }

@@ -18,7 +18,6 @@ namespace Shark {
 		{}
 	};
 
-	// TODO: chage vector into unorder_map or add name savety
 	static std::vector<Entry> s_Counters;
 
 	namespace Utils {
