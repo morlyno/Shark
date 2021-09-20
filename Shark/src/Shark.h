@@ -58,16 +58,8 @@
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scene/NativeScript.h"
-#include "Shark/Scene/Components/Components.h"
+#include "Shark/Scene/Components.h"
 #include "Shark/Scene/SceneSerialization.h"
 #include "Shark/Scene/NativeScriptFactory.h"
 #include "Shark/Scene/SceneManager.h"
 // --------------------------------------
-
-// --- Physiks --------------------------
-#include "Shark/Physiks/World.h"
-#include "Shark/Physiks/RigidBody.h"
-#include "Shark/Physiks/Collider.h"
-// --------------------------------------
-
-

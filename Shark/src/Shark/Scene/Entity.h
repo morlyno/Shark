@@ -7,6 +7,9 @@
 
 namespace Shark {
 
+	struct TransformComponent;
+	struct TagComponent;
+
 	class Entity
 	{
 	public:
@@ -18,26 +21,13 @@ namespace Shark {
 		Weak<Scene> GetScene() const { return m_Scene; }
 		entt::entity GetHandle() const { return m_EntityHandle; }
 
-		template<typename Component>
-		Component& AddComponent()
+		template<typename Component, typename... Args>
+		Component& AddComponent(Args&&... args)
 		{
 			SK_PROFILE_FUNCTION();
 
 			SK_CORE_ASSERT(!HasComponent<Component>());
-			auto& comp = m_Scene->m_Registry.emplace<Component>(m_EntityHandle);
-			m_Scene->OnComponentAdded(*this, comp);
-			return comp;
-		}
-
-		// Function will be removed in the future. DO NOT USE!
-		template<typename Component>
-		Component& AddComponent(const Component& c)
-		{
-			SK_CORE_TRACE("Function will be removed in the future. DO NOT USE!");
-
-			SK_CORE_ASSERT(!HasComponent<Component>());
-			auto& comp = m_Scene->m_Registry.emplace<Component>(m_EntityHandle, c);
-			m_Scene->OnComponentAdded(*this, comp);
+			auto& comp = m_Scene->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 			return comp;
 		}
 
@@ -50,14 +40,16 @@ namespace Shark {
 			m_Scene->m_Registry.remove<Component>(m_EntityHandle);
 		}
 
-		template<typename... Components>
-		decltype(auto) GetComponent()
+		template<typename Component>
+		Component& GetComponent()
 		{
 			SK_PROFILE_FUNCTION();
 
-			SK_CORE_ASSERT(HasComponent<Components...>());
-			return m_Scene->m_Registry.get<Components...>(m_EntityHandle);
+			SK_CORE_ASSERT(HasComponent<Component>());
+			return m_Scene->m_Registry.get<Component>(m_EntityHandle);
 		}
+
+		TransformComponent& GetTransform();
 
 		template<typename Component>
 		Component& TryAddComponent()
@@ -67,6 +59,14 @@ namespace Shark {
 			if (!HasComponent<Component>())
 				return AddComponent<Component>();
 			return GetComponent<Component>();
+		}
+
+		template<typename Component>
+		Component* TryGetComponent()
+		{
+			SK_PROFILE_FUNCTION();
+
+			return m_Scene->m_Registry.try_get<Component>(m_EntityHandle);
 		}
 
 		template<typename Component>

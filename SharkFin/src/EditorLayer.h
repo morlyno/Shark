@@ -57,6 +57,8 @@ namespace Shark {
 
 		void OnScenePlay();
 		void OnSceneStop();
+
+		Ref<Scene> GetCurrentScene();
 	private:
 		EditorCamera m_EditorCamera;
 		Ref<FrameBuffer> m_GemometryFrameBuffer;

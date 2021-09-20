@@ -1,7 +1,7 @@
 #include "skfpch.h"
 #include "SceneHirachyPanel.h"
 
-#include <Shark/Scene/Components/Components.h>
+#include <Shark/Scene/Components.h>
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/Utility.h>
 #include <Shark/Utility/ImGuiUtils.h>
@@ -109,33 +109,19 @@ namespace Shark {
 							{
 								Entity e = m_Context->CreateEntity("New Quad");
 								auto& sr = e.AddComponent<SpriteRendererComponent>();
-								sr.Geometry = Geometry::Quad;
+								sr.Geometry = SpriteRendererComponent::GeometryType::Quad;
 								Utils::ChangeSelectedEntity(e);
 							}
 							if (ImGui::MenuItem("Circle"))
 							{
 								Entity e = m_Context->CreateEntity("New Circle");
 								auto& sr = e.AddComponent<SpriteRendererComponent>();
-								sr.Geometry = Geometry::Circle;
+								sr.Geometry = SpriteRendererComponent::GeometryType::Circle;
 								Utils::ChangeSelectedEntity(e);
 							}
 							ImGui::EndMenu();
 						}
 
-						if (ImGui::MenuItem("RigidBody"))
-						{
-							Entity e = m_Context->CreateEntity("New RigidBody");
-							e.AddComponent<SpriteRendererComponent>();
-							e.AddComponent<RigidBodyComponent>();
-							Utils::ChangeSelectedEntity(e);
-						}
-						if (ImGui::MenuItem("Box Collider"))
-						{
-							Entity e = m_Context->CreateEntity("New RigidBody");
-							e.AddComponent<SpriteRendererComponent>();
-							e.AddComponent<BoxColliderComponent>();
-							Utils::ChangeSelectedEntity(e);
-						}
 						ImGui::EndMenu();
 					}
 					ImGui::EndPopup();
@@ -255,14 +241,14 @@ namespace Shark {
 				entity.AddComponent<CameraComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("Rigid Body", false, entity.HasComponent<RigidBodyComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("RigidBody 2D", false, entity.HasComponent<RigidBody2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				entity.AddComponent<RigidBodyComponent>();
+				entity.AddComponent<RigidBody2DComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("Box Collider", false, entity.HasComponent<BoxColliderComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("BoxCollider 2D", false, entity.HasComponent<BoxCollider2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
-				entity.AddComponent<BoxColliderComponent>();
+				entity.AddComponent<BoxCollider2DComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Native Script", false, entity.HasComponent<NativeScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
@@ -319,7 +305,7 @@ namespace Shark {
 			int geometry = (int)comp.Geometry;
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
 			if (ImGui::Combo("##Geometry", &geometry, s_GeomatryTypes, (int)Utility::ArraySize(s_GeomatryTypes)))
-				comp.Geometry = (Geometry)geometry;
+				comp.Geometry = (SpriteRendererComponent::GeometryType)geometry;
 		});
 
 		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)
@@ -453,75 +439,27 @@ namespace Shark {
 				m_Context->m_ActiveCameraID = entity;
 		});
 
-		Utils::DrawComponet<RigidBodyComponent>(entity, "Rigid Body", [entity](RigidBodyComponent& comp)
+		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)
 		{
-			auto& body = comp.Body;
+			int bodyType = (int)comp.Type;
+			if (ImGui::Combo("##BodyType", &bodyType, s_BodyTypes, (int)Utility::ArraySize(s_BodyTypes)))
+				comp.Type = (RigidBody2DComponent::BodyType)bodyType;
 
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
-
-			int curritem = body.GetType() == BodyType::Static ? 0 : 1;
-			if (ImGui::Combo("##BodyType", &curritem, "Static\0Dynamic\0"))
-				body.SetType(curritem == 0 ? BodyType::Static : BodyType::Dynamic);
-
-			auto pos = body.GetPosition();
-			if (UI::DrawVec2Control("Position", pos))
-				body.SetPosition(pos.x, pos.y);
-
-			float angle = DirectX::XMConvertToDegrees(body.GetAngle());
-			if (UI::DrawFloatControl("Angle", angle))
-				body.SetAngle(DirectX::XMConvertToRadians(angle));
-
-			ImGui::Separator();
-
-			bool sleepingallowed = body.IsSleepingAllowed();
-			if (ImGui::Checkbox("Sleeping Allowed", &sleepingallowed))
-				body.SetSleepingAllowed(sleepingallowed);
-
-			bool enabled = body.IsEnabled();
-			if (ImGui::Checkbox("Enabled", &enabled))
-				body.SetEnabled(enabled);
-
-			bool awake = body.IsAwake();
-			if (ImGui::Checkbox("Awake", &awake))
-				body.SetAwake(awake);
-
-			bool fixedroation = body.IsFixedRoation();
-			if (ImGui::Checkbox("Fixed Rotation", &fixedroation))
-				body.SetFixedRotation(fixedroation);
+			ImGui::Checkbox("Fixed Rotation", &comp.FixedRotation);
+		});
+		
+		Utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp)
+		{
+			UI::DrawVec2Control("Size", comp.Size);
+			UI::DrawVec2Control("Offset", comp.LocalOffset);
+			UI::DrawFloatControl("Angle", comp.LocalRotation);
+			UI::DrawFloatControl("Denstity", comp.Density);
+			UI::DrawFloatControl("Friction", comp.Friction);
+			UI::DrawFloatControl("Restitution", comp.Restitution);
+			UI::DrawFloatControl("RestitutionThreshold", comp.RestitutionThreshold);
 		});
 
-		Utils::DrawComponet<BoxColliderComponent>(entity, "Box Collider", [entity](BoxColliderComponent& comp)
-		{
-			auto& collider = comp.Collider;
-
-			auto center = collider.GetCenter();
-			if (UI::DrawVec2Control("Center", center))
-				collider.SetCenter(center);
-
-			auto rotation = collider.GetRotation();
-			if (UI::DrawFloatControl("Rotation", rotation))
-				collider.SetRotation(rotation);
-
-			ImGui::Separator();
-
-			auto size = collider.GetSize();
-			if (UI::DrawVec2Control("Size", size, 1.0f))
-				collider.Resize(size.x, size.y);
-
-			float friction = collider.GetFriction();
-			if (UI::DrawFloatControl("Friction", friction))
-				collider.SetFriction(friction);
-
-			float density = collider.GetDensity();
-			if (UI::DrawFloatControl("Density", density))
-				collider.SetDensity(density);
-
-			float restitution = collider.GetRestituion();
-			if (UI::DrawFloatControl("Restitution", restitution))
-				collider.SetRestitution(restitution);
-		});
-
-		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [entity](NativeScriptComponent& comp) mutable
+		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [](NativeScriptComponent& comp)
 		{
 			char inputbuffer[128];
 			strcpy_s(inputbuffer, comp.ScriptTypeName.c_str());

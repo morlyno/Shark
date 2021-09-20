@@ -2,7 +2,7 @@
 #include "SceneSerialization.h"
 
 #include "Shark/Scene/Entity.h"
-#include "Shark/Scene/Components/Components.h"
+#include "Shark/Scene/Components.h"
 #define SK_YAMLUTILS_ALL 1
 #include "Shark/Utility/YAMLUtils.h"
 
@@ -14,6 +14,29 @@
 #include "Shark/Debug/Instrumentor.h"
 
 namespace Shark {
+
+	static std::string BodyTypeToString(RigidBody2DComponent::BodyType bodyType)
+	{
+		switch (bodyType)
+		{
+			case RigidBody2DComponent::BodyType::Static:      return "Static";
+			case RigidBody2DComponent::BodyType::Dynamic:     return "Dynamic";
+			case RigidBody2DComponent::BodyType::Kinematic:   return "Kinematic";
+		}
+
+		SK_CORE_ASSERT(false, "Unkonw Body Type");
+		return std::string{};
+	}
+
+	static RigidBody2DComponent::BodyType StringToBodyType(const std::string bodyType)
+	{
+		if (bodyType == "Static") return RigidBody2DComponent::BodyType::Static;
+		if (bodyType == "Dynamic") return RigidBody2DComponent::BodyType::Dynamic;
+		if (bodyType == "Kinematic") return RigidBody2DComponent::BodyType::Kinematic;
+
+		SK_CORE_ASSERT(false, "Unkonw Body Type");
+		return RigidBody2DComponent::BodyType::Static;
+	}
 
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
 		: m_Scene(scene)
@@ -104,41 +127,36 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 
-		if (entity.HasComponent<RigidBodyComponent>())
+		if (entity.HasComponent<RigidBody2DComponent>())
 		{
-			out << YAML::Key << "RigidBodyComponent" << YAML::Value;
+			out << YAML::Key << "RigidBody2DComponent" << YAML::Value;
 			out << YAML::BeginMap;
 
-			auto& comp = entity.GetComponent<RigidBodyComponent>();
-			auto& body = comp.Body;
+			const auto& comp = entity.GetComponent<RigidBody2DComponent>();
 
-			out << YAML::Key << "Type" << YAML::Value << (int)body.GetType();
-			out << YAML::Key << "AllowSleep" << YAML::Value << body.IsSleepingAllowed();
-			out << YAML::Key << "Awake" << YAML::Value << body.IsAwake();
-			out << YAML::Key << "Enabled" << YAML::Value << body.IsEnabled();
-			out << YAML::Key << "FixedRotation" << YAML::Value << body.IsFixedRoation();
-			out << YAML::Key << "Position" << YAML::Value << body.GetPosition();
-			out << YAML::Key << "Angle" << YAML::Value << body.GetAngle();
+			out << YAML::Key << "Type" << YAML::Value << BodyTypeToString(comp.Type);
+			out << YAML::Key << "FixedRotation" << YAML::Value << comp.FixedRotation;
 
 			out << YAML::EndMap;
-
 		}
 
-		if (entity.HasComponent<BoxColliderComponent>())
+		if (entity.HasComponent<BoxCollider2DComponent>())
 		{
-			out << YAML::Key << "ColliderComponent" << YAML::Value;
+			out << YAML::Key << "BoxCollider2DComponent" << YAML::Value;
 			out << YAML::BeginMap;
 
-			auto& comp = entity.GetComponent<BoxColliderComponent>();
-			auto& collider = comp.Collider;
+			const auto& comp = entity.GetComponent<BoxCollider2DComponent>();
 
-			out << YAML::Key << "Shape" << YAML::Value << (int)collider.GetShape();
-			out << YAML::Key << "Friction" << YAML::Value << collider.GetFriction();
-			out << YAML::Key << "Density" << YAML::Value << collider.GetDensity();
-			out << YAML::Key << "Restitution" << YAML::Value << collider.GetRestituion();
-			out << YAML::Key << "Size" << YAML::Value << collider.GetSize();
+			out << YAML::Key << "Size" << YAML::Value << comp.Size;
+			out << YAML::Key << "Offset" << YAML::Value << comp.LocalOffset;
+			out << YAML::Key << "Rotation" << YAML::Value << comp.LocalRotation;
+			out << YAML::Key << "Density" << YAML::Value << comp.Density;
+			out << YAML::Key << "Friction" << YAML::Value << comp.Friction;
+			out << YAML::Key << "Restitution" << YAML::Value << comp.Restitution;
+			out << YAML::Key << "RestitutionThreshold" << YAML::Value << comp.RestitutionThreshold;
 
 			out << YAML::EndMap;
+
 		}
 
 		out << YAML::EndMap;
@@ -263,7 +281,7 @@ namespace Shark {
 
 					SK_CORE_VERIFY(geometry, "Couldn't deserialize SpriteRendererComponent::Geometry");
 					if (geometry)
-						comp.Geometry = geometry.as<Geometry>();
+						comp.Geometry = geometry.as<SpriteRendererComponent::GeometryType>();
 
 
 					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
@@ -331,90 +349,67 @@ namespace Shark {
 					SK_CORE_TRACE(" - Camera Component: Type {}, MainCamera {}", projection == SceneCamera::Projection::Perspective ? "Perspective" : "Othographic", mainCam);
 				}
 
-				auto rigidbodyComponent = entity["RigidBodyComponent"];
-				if (rigidbodyComponent)
+				auto rigidBody2DComponent = entity["RigidBody2DComponent"];
+				if (rigidBody2DComponent)
 				{
-					auto type = rigidbodyComponent["Type"];
-					auto allowSleep = rigidbodyComponent["AllowSleep"];
-					auto awake = rigidbodyComponent["Awake"];
-					auto enabled = rigidbodyComponent["Enabled"];
-					auto fixedRotation = rigidbodyComponent["FixedRotation"];
-					auto position = rigidbodyComponent["Position"];
-					auto angle = rigidbodyComponent["Angle"];
+					auto type = rigidBody2DComponent["Type"];
+					auto fixedRotation = rigidBody2DComponent["FixedRotation"];
 
-					RigidBodySpecs specs;
+					auto& comp = deserializedEntity.AddComponent<RigidBody2DComponent>();
 
-					SK_CORE_VERIFY(type, "Couldn't deserialize RigigBodyComponent::Type");
+					SK_CORE_VERIFY(type, "Couldn't desirialize RigidBody2DComponent::Type");
 					if (type)
-						specs.Type = type.as<Shark::BodyType>();
+						comp.Type = StringToBodyType(type.as<std::string>());
 
-					SK_CORE_VERIFY(allowSleep, "Couldn't deserialize RigigBodyComponent::AllowSleep");
-					if (allowSleep)
-						specs.AllowSleep = allowSleep.as<bool>();
-					
-					SK_CORE_VERIFY(awake, "Couldn't deserialize RigigBodyComponent::Awake");
-					if (awake)
-						specs.Awake = awake.as<bool>();
-
-					SK_CORE_VERIFY(enabled, "Couldn't deserialize RigigBodyComponent::Enabled");
-					if (enabled)
-						specs.Enabled = enabled.as<bool>();
-
-					SK_CORE_VERIFY(fixedRotation, "Couldn't deserialize RigigBodyComponent::FixedRotation");
+					SK_CORE_VERIFY(fixedRotation, "Couldn't desirialize RigidBody2DComponent::FixedRotation");
 					if (fixedRotation)
-						specs.FixedRotation = fixedRotation.as<bool>();
+						comp.FixedRotation = fixedRotation.as<bool>();
 
-					SK_CORE_VERIFY(position, "Couldn't deserialize RigigBodyComponent::Position");
-					if (position)
-						specs.Position = position.as<DirectX::XMFLOAT2>();
-
-					SK_CORE_VERIFY(angle, "Couldn't deserialize RigigBodyComponent::Angle");
-					if (angle)
-						specs.Angle = angle.as<float>();
-
-					auto& comp = deserializedEntity.AddComponent<RigidBodyComponent>();
-					comp.Body.SetState(specs);
-					SK_CORE_TRACE(" - RigidBody Component: Type {}", specs.Type == BodyType::Static ? "Static" : "Dinamic");
+					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", BodyTypeToString(comp.Type));
 				}
 
-				auto colliderComponent = entity["ColliderComponent"];
-				if (colliderComponent)
+				auto boxCollider2DComponent = entity["BoxCollider2DComponent"];
+				if (boxCollider2DComponent)
 				{
-					auto shape = colliderComponent["Shape"];
-					auto friction = colliderComponent["Friction"];
-					auto density = colliderComponent["Density"];
-					auto restitution = colliderComponent["Restitution"];
-					auto size = colliderComponent["Size"];
-					
-					ColliderSpecs specs;
+					auto size = boxCollider2DComponent["Size"];
+					auto offset = boxCollider2DComponent["Offset"];
+					auto rotation = boxCollider2DComponent["Rotation"];
+					auto density = boxCollider2DComponent["Density"];
+					auto friction = boxCollider2DComponent["Friction"];
+					auto restitution = boxCollider2DComponent["Restitution"];
+					auto restitutionThreshold = boxCollider2DComponent["RestitutionThreshold"];
 
-					SK_CORE_VERIFY(shape, "Couldn't deserialize ColliderComponent::Shape");
-					if (shape)
-						specs.Shape = shape.as<ShapeType>();
+					auto& comp = deserializedEntity.AddComponent<BoxCollider2DComponent>();
 
-					SK_CORE_VERIFY(friction, "Couldn't deserialize ColliderComponent::Firction");
-					if (friction)
-						specs.Friction = friction.as<float>();
-
-					SK_CORE_VERIFY(density, "Couldn't deserialize ColliderComponent::Density");
-					if (density)
-						specs.Density = density.as<float>();
-
-					SK_CORE_VERIFY(restitution, "Couldn't deserialize ColliderComponent::Restitution");
-					if (restitution)
-						specs.Restitution = restitution.as<float>();
-
-					SK_CORE_VERIFY(size, "Couldn't deserialize ColliderComponent::Size");
+					SK_CORE_VERIFY(size, "Couldn't desirialize BoxCollider2DComponent::Size");
 					if (size)
-					{
-						auto [width, height] = size.as<DirectX::XMFLOAT2>();
-						specs.Width = width;
-						specs.Height = height;
-					}
+						comp.Size = size.as<DirectX::XMFLOAT2>();
 
-					auto& comp = deserializedEntity.AddComponent<BoxColliderComponent>();
-					comp.Collider.SetState(specs);
-					SK_CORE_TRACE(" - Collider Component: Type Box");
+					SK_CORE_VERIFY(offset, "Couldn't desirialize BoxCollider2DComponent::Offset");
+					if (offset)
+						comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
+
+					SK_CORE_VERIFY(rotation, "Couldn't desirialize BoxCollider2DComponent::Rotation");
+					if (rotation)
+						comp.LocalRotation = rotation.as<float>();
+
+					SK_CORE_VERIFY(density, "Couldn't desirialize BoxCollider2DComponent::Density");
+					if (density)
+						comp.Density = density.as<float>();
+
+					SK_CORE_VERIFY(friction, "Couldn't desirialize BoxCollider2DComponent::Friction");
+					if (friction)
+						comp.Friction = friction.as<float>();
+
+					SK_CORE_VERIFY(restitution, "Couldn't desirialize BoxCollider2DComponent::Restitution");
+					if (restitution)
+						comp.Restitution = restitution.as<float>();
+
+					SK_CORE_VERIFY(restitutionThreshold, "Couldn't desirialize BoxCollider2DComponent::RestitutionThreshold");
+					if (restitutionThreshold)
+						comp.RestitutionThreshold = restitutionThreshold.as<float>();
+
+					SK_CORE_TRACE(" - BoxCollider2D Component");
 				}
 			}
 		}

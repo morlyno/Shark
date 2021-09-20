@@ -2,14 +2,33 @@
 #include "Scene.h"
 
 #include "Shark/Render/Renderer2D.h"
-#include "Shark/Render/TestRenderer.h"
 #include "Shark/Scene/Entity.h"
-#include "Shark/Scene/Components/Components.h"
+#include "Shark/Scene/Components.h"
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
+#include <box2d/b2_world.h>
+#include <box2d/b2_body.h>
+#include <box2d/b2_polygon_shape.h>
+#include <box2d/b2_fixture.h>
+
+#include "Shark/Debug/DebugEntity.h"
+
 namespace Shark {
+
+	static b2BodyType SharkBodyTypeToBox2D(RigidBody2DComponent::BodyType bodyType)
+	{
+		switch (bodyType)
+		{
+			case RigidBody2DComponent::BodyType::Static:      return b2_staticBody;
+			case RigidBody2DComponent::BodyType::Dynamic:     return b2_dynamicBody;
+			case RigidBody2DComponent::BodyType::Kinematic:   return b2_kinematicBody;
+		}
+
+		SK_CORE_ASSERT(false, "Unkown Body Type");
+		return b2_staticBody;
+	}
 
 	Scene::Scene()
 	{
@@ -19,39 +38,8 @@ namespace Shark {
 	Scene::~Scene()
 	{
 		SK_PROFILE_FUNCTION();
-	}
 
-	Scene::Scene(Scene&& other)
-	{
-		SK_PROFILE_FUNCTION();
-
-		m_Registry = std::move(other.m_Registry);
-		m_World = std::move(other.m_World);
-		m_ActiveCameraID = other.m_ActiveCameraID;
-		m_ViewportWidth = other.m_ViewportWidth;
-		m_ViewportHeight = other.m_ViewportHeight;
-		m_FilePath = std::move(other.m_FilePath);
-
-		other.m_ActiveCameraID = entt::null;
-		other.m_ViewportWidth = 0;
-		other.m_ViewportHeight = 0;
-	}
-
-	Scene& Scene::operator=(Scene&& other)
-	{
-		SK_PROFILE_FUNCTION();
-
-		m_Registry = std::move(other.m_Registry);
-		m_World = std::move(other.m_World);
-		m_ActiveCameraID = other.m_ActiveCameraID;
-		m_ViewportWidth = other.m_ViewportWidth;
-		m_ViewportHeight = other.m_ViewportHeight;
-		m_FilePath = std::move(other.m_FilePath);
-
-		other.m_ActiveCameraID = entt::null;
-		other.m_ViewportWidth = 0;
-		other.m_ViewportHeight = 0;
-		return *this;
+		SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr, "OnSceneStop musst be called befor the Scene gets destroyed!");
 	}
 
 	Ref<Scene> Scene::GetCopy()
@@ -67,7 +55,6 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		dest->m_World = World(m_World.GetGravity());
 		dest->m_Registry = entt::registry{};
 		dest->m_Registry.reserve(m_Registry.capacity());
 		m_Registry.each([this, dest](auto entity)
@@ -85,40 +72,40 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_World.Update(ts);
+		{
+			auto view = m_Registry.view<NativeScriptComponent>();
+			for (auto entityID : view)
+			{
+				auto& nsc = view.get<NativeScriptComponent>(entityID);
+				if (nsc.Script)
+					nsc.Script->OnUpdate(ts);
+			}
+		}
 
 		{
+			// TODO(moro): expose iteration values
+			m_PhysicsWorld2D->Step(ts, 6, 2);
+
+			auto view = m_Registry.view<RigidBody2DComponent>();
+			for (auto e : view)
 			{
-				auto group = m_Registry.group<RigidBodyComponent>(entt::get<TransformComponent>);
-				for (auto entityID : group)
-				{
-					auto& tc = group.get<TransformComponent>(entityID);
-					auto& body = group.get<RigidBodyComponent>(entityID).Body;
-
-					tc.Position.x = body.GetPosition().x;
-					tc.Position.y = body.GetPosition().y;
-
-					tc.Rotation.z = body.GetAngle();
-				}
-			}
-
-			{
-				auto view = m_Registry.view<NativeScriptComponent>();
-				for (auto entityID : view)
-				{
-					auto& nsc = view.get<NativeScriptComponent>(entityID);
-					if (nsc.Script)
-						nsc.Script->OnUpdate(ts);
-				}
+				Entity entity{ e, this };
+				const auto& rb2d = view.get<RigidBody2DComponent>(entity);
+				auto& transform = entity.GetTransform();
+				const auto& pos = rb2d.RuntimeBody->GetPosition();
+				transform.Position.x = pos.x;
+				transform.Position.y = pos.y;
+				transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 			}
 		}
 
 		if (!m_Registry.valid(m_ActiveCameraID) || !m_Registry.has<CameraComponent, TransformComponent>(m_ActiveCameraID))
 		{
 			SK_CORE_WARN("Active Camera Entity is Invalid");
-			return;
+			auto view = m_Registry.view<CameraComponent>();
+			m_ActiveCameraID = view[0];
 		}
-		auto [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCameraID);
+		auto&& [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCameraID);
 
 		{
 			SK_PROFILE_SCOPE("Render Scene Runtime");
@@ -149,36 +136,66 @@ namespace Shark {
 		}
 	}
 
-	void Scene::OnEventRuntime(Event& event)
-	{
-		auto view = m_Registry.view<NativeScriptComponent>();
-		for (auto entityID : view)
-		{
-			auto& nsc = view.get<NativeScriptComponent>(entityID);
-			if (nsc.Script)
-				nsc.Script->OnEvent(event);
-		}
-	}
-
-	void Scene::OnEventEditor(Event& event)
-	{
-	}
-
 	void Scene::OnScenePlay()
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_World.Flush();
+		SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr);
+		m_PhysicsWorld2D = new b2World({ 0.0f, -9.8f });
 
-		auto view = m_Registry.view<NativeScriptComponent>();
-		for (auto entityID : view)
 		{
-			auto& comp = view.get<NativeScriptComponent>(entityID);
-			Entity entity{ entityID, Weak(this) };
-			if (comp.CreateScript)
+			auto view = m_Registry.view<BoxCollider2DComponent>();
+			for (auto entity : view)
+				if (!m_Registry.has<RigidBody2DComponent>(entity))
+					m_Registry.emplace<RigidBody2DComponent>(entity);
+		}
+
+		{
+			auto view = m_Registry.view<RigidBody2DComponent>();
+			for (auto entity : view)
 			{
-				comp.Script = comp.CreateScript(entity);
-				comp.Script->OnCreate();
+				auto& rb2d = view.get<RigidBody2DComponent>(entity);
+				auto& transform = m_Registry.get<TransformComponent>(entity);
+
+				b2BodyDef bodydef;
+				bodydef.type = SharkBodyTypeToBox2D(rb2d.Type);
+				bodydef.position = { transform.Position.x, transform.Position.y };
+				bodydef.angle = transform.Rotation.z;
+				bodydef.fixedRotation = rb2d.FixedRotation;
+
+				rb2d.RuntimeBody = m_PhysicsWorld2D->CreateBody(&bodydef);
+
+				if (m_Registry.has<BoxCollider2DComponent>(entity))
+				{
+					auto& bc2d = m_Registry.get<BoxCollider2DComponent>(entity);
+
+					b2PolygonShape shape;
+					shape.SetAsBox(bc2d.Size.x * transform.Scaling.x, bc2d.Size.y * transform.Scaling.y, { bc2d.LocalOffset.x, bc2d.LocalOffset.y }, bc2d.LocalRotation);
+
+					b2FixtureDef fixturedef;
+					fixturedef.shape = &shape;
+					fixturedef.friction = bc2d.Friction;
+					fixturedef.density = bc2d.Density;
+					fixturedef.restitution = bc2d.Restitution;
+					fixturedef.restitutionThreshold = bc2d.RestitutionThreshold;
+
+					bc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
+				}
+			}
+		}
+
+
+		{
+			auto view = m_Registry.view<NativeScriptComponent>();
+			for (auto entityID : view)
+			{
+				auto& comp = view.get<NativeScriptComponent>(entityID);
+				Entity entity{ entityID, this };
+				if (comp.CreateScript)
+				{
+					comp.Script = comp.CreateScript(entity);
+					comp.Script->OnCreate();
+				}
 			}
 		}
 
@@ -200,7 +217,8 @@ namespace Shark {
 			}
 		}
 
-		m_World.Flush();
+		delete m_PhysicsWorld2D;
+		m_PhysicsWorld2D = nullptr;
 	}
 
 	Entity Scene::CopyEntity(Entity srcEntity)
@@ -214,8 +232,8 @@ namespace Shark {
 		CopyComponentIfExists<SpriteRendererComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CameraComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<NativeScriptComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<RigidBodyComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<BoxColliderComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<RigidBody2DComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 
 		return newEntity;
 	}
@@ -276,72 +294,6 @@ namespace Shark {
 			auto& cc = view.get<CameraComponent>(entityID);
 			cc.Camera.Resize(width, height);
 		}
-	}
-
-
-
-
-	template<typename Component>
-	void Scene::OnComponentAdded(Entity entity, Component& comp)
-	{
-		static_assert(false);
-	}
-	
-	template<>
-	void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& comp)
-	{
-	}
-	
-	template<>
-	void Scene::OnComponentAdded<TransformComponent>(Entity entity, TransformComponent& comp)
-	{
-	}
-	
-	template<>
-	void Scene::OnComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent& comp)
-	{
-	}
-	
-	template<>
-	void Scene::OnComponentAdded<CameraComponent>(Entity entity,CameraComponent& comp)
-	{
-		comp.Camera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
-	}
-
-	template<>
-	void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& comp)
-	{
-	}
-
-	template<>
-	void Scene::OnComponentAdded<RigidBodyComponent>(Entity entity, RigidBodyComponent& comp)
-	{
-		if (!entity.HasComponent<TransformComponent>())
-			entity.AddComponent<TransformComponent>();
-
-		comp.Body = m_World.CreateRigidBody();
-		BodyUserData* userdata = new BodyUserData();
-		userdata->Entity = entity;
-		userdata->RigidBody = &comp.Body;
-		comp.Body.SetUserData(userdata);
-
-		auto& tc = entity.GetComponent<TransformComponent>();
-		comp.Body.SetTransform(tc.Position.x, tc.Position.y, tc.Rotation.z);
-	}
-
-	template<>
-	void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& comp)
-	{
-		if (!entity.HasComponent<TransformComponent>())
-			entity.AddComponent<TransformComponent>();
-		if (!entity.HasComponent<RigidBodyComponent>())
-			entity.AddComponent<RigidBodyComponent>();
-
-		auto& rb = entity.GetComponent<RigidBodyComponent>();
-		comp.Collider = rb.Body.CreateBoxCollider();
-
-		auto& tc = entity.GetComponent<TransformComponent>();
-		comp.Collider.Resize(tc.Scaling.x, tc.Scaling.y);
 	}
 
 }

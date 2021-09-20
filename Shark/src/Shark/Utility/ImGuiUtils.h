@@ -30,6 +30,7 @@ namespace Shark {
 	inline ImVec2 operator-(const ImVec2& v2) { return { -v2.x, -v2.y }; }
 	inline ImVec2 operator+(const ImVec2& v2) { return v2; }
 
+	ImVec4 ToImVec4(const DirectX::XMFLOAT4& color);
 
 	namespace UI {
 

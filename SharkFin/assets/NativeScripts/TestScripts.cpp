@@ -1,5 +1,6 @@
 #include "skfpch.h"
 
+#if 0
 #include <Shark/Scene/NativeScriptFactory.h>
 #include <Shark/Scene/Components/Components.h>
 #include <Shark/Core/Input.h>
@@ -181,3 +182,5 @@ public:
 	}
 
 };
+
+#endif

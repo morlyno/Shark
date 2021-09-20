@@ -4,7 +4,6 @@
 #include "Shark/Utility/Utility.h"
 
 namespace Shark {
-	class SceneCamera;
 	enum class Geometry;
 	enum class BodyType;
 	enum class ShapeType;
@@ -78,23 +77,6 @@ namespace YAML {
 	};
 
 	template<>
-	struct convert<Shark::Geometry>
-	{
-		static Node encode(const Shark::Geometry& val)
-		{
-			static_assert(sizeof(Shark::Geometry) <= sizeof(int));
-			return Node((int)val);
-		}
-
-		static bool decode(const Node& node, Shark::Geometry& val)
-		{
-			static_assert(sizeof(Shark::Geometry) <= sizeof(int));
-			val = (Shark::Geometry)node.as<int>();
-			return true;
-		}
-	};
-
-	template<>
 	struct convert<Shark::BodyType>
 	{
 		static Node encode(const Shark::BodyType& val)
@@ -149,7 +131,11 @@ namespace YAML {
 #if SK_YAMLUTILS_ALL
 
 namespace Shark {
+	class SceneCamera;
+	struct SpriteRendererComponent;
+
 	enum class SceneCamera::Projection;
+	enum class SpriteRendererComponent::GeometryType;
 }
 
 namespace YAML {
@@ -167,6 +153,25 @@ namespace YAML {
 		{
 			static_assert(sizeof(Shark::SceneCamera::Projection) <= sizeof(int));
 			val = (Shark::SceneCamera::Projection)node.as<int>();
+			return true;
+		}
+	};
+
+	template<>
+	struct convert<Shark::SpriteRendererComponent::GeometryType>
+	{
+		using Type = Shark::SpriteRendererComponent::GeometryType;
+
+		static Node encode(const Type& val)
+		{
+			static_assert(sizeof(Type) <= sizeof(int));
+			return Node((int)val);
+		}
+
+		static bool decode(const Node& node, Type& val)
+		{
+			static_assert(sizeof(Type) <= sizeof(int));
+			val = (Type)node.as<int>();
 			return true;
 		}
 	};

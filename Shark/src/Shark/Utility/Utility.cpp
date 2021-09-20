@@ -5,11 +5,6 @@
 
 namespace Shark::Utility {
 
-	ImVec4 ToImVec4(const DirectX::XMFLOAT4& color)
-	{
-		return ImVec4{ color.x, color.y, color.z, color.w };
-	}
-
 	std::string ToLower(const std::string& src)
 	{
 		std::string str;

@@ -24,7 +24,7 @@ namespace Shark {
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 
-		void SetScenePlaying(bool playing) { m_ScenePlaying = playing; }
+		void ScenePlaying(bool playing) { m_ScenePlaying = playing; }
 
 		void OnImGuiRender();
 
@@ -47,6 +47,7 @@ namespace Shark {
 		int m_SelectedProjectionIndex = -1;
 		static constexpr const char* s_ProjectionItems[] = { "Perspective", "Orthographic" };
 		static constexpr const char* s_GeomatryTypes[] = { "None", "Quad", "Circle" };
+		static constexpr const char* s_BodyTypes[] = { "Static", "Dynamic", "Kinematic" };
 
 		bool m_ScriptFound = false;
 

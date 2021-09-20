@@ -1,7 +1,7 @@
 #include "skfpch.h"
 #include "EditorLayer.h"
 
-#include <Shark/Scene/Components/Components.h>
+#include <Shark/Scene/Components.h>
 
 #include <Shark/Scene/SceneSerialization.h>
 #include <Shark/Utility/PlatformUtils.h>
@@ -140,6 +140,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		SK_CORE_ASSERT(m_WorkScene);
+
 		m_TimeStep = ts;
 
 		m_Rasterizer->Bind();
@@ -165,8 +167,6 @@ namespace Shark {
 			m_WorkScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 			m_GemometryFrameBuffer->Bind();
 		}
-
-		SK_CORE_ASSERT(m_WorkScene);
 
 		switch (m_SceneState)
 		{
@@ -211,21 +211,6 @@ namespace Shark {
 
 
 		m_SceneHirachyPanel.OnEvent(event);
-
-		switch (m_SceneState)
-		{
-			case SceneState::Edit:
-			{
-				m_EditorCamera.OnEvent(event);
-				m_WorkScene->OnEventEditor(event);
-				break;
-			}
-			case SceneState::Play:
-			{
-				auto activeScene = SceneManager::GetActiveScene();
-				activeScene->OnEventRuntime(event);
-			}
-		}
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -412,12 +397,10 @@ namespace Shark {
 			SK_PROFILE_SCOPE("Mouse Picking");
 			// TODO: Move to EditorLayer::OnUpdate()
 
-			int x = -1;
-			int y = -1;
 			auto [mx, my] = ImGui::GetMousePos();
 			auto [wx, wy] = window->WorkRect.Min;
-			x = (int)(mx - wx);
-			y = (int)(my - wy);
+			int x = (int)(mx - wx);
+			int y = (int)(my - wy);
 			m_HoveredEntityID = -1;
 
 			auto&& [width, height] = m_GemometryFrameBuffer->GetSize();
@@ -433,9 +416,10 @@ namespace Shark {
 				{
 					if (m_HoveredEntityID != -1)
 					{
-						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, m_WorkScene };
-						SK_CORE_ASSERT(m_WorkScene->IsValidEntity(entity));
-						if (m_WorkScene->IsValidEntity(entity))
+						auto scene = GetCurrentScene();
+						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, scene };
+						SK_CORE_ASSERT(scene->IsValidEntity(entity));
+						if (scene->IsValidEntity(entity))
 							Event::Distribute(SelectionChangedEvent(entity));
 					}
 					else
@@ -537,10 +521,6 @@ namespace Shark {
 						se.AddComponent<SpriteRendererComponent>();
 					if (ImGui::MenuItem("Scene Camera", nullptr, nullptr, !se.HasComponent<CameraComponent>()))
 						se.AddComponent<CameraComponent>();
-					if (ImGui::MenuItem("Rigid Body", nullptr, nullptr, !se.HasComponent<RigidBodyComponent>()))
-						se.AddComponent<RigidBodyComponent>();
-					if (ImGui::MenuItem("Box Collider", nullptr, nullptr, !se.HasComponent<BoxColliderComponent>()))
-						se.AddComponent<BoxColliderComponent>();
 
 					ImGui::EndMenu();
 				}
@@ -553,10 +533,6 @@ namespace Shark {
 						se.RemoveComponent<SpriteRendererComponent>();
 					if (ImGui::MenuItem("Scene Camera", nullptr, nullptr, se.HasComponent<CameraComponent>()))
 						se.RemoveComponent<CameraComponent>();
-					if (ImGui::MenuItem("Rigid Body", nullptr, nullptr, se.HasComponent<RigidBodyComponent>()))
-						se.RemoveComponent<RigidBodyComponent>();
-					if (ImGui::MenuItem("Box Collider", nullptr, nullptr, se.HasComponent<BoxColliderComponent>()))
-						se.RemoveComponent<BoxColliderComponent>();
 
 					ImGui::EndMenu();
 				}
@@ -612,8 +588,23 @@ namespace Shark {
 
 			DirectX::XMFLOAT4X4 view;
 			DirectX::XMFLOAT4X4 projection;
-			DirectX::XMStoreFloat4x4(&view, m_EditorCamera.GetView());
-			DirectX::XMStoreFloat4x4(&projection, m_EditorCamera.GetProjection());
+			if (m_SceneState == SceneState::Edit)
+			{
+				ImGuizmo::SetOrthographic(false);
+				DirectX::XMStoreFloat4x4(&view, m_EditorCamera.GetView());
+				DirectX::XMStoreFloat4x4(&projection, m_EditorCamera.GetProjection());
+			}
+			else
+			{
+				auto activeScene = SceneManager::GetActiveScene();
+				Entity cameraEntity = activeScene->GetActiveCamera();
+				SceneCamera& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
+				auto& transform = cameraEntity.GetTransform();
+
+				ImGuizmo::SetOrthographic(camera.GetProjectionType() == SceneCamera::Projection::Orthographic);
+				DirectX::XMStoreFloat4x4(&view, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
+				DirectX::XMStoreFloat4x4(&projection, camera.GetProjection());
+			}
 
 			auto& tf = m_SelectetEntity.GetComponent<TransformComponent>();
 			DirectX::XMFLOAT4X4 transform;
@@ -1049,9 +1040,11 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_SceneState = SceneState::Play;
-		m_SceneHirachyPanel.SetScenePlaying(true);
-		SceneManager::SetActiveScene(m_WorkScene->GetCopy());
-		SceneManager::GetActiveScene()->OnScenePlay();
+		auto playScene = m_WorkScene->GetCopy();
+		playScene->OnScenePlay();
+		SceneManager::SetActiveScene(playScene);
+		m_SceneHirachyPanel.ScenePlaying(true);
+		m_SceneHirachyPanel.SetContext(playScene);
 	}
 
 	void EditorLayer::OnSceneStop()
@@ -1060,11 +1053,24 @@ namespace Shark {
 
 		SceneManager::GetActiveScene()->OnSceneStop();
 		SceneManager::SetActiveScene(nullptr);
-		m_SceneHirachyPanel.SetScenePlaying(false);
+		m_SceneHirachyPanel.ScenePlaying(false);
+		m_SceneHirachyPanel.SetContext(m_WorkScene);
 		m_SceneState = SceneState::Edit;
 
 		if (!m_WorkScene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
 			Event::Distribute(SelectionChangedEvent({}));
+	}
+
+	Ref<Scene> EditorLayer::GetCurrentScene()
+	{
+		switch (m_SceneState)
+		{
+			case SceneState::Edit: return m_WorkScene;
+			case SceneState::Play: return SceneManager::GetActiveScene();
+		}
+
+		SK_CORE_ASSERT(false, "Unkown Scene State");
+		return nullptr;
 	}
 
 }

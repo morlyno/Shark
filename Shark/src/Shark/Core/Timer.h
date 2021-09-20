@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 namespace Shark {
 
 	class Timer
@@ -28,7 +26,7 @@ namespace Shark {
 
 		void StopAndLog()
 		{
-			std::cout << Stop() << " ms" << std::endl;
+			SK_CORE_TRACE("{} ms", Stop());
 		}
 
 	private:

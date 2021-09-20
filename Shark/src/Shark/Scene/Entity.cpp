@@ -1,6 +1,9 @@
 #include "skpch.h"
 #include "Entity.h"
 
+#include "Shark/Scene/Components/TransformComponent.h"
+#include "Shark/Scene/Components/TagComponent.h"
+
 namespace Shark {
 
 	Entity::Entity(uint32_t entityhandle, const Weak<Scene>& scene)
@@ -13,4 +16,10 @@ namespace Shark {
 	{
 	}
 
+	TransformComponent& Entity::GetTransform()
+	{
+		return GetComponent<TransformComponent>();
+	}
+
 }
+

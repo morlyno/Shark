@@ -1,12 +1,9 @@
 #pragma once
 
-#include <imgui.h>
 #include <DirectXMath.h>
 #include <filesystem>
 
 namespace Shark::Utility {
-
-	ImVec4 ToImVec4(const DirectX::XMFLOAT4& color);
 
 	std::string ToLower(const std::string& src);
 

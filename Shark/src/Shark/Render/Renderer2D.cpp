@@ -376,8 +376,8 @@ namespace Shark {
 		Ref<Texture2D> texture = sr.Texture ? sr.Texture : s_Data->WhiteTexture;
 		switch (sr.Geometry)
 		{
-			case Geometry::Quad:                                   Internal::AddQuad(tf.GetTranform(), texture, sr.TilingFactor, sr.Color, (int)(uint32_t)entity);                           break;
-			case Geometry::Circle:   tf.Scaling.y = tf.Scaling.x;  Internal::AddCircle(tf.GetTranform(), tf.Scaling.x * 0.5f, texture, sr.TilingFactor, sr.Color, (int)(uint32_t)(entity));  break;
+			case SpriteRendererComponent::GeometryType::Quad:                                   Internal::AddQuad(tf.GetTranform(), texture, sr.TilingFactor, sr.Color, (int)(uint32_t)entity);                           break;
+			case SpriteRendererComponent::GeometryType::Circle:   tf.Scaling.y = tf.Scaling.x;  Internal::AddCircle(tf.GetTranform(), tf.Scaling.x * 0.5f, texture, sr.TilingFactor, sr.Color, (int)(uint32_t)(entity));  break;
 		}
 	}
 

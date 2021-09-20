@@ -3,12 +3,13 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Render/EditorCamera.h"
-#include "Shark/Physiks/World.h"
 
 #include "Shark/Event/Event.h"
 #include "Shark/Event/ApplicationEvent.h"
 
 #include <entt.hpp>
+
+class b2World;
 
 namespace Shark {
 
@@ -22,8 +23,8 @@ namespace Shark {
 		
 		Scene(const Scene& other) = delete;
 		Scene& operator=(const Scene& other) = delete;
-		Scene(Scene&& other);
-		Scene& operator=(Scene&& other);
+		Scene(Scene&& other) = default;
+		Scene& operator=(Scene&& other) = default;
 
 		Ref<Scene> GetCopy();
 		void CopyInto(Ref<Scene> scene);
@@ -34,9 +35,6 @@ namespace Shark {
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts, EditorCamera& camera);
 		
-		void OnEventRuntime(Event& event);
-		void OnEventEditor(Event& event);
-
 		Entity CopyEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});
 		Entity CreateEntity(entt::entity hint, const std::string& tag = std::string{});
@@ -59,42 +57,18 @@ namespace Shark {
 		template<typename Comp>
 		void CopyComponentIfExists(entt::entity srcEntity, entt::registry& srcRegistry, entt::entity destEntity, entt::registry& destRegistry)
 		{
-			constexpr bool isRigidBodyComponent = std::is_same_v<Comp, RigidBodyComponent>;
-			constexpr bool isBoxColliderComponent = std::is_same_v<Comp, BoxColliderComponent>;
-
-			if constexpr (isRigidBodyComponent || isBoxColliderComponent)
-			{
-				// TODO: Make all components createable with a constructor
-				Comp* srcComp = srcRegistry.try_get<Comp>(srcEntity);
-				if (srcComp)
-				{
-					Comp& destComp = destRegistry.get_or_emplace<Comp>(destEntity);
-					SK_CORE_ASSERT(&destRegistry == &m_Registry);
-					OnComponentAdded<Comp>(Entity(destEntity, this), destComp);
-					if constexpr (isRigidBodyComponent)
-						destComp.Body.SetState(srcComp->Body.GetCurrentState());
-					if constexpr (isBoxColliderComponent)
-						destComp.Collider.SetState(srcComp->Collider.GetCurrentState());
-				}
-			}
-			else
-			{
-				auto srcComp = srcRegistry.try_get<Comp>(srcEntity);
-				if (srcComp)
-					destRegistry.emplace_or_replace<Comp>(destEntity, *srcComp);
-			}
+			auto srcComp = srcRegistry.try_get<Comp>(srcEntity);
+			if (srcComp)
+				destRegistry.emplace_or_replace<Comp>(destEntity, *srcComp);
 		}
-
-	private:
-		template<typename Component>
-		void OnComponentAdded(Entity entity, Component& comp);
 
 	private:
 		entt::registry m_Registry;
 		entt::entity m_ActiveCameraID{ entt::null };
-		World m_World;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
+
+		b2World* m_PhysicsWorld2D = nullptr;
 
 		std::filesystem::path m_FilePath;
 

@@ -4,19 +4,19 @@
 
 namespace Shark {
 
-	enum class Geometry
-	{
-		None = 0,
-		Quad, Circle
-		// TODO: Polygon
-	};
-
 	struct SpriteRendererComponent
 	{
+		enum class GeometryType
+		{
+			None = 0,
+			Quad, Circle
+			// TODO: Polygon
+		};
+
 		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		Ref<Texture2D> Texture = nullptr;
 		float TilingFactor = 1.0f;
-		Geometry Geometry = Geometry::Quad;
+		GeometryType Geometry = GeometryType::Quad;
 	};
 
 }
