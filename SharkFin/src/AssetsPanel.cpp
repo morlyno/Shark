@@ -60,28 +60,10 @@ namespace Shark {
 
 		UpdateCurrentPathVec();
 
-		const auto& watcher = m_Watcher;
-		m_Watcher.OnChanged = [&watcher](const std::filesystem::path& filePath)
-		{
-			if (std::filesystem::is_regular_file(filePath))
-			{
-				SK_CORE_TRACE("Callback OnChanged [{}], FileSize: {}", filePath, std::filesystem::file_size(watcher.GetWatchingDirectory() / filePath));
-				return;
-			}
-			SK_CORE_TRACE("Callback OnChanged [{}]", filePath);
-		};
-		m_Watcher.OnCreated = [](const std::filesystem::path& filePath)
-		{
-			SK_CORE_TRACE("Callback OnCreated [{}]", filePath);
-		};
-		m_Watcher.OnDeleted = [](const std::filesystem::path& filePath)
-		{
-			SK_CORE_TRACE("Callback OnDeleted [{}]", filePath);
-		};
-		m_Watcher.OnRename = [](const std::filesystem::path& filePath, const std::filesystem::path& oldfilePath)
-		{
-			SK_CORE_TRACE("Callback OnRename From [{}] to [{}]", oldfilePath, filePath);
-		};
+		m_Watcher.OnChanged = [this](const std::filesystem::path& filePath) { ReCache(); };
+		m_Watcher.OnCreated = [this](const std::filesystem::path& filePath) { ReCache(); };
+		m_Watcher.OnDeleted = [this](const std::filesystem::path& filePath) { ReCache(); };
+		m_Watcher.OnRename = [this](const std::filesystem::path& filePath, const std::filesystem::path& oldfilePath) { ReCache(); };
 
 		m_Watcher.Start();
 
@@ -101,7 +83,7 @@ namespace Shark {
 		if (!m_ShowPanel)
 			return;
 
-		if (!ImGui::Begin("Assets", &m_ShowPanel))
+		if (!ImGui::Begin("Assets", &m_ShowPanel, ImGuiWindowFlags_NoScrollbar))
 		{
 			ImGui::End();
 			return;
@@ -146,12 +128,6 @@ namespace Shark {
 
 		DrawCurrentPath();
 
-		ImGui::SameLine();
-		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - UI::GetItemSize("Settings").x - UI::GetFramePadding().x);
-		if (ImGui::Button("Settings"))
-			ImGui::OpenPopup("AssetsPanelSettings");
-		SettingsPopup();
-
 		ImGui::Separator();
 
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.5f, 0.5f, 0.5f, 0.3f });
@@ -164,9 +140,9 @@ namespace Shark {
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
 
-			char temp[260];
-			wcstombs_s(nullptr, temp, m_Project.GetAssetsPath().c_str(), -1);
-			DrawAsTree(temp);
+			// TODO(moro): maybe switch form string to filesystem::path
+			auto temp = m_Project.GetAssetsPath();
+			DrawAsTree(temp.string());
 
 			ImGui::TableSetColumnIndex(1);
 
@@ -179,7 +155,7 @@ namespace Shark {
 
 		ImGui::PopStyleColor(3);
 
-		UI::MoveCurserPosY(ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing());
+		UI::MoveCurserPosY(ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeight());
 		ImGui::Separator();
 		
 		const float widthAvailable = ImGui::GetContentRegionAvail().x;
@@ -202,20 +178,18 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_Directorys.clear();
-		SaveDirectory(std::filesystem::absolute(m_Project.GetAssetsPath()));
+		SaveDirectory(m_Project.GetAssetsPath());
 	}
 
 	Directory* AssetsPanel::SaveDirectory(const std::filesystem::path& directoryPath)
 	{
 		SK_PROFILE_FUNCTION();
 
-		std::filesystem::path relative = std::filesystem::relative(directoryPath);
-		Directory& directory = m_Directorys[relative.string()];
+		Directory& directory = m_Directorys[directoryPath.string()];
 		for (auto&& directoryEntry : std::filesystem::directory_iterator(directoryPath))
 		{
 			auto&& path = directoryEntry.path();
-			auto&& pathRelative = std::filesystem::relative(path);
-			auto&& stringPath = pathRelative.string();
+			auto&& stringPath = path.string();
 			auto&& entry = directory.Entrys[stringPath];
 
 			entry.Type = Utils::GetEntryTypeFromDirectoryEntry(directoryEntry);
@@ -581,23 +555,6 @@ namespace Shark {
 		}
 		if (!ImGui::IsPopupOpen(m_DeleteEntryID, ImGuiPopupFlags_None))
 			m_ShowDeletePopup = false;
-	}
-
-	void AssetsPanel::SettingsPopup()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (ImGui::BeginPopup("AssetsPanelSettings"))
-		{
-			if (ImGui::Checkbox("Auto ReCache", &m_AutoReCache))
-				Counter::SetActivce("AP_ReCache", m_AutoReCache);
-
-			SK_CORE_ASSERT((float)Counter::GetTime("AP_ReCache") == m_ReCacheTime);
-			if (ImGui::DragFloat("ReCache Time", &m_ReCacheTime, 1, 0.1f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp))
-				Counter::SetTime("AP_ReCache", m_ReCacheTime);
-
-			ImGui::EndPopup();
-		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

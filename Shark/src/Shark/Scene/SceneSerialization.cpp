@@ -7,35 +7,90 @@
 #include "Shark/Utility/YAMLUtils.h"
 
 #include <yaml-cpp/yaml.h>
+#include <fmt/format.h>
 #include <fstream>
-
 #include <DirectXMath.h>
 
 #include "Shark/Debug/Instrumentor.h"
 
 namespace Shark {
 
-	static std::string BodyTypeToString(RigidBody2DComponent::BodyType bodyType)
-	{
-		switch (bodyType)
+	namespace Convert {
+
+		static std::string BodyTypeToString(RigidBody2DComponent::BodyType bodyType)
 		{
-			case RigidBody2DComponent::BodyType::Static:      return "Static";
-			case RigidBody2DComponent::BodyType::Dynamic:     return "Dynamic";
-			case RigidBody2DComponent::BodyType::Kinematic:   return "Kinematic";
+			switch (bodyType)
+			{
+				case RigidBody2DComponent::BodyType::Static:      return "Static";
+				case RigidBody2DComponent::BodyType::Dynamic:     return "Dynamic";
+				case RigidBody2DComponent::BodyType::Kinematic:   return "Kinematic";
+			}
+
+			SK_CORE_ASSERT(false, "Unkonw Body Type");
+			return std::string{};
 		}
 
-		SK_CORE_ASSERT(false, "Unkonw Body Type");
-		return std::string{};
-	}
+		static RigidBody2DComponent::BodyType StringToBodyType(const std::string bodyType)
+		{
+			if (bodyType == "Static") return RigidBody2DComponent::BodyType::Static;
+			if (bodyType == "Dynamic") return RigidBody2DComponent::BodyType::Dynamic;
+			if (bodyType == "Kinematic") return RigidBody2DComponent::BodyType::Kinematic;
 
-	static RigidBody2DComponent::BodyType StringToBodyType(const std::string bodyType)
-	{
-		if (bodyType == "Static") return RigidBody2DComponent::BodyType::Static;
-		if (bodyType == "Dynamic") return RigidBody2DComponent::BodyType::Dynamic;
-		if (bodyType == "Kinematic") return RigidBody2DComponent::BodyType::Kinematic;
+			SK_CORE_ASSERT(false, "Unkonw Body Type");
+			return RigidBody2DComponent::BodyType::Static;
+		}
 
-		SK_CORE_ASSERT(false, "Unkonw Body Type");
-		return RigidBody2DComponent::BodyType::Static;
+		static std::string GeometryToString(SpriteRendererComponent::GeometryType geometry)
+		{
+			switch (geometry)
+			{
+				case SpriteRendererComponent::GeometryType::Quad:     return "Quad";
+				case SpriteRendererComponent::GeometryType::Circle:   return "Circle";
+			}
+
+			SK_CORE_ASSERT(false, "Unkown Geometry Type");
+			return std::string{};
+		}
+
+		static SpriteRendererComponent::GeometryType StringToGeometry(const std::string& geometry)
+		{
+			if (geometry == "Quad")     return SpriteRendererComponent::GeometryType::Quad;
+			if (geometry == "Circle")   return SpriteRendererComponent::GeometryType::Circle;
+
+			SK_CORE_WARN("Use of Lagacy mode for DeSerialization of Geometry");
+			if (geometry == "0") return SpriteRendererComponent::GeometryType::Quad;
+			if (geometry == "1") return SpriteRendererComponent::GeometryType::Quad;
+			if (geometry == "2") return SpriteRendererComponent::GeometryType::Circle;
+
+			SK_CORE_ASSERT(false, "Unkown Geoemtry Type");
+			return SpriteRendererComponent::GeometryType::Quad;
+		}
+
+		static std::string ProjectionToString(SceneCamera::Projection projection)
+		{
+			switch (projection)
+			{
+				case SceneCamera::Projection::Orthographic:   return "Orthographic";
+				case SceneCamera::Projection::Perspective:    return "Perspective";
+			}
+
+			SK_CORE_ASSERT(false, "Unkown Projection Type");
+			return std::string{};
+		}
+
+		static SceneCamera::Projection StringToProjection(const std::string& projection)
+		{
+			if (projection == "Orthographic")   return SceneCamera::Projection::Orthographic;
+			if (projection == "Perspective")    return SceneCamera::Projection::Perspective;
+
+			SK_CORE_WARN("Use of Lagacy mode for DeSerialization of Projection");
+			if (projection == "0") return SceneCamera::Projection::Perspective;
+			if (projection == "1") return SceneCamera::Projection::Orthographic;
+
+			SK_CORE_ASSERT(false, "Unkown Projection Type");
+			return SceneCamera::Projection::Orthographic;
+		}
+
 	}
 
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
@@ -47,12 +102,9 @@ namespace Shark {
 	{
 		if (!out.good())
 		{
-#ifdef SK_DEBUG
 			SK_CORE_ERROR("Bad Yaml Emitter! Skipping Entity {0}", (uint32_t)entity);
-			SK_CORE_ERROR("Yaml Error:");
-			SK_CORE_ERROR(out.GetLastError());
-			SK_DEBUG_BREAK();
-#endif
+			SK_CORE_ERROR(fmt::format("Yaml Error: {}", out.GetLastError()));
+			SK_CORE_ASSERT(false);
 			return false;
 		}
 
@@ -97,7 +149,7 @@ namespace Shark {
 			out << YAML::Key << "Color" << YAML::Value << comp.Color;
 			out << YAML::Key << "Texture" << YAML::Value << (comp.Texture ? comp.Texture->GetFilePath() : "");
 			out << YAML::Key << "TilingFactor" << YAML::Value << comp.TilingFactor;
-			out << YAML::Key << "Geometry" << YAML::Value << comp.Geometry;
+			out << YAML::Key << "Geometry" << YAML::Value << Convert::GeometryToString(comp.Geometry);
 
 			out << YAML::EndMap;
 		}
@@ -110,7 +162,7 @@ namespace Shark {
 			auto& comp = entity.GetComponent<CameraComponent>();
 			auto& cam = comp.Camera;
 
-			out << YAML::Key << "Type" << YAML::Value << (int)cam.GetProjectionType();
+			out << YAML::Key << "Type" << YAML::Value << Convert::ProjectionToString(cam.GetProjectionType());
 			out << YAML::Key << "Aspectratio" << YAML::Value << cam.GetAspectratio();
 
 			out << YAML::Key << "PerspectiveFOV" << YAML::Value << cam.GetPerspectiveFOV();
@@ -134,7 +186,7 @@ namespace Shark {
 
 			const auto& comp = entity.GetComponent<RigidBody2DComponent>();
 
-			out << YAML::Key << "Type" << YAML::Value << BodyTypeToString(comp.Type);
+			out << YAML::Key << "Type" << YAML::Value << Convert::BodyTypeToString(comp.Type);
 			out << YAML::Key << "FixedRotation" << YAML::Value << comp.FixedRotation;
 
 			out << YAML::EndMap;
@@ -215,7 +267,7 @@ namespace Shark {
 			for (auto entity : entities)
 			{
 				entt::entity entityID = m_Scene->m_Registry.create();
-				Entity deserializedEntity = { entityID, Weak(m_Scene) };
+				Entity deserializedEntity = { entityID, m_Scene };
 
 				SK_CORE_TRACE("Deserializing Entity ID: {0}", (uint32_t)entityID);
 
@@ -281,7 +333,7 @@ namespace Shark {
 
 					SK_CORE_VERIFY(geometry, "Couldn't deserialize SpriteRendererComponent::Geometry");
 					if (geometry)
-						comp.Geometry = geometry.as<SpriteRendererComponent::GeometryType>();
+						comp.Geometry = Convert::StringToGeometry(geometry.as<std::string>());
 
 
 					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
@@ -308,7 +360,7 @@ namespace Shark {
 					auto type = cameraComponent["Type"];
 					SK_CORE_VERIFY(type, "Couldn't deserialize CameraComponent::Projection");
 					if (type)
-						projection = type.as<SceneCamera::Projection>();
+						projection = Convert::StringToProjection(type.as<std::string>());
 
 					SK_CORE_VERIFY(aspectratio, "Couldn't deserialize CameraComponent::AspectRatio");
 					if (aspectratio)
@@ -359,13 +411,13 @@ namespace Shark {
 
 					SK_CORE_VERIFY(type, "Couldn't desirialize RigidBody2DComponent::Type");
 					if (type)
-						comp.Type = StringToBodyType(type.as<std::string>());
+						comp.Type = Convert::StringToBodyType(type.as<std::string>());
 
 					SK_CORE_VERIFY(fixedRotation, "Couldn't desirialize RigidBody2DComponent::FixedRotation");
 					if (fixedRotation)
 						comp.FixedRotation = fixedRotation.as<bool>();
 
-					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", BodyTypeToString(comp.Type));
+					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", Convert::BodyTypeToString(comp.Type));
 				}
 
 				auto boxCollider2DComponent = entity["BoxCollider2DComponent"];

@@ -6,6 +6,8 @@ namespace Shark {
 
 		std::string OpenFile(const char* filter);
 		std::string SaveFile(const char* filter);
+		std::filesystem::path OpenFileW(const char* filter);
+		std::filesystem::path SaveFileW(const char* filter);
 
 	};
 

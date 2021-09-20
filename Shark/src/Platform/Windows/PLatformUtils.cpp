@@ -11,6 +11,8 @@ namespace Shark {
 
 		std::string OpenFile(const char* filter)
 		{
+			// TODO(moro): switch to wide version
+
 			OPENFILENAMEA ofn;
 			CHAR szFile[260] = { 0 };
 			CHAR currentDir[256] = { 0 };
@@ -32,6 +34,8 @@ namespace Shark {
 
 		std::string SaveFile(const char* filter)
 		{
+			// TODO(moro): switch to wide version
+			
 			OPENFILENAMEA ofn;
 			CHAR szFile[260] = { 0 };
 			CHAR currentDir[256] = { 0 };
@@ -52,6 +56,16 @@ namespace Shark {
 			if (GetSaveFileNameA(&ofn) == TRUE)
 				return ofn.lpstrFile;
 			return std::string{};
+		}
+
+		std::filesystem::path OpenFileW(const char* filter)
+		{
+			return OpenFile(filter);
+		}
+
+		std::filesystem::path SaveFileW(const char* filter)
+		{
+			return SaveFile(filter);
 		}
 
 	}

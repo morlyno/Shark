@@ -164,7 +164,7 @@ namespace Shark {
 
 				const size_t length = notify->FileNameLength / sizeof(WCHAR);
 
-				filePath = std::wstring(notify->FileName, length);
+				filePath = m_Directory / std::wstring(notify->FileName, length);
 
 				switch (notify->Action)
 				{

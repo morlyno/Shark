@@ -11,7 +11,7 @@ Entities:
       Color: [1, 1, 1, 1]
       Texture: assets\Textures\S.png
       TilingFactor: 6.40999985
-      Geometry: 1
+      Geometry: Quad
   - Entity: 54758432
     TagComponent:
       Tag: Cube Right
@@ -23,7 +23,7 @@ Entities:
       Color: [0, 0.167012677, 0.709803939, 1]
       Texture: ""
       TilingFactor: 1
-      Geometry: 1
+      Geometry: Quad
   - Entity: 54758432
     TagComponent:
       Tag: Cube Front
@@ -35,7 +35,7 @@ Entities:
       Color: [0, 0.20761244, 0.882352948, 1]
       Texture: ""
       TilingFactor: 1
-      Geometry: 1
+      Geometry: Quad
   - Entity: 54758432
     TagComponent:
       Tag: Floor
@@ -47,7 +47,7 @@ Entities:
       Color: [0.258353472, 0.0784313679, 0.313725471, 1]
       Texture: assets\Textures\Checkerboard.png
       TilingFactor: 2
-      Geometry: 1
+      Geometry: Quad
   - Entity: 54758432
     TagComponent:
       Tag: Cube Top
@@ -59,7 +59,7 @@ Entities:
       Color: [0, 0.235294104, 1, 1]
       Texture: ""
       TilingFactor: 1
-      Geometry: 1
+      Geometry: Quad
   - Entity: 54758432
     TagComponent:
       Tag: Scene Camera
@@ -68,8 +68,8 @@ Entities:
       Rotation: [0.309616357, -0.300195813, 0]
       Scaling: [1, 1, 1]
     CameraComponent:
-      Type: 0
-      Aspectratio: 1.95325541
+      Type: Perspective
+      Aspectratio: 2.06044912
       PerspectiveFOV: 45
       PerspectiveNear: 0.00999999978
       PerspectiveFar: 1000
@@ -88,7 +88,7 @@ Entities:
       Color: [0.0294117928, 1, 0, 1]
       Texture: ""
       TilingFactor: 1
-      Geometry: 1
+      Geometry: Quad
   - Entity: 54758432
     TagComponent:
       Tag: Red Square
@@ -100,7 +100,7 @@ Entities:
       Color: [1, 0, 0, 1]
       Texture: ""
       TilingFactor: 1
-      Geometry: 1
+      Geometry: Quad
   - Entity: 54758432
     TagComponent:
       Tag: Second Camera
@@ -109,9 +109,9 @@ Entities:
       Rotation: [0.532318413, -1.08540857, 0]
       Scaling: [1, 1, 1]
     CameraComponent:
-      Type: 0
-      Aspectratio: 1.95325541
-      PerspectiveFOV: 247866656
+      Type: Perspective
+      Aspectratio: 2.06044912
+      PerspectiveFOV: 247866576
       PerspectiveNear: 0.00999999978
       PerspectiveFar: 1000
       OrthographicZoom: 10

@@ -54,6 +54,8 @@ namespace Shark {
 		bool LoadNewScene(const std::filesystem::path& filepath);
 		bool LoadScene();
 		bool SaveScene();
+		bool SaveSceneAs();
+		bool SerializeScene(const std::filesystem::path& filePath);
 
 		void OnScenePlay();
 		void OnSceneStop();

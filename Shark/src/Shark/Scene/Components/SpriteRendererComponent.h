@@ -8,8 +8,7 @@ namespace Shark {
 	{
 		enum class GeometryType
 		{
-			None = 0,
-			Quad, Circle
+			Quad = 0, Circle = 1
 			// TODO: Polygon
 		};
 

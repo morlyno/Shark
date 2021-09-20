@@ -17,7 +17,7 @@
 
 namespace Shark {
 
-	static bool showDemoWindow = false;
+	static bool s_ShowDemoWindow = false;
 
 
 	void EditorLayer::EffectesTest()
@@ -209,6 +209,8 @@ namespace Shark {
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnSelectionChanged));
 
+		if (m_SceneState == SceneState::Edit)
+			m_EditorCamera.OnEvent(event);
 
 		m_SceneHirachyPanel.OnEvent(event);
 	}
@@ -254,11 +256,11 @@ namespace Shark {
 			{
 				if (control)
 				{
-					/*if (shift)
+					if (shift)
 					{
-						SaveScene();
+						SaveSceneAs();
 						return true;
-					}*/
+					}
 					SaveScene();
 					return true;
 				}
@@ -444,8 +446,8 @@ namespace Shark {
 		m_SceneHirachyPanel.OnImGuiRender();
 		m_AssetsPanel.OnImGuiRender();
 
-		if (showDemoWindow)
-			ImGui::ShowDemoWindow(&showDemoWindow);
+		if (s_ShowDemoWindow)
+			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
 	}
 
 	void EditorLayer::UI_MainMenuBar()
@@ -555,7 +557,7 @@ namespace Shark {
 
 				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
 				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
-				ImGui::MenuItem("ImGui Demo Window", nullptr, &showDemoWindow);
+				ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
 
 				ImGui::Separator();
 
@@ -976,33 +978,6 @@ namespace Shark {
 		SetActiveScene(Ref<Scene>::Create());
 	}
 
-	/*
-	bool EditorLayer::SaveSceneWithDialogBox()
-	{
-		auto filepath = FileDialogs::SaveFile("Shark Scene (*.shark)\0*.shark\0");
-		if (!filepath.empty())
-		{
-			SceneSerializer serializer(m_WorkScene);
-			if (serializer.Deserialize(filepath))
-				return true;
-		}
-		return false;
-	}
-	
-	bool EditorLayer::OpenSceneWithDialogBox()
-	{
-		auto filepath = FileDialogs::OpenFile("Shark Scene (*.shark)\0*.shark\0");
-		if (!filepath.empty())
-		{
-			m_PlayScene = false;
-			SceneSerializer serializer(m_WorkScene);
-			if (serializer.Serialize(filepath))
-				return true;
-		}
-		return false;
-	}
-	*/
-
 	void EditorLayer::SetActiveScene(Ref<Scene> scene)
 	{
 		m_WorkScene = scene;
@@ -1031,8 +1006,34 @@ namespace Shark {
 
 	bool EditorLayer::SaveScene()
 	{
+		if (m_WorkScene->GetFilePath().empty())
+		{
+			const auto filePath = FileDialogs::SaveFileW("Shark Scene (*.shark)\0*.shark\0");
+			if (!filePath.empty())
+			{
+				if (SerializeScene(filePath))
+				{
+					m_WorkScene->SetFilePath(filePath);
+					return true;
+				}
+			}
+			return false;
+		}
+		return SerializeScene(m_WorkScene->GetFilePath());
+	}
+
+	bool EditorLayer::SaveSceneAs()
+	{
+		auto filepath = FileDialogs::SaveFileW("Shark Scene (*.shark)\0*.shark\0");
+		if (!filepath.empty())
+			return SerializeScene(filepath);
+		return false;
+	}
+
+	bool EditorLayer::SerializeScene(const std::filesystem::path& filePath)
+	{
 		SceneSerializer serializer(m_WorkScene);
-		return serializer.Serialize();
+		return serializer.Serialize(filePath);
 	}
 
 	void EditorLayer::OnScenePlay()

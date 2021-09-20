@@ -63,7 +63,6 @@ namespace Shark {
 		void DrawContentPopup(const std::string& path, const Entry& entry);
 		void DrawRenameInput();
 		void DeletePopup(const std::string& path, const Entry& entry);
-		void SettingsPopup();
 
 
 		// Helpers

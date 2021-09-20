@@ -1,13 +1,7 @@
 #pragma once
 
 #include <yaml-cpp/yaml.h>
-#include "Shark/Utility/Utility.h"
-
-namespace Shark {
-	enum class Geometry;
-	enum class BodyType;
-	enum class ShapeType;
-}
+#include <DirectXMath.h>
 
 namespace YAML {
 
@@ -62,11 +56,6 @@ namespace YAML {
 	template<>
 	struct convert<std::filesystem::path>
 	{
-		static Node encode(const std::filesystem::path& rhs)
-		{
-			return Node(rhs.string());
-		}
-
 		static bool decode(const Node& node, std::filesystem::path& rhs)
 		{
 			if (!node.IsScalar())
@@ -76,106 +65,15 @@ namespace YAML {
 		}
 	};
 
-	template<>
-	struct convert<Shark::BodyType>
-	{
-		static Node encode(const Shark::BodyType& val)
-		{
-			static_assert(sizeof(Shark::BodyType) <= sizeof(int));
-			return Node((int)val);
-		}
-
-		static bool decode(const Node& node, Shark::BodyType& val)
-		{
-			static_assert(sizeof(Shark::BodyType) <= sizeof(int));
-			val = (Shark::BodyType)node.as<int>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<Shark::ShapeType>
-	{
-		static Node encode(const Shark::ShapeType& val)
-		{
-			static_assert(sizeof(Shark::ShapeType) <= sizeof(int));
-			return Node((int)val);
-		}
-
-		static bool decode(const Node& node, Shark::ShapeType& val)
-		{
-			static_assert(sizeof(Shark::ShapeType) <= sizeof(int));
-			val = (Shark::ShapeType)node.as<int>();
-			return true;
-		}
-	};
-
-	template<typename T>
-	Emitter& operator<<(Emitter& emitter, const T& v)
-	{
-		return emitter.Write(convert<T>::encode(v).as<std::string>());
-	}
-
 	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT2& f2);
 
 	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT3& f3);
 
 	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT4& f4);
 
+	Emitter& operator<<(Emitter& out, const std::filesystem::path& filePath);
 
 	Node LoadFile(const std::filesystem::path& filename);
 	Node LoadFile(const char* filename);
 
 }
-
-#if SK_YAMLUTILS_ALL
-
-namespace Shark {
-	class SceneCamera;
-	struct SpriteRendererComponent;
-
-	enum class SceneCamera::Projection;
-	enum class SpriteRendererComponent::GeometryType;
-}
-
-namespace YAML {
-
-	template<>
-	struct convert<Shark::SceneCamera::Projection>
-	{
-		static Node encode(const Shark::SceneCamera::Projection& val)
-		{
-			static_assert(sizeof(Shark::SceneCamera::Projection) <= sizeof(int));
-			return Node((int)val);
-		}
-
-		static bool decode(const Node& node, Shark::SceneCamera::Projection& val)
-		{
-			static_assert(sizeof(Shark::SceneCamera::Projection) <= sizeof(int));
-			val = (Shark::SceneCamera::Projection)node.as<int>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<Shark::SpriteRendererComponent::GeometryType>
-	{
-		using Type = Shark::SpriteRendererComponent::GeometryType;
-
-		static Node encode(const Type& val)
-		{
-			static_assert(sizeof(Type) <= sizeof(int));
-			return Node((int)val);
-		}
-
-		static bool decode(const Node& node, Type& val)
-		{
-			static_assert(sizeof(Type) <= sizeof(int));
-			val = (Type)node.as<int>();
-			return true;
-		}
-	};
-
-}
-
-#endif

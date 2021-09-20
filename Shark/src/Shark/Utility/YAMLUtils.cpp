@@ -26,6 +26,11 @@ namespace YAML {
 		return out;
 	}
 
+	YAML::Emitter& operator<<(Emitter& out, const std::filesystem::path& filePath)
+	{
+		return out << filePath.string();
+	}
+
 	Node LoadFile(const std::filesystem::path& filename) {
 		std::ifstream fin(filename);
 		if (!fin) {

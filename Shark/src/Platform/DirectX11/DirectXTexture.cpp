@@ -69,6 +69,8 @@ namespace Shark {
 
 		CreateTexture(data);
 		CreateSampler(props);
+
+		stbi_image_free(data);
 	}
 
 	DirectXTexture2D::DirectXTexture2D(const SamplerProps& props, uint32_t width, uint32_t height, void* data)

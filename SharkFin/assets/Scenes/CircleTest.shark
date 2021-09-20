@@ -2,98 +2,16 @@ Scene: Untitled
 Entities:
   - Entity: 54758432
     TagComponent:
-      Tag: Second Camera
+      Tag: S
     TransformComponent:
-      Position: [5.1899991, 4.5999999, -2.22000027]
-      Rotation: [0.532318413, -1.08540857, 0]
-      Scaling: [1, 1, 1]
-    CameraComponent:
-      Type: 0
-      Aspectratio: 1.95325541
-      PerspectiveFOV: 1317.80237
-      PerspectiveNear: 0.00999999978
-      PerspectiveFar: 1000
-      OrthographicZoom: 10
-      OrthographicNear: -22
-      OrthographicFar: 22
-      IsMainCamera: false
-  - Entity: 54758432
-    TagComponent:
-      Tag: Red Square
-    TransformComponent:
-      Position: [1.53999996, 0.899999976, -0.790000021]
+      Position: [0, 4, 7.5]
       Rotation: [0, 0, 0]
-      Scaling: [1, 1, 1]
+      Scaling: [10, 10, 1]
     SpriteRendererComponent:
-      Color: [1, 0, 0, 1]
-      Texture: ""
-      TilingFactor: 1
-      Geometry: 2
-  - Entity: 54758432
-    TagComponent:
-      Tag: Green Square
-    TransformComponent:
-      Position: [0, 0.919999957, 0]
-      Rotation: [0, 0, 0.520977676]
-      Scaling: [2.39999986, 1, 1]
-    SpriteRendererComponent:
-      Color: [0.0294117928, 1, 0, 1]
-      Texture: ""
-      TilingFactor: 1
-      Geometry: 1
-  - Entity: 54758432
-    TagComponent:
-      Tag: Scene Camera
-    TransformComponent:
-      Position: [4.24000025, 6.04999971, -11.5699997]
-      Rotation: [0.309616357, -0.300195813, 0]
-      Scaling: [1, 1, 1]
-    CameraComponent:
-      Type: 0
-      Aspectratio: 1.95325541
-      PerspectiveFOV: 2578.31006
-      PerspectiveNear: 0.00999999978
-      PerspectiveFar: 1000
-      OrthographicZoom: 10
-      OrthographicNear: -1
-      OrthographicFar: 31
-      IsMainCamera: true
-  - Entity: 54758432
-    TagComponent:
-      Tag: Cube Top
-    TransformComponent:
-      Position: [-4.5, 1, 3]
-      Rotation: [1.57079637, 0, 0]
-      Scaling: [1, 1, 1]
-    SpriteRendererComponent:
-      Color: [0, 0.235294104, 1, 1]
-      Texture: ""
-      TilingFactor: 1
-      Geometry: 1
-  - Entity: 54758432
-    TagComponent:
-      Tag: Floor
-    TransformComponent:
-      Position: [0, -1, 0]
-      Rotation: [1.57079637, 0, 0]
-      Scaling: [15, 15, 1]
-    SpriteRendererComponent:
-      Color: [0.258353472, 0.0784313679, 0.313725471, 1]
-      Texture: assets\Textures\Checkerboard.png
-      TilingFactor: 2
-      Geometry: 2
-  - Entity: 54758432
-    TagComponent:
-      Tag: Cube Front
-    TransformComponent:
-      Position: [-4.5, 0.49999994, 2.5]
-      Rotation: [0, 0, 0]
-      Scaling: [1, 1, 1]
-    SpriteRendererComponent:
-      Color: [0, 0.20761244, 0.882352948, 1]
-      Texture: ""
-      TilingFactor: 1
-      Geometry: 1
+      Color: [1, 1, 1, 1]
+      Texture: assets\Textures\S.png
+      TilingFactor: 6.40999985
+      Geometry: Quad
   - Entity: 54758432
     TagComponent:
       Tag: Cube Right
@@ -105,16 +23,98 @@ Entities:
       Color: [0, 0.167012677, 0.709803939, 1]
       Texture: ""
       TilingFactor: 1
-      Geometry: 1
+      Geometry: Quad
   - Entity: 54758432
     TagComponent:
-      Tag: S
+      Tag: Cube Front
     TransformComponent:
-      Position: [0, 4, 7.5]
+      Position: [-4.5, 0.49999994, 2.5]
       Rotation: [0, 0, 0]
-      Scaling: [10, 10, 1]
+      Scaling: [1, 1, 1]
     SpriteRendererComponent:
-      Color: [1, 1, 1, 1]
-      Texture: assets\Textures\S.png
-      TilingFactor: 6.40999985
-      Geometry: 1
+      Color: [0, 0.20761244, 0.882352948, 1]
+      Texture: ""
+      TilingFactor: 1
+      Geometry: Quad
+  - Entity: 54758432
+    TagComponent:
+      Tag: Floor
+    TransformComponent:
+      Position: [0, -1, 0]
+      Rotation: [1.57079637, 0, 0]
+      Scaling: [15, 15, 1]
+    SpriteRendererComponent:
+      Color: [0.258353472, 0.0784313679, 0.313725471, 1]
+      Texture: assets\Textures\Checkerboard.png
+      TilingFactor: 2
+      Geometry: Circle
+  - Entity: 54758432
+    TagComponent:
+      Tag: Cube Top
+    TransformComponent:
+      Position: [-4.5, 1, 3]
+      Rotation: [1.57079637, 0, 0]
+      Scaling: [1, 1, 1]
+    SpriteRendererComponent:
+      Color: [0, 0.235294104, 1, 1]
+      Texture: ""
+      TilingFactor: 1
+      Geometry: Quad
+  - Entity: 54758432
+    TagComponent:
+      Tag: Scene Camera
+    TransformComponent:
+      Position: [4.24000025, 6.04999971, -11.5699997]
+      Rotation: [0.309616357, -0.300195813, 0]
+      Scaling: [1, 1, 1]
+    CameraComponent:
+      Type: Perspective
+      Aspectratio: 2.06044912
+      PerspectiveFOV: 2578.31006
+      PerspectiveNear: 0.00999999978
+      PerspectiveFar: 1000
+      OrthographicZoom: 10
+      OrthographicNear: -1
+      OrthographicFar: 31
+      IsMainCamera: true
+  - Entity: 54758432
+    TagComponent:
+      Tag: Green Square
+    TransformComponent:
+      Position: [0, 0.919999957, 0]
+      Rotation: [0, 0, 0.520977676]
+      Scaling: [2.39999986, 1, 1]
+    SpriteRendererComponent:
+      Color: [0.0294117928, 1, 0, 1]
+      Texture: ""
+      TilingFactor: 1
+      Geometry: Quad
+  - Entity: 54758432
+    TagComponent:
+      Tag: Red Square
+    TransformComponent:
+      Position: [1.53999996, 0.899999976, -0.790000021]
+      Rotation: [0, 0, 0]
+      Scaling: [1, 1, 1]
+    SpriteRendererComponent:
+      Color: [1, 0, 0, 1]
+      Texture: ""
+      TilingFactor: 1
+      Geometry: Circle
+  - Entity: 54758432
+    TagComponent:
+      Tag: Second Camera
+    TransformComponent:
+      Position: [5.1899991, 4.5999999, -2.22000027]
+      Rotation: [0.532318413, -1.08540857, 0]
+      Scaling: [1, 1, 1]
+    CameraComponent:
+      Type: Perspective
+      Aspectratio: 2.06044912
+      PerspectiveFOV: 1317.80237
+      PerspectiveNear: 0.00999999978
+      PerspectiveFar: 1000
+      OrthographicZoom: 10
+      OrthographicNear: -22
+      OrthographicFar: 22
+      IsMainCamera: false
