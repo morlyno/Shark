@@ -1,13 +1,14 @@
-# directories
+
 **/bin/
 !dependencies/Premake/bin/
 **/bin-int/
-SharkFin/assets/
 
-# files
-imgui.ini
-**.log
+SharkFin/assets/**
+!SharkFin/assets/Shaders/**
+**/Log/*.log
 *.json
+**/imgui.ini
+**/project.skproj
 
 # Visual Studios files
 .vs/
@@ -15,4 +16,3 @@ imgui.ini
 **.vcxproj
 **.vcxproj.filters
 **.vcxproj.user
-**/assets/Cache

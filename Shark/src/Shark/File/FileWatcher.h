@@ -6,6 +6,8 @@ namespace Shark {
 	{
 	public:
 		FileWatcher();
+		FileWatcher(FileWatcher&&) = default;
+		FileWatcher& operator=(FileWatcher&&) = default;
 		FileWatcher(const std::filesystem::path& directoryPath, bool watchSubTrees);
 		~FileWatcher();
 
@@ -17,10 +19,10 @@ namespace Shark {
 		void Start();
 		void Stop();
 
-		std::function<void(const std::filesystem::path&, const std::filesystem::path&)> OnRename;
-		std::function<void(const std::filesystem::path&)> OnChanged;
-		std::function<void(const std::filesystem::path&)> OnCreated;
-		std::function<void(const std::filesystem::path&)> OnDeleted;
+		std::function<void(const std::filesystem::path& FilePath, const std::filesystem::path& OldFilePath)> OnRename;
+		std::function<void(const std::filesystem::path& FilePath)> OnChanged;
+		std::function<void(const std::filesystem::path& FilePath)> OnCreated;
+		std::function<void(const std::filesystem::path& FilePath)> OnDeleted;
 
 	private:
 		void StartThread();

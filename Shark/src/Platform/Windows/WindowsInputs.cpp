@@ -19,7 +19,7 @@ namespace Shark {
 		POINT pos;
 		GetCursorPos(&pos);
 		auto& window = Application::Get().GetWindow();
-		ScreenToClient((HWND)window.GetHandle(), &pos);
+		ScreenToClient(window.GetHandle(), &pos);
 		return { pos.x,pos.y };
 	}
 

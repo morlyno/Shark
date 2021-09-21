@@ -4,7 +4,7 @@
 #include <iostream>
 #include <filesystem>
 
-#include "PlatformUtils.h"
+#include "Shark/Utility/PlatformUtils.h"
 
 #if SK_LOG_FILESYSTEM
 #define SK_FS_ERROR(...) SK_CORE_ERROR(__VA_ARGS__)
@@ -23,7 +23,7 @@ namespace Shark::FileSystem {
 	bool Rename(const std::string& oldPath, const std::string& newPath)       { return Rename(std::filesystem::path(oldPath), std::filesystem::path(newPath)); }
 	bool Delete(const std::string& path)                                      { return Delete(std::filesystem::path(path)); }
 	uint32_t DeleteAll(const std::string& path)                               { return DeleteAll(std::filesystem::path(path)); }
-	bool Exists(const std::string& path)                                      { return Exists(std::filesystem::path(path)); }
+	//bool Exists(const std::string& path)                                      { return Exists(std::filesystem::path(path)); }
 
 
 	bool CreateFile(const std::string& path)

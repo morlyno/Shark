@@ -71,7 +71,7 @@ namespace Shark {
 	void EditorLayer::OnAttach()
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& app = Application::Get();

@@ -40,7 +40,7 @@ namespace Shark {
 
 		void ShowPanel(bool show) { m_ShowPanel = show; }
 		bool IsShowen() const { return m_ShowPanel; }
-		void ReCache() { SaveCurrentAssetDirectory(); }
+		void ReCache() { m_ReloadRequierd = true; }
 
 		void OnImGuiRender();
 
@@ -113,9 +113,6 @@ namespace Shark {
 
 
 		bool m_ShowDeletePopup = false;
-
-		bool m_AutoReCache = false;
-		float m_ReCacheTime = 10.0f;
 
 		bool m_AdditionalInit = true;
 		const char* m_DeletrEntryName = "Delete Entry";

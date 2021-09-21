@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "ImGuiLayer.h"
 
+#include "Shark/File/FileSystem.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <backends/imgui_impl_dx11.h>
@@ -28,6 +30,8 @@ namespace Shark {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 
+		// TODO(moro): if imgui.ini file dosn't exist load from custom default file
+
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -51,6 +55,14 @@ namespace Shark {
 		SK_CORE_ASSERT(RendererAPI::GetAPI() == RendererAPI::API::DirectX11, "ImGui currently only works with DirectX11!");
 		auto& dxr = DirectXRendererAPI::Get();
 		ImGui_ImplDX11_Init(dxr.GetDevice(), dxr.GetContext());
+
+		ImGuiContext& ctx = *ImGui::GetCurrentContext();
+		if (!ctx.SettingsLoaded && !FileSystem::Exists(ctx.IO.IniFilename))
+		{
+			SK_CORE_INFO("\"{}\" file not found, continue with defualt settings", ctx.IO.IniFilename);
+			ImGui::LoadIniSettingsFromDisk("Resources/DefaultImGui.ini");
+		}
+
 	}
 
 	void ImGuiLayer::OnDetach()

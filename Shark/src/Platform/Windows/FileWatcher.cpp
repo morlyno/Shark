@@ -1,8 +1,9 @@
 #include "skpch.h"
-#include "Shark/Utility/FileWatcher.h"
+#include "Shark/File/FileWatcher.h"
+#include "Shark/Core/Assert.h"
 
 #include "Platform/Windows/WindowsUtility.h"
-#include "Shark/Utility/FileSystem.h"
+#include "Shark/File/FileSystem.h"
 
 #if SK_PLATFORM_WINDOWS
 

@@ -2,7 +2,7 @@
 #include "DirectXShaders.h"
 #include "Shark/Utility/Utility.h"
 #include "Shark/Core/Timer.h"
-#include "Shark/Utility/FileSystem.h"
+#include "Shark/File/FileSystem.h"
 
 #include "Platform/DirectX11/DirectXRendererAPI.h"
 #include "Shark/Core/Application.h"

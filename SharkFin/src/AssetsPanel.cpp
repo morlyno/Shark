@@ -97,8 +97,8 @@ namespace Shark {
 
 		if (m_ReloadRequierd)
 		{
-			SaveCurrentAssetDirectory();
 			m_ReloadRequierd = false;
+			SaveCurrentAssetDirectory();
 		}
 
 		if (!m_SelectedEntry.empty())

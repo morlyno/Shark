@@ -5,19 +5,24 @@
 #include "Shark/Memory/Allocator.h"
 #include "Shark/Memory/MemoryManager.h"
 
+// --- Core -----------------------------
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Project.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Core/Input.h"
 #include "Shark/Core/Timer.h"
+// --------------------------------------
 
 // --- Utility --------------------------
 #include "Shark/Utility/PlatformUtils.h"
 #include "Shark/Utility/Utility.h"
 #include "Shark/Utility/ImGuiUtils.h"
-#include "Shark/Utility/FileSystem.h"
 #include "Shark/Utility/Math.h"
-#include "Shark/Utility/FileWatcher.h"
+// --------------------------------------
+
+// --- File -----------------------------
+#include "Shark/File/FileSystem.h"
+#include "Shark/FIle/FileWatcher.h"
 // --------------------------------------
 
 // --- Event ----------------------------

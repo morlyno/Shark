@@ -2,7 +2,7 @@
 #include "SceneManager.h"
 #include "Shark/Core/Project.h"
 #include "Shark/Core/Application.h"
-#include "Shark/Utility/FileSystem.h"
+#include "Shark/File/FileSystem.h"
 #include "Shark/Scene/SceneSerialization.h"
 
 namespace Shark {

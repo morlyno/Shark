@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/Texture.h"
 
 #include <imgui.h>
-
 #include <DirectXMath.h>
 
 namespace Shark {

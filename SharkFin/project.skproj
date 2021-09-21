@@ -1,8 +1,0 @@
-ProjectName: Test Project
-AssetsPath: assets
-TexturesPath: assets/Textures
-ScenesPath: assets/Scenes
-StartupScene: assets\Scenes\TestSceneWidthTextures.shark
-Scenes:
-  - assets\Scenes\TestSceneWidthTextures.shark
-  - assets\Scenes\PhysiksTestScene.shark

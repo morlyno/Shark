@@ -18,7 +18,7 @@ namespace Shark::FileSystem {
 	bool Rename(const std::string& oldPath, const std::string& newPath);
 	bool Delete(const std::string& path);
 	uint32_t DeleteAll(const std::string& path);
-	bool Exists(const std::string& path);
+	//bool Exists(const std::string& path);
 
 	bool CreateFile(const std::filesystem::path& path);
 	bool CreateDirectory(const std::filesystem::path& path);

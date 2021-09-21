@@ -57,7 +57,11 @@ namespace Shark {
 		constexpr operator bool() const { return ID; }
 	};
 
+#if SK_PLATFORM_WINDOWS
+	using WindowHandle = HWND;
+#else
 	using WindowHandle = void*;
+#endif
 
 }
 

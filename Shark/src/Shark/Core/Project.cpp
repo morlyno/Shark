@@ -3,7 +3,7 @@
 
 #include <yaml-cpp/yaml.h>
 #include "Shark/Utility/YAMLUtils.h"
-#include "Shark/Utility/FileSystem.h"
+#include "Shark/File/FileSystem.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
