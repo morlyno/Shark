@@ -362,10 +362,9 @@ namespace Shark {
 
 		ImGuiID dockspace_id = ImGui::GetID("DockSpace");
 		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
-
+		ImGui::End();
 
 		UI_MainMenuBar();
-
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -569,7 +568,6 @@ namespace Shark {
 
 			ImGui::EndMainMenuBar();
 		}
-		ImGui::End();
 	}
 
 	void EditorLayer::UI_Gizmo()
