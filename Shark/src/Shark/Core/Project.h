@@ -31,11 +31,11 @@ namespace Shark {
 		std::filesystem::path& GetStartupScene()                                               { return m_StartupScene; }
 		
 
-		void SetProjectName(const std::string& projName = "Untitled")                          { m_ProjectName = projName; }
-		void SetAssetsPath(const std::filesystem::path& assetsPath = "assets")                 { m_AssetsPath = assetsPath; }
-		void SetScenePath(const std::filesystem::path& scenesPath = "assets/Scenes")           { m_ScenesPath = scenesPath; }
-		void SetTexturesPath(const std::filesystem::path& texturesPath = "assets/Textures")    { m_TexturesPath = texturesPath; }
-		void SetStartupScene(const std::filesystem::path& starupScene = "")                    { m_StartupScene = starupScene; }
+		void SetProjectName(const std::string& projName)                                       { m_ProjectName = projName; }
+		void SetAssetsPath(const std::filesystem::path& assetsPath)                            { m_AssetsPath = assetsPath; }
+		void SetScenePath(const std::filesystem::path& scenesPath)                             { m_ScenesPath = scenesPath; }
+		void SetTexturesPath(const std::filesystem::path& texturesPath)                        { m_TexturesPath = texturesPath; }
+		void SetStartupScene(const std::filesystem::path& starupScene)                         { m_StartupScene = starupScene; }
 
 
 		uint32_t GetNumScenes() const                                                          { return (uint32_t)m_Scenes.size(); }

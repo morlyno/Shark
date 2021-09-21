@@ -48,29 +48,35 @@ namespace Shark {
 		SK_CORE_ASSERT(in);
 
 		auto projName = in["ProjectName"];
-		SK_CORE_VERIFY(projName, "Project Name not found! Use Fallback \"Untitled\"");
+		SK_CORE_ASSERT(projName, "Project Name not found! Use Fallback \"Untitled\"");
+		if (!projName) return false;
 
 		auto assetsPath = in["AssetsPath"];
-		SK_CORE_VERIFY(assetsPath, "Asset Path not found! Use Fallback \"assets\"");
+		SK_CORE_ASSERT(assetsPath, "Asset Path not found! Use Fallback \"assets\"");
+		if (!assetsPath) return false;
 
 		auto texturesPath = in["TexturesPath"];
-		SK_CORE_VERIFY(texturesPath, "Textures Path not found! Use Fallback \"assets/Textures\"");
+		SK_CORE_ASSERT(texturesPath, "Textures Path not found! Use Fallback \"assets/Textures\"");
+		if (!texturesPath) return false;
 
 		auto scenesPath = in["ScenesPath"];
-		SK_CORE_VERIFY(scenesPath, "Scenes Path not found! use Fallback \"assets/Textures\"");
+		SK_CORE_ASSERT(scenesPath, "Scenes Path not found! use Fallback \"assets/Textures\"");
+		if (!scenesPath) return false;
 
 		auto startup = in["StartupScene"];
-		SK_CORE_VERIFY(startup, "Starup Scene not found! use Fallback \"\"");
+		SK_CORE_ASSERT(startup, "Starup Scene not found! use Fallback \"\"");
+		if (!startup) return false;
 
 		auto scenes = in["Scenes"];
-		SK_CORE_VERIFY(scenes, "No Scenes Section found!");
+		SK_CORE_ASSERT(scenes, "No Scenes Section found!");
+		if (!scenes) return false;
 
 
-		proj.m_ProjectName = projName.as<std::string>("Untitled");
-		proj.m_AssetsPath = assetsPath.as<std::filesystem::path>("assets");
-		proj.m_TexturesPath = texturesPath.as<std::filesystem::path>("assets/Textures");
-		proj.m_ScenesPath = scenesPath.as<std::filesystem::path>("assets/Scenes");
-		proj.m_StartupScene = startup.as<std::filesystem::path>(std::filesystem::path{});
+		proj.m_ProjectName = projName.as<std::string>();
+		proj.m_AssetsPath = assetsPath.as<std::filesystem::path>();
+		proj.m_TexturesPath = texturesPath.as<std::filesystem::path>();
+		proj.m_ScenesPath = scenesPath.as<std::filesystem::path>();
+		proj.m_StartupScene = startup.as<std::filesystem::path>();
 
 		for (auto&& s : scenes)
 			proj.m_Scenes.emplace_back(s.as<std::filesystem::path>());
@@ -130,8 +136,8 @@ namespace Shark {
 	{
 		m_ProjectName = "Untitled";
 		m_AssetsPath = "assets";
-		m_TexturesPath = "assets/Textures";
-		m_ScenesPath = "assets/Scenes";
+		m_TexturesPath = std::filesystem::path{};
+		m_ScenesPath = std::filesystem::path{};
 		m_StartupScene = std::filesystem::path{};
 	}
 
