@@ -1,7 +1,8 @@
 
 **/bin/
-!dependencies/Premake/bin/
 **/bin-int/
+dependencies/**
+Scripts/__pycache__
 
 SharkFin/assets/**
 !SharkFin/assets/Shaders/**
