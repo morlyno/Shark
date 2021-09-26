@@ -1,14 +1,14 @@
 #pragma once
 
 #include "Shark/Scene/Scene.h"
-#include <entt.hpp>
+#include "Shark/Scene/Components/TagComponent.h"
+#include "Shark/Scene/Components/TransformComponent.h"
+#include "Shark/Scene/Components/IDComponent.h"
 
 #include "Shark/Debug/Instrumentor.h"
+#include <entt.hpp>
 
 namespace Shark {
-
-	struct TransformComponent;
-	struct TagComponent;
 
 	class Entity
 	{
@@ -27,8 +27,15 @@ namespace Shark {
 			SK_PROFILE_FUNCTION();
 
 			SK_CORE_ASSERT(!HasComponent<Component>());
-			auto& comp = m_Scene->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
-			return comp;
+			return m_Scene->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+		}
+
+		template<typename Component, typename... Args>
+		Component& AddOrReplaceComponent(Args&&... args)
+		{
+			SK_PROFILE_FUNCTION();
+
+			return m_Scene->m_Registry.emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 		}
 
 		template<typename Component>
@@ -49,18 +56,6 @@ namespace Shark {
 			return m_Scene->m_Registry.get<Component>(m_EntityHandle);
 		}
 
-		TransformComponent& GetTransform();
-
-		template<typename Component>
-		Component& TryAddComponent()
-		{
-			SK_PROFILE_FUNCTION();
-
-			if (!HasComponent<Component>())
-				return AddComponent<Component>();
-			return GetComponent<Component>();
-		}
-
 		template<typename Component>
 		Component* TryGetComponent()
 		{
@@ -69,8 +64,17 @@ namespace Shark {
 			return m_Scene->m_Registry.try_get<Component>(m_EntityHandle);
 		}
 
+		UUID GetUUID();
+		const std::string& GetName();
+		TransformComponent& GetTransform();
+
 		template<typename Component>
-		bool HasComponent() const { SK_PROFILE_FUNCTION(); return m_Scene->m_Registry.has<Component>(m_EntityHandle); }
+		bool HasComponent() const
+		{
+			SK_PROFILE_FUNCTION();
+			
+			return m_Scene->m_Registry.all_of<Component>(m_EntityHandle);
+		}
 
 		bool IsValid() const { SK_PROFILE_FUNCTION(); return m_Scene->m_Registry.valid(m_EntityHandle); }
 		bool IsNull() const { return m_EntityHandle == entt::null; }

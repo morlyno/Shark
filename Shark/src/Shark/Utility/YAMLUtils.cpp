@@ -31,6 +31,11 @@ namespace YAML {
 		return out << filePath.string();
 	}
 
+	YAML::Emitter& operator<<(Emitter& out, const Shark::UUID& uuid)
+	{
+		return out << (uint64_t)uuid;
+	}
+
 	Node LoadFile(const std::filesystem::path& filename) {
 		std::ifstream fin(filename);
 		if (!fin) {

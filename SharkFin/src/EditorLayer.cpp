@@ -284,7 +284,7 @@ namespace Shark {
 			{
 				if (control)
 				{
-					Entity e = m_WorkScene->CopyEntity(m_SceneHirachyPanel.GetSelectedEntity());
+					Entity e = m_WorkScene->CloneEntity(m_SceneHirachyPanel.GetSelectedEntity());
 					e.GetComponent<TagComponent>().Tag += " (Copy)";
 					Event::Distribute(SelectionChangedEvent(e));
 					return true;
@@ -507,7 +507,7 @@ namespace Shark {
 				}
 				if (ImGui::MenuItem("Copy", "ctrl+D", nullptr, se))
 				{
-					se = m_WorkScene->CopyEntity(se);
+					se = m_WorkScene->CloneEntity(se);
 					se.GetComponent<TagComponent>().Tag += " (Copy)";
 					Event::Distribute(SelectionChangedEvent(se));
 				}
@@ -1039,7 +1039,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_SceneState = SceneState::Play;
-		auto playScene = m_WorkScene->GetCopy();
+		auto playScene = Scene::Copy(m_WorkScene);
 		playScene->OnScenePlay();
 		SceneManager::SetActiveScene(playScene);
 		m_SceneHirachyPanel.ScenePlaying(true);

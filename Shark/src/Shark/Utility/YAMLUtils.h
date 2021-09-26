@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Shark/Core/UUID.h>
 #include <yaml-cpp/yaml.h>
 #include <DirectXMath.h>
 
@@ -65,6 +66,15 @@ namespace YAML {
 		}
 	};
 
+	template<>
+	struct convert<Shark::UUID>
+	{
+		static bool decode(const Node& node, Shark::UUID& rhs)
+		{
+			return convert<uint64_t>::decode(node, (uint64_t&)rhs);
+		}
+	};
+
 	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT2& f2);
 
 	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT3& f3);
@@ -72,6 +82,8 @@ namespace YAML {
 	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT4& f4);
 
 	Emitter& operator<<(Emitter& out, const std::filesystem::path& filePath);
+
+	Emitter& operator<<(Emitter& out, const Shark::UUID& uuid);
 
 	Node LoadFile(const std::filesystem::path& filename);
 	Node LoadFile(const char* filename);

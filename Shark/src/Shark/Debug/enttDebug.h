@@ -3,7 +3,7 @@
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
 
-namespace Shark {
+namespace Shark::Debug {
 
 	class DebugEntity : public Entity
 	{
@@ -11,6 +11,7 @@ namespace Shark {
 		DebugEntity(Entity parent)
 			: Entity(parent)
 		{
+			m_IDComponent = TryGetComponent<IDComponent>();
 			m_TagComponent = TryGetComponent<TagComponent>();
 			m_TransformComponent = TryGetComponent<TransformComponent>();
 			m_SpriteRendererComponent = TryGetComponent<SpriteRendererComponent>();
@@ -21,6 +22,7 @@ namespace Shark {
 		}
 
 	public:
+		IDComponent* m_IDComponent = nullptr;
 		TagComponent* m_TagComponent = nullptr;
 		TransformComponent* m_TransformComponent = nullptr;
 		SpriteRendererComponent* m_SpriteRendererComponent = nullptr;
@@ -29,6 +31,20 @@ namespace Shark {
 		RigidBody2DComponent* m_RigidBody2DComponent = nullptr;
 		BoxCollider2DComponent* m_BoxCollider2DComponent = nullptr;
 
+	};
+
+	class DebugRegistry
+	{
+	public:
+		DebugRegistry(const entt::registry& reg, Ref<Scene> scene)
+		{
+			reg.each([this, &reg, scene](auto e)
+			{
+				m_Entitys.emplace_back(Entity{ e, scene });
+			});
+		}
+	private:
+		std::vector<DebugEntity> m_Entitys;
 	};
 
 }

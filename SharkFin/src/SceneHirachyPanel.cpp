@@ -146,8 +146,6 @@ namespace Shark {
 				if (UI::GetContentPayload(filePath, UI::ContentType::Scene))
 					m_Context->SetFilePath(filePath);
 
-				ImGui::Text("Entitys: %d", m_Context->AliveEntitys());
-
 			}
 			ImGui::End();
 		}
@@ -206,22 +204,22 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		const float AddButtonWidth = ImGui::CalcTextSize("Add", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-		const float IDSpacingWidth = ImGui::CalcTextSize("123456", NULL, false).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-		const float WindowWidth = ImGui::GetContentRegionAvailWidth();
+		const float AddButtonWidth = UI::GetItemSize("Add").x;
+		const float IDSpacingWidth = UI::GetItemSize("0x0123456789ABCDEF").x;
+		const float WindowWidth = ImGui::GetContentRegionAvail().x;
 
 		auto& tag = entity.GetComponent<TagComponent>();
 		char buf[128];
 		strcpy_s(buf, tag.Tag.c_str());
-		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - 8 - IDSpacingWidth - 8);
+		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - IDSpacingWidth - UI::GetFramePadding().x * 2.0f);
 		if (ImGui::InputText("##Tag", buf, std::size(buf)))
 			tag.Tag = buf;
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(IDSpacingWidth);
-		ImGui::Text("%d", (uint32_t)entity);
+		ImGui::Text("0x%16llx", entity.GetUUID());
 
-		ImGui::SameLine(WindowWidth - AddButtonWidth + 8);
+		ImGui::SameLine();
 		if (ImGui::Button("Add"))
 			ImGui::OpenPopup("Add Component List");
 		if (ImGui::BeginPopup("Add Component List"))
@@ -434,9 +432,9 @@ namespace Shark {
 				ImGui::Columns();
 			}
 
-			bool isMainCamera = m_Context->m_ActiveCameraID == entity;
+			bool isMainCamera = m_Context->m_ActiveCamera == entity;
 			if (ImGui::Checkbox("Is Active", &isMainCamera))
-				m_Context->m_ActiveCameraID = entity;
+				m_Context->m_ActiveCamera = entity;
 		});
 
 		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)

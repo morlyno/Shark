@@ -16,6 +16,16 @@ namespace Shark {
 	{
 	}
 
+	UUID Entity::GetUUID()
+	{
+		return GetComponent<IDComponent>().ID;
+	}
+
+	const std::string& Entity::GetName()
+	{
+		return GetComponent<TagComponent>().Tag;
+	}
+
 	TransformComponent& Entity::GetTransform()
 	{
 		return GetComponent<TransformComponent>();

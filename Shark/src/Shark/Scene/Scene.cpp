@@ -13,9 +13,29 @@
 #include <box2d/b2_polygon_shape.h>
 #include <box2d/b2_fixture.h>
 
-#include "Shark/Debug/DebugEntity.h"
+#include "Shark/Debug/enttDebug.h"
 
 namespace Shark {
+
+	template<typename Component>
+	void CopyComponents(entt::registry& srcRegistry, entt::registry& destRegistry, const std::unordered_map<UUID, entt::entity>& enttMap)
+	{
+		auto view = srcRegistry.view<Component>();
+		for (auto srcEntity : view)
+		{
+			entt::entity destEntity = enttMap.at(srcRegistry.get<IDComponent>(srcEntity).ID);
+
+			auto& comp = srcRegistry.get<Component>(srcEntity);
+			destRegistry.emplace_or_replace<Component>(destEntity, comp);
+		}
+	}
+
+	template<typename Component>
+	void CopyComponentIfExists(entt::entity srcEntity, entt::registry& srcRegistry, entt::entity destEntity, entt::registry& destRegistry)
+	{
+		if (auto* comp = srcRegistry.try_get<Component>(srcEntity))
+			destRegistry.emplace_or_replace<Component>(destEntity, *comp);
+	}
 
 	static b2BodyType SharkBodyTypeToBox2D(RigidBody2DComponent::BodyType bodyType)
 	{
@@ -30,6 +50,8 @@ namespace Shark {
 		return b2_staticBody;
 	}
 
+
+
 	Scene::Scene()
 	{
 		SK_PROFILE_FUNCTION();
@@ -42,30 +64,39 @@ namespace Shark {
 		SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr, "OnSceneStop musst be called befor the Scene gets destroyed!");
 	}
 
-	Ref<Scene> Scene::GetCopy()
+	Ref<Scene> Scene::Copy(Ref<Scene> srcScene)
 	{
 		SK_PROFILE_FUNCTION();
 
-		auto scene = Ref<Scene>::Create();
-		CopyInto(scene);
-		return scene;
-	}
+		auto newScene = Ref<Scene>::Create();
+		newScene->m_ViewportWidth = srcScene->m_ViewportWidth;
+		newScene->m_ViewportHeight = srcScene->m_ViewportHeight;
 
-	void Scene::CopyInto(Ref<Scene> dest)
-	{
-		SK_PROFILE_FUNCTION();
+		auto& srcRegistry = srcScene->m_Registry;
+		auto& destRegistry = newScene->m_Registry;
+		
+		auto srcDebug = Debug::DebugRegistry(srcRegistry, srcScene);
+		auto destDebug = Debug::DebugRegistry(destRegistry, newScene);
 
-		dest->m_Registry = entt::registry{};
-		dest->m_Registry.reserve(m_Registry.capacity());
-		m_Registry.each([this, dest](auto entity)
+		std::unordered_map<UUID, entt::entity> enttMap;
+
+		auto view = srcRegistry.view<IDComponent>();
+		for (auto e : view)
 		{
-			dest->CopyEntity({ entity, this });
-		});
+			Entity srcEntity{ e, srcScene };
 
-		dest->m_ActiveCameraID = m_ActiveCameraID;
-		dest->m_ViewportWidth = m_ViewportWidth;
-		dest->m_ViewportHeight = m_ViewportHeight;
-		dest->m_FilePath = m_FilePath;
+			UUID uuid = srcEntity.GetUUID();
+			enttMap[uuid] = newScene->CreateEntityWithUUID(uuid, srcEntity.GetName());
+		}
+
+		CopyComponents<TransformComponent>(srcRegistry, destRegistry, enttMap);
+		CopyComponents<SpriteRendererComponent>(srcRegistry, destRegistry, enttMap);
+		CopyComponents<CameraComponent>(srcRegistry, destRegistry, enttMap);
+		CopyComponents<NativeScriptComponent>(srcRegistry, destRegistry, enttMap);
+		CopyComponents<RigidBody2DComponent>(srcRegistry, destRegistry, enttMap);
+		CopyComponents<BoxCollider2DComponent>(srcRegistry, destRegistry, enttMap);
+
+		return newScene;
 	}
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
@@ -99,13 +130,18 @@ namespace Shark {
 			}
 		}
 
-		if (!m_Registry.valid(m_ActiveCameraID) || !m_Registry.has<CameraComponent, TransformComponent>(m_ActiveCameraID))
+		if (!m_Registry.valid(m_ActiveCamera) || !m_Registry.all_of<CameraComponent>(m_ActiveCamera))
 		{
 			SK_CORE_WARN("Active Camera Entity is Invalid");
 			auto view = m_Registry.view<CameraComponent>();
-			m_ActiveCameraID = view[0];
+			if (view.empty())
+			{
+				SK_CORE_VERIFY(false, "No Camera in the Current Scene");
+				return;
+			}
+			m_ActiveCamera = view[0];
 		}
-		auto&& [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCameraID);
+		auto&& [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCamera);
 
 		{
 			SK_PROFILE_SCOPE("Render Scene Runtime");
@@ -146,7 +182,7 @@ namespace Shark {
 		{
 			auto view = m_Registry.view<BoxCollider2DComponent>();
 			for (auto entity : view)
-				if (!m_Registry.has<RigidBody2DComponent>(entity))
+				if (!m_Registry.all_of<RigidBody2DComponent>(entity))
 					m_Registry.emplace<RigidBody2DComponent>(entity);
 		}
 
@@ -165,7 +201,7 @@ namespace Shark {
 
 				rb2d.RuntimeBody = m_PhysicsWorld2D->CreateBody(&bodydef);
 
-				if (m_Registry.has<BoxCollider2DComponent>(entity))
+				if (m_Registry.all_of<BoxCollider2DComponent>(entity))
 				{
 					auto& bc2d = m_Registry.get<BoxCollider2DComponent>(entity);
 
@@ -221,19 +257,19 @@ namespace Shark {
 		m_PhysicsWorld2D = nullptr;
 	}
 
-	Entity Scene::CopyEntity(Entity srcEntity)
+	Entity Scene::CloneEntity(Entity srcEntity)
 	{
 		SK_PROFILE_FUNCTION();
 
-		Entity newEntity = CreateEntity(srcEntity);
+		Entity newEntity = CreateEntity();
 
-		CopyComponentIfExists<TagComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<TransformComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<SpriteRendererComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<CameraComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<NativeScriptComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<RigidBody2DComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity.m_EntityHandle, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<TagComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<TransformComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<SpriteRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<CameraComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<NativeScriptComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 
 		return newEntity;
 	}
@@ -242,20 +278,16 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		Entity entity{ m_Registry.create(), this };
-		auto& tagcomp = entity.AddComponent<TagComponent>();
-		tagcomp.Tag = tag.empty() ? "new Entity" : tag;
-		entity.AddComponent<TransformComponent>();
-		return entity;
+		return CreateEntityWithUUID(UUID::Create(), tag);
 	}
 
-	Entity Scene::CreateEntity(entt::entity hint, const std::string& tag)
+	Entity Scene::CreateEntityWithUUID(UUID uuid, const std::string& tag)
 	{
 		SK_PROFILE_FUNCTION();
 
-		Entity entity{ m_Registry.create(hint), this };
-		auto& tagcomp = entity.AddComponent<TagComponent>();
-		tagcomp.Tag = tag.empty() ? "new Entity" : tag;
+		Entity entity{ m_Registry.create(), this };
+		entity.AddComponent<IDComponent>(uuid);
+		entity.AddComponent<TagComponent>(tag.empty() ? "new Entity" : tag);
 		entity.AddComponent<TransformComponent>();
 		return entity;
 	}
@@ -267,6 +299,18 @@ namespace Shark {
 		m_Registry.destroy(entity);
 	}
 
+	Entity Scene::GetEntityByUUID(UUID uuid)
+	{
+		auto view = m_Registry.view<IDComponent>();
+		for (auto e : view)
+		{
+			Entity entity{ e, this };
+			if (entity.GetUUID() == uuid)
+				return entity;
+		}
+		return Entity{};
+	}
+
 	bool Scene::IsValidEntity(Entity entity)const
 	{
 		SK_PROFILE_FUNCTION();
@@ -276,12 +320,12 @@ namespace Shark {
 
 	Entity Scene::GetActiveCamera()
 	{
-		return { m_ActiveCameraID, Weak(this) };
+		return { m_ActiveCamera, this };
 	}
 
-	void Scene::SetActiveCamera(Entity cameraentity)
+	void Scene::SetActiveCamera(Entity camera)
 	{
-		m_ActiveCameraID = cameraentity;
+		m_ActiveCamera = camera;
 	}
 
 	void Scene::ResizeCameras(float width, float height)
