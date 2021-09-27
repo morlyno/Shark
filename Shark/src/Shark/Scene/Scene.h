@@ -43,7 +43,8 @@ namespace Shark {
 		bool IsValidEntity(Entity entity) const;
 
 		Entity GetActiveCamera();
-		void SetActiveCamera(Entity camera);
+		UUID GetActiveCameraUUID() const { return m_ActiveCameraUUID; }
+		void SetActiveCamera(UUID camera) { m_ActiveCameraUUID = camera; }
 		void ResizeCameras(float width, float height);
 
 		void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
@@ -53,7 +54,8 @@ namespace Shark {
 
 	private:
 		entt::registry m_Registry;
-		entt::entity m_ActiveCamera = entt::null;
+		UUID m_ActiveCameraUUID = 0;
+		entt::entity m_RuntimeCamera = entt::null;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 

@@ -285,7 +285,6 @@ namespace Shark {
 				if (control)
 				{
 					Entity e = m_WorkScene->CloneEntity(m_SceneHirachyPanel.GetSelectedEntity());
-					e.GetComponent<TagComponent>().Tag += " (Copy)";
 					Event::Distribute(SelectionChangedEvent(e));
 					return true;
 				}

@@ -11,6 +11,7 @@
 #include <box2d/b2_world.h>
 #include <box2d/b2_body.h>
 #include <box2d/b2_polygon_shape.h>
+#include <box2d/b2_circle_shape.h>
 #include <box2d/b2_fixture.h>
 
 #include "Shark/Debug/enttDebug.h"
@@ -62,6 +63,8 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr, "OnSceneStop musst be called befor the Scene gets destroyed!");
+		if (m_PhysicsWorld2D)
+			OnSceneStop();
 	}
 
 	Ref<Scene> Scene::Copy(Ref<Scene> srcScene)
@@ -71,13 +74,11 @@ namespace Shark {
 		auto newScene = Ref<Scene>::Create();
 		newScene->m_ViewportWidth = srcScene->m_ViewportWidth;
 		newScene->m_ViewportHeight = srcScene->m_ViewportHeight;
+		newScene->m_ActiveCameraUUID = srcScene->m_ActiveCameraUUID;
 
 		auto& srcRegistry = srcScene->m_Registry;
 		auto& destRegistry = newScene->m_Registry;
 		
-		auto srcDebug = Debug::DebugRegistry(srcRegistry, srcScene);
-		auto destDebug = Debug::DebugRegistry(destRegistry, newScene);
-
 		std::unordered_map<UUID, entt::entity> enttMap;
 
 		auto view = srcRegistry.view<IDComponent>();
@@ -95,6 +96,7 @@ namespace Shark {
 		CopyComponents<NativeScriptComponent>(srcRegistry, destRegistry, enttMap);
 		CopyComponents<RigidBody2DComponent>(srcRegistry, destRegistry, enttMap);
 		CopyComponents<BoxCollider2DComponent>(srcRegistry, destRegistry, enttMap);
+		CopyComponents<CircleCollider2DComponent>(srcRegistry, destRegistry, enttMap);
 
 		return newScene;
 	}
@@ -130,18 +132,11 @@ namespace Shark {
 			}
 		}
 
-		if (!m_Registry.valid(m_ActiveCamera) || !m_Registry.all_of<CameraComponent>(m_ActiveCamera))
-		{
-			SK_CORE_WARN("Active Camera Entity is Invalid");
-			auto view = m_Registry.view<CameraComponent>();
-			if (view.empty())
-			{
-				SK_CORE_VERIFY(false, "No Camera in the Current Scene");
-				return;
-			}
-			m_ActiveCamera = view[0];
-		}
-		auto&& [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_ActiveCamera);
+		SK_CORE_ASSERT(m_Registry.valid(m_RuntimeCamera), "Invalid Camera Entity");
+		if (!m_Registry.valid(m_RuntimeCamera))
+			return;
+		
+		auto&& [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_RuntimeCamera);
 
 		{
 			SK_PROFILE_SCOPE("Render Scene Runtime");
@@ -187,11 +182,19 @@ namespace Shark {
 		}
 
 		{
-			auto view = m_Registry.view<RigidBody2DComponent>();
+			auto view = m_Registry.view<CircleCollider2DComponent>();
 			for (auto entity : view)
+				if (!m_Registry.all_of<CircleCollider2DComponent>(entity))
+					m_Registry.emplace<CircleCollider2DComponent>(entity);
+		}
+
+		{
+			auto view = m_Registry.view<RigidBody2DComponent>();
+			for (auto e : view)
 			{
-				auto& rb2d = view.get<RigidBody2DComponent>(entity);
-				auto& transform = m_Registry.get<TransformComponent>(entity);
+				Entity entity{ e, this };
+				auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
+				auto& transform = entity.GetTransform();
 
 				b2BodyDef bodydef;
 				bodydef.type = SharkBodyTypeToBox2D(rb2d.Type);
@@ -201,9 +204,9 @@ namespace Shark {
 
 				rb2d.RuntimeBody = m_PhysicsWorld2D->CreateBody(&bodydef);
 
-				if (m_Registry.all_of<BoxCollider2DComponent>(entity))
+				if (entity.HasComponent<BoxCollider2DComponent>())
 				{
-					auto& bc2d = m_Registry.get<BoxCollider2DComponent>(entity);
+					auto& bc2d = entity.GetComponent<BoxCollider2DComponent>();
 
 					b2PolygonShape shape;
 					shape.SetAsBox(bc2d.Size.x * transform.Scaling.x, bc2d.Size.y * transform.Scaling.y, { bc2d.LocalOffset.x, bc2d.LocalOffset.y }, bc2d.LocalRotation);
@@ -217,9 +220,25 @@ namespace Shark {
 
 					bc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
 				}
+
+				if (entity.HasComponent<CircleCollider2DComponent>())
+				{
+					auto& cc2d = entity.GetComponent<CircleCollider2DComponent>();
+
+					b2CircleShape shape;
+					shape.m_radius = cc2d.Radius * transform.Scaling.x;
+
+					b2FixtureDef fixturedef;
+					fixturedef.shape = &shape;
+					fixturedef.friction = cc2d.Friction;
+					fixturedef.density = cc2d.Density;
+					fixturedef.restitution = cc2d.Restitution;
+					fixturedef.restitutionThreshold = cc2d.RestitutionThreshold;
+
+					cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
+				}
 			}
 		}
-
 
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
@@ -236,6 +255,15 @@ namespace Shark {
 		}
 
 		ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
+		m_RuntimeCamera = GetActiveCamera();
+		Entity camera;
+		if (!camera)
+		{
+			m_RuntimeCamera = entt::null;
+			auto view = m_Registry.view<CameraComponent>();
+			if (!view.empty())
+				m_RuntimeCamera = view.front();
+		}
 	}
 
 	void Scene::OnSceneStop()
@@ -255,6 +283,8 @@ namespace Shark {
 
 		delete m_PhysicsWorld2D;
 		m_PhysicsWorld2D = nullptr;
+
+		m_RuntimeCamera = entt::null;
 	}
 
 	Entity Scene::CloneEntity(Entity srcEntity)
@@ -270,6 +300,7 @@ namespace Shark {
 		CopyComponentIfExists<NativeScriptComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<CircleCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 
 		return newEntity;
 	}
@@ -301,6 +332,8 @@ namespace Shark {
 
 	Entity Scene::GetEntityByUUID(UUID uuid)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto view = m_Registry.view<IDComponent>();
 		for (auto e : view)
 		{
@@ -320,12 +353,9 @@ namespace Shark {
 
 	Entity Scene::GetActiveCamera()
 	{
-		return { m_ActiveCamera, this };
-	}
+		SK_PROFILE_FUNCTION();
 
-	void Scene::SetActiveCamera(Entity camera)
-	{
-		m_ActiveCamera = camera;
+		return GetEntityByUUID(m_ActiveCameraUUID);
 	}
 
 	void Scene::ResizeCameras(float width, float height)

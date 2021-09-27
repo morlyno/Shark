@@ -208,6 +208,25 @@ namespace Shark {
 
 		}
 
+		if (entity.HasComponent<CircleCollider2DComponent>())
+		{
+			out << YAML::Key << "CircleCollider2DComponent" << YAML::Value;
+			out << YAML::BeginMap;
+
+			const auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+
+			out << YAML::Key << "Radius" << YAML::Value << comp.Radius;
+			out << YAML::Key << "Offset" << YAML::Value << comp.LocalOffset;
+			out << YAML::Key << "Rotation" << YAML::Value << comp.LocalRotation;
+			out << YAML::Key << "Density" << YAML::Value << comp.Density;
+			out << YAML::Key << "Friction" << YAML::Value << comp.Friction;
+			out << YAML::Key << "Restitution" << YAML::Value << comp.Restitution;
+			out << YAML::Key << "RestitutionThreshold" << YAML::Value << comp.RestitutionThreshold;
+
+			out << YAML::EndMap;
+
+		}
+
 		out << YAML::EndMap;
 
 		return true;
@@ -230,8 +249,7 @@ namespace Shark {
 		// Scene
 		out << YAML::Key << "Scene" << YAML::Value << filepath.stem();
 
-		auto activeCamera = m_Scene->GetActiveCamera();
-		out << YAML::Key << "ActiveCamera" << YAML::Value << YAML::Hex << (activeCamera ? activeCamera.GetUUID() : 0) << YAML::Dec;
+		out << YAML::Key << "ActiveCamera" << YAML::Value << YAML::Hex << m_Scene->GetActiveCameraUUID() << YAML::Dec;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		
@@ -284,7 +302,7 @@ namespace Shark {
 
 		SK_CORE_INFO("Scene File Version: {}", version);
 
-		UUID activeCameraUUID = in["ActiveCamera"].as<UUID>();
+		m_Scene->SetActiveCamera(in["ActiveCamera"].as<UUID>());
 
 		auto entities = in["Entities"];
 		if (entities)
@@ -297,9 +315,6 @@ namespace Shark {
 
 				Entity deserializedEntity = m_Scene->CreateEntityWithUUID(uuid, tag);
 				SK_CORE_TRACE("Deserializing Entity [{}] {:x}", tag, uuid);
-
-				if (uuid == activeCameraUUID)
-					m_Scene->SetActiveCamera(deserializedEntity);
 
 				auto transformComponent = entity["TransformComponent"];
 				if (transformComponent)
@@ -449,6 +464,43 @@ namespace Shark {
 
 					SK_CORE_TRACE(" - BoxCollider2D Component");
 				}
+
+				auto cirlceCollider2DComponent = entity["CircleCollider2DComponent"];
+				if (cirlceCollider2DComponent)
+				{
+					auto radius = cirlceCollider2DComponent["Radius"];
+					auto offset = cirlceCollider2DComponent["Offset"];
+					auto rotation = cirlceCollider2DComponent["Rotation"];
+					auto density = cirlceCollider2DComponent["Density"];
+					auto friction = cirlceCollider2DComponent["Friction"];
+					auto restitution = cirlceCollider2DComponent["Restitution"];
+					auto restitutionThreshold = cirlceCollider2DComponent["RestitutionThreshold"];
+
+					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
+
+					SK_CORE_ASSERT(radius, "Couldn't desirialize BoxCollider2DComponent::Size");
+					comp.Radius = radius.as<float>();
+
+					SK_CORE_ASSERT(offset, "Couldn't desirialize BoxCollider2DComponent::Offset");
+					comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
+
+					SK_CORE_ASSERT(rotation, "Couldn't desirialize BoxCollider2DComponent::Rotation");
+					comp.LocalRotation = rotation.as<float>();
+
+					SK_CORE_ASSERT(density, "Couldn't desirialize BoxCollider2DComponent::Density");
+					comp.Density = density.as<float>();
+
+					SK_CORE_ASSERT(friction, "Couldn't desirialize BoxCollider2DComponent::Friction");
+					comp.Friction = friction.as<float>();
+
+					SK_CORE_ASSERT(restitution, "Couldn't desirialize BoxCollider2DComponent::Restitution");
+					comp.Restitution = restitution.as<float>();
+
+					SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize BoxCollider2DComponent::RestitutionThreshold");
+					comp.RestitutionThreshold = restitutionThreshold.as<float>();
+
+					SK_CORE_TRACE(" - BoxCollider2D Component");
+				}
 			}
 		}
 		SK_CORE_INFO("==========================================================================================");
@@ -471,7 +523,7 @@ namespace Shark {
 		if (auto activeCamera = in["ActiveCamera"])
 		{
 			HasActiveCameraAsUUID = true;
-			activeCameraUUID = activeCamera.as<UUID>();
+			m_Scene->SetActiveCamera(activeCamera.as<UUID>());
 		}
 
 		auto entities = in["Entities"];
@@ -491,9 +543,6 @@ namespace Shark {
 
 				Entity deserializedEntity = m_Scene->CreateEntityWithUUID(uuid, Tag);
 				SK_CORE_TRACE("Deserializing Entity [{}] {:x}", Tag, uuid);
-
-				if (uuid == activeCameraUUID)
-					m_Scene->SetActiveCamera(deserializedEntity);
 
 				if (auto transformComponent = entity["TransformComponent"])
 				{
@@ -612,7 +661,7 @@ namespace Shark {
 					auto& comp = deserializedEntity.AddOrReplaceComponent<CameraComponent>();
 					comp.Camera = SceneCamera(projection, aspecRatio, ps, os);
 					if (!HasActiveCameraAsUUID && mainCam)
-						m_Scene->m_ActiveCamera = deserializedEntity;
+						m_Scene->m_ActiveCameraUUID = deserializedEntity.GetUUID();
 					SK_CORE_TRACE(" - Camera Component: Type {}", Convert::ProjectionToString(projection));
 				}
 
@@ -638,13 +687,57 @@ namespace Shark {
 				auto boxCollider2DComponent = entity["BoxCollider2DComponent"];
 				if (boxCollider2DComponent)
 				{
-					auto size = boxCollider2DComponent["Size"];
+					auto radius = boxCollider2DComponent["Radius"];
 					auto offset = boxCollider2DComponent["Offset"];
 					auto rotation = boxCollider2DComponent["Rotation"];
 					auto density = boxCollider2DComponent["Density"];
 					auto friction = boxCollider2DComponent["Friction"];
 					auto restitution = boxCollider2DComponent["Restitution"];
 					auto restitutionThreshold = boxCollider2DComponent["RestitutionThreshold"];
+
+					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
+
+					SK_CORE_VERIFY(radius, "Couldn't desirialize BoxCollider2DComponent::Size");
+					if (radius)
+						comp.Radius = radius.as<float>();
+
+					SK_CORE_VERIFY(offset, "Couldn't desirialize BoxCollider2DComponent::Offset");
+					if (offset)
+						comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
+
+					SK_CORE_VERIFY(rotation, "Couldn't desirialize BoxCollider2DComponent::Rotation");
+					if (rotation)
+						comp.LocalRotation = rotation.as<float>();
+
+					SK_CORE_VERIFY(density, "Couldn't desirialize BoxCollider2DComponent::Density");
+					if (density)
+						comp.Density = density.as<float>();
+
+					SK_CORE_VERIFY(friction, "Couldn't desirialize BoxCollider2DComponent::Friction");
+					if (friction)
+						comp.Friction = friction.as<float>();
+
+					SK_CORE_VERIFY(restitution, "Couldn't desirialize BoxCollider2DComponent::Restitution");
+					if (restitution)
+						comp.Restitution = restitution.as<float>();
+
+					SK_CORE_VERIFY(restitutionThreshold, "Couldn't desirialize BoxCollider2DComponent::RestitutionThreshold");
+					if (restitutionThreshold)
+						comp.RestitutionThreshold = restitutionThreshold.as<float>();
+
+					SK_CORE_TRACE(" - BoxCollider2D Component");
+				}
+
+				auto circleCollider2DComponent = entity["CircleCollider2DComponent"];
+				if (circleCollider2DComponent)
+				{
+					auto size = circleCollider2DComponent["Size"];
+					auto offset = circleCollider2DComponent["Offset"];
+					auto rotation = circleCollider2DComponent["Rotation"];
+					auto density = circleCollider2DComponent["Density"];
+					auto friction = circleCollider2DComponent["Friction"];
+					auto restitution = circleCollider2DComponent["Restitution"];
+					auto restitutionThreshold = circleCollider2DComponent["RestitutionThreshold"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<BoxCollider2DComponent>();
 

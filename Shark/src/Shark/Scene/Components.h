@@ -8,3 +8,4 @@
 #include "Shark/Scene/Components/NativeScriptComponent.h"
 #include "Shark/Scene/Components/RigidBody2DComponent.h"
 #include "Shark/Scene/Components/BoxCollider2DComponent.h"
+#include "Shark/Scene/Components/CircleCollider2DComponent.h"

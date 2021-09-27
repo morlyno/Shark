@@ -209,11 +209,8 @@ namespace Shark {
 		const float WindowWidth = ImGui::GetContentRegionAvail().x;
 
 		auto& tag = entity.GetComponent<TagComponent>();
-		char buf[128];
-		strcpy_s(buf, tag.Tag.c_str());
 		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - IDSpacingWidth - UI::GetFramePadding().x * 2.0f);
-		if (ImGui::InputText("##Tag", buf, std::size(buf)))
-			tag.Tag = buf;
+		ImGui::InputText("##Tag", &tag.Tag);
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(IDSpacingWidth);
@@ -247,6 +244,11 @@ namespace Shark {
 			if (ImGui::Selectable("BoxCollider 2D", false, entity.HasComponent<BoxCollider2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<BoxCollider2DComponent>();
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::Selectable("CirlceCollider 2D", false, entity.HasComponent<CircleCollider2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			{
+				entity.AddComponent<CircleCollider2DComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Native Script", false, entity.HasComponent<NativeScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
@@ -432,9 +434,10 @@ namespace Shark {
 				ImGui::Columns();
 			}
 
-			bool isMainCamera = m_Context->m_ActiveCamera == entity;
+			UUID uuid = entity.GetUUID();
+			bool isMainCamera = m_Context->m_ActiveCameraUUID.Valid() ? m_Context->m_ActiveCameraUUID == uuid : false;
 			if (ImGui::Checkbox("Is Active", &isMainCamera))
-				m_Context->m_ActiveCamera = entity;
+				m_Context->m_ActiveCameraUUID = uuid;
 		});
 
 		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)
@@ -449,6 +452,17 @@ namespace Shark {
 		Utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp)
 		{
 			UI::DrawVec2Control("Size", comp.Size);
+			UI::DrawVec2Control("Offset", comp.LocalOffset);
+			UI::DrawFloatControl("Angle", comp.LocalRotation);
+			UI::DrawFloatControl("Denstity", comp.Density);
+			UI::DrawFloatControl("Friction", comp.Friction);
+			UI::DrawFloatControl("Restitution", comp.Restitution);
+			UI::DrawFloatControl("RestitutionThreshold", comp.RestitutionThreshold);
+		});
+
+		Utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp)
+		{
+			UI::DrawFloatControl("Radius", comp.Radius);
 			UI::DrawVec2Control("Offset", comp.LocalOffset);
 			UI::DrawFloatControl("Angle", comp.LocalRotation);
 			UI::DrawFloatControl("Denstity", comp.Density);
