@@ -184,6 +184,14 @@ namespace Shark {
 				runtimeScene->OnUpdateRuntime(ts);
 				break;
 			}
+			case SceneState::Simulate:
+			{
+				if (m_ViewportHovered)
+					m_EditorCamera.OnUpdate(ts);
+
+				m_SimulationScene->OnSimulate(ts, m_EditorCamera);
+				break;
+			}
 		}
 
 
@@ -209,7 +217,7 @@ namespace Shark {
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnSelectionChanged));
 
-		if (m_SceneState == SceneState::Edit)
+		if (m_SceneState != SceneState::Play)
 			m_EditorCamera.OnEvent(event);
 
 		m_SceneHirachyPanel.OnEvent(event);
@@ -232,7 +240,9 @@ namespace Shark {
 
 		switch (event.GetKeyCode())
 		{
-			case Key::N: // New Scene
+
+			// New Scene
+			case Key::N:
 			{
 				if (control)
 				{
@@ -241,18 +251,9 @@ namespace Shark {
 				}
 				break;
 			}
-			/*
-			case Key::O: // Open Scene
-			{
-				if (control)
-				{
-					OpenScene();
-					return true;
-				}
-				break;
-			}
-			*/
-			case Key::S: // Save Scene
+
+			// Save Scene
+			case Key::S:
 			{
 				if (control)
 				{
@@ -266,21 +267,9 @@ namespace Shark {
 				}
 				break;
 			}
-			case Key::P: // Play Scene
-			{
-				if (control)
-				{
-					switch (m_SceneState)
-					{
-						case SceneState::Edit: OnScenePlay(); break;
-						case SceneState::Play: OnSceneStop(); break;
-					}
-					return true;
-				}
-				break;
-			}
 
-			case Key::D: // Copy Entity
+			// Copy Entity
+			case Key::D:
 			{
 				if (control)
 				{
@@ -291,44 +280,31 @@ namespace Shark {
 				break;
 			}
 
-			case Key::V: // VSync
+			// Focus Selected Entity
+			case Key::F:
+			{
+				if (m_SelectetEntity)
+				{
+					const auto& tf = m_SelectetEntity.GetTransform();
+					m_EditorCamera.SetFocusPoint(tf.Position);
+					return true;
+				}
+				break;
+			}
+
+			// Toggle VSync
+			case Key::V:
 			{
 				auto& window = Application::Get().GetWindow();
 				window.SetVSync(!window.IsVSync());
 				return true;
 			}
 
-			case Key::Q:
-			{
-				m_CurrentOperation = 0;
-				return true;
-			}
-			case Key::W:
-			{
-				m_CurrentOperation = ImGuizmo::TRANSLATE;
-				return true;
-			}
-			case Key::E:
-			{
-				m_CurrentOperation = ImGuizmo::ROTATE;
-				return true;
-			}
-			case Key::R:
-			{
-				m_CurrentOperation = ImGuizmo::SCALE;
-				return true;
-			}
-
-			case Key::F:
-			{
-				if (m_SelectetEntity)
-				{
-					const auto& tf = m_SelectetEntity.GetComponent<TransformComponent>();
-					m_EditorCamera.SetFocusPoint(tf.Position);
-					return true;
-				}
-				break;
-			}
+			// ImGuizmo
+			case Key::Q: { m_CurrentOperation = 0; return true; }
+			case Key::W: { m_CurrentOperation = ImGuizmo::TRANSLATE; return true; }
+			case Key::E: { m_CurrentOperation = ImGuizmo::ROTATE; return true; }
+			case Key::R: { m_CurrentOperation = ImGuizmo::SCALE; return true; }
 		}
 
 		return false;
@@ -946,20 +922,30 @@ namespace Shark {
 		const float size = ImGui::GetContentRegionAvail().y;
 		UI::MoveCurserPosX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size * 0.5f) - UI::GetFramePadding().x);
 
+
 		switch (m_SceneState)
 		{
 			case SceneState::Edit:
 			{
-				RenderID iconID = m_PlayIcon->GetRenderID();
-				if (ImGui::ImageButton(iconID, { size, size }, { 0, 0 }, { 1, 1 }, 0))
+				if (UI::ImageButton(UI::GetID("PlayButton"), m_PlayIcon->GetRenderID(), {size, size}, {0, 0}, {1, 1}, 0))
 					OnScenePlay();
+				ImGui::SameLine();
+				if (ImGui::Button("Start Simulate"))
+					OnSimulateStart();
 				break;
 			}
 			case SceneState::Play:
 			{
-				RenderID iconID = m_StopIcon->GetRenderID();
-				if (ImGui::ImageButton(iconID, { size, size }, { 0, 0 }, { 1, 1 }, 0))
+				if (UI::ImageButton(UI::GetID("StopButton"), m_StopIcon->GetRenderID(), {size, size}, {0, 0}, {1, 1}, 0))
 					OnSceneStop();
+				break;
+			}
+			case SceneState::Simulate:
+			{
+				UI::Image(m_PlayIcon->GetRenderID(), { size, size }, { 0, 0 }, { 1, 1 }, 0);
+				ImGui::SameLine();
+				if (ImGui::Button("Stop Simulate"))
+					OnSimulateStop();
 				break;
 			}
 		}
@@ -1059,12 +1045,31 @@ namespace Shark {
 			Event::Distribute(SelectionChangedEvent({}));
 	}
 
+	void EditorLayer::OnSimulateStart()
+	{
+		m_SceneState = SceneState::Simulate;
+		m_SimulationScene = Scene::Copy(m_WorkScene);
+		m_SimulationScene->OnSimulateStart();
+		m_SceneHirachyPanel.ScenePlaying(true);
+		m_SceneHirachyPanel.SetContext(m_SimulationScene);
+	}
+
+	void EditorLayer::OnSimulateStop()
+	{
+		m_SimulationScene->OnSceneStop();
+		m_SimulationScene = nullptr;
+		m_SceneHirachyPanel.ScenePlaying(false);
+		m_SceneHirachyPanel.SetContext(m_WorkScene);
+		m_SceneState = SceneState::Edit;
+	}
+
 	Ref<Scene> EditorLayer::GetCurrentScene()
 	{
 		switch (m_SceneState)
 		{
 			case SceneState::Edit: return m_WorkScene;
 			case SceneState::Play: return SceneManager::GetActiveScene();
+			case SceneState::Simulate: return m_SimulationScene;
 		}
 
 		SK_CORE_ASSERT(false, "Unkown Scene State");

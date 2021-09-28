@@ -19,6 +19,11 @@ namespace Shark {
 		// Temp: Test Functions
 		void EffectesTest();
 	public:
+		enum class SceneState
+		{
+			Edit = 0, Play = 1, Simulate = 2
+		};
+	public:
 		EditorLayer();
 		~EditorLayer();
 
@@ -45,11 +50,6 @@ namespace Shark {
 
 		void NewScene();
 
-		/*
-		bool SaveSceneWithDialogBox();
-		bool OpenSceneWithDialogBox();
-		*/
-
 		void SetActiveScene(Ref<Scene> scene);
 		bool LoadNewScene(const std::filesystem::path& filepath);
 		bool LoadScene();
@@ -59,6 +59,9 @@ namespace Shark {
 
 		void OnScenePlay();
 		void OnSceneStop();
+
+		void OnSimulateStart();
+		void OnSimulateStop();
 
 		Ref<Scene> GetCurrentScene();
 	private:
@@ -71,6 +74,7 @@ namespace Shark {
 		Ref<Rasterizer> m_HilightRasterizer;
 
 		Ref<Scene> m_WorkScene;
+		Ref<Scene> m_SimulationScene;
 		SceneHirachyPanel m_SceneHirachyPanel;
 		AssetsPanel m_AssetsPanel;
 
@@ -92,10 +96,7 @@ namespace Shark {
 		int m_CurrentOperation = 0;
 		Entity m_SelectetEntity;
 
-		enum class SceneState
-		{
-			Edit = 0, Play = 1
-		};
+
 		SceneState m_SceneState = SceneState::Edit;
 
 		// ToolBar icons

@@ -30,8 +30,12 @@ namespace Shark {
 		void OnScenePlay();
 		void OnSceneStop();
 
+		void OnSimulateStart();
+		void OnSimulateStop();
+
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts, EditorCamera& camera);
+		void OnSimulate(TimeStep ts, EditorCamera& camera);
 		
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});
@@ -52,6 +56,8 @@ namespace Shark {
 		void SetFilePath(const std::filesystem::path& filepath) { m_FilePath = filepath; }
 		const std::filesystem::path& GetFilePath() const { return m_FilePath; }
 
+	private:
+		void SetupBox2D();
 	private:
 		entt::registry m_Registry;
 		UUID m_ActiveCameraUUID = 0;

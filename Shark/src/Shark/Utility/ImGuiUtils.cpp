@@ -19,6 +19,11 @@ namespace Shark::Utility {
 
 namespace Shark::UI {
 
+	ImGuiID GetID(const std::string& str)
+	{
+		return ImGui::GetID(str.c_str());
+	}
+
 	void DrawFloatShow(const std::string& label, float val, const char* fmt, float textWidth, const char* buttoncharacter)
 	{
 		ImGui::PushID(label.c_str());
@@ -358,6 +363,11 @@ namespace Shark::UI {
 
 		const ImVec2 padding = (frame_padding >= 0) ? ImVec2((float)frame_padding, (float)frame_padding) : g.Style.FramePadding;
 		return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, padding, bg_col, tint_col);
+	}
+
+	void Image(ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 /*= { 0, 0 }*/, const ImVec2& uv1 /*= { 1, 1 }*/, int frame_padding /*= -1*/, const ImVec4& bg_col /*= { 0, 0, 0, 0 }*/, const ImVec4& tint_col /*= { 1, 1, 1, 1 }*/)
+	{
+		ImGui::Image(textureID, size, uv0, uv1, tint_col, bg_col);
 	}
 
 	ImVec2 GetItemSize(const std::string& label)

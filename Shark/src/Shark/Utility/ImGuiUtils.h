@@ -33,6 +33,8 @@ namespace Shark {
 
 	namespace UI {
 
+		ImGuiID GetID(const std::string& str);
+
 		void DrawFloatShow(const std::string& label, float val, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacter = "X");
 		void DrawVec2Show(const std::string& label, DirectX::XMFLOAT2 vec, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y");
 		void DrawVec3Show(const std::string& label, DirectX::XMFLOAT3 vec, const char* fmt = "%.2f", float textWidth = 100.0f, const char* buttoncharacters = "X\0Y\0Z");
@@ -48,6 +50,8 @@ namespace Shark {
 
 		bool ImageButton(const std::string& strID, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, int frame_padding = -1, const ImVec4& bg_col = { 0, 0, 0, 0 }, const ImVec4& tint_col = { 1, 1, 1, 1 });
 		bool ImageButton(ImGuiID id, ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, int frame_padding = -1, const ImVec4& bg_col = { 0, 0, 0, 0 }, const ImVec4& tint_col = { 1, 1, 1, 1 });
+
+		void Image(ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, int frame_padding = -1, const ImVec4& bg_col = { 0, 0, 0, 0 }, const ImVec4& tint_col = { 1, 1, 1, 1 });
 
 		ImVec2 GetItemSize(const std::string& lable);
 		ImVec2 GetFramePadding();

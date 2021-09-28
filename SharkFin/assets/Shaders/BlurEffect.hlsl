@@ -23,7 +23,7 @@ SamplerState Sampler;
 
 float4 main(float2 texCoords : TexCoords) : SV_Target0
 {
-    const float Radius = 7;
+    const float Radius = 5;
     const float Distance = 2 * Radius + 1;
     
     float width, height;

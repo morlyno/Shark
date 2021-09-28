@@ -478,28 +478,28 @@ namespace Shark {
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
 
-					SK_CORE_ASSERT(radius, "Couldn't desirialize BoxCollider2DComponent::Size");
+					SK_CORE_ASSERT(radius, "Couldn't desirialize CircleCollider2DComponent::Radius");
 					comp.Radius = radius.as<float>();
 
-					SK_CORE_ASSERT(offset, "Couldn't desirialize BoxCollider2DComponent::Offset");
+					SK_CORE_ASSERT(offset, "Couldn't desirialize CircleCollider2DComponent::Offset");
 					comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
 
-					SK_CORE_ASSERT(rotation, "Couldn't desirialize BoxCollider2DComponent::Rotation");
+					SK_CORE_ASSERT(rotation, "Couldn't desirialize CircleCollider2DComponent::Rotation");
 					comp.LocalRotation = rotation.as<float>();
 
-					SK_CORE_ASSERT(density, "Couldn't desirialize BoxCollider2DComponent::Density");
+					SK_CORE_ASSERT(density, "Couldn't desirialize CircleCollider2DComponent::Density");
 					comp.Density = density.as<float>();
 
-					SK_CORE_ASSERT(friction, "Couldn't desirialize BoxCollider2DComponent::Friction");
+					SK_CORE_ASSERT(friction, "Couldn't desirialize CircleCollider2DComponent::Friction");
 					comp.Friction = friction.as<float>();
 
-					SK_CORE_ASSERT(restitution, "Couldn't desirialize BoxCollider2DComponent::Restitution");
+					SK_CORE_ASSERT(restitution, "Couldn't desirialize CircleCollider2DComponent::Restitution");
 					comp.Restitution = restitution.as<float>();
 
-					SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize BoxCollider2DComponent::RestitutionThreshold");
+					SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize CircleCollider2DComponent::RestitutionThreshold");
 					comp.RestitutionThreshold = restitutionThreshold.as<float>();
 
-					SK_CORE_TRACE(" - BoxCollider2D Component");
+					SK_CORE_TRACE(" - CircleCollider2D Component");
 				}
 			}
 		}
@@ -687,57 +687,13 @@ namespace Shark {
 				auto boxCollider2DComponent = entity["BoxCollider2DComponent"];
 				if (boxCollider2DComponent)
 				{
-					auto radius = boxCollider2DComponent["Radius"];
+					auto size = boxCollider2DComponent["Size"];
 					auto offset = boxCollider2DComponent["Offset"];
 					auto rotation = boxCollider2DComponent["Rotation"];
 					auto density = boxCollider2DComponent["Density"];
 					auto friction = boxCollider2DComponent["Friction"];
 					auto restitution = boxCollider2DComponent["Restitution"];
 					auto restitutionThreshold = boxCollider2DComponent["RestitutionThreshold"];
-
-					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
-
-					SK_CORE_VERIFY(radius, "Couldn't desirialize BoxCollider2DComponent::Size");
-					if (radius)
-						comp.Radius = radius.as<float>();
-
-					SK_CORE_VERIFY(offset, "Couldn't desirialize BoxCollider2DComponent::Offset");
-					if (offset)
-						comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
-
-					SK_CORE_VERIFY(rotation, "Couldn't desirialize BoxCollider2DComponent::Rotation");
-					if (rotation)
-						comp.LocalRotation = rotation.as<float>();
-
-					SK_CORE_VERIFY(density, "Couldn't desirialize BoxCollider2DComponent::Density");
-					if (density)
-						comp.Density = density.as<float>();
-
-					SK_CORE_VERIFY(friction, "Couldn't desirialize BoxCollider2DComponent::Friction");
-					if (friction)
-						comp.Friction = friction.as<float>();
-
-					SK_CORE_VERIFY(restitution, "Couldn't desirialize BoxCollider2DComponent::Restitution");
-					if (restitution)
-						comp.Restitution = restitution.as<float>();
-
-					SK_CORE_VERIFY(restitutionThreshold, "Couldn't desirialize BoxCollider2DComponent::RestitutionThreshold");
-					if (restitutionThreshold)
-						comp.RestitutionThreshold = restitutionThreshold.as<float>();
-
-					SK_CORE_TRACE(" - BoxCollider2D Component");
-				}
-
-				auto circleCollider2DComponent = entity["CircleCollider2DComponent"];
-				if (circleCollider2DComponent)
-				{
-					auto size = circleCollider2DComponent["Size"];
-					auto offset = circleCollider2DComponent["Offset"];
-					auto rotation = circleCollider2DComponent["Rotation"];
-					auto density = circleCollider2DComponent["Density"];
-					auto friction = circleCollider2DComponent["Friction"];
-					auto restitution = circleCollider2DComponent["Restitution"];
-					auto restitutionThreshold = circleCollider2DComponent["RestitutionThreshold"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<BoxCollider2DComponent>();
 
@@ -770,6 +726,50 @@ namespace Shark {
 						comp.RestitutionThreshold = restitutionThreshold.as<float>();
 
 					SK_CORE_TRACE(" - BoxCollider2D Component");
+				}
+
+				auto circleCollider2DComponent = entity["CircleCollider2DComponent"];
+				if (circleCollider2DComponent)
+				{
+					auto radius = circleCollider2DComponent["Radius"];
+					auto offset = circleCollider2DComponent["Offset"];
+					auto rotation = circleCollider2DComponent["Rotation"];
+					auto density = circleCollider2DComponent["Density"];
+					auto friction = circleCollider2DComponent["Friction"];
+					auto restitution = circleCollider2DComponent["Restitution"];
+					auto restitutionThreshold = circleCollider2DComponent["RestitutionThreshold"];
+
+					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
+
+					SK_CORE_VERIFY(radius, "Couldn't desirialize CircleCollider2DComponent::Radius");
+					if (radius)
+						comp.Radius = radius.as<float>();
+
+					SK_CORE_VERIFY(offset, "Couldn't desirialize CircleCollider2DComponent::Offset");
+					if (offset)
+						comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
+
+					SK_CORE_VERIFY(rotation, "Couldn't desirialize CircleCollider2DComponent::Rotation");
+					if (rotation)
+						comp.LocalRotation = rotation.as<float>();
+
+					SK_CORE_VERIFY(density, "Couldn't desirialize CircleCollider2DComponent::Density");
+					if (density)
+						comp.Density = density.as<float>();
+
+					SK_CORE_VERIFY(friction, "Couldn't desirialize CircleCollider2DComponent::Friction");
+					if (friction)
+						comp.Friction = friction.as<float>();
+
+					SK_CORE_VERIFY(restitution, "Couldn't desirialize CircleCollider2DComponent::Restitution");
+					if (restitution)
+						comp.Restitution = restitution.as<float>();
+
+					SK_CORE_VERIFY(restitutionThreshold, "Couldn't desirialize CircleCollider2DComponent::RestitutionThreshold");
+					if (restitutionThreshold)
+						comp.RestitutionThreshold = restitutionThreshold.as<float>();
+
+					SK_CORE_TRACE(" - CircleCollider2D Component");
 				}
 			}
 		}

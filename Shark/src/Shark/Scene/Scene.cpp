@@ -52,7 +52,6 @@ namespace Shark {
 	}
 
 
-
 	Scene::Scene()
 	{
 		SK_PROFILE_FUNCTION();
@@ -99,6 +98,74 @@ namespace Shark {
 		CopyComponents<CircleCollider2DComponent>(srcRegistry, destRegistry, enttMap);
 
 		return newScene;
+	}
+
+	void Scene::OnScenePlay()
+	{
+		SK_PROFILE_FUNCTION();
+
+		SetupBox2D();
+
+		// Create Native Scrips
+		{
+			auto view = m_Registry.view<NativeScriptComponent>();
+			for (auto entityID : view)
+			{
+				auto& comp = view.get<NativeScriptComponent>(entityID);
+				Entity entity{ entityID, this };
+				if (comp.CreateScript)
+				{
+					comp.Script = comp.CreateScript(entity);
+					comp.Script->OnCreate();
+				}
+			}
+		}
+
+		// Setup Cameras
+		{
+			ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
+			m_RuntimeCamera = GetActiveCamera();
+			Entity camera;
+			if (!camera)
+			{
+				m_RuntimeCamera = entt::null;
+				auto view = m_Registry.view<CameraComponent>();
+				if (!view.empty())
+					m_RuntimeCamera = view.front();
+			}
+		}
+	}
+
+	void Scene::OnSceneStop()
+	{
+		SK_PROFILE_FUNCTION();
+
+		auto view = m_Registry.view<NativeScriptComponent>();
+		for (auto entityID : view)
+		{
+			auto& comp = view.get<NativeScriptComponent>(entityID);
+			if (comp.Script)
+			{
+				comp.Script->OnDestroy();
+				comp.DestroyScript(comp.Script);
+			}
+		}
+
+		delete m_PhysicsWorld2D;
+		m_PhysicsWorld2D = nullptr;
+
+		m_RuntimeCamera = entt::null;
+	}
+
+	void Scene::OnSimulateStart()
+	{
+		SetupBox2D();
+	}
+
+	void Scene::OnSimulateStop()
+	{
+		delete m_PhysicsWorld2D;
+		m_PhysicsWorld2D = nullptr;
 	}
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
@@ -167,124 +234,32 @@ namespace Shark {
 		}
 	}
 
-	void Scene::OnScenePlay()
+	void Scene::OnSimulate(TimeStep ts, EditorCamera& camera)
 	{
-		SK_PROFILE_FUNCTION();
-
-		SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr);
-		m_PhysicsWorld2D = new b2World({ 0.0f, -9.8f });
-
 		{
-			auto view = m_Registry.view<BoxCollider2DComponent>();
-			for (auto entity : view)
-				if (!m_Registry.all_of<RigidBody2DComponent>(entity))
-					m_Registry.emplace<RigidBody2DComponent>(entity);
-		}
+			// TODO(moro): expose iteration values
+			m_PhysicsWorld2D->Step(ts, 6, 2);
 
-		{
-			auto view = m_Registry.view<CircleCollider2DComponent>();
-			for (auto entity : view)
-				if (!m_Registry.all_of<CircleCollider2DComponent>(entity))
-					m_Registry.emplace<CircleCollider2DComponent>(entity);
-		}
-
-		{
 			auto view = m_Registry.view<RigidBody2DComponent>();
 			for (auto e : view)
 			{
 				Entity entity{ e, this };
-				auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
+				const auto& rb2d = view.get<RigidBody2DComponent>(entity);
 				auto& transform = entity.GetTransform();
-
-				b2BodyDef bodydef;
-				bodydef.type = SharkBodyTypeToBox2D(rb2d.Type);
-				bodydef.position = { transform.Position.x, transform.Position.y };
-				bodydef.angle = transform.Rotation.z;
-				bodydef.fixedRotation = rb2d.FixedRotation;
-
-				rb2d.RuntimeBody = m_PhysicsWorld2D->CreateBody(&bodydef);
-
-				if (entity.HasComponent<BoxCollider2DComponent>())
-				{
-					auto& bc2d = entity.GetComponent<BoxCollider2DComponent>();
-
-					b2PolygonShape shape;
-					shape.SetAsBox(bc2d.Size.x * transform.Scaling.x, bc2d.Size.y * transform.Scaling.y, { bc2d.LocalOffset.x, bc2d.LocalOffset.y }, bc2d.LocalRotation);
-
-					b2FixtureDef fixturedef;
-					fixturedef.shape = &shape;
-					fixturedef.friction = bc2d.Friction;
-					fixturedef.density = bc2d.Density;
-					fixturedef.restitution = bc2d.Restitution;
-					fixturedef.restitutionThreshold = bc2d.RestitutionThreshold;
-
-					bc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
-				}
-
-				if (entity.HasComponent<CircleCollider2DComponent>())
-				{
-					auto& cc2d = entity.GetComponent<CircleCollider2DComponent>();
-
-					b2CircleShape shape;
-					shape.m_radius = cc2d.Radius * transform.Scaling.x;
-
-					b2FixtureDef fixturedef;
-					fixturedef.shape = &shape;
-					fixturedef.friction = cc2d.Friction;
-					fixturedef.density = cc2d.Density;
-					fixturedef.restitution = cc2d.Restitution;
-					fixturedef.restitutionThreshold = cc2d.RestitutionThreshold;
-
-					cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
-				}
+				const auto& pos = rb2d.RuntimeBody->GetPosition();
+				transform.Position.x = pos.x;
+				transform.Position.y = pos.y;
+				transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 			}
 		}
 
+		Renderer2D::BeginScene(camera);
 		{
-			auto view = m_Registry.view<NativeScriptComponent>();
-			for (auto entityID : view)
-			{
-				auto& comp = view.get<NativeScriptComponent>(entityID);
-				Entity entity{ entityID, this };
-				if (comp.CreateScript)
-				{
-					comp.Script = comp.CreateScript(entity);
-					comp.Script->OnCreate();
-				}
-			}
+			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+			for (auto entityID : group)
+				Renderer2D::DrawEntity({ entityID, this });
 		}
-
-		ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
-		m_RuntimeCamera = GetActiveCamera();
-		Entity camera;
-		if (!camera)
-		{
-			m_RuntimeCamera = entt::null;
-			auto view = m_Registry.view<CameraComponent>();
-			if (!view.empty())
-				m_RuntimeCamera = view.front();
-		}
-	}
-
-	void Scene::OnSceneStop()
-	{
-		SK_PROFILE_FUNCTION();
-
-		auto view = m_Registry.view<NativeScriptComponent>();
-		for (auto entityID : view)
-		{
-			auto& comp = view.get<NativeScriptComponent>(entityID);
-			if (comp.Script)
-			{
-				comp.Script->OnDestroy();
-				comp.DestroyScript(comp.Script);
-			}
-		}
-
-		delete m_PhysicsWorld2D;
-		m_PhysicsWorld2D = nullptr;
-
-		m_RuntimeCamera = entt::null;
+		Renderer2D::EndScene();
 	}
 
 	Entity Scene::CloneEntity(Entity srcEntity)
@@ -367,6 +342,81 @@ namespace Shark {
 		{
 			auto& cc = view.get<CameraComponent>(entityID);
 			cc.Camera.Resize(width, height);
+		}
+	}
+
+	void Scene::SetupBox2D()
+	{
+		SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr);
+		m_PhysicsWorld2D = new b2World({ 0.0f, -9.8f });
+
+		// Add missing RigidBodys
+		{
+			auto view = m_Registry.view<BoxCollider2DComponent>();
+			for (auto entity : view)
+				if (!m_Registry.all_of<RigidBody2DComponent>(entity))
+					m_Registry.emplace<RigidBody2DComponent>(entity);
+		}
+
+		// Add missing RigidBodys
+		{
+			auto view = m_Registry.view<CircleCollider2DComponent>();
+			for (auto entity : view)
+				if (!m_Registry.all_of<CircleCollider2DComponent>(entity))
+					m_Registry.emplace<CircleCollider2DComponent>(entity);
+		}
+
+		// Setup Box2D side
+		{
+			auto view = m_Registry.view<RigidBody2DComponent>();
+			for (auto e : view)
+			{
+				Entity entity{ e, this };
+				auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
+				auto& transform = entity.GetTransform();
+
+				b2BodyDef bodydef;
+				bodydef.type = SharkBodyTypeToBox2D(rb2d.Type);
+				bodydef.position = { transform.Position.x, transform.Position.y };
+				bodydef.angle = transform.Rotation.z;
+				bodydef.fixedRotation = rb2d.FixedRotation;
+
+				rb2d.RuntimeBody = m_PhysicsWorld2D->CreateBody(&bodydef);
+
+				if (entity.HasComponent<BoxCollider2DComponent>())
+				{
+					auto& bc2d = entity.GetComponent<BoxCollider2DComponent>();
+
+					b2PolygonShape shape;
+					shape.SetAsBox(bc2d.Size.x * transform.Scaling.x, bc2d.Size.y * transform.Scaling.y, { bc2d.LocalOffset.x, bc2d.LocalOffset.y }, bc2d.LocalRotation);
+
+					b2FixtureDef fixturedef;
+					fixturedef.shape = &shape;
+					fixturedef.friction = bc2d.Friction;
+					fixturedef.density = bc2d.Density;
+					fixturedef.restitution = bc2d.Restitution;
+					fixturedef.restitutionThreshold = bc2d.RestitutionThreshold;
+
+					bc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
+				}
+
+				if (entity.HasComponent<CircleCollider2DComponent>())
+				{
+					auto& cc2d = entity.GetComponent<CircleCollider2DComponent>();
+
+					b2CircleShape shape;
+					shape.m_radius = cc2d.Radius * transform.Scaling.x;
+
+					b2FixtureDef fixturedef;
+					fixturedef.shape = &shape;
+					fixturedef.friction = cc2d.Friction;
+					fixturedef.density = cc2d.Density;
+					fixturedef.restitution = cc2d.Restitution;
+					fixturedef.restitutionThreshold = cc2d.RestitutionThreshold;
+
+					cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
+				}
+			}
 		}
 	}
 
