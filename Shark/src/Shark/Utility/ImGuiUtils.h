@@ -53,7 +53,9 @@ namespace Shark {
 
 		void Image(ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, int frame_padding = -1, const ImVec4& bg_col = { 0, 0, 0, 0 }, const ImVec4& tint_col = { 1, 1, 1, 1 });
 
-		ImVec2 GetItemSize(const std::string& lable);
+		ImVec2 CalcItemSize(const std::string& label);
+		// Deprecated: Use CalcItemSize instead
+		inline ImVec2 GetItemSize(const std::string& label) { return CalcItemSize(label); }
 		ImVec2 GetFramePadding();
 
 		void TextWithBackGround(const std::string& text);
@@ -81,6 +83,11 @@ namespace Shark {
 		bool GetContentPayload(std::filesystem::path& out_Path, ContentType type);
 
 		const ImVec4& GetColor(ImGuiCol color);
+
+		bool Button(ImGuiID id, const std::string& label, const ImVec2& size, bool active, ImGuiButtonFlags flags = ImGuiButtonFlags_None);
+
+		bool Button(const std::string& label, const ImVec2& size = ImVec2(0, 0));
+		bool ButtonDisabled(const std::string& label, const ImVec2& size = ImVec2(0, 0));
 
 	}
 

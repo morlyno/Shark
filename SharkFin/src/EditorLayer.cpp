@@ -189,7 +189,10 @@ namespace Shark {
 				if (m_ViewportHovered)
 					m_EditorCamera.OnUpdate(ts);
 
-				m_SimulationScene->OnSimulate(ts, m_EditorCamera);
+				if (!m_ScenePaused)
+					m_SimulationScene->OnSimulate(ts);
+				m_SimulationScene->Render(m_EditorCamera);
+
 				break;
 			}
 		}
@@ -914,16 +917,94 @@ namespace Shark {
 		auto colActive = UI::GetColor(ImGuiCol_ButtonActive);
 		colHovered.w = colActive.w = 0.5f;
 
-		ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colHovered);
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, colActive);
+		//ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
+		//ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colHovered);
+		//ImGui::PushStyleColor(ImGuiCol_ButtonActive, colActive);
 		ImGui::Begin("##ViewPortToolBar", nullptr, falgs);
 
 		const float size = ImGui::GetContentRegionAvail().y;
 		UI::MoveCurserPosX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size * 0.5f) - UI::GetFramePadding().x);
 
+		// Layout  [Play/Stop] [Simulate] [Pause] [Step]
 
-		switch (m_SceneState)
+		// [Play/Stop]
+		ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colHovered);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, colActive);
+
+		if (m_SceneState == SceneState::Edit)
+		{
+			if (UI::ImageButton(UI::GetID("PlayButton"), m_PlayIcon->GetRenderID(), { size, size }, { 0, 0 }, { 1, 1 }, 0))
+				OnScenePlay();
+		}
+		else if (m_SceneState == SceneState::Play)
+		{
+			if (UI::ImageButton(UI::GetID("StopButton"), m_StopIcon->GetRenderID(), { size, size }, { 0, 0 }, { 1, 1 }, 0))
+				OnSceneStop();
+		}
+		else
+		{
+			UI::ImageButton(UI::GetID("PlayButton"), m_PlayIcon->GetRenderID(), { size, size }, { 0, 0 }, { 1, 1 }, 0, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.8f, 0.8f, 0.8f, 1.0f});
+		}
+
+		ImGui::PopStyleVar(2);
+		ImGui::PopStyleColor(3);
+
+
+		// [Simulate]
+		ImGui::SameLine();
+		if (m_SceneState == SceneState::Edit)
+		{
+			if (ImGui::Button("Simulate"))
+				OnSimulateStart();
+		}
+		else if (m_SceneState == SceneState::Simulate)
+		{
+			if (ImGui::Button("Stop"))
+				OnSimulateStop();
+		}
+		else
+			UI::ButtonDisabled("Simulate");
+
+
+		// [Pause]
+		ImGui::SameLine();
+		if (m_SceneState == SceneState::Simulate)
+		{
+			if (!m_ScenePaused)
+			{
+				if (ImGui::Button("Pause"))
+				m_ScenePaused = true;
+			}
+			else
+			{
+				if (ImGui::Button("UnPause"))
+					m_ScenePaused = false;
+			}
+		}
+		else
+		{
+			UI::ButtonDisabled("Pause");
+		}
+
+
+		// [Step]
+		ImGui::SameLine();
+		if (m_SceneState == SceneState::Simulate && m_ScenePaused)
+		{
+			if (UI::Button("Step"))
+			{
+				const float timeStep = 1.0f / 60.0f;
+				m_SimulationScene->OnSimulate(timeStep, true);
+			}
+		}
+		else
+		{
+			UI::Button(UI::GetID("StepDisabled"), "Step", { 0, 0 }, false);
+		}
+
+
+		/*switch (m_SceneState)
 		{
 			case SceneState::Edit:
 			{
@@ -946,14 +1027,15 @@ namespace Shark {
 				ImGui::SameLine();
 				if (ImGui::Button("Stop Simulate"))
 					OnSimulateStop();
+
 				break;
 			}
-		}
+		}*/
 
 		ImGui::End();
 
-		ImGui::PopStyleVar(2);
-		ImGui::PopStyleColor(3);
+		//ImGui::PopStyleVar(2);
+		//ImGui::PopStyleColor(3);
 	}
 
 	void EditorLayer::NewScene()

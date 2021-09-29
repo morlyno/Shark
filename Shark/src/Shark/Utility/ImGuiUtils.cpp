@@ -19,6 +19,16 @@ namespace Shark::Utility {
 
 namespace Shark::UI {
 
+	static ImVec4 ImVec4Max(const ImVec4& a, const ImVec4& b)
+	{
+		return ImVec4(
+			a.x > b.x ? a.x : b.x,
+			a.y > b.y ? a.y : b.y,
+			a.z > b.z ? a.z : b.z,
+			a.w > b.w ? a.w : b.w
+		);
+	}
+
 	ImGuiID GetID(const std::string& str)
 	{
 		return ImGui::GetID(str.c_str());
@@ -370,7 +380,7 @@ namespace Shark::UI {
 		ImGui::Image(textureID, size, uv0, uv1, tint_col, bg_col);
 	}
 
-	ImVec2 GetItemSize(const std::string& label)
+	ImVec2 CalcItemSize(const std::string& label)
 	{
 		const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -534,6 +544,76 @@ namespace Shark::UI {
 	const ImVec4& GetColor(ImGuiCol color)
 	{
 		return ImGui::GetStyleColorVec4(color);
+	}
+
+	bool Button(ImGuiID id, const std::string& label_arg, const ImVec2& size_arg, bool active, ImGuiButtonFlags flags)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		const ImGuiStyle& style = g.Style;
+
+		const char* label = label_arg.c_str();
+		const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+
+		ImVec2 pos = window->DC.CursorPos;
+		if ((flags & ImGuiButtonFlags_AlignTextBaseLine) && style.FramePadding.y < window->DC.CurrLineTextBaseOffset) // Try to vertically align buttons that are smaller/have no padding so that text baseline matches (bit hacky, since it shouldn't be a flag)
+			pos.y += window->DC.CurrLineTextBaseOffset - style.FramePadding.y;
+		ImVec2 size = ImGui::CalcItemSize(size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+
+		const ImRect bb(pos, pos + size);
+		ImGui::ItemSize(size, style.FramePadding.y);
+		if (!ImGui::ItemAdd(bb, id))
+			return false;
+
+		if (g.CurrentItemFlags & ImGuiItemFlags_ButtonRepeat)
+			flags |= ImGuiButtonFlags_Repeat;
+		bool hovered, held;
+		bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
+
+		// Render
+		ImVec4 c = style.Colors[active ? (held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button : ImGuiCol_Button];
+		c.w *= style.Alpha;
+		if (!active)
+			c = ImVec4Max(c - ImVec4(0.1f, 0.1f, 0.1f, 0.0f), ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+
+		const ImU32 col = ImGui::ColorConvertFloat4ToU32(c);
+		//const ImU32 col = ImGui::GetColorU32(active ? (held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button : ImGuiCol_Button);
+		ImGui::RenderNavHighlight(bb, id);
+		ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
+
+		if (g.LogEnabled)
+			ImGui::LogSetNextTextDecoration("[", "]");
+
+		if (active)
+		{
+			ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, style.ButtonTextAlign, &bb);
+		}
+		else
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
+			ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, style.ButtonTextAlign, &bb);
+			ImGui::PopStyleColor();
+		}
+
+		// Automatically close popups
+		//if (pressed && !(flags & ImGuiButtonFlags_DontClosePopups) && (window->Flags & ImGuiWindowFlags_Popup))
+		//    CloseCurrentPopup();
+
+		IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+		return pressed;
+	}
+
+	bool Button(const std::string& label, const ImVec2& size /*= ImVec2(0, 0)*/)
+	{
+		return ImGui::Button(label.c_str(), size);
+	}
+
+	bool ButtonDisabled(const std::string& label, const ImVec2& size /*= ImVec2(0, 0)*/)
+	{
+		return UI::Button(UI::GetID(label), label, size, false, ImGuiButtonFlags_None);
 	}
 
 }

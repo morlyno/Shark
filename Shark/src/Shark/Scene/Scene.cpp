@@ -61,7 +61,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr, "OnSceneStop musst be called befor the Scene gets destroyed!");
+		//SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr, "OnSceneStop musst be called befor the Scene gets destroyed!");
 		if (m_PhysicsWorld2D)
 			OnSceneStop();
 	}
@@ -199,9 +199,11 @@ namespace Shark {
 			}
 		}
 
-		SK_CORE_ASSERT(m_Registry.valid(m_RuntimeCamera), "Invalid Camera Entity");
 		if (!m_Registry.valid(m_RuntimeCamera))
+		{
+			SK_CORE_WARN("Invalid Camera Entity");
 			return;
+		}
 		
 		auto&& [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_RuntimeCamera);
 
@@ -234,31 +236,39 @@ namespace Shark {
 		}
 	}
 
-	void Scene::OnSimulate(TimeStep ts, EditorCamera& camera)
+	void Scene::OnSimulate(TimeStep ts, bool subStep)
 	{
+		// TODO(moro): expose iteration values
+		if (subStep)
 		{
-			// TODO(moro): expose iteration values
+			m_PhysicsWorld2D->SetSubStepping(true);
+			m_PhysicsWorld2D->Step(ts, 6, 2);
+			m_PhysicsWorld2D->SetSubStepping(false);
+		}
+		else
 			m_PhysicsWorld2D->Step(ts, 6, 2);
 
-			auto view = m_Registry.view<RigidBody2DComponent>();
-			for (auto e : view)
-			{
-				Entity entity{ e, this };
-				const auto& rb2d = view.get<RigidBody2DComponent>(entity);
-				auto& transform = entity.GetTransform();
-				const auto& pos = rb2d.RuntimeBody->GetPosition();
-				transform.Position.x = pos.x;
-				transform.Position.y = pos.y;
-				transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
-			}
-		}
-
-		Renderer2D::BeginScene(camera);
+		auto view = m_Registry.view<RigidBody2DComponent>();
+		for (auto e : view)
 		{
-			auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-			for (auto entityID : group)
-				Renderer2D::DrawEntity({ entityID, this });
+			Entity entity{ e, this };
+			const auto& rb2d = view.get<RigidBody2DComponent>(entity);
+			auto& transform = entity.GetTransform();
+			const auto& pos = rb2d.RuntimeBody->GetPosition();
+			transform.Position.x = pos.x;
+			transform.Position.y = pos.y;
+			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 		}
+	}
+
+	void Scene::Render(EditorCamera& camera)
+	{
+		Renderer2D::BeginScene(camera);
+
+		auto view = m_Registry.view<SpriteRendererComponent>();
+		for (auto entity : view)
+			Renderer2D::DrawEntity({ entity, this });
+
 		Renderer2D::EndScene();
 	}
 

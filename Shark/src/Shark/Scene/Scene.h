@@ -35,7 +35,9 @@ namespace Shark {
 
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts, EditorCamera& camera);
-		void OnSimulate(TimeStep ts, EditorCamera& camera);
+		void OnSimulate(TimeStep ts, bool subStep = false);
+
+		void Render(EditorCamera& camera);
 		
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});

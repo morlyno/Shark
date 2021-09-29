@@ -98,10 +98,12 @@ namespace Shark {
 
 
 		SceneState m_SceneState = SceneState::Edit;
+		bool m_ScenePaused = false;
 
 		// ToolBar icons
 		Ref<Texture2D> m_PlayIcon;
 		Ref<Texture2D> m_StopIcon;
+
 	};
 
 }
