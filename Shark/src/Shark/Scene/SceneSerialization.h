@@ -10,7 +10,7 @@ namespace Shark {
 	class SceneSerializer
 	{
 	public:
-		static constexpr uint64_t SceneSerializerVersion = 2;
+		static constexpr uint64_t SceneSerializerVersion = 3;
 	public:
 		SceneSerializer(const Ref<Scene>& scene);
 		~SceneSerializer() = default;

@@ -15,6 +15,7 @@ namespace Shark {
 		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		Ref<Texture2D> Texture = nullptr;
 		float TilingFactor = 1.0f;
+		float Thickness = 1.0f;
 		GeometryType Geometry = GeometryType::Quad;
 	};
 

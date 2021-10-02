@@ -28,11 +28,11 @@ namespace Shark {
 		static void DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
 		static void DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
 
-		static void DrawCircle(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawCircle(const DirectX::XMFLOAT2& position, float radius, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
+		static void DrawCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
+		static void DrawCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
 
-		static void DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation, float radius, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation, float radius, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
+		static void DrawRotatedCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2 scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
+		static void DrawRotatedCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2 scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
 
 		static void DrawEntity(Entity entity);
 		

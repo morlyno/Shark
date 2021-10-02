@@ -33,12 +33,12 @@ namespace Shark {
 	struct CircleVertex
 	{
 		DirectX::XMFLOAT3 Pos;
-		DirectX::XMFLOAT3 Center;
-		float Radius;
+		DirectX::XMFLOAT2 LocalPosition;
 		DirectX::XMFLOAT4 Color;
-		DirectX::XMFLOAT2 Tex;
-		int TextureIndex;
+		float Thickness;
+		DirectX::XMFLOAT2 TexCoord;
 		float TilingFactor;
+		int TextureIndex;
 		int ID;
 	};
 
@@ -197,7 +197,7 @@ namespace Shark {
 			s_Data->Stats.IndexCount += 6;
 		}
 
-		static void AddCircle(const DirectX::XMMATRIX& translation, float radius, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+		static void AddCircle(const DirectX::XMMATRIX& translation, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 		{
 			constexpr DirectX::XMFLOAT3 Vertices[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
 			constexpr DirectX::XMFLOAT2 TexCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
@@ -225,11 +225,10 @@ namespace Shark {
 			{
 				CircleVertex* vtx = batch.VertexIndexPtr++;
 				vtx->Pos = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(Vertices[i]), translation));
-				vtx->Center = DXMath::Store3(DirectX::XMVector3Transform(DirectX::XMVectorZero(), translation));
-				vtx->Radius = radius;
-
+				vtx->LocalPosition = { Vertices[i].x, Vertices[i].y };
+				vtx->Thickness = thickness;
 				vtx->Color = tintcolor;
-				vtx->Tex = TexCoords[i];
+				vtx->TexCoord = TexCoords[i];
 				vtx->TextureIndex = index;
 				vtx->TilingFactor = tilingfactor;
 				vtx->ID = id;
@@ -341,28 +340,28 @@ namespace Shark {
 		Internal::AddQuad(translation, texture, tilingfactor, tintcolor, id);
 	}
 
-	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(radius, radius, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Internal::AddCircle(translation, radius, s_Data->WhiteTexture, 1.0f, color, id);
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		Internal::AddCircle(translation, thickness, s_Data->WhiteTexture, 1.0f, color, id);
 	}
 
-	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, float radius, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(radius, radius, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Internal::AddCircle(translation, radius, texture, tilingfactor, tintcolor, id);
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		Internal::AddCircle(translation, thickness, texture, tilingfactor, tintcolor, id);
 	}
 
-	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation, float radius, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2 scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(radius, radius, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Internal::AddCircle(translation, radius, s_Data->WhiteTexture, 1.0f, color, id);
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		Internal::AddCircle(translation, thickness, s_Data->WhiteTexture, 1.0f, color, id);
 	}
 
-	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation, float radius, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2 scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(radius, radius, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
-		Internal::AddCircle(translation, radius, texture, tilingfactor, tintcolor, id);
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		Internal::AddCircle(translation, thickness, texture, tilingfactor, tintcolor, id);
 	}
 
 	void Renderer2D::DrawEntity(Entity entity)
@@ -376,8 +375,8 @@ namespace Shark {
 		Ref<Texture2D> texture = sr.Texture ? sr.Texture : s_Data->WhiteTexture;
 		switch (sr.Geometry)
 		{
-			case SpriteRendererComponent::GeometryType::Quad:                                   Internal::AddQuad(tf.GetTranform(), texture, sr.TilingFactor, sr.Color, (int)(uint32_t)entity);                           break;
-			case SpriteRendererComponent::GeometryType::Circle:   tf.Scaling.y = tf.Scaling.x;  Internal::AddCircle(tf.GetTranform(), tf.Scaling.x * 0.5f, texture, sr.TilingFactor, sr.Color, (int)(uint32_t)(entity));  break;
+			case SpriteRendererComponent::GeometryType::Quad:     Internal::AddQuad(tf.GetTranform(), texture, sr.TilingFactor, sr.Color, (int)(uint32_t)entity);                    break;
+			case SpriteRendererComponent::GeometryType::Circle:   Internal::AddCircle(tf.GetTranform(), sr.Thickness, texture, sr.TilingFactor, sr.Color, (int)(uint32_t)(entity));  break;
 		}
 	}
 

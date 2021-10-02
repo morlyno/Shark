@@ -149,6 +149,7 @@ namespace Shark {
 			out << YAML::Key << "Color" << YAML::Value << comp.Color;
 			out << YAML::Key << "Texture" << YAML::Value << (comp.Texture ? comp.Texture->GetFilePath() : "");
 			out << YAML::Key << "TilingFactor" << YAML::Value << comp.TilingFactor;
+			out << YAML::Key << "Thickness" << YAML::Value << comp.Thickness;
 			out << YAML::Key << "Geometry" << YAML::Value << Convert::GeometryToString(comp.Geometry);
 
 			out << YAML::EndMap;
@@ -342,6 +343,7 @@ namespace Shark {
 					auto color = spriteRendererComponent["Color"];
 					auto textureFilePath = spriteRendererComponent["Texture"];
 					auto tilingfactor = spriteRendererComponent["TilingFactor"];
+					auto thickness = spriteRendererComponent["Thickness"];
 					auto geometry = spriteRendererComponent["Geometry"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<SpriteRendererComponent>();
@@ -356,6 +358,9 @@ namespace Shark {
 
 					SK_CORE_ASSERT(tilingfactor, "Couldn't deserialize SpriteRendererComponent::TilingFactor");
 					comp.TilingFactor = tilingfactor.as<float>();
+
+					SK_CORE_ASSERT(thickness, "Couldn't deserialize SpriteRendererComponent::Thickness");
+					comp.Thickness = thickness.as<float>();
 
 					SK_CORE_ASSERT(geometry, "Couldn't deserialize SpriteRendererComponent::Geometry");
 					comp.Geometry = Convert::StringToGeometry(geometry.as<std::string>());
@@ -572,6 +577,7 @@ namespace Shark {
 					auto color = spriteRendererComponent["Color"];
 					auto textureFilePath = spriteRendererComponent["Texture"];
 					auto tilingfactor = spriteRendererComponent["TilingFactor"];
+					auto thickness = spriteRendererComponent["Thickness"];
 					auto geometry = spriteRendererComponent["Geometry"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<SpriteRendererComponent>();
@@ -596,6 +602,9 @@ namespace Shark {
 					if (geometry)
 						comp.Geometry = Convert::StringToGeometry(geometry.as<std::string>());
 
+					SK_CORE_VERIFY(thickness, "Couldn't deserialize SpriteRendererComponent::Thickness");
+					if (thickness)
+						comp.Thickness = thickness.as<float>();
 
 					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
 				}

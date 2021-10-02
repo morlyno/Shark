@@ -268,7 +268,7 @@ namespace Shark {
 			UI::DrawVec3Control("Scaling", comp.Scaling, 1.0f);
 		});
 
-		Utils::DrawComponet<SpriteRendererComponent>(entity, "SptrieRenderer", [](SpriteRendererComponent& comp)
+		Utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp)
 		{
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100);
@@ -301,6 +301,10 @@ namespace Shark {
 			ImGui::Columns();
 
 			UI::DrawFloatControl("TilingFactor", comp.TilingFactor, 1.0f, "%.2f", 100.0f, "R");
+
+			if (comp.Geometry == SpriteRendererComponent::GeometryType::Circle)
+				UI::DrawFloatControl("Thickness", comp.Thickness);
+
 			ImGui::Separator();
 			int geometry = (int)comp.Geometry;
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());

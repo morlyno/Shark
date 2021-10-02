@@ -566,13 +566,7 @@ namespace Shark {
 
 			DirectX::XMFLOAT4X4 view;
 			DirectX::XMFLOAT4X4 projection;
-			if (m_SceneState == SceneState::Edit)
-			{
-				ImGuizmo::SetOrthographic(false);
-				DirectX::XMStoreFloat4x4(&view, m_EditorCamera.GetView());
-				DirectX::XMStoreFloat4x4(&projection, m_EditorCamera.GetProjection());
-			}
-			else
+			if (m_SceneState == SceneState::Play)
 			{
 				auto activeScene = SceneManager::GetActiveScene();
 				Entity cameraEntity = activeScene->GetActiveCamera();
@@ -582,6 +576,12 @@ namespace Shark {
 				ImGuizmo::SetOrthographic(camera.GetProjectionType() == SceneCamera::Projection::Orthographic);
 				DirectX::XMStoreFloat4x4(&view, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
 				DirectX::XMStoreFloat4x4(&projection, camera.GetProjection());
+			}
+			else
+			{
+				ImGuizmo::SetOrthographic(false);
+				DirectX::XMStoreFloat4x4(&view, m_EditorCamera.GetView());
+				DirectX::XMStoreFloat4x4(&projection, m_EditorCamera.GetProjection());
 			}
 
 			auto& tf = m_SelectetEntity.GetComponent<TransformComponent>();
@@ -644,7 +644,7 @@ namespace Shark {
 				}
 				else
 				{
-					ImGui::Text("Hovered Entity: InValid Entity");
+					ImGui::Text("Hovered Entity: ID: %d", m_HoveredEntityID);
 				}
 			}
 			else
