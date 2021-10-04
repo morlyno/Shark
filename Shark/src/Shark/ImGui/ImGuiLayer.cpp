@@ -1,7 +1,11 @@
 #include "skpch.h"
 #include "ImGuiLayer.h"
 
+#include "Shark/Utility/UI.h"
 #include "Shark/File/FileSystem.h"
+
+#include "Shark/Core/Application.h"
+#include "Platform/DirectX11/DirectXRendererAPI.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -10,8 +14,6 @@
 
 #include <ImGuizmo.h>
 
-#include "Shark/Core/Application.h"
-#include "Platform/DirectX11/DirectXRendererAPI.h"
 
 namespace Shark {
 
@@ -88,6 +90,7 @@ namespace Shark {
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
+		UI::NewFrame();
 	}
 
 	void ImGuiLayer::End()

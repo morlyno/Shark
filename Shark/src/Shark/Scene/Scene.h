@@ -29,14 +29,13 @@ namespace Shark {
 
 		void OnScenePlay();
 		void OnSceneStop();
-
 		void OnSimulateStart();
-		void OnSimulateStop();
 
 		void OnUpdateRuntime(TimeStep ts);
-		void OnUpdateEditor(TimeStep ts, EditorCamera& camera);
+		void OnUpdateEditor(TimeStep ts);
 		void OnSimulate(TimeStep ts, bool subStep = false);
 
+		void Render();
 		void Render(EditorCamera& camera);
 		
 		Entity CloneEntity(Entity srcEntity);
@@ -46,6 +45,7 @@ namespace Shark {
 
 		Entity GetEntityByUUID(UUID uuid);
 
+		SK_DEPRECATED("Use Entity::IsValid instead")
 		bool IsValidEntity(Entity entity) const;
 
 		Entity GetActiveCamera();

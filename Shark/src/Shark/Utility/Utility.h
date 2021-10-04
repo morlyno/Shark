@@ -37,4 +37,6 @@ namespace Shark::Utility {
 	template<typename T, uint32_t _Count>
 	constexpr uint32_t ArraySize(const T(&)[_Count]) { return _Count; }
 
+	std::string ToNarrow(const std::wstring& str);
+
 }

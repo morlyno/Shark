@@ -113,7 +113,8 @@ namespace Shark {
 			DeletePopup(m_SelectedEntry, GetEntry(m_SelectedEntry));
 
 		//ImGui::SetCursorPosY(ImGui::GetCursorPosY() - UI::GetFramePadding().y);
-		ImGui::SetCursorPos(ImGui::GetCursorPos() - UI::GetFramePadding());
+		ImGuiStyle& style = ImGui::GetStyle();
+		ImGui::SetCursorPos(ImGui::GetCursorPos() - style.FramePadding);
 
 		DrawHistoryNavigationButtons();
 		
@@ -157,10 +158,10 @@ namespace Shark {
 
 		UI::MoveCurserPosY(ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeight());
 		ImGui::Separator();
-		
+
 		const float widthAvailable = ImGui::GetContentRegionAvail().x;
-		const float textSize = UI::GetItemSize("Icon Size").x;
-		const float sliderSize = (widthAvailable - textSize - UI::GetFramePadding().x) * 0.2f;
+		const float textSize = ImGui::CalcTextSize("Icon Size").x + style.FramePadding.x * 2.0f;
+		const float sliderSize = (widthAvailable - textSize - style.FramePadding.x) * 0.2f;
 		const float offset = widthAvailable - textSize - sliderSize;
 		
 		UI::MoveCurserPosX(offset);

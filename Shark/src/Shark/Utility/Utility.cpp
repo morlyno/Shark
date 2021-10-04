@@ -78,5 +78,9 @@ namespace Shark::Utility {
 #endif
 	}
 
+	std::string ToNarrow(const std::wstring& str)
+	{
+		return std::string(str.begin(), str.end());
+	}
 
 }

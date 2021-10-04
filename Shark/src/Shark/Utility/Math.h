@@ -56,7 +56,16 @@ namespace Shark::Math {
 	DirectX::XMFLOAT3 GetRotation(DirectX::XMMATRIX matrix);
 	DirectX::XMFLOAT3 GetRotation(const DirectX::XMFLOAT4X4& matrix);
 
-	float ToRadians(float degrees);
-	float ToDegrees(float radians);
+
+	constexpr float             ToRadians(float degrees)                    { return DirectX::XMConvertToRadians(degrees); }
+	constexpr float             ToDegrees(float radians)                    { return DirectX::XMConvertToDegrees(radians); }
+	constexpr DirectX::XMFLOAT2 ToRadians(const DirectX::XMFLOAT2& degrees) { return { ToRadians(degrees.x), ToRadians(degrees.y) }; }
+	constexpr DirectX::XMFLOAT2 ToDegrees(const DirectX::XMFLOAT2& radians) { return { ToDegrees(radians.x), ToDegrees(radians.y) }; }
+	constexpr DirectX::XMFLOAT3 ToRadians(const DirectX::XMFLOAT3& degrees) { return { ToRadians(degrees.x), ToRadians(degrees.y), ToRadians(degrees.z) }; }
+	constexpr DirectX::XMFLOAT3 ToDegrees(const DirectX::XMFLOAT3& radians) { return { ToDegrees(radians.x), ToDegrees(radians.y), ToDegrees(radians.z) }; }
+	constexpr DirectX::XMFLOAT4 ToRadians(const DirectX::XMFLOAT4& degrees) { return { ToRadians(degrees.x), ToRadians(degrees.y), ToRadians(degrees.z), ToRadians(degrees.w) }; }
+	constexpr DirectX::XMFLOAT4 ToDegrees(const DirectX::XMFLOAT4& radians) { return { ToDegrees(radians.x), ToDegrees(radians.y), ToDegrees(radians.z), ToDegrees(radians.w) }; }
+
+	DirectX::XMMATRIX ViewFromTransform(const DirectX::XMMATRIX& transform);
 
 }

@@ -16,6 +16,7 @@
 // --- Utility --------------------------
 #include "Shark/Utility/PlatformUtils.h"
 #include "Shark/Utility/Utility.h"
+#include "Shark/Utility/UI.h"
 #include "Shark/Utility/ImGuiUtils.h"
 #include "Shark/Utility/Math.h"
 // --------------------------------------
