@@ -1,11 +1,12 @@
 
 **/bin/
 **/bin-int/
-dependencies/**
+dependencies/
 Scripts/__pycache__
 
-SharkFin/assets/**
-!SharkFin/assets/Shaders/**
+**/assets/*
+!**/assets/Shaders
+
 **/Log/*.log
 *.json
 **/imgui.ini
