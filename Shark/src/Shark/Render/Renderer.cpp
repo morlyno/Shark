@@ -68,6 +68,13 @@ namespace Shark {
 		RendererCommand::ShutDown();
 	}
 
+	void Renderer::Submit(const std::function<void()>& func)
+	{
+		// This layout is so that the changed to multi Threading is simpler
+		// Everything that has something to do with Renderer must be called through Sumbit
+		func();
+	}
+
 	void Renderer::SubmitFullScreenQuad()
 	{
 		s_BaseData->QuadIB->Bind();

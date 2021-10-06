@@ -6,7 +6,6 @@
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components/TransformComponent.h"
-#include "Shark/Render/Material.h"
 
 //#define SK_OLD_RENDERER2D
 

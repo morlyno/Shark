@@ -16,9 +16,6 @@ namespace Shark {
 
 		virtual void SetData(void* data, uint32_t size) override;
 
-		virtual void* Map() override;
-		virtual void UnMap() override;
-
 		virtual uint32_t GetSize() const { return m_Size; }
 
 		virtual void Bind() override;
@@ -45,9 +42,6 @@ namespace Shark {
 		virtual void Resize(uint32_t count) override;
 
 		virtual void SetData(IndexType* data, uint32_t count) override;
-
-		virtual void* Map() override;
-		virtual void UnMap() override;
 
 		virtual uint32_t GetCount() const override { return m_Count; }
 		virtual uint32_t GetSize() const override { return m_Size; }

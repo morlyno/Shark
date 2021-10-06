@@ -74,8 +74,8 @@ namespace Shark {
 		Ref<VertexBuffer> CircleVertexBuffer;
 		Ref<IndexBuffer> IndexBuffer;
 
-		Ref<Material> QuadMaterial;
-		Ref<Material> CircleMaterial;
+		Ref<Shaders> QuadShader;
+		Ref<Shaders> CircleShader;
 
 		QuadBatch QuadBatch;
 		CircleBatch CircleBatch;
@@ -109,7 +109,7 @@ namespace Shark {
 			s_Data->ViewProjection->Bind();
 			s_Data->QuadVertexBuffer->Bind();
 			s_Data->IndexBuffer->Bind();
-			s_Data->QuadMaterial->GetShaders()->Bind();
+			s_Data->QuadShader->Bind();
 
 			for (uint32_t i = 0; i < batch.TextureCount; i++)
 				batch.Textures[i]->Bind(i);
@@ -138,7 +138,7 @@ namespace Shark {
 			s_Data->ViewProjection->Bind();
 			s_Data->CircleVertexBuffer->Bind();
 			s_Data->IndexBuffer->Bind();
-			s_Data->CircleMaterial->GetShaders()->Bind();
+			s_Data->CircleShader->Bind();
 
 			for (uint32_t i = 0; i < batch.TextureCount; i++)
 				batch.Textures[i]->Bind(i);
@@ -253,14 +253,11 @@ namespace Shark {
 		s_Data->CircleBatch.VertexBasePtr = new CircleVertex[BatchData::MaxVertices];
 		s_Data->CircleBatch.VertexIndexPtr = s_Data->CircleBatch.VertexBasePtr;
 
-		auto quadShader = Renderer::GetShaderLib().Get("QuadShader");
-		auto circleShader = Renderer::GetShaderLib().Get("CircleShader");
+		s_Data->QuadShader = Renderer::GetShaderLib().Get("QuadShader");
+		s_Data->CircleShader = Renderer::GetShaderLib().Get("CircleShader");
 
-		s_Data->QuadVertexBuffer = VertexBuffer::Create(quadShader->GetVertexLayout(), s_Data->QuadBatch.VertexBasePtr, BatchData::MaxVertices, true);
-		s_Data->CircleVertexBuffer = VertexBuffer::Create(circleShader->GetVertexLayout(), s_Data->CircleBatch.VertexBasePtr, BatchData::MaxVertices, true);
-		
-		s_Data->QuadMaterial = Material::Create(quadShader, std::string{});
-		s_Data->CircleMaterial = Material::Create(circleShader, std::string{});
+		s_Data->QuadVertexBuffer = VertexBuffer::Create(s_Data->QuadShader->GetVertexLayout(), s_Data->QuadBatch.VertexBasePtr, BatchData::MaxVertices, true);
+		s_Data->CircleVertexBuffer = VertexBuffer::Create(s_Data->CircleShader->GetVertexLayout(), s_Data->CircleBatch.VertexBasePtr, BatchData::MaxVertices, true);
 
 		Index* indices = new Index[BatchData::MaxIndices];
 		for (uint32_t i = 0, j = 0; i < BatchData::MaxIndices; i += 6, j += 4)

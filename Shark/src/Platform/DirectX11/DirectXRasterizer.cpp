@@ -47,7 +47,8 @@ namespace Shark {
 
     void DirectXRasterizer::UnBind()
     {
-        DirectXRendererAPI::GetContext()->RSSetState(nullptr);
+        ID3D11RasterizerState* nullrrs = nullptr;
+        DirectXRendererAPI::GetContext()->RSSetState(nullrrs);
     }
 
     void DirectXRasterizer::SetFillMode(FillMode fill)

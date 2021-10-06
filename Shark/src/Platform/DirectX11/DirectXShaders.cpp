@@ -253,9 +253,12 @@ namespace Shark {
 	void DirectXShaders::UnBind()
 	{
 		auto* ctx = DirectXRendererAPI::GetContext();
-		ctx->VSSetShader(nullptr, nullptr, 0u);
-		ctx->PSSetShader(nullptr, nullptr, 0u);
-		ctx->IASetInputLayout(nullptr);
+		ID3D11VertexShader* nullvs = nullptr;
+		ID3D11PixelShader* nullps = nullptr;
+		ID3D11InputLayout* nullil = nullptr;
+		ctx->VSSetShader(nullvs, nullptr, 0u);
+		ctx->PSSetShader(nullps, nullptr, 0u);
+		ctx->IASetInputLayout(nullil);
 	}
 
 	std::string DirectXShaders::ReadFile(const std::filesystem::path& filepath)

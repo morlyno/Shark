@@ -40,7 +40,8 @@ namespace Shark {
 
 	void DirectXConstantBuffer::UnBind()
 	{
-		DirectXRendererAPI::GetContext()->VSSetConstantBuffers(m_Slot, 1, nullptr);
+		ID3D11Buffer* nullBuffer = nullptr;
+		DirectXRendererAPI::GetContext()->VSSetConstantBuffers(m_Slot, 1, &nullBuffer);
 	}
 
 	void DirectXConstantBuffer::Set(void* data)

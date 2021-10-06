@@ -11,11 +11,7 @@ namespace Shark {
 		virtual ~VertexBuffer() = default;
 
 		virtual void Resize(uint32_t size) = 0;
-
 		virtual void SetData(void* data, uint32_t size) = 0;
-
-		virtual void* Map() = 0;
-		virtual void UnMap() = 0;
 
 		virtual uint32_t GetSize() const = 0;
 
@@ -34,11 +30,7 @@ namespace Shark {
 		virtual ~IndexBuffer() = default;
 
 		virtual void Resize(uint32_t count) = 0;
-
 		virtual void SetData(IndexType* data, uint32_t count) = 0;
-
-		virtual void* Map() = 0;
-		virtual void UnMap() = 0;
 
 		virtual uint32_t GetCount() const = 0;
 		virtual uint32_t GetSize() const = 0;

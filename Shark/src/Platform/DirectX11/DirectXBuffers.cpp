@@ -67,20 +67,6 @@ namespace Shark {
 		}
 	}
 
-	void* DirectXVertexBuffer::Map()
-	{
-		auto* ctx = DirectXRendererAPI::GetContext();
-		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_CHECK(ctx->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-		return ms.pData;
-	}
-
-	void DirectXVertexBuffer::UnMap()
-	{
-		auto* ctx = DirectXRendererAPI::GetContext();
-		ctx->Unmap(m_VertexBuffer, 0);
-	}
-
 	void DirectXVertexBuffer::Bind()
 	{
 		const UINT stride = m_Layout.GetVertexSize();
@@ -90,8 +76,8 @@ namespace Shark {
 
 	void DirectXVertexBuffer::UnBind()
 	{
-		constexpr UINT null = 0u;
-		DirectXRendererAPI::GetContext()->IASetVertexBuffers(0u, 0u, nullptr, &null, &null);
+		ID3D11Buffer* nullBuffer = nullptr;
+		DirectXRendererAPI::GetContext()->IASetVertexBuffers(0u, 1u, &nullBuffer, nullptr, nullptr);
 	}
 
 	void DirectXVertexBuffer::CreateBuffer(void* data, uint32_t size)
@@ -173,20 +159,6 @@ namespace Shark {
 		}
 	}
 
-	void* DirectXIndexBuffer::Map()
-	{
-		auto* ctx = DirectXRendererAPI::GetContext();
-		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_CHECK(ctx->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-		return ms.pData;
-	}
-
-	void DirectXIndexBuffer::UnMap()
-	{
-		auto* ctx = DirectXRendererAPI::GetContext();
-		ctx->Unmap(m_IndexBuffer, 0);
-	}
-
 	void DirectXIndexBuffer::Bind()
 	{
 		DirectXRendererAPI::GetContext()->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0u);
@@ -194,7 +166,8 @@ namespace Shark {
 
 	void DirectXIndexBuffer::UnBind()
 	{
-		DirectXRendererAPI::GetContext()->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0u);
+		ID3D11Buffer* nullBuffer = nullptr;
+		DirectXRendererAPI::GetContext()->IASetIndexBuffer(nullBuffer, DXGI_FORMAT_UNKNOWN, 0u);
 	}
 
 	void DirectXIndexBuffer::CreateBuffer(IndexType* data, uint32_t count)

@@ -272,11 +272,17 @@ namespace Shark {
 	void DirectXFrameBuffer::UnBind()
 	{
 		auto* ctx = DirectXRendererAPI::GetContext();
+		
+		ID3D11DepthStencilState* nulldss = nullptr;
+		ID3D11RenderTargetView* nullrtv = nullptr;
+		ID3D11DepthStencilView* nulldsv = nullptr;
+		ID3D11BlendState* nullds = nullptr;
+		D3D11_VIEWPORT nullvp{ 0 };
 
-		ctx->OMSetDepthStencilState(nullptr, 0);
-		ctx->OMSetRenderTargets(0, nullptr, nullptr);
-		ctx->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
-		ctx->RSSetViewports(0, nullptr);
+		ctx->OMSetDepthStencilState(nulldss, 0);
+		ctx->OMSetRenderTargets(m_Count, &nullrtv, nulldsv);
+		ctx->OMSetBlendState(nullds, nullptr, 0xFFFFFFFF);
+		ctx->RSSetViewports(1, &nullvp);
 	}
 
 	void DirectXFrameBuffer::CreateDepth32Buffer()

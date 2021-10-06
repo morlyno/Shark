@@ -39,7 +39,8 @@ namespace Shark {
 		uint32_t Offset = 0;
 
 		VertexElement(VertexDataType type, const std::string& semantic)
-			: Semantic(semantic), Type(type), Size(GetVertexTypeSize(type)) {}
+			: Semantic(semantic), Type(type), Size(GetVertexTypeSize(type))
+		{}
 	};
 
 	
@@ -47,32 +48,21 @@ namespace Shark {
 	{
 	public:
 		VertexLayout() = default;
-		VertexLayout(const std::initializer_list<VertexElement>& elements)
-			: m_Elements(elements) { CalcOffsetAndSize(); }
-		VertexLayout(std::vector<VertexElement>&& elements)
-			: m_Elements(std::move(elements)) { CalcOffsetAndSize(); }
+		VertexLayout(const std::initializer_list<VertexElement>& elements);
+		VertexLayout(std::vector<VertexElement>&& elements);
 
-		void Add(const VertexElement& element) { m_Elements.emplace_back(element); }
-		void Init() { CalcOffsetAndSize(); }
+		void Add(const VertexElement& element);
+		void Init();
 
-		uint32_t GetVertexSize() { return m_VertexSize; }
-		uint32_t GetElementCount() { return (uint32_t)m_Elements.size(); }
+		uint32_t GetVertexSize();
+		uint32_t GetElementCount();
 
-		std::vector<VertexElement>::iterator begin() { return m_Elements.begin(); }
-		std::vector<VertexElement>::iterator end() { return m_Elements.end(); }
+		std::vector<VertexElement>::iterator begin();
+		std::vector<VertexElement>::iterator end();
 
 	private:
-		void CalcOffsetAndSize()
-		{
-			uint32_t offset = 0u;
-			m_VertexSize = 0u;
-			for (auto& e : m_Elements)
-			{
-				e.Offset = offset;
-				offset += e.Size;
-				m_VertexSize += e.Size;
-			}
-		}
+		void CalcOffsetAndSize();
+
 	private:
 		std::vector<VertexElement> m_Elements;
 		uint32_t m_VertexSize = 0u;

@@ -11,8 +11,6 @@
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-#include <Shark/Render/TestRenderer.h>
-
 #include <Shark/Debug/Instrumentor.h>
 
 namespace Shark {

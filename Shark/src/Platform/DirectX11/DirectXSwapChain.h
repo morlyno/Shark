@@ -41,6 +41,7 @@ namespace Shark {
 		Ref<DirectXSwapChainFrameBuffer> GetMainFrameBuffer() const { return m_FrameBuffer; }
 
 		void Bind() { m_FrameBuffer->Bind(); }
+		void UnBind() { m_FrameBuffer->UnBind(); }
 
 	private:
 		IDXGISwapChain* m_SwapChain = nullptr;
