@@ -29,6 +29,8 @@ namespace Shark {
 
 	void DirectXVertexBuffer::Resize(uint32_t size)
 	{
+		// TODO(moro): fix-me buffer is empty after resize. the data should get copied into the new buffer.
+
 		SK_CORE_ASSERT(m_Dynamic);
 		m_Size = size;
 		D3D11_BUFFER_DESC bd = {};
@@ -77,7 +79,8 @@ namespace Shark {
 	void DirectXVertexBuffer::UnBind()
 	{
 		ID3D11Buffer* nullBuffer = nullptr;
-		DirectXRendererAPI::GetContext()->IASetVertexBuffers(0u, 1u, &nullBuffer, nullptr, nullptr);
+		constexpr UINT null = 0;
+		DirectXRendererAPI::GetContext()->IASetVertexBuffers(0u, 1u, &nullBuffer, &null, &null);
 	}
 
 	void DirectXVertexBuffer::CreateBuffer(void* data, uint32_t size)
@@ -116,6 +119,8 @@ namespace Shark {
 
 	void DirectXIndexBuffer::Resize(uint32_t count)
 	{
+		// TODO(moro): fix-me buffer is empty after resize. the data should get copied into the new buffer.
+
 		SK_CORE_ASSERT(m_Dynamic);
 		m_Count = count;
 		m_Size = count * sizeof(IndexType);

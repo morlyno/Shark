@@ -4,6 +4,11 @@
 
 namespace Shark {
 
+	enum class PrimitveTopology
+	{
+		Triangle, Line, Dot
+	};
+
 	class RendererAPI : public RefCount
 	{
 	public:
@@ -24,7 +29,8 @@ namespace Shark {
 		// Temp
 		virtual void MainFrameBufferSetBlend(bool blend) = 0;
 
-		virtual void DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset) = 0;
+		virtual void Draw(uint32_t vertexCount, PrimitveTopology topology) = 0;
+		virtual void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) = 0;
 		virtual void Flush() = 0;
 
 		static API GetAPI() { return s_API; }

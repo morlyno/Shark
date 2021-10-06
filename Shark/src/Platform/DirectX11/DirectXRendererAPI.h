@@ -19,7 +19,8 @@ namespace Shark {
 		// Temp
 		virtual void MainFrameBufferSetBlend(bool blend) override { m_SwapChain->GetMainFrameBuffer()->SetBlend(0, blend); }
 
-		virtual void DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset) override;
+		virtual void Draw(uint32_t vertexCount, PrimitveTopology topology) override;
+		virtual void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) override;
 		virtual void Flush() override;
 
 		Ref<DirectXSwapChain> GetSwapChain() const { return m_SwapChain; }

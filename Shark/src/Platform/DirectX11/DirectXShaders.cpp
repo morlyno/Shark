@@ -399,11 +399,13 @@ namespace Shark {
 					SK_CORE_ERROR(" - File: {0}", Utils::StageToString(stage));
 					SK_CORE_ERROR(" - Error Msg: {0}", (char*)errorMsg->GetBufferPointer());
 					SK_CORE_ASSERT(false);
+					errorMsg->Release();
 				}
 
 				auto& binary = m_ShaderBinarys[stage];
 				binary.resize(shaderBinary->GetBufferSize());
 				memcpy(binary.data(), shaderBinary->GetBufferPointer(), shaderBinary->GetBufferSize());
+				shaderBinary->Release();
 
 				std::ofstream out(cacheFile, std::ios::out | std::ios::binary);
 				SK_CORE_ASSERT(out);

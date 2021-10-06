@@ -28,8 +28,9 @@ namespace Shark {
 
 		s_BaseData = new RendererBaseData;
 
-		s_BaseData->ShaderLib.Load("assets/Shaders/QuadShader.hlsl");
-		s_BaseData->ShaderLib.Load("assets/Shaders/CircleShader.hlsl");
+		s_BaseData->ShaderLib.Load("assets/Shaders/BatchShader2D_Quad.hlsl");
+		s_BaseData->ShaderLib.Load("assets/Shaders/BatchShader2D_Circle.hlsl");
+		s_BaseData->ShaderLib.Load("assets/Shaders/BatchShader2D_Line.hlsl");
 
 		s_BaseData->ShaderLib.Load("assets/Shaders/FullScreen.hlsl");
 		s_BaseData->ShaderLib.Load("assets/Shaders/NegativeEffect.hlsl");
@@ -79,7 +80,9 @@ namespace Shark {
 	{
 		s_BaseData->QuadIB->Bind();
 		s_BaseData->QuadVB->Bind();
-		RendererCommand::DrawIndexed(s_BaseData->QuadIB->GetCount());
+		RendererCommand::DrawIndexed(s_BaseData->QuadIB->GetCount(), PrimitveTopology::Triangle);
+		s_BaseData->QuadVB->UnBind();
+		s_BaseData->QuadIB->UnBind();
 	}
 
 	ShaderLibrary& Renderer::GetShaderLib()

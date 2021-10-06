@@ -18,7 +18,8 @@ namespace Shark {
 		// Temp
 		static inline void MainFrameBufferSetBlend(bool blend) { s_RendererAPI->MainFrameBufferSetBlend(blend); }
 
-		static inline void DrawIndexed(uint32_t count, uint32_t indexoffset = 0, uint32_t vertexoffset = 0) { s_RendererAPI->DrawIndexed(count, indexoffset, vertexoffset); }
+		static inline void Draw(uint32_t vertexCount, PrimitveTopology topology) { s_RendererAPI->Draw(vertexCount, topology); }
+		static inline void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) { s_RendererAPI->DrawIndexed(indexCount, topology); }
 		static inline void Flush() { s_RendererAPI->Flush(); }
 
 		static inline RendererAPI& GetRendererAPI() { return *s_RendererAPI; }

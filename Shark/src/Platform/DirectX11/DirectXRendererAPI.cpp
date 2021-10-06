@@ -12,6 +12,19 @@
 
 namespace Shark {
 
+	static D3D11_PRIMITIVE_TOPOLOGY SharkPrimitveTopologyToD3D11(PrimitveTopology topology)
+	{
+		switch (topology)
+		{
+			case PrimitveTopology::Triangle:  return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			case PrimitveTopology::Line:      return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+			case PrimitveTopology::Dot:       return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+		}
+
+		SK_CORE_ASSERT(false, "Unkonw Topology");
+		return (D3D11_PRIMITIVE_TOPOLOGY)0;
+	}
+
 	DirectXRendererAPI* DirectXRendererAPI::s_Instance = nullptr;
 
 	namespace Utils {
@@ -81,12 +94,16 @@ namespace Shark {
 		s_Instance = nullptr;
 	}
 
-	void DirectXRendererAPI::DrawIndexed(uint32_t count, uint32_t indexoffset, uint32_t vertexoffset)
+	void DirectXRendererAPI::Draw(uint32_t vertexCount, PrimitveTopology topology)
 	{
-		SK_PROFILE_FUNCTION();
+		m_Context->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
+		m_Context->Draw(vertexCount, 0);
+	}
 
-		m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_Context->DrawIndexed(count, indexoffset, vertexoffset);
+	void DirectXRendererAPI::DrawIndexed(uint32_t indexCount, PrimitveTopology topology)
+	{
+		m_Context->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
+		m_Context->DrawIndexed(indexCount, 0, 0);
 	}
 
 	void DirectXRendererAPI::Flush()

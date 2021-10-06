@@ -42,13 +42,21 @@ namespace Shark {
 		int ID;
 	};
 
+	struct LineVertex
+	{
+		DirectX::XMFLOAT3 Pos;
+		DirectX::XMFLOAT4 Color;
+		int ID;
+	};
+
 	struct BatchData
 	{
 		static constexpr uint32_t MaxTextures = 16;
 		static constexpr uint32_t MaxGeometry = 20000;
-		static constexpr uint32_t MaxVertices = MaxGeometry * 4;
-		static constexpr uint32_t MaxIndices = MaxGeometry * 6;
-		static constexpr uint32_t QuadBatchTextureBaseIndex = MaxTextures * 0;
+		static constexpr uint32_t MaxQuadVertices = MaxGeometry * 4;
+		static constexpr uint32_t MaxLineVertices = MaxGeometry * 2;
+		static constexpr uint32_t MaxQuadIndices = MaxGeometry * 6;
+		static constexpr uint32_t QuadBatchTextureBasemx = MaxTextures * 0;
 		static constexpr uint32_t CircleBatchTextureBaseIndex = MaxTextures * 1;
 
 		struct QuadBatch
@@ -67,18 +75,27 @@ namespace Shark {
 			uint32_t TextureCount = 0;
 			uint32_t Count = 0;
 		};
+		struct LineBatch
+		{
+			LineVertex* VertexBasePtr = nullptr;
+			LineVertex* VertexIndexPtr = nullptr;
+			uint32_t Count = 0;
+		};
 
 		Ref<Texture2D> WhiteTexture;
 		Ref<ConstantBuffer> ViewProjection;
 		Ref<VertexBuffer> QuadVertexBuffer;
 		Ref<VertexBuffer> CircleVertexBuffer;
-		Ref<IndexBuffer> IndexBuffer;
+		Ref<VertexBuffer> LineVertexBuffer;
+		Ref<IndexBuffer> QuadIndexBuffer;
 
 		Ref<Shaders> QuadShader;
 		Ref<Shaders> CircleShader;
+		Ref<Shaders> LineShader;
 
 		QuadBatch QuadBatch;
 		CircleBatch CircleBatch;
+		LineBatch LineBatch;
 
 		Renderer2D::Statistics Stats;
 	};
@@ -89,12 +106,7 @@ namespace Shark {
 
 		static void ResetStates()
 		{
-			auto& s = s_Data->Stats;
-			s.DrawCalls = 0;
-			s.ElementCount = 0;
-			s.VertexCount = 0;
-			s.IndexCount = 0;
-			s.TextureCount = 0;
+			memset(&s_Data->Stats, 0, sizeof(s_Data->Stats));
 		}
 
 		static void FlushQuad()
@@ -104,17 +116,17 @@ namespace Shark {
 			if (batch.Count == 0)
 				return;
 
-			s_Data->QuadVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxVertices);
+			s_Data->QuadVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxQuadVertices);
 
 			s_Data->ViewProjection->Bind();
 			s_Data->QuadVertexBuffer->Bind();
-			s_Data->IndexBuffer->Bind();
+			s_Data->QuadIndexBuffer->Bind();
 			s_Data->QuadShader->Bind();
 
 			for (uint32_t i = 0; i < batch.TextureCount; i++)
 				batch.Textures[i]->Bind(i);
 
-			RendererCommand::DrawIndexed(batch.Count * 6);
+			RendererCommand::DrawIndexed(batch.Count * 6, PrimitveTopology::Triangle);
 
 			s_Data->Stats.DrawCalls++;
 			s_Data->Stats.TextureCount += batch.TextureCount;
@@ -133,17 +145,17 @@ namespace Shark {
 			if (batch.Count == 0)
 				return;
 
-			s_Data->CircleVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxVertices);
+			s_Data->CircleVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxQuadVertices);
 
 			s_Data->ViewProjection->Bind();
 			s_Data->CircleVertexBuffer->Bind();
-			s_Data->IndexBuffer->Bind();
+			s_Data->QuadIndexBuffer->Bind();
 			s_Data->CircleShader->Bind();
 
 			for (uint32_t i = 0; i < batch.TextureCount; i++)
 				batch.Textures[i]->Bind(i);
 
-			RendererCommand::DrawIndexed(batch.Count * 6);
+			RendererCommand::DrawIndexed(batch.Count * 6, PrimitveTopology::Triangle);
 
 			s_Data->Stats.DrawCalls++;
 			s_Data->Stats.TextureCount += batch.TextureCount;
@@ -152,6 +164,27 @@ namespace Shark {
 			batch.TextureCount = 1;
 			batch.Textures.fill(nullptr);
 			batch.Textures[0] = s_Data->WhiteTexture;
+			batch.Count = 0;
+		}
+
+		static void FlushLine()
+		{
+			auto& batch = s_Data->LineBatch;
+
+			if (batch.Count == 0)
+				return;
+
+			s_Data->LineVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxLineVertices);
+
+			s_Data->ViewProjection->Bind();
+			s_Data->LineVertexBuffer->Bind();
+			s_Data->LineShader->Bind();
+
+			RendererCommand::Draw(batch.Count * 2, PrimitveTopology::Line);
+
+			s_Data->Stats.DrawCalls++;
+
+			batch.VertexIndexPtr = batch.VertexBasePtr;
 			batch.Count = 0;
 		}
 
@@ -193,6 +226,7 @@ namespace Shark {
 			batch.Count++;
 
 			s_Data->Stats.ElementCount++;
+			s_Data->Stats.QuadCount++;
 			s_Data->Stats.VertexCount += 4;
 			s_Data->Stats.IndexCount += 6;
 		}
@@ -237,8 +271,34 @@ namespace Shark {
 			batch.Count++;
 
 			s_Data->Stats.ElementCount++;
+			s_Data->Stats.CircleCount++;
 			s_Data->Stats.VertexCount += 4;
 			s_Data->Stats.IndexCount += 6;
+		}
+
+		static void AddLine(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
+		{
+			auto& batch = s_Data->LineBatch;
+
+			if (batch.Count >= BatchData::MaxGeometry)
+				FlushLine();  
+
+			LineVertex* vtx = batch.VertexIndexPtr;
+			vtx->Pos = pos0;
+			vtx->Color = color;
+			vtx->ID = id;
+
+			vtx++;
+			vtx->Pos = pos1;
+			vtx->Color = color;
+			vtx->ID = id;
+
+			batch.Count++;
+
+			s_Data->Stats.ElementCount++;
+			s_Data->Stats.LineCount++;
+			s_Data->Stats.VertexCount += 2;
+
 		}
 
 	}
@@ -248,30 +308,34 @@ namespace Shark {
 		s_Data = new BatchData;
 		s_Data->ViewProjection = ConstantBuffer::Create(64, 0);
 
-		s_Data->QuadBatch.VertexBasePtr = new QuadVertex[BatchData::MaxVertices];
+		s_Data->QuadBatch.VertexBasePtr = new QuadVertex[BatchData::MaxQuadVertices];
 		s_Data->QuadBatch.VertexIndexPtr = s_Data->QuadBatch.VertexBasePtr;
-		s_Data->CircleBatch.VertexBasePtr = new CircleVertex[BatchData::MaxVertices];
+		s_Data->CircleBatch.VertexBasePtr = new CircleVertex[BatchData::MaxQuadVertices];
 		s_Data->CircleBatch.VertexIndexPtr = s_Data->CircleBatch.VertexBasePtr;
+		s_Data->LineBatch.VertexBasePtr = new LineVertex[BatchData::MaxLineVertices];
+		s_Data->LineBatch.VertexIndexPtr = s_Data->LineBatch.VertexBasePtr;
 
-		s_Data->QuadShader = Renderer::GetShaderLib().Get("QuadShader");
-		s_Data->CircleShader = Renderer::GetShaderLib().Get("CircleShader");
+		s_Data->QuadShader = Renderer::GetShaderLib().Get("BatchShader2D_Quad");
+		s_Data->CircleShader = Renderer::GetShaderLib().Get("BatchShader2D_Circle");
+		s_Data->LineShader = Renderer::GetShaderLib().Get("BatchShader2D_Line");
 
-		s_Data->QuadVertexBuffer = VertexBuffer::Create(s_Data->QuadShader->GetVertexLayout(), s_Data->QuadBatch.VertexBasePtr, BatchData::MaxVertices, true);
-		s_Data->CircleVertexBuffer = VertexBuffer::Create(s_Data->CircleShader->GetVertexLayout(), s_Data->CircleBatch.VertexBasePtr, BatchData::MaxVertices, true);
+		s_Data->QuadVertexBuffer = VertexBuffer::Create(s_Data->QuadShader->GetVertexLayout(), s_Data->QuadBatch.VertexBasePtr, BatchData::MaxQuadVertices, true);
+		s_Data->CircleVertexBuffer = VertexBuffer::Create(s_Data->CircleShader->GetVertexLayout(), s_Data->CircleBatch.VertexBasePtr, BatchData::MaxQuadVertices, true);
+		s_Data->LineVertexBuffer = VertexBuffer::Create(s_Data->LineShader->GetVertexLayout(), s_Data->LineBatch.VertexBasePtr, BatchData::MaxLineVertices, true);
 
-		Index* indices = new Index[BatchData::MaxIndices];
-		for (uint32_t i = 0, j = 0; i < BatchData::MaxIndices; i += 6, j += 4)
+		Index* quadIndices = new Index[BatchData::MaxQuadIndices];
+		for (uint32_t i = 0, j = 0; i < BatchData::MaxQuadIndices; i += 6, j += 4)
 		{
-			indices[i + 0] = j + 0;
-			indices[i + 1] = j + 1;
-			indices[i + 2] = j + 2;
+			quadIndices[i + 0] = j + 0;
+			quadIndices[i + 1] = j + 1;
+			quadIndices[i + 2] = j + 2;
 
-			indices[i + 3] = j + 2;
-			indices[i + 4] = j + 3;
-			indices[i + 5] = j + 0;
+			quadIndices[i + 3] = j + 2;
+			quadIndices[i + 4] = j + 3;
+			quadIndices[i + 5] = j + 0;
 		}
-		s_Data->IndexBuffer = IndexBuffer::Create(indices, BatchData::MaxIndices);
-		delete[] indices;
+		s_Data->QuadIndexBuffer = IndexBuffer::Create(quadIndices, BatchData::MaxQuadIndices);
+		delete[] quadIndices;
 
 		s_Data->WhiteTexture = Renderer::GetWhiteTexture();
 		s_Data->QuadBatch.TextureCount = 1;
@@ -280,6 +344,7 @@ namespace Shark {
 		s_Data->CircleBatch.Textures[0] = s_Data->WhiteTexture;
 
 #ifdef SK_DEBUG
+		// Bind the withe texture to all texture slots to avoid the annoying directx warnings
 		for (uint32_t i = 0; i < BatchData::MaxTextures; i++)
 			s_Data->WhiteTexture->Bind(i);
 #endif
@@ -289,6 +354,7 @@ namespace Shark {
 	{
 		delete s_Data->QuadBatch.VertexBasePtr;
 		delete s_Data->CircleBatch.VertexBasePtr;
+		delete s_Data->LineBatch.VertexBasePtr;
 
 		delete s_Data;
 	}
@@ -311,55 +377,126 @@ namespace Shark {
 	{
 		Internal::FlushQuad();
 		Internal::FlushCircle();
+		Internal::FlushLine();
 	}
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Quad ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		DrawQuad({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, id);
+	}
+
+	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id /*= -1*/)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 		Internal::AddQuad(translation, s_Data->WhiteTexture, 1.0f, color, id);
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		DrawQuad({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, texture, tilingfactor, tintcolor, id);
+	}
+
+	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id /*= -1*/)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 		Internal::AddQuad(translation, texture, tilingfactor, tintcolor, id);
 	}
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		DrawRotatedQuad({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, color, id);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id /*= -1*/)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 		Internal::AddQuad(translation, s_Data->WhiteTexture, 1.0f, color, id);
 	}
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		DrawRotatedQuad({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, texture, tilingfactor, tintcolor, id);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id /*= -1*/)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 		Internal::AddQuad(translation, texture, tilingfactor, tintcolor, id);
 	}
 
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Circle /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		DrawCircle({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, thickness, color, id);
+	}
+
+	void Renderer2D::DrawCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id /*= -1*/)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 		Internal::AddCircle(translation, thickness, s_Data->WhiteTexture, 1.0f, color, id);
 	}
 
 	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		DrawCircle({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, thickness, texture, tilingfactor, tintcolor, id);
+	}
+
+	void Renderer2D::DrawCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id /*= -1*/)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 		Internal::AddCircle(translation, thickness, texture, tilingfactor, tintcolor, id);
 	}
 
-	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2 scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		DrawRotatedCircle({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, thickness, color, id);
+	}
+
+	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id /*= -1*/)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 		Internal::AddCircle(translation, thickness, s_Data->WhiteTexture, 1.0f, color, id);
 	}
 
-	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2 scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixTranslation(position.x, position.y, 0.0f);
+		DrawRotatedCircle({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, thickness, texture, tilingfactor, tintcolor, id);
+	}
+
+	void Renderer2D::DrawRotatedCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id /*= -1*/)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 		Internal::AddCircle(translation, thickness, texture, tilingfactor, tintcolor, id);
 	}
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Line ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	void Renderer2D::DrawLine(const DirectX::XMFLOAT2& pos0, const DirectX::XMFLOAT2& pos1, const DirectX::XMFLOAT4& color, int id)
+	{
+		DrawLine({ pos0.x, pos0.y, 0.0f }, { pos1.x, pos1.y, 0.0f }, color, id);
+	}
+
+	void Renderer2D::DrawLine(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id /*= -1*/)
+	{
+		Internal::AddLine(pos0, pos1, color, id);
+	}
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Entity /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	void Renderer2D::DrawEntity(Entity entity)
 	{
