@@ -34,15 +34,16 @@ namespace Shark {
 		void OnSimulateStop();
 
 		void OnUpdateRuntime(TimeStep ts);
-		void OnUpdateEditor(TimeStep ts, EditorCamera& camera);
+		void OnUpdateEditor(TimeStep ts);
 		void OnSimulate(TimeStep ts, bool subStep = false);
 
-		void Render(EditorCamera& camera);
-		
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});
 		Entity CreateEntityWithUUID(UUID uuid, const std::string& tag = std::string{});
 		void DestroyEntity(Entity entity);
+
+		template<typename... Components>
+		std::vector<Entity> GetAllEntitysWith();
 
 		Entity GetEntityByUUID(UUID uuid);
 
@@ -54,6 +55,8 @@ namespace Shark {
 		void ResizeCameras(float width, float height);
 
 		void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
+		uint32_t GetViewportWidth() const { return m_ViewportWidth; }
+		uint32_t GetViewportHeight() const { return m_ViewportHeight; }
 
 		void SetFilePath(const std::filesystem::path& filepath) { m_FilePath = filepath; }
 		const std::filesystem::path& GetFilePath() const { return m_FilePath; }
@@ -75,5 +78,28 @@ namespace Shark {
 		friend class SceneHirachyPanel;
 		friend class SceneSerializer;
 	};
+
+
+	template<typename... Components>
+	std::vector<Shark::Entity> Scene::GetAllEntitysWith()
+	{
+		static_assert(sizeof...(Components) > 0);
+		if constexpr (sizeof...(Components) == 1)
+		{
+			auto view = m_Registry.view<Components...>();
+			std::vector<Entity> entitys;
+			for (auto e : view)
+				entitys.emplace_back(e, this);
+			return std::move(entitys);
+		}
+		else
+		{
+			auto group = m_Registry.group<Components...>();
+			std::vector<Entity> entitys;
+			for (auto e : view)
+				entitys.emplace_back(e, this);
+			return std::move(entitys);
+		}
+	}
 
 }

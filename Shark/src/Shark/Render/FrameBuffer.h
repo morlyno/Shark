@@ -37,8 +37,8 @@ namespace Shark {
 		ImageFormat Format;
 		StencilSpecification Stencil;
 
-		FrameBufferAtachment(ImageFormat format)
-			: Format(format) {}
+		FrameBufferAtachment(ImageFormat format, bool blend = false)
+			: Format(format), Blend(blend) {}
 	};
 
 	struct FrameBufferSpecification

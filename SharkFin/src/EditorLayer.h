@@ -6,6 +6,7 @@
 #include <Shark/Scene/Scene.h>
 #include <Shark/Scene/Entity.h>
 #include <Shark/Render/Texture.h>
+#include <Shark/Render/SceneRenderer.h>
 
 #include "SceneHirachyPanel.h"
 #include "AssetsPanel.h"
@@ -66,13 +67,13 @@ namespace Shark {
 		Ref<Scene> GetCurrentScene();
 	private:
 		EditorCamera m_EditorCamera;
-		Ref<FrameBuffer> m_GemometryFrameBuffer;
-		Ref<FrameBuffer> m_NegativeFrameBuffer;
-		Ref<FrameBuffer> m_BlurFrameBuffer;
+		//Ref<FrameBuffer> m_GemometryFrameBuffer;
+		//Ref<FrameBuffer> m_NegativeFrameBuffer;
+		//Ref<FrameBuffer> m_BlurFrameBuffer;
 		Ref<FrameBuffer> m_CompositFrameBuffer;
 		Ref<Rasterizer> m_Rasterizer;
-		Ref<Rasterizer> m_HilightRasterizer;
 
+		Ref<SceneRenderer> m_SceneRenderer;
 		Ref<Scene> m_WorkScene;
 		Ref<Scene> m_SimulationScene;
 		SceneHirachyPanel m_SceneHirachyPanel;

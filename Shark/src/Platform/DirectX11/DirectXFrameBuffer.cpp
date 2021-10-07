@@ -274,13 +274,13 @@ namespace Shark {
 		auto* ctx = DirectXRendererAPI::GetContext();
 		
 		ID3D11DepthStencilState* nulldss = nullptr;
-		ID3D11RenderTargetView* nullrtv = nullptr;
+		std::vector<ID3D11RenderTargetView*> nullrtvs(m_Count, nullptr);
 		ID3D11DepthStencilView* nulldsv = nullptr;
 		ID3D11BlendState* nullds = nullptr;
 		D3D11_VIEWPORT nullvp{ 0 };
 
 		ctx->OMSetDepthStencilState(nulldss, 0);
-		ctx->OMSetRenderTargets(m_Count, &nullrtv, nulldsv);
+		ctx->OMSetRenderTargets(m_Count, nullrtvs.data(), nulldsv);
 		ctx->OMSetBlendState(nullds, nullptr, 0xFFFFFFFF);
 		ctx->RSSetViewports(1, &nullvp);
 	}

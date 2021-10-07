@@ -54,6 +54,7 @@
 #include "Shark/Render/Rasterizer.h"
 #include "Shark/Render/Camera.h"
 #include "Shark/Render/EditorCamera.h"
+#include "Shark/Render/SceneRenderer.h"
 // --------------------------------------
 
 // --- Scene ----------------------------

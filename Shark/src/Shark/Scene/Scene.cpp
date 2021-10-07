@@ -1,10 +1,8 @@
 #include "skpch.h"
 #include "Scene.h"
 
-#include "Shark/Render/Renderer2D.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
-#include "Shark/Render/Renderer.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -170,8 +168,6 @@ namespace Shark {
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
 	{
-		SK_PROFILE_FUNCTION();
-
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
 			for (auto entityID : view)
@@ -198,42 +194,10 @@ namespace Shark {
 				transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 			}
 		}
-
-		if (!m_Registry.valid(m_RuntimeCamera))
-		{
-			SK_CORE_WARN("Invalid Camera Entity");
-			return;
-		}
-		
-		auto&& [camera, transform] = m_Registry.get<CameraComponent, TransformComponent>(m_RuntimeCamera);
-
-		{
-			SK_PROFILE_SCOPE("Render Scene Runtime");
-
-			Renderer2D::BeginScene(camera.Camera, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
-			{
-				auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-				for (auto entityID : group)
-					Renderer2D::DrawEntity({ entityID, this });
-			}
-			Renderer2D::EndScene();
-		}
 	}
 
-	void Scene::OnUpdateEditor(TimeStep ts, EditorCamera& camera)
+	void Scene::OnUpdateEditor(TimeStep ts)
 	{
-		SK_PROFILE_FUNCTION();
-		{
-			SK_PROFILE_SCOPE("Render Scene Editor");
-
-			Renderer2D::BeginScene(camera);
-			{
-				auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-				for (auto entityID : group)
-					Renderer2D::DrawEntity({ entityID, this });
-			}
-			Renderer2D::EndScene();
-		}
 	}
 
 	void Scene::OnSimulate(TimeStep ts, bool subStep)
@@ -259,17 +223,6 @@ namespace Shark {
 			transform.Position.y = pos.y;
 			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 		}
-	}
-
-	void Scene::Render(EditorCamera& camera)
-	{
-		Renderer2D::BeginScene(camera);
-
-		auto view = m_Registry.view<SpriteRendererComponent>();
-		for (auto entity : view)
-			Renderer2D::DrawEntity({ entity, this });
-
-		Renderer2D::EndScene();
 	}
 
 	Entity Scene::CloneEntity(Entity srcEntity)
