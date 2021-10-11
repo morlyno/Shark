@@ -18,4 +18,19 @@ namespace Shark {
 		static Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot);
 	};
 
+	class ConstantBufferSet : public RefCount
+	{
+	public:
+		Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot);
+		Ref<ConstantBuffer> Get(uint32_t index);
+		uint32_t BufferCount() const { return (uint32_t)m_ConstantBuffers.size(); }
+
+		void Bind();
+		void UnBind();
+
+		static Ref<ConstantBufferSet> Create();
+	private:
+		std::vector<Ref<ConstantBuffer>> m_ConstantBuffers;
+	};
+
 }

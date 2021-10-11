@@ -1,7 +1,6 @@
 #include "skpch.h"
 #include "Renderer.h"
 
-#include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Utility/Utility.h"
@@ -69,13 +68,6 @@ namespace Shark {
 		RendererCommand::ShutDown();
 	}
 
-	void Renderer::Submit(const std::function<void()>& func)
-	{
-		// This layout is so that the changed to multi Threading is simpler
-		// Everything that has something to do with Renderer must be called through Sumbit
-		func();
-	}
-
 	void Renderer::SubmitFullScreenQuad()
 	{
 		s_BaseData->QuadIB->Bind();
@@ -83,6 +75,15 @@ namespace Shark {
 		RendererCommand::DrawIndexed(s_BaseData->QuadIB->GetCount(), PrimitveTopology::Triangle);
 		s_BaseData->QuadVB->UnBind();
 		s_BaseData->QuadIB->UnBind();
+	}
+
+	void Renderer::SubmitGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Shaders> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
+	{
+		shaders->Bind();
+		constantBufferSet->Bind();
+		vertexBuffer->Bind();
+		indexBuffer->Bind();
+		RendererCommand::DrawIndexed(indexCount, topology);
 	}
 
 	ShaderLibrary& Renderer::GetShaderLib()

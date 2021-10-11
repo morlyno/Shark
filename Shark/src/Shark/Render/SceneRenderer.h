@@ -4,6 +4,7 @@
 #include "Shark/Scene/Scene.h"
 #include "Shark/Render/FrameBuffer.h"
 #include "Shark/Render/EditorCamera.h"
+#include "Shark/Render/RenderCommandBuffer.h"
 
 namespace Shark {
 
@@ -25,7 +26,7 @@ namespace Shark {
 	private:
 		Ref<Scene> m_Scene;
 		Ref<FrameBuffer> m_FrameBuffer;
-
+		Ref<RenderCommandBuffer> m_RenderCommandBuffer;
 	};
 
 }

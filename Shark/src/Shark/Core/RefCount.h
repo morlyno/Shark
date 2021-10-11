@@ -78,7 +78,7 @@ namespace Shark {
 		T& operator*() const { return *m_Instance; }
 
 		operator bool() const { return m_Instance != nullptr; }
-		bool operator==(const Ref& rhs) const { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetRefCount() == rhs.m_Instance->GetRefCount() : true)); return m_Instance == rhs.m_Instance; }
+		bool operator==(const Ref& rhs) const { SK_CORE_ASSERT(((m_Instance && rhs.m_Instance) ? (m_Instance == rhs.m_Instance ? m_Instance->GetRefCount() == rhs.m_Instance->GetRefCount() : true) : true)); return m_Instance == rhs.m_Instance; }
 		bool operator!=(const Ref& rhs) const { return !(*this == rhs); }
 
 		template<typename T2>

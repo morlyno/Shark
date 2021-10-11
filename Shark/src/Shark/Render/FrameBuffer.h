@@ -1,8 +1,6 @@
 #pragma once
 
 #include "Shark/Render/Texture.h"
-#include "Shark/Render/Shaders.h"
-#include "Shark/Utility/Utility.h"
 
 namespace Shark {
 

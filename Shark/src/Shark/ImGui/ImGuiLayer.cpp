@@ -3,15 +3,15 @@
 
 #include "Shark/File/FileSystem.h"
 
+#include "Shark/Core/Application.h"
+#include "Platform/DirectX11/DirectXRendererAPI.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_win32.h>
 
 #include <ImGuizmo.h>
-
-#include "Shark/Core/Application.h"
-#include "Platform/DirectX11/DirectXRendererAPI.h"
 
 namespace Shark {
 
@@ -53,8 +53,8 @@ namespace Shark {
 		ImGui_ImplWin32_Init(window.GetHandle());
 
 		SK_CORE_ASSERT(RendererAPI::GetAPI() == RendererAPI::API::DirectX11, "ImGui currently only works with DirectX11!");
-		auto& dxr = DirectXRendererAPI::Get();
-		ImGui_ImplDX11_Init(dxr.GetDevice(), dxr.GetContext());
+		auto dxr = DirectXRendererAPI::Get();
+		ImGui_ImplDX11_Init(dxr->GetDevice(), dxr->GetContext());
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
 		if (!ctx.SettingsLoaded && !FileSystem::Exists(ctx.IO.IniFilename))

@@ -21,23 +21,25 @@ namespace Shark {
 
 		virtual void Draw(uint32_t vertexCount, PrimitveTopology topology) override;
 		virtual void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) override;
-		virtual void Flush() override;
 
 		Ref<DirectXSwapChain> GetSwapChain() const { return m_SwapChain; }
 
+		void SetActiveContext(ID3D11DeviceContext* ctx) { m_ActiveContext = ctx; }
+
 	public:
-		static DirectXRendererAPI&   Get()         { return *s_Instance; }
-		static ID3D11Device*         GetDevice()   { return s_Instance->m_Device; }
-		static ID3D11DeviceContext*  GetContext()  { return s_Instance->m_Context; }
-		static IDXGIFactory*         GetFactory()  { return s_Instance->m_Factory; }
+		static Weak<DirectXRendererAPI> Get()                  { return s_Instance; }
+		static ID3D11Device*            GetDevice()            { return s_Instance->m_Device; }
+		static ID3D11DeviceContext*     GetContext()           { return s_Instance->m_ActiveContext; }
+		static ID3D11DeviceContext*     GetImmediateContext()  { return s_Instance->m_ImmediateContext; }
+		static IDXGIFactory*            GetFactory()           { return s_Instance->m_Factory; }
 
 	private:
 		static DirectXRendererAPI* s_Instance;
 
 		IDXGIFactory* m_Factory = nullptr;
 		ID3D11Device* m_Device = nullptr;
-		ID3D11DeviceContext* m_Context = nullptr;
-
+		ID3D11DeviceContext* m_ImmediateContext = nullptr;
+		ID3D11DeviceContext* m_ActiveContext = nullptr;
 		Ref<DirectXSwapChain> m_SwapChain = nullptr;
 
 	};

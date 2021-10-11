@@ -18,6 +18,11 @@
 
 namespace Shark {
 
+	struct CBCamera
+	{
+		DirectX::XMMATRIX ViewProjection;
+	};
+
 	using Index = IndexBuffer::IndexType;
 
 	struct QuadVertex
@@ -56,6 +61,7 @@ namespace Shark {
 		static constexpr uint32_t MaxQuadVertices = MaxGeometry * 4;
 		static constexpr uint32_t MaxLineVertices = MaxGeometry * 2;
 		static constexpr uint32_t MaxQuadIndices = MaxGeometry * 6;
+		static constexpr uint32_t MaxLineIndices = MaxGeometry * 6;
 		static constexpr uint32_t QuadBatchTextureBasemx = MaxTextures * 0;
 		static constexpr uint32_t CircleBatchTextureBaseIndex = MaxTextures * 1;
 
@@ -83,11 +89,12 @@ namespace Shark {
 		};
 
 		Ref<Texture2D> WhiteTexture;
-		Ref<ConstantBuffer> ViewProjection;
+		Ref<ConstantBufferSet> ConstantBuffers;
 		Ref<VertexBuffer> QuadVertexBuffer;
 		Ref<VertexBuffer> CircleVertexBuffer;
 		Ref<VertexBuffer> LineVertexBuffer;
 		Ref<IndexBuffer> QuadIndexBuffer;
+		Ref<IndexBuffer> LineIndexBuffer;
 
 		Ref<Shaders> QuadShader;
 		Ref<Shaders> CircleShader;
@@ -118,15 +125,16 @@ namespace Shark {
 
 			s_Data->QuadVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxQuadVertices);
 
-			s_Data->ViewProjection->Bind();
-			s_Data->QuadVertexBuffer->Bind();
-			s_Data->QuadIndexBuffer->Bind();
-			s_Data->QuadShader->Bind();
-
 			for (uint32_t i = 0; i < batch.TextureCount; i++)
 				batch.Textures[i]->Bind(i);
 
-			RendererCommand::DrawIndexed(batch.Count * 6, PrimitveTopology::Triangle);
+			//s_Data->QuadShader->Bind();
+			//s_Data->ConstantBuffers->Bind();
+			//s_Data->QuadVertexBuffer->Bind();
+			//s_Data->QuadIndexBuffer->Bind();
+
+			//RendererCommand::DrawIndexed(batch.Count * 6, PrimitveTopology::Triangle);
+			Renderer::SubmitGeometry(nullptr, s_Data->QuadShader, s_Data->ConstantBuffers, s_Data->QuadVertexBuffer, s_Data->QuadIndexBuffer, batch.Count * 6, PrimitveTopology::Triangle);
 
 			s_Data->Stats.DrawCalls++;
 			s_Data->Stats.TextureCount += batch.TextureCount;
@@ -147,15 +155,10 @@ namespace Shark {
 
 			s_Data->CircleVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxQuadVertices);
 
-			s_Data->ViewProjection->Bind();
-			s_Data->CircleVertexBuffer->Bind();
-			s_Data->QuadIndexBuffer->Bind();
-			s_Data->CircleShader->Bind();
-
 			for (uint32_t i = 0; i < batch.TextureCount; i++)
 				batch.Textures[i]->Bind(i);
 
-			RendererCommand::DrawIndexed(batch.Count * 6, PrimitveTopology::Triangle);
+			Renderer::SubmitGeometry(nullptr, s_Data->CircleShader, s_Data->ConstantBuffers, s_Data->CircleVertexBuffer, s_Data->QuadIndexBuffer, batch.Count * 6, PrimitveTopology::Triangle);
 
 			s_Data->Stats.DrawCalls++;
 			s_Data->Stats.TextureCount += batch.TextureCount;
@@ -176,11 +179,7 @@ namespace Shark {
 
 			s_Data->LineVertexBuffer->SetData(batch.VertexBasePtr, BatchData::MaxLineVertices);
 
-			s_Data->ViewProjection->Bind();
-			s_Data->LineVertexBuffer->Bind();
-			s_Data->LineShader->Bind();
-
-			RendererCommand::Draw(batch.Count * 2, PrimitveTopology::Line);
+			Renderer::SubmitGeometry(nullptr, s_Data->LineShader, s_Data->ConstantBuffers, s_Data->LineVertexBuffer, s_Data->LineIndexBuffer, batch.Count * 2, PrimitveTopology::Line);
 
 			s_Data->Stats.DrawCalls++;
 
@@ -298,6 +297,7 @@ namespace Shark {
 			s_Data->Stats.ElementCount++;
 			s_Data->Stats.LineCount++;
 			s_Data->Stats.VertexCount += 2;
+			s_Data->Stats.IndexCount += 2;
 
 		}
 
@@ -306,7 +306,10 @@ namespace Shark {
 	void Renderer2D::Init()
 	{
 		s_Data = new BatchData;
-		s_Data->ViewProjection = ConstantBuffer::Create(64, 0);
+
+		s_Data->ConstantBuffers = ConstantBufferSet::Create();
+		s_Data->ConstantBuffers->Create(sizeof(CBCamera), 0);
+
 
 		s_Data->QuadBatch.VertexBasePtr = new QuadVertex[BatchData::MaxQuadVertices];
 		s_Data->QuadBatch.VertexIndexPtr = s_Data->QuadBatch.VertexBasePtr;
@@ -337,6 +340,12 @@ namespace Shark {
 		s_Data->QuadIndexBuffer = IndexBuffer::Create(quadIndices, BatchData::MaxQuadIndices);
 		delete[] quadIndices;
 
+		Index* lineIndices = new Index[BatchData::MaxLineIndices];
+		for (uint32_t i = 0; i < BatchData::MaxLineIndices; i++)
+			lineIndices[i] = i;
+		s_Data->LineIndexBuffer = IndexBuffer::Create(lineIndices, BatchData::MaxLineIndices);
+		delete[] lineIndices;
+
 		s_Data->WhiteTexture = Renderer::GetWhiteTexture();
 		s_Data->QuadBatch.TextureCount = 1;
 		s_Data->QuadBatch.Textures[0] = s_Data->WhiteTexture;
@@ -363,18 +372,28 @@ namespace Shark {
 	{
 		Internal::ResetStates();
 		auto mat = view * camera.GetProjection();
-		s_Data->ViewProjection->Set(&mat);
+		CBCamera cam;
+		cam.ViewProjection = mat;
+		s_Data->ConstantBuffers->Get(0)->Set(&cam);
 	}
 
 	void Renderer2D::BeginScene(EditorCamera& camera)
 	{
 		Internal::ResetStates();
 		auto mat = camera.GetViewProjection();
-		s_Data->ViewProjection->Set(&mat);
+		CBCamera cam;
+		cam.ViewProjection = mat;
+		s_Data->ConstantBuffers->Get(0)->Set(&cam);
 	}
 
 	void Renderer2D::EndScene()
 	{
+#ifdef SK_DEBUG
+		// Bind the withe texture to all texture slots to avoid the annoying directx warnings
+		for (uint32_t i = 0; i < BatchData::MaxTextures; i++)
+			s_Data->WhiteTexture->Bind(i);
+#endif
+
 		Internal::FlushQuad();
 		Internal::FlushCircle();
 		Internal::FlushLine();

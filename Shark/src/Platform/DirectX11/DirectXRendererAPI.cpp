@@ -68,8 +68,9 @@ namespace Shark {
 			D3D11_SDK_VERSION,
 			&m_Device,
 			nullptr,
-			&m_Context
+			&m_ImmediateContext
 		));
+		m_ActiveContext = m_ImmediateContext;
 
 		adapter->Release();
 
@@ -81,14 +82,14 @@ namespace Shark {
 		specs.WindowHandle = window.GetHandle();
 		m_SwapChain = Ref<DirectXSwapChain>::Create(specs);
 
-		m_Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_ImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 	void DirectXRendererAPI::ShutDown()
 	{
 		m_SwapChain.Release();
 		if (m_Device) { m_Device->Release(); m_Device = nullptr; }
-		if (m_Context) { m_Context->Release(); m_Context = nullptr; }
+		if (m_ImmediateContext) { m_ImmediateContext->Release(); m_ImmediateContext = nullptr; }
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
 
 		s_Instance = nullptr;
@@ -96,19 +97,20 @@ namespace Shark {
 
 	void DirectXRendererAPI::Draw(uint32_t vertexCount, PrimitveTopology topology)
 	{
-		m_Context->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
-		m_Context->Draw(vertexCount, 0);
+		auto ctxType = m_ActiveContext->GetType();
+		SK_CORE_ASSERT(ctxType == D3D11_DEVICE_CONTEXT_DEFERRED);
+
+		m_ActiveContext->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
+		m_ActiveContext->Draw(vertexCount, 0);
 	}
 
 	void DirectXRendererAPI::DrawIndexed(uint32_t indexCount, PrimitveTopology topology)
 	{
-		m_Context->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
-		m_Context->DrawIndexed(indexCount, 0, 0);
-	}
+		auto ctxType = m_ActiveContext->GetType();
+		SK_CORE_ASSERT(ctxType == D3D11_DEVICE_CONTEXT_DEFERRED);
 
-	void DirectXRendererAPI::Flush()
-	{
-		m_Context->Flush();
+		m_ActiveContext->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
+		m_ActiveContext->DrawIndexed(indexCount, 0, 0);
 	}
 
 }

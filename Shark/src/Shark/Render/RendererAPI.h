@@ -31,7 +31,6 @@ namespace Shark {
 
 		virtual void Draw(uint32_t vertexCount, PrimitveTopology topology) = 0;
 		virtual void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) = 0;
-		virtual void Flush() = 0;
 
 		static API GetAPI() { return s_API; }
 		static void SetAPI(API api) { s_API = api; }

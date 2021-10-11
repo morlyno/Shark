@@ -20,7 +20,6 @@ namespace Shark {
 
 		static inline void Draw(uint32_t vertexCount, PrimitveTopology topology) { s_RendererAPI->Draw(vertexCount, topology); }
 		static inline void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) { s_RendererAPI->DrawIndexed(indexCount, topology); }
-		static inline void Flush() { s_RendererAPI->Flush(); }
 
 		static inline RendererAPI& GetRendererAPI() { return *s_RendererAPI; }
 	private:

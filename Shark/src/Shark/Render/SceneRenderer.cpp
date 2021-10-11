@@ -17,6 +17,8 @@ namespace Shark {
 		fbspecs.Atachments = { { ImageFormat::RGBA8, true }, ImageFormat::R32_SINT, ImageFormat::Depth32 };
 		fbspecs.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 		m_FrameBuffer = FrameBuffer::Create(fbspecs);
+
+		m_RenderCommandBuffer = RenderCommandBuffer::Create();
 	}
 
 	SceneRenderer::~SceneRenderer()
@@ -25,6 +27,7 @@ namespace Shark {
 
 	void SceneRenderer::OnRender(EditorCamera& camera)
 	{
+		m_RenderCommandBuffer->Begin();
 		m_FrameBuffer->ClearDepth();
 		m_FrameBuffer->ClearAtachment(0);
 		m_FrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
@@ -39,10 +42,13 @@ namespace Shark {
 		Renderer2D::EndScene();
 
 		m_FrameBuffer->UnBind();
+		m_RenderCommandBuffer->End();
+		m_RenderCommandBuffer->Execute();
 	}
 
 	void SceneRenderer::OnRender()
 	{
+		m_RenderCommandBuffer->Begin();
 		m_FrameBuffer->ClearDepth();
 		m_FrameBuffer->ClearAtachment(0);
 		m_FrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
@@ -61,6 +67,8 @@ namespace Shark {
 		Renderer2D::EndScene();
 
 		m_FrameBuffer->UnBind();
+		m_RenderCommandBuffer->End();
+		m_RenderCommandBuffer->Execute();
 	}
 
 	void SceneRenderer::Resize(uint32_t width, uint32_t height)
