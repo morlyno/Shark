@@ -17,7 +17,7 @@ namespace Shark {
 
 		virtual void SetSlot(uint32_t slot) override { m_Slot = slot; }
 
-		virtual void Set(void* data) override;
+		virtual void Set(void* data, uint32_t size) override;
 
 	private:
 		ID3D11Buffer* m_ConstBuffer = nullptr;

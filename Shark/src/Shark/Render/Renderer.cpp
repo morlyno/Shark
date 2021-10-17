@@ -1,11 +1,7 @@
 #include "skpch.h"
 #include "Renderer.h"
 
-#include "Shark/Render/Renderer2D.h"
-#include "Shark/Render/Buffers.h"
 #include "Shark/Utility/Utility.h"
-
-#include "Shark/Debug/Instrumentor.h"
 
 namespace Shark {
 
@@ -21,15 +17,13 @@ namespace Shark {
 
 	void Renderer::Init()
 	{
-		SK_PROFILE_FUNCTION();
-
 		RendererCommand::Init();
 
 		s_BaseData = new RendererBaseData;
 
-		s_BaseData->ShaderLib.Load("assets/Shaders/BatchShader2D_Quad.hlsl");
-		s_BaseData->ShaderLib.Load("assets/Shaders/BatchShader2D_Circle.hlsl");
-		s_BaseData->ShaderLib.Load("assets/Shaders/BatchShader2D_Line.hlsl");
+		s_BaseData->ShaderLib.Load("assets/Shaders/Renderer2D_Quad.hlsl");
+		s_BaseData->ShaderLib.Load("assets/Shaders/Renderer2D_Circle.hlsl");
+		s_BaseData->ShaderLib.Load("assets/Shaders/Renderer2D_Line.hlsl");
 
 		s_BaseData->ShaderLib.Load("assets/Shaders/FullScreen.hlsl");
 		s_BaseData->ShaderLib.Load("assets/Shaders/NegativeEffect.hlsl");
@@ -54,15 +48,10 @@ namespace Shark {
 
 		s_BaseData->QuadVB = VertexBuffer::Create(layout, vertices, sizeof(vertices));
 		s_BaseData->QuadIB = IndexBuffer::Create(indices, Utility::ArraySize(indices));
-		Renderer2D::Init();
 	}
 
 	void Renderer::ShutDown()
 	{
-		SK_PROFILE_FUNCTION();
-
-		Renderer2D::ShutDown();
-
 		delete s_BaseData;
 
 		RendererCommand::ShutDown();
@@ -77,8 +66,9 @@ namespace Shark {
 		s_BaseData->QuadIB->UnBind();
 	}
 
-	void Renderer::SubmitGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Shaders> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
+	void Renderer::SubmitGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shaders> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
 	{
+		frameBuffer->Bind();
 		shaders->Bind();
 		constantBufferSet->Bind();
 		vertexBuffer->Bind();

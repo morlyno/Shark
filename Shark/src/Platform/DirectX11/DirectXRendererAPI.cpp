@@ -97,18 +97,12 @@ namespace Shark {
 
 	void DirectXRendererAPI::Draw(uint32_t vertexCount, PrimitveTopology topology)
 	{
-		auto ctxType = m_ActiveContext->GetType();
-		SK_CORE_ASSERT(ctxType == D3D11_DEVICE_CONTEXT_DEFERRED);
-
 		m_ActiveContext->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
 		m_ActiveContext->Draw(vertexCount, 0);
 	}
 
 	void DirectXRendererAPI::DrawIndexed(uint32_t indexCount, PrimitveTopology topology)
 	{
-		auto ctxType = m_ActiveContext->GetType();
-		SK_CORE_ASSERT(ctxType == D3D11_DEVICE_CONTEXT_DEFERRED);
-
 		m_ActiveContext->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
 		m_ActiveContext->DrawIndexed(indexCount, 0, 0);
 	}

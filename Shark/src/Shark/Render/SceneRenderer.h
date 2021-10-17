@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Scene/Scene.h"
+#include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/FrameBuffer.h"
 #include "Shark/Render/EditorCamera.h"
 #include "Shark/Render/RenderCommandBuffer.h"
@@ -23,10 +24,12 @@ namespace Shark {
 
 		Ref<FrameBuffer> GetFrameBuffer() const { return m_FrameBuffer; }
 
+		Ref<Renderer2D> GetRenderer() const { return m_Renderer2D; }
+
 	private:
 		Ref<Scene> m_Scene;
 		Ref<FrameBuffer> m_FrameBuffer;
-		Ref<RenderCommandBuffer> m_RenderCommandBuffer;
+		Ref<Renderer2D> m_Renderer2D;
 	};
 
 }

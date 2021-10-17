@@ -7,6 +7,7 @@
 #include <Shark/Scene/Entity.h>
 #include <Shark/Render/Texture.h>
 #include <Shark/Render/SceneRenderer.h>
+#include <Shark/Render/Renderer2D.h>
 
 #include "SceneHirachyPanel.h"
 #include "AssetsPanel.h"

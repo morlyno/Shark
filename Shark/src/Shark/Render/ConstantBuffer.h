@@ -12,7 +12,7 @@ namespace Shark {
 
 		virtual void SetSlot(uint32_t slot) = 0;
 
-		virtual void Set(void* data) = 0;
+		virtual void Set(void* data, uint32_t size) = 0;
 
 	public:
 		static Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot);

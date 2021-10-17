@@ -88,7 +88,8 @@ namespace Shark {
 		compositfbspecs.Width = window.GetWidth();
 		compositfbspecs.Height = window.GetHeight();
 		compositfbspecs.Atachments = { ImageFormat::RGBA8 };
-		compositfbspecs.ClearColor = { 0.4f, 0.4f, 0.8f, 1.0f };
+		compositfbspecs.Atachments[0].Blend = false;
+		compositfbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 		m_CompositFrameBuffer = FrameBuffer::Create(compositfbspecs);
 
 		RasterizerSpecification rrspecs;
@@ -159,12 +160,11 @@ namespace Shark {
 			}
 		}
 
+		m_CompositFrameBuffer->Bind();
+		Renderer::GetShaderLib().Get("FullScreen")->Bind();
 
-		//m_CompositFrameBuffer->Bind();
-		//m_SceneRenderer->GetFrameBuffer()->BindAsTexture(0, 0);
-		//Renderer::GetShaderLib().Get("FullScreen")->Bind();
-		//Renderer::SubmitFullScreenQuad();
-		//m_SceneRenderer->GetFrameBuffer()->UnBindAsTexture(0, 0);
+		m_SceneRenderer->GetFrameBuffer()->BindAsTexture(0, 0);
+		Renderer::SubmitFullScreenQuad();
 
 		EffectesTest();
 
@@ -321,7 +321,8 @@ namespace Shark {
 			m_ViewportSizeChanged = true;
 		}
 
-		auto fbtex = m_SceneRenderer->GetFrameBuffer()->GetFramBufferContent(0);
+		//auto fbtex = m_SceneRenderer->GetFrameBuffer()->GetFramBufferContent(0);
+		auto fbtex = m_CompositFrameBuffer->GetFramBufferContent(0);
 		UI::NoAlpaImage(fbtex->GetRenderID(), size);
 
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -580,9 +581,11 @@ namespace Shark {
 
 			ImGui::NewLine();
 
-			auto s = Renderer2D::GetStatistics();
+			auto s = m_SceneRenderer->GetRenderer()->GetStatistics();
 			ImGui::Text("Draw Calls: %d", s.DrawCalls);
-			ImGui::Text("Element Count: %d", s.ElementCount);
+			ImGui::Text("Quad Count: %d", s.QuadCount);
+			ImGui::Text("Circle Count: %d", s.CircleCount);
+			ImGui::Text("Line Count: %d", s.LineCount);
 			ImGui::Text("Vertex Count: %d", s.VertexCount);
 			ImGui::Text("Index Count: %d", s.IndexCount);
 			ImGui::Text("Texture Count: %d", s.TextureCount);

@@ -27,8 +27,6 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::Begin()
 	{
-		m_DeferredContext->ClearState();
-		
 		auto api = DirectXRendererAPI::Get();
 		api->SetActiveContext(m_DeferredContext);
 	}
@@ -37,16 +35,16 @@ namespace Shark {
 	{
 		auto api = DirectXRendererAPI::Get();
 		api->SetActiveContext(api->GetImmediateContext());
-		
-		if (m_CommandList)
-			m_CommandList->Release();
-
-		SK_CHECK(m_DeferredContext->FinishCommandList(FALSE, &m_CommandList));
 	}
 
 	void DirectXRenderCommandBuffer::Execute()
 	{
+		if (m_CommandList)
+			m_CommandList->Release();
+
 		auto ctx = DirectXRendererAPI::GetImmediateContext();
+		SK_CHECK(m_DeferredContext->FinishCommandList(FALSE, &m_CommandList));
+		
 		ctx->ExecuteCommandList(m_CommandList, FALSE);
 	}
 

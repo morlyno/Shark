@@ -42,8 +42,11 @@ namespace Shark {
 		Entity CreateEntityWithUUID(UUID uuid, const std::string& tag = std::string{});
 		void DestroyEntity(Entity entity);
 
-		template<typename... Components>
-		std::vector<Entity> GetAllEntitysWith();
+		template<typename Component>
+		decltype(auto) GetAllEntitysWith()
+		{
+			return m_Registry.view<Component>();
+		}
 
 		Entity GetEntityByUUID(UUID uuid);
 
@@ -78,28 +81,5 @@ namespace Shark {
 		friend class SceneHirachyPanel;
 		friend class SceneSerializer;
 	};
-
-
-	template<typename... Components>
-	std::vector<Shark::Entity> Scene::GetAllEntitysWith()
-	{
-		static_assert(sizeof...(Components) > 0);
-		if constexpr (sizeof...(Components) == 1)
-		{
-			auto view = m_Registry.view<Components...>();
-			std::vector<Entity> entitys;
-			for (auto e : view)
-				entitys.emplace_back(e, this);
-			return std::move(entitys);
-		}
-		else
-		{
-			auto group = m_Registry.group<Components...>();
-			std::vector<Entity> entitys;
-			for (auto e : view)
-				entitys.emplace_back(e, this);
-			return std::move(entitys);
-		}
-	}
 
 }

@@ -44,9 +44,11 @@ namespace Shark {
 		DirectXRendererAPI::GetContext()->VSSetConstantBuffers(m_Slot, 1, &nullBuffer);
 	}
 
-	void DirectXConstantBuffer::Set(void* data)
+	void DirectXConstantBuffer::Set(void* data, uint32_t size)
 	{
 		auto* ctx = DirectXRendererAPI::GetContext();
+
+		SK_CORE_ASSERT(m_Size == size);
 
 		D3D11_MAPPED_SUBRESOURCE ms;
 		SK_CHECK(ctx->Map(m_ConstBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));

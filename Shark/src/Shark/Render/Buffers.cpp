@@ -17,12 +17,12 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<IndexBuffer> IndexBuffer::Create(IndexType* data, uint32_t size, bool dynamic)
+	Ref<IndexBuffer> IndexBuffer::Create(IndexType* data, uint32_t count, bool dynamic)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXIndexBuffer>::Create(data, size, dynamic);
+			case RendererAPI::API::DirectX11: return Ref<DirectXIndexBuffer>::Create(data, count, dynamic);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;

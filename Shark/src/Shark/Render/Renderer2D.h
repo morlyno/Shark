@@ -4,61 +4,166 @@
 #include "Shark/Render/EditorCamera.h"
 #include "Shark/Render/Texture.h"
 
-#include "Shark/Scene/Entity.h"
-#include "Shark/Scene/Components/TransformComponent.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/Shaders.h"
+#include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/Buffers.h"
+#include "Shark/Render/ConstantBuffer.h"
 
-//#define SK_OLD_RENDERER2D
+#include "Shark/Scene/Entity.h"
 
 namespace Shark {
 
-	class Renderer2D
+	class Renderer2D : public RefCount
 	{
 	public:
-		static void Init();
-		static void ShutDown();
-
-		static void BeginScene(Camera& camera, const DirectX::XMMATRIX& view);
-		static void BeginScene(EditorCamera& camera);
-		static void EndScene();
-
-		static void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
-		static void DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
-
-		static void DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation,                   const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation,                   const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
-		static void DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
-
-		static void DrawCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
-		static void DrawCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
-
-		static void DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation,                    const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawRotatedCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawRotatedCircle(const DirectX::XMFLOAT2& position, float rotation,                    const DirectX::XMFLOAT2& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
-		static void DrawRotatedCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id = -1);
-
-		static void DrawLine(const DirectX::XMFLOAT2& pos0, const DirectX::XMFLOAT2& pos1, const DirectX::XMFLOAT4& color, int id = -1);
-		static void DrawLine(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id = -1);
-
-
-		static void DrawEntity(Entity entity);
-		
 		struct Statistics
 		{
 			uint32_t DrawCalls;
-			uint32_t ElementCount;
+
 			uint32_t QuadCount;
 			uint32_t CircleCount;
 			uint32_t LineCount;
+
 			uint32_t VertexCount;
 			uint32_t IndexCount;
+
 			uint32_t TextureCount;
 		};
-		static Statistics GetStatistics();
+
+	public:
+		Renderer2D(Ref<FrameBuffer> renderTarget);
+		~Renderer2D();
+
+		void Init(Ref<FrameBuffer> renderTarget);
+		void ShutDown();
+
+		void BeginScene(const DirectX::XMMATRIX& viewProj);
+		void EndScene();
+
+		void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
+		void DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
+
+		void DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation,                   const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation,                   const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
+		void DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
+
+
+		void DrawFilledCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
+
+
+		void DrawCircle(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
+		void DrawCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
+
+
+		void DrawLine(const DirectX::XMFLOAT2& pos0, const DirectX::XMFLOAT2& pos1, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawLine(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id = -1);
+
+
+		void DrawRect(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+
+		void DrawRect(const DirectX::XMFLOAT2& position, float rotation,                    const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+
+
+		Statistics GetStatistics() const { return m_Stats; }
+
+	private:
+		void FlushAndResetQuad();
+		void FlushAndResetCircle();
+		void FlushAndResetLine();
+
+	public:
+		static constexpr uint32_t MaxTextureSlots = 16;
+
+		static constexpr uint32_t MaxQuads = 200000;
+		static constexpr uint32_t MaxQuadVertices = MaxQuads * 4;
+		static constexpr uint32_t MaxQuadIndices = MaxQuads * 6;
+
+		static constexpr uint32_t MaxCircles = 20000;
+		static constexpr uint32_t MaxCircleVertices = MaxCircles * 4;
+		static constexpr uint32_t MaxCircleIndices = MaxCircles * 6;
+
+		static constexpr uint32_t MaxLines = 20000;
+		static constexpr uint32_t MaxLineVertices = MaxLines * 2;
+		static constexpr uint32_t MaxLineIndices = MaxLines * 2;
+
+		static constexpr DirectX::XMFLOAT3 QuadVertexPositions[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
+		static constexpr DirectX::XMFLOAT2 TextureCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
+
+	private:
+		using Index = IndexBuffer::IndexType;
+
+		struct QuadVertex
+		{
+			DirectX::XMFLOAT3 WorldPosition;
+			DirectX::XMFLOAT4 Color;
+			DirectX::XMFLOAT2 Tex;
+			int TextureSlot;
+			float TilingFactor;
+			int ID;
+		};
+
+		struct CircleVertex
+		{
+			DirectX::XMFLOAT3 WorldPosition;
+			DirectX::XMFLOAT2 LocalPosition;
+			DirectX::XMFLOAT4 Color;
+			float Thickness;
+			int ID;
+		};
+
+		struct LineVertex
+		{
+			DirectX::XMFLOAT3 WorldPosition;
+			DirectX::XMFLOAT4 Color;
+			int ID;
+		};
+
+		struct CBCamera
+		{
+			DirectX::XMMATRIX ViewProjection;
+		};
+
+	private:
+		Statistics m_Stats;
+
+		Ref<RenderCommandBuffer> m_RenderCommandBuffer;
+		Ref<FrameBuffer> m_RenderTarget;
+
+		Ref<Texture2D> m_WhiteTexture;
+		Ref<ConstantBufferSet> m_ConstantBufferSet;
+
+		// Quad
+		Ref<Shaders> m_QuadShader;
+		Ref<VertexBuffer> m_QuadVertexBuffer;
+		Ref<IndexBuffer> m_QuadIndexBuffer;
+		std::array<Ref<Texture2D>, MaxTextureSlots> m_QuadTextures;
+		uint32_t m_QuadTextureSlotIndex = 1;
+		uint32_t m_QuadIndexCount = 0;
+		QuadVertex* m_QuadVertexBasePtr = nullptr;
+		QuadVertex* m_QuadVertexIndexPtr = nullptr;
+
+		// Circle
+		Ref<Shaders> m_CircleShader;
+		Ref<VertexBuffer> m_CircleVertexBuffer;
+		uint32_t m_CircleIndexCount = 0;
+		CircleVertex* m_CircleVertexBasePtr = nullptr;
+		CircleVertex* m_CircleVertexIndexPtr = nullptr;
+
+		// Line
+		Ref<Shaders> m_LineShader;
+		Ref<VertexBuffer> m_LineVertexBuffer;
+		Ref<IndexBuffer> m_LineIndexBuffer;
+		uint32_t m_LineIndexCount = 0;
+		LineVertex* m_LineVertexBasePtr = nullptr;
+		LineVertex* m_LineVertexIndexPtr = nullptr;
 
 	};
 
