@@ -78,7 +78,10 @@ namespace Shark {
 			auto& sr = entity.GetComponent<SpriteRendererComponent>();
 			auto& tf = entity.GetTransform();
 
-			m_Renderer2D->DrawRotatedQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)(uint32_t)e);
+			if (sr.Geometry == SpriteRendererComponent::GeometryType::Quad)
+				m_Renderer2D->DrawRotatedQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)(uint32_t)e);
+			else
+				m_Renderer2D->DrawFilledCircle(tf.Position, tf.Rotation, tf.Scaling, sr.Thickness, sr.Color, (int)(uint32_t)e);
 		}
 
 		m_Renderer2D->EndScene();

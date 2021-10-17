@@ -1069,6 +1069,7 @@ namespace Shark {
 		SceneManager::SetActiveScene(playScene);
 		m_SceneHirachyPanel.ScenePlaying(true);
 		m_SceneHirachyPanel.SetContext(playScene);
+		m_SceneRenderer->SetScene(playScene);
 	}
 
 	void EditorLayer::OnSceneStop()
@@ -1080,6 +1081,7 @@ namespace Shark {
 		m_SceneHirachyPanel.ScenePlaying(false);
 		m_SceneHirachyPanel.SetContext(m_WorkScene);
 		m_SceneState = SceneState::Edit;
+		m_SceneRenderer->SetScene(m_WorkScene);
 
 		if (!m_WorkScene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
 			Event::Distribute(SelectionChangedEvent({}));
@@ -1092,6 +1094,7 @@ namespace Shark {
 		m_SimulationScene->OnSimulateStart();
 		m_SceneHirachyPanel.ScenePlaying(true);
 		m_SceneHirachyPanel.SetContext(m_SimulationScene);
+		m_SceneRenderer->SetScene(m_SimulationScene);
 	}
 
 	void EditorLayer::OnSimulateStop()
@@ -1101,6 +1104,7 @@ namespace Shark {
 		m_SceneHirachyPanel.ScenePlaying(false);
 		m_SceneHirachyPanel.SetContext(m_WorkScene);
 		m_SceneState = SceneState::Edit;
+		m_SceneRenderer->SetScene(m_WorkScene);
 	}
 
 	Ref<Scene> EditorLayer::GetCurrentScene()
