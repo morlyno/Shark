@@ -81,7 +81,7 @@ namespace Shark {
 		for (auto&& s : scenes)
 			proj.m_Scenes.emplace_back(s.as<std::filesystem::path>());
 
-		SK_CORE_INFO("Project Deserialized");
+		SK_CORE_INFO("Project Loaded");
 		SK_CORE_TRACE("Project Name: {}", proj.m_ProjectName);
 		SK_CORE_TRACE("Assets Path: {}", proj.m_AssetsPath);
 		SK_CORE_TRACE("scenes Path: {}", proj.m_ScenesPath);

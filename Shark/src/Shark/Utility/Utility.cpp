@@ -78,5 +78,12 @@ namespace Shark::Utility {
 #endif
 	}
 
+	std::string ToNarrow(const std::wstring& str)
+	{
+		std::string narrow;
+		narrow.resize(str.size());
+		wcstombs_s(nullptr, narrow.data(), narrow.size(), str.data(), (size_t)-1);
+		return narrow;
+	}
 
 }

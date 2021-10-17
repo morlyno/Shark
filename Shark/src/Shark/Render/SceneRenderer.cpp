@@ -63,7 +63,7 @@ namespace Shark {
 		m_FrameBuffer->ClearAtachment(0);
 		m_FrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
 
-		Entity cameraEntity = m_Scene->GetActiveCamera();
+		Entity cameraEntity = m_Scene->GetRuntimeCamera();
 		auto& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
 		const auto& tf = cameraEntity.GetTransform();
 

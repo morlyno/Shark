@@ -4,6 +4,8 @@
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
 
+#include "Shark/Utility/Math.h"
+
 #include "Shark/Debug/Instrumentor.h"
 
 #include <box2d/b2_world.h>
@@ -122,22 +124,25 @@ namespace Shark {
 		// Setup Cameras
 		{
 			ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
-			m_RuntimeCamera = GetActiveCamera();
-			Entity camera;
+			Entity camera = GetActiveCameraEntity();
+			m_RuntimeCamera = camera;
 			if (!camera)
 			{
-				m_RuntimeCamera = entt::null;
 				auto view = m_Registry.view<CameraComponent>();
 				if (!view.empty())
 					m_RuntimeCamera = view.front();
+				else
+				{
+					camera = CreateEntity("Fallback Camera");
+					camera.AddComponent<CameraComponent>();
+					m_RuntimeCamera = camera;
+				}
 			}
 		}
 	}
 
 	void Scene::OnSceneStop()
 	{
-		SK_PROFILE_FUNCTION();
-
 		auto view = m_Registry.view<NativeScriptComponent>();
 		for (auto entityID : view)
 		{
@@ -158,12 +163,6 @@ namespace Shark {
 	void Scene::OnSimulateStart()
 	{
 		SetupBox2D();
-	}
-
-	void Scene::OnSimulateStop()
-	{
-		delete m_PhysicsWorld2D;
-		m_PhysicsWorld2D = nullptr;
 	}
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
@@ -289,11 +288,27 @@ namespace Shark {
 		return m_Registry.valid(entity);
 	}
 
-	Entity Scene::GetActiveCamera()
+	Entity Scene::GetActiveCameraEntity()
 	{
 		SK_PROFILE_FUNCTION();
 
-		return GetEntityByUUID(m_ActiveCameraUUID);
+		if (m_ActiveCameraUUID.Valid())
+		{
+			auto view = m_Registry.view<CameraComponent>();
+			for (auto e : view)
+			{
+				Entity entity{ e, this };
+				if (entity.GetUUID() == m_ActiveCameraUUID)
+					return entity;
+			}
+		}
+		return Entity{};
+	}
+
+	Entity Scene::GetRuntimeCamera()
+	{
+		SK_CORE_ASSERT(m_RuntimeCamera != entt::null);
+		return Entity{ m_RuntimeCamera, this };
 	}
 
 	void Scene::ResizeCameras(float width, float height)

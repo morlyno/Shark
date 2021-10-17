@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "ImGuiLayer.h"
 
+#include "Shark/Utility/UI.h"
 #include "Shark/File/FileSystem.h"
 
 #include "Shark/Core/Application.h"
@@ -88,6 +89,7 @@ namespace Shark {
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
+		UI::NewFrame();
 	}
 
 	void ImGuiLayer::End()

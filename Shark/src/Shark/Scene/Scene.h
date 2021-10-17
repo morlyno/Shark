@@ -4,6 +4,7 @@
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/TimeStep.h"
 
+#include "Shark/Scene/SceneCamera.h"
 #include "Shark/Render/EditorCamera.h"
 
 #include <entt.hpp>
@@ -29,9 +30,7 @@ namespace Shark {
 
 		void OnScenePlay();
 		void OnSceneStop();
-
 		void OnSimulateStart();
-		void OnSimulateStop();
 
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts);
@@ -50,9 +49,11 @@ namespace Shark {
 
 		Entity GetEntityByUUID(UUID uuid);
 
+		SK_DEPRECATED("Use Entity::IsValid instead")
 		bool IsValidEntity(Entity entity) const;
 
-		Entity GetActiveCamera();
+		Entity GetActiveCameraEntity();
+		Entity GetRuntimeCamera();
 		UUID GetActiveCameraUUID() const { return m_ActiveCameraUUID; }
 		void SetActiveCamera(UUID camera) { m_ActiveCameraUUID = camera; }
 		void ResizeCameras(float width, float height);

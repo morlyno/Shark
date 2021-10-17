@@ -52,31 +52,27 @@ namespace Shark {
 
 		void NewScene();
 
-		void SetActiveScene(Ref<Scene> scene);
-		bool LoadNewScene(const std::filesystem::path& filepath);
 		bool LoadScene();
+		bool LoadScene(Ref<Scene> scene);
 		bool SaveScene();
 		bool SaveSceneAs();
-		bool SerializeScene(const std::filesystem::path& filePath);
+		bool SerializeScene(Ref<Scene> scene, const std::filesystem::path& filePath);
 
 		void OnScenePlay();
 		void OnSceneStop();
 
 		void OnSimulateStart();
-		void OnSimulateStop();
 
-		Ref<Scene> GetCurrentScene();
+		void SetActiveScene(const Ref<Scene>& scene);
+
 	private:
 		EditorCamera m_EditorCamera;
-		//Ref<FrameBuffer> m_GemometryFrameBuffer;
-		//Ref<FrameBuffer> m_NegativeFrameBuffer;
-		//Ref<FrameBuffer> m_BlurFrameBuffer;
 		Ref<FrameBuffer> m_CompositFrameBuffer;
-		Ref<Rasterizer> m_Rasterizer;
 
 		Ref<SceneRenderer> m_SceneRenderer;
-		Ref<Scene> m_WorkScene;
-		Ref<Scene> m_SimulationScene;
+		Ref<Scene> m_ActiveScene = nullptr;
+		Ref<Scene> m_WorkScene = nullptr;
+		
 		SceneHirachyPanel m_SceneHirachyPanel;
 		AssetsPanel m_AssetsPanel;
 
@@ -105,6 +101,9 @@ namespace Shark {
 		// ToolBar icons
 		Ref<Texture2D> m_PlayIcon;
 		Ref<Texture2D> m_StopIcon;
+		Ref<Texture2D> m_SimulateIcon;
+		Ref<Texture2D> m_PauseIcon;
+		Ref<Texture2D> m_StepIcon;
 
 	};
 

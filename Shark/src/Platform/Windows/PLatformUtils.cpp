@@ -58,14 +58,16 @@ namespace Shark {
 			return std::string{};
 		}
 
-		std::filesystem::path OpenFileW(const char* filter)
+		std::filesystem::path OpenFileW(const wchar_t* filter)
 		{
-			return OpenFile(filter);
+			auto filterA = Utility::ToNarrow(filter);
+			return OpenFile(filterA.c_str());
 		}
 
-		std::filesystem::path SaveFileW(const char* filter)
+		std::filesystem::path SaveFileW(const wchar_t* filter)
 		{
-			return SaveFile(filter);
+			auto filterA = Utility::ToNarrow(filter);
+			return SaveFile(filterA.c_str());
 		}
 
 	}

@@ -29,8 +29,15 @@
 
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
+#define SK_CONNECT(a, b) a##b
 
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
+
+#if defined(SK_DISABLE_DEPRECATED) && (SK_DISABLE_DEPRECATED == 1) || 1
+#define SK_DEPRECATED(message)
+#else
+#define SK_DEPRECATED(message) [[deprecated(message)]]
+#endif
 
 
 #include <stdint.h>

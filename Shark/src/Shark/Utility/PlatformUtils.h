@@ -4,10 +4,13 @@ namespace Shark {
 
 	namespace FileDialogs {
 
+		SK_DEPRECATED("Use OpenFileW instead");
 		std::string OpenFile(const char* filter);
+		SK_DEPRECATED("Use SaveFileW instead");
 		std::string SaveFile(const char* filter);
-		std::filesystem::path OpenFileW(const char* filter);
-		std::filesystem::path SaveFileW(const char* filter);
+
+		std::filesystem::path OpenFileW(const wchar_t* filter);
+		std::filesystem::path SaveFileW(const wchar_t* filter);
 
 	};
 

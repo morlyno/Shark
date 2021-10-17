@@ -4,7 +4,7 @@
 #include <Shark/Scene/Components.h>
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/Utility.h>
-#include <Shark/Utility/ImGuiUtils.h>
+#include <Shark/Utility/UI.h>
 #include <Shark/Core/Input.h>
 #include <Shark/Scene/NativeScriptFactory.h>
 
@@ -204,12 +204,13 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		const float AddButtonWidth = UI::GetItemSize("Add").x;
-		const float IDSpacingWidth = UI::GetItemSize("0x0123456789ABCDEF").x;
+		ImGuiStyle& style = ImGui::GetStyle();
+		const float AddButtonWidth = ImGui::CalcTextSize("Add").x + style.FramePadding.x * 2.0f;
+		const float IDSpacingWidth = ImGui::CalcTextSize("0x0123456789ABCDEF").x + style.FramePadding.x * 2.0f;
 		const float WindowWidth = ImGui::GetContentRegionAvail().x;
 
 		auto& tag = entity.GetComponent<TagComponent>();
-		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - IDSpacingWidth - UI::GetFramePadding().x * 2.0f);
+		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - IDSpacingWidth - style.FramePadding.x * 2.0f);
 		ImGui::InputText("##Tag", &tag.Tag);
 
 		ImGui::SameLine();
@@ -261,11 +262,11 @@ namespace Shark {
 
 		Utils::DrawComponet<TransformComponent>(entity, "Transform", [](auto& comp)
 		{
-			UI::DrawVec3Control("Position", comp.Position);
-			DirectX::XMFLOAT3 rotation = { DirectX::XMConvertToDegrees(comp.Rotation.x), DirectX::XMConvertToDegrees(comp.Rotation.y), DirectX::XMConvertToDegrees(comp.Rotation.z) };
-			UI::DrawVec3Control("Rotation", rotation);
-			comp.Rotation = { DirectX::XMConvertToRadians(rotation.x), DirectX::XMConvertToRadians(rotation.y), DirectX::XMConvertToRadians(rotation.z) };
-			UI::DrawVec3Control("Scaling", comp.Scaling, 1.0f);
+			UI::BeginControls();
+			UI::DragFloat("Position", comp.Position);
+			UI::DragAngle("Rotation", comp.Rotation);
+			UI::DragFloat("Scaling", comp.Scaling);
+			UI::EndControls();
 		});
 
 		Utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp)
@@ -283,7 +284,29 @@ namespace Shark {
 			ImGui::Separator();
 
 			ImGui::Text("Texture");
-			UI::SelectTextureImageButton(comp.Texture, { 48, 48 });
+
+			//UI::SelectTextureImageButton(comp.Texture, { 48, 48 });
+			{
+				RenderID textureID = comp.Texture ? comp.Texture->GetRenderID() : nullptr;
+				if (ImGui::ImageButton(textureID, { 48, 48 }))
+				{
+					auto path = FileDialogs::OpenFile("Texture (*.*)\0*.*\0");
+					if (!path.empty())
+						comp.Texture = Texture2D::Create(path);
+				}
+
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
+					if (payload)
+					{
+						auto* data = (UI::ContentPayload*)payload->Data;
+						if (data->Type == UI::ContentType::Texture)
+							comp.Texture = Texture2D::Create(data->Path);
+					}
+					ImGui::EndDragDropTarget();
+				}
+			}
 
 			ImGui::NextColumn();
 			if (comp.Texture)
@@ -300,10 +323,14 @@ namespace Shark {
 			}
 			ImGui::Columns();
 
-			UI::DrawFloatControl("TilingFactor", comp.TilingFactor, 1.0f, "%.2f", 100.0f, "R");
+			UI::BeginControls();
+
+			UI::DragFloat("TilingFactor", comp.TilingFactor, 1.0f);
 
 			if (comp.Geometry == SpriteRendererComponent::GeometryType::Circle)
-				UI::DrawFloatControl("Thickness", comp.Thickness);
+				UI::SliderFloat("Thickness", comp.Thickness, 1.0f, 0.0f, 1.0f);
+
+			UI::EndControls();
 
 			ImGui::Separator();
 			int geometry = (int)comp.Geometry;
@@ -317,136 +344,60 @@ namespace Shark {
 			m_SelectedProjectionIndex = (int)comp.Camera.GetProjectionType();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
 			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, s_ProjectionItems, (int)std::size(s_ProjectionItems));
+
+
+			UI::BeginControls();
+
 			if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Perspective)
 			{
-				comp.Camera.SetProjectionType(SceneCamera::Projection::Perspective);
+				auto& camera = comp.Camera;
+				camera.SetProjectionType(SceneCamera::Projection::Perspective);
 					
 				bool changed = false;
 
-				float fov = comp.Camera.GetPerspectiveFOV();
-				float clipnear = comp.Camera.GetPerspectiveNear();
-				float clipfar = comp.Camera.GetPerspectiveFar();
+				float fov = camera.GetPerspectiveFOV();
+				float clipnear = camera.GetPerspectiveNear();
+				float clipfar = camera.GetPerspectiveFar();
 
-				ImGui::Columns(2);
-				ImGui::SetColumnWidth(0, 100);
-				ImGui::NextColumn();
-				const float itemwidth = ImGui::GetContentRegionAvailWidth() - 19;
-				ImGui::NextColumn();
-
-				ImGui::Text("FOV");
-				ImGui::NextColumn();
-				if (ImGui::Button("R##Fov", { 19, 19 }))
-				{
-					changed |= true;
-					fov = 45.0f;
-				}
-				ImGui::SameLine(0.0f, 0.0f);
-				ImGui::SetNextItemWidth(itemwidth);
-				changed |= ImGui::DragFloat("##FOV", &fov, 1.0f, 1.0f, 179.0f);
-				if (fov < 1.0f)
-					fov = 1.0f;
-
-				ImGui::NextColumn();
-				ImGui::Text("NearClip");
-				ImGui::NextColumn();
-				if (ImGui::Button("R##Near", { 19, 19 }))
-				{
-					changed |= true;
-					clipnear = 0.01f;
-				}
-				ImGui::SameLine(0.0f, 0.0f);
-				ImGui::SetNextItemWidth(itemwidth);
-				changed |= ImGui::DragFloat("##Near", &clipnear);
-
-				ImGui::NextColumn();
-				ImGui::Text("FarClip");
-				ImGui::NextColumn();
-				if (ImGui::Button("R##Far", { 19, 19 }))
-				{
-					changed |= true;
-					clipfar = 1000.0f;
-				}
-				ImGui::SameLine(0.0f, 0.0f);
-				ImGui::SetNextItemWidth(itemwidth);
-				changed |= ImGui::DragFloat("##Far", &clipfar);
+				changed |= UI::DragFloat("FOV", fov, 45.0f, 1.0f, 179.0f);
+				changed |= UI::DragFloat("NearClip", clipnear, 0.01f);
+				changed |= UI::DragFloat("FarClip", clipfar, 1000.0f);
 
 				if (changed)
-					comp.Camera.SetPerspective(comp.Camera.GetAspectratio(), fov, clipnear, clipfar);
-
-				ImGui::Columns();
+					camera.SetPerspective(camera.GetAspectratio(), fov, clipnear, clipfar);
 			}
 			else if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Orthographic)
 			{
-				comp.Camera.SetProjectionType(SceneCamera::Projection::Orthographic);
+				auto& camera = comp.Camera;
+				camera.SetProjectionType(SceneCamera::Projection::Orthographic);
 
 				bool changed = false;
 
-				float zoom = comp.Camera.GetOrthographicZoom();
-				float clipnear = comp.Camera.GetOrthographicNear();
-				float clipfar = comp.Camera.GetOrthographicFar();
+				float zoom = camera.GetOrthographicZoom();
+				float clipnear = camera.GetOrthographicNear();
+				float clipfar = camera.GetOrthographicFar();
 
-				ImGui::Columns(2);
-				ImGui::SetColumnWidth(0, 100);
-				ImGui::NextColumn();
-				const float itemwidth = ImGui::GetContentRegionAvailWidth() - 19;
-				ImGui::NextColumn();
-
-				ImGui::Text("Zoom");
-				ImGui::NextColumn();
-				if (ImGui::Button("R##Zoom", { 19, 19 }))
-				{
-					changed |= true;
-					zoom = 10.0f;
-				}
-				ImGui::SameLine(0.0f, 0.0f);
-				ImGui::SetNextItemWidth(itemwidth);
-				changed |= ImGui::DragFloat("##Zoom", &zoom);
-				if (zoom < 0.25f)
-					zoom = 0.25f;
-
-				ImGui::NextColumn();
-				ImGui::Text("NearClip");
-				ImGui::NextColumn();
-				if (ImGui::Button("R##Near", { 19, 19 }))
-				{
-					changed |= true;
-					clipnear = -1.0f;
-				}
-				ImGui::SameLine(0.0f, 0.0f);
-				ImGui::SetNextItemWidth(itemwidth);
-				changed |= ImGui::DragFloat("##Near", &clipnear);
-				if (clipnear > -0.01f)
-					clipnear = -0.01f;
-
-				ImGui::NextColumn();
-				ImGui::Text("FarClip");
-				ImGui::NextColumn();
-				if (ImGui::Button("R##Far", { 19, 19 }))
-				{
-					changed |= true;
-					clipfar = 1.0f;
-				}
-				ImGui::SameLine(0.0f, 0.0f);
-				ImGui::SetNextItemWidth(itemwidth);
-				changed |= ImGui::DragFloat("##Far", &clipfar);
-				if (clipfar < 0.01f)
-					clipfar = 0.01f;
+				changed |= UI::DragFloat("Zoom", zoom, 10.0f, 0.25f, FLT_MAX);
+				changed |= UI::DragFloat("NearClip", clipnear, -1.0f, -FLT_MAX, -0.01f);
+				changed |= UI::DragFloat("FarClip", clipfar, 1.0f, 0.01f, FLT_MAX);
 
 				if (changed)
-					comp.Camera.SetOrthographic(comp.Camera.GetAspectratio(), zoom, clipnear, clipfar);
-
-				ImGui::Columns();
+					camera.SetOrthographic(camera.GetAspectratio(), zoom, clipnear, clipfar);
 			}
 
 			UUID uuid = entity.GetUUID();
 			bool isMainCamera = m_Context->m_ActiveCameraUUID.Valid() ? m_Context->m_ActiveCameraUUID == uuid : false;
-			if (ImGui::Checkbox("Is Active", &isMainCamera))
+			if (UI::Checkbox("Is Active", isMainCamera))
 				m_Context->m_ActiveCameraUUID = uuid;
+
+			UI::EndControls();
+
 		});
 
 		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)
 		{
 			int bodyType = (int)comp.Type;
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			if (ImGui::Combo("##BodyType", &bodyType, s_BodyTypes, (int)Utility::ArraySize(s_BodyTypes)))
 				comp.Type = (RigidBody2DComponent::BodyType)bodyType;
 
@@ -455,24 +406,28 @@ namespace Shark {
 		
 		Utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp)
 		{
-			UI::DrawVec2Control("Size", comp.Size);
-			UI::DrawVec2Control("Offset", comp.LocalOffset);
-			UI::DrawFloatControl("Angle", comp.LocalRotation);
-			UI::DrawFloatControl("Denstity", comp.Density);
-			UI::DrawFloatControl("Friction", comp.Friction);
-			UI::DrawFloatControl("Restitution", comp.Restitution);
-			UI::DrawFloatControl("RestitutionThreshold", comp.RestitutionThreshold);
+			UI::BeginControls();
+			UI::DragFloat("Size", comp.Size);
+			UI::DragFloat("Offset", comp.LocalOffset);
+			UI::DragFloat("Angle", comp.LocalRotation);
+			UI::DragFloat("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
+			UI::SliderFloat("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
+			UI::SliderFloat("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
+			UI::DragFloat("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::EndControls();
 		});
 
 		Utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp)
 		{
-			UI::DrawFloatControl("Radius", comp.Radius);
-			UI::DrawVec2Control("Offset", comp.LocalOffset);
-			UI::DrawFloatControl("Angle", comp.LocalRotation);
-			UI::DrawFloatControl("Denstity", comp.Density);
-			UI::DrawFloatControl("Friction", comp.Friction);
-			UI::DrawFloatControl("Restitution", comp.Restitution);
-			UI::DrawFloatControl("RestitutionThreshold", comp.RestitutionThreshold);
+			UI::BeginControls();
+			UI::DragFloat("Radius", comp.Radius);
+			UI::DragFloat("Offset", comp.LocalOffset);
+			UI::DragFloat("Angle", comp.LocalRotation);
+			UI::DragFloat("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
+			UI::SliderFloat("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
+			UI::SliderFloat("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
+			UI::DragFloat("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::EndControls();
 		});
 
 		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [](NativeScriptComponent& comp)
