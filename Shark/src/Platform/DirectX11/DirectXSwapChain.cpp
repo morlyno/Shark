@@ -23,10 +23,26 @@ namespace Shark {
 		m_SwapChain->Release();
 	}
 
+	void DirectXSwapChainFrameBuffer::Resize(uint32_t width, uint32_t height)
+	{
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+
+		for (auto& atachment : m_Specification.Atachments)
+			if (atachment.Image)
+				atachment.Image->Resize(width, height);
+
+		Release();
+		CreateBuffers();
+	}
+
 	void DirectXSwapChainFrameBuffer::CreateSwapChainBuffer()
 	{
 		auto* dev = DirectXRendererAPI::GetDevice();
 		auto*& framebuffer = m_FrameBuffers.emplace_back(nullptr);
+
+		// TODO(moro): Thinck about adding Images to a Swapchain FrameBuffer
+		// The content of the SwapChain propbably will never be read
 
 		ID3D11Texture2D* backBuffer;
 		SK_CHECK(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer));
@@ -64,8 +80,7 @@ namespace Shark {
 		FrameBufferSpecification fb;
 		fb.Width = specs.Widht;
 		fb.Height = specs.Height;
-		fb.Atachments = { ImageFormat::SwapChain, ImageFormat::Depth };
-		fb.Atachments[0].Blend = true;
+		fb.Atachments = { ImageFormat::SwapChain };
 
 		m_FrameBuffer = Ref<DirectXSwapChainFrameBuffer>::Create(m_SwapChain, fb);
 	}

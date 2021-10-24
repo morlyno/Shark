@@ -27,7 +27,7 @@ namespace Shark {
 		virtual void BindMainFrameBuffer() = 0;
 
 		// Temp
-		virtual void MainFrameBufferSetBlend(bool blend) = 0;
+		virtual void SetBlendForImgui(bool blend) = 0;
 
 		virtual void Draw(uint32_t vertexCount, PrimitveTopology topology) = 0;
 		virtual void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) = 0;

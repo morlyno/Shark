@@ -28,39 +28,6 @@ namespace Shark {
 			return DXGI_FORMAT_UNKNOWN;
 		}
 
-		static D3D11_COMPARISON_FUNC ToD3DComparison(StencilComparison comp)
-		{
-			switch (comp)
-			{
-				case StencilComparison::Never:               return D3D11_COMPARISON_NEVER;
-				case StencilComparison::Less:                return D3D11_COMPARISON_LESS;
-				case StencilComparison::Equal:               return D3D11_COMPARISON_EQUAL;
-				case StencilComparison::LessEqual:           return D3D11_COMPARISON_LESS_EQUAL;
-				case StencilComparison::Greater:             return D3D11_COMPARISON_GREATER;
-				case StencilComparison::NotEqual:            return D3D11_COMPARISON_NOT_EQUAL;
-				case StencilComparison::GreaterEqual:        return D3D11_COMPARISON_GREATER_EQUAL;
-				case StencilComparison::Always:              return D3D11_COMPARISON_ALWAYS;
-			}
-			SK_CORE_ASSERT(false);
-			return (D3D11_COMPARISON_FUNC)0;
-		}
-
-		static D3D11_STENCIL_OP ToD3DStencilOp(StencilOperation operation)
-		{
-			switch (operation)
-			{
-				case StencilOperation::Keep:                 return D3D11_STENCIL_OP_KEEP;
-				case StencilOperation::Zero:                 return D3D11_STENCIL_OP_ZERO;
-				case StencilOperation::Replace:              return D3D11_STENCIL_OP_REPLACE;
-				case StencilOperation::IncrementClamped:     return D3D11_STENCIL_OP_INCR_SAT;
-				case StencilOperation::DecrementClamped:     return D3D11_STENCIL_OP_DECR_SAT;
-				case StencilOperation::Invert:               return D3D11_STENCIL_OP_INVERT;
-				case StencilOperation::Increment:            return D3D11_STENCIL_OP_INCR;
-				case StencilOperation::Decrement:            return D3D11_STENCIL_OP_DECR;
-			}
-			SK_CORE_ASSERT(false);
-			return (D3D11_STENCIL_OP)0;
-		}
 	}
 
 	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs, bool isSwapChainTarget)
@@ -75,8 +42,6 @@ namespace Shark {
 		for (auto buffer : m_FrameBuffers)
 			if (buffer)
 				buffer->Release();
-
-		m_FrameBufferTextures.clear();
 
 		if (m_DepthStencil)
 			m_DepthStencil->Release();
@@ -127,7 +92,6 @@ namespace Shark {
 			}
 		}
 		m_FrameBuffers.clear();
-		m_FrameBufferTextures.clear();
 
 		if (m_DepthStencil)
 		{
@@ -152,120 +116,18 @@ namespace Shark {
 		m_Specification.Width = width;
 		m_Specification.Height = height;
 
+		for (auto& atachment : m_Specification.Atachments)
+			atachment.Image->Resize(width, height);
+
 		Release();
 		CreateBuffers();
-	}
-
-	void DirectXFrameBuffer::SetBlend(uint32_t index, bool blend)
-	{
-		if (m_Specification.Atachments[index].Blend == blend)
-			return;
-
-		m_Specification.Atachments[index].Blend = blend;
-
-		D3D11_BLEND_DESC bd;
-		m_BlendState->GetDesc(&bd);
-		bd.RenderTarget[index].BlendEnable = blend;
-		if (blend)
-		{
-			bd.RenderTarget[index].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-			bd.RenderTarget[index].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-			bd.RenderTarget[index].BlendOp = D3D11_BLEND_OP_ADD;
-			bd.RenderTarget[index].SrcBlendAlpha = D3D11_BLEND_ONE;
-			bd.RenderTarget[index].DestBlendAlpha = D3D11_BLEND_ZERO;
-			bd.RenderTarget[index].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-			bd.RenderTarget[index].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		}
-
-		m_BlendState->Release();
-		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBlendState(&bd, &m_BlendState));
-		DirectXRendererAPI::GetContext()->OMSetBlendState(m_BlendState, nullptr, 0xffffffff);
-	}
-
-	void DirectXFrameBuffer::SetDepth(bool enabled)
-	{
-		if (m_DepthEnabled == enabled)
-			return;
-		m_DepthEnabled = enabled;
-
-		D3D11_DEPTH_STENCIL_DESC dsd;
-		m_DepthStencilState->GetDesc(&dsd);
-		dsd.DepthEnable = enabled;
-		m_DepthStencilState->Release();
-		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateDepthStencilState(&dsd, &m_DepthStencilState));
-	}
-
-	void DirectXFrameBuffer::SetStencilSpecs(const StencilSpecification& specs, bool enabled)
-	{
-		D3D11_DEPTH_STENCIL_DESC ds;
-		m_DepthStencilState->GetDesc(&ds);
-		m_StencilEnabled = enabled;
-		ds.StencilEnable = enabled;
-		ds.FrontFace.StencilFunc = Utils::ToD3DComparison(specs.Comparison);
-		ds.FrontFace.StencilPassOp = Utils::ToD3DStencilOp(specs.Passed);
-		ds.FrontFace.StencilFailOp = Utils::ToD3DStencilOp(specs.StencilFailed);
-		ds.FrontFace.StencilDepthFailOp = Utils::ToD3DStencilOp(specs.DepthFailed);
-		ds.BackFace = ds.FrontFace;
-
-		m_DepthStencilState->Release();
-		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateDepthStencilState(&ds, &m_DepthStencilState));
-	}
-
-	Ref<Texture2D> DirectXFrameBuffer::GetFramBufferContent(uint32_t index)
-	{
-		return m_FrameBufferTextures[index];
-	}
-
-	int DirectXFrameBuffer::ReadPixel(uint32_t index, uint32_t x, uint32_t y)
-	{
-		if (x < 0 || y < 0 || x >= m_Specification.Width || y >= m_Specification.Height)
-		{
-			SK_CORE_WARN("Tried to read Pixel out of bounds");
-			return -1;
-		}
-
-		SK_CORE_ASSERT(index < m_Count, "Index out of range");
-		if (index >= m_Count)
-			return -1;
-
-		auto* ctx = DirectXRendererAPI::GetContext();
-		auto* dev = DirectXRendererAPI::GetDevice();
-
-		ID3D11Texture2D* buffer;
-		ID3D11Resource* resourcebuffer;
-		m_FrameBuffers[index]->GetResource(&resourcebuffer);
-		SK_CHECK(resourcebuffer->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&buffer));
-		resourcebuffer->Release();
-
-		D3D11_TEXTURE2D_DESC t2ddesc;
-		buffer->GetDesc(&t2ddesc);
-		t2ddesc.BindFlags = 0;
-		t2ddesc.Usage = D3D11_USAGE_STAGING;
-		t2ddesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-
-		ID3D11Texture2D* TempData;
-		SK_CHECK(dev->CreateTexture2D(&t2ddesc, nullptr, &TempData));
-
-		ctx->CopyResource(TempData, buffer);
-		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_CHECK(ctx->Map(TempData, 0, D3D11_MAP_READ, 0, &ms));
-
-		int pitch = ms.RowPitch / 4;
-		int data = ((int*)ms.pData)[y * pitch + x];
-
-		ctx->Unmap(TempData, 0);
-
-		buffer->Release();
-		TempData->Release();
-
-		return data;
 	}
 
 	void DirectXFrameBuffer::Bind()
 	{
 		auto* ctx = DirectXRendererAPI::GetContext();
 
-		ctx->OMSetDepthStencilState(m_DepthStencilState, m_StencilReplace);
+		ctx->OMSetDepthStencilState(m_DepthStencilState, 0);
 		ctx->OMSetRenderTargets(m_Count, m_FrameBuffers.data(), m_DepthStencil);
 		ctx->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
 		ctx->RSSetViewports(1, &m_Viewport);
@@ -287,17 +149,28 @@ namespace Shark {
 		ctx->RSSetViewports(1, &nullvp);
 	}
 
-	void DirectXFrameBuffer::CreateDepth32Buffer()
+	void DirectXFrameBuffer::CreateDepth32Buffer(FrameBufferAtachment* atachment)
 	{
 		auto dev = DirectXRendererAPI::GetDevice();
 
-		m_DepthEnabled = true;
+		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
+			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", ImageFormatToString(atachment->Image->GetSpecification().Format), ImageFormatToString(atachment->Format)));
+
+		if (!atachment->Image)
+		{
+			ImageSpecification specs;
+			specs.Width = m_Specification.Width;
+			specs.Height = m_Specification.Height;
+			specs.Format = ImageFormat::Depth32;
+			specs.Usage = ImageUsageTexture | ImageUsageDethStencil;
+			atachment->Image = Image2D::Create(specs);
+		}
+		auto d3dImage = atachment->Image.As<DirectXImage2D>();
 
 		D3D11_DEPTH_STENCIL_DESC ds = {};
 		ds.DepthEnable = TRUE;
 		ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 		ds.DepthFunc = D3D11_COMPARISON_LESS;
-
 		SK_CHECK(dev->CreateDepthStencilState(&ds, &m_DepthStencilState));
 
 
@@ -306,105 +179,36 @@ namespace Shark {
 		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		dsv.Texture2D.MipSlice = 0u;
 		dsv.Flags = 0u;
-
-		D3D11_TEXTURE2D_DESC t2d;
-		t2d.Width = m_Specification.Width;
-		t2d.Height = m_Specification.Height;
-		t2d.MipLevels = 1u;
-		t2d.ArraySize = 1u;
-		t2d.Format = dsv.Format;
-		t2d.SampleDesc.Count = 1u;
-		t2d.SampleDesc.Quality = 0u;
-		t2d.Usage = D3D11_USAGE_DEFAULT;
-		t2d.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		t2d.CPUAccessFlags = 0u;
-		t2d.MiscFlags = 0u;
-
-		ID3D11Texture2D* texture = nullptr;
-		SK_CHECK(dev->CreateTexture2D(&t2d, nullptr, &texture));
-		SK_CHECK(dev->CreateDepthStencilView(texture, &dsv, &m_DepthStencil));
-		texture->Release();
+		SK_CHECK(dev->CreateDepthStencilView(d3dImage->GetNative(), &dsv, &m_DepthStencil));
 
 	}
 
-	void DirectXFrameBuffer::CreateDepth24Stencil8Buffer(StencilSpecification& specs)
+	void DirectXFrameBuffer::CreateFrameBuffer(FrameBufferAtachment* atachment, DXGI_FORMAT dxgiformat)
 	{
 		auto dev = DirectXRendererAPI::GetDevice();
 
-		m_StencilReplace = specs.StencilReplace;
-		m_StencilEnabled = true;
+		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
+			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", ImageFormatToString(atachment->Image->GetSpecification().Format), ImageFormatToString(atachment->Format)));
 
-		D3D11_DEPTH_STENCIL_DESC ds = {};
-		ds.DepthEnable = TRUE;
-		ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		ds.DepthFunc = D3D11_COMPARISON_LESS;
-		ds.StencilEnable = TRUE;
-		ds.StencilReadMask = 0xFF;
-		ds.StencilWriteMask = 0xFF;
-		ds.FrontFace.StencilFunc = Utils::ToD3DComparison(specs.Comparison);
-		ds.FrontFace.StencilPassOp = Utils::ToD3DStencilOp(specs.Passed);
-		ds.FrontFace.StencilFailOp = Utils::ToD3DStencilOp(specs.StencilFailed);
-		ds.FrontFace.StencilDepthFailOp = Utils::ToD3DStencilOp(specs.DepthFailed);
-		ds.BackFace = ds.FrontFace;
-
-		SK_CHECK(dev->CreateDepthStencilState(&ds, &m_DepthStencilState));
-
-
-		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
-		dsv.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-		dsv.Texture2D.MipSlice = 0u;
-		dsv.Flags = 0u;
-
-		D3D11_TEXTURE2D_DESC t2d;
-		t2d.Width = m_Specification.Width;
-		t2d.Height = m_Specification.Height;
-		t2d.MipLevels = 1u;
-		t2d.ArraySize = 1u;
-		t2d.Format = dsv.Format;
-		t2d.SampleDesc.Count = 1u;
-		t2d.SampleDesc.Quality = 0u;
-		t2d.Usage = D3D11_USAGE_DEFAULT;
-		t2d.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		t2d.CPUAccessFlags = 0u;
-		t2d.MiscFlags = 0u;
-
-		ID3D11Texture2D* texture = nullptr;
-		SK_CHECK(dev->CreateTexture2D(&t2d, nullptr, &texture));
-		SK_CHECK(dev->CreateDepthStencilView(texture, &dsv, &m_DepthStencil));
-		texture->Release();
-
-	}
-
-	void DirectXFrameBuffer::CreateFrameBuffer(DXGI_FORMAT dxgiformat)
-	{
-		auto dev = DirectXRendererAPI::GetDevice();
-
-		ID3D11Texture2D* texture;
-		D3D11_TEXTURE2D_DESC td;
-		memset(&td, 0, sizeof(D3D11_TEXTURE2D_DESC));
-		td.Width = m_Specification.Width;
-		td.Height = m_Specification.Height;
-		td.MipLevels = 1u;
-		td.ArraySize = 1u;
-		td.Format = dxgiformat;
-		td.SampleDesc.Count = 1u;
-		td.SampleDesc.Quality = 0u;
-		td.Usage = D3D11_USAGE_DEFAULT;
-		td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-		td.CPUAccessFlags = 0u;
-		td.MiscFlags = 0u;
-
-		auto*& fb = m_FrameBuffers.emplace_back(nullptr);
-		
-		SK_CHECK(dev->CreateTexture2D(&td, nullptr, &texture));
+		if (!atachment->Image)
+		{
+			ImageSpecification specs;
+			specs.Width = m_Specification.Width;
+			specs.Height = m_Specification.Height;
+			specs.Format = atachment->Format;
+			specs.Usage = ImageUsageTexture | ImageUsageFrameBuffer;
+			atachment->Image = Image2D::Create(specs);
+		}
+		auto d3dImage = atachment->Image.As<DirectXImage2D>();
 
 		D3D11_RENDER_TARGET_VIEW_DESC desc;
 		desc.Format = dxgiformat;
 		desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		desc.Texture2D = D3D11_TEX2D_RTV{};
-		SK_CHECK(dev->CreateRenderTargetView(texture, &desc, &fb));
-		texture->Release();
+
+		ID3D11RenderTargetView* fb;
+		SK_CHECK(dev->CreateRenderTargetView(d3dImage->GetNative(), &desc, &fb));
+		m_FrameBuffers.push_back(fb);
 	}
 
 	void DirectXFrameBuffer::CreateBuffers()
@@ -438,54 +242,18 @@ namespace Shark {
 		{
 			switch (atachment->Format)
 			{
-				case ImageFormat::SwapChain:          bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateSwapChainBuffer();                            break;
-				case ImageFormat::RGBA8:              bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(DXGI_FORMAT_R8G8B8A8_UNORM);      break;
-				case ImageFormat::R32_SINT:           bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(DXGI_FORMAT_R32_SINT);            break;
-				case ImageFormat::Depth32:            m_DepthStencilAtachment = atachment._Ptr;                 CreateDepth32Buffer();                              break;
-				case ImageFormat::Depth24Stencil8:    m_DepthStencilAtachment = atachment._Ptr;                 CreateDepth24Stencil8Buffer(atachment->Stencil);    break;
+				case ImageFormat::SwapChain:          bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateSwapChainBuffer();                                            break;
+				case ImageFormat::RGBA8:              bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R8G8B8A8_UNORM);      break;
+				case ImageFormat::R32_SINT:           bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R32_SINT);            break;
+				case ImageFormat::Depth32:            m_DepthStencilAtachment = atachment._Ptr;                 CreateDepth32Buffer(atachment._Ptr);                                break;
 
-				default:                              SK_CORE_ASSERT(false);                                                                                        break;
+				default:                              SK_CORE_ASSERT(false);                                                                                                        break;
 			}
 		}
 
 		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBlendState(&bd, &m_BlendState));
 
 		m_Count = (uint32_t)m_FrameBuffers.size();
-
-		if (!m_IsSwapChainTarget)
-		{
-			m_FrameBufferTextures.resize(m_Count);
-			for (uint32_t i = 0; i < m_Count; i++)
-			{
-				auto&& framebuffer = m_FrameBuffers[i];
-				auto&& texture = m_FrameBufferTextures[i];
-
-				ID3D11Resource* resource;
-				framebuffer->GetResource(&resource);
-				ID3D11Texture2D* tex2d;
-				SK_CHECK(resource->QueryInterface(&tex2d));
-
-				D3D11_TEXTURE2D_DESC texdesc;
-				tex2d->GetDesc(&texdesc);
-
-				D3D11_SHADER_RESOURCE_VIEW_DESC desc;
-				desc.Format = texdesc.Format;
-				desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-				desc.Texture2D.MipLevels = 1;
-				desc.Texture2D.MostDetailedMip = 0;
-
-				ID3D11ShaderResourceView* view;
-				SK_CHECK(dev->CreateShaderResourceView(tex2d, &desc, &view));
-				SamplerProps props;
-				props.AddressU = AddressMode::Clamp;
-				props.AddressV = AddressMode::Clamp;
-				texture = Ref<DirectXTexture2D>::Create(view, texdesc.Width, texdesc.Height, props);
-
-				tex2d->Release();
-				resource->Release();
-			}
-		}
-
 	}
 
 }

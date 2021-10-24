@@ -81,8 +81,6 @@ namespace Shark {
 		specs.Height = window.GetHeight();
 		specs.WindowHandle = window.GetHandle();
 		m_SwapChain = Ref<DirectXSwapChain>::Create(specs);
-
-		m_ImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 	void DirectXRendererAPI::ShutDown()
@@ -93,6 +91,23 @@ namespace Shark {
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
 
 		s_Instance = nullptr;
+	}
+
+	void DirectXRendererAPI::SetBlendForImgui(bool blend)
+	{
+		if (blend)
+		{
+			SK_CORE_ASSERT(m_ImGuiBlendState);
+			const float blend_factor[4] = { 0.f, 0.f, 0.f, 0.f };
+			m_ImmediateContext->OMSetBlendState(m_ImGuiBlendState, blend_factor, 0xFFFFFFFF);
+		}
+		else
+		{
+			m_ImmediateContext->OMGetBlendState(&m_ImGuiBlendState, nullptr, nullptr);
+			ID3D11BlendState* nullBlend = nullptr;
+			const float blend_factor[4] = { 0.f, 0.f, 0.f, 0.f };
+			m_ImmediateContext->OMSetBlendState(nullBlend, nullptr, 0xFFFFFFFF);
+		}
 	}
 
 	void DirectXRendererAPI::Draw(uint32_t vertexCount, PrimitveTopology topology)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Render/Image.h"
 
 #include <DirectXMath.h>
 
@@ -30,7 +31,6 @@ namespace Shark {
 	public:
 		virtual ~Texture() = default;
 
-		virtual void SetData(void* data) = 0;
 		virtual RenderID GetRenderID() const = 0;
 
 		virtual const std::filesystem::path& GetFilePath() const = 0;
@@ -49,14 +49,11 @@ namespace Shark {
 	public:
 		virtual ~Texture2D() = default;
 
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
+		virtual Ref<Image2D> GetImage() const = 0;
 
-
-		static Ref<Texture2D> Create(const std::filesystem::path& filepath);
-		static Ref<Texture2D> Create(uint32_t width, uint32_t height, void* data);
-		static Ref<Texture2D> Create(const SamplerProps& props, const std::filesystem::path& filepath);
-		static Ref<Texture2D> Create(const SamplerProps& props, uint32_t width, uint32_t height, void* data);
+		static Ref<Texture2D> Create(Ref<Image2D> image, const SamplerProps& props = {});
+		static Ref<Texture2D> Create(const std::filesystem::path& filepath, const SamplerProps& props = {});
+		static Ref<Texture2D> Create(uint32_t width, uint32_t height, void* data, const SamplerProps& props = {});
 	};
 
 }

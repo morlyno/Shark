@@ -7,11 +7,16 @@
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/UI.h>
 
+#include <Shark/Render/Image.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <Shark/Debug/Instrumentor.h>
+
+#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXImage.h"
 
 namespace Shark {
 
@@ -89,6 +94,12 @@ namespace Shark {
 		m_StepIcon = Texture2D::Create("Resources/StepButton.png");
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
+		m_SceneRenderer->GetFrameBuffer()->GetImage(0)->CreateView();
+
+		ImageSpecification imageSpecs = m_SceneRenderer->GetFrameBuffer()->GetImage(1)->GetSpecification();
+		imageSpecs.Type = ImageType::Staging;
+		imageSpecs.Usage = ImageUsageNone;
+		m_MousePickingImage = Image2D::Create(imageSpecs);
 
 		FrameBufferSpecification compositfbspecs;
 		compositfbspecs.Width = window.GetWidth();
@@ -97,6 +108,9 @@ namespace Shark {
 		compositfbspecs.Atachments[0].Blend = false;
 		compositfbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 		m_CompositFrameBuffer = FrameBuffer::Create(compositfbspecs);
+
+		Ref<Image2D> fbImage = m_CompositFrameBuffer->GetImage(0);
+		fbImage->CreateView();
 
 	}
 
@@ -120,8 +134,9 @@ namespace Shark {
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 			m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 			m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
-		
+			
 			m_CompositFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
 		}
 
 
@@ -166,8 +181,9 @@ namespace Shark {
 		m_CompositFrameBuffer->Bind();
 		Renderer::GetShaderLib().Get("FullScreen")->Bind();
 
-		m_SceneRenderer->GetFrameBuffer()->BindAsTexture(0, 0);
-		Renderer::SubmitFullScreenQuad();
+		//Ref<Texture2D> texture = Texture2D::Create(m_SceneRenderer->GetFrameBuffer()->GetImage(0));
+		//texture->Bind(0);
+		//Renderer::SubmitFullScreenQuad();
 
 
 		EffectesTest();
@@ -325,14 +341,15 @@ namespace Shark {
 			m_ViewportSizeChanged = true;
 		}
 
-		//auto fbtex = m_SceneRenderer->GetFrameBuffer()->GetFramBufferContent(0);
-		auto fbtex = m_CompositFrameBuffer->GetFramBufferContent(0);
-		UI::NoAlpaImage(fbtex->GetRenderID(), size);
+		Ref<Image2D> fbImage = m_SceneRenderer->GetFrameBuffer()->GetImage(0);
+		UI::NoAlpaImage(fbImage->GetViewRenderID(), size);
 
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 
 		UI_Gizmo();
 
+		// TODO(moro): Mouse Picking with Raycast
+#if 1
 		// Mouse Picking
 		if (!ImGuizmo::IsUsing())
 		{
@@ -344,11 +361,14 @@ namespace Shark {
 			int y = (int)(my - wy);
 			m_HoveredEntityID = -1;
 
-			auto frameBuffer = m_SceneRenderer->GetFrameBuffer();
-			auto&& [width, height] = frameBuffer->GetSize();
+			Ref<Image2D> frameBufferImage = m_SceneRenderer->GetFrameBuffer()->GetImage(1);
+			frameBufferImage->CopyTo(m_MousePickingImage);
+
+			int width = m_MousePickingImage->GetWidth();
+			int height = m_MousePickingImage->GetHeight();
 			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 			{
-				m_HoveredEntityID = frameBuffer->ReadPixel(1, x, y);
+				m_HoveredEntityID = m_MousePickingImage->ReadPixel(x, y);
 
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
 				{
@@ -366,6 +386,7 @@ namespace Shark {
 				}
 			}
 		}
+#endif
 
 		UI_DragDrop();
 
@@ -664,7 +685,7 @@ namespace Shark {
 			}
 			else
 			{
-				ImGui::Text("Hovered Entity: InValid Entity");
+				ImGui::Text("Hovered Entity: InValid Entity, ID: %d", m_HoveredEntityID);
 			}
 			
 			if (Entity entity{ (entt::entity)m_SelectetEntity, m_ActiveScene })

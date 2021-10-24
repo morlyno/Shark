@@ -59,7 +59,7 @@ namespace Shark {
 	Ref<Shaders> ShaderLibrary::Remove(const std::string& name)
 	{
 		auto shader = TryGet(name);
-		if (shader == nullptr)
+		if (!shader)
 			return nullptr;
 		m_Shaders.erase(name);
 		return shader;

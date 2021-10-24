@@ -11,6 +11,8 @@ namespace Shark {
 		DirectXSwapChainFrameBuffer(IDXGISwapChain* swapchain, const FrameBufferSpecification& specs);
 		virtual ~DirectXSwapChainFrameBuffer();
 
+		virtual void Resize(uint32_t width, uint32_t height) override;
+
 	private:
 		virtual void CreateSwapChainBuffer() override;
 

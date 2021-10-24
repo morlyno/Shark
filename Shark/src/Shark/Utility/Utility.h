@@ -39,4 +39,14 @@ namespace Shark::Utility {
 
 	std::string ToNarrow(const std::wstring& str);
 
+	constexpr DirectX::XMFLOAT4 UI32ToF4(uint32_t color)
+	{
+		return {
+			(float)((color >>  0) & 0xFF) / 255.0f,
+			(float)((color >>  8) & 0xFF) / 255.0f,
+			(float)((color >> 16) & 0xFF) / 255.0f,
+			(float)((color >> 24) & 0xFF) / 255.0f,
+		};
+	}
+
 }

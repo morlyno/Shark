@@ -78,8 +78,14 @@ namespace Shark {
 		T& operator*() const { return *m_Instance; }
 
 		operator bool() const { return m_Instance != nullptr; }
-		bool operator==(const Ref& rhs) const { SK_CORE_ASSERT(((m_Instance && rhs.m_Instance) ? (m_Instance == rhs.m_Instance ? m_Instance->GetRefCount() == rhs.m_Instance->GetRefCount() : true) : true)); return m_Instance == rhs.m_Instance; }
-		bool operator!=(const Ref& rhs) const { return !(*this == rhs); }
+		bool operator==(std::nullptr_t) const { return m_Instance == nullptr; }
+		bool operator!=(std::nullptr_t) const { return m_Instance != nullptr; }
+
+		template<typename T2>
+		bool operator==(const Ref<T2>& rhs) const { SK_CORE_ASSERT(((m_Instance && rhs.m_Instance) ? (m_Instance == rhs.m_Instance ? m_Instance->GetRefCount() == rhs.m_Instance->GetRefCount() : true) : true)); return m_Instance == rhs.m_Instance; }
+		template<typename T2>
+		bool operator!=(const Ref<T2>& rhs) const { return !(*this == rhs); }
+
 
 		template<typename T2>
 		Ref<T2> As() const { SK_CORE_ASSERT(dynamic_cast<T2*>(m_Instance)); return static_cast<T2*>(m_Instance); }

@@ -17,7 +17,7 @@ namespace Shark {
 		virtual void BindMainFrameBuffer() override { m_SwapChain->Bind(); }
 
 		// Temp
-		virtual void MainFrameBufferSetBlend(bool blend) override { m_SwapChain->GetMainFrameBuffer()->SetBlend(0, blend); }
+		virtual void SetBlendForImgui(bool blend) override;
 
 		virtual void Draw(uint32_t vertexCount, PrimitveTopology topology) override;
 		virtual void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) override;
@@ -42,6 +42,7 @@ namespace Shark {
 		ID3D11DeviceContext* m_ActiveContext = nullptr;
 		Ref<DirectXSwapChain> m_SwapChain = nullptr;
 
+		ID3D11BlendState* m_ImGuiBlendState = nullptr;
 	};
 
 }

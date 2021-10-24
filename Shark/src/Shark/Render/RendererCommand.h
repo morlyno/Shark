@@ -16,7 +16,7 @@ namespace Shark {
 		static inline void BindMainFrameBuffer() { s_RendererAPI->BindMainFrameBuffer(); }
 
 		// Temp
-		static inline void MainFrameBufferSetBlend(bool blend) { s_RendererAPI->MainFrameBufferSetBlend(blend); }
+		static inline void SetBlendForImgui(bool blend) { s_RendererAPI->SetBlendForImgui(blend); }
 
 		static inline void Draw(uint32_t vertexCount, PrimitveTopology topology) { s_RendererAPI->Draw(vertexCount, topology); }
 		static inline void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) { s_RendererAPI->DrawIndexed(indexCount, topology); }

@@ -56,6 +56,7 @@
 #include "Shark/Render/Camera.h"
 #include "Shark/Render/EditorCamera.h"
 #include "Shark/Render/SceneRenderer.h"
+#include "Shark/Render/Image.h"
 // --------------------------------------
 
 // --- Scene ----------------------------

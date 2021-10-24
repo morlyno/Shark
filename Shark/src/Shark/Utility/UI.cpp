@@ -15,7 +15,7 @@ namespace Shark::UI {
 
 		static inline void ImGuiCallbackFunctionBlend(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 		{
-			RendererCommand::MainFrameBufferSetBlend((bool)cmd->UserCallbackData);
+			RendererCommand::SetBlendForImgui((bool)cmd->UserCallbackData);
 		}
 
 		SK_DEPRECATED("NoAlpaImage is deprecated, probaly a replacement very soon")
@@ -25,9 +25,9 @@ namespace Shark::UI {
 			if (window->SkipItems)
 				return;
 
-			window->DrawList->AddCallback(ImGuiCallbackFunctionBlend, (void*)false);
+			//window->DrawList->AddCallback(ImGuiCallbackFunctionBlend, (void*)false);
 			ImGui::Image(textureID, size, uv0, uv1, tintcolor, bordercolor);
-			window->DrawList->AddCallback(ImGuiCallbackFunctionBlend, (void*)true);
+			//window->DrawList->AddCallback(ImGuiCallbackFunctionBlend, (void*)true);
 		}
 	}
 }
