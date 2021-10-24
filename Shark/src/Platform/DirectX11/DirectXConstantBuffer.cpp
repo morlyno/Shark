@@ -56,4 +56,28 @@ namespace Shark {
 		ctx->Unmap(m_ConstBuffer, 0);
 	}
 
+	Ref<ConstantBuffer> DirectXConstantBufferSet::Create(uint32_t size, uint32_t slot)
+	{
+		Ref<DirectXConstantBuffer> cb = Ref<DirectXConstantBuffer>::Create(size, slot);
+		m_CBMap[slot] = cb;
+		return cb;
+	}
+
+	Ref<ConstantBuffer> DirectXConstantBufferSet::Get(uint32_t slot) const
+	{
+		return m_CBMap.at(slot);
+	}
+
+	void DirectXConstantBufferSet::Bind()
+	{
+		for (auto& [slot, cb] : m_CBMap)
+			cb->Bind();
+	}
+
+	void DirectXConstantBufferSet::UnBind()
+	{
+		for (auto& [slot, cb] : m_CBMap)
+			cb->UnBind();
+	}
+
 }

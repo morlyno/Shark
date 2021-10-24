@@ -18,19 +18,20 @@ namespace Shark {
 		static Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot);
 	};
 
+	// TODO: create directx version
 	class ConstantBufferSet : public RefCount
 	{
 	public:
-		Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot);
-		Ref<ConstantBuffer> Get(uint32_t index);
-		uint32_t BufferCount() const { return (uint32_t)m_ConstantBuffers.size(); }
+		virtual ~ConstantBufferSet() = default;
 
-		void Bind();
-		void UnBind();
+		virtual Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot) = 0;
+		virtual Ref<ConstantBuffer> Get(uint32_t slot) const = 0;
 
+		virtual void Bind() = 0;
+		virtual void UnBind() = 0;
+
+	public:
 		static Ref<ConstantBufferSet> Create();
-	private:
-		std::vector<Ref<ConstantBuffer>> m_ConstantBuffers;
 	};
 
 }

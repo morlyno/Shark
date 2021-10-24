@@ -1,54 +1,54 @@
 #include "skpch.h"
-#include "Shaders.h"
+#include "Shader.h"
 
 #include "Shark/Render/RendererAPI.h"
-#include "Platform/DirectX11/DirectXShaders.h"
+#include "Platform/DirectX11/DirectXShader.h"
 
 namespace Shark {
 
-	Ref<Shaders> Shaders::Create(const std::filesystem::path& filepath)
+	Ref<Shader> Shader::Create(const std::filesystem::path& filepath)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXShaders>::Create(filepath);
+			case RendererAPI::API::DirectX11: return Ref<DirectXShader>::Create(filepath);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;
 	}
 
-	Ref<Shaders> ShaderLibrary::Load(const std::filesystem::path& filepath)
+	Ref<Shader> ShaderLibrary::Load(const std::filesystem::path& filepath)
 	{
-		auto shaders = Shaders::Create(filepath);
+		auto shaders = Shader::Create(filepath);
 		Add(shaders);
 		return shaders;
 	}
 
-	Ref<Shaders> ShaderLibrary::Load(const std::filesystem::path& filepath, const std::string name)
+	Ref<Shader> ShaderLibrary::Load(const std::filesystem::path& filepath, const std::string name)
 	{
-		auto shaders = Shaders::Create(filepath);
+		auto shaders = Shader::Create(filepath);
 		Add(shaders, name);
 		return shaders;
 	}
 
-	void ShaderLibrary::Add(Ref<Shaders> shader)
+	void ShaderLibrary::Add(Ref<Shader> shader)
 	{
 		Add(shader, shader->GetFileName());
 	}
 
-	void ShaderLibrary::Add(Ref<Shaders> shader, const std::string& name)
+	void ShaderLibrary::Add(Ref<Shader> shader, const std::string& name)
 	{
 		SK_CORE_ASSERT(!Exists(name));
 		m_Shaders[name] = shader;
 	}
 
-	Ref<Shaders> ShaderLibrary::Get(const std::string& name)
+	Ref<Shader> ShaderLibrary::Get(const std::string& name)
 	{
 		SK_CORE_ASSERT(Exists(name));
 		return m_Shaders[name];
 	}
 
-	Ref<Shaders> ShaderLibrary::TryGet(const std::string& name)
+	Ref<Shader> ShaderLibrary::TryGet(const std::string& name)
 	{
 		const auto&& i = m_Shaders.find(name);
 		if (i != m_Shaders.end())
@@ -56,7 +56,7 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Shaders> ShaderLibrary::Remove(const std::string& name)
+	Ref<Shader> ShaderLibrary::Remove(const std::string& name)
 	{
 		auto shader = TryGet(name);
 		if (!shader)
@@ -65,7 +65,7 @@ namespace Shark {
 		return shader;
 	}
 
-	Ref<Shaders> ShaderLibrary::Remove(Ref<Shaders> shader)
+	Ref<Shader> ShaderLibrary::Remove(Ref<Shader> shader)
 	{
 		auto i = std::find_if(m_Shaders.cbegin(), m_Shaders.cend(), [shader](const auto& other)
 		{
@@ -84,7 +84,7 @@ namespace Shark {
 		return m_Shaders.find(name) != m_Shaders.end();
 	}
 
-	bool ShaderLibrary::Exists(Ref<Shaders> shader)
+	bool ShaderLibrary::Exists(Ref<Shader> shader)
 	{
 		auto i = std::find_if(m_Shaders.cbegin(), m_Shaders.cend(), [shader](const auto& other)
 		{

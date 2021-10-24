@@ -41,4 +41,26 @@ namespace Shark {
 
 	};
 
+	class DirectXTexture2DArray : public Texture2DArray
+	{
+	public:
+		DirectXTexture2DArray(uint32_t count);
+		virtual ~DirectXTexture2DArray() = default;
+
+		virtual void Resize(uint32_t newCount) override;
+
+		virtual Ref<Texture2D> Create(uint32_t index, Ref<Image2D> image, const SamplerProps& props = {}) override;
+		virtual Ref<Texture2D> Create(uint32_t index, const std::filesystem::path& filepath, const SamplerProps& props = {}) override;
+		virtual Ref<Texture2D> Create(uint32_t index, uint32_t width, uint32_t height, void* data, const SamplerProps& props = {}) override;
+
+		virtual void Set(uint32_t index, Ref<Texture2D> texture) override;
+		virtual Ref<Texture2D> Get(uint32_t index) const override;
+
+		virtual void Bind() override;
+		virtual void Bind(uint32_t slot) override;
+
+	private:
+		std::vector<Ref<DirectXTexture2D>> m_TextureArray;
+	};
+
 }

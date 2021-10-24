@@ -88,7 +88,7 @@ namespace Shark {
 
 
 		template<typename T2>
-		Ref<T2> As() const { SK_CORE_ASSERT(dynamic_cast<T2*>(m_Instance)); return static_cast<T2*>(m_Instance); }
+		Ref<T2> As() const { SK_CORE_ASSERT(m_Instance ? dynamic_cast<T2*>(m_Instance) : true); return static_cast<T2*>(m_Instance); }
 
 		template<typename... Args>
 		static Ref Create(Args&&... args) { return new T(std::forward<Args>(args)...); }

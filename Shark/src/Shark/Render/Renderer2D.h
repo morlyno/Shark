@@ -5,7 +5,7 @@
 #include "Shark/Render/Texture.h"
 
 #include "Shark/Render/RenderCommandBuffer.h"
-#include "Shark/Render/Shaders.h"
+#include "Shark/Render/Shader.h"
 #include "Shark/Render/FrameBuffer.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/ConstantBuffer.h"
@@ -141,24 +141,25 @@ namespace Shark {
 		Ref<ConstantBufferSet> m_ConstantBufferSet;
 
 		// Quad
-		Ref<Shaders> m_QuadShader;
+		Ref<Shader> m_QuadShader;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
-		std::array<Ref<Texture2D>, MaxTextureSlots> m_QuadTextures;
+		//std::array<Ref<Texture2D>, MaxTextureSlots> m_QuadTextures;
+		Ref<Texture2DArray> m_QuadTextureArray;
 		uint32_t m_QuadTextureSlotIndex = 1;
 		uint32_t m_QuadIndexCount = 0;
 		QuadVertex* m_QuadVertexBasePtr = nullptr;
 		QuadVertex* m_QuadVertexIndexPtr = nullptr;
 
 		// Circle
-		Ref<Shaders> m_CircleShader;
+		Ref<Shader> m_CircleShader;
 		Ref<VertexBuffer> m_CircleVertexBuffer;
 		uint32_t m_CircleIndexCount = 0;
 		CircleVertex* m_CircleVertexBasePtr = nullptr;
 		CircleVertex* m_CircleVertexIndexPtr = nullptr;
 
 		// Line
-		Ref<Shaders> m_LineShader;
+		Ref<Shader> m_LineShader;
 		Ref<VertexBuffer> m_LineVertexBuffer;
 		Ref<IndexBuffer> m_LineIndexBuffer;
 		uint32_t m_LineIndexCount = 0;

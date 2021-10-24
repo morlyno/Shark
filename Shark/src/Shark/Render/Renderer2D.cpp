@@ -53,6 +53,7 @@ namespace Shark {
 		delete[] quadIndices;
 
 		m_QuadVertexBasePtr = new QuadVertex[MaxQuadVertices];
+		m_QuadTextureArray = Texture2DArray::Create(MaxTextureSlots);
 
 		// Circle
 		m_CircleShader = Renderer::GetShaderLib().Get("Renderer2D_Circle");
@@ -87,9 +88,9 @@ namespace Shark {
 		m_QuadVertexIndexPtr = m_QuadVertexBasePtr;
 
 		m_QuadTextureSlotIndex = 1;
-		m_QuadTextures[0] = m_WhiteTexture;
+		m_QuadTextureArray->Set(0, m_WhiteTexture);
 		for (uint32_t i = 1; i < MaxTextureSlots; i++)
-			m_QuadTextures[i] = nullptr;
+			m_QuadTextureArray->Set(i, nullptr);
 
 		// Circle
 		m_CircleIndexCount = 0;
@@ -119,7 +120,7 @@ namespace Shark {
 			{
 				m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
 				for (uint32_t i = 0; i < m_QuadTextureSlotIndex; i++)
-					m_QuadTextures[i]->Bind(i);
+					m_QuadTextureArray->Get(i)->Bind(i);
 
 				Renderer::SubmitGeometry(m_RenderCommandBuffer, m_RenderTarget, m_QuadShader, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
 				m_Stats.DrawCalls++;
@@ -183,13 +184,13 @@ namespace Shark {
 		if (texture != m_WhiteTexture && texture != nullptr)
 		{
 			for (uint32_t i = 0; i < m_QuadTextureSlotIndex; i++)
-				if (m_QuadTextures[i] == texture)
+				if (m_QuadTextureArray->Get(i) == texture)
 					textureSlot = i;
 		
 			if (textureSlot == 0)
 			{
 				textureSlot = m_QuadTextureSlotIndex++;
-				m_QuadTextures[textureSlot] = texture;
+				m_QuadTextureArray->Set(textureSlot, texture);
 				m_Stats.TextureCount++;
 			}
 		}
@@ -240,13 +241,13 @@ namespace Shark {
 		if (texture != m_WhiteTexture && texture != nullptr)
 		{
 			for (uint32_t i = 0; i < m_QuadTextureSlotIndex; i++)
-				if (m_QuadTextures[i] == texture)
+				if (m_QuadTextureArray->Get(i) == texture)
 					textureSlot = i;
 
 			if (textureSlot == 0)
 			{
 				textureSlot = m_QuadTextureSlotIndex++;
-				m_QuadTextures[textureSlot] = texture;
+				m_QuadTextureArray->Set(textureSlot, texture);
 				m_Stats.TextureCount++;
 			}
 		}
@@ -438,7 +439,7 @@ namespace Shark {
 		{
 			m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
 			for (uint32_t i = 0; i < m_QuadTextureSlotIndex; i++)
-				m_QuadTextures[i]->Bind(i);
+				m_QuadTextureArray->Get(i)->Bind(i);
 
 			Renderer::SubmitGeometry(m_RenderCommandBuffer, m_RenderTarget, m_QuadShader, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
 			m_Stats.DrawCalls++;
@@ -449,9 +450,9 @@ namespace Shark {
 		m_QuadIndexCount = 0;
 		m_QuadVertexIndexPtr = m_QuadVertexBasePtr;
 		m_QuadTextureSlotIndex = 1;
-		m_QuadTextures[0] = m_WhiteTexture;
+		m_QuadTextureArray->Set(0, m_WhiteTexture);
 		for (uint32_t i = 1; i < MaxTextureSlots; i++)
-			m_QuadTextures[i] = nullptr;
+			m_QuadTextureArray->Set(i, nullptr);
 
 	}
 

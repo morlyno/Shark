@@ -26,4 +26,17 @@ namespace Shark {
 
 	};
 
+	class DirectXConstantBufferSet : public ConstantBufferSet
+	{
+	public:
+		virtual Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot) override;
+		virtual Ref<ConstantBuffer> Get(uint32_t slot) const override;
+
+		virtual void Bind() override;
+		virtual void UnBind() override;
+
+	private:
+		std::unordered_map<uint32_t, Ref<DirectXConstantBuffer>> m_CBMap;
+	};
+
 }

@@ -7,16 +7,11 @@
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/UI.h>
 
-#include <Shark/Render/Image.h>
-
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <Shark/Debug/Instrumentor.h>
-
-#include "Platform/DirectX11/DirectXRendererAPI.h"
-#include "Platform/DirectX11/DirectXImage.h"
 
 namespace Shark {
 
@@ -736,6 +731,8 @@ namespace Shark {
 					UI::Text(fmt::format("Path: {}", shader->GetFilePath()));
 					if (ImGui::Button("ReCompile"))
 						shader->ReCompile();
+					if (ImGui::Button("Reflect"))
+						shader->PrintReflection();
 					// IDEA: Print Shader Detailes (From Reflection)
 					ImGui::TreePop();
 				}

@@ -132,4 +132,63 @@ namespace Shark {
 
 	}
 
+	DirectXTexture2DArray::DirectXTexture2DArray(uint32_t count)
+	{
+		m_TextureArray.resize(count);
+	}
+
+	void DirectXTexture2DArray::Resize(uint32_t newCount)
+	{
+		SK_CORE_VERIFY(newCount > m_TextureArray.size());
+		if (newCount > m_TextureArray.size())
+			m_TextureArray.resize(newCount);
+	}
+
+	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, Ref<Image2D> image, const SamplerProps& props)
+	{
+		Ref<DirectXTexture2D> texture = Ref<DirectXTexture2D>::Create(image, props);
+		m_TextureArray[index] = texture;
+		return texture;
+	}
+
+	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, const std::filesystem::path& filepath, const SamplerProps& props)
+	{
+		Ref<DirectXTexture2D> texture = Ref<DirectXTexture2D>::Create(filepath, props);
+		m_TextureArray[index] = texture;
+		return texture;
+	}
+
+	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, uint32_t width, uint32_t height, void* data, const SamplerProps& props)
+	{
+		Ref<DirectXTexture2D> texture = Ref<DirectXTexture2D>::Create(width, height, data, props);
+		m_TextureArray[index] = texture;
+		return texture;
+	}
+
+	void DirectXTexture2DArray::Set(uint32_t index, Ref<Texture2D> texture)
+	{
+		m_TextureArray[index] = texture.As<DirectXTexture2D>();
+	}
+
+	Ref<Texture2D> DirectXTexture2DArray::Get(uint32_t index) const
+	{
+		return m_TextureArray[index];
+	}
+
+	void DirectXTexture2DArray::Bind()
+	{
+		uint32_t slotOffset = 0;
+		for (auto& t : m_TextureArray)
+			if (t)
+				t->Bind(slotOffset++);
+	}
+
+	void DirectXTexture2DArray::Bind(uint32_t slot)
+	{
+		uint32_t slotOffset = 0;
+		for (auto& t : m_TextureArray)
+			if (t)
+				t->Bind(slot + slotOffset++);
+	}
+
 }

@@ -48,7 +48,7 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/Buffers.h"
-#include "Shark/Render/Shaders.h"
+#include "Shark/Render/Shader.h"
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/FrameBuffer.h"

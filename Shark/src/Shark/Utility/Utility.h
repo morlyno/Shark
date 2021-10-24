@@ -28,6 +28,15 @@ namespace Shark::Utility {
 		return true;
 	}
 
+	template<typename Key, typename T>
+	bool Contains(const std::unordered_map<Key, T>& map, const Key& key)
+	{
+		const auto iter = map.find(key);
+		if (iter == map.cend())
+			return false;
+		return false;
+	}
+
 	template<typename Container>
 	void Erase(Container& container, size_t index)
 	{
