@@ -10,7 +10,6 @@ namespace Shark {
 	class DirectXTexture2D : public Texture2D
 	{
 	public:
-		//DirectXTexture2D(ID3D11ShaderResourceView* texture, uint32_t width, uint32_t height, const SamplerProps& props = {});
 		DirectXTexture2D(Ref<Image2D> image, const SamplerProps& props);
 		DirectXTexture2D(const std::filesystem::path& filepath, const SamplerProps& props);
 		DirectXTexture2D(uint32_t width, uint32_t height, void* data, const SamplerProps& props);
@@ -24,11 +23,14 @@ namespace Shark {
 		virtual void SetSlot(uint32_t slot) override { m_Slot = slot; }
 		virtual uint32_t GetSlot() const override { return m_Slot; }
 
-		virtual void Bind() override { Bind(m_Slot); }
-		virtual void UnBind() override { UnBind(m_Slot); }
-		virtual void Bind(uint32_t slot) override;
-		virtual void UnBind(uint32_t slot) override;
 
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override { Bind(commandBuffer, m_Slot); }
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override { UnBind(commandBuffer, m_Slot); }
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t slot) override;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer, uint32_t slot) override;
+
+		void Bind(ID3D11DeviceContext* ctx, uint32_t slot);
+		void UnBind(ID3D11DeviceContext* ctx, uint32_t slot);
 	private:
 		void CreateSampler(const SamplerProps& props);
 
@@ -38,6 +40,8 @@ namespace Shark {
 		std::filesystem::path m_FilePath;
 		uint32_t m_Slot = 0;
 		ID3D11SamplerState* m_Sampler = nullptr;
+
+		friend class DirectXRenderer;
 
 	};
 
@@ -56,11 +60,13 @@ namespace Shark {
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) override;
 		virtual Ref<Texture2D> Get(uint32_t index) const override;
 
-		virtual void Bind() override;
-		virtual void Bind(uint32_t slot) override;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t startSlot) override;
 
 	private:
 		std::vector<Ref<DirectXTexture2D>> m_TextureArray;
+
+		friend class DirectXRenderer;
 	};
 
 }

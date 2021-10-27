@@ -18,6 +18,8 @@ namespace Shark {
 		virtual void End() override;
 		virtual void Execute() override;
 
+		void Flush();
+
 	private:
 		ID3D11DeviceContext* m_DeferredContext = nullptr;
 		ID3D11CommandList* m_CommandList = nullptr;

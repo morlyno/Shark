@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "DirectXConstantBuffer.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
 
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
@@ -14,7 +14,7 @@ namespace Shark {
 	DirectXConstantBuffer::DirectXConstantBuffer(uint32_t size, uint32_t slot)
 		: m_Size(size), m_Slot(slot)
 	{
-		auto* dev = DirectXRendererAPI::GetDevice();
+		auto* dev = DirectXRenderer::GetDevice();
 
 		D3D11_BUFFER_DESC bd;
 		bd.ByteWidth = size;
@@ -33,20 +33,30 @@ namespace Shark {
 			m_ConstBuffer->Release();
 	}
 
-	void DirectXConstantBuffer::Bind()
+	void DirectXConstantBuffer::Bind(Ref<RenderCommandBuffer> commandBuffer)
 	{
-		DirectXRendererAPI::GetContext()->VSSetConstantBuffers(m_Slot, 1, &m_ConstBuffer);
+		Bind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
 	}
 
-	void DirectXConstantBuffer::UnBind()
+	void DirectXConstantBuffer::UnBind(Ref<RenderCommandBuffer> commandBuffer)
+	{
+		UnBind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
+	}
+
+	void DirectXConstantBuffer::Bind(ID3D11DeviceContext* ctx)
+	{
+		ctx->VSSetConstantBuffers(m_Slot, 1, &m_ConstBuffer);
+	}
+
+	void DirectXConstantBuffer::UnBind(ID3D11DeviceContext* ctx)
 	{
 		ID3D11Buffer* nullBuffer = nullptr;
-		DirectXRendererAPI::GetContext()->VSSetConstantBuffers(m_Slot, 1, &nullBuffer);
+		ctx->VSSetConstantBuffers(m_Slot, 1, &nullBuffer);
 	}
 
 	void DirectXConstantBuffer::Set(void* data, uint32_t size)
 	{
-		auto* ctx = DirectXRendererAPI::GetContext();
+		auto* ctx = DirectXRenderer::GetContext();
 
 		SK_CORE_ASSERT(m_Size == size);
 
@@ -68,16 +78,15 @@ namespace Shark {
 		return m_CBMap.at(slot);
 	}
 
-	void DirectXConstantBufferSet::Bind()
+	void DirectXConstantBufferSet::Bind(Ref<RenderCommandBuffer> commandBuffer)
 	{
 		for (auto& [slot, cb] : m_CBMap)
-			cb->Bind();
+			cb->Bind(commandBuffer);
 	}
 
-	void DirectXConstantBufferSet::UnBind()
+	void DirectXConstantBufferSet::UnBind(Ref<RenderCommandBuffer> commandBuffer)
 	{
 		for (auto& [slot, cb] : m_CBMap)
-			cb->UnBind();
+			cb->UnBind(commandBuffer);
 	}
-
 }

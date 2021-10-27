@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Shark/Core/Base.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+
 namespace Shark {
 
 	enum class FillMode
@@ -30,8 +33,8 @@ namespace Shark {
 	public:
 		virtual ~Rasterizer() = default;
 
-		virtual void Bind() = 0;
-		virtual void UnBind() = 0;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 		virtual void SetFillMode(FillMode fill) = 0;
 		virtual void SetCullMode(CullMode cull) = 0;

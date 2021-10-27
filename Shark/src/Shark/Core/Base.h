@@ -21,8 +21,8 @@
 #endif
 
 
-#define IMGUI_DEFINE_MATH_OPERATORS
-#define SPDLOG_FMT_EXTERNAL
+#define IMGUI_DEFINE_MATH_OPERATORS 1
+#define SPDLOG_FMT_EXTERNAL 1
 
 #define BIT(x) (1 << x)
 #define SK_BIT(x) (1 << x)
@@ -85,7 +85,7 @@ static_assert(sizeof(int64_t) == 8);
 static_assert(sizeof(char) == 1);
 static_assert(sizeof(wchar_t) == 2);
 static_assert(sizeof(int) == 4);
-static_assert(sizeof(byte) == 1);
+static_assert(sizeof(Shark::byte) == 1);
 
 #include "Shark/Memory/Allocator.h"
 

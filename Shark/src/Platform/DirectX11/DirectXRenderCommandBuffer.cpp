@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "DirectXRenderCommandBuffer.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
 
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR(SK_STRINGIFY(call) "0x{0:x}", hr); SK_DEBUG_BREAK(); }
@@ -13,12 +13,16 @@ namespace Shark {
 	
 	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer()
 	{
-		auto dev = DirectXRendererAPI::GetDevice();
+		auto dev = DirectXRenderer::GetDevice();
 		SK_CHECK(dev->CreateDeferredContext(0, &m_DeferredContext));
+		
+		DirectXRenderer::AddRenderCommandBuffer(this);
 	}
 
 	DirectXRenderCommandBuffer::~DirectXRenderCommandBuffer()
 	{
+		DirectXRenderer::RemoveRenderCommandBuffer(this);
+
 		if (m_CommandList)
 			m_CommandList->Release();
 		if (m_DeferredContext)
@@ -27,14 +31,11 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::Begin()
 	{
-		auto api = DirectXRendererAPI::Get();
-		api->SetActiveContext(m_DeferredContext);
+		//m_DeferredContext->ClearState();
 	}
 
 	void DirectXRenderCommandBuffer::End()
 	{
-		auto api = DirectXRendererAPI::Get();
-		api->SetActiveContext(api->GetImmediateContext());
 	}
 
 	void DirectXRenderCommandBuffer::Execute()
@@ -42,10 +43,18 @@ namespace Shark {
 		if (m_CommandList)
 			m_CommandList->Release();
 
-		auto ctx = DirectXRendererAPI::GetImmediateContext();
+		auto* ctx = DirectXRenderer::GetContext();
 		SK_CHECK(m_DeferredContext->FinishCommandList(FALSE, &m_CommandList));
 		
 		ctx->ExecuteCommandList(m_CommandList, FALSE);
+	}
+
+	void DirectXRenderCommandBuffer::Flush()
+	{
+		Execute();
+		m_CommandList->Release();
+		m_CommandList = nullptr;
+		m_DeferredContext->Flush();
 	}
 
 }

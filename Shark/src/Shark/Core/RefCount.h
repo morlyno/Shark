@@ -8,7 +8,7 @@ namespace Shark {
 		RefCount() = default;
 		RefCount(const RefCount& other) { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount; }
 		RefCount(RefCount&& other) noexcept { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount; other.m_RefCount = 0; other.m_WeakCount = 0; }
-		const RefCount& operator=(const RefCount& other) { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount; }
+		const RefCount& operator=(const RefCount& other) { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount; return *this; }
 		const RefCount& operator=(RefCount&& other) noexcept { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount;other.m_RefCount = 0;other.m_WeakCount = 0; return *this; }
 		virtual ~RefCount() = default;
 
@@ -46,15 +46,16 @@ namespace Shark {
 		const Ref& operator=(std::nullptr_t) { Release(); return *this; }
 		~Ref() { Release(); }
 
-		Ref(T* inst) { m_Instance = inst; if (m_Instance) { m_Instance->AddRef(); } }
+		Ref(T* inst) { m_Instance = inst; if (m_Instance) m_Instance->AddRef(); }
+		explicit Ref(const Weak<T>& weak) { SK_CORE_ASSERT(m_Instance == nullptr); m_Instance = weak.m_Instance; m_Instance->AddRef(); }
 
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
+		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
 		Ref(const Ref<T2>& other) { Release();  m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } }
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
+		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
 		Ref(Ref<T2>&& other) noexcept { Release();  m_Instance = other.m_Instance; other.m_Instance = nullptr; }
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
+		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
 		const Ref& operator=(const Ref<T2>& other) { Release();  m_Instance = other.m_Instance; if (m_Instance) { m_Instance->AddRef(); } return *this; }
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
+		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
 		const Ref& operator=(Ref<T2>&& other) noexcept { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
 
 		void Release()
@@ -64,10 +65,10 @@ namespace Shark {
 				SK_CORE_ASSERT(m_Instance->GetRefCount() != 0, "Release was called but refcount was 0");
 				if (m_Instance->DecRef() == 0)
 				{
-					SK_IF_DEBUG(
-						if (uint32_t wc = m_Instance->GetWeakCount(); wc > 0)
-							SK_CORE_INFO("Insteance of {0} is going to be deleated but there are still {1} Weak Refrences", typeid(T).name(), wc);
-					);
+#if SK_DEBUG
+					if (uint32_t wc = m_Instance->GetWeakCount(); wc > 0)
+						SK_CORE_INFO("Insteance of {0} is going to be deleated but there are still {1} Weak Refrences", typeid(T).name(), wc);
+#endif
 					delete m_Instance;
 				}
 				m_Instance = nullptr;
@@ -78,8 +79,8 @@ namespace Shark {
 		T& operator*() const { return *m_Instance; }
 
 		operator bool() const { return m_Instance != nullptr; }
-		bool operator==(std::nullptr_t) const { return m_Instance == nullptr; }
-		bool operator!=(std::nullptr_t) const { return m_Instance != nullptr; }
+		bool operator==(T* ptr) const { return m_Instance == ptr; }
+		bool operator!=(T* ptr) const { return m_Instance != ptr; }
 
 		template<typename T2>
 		bool operator==(const Ref<T2>& rhs) const { SK_CORE_ASSERT(((m_Instance && rhs.m_Instance) ? (m_Instance == rhs.m_Instance ? m_Instance->GetRefCount() == rhs.m_Instance->GetRefCount() : true) : true)); return m_Instance == rhs.m_Instance; }
@@ -96,8 +97,8 @@ namespace Shark {
 	private:
 		T* m_Instance = nullptr;
 
-		template<typename T2> friend class Ref;
-		template<typename T> friend class Weak;
+		template<typename> friend class Ref;
+		template<typename> friend class Weak;
 	};
 
 
@@ -150,8 +151,8 @@ namespace Shark {
 	private:
 		T* m_Instance = nullptr;
 
-		template<typename T2>
-		friend class Weak;
+		template<typename> friend class Weak;
+		template<typename> friend class Ref;
 	};
 
 }

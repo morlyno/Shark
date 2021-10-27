@@ -11,8 +11,11 @@ namespace Shark {
 		DirectXRasterizer(const RasterizerSpecification& specs);
 		virtual ~DirectXRasterizer();
 
-		virtual void Bind() override;
-		virtual void UnBind() override;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
+
+		void Bind(ID3D11DeviceContext* ctx);
+		void UnBind(ID3D11DeviceContext* ctx);
 
 		virtual void SetFillMode(FillMode fill) override;
 		virtual void SetCullMode(CullMode cull) override;

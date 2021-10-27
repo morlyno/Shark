@@ -5,6 +5,8 @@
 
 namespace Shark {
 
+	static Ref<RendererAPI> s_RendererAPI = nullptr;
+
 	struct RendererBaseData
 	{
 		ShaderLibrary ShaderLib;
@@ -17,7 +19,7 @@ namespace Shark {
 
 	void Renderer::Init()
 	{
-		RendererCommand::Init();
+		s_RendererAPI = RendererAPI::Create();
 
 		s_BaseData = new RendererBaseData;
 
@@ -53,27 +55,37 @@ namespace Shark {
 	void Renderer::ShutDown()
 	{
 		delete s_BaseData;
+		s_RendererAPI = nullptr;
+	}
 
-		RendererCommand::ShutDown();
+	void Renderer::BeginRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> framebuffer)
+	{
+		s_RendererAPI->BeginRenderPass(renderCommandBuffer, framebuffer);
+	}
+
+	void Renderer::EndRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer)
+	{
+		s_RendererAPI->EndRenderPass(renderCommandBuffer);
 	}
 
 	void Renderer::SubmitFullScreenQuad()
 	{
-		s_BaseData->QuadIB->Bind();
-		s_BaseData->QuadVB->Bind();
-		RendererCommand::DrawIndexed(s_BaseData->QuadIB->GetCount(), PrimitveTopology::Triangle);
-		s_BaseData->QuadVB->UnBind();
-		s_BaseData->QuadIB->UnBind();
+		SK_CORE_ASSERT(false, "Not implemented");
 	}
 
-	void Renderer::SubmitGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
 	{
-		frameBuffer->Bind();
-		shaders->Bind();
-		constantBufferSet->Bind();
-		vertexBuffer->Bind();
-		indexBuffer->Bind();
-		RendererCommand::DrawIndexed(indexCount, topology);
+		s_RendererAPI->RenderGeometry(renderCommandBuffer, frameBuffer, shaders, constantBufferSet, textureArray, vertexBuffer, indexBuffer, indexCount, topology);
+	}
+
+	Ref<FrameBuffer> Renderer::GetFinaleCompositFrameBuffer()
+	{
+		return s_RendererAPI->GetFinaleCompositFrameBuffer();
+	}
+
+	Ref<RendererAPI> Renderer::GetRendererAPI()
+	{
+		return s_RendererAPI;
 	}
 
 	ShaderLibrary& Renderer::GetShaderLib()

@@ -2,6 +2,8 @@
 
 #include "Shark/Render/FrameBuffer.h"
 #include "Platform/DirectX11/DirectXTexture.h"
+#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
+
 #include <d3d11.h>
 
 namespace Shark {
@@ -12,11 +14,19 @@ namespace Shark {
 		DirectXFrameBuffer(const FrameBufferSpecification& specs, bool isSwapChainTarget = false);
 		virtual ~DirectXFrameBuffer();
 
-		virtual void Clear() override { Clear(m_Specification.ClearColor); }
-		virtual void Clear(const DirectX::XMFLOAT4& clearcolor) override;
-		virtual void ClearAtachment(uint32_t index) override { ClearAtachment(index, m_Specification.ClearColor); }
-		virtual void ClearAtachment(uint32_t index, const DirectX::XMFLOAT4& clearcolor) override;
-		virtual void ClearDepth() override;
+		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer) override { Clear(commandBuffer, m_Specification.ClearColor); }
+		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer, const DirectX::XMFLOAT4& clearcolor) override;
+		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) override { ClearAtachment(commandBuffer, index, m_Specification.ClearColor); }
+		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const DirectX::XMFLOAT4& clearcolor) override;
+		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) override;
+
+		void Clear(ID3D11DeviceContext* ctx) { Clear(ctx, m_Specification.ClearColor); }
+		void Clear(ID3D11DeviceContext* ctx, const DirectX::XMFLOAT4& clearcolor);
+		void ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index) { ClearAtachment(ctx, index, m_Specification.ClearColor); }
+		void ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index, const DirectX::XMFLOAT4& clearcolor);
+		void ClearDepth(ID3D11DeviceContext* ctx);
+
+
 
 		virtual void Release() override;
 		virtual std::pair<uint32_t, uint32_t> GetSize() const override { return { m_Specification.Width, m_Specification.Height }; }
@@ -26,8 +36,12 @@ namespace Shark {
 
 		virtual const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
 
-		virtual void Bind() override;
-		virtual void UnBind() override;
+		
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
+
+		void Bind(ID3D11DeviceContext* ctx);
+		void UnBind(ID3D11DeviceContext* ctx);
 
 	protected:
 		void CreateDepth32Buffer(FrameBufferAtachment* atachment);
@@ -50,5 +64,7 @@ namespace Shark {
 		FrameBufferAtachment* m_DepthStencilAtachment = nullptr;
 		bool m_IsSwapChainTarget;
 
+
+		friend class DirectXRenderer;
 	};
 }

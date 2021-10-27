@@ -12,8 +12,11 @@ namespace Shark {
 		DirectXConstantBuffer(uint32_t size, uint32_t slot);
 		virtual ~DirectXConstantBuffer();
 
-		virtual void Bind() override;
-		virtual void UnBind() override;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
+
+		void Bind(ID3D11DeviceContext* ctx);
+		void UnBind(ID3D11DeviceContext* ctx);
 
 		virtual void SetSlot(uint32_t slot) override { m_Slot = slot; }
 
@@ -24,6 +27,7 @@ namespace Shark {
 		uint32_t m_Size = 0;
 		uint32_t m_Slot = 0;
 
+		friend class DirectXRenderer;
 	};
 
 	class DirectXConstantBufferSet : public ConstantBufferSet
@@ -32,11 +36,13 @@ namespace Shark {
 		virtual Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot) override;
 		virtual Ref<ConstantBuffer> Get(uint32_t slot) const override;
 
-		virtual void Bind() override;
-		virtual void UnBind() override;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
 
 	private:
 		std::unordered_map<uint32_t, Ref<DirectXConstantBuffer>> m_CBMap;
+
+		friend class DirectXRenderer;
 	};
 
 }

@@ -2,7 +2,7 @@
 #include "UI.h"
 
 #include "Shark/Utility/Math.h"
-#include "Shark/Render/RendererCommand.h"
+#include "Shark/Render/Renderer.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -15,7 +15,7 @@ namespace Shark::UI {
 
 		static inline void ImGuiCallbackFunctionBlend(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 		{
-			RendererCommand::SetBlendForImgui((bool)cmd->UserCallbackData);
+			Renderer::GetRendererAPI()->SetBlendForImgui((bool)cmd->UserCallbackData);
 		}
 
 		SK_DEPRECATED("NoAlpaImage is deprecated, probaly a replacement very soon")

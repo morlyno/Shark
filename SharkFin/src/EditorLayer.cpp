@@ -96,16 +96,16 @@ namespace Shark {
 		imageSpecs.Usage = ImageUsageNone;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
 
-		FrameBufferSpecification compositfbspecs;
-		compositfbspecs.Width = window.GetWidth();
-		compositfbspecs.Height = window.GetHeight();
-		compositfbspecs.Atachments = { ImageFormat::RGBA8 };
-		compositfbspecs.Atachments[0].Blend = false;
-		compositfbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-		m_CompositFrameBuffer = FrameBuffer::Create(compositfbspecs);
-
-		Ref<Image2D> fbImage = m_CompositFrameBuffer->GetImage(0);
-		fbImage->CreateView();
+		//FrameBufferSpecification compositfbspecs;
+		//compositfbspecs.Width = window.GetWidth();
+		//compositfbspecs.Height = window.GetHeight();
+		//compositfbspecs.Atachments = { ImageFormat::RGBA8 };
+		//compositfbspecs.Atachments[0].Blend = false;
+		//compositfbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+		//m_CompositFrameBuffer = FrameBuffer::Create(compositfbspecs);
+		//
+		//Ref<Image2D> fbImage = m_CompositFrameBuffer->GetImage(0);
+		//fbImage->CreateView();
 
 	}
 
@@ -118,11 +118,11 @@ namespace Shark {
 	{
 		m_TimeStep = ts;
 
-		m_CompositFrameBuffer->Clear();
+		//m_CompositFrameBuffer->Clear();
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered && !m_ViewportFocused);
 
-		if (m_ViewportSizeChanged)
+		if (m_ViewportSizeChanged && m_ViewportWidth != 0 && m_ViewportHeight != 0)
 		{
 			SK_PROFILE_SCOPE("Viewport Size Changed");
 
@@ -130,7 +130,7 @@ namespace Shark {
 			m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 			m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 			
-			m_CompositFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			//m_CompositFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
 		}
 
@@ -173,17 +173,9 @@ namespace Shark {
 			}
 		}
 
-		m_CompositFrameBuffer->Bind();
-		Renderer::GetShaderLib().Get("FullScreen")->Bind();
-
-		//Ref<Texture2D> texture = Texture2D::Create(m_SceneRenderer->GetFrameBuffer()->GetImage(0));
-		//texture->Bind(0);
-		//Renderer::SubmitFullScreenQuad();
-
-
 		EffectesTest();
 
-		RendererCommand::BindMainFrameBuffer();
+		Renderer::GetRendererAPI()->BindMainFrameBuffer();
 	}
 
 	void EditorLayer::OnEvent(Event& event)
@@ -204,7 +196,7 @@ namespace Shark {
 		if (event.GetWidth() == 0 || event.GetHeight() == 0)
 			return false;
 
-		RendererCommand::ResizeSwapChain(event.GetWidth(), event.GetHeight());
+		Renderer::GetRendererAPI()->ResizeSwapChain(event.GetWidth(), event.GetHeight());
 
 		return false;
 	}
@@ -356,13 +348,13 @@ namespace Shark {
 			int y = (int)(my - wy);
 			m_HoveredEntityID = -1;
 
-			Ref<Image2D> frameBufferImage = m_SceneRenderer->GetFrameBuffer()->GetImage(1);
-			frameBufferImage->CopyTo(m_MousePickingImage);
-
 			int width = m_MousePickingImage->GetWidth();
 			int height = m_MousePickingImage->GetHeight();
 			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 			{
+				Ref<Image2D> frameBufferImage = m_SceneRenderer->GetFrameBuffer()->GetImage(1);
+				frameBufferImage->CopyTo(m_MousePickingImage);
+
 				m_HoveredEntityID = m_MousePickingImage->ReadPixel(x, y);
 
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)

@@ -4,7 +4,6 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/Input.h"
 #include "Shark/Core/TimeStep.h"
-#include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/Debug/Instrumentor.h"
@@ -28,7 +27,7 @@ namespace Shark {
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		Renderer::Init();
 
-		m_ImGuiLayer = new ImGuiLayer();
+		m_ImGuiLayer = ImGuiLayer::Create();
 		PushLayer(m_ImGuiLayer);
 
 		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency));
@@ -82,7 +81,7 @@ namespace Shark {
 			{
 				SK_PROFILE_SCOPE("Swap Buffers");
 
-				RendererCommand::SwapBuffers(m_Window->IsVSync());
+				Renderer::GetRendererAPI()->SwapBuffers(m_Window->IsVSync());
 			}
 		}
 	}

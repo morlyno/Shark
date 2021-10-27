@@ -67,7 +67,7 @@ namespace Shark {
 
 	private:
 		EditorCamera m_EditorCamera;
-		Ref<FrameBuffer> m_CompositFrameBuffer;
+		//Ref<FrameBuffer> m_CompositFrameBuffer;
 		Ref<Image2D> m_MousePickingImage;
 
 		Ref<SceneRenderer> m_SceneRenderer;

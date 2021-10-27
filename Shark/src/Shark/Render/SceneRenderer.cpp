@@ -1,14 +1,14 @@
 #include "skpch.h"
 #include "SceneRenderer.h"
 
+#include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Scene/Components/SpriteRendererComponent.h"
 #include "Shark/Scene/Components/CameraComponent.h"
 #include "Shark/Utility/Math.h"
 
-#include "Shark/Core/Timer.h"
-
-#include <random>
+#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
 namespace Shark {
 
@@ -32,10 +32,6 @@ namespace Shark {
 
 	void SceneRenderer::OnRender(EditorCamera& camera)
 	{
-		m_FrameBuffer->ClearDepth();
-		m_FrameBuffer->ClearAtachment(0);
-		m_FrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
-
 		m_Renderer2D->BeginScene(camera.GetViewProjection());
 
 		auto entitys = m_Scene->GetAllEntitysWith<SpriteRendererComponent>();
@@ -53,16 +49,10 @@ namespace Shark {
 
 		m_Renderer2D->EndScene();
 
-		m_FrameBuffer->UnBind();
-
 	}
 
 	void SceneRenderer::OnRender()
 	{
-		m_FrameBuffer->ClearDepth();
-		m_FrameBuffer->ClearAtachment(0);
-		m_FrameBuffer->ClearAtachment(1, { -1.0f, -1.0f, -1.0f, -1.0f });
-
 		Entity cameraEntity = m_Scene->GetRuntimeCamera();
 		auto& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
 		const auto& tf = cameraEntity.GetTransform();
@@ -85,8 +75,6 @@ namespace Shark {
 		}
 
 		m_Renderer2D->EndScene();
-
-		m_FrameBuffer->UnBind();
 	}
 
 	void SceneRenderer::Resize(uint32_t width, uint32_t height)

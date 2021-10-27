@@ -1,7 +1,6 @@
 #include "skpch.h"
 #include "Renderer2D.h"
 
-#include "Shark/Render/RendererCommand.h"
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/Utility/Math.h"
@@ -71,6 +70,11 @@ namespace Shark {
 
 		m_LineVertexBasePtr = new LineVertex[MaxLineVertices];
 
+#if SK_DEBUG
+		for (uint32_t i = 0; i < MaxTextureSlots; i++)
+			m_WhiteTexture->Bind(m_RenderCommandBuffer, i);
+#endif
+
 	}
 
 	void Renderer2D::ShutDown()
@@ -108,9 +112,15 @@ namespace Shark {
 	{
 		m_RenderCommandBuffer->Begin();
 
+		m_RenderTarget->ClearAtachment(m_RenderCommandBuffer, 0);
+		m_RenderTarget->ClearAtachment(m_RenderCommandBuffer, 1, { -1.0f, -1.0f, -1.0f, -1.0f });
+		m_RenderTarget->ClearDepth(m_RenderCommandBuffer);
+
+		Renderer::BeginRenderPass(m_RenderCommandBuffer, m_RenderTarget);
+
 #if SK_DEBUG
 		for (uint32_t i = 0; i < MaxTextureSlots; i++)
-			m_WhiteTexture->Bind(i);
+			m_WhiteTexture->Bind(m_RenderCommandBuffer, i);
 #endif
 
 		// Quad
@@ -119,10 +129,8 @@ namespace Shark {
 			if (dataSize)
 			{
 				m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
-				for (uint32_t i = 0; i < m_QuadTextureSlotIndex; i++)
-					m_QuadTextureArray->Get(i)->Bind(i);
 
-				Renderer::SubmitGeometry(m_RenderCommandBuffer, m_RenderTarget, m_QuadShader, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
+				Renderer::RenderGeometry(m_RenderCommandBuffer, m_RenderTarget, m_QuadShader, m_ConstantBufferSet, m_QuadTextureArray, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
 				m_Stats.DrawCalls++;
 			}
 		}
@@ -134,7 +142,7 @@ namespace Shark {
 			{
 				m_CircleVertexBuffer->SetData(m_CircleVertexBasePtr, dataSize);
 
-				Renderer::SubmitGeometry(m_RenderCommandBuffer, m_RenderTarget, m_CircleShader, m_ConstantBufferSet, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount, PrimitveTopology::Triangle);
+				Renderer::RenderGeometry(m_RenderCommandBuffer, m_RenderTarget, m_CircleShader, m_ConstantBufferSet, nullptr, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount, PrimitveTopology::Triangle);
 				m_Stats.DrawCalls++;
 			}
 		}
@@ -146,11 +154,12 @@ namespace Shark {
 			{
 				m_LineVertexBuffer->SetData(m_LineVertexBasePtr, dataSize);
 
-				Renderer::SubmitGeometry(m_RenderCommandBuffer, m_RenderTarget, m_LineShader, m_ConstantBufferSet, m_LineVertexBuffer, m_LineIndexBuffer, m_LineIndexCount, PrimitveTopology::Line);
+				Renderer::RenderGeometry(m_RenderCommandBuffer, m_RenderTarget, m_LineShader, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineIndexBuffer, m_LineIndexCount, PrimitveTopology::Line);
 				m_Stats.DrawCalls++;
 			}
 		}
 
+		Renderer::EndRenderPass(m_RenderCommandBuffer);
 		m_RenderCommandBuffer->End();
 		m_RenderCommandBuffer->Execute();
 	}
@@ -429,19 +438,12 @@ namespace Shark {
 	{
 		m_RenderCommandBuffer->Begin();
 
-#if SK_DEBUG
-		for (uint32_t i = 0; i < MaxTextureSlots; i++)
-			m_WhiteTexture->Bind(i);
-#endif
-
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexIndexPtr - (uint8_t*)m_QuadVertexBasePtr);
 		if (dataSize)
 		{
 			m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
-			for (uint32_t i = 0; i < m_QuadTextureSlotIndex; i++)
-				m_QuadTextureArray->Get(i)->Bind(i);
 
-			Renderer::SubmitGeometry(m_RenderCommandBuffer, m_RenderTarget, m_QuadShader, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
+			Renderer::RenderGeometry(m_RenderCommandBuffer, m_RenderTarget, m_QuadShader, m_ConstantBufferSet, m_QuadTextureArray, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
 			m_Stats.DrawCalls++;
 		}
 
@@ -465,7 +467,7 @@ namespace Shark {
 		{
 			m_CircleVertexBuffer->SetData(m_CircleVertexBasePtr, dataSize);
 
-			Renderer::SubmitGeometry(m_RenderCommandBuffer, m_RenderTarget, m_CircleShader, m_ConstantBufferSet, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount, PrimitveTopology::Triangle);
+			Renderer::RenderGeometry(m_RenderCommandBuffer, m_RenderTarget, m_CircleShader, m_ConstantBufferSet, nullptr, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount, PrimitveTopology::Triangle);
 			m_Stats.DrawCalls++;
 		}
 
@@ -484,7 +486,7 @@ namespace Shark {
 		{
 			m_LineVertexBuffer->SetData(m_LineVertexBasePtr, dataSize);
 
-			Renderer::SubmitGeometry(m_RenderCommandBuffer, m_RenderTarget, m_LineShader, m_ConstantBufferSet, m_LineVertexBuffer, m_LineIndexBuffer, m_LineIndexCount, PrimitveTopology::Line);
+			Renderer::RenderGeometry(m_RenderCommandBuffer, m_RenderTarget, m_LineShader, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineIndexBuffer, m_LineIndexCount, PrimitveTopology::Line);
 			m_Stats.DrawCalls++;
 		}
 

@@ -1,7 +1,8 @@
 #include "skpch.h"
 #include "DirectXBuffers.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
@@ -42,14 +43,14 @@ namespace Shark {
 
 		if (m_VertexBuffer)
 			m_VertexBuffer->Release();
-		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
+		SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
 	}
 
 	void DirectXVertexBuffer::SetData(void* data, uint32_t size)
 	{
 		SK_CORE_ASSERT(m_VertexBuffer);
 
-		auto ctx = DirectXRendererAPI::GetContext();
+		auto ctx = DirectXRenderer::GetContext();
 		SK_CORE_ASSERT(m_Dynamic, "Buffer must be dynamic");
 		SK_IF_DEBUG(
 			D3D11_BUFFER_DESC bd;
@@ -63,18 +64,28 @@ namespace Shark {
 		ctx->Unmap(m_VertexBuffer, 0);
 	}
 
-	void DirectXVertexBuffer::Bind()
+	void DirectXVertexBuffer::Bind(Ref<RenderCommandBuffer> commandBuffer)
+	{
+		Bind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
+	}
+
+	void DirectXVertexBuffer::UnBind(Ref<RenderCommandBuffer> commandBuffer)
+	{
+		UnBind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
+	}
+
+	void DirectXVertexBuffer::Bind(ID3D11DeviceContext* ctx)
 	{
 		const UINT stride = m_Layout.GetVertexSize();
 		constexpr UINT offset = 0u;
-		DirectXRendererAPI::GetContext()->IASetVertexBuffers(0u, 1u, &m_VertexBuffer, &stride, &offset);
+		ctx->IASetVertexBuffers(0u, 1u, &m_VertexBuffer, &stride, &offset);
 	}
 
-	void DirectXVertexBuffer::UnBind()
+	void DirectXVertexBuffer::UnBind(ID3D11DeviceContext* ctx)
 	{
 		ID3D11Buffer* nullBuffer = nullptr;
 		constexpr UINT null = 0;
-		DirectXRendererAPI::GetContext()->IASetVertexBuffers(0u, 1u, &nullBuffer, &null, &null);
+		ctx->IASetVertexBuffers(0u, 1u, &nullBuffer, &null, &null);
 	}
 
 	void DirectXVertexBuffer::CreateBuffer(void* data, uint32_t size)
@@ -92,11 +103,11 @@ namespace Shark {
 			D3D11_SUBRESOURCE_DATA srd = {};
 			srd.pSysMem = data;
 
-			SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBuffer(&bd, &srd, &m_VertexBuffer));
+			SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&bd, &srd, &m_VertexBuffer));
 		}
 		else
 		{
-			SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
+			SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
 		}
 	}
 
@@ -132,12 +143,12 @@ namespace Shark {
 
 		if (m_IndexBuffer)
 			m_IndexBuffer->Release();
-		SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
+		SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
 	}
 
 	void DirectXIndexBuffer::SetData(IndexType* data, uint32_t count)
 	{
-		auto ctx = DirectXRendererAPI::GetContext();
+		auto ctx = DirectXRenderer::GetContext();
 
 		m_Count = count;
 
@@ -157,15 +168,25 @@ namespace Shark {
 		ctx->Unmap(m_IndexBuffer, 0);
 	}
 
-	void DirectXIndexBuffer::Bind()
+	void DirectXIndexBuffer::Bind(Ref<RenderCommandBuffer> commandBuffer)
 	{
-		DirectXRendererAPI::GetContext()->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0u);
+		Bind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
 	}
 
-	void DirectXIndexBuffer::UnBind()
+	void DirectXIndexBuffer::UnBind(Ref<RenderCommandBuffer> commandBuffer)
+	{
+		UnBind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
+	}
+
+	void DirectXIndexBuffer::Bind(ID3D11DeviceContext* ctx)
+	{
+		ctx->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0u);
+	}
+
+	void DirectXIndexBuffer::UnBind(ID3D11DeviceContext* ctx)
 	{
 		ID3D11Buffer* nullBuffer = nullptr;
-		DirectXRendererAPI::GetContext()->IASetIndexBuffer(nullBuffer, DXGI_FORMAT_UNKNOWN, 0u);
+		ctx->IASetIndexBuffer(nullBuffer, DXGI_FORMAT_UNKNOWN, 0u);
 	}
 
 	void DirectXIndexBuffer::CreateBuffer(IndexType* data, uint32_t count)
@@ -183,11 +204,11 @@ namespace Shark {
 			D3D11_SUBRESOURCE_DATA i_srd = {};
 			i_srd.pSysMem = data;
 
-			SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBuffer(&i_bd, &i_srd, &m_IndexBuffer));
+			SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, &i_srd, &m_IndexBuffer));
 		}
 		else
 		{
-			SK_CHECK(DirectXRendererAPI::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
+			SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
 		}
 	}
 

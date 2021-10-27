@@ -4,7 +4,9 @@
 #include "Shark/Core/Timer.h"
 #include "Shark/File/FileSystem.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
+
 #include "Shark/Core/Application.h"
 
 #include <d3dcompiler.h>
@@ -242,17 +244,25 @@ namespace Shark {
 		return ConstantBuffer::Create(bufferDesc.Size, inputDesc.BindPoint);
 	}
 
-	void DirectXShader::Bind()
+	void DirectXShader::Bind(Ref<RenderCommandBuffer> commandBuffer)
 	{
-		auto* ctx = DirectXRendererAPI::GetContext();
+		Bind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
+	}
+
+	void DirectXShader::UnBind(Ref<RenderCommandBuffer> commandBuffer)
+	{
+		UnBind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
+	}
+
+	void DirectXShader::Bind(ID3D11DeviceContext* ctx)
+	{
 		ctx->VSSetShader(m_VertexShader, nullptr, 0u);
 		ctx->PSSetShader(m_PixelShader, nullptr, 0u);
 		ctx->IASetInputLayout(m_InputLayout);
 	}
 
-	void DirectXShader::UnBind()
+	void DirectXShader::UnBind(ID3D11DeviceContext* ctx)
 	{
-		auto* ctx = DirectXRendererAPI::GetContext();
 		ID3D11VertexShader* nullvs = nullptr;
 		ID3D11PixelShader* nullps = nullptr;
 		ID3D11InputLayout* nullil = nullptr;
@@ -535,7 +545,7 @@ namespace Shark {
 		}
 		m_VertexLayout.Init();
 
-		auto dev = DirectXRendererAPI::GetDevice();
+		auto dev = DirectXRenderer::GetDevice();
 		SK_CHECK(dev->CreateInputLayout(m_InputElements.data(), (UINT)m_InputElements.size(), (void*)vtx_src.data(), (UINT)vtx_src.size(), &m_InputLayout));
 		reflection->Release();
 
@@ -543,7 +553,7 @@ namespace Shark {
 
 	void DirectXShader::CreateShaders()
 	{
-		auto* dev = DirectXRendererAPI::GetDevice();
+		auto* dev = DirectXRenderer::GetDevice();
 
 		SK_CORE_ASSERT(m_VertexShader == nullptr);
 		SK_CORE_ASSERT(m_PixelShader == nullptr);

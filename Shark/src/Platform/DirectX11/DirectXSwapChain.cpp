@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "DirectXSwapChain.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
 
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
@@ -36,9 +36,16 @@ namespace Shark {
 		CreateBuffers();
 	}
 
+	void DirectXSwapChainFrameBuffer::Release()
+	{
+		//m_SwapChain->Release();
+
+		DirectXFrameBuffer::Release();
+	}
+
 	void DirectXSwapChainFrameBuffer::CreateSwapChainBuffer()
 	{
-		auto* dev = DirectXRendererAPI::GetDevice();
+		auto* dev = DirectXRenderer::GetDevice();
 		auto*& framebuffer = m_FrameBuffers.emplace_back(nullptr);
 
 		// TODO(moro): Thinck about adding Images to a Swapchain FrameBuffer
@@ -73,8 +80,8 @@ namespace Shark {
 		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		scd.Flags = 0u;
 
-		auto* fac = DirectXRendererAPI::GetFactory();
-		auto* dev = DirectXRendererAPI::GetDevice();
+		auto* fac = DirectXRenderer::GetFactory();
+		auto* dev = DirectXRenderer::GetDevice();
 		SK_CHECK(fac->CreateSwapChain(dev, &scd, &m_SwapChain));
 
 		FrameBufferSpecification fb;
@@ -94,13 +101,16 @@ namespace Shark {
 	void DirectXSwapChain::SwapBuffers(bool vsync)
 	{
 		SK_CHECK(m_SwapChain->Present(vsync ? 1 : 0, 0));
-		m_FrameBuffer->Clear({ 0.8f, 0.8f, 0.2f, 1.0f });
+		m_FrameBuffer->Clear(DirectXRenderer::GetContext(), { 0.8f, 0.8f, 0.2f, 1.0f });
 	}
 
 	void DirectXSwapChain::Resize(uint32_t width, uint32_t height)
 	{
-		m_FrameBuffer->UnBind();
+		m_FrameBuffer->UnBind(DirectXRenderer::GetContext());
 		m_FrameBuffer->Release();
+
+		DirectXRenderer::Get()->Flush();
+
 		DXGI_SWAP_CHAIN_DESC scd;
 		SK_CHECK(m_SwapChain->GetDesc(&scd));
 		SK_CHECK(m_SwapChain->ResizeBuffers(scd.BufferCount, width, height, scd.BufferDesc.Format, scd.Flags));

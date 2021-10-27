@@ -2,6 +2,13 @@
 
 #include "Shark/Core/Base.h"
 
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/Buffers.h"
+
 namespace Shark {
 
 	enum class PrimitveTopology
@@ -22,6 +29,13 @@ namespace Shark {
 		virtual void Init() = 0;
 		virtual void ShutDown() = 0;
 		
+		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) = 0;
+
+		virtual void BeginRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> framebuffer) = 0;
+		virtual void EndRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer) = 0;
+
+		virtual Ref<FrameBuffer> GetFinaleCompositFrameBuffer() const = 0;
+
 		virtual void ResizeSwapChain(uint32_t width, uint32_t height) = 0;
 		virtual void SwapBuffers(bool vsync) = 0;
 		virtual void BindMainFrameBuffer() = 0;
@@ -29,13 +43,10 @@ namespace Shark {
 		// Temp
 		virtual void SetBlendForImgui(bool blend) = 0;
 
-		virtual void Draw(uint32_t vertexCount, PrimitveTopology topology) = 0;
-		virtual void DrawIndexed(uint32_t indexCount, PrimitveTopology topology) = 0;
-
 		static API GetAPI() { return s_API; }
 		static void SetAPI(API api) { s_API = api; }
 
-		static Scope<RendererAPI> Create();
+		static Ref<RendererAPI> Create();
 	private:
 		static API s_API;
 	};

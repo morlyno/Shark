@@ -17,8 +17,11 @@ namespace Shark {
 
 		virtual uint32_t GetSize() const { return m_Size; }
 
-		virtual void Bind() override;
-		virtual void UnBind() override;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
+
+		void Bind(ID3D11DeviceContext* ctx);
+		void UnBind(ID3D11DeviceContext* ctx);
 
 	private:
 		void CreateBuffer(void* data, uint32_t size);
@@ -29,6 +32,8 @@ namespace Shark {
 		ID3D11Buffer* m_VertexBuffer = nullptr;
 		uint32_t m_Size = 0;
 		bool m_Dynamic;
+
+		friend class DirectXRenderer;
 	};
 
 
@@ -44,8 +49,11 @@ namespace Shark {
 		virtual uint32_t GetCount() const override { return m_Count; }
 		virtual uint32_t GetSize() const override { return m_Size; }
 
-		virtual void Bind() override;
-		virtual void UnBind() override;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
+
+		void Bind(ID3D11DeviceContext* ctx);
+		void UnBind(ID3D11DeviceContext* ctx);
 
 	private:
 		void CreateBuffer(IndexType* data, uint32_t count);
@@ -55,6 +63,8 @@ namespace Shark {
 		uint32_t m_Count;
 		uint32_t m_Size;
 		bool m_Dynamic;
+
+		friend class DirectXRenderer;
 	};
 
 }

@@ -2,29 +2,33 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Layer/Layer.h"
-#include "Shark/Event/Event.h"
 
 namespace Shark {
 
 	class ImGuiLayer : public Layer
 	{
 	public:
-		ImGuiLayer();
-		~ImGuiLayer();
+		ImGuiLayer()
+			: Layer("ImGuiLayer")
+		{}
 
-		virtual void OnAttach() override;
-		virtual void OnDetach() override;
-		
-		virtual void OnEvent(Event& event) override;
-		
-		void Begin();
-		void End();
+		virtual ~ImGuiLayer() = default;
 
-		void BlockEvents(bool block) { m_BlockEvents = block; }
+		virtual void OnAttach() = 0;
+		virtual void OnDetach() = 0;
 
-		void SetDarkStyle();
-	private:
-		bool m_BlockEvents = false;
+		virtual void OnEvent(Event& event) = 0;
+
+		virtual void Begin() = 0;
+		virtual void End() = 0;
+
+		virtual void BlockEvents(bool block) = 0;
+		virtual void SubmitBlendCallback(bool blend) = 0;
+
+		virtual void SetDarkStyle() = 0;
+
+	public:
+		static ImGuiLayer* Create();
 	};
 
 }

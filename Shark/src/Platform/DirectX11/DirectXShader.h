@@ -31,8 +31,11 @@ namespace Shark {
 
 		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name);
 
-		virtual void Bind() override;
-		virtual void UnBind() override;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
+
+		void Bind(ID3D11DeviceContext* ctx);
+		void UnBind(ID3D11DeviceContext* ctx);
 
 		std::unordered_map<ShaderStage, std::vector<byte>> GetShaderBinarys() const { return m_ShaderBinarys; }
 	private:
@@ -56,6 +59,8 @@ namespace Shark {
 		std::filesystem::path m_CacheFilePath;
 
 		VertexLayout m_VertexLayout;
+
+		friend class DirectXRenderer;
 
 	};
 

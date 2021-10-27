@@ -2,6 +2,7 @@
 
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Image.h"
+#include "Shark/Render/RenderCommandBuffer.h"
 
 namespace Shark {
 
@@ -31,11 +32,11 @@ namespace Shark {
 	public:
 		virtual ~FrameBuffer() = default;
 
-		virtual void Clear() = 0;
-		virtual void Clear(const DirectX::XMFLOAT4& clearcolor) = 0;
-		virtual void ClearAtachment(uint32_t index) = 0;
-		virtual void ClearAtachment(uint32_t index, const DirectX::XMFLOAT4& clearcolor) = 0;
-		virtual void ClearDepth() = 0;
+		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer, const DirectX::XMFLOAT4& clearcolor) = 0;
+		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) = 0;
+		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const DirectX::XMFLOAT4& clearcolor) = 0;
+		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 		virtual void Release() = 0;
 		virtual std::pair<uint32_t, uint32_t> GetSize() const = 0;
@@ -45,8 +46,8 @@ namespace Shark {
 
 		virtual const FrameBufferSpecification& GetSpecification() const = 0;
 
-		virtual void Bind() = 0;
-		virtual void UnBind() = 0;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 		static Ref<FrameBuffer> Create(const FrameBufferSpecification& specs);
 	};

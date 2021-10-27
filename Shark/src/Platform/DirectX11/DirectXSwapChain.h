@@ -12,6 +12,13 @@ namespace Shark {
 		virtual ~DirectXSwapChainFrameBuffer();
 
 		virtual void Resize(uint32_t width, uint32_t height) override;
+		virtual void Release() override;
+
+		void SetSwapChain(IDXGISwapChain* swapchain)
+		{
+			m_SwapChain = swapchain;
+			m_SwapChain->AddRef();
+		}
 
 	private:
 		virtual void CreateSwapChainBuffer() override;
@@ -41,9 +48,6 @@ namespace Shark {
 		uint32_t GetBufferCount() const { return m_BufferCount; }
 		
 		Ref<DirectXSwapChainFrameBuffer> GetMainFrameBuffer() const { return m_FrameBuffer; }
-
-		void Bind() { m_FrameBuffer->Bind(); }
-		void UnBind() { m_FrameBuffer->UnBind(); }
 
 	private:
 		IDXGISwapChain* m_SwapChain = nullptr;

@@ -1,7 +1,8 @@
 #include "skpch.h"
 #include "DirectXTexture.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
 #include <stb_image.h>
 
@@ -50,12 +51,6 @@ namespace Shark {
 		return D3D11_FILTER_MIN_MAG_MIP_POINT;
 	}
 
-	//DirectXTexture2D::DirectXTexture2D(ID3D11ShaderResourceView* texture, uint32_t width, uint32_t height, const SamplerProps& props)
-	//	: m_Texture(texture)
-	//{
-	//	CreateSampler(props);
-	//}
-
 	DirectXTexture2D::DirectXTexture2D(Ref<Image2D> image, const SamplerProps& props)
 		: m_Image(image.As<DirectXImage2D>())
 	{
@@ -98,18 +93,26 @@ namespace Shark {
 		if (m_Sampler) { m_Sampler->Release(); }
 	}
 
-	void DirectXTexture2D::Bind(uint32_t slot)
+	void DirectXTexture2D::Bind(Ref<RenderCommandBuffer> commandbuffer, uint32_t slot)
 	{
-		auto* ctx = DirectXRendererAPI::GetContext();
+		Bind(commandbuffer.As<DirectXRenderCommandBuffer>()->GetContext(), slot);
+	}
+
+	void DirectXTexture2D::UnBind(Ref<RenderCommandBuffer> commandbuffer, uint32_t slot)
+	{
+		UnBind(commandbuffer.As<DirectXRenderCommandBuffer>()->GetContext(), slot);
+	}
+
+	void DirectXTexture2D::Bind(ID3D11DeviceContext* ctx, uint32_t slot)
+	{
 		ctx->PSSetSamplers(slot, 1u, &m_Sampler);
 
 		ID3D11ShaderResourceView* view = m_Image->GetViewNative();
 		ctx->PSSetShaderResources(slot, 1u, &view);
 	}
 
-	void DirectXTexture2D::UnBind(uint32_t slot)
+	void DirectXTexture2D::UnBind(ID3D11DeviceContext* ctx, uint32_t slot)
 	{
-		auto* ctx = DirectXRendererAPI::GetContext();
 		ID3D11SamplerState* nullsplr = nullptr;
 		ID3D11ShaderResourceView* nullsrv = nullptr;
 		ctx->PSSetSamplers(slot, 1, &nullsplr);
@@ -118,7 +121,7 @@ namespace Shark {
 
 	void DirectXTexture2D::CreateSampler(const SamplerProps& props)
 	{
-		auto* dev = DirectXRendererAPI::GetDevice();
+		auto* dev = DirectXRenderer::GetDevice();
 
 		D3D11_SAMPLER_DESC sd;
 		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));
@@ -175,20 +178,20 @@ namespace Shark {
 		return m_TextureArray[index];
 	}
 
-	void DirectXTexture2DArray::Bind()
+	void DirectXTexture2DArray::Bind(Ref<RenderCommandBuffer> commandBuffer)
 	{
 		uint32_t slotOffset = 0;
 		for (auto& t : m_TextureArray)
 			if (t)
-				t->Bind(slotOffset++);
+				t->Bind(commandBuffer, slotOffset++);
 	}
 
-	void DirectXTexture2DArray::Bind(uint32_t slot)
+	void DirectXTexture2DArray::Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t startSlot)
 	{
 		uint32_t slotOffset = 0;
 		for (auto& t : m_TextureArray)
 			if (t)
-				t->Bind(slot + slotOffset++);
+				t->Bind(commandBuffer, startSlot + slotOffset++);
 	}
 
 }

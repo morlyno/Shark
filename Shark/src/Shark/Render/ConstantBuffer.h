@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Shark/Core/Base.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+
 namespace Shark {
 
 	class ConstantBuffer : public RefCount
@@ -7,8 +10,8 @@ namespace Shark {
 	public:
 		virtual ~ConstantBuffer() = default;
 
-		virtual void Bind() = 0;
-		virtual void UnBind() = 0;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 		virtual void SetSlot(uint32_t slot) = 0;
 
@@ -27,8 +30,8 @@ namespace Shark {
 		virtual Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot) = 0;
 		virtual Ref<ConstantBuffer> Get(uint32_t slot) const = 0;
 
-		virtual void Bind() = 0;
-		virtual void UnBind() = 0;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 	public:
 		static Ref<ConstantBufferSet> Create();

@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Image.h"
+#include "Shark/Render/RenderCommandBuffer.h"
 
 #include <DirectXMath.h>
 
@@ -38,10 +39,10 @@ namespace Shark {
 		virtual void SetSlot(uint32_t slot) = 0;
 		virtual uint32_t GetSlot() const = 0;
 
-		virtual void Bind() = 0;
-		virtual void UnBind() = 0;
-		virtual void Bind(uint32_t slot) = 0;
-		virtual void UnBind(uint32_t slot) = 0;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t slot) = 0;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer, uint32_t slot) = 0;
 	};
 
 	class Texture2D : public Texture
@@ -71,8 +72,8 @@ namespace Shark {
 		virtual Ref<Texture2D> Get(uint32_t index) const = 0;
 
 
-		virtual void Bind() = 0;
-		virtual void Bind(uint32_t slot) = 0;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t startSlot) = 0;
 
 		static Ref<Texture2DArray> Create(uint32_t count);
 	};

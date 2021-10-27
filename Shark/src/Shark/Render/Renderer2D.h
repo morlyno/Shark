@@ -144,7 +144,6 @@ namespace Shark {
 		Ref<Shader> m_QuadShader;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
-		//std::array<Ref<Texture2D>, MaxTextureSlots> m_QuadTextures;
 		Ref<Texture2DArray> m_QuadTextureArray;
 		uint32_t m_QuadTextureSlotIndex = 1;
 		uint32_t m_QuadIndexCount = 0;

@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "DirectXImage.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
 
 #include <stb_image.h>
 
@@ -125,7 +125,7 @@ namespace Shark {
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::Dynamic || m_Specs.Type == ImageType::Staging);
 		SK_CORE_ASSERT(size == m_Specs.Width * m_Specs.Height * Utils::GetImageFormatSize(m_Specs.Format));
 
-		auto ctx = DirectXRendererAPI::GetImmediateContext();
+		auto ctx = DirectXRenderer::GetContext();
 
 		const D3D11_MAP mapMode = m_Specs.Type == ImageType::Dynamic ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_WRITE;
 
@@ -143,7 +143,7 @@ namespace Shark {
 		SK_CORE_ASSERT(m_Specs.Height == dest->GetSpecification().Height);
 		SK_CORE_ASSERT(m_Specs.Format == dest->GetSpecification().Format, "Until Format Groups are introduced the Formats must be the same");
 
-		auto ctx = DirectXRendererAPI::GetImmediateContext();
+		auto ctx = DirectXRenderer::GetContext();
 
 		Ref<DirectXImage2D> dxDest = dest.As<DirectXImage2D>();
 
@@ -154,7 +154,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::Staging);
 
-		auto ctx = DirectXRendererAPI::GetImmediateContext();
+		auto ctx = DirectXRenderer::GetContext();
 
 		D3D11_MAPPED_SUBRESOURCE ms;
 		ctx->Map(m_Image, 0, D3D11_MAP_READ, 0, &ms);
@@ -172,7 +172,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(m_View == nullptr);
 
-		auto* dev = DirectXRendererAPI::GetDevice();
+		auto* dev = DirectXRenderer::GetDevice();
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srv;
 		srv.Format = Utils::ImageFormatToGXGI(m_Specs.Format);
@@ -201,7 +201,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::Default);
 
-		auto dev = DirectXRendererAPI::GetDevice();
+		auto dev = DirectXRenderer::GetDevice();
 
 		D3D11_TEXTURE2D_DESC td;
 		td.Width = m_Specs.Width;
@@ -236,7 +236,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::Dynamic);
 
-		auto dev = DirectXRendererAPI::GetDevice();
+		auto dev = DirectXRenderer::GetDevice();
 
 		D3D11_TEXTURE2D_DESC td;
 		td.Width = m_Specs.Width;
@@ -272,7 +272,7 @@ namespace Shark {
 		SK_CORE_ASSERT(data);
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::Immutable);
 
-		auto dev = DirectXRendererAPI::GetDevice();
+		auto dev = DirectXRenderer::GetDevice();
 
 		D3D11_TEXTURE2D_DESC td;
 		td.Width = m_Specs.Width;
@@ -300,7 +300,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::Staging);
 
-		auto dev = DirectXRendererAPI::GetDevice();
+		auto dev = DirectXRenderer::GetDevice();
 
 		D3D11_TEXTURE2D_DESC td;
 		td.Width = m_Specs.Width;

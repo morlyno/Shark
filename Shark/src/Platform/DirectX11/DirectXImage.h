@@ -56,6 +56,8 @@ namespace Shark {
 		ImageSpecification m_Specs;
 		ID3D11Texture2D* m_Image = nullptr;
 		ID3D11ShaderResourceView* m_View = nullptr;
+
+		friend class DirectXRenderer;
 	};
 
 }

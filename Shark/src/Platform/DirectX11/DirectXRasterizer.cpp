@@ -1,7 +1,8 @@
 #include "skpch.h"
 #include "DirectXRasterizer.h"
 
-#include "Platform/DirectX11/DirectXRendererAPI.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
 namespace Shark {
 
@@ -40,15 +41,25 @@ namespace Shark {
             m_Rasterizer->Release();
     }
 
-    void DirectXRasterizer::Bind()
+    void DirectXRasterizer::Bind(Ref<RenderCommandBuffer> commandBuffer)
     {
-        DirectXRendererAPI::GetContext()->RSSetState(m_Rasterizer);
+        Bind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
     }
 
-    void DirectXRasterizer::UnBind()
+    void DirectXRasterizer::UnBind(Ref<RenderCommandBuffer> commandBuffer)
+    {
+		UnBind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
+    }
+
+    void DirectXRasterizer::Bind(ID3D11DeviceContext* ctx)
+    {
+        ctx->RSSetState(m_Rasterizer);
+    }
+
+    void DirectXRasterizer::UnBind(ID3D11DeviceContext* ctx)
     {
         ID3D11RasterizerState* nullrrs = nullptr;
-        DirectXRendererAPI::GetContext()->RSSetState(nullrrs);
+        ctx->RSSetState(nullrrs);
     }
 
     void DirectXRasterizer::SetFillMode(FillMode fill)
@@ -86,7 +97,7 @@ namespace Shark {
         rrd.AntialiasedLineEnable = specs.Antialising;
         rrd.MultisampleEnable = specs.Multisample;
 
-        DirectXRendererAPI::GetDevice()->CreateRasterizerState(&rrd, &m_Rasterizer);
+        DirectXRenderer::GetDevice()->CreateRasterizerState(&rrd, &m_Rasterizer);
     }
 
 }

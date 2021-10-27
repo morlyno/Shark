@@ -3,6 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Render/VertexLayout.h"
 #include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/RenderCommandBuffer.h"
 
 namespace Shark {
 
@@ -21,9 +22,10 @@ namespace Shark {
 
 		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name) = 0;
 
-		virtual void Bind() = 0;
-		virtual void UnBind() = 0;
+		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
+	public:
 		static Ref<Shader> Create(const std::filesystem::path& filepath);
 	};
 
