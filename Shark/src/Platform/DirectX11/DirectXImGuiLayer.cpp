@@ -7,6 +7,7 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utility/UI.h"
 
+#include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
 
@@ -18,7 +19,6 @@
 #include <ImGuizmo.h>
 
 namespace Shark {
-
 
 	DirectXImGuiLayer::DirectXImGuiLayer()
 	{
@@ -66,6 +66,10 @@ namespace Shark {
 			ImGui::LoadIniSettingsFromDisk("Resources/DefaultImGui.ini");
 		}
 
+		ImGui_ImplDX11_CreateDeviceObjects();
+		ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, m_CommandBuffer->GetContext());
+		m_CommandBuffer->GetContext()->OMGetBlendState(&m_BlendState, m_BlendFactor, &m_SampleMask);
+
 	}
 
 	void DirectXImGuiLayer::OnDetach()
@@ -75,6 +79,7 @@ namespace Shark {
 		ImGui::DestroyContext();
 
 		m_CommandBuffer = nullptr;
+		m_BlendState->Release();
 	}
 
 	void DirectXImGuiLayer::OnEvent(Event& event)
@@ -89,6 +94,9 @@ namespace Shark {
 
 	void DirectXImGuiLayer::Begin()
 	{
+		while (!m_BlendQueue.empty())
+			m_BlendQueue.pop();
+
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
@@ -104,11 +112,13 @@ namespace Shark {
 
 		m_CommandBuffer->Begin();
 
-		Ref<DirectXFrameBuffer> dxFrameBuffer = DirectXRenderer::Get()->GetFinaleCompositFrameBuffer().As<DirectXFrameBuffer>();
+		Ref<FrameBuffer> dxFrameBuffer = DirectXRenderer::Get()->GetFinaleCompositFrameBuffer();
 		dxFrameBuffer->Bind(m_CommandBuffer);
 
 		ImGui::Render();
-		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+		ImDrawData* drawData = ImGui::GetDrawData();
+		ImGui_ImplDX11_SetupRenderState(drawData->DisplaySize, m_CommandBuffer->GetContext());
+		ImGui_ImplDX11_RenderDrawData(drawData);
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
@@ -116,13 +126,46 @@ namespace Shark {
 			ImGui::RenderPlatformWindowsDefault();
 		}
 
+		Renderer::EndRenderPass(m_CommandBuffer);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 	}
 
+	void BlendCallback(const ImDrawList*, const ImDrawCmd* cmd)
+	{
+		DirectXImGuiLayer* This = (DirectXImGuiLayer*)cmd->UserCallbackData;
+		SK_CORE_ASSERT(This);
+		if (!This)
+			return;
+
+		SK_CORE_ASSERT(This->m_BlendState);
+
+		ID3D11DeviceContext* ctx = This->m_CommandBuffer->GetContext();
+
+		bool blend = This->m_BlendQueue.front();
+		This->m_BlendQueue.pop();
+
+		if (blend)
+		{
+			ctx->OMSetBlendState(This->m_BlendState, This->m_BlendFactor, This->m_SampleMask);
+		}
+		else
+		{
+			ID3D11BlendState* null = nullptr;
+			ctx->OMSetBlendState(null, nullptr, 0xFFFFFFFF);
+		}
+	}
+
 	void DirectXImGuiLayer::SubmitBlendCallback(bool blend)
 	{
-		SK_CORE_ASSERT(false, "Not Implemented");
+		SK_CORE_ASSERT(m_BlendState);
+
+		ImGuiWindow* window = GImGui->CurrentWindow;
+		SK_CORE_ASSERT(window);
+
+		m_BlendQueue.push(blend);
+		window->DrawList->AddCallback(BlendCallback, this);
+
 	}
 
 	void DirectXImGuiLayer::SetDarkStyle()
@@ -156,7 +199,6 @@ namespace Shark {
 		colors[ImGuiCol_HeaderActive] = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
 		colors[ImGuiCol_ChildBg] = ImVec4(0.5f, 0.5f, 0.5f, 0.05f);
 	}
-
 
 }
 

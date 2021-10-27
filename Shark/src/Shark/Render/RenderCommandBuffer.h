@@ -9,7 +9,7 @@ namespace Shark {
 	public:
 		virtual ~RenderCommandBuffer() = default;
 
-		virtual void Begin() = 0;
+		virtual void Begin(bool clearState = false) = 0;
 		virtual void End() = 0;
 		virtual void Execute() = 0;
 

@@ -3,9 +3,14 @@
 #include "Shark/ImGui/ImGuiLayer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
+#include <imgui.h>
+
+#include <queue>
 #include <d3d11.h>
 
 namespace Shark {
+
+	//static void BlendCallback(const ImDrawList*, const ImDrawCmd*);
 
 	class DirectXImGuiLayer : ImGuiLayer
 	{
@@ -25,12 +30,19 @@ namespace Shark {
 		virtual void SubmitBlendCallback(bool blend) override;
 
 		virtual void SetDarkStyle() override;
+
 	private:
 		bool m_BlockEvents = false;
 
 		Ref<DirectXRenderCommandBuffer> m_CommandBuffer;
 
 		ID3D11BlendState* m_BlendState = nullptr;
+		FLOAT m_BlendFactor[4]{};
+		UINT m_SampleMask{};
+
+		std::queue<bool> m_BlendQueue;
+
+		friend void BlendCallback(const ImDrawList*, const ImDrawCmd*);
 	};
 
 }

@@ -4,6 +4,8 @@
 #include "Shark/Utility/Math.h"
 #include "Shark/Render/Renderer.h"
 
+#include "Shark/Core/Application.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -25,9 +27,10 @@ namespace Shark::UI {
 			if (window->SkipItems)
 				return;
 
-			//window->DrawList->AddCallback(ImGuiCallbackFunctionBlend, (void*)false);
+			ImGuiLayer& imguiLayer = Application::Get().GetImGuiLayer();
+			imguiLayer.SubmitBlendCallback(false);
 			ImGui::Image(textureID, size, uv0, uv1, tintcolor, bordercolor);
-			//window->DrawList->AddCallback(ImGuiCallbackFunctionBlend, (void*)true);
+			imguiLayer.SubmitBlendCallback(true);
 		}
 	}
 }
@@ -146,6 +149,12 @@ namespace Shark::UI {
 	ImGuiID GetCurrentID()
 	{
 		return ImGui::GetCurrentWindowRead()->IDStack.back();
+	}
+
+	void SetBlend(bool blend)
+	{
+		ImGuiLayer& ctx = Application::Get().GetImGuiLayer();
+		ctx.SubmitBlendCallback(blend);
 	}
 
 

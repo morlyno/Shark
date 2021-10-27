@@ -31,8 +31,8 @@ namespace Shark {
 
 		virtual void Update() const override;
 
-		virtual inline int GetWidth() const override { return m_Width; }
-		virtual inline int GetHeight() const override { return m_Height; }
+		virtual inline uint32_t GetWidth() const override { return m_Width; }
+		virtual inline uint32_t GetHeight() const override { return m_Height; }
 		virtual inline WindowHandle GetHandle() const override { return m_hWnd; }
 
 		virtual inline bool IsFocused() const override { return m_IsFocused; }

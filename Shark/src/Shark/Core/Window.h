@@ -29,8 +29,8 @@ namespace Shark {
 
 		virtual void Update() const = 0;
 
-		virtual inline int GetWidth() const = 0;
-		virtual inline int GetHeight() const = 0;
+		virtual inline uint32_t GetWidth() const = 0;
+		virtual inline uint32_t GetHeight() const = 0;
 		virtual inline WindowHandle GetHandle() const = 0;
 
 		virtual inline bool IsFocused() const = 0;

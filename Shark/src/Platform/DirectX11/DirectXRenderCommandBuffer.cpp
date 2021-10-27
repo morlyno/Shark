@@ -29,9 +29,10 @@ namespace Shark {
 			m_DeferredContext->Release();
 	}
 
-	void DirectXRenderCommandBuffer::Begin()
+	void DirectXRenderCommandBuffer::Begin(bool clearState)
 	{
-		//m_DeferredContext->ClearState();
+		if (clearState)
+			m_DeferredContext->ClearState();
 	}
 
 	void DirectXRenderCommandBuffer::End()

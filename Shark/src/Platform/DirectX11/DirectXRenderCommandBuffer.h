@@ -14,7 +14,7 @@ namespace Shark {
 
 		ID3D11DeviceContext* GetContext() const { return m_DeferredContext; }
 
-		virtual void Begin() override;
+		virtual void Begin(bool clearState = false) override;
 		virtual void End() override;
 		virtual void Execute() override;
 

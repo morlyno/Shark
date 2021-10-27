@@ -329,7 +329,9 @@ namespace Shark {
 		}
 
 		Ref<Image2D> fbImage = m_SceneRenderer->GetFrameBuffer()->GetImage(0);
-		UI::NoAlpaImage(fbImage->GetViewRenderID(), size);
+		UI::SetBlend(false);
+		ImGui::Image(fbImage->GetViewRenderID(), size);
+		UI::SetBlend(true);
 
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 
