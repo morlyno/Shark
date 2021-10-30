@@ -33,6 +33,7 @@ namespace Shark {
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual Ref<Image2D> GetImage(uint32_t index) override { return m_Specification.Atachments[index].Image; }
+		virtual Ref<Image2D> GetDepthImage() override { return m_DepthStencilAtachment->Image; }
 
 		virtual const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
 
@@ -55,7 +56,6 @@ namespace Shark {
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;
 
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;
-		ID3D11DepthStencilState* m_DepthStencilState = nullptr;
 		ID3D11BlendState* m_BlendState = nullptr;
 		D3D11_VIEWPORT m_Viewport;
 

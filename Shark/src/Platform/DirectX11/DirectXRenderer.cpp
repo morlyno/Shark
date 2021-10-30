@@ -8,6 +8,7 @@
 #include "Platform/DirectX11/DirectXConstantBuffer.h"
 #include "Platform/DirectX11/DirectXTexture.h"
 #include "Platform/DirectX11/DirectXBuffers.h"
+#include "Platform/DirectX11/DirectXPipeline.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -112,18 +113,10 @@ namespace Shark {
 		s_Instance = nullptr;
 	}
 
-	void DirectXRenderer::BeginRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> framebuffer)
-	{
-		framebuffer->Bind(renderCommandBuffer);
-	}
-
-	void DirectXRenderer::EndRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer)
-	{
-
-	}
-
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shader, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
 	{
+		SK_CORE_ASSERT(false, "not implementes");
+#if 0
 		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
 		Ref<DirectXFrameBuffer> dxFrameBuffer = frameBuffer.As<DirectXFrameBuffer>();
 		Ref<DirectXShader> dxShader = shader.As<DirectXShader>();
@@ -159,13 +152,71 @@ namespace Shark {
 			}
 		}
 
-		UINT offset = 0;
-		UINT stride = dxVertexBuffer->m_Layout.GetVertexSize();
+		const UINT offset = 0;
+		const UINT stride = dxVertexBuffer->m_Layout.GetVertexSize();
 		ctx->IASetVertexBuffers(0, 1, &dxVertexBuffer->m_VertexBuffer, &stride, &offset);
 		ctx->IASetIndexBuffer(dxIndexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 		ctx->IASetInputLayout(dxShader->m_InputLayout);
 
 		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+		ctx->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
+
+		ctx->DrawIndexed(indexCount, 0, 0);
+#endif
+	}
+
+	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
+	{
+		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
+		ID3D11DeviceContext* ctx = commandBuffer->GetContext();
+
+
+		Ref<DirectXVertexBuffer> dxVB = vertexBuffer.As<DirectXVertexBuffer>();
+		const UINT offset = 0;
+		const UINT stride = dxVB->m_Layout.GetVertexSize();
+		ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
+
+		Ref<DirectXIndexBuffer> dxIB = indexBuffer.As<DirectXIndexBuffer>();
+		ctx->IASetIndexBuffer(dxIB->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+
+		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
+		Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
+
+		ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
+		ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
+
+		// TODO(moro): move InputLayout to Pipeline
+		ctx->IASetInputLayout(dxShader->m_InputLayout);
+		
+		Ref<DirectXConstantBufferSet> dxConstantBufferSet = constantBufferSet.As<DirectXConstantBufferSet>();
+		for (auto&& [slot, cb] : dxConstantBufferSet->m_CBMap)
+			ctx->VSSetConstantBuffers(slot, 1, &cb->m_ConstBuffer);
+
+		Ref<DirectXTexture2DArray> dxTextureArray = textureArray.As<DirectXTexture2DArray>();
+		if (dxTextureArray)
+		{
+			uint32_t slot = 0;
+			for (auto t : dxTextureArray->m_TextureArray)
+			{
+				if (t)
+				{
+					ctx->PSSetShaderResources(slot, 1, &t->m_Image->m_View);
+					ctx->PSSetSamplers(slot, 1, &t->m_Sampler);
+				}
+				slot++;
+			}
+		}
+
+		Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+
+		ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+
+		ctx->RSSetState(dxPipeline->m_RasterizerState);
+		ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
+
 		ctx->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
 
 		ctx->DrawIndexed(indexCount, 0, 0);
@@ -177,7 +228,6 @@ namespace Shark {
 		Ref<DirectXSwapChainFrameBuffer> swapChainFrameBuffer = m_SwapChain->GetMainFrameBuffer();
 
 		m_ImmediateContext->OMSetRenderTargets(swapChainFrameBuffer->m_Count, swapChainFrameBuffer->m_FrameBuffers.data(), swapChainFrameBuffer->m_DepthStencil);
-		m_ImmediateContext->OMSetDepthStencilState(swapChainFrameBuffer->m_DepthStencilState, 0);
 		m_ImmediateContext->OMSetBlendState(swapChainFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 		m_ImmediateContext->RSSetViewports(1, &swapChainFrameBuffer->m_Viewport);
 	}

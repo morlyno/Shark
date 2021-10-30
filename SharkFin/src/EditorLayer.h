@@ -2,7 +2,6 @@
 
 #include <Shark/Render/EditorCamera.h>
 #include <Shark/Render/FrameBuffer.h>
-#include <Shark/Render/Rasterizer.h>
 #include <Shark/Scene/Scene.h>
 #include <Shark/Scene/Entity.h>
 #include <Shark/Render/Texture.h>

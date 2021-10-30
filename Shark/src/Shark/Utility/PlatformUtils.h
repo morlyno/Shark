@@ -18,6 +18,7 @@ namespace Shark {
 
 		void OpenExplorer(const std::string& path);
 		void OpenFile(const std::string& path);
+		void OpenWith(const std::string& path);
 
 	}
 

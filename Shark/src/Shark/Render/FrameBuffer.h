@@ -43,6 +43,7 @@ namespace Shark {
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual Ref<Image2D> GetImage(uint32_t index) = 0;
+		virtual Ref<Image2D> GetDepthImage() = 0;
 
 		virtual const FrameBufferSpecification& GetSpecification() const = 0;
 

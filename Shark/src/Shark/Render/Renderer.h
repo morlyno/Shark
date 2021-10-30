@@ -10,6 +10,7 @@
 #include "Shark/Render/RenderCommandBuffer.h"
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/Pipeline.h"
 
 namespace Shark {
 
@@ -19,12 +20,10 @@ namespace Shark {
 		static void Init();
 		static void ShutDown();
 
-		static void BeginRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> framebuffer);
-		static void EndRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer);
-
 		static void SubmitFullScreenQuad();
 
 		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology);
+		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology);
 
 		static Ref<FrameBuffer> GetFinaleCompositFrameBuffer();
 

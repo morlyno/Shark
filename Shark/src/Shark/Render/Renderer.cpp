@@ -58,16 +58,6 @@ namespace Shark {
 		s_RendererAPI = nullptr;
 	}
 
-	void Renderer::BeginRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> framebuffer)
-	{
-		s_RendererAPI->BeginRenderPass(renderCommandBuffer, framebuffer);
-	}
-
-	void Renderer::EndRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer)
-	{
-		s_RendererAPI->EndRenderPass(renderCommandBuffer);
-	}
-
 	void Renderer::SubmitFullScreenQuad()
 	{
 		SK_CORE_ASSERT(false, "Not implemented");
@@ -76,6 +66,11 @@ namespace Shark {
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
 	{
 		s_RendererAPI->RenderGeometry(renderCommandBuffer, frameBuffer, shaders, constantBufferSet, textureArray, vertexBuffer, indexBuffer, indexCount, topology);
+	}
+
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
+	{
+		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, constantBufferSet, textureArray, vertexBuffer, indexBuffer, indexCount, topology);
 	}
 
 	Ref<FrameBuffer> Renderer::GetFinaleCompositFrameBuffer()

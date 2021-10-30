@@ -48,9 +48,6 @@ namespace Shark {
 
 		if (m_BlendState)
 			m_BlendState->Release();
-
-		if (m_DepthStencilState)
-			m_DepthStencilState->Release();
 	}
 
 	void DirectXFrameBuffer::Clear(Ref<RenderCommandBuffer> commandBuffer, const DirectX::XMFLOAT4& clearcolor)
@@ -113,11 +110,6 @@ namespace Shark {
 			m_DepthStencil->Release();
 			m_DepthStencil = nullptr;
 		}
-		if (m_DepthStencilState)
-		{
-			m_DepthStencilState->Release();
-			m_DepthStencilState = nullptr;
-		}
 		if (m_BlendState)
 		{
 			m_BlendState->Release();
@@ -152,7 +144,6 @@ namespace Shark {
 
 	void DirectXFrameBuffer::Bind(ID3D11DeviceContext* ctx)
 	{
-		ctx->OMSetDepthStencilState(m_DepthStencilState, 0);
 		ctx->OMSetRenderTargets(m_Count, m_FrameBuffers.data(), m_DepthStencil);
 		ctx->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
 		ctx->RSSetViewports(1, &m_Viewport);
@@ -185,16 +176,11 @@ namespace Shark {
 			specs.Width = m_Specification.Width;
 			specs.Height = m_Specification.Height;
 			specs.Format = ImageFormat::Depth32;
+			// TODO(moro): remove ImageUsageTexture
 			specs.Usage = ImageUsageTexture | ImageUsageDethStencil;
 			atachment->Image = Image2D::Create(specs);
 		}
 		auto d3dImage = atachment->Image.As<DirectXImage2D>();
-
-		D3D11_DEPTH_STENCIL_DESC ds = {};
-		ds.DepthEnable = TRUE;
-		ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		ds.DepthFunc = D3D11_COMPARISON_LESS;
-		SK_CHECK(dev->CreateDepthStencilState(&ds, &m_DepthStencilState));
 
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
@@ -219,6 +205,7 @@ namespace Shark {
 			specs.Width = m_Specification.Width;
 			specs.Height = m_Specification.Height;
 			specs.Format = atachment->Format;
+			// TODO(moro): remove ImageUsageTexture
 			specs.Usage = ImageUsageTexture | ImageUsageFrameBuffer;
 			atachment->Image = Image2D::Create(specs);
 		}

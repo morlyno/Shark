@@ -265,7 +265,7 @@ namespace Shark {
 			UI::BeginControls();
 			UI::DragFloat("Position", comp.Position);
 			UI::DragAngle("Rotation", comp.Rotation);
-			UI::DragFloat("Scaling", comp.Scaling);
+			UI::DragFloat("Scaling", comp.Scaling, 1.0f);
 			UI::EndControls();
 		});
 

@@ -17,10 +17,8 @@ namespace Shark {
 		virtual void Init() override;
 		virtual void ShutDown() override;
 
-		virtual void BeginRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> framebuffer) override;
-		virtual void EndRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer) override;
-
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) override;
+		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) override;
 
 		virtual Ref<FrameBuffer> GetFinaleCompositFrameBuffer() const override { return m_SwapChain->GetMainFrameBuffer(); }
 

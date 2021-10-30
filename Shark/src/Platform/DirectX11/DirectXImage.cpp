@@ -80,6 +80,7 @@ namespace Shark {
 		std::string narrorFilePath = filepath.string();
 		int x, y, comp;
 		stbi_uc* data = stbi_load(narrorFilePath.c_str(), &x, &y, &comp, 4);
+		// TODO(moro): fallback
 		SK_CORE_ASSERT(data, fmt::format("Failed to load Image! {}", stbi_failure_reason()));
 
 		m_Specs.Width = x;

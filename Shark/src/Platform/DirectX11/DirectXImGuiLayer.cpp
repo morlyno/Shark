@@ -112,8 +112,8 @@ namespace Shark {
 
 		m_CommandBuffer->Begin();
 
-		Ref<FrameBuffer> dxFrameBuffer = DirectXRenderer::Get()->GetFinaleCompositFrameBuffer();
-		dxFrameBuffer->Bind(m_CommandBuffer);
+		Ref<DirectXFrameBuffer> dxFrameBuffer = DirectXRenderer::Get()->GetFinaleCompositFrameBuffer().As<DirectXFrameBuffer>();
+		dxFrameBuffer->Bind(m_CommandBuffer->GetContext());
 
 		ImGui::Render();
 		ImDrawData* drawData = ImGui::GetDrawData();
@@ -126,7 +126,6 @@ namespace Shark {
 			ImGui::RenderPlatformWindowsDefault();
 		}
 
-		Renderer::EndRenderPass(m_CommandBuffer);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 	}

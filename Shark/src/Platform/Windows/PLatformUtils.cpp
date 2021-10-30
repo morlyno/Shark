@@ -5,6 +5,8 @@
 
 #include "Platform/Windows/WindowsUtility.h"
 
+#include <fmt/core.h>
+
 namespace Shark {
 
 	namespace FileDialogs {
@@ -84,6 +86,17 @@ namespace Shark {
 		{
 			auto&& cmd = "start " + path;
 			system(cmd.c_str());
+		}
+
+		void OpenWith(const std::string& path)
+		{
+			std::string exeFile = FileDialogs::OpenFile("");
+			if (!exeFile.empty())
+			{
+				auto&& cmd = fmt::format("\"start \"\" \"{}\" \"{}\"\"", exeFile, path);
+				system(cmd.c_str());
+			}
+
 		}
 
 	}

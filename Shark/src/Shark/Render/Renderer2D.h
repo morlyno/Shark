@@ -9,6 +9,7 @@
 #include "Shark/Render/FrameBuffer.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/Pipeline.h"
 
 #include "Shark/Scene/Entity.h"
 
@@ -75,6 +76,9 @@ namespace Shark {
 		Statistics GetStatistics() const { return m_Stats; }
 
 	private:
+		// FlushAndReset*() dosn't execute the RenderCommandBuffer
+		// Only EndScene executes the RenderCommandBuffer
+
 		void FlushAndResetQuad();
 		void FlushAndResetCircle();
 		void FlushAndResetLine();
@@ -141,7 +145,8 @@ namespace Shark {
 		Ref<ConstantBufferSet> m_ConstantBufferSet;
 
 		// Quad
-		Ref<Shader> m_QuadShader;
+		Ref<Pipeline> m_QuadPipeline;
+
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
 		Ref<Texture2DArray> m_QuadTextureArray;
@@ -151,14 +156,14 @@ namespace Shark {
 		QuadVertex* m_QuadVertexIndexPtr = nullptr;
 
 		// Circle
-		Ref<Shader> m_CircleShader;
+		Ref<Pipeline> m_CirlcePipeline;
 		Ref<VertexBuffer> m_CircleVertexBuffer;
 		uint32_t m_CircleIndexCount = 0;
 		CircleVertex* m_CircleVertexBasePtr = nullptr;
 		CircleVertex* m_CircleVertexIndexPtr = nullptr;
 
 		// Line
-		Ref<Shader> m_LineShader;
+		Ref<Pipeline> m_LinePipeline;
 		Ref<VertexBuffer> m_LineVertexBuffer;
 		Ref<IndexBuffer> m_LineIndexBuffer;
 		uint32_t m_LineIndexCount = 0;

@@ -473,6 +473,12 @@ namespace Shark {
 				ImGui::CloseCurrentPopup();
 			}
 
+			if (ImGui::MenuItem("Open With", nullptr, false, isFile))
+			{
+				Utility::OpenWith(path);
+				ImGui::CloseCurrentPopup();
+			}
+
 			if (ImGui::MenuItem("Open in Explorer", nullptr, false, isDirectory))
 			{
 				Utility::OpenExplorer(path);

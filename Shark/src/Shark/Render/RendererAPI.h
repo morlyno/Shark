@@ -8,6 +8,7 @@
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Buffers.h"
+#include "Shark/Render/Pipeline.h"
 
 namespace Shark {
 
@@ -30,9 +31,7 @@ namespace Shark {
 		virtual void ShutDown() = 0;
 		
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) = 0;
-
-		virtual void BeginRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> framebuffer) = 0;
-		virtual void EndRenderPass(Ref<RenderCommandBuffer> renderCommandBuffer) = 0;
+		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) = 0;
 
 		virtual Ref<FrameBuffer> GetFinaleCompositFrameBuffer() const = 0;
 
