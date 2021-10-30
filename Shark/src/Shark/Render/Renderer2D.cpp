@@ -6,6 +6,7 @@
 #include "Shark/Utility/Math.h"
 
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
+#include "Platform/DirectX11/DirectXTexture.h"
 
 namespace Shark {
 
@@ -94,12 +95,6 @@ namespace Shark {
 			m_LineVertexBasePtr = new LineVertex[MaxLineVertices];
 		}
 
-
-#if SK_DEBUG
-		for (uint32_t i = 0; i < MaxTextureSlots; i++)
-			m_WhiteTexture->Bind(m_RenderCommandBuffer, i);
-#endif
-
 	}
 
 	void Renderer2D::ShutDown()
@@ -142,8 +137,14 @@ namespace Shark {
 		m_RenderTarget->ClearDepth(m_RenderCommandBuffer);
 
 #if SK_DEBUG
-		for (uint32_t i = 0; i < MaxTextureSlots; i++)
-			m_WhiteTexture->Bind(m_RenderCommandBuffer, i);
+		{
+			SK_CORE_ASSERT(RendererAPI::GetAPI() == RendererAPI::API::DirectX11);
+			Ref<DirectXTexture2D> dxTexture = m_WhiteTexture.As<DirectXTexture2D>();
+			Ref<DirectXRenderCommandBuffer> dxCommandBuffer = m_RenderCommandBuffer.As<DirectXRenderCommandBuffer>();
+
+			for (uint32_t i = 0; i < MaxTextureSlots; i++)
+				dxTexture->Bind(dxCommandBuffer->GetContext(), i);
+		}
 #endif
 
 		// Quad

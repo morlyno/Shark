@@ -244,16 +244,6 @@ namespace Shark {
 		return ConstantBuffer::Create(bufferDesc.Size, inputDesc.BindPoint);
 	}
 
-	void DirectXShader::Bind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		Bind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
-	}
-
-	void DirectXShader::UnBind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		UnBind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
-	}
-
 	void DirectXShader::Bind(ID3D11DeviceContext* ctx)
 	{
 		ctx->VSSetShader(m_VertexShader, nullptr, 0u);

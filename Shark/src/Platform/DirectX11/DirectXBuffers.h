@@ -17,9 +17,6 @@ namespace Shark {
 
 		virtual uint32_t GetSize() const { return m_Size; }
 
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
-
 		void Bind(ID3D11DeviceContext* ctx);
 		void UnBind(ID3D11DeviceContext* ctx);
 
@@ -48,9 +45,6 @@ namespace Shark {
 
 		virtual uint32_t GetCount() const override { return m_Count; }
 		virtual uint32_t GetSize() const override { return m_Size; }
-
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
 
 		void Bind(ID3D11DeviceContext* ctx);
 		void UnBind(ID3D11DeviceContext* ctx);

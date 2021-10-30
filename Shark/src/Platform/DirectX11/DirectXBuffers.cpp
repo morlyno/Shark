@@ -64,16 +64,6 @@ namespace Shark {
 		ctx->Unmap(m_VertexBuffer, 0);
 	}
 
-	void DirectXVertexBuffer::Bind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		Bind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
-	}
-
-	void DirectXVertexBuffer::UnBind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		UnBind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
-	}
-
 	void DirectXVertexBuffer::Bind(ID3D11DeviceContext* ctx)
 	{
 		const UINT stride = m_Layout.GetVertexSize();
@@ -166,16 +156,6 @@ namespace Shark {
 		SK_CHECK(ctx->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
 		memcpy(ms.pData, data, m_Size);
 		ctx->Unmap(m_IndexBuffer, 0);
-	}
-
-	void DirectXIndexBuffer::Bind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		Bind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
-	}
-
-	void DirectXIndexBuffer::UnBind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		UnBind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
 	}
 
 	void DirectXIndexBuffer::Bind(ID3D11DeviceContext* ctx)

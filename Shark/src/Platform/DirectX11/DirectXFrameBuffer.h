@@ -38,9 +38,6 @@ namespace Shark {
 		virtual const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
 
 		
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
-
 		void Bind(ID3D11DeviceContext* ctx);
 		void UnBind(ID3D11DeviceContext* ctx);
 

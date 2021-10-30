@@ -39,10 +39,6 @@ namespace Shark {
 		virtual void SetSlot(uint32_t slot) = 0;
 		virtual uint32_t GetSlot() const = 0;
 
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t slot) = 0;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer, uint32_t slot) = 0;
 	};
 
 	class Texture2D : public Texture
@@ -52,6 +48,7 @@ namespace Shark {
 
 		virtual Ref<Image2D> GetImage() const = 0;
 
+	public:
 		static Ref<Texture2D> Create(Ref<Image2D> image, const SamplerProps& props = {});
 		static Ref<Texture2D> Create(const std::filesystem::path& filepath, const SamplerProps& props = {});
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height, void* data, const SamplerProps& props = {});
@@ -71,10 +68,7 @@ namespace Shark {
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) = 0;
 		virtual Ref<Texture2D> Get(uint32_t index) const = 0;
 
-
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t startSlot) = 0;
-
+	public:
 		static Ref<Texture2DArray> Create(uint32_t count);
 	};
 

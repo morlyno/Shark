@@ -130,18 +130,6 @@ namespace Shark {
 		CreateBuffers();
 	}
 
-	void DirectXFrameBuffer::Bind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
-		Bind(dxCommandBuffer->GetContext());
-	}
-
-	void DirectXFrameBuffer::UnBind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
-		UnBind(dxCommandBuffer->GetContext());
-	}
-
 	void DirectXFrameBuffer::Bind(ID3D11DeviceContext* ctx)
 	{
 		ctx->OMSetRenderTargets(m_Count, m_FrameBuffers.data(), m_DepthStencil);

@@ -16,9 +16,6 @@ namespace Shark {
 
 		virtual uint32_t GetSize() const = 0;
 
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
-
 		static Ref<VertexBuffer> Create(const VertexLayout& layout, void* data, uint32_t size, bool dynamic = false);
 	};
 
@@ -35,9 +32,6 @@ namespace Shark {
 
 		virtual uint32_t GetCount() const = 0;
 		virtual uint32_t GetSize() const = 0;
-
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 		static Ref<IndexBuffer> Create(IndexType* data, uint32_t count, bool dynamic = false);
 	};

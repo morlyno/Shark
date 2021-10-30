@@ -31,9 +31,6 @@ namespace Shark {
 
 		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name);
 
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override;
-
 		void Bind(ID3D11DeviceContext* ctx);
 		void UnBind(ID3D11DeviceContext* ctx);
 

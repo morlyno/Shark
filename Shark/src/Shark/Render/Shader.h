@@ -22,9 +22,6 @@ namespace Shark {
 
 		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name) = 0;
 
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) = 0;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) = 0;
-
 	public:
 		static Ref<Shader> Create(const std::filesystem::path& filepath);
 	};

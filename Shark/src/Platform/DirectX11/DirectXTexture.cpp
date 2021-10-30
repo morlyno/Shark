@@ -93,16 +93,6 @@ namespace Shark {
 		if (m_Sampler) { m_Sampler->Release(); }
 	}
 
-	void DirectXTexture2D::Bind(Ref<RenderCommandBuffer> commandbuffer, uint32_t slot)
-	{
-		Bind(commandbuffer.As<DirectXRenderCommandBuffer>()->GetContext(), slot);
-	}
-
-	void DirectXTexture2D::UnBind(Ref<RenderCommandBuffer> commandbuffer, uint32_t slot)
-	{
-		UnBind(commandbuffer.As<DirectXRenderCommandBuffer>()->GetContext(), slot);
-	}
-
 	void DirectXTexture2D::Bind(ID3D11DeviceContext* ctx, uint32_t slot)
 	{
 		ctx->PSSetSamplers(slot, 1u, &m_Sampler);
@@ -176,22 +166,6 @@ namespace Shark {
 	Ref<Texture2D> DirectXTexture2DArray::Get(uint32_t index) const
 	{
 		return m_TextureArray[index];
-	}
-
-	void DirectXTexture2DArray::Bind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		uint32_t slotOffset = 0;
-		for (auto& t : m_TextureArray)
-			if (t)
-				t->Bind(commandBuffer, slotOffset++);
-	}
-
-	void DirectXTexture2DArray::Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t startSlot)
-	{
-		uint32_t slotOffset = 0;
-		for (auto& t : m_TextureArray)
-			if (t)
-				t->Bind(commandBuffer, startSlot + slotOffset++);
 	}
 
 }

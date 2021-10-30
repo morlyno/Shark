@@ -33,16 +33,6 @@ namespace Shark {
 			m_ConstBuffer->Release();
 	}
 
-	void DirectXConstantBuffer::Bind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		Bind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
-	}
-
-	void DirectXConstantBuffer::UnBind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		UnBind(commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext());
-	}
-
 	void DirectXConstantBuffer::Bind(ID3D11DeviceContext* ctx)
 	{
 		ctx->VSSetConstantBuffers(m_Slot, 1, &m_ConstBuffer);
@@ -78,15 +68,4 @@ namespace Shark {
 		return m_CBMap.at(slot);
 	}
 
-	void DirectXConstantBufferSet::Bind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		for (auto& [slot, cb] : m_CBMap)
-			cb->Bind(commandBuffer);
-	}
-
-	void DirectXConstantBufferSet::UnBind(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		for (auto& [slot, cb] : m_CBMap)
-			cb->UnBind(commandBuffer);
-	}
 }

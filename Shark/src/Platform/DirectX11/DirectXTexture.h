@@ -24,11 +24,6 @@ namespace Shark {
 		virtual uint32_t GetSlot() const override { return m_Slot; }
 
 
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override { Bind(commandBuffer, m_Slot); }
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer) override { UnBind(commandBuffer, m_Slot); }
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t slot) override;
-		virtual void UnBind(Ref<RenderCommandBuffer> commandBuffer, uint32_t slot) override;
-
 		void Bind(ID3D11DeviceContext* ctx, uint32_t slot);
 		void UnBind(ID3D11DeviceContext* ctx, uint32_t slot);
 	private:
@@ -59,9 +54,6 @@ namespace Shark {
 
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) override;
 		virtual Ref<Texture2D> Get(uint32_t index) const override;
-
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer) override;
-		virtual void Bind(Ref<RenderCommandBuffer> commandBuffer, uint32_t startSlot) override;
 
 	private:
 		std::vector<Ref<DirectXTexture2D>> m_TextureArray;
