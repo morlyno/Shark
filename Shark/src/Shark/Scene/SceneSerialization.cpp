@@ -40,32 +40,6 @@ namespace Shark {
 			return RigidBody2DComponent::BodyType::Static;
 		}
 
-		static std::string GeometryToString(SpriteRendererComponent::GeometryType geometry)
-		{
-			switch (geometry)
-			{
-				case SpriteRendererComponent::GeometryType::Quad:     return "Quad";
-				case SpriteRendererComponent::GeometryType::Circle:   return "Circle";
-			}
-
-			SK_CORE_ASSERT(false, "Unkown Geometry Type");
-			return std::string{};
-		}
-
-		static SpriteRendererComponent::GeometryType StringToGeometry(const std::string& geometry)
-		{
-			if (geometry == "Quad")     return SpriteRendererComponent::GeometryType::Quad;
-			if (geometry == "Circle")   return SpriteRendererComponent::GeometryType::Circle;
-
-			SK_CORE_WARN("Use of Lagacy mode for DeSerialization of Geometry");
-			if (geometry == "0") return SpriteRendererComponent::GeometryType::Quad;
-			if (geometry == "1") return SpriteRendererComponent::GeometryType::Quad;
-			if (geometry == "2") return SpriteRendererComponent::GeometryType::Circle;
-
-			SK_CORE_ASSERT(false, "Unkown Geoemtry Type");
-			return SpriteRendererComponent::GeometryType::Quad;
-		}
-
 		static std::string ProjectionToString(SceneCamera::Projection projection)
 		{
 			switch (projection)
@@ -149,12 +123,22 @@ namespace Shark {
 			out << YAML::Key << "Color" << YAML::Value << comp.Color;
 			out << YAML::Key << "Texture" << YAML::Value << (comp.Texture ? comp.Texture->GetFilePath() : "");
 			out << YAML::Key << "TilingFactor" << YAML::Value << comp.TilingFactor;
-			out << YAML::Key << "Thickness" << YAML::Value << comp.Thickness;
-			out << YAML::Key << "Geometry" << YAML::Value << Convert::GeometryToString(comp.Geometry);
 
 			out << YAML::EndMap;
 		}
 		
+		if (entity.HasComponent<CircleRendererComponent>())
+		{
+			out << YAML::Key << "CircleRendererComponent" << YAML::Value;
+			out << YAML::BeginMap;
+
+			const auto& comp = entity.GetComponent<CircleRendererComponent>();
+			out << YAML::Key << "Color" << YAML::Value << comp.Color;
+			out << YAML::Key << "Thickness" << YAML::Value << comp.Thickness;
+
+			out << YAML::EndMap;
+		}
+
 		if (entity.HasComponent<CameraComponent>())
 		{
 			out << YAML::Key << "CameraComponent" << YAML::Value;
@@ -244,9 +228,6 @@ namespace Shark {
 
 		out << YAML::BeginMap;
 
-		// Config
-		out << YAML::Key << "Version" << YAML::Value << SceneSerializerVersion;
-
 		// Scene
 		out << YAML::Key << "Scene" << YAML::Value << filepath.stem();
 
@@ -286,22 +267,6 @@ namespace Shark {
 
 		SK_CORE_INFO("==========================================================================================");
 		SK_CORE_INFO("Deserializing Scene from: {0}", filepath);
-
-		auto v = in["Version"];
-		if (!v)
-		{
-			SK_CORE_WARN("File Version not found!");
-			return LagacyModeDeserialize(in, 0);
-		}
-
-		uint64_t version = v.as<uint64_t>();
-		if (version != SceneSerializerVersion)
-		{
-			SK_CORE_WARN("File and Serializer Versions don't Match. File Version: {}, Serializer Version: {}", version, SceneSerializerVersion);
-			return LagacyModeDeserialize(in, version);
-		}
-
-		SK_CORE_INFO("Scene File Version: {}", version);
 
 		m_Scene->SetActiveCamera(in["ActiveCamera"].as<UUID>());
 
@@ -359,14 +324,24 @@ namespace Shark {
 					SK_CORE_ASSERT(tilingfactor, "Couldn't deserialize SpriteRendererComponent::TilingFactor");
 					comp.TilingFactor = tilingfactor.as<float>();
 
-					SK_CORE_ASSERT(thickness, "Couldn't deserialize SpriteRendererComponent::Thickness");
+					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
+				}
+
+				auto circleRendererComponent = entity["CircleRendererComponent"];
+				if (circleRendererComponent)
+				{
+					auto color = circleRendererComponent["Color"];
+					auto thickness = circleRendererComponent["Thickness"];
+
+					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleRendererComponent>();
+					
+					SK_CORE_ASSERT(color, "Couldn't deserialize CircleRendererCompnent::Color");
+					comp.Color = color.as<DirectX::XMFLOAT4>();
+
+					SK_CORE_ASSERT(thickness, "Couldn't deserialize CirlceRendererComponent::Thickness");
 					comp.Thickness = thickness.as<float>();
 
-					SK_CORE_ASSERT(geometry, "Couldn't deserialize SpriteRendererComponent::Geometry");
-					comp.Geometry = Convert::StringToGeometry(geometry.as<std::string>());
-
-
-					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
+					SK_CORE_TRACE(" - Cirlce Renderer Component");
 				}
 
 				auto cameraComponent = entity["CameraComponent"];
@@ -503,280 +478,6 @@ namespace Shark {
 
 					SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize CircleCollider2DComponent::RestitutionThreshold");
 					comp.RestitutionThreshold = restitutionThreshold.as<float>();
-
-					SK_CORE_TRACE(" - CircleCollider2D Component");
-				}
-			}
-		}
-		SK_CORE_INFO("==========================================================================================");
-		return true;
-	}
-
-	bool SceneSerializer::LagacyModeDeserialize(YAML::Node& in, uint64_t version)
-	{
-		static constexpr uint64_t Version_UUIDAdded = 1;
-		const bool fileHasUUIDs = version >= Version_UUIDAdded;
-		bool HasActiveCameraAsUUID = false;
-
-		SK_CORE_INFO("Use of Lagacy Mode Deserializer");
-		if (!fileHasUUIDs)
-		{
-			SK_CORE_WARN("File Version is to old to have UUIDs! Entitys Get new UUIDs assigned");
-		}
-
-		UUID activeCameraUUID = 0;
-		if (auto activeCamera = in["ActiveCamera"])
-		{
-			HasActiveCameraAsUUID = true;
-			m_Scene->SetActiveCamera(activeCamera.as<UUID>());
-		}
-
-		auto entities = in["Entities"];
-		if (entities)
-		{
-			for (auto entity : entities)
-			{
-				UUID uuid = fileHasUUIDs ? entity["Entity"].as<UUID>() : UUID::Create();
-
-				std::string Tag;
-				if (auto tagComponent = entity["TagComponent"])
-				{
-					auto tag = tagComponent["Tag"];
-					SK_CORE_VERIFY(tag, "Couldn't deserialize TagComponent::Tag")
-					Tag = tag.as<std::string>("Unkown Deserialized Entity");
-				}
-
-				Entity deserializedEntity = m_Scene->CreateEntityWithUUID(uuid, Tag);
-				SK_CORE_TRACE("Deserializing Entity [{}] {:x}", Tag, uuid);
-
-				if (auto transformComponent = entity["TransformComponent"])
-				{
-					auto position = transformComponent["Position"];
-					auto rotation = transformComponent["Rotation"];
-					auto scaling = transformComponent["Scaling"];
-					auto& comp = deserializedEntity.AddOrReplaceComponent<TransformComponent>();
-
-					SK_CORE_VERIFY(position, "Couldn't deserialize TransformComponent::Position");
-					if (position)
-						comp.Position = position.as<DirectX::XMFLOAT3>();
-
-					SK_CORE_VERIFY(rotation, "Couldn't deserialize TransformComponent::Rotation");
-					if (rotation)
-						comp.Rotation = rotation.as<DirectX::XMFLOAT3>();
-
-					SK_CORE_VERIFY(scaling, "Couldn't deserialize TransformComponent::Scaling");
-					if (scaling)
-						comp.Scaling = scaling.as<DirectX::XMFLOAT3>();
-
-					SK_CORE_TRACE(" - Transfrom Component");
-				}
-
-				auto spriteRendererComponent = entity["SpriteRendererComponent"];
-				if (spriteRendererComponent)
-				{
-					auto color = spriteRendererComponent["Color"];
-					auto textureFilePath = spriteRendererComponent["Texture"];
-					auto tilingfactor = spriteRendererComponent["TilingFactor"];
-					auto thickness = spriteRendererComponent["Thickness"];
-					auto geometry = spriteRendererComponent["Geometry"];
-
-					auto& comp = deserializedEntity.AddOrReplaceComponent<SpriteRendererComponent>();
-
-					SK_CORE_VERIFY(color, "Couldn't deserialize SpriteRendererComponent::Color");
-					if (color)
-						comp.Color = color.as<DirectX::XMFLOAT4>();
-
-					SK_CORE_VERIFY(textureFilePath, "Couldn't deserialize SpriteRendererComponent::Texture");
-					if (textureFilePath)
-					{
-						auto texFilePath = textureFilePath.as<std::filesystem::path>();
-						if (!texFilePath.empty())
-							comp.Texture = Texture2D::Create(texFilePath);
-					}
-
-					SK_CORE_VERIFY(tilingfactor, "Couldn't deserialize SpriteRendererComponent::TilingFactor");
-					if (tilingfactor)
-						comp.TilingFactor = tilingfactor.as<float>();
-
-					SK_CORE_VERIFY(geometry, "Couldn't deserialize SpriteRendererComponent::Geometry");
-					if (geometry)
-						comp.Geometry = Convert::StringToGeometry(geometry.as<std::string>());
-
-					SK_CORE_VERIFY(thickness, "Couldn't deserialize SpriteRendererComponent::Thickness");
-					if (thickness)
-						comp.Thickness = thickness.as<float>();
-
-					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
-				}
-
-				auto cameraComponent = entity["CameraComponent"];
-				if (cameraComponent)
-				{
-					SceneCamera::Projection projection = SceneCamera::Projection::Perspective;
-					SceneCamera::PerspectiveSpecs ps;
-					SceneCamera::OrthographicSpecs os;
-					float aspecRatio = 1.77778f;
-					bool mainCam = false;
-
-					auto aspectratio = cameraComponent["Aspectratio"];
-					auto perspectiveFOV = cameraComponent["PerspectiveFOV"];
-					auto perspectiveNear = cameraComponent["PerspectiveNear"];
-					auto perspectiveFar = cameraComponent["PerspectiveFar"];
-					auto orthographicZoom = cameraComponent["OrthographicZoom"];
-					auto orthographicNear = cameraComponent["OrthographicNear"];
-					auto orthographicFar = cameraComponent["OrthographicFar"];
-					auto isMainCamera = cameraComponent["IsMainCamera"];
-
-					auto type = cameraComponent["Type"];
-					SK_CORE_VERIFY(type, "Couldn't deserialize CameraComponent::Projection");
-					if (type)
-						projection = Convert::StringToProjection(type.as<std::string>());
-
-					SK_CORE_VERIFY(aspectratio, "Couldn't deserialize CameraComponent::AspectRatio");
-					if (aspectratio)
-						aspecRatio = aspectratio.as<float>();
-
-					SK_CORE_VERIFY(perspectiveFOV, "Couldn't deserialize CameraComponent::PerspectiveFOV");
-					if (perspectiveFOV)
-						ps.FOV = perspectiveFOV.as<float>();
-
-					SK_CORE_VERIFY(perspectiveNear, "Couldn't deserialize CameraComponent::PerspectiveNear");
-					if (perspectiveNear)
-						ps.Near = perspectiveNear.as<float>();
-
-					SK_CORE_VERIFY(perspectiveFar, "Couldn't deserialize CameraComponent::PerspectiveFar");
-					if (perspectiveFar)
-						ps.Far = perspectiveFar.as<float>();
-
-					SK_CORE_VERIFY(orthographicZoom, "Couldn't deserialize CameraComponent::OrthographicZoom");
-					if (orthographicZoom)
-						os.Zoom = orthographicZoom.as<float>();
-
-					SK_CORE_VERIFY(orthographicNear, "Couldn't deserialize CameraComponent::OrthographicNear");
-					if (orthographicNear)
-						os.Near = orthographicNear.as<float>();
-
-					SK_CORE_VERIFY(orthographicNear, "Couldn't deserialize CameraComponent::OrthographicNear");
-					if (orthographicNear)
-						os.Far = orthographicFar.as<float>();
-
-					if (!HasActiveCameraAsUUID)
-					{
-						SK_CORE_VERIFY(isMainCamera, "Couldn't deserialize IsMainCamera");
-						if (isMainCamera)
-							mainCam = isMainCamera.as<bool>();
-					}
-
-					auto& comp = deserializedEntity.AddOrReplaceComponent<CameraComponent>();
-					comp.Camera = SceneCamera(projection, aspecRatio, ps, os);
-					if (!HasActiveCameraAsUUID && mainCam)
-						m_Scene->m_ActiveCameraUUID = deserializedEntity.GetUUID();
-					SK_CORE_TRACE(" - Camera Component: Type {}", Convert::ProjectionToString(projection));
-				}
-
-				auto rigidBody2DComponent = entity["RigidBody2DComponent"];
-				if (rigidBody2DComponent)
-				{
-					auto type = rigidBody2DComponent["Type"];
-					auto fixedRotation = rigidBody2DComponent["FixedRotation"];
-
-					auto& comp = deserializedEntity.AddOrReplaceComponent<RigidBody2DComponent>();
-
-					SK_CORE_VERIFY(type, "Couldn't desirialize RigidBody2DComponent::Type");
-					if (type)
-						comp.Type = Convert::StringToBodyType(type.as<std::string>());
-
-					SK_CORE_VERIFY(fixedRotation, "Couldn't desirialize RigidBody2DComponent::FixedRotation");
-					if (fixedRotation)
-						comp.FixedRotation = fixedRotation.as<bool>();
-
-					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", Convert::BodyTypeToString(comp.Type));
-				}
-
-				auto boxCollider2DComponent = entity["BoxCollider2DComponent"];
-				if (boxCollider2DComponent)
-				{
-					auto size = boxCollider2DComponent["Size"];
-					auto offset = boxCollider2DComponent["Offset"];
-					auto rotation = boxCollider2DComponent["Rotation"];
-					auto density = boxCollider2DComponent["Density"];
-					auto friction = boxCollider2DComponent["Friction"];
-					auto restitution = boxCollider2DComponent["Restitution"];
-					auto restitutionThreshold = boxCollider2DComponent["RestitutionThreshold"];
-
-					auto& comp = deserializedEntity.AddOrReplaceComponent<BoxCollider2DComponent>();
-
-					SK_CORE_VERIFY(size, "Couldn't desirialize BoxCollider2DComponent::Size");
-					if (size)
-						comp.Size = size.as<DirectX::XMFLOAT2>();
-
-					SK_CORE_VERIFY(offset, "Couldn't desirialize BoxCollider2DComponent::Offset");
-					if (offset)
-						comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
-
-					SK_CORE_VERIFY(rotation, "Couldn't desirialize BoxCollider2DComponent::Rotation");
-					if (rotation)
-						comp.LocalRotation = rotation.as<float>();
-
-					SK_CORE_VERIFY(density, "Couldn't desirialize BoxCollider2DComponent::Density");
-					if (density)
-						comp.Density = density.as<float>();
-
-					SK_CORE_VERIFY(friction, "Couldn't desirialize BoxCollider2DComponent::Friction");
-					if (friction)
-						comp.Friction = friction.as<float>();
-
-					SK_CORE_VERIFY(restitution, "Couldn't desirialize BoxCollider2DComponent::Restitution");
-					if (restitution)
-						comp.Restitution = restitution.as<float>();
-
-					SK_CORE_VERIFY(restitutionThreshold, "Couldn't desirialize BoxCollider2DComponent::RestitutionThreshold");
-					if (restitutionThreshold)
-						comp.RestitutionThreshold = restitutionThreshold.as<float>();
-
-					SK_CORE_TRACE(" - BoxCollider2D Component");
-				}
-
-				auto circleCollider2DComponent = entity["CircleCollider2DComponent"];
-				if (circleCollider2DComponent)
-				{
-					auto radius = circleCollider2DComponent["Radius"];
-					auto offset = circleCollider2DComponent["Offset"];
-					auto rotation = circleCollider2DComponent["Rotation"];
-					auto density = circleCollider2DComponent["Density"];
-					auto friction = circleCollider2DComponent["Friction"];
-					auto restitution = circleCollider2DComponent["Restitution"];
-					auto restitutionThreshold = circleCollider2DComponent["RestitutionThreshold"];
-
-					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
-
-					SK_CORE_VERIFY(radius, "Couldn't desirialize CircleCollider2DComponent::Radius");
-					if (radius)
-						comp.Radius = radius.as<float>();
-
-					SK_CORE_VERIFY(offset, "Couldn't desirialize CircleCollider2DComponent::Offset");
-					if (offset)
-						comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
-
-					SK_CORE_VERIFY(rotation, "Couldn't desirialize CircleCollider2DComponent::Rotation");
-					if (rotation)
-						comp.LocalRotation = rotation.as<float>();
-
-					SK_CORE_VERIFY(density, "Couldn't desirialize CircleCollider2DComponent::Density");
-					if (density)
-						comp.Density = density.as<float>();
-
-					SK_CORE_VERIFY(friction, "Couldn't desirialize CircleCollider2DComponent::Friction");
-					if (friction)
-						comp.Friction = friction.as<float>();
-
-					SK_CORE_VERIFY(restitution, "Couldn't desirialize CircleCollider2DComponent::Restitution");
-					if (restitution)
-						comp.Restitution = restitution.as<float>();
-
-					SK_CORE_VERIFY(restitutionThreshold, "Couldn't desirialize CircleCollider2DComponent::RestitutionThreshold");
-					if (restitutionThreshold)
-						comp.RestitutionThreshold = restitutionThreshold.as<float>();
 
 					SK_CORE_TRACE(" - CircleCollider2D Component");
 				}

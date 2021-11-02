@@ -194,6 +194,13 @@ namespace Shark::UI {
 	/// Helpers //////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	struct ScopedID
+	{
+		const ImGuiID ID;
+		ScopedID(ImGuiID id);
+		~ScopedID();
+	};
+
 	ImGuiID GetID(int intID);
 	ImGuiID GetID(void* ptrID);
 	ImGuiID GetID(const std::string& strID);
@@ -253,8 +260,13 @@ namespace Shark::UI {
 	bool DragAngle(const std::string& tag, DirectX::XMFLOAT3& radians, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	bool DragAngle(const std::string& tag, DirectX::XMFLOAT4& radians, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 
+	bool ColorEdit(const std::string& tag, DirectX::XMFLOAT4& color, ImGuiColorEditFlags flags = ImGuiColorEditFlags_None);
+
 	bool Checkbox(const std::string& tag, bool& v);
 
 	bool ButtonRightAligned(const std::string& tag, const ImVec2& size = ImVec2(0, 0), ImGuiButtonFlags flags = ImGuiButtonFlags_None);
+
+	bool BeginCustromControl(ImGuiID id);
+	void EndCustomControl();
 
 }

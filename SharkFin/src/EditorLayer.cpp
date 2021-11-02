@@ -54,7 +54,7 @@ namespace Shark {
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
 
-		ImageSpecification imageSpecs = m_SceneRenderer->GetFrameBuffer()->GetImage(1)->GetSpecification();
+		ImageSpecification imageSpecs = m_SceneRenderer->GetRenderer2DFrameBuffer()->GetImage(1)->GetSpecification();
 		imageSpecs.Type = ImageType::Staging;
 		imageSpecs.Usage = ImageUsageNone;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
@@ -304,7 +304,7 @@ namespace Shark {
 			int height = m_MousePickingImage->GetHeight();
 			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 			{
-				Ref<Image2D> frameBufferImage = m_SceneRenderer->GetFrameBuffer()->GetImage(1);
+				Ref<Image2D> frameBufferImage = m_SceneRenderer->GetRenderer2DFrameBuffer()->GetImage(1);
 				frameBufferImage->CopyTo(m_MousePickingImage);
 
 				m_HoveredEntityID = m_MousePickingImage->ReadPixel(x, y);

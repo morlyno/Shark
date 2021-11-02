@@ -33,6 +33,7 @@ namespace Shark::UI {
 			imguiLayer.SubmitBlendCallback(true);
 		}
 	}
+
 }
 
 namespace ImGuiEx {
@@ -118,6 +119,17 @@ namespace Shark::UI {
 	//////////////////////////////////////////////////////////////////////////////
 	/// Helpers //////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
+
+	ScopedID::ScopedID(ImGuiID id)
+		: ID(id)
+	{
+		PushID(id);
+	}
+
+	ScopedID::~ScopedID()
+	{
+		PopID();
+	}
 
 	ImGuiID GetID(int intID)
 	{
@@ -1161,6 +1173,50 @@ namespace Shark::UI {
 		ImVec2 itemSize = ImGui::CalcItemSize(size, textSize.x + style.FramePadding.x * 2.0f, textSize.y + style.FramePadding.y * 2.0f);
 		window->DC.CursorPos.x += ImGui::GetContentRegionAvail().x - itemSize.x;
 		return ImGui::ButtonEx(tag.c_str(), itemSize, flags);
+	}
+
+	bool ColorEdit(const std::string& tag, DirectX::XMFLOAT4& color, ImGuiColorEditFlags flags /*= ImGuiColorEditFlags_None*/)
+	{
+		static_assert(sizeof(color) == (sizeof(float[4])));
+
+		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
+		if (!ImGui::GetCurrentTable())
+			return false;
+
+		ImGui::TableNextRow();
+
+		PushID(GetID(tag));
+
+		ImGui::TableSetColumnIndex(0);
+		Text(tag);
+		ImGui::TableSetColumnIndex(1);
+
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+		const bool changed = ImGui::ColorEdit4("##ColorEditor4", (float*)&color, flags);
+
+		PopID();
+
+		return changed;
+
+	}
+
+	bool BeginCustromControl(ImGuiID id)
+	{
+		if (!ImGui::GetCurrentTable())
+			return false;
+
+		ImGui::TableNextRow();
+		PushID(id);
+
+		return true;
+	}
+
+	void EndCustomControl()
+	{
+		if (!ImGui::GetCurrentTable())
+			return;
+
+		PopID();
 	}
 
 }

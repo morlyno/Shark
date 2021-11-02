@@ -33,7 +33,7 @@ namespace Shark {
 		Ref<FrameBuffer> GetFinalFrameBuffer() const { return m_CompositPipeline->GetSpecification().TargetFrameBuffer; }
 		Ref<Image2D> GetFinalImage() const { return m_CompositPipeline->GetSpecification().TargetFrameBuffer->GetImage(0); }
 
-		Ref<FrameBuffer> GetFrameBuffer() const { return m_Renderer2DFrameBuffer; }
+		Ref<FrameBuffer> GetRenderer2DFrameBuffer() const { return m_Renderer2DFrameBuffer; }
 		Ref<Renderer2D> GetRenderer() const { return m_Renderer2D; }
 
 	private:

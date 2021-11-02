@@ -92,14 +92,14 @@ namespace Shark {
 				{
 					if (ImGui::BeginMenu("Create"))
 					{
-						if (ImGui::MenuItem("Empty Entity"))
+						if (ImGui::MenuItem("Entity"))
 						{
-							Entity e = m_Context->CreateEntity("New Entity");
+							Entity e = m_Context->CreateEntity("Entity");
 							Utils::ChangeSelectedEntity(e);
 						}
 						if (ImGui::MenuItem("Camera"))
 						{
-							Entity e = m_Context->CreateEntity("New Camera");
+							Entity e = m_Context->CreateEntity("Camera");
 							e.AddComponent<CameraComponent>();
 							Utils::ChangeSelectedEntity(e);
 						}
@@ -107,21 +107,64 @@ namespace Shark {
 						{
 							if (ImGui::MenuItem("Quad"))
 							{
-								Entity e = m_Context->CreateEntity("New Quad");
-								auto& sr = e.AddComponent<SpriteRendererComponent>();
-								sr.Geometry = SpriteRendererComponent::GeometryType::Quad;
+								Entity e = m_Context->CreateEntity("Quad");
+								e.AddComponent<SpriteRendererComponent>();
 								Utils::ChangeSelectedEntity(e);
 							}
 							if (ImGui::MenuItem("Circle"))
 							{
-								Entity e = m_Context->CreateEntity("New Circle");
-								auto& sr = e.AddComponent<SpriteRendererComponent>();
-								sr.Geometry = SpriteRendererComponent::GeometryType::Circle;
+								Entity e = m_Context->CreateEntity("Circle");
+								e.AddComponent<CircleRendererComponent>();
 								Utils::ChangeSelectedEntity(e);
 							}
 							ImGui::EndMenu();
 						}
-
+						if (ImGui::BeginMenu("Physics2D"))
+						{
+							if (ImGui::BeginMenu("Collider"))
+							{
+								if (ImGui::MenuItem("Box"))
+								{
+									Entity e = m_Context->CreateEntity("Box Collider");
+									e.AddComponent<SpriteRendererComponent>();
+									e.AddComponent<BoxCollider2DComponent>();
+									Utils::ChangeSelectedEntity(e);
+								}
+								if (ImGui::MenuItem("Circle"))
+								{
+									Entity e = m_Context->CreateEntity("Circle Collider");
+									e.AddComponent<CircleRendererComponent>();
+									e.AddComponent<CircleCollider2DComponent>();
+									Utils::ChangeSelectedEntity(e);
+								}
+								ImGui::EndMenu();
+							}
+							if (ImGui::BeginMenu("RigidBody"))
+							{
+								if (ImGui::MenuItem("Box"))
+								{
+									Entity e = m_Context->CreateEntity("Box RigidBody");
+									e.AddComponent<SpriteRendererComponent>();
+									auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
+									rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
+									auto& boxCollider = e.AddComponent<BoxCollider2DComponent>();
+									boxCollider.Density = 1.0f;
+									Utils::ChangeSelectedEntity(e);
+								}
+								if (ImGui::MenuItem("Circle"))
+								{
+									Entity e = m_Context->CreateEntity("Circle RigidBody");
+									e.AddComponent<CircleRendererComponent>();
+									auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
+									rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
+									auto& circleCollider = e.AddComponent<CircleCollider2DComponent>();
+									circleCollider.Density = 1.0f;
+									Utils::ChangeSelectedEntity(e);
+								}
+								ImGui::EndMenu();
+							}
+							ImGui::EndMenu();
+						}
 						ImGui::EndMenu();
 					}
 					ImGui::EndPopup();
@@ -168,7 +211,7 @@ namespace Shark {
 			treenodefalgs |= ImGuiTreeNodeFlags_Selected;
 
 		// if entity dosend have child entitys
-		// Darw TreeNode with bullet
+		// Draw TreeNode as Leaf
 		treenodefalgs |= ImGuiTreeNodeFlags_Leaf;
 
 		bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)(uint32_t)entity, treenodefalgs, tag.Tag.c_str());
@@ -176,18 +219,18 @@ namespace Shark {
 		if (ImGui::IsItemClicked())
 			Utils::ChangeSelectedEntity(entity);
 
+		bool wantsDestroy = false;
+
 		if ((m_SelectedEntity == entity) && ImGui::IsWindowFocused() && Input::KeyPressed(Key::Entf))
 		{
-			m_Context->DestroyEntity(entity);
-			Utils::ChangeSelectedEntity({});
+			wantsDestroy = true;
 		}
 
 		if (ImGui::BeginPopupContextItem())
 		{
 			if (ImGui::Selectable("Delete Entity"))
 			{
-				m_Context->DestroyEntity(entity);
-				m_SelectedEntity = {};
+				wantsDestroy = true;
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -197,6 +240,12 @@ namespace Shark {
 		{
 			// Draw Child Entitys
 			ImGui::TreePop();
+		}
+
+		if (wantsDestroy)
+		{
+			m_Context->DestroyEntity(entity);
+			Utils::ChangeSelectedEntity({});
 		}
 	}
 	
@@ -230,6 +279,11 @@ namespace Shark {
 			if (ImGui::Selectable("Sprite Renderer", false, entity.HasComponent<SpriteRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<SpriteRendererComponent>();
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::Selectable("Circle Renderer", false, entity.HasComponent<CircleRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			{
+				entity.AddComponent<CircleRendererComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::Selectable("Scene Camera", false, entity.HasComponent<CameraComponent>() ? ImGuiSelectableFlags_Disabled : 0))
@@ -271,30 +325,22 @@ namespace Shark {
 
 		Utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp)
 		{
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 100);
-			
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Color");
-			ImGui::NextColumn();
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
-			ImGui::ColorEdit4("##Color", &comp.Color.x);
+			UI::BeginControls();
 
-			ImGui::NextColumn();
-			ImGui::Separator();
+			UI::ColorEdit("Color", comp.Color);
 
-			ImGui::Text("Texture");
-
-			//UI::SelectTextureImageButton(comp.Texture, { 48, 48 });
+			// TODO: Texture
+			if (UI::BeginCustromControl(UI::GetID("Texture")))
 			{
+				ImGui::TableSetColumnIndex(0);
+
 				RenderID textureID = comp.Texture ? comp.Texture->GetRenderID() : nullptr;
 				if (ImGui::ImageButton(textureID, { 48, 48 }))
 				{
-					auto path = FileDialogs::OpenFile("Texture (*.*)\0*.*\0");
+					auto path = FileDialogs::OpenFile("Texture");
 					if (!path.empty())
 						comp.Texture = Texture2D::Create(path);
 				}
-
 				if (ImGui::BeginDragDropTarget())
 				{
 					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
@@ -306,37 +352,38 @@ namespace Shark {
 					}
 					ImGui::EndDragDropTarget();
 				}
-			}
 
-			ImGui::NextColumn();
-			if (comp.Texture)
-			{
-				UI::Text(comp.Texture->GetFilePath());
-				ImGui::Text("Width: %d, Height: %d", comp.Texture->GetImage()->GetWidth(), comp.Texture->GetImage()->GetHeight());
-				if (ImGui::Button("Remove"))
-					comp.Texture = nullptr;
-			}
-			else
-			{
-				ImGui::Text("No Texture Selected");
-				ImGui::Text("Width: 0, Height: 0");
-			}
-			ImGui::Columns();
+				ImGui::TableSetColumnIndex(1);
+				if (comp.Texture)
+				{
+					UI::Text(comp.Texture->GetFilePath());
+					ImGui::Text("Width: %d, Height: %d", comp.Texture->GetImage()->GetWidth(), comp.Texture->GetImage()->GetHeight());
+					if (ImGui::Button("Remove"))
+						comp.Texture = nullptr;
+				}
+				else
+				{
+					ImGui::Text("No Texture Selected");
+					ImGui::Text("Width: 0, Height: 0");
+				}
 
-			UI::BeginControls();
+				UI::EndCustomControl();
+			}
 
 			UI::DragFloat("TilingFactor", comp.TilingFactor, 1.0f);
 
-			if (comp.Geometry == SpriteRendererComponent::GeometryType::Circle)
-				UI::SliderFloat("Thickness", comp.Thickness, 1.0f, 0.0f, 1.0f);
-
 			UI::EndControls();
 
-			ImGui::Separator();
-			int geometry = (int)comp.Geometry;
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
-			if (ImGui::Combo("##Geometry", &geometry, s_GeomatryTypes, (int)Utility::ArraySize(s_GeomatryTypes)))
-				comp.Geometry = (SpriteRendererComponent::GeometryType)geometry;
+		});
+
+		Utils::DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp)
+		{
+			UI::BeginControls();
+				
+			UI::ColorEdit("Color", comp.Color);
+			UI::SliderFloat("Thickness", comp.Thickness, 1.0f, 0.0f, 1.0f);
+
+			UI::EndControls();
 		});
 
 		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)

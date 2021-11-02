@@ -236,18 +236,20 @@ namespace Shark {
 		renderer->BeginScene(viewProj);
 
 		{
-			auto group = m_Registry.group<SpriteRendererComponent, TransformComponent>();
-			for (auto entity : group)
+			auto view = m_Registry.view<SpriteRendererComponent, TransformComponent>();
+			for (auto entity : view)
 			{
-				auto& [sr, tf] = group.get<SpriteRendererComponent, TransformComponent>(entity);
-				if (sr.Geometry == SpriteRendererComponent::GeometryType::Quad)
-				{
-					renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
-				}
-				else if (sr.Geometry == SpriteRendererComponent::GeometryType::Circle)
-				{
-					renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, sr.Thickness, sr.Color, (int)entity);
-				}
+				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
+				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+			}
+		}
+
+		{
+			auto view = m_Registry.view<CircleRendererComponent, TransformComponent>();
+			for (auto entity : view)
+			{
+				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
+				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
 			}
 		}
 
@@ -259,18 +261,22 @@ namespace Shark {
 		renderer->BeginScene(editorCamera.GetViewProjection());
 
 		{
-			auto group = m_Registry.group<SpriteRendererComponent, TransformComponent>();
-			for (auto entity : group)
+
+
+			auto view = m_Registry.view<SpriteRendererComponent, TransformComponent>();
+			for (auto entity : view)
 			{
-				auto& [sr, tf] = group.get<SpriteRendererComponent, TransformComponent>(entity);
-				if (sr.Geometry == SpriteRendererComponent::GeometryType::Quad)
-				{
-					renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
-				}
-				else if (sr.Geometry == SpriteRendererComponent::GeometryType::Circle)
-				{
-					renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, sr.Thickness, sr.Color, (int)entity);
-				}
+				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
+				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+			}
+		}
+
+		{
+			auto view = m_Registry.view<CircleRendererComponent, TransformComponent>();
+			for (auto entity : view)
+			{
+				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
+				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
 			}
 		}
 
@@ -282,21 +288,22 @@ namespace Shark {
 		renderer->BeginScene(editorCamera.GetViewProjection());
 
 		{
-			auto group = m_Registry.group<SpriteRendererComponent, TransformComponent>();
-			for (auto entity : group)
+			auto view = m_Registry.view<SpriteRendererComponent, TransformComponent>();
+			for (auto entity : view)
 			{
-				auto& [sr, tf] = group.get<SpriteRendererComponent, TransformComponent>(entity);
-				if (sr.Geometry == SpriteRendererComponent::GeometryType::Quad)
-				{
-					renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
-				}
-				else if (sr.Geometry == SpriteRendererComponent::GeometryType::Circle)
-				{
-					renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, sr.Thickness, sr.Color, (int)entity);
-				}
+				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
+				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
 			}
 		}
 
+		{
+			auto view = m_Registry.view<CircleRendererComponent, TransformComponent>();
+			for (auto entity : view)
+			{
+				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
+				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
+			}
+		}
 		renderer->EndScene();
 	}
 

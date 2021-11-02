@@ -10,8 +10,6 @@ namespace Shark {
 	class SceneSerializer
 	{
 	public:
-		static constexpr uint64_t SceneSerializerVersion = 3;
-	public:
 		SceneSerializer(const Ref<Scene>& scene);
 		~SceneSerializer() = default;
 
@@ -19,8 +17,6 @@ namespace Shark {
 		bool Deserialize() { return Deserialize(m_Scene->GetFilePath()); }
 		bool Serialize(const std::filesystem::path& filepath);
 		bool Deserialize(const std::filesystem::path& filepath);
-	private:
-		bool LagacyModeDeserialize(YAML::Node& in, uint64_t version);
 	private:
 		Ref<Scene> m_Scene;
 	};

@@ -10,11 +10,11 @@ namespace Shark {
 	public:
 		virtual ~NativeScript() = default;
 
-		virtual void OnCreate() {};
-		virtual void OnDestroy() {};
+		virtual void OnCreate() {}
+		virtual void OnDestroy() {}
 
-		virtual void OnUpdate(TimeStep ts) {};
-		virtual void OnEvent(Event& event) {};
+		virtual void OnUpdate(TimeStep ts) {}
+		virtual void OnEvent(Event& event) {}
 
 	public:
 		Entity m_Entity;
