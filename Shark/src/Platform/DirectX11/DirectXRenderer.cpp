@@ -101,6 +101,47 @@ namespace Shark {
 		specs.Height = window.GetHeight();
 		specs.WindowHandle = window.GetHandle();
 		m_SwapChain = Ref<DirectXSwapChain>::Create(specs);
+
+
+		m_ShaderLib = Ref<ShaderLibrary>::Create();
+
+		m_ShaderLib->Load("assets/Shaders/Renderer2D_Quad.hlsl");
+		m_ShaderLib->Load("assets/Shaders/Renderer2D_Circle.hlsl");
+		m_ShaderLib->Load("assets/Shaders/Renderer2D_Line.hlsl");
+
+		m_ShaderLib->Load("assets/Shaders/FullScreen.hlsl");
+		m_ShaderLib->Load("assets/Shaders/NegativeEffect.hlsl");
+		m_ShaderLib->Load("assets/Shaders/BlurEffect.hlsl");
+
+		uint32_t color = 0xFFFFFFFF;
+		m_WhiteTexture = Texture2D::Create(1, 1, &color);
+
+		VertexLayout layout = {
+			{ VertexDataType::Float2, "Position" }
+		};
+
+		float vertices[4 * 2] = {
+			-1.0f,  1.0f,
+			 1.0f,  1.0f,
+			 1.0f, -1.0f,
+			-1.0f, -1.0f
+		};
+
+		uint32_t indices[3 * 2] = {
+			0, 1, 2,
+			2, 3, 0
+		};
+
+		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, vertices, sizeof(vertices));
+		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create(indices, sizeof(indices) / sizeof(*indices));
+
+		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
+		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		
+		m_Device->CreateSamplerState(&samplerDesc, &m_PointClampSampler);
 	}
 
 	void DirectXRenderer::ShutDown()
@@ -110,7 +151,47 @@ namespace Shark {
 		if (m_ImmediateContext) { m_ImmediateContext->Release(); m_ImmediateContext = nullptr; }
 		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
 
+		if (m_PointClampSampler)
+		{
+			m_PointClampSampler->Release();
+			m_PointClampSampler = nullptr;
+		}
+
 		s_Instance = nullptr;
+	}
+
+	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image)
+	{
+		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
+		ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
+
+		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
+
+		Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
+		ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
+		ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
+
+		const UINT offset = 0;
+		const UINT stride = m_QuadVertexBuffer->m_Layout.GetVertexSize();
+		ctx->IASetVertexBuffers(0, 1, &m_QuadVertexBuffer->m_VertexBuffer, &stride, &offset);
+		ctx->IASetIndexBuffer(m_QuadIndexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		ctx->IASetInputLayout(dxShader->m_InputLayout);
+
+		ctx->RSSetState(dxPipeline->m_RasterizerState);
+		ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+
+		Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+		ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
+		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+
+		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
+		ctx->PSSetShaderResources(0, 1, &dxImage->m_View);
+		ctx->PSSetSamplers(0, 1, &m_PointClampSampler);
+
+		ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		ctx->DrawIndexed(6, 0, 0);
+
 	}
 
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shader, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)

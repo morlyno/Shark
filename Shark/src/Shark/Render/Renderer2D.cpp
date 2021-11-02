@@ -39,7 +39,7 @@ namespace Shark {
 		{
 			PipelineSpecification quadPipelineSpecs;
 			quadPipelineSpecs.TargetFrameBuffer = renderTarget;
-			quadPipelineSpecs.Shader = Renderer::GetShaderLib().Get("Renderer2D_Quad");
+			quadPipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Quad");
 			quadPipelineSpecs.DebugName = "Renderer2D-Quad";
 			m_QuadPipeline = Pipeline::Create(quadPipelineSpecs);
 
@@ -67,7 +67,7 @@ namespace Shark {
 		{
 			PipelineSpecification cirlcePipelineSpecs;
 			cirlcePipelineSpecs.TargetFrameBuffer = renderTarget;
-			cirlcePipelineSpecs.Shader = Renderer::GetShaderLib().Get("Renderer2D_Circle");
+			cirlcePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Circle");
 			cirlcePipelineSpecs.DebugName = "Renderer2D-Circle";
 			m_CirlcePipeline = Pipeline::Create(cirlcePipelineSpecs);
 
@@ -80,7 +80,7 @@ namespace Shark {
 		{
 			PipelineSpecification linePipelineSpecs;
 			linePipelineSpecs.TargetFrameBuffer = renderTarget;
-			linePipelineSpecs.Shader = Renderer::GetShaderLib().Get("Renderer2D_Line");
+			linePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Line");
 			linePipelineSpecs.DebugName = "Renderer2D-Line";
 			m_LinePipeline = Pipeline::Create(linePipelineSpecs);
 			

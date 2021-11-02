@@ -26,7 +26,7 @@ namespace Shark {
 		static Ref<Shader> Create(const std::filesystem::path& filepath);
 	};
 
-	class ShaderLibrary
+	class ShaderLibrary : public RefCount
 	{
 	public:
 		ShaderLibrary() = default;

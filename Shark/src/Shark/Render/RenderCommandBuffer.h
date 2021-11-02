@@ -13,6 +13,7 @@ namespace Shark {
 		virtual void End() = 0;
 		virtual void Execute() = 0;
 
+	public:
 		static Ref<RenderCommandBuffer> Create();
 
 	};

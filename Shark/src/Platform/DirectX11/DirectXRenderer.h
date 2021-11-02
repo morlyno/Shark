@@ -2,6 +2,7 @@
 
 #include "Shark/Render/RendererAPI.h"
 #include "Platform/DirectX11/DirectXSwapChain.h"
+#include "Platform/DirectX11/DirectXBuffers.h"
 
 #include <set>
 #include <d3d11.h>
@@ -17,8 +18,13 @@ namespace Shark {
 		virtual void Init() override;
 		virtual void ShutDown() override;
 
+		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image) override;
+
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) override;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) override;
+
+		virtual Ref<ShaderLibrary> GetShaderLib() override { return m_ShaderLib; }
+		virtual Ref<Texture2D> GetWhiteTexture() override { return m_WhiteTexture; }
 
 		virtual Ref<FrameBuffer> GetFinaleCompositFrameBuffer() const override { return m_SwapChain->GetMainFrameBuffer(); }
 
@@ -51,6 +57,14 @@ namespace Shark {
 		ID3D11BlendState* m_ImGuiBlendState = nullptr;
 
 		std::vector<Ref<DirectXRenderCommandBuffer>> m_CommandBuffers;
+
+		Ref<ShaderLibrary> m_ShaderLib;
+		Ref<Texture2D> m_WhiteTexture;
+
+		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;
+		Ref<DirectXIndexBuffer> m_QuadIndexBuffer;
+
+		ID3D11SamplerState* m_PointClampSampler;
 	};
 
 }

@@ -9,7 +9,7 @@ namespace Shark {
 	class DirectXVertexBuffer : public VertexBuffer
 	{
 	public:
-		DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic);
+		DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic = false);
 		virtual ~DirectXVertexBuffer();
 
 		virtual void Resize(uint32_t size) override;
@@ -37,7 +37,7 @@ namespace Shark {
 	class DirectXIndexBuffer : public IndexBuffer
 	{
 	public:
-		DirectXIndexBuffer(IndexType* data, uint32_t count, bool dynamic);
+		DirectXIndexBuffer(IndexType* data, uint32_t count, bool dynamic = false);
 		virtual ~DirectXIndexBuffer();
 
 		virtual void Resize(uint32_t count) override;

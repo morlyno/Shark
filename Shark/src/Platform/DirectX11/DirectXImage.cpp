@@ -42,6 +42,20 @@ namespace Shark {
 			return DXGI_FORMAT_UNKNOWN;
 		}
 
+		DXGI_FORMAT ImageFormatToGXGI_ForView(ImageFormat format)
+		{
+			switch (format)
+			{
+				case ImageFormat::None:               return DXGI_FORMAT_UNKNOWN;
+				case ImageFormat::RGBA8:              return DXGI_FORMAT_R8G8B8A8_UNORM;
+				case ImageFormat::R32_SINT:           return DXGI_FORMAT_R32_SINT;
+				case ImageFormat::Depth32:            return DXGI_FORMAT_R32_FLOAT;
+				case ImageFormat::SwapChain:          SK_CORE_ASSERT(false, "Invalid ImageFormat"); return DXGI_FORMAT_R8G8B8A8_UNORM;
+			}
+			SK_CORE_ASSERT(false);
+			return DXGI_FORMAT_UNKNOWN;
+		}
+
 		uint32_t GetImageFormatSize(ImageFormat format)
 		{
 			switch (format)
@@ -176,7 +190,7 @@ namespace Shark {
 		auto* dev = DirectXRenderer::GetDevice();
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srv;
-		srv.Format = Utils::ImageFormatToGXGI(m_Specs.Format);
+		srv.Format = Utils::ImageFormatToGXGI_ForView(m_Specs.Format);
 		srv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		srv.Texture2D.MipLevels = 1u;
 		srv.Texture2D.MostDetailedMip = 0u;

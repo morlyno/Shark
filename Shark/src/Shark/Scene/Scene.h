@@ -13,6 +13,7 @@ class b2World;
 
 namespace Shark {
 
+	class SceneRenderer;
 	class Entity;
 
 	class Scene : public RefCount
@@ -35,6 +36,10 @@ namespace Shark {
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts);
 		void OnSimulate(TimeStep ts, bool subStep = false);
+
+		void OnRenderRuntime(Ref<SceneRenderer> renderer);
+		void OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
+		void OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
 
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});

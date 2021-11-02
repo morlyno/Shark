@@ -32,7 +32,7 @@ namespace Shark {
 		virtual std::pair<uint32_t, uint32_t> GetSize() const override { return { m_Specification.Width, m_Specification.Height }; }
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
-		virtual Ref<Image2D> GetImage(uint32_t index) override { return m_Specification.Atachments[index].Image; }
+		virtual Ref<Image2D> GetImage(uint32_t index = 0) override { return m_Specification.Atachments[index].Image; }
 		virtual Ref<Image2D> GetDepthImage() override { return m_DepthStencilAtachment->Image; }
 
 		virtual const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
@@ -44,6 +44,7 @@ namespace Shark {
 	protected:
 		void CreateDepth32Buffer(FrameBufferAtachment* atachment);
 		void CreateFrameBuffer(FrameBufferAtachment* atachment, DXGI_FORMAT dxgiformat);
+		void CreateFrameBufferFromImage(FrameBufferAtachment* atachment);
 
 		void CreateBuffers();
 

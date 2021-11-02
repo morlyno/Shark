@@ -4,6 +4,8 @@
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
 
+#include "Shark/Render/SceneRenderer.h"
+
 #include "Shark/Utility/Math.h"
 
 #include "Shark/Debug/Instrumentor.h"
@@ -222,6 +224,80 @@ namespace Shark {
 			transform.Position.y = pos.y;
 			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 		}
+	}
+
+	void Scene::OnRenderRuntime(Ref<SceneRenderer> renderer)
+	{
+		Entity camerEntity = Entity{ m_RuntimeCamera, this };
+		Camera& camera = camerEntity.GetComponent<CameraComponent>().Camera;
+		auto& tf = camerEntity.GetTransform();
+
+		const auto viewProj = DirectX::XMMatrixInverse(nullptr, tf.GetTranform()) * camera.GetProjection();
+		renderer->BeginScene(viewProj);
+
+		{
+			auto group = m_Registry.group<SpriteRendererComponent, TransformComponent>();
+			for (auto entity : group)
+			{
+				auto& [sr, tf] = group.get<SpriteRendererComponent, TransformComponent>(entity);
+				if (sr.Geometry == SpriteRendererComponent::GeometryType::Quad)
+				{
+					renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+				}
+				else if (sr.Geometry == SpriteRendererComponent::GeometryType::Circle)
+				{
+					renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, sr.Thickness, sr.Color, (int)entity);
+				}
+			}
+		}
+
+		renderer->EndScene();
+	}
+
+	void Scene::OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
+	{
+		renderer->BeginScene(editorCamera.GetViewProjection());
+
+		{
+			auto group = m_Registry.group<SpriteRendererComponent, TransformComponent>();
+			for (auto entity : group)
+			{
+				auto& [sr, tf] = group.get<SpriteRendererComponent, TransformComponent>(entity);
+				if (sr.Geometry == SpriteRendererComponent::GeometryType::Quad)
+				{
+					renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+				}
+				else if (sr.Geometry == SpriteRendererComponent::GeometryType::Circle)
+				{
+					renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, sr.Thickness, sr.Color, (int)entity);
+				}
+			}
+		}
+
+		renderer->EndScene();
+	}
+
+	void Scene::OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
+	{
+		renderer->BeginScene(editorCamera.GetViewProjection());
+
+		{
+			auto group = m_Registry.group<SpriteRendererComponent, TransformComponent>();
+			for (auto entity : group)
+			{
+				auto& [sr, tf] = group.get<SpriteRendererComponent, TransformComponent>(entity);
+				if (sr.Geometry == SpriteRendererComponent::GeometryType::Quad)
+				{
+					renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+				}
+				else if (sr.Geometry == SpriteRendererComponent::GeometryType::Circle)
+				{
+					renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, sr.Thickness, sr.Color, (int)entity);
+				}
+			}
+		}
+
+		renderer->EndScene();
 	}
 
 	Entity Scene::CloneEntity(Entity srcEntity)

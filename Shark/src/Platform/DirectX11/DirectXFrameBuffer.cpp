@@ -74,7 +74,7 @@ namespace Shark {
 			ctx->ClearRenderTargetView(buffer, Utility::GetValuePtr(clearcolor));
 
 		if (m_DepthStencil)
-			ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
+			ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1.0f, 0u);
 	}
 
 	void DirectXFrameBuffer::ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index, const DirectX::XMFLOAT4& clearcolor)
@@ -84,7 +84,7 @@ namespace Shark {
 
 	void DirectXFrameBuffer::ClearDepth(ID3D11DeviceContext* ctx)
 	{
-		ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1u, 0u);
+		ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1.0f, 0u);
 	}
 
 
@@ -209,6 +209,23 @@ namespace Shark {
 		m_FrameBuffers.push_back(fb);
 	}
 
+	void DirectXFrameBuffer::CreateFrameBufferFromImage(FrameBufferAtachment* atachment)
+	{
+		SK_CORE_ASSERT(atachment->Image);
+
+		ID3D11Device* dev = DirectXRenderer::GetDevice();
+		Ref<DirectXImage2D> d3dImage = atachment->Image.As<DirectXImage2D>();
+
+		D3D11_RENDER_TARGET_VIEW_DESC desc;
+		desc.Format = Utils::FBAtachmentToDXGIFormat(atachment->Format);
+		desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		desc.Texture2D = D3D11_TEX2D_RTV{};
+
+		ID3D11RenderTargetView* fb;
+		SK_CHECK(dev->CreateRenderTargetView(d3dImage->GetNative(), &desc, &fb));
+		m_FrameBuffers.push_back(fb);
+	}
+
 	void DirectXFrameBuffer::CreateBuffers()
 	{
 		auto dev = DirectXRenderer::GetDevice();
@@ -240,6 +257,7 @@ namespace Shark {
 		{
 			switch (atachment->Format)
 			{
+				case ImageFormat::None:               bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBufferFromImage(atachment._Ptr);                         break;
 				case ImageFormat::SwapChain:          bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateSwapChainBuffer();                                            break;
 				case ImageFormat::RGBA8:              bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R8G8B8A8_UNORM);      break;
 				case ImageFormat::R32_SINT:           bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R32_SINT);            break;

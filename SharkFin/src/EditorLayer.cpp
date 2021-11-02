@@ -17,42 +17,6 @@ namespace Shark {
 
 	static bool s_ShowDemoWindow = false;
 
-
-	void EditorLayer::EffectesTest()
-	{
-#if 0
-		if (m_BlurEffect)
-		{
-			m_BlurFrameBuffer->Bind();
-			m_CompositFrameBuffer->BindAsTexture(0, 0);
-			Renderer::GetShaderLib().Get("BlurEffect")->Bind();
-			Renderer::SubmitFullScreenQuad();
-			m_CompositFrameBuffer->UnBindAsTexture(0, 0);
-
-			m_CompositFrameBuffer->Bind();
-			m_BlurFrameBuffer->BindAsTexture(0, 0);
-			Renderer::GetShaderLib().Get("FullScreen")->Bind();
-			Renderer::SubmitFullScreenQuad();
-			m_BlurFrameBuffer->UnBindAsTexture(0, 0);
-		}
-
-		if (m_NegativeEffect)
-		{
-			m_NegativeFrameBuffer->Bind();
-			m_CompositFrameBuffer->BindAsTexture(0, 0);
-			Renderer::GetShaderLib().Get("NegativeEffect")->Bind();
-			Renderer::SubmitFullScreenQuad();
-			m_CompositFrameBuffer->UnBindAsTexture(0, 0);
-
-			m_CompositFrameBuffer->Bind();
-			m_NegativeFrameBuffer->BindAsTexture(0, 0);
-			Renderer::GetShaderLib().Get("FullScreen")->Bind();
-			Renderer::SubmitFullScreenQuad();
-			m_NegativeFrameBuffer->UnBindAsTexture(0, 0);
-		}
-#endif
-	}
-
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
 	{
@@ -89,23 +53,11 @@ namespace Shark {
 		m_StepIcon = Texture2D::Create("Resources/StepButton.png");
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
-		m_SceneRenderer->GetFrameBuffer()->GetImage(0)->CreateView();
 
 		ImageSpecification imageSpecs = m_SceneRenderer->GetFrameBuffer()->GetImage(1)->GetSpecification();
 		imageSpecs.Type = ImageType::Staging;
 		imageSpecs.Usage = ImageUsageNone;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
-
-		//FrameBufferSpecification compositfbspecs;
-		//compositfbspecs.Width = window.GetWidth();
-		//compositfbspecs.Height = window.GetHeight();
-		//compositfbspecs.Atachments = { ImageFormat::RGBA8 };
-		//compositfbspecs.Atachments[0].Blend = false;
-		//compositfbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-		//m_CompositFrameBuffer = FrameBuffer::Create(compositfbspecs);
-		//
-		//Ref<Image2D> fbImage = m_CompositFrameBuffer->GetImage(0);
-		//fbImage->CreateView();
 
 	}
 
@@ -119,6 +71,7 @@ namespace Shark {
 		m_TimeStep = ts;
 
 		//m_CompositFrameBuffer->Clear();
+
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered && !m_ViewportFocused);
 
@@ -134,7 +87,6 @@ namespace Shark {
 			m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
 		}
 
-
 		if (m_ViewportHovered && (m_SceneState != SceneState::Play || m_ScenePaused))
 			m_EditorCamera.OnUpdate(ts);
 
@@ -145,19 +97,19 @@ namespace Shark {
 				m_ActiveScene->OnUpdateEditor(ts);
 
 				m_WorkScene->OnUpdateEditor(ts);
-				m_SceneRenderer->OnRender(m_EditorCamera);
+				m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
 				break;
 			}
 			case SceneState::Play:
 			{
 				if (m_ScenePaused)
 				{
-					m_SceneRenderer->OnRender(m_EditorCamera);
+					m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
 				}
 				else
 				{
 					m_ActiveScene->OnUpdateRuntime(ts);
-					m_SceneRenderer->OnRender();
+					m_ActiveScene->OnRenderRuntime(m_SceneRenderer);
 				}
 
 				break;
@@ -167,13 +119,11 @@ namespace Shark {
 				if (!m_ScenePaused)
 					m_ActiveScene->OnSimulate(ts);
 				
-				m_SceneRenderer->OnRender(m_EditorCamera);
+				m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
 
 				break;
 			}
 		}
-
-		EffectesTest();
 
 		Renderer::GetRendererAPI()->BindMainFrameBuffer();
 	}
@@ -328,7 +278,7 @@ namespace Shark {
 			m_ViewportSizeChanged = true;
 		}
 
-		Ref<Image2D> fbImage = m_SceneRenderer->GetFrameBuffer()->GetImage(0);
+		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalImage();
 		UI::SetBlend(false);
 		ImGui::Image(fbImage->GetViewRenderID(), size);
 		UI::SetBlend(true);
@@ -718,7 +668,7 @@ namespace Shark {
 	{
 		if (ImGui::Begin("Shaders"))
 		{
-			for (auto&& [key, shader] : Renderer::GetShaderLib())
+			for (auto&& [key, shader] : *Renderer::GetShaderLib())
 			{
 				if (ImGui::TreeNodeEx(key.c_str()))
 				{
