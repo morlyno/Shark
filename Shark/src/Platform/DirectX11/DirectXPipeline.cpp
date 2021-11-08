@@ -67,4 +67,10 @@ namespace Shark {
 			m_DepthStencilState->Release();
 	}
 
+	void DirectXPipeline::SetFrameBuffer(Ref<FrameBuffer> frameBuffer)
+	{
+		m_FrameBuffer = frameBuffer.As<DirectXFrameBuffer>();
+		m_Specification.TargetFrameBuffer = frameBuffer;
+	}
+
 }

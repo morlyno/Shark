@@ -110,6 +110,7 @@ namespace Shark {
 		m_ShaderLib->Load("assets/Shaders/Renderer2D_Line.hlsl");
 
 		m_ShaderLib->Load("assets/Shaders/FullScreen.hlsl");
+		m_ShaderLib->Load("assets/Shaders/CompositWidthDepth.hlsl");
 		m_ShaderLib->Load("assets/Shaders/NegativeEffect.hlsl");
 		m_ShaderLib->Load("assets/Shaders/BlurEffect.hlsl");
 
@@ -192,6 +193,42 @@ namespace Shark {
 		ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		ctx->DrawIndexed(6, 0, 0);
 
+	}
+
+	void DirectXRenderer::RenderFullScreenQuadWidthDepth(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image, Ref<Image2D> depthImage)
+	{
+		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
+		ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
+
+		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
+
+		Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
+		ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
+		ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
+
+		const UINT offset = 0;
+		const UINT stride = m_QuadVertexBuffer->m_Layout.GetVertexSize();
+		ctx->IASetVertexBuffers(0, 1, &m_QuadVertexBuffer->m_VertexBuffer, &stride, &offset);
+		ctx->IASetIndexBuffer(m_QuadIndexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		ctx->IASetInputLayout(dxShader->m_InputLayout);
+
+		ctx->RSSetState(dxPipeline->m_RasterizerState);
+		ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+
+		Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+		ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
+		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+
+		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
+		ctx->PSSetShaderResources(0, 1, &dxImage->m_View);
+		ctx->PSSetSamplers(0, 1, &m_PointClampSampler);
+
+		Ref<DirectXImage2D> dxDepthImage = depthImage.As<DirectXImage2D>();
+		ctx->PSSetShaderResources(1, 1, &dxDepthImage->m_View);
+
+		ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		ctx->DrawIndexed(6, 0, 0);
 	}
 
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shader, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
@@ -302,6 +339,60 @@ namespace Shark {
 
 		ctx->DrawIndexed(indexCount, 0, 0);
 
+	}
+
+	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, PrimitveTopology topology)
+	{
+		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
+		ID3D11DeviceContext* ctx = commandBuffer->GetContext();
+
+
+		Ref<DirectXVertexBuffer> dxVB = vertexBuffer.As<DirectXVertexBuffer>();
+		const UINT offset = 0;
+		const UINT stride = dxVB->m_Layout.GetVertexSize();
+		ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
+
+
+		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
+		Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
+
+		ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
+		ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
+
+		// TODO(moro): move InputLayout to Pipeline
+		ctx->IASetInputLayout(dxShader->m_InputLayout);
+
+		Ref<DirectXConstantBufferSet> dxConstantBufferSet = constantBufferSet.As<DirectXConstantBufferSet>();
+		for (auto&& [slot, cb] : dxConstantBufferSet->m_CBMap)
+			ctx->VSSetConstantBuffers(slot, 1, &cb->m_ConstBuffer);
+
+		Ref<DirectXTexture2DArray> dxTextureArray = textureArray.As<DirectXTexture2DArray>();
+		if (dxTextureArray)
+		{
+			uint32_t slot = 0;
+			for (auto t : dxTextureArray->m_TextureArray)
+			{
+				if (t)
+				{
+					ctx->PSSetShaderResources(slot, 1, &t->m_Image->m_View);
+					ctx->PSSetSamplers(slot, 1, &t->m_Sampler);
+				}
+				slot++;
+			}
+		}
+
+		Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+
+		ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+
+		ctx->RSSetState(dxPipeline->m_RasterizerState);
+		ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
+
+		ctx->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
+
+		ctx->Draw(vertexCount, 0);
 	}
 
 	void DirectXRenderer::BindMainFrameBuffer()

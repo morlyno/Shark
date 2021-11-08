@@ -10,9 +10,9 @@
 
 namespace Shark {
 
-	Renderer2D::Renderer2D(Ref<FrameBuffer> renderTarget)
+	Renderer2D::Renderer2D(Ref<FrameBuffer> renderTarget, Ref<RenderCommandBuffer> parentCommandBuffer)
 	{
-		Init(renderTarget);
+		Init(renderTarget, parentCommandBuffer);
 	}
 
 	Renderer2D::~Renderer2D()
@@ -25,15 +25,18 @@ namespace Shark {
 			delete[] m_LineVertexBasePtr;
 	}
 
-	void Renderer2D::Init(Ref<FrameBuffer> renderTarget)
+	void Renderer2D::Init(Ref<FrameBuffer> renderTarget, Ref<RenderCommandBuffer> parentCommandBuffer)
 	{
 		m_RenderTarget = renderTarget;
-		m_RenderCommandBuffer = RenderCommandBuffer::Create();
+		m_WhiteTexture = Renderer::GetWhiteTexture();
 
 		m_ConstantBufferSet = ConstantBufferSet::Create();
 		m_ConstantBufferSet->Create(sizeof(CBCamera), 0);
 
-		m_WhiteTexture = Renderer::GetWhiteTexture();
+		if (parentCommandBuffer)
+			m_RenderCommandBuffer = RenderCommandBuffer::Create(parentCommandBuffer);
+		else
+			m_RenderCommandBuffer = RenderCommandBuffer::Create();
 
 		// Quad
 		{
@@ -85,14 +88,21 @@ namespace Shark {
 			m_LinePipeline = Pipeline::Create(linePipelineSpecs);
 			
 			m_LineVertexBuffer = VertexBuffer::Create(linePipelineSpecs.Shader->GetVertexLayout(), nullptr, MaxLineVertices * sizeof(LineVertex), true);
-
-			Index* lineIndices = new Index[MaxLineIndices];
-			for (uint32_t i = 0; i < MaxLineIndices; i++)
-				lineIndices[i] = i;
-			m_LineIndexBuffer = IndexBuffer::Create(lineIndices, MaxLineIndices);
-			delete[] lineIndices;
-	
 			m_LineVertexBasePtr = new LineVertex[MaxLineVertices];
+		}
+
+		// Line On Top
+		{
+			PipelineSpecification lineOnTopPipelineSpecs;
+			lineOnTopPipelineSpecs.TargetFrameBuffer = renderTarget;
+			lineOnTopPipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Line");
+			lineOnTopPipelineSpecs.DebugName = "Renderer2D-LineOnTop";
+			lineOnTopPipelineSpecs.DepthEnabled = false;
+			lineOnTopPipelineSpecs.WriteDepth = false;
+			m_LineOnTopPipeline = Pipeline::Create(lineOnTopPipelineSpecs);
+
+			m_LineOnTopVertexBuffer = VertexBuffer::Create(lineOnTopPipelineSpecs.Shader->GetVertexLayout(), nullptr, MaxLineOnTopVertices * sizeof(LineVertex), true);
+			m_LineOnTopVertexBasePtr = new LineVertex[MaxLineOnTopVertices];
 		}
 
 	}
@@ -102,8 +112,16 @@ namespace Shark {
 
 	}
 
+	void Renderer2D::SetRenderTarget(Ref<FrameBuffer> renderTarget)
+	{
+		SK_CORE_ASSERT(!m_Active);
+		m_RenderTarget = renderTarget;
+	}
+
 	void Renderer2D::BeginScene(const DirectX::XMMATRIX& viewProj)
 	{
+		m_Active = true;
+
 		CBCamera cam{ viewProj };
 		m_ConstantBufferSet->Get(0)->Set(&cam, sizeof(CBCamera));
 
@@ -121,8 +139,12 @@ namespace Shark {
 		m_CircleVertexIndexPtr = m_CircleVertexBasePtr;
 
 		// Line
-		m_LineIndexCount = 0;
+		m_LineVertexCount = 0;
 		m_LineVertexIndexPtr = m_LineVertexBasePtr;
+
+		// Line On Top
+		m_LineOnTopVertexCount = 0;
+		m_LineOnTopVertexIndexPtr = m_LineOnTopVertexBasePtr;
 
 		memset(&m_Stats, 0, sizeof(Statistics));
 		m_Stats.TextureCount = 1;
@@ -131,10 +153,6 @@ namespace Shark {
 	void Renderer2D::EndScene()
 	{
 		m_RenderCommandBuffer->Begin();
-
-		m_RenderTarget->ClearAtachment(m_RenderCommandBuffer, 0);
-		m_RenderTarget->ClearAtachment(m_RenderCommandBuffer, 1, { -1.0f, -1.0f, -1.0f, -1.0f });
-		m_RenderTarget->ClearDepth(m_RenderCommandBuffer);
 
 #if SK_DEBUG
 		{
@@ -178,13 +196,27 @@ namespace Shark {
 			{
 				m_LineVertexBuffer->SetData(m_LineVertexBasePtr, dataSize);
 
-				Renderer::RenderGeometry(m_RenderCommandBuffer, m_LinePipeline, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineIndexBuffer, m_LineIndexCount, PrimitveTopology::Line);
+				Renderer::RenderGeometry(m_RenderCommandBuffer, m_LinePipeline, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineVertexCount, PrimitveTopology::Line);
+				m_Stats.DrawCalls++;
+			}
+		}
+
+		// Line On Top
+		{
+			uint32_t dataSize = (uint32_t)((uint8_t*)m_LineOnTopVertexIndexPtr - (uint8_t*)m_LineOnTopVertexBasePtr);
+			if (dataSize)
+			{
+				m_LineOnTopVertexBuffer->SetData(m_LineOnTopVertexBasePtr, dataSize);
+
+				Renderer::RenderGeometry(m_RenderCommandBuffer, m_LineOnTopPipeline, m_ConstantBufferSet, nullptr, m_LineOnTopVertexBuffer, m_LineOnTopVertexCount, PrimitveTopology::Line);
 				m_Stats.DrawCalls++;
 			}
 		}
 
 		m_RenderCommandBuffer->End();
 		m_RenderCommandBuffer->Execute();
+
+		m_Active = false;
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
@@ -246,7 +278,6 @@ namespace Shark {
 
 	}
 
-
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		DrawRotatedQuad({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, color, id);
@@ -301,7 +332,6 @@ namespace Shark {
 		m_Stats.VertexCount += 4;
 		m_Stats.IndexCount += 6;
 	}
-
 
 	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
 	{
@@ -397,7 +427,7 @@ namespace Shark {
 
 	void Renderer2D::DrawLine(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
 	{
-		if (m_LineIndexCount >= MaxLineIndices)
+		if (m_LineVertexCount >= MaxLineVertices)
 			FlushAndResetLine();
 
 		LineVertex* vtx = m_LineVertexIndexPtr++;
@@ -410,12 +440,13 @@ namespace Shark {
 		vtx->Color = color;
 		vtx->ID = id;
 
-		m_LineIndexCount += 2;
+		m_LineVertexCount += 2;
 		
 		m_Stats.LineCount++;
 		m_Stats.VertexCount += 2;
 		m_Stats.IndexCount += 2;
 	}
+
 
 	void Renderer2D::DrawRect(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
@@ -437,7 +468,7 @@ namespace Shark {
 		DrawLine(p3, p0, color, id);
 	}
 
-	void Renderer2D::DrawRect(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRect(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		DrawRect({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, color, id);
 	}
@@ -455,6 +486,106 @@ namespace Shark {
 		DrawLine(p1, p2, color, id);
 		DrawLine(p2, p3, color, id);
 		DrawLine(p3, p0, color, id);
+	}
+
+	void Renderer2D::DrawLineOnTop(const DirectX::XMFLOAT2& pos0, const DirectX::XMFLOAT2& pos1, const DirectX::XMFLOAT4& color, int id)
+	{
+		DrawLineOnTop({ pos0.x, pos0.y, 0.0f }, { pos1.x, pos1.y, 0.0f }, color, id);
+	}
+
+	void Renderer2D::DrawLineOnTop(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
+	{
+		if (m_LineOnTopVertexCount >= MaxLineOnTopVertices)
+			FlushAndResetLine();
+
+		LineVertex* vtx = m_LineOnTopVertexIndexPtr++;
+		vtx->WorldPosition = pos0;
+		vtx->Color = color;
+		vtx->ID = id;
+
+		vtx = m_LineOnTopVertexIndexPtr++;
+		vtx->WorldPosition = pos1;
+		vtx->Color = color;
+		vtx->ID = id;
+
+		m_LineOnTopVertexCount += 2;
+
+		m_Stats.LineOnTopCount++;
+		m_Stats.VertexCount += 2;
+		m_Stats.IndexCount += 2;
+	}
+
+	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
+	{
+		DrawRectOnTop({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, id);
+	}
+
+	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
+
+		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
+		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[1]), translation));
+		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[2]), translation));
+		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[3]), translation));
+
+		DrawLineOnTop(p0, p1, color, id);
+		DrawLineOnTop(p1, p2, color, id);
+		DrawLineOnTop(p2, p3, color, id);
+		DrawLineOnTop(p3, p0, color, id);
+	}
+
+	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
+	{
+		DrawRectOnTop({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, color, id);
+	}
+
+	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
+	{
+		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.z) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
+
+		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
+		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[1]), translation));
+		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[2]), translation));
+		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[3]), translation));
+
+		DrawLineOnTop(p0, p1, color, id);
+		DrawLineOnTop(p1, p2, color, id);
+		DrawLineOnTop(p2, p3, color, id);
+		DrawLineOnTop(p3, p0, color, id);
+	}
+
+	void Renderer2D::DrawCircleOnTop(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
+	{
+		DrawCircleOnTop({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, 0.0f }, radius, color, delta, id);
+	}
+
+	void Renderer2D::DrawCircleOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
+	{
+		const auto translation = DirectX::XMMatrixScaling(radius, radius, radius) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
+
+		if (delta < 0.01f)
+			delta = 0.01f;
+
+		for (float i = 0; i < DirectX::XM_2PI; i += delta)
+		{
+			float r0 = i;
+			float r1 = i + delta;
+
+			DirectX::XMFLOAT3 p0, p1;
+			p0.x = sinf(r0);
+			p0.y = cosf(r0);
+			p0.z = 0.0f;
+
+			p1.x = sinf(r1);
+			p1.y = cosf(r1);
+			p1.z = 0.0f;
+
+			p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(p0), translation));
+			p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(p1), translation));
+
+			DrawLineOnTop(p0, p1, color, id);
+		}
 	}
 
 	void Renderer2D::FlushAndResetQuad()
@@ -509,14 +640,33 @@ namespace Shark {
 		{
 			m_LineVertexBuffer->SetData(m_LineVertexBasePtr, dataSize);
 
-			Renderer::RenderGeometry(m_RenderCommandBuffer, m_LinePipeline, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineIndexBuffer, m_LineIndexCount, PrimitveTopology::Line);
+			Renderer::RenderGeometry(m_RenderCommandBuffer, m_LinePipeline, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineVertexCount, PrimitveTopology::Line);
 			m_Stats.DrawCalls++;
 		}
 
 		m_RenderCommandBuffer->End();
 
-		m_LineIndexCount = 0;
+		m_LineVertexCount = 0;
 		m_LineVertexIndexPtr = m_LineVertexBasePtr;
+	}
+
+	void Renderer2D::FlushAndResetLineOnTop()
+	{
+		m_RenderCommandBuffer->Begin();
+
+		uint32_t dataSize = (uint32_t)((uint8_t*)m_LineOnTopVertexIndexPtr - (uint8_t*)m_LineOnTopVertexBasePtr);
+		if (dataSize)
+		{
+			m_LineOnTopVertexBuffer->SetData(m_LineOnTopVertexBasePtr, dataSize);
+
+			Renderer::RenderGeometry(m_RenderCommandBuffer, m_LineOnTopPipeline, m_ConstantBufferSet, nullptr, m_LineOnTopVertexBuffer, m_LineOnTopVertexCount, PrimitveTopology::Line);
+			m_Stats.DrawCalls++;
+		}
+
+		m_RenderCommandBuffer->End();
+
+		m_LineOnTopVertexCount = 0;
+		m_LineOnTopVertexIndexPtr = m_LineOnTopVertexBasePtr;
 	}
 
 }

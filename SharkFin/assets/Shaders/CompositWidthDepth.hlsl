@@ -19,10 +19,19 @@ VSOUT main(float2 pos : Position)
 #version ps_4_0
 
 Texture2D Frame : register(t0);
+Texture2D DepthImage : register(t1);
 SamplerState Sampler : register(s0);
 
-
-float4 main(float2 texCoords : TexCoords) : SV_Target0
+struct PSOUT
 {
-    return Frame.Sample(Sampler, texCoords);
+    float4 Color : SV_Target;
+    float Depth : SV_Depth;
+};
+
+PSOUT main(float2 texCoords : TexCoords)
+{
+    PSOUT psout;
+    psout.Color = Frame.Sample(Sampler, texCoords);
+    psout.Depth = DepthImage.Sample(Sampler, texCoords);
+    return psout;
 }

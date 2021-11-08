@@ -235,6 +235,9 @@ namespace Shark::UI {
 	bool BeginControls();
 	void EndControls();
 
+	bool BeginControlsGrid();
+	void EndControlsGrid();
+
 	bool DragFloat(const std::string& tag, float& val,             float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	bool DragFloat(const std::string& tag, DirectX::XMFLOAT2& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	bool DragFloat(const std::string& tag, DirectX::XMFLOAT3& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
@@ -266,7 +269,7 @@ namespace Shark::UI {
 
 	bool ButtonRightAligned(const std::string& tag, const ImVec2& size = ImVec2(0, 0), ImGuiButtonFlags flags = ImGuiButtonFlags_None);
 
-	bool BeginCustromControl(ImGuiID id);
+	bool BeginCustomControl(ImGuiID id);
 	void EndCustomControl();
 
 }

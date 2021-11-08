@@ -104,15 +104,18 @@ namespace Shark::UI {
 	/// Global Data //////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	static uint32_t s_ControlsCount = 0;
+	static bool s_ControlActive = false;
+	static bool s_ControlIsGrid = false;
 
 	void NewFrame()
 	{
 		// Sanity Checks
-		SK_CORE_ASSERT(s_ControlsCount == 0);
+		SK_CORE_ASSERT(!s_ControlActive);
+		SK_CORE_ASSERT(!s_ControlIsGrid);
 
 		// Reset Global Data
-		s_ControlsCount = 0;
+		s_ControlActive = false;
+		s_ControlIsGrid = false;
 	}
 
 
@@ -239,11 +242,12 @@ namespace Shark::UI {
 
 	bool BeginControls()
 	{
-		const ImGuiID tableID = GetID(s_ControlsCount);
+		SK_CORE_ASSERT(!s_ControlActive);
+
 		constexpr ImGuiTableFlags flags = ImGuiTableFlags_None | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV;
-		if (ImGui::BeginTableEx("ControlsTable", tableID, 2, flags))
+		if (ImGui::BeginTable("ControlsTable", 2, flags))
 		{
-			s_ControlsCount++;
+			s_ControlActive = true;
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
 			return true;
@@ -253,15 +257,43 @@ namespace Shark::UI {
 
 	void EndControls()
 	{
+		SK_CORE_ASSERT(s_ControlActive);
+
 		if (ImGui::GetCurrentTable())
 		{
 			ImGui::PopStyleVar();
-
 			ImGui::EndTable();
-			s_ControlsCount--;
+			s_ControlActive = false;
+			s_ControlIsGrid = false;
 		}
 	}
 
+	bool BeginControlsGrid()
+	{
+		constexpr ImGuiTableFlags flags = ImGuiTableFlags_None | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV;
+		ImGui::Separator();
+		ImGui::GetCurrentWindow()->DC.CursorPos.y -= ImGui::GetStyle().FramePadding.y;
+		if (ImGui::BeginTable("ControlsTable", 2, flags))
+		{
+			s_ControlActive = true;
+			s_ControlIsGrid = true;
+			ImGuiStyle& style = ImGui::GetStyle();
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
+			return true;
+		}
+		return false;
+	}
+
+	void EndControlsGrid()
+	{
+		if (ImGui::GetCurrentTable())
+		{
+			ImGui::PopStyleVar();
+			ImGui::EndTable();
+			s_ControlActive = false;
+			s_ControlIsGrid = false;
+		}
+	}
 
 	bool DragFloat(const std::string& tag, float& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
@@ -274,7 +306,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -295,6 +327,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -310,7 +345,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -343,6 +378,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -358,7 +396,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -401,6 +439,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -416,7 +457,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -469,6 +510,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -485,7 +529,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -506,6 +550,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -521,7 +568,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -552,6 +599,9 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderFloat("##Y", &val.y, min, max, fmt, flags);
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -567,7 +617,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -608,6 +658,9 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderFloat("##Z", &val.z, min, max, fmt, flags);
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -623,7 +676,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -674,6 +727,9 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderFloat("##W", &val.w, min, max, fmt, flags);
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -689,7 +745,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -710,6 +766,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -725,7 +784,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -758,6 +817,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -773,7 +835,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -816,6 +878,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -831,7 +896,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -884,6 +949,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -900,7 +968,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -921,6 +989,9 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -936,7 +1007,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -967,6 +1038,9 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderInt("##Y", &val.y, min, max, fmt, flags);
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -982,7 +1056,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -1023,6 +1097,9 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderInt("##Z", &val.z, min, max, fmt, flags);
 
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
 		PopID();
 		return changed;
 	}
@@ -1038,7 +1115,7 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -1088,6 +1165,9 @@ namespace Shark::UI {
 		}
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderInt("##W", &val.w, min, max, fmt, flags);
+
+		if (s_ControlIsGrid)
+			ImGui::Separator();
 
 		PopID();
 		return changed;
@@ -1150,10 +1230,13 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		const bool changed = ImGui::Checkbox("##X", &v);
+
+		if (s_ControlIsGrid)
+			ImGui::Separator();
 
 		PopID();
 
@@ -1188,11 +1271,14 @@ namespace Shark::UI {
 		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
-		Text(tag);
+		TextAligned(tag);
 		ImGui::TableSetColumnIndex(1);
 
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		const bool changed = ImGui::ColorEdit4("##ColorEditor4", (float*)&color, flags);
+
+		if (s_ControlIsGrid)
+			ImGui::Separator();
 
 		PopID();
 
@@ -1200,7 +1286,7 @@ namespace Shark::UI {
 
 	}
 
-	bool BeginCustromControl(ImGuiID id)
+	bool BeginCustomControl(ImGuiID id)
 	{
 		if (!ImGui::GetCurrentTable())
 			return false;
@@ -1215,6 +1301,9 @@ namespace Shark::UI {
 	{
 		if (!ImGui::GetCurrentTable())
 			return;
+
+		if (s_ControlIsGrid)
+			ImGui::Separator();
 
 		PopID();
 	}

@@ -9,8 +9,8 @@ namespace Shark {
 	struct CircleCollider2DComponent
 	{
 		float Radius = 0.5f;
-		DirectX::XMFLOAT2 LocalOffset = { 0.0f, 0.0f };
-		float LocalRotation = 0.0f;
+		DirectX::XMFLOAT2 Offset = { 0.0f, 0.0f };
+		float Rotation = 0.0f;
 
 		float Density = 0.0f;
 		float Friction = 0.2f;

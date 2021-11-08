@@ -25,6 +25,7 @@ namespace Shark {
 			uint32_t QuadCount;
 			uint32_t CircleCount;
 			uint32_t LineCount;
+			uint32_t LineOnTopCount;
 
 			uint32_t VertexCount;
 			uint32_t IndexCount;
@@ -33,11 +34,13 @@ namespace Shark {
 		};
 
 	public:
-		Renderer2D(Ref<FrameBuffer> renderTarget);
+		Renderer2D(Ref<FrameBuffer> renderTarget, Ref<RenderCommandBuffer> parentCommandBuffer = nullptr);
 		~Renderer2D();
 
-		void Init(Ref<FrameBuffer> renderTarget);
+		void Init(Ref<FrameBuffer> renderTarget, Ref<RenderCommandBuffer> parentCommandBuffer);
 		void ShutDown();
+
+		void SetRenderTarget(Ref<FrameBuffer> renderTarget);
 
 		void BeginScene(const DirectX::XMMATRIX& viewProj);
 		void EndScene();
@@ -69,9 +72,24 @@ namespace Shark {
 		void DrawRect(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
 		void DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
 
-		void DrawRect(const DirectX::XMFLOAT2& position, float rotation,                    const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawRect(const DirectX::XMFLOAT2& position, float rotation,                    const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
 		void DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
 
+
+		void DrawLineOnTop(const DirectX::XMFLOAT2& pos0, const DirectX::XMFLOAT2& pos1, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawLineOnTop(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id = -1);
+
+		void DrawRectOnTop(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+
+		void DrawRectOnTop(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+
+		void DrawCircleOnTop(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
+		void DrawCircleOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
+
+
+		Ref<RenderCommandBuffer> GetCommandBuffer() const { return m_RenderCommandBuffer; }
 
 		Statistics GetStatistics() const { return m_Stats; }
 
@@ -82,6 +100,7 @@ namespace Shark {
 		void FlushAndResetQuad();
 		void FlushAndResetCircle();
 		void FlushAndResetLine();
+		void FlushAndResetLineOnTop();
 
 	public:
 		static constexpr uint32_t MaxTextureSlots = 16;
@@ -96,7 +115,9 @@ namespace Shark {
 
 		static constexpr uint32_t MaxLines = 20000;
 		static constexpr uint32_t MaxLineVertices = MaxLines * 2;
-		static constexpr uint32_t MaxLineIndices = MaxLines * 2;
+
+		static constexpr uint32_t MaxLinesOnTop = 2000;
+		static constexpr uint32_t MaxLineOnTopVertices = MaxLinesOnTop * 2;
 
 		static constexpr DirectX::XMFLOAT3 QuadVertexPositions[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
 		static constexpr DirectX::XMFLOAT2 TextureCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
@@ -137,16 +158,17 @@ namespace Shark {
 
 	private:
 		Statistics m_Stats;
+		bool m_Active = false;
 
-		Ref<RenderCommandBuffer> m_RenderCommandBuffer;
 		Ref<FrameBuffer> m_RenderTarget;
+		Ref<RenderCommandBuffer> m_RenderCommandBuffer;
 
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<ConstantBufferSet> m_ConstantBufferSet;
 
+
 		// Quad
 		Ref<Pipeline> m_QuadPipeline;
-
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
 		Ref<Texture2DArray> m_QuadTextureArray;
@@ -155,6 +177,7 @@ namespace Shark {
 		QuadVertex* m_QuadVertexBasePtr = nullptr;
 		QuadVertex* m_QuadVertexIndexPtr = nullptr;
 
+
 		// Circle
 		Ref<Pipeline> m_CirlcePipeline;
 		Ref<VertexBuffer> m_CircleVertexBuffer;
@@ -162,13 +185,21 @@ namespace Shark {
 		CircleVertex* m_CircleVertexBasePtr = nullptr;
 		CircleVertex* m_CircleVertexIndexPtr = nullptr;
 
+
 		// Line
 		Ref<Pipeline> m_LinePipeline;
 		Ref<VertexBuffer> m_LineVertexBuffer;
-		Ref<IndexBuffer> m_LineIndexBuffer;
-		uint32_t m_LineIndexCount = 0;
+		uint32_t m_LineVertexCount = 0;
 		LineVertex* m_LineVertexBasePtr = nullptr;
 		LineVertex* m_LineVertexIndexPtr = nullptr;
+
+
+		// Line Without Depth Testing
+		Ref<Pipeline> m_LineOnTopPipeline;
+		Ref<VertexBuffer> m_LineOnTopVertexBuffer;
+		uint32_t m_LineOnTopVertexCount = 0;
+		LineVertex* m_LineOnTopVertexBasePtr = nullptr;
+		LineVertex* m_LineOnTopVertexIndexPtr = nullptr;
 
 	};
 

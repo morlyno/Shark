@@ -13,10 +13,16 @@ namespace Shark {
 
 	class Scene;
 
+	struct SceneRendererOptions
+	{
+		bool ShowColliders = false;
+		bool ShowCollidersOnTop = true;
+	};
+
 	class SceneRenderer : public RefCount
 	{
 	public:
-		SceneRenderer(Ref<Scene> scene);
+		SceneRenderer(Ref<Scene> scene, const SceneRendererOptions& options = {});
 		~SceneRenderer();
 
 		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
@@ -27,27 +33,36 @@ namespace Shark {
 		void SubmitQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
 		void SubmitCirlce(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
 
+		void SubmitColliderBox(const DirectX::XMFLOAT2& pos, float rotation, const DirectX::XMFLOAT2& scale);
+		void SubmitColliderCirlce(const DirectX::XMFLOAT2& pos, float radius);
 
 		void Resize(uint32_t width, uint32_t height);
 
-		Ref<FrameBuffer> GetFinalFrameBuffer() const { return m_CompositPipeline->GetSpecification().TargetFrameBuffer; }
-		Ref<Image2D> GetFinalImage() const { return m_CompositPipeline->GetSpecification().TargetFrameBuffer->GetImage(0); }
+		Ref<FrameBuffer> GetFinalFrameBuffer() const { return m_FinalFrameBuffer; }
+		Ref<Image2D> GetFinalImage() const { return m_FinalFrameBuffer->GetImage(); }
+		Ref<Image2D> GetIDImage() const { return m_GeometryFrameBuffer->GetImage(1); }
 
-		Ref<FrameBuffer> GetRenderer2DFrameBuffer() const { return m_Renderer2DFrameBuffer; }
-		Ref<Renderer2D> GetRenderer() const { return m_Renderer2D; }
+		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
+
+		SceneRendererOptions& GetOptions() { return m_Options; }
+		const SceneRendererOptions& GetOptions() const { return m_Options; }
 
 	private:
 		Ref<Scene> m_Scene;
-		Ref<Renderer2D> m_Renderer2D;
-		Ref<FrameBuffer> m_Renderer2DFrameBuffer;
 
+		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
+
+		// Geometry
+		Ref<FrameBuffer> m_GeometryFrameBuffer;
 		
-		Ref<Pipeline> m_CompositPipeline;
+		// Composit
+		Ref<FrameBuffer> m_FinalFrameBuffer;
 
 		bool m_NeedsResize = false;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
+		SceneRendererOptions m_Options;
 	};
 
 }

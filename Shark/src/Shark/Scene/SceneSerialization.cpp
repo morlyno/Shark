@@ -182,8 +182,8 @@ namespace Shark {
 			const auto& comp = entity.GetComponent<BoxCollider2DComponent>();
 
 			out << YAML::Key << "Size" << YAML::Value << comp.Size;
-			out << YAML::Key << "Offset" << YAML::Value << comp.LocalOffset;
-			out << YAML::Key << "Rotation" << YAML::Value << comp.LocalRotation;
+			out << YAML::Key << "Offset" << YAML::Value << comp.Offset;
+			out << YAML::Key << "Rotation" << YAML::Value << comp.Rotation;
 			out << YAML::Key << "Density" << YAML::Value << comp.Density;
 			out << YAML::Key << "Friction" << YAML::Value << comp.Friction;
 			out << YAML::Key << "Restitution" << YAML::Value << comp.Restitution;
@@ -201,8 +201,8 @@ namespace Shark {
 			const auto& comp = entity.GetComponent<CircleCollider2DComponent>();
 
 			out << YAML::Key << "Radius" << YAML::Value << comp.Radius;
-			out << YAML::Key << "Offset" << YAML::Value << comp.LocalOffset;
-			out << YAML::Key << "Rotation" << YAML::Value << comp.LocalRotation;
+			out << YAML::Key << "Offset" << YAML::Value << comp.Offset;
+			out << YAML::Key << "Rotation" << YAML::Value << comp.Rotation;
 			out << YAML::Key << "Density" << YAML::Value << comp.Density;
 			out << YAML::Key << "Friction" << YAML::Value << comp.Friction;
 			out << YAML::Key << "Restitution" << YAML::Value << comp.Restitution;
@@ -425,10 +425,10 @@ namespace Shark {
 					comp.Size = size.as<DirectX::XMFLOAT2>();
 
 					SK_CORE_ASSERT(offset, "Couldn't desirialize BoxCollider2DComponent::Offset");
-					comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
+					comp.Offset = offset.as<DirectX::XMFLOAT2>();
 
 					SK_CORE_ASSERT(rotation, "Couldn't desirialize BoxCollider2DComponent::Rotation");
-					comp.LocalRotation = rotation.as<float>();
+					comp.Rotation = rotation.as<float>();
 
 					SK_CORE_ASSERT(density, "Couldn't desirialize BoxCollider2DComponent::Density");
 					comp.Density = density.as<float>();
@@ -462,10 +462,10 @@ namespace Shark {
 					comp.Radius = radius.as<float>();
 
 					SK_CORE_ASSERT(offset, "Couldn't desirialize CircleCollider2DComponent::Offset");
-					comp.LocalOffset = offset.as<DirectX::XMFLOAT2>();
+					comp.Offset = offset.as<DirectX::XMFLOAT2>();
 
 					SK_CORE_ASSERT(rotation, "Couldn't desirialize CircleCollider2DComponent::Rotation");
-					comp.LocalRotation = rotation.as<float>();
+					comp.Rotation = rotation.as<float>();
 
 					SK_CORE_ASSERT(density, "Couldn't desirialize CircleCollider2DComponent::Density");
 					comp.Density = density.as<float>();

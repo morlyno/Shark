@@ -27,6 +27,8 @@ namespace Shark {
 	public:
 		virtual ~Pipeline() = default;
 
+		virtual void SetFrameBuffer(Ref<FrameBuffer> frameBuffer) = 0;
+
 		virtual const PipelineSpecification& GetSpecification() const = 0;
 
 	public:

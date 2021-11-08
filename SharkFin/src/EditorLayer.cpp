@@ -54,7 +54,7 @@ namespace Shark {
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
 
-		ImageSpecification imageSpecs = m_SceneRenderer->GetRenderer2DFrameBuffer()->GetImage(1)->GetSpecification();
+		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
 		imageSpecs.Type = ImageType::Staging;
 		imageSpecs.Usage = ImageUsageNone;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
@@ -191,9 +191,12 @@ namespace Shark {
 			{
 				if (control)
 				{
-					Entity e = m_WorkScene->CloneEntity(m_SceneHirachyPanel.GetSelectedEntity());
-					Event::Distribute(SelectionChangedEvent(e));
-					return true;
+					if (m_SelectetEntity)
+					{
+						Entity e = m_WorkScene->CloneEntity(m_SelectetEntity);
+						Event::Distribute(SelectionChangedEvent(e));
+						return true;
+					}
 				}
 				break;
 			}
@@ -304,8 +307,8 @@ namespace Shark {
 			int height = m_MousePickingImage->GetHeight();
 			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 			{
-				Ref<Image2D> frameBufferImage = m_SceneRenderer->GetRenderer2DFrameBuffer()->GetImage(1);
-				frameBufferImage->CopyTo(m_MousePickingImage);
+				Ref<Image2D> idImage = m_SceneRenderer->GetIDImage();
+				idImage->CopyTo(m_MousePickingImage);
 
 				m_HoveredEntityID = m_MousePickingImage->ReadPixel(x, y);
 
@@ -337,6 +340,7 @@ namespace Shark {
 		UI_EditorCamera();
 		UI_Project();
 		UI_ToolBar();
+		UI_Settings();
 
 		m_SceneHirachyPanel.OnImGuiRender();
 		m_AssetsPanel.OnImGuiRender();
@@ -542,7 +546,7 @@ namespace Shark {
 			DirectX::XMFLOAT4X4 projection;
 			if (m_SceneState == SceneState::Play)
 			{
-				Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
+				Entity cameraEntity = m_ActiveScene->FindActiveCameraEntity();
 				SceneCamera& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
 				auto& transform = cameraEntity.GetTransform();
 
@@ -599,11 +603,12 @@ namespace Shark {
 
 			ImGui::NewLine();
 
-			auto s = m_SceneRenderer->GetRenderer()->GetStatistics();
+			const auto& s = m_SceneRenderer->GetRenderer2D()->GetStatistics();
 			ImGui::Text("Draw Calls: %d", s.DrawCalls);
 			ImGui::Text("Quad Count: %d", s.QuadCount);
 			ImGui::Text("Circle Count: %d", s.CircleCount);
 			ImGui::Text("Line Count: %d", s.LineCount);
+			ImGui::Text("Line On Top Count: %d", s.LineOnTopCount);
 			ImGui::Text("Vertex Count: %d", s.VertexCount);
 			ImGui::Text("Index Count: %d", s.IndexCount);
 			ImGui::Text("Texture Count: %d", s.TextureCount);
@@ -1049,6 +1054,24 @@ namespace Shark {
 
 		ImGui::PopStyleColor(3);
 		ImGui::PopStyleVar(3);
+	}
+
+	void EditorLayer::UI_Settings()
+	{
+		if (m_ShowSettings)
+		{
+			if (ImGui::Begin("Settings", &m_ShowSettings))
+			{
+				UI::BeginControls();
+
+				auto& options = m_SceneRenderer->GetOptions();
+				UI::Checkbox("Show Colliders", options.ShowColliders);
+				UI::Checkbox("Show Colliders On Top", options.ShowCollidersOnTop);
+
+				UI::EndControls();
+			}
+			ImGui::End();
+		}
 	}
 
 	void EditorLayer::NewScene()

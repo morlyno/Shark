@@ -15,6 +15,8 @@ namespace Shark {
 		DirectXPipeline(const PipelineSpecification& specs);
 		virtual ~DirectXPipeline();
 
+		virtual void SetFrameBuffer(Ref<FrameBuffer> frameBuffer) override;
+
 		virtual const PipelineSpecification& GetSpecification() const override { return m_Specification; }
 
 	private:

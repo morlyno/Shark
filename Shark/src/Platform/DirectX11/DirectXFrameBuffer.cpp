@@ -120,6 +120,9 @@ namespace Shark {
 
 	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)
 	{
+		if (m_Specification.Width == width && m_Specification.Height == height)
+			return;
+
 		m_Specification.Width = width;
 		m_Specification.Height = height;
 

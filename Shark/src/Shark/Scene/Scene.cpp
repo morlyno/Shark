@@ -93,6 +93,7 @@ namespace Shark {
 
 		CopyComponents<TransformComponent>(srcRegistry, destRegistry, enttMap);
 		CopyComponents<SpriteRendererComponent>(srcRegistry, destRegistry, enttMap);
+		CopyComponents<CircleRendererComponent>(srcRegistry, destRegistry, enttMap);
 		CopyComponents<CameraComponent>(srcRegistry, destRegistry, enttMap);
 		CopyComponents<NativeScriptComponent>(srcRegistry, destRegistry, enttMap);
 		CopyComponents<RigidBody2DComponent>(srcRegistry, destRegistry, enttMap);
@@ -124,23 +125,24 @@ namespace Shark {
 		}
 
 		// Setup Cameras
+		if (!m_ActiveCameraUUID.Valid())
 		{
-			ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
-			Entity camera = GetActiveCameraEntity();
-			m_RuntimeCamera = camera;
-			if (!camera)
+			Entity cameraEntity;
+			auto view = m_Registry.view<CameraComponent>();
+			if (!view.empty())
 			{
-				auto view = m_Registry.view<CameraComponent>();
-				if (!view.empty())
-					m_RuntimeCamera = view.front();
-				else
-				{
-					camera = CreateEntity("Fallback Camera");
-					camera.AddComponent<CameraComponent>();
-					m_RuntimeCamera = camera;
-				}
+				cameraEntity = Entity{ view.front(), this };
 			}
+			else
+			{
+				cameraEntity = CreateEntity("Fallback Camera");
+				cameraEntity.AddComponent<CameraComponent>();
+			}
+
+			m_ActiveCameraUUID = cameraEntity.GetUUID();
+			m_RuntimeCamera = cameraEntity;
 		}
+		ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
 	}
 
 	void Scene::OnSceneStop()
@@ -261,8 +263,6 @@ namespace Shark {
 		renderer->BeginScene(editorCamera.GetViewProjection());
 
 		{
-
-
 			auto view = m_Registry.view<SpriteRendererComponent, TransformComponent>();
 			for (auto entity : view)
 			{
@@ -277,6 +277,28 @@ namespace Shark {
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
 				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
+			}
+		}
+
+
+		if (renderer->GetOptions().ShowColliders)
+		{
+			{
+				auto view = m_Registry.view<BoxCollider2DComponent, TransformComponent>();
+				for (auto entity : view)
+				{
+					auto& [bc, tf] = view.get<BoxCollider2DComponent, TransformComponent>(entity);
+					renderer->SubmitColliderBox({ tf.Position.x + bc.Offset.x, tf.Position.y + bc.Offset.y }, tf.Rotation.z + bc.Rotation, { tf.Scaling.x * bc.Size.x * 2.0f, tf.Scaling.y * bc.Size.y * 2.0f });
+				}
+			}
+
+			{
+				auto view = m_Registry.view<CircleCollider2DComponent, TransformComponent>();
+				for (auto entity : view)
+				{
+					auto&& [cc, tf] = view.get<CircleCollider2DComponent, TransformComponent>(entity);
+					renderer->SubmitColliderCirlce({ tf.Position.x + cc.Offset.x, tf.Position.y + cc.Offset.y }, tf.Scaling.x * cc.Radius);
+				}
 			}
 		}
 
@@ -304,6 +326,28 @@ namespace Shark {
 				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
 			}
 		}
+
+		if (renderer->GetOptions().ShowColliders)
+		{
+			{
+				auto view = m_Registry.view<BoxCollider2DComponent, TransformComponent>();
+				for (auto entity : view)
+				{
+					auto& [bc, tf] = view.get<BoxCollider2DComponent, TransformComponent>(entity);
+					renderer->SubmitColliderBox({ tf.Position.x + bc.Offset.x, tf.Position.y + bc.Offset.y }, tf.Rotation.z + bc.Rotation, { tf.Scaling.x * bc.Size.x * 2.0f, tf.Scaling.y * bc.Size.y * 2.0f });
+				}
+			}
+
+			{
+				auto view = m_Registry.view<CircleCollider2DComponent, TransformComponent>();
+				for (auto entity : view)
+				{
+					auto&& [cc, tf] = view.get<CircleCollider2DComponent, TransformComponent>(entity);
+					renderer->SubmitColliderCirlce({ tf.Position.x + cc.Offset.x, tf.Position.y + cc.Offset.y }, tf.Scaling.x * cc.Radius);
+				}
+			}
+		}
+
 		renderer->EndScene();
 	}
 
@@ -316,6 +360,7 @@ namespace Shark {
 		CopyComponentIfExists<TagComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<TransformComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<SpriteRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<CircleRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CameraComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<NativeScriptComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
@@ -371,7 +416,7 @@ namespace Shark {
 		return m_Registry.valid(entity);
 	}
 
-	Entity Scene::GetActiveCameraEntity()
+	Entity Scene::FindActiveCameraEntity()
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -449,7 +494,7 @@ namespace Shark {
 					auto& bc2d = entity.GetComponent<BoxCollider2DComponent>();
 
 					b2PolygonShape shape;
-					shape.SetAsBox(bc2d.Size.x * transform.Scaling.x, bc2d.Size.y * transform.Scaling.y, { bc2d.LocalOffset.x, bc2d.LocalOffset.y }, bc2d.LocalRotation);
+					shape.SetAsBox(bc2d.Size.x * transform.Scaling.x, bc2d.Size.y * transform.Scaling.y, { bc2d.Offset.x, bc2d.Offset.y }, bc2d.Rotation);
 
 					b2FixtureDef fixturedef;
 					fixturedef.shape = &shape;

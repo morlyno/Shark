@@ -16,6 +16,22 @@ namespace Shark {
 		auto dev = DirectXRenderer::GetDevice();
 		SK_CHECK(dev->CreateDeferredContext(0, &m_DeferredContext));
 		
+		m_ExecutionContext = DirectXRenderer::GetContext();
+		m_ExecutionContext->AddRef();
+
+		DirectXRenderer::AddRenderCommandBuffer(this);
+	}
+
+	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer(Ref<RenderCommandBuffer> parentCommandBuffer)
+	{
+		auto dev = DirectXRenderer::GetDevice();
+		SK_CHECK(dev->CreateDeferredContext(0, &m_DeferredContext));
+
+		SK_CORE_ASSERT(parentCommandBuffer);
+		Ref<DirectXRenderCommandBuffer> dxParentCommandBuffer = parentCommandBuffer.As<DirectXRenderCommandBuffer>();
+		m_ExecutionContext = dxParentCommandBuffer->GetContext();
+		m_ExecutionContext->AddRef();
+
 		DirectXRenderer::AddRenderCommandBuffer(this);
 	}
 
@@ -27,6 +43,8 @@ namespace Shark {
 			m_CommandList->Release();
 		if (m_DeferredContext)
 			m_DeferredContext->Release();
+		if (m_ExecutionContext)
+			m_ExecutionContext->Release();
 	}
 
 	void DirectXRenderCommandBuffer::Begin(bool clearState)
@@ -44,10 +62,9 @@ namespace Shark {
 		if (m_CommandList)
 			m_CommandList->Release();
 
-		auto* ctx = DirectXRenderer::GetContext();
 		SK_CHECK(m_DeferredContext->FinishCommandList(FALSE, &m_CommandList));
 		
-		ctx->ExecuteCommandList(m_CommandList, FALSE);
+		m_ExecutionContext->ExecuteCommandList(m_CommandList, FALSE);
 	}
 
 	void DirectXRenderCommandBuffer::Flush()
@@ -56,6 +73,7 @@ namespace Shark {
 		m_CommandList->Release();
 		m_CommandList = nullptr;
 		m_DeferredContext->Flush();
+		m_DeferredContext->ClearState();
 	}
 
 }

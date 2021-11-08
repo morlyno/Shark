@@ -15,6 +15,7 @@ namespace Shark {
 
 	public:
 		static Ref<RenderCommandBuffer> Create();
+		static Ref<RenderCommandBuffer> Create(Ref<RenderCommandBuffer> parentCommandBuffer);
 
 	};
 

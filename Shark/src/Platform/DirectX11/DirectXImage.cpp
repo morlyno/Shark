@@ -118,6 +118,9 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(m_Specs.Type != ImageType::Immutable);
 
+		if (m_Specs.Width == widht && m_Specs.Height == height)
+			return;
+
 		m_Specs.Width = widht;
 		m_Specs.Height = height;
 

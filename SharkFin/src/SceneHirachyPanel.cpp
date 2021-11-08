@@ -330,7 +330,7 @@ namespace Shark {
 			UI::ColorEdit("Color", comp.Color);
 
 			// TODO: Texture
-			if (UI::BeginCustromControl(UI::GetID("Texture")))
+			if (UI::BeginCustomControl(UI::GetID("Texture")))
 			{
 				ImGui::TableSetColumnIndex(0);
 
@@ -454,9 +454,9 @@ namespace Shark {
 		Utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp)
 		{
 			UI::BeginControls();
-			UI::DragFloat("Size", comp.Size);
-			UI::DragFloat("Offset", comp.LocalOffset);
-			UI::DragFloat("Angle", comp.LocalRotation);
+			UI::DragFloat("Size", comp.Size, 0.5f);
+			UI::DragFloat("Offset", comp.Offset);
+			UI::DragFloat("Angle", comp.Rotation);
 			UI::DragFloat("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
 			UI::SliderFloat("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
 			UI::SliderFloat("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
@@ -467,9 +467,9 @@ namespace Shark {
 		Utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp)
 		{
 			UI::BeginControls();
-			UI::DragFloat("Radius", comp.Radius);
-			UI::DragFloat("Offset", comp.LocalOffset);
-			UI::DragFloat("Angle", comp.LocalRotation);
+			UI::DragFloat("Radius", comp.Radius, 0.5f);
+			UI::DragFloat("Offset", comp.Offset);
+			UI::DragFloat("Angle", comp.Rotation);
 			UI::DragFloat("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
 			UI::SliderFloat("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
 			UI::SliderFloat("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);

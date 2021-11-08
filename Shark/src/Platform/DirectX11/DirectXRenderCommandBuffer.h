@@ -10,6 +10,7 @@ namespace Shark {
 	{
 	public:
 		DirectXRenderCommandBuffer();
+		DirectXRenderCommandBuffer(Ref<RenderCommandBuffer> parentCommandBuffer);
 		virtual ~DirectXRenderCommandBuffer();
 
 		ID3D11DeviceContext* GetContext() const { return m_DeferredContext; }
@@ -22,6 +23,7 @@ namespace Shark {
 
 	private:
 		ID3D11DeviceContext* m_DeferredContext = nullptr;
+		ID3D11DeviceContext* m_ExecutionContext = nullptr;
 		ID3D11CommandList* m_CommandList = nullptr;
 	};
 

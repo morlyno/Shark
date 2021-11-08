@@ -26,8 +26,8 @@ namespace Shark {
     XMVECTOR    XM_CALLCONV     operator* (FXMVECTOR V1, FXMVECTOR V2) { return DirectX::XMVectorMultiply(V1, V2); }
     XMVECTOR    XM_CALLCONV     operator/ (FXMVECTOR V1, FXMVECTOR V2) { return DirectX::XMVectorDivide(V1, V2); }
     XMVECTOR    XM_CALLCONV     operator* (FXMVECTOR V, float S) { return DirectX::XMVectorScale(V, S); }
-    XMVECTOR    XM_CALLCONV     operator* (float S, FXMVECTOR V) { XMVECTOR vS = DirectX::XMVectorReplicate(S); return DirectX::XMVectorDivide(V, vS); }
-    XMVECTOR    XM_CALLCONV     operator/ (FXMVECTOR V, float S) { return DirectX::XMVectorScale(V, S); }
+    XMVECTOR    XM_CALLCONV     operator* (float S, FXMVECTOR V) { return DirectX::XMVectorScale(V, S); }
+    XMVECTOR    XM_CALLCONV     operator/ (FXMVECTOR V, float S) { XMVECTOR vS = DirectX::XMVectorReplicate(S); return DirectX::XMVectorDivide(V, vS); }
 
 }
 

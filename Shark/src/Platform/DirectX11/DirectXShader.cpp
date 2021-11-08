@@ -396,7 +396,7 @@ namespace Shark {
 				if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), 0, 0, &shaderBinary, &errorMsg)))
 				{
 					SK_CORE_ERROR("Shader Compile Failed");
-					SK_CORE_ERROR(" - File: {0}", Utils::StageToString(stage));
+					SK_CORE_ERROR(" - Stage: {0}", Utils::StageToString(stage));
 					SK_CORE_ERROR(" - Error Msg: {0}", (char*)errorMsg->GetBufferPointer());
 					SK_CORE_ASSERT(false);
 					errorMsg->Release();

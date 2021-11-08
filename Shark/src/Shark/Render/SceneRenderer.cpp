@@ -11,8 +11,8 @@
 
 namespace Shark {
 
-	SceneRenderer::SceneRenderer(Ref<Scene> scene)
-		: m_Scene(scene)
+	SceneRenderer::SceneRenderer(Ref<Scene> scene, const SceneRendererOptions& options)
+		: m_Scene(scene), m_Options(options)
 	{
 		m_ViewportWidth = m_Scene->GetViewportWidth();
 		m_ViewportHeight = m_Scene->GetViewportHeight();
@@ -25,31 +25,25 @@ namespace Shark {
 		fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth32 };
 		fbspecs.Atachments[0].Blend = true;
 		fbspecs.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
-		m_Renderer2DFrameBuffer = FrameBuffer::Create(fbspecs);
-		m_Renderer2DFrameBuffer->GetImage(0)->CreateView();
-		m_Renderer2DFrameBuffer->GetImage(1)->CreateView();
-		m_Renderer2DFrameBuffer->GetDepthImage()->CreateView();
-		m_Renderer2D = Ref<Renderer2D>::Create(m_Renderer2DFrameBuffer);
+		m_GeometryFrameBuffer = FrameBuffer::Create(fbspecs);
+		m_Renderer2D = Ref<Renderer2D>::Create(m_GeometryFrameBuffer, m_CommandBuffer);
 
-
-		// Compositing
+		// Final FrameBuffer
 		{
-			PipelineSpecification compositingPipelineSpecs;
-			compositingPipelineSpecs.Shader = Renderer::GetShaderLib()->Get("FullScreen");
-			compositingPipelineSpecs.DebugName = "Compositing";
-			compositingPipelineSpecs.BackFaceCulling = true;
-			compositingPipelineSpecs.WriteDepth = false;
+			FrameBufferSpecification finalFrameBufferSpecs;
+			finalFrameBufferSpecs.Width = m_ViewportWidth;
+			finalFrameBufferSpecs.Height = m_ViewportHeight;
+			finalFrameBufferSpecs.Atachments = { ImageFormat::RGBA8, ImageFormat::Depth32 };
+			finalFrameBufferSpecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-			FrameBufferSpecification compositingFrameBufferSpecs;
-			compositingFrameBufferSpecs.Width = m_ViewportWidth;
-			compositingFrameBufferSpecs.Height = m_ViewportHeight;
-			compositingFrameBufferSpecs.Atachments = { ImageFormat::RGBA8 };
-			compositingFrameBufferSpecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-			compositingPipelineSpecs.TargetFrameBuffer = FrameBuffer::Create(compositingFrameBufferSpecs);
-			compositingPipelineSpecs.TargetFrameBuffer->GetImage(0)->CreateView();
+			finalFrameBufferSpecs.Atachments[0].Image = m_GeometryFrameBuffer->GetImage();
+			finalFrameBufferSpecs.Atachments[1].Image = m_GeometryFrameBuffer->GetDepthImage();
 
-			m_CompositPipeline = Pipeline::Create(compositingPipelineSpecs);
+			m_FinalFrameBuffer = FrameBuffer::Create(finalFrameBufferSpecs);
 		}
+
+		// Create View of Final Image to Renderer Externaly
+		m_FinalFrameBuffer->GetImage()->CreateView();
 
 	}
 
@@ -61,25 +55,24 @@ namespace Shark {
 	{
 		if (m_NeedsResize)
 		{
-			m_Renderer2DFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
-			m_CompositPipeline->GetSpecification().TargetFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_GeometryFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_FinalFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_NeedsResize = false;
 		}
-
-		m_CompositPipeline->GetSpecification().TargetFrameBuffer->Clear(m_CommandBuffer);
 
 		m_Renderer2D->BeginScene(viewProj);
 	}
 
 	void SceneRenderer::EndScene()
 	{
-		m_Renderer2D->EndScene();
-
 		m_CommandBuffer->Begin();
 
-		// Composit
-		Ref<Image2D> image = m_Renderer2DFrameBuffer->GetImage();
-		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositPipeline, image);
+		//m_FinalFrameBuffer->Clear(m_CommandBuffer);
+		m_GeometryFrameBuffer->ClearAtachment(m_CommandBuffer, 0);
+		m_GeometryFrameBuffer->ClearAtachment(m_CommandBuffer, 1, { -1.0f, -1.0f, -1.0f, -1.0f });
+		m_GeometryFrameBuffer->ClearDepth(m_CommandBuffer);
+
+		m_Renderer2D->EndScene();
 
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
@@ -93,6 +86,28 @@ namespace Shark {
 	void SceneRenderer::SubmitCirlce(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
 	{
 		m_Renderer2D->DrawFilledCircle(position, rotation, scaling, thickness, color, id);
+	}
+
+	void SceneRenderer::SubmitColliderBox(const DirectX::XMFLOAT2& pos, float rotation, const DirectX::XMFLOAT2& scale)
+	{
+		if (m_Options.ShowColliders)
+		{
+			if (m_Options.ShowCollidersOnTop)
+				m_Renderer2D->DrawRectOnTop(pos, rotation, scale, { 0.0f, 0.0f, 1.0f, 1.0f });
+			else
+				m_Renderer2D->DrawRect(pos, rotation, scale, { 0.0f, 0.0f, 1.0f, 1.0f });
+		}
+	}
+
+	void SceneRenderer::SubmitColliderCirlce(const DirectX::XMFLOAT2& pos, float radius)
+	{
+		if (m_Options.ShowColliders)
+		{
+			if (m_Options.ShowCollidersOnTop)
+				m_Renderer2D->DrawCircleOnTop(pos, radius, { 0.0f, 0.0f, 1.0f, 1.0f });
+			else
+				m_Renderer2D->DrawCircle(pos, radius, { 0.0f, 0.0f, 1.0f, 1.0f });
+		}
 	}
 
 	void SceneRenderer::Resize(uint32_t width, uint32_t height)
