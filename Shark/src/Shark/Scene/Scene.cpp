@@ -228,11 +228,40 @@ namespace Shark {
 		}
 	}
 
+	void Scene::OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const DirectX::XMMATRIX& view)
+	{
+		renderer->SetScene(this);
+		const auto viewProj = view * camera.GetProjection();
+		renderer->BeginScene(viewProj);
+
+		{
+			auto view = m_Registry.view<SpriteRendererComponent, TransformComponent>();
+			for (auto entity : view)
+			{
+				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
+				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+			}
+		}
+
+		{
+			auto view = m_Registry.view<CircleRendererComponent, TransformComponent>();
+			for (auto entity : view)
+			{
+				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
+				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
+			}
+		}
+
+		renderer->EndScene();
+	}
+
 	void Scene::OnRenderRuntime(Ref<SceneRenderer> renderer)
 	{
 		Entity camerEntity = Entity{ m_RuntimeCamera, this };
 		Camera& camera = camerEntity.GetComponent<CameraComponent>().Camera;
 		auto& tf = camerEntity.GetTransform();
+
+		renderer->SetScene(this);
 
 		const auto viewProj = DirectX::XMMatrixInverse(nullptr, tf.GetTranform()) * camera.GetProjection();
 		renderer->BeginScene(viewProj);
@@ -260,6 +289,8 @@ namespace Shark {
 
 	void Scene::OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
+		renderer->SetScene(this);
+
 		renderer->BeginScene(editorCamera.GetViewProjection());
 
 		{
@@ -307,6 +338,8 @@ namespace Shark {
 
 	void Scene::OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
+		renderer->SetScene(this);
+
 		renderer->BeginScene(editorCamera.GetViewProjection());
 
 		{

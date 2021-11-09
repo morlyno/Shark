@@ -27,7 +27,7 @@ namespace Shark {
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		Renderer::Init();
 
-		m_ImGuiLayer = ImGuiLayer::Create();
+		m_ImGuiLayer = CreateImGuiLayer();
 		PushLayer(m_ImGuiLayer);
 
 		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency));

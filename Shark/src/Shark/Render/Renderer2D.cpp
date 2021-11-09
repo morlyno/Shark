@@ -444,7 +444,6 @@ namespace Shark {
 		
 		m_Stats.LineCount++;
 		m_Stats.VertexCount += 2;
-		m_Stats.IndexCount += 2;
 	}
 
 

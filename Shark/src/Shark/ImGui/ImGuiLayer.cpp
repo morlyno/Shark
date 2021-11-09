@@ -6,7 +6,12 @@
 
 namespace Shark {
 
-	ImGuiLayer* ImGuiLayer::Create()
+	ImGuiLayer::ImGuiLayer()
+		: Layer("ImGuiLayer")
+	{
+	}
+
+	ImGuiLayer* CreateImGuiLayer()
 	{
 		switch (RendererAPI::GetAPI())
 		{

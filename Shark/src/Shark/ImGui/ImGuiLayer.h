@@ -8,9 +8,7 @@ namespace Shark {
 	class ImGuiLayer : public Layer
 	{
 	public:
-		ImGuiLayer()
-			: Layer("ImGuiLayer")
-		{}
+		ImGuiLayer();
 
 		virtual ~ImGuiLayer() = default;
 
@@ -27,8 +25,8 @@ namespace Shark {
 
 		virtual void SetDarkStyle() = 0;
 
-	public:
-		static ImGuiLayer* Create();
 	};
+
+	ImGuiLayer* CreateImGuiLayer();
 
 }

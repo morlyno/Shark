@@ -47,6 +47,7 @@ namespace Shark {
 		void UI_DragDrop();
 		void UI_ToolBar();
 		void UI_Settings();
+		void UI_CameraPrevie();
 
 		void NewScene();
 
@@ -68,6 +69,7 @@ namespace Shark {
 		Ref<Image2D> m_MousePickingImage;
 
 		Ref<SceneRenderer> m_SceneRenderer;
+		Ref<SceneRenderer> m_CameraPreviewRenderer;
 		Ref<Scene> m_ActiveScene = nullptr;
 		Ref<Scene> m_WorkScene = nullptr;
 		
@@ -103,7 +105,6 @@ namespace Shark {
 		Ref<Texture2D> m_SimulateIcon;
 		Ref<Texture2D> m_PauseIcon;
 		Ref<Texture2D> m_StepIcon;
-
 	};
 
 }

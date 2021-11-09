@@ -53,6 +53,7 @@ namespace Shark {
 		m_StepIcon = Texture2D::Create("Resources/StepButton.png");
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
+		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
 
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
 		imageSpecs.Type = ImageType::Staging;
@@ -82,7 +83,8 @@ namespace Shark {
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 			m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 			m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
-			
+			m_CameraPreviewRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
+
 			//m_CompositFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
 		}
@@ -90,14 +92,23 @@ namespace Shark {
 		if (m_ViewportHovered && (m_SceneState != SceneState::Play || m_ScenePaused))
 			m_EditorCamera.OnUpdate(ts);
 
+		const bool renderCameraPreview = m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>();
+
 		switch (m_SceneState)
 		{
 			case SceneState::Edit:
 			{
 				m_ActiveScene->OnUpdateEditor(ts);
 
-				m_WorkScene->OnUpdateEditor(ts);
 				m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
+
+				if (renderCameraPreview)
+				{
+					auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
+					auto transform = m_SelectetEntity.GetTransform().GetTranform();
+					m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera.GetProjection(), DirectX::XMMatrixInverse(nullptr, transform));
+				}
+
 				break;
 			}
 			case SceneState::Play:
@@ -119,11 +130,20 @@ namespace Shark {
 				if (!m_ScenePaused)
 					m_ActiveScene->OnSimulate(ts);
 				
+				if (renderCameraPreview)
+				{
+					auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
+					auto transform = m_SelectetEntity.GetTransform().GetTranform();
+					m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera.GetProjection(), DirectX::XMMatrixInverse(nullptr, transform));
+				}
+
 				m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
 
 				break;
 			}
 		}
+
+
 
 		Renderer::GetRendererAPI()->BindMainFrameBuffer();
 	}
@@ -341,6 +361,7 @@ namespace Shark {
 		UI_Project();
 		UI_ToolBar();
 		UI_Settings();
+		UI_CameraPrevie();
 
 		m_SceneHirachyPanel.OnImGuiRender();
 		m_AssetsPanel.OnImGuiRender();
@@ -1074,6 +1095,52 @@ namespace Shark {
 		}
 	}
 
+	static void CameraPreviewResizeCallback(ImGuiSizeCallbackData* data)
+	{
+		ImVec2 viewportSize = *(ImVec2*)data->UserData;
+		float aspectRatio = viewportSize.x / viewportSize.y;
+		ImVec2 delta = data->DesiredSize - data->CurrentSize;
+
+		if (delta.x != 0.0f && delta.y != 0.0f)
+		{
+			if (delta.x > delta.y)
+			{
+				data->DesiredSize.y = data->DesiredSize.x / aspectRatio;
+			}
+			else
+			{
+				data->DesiredSize.x = data->DesiredSize.y * aspectRatio;
+			}
+		}
+		else if (delta.x != 0.0f)
+		{
+			data->DesiredSize.y = data->DesiredSize.x / aspectRatio;
+		}
+		else if (delta.y != 0.0f)
+		{
+			data->DesiredSize.x = data->DesiredSize.y * aspectRatio;
+		}
+	}
+
+	void EditorLayer::UI_CameraPrevie()
+	{
+		if (m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>())
+		{
+			ImVec2 viewportSize = { (float)m_ViewportWidth, (float)m_ViewportHeight };
+			ImGui::SetNextWindowSizeConstraints({ 0, 0 }, { FLT_MAX, FLT_MAX }, CameraPreviewResizeCallback, &viewportSize);
+
+			ImGui::Begin("Camera Preview", nullptr, ImGuiWindowFlags_NoTitleBar);
+			//ImGui::SetWindowSize(ImVec2((float)m_ViewportWidth, (float)m_ViewportHeight) * 0.2f, ImGuiCond_Appearing);
+
+			UI::SetBlend(false);
+			Ref<Image2D> image = m_CameraPreviewRenderer->GetFinalImage();
+			ImGui::Image(image->GetViewRenderID(), ImGui::GetContentRegionAvail());
+			UI::SetBlend(true);
+
+			ImGui::End();
+		}
+	}
+
 	void EditorLayer::NewScene()
 	{
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
@@ -1176,6 +1243,7 @@ namespace Shark {
 		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		m_SceneHirachyPanel.SetContext(m_ActiveScene);
 		m_SceneRenderer->SetScene(m_ActiveScene);
+		m_CameraPreviewRenderer->SetScene(m_ActiveScene);
 	}
 
 }
