@@ -16,6 +16,7 @@ namespace Shark {
 		operator uint64_t() { return m_UUID; }
 
 		static UUID Create();
+		static UUID Null();
 	private:
 		uint64_t m_UUID = 0;
 	};

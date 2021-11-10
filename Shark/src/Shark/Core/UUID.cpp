@@ -27,4 +27,9 @@ namespace Shark {
 		return uuid;
 	}
 
+	UUID UUID::Null()
+	{
+		return UUID(0);
+	}
+
 }

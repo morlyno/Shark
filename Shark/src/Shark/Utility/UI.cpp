@@ -12,29 +12,6 @@
 #include <misc/cpp/imgui_stdlib.h>
 
 
-namespace Shark::UI {
-	inline namespace Deprecated {
-
-		static inline void ImGuiCallbackFunctionBlend(const ImDrawList* parent_list, const ImDrawCmd* cmd)
-		{
-			Renderer::GetRendererAPI()->SetBlendForImgui((bool)cmd->UserCallbackData);
-		}
-
-		SK_DEPRECATED("NoAlpaImage is deprecated, probaly a replacement very soon")
-		void NoAlpaImage(ImTextureID textureID, const ImVec2 & size, const ImVec2 & uv0, const ImVec2 & uv1, const ImVec4 & tintcolor, const ImVec4 & bordercolor)
-		{
-			ImGuiWindow* window = ImGui::GetCurrentWindow();
-			if (window->SkipItems)
-				return;
-
-			ImGuiLayer& imguiLayer = Application::Get().GetImGuiLayer();
-			imguiLayer.SubmitBlendCallback(false);
-			ImGui::Image(textureID, size, uv0, uv1, tintcolor, bordercolor);
-			imguiLayer.SubmitBlendCallback(true);
-		}
-	}
-
-}
 
 namespace ImGuiEx {
 

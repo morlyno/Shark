@@ -7,6 +7,8 @@
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/UI.h>
 
+#include "Platform/DirectX11/DirectXRenderer.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -60,6 +62,12 @@ namespace Shark {
 		imageSpecs.Usage = ImageUsageNone;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
 
+		//for (uint32_t cnt = 0; cnt < 5000; cnt++)
+		//{
+		//	Entity entity = m_ActiveScene->CreateEntity();
+		//	entity.AddComponent<SpriteRendererComponent>();
+		//}
+
 	}
 
 	void EditorLayer::OnDetach()
@@ -71,10 +79,10 @@ namespace Shark {
 	{
 		m_TimeStep = ts;
 
-		//m_CompositFrameBuffer->Clear();
+		Renderer::NewFrame();
 
 
-		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered && !m_ViewportFocused);
+		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered/* && !m_ViewportFocused*/);
 
 		if (m_ViewportSizeChanged && m_ViewportWidth != 0 && m_ViewportHeight != 0)
 		{
@@ -330,9 +338,12 @@ namespace Shark {
 				Ref<Image2D> idImage = m_SceneRenderer->GetIDImage();
 				idImage->CopyTo(m_MousePickingImage);
 
-				m_HoveredEntityID = m_MousePickingImage->ReadPixel(x, y);
+				const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered;
 
-				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered)
+				if (m_ReadHoveredEntity || selectEntity)
+					m_HoveredEntityID = m_MousePickingImage->ReadPixel(x, y);
+
+				if (selectEntity)
 				{
 					if (m_HoveredEntityID != -1)
 					{
@@ -624,7 +635,7 @@ namespace Shark {
 
 			ImGui::NewLine();
 
-			const auto& s = m_SceneRenderer->GetRenderer2D()->GetStatistics();
+			const Renderer2D::Statistics& s = m_SceneRenderer->GetRenderer2D()->GetStatistics();
 			ImGui::Text("Draw Calls: %d", s.DrawCalls);
 			ImGui::Text("Quad Count: %d", s.QuadCount);
 			ImGui::Text("Circle Count: %d", s.CircleCount);
@@ -633,6 +644,13 @@ namespace Shark {
 			ImGui::Text("Vertex Count: %d", s.VertexCount);
 			ImGui::Text("Index Count: %d", s.IndexCount);
 			ImGui::Text("Texture Count: %d", s.TextureCount);
+
+			ImGui::NewLine();
+			ImGui::Text("GPU Times");
+			UI::Text(fmt::format("GeometryPass: {:.4f}ms", s.GeometryPassTimer->GetTime()));
+			UI::Text(fmt::format("Present: {:.4f}ms", Renderer::GetPresentTimer()->GetTime()));
+
+
 
 			ImGui::NewLine();
 			if (m_ViewportHovered && m_HoveredEntityID > -1)
@@ -1083,13 +1101,22 @@ namespace Shark {
 		{
 			if (ImGui::Begin("Settings", &m_ShowSettings))
 			{
-				UI::BeginControls();
+				if (ImGui::CollapsingHeader("SceneRenderer"))
+				{
+					UI::BeginControls();
 
-				auto& options = m_SceneRenderer->GetOptions();
-				UI::Checkbox("Show Colliders", options.ShowColliders);
-				UI::Checkbox("Show Colliders On Top", options.ShowCollidersOnTop);
+					auto& options = m_SceneRenderer->GetOptions();
+					UI::Checkbox("Show Colliders", options.ShowColliders);
+					UI::Checkbox("Show Colliders On Top", options.ShowCollidersOnTop);
 
-				UI::EndControls();
+					UI::EndControls();
+				}
+				if (ImGui::CollapsingHeader("Stuff"))
+				{
+					UI::BeginControls();
+					UI::Checkbox("Read Hoved Entity", m_ReadHoveredEntity);
+					UI::EndControls();
+				}
 			}
 			ImGui::End();
 		}

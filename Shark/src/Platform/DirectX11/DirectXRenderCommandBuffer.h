@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Utility/Utility.h"
 
 #include <d3d11.h>
 
@@ -10,21 +11,23 @@ namespace Shark {
 	{
 	public:
 		DirectXRenderCommandBuffer();
-		DirectXRenderCommandBuffer(Ref<RenderCommandBuffer> parentCommandBuffer);
 		virtual ~DirectXRenderCommandBuffer();
 
 		ID3D11DeviceContext* GetContext() const { return m_DeferredContext; }
 
-		virtual void Begin(bool clearState = false) override;
+		virtual void Begin() override;
 		virtual void End() override;
 		virtual void Execute() override;
+
+		virtual void BeginTimeQuery(Ref<GPUTimer> counter) override;
+		virtual void EndTimeQuery(Ref<GPUTimer> counter) override;
 
 		void Flush();
 
 	private:
 		ID3D11DeviceContext* m_DeferredContext = nullptr;
-		ID3D11DeviceContext* m_ExecutionContext = nullptr;
 		ID3D11CommandList* m_CommandList = nullptr;
+
 	};
 
 }

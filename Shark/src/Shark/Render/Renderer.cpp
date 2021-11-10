@@ -23,6 +23,11 @@ namespace Shark {
 		s_RendererAPI = nullptr;
 	}
 
+	void Renderer::NewFrame()
+	{
+		s_RendererAPI->NewFrame();
+	}
+
 	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image)
 	{
 		s_RendererAPI->RenderFullScreenQuad(commandBuffer, pipeline, image);
@@ -48,16 +53,6 @@ namespace Shark {
 		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, constantBufferSet, textureArray, vertexBuffer, vertexCount, topology);
 	}
 
-	Ref<FrameBuffer> Renderer::GetFinaleCompositFrameBuffer()
-	{
-		return s_RendererAPI->GetFinaleCompositFrameBuffer();
-	}
-
-	Ref<RendererAPI> Renderer::GetRendererAPI()
-	{
-		return s_RendererAPI;
-	}
-
 	Ref<ShaderLibrary> Renderer::GetShaderLib()
 	{
 		return s_RendererAPI->GetShaderLib();
@@ -66,6 +61,21 @@ namespace Shark {
 	Ref<Texture2D> Renderer::GetWhiteTexture()
 	{
 		return s_RendererAPI->GetWhiteTexture();
+	}
+
+	Ref<GPUTimer> Renderer::GetPresentTimer()
+	{
+		return s_RendererAPI->GetPresentTimer();
+	}
+
+	Ref<FrameBuffer> Renderer::GetFinaleCompositFrameBuffer()
+	{
+		return s_RendererAPI->GetFinaleCompositFrameBuffer();
+	}
+
+	Ref<RendererAPI> Renderer::GetRendererAPI()
+	{
+		return s_RendererAPI;
 	}
 
 }

@@ -46,7 +46,17 @@ namespace Shark {
 				}
 
 				if (removed)
+				{
+					if constexpr (std::is_same_v<Comp, CameraComponent>)
+					{
+						Weak<Scene> scene = entity.GetScene();
+						UUID cameraUUID = scene->GetActiveCameraUUID();
+						if (entity.GetUUID() == cameraUUID)
+							scene->SetActiveCamera(UUID::Null());
+					}
+
 					entity.RemoveComponent<Comp>();
+				}
 				ImGui::PopID();
 			}
 		}
@@ -244,8 +254,7 @@ namespace Shark {
 
 		if (wantsDestroy)
 		{
-			m_Context->DestroyEntity(entity);
-			Utils::ChangeSelectedEntity({});
+			DestroyEntity(entity);
 		}
 	}
 	
@@ -382,6 +391,7 @@ namespace Shark {
 				
 			UI::ColorEdit("Color", comp.Color);
 			UI::SliderFloat("Thickness", comp.Thickness, 1.0f, 0.0f, 1.0f);
+			UI::DragFloat("Fade", comp.Fade, 0.002f, 0.0f, 10.0f, 0.01f, "%.3f");
 
 			UI::EndControls();
 		});
@@ -533,6 +543,15 @@ namespace Shark {
 
 		});
 
+	}
+
+	void SceneHirachyPanel::DestroyEntity(Entity entity)
+	{
+		if (entity.GetUUID() == m_Context->GetActiveCameraUUID())
+			m_Context->SetActiveCamera(UUID());
+
+		m_Context->DestroyEntity(entity);
+		Utils::ChangeSelectedEntity({});
 	}
 
 	bool SceneHirachyPanel::OnSelectionChanged(SelectionChangedEvent& event)

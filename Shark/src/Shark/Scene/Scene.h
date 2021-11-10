@@ -75,7 +75,7 @@ namespace Shark {
 		void SetupBox2D();
 	private:
 		entt::registry m_Registry;
-		UUID m_ActiveCameraUUID = 0;
+		UUID m_ActiveCameraUUID = UUID::Null();
 		entt::entity m_RuntimeCamera = entt::null;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;

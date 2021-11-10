@@ -30,6 +30,8 @@ namespace Shark {
 		virtual void Init() = 0;
 		virtual void ShutDown() = 0;
 		
+		virtual void NewFrame() = 0;
+
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image) = 0;
 		virtual void RenderFullScreenQuadWidthDepth(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image, Ref<Image2D> depthImage) = 0;
 		
@@ -39,15 +41,13 @@ namespace Shark {
 
 		virtual Ref<ShaderLibrary> GetShaderLib() = 0;
 		virtual Ref<Texture2D> GetWhiteTexture() = 0;
+		virtual Ref<GPUTimer> GetPresentTimer() = 0;
 
 		virtual Ref<FrameBuffer> GetFinaleCompositFrameBuffer() const = 0;
 
 		virtual void ResizeSwapChain(uint32_t width, uint32_t height) = 0;
-		virtual void SwapBuffers(bool vsync) = 0;
+		virtual void Present(bool vsync) = 0;
 		virtual void BindMainFrameBuffer() = 0;
-
-		// Temp
-		virtual void SetBlendForImgui(bool blend) = 0;
 
 		static API GetAPI() { return s_API; }
 		static void SetAPI(API api) { s_API = api; }

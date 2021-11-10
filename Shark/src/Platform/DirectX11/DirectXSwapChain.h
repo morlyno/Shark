@@ -42,11 +42,12 @@ namespace Shark {
 		DirectXSwapChain(const SwapChainSpecifications& specs);
 		~DirectXSwapChain();
 
-		void SwapBuffers(bool vsync);
+		void NewFrame();
 		void Resize(uint32_t width, uint32_t height);
 
 		uint32_t GetBufferCount() const { return m_BufferCount; }
 		
+		IDXGISwapChain* GetNative() const { return m_SwapChain; }
 		Ref<DirectXSwapChainFrameBuffer> GetMainFrameBuffer() const { return m_FrameBuffer; }
 
 	private:

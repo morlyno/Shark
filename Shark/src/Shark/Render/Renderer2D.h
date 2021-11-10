@@ -31,13 +31,18 @@ namespace Shark {
 			uint32_t IndexCount;
 
 			uint32_t TextureCount;
+
+			// Currently not correct
+			// only messures the last draw calles not the Flushes
+			// Can be fixed by switching to resizable Batches
+			Ref<GPUTimer> GeometryPassTimer;
 		};
 
 	public:
-		Renderer2D(Ref<FrameBuffer> renderTarget, Ref<RenderCommandBuffer> parentCommandBuffer = nullptr);
+		Renderer2D(Ref<FrameBuffer> renderTarget);
 		~Renderer2D();
 
-		void Init(Ref<FrameBuffer> renderTarget, Ref<RenderCommandBuffer> parentCommandBuffer);
+		void Init(Ref<FrameBuffer> renderTarget);
 		void ShutDown();
 
 		void SetRenderTarget(Ref<FrameBuffer> renderTarget);
@@ -56,9 +61,9 @@ namespace Shark {
 		void DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
 
 
-		void DrawFilledCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawFilledCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
+		void DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
+		void DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
 
 
 		void DrawCircle(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
@@ -89,9 +94,9 @@ namespace Shark {
 		void DrawCircleOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
 
 
-		Ref<RenderCommandBuffer> GetCommandBuffer() const { return m_RenderCommandBuffer; }
+		Ref<RenderCommandBuffer> GetCommandBuffer() const { return m_CommandBuffer; }
 
-		Statistics GetStatistics() const { return m_Stats; }
+		Statistics GetStatistics() const { return m_Statistics; }
 
 	private:
 		// FlushAndReset*() dosn't execute the RenderCommandBuffer
@@ -141,6 +146,7 @@ namespace Shark {
 			DirectX::XMFLOAT2 LocalPosition;
 			DirectX::XMFLOAT4 Color;
 			float Thickness;
+			float Fade;
 			int ID;
 		};
 
@@ -157,11 +163,11 @@ namespace Shark {
 		};
 
 	private:
-		Statistics m_Stats;
+		Statistics m_Statistics;
 		bool m_Active = false;
 
 		Ref<FrameBuffer> m_RenderTarget;
-		Ref<RenderCommandBuffer> m_RenderCommandBuffer;
+		Ref<RenderCommandBuffer> m_CommandBuffer;
 
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<ConstantBufferSet> m_ConstantBufferSet;

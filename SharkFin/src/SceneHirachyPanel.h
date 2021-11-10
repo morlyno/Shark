@@ -34,6 +34,8 @@ namespace Shark {
 		void DrawEntityNode(Entity entity);
 		void DrawEntityProperties(Entity entity);
 
+		void DestroyEntity(Entity entity);
+
 		bool OnSelectionChanged(SelectionChangedEvent& event);
 	private:
 		bool m_ShowPanel = true;

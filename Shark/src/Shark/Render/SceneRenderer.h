@@ -31,7 +31,7 @@ namespace Shark {
 		void EndScene();
 
 		void SubmitQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
-		void SubmitCirlce(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id = -1);
+		void SubmitCirlce(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id = -1);
 
 		void SubmitColliderBox(const DirectX::XMFLOAT2& pos, float rotation, const DirectX::XMFLOAT2& scale);
 		void SubmitColliderCirlce(const DirectX::XMFLOAT2& pos, float radius);

@@ -58,4 +58,10 @@ namespace Shark::Utility {
 		};
 	}
 
+	template<typename T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
+	T Wrap(const T& val, const T& max)
+	{
+		return val % max;
+	}
+
 }

@@ -26,7 +26,7 @@ namespace Shark {
 		fbspecs.Atachments[0].Blend = true;
 		fbspecs.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 		m_GeometryFrameBuffer = FrameBuffer::Create(fbspecs);
-		m_Renderer2D = Ref<Renderer2D>::Create(m_GeometryFrameBuffer, m_CommandBuffer);
+		m_Renderer2D = Ref<Renderer2D>::Create(m_GeometryFrameBuffer);
 
 		// Final FrameBuffer
 		{
@@ -71,11 +71,11 @@ namespace Shark {
 		m_GeometryFrameBuffer->ClearAtachment(m_CommandBuffer, 0);
 		m_GeometryFrameBuffer->ClearAtachment(m_CommandBuffer, 1, { -1.0f, -1.0f, -1.0f, -1.0f });
 		m_GeometryFrameBuffer->ClearDepth(m_CommandBuffer);
+		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
 
 		m_Renderer2D->EndScene();
 
-		m_CommandBuffer->End();
-		m_CommandBuffer->Execute();
 	}
 
 	void SceneRenderer::SubmitQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
@@ -83,9 +83,9 @@ namespace Shark {
 		m_Renderer2D->DrawRotatedQuad(position, roation, scaling, texture, tilingfactor, tintcolor, id);
 	}
 
-	void SceneRenderer::SubmitCirlce(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
+	void SceneRenderer::SubmitCirlce(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
 	{
-		m_Renderer2D->DrawFilledCircle(position, rotation, scaling, thickness, color, id);
+		m_Renderer2D->DrawFilledCircle(position, rotation, scaling, color, thickness, fade, id);
 	}
 
 	void SceneRenderer::SubmitColliderBox(const DirectX::XMFLOAT2& pos, float rotation, const DirectX::XMFLOAT2& scale)

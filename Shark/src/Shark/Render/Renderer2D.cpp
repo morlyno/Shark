@@ -10,9 +10,9 @@
 
 namespace Shark {
 
-	Renderer2D::Renderer2D(Ref<FrameBuffer> renderTarget, Ref<RenderCommandBuffer> parentCommandBuffer)
+	Renderer2D::Renderer2D(Ref<FrameBuffer> renderTarget)
 	{
-		Init(renderTarget, parentCommandBuffer);
+		Init(renderTarget);
 	}
 
 	Renderer2D::~Renderer2D()
@@ -25,7 +25,7 @@ namespace Shark {
 			delete[] m_LineVertexBasePtr;
 	}
 
-	void Renderer2D::Init(Ref<FrameBuffer> renderTarget, Ref<RenderCommandBuffer> parentCommandBuffer)
+	void Renderer2D::Init(Ref<FrameBuffer> renderTarget)
 	{
 		m_RenderTarget = renderTarget;
 		m_WhiteTexture = Renderer::GetWhiteTexture();
@@ -33,10 +33,9 @@ namespace Shark {
 		m_ConstantBufferSet = ConstantBufferSet::Create();
 		m_ConstantBufferSet->Create(sizeof(CBCamera), 0);
 
-		if (parentCommandBuffer)
-			m_RenderCommandBuffer = RenderCommandBuffer::Create(parentCommandBuffer);
-		else
-			m_RenderCommandBuffer = RenderCommandBuffer::Create();
+		m_CommandBuffer = RenderCommandBuffer::Create();
+
+		m_Statistics.GeometryPassTimer = GPUTimer::Create();
 
 		// Quad
 		{
@@ -146,24 +145,32 @@ namespace Shark {
 		m_LineOnTopVertexCount = 0;
 		m_LineOnTopVertexIndexPtr = m_LineOnTopVertexBasePtr;
 
-		memset(&m_Stats, 0, sizeof(Statistics));
-		m_Stats.TextureCount = 1;
+		m_Statistics.DrawCalls = 0;
+		m_Statistics.QuadCount = 0;
+		m_Statistics.CircleCount = 0;
+		m_Statistics.LineCount = 0;
+		m_Statistics.LineOnTopCount = 0;
+		m_Statistics.VertexCount = 0;
+		m_Statistics.IndexCount = 0;
+		m_Statistics.TextureCount = 1;
 	}
 
 	void Renderer2D::EndScene()
 	{
-		m_RenderCommandBuffer->Begin();
+		m_CommandBuffer->Begin();
 
 #if SK_DEBUG
 		{
 			SK_CORE_ASSERT(RendererAPI::GetAPI() == RendererAPI::API::DirectX11);
 			Ref<DirectXTexture2D> dxTexture = m_WhiteTexture.As<DirectXTexture2D>();
-			Ref<DirectXRenderCommandBuffer> dxCommandBuffer = m_RenderCommandBuffer.As<DirectXRenderCommandBuffer>();
+			Ref<DirectXRenderCommandBuffer> dxCommandBuffer = m_CommandBuffer.As<DirectXRenderCommandBuffer>();
 
 			for (uint32_t i = 0; i < MaxTextureSlots; i++)
 				dxTexture->Bind(dxCommandBuffer->GetContext(), i);
 		}
 #endif
+
+		m_CommandBuffer->BeginTimeQuery(m_Statistics.GeometryPassTimer);
 
 		// Quad
 		{
@@ -172,10 +179,11 @@ namespace Shark {
 			{
 				m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
 
-				Renderer::RenderGeometry(m_RenderCommandBuffer, m_QuadPipeline, m_ConstantBufferSet, m_QuadTextureArray, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
-				m_Stats.DrawCalls++;
+				Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_ConstantBufferSet, m_QuadTextureArray, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
+				m_Statistics.DrawCalls++;
 			}
 		}
+
 
 		// Circle
 		{
@@ -184,10 +192,11 @@ namespace Shark {
 			{
 				m_CircleVertexBuffer->SetData(m_CircleVertexBasePtr, dataSize);
 
-				Renderer::RenderGeometry(m_RenderCommandBuffer, m_CirlcePipeline, m_ConstantBufferSet, nullptr, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount, PrimitveTopology::Triangle);
-				m_Stats.DrawCalls++;
+				Renderer::RenderGeometry(m_CommandBuffer, m_CirlcePipeline, m_ConstantBufferSet, nullptr, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount, PrimitveTopology::Triangle);
+				m_Statistics.DrawCalls++;
 			}
 		}
+
 
 		// Line
 		{
@@ -196,10 +205,11 @@ namespace Shark {
 			{
 				m_LineVertexBuffer->SetData(m_LineVertexBasePtr, dataSize);
 
-				Renderer::RenderGeometry(m_RenderCommandBuffer, m_LinePipeline, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineVertexCount, PrimitveTopology::Line);
-				m_Stats.DrawCalls++;
+				Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineVertexCount, PrimitveTopology::Line);
+				m_Statistics.DrawCalls++;
 			}
 		}
+
 
 		// Line On Top
 		{
@@ -208,13 +218,16 @@ namespace Shark {
 			{
 				m_LineOnTopVertexBuffer->SetData(m_LineOnTopVertexBasePtr, dataSize);
 
-				Renderer::RenderGeometry(m_RenderCommandBuffer, m_LineOnTopPipeline, m_ConstantBufferSet, nullptr, m_LineOnTopVertexBuffer, m_LineOnTopVertexCount, PrimitveTopology::Line);
-				m_Stats.DrawCalls++;
+				Renderer::RenderGeometry(m_CommandBuffer, m_LineOnTopPipeline, m_ConstantBufferSet, nullptr, m_LineOnTopVertexBuffer, m_LineOnTopVertexCount, PrimitveTopology::Line);
+				m_Statistics.DrawCalls++;
 			}
 		}
 
-		m_RenderCommandBuffer->End();
-		m_RenderCommandBuffer->Execute();
+		m_CommandBuffer->EndTimeQuery(m_Statistics.GeometryPassTimer);
+
+
+		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
 
 		m_Active = false;
 	}
@@ -255,7 +268,7 @@ namespace Shark {
 			{
 				textureSlot = m_QuadTextureSlotIndex++;
 				m_QuadTextureArray->Set(textureSlot, texture);
-				m_Stats.TextureCount++;
+				m_Statistics.TextureCount++;
 			}
 		}
 
@@ -272,9 +285,9 @@ namespace Shark {
 
 		m_QuadIndexCount += 6;
 
-		m_Stats.QuadCount++;
-		m_Stats.VertexCount += 4;
-		m_Stats.IndexCount += 6;
+		m_Statistics.QuadCount++;
+		m_Statistics.VertexCount += 4;
+		m_Statistics.IndexCount += 6;
 
 	}
 
@@ -311,7 +324,7 @@ namespace Shark {
 			{
 				textureSlot = m_QuadTextureSlotIndex++;
 				m_QuadTextureArray->Set(textureSlot, texture);
-				m_Stats.TextureCount++;
+				m_Statistics.TextureCount++;
 			}
 		}
 
@@ -328,17 +341,17 @@ namespace Shark {
 
 		m_QuadIndexCount += 6;
 
-		m_Stats.QuadCount++;
-		m_Stats.VertexCount += 4;
-		m_Stats.IndexCount += 6;
+		m_Statistics.QuadCount++;
+		m_Statistics.VertexCount += 4;
+		m_Statistics.IndexCount += 6;
 	}
 
-	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
 	{
-		DrawFilledCircle({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, thickness, color, id);
+		DrawFilledCircle({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, thickness, fade, id);
 	}
 
-	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
 	{
 		if (m_CircleIndexCount >= MaxCircleIndices)
 			FlushAndResetCircle();
@@ -352,17 +365,18 @@ namespace Shark {
 			vtx->LocalPosition = { QuadVertexPositions[i].x, QuadVertexPositions[i].y };
 			vtx->Color = color;
 			vtx->Thickness = thickness;
+			vtx->Fade = fade;
 			vtx->ID = id;
 		}
 
 		m_CircleIndexCount += 6;
 
-		m_Stats.CircleCount++;
-		m_Stats.VertexCount += 4;
-		m_Stats.IndexCount += 6;
+		m_Statistics.CircleCount++;
+		m_Statistics.VertexCount += 4;
+		m_Statistics.IndexCount += 6;
 	}
 
-	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, float thickness, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
 	{
 		if (m_CircleIndexCount >= MaxCircleIndices)
 			FlushAndResetCircle();
@@ -376,14 +390,15 @@ namespace Shark {
 			vtx->LocalPosition = { QuadVertexPositions[i].x, QuadVertexPositions[i].y };
 			vtx->Color = color;
 			vtx->Thickness = thickness;
+			vtx->Fade = fade;
 			vtx->ID = id;
 		}
 
 		m_CircleIndexCount += 6;
 
-		m_Stats.CircleCount++;
-		m_Stats.VertexCount += 4;
-		m_Stats.IndexCount += 6;
+		m_Statistics.CircleCount++;
+		m_Statistics.VertexCount += 4;
+		m_Statistics.IndexCount += 6;
 	}
 
 	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
@@ -442,8 +457,8 @@ namespace Shark {
 
 		m_LineVertexCount += 2;
 		
-		m_Stats.LineCount++;
-		m_Stats.VertexCount += 2;
+		m_Statistics.LineCount++;
+		m_Statistics.VertexCount += 2;
 	}
 
 
@@ -495,7 +510,7 @@ namespace Shark {
 	void Renderer2D::DrawLineOnTop(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
 	{
 		if (m_LineOnTopVertexCount >= MaxLineOnTopVertices)
-			FlushAndResetLine();
+			FlushAndResetLineOnTop();
 
 		LineVertex* vtx = m_LineOnTopVertexIndexPtr++;
 		vtx->WorldPosition = pos0;
@@ -509,9 +524,9 @@ namespace Shark {
 
 		m_LineOnTopVertexCount += 2;
 
-		m_Stats.LineOnTopCount++;
-		m_Stats.VertexCount += 2;
-		m_Stats.IndexCount += 2;
+		m_Statistics.LineOnTopCount++;
+		m_Statistics.VertexCount += 2;
+		m_Statistics.IndexCount += 2;
 	}
 
 	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
@@ -589,18 +604,18 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetQuad()
 	{
-		m_RenderCommandBuffer->Begin();
+		m_CommandBuffer->Begin();
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexIndexPtr - (uint8_t*)m_QuadVertexBasePtr);
 		if (dataSize)
 		{
 			m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
 
-			Renderer::RenderGeometry(m_RenderCommandBuffer, m_QuadPipeline, m_ConstantBufferSet, m_QuadTextureArray, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
-			m_Stats.DrawCalls++;
+			Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_ConstantBufferSet, m_QuadTextureArray, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
+			m_Statistics.DrawCalls++;
 		}
 
-		m_RenderCommandBuffer->End();
+		m_CommandBuffer->End();
 
 		m_QuadIndexCount = 0;
 		m_QuadVertexIndexPtr = m_QuadVertexBasePtr;
@@ -613,18 +628,18 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetCircle()
 	{
-		m_RenderCommandBuffer->Begin();
+		m_CommandBuffer->Begin();
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_CircleVertexIndexPtr - (uint8_t*)m_CircleVertexBasePtr);
 		if (dataSize)
 		{
 			m_CircleVertexBuffer->SetData(m_CircleVertexBasePtr, dataSize);
 
-			Renderer::RenderGeometry(m_RenderCommandBuffer, m_CirlcePipeline, m_ConstantBufferSet, nullptr, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount, PrimitveTopology::Triangle);
-			m_Stats.DrawCalls++;
+			Renderer::RenderGeometry(m_CommandBuffer, m_CirlcePipeline, m_ConstantBufferSet, nullptr, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount, PrimitveTopology::Triangle);
+			m_Statistics.DrawCalls++;
 		}
 
-		m_RenderCommandBuffer->End();
+		m_CommandBuffer->End();
 
 		m_CircleIndexCount = 0;
 		m_CircleVertexIndexPtr = m_CircleVertexBasePtr;
@@ -632,18 +647,18 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetLine()
 	{
-		m_RenderCommandBuffer->Begin();
+		m_CommandBuffer->Begin();
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_LineVertexIndexPtr - (uint8_t*)m_LineVertexBasePtr);
 		if (dataSize)
 		{
 			m_LineVertexBuffer->SetData(m_LineVertexBasePtr, dataSize);
 
-			Renderer::RenderGeometry(m_RenderCommandBuffer, m_LinePipeline, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineVertexCount, PrimitveTopology::Line);
-			m_Stats.DrawCalls++;
+			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_ConstantBufferSet, nullptr, m_LineVertexBuffer, m_LineVertexCount, PrimitveTopology::Line);
+			m_Statistics.DrawCalls++;
 		}
 
-		m_RenderCommandBuffer->End();
+		m_CommandBuffer->End();
 
 		m_LineVertexCount = 0;
 		m_LineVertexIndexPtr = m_LineVertexBasePtr;
@@ -651,18 +666,18 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetLineOnTop()
 	{
-		m_RenderCommandBuffer->Begin();
+		m_CommandBuffer->Begin();
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_LineOnTopVertexIndexPtr - (uint8_t*)m_LineOnTopVertexBasePtr);
 		if (dataSize)
 		{
 			m_LineOnTopVertexBuffer->SetData(m_LineOnTopVertexBasePtr, dataSize);
 
-			Renderer::RenderGeometry(m_RenderCommandBuffer, m_LineOnTopPipeline, m_ConstantBufferSet, nullptr, m_LineOnTopVertexBuffer, m_LineOnTopVertexCount, PrimitveTopology::Line);
-			m_Stats.DrawCalls++;
+			Renderer::RenderGeometry(m_CommandBuffer, m_LineOnTopPipeline, m_ConstantBufferSet, nullptr, m_LineOnTopVertexBuffer, m_LineOnTopVertexCount, PrimitveTopology::Line);
+			m_Statistics.DrawCalls++;
 		}
 
-		m_RenderCommandBuffer->End();
+		m_CommandBuffer->End();
 
 		m_LineOnTopVertexCount = 0;
 		m_LineOnTopVertexIndexPtr = m_LineOnTopVertexBasePtr;

@@ -125,7 +125,18 @@ namespace Shark {
 		}
 
 		// Setup Cameras
-		if (!m_ActiveCameraUUID.Valid())
+		bool activeCameraFound = false;
+		if (m_ActiveCameraUUID.Valid())
+		{
+			Entity activeCamera = GetEntityByUUID(m_ActiveCameraUUID);
+			if (activeCamera.HasComponent<CameraComponent>())
+			{
+				m_RuntimeCamera = activeCamera;
+				activeCameraFound = true;
+			}
+		}
+
+		if (!activeCameraFound)
 		{
 			Entity cameraEntity;
 			auto view = m_Registry.view<CameraComponent>();
@@ -248,7 +259,7 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
-				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
+				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
 			}
 		}
 
@@ -280,7 +291,7 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
-				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
+				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
 			}
 		}
 
@@ -307,7 +318,7 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
-				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
+				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
 			}
 		}
 
@@ -356,7 +367,7 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
-				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Thickness, cr.Color, (int)entity);
+				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
 			}
 		}
 

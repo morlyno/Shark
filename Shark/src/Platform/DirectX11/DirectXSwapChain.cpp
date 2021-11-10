@@ -98,9 +98,8 @@ namespace Shark {
 			m_SwapChain->Release();
 	}
 
-	void DirectXSwapChain::SwapBuffers(bool vsync)
+	void DirectXSwapChain::NewFrame()
 	{
-		SK_CHECK(m_SwapChain->Present(vsync ? 1 : 0, 0));
 		m_FrameBuffer->Clear(DirectXRenderer::GetContext(), { 0.8f, 0.8f, 0.2f, 1.0f });
 	}
 
@@ -108,8 +107,6 @@ namespace Shark {
 	{
 		m_FrameBuffer->UnBind(DirectXRenderer::GetContext());
 		m_FrameBuffer->Release();
-
-		DirectXRenderer::Get()->Flush();
 
 		DXGI_SWAP_CHAIN_DESC scd;
 		SK_CHECK(m_SwapChain->GetDesc(&scd));

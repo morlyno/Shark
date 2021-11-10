@@ -141,24 +141,101 @@ namespace Shark {
 		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		
-		m_Device->CreateSamplerState(&samplerDesc, &m_PointClampSampler);
+		m_Device->CreateSamplerState(&samplerDesc, &m_ClampSampler);
+
+		// Frequency Query
+		D3D11_QUERY_DESC queryDesc;
+		queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+		queryDesc.MiscFlags = 0;
+		SK_CHECK(m_Device->CreateQuery(&queryDesc, &m_FrequencyQuery));
+
+		m_PresentTimer = Ref<DirectXGPUTimer>::Create("Present");
+
 	}
 
 	void DirectXRenderer::ShutDown()
 	{
-		m_SwapChain.Release();
-		if (m_Device) { m_Device->Release(); m_Device = nullptr; }
-		if (m_ImmediateContext) { m_ImmediateContext->Release(); m_ImmediateContext = nullptr; }
-		if (m_Factory) { m_Factory->Release(); m_Factory = nullptr; }
+		m_SwapChain = nullptr;
+		m_ShaderLib = nullptr;
+		m_WhiteTexture = nullptr;
+		m_QuadVertexBuffer = nullptr;
+		m_QuadIndexBuffer = nullptr;
 
-		if (m_PointClampSampler)
+		m_CommandBuffers.clear();
+
+		if (m_ClampSampler)
 		{
-			m_PointClampSampler->Release();
-			m_PointClampSampler = nullptr;
+			m_ClampSampler->Release();
+			m_ClampSampler = nullptr;
+		}
+
+		if (m_FrequencyQuery)
+		{
+			m_FrequencyQuery->Release();
+			m_FrequencyQuery = nullptr;
+		}
+
+		if (m_Factory)
+		{
+			m_Factory->Release();
+			m_Factory = nullptr;
+		}
+
+		if (m_ImmediateContext)
+		{
+			m_ImmediateContext->Release();
+			m_ImmediateContext = nullptr;
+		}
+
+		if (m_Device)
+		{
+			m_Device->Release();
+			m_Device = nullptr;
 		}
 
 		s_Instance = nullptr;
+	}
+
+	void DirectXRenderer::NewFrame()
+	{
+		if (m_IsFirstFrame)
+		{
+			m_ImmediateContext->Begin(m_FrequencyQuery);
+			m_FrequencyQueryActive = true;
+
+			m_IsFirstFrame = false;
+			return;
+		}
+
+
+		// SwapChain Resize
+
+		if (m_SwapChainNeedsResize)
+		{
+			Flush();
+			m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
+		}
+
+
+		// GPU Frequncy Query
+
+		if (m_FrequencyQueryActive)
+		{
+			m_ImmediateContext->End(m_FrequencyQuery);
+			m_FrequencyQueryActive = false;
+		}
+
+		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
+		HRESULT hr = m_ImmediateContext->GetData(m_FrequencyQuery, &disjointData, sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT), D3D11_ASYNC_GETDATA_DONOTFLUSH);
+		if (hr == S_OK)
+		{
+			m_GPUFrequency = disjointData.Frequency;
+			m_IsValidFrequency = !disjointData.Disjoint;
+
+			m_ImmediateContext->Begin(m_FrequencyQuery);
+			m_FrequencyQueryActive = true;
+		}
+
 	}
 
 	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image)
@@ -188,7 +265,7 @@ namespace Shark {
 
 		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
 		ctx->PSSetShaderResources(0, 1, &dxImage->m_View);
-		ctx->PSSetSamplers(0, 1, &m_PointClampSampler);
+		ctx->PSSetSamplers(0, 1, &m_ClampSampler);
 
 		ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		ctx->DrawIndexed(6, 0, 0);
@@ -222,7 +299,7 @@ namespace Shark {
 
 		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
 		ctx->PSSetShaderResources(0, 1, &dxImage->m_View);
-		ctx->PSSetSamplers(0, 1, &m_PointClampSampler);
+		ctx->PSSetSamplers(0, 1, &m_ClampSampler);
 
 		Ref<DirectXImage2D> dxDepthImage = depthImage.As<DirectXImage2D>();
 		ctx->PSSetShaderResources(1, 1, &dxDepthImage->m_View);
@@ -395,6 +472,19 @@ namespace Shark {
 		ctx->Draw(vertexCount, 0);
 	}
 
+	void DirectXRenderer::Present(bool vsync)
+	{
+		m_PresentTimer->StartQuery(m_ImmediateContext);
+
+		IDXGISwapChain* swapChain = m_SwapChain->GetNative();
+		swapChain->Present(0, 0);
+
+		m_PresentTimer->EndQuery(m_ImmediateContext);
+
+
+		m_SwapChain->NewFrame();
+	}
+
 	void DirectXRenderer::BindMainFrameBuffer()
 	{
 		Ref<DirectXSwapChainFrameBuffer> swapChainFrameBuffer = m_SwapChain->GetMainFrameBuffer();
@@ -402,23 +492,6 @@ namespace Shark {
 		m_ImmediateContext->OMSetRenderTargets(swapChainFrameBuffer->m_Count, swapChainFrameBuffer->m_FrameBuffers.data(), swapChainFrameBuffer->m_DepthStencil);
 		m_ImmediateContext->OMSetBlendState(swapChainFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 		m_ImmediateContext->RSSetViewports(1, &swapChainFrameBuffer->m_Viewport);
-	}
-
-	void DirectXRenderer::SetBlendForImgui(bool blend)
-	{
-		if (blend)
-		{
-			SK_CORE_ASSERT(m_ImGuiBlendState);
-			const float blend_factor[4] = { 0.f, 0.f, 0.f, 0.f };
-			m_ImmediateContext->OMSetBlendState(m_ImGuiBlendState, blend_factor, 0xFFFFFFFF);
-		}
-		else
-		{
-			m_ImmediateContext->OMGetBlendState(&m_ImGuiBlendState, nullptr, nullptr);
-			ID3D11BlendState* nullBlend = nullptr;
-			const float blend_factor[4] = { 0.f, 0.f, 0.f, 0.f };
-			m_ImmediateContext->OMSetBlendState(nullBlend, nullptr, 0xFFFFFFFF);
-		}
 	}
 
 	void DirectXRenderer::AddRenderCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer)

@@ -65,9 +65,6 @@ namespace Shark::UI {
 			return ImageButton(id, textureID, size, uv0, uv1, frame_padding, bg_col, tint_col);
 		}
 
-		SK_DEPRECATED("NoAlpaImage is deprecated, probaly a replacement very soon")
-		void NoAlpaImage(ImTextureID textureID, const ImVec2& size, const ImVec2& uv0 = { 0, 0 }, const ImVec2& uv1 = { 1, 1 }, const ImVec4& tintcolor = { 1, 1, 1, 1 }, const ImVec4& bordercolor = { 0, 0, 0, 0 });
-
 		SK_DEPRECATED("GetContentPayload is deprecated, probaly a replacement very soon")
 		inline bool GetContentPayload(std::string& out_Path, ContentType type)
 		{

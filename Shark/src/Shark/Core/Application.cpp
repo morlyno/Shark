@@ -81,7 +81,7 @@ namespace Shark {
 			{
 				SK_PROFILE_SCOPE("Swap Buffers");
 
-				Renderer::GetRendererAPI()->SwapBuffers(m_Window->IsVSync());
+				Renderer::GetRendererAPI()->Present(m_Window->IsVSync());
 			}
 		}
 	}
