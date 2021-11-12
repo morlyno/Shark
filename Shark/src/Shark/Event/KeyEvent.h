@@ -19,8 +19,7 @@ namespace Shark {
 		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryInput | EventCategoryKeyboard)
 	protected:
 		KeyEvent(KeyCode keycode)
-			:
-			m_KeyCode(keycode)
+			: m_KeyCode(keycode)
 		{}
 		KeyCode m_KeyCode;
 	};
@@ -28,23 +27,21 @@ namespace Shark {
 	class KeyPressedEvent : public KeyEvent
 	{
 	public:
-		KeyPressedEvent(KeyCode keycode, uint32_t RepeatCount)
-			:
-			KeyEvent(keycode),
-			m_RepeatCount(RepeatCount)
+		KeyPressedEvent(KeyCode keycode, uint32_t RepeatCount, bool altPressed)
+			: KeyEvent(keycode), m_RepeatCount(RepeatCount), m_AltPressed(altPressed)
 		{}
 		uint32_t GetRepeatCount() const { return m_RepeatCount; }
+		bool AltPressed() const { return m_AltPressed; }
 
 		std::string ToString() const override
 		{
-			std::ostringstream oss;
-			oss << GetName() << " " << m_KeyCode << " " << m_RepeatCount;
-			return oss.str();
+			return fmt::format("{}, KeyCode: {}, RepeatCount: {}, AltDown: {}", GetName(), KeyToString(m_KeyCode), m_RepeatCount, m_AltPressed);
 		}
 
 		SK_EVENT_FUNCTIONS(KeyPressed)
 	private:
 		uint32_t m_RepeatCount;
+		bool m_AltPressed;
 	};
 
 	class KeyReleasedEvent : public KeyEvent

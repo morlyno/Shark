@@ -14,6 +14,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <Shark/Debug/Instrumentor.h>
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -137,7 +138,7 @@ namespace Shark {
 			{
 				if (!m_ScenePaused)
 					m_ActiveScene->OnSimulate(ts);
-				
+
 				if (renderCameraPreview)
 				{
 					auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
@@ -150,8 +151,6 @@ namespace Shark {
 				break;
 			}
 		}
-
-
 
 		Renderer::GetRendererAPI()->BindMainFrameBuffer();
 	}
@@ -323,6 +322,7 @@ namespace Shark {
 		// Mouse Picking
 		if (!ImGuizmo::IsUsing())
 		{
+			SK_PERF_SCOPED("Mouse Picking");
 			// TODO: Move to EditorLayer::OnUpdate()
 
 			auto [mx, my] = ImGui::GetMousePos();
@@ -335,13 +335,14 @@ namespace Shark {
 			int height = m_MousePickingImage->GetHeight();
 			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 			{
-				Ref<Image2D> idImage = m_SceneRenderer->GetIDImage();
-				idImage->CopyTo(m_MousePickingImage);
-
 				const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered;
 
 				if (m_ReadHoveredEntity || selectEntity)
+				{
+					Ref<Image2D> idImage = m_SceneRenderer->GetIDImage();
+					idImage->CopyTo(m_MousePickingImage);
 					m_HoveredEntityID = m_MousePickingImage->ReadPixel(x, y);
+				}
 
 				if (selectEntity)
 				{
@@ -373,6 +374,7 @@ namespace Shark {
 		UI_ToolBar();
 		UI_Settings();
 		UI_CameraPrevie();
+		UI_Stats();
 
 		m_SceneHirachyPanel.OnImGuiRender();
 		m_AssetsPanel.OnImGuiRender();
@@ -544,6 +546,7 @@ namespace Shark {
 
 				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
 				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
+				ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
 				ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
 
 				ImGui::Separator();
@@ -629,28 +632,6 @@ namespace Shark {
 		if (m_ShowInfo)
 		{
 			ImGui::Begin("Info", &m_ShowInfo);
-
-			ImGui::Text("FPS: %.1f", 1.0f / m_TimeStep);
-			ImGui::Text("FrameTime: %f", m_TimeStep.GetMilliSeconts());
-
-			ImGui::NewLine();
-
-			const Renderer2D::Statistics& s = m_SceneRenderer->GetRenderer2D()->GetStatistics();
-			ImGui::Text("Draw Calls: %d", s.DrawCalls);
-			ImGui::Text("Quad Count: %d", s.QuadCount);
-			ImGui::Text("Circle Count: %d", s.CircleCount);
-			ImGui::Text("Line Count: %d", s.LineCount);
-			ImGui::Text("Line On Top Count: %d", s.LineOnTopCount);
-			ImGui::Text("Vertex Count: %d", s.VertexCount);
-			ImGui::Text("Index Count: %d", s.IndexCount);
-			ImGui::Text("Texture Count: %d", s.TextureCount);
-
-			ImGui::NewLine();
-			ImGui::Text("GPU Times");
-			UI::Text(fmt::format("GeometryPass: {:.4f}ms", s.GeometryPassTimer->GetTime()));
-			UI::Text(fmt::format("Present: {:.4f}ms", Renderer::GetPresentTimer()->GetTime()));
-
-
 
 			ImGui::NewLine();
 			if (m_ViewportHovered && m_HoveredEntityID > -1)
@@ -1157,7 +1138,6 @@ namespace Shark {
 			ImGui::SetNextWindowSizeConstraints({ 0, 0 }, { FLT_MAX, FLT_MAX }, CameraPreviewResizeCallback, &viewportSize);
 
 			ImGui::Begin("Camera Preview", nullptr, ImGuiWindowFlags_NoTitleBar);
-			//ImGui::SetWindowSize(ImVec2((float)m_ViewportWidth, (float)m_ViewportHeight) * 0.2f, ImGuiCond_Appearing);
 
 			UI::SetBlend(false);
 			Ref<Image2D> image = m_CameraPreviewRenderer->GetFinalImage();
@@ -1166,6 +1146,44 @@ namespace Shark {
 
 			ImGui::End();
 		}
+	}
+
+	void EditorLayer::UI_Stats()
+	{
+		if (!m_ShowStats)
+			return;
+
+		ImGui::Begin("Renderer2D");
+		const Renderer2D::Statistics& s = m_SceneRenderer->GetRenderer2D()->GetStatistics();
+		ImGui::Text("Draw Calls: %d", s.DrawCalls);
+		ImGui::Text("Quad Count: %d", s.QuadCount);
+		ImGui::Text("Circle Count: %d", s.CircleCount);
+		ImGui::Text("Line Count: %d", s.LineCount);
+		ImGui::Text("Line On Top Count: %d", s.LineOnTopCount);
+		ImGui::Text("Vertex Count: %d", s.VertexCount);
+		ImGui::Text("Index Count: %d", s.IndexCount);
+		ImGui::Text("Texture Count: %d", s.TextureCount);
+		ImGui::End();
+
+
+		ImGui::Begin("GPU Times");
+		UI::Text(fmt::format("Present GPU: {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
+		UI::Text(fmt::format("GeometryPass: {:.4f}ms", s.GeometryPassTimer->GetTime().MilliSeconds()));
+		ImGui::End();
+
+
+		ImGui::Begin("CPU Times");
+		UI::Text(fmt::format("FrameTime: {:.5f}", m_TimeStep.MilliSeconds()));
+		UI::Text(fmt::format("Present CPU: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::Present").MilliSeconds()));
+		UI::Text(fmt::format("NewFrame: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::NewFrame").MilliSeconds()));
+		UI::Text(fmt::format("RenderGeometry: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::RenderGeometry").MilliSeconds()));
+		UI::Text(fmt::format("RenderGeometry [Indexed]: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds()));
+		UI::Text(fmt::format("RenderFullScreenQuad: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::RenderFullScreenQuad").MilliSeconds()));
+		UI::Text(fmt::format("RenderFullScreenQuadWidthDepth: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds()));
+		UI::Text(fmt::format("Mouse Picking: {:.4f}ms", SK_PERF_TIME("Mouse Picking").MilliSeconds()));
+		UI::Text(fmt::format("Window Update: {:.4f}ms", SK_PERF_TIME("WindowsWindow::Update").MilliSeconds()));
+		ImGui::End();
+
 	}
 
 	void EditorLayer::NewScene()

@@ -2,6 +2,7 @@
 
 #include "Shark/Render/GPUTimer.h"
 
+
 #include <d3d11.h>
 
 namespace Shark {
@@ -12,7 +13,7 @@ namespace Shark {
 		DirectXGPUTimer(const std::string& name);
 		virtual ~DirectXGPUTimer();
 
-		virtual float GetTime() override { return (float)m_LastTime; }
+		virtual TimeStep GetTime() override { return (float)m_LastTime; }
 
 	public:
 		void StartQuery(ID3D11DeviceContext* targetContext);
@@ -28,7 +29,7 @@ namespace Shark {
 		ID3D11Query* m_EndQuery[NumQueries]{};
 		uint32_t m_Index = 0;
 		uint32_t m_DataIndex = 1;
-		double m_LastTime = 0.0f;
+		TimeStep m_LastTime = 0.0f;
 
 		std::string m_Name;
 

@@ -60,6 +60,7 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
+		m_Renderer2D->SetRenderTarget(m_GeometryFrameBuffer);
 		m_Renderer2D->BeginScene(viewProj);
 	}
 

@@ -11,6 +11,8 @@
 #include "Platform/DirectX11/DirectXPipeline.h"
 
 #include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
+#include "Shark/Core/Timer.h"
 
 #include <backends/imgui_impl_dx11.h>
 
@@ -198,6 +200,8 @@ namespace Shark {
 
 	void DirectXRenderer::NewFrame()
 	{
+		SK_PERF_SCOPED("DirectXRenderer::NewFrame");
+
 		if (m_IsFirstFrame)
 		{
 			m_ImmediateContext->Begin(m_FrequencyQuery);
@@ -214,6 +218,7 @@ namespace Shark {
 		{
 			Flush();
 			m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
+			m_SwapChainNeedsResize = false;
 		}
 
 
@@ -240,6 +245,8 @@ namespace Shark {
 
 	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image)
 	{
+		SK_PERF_SCOPED("DirectXRenderer::RenderFullScreenQuad");
+
 		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
 		ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
 
@@ -274,6 +281,8 @@ namespace Shark {
 
 	void DirectXRenderer::RenderFullScreenQuadWidthDepth(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image, Ref<Image2D> depthImage)
 	{
+		SK_PERF_SCOPED("DirectXRenderer::RenderFullScreenQuadWidthDepth");
+
 		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
 		ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
 
@@ -362,6 +371,8 @@ namespace Shark {
 
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
 	{
+		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry [Indexed]");
+
 		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
 		ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
@@ -420,6 +431,8 @@ namespace Shark {
 
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, PrimitveTopology topology)
 	{
+		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry");
+
 		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
 		ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
@@ -474,10 +487,12 @@ namespace Shark {
 
 	void DirectXRenderer::Present(bool vsync)
 	{
+		SK_PERF_SCOPED("DirectXRenderer::Present");
+
 		m_PresentTimer->StartQuery(m_ImmediateContext);
 
 		IDXGISwapChain* swapChain = m_SwapChain->GetNative();
-		swapChain->Present(0, 0);
+		swapChain->Present(vsync ? 1 : 0, 0);
 
 		m_PresentTimer->EndQuery(m_ImmediateContext);
 
@@ -513,9 +528,12 @@ namespace Shark {
 
 	void DirectXRenderer::Flush()
 	{
+		Timer timer;
 		for (auto cmdBuffer : m_CommandBuffers)
 			cmdBuffer->Flush();
 		m_ImmediateContext->Flush();
+
+		SK_CORE_INFO("DirectXRenderer::Flush: {}ms", timer.Stop());
 	}
 
 }

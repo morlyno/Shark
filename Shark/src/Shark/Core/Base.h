@@ -20,6 +20,7 @@
 	#define SK_IF_DEBUG(...)
 #endif
 
+#define SK_ENABLE_PREF 1
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #define SPDLOG_FMT_EXTERNAL 1
@@ -41,6 +42,31 @@
 #define SK_DEPRECATED(message) [[deprecated(message)]]
 #endif
 
+#ifdef __COUNTER__
+#define SK_UNIQUE_VAR_NAME SK_CONNECT(unique_var_, __COUNTER__)
+#else
+#define SK_UNIQUE_VAR_NAME SK_CONNECT(almoust_unique_var_, __LINE__)
+#endif
+
+
+#if defined(__GNUC__) || (defined(__MWERKS__) && (__MWERKS__ >= 0x3000)) || (defined(__ICC) && (__ICC >= 600)) || defined(__ghs__)
+#define SK_FUNC_SIG __PRETTY_FUNCTION__
+#elif defined(__DMC__) && (__DMC__ >= 0x810)
+#define SK_FUNC_SIG __PRETTY_FUNCTION__
+#elif defined(__FUNCSIG__)
+#define SK_FUNC_SIG __FUNCSIG__
+#elif (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 600)) || (defined(__IBMCPP__) && (__IBMCPP__ >= 500))
+#define SK_FUNC_SIG __FUNCTION__
+#elif defined(__BORLANDC__) && (__BORLANDC__ >= 0x550)
+#define SK_FUNC_SIG __FUNC__
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
+#define SK_FUNC_SIG __func__
+#elif defined(__cplusplus) && (__cplusplus >= 201103)
+#define SK_FUNC_SIG __func__
+#else
+#define SK_FUNC_SIG "(unknown)"
+#error No Function Signature
+#endif
 
 #include <stdint.h>
 
@@ -72,22 +98,23 @@ namespace Shark {
 	using WindowHandle = void*;
 #endif
 
+	static_assert(sizeof(uint8_t) == 1);
+	static_assert(sizeof(uint16_t) == 2);
+	static_assert(sizeof(uint32_t) == 4);
+	static_assert(sizeof(uint64_t) == 8);
+
+	static_assert(sizeof(int8_t) == 1);
+	static_assert(sizeof(int16_t) == 2);
+	static_assert(sizeof(int32_t) == 4);
+	static_assert(sizeof(int64_t) == 8);
+
+	static_assert(sizeof(char) == 1);
+	static_assert(sizeof(wchar_t) == 2);
+	static_assert(sizeof(int) == 4);
+	static_assert(sizeof(byte) == 1);
+
 }
 
-static_assert(sizeof(uint8_t) == 1);
-static_assert(sizeof(uint16_t) == 2);
-static_assert(sizeof(uint32_t) == 4);
-static_assert(sizeof(uint64_t) == 8);
-
-static_assert(sizeof(int8_t) == 1);
-static_assert(sizeof(int16_t) == 2);
-static_assert(sizeof(int32_t) == 4);
-static_assert(sizeof(int64_t) == 8);
-
-static_assert(sizeof(char) == 1);
-static_assert(sizeof(wchar_t) == 2);
-static_assert(sizeof(int) == 4);
-static_assert(sizeof(Shark::byte) == 1);
 
 #include "Shark/Memory/Allocator.h"
 

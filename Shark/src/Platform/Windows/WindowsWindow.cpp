@@ -7,6 +7,7 @@
 #include "Shark/Core/MouseCodes.h"
 
 #include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <backends/imgui_impl_win32.h>
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -53,9 +54,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		std::string str(props.Name.size(), '\000');
-		str.resize(props.Name.size());
-		wcstombs_s(nullptr, str.data(), str.size(), props.Name.data(), std::numeric_limits<size_t>::max());
+		std::string str = std::string(props.Name.begin(), props.Name.end());
 		SK_CORE_INFO("Init Windows Window {0} {1} {2}", props.Width, props.Height, str);
 
 		int width, height;
@@ -121,9 +120,10 @@ namespace Shark {
 	void WindowsWindow::Update() const
 	{
 		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("WindowsWindow::Update");
 
 		MSG msg = {};
-		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+		while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
@@ -138,7 +138,7 @@ namespace Shark {
 		{
 			const CREATESTRUCTW* const pCreateStruct = reinterpret_cast<CREATESTRUCTW*>(lParam);
 			WindowsWindow* const pWindow = static_cast<WindowsWindow*>(pCreateStruct->lpCreateParams);
-			SK_ASSERT(pWindow && "Window pointer not created");
+			SK_CORE_ASSERT(pWindow, "Window pointer not created");
 			SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow));
 			SetWindowLongPtr(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&WindowProc));
 			return pWindow->HandleMsg(hWnd, uMsg, wParam, lParam);
@@ -309,7 +309,8 @@ namespace Shark {
 			{
 				//SK_CORE_TRACE("0x{0:x}", wParam);
 				const unsigned int repeat = lParam & 0xFFFF;
-				m_Callbackfunc(KeyPressedEvent((KeyCode)wParam, repeat));
+				const bool altPressed = (lParam & SK_BIT(29)) > 0;
+				m_Callbackfunc(KeyPressedEvent((KeyCode)wParam, repeat, altPressed));
 				break;
 			}
 

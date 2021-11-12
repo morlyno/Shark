@@ -7,6 +7,7 @@
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
 
@@ -48,6 +49,7 @@ namespace Shark {
 		while (m_Running)
 		{
 			SK_PROFILE_SCOPE("Main Loop");
+			SK_PERF_NEW_FRAME();
 
 			int64_t time;
 			QueryPerformanceCounter((LARGE_INTEGER*)&time);
@@ -92,6 +94,7 @@ namespace Shark {
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
 		dispacher.DispachEvent<ApplicationCloseEvent>(SK_BIND_EVENT_FN(Application::OnApplicationClose));
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(Application::OnWindowResize));
+		dispacher.DispachEvent<KeyPressedEvent>([this](KeyPressedEvent& event) { return OnKeyPressed(event); });
 
 		for (auto it = m_LayerStack.begin(); it != m_LayerStack.end() && !event.Handled; ++it)
 			(*it)->OnEvent(event);
@@ -118,6 +121,16 @@ namespace Shark {
 			return false;
 		}
 		m_Minimized = false;
+		return false;
+	}
+
+	bool Application::OnKeyPressed(KeyPressedEvent& event)
+	{
+		if (event.AltPressed() && event.GetKeyCode() == Key::F4)
+		{
+			CloseApplication();
+			return true;
+		}
 		return false;
 	}
 

@@ -78,7 +78,6 @@ namespace Shark {
 
 		uint64_t durration = endTime - startTime;
 		m_LastTime = (double)durration / (double)(dxRenderer->GetGPUFrequncy());
-		m_LastTime *= 1000;
 	}
 
 }

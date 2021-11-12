@@ -59,12 +59,15 @@ Targets main(Input input)
 {
     Targets targets;
     
-    float dist = length(input.LocalPosition) * 2.0f;
-    if (dist > 1.0f || dist < 1.0f - input.Thickness)
-        discard;
+    float dist = 1.0 - length(input.LocalPosition);
+    //if (dist > 1.0f || dist < 1.0f - input.Thickness)
+    //    discard;
     
-    float alpha = 1.0f - smoothstep(1.0f - input.Fade, 1.0f, dist);
-    alpha *= smoothstep(1.0f - input.Thickness, 1.0f - input.Thickness + input.Fade, dist);
+    float alpha = smoothstep(0.0, input.Fade, dist);
+    alpha *= smoothstep(input.Thickness + input.Fade, input.Thickness, dist);
+    
+    if (alpha == 0.0)
+        discard;
     
     targets.Color = input.Color;
     targets.Color.a *= alpha;

@@ -48,6 +48,7 @@ namespace Shark {
 		void UI_ToolBar();
 		void UI_Settings();
 		void UI_CameraPrevie();
+		void UI_Stats();
 
 		void NewScene();
 
@@ -86,6 +87,7 @@ namespace Shark {
 		bool m_ShowEditorCameraControlls = false;
 		bool m_ShowProject = false;
 		bool m_ShowSettings = true;
+		bool m_ShowStats = true;
 		bool m_ReadHoveredEntity = false;
 
 		int m_HoveredEntityID = -1;

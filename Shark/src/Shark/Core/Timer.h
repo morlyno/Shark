@@ -16,17 +16,18 @@ namespace Shark {
 				StopAndLog();
 		}
 
-		float Stop()
+		double Stop()
 		{
 			auto stop = std::chrono::high_resolution_clock::now();
-			auto duration = stop - m_Start;
+			auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - m_Start);
 			m_Stoped = true;
-			return duration.count() * 0.001f * 0.001f;
+			return (double)duration.count();
 		}
 
 		void StopAndLog()
 		{
-			SK_CORE_TRACE("{} ms", Stop());
+			double time = Stop();
+			SK_CORE_TRACE("{} ms", time);
 		}
 
 	private:

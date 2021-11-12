@@ -48,10 +48,17 @@ namespace Shark {
 		const SceneRendererOptions& GetOptions() const { return m_Options; }
 
 	private:
+		struct CBCamera
+		{
+			DirectX::XMMATRIX ViewProj;
+		};
+
+	private:
 		Ref<Scene> m_Scene;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
+		Ref<ConstantBuffer> m_CameraConstantBuffer;
 
 		// Geometry
 		Ref<FrameBuffer> m_GeometryFrameBuffer;

@@ -4,6 +4,7 @@
 #include "Shark/Core/Window.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/ApplicationEvent.h"
+#include "Shark/Event/KeyEvent.h"
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
 #include "Shark/Core/Project.h"
@@ -44,6 +45,7 @@ namespace Shark {
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnApplicationClose(ApplicationCloseEvent& event);
 		bool OnWindowResize(WindowResizeEvent& event);
+		bool OnKeyPressed(KeyPressedEvent& event);
 
 	private:
 		static Application* s_Instance;

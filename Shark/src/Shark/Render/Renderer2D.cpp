@@ -362,7 +362,7 @@ namespace Shark {
 		{
 			CircleVertex* vtx = m_CircleVertexIndexPtr++;
 			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[i]), translation));
-			vtx->LocalPosition = { QuadVertexPositions[i].x, QuadVertexPositions[i].y };
+			vtx->LocalPosition = { QuadVertexPositions[i].x * 2.0f, QuadVertexPositions[i].y * 2.0f };
 			vtx->Color = color;
 			vtx->Thickness = thickness;
 			vtx->Fade = fade;
@@ -387,7 +387,7 @@ namespace Shark {
 		{
 			CircleVertex* vtx = m_CircleVertexIndexPtr++;
 			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[i]), translation));
-			vtx->LocalPosition = { QuadVertexPositions[i].x, QuadVertexPositions[i].y };
+			vtx->LocalPosition = { QuadVertexPositions[i].x * 2.0f, QuadVertexPositions[i].y * 2.0f };
 			vtx->Color = color;
 			vtx->Thickness = thickness;
 			vtx->Fade = fade;

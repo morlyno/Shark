@@ -34,7 +34,7 @@ namespace Shark::Utility {
 		const auto iter = map.find(key);
 		if (iter == map.cend())
 			return false;
-		return false;
+		return true;
 	}
 
 	template<typename Container>

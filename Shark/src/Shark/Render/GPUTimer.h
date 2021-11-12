@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/TimeStep.h"
 
 namespace Shark {
 
@@ -9,7 +10,7 @@ namespace Shark {
 	public:
 		virtual ~GPUTimer() = default;
 
-		virtual float GetTime() = 0;
+		virtual TimeStep GetTime() = 0;
 
 	public:
 		static Ref<GPUTimer> Create(const std::string& name = std::string{});

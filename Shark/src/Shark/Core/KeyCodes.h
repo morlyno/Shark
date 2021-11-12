@@ -105,13 +105,113 @@ namespace Shark {
 
 			Plus					= 0xBB,
 			Comma					= 0xBC,
-			Dot						= 0xBD,
-			Minus					= 0xBE,
+			Dot						= 0xBE,
+			Minus					= 0xBD,
 			Hastag					= 0xBF,
 
 
 		};
 
+	}
+
+	inline std::string KeyToString(KeyCode key)
+	{
+		switch (key)
+		{
+			case Key::Erase:               return "Erase";
+			case Key::Tab:                 return "Tab";
+			case Key::NumpadOff5:   	   return "NumpadOff5";
+			case Key::Enter:			   return "Enter";
+			case Key::LeftShift:		   return "LeftShift";
+			case Key::Control:			   return "Control";
+			case Key::Alt:				   return "Alt";
+			case Key::Pause:			   return "Pause";
+			case Key::Cap:				   return "Cap";
+			case Key::Escape:			   return "Escape";
+			case Key::Space:			   return "Space";
+			case Key::BildUp:			   return "BildUp";
+			case Key::BildDown:			   return "BildDown";
+			case Key::End:				   return "End";
+			case Key::Pos1:				   return "Pos1";
+			case Key::Left:				   return "Left";
+			case Key::Up:				   return "Up";
+			case Key::Right:			   return "Right";
+			case Key::Down:                return "Down";
+			case Key::Insert:              return "Insert";
+			case Key::Entf:                return "Entf";
+			case Key::D0:                  return "D0";
+			case Key::D1:                  return "D1";
+			case Key::D2:                  return "D2";
+			case Key::D3:                  return "D3";
+			case Key::D4:                  return "D4";
+			case Key::D5:                  return "D5";
+			case Key::D6:                  return "D6";
+			case Key::D7:                  return "D7";
+			case Key::D8:                  return "D8";
+			case Key::D9:                  return "D9";
+			case Key::A:                   return "A";
+			case Key::B:                   return "B";
+			case Key::C:                   return "C";
+			case Key::D:                   return "D";
+			case Key::E:                   return "E";
+			case Key::F:                   return "F";
+			case Key::G:                   return "G";
+			case Key::H:                   return "H";
+			case Key::I:                   return "I";
+			case Key::J:                   return "J";
+			case Key::K:                   return "K";
+			case Key::L:                   return "L";
+			case Key::M:                   return "M";
+			case Key::N:                   return "N";
+			case Key::O:                   return "O";
+			case Key::P:                   return "P";
+			case Key::Q:                   return "Q";
+			case Key::R:                   return "R";
+			case Key::S:                   return "S";
+			case Key::T:                   return "T";
+			case Key::U:                   return "U";
+			case Key::V:                   return "V";
+			case Key::W:                   return "W";
+			case Key::X:                   return "X";
+			case Key::Y:                   return "Y";
+			case Key::Z:                   return "Z";
+			case Key::Windows:             return "Windows";
+			case Key::Numpad0:             return "Numpad0";
+			case Key::Numpad1:             return "Numpad1";
+			case Key::Numpad2:             return "Numpad2";
+			case Key::Numpad3:             return "Numpad3";
+			case Key::Numpad4:             return "Numpad4";
+			case Key::Numpad5:             return "Numpad5";
+			case Key::Numpad6:             return "Numpad6";
+			case Key::Numpad7:             return "Numpad7";
+			case Key::Numpad8:             return "Numpad8";
+			case Key::Numpad9:             return "Numpad9";
+			case Key::NumpadMul:           return "NumpadMul";
+			case Key::NumpadPlus:          return "NumpadPlus";
+			case Key::NumpadMinus:         return "NumpadMinus";
+			case Key::NumpadComma:         return "NumpadComma";
+			case Key::NumpadDived:         return "NumpadDived";
+			case Key::F1:                  return "F1";
+			case Key::F2:                  return "F2";
+			case Key::F3:                  return "F3";
+			case Key::F4:                  return "F4";
+			case Key::F5:                  return "F5";
+			case Key::F6:                  return "F6";
+			case Key::F7:                  return "F7";
+			case Key::F8:                  return "F8";
+			case Key::F9:                  return "F9";
+			case Key::F10:                 return "F10";
+			case Key::F11:                 return "F11";
+			case Key::F12:                 return "F12";
+			case Key::Numpad:              return "Numpad";
+			case Key::Plus:                return "Plus";
+			case Key::Comma:               return "Comma";
+			case Key::Dot:                 return "Dot";
+			case Key::Minus:               return "Minus";
+			case Key::Hastag:              return "Hastag";
+		}
+		SK_CORE_ASSERT(false, "Unkown Key");
+		return "Unkown";
 	}
 
 }
