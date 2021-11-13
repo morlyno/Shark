@@ -8,15 +8,15 @@
 
 #include "Shark/Utility/Math.h"
 
+#include "Shark/Debug/enttDebug.h"
 #include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <box2d/b2_world.h>
 #include <box2d/b2_body.h>
 #include <box2d/b2_polygon_shape.h>
 #include <box2d/b2_circle_shape.h>
 #include <box2d/b2_fixture.h>
-
-#include "Shark/Debug/enttDebug.h"
 
 namespace Shark {
 
@@ -182,6 +182,8 @@ namespace Shark {
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
 	{
+		SK_PERF_SCOPED("Scene::OnUpdateRuntime");
+
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
 			for (auto entityID : view)
@@ -241,6 +243,8 @@ namespace Shark {
 
 	void Scene::OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const DirectX::XMMATRIX& view)
 	{
+		SK_PERF_SCOPED("Scene::OnRenderRuntimePreview");
+
 		renderer->SetScene(this);
 		const auto viewProj = view * camera.GetProjection();
 		renderer->BeginScene(viewProj);
@@ -268,6 +272,8 @@ namespace Shark {
 
 	void Scene::OnRenderRuntime(Ref<SceneRenderer> renderer)
 	{
+		SK_PERF_SCOPED("Scene::OnRenderRuntime");
+
 		Entity camerEntity = Entity{ m_RuntimeCamera, this };
 		Camera& camera = camerEntity.GetComponent<CameraComponent>().Camera;
 		auto& tf = camerEntity.GetTransform();
@@ -300,6 +306,8 @@ namespace Shark {
 
 	void Scene::OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
+		SK_PERF_SCOPED("Scene::OnRenderEditor");
+
 		renderer->SetScene(this);
 
 		renderer->BeginScene(editorCamera.GetViewProjection());
@@ -349,6 +357,8 @@ namespace Shark {
 
 	void Scene::OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
+		SK_PERF_SCOPED("Scene::OnRenderSimulate");
+
 		renderer->SetScene(this);
 
 		renderer->BeginScene(editorCamera.GetViewProjection());

@@ -19,9 +19,9 @@ namespace Shark {
 		double Stop()
 		{
 			auto stop = std::chrono::high_resolution_clock::now();
-			auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - m_Start);
+			auto duration = stop - m_Start;
 			m_Stoped = true;
-			return (double)duration.count();
+			return (double)duration.count() * 0.001 * 0.001;
 		}
 
 		void StopAndLog()

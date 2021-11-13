@@ -2,6 +2,7 @@
 
 #include "Shark/ImGui/ImGuiLayer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
+#include "Shark/Render/GPUTimer.h"
 
 #include <imgui.h>
 
@@ -9,8 +10,6 @@
 #include <d3d11.h>
 
 namespace Shark {
-
-	//static void BlendCallback(const ImDrawList*, const ImDrawCmd*);
 
 	class DirectXImGuiLayer : ImGuiLayer
 	{
@@ -35,6 +34,7 @@ namespace Shark {
 		bool m_BlockEvents = false;
 
 		Ref<DirectXRenderCommandBuffer> m_CommandBuffer;
+		Ref<GPUTimer> m_Timer;
 
 		ID3D11BlendState* m_BlendState = nullptr;
 		FLOAT m_BlendFactor[4]{};

@@ -67,6 +67,7 @@ namespace Shark {
 		//{
 		//	Entity entity = m_ActiveScene->CreateEntity();
 		//	entity.AddComponent<SpriteRendererComponent>();
+		//	
 		//}
 
 	}
@@ -601,14 +602,26 @@ namespace Shark {
 			DirectX::XMStoreFloat4x4(&transform, tf.GetTranform());
 
 			DirectX::XMFLOAT4X4 delta;
-			ImGuizmo::Manipulate(&view.m[0][0], &projection.m[0][0], (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::MODE::LOCAL, &transform.m[0][0], &delta.m[0][0]);
 
-			if (ImGuizmo::IsUsing())
+			float* snap = nullptr;
+			if (Input::KeyPressed(Key::LeftShift))
+			{
+				ImGuizmo::OPERATION operation = (ImGuizmo::OPERATION)m_CurrentOperation;
+				switch (operation)
+				{
+					case ImGuizmo::TRANSLATE: snap = &m_TranslationSnap; break;
+					case ImGuizmo::ROTATE:    snap = &m_RotationSnap; break;
+					case ImGuizmo::SCALE:     snap = &m_ScaleSnap; break;
+				}
+			}
+
+			ImGuizmo::Manipulate(&view.m[0][0], &projection.m[0][0], (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::MODE::LOCAL, &transform.m[0][0], &delta.m[0][0], snap);
+
+			if (!Input::KeyPressed(Key::Alt) && ImGuizmo::IsUsing())
 			{
 				DirectX::XMVECTOR position;
 				DirectX::XMVECTOR rotQuat;
 				DirectX::XMVECTOR scale;
-				DirectX::XMMatrixDecompose(&scale, &rotQuat, &position, DirectX::XMLoadFloat4x4(&transform));
 				if (m_CurrentOperation == ImGuizmo::OPERATION::TRANSLATE)
 				{
 					DirectX::XMMatrixDecompose(&scale, &rotQuat, &position, DirectX::XMLoadFloat4x4(&transform));
@@ -632,6 +645,11 @@ namespace Shark {
 		if (m_ShowInfo)
 		{
 			ImGui::Begin("Info", &m_ShowInfo);
+
+			Window& window = Application::Get().GetWindow();
+			UI::BeginControls();
+			UI::Checkbox("VSync", window.IsVSync());
+			UI::EndControls();
 
 			ImGui::NewLine();
 			if (m_ViewportHovered && m_HoveredEntityID > -1)
@@ -1166,22 +1184,33 @@ namespace Shark {
 		ImGui::End();
 
 
+		ImGui::Begin("Times");
+		UI::Text(fmt::format("Mouse Picking:                   {:.4f}ms", SK_PERF_AVERAGE("Mouse Picking").MilliSeconds()));
+		UI::Text(fmt::format("Window Update:                   {:.4f}ms", SK_PERF_AVERAGE("WindowsWindow::Update").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Editor:             {:.4f}ms", SK_PERF_AVERAGE("Scene::OnRenderEditor").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Runtime:            {:.4f}ms", SK_PERF_AVERAGE("Scene::OnRenderRuntime").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Simulate:           {:.4f}ms", SK_PERF_AVERAGE("Scene::OnRenderSimulate").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Runtime Preview:    {:.4f}ms", SK_PERF_AVERAGE("Scene::OnRenderRuntimePreview").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Update Runtime:            {:.4f}ms", SK_PERF_AVERAGE("Scene::OnUpdateRuntime").MilliSeconds()));
+		ImGui::End();
+
+
 		ImGui::Begin("GPU Times");
-		UI::Text(fmt::format("Present GPU: {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
-		UI::Text(fmt::format("GeometryPass: {:.4f}ms", s.GeometryPassTimer->GetTime().MilliSeconds()));
+		UI::Text(fmt::format("Present GPU:                     {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
+		UI::Text(fmt::format("GeometryPass:                    {:.4f}ms", s.GeometryPassTimer->GetTime().MilliSeconds()));
+		UI::Text(fmt::format("ImGuiLayer GPU:                  {:.4f}ms", SK_PERF_AVERAGE("[GPU] DirectXImGuiLayer::End").MilliSeconds()));
 		ImGui::End();
 
 
 		ImGui::Begin("CPU Times");
-		UI::Text(fmt::format("FrameTime: {:.5f}", m_TimeStep.MilliSeconds()));
-		UI::Text(fmt::format("Present CPU: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::Present").MilliSeconds()));
-		UI::Text(fmt::format("NewFrame: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::NewFrame").MilliSeconds()));
-		UI::Text(fmt::format("RenderGeometry: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::RenderGeometry").MilliSeconds()));
-		UI::Text(fmt::format("RenderGeometry [Indexed]: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds()));
-		UI::Text(fmt::format("RenderFullScreenQuad: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::RenderFullScreenQuad").MilliSeconds()));
-		UI::Text(fmt::format("RenderFullScreenQuadWidthDepth: {:.4f}ms", SK_PERF_TIME("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds()));
-		UI::Text(fmt::format("Mouse Picking: {:.4f}ms", SK_PERF_TIME("Mouse Picking").MilliSeconds()));
-		UI::Text(fmt::format("Window Update: {:.4f}ms", SK_PERF_TIME("WindowsWindow::Update").MilliSeconds()));
+		UI::Text(fmt::format("FrameTime:                       Average: {:.4f}ms", m_TimeStep.MilliSeconds()));
+		UI::Text(fmt::format("Present CPU:                     Average: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::Present").MilliSeconds()));
+		UI::Text(fmt::format("NewFrame:                        Average: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::NewFrame").MilliSeconds()));
+		UI::Text(fmt::format("RenderGeometry:                  Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::RenderGeometry").MilliSeconds(), SK_PERF_TOTAL("DirectXRenderer::RenderGeometry").MilliSeconds()));
+		UI::Text(fmt::format("RenderGeometry [Indexed]:        Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds(), SK_PERF_TOTAL("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds()));
+		UI::Text(fmt::format("RenderFullScreenQuad:            Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::RenderFullScreenQuad").MilliSeconds(), SK_PERF_TOTAL("DirectXRenderer::RenderFullScreenQuad").MilliSeconds()));
+		UI::Text(fmt::format("RenderFullScreenQuadWidthDepth:  Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds(), SK_PERF_TOTAL("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds()));
+		UI::Text(fmt::format("Renderer2D EndScene:             Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("Renderer2D::EndScene").MilliSeconds(), SK_PERF_TOTAL("Renderer2D::EndScene").MilliSeconds()));
 		ImGui::End();
 
 	}

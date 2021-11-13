@@ -4,6 +4,7 @@
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/Utility/Math.h"
+#include "Shark/Debug/Profiler.h"
 
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 #include "Platform/DirectX11/DirectXTexture.h"
@@ -157,6 +158,8 @@ namespace Shark {
 
 	void Renderer2D::EndScene()
 	{
+		SK_PERF_SCOPED("Renderer2D::EndScene");
+
 		m_CommandBuffer->Begin();
 
 #if SK_DEBUG

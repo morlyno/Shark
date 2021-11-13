@@ -276,7 +276,6 @@ namespace Shark {
 
 		ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		ctx->DrawIndexed(6, 0, 0);
-
 	}
 
 	void DirectXRenderer::RenderFullScreenQuadWidthDepth(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image, Ref<Image2D> depthImage)
@@ -426,7 +425,6 @@ namespace Shark {
 		ctx->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
 
 		ctx->DrawIndexed(indexCount, 0, 0);
-
 	}
 
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, PrimitveTopology topology)
@@ -533,7 +531,7 @@ namespace Shark {
 			cmdBuffer->Flush();
 		m_ImmediateContext->Flush();
 
-		SK_CORE_INFO("DirectXRenderer::Flush: {}ms", timer.Stop());
+		SK_CORE_INFO("DirectXRenderer::Flush: {:.5f}ms", timer.Stop());
 	}
 
 }

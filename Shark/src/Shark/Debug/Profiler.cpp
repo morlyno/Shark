@@ -46,12 +46,20 @@ namespace Shark {
 	}
 
 
-	TimeStep ProfilerRegistry::GetTimeOf(const std::string& name)
+	TimeStep ProfilerRegistry::GetAverageOf(const std::string& name)
 	{
 		if (!Utility::Contains(s_ProfilingData->Registry, name))
 			return 0.0f;
 		const ProfilerInstance& profiler = s_ProfilingData->Registry.at(name);
 		return profiler.GetAverage();
+	}
+
+	TimeStep ProfilerRegistry::GetTotalOf(const std::string& name)
+	{
+		if (!Utility::Contains(s_ProfilingData->Registry, name))
+			return 0.0f;
+		const ProfilerInstance& profiler = s_ProfilingData->Registry.at(name);
+		return profiler.GetTotal();
 	}
 
 	void ProfilerRegistry::NewFrame()
@@ -105,13 +113,19 @@ namespace Shark {
 	void ProfilerInstance::NewFrame()
 	{
 		m_AverageDuration = 0.0f;
+		m_TotalDuration = 0.0f;
 		if (m_Durations.size() == 0)
 			return;
 
 		for (auto duration : m_Durations)
-			m_AverageDuration += duration;
-		m_AverageDuration /= m_Durations.size();
+			m_TotalDuration += duration;
+		m_AverageDuration = m_TotalDuration / m_Durations.size();
 		m_Durations.clear();
+	}
+
+	void ProfilerInstance::AddDuration(double duration)
+	{
+		m_Durations.push_back(duration);
 	}
 
 }

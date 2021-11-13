@@ -95,6 +95,9 @@ namespace Shark {
 		bool m_NegativeEffect = false;
 		bool m_BlurEffect = false;
 
+		float m_TranslationSnap = 0.5f;
+		float m_RotationSnap = 45.0f;
+		float m_ScaleSnap = 0.5f;
 		int m_CurrentOperation = 0;
 		Entity m_SelectetEntity;
 

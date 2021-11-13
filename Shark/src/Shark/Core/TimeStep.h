@@ -6,8 +6,7 @@ namespace Shark {
 	{
 	public:
 		TimeStep(double time = 0.0f)
-			:
-			m_Time(time)
+			: m_Time(time)
 		{}
 
 		//operator float() const { return (float)m_Time; }

@@ -13,7 +13,8 @@ namespace Shark {
 	{
 	public:
 		static ProfilerInstance& GetProfiler(const std::string& name);
-		static TimeStep GetTimeOf(const std::string& name);
+		static TimeStep GetAverageOf(const std::string& name);
+		static TimeStep GetTotalOf(const std::string& name);
 		static void NewFrame();
 
 		static const std::unordered_map<std::string, ProfilerInstance>& GetMap();
@@ -40,11 +41,15 @@ namespace Shark {
 		void EndTimer();
 		void NewFrame();
 
+		void AddDuration(double duration);
+
 		TimeStep GetAverage() const { return m_AverageDuration; }
+		TimeStep GetTotal() const { return m_TotalDuration; }
 	private:
 		std::vector<double> m_Durations;
-		double m_AverageDuration = 0;
-		double m_StartTime = 0;
+		double m_AverageDuration = 0.0;
+		double m_TotalDuration = 0.0;
+		double m_StartTime = 0.0f;
 	};
 
 }
@@ -54,15 +59,20 @@ namespace Shark {
 
 #define SK_PERF_REGISTRY_MAP() ::Shark::ProfilerRegistry::GetMap()
 #define SK_PERF_PROFILER(name) ::Shark::ProfilerRegistry::GetProfiler((name))
-#define SK_PERF_TIME(name) ::Shark::ProfilerRegistry::GetTimeOf(name)
+
+#define SK_PERF_AVERAGE(name) ::Shark::ProfilerRegistry::GetAverageOf((name))
+#define SK_PERF_TOTAL(name) ::Shark::ProfilerRegistry::GetTotalOf((name))
+#define SK_PERF_ADD_DURATION(name, duration) ::Shark::ProfilerRegistry::GetProfiler((name)).AddDuration((duration))
 
 #define SK_PERF_SCOPED(name) ::Shark::ScopedProfiler SK_UNIQUE_VAR_NAME = SK_PERF_PROFILER(name)
 #define SK_PERF_FUNCTION() ::Shark::ScopedProfiler SK_UNIQUE_VAR_NAME = SK_PERF_PROFILER(SK_FUNC_SIG)
 #else
 #define SK_PERF_NEW_FRAME()
 
+#define SK_PERF_REGISTRY_MAP()
 #define SK_PERF_PROFILER(name)
-#define SK_PERF_TIME(name)
+#define SK_PERF_AVERAGE(name)
+#define SK_PERF_ADD_DURATION(name, duration)
 
 #define SK_PERF_SCOPED(name)
 #define SK_PERF_FUNCTION()

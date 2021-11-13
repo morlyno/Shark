@@ -263,6 +263,7 @@ namespace Shark::UI {
 	bool ColorEdit(const std::string& tag, DirectX::XMFLOAT4& color, ImGuiColorEditFlags flags = ImGuiColorEditFlags_None);
 
 	bool Checkbox(const std::string& tag, bool& v);
+	bool Checkbox(const std::string& tag, const bool& v);
 
 	bool ButtonRightAligned(const std::string& tag, const ImVec2& size = ImVec2(0, 0), ImGuiButtonFlags flags = ImGuiButtonFlags_None);
 

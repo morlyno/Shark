@@ -1220,6 +1220,31 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	bool Checkbox(const std::string& tag, const bool& v)
+	{
+		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
+		if (!ImGui::GetCurrentTable())
+			return false;
+
+		ImGui::TableNextRow();
+
+		PushID(GetID(tag));
+
+		ImGui::TableSetColumnIndex(0);
+		TextAligned(tag);
+		ImGui::TableSetColumnIndex(1);
+
+		bool tempVal = v;
+		const bool changed = ImGui::Checkbox("##X", &tempVal);
+
+		if (s_ControlIsGrid)
+			ImGui::Separator();
+
+		PopID();
+
+		return changed;
+	}
+
 	bool ButtonRightAligned(const std::string& tag, const ImVec2& size, ImGuiButtonFlags flags)
 	{
 		ImGuiContext* ctx = GImGui;

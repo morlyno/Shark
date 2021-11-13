@@ -11,6 +11,8 @@
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
 
+#include "Shark/Debug/Profiler.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <backends/imgui_impl_dx11.h>
@@ -39,7 +41,7 @@ namespace Shark {
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		io.ConfigWindowsMoveFromTitleBarOnly = true;
+		io.ConfigWindowsMoveFromTitleBarOnly = false;
 
 		SetDarkStyle();
 
@@ -69,6 +71,8 @@ namespace Shark {
 		ImGui_ImplDX11_CreateDeviceObjects();
 		ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, m_CommandBuffer->GetContext());
 		m_CommandBuffer->GetContext()->OMGetBlendState(&m_BlendState, m_BlendFactor, &m_SampleMask);
+
+		m_Timer = GPUTimer::Create("ImGui");
 
 	}
 
@@ -111,6 +115,7 @@ namespace Shark {
 		io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
 
 		m_CommandBuffer->Begin();
+		m_CommandBuffer->BeginTimeQuery(m_Timer);
 
 		Ref<DirectXFrameBuffer> dxFrameBuffer = DirectXRenderer::Get()->GetFinaleCompositFrameBuffer().As<DirectXFrameBuffer>();
 		dxFrameBuffer->Bind(m_CommandBuffer->GetContext());
@@ -126,6 +131,8 @@ namespace Shark {
 			ImGui::RenderPlatformWindowsDefault();
 		}
 
+		m_CommandBuffer->EndTimeQuery(m_Timer);
+		SK_PERF_ADD_DURATION("[GPU] DirectXImGuiLayer::End", m_Timer->GetTime());
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 	}
