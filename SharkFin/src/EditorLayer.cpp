@@ -13,7 +13,6 @@
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-#include <Shark/Debug/Instrumentor.h>
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
@@ -23,14 +22,18 @@ namespace Shark {
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	EditorLayer::~EditorLayer()
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	void EditorLayer::OnAttach()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
 
 		auto& app = Application::Get();
@@ -63,12 +66,15 @@ namespace Shark {
 		imageSpecs.Usage = ImageUsageNone;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
 
-		//for (uint32_t cnt = 0; cnt < 5000; cnt++)
+		//for (uint32_t cnt = 0; cnt < 50000; cnt++)
 		//{
 		//	Entity entity = m_ActiveScene->CreateEntity();
 		//	entity.AddComponent<SpriteRendererComponent>();
-		//	
 		//}
+		//
+		//Entity camera = m_ActiveScene->CreateEntity("Camera");
+		//camera.GetTransform().Position.z = -5.0f;
+		//camera.AddComponent<CameraComponent>();
 
 	}
 
@@ -79,6 +85,8 @@ namespace Shark {
 
 	void EditorLayer::OnUpdate(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_TimeStep = ts;
 
 		Renderer::NewFrame();
@@ -88,7 +96,7 @@ namespace Shark {
 
 		if (m_ViewportSizeChanged && m_ViewportWidth != 0 && m_ViewportHeight != 0)
 		{
-			SK_PROFILE_SCOPE("Viewport Size Changed");
+			SK_PROFILE_SCOPED("EditorLayer::OnUpdate Resize")
 
 			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 			m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
@@ -158,6 +166,8 @@ namespace Shark {
 
 	void EditorLayer::OnEvent(Event& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
@@ -171,6 +181,8 @@ namespace Shark {
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (event.GetWidth() == 0 || event.GetHeight() == 0)
 			return false;
 
@@ -181,6 +193,8 @@ namespace Shark {
 
 	bool EditorLayer::OnKeyPressed(KeyPressedEvent& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const bool control = Input::KeyPressed(Key::Control);
 		const bool shift = Input::KeyPressed(Key::LeftShift);
 
@@ -261,6 +275,8 @@ namespace Shark {
 
 	bool EditorLayer::OnSelectionChanged(SelectionChangedEvent& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_SelectetEntity = event.GetSelectedEntity();
 		return false;
 	}
@@ -323,6 +339,7 @@ namespace Shark {
 		// Mouse Picking
 		if (!ImGuizmo::IsUsing())
 		{
+			SK_PROFILE_SCOPED("EditorLayer::OnImGuiRender Mouse Picking");
 			SK_PERF_SCOPED("Mouse Picking");
 			// TODO: Move to EditorLayer::OnUpdate()
 
@@ -440,6 +457,8 @@ namespace Shark {
 
 	void EditorLayer::UI_MainMenuBar()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (ImGui::BeginMainMenuBar())
 		{
 			if (ImGui::BeginMenu("Scene"))
@@ -564,6 +583,8 @@ namespace Shark {
 
 	void EditorLayer::UI_Gizmo()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_CurrentOperation != 0 && m_SelectetEntity)
 		{
 			SK_CORE_ASSERT(m_SelectetEntity.HasComponent<TransformComponent>(), "Every entity is requiert to have a Transform Component");
@@ -642,6 +663,8 @@ namespace Shark {
 
 	void EditorLayer::UI_Info()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_ShowInfo)
 		{
 			ImGui::Begin("Info", &m_ShowInfo);
@@ -709,6 +732,8 @@ namespace Shark {
 
 	void EditorLayer::UI_Shaders()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (ImGui::Begin("Shaders"))
 		{
 			for (auto&& [key, shader] : *Renderer::GetShaderLib())
@@ -730,6 +755,8 @@ namespace Shark {
 
 	void EditorLayer::UI_EditorCamera()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_ShowEditorCameraControlls)
 		{
 			if (ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls))
@@ -770,6 +797,8 @@ namespace Shark {
 
 	void EditorLayer::UI_Project()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (!m_ShowProject || m_SceneState != SceneState::Edit)
 			return;
 
@@ -902,6 +931,8 @@ namespace Shark {
 
 	void EditorLayer::UI_DragDrop()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_SceneState != SceneState::Edit)
 			return;
 
@@ -943,6 +974,8 @@ namespace Shark {
 
 	void EditorLayer::UI_ToolBar()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		constexpr ImGuiWindowFlags falgs = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -1096,6 +1129,8 @@ namespace Shark {
 
 	void EditorLayer::UI_Settings()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_ShowSettings)
 		{
 			if (ImGui::Begin("Settings", &m_ShowSettings))
@@ -1150,6 +1185,8 @@ namespace Shark {
 
 	void EditorLayer::UI_CameraPrevie()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>())
 		{
 			ImVec2 viewportSize = { (float)m_ViewportWidth, (float)m_ViewportHeight };
@@ -1168,6 +1205,8 @@ namespace Shark {
 
 	void EditorLayer::UI_Stats()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (!m_ShowStats)
 			return;
 
@@ -1217,6 +1256,8 @@ namespace Shark {
 
 	void EditorLayer::NewScene()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		m_WorkScene = Ref<Scene>::Create();
@@ -1225,6 +1266,8 @@ namespace Shark {
 
 	bool EditorLayer::LoadScene()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		return LoadScene(m_WorkScene);
@@ -1232,6 +1275,8 @@ namespace Shark {
 
 	bool EditorLayer::LoadScene(Ref<Scene> scene)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		SceneSerializer serializer(scene);
@@ -1240,6 +1285,8 @@ namespace Shark {
 
 	bool EditorLayer::SaveScene()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 		SK_CORE_ASSERT(m_ActiveScene == m_WorkScene);
 
@@ -1261,6 +1308,8 @@ namespace Shark {
 
 	bool EditorLayer::SaveSceneAs()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		auto filepath = FileDialogs::SaveFileW(L"Shark Scene (*.shark)\0*.shark\0");
@@ -1271,12 +1320,16 @@ namespace Shark {
 
 	bool EditorLayer::SerializeScene(Ref<Scene> scene, const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SceneSerializer serializer(scene);
 		return serializer.Serialize(filePath);
 	}
 
 	void EditorLayer::OnScenePlay()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		m_SceneState = SceneState::Play;
@@ -1288,6 +1341,8 @@ namespace Shark {
 
 	void EditorLayer::OnSceneStop()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_ScenePaused = false;
 		m_ActiveScene->OnSceneStop();
 		SetActiveScene(m_WorkScene);
@@ -1303,6 +1358,8 @@ namespace Shark {
 
 	void EditorLayer::OnSimulateStart()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		m_SceneState = SceneState::Simulate;
@@ -1313,6 +1370,8 @@ namespace Shark {
 
 	void EditorLayer::SetActiveScene(const Ref<Scene>& scene)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_ActiveScene = scene;
 		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		m_SceneHirachyPanel.SetContext(m_ActiveScene);

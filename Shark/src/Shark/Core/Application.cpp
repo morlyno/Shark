@@ -6,10 +6,10 @@
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Render/Renderer.h"
 
-#include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
+#include <optick.h>
 
 namespace Shark {
 
@@ -48,7 +48,7 @@ namespace Shark {
 	{
 		while (m_Running)
 		{
-			SK_PROFILE_SCOPE("Main Loop");
+			OPTICK_FRAME("MainThread");
 			SK_PERF_NEW_FRAME();
 
 			int64_t time;
@@ -59,14 +59,14 @@ namespace Shark {
 			if (!m_Minimized)
 			{
 				{
-					SK_PROFILE_SCOPE("Update Layers");
+					SK_PROFILE_SCOPED("Application::Run Update Layers");
 
 					for (auto layer : m_LayerStack)
 						layer->OnUpdate(timeStep);
 				}
 
 				{
-					SK_PROFILE_SCOPE("ImGui");
+					SK_PROFILE_SCOPED("Application::Run ImGui");
 
 					m_ImGuiLayer->Begin();
 					for (auto layer : m_LayerStack)
@@ -75,21 +75,16 @@ namespace Shark {
 				}
 			}
 
-			{
-				SK_PROFILE_SCOPE("Update Window");
-				m_Window->Update();
-			}
+			m_Window->Update();
 
-			{
-				SK_PROFILE_SCOPE("Swap Buffers");
-
-				Renderer::GetRendererAPI()->Present(m_Window->IsVSync());
-			}
+			Renderer::GetRendererAPI()->Present(m_Window->IsVSync());
 		}
 	}
 
 	void Application::OnEvent(Event& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
 		dispacher.DispachEvent<ApplicationCloseEvent>(SK_BIND_EVENT_FN(Application::OnApplicationClose));
@@ -102,12 +97,16 @@ namespace Shark {
 
 	bool Application::OnWindowClose(WindowCloseEvent& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		OnEvent(ApplicationCloseEvent());
 		return false;
 	}
 
 	bool Application::OnApplicationClose(ApplicationCloseEvent& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_INFO(event);
 		m_Running = false;
 		return false;
@@ -115,6 +114,8 @@ namespace Shark {
 
 	bool Application::OnWindowResize(WindowResizeEvent& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (event.IsMinimized())
 		{
 			m_Minimized = true;
@@ -126,6 +127,8 @@ namespace Shark {
 
 	bool Application::OnKeyPressed(KeyPressedEvent& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (event.AltPressed() && event.GetKeyCode() == Key::F4)
 		{
 			CloseApplication();

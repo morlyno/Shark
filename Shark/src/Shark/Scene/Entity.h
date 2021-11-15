@@ -6,6 +6,7 @@
 #include "Shark/Scene/Components/IDComponent.h"
 
 #include "Shark/Debug/Instrumentor.h"
+
 #include <entt.hpp>
 
 namespace Shark {
@@ -25,7 +26,7 @@ namespace Shark {
 		Component& AddComponent(Args&&... args)
 		{
 			SK_PROFILE_FUNCTION();
-
+			
 			SK_CORE_ASSERT(!HasComponent<Component>());
 			return m_Scene->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 		}
@@ -34,7 +35,7 @@ namespace Shark {
 		Component& AddOrReplaceComponent(Args&&... args)
 		{
 			SK_PROFILE_FUNCTION();
-
+			
 			return m_Scene->m_Registry.emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 		}
 
@@ -42,7 +43,7 @@ namespace Shark {
 		void RemoveComponent()
 		{
 			SK_PROFILE_FUNCTION();
-
+			
 			SK_CORE_ASSERT(HasComponent<Component>());
 			m_Scene->m_Registry.remove<Component>(m_EntityHandle);
 		}
@@ -51,7 +52,7 @@ namespace Shark {
 		Component& GetComponent()
 		{
 			SK_PROFILE_FUNCTION();
-
+			
 			SK_CORE_ASSERT(HasComponent<Component>());
 			return m_Scene->m_Registry.get<Component>(m_EntityHandle);
 		}
@@ -60,7 +61,7 @@ namespace Shark {
 		Component* TryGetComponent()
 		{
 			SK_PROFILE_FUNCTION();
-
+			
 			return m_Scene->m_Registry.try_get<Component>(m_EntityHandle);
 		}
 
@@ -77,7 +78,7 @@ namespace Shark {
 		}
 
 		bool IsValid() const { SK_PROFILE_FUNCTION(); return m_Scene->m_Registry.valid(m_EntityHandle); }
-		bool IsNull() const { return m_EntityHandle == entt::null; }
+		bool IsNull() const { SK_PROFILE_FUNCTION(); return m_EntityHandle == entt::null; }
 
 		operator entt::entity() { return m_EntityHandle; }
 		operator bool() { return !IsNull() && IsValid(); }

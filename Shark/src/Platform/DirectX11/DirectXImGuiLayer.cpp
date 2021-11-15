@@ -19,6 +19,7 @@
 #include <backends/imgui_impl_win32.h>
 
 #include <ImGuizmo.h>
+#include "Shark/Debug/Instrumentor.h"
 
 namespace Shark {
 
@@ -32,6 +33,8 @@ namespace Shark {
 
 	void DirectXImGuiLayer::OnAttach()
 	{
+		SK_PROFILE_FUNCTION();
+
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 
@@ -78,6 +81,8 @@ namespace Shark {
 
 	void DirectXImGuiLayer::OnDetach()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
@@ -88,6 +93,8 @@ namespace Shark {
 
 	void DirectXImGuiLayer::OnEvent(Event& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_BlockEvents)
 		{
 			ImGuiIO& io = ImGui::GetIO();
@@ -98,6 +105,8 @@ namespace Shark {
 
 	void DirectXImGuiLayer::Begin()
 	{
+		SK_PROFILE_FUNCTION();
+
 		while (!m_BlendQueue.empty())
 			m_BlendQueue.pop();
 
@@ -110,6 +119,8 @@ namespace Shark {
 
 	void DirectXImGuiLayer::End()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImGuiIO& io = ImGui::GetIO();
 		auto& window = Application::Get().GetWindow();
 		io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
@@ -176,6 +187,8 @@ namespace Shark {
 
 	void DirectXImGuiLayer::SetDarkStyle()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImVec4* colors = ImGui::GetStyle().Colors;
 		colors[ImGuiCol_Text]                   = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 		colors[ImGuiCol_TextDisabled]           = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);

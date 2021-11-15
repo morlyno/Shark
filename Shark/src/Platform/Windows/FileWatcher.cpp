@@ -5,6 +5,8 @@
 #include "Platform/Windows/WindowsUtility.h"
 #include "Shark/File/FileSystem.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 #if SK_PLATFORM_WINDOWS
 
 namespace Shark {
@@ -25,14 +27,13 @@ namespace Shark {
 	FileWatcher::~FileWatcher()
 	{
 		if (m_Running)
-		{
-			m_Thread.join();
-			SK_CORE_INFO("FileWatcher Stoped watching: {}", m_Directory);
-		}
+			Stop();
 	}
 
 	void FileWatcher::Start()
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(!m_Directory.empty());
 		SK_CORE_ASSERT(FileSystem::Exists(m_Directory));
 
@@ -48,6 +49,8 @@ namespace Shark {
 
 	void FileWatcher::Stop()
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_VERIFY(m_Running, "FileWatcher::Stop was called but FileWatcher isn't running");
 		if (m_Running)
 		{

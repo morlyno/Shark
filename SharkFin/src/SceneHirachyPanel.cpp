@@ -10,12 +10,12 @@
 
 #include <Shark/Core/Application.h>
 
+#include "Shark/Debug/Instrumentor.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
-
-#include <Shark/Debug/Instrumentor.h>
 
 namespace Shark {
 
@@ -66,14 +66,14 @@ namespace Shark {
 	SceneHirachyPanel::SceneHirachyPanel(const Ref<Scene>& context)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		SetContext(context);
 	}
 
 	void SceneHirachyPanel::SetContext(const Ref<Scene>& context)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		Utils::ChangeSelectedEntity({});
 		m_Context = context;
 		m_FilePathInputBuffer = m_Context->GetFilePath().string();
@@ -82,18 +82,20 @@ namespace Shark {
 	void SceneHirachyPanel::OnImGuiRender()
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		if (m_ShowPanel)
 		{
 			if (ImGui::Begin("Scene Hirachy", &m_ShowPanel) && m_Context)
 			{
-				SK_PROFILE_SCOPE("Scene Hirachy");
-
-				m_Context->m_Registry.each([=](auto entityID)
 				{
-					Entity entity{ entityID, Weak(m_Context) };
-					DrawEntityNode(entity);
-				});
+					SK_PROFILE_SCOPED("Loop All Entitys");
+
+					m_Context->m_Registry.each([=](auto entityID)
+					{
+						Entity entity{ entityID, m_Context };
+						DrawEntityNode(entity);
+					});
+				}
 
 				if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
 					Utils::ChangeSelectedEntity({});
@@ -192,8 +194,6 @@ namespace Shark {
 		{
 			if (ImGui::Begin("Scene Properties", &m_ShowProperties))
 			{
-				SK_PROFILE_SCOPE("Scene Properties");
-
 				UI::TextWithBackGround(m_Context->GetFilePath());
 				std::filesystem::path filePath;
 				if (UI::GetContentPayload(filePath, UI::ContentType::Scene))
@@ -207,6 +207,8 @@ namespace Shark {
 
 	void SceneHirachyPanel::OnEvent(Event& event)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(SceneHirachyPanel::OnSelectionChanged));
 	}
@@ -214,7 +216,7 @@ namespace Shark {
 	void SceneHirachyPanel::DrawEntityNode(Entity entity)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		const auto& tag = entity.GetComponent<TagComponent>();
 		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 		if (m_SelectedEntity == entity)
@@ -261,7 +263,7 @@ namespace Shark {
 	void SceneHirachyPanel::DrawEntityProperties(Entity entity)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		ImGuiStyle& style = ImGui::GetStyle();
 		const float AddButtonWidth = ImGui::CalcTextSize("Add").x + style.FramePadding.x * 2.0f;
 		const float IDSpacingWidth = ImGui::CalcTextSize("0x0123456789ABCDEF").x + style.FramePadding.x * 2.0f;
@@ -325,6 +327,8 @@ namespace Shark {
 
 		Utils::DrawComponet<TransformComponent>(entity, "Transform", [](auto& comp)
 		{
+			SK_PROFILE_SCOPED("DrawComponent<TransformComponent>");
+
 			UI::BeginControls();
 			UI::DragFloat("Position", comp.Position);
 			UI::DragAngle("Rotation", comp.Rotation);
@@ -334,6 +338,8 @@ namespace Shark {
 
 		Utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp)
 		{
+			SK_PROFILE_SCOPED("DrawComponent<SpriteRendererComponent>");
+				
 			UI::BeginControls();
 
 			UI::ColorEdit("Color", comp.Color);
@@ -387,6 +393,8 @@ namespace Shark {
 
 		Utils::DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp)
 		{
+			SK_PROFILE_SCOPED("DrawComponent<CircleRendererComponent>");
+
 			UI::BeginControls();
 				
 			UI::ColorEdit("Color", comp.Color);
@@ -398,6 +406,8 @@ namespace Shark {
 
 		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)
 		{
+			SK_PROFILE_SCOPED("DrawComponent<CameraComponent>");
+
 			m_SelectedProjectionIndex = (int)comp.Camera.GetProjectionType();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
 			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, s_ProjectionItems, (int)std::size(s_ProjectionItems));
@@ -453,6 +463,8 @@ namespace Shark {
 
 		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)
 		{
+			SK_PROFILE_SCOPED("DrawComponent<RigidBody2DComponent>");
+
 			int bodyType = (int)comp.Type;
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			if (ImGui::Combo("##BodyType", &bodyType, s_BodyTypes, (int)Utility::ArraySize(s_BodyTypes)))
@@ -463,6 +475,7 @@ namespace Shark {
 		
 		Utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp)
 		{
+			SK_PROFILE_SCOPED("DrawComponent<BoxCollider2DComponent>");
 			UI::BeginControls();
 			UI::DragFloat("Size", comp.Size, 0.5f);
 			UI::DragFloat("Offset", comp.Offset);
@@ -476,6 +489,7 @@ namespace Shark {
 
 		Utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp)
 		{
+			SK_PROFILE_SCOPED("DrawComponent<CircleCollider2DComponent>");
 			UI::BeginControls();
 			UI::DragFloat("Radius", comp.Radius, 0.5f);
 			UI::DragFloat("Offset", comp.Offset);
@@ -489,6 +503,7 @@ namespace Shark {
 
 		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [](NativeScriptComponent& comp)
 		{
+			SK_PROFILE_SCOPED("DrawComponent<NativeScriptComponent>");
 			char inputbuffer[128];
 			strcpy_s(inputbuffer, comp.ScriptTypeName.c_str());
 
@@ -547,6 +562,8 @@ namespace Shark {
 
 	void SceneHirachyPanel::DestroyEntity(Entity entity)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (entity.GetUUID() == m_Context->GetActiveCameraUUID())
 			m_Context->SetActiveCamera(UUID());
 

@@ -6,12 +6,12 @@
 #include "Shark/Utility/YAMLUtils.h"
 #include "Shark/File/FileSystem.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 #include <yaml-cpp/yaml.h>
 #include <fmt/format.h>
 #include <fstream>
 #include <DirectXMath.h>
-
-#include "Shark/Debug/Instrumentor.h"
 
 namespace Shark {
 
@@ -70,10 +70,13 @@ namespace Shark {
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
 		: m_Scene(scene)
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	static bool SerializeEntity(YAML::Emitter& out, Entity entity, const Ref<Scene>& scene)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (!out.good())
 		{
 			SK_CORE_ERROR("Bad Yaml Emitter! Skipping Entity {0}", (uint32_t)entity);
@@ -220,7 +223,7 @@ namespace Shark {
 	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
-			
+		
 		YAML::Emitter out;
 
 		SK_CORE_INFO("==========================================================================================");
@@ -260,7 +263,7 @@ namespace Shark {
 	bool SceneSerializer::Deserialize(const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		YAML::Node in = YAML::LoadFile(filepath);
 		if (!in["Scene"])
 			return false;
@@ -275,6 +278,8 @@ namespace Shark {
 		{
 			for (auto entity : entities)
 			{
+				SK_PROFILE_SCOPED("SceneSerializer::Deserialize Entity");
+
 				UUID uuid = entity["Entity"].as<uint64_t>();
 				auto tagComp = entity["TagComponent"];
 				auto tag = tagComp["Tag"].as<std::string>();

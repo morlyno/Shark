@@ -9,11 +9,15 @@
 #include "Shark/Scene/Components/CameraComponent.h"
 #include "Shark/Utility/Math.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 namespace Shark {
 
 	SceneRenderer::SceneRenderer(Ref<Scene> scene, const SceneRendererOptions& options)
 		: m_Scene(scene), m_Options(options)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_ViewportWidth = m_Scene->GetViewportWidth();
 		m_ViewportHeight = m_Scene->GetViewportHeight();
 
@@ -49,12 +53,17 @@ namespace Shark {
 
 	SceneRenderer::~SceneRenderer()
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	void SceneRenderer::BeginScene(const DirectX::XMMATRIX& viewProj)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_NeedsResize)
 		{
+			SK_PROFILE_SCOPED("SceneRenderer::BeginScene::Resize");
+
 			m_GeometryFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_FinalFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_NeedsResize = false;
@@ -66,6 +75,8 @@ namespace Shark {
 
 	void SceneRenderer::EndScene()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_CommandBuffer->Begin();
 
 		//m_FinalFrameBuffer->Clear(m_CommandBuffer);
@@ -81,16 +92,22 @@ namespace Shark {
 
 	void SceneRenderer::SubmitQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_Renderer2D->DrawRotatedQuad(position, roation, scaling, texture, tilingfactor, tintcolor, id);
 	}
 
 	void SceneRenderer::SubmitCirlce(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_Renderer2D->DrawFilledCircle(position, rotation, scaling, color, thickness, fade, id);
 	}
 
 	void SceneRenderer::SubmitColliderBox(const DirectX::XMFLOAT2& pos, float rotation, const DirectX::XMFLOAT2& scale)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_Options.ShowColliders)
 		{
 			if (m_Options.ShowCollidersOnTop)
@@ -102,6 +119,8 @@ namespace Shark {
 
 	void SceneRenderer::SubmitColliderCirlce(const DirectX::XMFLOAT2& pos, float radius)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_Options.ShowColliders)
 		{
 			if (m_Options.ShowCollidersOnTop)
@@ -113,6 +132,8 @@ namespace Shark {
 
 	void SceneRenderer::Resize(uint32_t width, uint32_t height)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 		m_NeedsResize = true;

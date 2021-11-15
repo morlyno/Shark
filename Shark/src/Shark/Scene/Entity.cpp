@@ -18,16 +18,22 @@ namespace Shark {
 
 	UUID Entity::GetUUID()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		return GetComponent<IDComponent>().ID;
 	}
 
 	const std::string& Entity::GetName()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		return GetComponent<TagComponent>().Tag;
 	}
 
 	TransformComponent& Entity::GetTransform()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		return GetComponent<TransformComponent>();
 	}
 

@@ -23,6 +23,8 @@ namespace Shark {
 	template<typename Component>
 	void CopyComponents(entt::registry& srcRegistry, entt::registry& destRegistry, const std::unordered_map<UUID, entt::entity>& enttMap)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto view = srcRegistry.view<Component>();
 		for (auto srcEntity : view)
 		{
@@ -36,6 +38,8 @@ namespace Shark {
 	template<typename Component>
 	void CopyComponentIfExists(entt::entity srcEntity, entt::registry& srcRegistry, entt::entity destEntity, entt::registry& destRegistry)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (auto* comp = srcRegistry.try_get<Component>(srcEntity))
 			destRegistry.emplace_or_replace<Component>(destEntity, *comp);
 	}
@@ -71,7 +75,7 @@ namespace Shark {
 	Ref<Scene> Scene::Copy(Ref<Scene> srcScene)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		auto newScene = Ref<Scene>::Create();
 		newScene->m_ViewportWidth = srcScene->m_ViewportWidth;
 		newScene->m_ViewportHeight = srcScene->m_ViewportHeight;
@@ -106,7 +110,7 @@ namespace Shark {
 	void Scene::OnScenePlay()
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		SetupBox2D();
 
 		// Create Native Scrips
@@ -158,6 +162,8 @@ namespace Shark {
 
 	void Scene::OnSceneStop()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		auto view = m_Registry.view<NativeScriptComponent>();
 		for (auto entityID : view)
 		{
@@ -177,11 +183,14 @@ namespace Shark {
 
 	void Scene::OnSimulateStart()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SetupBox2D();
 	}
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnUpdateRuntime");
 
 		{
@@ -214,10 +223,13 @@ namespace Shark {
 
 	void Scene::OnUpdateEditor(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	void Scene::OnSimulate(TimeStep ts, bool subStep)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		// TODO(moro): expose iteration values
 		if (subStep)
 		{
@@ -243,6 +255,7 @@ namespace Shark {
 
 	void Scene::OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const DirectX::XMMATRIX& view)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnRenderRuntimePreview");
 
 		renderer->SetScene(this);
@@ -272,6 +285,7 @@ namespace Shark {
 
 	void Scene::OnRenderRuntime(Ref<SceneRenderer> renderer)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnRenderRuntime");
 
 		Entity camerEntity = Entity{ m_RuntimeCamera, this };
@@ -306,6 +320,7 @@ namespace Shark {
 
 	void Scene::OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnRenderEditor");
 
 		renderer->SetScene(this);
@@ -357,6 +372,7 @@ namespace Shark {
 
 	void Scene::OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnRenderSimulate");
 
 		renderer->SetScene(this);
@@ -408,7 +424,7 @@ namespace Shark {
 	Entity Scene::CloneEntity(Entity srcEntity)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		Entity newEntity = CreateEntity();
 
 		CopyComponentIfExists<TagComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
@@ -427,14 +443,14 @@ namespace Shark {
 	Entity Scene::CreateEntity(const std::string& tag)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		return CreateEntityWithUUID(UUID::Create(), tag);
 	}
 
 	Entity Scene::CreateEntityWithUUID(UUID uuid, const std::string& tag)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		Entity entity{ m_Registry.create(), this };
 		entity.AddComponent<IDComponent>(uuid);
 		entity.AddComponent<TagComponent>(tag.empty() ? "new Entity" : tag);
@@ -445,14 +461,14 @@ namespace Shark {
 	void Scene::DestroyEntity(Entity entity)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		m_Registry.destroy(entity);
 	}
 
 	Entity Scene::GetEntityByUUID(UUID uuid)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		auto view = m_Registry.view<IDComponent>();
 		for (auto e : view)
 		{
@@ -466,14 +482,14 @@ namespace Shark {
 	bool Scene::IsValidEntity(Entity entity)const
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		return m_Registry.valid(entity);
 	}
 
 	Entity Scene::FindActiveCameraEntity()
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		if (m_ActiveCameraUUID.Valid())
 		{
 			auto view = m_Registry.view<CameraComponent>();
@@ -489,6 +505,8 @@ namespace Shark {
 
 	Entity Scene::GetRuntimeCamera()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_RuntimeCamera != entt::null);
 		return Entity{ m_RuntimeCamera, this };
 	}
@@ -496,7 +514,7 @@ namespace Shark {
 	void Scene::ResizeCameras(float width, float height)
 	{
 		SK_PROFILE_FUNCTION();
-
+		
 		auto view = m_Registry.view<CameraComponent>();
 		for (auto entityID : view)
 		{
@@ -507,6 +525,8 @@ namespace Shark {
 
 	void Scene::SetupBox2D()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr);
 		m_PhysicsWorld2D = new b2World({ 0.0f, -9.8f });
 

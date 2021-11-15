@@ -7,12 +7,6 @@ namespace Shark {
 
 	static Ref<RendererAPI> s_RendererAPI = nullptr;
 
-	struct RendererBaseData
-	{
-		ShaderLibrary ShaderLib;
-		Ref<Texture2D> WhiteTexture;
-	};
-
 	void Renderer::Init()
 	{
 		s_RendererAPI = RendererAPI::Create();

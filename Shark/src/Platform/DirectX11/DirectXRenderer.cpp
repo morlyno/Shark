@@ -55,11 +55,15 @@ namespace Shark {
 
 	DirectXRenderer::DirectXRenderer()
 	{
+		SK_PROFILE_FUNCTION();
+
 		Init();
 	}
 
 	DirectXRenderer::~DirectXRenderer()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ShutDown();
 	}
 
@@ -157,6 +161,8 @@ namespace Shark {
 
 	void DirectXRenderer::ShutDown()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_SwapChain = nullptr;
 		m_ShaderLib = nullptr;
 		m_WhiteTexture = nullptr;
@@ -200,6 +206,7 @@ namespace Shark {
 
 	void DirectXRenderer::NewFrame()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("DirectXRenderer::NewFrame");
 
 		if (m_IsFirstFrame)
@@ -245,6 +252,7 @@ namespace Shark {
 
 	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("DirectXRenderer::RenderFullScreenQuad");
 
 		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
@@ -280,6 +288,7 @@ namespace Shark {
 
 	void DirectXRenderer::RenderFullScreenQuadWidthDepth(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image, Ref<Image2D> depthImage)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("DirectXRenderer::RenderFullScreenQuadWidthDepth");
 
 		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
@@ -318,6 +327,7 @@ namespace Shark {
 
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shader, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_ASSERT(false, "not implementes");
 #if 0
 		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
@@ -370,6 +380,7 @@ namespace Shark {
 
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry [Indexed]");
 
 		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
@@ -429,6 +440,7 @@ namespace Shark {
 
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, PrimitveTopology topology)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry");
 
 		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
@@ -485,6 +497,7 @@ namespace Shark {
 
 	void DirectXRenderer::Present(bool vsync)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("DirectXRenderer::Present");
 
 		m_PresentTimer->StartQuery(m_ImmediateContext);
@@ -500,6 +513,7 @@ namespace Shark {
 
 	void DirectXRenderer::BindMainFrameBuffer()
 	{
+		SK_PROFILE_FUNCTION();
 		Ref<DirectXSwapChainFrameBuffer> swapChainFrameBuffer = m_SwapChain->GetMainFrameBuffer();
 
 		m_ImmediateContext->OMSetRenderTargets(swapChainFrameBuffer->m_Count, swapChainFrameBuffer->m_FrameBuffers.data(), swapChainFrameBuffer->m_DepthStencil);
@@ -526,6 +540,8 @@ namespace Shark {
 
 	void DirectXRenderer::Flush()
 	{
+		SK_PROFILE_FUNCTION();
+
 		Timer timer;
 		for (auto cmdBuffer : m_CommandBuffers)
 			cmdBuffer->Flush();

@@ -42,6 +42,7 @@ namespace Shark {
 	WindowsWindow::WindowClass::~WindowClass()
 	{
 		SK_PROFILE_FUNCTION();
+
 		UnregisterClass(ClassName, hInst);
 	}
 
@@ -79,33 +80,29 @@ namespace Shark {
 			height = rect.bottom - rect.top;
 		}
 
-		{
-			SK_PROFILE_SCOPE("[Windows] Create Window");
+		m_hWnd = CreateWindowExW(
+			0,
+			WindowClass::GetName(),
+			m_Name.c_str(),
+			flags,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			width,
+			height,
+			nullptr,
+			nullptr,
+			WindowClass::GetHInst(),
+			this
+		);
 
-			m_hWnd = CreateWindowExW(
-				0,
-				WindowClass::GetName(),
-				m_Name.c_str(),
-				flags,
-				CW_USEDEFAULT,
-				CW_USEDEFAULT,
-				width,
-				height,
-				nullptr,
-				nullptr,
-				WindowClass::GetHInst(),
-				this
-			);
-		}
-#ifdef SK_DEBUG
 		if (!m_hWnd)
 		{
 			DWORD LastErrorCode = GetLastError();
 			SK_CORE_ERROR("Faled to create Window");
 			SK_CORE_ERROR("Last ErrorCode: {0:x}", LastErrorCode);
-			SK_DEBUG_BREAK();
+			SK_CORE_ASSERT(false);
 		}
-#endif
+
 		ShowWindow(m_hWnd, SW_SHOW);
 		UpdateWindow(m_hWnd);
 	}

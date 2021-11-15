@@ -1,11 +1,12 @@
 #include "skpch.h"
 #include "Project.h"
 
-#include <yaml-cpp/yaml.h>
 #include "Shark/Utility/YAMLUtils.h"
 #include "Shark/File/FileSystem.h"
 
 #include "Shark/Debug/Instrumentor.h"
+
+#include <yaml-cpp/yaml.h>
 
 namespace Shark {
 
@@ -128,12 +129,16 @@ namespace Shark {
 
 	bool Project::HasStartupScene() const
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(m_StartupScene.empty() ? true : FileSystem::Exists(m_StartupScene), "Startup Scene is set but the file dosn't exist!");
 		return !m_StartupScene.empty();
 	}
 
 	void Project::CreateDefautlProject()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_ProjectName = "Untitled";
 		m_AssetsPath = "assets";
 		m_TexturesPath = std::filesystem::path{};

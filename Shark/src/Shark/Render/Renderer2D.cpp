@@ -9,15 +9,21 @@
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 #include "Platform/DirectX11/DirectXTexture.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 namespace Shark {
 
 	Renderer2D::Renderer2D(Ref<FrameBuffer> renderTarget)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		Init(renderTarget);
 	}
 
 	Renderer2D::~Renderer2D()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_QuadVertexBasePtr)
 			delete[] m_QuadVertexBasePtr;
 		if (m_CircleVertexBasePtr)
@@ -28,6 +34,8 @@ namespace Shark {
 
 	void Renderer2D::Init(Ref<FrameBuffer> renderTarget)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_RenderTarget = renderTarget;
 		m_WhiteTexture = Renderer::GetWhiteTexture();
 
@@ -109,17 +117,21 @@ namespace Shark {
 
 	void Renderer2D::ShutDown()
 	{
-
+		SK_PROFILE_FUNCTION();
 	}
 
 	void Renderer2D::SetRenderTarget(Ref<FrameBuffer> renderTarget)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		SK_CORE_ASSERT(!m_Active);
 		m_RenderTarget = renderTarget;
 	}
 
 	void Renderer2D::BeginScene(const DirectX::XMMATRIX& viewProj)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_Active = true;
 
 		CBCamera cam{ viewProj };
@@ -158,6 +170,7 @@ namespace Shark {
 
 	void Renderer2D::EndScene()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Renderer2D::EndScene");
 
 		m_CommandBuffer->Begin();
@@ -252,6 +265,8 @@ namespace Shark {
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		static constexpr DirectX::XMFLOAT3 VertexPositions[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
 		static constexpr DirectX::XMFLOAT2 TextureCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
 
@@ -311,6 +326,8 @@ namespace Shark {
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_QuadIndexCount >= MaxQuadIndices)
 			FlushAndResetQuad();
 
@@ -356,6 +373,8 @@ namespace Shark {
 
 	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_CircleIndexCount >= MaxCircleIndices)
 			FlushAndResetCircle();
 
@@ -381,6 +400,8 @@ namespace Shark {
 
 	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_CircleIndexCount >= MaxCircleIndices)
 			FlushAndResetCircle();
 
@@ -411,6 +432,8 @@ namespace Shark {
 
 	void Renderer2D::DrawCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		const auto translation = DirectX::XMMatrixScaling(radius, radius, radius) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
 		if (delta < 0.01f)
@@ -445,6 +468,8 @@ namespace Shark {
 
 	void Renderer2D::DrawLine(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_LineVertexCount >= MaxLineVertices)
 			FlushAndResetLine();
 
@@ -472,6 +497,8 @@ namespace Shark {
 
 	void Renderer2D::DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
 		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
@@ -492,6 +519,8 @@ namespace Shark {
 
 	void Renderer2D::DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.z) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
 		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
@@ -512,6 +541,8 @@ namespace Shark {
 
 	void Renderer2D::DrawLineOnTop(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		if (m_LineOnTopVertexCount >= MaxLineOnTopVertices)
 			FlushAndResetLineOnTop();
 
@@ -539,6 +570,8 @@ namespace Shark {
 
 	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
 		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
@@ -559,6 +592,8 @@ namespace Shark {
 
 	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.z) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
 		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
@@ -579,6 +614,8 @@ namespace Shark {
 
 	void Renderer2D::DrawCircleOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
 	{
+		SK_PROFILE_FUNCTION();
+		
 		const auto translation = DirectX::XMMatrixScaling(radius, radius, radius) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
 		if (delta < 0.01f)
@@ -607,6 +644,8 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetQuad()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_CommandBuffer->Begin();
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexIndexPtr - (uint8_t*)m_QuadVertexBasePtr);
@@ -631,6 +670,8 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetCircle()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_CommandBuffer->Begin();
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_CircleVertexIndexPtr - (uint8_t*)m_CircleVertexBasePtr);
@@ -650,6 +691,8 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetLine()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_CommandBuffer->Begin();
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_LineVertexIndexPtr - (uint8_t*)m_LineVertexBasePtr);
@@ -669,6 +712,8 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetLineOnTop()
 	{
+		SK_PROFILE_FUNCTION();
+		
 		m_CommandBuffer->Begin();
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_LineOnTopVertexIndexPtr - (uint8_t*)m_LineOnTopVertexBasePtr);
