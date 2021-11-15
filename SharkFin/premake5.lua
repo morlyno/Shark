@@ -27,7 +27,8 @@ project "SharkFin"
         "%{includeDir.yaml_cpp}",
         "%{includeDir.box2d}",
         "%{includeDir.ImGuizmo}",
-        "%{includeDir.fmt}"
+        "%{includeDir.fmt}",
+        "%{includeDir.Optick}"
     }
 
     links

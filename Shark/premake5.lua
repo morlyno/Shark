@@ -28,7 +28,8 @@ project "Shark"
         "%{includeDir.yaml_cpp}",
         "%{includeDir.box2d}",
         "%{includeDir.ImGuizmo}",
-        "%{includeDir.fmt}"
+        "%{includeDir.fmt}",
+        "%{includeDir.Optick}"
     }
 
     flags
@@ -48,7 +49,8 @@ project "Shark"
             "yaml-cpp",
             "box2d",
             "ImGuizmo",
-            "fmt"
+            "fmt",
+            "OptickCore"
         }
 
     filter "configurations:Debug"

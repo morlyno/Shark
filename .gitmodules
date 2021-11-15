@@ -16,3 +16,6 @@
 [submodule "Shark/dependencies/fmt"]
 	path = Shark/dependencies/fmt
 	url = https://github.com/morlyno/fmt.git
+[submodule "Shark/dependencies/Optick"]
+	path = Shark/dependencies/Optick
+	url = https://github.com/morlyno/optick
