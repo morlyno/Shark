@@ -11,6 +11,7 @@ namespace Shark {
 
 		//operator float() const { return (float)m_Time; }
 		operator double() const { return m_Time; }
+		operator double&() { return m_Time; }
 
 		double Seconds() const { return m_Time; }
 		double MilliSeconds() const { return m_Time * 1000.0; }

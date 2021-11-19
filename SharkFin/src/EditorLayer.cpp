@@ -66,16 +66,6 @@ namespace Shark {
 		imageSpecs.Usage = ImageUsageNone;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
 
-		//for (uint32_t cnt = 0; cnt < 50000; cnt++)
-		//{
-		//	Entity entity = m_ActiveScene->CreateEntity();
-		//	entity.AddComponent<SpriteRendererComponent>();
-		//}
-		//
-		//Entity camera = m_ActiveScene->CreateEntity("Camera");
-		//camera.GetTransform().Position.z = -5.0f;
-		//camera.AddComponent<CameraComponent>();
-
 	}
 
 	void EditorLayer::OnDetach()
@@ -231,14 +221,11 @@ namespace Shark {
 			// Copy Entity
 			case Key::D:
 			{
-				if (control)
+				if (control && m_SelectetEntity && m_SceneState == SceneState::Edit)
 				{
-					if (m_SelectetEntity)
-					{
-						Entity e = m_WorkScene->CloneEntity(m_SelectetEntity);
-						Event::Distribute(SelectionChangedEvent(e));
-						return true;
-					}
+					Entity e = m_WorkScene->CloneEntity(m_SelectetEntity);
+					Event::Distribute(SelectionChangedEvent(e));
+					return true;
 				}
 				break;
 			}
@@ -394,8 +381,8 @@ namespace Shark {
 		UI_CameraPrevie();
 		UI_Stats();
 
-		m_SceneHirachyPanel.OnImGuiRender();
-		m_AssetsPanel.OnImGuiRender();
+		m_SceneHirachyPanel.OnImGuiRender(m_ShwoSceneHirachyPanel);
+		m_AssetsPanel.OnImGuiRender(m_ShowAssetsPanel);
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
@@ -492,11 +479,6 @@ namespace Shark {
 					OpenScene();
 				*/
 
-				ImGui::Separator();
-				bool show = m_SceneHirachyPanel.PropertiesShown();
-				if (ImGui::MenuItem("Properties", nullptr, &show))
-					m_SceneHirachyPanel.ShwoProerties(show);
-
 				ImGui::EndMenu();
 			}
 
@@ -554,20 +536,14 @@ namespace Shark {
 
 			if (ImGui::BeginMenu("Panels"))
 			{
-				bool show = m_SceneHirachyPanel.IsShowen();
-				if (ImGui::MenuItem("Scene Hirachy", nullptr, &show))
-					m_SceneHirachyPanel.ShowPanel(show);
-
-				show = m_AssetsPanel.IsShowen();
-				if (ImGui::MenuItem("Assets", nullptr, &show))
-					m_AssetsPanel.ShowPanel(show);
-
-				ImGui::MenuItem("Project", nullptr, &m_ShowProject);
-
-				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
-				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
-				ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
-				ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
+				bool pressed = false;
+				pressed |= ImGui::MenuItem("Scene Hirachy", nullptr, &m_ShwoSceneHirachyPanel);
+				pressed |= ImGui::MenuItem("Assets", nullptr, &m_ShowAssetsPanel);
+				pressed |= ImGui::MenuItem("Project", nullptr, &m_ShowProject);
+				pressed |= ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
+				pressed |= ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
+				pressed |= ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
+				pressed |= ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
 
 				ImGui::Separator();
 
@@ -575,7 +551,11 @@ namespace Shark {
 					Application::Get().CloseApplication();
 
 				ImGui::EndMenu();
+
+				if (pressed)
+					ImGui::OpenPopup("Panels");
 			}
+
 
 			ImGui::EndMainMenuBar();
 		}
@@ -734,7 +714,10 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (ImGui::Begin("Shaders"))
+		if (!m_ShowShaders)
+			return;
+
+		if (ImGui::Begin("Shaders", &m_ShowShaders))
 		{
 			for (auto&& [key, shader] : *Renderer::GetShaderLib())
 			{
@@ -744,7 +727,7 @@ namespace Shark {
 					if (ImGui::Button("ReCompile"))
 						shader->ReCompile();
 					if (ImGui::Button("Reflect"))
-						shader->PrintReflection();
+						shader->LogReflection();
 					// IDEA: Print Shader Detailes (From Reflection)
 					ImGui::TreePop();
 				}
@@ -1224,32 +1207,33 @@ namespace Shark {
 
 
 		ImGui::Begin("Times");
-		UI::Text(fmt::format("Mouse Picking:                   {:.4f}ms", SK_PERF_AVERAGE("Mouse Picking").MilliSeconds()));
-		UI::Text(fmt::format("Window Update:                   {:.4f}ms", SK_PERF_AVERAGE("WindowsWindow::Update").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Editor:             {:.4f}ms", SK_PERF_AVERAGE("Scene::OnRenderEditor").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Runtime:            {:.4f}ms", SK_PERF_AVERAGE("Scene::OnRenderRuntime").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Simulate:           {:.4f}ms", SK_PERF_AVERAGE("Scene::OnRenderSimulate").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Runtime Preview:    {:.4f}ms", SK_PERF_AVERAGE("Scene::OnRenderRuntimePreview").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Update Runtime:            {:.4f}ms", SK_PERF_AVERAGE("Scene::OnUpdateRuntime").MilliSeconds()));
+		UI::Text(fmt::format("Mouse Picking:                   {:.4f}ms", ProfilerRegistry::GetAverageOf("Mouse Picking").MilliSeconds()));
+		UI::Text(fmt::format("Window Update:                   {:.4f}ms", ProfilerRegistry::GetAverageOf("WindowsWindow::Update").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Editor:             {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderEditor").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Runtime:            {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderRuntime").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Simulate:           {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderSimulate").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Runtime Preview:    {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderRuntimePreview").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Update Runtime:            {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnUpdateRuntime").MilliSeconds()));
 		ImGui::End();
 
 
 		ImGui::Begin("GPU Times");
 		UI::Text(fmt::format("Present GPU:                     {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
-		UI::Text(fmt::format("GeometryPass:                    {:.4f}ms", s.GeometryPassTimer->GetTime().MilliSeconds()));
-		UI::Text(fmt::format("ImGuiLayer GPU:                  {:.4f}ms", SK_PERF_AVERAGE("[GPU] DirectXImGuiLayer::End").MilliSeconds()));
+		UI::Text(fmt::format("GeometryPass:                    {:.4f}ms", s.GeometryPassTime.MilliSeconds()));
+		UI::Text(fmt::format("ImGuiLayer GPU:                  {:.4f}ms", ProfilerRegistry::GetAverageOf("[GPU] DirectXImGuiLayer::End").MilliSeconds()));
 		ImGui::End();
 
 
 		ImGui::Begin("CPU Times");
 		UI::Text(fmt::format("FrameTime:                       Average: {:.4f}ms", m_TimeStep.MilliSeconds()));
-		UI::Text(fmt::format("Present CPU:                     Average: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::Present").MilliSeconds()));
-		UI::Text(fmt::format("NewFrame:                        Average: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::NewFrame").MilliSeconds()));
-		UI::Text(fmt::format("RenderGeometry:                  Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::RenderGeometry").MilliSeconds(), SK_PERF_TOTAL("DirectXRenderer::RenderGeometry").MilliSeconds()));
-		UI::Text(fmt::format("RenderGeometry [Indexed]:        Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds(), SK_PERF_TOTAL("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds()));
-		UI::Text(fmt::format("RenderFullScreenQuad:            Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::RenderFullScreenQuad").MilliSeconds(), SK_PERF_TOTAL("DirectXRenderer::RenderFullScreenQuad").MilliSeconds()));
-		UI::Text(fmt::format("RenderFullScreenQuadWidthDepth:  Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds(), SK_PERF_TOTAL("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds()));
-		UI::Text(fmt::format("Renderer2D EndScene:             Average: {:.4f}ms, Total: {:.4f}ms", SK_PERF_AVERAGE("Renderer2D::EndScene").MilliSeconds(), SK_PERF_TOTAL("Renderer2D::EndScene").MilliSeconds()));
+		UI::Text(fmt::format("Present CPU:                     Average: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::Present").MilliSeconds()));
+		UI::Text(fmt::format("NewFrame:                        Average: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::NewFrame").MilliSeconds()));
+		UI::Text(fmt::format("RenderGeometry:                  Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry").MilliSeconds()));
+		UI::Text(fmt::format("RenderGeometry [Indexed]:        Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds()));
+		UI::Text(fmt::format("RenderGeometry [Material]:       Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry [Material]").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry [Material]").MilliSeconds()));
+		UI::Text(fmt::format("RenderFullScreenQuad:            Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuad").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuad").MilliSeconds()));
+		UI::Text(fmt::format("RenderFullScreenQuadWidthDepth:  Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds()));
+		UI::Text(fmt::format("Renderer2D EndScene:             Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("Renderer2D::EndScene").MilliSeconds(), ProfilerRegistry::GetAverageOf("Renderer2D::EndScene").MilliSeconds()));
 		ImGui::End();
 
 	}

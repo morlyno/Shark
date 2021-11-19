@@ -79,129 +79,116 @@ namespace Shark {
 		m_FilePathInputBuffer = m_Context->GetFilePath().string();
 	}
 
-	void SceneHirachyPanel::OnImGuiRender()
+	void SceneHirachyPanel::OnImGuiRender(bool& showPanel)
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (m_ShowPanel)
+		if (!showPanel)
+			return;
+
+		if (ImGui::Begin("Scene Hirachy", &showPanel) && m_Context)
 		{
-			if (ImGui::Begin("Scene Hirachy", &m_ShowPanel) && m_Context)
 			{
+				SK_PROFILE_SCOPED("Loop All Entitys");
+
+				m_Context->m_Registry.each([=](auto entityID)
 				{
-					SK_PROFILE_SCOPED("Loop All Entitys");
+					Entity entity{ entityID, m_Context };
+					DrawEntityNode(entity);
+				});
+			}
 
-					m_Context->m_Registry.each([=](auto entityID)
-					{
-						Entity entity{ entityID, m_Context };
-						DrawEntityNode(entity);
-					});
-				}
+			if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
+				Utils::ChangeSelectedEntity({});
 
-				if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
-					Utils::ChangeSelectedEntity({});
-
-				if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+			if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+			{
+				if (ImGui::BeginMenu("Create"))
 				{
-					if (ImGui::BeginMenu("Create"))
+					if (ImGui::MenuItem("Entity"))
 					{
-						if (ImGui::MenuItem("Entity"))
+						Entity e = m_Context->CreateEntity("Entity");
+						Utils::ChangeSelectedEntity(e);
+					}
+					if (ImGui::MenuItem("Camera"))
+					{
+						Entity e = m_Context->CreateEntity("Camera");
+						e.AddComponent<CameraComponent>();
+						Utils::ChangeSelectedEntity(e);
+					}
+					if (ImGui::BeginMenu("Geometry"))
+					{
+						if (ImGui::MenuItem("Quad"))
 						{
-							Entity e = m_Context->CreateEntity("Entity");
+							Entity e = m_Context->CreateEntity("Quad");
+							e.AddComponent<SpriteRendererComponent>();
 							Utils::ChangeSelectedEntity(e);
 						}
-						if (ImGui::MenuItem("Camera"))
+						if (ImGui::MenuItem("Circle"))
 						{
-							Entity e = m_Context->CreateEntity("Camera");
-							e.AddComponent<CameraComponent>();
+							Entity e = m_Context->CreateEntity("Circle");
+							e.AddComponent<CircleRendererComponent>();
 							Utils::ChangeSelectedEntity(e);
 						}
-						if (ImGui::BeginMenu("Geometry"))
+						ImGui::EndMenu();
+					}
+					if (ImGui::BeginMenu("Physics2D"))
+					{
+						if (ImGui::BeginMenu("Collider"))
 						{
-							if (ImGui::MenuItem("Quad"))
+							if (ImGui::MenuItem("Box"))
 							{
-								Entity e = m_Context->CreateEntity("Quad");
+								Entity e = m_Context->CreateEntity("Box Collider");
 								e.AddComponent<SpriteRendererComponent>();
+								e.AddComponent<BoxCollider2DComponent>();
 								Utils::ChangeSelectedEntity(e);
 							}
 							if (ImGui::MenuItem("Circle"))
 							{
-								Entity e = m_Context->CreateEntity("Circle");
+								Entity e = m_Context->CreateEntity("Circle Collider");
 								e.AddComponent<CircleRendererComponent>();
+								e.AddComponent<CircleCollider2DComponent>();
 								Utils::ChangeSelectedEntity(e);
 							}
 							ImGui::EndMenu();
 						}
-						if (ImGui::BeginMenu("Physics2D"))
+						if (ImGui::BeginMenu("RigidBody"))
 						{
-							if (ImGui::BeginMenu("Collider"))
+							if (ImGui::MenuItem("Box"))
 							{
-								if (ImGui::MenuItem("Box"))
-								{
-									Entity e = m_Context->CreateEntity("Box Collider");
-									e.AddComponent<SpriteRendererComponent>();
-									e.AddComponent<BoxCollider2DComponent>();
-									Utils::ChangeSelectedEntity(e);
-								}
-								if (ImGui::MenuItem("Circle"))
-								{
-									Entity e = m_Context->CreateEntity("Circle Collider");
-									e.AddComponent<CircleRendererComponent>();
-									e.AddComponent<CircleCollider2DComponent>();
-									Utils::ChangeSelectedEntity(e);
-								}
-								ImGui::EndMenu();
+								Entity e = m_Context->CreateEntity("Box RigidBody");
+								e.AddComponent<SpriteRendererComponent>();
+								auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
+								rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
+								auto& boxCollider = e.AddComponent<BoxCollider2DComponent>();
+								boxCollider.Density = 1.0f;
+								Utils::ChangeSelectedEntity(e);
 							}
-							if (ImGui::BeginMenu("RigidBody"))
+							if (ImGui::MenuItem("Circle"))
 							{
-								if (ImGui::MenuItem("Box"))
-								{
-									Entity e = m_Context->CreateEntity("Box RigidBody");
-									e.AddComponent<SpriteRendererComponent>();
-									auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
-									rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
-									auto& boxCollider = e.AddComponent<BoxCollider2DComponent>();
-									boxCollider.Density = 1.0f;
-									Utils::ChangeSelectedEntity(e);
-								}
-								if (ImGui::MenuItem("Circle"))
-								{
-									Entity e = m_Context->CreateEntity("Circle RigidBody");
-									e.AddComponent<CircleRendererComponent>();
-									auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
-									rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
-									auto& circleCollider = e.AddComponent<CircleCollider2DComponent>();
-									circleCollider.Density = 1.0f;
-									Utils::ChangeSelectedEntity(e);
-								}
-								ImGui::EndMenu();
+								Entity e = m_Context->CreateEntity("Circle RigidBody");
+								e.AddComponent<CircleRendererComponent>();
+								auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
+								rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
+								auto& circleCollider = e.AddComponent<CircleCollider2DComponent>();
+								circleCollider.Density = 1.0f;
+								Utils::ChangeSelectedEntity(e);
 							}
 							ImGui::EndMenu();
 						}
 						ImGui::EndMenu();
 					}
-					ImGui::EndPopup();
+					ImGui::EndMenu();
 				}
+				ImGui::EndPopup();
 			}
-			ImGui::End();
-
-			ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
-			if (m_SelectedEntity)
-				DrawEntityProperties(m_SelectedEntity);
-			ImGui::End();
 		}
+		ImGui::End();
 
-		if (m_ShowProperties)
-		{
-			if (ImGui::Begin("Scene Properties", &m_ShowProperties))
-			{
-				UI::TextWithBackGround(m_Context->GetFilePath());
-				std::filesystem::path filePath;
-				if (UI::GetContentPayload(filePath, UI::ContentType::Scene))
-					m_Context->SetFilePath(filePath);
-
-			}
-			ImGui::End();
-		}
+		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+		if (m_SelectedEntity)
+			DrawEntityProperties(m_SelectedEntity);
+		ImGui::End();
 
 	}
 

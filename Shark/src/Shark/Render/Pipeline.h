@@ -19,6 +19,8 @@ namespace Shark {
 		Ref<FrameBuffer> TargetFrameBuffer;
 		Ref<Shader> Shader;
 
+		// TODO(moro): Add PrimitiveTopology
+
 		std::string DebugName;
 	};
 

@@ -18,7 +18,7 @@ namespace Shark {
 		virtual const std::string& GetFileName() const = 0;
 
 		virtual bool ReCompile() = 0;
-		virtual void PrintReflection() = 0;
+		virtual void LogReflection() = 0;
 
 		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name) = 0;
 

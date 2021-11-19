@@ -17,16 +17,11 @@ namespace Shark {
 		void SetContext(const Ref<Scene>& context);
 		const Ref<Scene>& GetContext() const { return m_Context; }
 
-		void ShowPanel(bool show) { m_ShowPanel = show; }
-		bool IsShowen() const { return m_ShowPanel; }
-		void ShwoProerties(bool show) { m_ShowProperties = show; }
-		bool PropertiesShown() const { return m_ShowProperties; }
-
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 
 		void ScenePlaying(bool playing) { m_ScenePlaying = playing; }
 
-		void OnImGuiRender();
+		void OnImGuiRender(bool& showPanel);
 
 		void OnEvent(Event& event);
 
@@ -38,9 +33,6 @@ namespace Shark {
 
 		bool OnSelectionChanged(SelectionChangedEvent& event);
 	private:
-		bool m_ShowPanel = true;
-		bool m_ShowProperties = false;
-
 		Ref<Scene> m_Context;
 		Entity m_SelectedEntity;
 

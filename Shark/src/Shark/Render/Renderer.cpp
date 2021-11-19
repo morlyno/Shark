@@ -47,6 +47,11 @@ namespace Shark {
 		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, constantBufferSet, textureArray, vertexBuffer, vertexCount, topology);
 	}
 
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
+	{
+		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, constantBufferSet, vertexBuffer, indexBuffer, indexCount, topology);
+	}
+
 	Ref<ShaderLibrary> Renderer::GetShaderLib()
 	{
 		return s_RendererAPI->GetShaderLib();
@@ -60,11 +65,6 @@ namespace Shark {
 	Ref<GPUTimer> Renderer::GetPresentTimer()
 	{
 		return s_RendererAPI->GetPresentTimer();
-	}
-
-	Ref<FrameBuffer> Renderer::GetFinaleCompositFrameBuffer()
-	{
-		return s_RendererAPI->GetFinaleCompositFrameBuffer();
 	}
 
 	Ref<RendererAPI> Renderer::GetRendererAPI()

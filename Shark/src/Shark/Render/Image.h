@@ -31,9 +31,9 @@ namespace Shark {
 	enum ImageUsage : uint16_t
 	{
 		ImageUsageNone = 0,
-		ImageUsageTexture = SK_BIT(0),
-		ImageUsageFrameBuffer = SK_BIT(1),
-		ImageUsageDethStencil = SK_BIT(2)
+		ImageUsageTexture = BIT(0),
+		ImageUsageFrameBuffer = BIT(1),
+		ImageUsageDethStencil = BIT(2)
 	};
 	std::string ImageUsageToString(uint32_t flags);
 

@@ -306,7 +306,7 @@ namespace Shark {
 			{
 				//SK_CORE_TRACE("0x{0:x}", wParam);
 				const unsigned int repeat = lParam & 0xFFFF;
-				const bool altPressed = (lParam & SK_BIT(29)) > 0;
+				const bool altPressed = (lParam & BIT(29)) > 0;
 				m_Callbackfunc(KeyPressedEvent((KeyCode)wParam, repeat, altPressed));
 				break;
 			}

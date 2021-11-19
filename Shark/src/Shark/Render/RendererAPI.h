@@ -9,6 +9,7 @@
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Pipeline.h"
+#include "Shark/Render/Material.h"
 
 namespace Shark {
 
@@ -38,12 +39,11 @@ namespace Shark {
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) = 0;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) = 0;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, PrimitveTopology topology) = 0;
+		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) = 0;
 
 		virtual Ref<ShaderLibrary> GetShaderLib() = 0;
 		virtual Ref<Texture2D> GetWhiteTexture() = 0;
 		virtual Ref<GPUTimer> GetPresentTimer() = 0;
-
-		virtual Ref<FrameBuffer> GetFinaleCompositFrameBuffer() const = 0;
 
 		virtual void ResizeSwapChain(uint32_t width, uint32_t height) = 0;
 		virtual void Present(bool vsync) = 0;

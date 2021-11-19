@@ -15,6 +15,9 @@ namespace Shark {
 		DirectXTexture2D(uint32_t width, uint32_t height, void* data, const SamplerProps& props);
 		virtual ~DirectXTexture2D();
 
+		ID3D11SamplerState* GetSamplerNative() const { return m_Sampler; }
+		ID3D11ShaderResourceView* GetViewNative() const { return m_Image->GetViewNative(); }
+
 		virtual RenderID GetRenderID() const override { return m_Image->GetViewRenderID(); }
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
 
@@ -43,10 +46,8 @@ namespace Shark {
 	class DirectXTexture2DArray : public Texture2DArray
 	{
 	public:
-		DirectXTexture2DArray(uint32_t count);
+		DirectXTexture2DArray(uint32_t count, uint32_t startOffset = 0);
 		virtual ~DirectXTexture2DArray() = default;
-
-		virtual void Resize(uint32_t newCount) override;
 
 		virtual Ref<Texture2D> Create(uint32_t index, Ref<Image2D> image, const SamplerProps& props = {}) override;
 		virtual Ref<Texture2D> Create(uint32_t index, const std::filesystem::path& filepath, const SamplerProps& props = {}) override;
@@ -55,8 +56,17 @@ namespace Shark {
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) override;
 		virtual Ref<Texture2D> Get(uint32_t index) const override;
 
+		virtual uint32_t GetCount() const override { return m_Count; }
+
 	private:
+		void SetTexture(uint32_t index, Ref<DirectXTexture2D> texture);
+
+	private:
+		uint32_t m_Count;
+		uint32_t m_StartOffset;
 		std::vector<Ref<DirectXTexture2D>> m_TextureArray;
+		std::vector<ID3D11ShaderResourceView*> m_Views;
+		std::vector<ID3D11SamplerState*> m_Samplers;
 
 		friend class DirectXRenderer;
 	};

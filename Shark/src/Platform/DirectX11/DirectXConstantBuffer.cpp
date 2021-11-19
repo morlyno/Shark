@@ -2,6 +2,7 @@
 #include "DirectXConstantBuffer.h"
 
 #include "Platform/DirectX11/DirectXRenderer.h"
+#include "Shark/Utility/Utility.h"
 
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
@@ -33,17 +34,6 @@ namespace Shark {
 			m_ConstBuffer->Release();
 	}
 
-	void DirectXConstantBuffer::Bind(ID3D11DeviceContext* ctx)
-	{
-		ctx->VSSetConstantBuffers(m_Slot, 1, &m_ConstBuffer);
-	}
-
-	void DirectXConstantBuffer::UnBind(ID3D11DeviceContext* ctx)
-	{
-		ID3D11Buffer* nullBuffer = nullptr;
-		ctx->VSSetConstantBuffers(m_Slot, 1, &nullBuffer);
-	}
-
 	void DirectXConstantBuffer::Set(void* data, uint32_t size)
 	{
 		auto* ctx = DirectXRenderer::GetContext();
@@ -58,6 +48,8 @@ namespace Shark {
 
 	Ref<ConstantBuffer> DirectXConstantBufferSet::Create(uint32_t size, uint32_t slot)
 	{
+		SK_CORE_ASSERT(!Utility::Contains(m_CBMap, slot));
+
 		Ref<DirectXConstantBuffer> cb = Ref<DirectXConstantBuffer>::Create(size, slot);
 		m_CBMap[slot] = cb;
 		return cb;
@@ -65,6 +57,8 @@ namespace Shark {
 
 	Ref<ConstantBuffer> DirectXConstantBufferSet::Get(uint32_t slot) const
 	{
+		SK_CORE_ASSERT(Utility::Contains(m_CBMap, slot));
+
 		return m_CBMap.at(slot);
 	}
 

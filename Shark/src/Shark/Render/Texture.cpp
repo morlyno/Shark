@@ -39,12 +39,12 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Texture2DArray> Texture2DArray::Create(uint32_t count)
+	Ref<Texture2DArray> Texture2DArray::Create(uint32_t count, uint32_t startOffset)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2DArray>::Create(count);
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2DArray>::Create(count, startOffset);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;

@@ -5,6 +5,9 @@
 #include "Platform/DirectX11/DirectXBuffers.h"
 #include "Platform/DirectX11/DirectXGPUTimer.h"
 
+#include "Platform/DirectX11/DirectXMaterial.h"
+#include "Platform/DirectX11/DirectXConstantBuffer.h"
+
 #include <set>
 #include <d3d11.h>
 
@@ -27,12 +30,13 @@ namespace Shark {
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shaders, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) override;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) override;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, PrimitveTopology topology) override;
+		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology) override;
 
 		virtual Ref<ShaderLibrary> GetShaderLib() override { return m_ShaderLib; }
 		virtual Ref<Texture2D> GetWhiteTexture() override { return m_WhiteTexture; }
 		virtual Ref<GPUTimer> GetPresentTimer() override { return m_PresentTimer; }
 
-		virtual Ref<FrameBuffer> GetFinaleCompositFrameBuffer() const override { return m_SwapChain->GetMainFrameBuffer(); }
+		Ref<FrameBuffer> GetFinaleCompositFrameBuffer() const { return m_SwapChain->GetMainFrameBuffer(); }
 
 		virtual void ResizeSwapChain(uint32_t width, uint32_t height) override { m_SwapChainNeedsResize = true; m_WindowWidth = width; m_WindowHeight = height; }
 		virtual void Present(bool vsync) override;
@@ -47,6 +51,8 @@ namespace Shark {
 		uint64_t HasValidFrequncy() const { return m_IsValidFrequency; }
 
 		void Flush();
+
+		void PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet);
 
 	public:
 		static Ref<DirectXRenderer>     Get()                  { return s_Instance; }

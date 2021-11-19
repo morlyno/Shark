@@ -83,12 +83,16 @@ namespace Shark {
 
 		TimeStep m_TimeStep;
 
+		bool m_ShwoSceneHirachyPanel = true;
+		bool m_ShowAssetsPanel = true;
+
 		bool m_ShowInfo = true;
 		bool m_ShowEditorCameraControlls = false;
 		bool m_ShowProject = false;
 		bool m_ShowSettings = true;
 		bool m_ShowStats = true;
 		bool m_ReadHoveredEntity = false;
+		bool m_ShowShaders = false;
 
 		int m_HoveredEntityID = -1;
 
@@ -111,6 +115,7 @@ namespace Shark {
 		Ref<Texture2D> m_SimulateIcon;
 		Ref<Texture2D> m_PauseIcon;
 		Ref<Texture2D> m_StepIcon;
+
 	};
 
 }

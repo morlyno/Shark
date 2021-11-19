@@ -76,14 +76,14 @@ namespace Shark {
 		m_Watcher.Stop();
 	}
 
-	void AssetsPanel::OnImGuiRender()
+	void AssetsPanel::OnImGuiRender(bool& showPanel)
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (!m_ShowPanel)
+		if (!showPanel)
 			return;
 
-		if (!ImGui::Begin("Assets", &m_ShowPanel, ImGuiWindowFlags_NoScrollbar))
+		if (!ImGui::Begin("Assets", &showPanel, ImGuiWindowFlags_NoScrollbar))
 		{
 			ImGui::End();
 			return;

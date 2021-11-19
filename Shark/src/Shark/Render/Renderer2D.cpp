@@ -44,7 +44,8 @@ namespace Shark {
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
 
-		m_Statistics.GeometryPassTimer = GPUTimer::Create();
+		m_GeometryPassTimer = GPUTimer::Create();
+		m_QuadFlushQuery = GPUTimer::Create();
 
 		// Quad
 		{
@@ -72,6 +73,8 @@ namespace Shark {
 
 			m_QuadVertexBasePtr = new QuadVertex[MaxQuadVertices];
 			m_QuadTextureArray = Texture2DArray::Create(MaxTextureSlots);
+
+			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader);
 		}
 
 		// Circle
@@ -132,6 +135,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
+		SK_CORE_ASSERT(!m_Active);
+
 		m_Active = true;
 
 		CBCamera cam{ viewProj };
@@ -158,6 +163,7 @@ namespace Shark {
 		m_LineOnTopVertexCount = 0;
 		m_LineOnTopVertexIndexPtr = m_LineOnTopVertexBasePtr;
 
+
 		m_Statistics.DrawCalls = 0;
 		m_Statistics.QuadCount = 0;
 		m_Statistics.CircleCount = 0;
@@ -166,6 +172,7 @@ namespace Shark {
 		m_Statistics.VertexCount = 0;
 		m_Statistics.IndexCount = 0;
 		m_Statistics.TextureCount = 1;
+		m_Statistics.GeometryPassTime = 0.0f;
 	}
 
 	void Renderer2D::EndScene()
@@ -173,20 +180,11 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Renderer2D::EndScene");
 
+		SK_CORE_ASSERT(m_Active);
+
 		m_CommandBuffer->Begin();
 
-#if SK_DEBUG
-		{
-			SK_CORE_ASSERT(RendererAPI::GetAPI() == RendererAPI::API::DirectX11);
-			Ref<DirectXTexture2D> dxTexture = m_WhiteTexture.As<DirectXTexture2D>();
-			Ref<DirectXRenderCommandBuffer> dxCommandBuffer = m_CommandBuffer.As<DirectXRenderCommandBuffer>();
-
-			for (uint32_t i = 0; i < MaxTextureSlots; i++)
-				dxTexture->Bind(dxCommandBuffer->GetContext(), i);
-		}
-#endif
-
-		m_CommandBuffer->BeginTimeQuery(m_Statistics.GeometryPassTimer);
+		m_CommandBuffer->BeginTimeQuery(m_GeometryPassTimer);
 
 		// Quad
 		{
@@ -195,7 +193,9 @@ namespace Shark {
 			{
 				m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
 
-				Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_ConstantBufferSet, m_QuadTextureArray, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
+				m_QuadMaterial->SetTextureArray("g_Textures", m_QuadTextureArray);
+				Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_QuadMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
+
 				m_Statistics.DrawCalls++;
 			}
 		}
@@ -239,11 +239,13 @@ namespace Shark {
 			}
 		}
 
-		m_CommandBuffer->EndTimeQuery(m_Statistics.GeometryPassTimer);
+		m_CommandBuffer->EndTimeQuery(m_GeometryPassTimer);
 
 
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
+
+		m_Statistics.GeometryPassTime += m_GeometryPassTimer->GetTime();
 
 		m_Active = false;
 	}
@@ -265,11 +267,9 @@ namespace Shark {
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
-		SK_PROFILE_FUNCTION();
+		//SK_PROFILE_FUNCTION();
+		SK_CORE_ASSERT(m_Active);
 		
-		static constexpr DirectX::XMFLOAT3 VertexPositions[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
-		static constexpr DirectX::XMFLOAT2 TextureCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
-
 		if (m_QuadIndexCount >= MaxQuadIndices)
 			FlushAndResetQuad();
 
@@ -293,9 +293,9 @@ namespace Shark {
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			QuadVertex* vtx = m_QuadVertexIndexPtr++;
-			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(VertexPositions[i]), translation));
+			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[i]), translation));
 			vtx->Color = tintcolor;
-			vtx->Tex = TextureCoords[i];
+			vtx->Tex = m_TextureCoords[i];
 			vtx->TextureSlot = textureSlot;
 			vtx->TilingFactor = tilingfactor;
 			vtx->ID = id;
@@ -327,7 +327,8 @@ namespace Shark {
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		if (m_QuadIndexCount >= MaxQuadIndices)
 			FlushAndResetQuad();
 
@@ -351,9 +352,9 @@ namespace Shark {
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			QuadVertex* vtx = m_QuadVertexIndexPtr++;
-			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[i]), translation));
+			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[i]), translation));
 			vtx->Color = tintcolor;
-			vtx->Tex = TextureCoords[i];
+			vtx->Tex = m_TextureCoords[i];
 			vtx->TextureSlot = textureSlot;
 			vtx->TilingFactor = tilingfactor;
 			vtx->ID = id;
@@ -374,7 +375,8 @@ namespace Shark {
 	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		if (m_CircleIndexCount >= MaxCircleIndices)
 			FlushAndResetCircle();
 
@@ -383,8 +385,8 @@ namespace Shark {
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			CircleVertex* vtx = m_CircleVertexIndexPtr++;
-			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[i]), translation));
-			vtx->LocalPosition = { QuadVertexPositions[i].x * 2.0f, QuadVertexPositions[i].y * 2.0f };
+			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[i]), translation));
+			vtx->LocalPosition = { m_QuadVertexPositions[i].x * 2.0f, m_QuadVertexPositions[i].y * 2.0f };
 			vtx->Color = color;
 			vtx->Thickness = thickness;
 			vtx->Fade = fade;
@@ -401,7 +403,8 @@ namespace Shark {
 	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		if (m_CircleIndexCount >= MaxCircleIndices)
 			FlushAndResetCircle();
 
@@ -410,8 +413,8 @@ namespace Shark {
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			CircleVertex* vtx = m_CircleVertexIndexPtr++;
-			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[i]), translation));
-			vtx->LocalPosition = { QuadVertexPositions[i].x * 2.0f, QuadVertexPositions[i].y * 2.0f };
+			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[i]), translation));
+			vtx->LocalPosition = { m_QuadVertexPositions[i].x * 2.0f, m_QuadVertexPositions[i].y * 2.0f };
 			vtx->Color = color;
 			vtx->Thickness = thickness;
 			vtx->Fade = fade;
@@ -433,7 +436,8 @@ namespace Shark {
 	void Renderer2D::DrawCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		const auto translation = DirectX::XMMatrixScaling(radius, radius, radius) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
 		if (delta < 0.01f)
@@ -469,7 +473,8 @@ namespace Shark {
 	void Renderer2D::DrawLine(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		if (m_LineVertexCount >= MaxLineVertices)
 			FlushAndResetLine();
 
@@ -498,13 +503,14 @@ namespace Shark {
 	void Renderer2D::DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
-		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
-		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[1]), translation));
-		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[2]), translation));
-		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[3]), translation));
+		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[0]), translation));
+		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[1]), translation));
+		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[2]), translation));
+		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[3]), translation));
 
 		DrawLine(p0, p1, color, id);
 		DrawLine(p1, p2, color, id);
@@ -520,13 +526,14 @@ namespace Shark {
 	void Renderer2D::DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.z) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
-		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
-		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[1]), translation));
-		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[2]), translation));
-		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[3]), translation));
+		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[0]), translation));
+		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[1]), translation));
+		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[2]), translation));
+		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[3]), translation));
 
 		DrawLine(p0, p1, color, id);
 		DrawLine(p1, p2, color, id);
@@ -542,7 +549,8 @@ namespace Shark {
 	void Renderer2D::DrawLineOnTop(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		if (m_LineOnTopVertexCount >= MaxLineOnTopVertices)
 			FlushAndResetLineOnTop();
 
@@ -571,13 +579,14 @@ namespace Shark {
 	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
-		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
-		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[1]), translation));
-		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[2]), translation));
-		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[3]), translation));
+		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[0]), translation));
+		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[1]), translation));
+		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[2]), translation));
+		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[3]), translation));
 
 		DrawLineOnTop(p0, p1, color, id);
 		DrawLineOnTop(p1, p2, color, id);
@@ -593,13 +602,14 @@ namespace Shark {
 	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.z) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
-		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[0]), translation));
-		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[1]), translation));
-		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[2]), translation));
-		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(QuadVertexPositions[3]), translation));
+		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[0]), translation));
+		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[1]), translation));
+		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[2]), translation));
+		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[3]), translation));
 
 		DrawLineOnTop(p0, p1, color, id);
 		DrawLineOnTop(p1, p2, color, id);
@@ -615,7 +625,8 @@ namespace Shark {
 	void Renderer2D::DrawCircleOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		const auto translation = DirectX::XMMatrixScaling(radius, radius, radius) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 
 		if (delta < 0.01f)
@@ -645,19 +656,25 @@ namespace Shark {
 	void Renderer2D::FlushAndResetQuad()
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		m_CommandBuffer->Begin();
+		m_CommandBuffer->BeginTimeQuery(m_QuadFlushQuery);
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexIndexPtr - (uint8_t*)m_QuadVertexBasePtr);
 		if (dataSize)
 		{
 			m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
 
-			Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_ConstantBufferSet, m_QuadTextureArray, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
+			m_QuadMaterial->SetTextureArray("g_Textures", m_QuadTextureArray);
+			Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_QuadMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount, PrimitveTopology::Triangle);
 			m_Statistics.DrawCalls++;
 		}
 
+		m_CommandBuffer->EndTimeQuery(m_QuadFlushQuery);
+
 		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
 
 		m_QuadIndexCount = 0;
 		m_QuadVertexIndexPtr = m_QuadVertexBasePtr;
@@ -666,13 +683,17 @@ namespace Shark {
 		for (uint32_t i = 1; i < MaxTextureSlots; i++)
 			m_QuadTextureArray->Set(i, nullptr);
 
+
+		m_Statistics.GeometryPassTime += m_QuadFlushQuery->GetTime();
 	}
 
 	void Renderer2D::FlushAndResetCircle()
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		m_CommandBuffer->Begin();
+		m_CommandBuffer->BeginTimeQuery(m_CircleFlushQuery);
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_CircleVertexIndexPtr - (uint8_t*)m_CircleVertexBasePtr);
 		if (dataSize)
@@ -683,17 +704,23 @@ namespace Shark {
 			m_Statistics.DrawCalls++;
 		}
 
+		m_CommandBuffer->EndTimeQuery(m_CircleFlushQuery);
 		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
 
 		m_CircleIndexCount = 0;
 		m_CircleVertexIndexPtr = m_CircleVertexBasePtr;
+
+		m_Statistics.GeometryPassTime += m_CircleFlushQuery->GetTime();
 	}
 
 	void Renderer2D::FlushAndResetLine()
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		m_CommandBuffer->Begin();
+		m_CommandBuffer->BeginTimeQuery(m_LineFlushQuery);
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_LineVertexIndexPtr - (uint8_t*)m_LineVertexBasePtr);
 		if (dataSize)
@@ -704,17 +731,23 @@ namespace Shark {
 			m_Statistics.DrawCalls++;
 		}
 
+		m_CommandBuffer->EndTimeQuery(m_LineFlushQuery);
 		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
 
 		m_LineVertexCount = 0;
 		m_LineVertexIndexPtr = m_LineVertexBasePtr;
+
+		m_Statistics.GeometryPassTime += m_LineFlushQuery->GetTime();
 	}
 
 	void Renderer2D::FlushAndResetLineOnTop()
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_CORE_ASSERT(m_Active);
+
 		m_CommandBuffer->Begin();
+		m_CommandBuffer->BeginTimeQuery(m_LineOnTopFlushQuery);
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_LineOnTopVertexIndexPtr - (uint8_t*)m_LineOnTopVertexBasePtr);
 		if (dataSize)
@@ -725,10 +758,14 @@ namespace Shark {
 			m_Statistics.DrawCalls++;
 		}
 
+		m_CommandBuffer->EndTimeQuery(m_LineOnTopFlushQuery);
 		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
 
 		m_LineOnTopVertexCount = 0;
 		m_LineOnTopVertexIndexPtr = m_LineOnTopVertexBasePtr;
+
+		m_Statistics.GeometryPassTime += m_LineOnTopFlushQuery->GetTime();
 	}
 
 }

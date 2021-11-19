@@ -26,11 +26,11 @@ namespace Shark {
 	enum EventCategory_ : uint32_t
 	{
 		EventCategoryNone         = 0,
-		EventCategoryWindow       = SK_BIT(0),
-		EventCategoryInput        = SK_BIT(1),
-		EventCategoryMouse        = SK_BIT(2),
-		EventCategoryKeyboard     = SK_BIT(3),
-		EventCategoryApplication  = SK_BIT(4),
+		EventCategoryWindow       = BIT(0),
+		EventCategoryInput        = BIT(1),
+		EventCategoryMouse        = BIT(2),
+		EventCategoryKeyboard     = BIT(3),
+		EventCategoryApplication  = BIT(4),
 	};
 	using EventCategory = uint32_t;
 

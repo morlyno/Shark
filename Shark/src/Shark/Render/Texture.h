@@ -59,8 +59,6 @@ namespace Shark {
 	public:
 		virtual ~Texture2DArray() = default;
 
-		virtual void Resize(uint32_t newCount) = 0;
-
 		virtual Ref<Texture2D> Create(uint32_t index, Ref<Image2D> image, const SamplerProps& props = {}) = 0;
 		virtual Ref<Texture2D> Create(uint32_t index, const std::filesystem::path& filepath, const SamplerProps& props = {}) = 0;
 		virtual Ref<Texture2D> Create(uint32_t index, uint32_t width, uint32_t height, void* data, const SamplerProps& props = {}) = 0;
@@ -68,8 +66,10 @@ namespace Shark {
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) = 0;
 		virtual Ref<Texture2D> Get(uint32_t index) const = 0;
 
+		virtual uint32_t GetCount() const = 0;
+
 	public:
-		static Ref<Texture2DArray> Create(uint32_t count);
+		static Ref<Texture2DArray> Create(uint32_t count, uint32_t startOffset = 0);
 	};
 
 }

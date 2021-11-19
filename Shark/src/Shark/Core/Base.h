@@ -1,12 +1,12 @@
 #pragma once
 
-#if SK_PLATFORM_WINDOWS
-	#define SK_DEBUG_BREAK() __debugbreak()
-#else
+#if !SK_PLATFORM_WINDOWS
 	#error Platform other than Windows are currently not supported
 #endif
 
+
 #if SK_DEBUG
+	#define SK_DEBUG_BREAK() __debugbreak()
 	#define SK_ENABLE_MEMORY_TRACING 0
 	#define SK_ENABLE_ASSERT 1
 	#define SK_ENABLE_VERIFY 1
@@ -14,19 +14,25 @@
 #endif
 
 #if SK_RELEASE
+	// TODO(moro): Add Notification for release
+	#define SK_DEBUG_BREAK() __debugbreak()
 	#define SK_ENABLE_MEMORY_TRACING 0
 	#define SK_ENABLE_ASSERT 1
 	#define SK_ENABLE_VERIFY 2
 	#define SK_IF_DEBUG(...)
 #endif
 
-#define SK_ENABLE_PREF 1
+#if (!defined(SK_RELEASE) && !defined(SK_DEBUG)) || (defined(SK_RELEASE) && defined(SK_DEBUG))
+#error Invalid Configuration
+#endif
+
+#define SK_ENABLE_PERF 1
+#define SK_DISABLE_DEPRECATED 1
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #define SPDLOG_FMT_EXTERNAL 1
 
 #define BIT(x) (1 << x)
-#define SK_BIT(x) (1 << x)
 
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
@@ -34,13 +40,14 @@
 
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 
-#define SK_DISABLE_DEPRECATED 1
+#define SK_NOT_IMPLEMENTED() SK_CORE_ASSERT(false, "Not Implemented");
 
 #if defined(SK_DISABLE_DEPRECATED) && (SK_DISABLE_DEPRECATED == 1)
 #define SK_DEPRECATED(message)
 #else
 #define SK_DEPRECATED(message) [[deprecated(message)]]
 #endif
+
 
 #ifdef __COUNTER__
 #define SK_UNIQUE_VAR_NAME SK_CONNECT(unique_var_, __COUNTER__)
@@ -112,6 +119,9 @@ namespace Shark {
 	static_assert(sizeof(wchar_t) == 2);
 	static_assert(sizeof(int) == 4);
 	static_assert(sizeof(byte) == 1);
+
+	static_assert(sizeof(float) == 4);
+	static_assert(sizeof(double) == 8);
 
 }
 

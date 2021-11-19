@@ -12,9 +12,6 @@ namespace Shark {
 		DirectXConstantBuffer(uint32_t size, uint32_t slot);
 		virtual ~DirectXConstantBuffer();
 
-		void Bind(ID3D11DeviceContext* ctx);
-		void UnBind(ID3D11DeviceContext* ctx);
-
 		virtual void SetSlot(uint32_t slot) override { m_Slot = slot; }
 
 		virtual void Set(void* data, uint32_t size) override;

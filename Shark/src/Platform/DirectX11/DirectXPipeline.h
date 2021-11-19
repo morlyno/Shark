@@ -27,6 +27,8 @@ namespace Shark {
 		ID3D11RasterizerState* m_RasterizerState = nullptr;
 		ID3D11DepthStencilState* m_DepthStencilState = nullptr;
 
+		// TODO(moro): Add PrimitveTopology
+
 		friend class DirectXRenderer;
 	};
 

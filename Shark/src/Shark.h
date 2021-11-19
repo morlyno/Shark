@@ -56,6 +56,7 @@
 #include "Shark/Render/SceneRenderer.h"
 #include "Shark/Render/Image.h"
 #include "Shark/Render/Pipeline.h"
+#include "Shark/Render/Material.h"
 // --------------------------------------
 
 // --- Scene ----------------------------

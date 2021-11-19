@@ -30,22 +30,22 @@ namespace Shark {
 	{
 		switch (minmag)
 		{
-		case FilterMode::Linera:
-		{
-			switch (mipmap)
+			case FilterMode::Linera:
 			{
+				switch (mipmap)
+				{
 				case FilterMode::Linera: return D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 				case FilterMode::Point: return D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+				}
 			}
-		}
-		case FilterMode::Point:
-		{
-			switch (mipmap)
+			case FilterMode::Point:
 			{
+				switch (mipmap)
+				{
 				case FilterMode::Linera: return D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR;
 				case FilterMode::Point: return D3D11_FILTER_MIN_MAG_MIP_POINT;
+				}
 			}
-		}
 		}
 		SK_CORE_ASSERT(false);
 		return D3D11_FILTER_MIN_MAG_MIP_POINT;
@@ -125,47 +125,59 @@ namespace Shark {
 
 	}
 
-	DirectXTexture2DArray::DirectXTexture2DArray(uint32_t count)
+	DirectXTexture2DArray::DirectXTexture2DArray(uint32_t count, uint32_t startOffset)
+		: m_Count(count), m_StartOffset(startOffset)
 	{
-		m_TextureArray.resize(count);
-	}
-
-	void DirectXTexture2DArray::Resize(uint32_t newCount)
-	{
-		SK_CORE_VERIFY(newCount > m_TextureArray.size());
-		if (newCount > m_TextureArray.size())
-			m_TextureArray.resize(newCount);
+		m_TextureArray.resize(count, nullptr);
+		m_Views.resize(count, nullptr);
+		m_Samplers.resize(count, nullptr);
 	}
 
 	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, Ref<Image2D> image, const SamplerProps& props)
 	{
 		Ref<DirectXTexture2D> texture = Ref<DirectXTexture2D>::Create(image, props);
-		m_TextureArray[index] = texture;
+		SetTexture(index, texture);
 		return texture;
 	}
 
 	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, const std::filesystem::path& filepath, const SamplerProps& props)
 	{
 		Ref<DirectXTexture2D> texture = Ref<DirectXTexture2D>::Create(filepath, props);
-		m_TextureArray[index] = texture;
+		SetTexture(index, texture);
 		return texture;
 	}
 
 	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, uint32_t width, uint32_t height, void* data, const SamplerProps& props)
 	{
 		Ref<DirectXTexture2D> texture = Ref<DirectXTexture2D>::Create(width, height, data, props);
-		m_TextureArray[index] = texture;
+		SetTexture(index, texture);
 		return texture;
 	}
 
 	void DirectXTexture2DArray::Set(uint32_t index, Ref<Texture2D> texture)
 	{
-		m_TextureArray[index] = texture.As<DirectXTexture2D>();
+		SetTexture(index, texture.As<DirectXTexture2D>());
 	}
 
 	Ref<Texture2D> DirectXTexture2DArray::Get(uint32_t index) const
 	{
 		return m_TextureArray[index];
+	}
+
+	void DirectXTexture2DArray::SetTexture(uint32_t index, Ref<DirectXTexture2D> texture)
+	{
+		if (texture)
+		{
+			m_TextureArray[index] = texture;
+			m_Views[index] = texture->GetViewNative();
+			m_Samplers[index] = texture->GetSamplerNative();
+		}
+		else
+		{
+			m_TextureArray[index] = nullptr;
+			m_Views[index] = nullptr;
+			m_Samplers[index] = nullptr;
+		}
 	}
 
 }

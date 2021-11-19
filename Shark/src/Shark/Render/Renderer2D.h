@@ -10,8 +10,7 @@
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/Pipeline.h"
-
-#include "Shark/Scene/Entity.h"
+#include "Shark/Render/Material.h"
 
 namespace Shark {
 
@@ -35,7 +34,7 @@ namespace Shark {
 			// Currently not correct
 			// only messures the last draw calles not the Flushes
 			// Can be fixed by switching to resizable Batches
-			Ref<GPUTimer> GeometryPassTimer;
+			TimeStep GeometryPassTime;
 		};
 
 	public:
@@ -99,9 +98,6 @@ namespace Shark {
 		Statistics GetStatistics() const { return m_Statistics; }
 
 	private:
-		// FlushAndReset*() dosn't execute the RenderCommandBuffer
-		// Only EndScene executes the RenderCommandBuffer
-
 		void FlushAndResetQuad();
 		void FlushAndResetCircle();
 		void FlushAndResetLine();
@@ -124,8 +120,8 @@ namespace Shark {
 		static constexpr uint32_t MaxLinesOnTop = 2000;
 		static constexpr uint32_t MaxLineOnTopVertices = MaxLinesOnTop * 2;
 
-		static constexpr DirectX::XMFLOAT3 QuadVertexPositions[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
-		static constexpr DirectX::XMFLOAT2 TextureCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
+		static constexpr DirectX::XMFLOAT3 m_QuadVertexPositions[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
+		static constexpr DirectX::XMFLOAT2 m_TextureCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
 
 	private:
 		using Index = IndexBuffer::IndexType;
@@ -172,6 +168,11 @@ namespace Shark {
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<ConstantBufferSet> m_ConstantBufferSet;
 
+		Ref<GPUTimer> m_GeometryPassTimer;
+		Ref<GPUTimer> m_QuadFlushQuery;
+		Ref<GPUTimer> m_CircleFlushQuery;
+		Ref<GPUTimer> m_LineFlushQuery;
+		Ref<GPUTimer> m_LineOnTopFlushQuery;
 
 		// Quad
 		Ref<Pipeline> m_QuadPipeline;
@@ -183,6 +184,8 @@ namespace Shark {
 		QuadVertex* m_QuadVertexBasePtr = nullptr;
 		QuadVertex* m_QuadVertexIndexPtr = nullptr;
 
+		// TODO(moro): Use Materials corret
+		Ref<Material> m_QuadMaterial;
 
 		// Circle
 		Ref<Pipeline> m_CirlcePipeline;

@@ -38,11 +38,9 @@ namespace Shark {
 		AssetsPanel();
 		~AssetsPanel();
 
-		void ShowPanel(bool show) { m_ShowPanel = show; }
-		bool IsShowen() const { return m_ShowPanel; }
 		void ReCache() { m_ReloadRequierd = true; }
 
-		void OnImGuiRender();
+		void OnImGuiRender(bool& showPanel);
 
 	private:
 		void SaveCurrentAssetDirectory();
@@ -80,7 +78,6 @@ namespace Shark {
 		RenderID GetContentTextureID(const Entry& entry);
 
 	private:
-		bool m_ShowPanel = true;
 		const Project& m_Project;
 		FileWatcher m_Watcher;
 
