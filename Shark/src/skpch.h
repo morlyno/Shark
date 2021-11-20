@@ -5,6 +5,7 @@
 #include <functional>
 #include <algorithm>
 #include <math.h>
+#include <stdlib.h>
 
 #include <array>
 #include <vector>

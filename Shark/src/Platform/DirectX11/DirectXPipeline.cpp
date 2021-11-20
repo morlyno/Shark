@@ -7,7 +7,7 @@ namespace Shark {
 
 	namespace Utils {
 
-		DXGI_FORMAT VertexDataTypeToDXGI_FORMAT(VertexDataType type)
+		static DXGI_FORMAT VertexDataTypeToDXGI_FORMAT(VertexDataType type)
 		{
 			switch (type)
 			{
@@ -24,6 +24,19 @@ namespace Shark {
 			}
 			SK_CORE_ASSERT(false, "Unkown VertexDataType");
 			return (DXGI_FORMAT)0;
+		}
+
+		static D3D11_PRIMITIVE_TOPOLOGY SharkPrimitveTopologyToD3D11(PrimitveType topology)
+		{
+			switch (topology)
+			{
+			case PrimitveType::Triangle:  return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			case PrimitveType::Line:      return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+			case PrimitveType::Dot:       return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+			}
+
+			SK_CORE_ASSERT(false, "Unkonw Topology");
+			return (D3D11_PRIMITIVE_TOPOLOGY)0;
 		}
 
 	}
@@ -56,6 +69,8 @@ namespace Shark {
 			HRESULT hr = dev->CreateDepthStencilState(&desc, &m_DepthStencilState);
 			SK_CORE_ASSERT(SUCCEEDED(hr), fmt::format("D3D11Device::CreateDepthStencilState Failed! {}:{}", __FILE__, __LINE__))
 		}
+
+		m_PrimitveTopology = Utils::SharkPrimitveTopologyToD3D11(m_Specification.Primitve);
 
 	}
 

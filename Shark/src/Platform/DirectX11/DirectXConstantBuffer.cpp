@@ -62,4 +62,11 @@ namespace Shark {
 		return m_CBMap.at(slot);
 	}
 
+	void DirectXConstantBufferSet::Set(uint32_t slot, void* data, uint32_t size)
+	{
+		SK_CORE_ASSERT(Utility::Contains(m_CBMap, slot));
+
+		m_CBMap[slot]->Set(data, size);
+	}
+
 }

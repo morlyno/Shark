@@ -4,6 +4,10 @@
 	#error Platform other than Windows are currently not supported
 #endif
 
+#if (!defined(SK_RELEASE) && !defined(SK_DEBUG)) || (defined(SK_RELEASE) && defined(SK_DEBUG))
+#error Invalid Configuration
+#endif
+
 
 #if SK_DEBUG
 	#define SK_DEBUG_BREAK() __debugbreak()
@@ -20,10 +24,6 @@
 	#define SK_ENABLE_ASSERT 1
 	#define SK_ENABLE_VERIFY 2
 	#define SK_IF_DEBUG(...)
-#endif
-
-#if (!defined(SK_RELEASE) && !defined(SK_DEBUG)) || (defined(SK_RELEASE) && defined(SK_DEBUG))
-#error Invalid Configuration
 #endif
 
 #define SK_ENABLE_PERF 1
@@ -55,25 +55,16 @@
 #define SK_UNIQUE_VAR_NAME SK_CONNECT(almoust_unique_var_, __LINE__)
 #endif
 
+#define SK_ENUMCLASS_BITSET_OPERATORS(enumClassType)\
+constexpr enumClassType operator|(enumClassType lhs, enumClassType rhs) { using intType = std::underlying_type_t<enumClassType>; return (enumClassType)((intType)lhs | (intType)rhs); }\
+constexpr enumClassType operator&(enumClassType lhs, enumClassType rhs) { using intType = std::underlying_type_t<enumClassType>; return (enumClassType)((intType)lhs & (intType)rhs); }\
+constexpr enumClassType operator^(enumClassType lhs, enumClassType rhs) { using intType = std::underlying_type_t<enumClassType>; return (enumClassType)((intType)lhs ^ (intType)rhs); }\
+constexpr enumClassType operator|=(enumClassType& lhs, enumClassType rhs) { return lhs = lhs | rhs; }\
+constexpr enumClassType operator&=(enumClassType& lhs, enumClassType rhs) { return lhs = lhs & rhs; }\
+constexpr enumClassType operator^=(enumClassType& lhs, enumClassType rhs) { return lhs = lhs ^ rhs; }\
+constexpr enumClassType operator~(enumClassType lhs) { return (enumClassType)~(int)lhs; }
 
-#if defined(__GNUC__) || (defined(__MWERKS__) && (__MWERKS__ >= 0x3000)) || (defined(__ICC) && (__ICC >= 600)) || defined(__ghs__)
-#define SK_FUNC_SIG __PRETTY_FUNCTION__
-#elif defined(__DMC__) && (__DMC__ >= 0x810)
-#define SK_FUNC_SIG __PRETTY_FUNCTION__
-#elif defined(__FUNCSIG__)
-#define SK_FUNC_SIG __FUNCSIG__
-#elif (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 600)) || (defined(__IBMCPP__) && (__IBMCPP__ >= 500))
-#define SK_FUNC_SIG __FUNCTION__
-#elif defined(__BORLANDC__) && (__BORLANDC__ >= 0x550)
-#define SK_FUNC_SIG __FUNC__
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
-#define SK_FUNC_SIG __func__
-#elif defined(__cplusplus) && (__cplusplus >= 201103)
-#define SK_FUNC_SIG __func__
-#else
-#define SK_FUNC_SIG "(unknown)"
-#error No Function Signature
-#endif
+// TODO(moro): enum class bitset operators
 
 #include <stdint.h>
 
@@ -125,8 +116,6 @@ namespace Shark {
 
 }
 
-
-#include "Shark/Memory/Allocator.h"
 
 #include "Shark/Core/Log.h"
 #include "Shark/Core/Assert.h"

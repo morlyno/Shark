@@ -59,19 +59,15 @@ namespace Shark {
 
 #define SK_PERF_REGISTRY_MAP() ::Shark::ProfilerRegistry::GetMap()
 #define SK_PERF_PROFILER(name) ::Shark::ProfilerRegistry::GetProfiler((name))
-
 #define SK_PERF_ADD_DURATION(name, duration) ::Shark::ProfilerRegistry::GetProfiler((name)).AddDuration((duration))
 
 #define SK_PERF_SCOPED(name) ::Shark::ScopedProfiler SK_UNIQUE_VAR_NAME = SK_PERF_PROFILER(name)
-#define SK_PERF_FUNCTION() ::Shark::ScopedProfiler SK_UNIQUE_VAR_NAME = SK_PERF_PROFILER(SK_FUNC_SIG)
 #else
 #define SK_PERF_NEW_FRAME()
 
 #define SK_PERF_REGISTRY_MAP()
 #define SK_PERF_PROFILER(name)
-#define SK_PERF_AVERAGE(name)
 #define SK_PERF_ADD_DURATION(name, duration)
 
 #define SK_PERF_SCOPED(name)
-#define SK_PERF_FUNCTION()
 #endif

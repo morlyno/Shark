@@ -31,6 +31,26 @@ namespace Shark {
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index) = 0;
 		virtual void SetTextureArray(const std::string& name, Ref<Texture2DArray> textureArray) = 0;
 
+
+		virtual float GetFloat(const std::string& name) const = 0;
+		virtual const DirectX::XMFLOAT2& GetFloat2(const std::string& name) const = 0;
+		virtual const DirectX::XMFLOAT3& GetFloat3(const std::string& name) const = 0;
+		virtual const DirectX::XMFLOAT4& GetFloat4(const std::string& name) const = 0;
+
+		virtual int GetInt(const std::string& name, int val) = 0;
+		virtual const DirectX::XMINT2& GetInt2(const std::string& name) const = 0;
+		virtual const DirectX::XMINT3& GetInt3(const std::string& name) const = 0;
+		virtual const DirectX::XMINT4& GetInt4(const std::string& name) const = 0;
+
+		virtual bool GetBool(const std::string& name) const = 0;
+
+		virtual const DirectX::XMFLOAT3X3& GetMat3(const std::string& name) const = 0;
+		virtual const DirectX::XMFLOAT4X4& GetMat4(const std::string& name) const = 0;
+
+		virtual Ref<Texture2D> GetTexture(const std::string& name) const = 0;
+		virtual Ref<Texture2D> GetTexture(const std::string& name, uint32_t index) const = 0;
+		virtual Ref<Texture2DArray> GetTextureArray(const std::string& name) const = 0;
+
 	public:
 		static Ref<Material> Create(Ref<Shader> shader);
 	};

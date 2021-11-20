@@ -29,6 +29,7 @@ namespace Shark {
 	public:
 		virtual Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot) override;
 		virtual Ref<ConstantBuffer> Get(uint32_t slot) const override;
+		virtual void Set(uint32_t slot, void* data, uint32_t size) override;
 
 	private:
 		std::unordered_map<uint32_t, Ref<DirectXConstantBuffer>> m_CBMap;

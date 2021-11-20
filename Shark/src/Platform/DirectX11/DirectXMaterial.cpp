@@ -47,80 +47,30 @@ namespace Shark {
 		SK_CORE_ASSERT(Utility::Contains(m_ResourceMap, name));
 
 		Ref<Texture2DArray> arr = m_ResourceMap.at(name);
-		SK_CORE_ASSERT(arr->GetCount() == textureArray->GetCount());
-		for (uint32_t i = 0; i < textureArray->GetCount(); i++)
+		SK_CORE_ASSERT(arr->Count() == textureArray->Count());
+		for (uint32_t i = 0; i < textureArray->Count(); i++)
 			arr->Set(i, textureArray->Get(i));
-	}
-
-	void DirectXMaterial::SetFloat(const std::string& name, float val)
-	{
-
-	}
-
-	void DirectXMaterial::SetFloat2(const std::string& name, const DirectX::XMFLOAT2& vec2)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetFloat3(const std::string& name, const DirectX::XMFLOAT3& vec3)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetFloat4(const std::string& name, const DirectX::XMFLOAT4& vec4)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetInt(const std::string& name, int val)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetInt2(const std::string& name, const DirectX::XMINT2& vec2)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetInt3(const std::string& name, const DirectX::XMINT3& vec3)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetInt4(const std::string& name, const DirectX::XMINT4& vec4)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetBool(const std::string& name, bool val)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetMat3(const std::string& name, const DirectX::XMFLOAT3X3& mat3)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetMat4(const std::string& name, const DirectX::XMFLOAT4X4& mat4)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
-	}
-
-	void DirectXMaterial::SetMat4(const std::string& name, const DirectX::XMMATRIX& mat4)
-	{
-		throw std::logic_error("The method or operation is not implemented.");
 	}
 
 	void DirectXMaterial::SetBytes(const std::string& name, byte* data, uint32_t size)
 	{
 		SK_CORE_ASSERT(Utility::Contains(m_VariableMap, name));
-		SK_CORE_ASSERT(false, "Not Implemented");
 
-		//const CBVar& var = m_VariableMap.at(name);
-		//Buffer& buffer = m_ConstantBuffers.at(var.BufferSlot);
-		//SK_CORE_ASSERT(size == var.Size, fmt::format("Invalid Data Size! Data Size is: {} but Size must be: {}", size, var.Size));
-		//buffer.Write(data, size, var.Offset);
+		const CBVar& var = m_VariableMap.at(name);
+		Buffer& buffer = m_ConstantBufferData.at(var.BufferSlot);
+		SK_CORE_ASSERT(size == var.Size, fmt::format("Invalid Data Size! Data Size is: {} but Size must be: {}", size, var.Size));
+		buffer.Write(data, size, var.Offset);
+	}
+
+	byte* DirectXMaterial::GetBytes(const std::string& name) const
+	{
+		SK_CORE_ASSERT(Utility::Contains(m_VariableMap, name));
+
+		const CBVar& var = m_VariableMap.at(name);
+		const Buffer& buffer = m_ConstantBufferData.at(var.BufferSlot);
+
+		return buffer.Data + var.Offset;
+
 	}
 
 	void DirectXMaterial::Reflect()
@@ -151,7 +101,7 @@ namespace Shark {
 
 				SK_CORE_ASSERT(bindDesc.BindCount == 1);
 				m_ConstnatBufferSet->Create(bufferDesc.Size, bindDesc.BindPoint);
-				//m_ConstantBuffers[bindDesc.BindPoint].Allocate(bufferDesc.Size);
+				m_ConstantBufferData[bindDesc.BindPoint].Allocate(bufferDesc.Size);
 
 				for (uint32_t j = 0; j < bufferDesc.Variables; j++)
 				{

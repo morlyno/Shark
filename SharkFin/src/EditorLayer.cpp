@@ -93,7 +93,6 @@ namespace Shark {
 			m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_CameraPreviewRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 
-			//m_CompositFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
 		}
 
@@ -543,6 +542,7 @@ namespace Shark {
 				pressed |= ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
 				pressed |= ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
 				pressed |= ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
+				pressed |= ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
 				pressed |= ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
 
 				ImGui::Separator();
@@ -1207,33 +1207,29 @@ namespace Shark {
 
 
 		ImGui::Begin("Times");
-		UI::Text(fmt::format("Mouse Picking:                   {:.4f}ms", ProfilerRegistry::GetAverageOf("Mouse Picking").MilliSeconds()));
-		UI::Text(fmt::format("Window Update:                   {:.4f}ms", ProfilerRegistry::GetAverageOf("WindowsWindow::Update").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Editor:             {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderEditor").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Runtime:            {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderRuntime").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Simulate:           {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderSimulate").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Runtime Preview:    {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderRuntimePreview").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Update Runtime:            {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnUpdateRuntime").MilliSeconds()));
+		UI::Text(fmt::format("Mouse Picking: {:.4f}ms", ProfilerRegistry::GetAverageOf("Mouse Picking").MilliSeconds()));
+		UI::Text(fmt::format("Window Update: {:.4f}ms", ProfilerRegistry::GetAverageOf("WindowsWindow::Update").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Editor: {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderEditor").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Runtime: {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderRuntime").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Simulate: {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderSimulate").MilliSeconds()));
+		UI::Text(fmt::format("Sceme Render Runtime Preview: {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderRuntimePreview").MilliSeconds()));
 		ImGui::End();
 
 
 		ImGui::Begin("GPU Times");
-		UI::Text(fmt::format("Present GPU:                     {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
-		UI::Text(fmt::format("GeometryPass:                    {:.4f}ms", s.GeometryPassTime.MilliSeconds()));
-		UI::Text(fmt::format("ImGuiLayer GPU:                  {:.4f}ms", ProfilerRegistry::GetAverageOf("[GPU] DirectXImGuiLayer::End").MilliSeconds()));
+		UI::Text(fmt::format("Present GPU: {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
+		UI::Text(fmt::format("GeometryPass: {:.4f}ms", s.GeometryPassTime.MilliSeconds()));
+		UI::Text(fmt::format("ImGuiLayer GPU: {:.4f}ms", ProfilerRegistry::GetAverageOf("[GPU] DirectXImGuiLayer::End").MilliSeconds()));
 		ImGui::End();
 
 
 		ImGui::Begin("CPU Times");
-		UI::Text(fmt::format("FrameTime:                       Average: {:.4f}ms", m_TimeStep.MilliSeconds()));
-		UI::Text(fmt::format("Present CPU:                     Average: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::Present").MilliSeconds()));
-		UI::Text(fmt::format("NewFrame:                        Average: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::NewFrame").MilliSeconds()));
-		UI::Text(fmt::format("RenderGeometry:                  Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry").MilliSeconds()));
-		UI::Text(fmt::format("RenderGeometry [Indexed]:        Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry [Indexed]").MilliSeconds()));
-		UI::Text(fmt::format("RenderGeometry [Material]:       Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry [Material]").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry [Material]").MilliSeconds()));
-		UI::Text(fmt::format("RenderFullScreenQuad:            Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuad").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuad").MilliSeconds()));
-		UI::Text(fmt::format("RenderFullScreenQuadWidthDepth:  Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds(), ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuadWidthDepth").MilliSeconds()));
-		UI::Text(fmt::format("Renderer2D EndScene:             Average: {:.4f}ms, Total: {:.4f}ms", ProfilerRegistry::GetAverageOf("Renderer2D::EndScene").MilliSeconds(), ProfilerRegistry::GetAverageOf("Renderer2D::EndScene").MilliSeconds()));
+		UI::Text(fmt::format("FrameTime: {:.4f}ms", m_TimeStep.MilliSeconds()));
+		UI::Text(fmt::format("Present CPU: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::Present").MilliSeconds()));
+		UI::Text(fmt::format("NewFrame: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::NewFrame").MilliSeconds()));
+		UI::Text(fmt::format("Renderer2D EndScene: {:.4f}ms", ProfilerRegistry::GetAverageOf("Renderer2D::EndScene").MilliSeconds()));
+		UI::Text(fmt::format("RenderGeometry: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry").MilliSeconds()));
+		UI::Text(fmt::format("RenderFullScreenQuad: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuad").MilliSeconds()));
 		ImGui::End();
 
 	}

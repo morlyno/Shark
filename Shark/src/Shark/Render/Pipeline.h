@@ -8,6 +8,11 @@
 
 namespace Shark {
 
+	enum class PrimitveType : uint16_t
+	{
+		Triangle, Line, Dot
+	};
+
 	struct PipelineSpecification
 	{
 		bool BackFaceCulling = false;
@@ -19,7 +24,7 @@ namespace Shark {
 		Ref<FrameBuffer> TargetFrameBuffer;
 		Ref<Shader> Shader;
 
-		// TODO(moro): Add PrimitiveTopology
+		PrimitveType Primitve = PrimitveType::Triangle;
 
 		std::string DebugName;
 	};

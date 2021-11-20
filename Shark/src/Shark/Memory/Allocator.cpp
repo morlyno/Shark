@@ -6,8 +6,8 @@
 #include <stdlib.h>
 
 #define SK_MEMORY_ALIGNMENT 16
-#define SK_ALLOC(size)		_aligned_malloc(size, SK_MEMORY_ALIGNMENT)
-#define SK_FREE(block)		_aligned_free(block)
+#define SK_ALLOC(size)		malloc(size)
+#define SK_FREE(block)		free(block)
 
 namespace Shark {
 
@@ -17,7 +17,7 @@ namespace Shark {
 	{
 		size_t actualsize = size + sizeof(size_t);
 		byte* data = (byte*)SK_ALLOC(actualsize);
-		memset(data, 0, actualsize);
+		//memset(data, 0, actualsize);
 		memcpy(data, &size, sizeof(size_t));
 		data += sizeof(size_t);
 
@@ -29,12 +29,15 @@ namespace Shark {
 
 	void Allocator::Free(void* block)
 	{
-		byte* actualbock = (byte*)block - sizeof(size_t);
-		size_t size = *(size_t*)actualbock;
-		SK_FREE(actualbock);
-		
-		MemoryManager::s_Memory.MemoryFreed += size;
-		MemoryManager::s_Memory.TotalFreed++;
+		if (block)
+		{
+			byte* actualbock = (byte*)block - sizeof(size_t);
+			size_t size = *(size_t*)actualbock;
+			SK_FREE(actualbock);
+
+			MemoryManager::s_Memory.MemoryFreed += size;
+			MemoryManager::s_Memory.TotalFreed++;
+		}
 	}
 
 }

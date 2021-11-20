@@ -25,19 +25,6 @@
 
 namespace Shark {
 
-	static D3D11_PRIMITIVE_TOPOLOGY SharkPrimitveTopologyToD3D11(PrimitveTopology topology)
-	{
-		switch (topology)
-		{
-			case PrimitveTopology::Triangle:  return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			case PrimitveTopology::Line:      return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
-			case PrimitveTopology::Dot:       return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
-		}
-
-		SK_CORE_ASSERT(false, "Unkonw Topology");
-		return (D3D11_PRIMITIVE_TOPOLOGY)0;
-	}
-
 	DirectXRenderer* DirectXRenderer::s_Instance = nullptr;
 
 	namespace Utils {
@@ -139,8 +126,8 @@ namespace Shark {
 			2, 3, 0
 		};
 
-		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, vertices, sizeof(vertices));
-		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create(indices, sizeof(indices) / sizeof(*indices));
+		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, vertices, (uint32_t)sizeof(vertices));
+		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create(indices, (uint32_t)(sizeof(indices) / sizeof(*indices)));
 
 		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -250,7 +237,7 @@ namespace Shark {
 
 	}
 
-	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image)
+	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("DirectXRenderer::RenderFullScreenQuad");
@@ -278,211 +265,17 @@ namespace Shark {
 		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
-		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
-		ctx->PSSetShaderResources(0, 1, &dxImage->m_View);
-		ctx->PSSetSamplers(0, 1, &m_ClampSampler);
+		Ref<DirectXMaterial> dxMaterial = material.As<DirectXMaterial>();
+		PrepareAndBindMaterialForRendering(dxCommandBuffer, dxMaterial, nullptr);
 
 		ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		ctx->DrawIndexed(6, 0, 0);
 	}
 
-	void DirectXRenderer::RenderFullScreenQuadWidthDepth(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Image2D> image, Ref<Image2D> depthImage)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("DirectXRenderer::RenderFullScreenQuadWidthDepth");
-
-		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
-		ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
-
-		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
-
-		Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
-		ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
-		ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
-
-		const UINT offset = 0;
-		const UINT stride = m_QuadVertexBuffer->m_Layout.GetVertexSize();
-		ctx->IASetVertexBuffers(0, 1, &m_QuadVertexBuffer->m_VertexBuffer, &stride, &offset);
-		ctx->IASetIndexBuffer(m_QuadIndexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		ctx->IASetInputLayout(dxShader->m_InputLayout);
-
-		ctx->RSSetState(dxPipeline->m_RasterizerState);
-		ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
-
-		Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
-		ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
-		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
-		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
-
-		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
-		ctx->PSSetShaderResources(0, 1, &dxImage->m_View);
-		ctx->PSSetSamplers(0, 1, &m_ClampSampler);
-
-		Ref<DirectXImage2D> dxDepthImage = depthImage.As<DirectXImage2D>();
-		ctx->PSSetShaderResources(1, 1, &dxDepthImage->m_View);
-
-		ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		ctx->DrawIndexed(6, 0, 0);
-	}
-
-	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<FrameBuffer> frameBuffer, Ref<Shader> shader, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_ASSERT(false, "not implementes");
-#if 0
-		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
-		Ref<DirectXFrameBuffer> dxFrameBuffer = frameBuffer.As<DirectXFrameBuffer>();
-		Ref<DirectXShader> dxShader = shader.As<DirectXShader>();
-		Ref<DirectXConstantBufferSet> dxConstantBufferSet = constantBufferSet.As<DirectXConstantBufferSet>();
-		Ref<DirectXTexture2DArray> dxTextureArray = textureArray.As<DirectXTexture2DArray>();
-		Ref<DirectXVertexBuffer> dxVertexBuffer = vertexBuffer.As<DirectXVertexBuffer>();
-		Ref<DirectXIndexBuffer> dxIndexBuffer = indexBuffer.As<DirectXIndexBuffer>();
-
-		ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
-		
-
-		ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
-		ctx->OMSetDepthStencilState(dxFrameBuffer->m_DepthStencilState, 0);
-		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
-
-		ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
-		ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
-
-		for (auto&& [slot, cb] : dxConstantBufferSet->m_CBMap)
-			ctx->VSSetConstantBuffers(slot, 1, &cb->m_ConstBuffer);
-
-		if (dxTextureArray)
-		{
-			uint32_t slot = 0;
-			for (auto t : dxTextureArray->m_TextureArray)
-			{
-				if (t)
-				{
-					ctx->PSSetShaderResources(slot, 1, &t->m_Image->m_View);
-					ctx->PSSetSamplers(slot, 1, &t->m_Sampler);
-				}
-				slot++;
-			}
-		}
-
-		const UINT offset = 0;
-		const UINT stride = dxVertexBuffer->m_Layout.GetVertexSize();
-		ctx->IASetVertexBuffers(0, 1, &dxVertexBuffer->m_VertexBuffer, &stride, &offset);
-		ctx->IASetIndexBuffer(dxIndexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		ctx->IASetInputLayout(dxShader->m_InputLayout);
-
-		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
-		ctx->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
-
-		ctx->DrawIndexed(indexCount, 0, 0);
-#endif
-	}
-
-	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry [Indexed]");
-
-		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
-		ID3D11DeviceContext* ctx = commandBuffer->GetContext();
-
-
-		Ref<DirectXVertexBuffer> dxVB = vertexBuffer.As<DirectXVertexBuffer>();
-		const UINT offset = 0;
-		const UINT stride = dxVB->m_Layout.GetVertexSize();
-		ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
-
-		Ref<DirectXIndexBuffer> dxIB = indexBuffer.As<DirectXIndexBuffer>();
-		ctx->IASetIndexBuffer(dxIB->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-
-		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
-		Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
-
-		ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
-		ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
-
-		// TODO(moro): move InputLayout to Pipeline
-		ctx->IASetInputLayout(dxShader->m_InputLayout);
-		
-		Ref<DirectXConstantBufferSet> dxConstantBufferSet = constantBufferSet.As<DirectXConstantBufferSet>();
-		for (auto&& [slot, cb] : dxConstantBufferSet->m_CBMap)
-			ctx->VSSetConstantBuffers(slot, 1, &cb->m_ConstBuffer);
-
-		Ref<DirectXTexture2DArray> dxTextureArray = textureArray.As<DirectXTexture2DArray>();
-		if (dxTextureArray)
-		{
-			ctx->PSSetShaderResources(dxTextureArray->m_StartOffset, dxTextureArray->m_Count, dxTextureArray->m_Views.data());
-			ctx->PSSetSamplers(dxTextureArray->m_StartOffset, dxTextureArray->m_Count, dxTextureArray->m_Samplers.data());
-		}
-
-		Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
-
-		ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
-		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
-
-		ctx->RSSetState(dxPipeline->m_RasterizerState);
-		ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
-		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
-
-		ctx->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
-
-		ctx->DrawIndexed(indexCount, 0, 0);
-	}
-
-	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet, Ref<Texture2DArray> textureArray, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, PrimitveTopology topology)
+	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry");
-
-		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
-		ID3D11DeviceContext* ctx = commandBuffer->GetContext();
-
-
-		Ref<DirectXVertexBuffer> dxVB = vertexBuffer.As<DirectXVertexBuffer>();
-		const UINT offset = 0;
-		const UINT stride = dxVB->m_Layout.GetVertexSize();
-		ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
-
-
-		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
-		Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
-
-		ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
-		ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
-
-		// TODO(moro): move InputLayout to Pipeline
-		ctx->IASetInputLayout(dxShader->m_InputLayout);
-
-		Ref<DirectXConstantBufferSet> dxConstantBufferSet = constantBufferSet.As<DirectXConstantBufferSet>();
-		for (auto&& [slot, cb] : dxConstantBufferSet->m_CBMap)
-			ctx->VSSetConstantBuffers(slot, 1, &cb->m_ConstBuffer);
-
-		Ref<DirectXTexture2DArray> dxTextureArray = textureArray.As<DirectXTexture2DArray>();
-		if (dxTextureArray)
-		{
-			ctx->PSSetShaderResources(dxTextureArray->m_StartOffset, dxTextureArray->m_Count, dxTextureArray->m_Views.data());
-			ctx->PSSetSamplers(dxTextureArray->m_StartOffset, dxTextureArray->m_Count, dxTextureArray->m_Samplers.data());
-		}
-
-		Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
-
-		ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
-		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
-
-		ctx->RSSetState(dxPipeline->m_RasterizerState);
-		ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
-		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
-
-		ctx->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
-
-		ctx->Draw(vertexCount, 0);
-	}
-
-	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, PrimitveTopology topology)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry [Material]");
 
 		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
 		ID3D11DeviceContext* ctx = commandBuffer->GetContext();
@@ -519,9 +312,51 @@ namespace Shark {
 		ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
 		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 
-		ctx->IASetPrimitiveTopology(SharkPrimitveTopologyToD3D11(topology));
+		ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
 
 		ctx->DrawIndexed(indexCount, 0, 0);
+	}
+
+	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount)
+	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry");
+
+		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
+		ID3D11DeviceContext* ctx = commandBuffer->GetContext();
+
+
+		Ref<DirectXVertexBuffer> dxVB = vertexBuffer.As<DirectXVertexBuffer>();
+		const UINT offset = 0;
+		const UINT stride = dxVB->m_Layout.GetVertexSize();
+		ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
+
+
+		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
+		Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
+
+		ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
+		ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
+
+		// TODO(moro): move InputLayout to Pipeline
+		ctx->IASetInputLayout(dxShader->m_InputLayout);
+
+		Ref<DirectXMaterial> dxMaterial = material.As<DirectXMaterial>();
+		Ref<DirectXConstantBufferSet> dxCBSet = constantBufferSet.As<DirectXConstantBufferSet>();
+		PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial, dxCBSet);
+
+		Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+
+		ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+		ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+
+		ctx->RSSetState(dxPipeline->m_RasterizerState);
+		ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+		ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
+
+		ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
+
+		ctx->Draw(vertexCount, 0);
 	}
 
 	void DirectXRenderer::Present(bool vsync)
@@ -591,13 +426,25 @@ namespace Shark {
 			ctx->PSSetSamplers(textureArray->m_StartOffset, textureArray->m_Count, textureArray->m_Samplers.data());
 		}
 
-		auto& cbMap = constantBufferSet->m_CBMap;
-		Ref<DirectXConstantBufferSet> matCBSet = material->m_ConstnatBufferSet;
-		for (auto& [slot, cb] : matCBSet->m_CBMap)
+		for (auto&& [slot, data] : material->m_ConstantBufferData)
+			material->m_ConstnatBufferSet->Set(slot, data.Data, data.Size);
+
+		if (constantBufferSet)
 		{
-			const auto it = cbMap.find(slot);
-			Ref<DirectXConstantBuffer> c = (it != cbMap.end()) ? it->second : cb;
-			ctx->VSSetConstantBuffers(c->m_Slot, 1, &c->m_ConstBuffer);
+			auto& cbMap = constantBufferSet->m_CBMap;
+			Ref<DirectXConstantBufferSet> matCBSet = material->m_ConstnatBufferSet;
+			for (auto& [slot, cb] : matCBSet->m_CBMap)
+			{
+				const auto it = cbMap.find(slot);
+				Ref<DirectXConstantBuffer> c = (it != cbMap.end()) ? it->second : cb;
+				ctx->VSSetConstantBuffers(c->m_Slot, 1, &c->m_ConstBuffer);
+			}
+		}
+		else
+		{
+			Ref<DirectXConstantBufferSet> matCBSet = material->m_ConstnatBufferSet;
+			for (auto& [slot, cb] : matCBSet->m_CBMap)
+				ctx->VSSetConstantBuffers(cb->m_Slot, 1, &cb->m_ConstBuffer);
 		}
 
 	}

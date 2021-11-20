@@ -167,6 +167,7 @@ namespace Shark {
 
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<ConstantBufferSet> m_ConstantBufferSet;
+		DirectX::XMMATRIX m_ViewProj;
 
 		Ref<GPUTimer> m_GeometryPassTimer;
 		Ref<GPUTimer> m_QuadFlushQuery;
@@ -176,27 +177,26 @@ namespace Shark {
 
 		// Quad
 		Ref<Pipeline> m_QuadPipeline;
+		Ref<Material> m_QuadMaterial;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
-		Ref<Texture2DArray> m_QuadTextureArray;
 		uint32_t m_QuadTextureSlotIndex = 1;
 		uint32_t m_QuadIndexCount = 0;
 		QuadVertex* m_QuadVertexBasePtr = nullptr;
 		QuadVertex* m_QuadVertexIndexPtr = nullptr;
 
-		// TODO(moro): Use Materials corret
-		Ref<Material> m_QuadMaterial;
 
 		// Circle
 		Ref<Pipeline> m_CirlcePipeline;
 		Ref<VertexBuffer> m_CircleVertexBuffer;
+		Ref<Material> m_CircleMaterial;
 		uint32_t m_CircleIndexCount = 0;
 		CircleVertex* m_CircleVertexBasePtr = nullptr;
 		CircleVertex* m_CircleVertexIndexPtr = nullptr;
 
-
 		// Line
 		Ref<Pipeline> m_LinePipeline;
+		Ref<Material> m_LineMaterial;
 		Ref<VertexBuffer> m_LineVertexBuffer;
 		uint32_t m_LineVertexCount = 0;
 		LineVertex* m_LineVertexBasePtr = nullptr;
@@ -205,6 +205,7 @@ namespace Shark {
 
 		// Line Without Depth Testing
 		Ref<Pipeline> m_LineOnTopPipeline;
+		Ref<Material> m_LineOnTopMaterial;
 		Ref<VertexBuffer> m_LineOnTopVertexBuffer;
 		uint32_t m_LineOnTopVertexCount = 0;
 		LineVertex* m_LineOnTopVertexBasePtr = nullptr;

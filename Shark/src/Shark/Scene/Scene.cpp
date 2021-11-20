@@ -205,7 +205,7 @@ namespace Shark {
 
 		{
 			// TODO(moro): expose iteration values
-			m_PhysicsWorld2D->Step(ts, 6, 2);
+			m_PhysicsWorld2D->Step((float)ts, 6, 2);
 
 			auto view = m_Registry.view<RigidBody2DComponent>();
 			for (auto e : view)
@@ -234,11 +234,11 @@ namespace Shark {
 		if (subStep)
 		{
 			m_PhysicsWorld2D->SetSubStepping(true);
-			m_PhysicsWorld2D->Step(ts, 6, 2);
+			m_PhysicsWorld2D->Step((float)ts, 6, 2);
 			m_PhysicsWorld2D->SetSubStepping(false);
 		}
 		else
-			m_PhysicsWorld2D->Step(ts, 6, 2);
+			m_PhysicsWorld2D->Step((float)ts, 6, 2);
 
 		auto view = m_Registry.view<RigidBody2DComponent>();
 		for (auto e : view)
@@ -534,16 +534,26 @@ namespace Shark {
 		{
 			auto view = m_Registry.view<BoxCollider2DComponent>();
 			for (auto entity : view)
+			{
 				if (!m_Registry.all_of<RigidBody2DComponent>(entity))
-					m_Registry.emplace<RigidBody2DComponent>(entity);
+				{
+					auto& rb = m_Registry.emplace<RigidBody2DComponent>(entity);
+					rb.Type = RigidBody2DComponent::BodyType::Static;
+				}
+			}
 		}
 
 		// Add missing RigidBodys
 		{
 			auto view = m_Registry.view<CircleCollider2DComponent>();
 			for (auto entity : view)
-				if (!m_Registry.all_of<CircleCollider2DComponent>(entity))
-					m_Registry.emplace<CircleCollider2DComponent>(entity);
+			{
+				if (!m_Registry.all_of<RigidBody2DComponent>(entity))
+				{
+					auto& rb = m_Registry.emplace<RigidBody2DComponent>(entity);
+					rb.Type = RigidBody2DComponent::BodyType::Static;
+				}
+			}
 		}
 
 		// Setup Box2D side

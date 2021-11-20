@@ -56,7 +56,7 @@ namespace Shark {
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) override;
 		virtual Ref<Texture2D> Get(uint32_t index) const override;
 
-		virtual uint32_t GetCount() const override { return m_Count; }
+		virtual uint32_t Count() const override { return m_Count; }
 
 	private:
 		void SetTexture(uint32_t index, Ref<DirectXTexture2D> texture);

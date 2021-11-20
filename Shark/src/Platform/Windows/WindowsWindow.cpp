@@ -55,7 +55,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		std::string str = std::string(props.Name.begin(), props.Name.end());
+		std::string str;
+		str.resize(props.Name.size());
+		wcstombs(str.data(), props.Name.c_str(), (size_t)-1);
 		SK_CORE_INFO("Init Windows Window {0} {1} {2}", props.Width, props.Height, str);
 
 		int width, height;
