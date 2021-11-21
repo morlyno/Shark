@@ -18,9 +18,6 @@ namespace Shark {
 		static void NewFrame();
 
 		static const std::unordered_map<std::string, ProfilerInstance>& GetMap();
-
-		static std::unordered_map<std::string, ProfilerInstance>::iterator begin();
-		static std::unordered_map<std::string, ProfilerInstance>::iterator end();
 	};
 
 	class ScopedProfiler
@@ -41,15 +38,17 @@ namespace Shark {
 		void EndTimer();
 		void NewFrame();
 
-		void AddDuration(double duration);
+		void AddDuration(uint64_t tickCount) { m_Durations.push_back(tickCount); }
+		void SetFrequency(uint64_t frequency) { m_Frequency = frequency; }
 
-		TimeStep GetAverage() const { return m_AverageDuration; }
-		TimeStep GetTotal() const { return m_TotalDuration; }
+		TimeStep GetAverage() const { return (double)m_AverageDuration / (double)m_Frequency; }
+		TimeStep GetTotal() const { return (double)m_TotalDuration / (double)m_Frequency; }
 	private:
-		std::vector<double> m_Durations;
-		double m_AverageDuration = 0.0;
-		double m_TotalDuration = 0.0;
-		double m_StartTime = 0.0f;
+		std::vector<uint64_t> m_Durations;
+		uint64_t m_AverageDuration = 0;
+		uint64_t m_TotalDuration = 0;
+		uint64_t m_StartTime = 0;
+		uint64_t m_Frequency = 0;
 	};
 
 }
@@ -60,6 +59,7 @@ namespace Shark {
 #define SK_PERF_REGISTRY_MAP() ::Shark::ProfilerRegistry::GetMap()
 #define SK_PERF_PROFILER(name) ::Shark::ProfilerRegistry::GetProfiler((name))
 #define SK_PERF_ADD_DURATION(name, duration) ::Shark::ProfilerRegistry::GetProfiler((name)).AddDuration((duration))
+#define SK_PERF_SET_FREQUENCY(name, frequency) ::Shark::ProfilerRegistry::GetProfiler((name)).SetFrequency((frequency))
 
 #define SK_PERF_SCOPED(name) ::Shark::ScopedProfiler SK_UNIQUE_VAR_NAME = SK_PERF_PROFILER(name)
 #else

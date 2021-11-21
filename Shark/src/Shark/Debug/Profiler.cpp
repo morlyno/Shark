@@ -32,11 +32,6 @@ namespace Shark {
 			return frequency.QuadPart;
 		}
 
-		static double CurrentTime()
-		{
-			return (double)TickCount() / (double)s_ProfilingData->CPUFrequency;
-		}
-
 	}
 
 
@@ -77,15 +72,6 @@ namespace Shark {
 		return s_ProfilingData->Registry;
 	}
 
-	std::unordered_map<std::string, ProfilerInstance>::iterator ProfilerRegistry::begin()
-	{
-		return s_ProfilingData->Registry.begin();
-	}
-
-	std::unordered_map<std::string, ProfilerInstance>::iterator ProfilerRegistry::end()
-	{
-		return s_ProfilingData->Registry.end();
-	}
 
 	ScopedProfiler::ScopedProfiler(ProfilerInstance& profiler)
 		: m_Profiler(profiler)
@@ -101,19 +87,20 @@ namespace Shark {
 
 	void ProfilerInstance::StartTimer()
 	{
-		m_StartTime = Utils::CurrentTime();
+		m_StartTime = Utils::TickCount();
 	}
 
 	void ProfilerInstance::EndTimer()
 	{
-		double endTime = Utils::CurrentTime();
+		auto endTime = Utils::TickCount();
 		m_Durations.push_back(endTime - m_StartTime);
+		m_Frequency = s_ProfilingData->CPUFrequency;
 	}
 
 	void ProfilerInstance::NewFrame()
 	{
-		m_AverageDuration = 0.0f;
-		m_TotalDuration = 0.0f;
+		m_AverageDuration = 0;
+		m_TotalDuration = 0;
 		if (m_Durations.size() == 0)
 			return;
 
@@ -121,11 +108,6 @@ namespace Shark {
 			m_TotalDuration += duration;
 		m_AverageDuration = m_TotalDuration / m_Durations.size();
 		m_Durations.clear();
-	}
-
-	void ProfilerInstance::AddDuration(double duration)
-	{
-		m_Durations.push_back(duration);
 	}
 
 }

@@ -411,7 +411,7 @@ namespace Shark {
 			cmdBuffer->Flush();
 		m_ImmediateContext->Flush();
 
-		SK_CORE_INFO("DirectXRenderer::Flush: {:.5f}ms", timer.Stop());
+		SK_CORE_INFO("DirectXRenderer::Flush: {:.5f}ms", timer.Stop().MilliSeconds());
 	}
 
 	void DirectXRenderer::PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet)

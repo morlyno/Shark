@@ -9,9 +9,7 @@ namespace Shark {
 			: m_Time(time)
 		{}
 
-		//operator float() const { return (float)m_Time; }
 		operator double() const { return m_Time; }
-		operator double&() { return m_Time; }
 
 		double Seconds() const { return m_Time; }
 		double MilliSeconds() const { return m_Time * 1000.0; }
@@ -22,6 +20,13 @@ namespace Shark {
 		double ms() const { return MilliSeconds(); }
 		double us() const { return MicroSeconds(); }
 		double ns() const { return NanoSeconds(); }
+
+	public:
+		TimeStep operator+(const TimeStep& rhs) const { return m_Time + rhs.m_Time; }
+		TimeStep operator-(const TimeStep& rhs) const { return m_Time + rhs.m_Time; }
+
+		TimeStep& operator+=(const TimeStep& rhs) { m_Time += rhs.m_Time; return *this; }
+		TimeStep& operator-=(const TimeStep& rhs) { m_Time += rhs.m_Time; return *this; }
 
 	private:
 		double m_Time;

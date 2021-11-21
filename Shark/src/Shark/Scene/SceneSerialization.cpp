@@ -6,6 +6,7 @@
 #include "Shark/Utility/YAMLUtils.h"
 #include "Shark/File/FileSystem.h"
 
+#include "Shark/Core/Timer.h"
 #include "Shark/Debug/Instrumentor.h"
 
 #include <yaml-cpp/yaml.h>
@@ -138,6 +139,7 @@ namespace Shark {
 			const auto& comp = entity.GetComponent<CircleRendererComponent>();
 			out << YAML::Key << "Color" << YAML::Value << comp.Color;
 			out << YAML::Key << "Thickness" << YAML::Value << comp.Thickness;
+			out << YAML::Key << "Fade" << YAML::Value << comp.Fade;
 
 			out << YAML::EndMap;
 		}
@@ -223,7 +225,8 @@ namespace Shark {
 	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		Timer timer;
+
 		YAML::Emitter out;
 
 		SK_CORE_INFO("==========================================================================================");
@@ -255,6 +258,7 @@ namespace Shark {
 		}
 		fout << out.c_str();
 		fout.close();
+		SK_CORE_INFO("Serialization tock: {:.4f}ms", timer.Stop().MilliSeconds());
 		SK_CORE_INFO("==========================================================================================");
 
 		return true;
@@ -263,7 +267,8 @@ namespace Shark {
 	bool SceneSerializer::Deserialize(const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		Timer timer;
+
 		YAML::Node in = YAML::LoadFile(filepath);
 		if (!in["Scene"])
 			return false;
@@ -337,6 +342,7 @@ namespace Shark {
 				{
 					auto color = circleRendererComponent["Color"];
 					auto thickness = circleRendererComponent["Thickness"];
+					auto fade = circleRendererComponent["Fade"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleRendererComponent>();
 					
@@ -345,6 +351,9 @@ namespace Shark {
 
 					SK_CORE_ASSERT(thickness, "Couldn't deserialize CirlceRendererComponent::Thickness");
 					comp.Thickness = thickness.as<float>();
+
+					SK_CORE_ASSERT(fade, "Couldn't deserialize CirlceRendererComponent::Fade");
+					comp.Fade = fade.as<float>();
 
 					SK_CORE_TRACE(" - Cirlce Renderer Component");
 				}
@@ -488,6 +497,7 @@ namespace Shark {
 				}
 			}
 		}
+		SK_CORE_INFO("Deserialization tock: {:.4f}ms", timer.Stop().MilliSeconds());
 		SK_CORE_INFO("==========================================================================================");
 		return true;
 	}

@@ -10,7 +10,7 @@ namespace Shark {
 	public:
 		virtual ~GPUTimer() = default;
 
-		virtual TimeStep GetTime() = 0;
+		virtual TimeStep GetTime() const = 0;
 
 	public:
 		static Ref<GPUTimer> Create(const std::string& name = std::string{});

@@ -75,8 +75,7 @@ namespace Shark {
 		ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, m_CommandBuffer->GetContext());
 		m_CommandBuffer->GetContext()->OMGetBlendState(&m_BlendState, m_BlendFactor, &m_SampleMask);
 
-		m_Timer = GPUTimer::Create("ImGui");
-
+		m_Timer = Ref<DirectXGPUTimer>::Create("ImGui");
 	}
 
 	void DirectXImGuiLayer::OnDetach()
@@ -143,7 +142,8 @@ namespace Shark {
 		}
 
 		m_CommandBuffer->EndTimeQuery(m_Timer);
-		SK_PERF_ADD_DURATION("[GPU] DirectXImGuiLayer::End", m_Timer->GetTime());
+		SK_PERF_ADD_DURATION("[GPU] DirectXImGuiLayer::End", m_Timer->GetTickCount());
+		SK_PERF_SET_FREQUENCY("[GPU] DirectXImGuiLayer::End", m_Timer->GetFrequency());
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 	}
