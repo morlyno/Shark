@@ -134,8 +134,7 @@ namespace Shark {
 
 		static std::filesystem::path CacheDirectory()
 		{
-			auto& proj = Application::Get().GetProject();
-			return proj.GetCacheDirectory() / "Shaders/DirectX";
+			return "Cache/Shaders/DirectX";
 		}
 
 		static const char* FileExtension(ShaderStage stage)

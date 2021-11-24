@@ -4,12 +4,11 @@
 dependencies/
 Scripts/__pycache__
 
-**/assets/*
-!**/assets/Shaders
+SharkFin/Cache
+SharkFin/Assets
+SharkFin/imgui.ini
+SharkFin/Log/*.log
 
-**/Log/*.log
-*.json
-**/imgui.ini
 **/project.skproj
 
 # Visual Studios files

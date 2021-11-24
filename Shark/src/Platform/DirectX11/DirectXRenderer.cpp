@@ -98,14 +98,14 @@ namespace Shark {
 
 		m_ShaderLib = Ref<ShaderLibrary>::Create();
 
-		m_ShaderLib->Load("assets/Shaders/Renderer2D_Quad.hlsl");
-		m_ShaderLib->Load("assets/Shaders/Renderer2D_Circle.hlsl");
-		m_ShaderLib->Load("assets/Shaders/Renderer2D_Line.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Circle.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Line.hlsl");
 
-		m_ShaderLib->Load("assets/Shaders/FullScreen.hlsl");
-		m_ShaderLib->Load("assets/Shaders/CompositWidthDepth.hlsl");
-		m_ShaderLib->Load("assets/Shaders/NegativeEffect.hlsl");
-		m_ShaderLib->Load("assets/Shaders/BlurEffect.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/FullScreen.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/CompositWidthDepth.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/NegativeEffect.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/BlurEffect.hlsl");
 
 		uint32_t color = 0xFFFFFFFF;
 		m_WhiteTexture = Texture2D::Create(1, 1, &color);
