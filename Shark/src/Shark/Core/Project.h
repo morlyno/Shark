@@ -22,7 +22,6 @@ namespace Shark {
 		const std::filesystem::path& GetTexturesPath() const                                   { return m_TexturesPath; }
 		const std::filesystem::path& GetScenesPath() const                                     { return m_ScenesPath; }
 		const std::filesystem::path& GetStartupScene() const                                   { return m_StartupScene; }
-		std::filesystem::path        GetCacheDirectory() const                                 { return m_AssetsPath / "Cache"; }
 
 		std::string&           GetProjectName()                                                { return m_ProjectName; }
 		std::filesystem::path& GetAssetsPath()                                                 { return m_AssetsPath; }

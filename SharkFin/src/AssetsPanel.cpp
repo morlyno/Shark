@@ -47,7 +47,7 @@ namespace Shark {
 	}
 
 	AssetsPanel::AssetsPanel()
-		: m_Project(Application::Get().GetProject()), m_Watcher(m_Project.GetAssetsPath(), true)
+		: m_Project(Application::Get().GetProject())
 	{
 		SK_PROFILE_FUNCTION();
 		
@@ -59,13 +59,7 @@ namespace Shark {
 		m_CurrentDirectoryString = m_CurrentDirectory.string();
 
 		UpdateCurrentPathVec();
-
-		m_Watcher.OnChanged = [this](const std::filesystem::path& filePath) { ReCache(); };
-		m_Watcher.OnCreated = [this](const std::filesystem::path& filePath) { ReCache(); };
-		m_Watcher.OnDeleted = [this](const std::filesystem::path& filePath) { ReCache(); };
-		m_Watcher.OnRename = [this](const std::filesystem::path& filePath, const std::filesystem::path& oldfilePath) { ReCache(); };
-
-		m_Watcher.Start();
+		FileWatcher::AddCallback("AssetsPanel", [this](const auto&) { ReCache(); });
 
 	}
 
@@ -73,7 +67,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_Watcher.Stop();
+		FileWatcher::RemoveCallback("AssetsPanel");
 	}
 
 	void AssetsPanel::OnImGuiRender(bool& showPanel)
@@ -178,8 +172,12 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_Directorys.clear();
-		SaveDirectory(m_Project.GetAssetsPath());
+		auto&& assetsPath = m_Project.GetAssetsPath();
+		if (FileSystem::Exists(assetsPath))
+		{
+			m_Directorys.clear();
+			SaveDirectory(assetsPath);
+		}
 	}
 
 	Directory* AssetsPanel::SaveDirectory(const std::filesystem::path& directoryPath)

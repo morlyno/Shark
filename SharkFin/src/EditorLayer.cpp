@@ -7,17 +7,20 @@
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/UI.h>
 
+#include "Shark/File/FileWatcher.h"
+
+#include "Shark/Debug/Profiler.h"
+
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-#include "Shark/Debug/Profiler.h"
-
 namespace Shark {
 
 	static bool s_ShowDemoWindow = false;
+	static const std::filesystem::path s_AssetsPath = "Assets";
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
@@ -40,11 +43,16 @@ namespace Shark {
 		auto& window = app.GetWindow();
 		auto& proj = app.GetProject();
 
+		FileWatcher::Init(s_AssetsPath);
+
 		m_WorkScene = Ref<Scene>::Create();
 		m_ActiveScene = m_WorkScene;
 
 		m_ActiveScene->SetViewportSize(window.GetWidth(), window.GetHeight());
-		m_SceneHirachyPanel.SetContext(m_ActiveScene);
+
+		m_SceneHirachyPanel = Scope<SceneHirachyPanel>::Create();
+		m_SceneHirachyPanel->SetContext(m_ActiveScene);
+		m_AssetsPanel = Scope<AssetsPanel>::Create();
 
 		if (proj.HasStartupScene())
 		{
@@ -71,6 +79,8 @@ namespace Shark {
 	void EditorLayer::OnDetach()
 	{
 		SK_PROFILE_FUNCTION();
+
+		FileWatcher::ShutDown();
 	}
 
 	void EditorLayer::OnUpdate(TimeStep ts)
@@ -165,7 +175,7 @@ namespace Shark {
 		if (m_ScenePaused || m_SceneState != SceneState::Play)
 			m_EditorCamera.OnEvent(event);
 
-		m_SceneHirachyPanel.OnEvent(event);
+		m_SceneHirachyPanel->OnEvent(event);
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -380,8 +390,8 @@ namespace Shark {
 		UI_CameraPrevie();
 		UI_Stats();
 
-		m_SceneHirachyPanel.OnImGuiRender(m_ShwoSceneHirachyPanel);
-		m_AssetsPanel.OnImGuiRender(m_ShowAssetsPanel);
+		m_SceneHirachyPanel->OnImGuiRender(m_ShwoSceneHirachyPanel);
+		m_AssetsPanel->OnImGuiRender(m_ShowAssetsPanel);
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
@@ -484,7 +494,7 @@ namespace Shark {
 #if 0
 			if (ImGui::BeginMenu("Entity"))
 			{
-				Entity se = m_SceneHirachyPanel.GetSelectedEntity();
+				Entity se = m_SceneHirachyPanel->GetSelectedEntity();
 				if (ImGui::MenuItem("Add"))
 				{
 					auto e = m_WorkScene->CreateEntity("New Entity");
@@ -1316,7 +1326,7 @@ namespace Shark {
 		SetActiveScene(Scene::Copy(m_WorkScene));
 		SceneManager::SetActiveScene(m_ActiveScene);
 		m_ActiveScene->OnScenePlay();
-		m_SceneHirachyPanel.ScenePlaying(true);
+		m_SceneHirachyPanel->ScenePlaying(true);
 	}
 
 	void EditorLayer::OnSceneStop()
@@ -1328,11 +1338,11 @@ namespace Shark {
 		SetActiveScene(m_WorkScene);
 
 		SceneManager::SetActiveScene(nullptr);
-		m_SceneHirachyPanel.ScenePlaying(false);
+		m_SceneHirachyPanel->ScenePlaying(false);
 		m_SceneState = SceneState::Edit;
 		m_SceneRenderer->SetScene(m_WorkScene);
 
-		if (!m_ActiveScene->IsValidEntity(m_SceneHirachyPanel.GetSelectedEntity()))
+		if (!m_ActiveScene->IsValidEntity(m_SceneHirachyPanel->GetSelectedEntity()))
 			Event::Distribute(SelectionChangedEvent({}));
 	}
 
@@ -1345,7 +1355,7 @@ namespace Shark {
 		m_SceneState = SceneState::Simulate;
 		SetActiveScene(Scene::Copy(m_WorkScene));
 		m_ActiveScene->OnSimulateStart();
-		m_SceneHirachyPanel.ScenePlaying(true);
+		m_SceneHirachyPanel->ScenePlaying(true);
 	}
 
 	void EditorLayer::SetActiveScene(const Ref<Scene>& scene)
@@ -1354,7 +1364,7 @@ namespace Shark {
 		
 		m_ActiveScene = scene;
 		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-		m_SceneHirachyPanel.SetContext(m_ActiveScene);
+		m_SceneHirachyPanel->SetContext(m_ActiveScene);
 		m_SceneRenderer->SetScene(m_ActiveScene);
 		m_CameraPreviewRenderer->SetScene(m_ActiveScene);
 	}

@@ -7,64 +7,110 @@
 
 #include "Shark/Debug/Instrumentor.h"
 
+#include <algorithm>
+
 #if SK_PLATFORM_WINDOWS
 
 namespace Shark {
 
-	FileWatcher::FileWatcher()
-	{
-		OnRename = [](const std::filesystem::path&, const std::filesystem::path&) {};
-		OnChanged = OnCreated = OnDeleted = [](const std::filesystem::path&) {};
-	}
+	namespace Utils {
 
-	FileWatcher::FileWatcher(const std::filesystem::path& directoryPath, bool watchSubTrees)
-		: m_Directory(directoryPath), m_WatchSubTrees(watchSubTrees)
-	{
-		OnRename = [](const std::filesystem::path&, const std::filesystem::path&) {};
-		OnChanged = OnCreated = OnDeleted = [](const std::filesystem::path&) {};
-	}
-
-	FileWatcher::~FileWatcher()
-	{
-		if (m_Running)
-			Stop();
-	}
-
-	void FileWatcher::Start()
-	{
-		SK_PROFILE_FUNCTION();
-
-		SK_CORE_ASSERT(!m_Directory.empty());
-		SK_CORE_ASSERT(FileSystem::Exists(m_Directory));
-
-
-		SK_CORE_VERIFY(!m_Running, "FileWatcher::Start was called but FileWatcher is allready running");
-		if (!m_Running)
+		static FileEvent Win32FileActionToFileEvent(DWORD fileAction)
 		{
-			SK_CORE_INFO("FileWatcher Started watching: {}", m_Directory);
-			m_Running = true;
-			m_Thread = std::thread(&FileWatcher::StartThread, this);
+			switch (fileAction)
+			{
+				case FILE_ACTION_ADDED: return FileEvent::Created;
+				case FILE_ACTION_REMOVED: return FileEvent::Deleted;
+				case FILE_ACTION_MODIFIED: return FileEvent::Modified;
+				case FILE_ACTION_RENAMED_NEW_NAME: return FileEvent::Renamed;
+			}
+			SK_CORE_ASSERT(false, "Unkown File Action");
+			return FileEvent::None;
 		}
+
 	}
 
-	void FileWatcher::Stop()
+	struct FileWatcherData
 	{
-		SK_PROFILE_FUNCTION();
+		std::thread Thread;
+		std::filesystem::path Directory;
+		std::wstring DirectoryName;
+		HANDLE StopThreadEvent = NULL;
+		bool Running = false;
 
-		SK_CORE_VERIFY(m_Running, "FileWatcher::Stop was called but FileWatcher isn't running");
-		if (m_Running)
+		std::unordered_map<std::string, std::function<void(const FileWatcher::CallbackData&)>> Callbacks;
+	};
+
+	static Scope<FileWatcherData> s_Data = nullptr;
+
+	void FileWatcher::Init(const std::filesystem::path& directory)
+	{
+		SK_CORE_ASSERT(!s_Data, "FileWatcher::Init was called but the FileWatcher is allready Running!");
+		if (s_Data)
+			return;
+
+		s_Data = Scope<FileWatcherData>::Create();
+		s_Data->Directory = directory;
+		s_Data->DirectoryName = directory.filename();
+
+		SK_CORE_ASSERT(std::filesystem::is_directory(directory), "Path for FileWatcher is not a Directory");
+		if (!std::filesystem::is_directory(directory))
+			return;
+
+		s_Data->Thread = std::thread(StartFileWatcher);
+		SK_CORE_INFO("File Watcher Stated Watching {}", s_Data->Directory);
+	}
+
+	void FileWatcher::ShutDown()
+	{
+		SK_CORE_VERIFY(s_Data);
+		if (!s_Data)
+			return;
+
+		SK_CORE_VERIFY(s_Data->Running);
+		if (s_Data->Running)
 		{
-			m_Running = false;
-			SetEvent(m_Win32_StopEvent);
-			m_Thread.join();
-			SK_CORE_INFO("FileWatcher Stoped watching: {}", m_Directory);
+			s_Data->Running = false;
+			SetEvent(s_Data->StopThreadEvent);
+			s_Data->Thread.join();
+			SK_CORE_INFO("File Watcher Stoped Watching {}", s_Data->Directory);
 		}
+
+		s_Data = nullptr;
 	}
 
-	void FileWatcher::StartThread()
+	void FileWatcher::SetDirectory(const std::filesystem::path& directory)
 	{
+		ShutDown();
+		Init(directory);
+	}
+
+	void FileWatcher::AddCallback(const std::string& name, const std::function<void(const CallbackData&)>& func)
+	{
+		if (!s_Data)
+			return;
+
+		s_Data->Callbacks[name] = func;
+	}
+
+	void FileWatcher::RemoveCallback(const std::string& name)
+	{
+		if (!s_Data)
+			return;
+
+		s_Data->Callbacks.erase(name);
+	}
+
+	void FileWatcher::StartFileWatcher()
+	{
+		SK_CORE_ASSERT(!s_Data->Running, "StartFileWatcher was called but FileWachter is allready Running!");
+		if (s_Data->Running)
+			return;
+
+		s_Data->Running = true;
+
 		HANDLE directoryHandle = CreateFileW(
-			m_Directory.c_str(),
+			s_Data->Directory.c_str(),
 			GENERIC_READ,
 			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
 			NULL,
@@ -76,19 +122,17 @@ namespace Shark {
 		{
 			DWORD error = GetLastError();
 			std::string msg = GetLastErrorMsg(error);
-			SK_CORE_ERROR("Create File Failed! Win32 error msg: {} ", msg);
-			SK_CORE_ASSERT(false);
+			SK_CORE_ASSERT(false, fmt::format("CreateFileW Failed! Error Msg: {} ", msg));
 			return;
 		}
-
+		
 		DWORD buffer[2048];
-		BOOL watchSubTrees = (BOOL)m_WatchSubTrees;
 		DWORD bytesReturned = 0;
-		FILE_NOTIFY_INFORMATION* notify = nullptr;
+		FILE_NOTIFY_INFORMATION* fileInfo = nullptr;
 		DWORD offset = 0;
-
+		
 		ZeroMemory(buffer, sizeof(buffer));
-
+		
 		constexpr DWORD notifyFlags =
 			FILE_NOTIFY_CHANGE_FILE_NAME |
 			FILE_NOTIFY_CHANGE_DIR_NAME |
@@ -98,8 +142,8 @@ namespace Shark {
 			FILE_NOTIFY_CHANGE_LAST_ACCESS |
 			FILE_NOTIFY_CHANGE_CREATION |
 			FILE_NOTIFY_CHANGE_SECURITY;
-
-
+		
+		
 		OVERLAPPED overlapped;
 		ZeroMemory(&overlapped, sizeof(OVERLAPPED));
 		overlapped.Offset = 0;
@@ -108,43 +152,41 @@ namespace Shark {
 		{
 			DWORD error = GetLastError();
 			std::string msg = GetLastErrorMsg(error);
-			SK_CORE_ERROR("Create Event Failed! Win32 error msg: {}", msg);
+			SK_CORE_ERROR("Create Event Failed! Error Msg: {}", msg);
 			SK_CORE_ASSERT(false);
-
+			
 			// Clean up
 			CloseHandle(directoryHandle);
 			return;
 		}
-
-
+		
+		
 		HANDLE events[2];
 		events[0] = overlapped.hEvent;
 		events[1] = CreateEventW(NULL, TRUE, FALSE, NULL);
-		m_Win32_StopEvent = events[1];
-		if (m_Win32_StopEvent == NULL)
+		s_Data->StopThreadEvent = events[1];
+		if (s_Data->StopThreadEvent == NULL)
 		{
 			DWORD error = GetLastError();
 			std::string msg = GetLastErrorMsg(error);
-			SK_CORE_ERROR("Create Event Failed! Win32 error msg: {}", msg);
-
+			SK_CORE_ERROR("Create Event Failed! Error Msg: {}", msg);
+			
 			// Clean up
 			CloseHandle(overlapped.hEvent);
 			CloseHandle(directoryHandle);
 			return;
 		}
-
-		std::filesystem::path filePath;
-
-		FILE_NOTIFY_INFORMATION* prev = NULL;
+		
+		std::filesystem::path prevFilePath;
 		bool prevWasOldName = false;
 
-		while (m_Running)
+		while (s_Data->Running)
 		{
 			BOOL result = ReadDirectoryChangesW(
 				directoryHandle,
 				buffer,
 				sizeof(buffer),
-				watchSubTrees,
+				TRUE,
 				notifyFlags,
 				&bytesReturned,
 				&overlapped,
@@ -154,41 +196,58 @@ namespace Shark {
 			DWORD event = WaitForMultipleObjects(2, events, FALSE, INFINITE);
 			if (event == WAIT_OBJECT_0 + 1)
 				continue;
-
-			SK_CORE_VERIFY(result, fmt::format("Failed to Read Changes! Win32 error msg: {}", GetLastErrorMsg(GetLastError())));
+			
+			SK_CORE_VERIFY(result, fmt::format("Failed to Read Changes! Error Msg: {}", GetLastErrorMsg(GetLastError())));
 			if (!result)
 				continue;
-
+			
 			offset = 0;
 
 			do
 			{
-				notify = (FILE_NOTIFY_INFORMATION*)((byte*)buffer + offset);
-				offset += notify->NextEntryOffset;
+				fileInfo = (FILE_NOTIFY_INFORMATION*)((byte*)buffer + offset);
+				offset += fileInfo->NextEntryOffset;
 
-				const size_t length = notify->FileNameLength / sizeof(WCHAR);
+				const size_t length = fileInfo->FileNameLength / sizeof(WCHAR);
+				std::wstring filePath = fmt::format(L"{}/{}", s_Data->DirectoryName, std::wstring(fileInfo->FileName, length));
+				std::replace(filePath.begin(), filePath.end(), L'\\', L'/');
 
-				filePath = m_Directory / std::wstring(notify->FileName, length);
-
-				switch (notify->Action)
+				if (fileInfo->Action == FILE_ACTION_RENAMED_OLD_NAME)
 				{
-					case FILE_ACTION_RENAMED_OLD_NAME:    prevWasOldName = true; prev = notify; break;
-					case FILE_ACTION_RENAMED_NEW_NAME:    SK_CORE_ASSERT(prevWasOldName, "I currently assume that FILE_ACTION_RENAME_OLD_NAME always happends befor FILE_ACTION_RENAME_NEW_NAME");
-						                                  OnRename(filePath, std::wstring(prev->FileName, prev->FileNameLength / sizeof(WCHAR))); break;
+					prevFilePath = filePath;
+					prevWasOldName = true;
 
-					case FILE_ACTION_MODIFIED:            OnChanged(filePath); break;
-					case FILE_ACTION_ADDED:               OnCreated(filePath); break;
-					case FILE_ACTION_REMOVED:             OnDeleted(filePath); break;
-					default: SK_CORE_ASSERT(false, "Invalid Action"); break;
+					continue;
 				}
-			} while (notify->NextEntryOffset);
-		}
 
+				CallbackData callbackData;
+				callbackData.Event = Utils::Win32FileActionToFileEvent(fileInfo->Action);
+				callbackData.FilePath = filePath;
+				
+				SK_CORE_ASSERT(SK_ASSERT_CONDITIONAL(callbackData.Event == FileEvent::Renamed, prevWasOldName), "Previos File Action wasn't FILE_ACTION_RENAMED_OLD_NAME!");
+				if (callbackData.Event == FileEvent::Renamed && prevWasOldName)
+				{
+					callbackData.OldFilePath = prevFilePath;
+					prevWasOldName = false;
+					prevFilePath.clear();
+				}
+
+				for (auto&& [name, callback] : s_Data->Callbacks)
+					callback(callbackData);
+
+
+			} while (fileInfo->NextEntryOffset);
+		}
+		
 		// Clean up
 		CloseHandle(directoryHandle);
-
+		
 		CloseHandle(events[0]);
 		CloseHandle(events[1]);
+
+		s_Data->StopThreadEvent = NULL;
+
+		s_Data->Running = false;
 	}
 
 }

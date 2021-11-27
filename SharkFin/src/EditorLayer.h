@@ -74,8 +74,8 @@ namespace Shark {
 		Ref<Scene> m_ActiveScene = nullptr;
 		Ref<Scene> m_WorkScene = nullptr;
 		
-		SceneHirachyPanel m_SceneHirachyPanel;
-		AssetsPanel m_AssetsPanel;
+		Scope<SceneHirachyPanel> m_SceneHirachyPanel;
+		Scope<AssetsPanel> m_AssetsPanel;
 
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;

@@ -79,7 +79,6 @@ namespace Shark {
 
 	private:
 		const Project& m_Project;
-		FileWatcher m_Watcher;
 
 		Ref<Texture2D> m_DirectoryIcon;
 		Ref<Texture2D> m_StandartFileIcon;

@@ -13,7 +13,6 @@ namespace Shark {
 	{
 	public:
 		SceneHirachyPanel() = default;
-		SceneHirachyPanel(const Ref<Scene>& context);
 		void SetContext(const Ref<Scene>& context);
 		const Ref<Scene>& GetContext() const { return m_Context; }
 

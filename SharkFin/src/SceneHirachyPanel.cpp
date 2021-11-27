@@ -63,13 +63,6 @@ namespace Shark {
 
 	}
 
-	SceneHirachyPanel::SceneHirachyPanel(const Ref<Scene>& context)
-	{
-		SK_PROFILE_FUNCTION();
-		
-		SetContext(context);
-	}
-
 	void SceneHirachyPanel::SetContext(const Ref<Scene>& context)
 	{
 		SK_PROFILE_FUNCTION();

@@ -2,41 +2,55 @@
 
 namespace Shark {
 
+	enum class FileEvent
+	{
+		None = 0,
+		Created,
+		Deleted,
+		Modified,
+		Renamed
+	};
+
+	inline std::string FileEventToString(FileEvent fileEvent)
+	{
+		switch (fileEvent)
+		{
+			case FileEvent::None: return "None";
+			case FileEvent::Created: return "Created";
+			case FileEvent::Deleted: return "Deleted";
+			case FileEvent::Modified: return "Modified";
+			case FileEvent::Renamed: return "Renamed";
+		}
+		SK_CORE_ASSERT(false, "Unkown File Event");
+		return "Unkown";
+	}
+
 	class FileWatcher
 	{
 	public:
-		FileWatcher();
-		FileWatcher(FileWatcher&&) = default;
-		FileWatcher& operator=(FileWatcher&&) = default;
-		FileWatcher(const std::filesystem::path& directoryPath, bool watchSubTrees);
-		~FileWatcher();
+		// Note: FilePaths are relative
+		struct CallbackData
+		{
+			FileEvent Event;
+			std::filesystem::path OldFilePath;
+			std::filesystem::path FilePath;
+		};
 
-		void SetDirectory(const std::filesystem::path& directoryPath) { m_Directory = directoryPath; }
-		void WatchSubTrees(bool watchSubTrees) { m_WatchSubTrees = watchSubTrees; }
+	public:
+		static void Init(const std::filesystem::path& directory);
+		static void ShutDown();
 
-		const std::filesystem::path& GetWatchingDirectory() const { return m_Directory; }
+		static void SetDirectory(const std::filesystem::path& directory);
 
-		void Start();
-		void Stop();
-
-		std::function<void(const std::filesystem::path& FilePath, const std::filesystem::path& OldFilePath)> OnRename;
-		std::function<void(const std::filesystem::path& FilePath)> OnChanged;
-		std::function<void(const std::filesystem::path& FilePath)> OnCreated;
-		std::function<void(const std::filesystem::path& FilePath)> OnDeleted;
-
-	private:
-		void StartThread();
+		template<typename Func>
+		static void AddCallback(const std::string& name, const Func& func) { AddCallback(name, std::function<void(const CallbackData&)>(func)); }
+		static void RemoveCallback(const std::string& name);
 
 	private:
-		std::thread m_Thread;
-		bool m_Running = false;
-		std::filesystem::path m_Directory;
-		bool m_WatchSubTrees = false;
+		static void AddCallback(const std::string& name, const std::function<void(const CallbackData&)>& func);
 
-#ifdef SK_PLATFORM_WINDOWS
-		HANDLE m_Win32_StopEvent = NULL;
-#endif
-
+	private:
+		static void StartFileWatcher();
 	};
 
 }
