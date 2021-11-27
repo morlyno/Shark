@@ -7,7 +7,6 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
-#include "Shark/Core/Project.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -37,10 +36,6 @@ namespace Shark {
 		Window& GetWindow()                            { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer()                    { return *m_ImGuiLayer; }
 
-		void SetProject(const Project& proj)           { m_Project = proj; }
-		const Project& GetProject() const              { return m_Project; }
-		Project& GetProject()                          { return m_Project; }
-
 	private:
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnApplicationClose(ApplicationCloseEvent& event);
@@ -59,7 +54,6 @@ namespace Shark {
 		// Owned by LayerStack
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
-		Project m_Project;
 	};
 
 	Application* CreateApplication(int argc, char** argv);

@@ -1,11 +1,11 @@
 #include "skpch.h"
 #include "Shark/Utility/PlatformUtils.h"
 
+#include "Shark/Utility/Utility.h"
 #include "Shark/Core/Application.h"
-
 #include "Platform/Windows/WindowsUtility.h"
 
-#include <fmt/core.h>
+
 
 namespace Shark {
 

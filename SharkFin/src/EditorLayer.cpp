@@ -20,7 +20,7 @@
 namespace Shark {
 
 	static bool s_ShowDemoWindow = false;
-	static const std::filesystem::path s_AssetsPath = "Assets";
+	const extern std::filesystem::path s_AssetsPath = "Assets";
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
@@ -41,7 +41,6 @@ namespace Shark {
 
 		auto& app = Application::Get();
 		auto& window = app.GetWindow();
-		auto& proj = app.GetProject();
 
 		FileWatcher::Init(s_AssetsPath);
 
@@ -53,12 +52,6 @@ namespace Shark {
 		m_SceneHirachyPanel = Scope<SceneHirachyPanel>::Create();
 		m_SceneHirachyPanel->SetContext(m_ActiveScene);
 		m_AssetsPanel = Scope<AssetsPanel>::Create();
-
-		if (proj.HasStartupScene())
-		{
-			m_ActiveScene->SetFilePath(proj.GetStartupScene());
-			LoadScene();
-		}
 
 		m_PlayIcon = Texture2D::Create("Resources/PlayButton.png");
 		m_StopIcon = Texture2D::Create("Resources/StopButton.png");
@@ -92,7 +85,7 @@ namespace Shark {
 		Renderer::NewFrame();
 
 
-		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered/* && !m_ViewportFocused*/);
+		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
 		if (m_ViewportSizeChanged && m_ViewportWidth != 0 && m_ViewportHeight != 0)
 		{
@@ -384,7 +377,6 @@ namespace Shark {
 		UI_Info();
 		UI_Shaders();
 		UI_EditorCamera();
-		UI_Project();
 		UI_ToolBar();
 		UI_Settings();
 		UI_CameraPrevie();
@@ -788,140 +780,6 @@ namespace Shark {
 		}
 	}
 
-	void EditorLayer::UI_Project()
-	{
-		SK_PROFILE_FUNCTION();
-		
-		if (!m_ShowProject || m_SceneState != SceneState::Edit)
-			return;
-
-		if (ImGui::Begin("Project", &m_ShowProject))
-		{
-			Project& proj = Application::Get().GetProject();
-			ImGui::BeginTable("Table", 2, ImGuiTableFlags_BordersInnerV);
-			ImGui::TableSetupColumn("LabelCollumn", ImGuiTableColumnFlags_WidthFixed, 100);
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::Text("Name");
-			ImGui::TableSetColumnIndex(1);
-			UI::InputText("##ProjectName", proj.GetProjectName());
-			UI::GetContentPayload(proj.GetProjectName(), UI::ContentType::Directory);
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::Text("Assets");
-			ImGui::TableSetColumnIndex(1);
-			UI::InputText("##AssetsPath", proj.GetAssetsPath());
-			UI::GetContentPayload(proj.GetAssetsPath(), UI::ContentType::Directory);
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::Text("Textures");
-			ImGui::TableSetColumnIndex(1);
-			UI::InputText("##TexturesPath", proj.GetTexturesPath());
-			UI::GetContentPayload(proj.GetTexturesPath(), UI::ContentType::Directory);
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::Text("Scens");
-			ImGui::TableSetColumnIndex(1);
-			UI::InputText("##ScenesPath", proj.GetScenesPath());
-			UI::GetContentPayload(proj.GetScenesPath(), UI::ContentType::Directory);
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::Text("Startup Scene");
-			ImGui::TableSetColumnIndex(1);
-			UI::InputText("##StartupScene", proj.GetStartupScene());
-			UI::GetContentPayload(proj.GetStartupScene(), UI::ContentType::Scene);
-
-			ImGui::EndTable();
-
-			ImGui::Separator();
-
-			ImGuiStyle& style = ImGui::GetStyle();
-
-			if (ImGui::Button("Add Current Scene"))
-			{
-				const auto& path = m_WorkScene->GetFilePath();
-				if (!Utility::Contains(proj.GetScenes(), path))
-					proj.AddScene(path);
-			}
-			const float itemheight = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
-			const float height = std::max(ImGui::GetContentRegionAvail().y - (itemheight + style.FramePadding.y) - 1, itemheight);
-			if (ImGui::BeginChild("ProjectScenes", { 0, height }, true))
-			{
-				UI::MoveCurserPosY(-style.FramePadding.y);
-				for (uint32_t index = 0; index < proj.GetNumScenes();)
-				{
-					ImGui::PushID((int)index);
-					bool increment = true;
-
-					UI::Text(proj.GetSceneAt(index));
-
-					float size = ImGui::GetFontSize();
-					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 });
-					ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.8f, 0.8f, 0.8f, 0.1f });
-					ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.8f, 0.8f, 0.8f, 0.2f });
-					ImGui::SameLine();
-					const bool pressed = UI::ButtonRightAligned("+", { size, size });
-					ImGui::PopStyleColor(3);
-					ImGui::PopStyleVar();
-
-					const ImGuiID popupID = ImGui::GetID("EditScene_PopUp");
-					if (pressed)
-						ImGui::OpenPopupEx(popupID);
-					if (ImGui::BeginPopupEx(popupID, ImGuiWindowFlags_None))
-					{
-						if (ImGui::Selectable("Move Up", false, index == 0 ? ImGuiSelectableFlags_Disabled : 0))
-							std::swap(proj.GetSceneAt(index), proj.GetSceneAt(index - 1));
-
-						if (ImGui::Selectable("Move Down", false, index == proj.GetNumScenes() - 1 ? ImGuiSelectableFlags_Disabled : 0))
-							std::swap(proj.GetSceneAt(index), proj.GetSceneAt(index + 1));
-
-						ImGui::Separator();
-
-						if (ImGui::Selectable("Remove"))
-						{
-							proj.Remove(index);
-							increment = false;
-						}
-						ImGui::EndPopup();
-					}
-
-					if (increment)
-						index++;
-
-					ImGui::PopID();
-					ImGui::Separator();
-				}
-			}
-			ImGui::EndChild();
-
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
-				if (payload)
-				{
-					UI::ContentPayload* content = (UI::ContentPayload*)payload->Data;
-					if (content->Type == UI::ContentType::Scene)
-						if (!Utility::Contains(proj.GetScenes(), content->Path))
-							proj.AddScene(content->Path);
-				}
-				ImGui::EndDragDropTarget();
-			}
-			if (ImGui::Button("Save Project"))
-				proj.SaveProjectFile();
-			ImGui::SameLine();
-			if (ImGui::Button("Load Project"))
-				proj.LoadProject();
-
-		}
-		ImGui::End();
-	}
-
 	void EditorLayer::UI_DragDrop()
 	{
 		SK_PROFILE_FUNCTION();
@@ -1301,6 +1159,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
+		SK_CORE_ASSERT(m_ActiveScene == m_WorkScene);
 
 		auto filepath = FileDialogs::SaveFileW(L"Shark Scene (*.shark)\0*.shark\0");
 		if (!filepath.empty())
@@ -1324,7 +1183,6 @@ namespace Shark {
 
 		m_SceneState = SceneState::Play;
 		SetActiveScene(Scene::Copy(m_WorkScene));
-		SceneManager::SetActiveScene(m_ActiveScene);
 		m_ActiveScene->OnScenePlay();
 		m_SceneHirachyPanel->ScenePlaying(true);
 	}
@@ -1337,7 +1195,6 @@ namespace Shark {
 		m_ActiveScene->OnSceneStop();
 		SetActiveScene(m_WorkScene);
 
-		SceneManager::SetActiveScene(nullptr);
 		m_SceneHirachyPanel->ScenePlaying(false);
 		m_SceneState = SceneState::Edit;
 		m_SceneRenderer->SetScene(m_WorkScene);

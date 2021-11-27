@@ -8,6 +8,7 @@
 
 namespace Shark {
 
+	const extern std::filesystem::path s_AssetsPath;
 	static std::string s_TempInputString;
 
 	namespace Utils {
@@ -47,15 +48,14 @@ namespace Shark {
 	}
 
 	AssetsPanel::AssetsPanel()
-		: m_Project(Application::Get().GetProject())
 	{
 		SK_PROFILE_FUNCTION();
 		
 		m_DirectoryIcon = Texture2D::Create("Resources/AssetsPanel/folder_open.png");
 		m_StandartFileIcon = Texture2D::Create("Resources/AssetsPanel/file.png");
 
-		m_DirectoryHistory.emplace_back(m_Project.GetAssetsPath());
-		m_CurrentDirectory = m_Project.GetAssetsPath();
+		m_DirectoryHistory.emplace_back(s_AssetsPath);
+		m_CurrentDirectory = s_AssetsPath;
 		m_CurrentDirectoryString = m_CurrentDirectory.string();
 
 		UpdateCurrentPathVec();
@@ -136,7 +136,7 @@ namespace Shark {
 			ImGui::TableSetColumnIndex(0);
 
 			// TODO(moro): maybe switch form string to filesystem::path
-			auto temp = m_Project.GetAssetsPath();
+			auto temp = s_AssetsPath;
 			DrawAsTree(temp.string());
 
 			ImGui::TableSetColumnIndex(1);
@@ -172,7 +172,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		auto&& assetsPath = m_Project.GetAssetsPath();
+		auto&& assetsPath = s_AssetsPath;
 		if (FileSystem::Exists(assetsPath))
 		{
 			m_Directorys.clear();

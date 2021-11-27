@@ -7,7 +7,6 @@
 
 // --- Core -----------------------------
 #include "Shark/Core/Application.h"
-#include "Shark/Core/Project.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Core/Input.h"
 #include "Shark/Core/Timer.h"
@@ -67,5 +66,4 @@
 #include "Shark/Scene/Components.h"
 #include "Shark/Scene/SceneSerialization.h"
 #include "Shark/Scene/NativeScriptFactory.h"
-#include "Shark/Scene/SceneManager.h"
 // --------------------------------------

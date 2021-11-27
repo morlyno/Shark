@@ -78,8 +78,6 @@ namespace Shark {
 		RenderID GetContentTextureID(const Entry& entry);
 
 	private:
-		const Project& m_Project;
-
 		Ref<Texture2D> m_DirectoryIcon;
 		Ref<Texture2D> m_StandartFileIcon;
 		int m_IconSize = 80;

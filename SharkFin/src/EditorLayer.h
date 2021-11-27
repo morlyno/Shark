@@ -15,6 +15,8 @@
 
 namespace Shark {
 
+	const extern std::filesystem::path s_AssetsPath;
+
 	class EditorLayer : public Layer
 	{
 	public:
@@ -43,7 +45,6 @@ namespace Shark {
 		void UI_Info();
 		void UI_Shaders();
 		void UI_EditorCamera();
-		void UI_Project();
 		void UI_DragDrop();
 		void UI_ToolBar();
 		void UI_Settings();
