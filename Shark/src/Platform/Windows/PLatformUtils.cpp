@@ -5,73 +5,143 @@
 #include "Shark/Core/Application.h"
 #include "Platform/Windows/WindowsUtility.h"
 
+#include "Shark/File/FileSystem.h"
 
+#include <shellapi.h>
+#include <ShlObj.h>
 
 namespace Shark {
 
-	namespace FileDialogs {
+	std::filesystem::path FileDialogs::OpenFile(const std::wstring& filter, uint32_t defaultFilterindex, const std::filesystem::path& defaultPath, bool overrideDefault)
+	{
+		auto& window = Application::Get().GetWindow();
+		std::filesystem::path result;
+		if (FileDialogShared(window.GetHandle(), false, filter, defaultFilterindex, defaultPath, overrideDefault, result))
+			return result;
+		return {};
+	}
 
-		std::string OpenFile(const char* filter)
+	std::filesystem::path FileDialogs::SaveFile(const std::wstring& filter, uint32_t defaultFilterindex, const std::filesystem::path& defaultPath, bool overrideDefault)
+	{
+		auto& window = Application::Get().GetWindow();
+		std::filesystem::path result;
+		if (FileDialogShared(window.GetHandle(), true, filter, defaultFilterindex, defaultPath, overrideDefault, result))
+			return result;
+		return {};
+	}
+
+	std::filesystem::path FileDialogs::OpenDirectory(const std::filesystem::path& defaultPath)
+	{
+		std::filesystem::path result;
+
+		IFileOpenDialog* fileDialog;
+		if (SUCCEEDED(::CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileOpenDialog, (void**)&fileDialog)))
 		{
-			// TODO(moro): switch to wide version
+			DWORD flags;
+			fileDialog->GetOptions(&flags);
+			fileDialog->SetOptions(flags | FOS_PICKFOLDERS | FOS_DONTADDTORECENT);
 
-			OPENFILENAMEA ofn;
-			CHAR szFile[260] = { 0 };
-			CHAR currentDir[256] = { 0 };
-			ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
-			ofn.lStructSize = sizeof(OPENFILENAMEA);
-			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetHandle();
-			ofn.lpstrFile = szFile;
-			ofn.nMaxFile = sizeof(szFile);
-			if (GetCurrentDirectoryA(256, currentDir))
-				ofn.lpstrInitialDir = currentDir;
-			ofn.lpstrFilter = filter;
-			ofn.nFilterIndex = 1;
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR | OFN_DONTADDTORECENT;
+			if (!defaultPath.empty())
+			{
+				auto windowsDefaultPath = std::filesystem::absolute(defaultPath);
+				windowsDefaultPath = FileSystem::MakeWindowsDefault(windowsDefaultPath);
+				IShellItem* defualtPathItem;
+				if (SUCCEEDED(::SHCreateItemFromParsingName(windowsDefaultPath.c_str(), NULL, IID_PPV_ARGS(&defualtPathItem))))
+				{
+					fileDialog->SetDefaultFolder(defualtPathItem);
+				}
+			}
 
-			if (GetOpenFileNameA(&ofn) == TRUE)
-				return ofn.lpstrFile;
-			return std::string{};
+			auto& window = Application::Get().GetWindow();
+			if (SUCCEEDED(fileDialog->Show((HWND)window.GetHandle())))
+			{
+				IShellItem* shellItem;
+				if (SUCCEEDED(fileDialog->GetResult(&shellItem)))
+				{
+					PWSTR filePath;
+					if (SUCCEEDED(shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
+					{
+						result = filePath;
+						CoTaskMemFree(filePath);
+					}
+
+					shellItem->Release();
+				}
+
+				fileDialog->Release();
+			}
 		}
 
-		std::string SaveFile(const char* filter)
+		return result;
+	}
+
+	bool FileDialogs::FileDialogShared(WindowHandle parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result)
+	{
+		bool success = false;
+
+		IFileDialog* fileDialog;
+		if (SUCCEEDED(::CoCreateInstance(save ? CLSID_FileSaveDialog : CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, save ? IID_IFileSaveDialog : IID_IFileOpenDialog, (void**)&fileDialog)))
 		{
-			// TODO(moro): switch to wide version
-			
-			OPENFILENAMEA ofn;
-			CHAR szFile[260] = { 0 };
-			CHAR currentDir[256] = { 0 };
-			ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
-			ofn.lStructSize = sizeof(OPENFILENAMEA);
-			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetHandle();
-			ofn.lpstrFile = szFile;
-			ofn.nMaxFile = sizeof(szFile);
-			if (GetCurrentDirectoryA(256, currentDir))
-				ofn.lpstrInitialDir = currentDir;
-			ofn.lpstrFilter = filter;
-			ofn.nFilterIndex = 1;
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR | OFN_DONTADDTORECENT;
+			DWORD flags;
+			fileDialog->GetOptions(&flags);
+			flags |= FOS_DONTADDTORECENT | FOS_FILEMUSTEXIST;
+			fileDialog->SetOptions(flags);
 
-			// Sets the default extension by extracting it from the filter
-			ofn.lpstrDefExt = strchr(filter, '\0') + 1;
+			if (!defaultPath.empty())
+			{
+				auto windowsDefaultPath = std::filesystem::absolute(defaultPath);
+				windowsDefaultPath = FileSystem::MakeWindowsDefault(windowsDefaultPath);
+				IShellItem* defualtPathItem;
+				if (SUCCEEDED(::SHCreateItemFromParsingName(windowsDefaultPath.c_str(), NULL, IID_PPV_ARGS(&defualtPathItem))))
+				{
+					if (overrideDefault)
+						fileDialog->SetFolder(defualtPathItem);
+					else
+						fileDialog->SetDefaultFolder(defualtPathItem);
+				}
+			}
 
-			if (GetSaveFileNameA(&ofn) == TRUE)
-				return ofn.lpstrFile;
-			return std::string{};
+			if (!filter.empty())
+			{
+				// Filter format name0|filter0|name1|filter1
+				std::vector<std::wstring> unformatedFilters;
+				Utility::SplitString(filter, L"|", unformatedFilters);
+
+				std::vector<COMDLG_FILTERSPEC> fileDialogFilters;
+
+				if (unformatedFilters.size() % 2 == 0)
+				{
+					for (uint32_t i = 0; i < unformatedFilters.size();)
+					{
+						COMDLG_FILTERSPEC& filterSpec = fileDialogFilters.emplace_back();
+						filterSpec.pszName = unformatedFilters[i++].c_str();
+						filterSpec.pszSpec = unformatedFilters[i++].c_str();
+					}
+				}
+				fileDialog->SetFileTypes(fileDialogFilters.size(), fileDialogFilters.data());
+				fileDialog->SetFileTypeIndex(defaultFilterIndex);
+			}
+
+			if (SUCCEEDED(fileDialog->Show((HWND)parentWindow)))
+			{
+				IShellItem* shellItem;
+				if (SUCCEEDED(fileDialog->GetResult(&shellItem)))
+				{
+					PWSTR filePath;
+					if (SUCCEEDED(shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
+					{
+						out_Result = filePath;
+						CoTaskMemFree(filePath);
+					}
+
+					shellItem->Release();
+				}
+
+				fileDialog->Release();
+			}
 		}
 
-		std::filesystem::path OpenFileW(const wchar_t* filter)
-		{
-			auto filterA = Utility::ToNarrow(filter);
-			return OpenFile(filterA.c_str());
-		}
-
-		std::filesystem::path SaveFileW(const wchar_t* filter)
-		{
-			auto filterA = Utility::ToNarrow(filter);
-			return SaveFile(filterA.c_str());
-		}
-
+		return true;
 	}
 
 	namespace Utility {
@@ -90,11 +160,20 @@ namespace Shark {
 
 		void OpenWith(const std::string& path)
 		{
-			std::string exeFile = FileDialogs::OpenFile("");
+			std::filesystem::path exeFile = FileDialogs::OpenFile(L"exe|*.exe");
 			if (!exeFile.empty())
 			{
-				auto&& cmd = fmt::format("\"start \"\" \"{}\" \"{}\"\"", exeFile, path);
-				system(cmd.c_str());
+				std::wstring wPath = fmt::format(L"\"{}\"", Utility::ToWide(path));
+				SHELLEXECUTEINFOW executeInfo;
+				ZeroMemory(&executeInfo, sizeof(SHELLEXECUTEINFOW));
+				executeInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+				executeInfo.fMask = SEE_MASK_ASYNCOK | SEE_MASK_CLASSNAME;
+				executeInfo.lpVerb = L"open";
+				executeInfo.lpFile = exeFile.c_str();
+				executeInfo.lpParameters = wPath.c_str();
+				executeInfo.nShow = SW_SHOWDEFAULT;
+				executeInfo.lpClass = L".exe";
+				ShellExecuteExW(&executeInfo);
 			}
 
 		}

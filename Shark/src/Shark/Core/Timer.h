@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Shark/Core/TimeStep.h"
+
 namespace Shark {
 
 	class Win32Timer

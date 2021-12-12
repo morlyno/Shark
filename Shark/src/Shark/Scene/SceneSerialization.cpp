@@ -225,6 +225,13 @@ namespace Shark {
 	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
+
+		if (!m_Scene)
+		{
+			SK_CORE_WARN("SceneSerializer Scene is null but Serialize was called");
+			return false;
+		}
+
 		Timer timer;
 
 		YAML::Emitter out;
@@ -267,6 +274,19 @@ namespace Shark {
 	bool SceneSerializer::Deserialize(const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
+
+		if (!m_Scene)
+		{
+			SK_CORE_ERROR("SceneSerializer Scene is null but Deserialize was called");
+			return false;
+		}
+
+		if (!FileSystem::ValidateSceneFilePath(filepath))
+		{
+			SK_CORE_ERROR("Tryed to Deseialize Scene but FilePath is invalid [File: {}]", filepath);
+			return false;
+		}
+
 		Timer timer;
 
 		YAML::Node in = YAML::LoadFile(filepath);

@@ -2,34 +2,33 @@
 
 #include "Shark/Event/Event.h"
 
+#include "Shark/File/FileWatcher.h"
+
 namespace Shark {
 
-	class ApplicationEvent : public Event
+	class ApplicationCloseEvent : public EventBase<EventTypes::ApplicationClosed, EventCategoryApplication>
 	{
 	public:
-		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryApplication);
+		ApplicationCloseEvent() = default;
 	};
 
-	class ApplicationCloseEvent : public ApplicationEvent
+	class FileChangedEvent : public EventBase<EventTypes::FileChanged, EventCategoryApplication>
 	{
 	public:
-		SK_EVENT_FUNCTIONS(ApplicationClosed);
-	};
+		FileChangedEvent() = default;
 
-	class Entity;
-	class Scene;
+		FileEvent GetFileEvent() const { return m_FileEvent; }
+		const std::filesystem::path& GetFilePath() const { return m_FilePath; }
+		const std::filesystem::path& GetOldFilePath() const { return m_OldFilePath; }
 
-	class SelectionChangedEvent : public ApplicationEvent
-	{
-	public:
-		SelectionChangedEvent(Entity entity);
-
-		SK_EVENT_FUNCTIONS(SelectionChanged);
-
-		Entity GetSelectedEntity();
+		virtual std::string ToString() const override { return fmt::format("{}, Event: {}, FilePath: {}, OldFilePath: {}", GetName(), FileEventToString(m_FileEvent), m_FilePath.string(), m_OldFilePath.string()); }
+		
 	private:
-		uint32_t m_EntityID;
-		Weak<Scene> m_Scene;
+		FileEvent m_FileEvent;
+		std::filesystem::path m_FilePath;
+		std::filesystem::path m_OldFilePath;
+
+		friend class FileWatcher;
 	};
 
 }

@@ -15,8 +15,6 @@
 
 namespace Shark {
 
-	const extern std::filesystem::path s_AssetsPath;
-
 	class EditorLayer : public Layer
 	{
 	public:
@@ -25,7 +23,7 @@ namespace Shark {
 			Edit = 0, Play = 1, Simulate = 2
 		};
 	public:
-		EditorLayer();
+		EditorLayer(const std::filesystem::path& startupProject);
 		~EditorLayer();
 
 		virtual void OnAttach() override;
@@ -38,7 +36,6 @@ namespace Shark {
 	private:
 		bool OnWindowResize(WindowResizeEvent& event);
 		bool OnKeyPressed(KeyPressedEvent& event);
-		bool OnSelectionChanged(SelectionChangedEvent& event);
 
 		void UI_MainMenuBar();
 		void UI_Gizmo();
@@ -50,9 +47,13 @@ namespace Shark {
 		void UI_Settings();
 		void UI_CameraPrevie();
 		void UI_Stats();
+		void UI_ProjectSettings();
+
+		void SelectEntity(Entity entity);
 
 		void NewScene();
 
+		bool LoadScene(const std::filesystem::path& filePath);
 		bool LoadScene();
 		bool LoadScene(Ref<Scene> scene);
 		bool SaveScene();
@@ -66,7 +67,16 @@ namespace Shark {
 
 		void SetActiveScene(const Ref<Scene>& scene);
 
+		void OpenProject();
+		void OpenProject(const std::filesystem::path& filePath);
+		void CloseProject();
+		void SaveProject();
+		void SaveProject(const std::filesystem::path& filePath);
+		void CreateProject();
+
 	private:
+		std::filesystem::path m_StartupProject;
+
 		EditorCamera m_EditorCamera;
 		Ref<Image2D> m_MousePickingImage;
 
@@ -74,13 +84,16 @@ namespace Shark {
 		Ref<SceneRenderer> m_CameraPreviewRenderer;
 		Ref<Scene> m_ActiveScene = nullptr;
 		Ref<Scene> m_WorkScene = nullptr;
-		
+
+		Ref<Scene> m_LoadedScene = nullptr;
+
 		Scope<SceneHirachyPanel> m_SceneHirachyPanel;
-		Scope<AssetsPanel> m_AssetsPanel;
+		Scope<AssetsPanel> m_ContentBrowserPanel;
 
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		bool m_ViewportSizeChanged = false;
+		bool m_NeedsResize = true;
 
 		TimeStep m_TimeStep;
 
@@ -89,11 +102,11 @@ namespace Shark {
 
 		bool m_ShowInfo = true;
 		bool m_ShowEditorCameraControlls = false;
-		bool m_ShowProject = false;
 		bool m_ShowSettings = true;
 		bool m_ShowStats = true;
 		bool m_ReadHoveredEntity = false;
 		bool m_ShowShaders = false;
+		bool m_ShowProjectSettings = false;
 
 		int m_HoveredEntityID = -1;
 
@@ -106,7 +119,6 @@ namespace Shark {
 		int m_CurrentOperation = 0;
 		Entity m_SelectetEntity;
 
-
 		SceneState m_SceneState = SceneState::Edit;
 		bool m_ScenePaused = false;
 
@@ -117,6 +129,9 @@ namespace Shark {
 		Ref<Texture2D> m_PauseIcon;
 		Ref<Texture2D> m_StepIcon;
 
+		std::string m_ProjectEditBuffer;
+		bool m_ProjectEditActice = false;
+		ImGuiID m_ProjectEditActiveID;
 	};
 
 }

@@ -2,16 +2,16 @@
 
 namespace Shark {
 
-	namespace FileDialogs {
+	class FileDialogs
+	{
+	public:
+		static std::filesystem::path OpenFile(const std::wstring& filter, uint32_t defaultFilterindex = 0, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
+		static std::filesystem::path SaveFile(const std::wstring& filter, uint32_t defaultFilterindex = 0, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
 
-		SK_DEPRECATED("Use OpenFileW instead");
-		std::string OpenFile(const char* filter);
-		SK_DEPRECATED("Use SaveFileW instead");
-		std::string SaveFile(const char* filter);
+		static std::filesystem::path OpenDirectory(const std::filesystem::path& defaultPath = std::filesystem::path{});
 
-		std::filesystem::path OpenFileW(const wchar_t* filter);
-		std::filesystem::path SaveFileW(const wchar_t* filter);
-
+	private:
+		static bool FileDialogShared(WindowHandle parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result);
 	};
 
 	namespace Utility {

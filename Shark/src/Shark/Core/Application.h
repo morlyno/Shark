@@ -14,15 +14,29 @@ int main(int argc, char** argb);
 
 namespace Shark {
 
+	struct ApplicationSpecification
+	{
+		std::string Name = "UnNamed";
+		uint32_t WindowWidth = 1280, WindowHeight = 720;
+		bool Maximized = false;
+		bool FullScreen = false;
+		bool EnableImGui = false;
+		bool VSync = true;
+	};
+
 	class Application
 	{
-		friend int ::main(int argc, char** argv);
 	public:
-		Application(int argc, char** argv);
+		Application(const ApplicationSpecification& specification);
 		virtual ~Application();
-	private:
+
+		virtual void OnInit() = 0;
+
 		void Run();
-	public:
+
+		void UpdateLayers(TimeStep timeStep);
+		void RenderImGui();
+
 		void OnEvent(Event& event);
 
 		void PushLayer(Layer* layer)                   { SK_PROFILE_FUNCTION(); m_LayerStack.PushLayer(layer); layer->OnAttach(); }
@@ -45,6 +59,8 @@ namespace Shark {
 	private:
 		static Application* s_Instance;
 
+		ApplicationSpecification m_Specification;
+
 		bool m_Minimized = false;
 		bool m_Running = true;
 		int64_t m_LastFrameTime = 0;
@@ -57,6 +73,6 @@ namespace Shark {
 	};
 
 	Application* CreateApplication(int argc, char** argv);
-
+		
 }
 

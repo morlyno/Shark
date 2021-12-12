@@ -185,6 +185,16 @@ namespace Shark::UI {
 
 namespace Shark::UI {
 
+	namespace Flags {
+
+		enum Text
+		{
+			Text_None = 0,
+			Text_Aligned = BIT(0)
+		};
+
+	}
+
 	void NewFrame();
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -200,7 +210,13 @@ namespace Shark::UI {
 
 	ImGuiID GetID(int intID);
 	ImGuiID GetID(void* ptrID);
+	ImGuiID GetID(const char* strID);
 	ImGuiID GetID(const std::string& strID);
+
+	ImGuiID GetIDWithSeed(int intID, uint32_t seed);
+	ImGuiID GetIDWithSeed(void* ptrID, uint32_t seed);
+	ImGuiID GetIDWithSeed(const char* strID, uint32_t seed);
+	ImGuiID GetIDWithSeed(const std::string& strID, uint32_t seed);
 
 	void PushID(ImGuiID id);
 	ImGuiID PopID();
@@ -209,31 +225,41 @@ namespace Shark::UI {
 
 	void SetBlend(bool blend);
 
+	void MoveCursor(const ImVec2& xy);
+	void MoveCursorX(float x);
+	void MoveCursorY(float y);
+
 	//////////////////////////////////////////////////////////////////////////////
 	/// Text /////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	void Text(const char* str, Flags::Text flags);
+	void Text(const std::string& str, Flags::Text flags);
+
+	void Text(const char* str);
 	void Text(const std::string& str);
 	void Text(const std::filesystem::path& path);
+
+	void TextAligned(const char* str);
 	void TextAligned(const std::string& str);
+	void TextAligned(const std::filesystem::path& str);
 
 	void TextWithBackGround(const std::string& text);
 	void TextWithBackGround(const std::string& text, const ImVec4& bgColor);
 	void TextWithBackGround(const std::filesystem::path& text);
 	void TextWithBackGround(const std::filesystem::path& text, const ImVec4& bgColor);
 
-	bool InputText(const std::string& tag, std::string& buffer);
-	bool InputText(const std::string& tag, std::filesystem::path& buffer);
-
 	//////////////////////////////////////////////////////////////////////////////
 	/// Controls /////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	bool BeginControls();
-	void EndControls();
+	bool BeginProperty(const std::string& strID);
+	bool BeginPropertyGrid(const std::string& strID);
+	bool BeginProperty(ImGuiID customID = GetID("ControlsTable"));
+	bool BeginPropertyGrid(ImGuiID customID = GetID("ControlsTable"));
+	void EndProperty();
 
-	bool BeginControlsGrid();
-	void EndControlsGrid();
+	bool PropertyCustom(const std::string& tag);
 
 	bool DragFloat(const std::string& tag, float& val,             float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	bool DragFloat(const std::string& tag, DirectX::XMFLOAT2& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
@@ -267,6 +293,10 @@ namespace Shark::UI {
 
 	bool ButtonRightAligned(const std::string& tag, const ImVec2& size = ImVec2(0, 0), ImGuiButtonFlags flags = ImGuiButtonFlags_None);
 
+	void Property(const std::string& tag, const std::string& val, Flags::Text flags = Flags::Text_None);
+	void Property(const std::string& tag, const std::filesystem::path& val, Flags::Text flags = Flags::Text_None);
+
+	bool BeginCustomControl(const std::string& strID);
 	bool BeginCustomControl(ImGuiID id);
 	void EndCustomControl();
 

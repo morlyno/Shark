@@ -28,29 +28,13 @@ namespace Shark {
 	class FileWatcher
 	{
 	public:
-		// Note: FilePaths are relative
-		struct CallbackData
-		{
-			FileEvent Event;
-			std::filesystem::path OldFilePath;
-			std::filesystem::path FilePath;
-		};
+		static void StartWatching(const std::filesystem::path& directory);
+		static void StopWatching();
 
-	public:
-		static void Init(const std::filesystem::path& directory);
-		static void ShutDown();
-
-		static void SetDirectory(const std::filesystem::path& directory);
-
-		template<typename Func>
-		static void AddCallback(const std::string& name, const Func& func) { AddCallback(name, std::function<void(const CallbackData&)>(func)); }
-		static void RemoveCallback(const std::string& name);
+		static bool IsRunning();
 
 	private:
-		static void AddCallback(const std::string& name, const std::function<void(const CallbackData&)>& func);
-
-	private:
-		static void StartFileWatcher();
+		static void StartThread();
 	};
 
 }

@@ -1,6 +1,8 @@
 #pragma once
 
-#include <Shark/Core/UUID.h>
+#include "Shark/Core/UUID.h"
+#include "Shark/File/FileSystem.h"
+
 #include <yaml-cpp/yaml.h>
 #include <DirectXMath.h>
 
@@ -61,7 +63,7 @@ namespace YAML {
 		{
 			if (!node.IsScalar())
 				return false;
-			rhs = node.Scalar();
+			rhs = Shark::FileSystem::MakeDefaultFormat(node.Scalar());
 			return true;
 		}
 	};
@@ -76,13 +78,9 @@ namespace YAML {
 	};
 
 	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT2& f2);
-
 	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT3& f3);
-
 	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT4& f4);
-
 	Emitter& operator<<(Emitter& out, const std::filesystem::path& filePath);
-
 	Emitter& operator<<(Emitter& out, const Shark::UUID& uuid);
 
 	Node LoadFile(const std::filesystem::path& filename);

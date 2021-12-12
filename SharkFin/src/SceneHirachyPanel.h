@@ -17,23 +17,27 @@ namespace Shark {
 		const Ref<Scene>& GetContext() const { return m_Context; }
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
+		void SetSelectedEntity(Entity entity) { m_SelectedEntity = entity; }
 
 		void ScenePlaying(bool playing) { m_ScenePlaying = playing; }
 
 		void OnImGuiRender(bool& showPanel);
 
-		void OnEvent(Event& event);
+
+		template<typename Func>
+		void SetSelectionChangedCallback(const Func& func) { m_SelectionChangedCallback = func; }
 
 	private:
 		void DrawEntityNode(Entity entity);
 		void DrawEntityProperties(Entity entity);
 
 		void DestroyEntity(Entity entity);
-
-		bool OnSelectionChanged(SelectionChangedEvent& event);
+		void SelectEntity(Entity entity);
 	private:
 		Ref<Scene> m_Context;
 		Entity m_SelectedEntity;
+
+		std::function<void(Entity entity)> m_SelectionChangedCallback = [](auto) {};
 
 		bool m_ScenePlaying = false;
 
@@ -43,8 +47,6 @@ namespace Shark {
 		static constexpr const char* s_BodyTypes[] = { "Static", "Dynamic", "Kinematic" };
 
 		bool m_ScriptFound = false;
-
-		std::string m_FilePathInputBuffer;
 	};
 
 }

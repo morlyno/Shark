@@ -6,6 +6,9 @@
 #include "Shark/Core/KeyCodes.h"
 #include "Shark/Core/MouseCodes.h"
 
+#include "Shark/Utility/Utility.h"
+#include "Platform/Windows/WindowsUtility.h"
+
 #include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/Profiler.h"
 
@@ -20,8 +23,6 @@ namespace Shark {
 		:
 		hInst(GetModuleHandle(nullptr))
 	{
-		SK_PROFILE_FUNCTION();
-
 		WNDCLASSEX wc = { 0 };
 		wc.cbSize = sizeof(wc);
 		wc.style = CS_OWNDC;
@@ -41,24 +42,18 @@ namespace Shark {
 
 	WindowsWindow::WindowClass::~WindowClass()
 	{
-		SK_PROFILE_FUNCTION();
-
 		UnregisterClass(ClassName, hInst);
 	}
 
 	WindowsWindow::WindowsWindow(const WindowProps& props)
-		:
-		m_Width(props.Width),
-		m_Height(props.Height),
-		m_Name(props.Name),
-		m_VSync(props.VSync)
+		: m_Width(props.Width), m_Height(props.Height), m_Name(Utility::ToWide(props.Name)), m_VSync(props.VSync)
 	{
 		SK_PROFILE_FUNCTION();
 
-		std::string str;
-		str.resize(props.Name.size());
-		wcstombs(str.data(), props.Name.c_str(), (size_t)-1);
-		SK_CORE_INFO("Init Windows Window {0} {1} {2}", props.Width, props.Height, str);
+		//std::string str;
+		//str.resize(props.Name.size());
+		//wcstombs(str.data(), props.Name.c_str(), (size_t)-1);
+		SK_CORE_INFO("Init Windows Window {0} {1} {2}", props.Width, props.Height, props.Name);
 
 		int width, height;
 		DWORD flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
@@ -99,9 +94,9 @@ namespace Shark {
 
 		if (!m_hWnd)
 		{
-			DWORD LastErrorCode = GetLastError();
+			DWORD lastErrorCode = GetLastError();
 			SK_CORE_ERROR("Faled to create Window");
-			SK_CORE_ERROR("Last ErrorCode: {0:x}", LastErrorCode);
+			SK_CORE_ERROR("Error Msg: {}", GetLastErrorMsg(lastErrorCode));
 			SK_CORE_ASSERT(false);
 		}
 
@@ -155,7 +150,7 @@ namespace Shark {
 
 	static bool g_IsRezised = false;
 	static bool g_EnterSizing = false;
-	static WindowResizeEvent g_LastReizeEvent = WindowResizeEvent(0, 0, WindowResizeEvent::State::None);
+	static WindowResizeEvent g_LastReizeEvent = WindowResizeEvent(0, 0, WindowResizeEvent::State::Resize);
 
 	LRESULT __stdcall WindowsWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
@@ -191,7 +186,7 @@ namespace Shark {
 
 				m_Width = LOWORD(lParam);
 				m_Height = HIWORD(lParam);
-				WindowResizeEvent::State state = WindowResizeEvent::State::None;
+				WindowResizeEvent::State state = WindowResizeEvent::State::Resize;
 
 				if (wParam == SIZE_MAXIMIZED)
 					state = WindowResizeEvent::State::Maximized;

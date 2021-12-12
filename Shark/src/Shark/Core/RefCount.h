@@ -12,14 +12,14 @@ namespace Shark {
 		const RefCount& operator=(RefCount&& other) noexcept { m_RefCount = other.m_RefCount; m_WeakCount = other.m_WeakCount;other.m_RefCount = 0;other.m_WeakCount = 0; return *this; }
 		virtual ~RefCount() = default;
 
+		uint32_t GetRefCount() const { return m_RefCount; }
+		uint32_t GetWeakCount() const { return m_WeakCount; }
 	protected:
 		uint32_t AddRef() { return ++m_RefCount; }
 		uint32_t DecRef() { return --m_RefCount; }
-		uint32_t GetRefCount() const { return m_RefCount; }
 
 		uint32_t AddWeak() { return ++m_WeakCount; }
 		uint32_t DecWeak() { return --m_WeakCount; }
-		uint32_t GetWeakCount() const { return m_WeakCount; }
 	private:
 		uint32_t m_RefCount = 0;
 		uint32_t m_WeakCount = 0;

@@ -21,7 +21,7 @@ namespace Shark {
 		private:
 			static WindowClass wndClass;
 			HINSTANCE hInst;
-			const wchar_t* ClassName = L"Shark\0";
+			const wchar_t* ClassName = L"Shark";
 		};
 	public:
 		WindowsWindow(const WindowProps& props);

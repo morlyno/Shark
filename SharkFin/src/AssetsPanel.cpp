@@ -1,6 +1,8 @@
 #include "skfpch.h"
 #include "AssetsPanel.h"
 
+#include "Shark/Core/Project.h"
+
 #include "Shark/Debug/Instrumentor.h"
 
 #include <Shark/Utility/PlatformUtils.h>
@@ -8,7 +10,6 @@
 
 namespace Shark {
 
-	const extern std::filesystem::path s_AssetsPath;
 	static std::string s_TempInputString;
 
 	namespace Utils {
@@ -54,20 +55,16 @@ namespace Shark {
 		m_DirectoryIcon = Texture2D::Create("Resources/AssetsPanel/folder_open.png");
 		m_StandartFileIcon = Texture2D::Create("Resources/AssetsPanel/file.png");
 
-		m_DirectoryHistory.emplace_back(s_AssetsPath);
-		m_CurrentDirectory = s_AssetsPath;
+		m_DirectoryHistory.emplace_back(Project::GetAssetsPathAbsolute());
+		m_CurrentDirectory = Project::GetAssetsPathAbsolute();
 		m_CurrentDirectoryString = m_CurrentDirectory.string();
 
 		UpdateCurrentPathVec();
-		FileWatcher::AddCallback("AssetsPanel", [this](const auto&) { ReCache(); });
-
 	}
 
 	AssetsPanel::~AssetsPanel()
 	{
 		SK_PROFILE_FUNCTION();
-		
-		FileWatcher::RemoveCallback("AssetsPanel");
 	}
 
 	void AssetsPanel::OnImGuiRender(bool& showPanel)
@@ -136,7 +133,7 @@ namespace Shark {
 			ImGui::TableSetColumnIndex(0);
 
 			// TODO(moro): maybe switch form string to filesystem::path
-			auto temp = s_AssetsPath;
+			auto temp = Project::GetAssetsPathAbsolute();
 			DrawAsTree(temp.string());
 
 			ImGui::TableSetColumnIndex(1);
@@ -168,11 +165,33 @@ namespace Shark {
 		ImGui::End();
 	}
 
+	void AssetsPanel::ProjectChanged()
+	{
+		m_DirectoryHistory.emplace_back(Project::GetAssetsPathAbsolute());
+		m_CurrentDirectory = Project::GetAssetsPathAbsolute();
+		m_CurrentDirectoryString = m_CurrentDirectory.string();
+
+		UpdateCurrentPathVec();
+		m_ReloadRequierd = true;
+	}
+
+	void AssetsPanel::OnEvent(Event& event)
+	{
+		EventDispacher dispacher(event);
+		dispacher.DispachEvent<FileChangedEvent>(std::bind(&AssetsPanel::OnFileChangedEvent, this, std::placeholders::_1));
+	}
+
+	bool AssetsPanel::OnFileChangedEvent(FileChangedEvent& event)
+	{
+		ReLoad();
+		return false;
+	}
+
 	void AssetsPanel::SaveCurrentAssetDirectory()
 	{
 		SK_PROFILE_FUNCTION();
 		
-		auto&& assetsPath = s_AssetsPath;
+		auto&& assetsPath = Project::GetAssetsPathAbsolute();
 		if (FileSystem::Exists(assetsPath))
 		{
 			m_Directorys.clear();

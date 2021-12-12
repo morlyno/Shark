@@ -38,13 +38,14 @@ namespace Shark {
 
 		void Resize(uint32_t width, uint32_t height);
 
+		void OnImGuiRender();
+
 		Ref<FrameBuffer> GetFinalFrameBuffer() const { return m_FinalFrameBuffer; }
 		Ref<Image2D> GetFinalImage() const { return m_FinalFrameBuffer->GetImage(); }
 		Ref<Image2D> GetIDImage() const { return m_GeometryFrameBuffer->GetImage(1); }
 
 		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
 
-		SceneRendererOptions& GetOptions() { return m_Options; }
 		const SceneRendererOptions& GetOptions() const { return m_Options; }
 
 	private:
@@ -66,7 +67,7 @@ namespace Shark {
 		// Composit
 		Ref<FrameBuffer> m_FinalFrameBuffer;
 
-		bool m_NeedsResize = false;
+		bool m_NeedsResize = true;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
 		SceneRendererOptions m_Options;

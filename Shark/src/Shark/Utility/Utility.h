@@ -47,6 +47,7 @@ namespace Shark::Utility {
 	constexpr uint32_t ArraySize(const T(&)[_Count]) { return _Count; }
 
 	std::string ToNarrow(const std::wstring& str);
+	std::wstring ToWide(const std::string& str);
 
 	constexpr DirectX::XMFLOAT4 UI32ToF4(uint32_t color)
 	{
@@ -63,5 +64,19 @@ namespace Shark::Utility {
 	{
 		return val % max;
 	}
+
+	template<typename String>
+	std::string ToStdString(const String& str)
+	{
+		if constexpr (std::is_same_v<String, std::wstring>)
+			return ToNarrow(str);
+		else if constexpr (std::is_same_v<String, std::filesystem::path>)
+			return str.string();
+		else
+			return str;
+	}
+
+	void SplitString(const std::string& str, std::string_view splitter, std::vector<std::string>& out_Array);
+	void SplitString(const std::wstring& str, std::wstring_view splitter, std::vector<std::wstring>& out_Array);
 
 }

@@ -95,7 +95,7 @@ namespace Shark {
 
 		Ref<RenderCommandBuffer> GetCommandBuffer() const { return m_CommandBuffer; }
 
-		Statistics GetStatistics() const { return m_Statistics; }
+		const Statistics& GetStatistics() const { return m_Statistics; }
 
 	private:
 		void FlushAndResetQuad();

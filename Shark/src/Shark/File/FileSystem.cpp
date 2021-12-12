@@ -10,7 +10,7 @@
 #define SK_FS_ERROR(...) SK_CORE_ERROR(__VA_ARGS__)
 #define SK_FS_INFO(...) SK_CORE_INFO(__VA_ARGS__)
 #else
-#define SK_FS_ERROR(...) SK_CORE_ERROR(__VA_ARGS__)
+#define SK_FS_ERROR(...) SK_CORE_ASSERT(false, fmt::format(__VA_ARGS__))
 #define SK_FS_INFO(...)
 #endif
 
@@ -110,6 +110,34 @@ namespace Shark::FileSystem {
 	std::string FileName(const std::filesystem::path& path)
 	{
 		return std::move(path.stem().string());
+	}
+
+	std::filesystem::path MakeWindowsDefault(const std::filesystem::path& path)
+	{
+		std::wstring str = path.wstring();
+		std::replace(str.begin(), str.end(), L'/', L'\\');
+		return str;
+	}
+
+	std::filesystem::path MakeDefaultFormat(const std::filesystem::path& path)
+	{
+		std::wstring str = path.wstring();
+		std::replace(str.begin(), str.end(), L'/', L'\\');
+		return str;
+	}
+
+	bool IsRelative(const std::filesystem::path& path, const std::filesystem::path& parentPath)
+	{
+		auto absolutePath = parentPath / path;
+		if (Exists(absolutePath))
+			return absolutePath.is_absolute();
+		return false;
+	}
+
+	bool ValidateSceneFilePath(const std::filesystem::path& sceneFilePath)
+	{
+		// TODO(moro): change scene extetion from .shark to .skscene
+		return !sceneFilePath.empty() && Exists(sceneFilePath) && (sceneFilePath.extension() == L".shark");
 	}
 
 }

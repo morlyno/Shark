@@ -5,104 +5,73 @@
 
 namespace Shark {
 
-	class MouseEvent : public Event
-	{
-	public:
-		int GetX() const { return x; }
-		int GetY() const { return y; }
-
-		virtual std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << x << ", " << y;
-			return oss.str();
-		}
-
-		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryInput | EventCategoryMouse)
-	protected:
-		MouseEvent(int x, int y)
-			:
-			x(x),
-			y(y)
-		{}
-		int x;
-		int y;
-	};
-
-	class MouseMoveEvent : public MouseEvent
+	class MouseMoveEvent : public EventBase<EventTypes::MouseMove, EventCategoryInput | EventCategoryMouse>
 	{
 	public:
 		MouseMoveEvent(int x, int y)
-			:
-			MouseEvent(x, y)
+			: m_X(x), m_Y(y)
 		{}
-		SK_EVENT_FUNCTIONS(MouseMove)
+
+		int GetX() const { return m_X; }
+		int GetY() const { return m_Y; }
+
+		std::string ToString() const override { return fmt::format("{}, Pos: [{}, {}]", GetName(), m_X, m_Y); }
+
+	private:
+		int m_X, m_Y;
 	};
 
-	class MousePressedEvent : public MouseEvent
+	class MousePressedEvent : public EventBase<EventTypes::MouseButtonPressed, EventCategoryInput | EventCategoryMouse>
 	{
 	public:
 		MousePressedEvent(int x, int y, MouseCode button)
-			:
-			MouseEvent(x, y),
-			m_Button(button)
+			: m_X(x), m_Y(y), m_Button(button)
 		{}
-		inline MouseCode GetButton() { return m_Button; }
 
-		std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << x << ", " << y << " Button: " << m_Button;
-			return oss.str();
-		}
+		int GetX() const { return m_X; }
+		int GetY() const { return m_Y; }
+		MouseCode GetButton() { return m_Button; }
 
-		SK_EVENT_FUNCTIONS(MouseButtonPressed)
+		std::string ToString() const override { return fmt::format("{}, Pos: [{}, {}], Button: {}", GetName(), m_X, m_Y, m_Button); }
+
 	private:
+		int m_X, m_Y;
 		MouseCode m_Button;
 	};
 
-	class MouseReleasedEvent : public MouseEvent
+	class MouseReleasedEvent : public EventBase<EventTypes::MouseButtonReleasd, EventCategoryInput | EventCategoryMouse>
 	{
 	public:
 		MouseReleasedEvent(int x, int y, MouseCode button)
-			:
-			MouseEvent(x, y),
-			m_Button(button)
+			: m_X(x), m_Y(y), m_Button(button)
 		{}
-		inline int GetButton() { return m_Button; }
 
-		std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << x << ", " << y << " Button: " << m_Button;
-			return oss.str();
-		}
+		int GetX() const { return m_X; }
+		int GetY() const { return m_Y; }
+		MouseCode GetButton() { return m_Button; }
 
-		SK_EVENT_FUNCTIONS(MouseButtonReleasd)
+		std::string ToString() const override { return fmt::format("{}, Pos: [{}, {}], Button: {}", GetName(), m_X, m_Y, m_Button); }
+
 	private:
+		int m_X, m_Y;
 		MouseCode m_Button;
 	};
 
-	class MouseScrolledEvent : public MouseEvent
+	class MouseScrolledEvent : public EventBase<EventTypes::MouseScrolled, EventCategoryInput | EventCategoryMouse>
 	{
 	public:
 		MouseScrolledEvent(int x, int y, int delta)
-			:
-			MouseEvent(x, y),
-			m_Delta(delta)
+			: m_X(x), m_Y(y), m_Delta(delta)
 		{}
 
-		inline int GetDelta() const { return m_Delta; }
+		int GetX() const { return m_X; }
+		int GetY() const { return m_Y; }
+		int GetDelta() const { return m_Delta; }
 
-		std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << x << ", " << y << " Delta: " << m_Delta;
-			return oss.str();
-		}
+		std::string ToString() const override { return fmt::format("{}, Pos: [{}, {}], Delta: {}", GetName(), m_X, m_Y, m_Delta); }
 
-		SK_EVENT_FUNCTIONS(MouseScrolled)
 	private:
+		int m_X, m_Y;
 		int m_Delta;
 	};
 

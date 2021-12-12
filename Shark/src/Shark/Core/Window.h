@@ -6,14 +6,14 @@ namespace Shark {
 
 	struct WindowProps
 	{
-		std::wstring Name = L"Shark Game Engine";
+		std::string Name = "Shark Game Engine";
 		int Width = 1280;
 		int Height = 720;
 		bool VSync = true;
 		bool Maximized = false;
 
 		WindowProps() = default;
-		WindowProps(const std::wstring& name, int width, int height, bool VSync)
+		WindowProps(const std::string& name, int width, int height, bool VSync)
 			: Name(name), Width(width), Height(height), VSync(VSync)
 		{}
 	};

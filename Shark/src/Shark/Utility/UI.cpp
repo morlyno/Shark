@@ -82,17 +82,14 @@ namespace Shark::UI {
 	//////////////////////////////////////////////////////////////////////////////
 
 	static bool s_ControlActive = false;
-	static bool s_ControlIsGrid = false;
 
 	void NewFrame()
 	{
 		// Sanity Checks
 		SK_CORE_ASSERT(!s_ControlActive);
-		SK_CORE_ASSERT(!s_ControlIsGrid);
 
 		// Reset Global Data
 		s_ControlActive = false;
-		s_ControlIsGrid = false;
 	}
 
 
@@ -121,14 +118,48 @@ namespace Shark::UI {
 		return ImGui::GetCurrentWindowRead()->GetID(ptrID);
 	}
 
+	ImGuiID GetID(const char* strID)
+	{
+		return ImGui::GetCurrentWindowRead()->GetID(strID);
+	}
+
 	ImGuiID GetID(const std::string& strID)
 	{
 		return ImGui::GetCurrentWindowRead()->GetID(strID.c_str());
 	}
 
+	ImGuiID GetIDWithSeed(int intID, uint32_t seed)
+	{
+		ImGuiID id = ImHashData(&intID, sizeof(int), seed);
+		ImGui::KeepAliveID(id);
+		return id;
+	}
+
+	ImGuiID GetIDWithSeed(void* ptrID, uint32_t seed)
+	{
+		ImGuiID id = ImHashData(&ptrID, sizeof(void*), seed);
+		ImGui::KeepAliveID(id);
+		return id;
+	}
+
+	ImGuiID GetIDWithSeed(const char* strID, uint32_t seed)
+	{
+		ImGuiID id = ImHashStr(strID, 0, seed);
+		ImGui::KeepAliveID(id);
+		return id;
+	}
+
+	ImGuiID GetIDWithSeed(const std::string& strID, uint32_t seed)
+	{
+		ImGuiID id = ImHashStr(strID.c_str(), strID.size(), seed);
+		ImGui::KeepAliveID(id);
+		return id;
+	}
+
 	void PushID(ImGuiID id)
 	{
-		ImGui::PushID(id);
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		window->IDStack.push_back(id);
 	}
 
 	ImGuiID PopID()
@@ -149,10 +180,43 @@ namespace Shark::UI {
 		ctx.SubmitBlendCallback(blend);
 	}
 
+	void MoveCursor(const ImVec2& xy)
+	{
+		ImGui::SetCursorPos(ImGui::GetCursorPos() + xy);
+	}
+
+	void MoveCursorX(float x)
+	{
+		MoveCursor({ x, 0.0f });
+	}
+
+	void MoveCursorY(float y)
+	{
+		MoveCursor({ 0.0f, y });
+	}
+
 
 	//////////////////////////////////////////////////////////////////////////////
 	/// Text /////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
+
+	void Text(const char* str, Flags::Text flags)
+	{
+		if (flags & Flags::Text_Aligned)
+			ImGui::AlignTextToFramePadding();
+
+		ImGui::Text(str);
+	}
+
+	void Text(const std::string& str, Flags::Text flags)
+	{
+		Text(str.c_str(), flags);
+	}
+
+	void Text(const char* str)
+	{
+		ImGui::Text(str);
+	}
 
 	void Text(const std::string& str)
 	{
@@ -164,7 +228,19 @@ namespace Shark::UI {
 		Text(path.string());
 	}
 
+	void TextAligned(const char* str)
+	{
+		ImGui::AlignTextToFramePadding();
+		Text(str);
+	}
+
 	void TextAligned(const std::string& str)
+	{
+		ImGui::AlignTextToFramePadding();
+		Text(str);
+	}
+
+	void TextAligned(const std::filesystem::path& str)
 	{
 		ImGui::AlignTextToFramePadding();
 		Text(str);
@@ -182,7 +258,7 @@ namespace Shark::UI {
 		ImGui::PushStyleColor(ImGuiCol_HeaderActive, bgColor);
 
 		const ImGuiID id = GetID(text);
-		ImGui::TreeNodeBehavior(id, ImGuiTreeNodeFlags_CollapsingHeader, text.c_str());
+		ImGui::TreeNodeBehavior(id, ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Leaf, text.c_str());
 
 		ImGui::PopStyleColor(3);
 	}
@@ -197,29 +273,51 @@ namespace Shark::UI {
 		TextWithBackGround(text.string(), bgColor);
 	}
 
-	bool InputText(const std::string& tag, std::string& buffer)
-	{
-		return ImGui::InputText(tag.c_str(), &buffer);
-	}
-
-	bool InputText(const std::string& tag, std::filesystem::path& buffer)
-	{
-		std::string str = buffer.string();
-		if (InputText(tag, str))
-		{
-			buffer = str;
-			return true;
-		}
-		return false;
-	}
-
 	//////////////////////////////////////////////////////////////////////////////
 	/// Controls /////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	bool BeginControls()
+	namespace Utils {
+
+		static bool BeginProperty(ImGuiID id)
+		{
+			// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
+			if (!ImGui::GetCurrentTable())
+				return false;
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+
+			PushID(id);
+
+			return true;
+		}
+
+		static void EndProperty()
+		{
+			// Note(moro): if UI/Style stuff gets added to this function PropertyCustom
+			//             will probably no loger work how it should!
+
+			PopID();
+		}
+
+	}
+
+	bool BeginProperty(const std::string& strID)
+	{
+		return BeginProperty(GetID(strID));
+	}
+
+	bool BeginPropertyGrid(const std::string& strID)
+	{
+		return BeginPropertyGrid(GetID(strID));
+	}
+
+	bool BeginProperty(ImGuiID customID)
 	{
 		SK_CORE_ASSERT(!s_ControlActive);
+
+		PushID(customID);
 
 		constexpr ImGuiTableFlags flags = ImGuiTableFlags_None | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV;
 		if (ImGui::BeginTable("ControlsTable", 2, flags))
@@ -232,7 +330,24 @@ namespace Shark::UI {
 		return false;
 	}
 
-	void EndControls()
+	bool BeginPropertyGrid(ImGuiID customID)
+	{
+		SK_CORE_ASSERT(!s_ControlActive);
+
+		PushID(customID);
+
+		constexpr ImGuiTableFlags flags = ImGuiTableFlags_None | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInner | ImGuiTableFlags_BordersOuterH;
+		if (ImGui::BeginTable("ControlsTable", 2, flags))
+		{
+			s_ControlActive = true;
+			ImGuiStyle& style = ImGui::GetStyle();
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
+			return true;
+		}
+		return false;
+	}
+
+	void EndProperty()
 	{
 		SK_CORE_ASSERT(s_ControlActive);
 
@@ -240,39 +355,14 @@ namespace Shark::UI {
 		{
 			ImGui::PopStyleVar();
 			ImGui::EndTable();
+
 			s_ControlActive = false;
-			s_ControlIsGrid = false;
 		}
+
+		PopID();
 	}
 
-	bool BeginControlsGrid()
-	{
-		constexpr ImGuiTableFlags flags = ImGuiTableFlags_None | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV;
-		ImGui::Separator();
-		ImGui::GetCurrentWindow()->DC.CursorPos.y -= ImGui::GetStyle().FramePadding.y;
-		if (ImGui::BeginTable("ControlsTable", 2, flags))
-		{
-			s_ControlActive = true;
-			s_ControlIsGrid = true;
-			ImGuiStyle& style = ImGui::GetStyle();
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
-			return true;
-		}
-		return false;
-	}
-
-	void EndControlsGrid()
-	{
-		if (ImGui::GetCurrentTable())
-		{
-			ImGui::PopStyleVar();
-			ImGui::EndTable();
-			s_ControlActive = false;
-			s_ControlIsGrid = false;
-		}
-	}
-
-	bool DragFloat(const std::string& tag, float& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool PropertyCustom(const std::string& tag)
 	{
 		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
 		if (!ImGui::GetCurrentTable())
@@ -280,7 +370,17 @@ namespace Shark::UI {
 
 		ImGui::TableNextRow();
 
-		PushID(GetID(tag));
+		ImGui::TableSetColumnIndex(0);
+		TextAligned(tag);
+		ImGui::TableSetColumnIndex(1);
+
+		return true;
+	}
+
+	bool DragFloat(const std::string& tag, float& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	{
+		if (!Utils::BeginProperty(GetID(tag)))
+			return false;
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -304,22 +404,14 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool DragFloat(const std::string& tag, DirectX::XMFLOAT2& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -355,22 +447,14 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool DragFloat(const std::string& tag, DirectX::XMFLOAT3& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -416,22 +500,14 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool DragFloat(const std::string& tag, DirectX::XMFLOAT4& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -487,23 +563,15 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 
 	bool SliderFloat(const std::string& tag, float& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -527,22 +595,14 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool SliderFloat(const std::string& tag, DirectX::XMFLOAT2& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -576,22 +636,14 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderFloat("##Y", &val.y, min, max, fmt, flags);
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool SliderFloat(const std::string& tag, DirectX::XMFLOAT3& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -635,22 +687,14 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderFloat("##Z", &val.z, min, max, fmt, flags);
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool SliderFloat(const std::string& tag, DirectX::XMFLOAT4& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -704,22 +748,14 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderFloat("##W", &val.w, min, max, fmt, flags);
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool DragInt(const std::string& tag, int& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -743,22 +779,14 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool DragInt(const std::string& tag, DirectX::XMINT2& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -794,22 +822,14 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool DragInt(const std::string& tag, DirectX::XMINT3& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -855,22 +875,14 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool DragInt(const std::string& tag, DirectX::XMINT4& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -926,23 +938,15 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 
 	bool SliderInt(const std::string& tag, int& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -966,22 +970,14 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool SliderInt(const std::string& tag, DirectX::XMINT2& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -1015,22 +1011,14 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderInt("##Y", &val.y, min, max, fmt, flags);
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool SliderInt(const std::string& tag, DirectX::XMINT3& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -1074,22 +1062,14 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderInt("##Z", &val.z, min, max, fmt, flags);
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool SliderInt(const std::string& tag, DirectX::XMINT4& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -1143,10 +1123,7 @@ namespace Shark::UI {
 		ImGui::SameLine(0.0f, 0.0f);
 		changed |= ImGui::SliderInt("##W", &val.w, min, max, fmt, flags);
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
+		Utils::EndProperty();
 		return changed;
 	}
 
@@ -1198,13 +1175,8 @@ namespace Shark::UI {
 
 	bool Checkbox(const std::string& tag, bool& v)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -1212,23 +1184,14 @@ namespace Shark::UI {
 
 		const bool changed = ImGui::Checkbox("##X", &v);
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
-
+		Utils::EndProperty();
 		return changed;
 	}
 
 	bool Checkbox(const std::string& tag, const bool& v)
 	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -1237,11 +1200,7 @@ namespace Shark::UI {
 		bool tempVal = v;
 		const bool changed = ImGui::Checkbox("##X", &tempVal);
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
-
+		Utils::EndProperty();
 		return changed;
 	}
 
@@ -1260,17 +1219,12 @@ namespace Shark::UI {
 		return ImGui::ButtonEx(tag.c_str(), itemSize, flags);
 	}
 
-	bool ColorEdit(const std::string& tag, DirectX::XMFLOAT4& color, ImGuiColorEditFlags flags /*= ImGuiColorEditFlags_None*/)
+	bool ColorEdit(const std::string& tag, DirectX::XMFLOAT4& color, ImGuiColorEditFlags flags)
 	{
 		static_assert(sizeof(color) == (sizeof(float[4])));
 
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
-
-		ImGui::TableNextRow();
-
-		PushID(GetID(tag));
 
 		ImGui::TableSetColumnIndex(0);
 		TextAligned(tag);
@@ -1279,35 +1233,55 @@ namespace Shark::UI {
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		const bool changed = ImGui::ColorEdit4("##ColorEditor4", (float*)&color, flags);
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
-
-		PopID();
-
+		Utils::EndProperty();
 		return changed;
 
 	}
 
+	bool BeginCustomControl(const std::string& strID)
+	{
+		return BeginCustomControl(GetID(strID));
+	}
+
 	bool BeginCustomControl(ImGuiID id)
 	{
-		if (!ImGui::GetCurrentTable())
+		if (!Utils::BeginProperty(id))
 			return false;
-
-		ImGui::TableNextRow();
-		PushID(id);
 
 		return true;
 	}
 
 	void EndCustomControl()
 	{
-		if (!ImGui::GetCurrentTable())
+		Utils::EndProperty();
+	}
+
+	void Property(const std::string& tag, const std::string& val, Flags::Text flags)
+	{
+		if (!Utils::BeginProperty(GetID(tag)))
 			return;
 
-		if (s_ControlIsGrid)
-			ImGui::Separator();
+		ImGui::TableSetColumnIndex(0);
+		UI::Text(tag, flags);
 
-		PopID();
+		ImGui::TableSetColumnIndex(1);
+		UI::Text(val, flags);
+
+		Utils::EndProperty();
+	}
+
+	void Property(const std::string& tag, const std::filesystem::path& val, Flags::Text flags)
+	{
+		if (!Utils::BeginProperty(GetID(tag)))
+			return;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(tag, flags);
+
+		ImGui::TableSetColumnIndex(1);
+		Text(val.string(), flags);
+
+		Utils::EndProperty();
 	}
 
 }

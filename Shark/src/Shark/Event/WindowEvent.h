@@ -4,101 +4,82 @@
 
 namespace Shark {
 
-	class WindowEvent : public Event
+	class WindowCloseEvent : public EventBase<EventTypes::WindowClose, EventCategoryWindow>
 	{
 	public:
-		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryWindow)
+		WindowCloseEvent() = default;
 	};
 
-	class WindowCloseEvent : public WindowEvent
+	class WindowResizeEvent : public EventBase<EventTypes::WindowResize, EventCategoryWindow>
 	{
 	public:
-		SK_EVENT_FUNCTIONS(WindowClose)
-	};
-
-	class WindowResizeEvent : public WindowEvent
-	{
-	public:
-		enum class State { None = 0, Maximized, Minimized };
+		enum class State { Resize = 0, Maximized, Minimized };
+		std::string StateToString(State state) const
+		{
+			switch (state)
+			{
+				case State::Resize:    return "Resize";
+				case State::Maximized: return "Maximized";
+				case State::Minimized: return "Minimized";
+			}
+			SK_CORE_ASSERT(false, "Unkown State");
+			return "Unkown";
+		}
 	public:
 		WindowResizeEvent(uint32_t width, uint32_t height, State state)
-			:
-			m_Width(width),
-			m_Height(height),
-			m_State(state)
+			: m_Width(width), m_Height(height), m_State(state)
 		{}
+
 		uint32_t GetWidth() const { return m_Width; }
 		uint32_t GetHeight() const { return m_Height; }
 		State GetState() const { return m_State; }
 		bool IsMinimized() const { return m_State == State::Minimized; }
 		bool IsMaximized() const { return m_State == State::Maximized; }
 
-		std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << m_Width << " , " << m_Height << ", " << (uint32_t)m_State;
-			return oss.str();
-		}
+		std::string ToString() const override { return fmt::format("{}, Size: [{}, {}], State: {}", GetName(), m_Width, m_Height, StateToString(m_State)); }
 
-		SK_EVENT_FUNCTIONS(WindowResize)
 	private:
 		uint32_t m_Width;
 		uint32_t m_Height;
 		State m_State;
 	};
 
-	class WindowMoveEvent : public WindowEvent
+	class WindowMoveEvent : public EventBase<EventTypes::WindowMove, EventCategoryWindow>
 	{
 	public:
 		WindowMoveEvent(int x, int y)
-			:
-			x(x),
-			y(y)
+			: m_X(x), m_Y(y)
 		{}
-		int GetX() const { return x; }
-		int GetY() const { return y; }
 
-		std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << x << " , " << y;
-			return oss.str();
-		}
+		int GetX() const { return m_X; }
+		int GetY() const { return m_Y; }
 
-		SK_EVENT_FUNCTIONS(WindowMove)
+		std::string ToString() const override { return fmt::format("{}, Pos: [{}, {}]", GetName(), m_X, m_Y); }
+
 	private:
-		int x;
-		int y;
+		int m_X, m_Y;
 	};
 
-	class WindowFocusEvent : public WindowEvent
+	class WindowFocusEvent : public EventBase<EventTypes::WindowFocus, EventCategoryWindow>
 	{
 	public:
 		WindowFocusEvent(int x, int y)
-			:
-			x(x),
-			y(y)
+			: m_X(x), m_Y(y)
 		{}
-		int GetX() const { return x; }
-		int GetY() const { return y; }
 
-		std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << x << " , " << y;
-			return oss.str();
-		}
+		int GetX() const { return m_X; }
+		int GetY() const { return m_Y; }
 
-		SK_EVENT_FUNCTIONS(WindowFocus)
+		std::string ToString() const override { return fmt::format("{}, Pos: [{}, {}]", GetName(), m_X, m_Y); }
+
 	private:
-		int x;
-		int y;
+		int m_X, m_Y;
 	};
 
-	class WindowLostFocusEvent : public WindowEvent
+	class WindowLostFocusEvent : public EventBase<EventTypes::WindowLostFocus, EventCategoryWindow>
 	{
 	public:
-		SK_EVENT_FUNCTIONS(WindowLostFocus)
+		WindowLostFocusEvent() = default;
 	};
 
 }

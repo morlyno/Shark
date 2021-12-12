@@ -15,15 +15,23 @@ namespace Shark {
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application(int argc, char** argv)
+	Application::Application(const ApplicationSpecification& specification)
+		: m_Specification(specification)
 	{
 		SK_PROFILE_FUNCTION();
 
 		SK_CORE_ASSERT(!s_Instance, "Application allready set");
 		s_Instance = this;
 
+		SK_CORE_ASSERT(!(specification.FullScreen && specification.Maximized));
+
 		WindowProps windowprops;
-		windowprops.Maximized = true;
+		windowprops.Name = specification.Name;
+		windowprops.Maximized = specification.Maximized;
+		windowprops.Width = specification.WindowWidth;
+		windowprops.Height = specification.WindowHeight;
+		windowprops.VSync = specification.VSync;
+
 		m_Window = Window::Create(windowprops);
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		Renderer::Init();
@@ -46,6 +54,8 @@ namespace Shark {
 
 	void Application::Run()
 	{
+		OnInit();
+
 		while (m_Running)
 		{
 			OPTICK_FRAME("MainThread");
@@ -58,27 +68,34 @@ namespace Shark {
 
 			if (!m_Minimized)
 			{
-				{
-					SK_PROFILE_SCOPED("Application::Run Update Layers");
+				UpdateLayers(timeStep);
 
-					for (auto layer : m_LayerStack)
-						layer->OnUpdate(timeStep);
-				}
-
-				{
-					SK_PROFILE_SCOPED("Application::Run ImGui");
-
-					m_ImGuiLayer->Begin();
-					for (auto layer : m_LayerStack)
-						layer->OnImGuiRender();
-					m_ImGuiLayer->End();
-				}
+				if (m_Specification.EnableImGui)
+					RenderImGui();
 			}
 
 			m_Window->Update();
 
 			Renderer::GetRendererAPI()->Present(m_Window->IsVSync());
 		}
+	}
+
+	void Application::UpdateLayers(TimeStep timeStep)
+	{
+		SK_PROFILE_FUNCTION();
+
+		for (auto layer : m_LayerStack)
+			layer->OnUpdate(timeStep);
+	}
+
+	void Application::RenderImGui()
+	{
+		SK_PROFILE_FUNCTION();
+
+		m_ImGuiLayer->Begin();
+		for (auto layer : m_LayerStack)
+			layer->OnImGuiRender();
+		m_ImGuiLayer->End();
 	}
 
 	void Application::OnEvent(Event& event)

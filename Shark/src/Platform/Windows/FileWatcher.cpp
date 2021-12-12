@@ -5,6 +5,8 @@
 #include "Platform/Windows/WindowsUtility.h"
 #include "Shark/File/FileSystem.h"
 
+#include "Shark/Core/Application.h"
+
 #include "Shark/Debug/Instrumentor.h"
 
 #include <algorithm>
@@ -37,37 +39,32 @@ namespace Shark {
 		std::wstring DirectoryName;
 		HANDLE StopThreadEvent = NULL;
 		bool Running = false;
-
-		std::unordered_map<std::string, std::function<void(const FileWatcher::CallbackData&)>> Callbacks;
 	};
 
 	static Scope<FileWatcherData> s_Data = nullptr;
 
-	void FileWatcher::Init(const std::filesystem::path& directory)
+	void FileWatcher::StartWatching(const std::filesystem::path& directory)
 	{
-		SK_CORE_ASSERT(!s_Data, "FileWatcher::Init was called but the FileWatcher is allready Running!");
-		if (s_Data)
-			return;
-
-		s_Data = Scope<FileWatcherData>::Create();
-		s_Data->Directory = directory;
-		s_Data->DirectoryName = directory.filename();
+		if (!s_Data)
+			s_Data = Scope<FileWatcherData>::Create();
 
 		SK_CORE_ASSERT(std::filesystem::is_directory(directory), "Path for FileWatcher is not a Directory");
 		if (!std::filesystem::is_directory(directory))
 			return;
 
-		s_Data->Thread = std::thread(StartFileWatcher);
+		s_Data->Directory = directory;
+		s_Data->DirectoryName = directory.filename();
+
+		s_Data->Thread = std::thread(StartThread);
 		SK_CORE_INFO("File Watcher Stated Watching {}", s_Data->Directory);
 	}
 
-	void FileWatcher::ShutDown()
+	void FileWatcher::StopWatching()
 	{
 		SK_CORE_VERIFY(s_Data);
 		if (!s_Data)
 			return;
 
-		SK_CORE_VERIFY(s_Data->Running);
 		if (s_Data->Running)
 		{
 			s_Data->Running = false;
@@ -75,33 +72,14 @@ namespace Shark {
 			s_Data->Thread.join();
 			SK_CORE_INFO("File Watcher Stoped Watching {}", s_Data->Directory);
 		}
-
-		s_Data = nullptr;
 	}
 
-	void FileWatcher::SetDirectory(const std::filesystem::path& directory)
+	bool FileWatcher::IsRunning()
 	{
-		ShutDown();
-		Init(directory);
+		return s_Data ? s_Data->Running : false;
 	}
 
-	void FileWatcher::AddCallback(const std::string& name, const std::function<void(const CallbackData&)>& func)
-	{
-		if (!s_Data)
-			return;
-
-		s_Data->Callbacks[name] = func;
-	}
-
-	void FileWatcher::RemoveCallback(const std::string& name)
-	{
-		if (!s_Data)
-			return;
-
-		s_Data->Callbacks.erase(name);
-	}
-
-	void FileWatcher::StartFileWatcher()
+	void FileWatcher::StartThread()
 	{
 		SK_CORE_ASSERT(!s_Data->Running, "StartFileWatcher was called but FileWachter is allready Running!");
 		if (s_Data->Running)
@@ -220,20 +198,19 @@ namespace Shark {
 					continue;
 				}
 
-				CallbackData callbackData;
-				callbackData.Event = Utils::Win32FileActionToFileEvent(fileInfo->Action);
-				callbackData.FilePath = filePath;
+				FileChangedEvent fileEvent;
+				fileEvent.m_FileEvent = Utils::Win32FileActionToFileEvent(fileInfo->Action);
+				fileEvent.m_FilePath = filePath;
 				
-				SK_CORE_ASSERT(SK_ASSERT_CONDITIONAL(callbackData.Event == FileEvent::Renamed, prevWasOldName), "Previos File Action wasn't FILE_ACTION_RENAMED_OLD_NAME!");
-				if (callbackData.Event == FileEvent::Renamed && prevWasOldName)
+				SK_CORE_ASSERT(SK_ASSERT_CONDITIONAL(fileEvent.m_FileEvent == FileEvent::Renamed, prevWasOldName), "Previos File Action wasn't FILE_ACTION_RENAMED_OLD_NAME!");
+				if (fileEvent.m_FileEvent == FileEvent::Renamed && prevWasOldName)
 				{
-					callbackData.OldFilePath = prevFilePath;
+					fileEvent.m_OldFilePath = prevFilePath;
 					prevWasOldName = false;
 					prevFilePath.clear();
 				}
 
-				for (auto&& [name, callback] : s_Data->Callbacks)
-					callback(callbackData);
+				Application::Get().OnEvent(fileEvent);
 
 
 			} while (fileInfo->NextEntryOffset);

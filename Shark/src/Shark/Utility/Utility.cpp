@@ -82,8 +82,42 @@ namespace Shark::Utility {
 	{
 		std::string narrow;
 		narrow.resize(str.size());
-		wcstombs_s(nullptr, narrow.data(), narrow.size(), str.data(), (size_t)-1);
+		wcstombs_s(nullptr, narrow.data(), narrow.size() + 1, str.data(), (size_t)-1);
 		return narrow;
+	}
+
+	std::wstring ToWide(const std::string& str)
+	{
+		std::wstring wide;
+		wide.resize(str.size());
+		mbstowcs_s(nullptr, wide.data(), wide.size() + 1, str.c_str(), (size_t)-1);
+		return wide;
+	}
+
+	void SplitString(const std::string& str, std::string_view splitter, std::vector<std::string>& out_Array)
+	{
+		size_t start = 0;
+		size_t end = 0;
+		while (start != std::string::npos)
+		{
+			start = end;
+			end = str.find(splitter, start + 1);
+			end = str.find_first_not_of(' ', end);
+			out_Array.emplace_back(str.substr(start, end - start));
+		}
+	}
+
+	void SplitString(const std::wstring& str, std::wstring_view splitter, std::vector<std::wstring>& out_Array)
+	{
+		size_t start = str.find_first_not_of(' ');
+		size_t end = 0;
+		while (end != std::string::npos)
+		{
+			end = str.find(splitter, start);
+			out_Array.emplace_back(str.substr(start, end - start));
+
+			start = str.find_first_not_of(' ', end + 1);
+		}
 	}
 
 }

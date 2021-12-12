@@ -7,7 +7,7 @@
 #include <Shark/Utility/UI.h>
 #include <Shark/Core/Input.h>
 #include <Shark/Scene/NativeScriptFactory.h>
-
+#include "Shark/Core/Project.h"
 #include <Shark/Core/Application.h>
 
 #include "Shark/Debug/Instrumentor.h"
@@ -20,11 +20,6 @@
 namespace Shark {
 
 	namespace Utils {
-
-		static void ChangeSelectedEntity(Entity newSelectedEntity)
-		{
-			Application::Get().OnEvent(SelectionChangedEvent(newSelectedEntity));
-		}
 
 		template<typename Comp, typename UIFunction>
 		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
@@ -67,9 +62,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		Utils::ChangeSelectedEntity({});
+		SelectEntity(Entity{});
 		m_Context = context;
-		m_FilePathInputBuffer = m_Context->GetFilePath().string();
 	}
 
 	void SceneHirachyPanel::OnImGuiRender(bool& showPanel)
@@ -92,7 +86,7 @@ namespace Shark {
 			}
 
 			if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
-				Utils::ChangeSelectedEntity({});
+				SelectEntity(Entity{});
 
 			if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 			{
@@ -101,13 +95,13 @@ namespace Shark {
 					if (ImGui::MenuItem("Entity"))
 					{
 						Entity e = m_Context->CreateEntity("Entity");
-						Utils::ChangeSelectedEntity(e);
+						SelectEntity(e);
 					}
 					if (ImGui::MenuItem("Camera"))
 					{
 						Entity e = m_Context->CreateEntity("Camera");
 						e.AddComponent<CameraComponent>();
-						Utils::ChangeSelectedEntity(e);
+						SelectEntity(e);
 					}
 					if (ImGui::BeginMenu("Geometry"))
 					{
@@ -115,13 +109,13 @@ namespace Shark {
 						{
 							Entity e = m_Context->CreateEntity("Quad");
 							e.AddComponent<SpriteRendererComponent>();
-							Utils::ChangeSelectedEntity(e);
+							SelectEntity(e);
 						}
 						if (ImGui::MenuItem("Circle"))
 						{
 							Entity e = m_Context->CreateEntity("Circle");
 							e.AddComponent<CircleRendererComponent>();
-							Utils::ChangeSelectedEntity(e);
+							SelectEntity(e);
 						}
 						ImGui::EndMenu();
 					}
@@ -134,14 +128,14 @@ namespace Shark {
 								Entity e = m_Context->CreateEntity("Box Collider");
 								e.AddComponent<SpriteRendererComponent>();
 								e.AddComponent<BoxCollider2DComponent>();
-								Utils::ChangeSelectedEntity(e);
+								SelectEntity(e);
 							}
 							if (ImGui::MenuItem("Circle"))
 							{
 								Entity e = m_Context->CreateEntity("Circle Collider");
 								e.AddComponent<CircleRendererComponent>();
 								e.AddComponent<CircleCollider2DComponent>();
-								Utils::ChangeSelectedEntity(e);
+								SelectEntity(e);
 							}
 							ImGui::EndMenu();
 						}
@@ -155,7 +149,7 @@ namespace Shark {
 								rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
 								auto& boxCollider = e.AddComponent<BoxCollider2DComponent>();
 								boxCollider.Density = 1.0f;
-								Utils::ChangeSelectedEntity(e);
+								SelectEntity(e);
 							}
 							if (ImGui::MenuItem("Circle"))
 							{
@@ -165,7 +159,7 @@ namespace Shark {
 								rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
 								auto& circleCollider = e.AddComponent<CircleCollider2DComponent>();
 								circleCollider.Density = 1.0f;
-								Utils::ChangeSelectedEntity(e);
+								SelectEntity(e);
 							}
 							ImGui::EndMenu();
 						}
@@ -185,14 +179,6 @@ namespace Shark {
 
 	}
 
-	void SceneHirachyPanel::OnEvent(Event& event)
-	{
-		SK_PROFILE_FUNCTION();
-		
-		EventDispacher dispacher(event);
-		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(SceneHirachyPanel::OnSelectionChanged));
-	}
-
 	void SceneHirachyPanel::DrawEntityNode(Entity entity)
 	{
 		SK_PROFILE_FUNCTION();
@@ -209,7 +195,7 @@ namespace Shark {
 		bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)(uint32_t)entity, treenodefalgs, tag.Tag.c_str());
 
 		if (ImGui::IsItemClicked())
-			Utils::ChangeSelectedEntity(entity);
+			SelectEntity(entity);
 
 		bool wantsDestroy = false;
 
@@ -309,18 +295,18 @@ namespace Shark {
 		{
 			SK_PROFILE_SCOPED("DrawComponent<TransformComponent>");
 
-			UI::BeginControls();
+			UI::BeginPropertyGrid();
 			UI::DragFloat("Position", comp.Position);
 			UI::DragAngle("Rotation", comp.Rotation);
 			UI::DragFloat("Scaling", comp.Scaling, 1.0f);
-			UI::EndControls();
+			UI::EndProperty();
 		});
 
 		Utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp)
 		{
 			SK_PROFILE_SCOPED("DrawComponent<SpriteRendererComponent>");
 				
-			UI::BeginControls();
+			UI::BeginProperty();
 
 			UI::ColorEdit("Color", comp.Color);
 
@@ -332,7 +318,7 @@ namespace Shark {
 				RenderID textureID = comp.Texture ? comp.Texture->GetRenderID() : nullptr;
 				if (ImGui::ImageButton(textureID, { 48, 48 }))
 				{
-					auto path = FileDialogs::OpenFile("Texture");
+					auto path = FileDialogs::OpenFile(L"|*.*|Tetxure|*.png", 2, Project::GetAssetsPathAbsolute(), true);
 					if (!path.empty())
 						comp.Texture = Texture2D::Create(path);
 				}
@@ -367,7 +353,7 @@ namespace Shark {
 
 			UI::DragFloat("TilingFactor", comp.TilingFactor, 1.0f);
 
-			UI::EndControls();
+			UI::EndProperty();
 
 		});
 
@@ -375,13 +361,13 @@ namespace Shark {
 		{
 			SK_PROFILE_SCOPED("DrawComponent<CircleRendererComponent>");
 
-			UI::BeginControls();
+			UI::BeginProperty();
 				
 			UI::ColorEdit("Color", comp.Color);
 			UI::SliderFloat("Thickness", comp.Thickness, 1.0f, 0.0f, 1.0f);
 			UI::DragFloat("Fade", comp.Fade, 0.002f, 0.0f, 10.0f, 0.01f, "%.3f");
 
-			UI::EndControls();
+			UI::EndProperty();
 		});
 
 		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)
@@ -393,7 +379,7 @@ namespace Shark {
 			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, s_ProjectionItems, (int)std::size(s_ProjectionItems));
 
 
-			UI::BeginControls();
+			UI::BeginProperty();
 
 			if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Perspective)
 			{
@@ -437,7 +423,7 @@ namespace Shark {
 			if (UI::Checkbox("Is Active", isMainCamera))
 				m_Context->m_ActiveCameraUUID = uuid;
 
-			UI::EndControls();
+			UI::EndProperty();
 
 		});
 
@@ -456,7 +442,7 @@ namespace Shark {
 		Utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp)
 		{
 			SK_PROFILE_SCOPED("DrawComponent<BoxCollider2DComponent>");
-			UI::BeginControls();
+			UI::BeginProperty();
 			UI::DragFloat("Size", comp.Size, 0.5f);
 			UI::DragFloat("Offset", comp.Offset);
 			UI::DragFloat("Angle", comp.Rotation);
@@ -464,13 +450,13 @@ namespace Shark {
 			UI::SliderFloat("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
 			UI::SliderFloat("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
 			UI::DragFloat("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
-			UI::EndControls();
+			UI::EndProperty();
 		});
 
 		Utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp)
 		{
 			SK_PROFILE_SCOPED("DrawComponent<CircleCollider2DComponent>");
-			UI::BeginControls();
+			UI::BeginProperty();
 			UI::DragFloat("Radius", comp.Radius, 0.5f);
 			UI::DragFloat("Offset", comp.Offset);
 			UI::DragFloat("Angle", comp.Rotation);
@@ -478,7 +464,7 @@ namespace Shark {
 			UI::SliderFloat("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
 			UI::SliderFloat("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
 			UI::DragFloat("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
-			UI::EndControls();
+			UI::EndProperty();
 		});
 
 		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [](NativeScriptComponent& comp)
@@ -548,13 +534,13 @@ namespace Shark {
 			m_Context->SetActiveCamera(UUID());
 
 		m_Context->DestroyEntity(entity);
-		Utils::ChangeSelectedEntity({});
+		SelectEntity(Entity{});
 	}
 
-	bool SceneHirachyPanel::OnSelectionChanged(SelectionChangedEvent& event)
+	void SceneHirachyPanel::SelectEntity(Entity entity)
 	{
-		m_SelectedEntity = event.GetSelectedEntity();
-		return false;
+		m_SelectedEntity = entity;
+		m_SelectionChangedCallback(entity);
 	}
 
 }

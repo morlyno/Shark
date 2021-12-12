@@ -14,6 +14,7 @@
 #include <sstream>
 #include <bitset>
 #include <optional>
+#include <queue>
 
 #include <iostream>
 #include <fstream>

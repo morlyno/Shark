@@ -38,11 +38,16 @@ namespace Shark {
 		AssetsPanel();
 		~AssetsPanel();
 
-		void ReCache() { m_ReloadRequierd = true; }
+		void ReLoad() { SK_CORE_INFO("AssetsPanel::Reload"); m_ReloadRequierd = true; }
 
 		void OnImGuiRender(bool& showPanel);
 
+		void ProjectChanged();
+
+		void OnEvent(Event& event);
 	private:
+		bool OnFileChangedEvent(FileChangedEvent& event);
+
 		void SaveCurrentAssetDirectory();
 		Directory* SaveDirectory(const std::filesystem::path& directoryPath);
 

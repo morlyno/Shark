@@ -5,63 +5,51 @@
 
 namespace Shark {
 
-	class KeyEvent : public Event
-	{
-	public:
-		KeyCode GetKeyCode() const { return m_KeyCode; }
-
-		virtual std::string ToString() const override
-		{
-			std::ostringstream oss;
-			oss << GetName() << " " << m_KeyCode;
-			return oss.str();
-		}
-		SK_GET_CATEGORY_FLAGS_FUNC(EventCategoryInput | EventCategoryKeyboard)
-	protected:
-		KeyEvent(KeyCode keycode)
-			: m_KeyCode(keycode)
-		{}
-		KeyCode m_KeyCode;
-	};
-
-	class KeyPressedEvent : public KeyEvent
+	class KeyPressedEvent : public EventBase<EventTypes::KeyPressed, EventCategoryInput | EventCategoryKeyboard>
 	{
 	public:
 		KeyPressedEvent(KeyCode keycode, uint32_t RepeatCount, bool altPressed)
-			: KeyEvent(keycode), m_RepeatCount(RepeatCount), m_AltPressed(altPressed)
+			: m_KeyCode(keycode), m_RepeatCount(RepeatCount), m_AltPressed(altPressed)
 		{}
+
+		KeyCode GetKeyCode() const { return m_KeyCode; }
 		uint32_t GetRepeatCount() const { return m_RepeatCount; }
 		bool AltPressed() const { return m_AltPressed; }
 
-		std::string ToString() const override
-		{
-			return fmt::format("{}, KeyCode: {}, RepeatCount: {}, AltDown: {}", GetName(), KeyToString(m_KeyCode), m_RepeatCount, m_AltPressed);
-		}
+		std::string ToString() const override { return fmt::format("{}, Key: {} [{}], RepeatCount: {}, AltDown: {}", GetName(), KeyToString(m_KeyCode), m_KeyCode, m_RepeatCount, m_AltPressed); }
 
-		SK_EVENT_FUNCTIONS(KeyPressed)
 	private:
+		KeyCode m_KeyCode;
 		uint32_t m_RepeatCount;
 		bool m_AltPressed;
 	};
 
-	class KeyReleasedEvent : public KeyEvent
+	class KeyReleasedEvent : public EventBase<EventTypes::KeyReleased, EventCategoryInput | EventCategoryKeyboard>
 	{
 	public:
 		KeyReleasedEvent(KeyCode keycode)
-			:
-			KeyEvent(keycode)
+			: m_KeyCode(keycode)
 		{}
-		SK_EVENT_FUNCTIONS(KeyReleased)
+
+		KeyCode GetKeyCode() const { return m_KeyCode; }
+		std::string ToString() const override { return fmt::format("{}, Key: {} [{}]", GetName(), KeyToString(m_KeyCode), m_KeyCode); }
+
+	private:
+		KeyCode m_KeyCode;
 	};
 
-	class KeyCharacterEvent : public KeyEvent
+	class KeyCharacterEvent : public EventBase<EventTypes::KeyCharacter, EventCategoryInput | EventCategoryKeyboard>
 	{
 	public:
 		KeyCharacterEvent(KeyCode Character)
-			:
-			KeyEvent(Character)
+			: m_KeyCode(Character)
 		{}
-		SK_EVENT_FUNCTIONS(KeyCharacter)
+
+		KeyCode GetKeyCode() const { return m_KeyCode; }
+		std::string ToString() const override { return fmt::format("{}, Key: {} [{}]", GetName(), KeyToString(m_KeyCode), m_KeyCode); }
+
+	private:
+		KeyCode m_KeyCode;
 	};
 
 }

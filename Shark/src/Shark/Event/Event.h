@@ -1,27 +1,41 @@
 #pragma once
+
 #include "Shark/Core/Base.h"
-
-#include <sstream>
-
-
-#define SK_EVENT_FUNCTIONS(type) static constexpr ::Shark::EventTypes GetStaticType() { return ::Shark::EventTypes::##type; } \
-								 virtual ::Shark::EventTypes GetEventType() const override { return GetStaticType(); } \
-								 virtual const char* GetName() const override { return #type; }
-
-#define SK_GET_CATEGORY_FLAGS_FUNC(category) static constexpr unsigned int GetStaticEventCategoryFlags() { return category; } \
-											 unsigned int GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
 
 namespace Shark {
 
 	enum class EventTypes
 	{
 		None = 0,
-		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus, WindowMinimized, WindowMaximized,
+		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus,
 		MouseMove, MouseButtonPressed, MouseButtonReleasd, MouseScrolled,
 		KeyPressed, KeyReleased, KeyCharacter,
-		ApplicationClosed,
-		SelectionChanged
+		ApplicationClosed, FileChanged
 	};
+
+	inline std::string EventTypesToString(EventTypes eventType)
+	{
+		switch (eventType)
+		{
+			case EventTypes::None:                 return "None";
+			case EventTypes::WindowClose:          return "WindowClose";
+			case EventTypes::WindowResize:		   return "WindowResize";
+			case EventTypes::WindowMove:		   return "WindowMove";
+			case EventTypes::WindowFocus:		   return "WindowFocus";
+			case EventTypes::WindowLostFocus:	   return "WindowLostFocus";
+			case EventTypes::MouseMove:			   return "MouseMove";
+			case EventTypes::MouseButtonPressed:   return "MouseButtonPressed";
+			case EventTypes::MouseButtonReleasd:   return "MouseButtonReleasd";
+			case EventTypes::MouseScrolled:		   return "MouseScrolled";
+			case EventTypes::KeyPressed:		   return "KeyPressed";
+			case EventTypes::KeyReleased:		   return "KeyReleased";
+			case EventTypes::KeyCharacter:		   return "KeyCharacter";
+			case EventTypes::ApplicationClosed:	   return "ApplicationClosed";
+			case EventTypes::FileChanged:	       return "FileChanged";
+		}
+		SK_CORE_ASSERT(false, "Unkown Event Type");
+		return "Unkown";
+	}
 
 	enum EventCategory_ : uint32_t
 	{
@@ -34,18 +48,29 @@ namespace Shark {
 	};
 	using EventCategory = uint32_t;
 
+	template<EventTypes Type, uint32_t Category>
+	class EventBase : public Event
+	{
+	public:
+		static constexpr EventTypes GetStaticType() { return Type; }
+		virtual EventTypes GetEventType() const override { return GetStaticType(); }
+		virtual std::string GetName() const override { return EventTypesToString(Type); }
+
+		static constexpr uint32_t GetStaticEventCategoryFlags() { return Category; }
+		virtual uint32_t GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
+	};
+
 	class Event
 	{
 	public:
 		virtual ~Event() = default;
 
 		virtual EventTypes GetEventType() const = 0;
-		virtual const char* GetName() const = 0;
+		virtual std::string GetName() const = 0;
 		virtual std::string ToString() const { return GetName(); }
-		virtual unsigned int GetEventCategoryFlags() const = 0;
+		virtual uint32_t GetEventCategoryFlags() const = 0;
 		bool IsInCategory(EventCategory category) const { return GetEventCategoryFlags() & category; }
 
-		static void Distribute(Event& event);
 	public:
 		bool Handled = false;
 	};

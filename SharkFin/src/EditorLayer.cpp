@@ -8,10 +8,10 @@
 #include <Shark/Utility/UI.h>
 
 #include "Shark/File/FileWatcher.h"
+#include "Shark/Core/Project.h"
 
 #include "Shark/Debug/Profiler.h"
-
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Shark/Debug/Instrumentor.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -20,10 +20,9 @@
 namespace Shark {
 
 	static bool s_ShowDemoWindow = false;
-	const extern std::filesystem::path s_AssetsPath = "Assets";
 
-	EditorLayer::EditorLayer()
-		: Layer("EditorLayer")
+	EditorLayer::EditorLayer(const std::filesystem::path& startupProject)
+		: Layer("EditorLayer"), m_StartupProject(startupProject)
 	{
 		SK_PROFILE_FUNCTION();
 	}
@@ -37,21 +36,39 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_EditorCamera.SetProjection(1.0f, 45, 0.01f, 1000.0f);
+		// NOTE: These values are not correct but are needed to for initialization
+		//       The Viewport Size is correct after Resizing in the first frame.
+		auto& window = Application::Get().GetWindow();
+		m_ViewportWidth = window.GetWidth();
+		m_ViewportHeight = window.GetHeight();
+		m_EditorCamera.SetProjection(16.0f / 9.0f, 45, 0.01f, 1000.0f);
 
-		auto& app = Application::Get();
-		auto& window = app.GetWindow();
+		if (!m_StartupProject.empty())
+			OpenProject(m_StartupProject);
+		else
+			SK_CORE_ASSERT(false, "No Startup Project!");
 
-		FileWatcher::Init(s_AssetsPath);
+		if (m_LoadedScene)
+		{
+			m_ActiveScene = m_LoadedScene;
+			m_WorkScene = m_LoadedScene;
+			m_LoadedScene = nullptr;
+		}
+		else
+		{
+			SK_CORE_ERROR("Failed to load Startup Scene from Project");
+			m_ActiveScene = Ref<Scene>::Create();
+			m_WorkScene = m_ActiveScene;
+		}
 
-		m_WorkScene = Ref<Scene>::Create();
-		m_ActiveScene = m_WorkScene;
+		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 
-		m_ActiveScene->SetViewportSize(window.GetWidth(), window.GetHeight());
-
+		m_ContentBrowserPanel = Scope<AssetsPanel>::Create();
 		m_SceneHirachyPanel = Scope<SceneHirachyPanel>::Create();
 		m_SceneHirachyPanel->SetContext(m_ActiveScene);
-		m_AssetsPanel = Scope<AssetsPanel>::Create();
+		m_SceneHirachyPanel->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
+
+		SK_CORE_ASSERT(FileWatcher::IsRunning());
 
 		m_PlayIcon = Texture2D::Create("Resources/PlayButton.png");
 		m_StopIcon = Texture2D::Create("Resources/StopButton.png");
@@ -73,12 +90,20 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		FileWatcher::ShutDown();
+		FileWatcher::StopWatching();
+		CloseProject();
 	}
 
 	void EditorLayer::OnUpdate(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
+
+		if (m_LoadedScene)
+		{
+			m_WorkScene = m_LoadedScene;
+			SetActiveScene(m_LoadedScene);
+			m_LoadedScene = nullptr;
+		}
 
 		m_TimeStep = ts;
 
@@ -87,69 +112,74 @@ namespace Shark {
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
-		if (m_ViewportSizeChanged && m_ViewportWidth != 0 && m_ViewportHeight != 0)
+		if (m_ActiveScene)
 		{
-			SK_PROFILE_SCOPED("EditorLayer::OnUpdate Resize")
-
-			m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
-			m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-			m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
-			m_CameraPreviewRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
-
-			m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
-		}
-
-		if (m_ViewportHovered && (m_SceneState != SceneState::Play || m_ScenePaused))
-			m_EditorCamera.OnUpdate(ts);
-
-		const bool renderCameraPreview = m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>();
-
-		switch (m_SceneState)
-		{
-			case SceneState::Edit:
+			if (m_NeedsResize && m_ViewportWidth != 0 && m_ViewportHeight != 0)
 			{
-				m_ActiveScene->OnUpdateEditor(ts);
+				SK_PROFILE_SCOPED("EditorLayer::OnUpdate Resize");
 
-				m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
+				m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 
-				if (renderCameraPreview)
-				{
-					auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
-					auto transform = m_SelectetEntity.GetTransform().GetTranform();
-					m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera.GetProjection(), DirectX::XMMatrixInverse(nullptr, transform));
-				}
+				m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
+				m_CameraPreviewRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
+				m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
+				m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
 
-				break;
+				m_NeedsResize = false;
 			}
-			case SceneState::Play:
+
+			if (m_ViewportHovered && (m_SceneState != SceneState::Play || m_ScenePaused))
+				m_EditorCamera.OnUpdate(ts);
+
+			const bool renderCameraPreview = m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>();
+
+			switch (m_SceneState)
 			{
-				if (m_ScenePaused)
+				case SceneState::Edit:
 				{
+					m_ActiveScene->OnUpdateEditor(ts);
+
 					m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
+
+					if (renderCameraPreview)
+					{
+						auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
+						auto transform = m_SelectetEntity.GetTransform().GetTranform();
+						m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera.GetProjection(), DirectX::XMMatrixInverse(nullptr, transform));
+					}
+
+					break;
 				}
-				else
+				case SceneState::Play:
 				{
-					m_ActiveScene->OnUpdateRuntime(ts);
-					m_ActiveScene->OnRenderRuntime(m_SceneRenderer);
+					if (m_ScenePaused)
+					{
+						m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
+					}
+					else
+					{
+						m_ActiveScene->OnUpdateRuntime(ts);
+						m_ActiveScene->OnRenderRuntime(m_SceneRenderer);
+					}
+
+					break;
 				}
-
-				break;
-			}
-			case SceneState::Simulate:
-			{
-				if (!m_ScenePaused)
-					m_ActiveScene->OnSimulate(ts);
-
-				if (renderCameraPreview)
+				case SceneState::Simulate:
 				{
-					auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
-					auto transform = m_SelectetEntity.GetTransform().GetTranform();
-					m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera.GetProjection(), DirectX::XMMatrixInverse(nullptr, transform));
+					if (!m_ScenePaused)
+						m_ActiveScene->OnSimulate(ts);
+
+					if (renderCameraPreview)
+					{
+						auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
+						auto transform = m_SelectetEntity.GetTransform().GetTranform();
+						m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera.GetProjection(), DirectX::XMMatrixInverse(nullptr, transform));
+					}
+
+					m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
+
+					break;
 				}
-
-				m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
-
-				break;
 			}
 		}
 
@@ -163,12 +193,11 @@ namespace Shark {
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
-		dispacher.DispachEvent<SelectionChangedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnSelectionChanged));
 
 		if (m_ScenePaused || m_SceneState != SceneState::Play)
 			m_EditorCamera.OnEvent(event);
 
-		m_SceneHirachyPanel->OnEvent(event);
+		m_ContentBrowserPanel->OnEvent(event);
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -226,7 +255,8 @@ namespace Shark {
 				if (control && m_SelectetEntity && m_SceneState == SceneState::Edit)
 				{
 					Entity e = m_WorkScene->CloneEntity(m_SelectetEntity);
-					Event::Distribute(SelectionChangedEvent(e));
+					SK_CORE_ASSERT(false);
+					SelectEntity(e);
 					return true;
 				}
 				break;
@@ -259,14 +289,6 @@ namespace Shark {
 			case Key::R: { m_CurrentOperation = ImGuizmo::SCALE; return true; }
 		}
 
-		return false;
-	}
-
-	bool EditorLayer::OnSelectionChanged(SelectionChangedEvent& event)
-	{
-		SK_PROFILE_FUNCTION();
-
-		m_SelectetEntity = event.GetSelectedEntity();
 		return false;
 	}
 
@@ -312,6 +334,7 @@ namespace Shark {
 			m_ViewportWidth = (uint32_t)size.x;
 			m_ViewportHeight = (uint32_t)size.y;
 			m_ViewportSizeChanged = true;
+			m_NeedsResize = true;
 		}
 
 		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalImage();
@@ -358,11 +381,11 @@ namespace Shark {
 						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, m_ActiveScene };
 						SK_CORE_ASSERT(entity.IsValid());
 						if (entity.IsValid())
-							Event::Distribute(SelectionChangedEvent(entity));
+							SelectEntity(entity);
 					}
 					else
 					{
-						Event::Distribute(SelectionChangedEvent({}));
+						SelectEntity({});
 					}
 				}
 			}
@@ -381,66 +404,14 @@ namespace Shark {
 		UI_Settings();
 		UI_CameraPrevie();
 		UI_Stats();
+		UI_ProjectSettings();
 
 		m_SceneHirachyPanel->OnImGuiRender(m_ShwoSceneHirachyPanel);
-		m_AssetsPanel->OnImGuiRender(m_ShowAssetsPanel);
+		m_ContentBrowserPanel->OnImGuiRender(m_ShowAssetsPanel);
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
 
-#if 0
-		// UI Test
-		const bool isopen = ImGui::Begin("UI Test Window");
-		UI::BeginControls();
-		static float val1 = 0.0f;
-		static DirectX::XMFLOAT2 val2 = { 0.0f, 0.0f };
-		static DirectX::XMFLOAT3 val3 = { 0.0f, 0.0f, 0.0f };
-		static DirectX::XMFLOAT4 val4 = { 0.0f, 0.0f, 0.0f, 0.0f };
-		static int ival1 = 0;
-		static DirectX::XMINT2 ival2 = { 0, 0 };
-		static DirectX::XMINT3 ival3 = { 0, 0, 0 };
-		static DirectX::XMINT4 ival4 = { 0, 0, 0, 0 };
-		static bool bval = false;
-
-		UI::PushID(UI::GetID("DragFloat"));
-		UI::DragFloat("Val1", val1);
-		UI::DragFloat("Val2", val2);
-		UI::DragFloat("Val3", val3);
-		UI::DragFloat("Val4", val4);
-		UI::PopID();
-		
-		ImGui::NewLine();
-		
-		UI::PushID(UI::GetID("SliderFloat"));
-		UI::SliderFloat("Val1", val1, 0.0f, 0.0f, 1.0f);
-		UI::SliderFloat("Val2", val2, 0.0f, 0.0f, 10.0f);
-		UI::SliderFloat("Val3", val3, 0.0f, 0.0f, 10.0f);
-		UI::SliderFloat("Val4", val4, 0.0f, 0.0f, 10.0f);
-		UI::PopID();
-		
-		ImGui::NewLine();
-		
-		UI::PushID(UI::GetID("DragInt"));
-		UI::DragInt("Val1", ival1);
-		UI::DragInt("Val2", ival2);
-		UI::DragInt("Val3", ival3);
-		UI::DragInt("Val4", ival4);
-		UI::PopID();
-		
-		ImGui::NewLine();
-		
-		UI::PushID(UI::GetID("SliderInt"));
-		UI::SliderInt("Val1", ival1, 0, 0, 10);
-		UI::SliderInt("Val2", ival2, 0, 0, 10);
-		UI::SliderInt("Val3", ival3, 0, 0, 10);
-		UI::SliderInt("Val4", ival4, 0, 0, 10);
-		UI::PopID();
-
-		UI::Checkbox("Checkbox", bval);
-
-		UI::EndControls();
-		ImGui::End();
-#endif
 	}
 
 	void EditorLayer::UI_MainMenuBar()
@@ -449,7 +420,7 @@ namespace Shark {
 
 		if (ImGui::BeginMainMenuBar())
 		{
-			if (ImGui::BeginMenu("Scene"))
+			if (ImGui::BeginMenu("File"))
 			{
 				switch (m_SceneState)
 				{
@@ -459,7 +430,7 @@ namespace Shark {
 							OnSceneStop();
 						break;
 					}
-					case Shark::EditorLayer::SceneState::Play:
+					case SceneState::Play:
 					{
 						if (ImGui::MenuItem("Play Scene", "ctrl+P"))
 							OnScenePlay();
@@ -469,93 +440,59 @@ namespace Shark {
 
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("New", "ctrl+N"))
+				if (ImGui::MenuItem("New Scene", "ctrl+N"))
 					NewScene();
-				if (ImGui::MenuItem("Save", "ctrl+S"))
+				if (ImGui::MenuItem("Save Scene", "ctrl+S"))
 					SaveScene();
-				/*
-				if (ImGui::MenuItem("Save As..", "ctrl+shift+S"))
-					SaveScene();
-				if (ImGui::MenuItem("Open..", "ctrl+O"))
-					OpenScene();
-				*/
-
-				ImGui::EndMenu();
-			}
-
-#if 0
-			if (ImGui::BeginMenu("Entity"))
-			{
-				Entity se = m_SceneHirachyPanel->GetSelectedEntity();
-				if (ImGui::MenuItem("Add"))
-				{
-					auto e = m_WorkScene->CreateEntity("New Entity");
-					Event::Distribute(SelectionChangedEvent(e));
-				}
-				if (ImGui::MenuItem("Destroy", "delete", nullptr, se))
-				{
-					m_WorkScene->DestroyEntity(se);
-					Event::Distribute(SelectionChangedEvent({}));
-				}
-				if (ImGui::MenuItem("Copy", "ctrl+D", nullptr, se))
-				{
-					se = m_WorkScene->CloneEntity(se);
-					se.GetComponent<TagComponent>().Tag += " (Copy)";
-					Event::Distribute(SelectionChangedEvent(se));
-				}
+				if (ImGui::MenuItem("Save Scene As", "ctrl+sift+S"))
+					SaveSceneAs();
 
 				ImGui::Separator();
 
-				if (ImGui::BeginMenu("Add Component", se))
+				if (ImGui::MenuItem("Open Project"))
+					OpenProject();
+				if (ImGui::BeginMenu("Recent Projects"))
 				{
-					if (ImGui::MenuItem("Transform", nullptr, nullptr, !se.HasComponent<TransformComponent>()))
-						se.AddComponent<TransformComponent>();
-					if (ImGui::MenuItem("Sprite Renderer", nullptr, nullptr, !se.HasComponent<SpriteRendererComponent>()))
-						se.AddComponent<SpriteRendererComponent>();
-					if (ImGui::MenuItem("Scene Camera", nullptr, nullptr, !se.HasComponent<CameraComponent>()))
-						se.AddComponent<CameraComponent>();
+					// TODO(moro): Add Recent Projects
+					ImGui::MenuItem("Sandbox");
 
 					ImGui::EndMenu();
 				}
+				if (ImGui::MenuItem("Save Project"))
+					SaveProject();
 
-				if (ImGui::BeginMenu("Remove Component", se))
-				{
-					if (ImGui::MenuItem("Transform", nullptr, nullptr, se.HasComponent<TransformComponent>()))
-						se.RemoveComponent<TransformComponent>();
-					if (ImGui::MenuItem("Sprite Renderer", nullptr, nullptr, se.HasComponent<SpriteRendererComponent>()))
-						se.RemoveComponent<SpriteRendererComponent>();
-					if (ImGui::MenuItem("Scene Camera", nullptr, nullptr, se.HasComponent<CameraComponent>()))
-						se.RemoveComponent<CameraComponent>();
-
-					ImGui::EndMenu();
-				}
-
-
-				ImGui::EndMenu();
-			}
-#endif
-
-			if (ImGui::BeginMenu("Panels"))
-			{
-				bool pressed = false;
-				pressed |= ImGui::MenuItem("Scene Hirachy", nullptr, &m_ShwoSceneHirachyPanel);
-				pressed |= ImGui::MenuItem("Assets", nullptr, &m_ShowAssetsPanel);
-				pressed |= ImGui::MenuItem("Project", nullptr, &m_ShowProject);
-				pressed |= ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
-				pressed |= ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
-				pressed |= ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
-				pressed |= ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
-				pressed |= ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
+				if (ImGui::MenuItem("Create Project"))
+					CreateProject();
 
 				ImGui::Separator();
-
 				if (ImGui::MenuItem("Exit"))
 					Application::Get().CloseApplication();
 
 				ImGui::EndMenu();
+			}
 
-				if (pressed)
-					ImGui::OpenPopup("Panels");
+			if (ImGui::BeginMenu("View"))
+			{
+				ImGui::MenuItem("Scene Hirachy", nullptr, &m_SceneHirachyPanel);
+				ImGui::MenuItem("Content Browser", nullptr, &m_ContentBrowserPanel);
+				ImGui::Separator();
+				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
+				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Debug"))
+			{
+				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
+				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
+				ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
+				ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
+
+				ImGui::Separator();
+
+
+				ImGui::EndMenu();
 			}
 
 
@@ -651,12 +588,6 @@ namespace Shark {
 		{
 			ImGui::Begin("Info", &m_ShowInfo);
 
-			Window& window = Application::Get().GetWindow();
-			UI::BeginControls();
-			UI::Checkbox("VSync", window.IsVSync());
-			UI::EndControls();
-
-			ImGui::NewLine();
 			if (m_ViewportHovered && m_HoveredEntityID > -1)
 			{
 				Entity e{ (entt::entity)m_HoveredEntityID, m_ActiveScene };
@@ -746,7 +677,7 @@ namespace Shark {
 		{
 			if (ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls))
 			{
-				UI::BeginControls();
+				UI::BeginProperty();
 
 				//UI::DragFloat("Position", m_EditorCamera.GetPosition());
 
@@ -774,7 +705,7 @@ namespace Shark {
 					m_EditorCamera.SetDistance(10.0f);
 				}
 
-				UI::EndControls();
+				UI::EndProperty();
 			}
 			ImGui::End();
 		}
@@ -986,21 +917,18 @@ namespace Shark {
 		{
 			if (ImGui::Begin("Settings", &m_ShowSettings))
 			{
-				if (ImGui::CollapsingHeader("SceneRenderer"))
-				{
-					UI::BeginControls();
+				m_SceneRenderer->OnImGuiRender();
 
-					auto& options = m_SceneRenderer->GetOptions();
-					UI::Checkbox("Show Colliders", options.ShowColliders);
-					UI::Checkbox("Show Colliders On Top", options.ShowCollidersOnTop);
-
-					UI::EndControls();
-				}
 				if (ImGui::CollapsingHeader("Stuff"))
 				{
-					UI::BeginControls();
+					UI::BeginPropertyGrid();
+					auto& window = Application::Get().GetWindow();
+					bool vSync = window.IsVSync();
+					if (UI::Checkbox("VSync", vSync))
+						window.SetVSync(vSync);
+
 					UI::Checkbox("Read Hoved Entity", m_ReadHoveredEntity);
-					UI::EndControls();
+					UI::EndProperty();
 				}
 			}
 			ImGui::End();
@@ -1086,7 +1014,6 @@ namespace Shark {
 
 		ImGui::Begin("GPU Times");
 		UI::Text(fmt::format("Present GPU: {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
-		UI::Text(fmt::format("GeometryPass: {:.4f}ms", s.GeometryPassTime.MilliSeconds()));
 		UI::Text(fmt::format("ImGuiLayer GPU: {:.4f}ms", ProfilerRegistry::GetAverageOf("[GPU] DirectXImGuiLayer::End").MilliSeconds()));
 		ImGui::End();
 
@@ -1102,14 +1029,99 @@ namespace Shark {
 
 	}
 
+	void EditorLayer::UI_ProjectSettings()
+	{
+		if (!m_ShowProjectSettings)
+			return;
+
+		ImGui::Begin("Project", &m_ShowProjectSettings);
+
+		UI::BeginPropertyGrid();
+
+		auto inputFunc = [](const char* tag, auto& projStr, std::string& buffer, bool& editActive, ImGuiID& activeID) mutable
+		{
+			if (editActive && (activeID == UI::GetIDWithSeed(tag, 0)))
+			{
+				if (ImGui::IsWindowFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+					ImGui::SetKeyboardFocusHere(0);
+
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::InputText(tag, &buffer, ImGuiInputTextFlags_AutoSelectAll);
+				if (ImGui::IsItemDeactivated())
+				{
+					editActive = false;
+					projStr = buffer;
+					buffer.clear();
+				}
+			}
+			else
+			{
+				UI::TextWithBackGround(projStr, { 0.0f, 0.0f, 0.0f, 0.0f });
+				if (ImGui::IsItemClicked())
+				{
+					buffer = Utility::ToStdString(projStr);
+					editActive = true;
+					activeID = UI::GetIDWithSeed(tag, 0);
+					ImGui::SetActiveID(0, ImGui::GetCurrentWindow());
+				}
+			}
+		};
+
+		auto& config = Project::GetActive()->GetConfig();
+
+		if (UI::PropertyCustom("Name"))
+			inputFunc("##NameInput", config.Name, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
+
+		UI::Property("File", config.ProjectFileName, UI::Flags::Text_Aligned);
+		UI::Property("Path", config.ProjectDirectory, UI::Flags::Text_Aligned);
+
+		if (UI::PropertyCustom("Assets"))
+			inputFunc("##AssetsInput", config.AssetsPath, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
+
+		if (UI::PropertyCustom("Scenes"))
+			inputFunc("##ScenesInput", config.ScenesPath, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
+
+		if (UI::PropertyCustom("Textures"))
+			inputFunc("##TexturesInput", config.TexturesPath, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
+
+		if (UI::PropertyCustom("StartupScene"))
+			inputFunc("##StartupSceneInput", config.StartupScenePath, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
+
+		UI::EndProperty();
+
+		if (ImGui::Button("Save"))
+			SaveProject();
+
+		ImGui::End();
+	}
+
+	void EditorLayer::SelectEntity(Entity entity)
+	{
+		m_SelectetEntity = entity;
+		m_SceneHirachyPanel->SetSelectedEntity(entity);
+	}
+
 	void EditorLayer::NewScene()
 	{
 		SK_PROFILE_FUNCTION();
 		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
-		m_WorkScene = Ref<Scene>::Create();
-		SetActiveScene(m_WorkScene);
+		m_LoadedScene = Ref<Scene>::Create();
+	}
+
+	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)
+	{
+		SK_PROFILE_FUNCTION();
+
+		auto scene = Ref<Scene>::Create();
+		SceneSerializer serializer(scene);
+		if (serializer.Deserialize(filePath))
+		{
+			m_LoadedScene = scene;
+			return true;
+		}
+		return false;
 	}
 
 	bool EditorLayer::LoadScene()
@@ -1140,7 +1152,7 @@ namespace Shark {
 
 		if (m_WorkScene->GetFilePath().empty())
 		{
-			const auto filePath = FileDialogs::SaveFileW(L"Shark Scene (*.shark)\0*.shark\0");
+			const auto filePath = FileDialogs::SaveFile(L"|*.*|Shark|*.shark", 2, Project::GetAssetsPathAbsolute(), true);
 			if (!filePath.empty())
 			{
 				if (SerializeScene(m_WorkScene, filePath))
@@ -1161,7 +1173,7 @@ namespace Shark {
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 		SK_CORE_ASSERT(m_ActiveScene == m_WorkScene);
 
-		auto filepath = FileDialogs::SaveFileW(L"Shark Scene (*.shark)\0*.shark\0");
+		auto filepath = FileDialogs::SaveFile(L"|*.*|Shark|*.shark", 2, Project::GetAssetsPathAbsolute(), true);
 		if (!filepath.empty())
 			return SerializeScene(m_ActiveScene, filepath);
 		return false;
@@ -1200,7 +1212,7 @@ namespace Shark {
 		m_SceneRenderer->SetScene(m_WorkScene);
 
 		if (!m_ActiveScene->IsValidEntity(m_SceneHirachyPanel->GetSelectedEntity()))
-			Event::Distribute(SelectionChangedEvent({}));
+			SelectEntity({});
 	}
 
 	void EditorLayer::OnSimulateStart()
@@ -1211,6 +1223,12 @@ namespace Shark {
 
 		m_SceneState = SceneState::Simulate;
 		SetActiveScene(Scene::Copy(m_WorkScene));
+		m_ActiveScene = Scene::Copy(m_WorkScene);
+		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		m_SceneHirachyPanel->SetContext(m_ActiveScene);
+		m_SceneRenderer->SetScene(m_ActiveScene);
+		m_CameraPreviewRenderer->SetScene(m_ActiveScene);
+
 		m_ActiveScene->OnSimulateStart();
 		m_SceneHirachyPanel->ScenePlaying(true);
 	}
@@ -1224,6 +1242,108 @@ namespace Shark {
 		m_SceneHirachyPanel->SetContext(m_ActiveScene);
 		m_SceneRenderer->SetScene(m_ActiveScene);
 		m_CameraPreviewRenderer->SetScene(m_ActiveScene);
+	}
+
+	void EditorLayer::OpenProject()
+	{
+		auto filePath = FileDialogs::OpenFile(L"|*.*|Project|*.skproj", 2);
+		if (!filePath.empty())
+			OpenProject(filePath);
+	}
+
+	void EditorLayer::OpenProject(const std::filesystem::path& filePath)
+	{
+		SK_CORE_INFO("Opening Project [{}]", filePath);
+
+		auto project = Ref<Project>::Create();
+		ProjectSerializer serializer(project);
+		if (serializer.Deserialize(filePath))
+		{
+			if (Project::GetActive())
+				CloseProject();
+
+			Project::SetActive(project);
+			const auto& config = Project::GetActive()->GetConfig();
+
+			if (!LoadScene(config.ProjectDirectory / config.StartupScenePath))
+				NewScene();
+
+			if (m_ContentBrowserPanel)
+				m_ContentBrowserPanel->ProjectChanged();
+			FileWatcher::StartWatching(Project::GetAssetsPathAbsolute());
+		}
+	}
+
+	void EditorLayer::CloseProject()
+	{
+		SK_CORE_ASSERT(Project::GetActive());
+
+		SaveProject();
+
+		SK_CORE_INFO("Closing Project");
+
+		m_LoadedScene = nullptr;
+		m_ActiveScene = nullptr;
+		m_SceneHirachyPanel->SetContext(nullptr);
+		m_SceneRenderer->SetScene(nullptr);
+		m_CameraPreviewRenderer->SetScene(nullptr);
+
+		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
+		m_WorkScene = nullptr;
+
+		FileWatcher::StopWatching();
+
+		Project::SetActive(nullptr);
+	}
+
+	void EditorLayer::SaveProject()
+	{
+		SK_CORE_ASSERT(Project::GetActive());
+
+		auto& config = Project::GetActive()->GetConfig();
+		SaveProject(config.ProjectDirectory / config.ProjectFileName);
+	}
+
+	void EditorLayer::SaveProject(const std::filesystem::path& filePath)
+	{
+		SK_CORE_ASSERT(Project::GetActive());
+
+		ProjectSerializer serializer(Project::GetActive());
+		serializer.Serialize(filePath);
+	}
+
+	void EditorLayer::CreateProject()
+	{
+		auto targetDirectory = FileDialogs::OpenDirectory(std::filesystem::current_path());
+		SK_CORE_ASSERT(targetDirectory.is_absolute());
+		if (targetDirectory.empty())
+			return;
+
+		CloseProject();
+
+		SK_CORE_INFO("Creating Project {}", targetDirectory);
+
+		FileSystem::CreateDirectory(targetDirectory / "Assets");
+		FileSystem::CreateDirectory(targetDirectory / "Assets/Scenes");
+		FileSystem::CreateDirectory(targetDirectory / "Assets/Textures");
+
+		Ref<Project> project = Ref<Project>::Create();
+		auto& config = project->GetConfig();
+		config.Name = "Untitled";
+		config.ProjectDirectory = targetDirectory;
+		config.ProjectFileName = fmt::format("{}.{}", config.Name, "skproj");
+		config.AssetsPath = "Assets";
+		config.ScenesPath = "Assets\\Scenes";
+		config.TexturesPath = "Assets\\Textures";
+		config.StartupScenePath = "";
+
+		Project::SetActive(project);
+		SaveProject();
+		NewScene();
+
+		if (m_ContentBrowserPanel)
+			m_ContentBrowserPanel->ProjectChanged();
+		FileWatcher::StartWatching(Project::GetAssetsPathAbsolute());
 	}
 
 }

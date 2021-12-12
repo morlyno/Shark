@@ -8,6 +8,9 @@
 #include "Shark/Scene/Components/SpriteRendererComponent.h"
 #include "Shark/Scene/Components/CameraComponent.h"
 #include "Shark/Utility/Math.h"
+#include "Shark/Utility/UI.h"
+
+#include "Shark/Core/Input.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -18,8 +21,18 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_ViewportWidth = m_Scene->GetViewportWidth();
-		m_ViewportHeight = m_Scene->GetViewportHeight();
+		if (m_Scene->GetViewportWidth() != 0 && m_Scene->GetViewportHeight() != 0)
+		{
+			m_ViewportWidth = m_Scene->GetViewportWidth();
+			m_ViewportHeight = m_Scene->GetViewportHeight();
+			m_NeedsResize = false;
+		}
+		else
+		{
+			SK_CORE_WARN("SceneRenderer Invalid Viewport Size!");
+			m_ViewportWidth = 1280;
+			m_ViewportHeight = 720;
+		}
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
 
@@ -60,9 +73,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (m_NeedsResize)
+		if (m_NeedsResize && m_ViewportWidth != 0 && m_ViewportHeight != 0)
 		{
-			SK_PROFILE_SCOPED("SceneRenderer::BeginScene::Resize");
+			SK_PROFILE_SCOPED("SceneRenderer::BeginScene Resize");
 
 			m_GeometryFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_FinalFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -137,6 +150,52 @@ namespace Shark {
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 		m_NeedsResize = true;
+	}
+
+	void SceneRenderer::OnImGuiRender()
+	{
+		if (ImGui::CollapsingHeader("SceneRenderer"))
+		{
+			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				UI::BeginPropertyGrid();
+
+				UI::Checkbox("Show Colliders", m_Options.ShowColliders);
+				UI::Checkbox("Show Colliders On Top", m_Options.ShowCollidersOnTop);
+
+				UI::EndProperty();
+
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNodeEx("Statistics", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				UI::BeginPropertyGrid();
+				const auto& stats = m_Renderer2D->GetStatistics();
+				UI::Property("DrawCalls", fmt::format("{}", stats.DrawCalls));
+				UI::Property("Quads", fmt::format("{}", stats.QuadCount));
+				UI::Property("Cirlces", fmt::format("{}", stats.CircleCount));
+				UI::Property("Lines", fmt::format("{}", stats.LineCount));
+				UI::Property("LinesOnTop", fmt::format("{}", stats.LineOnTopCount));
+				UI::Property("Vertices", fmt::format("{}", stats.VertexCount));
+				UI::Property("Indices", fmt::format("{}", stats.IndexCount));
+				UI::Property("Textures", fmt::format("{}", stats.TextureCount));
+				UI::EndProperty();
+
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNodeEx("GPU Times", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				UI::BeginPropertyGrid();
+				const auto& stats = m_Renderer2D->GetStatistics();
+				UI::Property("GeometryPass", fmt::format("{:.4f}ms", stats.GeometryPassTime.MilliSeconds()));
+				UI::EndProperty();
+
+				ImGui::TreePop();
+			}
+
+		}
 	}
 
 }
