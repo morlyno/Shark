@@ -6,7 +6,7 @@ namespace Shark {
 
 	struct IDComponent
 	{
-		UUID ID = UUID::Create();
+		UUID ID = UUID::Generate();
 
 		IDComponent() = default;
 		IDComponent(const IDComponent&) = default;

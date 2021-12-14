@@ -1,0 +1,16 @@
+Assets:
+  - Handle: 4959755786782300168
+    Type: Scene
+    FilePath: Scenes/Quads.skscene
+  - Handle: 2198941886064723100
+    Type: Scene
+    FilePath: Scenes/Sanbox.skscene
+  - Handle: 4329962556150771091
+    Type: Scene
+    FilePath: Scenes/PhysicsScene.skscene
+  - Handle: 17280011775384976949
+    Type: Scene
+    FilePath: Scenes/PhysicsScene.shscene
+  - Handle: 7693141584254865690
+    Type: Texture
+    FilePath: Textures/Test.png

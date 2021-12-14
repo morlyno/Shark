@@ -1,5 +1,5 @@
 Name: Sandbox
 AssetsPath: Assets
-ScenesPath: Assets\Scenes
-TexturesPath: Assets\Textures
-StartupScenePath: Assets\Scenes\TwoQuads.shark
+ScenesPath: Assets/Scenes
+TexturesPath: Assets/Textures
+StartupScenePath: Assets/Scenes/Quads.skscene

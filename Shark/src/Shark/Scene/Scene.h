@@ -7,6 +7,8 @@
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Render/EditorCamera.h"
 
+#include "Shark/Asset/Asset.h"
+
 #include <entt.hpp>
 
 class b2World;
@@ -16,7 +18,7 @@ namespace Shark {
 	class SceneRenderer;
 	class Entity;
 
-	class Scene : public RefCount
+	class Scene : public Asset
 	{
 	public:
 		Scene();
@@ -68,8 +70,8 @@ namespace Shark {
 		uint32_t GetViewportWidth() const { return m_ViewportWidth; }
 		uint32_t GetViewportHeight() const { return m_ViewportHeight; }
 
-		void SetFilePath(const std::filesystem::path& filepath) { m_FilePath = filepath; }
-		const std::filesystem::path& GetFilePath() const { return m_FilePath; }
+		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
+		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
 	private:
 		void SetupBox2D();
@@ -81,8 +83,6 @@ namespace Shark {
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
 		b2World* m_PhysicsWorld2D = nullptr;
-
-		std::filesystem::path m_FilePath;
 
 		friend class Entity;
 		friend class SceneHirachyPanel;

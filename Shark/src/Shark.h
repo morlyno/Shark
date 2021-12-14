@@ -64,6 +64,15 @@
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scene/NativeScript.h"
 #include "Shark/Scene/Components.h"
-#include "Shark/Scene/SceneSerialization.h"
 #include "Shark/Scene/NativeScriptFactory.h"
+// --------------------------------------
+
+// --- Asset ----------------------------
+#include "Shark/Asset/Asset.h"
+#include "Shark/Asset/AssetTypes.h"
+#include "Shark/Asset/AssetRegistry.h"
+#include "Shark/Asset/ResourceManager.h"
+#include "Shark/Asset/AssetSerializer.h"
+#include "Shark/Asset/SceneSerialization.h"
+#include "Shark/Asset/TextureSerialization.h"
 // --------------------------------------

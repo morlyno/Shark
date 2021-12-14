@@ -3,6 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Image.h"
 #include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Asset/Asset.h"
 
 #include <DirectXMath.h>
 
@@ -27,7 +28,7 @@ namespace Shark {
 		{}
 	};
 
-	class Texture : public RefCount
+	class Texture : public Asset
 	{
 	public:
 		virtual ~Texture() = default;
@@ -39,6 +40,9 @@ namespace Shark {
 		virtual void SetSlot(uint32_t slot) = 0;
 		virtual uint32_t GetSlot() const = 0;
 
+		static AssetType GetStaticType() { return AssetType::Texture; }
+		virtual AssetType GetAssetType() const override { return GetStaticType(); }
+
 	};
 
 	class Texture2D : public Texture
@@ -48,7 +52,11 @@ namespace Shark {
 
 		virtual Ref<Image2D> GetImage() const = 0;
 
+		virtual void Set(void* data, const ImageSpecification& imageSpecs, const SamplerProps& props) = 0;
+		virtual const SamplerProps& GetSamplerProps() const = 0;
+
 	public:
+		static Ref<Texture2D> Create();
 		static Ref<Texture2D> Create(Ref<Image2D> image, const SamplerProps& props = {});
 		static Ref<Texture2D> Create(const std::filesystem::path& filepath, const SamplerProps& props = {});
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height, void* data, const SamplerProps& props = {});

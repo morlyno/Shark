@@ -7,24 +7,39 @@ namespace Shark {
 	class Buffer
 	{
 	public:
-		Buffer();
-		~Buffer();
-
-		Buffer(const Buffer& other);
-		Buffer(Buffer&& other);
-		Buffer& operator=(const Buffer& other);
-		Buffer& operator=(Buffer&& other);
+		Buffer() = default;
+		~Buffer() = default;
 
 		void Allocate(uint32_t size);
 		void Release();
 		void Write(void* data, uint32_t size, uint32_t offset = 0);
 
-		byte* const& Data = m_Data;
-		const uint32_t& Size = m_Size;
+		byte* Data;
+		uint32_t Size;
+	};
+
+	class ScopedBuffer
+	{
+	public:
+		ScopedBuffer() = default;
+		~ScopedBuffer()
+		{
+			if (m_Buffer.Data)
+				m_Buffer.Release();
+		}
+
+		ScopedBuffer(const ScopedBuffer&) = delete;
+		ScopedBuffer& operator=(const ScopedBuffer&) = delete;
+
+		void Allocate(uint32_t size) { m_Buffer.Allocate(size); }
+		void Release() { m_Buffer.Release(); }
+		void Write(void* data, uint32_t size, uint32_t offset = 0) { m_Buffer.Write(data, size, offset); }
+
+		byte* const& Data = m_Buffer.Data;
+		const uint32_t& Size = m_Buffer.Size;
 
 	private:
-		byte* m_Data = nullptr;
-		uint32_t m_Size = 0;
+		Buffer m_Buffer;
 	};
 
 }

@@ -27,7 +27,7 @@ namespace Shark {
 		static UI::ContentType GetPaylodType(const std::string& filepath)
 		{
 			auto&& extension = Utility::GetFileExtention(filepath);
-			if (extension == ".shark")
+			if (extension == ".skscene")
 				return UI::ContentType::Scene;
 			if (extension == ".png")
 				return UI::ContentType::Texture;
@@ -430,9 +430,9 @@ namespace Shark {
 					}
 
 					ImGui::Separator();
-					if (ImGui::Selectable("Scene     (.shark)"))
+					if (ImGui::Selectable("Scene     (.skscene)"))
 					{
-						auto path = m_CurrentDirectory / "new.shark";
+						auto path = m_CurrentDirectory / "new.skscene";
 						FileSystem::CreateFile(path);
 						StartRename(path.string());
 						m_ReloadRequierd = true;

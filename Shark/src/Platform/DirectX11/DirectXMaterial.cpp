@@ -57,7 +57,7 @@ namespace Shark {
 		SK_CORE_ASSERT(Utility::Contains(m_VariableMap, name));
 
 		const CBVar& var = m_VariableMap.at(name);
-		Buffer& buffer = m_ConstantBufferData.at(var.BufferSlot);
+		auto& buffer = m_ConstantBufferData.at(var.BufferSlot);
 		SK_CORE_ASSERT(size == var.Size, fmt::format("Invalid Data Size! Data Size is: {} but Size must be: {}", size, var.Size));
 		buffer.Write(data, size, var.Offset);
 	}
@@ -67,7 +67,7 @@ namespace Shark {
 		SK_CORE_ASSERT(Utility::Contains(m_VariableMap, name));
 
 		const CBVar& var = m_VariableMap.at(name);
-		const Buffer& buffer = m_ConstantBufferData.at(var.BufferSlot);
+		const auto& buffer = m_ConstantBufferData.at(var.BufferSlot);
 
 		return buffer.Data + var.Offset;
 

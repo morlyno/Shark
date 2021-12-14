@@ -76,7 +76,7 @@ namespace Shark {
 		Ref<DirectXShader> m_Shader;
 
 		Ref<DirectXConstantBufferSet> m_ConstnatBufferSet;
-		std::unordered_map<uint32_t, Buffer> m_ConstantBufferData;
+		std::unordered_map<uint32_t, ScopedBuffer> m_ConstantBufferData;
 		std::unordered_map<std::string, CBVar> m_VariableMap;
 
 		std::unordered_map<std::string, Ref<DirectXTexture2DArray>> m_ResourceMap;

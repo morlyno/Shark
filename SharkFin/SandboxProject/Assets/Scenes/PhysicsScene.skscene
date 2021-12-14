@@ -1,0 +1,60 @@
+Scene: 17280011775384976949
+ActiveCamera: 0x0
+Entities:
+  - Entity: 0x365898c0feae6f27
+    TagComponent:
+      Tag: Camera
+    TransformComponent:
+      Position: [-0.345718384, -1.0259707, -9.78370285]
+      Rotation: [0, 0, 0]
+      Scaling: [1, 1, 1]
+    CameraComponent:
+      Type: Perspective
+      Aspectratio: 2.06065583
+      PerspectiveFOV: 44.9999886
+      PerspectiveNear: 0.00999999978
+      PerspectiveFar: 1000
+      OrthographicZoom: 10
+      OrthographicNear: -1
+      OrthographicFar: 1
+  - Entity: 0x3b33609f63ce16c4
+    TagComponent:
+      Tag: Circle
+    TransformComponent:
+      Position: [-6.11035538, 0.537097573, 0]
+      Rotation: [0, 0, 0]
+      Scaling: [0.810000002, 0.810000002, 0.810000002]
+    CircleRendererComponent:
+      Color: [0.0792964175, 0.208036602, 0.808823526, 1]
+      Thickness: 0.239999995
+      Fade: 0.0149999997
+    RigidBody2DComponent:
+      Type: Dynamic
+      FixedRotation: false
+    CircleCollider2DComponent:
+      Radius: 0.5
+      Offset: [0, 0]
+      Rotation: 0
+      Density: 1
+      Friction: 0.200000003
+      Restitution: 0.810000002
+      RestitutionThreshold: 1.5
+  - Entity: 0x3bd739a3a1d09951
+    TagComponent:
+      Tag: Quad
+    TransformComponent:
+      Position: [-0.311672449, -2.2430923, 0]
+      Rotation: [2.69412994e-05, -2.42975148e-07, -0.227606326]
+      Scaling: [15.7907677, 0.517977595, 1]
+    SpriteRendererComponent:
+      Color: [0.212870494, 0.735294104, 0.100922711, 1]
+      Texture: 0
+      TilingFactor: 1
+    BoxCollider2DComponent:
+      Size: [0.5, 0.5]
+      Offset: [0, 0]
+      Rotation: 0
+      Density: 1
+      Friction: 0.200000003
+      Restitution: 0.439999998
+      RestitutionThreshold: 1

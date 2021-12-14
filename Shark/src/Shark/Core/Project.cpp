@@ -16,6 +16,11 @@ namespace Shark {
 		return Project::GetActive()->GetConfig();
 	}
 
+	const std::filesystem::path& Project::GetProjectDirectory()
+	{
+		return GetActiveConfig().ProjectDirectory;
+	}
+
 	const std::filesystem::path& Project::GetAssetsPathRelative()
 	{
 		return GetActiveConfig().AssetsPath;
@@ -33,22 +38,22 @@ namespace Shark {
 
 	std::filesystem::path Project::GetAssetsPathAbsolute()
 	{
-		return GetActiveConfig().ProjectDirectory / GetAssetsPathRelative();
+		return GetActiveConfig().ProjectDirectory.native() + L'/' + GetAssetsPathRelative().native();
 	}
 
 	std::filesystem::path Project::GetScenesPathAbsolute()
 	{
-		return GetActiveConfig().ProjectDirectory / GetScenesPathRelative();
+		return GetActiveConfig().ProjectDirectory.native() + L'/' + GetScenesPathRelative().native();
 	}
 
 	std::filesystem::path Project::GetTexturesPathAbsolute()
 	{
-		return GetActiveConfig().ProjectDirectory / GetTexturesPathRelative();
+		return GetActiveConfig().ProjectDirectory.native() + L'/' + GetTexturesPathRelative().native();
 	}
 
 	std::filesystem::path Project::GetStartupScenePathAbsolute()
 	{
-		return GetActiveConfig().ProjectDirectory / GetStartupScenePathRelative();
+		return GetActiveConfig().ProjectDirectory.native() + L'/' + GetStartupScenePathRelative().native();
 	}
 
 	std::filesystem::path Project::GetStartupScenePathRelative()
@@ -116,15 +121,13 @@ namespace Shark {
 		fout << out.c_str();
 		TimeStep time = timer.Stop();
 
-		SK_CORE_INFO("==========================================================================================");
-		SK_CORE_INFO("Project Serialized To: {}", filePath);
-		SK_CORE_INFO("Serialization tock: {}ms", time.MilliSeconds());
+		SK_CORE_INFO("Serializing Project To: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
 		SK_CORE_TRACE("  Assets Path: {}", config.AssetsPath);
 		SK_CORE_TRACE("  Scenes Path: {}", config.ScenesPath);
 		SK_CORE_TRACE("  Textures Path: {}", config.TexturesPath);
 		SK_CORE_TRACE("  Startup Scene Path: {}", config.StartupScenePath);
-		SK_CORE_INFO("==========================================================================================");
+		SK_CORE_INFO("Project Serialization tock: {}ms", time.MilliSeconds());
 
 		return true;
 	}
@@ -169,14 +172,14 @@ namespace Shark {
 
 		TimeStep time = timer.Stop();
 
-		SK_CORE_INFO("Project Deserialized from: {}", filePath);
-		SK_CORE_INFO("Deserialization tock: {}ms", time.MilliSeconds());
+		SK_CORE_INFO("Deserializing Project from: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
 		SK_CORE_TRACE("  Project Dir: {}", config.ProjectDirectory);
 		SK_CORE_TRACE("  Assets Path: {}", config.AssetsPath);
 		SK_CORE_TRACE("  Scenes Path: {}", config.ScenesPath);
 		SK_CORE_TRACE("  Textures Path: {}", config.TexturesPath);
 		SK_CORE_TRACE("  Startup Scene Path: {}", config.StartupScenePath);
+		SK_CORE_INFO("Project Deserialization tock: {}ms", time.MilliSeconds());
 
 		return true;
 	}

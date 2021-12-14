@@ -51,6 +51,11 @@ namespace Shark {
 		return D3D11_FILTER_MIN_MAG_MIP_POINT;
 	}
 
+	DirectXTexture2D::DirectXTexture2D()
+		: m_Image(Ref<DirectXImage2D>::Create())
+	{
+	}
+
 	DirectXTexture2D::DirectXTexture2D(Ref<Image2D> image, const SamplerProps& props)
 		: m_Image(image.As<DirectXImage2D>())
 	{
@@ -90,7 +95,31 @@ namespace Shark {
 
 	DirectXTexture2D::~DirectXTexture2D()
 	{
-		if (m_Sampler) { m_Sampler->Release(); }
+		Release();
+	}
+
+	void DirectXTexture2D::Release()
+	{
+		m_Image = nullptr;
+
+		if (m_Sampler)
+			m_Sampler->Release();
+		m_Sampler = nullptr;
+
+	}
+
+	void DirectXTexture2D::Set(void* data, const ImageSpecification& imageSpecs, const SamplerProps& props)
+	{
+		if (m_Sampler)
+			m_Sampler->Release();
+		m_Sampler = nullptr;
+
+		m_Image->Set(data, imageSpecs);
+
+		if (!m_Image->HasView())
+			m_Image->CreateView();
+
+		CreateSampler(props);
 	}
 
 	void DirectXTexture2D::Bind(ID3D11DeviceContext* ctx, uint32_t slot)
@@ -112,6 +141,8 @@ namespace Shark {
 	void DirectXTexture2D::CreateSampler(const SamplerProps& props)
 	{
 		auto* dev = DirectXRenderer::GetDevice();
+
+		m_SamplerProps = props;
 
 		D3D11_SAMPLER_DESC sd;
 		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));

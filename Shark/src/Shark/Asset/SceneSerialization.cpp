@@ -68,12 +68,6 @@ namespace Shark {
 
 	}
 
-	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
-		: m_Scene(scene)
-	{
-		SK_PROFILE_FUNCTION();
-	}
-
 	static bool SerializeEntity(YAML::Emitter& out, Entity entity, const Ref<Scene>& scene)
 	{
 		SK_PROFILE_FUNCTION();
@@ -125,7 +119,7 @@ namespace Shark {
 
 			auto& comp = entity.GetComponent<SpriteRendererComponent>();
 			out << YAML::Key << "Color" << YAML::Value << comp.Color;
-			out << YAML::Key << "Texture" << YAML::Value << (comp.Texture ? comp.Texture->GetFilePath() : "");
+			out << YAML::Key << "Texture" << YAML::Value << comp.TextureHandle;
 			out << YAML::Key << "TilingFactor" << YAML::Value << comp.TilingFactor;
 
 			out << YAML::EndMap;
@@ -222,11 +216,35 @@ namespace Shark {
 		return true;
 	}
 
-	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
+	bool SceneSerializer::TryLoadData(Ref<Asset>& asset, const std::filesystem::path& filePath)
+	{
+		asset = Ref<Scene>::Create();
+		return Deserialize(asset.As<Scene>(), filePath);
+	}
+
+	bool SceneSerializer::Serialize(Ref<Asset> asset, const std::filesystem::path& filePath)
+	{
+		SK_CORE_ASSERT(asset);
+		if (!asset && asset->GetAssetType() != AssetType::Scene)
+			return false;
+
+		return Serialize(asset.As<Scene>(), filePath);
+	}
+
+	bool SceneSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& filePath)
+	{
+		SK_CORE_ASSERT(asset);
+		if (!asset && asset->GetAssetType() != AssetType::Scene)
+			return false;
+
+		return Deserialize(asset.As<Scene>(), filePath);
+	}
+
+	bool SceneSerializer::Serialize(Ref<Scene> scene, const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (!m_Scene)
+		if (!scene)
 		{
 			SK_CORE_WARN("SceneSerializer Scene is null but Serialize was called");
 			return false;
@@ -236,22 +254,21 @@ namespace Shark {
 
 		YAML::Emitter out;
 
-		SK_CORE_INFO("==========================================================================================");
 		SK_CORE_INFO("Searializing Scene to {0}", filepath);
 
 		out << YAML::BeginMap;
 
 		// Scene
-		out << YAML::Key << "Scene" << YAML::Value << filepath.stem();
+		out << YAML::Key << "Scene" << YAML::Value << scene->Handle;
 
-		out << YAML::Key << "ActiveCamera" << YAML::Value << YAML::Hex << m_Scene->GetActiveCameraUUID() << YAML::Dec;
+		out << YAML::Key << "ActiveCamera" << YAML::Value << YAML::Hex << scene->GetActiveCameraUUID() << YAML::Dec;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		
-		m_Scene->m_Registry.each([&](auto& entityID)
+		scene->m_Registry.each([&](auto& entityID)
 		{
-			Entity entity{ entityID, m_Scene };
-			SerializeEntity(out, entity, m_Scene);
+			Entity entity{ entityID, scene };
+			SerializeEntity(out, entity, scene);
 		});
 
 
@@ -265,17 +282,16 @@ namespace Shark {
 		}
 		fout << out.c_str();
 		fout.close();
-		SK_CORE_INFO("Serialization tock: {:.4f}ms", timer.Stop().MilliSeconds());
-		SK_CORE_INFO("==========================================================================================");
+		SK_CORE_INFO("Scene Serialization tock: {:.4f}ms", timer.Stop().MilliSeconds());
 
 		return true;
 	}
 
-	bool SceneSerializer::Deserialize(const std::filesystem::path& filepath)
+	bool SceneSerializer::Deserialize(Ref<Scene> scene, const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (!m_Scene)
+		if (!scene)
 		{
 			SK_CORE_ERROR("SceneSerializer Scene is null but Deserialize was called");
 			return false;
@@ -293,10 +309,20 @@ namespace Shark {
 		if (!in["Scene"])
 			return false;
 
-		SK_CORE_INFO("==========================================================================================");
 		SK_CORE_INFO("Deserializing Scene from: {0}", filepath);
 
-		m_Scene->SetActiveCamera(in["ActiveCamera"].as<UUID>());
+		struct SceneUUIDFallback
+		{
+			operator UUID() const
+			{
+				SK_CORE_WARN("Deserialized Scene without UUID");
+				return UUID::Generate();
+			}
+		};
+
+		scene->Handle = in["Scene"].as<UUID>(SceneUUIDFallback{});
+
+		scene->SetActiveCamera(in["ActiveCamera"].as<UUID>());
 
 		auto entities = in["Entities"];
 		if (entities)
@@ -309,7 +335,7 @@ namespace Shark {
 				auto tagComp = entity["TagComponent"];
 				auto tag = tagComp["Tag"].as<std::string>();
 
-				Entity deserializedEntity = m_Scene->CreateEntityWithUUID(uuid, tag);
+				Entity deserializedEntity = scene->CreateEntityWithUUID(uuid, tag);
 				SK_CORE_TRACE("Deserializing Entity [{}] {:x}", tag, uuid);
 
 				auto transformComponent = entity["TransformComponent"];
@@ -346,10 +372,8 @@ namespace Shark {
 					SK_CORE_ASSERT(color, "Couldn't deserialize SpriteRendererComponent::Color");
 					comp.Color = color.as<DirectX::XMFLOAT4>();
 
-					SK_CORE_ASSERT(textureFilePath, "Couldn't deserialize SpriteRendererComponent::Texture")
-					auto texFilePath = textureFilePath.as<std::filesystem::path>();
-					if (!texFilePath.empty())
-						comp.Texture = Texture2D::Create(texFilePath);
+					SK_CORE_ASSERT(textureFilePath, "Couldn't deserialize SpriteRendererComponent::Texture");
+					comp.TextureHandle = textureFilePath.as<UUID>();
 
 					SK_CORE_ASSERT(tilingfactor, "Couldn't deserialize SpriteRendererComponent::TilingFactor");
 					comp.TilingFactor = tilingfactor.as<float>();
@@ -517,8 +541,7 @@ namespace Shark {
 				}
 			}
 		}
-		SK_CORE_INFO("Deserialization tock: {:.4f}ms", timer.Stop().MilliSeconds());
-		SK_CORE_INFO("==========================================================================================");
+		SK_CORE_INFO("Scene Deserialization tock: {:.4f}ms", timer.Stop().MilliSeconds());
 		return true;
 	}
 

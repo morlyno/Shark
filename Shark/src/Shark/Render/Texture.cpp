@@ -6,6 +6,17 @@
 
 namespace Shark {
 
+	Ref<Texture2D> Texture2D::Create()
+	{
+		switch (RendererAPI::GetAPI())
+		{
+			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create();
+		}
+		SK_CORE_ASSERT(false, "Unknown API");
+		return nullptr;
+	}
+
 	Ref<Texture2D> Texture2D::Create(Ref<Image2D> image, const SamplerProps& props)
 	{
 		switch (RendererAPI::GetAPI())

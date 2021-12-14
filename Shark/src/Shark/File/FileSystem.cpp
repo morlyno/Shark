@@ -122,7 +122,7 @@ namespace Shark::FileSystem {
 	std::filesystem::path MakeDefaultFormat(const std::filesystem::path& path)
 	{
 		std::wstring str = path.wstring();
-		std::replace(str.begin(), str.end(), L'/', L'\\');
+		std::replace(str.begin(), str.end(), L'\\', L'/');
 		return str;
 	}
 
@@ -136,8 +136,7 @@ namespace Shark::FileSystem {
 
 	bool ValidateSceneFilePath(const std::filesystem::path& sceneFilePath)
 	{
-		// TODO(moro): change scene extetion from .shark to .skscene
-		return !sceneFilePath.empty() && Exists(sceneFilePath) && (sceneFilePath.extension() == L".shark");
+		return !sceneFilePath.empty() && Exists(sceneFilePath) && (sceneFilePath.extension() == L".skscene");
 	}
 
 }

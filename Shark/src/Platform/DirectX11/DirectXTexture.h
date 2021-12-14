@@ -10,10 +10,16 @@ namespace Shark {
 	class DirectXTexture2D : public Texture2D
 	{
 	public:
+		DirectXTexture2D();
 		DirectXTexture2D(Ref<Image2D> image, const SamplerProps& props);
 		DirectXTexture2D(const std::filesystem::path& filepath, const SamplerProps& props);
 		DirectXTexture2D(uint32_t width, uint32_t height, void* data, const SamplerProps& props);
 		virtual ~DirectXTexture2D();
+
+		void Release();
+
+		virtual void Set(void* data, const ImageSpecification& imageSpecs, const SamplerProps& props) override;
+		virtual const SamplerProps& GetSamplerProps() const override { return m_SamplerProps; }
 
 		ID3D11SamplerState* GetSamplerNative() const { return m_Sampler; }
 		ID3D11ShaderResourceView* GetViewNative() const { return m_Image->GetViewNative(); }
@@ -34,6 +40,7 @@ namespace Shark {
 
 	private:
 		Ref<DirectXImage2D> m_Image;
+		SamplerProps m_SamplerProps;
 
 		std::filesystem::path m_FilePath;
 		uint32_t m_Slot = 0;

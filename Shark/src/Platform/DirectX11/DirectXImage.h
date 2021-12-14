@@ -22,9 +22,12 @@ namespace Shark {
 	class DirectXImage2D : public Image2D
 	{
 	public:
+		DirectXImage2D();
 		DirectXImage2D(void* data, const ImageSpecification& specs);
 		DirectXImage2D(const std::filesystem::path& filepath, const ImageSpecification& specs);
 		virtual ~DirectXImage2D();
+
+		virtual void Set(void* data, const ImageSpecification& specs) override;
 
 		virtual uint32_t GetWidth() const override { return m_Specs.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specs.Height; }

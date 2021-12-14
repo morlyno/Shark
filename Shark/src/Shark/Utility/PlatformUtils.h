@@ -5,8 +5,8 @@ namespace Shark {
 	class FileDialogs
 	{
 	public:
-		static std::filesystem::path OpenFile(const std::wstring& filter, uint32_t defaultFilterindex = 0, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
-		static std::filesystem::path SaveFile(const std::wstring& filter, uint32_t defaultFilterindex = 0, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
+		static std::filesystem::path OpenFile(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
+		static std::filesystem::path SaveFile(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
 
 		static std::filesystem::path OpenDirectory(const std::filesystem::path& defaultPath = std::filesystem::path{});
 

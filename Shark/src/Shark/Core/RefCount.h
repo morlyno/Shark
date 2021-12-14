@@ -93,6 +93,7 @@ namespace Shark {
 
 		template<typename... Args>
 		static Ref Create(Args&&... args) { return new T(std::forward<Args>(args)...); }
+		static Ref Create(const Ref& ref) { return ref; }
 
 	private:
 		T* m_Instance = nullptr;

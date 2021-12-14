@@ -7,7 +7,7 @@ namespace Shark {
 	struct SpriteRendererComponent
 	{
 		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Ref<Texture2D> Texture = nullptr;
+		AssetHandle TextureHandle;
 		float TilingFactor = 1.0f;
 	};
 

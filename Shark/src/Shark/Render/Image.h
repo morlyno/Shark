@@ -55,6 +55,8 @@ namespace Shark {
 	public:
 		virtual ~Image2D() = default;
 
+		virtual void Set(void* data, const ImageSpecification& specs) = 0;
+
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
 

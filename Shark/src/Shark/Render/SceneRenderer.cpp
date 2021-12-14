@@ -158,7 +158,7 @@ namespace Shark {
 		{
 			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
-				UI::BeginPropertyGrid();
+				UI::BeginProperty(UI::Flags::Property_GridDefualt);
 
 				UI::Checkbox("Show Colliders", m_Options.ShowColliders);
 				UI::Checkbox("Show Colliders On Top", m_Options.ShowCollidersOnTop);
@@ -170,7 +170,7 @@ namespace Shark {
 
 			if (ImGui::TreeNodeEx("Statistics", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
-				UI::BeginPropertyGrid();
+				UI::BeginProperty(UI::Flags::Property_GridDefualt);
 				const auto& stats = m_Renderer2D->GetStatistics();
 				UI::Property("DrawCalls", fmt::format("{}", stats.DrawCalls));
 				UI::Property("Quads", fmt::format("{}", stats.QuadCount));
@@ -187,7 +187,7 @@ namespace Shark {
 
 			if (ImGui::TreeNodeEx("GPU Times", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
-				UI::BeginPropertyGrid();
+				UI::BeginProperty(UI::Flags::Property_GridDefualt);
 				const auto& stats = m_Renderer2D->GetStatistics();
 				UI::Property("GeometryPass", fmt::format("{:.4f}ms", stats.GeometryPassTime.MilliSeconds()));
 				UI::EndProperty();

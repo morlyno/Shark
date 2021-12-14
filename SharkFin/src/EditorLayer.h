@@ -48,6 +48,7 @@ namespace Shark {
 		void UI_CameraPrevie();
 		void UI_Stats();
 		void UI_ProjectSettings();
+		void UI_Asset();
 
 		void SelectEntity(Entity entity);
 
@@ -74,6 +75,8 @@ namespace Shark {
 		void SaveProject(const std::filesystem::path& filePath);
 		void CreateProject();
 
+		void ImportAsset();
+
 	private:
 		std::filesystem::path m_StartupProject;
 
@@ -97,7 +100,7 @@ namespace Shark {
 
 		TimeStep m_TimeStep;
 
-		bool m_ShwoSceneHirachyPanel = true;
+		bool m_ShowSceneHirachyPanel = true;
 		bool m_ShowAssetsPanel = true;
 
 		bool m_ShowInfo = true;
@@ -107,6 +110,7 @@ namespace Shark {
 		bool m_ReadHoveredEntity = false;
 		bool m_ShowShaders = false;
 		bool m_ShowProjectSettings = false;
+		bool m_ShowAssetsRegistry = false;
 
 		int m_HoveredEntityID = -1;
 
@@ -132,6 +136,17 @@ namespace Shark {
 		std::string m_ProjectEditBuffer;
 		bool m_ProjectEditActice = false;
 		ImGuiID m_ProjectEditActiveID;
+
+		struct ImportAssetData
+		{
+			std::filesystem::path SourceFile;
+			std::filesystem::path TargetDirectory;
+			std::string FileName;
+			std::string Extention;
+			bool Active = false;
+		};
+		ImportAssetData m_ImportAssetData;
+
 	};
 
 }

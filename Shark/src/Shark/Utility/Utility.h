@@ -3,6 +3,13 @@
 #include <DirectXMath.h>
 #include <filesystem>
 
+namespace Shark::String {
+
+	std::string ToLowerCopy(const std::string& str);
+	void ToLower(std::string& str);
+
+}
+
 namespace Shark::Utility {
 
 	std::string ToLower(const std::string& src);

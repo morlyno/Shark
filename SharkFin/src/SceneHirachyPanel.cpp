@@ -9,6 +9,7 @@
 #include <Shark/Scene/NativeScriptFactory.h>
 #include "Shark/Core/Project.h"
 #include <Shark/Core/Application.h>
+#include "Shark/Asset/ResourceManager.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -295,7 +296,7 @@ namespace Shark {
 		{
 			SK_PROFILE_SCOPED("DrawComponent<TransformComponent>");
 
-			UI::BeginPropertyGrid();
+			UI::BeginProperty(UI::Flags::Property_GridDefualt);
 			UI::DragFloat("Position", comp.Position);
 			UI::DragAngle("Rotation", comp.Rotation);
 			UI::DragFloat("Scaling", comp.Scaling, 1.0f);
@@ -315,13 +316,15 @@ namespace Shark {
 			{
 				ImGui::TableSetColumnIndex(0);
 
-				RenderID textureID = comp.Texture ? comp.Texture->GetRenderID() : nullptr;
-				if (ImGui::ImageButton(textureID, { 48, 48 }))
-				{
-					auto path = FileDialogs::OpenFile(L"|*.*|Tetxure|*.png", 2, Project::GetAssetsPathAbsolute(), true);
-					if (!path.empty())
-						comp.Texture = Texture2D::Create(path);
-				}
+				const AssetMetaData& metadata = ResourceManager::GetMetaData(comp.TextureHandle);
+				Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(comp.TextureHandle);
+				RenderID textureID = texture ? texture->GetRenderID() : nullptr;
+				ImGui::Image(textureID, { 48, 48 });
+				//{
+				//	auto path = FileDialogs::OpenFile(L"|*.*|Tetxure|*.png", 2, Project::GetAssetsPathAbsolute(), true);
+				//	if (!path.empty())
+				//		comp.TextureHandle = Texture2D::Create(path);
+				//}
 				if (ImGui::BeginDragDropTarget())
 				{
 					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
@@ -329,18 +332,18 @@ namespace Shark {
 					{
 						auto* data = (UI::ContentPayload*)payload->Data;
 						if (data->Type == UI::ContentType::Texture)
-							comp.Texture = Texture2D::Create(data->Path);
+							comp.TextureHandle = ResourceManager::GetAssetHandleFromFilePath(data->Path);
 					}
 					ImGui::EndDragDropTarget();
 				}
 
 				ImGui::TableSetColumnIndex(1);
-				if (comp.Texture)
+				if (texture)
 				{
-					UI::Text(comp.Texture->GetFilePath());
-					ImGui::Text("Width: %d, Height: %d", comp.Texture->GetImage()->GetWidth(), comp.Texture->GetImage()->GetHeight());
+					UI::Text(metadata.FilePath);
+					ImGui::Text("Width: %d, Height: %d", texture->GetImage()->GetWidth(), texture->GetImage()->GetHeight());
 					if (ImGui::Button("Remove"))
-						comp.Texture = nullptr;
+						comp.TextureHandle = AssetHandle::Null();
 				}
 				else
 				{
@@ -419,7 +422,7 @@ namespace Shark {
 			}
 
 			UUID uuid = entity.GetUUID();
-			bool isMainCamera = m_Context->m_ActiveCameraUUID.Valid() ? m_Context->m_ActiveCameraUUID == uuid : false;
+			bool isMainCamera = m_Context->m_ActiveCameraUUID.IsValid() ? m_Context->m_ActiveCameraUUID == uuid : false;
 			if (UI::Checkbox("Is Active", isMainCamera))
 				m_Context->m_ActiveCameraUUID = uuid;
 

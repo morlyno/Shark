@@ -3,7 +3,7 @@
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
-
+#include "Shark/Asset/ResourceManager.h"
 #include "Shark/Render/SceneRenderer.h"
 
 #include "Shark/Utility/Math.h"
@@ -130,7 +130,7 @@ namespace Shark {
 
 		// Setup Cameras
 		bool activeCameraFound = false;
-		if (m_ActiveCameraUUID.Valid())
+		if (m_ActiveCameraUUID.IsValid())
 		{
 			Entity activeCamera = GetEntityByUUID(m_ActiveCameraUUID);
 			if (activeCamera.HasComponent<CameraComponent>())
@@ -267,7 +267,10 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
-				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+				Ref<Texture2D> texture;
+				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
+					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
+				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
 			}
 		}
 
@@ -302,7 +305,10 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
-				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+				Ref<Texture2D> texture;
+				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
+					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
+				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
 			}
 		}
 
@@ -332,7 +338,10 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
-				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+				Ref<Texture2D> texture;
+				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
+					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
+				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
 			}
 		}
 
@@ -384,7 +393,10 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
-				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, sr.Texture, sr.TilingFactor, sr.Color, (int)entity);
+				Ref<Texture2D> texture;
+				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
+					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
+				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
 			}
 		}
 
@@ -444,7 +456,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		return CreateEntityWithUUID(UUID::Create(), tag);
+		return CreateEntityWithUUID(UUID::Generate(), tag);
 	}
 
 	Entity Scene::CreateEntityWithUUID(UUID uuid, const std::string& tag)
@@ -490,7 +502,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (m_ActiveCameraUUID.Valid())
+		if (m_ActiveCameraUUID.IsValid())
 		{
 			auto view = m_Registry.view<CameraComponent>();
 			for (auto e : view)

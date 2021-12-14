@@ -3,6 +3,25 @@
 
 #include <filesystem>
 
+namespace Shark::String {
+
+	std::string ToLowerCopy(const std::string& str)
+	{
+		std::string result;
+		ToLower(result);
+		return result;
+	}
+
+	void ToLower(std::string& str)
+	{
+		std::transform(str.begin(), str.end(), str.begin(), [](auto c)
+		{
+			return std::tolower(c);
+		});
+	}
+
+}
+
 namespace Shark::Utility {
 
 	std::string ToLower(const std::string& src)

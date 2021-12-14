@@ -82,6 +82,10 @@ namespace Shark {
 	}
 
 
+	DirectXImage2D::DirectXImage2D()
+	{
+	}
+
 	DirectXImage2D::DirectXImage2D(void* data, const ImageSpecification& specs)
 		: m_Specs(specs)
 	{
@@ -91,6 +95,8 @@ namespace Shark {
 	DirectXImage2D::DirectXImage2D(const std::filesystem::path& filepath, const ImageSpecification& specs)
 		: m_Specs(specs)
 	{
+		SK_CORE_WARN("Image Loaded form: {}", filepath);
+
 		std::string narrorFilePath = filepath.string();
 		int x, y, comp;
 		stbi_uc* data = stbi_load(narrorFilePath.c_str(), &x, &y, &comp, 4);
@@ -112,6 +118,12 @@ namespace Shark {
 			m_Image->Release();
 		if (m_View)
 			m_View->Release();
+	}
+
+	void DirectXImage2D::Set(void* data, const ImageSpecification& specs)
+	{
+		m_Specs = specs;
+		CreateImage(data);
 	}
 
 	void DirectXImage2D::Resize(uint32_t widht, uint32_t height)

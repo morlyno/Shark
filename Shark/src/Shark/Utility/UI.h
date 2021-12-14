@@ -187,11 +187,31 @@ namespace Shark::UI {
 
 	namespace Flags {
 
-		enum Text
+		enum TextEnum
 		{
 			Text_None = 0,
-			Text_Aligned = BIT(0)
+			Text_Aligned = BIT(0),
+			Text_Selectable = BIT(1),
+			Text_Disabled = BIT(2),
+
+			Text_TagMask = BIT(0)
 		};
+		using Text = std::underlying_type_t<TextEnum>;
+
+		enum PropertyEnum
+		{
+			Property_None = 0,
+			Property_GridInnerV = BIT(0),
+			Property_GridInnerH = BIT(1),
+			Property_GridOuterV = BIT(2),
+			Property_GridOuterH = BIT(3),
+
+			Property_FixedSize = BIT(4),
+			Property_MinWidth = BIT(5),
+
+			Property_GridDefualt = Property_GridInnerV | Property_GridInnerH /*| Grid_OuterV*/ | Property_GridOuterH
+		};
+		using Grid = std::underlying_type_t<PropertyEnum>;
 
 	}
 
@@ -229,9 +249,14 @@ namespace Shark::UI {
 	void MoveCursorX(float x);
 	void MoveCursorY(float y);
 
+	void SpanAvailWith();
+
 	//////////////////////////////////////////////////////////////////////////////
 	/// Text /////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
+
+	void PushTextFlag(Flags::Text flags);
+	void PopTextFlag(uint32_t count = 1);
 
 	void Text(const char* str, Flags::Text flags);
 	void Text(const std::string& str, Flags::Text flags);
@@ -253,10 +278,11 @@ namespace Shark::UI {
 	/// Controls /////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	bool BeginProperty(const std::string& strID);
-	bool BeginPropertyGrid(const std::string& strID);
-	bool BeginProperty(ImGuiID customID = GetID("ControlsTable"));
-	bool BeginPropertyGrid(ImGuiID customID = GetID("ControlsTable"));
+	bool BeginProperty(Flags::Grid flags = Flags::Property_None);
+	bool BeginProperty(const std::string& strID, Flags::Grid flags = Flags::Property_None);
+
+	bool BeginProperty(ImGuiID customID, Flags::Grid);
+
 	void EndProperty();
 
 	bool PropertyCustom(const std::string& tag);
@@ -293,6 +319,7 @@ namespace Shark::UI {
 
 	bool ButtonRightAligned(const std::string& tag, const ImVec2& size = ImVec2(0, 0), ImGuiButtonFlags flags = ImGuiButtonFlags_None);
 
+	void Property(const std::string& tag, const char* val, Flags::Text flags = Flags::Text_None);
 	void Property(const std::string& tag, const std::string& val, Flags::Text flags = Flags::Text_None);
 	void Property(const std::string& tag, const std::filesystem::path& val, Flags::Text flags = Flags::Text_None);
 
