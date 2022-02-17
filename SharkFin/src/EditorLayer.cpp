@@ -78,14 +78,15 @@ namespace Shark {
 		imageSpecs.Usage = ImageUsageNone;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
 
+		FileWatcher::SetFileChangedCallback(std::bind(&EditorLayer::OnFileChanged, this, std::placeholders::_1));
 	}
 
 	void EditorLayer::OnDetach()
 	{
 		SK_PROFILE_FUNCTION();
 
-		FileWatcher::StopWatching();
 		CloseProject();
+		FileWatcher::SetFileChangedCallback(nullptr);
 	}
 
 	void EditorLayer::OnUpdate(TimeStep ts)
@@ -193,9 +194,6 @@ namespace Shark {
 
 		if (m_ScenePaused || m_SceneState != SceneState::Play)
 			m_EditorCamera.OnEvent(event);
-
-		if (m_ContentBrowserPanel)
-			m_ContentBrowserPanel->OnEvent(event);
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -288,6 +286,10 @@ namespace Shark {
 		}
 
 		return false;
+	}
+
+	void EditorLayer::OnFileChanged(const std::vector<FileChangedData>& fileEvents)
+	{
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -399,9 +401,9 @@ namespace Shark {
 			UI::Text(fmt::format("Type: {}", AssetTypeToString(AssetExtentionMap[m_ImportAssetData.Extention])));
 
 			UI::Text(m_ImportAssetData.TargetDirectory);
-			ImGui::SameLine();
+			ImGui::SameLine(0.0f, 0.0f);
 			UI::Text("/");
-			ImGui::SameLine();
+			ImGui::SameLine(0.0f, 0.0f);
 			ImGui::InputText("##ImputAssetName", &m_ImportAssetData.FileName);
 
 			std::filesystem::path fullPath = Project::GetProjectDirectory() / m_ImportAssetData.TargetDirectory / m_ImportAssetData.FileName;
@@ -1394,7 +1396,7 @@ namespace Shark {
 
 		if (ResourceManager::IsMemoryAsset(m_WorkScene->Handle))
 		{
-			auto filePath = FileDialogs::SaveFile(L"|*.*|Shark|*.skscene", 2, Project::GetAssetsPathAbsolute(), true);
+			auto filePath = FileDialogs::SaveFile(L"|*.*|Shark|*.skscene", 2, Project::GetAssetsPath(), true);
 
 			std::string directoryPath = ResourceManager::GetRelativePathString(filePath.parent_path());
 			std::string fileName = filePath.filename().string();
@@ -1508,7 +1510,7 @@ namespace Shark {
 
 			if (m_ContentBrowserPanel)
 				m_ContentBrowserPanel->ProjectChanged();
-			FileWatcher::StartWatching(Project::GetAssetsPathAbsolute());
+			FileWatcher::StartWatching(Project::GetAssetsPath());
 		}
 	}
 
@@ -1583,7 +1585,7 @@ namespace Shark {
 
 		if (m_ContentBrowserPanel)
 			m_ContentBrowserPanel->ProjectChanged();
-		FileWatcher::StartWatching(Project::GetAssetsPathAbsolute());
+		FileWatcher::StartWatching(Project::GetAssetsPath());
 	}
 
 	void EditorLayer::ImportAsset()
@@ -1607,8 +1609,8 @@ namespace Shark {
 			switch (AssetExtentionMap[m_ImportAssetData.Extention])
 			{
 				case AssetType::None: m_ImportAssetData.Active = false; return;
-				case AssetType::Scene: m_ImportAssetData.TargetDirectory = Project::GetScenesPathRelative().string(); break;
-				case AssetType::Texture: m_ImportAssetData.TargetDirectory = Project::GetTexturesPathRelative().string(); break;
+				case AssetType::Scene: m_ImportAssetData.TargetDirectory = Project::MakeRelative(Project::GetScenesPath()); break;
+				case AssetType::Texture: m_ImportAssetData.TargetDirectory = Project::MakeRelative(Project::GetTexturesPath()); break;
 			}
 		}
 

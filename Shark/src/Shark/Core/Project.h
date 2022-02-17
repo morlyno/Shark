@@ -24,16 +24,13 @@ namespace Shark {
 	public:
 		static const std::filesystem::path& GetProjectDirectory();
 
-		static const std::filesystem::path& GetAssetsPathRelative();
-		static const std::filesystem::path& GetScenesPathRelative();
-		static const std::filesystem::path& GetTexturesPathRelative();
+		static const std::filesystem::path& GetAssetsPath();
+		static const std::filesystem::path& GetScenesPath();
+		static const std::filesystem::path& GetTexturesPath();
 
-		static std::filesystem::path GetAssetsPathAbsolute();
-		static std::filesystem::path GetScenesPathAbsolute();
-		static std::filesystem::path GetTexturesPathAbsolute();
+		static const std::filesystem::path& GetStartupScenePath();
 
-		static std::filesystem::path GetStartupScenePathAbsolute();
-		static std::filesystem::path GetStartupScenePathRelative();
+		static std::filesystem::path MakeRelative(const std::filesystem::path& filePath);
 
 		static Ref<Project> GetActive();
 		static void SetActive(Ref<Project> project);

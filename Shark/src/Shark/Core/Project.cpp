@@ -21,44 +21,29 @@ namespace Shark {
 		return GetActiveConfig().ProjectDirectory;
 	}
 
-	const std::filesystem::path& Project::GetAssetsPathRelative()
+	const std::filesystem::path& Project::GetAssetsPath()
 	{
 		return GetActiveConfig().AssetsPath;
 	}
 
-	const std::filesystem::path& Project::GetScenesPathRelative()
+	const std::filesystem::path& Project::GetScenesPath()
 	{
 		return GetActiveConfig().ScenesPath;
 	}
 
-	const std::filesystem::path& Project::GetTexturesPathRelative()
+	const std::filesystem::path& Project::GetTexturesPath()
 	{
 		return GetActiveConfig().TexturesPath;
 	}
 
-	std::filesystem::path Project::GetAssetsPathAbsolute()
-	{
-		return GetActiveConfig().ProjectDirectory.native() + L'/' + GetAssetsPathRelative().native();
-	}
-
-	std::filesystem::path Project::GetScenesPathAbsolute()
-	{
-		return GetActiveConfig().ProjectDirectory.native() + L'/' + GetScenesPathRelative().native();
-	}
-
-	std::filesystem::path Project::GetTexturesPathAbsolute()
-	{
-		return GetActiveConfig().ProjectDirectory.native() + L'/' + GetTexturesPathRelative().native();
-	}
-
-	std::filesystem::path Project::GetStartupScenePathAbsolute()
-	{
-		return GetActiveConfig().ProjectDirectory.native() + L'/' + GetStartupScenePathRelative().native();
-	}
-
-	std::filesystem::path Project::GetStartupScenePathRelative()
+	const std::filesystem::path& Project::GetStartupScenePath()
 	{
 		return GetActiveConfig().StartupScenePath;
+	}
+
+	std::filesystem::path Project::MakeRelative(const std::filesystem::path& filePath)
+	{
+		return FileSystem::MakeDefaultFormat(std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory));
 	}
 
 	Ref<Project> Project::GetActive()
@@ -91,18 +76,23 @@ namespace Shark {
 		YAML::Emitter out;
 
 		const auto& config = m_Project->GetConfig();
-		SK_CORE_ASSERT(FileSystem::IsRelative(config.AssetsPath, config.ProjectDirectory));
-		SK_CORE_ASSERT(FileSystem::IsRelative(config.ScenesPath, config.ProjectDirectory));
-		SK_CORE_ASSERT(FileSystem::IsRelative(config.TexturesPath, config.ProjectDirectory));
+		//SK_CORE_ASSERT(FileSystem::IsRelative(config.AssetsPath, config.ProjectDirectory));
+		//SK_CORE_ASSERT(FileSystem::IsRelative(config.ScenesPath, config.ProjectDirectory));
+		//SK_CORE_ASSERT(FileSystem::IsRelative(config.TexturesPath, config.ProjectDirectory));
 		//SK_CORE_ASSERT(FileSystem::IsRelative(config.StartupScenePath, config.ProjectDirectory));
 
 		out << YAML::BeginMap;
 
+		const auto assetsPath = std::filesystem::relative(config.AssetsPath, config.ProjectDirectory);
+		const auto scenesPath = std::filesystem::relative(config.ScenesPath, config.ProjectDirectory);
+		const auto texturesPath = std::filesystem::relative(config.TexturesPath, config.ProjectDirectory);
+		const auto startupScenePath = std::filesystem::relative(config.StartupScenePath, config.ProjectDirectory);
+
 		out << YAML::Key << "Name" << YAML::Value << config.Name;
-		out << YAML::Key << "AssetsPath" << YAML::Value << config.AssetsPath;
-		out << YAML::Key << "ScenesPath" << YAML::Value << config.ScenesPath;
-		out << YAML::Key << "TexturesPath" << YAML::Value << config.TexturesPath;
-		out << YAML::Key << "StartupScenePath" << YAML::Value << config.StartupScenePath;
+		out << YAML::Key << "AssetsPath" << YAML::Value << assetsPath;
+		out << YAML::Key << "ScenesPath" << YAML::Value << scenesPath;
+		out << YAML::Key << "TexturesPath" << YAML::Value << texturesPath;
+		out << YAML::Key << "StartupScenePath" << YAML::Value << startupScenePath;
 
 		out << YAML::EndMap;
 
@@ -165,10 +155,16 @@ namespace Shark {
 		config.ProjectDirectory = FileSystem::MakeDefaultFormat(filePath.parent_path());
 		config.ProjectFileName = filePath.filename().string();
 
+		config.AssetsPath = FileSystem::MakeDefaultFormat(config.ProjectDirectory / config.AssetsPath);
+		config.ScenesPath = FileSystem::MakeDefaultFormat(config.ProjectDirectory / config.ScenesPath);
+		config.TexturesPath = FileSystem::MakeDefaultFormat(config.ProjectDirectory / config.TexturesPath);
+		config.StartupScenePath = FileSystem::MakeDefaultFormat(config.ProjectDirectory / config.StartupScenePath);
+
 		SK_CORE_ASSERT(config.ProjectDirectory.is_absolute())
-		SK_CORE_ASSERT(FileSystem::IsRelative(config.AssetsPath, config.ProjectDirectory));
-		SK_CORE_ASSERT(FileSystem::IsRelative(config.ScenesPath, config.ProjectDirectory));
-		SK_CORE_ASSERT(FileSystem::IsRelative(config.TexturesPath, config.ProjectDirectory));
+		SK_CORE_ASSERT(config.AssetsPath.is_absolute())
+		SK_CORE_ASSERT(config.ScenesPath.is_absolute())
+		SK_CORE_ASSERT(config.TexturesPath.is_absolute())
+		SK_CORE_ASSERT(config.StartupScenePath.is_absolute())
 
 		TimeStep time = timer.Stop();
 

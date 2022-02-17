@@ -27,7 +27,7 @@ namespace Shark {
 
 		static std::filesystem::path GetRelativePath(const std::filesystem::path& filePath);
 		static std::string GetRelativePathString(const std::filesystem::path& filePath) { return GetRelativePath(filePath).string(); }
-		static std::filesystem::path GetFileSystemPath(const AssetMetaData& metadata) { return Project::GetAssetsPathAbsolute() / metadata.FilePath; }
+		static std::filesystem::path GetFileSystemPath(const AssetMetaData& metadata) { return Project::GetAssetsPath() / metadata.FilePath; }
 
 		static AssetHandle GetAssetHandleFromFilePath(const std::filesystem::path& filePath);
 

@@ -44,10 +44,9 @@ namespace Shark {
 
 		void ProjectChanged();
 
-		void OnEvent(Event& event);
-	private:
-		bool OnFileChangedEvent(FileChangedEvent& event);
+		void OnFileChanged(const std::vector<FileChangedData>& fileEvents);
 
+	private:
 		void SaveCurrentAssetDirectory();
 		Directory* SaveDirectory(const std::filesystem::path& directoryPath);
 

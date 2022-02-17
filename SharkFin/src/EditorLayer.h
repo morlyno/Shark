@@ -37,6 +37,8 @@ namespace Shark {
 		bool OnWindowResize(WindowResizeEvent& event);
 		bool OnKeyPressed(KeyPressedEvent& event);
 
+		void OnFileChanged(const std::vector<FileChangedData>& fileEvents);
+
 		void UI_MainMenuBar();
 		void UI_Gizmo();
 		void UI_Info();

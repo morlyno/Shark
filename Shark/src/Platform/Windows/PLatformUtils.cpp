@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "Shark/Utility/PlatformUtils.h"
 
-#include "Shark/Utility/Utility.h"
+#include "Shark/Utility/String.h"
 #include "Shark/Core/Application.h"
 #include "Platform/Windows/WindowsUtility.h"
 
@@ -105,7 +105,7 @@ namespace Shark {
 			{
 				// Filter format name0|filter0|name1|filter1
 				std::vector<std::wstring> unformatedFilters;
-				Utility::SplitString(filter, L"|", unformatedFilters);
+				String::SplitString(filter, L"|", unformatedFilters);
 
 				std::vector<COMDLG_FILTERSPEC> fileDialogFilters;
 
@@ -118,7 +118,7 @@ namespace Shark {
 						filterSpec.pszSpec = unformatedFilters[i++].c_str();
 					}
 				}
-				fileDialog->SetFileTypes(fileDialogFilters.size(), fileDialogFilters.data());
+				fileDialog->SetFileTypes((UINT)fileDialogFilters.size(), fileDialogFilters.data());
 				fileDialog->SetFileTypeIndex(defaultFilterIndex);
 			}
 
@@ -163,7 +163,7 @@ namespace Shark {
 			std::filesystem::path exeFile = FileDialogs::OpenFile(L"exe|*.exe");
 			if (!exeFile.empty())
 			{
-				std::wstring wPath = fmt::format(L"\"{}\"", Utility::ToWide(path));
+				std::wstring wPath = fmt::format(L"\"{}\"", String::ToWideCopy(path));
 				SHELLEXECUTEINFOW executeInfo;
 				ZeroMemory(&executeInfo, sizeof(SHELLEXECUTEINFOW));
 				executeInfo.cbSize = sizeof(SHELLEXECUTEINFOW);

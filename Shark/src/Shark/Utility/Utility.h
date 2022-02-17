@@ -3,33 +3,31 @@
 #include <DirectXMath.h>
 #include <filesystem>
 
-namespace Shark::String {
-
-	std::string ToLowerCopy(const std::string& str);
-	void ToLower(std::string& str);
-
-}
-
 namespace Shark::Utility {
 
-	std::string ToLower(const std::string& src);
+	inline std::filesystem::path CreatePathFormIterator(const std::filesystem::path::const_iterator& begin, const std::filesystem::path::const_iterator& end)
+	{
+		std::filesystem::path path;
+		for (auto it = begin; it != end; ++it)
+			path /= *it;
+		return path;
+	}
 
-	std::filesystem::path CreatePathFormIterator(const std::filesystem::path::const_iterator& begin, const std::filesystem::path::const_iterator& end);
 
 	template<typename T>
-	float* GetValuePtr(const T& vec);
+	constexpr float* GetValuePtr(const T& vec) { static_assert(false); }
+	template<>
+	constexpr float* GetValuePtr(const DirectX::XMFLOAT4& vec) { return (float*)&vec; }
+	template<>
+	constexpr float* GetValuePtr(const DirectX::XMFLOAT3& vec) { return (float*)&vec; }
+	template<>
+	constexpr float* GetValuePtr(const DirectX::XMFLOAT2& vec) { return (float*)&vec; }
 
-	std::string_view GetPathName(std::string_view path);
-
-	std::string_view GetFileExtention(std::string_view path);
 
 	template<typename Container>
 	bool Contains(const Container& container, const typename Container::value_type& value)
 	{
-		const auto iter = std::find_if(container.cbegin(), container.cend(), [&value](const auto& other)
-		{
-			return value == other;
-		});
+		const auto iter = std::find(container.cbegin(), container.cend(), value);
 		if (iter == container.cend())
 			return false;
 		return true;
@@ -52,9 +50,6 @@ namespace Shark::Utility {
 
 	template<typename T, uint32_t _Count>
 	constexpr uint32_t ArraySize(const T(&)[_Count]) { return _Count; }
-
-	std::string ToNarrow(const std::wstring& str);
-	std::wstring ToWide(const std::string& str);
 
 	constexpr DirectX::XMFLOAT4 UI32ToF4(uint32_t color)
 	{
@@ -83,7 +78,5 @@ namespace Shark::Utility {
 			return str;
 	}
 
-	void SplitString(const std::string& str, std::string_view splitter, std::vector<std::string>& out_Array);
-	void SplitString(const std::wstring& str, std::wstring_view splitter, std::vector<std::wstring>& out_Array);
 
 }

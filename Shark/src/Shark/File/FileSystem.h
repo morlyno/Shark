@@ -31,7 +31,7 @@ namespace Shark::FileSystem {
 
 	std::filesystem::path MakeWindowsDefault(const std::filesystem::path& path);
 	std::filesystem::path MakeDefaultFormat(const std::filesystem::path& path);
-	bool IsRelative(const std::filesystem::path& path, const std::filesystem::path& parentPath);
+	bool IsDefaultFormat(const std::filesystem::path& path);
 
 	bool ValidateSceneFilePath(const std::filesystem::path& sceneFilePath);
 

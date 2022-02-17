@@ -26,7 +26,7 @@ namespace Shark {
 
 		static UI::ContentType GetPaylodType(const std::string& filepath)
 		{
-			auto&& extension = Utility::GetFileExtention(filepath);
+			auto&& extension = std::filesystem::path(filepath).extension().string();
 			if (extension == ".skscene")
 				return UI::ContentType::Scene;
 			if (extension == ".png")
@@ -55,8 +55,8 @@ namespace Shark {
 		m_DirectoryIcon = Texture2D::Create("Resources/AssetsPanel/folder_open.png");
 		m_StandartFileIcon = Texture2D::Create("Resources/AssetsPanel/file.png");
 
-		m_DirectoryHistory.emplace_back(Project::GetAssetsPathAbsolute());
-		m_CurrentDirectory = Project::GetAssetsPathAbsolute();
+		m_DirectoryHistory.emplace_back(Project::GetAssetsPath());
+		m_CurrentDirectory = Project::GetAssetsPath();
 		m_CurrentDirectoryString = m_CurrentDirectory.string();
 
 		UpdateCurrentPathVec();
@@ -133,7 +133,7 @@ namespace Shark {
 			ImGui::TableSetColumnIndex(0);
 
 			// TODO(moro): maybe switch form string to filesystem::path
-			auto temp = Project::GetAssetsPathAbsolute();
+			auto temp = Project::GetAssetsPath();
 			DrawAsTree(temp.string());
 
 			ImGui::TableSetColumnIndex(1);
@@ -167,31 +167,24 @@ namespace Shark {
 
 	void AssetsPanel::ProjectChanged()
 	{
-		m_DirectoryHistory.emplace_back(Project::GetAssetsPathAbsolute());
-		m_CurrentDirectory = Project::GetAssetsPathAbsolute();
+		m_DirectoryHistory.emplace_back(Project::GetAssetsPath());
+		m_CurrentDirectory = Project::GetAssetsPath();
 		m_CurrentDirectoryString = m_CurrentDirectory.string();
 
 		UpdateCurrentPathVec();
 		m_ReloadRequierd = true;
 	}
 
-	void AssetsPanel::OnEvent(Event& event)
-	{
-		EventDispacher dispacher(event);
-		dispacher.DispachEvent<FileChangedEvent>(std::bind(&AssetsPanel::OnFileChangedEvent, this, std::placeholders::_1));
-	}
-
-	bool AssetsPanel::OnFileChangedEvent(FileChangedEvent& event)
+	void AssetsPanel::OnFileChanged(const std::vector<FileChangedData>& fileEvents)
 	{
 		ReLoad();
-		return false;
 	}
 
 	void AssetsPanel::SaveCurrentAssetDirectory()
 	{
 		SK_PROFILE_FUNCTION();
 		
-		auto&& assetsPath = Project::GetAssetsPathAbsolute();
+		auto&& assetsPath = Project::GetAssetsPath();
 		if (FileSystem::Exists(assetsPath))
 		{
 			m_Directorys.clear();
@@ -312,7 +305,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		auto name = Utility::GetPathName(directory);
+		auto name = std::filesystem::path(directory).stem().string();
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen;
 		if (directory == m_SelectedEntry)
 			flags |= ImGuiTreeNodeFlags_Selected;
@@ -339,7 +332,7 @@ namespace Shark {
 			if (subpath == m_SelectedEntry)
 				nodeflags |= ImGuiTreeNodeFlags_Selected;
 
-			std::string_view name = Utility::GetPathName(subpath);
+			auto&& name = std::filesystem::path(subpath).stem().string();
 			bool opened = ImGui::TreeNodeEx(name.data(), nodeflags);
 			CheckOnTreeLeaf(subentry, subpath);
 			if (opened)
@@ -374,7 +367,7 @@ namespace Shark {
 				if (!m_DoNotHilight && m_SelectedEntry == path)
 					ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, 0xFF202020);
 
-				std::string_view name = Utility::GetPathName(path);
+				auto&& name = std::filesystem::path(path).stem().string();
 				const RenderID textureID = GetContentTextureID(entry);
 
 				window->DC.CursorPos.x -= style.FramePadding.x;
@@ -469,7 +462,7 @@ namespace Shark {
 			const bool isDirectory = entry.Type == Entry::ContentType::Directory;
 			const bool isFile = entry.Type == Entry::ContentType::File;
 
-			std::string_view name = Utility::GetPathName(path);
+			auto&& name = std::filesystem::path(path).stem().string();
 			ImGui::Text("Name:        %s", name.data());
 			ImGui::Text("Type:        %s", Utils::GetContentTypeAsString(entry.Type).c_str());
 			ImGui::Text("Full Path:   %s", path.c_str());
@@ -529,7 +522,7 @@ namespace Shark {
 
 		if (ImGui::InputText("##Rename Current Content", &m_EntryRenameBuffer, ImGuiInputTextFlags_EnterReturnsTrue))
 		{
-			if (Utility::GetPathName(m_RenameTarget) != m_EntryRenameBuffer)
+			if (std::filesystem::path(m_RenameTarget).stem().string() != m_EntryRenameBuffer)
 			{
 				auto newPath = std::filesystem::path(m_RenameTarget).parent_path() / m_EntryRenameBuffer;
 
@@ -703,7 +696,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_EntryRenameBuffer = Utility::GetPathName(path);
+		m_EntryRenameBuffer = std::filesystem::path(path).stem().string();
 		m_OnRenameEntry = true;
 		m_RenameTarget = path;
 		m_DoNotHilight = true;

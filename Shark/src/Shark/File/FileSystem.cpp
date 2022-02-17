@@ -126,12 +126,10 @@ namespace Shark::FileSystem {
 		return str;
 	}
 
-	bool IsRelative(const std::filesystem::path& path, const std::filesystem::path& parentPath)
+	bool IsDefaultFormat(const std::filesystem::path& path)
 	{
-		auto absolutePath = parentPath / path;
-		if (Exists(absolutePath))
-			return absolutePath.is_absolute();
-		return false;
+		const std::wstring& str = path;
+		return str.find(L'\\') == std::wstring::npos;
 	}
 
 	bool ValidateSceneFilePath(const std::filesystem::path& sceneFilePath)

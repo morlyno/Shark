@@ -8,7 +8,8 @@ namespace Shark {
 		Created,
 		Deleted,
 		Modified,
-		Renamed
+		OldName,
+		NewName
 	};
 
 	inline std::string FileEventToString(FileEvent fileEvent)
@@ -19,11 +20,20 @@ namespace Shark {
 			case FileEvent::Created: return "Created";
 			case FileEvent::Deleted: return "Deleted";
 			case FileEvent::Modified: return "Modified";
-			case FileEvent::Renamed: return "Renamed";
+			case FileEvent::OldName: return "OldName";
+			case FileEvent::NewName: return "NewName";
 		}
 		SK_CORE_ASSERT(false, "Unkown File Event");
 		return "Unkown";
 	}
+
+	struct FileChangedData
+	{
+		FileEvent FileEvent;
+		std::filesystem::path FilePath;
+	};
+
+	using FileChangedEventFn = std::function<void(const std::vector<FileChangedData>&)>;
 
 	class FileWatcher
 	{
@@ -32,6 +42,8 @@ namespace Shark {
 		static void StopWatching();
 
 		static bool IsRunning();
+
+		static void SetFileChangedCallback(FileChangedEventFn func);
 
 	private:
 		static void StartThread();

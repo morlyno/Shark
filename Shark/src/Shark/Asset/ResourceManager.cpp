@@ -2,6 +2,7 @@
 #include "ResourceManager.h"
 
 #include "Shark/Utility/Utility.h"
+#include "Shark/Utility/String.h"
 
 #include "Shark/Utility/YAMLUtils.h"
 #include <yaml-cpp/yaml.h>
@@ -53,9 +54,9 @@ namespace Shark {
 	std::filesystem::path ResourceManager::GetRelativePath(const std::filesystem::path& filePath)
 	{
 		std::string path = filePath.string();
-		if (path.find(Project::GetAssetsPathAbsolute().string()) != std::string::npos)
-			return FileSystem::MakeDefaultFormat(std::filesystem::relative(filePath, Project::GetAssetsPathAbsolute()));
-		return FileSystem::MakeDefaultFormat(std::filesystem::relative(Project::GetAssetsPathAbsolute() / filePath, Project::GetAssetsPathAbsolute()));
+		if (path.find(Project::GetAssetsPath().string()) != std::string::npos)
+			return FileSystem::MakeDefaultFormat(std::filesystem::relative(filePath, Project::GetAssetsPath()));
+		return FileSystem::MakeDefaultFormat(std::filesystem::relative(Project::GetAssetsPath() / filePath, Project::GetAssetsPath()));
 	}
 
 	AssetHandle ResourceManager::GetAssetHandleFromFilePath(const std::filesystem::path& filePath)
@@ -166,7 +167,7 @@ namespace Shark {
 
 	AssetType ResourceManager::GetAssetTypeFormFileExtention(const std::string& fileExtention)
 	{
-		std::string extention = Utility::ToLower(fileExtention);
+		std::string extention = String::ToLowerCopy(fileExtention);
 		if (!Utility::Contains(AssetExtentionMap, extention))
 			return AssetType::None;
 		return AssetExtentionMap[extention];

@@ -1,6 +1,6 @@
 #include "skpch.h"
 #include "DirectXShader.h"
-#include "Shark/Utility/Utility.h"
+#include "Shark/Utility/String.h"
 #include "Shark/Core/Timer.h"
 #include "Shark/File/FileSystem.h"
 
@@ -99,7 +99,7 @@ namespace Shark {
 
 		static ShaderStage StringToEnum(const std::string& typestr)
 		{
-			std::string str = Utility::ToLower(typestr);
+			std::string str = String::ToLowerCopy(typestr);
 			if (str == "vertex")
 				return ShaderStage::Vertex;
 			if (str == "pixel" || str == "fragment")

@@ -6,7 +6,7 @@
 #include "Shark/Core/KeyCodes.h"
 #include "Shark/Core/MouseCodes.h"
 
-#include "Shark/Utility/Utility.h"
+#include "Shark/Utility/String.h"
 #include "Platform/Windows/WindowsUtility.h"
 
 #include "Shark/Debug/Instrumentor.h"
@@ -46,7 +46,7 @@ namespace Shark {
 	}
 
 	WindowsWindow::WindowsWindow(const WindowProps& props)
-		: m_Width(props.Width), m_Height(props.Height), m_Name(Utility::ToWide(props.Name)), m_VSync(props.VSync)
+		: m_Width(props.Width), m_Height(props.Height), m_Name(String::ToWideCopy(props.Name)), m_VSync(props.VSync)
 	{
 		SK_PROFILE_FUNCTION();
 

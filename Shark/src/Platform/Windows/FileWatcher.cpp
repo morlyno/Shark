@@ -5,13 +5,13 @@
 #include "Platform/Windows/WindowsUtility.h"
 #include "Shark/File/FileSystem.h"
 
-#include "Shark/Core/Application.h"
-
 #include "Shark/Debug/Instrumentor.h"
 
 #include <algorithm>
 
 #if SK_PLATFORM_WINDOWS
+
+#define VERIFY_DATA() if (!s_Data) { s_Data = Scope<FileWatcherData>::Create(); }
 
 namespace Shark {
 
@@ -24,7 +24,8 @@ namespace Shark {
 				case FILE_ACTION_ADDED: return FileEvent::Created;
 				case FILE_ACTION_REMOVED: return FileEvent::Deleted;
 				case FILE_ACTION_MODIFIED: return FileEvent::Modified;
-				case FILE_ACTION_RENAMED_NEW_NAME: return FileEvent::Renamed;
+				case FILE_ACTION_RENAMED_OLD_NAME: return FileEvent::OldName;
+				case FILE_ACTION_RENAMED_NEW_NAME: return FileEvent::NewName;
 			}
 			SK_CORE_ASSERT(false, "Unkown File Action");
 			return FileEvent::None;
@@ -39,14 +40,14 @@ namespace Shark {
 		std::wstring DirectoryName;
 		HANDLE StopThreadEvent = NULL;
 		bool Running = false;
+		FileChangedEventFn CallbackFunc = [](...) {};
 	};
 
-	static Scope<FileWatcherData> s_Data = nullptr;
+	static Scope<FileWatcherData> s_Data;
 
 	void FileWatcher::StartWatching(const std::filesystem::path& directory)
 	{
-		if (!s_Data)
-			s_Data = Scope<FileWatcherData>::Create();
+		VERIFY_DATA();
 
 		SK_CORE_ASSERT(std::filesystem::is_directory(directory), "Path for FileWatcher is not a Directory");
 		if (!std::filesystem::is_directory(directory))
@@ -61,9 +62,9 @@ namespace Shark {
 
 	void FileWatcher::StopWatching()
 	{
+		VERIFY_DATA();
+
 		SK_CORE_VERIFY(s_Data);
-		if (!s_Data)
-			return;
 
 		if (s_Data->Running)
 		{
@@ -76,7 +77,16 @@ namespace Shark {
 
 	bool FileWatcher::IsRunning()
 	{
-		return s_Data ? s_Data->Running : false;
+		VERIFY_DATA();
+
+		return s_Data->Running;
+	}
+
+	void FileWatcher::SetFileChangedCallback(FileChangedEventFn func)
+	{
+		VERIFY_DATA();
+
+		s_Data->CallbackFunc = func ? func : [](...) {};
 	}
 
 	void FileWatcher::StartThread()
@@ -103,14 +113,7 @@ namespace Shark {
 			SK_CORE_ASSERT(false, fmt::format("CreateFileW Failed! Error Msg: {} ", msg));
 			return;
 		}
-		
-		DWORD buffer[2048];
-		DWORD bytesReturned = 0;
-		FILE_NOTIFY_INFORMATION* fileInfo = nullptr;
-		DWORD offset = 0;
-		
-		ZeroMemory(buffer, sizeof(buffer));
-		
+
 		constexpr DWORD notifyFlags =
 			FILE_NOTIFY_CHANGE_FILE_NAME |
 			FILE_NOTIFY_CHANGE_DIR_NAME |
@@ -155,8 +158,11 @@ namespace Shark {
 			return;
 		}
 		
-		std::filesystem::path prevFilePath;
-		bool prevWasOldName = false;
+		std::vector<FileChangedData> fileChanges;
+		DWORD buffer[2048];
+		DWORD bytesReturned = 0;
+		DWORD offset = 0;
+		ZeroMemory(buffer, sizeof(buffer));
 
 		while (s_Data->Running)
 		{
@@ -180,40 +186,27 @@ namespace Shark {
 				continue;
 			
 			offset = 0;
+			fileChanges.clear();
 
-			do
+			while (true)
 			{
-				fileInfo = (FILE_NOTIFY_INFORMATION*)((byte*)buffer + offset);
+				FILE_NOTIFY_INFORMATION* fileInfo = (FILE_NOTIFY_INFORMATION*)((byte*)buffer + offset);
 				offset += fileInfo->NextEntryOffset;
 
 				const size_t length = fileInfo->FileNameLength / sizeof(WCHAR);
-				std::wstring filePath = fmt::format(L"{}/{}", s_Data->DirectoryName, std::wstring(fileInfo->FileName, length));
-				std::replace(filePath.begin(), filePath.end(), L'\\', L'/');
 
-				if (fileInfo->Action == FILE_ACTION_RENAMED_OLD_NAME)
-				{
-					prevFilePath = filePath;
-					prevWasOldName = true;
+				FileChangedData fileData;
+				fileData.FilePath = FileSystem::MakeDefaultFormat(s_Data->Directory / std::wstring(fileInfo->FileName, length));
+				fileData.FileEvent = Utils::Win32FileActionToFileEvent(fileInfo->Action);
+				fileChanges.push_back(fileData);
 
-					continue;
-				}
+				SK_CORE_INFO("File Event: {} {}", FileEventToString(fileData.FileEvent), fileData.FilePath);
 
-				FileChangedEvent fileEvent;
-				fileEvent.m_FileEvent = Utils::Win32FileActionToFileEvent(fileInfo->Action);
-				fileEvent.m_FilePath = filePath;
-				
-				SK_CORE_ASSERT(SK_ASSERT_CONDITIONAL(fileEvent.m_FileEvent == FileEvent::Renamed, prevWasOldName), "Previos File Action wasn't FILE_ACTION_RENAMED_OLD_NAME!");
-				if (fileEvent.m_FileEvent == FileEvent::Renamed && prevWasOldName)
-				{
-					fileEvent.m_OldFilePath = prevFilePath;
-					prevWasOldName = false;
-					prevFilePath.clear();
-				}
+				if (!fileInfo->NextEntryOffset)
+					break;
+			}
 
-				Application::Get().OnEvent(fileEvent);
-
-
-			} while (fileInfo->NextEntryOffset);
+			s_Data->CallbackFunc(fileChanges);
 		}
 		
 		// Clean up
