@@ -16,9 +16,9 @@ namespace Shark {
 
 	namespace Utility {
 
-		void OpenExplorer(const std::string& path);
-		void OpenFile(const std::string& path);
-		void OpenWith(const std::string& path);
+		void OpenExplorer(const std::filesystem::path& directory);
+		void OpenFile(const std::filesystem::path& file);
+		void OpenFileWith(const std::filesystem::path& file);
 
 	}
 

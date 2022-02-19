@@ -193,7 +193,7 @@ namespace Shark::UI {
 
 	namespace Flags {
 
-		enum TextEnum
+		enum TextEnum : uint16_t
 		{
 			Text_None = 0,
 			Text_Aligned = BIT(0),
@@ -205,7 +205,7 @@ namespace Shark::UI {
 		};
 		using Text = std::underlying_type_t<TextEnum>;
 
-		enum PropertyEnum
+		enum PropertyEnum : uint16_t
 		{
 			Property_None = 0,
 			Property_GridInnerV = BIT(0),
@@ -216,6 +216,7 @@ namespace Shark::UI {
 			Property_FixedSize = BIT(4),
 			Property_MinWidth = BIT(5),
 
+			Property_GridFull = Property_GridInnerV | Property_GridInnerH | Property_GridOuterV | Property_GridOuterH,
 			Property_GridDefualt = Property_GridInnerV | Property_GridInnerH /*| Grid_OuterV*/ | Property_GridOuterH
 		};
 		using Grid = std::underlying_type_t<PropertyEnum>;
@@ -286,6 +287,9 @@ namespace Shark::UI {
 
 	const std::string& FormatToString(const std::wstring& str);
 	const std::string& FormatToString(const std::filesystem::path& str);
+
+	const char* FormatToCString(const std::wstring& str);
+	const char* FormatToCString(const std::filesystem::path& str);
 
 	//////////////////////////////////////////////////////////////////////////////
 	/// Text /////////////////////////////////////////////////////////////////////

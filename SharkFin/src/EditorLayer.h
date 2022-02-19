@@ -9,7 +9,7 @@
 #include <Shark/Render/Renderer2D.h>
 
 #include "SceneHirachyPanel.h"
-#include "AssetsPanel.h"
+#include "ContentBrowserPanel.h"
 
 #include <ImGuizmo.h>
 
@@ -52,13 +52,12 @@ namespace Shark {
 		void UI_ProjectSettings();
 		void UI_Asset();
 
+		void DeleteEntity(Entity entity);
 		void SelectEntity(Entity entity);
 
 		void NewScene();
 
 		bool LoadScene(const std::filesystem::path& filePath);
-		bool LoadScene();
-		bool LoadScene(Ref<Scene> scene);
 		bool SaveScene();
 		bool SaveSceneAs();
 		bool SerializeScene(Ref<Scene> scene, const std::filesystem::path& filePath);
@@ -93,7 +92,7 @@ namespace Shark {
 		Ref<Scene> m_LoadedScene = nullptr;
 
 		Scope<SceneHirachyPanel> m_SceneHirachyPanel;
-		Scope<AssetsPanel> m_ContentBrowserPanel;
+		Scope<ContentBrowserPanel> m_ContentBrowserPanel;
 
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;

@@ -5,7 +5,8 @@
 #include "Shark/Core/Application.h"
 
 #include "Shark/File/FileSystem.h"
-#include "Shark/Utility/UI.h"
+#include "Shark/UI/UI.h"
+#include "Shark/UI/Theme.h"
 
 #include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
@@ -38,13 +39,10 @@ namespace Shark {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 
-		// TODO(moro): if imgui.ini file dosn't exist load from custom default file
-
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		io.ConfigWindowsMoveFromTitleBarOnly = false;
 
 		SetDarkStyle();
 
@@ -245,6 +243,8 @@ namespace Shark {
 		colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
 		colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
 		colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+
+		UI::Theme::LoadDark();
 	}
 
 }

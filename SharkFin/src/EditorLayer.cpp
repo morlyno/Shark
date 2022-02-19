@@ -5,7 +5,7 @@
 
 #include "Shark/Asset/SceneSerialization.h"
 #include <Shark/Utility/PlatformUtils.h>
-#include <Shark/Utility/UI.h>
+#include <Shark/UI/UI.h>
 
 #include "Shark/File/FileWatcher.h"
 #include "Shark/Core/Project.h"
@@ -57,7 +57,7 @@ namespace Shark {
 
 		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 
-		m_ContentBrowserPanel = Scope<AssetsPanel>::Create();
+		m_ContentBrowserPanel = Scope<ContentBrowserPanel>::Create();
 		m_SceneHirachyPanel = Scope<SceneHirachyPanel>::Create();
 		m_SceneHirachyPanel->SetContext(m_ActiveScene);
 		m_SceneHirachyPanel->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
@@ -270,6 +270,12 @@ namespace Shark {
 				break;
 			}
 
+			case Key::Entf:
+			{
+				if (m_SelectetEntity)
+					DeleteEntity(m_SelectetEntity);
+			}
+
 			// Toggle VSync
 			case Key::V:
 			{
@@ -290,6 +296,7 @@ namespace Shark {
 
 	void EditorLayer::OnFileChanged(const std::vector<FileChangedData>& fileEvents)
 	{
+		m_ContentBrowserPanel->OnFileChanged(fileEvents);
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -353,7 +360,7 @@ namespace Shark {
 		{
 			SK_PROFILE_SCOPED("EditorLayer::OnImGuiRender Mouse Picking");
 			SK_PERF_SCOPED("Mouse Picking");
-			// TODO: Move to EditorLayer::OnUpdate()
+			// TODO(moro): Move to EditorLayer::OnUpdate()
 
 			auto [mx, my] = ImGui::GetMousePos();
 			auto [wx, wy] = window->WorkRect.Min;
@@ -773,62 +780,40 @@ namespace Shark {
 		if (m_SceneState != SceneState::Edit)
 			return;
 
-		// TODO(moro): fix
-
-#if 1
 		if (ImGui::BeginDragDropTarget())
 		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET");
 			if (payload)
 			{
-				SK_CORE_ASSERT(m_SceneState == SceneState::Edit, "Drag Drop Payloads can only be accepted in the Edit State");
-				UI::ContentPayload* content = (UI::ContentPayload*)payload->Data;
-				auto formattedFilePath = FileSystem::MakeDefaultFormat(content->Path);
-				if (content->Type == UI::ContentType::Scene)
+				AssetHandle handle = *(AssetHandle*)payload->Data;
+				if (ResourceManager::IsValidAssetHandle(handle))
 				{
-					auto& metadata = ResourceManager::GetMetaData(formattedFilePath);
-					if (metadata.IsValid())
+					const AssetMetaData& metaData = ResourceManager::GetMetaData(handle);
+					if (metaData.IsValid())
 					{
-						m_LoadedScene = ResourceManager::GetAsset<Scene>(metadata.Handle);
-					}
-					else
-					{
-						AssetHandle handle = ResourceManager::ImportAsset(formattedFilePath);
-						m_LoadedScene = ResourceManager::GetAsset<Scene>(handle);
-					}
-
-					//auto newScene = Ref<Scene>::Create();
-					//newScene->SetFilePath(content->Path);
-					//if (LoadScene(newScene))
-					//{
-					//	m_WorkScene = newScene;
-					//	SetActiveScene(newScene);
-					//}
-
-				}
-				else if (content->Type == UI::ContentType::Texture)
-				{
-					if (m_HoveredEntityID != -1)
-					{
-						Entity entity{ (entt::entity)m_HoveredEntityID, m_WorkScene };
-						SK_CORE_ASSERT(entity.IsValid());
-						if (entity.HasComponent<SpriteRendererComponent>())
+						switch (metaData.Type)
 						{
-							auto& sr = entity.GetComponent<SpriteRendererComponent>();
-							auto& metadata = ResourceManager::GetMetaData(formattedFilePath);
-							if (metadata.IsValid())
-								sr.TextureHandle = metadata.Handle;
-							else
-								sr.TextureHandle = ResourceManager::ImportAsset(formattedFilePath);
-
-							//sr.Texture = Texture2D::Create(content->Path);
+							case AssetType::Scene:
+							{
+								m_LoadedScene = ResourceManager::GetAsset<Scene>(handle);
+								break;
+							}
+							case AssetType::Texture:
+							{
+								Entity entity = m_ActiveScene->CreateEntity();
+								auto& sr = entity.AddComponent<SpriteRendererComponent>();
+								sr.TextureHandle = handle;
+								SelectEntity(entity);
+							}
 						}
 					}
 				}
+
 			}
+
 			ImGui::EndDragDropTarget();
 		}
-#endif
+
 	}
 
 	void EditorLayer::UI_ToolBar()
@@ -1287,6 +1272,17 @@ namespace Shark {
 		ImGui::End();
 	}
 
+	void EditorLayer::DeleteEntity(Entity entity)
+	{
+		SK_PROFILE_FUNCTION();
+
+		if (entity.GetUUID() == m_ActiveScene->GetActiveCameraUUID())
+			m_ActiveScene->SetActiveCamera(UUID());
+
+		m_ActiveScene->DestroyEntity(entity);
+		SelectEntity(Entity{});
+	}
+
 	void EditorLayer::SelectEntity(Entity entity)
 	{
 		m_SelectetEntity = entity;
@@ -1300,10 +1296,6 @@ namespace Shark {
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		m_LoadedScene = ResourceManager::CreateMemoryAsset<Scene>();
-
-#if 0
-		m_LoadedScene = Ref<Scene>::Create();
-#endif
 	}
 
 	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)
@@ -1321,40 +1313,6 @@ namespace Shark {
 			return true;
 		}
 		return false;
-
-#if 0
-		auto scene = Ref<Scene>::Create();
-		SceneSerializer serializer(scene);
-		if (serializer.Deserialize(filePath))
-		{
-			m_LoadedScene = scene;
-			return true;
-		}
-		return false;
-#endif
-	}
-
-	bool EditorLayer::LoadScene()
-	{
-		SK_PROFILE_FUNCTION();
-		
-		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
-
-		return LoadScene(m_WorkScene);
-	}
-
-	bool EditorLayer::LoadScene(Ref<Scene> scene)
-	{
-		SK_PROFILE_FUNCTION();
-		
-		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
-
-		return ResourceManager::LoadAsset(scene);
-
-#if 0
-		SceneSerializer serializer(scene);
-		return serializer.Deserialize();
-#endif
 	}
 
 	bool EditorLayer::SaveScene()
@@ -1368,23 +1326,6 @@ namespace Shark {
 			return SaveSceneAs();
 
 		return ResourceManager::SaveAsset(m_WorkScene->Handle);
-
-#if 0
-		if (m_WorkScene->GetFilePath().empty())
-		{
-			const auto filePath = FileDialogs::SaveFile(L"|*.*|Scene|*.skscene", 2, Project::GetAssetsPathAbsolute(), true);
-			if (!filePath.empty())
-			{
-				if (SerializeScene(m_WorkScene, filePath))
-				{
-					m_WorkScene->SetFilePath(filePath);
-					return true;
-				}
-			}
-			return false;
-		}
-		return SerializeScene(m_WorkScene, m_WorkScene->GetFilePath());
-#endif
 	}
 
 	bool EditorLayer::SaveSceneAs()
@@ -1509,7 +1450,7 @@ namespace Shark {
 				NewScene();
 
 			if (m_ContentBrowserPanel)
-				m_ContentBrowserPanel->ProjectChanged();
+				m_ContentBrowserPanel->OnProjectChanged();
 			FileWatcher::StartWatching(Project::GetAssetsPath());
 		}
 	}
@@ -1584,7 +1525,7 @@ namespace Shark {
 		NewScene();
 
 		if (m_ContentBrowserPanel)
-			m_ContentBrowserPanel->ProjectChanged();
+			m_ContentBrowserPanel->OnProjectChanged();
 		FileWatcher::StartWatching(Project::GetAssetsPath());
 	}
 

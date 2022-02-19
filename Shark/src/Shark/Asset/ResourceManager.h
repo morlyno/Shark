@@ -31,8 +31,9 @@ namespace Shark {
 
 		static AssetHandle GetAssetHandleFromFilePath(const std::filesystem::path& filePath);
 
-		static bool LoadAsset(Ref<Asset> asset);
+		static bool LoadAsset(AssetHandle handle);
 		static bool SaveAsset(AssetHandle handle);
+		static void ReloadAsset(AssetHandle handle);
 
 		static bool AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName);
 

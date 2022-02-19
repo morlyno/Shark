@@ -146,31 +146,47 @@ namespace Shark {
 
 	namespace Utility {
 
-		void OpenExplorer(const std::string& path)
+		void OpenExplorer(const std::filesystem::path& directory)
 		{
-			auto&& cmd = "explorer " + path;
-			system(cmd.c_str());
+			SK_CORE_ASSERT(std::filesystem::is_directory(directory));
+
+			SHELLEXECUTEINFOW executeInfo;
+			ZeroMemory(&executeInfo, sizeof(SHELLEXECUTEINFOW));
+			executeInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+			executeInfo.fMask = SEE_MASK_ASYNCOK;
+			executeInfo.lpVerb = L"open";
+			executeInfo.lpFile = directory.c_str();
+			executeInfo.nShow = SW_SHOWDEFAULT;
+			ShellExecuteExW(&executeInfo);
 		}
 
-		void OpenFile(const std::string& path)
+		void OpenFile(const std::filesystem::path& file)
 		{
-			auto&& cmd = "start " + path;
-			system(cmd.c_str());
+			SK_CORE_ASSERT(std::filesystem::is_regular_file(file));
+
+			SHELLEXECUTEINFOW executeInfo;
+			ZeroMemory(&executeInfo, sizeof(SHELLEXECUTEINFOW));
+			executeInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+			executeInfo.fMask = SEE_MASK_ASYNCOK;
+			executeInfo.lpVerb = L"open";
+			executeInfo.lpFile = file.c_str();
+			executeInfo.nShow = SW_SHOWDEFAULT;
+			ShellExecuteExW(&executeInfo);
 		}
 
-		void OpenWith(const std::string& path)
+		void OpenFileWith(const std::filesystem::path& file)
 		{
 			std::filesystem::path exeFile = FileDialogs::OpenFile(L"exe|*.exe");
 			if (!exeFile.empty())
 			{
-				std::wstring wPath = fmt::format(L"\"{}\"", String::ToWideCopy(path));
+				std::wstring params = fmt::format(L"\"{}\"", file.native());
 				SHELLEXECUTEINFOW executeInfo;
 				ZeroMemory(&executeInfo, sizeof(SHELLEXECUTEINFOW));
 				executeInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 				executeInfo.fMask = SEE_MASK_ASYNCOK | SEE_MASK_CLASSNAME;
 				executeInfo.lpVerb = L"open";
 				executeInfo.lpFile = exeFile.c_str();
-				executeInfo.lpParameters = wPath.c_str();
+				executeInfo.lpParameters = params.c_str();
 				executeInfo.nShow = SW_SHOWDEFAULT;
 				executeInfo.lpClass = L".exe";
 				ShellExecuteExW(&executeInfo);

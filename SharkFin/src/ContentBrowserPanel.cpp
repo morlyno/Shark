@@ -1,0 +1,419 @@
+#include "skfpch.h"
+#include "ContentBrowserPanel.h"
+
+#include "Shark/Core/Project.h"
+
+#include "Shark/Debug/Instrumentor.h"
+
+#include <Shark/Utility/PlatformUtils.h>
+#include <misc/cpp/imgui_stdlib.h>
+
+namespace Shark {
+
+	ContentBrowserPanel::ContentBrowserPanel()
+	{
+		SK_PROFILE_FUNCTION();
+
+		CacheDirectory(Project::GetAssetsPath());
+
+		m_FolderIcon = Texture2D::Create("Resources/ContentBrowser/folder_open.png");
+		m_FileIcon = Texture2D::Create("Resources/ContentBrowser/file.png");
+	}
+
+	ContentBrowserPanel::~ContentBrowserPanel()
+	{
+		SK_PROFILE_FUNCTION();
+	}
+
+	void ContentBrowserPanel::OnImGuiRender(bool& showPanel)
+	{
+		SK_PROFILE_FUNCTION();
+		
+		if (!showPanel)
+			return;
+		
+		if (m_Reload)
+		{
+			CacheDirectory(Project::GetAssetsPath());
+			m_Reload = false;
+		}
+
+		ImGui::Begin("Content Browser", &showPanel, ImGuiWindowFlags_NoScrollbar);
+
+		DrawMenuBar();
+		ImGui::Separator();
+
+		if (ImGui::BeginTable("ContentBrowser", 2, ImGuiTableFlags_Resizable))
+		{
+			if (!m_IgnoreSelection && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+			{
+				m_SelectedEntry = nullptr;
+				m_IsSelectedHovered = false;
+			}
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			DrawTreeView(m_RootDirectory);
+
+			ImGui::TableSetColumnIndex(1);
+			DrawCellView();
+
+			ImGui::EndTable();
+		}
+
+		ImGui::End();
+
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+		{
+			if (m_SelectedEntry && m_IsSelectedHovered)
+				ImGui::OpenPopup("Entry Settings");
+			else
+				ImGui::OpenPopup("Directory Settings");
+		}
+
+		// Open Explorer
+
+
+		m_IgnoreSelection = false;
+		if (ImGui::BeginPopup("Entry Settings"))
+		{
+			m_IgnoreSelection = true;
+			SK_CORE_ASSERT(m_SelectedEntry);
+
+			if (ImGui::MenuItem("Reload", nullptr, false, m_SelectedEntry->Handle))
+				ResourceManager::ReloadAsset(m_SelectedEntry->Handle);
+
+			if (ImGui::MenuItem("Import", nullptr, false, m_SelectedEntry->Type == EntryType::File && !m_SelectedEntry->Handle.IsValid()))
+				ImportEntry(*m_SelectedEntry);
+
+			ImGui::Separator();
+
+			if (ImGui::Selectable("Open"))           Utility::OpenFile(Project::MakeAbsolue(m_SelectedEntry->Path));
+			if (ImGui::Selectable("Open With"))      Utility::OpenFileWith(Project::MakeAbsolue(m_SelectedEntry->Path));
+			if (ImGui::Selectable("Open Explorer"))  Utility::OpenExplorer(Project::MakeAbsolue(m_CurrentDirectory->Path));
+
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginPopup("Directory Settings"))
+		{
+			m_IgnoreSelection = true;
+			UI::Text("Directory Settings");
+			ImGui::EndPopup();
+		}
+
+		if (m_DragDropActive)
+		{
+			ImGui::BeginTooltip();
+			UI::Text(m_DragDropEntry->DisplayName);
+			ImGui::EndTooltip();
+
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+			{
+				m_DragDropActive = false;
+				m_DragDropEntry = nullptr;
+			}
+		}
+
+	}
+
+	void ContentBrowserPanel::DrawTreeView(DirectoryEntry& directory)
+	{
+		constexpr ImGuiTreeNodeFlags defaultFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding |
+			ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
+
+		for (auto& entry : directory.ChildEntrys)
+		{
+			if (entry.Type != EntryType::Directory && m_Settings.ShowOnlyAssets && !entry.Handle.IsValid())
+				continue;
+
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding |
+				ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
+			if (entry.Type == EntryType::File)
+				flags |= ImGuiTreeNodeFlags_Bullet;
+			if (&entry == m_SelectedEntry)
+				flags |= ImGuiTreeNodeFlags_Selected;
+
+			const bool open = ImGui::TreeNodeEx(entry.DisplayName.c_str(), flags);
+			
+			if (ImGui::IsItemHovered())
+			{
+				if (!m_IgnoreSelection && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+					m_SelectedEntry = &entry;
+				if (entry.Type == EntryType::Directory && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+					m_CurrentDirectory = m_SelectedEntry;
+			}
+
+			if (open)
+			{
+				if (entry.Type == EntryType::Directory)
+					DrawTreeView(entry);
+
+				ImGui::TreePop();
+			}
+
+		}
+	}
+
+	void ContentBrowserPanel::DrawCellView()
+	{
+		const int cells = std::clamp((int)(ImGui::GetContentRegionAvail().x / m_CellWidth), 1, 64);
+		const ImVec2 tableSize = ImGui::GetContentRegionAvail() - ImVec2{ 0.0f, ImGui::GetFrameHeightWithSpacing() };
+
+		if (ImGui::BeginTable("CellView", cells, 0, ImGui::GetContentRegionAvail()))
+		{
+			ImGui::TableNextRow(0, m_MinCellHeight);
+
+			for (auto& entry : m_CurrentDirectory->ChildEntrys)
+			{
+				if (entry.Type != EntryType::Directory && m_Settings.ShowOnlyAssets && !entry.Handle.IsValid())
+					continue;
+
+				ImGui::TableNextColumn(0, m_MinCellHeight);
+
+				UI::PushID(entry.DisplayName);
+
+				const bool isSelectedEntry = &entry == m_SelectedEntry;
+				ImVec2 cursorPos = ImGui::GetCursorPos();
+				ImGui::Selectable("##Dummy", isSelectedEntry, 0, { m_CellWidth, m_MinCellHeight });
+				const bool isHovered = ImGui::IsItemHovered();
+
+				if (isSelectedEntry)
+					m_IsSelectedHovered = isHovered;
+
+				if (isHovered)
+				{
+					if (!m_IgnoreSelection && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+						m_SelectedEntry = &entry;
+					if (entry.Type == EntryType::Directory && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+						m_CurrentDirectory = m_SelectedEntry;
+				}
+
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoPreviewTooltip))
+				{
+					ImGui::SetDragDropPayload("ASSET", &entry.Handle, sizeof(entry.Handle));
+					ImGui::EndDragDropSource();
+					m_DragDropActive = true;
+					m_DragDropEntry = &entry;
+				}
+
+				ImGui::SetCursorPos(cursorPos);
+
+				DrawCell(entry);
+				UI::PopID();
+
+			}
+
+			ImGui::EndTable();
+		}
+	}
+
+	void ContentBrowserPanel::DrawCell(DirectoryEntry& entry)
+	{
+		Ref<Texture2D> icon = GetCellIcon(entry);
+
+		float imageSize = m_CellWidth;
+		ImGui::Image(icon->GetRenderID(), { imageSize, imageSize });
+		UI::Text(entry.DisplayName);
+
+		if (entry.Type != EntryType::Directory)
+		{
+			auto& metaData = ResourceManager::GetMetaData(entry.Handle);
+			UI::Text(AssetTypeToString(metaData.Type));
+		}
+	}
+
+	void ContentBrowserPanel::DrawMenuBar()
+	{
+		ImGui::Button("<");
+		ImGui::SameLine();
+		ImGui::Button(">");
+
+		ImGui::SameLine();
+		if (ImGui::Button("Reload"))
+			m_Reload = true;
+
+		// Current Path w/ selection
+		std::filesystem::path newPath;
+
+		ImGui::SameLine();
+		auto prevToEnd = --m_CurrentDirectory->Path.end();
+		for (auto elem = m_CurrentDirectory->Path.begin(); elem != m_CurrentDirectory->Path.end(); elem++)
+		{
+			// invisible button
+			// disabled text (enabled when hovered)
+			// seperator
+
+			// calc text/button size
+			ImGuiStyle& style = ImGui::GetStyle();
+			auto label = elem->string();
+			const ImVec2 label_size = ImGui::CalcTextSize(label.c_str(), NULL, true);
+			const ImVec2 size = ImGui::CalcItemSize({ 0.0f, 0.0f }, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+
+			const ImVec2 cursor = ImGui::GetCursorPos();
+
+			if (ImGui::InvisibleButton(label.c_str(), size))
+				newPath = Utility::CreatePathFormIterator(m_CurrentDirectory->Path.begin(), std::next(elem));
+
+			ImGui::SetCursorPos(cursor);
+			UI::Flags::Text flags = UI::Flags::Text_Aligned;
+			if (!ImGui::IsItemHovered())
+				flags |= UI::Flags::Text_Disabled;
+
+			UI::Text(*elem, flags);
+
+			if (elem != prevToEnd)
+			{
+				ImGui::SameLine(0.0f, 0.0f);
+				UI::Text("/", UI::Flags::Text_Disabled | UI::Flags::Text_Aligned);
+				ImGui::SameLine(0.0f, 0.0f);
+			}
+		}
+
+		if (!newPath.empty())
+			m_CurrentDirectory = GetEntry(newPath);
+
+		ImGui::SameLine();
+		UI::MoveCurserPosX(ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight());
+
+		ImGui::PushStyleColor(ImGuiCol_Button, UI::Theme::GetColors().ButtonNoBg);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, UI::Theme::GetColors().ButtonHoveredNoBg);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, UI::Theme::GetColors().ButtonActiveNoBg);
+
+		if (ImGui::Button("*", { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() }))
+			ImGui::OpenPopup("Settings");
+
+		if (ImGui::BeginPopup("Settings"))
+		{
+			UI::BeginProperty(UI::Flags::Property_GridFull);
+			UI::Checkbox("Show only Assets", m_Settings.ShowOnlyAssets);
+			UI::EndProperty();
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopStyleColor(3);
+
+	}
+
+	void ContentBrowserPanel::CacheDirectory(const std::filesystem::path& rootPath)
+	{
+		std::filesystem::path selectedEntry;
+		std::filesystem::path currentDirectory;
+		if (m_SelectedEntry) selectedEntry = m_SelectedEntry->Path;
+		if (m_CurrentDirectory) currentDirectory = m_CurrentDirectory->Path;
+
+		m_RootDirectory.ChildEntrys.clear();
+		m_RootDirectory.Type = EntryType::Directory;
+		m_RootDirectory.Handle = AssetHandle::Null();
+		m_RootDirectory.Path = Project::MakeRelative(rootPath);
+		CacheDirectory(m_RootDirectory, rootPath);
+		m_CurrentDirectory = &m_RootDirectory;
+
+		m_SelectedEntry = GetEntry(selectedEntry);
+		m_CurrentDirectory = GetEntry(currentDirectory);
+		if (!m_CurrentDirectory)
+			m_CurrentDirectory = &m_RootDirectory;
+	}
+
+	void ContentBrowserPanel::CacheDirectory(DirectoryEntry& directory, const std::filesystem::path& directoryPath)
+	{
+		uint32_t directoryIndex = 0;
+
+		auto& childs = directory.ChildEntrys;
+		for (auto&& entry : std::filesystem::directory_iterator(directoryPath))
+		{
+			
+			if (entry.is_regular_file())
+			{
+				auto& childEntry = childs.emplace_back();
+				childEntry.Type = EntryType::File;
+				childEntry.Handle = ResourceManager::GetAssetHandleFromFilePath(entry.path());
+				childEntry.Path = Project::MakeRelative(entry.path());
+				childEntry.DisplayName = entry.path().stem().string();
+				continue;
+			}
+
+			SK_CORE_ASSERT(entry.is_directory());
+			auto& childEntry = *childs.emplace(childs.begin() + directoryIndex++);
+			childEntry.Type = EntryType::Directory;
+			childEntry.Handle = 0;
+			childEntry.Path = Project::MakeRelative(entry.path());
+			childEntry.DisplayName = entry.path().stem().string();
+
+			CacheDirectory(childEntry, entry.path());
+		}
+
+	}
+
+	DirectoryEntry* ContentBrowserPanel::GetEntry(const std::filesystem::path& path)
+	{
+		// Textures/Test.png
+
+		if (path == m_RootDirectory.Path)
+			return &m_RootDirectory;
+
+		uint32_t depth = 1;
+		uint32_t index = 0;
+		DirectoryEntry* directory = &m_RootDirectory;
+		while (index < directory->ChildEntrys.size())
+		{
+			auto& entry = directory->ChildEntrys[index++];
+
+			// Entry is in current Directory
+			if (entry.Path == path)
+				return &entry;
+
+			// Entry is in sub directory
+
+			// Entry: Scenes
+			// Path: Textures/Test.png
+
+			auto i0 = std::next(entry.Path.begin(), depth);
+			auto i1 = std::next(path.begin(), depth);
+
+			if (*i0 == *i1)
+			{
+				directory = &entry;
+				depth++;
+				index = 0;
+			}
+
+		}
+
+		return nullptr;
+	}
+
+	DirectoryEntry* ContentBrowserPanel::GetChildEntry(DirectoryEntry& directory, const std::filesystem::path& path)
+	{
+		for (auto& entry : directory.ChildEntrys)
+		{
+			if (entry.Path == path)
+				return &entry;
+		}
+
+		//SK_CORE_ASSERT(false, "Entry not Found");
+		return nullptr;
+	}
+
+	Ref<Texture2D> ContentBrowserPanel::GetCellIcon(const DirectoryEntry& entry)
+	{
+		if (entry.Type == EntryType::Directory)
+			return m_FolderIcon;
+
+		auto& metaData = ResourceManager::GetMetaData(entry.Handle);
+		switch (metaData.Type)
+		{
+			case AssetType::Scene: return m_FileIcon;
+			case AssetType::Texture: return ResourceManager::GetAsset<Texture2D>(metaData.Handle);
+		}
+
+		return m_FileIcon;
+	}
+
+	void ContentBrowserPanel::ImportEntry(DirectoryEntry& entry)
+	{
+		entry.Handle = ResourceManager::ImportAsset(Project::MakeAbsolue(entry.Path));
+	}
+
+}

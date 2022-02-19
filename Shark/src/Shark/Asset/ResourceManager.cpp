@@ -38,7 +38,7 @@ namespace Shark {
 
 	bool ResourceManager::IsValidAssetHandle(AssetHandle handle)
 	{
-		return s_AssetRegistry.Contains(handle) || IsMemoryAsset(handle);
+		return handle.IsValid() && (s_AssetRegistry.Contains(handle) || IsMemoryAsset(handle));
 	}
 
 	bool ResourceManager::IsDataLoaded(AssetHandle handle)
@@ -68,10 +68,16 @@ namespace Shark {
 		return AssetHandle();
 	}
 
-	bool ResourceManager::LoadAsset(Ref<Asset> asset)
+	bool ResourceManager::LoadAsset(AssetHandle handle)
 	{
-		auto& metadata = GetMetaDataInternal(asset->Handle);
-		metadata.IsDataLoaded = AssetSerializer::Deserialize(asset, metadata);
+		auto& metadata = GetMetaDataInternal(handle);
+		if (!metadata.IsDataLoaded)
+		{
+			Ref<Asset> asset = nullptr;
+			metadata.IsDataLoaded = AssetSerializer::TryLoadData(asset, metadata);
+			asset->Handle = handle;
+			s_LoadedAssets[handle] = asset;
+		}
 		return metadata.IsDataLoaded;
 	}
 
@@ -85,6 +91,16 @@ namespace Shark {
 			return false;
 
 		return AssetSerializer::Serialize(GetAsset(handle), metadata);
+	}
+
+	void ResourceManager::ReloadAsset(AssetHandle handle)
+	{
+		AssetMetaData& metadata = GetMetaDataInternal(handle);
+		if (metadata.IsDataLoaded)
+		{
+			UnloadAsset(handle);
+			LoadAsset(handle);
+		}
 	}
 
 	bool ResourceManager::AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName)
@@ -130,6 +146,8 @@ namespace Shark {
 			s_MemoryAssets.erase(handle);
 		else
 			s_LoadedAssets.erase(handle);
+		AssetMetaData& metadata = GetMetaDataInternal(handle);
+		metadata.IsDataLoaded = false;
 	}
 
 	void ResourceManager::DeleteAsset(AssetHandle handle)
@@ -148,10 +166,17 @@ namespace Shark {
 
 	AssetHandle ResourceManager::ImportAsset(const std::filesystem::path& filePath)
 	{
+		AssetType type = GetAssetTypeFormFilePath(filePath);
+		if (type == AssetType::None)
+			return 0;
+
+		if (AssetHandle handle = GetAssetHandleFromFilePath(filePath))
+			return handle;
+
 		AssetMetaData metadata;
 		metadata.Handle = AssetHandle::Generate();
 		metadata.FilePath = GetRelativePath(filePath);
-		metadata.Type = GetAssetTypeFormFilePath(metadata.FilePath);
+		metadata.Type = type;
 		metadata.IsDataLoaded = false;
 		s_AssetRegistry[metadata.Handle] = metadata;
 		return metadata.Handle;

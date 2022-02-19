@@ -46,6 +46,11 @@ namespace Shark {
 		return FileSystem::MakeDefaultFormat(std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory));
 	}
 
+	std::filesystem::path Project::MakeAbsolue(const std::filesystem::path& filePath)
+	{
+		return FileSystem::MakeDefaultFormat(GetActiveConfig().ProjectDirectory / filePath);
+	}
+
 	Ref<Project> Project::GetActive()
 	{
 		return s_ActiveProject;

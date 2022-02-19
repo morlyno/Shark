@@ -4,7 +4,7 @@
 #include <Shark/Scene/Components.h>
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/Utility.h>
-#include <Shark/Utility/UI.h>
+#include <Shark/UI/UI.h>
 #include <Shark/Core/Input.h>
 #include <Shark/Scene/NativeScriptFactory.h>
 #include "Shark/Core/Project.h"
@@ -200,7 +200,7 @@ namespace Shark {
 
 		bool wantsDestroy = false;
 
-		if ((m_SelectedEntity == entity) && ImGui::IsWindowFocused() && Input::KeyPressed(Key::Entf))
+		if ((m_SelectedEntity == entity) && ImGui::IsWindowHovered() && Input::KeyPressed(Key::Entf))
 		{
 			wantsDestroy = true;
 		}
@@ -311,7 +311,6 @@ namespace Shark {
 
 			UI::ColorEdit("Color", comp.Color);
 
-			// TODO: Texture
 			if (UI::BeginCustomControl(UI::GetID("Texture")))
 			{
 				ImGui::TableSetColumnIndex(0);
@@ -325,14 +324,15 @@ namespace Shark {
 				//	if (!path.empty())
 				//		comp.TextureHandle = Texture2D::Create(path);
 				//}
+
 				if (ImGui::BeginDragDropTarget())
 				{
-					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(UI::ContentPayload::ID);
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET");
 					if (payload)
 					{
-						auto* data = (UI::ContentPayload*)payload->Data;
-						if (data->Type == UI::ContentType::Texture)
-							comp.TextureHandle = ResourceManager::GetAssetHandleFromFilePath(data->Path);
+						AssetHandle handle = *(AssetHandle*)payload->Data;
+						if (ResourceManager::IsValidAssetHandle(handle))
+							comp.TextureHandle = handle;
 					}
 					ImGui::EndDragDropTarget();
 				}

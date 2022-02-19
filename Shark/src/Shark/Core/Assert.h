@@ -29,5 +29,3 @@
 
 #define SK_CORE_VERIFY(...) SK_EXPAND(SK_INTERNAL_VERIFY_GET_MACRO(__VA_ARGS__)(__VA_ARGS__))
 #endif
-
-#define SK_ASSERT_CONDITIONAL(condition, arg) ((condition) ? (arg) : true)

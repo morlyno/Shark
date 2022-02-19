@@ -31,6 +31,7 @@ namespace Shark {
 		static const std::filesystem::path& GetStartupScenePath();
 
 		static std::filesystem::path MakeRelative(const std::filesystem::path& filePath);
+		static std::filesystem::path MakeAbsolue(const std::filesystem::path& filePath);
 
 		static Ref<Project> GetActive();
 		static void SetActive(Ref<Project> project);

@@ -240,6 +240,18 @@ namespace Shark::UI {
 		return s_StringBuffer;
 	}
 
+	const char* FormatToCString(const std::wstring& str)
+	{
+		String::ToNarrow(str, s_StringBuffer);
+		return s_StringBuffer.c_str();
+	}
+
+	const char* FormatToCString(const std::filesystem::path& str)
+	{
+		String::ToNarrow(str, s_StringBuffer);
+		return s_StringBuffer.c_str();
+	}
+
 
 	//////////////////////////////////////////////////////////////////////////////
 	/// Text /////////////////////////////////////////////////////////////////////
