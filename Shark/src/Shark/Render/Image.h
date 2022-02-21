@@ -2,7 +2,7 @@
 
 #include "Shark/Core/Base.h"
 
-#include <DirectXMath.h>
+#include <glm/glm.hpp>
 
 namespace Shark {
 

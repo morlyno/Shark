@@ -11,8 +11,6 @@
 
 #if SK_PLATFORM_WINDOWS
 
-#define VERIFY_DATA() if (!s_Data) { s_Data = Scope<FileWatcherData>::Create(); }
-
 namespace Shark {
 
 	namespace Utils {
@@ -40,14 +38,16 @@ namespace Shark {
 		std::wstring DirectoryName;
 		HANDLE StopThreadEvent = NULL;
 		bool Running = false;
+		bool SkipNextEvent = false;
+		bool Paused = false;
 		FileChangedEventFn CallbackFunc = [](...) {};
 	};
 
-	static Scope<FileWatcherData> s_Data;
+	static FileWatcherData* s_Data = new FileWatcherData;
 
 	void FileWatcher::StartWatching(const std::filesystem::path& directory)
 	{
-		VERIFY_DATA();
+		SK_CORE_ASSERT(s_Data);
 
 		SK_CORE_ASSERT(std::filesystem::is_directory(directory), "Path for FileWatcher is not a Directory");
 		if (!std::filesystem::is_directory(directory))
@@ -62,9 +62,7 @@ namespace Shark {
 
 	void FileWatcher::StopWatching()
 	{
-		VERIFY_DATA();
-
-		SK_CORE_VERIFY(s_Data);
+		SK_CORE_ASSERT(s_Data);
 
 		if (s_Data->Running)
 		{
@@ -77,20 +75,49 @@ namespace Shark {
 
 	bool FileWatcher::IsRunning()
 	{
-		VERIFY_DATA();
+		SK_CORE_ASSERT(s_Data);
 
 		return s_Data->Running;
 	}
 
+	bool FileWatcher::IsPaused()
+	{
+		SK_CORE_ASSERT(s_Data);
+
+		return s_Data->Paused;
+	}
+
+	void FileWatcher::SkipNextEvent()
+	{
+		SK_CORE_ASSERT(s_Data);
+
+		s_Data->SkipNextEvent = true;
+	}
+
+	void FileWatcher::PauseWatching()
+	{
+		SK_CORE_ASSERT(s_Data);
+
+		s_Data->Paused = true;
+	}
+
+	void FileWatcher::ContinueWatching()
+	{
+		SK_CORE_ASSERT(s_Data);
+
+		s_Data->Paused = false;
+	}
+
 	void FileWatcher::SetFileChangedCallback(FileChangedEventFn func)
 	{
-		VERIFY_DATA();
+		SK_CORE_ASSERT(s_Data);
 
 		s_Data->CallbackFunc = func ? func : [](...) {};
 	}
 
 	void FileWatcher::StartThread()
 	{
+		SK_CORE_ASSERT(s_Data);
 		SK_CORE_ASSERT(!s_Data->Running, "StartFileWatcher was called but FileWachter is allready Running!");
 		if (s_Data->Running)
 			return;
@@ -187,6 +214,12 @@ namespace Shark {
 			
 			offset = 0;
 			fileChanges.clear();
+
+			if (s_Data->SkipNextEvent || s_Data->Paused)
+			{
+				s_Data->SkipNextEvent = false;
+				continue;
+			}
 
 			while (true)
 			{

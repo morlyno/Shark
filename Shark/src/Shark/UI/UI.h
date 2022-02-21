@@ -4,7 +4,7 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <DirectXMath.h>
+#include <glm/glm.hpp>
 
 namespace Shark::UI {
 	inline namespace Deprecated {
@@ -332,35 +332,35 @@ namespace Shark::UI {
 
 	bool PropertyCustom(const std::string& tag);
 
-	bool DragFloat(const std::string& tag, float& val,             float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool DragFloat(const std::string& tag, DirectX::XMFLOAT2& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool DragFloat(const std::string& tag, DirectX::XMFLOAT3& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool DragFloat(const std::string& tag, DirectX::XMFLOAT4& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragFloat(const std::string& tag, float& val,     float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragFloat(const std::string& tag, glm::vec2& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragFloat(const std::string& tag, glm::vec3& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragFloat(const std::string& tag, glm::vec4& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	
-	bool SliderFloat(const std::string& tag, float& val,             float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool SliderFloat(const std::string& tag, DirectX::XMFLOAT2& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool SliderFloat(const std::string& tag, DirectX::XMFLOAT3& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool SliderFloat(const std::string& tag, DirectX::XMFLOAT4& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool SliderFloat(const std::string& tag, float& val,     float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool SliderFloat(const std::string& tag, glm::vec2& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool SliderFloat(const std::string& tag, glm::vec3& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool SliderFloat(const std::string& tag, glm::vec4& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	
-	bool DragInt(const std::string& tag, int& val,             int resetVal = 0.0f, int min = 0, int max = 0, float speed = 1, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool DragInt(const std::string& tag, DirectX::XMINT2& val, int resetVal = 0.0f, int min = 0, int max = 0, float speed = 1, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool DragInt(const std::string& tag, DirectX::XMINT3& val, int resetVal = 0.0f, int min = 0, int max = 0, float speed = 1, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool DragInt(const std::string& tag, DirectX::XMINT4& val, int resetVal = 0.0f, int min = 0, int max = 0, float speed = 1, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragInt(const std::string& tag, int& val,        int resetVal = 0.0f, int min = 0, int max = 0, float speed = 1, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragInt(const std::string& tag, glm::ivec2& val, int resetVal = 0.0f, int min = 0, int max = 0, float speed = 1, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragInt(const std::string& tag, glm::ivec3& val, int resetVal = 0.0f, int min = 0, int max = 0, float speed = 1, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragInt(const std::string& tag, glm::ivec4& val, int resetVal = 0.0f, int min = 0, int max = 0, float speed = 1, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	
-	bool SliderInt(const std::string& tag, int& val,             int resetVal = 0, int min = 0, int max = 0, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool SliderInt(const std::string& tag, DirectX::XMINT2& val, int resetVal = 0, int min = 0, int max = 0, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool SliderInt(const std::string& tag, DirectX::XMINT3& val, int resetVal = 0, int min = 0, int max = 0, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool SliderInt(const std::string& tag, DirectX::XMINT4& val, int resetVal = 0, int min = 0, int max = 0, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool SliderInt(const std::string& tag, int& val,        int resetVal = 0, int min = 0, int max = 0, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool SliderInt(const std::string& tag, glm::ivec2& val, int resetVal = 0, int min = 0, int max = 0, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool SliderInt(const std::string& tag, glm::ivec3& val, int resetVal = 0, int min = 0, int max = 0, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool SliderInt(const std::string& tag, glm::ivec4& val, int resetVal = 0, int min = 0, int max = 0, const char* fmt = "%d", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	
 	bool DragInt(const std::string& tag, uint32_t& val, uint32_t resetVal = 0, uint32_t min = 0, uint32_t max = 0, float speed = 1, const char* fmt = "%u", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	bool SliderInt(const std::string& tag, uint32_t& val, uint32_t resetVal = 0, uint32_t min = 0, uint32_t max = 0, const char* fmt = "%u", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	
-	bool DragAngle(const std::string& tag, float& radians,             float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool DragAngle(const std::string& tag, DirectX::XMFLOAT2& radians, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool DragAngle(const std::string& tag, DirectX::XMFLOAT3& radians, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool DragAngle(const std::string& tag, DirectX::XMFLOAT4& radians, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragAngle(const std::string& tag, float& radians,     float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragAngle(const std::string& tag, glm::vec2& radians, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragAngle(const std::string& tag, glm::vec3& radians, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
+	bool DragAngle(const std::string& tag, glm::vec4& radians, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, const char* fmt = "%.2f", ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 
-	bool ColorEdit(const std::string& tag, DirectX::XMFLOAT4& color, ImGuiColorEditFlags flags = ImGuiColorEditFlags_None);
+	bool ColorEdit(const std::string& tag, glm::vec4& color, ImGuiColorEditFlags flags = ImGuiColorEditFlags_None);
 
 	bool Checkbox(const std::string& tag, bool& v);
 	bool Checkbox(const std::string& tag, const bool& v);

@@ -13,45 +13,34 @@ namespace Shark {
 
 	class Scene;
 
-	struct SceneRendererOptions
-	{
-		bool ShowColliders = false;
-		bool ShowCollidersOnTop = true;
-	};
-
 	class SceneRenderer : public RefCount
 	{
 	public:
-		SceneRenderer(Ref<Scene> scene, const SceneRendererOptions& options = {});
+		SceneRenderer(Ref<Scene> scene);
 		~SceneRenderer();
 
 		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
 
-		void BeginScene(const DirectX::XMMATRIX& viewProj);
+		void BeginScene(const glm::mat4& viewProj);
 		void EndScene();
 
-		void SubmitQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
-		void SubmitCirlce(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id = -1);
-
-		void SubmitColliderBox(const DirectX::XMFLOAT2& pos, float rotation, const DirectX::XMFLOAT2& scale);
-		void SubmitColliderCirlce(const DirectX::XMFLOAT2& pos, float radius);
+		void SubmitQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const glm::vec4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
+		void SubmitCirlce(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness, float fade, int id = -1);
 
 		void Resize(uint32_t width, uint32_t height);
 
 		void OnImGuiRender();
 
-		Ref<FrameBuffer> GetFinalFrameBuffer() const { return m_FinalFrameBuffer; }
-		Ref<Image2D> GetFinalImage() const { return m_FinalFrameBuffer->GetImage(); }
+		Ref<Image2D> GetFinalImage() const { return m_GeometryFrameBuffer->GetImage(0); }
 		Ref<Image2D> GetIDImage() const { return m_GeometryFrameBuffer->GetImage(1); }
+		Ref<FrameBuffer> GetExternalCompositFrameBuffer() const { return m_ExternalCompositeFrameBuffer; }
 
-		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
-
-		const SceneRendererOptions& GetOptions() const { return m_Options; }
+		const Renderer2D::Statistics& GetRenderer2DStats() const { return m_Renderer2D->GetStatistics(); }
 
 	private:
 		struct CBCamera
 		{
-			DirectX::XMMATRIX ViewProj;
+			glm::mat4 ViewProj;
 		};
 
 	private:
@@ -64,13 +53,10 @@ namespace Shark {
 		// Geometry
 		Ref<FrameBuffer> m_GeometryFrameBuffer;
 		
-		// Composit
-		Ref<FrameBuffer> m_FinalFrameBuffer;
+		Ref<FrameBuffer> m_ExternalCompositeFrameBuffer;
 
 		bool m_NeedsResize = true;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
-
-		SceneRendererOptions m_Options;
 	};
 
 }

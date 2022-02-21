@@ -19,6 +19,9 @@
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 namespace Shark {
 
 	static bool s_ShowDemoWindow = false;
@@ -27,6 +30,7 @@ namespace Shark {
 		: Layer("EditorLayer"), m_StartupProject(startupProject)
 	{
 		SK_PROFILE_FUNCTION();
+
 	}
 
 	EditorLayer::~EditorLayer()
@@ -38,13 +42,15 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		// NOTE: These values are not correct but are needed to for initialization
-		//       The Viewport Size is correct after Resizing in the first frame.
+		// NOTE(moro): These values are not correct but are needed to for initialization
+		//             The Viewport Size is correct after Resizing in the first frame.
 		auto& window = Application::Get().GetWindow();
 		m_ViewportWidth = window.GetWidth();
 		m_ViewportHeight = window.GetHeight();
 		m_EditorCamera.SetProjection(16.0f / 9.0f, 45, 0.01f, 1000.0f);
 
+
+		// Load Project
 		if (!m_StartupProject.empty())
 			OpenProject(m_StartupProject);
 		else
@@ -57,6 +63,8 @@ namespace Shark {
 
 		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 
+
+		// Create and setup Panels
 		m_ContentBrowserPanel = Scope<ContentBrowserPanel>::Create();
 		m_SceneHirachyPanel = Scope<SceneHirachyPanel>::Create();
 		m_SceneHirachyPanel->SetContext(m_ActiveScene);
@@ -64,14 +72,23 @@ namespace Shark {
 
 		SK_CORE_ASSERT(FileWatcher::IsRunning());
 
-		m_PlayIcon = Texture2D::Create("Resources/PlayButton.png");
-		m_StopIcon = Texture2D::Create("Resources/StopButton.png");
-		m_SimulateIcon = Texture2D::Create("Resources/SimulateButton.png");
-		m_PauseIcon = Texture2D::Create("Resources/PauseButton.png");
-		m_StepIcon = Texture2D::Create("Resources/StepButton.png");
 
+		// Load icons
+		m_PlayIcon       = Texture2D::Create("Resources/PlayButton.png");
+		m_StopIcon       = Texture2D::Create("Resources/StopButton.png");
+		m_SimulateIcon   = Texture2D::Create("Resources/SimulateButton.png");
+		m_PauseIcon      = Texture2D::Create("Resources/PauseButton.png");
+		m_StepIcon       = Texture2D::Create("Resources/StepButton.png");
+
+
+		// Renderer stuff
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
 		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
+
+		m_SceneRenderer->GetFinalImage()->CreateView();
+		m_CameraPreviewRenderer->GetFinalImage()->CreateView();
+
+		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer());
 
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
 		imageSpecs.Type = ImageType::Staging;
@@ -129,8 +146,6 @@ namespace Shark {
 			if (m_ViewportHovered && (m_SceneState != SceneState::Play || m_ScenePaused))
 				m_EditorCamera.OnUpdate(ts);
 
-			const bool renderCameraPreview = m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>();
-
 			switch (m_SceneState)
 			{
 				case SceneState::Edit:
@@ -139,11 +154,11 @@ namespace Shark {
 
 					m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
 
-					if (renderCameraPreview)
+					if (m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>())
 					{
 						auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
 						auto transform = m_SelectetEntity.GetTransform().GetTranform();
-						m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera.GetProjection(), DirectX::XMMatrixInverse(nullptr, transform));
+						m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera, glm::inverse(transform));
 					}
 
 					break;
@@ -167,11 +182,11 @@ namespace Shark {
 					if (!m_ScenePaused)
 						m_ActiveScene->OnSimulate(ts);
 
-					if (renderCameraPreview)
+					if (m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>())
 					{
 						auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
 						auto transform = m_SelectetEntity.GetTransform().GetTranform();
-						m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera.GetProjection(), DirectX::XMMatrixInverse(nullptr, transform));
+						m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera, glm::inverse(transform));
 					}
 
 					m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
@@ -180,6 +195,8 @@ namespace Shark {
 				}
 			}
 		}
+
+		DebugRender();
 
 		Renderer::GetRendererAPI()->BindMainFrameBuffer();
 	}
@@ -251,7 +268,7 @@ namespace Shark {
 				if (control && m_SelectetEntity && m_SceneState == SceneState::Edit)
 				{
 					Entity e = m_WorkScene->CloneEntity(m_SelectetEntity);
-					SK_CORE_ASSERT(false);
+					SK_CORE_ASSERT(true);
 					SelectEntity(e);
 					return true;
 				}
@@ -580,8 +597,8 @@ namespace Shark {
 			ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
 
 
-			DirectX::XMFLOAT4X4 view;
-			DirectX::XMFLOAT4X4 projection;
+			glm::mat4 view;
+			glm::mat4 projection;
 			if (m_SceneState == SceneState::Play)
 			{
 				Entity cameraEntity = m_ActiveScene->FindActiveCameraEntity();
@@ -589,21 +606,20 @@ namespace Shark {
 				auto& transform = cameraEntity.GetTransform();
 
 				ImGuizmo::SetOrthographic(camera.GetProjectionType() == SceneCamera::Projection::Orthographic);
-				DirectX::XMStoreFloat4x4(&view, DirectX::XMMatrixInverse(nullptr, transform.GetTranform()));
-				DirectX::XMStoreFloat4x4(&projection, camera.GetProjection());
+				view = glm::inverse(transform.GetTranform());
+				projection = camera.GetProjection();
 			}
 			else
 			{
 				ImGuizmo::SetOrthographic(false);
-				DirectX::XMStoreFloat4x4(&view, m_EditorCamera.GetView());
-				DirectX::XMStoreFloat4x4(&projection, m_EditorCamera.GetProjection());
+				view = m_EditorCamera.GetView();
+				projection = m_EditorCamera.GetProjection();
 			}
 
 			auto& tf = m_SelectetEntity.GetComponent<TransformComponent>();
-			DirectX::XMFLOAT4X4 transform;
-			DirectX::XMStoreFloat4x4(&transform, tf.GetTranform());
+			glm::mat4 transform = tf.GetTranform();
 
-			DirectX::XMFLOAT4X4 delta;
+			glm::mat4 delta;
 
 			float* snap = nullptr;
 			if (Input::KeyPressed(Key::LeftShift))
@@ -617,28 +633,10 @@ namespace Shark {
 				}
 			}
 
-			ImGuizmo::Manipulate(&view.m[0][0], &projection.m[0][0], (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::MODE::LOCAL, &transform.m[0][0], &delta.m[0][0], snap);
+			ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::MODE::LOCAL, glm::value_ptr(transform), glm::value_ptr(delta), snap);
 
 			if (!Input::KeyPressed(Key::Alt) && ImGuizmo::IsUsing())
-			{
-				DirectX::XMVECTOR position;
-				DirectX::XMVECTOR rotQuat;
-				DirectX::XMVECTOR scale;
-				if (m_CurrentOperation == ImGuizmo::OPERATION::TRANSLATE)
-				{
-					DirectX::XMMatrixDecompose(&scale, &rotQuat, &position, DirectX::XMLoadFloat4x4(&transform));
-					DirectX::XMStoreFloat3(&tf.Position, position);
-				}
-				else if (m_CurrentOperation == ImGuizmo::OPERATION::SCALE)
-				{
-					DirectX::XMMatrixDecompose(&scale, &rotQuat, &position, DirectX::XMLoadFloat4x4(&transform));
-					DirectX::XMStoreFloat3(&tf.Scaling, scale);
-				}
-				else if (m_CurrentOperation == ImGuizmo::OPERATION::ROTATE)
-				{
-					tf.Rotation = Math::GetRotation(transform);
-				}
-			}
+				Math::DecomposeTransform(transform, tf.Position, tf.Rotation, tf.Scaling);
 		}
 	}
 
@@ -747,7 +745,7 @@ namespace Shark {
 				if (UI::DragFloat("FocusPoint", focuspoint))
 					m_EditorCamera.SetFocusPoint(focuspoint);
 
-				DirectX::XMFLOAT2 py = { m_EditorCamera.GetPitch(), m_EditorCamera.GetYaw() };
+				glm::vec2 py = { m_EditorCamera.GetPitch(), m_EditorCamera.GetYaw() };
 				if (UI::DragFloat("Orientation", py))
 				{
 					m_EditorCamera.SetPicht(py.x);
@@ -902,7 +900,7 @@ namespace Shark {
 			if (imageButton("Step", m_StepIcon))
 			{
 				constexpr float timeStep = 1.0f / 60.0f;
-				m_ActiveScene->OnSimulate(timeStep, true);
+				m_ActiveScene->OnSimulate(timeStep);
 			}
 
 		}
@@ -981,9 +979,17 @@ namespace Shark {
 			{
 				m_SceneRenderer->OnImGuiRender();
 
+				if (ImGui::CollapsingHeader("Debug"))
+				{
+					UI::BeginPropertyGrid();
+					UI::Checkbox("Show Colliders", m_ShowColliders);
+					UI::Checkbox("Show OnTop", m_ShowCollidersOnTop);
+					UI::EndProperty();
+				}
+
 				if (ImGui::CollapsingHeader("Stuff"))
 				{
-					UI::BeginProperty(UI::Flags::Property_GridDefualt);
+					UI::BeginPropertyGrid();
 					auto& window = Application::Get().GetWindow();
 					bool vSync = window.IsVSync();
 					if (UI::Checkbox("VSync", vSync))
@@ -1051,8 +1057,8 @@ namespace Shark {
 		if (!m_ShowStats)
 			return;
 
-		ImGui::Begin("Renderer2D");
-		const Renderer2D::Statistics& s = m_SceneRenderer->GetRenderer2D()->GetStatistics();
+		ImGui::Begin("Debug Renderer");
+		const Renderer2D::Statistics& s = m_DebugRenderer->GetStatistics();
 		ImGui::Text("Draw Calls: %d", s.DrawCalls);
 		ImGui::Text("Quad Count: %d", s.QuadCount);
 		ImGui::Text("Circle Count: %d", s.CircleCount);
@@ -1272,6 +1278,93 @@ namespace Shark {
 		ImGui::End();
 	}
 
+	void EditorLayer::DebugRender()
+	{
+		if (m_ShowColliders)
+		{
+			m_DebugRenderer->BeginScene(GetActiveViewProjection());
+
+			if (m_ShowCollidersOnTop)
+			{
+				{
+					auto view = m_ActiveScene->GetAllEntitysWith<BoxCollider2DComponent>();
+					for (auto entityID : view)
+					{
+						Entity entity{ entityID, m_ActiveScene };
+						auto& collider = view.get<BoxCollider2DComponent>(entityID);
+						auto& tf = entity.GetTransform();
+
+						glm::mat4 transform =
+							tf.GetTranform() *
+							glm::translate(glm::mat4(1), glm::vec3(collider.Offset, 0)) *
+							glm::eulerAngleZ(collider.Rotation) *
+							glm::scale(glm::mat4(1), glm::vec3(collider.Size * 2.0f, 1.0f));
+						
+						m_DebugRenderer->DrawRectOnTop(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
+					}
+				}
+
+				{
+					auto view = m_ActiveScene->GetAllEntitysWith<CircleCollider2DComponent>();
+					for (auto entityID : view)
+					{
+						Entity entity{ entityID, m_ActiveScene };
+						auto& collider = view.get<CircleCollider2DComponent>(entityID);
+						auto& tf = entity.GetTransform();
+
+						glm::mat4 transform =
+							tf.GetTranform() *
+							glm::translate(glm::mat4(1), glm::vec3(collider.Offset, 0)) *
+							glm::eulerAngleZ(collider.Rotation) *
+							glm::scale(glm::mat4(1), glm::vec3(collider.Radius, collider.Radius, 1.0f));
+
+						m_DebugRenderer->DrawCircleOnTop(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
+					}
+				}
+			}
+			else
+			{
+				{
+					auto view = m_ActiveScene->GetAllEntitysWith<BoxCollider2DComponent>();
+					for (auto entityID : view)
+					{
+						Entity entity{ entityID, m_ActiveScene };
+						auto& collider = view.get<BoxCollider2DComponent>(entityID);
+						auto& tf = entity.GetTransform();
+
+						glm::mat4 transform =
+							tf.GetTranform() *
+							glm::translate(glm::mat4(1), glm::vec3(collider.Offset, 0)) *
+							glm::eulerAngleZ(collider.Rotation) *
+							glm::scale(glm::mat4(1), glm::vec3(collider.Size * 2.0f, 1.0f));
+
+						m_DebugRenderer->DrawRect(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
+					}
+				}
+
+				{
+					auto view = m_ActiveScene->GetAllEntitysWith<CircleCollider2DComponent>();
+					for (auto entityID : view)
+					{
+						Entity entity{ entityID, m_ActiveScene };
+						auto& collider = view.get<CircleCollider2DComponent>(entityID);
+						auto& tf = entity.GetTransform();
+
+						glm::mat4 transform =
+							tf.GetTranform() *
+							glm::translate(glm::mat4(1), glm::vec3(collider.Offset, 0)) *
+							glm::eulerAngleZ(collider.Rotation) *
+							glm::scale(glm::mat4(1), glm::vec3(0.0f, 0.0f, collider.Radius));
+
+						m_DebugRenderer->DrawCircle(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
+					}
+				}
+			}
+
+			m_DebugRenderer->EndScene();
+		}
+	}
+
 	void EditorLayer::DeleteEntity(Entity entity)
 	{
 		SK_PROFILE_FUNCTION();
@@ -1287,6 +1380,19 @@ namespace Shark {
 	{
 		m_SelectetEntity = entity;
 		m_SceneHirachyPanel->SetSelectedEntity(entity);
+	}
+
+	glm::mat4 EditorLayer::GetActiveViewProjection() const
+	{
+		if (m_SceneState == SceneState::Play)
+		{
+			Entity cameraEntity = m_ActiveScene->GetRuntimeCamera();
+			auto& camera = cameraEntity.GetComponent<CameraComponent>();
+			auto& tf = cameraEntity.GetTransform();
+			return camera.GetProjection() * glm::inverse(tf.GetTranform());
+		}
+
+		return m_EditorCamera.GetViewProjection();
 	}
 
 	void EditorLayer::NewScene()

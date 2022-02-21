@@ -61,18 +61,13 @@ namespace Shark {
 			ImGui::EndTable();
 		}
 
-		ImGui::End();
-
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
 		{
 			if (m_SelectedEntry && m_IsSelectedHovered)
 				ImGui::OpenPopup("Entry Settings");
 			else
 				ImGui::OpenPopup("Directory Settings");
 		}
-
-		// Open Explorer
-
 
 		m_IgnoreSelection = false;
 		if (ImGui::BeginPopup("Entry Settings"))
@@ -115,6 +110,7 @@ namespace Shark {
 			}
 		}
 
+		ImGui::End();
 	}
 
 	void ContentBrowserPanel::DrawTreeView(DirectoryEntry& directory)

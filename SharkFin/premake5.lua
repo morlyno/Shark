@@ -13,8 +13,7 @@ project "SharkFin"
     files
     {
         "src/**.h",
-        "src/**.cpp",
-        "assets/NativeScripts/*.cpp"
+        "src/**.cpp"
     }
 
     includedirs
@@ -28,12 +27,19 @@ project "SharkFin"
         "%{includeDir.box2d}",
         "%{includeDir.ImGuizmo}",
         "%{includeDir.fmt}",
-        "%{includeDir.Optick}"
+        "%{includeDir.Optick}",
+        "%{includeDir.glm}"
     }
 
     links
     {
         "Shark"
+    }
+
+    defines
+    {
+        "GLM_FORCE_SWIZZLE",
+        "GLM_FORCE_LEFT_HANDED"
     }
 
     filter "system:windows"

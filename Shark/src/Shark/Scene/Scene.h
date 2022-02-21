@@ -37,9 +37,9 @@ namespace Shark {
 
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts);
-		void OnSimulate(TimeStep ts, bool subStep = false);
+		void OnSimulate(TimeStep ts);
 
-		void OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const DirectX::XMMATRIX& view);
+		void OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const glm::mat4& view);
 		void OnRenderRuntime(Ref<SceneRenderer> renderer);
 		void OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
 		void OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);

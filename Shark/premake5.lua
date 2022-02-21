@@ -15,7 +15,9 @@ project "Shark"
         "src/**.h",
         "src/**.cpp",
         "%{includeDir.stb_image}/*.h",
-        "%{includeDir.stb_image}/*.cpp"
+        "%{includeDir.stb_image}/*.cpp",
+        "%{includeDir.glm}/**.h",
+        "%{includeDir.glm}/**.inl"
     }
 
     includedirs
@@ -29,12 +31,19 @@ project "Shark"
         "%{includeDir.box2d}",
         "%{includeDir.ImGuizmo}",
         "%{includeDir.fmt}",
-        "%{includeDir.Optick}"
+        "%{includeDir.Optick}",
+        "%{includeDir.glm}"
     }
 
     flags
     {
         "MultiProcessorCompile"
+    }
+
+    defines
+    {
+        "GLM_FORCE_SWIZZLE",
+        "GLM_FORCE_LEFT_HANDED"
     }
 
     filter "system:windows"

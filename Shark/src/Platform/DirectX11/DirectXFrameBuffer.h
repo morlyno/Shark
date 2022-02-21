@@ -15,15 +15,15 @@ namespace Shark {
 		virtual ~DirectXFrameBuffer();
 
 		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer) override { Clear(commandBuffer, m_Specification.ClearColor); }
-		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer, const DirectX::XMFLOAT4& clearcolor) override;
+		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer, const glm::vec4& clearcolor) override;
 		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) override { ClearAtachment(commandBuffer, index, m_Specification.ClearColor); }
-		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const DirectX::XMFLOAT4& clearcolor) override;
+		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearcolor) override;
 		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) override;
 
 		void Clear(ID3D11DeviceContext* ctx) { Clear(ctx, m_Specification.ClearColor); }
-		void Clear(ID3D11DeviceContext* ctx, const DirectX::XMFLOAT4& clearcolor);
+		void Clear(ID3D11DeviceContext* ctx, const glm::vec4& clearcolor);
 		void ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index) { ClearAtachment(ctx, index, m_Specification.ClearColor); }
-		void ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index, const DirectX::XMFLOAT4& clearcolor);
+		void ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index, const glm::vec4& clearcolor);
 		void ClearDepth(ID3D11DeviceContext* ctx);
 
 

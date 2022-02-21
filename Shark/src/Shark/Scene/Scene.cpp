@@ -226,19 +226,12 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 	}
 
-	void Scene::OnSimulate(TimeStep ts, bool subStep)
+	void Scene::OnSimulate(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
 		
 		// TODO(moro): expose iteration values
-		if (subStep)
-		{
-			m_PhysicsWorld2D->SetSubStepping(true);
-			m_PhysicsWorld2D->Step((float)ts, 6, 2);
-			m_PhysicsWorld2D->SetSubStepping(false);
-		}
-		else
-			m_PhysicsWorld2D->Step((float)ts, 6, 2);
+		m_PhysicsWorld2D->Step((float)ts, 6, 2);
 
 		auto view = m_Registry.view<RigidBody2DComponent>();
 		for (auto e : view)
@@ -253,13 +246,13 @@ namespace Shark {
 		}
 	}
 
-	void Scene::OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const DirectX::XMMATRIX& view)
+	void Scene::OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const glm::mat4& view)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnRenderRuntimePreview");
 
 		renderer->SetScene(this);
-		const auto viewProj = view * camera.GetProjection();
+		const auto viewProj = camera.GetProjection() * view;
 		renderer->BeginScene(viewProj);
 
 		{
@@ -297,7 +290,7 @@ namespace Shark {
 
 		renderer->SetScene(this);
 
-		const auto viewProj = DirectX::XMMatrixInverse(nullptr, tf.GetTranform()) * camera.GetProjection();
+		const auto viewProj = camera.GetProjection() * glm::inverse(tf.GetTranform());
 		renderer->BeginScene(viewProj);
 
 		{
@@ -354,28 +347,6 @@ namespace Shark {
 			}
 		}
 
-
-		if (renderer->GetOptions().ShowColliders)
-		{
-			{
-				auto view = m_Registry.view<BoxCollider2DComponent, TransformComponent>();
-				for (auto entity : view)
-				{
-					auto& [bc, tf] = view.get<BoxCollider2DComponent, TransformComponent>(entity);
-					renderer->SubmitColliderBox({ tf.Position.x + bc.Offset.x, tf.Position.y + bc.Offset.y }, tf.Rotation.z + bc.Rotation, { tf.Scaling.x * bc.Size.x * 2.0f, tf.Scaling.y * bc.Size.y * 2.0f });
-				}
-			}
-
-			{
-				auto view = m_Registry.view<CircleCollider2DComponent, TransformComponent>();
-				for (auto entity : view)
-				{
-					auto&& [cc, tf] = view.get<CircleCollider2DComponent, TransformComponent>(entity);
-					renderer->SubmitColliderCirlce({ tf.Position.x + cc.Offset.x, tf.Position.y + cc.Offset.y }, tf.Scaling.x * cc.Radius);
-				}
-			}
-		}
-
 		renderer->EndScene();
 	}
 
@@ -406,27 +377,6 @@ namespace Shark {
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
 				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
-			}
-		}
-
-		if (renderer->GetOptions().ShowColliders)
-		{
-			{
-				auto view = m_Registry.view<BoxCollider2DComponent, TransformComponent>();
-				for (auto entity : view)
-				{
-					auto& [bc, tf] = view.get<BoxCollider2DComponent, TransformComponent>(entity);
-					renderer->SubmitColliderBox({ tf.Position.x + bc.Offset.x, tf.Position.y + bc.Offset.y }, tf.Rotation.z + bc.Rotation, { tf.Scaling.x * bc.Size.x * 2.0f, tf.Scaling.y * bc.Size.y * 2.0f });
-				}
-			}
-
-			{
-				auto view = m_Registry.view<CircleCollider2DComponent, TransformComponent>();
-				for (auto entity : view)
-				{
-					auto&& [cc, tf] = view.get<CircleCollider2DComponent, TransformComponent>(entity);
-					renderer->SubmitColliderCirlce({ tf.Position.x + cc.Offset.x, tf.Position.y + cc.Offset.y }, tf.Scaling.x * cc.Radius);
-				}
 			}
 		}
 
@@ -608,6 +558,7 @@ namespace Shark {
 
 					b2CircleShape shape;
 					shape.m_radius = cc2d.Radius * transform.Scaling.x;
+					shape.m_p = { cc2d.Offset.x, cc2d.Offset.y };
 
 					b2FixtureDef fixturedef;
 					fixturedef.shape = &shape;

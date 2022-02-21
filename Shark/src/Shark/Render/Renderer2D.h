@@ -12,6 +12,8 @@
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/Material.h"
 
+#include <glm/glm.hpp>
+
 namespace Shark {
 
 	class Renderer2D : public RefCount
@@ -46,51 +48,65 @@ namespace Shark {
 
 		void SetRenderTarget(Ref<FrameBuffer> renderTarget);
 
-		void BeginScene(const DirectX::XMMATRIX& viewProj);
+		void BeginScene(const glm::mat4& viewProj);
 		void EndScene();
 
-		void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
-		void DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
 
-		void DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation,                   const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation,                   const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
-		void DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& roation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const DirectX::XMFLOAT4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
+		void DrawQuad(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id = -1);
+		void DrawQuad(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
+		void DrawQuad(const glm::vec2& position, const glm::vec2& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const glm::vec4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
+		void DrawQuad(const glm::vec3& position, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const glm::vec4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
 
+		void DrawRotatedQuad(const glm::vec2& position, float rotation,           const glm::vec2& scaling, const glm::vec4& color, int id = -1);
+		void DrawRotatedQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
+		void DrawRotatedQuad(const glm::vec2& position, float rotation,           const glm::vec2& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const glm::vec4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
+		void DrawRotatedQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const glm::vec4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
 
-		void DrawFilledCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
-		void DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
-		void DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
-
-
-		void DrawCircle(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
-		void DrawCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
+		void DrawQuad(const glm::mat4& transform, const glm::vec4& color, int id = -1);
+		void DrawQuad(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id = -1);
 
 
-		void DrawLine(const DirectX::XMFLOAT2& pos0, const DirectX::XMFLOAT2& pos1, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawLine(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawFilledCircle(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
+		void DrawFilledCircle(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
+		void DrawFilledCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
+
+		void DrawFilledCircle(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int id = -1);
 
 
-		void DrawRect(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawCircle(const glm::vec2& position, float radius, const glm::vec4& color, int id = -1);
+		void DrawCircle(const glm::vec3& position, const glm::vec3& rotation, float radius, const glm::vec4& color, int id = -1);
 
-		void DrawRect(const DirectX::XMFLOAT2& position, float rotation,                    const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawCircle(const glm::mat4& transform, const glm::vec4& color, int id = -1);
 
 
-		void DrawLineOnTop(const DirectX::XMFLOAT2& pos0, const DirectX::XMFLOAT2& pos1, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawLineOnTop(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawLine(const glm::vec2& pos0, const glm::vec2& pos1, const glm::vec4& color, int id = -1);
+		void DrawLine(const glm::vec3& pos0, const glm::vec3& pos1, const glm::vec4& color, int id = -1);
 
-		void DrawRectOnTop(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
 
-		void DrawRectOnTop(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id = -1);
-		void DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id = -1);
+		void DrawRect(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id = -1);
+		void DrawRect(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
+		void DrawRect(const glm::vec2& position, float rotation,            const glm::vec2& scaling, const glm::vec4& color, int id = -1);
+		void DrawRect(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
 
-		void DrawCircleOnTop(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
-		void DrawCircleOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta = DirectX::XM_PI / 10.0f, int id = -1);
+		void DrawRect(const glm::mat4& transform, const glm::vec4& color, int id = -1);
+
+
+		void DrawLineOnTop(const glm::vec2& pos0, const glm::vec2& pos1, const glm::vec4& color, int id = -1);
+		void DrawLineOnTop(const glm::vec3& pos0, const glm::vec3& pos1, const glm::vec4& color, int id = -1);
+
+
+		void DrawRectOnTop(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id = -1);
+		void DrawRectOnTop(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
+		void DrawRectOnTop(const glm::vec2& position, float rotation, const glm::vec2& scaling, const glm::vec4& color, int id = -1);
+		void DrawRectOnTop(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
+
+		void DrawRectOnTop(const glm::mat4& transform, const glm::vec4& color, int id = -1);
+
+
+		void DrawCircleOnTop(const glm::vec2& position, float radius, const glm::vec4& color, int id = -1);
+		void DrawCircleOnTop(const glm::vec3& position, const glm::vec3& rotation, float radius, const glm::vec4& color, int id = -1);
+
+		void DrawCircleOnTop(const glm::mat4& transform, const glm::vec4& color, int id = -1);
 
 
 		Ref<RenderCommandBuffer> GetCommandBuffer() const { return m_CommandBuffer; }
@@ -120,17 +136,19 @@ namespace Shark {
 		static constexpr uint32_t MaxLinesOnTop = 2000;
 		static constexpr uint32_t MaxLineOnTopVertices = MaxLinesOnTop * 2;
 
-		static constexpr DirectX::XMFLOAT3 m_QuadVertexPositions[4] = { { -0.5f, 0.5f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.5f, -0.5f, 0.0f }, { -0.5f, -0.5f, 0.0f } };
-		static constexpr DirectX::XMFLOAT2 m_TextureCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
+	private:
+		static constexpr glm::vec4 m_QuadVertexPositions[4] = { { -0.5f, 0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { -0.5f, -0.5f, 0.0f, 1.0f } };
+		static constexpr glm::vec2 m_TextureCoords[4] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
+		std::array<glm::vec4, 20> m_CirlceVertexPositions;
 
 	private:
 		using Index = IndexBuffer::IndexType;
 
 		struct QuadVertex
 		{
-			DirectX::XMFLOAT3 WorldPosition;
-			DirectX::XMFLOAT4 Color;
-			DirectX::XMFLOAT2 Tex;
+			glm::vec3 WorldPosition;
+			glm::vec4 Color;
+			glm::vec2 Tex;
 			int TextureSlot;
 			float TilingFactor;
 			int ID;
@@ -138,9 +156,9 @@ namespace Shark {
 
 		struct CircleVertex
 		{
-			DirectX::XMFLOAT3 WorldPosition;
-			DirectX::XMFLOAT2 LocalPosition;
-			DirectX::XMFLOAT4 Color;
+			glm::vec3 WorldPosition;
+			glm::vec2 LocalPosition;
+			glm::vec4 Color;
 			float Thickness;
 			float Fade;
 			int ID;
@@ -148,14 +166,14 @@ namespace Shark {
 
 		struct LineVertex
 		{
-			DirectX::XMFLOAT3 WorldPosition;
-			DirectX::XMFLOAT4 Color;
+			glm::vec3 WorldPosition;
+			glm::vec4 Color;
 			int ID;
 		};
 
 		struct CBCamera
 		{
-			DirectX::XMMATRIX ViewProjection;
+			glm::mat4 ViewProjection;
 		};
 
 	private:
@@ -167,7 +185,7 @@ namespace Shark {
 
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<ConstantBufferSet> m_ConstantBufferSet;
-		DirectX::XMMATRIX m_ViewProj;
+		glm::mat4 m_ViewProj;
 
 		Ref<GPUTimer> m_GeometryPassTimer;
 		Ref<GPUTimer> m_QuadFlushQuery;

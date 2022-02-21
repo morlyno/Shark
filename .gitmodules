@@ -19,3 +19,6 @@
 [submodule "Shark/dependencies/Optick"]
 	path = Shark/dependencies/Optick
 	url = https://github.com/morlyno/optick
+[submodule "Shark/dependencies/glm"]
+	path = Shark/dependencies/glm
+	url = https://github.com/g-truc/glm.git

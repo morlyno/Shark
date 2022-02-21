@@ -1,6 +1,6 @@
 #pragma once
 
-#include <DirectXMath.h>
+#include <glm/glm.hpp>
 #include <filesystem>
 
 namespace Shark::Utility {
@@ -17,11 +17,11 @@ namespace Shark::Utility {
 	template<typename T>
 	constexpr float* GetValuePtr(const T& vec) { static_assert(false); }
 	template<>
-	constexpr float* GetValuePtr(const DirectX::XMFLOAT4& vec) { return (float*)&vec; }
+	constexpr float* GetValuePtr(const glm::vec4& vec) { return (float*)&vec; }
 	template<>
-	constexpr float* GetValuePtr(const DirectX::XMFLOAT3& vec) { return (float*)&vec; }
+	constexpr float* GetValuePtr(const glm::vec3& vec) { return (float*)&vec; }
 	template<>
-	constexpr float* GetValuePtr(const DirectX::XMFLOAT2& vec) { return (float*)&vec; }
+	constexpr float* GetValuePtr(const glm::vec2& vec) { return (float*)&vec; }
 
 
 	template<typename Container>
@@ -51,7 +51,7 @@ namespace Shark::Utility {
 	template<typename T, uint32_t _Count>
 	constexpr uint32_t ArraySize(const T(&)[_Count]) { return _Count; }
 
-	constexpr DirectX::XMFLOAT4 UI32ToF4(uint32_t color)
+	constexpr glm::vec4 UI32ToF4(uint32_t color)
 	{
 		return {
 			(float)((color >>  0) & 0xFF) / 255.0f,

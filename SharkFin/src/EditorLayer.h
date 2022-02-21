@@ -52,8 +52,12 @@ namespace Shark {
 		void UI_ProjectSettings();
 		void UI_Asset();
 
+		void DebugRender();
+
 		void DeleteEntity(Entity entity);
 		void SelectEntity(Entity entity);
+
+		glm::mat4 GetActiveViewProjection() const;
 
 		void NewScene();
 
@@ -86,6 +90,8 @@ namespace Shark {
 
 		Ref<SceneRenderer> m_SceneRenderer;
 		Ref<SceneRenderer> m_CameraPreviewRenderer;
+		Ref<Renderer2D> m_DebugRenderer;
+
 		Ref<Scene> m_ActiveScene = nullptr;
 		Ref<Scene> m_WorkScene = nullptr;
 
@@ -147,6 +153,9 @@ namespace Shark {
 			bool Active = false;
 		};
 		ImportAssetData m_ImportAssetData;
+
+		bool m_ShowColliders = false;
+		bool m_ShowCollidersOnTop = true;
 
 	};
 

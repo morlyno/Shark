@@ -50,13 +50,13 @@ namespace Shark {
 			m_BlendState->Release();
 	}
 
-	void DirectXFrameBuffer::Clear(Ref<RenderCommandBuffer> commandBuffer, const DirectX::XMFLOAT4& clearcolor)
+	void DirectXFrameBuffer::Clear(Ref<RenderCommandBuffer> commandBuffer, const glm::vec4& clearcolor)
 	{
 		ID3D11DeviceContext* ctx = commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext();
 		Clear(ctx, clearcolor);
 	}
 
-	void DirectXFrameBuffer::ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const DirectX::XMFLOAT4& clearcolor)
+	void DirectXFrameBuffer::ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearcolor)
 	{
 		ID3D11DeviceContext* ctx = commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext();
 		ClearAtachment(ctx, index, clearcolor);
@@ -68,7 +68,7 @@ namespace Shark {
 		ClearDepth(ctx);
 	}
 
-	void DirectXFrameBuffer::Clear(ID3D11DeviceContext* ctx, const DirectX::XMFLOAT4& clearcolor)
+	void DirectXFrameBuffer::Clear(ID3D11DeviceContext* ctx, const glm::vec4& clearcolor)
 	{
 		for (auto buffer : m_FrameBuffers)
 			ctx->ClearRenderTargetView(buffer, Utility::GetValuePtr(clearcolor));
@@ -77,7 +77,7 @@ namespace Shark {
 			ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1.0f, 0u);
 	}
 
-	void DirectXFrameBuffer::ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index, const DirectX::XMFLOAT4& clearcolor)
+	void DirectXFrameBuffer::ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index, const glm::vec4& clearcolor)
 	{
 		ctx->ClearRenderTargetView(m_FrameBuffers[index], Utility::GetValuePtr(clearcolor));
 	}

@@ -12,7 +12,7 @@ namespace Shark {
 		ImageFormat Format;
 		Ref<Image2D> Image = nullptr;
 
-		FrameBufferAtachment(ImageFormat format, bool blend = false)
+		FrameBufferAtachment(ImageFormat format, bool blend = true)
 			: Format(format), Blend(blend) {}
 	};
 
@@ -20,7 +20,7 @@ namespace Shark {
 	{
 		uint32_t Width = 0, Height = 0;
 		std::vector<FrameBufferAtachment> Atachments;
-		DirectX::XMFLOAT4 ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+		glm::vec4 ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		FrameBufferSpecification() = default;
 		FrameBufferSpecification(uint32_t width, uint32_t height, std::initializer_list<FrameBufferAtachment> atachments)
@@ -33,9 +33,9 @@ namespace Shark {
 		virtual ~FrameBuffer() = default;
 
 		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer) = 0;
-		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer, const DirectX::XMFLOAT4& clearcolor) = 0;
+		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer, const glm::vec4& clearcolor) = 0;
 		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) = 0;
-		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const DirectX::XMFLOAT4& clearcolor) = 0;
+		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearcolor) = 0;
 		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 		virtual void Release() = 0;

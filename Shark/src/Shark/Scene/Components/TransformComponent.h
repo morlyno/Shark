@@ -1,21 +1,23 @@
 #pragma once
 
-#include <DirectXMath.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
 
 namespace Shark {
 
 	struct TransformComponent
 	{
-		DirectX::XMMATRIX GetTranform() const
+		glm::mat4 GetTranform() const
 		{
-			return DirectX::XMMatrixScaling(Scaling.x, Scaling.y, Scaling.z) *
-				DirectX::XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z) *
-				DirectX::XMMatrixTranslation(Position.x, Position.y, Position.z);
+			return glm::translate(glm::mat4(1), Position) *
+				glm::eulerAngleXYZ(Rotation.x, Rotation.y, Rotation.z) *
+				glm::scale(glm::mat4(1), Scaling);
 		}
 
-		DirectX::XMFLOAT3 Position = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 Rotation = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 Scaling = { 1.0f, 1.0f, 1.0f };
+		glm::vec3 Position = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 Rotation = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 Scaling = { 1.0f, 1.0f, 1.0f };
 	};
 
 }

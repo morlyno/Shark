@@ -6,14 +6,14 @@ namespace Shark {
 
 	struct SpriteRendererComponent
 	{
-		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		AssetHandle TextureHandle;
 		float TilingFactor = 1.0f;
 	};
 
 	struct CircleRendererComponent
 	{
-		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		float Thickness = 1.0f;
 		float Fade = 0.002f;
 	};

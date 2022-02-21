@@ -509,7 +509,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool DragFloat(const std::string& tag, DirectX::XMFLOAT2& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool DragFloat(const std::string& tag, glm::vec2& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -552,7 +552,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool DragFloat(const std::string& tag, DirectX::XMFLOAT3& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool DragFloat(const std::string& tag, glm::vec3& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -605,7 +605,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool DragFloat(const std::string& tag, DirectX::XMFLOAT4& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool DragFloat(const std::string& tag, glm::vec4& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -700,7 +700,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool SliderFloat(const std::string& tag, DirectX::XMFLOAT2& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
+	bool SliderFloat(const std::string& tag, glm::vec2& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -741,7 +741,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool SliderFloat(const std::string& tag, DirectX::XMFLOAT3& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
+	bool SliderFloat(const std::string& tag, glm::vec3& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -792,7 +792,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool SliderFloat(const std::string& tag, DirectX::XMFLOAT4& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
+	bool SliderFloat(const std::string& tag, glm::vec4& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -884,7 +884,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool DragInt(const std::string& tag, DirectX::XMINT2& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool DragInt(const std::string& tag, glm::ivec2& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -927,7 +927,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool DragInt(const std::string& tag, DirectX::XMINT3& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool DragInt(const std::string& tag, glm::ivec3& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -980,7 +980,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool DragInt(const std::string& tag, DirectX::XMINT4& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool DragInt(const std::string& tag, glm::ivec4& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -1075,7 +1075,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool SliderInt(const std::string& tag, DirectX::XMINT2& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
+	bool SliderInt(const std::string& tag, glm::ivec2& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -1116,7 +1116,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool SliderInt(const std::string& tag, DirectX::XMINT3& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
+	bool SliderInt(const std::string& tag, glm::ivec3& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -1167,7 +1167,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool SliderInt(const std::string& tag, DirectX::XMINT4& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
+	bool SliderInt(const std::string& tag, glm::ivec4& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return false;
@@ -1293,43 +1293,43 @@ namespace Shark::UI {
 
 	bool DragAngle(const std::string& tag, float& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		auto degrees = Math::ToDegrees(radians);
-		if (DragFloat(tag, degrees, resetVal, speed, min, max, fmt, flags))
+		auto degrees = glm::degrees(radians);
+		if (DragFloat(tag, degrees, resetVal, min, max, speed, fmt, flags))
 		{
-			radians = Math::ToRadians(degrees);
+			radians = glm::radians(degrees);
 			return true;
 		}
 		return false;
 	}
 
-	bool DragAngle(const std::string& tag, DirectX::XMFLOAT2& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool DragAngle(const std::string& tag, glm::vec2& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		auto degrees = Math::ToDegrees(radians);
-		if (DragFloat(tag, degrees, resetVal, speed, min, max, fmt, flags))
+		auto degrees = glm::degrees(radians);
+		if (DragFloat(tag, degrees, resetVal, min, max, speed, fmt, flags))
 		{
-			radians = Math::ToRadians(degrees);
+			radians = glm::radians(degrees);
 			return true;
 		}
 		return false;
 	}
 
-	bool DragAngle(const std::string& tag, DirectX::XMFLOAT3& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool DragAngle(const std::string& tag, glm::vec3& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		auto degrees = Math::ToDegrees(radians);
-		if (DragFloat(tag, degrees, resetVal, speed, min, max, fmt, flags))
+		auto degrees = glm::degrees(radians);
+		if (DragFloat(tag, degrees, resetVal, min, max, speed, fmt, flags))
 		{
-			radians = Math::ToRadians(degrees);
+			radians = glm::radians(degrees);
 			return true;
 		}
 		return false;
 	}
 
-	bool DragAngle(const std::string& tag, DirectX::XMFLOAT4& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool DragAngle(const std::string& tag, glm::vec4& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
 	{
-		auto degrees = Math::ToDegrees(radians);
-		if (DragFloat(tag, degrees, resetVal, speed, min, max, fmt, flags))
+		auto degrees = glm::degrees(radians);
+		if (DragFloat(tag, degrees, resetVal, min, max, speed, fmt, flags))
 		{
-			radians = Math::ToRadians(degrees);
+			radians = glm::radians(degrees);
 			return true;
 		}
 		return false;
@@ -1367,7 +1367,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool ColorEdit(const std::string& tag, DirectX::XMFLOAT4& color, ImGuiColorEditFlags flags)
+	bool ColorEdit(const std::string& tag, glm::vec4& color, ImGuiColorEditFlags flags)
 	{
 		static_assert(sizeof(color) == (sizeof(float[4])));
 

@@ -1,66 +1,85 @@
 #include "skpch.h"
 #include "Math.h"
 
-using namespace DirectX;
+#define GLM_ENABLE_EXPERIMENTAL 1
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/transform.hpp>
 
-namespace Shark {
-
-    XMFLOAT3 operator+(const XMFLOAT3& lhs, const XMFLOAT3& rhs) { return { lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z }; }
-    XMFLOAT3& operator+=(XMFLOAT3& lhs, const XMFLOAT3& rhs) { return lhs = lhs + rhs; }
-    XMFLOAT3 operator-(const XMFLOAT3& lhs, const XMFLOAT3& rhs) { return { lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z }; }
-    XMFLOAT3& operator-=(XMFLOAT3& lhs, const XMFLOAT3& rhs) { return lhs = lhs - rhs; }
-
-    XMVECTOR    XM_CALLCONV     operator+ (FXMVECTOR V) { return V; }
-    XMVECTOR    XM_CALLCONV     operator- (FXMVECTOR V) { return DirectX::XMVectorNegate(V); }
-
-    XMVECTOR& XM_CALLCONV     operator+= (XMVECTOR& V1, FXMVECTOR V2) { V1 = DirectX::XMVectorAdd(V1, V2); return V1; }
-    XMVECTOR& XM_CALLCONV     operator-= (XMVECTOR& V1, FXMVECTOR V2) { V1 = DirectX::XMVectorSubtract(V1, V2); return V1; }
-    XMVECTOR& XM_CALLCONV     operator*= (XMVECTOR& V1, FXMVECTOR V2) { V1 = DirectX::XMVectorMultiply(V1, V2); return V1; }
-    XMVECTOR& XM_CALLCONV     operator/= (XMVECTOR& V1, FXMVECTOR V2) { V1 = DirectX::XMVectorDivide(V1, V2); return V1; }
-
-    XMVECTOR& operator*= (XMVECTOR& V, float S) { V = DirectX::XMVectorScale(V, S); return V; }
-    XMVECTOR& operator/= (XMVECTOR& V, float S) { XMVECTOR vS = DirectX::XMVectorReplicate(S); V = DirectX::XMVectorDivide(V, vS); return V; }
-
-    XMVECTOR    XM_CALLCONV     operator+ (FXMVECTOR V1, FXMVECTOR V2) { return DirectX::XMVectorAdd(V1, V2); }
-    XMVECTOR    XM_CALLCONV     operator- (FXMVECTOR V1, FXMVECTOR V2) { return DirectX::XMVectorSubtract(V1, V2); }
-    XMVECTOR    XM_CALLCONV     operator* (FXMVECTOR V1, FXMVECTOR V2) { return DirectX::XMVectorMultiply(V1, V2); }
-    XMVECTOR    XM_CALLCONV     operator/ (FXMVECTOR V1, FXMVECTOR V2) { return DirectX::XMVectorDivide(V1, V2); }
-    XMVECTOR    XM_CALLCONV     operator* (FXMVECTOR V, float S) { return DirectX::XMVectorScale(V, S); }
-    XMVECTOR    XM_CALLCONV     operator* (float S, FXMVECTOR V) { return DirectX::XMVectorScale(V, S); }
-    XMVECTOR    XM_CALLCONV     operator/ (FXMVECTOR V, float S) { XMVECTOR vS = DirectX::XMVectorReplicate(S); return DirectX::XMVectorDivide(V, vS); }
-
-}
 
 namespace Shark::Math {
 
-
-    XMFLOAT3 GetRotation(XMMATRIX matrix)
-    {
-        XMMATRIX mat;
-        mat.r[0] = XMVector4Normalize(matrix.r[0]);
-        mat.r[1] = XMVector4Normalize(matrix.r[1]);
-        mat.r[2] = XMVector4Normalize(matrix.r[2]);
-
-        float pitch = DirectX::XMScalarASin(-XMVectorGetY(mat.r[2]));
-        
-        XMVECTOR from(XMVectorSet(XMVectorGetY(mat.r[0]), XMVectorGetX(mat.r[2]), 0.0f, 0.0f));
-        XMVECTOR to(XMVectorSet(XMVectorGetY(mat.r[1]), XMVectorGetZ(mat.r[2]), 0.0f, 0.0f));
-        XMVECTOR res(XMVectorATan2(from, to));
-
-        float roll = XMVectorGetX(res);
-        float yaw = XMVectorGetY(res);
-
-        return XMFLOAT3(pitch, yaw, roll);
-    }
-
-    XMFLOAT3 GetRotation(const XMFLOAT4X4& matrix)
-    {
-        return GetRotation(XMLoadFloat4x4(&matrix));
-    }
-
-	DirectX::XMMATRIX ViewFromTransform(const DirectX::XMMATRIX& transform)
+	bool DecomposeTransform(const glm::mat4& transform, glm::vec3& translation, glm::vec3& rotation, glm::vec3& scale)
 	{
-        return DirectX::XMMatrixInverse(nullptr, transform);
+		// From glm::decompose in matrix_decompose.inl
+
+		using namespace glm;
+		using T = float;
+
+		mat4 LocalMatrix(transform);
+
+		// Normalize the matrix.
+		if (epsilonEqual(LocalMatrix[3][3], static_cast<float>(0), epsilon<T>()))
+			return false;
+
+		// First, isolate perspective.  This is the messiest.
+		if (
+			epsilonNotEqual(LocalMatrix[0][3], static_cast<T>(0), epsilon<T>()) ||
+			epsilonNotEqual(LocalMatrix[1][3], static_cast<T>(0), epsilon<T>()) ||
+			epsilonNotEqual(LocalMatrix[2][3], static_cast<T>(0), epsilon<T>()))
+		{
+			// Clear the perspective partition
+			LocalMatrix[0][3] = LocalMatrix[1][3] = LocalMatrix[2][3] = static_cast<T>(0);
+			LocalMatrix[3][3] = static_cast<T>(1);
+		}
+
+		// Next take care of translation (easy).
+		translation = vec3(LocalMatrix[3]);
+		LocalMatrix[3] = vec4(0, 0, 0, LocalMatrix[3].w);
+
+		vec3 Row[3]/*, Pdum3*/;
+
+		// Now get scale and shear.
+		for (length_t i = 0; i < 3; ++i)
+			for (length_t j = 0; j < 3; ++j)
+				Row[i][j] = LocalMatrix[i][j];
+
+		// Compute X scale factor and normalize first row.
+		scale.x = length(Row[0]);
+		Row[0] = detail::scale(Row[0], static_cast<T>(1));
+		scale.y = length(Row[1]);
+		Row[1] = detail::scale(Row[1], static_cast<T>(1));
+		scale.z = length(Row[2]);
+		Row[2] = detail::scale(Row[2], static_cast<T>(1));
+
+		// At this point, the matrix (in rows[]) is orthonormal.
+		// Check for a coordinate system flip.  If the determinant
+		// is -1, then negate the matrix and the scaling factors.
+#if 0
+		Pdum3 = cross(Row[1], Row[2]); // v3Cross(row[1], row[2], Pdum3);
+		if (dot(Row[0], Pdum3) < 0)
+		{
+			for (length_t i = 0; i < 3; i++)
+			{
+				scale[i] *= static_cast<T>(-1);
+				Row[i] *= static_cast<T>(-1);
+			}
+		}
+#endif
+
+		rotation.y = asin(-Row[0][2]);
+		if (cos(rotation.y) != 0) {
+			rotation.x = atan2(Row[1][2], Row[2][2]);
+			rotation.z = atan2(Row[0][1], Row[0][0]);
+		}
+		else {
+			rotation.x = atan2(-Row[2][0], Row[1][1]);
+			rotation.z = 0;
+		}
+
+
+		return true;
 	}
 
 }
+

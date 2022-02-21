@@ -399,7 +399,7 @@ namespace Shark {
 				changed |= UI::DragFloat("NearClip", clipnear, 0.01f, 0.01f, FLT_MAX);
 				changed |= UI::DragFloat("FarClip", clipfar, 1000.0f, 0.01f, FLT_MAX);
 
-				if (changed && (clipnear > 0.0f && clipfar > 0.0f && !DirectX::XMScalarNearEqual(clipnear, clipfar, 0.00001f)))
+				if (changed && (clipnear > 0.0f && clipfar > 0.0f && !glm::epsilonEqual(clipnear, clipfar, 0.00001f)))
 					camera.SetPerspective(camera.GetAspectratio(), fov, clipnear, clipfar);
 			}
 			else if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Orthographic)

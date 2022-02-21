@@ -11,6 +11,9 @@
 
 #include "Shark/Debug/Instrumentor.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
+
 #if SK_DEBUG
 #define SK_FILL_TEXTURE_ARRAY_DEBUG(texArr, whiteTexture) { auto&& textureArray = (texArr); for (uint32_t i = 0; i < textureArray->Count(); i++) if (!textureArray->Get(i)) textureArray->Set(i, whiteTexture); }
 #else
@@ -125,6 +128,16 @@ namespace Shark {
 			m_LineOnTopVertexBasePtr = new LineVertex[MaxLineOnTopVertices];
 		}
 
+		constexpr double delta = glm::pi<double>() / 10.0f; // 0.31415
+		glm::vec4 point = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		for (uint32_t i = 0; i < 20; i++)
+		{
+			const double r0 = (double)i * delta;
+			point.x = (float)glm::sin(r0);
+			point.y = (float)glm::cos(r0);
+
+			m_CirlceVertexPositions[i] = point;
+		}
 	}
 
 	void Renderer2D::ShutDown()
@@ -140,7 +153,7 @@ namespace Shark {
 		m_RenderTarget = renderTarget;
 	}
 
-	void Renderer2D::BeginScene(const DirectX::XMMATRIX& viewProj)
+	void Renderer2D::BeginScene(const glm::mat4& viewProj)
 	{
 		SK_PROFILE_FUNCTION();
 		
@@ -262,29 +275,66 @@ namespace Shark {
 		m_Active = false;
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id)
 	{
 		DrawQuad({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, id);
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id)
 	{
 		DrawQuad(position, scaling, m_WhiteTexture, 1.0f, color, id);
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
 	{
 		DrawQuad({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, texture, tilingfactor, tintcolor, id);
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
+	{
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::scale(glm::mat4(1), scaling);
+
+		DrawQuad(transform, texture, tilingfactor, tintcolor, id);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, float rotation, const glm::vec2& scaling, const glm::vec4& color, int id)
+	{
+		DrawRotatedQuad({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, color, id);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id)
+	{
+		DrawRotatedQuad(position, rotation, scaling, m_WhiteTexture, 1.0f, color, id);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, float rotation, const glm::vec2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
+	{
+		DrawRotatedQuad({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, texture, tilingfactor, tintcolor, id);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
+	{
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::scale(glm::mat4(1), scaling);
+
+		DrawQuad(transform, texture, tilingfactor, tintcolor, id);
+	}
+
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int id)
+	{
+		DrawQuad(transform, m_WhiteTexture, 1.0f, color, id);
+	}
+
+	void Renderer2D::DrawQuad(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id)
 	{
 		SK_CORE_ASSERT(m_Active);
-		
-		if (m_QuadIndexCount >= MaxQuadIndices || m_QuadTextureSlotIndex >= MaxTextureSlots)
-			FlushAndResetQuad();
 
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
+		if (m_QuadIndexCount >= MaxQuadIndices)
+			FlushAndResetQuad();
 
 		uint32_t textureSlot = 0;
 		if (texture != m_WhiteTexture && texture != nullptr)
@@ -293,65 +343,6 @@ namespace Shark {
 			for (uint32_t i = 0; i < m_QuadTextureSlotIndex; i++)
 				if (textureArray->Get(i) == texture)
 					textureSlot = i;
-		
-			if (textureSlot == 0)
-			{
-				textureSlot = m_QuadTextureSlotIndex++;
-				textureArray->Set(textureSlot, texture);
-				m_Statistics.TextureCount++;
-			}
-		}
-
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			QuadVertex* vtx = m_QuadVertexIndexPtr++;
-			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[i]), translation));
-			vtx->Color = tintcolor;
-			vtx->Tex = m_TextureCoords[i];
-			vtx->TextureSlot = textureSlot;
-			vtx->TilingFactor = tilingfactor;
-			vtx->ID = id;
-		}
-
-		m_QuadIndexCount += 6;
-
-		m_Statistics.QuadCount++;
-		m_Statistics.VertexCount += 4;
-		m_Statistics.IndexCount += 6;
-
-	}
-
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
-	{
-		DrawRotatedQuad({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, color, id);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
-	{
-		DrawRotatedQuad(position, rotation, scaling, m_WhiteTexture, 1.0f, color, id);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
-	{
-		DrawRotatedQuad({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, texture, tilingfactor, tintcolor, id);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const DirectX::XMFLOAT4& tintcolor, int id)
-	{
-		SK_CORE_ASSERT(m_Active);
-
-		if (m_QuadIndexCount >= MaxQuadIndices)
-			FlushAndResetQuad();
-
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, 1.0f) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-
-		uint32_t textureSlot = 0;
-		if (texture != m_WhiteTexture && texture != nullptr)
-		{
-			Ref<Texture2DArray> textureArray = m_QuadMaterial->GetTextureArray("g_Textures");
-			for (uint32_t i = 0; i < m_QuadTextureSlotIndex; i++)	
-				if (textureArray->Get(i) == texture)
-					textureSlot = i;
 
 			if (textureSlot == 0)
 			{
@@ -364,8 +355,8 @@ namespace Shark {
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			QuadVertex* vtx = m_QuadVertexIndexPtr++;
-			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[i]), translation));
-			vtx->Color = tintcolor;
+			vtx->WorldPosition = transform * m_QuadVertexPositions[i];
+			vtx->Color = color;
 			vtx->Tex = m_TextureCoords[i];
 			vtx->TextureSlot = textureSlot;
 			vtx->TilingFactor = tilingfactor;
@@ -379,25 +370,42 @@ namespace Shark {
 		m_Statistics.IndexCount += 6;
 	}
 
-	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
+	void Renderer2D::DrawFilledCircle(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, float thickness, float fade, int id)
 	{
 		DrawFilledCircle({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, thickness, fade, id);
 	}
 
-	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
+	void Renderer2D::DrawFilledCircle(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, float thickness, float fade, int id)
+	{
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::scale(glm::mat4(1), scaling);
+
+		DrawFilledCircle(transform, color, thickness, fade, id);
+	}
+
+	void Renderer2D::DrawFilledCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness, float fade, int id)
+	{
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::scale(glm::mat4(1), scaling);
+
+		DrawFilledCircle(transform, color, thickness, fade, id);
+	}
+
+	void Renderer2D::DrawFilledCircle(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int id)
 	{
 		SK_CORE_ASSERT(m_Active);
 
 		if (m_CircleIndexCount >= MaxCircleIndices)
 			FlushAndResetCircle();
 
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			CircleVertex* vtx = m_CircleVertexIndexPtr++;
-			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[i]), translation));
-			vtx->LocalPosition = { m_QuadVertexPositions[i].x * 2.0f, m_QuadVertexPositions[i].y * 2.0f };
+			vtx->WorldPosition = transform * m_QuadVertexPositions[i];
+			vtx->LocalPosition = m_QuadVertexPositions[i] * 2.0f;
 			vtx->Color = color;
 			vtx->Thickness = thickness;
 			vtx->Fade = fade;
@@ -411,75 +419,45 @@ namespace Shark {
 		m_Statistics.IndexCount += 6;
 	}
 
-	void Renderer2D::DrawFilledCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, float thickness, float fade, int id)
+	void Renderer2D::DrawCircle(const glm::vec2& position, float radius, const glm::vec4& color, int id)
 	{
-		SK_CORE_ASSERT(m_Active);
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), glm::vec3(position, 0.0f)) *
+			glm::scale(glm::mat4(1), glm::vec3(radius));
 
-		if (m_CircleIndexCount >= MaxCircleIndices)
-			FlushAndResetCircle();
-
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.z) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			CircleVertex* vtx = m_CircleVertexIndexPtr++;
-			vtx->WorldPosition = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[i]), translation));
-			vtx->LocalPosition = { m_QuadVertexPositions[i].x * 2.0f, m_QuadVertexPositions[i].y * 2.0f };
-			vtx->Color = color;
-			vtx->Thickness = thickness;
-			vtx->Fade = fade;
-			vtx->ID = id;
-		}
-
-		m_CircleIndexCount += 6;
-
-		m_Statistics.CircleCount++;
-		m_Statistics.VertexCount += 4;
-		m_Statistics.IndexCount += 6;
+		DrawCircle(transform, color, id);
 	}
 
-	void Renderer2D::DrawCircle(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
+	void Renderer2D::DrawCircle(const glm::vec3& position, const glm::vec3& rotation, float radius, const glm::vec4& color, int id)
 	{
-		DrawCircle({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, 0.0f }, radius, color, delta, id);
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::scale(glm::mat4(1), glm::vec3(radius));
+
+		DrawCircle(transform, color, id);
 	}
 
-	void Renderer2D::DrawCircle(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
+	void Renderer2D::DrawCircle(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
 		SK_CORE_ASSERT(m_Active);
-
-		const auto translation = DirectX::XMMatrixScaling(radius, radius, radius) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-
-		if (delta < 0.01f)
-			delta = 0.01f;
-
-		for (float i = 0; i < DirectX::XM_2PI; i += delta)
+		for (uint32_t i = 0; i < m_CirlceVertexPositions.size() - 1; i++)
 		{
-			float r0 = i;
-			float r1 = i + delta;
-
-			DirectX::XMFLOAT3 p0, p1;
-			p0.x = sinf(r0);
-			p0.y = cosf(r0);
-			p0.z = 0.0f;
-
-			p1.x = sinf(r1);
-			p1.y = cosf(r1);
-			p1.z = 0.0f;
-
-			p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(p0), translation));
-			p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(p1), translation));
-
+			glm::vec3 p0 = (transform * m_CirlceVertexPositions[i + 0]).xyz;
+			glm::vec3 p1 = (transform * m_CirlceVertexPositions[i + 1]).xyz;
 			DrawLine(p0, p1, color, id);
 		}
-
+		glm::vec3 p0 = (transform * m_CirlceVertexPositions.back()).xyz;
+		glm::vec3 p1 = (transform * m_CirlceVertexPositions.front()).xyz;
+		DrawLine(p0, p1, color, id);
 	}
 
-	void Renderer2D::DrawLine(const DirectX::XMFLOAT2& pos0, const DirectX::XMFLOAT2& pos1, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawLine(const glm::vec2& pos0, const glm::vec2& pos1, const glm::vec4& color, int id)
 	{
 		DrawLine({ pos0.x, pos0.y, 0.0f }, { pos1.x, pos1.y, 0.0f }, color, id);
 	}
 
-	void Renderer2D::DrawLine(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawLine(const glm::vec3& pos0, const glm::vec3& pos1, const glm::vec4& color, int id)
 	{
 		SK_CORE_ASSERT(m_Active);
 
@@ -503,43 +481,43 @@ namespace Shark {
 	}
 
 
-	void Renderer2D::DrawRect(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRect(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id)
 	{
 		DrawRect({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, id);
 	}
 
-	void Renderer2D::DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRect(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id)
 	{
-		SK_CORE_ASSERT(m_Active);
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::scale(glm::mat4(1), scaling);
 
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-
-		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[0]), translation));
-		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[1]), translation));
-		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[2]), translation));
-		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[3]), translation));
-
-		DrawLine(p0, p1, color, id);
-		DrawLine(p1, p2, color, id);
-		DrawLine(p2, p3, color, id);
-		DrawLine(p3, p0, color, id);
+		DrawRect(transform, color, id);
 	}
 
-	void Renderer2D::DrawRect(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRect(const glm::vec2& position, float rotation, const glm::vec2& scaling, const glm::vec4& color, int id)
 	{
 		DrawRect({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, color, id);
 	}
 
-	void Renderer2D::DrawRect(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRect(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id)
+	{
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::scale(glm::mat4(1), scaling);
+
+		DrawRect(transform, color, id);
+	}
+
+	void Renderer2D::DrawRect(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
 		SK_CORE_ASSERT(m_Active);
 
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.z) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-
-		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[0]), translation));
-		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[1]), translation));
-		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[2]), translation));
-		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[3]), translation));
+		glm::vec3 p0 = transform * m_QuadVertexPositions[0];
+		glm::vec3 p1 = transform * m_QuadVertexPositions[1];
+		glm::vec3 p2 = transform * m_QuadVertexPositions[2];
+		glm::vec3 p3 = transform * m_QuadVertexPositions[3];
 
 		DrawLine(p0, p1, color, id);
 		DrawLine(p1, p2, color, id);
@@ -547,12 +525,12 @@ namespace Shark {
 		DrawLine(p3, p0, color, id);
 	}
 
-	void Renderer2D::DrawLineOnTop(const DirectX::XMFLOAT2& pos0, const DirectX::XMFLOAT2& pos1, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawLineOnTop(const glm::vec2& pos0, const glm::vec2& pos1, const glm::vec4& color, int id)
 	{
 		DrawLineOnTop({ pos0.x, pos0.y, 0.0f }, { pos1.x, pos1.y, 0.0f }, color, id);
 	}
 
-	void Renderer2D::DrawLineOnTop(const DirectX::XMFLOAT3& pos0, const DirectX::XMFLOAT3& pos1, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawLineOnTop(const glm::vec3& pos0, const glm::vec3& pos1, const glm::vec4& color, int id)
 	{
 		SK_CORE_ASSERT(m_Active);
 
@@ -576,43 +554,43 @@ namespace Shark {
 		m_Statistics.IndexCount += 2;
 	}
 
-	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRectOnTop(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id)
 	{
 		DrawRectOnTop({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, id);
 	}
 
-	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRectOnTop(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id)
 	{
-		SK_CORE_ASSERT(m_Active);
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::scale(glm::mat4(1), scaling);
 
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.x) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-
-		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[0]), translation));
-		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[1]), translation));
-		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[2]), translation));
-		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[3]), translation));
-
-		DrawLineOnTop(p0, p1, color, id);
-		DrawLineOnTop(p1, p2, color, id);
-		DrawLineOnTop(p2, p3, color, id);
-		DrawLineOnTop(p3, p0, color, id);
+		DrawRectOnTop(transform, color, id);
 	}
 
-	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT2& position, float rotation, const DirectX::XMFLOAT2& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRectOnTop(const glm::vec2& position, float rotation, const glm::vec2& scaling, const glm::vec4& color, int id)
 	{
 		DrawRectOnTop({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, color, id);
 	}
 
-	void Renderer2D::DrawRectOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, const DirectX::XMFLOAT3& scaling, const DirectX::XMFLOAT4& color, int id)
+	void Renderer2D::DrawRectOnTop(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id)
+	{
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::scale(glm::mat4(1), scaling);
+
+		DrawRectOnTop(transform, color, id);
+	}
+
+	void Renderer2D::DrawRectOnTop(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
 		SK_CORE_ASSERT(m_Active);
 
-		const auto translation = DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.z) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-
-		auto p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[0]), translation));
-		auto p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[1]), translation));
-		auto p2 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[2]), translation));
-		auto p3 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(m_QuadVertexPositions[3]), translation));
+		glm::vec3 p0 = transform * m_QuadVertexPositions[0];
+		glm::vec3 p1 = transform * m_QuadVertexPositions[1];
+		glm::vec3 p2 = transform * m_QuadVertexPositions[2];
+		glm::vec3 p3 = transform * m_QuadVertexPositions[3];
 
 		DrawLineOnTop(p0, p1, color, id);
 		DrawLineOnTop(p1, p2, color, id);
@@ -620,39 +598,37 @@ namespace Shark {
 		DrawLineOnTop(p3, p0, color, id);
 	}
 
-	void Renderer2D::DrawCircleOnTop(const DirectX::XMFLOAT2& position, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
+	void Renderer2D::DrawCircleOnTop(const glm::vec2& position, float radius, const glm::vec4& color, int id)
 	{
-		DrawCircleOnTop({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, 0.0f }, radius, color, delta, id);
+		const auto transform =
+			glm::translate(glm::mat4(1), glm::vec3(position, 0.0f)) *
+			glm::scale(glm::mat4(1), glm::vec3(radius));
+
+		DrawCircleOnTop(transform, color, id);
 	}
 
-	void Renderer2D::DrawCircleOnTop(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& rotation, float radius, const DirectX::XMFLOAT4& color, float delta, int id)
+	void Renderer2D::DrawCircleOnTop(const glm::vec3& position, const glm::vec3& rotation, float radius, const glm::vec4& color, int id)
+	{
+		const auto transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::scale(glm::mat4(1), glm::vec3(radius));
+
+		DrawCircleOnTop(transform, color, id);
+	}
+
+	void Renderer2D::DrawCircleOnTop(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
 		SK_CORE_ASSERT(m_Active);
-
-		const auto translation = DirectX::XMMatrixScaling(radius, radius, radius) * DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) * DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-
-		if (delta < 0.01f)
-			delta = 0.01f;
-
-		for (float i = 0; i < DirectX::XM_2PI; i += delta)
+		for (uint32_t i = 0; i < m_CirlceVertexPositions.size() - 1; i++)
 		{
-			float r0 = i;
-			float r1 = i + delta;
-
-			DirectX::XMFLOAT3 p0, p1;
-			p0.x = sinf(r0);
-			p0.y = cosf(r0);
-			p0.z = 0.0f;
-
-			p1.x = sinf(r1);
-			p1.y = cosf(r1);
-			p1.z = 0.0f;
-
-			p0 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(p0), translation));
-			p1 = DXMath::Store3(DirectX::XMVector3Transform(DXMath::Load(p1), translation));
-
+			glm::vec3 p0 = (transform * m_CirlceVertexPositions[i + 0]).xyz;
+			glm::vec3 p1 = (transform * m_CirlceVertexPositions[i + 1]).xyz;
 			DrawLineOnTop(p0, p1, color, id);
 		}
+		glm::vec3 p0 = (transform * m_CirlceVertexPositions.back()).xyz;
+		glm::vec3 p1 = (transform * m_CirlceVertexPositions.front()).xyz;
+		DrawLineOnTop(p0, p1, color, id);
 	}
 
 	void Renderer2D::FlushAndResetQuad()
@@ -669,7 +645,6 @@ namespace Shark {
 			m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
 
 			SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_Textures"), m_WhiteTexture);
-			//m_QuadMaterial->SetTextureArray("g_Textures", m_QuadTextureArray);
 			Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_QuadMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
 			m_Statistics.DrawCalls++;
 		}

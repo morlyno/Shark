@@ -12,7 +12,7 @@
 #include <yaml-cpp/yaml.h>
 #include <fmt/format.h>
 #include <fstream>
-#include <DirectXMath.h>
+#include <glm/glm.hpp>
 
 namespace Shark {
 
@@ -347,13 +347,13 @@ namespace Shark {
 					auto& comp = deserializedEntity.AddOrReplaceComponent<TransformComponent>();
 
 					SK_CORE_ASSERT(position, "Couldn't deserialize TransformComponent::Position");
-					comp.Position = position.as<DirectX::XMFLOAT3>();
+					comp.Position = position.as<glm::vec3>();
 
 					SK_CORE_ASSERT(rotation, "Couldn't deserialize TransformComponent::Rotation");
-					comp.Rotation = rotation.as<DirectX::XMFLOAT3>();
+					comp.Rotation = rotation.as<glm::vec3>();
 
 					SK_CORE_ASSERT(scaling, "Couldn't deserialize TransformComponent::Scaling");
-					comp.Scaling = scaling.as<DirectX::XMFLOAT3>();
+					comp.Scaling = scaling.as<glm::vec3>();
 
 					SK_CORE_TRACE(" - Transfrom Component");
 				}
@@ -370,7 +370,7 @@ namespace Shark {
 					auto& comp = deserializedEntity.AddOrReplaceComponent<SpriteRendererComponent>();
 
 					SK_CORE_ASSERT(color, "Couldn't deserialize SpriteRendererComponent::Color");
-					comp.Color = color.as<DirectX::XMFLOAT4>();
+					comp.Color = color.as<glm::vec4>();
 
 					SK_CORE_ASSERT(textureFilePath, "Couldn't deserialize SpriteRendererComponent::Texture");
 					comp.TextureHandle = textureFilePath.as<UUID>();
@@ -391,7 +391,7 @@ namespace Shark {
 					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleRendererComponent>();
 					
 					SK_CORE_ASSERT(color, "Couldn't deserialize CircleRendererCompnent::Color");
-					comp.Color = color.as<DirectX::XMFLOAT4>();
+					comp.Color = color.as<glm::vec4>();
 
 					SK_CORE_ASSERT(thickness, "Couldn't deserialize CirlceRendererComponent::Thickness");
 					comp.Thickness = thickness.as<float>();
@@ -480,10 +480,10 @@ namespace Shark {
 					auto& comp = deserializedEntity.AddOrReplaceComponent<BoxCollider2DComponent>();
 
 					SK_CORE_ASSERT(size, "Couldn't desirialize BoxCollider2DComponent::Size");
-					comp.Size = size.as<DirectX::XMFLOAT2>();
+					comp.Size = size.as<glm::vec2>();
 
 					SK_CORE_ASSERT(offset, "Couldn't desirialize BoxCollider2DComponent::Offset");
-					comp.Offset = offset.as<DirectX::XMFLOAT2>();
+					comp.Offset = offset.as<glm::vec2>();
 
 					SK_CORE_ASSERT(rotation, "Couldn't desirialize BoxCollider2DComponent::Rotation");
 					comp.Rotation = rotation.as<float>();
@@ -520,7 +520,7 @@ namespace Shark {
 					comp.Radius = radius.as<float>();
 
 					SK_CORE_ASSERT(offset, "Couldn't desirialize CircleCollider2DComponent::Offset");
-					comp.Offset = offset.as<DirectX::XMFLOAT2>();
+					comp.Offset = offset.as<glm::vec2>();
 
 					SK_CORE_ASSERT(rotation, "Couldn't desirialize CircleCollider2DComponent::Rotation");
 					comp.Rotation = rotation.as<float>();

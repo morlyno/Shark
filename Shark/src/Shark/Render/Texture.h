@@ -5,7 +5,7 @@
 #include "Shark/Render/RenderCommandBuffer.h"
 #include "Shark/Asset/Asset.h"
 
-#include <DirectXMath.h>
+#include <glm/glm.hpp>
 
 namespace Shark {
 
@@ -19,11 +19,11 @@ namespace Shark {
 		AddressMode AddressU;
 		AddressMode AddressV;
 		AddressMode AddressW;
-		DirectX::XMFLOAT4 BorderColor;
+		glm::vec4 BorderColor;
 
 		SamplerProps(FilterMode minmag = FilterMode::Point, FilterMode mipmap = FilterMode::Point,
 			AddressMode u = AddressMode::Wrap, AddressMode v = AddressMode::Wrap, AddressMode w = AddressMode::Wrap,
-			const DirectX::XMFLOAT4& bordercolor = { 0.0f, 0.0f, 0.0f, 0.0f })
+			const glm::vec4& bordercolor = { 0.0f, 0.0f, 0.0f, 0.0f })
 			: MinMag(minmag), Mipmap(mipmap), AddressU(u), AddressV(v), AddressW(w), BorderColor(bordercolor)
 		{}
 	};

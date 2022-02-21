@@ -20,6 +20,7 @@ includeDir["box2d"] = "%{wks.location}/Shark/dependencies/box2d/include"
 includeDir["ImGuizmo"] = "%{wks.location}/Shark/dependencies/ImGuizmo"
 includeDir["fmt"] = "%{wks.location}/Shark/dependencies/fmt/include"
 includeDir["Optick"] = "%{wks.location}/Shark/dependencies/Optick/src"
+includeDir["glm"] = "%{wks.location}/Shark/dependencies/glm"
 
 group "Dependencies"
 	include "Shark/dependencies/ImGui"

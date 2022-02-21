@@ -4,14 +4,14 @@
 #include "Shark/File/FileSystem.h"
 
 #include <yaml-cpp/yaml.h>
-#include <DirectXMath.h>
+#include <glm/glm.hpp>
 
 namespace YAML {
 
 	template<>
-	struct convert<DirectX::XMFLOAT2>
+	struct convert<glm::vec2>
 	{
-		static bool decode(const Node& node, DirectX::XMFLOAT2& f2)
+		static bool decode(const Node& node, glm::vec2& f2)
 		{
 			if (!node.IsSequence() || node.size() != 2)
 				return false;
@@ -24,9 +24,9 @@ namespace YAML {
 	};
 
 	template<>
-	struct convert<DirectX::XMFLOAT3>
+	struct convert<glm::vec3>
 	{
-		static bool decode(const Node& node, DirectX::XMFLOAT3& f3)
+		static bool decode(const Node& node, glm::vec3& f3)
 		{
 			if (!node.IsSequence() || node.size() != 3)
 				return false;
@@ -40,9 +40,9 @@ namespace YAML {
 	};
 
 	template<>
-	struct convert<DirectX::XMFLOAT4>
+	struct convert<glm::vec4>
 	{
-		static bool decode(const Node& node, DirectX::XMFLOAT4& f4)
+		static bool decode(const Node& node, glm::vec4& f4)
 		{
 			if (!node.IsSequence() || node.size() != 4)
 				return false;
@@ -77,9 +77,9 @@ namespace YAML {
 		}
 	};
 
-	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT2& f2);
-	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT3& f3);
-	Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT4& f4);
+	Emitter& operator<<(Emitter& out, const glm::vec2& f2);
+	Emitter& operator<<(Emitter& out, const glm::vec3& f3);
+	Emitter& operator<<(Emitter& out, const glm::vec4& f4);
 	Emitter& operator<<(Emitter& out, const std::filesystem::path& filePath);
 	Emitter& operator<<(Emitter& out, const Shark::UUID& uuid);
 

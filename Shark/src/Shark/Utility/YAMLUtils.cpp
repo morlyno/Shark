@@ -5,21 +5,21 @@
 
 namespace YAML {
 
-	YAML::Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT2& f2)
+	YAML::Emitter& operator<<(Emitter& out, const glm::vec2& f2)
 	{
 		out << Flow;
 		out << BeginSeq << f2.x << f2.y << EndSeq;
 		return out;
 	}
 
-	YAML::Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT3& f3)
+	YAML::Emitter& operator<<(Emitter& out, const glm::vec3& f3)
 	{
 		out << Flow;
 		out << BeginSeq << f3.x << f3.y << f3.z << EndSeq;
 		return out;
 	}
 
-	YAML::Emitter& operator<<(Emitter& out, const DirectX::XMFLOAT4& f4)
+	YAML::Emitter& operator<<(Emitter& out, const glm::vec4& f4)
 	{
 		out << Flow;
 		out << BeginSeq << f4.x << f4.y << f4.z << f4.w << EndSeq;

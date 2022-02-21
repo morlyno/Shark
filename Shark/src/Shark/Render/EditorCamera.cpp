@@ -6,6 +6,10 @@
 
 #include "Shark/Debug/Instrumentor.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <glm/gtx/quaternion.hpp>
+
 namespace Shark {
 
 	EditorCamera::EditorCamera()
@@ -18,8 +22,8 @@ namespace Shark {
 	}
 
 	EditorCamera::EditorCamera(float aspectratio, float fov, float nearClip, float farClip)
-		: Camera(DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(fov), aspectratio, nearClip, farClip)),
-		m_AspectRatio(aspectratio), m_FOV(DirectX::XMConvertToRadians(fov)), m_NearClip(nearClip), m_FarClip(farClip)
+		: Camera(glm::perspectiveLH(glm::radians(fov), aspectratio, nearClip, farClip)),
+		m_AspectRatio(aspectratio), m_FOV(glm::radians(fov)), m_NearClip(nearClip), m_FarClip(farClip)
 	{
 		SK_PROFILE_FUNCTION();
 		
@@ -32,7 +36,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		m_AspectRatio = aspectratio;
-		m_FOV = DirectX::XMConvertToRadians(fov);
+		m_FOV = glm::radians(fov);
 		m_NearClip = nearClip;
 		m_FarClip = farClip;
 
@@ -47,7 +51,7 @@ namespace Shark {
 		{
 			float x = (float)Input::MousePosX();
 			float y = (float)Input::MousePosY();
-			DirectX::XMFLOAT2 delta = { (x - m_LastMousePos.x) * 0.003f, (y - m_LastMousePos.y) * 0.003f };
+			glm::vec2 delta = { (x - m_LastMousePos.x) * 0.003f, (y - m_LastMousePos.y) * 0.003f };
 			m_LastMousePos = { x, y };
 			if (Input::MousePressed(Mouse::LeftButton))
 				OnMouseRotate(delta);
@@ -75,35 +79,35 @@ namespace Shark {
 		}
 	}
 
-	DirectX::XMVECTOR EditorCamera::GetForwardDirection() const
+	glm::vec3 EditorCamera::GetForwardDirection() const
 	{
 		SK_PROFILE_FUNCTION();
 		
-		return DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), DirectX::XMMatrixRotationQuaternion(GetRotation()));
+		return glm::rotate(GetRotation(), glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 
-	DirectX::XMVECTOR EditorCamera::GetUpwardsDirection() const
+	glm::vec3 EditorCamera::GetUpwardsDirection() const
 	{
 		SK_PROFILE_FUNCTION();
 		
-		return DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), DirectX::XMMatrixRotationQuaternion(GetRotation()));
+		return glm::rotate(GetRotation(), glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 
-	DirectX::XMVECTOR EditorCamera::GetRightDirection() const
+	glm::vec3 EditorCamera::GetRightDirection() const
 	{
 		SK_PROFILE_FUNCTION();
 		
-		return DirectX::XMVector3Transform(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), DirectX::XMMatrixRotationQuaternion(GetRotation()));
+		return glm::rotate(GetRotation(), glm::vec3(1.0f, 0.0f, 0.0f));
 	}
 
-	DirectX::XMVECTOR EditorCamera::GetRotation() const
+	glm::quat EditorCamera::GetRotation() const
 	{
 		SK_PROFILE_FUNCTION();
 		
-		return DirectX::XMQuaternionRotationRollPitchYaw(m_Pitch, m_Yaw, 0.0f);
+		return glm::quat(glm::vec3(m_Pitch, m_Yaw, 0.0f));
 	}
 
-	DirectX::XMFLOAT2 EditorCamera::GetMoveSpeed()
+	glm::vec2 EditorCamera::GetMoveSpeed()
 	{
 		SK_PROFILE_FUNCTION();
 		
@@ -133,28 +137,24 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_View = DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&m_Position), DirectX::XMLoadFloat3(&m_FocusPoint), DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+		m_View = glm::lookAtLH(m_Position, m_FocusPoint, glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 
 	void EditorCamera::UpdateProjection()
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_Projection = DirectX::XMMatrixPerspectiveFovLH(m_FOV, m_AspectRatio, m_NearClip, m_FarClip);
+		m_Projection = glm::perspectiveLH(m_FOV, m_AspectRatio, m_NearClip, m_FarClip);
 	}
 
 	void EditorCamera::UpdatePosition()
 	{
 		SK_PROFILE_FUNCTION();
 		
-		using namespace DirectX;
-
-		auto focuspoint = XMLoadFloat3(&m_FocusPoint);
-		auto pos = focuspoint - GetForwardDirection() * m_Distance;
-		XMStoreFloat3(&m_Position, pos);
+		m_Position = m_FocusPoint - GetForwardDirection() * m_Distance;
 	}
 
-	void EditorCamera::OnMouseRotate(const DirectX::XMFLOAT2& delta)
+	void EditorCamera::OnMouseRotate(const glm::vec2& delta)
 	{
 		SK_PROFILE_FUNCTION();
 		
@@ -165,30 +165,23 @@ namespace Shark {
 		UpdateView();
 	}
 
-	void EditorCamera::OnMouseMove(const DirectX::XMFLOAT2& delta)
+	void EditorCamera::OnMouseMove(const glm::vec2& delta)
 	{
 		SK_PROFILE_FUNCTION();
 		
-		using namespace DirectX;
-		auto pos = XMLoadFloat3(&m_Position);
-		auto focuspos = XMLoadFloat3(&m_FocusPoint);
+		glm::vec2 speed = GetMoveSpeed();
 
-		auto [xSpeed, ySpeed] = GetMoveSpeed();
+		auto r = -GetRightDirection() * delta.x * speed.x * m_Distance;
+		auto u = GetUpwardsDirection() * delta.y * speed.y * m_Distance;
+		m_Position += r;
+		m_Position += u;
+		m_FocusPoint += r;
+		m_FocusPoint += u;
 
-		auto r = -GetRightDirection() * delta.x * xSpeed * m_Distance;
-		auto u = GetUpwardsDirection() * delta.y * ySpeed * m_Distance;
-		pos += r;
-		pos += u;
-		focuspos += r;
-		focuspos += u;
-
-		XMStoreFloat3(&m_Position, pos);
-		XMStoreFloat3(&m_FocusPoint, focuspos);
-		
 		UpdateView();
 	}
 
-	void EditorCamera::OnMouseZoom(const DirectX::XMFLOAT2& delta)
+	void EditorCamera::OnMouseZoom(const glm::vec2& delta)
 	{
 		SK_PROFILE_FUNCTION();
 		

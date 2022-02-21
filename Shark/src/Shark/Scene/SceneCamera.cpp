@@ -2,6 +2,8 @@
 #include "SceneCamera.h"
 #include "Shark/Utility/Math.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 namespace Shark {
 
 	SceneCamera::SceneCamera()
@@ -14,13 +16,13 @@ namespace Shark {
 	{
 	}
 
-	SceneCamera::SceneCamera(const DirectX::XMMATRIX& projection)
+	SceneCamera::SceneCamera(const glm::mat4& projection)
 		: Camera(projection)
 	{
 	}
 
 	SceneCamera::SceneCamera(float aspectratio, const PerspectiveSpecs& specs)
-		: m_ProjectionType(Projection::Perspective), m_Aspectratio(aspectratio), m_PerspectiveFOV(Math::ToRadians(specs.FOV)), m_PerspectiveNear(specs.Near), m_PerspectiveFar(specs.Far)
+		: m_ProjectionType(Projection::Perspective), m_Aspectratio(aspectratio), m_PerspectiveFOV(glm::radians(specs.FOV)), m_PerspectiveNear(specs.Near), m_PerspectiveFar(specs.Far)
 	{
 		Recalcualte();
 	}
@@ -32,7 +34,7 @@ namespace Shark {
 
 	SceneCamera::SceneCamera(Projection projection, float aspectratio, const PerspectiveSpecs& ps, const OrthographicSpecs& os)
 		: m_ProjectionType(projection), m_Aspectratio(aspectratio),
-		  m_PerspectiveFOV(Math::ToRadians(ps.FOV)), m_PerspectiveNear(ps.Near), m_PerspectiveFar(ps.Far),
+		  m_PerspectiveFOV(glm::radians(ps.FOV)), m_PerspectiveNear(ps.Near), m_PerspectiveFar(ps.Far),
 		  m_OrthographicZoom(os.Zoom), m_OrthographicNear(os.Near), m_OrthographicFar(os.Far)
 	{
 		Recalcualte();
@@ -55,12 +57,24 @@ namespace Shark {
 
 	void SceneCamera::RecaluclatePerspetive()
 	{
-		m_Projection = DirectX::XMMatrixPerspectiveFovLH(m_PerspectiveFOV, m_Aspectratio, m_PerspectiveNear, m_PerspectiveFar);
+		m_Projection = glm::perspectiveLH(
+			m_PerspectiveFOV,
+			m_Aspectratio,
+			m_PerspectiveNear,
+			m_PerspectiveFar
+		);
 	}
 
 	void SceneCamera::RecaluclateOrthographic()
 	{
-		m_Projection = DirectX::XMMatrixOrthographicOffCenterLH(-m_OrthographicZoom * m_Aspectratio, m_OrthographicZoom * m_Aspectratio, -m_OrthographicZoom, m_OrthographicZoom, m_OrthographicNear, m_OrthographicFar);
+		m_Projection = glm::orthoLH(
+			-m_OrthographicZoom * m_Aspectratio,
+			m_OrthographicZoom * m_Aspectratio,
+			-m_OrthographicZoom,
+			m_OrthographicZoom,
+			m_OrthographicNear,
+			m_OrthographicFar
+		);
 	}
 
 }

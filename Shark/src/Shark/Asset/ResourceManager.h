@@ -1,12 +1,13 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Project.h"
 #include "Shark/Asset/Asset.h"
 #include "Shark/Asset/AssetTypes.h"
 #include "Shark/Asset/AssetRegistry.h"
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/File/FileSystem.h"
-#include "Shark/Core/Project.h"
+#include "Shark/File/FileWatcher.h"
 
 namespace Shark {
 
@@ -59,7 +60,9 @@ namespace Shark {
 			if (!metadata.IsDataLoaded)
 			{
 				Ref<Asset> asset = nullptr;
+				FileWatcher::PauseWatching();
 				metadata.IsDataLoaded = AssetSerializer::TryLoadData(asset, metadata);
+				FileWatcher::ContinueWatching();
 				if (!metadata.IsDataLoaded)
 					return nullptr;
 

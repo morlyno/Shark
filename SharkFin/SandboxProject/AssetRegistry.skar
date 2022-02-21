@@ -23,3 +23,9 @@ Assets:
   - Handle: 2933127070879412143
     Type: Texture
     FilePath: Textures/PlayButton.png
+  - Handle: 5089868607452121416
+    Type: Scene
+    FilePath: Scenes/Physics.skscene
+  - Handle: 10325264917233420087
+    Type: Scene
+    FilePath: Scenes/PhysicsScene.skscene
