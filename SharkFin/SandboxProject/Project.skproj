@@ -1,0 +1,9 @@
+Project:
+  Name: Sandbox
+  Assets: Assets
+  StartupScene: Assets/Scenes/PhysicsScene.skscene
+  Physics:
+    Gravity: [0, -9.81000042]
+    VelocityIterations: 8
+    PositionIterations: 3
+    FixedTimeStep: 0.00100000005

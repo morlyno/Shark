@@ -10,6 +10,8 @@ namespace Shark::UI::Theme {
 		s_Colors->ButtonNoBg           = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
 		s_Colors->ButtonHoveredNoBg    = ImVec4(0.31f, 0.31f, 0.31f, 0.50f);
 		s_Colors->ButtonActiveNoBg     = ImVec4(0.39f, 0.39f, 0.39f, 0.50f);
+
+		s_Colors->TextInvalidInput     = ImVec4(0.80f, 0.30f, 0.10f, 1.00f);
 	}
 
 	void LoadLight()

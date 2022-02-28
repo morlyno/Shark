@@ -66,10 +66,6 @@ namespace Shark {
 	Scene::~Scene()
 	{
 		SK_PROFILE_FUNCTION();
-
-		//SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr, "OnSceneStop musst be called befor the Scene gets destroyed!");
-		if (m_PhysicsWorld2D)
-			OnSceneStop();
 	}
 
 	Ref<Scene> Scene::Copy(Ref<Scene> srcScene)
@@ -174,9 +170,8 @@ namespace Shark {
 				comp.DestroyScript(comp.Script);
 			}
 		}
-
-		delete m_PhysicsWorld2D;
-		m_PhysicsWorld2D = nullptr;
+		
+		m_PhysicsScene.DestoryScene();
 
 		m_RuntimeCamera = entt::null;
 	}
@@ -204,8 +199,7 @@ namespace Shark {
 		}
 
 		{
-			// TODO(moro): expose iteration values
-			m_PhysicsWorld2D->Step((float)ts, 6, 2);
+			m_PhysicsScene.Step(ts);
 
 			auto view = m_Registry.view<RigidBody2DComponent>();
 			for (auto e : view)
@@ -230,8 +224,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		// TODO(moro): expose iteration values
-		m_PhysicsWorld2D->Step((float)ts, 6, 2);
+		m_PhysicsScene.Step(ts);
 
 		auto view = m_Registry.view<RigidBody2DComponent>();
 		for (auto e : view)
@@ -244,6 +237,38 @@ namespace Shark {
 			transform.Position.y = pos.y;
 			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 		}
+	}
+
+	void Scene::OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj)
+	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("Scene::OnRender");
+
+		renderer->SetScene(this);
+		renderer->BeginScene(viewProj);
+
+		{
+			auto view = m_Registry.view<SpriteRendererComponent, TransformComponent>();
+			for (auto entity : view)
+			{
+				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
+				Ref<Texture2D> texture;
+				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
+					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
+				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
+			}
+		}
+
+		{
+			auto view = m_Registry.view<CircleRendererComponent, TransformComponent>();
+			for (auto entity : view)
+			{
+				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
+				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
+			}
+		}
+
+		renderer->EndScene();
 	}
 
 	void Scene::OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const glm::mat4& view)
@@ -489,8 +514,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		SK_CORE_ASSERT(m_PhysicsWorld2D == nullptr);
-		m_PhysicsWorld2D = new b2World({ 0.0f, -9.8f });
+		m_PhysicsScene.CreateScene();
+		b2World* world = m_PhysicsScene.GetWorld();
 
 		// Add missing RigidBodys
 		{
@@ -533,7 +558,7 @@ namespace Shark {
 				bodydef.angle = transform.Rotation.z;
 				bodydef.fixedRotation = rb2d.FixedRotation;
 
-				rb2d.RuntimeBody = m_PhysicsWorld2D->CreateBody(&bodydef);
+				rb2d.RuntimeBody = world->CreateBody(&bodydef);
 
 				if (entity.HasComponent<BoxCollider2DComponent>())
 				{

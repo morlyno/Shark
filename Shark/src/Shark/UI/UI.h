@@ -191,6 +191,12 @@ namespace ImGui {
 
 namespace Shark::UI {
 
+	enum
+	{
+		DefualtTreeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth,
+		TreeNodeSeperatorFlags = DefualtTreeNodeFlags | ImGuiTreeNodeFlags_Selected
+	};
+
 	namespace Flags {
 
 		enum TextEnum : uint16_t
@@ -217,7 +223,9 @@ namespace Shark::UI {
 			Property_MinWidth = BIT(5),
 
 			Property_GridFull = Property_GridInnerV | Property_GridInnerH | Property_GridOuterV | Property_GridOuterH,
-			Property_GridDefualt = Property_GridInnerV | Property_GridInnerH /*| Grid_OuterV*/ | Property_GridOuterH
+			Property_GridDefualt = Property_GridInnerV | Property_GridInnerH /*| Grid_OuterV*/ | Property_GridOuterH,
+
+			Property_GridMask = Property_GridInnerV | Property_GridInnerH | Property_GridOuterV | Property_GridOuterH
 		};
 		using Grid = std::underlying_type_t<PropertyEnum>;
 
@@ -323,10 +331,11 @@ namespace Shark::UI {
 
 	bool BeginProperty(Flags::Grid flags = Flags::Property_None);
 	bool BeginProperty(const std::string& strID, Flags::Grid flags = Flags::Property_None);
-	bool BeginPropertyGrid(Flags::Grid flags = Flags::Property_None);
-	bool BeginPropertyGrid(const std::string& strID, Flags::Grid flags = Flags::Property_None);
+	bool BeginPropertyGrid();
+	bool BeginPropertyGrid(const std::string& strID);
 
-	bool BeginProperty(ImGuiID customID, Flags::Grid);
+	bool BeginProperty(ImGuiID customID, Flags::Grid flags);
+	bool BeginPropertyGrid(ImGuiID customID);
 
 	void EndProperty();
 
@@ -378,5 +387,7 @@ namespace Shark::UI {
 	//////////////////////////////////////////////////////////////////////////////
 
 	bool TreeNode(const std::string& tag, ImGuiTreeNodeFlags flags, ImTextureID textureID);
+
+	void Separator(float size);
 
 }

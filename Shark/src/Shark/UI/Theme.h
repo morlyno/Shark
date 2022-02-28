@@ -13,6 +13,8 @@ namespace Shark::UI::Theme {
 		ImVec4 ButtonNoBg;
 		ImVec4 ButtonHoveredNoBg;
 		ImVec4 ButtonActiveNoBg;
+
+		ImVec4 TextInvalidInput;
 	};
 
 	const Color& GetColors();

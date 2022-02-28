@@ -83,9 +83,9 @@ namespace Shark {
 
 			ImGui::Separator();
 
-			if (ImGui::Selectable("Open"))           Utility::OpenFile(Project::MakeAbsolue(m_SelectedEntry->Path));
-			if (ImGui::Selectable("Open With"))      Utility::OpenFileWith(Project::MakeAbsolue(m_SelectedEntry->Path));
-			if (ImGui::Selectable("Open Explorer"))  Utility::OpenExplorer(Project::MakeAbsolue(m_CurrentDirectory->Path));
+			if (ImGui::Selectable("Open"))           Utility::OpenFile(Project::AbsolueCopy(m_SelectedEntry->Path));
+			if (ImGui::Selectable("Open With"))      Utility::OpenFileWith(Project::AbsolueCopy(m_SelectedEntry->Path));
+			if (ImGui::Selectable("Open Explorer"))  Utility::OpenExplorer(Project::AbsolueCopy(m_CurrentDirectory->Path));
 
 			ImGui::EndPopup();
 		}
@@ -281,7 +281,7 @@ namespace Shark {
 
 		if (ImGui::BeginPopup("Settings"))
 		{
-			UI::BeginProperty(UI::Flags::Property_GridFull);
+			UI::BeginPropertyGrid();
 			UI::Checkbox("Show only Assets", m_Settings.ShowOnlyAssets);
 			UI::EndProperty();
 
@@ -302,7 +302,7 @@ namespace Shark {
 		m_RootDirectory.ChildEntrys.clear();
 		m_RootDirectory.Type = EntryType::Directory;
 		m_RootDirectory.Handle = AssetHandle::Null();
-		m_RootDirectory.Path = Project::MakeRelative(rootPath);
+		m_RootDirectory.Path = Project::RelativeCopy(rootPath);
 		CacheDirectory(m_RootDirectory, rootPath);
 		m_CurrentDirectory = &m_RootDirectory;
 
@@ -325,7 +325,7 @@ namespace Shark {
 				auto& childEntry = childs.emplace_back();
 				childEntry.Type = EntryType::File;
 				childEntry.Handle = ResourceManager::GetAssetHandleFromFilePath(entry.path());
-				childEntry.Path = Project::MakeRelative(entry.path());
+				childEntry.Path = Project::RelativeCopy(entry.path());
 				childEntry.DisplayName = entry.path().stem().string();
 				continue;
 			}
@@ -334,7 +334,7 @@ namespace Shark {
 			auto& childEntry = *childs.emplace(childs.begin() + directoryIndex++);
 			childEntry.Type = EntryType::Directory;
 			childEntry.Handle = 0;
-			childEntry.Path = Project::MakeRelative(entry.path());
+			childEntry.Path = Project::RelativeCopy(entry.path());
 			childEntry.DisplayName = entry.path().stem().string();
 
 			CacheDirectory(childEntry, entry.path());
@@ -409,7 +409,7 @@ namespace Shark {
 
 	void ContentBrowserPanel::ImportEntry(DirectoryEntry& entry)
 	{
-		entry.Handle = ResourceManager::ImportAsset(Project::MakeAbsolue(entry.Path));
+		entry.Handle = ResourceManager::ImportAsset(Project::AbsolueCopy(entry.Path));
 	}
 
 }

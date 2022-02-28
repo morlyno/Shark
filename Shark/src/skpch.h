@@ -24,6 +24,16 @@
 
 #include <fmt/format.h>
 
+#define GLM_ENABLE_EXPERIMENTAL 1
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+
 #if SK_PLATFORM_WINDOWS
 	#ifndef NOMINMAX
 		#define NOMINMAX

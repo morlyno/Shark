@@ -55,8 +55,8 @@ namespace Shark {
 	{
 		std::string path = filePath.string();
 		if (path.find(Project::GetAssetsPath().string()) != std::string::npos)
-			return FileSystem::MakeDefaultFormat(std::filesystem::relative(filePath, Project::GetAssetsPath()));
-		return FileSystem::MakeDefaultFormat(std::filesystem::relative(Project::GetAssetsPath() / filePath, Project::GetAssetsPath()));
+			return FileSystem::FormatDefaultCopy(std::filesystem::relative(filePath, Project::GetAssetsPath()));
+		return FileSystem::FormatDefaultCopy(std::filesystem::relative(Project::GetAssetsPath() / filePath, Project::GetAssetsPath()));
 	}
 
 	AssetHandle ResourceManager::GetAssetHandleFromFilePath(const std::filesystem::path& filePath)

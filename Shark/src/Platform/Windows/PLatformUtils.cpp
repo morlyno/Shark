@@ -44,7 +44,7 @@ namespace Shark {
 			if (!defaultPath.empty())
 			{
 				auto windowsDefaultPath = std::filesystem::absolute(defaultPath);
-				windowsDefaultPath = FileSystem::MakeWindowsDefault(windowsDefaultPath);
+				windowsDefaultPath = FileSystem::FormatWindowsCopy(windowsDefaultPath);
 				IShellItem* defualtPathItem;
 				if (SUCCEEDED(::SHCreateItemFromParsingName(windowsDefaultPath.c_str(), NULL, IID_PPV_ARGS(&defualtPathItem))))
 				{
@@ -90,7 +90,7 @@ namespace Shark {
 			if (!defaultPath.empty())
 			{
 				auto windowsDefaultPath = std::filesystem::absolute(defaultPath);
-				windowsDefaultPath = FileSystem::MakeWindowsDefault(windowsDefaultPath);
+				windowsDefaultPath = FileSystem::FormatWindowsCopy(windowsDefaultPath);
 				IShellItem* defualtPathItem;
 				if (SUCCEEDED(::SHCreateItemFromParsingName(windowsDefaultPath.c_str(), NULL, IID_PPV_ARGS(&defualtPathItem))))
 				{
@@ -131,6 +131,7 @@ namespace Shark {
 					if (SUCCEEDED(shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
 					{
 						out_Result = filePath;
+						FileSystem::FormatDefault(out_Result);
 						CoTaskMemFree(filePath);
 					}
 

@@ -8,15 +8,16 @@ namespace Shark {
 	{
 		// Name without extention
 		std::string Name;
-
-		std::string ProjectFileName;
 		std::filesystem::path ProjectDirectory;
 
-		std::filesystem::path AssetsPath;
-		std::filesystem::path ScenesPath;
-		std::filesystem::path TexturesPath;
-
+		std::filesystem::path AssetsDirectory;
 		std::filesystem::path StartupScenePath;
+
+		// Physics
+		glm::vec2 Gravity;
+		uint32_t VelocityIterations;
+		uint32_t PositionIterations;
+		float FixedTimeStep;
 	};
 
 	class Project : public RefCount
@@ -25,13 +26,17 @@ namespace Shark {
 		static const std::filesystem::path& GetProjectDirectory();
 
 		static const std::filesystem::path& GetAssetsPath();
-		static const std::filesystem::path& GetScenesPath();
-		static const std::filesystem::path& GetTexturesPath();
-
 		static const std::filesystem::path& GetStartupScenePath();
 
-		static std::filesystem::path MakeRelative(const std::filesystem::path& filePath);
-		static std::filesystem::path MakeAbsolue(const std::filesystem::path& filePath);
+		static const glm::vec2& GetGravity();
+		static uint32_t GetVelocityIterations();
+		static uint32_t GetPositionIterations();
+		static float GetFixedTimeStep();
+
+		static std::filesystem::path RelativeCopy(const std::filesystem::path& filePath);
+		static std::filesystem::path AbsolueCopy(const std::filesystem::path& filePath);
+		static void Relative(std::filesystem::path& filePath);
+		static void Absolue(std::filesystem::path& filePath);
 
 		static Ref<Project> GetActive();
 		static void SetActive(Ref<Project> project);

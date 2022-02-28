@@ -5,6 +5,8 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utility/YAMLUtils.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 #include <yaml-cpp/yaml.h>
 
 namespace Shark {
@@ -23,17 +25,7 @@ namespace Shark {
 
 	const std::filesystem::path& Project::GetAssetsPath()
 	{
-		return GetActiveConfig().AssetsPath;
-	}
-
-	const std::filesystem::path& Project::GetScenesPath()
-	{
-		return GetActiveConfig().ScenesPath;
-	}
-
-	const std::filesystem::path& Project::GetTexturesPath()
-	{
-		return GetActiveConfig().TexturesPath;
+		return GetActiveConfig().AssetsDirectory;
 	}
 
 	const std::filesystem::path& Project::GetStartupScenePath()
@@ -41,14 +33,46 @@ namespace Shark {
 		return GetActiveConfig().StartupScenePath;
 	}
 
-	std::filesystem::path Project::MakeRelative(const std::filesystem::path& filePath)
+	const glm::vec2& Project::GetGravity()
 	{
-		return FileSystem::MakeDefaultFormat(std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory));
+		return GetActiveConfig().Gravity;
 	}
 
-	std::filesystem::path Project::MakeAbsolue(const std::filesystem::path& filePath)
+	uint32_t Project::GetVelocityIterations()
 	{
-		return FileSystem::MakeDefaultFormat(GetActiveConfig().ProjectDirectory / filePath);
+		return GetActiveConfig().VelocityIterations;
+	}
+
+	uint32_t Project::GetPositionIterations()
+	{
+		return GetActiveConfig().PositionIterations;
+	}
+
+	float Project::GetFixedTimeStep()
+	{
+		return GetActiveConfig().FixedTimeStep;
+	}
+
+	std::filesystem::path Project::RelativeCopy(const std::filesystem::path& filePath)
+	{
+		return FileSystem::FormatDefaultCopy(std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory));
+	}
+
+	std::filesystem::path Project::AbsolueCopy(const std::filesystem::path& filePath)
+	{
+		return FileSystem::FormatDefaultCopy(GetActiveConfig().ProjectDirectory / filePath);
+	}
+
+	void Project::Relative(std::filesystem::path& filePath)
+	{
+		filePath = std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory);
+		FileSystem::FormatDefault(filePath);
+	}
+
+	void Project::Absolue(std::filesystem::path& filePath)
+	{
+		filePath = GetActiveConfig().ProjectDirectory / filePath;
+		FileSystem::FormatDefault(filePath);
 	}
 
 	Ref<Project> Project::GetActive()
@@ -70,6 +94,8 @@ namespace Shark {
 
 	bool ProjectSerializer::Serialize(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(m_Project);
 		if (!m_Project)
 			return false;
@@ -81,23 +107,25 @@ namespace Shark {
 		YAML::Emitter out;
 
 		const auto& config = m_Project->GetConfig();
-		//SK_CORE_ASSERT(FileSystem::IsRelative(config.AssetsPath, config.ProjectDirectory));
-		//SK_CORE_ASSERT(FileSystem::IsRelative(config.ScenesPath, config.ProjectDirectory));
-		//SK_CORE_ASSERT(FileSystem::IsRelative(config.TexturesPath, config.ProjectDirectory));
-		//SK_CORE_ASSERT(FileSystem::IsRelative(config.StartupScenePath, config.ProjectDirectory));
-
-		out << YAML::BeginMap;
-
-		const auto assetsPath = std::filesystem::relative(config.AssetsPath, config.ProjectDirectory);
-		const auto scenesPath = std::filesystem::relative(config.ScenesPath, config.ProjectDirectory);
-		const auto texturesPath = std::filesystem::relative(config.TexturesPath, config.ProjectDirectory);
+		const auto assetsPath = std::filesystem::relative(config.AssetsDirectory, config.ProjectDirectory);
 		const auto startupScenePath = std::filesystem::relative(config.StartupScenePath, config.ProjectDirectory);
 
+		out << YAML::BeginMap;
+		out << YAML::Key << "Project" << YAML::Value;
+
+		out << YAML::BeginMap;
 		out << YAML::Key << "Name" << YAML::Value << config.Name;
-		out << YAML::Key << "AssetsPath" << YAML::Value << assetsPath;
-		out << YAML::Key << "ScenesPath" << YAML::Value << scenesPath;
-		out << YAML::Key << "TexturesPath" << YAML::Value << texturesPath;
-		out << YAML::Key << "StartupScenePath" << YAML::Value << startupScenePath;
+		out << YAML::Key << "Assets" << YAML::Value << assetsPath;
+		out << YAML::Key << "StartupScene" << YAML::Value << startupScenePath;
+
+		out << YAML::Key << "Physics" << YAML::Value;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Gravity" << YAML::Value << config.Gravity;
+		out << YAML::Key << "VelocityIterations" << YAML::Value << config.VelocityIterations;
+		out << YAML::Key << "PositionIterations" << YAML::Value << config.PositionIterations;
+		out << YAML::Key << "FixedTimeStep" << YAML::Value << config.FixedTimeStep;
+		out << YAML::EndMap;
+		out << YAML::EndMap;
 
 		out << YAML::EndMap;
 
@@ -118,10 +146,13 @@ namespace Shark {
 
 		SK_CORE_INFO("Serializing Project To: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
-		SK_CORE_TRACE("  Assets Path: {}", config.AssetsPath);
-		SK_CORE_TRACE("  Scenes Path: {}", config.ScenesPath);
-		SK_CORE_TRACE("  Textures Path: {}", config.TexturesPath);
+		SK_CORE_TRACE("  Assets Path: {}", config.AssetsDirectory);
 		SK_CORE_TRACE("  Startup Scene Path: {}", config.StartupScenePath);
+		SK_CORE_TRACE("  Physics:");
+		SK_CORE_TRACE("    Gravity: {}", config.Gravity);
+		SK_CORE_TRACE("    ValocityIterations: {}", config.VelocityIterations);
+		SK_CORE_TRACE("    PositionIterations: {}", config.PositionIterations);
+		SK_CORE_TRACE("    FixedTimeStep: {}", config.FixedTimeStep);
 		SK_CORE_INFO("Project Serialization tock: {}ms", time.MilliSeconds());
 
 		return true;
@@ -129,6 +160,8 @@ namespace Shark {
 
 	bool ProjectSerializer::Deserialize(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(m_Project);
 		if (!m_Project)
 			return false;
@@ -138,48 +171,50 @@ namespace Shark {
 		Timer timer;
 		YAML::Node in = YAML::LoadFile(filePath);
 
-		auto name = in["Name"];
-		auto assetsPath = in["AssetsPath"];
-		auto scenesPath = in["ScenesPath"];
-		auto texturesPath = in["TexturesPath"];
-		auto startupScenePath = in["StartupScenePath"];
-
-		SK_CORE_ASSERT(name);
-		SK_CORE_ASSERT(assetsPath);
-		SK_CORE_ASSERT(scenesPath);
-		SK_CORE_ASSERT(texturesPath);
-		SK_CORE_ASSERT(startupScenePath);
+		auto project = in["Project"];
+		if (!project)
+			return false;
 
 		auto& config = m_Project->m_Config;
-		config.Name = name.as<std::string>();
-		config.AssetsPath = assetsPath.as<std::filesystem::path>();
-		config.ScenesPath = scenesPath.as<std::filesystem::path>();
-		config.TexturesPath = texturesPath.as<std::filesystem::path>();
-		config.StartupScenePath = startupScenePath.as<std::filesystem::path>();
+		config.Name             = project["Name"].as<std::string>();
+		auto assetsDirectory    = project["Assets"].as<std::filesystem::path>();
+		auto startupScenePath   = project["StartupScene"].as<std::filesystem::path>();
+		
+		auto physics = project["Physics"];
+		if (physics)
+		{
+			config.Gravity            = physics["Gravity"].as<glm::vec2>();
+			config.VelocityIterations = physics["VelocityIterations"].as<uint32_t>();
+			config.PositionIterations = physics["PositionIterations"].as<uint32_t>();
+			config.FixedTimeStep      = physics["FixedTimeStep"].as<float>();
+		}
+		else
+		{
+			config.Gravity            = { 0.0f, 9.81f };
+			config.VelocityIterations = 8;
+			config.PositionIterations = 3;
+			config.FixedTimeStep      = 0.001f;
+		}
 
-		config.ProjectDirectory = FileSystem::MakeDefaultFormat(filePath.parent_path());
-		config.ProjectFileName = filePath.filename().string();
+		config.ProjectDirectory = FileSystem::FormatDefaultCopy(filePath.parent_path());
+		config.AssetsDirectory = FileSystem::FormatDefaultCopy(config.ProjectDirectory / assetsDirectory);
+		config.StartupScenePath = FileSystem::FormatDefaultCopy(config.ProjectDirectory / startupScenePath);
 
-		config.AssetsPath = FileSystem::MakeDefaultFormat(config.ProjectDirectory / config.AssetsPath);
-		config.ScenesPath = FileSystem::MakeDefaultFormat(config.ProjectDirectory / config.ScenesPath);
-		config.TexturesPath = FileSystem::MakeDefaultFormat(config.ProjectDirectory / config.TexturesPath);
-		config.StartupScenePath = FileSystem::MakeDefaultFormat(config.ProjectDirectory / config.StartupScenePath);
-
-		SK_CORE_ASSERT(config.ProjectDirectory.is_absolute())
-		SK_CORE_ASSERT(config.AssetsPath.is_absolute())
-		SK_CORE_ASSERT(config.ScenesPath.is_absolute())
-		SK_CORE_ASSERT(config.TexturesPath.is_absolute())
-		SK_CORE_ASSERT(config.StartupScenePath.is_absolute())
+		SK_CORE_ASSERT(config.ProjectDirectory.is_absolute());
+		SK_CORE_ASSERT(config.AssetsDirectory.is_absolute());
+		SK_CORE_ASSERT(config.StartupScenePath.is_absolute());
 
 		TimeStep time = timer.Stop();
 
 		SK_CORE_INFO("Deserializing Project from: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
-		SK_CORE_TRACE("  Project Dir: {}", config.ProjectDirectory);
-		SK_CORE_TRACE("  Assets Path: {}", config.AssetsPath);
-		SK_CORE_TRACE("  Scenes Path: {}", config.ScenesPath);
-		SK_CORE_TRACE("  Textures Path: {}", config.TexturesPath);
-		SK_CORE_TRACE("  Startup Scene Path: {}", config.StartupScenePath);
+		SK_CORE_TRACE("  Assets Path: {}", assetsDirectory);
+		SK_CORE_TRACE("  Startup Scene Path: {}", startupScenePath);
+		SK_CORE_TRACE("  Physics:");
+		SK_CORE_TRACE("    Gravity: {}", config.Gravity);
+		SK_CORE_TRACE("    ValocityIterations: {}", config.VelocityIterations);
+		SK_CORE_TRACE("    PositionIterations: {}", config.PositionIterations);
+		SK_CORE_TRACE("    FixedTimeStep: {}", config.FixedTimeStep);
 		SK_CORE_INFO("Project Deserialization tock: {}ms", time.MilliSeconds());
 
 		return true;

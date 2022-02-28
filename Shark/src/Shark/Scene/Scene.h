@@ -9,9 +9,9 @@
 
 #include "Shark/Asset/Asset.h"
 
-#include <entt.hpp>
+#include "Shark/Scene/Physics2DScene.h"
 
-class b2World;
+#include <entt.hpp>
 
 namespace Shark {
 
@@ -38,6 +38,8 @@ namespace Shark {
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts);
 		void OnSimulate(TimeStep ts);
+
+		void OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj);
 
 		void OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const glm::mat4& view);
 		void OnRenderRuntime(Ref<SceneRenderer> renderer);
@@ -82,7 +84,7 @@ namespace Shark {
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
-		b2World* m_PhysicsWorld2D = nullptr;
+		Physics2DScene m_PhysicsScene;
 
 		friend class Entity;
 		friend class SceneHirachyPanel;

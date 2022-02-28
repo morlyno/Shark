@@ -49,6 +49,9 @@ namespace Shark::UI {
 	static std::vector<Flags::Text> s_TextFlagStack = std::vector<Flags::Text>(1, Flags::Text_None);
 	static std::string s_StringBuffer;
 
+	static bool s_IsPropertyGrid = false;
+	static uint32_t s_PropertyCount = 0;
+
 	void NewFrame()
 	{
 		SK_CORE_ASSERT(s_TextFlagStack.size() == 1, "Push/Pop Text Flag missmatch");
@@ -387,11 +390,39 @@ namespace Shark::UI {
 
 	namespace Utils {
 
+		static void GridSeparator()
+		{
+			ImGuiContext& g = *GImGui;
+			ImGuiWindow* window = g.CurrentWindow;
+
+			ImGuiTableColumn& collumn = ImGui::GetCurrentTable()->Columns[0];
+			float x1 = collumn.MinX;
+			float x2 = collumn.MaxX;
+
+			// FIXME-WORKRECT: old hack (#205) until we decide of consistent behavior with WorkRect/Indent and Separator
+			if (g.GroupStack.Size > 0 && g.GroupStack.back().WindowID == window->ID)
+				x1 += window->DC.Indent.x;
+
+			// We don't provide our width to the layout so that it doesn't get feed back into AutoFit
+			float thickness_draw = 1.0f;
+			float thickness_layout = 0.0f;
+
+			const ImRect bb(ImVec2(x1, window->DC.CursorPos.y), ImVec2(x2, window->DC.CursorPos.y + thickness_draw));
+			window->DrawList->AddLine(bb.Min, ImVec2(bb.Max.x, bb.Min.y), ImGui::GetColorU32(ImGuiCol_Separator));
+		}
+
 		static bool BeginProperty(ImGuiID id)
 		{
 			// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
 			if (!ImGui::GetCurrentTable())
 				return false;
+
+			if (s_PropertyCount++ > 0)
+			{
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				GridSeparator();
+			}
 
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
@@ -421,14 +452,14 @@ namespace Shark::UI {
 		return BeginProperty(GetID(strID), flags);
 	}
 
-	bool BeginPropertyGrid(Flags::Grid flags)
+	bool BeginPropertyGrid()
 	{
-		return BeginProperty(GetID("ControlsTable"), flags | Flags::Property_GridDefualt);
+		return BeginPropertyGrid(GetID("ControlsTable"));
 	}
 
-	bool BeginPropertyGrid(const std::string& strID, Flags::Grid flags)
+	bool BeginPropertyGrid(const std::string& strID)
 	{
-		return BeginProperty(GetID(strID), flags | Flags::Property_GridDefualt);
+		return BeginPropertyGrid(GetID(strID));
 	}
 
 	bool BeginProperty(ImGuiID customID, Flags::Grid flags)
@@ -452,6 +483,21 @@ namespace Shark::UI {
 		return false;
 	}
 
+	bool BeginPropertyGrid(ImGuiID customID)
+	{
+		PushID(customID);
+
+		s_IsPropertyGrid = true;
+
+		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable))
+		{
+			ImGuiStyle& style = ImGui::GetStyle();
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
+			return true;
+		}
+		return false;
+	}
+
 	void EndProperty()
 	{
 		if (ImGui::GetCurrentTable())
@@ -459,6 +505,9 @@ namespace Shark::UI {
 			ImGui::PopStyleVar();
 			ImGui::EndTable();
 		}
+
+		s_IsPropertyGrid = false;
+		s_PropertyCount = 0;
 
 		PopID();
 	}
@@ -468,6 +517,13 @@ namespace Shark::UI {
 		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
 		if (!ImGui::GetCurrentTable())
 			return false;
+
+		if (s_PropertyCount++ > 0)
+		{
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			Utils::GridSeparator();
+		}
 
 		ImGui::TableNextRow();
 
@@ -1647,6 +1703,36 @@ namespace Shark::UI {
 	bool TreeNode(const std::string& tag, ImGuiTreeNodeFlags flags, ImTextureID textureID)
 	{
 		return CustomTreeNodeBehavior(GetID(tag), flags, tag.c_str(), tag.c_str() + tag.size(), textureID);
+	}
+
+	void Separator(float size)
+	{
+		// Horizontal Separator
+		ImGuiContext& g = *GImGui;
+		ImGuiWindow* window = g.CurrentWindow;
+
+		float x1 = window->Pos.x;
+		float x2 = window->Pos.x + size;
+
+		// FIXME-WORKRECT: old hack (#205) until we decide of consistent behavior with WorkRect/Indent and Separator
+		if (g.GroupStack.Size > 0 && g.GroupStack.back().WindowID == window->ID)
+			x1 += window->DC.Indent.x;
+
+		// We don't provide our width to the layout so that it doesn't get feed back into AutoFit
+		float thickness_draw = 1.0f;
+		float thickness_layout = 0.0f;
+
+		const ImRect bb(ImVec2(x1, window->DC.CursorPos.y), ImVec2(x2, window->DC.CursorPos.y + thickness_draw));
+		ImGui::ItemSize(ImVec2(0.0f, thickness_layout));
+		const bool item_visible = ImGui::ItemAdd(bb, 0);
+		if (item_visible)
+		{
+			// Draw
+			window->DrawList->AddLine(bb.Min, ImVec2(bb.Max.x, bb.Min.y), ImGui::GetColorU32(ImGuiCol_Separator));
+			if (g.LogEnabled)
+				ImGui::LogRenderedText(&bb.Min, "--------------------------------\n");
+
+		}
 	}
 
 }

@@ -20,7 +20,8 @@ namespace Shark {
 	public:
 		enum class SceneState
 		{
-			Edit = 0, Play = 1, Simulate = 2
+			None = 0,
+			Edit, Play, Simulate, Pause
 		};
 	public:
 		EditorLayer(const std::filesystem::path& startupProject);
@@ -53,6 +54,7 @@ namespace Shark {
 		void UI_Asset();
 
 		void DebugRender();
+		void RenderCameraPreview();
 
 		void DeleteEntity(Entity entity);
 		void SelectEntity(Entity entity);
@@ -72,6 +74,7 @@ namespace Shark {
 		void OnSimulateStart();
 
 		void SetActiveScene(const Ref<Scene>& scene);
+		void SetNextActiveScene(const Ref<Scene>& scene);
 
 		void OpenProject();
 		void OpenProject(const std::filesystem::path& filePath);
@@ -81,6 +84,8 @@ namespace Shark {
 		void CreateProject();
 
 		void ImportAsset();
+
+		glm::mat4 GetViewProjFromCameraEntity(Entity cameraEntity);
 
 	private:
 		std::filesystem::path m_StartupProject;
@@ -95,7 +100,7 @@ namespace Shark {
 		Ref<Scene> m_ActiveScene = nullptr;
 		Ref<Scene> m_WorkScene = nullptr;
 
-		Ref<Scene> m_LoadedScene = nullptr;
+		Ref<Scene> m_NextActiveScene = nullptr;
 
 		Scope<SceneHirachyPanel> m_SceneHirachyPanel;
 		Scope<ContentBrowserPanel> m_ContentBrowserPanel;
@@ -131,7 +136,8 @@ namespace Shark {
 		Entity m_SelectetEntity;
 
 		SceneState m_SceneState = SceneState::Edit;
-		bool m_ScenePaused = false;
+		SceneState m_InitialSceneState = SceneState::None;
+		bool m_UpdateNextFrame = false;
 
 		// ToolBar icons
 		Ref<Texture2D> m_PlayIcon;
@@ -156,6 +162,28 @@ namespace Shark {
 
 		bool m_ShowColliders = false;
 		bool m_ShowCollidersOnTop = true;
+
+		bool m_ShowCameraPreview = false;
+
+
+		struct ProjectEditData
+		{
+			std::string Assets;
+			std::string StartupScene;
+
+			bool ValidAssetsPath = true;
+			bool ValidStartupScene = true;
+
+			ProjectEditData() = default;
+			ProjectEditData(const ProjectConfig& config)
+			{
+				Assets = Project::RelativeCopy(config.AssetsDirectory).string();
+				StartupScene = Project::RelativeCopy(config.StartupScenePath).string();
+				ValidAssetsPath = true;
+				ValidStartupScene = true;
+			}
+		};
+		ProjectEditData m_ProjectEditData;
 
 	};
 

@@ -63,7 +63,7 @@ namespace YAML {
 		{
 			if (!node.IsScalar())
 				return false;
-			rhs = Shark::FileSystem::MakeDefaultFormat(node.Scalar());
+			rhs = Shark::FileSystem::FormatDefaultCopy(node.Scalar());
 			return true;
 		}
 	};

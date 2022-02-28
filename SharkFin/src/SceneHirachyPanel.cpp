@@ -296,7 +296,7 @@ namespace Shark {
 		{
 			SK_PROFILE_SCOPED("DrawComponent<TransformComponent>");
 
-			UI::BeginProperty(UI::Flags::Property_GridDefualt);
+			UI::BeginPropertyGrid();
 			UI::DragFloat("Position", comp.Position);
 			UI::DragAngle("Rotation", comp.Rotation);
 			UI::DragFloat("Scaling", comp.Scaling, 1.0f);

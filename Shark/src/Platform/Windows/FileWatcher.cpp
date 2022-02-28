@@ -229,7 +229,7 @@ namespace Shark {
 				const size_t length = fileInfo->FileNameLength / sizeof(WCHAR);
 
 				FileChangedData fileData;
-				fileData.FilePath = FileSystem::MakeDefaultFormat(s_Data->Directory / std::wstring(fileInfo->FileName, length));
+				fileData.FilePath = FileSystem::FormatDefaultCopy(s_Data->Directory / std::wstring(fileInfo->FileName, length));
 				fileData.FileEvent = Utils::Win32FileActionToFileEvent(fileInfo->Action);
 				fileChanges.push_back(fileData);
 

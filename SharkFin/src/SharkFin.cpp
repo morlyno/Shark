@@ -27,7 +27,7 @@ namespace Shark {
 			SK_PROFILE_FUNCTION();
 
 			if (m_StartupProject.empty())
-				m_StartupProject = std::filesystem::absolute(L"SandboxProject\\SandboxProject.skproj");
+				m_StartupProject = std::filesystem::absolute(L"SandboxProject\\Project.skproj");
 
 			EditorLayer* editorlayer = new EditorLayer(m_StartupProject);
 			PushLayer(editorlayer);

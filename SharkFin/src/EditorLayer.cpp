@@ -19,8 +19,6 @@
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 namespace Shark {
 
@@ -56,10 +54,10 @@ namespace Shark {
 		else
 			SK_CORE_ASSERT(false, "No Startup Project!");
 
-		SK_CORE_ASSERT(m_LoadedScene, "Failed to load Startup Scene from Project");
-		m_ActiveScene = m_LoadedScene;
-		m_WorkScene = m_LoadedScene;
-		m_LoadedScene = nullptr;
+		SK_CORE_ASSERT(m_NextActiveScene, "Failed to load Startup Scene from Project");
+		m_ActiveScene = m_NextActiveScene;
+		m_WorkScene = m_NextActiveScene;
+		m_NextActiveScene = nullptr;
 
 		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 
@@ -110,20 +108,19 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (m_LoadedScene)
+		if (m_NextActiveScene)
 		{
 			if (m_ActiveScene && ResourceManager::IsMemoryAsset(m_ActiveScene->Handle))
 				ResourceManager::UnloadAsset(m_ActiveScene->Handle);
 
-			m_WorkScene = m_LoadedScene;
-			SetActiveScene(m_LoadedScene);
-			m_LoadedScene = nullptr;
+			m_WorkScene = m_NextActiveScene;
+			SetActiveScene(m_NextActiveScene);
+			m_NextActiveScene = nullptr;
 		}
 
 		m_TimeStep = ts;
 
 		Renderer::NewFrame();
-
 
 		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
@@ -143,60 +140,50 @@ namespace Shark {
 				m_NeedsResize = false;
 			}
 
-			if (m_ViewportHovered && (m_SceneState != SceneState::Play || m_ScenePaused))
+			if (m_ViewportHovered && m_SceneState != SceneState::Play)
 				m_EditorCamera.OnUpdate(ts);
+
+			const glm::mat4 viewProj = GetActiveViewProjection();
 
 			switch (m_SceneState)
 			{
 				case SceneState::Edit:
 				{
 					m_ActiveScene->OnUpdateEditor(ts);
-
-					m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
-
-					if (m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>())
-					{
-						auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
-						auto transform = m_SelectetEntity.GetTransform().GetTranform();
-						m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera, glm::inverse(transform));
-					}
-
+					m_ActiveScene->OnRender(m_SceneRenderer, viewProj);
 					break;
 				}
 				case SceneState::Play:
 				{
-					if (m_ScenePaused)
-					{
-						m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
-					}
-					else
-					{
-						m_ActiveScene->OnUpdateRuntime(ts);
-						m_ActiveScene->OnRenderRuntime(m_SceneRenderer);
-					}
-
+					m_ActiveScene->OnUpdateRuntime(ts);
+					m_ActiveScene->OnRender(m_SceneRenderer, viewProj);
 					break;
 				}
 				case SceneState::Simulate:
 				{
-					if (!m_ScenePaused)
-						m_ActiveScene->OnSimulate(ts);
-
-					if (m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>())
+					m_ActiveScene->OnSimulate(ts);
+					m_ActiveScene->OnRender(m_SceneRenderer, viewProj);
+					break;
+				}
+				case SceneState::Pause:
+				{
+					if (m_UpdateNextFrame)
 					{
-						auto& camera = m_SelectetEntity.GetComponent<CameraComponent>().Camera;
-						auto transform = m_SelectetEntity.GetTransform().GetTranform();
-						m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, camera, glm::inverse(transform));
+						if (m_InitialSceneState == SceneState::Play)
+							m_ActiveScene->OnUpdateRuntime(1.0f / 60.0f);
+						else if (m_InitialSceneState == SceneState::Simulate)
+							m_ActiveScene->OnSimulate(1.0f / 60.0f);
+
+						m_UpdateNextFrame = false;
 					}
 
-					m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
-
+					m_ActiveScene->OnRender(m_SceneRenderer, viewProj);
 					break;
 				}
 			}
-		}
 
-		DebugRender();
+			DebugRender();
+		}
 
 		Renderer::GetRendererAPI()->BindMainFrameBuffer();
 	}
@@ -209,7 +196,7 @@ namespace Shark {
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 
-		if (m_ScenePaused || m_SceneState != SceneState::Play)
+		if (m_SceneState != SceneState::Play)
 			m_EditorCamera.OnEvent(event);
 	}
 
@@ -592,7 +579,6 @@ namespace Shark {
 			ImVec2 windowPos = window->WorkRect.Min;
 			ImVec2 windowSize = window->WorkRect.GetSize();
 
-			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
 			ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
 
@@ -619,8 +605,6 @@ namespace Shark {
 			auto& tf = m_SelectetEntity.GetComponent<TransformComponent>();
 			glm::mat4 transform = tf.GetTranform();
 
-			glm::mat4 delta;
-
 			float* snap = nullptr;
 			if (Input::KeyPressed(Key::LeftShift))
 			{
@@ -633,10 +617,17 @@ namespace Shark {
 				}
 			}
 
-			ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::MODE::LOCAL, glm::value_ptr(transform), glm::value_ptr(delta), snap);
+			ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::MODE::LOCAL, glm::value_ptr(transform), nullptr, snap);
 
 			if (!Input::KeyPressed(Key::Alt) && ImGuizmo::IsUsing())
-				Math::DecomposeTransform(transform, tf.Position, tf.Rotation, tf.Scaling);
+			{
+				switch (m_CurrentOperation)
+				{
+					case ImGuizmo::TRANSLATE: Math::DecomposeTranslation(transform, tf.Position); break;
+					case ImGuizmo::ROTATE:    glm::extractEulerAngleXYZ(transform, tf.Rotation.x, tf.Rotation.y, tf.Rotation.z); break;
+					case ImGuizmo::SCALE:     Math::DecomposeScale(transform, tf.Scaling); break;
+				}
+			}
 		}
 	}
 
@@ -793,7 +784,9 @@ namespace Shark {
 						{
 							case AssetType::Scene:
 							{
-								m_LoadedScene = ResourceManager::GetAsset<Scene>(handle);
+								Ref<Scene> scene = ResourceManager::GetAsset<Scene>(handle);
+								SK_CORE_ASSERT(scene);
+								SetNextActiveScene(scene);
 								break;
 							}
 							case AssetType::Texture:
@@ -881,84 +874,76 @@ namespace Shark {
 		const auto imageButton = [this, size](auto strid, auto texture) { return ImGui::ImageButtonEx(UI::GetID(strid), texture->GetRenderID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0, 0 }, { 0, 0, 0, 0 }, { 1, 1, 1, 1 }); };
 		const auto imageButtonDisabled = [this, size](auto strid, auto texture) { ImGui::Image(texture->GetRenderID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0.5f, 0.5f, 0.5f, 1.0f }); };
 
-		if (m_ScenePaused)
+		switch (m_SceneState)
 		{
-			SK_CORE_ASSERT(m_SceneState != SceneState::Edit, "Scene cant't be paused if Scene is in Edit mode");
-
-
-			// [Stop]
-			if (imageButton("StopIcon", m_StopIcon))
-				OnSceneStop();
-
-			// [UnPause]
-			ImGui::SameLine();
-			if (imageButton("UnPause", m_PlayIcon))
-				m_ScenePaused = false;
-
-			// [Step]
-			ImGui::SameLine();
-			if (imageButton("Step", m_StepIcon))
+			case SceneState::Edit:
 			{
-				constexpr float timeStep = 1.0f / 60.0f;
-				m_ActiveScene->OnSimulate(timeStep);
+				// [Play]
+				if (imageButton("PlayIcon", m_PlayIcon))
+					OnScenePlay();
+
+				// [Simulate]
+				ImGui::SameLine();
+				if (imageButton("SimulateIcon", m_SimulateIcon))
+					OnSimulateStart();
+
+				// [Step Disabled]
+				ImGui::SameLine();
+				imageButtonDisabled("Step Disabled", m_StepIcon);
+
+				break;
 			}
-
-		}
-		else
-		{
-			switch (m_SceneState)
+			case SceneState::Play:
 			{
-				case SceneState::Edit:
-				{
-					// [Play]
-					if (imageButton("PlayIcon", m_PlayIcon))
-						OnScenePlay();
+				// [Stop]
+				if (imageButton("StopIcon", m_StopIcon))
+					OnSceneStop();
 
-					// [Simulate]
-					ImGui::SameLine();
-					if (imageButton("SimulateIcon", m_SimulateIcon))
-						OnSimulateStart();
+				// [Pause]
+				ImGui::SameLine();
+				if (imageButton("Pause", m_PauseIcon))
+					m_SceneState = SceneState::Pause;
 
-					// [Step Disabled]
-					ImGui::SameLine();
-					imageButtonDisabled("Step Disabled", m_StepIcon);
+				// [Step Disabled]
+				ImGui::SameLine();
+				imageButtonDisabled("Step Disabled", m_StepIcon);
 
-					break;
-				}
-				case SceneState::Play:
-				{
-					// [Stop]
-					if (imageButton("StopIcon", m_StopIcon))
-						OnSceneStop();
+				break;
+			}
+			case SceneState::Simulate:
+			{
+				// [Stop]
+				if (imageButton("StopIcon", m_StopIcon))
+					OnSceneStop();
 
-					// [Pause]
-					ImGui::SameLine();
-					if (imageButton("Pause", m_PauseIcon))
-						m_ScenePaused = true;
+				// [Pause]
+				ImGui::SameLine();
+				if (imageButton("Pause", m_PauseIcon))
+					m_SceneState = SceneState::Pause;
 
-					// [Step Disabled]
-					ImGui::SameLine();
-					imageButtonDisabled("Step Disabled", m_StepIcon);
+				// [Step Disabled]
+				ImGui::SameLine();
+				imageButtonDisabled("Step Disabled", m_StepIcon);
 
-					break;
-				}
-				case SceneState::Simulate:
-				{
-					// [Stop]
-					if (imageButton("StopIcon", m_StopIcon))
-						OnSceneStop();
+				break;
+			}
+			case SceneState::Pause:
+			{
+				// [Stop]
+				if (imageButton("StopIcon", m_StopIcon))
+					OnSceneStop();
 
-					// [Pause]
-					ImGui::SameLine();
-					if (imageButton("Pause", m_PauseIcon))
-						m_ScenePaused = true;
+				// [UnPause]
+				ImGui::SameLine();
+				if (imageButton("UnPause", m_PlayIcon))
+					m_SceneState = m_InitialSceneState;
 
-					// [Step Disabled]
-					ImGui::SameLine();
-					imageButtonDisabled("Step Disabled", m_StepIcon);
+				// [Step]
+				ImGui::SameLine();
+				if (imageButton("Step", m_StepIcon))
+					m_UpdateNextFrame = true;
 
-					break;
-				}
+				break;
 			}
 		}
 
@@ -979,12 +964,24 @@ namespace Shark {
 			{
 				m_SceneRenderer->OnImGuiRender();
 
-				if (ImGui::CollapsingHeader("Debug"))
+				if (ImGui::CollapsingHeader("Visualization"))
 				{
-					UI::BeginPropertyGrid();
-					UI::Checkbox("Show Colliders", m_ShowColliders);
-					UI::Checkbox("Show OnTop", m_ShowCollidersOnTop);
-					UI::EndProperty();
+					if (ImGui::TreeNodeEx("View", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						UI::BeginPropertyGrid();
+						UI::Checkbox("Camera Preview", m_ShowCameraPreview);
+						UI::EndProperty();
+						ImGui::TreePop();
+					}
+
+					if (ImGui::TreeNodeEx("Colliders", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						UI::BeginPropertyGrid();
+						UI::Checkbox("Show", m_ShowColliders);
+						UI::Checkbox("OnTop", m_ShowCollidersOnTop);
+						UI::EndProperty();
+						ImGui::TreePop();
+					}
 				}
 
 				if (ImGui::CollapsingHeader("Stuff"))
@@ -1034,7 +1031,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (m_SelectetEntity && m_SelectetEntity.HasComponent<CameraComponent>())
+		if (m_ShowCameraPreview && m_SceneState != SceneState::Play)
 		{
 			ImVec2 viewportSize = { (float)m_ViewportWidth, (float)m_ViewportHeight };
 			ImGui::SetNextWindowSizeConstraints({ 0, 0 }, { FLT_MAX, FLT_MAX }, CameraPreviewResizeCallback, &viewportSize);
@@ -1104,61 +1101,80 @@ namespace Shark {
 
 		ImGui::Begin("Project", &m_ShowProjectSettings);
 
-		UI::BeginProperty(UI::Flags::Property_GridDefualt);
-
-		auto inputFunc = [](const char* tag, auto& projStr, std::string& buffer, bool& editActive, ImGuiID& activeID) mutable
-		{
-			if (editActive && (activeID == UI::GetIDWithSeed(tag, 0)))
-			{
-				if (ImGui::IsWindowFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
-					ImGui::SetKeyboardFocusHere(0);
-
-				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				ImGui::InputText(tag, &buffer, ImGuiInputTextFlags_AutoSelectAll);
-				if (ImGui::IsItemDeactivated())
-				{
-					editActive = false;
-					projStr = buffer;
-					buffer.clear();
-				}
-			}
-			else
-			{
-				UI::TextWithBackGround(projStr, { 0.0f, 0.0f, 0.0f, 0.0f });
-				if (ImGui::IsItemClicked())
-				{
-					buffer = Utility::ToStdString(projStr);
-					editActive = true;
-					activeID = UI::GetIDWithSeed(tag, 0);
-					ImGui::SetActiveID(0, ImGui::GetCurrentWindow());
-				}
-			}
-		};
-
 		auto& config = Project::GetActive()->GetConfig();
+		const ImGuiStyle& style = ImGui::GetStyle();
+		const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
+
+		UI::BeginPropertyGrid();
 
 		if (UI::PropertyCustom("Name"))
-			inputFunc("##NameInput", config.Name, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
-
-		UI::Property("File", config.ProjectFileName, UI::Flags::Text_Aligned);
-		UI::Property("Path", config.ProjectDirectory, UI::Flags::Text_Aligned);
+		{
+			UI::SpanAvailWith();
+			ImGui::InputText("##Name", &config.Name);
+		}
 
 		if (UI::PropertyCustom("Assets"))
-			inputFunc("##AssetsInput", config.AssetsPath, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
+		{
+			UI::PushID("Assets");
 
-		if (UI::PropertyCustom("Scenes"))
-			inputFunc("##ScenesInput", config.ScenesPath, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
+			UI::ScopedStyle style;
+			if (!m_ProjectEditData.ValidAssetsPath)
+				style.Push(ImGuiCol_Text, UI::Theme::GetColors().TextInvalidInput);
 
-		if (UI::PropertyCustom("Textures"))
-			inputFunc("##TexturesInput", config.TexturesPath, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
+			UI::SpanAvailWith();
+			if (ImGui::InputText("##Assets", &m_ProjectEditData.Assets))
+			{
+				auto assetsDirectory = Project::AbsolueCopy(m_ProjectEditData.Assets);
+				m_ProjectEditData.ValidAssetsPath = (std::filesystem::exists(assetsDirectory) && std::filesystem::is_directory(assetsDirectory));
+			}
+
+			UI::PopID();
+		}
 
 		if (UI::PropertyCustom("StartupScene"))
-			inputFunc("##StartupSceneInput", config.StartupScenePath, m_ProjectEditBuffer, m_ProjectEditActice, m_ProjectEditActiveID);
+		{
+			UI::PushID("StartupScene");
+
+			UI::ScopedStyle style;
+			if (!m_ProjectEditData.ValidStartupScene)
+				style.Push(ImGuiCol_Text, UI::Theme::GetColors().TextInvalidInput);
+
+			UI::SpanAvailWith();
+			if (ImGui::InputText("##StartupScene", &m_ProjectEditData.StartupScene))
+			{
+				auto startupScene = Project::AbsolueCopy(m_ProjectEditData.StartupScene);
+				m_ProjectEditData.ValidStartupScene = std::filesystem::exists(startupScene) && std::filesystem::is_regular_file(startupScene) && (startupScene.extension() == L".skscene");
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET");
+				if (payload)
+				{
+					SK_CORE_ASSERT(payload->DataSize == sizeof(AssetHandle), "Invalid Payload size");
+					AssetHandle handle = *(AssetHandle*)payload->Data;
+					const AssetMetaData& metadata = ResourceManager::GetMetaData(handle);
+					if (metadata.Type == AssetType::Scene)
+					{
+						m_ProjectEditData.StartupScene = Project::RelativeCopy(ResourceManager::GetFileSystemPath(metadata)).string();
+						m_ProjectEditData.ValidStartupScene = true;
+					}
+				}
+
+				ImGui::EndDragDropTarget();
+			}
+
+			UI::PopID();
+		}
+
+		UI::DragFloat("Gravity", config.Gravity, 0.0f, 0.0f, 0.0f, 0.1f, "%f");
+		UI::DragInt("Velocity Iterations", config.VelocityIterations, 8, 1, INT_MAX);
+		UI::DragInt("Position Iterations", config.PositionIterations, 3 , 1, INT_MAX);
+		float fixedTSInMS = config.FixedTimeStep * 1000.0f;
+		if (UI::DragFloat("Fixed Time Step", fixedTSInMS, 1.0f, 0.1f, FLT_MAX, 1.0f, "%fms"))
+			config.FixedTimeStep = fixedTSInMS * 0.001f;
 
 		UI::EndProperty();
-
-		if (ImGui::Button("Save"))
-			SaveProject();
 
 		ImGui::End();
 	}
@@ -1194,7 +1210,7 @@ namespace Shark {
 						continue;
 				}
 
-				UI::BeginProperty(UI::Flags::Property_GridDefualt);
+				UI::BeginPropertyGrid();
 				UI::PushTextFlag(UI::Flags::Text_Aligned);
 
 				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), UI::Flags::Text_Selectable);
@@ -1230,7 +1246,7 @@ namespace Shark {
 						continue;
 				}
 
-				UI::BeginProperty(UI::Flags::Property_GridDefualt);
+				UI::BeginPropertyGrid();
 				UI::PushTextFlag(UI::Flags::Text_Aligned);
 
 				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), UI::Flags::Text_Selectable);
@@ -1262,7 +1278,7 @@ namespace Shark {
 						continue;
 				}
 
-				UI::BeginProperty(UI::Flags::Property_GridDefualt);
+				UI::BeginPropertyGrid();
 				UI::PushTextFlag(UI::Flags::Text_Aligned);
 
 				UI::Property("Handle", fmt::format("{:x}", handle), UI::Flags::Text_Selectable);
@@ -1365,6 +1381,16 @@ namespace Shark {
 		}
 	}
 
+	void EditorLayer::RenderCameraPreview()
+	{
+		if (m_ShowCameraPreview)
+		{
+			Entity cameraEntity = m_ActiveScene->FindActiveCameraEntity();
+			if (cameraEntity)
+				m_ActiveScene->OnRender(m_CameraPreviewRenderer, GetViewProjFromCameraEntity(cameraEntity));
+		}
+	}
+
 	void EditorLayer::DeleteEntity(Entity entity)
 	{
 		SK_PROFILE_FUNCTION();
@@ -1401,7 +1427,7 @@ namespace Shark {
 		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
-		m_LoadedScene = ResourceManager::CreateMemoryAsset<Scene>();
+		SetNextActiveScene(ResourceManager::CreateMemoryAsset<Scene>());
 	}
 
 	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)
@@ -1415,7 +1441,7 @@ namespace Shark {
 		Ref<Scene> scene = ResourceManager::GetAsset<Scene>(metadata.Handle);
 		if (scene)
 		{
-			m_LoadedScene = scene;
+			SetNextActiveScene(scene);
 			return true;
 		}
 		return false;
@@ -1480,6 +1506,7 @@ namespace Shark {
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		m_SceneState = SceneState::Play;
+		m_InitialSceneState = SceneState::Play;
 		SetActiveScene(Scene::Copy(m_WorkScene));
 		m_ActiveScene->OnScenePlay();
 		m_SceneHirachyPanel->ScenePlaying(true);
@@ -1489,12 +1516,12 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_ScenePaused = false;
 		m_ActiveScene->OnSceneStop();
 		SetActiveScene(m_WorkScene);
 
 		m_SceneHirachyPanel->ScenePlaying(false);
 		m_SceneState = SceneState::Edit;
+		m_InitialSceneState = SceneState::None;
 		m_SceneRenderer->SetScene(m_WorkScene);
 
 		if (!m_ActiveScene->IsValidEntity(m_SceneHirachyPanel->GetSelectedEntity()))
@@ -1508,12 +1535,8 @@ namespace Shark {
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		m_SceneState = SceneState::Simulate;
+		m_InitialSceneState = SceneState::Simulate;
 		SetActiveScene(Scene::Copy(m_WorkScene));
-		m_ActiveScene = Scene::Copy(m_WorkScene);
-		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-		m_SceneHirachyPanel->SetContext(m_ActiveScene);
-		m_SceneRenderer->SetScene(m_ActiveScene);
-		m_CameraPreviewRenderer->SetScene(m_ActiveScene);
 
 		m_ActiveScene->OnSimulateStart();
 		m_SceneHirachyPanel->ScenePlaying(true);
@@ -1528,6 +1551,11 @@ namespace Shark {
 		m_SceneHirachyPanel->SetContext(m_ActiveScene);
 		m_SceneRenderer->SetScene(m_ActiveScene);
 		m_CameraPreviewRenderer->SetScene(m_ActiveScene);
+	}
+
+	void EditorLayer::SetNextActiveScene(const Ref<Scene>& scene)
+	{
+		m_NextActiveScene = scene;
 	}
 
 	void EditorLayer::OpenProject()
@@ -1558,6 +1586,7 @@ namespace Shark {
 			if (m_ContentBrowserPanel)
 				m_ContentBrowserPanel->OnProjectChanged();
 			FileWatcher::StartWatching(Project::GetAssetsPath());
+			m_ProjectEditData = config;
 		}
 	}
 
@@ -1569,7 +1598,7 @@ namespace Shark {
 
 		SK_CORE_INFO("Closing Project");
 
-		m_LoadedScene = nullptr;
+		m_NextActiveScene = nullptr;
 		m_ActiveScene = nullptr;
 		m_SceneHirachyPanel->SetContext(nullptr);
 		m_SceneRenderer->SetScene(nullptr);
@@ -1589,7 +1618,7 @@ namespace Shark {
 		SK_CORE_ASSERT(Project::GetActive());
 
 		auto& config = Project::GetActive()->GetConfig();
-		SaveProject(config.ProjectDirectory / config.ProjectFileName);
+		SaveProject(config.ProjectDirectory / "Project.skproj");
 	}
 
 	void EditorLayer::SaveProject(const std::filesystem::path& filePath)
@@ -1619,11 +1648,12 @@ namespace Shark {
 		auto& config = project->GetConfig();
 		config.Name = "Untitled";
 		config.ProjectDirectory = targetDirectory;
-		config.ProjectFileName = fmt::format("{}.{}", config.Name, "skproj");
-		config.AssetsPath = "Assets";
-		config.ScenesPath = "Assets\\Scenes";
-		config.TexturesPath = "Assets\\Textures";
+		config.AssetsDirectory = "Assets";
 		config.StartupScenePath = "";
+		config.Gravity = { 0.0f, 9.81f };
+		config.VelocityIterations = 8;
+		config.PositionIterations = 3;
+		config.FixedTimeStep = 0.001f;
 
 		Project::SetActive(project);
 		ResourceManager::Init();
@@ -1639,7 +1669,7 @@ namespace Shark {
 	{
 		m_ImportAssetData = ImportAssetData();
 
-		m_ImportAssetData.SourceFile = FileSystem::MakeDefaultFormat(FileDialogs::OpenFile(L"|*.*|Scene|.skscene|Texture|.png"));
+		m_ImportAssetData.SourceFile = FileDialogs::OpenFile(L"|*.*|Scene|.skscene|Texture|.png");
 		if (!m_ImportAssetData.SourceFile.empty())
 		{
 			m_ImportAssetData.Active = true;
@@ -1653,14 +1683,21 @@ namespace Shark {
 				return;
 			}
 
-			switch (AssetExtentionMap[m_ImportAssetData.Extention])
+			if (AssetExtentionMap[m_ImportAssetData.Extention] == AssetType::None)
 			{
-				case AssetType::None: m_ImportAssetData.Active = false; return;
-				case AssetType::Scene: m_ImportAssetData.TargetDirectory = Project::MakeRelative(Project::GetScenesPath()); break;
-				case AssetType::Texture: m_ImportAssetData.TargetDirectory = Project::MakeRelative(Project::GetTexturesPath()); break;
+				m_ImportAssetData.Active = false;
+				return;
 			}
+
 		}
 
+	}
+
+	glm::mat4 EditorLayer::GetViewProjFromCameraEntity(Entity cameraEntity)
+	{
+		auto& camera = cameraEntity.GetComponent<CameraComponent>();
+		auto& tf = cameraEntity.GetTransform();
+		return camera.GetProjection() * glm::inverse(tf.GetTranform());
 	}
 
 }

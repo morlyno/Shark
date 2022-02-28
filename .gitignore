@@ -9,8 +9,6 @@ SharkFin/Assets
 SharkFin/imgui.ini
 SharkFin/Log/*.log
 
-**/project.skproj
-
 # Visual Studios files
 .vs/
 **.sln
