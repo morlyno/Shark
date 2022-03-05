@@ -33,6 +33,8 @@ namespace Shark {
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount) = 0;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount) = 0;;
 
+		virtual void GenerateMips(Ref<Image2D> image) = 0;
+
 		virtual Ref<ShaderLibrary> GetShaderLib() = 0;
 		virtual Ref<Texture2D> GetWhiteTexture() = 0;
 		virtual Ref<GPUTimer> GetPresentTimer() = 0;

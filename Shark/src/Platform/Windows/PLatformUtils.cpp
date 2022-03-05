@@ -178,6 +178,7 @@ namespace Shark {
 		void OpenFileWith(const std::filesystem::path& file)
 		{
 			std::filesystem::path exeFile = FileDialogs::OpenFile(L"exe|*.exe");
+			SK_CORE_ASSERT(std::filesystem::exists(exeFile));
 			if (!exeFile.empty())
 			{
 				std::wstring params = fmt::format(L"\"{}\"", file.native());

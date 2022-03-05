@@ -8,14 +8,16 @@ namespace Shark {
 	{
 	public:
 		Buffer() = default;
+		Buffer(std::nullptr_t) {}
+		Buffer(byte* data, uint32_t size) : Data(data), Size(size) {}
 		~Buffer() = default;
 
 		void Allocate(uint32_t size);
 		void Release();
 		void Write(void* data, uint32_t size, uint32_t offset = 0);
 
-		byte* Data;
-		uint32_t Size;
+		byte* Data = nullptr;
+		uint32_t Size = 0;
 	};
 
 	class ScopedBuffer

@@ -108,7 +108,7 @@ namespace Shark {
 		m_ShaderLib->Load("Resources/Shaders/BlurEffect.hlsl");
 
 		uint32_t color = 0xFFFFFFFF;
-		m_WhiteTexture = Texture2D::Create(1, 1, &color);
+		m_WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, &color);
 
 		VertexLayout layout = {
 			{ VertexDataType::Float2, "Position" }
@@ -357,6 +357,44 @@ namespace Shark {
 		ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
 
 		ctx->Draw(vertexCount, 0);
+	}
+
+	void DirectXRenderer::GenerateMips(Ref<Image2D> image)
+	{
+		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
+		const auto& specs = dxImage->GetSpecification();
+
+		if (specs.MipLevels == 1)
+			return;
+
+		D3D11_TEXTURE2D_DESC textureDesc{};
+		textureDesc.Width = specs.Width;
+		textureDesc.Height = specs.Height;
+		textureDesc.MipLevels = specs.MipLevels;
+		textureDesc.ArraySize = 1;
+		textureDesc.Format = utils::ImageFormatToD3D11ForResource(specs.Format);
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+
+		ID3D11Texture2D* texture = nullptr;
+		SK_CHECK(m_Device->CreateTexture2D(&textureDesc, nullptr, &texture));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
+		viewDesc.Format = textureDesc.Format;
+		viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		viewDesc.Texture2D.MipLevels = -1;
+		viewDesc.Texture2D.MostDetailedMip = 0;
+		ID3D11ShaderResourceView* view = nullptr;
+		SK_CHECK(m_Device->CreateShaderResourceView(texture, &viewDesc, &view));
+
+		m_ImmediateContext->CopySubresourceRegion(texture, 0, 0, 0, 0, dxImage->m_Resource, 0, nullptr);
+		m_ImmediateContext->GenerateMips(view);
+		m_ImmediateContext->CopyResource(dxImage->m_Resource, texture);
+
+		view->Release();
+		texture->Release();
 	}
 
 	void DirectXRenderer::Present(bool vsync)

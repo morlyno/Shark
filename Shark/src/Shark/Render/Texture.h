@@ -1,65 +1,91 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Buffer.h"
 #include "Shark/Render/Image.h"
-#include "Shark/Render/RenderCommandBuffer.h"
 #include "Shark/Asset/Asset.h"
 
 #include <glm/glm.hpp>
 
 namespace Shark {
 
-	enum class FilterMode { Linera, Point };
-	enum class AddressMode { Wrap, Clamp, Border };
+	enum class FilterMode { Nearest, Linear };
+	enum class AddressMode { Repeat, Clamp, Mirror, Border };
 
-	struct SamplerProps
+	struct TextureAddressModes
 	{
-		FilterMode MinMag;
-		FilterMode Mipmap;
-		AddressMode AddressU;
-		AddressMode AddressV;
-		AddressMode AddressW;
-		glm::vec4 BorderColor;
-
-		SamplerProps(FilterMode minmag = FilterMode::Point, FilterMode mipmap = FilterMode::Point,
-			AddressMode u = AddressMode::Wrap, AddressMode v = AddressMode::Wrap, AddressMode w = AddressMode::Wrap,
-			const glm::vec4& bordercolor = { 0.0f, 0.0f, 0.0f, 0.0f })
-			: MinMag(minmag), Mipmap(mipmap), AddressU(u), AddressV(v), AddressW(w), BorderColor(bordercolor)
-		{}
+		AddressMode U, V, W;
+		TextureAddressModes() = default;
+		TextureAddressModes(AddressMode a) : U(a), V(a), W(a) {}
 	};
 
-	class Texture : public Asset
+	struct SamplerSpecification
+	{
+		FilterMode Min = FilterMode::Linear;
+		FilterMode Mag = FilterMode::Linear;
+		FilterMode Mip = FilterMode::Nearest;
+		TextureAddressModes Address = AddressMode::Repeat;
+		glm::vec4 BorderColor = glm::vec4(0);
+
+		// MipLODBias
+		// Comparison
+		// LOD
+	};
+
+	struct TextureSpecification
+	{
+		ImageFormat Format = ImageFormat::RGBA8;
+		uint32_t Width = 0;
+		uint32_t Height = 0;
+
+		uint32_t MipLevels = 0;
+		float MinLOD = 0.0f;
+		float MaxLOD = FLT_MAX;
+
+		SamplerSpecification Sampler;
+	};
+
+#if SK_TEXTURE_SOURCE
+	class TextureSource : public Asset
 	{
 	public:
-		virtual ~Texture() = default;
-
-		virtual RenderID GetRenderID() const = 0;
-
-		virtual const std::filesystem::path& GetFilePath() const = 0;
-
-		virtual void SetSlot(uint32_t slot) = 0;
-		virtual uint32_t GetSlot() const = 0;
-
-		static AssetType GetStaticType() { return AssetType::Texture; }
-		virtual AssetType GetAssetType() const override { return GetStaticType(); }
-
+		TextureSource() = default;
+		~TextureSource() = default;
+	
+		bool IsDataLoaded() const { return m_Buffer.Data; }
+		Buffer GetBuffer() const { return m_Buffer; }
+	
+		bool LoadData() {}
+		bool UnloadData() {}
+	
+		static AssetType GetStaticType() { return AssetType::TextureSource; }
+		virtual AssetType GetAssetType() const { return GetStaticType(); }
+	
+	private:
+		Buffer m_Buffer;
 	};
+#endif
 
-	class Texture2D : public Texture
+	class Texture2D : public Asset
 	{
 	public:
 		virtual ~Texture2D() = default;
 
-		virtual Ref<Image2D> GetImage() const = 0;
+		virtual void Set(const TextureSpecification& specs, void* data) = 0;
 
-		virtual void Set(void* data, const ImageSpecification& imageSpecs, const SamplerProps& props) = 0;
-		virtual const SamplerProps& GetSamplerProps() const = 0;
+		virtual RenderID GetViewID() const = 0;
+		virtual Ref<Image2D> GetImage() const = 0;
+		virtual const TextureSpecification& GetSpecification() const = 0;
+
+		static AssetType GetStaticType() { return AssetType::Texture; }
+		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
 	public:
 		static Ref<Texture2D> Create();
-		static Ref<Texture2D> Create(Ref<Image2D> image, const SamplerProps& props = {});
-		static Ref<Texture2D> Create(const std::filesystem::path& filepath, const SamplerProps& props = {});
-		static Ref<Texture2D> Create(uint32_t width, uint32_t height, void* data, const SamplerProps& props = {});
+		static Ref<Texture2D> Create(const TextureSpecification& specs, void* data);
+		static Ref<Texture2D> Create(ImageFormat format, uint32_t width, uint32_t height, void* data);
+
+		static Ref<Texture2D> Create(const std::filesystem::path& filePath);
 	};
 
 	class Texture2DArray : public RefCount
@@ -67,9 +93,9 @@ namespace Shark {
 	public:
 		virtual ~Texture2DArray() = default;
 
-		virtual Ref<Texture2D> Create(uint32_t index, Ref<Image2D> image, const SamplerProps& props = {}) = 0;
-		virtual Ref<Texture2D> Create(uint32_t index, const std::filesystem::path& filepath, const SamplerProps& props = {}) = 0;
-		virtual Ref<Texture2D> Create(uint32_t index, uint32_t width, uint32_t height, void* data, const SamplerProps& props = {}) = 0;
+		virtual Ref<Texture2D> Create(uint32_t index) = 0;
+		virtual Ref<Texture2D> Create(uint32_t index, const TextureSpecification& specs, void* data) = 0;
+		virtual Ref<Texture2D> Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, void* data) = 0;
 
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) = 0;
 		virtual Ref<Texture2D> Get(uint32_t index) const = 0;

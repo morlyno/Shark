@@ -211,23 +211,19 @@ namespace Shark::UI {
 		};
 		using Text = std::underlying_type_t<TextEnum>;
 
-		enum PropertyEnum : uint16_t
+		enum GridEnum : uint16_t
 		{
-			Property_None = 0,
-			Property_GridInnerV = BIT(0),
-			Property_GridInnerH = BIT(1),
-			Property_GridOuterV = BIT(2),
-			Property_GridOuterH = BIT(3),
+			GridNone = 0,
+			GridInnerV = BIT(0),
+			GridInnerH = BIT(1),
+			GridOuterV = BIT(2),
+			GridOuterH = BIT(3),
 
-			Property_FixedSize = BIT(4),
-			Property_MinWidth = BIT(5),
-
-			Property_GridFull = Property_GridInnerV | Property_GridInnerH | Property_GridOuterV | Property_GridOuterH,
-			Property_GridDefualt = Property_GridInnerV | Property_GridInnerH /*| Grid_OuterV*/ | Property_GridOuterH,
-
-			Property_GridMask = Property_GridInnerV | Property_GridInnerH | Property_GridOuterV | Property_GridOuterH
+			GridDefault = BIT(4),
+			GridOuterInner = GridInnerV | GridInnerH | GridOuterH,
+			GridFull = GridInnerV | GridInnerH | GridOuterV | GridOuterH,
 		};
-		using Grid = std::underlying_type_t<PropertyEnum>;
+		using Grid = std::underlying_type_t<GridEnum>;
 
 	}
 
@@ -329,13 +325,13 @@ namespace Shark::UI {
 	/// Controls /////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	bool BeginProperty(Flags::Grid flags = Flags::Property_None);
-	bool BeginProperty(const std::string& strID, Flags::Grid flags = Flags::Property_None);
-	bool BeginPropertyGrid();
-	bool BeginPropertyGrid(const std::string& strID);
+	bool BeginProperty();
+	bool BeginProperty(const std::string& strID);
+	bool BeginPropertyGrid(Flags::Grid flags = Flags::GridDefault);
+	bool BeginPropertyGrid(const std::string& strID, Flags::Grid flags = Flags::GridDefault);
 
-	bool BeginProperty(ImGuiID customID, Flags::Grid flags);
-	bool BeginPropertyGrid(ImGuiID customID);
+	bool BeginProperty(ImGuiID customID);
+	bool BeginPropertyGrid(ImGuiID customID, Flags::Grid flags);
 
 	void EndProperty();
 

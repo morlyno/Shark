@@ -12,7 +12,7 @@ namespace Shark {
 	{
 	public:
 		SharkFin(const ApplicationSpecification& specification, std::string_view startupProject)
-			: Application(specification)
+			: Application(specification), m_StartupProject(startupProject)
 		{
 			SK_PROFILE_FUNCTION();
 		}

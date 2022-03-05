@@ -167,9 +167,8 @@ namespace Shark {
 			specs.Width = m_Specification.Width;
 			specs.Height = m_Specification.Height;
 			specs.Format = ImageFormat::Depth32;
-			// TODO(moro): remove ImageUsageTexture
-			specs.Usage = ImageUsageTexture | ImageUsageDethStencil;
-			atachment->Image = Image2D::Create(specs);
+			specs.Type = ImageType::FrameBuffer;
+			atachment->Image = Image2D::Create(specs, nullptr);
 		}
 		auto d3dImage = atachment->Image.As<DirectXImage2D>();
 
@@ -179,7 +178,7 @@ namespace Shark {
 		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		dsv.Texture2D.MipSlice = 0u;
 		dsv.Flags = 0u;
-		SK_CHECK(dev->CreateDepthStencilView(d3dImage->GetNative(), &dsv, &m_DepthStencil));
+		SK_CHECK(dev->CreateDepthStencilView(d3dImage->GetResourceNative(), &dsv, &m_DepthStencil));
 
 	}
 
@@ -196,9 +195,8 @@ namespace Shark {
 			specs.Width = m_Specification.Width;
 			specs.Height = m_Specification.Height;
 			specs.Format = atachment->Format;
-			// TODO(moro): remove ImageUsageTexture
-			specs.Usage = ImageUsageTexture | ImageUsageFrameBuffer;
-			atachment->Image = Image2D::Create(specs);
+			specs.Type = ImageType::FrameBuffer;
+			atachment->Image = Image2D::Create(specs, nullptr);
 		}
 		auto d3dImage = atachment->Image.As<DirectXImage2D>();
 
@@ -208,7 +206,7 @@ namespace Shark {
 		desc.Texture2D = D3D11_TEX2D_RTV{};
 
 		ID3D11RenderTargetView* fb;
-		SK_CHECK(dev->CreateRenderTargetView(d3dImage->GetNative(), &desc, &fb));
+		SK_CHECK(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
 		m_FrameBuffers.push_back(fb);
 	}
 
@@ -225,7 +223,7 @@ namespace Shark {
 		desc.Texture2D = D3D11_TEX2D_RTV{};
 
 		ID3D11RenderTargetView* fb;
-		SK_CHECK(dev->CreateRenderTargetView(d3dImage->GetNative(), &desc, &fb));
+		SK_CHECK(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
 		m_FrameBuffers.push_back(fb);
 	}
 

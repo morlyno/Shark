@@ -31,7 +31,7 @@ namespace Shark {
 
 		void OnImGuiRender();
 
-		Ref<Image2D> GetFinalImage() const { return m_GeometryFrameBuffer->GetImage(0); }
+		Ref<Image2D> GetFinalImage() const { return m_ExternalCompositeFrameBuffer->GetImage(0); }
 		Ref<Image2D> GetIDImage() const { return m_GeometryFrameBuffer->GetImage(1); }
 		Ref<FrameBuffer> GetExternalCompositFrameBuffer() const { return m_ExternalCompositeFrameBuffer; }
 

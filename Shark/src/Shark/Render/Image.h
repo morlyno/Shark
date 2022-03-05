@@ -22,32 +22,18 @@ namespace Shark {
 	enum class ImageType : uint16_t
 	{
 		Default,
-		Immutable,
 		Dynamic,
-		Staging
+		Storage,
+		FrameBuffer
 	};
-	std::string ImageTypeToString(ImageType usage);
-
-	enum ImageUsage : uint16_t
-	{
-		ImageUsageNone = 0,
-		ImageUsageTexture = BIT(0),
-		ImageUsageFrameBuffer = BIT(1),
-		ImageUsageDethStencil = BIT(2)
-	};
-	std::string ImageUsageToString(uint32_t flags);
 
 	struct ImageSpecification
 	{
-		uint32_t Width = 0, Height = 0;
 		ImageFormat Format = ImageFormat::RGBA8;
-		ImageType Type = ImageType::Default;
-		uint32_t Usage = ImageUsageTexture;
+		uint32_t Width = 0, Height = 0;
+		uint32_t MipLevels = 1; // 0 == MaxLeves
 
-		ImageSpecification() = default;
-		ImageSpecification(ImageFormat format, uint32_t width, uint32_t height, ImageType type = ImageType::Default, uint32_t usage = ImageUsageTexture)
-			: Format(format), Width(width), Height(height), Type(type), Usage(usage)
-		{}
+		ImageType Type = ImageType::Default;
 	};
 
 	class Image2D : public RefCount
@@ -55,28 +41,23 @@ namespace Shark {
 	public:
 		virtual ~Image2D() = default;
 
-		virtual void Set(void* data, const ImageSpecification& specs) = 0;
+		virtual void Set(const ImageSpecification& specs, void* data) = 0;
+		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
+		virtual bool CopyTo(Ref<Image2D> image) = 0;
+
+		virtual bool ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) = 0;
+
+		virtual RenderID GetResourceID() const = 0;
+		virtual RenderID GetViewID() const = 0;
+		virtual const ImageSpecification& GetSpecification() const = 0;
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
 
-		virtual void Resize(uint32_t widht, uint32_t height) = 0;
-
-		virtual void SetData(void* data, uint32_t size) = 0;
-		virtual void CopyTo(Ref<Image2D> dest) = 0;
-
-		virtual uint32_t ReadPixel(uint32_t x, uint32_t y) = 0;
-
-		virtual void CreateView() = 0;
-		virtual bool HasView() const = 0;
-
-		virtual RenderID GetRenderID() const = 0;
-		virtual RenderID GetViewRenderID() const = 0;
-		virtual const ImageSpecification& GetSpecification() const = 0;
-
-		static Ref<Image2D> Create(const ImageSpecification& specs);
+	public:
+		static Ref<Image2D> Create();
 		static Ref<Image2D> Create(const ImageSpecification& specs, void* data);
-		static Ref<Image2D> Create(const std::filesystem::path& filepath, const ImageSpecification& specs = ImageSpecification{});
+		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, void* data);
 	};
 
 }

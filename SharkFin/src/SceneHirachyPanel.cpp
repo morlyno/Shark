@@ -317,7 +317,7 @@ namespace Shark {
 
 				const AssetMetaData& metadata = ResourceManager::GetMetaData(comp.TextureHandle);
 				Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(comp.TextureHandle);
-				RenderID textureID = texture ? texture->GetRenderID() : nullptr;
+				RenderID textureID = texture ? texture->GetViewID() : nullptr;
 				ImGui::Image(textureID, { 48, 48 });
 				//{
 				//	auto path = FileDialogs::OpenFile(L"|*.*|Tetxure|*.png", 2, Project::GetAssetsPathAbsolute(), true);

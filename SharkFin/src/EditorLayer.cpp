@@ -83,15 +83,11 @@ namespace Shark {
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
 		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
 
-		m_SceneRenderer->GetFinalImage()->CreateView();
-		m_CameraPreviewRenderer->GetFinalImage()->CreateView();
-
 		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer());
 
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
-		imageSpecs.Type = ImageType::Staging;
-		imageSpecs.Usage = ImageUsageNone;
-		m_MousePickingImage = Image2D::Create(imageSpecs);
+		imageSpecs.Type = ImageType::Storage;
+		m_MousePickingImage = Image2D::Create(imageSpecs, nullptr);
 
 		FileWatcher::SetFileChangedCallback(std::bind(&EditorLayer::OnFileChanged, this, std::placeholders::_1));
 	}
@@ -182,6 +178,7 @@ namespace Shark {
 				}
 			}
 
+			RenderCameraPreview();
 			DebugRender();
 		}
 
@@ -278,6 +275,7 @@ namespace Shark {
 			{
 				if (m_SelectetEntity)
 					DeleteEntity(m_SelectetEntity);
+				return true;
 			}
 
 			// Toggle VSync
@@ -349,8 +347,9 @@ namespace Shark {
 		}
 
 		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalImage();
+
 		UI::SetBlend(false);
-		ImGui::Image(fbImage->GetViewRenderID(), size);
+		ImGui::Image(fbImage->GetViewID(), size);
 		UI::SetBlend(true);
 
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -372,8 +371,9 @@ namespace Shark {
 			int y = (int)(my - wy);
 			m_HoveredEntityID = -1;
 
-			int width = m_MousePickingImage->GetWidth();
-			int height = m_MousePickingImage->GetHeight();
+			const auto& specs = m_MousePickingImage->GetSpecification();
+			int width = (int)specs.Width;
+			int height = (int)specs.Height;
 			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 			{
 				const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered;
@@ -382,7 +382,8 @@ namespace Shark {
 				{
 					Ref<Image2D> idImage = m_SceneRenderer->GetIDImage();
 					idImage->CopyTo(m_MousePickingImage);
-					m_HoveredEntityID = m_MousePickingImage->ReadPixel(x, y);
+
+					m_MousePickingImage->ReadPixel(x, y, (uint32_t&)m_HoveredEntityID);
 				}
 
 				if (selectEntity)
@@ -487,14 +488,14 @@ namespace Shark {
 				{
 					case SceneState::Edit:
 					{
-						if (ImGui::MenuItem("Stop Scene", "ctrl+P"))
-							OnSceneStop();
+						if (ImGui::MenuItem("Play Scene"))
+							OnScenePlay();
 						break;
 					}
 					case SceneState::Play:
 					{
-						if (ImGui::MenuItem("Play Scene", "ctrl+P"))
-							OnScenePlay();
+						if (ImGui::MenuItem("Stop Scene"))
+							OnSceneStop();
 						break;
 					}
 				}
@@ -871,8 +872,8 @@ namespace Shark {
 		//
 
 
-		const auto imageButton = [this, size](auto strid, auto texture) { return ImGui::ImageButtonEx(UI::GetID(strid), texture->GetRenderID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0, 0 }, { 0, 0, 0, 0 }, { 1, 1, 1, 1 }); };
-		const auto imageButtonDisabled = [this, size](auto strid, auto texture) { ImGui::Image(texture->GetRenderID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0.5f, 0.5f, 0.5f, 1.0f }); };
+		const auto imageButton = [this, size](auto strid, auto texture) { return ImGui::ImageButtonEx(UI::GetID(strid), texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0, 0 }, { 0, 0, 0, 0 }, { 1, 1, 1, 1 }); };
+		const auto imageButtonDisabled = [this, size](auto strid, auto texture) { ImGui::Image(texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0.5f, 0.5f, 0.5f, 1.0f }); };
 
 		switch (m_SceneState)
 		{
@@ -1040,7 +1041,7 @@ namespace Shark {
 
 			UI::SetBlend(false);
 			Ref<Image2D> image = m_CameraPreviewRenderer->GetFinalImage();
-			ImGui::Image(image->GetViewRenderID(), ImGui::GetContentRegionAvail());
+			ImGui::Image(image->GetViewID(), ImGui::GetContentRegionAvail());
 			UI::SetBlend(true);
 
 			ImGui::End();
@@ -1219,6 +1220,8 @@ namespace Shark {
 
 				UI::PopTextFlag();
 				UI::EndProperty();
+
+				ImGui::Separator();
 			}
 
 			ImGui::TreePop();
@@ -1298,6 +1301,7 @@ namespace Shark {
 	{
 		if (m_ShowColliders)
 		{
+			//m_DebugRenderer->SetRenderTarget(m_SceneRenderer->GetExternalCompositFrameBuffer());
 			m_DebugRenderer->BeginScene(GetActiveViewProjection());
 
 			if (m_ShowCollidersOnTop)

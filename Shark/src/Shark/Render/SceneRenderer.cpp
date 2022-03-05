@@ -55,9 +55,11 @@ namespace Shark {
 			fbspecs.Width = m_ViewportWidth;
 			fbspecs.Height = m_ViewportHeight;
 			fbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::Depth };
+			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
+			fbspecs.Atachments[1].Blend = false;
 			fbspecs.Atachments[0].Image = m_GeometryFrameBuffer->GetImage(0);
-			fbspecs.Atachments[1].Image = m_GeometryFrameBuffer->GetDepthImage();
+			fbspecs.Atachments[1].Image = m_GeometryFrameBuffer->GetImage(1);
+			fbspecs.Atachments[2].Image = m_GeometryFrameBuffer->GetDepthImage();
 			m_ExternalCompositeFrameBuffer = FrameBuffer::Create(fbspecs);
 		}
 
@@ -81,7 +83,7 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
-		m_Renderer2D->SetRenderTarget(m_GeometryFrameBuffer);
+		//m_Renderer2D->SetRenderTarget(m_GeometryFrameBuffer);
 		m_Renderer2D->BeginScene(viewProj);
 	}
 
@@ -119,6 +121,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
+		if (m_ViewportWidth == width && m_ViewportHeight == height)
+			return;
+
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 		m_NeedsResize = true;

@@ -49,7 +49,7 @@ namespace Shark::UI {
 	static std::vector<Flags::Text> s_TextFlagStack = std::vector<Flags::Text>(1, Flags::Text_None);
 	static std::string s_StringBuffer;
 
-	static bool s_IsPropertyGrid = false;
+	static bool s_IsDefaultGrid = false;
 	static uint32_t s_PropertyCount = 0;
 
 	void NewFrame()
@@ -289,6 +289,11 @@ namespace Shark::UI {
 			if (!(flags & Flags::Text_Background))
 				style.Push(ImGuiCol_FrameBg, { 0.0, 0.0f, 0.0f, 0.0f });
 
+			const ImGuiStyle& s = ImGui::GetStyle();
+			const float textwidth = ImGui::CalcTextSize(str.data(), str.data() + str.size()).x;
+			const float itemwidth = textwidth + s.FramePadding.x * 2.0f;
+
+			ImGui::SetNextItemWidth(itemwidth);
 			ImGui::InputText("##TextSelectable", (char*)str.data(), str.size(), ImGuiInputTextFlags_ReadOnly);
 			return;
 		}
@@ -417,7 +422,7 @@ namespace Shark::UI {
 			if (!ImGui::GetCurrentTable())
 				return false;
 
-			if (s_PropertyCount++ > 0)
+			if (s_IsDefaultGrid && s_PropertyCount++ > 0)
 			{
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -442,39 +447,31 @@ namespace Shark::UI {
 
 	}
 
-	bool BeginProperty(Flags::Grid flags)
+	bool BeginProperty()
 	{
-		return BeginProperty(GetID("ControlsTable"), flags);
+		return BeginProperty(GetID("ControlsTable"));
 	}
 
-	bool BeginProperty(const std::string& strID, Flags::Grid flags)
+	bool BeginProperty(const std::string& strID)
 	{
-		return BeginProperty(GetID(strID), flags);
+		return BeginProperty(GetID(strID));
 	}
 
-	bool BeginPropertyGrid()
+	bool BeginPropertyGrid(Flags::Grid flags)
 	{
-		return BeginPropertyGrid(GetID("ControlsTable"));
+		return BeginPropertyGrid(GetID("ControlsTable"), flags);
 	}
 
-	bool BeginPropertyGrid(const std::string& strID)
+	bool BeginPropertyGrid(const std::string& strID, Flags::Grid flags)
 	{
-		return BeginPropertyGrid(GetID(strID));
+		return BeginPropertyGrid(GetID(strID), flags);
 	}
 
-	bool BeginProperty(ImGuiID customID, Flags::Grid flags)
+	bool BeginProperty(ImGuiID customID)
 	{
 		PushID(customID);
 
-		ImGuiTableFlags tableflags = ImGuiTableFlags_None;
-		if (!(flags & Flags::Property_FixedSize)) tableflags |= ImGuiTableFlags_Resizable;
-		if (flags & Flags::Property_MinWidth) tableflags |= ImGuiTableFlags_SizingFixedFit;
-		if (flags & Flags::Property_GridInnerV) tableflags |= ImGuiTableFlags_BordersInnerV;
-		if (flags & Flags::Property_GridInnerH) tableflags |= ImGuiTableFlags_BordersInnerH;
-		if (flags & Flags::Property_GridOuterV) tableflags |= ImGuiTableFlags_BordersOuterV;
-		if (flags & Flags::Property_GridOuterH) tableflags |= ImGuiTableFlags_BordersOuterH;
-
-		if (ImGui::BeginTable("ControlsTable", 2, tableflags))
+		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable))
 		{
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
@@ -483,13 +480,20 @@ namespace Shark::UI {
 		return false;
 	}
 
-	bool BeginPropertyGrid(ImGuiID customID)
+	bool BeginPropertyGrid(ImGuiID customID, Flags::Grid flags)
 	{
 		PushID(customID);
 
-		s_IsPropertyGrid = true;
+		if (flags & Flags::GridDefault)
+			s_IsDefaultGrid = true;
 
-		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable))
+		ImGuiTableFlags tableFalgs = ImGuiTableFlags_Resizable;
+		if (flags & Flags::GridInnerV) tableFalgs |= ImGuiTableFlags_BordersInnerV;
+		if (flags & Flags::GridInnerH) tableFalgs |= ImGuiTableFlags_BordersInnerH;
+		if (flags & Flags::GridOuterV) tableFalgs |= ImGuiTableFlags_BordersOuterV;
+		if (flags & Flags::GridOuterH) tableFalgs |= ImGuiTableFlags_BordersOuterH;
+
+		if (ImGui::BeginTable("ControlsTable", 2, tableFalgs))
 		{
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
@@ -506,7 +510,7 @@ namespace Shark::UI {
 			ImGui::EndTable();
 		}
 
-		s_IsPropertyGrid = false;
+		s_IsDefaultGrid = false;
 		s_PropertyCount = 0;
 
 		PopID();

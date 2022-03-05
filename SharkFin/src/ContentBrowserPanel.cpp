@@ -53,7 +53,7 @@ namespace Shark {
 
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
-			DrawTreeView(m_RootDirectory);
+			DrawTreeView();
 
 			ImGui::TableSetColumnIndex(1);
 			DrawCellView();
@@ -113,11 +113,16 @@ namespace Shark {
 		ImGui::End();
 	}
 
+	void ContentBrowserPanel::DrawTreeView()
+	{
+		const ImGuiStyle& style = ImGui::GetStyle();
+		ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
+		DrawTreeView(m_RootDirectory);
+		ImGui::PopStyleVar();
+	}
+
 	void ContentBrowserPanel::DrawTreeView(DirectoryEntry& directory)
 	{
-		constexpr ImGuiTreeNodeFlags defaultFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding |
-			ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
-
 		for (auto& entry : directory.ChildEntrys)
 		{
 			if (entry.Type != EntryType::Directory && m_Settings.ShowOnlyAssets && !entry.Handle.IsValid())
@@ -135,9 +140,11 @@ namespace Shark {
 			if (ImGui::IsItemHovered())
 			{
 				if (!m_IgnoreSelection && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+				{
 					m_SelectedEntry = &entry;
-				if (entry.Type == EntryType::Directory && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-					m_CurrentDirectory = m_SelectedEntry;
+					if (entry.Type == EntryType::Directory)
+						m_CurrentDirectory = m_SelectedEntry;
+				}
 			}
 
 			if (open)
@@ -209,7 +216,7 @@ namespace Shark {
 		Ref<Texture2D> icon = GetCellIcon(entry);
 
 		float imageSize = m_CellWidth;
-		ImGui::Image(icon->GetRenderID(), { imageSize, imageSize });
+		ImGui::Image(icon->GetViewID(), { imageSize, imageSize });
 		UI::Text(entry.DisplayName);
 
 		if (entry.Type != EntryType::Directory)

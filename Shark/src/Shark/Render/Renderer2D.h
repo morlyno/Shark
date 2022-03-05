@@ -180,7 +180,6 @@ namespace Shark {
 		Statistics m_Statistics;
 		bool m_Active = false;
 
-		Ref<FrameBuffer> m_RenderTarget;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
 
 		Ref<Texture2D> m_WhiteTexture;

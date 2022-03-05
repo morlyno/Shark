@@ -45,7 +45,6 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_RenderTarget = renderTarget;
 		m_WhiteTexture = Renderer::GetWhiteTexture();
 
 		m_ConstantBufferSet = ConstantBufferSet::Create();
@@ -150,7 +149,10 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		SK_CORE_ASSERT(!m_Active);
-		m_RenderTarget = renderTarget;
+		m_QuadPipeline->SetFrameBuffer(renderTarget);
+		m_CirlcePipeline->SetFrameBuffer(renderTarget);
+		m_LinePipeline->SetFrameBuffer(renderTarget);
+		m_LineOnTopPipeline->SetFrameBuffer(renderTarget);
 	}
 
 	void Renderer2D::BeginScene(const glm::mat4& viewProj)

@@ -1,8 +1,8 @@
 #include "skpch.h"
 #include "DirectXTexture.h"
 
+#include "Shark/Core/Project.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
-#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
 #include <stb_image.h>
 
@@ -14,147 +14,153 @@
 
 namespace Shark {
 
-	static D3D11_TEXTURE_ADDRESS_MODE TextureAddressModeToDirectX(AddressMode mode)
-	{
-		switch (mode)
-		{
-			case AddressMode::Wrap: return D3D11_TEXTURE_ADDRESS_WRAP;
-			case AddressMode::Clamp: return D3D11_TEXTURE_ADDRESS_CLAMP;
-			case AddressMode::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
-		}
-		SK_CORE_ASSERT(false);
-		return D3D11_TEXTURE_ADDRESS_WRAP;
-	}
+	namespace utils {
 
-	static D3D11_FILTER FilterModeToDirectX(FilterMode minmag, FilterMode mipmap)
-	{
-		switch (minmag)
+		D3D11_FILTER_TYPE FilterModeToD3D11(FilterMode filterMode)
 		{
-			case FilterMode::Linera:
+			switch (filterMode)
 			{
-				switch (mipmap)
-				{
-				case FilterMode::Linera: return D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-				case FilterMode::Point: return D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-				}
+				case FilterMode::Nearest: return D3D11_FILTER_TYPE_POINT;
+				case FilterMode::Linear:  return D3D11_FILTER_TYPE_LINEAR;
 			}
-			case FilterMode::Point:
-			{
-				switch (mipmap)
-				{
-				case FilterMode::Linera: return D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR;
-				case FilterMode::Point: return D3D11_FILTER_MIN_MAG_MIP_POINT;
-				}
-			}
+			SK_CORE_ASSERT(false, "Unkown FilterMode");
+			return (D3D11_FILTER_TYPE)0;
 		}
-		SK_CORE_ASSERT(false);
-		return D3D11_FILTER_MIN_MAG_MIP_POINT;
+
+		D3D11_TEXTURE_ADDRESS_MODE AddressModeToD3D11(AddressMode addressMode)
+		{
+			switch (addressMode)
+			{
+				case AddressMode::Repeat: return D3D11_TEXTURE_ADDRESS_WRAP;
+				case AddressMode::Clamp:  return D3D11_TEXTURE_ADDRESS_CLAMP;
+				case AddressMode::Mirror: return D3D11_TEXTURE_ADDRESS_MIRROR;
+				case AddressMode::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
+			}
+			SK_CORE_ASSERT(false, "Unkown AddressMode");
+			return (D3D11_TEXTURE_ADDRESS_MODE)0;
+		}
+
 	}
 
 	DirectXTexture2D::DirectXTexture2D()
-		: m_Image(Ref<DirectXImage2D>::Create())
 	{
 	}
 
-	DirectXTexture2D::DirectXTexture2D(Ref<Image2D> image, const SamplerProps& props)
-		: m_Image(image.As<DirectXImage2D>())
+	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specs, void* data)
+		: m_Specs(specs)
 	{
-		if (!m_Image->HasView())
-			m_Image->CreateView();
+		ImageSpecification imageSpecs;
+		imageSpecs.Width = specs.Width;
+		imageSpecs.Height = specs.Height;
+		imageSpecs.Format = specs.Format;
+		imageSpecs.MipLevels = specs.MipLevels;
+		imageSpecs.Type = ImageType::Default;
+		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
 
-		CreateSampler(props);
+		CreateSampler();
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const std::filesystem::path& filepath, const SamplerProps& props)
-		: m_FilePath(filepath)
+	DirectXTexture2D::DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, void* data)
 	{
-		ImageSpecification specs;
-		specs.Usage = ImageUsageTexture;
-		m_Image = Ref<DirectXImage2D>::Create(filepath, specs);
+		m_Specs.Format = format;
+		m_Specs.Width = width;
+		m_Specs.Height = height;
 
-		if (!m_Image->HasView())
-			m_Image->CreateView();
+		ImageSpecification imageSpecs;
+		imageSpecs.Width = m_Specs.Width;
+		imageSpecs.Height = m_Specs.Height;
+		imageSpecs.Format = m_Specs.Format;
+		imageSpecs.Type = ImageType::Default;
+		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
 
-		CreateSampler(props);
+		CreateSampler();
 	}
 
-	DirectXTexture2D::DirectXTexture2D(uint32_t width, uint32_t height, void* data, const SamplerProps& props)
-		: m_FilePath(std::string{})
+	DirectXTexture2D::DirectXTexture2D(const std::filesystem::path& filePath)
 	{
-		ImageSpecification specs;
-		specs.Width = width;
-		specs.Height = height;
-		specs.Usage = ImageUsageTexture;
-		m_Image = Ref<DirectXImage2D>::Create(data, specs);
+		std::string narrorFilePath = filePath.string();
+		int x, y, comp;
+		stbi_uc* data = stbi_load(narrorFilePath.c_str(), &x, &y, &comp, STBI_rgb_alpha);
+		if (!data)
+		{
+			SK_CORE_ERROR("Failed to load Image!");
+			SK_CORE_WARN("Source: {}", Project::RelativeCopy(filePath));
+			SK_CORE_WARN("Resource: {}", stbi_failure_reason());
+			return;
+		}
 
-		if (!m_Image->HasView())
-			m_Image->CreateView();
+		ImageSpecification imageSpces;
+		imageSpces.Format = ImageFormat::RGBA8;
+		imageSpces.Width = x;
+		imageSpces.Height = y;
 
-		CreateSampler(props);
+		m_Image = Ref<DirectXImage2D>::Create(imageSpces, data);
+
+		stbi_image_free(data);
+
+		m_Specs.Format = ImageFormat::RGBA8;
+		m_Specs.Width = x;
+		m_Specs.Height = y;
+
+		CreateSampler();
 	}
 
 	DirectXTexture2D::~DirectXTexture2D()
 	{
-		Release();
-	}
-
-	void DirectXTexture2D::Release()
-	{
-		m_Image = nullptr;
-
 		if (m_Sampler)
 			m_Sampler->Release();
-		m_Sampler = nullptr;
-
 	}
 
-	void DirectXTexture2D::Set(void* data, const ImageSpecification& imageSpecs, const SamplerProps& props)
+	void DirectXTexture2D::Set(const TextureSpecification& specs, void* data)
 	{
+		m_Specs = specs;
+
 		if (m_Sampler)
+		{
 			m_Sampler->Release();
-		m_Sampler = nullptr;
+			m_Sampler = nullptr;
+			CreateSampler();
 
-		m_Image->Set(data, imageSpecs);
+			m_Image->Set(m_Image->GetSpecification(), data);
+			return;
+		}
 
-		if (!m_Image->HasView())
-			m_Image->CreateView();
+		ImageSpecification imageSpecs;
+		imageSpecs.Width = m_Specs.Width;
+		imageSpecs.Height = m_Specs.Height;
+		imageSpecs.Format = m_Specs.Format;
+		imageSpecs.MipLevels = m_Specs.MipLevels;
+		imageSpecs.Type = ImageType::Default;
+		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
 
-		CreateSampler(props);
+		CreateSampler();
 	}
 
-	void DirectXTexture2D::Bind(ID3D11DeviceContext* ctx, uint32_t slot)
+	void DirectXTexture2D::CreateSampler()
 	{
-		ctx->PSSetSamplers(slot, 1u, &m_Sampler);
+		SK_CORE_ASSERT(!m_Sampler, "Sampler already created");
 
-		ID3D11ShaderResourceView* view = m_Image->GetViewNative();
-		ctx->PSSetShaderResources(slot, 1u, &view);
+		D3D11_SAMPLER_DESC desc{};
+		desc.Filter = D3D11_ENCODE_BASIC_FILTER(
+			utils::FilterModeToD3D11(m_Specs.Sampler.Min),
+			utils::FilterModeToD3D11(m_Specs.Sampler.Mag),
+			utils::FilterModeToD3D11(m_Specs.Sampler.Mip),
+			D3D11_FILTER_REDUCTION_TYPE_STANDARD
+		);
+		desc.AddressU = utils::AddressModeToD3D11(m_Specs.Sampler.Address.U);
+		desc.AddressV = utils::AddressModeToD3D11(m_Specs.Sampler.Address.V);
+		desc.AddressW = utils::AddressModeToD3D11(m_Specs.Sampler.Address.W);
+
+		desc.MinLOD = m_Specs.MinLOD;
+		desc.MaxLOD = m_Specs.MaxLOD;
+
+		static_assert(sizeof(D3D11_SAMPLER_DESC::BorderColor) == sizeof(glm::vec4));
+		memcpy(desc.BorderColor, glm::value_ptr(m_Specs.Sampler.BorderColor), sizeof(desc.BorderColor));
+
+		auto device = DirectXRenderer::GetDevice();
+		SK_CHECK(device->CreateSamplerState(&desc, &m_Sampler));
 	}
 
-	void DirectXTexture2D::UnBind(ID3D11DeviceContext* ctx, uint32_t slot)
-	{
-		ID3D11SamplerState* nullsplr = nullptr;
-		ID3D11ShaderResourceView* nullsrv = nullptr;
-		ctx->PSSetSamplers(slot, 1, &nullsplr);
-		ctx->PSSetShaderResources(slot, 1, &nullsrv);
-	}
-
-	void DirectXTexture2D::CreateSampler(const SamplerProps& props)
-	{
-		auto* dev = DirectXRenderer::GetDevice();
-
-		m_SamplerProps = props;
-
-		D3D11_SAMPLER_DESC sd;
-		memset(&sd, 0, sizeof(D3D11_SAMPLER_DESC));
-		sd.Filter = FilterModeToDirectX(props.MinMag, props.Mipmap);
-		sd.AddressU = TextureAddressModeToDirectX(props.AddressU);
-		sd.AddressV = TextureAddressModeToDirectX(props.AddressV);
-		sd.AddressW = TextureAddressModeToDirectX(props.AddressW);
-		memcpy(sd.BorderColor, &props.BorderColor, sizeof(float) * 4);
-
-		SK_CHECK(dev->CreateSamplerState(&sd, &m_Sampler));
-
-	}
 
 	DirectXTexture2DArray::DirectXTexture2DArray(uint32_t count, uint32_t startOffset)
 		: m_Count(count), m_StartOffset(startOffset)
@@ -164,23 +170,23 @@ namespace Shark {
 		m_Samplers.resize(count, nullptr);
 	}
 
-	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, Ref<Image2D> image, const SamplerProps& props)
+	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index)
 	{
-		Ref<DirectXTexture2D> texture = Ref<DirectXTexture2D>::Create(image, props);
+		auto texture = Ref<DirectXTexture2D>::Create();
 		SetTexture(index, texture);
 		return texture;
 	}
 
-	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, const std::filesystem::path& filepath, const SamplerProps& props)
+	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, const TextureSpecification& specs, void* data)
 	{
-		Ref<DirectXTexture2D> texture = Ref<DirectXTexture2D>::Create(filepath, props);
+		auto texture = Ref<DirectXTexture2D>::Create(specs, data);
 		SetTexture(index, texture);
 		return texture;
 	}
 
-	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, uint32_t width, uint32_t height, void* data, const SamplerProps& props)
+	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, void* data)
 	{
-		Ref<DirectXTexture2D> texture = Ref<DirectXTexture2D>::Create(width, height, data, props);
+		auto texture = Ref<DirectXTexture2D>::Create(format, width, height, data);
 		SetTexture(index, texture);
 		return texture;
 	}
@@ -192,11 +198,14 @@ namespace Shark {
 
 	Ref<Texture2D> DirectXTexture2DArray::Get(uint32_t index) const
 	{
+		SK_CORE_ASSERT(index < m_Count, "Index out of range");
 		return m_TextureArray[index];
 	}
 
 	void DirectXTexture2DArray::SetTexture(uint32_t index, Ref<DirectXTexture2D> texture)
 	{
+		SK_CORE_ASSERT(index < m_Count, "Index out of range");
+
 		if (texture)
 		{
 			m_TextureArray[index] = texture;

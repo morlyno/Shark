@@ -13,40 +13,41 @@ namespace Shark {
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
 			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create();
 		}
-		SK_CORE_ASSERT(false, "Unknown API");
+		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(Ref<Image2D> image, const SamplerProps& props)
+	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specs, void* data)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(image, props);
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, data);
 		}
-		SK_CORE_ASSERT(false, "Unknown API");
+		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const std::filesystem::path& filepath, const SamplerProps& props)
+
+	Ref<Texture2D> Texture2D::Create(ImageFormat format, uint32_t width, uint32_t height, void* data)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(filepath, props);
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(format, width, height, data);
 		}
-		SK_CORE_ASSERT(false, "Unknown API");
+		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(uint32_t width, uint32_t height, void* data, const SamplerProps& props)
+	Ref<Texture2D> Texture2D::Create(const std::filesystem::path& filePath)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(width, height, data, props);
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(filePath);
 		}
-		SK_CORE_ASSERT(false, "Unknown API");
+		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
 	}
 

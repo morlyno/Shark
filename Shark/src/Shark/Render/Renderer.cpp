@@ -37,6 +37,11 @@ namespace Shark {
 		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, constantBufferSet, vertexBuffer, vertexCount);
 	}
 
+	void Renderer::GenerateMips(Ref<Image2D> image)
+	{
+		s_RendererAPI->GenerateMips(image);
+	}
+
 	Ref<ShaderLibrary> Renderer::GetShaderLib()
 	{
 		return s_RendererAPI->GetShaderLib();

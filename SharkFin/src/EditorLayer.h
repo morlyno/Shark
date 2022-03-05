@@ -146,10 +146,6 @@ namespace Shark {
 		Ref<Texture2D> m_PauseIcon;
 		Ref<Texture2D> m_StepIcon;
 
-		std::string m_ProjectEditBuffer;
-		bool m_ProjectEditActice = false;
-		ImGuiID m_ProjectEditActiveID;
-
 		struct ImportAssetData
 		{
 			std::filesystem::path SourceFile;
@@ -164,7 +160,6 @@ namespace Shark {
 		bool m_ShowCollidersOnTop = true;
 
 		bool m_ShowCameraPreview = false;
-
 
 		struct ProjectEditData
 		{

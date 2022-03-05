@@ -37,6 +37,7 @@ namespace Shark {
 		void OnFileChanged(const std::vector<FileChangedData>& fileEvents) { Reload(); }
 
 	private:
+		void DrawTreeView();
 		void DrawTreeView(DirectoryEntry& entry);
 		void DrawCellView();
 		void DrawCell(DirectoryEntry& entry);
