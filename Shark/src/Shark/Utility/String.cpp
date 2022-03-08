@@ -46,14 +46,14 @@ namespace Shark::String {
 
 	void SplitString(const std::string& str, std::string_view splitter, std::vector<std::string>& out_Array)
 	{
-		size_t start = 0;
+		size_t start = str.find_first_not_of(' ');
 		size_t end = 0;
-		while (start != std::string::npos)
+		while (end != std::string::npos)
 		{
-			start = end;
-			end = str.find(splitter, start + 1);
-			end = str.find_first_not_of(' ', end);
+			end = str.find(splitter, start);
 			out_Array.emplace_back(str.substr(start, end - start));
+
+			start = str.find_first_not_of(' ', end + 1);
 		}
 	}
 
@@ -61,7 +61,7 @@ namespace Shark::String {
 	{
 		size_t start = str.find_first_not_of(' ');
 		size_t end = 0;
-		while (end != std::string::npos)
+		while (end != std::wstring::npos)
 		{
 			end = str.find(splitter, start);
 			out_Array.emplace_back(str.substr(start, end - start));

@@ -38,8 +38,12 @@ project "SharkFin"
 
     defines
     {
+        "IMGUI_DEFINE_MATH_OPERATORS",
+        
         "GLM_FORCE_SWIZZLE",
-        "GLM_FORCE_LEFT_HANDED"
+        "GLM_FORCE_LEFT_HANDED",
+        
+        "FMT_HEADER_ONLY"
     }
 
     filter "system:windows"
