@@ -27,9 +27,6 @@
 #endif
 
 #define SK_ENABLE_PERF 1
-#define SK_DISABLE_DEPRECATED 1
-
-#define IMGUI_DEFINE_MATH_OPERATORS 1
 
 #define BIT(x) (1 << x)
 
@@ -53,17 +50,6 @@
 #else
 #define SK_UNIQUE_VAR_NAME SK_CONNECT(almoust_unique_var_, __LINE__)
 #endif
-
-#define SK_ENUMCLASS_BITSET_OPERATORS(enumClassType)\
-constexpr enumClassType operator|(enumClassType lhs, enumClassType rhs) { using intType = std::underlying_type_t<enumClassType>; return (enumClassType)((intType)lhs | (intType)rhs); }\
-constexpr enumClassType operator&(enumClassType lhs, enumClassType rhs) { using intType = std::underlying_type_t<enumClassType>; return (enumClassType)((intType)lhs & (intType)rhs); }\
-constexpr enumClassType operator^(enumClassType lhs, enumClassType rhs) { using intType = std::underlying_type_t<enumClassType>; return (enumClassType)((intType)lhs ^ (intType)rhs); }\
-constexpr enumClassType operator|=(enumClassType& lhs, enumClassType rhs) { return lhs = lhs | rhs; }\
-constexpr enumClassType operator&=(enumClassType& lhs, enumClassType rhs) { return lhs = lhs & rhs; }\
-constexpr enumClassType operator^=(enumClassType& lhs, enumClassType rhs) { return lhs = lhs ^ rhs; }\
-constexpr enumClassType operator~(enumClassType lhs) { return (enumClassType)~(int)lhs; }
-
-// TODO(moro): enum class bitset operators
 
 #include <stdint.h>
 

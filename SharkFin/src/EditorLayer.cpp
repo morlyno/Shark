@@ -828,7 +828,7 @@ namespace Shark {
 		ImGui::Begin("##ViewPortToolBar", nullptr, falgs);
 
 		const float size = ImGui::GetContentRegionAvail().y;
-		UI::MoveCurserPosX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size * 3.0f * 0.5f) - (style.ItemSpacing.x * 3.0f));
+		UI::MoveCursorX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size * 3.0f * 0.5f) - (style.ItemSpacing.x * 3.0f));
 
 		//
 		// Layout          [Play/Stop] [Simluate/Pause] [Step Disabled]

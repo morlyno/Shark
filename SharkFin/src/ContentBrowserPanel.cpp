@@ -277,7 +277,7 @@ namespace Shark {
 			m_CurrentDirectory = GetEntry(newPath);
 
 		ImGui::SameLine();
-		UI::MoveCurserPosX(ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight());
+		UI::MoveCursorX(ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight());
 
 		ImGui::PushStyleColor(ImGuiCol_Button, UI::Theme::GetColors().ButtonNoBg);
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, UI::Theme::GetColors().ButtonHoveredNoBg);

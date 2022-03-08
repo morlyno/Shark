@@ -86,7 +86,7 @@ namespace Shark {
 		}
 
 		Ref<TextureSource> textureSource = asset.As<TextureSource>();
-		Buffer buffer = textureSource->TextureBuffer;
+		Buffer& buffer = textureSource->TextureBuffer;
 		buffer.Data = data;
 		buffer.Size = x * y * 4;
 		

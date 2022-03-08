@@ -77,8 +77,8 @@ namespace Shark {
 			return m_Scene->m_Registry.all_of<Component>(m_EntityHandle);
 		}
 
-		bool IsValid() const { SK_PROFILE_FUNCTION(); return m_Scene->m_Registry.valid(m_EntityHandle); }
-		bool IsNull() const { SK_PROFILE_FUNCTION(); return m_EntityHandle == entt::null; }
+		bool IsValid() const { return m_Scene->m_Registry.valid(m_EntityHandle); }
+		bool IsNull() const { return m_EntityHandle == entt::null; }
 
 		operator entt::entity() { return m_EntityHandle; }
 		operator bool() { return !IsNull() && IsValid(); }

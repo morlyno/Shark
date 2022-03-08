@@ -59,7 +59,6 @@ namespace Shark {
 
 		Entity GetEntityByUUID(UUID uuid);
 
-		SK_DEPRECATED("Use Entity::IsValid instead")
 		bool IsValidEntity(Entity entity) const;
 
 		Entity FindActiveCameraEntity();
