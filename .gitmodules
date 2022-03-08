@@ -1,6 +1,3 @@
-[submodule "Shark/dependencies/spdlog"]
-	path = Shark/dependencies/spdlog
-	url = https://github.com/gabime/spdlog
 [submodule "Shark/dependencies/yaml-cpp"]
 	path = Shark/dependencies/yaml-cpp
 	url = https://github.com/morlyno/yaml-cpp
@@ -22,3 +19,6 @@
 [submodule "Shark/dependencies/glm"]
 	path = Shark/dependencies/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "Shark/dependencies/spdlog"]
+	path = Shark/dependencies/spdlog
+	url = https://github.com/morlyno/spdlog

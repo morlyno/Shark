@@ -30,7 +30,6 @@
 #define SK_DISABLE_DEPRECATED 1
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
-#define SPDLOG_FMT_EXTERNAL 1
 
 #define BIT(x) (1 << x)
 

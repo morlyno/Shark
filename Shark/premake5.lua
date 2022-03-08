@@ -17,7 +17,9 @@ project "Shark"
         "%{includeDir.stb_image}/*.h",
         "%{includeDir.stb_image}/*.cpp",
         "%{includeDir.glm}/**.h",
-        "%{includeDir.glm}/**.inl"
+        "%{includeDir.glm}/**.inl",
+        "%{includeDir.fmt}/**.h",
+        "%{includeDir.spdlog}/**.h"
     }
 
     includedirs
@@ -42,8 +44,12 @@ project "Shark"
 
     defines
     {
+        "IMGUI_DEFINE_MATH_OPERATORS",
+        
         "GLM_FORCE_SWIZZLE",
-        "GLM_FORCE_LEFT_HANDED"
+        "GLM_FORCE_LEFT_HANDED",
+        
+        "FMT_HEADER_ONLY"
     }
 
     filter "system:windows"
@@ -58,7 +64,6 @@ project "Shark"
             "yaml-cpp",
             "box2d",
             "ImGuizmo",
-            "fmt",
             "OptickCore"
         }
 

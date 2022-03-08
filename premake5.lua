@@ -27,7 +27,6 @@ group "Dependencies"
 	include "Shark/dependencies/yaml-cpp"
 	include "Shark/dependencies/box2d"
 	include "Shark/dependencies/ImGuizmo"
-	include "Shark/dependencies/fmt"
 	include "Shark/dependencies/Optick"
 group ""
 
