@@ -11,6 +11,13 @@
 
 namespace Shark {
 
+	enum class AssetRelationStatus
+	{
+		None = 0,
+		ParentChild,
+		ChildParent
+	};
+
 	class ResourceManager
 	{
 	public:
@@ -34,13 +41,21 @@ namespace Shark {
 
 		static bool LoadAsset(AssetHandle handle);
 		static bool SaveAsset(AssetHandle handle);
+		static bool SaveAsset(Ref<Asset> asset);
 		static void ReloadAsset(AssetHandle handle);
-
-		static bool AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName);
 
 		static void UnloadAsset(AssetHandle handle);
 		static void DeleteAsset(AssetHandle handle);
 
+		static bool SetRelation(AssetHandle parent, AssetHandle child);
+		static void RemoveRelation(AssetHandle parent);
+
+		static AssetRelationStatus GetRelationStatus(AssetHandle handle0, AssetHandle handle1);
+
+		static AssetHandle GetChild(AssetHandle parent);
+		static AssetHandle FindParent(AssetHandle child);
+
+		static bool AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName);
 		static AssetHandle ImportAsset(const std::filesystem::path& filePath);
 
 		template<typename T = Asset>
@@ -60,9 +75,9 @@ namespace Shark {
 			if (!metadata.IsDataLoaded)
 			{
 				Ref<Asset> asset = nullptr;
-				FileWatcher::PauseWatching();
+				FileWatcher::Pause();
 				metadata.IsDataLoaded = AssetSerializer::TryLoadData(asset, metadata);
-				FileWatcher::ContinueWatching();
+				FileWatcher::Continue();
 				if (!metadata.IsDataLoaded)
 					return nullptr;
 
@@ -86,10 +101,12 @@ namespace Shark {
 			static_assert(std::is_base_of_v<Asset, T>, "CreateAsset only works for types with base class Asset!");
 			SK_CORE_ASSERT(GetAssetTypeFormFile(fileName) == T::GetStaticType());
 
+			std::string dirPath = GetRelativePathString(directoryPath);
+
 			AssetMetaData metadata;
 			metadata.Handle = AssetHandle::Generate();
 			metadata.Type = T::GetStaticType();
-			metadata.FilePath = GetRelativePath(directoryPath + "/" + file);
+			metadata.FilePath = dirPath + "/" + fileName;
 			metadata.IsDataLoaded = true;
 
 			auto filesystemPath = GetFileSystemPath(metadata);
@@ -97,9 +114,14 @@ namespace Shark {
 			{
 				uint32_t count = 1;
 				bool foundValidFilePath = false;
+
+				std::string stem;
+				std::string extention;
+				FileSystem::SplitFileName(fileName, stem, extention);
+
 				while (!foundValidFilePath)
 				{
-					filesystemPath = fmt::format("{}/{} ({:2})", directoryPath, fileName, count++);
+					filesystemPath = fmt::format("{}/{} ({:2}){}", dirPath, stem, count++, extention);
 					foundValidFilePath = !FileSystem::Exists(filesystemPath);
 				}
 				metadata.FilePath = GetRelativePath(filesystemPath);
@@ -108,7 +130,8 @@ namespace Shark {
 			s_AssetRegistry[metadata.Handle] = metadata;
 			SaveAssetRegistry();
 
-			Ref<T> asset = Ref<T>::Create(std::forward<Args>(args)...);
+			Ref<T> asset = T::Create(std::forward<Args>(args)...);
+
 			asset->Handle = metadata.Handle;
 			s_LoadedAssets[metadata.Handle] = asset;
 
@@ -123,7 +146,7 @@ namespace Shark {
 			static_assert(std::is_base_of_v<Asset, T>, "CreateMemoryAsset only works for types with base class Asset!");
 
 			AssetHandle handle = AssetHandle::Generate();
-			Ref<T> asset = Ref<T>::Create(std::forward<Args>(args)...);
+			Ref<T> asset = T::Create(std::forward<Args>(args)...);
 			asset->Handle = handle;
 			s_MemoryAssets[handle] = asset;
 			return asset;
@@ -132,6 +155,7 @@ namespace Shark {
 		static const AssetRegistry& GetAssetRegistry() { return s_AssetRegistry; }
 		static const auto& GetLoadedAssets() { return s_LoadedAssets; }
 		static const auto& GetMemoryAssets() { return s_MemoryAssets; }
+		static const auto& GetAssetRelations() { return s_AssetRelations; }
 
 	private:
 		static AssetMetaData& GetMetaDataInternal(AssetHandle handle);
@@ -143,9 +167,11 @@ namespace Shark {
 		static void LoadAssetRegistry();
 
 	private:
+		// TODO(moro): remove AssetRegistry and replace with std::unordered_map<AssetHandle, AssetMetaData>
 		static AssetRegistry s_AssetRegistry;
 		static std::unordered_map<AssetHandle, Ref<Asset>> s_LoadedAssets;
 		static std::unordered_map<AssetHandle, Ref<Asset>> s_MemoryAssets;
+		static std::unordered_map<AssetHandle, AssetHandle> s_AssetRelations;
 	};
 
 }

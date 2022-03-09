@@ -28,6 +28,7 @@ namespace Shark::FileSystem {
 	uint32_t DeleteAll(const std::filesystem::path& path);
 	bool Exists(const std::filesystem::path& path);
 	std::string FileName(const std::filesystem::path& path);
+	void SplitFileName(const std::filesystem::path& path, std::string& out_Stem, std::string& out_Extention);
 
 	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path);
 	std::filesystem::path FormatDefaultCopy(const std::filesystem::path& path);

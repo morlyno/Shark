@@ -258,7 +258,7 @@ namespace Shark {
 
 		out << YAML::BeginMap;
 
-		// Scene
+		// TODO(moro): remove AssetHandle
 		out << YAML::Key << "Scene" << YAML::Value << scene->Handle;
 
 		out << YAML::Key << "ActiveCamera" << YAML::Value << YAML::Hex << scene->GetActiveCameraUUID() << YAML::Dec;
@@ -309,6 +309,8 @@ namespace Shark {
 		if (!in["Scene"])
 			return false;
 
+		scene->m_Registry.clear();
+
 		SK_CORE_INFO("Deserializing Scene from: {0}", filepath);
 
 		struct SceneUUIDFallback
@@ -320,6 +322,7 @@ namespace Shark {
 			}
 		};
 
+		// TODO(moro): remove AssetHandle
 		scene->Handle = in["Scene"].as<UUID>(SceneUUIDFallback{});
 
 		scene->SetActiveCamera(in["ActiveCamera"].as<UUID>());

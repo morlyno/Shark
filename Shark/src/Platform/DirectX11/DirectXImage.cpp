@@ -181,6 +181,9 @@ namespace Shark {
 		SK_CORE_ASSERT(!m_Resource);
 		SK_CORE_ASSERT(!m_View);
 
+		if (m_Specs.Width == 0 || m_Specs.Height == 0)
+			return;
+
 		switch (m_Specs.Type)
 		{
 			case ImageType::Default: CreateDefaultImage(data); break;

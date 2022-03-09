@@ -64,6 +64,8 @@ namespace Shark {
 
 		// Create and setup Panels
 		m_ContentBrowserPanel = Scope<ContentBrowserPanel>::Create();
+		m_ContentBrowserPanel->SetOpenAssetCallback(std::bind(&EditorLayer::OpenAssetCallback, this, std::placeholders::_1));
+
 		m_SceneHirachyPanel = Scope<SceneHirachyPanel>::Create();
 		m_SceneHirachyPanel->SetContext(m_ActiveScene);
 		m_SceneHirachyPanel->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
@@ -301,6 +303,11 @@ namespace Shark {
 		m_ContentBrowserPanel->OnFileChanged(fileEvents);
 	}
 
+	void EditorLayer::OpenAssetCallback(AssetHandle assetHandle)
+	{
+
+	}
+
 	void EditorLayer::OnImGuiRender()
 	{
 		SK_PROFILE_FUNCTION();
@@ -354,6 +361,7 @@ namespace Shark {
 
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 
+		UI_DragDrop();
 		UI_Gizmo();
 
 		// TODO(moro): Mouse Picking with Raycast
@@ -404,57 +412,6 @@ namespace Shark {
 		}
 #endif
 
-		if (m_ImportAssetData.Active)
-		{
-			ImGui::Begin("Import Asset");
-
-			UI::Text("Importing Asset");
-			UI::Text(fmt::format("Source: {}", m_ImportAssetData.SourceFile));
-			UI::Text(fmt::format("Type: {}", AssetTypeToString(AssetExtentionMap[m_ImportAssetData.Extention])));
-
-			UI::Text(m_ImportAssetData.TargetDirectory);
-			ImGui::SameLine(0.0f, 0.0f);
-			UI::Text("/");
-			ImGui::SameLine(0.0f, 0.0f);
-			ImGui::InputText("##ImputAssetName", &m_ImportAssetData.FileName);
-
-			std::filesystem::path fullPath = Project::GetProjectDirectory() / m_ImportAssetData.TargetDirectory / m_ImportAssetData.FileName;
-			fullPath.replace_extension(m_ImportAssetData.Extention);
-
-			if (m_ImportAssetData.FileName.empty() || FileSystem::Exists(fullPath))
-			{
-				auto& style = ImGui::GetStyle();
-				UI::Text("Import", UI::Flags::Text_Aligned | UI::Flags::Text_Disabled);
-			}
-			else
-			{
-				if (ImGui::Button("Import"))
-				{
-					std::error_code errorCode;
-					if (std::filesystem::copy_file(m_ImportAssetData.SourceFile, fullPath, errorCode))
-					{
-						ResourceManager::ImportAsset(fullPath);
-						m_ImportAssetData.Active = false;
-					}
-
-					if (errorCode)
-					{
-						SK_CORE_ERROR("Failed to copy file! {}", errorCode.message());
-					}
-
-				}
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("Cancle"))
-				m_ImportAssetData.Active = false;
-
-			ImGui::End();
-		}
-
-		UI_DragDrop();
-
 		// End Viewport
 		ImGui::End();
 
@@ -467,6 +424,7 @@ namespace Shark {
 		UI_Stats();
 		UI_ProjectSettings();
 		UI_Asset();
+		UI_ImportTexture();
 
 		m_SceneHirachyPanel->OnImGuiRender(m_ShowSceneHirachyPanel);
 		m_ContentBrowserPanel->OnImGuiRender(m_ShowAssetsPanel);
@@ -525,10 +483,6 @@ namespace Shark {
 
 				if (ImGui::MenuItem("Create Project"))
 					CreateProject();
-
-				ImGui::Separator();
-				if (ImGui::MenuItem("Import Asset"))
-					ImportAsset();
 
 				ImGui::Separator();
 				if (ImGui::MenuItem("Exit"))
@@ -772,35 +726,75 @@ namespace Shark {
 
 		if (ImGui::BeginDragDropTarget())
 		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET");
-			if (payload)
+			// Asset
 			{
-				AssetHandle handle = *(AssetHandle*)payload->Data;
-				if (ResourceManager::IsValidAssetHandle(handle))
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET");
+				if (payload)
 				{
-					const AssetMetaData& metaData = ResourceManager::GetMetaData(handle);
-					if (metaData.IsValid())
+					AssetHandle handle = *(AssetHandle*)payload->Data;
+					if (ResourceManager::IsValidAssetHandle(handle))
 					{
-						switch (metaData.Type)
+						const AssetMetaData& metaData = ResourceManager::GetMetaData(handle);
+						if (metaData.IsValid())
 						{
-							case AssetType::Scene:
+							switch (metaData.Type)
 							{
-								Ref<Scene> scene = ResourceManager::GetAsset<Scene>(handle);
-								SK_CORE_ASSERT(scene);
-								SetNextActiveScene(scene);
-								break;
-							}
-							case AssetType::Texture:
-							{
-								Entity entity = m_ActiveScene->CreateEntity();
-								auto& sr = entity.AddComponent<SpriteRendererComponent>();
-								sr.TextureHandle = handle;
-								SelectEntity(entity);
+								case AssetType::Scene:
+								{
+									Ref<Scene> scene = ResourceManager::GetAsset<Scene>(handle);
+									SK_CORE_ASSERT(scene);
+									SetNextActiveScene(scene);
+									break;
+								}
+								case AssetType::Texture:
+								{
+									Entity entity = m_ActiveScene->CreateEntity();
+									auto& sr = entity.AddComponent<SpriteRendererComponent>();
+									sr.TextureHandle = handle;
+									SelectEntity(entity);
+									break;
+								}
+								case AssetType::TextureSource:
+								{
+									m_TextureAssetCreateData.Clear();
+									m_TextureAssetCreateData.TextureSourceHandle = metaData.Handle;
+									m_TextureAssetCreateData.OpenPopup = true;
+									m_TextureAssetCreateData.CreateEntityAfterCreation = true;
+									break;
+								}
 							}
 						}
 					}
-				}
 
+				}
+			}
+
+			// ASSET_FILEPATH
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_FILEPATH");
+				if (payload)
+				{
+					std::filesystem::path filePath = std::wstring((const wchar_t*)payload->Data, payload->DataSize / sizeof(wchar_t));
+					Project::Absolue(filePath);
+					AssetType assetType = AssetExtentionMap.at(filePath.extension().string());
+					switch (assetType)
+					{
+						case AssetType::Scene: ResourceManager::ImportAsset(filePath); break;
+						case AssetType::Texture: SK_CORE_ASSERT(false, "Probably not possible"); break;
+						case AssetType::TextureSource:
+						{
+							AssetHandle handle = ResourceManager::ImportAsset(filePath);
+							if (handle)
+							{
+								m_TextureAssetCreateData.Clear();
+								m_TextureAssetCreateData.TextureSourceHandle = handle;
+								m_TextureAssetCreateData.OpenPopup = true;
+								m_TextureAssetCreateData.CreateEntityAfterCreation = true;
+							}
+							break;
+						}
+					}
+				}
 			}
 
 			ImGui::EndDragDropTarget();
@@ -1127,6 +1121,8 @@ namespace Shark {
 			{
 				auto assetsDirectory = Project::AbsolueCopy(m_ProjectEditData.Assets);
 				m_ProjectEditData.ValidAssetsPath = (std::filesystem::exists(assetsDirectory) && std::filesystem::is_directory(assetsDirectory));
+				if (m_ProjectEditData.ValidAssetsPath)
+					config.AssetsDirectory = assetsDirectory;
 			}
 
 			UI::PopID();
@@ -1145,6 +1141,8 @@ namespace Shark {
 			{
 				auto startupScene = Project::AbsolueCopy(m_ProjectEditData.StartupScene);
 				m_ProjectEditData.ValidStartupScene = std::filesystem::exists(startupScene) && std::filesystem::is_regular_file(startupScene) && (startupScene.extension() == L".skscene");
+				if (m_ProjectEditData.ValidStartupScene)
+					config.StartupScenePath = startupScene;
 			}
 
 			if (ImGui::BeginDragDropTarget())
@@ -1157,7 +1155,8 @@ namespace Shark {
 					const AssetMetaData& metadata = ResourceManager::GetMetaData(handle);
 					if (metadata.Type == AssetType::Scene)
 					{
-						m_ProjectEditData.StartupScene = Project::RelativeCopy(ResourceManager::GetFileSystemPath(metadata)).string();
+						config.StartupScenePath = ResourceManager::GetFileSystemPath(metadata);
+						m_ProjectEditData.StartupScene = Project::RelativeCopy(config.StartupScenePath).string();
 						m_ProjectEditData.ValidStartupScene = true;
 					}
 				}
@@ -1212,11 +1211,11 @@ namespace Shark {
 				}
 
 				UI::BeginPropertyGrid();
-				UI::PushTextFlag(UI::Flags::Text_Aligned);
+				UI::PushTextFlag(UI::TextFlag::Aligned);
 
-				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), UI::Flags::Text_Selectable);
-				UI::Property("FilePath", metadata.FilePath, UI::Flags::Text_Selectable);
-				UI::Property("Type", AssetTypeToString(metadata.Type), UI::Flags::Text_Selectable);
+				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), UI::TextFlag::Selectable);
+				UI::Property("FilePath", metadata.FilePath, UI::TextFlag::Selectable);
+				UI::Property("Type", AssetTypeToString(metadata.Type), UI::TextFlag::Selectable);
 
 				UI::PopTextFlag();
 				UI::EndProperty();
@@ -1250,11 +1249,11 @@ namespace Shark {
 				}
 
 				UI::BeginPropertyGrid();
-				UI::PushTextFlag(UI::Flags::Text_Aligned);
+				UI::PushTextFlag(UI::TextFlag::Aligned);
 
-				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), UI::Flags::Text_Selectable);
-				UI::Property("FilePath", metadata.FilePath, UI::Flags::Text_Selectable);
-				UI::Property("Type", AssetTypeToString(metadata.Type), UI::Flags::Text_Selectable);
+				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), UI::TextFlag::Selectable);
+				UI::Property("FilePath", metadata.FilePath, UI::TextFlag::Selectable);
+				UI::Property("Type", AssetTypeToString(metadata.Type), UI::TextFlag::Selectable);
 
 				UI::PopTextFlag();
 				UI::EndProperty();
@@ -1282,10 +1281,10 @@ namespace Shark {
 				}
 
 				UI::BeginPropertyGrid();
-				UI::PushTextFlag(UI::Flags::Text_Aligned);
+				UI::PushTextFlag(UI::TextFlag::Aligned);
 
-				UI::Property("Handle", fmt::format("{:x}", handle), UI::Flags::Text_Selectable);
-				UI::Property("Type", AssetTypeToString(asset->GetAssetType()), UI::Flags::Text_Selectable);
+				UI::Property("Handle", fmt::format("{:x}", handle), UI::TextFlag::Selectable);
+				UI::Property("Type", AssetTypeToString(asset->GetAssetType()), UI::TextFlag::Selectable);
 
 				UI::PopTextFlag();
 				UI::EndProperty();
@@ -1295,6 +1294,51 @@ namespace Shark {
 		}
 
 		ImGui::End();
+	}
+
+	void EditorLayer::UI_ImportTexture()
+	{
+		if (m_TextureAssetCreateData.OpenPopup)
+		{
+			ImGui::OpenPopup("Import Texture");
+			m_TextureAssetCreateData.OpenPopup = false;
+		}
+
+		if (ImGui::BeginPopupModal("Import Texture"))
+		{
+			ImGui::Text("Input FileName");
+			UI::Text(fmt::format("Parent Path: {}/Texture", Project::GetAssetsPath()));
+			ImGui::InputText("##FileName", &m_TextureAssetCreateData.TextureFileName);
+
+			if (ImGui::Button("Import"))
+			{
+				std::string directory = String::ToNarrowCopy(fmt::format(L"{}/Textures", Project::GetAssetsPath().native()));
+				std::string fileName = std::filesystem::path(m_TextureAssetCreateData.TextureFileName).replace_extension(".sktexture").string();
+
+				TextureSpecification specs;
+				Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, specs, nullptr);
+				ResourceManager::SetRelation(texture->Handle, m_TextureAssetCreateData.TextureSourceHandle);
+				ResourceManager::SaveAsset(texture);
+				ResourceManager::ReloadAsset(texture->Handle);
+
+				if (m_TextureAssetCreateData.CreateEntityAfterCreation)
+				{
+					Entity entity = m_ActiveScene->CreateEntity();
+					auto& sr = entity.AddComponent<SpriteRendererComponent>();
+					sr.TextureHandle = texture->Handle;
+					SelectEntity(entity);
+				}
+
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Cancle"))
+				ImGui::CloseCurrentPopup();
+
+			ImGui::EndPopup();
+		}
 	}
 
 	void EditorLayer::DebugRender()
@@ -1667,34 +1711,6 @@ namespace Shark {
 		if (m_ContentBrowserPanel)
 			m_ContentBrowserPanel->OnProjectChanged();
 		FileWatcher::StartWatching(Project::GetAssetsPath());
-	}
-
-	void EditorLayer::ImportAsset()
-	{
-		m_ImportAssetData = ImportAssetData();
-
-		m_ImportAssetData.SourceFile = FileDialogs::OpenFile(L"|*.*|Scene|.skscene|Texture|.png");
-		if (!m_ImportAssetData.SourceFile.empty())
-		{
-			m_ImportAssetData.Active = true;
-			m_ImportAssetData.Extention = m_ImportAssetData.SourceFile.extension().string();
-			String::ToLower(m_ImportAssetData.Extention);
-
-			if (!IsValidExtention(m_ImportAssetData.Extention))
-			{
-				SK_CORE_ERROR("Tryed to Import asset but extention is Unkown! {}", m_ImportAssetData.Extention);
-				m_ImportAssetData = ImportAssetData();
-				return;
-			}
-
-			if (AssetExtentionMap[m_ImportAssetData.Extention] == AssetType::None)
-			{
-				m_ImportAssetData.Active = false;
-				return;
-			}
-
-		}
-
 	}
 
 	glm::mat4 EditorLayer::GetViewProjFromCameraEntity(Entity cameraEntity)

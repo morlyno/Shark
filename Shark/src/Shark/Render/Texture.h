@@ -12,6 +12,9 @@ namespace Shark {
 	enum class FilterMode { Nearest, Linear };
 	enum class AddressMode { Repeat, Clamp, Mirror, Border };
 
+	std::string ToString(FilterMode filterMode);
+	std::string ToString(AddressMode addressMode);
+
 	struct TextureAddressModes
 	{
 		AddressMode U, V, W;
@@ -23,10 +26,16 @@ namespace Shark {
 	{
 		FilterMode Min = FilterMode::Linear;
 		FilterMode Mag = FilterMode::Linear;
-		FilterMode Mip = FilterMode::Nearest;
+		FilterMode Mip = FilterMode::Linear;
 		TextureAddressModes Address = AddressMode::Repeat;
 		glm::vec4 BorderColor = glm::vec4(0);
 
+		bool Anisotropy = false;
+		uint32_t MaxAnisotropy = 0;
+
+		float LODBias = 0.0f;
+		float MinLOD = 0.0f;
+		float MaxLOD = FLT_MAX;
 		// MipLODBias
 		// Comparison
 		// LOD
@@ -38,33 +47,10 @@ namespace Shark {
 		uint32_t Width = 0;
 		uint32_t Height = 0;
 
-		uint32_t MipLevels = 0;
-		float MinLOD = 0.0f;
-		float MaxLOD = FLT_MAX;
+		uint32_t MipLevels = 1;
 
 		SamplerSpecification Sampler;
 	};
-
-#if SK_TEXTURE_SOURCE
-	class TextureSource : public Asset
-	{
-	public:
-		TextureSource() = default;
-		~TextureSource() = default;
-	
-		bool IsDataLoaded() const { return m_Buffer.Data; }
-		Buffer GetBuffer() const { return m_Buffer; }
-	
-		bool LoadData() {}
-		bool UnloadData() {}
-	
-		static AssetType GetStaticType() { return AssetType::TextureSource; }
-		virtual AssetType GetAssetType() const { return GetStaticType(); }
-	
-	private:
-		Buffer m_Buffer;
-	};
-#endif
 
 	class Texture2D : public Asset
 	{
@@ -104,6 +90,18 @@ namespace Shark {
 
 	public:
 		static Ref<Texture2DArray> Create(uint32_t count, uint32_t startOffset = 0);
+	};
+
+	class TextureSource : public Asset
+	{
+	public:
+		TextureSource() = default;
+		virtual ~TextureSource() = default;
+
+		static AssetType GetStaticType() { return AssetType::TextureSource; }
+		virtual AssetType GetAssetType() const { return GetStaticType(); }
+
+		static Ref<TextureSource> Create() { return Ref<TextureSource>::Create(); }
 	};
 
 }

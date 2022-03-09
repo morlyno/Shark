@@ -40,6 +40,19 @@ namespace Shark {
 			return (D3D11_TEXTURE_ADDRESS_MODE)0;
 		}
 
+		D3D11_FILTER MakeFilter(const SamplerSpecification& specs)
+		{
+			if (specs.Anisotropy)
+				return D3D11_FILTER_ANISOTROPIC;
+			
+			return D3D11_ENCODE_BASIC_FILTER(
+				utils::FilterModeToD3D11(specs.Min),
+				utils::FilterModeToD3D11(specs.Mag),
+				utils::FilterModeToD3D11(specs.Mip),
+				D3D11_FILTER_REDUCTION_TYPE_STANDARD
+			);
+		}
+
 	}
 
 	DirectXTexture2D::DirectXTexture2D()
@@ -121,7 +134,13 @@ namespace Shark {
 			m_Sampler = nullptr;
 			CreateSampler();
 
-			m_Image->Set(m_Image->GetSpecification(), data);
+			ImageSpecification imageSpecs;
+			imageSpecs.Width = m_Specs.Width;
+			imageSpecs.Height = m_Specs.Height;
+			imageSpecs.Format = m_Specs.Format;
+			imageSpecs.MipLevels = m_Specs.MipLevels;
+			imageSpecs.Type = ImageType::Default;
+			m_Image->Set(imageSpecs, data);
 			return;
 		}
 
@@ -141,21 +160,19 @@ namespace Shark {
 		SK_CORE_ASSERT(!m_Sampler, "Sampler already created");
 
 		D3D11_SAMPLER_DESC desc{};
-		desc.Filter = D3D11_ENCODE_BASIC_FILTER(
-			utils::FilterModeToD3D11(m_Specs.Sampler.Min),
-			utils::FilterModeToD3D11(m_Specs.Sampler.Mag),
-			utils::FilterModeToD3D11(m_Specs.Sampler.Mip),
-			D3D11_FILTER_REDUCTION_TYPE_STANDARD
-		);
+		desc.Filter = utils::MakeFilter(m_Specs.Sampler);
+		desc.MaxAnisotropy = m_Specs.Sampler.MaxAnisotropy;
+
 		desc.AddressU = utils::AddressModeToD3D11(m_Specs.Sampler.Address.U);
 		desc.AddressV = utils::AddressModeToD3D11(m_Specs.Sampler.Address.V);
 		desc.AddressW = utils::AddressModeToD3D11(m_Specs.Sampler.Address.W);
 
-		desc.MinLOD = m_Specs.MinLOD;
-		desc.MaxLOD = m_Specs.MaxLOD;
+		desc.MipLODBias = m_Specs.Sampler.LODBias;
+		desc.MinLOD = m_Specs.Sampler.MinLOD;
+		desc.MaxLOD = m_Specs.Sampler.MaxLOD;
 
-		static_assert(sizeof(D3D11_SAMPLER_DESC::BorderColor) == sizeof(glm::vec4));
-		memcpy(desc.BorderColor, glm::value_ptr(m_Specs.Sampler.BorderColor), sizeof(desc.BorderColor));
+		for (uint32_t i = 0; i < 4; i++)
+			desc.BorderColor[i] = m_Specs.Sampler.BorderColor[i];
 
 		auto device = DirectXRenderer::GetDevice();
 		SK_CHECK(device->CreateSamplerState(&desc, &m_Sampler));

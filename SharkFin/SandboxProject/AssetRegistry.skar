@@ -1,40 +1,16 @@
 Assets:
-  - Handle: 4959755786782300168
-    Type: Scene
-    FilePath: Scenes/Quads.skscene
-  - Handle: 2703677115576228426
-    Type: Scene
-    FilePath: Scenes/MipMapTest.skscene
-  - Handle: 12624082964936865853
-    Type: Texture
-    FilePath: Textures/S.png
-  - Handle: 2198941886064723100
-    Type: Scene
-    FilePath: Scenes/Sanbox.skscene
-  - Handle: 7864138749674188802
-    Type: Scene
-    FilePath: Scenes/TwoQuads.skscene
-  - Handle: 17280011775384976949
-    Type: Scene
-    FilePath: Scenes/PhysicsScene.shscene
-  - Handle: 7693141584254865690
-    Type: Texture
-    FilePath: Textures/Test.png
-  - Handle: 2738458051158252689
-    Type: Texture
-    FilePath: Textures/Gear.png
-  - Handle: 2933127070879412143
-    Type: Texture
-    FilePath: Textures/PlayButton.png
-  - Handle: 5089868607452121416
-    Type: Scene
-    FilePath: Scenes/Physics.skscene
-  - Handle: 10325264917233420087
+  - Handle: 9943822902076056202
     Type: Scene
     FilePath: Scenes/PhysicsScene.skscene
-  - Handle: 14825992974526573135
+  - Handle: 15680557194317303622
+    Type: TextureSource
+    FilePath: TextureSources/Checkboard.png
+  - Handle: 13497886822040707067
     Type: Texture
-    FilePath: Textures/Checkboard.png
-  - Handle: 3529446050878877909
+    FilePath: Textures/Bla.sktexture
+  - Handle: 13275925228538974022
+    Type: TextureSource
+    FilePath: TextureSources/Gear.png
+  - Handle: 17171674895277998508
     Type: Texture
-    FilePath: Textures/S - Kopie.png
+    FilePath: Textures/Gear.sktexture

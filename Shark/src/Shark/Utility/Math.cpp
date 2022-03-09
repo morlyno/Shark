@@ -157,7 +157,7 @@ namespace Shark::Math {
 
 		LocalMatrix[3] = vec4(0, 0, 0, LocalMatrix[3].w);
 
-		vec3 Row[3], Pdum3;
+		vec3 Row[3], Pdum3, Skew;
 
 		// Now get scale and shear.
 		for (length_t i = 0; i < 3; ++i)
@@ -169,6 +169,25 @@ namespace Shark::Math {
 
 		Row[0] = detail::scale(Row[0], static_cast<float>(1));
 
+		// Compute XY shear factor and make 2nd row orthogonal to 1st.
+		Skew.z = dot(Row[0], Row[1]);
+		Row[1] = detail::combine(Row[1], Row[0], static_cast<float>(1), -Skew.z);
+
+		// Now, compute Y scale and normalize 2nd row.
+		Scale.y = length(Row[1]);
+		Row[1] = detail::scale(Row[1], static_cast<float>(1));
+		Skew.z /= Scale.y;
+
+		// Compute XZ and YZ shears, orthogonalize 3rd row.
+		Skew.y = glm::dot(Row[0], Row[2]);
+		Row[2] = detail::combine(Row[2], Row[0], static_cast<float>(1), -Skew.y);
+		Skew.x = glm::dot(Row[1], Row[2]);
+		Row[2] = detail::combine(Row[2], Row[1], static_cast<float>(1), -Skew.x);
+
+		// Next, get Z scale and normalize 3rd row.
+		Scale.z = length(Row[2]);
+		Row[2] = detail::scale(Row[2], static_cast<float>(1));
+
 		// At this point, the matrix (in rows[]) is orthonormal.
 		// Check for a coordinate system flip.  If the determinant
 		// is -1, then negate the matrix and the scaling factors.
@@ -178,7 +197,6 @@ namespace Shark::Math {
 			for (length_t i = 0; i < 3; i++)
 			{
 				Scale[i] *= static_cast<float>(-1);
-				Row[i] *= static_cast<float>(-1);
 			}
 		}
 

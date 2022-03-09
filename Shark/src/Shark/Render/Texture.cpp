@@ -6,6 +6,31 @@
 
 namespace Shark {
 
+	std::string ToString(FilterMode filterMode)
+	{
+		switch (filterMode)
+		{
+			case FilterMode::Nearest: return "Nearest";
+			case FilterMode::Linear:  return "Linear";
+		}
+		SK_CORE_ASSERT(false, "Unkown FilterMode");
+		return "Unkown";
+	}
+
+	std::string ToString(AddressMode addressMode)
+	{
+		switch (addressMode)
+		{
+			case AddressMode::Repeat: return "Repeat";
+			case AddressMode::Clamp:  return "Clamp";
+			case AddressMode::Mirror: return "Mirror";
+			case AddressMode::Border: return "Border";
+		}
+		SK_CORE_ASSERT(false, "Unkown FilterMode");
+		return "Unkown";
+	}
+
+
 	Ref<Texture2D> Texture2D::Create()
 	{
 		switch (RendererAPI::GetAPI())

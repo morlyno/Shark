@@ -16,8 +16,11 @@ namespace Shark {
 
 		CacheDirectory(Project::GetAssetsPath());
 
-		m_FolderIcon = Texture2D::Create("Resources/ContentBrowser/folder_open.png");
-		m_FileIcon = Texture2D::Create("Resources/ContentBrowser/file.png");
+		m_FolderIcon   = Texture2D::Create("Resources/ContentBrowser/folder_open.png");
+		m_FileIcon     = Texture2D::Create("Resources/ContentBrowser/file.png");
+		m_PNGIcon      = Texture2D::Create("Resources/ContentBrowser/Icon_PNG.png");
+		m_SceneIcon    = Texture2D::Create("Resources/ContentBrowser/Icon_Scene.png");
+		m_TextureIcon  = Texture2D::Create("Resources/ContentBrowser/Icon_Texture.png");
 	}
 
 	ContentBrowserPanel::~ContentBrowserPanel()
@@ -188,13 +191,24 @@ namespace Shark {
 				{
 					if (!m_IgnoreSelection && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 						m_SelectedEntry = &entry;
-					if (entry.Type == EntryType::Directory && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-						m_CurrentDirectory = m_SelectedEntry;
+					if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+					{
+						if (entry.Type == EntryType::Directory)
+							m_CurrentDirectory = m_SelectedEntry;
+						else if (entry.Type == EntryType::File && entry.Handle)
+							m_OpenAssetCallback(entry.Handle);
+					}
 				}
 
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoPreviewTooltip))
 				{
-					ImGui::SetDragDropPayload("ASSET", &entry.Handle, sizeof(entry.Handle));
+					if (entry.Handle)
+						ImGui::SetDragDropPayload("ASSET", &entry.Handle, sizeof(entry.Handle));
+					else if (entry.Type == EntryType::File)
+						ImGui::SetDragDropPayload("ASSET_FILEPATH", entry.Path.native().c_str(), entry.Path.native().size() * sizeof(wchar_t));
+					else if (entry.Type == EntryType::Directory)
+						ImGui::SetDragDropPayload("DIRECTORY_FILEPATH", entry.Path.native().c_str(), entry.Path.native().size() * sizeof(wchar_t));
+
 					ImGui::EndDragDropSource();
 					m_DragDropActive = true;
 					m_DragDropEntry = &entry;
@@ -259,16 +273,16 @@ namespace Shark {
 				newPath = Utility::CreatePathFormIterator(m_CurrentDirectory->Path.begin(), std::next(elem));
 
 			ImGui::SetCursorPos(cursor);
-			UI::Flags::Text flags = UI::Flags::Text_Aligned;
+			UI::TextFlags flags = UI::TextFlag::Aligned;
 			if (!ImGui::IsItemHovered())
-				flags |= UI::Flags::Text_Disabled;
+				flags |= UI::TextFlag::Disabled;
 
 			UI::Text(*elem, flags);
 
 			if (elem != prevToEnd)
 			{
 				ImGui::SameLine(0.0f, 0.0f);
-				UI::Text("/", UI::Flags::Text_Disabled | UI::Flags::Text_Aligned);
+				UI::Text("/", UI::TextFlag::Disabled | UI::TextFlag::Aligned);
 				ImGui::SameLine(0.0f, 0.0f);
 			}
 		}
@@ -404,12 +418,10 @@ namespace Shark {
 		if (entry.Type == EntryType::Directory)
 			return m_FolderIcon;
 
-		auto& metaData = ResourceManager::GetMetaData(entry.Handle);
-		switch (metaData.Type)
-		{
-			case AssetType::Scene: return m_FileIcon;
-			case AssetType::Texture: return ResourceManager::GetAsset<Texture2D>(metaData.Handle);
-		}
+		auto extension = entry.Path.extension();
+		if (extension == L".skscene") return m_SceneIcon;
+		if (extension == L".sktexture") return m_TextureIcon;
+		if (extension == L".png") return m_PNGIcon;
 
 		return m_FileIcon;
 	}

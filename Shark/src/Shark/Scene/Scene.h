@@ -74,6 +74,8 @@ namespace Shark {
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
+		static Ref<Scene> Create() { return Ref<Scene>::Create(); }
+
 	private:
 		void SetupBox2D();
 	private:

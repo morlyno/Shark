@@ -1,0 +1,16 @@
+Texture:
+  Source: 15680557194317303622
+  MipLeves: 1
+  Sampler:
+    MinFilter: Nearest
+    MagFilter: Nearest
+    MipFilter: Linear
+    AddressModeU: Repeat
+    AddressModeV: Repeat
+    AddressModeW: Repeat
+    BorderColor: [0, 0, 0, 0]
+    Anisotropy: false
+    MaxAnisotropy: 0
+    LODBias: 0
+    MinLOD: 0
+    MaxLOD: 3.40282347e+38

@@ -18,7 +18,6 @@
 #endif
 
 #if SK_RELEASE
-	// TODO(moro): Add Notification for release
 	#define SK_DEBUG_BREAK() __debugbreak()
 	#define SK_ENABLE_MEMORY_TRACING 0
 	#define SK_ENABLE_ASSERT 1
@@ -37,19 +36,8 @@
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 
 #define SK_NOT_IMPLEMENTED() SK_CORE_ASSERT(false, "Not Implemented");
-
-#if defined(SK_DISABLE_DEPRECATED) && (SK_DISABLE_DEPRECATED == 1)
-#define SK_DEPRECATED(message)
-#else
 #define SK_DEPRECATED(message) [[deprecated(message)]]
-#endif
-
-
-#ifdef __COUNTER__
 #define SK_UNIQUE_VAR_NAME SK_CONNECT(unique_var_, __COUNTER__)
-#else
-#define SK_UNIQUE_VAR_NAME SK_CONNECT(almoust_unique_var_, __LINE__)
-#endif
 
 #include <stdint.h>
 
@@ -94,6 +82,8 @@ namespace Shark {
 
 	static_assert(sizeof(float) == 4);
 	static_assert(sizeof(double) == 8);
+
+	static_assert(std::is_same_v<std::filesystem::path::string_type::value_type, wchar_t>);
 
 }
 

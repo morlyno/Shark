@@ -8,8 +8,8 @@
 #include <Shark/Render/SceneRenderer.h>
 #include <Shark/Render/Renderer2D.h>
 
-#include "SceneHirachyPanel.h"
-#include "ContentBrowserPanel.h"
+#include "Panels/SceneHirachyPanel.h"
+#include "Panels/ContentBrowserPanel.h"
 
 #include <ImGuizmo.h>
 
@@ -40,6 +40,8 @@ namespace Shark {
 
 		void OnFileChanged(const std::vector<FileChangedData>& fileEvents);
 
+		void OpenAssetCallback(AssetHandle assetHandle);
+
 		void UI_MainMenuBar();
 		void UI_Gizmo();
 		void UI_Info();
@@ -52,6 +54,7 @@ namespace Shark {
 		void UI_Stats();
 		void UI_ProjectSettings();
 		void UI_Asset();
+		void UI_ImportTexture();
 
 		void DebugRender();
 		void RenderCameraPreview();
@@ -82,8 +85,6 @@ namespace Shark {
 		void SaveProject();
 		void SaveProject(const std::filesystem::path& filePath);
 		void CreateProject();
-
-		void ImportAsset();
 
 		glm::mat4 GetViewProjFromCameraEntity(Entity cameraEntity);
 
@@ -146,16 +147,6 @@ namespace Shark {
 		Ref<Texture2D> m_PauseIcon;
 		Ref<Texture2D> m_StepIcon;
 
-		struct ImportAssetData
-		{
-			std::filesystem::path SourceFile;
-			std::filesystem::path TargetDirectory;
-			std::string FileName;
-			std::string Extention;
-			bool Active = false;
-		};
-		ImportAssetData m_ImportAssetData;
-
 		bool m_ShowColliders = false;
 		bool m_ShowCollidersOnTop = true;
 
@@ -179,6 +170,24 @@ namespace Shark {
 			}
 		};
 		ProjectEditData m_ProjectEditData;
+
+		struct TextureSourceImportData
+		{
+			AssetHandle TextureSourceHandle;
+			std::string TextureFileName;
+
+			bool OpenPopup = false;
+			bool CreateEntityAfterCreation = false;
+
+			void Clear()
+			{
+				TextureSourceHandle = 0;
+				TextureFileName.clear();
+				OpenPopup = false;
+				CreateEntityAfterCreation = false;
+			}
+		};
+		TextureSourceImportData m_TextureAssetCreateData;
 
 	};
 

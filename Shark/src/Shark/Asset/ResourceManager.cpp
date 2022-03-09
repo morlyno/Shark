@@ -12,6 +12,7 @@ namespace Shark {
 	AssetRegistry ResourceManager::s_AssetRegistry;
 	std::unordered_map<AssetHandle, Ref<Asset>> ResourceManager::s_LoadedAssets;
 	std::unordered_map<AssetHandle, Ref<Asset>> ResourceManager::s_MemoryAssets;
+	std::unordered_map<AssetHandle, AssetHandle> ResourceManager::s_AssetRelations;
 
 	void ResourceManager::Init()
 	{
@@ -93,14 +94,94 @@ namespace Shark {
 		return AssetSerializer::Serialize(GetAsset(handle), metadata);
 	}
 
+	bool ResourceManager::SaveAsset(Ref<Asset> asset)
+	{
+		if (!asset)
+			return false;
+
+		if (IsMemoryAsset(asset->Handle))
+			return false;
+
+		return AssetSerializer::Serialize(asset, GetMetaDataInternal(asset->Handle));
+	}
+
 	void ResourceManager::ReloadAsset(AssetHandle handle)
 	{
 		AssetMetaData& metadata = GetMetaDataInternal(handle);
 		if (metadata.IsDataLoaded)
+			AssetSerializer::Deserialize(GetAsset(handle), GetMetaDataInternal(handle));
+	}
+
+	void ResourceManager::UnloadAsset(AssetHandle handle)
+	{
+		SK_CORE_ASSERT(IsValidAssetHandle(handle));
+		if (IsMemoryAsset(handle))
+			s_MemoryAssets.erase(handle);
+		else
+			s_LoadedAssets.erase(handle);
+		AssetMetaData& metadata = GetMetaDataInternal(handle);
+		metadata.IsDataLoaded = false;
+	}
+
+	void ResourceManager::DeleteAsset(AssetHandle handle)
+	{
+		if (IsMemoryAsset(handle))
 		{
-			UnloadAsset(handle);
-			LoadAsset(handle);
+			s_MemoryAssets.erase(handle);
+			return;
 		}
+
+		s_LoadedAssets.erase(handle);
+		s_AssetRegistry.Remove(handle);
+		SaveAssetRegistry();
+
+	}
+
+	bool ResourceManager::SetRelation(AssetHandle parent, AssetHandle child)
+	{
+		if (Utility::Contains(s_AssetRelations, parent))
+			return false;
+
+		s_AssetRelations[parent] = child;
+		return true;
+	}
+
+	void ResourceManager::RemoveRelation(AssetHandle parent)
+	{
+		s_AssetRelations.erase(parent);
+	}
+
+	AssetRelationStatus ResourceManager::GetRelationStatus(AssetHandle handle0, AssetHandle handle1)
+	{
+		auto entry0 = s_AssetRelations.find(handle0);
+		if (entry0 != s_AssetRelations.end() && entry0->second == handle1)
+			return AssetRelationStatus::ParentChild;
+
+		auto entry1 = s_AssetRelations.find(handle1);
+		if (entry1 != s_AssetRelations.end() && entry1->second == handle0)
+			return AssetRelationStatus::ChildParent;
+
+		return AssetRelationStatus::None;
+	}
+
+	AssetHandle ResourceManager::GetChild(AssetHandle parent)
+	{
+		auto entry = s_AssetRelations.find(parent);
+		if (entry == s_AssetRelations.end())
+			return 0;
+		return entry->second;
+	}
+	
+
+	AssetHandle ResourceManager::FindParent(AssetHandle child)
+	{
+		for (auto [parent, c] : s_AssetRelations)
+		{
+			if (c == child)
+				return parent;
+		}
+
+		return AssetHandle::Null();
 	}
 
 	bool ResourceManager::AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName)
@@ -139,39 +220,18 @@ namespace Shark {
 		return true;
 	}
 
-	void ResourceManager::UnloadAsset(AssetHandle handle)
-	{
-		SK_CORE_ASSERT(IsValidAssetHandle(handle));
-		if (IsMemoryAsset(handle))
-			s_MemoryAssets.erase(handle);
-		else
-			s_LoadedAssets.erase(handle);
-		AssetMetaData& metadata = GetMetaDataInternal(handle);
-		metadata.IsDataLoaded = false;
-	}
-
-	void ResourceManager::DeleteAsset(AssetHandle handle)
-	{
-		if (IsMemoryAsset(handle))
-		{
-			s_MemoryAssets.erase(handle);
-			return;
-		}
-
-		s_LoadedAssets.erase(handle);
-		s_AssetRegistry.Remove(handle);
-		SaveAssetRegistry();
-
-	}
-
 	AssetHandle ResourceManager::ImportAsset(const std::filesystem::path& filePath)
 	{
 		AssetType type = GetAssetTypeFormFilePath(filePath);
 		if (type == AssetType::None)
 			return 0;
 
+		if (!FileSystem::Exists(Project::GetAssetsPath() / filePath))
+			return 0;
+
 		if (AssetHandle handle = GetAssetHandleFromFilePath(filePath))
 			return handle;
+
 
 		AssetMetaData metadata;
 		metadata.Handle = AssetHandle::Generate();
@@ -179,6 +239,10 @@ namespace Shark {
 		metadata.Type = type;
 		metadata.IsDataLoaded = false;
 		s_AssetRegistry[metadata.Handle] = metadata;
+		SaveAssetRegistry();
+
+		SK_CORE_INFO("Imported Asset", metadata.Handle, metadata.FilePath);
+		SK_CORE_TRACE(" => Handle {:x}, Type {}, FilePath {}", metadata.Handle, AssetTypeToString(metadata.Type), metadata.FilePath);
 		return metadata.Handle;
 	}
 

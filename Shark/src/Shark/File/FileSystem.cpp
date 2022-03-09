@@ -112,6 +112,12 @@ namespace Shark::FileSystem {
 		return std::move(path.stem().string());
 	}
 
+	void SplitFileName(const std::filesystem::path& path, std::string& out_Stem, std::string& out_Extention)
+	{
+		out_Stem = path.stem().string();
+		out_Extention = path.extension().string();
+	}
+
 	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path)
 	{
 		std::wstring str;

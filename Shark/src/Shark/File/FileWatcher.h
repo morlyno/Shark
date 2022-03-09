@@ -45,8 +45,8 @@ namespace Shark {
 		static bool IsPaused();
 
 		static void SkipNextEvent();
-		static void PauseWatching();
-		static void ContinueWatching();
+		static void Pause();
+		static void Continue();
 
 		static void SetFileChangedCallback(FileChangedEventFn func);
 

@@ -6,10 +6,16 @@
 #include <imgui_internal.h>
 #include <glm/glm.hpp>
 
+
+#ifdef IMGUI_DEFINE_MATH_OPERATORS
+static inline ImVec4 operator*(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs); }
+static inline ImVec4 operator/(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs); }
+#endif
+
 namespace ImGui {
 
 	bool TableNextColumn(ImGuiTableRowFlags row_flags, float min_row_height);
-
+	
 }
 
 namespace Shark::UI {
@@ -20,35 +26,36 @@ namespace Shark::UI {
 		TreeNodeSeperatorFlags = DefualtTreeNodeFlags | ImGuiTreeNodeFlags_Selected
 	};
 
-	namespace Flags {
-
-		enum TextEnum : uint16_t
+	
+	namespace TextFlag {
+		enum Text : uint16_t
 		{
-			Text_None = 0,
-			Text_Aligned = BIT(0),
-			Text_Selectable = BIT(1),
-			Text_Disabled = BIT(2),
-			Text_Background = BIT(3),
+			None = 0,
+			Aligned = BIT(0),
+			Selectable = BIT(1),
+			Disabled = BIT(2),
+			Background = BIT(3),
 
-			Text_TagMask = BIT(0)
+			TagMask = BIT(0)
 		};
-		using Text = std::underlying_type_t<TextEnum>;
-
-		enum GridEnum : uint16_t
-		{
-			GridNone = 0,
-			GridInnerV = BIT(0),
-			GridInnerH = BIT(1),
-			GridOuterV = BIT(2),
-			GridOuterH = BIT(3),
-
-			GridDefault = BIT(4),
-			GridOuterInner = GridInnerV | GridInnerH | GridOuterH,
-			GridFull = GridInnerV | GridInnerH | GridOuterV | GridOuterH,
-		};
-		using Grid = std::underlying_type_t<GridEnum>;
-
 	}
+	using TextFlags = std::underlying_type_t<TextFlag::Text>;
+
+	namespace GridFlag {
+		enum Grid : uint16_t
+		{
+			None = 0,
+			InnerV = BIT(0),
+			InnerH = BIT(1),
+			OuterV = BIT(2),
+			OuterH = BIT(3),
+
+			Default = BIT(4),
+			OuterInner = InnerV | InnerH | OuterH,
+			Full = InnerV | InnerH | OuterV | OuterH,
+		};
+	}
+	using GridFlags = std::underlying_type_t<GridFlag::Grid>;
 
 	void NewFrame();
 
@@ -74,6 +81,8 @@ namespace Shark::UI {
 		ScopedStyle(ImGuiStyleVar idx, const ImVec2& val);
 		ScopedStyle(ImGuiCol idx, const ImVec4& col);
 		~ScopedStyle();
+
+		void Pop();
 
 		void Push(ImGuiStyleVar idx, float val);
 		void Push(ImGuiStyleVar idx, const ImVec2& val);
@@ -118,18 +127,20 @@ namespace Shark::UI {
 	const char* FormatToCString(const std::wstring& str);
 	const char* FormatToCString(const std::filesystem::path& str);
 
+	ImRect MenuBarRect(ImGuiWindow* window);
+
 	//////////////////////////////////////////////////////////////////////////////
 	/// Text /////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	void PushTextFlag(Flags::Text flags);
+	void PushTextFlag(TextFlags flags);
 	void PopTextFlag(uint32_t count = 1);
 
-	void Text(std::string_view str, Flags::Text flags);
+	void Text(std::string_view str, TextFlags flags);
 
-	void Text(const char* str, Flags::Text flags);
-	void Text(const std::string& str, Flags::Text flags);
-	void Text(const std::filesystem::path& path, Flags::Text flags);
+	void Text(const char* str, TextFlags flags);
+	void Text(const std::string& str, TextFlags flags);
+	void Text(const std::filesystem::path& path, TextFlags flags);
 
 	void Text(const char* str);
 	void Text(const std::string& str);
@@ -150,11 +161,11 @@ namespace Shark::UI {
 
 	bool BeginProperty();
 	bool BeginProperty(const std::string& strID);
-	bool BeginPropertyGrid(Flags::Grid flags = Flags::GridDefault);
-	bool BeginPropertyGrid(const std::string& strID, Flags::Grid flags = Flags::GridDefault);
+	bool BeginPropertyGrid(GridFlags flags = GridFlag::Default);
+	bool BeginPropertyGrid(const std::string& strID, GridFlags flags = GridFlag::Default);
 
 	bool BeginProperty(ImGuiID customID);
-	bool BeginPropertyGrid(ImGuiID customID, Flags::Grid flags);
+	bool BeginPropertyGrid(ImGuiID customID, GridFlags flags);
 
 	void EndProperty();
 
@@ -193,9 +204,9 @@ namespace Shark::UI {
 	bool Checkbox(const std::string& tag, bool& v);
 	bool Checkbox(const std::string& tag, const bool& v);
 
-	void Property(const std::string& tag, const char* val, Flags::Text flags = Flags::Text_None);
-	void Property(const std::string& tag, const std::string& val, Flags::Text flags = Flags::Text_None);
-	void Property(const std::string& tag, const std::filesystem::path& path, Flags::Text flags = Flags::Text_None);
+	void Property(const std::string& tag, const char* val, TextFlags flags = TextFlag::None);
+	void Property(const std::string& tag, const std::string& val, TextFlags flags = TextFlag::None);
+	void Property(const std::string& tag, const std::filesystem::path& path, TextFlags flags = TextFlag::None);
 
 	bool BeginCustomControl(const std::string& strID);
 	bool BeginCustomControl(ImGuiID id);

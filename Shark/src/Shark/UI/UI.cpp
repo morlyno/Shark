@@ -46,7 +46,7 @@ namespace Shark::UI {
 	/// Global Data //////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	static std::vector<Flags::Text> s_TextFlagStack = std::vector<Flags::Text>(1, Flags::Text_None);
+	static std::vector<TextFlags> s_TextFlagStack = std::vector<TextFlags>(1, TextFlag::None);
 	static std::string s_StringBuffer;
 
 	static bool s_IsDefaultGrid = false;
@@ -56,7 +56,7 @@ namespace Shark::UI {
 	{
 		SK_CORE_ASSERT(s_TextFlagStack.size() == 1, "Push/Pop Text Flag missmatch");
 		s_TextFlagStack.clear();
-		s_TextFlagStack.push_back(Flags::Text_None);
+		s_TextFlagStack.push_back(TextFlag::None);
 	}
 
 
@@ -99,26 +99,6 @@ namespace Shark::UI {
 		PushID(id);
 	}
 
-	void ScopedStyle::Push(ImGuiCol idx, const ImVec4& col)
-	{
-		ImGui::PushStyleColor(idx, col); StyleColorCount++;
-	}
-
-	void ScopedStyle::Push(ImGuiStyleVar idx, const ImVec2& val)
-	{
-		ImGui::PushStyleVar(idx, val); StyleVarCount++;
-	}
-
-	void ScopedStyle::Push(ImGuiStyleVar idx, float val)
-	{
-		ImGui::PushStyleVar(idx, val); StyleVarCount++;
-	}
-
-	ScopedStyle::~ScopedStyle()
-	{
-		ImGui::PopStyleVar(StyleVarCount), ImGui::PopStyleColor(StyleColorCount);
-	}
-
 	ScopedStyle::ScopedStyle(ImGuiCol idx, const ImVec4& col)
 	{
 		Push(idx, col);
@@ -132,6 +112,34 @@ namespace Shark::UI {
 	ScopedStyle::ScopedStyle(ImGuiStyleVar idx, float val)
 	{
 		Push(idx, val);
+	}
+
+	ScopedStyle::~ScopedStyle()
+	{
+		Pop();
+	}
+
+	void ScopedStyle::Pop()
+	{
+		ImGui::PopStyleVar(StyleVarCount);
+		ImGui::PopStyleColor(StyleColorCount);
+		StyleVarCount = 0;
+		StyleColorCount = 0;
+	}
+
+	void ScopedStyle::Push(ImGuiCol idx, const ImVec4& col)
+	{
+		ImGui::PushStyleColor(idx, col); StyleColorCount++;
+	}
+
+	void ScopedStyle::Push(ImGuiStyleVar idx, const ImVec2& val)
+	{
+		ImGui::PushStyleVar(idx, val); StyleVarCount++;
+	}
+
+	void ScopedStyle::Push(ImGuiStyleVar idx, float val)
+	{
+		ImGui::PushStyleVar(idx, val); StyleVarCount++;
 	}
 
 	ImGuiID GetID(int intID)
@@ -255,12 +263,19 @@ namespace Shark::UI {
 		return s_StringBuffer.c_str();
 	}
 
+	ImRect MenuBarRect(ImGuiWindow* window)
+	{
+		ImGuiContext& g = *GImGui;
+		float y1 = window->Pos.y + window->TitleBarHeight();
+		return ImRect(window->Pos.x, y1, window->Pos.x + window->SizeFull.x, y1 + (window->DC.MenuBarOffset.y + window->CalcFontSize() + g.Style.FramePadding.y * 2.0f));
+	}
+
 
 	//////////////////////////////////////////////////////////////////////////////
 	/// Text /////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	void PushTextFlag(Flags::Text flags)
+	void PushTextFlag(TextFlags flags)
 	{
 		s_TextFlagStack.push_back(flags);
 	}
@@ -274,19 +289,19 @@ namespace Shark::UI {
 		}
 	}
 
-	void Text(std::string_view str, Flags::Text flags)
+	void Text(std::string_view str, TextFlags flags)
 	{
 		flags |= s_TextFlagStack.back();
 
 		ScopedStyle style;
 		ScopedID id(str);
 
-		if (flags & Flags::Text_Disabled)
+		if (flags & TextFlag::Disabled)
 			style.Push(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
 
-		if (flags & Flags::Text_Selectable)
+		if (flags & TextFlag::Selectable)
 		{
-			if (!(flags & Flags::Text_Background))
+			if (!(flags & TextFlag::Background))
 				style.Push(ImGuiCol_FrameBg, { 0.0, 0.0f, 0.0f, 0.0f });
 
 			const ImGuiStyle& s = ImGui::GetStyle();
@@ -298,10 +313,10 @@ namespace Shark::UI {
 			return;
 		}
 
-		if (flags & Flags::Text_Aligned)
+		if (flags & TextFlag::Aligned)
 			ImGui::AlignTextToFramePadding();
 
-		if (flags & Flags::Text_Background)
+		if (flags & TextFlag::Background)
 		{
 			const ImGuiID id = GetID(str);
 			ImGui::TreeNodeBehavior(id, ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Leaf, str.data(), str.data() + str.size());
@@ -312,17 +327,17 @@ namespace Shark::UI {
 		}
 	}
 
-	void Text(const char* str, Flags::Text flags)
+	void Text(const char* str, TextFlags flags)
 	{
 		Text(std::string_view(str), flags);
 	}
 
-	void Text(const std::string& str, Flags::Text flags)
+	void Text(const std::string& str, TextFlags flags)
 	{
 		Text(std::string_view(str), flags);
 	}
 
-	void Text(const std::filesystem::path& path, Flags::Text flags)
+	void Text(const std::filesystem::path& path, TextFlags flags)
 	{
 		String::ToNarrow(path.native(), s_StringBuffer);
 		Text(s_StringBuffer, flags);
@@ -457,12 +472,12 @@ namespace Shark::UI {
 		return BeginProperty(GetID(strID));
 	}
 
-	bool BeginPropertyGrid(Flags::Grid flags)
+	bool BeginPropertyGrid(GridFlags flags)
 	{
 		return BeginPropertyGrid(GetID("ControlsTable"), flags);
 	}
 
-	bool BeginPropertyGrid(const std::string& strID, Flags::Grid flags)
+	bool BeginPropertyGrid(const std::string& strID, GridFlags flags)
 	{
 		return BeginPropertyGrid(GetID(strID), flags);
 	}
@@ -480,18 +495,18 @@ namespace Shark::UI {
 		return false;
 	}
 
-	bool BeginPropertyGrid(ImGuiID customID, Flags::Grid flags)
+	bool BeginPropertyGrid(ImGuiID customID, GridFlags flags)
 	{
 		PushID(customID);
 
-		if (flags & Flags::GridDefault)
+		if (flags & GridFlag::Default)
 			s_IsDefaultGrid = true;
 
 		ImGuiTableFlags tableFalgs = ImGuiTableFlags_Resizable;
-		if (flags & Flags::GridInnerV) tableFalgs |= ImGuiTableFlags_BordersInnerV;
-		if (flags & Flags::GridInnerH) tableFalgs |= ImGuiTableFlags_BordersInnerH;
-		if (flags & Flags::GridOuterV) tableFalgs |= ImGuiTableFlags_BordersOuterV;
-		if (flags & Flags::GridOuterH) tableFalgs |= ImGuiTableFlags_BordersOuterH;
+		if (flags & GridFlag::InnerV) tableFalgs |= ImGuiTableFlags_BordersInnerV;
+		if (flags & GridFlag::InnerH) tableFalgs |= ImGuiTableFlags_BordersInnerH;
+		if (flags & GridFlag::OuterV) tableFalgs |= ImGuiTableFlags_BordersOuterV;
+		if (flags & GridFlag::OuterH) tableFalgs |= ImGuiTableFlags_BordersOuterH;
 
 		if (ImGui::BeginTable("ControlsTable", 2, tableFalgs))
 		{
@@ -1464,13 +1479,13 @@ namespace Shark::UI {
 		Utils::EndProperty();
 	}
 
-	void Property(const std::string& tag, const char* val, Flags::Text flags)
+	void Property(const std::string& tag, const char* val, TextFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return;
 
 		ImGui::TableSetColumnIndex(0);
-		UI::Text(tag, flags & Flags::Text_TagMask);
+		UI::Text(tag, flags & TextFlag::TagMask);
 
 		ImGui::TableSetColumnIndex(1);
 		UI::Text(val, flags);
@@ -1478,18 +1493,18 @@ namespace Shark::UI {
 		Utils::EndProperty();
 	}
 
-	void Property(const std::string& tag, const std::string& val, Flags::Text flags)
+	void Property(const std::string& tag, const std::string& val, TextFlags flags)
 	{
 		Property(tag, val.c_str(), flags);
 	}
 
-	void Property(const std::string& tag, const std::filesystem::path& path, Flags::Text flags)
+	void Property(const std::string& tag, const std::filesystem::path& path, TextFlags flags)
 	{
 		if (!Utils::BeginProperty(GetID(tag)))
 			return;
 
 		ImGui::TableSetColumnIndex(0);
-		UI::Text(tag, flags & Flags::Text_TagMask);
+		UI::Text(tag, flags & TextFlag::TagMask);
 
 		ImGui::TableSetColumnIndex(1);
 		UI::Text(path, flags);

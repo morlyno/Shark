@@ -16,8 +16,7 @@ namespace Shark {
 		virtual bool Deserialize(Ref<Asset> asset, const std::filesystem::path& filePath) override;
 	};
 
-#if SK_TEXTURE_SOURCE
-	class TextureSourceSerializer : public SerializerBase
+	class TextureSourceSeializer : public SerializerBase
 	{
 	public:
 		virtual bool TryLoadData(Ref<Asset>& asset, const std::filesystem::path& filePath) override;
@@ -25,6 +24,5 @@ namespace Shark {
 		virtual bool Serialize(Ref<Asset> asset, const std::filesystem::path& filePath) override;
 		virtual bool Deserialize(Ref<Asset> asset, const std::filesystem::path& filePath) override;
 	};
-#endif
 
 }

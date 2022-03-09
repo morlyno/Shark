@@ -94,14 +94,14 @@ namespace Shark {
 		s_Data->SkipNextEvent = true;
 	}
 
-	void FileWatcher::PauseWatching()
+	void FileWatcher::Pause()
 	{
 		SK_CORE_ASSERT(s_Data);
 
 		s_Data->Paused = true;
 	}
 
-	void FileWatcher::ContinueWatching()
+	void FileWatcher::Continue()
 	{
 		SK_CORE_ASSERT(s_Data);
 

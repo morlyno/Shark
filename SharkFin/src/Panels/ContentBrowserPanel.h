@@ -36,6 +36,8 @@ namespace Shark {
 		void OnProjectChanged() { Reload(); }
 		void OnFileChanged(const std::vector<FileChangedData>& fileEvents) { Reload(); }
 
+		void SetOpenAssetCallback(const std::function<void(AssetHandle)>& callback) { }
+
 	private:
 		void DrawTreeView();
 		void DrawTreeView(DirectoryEntry& entry);
@@ -53,6 +55,8 @@ namespace Shark {
 		void ImportEntry(DirectoryEntry& entry);
 
 	private:
+		std::function<void(AssetHandle)> m_OpenAssetCallback = [](AssetHandle) {};
+
 		DirectoryEntry m_RootDirectory;
 		DirectoryEntry* m_CurrentDirectory = nullptr;
 
@@ -64,6 +68,9 @@ namespace Shark {
 
 		Ref<Texture2D> m_FolderIcon;
 		Ref<Texture2D> m_FileIcon;
+		Ref<Texture2D> m_PNGIcon;
+		Ref<Texture2D> m_SceneIcon;
+		Ref<Texture2D> m_TextureIcon;
 
 		bool m_Reload = false;
 		DirectoryEntry* m_DragDropEntry = nullptr;
