@@ -31,6 +31,8 @@ namespace Shark {
 
 		virtual void GenerateMips(Ref<Image2D> image) override;
 
+		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
+
 		virtual Ref<ShaderLibrary> GetShaderLib() override { return m_ShaderLib; }
 		virtual Ref<Texture2D> GetWhiteTexture() override { return m_WhiteTexture; }
 		virtual Ref<GPUTimer> GetPresentTimer() override { return m_PresentTimer; }
@@ -43,15 +45,16 @@ namespace Shark {
 
 
 		Ref<DirectXSwapChain> GetSwapChain() const { return m_SwapChain; }
-		static void AddRenderCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer);
-		static void RemoveRenderCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer);
+
+		void AddCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer);
+		void RemoveCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer);
 
 		uint64_t GetGPUFrequncy() const { return m_GPUFrequency; }
 		uint64_t HasValidFrequncy() const { return m_IsValidFrequency; }
 
-		void Flush();
-
+	private:
 		void PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet);
+		void QueryCapabilities();
 
 	public:
 		static Ref<DirectXRenderer>     Get()                  { return s_Instance; }
@@ -69,7 +72,7 @@ namespace Shark {
 		ID3D11DeviceContext* m_ImmediateContext = nullptr;
 		Ref<DirectXSwapChain> m_SwapChain = nullptr;
 
-		std::vector<Ref<DirectXRenderCommandBuffer>> m_CommandBuffers;
+		std::unordered_set<Weak<DirectXRenderCommandBuffer>> m_CommandBuffers;
 
 		Ref<ShaderLibrary> m_ShaderLib;
 		Ref<Texture2D> m_WhiteTexture;
@@ -88,6 +91,8 @@ namespace Shark {
 		uint32_t m_WindowWidth = 0, m_WindowHeight = 0;
 
 		Ref<DirectXGPUTimer> m_PresentTimer;
+
+		RendererCapabilities m_Capabilities;
 
 	};
 

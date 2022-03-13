@@ -17,6 +17,17 @@ namespace Shark {
 
 	namespace Convert {
 
+		ImageFormat StringToImageFormat(const std::string& str)
+		{
+			if (str == "None") return ImageFormat::None;
+			if (str == "RGBA8") return ImageFormat::RGBA8;
+			if (str == "R32_SINT") return ImageFormat::R32_SINT;
+			if (str == "Depth32") return ImageFormat::Depth32;
+			if (str == "SwapChain") return ImageFormat::SwapChain;
+
+			return ImageFormat::RGBA8;
+		}
+
 		FilterMode StringToFilterMode(const std::string& str)
 		{
 			if (str == "Nearest") return FilterMode::Nearest;
@@ -26,15 +37,15 @@ namespace Shark {
 			return FilterMode::Linear;
 		}
 
-		AddressMode StringToAddressMode(const std::string& str)
+		WrapMode StringToAddressMode(const std::string& str)
 		{
-			if (str == "Repeat") return AddressMode::Repeat;
-			if (str == "Clamp") return AddressMode::Clamp;
-			if (str == "Mirror") return AddressMode::Mirror;
-			if (str == "Border") return AddressMode::Border;
+			if (str == "Repeat") return WrapMode::Repeat;
+			if (str == "Clamp") return WrapMode::Clamp;
+			if (str == "Mirror") return WrapMode::Mirror;
+			if (str == "Border") return WrapMode::Border;
 
 			SK_CORE_ASSERT(false, "Unkown String");
-			return AddressMode::Repeat;
+			return WrapMode::Repeat;
 		}
 
 	}
@@ -63,6 +74,7 @@ namespace Shark {
 		
 		Ref<Texture2D> texture = asset.As<Texture2D>();
 		const auto& specs = texture->GetSpecification();
+		SK_CORE_ASSERT(specs.Format != ImageFormat::SwapChain);
 
 		AssetHandle sourceHandle = ResourceManager::GetChild(asset->Handle);
 
@@ -71,24 +83,23 @@ namespace Shark {
 		
 		out << YAML::BeginMap;
 		out << YAML::Key << "Source" << YAML::Value << sourceHandle;
+		out << YAML::Key << "Format" << YAML::Value << EnumToString(specs.Format);
 		out << YAML::Key << "MipLeves" << YAML::Value << specs.MipLevels;
 		out << YAML::Key << "Sampler";
 
 		const auto& sampler = specs.Sampler;
 
 		out << YAML::BeginMap;
-		out << YAML::Key << "MinFilter" << YAML::Value << ToString(sampler.Min);
-		out << YAML::Key << "MagFilter" << YAML::Value << ToString(sampler.Mag);
-		out << YAML::Key << "MipFilter" << YAML::Value << ToString(sampler.Mip);
-		out << YAML::Key << "AddressModeU" << YAML::Value << ToString(sampler.Address.U);
-		out << YAML::Key << "AddressModeV" << YAML::Value << ToString(sampler.Address.V);
-		out << YAML::Key << "AddressModeW" << YAML::Value << ToString(sampler.Address.W);
+		out << YAML::Key << "MinFilter" << YAML::Value << EnumToString(sampler.Min);
+		out << YAML::Key << "MagFilter" << YAML::Value << EnumToString(sampler.Mag);
+		out << YAML::Key << "MipFilter" << YAML::Value << EnumToString(sampler.Mip);
+		out << YAML::Key << "AddressModeU" << YAML::Value << EnumToString(sampler.Wrap.U);
+		out << YAML::Key << "AddressModeV" << YAML::Value << EnumToString(sampler.Wrap.V);
+		out << YAML::Key << "AddressModeW" << YAML::Value << EnumToString(sampler.Wrap.W);
 		out << YAML::Key << "BorderColor" << YAML::Value << sampler.BorderColor;
 		out << YAML::Key << "Anisotropy" << YAML::Value << sampler.Anisotropy;
 		out << YAML::Key << "MaxAnisotropy" << YAML::Value << sampler.MaxAnisotropy;
 		out << YAML::Key << "LODBias" << YAML::Value << sampler.LODBias;
-		out << YAML::Key << "MinLOD" << YAML::Value << sampler.MinLOD;
-		out << YAML::Key << "MaxLOD" << YAML::Value << sampler.MaxLOD;
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
@@ -130,6 +141,7 @@ namespace Shark {
 		if (!sourceHandle)
 			return false;
 
+		specs.Format = Convert::StringToImageFormat(texture["Format"].as<std::string>());
 		specs.MipLevels = texture["MipLeves"].as<uint32_t>();
 		
 		auto sampler = texture["Sampler"];
@@ -137,16 +149,14 @@ namespace Shark {
 		specs.Sampler.Mag = Convert::StringToFilterMode(sampler["MagFilter"].as<std::string>());
 		specs.Sampler.Mip = Convert::StringToFilterMode(sampler["MipFilter"].as<std::string>());
 
-		specs.Sampler.Address.U = Convert::StringToAddressMode(sampler["AddressModeU"].as<std::string>());
-		specs.Sampler.Address.V = Convert::StringToAddressMode(sampler["AddressModeV"].as<std::string>());
-		specs.Sampler.Address.W = Convert::StringToAddressMode(sampler["AddressModeW"].as<std::string>());
+		specs.Sampler.Wrap.U = Convert::StringToAddressMode(sampler["AddressModeU"].as<std::string>());
+		specs.Sampler.Wrap.V = Convert::StringToAddressMode(sampler["AddressModeV"].as<std::string>());
+		specs.Sampler.Wrap.W = Convert::StringToAddressMode(sampler["AddressModeW"].as<std::string>());
 
 		specs.Sampler.BorderColor = sampler["BorderColor"].as<glm::vec4>();
 		specs.Sampler.Anisotropy = sampler["Anisotropy"].as<bool>();
 		specs.Sampler.MaxAnisotropy = sampler["MaxAnisotropy"].as<uint32_t>();
 		specs.Sampler.LODBias = sampler["LODBias"].as<float>();
-		specs.Sampler.MinLOD = sampler["MinLOD"].as<float>();
-		specs.Sampler.MaxLOD = sampler["MaxLOD"].as<float>();
 
 		const auto& metadata = ResourceManager::GetMetaData(sourceHandle);
 		std::string sourcePath = ResourceManager::GetFileSystemPath(metadata).string();

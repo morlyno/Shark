@@ -47,9 +47,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		Renderer::ShutDown();
+		m_RaiseEvents = false;
 
-		s_Instance = nullptr;
+		m_LayerStack.Clear();
+
+		Renderer::ShutDown();
 	}
 
 	void Application::Run()
@@ -102,6 +104,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (!m_RaiseEvents)
+			return;
+
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
 		dispacher.DispachEvent<ApplicationCloseEvent>(SK_BIND_EVENT_FN(Application::OnApplicationClose));
@@ -152,6 +157,11 @@ namespace Shark {
 			return true;
 		}
 		return false;
+	}
+
+	Application::InsteanceCleanup::~InsteanceCleanup()
+	{
+		s_Instance = nullptr;
 	}
 
 }

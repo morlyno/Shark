@@ -1,5 +1,6 @@
 Texture:
   Source: 15680557194317303622
+  Format: RGBA8
   MipLeves: 1
   Sampler:
     MinFilter: Nearest

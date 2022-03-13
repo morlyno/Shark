@@ -31,6 +31,9 @@ namespace Shark {
 
 		virtual inline uint32_t GetWidth() const = 0;
 		virtual inline uint32_t GetHeight() const = 0;
+		virtual const glm::uvec2& GetSize() const = 0;
+		virtual const glm::ivec2& GetPos() const = 0;
+
 		virtual inline WindowHandle GetHandle() const = 0;
 
 		virtual inline bool IsFocused() const = 0;

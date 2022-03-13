@@ -54,22 +54,17 @@ namespace Shark {
 		else
 			SK_CORE_ASSERT(false, "No Startup Project!");
 
-		SK_CORE_ASSERT(m_NextActiveScene, "Failed to load Startup Scene from Project");
-		m_ActiveScene = m_NextActiveScene;
-		m_WorkScene = m_NextActiveScene;
-		m_NextActiveScene = nullptr;
-
-		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-
+		SK_CORE_ASSERT(m_ActiveScene, "Failed to load Startup Scene from Project");
 
 		// Create and setup Panels
-		m_ContentBrowserPanel = Scope<ContentBrowserPanel>::Create();
-		m_ContentBrowserPanel->SetOpenAssetCallback(std::bind(&EditorLayer::OpenAssetCallback, this, std::placeholders::_1));
+		EditorPanelManager::Init();
+		auto contentBrowserPanel = EditorPanelManager::GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID);
+		contentBrowserPanel->SetOpenAssetCallback(std::bind(&EditorLayer::OpenAssetCallback, this, std::placeholders::_1));
 
-		m_SceneHirachyPanel = Scope<SceneHirachyPanel>::Create();
-		m_SceneHirachyPanel->SetContext(m_ActiveScene);
-		m_SceneHirachyPanel->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
-
+		auto sceneHirachyPanel = EditorPanelManager::GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID);
+		sceneHirachyPanel->SetContext(m_ActiveScene);
+		sceneHirachyPanel->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
+		
 		SK_CORE_ASSERT(FileWatcher::IsRunning());
 
 
@@ -98,6 +93,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		EditorPanelManager::Shutdown();
+
 		CloseProject();
 		FileWatcher::SetFileChangedCallback(nullptr);
 	}
@@ -106,21 +103,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (m_NextActiveScene)
-		{
-			if (m_ActiveScene && ResourceManager::IsMemoryAsset(m_ActiveScene->Handle))
-				ResourceManager::UnloadAsset(m_ActiveScene->Handle);
-
-			m_WorkScene = m_NextActiveScene;
-			SetActiveScene(m_NextActiveScene);
-			m_NextActiveScene = nullptr;
-		}
-
 		m_TimeStep = ts;
 
 		Renderer::NewFrame();
 
-		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
+		Application::Get().GetImGuiLayer().BlockEvents(!(m_ViewportHovered || EditorPanelManager::AnyViewportHovered()));
 
 		if (m_ActiveScene)
 		{
@@ -138,29 +125,27 @@ namespace Shark {
 				m_NeedsResize = false;
 			}
 
-			if (m_ViewportHovered && m_SceneState != SceneState::Play)
+			if (m_ViewportHovered && m_ViewportFocused && m_SceneState != SceneState::Play)
 				m_EditorCamera.OnUpdate(ts);
-
-			const glm::mat4 viewProj = GetActiveViewProjection();
 
 			switch (m_SceneState)
 			{
 				case SceneState::Edit:
 				{
 					m_ActiveScene->OnUpdateEditor(ts);
-					m_ActiveScene->OnRender(m_SceneRenderer, viewProj);
+					m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
 					break;
 				}
 				case SceneState::Play:
 				{
 					m_ActiveScene->OnUpdateRuntime(ts);
-					m_ActiveScene->OnRender(m_SceneRenderer, viewProj);
+					m_ActiveScene->OnRenderRuntime(m_SceneRenderer);
 					break;
 				}
 				case SceneState::Simulate:
 				{
 					m_ActiveScene->OnSimulate(ts);
-					m_ActiveScene->OnRender(m_SceneRenderer, viewProj);
+					m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
 					break;
 				}
 				case SceneState::Pause:
@@ -175,7 +160,7 @@ namespace Shark {
 						m_UpdateNextFrame = false;
 					}
 
-					m_ActiveScene->OnRender(m_SceneRenderer, viewProj);
+					m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
 					break;
 				}
 			}
@@ -183,6 +168,8 @@ namespace Shark {
 			RenderCameraPreview();
 			DebugRender();
 		}
+
+		EditorPanelManager::OnUpdate(ts);
 
 		Renderer::GetRendererAPI()->BindMainFrameBuffer();
 	}
@@ -195,8 +182,10 @@ namespace Shark {
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 
-		if (m_SceneState != SceneState::Play)
+		if (m_ViewportHovered && m_SceneState != SceneState::Play)
 			m_EditorCamera.OnEvent(event);
+
+		EditorPanelManager::OnEvent(event);
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -289,10 +278,10 @@ namespace Shark {
 			}
 
 			// ImGuizmo
-			case Key::Q: { m_CurrentOperation = 0; return true; }
-			case Key::W: { m_CurrentOperation = ImGuizmo::TRANSLATE; return true; }
-			case Key::E: { m_CurrentOperation = ImGuizmo::ROTATE; return true; }
-			case Key::R: { m_CurrentOperation = ImGuizmo::SCALE; return true; }
+			case Key::Q: { if (m_ViewportFocused) { m_CurrentOperation = 0; return true; } break; }
+			case Key::W: { if (m_ViewportFocused) { m_CurrentOperation = ImGuizmo::TRANSLATE; return true; } break; }
+			case Key::E: { if (m_ViewportFocused) { m_CurrentOperation = ImGuizmo::ROTATE; return true; } break; }
+			case Key::R: { if (m_ViewportFocused) { m_CurrentOperation = ImGuizmo::SCALE; return true; } break; }
 		}
 
 		return false;
@@ -300,12 +289,14 @@ namespace Shark {
 
 	void EditorLayer::OnFileChanged(const std::vector<FileChangedData>& fileEvents)
 	{
-		m_ContentBrowserPanel->OnFileChanged(fileEvents);
+		EditorPanelManager::GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileChanged(fileEvents);
 	}
 
 	void EditorLayer::OpenAssetCallback(AssetHandle assetHandle)
 	{
-
+		Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(assetHandle);
+		if (texture)
+			EditorPanelManager::CreatePanel<TextureEditorPanel>(texture);
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -336,20 +327,21 @@ namespace Shark {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("Viewport");
+		ImGui::Begin("MainViewport");
 		ImGui::PopStyleVar(3);
+
+		ImGuiWindow* viewportWindow = ImGui::GetCurrentWindow();
 
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
 
-		m_ViewportSizeChanged = false;
 		if (m_ViewportWidth != size.x || m_ViewportHeight != size.y)
 		{
 			m_ViewportWidth = (uint32_t)size.x;
 			m_ViewportHeight = (uint32_t)size.y;
-			m_ViewportSizeChanged = true;
+			m_ViewportBounds = viewportWindow->ContentRegionRect;
 			m_NeedsResize = true;
 		}
 
@@ -359,58 +351,9 @@ namespace Shark {
 		ImGui::Image(fbImage->GetViewID(), size);
 		UI::SetBlend(true);
 
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-
 		UI_DragDrop();
 		UI_Gizmo();
-
-		// TODO(moro): Mouse Picking with Raycast
-#if 1
-		// Mouse Picking
-		if (!ImGuizmo::IsUsing())
-		{
-			SK_PROFILE_SCOPED("EditorLayer::OnImGuiRender Mouse Picking");
-			SK_PERF_SCOPED("Mouse Picking");
-			// TODO(moro): Move to EditorLayer::OnUpdate()
-
-			auto [mx, my] = ImGui::GetMousePos();
-			auto [wx, wy] = window->WorkRect.Min;
-			int x = (int)(mx - wx);
-			int y = (int)(my - wy);
-			m_HoveredEntityID = -1;
-
-			const auto& specs = m_MousePickingImage->GetSpecification();
-			int width = (int)specs.Width;
-			int height = (int)specs.Height;
-			if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
-			{
-				const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered;
-
-				if (m_ReadHoveredEntity || selectEntity)
-				{
-					Ref<Image2D> idImage = m_SceneRenderer->GetIDImage();
-					idImage->CopyTo(m_MousePickingImage);
-
-					m_MousePickingImage->ReadPixel(x, y, (uint32_t&)m_HoveredEntityID);
-				}
-
-				if (selectEntity)
-				{
-					if (m_HoveredEntityID != -1)
-					{
-						Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, m_ActiveScene };
-						SK_CORE_ASSERT(entity.IsValid());
-						if (entity.IsValid())
-							SelectEntity(entity);
-					}
-					else
-					{
-						SelectEntity({});
-					}
-				}
-			}
-		}
-#endif
+		UI_MousePicking();
 
 		// End Viewport
 		ImGui::End();
@@ -426,8 +369,7 @@ namespace Shark {
 		UI_Asset();
 		UI_ImportTexture();
 
-		m_SceneHirachyPanel->OnImGuiRender(m_ShowSceneHirachyPanel);
-		m_ContentBrowserPanel->OnImGuiRender(m_ShowAssetsPanel);
+		EditorPanelManager::OnImGuiRender();
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
@@ -743,7 +685,7 @@ namespace Shark {
 								{
 									Ref<Scene> scene = ResourceManager::GetAsset<Scene>(handle);
 									SK_CORE_ASSERT(scene);
-									SetNextActiveScene(scene);
+									SetActiveScene(scene);
 									break;
 								}
 								case AssetType::Texture:
@@ -1341,6 +1283,57 @@ namespace Shark {
 		}
 	}
 
+	bool EditorLayer::UI_MousePicking()
+	{
+		if (ImGuizmo::IsUsing())
+			return false;
+
+		SK_PROFILE_SCOPED("EditorLayer::OnImGuiRender Mouse Picking");
+		SK_PERF_SCOPED("Mouse Picking");
+		// TODO(moro): Move to EditorLayer::OnUpdate()
+
+		
+		auto [mx, my] = ImGui::GetMousePos();
+		auto [wx, wy] = m_ViewportBounds.Min;
+		int x = (int)(mx - wx);
+		int y = (int)(my - wy);
+		m_HoveredEntityID = -1;
+
+		const auto& specs = m_MousePickingImage->GetSpecification();
+		int width = (int)specs.Width;
+		int height = (int)specs.Height;
+		if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
+		{
+			const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered;
+
+			if (m_ReadHoveredEntity || selectEntity)
+			{
+				Ref<Image2D> idImage = m_SceneRenderer->GetIDImage();
+				if (!idImage->CopyTo(m_MousePickingImage))
+					return false;
+
+				if (!m_MousePickingImage->ReadPixel(x, y, (uint32_t&)m_HoveredEntityID))
+					return false;
+			}
+
+			if (selectEntity)
+			{
+				if (m_HoveredEntityID != -1)
+				{
+					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, m_ActiveScene };
+					SK_CORE_ASSERT(entity.IsValid());
+					if (entity.IsValid())
+						SelectEntity(entity);
+				}
+				else
+				{
+					SelectEntity({});
+				}
+			}
+		}
+		return true;
+	}
+
 	void EditorLayer::DebugRender()
 	{
 		if (m_ShowColliders)
@@ -1435,7 +1428,7 @@ namespace Shark {
 		{
 			Entity cameraEntity = m_ActiveScene->FindActiveCameraEntity();
 			if (cameraEntity)
-				m_ActiveScene->OnRender(m_CameraPreviewRenderer, GetViewProjFromCameraEntity(cameraEntity));
+				m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, GetViewProjFromCameraEntity(cameraEntity));
 		}
 	}
 
@@ -1453,7 +1446,7 @@ namespace Shark {
 	void EditorLayer::SelectEntity(Entity entity)
 	{
 		m_SelectetEntity = entity;
-		m_SceneHirachyPanel->SetSelectedEntity(entity);
+		EditorPanelManager::GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID)->SetSelectedEntity(entity);
 	}
 
 	glm::mat4 EditorLayer::GetActiveViewProjection() const
@@ -1475,7 +1468,9 @@ namespace Shark {
 		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
-		SetNextActiveScene(ResourceManager::CreateMemoryAsset<Scene>());
+		Ref<Scene> newScene = ResourceManager::CreateMemoryAsset<Scene>();
+		SetActiveScene(newScene);
+		m_WorkScene = newScene;
 	}
 
 	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)
@@ -1489,7 +1484,8 @@ namespace Shark {
 		Ref<Scene> scene = ResourceManager::GetAsset<Scene>(metadata.Handle);
 		if (scene)
 		{
-			SetNextActiveScene(scene);
+			SetActiveScene(scene);
+			m_WorkScene = scene;
 			return true;
 		}
 		return false;
@@ -1535,18 +1531,6 @@ namespace Shark {
 #endif
 	}
 
-	bool EditorLayer::SerializeScene(Ref<Scene> scene, const std::filesystem::path& filePath)
-	{
-		SK_CORE_ASSERT(false, "Not Implemented");
-		return false;
-#if 0
-		SK_PROFILE_FUNCTION();
-		
-		SceneSerializer serializer(scene);
-		return serializer.Serialize(filePath);
-#endif
-	}
-
 	void EditorLayer::OnScenePlay()
 	{
 		SK_PROFILE_FUNCTION();
@@ -1555,9 +1539,9 @@ namespace Shark {
 
 		m_SceneState = SceneState::Play;
 		m_InitialSceneState = SceneState::Play;
+
 		SetActiveScene(Scene::Copy(m_WorkScene));
 		m_ActiveScene->OnScenePlay();
-		m_SceneHirachyPanel->ScenePlaying(true);
 	}
 
 	void EditorLayer::OnSceneStop()
@@ -1567,13 +1551,8 @@ namespace Shark {
 		m_ActiveScene->OnSceneStop();
 		SetActiveScene(m_WorkScene);
 
-		m_SceneHirachyPanel->ScenePlaying(false);
 		m_SceneState = SceneState::Edit;
 		m_InitialSceneState = SceneState::None;
-		m_SceneRenderer->SetScene(m_WorkScene);
-
-		if (!m_ActiveScene->IsValidEntity(m_SceneHirachyPanel->GetSelectedEntity()))
-			SelectEntity({});
 	}
 
 	void EditorLayer::OnSimulateStart()
@@ -1584,26 +1563,21 @@ namespace Shark {
 
 		m_SceneState = SceneState::Simulate;
 		m_InitialSceneState = SceneState::Simulate;
-		SetActiveScene(Scene::Copy(m_WorkScene));
 
+		SetActiveScene(Scene::Copy(m_WorkScene));
 		m_ActiveScene->OnSimulateStart();
-		m_SceneHirachyPanel->ScenePlaying(true);
 	}
 
-	void EditorLayer::SetActiveScene(const Ref<Scene>& scene)
+	void EditorLayer::SetActiveScene(Ref<Scene> scene)
 	{
-		SK_PROFILE_FUNCTION();
-		
+		if (m_ActiveScene && ResourceManager::IsMemoryAsset(m_ActiveScene->Handle))
+			ResourceManager::UnloadAsset(m_ActiveScene->Handle);
+
 		m_ActiveScene = scene;
 		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-		m_SceneHirachyPanel->SetContext(m_ActiveScene);
-		m_SceneRenderer->SetScene(m_ActiveScene);
-		m_CameraPreviewRenderer->SetScene(m_ActiveScene);
-	}
-
-	void EditorLayer::SetNextActiveScene(const Ref<Scene>& scene)
-	{
-		m_NextActiveScene = scene;
+		if (m_SceneRenderer) m_SceneRenderer->SetScene(scene);
+		if (m_CameraPreviewRenderer) m_CameraPreviewRenderer->SetScene(scene);
+		DistributeEvent(SceneChangedEvent(scene));
 	}
 
 	void EditorLayer::OpenProject()
@@ -1631,9 +1605,9 @@ namespace Shark {
 			if (!LoadScene(config.ProjectDirectory / config.StartupScenePath))
 				NewScene();
 
-			if (m_ContentBrowserPanel)
-				m_ContentBrowserPanel->OnProjectChanged();
 			FileWatcher::StartWatching(Project::GetAssetsPath());
+			DistributeEvent(ProjectChangedEvnet(project));
+
 			m_ProjectEditData = config;
 		}
 	}
@@ -1646,9 +1620,8 @@ namespace Shark {
 
 		SK_CORE_INFO("Closing Project");
 
-		m_NextActiveScene = nullptr;
 		m_ActiveScene = nullptr;
-		m_SceneHirachyPanel->SetContext(nullptr);
+
 		m_SceneRenderer->SetScene(nullptr);
 		m_CameraPreviewRenderer->SetScene(nullptr);
 		ResourceManager::Shutdown();
@@ -1659,6 +1632,7 @@ namespace Shark {
 		FileWatcher::StopWatching();
 
 		Project::SetActive(nullptr);
+		DistributeEvent(ProjectChangedEvnet(nullptr));
 	}
 
 	void EditorLayer::SaveProject()
@@ -1708,9 +1682,8 @@ namespace Shark {
 		SaveProject();
 		NewScene();
 
-		if (m_ContentBrowserPanel)
-			m_ContentBrowserPanel->OnProjectChanged();
 		FileWatcher::StartWatching(Project::GetAssetsPath());
+		DistributeEvent(ProjectChangedEvnet(project));
 	}
 
 	glm::mat4 EditorLayer::GetViewProjFromCameraEntity(Entity cameraEntity)
@@ -1718,6 +1691,11 @@ namespace Shark {
 		auto& camera = cameraEntity.GetComponent<CameraComponent>();
 		auto& tf = cameraEntity.GetTransform();
 		return camera.GetProjection() * glm::inverse(tf.GetTranform());
+	}
+
+	void EditorLayer::DistributeEvent(Event& event)
+	{
+		Application::Get().OnEvent(event);
 	}
 
 }

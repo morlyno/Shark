@@ -27,14 +27,14 @@ namespace Shark {
 			return (D3D11_FILTER_TYPE)0;
 		}
 
-		D3D11_TEXTURE_ADDRESS_MODE AddressModeToD3D11(AddressMode addressMode)
+		D3D11_TEXTURE_ADDRESS_MODE AddressModeToD3D11(WrapMode addressMode)
 		{
 			switch (addressMode)
 			{
-				case AddressMode::Repeat: return D3D11_TEXTURE_ADDRESS_WRAP;
-				case AddressMode::Clamp:  return D3D11_TEXTURE_ADDRESS_CLAMP;
-				case AddressMode::Mirror: return D3D11_TEXTURE_ADDRESS_MIRROR;
-				case AddressMode::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
+				case WrapMode::Repeat: return D3D11_TEXTURE_ADDRESS_WRAP;
+				case WrapMode::Clamp:  return D3D11_TEXTURE_ADDRESS_CLAMP;
+				case WrapMode::Mirror: return D3D11_TEXTURE_ADDRESS_MIRROR;
+				case WrapMode::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
 			}
 			SK_CORE_ASSERT(false, "Unkown AddressMode");
 			return (D3D11_TEXTURE_ADDRESS_MODE)0;
@@ -83,8 +83,22 @@ namespace Shark {
 		imageSpecs.Width = m_Specs.Width;
 		imageSpecs.Height = m_Specs.Height;
 		imageSpecs.Format = m_Specs.Format;
+		imageSpecs.MipLevels = 1;
 		imageSpecs.Type = ImageType::Default;
 		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
+
+		CreateSampler();
+	}
+
+	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specs, Ref<Texture2D> data)
+		: m_Specs(specs)
+	{
+		ImageSpecification imageSpecs;
+		imageSpecs.Width = m_Specs.Width;
+		imageSpecs.Height = m_Specs.Height;
+		imageSpecs.Format = m_Specs.Format;
+		imageSpecs.Type = ImageType::Default;
+		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data->GetImage());
 
 		CreateSampler();
 	}
@@ -132,16 +146,6 @@ namespace Shark {
 		{
 			m_Sampler->Release();
 			m_Sampler = nullptr;
-			CreateSampler();
-
-			ImageSpecification imageSpecs;
-			imageSpecs.Width = m_Specs.Width;
-			imageSpecs.Height = m_Specs.Height;
-			imageSpecs.Format = m_Specs.Format;
-			imageSpecs.MipLevels = m_Specs.MipLevels;
-			imageSpecs.Type = ImageType::Default;
-			m_Image->Set(imageSpecs, data);
-			return;
 		}
 
 		ImageSpecification imageSpecs;
@@ -150,7 +154,49 @@ namespace Shark {
 		imageSpecs.Format = m_Specs.Format;
 		imageSpecs.MipLevels = m_Specs.MipLevels;
 		imageSpecs.Type = ImageType::Default;
-		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
+
+		if (m_Image)
+			m_Image->Set(imageSpecs, data);
+		else
+			m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
+
+		CreateSampler();
+	}
+
+	void DirectXTexture2D::Set(const TextureSpecification& specs, Ref<Texture2D> data)
+	{
+		m_Specs = specs;
+
+		if (m_Sampler)
+		{
+			m_Sampler->Release();
+			m_Sampler = nullptr;
+		}
+
+		ImageSpecification imageSpecs;
+		imageSpecs.Width = m_Specs.Width;
+		imageSpecs.Height = m_Specs.Height;
+		imageSpecs.Format = m_Specs.Format;
+		imageSpecs.MipLevels = m_Specs.MipLevels;
+		imageSpecs.Type = ImageType::Default;
+
+		if (m_Image)
+			m_Image->Set(imageSpecs, data->GetImage());
+		else
+			m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data->GetImage());
+
+		CreateSampler();
+	}
+
+	void DirectXTexture2D::SetSampler(const SamplerSpecification& specs)
+	{
+		m_Specs.Sampler = specs;
+		
+		if (m_Sampler)
+		{
+			m_Sampler->Release();
+			m_Sampler = nullptr;
+		}
 
 		CreateSampler();
 	}
@@ -163,13 +209,13 @@ namespace Shark {
 		desc.Filter = utils::MakeFilter(m_Specs.Sampler);
 		desc.MaxAnisotropy = m_Specs.Sampler.MaxAnisotropy;
 
-		desc.AddressU = utils::AddressModeToD3D11(m_Specs.Sampler.Address.U);
-		desc.AddressV = utils::AddressModeToD3D11(m_Specs.Sampler.Address.V);
-		desc.AddressW = utils::AddressModeToD3D11(m_Specs.Sampler.Address.W);
+		desc.AddressU = utils::AddressModeToD3D11(m_Specs.Sampler.Wrap.U);
+		desc.AddressV = utils::AddressModeToD3D11(m_Specs.Sampler.Wrap.V);
+		desc.AddressW = utils::AddressModeToD3D11(m_Specs.Sampler.Wrap.W);
 
 		desc.MipLODBias = m_Specs.Sampler.LODBias;
-		desc.MinLOD = m_Specs.Sampler.MinLOD;
-		desc.MaxLOD = m_Specs.Sampler.MaxLOD;
+		desc.MinLOD = 0;
+		desc.MaxLOD = D3D11_FLOAT32_MAX;
 
 		for (uint32_t i = 0; i < 4; i++)
 			desc.BorderColor[i] = m_Specs.Sampler.BorderColor[i];

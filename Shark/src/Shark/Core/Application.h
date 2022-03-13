@@ -46,6 +46,7 @@ namespace Shark {
 
 		void CloseApplication()                        { m_Running = false; }
 
+		static Application* GetPtr()                   { return s_Instance; }
 		static Application& Get()                      { return *s_Instance; }
 		Window& GetWindow()                            { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer()                    { return *m_ImGuiLayer; }
@@ -66,10 +67,19 @@ namespace Shark {
 		int64_t m_LastFrameTime = 0;
 		int64_t m_Frequency;
 
+		bool m_RaiseEvents = true;
+
 		Scope<Window> m_Window;
 		// Owned by LayerStack
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
+
+		struct InsteanceCleanup
+		{
+			InsteanceCleanup() = default;
+			~InsteanceCleanup();
+		};
+		InsteanceCleanup m_InsteanceCleanup;
 	};
 
 	Application* CreateApplication(int argc, char** argv);

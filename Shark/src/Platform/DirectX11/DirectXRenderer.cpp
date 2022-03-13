@@ -87,6 +87,8 @@ namespace Shark {
 
 		adapter->Release();
 
+		QueryCapabilities();
+
 		auto& window = Application::Get().GetWindow();
 
 		SwapChainSpecifications specs;
@@ -143,7 +145,6 @@ namespace Shark {
 		SK_CHECK(m_Device->CreateQuery(&queryDesc, &m_FrequencyQuery));
 
 		m_PresentTimer = Ref<DirectXGPUTimer>::Create("Present");
-
 	}
 
 	void DirectXRenderer::ShutDown()
@@ -156,7 +157,7 @@ namespace Shark {
 		m_QuadVertexBuffer = nullptr;
 		m_QuadIndexBuffer = nullptr;
 
-		m_CommandBuffers.clear();
+		SK_CORE_ASSERT(m_CommandBuffers.empty(), "All RenderCommandBuffers need to be destroy befor Renderer shuts down");
 
 		if (m_ClampSampler)
 		{
@@ -210,7 +211,9 @@ namespace Shark {
 
 		if (m_SwapChainNeedsResize)
 		{
-			Flush();
+			for (auto cmdBuffer : m_CommandBuffers)
+				cmdBuffer->OnSwapchainResize();
+
 			m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
 			m_SwapChainNeedsResize = false;
 		}
@@ -423,33 +426,17 @@ namespace Shark {
 		m_ImmediateContext->RSSetViewports(1, &swapChainFrameBuffer->m_Viewport);
 	}
 
-	void DirectXRenderer::AddRenderCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer)
+	void DirectXRenderer::AddCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer)
 	{
-		if (s_Instance)
-			s_Instance->m_CommandBuffers.push_back(Ref(commandBuffer));
+		m_CommandBuffers.insert(commandBuffer);
 	}
 
-	void DirectXRenderer::RemoveRenderCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer)
+	void DirectXRenderer::RemoveCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer)
 	{
-		if (s_Instance)
-		{
-			auto i = std::find(s_Instance->m_CommandBuffers.begin(), s_Instance->m_CommandBuffers.end(), Ref(commandBuffer));
-			SK_CORE_ASSERT(i != s_Instance->m_CommandBuffers.end());
-			if (i != s_Instance->m_CommandBuffers.end())
-				s_Instance->m_CommandBuffers.erase(i);
-		}
-	}
+		auto entry = m_CommandBuffers.find(commandBuffer);
+		if (entry != m_CommandBuffers.end())
+			m_CommandBuffers.erase(entry);
 
-	void DirectXRenderer::Flush()
-	{
-		SK_PROFILE_FUNCTION();
-
-		Timer timer;
-		for (auto cmdBuffer : m_CommandBuffers)
-			cmdBuffer->Flush();
-		m_ImmediateContext->Flush();
-
-		SK_CORE_INFO("DirectXRenderer::Flush: {:.5f}ms", timer.Stop().MilliSeconds());
 	}
 
 	void DirectXRenderer::PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet)
@@ -485,6 +472,14 @@ namespace Shark {
 				ctx->VSSetConstantBuffers(cb->m_Slot, 1, &cb->m_ConstBuffer);
 		}
 
+	}
+
+	void DirectXRenderer::QueryCapabilities()
+	{
+		m_Capabilities.MaxMipLeves     = D3D11_REQ_MIP_LEVELS;
+		m_Capabilities.MaxAnisotropy   = D3D11_REQ_MAXANISOTROPY;
+		m_Capabilities.MinLODBias      = D3D11_MIP_LOD_BIAS_MIN;
+		m_Capabilities.MaxLODBias      = D3D11_MIP_LOD_BIAS_MAX;
 	}
 
 }

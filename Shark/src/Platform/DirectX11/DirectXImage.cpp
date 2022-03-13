@@ -72,7 +72,7 @@ namespace Shark {
 	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, void* data)
 		: m_Specs(specs)
 	{
-		CreateImage(data);
+		CreateImage(data, nullptr);
 	}
 
 	DirectXImage2D::DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, void* data)
@@ -81,7 +81,14 @@ namespace Shark {
 		m_Specs.Width = width;
 		m_Specs.Height = height;
 
-		CreateImage(data);
+		CreateImage(data, nullptr);
+	}
+
+	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data)
+		: m_Specs(specs)
+	{
+		Ref<DirectXImage2D> dxImage = data.As<DirectXImage2D>();
+		CreateImage(nullptr, dxImage);
 	}
 
 	DirectXImage2D::~DirectXImage2D()
@@ -94,6 +101,8 @@ namespace Shark {
 
 	void DirectXImage2D::Set(const ImageSpecification& specs, void* data)
 	{
+		m_Specs = specs;
+
 		if (m_Resource)
 		{
 			m_Resource->Release();
@@ -105,8 +114,31 @@ namespace Shark {
 			m_View = nullptr;
 		}
 
+		CreateImage(data, nullptr);
+	}
+
+	void DirectXImage2D::Set(const ImageSpecification& specs, Ref<Image2D> data)
+	{
+		Ref<DirectXImage2D> sourceImage = data.As<DirectXImage2D>();
+
+		SK_CORE_ASSERT(this != sourceImage.Raw());
+		if (this == sourceImage.Raw())
+			sourceImage = nullptr;
+
 		m_Specs = specs;
-		CreateImage(data);
+
+		if (m_Resource)
+		{
+			m_Resource->Release();
+			m_Resource = nullptr;
+		}
+		if (m_View)
+		{
+			m_View->Release();
+			m_View = nullptr;
+		}
+
+		CreateImage(nullptr, sourceImage);
 	}
 
 	void DirectXImage2D::Resize(uint32_t width, uint32_t height)
@@ -129,7 +161,7 @@ namespace Shark {
 			m_Resource = nullptr;
 		}
 
-		CreateImage(nullptr);
+		CreateImage(nullptr, nullptr);
 	}
 
 	bool DirectXImage2D::CopyTo(Ref<Image2D> image)
@@ -137,9 +169,8 @@ namespace Shark {
 		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
 		SK_CORE_ASSERT(m_Resource && dxImage->m_Resource);
 
-		const auto& destSpecs = image->GetSpecification();
-		if (m_Resource != dxImage->m_Resource && m_Specs.Format != destSpecs.Format && m_Specs.Type == destSpecs.Type &&
-			m_Specs.Width == destSpecs.Width && m_Specs.Height == destSpecs.Height)
+		const auto& destSpecs = dxImage->GetSpecification();
+		if (!IsImageCompadible(dxImage->m_Specs))
 		{
 			SK_CORE_WARN("Unable to Copy Resource!");
 			return false;
@@ -147,6 +178,23 @@ namespace Shark {
 
 		auto ctx = DirectXRenderer::GetContext();
 		ctx->CopyResource(dxImage->m_Resource, m_Resource);
+		return true;
+	}
+
+	bool DirectXImage2D::CopyMipTo(Ref<Image2D> image, uint32_t mip)
+	{
+		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
+		SK_CORE_ASSERT(m_Resource && dxImage->m_Resource);
+
+		const auto& destSpecs = dxImage->GetSpecification();
+		if (!IsImageCompadibleIgnoreMipLeves(dxImage->m_Specs))
+		{
+			SK_CORE_WARN("Unable to Copy Subresource!");
+			return false;
+		}
+
+		auto ctx = DirectXRenderer::GetContext();
+		ctx->CopySubresourceRegion(dxImage->m_Resource, mip, 0, 0, 0, m_Resource, mip, nullptr);
 		return true;
 	}
 
@@ -176,7 +224,7 @@ namespace Shark {
 		return true;
 	}
 
-	void DirectXImage2D::CreateImage(void* data)
+	void DirectXImage2D::CreateImage(void* data, Ref<DirectXImage2D> resource)
 	{
 		SK_CORE_ASSERT(!m_Resource);
 		SK_CORE_ASSERT(!m_View);
@@ -184,12 +232,14 @@ namespace Shark {
 		if (m_Specs.Width == 0 || m_Specs.Height == 0)
 			return;
 
+		SK_CORE_ASSERT(resource ? IsImageCompadibleIgnoreMipLeves(resource->m_Specs) : true);
+
 		switch (m_Specs.Type)
 		{
-			case ImageType::Default: CreateDefaultImage(data); break;
-			case ImageType::Dynamic: CreateDynamicImage(data); break;
-			case ImageType::Storage: CreateStorageImage(data); break;
-			case ImageType::FrameBuffer: CreateFrameBufferImage(data); break;
+			case ImageType::Default: CreateDefaultImage(data, resource); break;
+			case ImageType::Dynamic: CreateDynamicImage(data, resource); break;
+			case ImageType::Storage: CreateStorageImage(data, resource); break;
+			case ImageType::FrameBuffer: CreateFrameBufferImage(data, resource); break;
 			default: SK_CORE_ASSERT(false, "Unkown ImageType"); return;
 		}
 
@@ -197,7 +247,7 @@ namespace Shark {
 			CreateView();
 	}
 
-	void DirectXImage2D::CreateDefaultImage(void* data)
+	void DirectXImage2D::CreateDefaultImage(void* data, Ref<DirectXImage2D> resource)
 	{
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::Default);
 
@@ -221,10 +271,18 @@ namespace Shark {
 			auto context = DirectXRenderer::GetContext();
 			context->UpdateSubresource(m_Resource, 0, nullptr, data, m_Specs.Width * 4, 0);
 		}
+		else if (resource)
+		{
+			auto context = DirectXRenderer::GetContext();
+			if (m_Specs.MipLevels == resource->m_Specs.MipLevels)
+				context->CopyResource(m_Resource, resource->m_Resource);
+			else
+				context->CopySubresourceRegion(m_Resource, 0, 0, 0, 0, resource->m_Resource, 0, nullptr);
+		}
 
 	}
 
-	void DirectXImage2D::CreateDynamicImage(void* data)
+	void DirectXImage2D::CreateDynamicImage(void* data, Ref<DirectXImage2D> resource)
 	{
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::Dynamic);
 
@@ -249,10 +307,18 @@ namespace Shark {
 			auto context = DirectXRenderer::GetContext();
 			context->UpdateSubresource(m_Resource, 0, nullptr, data, m_Specs.Width * 4, 0);
 		}
+		else if (resource)
+		{
+			auto context = DirectXRenderer::GetContext();
+			if (m_Specs.MipLevels == resource->m_Specs.MipLevels)
+				context->CopyResource(m_Resource, resource->m_Resource);
+			else
+				context->CopySubresourceRegion(m_Resource, 0, 0, 0, 0, resource->m_Resource, 0, nullptr);
+		}
 
 	}
 
-	void DirectXImage2D::CreateStorageImage(void* data)
+	void DirectXImage2D::CreateStorageImage(void* data, Ref<DirectXImage2D> resource)
 	{
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::Storage);
 
@@ -277,10 +343,18 @@ namespace Shark {
 			auto context = DirectXRenderer::GetContext();
 			context->UpdateSubresource(m_Resource, 0, nullptr, data, m_Specs.Width * 4, 0);
 		}
+		else if (resource)
+		{
+			auto context = DirectXRenderer::GetContext();
+			if (m_Specs.MipLevels == resource->m_Specs.MipLevels)
+				context->CopyResource(m_Resource, resource->m_Resource);
+			else
+				context->CopySubresourceRegion(m_Resource, 0, 0, 0, 0, resource->m_Resource, 0, nullptr);
+		}
 
 	}
 
-	void DirectXImage2D::CreateFrameBufferImage(void* data)
+	void DirectXImage2D::CreateFrameBufferImage(void* data, Ref<DirectXImage2D> resource)
 	{
 		SK_CORE_ASSERT(m_Specs.Type == ImageType::FrameBuffer);
 
@@ -305,6 +379,14 @@ namespace Shark {
 			auto context = DirectXRenderer::GetContext();
 			context->UpdateSubresource(m_Resource, 0, nullptr, data, m_Specs.Width * 4, 0);
 		}
+		else if (resource)
+		{
+			auto context = DirectXRenderer::GetContext();
+			if (m_Specs.MipLevels == resource->m_Specs.MipLevels)
+				context->CopyResource(m_Resource, resource->m_Resource);
+			else
+				context->CopySubresourceRegion(m_Resource, 0, 0, 0, 0, resource->m_Resource, 0, nullptr);
+		}
 
 	}
 
@@ -324,6 +406,16 @@ namespace Shark {
 	bool DirectXImage2D::IsDepthImage()
 	{
 		return m_Specs.Format == ImageFormat::Depth32;
+	}
+
+	bool DirectXImage2D::IsImageCompadible(const ImageSpecification& specs) const
+	{
+		return m_Specs.Width == specs.Width && m_Specs.Height == specs.Height && m_Specs.Format == specs.Format && m_Specs.MipLevels == specs.MipLevels;
+	}
+
+	bool DirectXImage2D::IsImageCompadibleIgnoreMipLeves(const ImageSpecification& specs) const
+	{
+		return m_Specs.Width == specs.Width && m_Specs.Height == specs.Height && m_Specs.Format == specs.Format;
 	}
 
 }

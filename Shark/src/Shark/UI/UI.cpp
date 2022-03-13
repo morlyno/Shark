@@ -13,6 +13,14 @@
 
 namespace ImGui {
 
+	static float CalcMaxPopupHeightFromItemCount(int items_count)
+	{
+		ImGuiContext& g = *GImGui;
+		if (items_count <= 0)
+			return FLT_MAX;
+		return (g.FontSize + g.Style.ItemSpacing.y) * items_count - g.Style.ItemSpacing.y + (g.Style.WindowPadding.y * 2);
+	}
+
 	bool TableNextColumn(ImGuiTableRowFlags row_flags = 0, float min_row_height = 0.0f)
 	{
 		ImGuiContext& g = *GImGui;
@@ -36,6 +44,122 @@ namespace ImGui {
 		// however they shouldn't skip submitting for columns that may have the tallest contribution to row height.
 		int column_n = table->CurrentColumn;
 		return (table->RequestOutputMaskByIndex & ((ImU64)1 << column_n)) != 0;
+	}
+
+	bool BeginComboEx(ImGuiID id, const char* label, const char* preview_value, ImGuiComboFlags flags)
+	{
+		// Always consume the SetNextWindowSizeConstraint() call in our early return paths
+		ImGuiContext& g = *GImGui;
+		bool has_window_size_constraint = (g.NextWindowData.Flags & ImGuiNextWindowDataFlags_HasSizeConstraint) != 0;
+		g.NextWindowData.Flags &= ~ImGuiNextWindowDataFlags_HasSizeConstraint;
+
+		ImGuiWindow* window = GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		IM_ASSERT((flags & (ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_NoPreview)) != (ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_NoPreview)); // Can't use both flags together
+
+		const ImGuiStyle& style = g.Style;
+
+		const float arrow_size = (flags & ImGuiComboFlags_NoArrowButton) ? 0.0f : GetFrameHeight();
+		const ImVec2 label_size = CalcTextSize(label, NULL, true);
+		const float expected_w = CalcItemWidth();
+		const float w = (flags & ImGuiComboFlags_NoPreview) ? arrow_size : expected_w;
+		const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(w, label_size.y + style.FramePadding.y * 2.0f));
+		const ImRect total_bb(frame_bb.Min, frame_bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0.0f));
+		ItemSize(total_bb, style.FramePadding.y);
+		if (!ItemAdd(total_bb, id, &frame_bb))
+			return false;
+
+		bool hovered, held;
+		bool pressed = ButtonBehavior(frame_bb, id, &hovered, &held);
+		bool popup_open = IsPopupOpen(id, ImGuiPopupFlags_None);
+
+		const ImU32 frame_col = GetColorU32(hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
+		const float value_x2 = ImMax(frame_bb.Min.x, frame_bb.Max.x - arrow_size);
+		RenderNavHighlight(frame_bb, id);
+		if (!(flags & ImGuiComboFlags_NoPreview))
+			window->DrawList->AddRectFilled(frame_bb.Min, ImVec2(value_x2, frame_bb.Max.y), frame_col, style.FrameRounding, (flags & ImGuiComboFlags_NoArrowButton) ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersLeft);
+		if (!(flags & ImGuiComboFlags_NoArrowButton))
+		{
+			ImU32 bg_col = GetColorU32((popup_open || hovered) ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+			ImU32 text_col = GetColorU32(ImGuiCol_Text);
+			window->DrawList->AddRectFilled(ImVec2(value_x2, frame_bb.Min.y), frame_bb.Max, bg_col, style.FrameRounding, (w <= arrow_size) ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersRight);
+			if (value_x2 + arrow_size - style.FramePadding.x <= frame_bb.Max.x)
+				RenderArrow(window->DrawList, ImVec2(value_x2 + style.FramePadding.y, frame_bb.Min.y + style.FramePadding.y), text_col, ImGuiDir_Down, 1.0f);
+		}
+		RenderFrameBorder(frame_bb.Min, frame_bb.Max, style.FrameRounding);
+		if (preview_value != NULL && !(flags & ImGuiComboFlags_NoPreview))
+		{
+			ImVec2 preview_pos = frame_bb.Min + style.FramePadding;
+			if (g.LogEnabled)
+				LogSetNextTextDecoration("{", "}");
+			RenderTextClipped(preview_pos, ImVec2(value_x2, frame_bb.Max.y), preview_value, NULL, NULL, ImVec2(0.0f, 0.0f));
+		}
+		if (label_size.x > 0)
+			RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, frame_bb.Min.y + style.FramePadding.y), label);
+
+		if ((pressed || g.NavActivateId == id) && !popup_open)
+		{
+			if (window->DC.NavLayerCurrent == 0)
+				window->NavLastIds[0] = id;
+			OpenPopupEx(id, ImGuiPopupFlags_None);
+			popup_open = true;
+		}
+
+		if (!popup_open)
+			return false;
+
+		if (has_window_size_constraint)
+		{
+			g.NextWindowData.Flags |= ImGuiNextWindowDataFlags_HasSizeConstraint;
+			g.NextWindowData.SizeConstraintRect.Min.x = ImMax(g.NextWindowData.SizeConstraintRect.Min.x, w);
+		}
+		else
+		{
+			if ((flags & ImGuiComboFlags_HeightMask_) == 0)
+				flags |= ImGuiComboFlags_HeightRegular;
+			IM_ASSERT(ImIsPowerOfTwo(flags & ImGuiComboFlags_HeightMask_));    // Only one
+			int popup_max_height_in_items = -1;
+			if (flags & ImGuiComboFlags_HeightRegular)     popup_max_height_in_items = 8;
+			else if (flags & ImGuiComboFlags_HeightSmall)  popup_max_height_in_items = 4;
+			else if (flags & ImGuiComboFlags_HeightLarge)  popup_max_height_in_items = 20;
+			SetNextWindowSizeConstraints(ImVec2(w, 0.0f), ImVec2(FLT_MAX, CalcMaxPopupHeightFromItemCount(popup_max_height_in_items)));
+		}
+
+		char name[16];
+		ImFormatString(name, IM_ARRAYSIZE(name), "##Combo_%02d", g.BeginPopupStack.Size); // Recycle windows based on depth
+
+		// Position the window given a custom constraint (peak into expected window size so we can position it)
+		// This might be easier to express with an hypothetical SetNextWindowPosConstraints() function.
+		if (ImGuiWindow* popup_window = FindWindowByName(name))
+			if (popup_window->WasActive)
+			{
+				// Always override 'AutoPosLastDirection' to not leave a chance for a past value to affect us.
+				ImVec2 size_expected = CalcWindowNextAutoFitSize(popup_window);
+				if (flags & ImGuiComboFlags_PopupAlignLeft)
+					popup_window->AutoPosLastDirection = ImGuiDir_Left; // "Below, Toward Left"
+				else
+					popup_window->AutoPosLastDirection = ImGuiDir_Down; // "Below, Toward Right (default)"
+				ImRect r_outer = GetWindowAllowedExtentRect(popup_window);
+				ImVec2 pos = FindBestWindowPosForPopupEx(frame_bb.GetBL(), size_expected, &popup_window->AutoPosLastDirection, r_outer, frame_bb, ImGuiPopupPositionPolicy_ComboBox);
+				SetNextWindowPos(pos);
+			}
+
+		// We don't use BeginPopupEx() solely because we have a custom name string, which we could make an argument to BeginPopupEx()
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_Popup | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove;
+
+		// Horizontally align ourselves with the framed text
+		PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.FramePadding.x, style.WindowPadding.y));
+		bool ret = Begin(name, NULL, window_flags);
+		PopStyleVar();
+		if (!ret)
+		{
+			EndPopup();
+			IM_ASSERT(0);   // This should never happen as we tested for IsPopupOpen() above
+			return false;
+		}
+		return true;
 	}
 
 }
@@ -462,6 +586,44 @@ namespace Shark::UI {
 
 	}
 
+	void BeginPropertySetup(ImGuiID id)
+	{
+		if (id == 0)
+			id = GetID("ControlsTable");
+
+		PushID(id);
+
+		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable))
+		{
+			ImGuiStyle& style = ImGui::GetStyle();
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
+		}
+	}
+
+	void PropertySetupTagWidth(float width)
+	{
+		if (!ImGui::GetCurrentTable())
+			return;
+
+
+		ImGui::TableSetColumnWidth(0, width);
+	}
+
+	void EndPropertySetup()
+	{
+		if (ImGui::GetCurrentTable())
+		{
+			ImGui::PopStyleVar();
+			ImGui::EndTable();
+		}
+
+		s_IsDefaultGrid = false;
+		s_PropertyCount = 0;
+
+		PopID();
+	}
+
+
 	bool BeginProperty()
 	{
 		return BeginProperty(GetID("ControlsTable"));
@@ -502,13 +664,14 @@ namespace Shark::UI {
 		if (flags & GridFlag::Default)
 			s_IsDefaultGrid = true;
 
-		ImGuiTableFlags tableFalgs = ImGuiTableFlags_Resizable;
-		if (flags & GridFlag::InnerV) tableFalgs |= ImGuiTableFlags_BordersInnerV;
-		if (flags & GridFlag::InnerH) tableFalgs |= ImGuiTableFlags_BordersInnerH;
-		if (flags & GridFlag::OuterV) tableFalgs |= ImGuiTableFlags_BordersOuterV;
-		if (flags & GridFlag::OuterH) tableFalgs |= ImGuiTableFlags_BordersOuterH;
+		ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable;
+		if (flags & GridFlag::InnerV) tableFlags |= ImGuiTableFlags_BordersInnerV;
+		if (flags & GridFlag::InnerH) tableFlags |= ImGuiTableFlags_BordersInnerH;
+		if (flags & GridFlag::OuterV) tableFlags |= ImGuiTableFlags_BordersOuterV;
+		if (flags & GridFlag::OuterH) tableFlags |= ImGuiTableFlags_BordersOuterH;
+		if (flags & GridFlag::InitMinSize) tableFlags |= ImGuiTableFlags_SizingFixedFit;
 
-		if (ImGui::BeginTable("ControlsTable", 2, tableFalgs))
+		if (ImGui::BeginTable("ControlsTable", 2, tableFlags))
 		{
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
@@ -1459,6 +1622,51 @@ namespace Shark::UI {
 		Utils::EndProperty();
 		return changed;
 
+	}
+
+	template<typename T>
+	bool PropertyComboT(const std::string& tag, T& index, const char* const items[], uint32_t itemCount)
+	{
+		if (!Utils::BeginProperty(GetID(tag)))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		TextAligned(tag);
+		ImGui::TableSetColumnIndex(1);
+
+
+		bool changed = false;
+		UI::SpanAvailWith();
+		if (ImGui::BeginComboEx(UI::GetID(tag), "##Combo", items[index], 0))
+		{
+			for (T i = 0; i < (T)itemCount; i++)
+			{
+				if (ImGui::Selectable(items[i], i == index))
+				{
+					index = i;
+					changed = true;
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		Utils::EndProperty();
+		return changed;
+	}
+
+	bool PropertyCombo(const std::string& tag, int& index, const char* const items[], uint32_t itemCount)
+	{
+		return PropertyComboT(tag, index, items, itemCount);
+	}
+
+	bool PropertyCombo(const std::string& tag, uint16_t& index, const char* const items[], uint32_t itemCount)
+	{
+		return PropertyComboT(tag, index, items, itemCount);
+	}
+
+	bool PropertyCombo(const std::string& tag, uint32_t& index, const char* const items[], uint32_t itemCount)
+	{
+		return PropertyComboT(tag, index, items, itemCount);
 	}
 
 	bool BeginCustomControl(const std::string& strID)

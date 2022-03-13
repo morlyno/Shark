@@ -15,6 +15,7 @@ static inline ImVec4 operator/(const ImVec4& lhs, const float rhs) { return ImVe
 namespace ImGui {
 
 	bool TableNextColumn(ImGuiTableRowFlags row_flags, float min_row_height);
+	bool BeginComboEx(ImGuiID id, const char* label, const char* preview_value, ImGuiComboFlags flags);
 	
 }
 
@@ -36,7 +37,7 @@ namespace Shark::UI {
 			Disabled = BIT(2),
 			Background = BIT(3),
 
-			TagMask = BIT(0)
+			TagMask = Aligned | Disabled
 		};
 	}
 	using TextFlags = std::underlying_type_t<TextFlag::Text>;
@@ -51,6 +52,8 @@ namespace Shark::UI {
 			OuterH = BIT(3),
 
 			Default = BIT(4),
+			InitMinSize = BIT(5),
+
 			OuterInner = InnerV | InnerH | OuterH,
 			Full = InnerV | InnerH | OuterV | OuterH,
 		};
@@ -159,6 +162,10 @@ namespace Shark::UI {
 	/// Controls /////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
+	void BeginPropertySetup(ImGuiID id = 0);
+	void PropertySetupTagWidth(float width);
+	void EndPropertySetup();
+
 	bool BeginProperty();
 	bool BeginProperty(const std::string& strID);
 	bool BeginPropertyGrid(GridFlags flags = GridFlag::Default);
@@ -207,6 +214,12 @@ namespace Shark::UI {
 	void Property(const std::string& tag, const char* val, TextFlags flags = TextFlag::None);
 	void Property(const std::string& tag, const std::string& val, TextFlags flags = TextFlag::None);
 	void Property(const std::string& tag, const std::filesystem::path& path, TextFlags flags = TextFlag::None);
+
+	template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+	bool PropertyCombo(const std::string& tag, T& index, const char* const items[], uint32_t itemCount) { return PropertyCombo(tag, (std::underlying_type_t<T>&)index, items, itemCount); }
+	bool PropertyCombo(const std::string& tag, int& index, const char* const items[], uint32_t itemCount);
+	bool PropertyCombo(const std::string& tag, uint16_t& index, const char* const items[], uint32_t itemCount);
+	bool PropertyCombo(const std::string& tag, uint32_t& index, const char* const items[], uint32_t itemCount);
 
 	bool BeginCustomControl(const std::string& strID);
 	bool BeginCustomControl(ImGuiID id);

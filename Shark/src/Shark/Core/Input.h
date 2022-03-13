@@ -13,15 +13,15 @@ namespace Shark {
 
 		// First is x, Second is y
 		// Relative to Window
-		std::pair<int, int> MousePos();
+		glm::ivec2 MousePos();
 		int MousePosX();
 		int MousePosY();
 
 		// First is x, Second is y
 		// Relative to Screen
-		std::pair<int, int> ScreenMousePos();
-		int ScreenMousePosX();
-		int ScreenMousePosY();
+		std::pair<int, int> GlobalMousePos();
+		int GlobalMousePosX();
+		int GlobalMousePosY();
 
 	}
 

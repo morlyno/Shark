@@ -14,8 +14,8 @@ namespace Shark {
 		return (bool)(GetKeyState(button) >> 8);
 	}
 
-	std::pair<int, int> Input::MousePos()
-	{
+	glm::ivec2 Input::MousePos()
+{
 		POINT pos;
 		GetCursorPos(&pos);
 		auto& window = Application::Get().GetWindow();
@@ -25,29 +25,29 @@ namespace Shark {
 
 	int Input::MousePosX()
 	{
-		return MousePos().first;
+		return MousePos().x;
 	}
 
 	int Input::MousePosY()
 	{
-		return MousePos().second;
+		return MousePos().y;
 	}
 
-	std::pair<int, int> Input::ScreenMousePos()
+	std::pair<int, int> Input::GlobalMousePos()
 	{
 		POINT pos;
 		GetCursorPos(&pos);
 		return { pos.x,pos.y };
 	}
 
-	int Input::ScreenMousePosX()
+	int Input::GlobalMousePosX()
 	{
-		return ScreenMousePos().first;
+		return GlobalMousePos().first;
 	}
 
-	int Input::ScreenMousePosY()
+	int Input::GlobalMousePosY()
 	{
-		return ScreenMousePos().second;
+		return GlobalMousePos().second;
 	}
 
 }

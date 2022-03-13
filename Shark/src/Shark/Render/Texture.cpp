@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	std::string ToString(FilterMode filterMode)
+	std::string EnumToString(FilterMode filterMode)
 	{
 		switch (filterMode)
 		{
@@ -17,14 +17,14 @@ namespace Shark {
 		return "Unkown";
 	}
 
-	std::string ToString(AddressMode addressMode)
+	std::string EnumToString(WrapMode wrapMode)
 	{
-		switch (addressMode)
+		switch (wrapMode)
 		{
-			case AddressMode::Repeat: return "Repeat";
-			case AddressMode::Clamp:  return "Clamp";
-			case AddressMode::Mirror: return "Mirror";
-			case AddressMode::Border: return "Border";
+			case WrapMode::Repeat: return "Repeat";
+			case WrapMode::Clamp:  return "Clamp";
+			case WrapMode::Mirror: return "Mirror";
+			case WrapMode::Border: return "Border";
 		}
 		SK_CORE_ASSERT(false, "Unkown FilterMode");
 		return "Unkown";
@@ -71,6 +71,17 @@ namespace Shark {
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
 			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(filePath);
+		}
+		SK_CORE_ASSERT(false, "Unkown API");
+		return nullptr;
+	}
+
+	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specs, Ref<Texture2D> data)
+	{
+		switch (RendererAPI::GetAPI())
+		{
+			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, data);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;

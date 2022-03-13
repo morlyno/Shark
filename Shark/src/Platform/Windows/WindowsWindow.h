@@ -31,8 +31,10 @@ namespace Shark {
 
 		virtual void Update() const override;
 
-		virtual inline uint32_t GetWidth() const override { return m_Width; }
-		virtual inline uint32_t GetHeight() const override { return m_Height; }
+		virtual inline uint32_t GetWidth() const override { return m_Size.x; }
+		virtual inline uint32_t GetHeight() const override { return m_Size.y; }
+		virtual const glm::uvec2& GetSize() const override { return m_Size; }
+		virtual const glm::ivec2& GetPos() const override { return m_Pos; }
 		virtual inline WindowHandle GetHandle() const override { return m_hWnd; }
 
 		virtual inline bool IsFocused() const override { return m_IsFocused; }
@@ -51,8 +53,9 @@ namespace Shark {
 	private:
 		HWND m_hWnd;
 
-		uint32_t m_Width;
-		uint32_t m_Height;
+		glm::uvec2 m_Size = glm::uvec2(0);
+		glm::ivec2 m_Pos = glm::ivec2(0);
+
 		std::wstring m_Name;
 		bool m_IsFocused = false;
 		bool m_IsCaptured = false;

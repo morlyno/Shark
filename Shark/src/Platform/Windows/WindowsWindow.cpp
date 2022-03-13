@@ -46,7 +46,7 @@ namespace Shark {
 	}
 
 	WindowsWindow::WindowsWindow(const WindowProps& props)
-		: m_Width(props.Width), m_Height(props.Height), m_Name(String::ToWideCopy(props.Name)), m_VSync(props.VSync)
+		: m_Size(props.Width, props.Height), m_Name(String::ToWideCopy(props.Name)), m_VSync(props.VSync)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -68,9 +68,9 @@ namespace Shark {
 		{
 			RECT rect;
 			rect.left = 100;
-			rect.right = m_Width + rect.left;
+			rect.right = m_Size.x + rect.left;
 			rect.top = 100;
-			rect.bottom = m_Height + rect.top;
+			rect.bottom = m_Size.y + rect.top;
 			AdjustWindowRectEx(&rect, flags, FALSE, 0);
 
 			width = rect.right - rect.left;
@@ -163,8 +163,13 @@ namespace Shark {
 		{
 			if (msg == WM_SIZE)
 			{
-				m_Width = LOWORD(lParam);
-				m_Height = HIWORD(lParam);
+				m_Size.x = LOWORD(lParam);
+				m_Size.y = HIWORD(lParam);
+			}
+			else if (msg == WM_MOVE)
+			{
+				m_Pos.x = LOWORD(lParam);
+				m_Pos.y = HIWORD(lParam);
 			}
 			return DefWindowProc(hWnd, msg, wParam, lParam);
 		}
@@ -184,8 +189,8 @@ namespace Shark {
 			{
 				g_IsRezised = true;
 
-				m_Width = LOWORD(lParam);
-				m_Height = HIWORD(lParam);
+				m_Size.x = LOWORD(lParam);
+				m_Size.y = HIWORD(lParam);
 				WindowResizeEvent::State state = WindowResizeEvent::State::Resize;
 
 				if (wParam == SIZE_MAXIMIZED)
@@ -193,7 +198,7 @@ namespace Shark {
 				else if (wParam == SIZE_MINIMIZED)
 					state = WindowResizeEvent::State::Minimized;
 
-				g_LastReizeEvent = WindowResizeEvent(m_Width, m_Height, state);
+				g_LastReizeEvent = WindowResizeEvent(m_Size.x, m_Size.y, state);
 				if (!g_EnterSizing)
 					m_Callbackfunc(g_LastReizeEvent);
 				break;
@@ -216,6 +221,7 @@ namespace Shark {
 			case WM_MOVE:
 			{
 				const POINTS pt = MAKEPOINTS(lParam);
+				m_Pos = { pt.x, pt.y };
 				m_Callbackfunc(WindowMoveEvent(pt.x, pt.y));
 				break;
 			}
@@ -224,7 +230,7 @@ namespace Shark {
 			case WM_MOUSEMOVE:
 			{
 				const POINTS pt = MAKEPOINTS(lParam);
-				if (pt.x >= 0 && pt.x < (short)m_Width && pt.y >= 0 && pt.y < (short)m_Height)
+				if (pt.x >= 0 && pt.x < (short)m_Size.x && pt.y >= 0 && pt.y < (short)m_Size.y)
 				{
 					if (!m_IsCaptured)
 					{

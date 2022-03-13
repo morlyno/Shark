@@ -42,6 +42,15 @@ namespace Shark::Utility {
 		return true;
 	}
 
+	template<typename Key, typename T>
+	bool Contains(const std::unordered_set<Key, T>& map, const Key& key)
+	{
+		const auto iter = map.find(key);
+		if (iter == map.cend())
+			return false;
+		return true;
+	}
+
 	template<typename Container>
 	void Erase(Container& container, size_t index)
 	{

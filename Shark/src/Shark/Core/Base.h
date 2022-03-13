@@ -39,6 +39,14 @@
 #define SK_DEPRECATED(message) [[deprecated(message)]]
 #define SK_UNIQUE_VAR_NAME SK_CONNECT(unique_var_, __COUNTER__)
 
+#define IM_VEC2_CLASS_EXTRA \
+ImVec2(const glm::vec2& v) : ImVec2(v.x, v.y) {}\
+explicit ImVec2(const glm::ivec2& v) : ImVec2((float)v.x, (float)v.y) {}\
+explicit ImVec2(const glm::uvec2& v) : ImVec2((float)v.x, (float)v.y) {}\
+operator glm::vec2() const { return { x, y }; }\
+explicit operator glm::ivec2() const { return { (int)x, (int)y }; }\
+explicit operator glm::uvec2() const { return { (uint32_t)x, (uint32_t)y }; }\
+
 #include <stdint.h>
 
 namespace Shark {

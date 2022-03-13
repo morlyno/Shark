@@ -239,45 +239,12 @@ namespace Shark {
 		}
 	}
 
-	void Scene::OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("Scene::OnRender");
-
-		renderer->SetScene(this);
-		renderer->BeginScene(viewProj);
-
-		{
-			auto view = m_Registry.view<SpriteRendererComponent, TransformComponent>();
-			for (auto entity : view)
-			{
-				auto& [sr, tf] = view.get<SpriteRendererComponent, TransformComponent>(entity);
-				Ref<Texture2D> texture;
-				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
-					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
-				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
-			}
-		}
-
-		{
-			auto view = m_Registry.view<CircleRendererComponent, TransformComponent>();
-			for (auto entity : view)
-			{
-				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
-				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
-			}
-		}
-
-		renderer->EndScene();
-	}
-
-	void Scene::OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const Camera& camera, const glm::mat4& view)
+	void Scene::OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const glm::mat4& viewProj)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnRenderRuntimePreview");
 
 		renderer->SetScene(this);
-		const auto viewProj = camera.GetProjection() * view;
 		renderer->BeginScene(viewProj);
 
 		{

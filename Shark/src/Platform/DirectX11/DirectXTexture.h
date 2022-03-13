@@ -13,10 +13,14 @@ namespace Shark {
 		DirectXTexture2D();
 		DirectXTexture2D(const TextureSpecification& specs, void* data);
 		DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, void* data);
+		DirectXTexture2D(const TextureSpecification& specs, Ref<Texture2D> data);
 		DirectXTexture2D(const std::filesystem::path& filePath);
 		virtual ~DirectXTexture2D();
 
 		virtual void Set(const TextureSpecification& specs, void* data) override;
+		virtual void SetSampler(const SamplerSpecification& specs) override;
+
+		virtual void Set(const TextureSpecification& specs, Ref<Texture2D> data) override;
 
 		virtual RenderID GetViewID() const override { return m_Image->GetViewID(); }
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }

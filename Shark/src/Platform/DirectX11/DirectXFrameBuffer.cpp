@@ -159,7 +159,7 @@ namespace Shark {
 		auto dev = DirectXRenderer::GetDevice();
 
 		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
-			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", ImageFormatToString(atachment->Image->GetSpecification().Format), ImageFormatToString(atachment->Format)));
+			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", EnumToString(atachment->Image->GetSpecification().Format), EnumToString(atachment->Format)));
 
 		if (!atachment->Image)
 		{
@@ -187,7 +187,7 @@ namespace Shark {
 		auto dev = DirectXRenderer::GetDevice();
 
 		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
-			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", ImageFormatToString(atachment->Image->GetSpecification().Format), ImageFormatToString(atachment->Format)));
+			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", EnumToString(atachment->Image->GetSpecification().Format), EnumToString(atachment->Format)));
 
 		if (!atachment->Image)
 		{

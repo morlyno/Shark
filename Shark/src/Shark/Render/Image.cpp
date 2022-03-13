@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	std::string ImageFormatToString(ImageFormat format)
+	std::string EnumToString(ImageFormat format)
 	{
 		switch (format)
 		{
@@ -48,6 +48,17 @@ namespace Shark {
 		{
 			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
 			case RendererAPI::API::DirectX11: return Ref<DirectXImage2D>::Create(format, width, height, data);
+		}
+		SK_CORE_ASSERT(false, "Unkown Renderer API");
+		return nullptr;
+	}
+
+	Ref<Image2D> Image2D::Create(const ImageSpecification& specs, Ref<Image2D> data)
+	{
+		switch (RendererAPI::GetAPI())
+		{
+			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
+			case RendererAPI::API::DirectX11: return Ref<DirectXImage2D>::Create(specs, data);
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;

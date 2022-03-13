@@ -49,10 +49,11 @@ namespace Shark {
 
 		if (Input::KeyPressed(Key::Alt))
 		{
-			float x = (float)Input::MousePosX();
-			float y = (float)Input::MousePosY();
-			glm::vec2 delta = { (x - m_LastMousePos.x) * 0.003f, (y - m_LastMousePos.y) * 0.003f };
-			m_LastMousePos = { x, y };
+			SK_CORE_DEBUG("EditorCamera::OnUpdate Alt Pressed");
+
+			glm::vec2 mousePos = Input::MousePos();
+			glm::vec2 delta = (mousePos - m_LastMousePos) * 0.003f;
+			m_LastMousePos = mousePos;
 			if (Input::MousePressed(Mouse::LeftButton))
 				OnMouseRotate(delta);
 			else if (Input::MousePressed(Mouse::RightButton))
@@ -68,11 +69,11 @@ namespace Shark {
 
 		if (event.GetEventType() == MouseScrolledEvent::GetStaticType())
 		{
-			constexpr float scroll = 7.5f;
+			static constexpr float scroll = 7.5f;
 			auto& mse = static_cast<MouseScrolledEvent&>(event);
-			m_Distance -= mse.GetDelta() * scroll;
-			if (m_Distance < scroll)
-				m_Distance = scroll;
+			m_Distance -= mse.GetDelta() * 7.5f;
+			if (m_Distance < 0.25)
+				m_Distance = 0.25;
 
 			UpdatePosition();
 			UpdateView();

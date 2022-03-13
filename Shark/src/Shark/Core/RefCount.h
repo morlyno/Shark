@@ -67,7 +67,7 @@ namespace Shark {
 				{
 #if SK_DEBUG
 					if (uint32_t wc = m_Instance->GetWeakCount(); wc > 0)
-						SK_CORE_INFO("Insteance of {0} is going to be deleated but there are still {1} Weak Refrences", typeid(T).name(), wc);
+						SK_CORE_WARN("Insteance of {0} is going to be deleated but there are still {1} Weak Refrences", typeid(T).name(), wc);
 #endif
 					delete m_Instance;
 				}
@@ -87,6 +87,7 @@ namespace Shark {
 		template<typename T2>
 		bool operator!=(const Ref<T2>& rhs) const { return !(*this == rhs); }
 
+		T* Raw() const { return m_Instance; }
 
 		template<typename T2>
 		Ref<T2> As() const { SK_CORE_ASSERT(m_Instance ? dynamic_cast<T2*>(m_Instance) : true); return static_cast<T2*>(m_Instance); }
@@ -146,6 +147,8 @@ namespace Shark {
 		bool operator==(const Weak& rhs) const { SK_CORE_ASSERT((m_Instance == rhs.m_Instance ? m_Instance->GetWeakCount() == rhs.m_Instance->GetWeakCount() : true)); return m_Instance == rhs.m_Instance; }
 		bool operator!=(const Weak& rhs) const { return !(*this == rhs); }
 
+		T* Raw() const { return m_Instance; }
+
 		template<typename T2>
 		Weak<T2> As() const { SK_CORE_ASSERT(dynamic_cast<T2*>(m_Instance)); return static_cast<T2*>(m_Instance); }
 
@@ -154,6 +157,28 @@ namespace Shark {
 
 		template<typename> friend class Weak;
 		template<typename> friend class Ref;
+	};
+
+}
+
+namespace std {
+
+	template<typename T>
+	struct hash<Shark::Ref<T>>
+	{
+		auto operator()(const Shark::Ref<T>& val) const
+		{
+			return hash<void*>()((void*)val.Raw());
+		}
+	};
+
+	template<typename T>
+	struct hash<Shark::Weak<T>>
+	{
+		auto operator()(const Shark::Weak<T>& val) const
+		{
+			return hash<void*>()((void*)val.Raw());
+		}
 	};
 
 }

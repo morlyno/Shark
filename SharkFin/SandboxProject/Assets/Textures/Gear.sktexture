@@ -1,5 +1,6 @@
 Texture:
   Source: 13275925228538974022
+  Format: RGBA8
   MipLeves: 1
   Sampler:
     MinFilter: Linear

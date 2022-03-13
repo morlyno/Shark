@@ -21,12 +21,16 @@ namespace Shark {
 		DirectXImage2D();
 		DirectXImage2D(const ImageSpecification& specs, void* data);
 		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, void* data);
+		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
 		virtual ~DirectXImage2D();
 
 		virtual void Set(const ImageSpecification& specs, void* data) override;
+		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) override;
+		
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual bool CopyTo(Ref<Image2D> image) override;
+		virtual bool CopyMipTo(Ref<Image2D> image, uint32_t mip) override;
 
 		virtual bool ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) override;
 
@@ -40,14 +44,17 @@ namespace Shark {
 		ID3D11ShaderResourceView* GetViewNative() const { return m_View; }
 
 	private:
-		void CreateImage(void* data);
-		void CreateDefaultImage(void* data);
-		void CreateDynamicImage(void* data);
-		void CreateStorageImage(void* data);
-		void CreateFrameBufferImage(void* data);
+		void CreateImage(void* data, Ref<DirectXImage2D> resource);
+		void CreateDefaultImage(void* data, Ref<DirectXImage2D> resource);
+		void CreateDynamicImage(void* data, Ref<DirectXImage2D> resource);
+		void CreateStorageImage(void* data, Ref<DirectXImage2D> resource);
+		void CreateFrameBufferImage(void* data, Ref<DirectXImage2D> resource);
 
 		void CreateView();
 		bool IsDepthImage();
+
+		bool IsImageCompadible(const ImageSpecification& specs) const;
+		bool IsImageCompadibleIgnoreMipLeves(const ImageSpecification& specs) const;
 
 	private:
 		ImageSpecification m_Specs;

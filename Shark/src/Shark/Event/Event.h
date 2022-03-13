@@ -10,7 +10,7 @@ namespace Shark {
 		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus,
 		MouseMove, MouseButtonPressed, MouseButtonReleasd, MouseScrolled,
 		KeyPressed, KeyReleased, KeyCharacter,
-		ApplicationClosed
+		ApplicationClosed, SceneChanged, ProjectChanged
 	};
 
 	inline std::string EventTypesToString(EventTypes eventType)
@@ -31,6 +31,8 @@ namespace Shark {
 			case EventTypes::KeyReleased:		   return "KeyReleased";
 			case EventTypes::KeyCharacter:		   return "KeyCharacter";
 			case EventTypes::ApplicationClosed:	   return "ApplicationClosed";
+			case EventTypes::SceneChanged:	       return "SceneChanged";
+			case EventTypes::ProjectChanged:	   return "ProjectChanged";
 		}
 		SK_CORE_ASSERT(false, "Unkown Event Type");
 		return "Unkown";

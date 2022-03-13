@@ -13,6 +13,15 @@
 
 namespace Shark {
 
+	struct RendererCapabilities
+	{
+		uint32_t MaxMipLeves;
+		uint32_t MaxAnisotropy;
+
+		float MinLODBias;
+		float MaxLODBias;
+	};
+
 	class RendererAPI : public RefCount
 	{
 	public:
@@ -34,6 +43,8 @@ namespace Shark {
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount) = 0;;
 
 		virtual void GenerateMips(Ref<Image2D> image) = 0;
+
+		virtual const RendererCapabilities& GetCapabilities() const = 0;
 
 		virtual Ref<ShaderLibrary> GetShaderLib() = 0;
 		virtual Ref<Texture2D> GetWhiteTexture() = 0;

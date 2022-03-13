@@ -1,8 +1,11 @@
 #pragma once
 
-#include <Shark.h>
+#include "Shark.h"
+
+#include "Panels/Panel.h"
 
 #include <imgui.h>
+
 
 namespace Shark {
 
@@ -24,19 +27,22 @@ namespace Shark {
 		std::vector<DirectoryEntry> ChildEntrys;
 	};
 
-	class ContentBrowserPanel
+	class ContentBrowserPanel : public Panel
 	{
 	public:
 		ContentBrowserPanel();
 		~ContentBrowserPanel();
 
-		void OnImGuiRender(bool& showPanel);
+		virtual void OnImGuiRender() override;
+		virtual void OnEvent(Event& event) override;
+
+		virtual bool IsShown() const override { return m_ShowPanel; }
+		
 
 		void Reload() { m_Reload = true; }
-		void OnProjectChanged() { Reload(); }
 		void OnFileChanged(const std::vector<FileChangedData>& fileEvents) { Reload(); }
 
-		void SetOpenAssetCallback(const std::function<void(AssetHandle)>& callback) { }
+		void SetOpenAssetCallback(const std::function<void(AssetHandle)>& callback) { m_OpenAssetCallback = callback; }
 
 	private:
 		void DrawTreeView();
@@ -83,6 +89,8 @@ namespace Shark {
 		Settings m_Settings;
 
 		bool m_IgnoreSelection = false;
+
+		bool m_ShowPanel = true;
 
 	};
 

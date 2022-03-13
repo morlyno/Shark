@@ -28,11 +28,11 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 	}
 
-	void ContentBrowserPanel::OnImGuiRender(bool& showPanel)
+	void ContentBrowserPanel::OnImGuiRender()
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (!showPanel)
+		if (!m_ShowPanel)
 			return;
 		
 		if (m_Reload)
@@ -41,7 +41,7 @@ namespace Shark {
 			m_Reload = false;
 		}
 
-		ImGui::Begin("Content Browser", &showPanel, ImGuiWindowFlags_NoScrollbar);
+		ImGui::Begin("Content Browser", &m_ShowPanel, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
 		DrawMenuBar();
 		ImGui::Separator();
@@ -114,6 +114,12 @@ namespace Shark {
 		}
 
 		ImGui::End();
+	}
+
+	void ContentBrowserPanel::OnEvent(Event& event)
+	{
+		EventDispacher dispacher(event);
+		dispacher.DispachEvent<ProjectChangedEvnet>([this](ProjectChangedEvnet& event) { Reload(); return true; });
 	}
 
 	void ContentBrowserPanel::DrawTreeView()

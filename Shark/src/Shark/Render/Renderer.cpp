@@ -42,6 +42,11 @@ namespace Shark {
 		s_RendererAPI->GenerateMips(image);
 	}
 
+	const RendererCapabilities& Renderer::GetCapabilities()
+	{
+		return s_RendererAPI->GetCapabilities();
+	}
+
 	Ref<ShaderLibrary> Renderer::GetShaderLib()
 	{
 		return s_RendererAPI->GetShaderLib();

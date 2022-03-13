@@ -22,7 +22,7 @@ namespace Shark {
 		virtual void BeginTimeQuery(Ref<GPUTimer> counter) override;
 		virtual void EndTimeQuery(Ref<GPUTimer> counter) override;
 
-		void Flush();
+		void OnSwapchainResize();
 
 	private:
 		ID3D11DeviceContext* m_DeferredContext = nullptr;

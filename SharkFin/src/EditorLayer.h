@@ -10,6 +10,8 @@
 
 #include "Panels/SceneHirachyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
+#include "Panels/TextureEditorPanel.h"
+#include "Panels/EditorPanelManager.h"
 
 #include <ImGuizmo.h>
 
@@ -56,6 +58,8 @@ namespace Shark {
 		void UI_Asset();
 		void UI_ImportTexture();
 
+		bool UI_MousePicking();
+
 		void DebugRender();
 		void RenderCameraPreview();
 
@@ -69,15 +73,13 @@ namespace Shark {
 		bool LoadScene(const std::filesystem::path& filePath);
 		bool SaveScene();
 		bool SaveSceneAs();
-		bool SerializeScene(Ref<Scene> scene, const std::filesystem::path& filePath);
 
 		void OnScenePlay();
 		void OnSceneStop();
 
 		void OnSimulateStart();
 
-		void SetActiveScene(const Ref<Scene>& scene);
-		void SetNextActiveScene(const Ref<Scene>& scene);
+		void SetActiveScene(Ref<Scene> scene);
 
 		void OpenProject();
 		void OpenProject(const std::filesystem::path& filePath);
@@ -87,6 +89,8 @@ namespace Shark {
 		void CreateProject();
 
 		glm::mat4 GetViewProjFromCameraEntity(Entity cameraEntity);
+
+		void DistributeEvent(Event& event);
 
 	private:
 		std::filesystem::path m_StartupProject;
@@ -101,14 +105,9 @@ namespace Shark {
 		Ref<Scene> m_ActiveScene = nullptr;
 		Ref<Scene> m_WorkScene = nullptr;
 
-		Ref<Scene> m_NextActiveScene = nullptr;
-
-		Scope<SceneHirachyPanel> m_SceneHirachyPanel;
-		Scope<ContentBrowserPanel> m_ContentBrowserPanel;
-
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
-		bool m_ViewportSizeChanged = false;
+		ImRect m_ViewportBounds;
 		bool m_NeedsResize = true;
 
 		TimeStep m_TimeStep;

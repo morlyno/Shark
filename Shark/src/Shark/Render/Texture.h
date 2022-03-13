@@ -10,16 +10,16 @@
 namespace Shark {
 
 	enum class FilterMode { Nearest, Linear };
-	enum class AddressMode { Repeat, Clamp, Mirror, Border };
+	enum class WrapMode { Repeat, Clamp, Mirror, Border };
 
-	std::string ToString(FilterMode filterMode);
-	std::string ToString(AddressMode addressMode);
+	std::string EnumToString(FilterMode filterMode);
+	std::string EnumToString(WrapMode wrapMode);
 
-	struct TextureAddressModes
+	struct TextureWrapModes
 	{
-		AddressMode U, V, W;
-		TextureAddressModes() = default;
-		TextureAddressModes(AddressMode a) : U(a), V(a), W(a) {}
+		WrapMode U, V, W;
+		TextureWrapModes() = default;
+		TextureWrapModes(WrapMode a) : U(a), V(a), W(a) {}
 	};
 
 	struct SamplerSpecification
@@ -27,18 +27,13 @@ namespace Shark {
 		FilterMode Min = FilterMode::Linear;
 		FilterMode Mag = FilterMode::Linear;
 		FilterMode Mip = FilterMode::Linear;
-		TextureAddressModes Address = AddressMode::Repeat;
+		TextureWrapModes Wrap = WrapMode::Repeat;
 		glm::vec4 BorderColor = glm::vec4(0);
 
 		bool Anisotropy = false;
 		uint32_t MaxAnisotropy = 0;
 
 		float LODBias = 0.0f;
-		float MinLOD = 0.0f;
-		float MaxLOD = FLT_MAX;
-		// MipLODBias
-		// Comparison
-		// LOD
 	};
 
 	struct TextureSpecification
@@ -58,6 +53,9 @@ namespace Shark {
 		virtual ~Texture2D() = default;
 
 		virtual void Set(const TextureSpecification& specs, void* data) = 0;
+		virtual void SetSampler(const SamplerSpecification& specs) = 0;
+
+		virtual void Set(const TextureSpecification& specs, Ref<Texture2D> data) = 0;
 
 		virtual RenderID GetViewID() const = 0;
 		virtual Ref<Image2D> GetImage() const = 0;
@@ -70,6 +68,9 @@ namespace Shark {
 		static Ref<Texture2D> Create();
 		static Ref<Texture2D> Create(const TextureSpecification& specs, void* data);
 		static Ref<Texture2D> Create(ImageFormat format, uint32_t width, uint32_t height, void* data);
+
+		static Ref<Texture2D> Create(const TextureSpecification& specs, Ref<Texture2D> data);
+		static Ref<Texture2D> Create(Ref<Texture2D> data) { return Create(data->GetSpecification(), data); }
 
 		static Ref<Texture2D> Create(const std::filesystem::path& filePath);
 	};

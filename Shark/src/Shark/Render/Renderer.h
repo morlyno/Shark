@@ -29,6 +29,8 @@ namespace Shark {
 
 		static void GenerateMips(Ref<Image2D> image);
 
+		static const RendererCapabilities& GetCapabilities();
+
 		static Ref<ShaderLibrary> GetShaderLib();
 		static Ref<Texture2D> GetWhiteTexture();
 		static Ref<GPUTimer> GetPresentTimer();

@@ -66,11 +66,21 @@ namespace Shark {
 				return nullptr;
 
 			if (IsMemoryAsset(handle))
-				return s_MemoryAssets[handle].As<T>();
+			{
+				Ref<Asset> asset = s_MemoryAssets[handle];
+				if constexpr (!std::is_same_v<T, Asset>)
+					if (asset->GetAssetType() != T::GetStaticType())
+						return nullptr;
+				return asset.As<T>();
+			}
 
 			AssetMetaData& metadata = GetMetaDataInternal(handle);
 			if (!metadata.IsValid())
 				return nullptr;
+
+			if constexpr (!std::is_same_v<T, Asset>)
+				if (metadata.Type != T::GetStaticType())
+					return nullptr;
 
 			if (!metadata.IsDataLoaded)
 			{

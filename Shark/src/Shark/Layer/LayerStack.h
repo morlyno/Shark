@@ -11,18 +11,20 @@ namespace Shark {
 		LayerStack() = default;
 		~LayerStack();
 
+		void Clear();
+
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* layer);
 		void PopLayer(Layer* layer);
 		void PopOverlay(Layer* layer);
 
-		std::vector<Layer*>::iterator begin() { return Layers.begin(); }
-		std::vector<Layer*>::iterator end() { return Layers.end(); }
-		std::vector<Layer*>::reverse_iterator rbegin() { return Layers.rbegin(); }
-		std::vector<Layer*>::reverse_iterator rend() { return Layers.rend(); }
+		std::vector<Layer*>::iterator begin() { return m_Layers.begin(); }
+		std::vector<Layer*>::iterator end() { return m_Layers.end(); }
+		std::vector<Layer*>::reverse_iterator rbegin() { return m_Layers.rbegin(); }
+		std::vector<Layer*>::reverse_iterator rend() { return m_Layers.rend(); }
 	private:
-		std::vector<Layer*> Layers;
-		uint32_t LayerStackIndex = 0;
+		std::vector<Layer*> m_Layers;
+		uint32_t m_LayerStackIndex = 0;
 	};
 
 }

@@ -59,22 +59,14 @@ namespace Shark {
 
 	}
 
-	void SceneHirachyPanel::SetContext(const Ref<Scene>& context)
+	void SceneHirachyPanel::OnImGuiRender()
 	{
 		SK_PROFILE_FUNCTION();
 		
-		SelectEntity(Entity{});
-		m_Context = context;
-	}
-
-	void SceneHirachyPanel::OnImGuiRender(bool& showPanel)
-	{
-		SK_PROFILE_FUNCTION();
-		
-		if (!showPanel)
+		if (!m_ShowPanel)
 			return;
 
-		if (ImGui::Begin("Scene Hirachy", &showPanel) && m_Context)
+		if (ImGui::Begin("Scene Hirachy", &m_ShowPanel) && m_Context)
 		{
 			{
 				SK_PROFILE_SCOPED("Loop All Entitys");
@@ -178,6 +170,12 @@ namespace Shark {
 			DrawEntityProperties(m_SelectedEntity);
 		ImGui::End();
 
+	}
+
+	void SceneHirachyPanel::OnEvent(Event& event)
+	{
+		EventDispacher dispacher(event);
+		dispacher.DispachEvent<SceneChangedEvent>([this](SceneChangedEvent& event) { m_Context = event.GetScene(); return false; });
 	}
 
 	void SceneHirachyPanel::DrawEntityNode(Entity entity)

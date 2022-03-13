@@ -17,7 +17,7 @@ namespace Shark {
 		SwapChain,
 		Depth = Depth32
 	};
-	std::string ImageFormatToString(ImageFormat format);
+	std::string EnumToString(ImageFormat format);
 
 	enum class ImageType : uint16_t
 	{
@@ -42,9 +42,12 @@ namespace Shark {
 		virtual ~Image2D() = default;
 
 		virtual void Set(const ImageSpecification& specs, void* data) = 0;
+		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) = 0;
+
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual bool CopyTo(Ref<Image2D> image) = 0;
+		virtual bool CopyMipTo(Ref<Image2D> image, uint32_t mip) = 0;
 
 		virtual bool ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) = 0;
 
@@ -58,6 +61,8 @@ namespace Shark {
 		static Ref<Image2D> Create();
 		static Ref<Image2D> Create(const ImageSpecification& specs, void* data);
 		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, void* data);
+
+		static Ref<Image2D> Create(const ImageSpecification& specs, Ref<Image2D> data);
 	};
 
 }

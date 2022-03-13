@@ -18,7 +18,7 @@ namespace Shark {
 
 		void SetProjection(float aspectratio, float fov, float nearClip, float farClip);
 		glm::mat4 GetViewProjection() const { return m_Projection * m_View; }
-		glm::mat4 GetView() const { return m_View; }
+		const glm::mat4& GetView() const { return m_View; }
 
 		void Resize(float width, float height) { m_ViewportSize = { width, height }; m_AspectRatio = width / height; UpdateProjection(); }
 		
