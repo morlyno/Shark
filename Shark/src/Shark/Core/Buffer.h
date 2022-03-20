@@ -14,7 +14,13 @@ namespace Shark {
 
 		void Allocate(uint32_t size);
 		void Release();
-		void Write(void* data, uint32_t size, uint32_t offset = 0);
+		void Write(const void* data, uint32_t size, uint32_t offset = 0);
+
+		template<typename T>
+		T* As() { return (T*)Data; }
+		
+		template<typename T>
+		const T* As() const { return (const T*)Data; }
 
 		byte* Data = nullptr;
 		uint32_t Size = 0;

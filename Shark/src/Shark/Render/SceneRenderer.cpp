@@ -135,35 +135,35 @@ namespace Shark {
 		{
 			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
-				UI::BeginPropertyGrid();
-				UI::EndProperty();
+				UI::BeginControlsGrid();
+				UI::EndControls();
 
 				ImGui::TreePop();
 			}
 
 			if (ImGui::TreeNodeEx("Statistics", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
-				UI::BeginPropertyGrid();
+				UI::BeginControlsGrid();
 				const auto& stats = m_Renderer2D->GetStatistics();
-				UI::Property("DrawCalls", fmt::format("{}", stats.DrawCalls));
-				UI::Property("Quads", fmt::format("{}", stats.QuadCount));
-				UI::Property("Cirlces", fmt::format("{}", stats.CircleCount));
-				UI::Property("Lines", fmt::format("{}", stats.LineCount));
-				UI::Property("LinesOnTop", fmt::format("{}", stats.LineOnTopCount));
-				UI::Property("Vertices", fmt::format("{}", stats.VertexCount));
-				UI::Property("Indices", fmt::format("{}", stats.IndexCount));
-				UI::Property("Textures", fmt::format("{}", stats.TextureCount));
-				UI::EndProperty();
+				UI::Control("DrawCalls", fmt::format("{}", stats.DrawCalls));
+				UI::Control("Quads", fmt::format("{}", stats.QuadCount));
+				UI::Control("Cirlces", fmt::format("{}", stats.CircleCount));
+				UI::Control("Lines", fmt::format("{}", stats.LineCount));
+				UI::Control("LinesOnTop", fmt::format("{}", stats.LineOnTopCount));
+				UI::Control("Vertices", fmt::format("{}", stats.VertexCount));
+				UI::Control("Indices", fmt::format("{}", stats.IndexCount));
+				UI::Control("Textures", fmt::format("{}", stats.TextureCount));
+				UI::EndControls();
 
 				ImGui::TreePop();
 			}
 
 			if (ImGui::TreeNodeEx("GPU Times", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
-				UI::BeginPropertyGrid();
+				UI::BeginControlsGrid();
 				const auto& stats = m_Renderer2D->GetStatistics();
-				UI::Property("GeometryPass", fmt::format("{:.4f}ms", stats.GeometryPassTime.MilliSeconds()));
-				UI::EndProperty();
+				UI::Control("GeometryPass", fmt::format("{:.4f}ms", stats.GeometryPassTime.MilliSeconds()));
+				UI::EndControls();
 
 				ImGui::TreePop();
 			}

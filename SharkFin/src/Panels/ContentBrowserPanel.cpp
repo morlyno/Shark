@@ -64,7 +64,7 @@ namespace Shark {
 			ImGui::EndTable();
 		}
 
-		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
 		{
 			if (m_SelectedEntry && m_IsSelectedHovered)
 				ImGui::OpenPopup("Entry Settings");
@@ -308,9 +308,9 @@ namespace Shark {
 
 		if (ImGui::BeginPopup("Settings"))
 		{
-			UI::BeginPropertyGrid();
-			UI::Checkbox("Show only Assets", m_Settings.ShowOnlyAssets);
-			UI::EndProperty();
+			UI::BeginControlsGrid();
+			UI::Control("Show only Assets", m_Settings.ShowOnlyAssets);
+			UI::EndControls();
 
 			ImGui::EndPopup();
 		}

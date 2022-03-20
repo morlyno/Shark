@@ -23,7 +23,7 @@ namespace Shark {
 		Size = 0;
 	}
 
-	void Buffer::Write(void* data, uint32_t size, uint32_t offset)
+	void Buffer::Write(const void* data, uint32_t size, uint32_t offset)
 	{
 		SK_CORE_ASSERT((size + offset) <= Size);
 		if ((size + offset) > Size)

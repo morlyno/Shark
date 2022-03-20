@@ -73,11 +73,15 @@ namespace Shark {
 		m_CommandBuffer->GetContext()->OMGetBlendState(&m_BlendState, m_BlendFactor, &m_SampleMask);
 
 		m_Timer = Ref<DirectXGPUTimer>::Create("ImGui");
+
+		UI::CreateContext();
 	}
 
 	void DirectXImGuiLayer::OnDetach()
 	{
 		SK_PROFILE_FUNCTION();
+
+		UI::DestroyContext();
 
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();

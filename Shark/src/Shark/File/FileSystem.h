@@ -4,12 +4,6 @@
 #undef CreateDirectory
 #undef DeleteFile
 
-namespace Shark {
-
-	using namespace std::string_literals;
-
-}
-
 namespace Shark::FileSystem {
 
 	bool CreateFile(const std::string& path);

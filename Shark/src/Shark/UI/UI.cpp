@@ -6,6 +6,9 @@
 
 #include "Shark/Core/Application.h"
 
+#include "Shark/Utility/Utility.h"
+#include "Shark/Core/Buffer.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -162,375 +165,300 @@ namespace ImGui {
 		return true;
 	}
 
-}
-
-namespace Shark::UI {
-
-	//////////////////////////////////////////////////////////////////////////////
-	/// Global Data //////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
-
-	static std::vector<TextFlags> s_TextFlagStack = std::vector<TextFlags>(1, TextFlag::None);
-	static std::string s_StringBuffer;
-
-	static bool s_IsDefaultGrid = false;
-	static uint32_t s_PropertyCount = 0;
-
-	void NewFrame()
+	template<typename T>
+	bool CheckboxFlagsT(const char* label, T* flags, T flags_value)
 	{
-		SK_CORE_ASSERT(s_TextFlagStack.size() == 1, "Push/Pop Text Flag missmatch");
-		s_TextFlagStack.clear();
-		s_TextFlagStack.push_back(TextFlag::None);
-	}
-
-
-	//////////////////////////////////////////////////////////////////////////////
-	/// Helpers //////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
-
-	ScopedID::~ScopedID()
-	{
-		PopID();
-	}
-
-	ScopedID::ScopedID(const std::string_view& strID)
-	{
-		PushID(GetID(strID));
-	}
-
-	ScopedID::ScopedID(const std::string& strID)
-	{
-		PushID(GetID(strID));
-	}
-
-	ScopedID::ScopedID(const char* strID)
-	{
-		PushID(GetID(strID));
-	}
-
-	ScopedID::ScopedID(void* ptrID)
-	{
-		PushID(GetID(ptrID));
-	}
-
-	ScopedID::ScopedID(int intID)
-	{
-		PushID(GetID(intID));
-	}
-
-	ScopedID::ScopedID(ImGuiID id)
-	{
-		PushID(id);
-	}
-
-	ScopedStyle::ScopedStyle(ImGuiCol idx, const ImVec4& col)
-	{
-		Push(idx, col);
-	}
-
-	ScopedStyle::ScopedStyle(ImGuiStyleVar idx, const ImVec2& val)
-	{
-		Push(idx, val);
-	}
-
-	ScopedStyle::ScopedStyle(ImGuiStyleVar idx, float val)
-	{
-		Push(idx, val);
-	}
-
-	ScopedStyle::~ScopedStyle()
-	{
-		Pop();
-	}
-
-	void ScopedStyle::Pop()
-	{
-		ImGui::PopStyleVar(StyleVarCount);
-		ImGui::PopStyleColor(StyleColorCount);
-		StyleVarCount = 0;
-		StyleColorCount = 0;
-	}
-
-	void ScopedStyle::Push(ImGuiCol idx, const ImVec4& col)
-	{
-		ImGui::PushStyleColor(idx, col); StyleColorCount++;
-	}
-
-	void ScopedStyle::Push(ImGuiStyleVar idx, const ImVec2& val)
-	{
-		ImGui::PushStyleVar(idx, val); StyleVarCount++;
-	}
-
-	void ScopedStyle::Push(ImGuiStyleVar idx, float val)
-	{
-		ImGui::PushStyleVar(idx, val); StyleVarCount++;
-	}
-
-	ImGuiID GetID(int intID)
-	{
-		return ImGui::GetCurrentWindowRead()->GetID(intID);
-	}
-
-	ImGuiID GetID(void* ptrID)
-	{
-		return ImGui::GetCurrentWindowRead()->GetID(ptrID);
-	}
-
-	ImGuiID GetID(const char* strID)
-	{
-		return ImGui::GetCurrentWindowRead()->GetID(strID);
-	}
-
-	ImGuiID GetID(const std::string& strID)
-	{
-		return ImGui::GetCurrentWindowRead()->GetID(strID.c_str());
-	}
-
-	ImGuiID GetID(const std::string_view& strID)
-	{
-		return ImGui::GetCurrentWindowRead()->GetID(strID.data());
-	}
-
-	ImGuiID GetIDWithSeed(int intID, uint32_t seed)
-	{
-		ImGuiID id = ImHashData(&intID, sizeof(int), seed);
-		ImGui::KeepAliveID(id);
-		return id;
-	}
-
-	ImGuiID GetIDWithSeed(void* ptrID, uint32_t seed)
-	{
-		ImGuiID id = ImHashData(&ptrID, sizeof(void*), seed);
-		ImGui::KeepAliveID(id);
-		return id;
-	}
-
-	ImGuiID GetIDWithSeed(const char* strID, uint32_t seed)
-	{
-		ImGuiID id = ImHashStr(strID, 0, seed);
-		ImGui::KeepAliveID(id);
-		return id;
-	}
-
-	ImGuiID GetIDWithSeed(const std::string& strID, uint32_t seed)
-	{
-		ImGuiID id = ImHashStr(strID.c_str(), strID.size(), seed);
-		ImGui::KeepAliveID(id);
-		return id;
-	}
-
-	void PushID(ImGuiID id)
-	{
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		window->IDStack.push_back(id);
-	}
-
-	ImGuiID PopID()
-	{
-		const ImGuiID id = ImGui::GetCurrentWindowRead()->IDStack.back();
-		ImGui::PopID();
-		return id;
-	}
-
-	ImGuiID GetCurrentID()
-	{
-		return ImGui::GetCurrentWindowRead()->IDStack.back();
-	}
-
-	void SetBlend(bool blend)
-	{
-		ImGuiLayer& ctx = Application::Get().GetImGuiLayer();
-		ctx.SubmitBlendCallback(blend);
-	}
-
-	void MoveCursor(const ImVec2& xy)
-	{
-		ImGui::SetCursorPos(ImGui::GetCursorPos() + xy);
-	}
-
-	void MoveCursorX(float x)
-	{
-		MoveCursor({ x, 0.0f });
-	}
-
-	void MoveCursorY(float y)
-	{
-		MoveCursor({ 0.0f, y });
-	}
-
-	void SpanAvailWith()
-	{
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-	}
-
-	const std::string& FormatToString(const std::wstring& str)
-	{
-		String::ToNarrow(str, s_StringBuffer);
-		return s_StringBuffer;
-	}
-
-	const std::string& FormatToString(const std::filesystem::path& str)
-	{
-		String::ToNarrow(str, s_StringBuffer);
-		return s_StringBuffer;
-	}
-
-	const char* FormatToCString(const std::wstring& str)
-	{
-		String::ToNarrow(str, s_StringBuffer);
-		return s_StringBuffer.c_str();
-	}
-
-	const char* FormatToCString(const std::filesystem::path& str)
-	{
-		String::ToNarrow(str, s_StringBuffer);
-		return s_StringBuffer.c_str();
-	}
-
-	ImRect MenuBarRect(ImGuiWindow* window)
-	{
-		ImGuiContext& g = *GImGui;
-		float y1 = window->Pos.y + window->TitleBarHeight();
-		return ImRect(window->Pos.x, y1, window->Pos.x + window->SizeFull.x, y1 + (window->DC.MenuBarOffset.y + window->CalcFontSize() + g.Style.FramePadding.y * 2.0f));
-	}
-
-
-	//////////////////////////////////////////////////////////////////////////////
-	/// Text /////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
-
-	void PushTextFlag(TextFlags flags)
-	{
-		s_TextFlagStack.push_back(flags);
-	}
-
-	void PopTextFlag(uint32_t count)
-	{
-		while (count-- > 0)
+		bool all_on = (*flags & flags_value) == flags_value;
+		bool any_on = (*flags & flags_value) != 0;
+		bool pressed;
+		if (!all_on && any_on)
 		{
-			SK_CORE_ASSERT(s_TextFlagStack.size() > 1);
-			s_TextFlagStack.pop_back();
-		}
-	}
-
-	void Text(std::string_view str, TextFlags flags)
-	{
-		flags |= s_TextFlagStack.back();
-
-		ScopedStyle style;
-		ScopedID id(str);
-
-		if (flags & TextFlag::Disabled)
-			style.Push(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-
-		if (flags & TextFlag::Selectable)
-		{
-			if (!(flags & TextFlag::Background))
-				style.Push(ImGuiCol_FrameBg, { 0.0, 0.0f, 0.0f, 0.0f });
-
-			const ImGuiStyle& s = ImGui::GetStyle();
-			const float textwidth = ImGui::CalcTextSize(str.data(), str.data() + str.size()).x;
-			const float itemwidth = textwidth + s.FramePadding.x * 2.0f;
-
-			ImGui::SetNextItemWidth(itemwidth);
-			ImGui::InputText("##TextSelectable", (char*)str.data(), str.size(), ImGuiInputTextFlags_ReadOnly);
-			return;
-		}
-
-		if (flags & TextFlag::Aligned)
-			ImGui::AlignTextToFramePadding();
-
-		if (flags & TextFlag::Background)
-		{
-			const ImGuiID id = GetID(str);
-			ImGui::TreeNodeBehavior(id, ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Leaf, str.data(), str.data() + str.size());
+			ImGuiContext& g = *GImGui;
+			ImGuiItemFlags backup_item_flags = g.CurrentItemFlags;
+			g.CurrentItemFlags |= ImGuiItemFlags_MixedValue;
+			pressed = Checkbox(label, &all_on);
+			g.CurrentItemFlags = backup_item_flags;
 		}
 		else
 		{
-			ImGui::TextUnformatted(str.data(), str.data() + str.size());
+			pressed = Checkbox(label, &all_on);
+
 		}
+		if (pressed)
+		{
+			if (all_on)
+				*flags |= flags_value;
+			else
+				*flags &= ~flags_value;
+		}
+		return pressed;
 	}
 
-	void Text(const char* str, TextFlags flags)
+	bool BeginCombo(const char* label, const char* preview_value_begin, const char* preview_value_end, ImGuiComboFlags flags)
 	{
-		Text(std::string_view(str), flags);
+		// Always consume the SetNextWindowSizeConstraint() call in our early return paths
+		ImGuiContext& g = *GImGui;
+		bool has_window_size_constraint = (g.NextWindowData.Flags & ImGuiNextWindowDataFlags_HasSizeConstraint) != 0;
+		g.NextWindowData.Flags &= ~ImGuiNextWindowDataFlags_HasSizeConstraint;
+
+		ImGuiWindow* window = GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		IM_ASSERT((flags & (ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_NoPreview)) != (ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_NoPreview)); // Can't use both flags together
+
+		const ImGuiStyle& style = g.Style;
+		const ImGuiID id = window->GetID(label);
+
+		const float arrow_size = (flags & ImGuiComboFlags_NoArrowButton) ? 0.0f : GetFrameHeight();
+		const ImVec2 label_size = CalcTextSize(label, NULL, true);
+		const float expected_w = CalcItemWidth();
+		const float w = (flags & ImGuiComboFlags_NoPreview) ? arrow_size : expected_w;
+		const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(w, label_size.y + style.FramePadding.y * 2.0f));
+		const ImRect total_bb(frame_bb.Min, frame_bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0.0f));
+		ItemSize(total_bb, style.FramePadding.y);
+		if (!ItemAdd(total_bb, id, &frame_bb))
+			return false;
+
+		bool hovered, held;
+		bool pressed = ButtonBehavior(frame_bb, id, &hovered, &held);
+		bool popup_open = IsPopupOpen(id, ImGuiPopupFlags_None);
+
+		const ImU32 frame_col = GetColorU32(hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
+		const float value_x2 = ImMax(frame_bb.Min.x, frame_bb.Max.x - arrow_size);
+		RenderNavHighlight(frame_bb, id);
+		if (!(flags & ImGuiComboFlags_NoPreview))
+			window->DrawList->AddRectFilled(frame_bb.Min, ImVec2(value_x2, frame_bb.Max.y), frame_col, style.FrameRounding, (flags & ImGuiComboFlags_NoArrowButton) ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersLeft);
+		if (!(flags & ImGuiComboFlags_NoArrowButton))
+		{
+			ImU32 bg_col = GetColorU32((popup_open || hovered) ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+			ImU32 text_col = GetColorU32(ImGuiCol_Text);
+			window->DrawList->AddRectFilled(ImVec2(value_x2, frame_bb.Min.y), frame_bb.Max, bg_col, style.FrameRounding, (w <= arrow_size) ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersRight);
+			if (value_x2 + arrow_size - style.FramePadding.x <= frame_bb.Max.x)
+				RenderArrow(window->DrawList, ImVec2(value_x2 + style.FramePadding.y, frame_bb.Min.y + style.FramePadding.y), text_col, ImGuiDir_Down, 1.0f);
+		}
+		RenderFrameBorder(frame_bb.Min, frame_bb.Max, style.FrameRounding);
+		if (preview_value_begin != NULL && !(flags & ImGuiComboFlags_NoPreview))
+		{
+			ImVec2 preview_pos = frame_bb.Min + style.FramePadding;
+			if (g.LogEnabled)
+				LogSetNextTextDecoration("{", "}");
+			RenderTextClipped(preview_pos, ImVec2(value_x2, frame_bb.Max.y), preview_value_begin, preview_value_end, NULL, ImVec2(0.0f, 0.0f));
+		}
+		if (label_size.x > 0)
+			RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, frame_bb.Min.y + style.FramePadding.y), label);
+
+		if ((pressed || g.NavActivateId == id) && !popup_open)
+		{
+			if (window->DC.NavLayerCurrent == 0)
+				window->NavLastIds[0] = id;
+			OpenPopupEx(id, ImGuiPopupFlags_None);
+			popup_open = true;
+		}
+
+		if (!popup_open)
+			return false;
+
+		if (has_window_size_constraint)
+		{
+			g.NextWindowData.Flags |= ImGuiNextWindowDataFlags_HasSizeConstraint;
+			g.NextWindowData.SizeConstraintRect.Min.x = ImMax(g.NextWindowData.SizeConstraintRect.Min.x, w);
+		}
+		else
+		{
+			if ((flags & ImGuiComboFlags_HeightMask_) == 0)
+				flags |= ImGuiComboFlags_HeightRegular;
+			IM_ASSERT(ImIsPowerOfTwo(flags & ImGuiComboFlags_HeightMask_));    // Only one
+			int popup_max_height_in_items = -1;
+			if (flags & ImGuiComboFlags_HeightRegular)     popup_max_height_in_items = 8;
+			else if (flags & ImGuiComboFlags_HeightSmall)  popup_max_height_in_items = 4;
+			else if (flags & ImGuiComboFlags_HeightLarge)  popup_max_height_in_items = 20;
+			SetNextWindowSizeConstraints(ImVec2(w, 0.0f), ImVec2(FLT_MAX, CalcMaxPopupHeightFromItemCount(popup_max_height_in_items)));
+		}
+
+		char name[16];
+		ImFormatString(name, IM_ARRAYSIZE(name), "##Combo_%02d", g.BeginPopupStack.Size); // Recycle windows based on depth
+
+		// Position the window given a custom constraint (peak into expected window size so we can position it)
+		// This might be easier to express with an hypothetical SetNextWindowPosConstraints() function.
+		if (ImGuiWindow* popup_window = FindWindowByName(name))
+			if (popup_window->WasActive)
+			{
+				// Always override 'AutoPosLastDirection' to not leave a chance for a past value to affect us.
+				ImVec2 size_expected = CalcWindowNextAutoFitSize(popup_window);
+				if (flags & ImGuiComboFlags_PopupAlignLeft)
+					popup_window->AutoPosLastDirection = ImGuiDir_Left; // "Below, Toward Left"
+				else
+					popup_window->AutoPosLastDirection = ImGuiDir_Down; // "Below, Toward Right (default)"
+				ImRect r_outer = GetWindowAllowedExtentRect(popup_window);
+				ImVec2 pos = FindBestWindowPosForPopupEx(frame_bb.GetBL(), size_expected, &popup_window->AutoPosLastDirection, r_outer, frame_bb, ImGuiPopupPositionPolicy_ComboBox);
+				SetNextWindowPos(pos);
+			}
+
+		// We don't use BeginPopupEx() solely because we have a custom name string, which we could make an argument to BeginPopupEx()
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_Popup | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove;
+
+		// Horizontally align ourselves with the framed text
+		PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.FramePadding.x, style.WindowPadding.y));
+		bool ret = Begin(name, NULL, window_flags);
+		PopStyleVar();
+		if (!ret)
+		{
+			EndPopup();
+			IM_ASSERT(0);   // This should never happen as we tested for IsPopupOpen() above
+			return false;
+		}
+		return true;
 	}
 
-	void Text(const std::string& str, TextFlags flags)
+	bool Selectable(const char* label_begin, const char* label_end, bool selected, ImGuiSelectableFlags flags, const ImVec2& size_arg)
 	{
-		Text(std::string_view(str), flags);
+		ImGuiWindow* window = GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		const ImGuiStyle& style = g.Style;
+
+		// Submit label or explicit size to ItemSize(), whereas ItemAdd() will submit a larger/spanning rectangle.
+		ImGuiID id = window->GetID(label_begin, label_end);
+		ImVec2 label_size = CalcTextSize(label_begin, label_end, true);
+		ImVec2 size(size_arg.x != 0.0f ? size_arg.x : label_size.x, size_arg.y != 0.0f ? size_arg.y : label_size.y);
+		ImVec2 pos = window->DC.CursorPos;
+		pos.y += window->DC.CurrLineTextBaseOffset;
+		ItemSize(size, 0.0f);
+
+		// Fill horizontal space
+		// We don't support (size < 0.0f) in Selectable() because the ItemSpacing extension would make explicitly right-aligned sizes not visibly match other widgets.
+		const bool span_all_columns = (flags & ImGuiSelectableFlags_SpanAllColumns) != 0;
+		const float min_x = span_all_columns ? window->ParentWorkRect.Min.x : pos.x;
+		const float max_x = span_all_columns ? window->ParentWorkRect.Max.x : window->WorkRect.Max.x;
+		if (size_arg.x == 0.0f || (flags & ImGuiSelectableFlags_SpanAvailWidth))
+			size.x = ImMax(label_size.x, max_x - min_x);
+
+		// Text stays at the submission position, but bounding box may be extended on both sides
+		const ImVec2 text_min = pos;
+		const ImVec2 text_max(min_x + size.x, pos.y + size.y);
+
+		// Selectables are meant to be tightly packed together with no click-gap, so we extend their box to cover spacing between selectable.
+		ImRect bb(min_x, pos.y, text_max.x, text_max.y);
+		if ((flags & ImGuiSelectableFlags_NoPadWithHalfSpacing) == 0)
+		{
+			const float spacing_x = span_all_columns ? 0.0f : style.ItemSpacing.x;
+			const float spacing_y = style.ItemSpacing.y;
+			const float spacing_L = IM_FLOOR(spacing_x * 0.50f);
+			const float spacing_U = IM_FLOOR(spacing_y * 0.50f);
+			bb.Min.x -= spacing_L;
+			bb.Min.y -= spacing_U;
+			bb.Max.x += (spacing_x - spacing_L);
+			bb.Max.y += (spacing_y - spacing_U);
+		}
+		//if (g.IO.KeyCtrl) { GetForegroundDrawList()->AddRect(bb.Min, bb.Max, IM_COL32(0, 255, 0, 255)); }
+
+		// Modify ClipRect for the ItemAdd(), faster than doing a PushColumnsBackground/PushTableBackground for every Selectable..
+		const float backup_clip_rect_min_x = window->ClipRect.Min.x;
+		const float backup_clip_rect_max_x = window->ClipRect.Max.x;
+		if (span_all_columns)
+		{
+			window->ClipRect.Min.x = window->ParentWorkRect.Min.x;
+			window->ClipRect.Max.x = window->ParentWorkRect.Max.x;
+		}
+
+		bool item_add;
+		if (flags & ImGuiSelectableFlags_Disabled)
+		{
+			ImGuiItemFlags backup_item_flags = g.CurrentItemFlags;
+			g.CurrentItemFlags |= ImGuiItemFlags_Disabled | ImGuiItemFlags_NoNavDefaultFocus;
+			item_add = ItemAdd(bb, id);
+			g.CurrentItemFlags = backup_item_flags;
+		}
+		else
+		{
+			item_add = ItemAdd(bb, id);
+		}
+
+		if (span_all_columns)
+		{
+			window->ClipRect.Min.x = backup_clip_rect_min_x;
+			window->ClipRect.Max.x = backup_clip_rect_max_x;
+		}
+
+		if (!item_add)
+			return false;
+
+		// FIXME: We can standardize the behavior of those two, we could also keep the fast path of override ClipRect + full push on render only,
+		// which would be advantageous since most selectable are not selected.
+		if (span_all_columns && window->DC.CurrentColumns)
+			PushColumnsBackground();
+		else if (span_all_columns && g.CurrentTable)
+			TablePushBackgroundChannel();
+
+		// We use NoHoldingActiveID on menus so user can click and _hold_ on a menu then drag to browse child entries
+		ImGuiButtonFlags button_flags = 0;
+		if (flags & ImGuiSelectableFlags_NoHoldingActiveID) { button_flags |= ImGuiButtonFlags_NoHoldingActiveId; }
+		if (flags & ImGuiSelectableFlags_SelectOnClick) { button_flags |= ImGuiButtonFlags_PressedOnClick; }
+		if (flags & ImGuiSelectableFlags_SelectOnRelease) { button_flags |= ImGuiButtonFlags_PressedOnRelease; }
+		if (flags & ImGuiSelectableFlags_Disabled) { button_flags |= ImGuiButtonFlags_Disabled; }
+		if (flags & ImGuiSelectableFlags_AllowDoubleClick) { button_flags |= ImGuiButtonFlags_PressedOnClickRelease | ImGuiButtonFlags_PressedOnDoubleClick; }
+		if (flags & ImGuiSelectableFlags_AllowItemOverlap) { button_flags |= ImGuiButtonFlags_AllowItemOverlap; }
+
+		if (flags & ImGuiSelectableFlags_Disabled)
+			selected = false;
+
+		const bool was_selected = selected;
+		bool hovered, held;
+		bool pressed = ButtonBehavior(bb, id, &hovered, &held, button_flags);
+
+		// Update NavId when clicking or when Hovering (this doesn't happen on most widgets), so navigation can be resumed with gamepad/keyboard
+		if (pressed || (hovered && (flags & ImGuiSelectableFlags_SetNavIdOnHover)))
+		{
+			if (!g.NavDisableMouseHover && g.NavWindow == window && g.NavLayer == window->DC.NavLayerCurrent)
+			{
+				SetNavID(id, window->DC.NavLayerCurrent, window->DC.NavFocusScopeIdCurrent, ImRect(bb.Min - window->Pos, bb.Max - window->Pos));
+				g.NavDisableHighlight = true;
+			}
+		}
+		if (pressed)
+			MarkItemEdited(id);
+
+		if (flags & ImGuiSelectableFlags_AllowItemOverlap)
+			SetItemAllowOverlap();
+
+		// In this branch, Selectable() cannot toggle the selection so this will never trigger.
+		if (selected != was_selected) //-V547
+			window->DC.LastItemStatusFlags |= ImGuiItemStatusFlags_ToggledSelection;
+
+		// Render
+		if (held && (flags & ImGuiSelectableFlags_DrawHoveredWhenHeld))
+			hovered = true;
+		if (hovered || selected)
+		{
+			const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+			RenderFrame(bb.Min, bb.Max, col, false, 0.0f);
+			RenderNavHighlight(bb, id, ImGuiNavHighlightFlags_TypeThin | ImGuiNavHighlightFlags_NoRounding);
+		}
+
+		if (span_all_columns && window->DC.CurrentColumns)
+			PopColumnsBackground();
+		else if (span_all_columns && g.CurrentTable)
+			TablePopBackgroundChannel();
+
+		if (flags & ImGuiSelectableFlags_Disabled) PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
+		RenderTextClipped(text_min, text_max, label_begin, label_end, &label_size, style.SelectableTextAlign, &bb);
+		if (flags & ImGuiSelectableFlags_Disabled) PopStyleColor();
+
+		// Automatically close popups
+		if (pressed && (window->Flags & ImGuiWindowFlags_Popup) && !(flags & ImGuiSelectableFlags_DontClosePopups) && !(g.CurrentItemFlags & ImGuiItemFlags_SelectableDontClosePopup))
+			CloseCurrentPopup();
+
+		IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+		return pressed;
 	}
 
-	void Text(const std::filesystem::path& path, TextFlags flags)
-	{
-		String::ToNarrow(path.native(), s_StringBuffer);
-		Text(s_StringBuffer, flags);
-	}
 
-	void Text(const char* str)
-	{
-		ImGui::Text(str);
-	}
+}
 
-	void Text(const std::string& str)
-	{
-		ImGui::Text(str.c_str());
-	}
-
-	void Text(const std::filesystem::path& path)
-	{
-		String::ToNarrow(path.native(), s_StringBuffer);
-		Text(s_StringBuffer);
-	}
-
-	void TextAligned(const char* str)
-	{
-		ImGui::AlignTextToFramePadding();
-		Text(str);
-	}
-
-	void TextAligned(const std::string& str)
-	{
-		ImGui::AlignTextToFramePadding();
-		Text(str);
-	}
-
-	void TextAligned(const std::filesystem::path& str)
-	{
-		ImGui::AlignTextToFramePadding();
-		Text(str);
-	}
-
-	void TextWithBackGround(const std::string& text)
-	{
-		TextWithBackGround(text, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-	}
-
-	void TextWithBackGround(const std::string& text, const ImVec4& bgColor)
-	{
-		ImGui::PushStyleColor(ImGuiCol_Header, bgColor);
-		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, bgColor);
-		ImGui::PushStyleColor(ImGuiCol_HeaderActive, bgColor);
-
-		const ImGuiID id = GetID(text);
-		ImGui::TreeNodeBehavior(id, ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_Leaf, text.c_str());
-
-		ImGui::PopStyleColor(3);
-	}
-
-	void TextWithBackGround(const std::filesystem::path& text)
-	{
-		TextWithBackGround(text, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-	}
-
-	void TextWithBackGround(const std::filesystem::path& text, const ImVec4& bgColor)
-	{
-		TextWithBackGround(text.string(), bgColor);
-	}
-
-	//////////////////////////////////////////////////////////////////////////////
-	/// Controls /////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
+namespace Shark::UI {
 
 	namespace Utils {
 
@@ -539,7 +467,8 @@ namespace Shark::UI {
 			ImGuiContext& g = *GImGui;
 			ImGuiWindow* window = g.CurrentWindow;
 
-			ImGuiTableColumn& collumn = ImGui::GetCurrentTable()->Columns[0];
+			ImGuiTable* table = ImGui::GetCurrentTable();
+			ImGuiTableColumn& collumn = table->Columns[table->CurrentColumn];
 			float x1 = collumn.MinX;
 			float x2 = collumn.MaxX;
 
@@ -555,1412 +484,632 @@ namespace Shark::UI {
 			window->DrawList->AddLine(bb.Min, ImVec2(bb.Max.x, bb.Min.y), ImGui::GetColorU32(ImGuiCol_Separator));
 		}
 
-		static bool BeginProperty(ImGuiID id)
-		{
-			// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-			if (!ImGui::GetCurrentTable())
-				return false;
-
-			if (s_IsDefaultGrid && s_PropertyCount++ > 0)
-			{
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				GridSeparator();
-			}
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-
-			PushID(id);
-
-			return true;
-		}
-
-		static void EndProperty()
-		{
-			// Note(moro): if UI/Style stuff gets added to this function PropertyCustom
-			//             will probably no loger work how it should!
-
-			PopID();
-		}
-
 	}
 
-	void BeginPropertySetup(ImGuiID id)
-	{
-		if (id == 0)
-			id = GetID("ControlsTable");
+	UIContext* GContext = nullptr;
 
-		PushID(id);
+	void SetBlend(bool blend)
+	{
+		ImGuiLayer& ctx = Application::Get().GetImGuiLayer();
+		ctx.SubmitBlendCallback(blend);
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+   /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	bool BeginControls()
+	{
+		auto& c = GContext->Control;
+		SK_CORE_ASSERT(!c.Active, "Controls Begin/End mismatch");
 
 		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable))
 		{
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
+			ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
+
+			c.Active = true;
+			return true;
+		}
+		return false;
+	}
+
+	bool BeginControlsGrid(GridFlags flags)
+	{
+		auto& c = GContext->Control;
+		SK_CORE_ASSERT(!c.Active, "Controls Begin/End mismatch");
+
+		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable))
+		{
+			ImGuiStyle& style = ImGui::GetStyle();
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
+			ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
+
+			c.ActiveGridFlags = flags;
+			c.Active = true;
+			return true;
+		}
+		return false;
+	}
+
+	void EndControls()
+	{
+		auto& c = GContext->Control;
+
+		if (c.Active)
+		{
+			c.Active = false;
+			c.WidgetCount = 0;
+			c.ActiveGridFlags = GridFlag::None;
+			ImGui::PopStyleVar(2);
+			ImGui::EndTable();
 		}
 	}
 
-	void PropertySetupTagWidth(float width)
+	void EndControlsGrid()
 	{
-		if (!ImGui::GetCurrentTable())
+		return EndControls();
+	}
+
+	static void DrawControlSeperator(GridFlags grid)
+	{
+		if (grid == GridFlag::None)
 			return;
 
-
-		ImGui::TableSetColumnWidth(0, width);
-	}
-
-	void EndPropertySetup()
-	{
-		if (ImGui::GetCurrentTable())
+		if (grid & GridFlag::Label)
 		{
-			ImGui::PopStyleVar();
-			ImGui::EndTable();
-		}
-
-		s_IsDefaultGrid = false;
-		s_PropertyCount = 0;
-
-		PopID();
-	}
-
-
-	bool BeginProperty()
-	{
-		return BeginProperty(GetID("ControlsTable"));
-	}
-
-	bool BeginProperty(const std::string& strID)
-	{
-		return BeginProperty(GetID(strID));
-	}
-
-	bool BeginPropertyGrid(GridFlags flags)
-	{
-		return BeginPropertyGrid(GetID("ControlsTable"), flags);
-	}
-
-	bool BeginPropertyGrid(const std::string& strID, GridFlags flags)
-	{
-		return BeginPropertyGrid(GetID(strID), flags);
-	}
-
-	bool BeginProperty(ImGuiID customID)
-	{
-		PushID(customID);
-
-		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable))
-		{
-			ImGuiStyle& style = ImGui::GetStyle();
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
-			return true;
-		}
-		return false;
-	}
-
-	bool BeginPropertyGrid(ImGuiID customID, GridFlags flags)
-	{
-		PushID(customID);
-
-		if (flags & GridFlag::Default)
-			s_IsDefaultGrid = true;
-
-		ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable;
-		if (flags & GridFlag::InnerV) tableFlags |= ImGuiTableFlags_BordersInnerV;
-		if (flags & GridFlag::InnerH) tableFlags |= ImGuiTableFlags_BordersInnerH;
-		if (flags & GridFlag::OuterV) tableFlags |= ImGuiTableFlags_BordersOuterV;
-		if (flags & GridFlag::OuterH) tableFlags |= ImGuiTableFlags_BordersOuterH;
-		if (flags & GridFlag::InitMinSize) tableFlags |= ImGuiTableFlags_SizingFixedFit;
-
-		if (ImGui::BeginTable("ControlsTable", 2, tableFlags))
-		{
-			ImGuiStyle& style = ImGui::GetStyle();
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
-			return true;
-		}
-		return false;
-	}
-
-	void EndProperty()
-	{
-		if (ImGui::GetCurrentTable())
-		{
-			ImGui::PopStyleVar();
-			ImGui::EndTable();
-		}
-
-		s_IsDefaultGrid = false;
-		s_PropertyCount = 0;
-
-		PopID();
-	}
-
-	bool PropertyCustom(const std::string& tag)
-	{
-		// ImGui's Table API currently crashes when BeginTable return false but Talbe functions get called
-		if (!ImGui::GetCurrentTable())
-			return false;
-
-		if (s_PropertyCount++ > 0)
-		{
-			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
-			Utils::GridSeparator();
+			UI::Utils::GridSeparator();
+		}
+		
+		if (grid & GridFlag::Widget)
+		{
+			ImGui::TableSetColumnIndex(1);
+			UI::Utils::GridSeparator();
 		}
 
 		ImGui::TableNextRow();
+	}
 
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
+	bool ControlBeginHelper(ImGuiID id)
+	{
+		auto& c = GContext->Control;
+
+		if (!c.Active)
+			return false;
+
+		ImGui::PushID(id);
+		ImGui::TableNextRow();
+
+		if (c.WidgetCount++)
+			DrawControlSeperator(c.ActiveGridFlags);
 
 		return true;
 	}
 
-	bool DragFloat(const std::string& tag, float& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	bool ControlBeginHelper(std::string_view label)
 	{
-		if (!Utils::BeginProperty(GetID(tag)))
+		auto& c = GContext->Control;
+
+		if (!c.Active)
 			return false;
 
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
+		if (!label.empty())
+			ImGui::PushID(label.data(), label.data() + label.size());
+		ImGui::TableNextRow();
 
-		ImGuiStyle& style = ImGui::GetStyle();
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = widthAvail - buttonSize;
-		ImGui::PushItemWidth(width);
+		if (c.WidgetCount++)
+			DrawControlSeperator(c.ActiveGridFlags);
 
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##X", &val, speed, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
+		return true;
 	}
 
-	bool DragFloat(const std::string& tag, glm::vec2& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
+	void ControlEndHelper()
 	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 2.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##X", &val.x, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##Y", &val.y, speed, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool DragFloat(const std::string& tag, glm::vec3& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 3.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##X", &val.x, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##Y", &val.y, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Z", { buttonSize, buttonSize }))
-		{
-			val.z = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##Z", &val.z, speed, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool DragFloat(const std::string& tag, glm::vec4& val, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 4.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##X", &val.x, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##Y", &val.y, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Z", { buttonSize, buttonSize }))
-		{
-			val.z = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##Z", &val.z, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("W", { buttonSize, buttonSize }))
-		{
-			val.w = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragFloat("##W", &val.w, speed, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-
-	bool SliderFloat(const std::string& tag, float& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = widthAvail - buttonSize;
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##X", &val, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool SliderFloat(const std::string& tag, glm::vec2& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 2.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##X", &val.x, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##Y", &val.y, min, max, fmt, flags);
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool SliderFloat(const std::string& tag, glm::vec3& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 3.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##X", &val.x, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##Y", &val.y, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Z", { buttonSize, buttonSize }))
-		{
-			val.z = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##Z", &val.z, min, max, fmt, flags);
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool SliderFloat(const std::string& tag, glm::vec4& val, float resetVal, float min, float max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 4.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##X", &val.x, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##Y", &val.y, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Z", { buttonSize, buttonSize }))
-		{
-			val.z = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##Z", &val.z, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("W", { buttonSize, buttonSize }))
-		{
-			val.w = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderFloat("##W", &val.w, min, max, fmt, flags);
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool DragInt(const std::string& tag, int& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = widthAvail - buttonSize;
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##X", &val, speed, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool DragInt(const std::string& tag, glm::ivec2& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 2.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##X", &val.x, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##Y", &val.y, speed, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool DragInt(const std::string& tag, glm::ivec3& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 3.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##X", &val.x, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##Y", &val.y, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Z", { buttonSize, buttonSize }))
-		{
-			val.z = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##Z", &val.z, speed, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool DragInt(const std::string& tag, glm::ivec4& val, int resetVal, int min, int max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 4.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##X", &val.x, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##Y", &val.y, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Z", { buttonSize, buttonSize }))
-		{
-			val.z = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##Z", &val.z, speed, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("W", { buttonSize, buttonSize }))
-		{
-			val.w = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragInt("##W", &val.w, speed, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-
-	bool SliderInt(const std::string& tag, int& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = widthAvail - buttonSize;
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##X", &val, min, max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool SliderInt(const std::string& tag, glm::ivec2& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 2.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##X", &val.x, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##Y", &val.y, min, max, fmt, flags);
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool SliderInt(const std::string& tag, glm::ivec3& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 3.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##X", &val.x, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##Y", &val.y, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Z", { buttonSize, buttonSize }))
-		{
-			val.z = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##Z", &val.z, min, max, fmt, flags);
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool SliderInt(const std::string& tag, glm::ivec4& val, int resetVal, int min, int max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		constexpr float components = 4.0f;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (components - 1)) / components - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val.x = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##X", &val.x, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Y", { buttonSize, buttonSize }))
-		{
-			val.y = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##Y", &val.y, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Z", { buttonSize, buttonSize }))
-		{
-			val.z = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##Z", &val.z, min, max, fmt, flags);
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("W", { buttonSize, buttonSize }))
-		{
-			val.w = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderInt("##W", &val.w, min, max, fmt, flags);
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool DragInt(const std::string& tag, uint32_t& val, uint32_t resetVal, uint32_t min, uint32_t max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = widthAvail - buttonSize;
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-
-		changed |= ImGui::DragScalar("##X", ImGuiDataType_U32, &val, speed, &min, &max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool SliderInt(const std::string& tag, uint32_t& val, uint32_t resetVal, uint32_t min, uint32_t max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = widthAvail - buttonSize;
-		ImGui::PushItemWidth(width);
-
-		bool changed = false;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val = resetVal;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderScalar(tag.c_str(), ImGuiDataType_U32, &val, &min, &max, fmt, flags);
-
-		ImGui::PopItemWidth();
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool DragAngle(const std::string& tag, float& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		auto degrees = glm::degrees(radians);
-		if (DragFloat(tag, degrees, resetVal, min, max, speed, fmt, flags))
-		{
-			radians = glm::radians(degrees);
-			return true;
-		}
-		return false;
-	}
-
-	bool DragAngle(const std::string& tag, glm::vec2& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		auto degrees = glm::degrees(radians);
-		if (DragFloat(tag, degrees, resetVal, min, max, speed, fmt, flags))
-		{
-			radians = glm::radians(degrees);
-			return true;
-		}
-		return false;
-	}
-
-	bool DragAngle(const std::string& tag, glm::vec3& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		auto degrees = glm::degrees(radians);
-		if (DragFloat(tag, degrees, resetVal, min, max, speed, fmt, flags))
-		{
-			radians = glm::radians(degrees);
-			return true;
-		}
-		return false;
-	}
-
-	bool DragAngle(const std::string& tag, glm::vec4& radians, float resetVal, float min, float max, float speed, const char* fmt, ImGuiSliderFlags flags)
-	{
-		auto degrees = glm::degrees(radians);
-		if (DragFloat(tag, degrees, resetVal, min, max, speed, fmt, flags))
-		{
-			radians = glm::radians(degrees);
-			return true;
-		}
-		return false;
-	}
-
-
-	bool Checkbox(const std::string& tag, bool& v)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		const bool changed = ImGui::Checkbox("##X", &v);
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool Checkbox(const std::string& tag, const bool& v)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		bool tempVal = v;
-		const bool changed = ImGui::Checkbox("##X", &tempVal);
-
-		Utils::EndProperty();
-		return changed;
-	}
-
-	bool ColorEdit(const std::string& tag, glm::vec4& color, ImGuiColorEditFlags flags)
-	{
-		static_assert(sizeof(color) == (sizeof(float[4])));
-
-		if (!Utils::BeginProperty(GetID(tag)))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
-		ImGui::TableSetColumnIndex(1);
-
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-		const bool changed = ImGui::ColorEdit4("##ColorEditor4", (float*)&color, flags);
-
-		Utils::EndProperty();
-		return changed;
-
+		SK_CORE_ASSERT(ImGui::GetCurrentTable());
+		ImGui::PopID();
 	}
 
 	template<typename T>
-	bool PropertyComboT(const std::string& tag, T& index, const char* const items[], uint32_t itemCount)
+	static bool ControlDrag(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* resetVal, const T* speed, const T* min, const T* max, std::string_view fmt)
 	{
-		if (!Utils::BeginProperty(GetID(tag)))
+		static_assert(std::is_scalar_v<T>);
+
+		if (!ControlBeginHelper(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
-		TextAligned(tag);
+		Text(label, PrivateTextFlag::LabelDefault);
 		ImGui::TableSetColumnIndex(1);
 
+		bool changed = false;
+		const bool HasFMT = !fmt.empty();
+		if (!HasFMT)
+			fmt = GContext->DefaultFormat[dataType];
+
+		ImGuiStyle& style = ImGui::GetStyle();
+		const float comps = (float)components;
+		const float buttonSize = ImGui::GetFrameHeight();
+		const float widthAvail = ImGui::GetContentRegionAvail().x;
+		const float width = (widthAvail - style.ItemSpacing.x * (comps - 1.0f)) / comps - buttonSize;
+
+		ImGui::PushItemWidth(width);
+
+		size_t fmtOffset = 0;
+
+		if (ImGui::Button("X", { buttonSize, buttonSize }))
+		{
+			val[0] = resetVal[0] ;
+			changed = true;
+		}
+		ImGui::SameLine(0.0f, 0.0f);
+		changed |= ImGui::DragScalar("##X", dataType, val, (float)speed[0], min, max, fmt.data());
+
+		if (components > 1)
+		{
+			if (HasFMT)
+			{
+				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
+				fmtOffset = fmt.find('\n', fmtOffset + 1);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Y", { buttonSize, buttonSize }))
+			{
+				val[1] = resetVal[1];
+			};
+
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::DragScalar("##Y", dataType, &val[1], (float)speed[1], &min[1], &max[1], fmt.data() + fmtOffset);
+		}
+
+		if (components > 2)
+		{
+			if (HasFMT)
+			{
+				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
+				fmtOffset = fmt.find('\n', fmtOffset + 1);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Z", { buttonSize, buttonSize }))
+			{
+				val[2] = resetVal[2];
+				changed = true;
+			}
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::DragScalar("##Z", dataType, &val[2], (float)speed[2], &min[2], &max[2], fmt.data() + fmtOffset);
+		}
+
+		if (components > 3)
+		{
+			if (HasFMT)
+			{
+				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
+				fmtOffset = fmt.find('\n', fmtOffset + 1);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("W", { buttonSize, buttonSize }))
+			{
+				val[3] = resetVal[3];
+				changed = true;
+			}
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::DragScalar("##W", dataType, &val[3], (float)speed[3], &min[3], &max[3], fmt.data() + fmtOffset);
+		}
+
+		ImGui::PopItemWidth();
+
+		ControlEndHelper();
+		return changed;
+	}
+
+	template<typename T>
+	static bool ControlSlider(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* resetVal, const T* min, const T* max, std::string_view fmt)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+		ImGui::TableSetColumnIndex(1);
 
 		bool changed = false;
-		UI::SpanAvailWith();
-		if (ImGui::BeginComboEx(UI::GetID(tag), "##Combo", items[index], 0))
+		const bool HasFMT = !fmt.empty();
+		if (!HasFMT)
+			fmt = GContext->DefaultFormat[dataType];
+
+		ImGuiStyle& style = ImGui::GetStyle();
+		const float comps = (float)components;
+		const float buttonSize = ImGui::GetFrameHeight();
+		const float widthAvail = ImGui::GetContentRegionAvail().x;
+		const float width = (widthAvail - style.ItemSpacing.x * (comps - 1)) / comps - buttonSize;
+
+		ImGui::PushItemWidth(width);
+
+		size_t fmtOffset = 0;
+
+		if (ImGui::Button("X", { buttonSize, buttonSize }))
 		{
-			for (T i = 0; i < (T)itemCount; i++)
+			val[0] = resetVal[0];
+			changed = true;
+		}
+		ImGui::SameLine(0.0f, 0.0f);
+		changed |= ImGui::SliderScalar("##X", dataType, &val[0], &min[0], &max[0], fmt.data());
+
+		if (components > 1)
+		{
+			if (HasFMT)
 			{
-				if (ImGui::Selectable(items[i], i == index))
+				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
+				fmtOffset = fmt.find('\n', fmtOffset + 1);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Y", { buttonSize, buttonSize }))
+			{
+				val[1] = resetVal[1];
+				changed = true;
+			}
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::SliderScalar("##Y", dataType, &val[1], &min[1], &max[1], fmt.data() + fmtOffset);
+		}
+
+		if (components > 2)
+		{
+			if (HasFMT)
+			{
+				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
+				fmtOffset = fmt.find('\n', fmtOffset + 1);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Z", { buttonSize, buttonSize }))
+			{
+				val[2] = resetVal[2];
+				changed = true;
+			}
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::SliderScalar("##Z", dataType, &val[2], &min[2], &max[2], fmt.data() + fmtOffset);
+		}
+
+		if (components > 3)
+		{
+			if (HasFMT)
+			{
+				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
+				fmtOffset = fmt.find('\n', fmtOffset + 1);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("W", { buttonSize, buttonSize }))
+			{
+				val[3] = resetVal[3];
+				changed = true;
+			}
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::SliderScalar("##W", dataType, &val[3], &min[3], &max[3], fmt.data() + fmtOffset);
+		}
+
+		ImGui::PopItemWidth();
+		ControlEndHelper();
+		return changed;
+	}
+
+	template<typename T>
+	static bool ControlScalar(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* resetVal, const T* speed, const T* min, const T* max, std::string_view fmt, ControlType type)
+	{
+		if (type == ControlType::Slider)
+			return ControlSlider(label, dataType, val, components, resetVal, min, max, fmt);
+
+		if (type == ControlType::Drag)
+			return ControlDrag(label, dataType, val, components, resetVal, speed, min, max, fmt);
+
+		SK_CORE_ASSERT(false, "Unkown ControlType");
+		return false;
+	}
+
+	bool Control(std::string_view label, float& val,     float resetVal,            float speed,            float min,            float max,            std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, Utility::ValuePtr(val), 1, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	bool Control(std::string_view label, glm::vec2& val, const glm::vec2& resetVal, const glm::vec2& speed, const glm::vec2& min, const glm::vec2& max, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, Utility::ValuePtr(val), 2, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	bool Control(std::string_view label, glm::vec3& val, const glm::vec3& resetVal, const glm::vec3& speed, const glm::vec3& min, const glm::vec3& max, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, Utility::ValuePtr(val), 3, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	bool Control(std::string_view label, glm::vec4& val, const glm::vec4& resetVal, const glm::vec4& speed, const glm::vec4& min, const glm::vec4& max, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, Utility::ValuePtr(val), 4, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+
+	bool Control(std::string_view label, int& val,        int resetVal,               int speed,               int min,               int max,               std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, Utility::ValuePtr(val), 1, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	bool Control(std::string_view label, glm::ivec2& val, const glm::ivec2& resetVal, const glm::ivec2& speed, const glm::ivec2& min, const glm::ivec2& max, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, Utility::ValuePtr(val), 2, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	bool Control(std::string_view label, glm::ivec3& val, const glm::ivec3& resetVal, const glm::ivec3& speed, const glm::ivec3& min, const glm::ivec3& max, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, Utility::ValuePtr(val), 3, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	bool Control(std::string_view label, glm::ivec4& val, const glm::ivec4& resetVal, const glm::ivec4& speed, const glm::ivec4& min, const glm::ivec4& max, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, Utility::ValuePtr(val), 4, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+
+	bool Control(std::string_view label, uint32_t& val,   uint32_t resetVal,          uint32_t speed,          uint32_t min,          uint32_t max,          std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, Utility::ValuePtr(val), 1, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	bool Control(std::string_view label, glm::uvec2& val, const glm::uvec2& resetVal, const glm::uvec2& speed, const glm::uvec2& min, const glm::uvec2& max, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, Utility::ValuePtr(val), 2, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	bool Control(std::string_view label, glm::uvec3& val, const glm::uvec3& resetVal, const glm::uvec3& speed, const glm::uvec3& min, const glm::uvec3& max, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, Utility::ValuePtr(val), 3, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	bool Control(std::string_view label, glm::uvec4& val, const glm::uvec4& resetVal, const glm::uvec4& speed, const glm::uvec4& min, const glm::uvec4& max, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, Utility::ValuePtr(val), 4, Utility::ValuePtr(resetVal), Utility::ValuePtr(speed), Utility::ValuePtr(min), Utility::ValuePtr(max), fmt, type); }
+	
+	bool ControlAngle(std::string_view label, float& radians,     float resetVal,            float speed,            float min,            float max,            std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, speed, min, max, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
+	bool ControlAngle(std::string_view label, glm::vec2& radians, const glm::vec2& resetVal, const glm::vec2& speed, const glm::vec2& min, const glm::vec2& max, std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, speed, min, max, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
+	bool ControlAngle(std::string_view label, glm::vec3& radians, const glm::vec3& resetVal, const glm::vec3& speed, const glm::vec3& min, const glm::vec3& max, std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, speed, min, max, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
+	bool ControlAngle(std::string_view label, glm::vec4& radians, const glm::vec4& resetVal, const glm::vec4& speed, const glm::vec4& min, const glm::vec4& max, std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, speed, min, max, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
+
+	bool ControlColor(std::string_view label, glm::vec4& color)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		const bool changed = ImGui::ColorEdit4("##ColorEdit4", glm::value_ptr(color));
+
+		ControlEndHelper();
+		return changed;
+	}
+
+	bool Control(std::string_view label, bool& val)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+
+		ImGui::TableSetColumnIndex(1);
+		const bool changed = ImGui::Checkbox("##Checkbox", &val);
+
+		ControlEndHelper();
+		return changed;
+	}
+
+	template<typename T>
+	static bool ControlFlagsT(std::string_view label, T& val, const T& flag)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+
+		ImGui::TableSetColumnIndex(1);
+		const bool changed = ImGui::CheckboxFlagsT("##label", &val, flag);
+
+		ControlEndHelper();
+		return changed;
+	}
+
+	bool ControlFlags(std::string_view label,  int16_t& val,  int16_t flag) { return ControlFlagsT(label, val, flag); }
+	bool ControlFlags(std::string_view label, uint16_t& val, uint16_t flag) { return ControlFlagsT(label, val, flag); }
+	bool ControlFlags(std::string_view label,  int32_t& val,  int32_t flag) { return ControlFlagsT(label, val, flag); }
+	bool ControlFlags(std::string_view label, uint32_t& val, uint32_t flag) { return ControlFlagsT(label, val, flag); }
+
+	template<typename T>
+	bool ControlComboT(std::string_view label, T& index, const std::string_view items[], uint32_t itemsCount)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+
+		ImGui::TableSetColumnIndex(1);
+
+		bool changed = false;
+		std::string_view preview = items[index];
+		ImGui::SetNextItemWidth(-1.0f);
+		if (ImGui::BeginCombo("#combo", preview.data(), preview.data() + preview.size()))
+		{
+			for (T i = 0; i < (T)itemsCount; i++)
+			{
+				std::string_view currentItem = items[i];
+				if (ImGui::Selectable(currentItem.data(), currentItem.data() + currentItem.size(), i == index))
 				{
 					index = i;
 					changed = true;
 				}
 			}
+
 			ImGui::EndCombo();
 		}
 
-		Utils::EndProperty();
+		ControlEndHelper();
 		return changed;
 	}
 
-	bool PropertyCombo(const std::string& tag, int& index, const char* const items[], uint32_t itemCount)
+	bool Control(std::string_view label, uint32_t& index, const std::string_view items[], uint32_t itemsCount)
 	{
-		return PropertyComboT(tag, index, items, itemCount);
+		return ControlComboT(label, index, items, itemsCount);
 	}
 
-	bool PropertyCombo(const std::string& tag, uint16_t& index, const char* const items[], uint32_t itemCount)
+	bool Control(std::string_view label, uint16_t& index, const std::string_view items[], uint32_t itemsCount)
 	{
-		return PropertyComboT(tag, index, items, itemCount);
+		return ControlComboT(label, index, items, itemsCount);
 	}
 
-	bool PropertyCombo(const std::string& tag, uint32_t& index, const char* const items[], uint32_t itemCount)
+	bool Control(std::string_view label, int& index, const std::string_view items[], uint32_t itemsCount)
 	{
-		return PropertyComboT(tag, index, items, itemCount);
+		return ControlComboT(label, index, items, itemsCount);
 	}
 
-	bool BeginCustomControl(const std::string& strID)
+	void Control(std::string_view label, std::string_view str, TextFlags flags, TextFlags labelFlags)
 	{
-		return BeginCustomControl(GetID(strID));
+		if (!ControlBeginHelper(label))
+			return;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, labelFlags | PrivateTextFlag::LabelDefault);
+
+		ImGui::TableSetColumnIndex(1);
+		Text(str, flags | PrivateTextFlag::StringDefault);
+
+		ControlEndHelper();
 	}
 
-	bool BeginCustomControl(ImGuiID id)
+	void Control(std::string_view label, std::string&& str, TextFlags flags, TextFlags labelFlags)
 	{
-		if (!Utils::BeginProperty(id))
+		Control(label, std::string_view(str), flags, labelFlags);
+	}
+
+	void Control(std::string_view label, const char* str, TextFlags flags, TextFlags labelFlags)
+	{
+		Control(label, std::string_view(str), flags, labelFlags);
+	}
+
+	void Control(std::string_view label, const std::filesystem::path& filePath, TextFlags flags, TextFlags labelFalgs)
+	{
+		Control(label, filePath.string(), flags, labelFalgs);
+	}
+
+	void Control(std::string_view label, const std::string& str, TextFlags flags, TextFlags labelFalgs)
+	{
+		Control(label, std::string_view(str), flags, labelFalgs);
+	}
+
+	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags)
+	{
+		if (!ControlBeginHelper(label))
 			return false;
 
+		ImGui::TableSetColumnIndex(0);
+		Text(label, labelFlags | PrivateTextFlag::LabelDefault);
+
+		ImGui::TableSetColumnIndex(1);
 		return true;
 	}
 
-	void EndCustomControl()
+	void ControlCustomEnd()
 	{
-		Utils::EndProperty();
+		ControlEndHelper();
 	}
 
-	void Property(const std::string& tag, const char* val, TextFlags flags)
+	void Control(ImGuiID id, void(*func)(void* data, ImGuiID id), void* data)
 	{
-		if (!Utils::BeginProperty(GetID(tag)))
+		if (!ControlBeginHelper(id))
+			return;
+
+		func(data, id);
+
+		ControlEndHelper();
+	}
+
+	void Control(std::string_view label, void(*func)(void* data, ImGuiID id), void* data)
+	{
+		const ImGuiID id = ImGui::GetID(label.data(), label.data() + label.size());
+		if (!ControlBeginHelper(id))
 			return;
 
 		ImGui::TableSetColumnIndex(0);
-		UI::Text(tag, flags & TextFlag::TagMask);
+		Text(label);
 
 		ImGui::TableSetColumnIndex(1);
-		UI::Text(val, flags);
+		func(data, id);
 
-		Utils::EndProperty();
-	}
-
-	void Property(const std::string& tag, const std::string& val, TextFlags flags)
-	{
-		Property(tag, val.c_str(), flags);
-	}
-
-	void Property(const std::string& tag, const std::filesystem::path& path, TextFlags flags)
-	{
-		if (!Utils::BeginProperty(GetID(tag)))
-			return;
-
-		ImGui::TableSetColumnIndex(0);
-		UI::Text(tag, flags & TextFlag::TagMask);
-
-		ImGui::TableSetColumnIndex(1);
-		UI::Text(path, flags);
-
-		Utils::EndProperty();
-	}
-
-	//////////////////////////////////////////////////////////////////////////////
-	/// Widgets //////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
-
-	static bool CustomTreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* label, const char* label_end, ImTextureID textureID)
-	{
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		if (window->SkipItems)
-			return false;
-
-		ImGuiContext& g = *GImGui;
-		const ImGuiStyle& style = g.Style;
-		const bool display_frame = (flags & ImGuiTreeNodeFlags_Framed) != 0;
-		const ImVec2 padding = (display_frame || (flags & ImGuiTreeNodeFlags_FramePadding)) ? style.FramePadding : ImVec2(style.FramePadding.x, ImMin(window->DC.CurrLineTextBaseOffset, style.FramePadding.y));
-
-		if (!label_end)
-			label_end = ImGui::FindRenderedTextEnd(label);
-		const ImVec2 label_size = ImGui::CalcTextSize(label, label_end, false);
-
-		// We vertically grow up to current line height up the typical widget height.
-		const float frame_height = ImMax(ImMin(window->DC.CurrLineSize.y, g.FontSize + style.FramePadding.y * 2), label_size.y + padding.y * 2);
-		ImRect frame_bb;
-		frame_bb.Min.x = (flags & ImGuiTreeNodeFlags_SpanFullWidth) ? window->WorkRect.Min.x : window->DC.CursorPos.x;
-		frame_bb.Min.y = window->DC.CursorPos.y;
-		frame_bb.Max.x = window->WorkRect.Max.x;
-		frame_bb.Max.y = window->DC.CursorPos.y + frame_height;
-		if (display_frame)
-		{
-			// Framed header expand a little outside the default padding, to the edge of InnerClipRect
-			// (FIXME: May remove this at some point and make InnerClipRect align with WindowPadding.x instead of WindowPadding.x*0.5f)
-			frame_bb.Min.x -= IM_FLOOR(window->WindowPadding.x * 0.5f - 1.0f);
-			frame_bb.Max.x += IM_FLOOR(window->WindowPadding.x * 0.5f);
-		}
-
-		// Image
-		const float image_padding = style.FramePadding.y;
-		const float image_Size = frame_height - (image_padding * 2.0f);
-		const float image_offset_x = g.FontSize + (display_frame ? padding.x * 3 : padding.x * 2);
-		const float image_offset_y = image_padding;
-		ImVec2 image_pos = { window->DC.CursorPos.x + image_offset_x, window->DC.CursorPos.y + image_offset_y };
-
-		const float text_offset_x = (image_offset_x + image_Size) + (display_frame ? padding.x * 2 : padding.x * 1);   // Collapser arrow width + Spacing + Image
-		const float text_offset_y = ImMax(padding.y, window->DC.CurrLineTextBaseOffset);                               // Latch before ItemSize changes it
-		const float text_width = g.FontSize + (label_size.x > 0.0f ? label_size.x + padding.x * 2 : 0.0f);             // Include collapser
-		ImVec2 text_pos(window->DC.CursorPos.x + text_offset_x, window->DC.CursorPos.y + text_offset_y);
-		ImGui::ItemSize(ImVec2(text_width, frame_height), padding.y);
-
-		// For regular tree nodes, we arbitrary allow to click past 2 worth of ItemSpacing
-		ImRect interact_bb = frame_bb;
-		if (!display_frame && (flags & (ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_SpanFullWidth)) == 0)
-			interact_bb.Max.x = frame_bb.Min.x + text_width + style.ItemSpacing.x * 2.0f;
-
-		// Store a flag for the current depth to tell if we will allow closing this node when navigating one of its child.
-		// For this purpose we essentially compare if g.NavIdIsAlive went from 0 to 1 between TreeNode() and TreePop().
-		// This is currently only support 32 level deep and we are fine with (1 << Depth) overflowing into a zero.
-		const bool is_leaf = (flags & ImGuiTreeNodeFlags_Leaf) != 0;
-		bool is_open = ImGui::TreeNodeBehaviorIsOpen(id, flags);
-		if (is_open && !g.NavIdIsAlive && (flags & ImGuiTreeNodeFlags_NavLeftJumpsBackHere) && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
-			window->DC.TreeJumpToParentOnPopMask |= (1 << window->DC.TreeDepth);
-
-		bool item_add = ImGui::ItemAdd(interact_bb, id);
-		window->DC.LastItemStatusFlags |= ImGuiItemStatusFlags_HasDisplayRect;
-		window->DC.LastItemDisplayRect = frame_bb;
-
-		if (!item_add)
-		{
-			if (is_open && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
-				ImGui::TreePushOverrideID(id);
-			IMGUI_TEST_ENGINE_ITEM_INFO(window->DC.LastItemId, label, window->DC.LastItemStatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
-			return is_open;
-		}
-
-		ImGuiButtonFlags button_flags = ImGuiTreeNodeFlags_None;
-		if (flags & ImGuiTreeNodeFlags_AllowItemOverlap)
-			button_flags |= ImGuiButtonFlags_AllowItemOverlap;
-		if (!is_leaf)
-			button_flags |= ImGuiButtonFlags_PressedOnDragDropHold;
-
-		// We allow clicking on the arrow section with keyboard modifiers held, in order to easily
-		// allow browsing a tree while preserving selection with code implementing multi-selection patterns.
-		// When clicking on the rest of the tree node we always disallow keyboard modifiers.
-		const float arrow_hit_x1 = (text_pos.x - text_offset_x) - style.TouchExtraPadding.x;
-		const float arrow_hit_x2 = (text_pos.x - text_offset_x) + (g.FontSize + padding.x * 2.0f) + style.TouchExtraPadding.x;
-		const bool is_mouse_x_over_arrow = (g.IO.MousePos.x >= arrow_hit_x1 && g.IO.MousePos.x < arrow_hit_x2);
-		if (window != g.HoveredWindow || !is_mouse_x_over_arrow)
-			button_flags |= ImGuiButtonFlags_NoKeyModifiers;
-
-		// Open behaviors can be altered with the _OpenOnArrow and _OnOnDoubleClick flags.
-		// Some alteration have subtle effects (e.g. toggle on MouseUp vs MouseDown events) due to requirements for multi-selection and drag and drop support.
-		// - Single-click on label = Toggle on MouseUp (default, when _OpenOnArrow=0)
-		// - Single-click on arrow = Toggle on MouseDown (when _OpenOnArrow=0)
-		// - Single-click on arrow = Toggle on MouseDown (when _OpenOnArrow=1)
-		// - Double-click on label = Toggle on MouseDoubleClick (when _OpenOnDoubleClick=1)
-		// - Double-click on arrow = Toggle on MouseDoubleClick (when _OpenOnDoubleClick=1 and _OpenOnArrow=0)
-		// It is rather standard that arrow click react on Down rather than Up.
-		// We set ImGuiButtonFlags_PressedOnClickRelease on OpenOnDoubleClick because we want the item to be active on the initial MouseDown in order for drag and drop to work.
-		if (is_mouse_x_over_arrow)
-			button_flags |= ImGuiButtonFlags_PressedOnClick;
-		else if (flags & ImGuiTreeNodeFlags_OpenOnDoubleClick)
-			button_flags |= ImGuiButtonFlags_PressedOnClickRelease | ImGuiButtonFlags_PressedOnDoubleClick;
-		else
-			button_flags |= ImGuiButtonFlags_PressedOnClickRelease;
-
-		bool selected = (flags & ImGuiTreeNodeFlags_Selected) != 0;
-		const bool was_selected = selected;
-
-		bool hovered, held;
-		bool pressed = ImGui::ButtonBehavior(interact_bb, id, &hovered, &held, button_flags);
-		bool toggled = false;
-		if (!is_leaf)
-		{
-			if (pressed && g.DragDropHoldJustPressedId != id)
-			{
-				if ((flags & (ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick)) == 0 || (g.NavActivateId == id))
-					toggled = true;
-				if (flags & ImGuiTreeNodeFlags_OpenOnArrow)
-					toggled |= is_mouse_x_over_arrow && !g.NavDisableMouseHover; // Lightweight equivalent of IsMouseHoveringRect() since ButtonBehavior() already did the job
-				if ((flags & ImGuiTreeNodeFlags_OpenOnDoubleClick) && g.IO.MouseDoubleClicked[0])
-					toggled = true;
-			}
-			else if (pressed && g.DragDropHoldJustPressedId == id)
-			{
-				IM_ASSERT(button_flags & ImGuiButtonFlags_PressedOnDragDropHold);
-				if (!is_open) // When using Drag and Drop "hold to open" we keep the node highlighted after opening, but never close it again.
-					toggled = true;
-			}
-
-			if (g.NavId == id && g.NavMoveRequest && g.NavMoveDir == ImGuiDir_Left && is_open)
-			{
-				toggled = true;
-				ImGui::NavMoveRequestCancel();
-			}
-			if (g.NavId == id && g.NavMoveRequest && g.NavMoveDir == ImGuiDir_Right && !is_open) // If there's something upcoming on the line we may want to give it the priority?
-			{
-				toggled = true;
-				ImGui::NavMoveRequestCancel();
-			}
-
-			if (toggled)
-			{
-				is_open = !is_open;
-				window->DC.StateStorage->SetInt(id, is_open);
-				window->DC.LastItemStatusFlags |= ImGuiItemStatusFlags_ToggledOpen;
-			}
-		}
-		if (flags & ImGuiTreeNodeFlags_AllowItemOverlap)
-			ImGui::SetItemAllowOverlap();
-
-		// In this branch, TreeNodeBehavior() cannot toggle the selection so this will never trigger.
-		if (selected != was_selected) //-V547
-			window->DC.LastItemStatusFlags |= ImGuiItemStatusFlags_ToggledSelection;
-
-		// Render
-		const ImU32 text_col = ImGui::GetColorU32(ImGuiCol_Text);
-		ImGuiNavHighlightFlags nav_highlight_flags = ImGuiNavHighlightFlags_TypeThin;
-		if (display_frame)
-		{
-			// Framed type
-			const ImU32 bg_col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
-			ImGui::RenderFrame(frame_bb.Min, frame_bb.Max, bg_col, true, style.FrameRounding);
-			ImGui::RenderNavHighlight(frame_bb, id, nav_highlight_flags);
-			if (flags & ImGuiTreeNodeFlags_Bullet)
-				ImGui::RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.60f, text_pos.y + g.FontSize * 0.5f), text_col);
-			else if (!is_leaf)
-				ImGui::RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y), text_col, is_open ? ImGuiDir_Down : ImGuiDir_Right, 1.0f);
-			else // Leaf without bullet, left-adjusted text
-				text_pos.x -= text_offset_x;
-			if (flags & ImGuiTreeNodeFlags_ClipLabelForTrailingButton)
-				frame_bb.Max.x -= g.FontSize + style.FramePadding.x;
-
-			if (g.LogEnabled)
-				ImGui::LogSetNextTextDecoration("###", "###");
-
-			// Render Image
-			window->DrawList->AddImage(textureID, image_pos, image_pos + ImVec2(image_Size, image_Size));
-
-			ImGui::RenderTextClipped(text_pos, frame_bb.Max, label, label_end, &label_size);
-		}
-		else
-		{
-			// Unframed typed for tree nodes
-			if (hovered || selected)
-			{
-				const ImU32 bg_col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
-				ImGui::RenderFrame(frame_bb.Min, frame_bb.Max, bg_col, false);
-				ImGui::RenderNavHighlight(frame_bb, id, nav_highlight_flags);
-			}
-			if (flags & ImGuiTreeNodeFlags_Bullet)
-				ImGui::RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.5f, text_pos.y + g.FontSize * 0.5f), text_col);
-			else if (!is_leaf)
-				ImGui::RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y + g.FontSize * 0.15f), text_col, is_open ? ImGuiDir_Down : ImGuiDir_Right, 0.70f);
-			if (g.LogEnabled)
-				ImGui::LogSetNextTextDecoration(">", NULL);
-
-			// Render Image
-			window->DrawList->AddImage(textureID, image_pos, image_pos + ImVec2(image_Size, image_Size));
-
-			ImGui::RenderText(text_pos, label, label_end, false);
-		}
-
-		if (is_open && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
-			ImGui::TreePushOverrideID(id);
-		IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
-		return is_open;
+		ControlEndHelper();
 	}
 
 
-	bool TreeNode(const std::string& tag, ImGuiTreeNodeFlags flags, ImTextureID textureID)
+	void Text(std::string_view str, TextFlags flags)
 	{
-		return CustomTreeNodeBehavior(GetID(tag), flags, tag.c_str(), tag.c_str() + tag.size(), textureID);
+		UI::ScopedStyle s;
+		if (flags & TextFlag::Disabled)
+			s.Push(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+
+		if (flags & TextFlag::Selectable)
+			return TextSelectable(str);
+
+		if (flags & TextFlag::Aligned)
+			ImGui::AlignTextToFramePadding();
+
+		ImGui::TextEx(str.data(), str.data() + str.size());
 	}
 
-	void Separator(float size)
+	void Text(std::string&& str, TextFlags flags)
 	{
-		// Horizontal Separator
-		ImGuiContext& g = *GImGui;
-		ImGuiWindow* window = g.CurrentWindow;
+		Text(std::string_view(str), flags);
+	}
 
-		float x1 = window->Pos.x;
-		float x2 = window->Pos.x + size;
+	void Text(const char* str, TextFlags flags)
+	{
+		Text(std::string_view(str), flags);
+	}
 
-		// FIXME-WORKRECT: old hack (#205) until we decide of consistent behavior with WorkRect/Indent and Separator
-		if (g.GroupStack.Size > 0 && g.GroupStack.back().WindowID == window->ID)
-			x1 += window->DC.Indent.x;
+	void Text(const std::filesystem::path& filePath, TextFlags flags)
+	{
+		std::string str = filePath.string();
+		Text(std::string_view(str), flags);
+	}
 
-		// We don't provide our width to the layout so that it doesn't get feed back into AutoFit
-		float thickness_draw = 1.0f;
-		float thickness_layout = 0.0f;
+	void Text(const std::string& str, TextFlags flags)
+	{
+		Text(std::string_view(str), flags);
+	}
 
-		const ImRect bb(ImVec2(x1, window->DC.CursorPos.y), ImVec2(x2, window->DC.CursorPos.y + thickness_draw));
-		ImGui::ItemSize(ImVec2(0.0f, thickness_layout));
-		const bool item_visible = ImGui::ItemAdd(bb, 0);
-		if (item_visible)
-		{
-			// Draw
-			window->DrawList->AddLine(bb.Min, ImVec2(bb.Max.x, bb.Min.y), ImGui::GetColorU32(ImGuiCol_Separator));
-			if (g.LogEnabled)
-				ImGui::LogRenderedText(&bb.Min, "--------------------------------\n");
+	void TextSelectable(std::string_view str)
+	{
+		//Buffer buffer;
+		//buffer.Allocate(str.size());
+		//buffer.Write(str.data(), str.size());
+		//ImGui::InputText("##InputText", buffer.As<char>(), buffer.Size, ImGuiInputTextFlags_ReadOnly);
+		//buffer.Release();
 
-		}
+		const auto& style = ImGui::GetStyle();
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, style.FramePadding.y));
+
+		const ImVec2 textSize = ImGui::CalcTextSize(str.data(), str.data() + str.size());
+		const ImVec2 itemSize = ImGui::CalcItemSize(ImVec2(0.0f, 0.0f), textSize.x + style.FramePadding.x * 2.0f + 1.0f, textSize.y + style.FramePadding.y * 2.0f);
+
+		ImGui::InputTextEx("##InputText", nullptr, (char*)str.data(), (int)str.size(), itemSize, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+		ImGui::PopStyleColor();
+		ImGui::PopStyleVar();
+	}
+
+	UIContext::UIContext()
+	{
+		DefaultFormat[ImGuiDataType_S8] = "%d";
+		DefaultFormat[ImGuiDataType_U8] = "%u";
+		DefaultFormat[ImGuiDataType_S16] = "%d";
+		DefaultFormat[ImGuiDataType_U16] = "%u";
+		DefaultFormat[ImGuiDataType_S32] = "%d";
+		DefaultFormat[ImGuiDataType_U32] = "%u";
+		DefaultFormat[ImGuiDataType_S64] = "%d";
+		DefaultFormat[ImGuiDataType_U64] = "%u";
+		DefaultFormat[ImGuiDataType_Float] = "%.2f";
+		DefaultFormat[ImGuiDataType_Double] = "%.2f";
+	}
+
+	UIContext* CreateContext()
+	{
+		UIContext* ctx = new UIContext();
+		if (!GContext)
+			SetContext(ctx);
+		return ctx;
+	}
+
+	void DestroyContext(UIContext* ctx)
+	{
+		if (ctx == nullptr)
+			ctx = GContext;
+		if (ctx == GContext)
+			SetContext(nullptr);
+		delete ctx;
+	}
+
+	void SetContext(UIContext* ctx)
+	{
+		GContext = ctx;
+	}
+
+	UIContext* GetContext()
+	{
+		return GContext;
+	}
+
+	void NewFrame()
+	{
+		auto& c = GContext->Control;
+		SK_CORE_ASSERT(GContext->Control.Active == false, "Controls Begin/End mismatch");
+		SK_CORE_ASSERT(GContext->Control.WidgetCount == 0);
+		SK_CORE_ASSERT(GContext->Control.ActiveGridFlags == GridFlag::None);
 	}
 
 }
-

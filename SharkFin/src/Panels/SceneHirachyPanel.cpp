@@ -28,11 +28,12 @@ namespace Shark {
 			if (entity.HasComponent<Comp>())
 			{
 				ImGui::PushID(typeid(Comp).name());
-				bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
+				const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
 				ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
 				ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-				float LineHeight = ImGui::GetItemRectSize().y;
-				bool removed = ImGui::Button("x", { LineHeight, LineHeight });
+				const float LineHeight = ImGui::GetItemRectSize().y;
+				if (ImGui::Button("+", { LineHeight, LineHeight }))
+					ImGui::OpenPopup("Component Settings");
 				ImGui::PopStyleColor();
 
 				if (opened)
@@ -41,18 +42,23 @@ namespace Shark {
 					func(comp);
 				}
 
-				if (removed)
+				if (ImGui::BeginPopup("Component Settings"))
 				{
-					if constexpr (std::is_same_v<Comp, CameraComponent>)
+					if (ImGui::MenuItem("Delete", nullptr, false, !std::is_same_v<Comp, TransformComponent>))
 					{
-						Weak<Scene> scene = entity.GetScene();
-						UUID cameraUUID = scene->GetActiveCameraUUID();
-						if (entity.GetUUID() == cameraUUID)
-							scene->SetActiveCamera(UUID::Null());
-					}
+						if constexpr (std::is_same_v<Comp, CameraComponent>)
+						{
+							Weak<Scene> scene = entity.GetScene();
+							UUID cameraUUID = scene->GetActiveCameraUUID();
+							if (entity.GetUUID() == cameraUUID)
+								scene->SetActiveCamera(UUID::Null());
+						}
 
-					entity.RemoveComponent<Comp>();
+						entity.RemoveComponent<Comp>();
+					}
+					ImGui::EndPopup();
 				}
+
 				ImGui::PopID();
 			}
 		}
@@ -290,26 +296,22 @@ namespace Shark {
 			ImGui::EndPopup();
 		}
 
-		Utils::DrawComponet<TransformComponent>(entity, "Transform", [](auto& comp)
+		Utils::DrawComponet<TransformComponent>(entity, "Transform", [](TransformComponent& comp)
 		{
-			SK_PROFILE_SCOPED("DrawComponent<TransformComponent>");
-
-			UI::BeginPropertyGrid();
-			UI::DragFloat("Position", comp.Position);
-			UI::DragAngle("Rotation", comp.Rotation);
-			UI::DragFloat("Scaling", comp.Scaling, 1.0f);
-			UI::EndProperty();
+			UI::BeginControlsGrid();
+			UI::Control("Position", comp.Position);
+			UI::ControlAngle("Rotation", comp.Rotation);
+			UI::ControlS("Scaling", comp.Scaling, 1.0f);
+			UI::EndControls();
 		});
 
 		Utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp)
 		{
-			SK_PROFILE_SCOPED("DrawComponent<SpriteRendererComponent>");
-				
-			UI::BeginProperty();
+			UI::BeginControlsGrid();
 
-			UI::ColorEdit("Color", comp.Color);
+			UI::ControlColor("Color", comp.Color);
 
-			if (UI::BeginCustomControl(UI::GetID("Texture")))
+			if (UI::ControlBeginHelper("Texture"))
 			{
 				ImGui::TableSetColumnIndex(0);
 
@@ -349,38 +351,34 @@ namespace Shark {
 					ImGui::Text("Width: 0, Height: 0");
 				}
 
-				UI::EndCustomControl();
+				UI::ControlEndHelper();
 			}
 
-			UI::DragFloat("TilingFactor", comp.TilingFactor, 1.0f);
+			UI::Control("TilingFactor", comp.TilingFactor, 1.0f);
 
-			UI::EndProperty();
+			UI::EndControls();
 
 		});
 
 		Utils::DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp)
 		{
-			SK_PROFILE_SCOPED("DrawComponent<CircleRendererComponent>");
-
-			UI::BeginProperty();
+			UI::BeginControlsGrid();
 				
-			UI::ColorEdit("Color", comp.Color);
-			UI::SliderFloat("Thickness", comp.Thickness, 1.0f, 0.0f, 1.0f);
-			UI::DragFloat("Fade", comp.Fade, 0.002f, 0.0f, 10.0f, 0.01f, "%.3f");
+			UI::ControlColor("Color", comp.Color);
+			UI::Control("Thickness", comp.Thickness, 1.0f, 0.0f, 1.0f, 0.0f, std::string_view{}, UI::ControlType::Slider);
+			UI::Control("Fade", comp.Fade, 0.002f, 0.0f, 10.0f, 0.01f, "%.3f");
 
-			UI::EndProperty();
+			UI::EndControls();
 		});
 
 		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)
 		{
-			SK_PROFILE_SCOPED("DrawComponent<CameraComponent>");
-
 			m_SelectedProjectionIndex = (int)comp.Camera.GetProjectionType();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
 			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, s_ProjectionItems, (int)std::size(s_ProjectionItems));
 
 
-			UI::BeginProperty();
+			UI::BeginControlsGrid();
 
 			if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Perspective)
 			{
@@ -393,9 +391,9 @@ namespace Shark {
 				float clipnear = camera.GetPerspectiveNear();
 				float clipfar = camera.GetPerspectiveFar();
 
-				changed |= UI::DragFloat("FOV", fov, 45.0f, 1.0f, 179.0f);
-				changed |= UI::DragFloat("NearClip", clipnear, 0.01f, 0.01f, FLT_MAX);
-				changed |= UI::DragFloat("FarClip", clipfar, 1000.0f, 0.01f, FLT_MAX);
+				changed |= UI::Control("FOV", fov, 45.0f, 1.0f, 179.0f);
+				changed |= UI::Control("NearClip", clipnear, 0.01f, 0.01f, FLT_MAX);
+				changed |= UI::Control("FarClip", clipfar, 1000.0f, 0.01f, FLT_MAX);
 
 				if (changed && (clipnear > 0.0f && clipfar > 0.0f && !glm::epsilonEqual(clipnear, clipfar, 0.00001f)))
 					camera.SetPerspective(camera.GetAspectratio(), fov, clipnear, clipfar);
@@ -411,9 +409,9 @@ namespace Shark {
 				float clipnear = camera.GetOrthographicNear();
 				float clipfar = camera.GetOrthographicFar();
 
-				changed |= UI::DragFloat("Zoom", zoom, 10.0f, 0.25f, FLT_MAX);
-				changed |= UI::DragFloat("NearClip", clipnear, -1.0f, -FLT_MAX, -0.01f);
-				changed |= UI::DragFloat("FarClip", clipfar, 1.0f, 0.01f, FLT_MAX);
+				changed |= UI::Control("Zoom", zoom, 10.0f, 0.25f, FLT_MAX);
+				changed |= UI::Control("NearClip", clipnear, -1.0f, -FLT_MAX, -0.01f);
+				changed |= UI::Control("FarClip", clipfar, 1.0f, 0.01f, FLT_MAX);
 
 				if (changed)
 					camera.SetOrthographic(camera.GetAspectratio(), zoom, clipnear, clipfar);
@@ -421,17 +419,15 @@ namespace Shark {
 
 			UUID uuid = entity.GetUUID();
 			bool isMainCamera = m_Context->m_ActiveCameraUUID.IsValid() ? m_Context->m_ActiveCameraUUID == uuid : false;
-			if (UI::Checkbox("Is Active", isMainCamera))
+			if (UI::Control("Is Active", isMainCamera))
 				m_Context->m_ActiveCameraUUID = uuid;
 
-			UI::EndProperty();
+			UI::EndControls();
 
 		});
 
 		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)
 		{
-			SK_PROFILE_SCOPED("DrawComponent<RigidBody2DComponent>");
-
 			int bodyType = (int)comp.Type;
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			if (ImGui::Combo("##BodyType", &bodyType, s_BodyTypes, (int)Utility::ArraySize(s_BodyTypes)))
@@ -442,35 +438,32 @@ namespace Shark {
 		
 		Utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp)
 		{
-			SK_PROFILE_SCOPED("DrawComponent<BoxCollider2DComponent>");
-			UI::BeginProperty();
-			UI::DragFloat("Size", comp.Size, 0.5f);
-			UI::DragFloat("Offset", comp.Offset);
-			UI::DragFloat("Angle", comp.Rotation);
-			UI::DragFloat("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
-			UI::SliderFloat("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
-			UI::SliderFloat("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
-			UI::DragFloat("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
-			UI::EndProperty();
+			UI::BeginControlsGrid();
+			UI::ControlS("Size", comp.Size, 0.5f);
+			UI::Control("Offset", comp.Offset);
+			UI::Control("Angle", comp.Rotation);
+			UI::Control("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
+			UI::Control("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
+			UI::Control("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
+			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::EndControls();
 		});
 
 		Utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp)
 		{
-			SK_PROFILE_SCOPED("DrawComponent<CircleCollider2DComponent>");
-			UI::BeginProperty();
-			UI::DragFloat("Radius", comp.Radius, 0.5f);
-			UI::DragFloat("Offset", comp.Offset);
-			UI::DragFloat("Angle", comp.Rotation);
-			UI::DragFloat("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
-			UI::SliderFloat("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
-			UI::SliderFloat("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
-			UI::DragFloat("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
-			UI::EndProperty();
+			UI::BeginControlsGrid();
+			UI::Control("Radius", comp.Radius, 0.5f);
+			UI::Control("Offset", comp.Offset);
+			UI::Control("Angle", comp.Rotation);
+			UI::Control("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
+			UI::Control("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
+			UI::Control("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
+			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::EndControls();
 		});
 
 		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [](NativeScriptComponent& comp)
 		{
-			SK_PROFILE_SCOPED("DrawComponent<NativeScriptComponent>");
 			char inputbuffer[128];
 			strcpy_s(inputbuffer, comp.ScriptTypeName.c_str());
 

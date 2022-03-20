@@ -6,12 +6,12 @@ namespace Shark {
 	{
 	public:
 		static std::filesystem::path OpenFile(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
-		static std::filesystem::path SaveFile(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
+		static std::filesystem::path SaveFile(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false, bool appenedFileExetention = true);
 
 		static std::filesystem::path OpenDirectory(const std::filesystem::path& defaultPath = std::filesystem::path{});
 
 	private:
-		static bool FileDialogShared(WindowHandle parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result);
+		static bool FileDialogShared(WindowHandle parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, bool appenedFileExetention, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result);
 	};
 
 	namespace Utility {

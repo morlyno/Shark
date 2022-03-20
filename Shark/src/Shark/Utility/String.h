@@ -1,5 +1,13 @@
 #pragma once
 
+namespace Shark {
+
+	using namespace std::literals::string_literals;
+	using namespace std::literals::string_view_literals;
+	using namespace std::literals::chrono_literals;
+
+}
+
 namespace Shark::String {
 
 	std::string ToLowerCopy(const std::string& str);
@@ -13,5 +21,8 @@ namespace Shark::String {
 
 	void SplitString(const std::string& str, std::string_view splitter, std::vector<std::string>& out_Array);
 	void SplitString(const std::wstring& str, std::wstring_view splitter, std::vector<std::wstring>& out_Array);
+
+	template<typename Char>
+	const Char* CStrOrNull(const std::basic_string<Char>& string) { return string.size() ? string.data() : nullptr; }
 
 }

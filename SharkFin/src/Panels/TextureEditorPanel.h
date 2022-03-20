@@ -64,9 +64,9 @@ namespace Shark {
 		WrapMode m_WrapMode = WrapMode::Repeat;
 #endif
 
-		static constexpr const char* s_FilterItems[] = { "Neares", "Linear" };
-		static constexpr const char* s_WrapItems[] = { "Repeat", "Clamp", "Mirror", "Border" };
-		static constexpr const char* s_FormatItems[] = { "None", "RGBA8", "R32_SINT", "Depth32", "Should never appear" };
+		static constexpr std::string_view s_FilterItems[] = { "Neares", "Linear" };
+		static constexpr std::string_view s_WrapItems[] = { "Repeat", "Clamp", "Mirror", "Border" };
+		static constexpr std::string_view s_FormatItems[] = { "None", "RGBA8", "R32_SINT", "Depth32", "Should never appear" };
 
 	};
 

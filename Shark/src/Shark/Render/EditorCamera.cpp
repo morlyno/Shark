@@ -127,10 +127,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		float distance = m_Distance * 0.2f;
+		float distance = m_Distance * 0.35f;
 		distance = std::max(distance, 0.0f);
 		float speed = distance * distance;
-		speed = std::min(speed, 100.0f); // max speed = 100
+		//speed = std::min(speed, 100.0f); // max speed = 100
+		speed = std::clamp(speed, 2.0f, 100.0f);
 		return speed;
 	}
 

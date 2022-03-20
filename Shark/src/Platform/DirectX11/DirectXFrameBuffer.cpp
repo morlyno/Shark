@@ -71,7 +71,7 @@ namespace Shark {
 	void DirectXFrameBuffer::Clear(ID3D11DeviceContext* ctx, const glm::vec4& clearcolor)
 	{
 		for (auto buffer : m_FrameBuffers)
-			ctx->ClearRenderTargetView(buffer, Utility::GetValuePtr(clearcolor));
+			ctx->ClearRenderTargetView(buffer, glm::value_ptr(clearcolor));
 
 		if (m_DepthStencil)
 			ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1.0f, 0u);
@@ -79,7 +79,7 @@ namespace Shark {
 
 	void DirectXFrameBuffer::ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index, const glm::vec4& clearcolor)
 	{
-		ctx->ClearRenderTargetView(m_FrameBuffers[index], Utility::GetValuePtr(clearcolor));
+		ctx->ClearRenderTargetView(m_FrameBuffers[index], glm::value_ptr(clearcolor));
 	}
 
 	void DirectXFrameBuffer::ClearDepth(ID3D11DeviceContext* ctx)

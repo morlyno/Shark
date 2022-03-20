@@ -374,6 +374,101 @@ namespace Shark {
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
 
+#if 0
+		ImGui::Begin("Test");
+
+		static uint32_t gridFlags = NewUI::GridFlag::None;
+		ImGui::CheckboxFlags("GridFlags", &gridFlags, NewUI::GridFlag::Full);
+		ImGui::CheckboxFlags("Label", &gridFlags, NewUI::GridFlag::Label);
+		ImGui::CheckboxFlags("Widget", &gridFlags, NewUI::GridFlag::Widget);
+
+		NewUI::BeginControlsGrid((NewUI::GridFlags)gridFlags);
+		static float v1 = 1.0f;
+		static glm::vec2 v2 = { 1.0f, 2.0f };
+		static glm::vec3 v3 = { 1.0f, 2.0f, 3.0f };
+		static glm::vec4 v4 = { 1.0f, 2.0f, 3.0f, 4.0f };
+		static int iv1 = 1;
+		static glm::ivec2 iv2 = { 1, 2 };
+		static glm::ivec3 iv3 = { 1, 2, 3 };
+		static glm::ivec4 iv4 = { 1, 2, 3, 4 };
+		static uint32_t uv1 = 1;
+		static glm::uvec2 uv2 = { 1, 2 };
+		static glm::uvec3 uv3 = { 1, 2, 3 };
+		static glm::uvec4 uv4 = { 1, 2, 3, 4 };
+
+		NewUI::Control("Float", v1);
+		NewUI::Control("Vec2", v2);
+		NewUI::Control("Vec3", v3);
+		NewUI::Control("Vec4", v4);
+
+		NewUI::Control("Int", iv1);
+		NewUI::Control("iVec2", iv2);
+		NewUI::Control("iVec3", iv3);
+		NewUI::Control("iVec4", iv4);
+
+		NewUI::Control("uInt", uv1);
+		NewUI::Control("uVec2", uv2);
+		NewUI::Control("uVec3", uv3);
+		NewUI::Control("uVec4", uv4);
+
+		NewUI::ControlS("S Vec2", v2);
+		NewUI::ControlS("S Vec3", v3);
+		NewUI::ControlS("S Vec4", v4);
+
+		NewUI::ControlS("S iVec2", iv2);
+		NewUI::ControlS("S iVec3", iv3);
+		NewUI::ControlS("S iVec4", iv4);
+
+		NewUI::ControlS("S uVec2", uv2);
+		NewUI::ControlS("S uVec3", uv3);
+		NewUI::ControlS("S uVec4", uv4);
+
+		static const char* s0 = "const char*";
+		static std::string_view s1 = "std::string_view";
+		static std::string s2 = "std::string";
+
+		NewUI::Control("s0", s0);
+		NewUI::Control("s1", s1);
+		NewUI::Control("s2", s2);
+		NewUI::Control("fmt", fmt::format("Fmt {}", s0));
+		NewUI::Control("fmt", fmt::format("Fmt {}", s1));
+		NewUI::Control("fmt", fmt::format("Fmt {}", s2));
+
+		static bool b0 = false;
+		NewUI::Control("Bool", b0);
+
+		enum TestFlag : uint16_t
+		{
+			TestFlagNone = 0,
+			TestFlagBit0 = BIT(0),
+			TestFlagBit1 = BIT(1),
+			TestFlagBit2 = BIT(2),
+			TestFlagBit3 = BIT(3),
+			TestFlagBit4 = BIT(4),
+
+			TestFlagMask = TestFlagBit0 | TestFlagBit1 | TestFlagBit2 | TestFlagBit3 | TestFlagBit4
+		};
+
+		static uint16_t flags = TestFlagNone;
+		NewUI::ControlFlags("TestFlag", flags, TestFlagMask);
+		NewUI::ControlFlags("Bit0", flags, TestFlagBit0);
+		NewUI::ControlFlags("Bit1", flags, TestFlagBit1);
+		NewUI::ControlFlags("Bit2", flags, TestFlagBit2);
+		NewUI::ControlFlags("Bit3", flags, TestFlagBit3);
+		NewUI::ControlFlags("Bit4", flags, TestFlagBit4);
+
+		static std::string_view items[] = { "0", "1", "2", "3" };
+		static uint32_t index = 0;
+		NewUI::Control("Combo", index, items, (uint32_t)std::size(items));
+
+		NewUI::Control("Selectable", "Interesting Text", NewUI::TextFlag::Selectable);
+		NewUI::Control("Disabled", "Interesting Text", NewUI::TextFlag::Disabled);
+		NewUI::Control("Disabled | Selected", "Interesting Text", NewUI::TextFlag::Disabled | NewUI::TextFlag::Selectable);
+
+		NewUI::EndControls();
+
+		ImGui::End();
+#endif
 	}
 
 	void EditorLayer::UI_MainMenuBar()
@@ -625,23 +720,23 @@ namespace Shark {
 		{
 			if (ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls))
 			{
-				UI::BeginProperty();
+				UI::BeginControls();
 
 				//UI::DragFloat("Position", m_EditorCamera.GetPosition());
 
 				auto focuspoint = m_EditorCamera.GetFocusPoint();
-				if (UI::DragFloat("FocusPoint", focuspoint))
+				if (UI::Control("FocusPoint", focuspoint))
 					m_EditorCamera.SetFocusPoint(focuspoint);
 
 				glm::vec2 py = { m_EditorCamera.GetPitch(), m_EditorCamera.GetYaw() };
-				if (UI::DragFloat("Orientation", py))
+				if (UI::Control("Orientation", py))
 				{
 					m_EditorCamera.SetPicht(py.x);
 					m_EditorCamera.SetYaw(py.y);
 				}
 
 				float distance = m_EditorCamera.GetDistance();
-				if (UI::DragFloat("Distance", distance, 10))
+				if (UI::Control("Distance", distance, 10))
 					if (distance >= 0.25f)
 						m_EditorCamera.SetDistance(distance);
 
@@ -653,7 +748,7 @@ namespace Shark {
 					m_EditorCamera.SetDistance(10.0f);
 				}
 
-				UI::EndProperty();
+				UI::EndControls();
 			}
 			ImGui::End();
 		}
@@ -905,32 +1000,32 @@ namespace Shark {
 				{
 					if (ImGui::TreeNodeEx("View", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
 					{
-						UI::BeginPropertyGrid();
-						UI::Checkbox("Camera Preview", m_ShowCameraPreview);
-						UI::EndProperty();
+						UI::BeginControlsGrid();
+						UI::Control("Camera Preview", m_ShowCameraPreview);
+						UI::EndControls();
 						ImGui::TreePop();
 					}
 
 					if (ImGui::TreeNodeEx("Colliders", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
 					{
-						UI::BeginPropertyGrid();
-						UI::Checkbox("Show", m_ShowColliders);
-						UI::Checkbox("OnTop", m_ShowCollidersOnTop);
-						UI::EndProperty();
+						UI::BeginControlsGrid();
+						UI::Control("Show", m_ShowColliders);
+						UI::Control("OnTop", m_ShowCollidersOnTop);
+						UI::EndControls();
 						ImGui::TreePop();
 					}
 				}
 
 				if (ImGui::CollapsingHeader("Stuff"))
 				{
-					UI::BeginPropertyGrid();
+					UI::BeginControlsGrid();
 					auto& window = Application::Get().GetWindow();
 					bool vSync = window.IsVSync();
-					if (UI::Checkbox("VSync", vSync))
+					if (UI::Control("VSync", vSync))
 						window.SetVSync(vSync);
 
-					UI::Checkbox("Read Hoved Entity", m_ReadHoveredEntity);
-					UI::EndProperty();
+					UI::Control("Read Hoved Entity", m_ReadHoveredEntity);
+					UI::EndControls();
 				}
 			}
 			ImGui::End();
@@ -1042,23 +1137,22 @@ namespace Shark {
 		const ImGuiStyle& style = ImGui::GetStyle();
 		const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
 
-		UI::BeginPropertyGrid();
+		UI::BeginControlsGrid();
 
-		if (UI::PropertyCustom("Name"))
+		if (UI::ControlCustomBegin("Name"))
 		{
-			UI::SpanAvailWith();
+			ImGui::SetNextItemWidth(-1.0f);
 			ImGui::InputText("##Name", &config.Name);
+			UI::ControlCustomEnd();
 		}
 
-		if (UI::PropertyCustom("Assets"))
+		if (UI::ControlCustomBegin("Assets"))
 		{
-			UI::PushID("Assets");
-
 			UI::ScopedStyle style;
 			if (!m_ProjectEditData.ValidAssetsPath)
 				style.Push(ImGuiCol_Text, UI::Theme::GetColors().TextInvalidInput);
 
-			UI::SpanAvailWith();
+			ImGui::SetNextItemWidth(-1.0f);
 			if (ImGui::InputText("##Assets", &m_ProjectEditData.Assets))
 			{
 				auto assetsDirectory = Project::AbsolueCopy(m_ProjectEditData.Assets);
@@ -1067,18 +1161,16 @@ namespace Shark {
 					config.AssetsDirectory = assetsDirectory;
 			}
 
-			UI::PopID();
+			UI::ControlCustomEnd();
 		}
 
-		if (UI::PropertyCustom("StartupScene"))
+		if (UI::ControlCustomBegin("StartupScene"))
 		{
-			UI::PushID("StartupScene");
-
 			UI::ScopedStyle style;
 			if (!m_ProjectEditData.ValidStartupScene)
 				style.Push(ImGuiCol_Text, UI::Theme::GetColors().TextInvalidInput);
 
-			UI::SpanAvailWith();
+			ImGui::SetNextItemWidth(-1.0f);
 			if (ImGui::InputText("##StartupScene", &m_ProjectEditData.StartupScene))
 			{
 				auto startupScene = Project::AbsolueCopy(m_ProjectEditData.StartupScene);
@@ -1109,14 +1201,14 @@ namespace Shark {
 			UI::PopID();
 		}
 
-		UI::DragFloat("Gravity", config.Gravity, 0.0f, 0.0f, 0.0f, 0.1f, "%f");
-		UI::DragInt("Velocity Iterations", config.VelocityIterations, 8, 1, INT_MAX);
-		UI::DragInt("Position Iterations", config.PositionIterations, 3 , 1, INT_MAX);
+		UI::Control("Gravity", config.Gravity, { 0.0f, -9.81 });
+		UI::Control("Velocity Iterations", config.VelocityIterations, 8);
+		UI::Control("Position Iterations", config.PositionIterations, 3);
 		float fixedTSInMS = config.FixedTimeStep * 1000.0f;
-		if (UI::DragFloat("Fixed Time Step", fixedTSInMS, 1.0f, 0.1f, FLT_MAX, 1.0f, "%fms"))
+		if (UI::Control("Fixed Time Step", fixedTSInMS, 1.0f, 0.1f, FLT_MAX, 1.0f, "%.3fms"))
 			config.FixedTimeStep = fixedTSInMS * 0.001f;
 
-		UI::EndProperty();
+		UI::EndControls();
 
 		ImGui::End();
 	}
@@ -1129,8 +1221,21 @@ namespace Shark {
 		ImGui::Begin("Asset Registry", &m_ShowAssetsRegistry);
 
 		static std::string SearchBuffer;
-		UI::SpanAvailWith();
-		ImGui::InputText("##SearchBuffer", &SearchBuffer);
+		ImGui::SetNextItemWidth(-1.0f);
+		static bool SearchHasUppercase = false;
+		if (ImGui::InputText("##SearchBuffer", &SearchBuffer))
+		{
+			for (auto& c : SearchBuffer)
+			{
+				if (isupper(c))
+				{
+					SearchHasUppercase = true;
+					break;
+				}
+			}
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, ImGui::GetStyle().IndentSpacing * 0.5f);
 
 		if (ImGui::TreeNodeEx("Asset Registry", ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_DefaultOpen, "Asset Registry %d", ResourceManager::GetAssetRegistry().Count()))
 		{
@@ -1138,9 +1243,16 @@ namespace Shark {
 			{
 				if (!SearchBuffer.empty())
 				{
-					const std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
-					const std::string typeStr = AssetTypeToString(metadata.Type);
-					const std::string filePathStr = metadata.FilePath.string();
+					std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
+					std::string typeStr = AssetTypeToString(metadata.Type);
+					std::string filePathStr = metadata.FilePath.string();
+
+					if (!SearchHasUppercase)
+					{
+						String::ToLower(handleStrHex);
+						String::ToLower(typeStr);
+						String::ToLower(filePathStr);
+					}
 
 					bool matchFound = false;
 
@@ -1152,15 +1264,14 @@ namespace Shark {
 						continue;
 				}
 
-				UI::BeginPropertyGrid();
-				UI::PushTextFlag(UI::TextFlag::Aligned);
+				UI::BeginControlsGrid();
 
-				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), UI::TextFlag::Selectable);
-				UI::Property("FilePath", metadata.FilePath, UI::TextFlag::Selectable);
-				UI::Property("Type", AssetTypeToString(metadata.Type), UI::TextFlag::Selectable);
+				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
+				UI::Control("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
+				UI::Control("FilePath", metadata.FilePath, textFlags);
+				UI::Control("Type", AssetTypeToString(metadata.Type), textFlags);
 
-				UI::PopTextFlag();
-				UI::EndProperty();
+				UI::EndControls();
 
 				ImGui::Separator();
 			}
@@ -1176,9 +1287,16 @@ namespace Shark {
 
 				if (!SearchBuffer.empty())
 				{
-					const std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
-					const std::string typeStr = AssetTypeToString(metadata.Type);
-					const std::string filePathStr = metadata.FilePath.string();
+					std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
+					std::string typeStr = AssetTypeToString(metadata.Type);
+					std::string filePathStr = metadata.FilePath.string();
+
+					if (!SearchHasUppercase)
+					{
+						String::ToLower(handleStrHex);
+						String::ToLower(typeStr);
+						String::ToLower(filePathStr);
+					}
 
 					bool matchFound = false;
 
@@ -1190,15 +1308,14 @@ namespace Shark {
 						continue;
 				}
 
-				UI::BeginPropertyGrid();
-				UI::PushTextFlag(UI::TextFlag::Aligned);
+				UI::BeginControlsGrid();
 
-				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), UI::TextFlag::Selectable);
-				UI::Property("FilePath", metadata.FilePath, UI::TextFlag::Selectable);
-				UI::Property("Type", AssetTypeToString(metadata.Type), UI::TextFlag::Selectable);
+				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
+				UI::Control("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
+				UI::Control("FilePath", metadata.FilePath, textFlags);
+				UI::Control("Type", AssetTypeToString(metadata.Type), textFlags);
 
-				UI::PopTextFlag();
-				UI::EndProperty();
+				UI::EndControls();
 			}
 
 			ImGui::TreePop();
@@ -1210,8 +1327,14 @@ namespace Shark {
 			{
 				if (!SearchBuffer.empty())
 				{
-					const std::string handleStrHex = fmt::format("{:x}", handle);
-					const std::string typeStr = AssetTypeToString(asset->GetAssetType());
+					std::string handleStrHex = fmt::format("{:x}", handle);
+					std::string typeStr = AssetTypeToString(asset->GetAssetType());
+
+					if (!SearchHasUppercase)
+					{
+						String::ToLower(handleStrHex);
+						String::ToLower(typeStr);
+					}
 
 					bool matchFound = false;
 
@@ -1222,18 +1345,19 @@ namespace Shark {
 						continue;
 				}
 
-				UI::BeginPropertyGrid();
-				UI::PushTextFlag(UI::TextFlag::Aligned);
+				UI::BeginControlsGrid();
 
-				UI::Property("Handle", fmt::format("{:x}", handle), UI::TextFlag::Selectable);
-				UI::Property("Type", AssetTypeToString(asset->GetAssetType()), UI::TextFlag::Selectable);
+				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
+				UI::Control("Handle", fmt::format("{:x}", handle), textFlags);
+				UI::Control("Type", AssetTypeToString(asset->GetAssetType()), textFlags);
 
-				UI::PopTextFlag();
-				UI::EndProperty();
+				UI::EndControls();
 			}
 
 			ImGui::TreePop();
 		}
+
+		ImGui::PopStyleVar();
 
 		ImGui::End();
 	}
@@ -1248,7 +1372,7 @@ namespace Shark {
 
 		if (ImGui::BeginPopupModal("Import Texture"))
 		{
-			ImGui::Text("Input FileName");
+			UI::Text("Input FileName");
 			UI::Text(fmt::format("Parent Path: {}/Texture", Project::GetAssetsPath()));
 			ImGui::InputText("##FileName", &m_TextureAssetCreateData.TextureFileName);
 
@@ -1513,11 +1637,16 @@ namespace Shark {
 
 		if (ResourceManager::IsMemoryAsset(m_WorkScene->Handle))
 		{
-			auto filePath = FileDialogs::SaveFile(L"|*.*|Shark|*.skscene", 2, Project::GetAssetsPath(), true);
+			auto filePath = FileDialogs::SaveFile(L"|*.*|Scene|*.skscene", 2, Project::GetAssetsPath(), true);
+			if (!filePath.empty())
+			{
+				SK_CORE_ASSERT(filePath.extension() == L".skscene");
 
-			std::string directoryPath = ResourceManager::GetRelativePathString(filePath.parent_path());
-			std::string fileName = filePath.filename().string();
-			return ResourceManager::AddMemoryAssetToRegistry(m_ActiveScene->Handle, directoryPath, fileName);
+				std::string directoryPath = ResourceManager::GetRelativePathString(filePath.parent_path());
+				std::string fileName = filePath.filename().string();
+				return ResourceManager::AddMemoryAssetToRegistry(m_ActiveScene->Handle, directoryPath, fileName);
+			}
+			return false;
 		}
 
 		SK_CORE_ASSERT(false, "Normal assets currently cant be saved at a different location");

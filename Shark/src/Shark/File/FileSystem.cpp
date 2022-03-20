@@ -120,7 +120,7 @@ namespace Shark::FileSystem {
 
 	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path)
 	{
-		std::wstring str;
+		std::wstring str = path.native();
 		std::replace(str.begin(), str.end(), L'/', L'\\');
 		return str;
 	}

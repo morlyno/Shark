@@ -7,6 +7,7 @@
 #include "Shark/UI/UI.h"
 #include "Shark/Core/Input.h"
 #include "Shark/Utility/Math.h"
+#include "Shark/Utility/Utility.h"
 
 #include "Shark/Asset/ResourceManager.h"
 
@@ -149,29 +150,34 @@ namespace Shark {
 		UI::EndProperty();
 #else
 
-		UI::BeginPropertyGrid("Settings Grid");
+		ImGui::TextDisabled("Note: UVs?");
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::Text("Currently don't know if UVs should be saved in Texture or it should be part of SpriteRendererComponent");
+			ImGui::Text("UVs in Texture could increas the Texture Asset count");
+			ImGui::Text("Best way probably only in Material with would be the same as SpriteRendererComponent");
+			ImGui::EndTooltip();
+		}
 
-		if (UI::PropertyCustom("Format")) { UI::SpanAvailWith(); int f = (int)m_Specs.Format; if (ImGui::Combo("##Format", &f, s_FormatItems, std::size(s_FormatItems))) { m_Specs.Format = (ImageFormat)f; }; }
+		UI::BeginControlsGrid();
 
-		UI::SliderInt("Mip Levels", m_Specs.MipLevels, 1, 0, Renderer::GetCapabilities().MaxMipLeves);
-		if (UI::PropertyCustom("Mip Filter")) { UI::SpanAvailWith(); ImGui::Combo("##MipFilter", (int*)&m_Specs.Sampler.Mip, s_FilterItems, std::size(s_FilterItems)); }
+		UI::Control("Format", Utility::EnumToInt(m_Specs.Format), s_FormatItems, (uint32_t)std::size(s_FormatItems));
+		UI::Control("Mip Levels", m_Specs.MipLevels, 1, 0, Renderer::GetCapabilities().MaxMipLeves);
+		UI::Control("Mip Filter", Utility::EnumToInt(m_Specs.Sampler.Mip), s_FilterItems, std::size(s_FilterItems));
+		UI::Control("Mip Mode Min", Utility::EnumToInt(m_Specs.Sampler.Min), s_FilterItems, std::size(s_FilterItems));
+		UI::Control("Mip Mode Mag", Utility::EnumToInt(m_Specs.Sampler.Mag), s_FilterItems, std::size(s_FilterItems));
 
-		if (UI::PropertyCustom("Filter Mode Min")) { UI::SpanAvailWith(); ImGui::Combo("##MinFilter", (int*)&m_Specs.Sampler.Min, s_FilterItems, std::size(s_FilterItems)); }
-		if (UI::PropertyCustom("Filter Mode Mag")) { UI::SpanAvailWith(); ImGui::Combo("##MagFilter", (int*)&m_Specs.Sampler.Mag, s_FilterItems, std::size(s_FilterItems)); }
+		UI::Control("Wrap Mode U", Utility::EnumToInt(m_Specs.Sampler.Wrap.U), s_WrapItems, std::size(s_WrapItems));
+		UI::Control("Wrap Mode V", Utility::EnumToInt(m_Specs.Sampler.Wrap.V), s_WrapItems, std::size(s_WrapItems));
+		UI::Control("Wrap Mode W", Utility::EnumToInt(m_Specs.Sampler.Wrap.W), s_WrapItems, std::size(s_WrapItems));
 
-		if (UI::PropertyCustom("Wrap Mode U")) { UI::SpanAvailWith(); ImGui::Combo("##AddressU", (int*)&m_Specs.Sampler.Wrap.U, s_WrapItems, std::size(s_WrapItems)); }
-		if (UI::PropertyCustom("Wrap Mode V")) { UI::SpanAvailWith(); ImGui::Combo("##AddressV", (int*)&m_Specs.Sampler.Wrap.V, s_WrapItems, std::size(s_WrapItems)); }
-		if (UI::PropertyCustom("Wrap Mode W")) { UI::SpanAvailWith(); ImGui::Combo("##AddressW", (int*)&m_Specs.Sampler.Wrap.W, s_WrapItems, std::size(s_WrapItems)); }
+		UI::Control("Anisotropy", m_Specs.Sampler.Anisotropy);
+		UI::Control("Max Anisotropy", m_Specs.Sampler.MaxAnisotropy, 0, 0, capabilities.MaxAnisotropy);
+		UI::Control("LODBias", m_Specs.Sampler.LODBias, 0.0f, capabilities.MinLODBias, capabilities.MaxLODBias);
+		UI::ControlColor("Border Color", m_Specs.Sampler.BorderColor);
 
-
-		UI::Checkbox("Anisotropy", m_Specs.Sampler.Anisotropy);
-		UI::DragInt("Max Anisotropy", m_Specs.Sampler.MaxAnisotropy, 0, 0, capabilities.MaxAnisotropy);
-
-		UI::DragFloat("LODBias", m_Specs.Sampler.LODBias, 0.0f, capabilities.MinLODBias, capabilities.MaxLODBias);
-
-		UI::ColorEdit("Border Color", m_Specs.Sampler.BorderColor);
-
-		UI::EndProperty();
+		UI::EndControls();
 
 		ImGui::Separator();
 
@@ -227,9 +233,9 @@ namespace Shark {
 		ImGui::SetNextWindowDockID(settingsDockID);
 		ImGui::Begin(m_SettingsName.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
 
-		UI::BeginProperty(UI::GetID("Settings Grid"));
+		UI::BeginControlsGrid();
 		ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch, 0.5f);
-		UI::EndProperty();
+		UI::EndControls();
 
 		ImGui::End();
 

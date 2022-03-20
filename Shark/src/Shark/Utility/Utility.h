@@ -13,16 +13,31 @@ namespace Shark::Utility {
 		return path;
 	}
 
+	template<typename T>
+	inline const T* ValuePtr(const T& val)
+	{
+		static_assert(std::is_arithmetic_v<T>);
+		return &val;
+	}
 
 	template<typename T>
-	constexpr float* GetValuePtr(const T& vec) { static_assert(false); }
-	template<>
-	constexpr float* GetValuePtr(const glm::vec4& vec) { return (float*)&vec; }
-	template<>
-	constexpr float* GetValuePtr(const glm::vec3& vec) { return (float*)&vec; }
-	template<>
-	constexpr float* GetValuePtr(const glm::vec2& vec) { return (float*)&vec; }
+	inline T* ValuePtr(T& val)
+	{
+		static_assert(std::is_arithmetic_v<T>);
+		return &val;
+	}
 
+	template<glm::length_t Length, typename T, glm::qualifier Q>
+	inline const T* ValuePtr(const glm::vec<Length, T, Q>& val)
+	{
+		return glm::value_ptr(val);
+	}
+
+	template<glm::length_t Length, typename T, glm::qualifier Q>
+	inline T* ValuePtr(glm::vec<Length, T, Q>& val)
+	{
+		return glm::value_ptr(val);
+	}
 
 	template<typename Container>
 	bool Contains(const Container& container, const typename Container::value_type& value)
@@ -87,5 +102,16 @@ namespace Shark::Utility {
 			return str;
 	}
 
+	template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+	auto EnumToInt(const T& e)
+	{
+		return (std::underlying_type_t<T>)e;
+	}
+	
+	template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+	auto& EnumToInt(T& e)
+	{
+		return (std::underlying_type_t<T>&)e;
+	}
 
 }

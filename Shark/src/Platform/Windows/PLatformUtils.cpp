@@ -6,6 +6,7 @@
 #include "Platform/Windows/WindowsUtility.h"
 
 #include "Shark/File/FileSystem.h"
+#include "Shark/Utility/String.h"
 
 #include <shellapi.h>
 #include <ShlObj.h>
@@ -16,16 +17,16 @@ namespace Shark {
 	{
 		auto& window = Application::Get().GetWindow();
 		std::filesystem::path result;
-		if (FileDialogShared(window.GetHandle(), false, filter, defaultFilterindex, defaultPath, overrideDefault, result))
+		if (FileDialogShared(window.GetHandle(), false, filter, defaultFilterindex, false, defaultPath, overrideDefault, result))
 			return result;
 		return {};
 	}
 
-	std::filesystem::path FileDialogs::SaveFile(const std::wstring& filter, uint32_t defaultFilterindex, const std::filesystem::path& defaultPath, bool overrideDefault)
+	std::filesystem::path FileDialogs::SaveFile(const std::wstring& filter, uint32_t defaultFilterindex, const std::filesystem::path& defaultPath, bool overrideDefault, bool appenedFileExetention)
 	{
 		auto& window = Application::Get().GetWindow();
 		std::filesystem::path result;
-		if (FileDialogShared(window.GetHandle(), true, filter, defaultFilterindex, defaultPath, overrideDefault, result))
+		if (FileDialogShared(window.GetHandle(), true, filter, defaultFilterindex, appenedFileExetention, defaultPath, overrideDefault, result))
 			return result;
 		return {};
 	}
@@ -75,9 +76,11 @@ namespace Shark {
 		return result;
 	}
 
-	bool FileDialogs::FileDialogShared(WindowHandle parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result)
+	bool FileDialogs::FileDialogShared(WindowHandle parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, bool appenedFileExetention, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result)
 	{
 		bool success = false;
+
+		// TODO(moro): attach DataType/File extention to out_Result (only necessary for FileSaveDialog)
 
 		IFileDialog* fileDialog;
 		if (SUCCEEDED(::CoCreateInstance(save ? CLSID_FileSaveDialog : CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, save ? IID_IFileSaveDialog : IID_IFileOpenDialog, (void**)&fileDialog)))
@@ -90,7 +93,7 @@ namespace Shark {
 			if (!defaultPath.empty())
 			{
 				auto windowsDefaultPath = std::filesystem::absolute(defaultPath);
-				windowsDefaultPath = FileSystem::FormatWindowsCopy(windowsDefaultPath);
+				FileSystem::FormatWindows(windowsDefaultPath);
 				IShellItem* defualtPathItem;
 				if (SUCCEEDED(::SHCreateItemFromParsingName(windowsDefaultPath.c_str(), NULL, IID_PPV_ARGS(&defualtPathItem))))
 				{
@@ -108,9 +111,9 @@ namespace Shark {
 				String::SplitString(filter, L"|", unformatedFilters);
 
 				std::vector<COMDLG_FILTERSPEC> fileDialogFilters;
-
 				if (unformatedFilters.size() % 2 == 0)
 				{
+					fileDialogFilters.reserve(unformatedFilters.size() / 2);
 					for (uint32_t i = 0; i < unformatedFilters.size();)
 					{
 						COMDLG_FILTERSPEC& filterSpec = fileDialogFilters.emplace_back();
@@ -118,8 +121,20 @@ namespace Shark {
 						filterSpec.pszSpec = unformatedFilters[i++].c_str();
 					}
 				}
+
 				fileDialog->SetFileTypes((UINT)fileDialogFilters.size(), fileDialogFilters.data());
 				fileDialog->SetFileTypeIndex(defaultFilterIndex);
+
+				if (save && appenedFileExetention)
+				{
+					uint32_t index = defaultFilterIndex ? (defaultFilterIndex * 2) - 1 : 1;
+					std::wstring defaultFilter = unformatedFilters[index];
+					if (defaultFilter.front() == L'.')
+						defaultFilter.erase(0);
+					
+					fileDialog->SetDefaultExtension(defaultFilter.c_str());
+				}
+
 			}
 
 			if (SUCCEEDED(fileDialog->Show((HWND)parentWindow)))
@@ -132,6 +147,7 @@ namespace Shark {
 					{
 						out_Result = filePath;
 						FileSystem::FormatDefault(out_Result);
+
 						CoTaskMemFree(filePath);
 					}
 
