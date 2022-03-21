@@ -91,6 +91,15 @@ namespace Shark {
 		CreateImage(nullptr, dxImage);
 	}
 
+	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView)
+		: m_Specs(specs)
+	{
+		m_Resource = resource;
+		m_Resource->AddRef();
+		if (createView)
+			CreateView();
+	}
+
 	DirectXImage2D::~DirectXImage2D()
 	{
 		if (m_Resource)

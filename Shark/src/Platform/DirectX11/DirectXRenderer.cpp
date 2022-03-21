@@ -89,15 +89,6 @@ namespace Shark {
 
 		QueryCapabilities();
 
-		auto& window = Application::Get().GetWindow();
-
-		SwapChainSpecifications specs;
-		specs.Widht = window.GetWidth();
-		specs.Height = window.GetHeight();
-		specs.WindowHandle = window.GetHandle();
-		m_SwapChain = Ref<DirectXSwapChain>::Create(specs);
-
-
 		m_ShaderLib = Ref<ShaderLibrary>::Create();
 
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
@@ -143,15 +134,12 @@ namespace Shark {
 		queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
 		queryDesc.MiscFlags = 0;
 		SK_CHECK(m_Device->CreateQuery(&queryDesc, &m_FrequencyQuery));
-
-		m_PresentTimer = Ref<DirectXGPUTimer>::Create("Present");
 	}
 
 	void DirectXRenderer::ShutDown()
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_SwapChain = nullptr;
 		m_ShaderLib = nullptr;
 		m_WhiteTexture = nullptr;
 		m_QuadVertexBuffer = nullptr;
@@ -205,19 +193,6 @@ namespace Shark {
 			m_IsFirstFrame = false;
 			return;
 		}
-
-
-		// SwapChain Resize
-
-		if (m_SwapChainNeedsResize)
-		{
-			for (auto cmdBuffer : m_CommandBuffers)
-				cmdBuffer->OnSwapchainResize();
-
-			m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
-			m_SwapChainNeedsResize = false;
-		}
-
 
 		// GPU Frequncy Query
 
@@ -364,6 +339,8 @@ namespace Shark {
 
 	void DirectXRenderer::GenerateMips(Ref<Image2D> image)
 	{
+		SK_PROFILE_FUNCTION();
+
 		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
 		const auto& specs = dxImage->GetSpecification();
 
@@ -400,30 +377,13 @@ namespace Shark {
 		texture->Release();
 	}
 
-	void DirectXRenderer::Present(bool vsync)
+	void DirectXRenderer::ClearAllCommandBuffers()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("DirectXRenderer::Present");
 
-		m_PresentTimer->StartQuery(m_ImmediateContext);
-
-		IDXGISwapChain* swapChain = m_SwapChain->GetNative();
-		swapChain->Present(vsync ? 1 : 0, 0);
-
-		m_PresentTimer->EndQuery(m_ImmediateContext);
-
-
-		m_SwapChain->NewFrame();
-	}
-
-	void DirectXRenderer::BindMainFrameBuffer()
-	{
-		SK_PROFILE_FUNCTION();
-		Ref<DirectXSwapChainFrameBuffer> swapChainFrameBuffer = m_SwapChain->GetMainFrameBuffer();
-
-		m_ImmediateContext->OMSetRenderTargets(swapChainFrameBuffer->m_Count, swapChainFrameBuffer->m_FrameBuffers.data(), swapChainFrameBuffer->m_DepthStencil);
-		m_ImmediateContext->OMSetBlendState(swapChainFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
-		m_ImmediateContext->RSSetViewports(1, &swapChainFrameBuffer->m_Viewport);
+		for (auto& c : m_CommandBuffers)
+			c->ClearState();
+		m_ImmediateContext->ClearState();
 	}
 
 	void DirectXRenderer::AddCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer)
@@ -436,7 +396,6 @@ namespace Shark {
 		auto entry = m_CommandBuffers.find(commandBuffer);
 		if (entry != m_CommandBuffers.end())
 			m_CommandBuffers.erase(entry);
-
 	}
 
 	void DirectXRenderer::PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet)

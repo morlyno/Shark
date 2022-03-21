@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Shark/Render/RendererAPI.h"
-#include "Platform/DirectX11/DirectXSwapChain.h"
 #include "Platform/DirectX11/DirectXBuffers.h"
 #include "Platform/DirectX11/DirectXGPUTimer.h"
 
 #include "Platform/DirectX11/DirectXMaterial.h"
 #include "Platform/DirectX11/DirectXConstantBuffer.h"
+#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
 #include <set>
 #include <d3d11.h>
@@ -31,20 +31,11 @@ namespace Shark {
 
 		virtual void GenerateMips(Ref<Image2D> image) override;
 
+		virtual void ClearAllCommandBuffers() override;
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
 
 		virtual Ref<ShaderLibrary> GetShaderLib() override { return m_ShaderLib; }
 		virtual Ref<Texture2D> GetWhiteTexture() override { return m_WhiteTexture; }
-		virtual Ref<GPUTimer> GetPresentTimer() override { return m_PresentTimer; }
-
-		Ref<FrameBuffer> GetFinaleCompositFrameBuffer() const { return m_SwapChain->GetMainFrameBuffer(); }
-
-		virtual void ResizeSwapChain(uint32_t width, uint32_t height) override { m_SwapChainNeedsResize = true; m_WindowWidth = width; m_WindowHeight = height; }
-		virtual void Present(bool vsync) override;
-		virtual void BindMainFrameBuffer() override;
-
-
-		Ref<DirectXSwapChain> GetSwapChain() const { return m_SwapChain; }
 
 		void AddCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer);
 		void RemoveCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer);
@@ -70,7 +61,6 @@ namespace Shark {
 		IDXGIFactory* m_Factory = nullptr;
 		ID3D11Device* m_Device = nullptr;
 		ID3D11DeviceContext* m_ImmediateContext = nullptr;
-		Ref<DirectXSwapChain> m_SwapChain = nullptr;
 
 		std::unordered_set<Weak<DirectXRenderCommandBuffer>> m_CommandBuffers;
 
@@ -87,10 +77,8 @@ namespace Shark {
 		bool m_IsValidFrequency = false;
 		bool m_FrequencyQueryActive = false;
 
-		bool m_SwapChainNeedsResize = false;
+		bool m_NeedsResize = false;
 		uint32_t m_WindowWidth = 0, m_WindowHeight = 0;
-
-		Ref<DirectXGPUTimer> m_PresentTimer;
 
 		RendererCapabilities m_Capabilities;
 

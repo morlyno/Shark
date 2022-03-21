@@ -13,8 +13,6 @@ namespace Shark {
 		R32_SINT,
 
 		Depth32,
-
-		SwapChain,
 		Depth = Depth32
 	};
 	std::string EnumToString(ImageFormat format);

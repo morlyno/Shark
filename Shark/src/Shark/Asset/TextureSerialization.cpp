@@ -23,7 +23,6 @@ namespace Shark {
 			if (str == "RGBA8") return ImageFormat::RGBA8;
 			if (str == "R32_SINT") return ImageFormat::R32_SINT;
 			if (str == "Depth32") return ImageFormat::Depth32;
-			if (str == "SwapChain") return ImageFormat::SwapChain;
 
 			return ImageFormat::RGBA8;
 		}
@@ -74,7 +73,6 @@ namespace Shark {
 		
 		Ref<Texture2D> texture = asset.As<Texture2D>();
 		const auto& specs = texture->GetSpecification();
-		SK_CORE_ASSERT(specs.Format != ImageFormat::SwapChain);
 
 		AssetHandle sourceHandle = ResourceManager::GetChild(asset->Handle);
 

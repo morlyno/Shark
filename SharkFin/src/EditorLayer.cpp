@@ -170,8 +170,6 @@ namespace Shark {
 		}
 
 		EditorPanelManager::OnUpdate(ts);
-
-		Renderer::GetRendererAPI()->BindMainFrameBuffer();
 	}
 
 	void EditorLayer::OnEvent(Event& event)
@@ -191,11 +189,6 @@ namespace Shark {
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
 	{
 		SK_PROFILE_FUNCTION();
-
-		if (event.GetWidth() == 0 || event.GetHeight() == 0)
-			return false;
-
-		Renderer::GetRendererAPI()->ResizeSwapChain(event.GetWidth(), event.GetHeight());
 
 		return false;
 	}
@@ -1110,14 +1103,14 @@ namespace Shark {
 
 
 		ImGui::Begin("GPU Times");
-		UI::Text(fmt::format("Present GPU: {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
+		//UI::Text(fmt::format("Present GPU: {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
 		UI::Text(fmt::format("ImGuiLayer GPU: {:.4f}ms", ProfilerRegistry::GetAverageOf("[GPU] DirectXImGuiLayer::End").MilliSeconds()));
 		ImGui::End();
 
 
 		ImGui::Begin("CPU Times");
 		UI::Text(fmt::format("FrameTime: {:.4f}ms", m_TimeStep.MilliSeconds()));
-		UI::Text(fmt::format("Present CPU: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::Present").MilliSeconds()));
+		UI::Text(fmt::format("Present CPU: {:.4f}ms", ProfilerRegistry::GetAverageOf("SwapChain::Present").MilliSeconds()));
 		UI::Text(fmt::format("NewFrame: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::NewFrame").MilliSeconds()));
 		UI::Text(fmt::format("Renderer2D EndScene: {:.4f}ms", ProfilerRegistry::GetAverageOf("Renderer2D::EndScene").MilliSeconds()));
 		UI::Text(fmt::format("RenderGeometry: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry").MilliSeconds()));

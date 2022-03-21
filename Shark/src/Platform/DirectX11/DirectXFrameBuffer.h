@@ -26,8 +26,6 @@ namespace Shark {
 		void ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index, const glm::vec4& clearcolor);
 		void ClearDepth(ID3D11DeviceContext* ctx);
 
-
-
 		virtual void Release() override;
 		virtual std::pair<uint32_t, uint32_t> GetSize() const override { return { m_Specification.Width, m_Specification.Height }; }
 		virtual void Resize(uint32_t width, uint32_t height) override;
@@ -37,7 +35,6 @@ namespace Shark {
 
 		virtual const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
 
-		
 		void Bind(ID3D11DeviceContext* ctx);
 		void UnBind(ID3D11DeviceContext* ctx);
 
@@ -47,8 +44,6 @@ namespace Shark {
 		void CreateFrameBufferFromImage(FrameBufferAtachment* atachment);
 
 		void CreateBuffers();
-
-		virtual void CreateSwapChainBuffer() { SK_CORE_ASSERT(false, "this is Swapchain Target but no override vor CreateSwapChainBuffer was provided!"); }
 
 	protected:
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;

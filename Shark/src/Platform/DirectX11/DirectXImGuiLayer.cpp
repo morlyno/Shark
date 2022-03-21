@@ -128,7 +128,7 @@ namespace Shark {
 		m_CommandBuffer->Begin();
 		m_CommandBuffer->BeginTimeQuery(m_Timer);
 
-		Ref<DirectXFrameBuffer> dxFrameBuffer = DirectXRenderer::Get()->GetFinaleCompositFrameBuffer().As<DirectXFrameBuffer>();
+		Ref<DirectXFrameBuffer> dxFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
 		dxFrameBuffer->Bind(m_CommandBuffer->GetContext());
 
 		ImGui::Render();

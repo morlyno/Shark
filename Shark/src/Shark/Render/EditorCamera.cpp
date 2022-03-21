@@ -49,8 +49,6 @@ namespace Shark {
 
 		if (Input::KeyPressed(Key::Alt))
 		{
-			SK_CORE_DEBUG("EditorCamera::OnUpdate Alt Pressed");
-
 			glm::vec2 mousePos = Input::MousePos();
 			glm::vec2 delta = (mousePos - m_LastMousePos) * 0.003f;
 			m_LastMousePos = mousePos;

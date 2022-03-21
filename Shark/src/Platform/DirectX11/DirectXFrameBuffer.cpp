@@ -90,11 +90,6 @@ namespace Shark {
 
 	void DirectXFrameBuffer::Release()
 	{
-		auto ctx = DirectXRenderer::GetContext();
-
-		ID3D11RenderTargetView* nullrtv = nullptr;
-		ctx->OMSetRenderTargets(1, &nullrtv, nullptr);
-
 		for (auto& buffer : m_FrameBuffers)
 		{
 			if (buffer)
@@ -259,7 +254,6 @@ namespace Shark {
 			switch (atachment->Format)
 			{
 				case ImageFormat::None:               bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBufferFromImage(atachment._Ptr);                         break;
-				case ImageFormat::SwapChain:          bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateSwapChainBuffer();                                            break;
 				case ImageFormat::RGBA8:              bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R8G8B8A8_UNORM);      break;
 				case ImageFormat::R32_SINT:           bd.RenderTarget[index].BlendEnable = atachment->Blend;    CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R32_SINT);            break;
 				case ImageFormat::Depth32:            m_DepthStencilAtachment = atachment._Ptr;                 CreateDepth32Buffer(atachment._Ptr);                                break;

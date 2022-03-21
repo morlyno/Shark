@@ -22,9 +22,7 @@ namespace Shark {
 		std::vector<FrameBufferAtachment> Atachments;
 		glm::vec4 ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-		FrameBufferSpecification() = default;
-		FrameBufferSpecification(uint32_t width, uint32_t height, std::initializer_list<FrameBufferAtachment> atachments)
-			: Width(width), Height(height), Atachments(atachments) {}
+		bool IsSwapChainTarget = false;
 	};
 
 	class FrameBuffer : public RefCount

@@ -42,6 +42,11 @@ namespace Shark {
 		s_RendererAPI->GenerateMips(image);
 	}
 
+	void Renderer::ClearAllCommandBuffers()
+{
+		s_RendererAPI->ClearAllCommandBuffers();
+	}
+
 	const RendererCapabilities& Renderer::GetCapabilities()
 	{
 		return s_RendererAPI->GetCapabilities();
@@ -55,11 +60,6 @@ namespace Shark {
 	Ref<Texture2D> Renderer::GetWhiteTexture()
 	{
 		return s_RendererAPI->GetWhiteTexture();
-	}
-
-	Ref<GPUTimer> Renderer::GetPresentTimer()
-	{
-		return s_RendererAPI->GetPresentTimer();
 	}
 
 	Ref<RendererAPI> Renderer::GetRendererAPI()

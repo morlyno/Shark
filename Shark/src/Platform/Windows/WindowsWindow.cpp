@@ -7,6 +7,8 @@
 #include "Shark/Core/MouseCodes.h"
 
 #include "Shark/Utility/String.h"
+#include "Shark/Render/Renderer.h"
+
 #include "Platform/Windows/WindowsUtility.h"
 
 #include "Shark/Debug/Instrumentor.h"
@@ -96,7 +98,7 @@ namespace Shark {
 		{
 			DWORD lastErrorCode = GetLastError();
 			SK_CORE_ERROR("Faled to create Window");
-			SK_CORE_ERROR("Error Msg: {}", GetLastErrorMsg(lastErrorCode));
+			SK_CORE_ERROR("Error Msg: {}", TranslateErrorCode(lastErrorCode));
 			SK_CORE_ASSERT(false);
 		}
 
@@ -111,6 +113,17 @@ namespace Shark {
 		DestroyWindow(m_hWnd);
 	}
 
+	void WindowsWindow::CreateSwapChain()
+	{
+		SK_PROFILE_FUNCTION();
+
+		SwapChainSpecifications swapChainSpecs;
+		swapChainSpecs.Widht = m_Size.x;
+		swapChainSpecs.Height = m_Size.y;
+		swapChainSpecs.BufferCount = 3;
+		m_SwapChain = SwapChain::Create(swapChainSpecs);
+	}
+
 	void WindowsWindow::Update() const
 	{
 		SK_PROFILE_FUNCTION();
@@ -122,6 +135,8 @@ namespace Shark {
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
 		}
+
+		m_SwapChain->Present();
 	}
 
 	LRESULT WINAPI WindowsWindow::WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -147,10 +162,6 @@ namespace Shark {
 		WindowsWindow* const pWindow = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 		return pWindow->HandleMsg(hWnd, uMsg, wParam, lParam);
 	}
-
-	static bool g_IsRezised = false;
-	static bool g_EnterSizing = false;
-	static WindowResizeEvent g_LastReizeEvent = WindowResizeEvent(0, 0, WindowResizeEvent::State::Resize);
 
 	LRESULT __stdcall WindowsWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
@@ -187,8 +198,6 @@ namespace Shark {
 
 			case WM_SIZE:
 			{
-				g_IsRezised = true;
-
 				m_Size.x = LOWORD(lParam);
 				m_Size.y = HIWORD(lParam);
 				WindowResizeEvent::State state = WindowResizeEvent::State::Resize;
@@ -198,23 +207,9 @@ namespace Shark {
 				else if (wParam == SIZE_MINIMIZED)
 					state = WindowResizeEvent::State::Minimized;
 
-				g_LastReizeEvent = WindowResizeEvent(m_Size.x, m_Size.y, state);
-				if (!g_EnterSizing)
-					m_Callbackfunc(g_LastReizeEvent);
-				break;
-			}
-
-			case WM_ENTERSIZEMOVE:
-			{
-				g_EnterSizing = true;
-				break;
-			}
-
-			case WM_EXITSIZEMOVE:
-			{
-				g_EnterSizing = false;
-				if (g_IsRezised)
-					m_Callbackfunc(g_LastReizeEvent);
+				m_Callbackfunc(WindowResizeEvent(m_Size.y, m_Size.y, state));
+				Renderer::ClearAllCommandBuffers();
+				m_SwapChain->Resize(m_Size.x, m_Size.y);
 				break;
 			}
 

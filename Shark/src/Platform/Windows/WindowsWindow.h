@@ -3,6 +3,8 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Window.h"
 
+#include "Shark/Render/SwapChain.h"
+
 namespace Shark {
 
 	class WindowsWindow : public Window
@@ -26,6 +28,7 @@ namespace Shark {
 	public:
 		WindowsWindow(const WindowProps& props);
 		virtual ~WindowsWindow();
+		virtual void CreateSwapChain() override;
 
 		virtual void SetEventCallbackFunc(const EventCallbackFunc& callback) override { m_Callbackfunc = callback; }
 
@@ -36,6 +39,7 @@ namespace Shark {
 		virtual const glm::uvec2& GetSize() const override { return m_Size; }
 		virtual const glm::ivec2& GetPos() const override { return m_Pos; }
 		virtual inline WindowHandle GetHandle() const override { return m_hWnd; }
+		virtual Ref<SwapChain> GetSwapChain() const override { return m_SwapChain; }
 
 		virtual inline bool IsFocused() const override { return m_IsFocused; }
 
@@ -60,6 +64,8 @@ namespace Shark {
 		bool m_IsFocused = false;
 		bool m_IsCaptured = false;
 		bool m_VSync;
+
+		Ref<SwapChain> m_SwapChain;
 
 		EventCallbackFunc m_Callbackfunc;
 

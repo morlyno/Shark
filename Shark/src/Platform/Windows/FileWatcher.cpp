@@ -136,7 +136,7 @@ namespace Shark {
 		if (directoryHandle == INVALID_HANDLE_VALUE)
 		{
 			DWORD error = GetLastError();
-			std::string msg = GetLastErrorMsg(error);
+			std::string msg = TranslateErrorCode(error);
 			SK_CORE_ASSERT(false, fmt::format("CreateFileW Failed! Error Msg: {} ", msg));
 			return;
 		}
@@ -159,7 +159,7 @@ namespace Shark {
 		if (overlapped.hEvent == NULL)
 		{
 			DWORD error = GetLastError();
-			std::string msg = GetLastErrorMsg(error);
+			std::string msg = TranslateErrorCode(error);
 			SK_CORE_ERROR("Create Event Failed! Error Msg: {}", msg);
 			SK_CORE_ASSERT(false);
 			
@@ -176,7 +176,7 @@ namespace Shark {
 		if (s_Data->StopThreadEvent == NULL)
 		{
 			DWORD error = GetLastError();
-			std::string msg = GetLastErrorMsg(error);
+			std::string msg = TranslateErrorCode(error);
 			SK_CORE_ERROR("Create Event Failed! Error Msg: {}", msg);
 			
 			// Clean up
@@ -208,7 +208,7 @@ namespace Shark {
 			if (event == WAIT_OBJECT_0 + 1)
 				continue;
 			
-			SK_CORE_VERIFY(result, fmt::format("Failed to Read Changes! Error Msg: {}", GetLastErrorMsg(GetLastError())));
+			SK_CORE_VERIFY(result, fmt::format("Failed to Read Changes! Error Msg: {}", TranslateErrorCode(GetLastError())));
 			if (!result)
 				continue;
 			

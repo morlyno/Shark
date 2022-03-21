@@ -2,6 +2,6 @@
 
 namespace Shark {
 
-	std::string GetLastErrorMsg(DWORD error);
+	std::string TranslateErrorCode(DWORD error);
 
 }

@@ -4,6 +4,8 @@
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXGPUTimer.h"
 
+#include "Platform/Windows/WindowsUtility.h"
+
 #ifdef SK_ENABLE_ASSERT
 #define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR(SK_STRINGIFY(call) " 0x{0:x}", hr); SK_DEBUG_BREAK(); }
 #else
@@ -33,7 +35,12 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::Begin()
 	{
-		m_DeferredContext->ClearState();
+		m_Active = true;
+		if (m_CommandList)
+		{
+			m_CommandList->Release();
+			m_CommandList = nullptr;
+		}
 	}
 
 	void DirectXRenderCommandBuffer::End()
@@ -42,6 +49,7 @@ namespace Shark {
 			m_CommandList->Release();
 
 		SK_CHECK(m_DeferredContext->FinishCommandList(FALSE, &m_CommandList));
+		m_Active = false;
 	}
 
 	void DirectXRenderCommandBuffer::Execute()
@@ -62,12 +70,19 @@ namespace Shark {
 		dxCounter->EndQuery(m_DeferredContext);
 	}
 
-	void DirectXRenderCommandBuffer::OnSwapchainResize()
+	void DirectXRenderCommandBuffer::ClearState()
 	{
-		End();
-		Execute();
-		m_CommandList->Release();
-		m_CommandList = nullptr;
+		m_DeferredContext->ClearState();
+		ID3D11CommandList* dummyList;
+		HRESULT hr = m_DeferredContext->FinishCommandList(false, &dummyList);
+		SK_CORE_ASSERT(SUCCEEDED(hr), TranslateErrorCode(hr));
+		dummyList->Release();
+
+		if (m_CommandList)
+		{
+			m_CommandList->Release();
+			m_CommandList = nullptr;
+		}
 	}
 
 }

@@ -60,6 +60,13 @@ namespace Shark {
 	private:
 		static Application* s_Instance;
 
+		struct InsteanceCleanup
+		{
+			InsteanceCleanup() = default;
+			~InsteanceCleanup();
+		};
+		InsteanceCleanup m_InsteanceCleanup;
+
 		ApplicationSpecification m_Specification;
 
 		bool m_Minimized = false;
@@ -74,12 +81,6 @@ namespace Shark {
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
-		struct InsteanceCleanup
-		{
-			InsteanceCleanup() = default;
-			~InsteanceCleanup();
-		};
-		InsteanceCleanup m_InsteanceCleanup;
 	};
 
 	Application* CreateApplication(int argc, char** argv);

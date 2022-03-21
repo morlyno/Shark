@@ -35,6 +35,7 @@ namespace Shark {
 		m_Window = Window::Create(windowprops);
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		Renderer::Init();
+		m_Window->CreateSwapChain();
 
 		m_ImGuiLayer = CreateImGuiLayer();
 		PushLayer(m_ImGuiLayer);
@@ -77,8 +78,6 @@ namespace Shark {
 			}
 
 			m_Window->Update();
-
-			Renderer::GetRendererAPI()->Present(m_Window->IsVSync());
 		}
 	}
 

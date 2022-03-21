@@ -14,7 +14,6 @@ namespace Shark {
 			case ImageFormat::RGBA8: return "RGBA8";
 			case ImageFormat::R32_SINT: return "R32_SINT";
 			case ImageFormat::Depth32: return "Depth32";
-			case ImageFormat::SwapChain: return "(SwapChain) [SOON DEPRECATED]";
 		}
 		SK_CORE_ASSERT(false);
 		return "Unkonw";

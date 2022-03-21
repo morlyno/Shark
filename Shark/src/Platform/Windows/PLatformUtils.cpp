@@ -224,7 +224,7 @@ namespace Shark {
 			if (file == INVALID_HANDLE_VALUE)
 			{
 				DWORD lasterror = GetLastError();
-				auto message = GetLastErrorMsg(lasterror);
+				auto message = TranslateErrorCode(lasterror);
 				SK_CORE_ERROR(message);
 			}
 #endif

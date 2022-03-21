@@ -2,6 +2,8 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Event/Event.h"
 
+#include "Shark/Render/SwapChain.h"
+
 namespace Shark {
 
 	struct WindowProps
@@ -24,6 +26,7 @@ namespace Shark {
 		using EventCallbackFunc = std::function<void(Event& e)>;
 
 		virtual ~Window() = default;
+		virtual void CreateSwapChain() = 0;
 
 		virtual void SetEventCallbackFunc(const EventCallbackFunc& callback) = 0;
 
@@ -35,6 +38,7 @@ namespace Shark {
 		virtual const glm::ivec2& GetPos() const = 0;
 
 		virtual inline WindowHandle GetHandle() const = 0;
+		virtual Ref<SwapChain> GetSwapChain() const = 0;
 
 		virtual inline bool IsFocused() const = 0;
 
