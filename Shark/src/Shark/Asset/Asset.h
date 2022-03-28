@@ -24,7 +24,8 @@ namespace Shark {
 		Asset() = default;
 		virtual ~Asset() = default;
 
-		virtual AssetType GetAssetType() const = 0;
+		static AssetType GetStaticType() { return AssetType::None; }
+		virtual AssetType GetAssetType() const { return GetStaticType(); }
 	public:
 		AssetHandle Handle;
 

@@ -16,13 +16,4 @@ namespace Shark {
 		virtual bool Deserialize(Ref<Asset> asset, const std::filesystem::path& filePath) override;
 	};
 
-	class TextureSourceSeializer : public SerializerBase
-	{
-	public:
-		virtual bool TryLoadData(Ref<Asset>& asset, const std::filesystem::path& filePath) override;
-
-		virtual bool Serialize(Ref<Asset> asset, const std::filesystem::path& filePath) override;
-		virtual bool Deserialize(Ref<Asset> asset, const std::filesystem::path& filePath) override;
-	};
-
 }

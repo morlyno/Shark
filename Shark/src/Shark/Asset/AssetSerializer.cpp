@@ -10,8 +10,7 @@ namespace Shark {
 
 	static std::unordered_map<AssetType, Ref<SerializerBase>> s_Serializers = {
 		{ AssetType::Scene, Ref<SceneSerializer>::Create() },
-		{ AssetType::Texture, Ref<TextureSerializer>::Create() },
-		{ AssetType::TextureSource, Ref<TextureSourceSeializer>::Create() }
+		{ AssetType::Texture, Ref<TextureSerializer>::Create() }
 	};
 
 	bool AssetSerializer::TryLoadData(Ref<Asset>& asset, const AssetMetaData& metadata)

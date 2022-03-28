@@ -63,6 +63,7 @@ namespace Shark {
 		void DebugRender();
 		void RenderCameraPreview();
 
+		Entity CreateEntity(const std::string& name = "Untitled");
 		void DeleteEntity(Entity entity);
 		void SelectEntity(Entity entity);
 
@@ -172,7 +173,7 @@ namespace Shark {
 
 		struct TextureSourceImportData
 		{
-			AssetHandle TextureSourceHandle;
+			std::string TextureSourcePath;
 			std::string TextureFileName;
 
 			bool OpenPopup = false;
@@ -180,7 +181,7 @@ namespace Shark {
 
 			void Clear()
 			{
-				TextureSourceHandle = 0;
+				TextureSourcePath.clear();
 				TextureFileName.clear();
 				OpenPopup = false;
 				CreateEntityAfterCreation = false;

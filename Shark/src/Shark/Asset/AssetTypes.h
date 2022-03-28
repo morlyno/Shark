@@ -9,7 +9,6 @@ namespace Shark {
 		None = 0,
 		Scene = 1,
 		Texture = 2,
-		TextureSource = 3
 	};
 
 	inline std::string AssetTypeToString(AssetType assetType)
@@ -19,7 +18,6 @@ namespace Shark {
 			case AssetType::None: return "None";
 			case AssetType::Scene: return "Scene";
 			case AssetType::Texture: return "Texture";
-			case AssetType::TextureSource: return "TextureSource";
 		}
 
 		SK_CORE_ASSERT(false, "Unkown AssetType");
@@ -31,7 +29,6 @@ namespace Shark {
 		if (assetType == "None") return AssetType::None;
 		if (assetType == "Scene") return AssetType::Scene;
 		if (assetType == "Texture") return AssetType::Texture;
-		if (assetType == "TextureSource") return AssetType::TextureSource;
 
 		SK_CORE_ASSERT(false, "Unkown AssetType");
 		return AssetType::None;
@@ -39,14 +36,7 @@ namespace Shark {
 
 	inline std::unordered_map<std::string, AssetType> AssetExtentionMap = {
 		{ ".skscene", AssetType::Scene },
-		{ ".sktexture", AssetType::Texture },
-
-		{ ".png", AssetType::TextureSource }
+		{ ".sktex", AssetType::Texture }
 	};
-
-	inline bool IsValidExtention(const std::string& extention)
-	{
-		return AssetExtentionMap.find(extention) != AssetExtentionMap.end();
-	}
 
 }

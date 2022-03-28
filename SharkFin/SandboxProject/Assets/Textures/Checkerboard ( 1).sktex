@@ -1,5 +1,5 @@
 Texture:
-  Source: 13275925228538974022
+  FilePath: C:/dev/c++/shark-dev/SharkFin/SandboxProject/Assets/TextureSources/Checkboard.png
   Format: RGBA8
   MipLeves: 1
   Sampler:
@@ -13,5 +13,3 @@ Texture:
     Anisotropy: false
     MaxAnisotropy: 0
     LODBias: 0
-    MinLOD: 0
-    MaxLOD: 3.40282347e+38

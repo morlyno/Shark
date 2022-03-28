@@ -182,7 +182,11 @@ namespace Shark {
 		ImGui::Separator();
 
 		if (ImGui::Button("Update"))
+		{
 			m_EditTexture->Set(m_Specs, m_SourceTexture);
+			if (m_Specs.MipLevels != 1)
+				Renderer::GenerateMips(m_EditTexture->GetImage());
+		}
 
 		if (ImGui::Button("Reset"))
 			m_Specs = m_SourceTexture->GetSpecification();

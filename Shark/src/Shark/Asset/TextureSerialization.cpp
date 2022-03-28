@@ -74,13 +74,12 @@ namespace Shark {
 		Ref<Texture2D> texture = asset.As<Texture2D>();
 		const auto& specs = texture->GetSpecification();
 
-		AssetHandle sourceHandle = ResourceManager::GetChild(asset->Handle);
-
 		out << YAML::BeginMap;
 		out << YAML::Key << "Texture" << YAML::Value;
 		
 		out << YAML::BeginMap;
-		out << YAML::Key << "Source" << YAML::Value << sourceHandle;
+		auto textureFilePath = Project::RelativeCopy(texture->GetFilePath());
+		out << YAML::Key << "FilePath" << YAML::Value << textureFilePath;
 		out << YAML::Key << "Format" << YAML::Value << EnumToString(specs.Format);
 		out << YAML::Key << "MipLeves" << YAML::Value << specs.MipLevels;
 		out << YAML::Key << "Sampler";
@@ -135,9 +134,10 @@ namespace Shark {
 
 		TextureSpecification specs;
 		
-		AssetHandle sourceHandle = texture["Source"].as<UUID>();
-		if (!sourceHandle)
-			return false;
+		std::filesystem::path sourcePath = texture["FilePath"].as<std::filesystem::path>();
+		Project::Absolue(sourcePath);
+		SK_CORE_ASSERT(sourcePath.is_absolute());
+		SK_CORE_ASSERT(std::filesystem::is_regular_file(sourcePath));
 
 		specs.Format = Convert::StringToImageFormat(texture["Format"].as<std::string>());
 		specs.MipLevels = texture["MipLeves"].as<uint32_t>();
@@ -156,11 +156,9 @@ namespace Shark {
 		specs.Sampler.MaxAnisotropy = sampler["MaxAnisotropy"].as<uint32_t>();
 		specs.Sampler.LODBias = sampler["LODBias"].as<float>();
 
-		const auto& metadata = ResourceManager::GetMetaData(sourceHandle);
-		std::string sourcePath = ResourceManager::GetFileSystemPath(metadata).string();
-
 		int x, y, comp;
-		stbi_uc* data = stbi_load(sourcePath.c_str(), &x, &y, &comp, STBI_rgb_alpha);
+		std::string narrowPath = sourcePath.string();
+		stbi_uc* data = stbi_load(narrowPath.c_str(), &x, &y, &comp, STBI_rgb_alpha);
 		SK_CORE_ASSERT(data);
 
 		specs.Width = x;
@@ -169,32 +167,14 @@ namespace Shark {
 
 		Ref<Texture2D> textureAsset = asset.As<Texture2D>();
 		textureAsset->Set(specs, data);
+		textureAsset->SetFilePath(sourcePath);
+		if (specs.MipLevels != 1)
+			Renderer::GenerateMips(textureAsset->GetImage());
 
 		stbi_image_free(data);
 
 		SK_CORE_INFO("Deserialize Texture from {}", filePath);
 
-		return true;
-	}
-
-
-
-	bool TextureSourceSeializer::TryLoadData(Ref<Asset>& asset, const std::filesystem::path& filePath)
-	{
-		if (!FileSystem::Exists(filePath))
-			return false;
-
-		asset = Ref<TextureSource>::Create();
-		return Deserialize(asset, filePath);
-	}
-
-	bool TextureSourceSeializer::Serialize(Ref<Asset> asset, const std::filesystem::path& filePath)
-	{
-		return true;
-	}
-
-	bool TextureSourceSeializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& filePath)
-	{
 		return true;
 	}
 

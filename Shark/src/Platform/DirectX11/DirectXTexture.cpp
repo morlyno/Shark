@@ -104,6 +104,7 @@ namespace Shark {
 	}
 
 	DirectXTexture2D::DirectXTexture2D(const std::filesystem::path& filePath)
+		: m_FilePath(filePath)
 	{
 		std::string narrorFilePath = filePath.string();
 		int x, y, comp;

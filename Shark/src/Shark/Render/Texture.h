@@ -61,6 +61,9 @@ namespace Shark {
 		virtual Ref<Image2D> GetImage() const = 0;
 		virtual const TextureSpecification& GetSpecification() const = 0;
 
+		virtual const std::filesystem::path& GetFilePath() const = 0;
+		virtual void SetFilePath(const std::filesystem::path& filePath) = 0;
+
 		static AssetType GetStaticType() { return AssetType::Texture; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
@@ -91,18 +94,6 @@ namespace Shark {
 
 	public:
 		static Ref<Texture2DArray> Create(uint32_t count, uint32_t startOffset = 0);
-	};
-
-	class TextureSource : public Asset
-	{
-	public:
-		TextureSource() = default;
-		virtual ~TextureSource() = default;
-
-		static AssetType GetStaticType() { return AssetType::TextureSource; }
-		virtual AssetType GetAssetType() const { return GetStaticType(); }
-
-		static Ref<TextureSource> Create() { return Ref<TextureSource>::Create(); }
 	};
 
 }

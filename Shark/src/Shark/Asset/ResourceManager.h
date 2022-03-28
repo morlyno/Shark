@@ -47,14 +47,6 @@ namespace Shark {
 		static void UnloadAsset(AssetHandle handle);
 		static void DeleteAsset(AssetHandle handle);
 
-		static bool SetRelation(AssetHandle parent, AssetHandle child);
-		static void RemoveRelation(AssetHandle parent);
-
-		static AssetRelationStatus GetRelationStatus(AssetHandle handle0, AssetHandle handle1);
-
-		static AssetHandle GetChild(AssetHandle parent);
-		static AssetHandle FindParent(AssetHandle child);
-
 		static bool AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName);
 		static AssetHandle ImportAsset(const std::filesystem::path& filePath);
 
@@ -68,19 +60,14 @@ namespace Shark {
 			if (IsMemoryAsset(handle))
 			{
 				Ref<Asset> asset = s_MemoryAssets[handle];
-				if constexpr (!std::is_same_v<T, Asset>)
-					if (asset->GetAssetType() != T::GetStaticType())
-						return nullptr;
-				return asset.As<T>();
+				if (asset->GetAssetType() == T::GetStaticType())
+					return asset.As<T>();
+				return nullptr;
 			}
 
 			AssetMetaData& metadata = GetMetaDataInternal(handle);
 			if (!metadata.IsValid())
 				return nullptr;
-
-			if constexpr (!std::is_same_v<T, Asset>)
-				if (metadata.Type != T::GetStaticType())
-					return nullptr;
 
 			if (!metadata.IsDataLoaded)
 			{
@@ -93,7 +80,10 @@ namespace Shark {
 
 				asset->Handle = handle;
 				s_LoadedAssets[handle] = asset;
-				return asset.As<T>();
+
+				if (asset->GetAssetType() == T::GetStaticType())
+					return asset.As<T>();
+				return nullptr;
 			}
 
 			return s_LoadedAssets[handle].As<T>();
@@ -165,7 +155,6 @@ namespace Shark {
 		static const AssetRegistry& GetAssetRegistry() { return s_AssetRegistry; }
 		static const auto& GetLoadedAssets() { return s_LoadedAssets; }
 		static const auto& GetMemoryAssets() { return s_MemoryAssets; }
-		static const auto& GetAssetRelations() { return s_AssetRelations; }
 
 	private:
 		static AssetMetaData& GetMetaDataInternal(AssetHandle handle);
@@ -181,7 +170,6 @@ namespace Shark {
 		static AssetRegistry s_AssetRegistry;
 		static std::unordered_map<AssetHandle, Ref<Asset>> s_LoadedAssets;
 		static std::unordered_map<AssetHandle, Ref<Asset>> s_MemoryAssets;
-		static std::unordered_map<AssetHandle, AssetHandle> s_AssetRelations;
 	};
 
 }

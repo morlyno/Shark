@@ -1,10 +1,10 @@
 Texture:
-  Source: 15680557194317303622
+  FilePath: C:/dev/c++/shark-dev/SharkFin/SandboxProject/Assets/TextureSources/Gear.png
   Format: RGBA8
   MipLeves: 1
   Sampler:
-    MinFilter: Nearest
-    MagFilter: Nearest
+    MinFilter: Linear
+    MagFilter: Linear
     MipFilter: Linear
     AddressModeU: Repeat
     AddressModeV: Repeat
@@ -13,5 +13,3 @@ Texture:
     Anisotropy: false
     MaxAnisotropy: 0
     LODBias: 0
-    MinLOD: 0
-    MaxLOD: 3.40282347e+38

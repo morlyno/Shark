@@ -514,6 +514,13 @@ namespace Shark {
 				if (ImGui::MenuItem("Create Project"))
 					CreateProject();
 
+				if (ImGui::MenuItem("Reopen Project"))
+				{
+					auto projectFile = Project::GetActive()->GetConfig().ProjectDirectory / "Project.skproj";
+					CloseProject();
+					OpenProject(projectFile);
+				}
+
 				ImGui::Separator();
 				if (ImGui::MenuItem("Exit"))
 					Application::Get().CloseApplication();
@@ -773,6 +780,7 @@ namespace Shark {
 								{
 									Ref<Scene> scene = ResourceManager::GetAsset<Scene>(handle);
 									SK_CORE_ASSERT(scene);
+									m_WorkScene = scene;
 									SetActiveScene(scene);
 									break;
 								}
@@ -782,14 +790,6 @@ namespace Shark {
 									auto& sr = entity.AddComponent<SpriteRendererComponent>();
 									sr.TextureHandle = handle;
 									SelectEntity(entity);
-									break;
-								}
-								case AssetType::TextureSource:
-								{
-									m_TextureAssetCreateData.Clear();
-									m_TextureAssetCreateData.TextureSourceHandle = metaData.Handle;
-									m_TextureAssetCreateData.OpenPopup = true;
-									m_TextureAssetCreateData.CreateEntityAfterCreation = true;
 									break;
 								}
 							}
@@ -806,23 +806,32 @@ namespace Shark {
 				{
 					std::filesystem::path filePath = std::wstring((const wchar_t*)payload->Data, payload->DataSize / sizeof(wchar_t));
 					Project::Absolue(filePath);
-					AssetType assetType = AssetExtentionMap.at(filePath.extension().string());
-					switch (assetType)
+					const auto extention = filePath.extension();
+					
+					if (extention == L".skscene")
 					{
-						case AssetType::Scene: ResourceManager::ImportAsset(filePath); break;
-						case AssetType::Texture: SK_CORE_ASSERT(false, "Probably not possible"); break;
-						case AssetType::TextureSource:
+						AssetHandle handle = ResourceManager::ImportAsset(filePath);
+						Ref<Scene> nextScene = ResourceManager::GetAsset<Scene>(handle);
+						if (nextScene)
 						{
-							AssetHandle handle = ResourceManager::ImportAsset(filePath);
-							if (handle)
-							{
-								m_TextureAssetCreateData.Clear();
-								m_TextureAssetCreateData.TextureSourceHandle = handle;
-								m_TextureAssetCreateData.OpenPopup = true;
-								m_TextureAssetCreateData.CreateEntityAfterCreation = true;
-							}
-							break;
+							SetActiveScene(nextScene);
+							m_WorkScene = nextScene;
 						}
+					}
+					else if (extention == "L.sktex")
+					{
+						AssetHandle handle = ResourceManager::ImportAsset(filePath);
+						Entity newEntity = CreateEntity();
+						auto& sr = newEntity.AddComponent<SpriteRendererComponent>();
+						sr.TextureHandle = handle;
+						SelectEntity(newEntity);
+					}
+					else if (extention == L".png")
+					{
+						m_TextureAssetCreateData.Clear();
+						m_TextureAssetCreateData.TextureSourcePath = filePath.string();
+						m_TextureAssetCreateData.OpenPopup = true;
+						m_TextureAssetCreateData.CreateEntityAfterCreation = true;
 					}
 				}
 			}
@@ -1372,13 +1381,9 @@ namespace Shark {
 			if (ImGui::Button("Import"))
 			{
 				std::string directory = String::ToNarrowCopy(fmt::format(L"{}/Textures", Project::GetAssetsPath().native()));
-				std::string fileName = std::filesystem::path(m_TextureAssetCreateData.TextureFileName).replace_extension(".sktexture").string();
+				std::string fileName = std::filesystem::path(m_TextureAssetCreateData.TextureFileName).replace_extension(".sktex").string();
 
-				TextureSpecification specs;
-				Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, specs, nullptr);
-				ResourceManager::SetRelation(texture->Handle, m_TextureAssetCreateData.TextureSourceHandle);
-				ResourceManager::SaveAsset(texture);
-				ResourceManager::ReloadAsset(texture->Handle);
+				Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, m_TextureAssetCreateData.TextureSourcePath);
 
 				if (m_TextureAssetCreateData.CreateEntityAfterCreation)
 				{
@@ -1549,6 +1554,11 @@ namespace Shark {
 		}
 	}
 
+	Entity EditorLayer::CreateEntity(const std::string& name)
+	{
+		return m_ActiveScene->CreateEntity(name);
+	}
+
 	void EditorLayer::DeleteEntity(Entity entity)
 	{
 		SK_PROFILE_FUNCTION();
@@ -1696,7 +1706,8 @@ namespace Shark {
 			ResourceManager::UnloadAsset(m_ActiveScene->Handle);
 
 		m_ActiveScene = scene;
-		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		if (m_ActiveScene)
+			m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		if (m_SceneRenderer) m_SceneRenderer->SetScene(scene);
 		if (m_CameraPreviewRenderer) m_CameraPreviewRenderer->SetScene(scene);
 		DistributeEvent(SceneChangedEvent(scene));
@@ -1742,10 +1753,7 @@ namespace Shark {
 
 		SK_CORE_INFO("Closing Project");
 
-		m_ActiveScene = nullptr;
-
-		m_SceneRenderer->SetScene(nullptr);
-		m_CameraPreviewRenderer->SetScene(nullptr);
+		SetActiveScene(nullptr);
 		ResourceManager::Shutdown();
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
@@ -1792,7 +1800,8 @@ namespace Shark {
 		auto& config = project->GetConfig();
 		config.Name = "Untitled";
 		config.ProjectDirectory = targetDirectory;
-		config.AssetsDirectory = "Assets";
+		config.AssetsDirectory = targetDirectory / "Assets";
+		FileSystem::FormatDefault(config.AssetsDirectory);
 		config.StartupScenePath = "";
 		config.Gravity = { 0.0f, 9.81f };
 		config.VelocityIterations = 8;

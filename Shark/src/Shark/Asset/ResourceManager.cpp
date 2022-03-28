@@ -12,7 +12,6 @@ namespace Shark {
 	AssetRegistry ResourceManager::s_AssetRegistry;
 	std::unordered_map<AssetHandle, Ref<Asset>> ResourceManager::s_LoadedAssets;
 	std::unordered_map<AssetHandle, Ref<Asset>> ResourceManager::s_MemoryAssets;
-	std::unordered_map<AssetHandle, AssetHandle> ResourceManager::s_AssetRelations;
 
 	void ResourceManager::Init()
 	{
@@ -135,53 +134,6 @@ namespace Shark {
 		s_AssetRegistry.Remove(handle);
 		SaveAssetRegistry();
 
-	}
-
-	bool ResourceManager::SetRelation(AssetHandle parent, AssetHandle child)
-	{
-		if (Utility::Contains(s_AssetRelations, parent))
-			return false;
-
-		s_AssetRelations[parent] = child;
-		return true;
-	}
-
-	void ResourceManager::RemoveRelation(AssetHandle parent)
-	{
-		s_AssetRelations.erase(parent);
-	}
-
-	AssetRelationStatus ResourceManager::GetRelationStatus(AssetHandle handle0, AssetHandle handle1)
-	{
-		auto entry0 = s_AssetRelations.find(handle0);
-		if (entry0 != s_AssetRelations.end() && entry0->second == handle1)
-			return AssetRelationStatus::ParentChild;
-
-		auto entry1 = s_AssetRelations.find(handle1);
-		if (entry1 != s_AssetRelations.end() && entry1->second == handle0)
-			return AssetRelationStatus::ChildParent;
-
-		return AssetRelationStatus::None;
-	}
-
-	AssetHandle ResourceManager::GetChild(AssetHandle parent)
-	{
-		auto entry = s_AssetRelations.find(parent);
-		if (entry == s_AssetRelations.end())
-			return 0;
-		return entry->second;
-	}
-	
-
-	AssetHandle ResourceManager::FindParent(AssetHandle child)
-	{
-		for (auto [parent, c] : s_AssetRelations)
-		{
-			if (c == child)
-				return parent;
-		}
-
-		return AssetHandle::Null();
 	}
 
 	bool ResourceManager::AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName)

@@ -426,7 +426,7 @@ namespace Shark {
 
 		auto extension = entry.Path.extension();
 		if (extension == L".skscene") return m_SceneIcon;
-		if (extension == L".sktexture") return m_TextureIcon;
+		if (extension == L".sktex") return m_TextureIcon;
 		if (extension == L".png") return m_PNGIcon;
 
 		return m_FileIcon;

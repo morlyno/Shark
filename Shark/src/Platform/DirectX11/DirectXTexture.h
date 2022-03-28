@@ -26,6 +26,9 @@ namespace Shark {
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
 		virtual const TextureSpecification& GetSpecification() const override { return m_Specs; }
 
+		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
+		virtual void SetFilePath(const std::filesystem::path& filePath) override { m_FilePath = filePath; }
+
 		ID3D11SamplerState* GetSamplerNative() const { return m_Sampler; }
 		ID3D11ShaderResourceView* GetViewNative() const { return m_Image->GetViewNative(); }
 
@@ -37,6 +40,8 @@ namespace Shark {
 
 		Ref<DirectXImage2D> m_Image;
 		ID3D11SamplerState* m_Sampler = nullptr;;
+
+		std::filesystem::path m_FilePath;
 
 		friend class DirectXRenderer;
 	};

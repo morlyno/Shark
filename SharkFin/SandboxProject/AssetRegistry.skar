@@ -1,19 +1,28 @@
 Assets:
-  - Handle: 76899864016344721
-    Type: Scene
-    FilePath: Scenes/Quads.skscene
-  - Handle: 13497886822040707067
-    Type: Texture
-    FilePath: Textures/Bla.sktexture
-  - Handle: 15680557194317303622
-    Type: TextureSource
-    FilePath: TextureSources/Checkboard.png
-  - Handle: 9943822902076056202
+  - Handle: 13587809227339825262
     Type: Scene
     FilePath: Scenes/PhysicsScene.skscene
-  - Handle: 13275925228538974022
-    Type: TextureSource
-    FilePath: TextureSources/Gear.png
-  - Handle: 17171674895277998508
+  - Handle: 16710442122852241485
+    Type: Scene
+    FilePath: Scenes/Quads.skscene
+  - Handle: 12046611585830764490
     Type: Texture
-    FilePath: Textures/Gear.sktexture
+    FilePath: Textures/Checkerboard.sktex
+  - Handle: 12693261769520851370
+    Type: Scene
+    FilePath: Scenes/MipMapTest.skscene
+  - Handle: 16826537106277708209
+    Type: Texture
+    FilePath: Textures/Checkerboard ( 1).sktex
+  - Handle: 9336167065268116257
+    Type: Texture
+    FilePath: Textures/Gear.sktex
+  - Handle: 5776101383580718814
+    Type: Scene
+    FilePath: Scenes/Physics.skscene
+  - Handle: 3276114795242764014
+    Type: Scene
+    FilePath: Scenes/Sanbox.skscene
+  - Handle: 5445719848639710470
+    Type: Scene
+    FilePath: Scenes/TwoQuads.skscene
