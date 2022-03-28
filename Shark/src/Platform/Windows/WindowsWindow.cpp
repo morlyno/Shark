@@ -136,7 +136,7 @@ namespace Shark {
 			DispatchMessageW(&msg);
 		}
 
-		m_SwapChain->Present();
+		m_SwapChain->Present(m_VSync);
 	}
 
 	LRESULT WINAPI WindowsWindow::WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

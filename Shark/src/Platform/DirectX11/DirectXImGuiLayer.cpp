@@ -59,7 +59,9 @@ namespace Shark {
 
 		m_CommandBuffer = Ref<DirectXRenderCommandBuffer>::Create();
 		ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), m_CommandBuffer->GetContext());
-
+		ImGui_ImplDX11_CreateDeviceObjects();
+		ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, m_CommandBuffer->GetContext());
+		m_CommandBuffer->GetContext()->OMGetBlendState(&m_BlendState, m_BlendFactor, &m_SampleMask);
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
 		if (!ctx.SettingsLoaded && !FileSystem::Exists(ctx.IO.IniFilename))
@@ -67,10 +69,6 @@ namespace Shark {
 			SK_CORE_INFO("\"{}\" file not found, continue with defualt settings", ctx.IO.IniFilename);
 			ImGui::LoadIniSettingsFromDisk("Resources/DefaultImGui.ini");
 		}
-
-		ImGui_ImplDX11_CreateDeviceObjects();
-		ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, m_CommandBuffer->GetContext());
-		m_CommandBuffer->GetContext()->OMGetBlendState(&m_BlendState, m_BlendFactor, &m_SampleMask);
 
 		m_Timer = Ref<DirectXGPUTimer>::Create("ImGui");
 
@@ -131,15 +129,18 @@ namespace Shark {
 		Ref<DirectXFrameBuffer> dxFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
 		dxFrameBuffer->Bind(m_CommandBuffer->GetContext());
 
-		ImGui::Render();
-		ImDrawData* drawData = ImGui::GetDrawData();
-		ImGui_ImplDX11_SetupRenderState(drawData->DisplaySize, m_CommandBuffer->GetContext());
-		ImGui_ImplDX11_RenderDrawData(drawData);
-
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
+			SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render")
+
+			ImGui::Render();
+			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+			{
+				SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render Platform")
+				ImGui::UpdatePlatformWindows();
+				ImGui::RenderPlatformWindowsDefault();
+			}
 		}
 
 		m_CommandBuffer->EndTimeQuery(m_Timer);

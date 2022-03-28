@@ -14,6 +14,7 @@
 	#define SK_ENABLE_MEMORY_TRACING 0
 	#define SK_ENABLE_ASSERT 1
 	#define SK_ENABLE_VERIFY 1
+	#define SK_ENABLE_VALIDATION 1
 	#define SK_IF_DEBUG(x) { x }
 #endif
 
@@ -22,6 +23,7 @@
 	#define SK_ENABLE_MEMORY_TRACING 0
 	#define SK_ENABLE_ASSERT 1
 	#define SK_ENABLE_VERIFY 2
+	#define SK_ENABLE_VALIDATION 1
 	#define SK_IF_DEBUG(...)
 #endif
 

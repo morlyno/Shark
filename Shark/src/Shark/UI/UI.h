@@ -15,9 +15,6 @@ static inline ImVec4 operator/(const ImVec4& lhs, const float rhs) { return ImVe
 namespace ImGui {
 
 	bool TableNextColumn(ImGuiTableRowFlags row_flags, float min_row_height);
-	bool BeginComboEx(ImGuiID id, const char* label, const char* preview_value, ImGuiComboFlags flags);
-	bool BeginCombo(const char* label, const char* preview_value_begin, const char* preview_value_end = nullptr, ImGuiComboFlags flags = 0);
-	bool Selectable(const char* label_begin, const char* label_end, bool selected, ImGuiSelectableFlags flags = 0, const ImVec2& size_arg = ImVec2(0, 0));
 
 }
 

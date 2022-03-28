@@ -68,7 +68,7 @@ namespace Shark {
 		Utils::LogAdapter(adapter);
 
 		UINT createdeviceFalgs = 0u;
-#if SK_DEBUG
+#if SK_ENABLE_VALIDATION
 		createdeviceFalgs |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 

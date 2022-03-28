@@ -1,16 +1,16 @@
 Assets:
-  - Handle: 9943822902076056202
-    Type: Scene
-    FilePath: Scenes/PhysicsScene.skscene
-  - Handle: 15680557194317303622
-    Type: TextureSource
-    FilePath: TextureSources/Checkboard.png
-  - Handle: 13497886822040707067
-    Type: Texture
-    FilePath: Textures/Bla.sktexture
   - Handle: 76899864016344721
     Type: Scene
     FilePath: Scenes/Quads.skscene
+  - Handle: 13497886822040707067
+    Type: Texture
+    FilePath: Textures/Bla.sktexture
+  - Handle: 15680557194317303622
+    Type: TextureSource
+    FilePath: TextureSources/Checkboard.png
+  - Handle: 9943822902076056202
+    Type: Scene
+    FilePath: Scenes/PhysicsScene.skscene
   - Handle: 13275925228538974022
     Type: TextureSource
     FilePath: TextureSources/Gear.png

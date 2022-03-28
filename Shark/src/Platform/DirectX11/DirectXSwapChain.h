@@ -12,7 +12,7 @@ namespace Shark {
 		DirectXSwapChain(const SwapChainSpecifications& specs);
 		virtual ~DirectXSwapChain();
 
-		virtual void Present() override;
+		virtual void Present(bool vSync) override;
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual Ref<FrameBuffer> GetFrameBuffer() const override { return m_FrameBuffer; }

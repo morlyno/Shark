@@ -374,7 +374,7 @@ namespace Shark {
 		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)
 		{
 			m_SelectedProjectionIndex = (int)comp.Camera.GetProjectionType();
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, s_ProjectionItems, (int)std::size(s_ProjectionItems));
 
 

@@ -17,7 +17,7 @@ namespace Shark {
 	public:
 		virtual ~SwapChain() = default;
 
-		virtual void Present() = 0;
+		virtual void Present(bool vSync) = 0;
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual Ref<FrameBuffer> GetFrameBuffer() const = 0;

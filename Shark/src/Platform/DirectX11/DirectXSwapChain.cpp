@@ -29,12 +29,12 @@ namespace Shark {
 			m_SwapChain->Release();
 	}
 
-	void DirectXSwapChain::Present()
+	void DirectXSwapChain::Present(bool vSync)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("SwapChain::Present");
 
-		HRESULT hr = m_SwapChain->Present(0, 0);
+		HRESULT hr = m_SwapChain->Present(vSync ? 1 : 0, 0);
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_HUNG || hr == DXGI_ERROR_DEVICE_RESET)
 		{
 			auto device = DirectXRenderer::GetDevice();
@@ -43,14 +43,7 @@ namespace Shark {
 			SK_CORE_ASSERT(false);
 		}
 
-		if (hr == DXGI_STATUS_MODE_CHANGED)
-		{
-			SK_CORE_WARN("DirectXSwapChain::Present DXGI_STATUS_MODE_CHANGED");
-			SK_DEBUG_BREAK();
-			DirectXRenderer::GetContext()->ClearState();
-			ReCreateSwapChain();
-		}
-
+		SK_CORE_ASSERT(SUCCEEDED(hr));
 	}
 
 	void DirectXSwapChain::Resize(uint32_t width, uint32_t height)
@@ -64,10 +57,10 @@ namespace Shark {
 
 		m_Specs.Widht = width;
 		m_Specs.Height = height;
-		ReCreateSwapChain();
+		//ReCreateSwapChain();
 
 		m_FrameBuffer = nullptr;
-		HRESULT hr = m_SwapChain->ResizeBuffers(m_Specs.BufferCount, width, height, DXGI_FORMAT_UNKNOWN, 0);
+		HRESULT hr = m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 		SK_CORE_ASSERT(SUCCEEDED(hr));
 		{
 			FrameBufferSpecification specs;
@@ -131,7 +124,7 @@ namespace Shark {
 		scd.BufferCount = m_Specs.BufferCount;
 		scd.OutputWindow = (HWND)window.GetHandle();
 		scd.Windowed = TRUE;
-		scd.SwapEffect = m_Specs.BufferCount == 1 ? DXGI_SWAP_EFFECT_DISCARD : DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		scd.Flags = 0u;
 
 		auto* fac = DirectXRenderer::GetFactory();

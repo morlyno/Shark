@@ -14,7 +14,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
 
-#if SK_DEBUG
+#if SK_ENABLE_VALIDATION
 #define SK_FILL_TEXTURE_ARRAY_DEBUG(texArr, whiteTexture) { auto&& textureArray = (texArr); for (uint32_t i = 0; i < textureArray->Count(); i++) if (!textureArray->Get(i)) textureArray->Set(i, whiteTexture); }
 #else
 #define SK_FILL_TEXTURE_ARRAY_DEBUG(...)
