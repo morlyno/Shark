@@ -18,6 +18,11 @@ namespace ImGui {
 
 }
 
+inline std::ostream& operator<<(std::ostream& out, const ImVec2& v)
+{
+	return out << fmt::format("[{}, {}]", v.x, v.y);
+}
+
 namespace Shark::UI {
 
 	struct UIControl;

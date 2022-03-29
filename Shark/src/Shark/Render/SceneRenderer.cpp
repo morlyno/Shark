@@ -21,7 +21,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (m_Scene->GetViewportWidth() != 0 && m_Scene->GetViewportHeight() != 0)
+		if (m_Scene && m_Scene->GetViewportWidth() != 0 && m_Scene->GetViewportHeight() != 0)
 		{
 			m_ViewportWidth = m_Scene->GetViewportWidth();
 			m_ViewportHeight = m_Scene->GetViewportHeight();
@@ -29,7 +29,7 @@ namespace Shark {
 		}
 		else
 		{
-			SK_CORE_WARN("SceneRenderer Invalid Viewport Size!");
+			SK_CORE_WARN("SceneRenderer Unkown Viewport Size!");
 			m_ViewportWidth = 1280;
 			m_ViewportHeight = 720;
 		}

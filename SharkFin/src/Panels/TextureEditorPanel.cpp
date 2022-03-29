@@ -22,12 +22,15 @@ namespace Shark {
 
 	TextureEditorPanel::TextureEditorPanel(Ref<Texture2D> sourceTexture)
 	{
-		m_DockspaceWindowName = fmt::format("Texture Editor##{}", sourceTexture->Handle);
-		m_DockspaceName = fmt::format("DockSpace{}", sourceTexture->Handle);
-		m_ViewportName = fmt::format("Viewport##{}", sourceTexture->Handle);
-		m_SettingsName = fmt::format("Texture Settings##{}", sourceTexture->Handle);
+		SK_PROFILE_FUNCTION();
 
-		ImGuiWindow* window = ImGui::FindWindowByName(m_DockspaceWindowName.c_str());
+		m_DockspaceWindowID = UI::GetID(fmt::format("DockspaceWindow{}", sourceTexture->Handle));
+		m_DockspaceID       = UI::GetID(fmt::format("DockSpace{}", sourceTexture->Handle));
+		m_ViewportID        = UI::GetID(fmt::format("Viewport{}", sourceTexture->Handle));
+		m_SettingsID        = UI::GetID(fmt::format("Settings{}", sourceTexture->Handle));
+
+		// Check if current texture has allready been used
+		ImGuiWindow* window = ImGui::FindWindowByID(m_DockspaceWindowID);
 		if (window && window->LastFrameActive == (ImGui::GetFrameCount() - 1))
 		{
 			m_Active = false;
@@ -35,6 +38,7 @@ namespace Shark {
 		}
 
 		SetupWindows();
+		ImGui::FocusWindow(ImGui::FindWindowByID(m_ViewportID));
 
 		m_SourceTexture = sourceTexture;
 		m_EditTexture = ResourceManager::CreateMemoryAsset<Texture2D>(sourceTexture);
@@ -45,6 +49,7 @@ namespace Shark {
 		m_Scene->SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
 		m_Camera.SetProjection((float)m_ViewportSize.x / (float)m_ViewportSize.y, 45, 0.01f, 1000.0f);
+		m_Camera.SetDistance(1.5f);
 
 
 		m_Entity = m_Scene->CreateEntity();
@@ -54,10 +59,13 @@ namespace Shark {
 
 	TextureEditorPanel::~TextureEditorPanel()
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	void TextureEditorPanel::OnUpdate(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_Active)
 			return;
 
@@ -80,15 +88,23 @@ namespace Shark {
 
 	void TextureEditorPanel::OnImGuiRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_Active)
 			return;
 
+		if (m_IsFirstFrame)
+		{
+			m_IsFirstFrame = false;
+			return;
+		}
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin(m_DockspaceWindowName.c_str(), &m_Active, ImGuiWindowFlags_NoSavedSettings);
+		ImGui::BeginEx("Texture Editor", m_DockspaceWindowID, &m_Active, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::PopStyleVar(2);
 
-		ImGui::DockSpace(ImGui::GetID(m_DockspaceName.c_str()));
+		ImGui::DockSpace(m_DockspaceID);
 		ImGui::End();
 
 		UI_DrawViewport();
@@ -98,32 +114,36 @@ namespace Shark {
 
 	void TextureEditorPanel::OnEvent(Event& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_ViewportHovered)
 			m_Camera.OnEvent(event);
 	}
 
 	void TextureEditorPanel::UI_DrawViewport()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin(m_ViewportName.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+		ImGui::BeginEx("Viewport", m_ViewportID, nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::PopStyleVar(3);
 
 		m_ViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
-		ImVec2 size = ImGui::GetContentRegionAvail();
-
+		const ImVec2 size = ImGui::GetContentRegionAvail();
 		if ((float)m_ViewportSize.x != size.x || (float)m_ViewportSize.y != size.y)
 		{
+			SK_CORE_WARN("Resize detected: {} => {}", m_ViewportSize, size);
 			m_ViewportSize = (glm::uvec2)size;
 			m_NeedsResize = true;
 		}
 
 		// Note(moro): The InvisibleButton prevents imgui form moving the window form anywere but the titlebar
 		//             This is currently the only way to do so as ImGuiIO::ConfigWindowsMoveFromTitleBarOnly dosn't work per window
-		ImVec2 cursor = ImGui::GetCursorPos();
+		const ImVec2 cursor = ImGui::GetCursorPos();
 		ImGui::InvisibleButton("Dummy", size);
 		ImGui::SetCursorPos(cursor);
 
@@ -136,7 +156,9 @@ namespace Shark {
 
 	void TextureEditorPanel::UI_DrawSettings()
 	{
-		ImGui::Begin(m_SettingsName.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+		SK_PROFILE_FUNCTION();
+
+		ImGui::BeginEx("Settings", m_SettingsID, nullptr, ImGuiWindowFlags_NoSavedSettings);
 
 		const auto& capabilities = Renderer::GetCapabilities();
 
@@ -204,46 +226,70 @@ namespace Shark {
 
 	void TextureEditorPanel::SetupWindows()
 	{
-		auto& app = Application::Get();
-		auto& window = app.GetWindow();
+		SK_PROFILE_FUNCTION();
 
-		glm::vec2 windowSize = (glm::vec2)window.GetSize() * 0.45f;
-		glm::vec2 windowPos = (glm::vec2)window.GetPos() + (glm::vec2)window.GetSize() * 0.5f - windowSize * 0.5f;
+		if (!ImGui::FindWindowByID(m_DockspaceWindowID))
+		{
+			auto& app = Application::Get();
+			auto& window = app.GetWindow();
 
-		ImGui::SetNextWindowPos(windowPos);
-		ImGui::SetNextWindowSize(windowSize);
+			const float windowRatio = 0.55;
+			const float dockSplittRatio = 0.65f;
 
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin(m_DockspaceWindowName.c_str(), &m_Active, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::PopStyleVar(3);
+			const glm::vec2 windowSize = (glm::vec2)window.GetSize() * windowRatio;
+			const glm::vec2 windowPos = (glm::vec2)window.GetPos() + (glm::vec2)window.GetSize() * 0.5f - windowSize * 0.5f;
 
-		ImGuiID dockspaceID = ImGui::GetID(m_DockspaceName.c_str());
-		ImGui::DockSpace(dockspaceID);
-		ImGui::End();
+			ImGui::SetNextWindowPos(windowPos);
+			ImGui::SetNextWindowSize(windowSize);
 
-		ImGuiID viewportDockID, settingsDockID;
-		ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Left, 0.55f, &viewportDockID, &settingsDockID);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+			ImGui::BeginEx("Texture Editor", m_DockspaceWindowID, nullptr, ImGuiWindowFlags_NoSavedSettings);
+			ImGui::PopStyleVar(3);
+			//ImGui::DockSpace(m_DockspaceID, windowSize);
+			ImGui::End();
 
-		ImGuiDockNode* node = ImGui::DockBuilderGetNode(viewportDockID);
-		node->LocalFlags |= ImGuiDockNodeFlags_HiddenTabBar;
+			ImGui::BeginEx("Viewport", m_ViewportID, nullptr, ImGuiWindowFlags_NoSavedSettings);
+			ImGui::End();
+
+			ImGui::BeginEx("Settings", m_SettingsID, nullptr, ImGuiWindowFlags_NoSavedSettings);
+			ImGui::End();
+
+			ImGuiWindow* dock = ImGui::FindWindowByID(m_DockspaceWindowID);
+			ImGuiWindow* viewport = ImGui::FindWindowByID(m_ViewportID);
+			ImGuiWindow* settings = ImGui::FindWindowByID(m_SettingsID);
+
+			ImGui::DockBuilderAddNode(m_DockspaceID, ImGuiDockNodeFlags_DockSpace);
+			ImGui::DockBuilderSetNodeSize(m_DockspaceID, windowSize);
+			ImGui::DockBuilderSetNodePos(m_DockspaceID, windowPos);
+			ImGui::SetWindowDock(dock, m_DockspaceID, ImGuiCond_Always);
+
+			ImGuiDockNode* dockspaceNode = ImGui::DockBuilderGetNode(m_DockspaceID);
+			ImGui::DockNodeAddWindow(dockspaceNode, dock, true);
 
 
-		ImGui::SetNextWindowDockID(viewportDockID);
-		ImGui::Begin(m_ViewportName.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
-		ImGui::End();
+			ImGuiID dockViewport, dockSettings;
+			ImGui::DockBuilderSplitNode(m_DockspaceID, ImGuiDir_Left, dockSplittRatio, &dockViewport, &dockSettings);
 
-		ImGui::SetNextWindowDockID(settingsDockID);
-		ImGui::Begin(m_SettingsName.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+			ImGuiDockNode* viewportNode = ImGui::DockBuilderGetNode(dockViewport);
+			ImGuiDockNode* settingsNode = ImGui::DockBuilderGetNode(dockSettings);
 
-		UI::BeginControlsGrid();
-		ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch, 0.5f);
-		UI::EndControls();
+			viewportNode->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
 
-		ImGui::End();
+			ImGui::SetWindowDock(viewport, dockViewport, ImGuiCond_Always);
+			ImGui::SetWindowDock(settings, dockSettings, ImGuiCond_Always);
+			ImGui::DockNodeAddWindow(viewportNode, viewport, false);
+			ImGui::DockNodeAddWindow(settingsNode, settings, true);
+			
+			// NOTE(moro): more context to 19.0f soon
+			//             19.0f shoud be the height of a nodes tabbar
+			const float tabbarHeight = GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+			ImGui::DockBuilderSetNodeSize(dockViewport, viewportNode->Size - ImVec2(0.0f, tabbarHeight));
+		}
 
-		m_ViewportSize = (glm::uvec2)ImGui::DockBuilderGetNode(viewportDockID)->Size;
+		ImGuiDockNode* viewportNode = ImGui::FindWindowByID(m_ViewportID)->DockNode;
+		m_ViewportSize = { viewportNode->Size.x, viewportNode->Size.y };
 	}
 
 }

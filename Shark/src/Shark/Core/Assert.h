@@ -11,8 +11,8 @@
 #define SK_ASSERT(...) SK_EXPAND( SK_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_, __VA_ARGS__) )
 #define SK_CORE_ASSERT(...) SK_EXPAND( SK_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_CORE_, __VA_ARGS__) )
 #else
-#define SK_ASSERT(...)
-#define SK_CORE_ASSERT(...)
+#define SK_ASSERT(...) (void)0
+#define SK_CORE_ASSERT(...) (void)0
 #endif
 
 #if SK_ENABLE_VERIFY == 1

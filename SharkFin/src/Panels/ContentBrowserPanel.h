@@ -51,6 +51,9 @@ namespace Shark {
 		void DrawCell(DirectoryEntry& entry);
 		void DrawMenuBar();
 
+		void DrawPopups();
+		void DrawDragDropTooltip();
+
 		void CacheDirectory(const std::filesystem::path& rootPath);
 		void CacheDirectory(DirectoryEntry& directory, const std::filesystem::path& directoryPath);
 

@@ -1,16 +1,16 @@
 Assets:
-  - Handle: 13587809227339825262
-    Type: Scene
-    FilePath: Scenes/PhysicsScene.skscene
   - Handle: 16710442122852241485
     Type: Scene
     FilePath: Scenes/Quads.skscene
-  - Handle: 12046611585830764490
-    Type: Texture
-    FilePath: Textures/Checkerboard.sktex
+  - Handle: 13587809227339825262
+    Type: Scene
+    FilePath: Scenes/PhysicsScene.skscene
   - Handle: 12693261769520851370
     Type: Scene
     FilePath: Scenes/MipMapTest.skscene
+  - Handle: 12046611585830764490
+    Type: Texture
+    FilePath: Textures/Checkerboard.sktex
   - Handle: 16826537106277708209
     Type: Texture
     FilePath: Textures/Checkerboard ( 1).sktex

@@ -11,14 +11,13 @@ namespace Shark {
 	public:
 		virtual ~Panel() = default;
 
-		virtual void OnUpdate(TimeStep ts) {};
-		virtual void OnImGuiRender() {};
+		virtual void OnUpdate(TimeStep ts) {}
+		virtual void OnImGuiRender() {}
 
 		virtual void OnEvent(Event& event) {}
 
 		virtual bool WantDestroy() const { return false; }
 		virtual bool IsShown() const { return true; }
-		virtual bool ViewportHovered() const { return false; }
 	};
 
 }

@@ -9,14 +9,9 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/File/FileWatcher.h"
 
-namespace Shark {
+#include "Shark/Debug/Instrumentor.h"
 
-	enum class AssetRelationStatus
-	{
-		None = 0,
-		ParentChild,
-		ChildParent
-	};
+namespace Shark {
 
 	class ResourceManager
 	{
@@ -53,6 +48,8 @@ namespace Shark {
 		template<typename T = Asset>
 		static Ref<T> GetAsset(AssetHandle handle)
 		{
+			SK_PROFILE_FUNCTION();
+
 			static_assert(std::is_base_of_v<Asset, T>, "GetAsset only works for types with base class Asset");
 			if (!handle.IsValid())
 				return nullptr;
@@ -97,6 +94,8 @@ namespace Shark {
 		template<typename T, typename... Args>
 		static Ref<T> CreateAsset(const std::string& directoryPath, const std::string& fileName, Args&&... args)
 		{
+			SK_PROFILE_FUNCTION();
+
 			static_assert(!std::is_same_v<Asset, T>);
 			static_assert(std::is_base_of_v<Asset, T>, "CreateAsset only works for types with base class Asset!");
 			SK_CORE_ASSERT(GetAssetTypeFormFile(fileName) == T::GetStaticType());
@@ -143,6 +142,8 @@ namespace Shark {
 		template<typename T, typename... Args>
 		static Ref<T> CreateMemoryAsset(Args&&... args)
 		{
+			SK_PROFILE_FUNCTION();
+
 			static_assert(std::is_base_of_v<Asset, T>, "CreateMemoryAsset only works for types with base class Asset!");
 
 			AssetHandle handle = AssetHandle::Generate();

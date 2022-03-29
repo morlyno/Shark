@@ -15,11 +15,18 @@ namespace Shark {
 
 	void ResourceManager::Init()
 	{
+		SK_PROFILE_FUNCTION();
+
+		SK_CORE_ASSERT(s_AssetRegistry.Count() == 0);
+		SK_CORE_ASSERT(s_MemoryAssets.empty());
+		SK_CORE_ASSERT(s_LoadedAssets.empty());
 		LoadAssetRegistry();
 	}
 
 	void ResourceManager::Shutdown()
 	{
+		SK_PROFILE_FUNCTION();
+
 		SaveAssetRegistry();
 		s_AssetRegistry.Clear();
 		Unload();
@@ -27,6 +34,8 @@ namespace Shark {
 
 	void ResourceManager::Unload()
 	{
+		SK_PROFILE_FUNCTION();
+
 		s_MemoryAssets.clear();
 		s_LoadedAssets.clear();
 	}
@@ -38,21 +47,29 @@ namespace Shark {
 
 	bool ResourceManager::IsValidAssetHandle(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		return handle.IsValid() && (s_AssetRegistry.Contains(handle) || IsMemoryAsset(handle));
 	}
 
 	bool ResourceManager::IsDataLoaded(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		return GetMetaData(handle).IsDataLoaded;
 	}
 
 	bool ResourceManager::IsMemoryAsset(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		return Utility::Contains(s_MemoryAssets, handle);
 	}
 
 	std::filesystem::path ResourceManager::GetRelativePath(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::string path = filePath.string();
 		if (path.find(Project::GetAssetsPath().string()) != std::string::npos)
 			return FileSystem::FormatDefaultCopy(std::filesystem::relative(filePath, Project::GetAssetsPath()));
@@ -61,6 +78,8 @@ namespace Shark {
 
 	AssetHandle ResourceManager::GetAssetHandleFromFilePath(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto relativePath = GetRelativePath(filePath);
 		for (auto [handle, metadata] : s_AssetRegistry)
 			if (metadata.FilePath == relativePath)
@@ -70,6 +89,8 @@ namespace Shark {
 
 	bool ResourceManager::LoadAsset(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto& metadata = GetMetaDataInternal(handle);
 		if (!metadata.IsDataLoaded)
 		{
@@ -83,6 +104,8 @@ namespace Shark {
 
 	bool ResourceManager::SaveAsset(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (IsMemoryAsset(handle))
 			return false;
 
@@ -95,6 +118,8 @@ namespace Shark {
 
 	bool ResourceManager::SaveAsset(Ref<Asset> asset)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!asset)
 			return false;
 
@@ -106,6 +131,8 @@ namespace Shark {
 
 	void ResourceManager::ReloadAsset(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		AssetMetaData& metadata = GetMetaDataInternal(handle);
 		if (metadata.IsDataLoaded)
 			AssetSerializer::Deserialize(GetAsset(handle), GetMetaDataInternal(handle));
@@ -113,6 +140,8 @@ namespace Shark {
 
 	void ResourceManager::UnloadAsset(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(IsValidAssetHandle(handle));
 		if (IsMemoryAsset(handle))
 			s_MemoryAssets.erase(handle);
@@ -124,6 +153,8 @@ namespace Shark {
 
 	void ResourceManager::DeleteAsset(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (IsMemoryAsset(handle))
 		{
 			s_MemoryAssets.erase(handle);
@@ -138,6 +169,8 @@ namespace Shark {
 
 	bool ResourceManager::AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!IsMemoryAsset(handle))
 			return false;
 
@@ -174,6 +207,8 @@ namespace Shark {
 
 	AssetHandle ResourceManager::ImportAsset(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		AssetType type = GetAssetTypeFormFilePath(filePath);
 		if (type == AssetType::None)
 			return 0;
@@ -201,6 +236,8 @@ namespace Shark {
 	static AssetMetaData s_NullMetaData;
 	AssetMetaData& ResourceManager::GetMetaDataInternal(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (s_AssetRegistry.Contains(handle))
 			return s_AssetRegistry.Get(handle);
 		return s_NullMetaData;
@@ -208,6 +245,8 @@ namespace Shark {
 
 	AssetType ResourceManager::GetAssetTypeFormFileExtention(const std::string& fileExtention)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::string extention = String::ToLowerCopy(fileExtention);
 		if (!Utility::Contains(AssetExtentionMap, extention))
 			return AssetType::None;
@@ -216,6 +255,8 @@ namespace Shark {
 
 	void ResourceManager::SaveAssetRegistry()
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto filePath = Project::GetProjectDirectory() / "AssetRegistry.skar";
 
 		YAML::Emitter out;
@@ -250,6 +291,8 @@ namespace Shark {
 
 	void ResourceManager::LoadAssetRegistry()
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto filePath = Project::GetProjectDirectory() / "AssetRegistry.skar";
 
 		if (!FileSystem::Exists(filePath))
@@ -265,6 +308,8 @@ namespace Shark {
 			SK_CORE_ERROR("Invalid AssetRegistry file");
 			return;
 		}
+
+		s_AssetRegistry.Clear();
 
 		auto assets = in["Assets"];
 		for (auto asset : assets)

@@ -11,7 +11,7 @@
 #include "Panels/SceneHirachyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/TextureEditorPanel.h"
-#include "Panels/EditorPanelManager.h"
+#include "Panels/PanelManager.h"
 
 #include <ImGuizmo.h>
 
@@ -112,6 +112,8 @@ namespace Shark {
 		bool m_NeedsResize = true;
 
 		TimeStep m_TimeStep;
+
+		Scope<PanelManager> m_PanelManager;
 
 		bool m_ShowSceneHirachyPanel = true;
 		bool m_ShowAssetsPanel = true;

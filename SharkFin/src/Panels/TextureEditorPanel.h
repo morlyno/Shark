@@ -13,6 +13,8 @@
 
 #include "Panels/Panel.h"
 
+#include <imgui.h>
+
 namespace Shark {
 
 	class TextureEditorPanel : public Panel
@@ -26,7 +28,7 @@ namespace Shark {
 		virtual void OnEvent(Event& event) override;
 
 		virtual bool WantDestroy() const override { return !m_Active; }
-		virtual bool ViewportHovered() const override { return m_ViewportHovered; }
+		bool ViewportHovered() const { return m_ViewportHovered; }
 
 	private:
 		void UI_DrawViewport();
@@ -36,6 +38,7 @@ namespace Shark {
 
 	private:
 		bool m_Active = true;
+		bool m_IsFirstFrame = true;
 
 		Ref<Scene> m_Scene;
 		Ref<SceneRenderer> m_Renderer;
@@ -54,10 +57,10 @@ namespace Shark {
 		bool m_ViewportHovered = false;
 		bool m_ViewportFocused = false;
 
-		std::string m_DockspaceWindowName;
-		std::string m_DockspaceName;
-		std::string m_ViewportName;
-		std::string m_SettingsName;
+		ImGuiID m_DockspaceWindowID;
+		ImGuiID m_DockspaceID;
+		ImGuiID m_ViewportID;
+		ImGuiID m_SettingsID;
 
 #if SK_TEXTURE_EDITOR_PANEL_NEW_UI
 		FilterMode m_FilterMode = FilterMode::Linear;

@@ -14,7 +14,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		CacheDirectory(Project::GetAssetsPath());
+		if (Project::GetActive())
+			CacheDirectory(Project::GetAssetsPath());
 
 		m_FolderIcon   = Texture2D::Create("Resources/ContentBrowser/folder_open.png");
 		m_FileIcon     = Texture2D::Create("Resources/ContentBrowser/file.png");
@@ -64,54 +65,8 @@ namespace Shark {
 			ImGui::EndTable();
 		}
 
-		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-		{
-			if (m_SelectedEntry && m_IsSelectedHovered)
-				ImGui::OpenPopup("Entry Settings");
-			else
-				ImGui::OpenPopup("Directory Settings");
-		}
-
-		m_IgnoreSelection = false;
-		if (ImGui::BeginPopup("Entry Settings"))
-		{
-			m_IgnoreSelection = true;
-			SK_CORE_ASSERT(m_SelectedEntry);
-
-			if (ImGui::MenuItem("Reload", nullptr, false, m_SelectedEntry->Handle))
-				ResourceManager::ReloadAsset(m_SelectedEntry->Handle);
-
-			if (ImGui::MenuItem("Import", nullptr, false, m_SelectedEntry->Type == EntryType::File && !m_SelectedEntry->Handle.IsValid()))
-				ImportEntry(*m_SelectedEntry);
-
-			ImGui::Separator();
-
-			if (ImGui::Selectable("Open"))           Utility::OpenFile(Project::AbsolueCopy(m_SelectedEntry->Path));
-			if (ImGui::Selectable("Open With"))      Utility::OpenFileWith(Project::AbsolueCopy(m_SelectedEntry->Path));
-			if (ImGui::Selectable("Open Explorer"))  Utility::OpenExplorer(Project::AbsolueCopy(m_CurrentDirectory->Path));
-
-			ImGui::EndPopup();
-		}
-
-		if (ImGui::BeginPopup("Directory Settings"))
-		{
-			m_IgnoreSelection = true;
-			UI::Text("Directory Settings");
-			ImGui::EndPopup();
-		}
-
-		if (m_DragDropActive)
-		{
-			ImGui::BeginTooltip();
-			UI::Text(m_DragDropEntry->DisplayName);
-			ImGui::EndTooltip();
-
-			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-			{
-				m_DragDropActive = false;
-				m_DragDropEntry = nullptr;
-			}
-		}
+		DrawPopups();
+		DrawDragDropTooltip();
 
 		ImGui::End();
 	}
@@ -176,57 +131,59 @@ namespace Shark {
 		{
 			ImGui::TableNextRow(0, m_MinCellHeight);
 
-			for (auto& entry : m_CurrentDirectory->ChildEntrys)
+			if (m_CurrentDirectory)
 			{
-				if (entry.Type != EntryType::Directory && m_Settings.ShowOnlyAssets && !entry.Handle.IsValid())
-					continue;
-
-				ImGui::TableNextColumn(0, m_MinCellHeight);
-
-				UI::PushID(entry.DisplayName);
-
-				const bool isSelectedEntry = &entry == m_SelectedEntry;
-				ImVec2 cursorPos = ImGui::GetCursorPos();
-				ImGui::Selectable("##Dummy", isSelectedEntry, 0, { m_CellWidth, m_MinCellHeight });
-				const bool isHovered = ImGui::IsItemHovered();
-
-				if (isSelectedEntry)
-					m_IsSelectedHovered = isHovered;
-
-				if (isHovered)
+				for (auto& entry : m_CurrentDirectory->ChildEntrys)
 				{
-					if (!m_IgnoreSelection && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-						m_SelectedEntry = &entry;
-					if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+					if (entry.Type != EntryType::Directory && m_Settings.ShowOnlyAssets && !entry.Handle.IsValid())
+						continue;
+
+					ImGui::TableNextColumn(0, m_MinCellHeight);
+
+					UI::PushID(entry.DisplayName);
+
+					const bool isSelectedEntry = &entry == m_SelectedEntry;
+					ImVec2 cursorPos = ImGui::GetCursorPos();
+					ImGui::Selectable("##Dummy", isSelectedEntry, 0, { m_CellWidth, m_MinCellHeight });
+					const bool isHovered = ImGui::IsItemHovered();
+
+					if (isSelectedEntry)
+						m_IsSelectedHovered = isHovered;
+
+					if (isHovered)
 					{
-						if (entry.Type == EntryType::Directory)
-							m_CurrentDirectory = m_SelectedEntry;
-						else if (entry.Type == EntryType::File && entry.Handle)
-							m_OpenAssetCallback(entry.Handle);
+						if (!m_IgnoreSelection && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+							m_SelectedEntry = &entry;
+						if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+						{
+							if (entry.Type == EntryType::Directory)
+								m_CurrentDirectory = m_SelectedEntry;
+							else if (entry.Type == EntryType::File && entry.Handle)
+								m_OpenAssetCallback(entry.Handle);
+						}
 					}
+
+					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoPreviewTooltip))
+					{
+						if (entry.Handle)
+							ImGui::SetDragDropPayload("ASSET", &entry.Handle, sizeof(entry.Handle));
+						else if (entry.Type == EntryType::File)
+							ImGui::SetDragDropPayload("ASSET_FILEPATH", entry.Path.native().c_str(), entry.Path.native().size() * sizeof(wchar_t));
+						else if (entry.Type == EntryType::Directory)
+							ImGui::SetDragDropPayload("DIRECTORY_FILEPATH", entry.Path.native().c_str(), entry.Path.native().size() * sizeof(wchar_t));
+
+						ImGui::EndDragDropSource();
+						m_DragDropActive = true;
+						m_DragDropEntry = &entry;
+					}
+
+					ImGui::SetCursorPos(cursorPos);
+
+					DrawCell(entry);
+					UI::PopID();
+
 				}
-
-				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoPreviewTooltip))
-				{
-					if (entry.Handle)
-						ImGui::SetDragDropPayload("ASSET", &entry.Handle, sizeof(entry.Handle));
-					else if (entry.Type == EntryType::File)
-						ImGui::SetDragDropPayload("ASSET_FILEPATH", entry.Path.native().c_str(), entry.Path.native().size() * sizeof(wchar_t));
-					else if (entry.Type == EntryType::Directory)
-						ImGui::SetDragDropPayload("DIRECTORY_FILEPATH", entry.Path.native().c_str(), entry.Path.native().size() * sizeof(wchar_t));
-
-					ImGui::EndDragDropSource();
-					m_DragDropActive = true;
-					m_DragDropEntry = &entry;
-				}
-
-				ImGui::SetCursorPos(cursorPos);
-
-				DrawCell(entry);
-				UI::PopID();
-
 			}
-
 			ImGui::EndTable();
 		}
 	}
@@ -317,6 +274,61 @@ namespace Shark {
 
 		ImGui::PopStyleColor(3);
 
+	}
+
+	void ContentBrowserPanel::DrawPopups()
+	{
+		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+		{
+			if (m_SelectedEntry && m_IsSelectedHovered)
+				ImGui::OpenPopup("Entry Settings");
+			else
+				ImGui::OpenPopup("Directory Settings");
+		}
+
+		m_IgnoreSelection = false;
+		if (ImGui::BeginPopup("Entry Settings"))
+		{
+			m_IgnoreSelection = true;
+			SK_CORE_ASSERT(m_SelectedEntry);
+
+			if (ImGui::MenuItem("Reload", nullptr, false, m_SelectedEntry->Handle))
+				ResourceManager::ReloadAsset(m_SelectedEntry->Handle);
+
+			if (ImGui::MenuItem("Import", nullptr, false, m_SelectedEntry->Type == EntryType::File && !m_SelectedEntry->Handle.IsValid()))
+				ImportEntry(*m_SelectedEntry);
+
+			ImGui::Separator();
+
+			if (ImGui::Selectable("Open"))           Utility::OpenFile(Project::AbsolueCopy(m_SelectedEntry->Path));
+			if (ImGui::Selectable("Open With"))      Utility::OpenFileWith(Project::AbsolueCopy(m_SelectedEntry->Path));
+			if (ImGui::Selectable("Open Explorer"))  Utility::OpenExplorer(Project::AbsolueCopy(m_CurrentDirectory->Path));
+
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginPopup("Directory Settings"))
+		{
+			m_IgnoreSelection = true;
+			UI::Text("Directory Settings");
+			ImGui::EndPopup();
+		}
+	}
+
+	void ContentBrowserPanel::DrawDragDropTooltip()
+	{
+		if (m_DragDropActive)
+		{
+			ImGui::BeginTooltip();
+			UI::Text(m_DragDropEntry->DisplayName);
+			ImGui::EndTooltip();
+
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+			{
+				m_DragDropActive = false;
+				m_DragDropEntry = nullptr;
+			}
+		}
 	}
 
 	void ContentBrowserPanel::CacheDirectory(const std::filesystem::path& rootPath)

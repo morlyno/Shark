@@ -65,6 +65,12 @@ namespace Shark {
 
 	}
 
+	SceneHirachyPanel::SceneHirachyPanel(Ref<Scene> scene)
+		: m_Context(scene)
+	{
+
+	}
+
 	void SceneHirachyPanel::OnImGuiRender()
 	{
 		SK_PROFILE_FUNCTION();

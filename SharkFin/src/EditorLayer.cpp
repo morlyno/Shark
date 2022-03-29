@@ -20,6 +20,10 @@
 #include <misc/cpp/imgui_stdlib.h>
 
 
+#define SCENE_HIRACHY_ID "SceneHirachyPanel"
+#define CONTENT_BROWSER_ID "ContentBrowserPanel"
+#define TEXTURE_EDITOR_ID "TextureEditorPanel"
+
 namespace Shark {
 
 	static bool s_ShowDemoWindow = false;
@@ -28,7 +32,6 @@ namespace Shark {
 		: Layer("EditorLayer"), m_StartupProject(startupProject)
 	{
 		SK_PROFILE_FUNCTION();
-
 	}
 
 	EditorLayer::~EditorLayer()
@@ -40,12 +43,38 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		// NOTE(moro): These values are not correct but are needed to for initialization
-		//             The Viewport Size is correct after Resizing in the first frame.
+		// Load icons
+		m_PlayIcon = Texture2D::Create("Resources/PlayButton.png");
+		m_StopIcon = Texture2D::Create("Resources/StopButton.png");
+		m_SimulateIcon = Texture2D::Create("Resources/SimulateButton.png");
+		m_PauseIcon = Texture2D::Create("Resources/PauseButton.png");
+		m_StepIcon = Texture2D::Create("Resources/StepButton.png");
+
+
+		// Create and setup Panels
+		m_PanelManager = Scope<PanelManager>::Create();
+
+		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, m_WorkScene);
+		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
+
+		auto contentBrowserPanel = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID);
+		contentBrowserPanel->SetOpenAssetCallback(std::bind(&EditorLayer::OpenAssetCallback, this, std::placeholders::_1));
+
+
+		// Renderer stuff
 		auto& window = Application::Get().GetWindow();
 		m_ViewportWidth = window.GetWidth();
 		m_ViewportHeight = window.GetHeight();
 		m_EditorCamera.SetProjection(16.0f / 9.0f, 45, 0.01f, 1000.0f);
+
+		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
+		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
+		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer());
+
+		// Readable Mouse image for Mouse Picking
+		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
+		imageSpecs.Type = ImageType::Storage;
+		m_MousePickingImage = Image2D::Create(imageSpecs, nullptr);
 
 
 		// Load Project
@@ -54,46 +83,13 @@ namespace Shark {
 		else
 			SK_CORE_ASSERT(false, "No Startup Project!");
 
-		SK_CORE_ASSERT(m_ActiveScene, "Failed to load Startup Scene from Project");
-
-		// Create and setup Panels
-		EditorPanelManager::Init();
-		auto contentBrowserPanel = EditorPanelManager::GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID);
-		contentBrowserPanel->SetOpenAssetCallback(std::bind(&EditorLayer::OpenAssetCallback, this, std::placeholders::_1));
-
-		auto sceneHirachyPanel = EditorPanelManager::GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID);
-		sceneHirachyPanel->SetContext(m_ActiveScene);
-		sceneHirachyPanel->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
-		
 		SK_CORE_ASSERT(FileWatcher::IsRunning());
-
-
-		// Load icons
-		m_PlayIcon       = Texture2D::Create("Resources/PlayButton.png");
-		m_StopIcon       = Texture2D::Create("Resources/StopButton.png");
-		m_SimulateIcon   = Texture2D::Create("Resources/SimulateButton.png");
-		m_PauseIcon      = Texture2D::Create("Resources/PauseButton.png");
-		m_StepIcon       = Texture2D::Create("Resources/StepButton.png");
-
-
-		// Renderer stuff
-		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
-		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
-
-		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer());
-
-		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
-		imageSpecs.Type = ImageType::Storage;
-		m_MousePickingImage = Image2D::Create(imageSpecs, nullptr);
-
 		FileWatcher::SetFileChangedCallback(std::bind(&EditorLayer::OnFileChanged, this, std::placeholders::_1));
 	}
 
 	void EditorLayer::OnDetach()
 	{
 		SK_PROFILE_FUNCTION();
-
-		EditorPanelManager::Shutdown();
 
 		CloseProject();
 		FileWatcher::SetFileChangedCallback(nullptr);
@@ -107,7 +103,17 @@ namespace Shark {
 
 		Renderer::NewFrame();
 
-		Application::Get().GetImGuiLayer().BlockEvents(!(m_ViewportHovered || EditorPanelManager::AnyViewportHovered()));
+		bool anyViewportHovered = false;
+		for (auto panel : m_PanelManager->GetEditors(TEXTURE_EDITOR_ID))
+		{
+			Ref<TextureEditorPanel> p = panel.As<TextureEditorPanel>();
+			if (p->ViewportHovered())
+			{
+				anyViewportHovered = true;
+				break;
+			}
+		}
+		Application::Get().GetImGuiLayer().BlockEvents(!(m_ViewportHovered || anyViewportHovered));
 
 		if (m_ActiveScene)
 		{
@@ -169,7 +175,7 @@ namespace Shark {
 			DebugRender();
 		}
 
-		EditorPanelManager::OnUpdate(ts);
+		m_PanelManager->OnUpdate(ts);
 	}
 
 	void EditorLayer::OnEvent(Event& event)
@@ -183,7 +189,7 @@ namespace Shark {
 		if (m_ViewportHovered && m_SceneState != SceneState::Play)
 			m_EditorCamera.OnEvent(event);
 
-		EditorPanelManager::OnEvent(event);
+		m_PanelManager->OnEvent(event);
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -282,14 +288,16 @@ namespace Shark {
 
 	void EditorLayer::OnFileChanged(const std::vector<FileChangedData>& fileEvents)
 	{
-		EditorPanelManager::GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileChanged(fileEvents);
+		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileChanged(fileEvents);
 	}
 
 	void EditorLayer::OpenAssetCallback(AssetHandle assetHandle)
 	{
 		Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(assetHandle);
 		if (texture)
-			EditorPanelManager::CreatePanel<TextureEditorPanel>(texture);
+		{
+			m_PanelManager->AddEditor<TextureEditorPanel>(TEXTURE_EDITOR_ID, texture);
+		}
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -362,7 +370,7 @@ namespace Shark {
 		UI_Asset();
 		UI_ImportTexture();
 
-		EditorPanelManager::OnImGuiRender();
+		m_PanelManager->OnImGuiRender();
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
@@ -1036,6 +1044,8 @@ namespace Shark {
 
 	static void CameraPreviewResizeCallback(ImGuiSizeCallbackData* data)
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImVec2 viewportSize = *(ImVec2*)data->UserData;
 		float aspectRatio = viewportSize.x / viewportSize.y;
 		ImVec2 delta = data->DesiredSize - data->CurrentSize;
@@ -1130,6 +1140,8 @@ namespace Shark {
 
 	void EditorLayer::UI_ProjectSettings()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_ShowProjectSettings)
 			return;
 
@@ -1217,6 +1229,8 @@ namespace Shark {
 
 	void EditorLayer::UI_Asset()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_ShowAssetsRegistry)
 			return;
 
@@ -1366,6 +1380,8 @@ namespace Shark {
 
 	void EditorLayer::UI_ImportTexture()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_TextureAssetCreateData.OpenPopup)
 		{
 			ImGui::OpenPopup("Import Texture");
@@ -1407,6 +1423,8 @@ namespace Shark {
 
 	bool EditorLayer::UI_MousePicking()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (ImGuizmo::IsUsing())
 			return false;
 
@@ -1458,6 +1476,8 @@ namespace Shark {
 
 	void EditorLayer::DebugRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_ShowColliders)
 		{
 			//m_DebugRenderer->SetRenderTarget(m_SceneRenderer->GetExternalCompositFrameBuffer());
@@ -1546,6 +1566,8 @@ namespace Shark {
 
 	void EditorLayer::RenderCameraPreview()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_ShowCameraPreview)
 		{
 			Entity cameraEntity = m_ActiveScene->FindActiveCameraEntity();
@@ -1573,11 +1595,13 @@ namespace Shark {
 	void EditorLayer::SelectEntity(Entity entity)
 	{
 		m_SelectetEntity = entity;
-		EditorPanelManager::GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID)->SetSelectedEntity(entity);
+		m_PanelManager->GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID)->SetSelectedEntity(entity);
 	}
 
 	glm::mat4 EditorLayer::GetActiveViewProjection() const
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_SceneState == SceneState::Play)
 		{
 			Entity cameraEntity = m_ActiveScene->GetRuntimeCamera();
@@ -1654,13 +1678,6 @@ namespace Shark {
 
 		SK_CORE_ASSERT(false, "Normal assets currently cant be saved at a different location");
 		return false;
-
-#if 0
-		auto filepath = FileDialogs::SaveFile(L"|*.*|Shark|*.skscene", 2, Project::GetAssetsPathAbsolute(), true);
-		if (!filepath.empty())
-			return SerializeScene(m_ActiveScene, filepath);
-		return false;
-#endif
 	}
 
 	void EditorLayer::OnScenePlay()
@@ -1702,19 +1719,22 @@ namespace Shark {
 
 	void EditorLayer::SetActiveScene(Ref<Scene> scene)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_ActiveScene && ResourceManager::IsMemoryAsset(m_ActiveScene->Handle))
 			ResourceManager::UnloadAsset(m_ActiveScene->Handle);
-
+	
 		m_ActiveScene = scene;
-		if (m_ActiveScene)
-			m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-		if (m_SceneRenderer) m_SceneRenderer->SetScene(scene);
-		if (m_CameraPreviewRenderer) m_CameraPreviewRenderer->SetScene(scene);
+		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		m_SceneRenderer->SetScene(scene);
+		m_CameraPreviewRenderer->SetScene(scene);
 		DistributeEvent(SceneChangedEvent(scene));
 	}
 
 	void EditorLayer::OpenProject()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto filePath = FileDialogs::OpenFile(L"|*.*|Project|*.skproj", 2);
 		if (!filePath.empty())
 			OpenProject(filePath);
@@ -1722,6 +1742,8 @@ namespace Shark {
 
 	void EditorLayer::OpenProject(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_INFO("Opening Project [{}]", filePath);
 
 		auto project = Ref<Project>::Create();
@@ -1747,14 +1769,20 @@ namespace Shark {
 
 	void EditorLayer::CloseProject()
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(Project::GetActive());
 
 		SaveProject();
 
 		SK_CORE_INFO("Closing Project");
 
-		SetActiveScene(nullptr);
 		ResourceManager::Shutdown();
+
+		m_ActiveScene = nullptr;
+		m_SceneRenderer->SetScene(nullptr);
+		m_CameraPreviewRenderer->SetScene(nullptr);
+		m_PanelManager->GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID)->SetContext(nullptr);
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
 		m_WorkScene = nullptr;
@@ -1767,6 +1795,8 @@ namespace Shark {
 
 	void EditorLayer::SaveProject()
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(Project::GetActive());
 
 		auto& config = Project::GetActive()->GetConfig();
@@ -1775,6 +1805,8 @@ namespace Shark {
 
 	void EditorLayer::SaveProject(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(Project::GetActive());
 
 		ProjectSerializer serializer(Project::GetActive());
@@ -1783,6 +1815,8 @@ namespace Shark {
 
 	void EditorLayer::CreateProject()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto targetDirectory = FileDialogs::OpenDirectory(std::filesystem::current_path());
 		SK_CORE_ASSERT(targetDirectory.is_absolute());
 		if (targetDirectory.empty())

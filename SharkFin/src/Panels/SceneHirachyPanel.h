@@ -14,7 +14,7 @@ namespace Shark {
 	class SceneHirachyPanel : public Panel
 	{
 	public:
-		SceneHirachyPanel() = default;
+		SceneHirachyPanel(Ref<Scene> scene = nullptr);
 
 		virtual void OnImGuiRender() override;
 		virtual void OnEvent(Event& event) override;
