@@ -1,30 +1,30 @@
-Scene: 2198941886064723100
-ActiveCamera: 0x0
-Entities:
-  - Entity: 0x70463cfa2927ccf5
-    TagComponent:
-      Tag: Camera
-    TransformComponent:
-      Position: [0, 0, -4.97717142]
-      Rotation: [0, 0, 0]
-      Scaling: [1, 1, 1]
-    CameraComponent:
-      Type: Perspective
-      Aspectratio: 1.77778006
-      PerspectiveFOV: 44.9999886
-      PerspectiveNear: 0.00999999978
-      PerspectiveFar: 1000
-      OrthographicZoom: 10
-      OrthographicNear: -1
-      OrthographicFar: 1
-  - Entity: 0x82a3f0d43cdbc51b
-    TagComponent:
-      Tag: Circle
-    TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [1.06096268e-05, -6.65246546e-07, -0.290184587]
-      Scaling: [4.72330904, 1.9799999, 1.9799999]
-    CircleRendererComponent:
-      Color: [0.779411793, 0.0916955024, 0.0916955024, 1]
-      Thickness: 0.449999988
-      Fade: 0.00200000009
+Scene:
+  ActiveCamera: 0x0
+  Entities:
+    - Entity: 0x70463cfa2927ccf5
+      TagComponent:
+        Tag: Camera
+      TransformComponent:
+        Position: [0, 0, -4.97717142]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      CameraComponent:
+        Type: Perspective
+        Aspectratio: 1.97171378
+        PerspectiveFOV: 44.9999886
+        PerspectiveNear: 0.00999999978
+        PerspectiveFar: 1000
+        OrthographicZoom: 10
+        OrthographicNear: -1
+        OrthographicFar: 1
+    - Entity: 0x82a3f0d43cdbc51b
+      TagComponent:
+        Tag: Circle
+      TransformComponent:
+        Position: [0, 0, 0]
+        Rotation: [1.06096268e-05, -6.65246546e-07, -0.290184587]
+        Scaling: [4.72330904, 1.9799999, 1.9799999]
+      CircleRendererComponent:
+        Color: [0.779411793, 0.0916955024, 0.0916955024, 1]
+        Thickness: 0.449999988
+        Fade: 0.00200000009

@@ -266,10 +266,11 @@ namespace Shark {
 		out << YAML::Key << "Assets" << YAML::Value;
 		out << YAML::BeginSeq;
 
-		for (auto [handle, metadata] : s_AssetRegistry)
+		const std::map<UUID, const AssetMetaData&> sortedAssets = { s_AssetRegistry.begin(), s_AssetRegistry.end() };
+		for (const auto& [handle, metadata] : sortedAssets)
 		{
 			out << YAML::BeginMap;
-			out << YAML::Key << "Handle" << YAML::Value << handle;
+			out << YAML::Key << "Handle" << YAML::Value << YAML::Hex << handle << YAML::Dec;
 			out << YAML::Key << "Type" << YAML::Value << AssetTypeToString(metadata.Type);
 			out << YAML::Key << "FilePath" << YAML::Value << metadata.FilePath;
 			out << YAML::EndMap;

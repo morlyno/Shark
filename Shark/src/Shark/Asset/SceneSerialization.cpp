@@ -257,22 +257,26 @@ namespace Shark {
 		SK_CORE_INFO("Searializing Scene to {0}", filepath);
 
 		out << YAML::BeginMap;
+		out << YAML::Key << "Scene" << YAML::Value;
 
-		// TODO(moro): remove AssetHandle
-		out << YAML::Key << "Scene" << YAML::Value << scene->Handle;
-
+		out << YAML::BeginMap;
 		out << YAML::Key << "ActiveCamera" << YAML::Value << YAML::Hex << scene->GetActiveCameraUUID() << YAML::Dec;
+		out << YAML::Key << "Entities" << YAML::Value;
 
-		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
-		
-		scene->m_Registry.each([&](auto& entityID)
+		std::map<UUID, Entity> entityIDMap;
+		scene->m_Registry.each([&entityIDMap, scene](auto& entityID)
 		{
-			Entity entity{ entityID, scene };
-			SerializeEntity(out, entity, scene);
+			Entity entity = { entityID, scene };
+			entityIDMap[entity.GetUUID()] = entity;
 		});
 
+		out << YAML::BeginSeq;
+		for (const auto& [uuid, entity] : entityIDMap)
+			SerializeEntity(out, entity, scene);
+		out << YAML::EndSeq;
 
-		out << YAML::EndSeq << YAML::EndMap;
+		out << YAML::EndMap;
+		out << YAML::EndMap;
 
 		std::ofstream fout(filepath);
 		if (!fout.good())
@@ -306,28 +310,17 @@ namespace Shark {
 		Timer timer;
 
 		YAML::Node in = YAML::LoadFile(filepath);
-		if (!in["Scene"])
+		auto sceneNode = in["Scene"];
+		if (!sceneNode)
 			return false;
 
 		scene->m_Registry.clear();
 
 		SK_CORE_INFO("Deserializing Scene from: {0}", filepath);
 
-		struct SceneUUIDFallback
-		{
-			operator UUID() const
-			{
-				SK_CORE_WARN("Deserialized Scene without UUID");
-				return UUID::Generate();
-			}
-		};
+		scene->SetActiveCamera(sceneNode["ActiveCamera"].as<UUID>());
 
-		// TODO(moro): remove AssetHandle
-		scene->Handle = in["Scene"].as<UUID>(SceneUUIDFallback{});
-
-		scene->SetActiveCamera(in["ActiveCamera"].as<UUID>());
-
-		auto entities = in["Entities"];
+		auto entities = sceneNode["Entities"];
 		if (entities)
 		{
 			for (auto entity : entities)

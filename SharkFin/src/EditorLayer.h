@@ -71,6 +71,7 @@ namespace Shark {
 
 		void NewScene();
 
+		bool LoadScene(AssetHandle handle);
 		bool LoadScene(const std::filesystem::path& filePath);
 		bool SaveScene();
 		bool SaveSceneAs();

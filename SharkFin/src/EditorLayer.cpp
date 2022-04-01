@@ -293,10 +293,24 @@ namespace Shark {
 
 	void EditorLayer::OpenAssetCallback(AssetHandle assetHandle)
 	{
-		Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(assetHandle);
-		if (texture)
+		const AssetMetaData& metadata = ResourceManager::GetMetaData(assetHandle);
+		switch (metadata.Type)
 		{
-			m_PanelManager->AddEditor<TextureEditorPanel>(TEXTURE_EDITOR_ID, texture);
+			case AssetType::Scene:
+			{
+				LoadScene(assetHandle);
+				break;
+			}
+			case AssetType::Texture:
+			{
+				Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(assetHandle);
+				if (texture)
+				{
+					// TODO(moro): replace with AssetsEditorPanel
+					m_PanelManager->AddEditor<TextureEditorPanel>(TEXTURE_EDITOR_ID, texture);
+				}
+				break;
+			}
 		}
 	}
 
@@ -1637,6 +1651,18 @@ namespace Shark {
 		{
 			SetActiveScene(scene);
 			m_WorkScene = scene;
+			return true;
+		}
+		return false;
+	}
+
+	bool EditorLayer::LoadScene(AssetHandle handle)
+	{
+		Ref<Scene> scene = ResourceManager::GetAsset<Scene>(handle);
+		if (scene)
+		{
+			m_WorkScene = scene;
+			SetActiveScene(scene);
 			return true;
 		}
 		return false;
