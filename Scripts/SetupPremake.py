@@ -1,41 +1,38 @@
-import sys
-import os
+
 from pathlib import Path
-import Utils
 
-premakeVersion = "5.0.0-beta1"
-premakeZipUrls = f"https://github.com/premake/premake-core/releases/download/v{premakeVersion}/premake-{premakeVersion}-windows.zip"
-premakeLicenseUrl = "https://raw.githubusercontent.com/premake/premake-core/master/LICENSE.txt"
-premakeDirectory = "./dependencies/premake/bin"
+import Utility
 
-def InstallPremake():
-    validReply = False
-    while validReply:
-        reply = str(input(f"Preamek not found would you like to install Premake {premakeVersion}? [Y/N]")).lower().strip()[:1]
-        if reply == 'n':
-            return False
-        validReply = (reply == 'y')
-    
-    preamkePath = f"{premakeDirectory}/premake-{premakeVersion}-windows.zip"
-    print(f"Downloading {premakeZipUrls} to {preamkePath}")
-    Utils.DownloadFile(premakeZipUrls, preamkePath)
-    print(f"Extracting {preamkePath}")
-    Utils.UnzipFile(preamkePath, deleteZipFile=True)
-    print(f"Premake {premakeVersion} has been dpwnloaded to '{premakeDirectory}'")
+class Premake:
+    Version = "5.0.0-beta1"
+    Directory = f"./dependencies/premake/bin/{Version}"
 
-    premakeLicensePath = f"{premakeDirectory}/LICENSE.txt"
-    print(f"Downloading {premakeLicenseUrl} to {premakeLicensePath}")
-    Utils.DownloadFile(premakeLicenseUrl, premakeLicensePath)
-    print(f"Premake License file has been downloaded to '{premakeDirectory}'")
+    Url = f"https://github.com/premake/premake-core/releases/download/v{Version}/premake-{Version}-windows.zip"
+    LicenseUrl = "https://raw.githubusercontent.com/premake/premake-core/master/LICENSE.txt"
 
-    return True
+    @classmethod
+    def Install(cls):
+        zipPath = f"{cls.Directory}/premake-{cls.Version}-windows.zip"
+        print("Downloading Premake")
+        Utility.DownloadFile(cls.Url, zipPath)
 
-def Validate():
-    premakeExe = Path(f"{premakeDirectory}/premake5.exe")
-    if (not premakeExe.exists()):
-        installed = InstallPremake()
-        if (not installed):
-            print("Premake not installed")
-    
-    print(f"Correct Premake version installed at {premakeDirectory}/{premakeVersion}")
-    return True
+        print("Extracting Premake form zip")
+        Utility.UnzipFile(zipPath, True)
+
+        print("Download Premake License")
+        licensePath = f"{cls.Directory}/LICENSE.txt"
+        Utility.DownloadFile(cls.LicenseUrl, licensePath)
+        return True
+
+
+    @classmethod
+    def Validate(cls):
+        premakeExePath = Path(f"{cls.Directory}/premake5.exe")
+        if (not premakeExePath.exists()):
+            installed = Premake.Install()
+            if (not installed):
+                print("Premake not installed")
+                return False
+        print(f"Correct Version of Premake Installed at {cls.Directory}/premake5.exe")
+        return True
+

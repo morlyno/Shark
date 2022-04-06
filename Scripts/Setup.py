@@ -1,21 +1,22 @@
 
 import os
+import sys
 import subprocess
-import platform
 
-os.chdir("./../")
+from SetupPremake import Premake
 
-from SetupPremake import Validate
-premakeInstalled = Validate()
+def Setup():
+    os.chdir("./../")
 
-print("\nUpdating Submodules")
-subprocess.call(["git", "submodule", "update", "--init", "--recursive"])
+    premakeInstalled = Premake.Validate()
 
-if premakeInstalled:
-    if platform.system() == "Windows":
-        print("\nRunning premake...")
-        subprocess.call([os.path.abspath("./Scripts/Win-GenerateProjects.bat"), "nopause"])
+    print("\nUpdate Submodules...")
+    subprocess.call(["git", "submodule", "update", "--init", "--recursive"])
 
-    print("\nSetup Comlete")
-else:
-    print("\nPremake is required to generate projects")
+    if (premakeInstalled):
+        print("\nGenerate Projects...")
+        targetVersion = input("Version: ").lower().strip().removesuffix('\n')
+        subprocess.call([f"{Premake.Directory}/premake5.exe", targetVersion])
+
+if __name__ == "__main__":
+    Setup()
