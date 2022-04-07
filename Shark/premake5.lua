@@ -34,7 +34,8 @@ project "Shark"
         "%{includeDir.ImGuizmo}",
         "%{includeDir.fmt}",
         "%{includeDir.Optick}",
-        "%{includeDir.glm}"
+        "%{includeDir.glm}",
+        "%{includeDir.Mono}"
     }
 
     flags
@@ -49,7 +50,8 @@ project "Shark"
         "GLM_FORCE_SWIZZLE",
         "GLM_FORCE_LEFT_HANDED",
         
-        "FMT_HEADER_ONLY"
+        "FMT_HEADER_ONLY",
+        'MONO_4_5_DIRECTORY="%{MonoDir}/lib"'
     }
 
     filter "system:windows"
@@ -64,7 +66,8 @@ project "Shark"
             "yaml-cpp",
             "box2d",
             "ImGuizmo",
-            "OptickCore"
+            "OptickCore",
+            "%{Library.Mono_lib}"
         }
 
     filter "configurations:Debug"

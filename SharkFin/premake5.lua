@@ -43,8 +43,11 @@ project "SharkFin"
         "GLM_FORCE_SWIZZLE",
         "GLM_FORCE_LEFT_HANDED",
         
-        "FMT_HEADER_ONLY"
+        "FMT_HEADER_ONLY",
+        'MONO_4_5_DIRECTORY="%{MonoDir}/lib"'
     }
+
+    output_project = "%{wks.location}/bin/%{outputdir}/%{prj.name}"
 
     filter "system:windows"
         systemversion "latest"
@@ -55,7 +58,19 @@ project "SharkFin"
         runtime "Debug"
         symbols "on"
 
+        postbuildcommands
+        {
+            '{COPY} "%{Library.Mono_dll}" "%{output_project}"',
+            '{COPY} "%{Symbols.Mono_lib} "%{output_project}"',
+            '{COPY} "%{Symbols.Mono_dll} "%{output_project}"'
+        }
+
     filter "configurations:Release"
         defines "SK_RELEASE"
         runtime "Release"
         optimize "on"
+
+        postbuildcommands
+        {
+            '{COPY} "%{Library.Mono_dll}" "%{output_project}"'
+        }

@@ -1,7 +1,7 @@
 
 from pathlib import Path
 
-import Utility
+import utils
 
 class Premake:
     Version = "5.0.0-beta1"
@@ -14,14 +14,14 @@ class Premake:
     def Install(cls):
         zipPath = f"{cls.Directory}/premake-{cls.Version}-windows.zip"
         print("Downloading Premake")
-        Utility.DownloadFile(cls.Url, zipPath)
+        utils.DownloadFile(cls.Url, zipPath)
 
         print("Extracting Premake form zip")
-        Utility.UnzipFile(zipPath, True)
+        utils.UnzipFile(zipPath, True)
 
         print("Download Premake License")
         licensePath = f"{cls.Directory}/LICENSE.txt"
-        Utility.DownloadFile(cls.LicenseUrl, licensePath)
+        utils.DownloadFile(cls.LicenseUrl, licensePath)
         return True
 
 
@@ -29,7 +29,7 @@ class Premake:
     def Validate(cls):
         premakeExePath = Path(f"{cls.Directory}/premake5.exe")
         if (not premakeExePath.exists()):
-            installed = Premake.Install()
+            installed = cls.Install()
             if (not installed):
                 print("Premake not installed")
                 return False

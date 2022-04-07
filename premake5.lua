@@ -10,6 +10,8 @@ workspace "Shark"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+MonoDir = os.getenv("MONO_PROJECT")
+
 includeDir = {}
 includeDir["spdlog"] = "%{wks.location}/Shark/dependencies/spdlog/include"
 includeDir["ImGui"] = "%{wks.location}/Shark/dependencies/ImGui"
@@ -21,6 +23,15 @@ includeDir["ImGuizmo"] = "%{wks.location}/Shark/dependencies/ImGuizmo"
 includeDir["fmt"] = "%{wks.location}/Shark/dependencies/fmt/include"
 includeDir["Optick"] = "%{wks.location}/Shark/dependencies/Optick/src"
 includeDir["glm"] = "%{wks.location}/Shark/dependencies/glm"
+includeDir["Mono"] = "%{MonoDir}/include/mono-2.0"
+
+Library = {}
+Library["Mono_lib"] = "%{MonoDir}/lib/mono-2.0-sgen.lib"
+Library["Mono_dll"] = "%{MonoDir}/bin/mono-2.0-sgen.dll"
+
+Symbols = {}
+Symbols["Mono_lib"] = "%{MonoDir}/lib/mono-2.0-sgen.pdb"
+Symbols["Mono_dll"] = "%{MonoDir}/bin/mono-2.0-sgen.pdb"
 
 group "Dependencies"
 	include "Shark/dependencies/ImGui"

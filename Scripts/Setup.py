@@ -4,10 +4,12 @@ import sys
 import subprocess
 
 from SetupPremake import Premake
+from SetupMono import Mono
 
 def Setup():
     os.chdir("./../")
 
+    Mono.Validate()
     premakeInstalled = Premake.Validate()
 
     print("\nUpdate Submodules...")

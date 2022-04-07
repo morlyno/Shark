@@ -3,6 +3,20 @@ import os
 import requests
 import zipfile
 from pathlib import Path
+import winreg
+import subprocess
+import pathlib
+
+def SetEnvVar(key:str, val:str):
+    val = val.replace("/", "\\")
+    subprocess.call(["setx", key, val])
+
+def GetDownloadsFolderPath():
+    subkey = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'
+    guid = '{374DE290-123F-4565-9164-39C4925E467B}'
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, subkey) as key:
+        return winreg.QueryValueEx(key, guid)[0]
+
 
 def DownloadFile(url : str, filepath : str):
     filepath = os.path.abspath(filepath)
