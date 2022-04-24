@@ -6,6 +6,8 @@
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Render/Renderer.h"
 
+#include "Shark/Scripting/ScriptEngine.h"
+
 #include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
@@ -40,6 +42,8 @@ namespace Shark {
 		m_ImGuiLayer = CreateImGuiLayer();
 		PushLayer(m_ImGuiLayer);
 
+		ScriptEngine::Init(specification.ScriptConfig.CoreAssemblyPath);
+
 		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency));
 		QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&m_LastFrameTime));
 	}
@@ -51,7 +55,7 @@ namespace Shark {
 		m_RaiseEvents = false;
 
 		m_LayerStack.Clear();
-
+		ScriptEngine::Shutdown();
 		Renderer::ShutDown();
 	}
 

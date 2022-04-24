@@ -35,6 +35,9 @@
 #define SK_EXPAND(x) x
 #define SK_CONNECT(a, b) a##b
 
+#define SK_CONNECT_TO_STRING_IMPL(ab) SK_STRINGIFY(ab)
+#define SK_CONNECT_TO_STRING(a, b) SK_EXPAND(SK_CONNECT_TO_STRING_IMPL(a ## b))
+
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 
 #define SK_NOT_IMPLEMENTED() SK_CORE_ASSERT(false, "Not Implemented");

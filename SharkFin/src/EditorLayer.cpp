@@ -19,6 +19,7 @@
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
+#include "Shark/Scripting/ScriptEngine.h"
 
 #define SCENE_HIRACHY_ID "SceneHirachyPanel"
 #define CONTENT_BROWSER_ID "ContentBrowserPanel"
@@ -1786,6 +1787,8 @@ namespace Shark {
 			if (!LoadScene(config.ProjectDirectory / config.StartupScenePath))
 				NewScene();
 
+			ScriptEngine::LoadAssembly(Project::GetActive()->GetConfig().ScriptModulePath);
+
 			FileWatcher::StartWatching(Project::GetAssetsPath());
 			DistributeEvent(ProjectChangedEvnet(project));
 
@@ -1809,6 +1812,7 @@ namespace Shark {
 		m_SceneRenderer->SetScene(nullptr);
 		m_CameraPreviewRenderer->SetScene(nullptr);
 		m_PanelManager->GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID)->SetContext(nullptr);
+		ScriptEngine::UnloadAssembly();
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
 		m_WorkScene = nullptr;
@@ -1867,6 +1871,8 @@ namespace Shark {
 		config.VelocityIterations = 8;
 		config.PositionIterations = 3;
 		config.FixedTimeStep = 0.001f;
+
+		config.ScriptModulePath = std::string{};
 
 		Project::SetActive(project);
 		ResourceManager::Init();

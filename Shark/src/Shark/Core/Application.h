@@ -14,6 +14,11 @@ int main(int argc, char** argb);
 
 namespace Shark {
 
+	struct ScriptingConfig
+	{
+		std::string CoreAssemblyPath;
+	};
+
 	struct ApplicationSpecification
 	{
 		std::string Name = "UnNamed";
@@ -22,6 +27,8 @@ namespace Shark {
 		bool FullScreen = false;
 		bool EnableImGui = false;
 		bool VSync = true;
+
+		ScriptingConfig ScriptConfig;
 	};
 
 	class Application
@@ -50,6 +57,7 @@ namespace Shark {
 		static Application& Get()                      { return *s_Instance; }
 		Window& GetWindow()                            { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer()                    { return *m_ImGuiLayer; }
+		const ApplicationSpecification& GetSpecs()     { return m_Specification; }
 
 	private:
 		bool OnWindowClose(WindowCloseEvent& event);

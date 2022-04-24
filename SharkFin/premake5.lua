@@ -31,6 +31,11 @@ project "SharkFin"
         "%{includeDir.glm}"
     }
 
+    flags
+    {
+        "MultiProcessorCompile"
+    }
+
     links
     {
         "Shark"
@@ -44,10 +49,10 @@ project "SharkFin"
         "GLM_FORCE_LEFT_HANDED",
         
         "FMT_HEADER_ONLY",
-        'MONO_4_5_DIRECTORY="%{MonoDir}/lib"'
+        "MONO_DIRECTORY=%{MonoDir}"
     }
 
-    output_project = "%{wks.location}/bin/%{outputdir}/%{prj.name}"
+    sharkfin_output_dir = "%{wks.location}/bin/%{outputdir}/%{prj.name}"
 
     filter "system:windows"
         systemversion "latest"
@@ -60,9 +65,8 @@ project "SharkFin"
 
         postbuildcommands
         {
-            '{COPY} "%{Library.Mono_dll}" "%{output_project}"',
-            '{COPY} "%{Symbols.Mono_lib} "%{output_project}"',
-            '{COPY} "%{Symbols.Mono_dll} "%{output_project}"'
+            '{COPY} "%{Library.Mono_dll}" "%{sharkfin_output_dir}"',
+            '{COPY} "%{Symbols.Mono_dll}" "%{sharkfin_output_dir}"'
         }
 
     filter "configurations:Release"
@@ -72,5 +76,5 @@ project "SharkFin"
 
         postbuildcommands
         {
-            '{COPY} "%{Library.Mono_dll}" "%{output_project}"'
+            '{COPY} "%{Library.Mono_dll}" "%{sharkfin_output_dir}"'
         }

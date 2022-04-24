@@ -13,6 +13,8 @@ namespace Shark {
 		std::filesystem::path AssetsDirectory;
 		std::filesystem::path StartupScenePath;
 
+		std::string ScriptModulePath;
+
 		// Physics
 		glm::vec2 Gravity;
 		uint32_t VelocityIterations;

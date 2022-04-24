@@ -15,3 +15,6 @@ SharkFin/Log/*.log
 **.vcxproj
 **.vcxproj.filters
 **.vcxproj.user
+*.csproj*
+SharkFin/Resources/Binaries
+SharkFin/SandboxProject/Binaries

@@ -109,6 +109,7 @@ namespace Shark {
 		const auto& config = m_Project->GetConfig();
 		const auto assetsPath = std::filesystem::relative(config.AssetsDirectory, config.ProjectDirectory);
 		const auto startupScenePath = std::filesystem::relative(config.StartupScenePath, config.ProjectDirectory);
+		const auto scriptModulePath = std::filesystem::relative(config.ScriptModulePath, config.ProjectDirectory).string();
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Project" << YAML::Value;
@@ -117,6 +118,8 @@ namespace Shark {
 		out << YAML::Key << "Name" << YAML::Value << config.Name;
 		out << YAML::Key << "Assets" << YAML::Value << assetsPath;
 		out << YAML::Key << "StartupScene" << YAML::Value << startupScenePath;
+
+		out << YAML::Key << "ScriptModulePath" << YAML::Value << scriptModulePath;
 
 		out << YAML::Key << "Physics" << YAML::Value;
 		out << YAML::BeginMap;
@@ -146,8 +149,9 @@ namespace Shark {
 
 		SK_CORE_INFO("Serializing Project To: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
-		SK_CORE_TRACE("  Assets Path: {}", config.AssetsDirectory);
-		SK_CORE_TRACE("  Startup Scene Path: {}", config.StartupScenePath);
+		SK_CORE_TRACE("  Assets Path: {}", assetsPath);
+		SK_CORE_TRACE("  Startup Scene Path: {}", startupScenePath);
+		SK_CORE_TRACE("  Script Module Path: {}", scriptModulePath);
 		SK_CORE_TRACE("  Physics:");
 		SK_CORE_TRACE("    Gravity: {}", config.Gravity);
 		SK_CORE_TRACE("    ValocityIterations: {}", config.VelocityIterations);
@@ -179,7 +183,8 @@ namespace Shark {
 		config.Name             = project["Name"].as<std::string>();
 		auto assetsDirectory    = project["Assets"].as<std::filesystem::path>();
 		auto startupScenePath   = project["StartupScene"].as<std::filesystem::path>();
-		
+		auto scriptModulePath   = project["ScriptModulePath"].as<std::filesystem::path>();
+
 		auto physics = project["Physics"];
 		if (physics)
 		{
@@ -199,6 +204,7 @@ namespace Shark {
 		config.ProjectDirectory = FileSystem::FormatDefaultCopy(filePath.parent_path());
 		config.AssetsDirectory = FileSystem::FormatDefaultCopy(config.ProjectDirectory / assetsDirectory);
 		config.StartupScenePath = FileSystem::FormatDefaultCopy(config.ProjectDirectory / startupScenePath);
+		config.ScriptModulePath = FileSystem::FormatDefaultCopy(config.ProjectDirectory / scriptModulePath).string();
 
 		SK_CORE_ASSERT(config.ProjectDirectory.is_absolute());
 		SK_CORE_ASSERT(config.AssetsDirectory.is_absolute());
@@ -210,6 +216,7 @@ namespace Shark {
 		SK_CORE_TRACE("  Name: {}", config.Name);
 		SK_CORE_TRACE("  Assets Path: {}", assetsDirectory);
 		SK_CORE_TRACE("  Startup Scene Path: {}", startupScenePath);
+		SK_CORE_TRACE("  Script Module Path: {}", scriptModulePath);
 		SK_CORE_TRACE("  Physics:");
 		SK_CORE_TRACE("    Gravity: {}", config.Gravity);
 		SK_CORE_TRACE("    ValocityIterations: {}", config.VelocityIterations);

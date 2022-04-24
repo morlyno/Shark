@@ -51,7 +51,7 @@ project "Shark"
         "GLM_FORCE_LEFT_HANDED",
         
         "FMT_HEADER_ONLY",
-        'MONO_4_5_DIRECTORY="%{MonoDir}/lib"'
+        "MONO_DIRECTORY=%{MonoDir}"
     }
 
     filter "system:windows"
