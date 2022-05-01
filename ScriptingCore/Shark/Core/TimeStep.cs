@@ -20,7 +20,7 @@ namespace Shark
 		public static TimeStep operator-(TimeStep lhs, TimeStep rhs) { return new TimeStep(lhs.m_Time - rhs.m_Time); }
 
 
-		public static explicit operator float(TimeStep This) { return This.m_Time; }
+		public static implicit operator float(TimeStep This) { return This.m_Time; }
 	}
 
 }

@@ -110,6 +110,8 @@ namespace Shark::UI {
 
 	bool BeginControls();
 	bool BeginControlsGrid(GridFlags flags = GridFlag::Label);
+	bool BeginControls(ImGuiID syncID);
+	bool BeginControlsGrid(ImGuiID syncID, GridFlags flags = GridFlag::Label);
 	void EndControls();
 	void EndControlsGrid();
 

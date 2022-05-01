@@ -8,9 +8,9 @@
 
 namespace Shark {
 
-	void PanelManager::AddPanel(std::string id, Ref<Panel> panel)
+	void PanelManager::AddPanel(std::string id, Ref<Panel> panel, bool show)
 	{
-		m_Panels[id] = panel;
+		m_Panels[id] = { panel, show };
 	}
 
 	void PanelManager::RemovePanel(std::string panelID)
@@ -18,21 +18,21 @@ namespace Shark {
 		m_Panels.erase(panelID);
 	}
 
-	bool PanelManager::HasPanel(std::string id)
+	bool PanelManager::HasPanel(std::string id) const
 	{
 		return Utility::Contains(m_Panels, id);
 	}
 
-	Ref<Panel> PanelManager::GetPanel(std::string id)
+	Ref<Panel> PanelManager::GetPanel(std::string id) const
 	{
-		return m_Panels[id];
+		return m_Panels.at(id).Instance;
 	}
 
 
 
-	Ref<Panel> PanelManager::GetEditor(std::string id, uint32_t index)
+	Ref<Panel> PanelManager::GetEditor(std::string id, uint32_t index) const
 	{
-		return m_EditorPanels[id][index];
+		return m_EditorPanels.at(id)[index];
 	}
 
 	void PanelManager::AddEditor(std::string id, Ref<Panel> panel)
@@ -40,7 +40,7 @@ namespace Shark {
 		m_EditorPanels[id].emplace_back(panel);
 	}
 
-	stl::vector_view<Ref<Panel>> PanelManager::GetEditors(std::string id)
+	stl::vector_view<Ref<Panel>> PanelManager::GetEditors(std::string id) const
 	{
 		auto entry = m_EditorPanels.find(id);
 		if (entry != m_EditorPanels.end())
@@ -50,7 +50,7 @@ namespace Shark {
 
 	void PanelManager::RemoveEditor(std::string id, uint32_t index)
 	{
-		auto& v = m_EditorPanels[id]; if (v.size() == 1) (m_EditorPanels.erase(id)); else (v.erase(v.begin() + index));
+		auto& v = m_EditorPanels.at(id); if (v.size() == 1) (m_EditorPanels.erase(id)); else (v.erase(v.begin() + index));
 	}
 
 	void PanelManager::RemoveEditors(std::string id)
@@ -85,8 +85,8 @@ namespace Shark {
 
 	void PanelManager::OnUpdate(TimeStep ts)
 	{
-		for (auto [id, panel] : m_Panels)
-			panel->OnUpdate(ts);
+		for (auto [id, data] : m_Panels)
+			data.Instance->OnUpdate(ts);
 
 		CheckEditorsWantDestroy();
 		
@@ -97,18 +97,19 @@ namespace Shark {
 
 	void PanelManager::OnImGuiRender()
 	{
-		for (auto [id, panel] : m_Panels)
-			panel->OnImGuiRender();
+		for (auto [id, data] : m_Panels)
+			data.Instance->OnImGuiRender(data.Shown);
 
+		bool dummy = true;
 		for (auto [id, vec] : m_EditorPanels)
 			for (auto panel : vec)
-				panel->OnImGuiRender();
+				panel->OnImGuiRender(dummy);
 	}
 
 	void PanelManager::OnEvent(Event& event)
 	{
-		for (auto [id, panel] : m_Panels)
-			panel->OnEvent(event);
+		for (auto [id, data] : m_Panels)
+			data.Instance->OnEvent(event);
 
 		for (auto [id, vec] : m_EditorPanels)
 			for (auto panel : vec)

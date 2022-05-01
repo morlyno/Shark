@@ -1,7 +1,7 @@
 #pragma once
 #include "Shark/Core/Base.h"
 #include "Shark/Core/KeyCodes.h"
-#include "Shark/Core/MouseCodes.h"
+#include "Shark/Core/MouseButtons.h"
 
 namespace Shark {
 
@@ -9,17 +9,15 @@ namespace Shark {
 
 		bool KeyPressed(KeyCode key);
 		
-		bool MousePressed(MouseCode button);
+		bool MousePressed(MouseButton::Type button);
 
-		// First is x, Second is y
 		// Relative to Window
 		glm::ivec2 MousePos();
 		int MousePosX();
 		int MousePosY();
 
-		// First is x, Second is y
 		// Relative to Screen
-		std::pair<int, int> GlobalMousePos();
+		glm::ivec2 GlobalMousePos();
 		int GlobalMousePosX();
 		int GlobalMousePosY();
 

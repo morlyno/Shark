@@ -8,6 +8,9 @@ Assets:
   - Handle: 0x5028d59af2f896de
     Type: Scene
     FilePath: Scenes/Physics.skscene
+  - Handle: 0x5b3ed9bb804eccc0
+    Type: Scene
+    FilePath: Scenes/PlayerTest.skscene
   - Handle: 0x8190ba7b1101db21
     Type: Texture
     FilePath: Textures/Gear.sktex
@@ -17,6 +20,9 @@ Assets:
   - Handle: 0xb0278653dd5629aa
     Type: Scene
     FilePath: Scenes/MipMapTest.skscene
+  - Handle: 0xba9cf351d9053a5d
+    Type: Scene
+    FilePath: Scenes/ScriptTest.skscene
   - Handle: 0xbc9198803f5d806e
     Type: Scene
     FilePath: Scenes/PhysicsScene.skscene

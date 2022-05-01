@@ -8,7 +8,7 @@ namespace Shark {
 	{
 		None = 0,
 		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus,
-		MouseMove, MouseButtonPressed, MouseButtonReleasd, MouseScrolled,
+		MouseMove, MouseButtonPressed, MouseButtonReleasd, MouseButtonDoubleClicked, MouseScrolled,
 		KeyPressed, KeyReleased, KeyCharacter,
 		ApplicationClosed, SceneChanged, ProjectChanged
 	};
@@ -17,22 +17,23 @@ namespace Shark {
 	{
 		switch (eventType)
 		{
-			case EventTypes::None:                 return "None";
-			case EventTypes::WindowClose:          return "WindowClose";
-			case EventTypes::WindowResize:		   return "WindowResize";
-			case EventTypes::WindowMove:		   return "WindowMove";
-			case EventTypes::WindowFocus:		   return "WindowFocus";
-			case EventTypes::WindowLostFocus:	   return "WindowLostFocus";
-			case EventTypes::MouseMove:			   return "MouseMove";
-			case EventTypes::MouseButtonPressed:   return "MouseButtonPressed";
-			case EventTypes::MouseButtonReleasd:   return "MouseButtonReleasd";
-			case EventTypes::MouseScrolled:		   return "MouseScrolled";
-			case EventTypes::KeyPressed:		   return "KeyPressed";
-			case EventTypes::KeyReleased:		   return "KeyReleased";
-			case EventTypes::KeyCharacter:		   return "KeyCharacter";
-			case EventTypes::ApplicationClosed:	   return "ApplicationClosed";
-			case EventTypes::SceneChanged:	       return "SceneChanged";
-			case EventTypes::ProjectChanged:	   return "ProjectChanged";
+			case EventTypes::None:                       return "None";
+			case EventTypes::WindowClose:                return "WindowClose";
+			case EventTypes::WindowResize:		         return "WindowResize";
+			case EventTypes::WindowMove:		         return "WindowMove";
+			case EventTypes::WindowFocus:		         return "WindowFocus";
+			case EventTypes::WindowLostFocus:	         return "WindowLostFocus";
+			case EventTypes::MouseMove:			         return "MouseMove";
+			case EventTypes::MouseButtonPressed:         return "MouseButtonPressed";
+			case EventTypes::MouseButtonReleasd:         return "MouseButtonReleasd";
+			case EventTypes::MouseButtonDoubleClicked:   return "MouseButtonDoubleClicked";
+			case EventTypes::MouseScrolled:		         return "MouseScrolled";
+			case EventTypes::KeyPressed:		         return "KeyPressed";
+			case EventTypes::KeyReleased:		         return "KeyReleased";
+			case EventTypes::KeyCharacter:		         return "KeyCharacter";
+			case EventTypes::ApplicationClosed:	         return "ApplicationClosed";
+			case EventTypes::SceneChanged:	             return "SceneChanged";
+			case EventTypes::ProjectChanged:	         return "ProjectChanged";
 		}
 		SK_CORE_ASSERT(false, "Unkown Event Type");
 		return "Unkown";

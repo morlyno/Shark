@@ -5,11 +5,13 @@
 #include <Shark/Utility/PlatformUtils.h>
 #include <Shark/Utility/Utility.h>
 #include <Shark/UI/UI.h>
+#include "Shark/UI/Theme.h"
 #include <Shark/Core/Input.h>
 #include <Shark/Scene/NativeScriptFactory.h>
 #include "Shark/Core/Project.h"
 #include <Shark/Core/Application.h>
 #include "Shark/Asset/ResourceManager.h"
+#include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -71,14 +73,14 @@ namespace Shark {
 
 	}
 
-	void SceneHirachyPanel::OnImGuiRender()
+	void SceneHirachyPanel::OnImGuiRender(bool& shown)
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (!m_ShowPanel)
+		if (!shown)
 			return;
 
-		if (ImGui::Begin("Scene Hirachy", &m_ShowPanel) && m_Context)
+		if (ImGui::Begin("Scene Hirachy", &shown) && m_Context)
 		{
 			{
 				SK_PROFILE_SCOPED("Loop All Entitys");
@@ -210,7 +212,7 @@ namespace Shark {
 
 		bool wantsDestroy = false;
 
-		if ((m_SelectedEntity == entity) && ImGui::IsWindowHovered() && Input::KeyPressed(Key::Entf))
+		if ((m_SelectedEntity == entity) && ImGui::IsWindowHovered() && Input::KeyPressed(Key::Delete))
 		{
 			wantsDestroy = true;
 		}
@@ -297,6 +299,11 @@ namespace Shark {
 			if (ImGui::Selectable("Native Script", false, entity.HasComponent<NativeScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<NativeScriptComponent>();
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::Selectable("Script", false, entity.HasComponent<ScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			{
+				entity.AddComponent<ScriptComponent>();
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -520,6 +527,27 @@ namespace Shark {
 						SK_CORE_TRACE("Script UnBound: {0}", comp.ScriptTypeName);
 					}
 				}
+			}
+
+		});
+
+		Utils::DrawComponet<ScriptComponent>(entity, "Script", [](auto& comp)
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+
+			UI::ScopedStyle scopedStyle;
+			if (!comp.ScriptModuleFound)
+			{
+				scopedStyle.Push(ImGuiCol_Text, UI::Theme::GetColors().TextInvalidInput);
+			}
+
+			if (ImGui::InputText("##InputScript", &comp.ScriptName))
+				comp.ScriptModuleFound = ScriptEngine::HasScriptClass(comp.ScriptName);
+
+			if (comp.ScriptModuleFound)
+			{
+				ImGui::Text("Script Module Found");
+				ImGui::Text("Script Handle: %llu", (uint64_t)comp.Handle);
 			}
 
 		});

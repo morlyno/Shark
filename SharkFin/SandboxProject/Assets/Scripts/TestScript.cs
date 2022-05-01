@@ -1,49 +1,67 @@
-﻿using System;
-using System.Runtime.InteropServices;
-
-using Shark;
+﻿using Shark;
+using System;
 
 namespace Sandbox
 {
 	public class TestScript : Entity
 	{
-		private TimeStep m_Time = new TimeStep();
+		public Vector3 Direction = new Vector3(1.0f, 0.0f, 0.0f);
+		private float m_AnimationTimer = 0.0f;
+		private float m_AnimationSpeed = 2.0f;
+		private float m_XRadius = 2.0f;
+		private float m_YRadius = 2.0f;
 
-		public override void OnCreate()
+		private SpriteRendererComponent m_SpriteRenderer;
+		private float m_DeltaMode = 1.0f;
+		private Color m_DeltaColor = new Color(1.0f, 0.0f, 0.0f, 0.0f);
+		private int m_ColorIndex = 0;
+
+		private Vector3 m_Offset;
+
+		public Vector3 Offset { set { m_Offset = value; } }
+
+		void OnCreate()
 		{
-			Log.Info("TestScript::OnCreate");
+			if (!HasComponent<SpriteRendererComponent>())
+				AddComponent<SpriteRendererComponent>();
+
+			m_SpriteRenderer = GetComponent<SpriteRendererComponent>();
+			m_SpriteRenderer.Color = Color.Back;
+
+			m_Offset = Transform.Translation;
 		}
 
-		public override void OnDestroy()
+		void OnUpdate(TimeStep ts)
 		{
-			Log.Info("TestScript::OnDestroy");
-		}
+			m_AnimationTimer += ts * m_AnimationSpeed;
+			m_AnimationSpeed %= (float)Math.PI;
 
-		public override void OnUpdate(TimeStep ts)
-		{
-			m_Time += ts;
-			Log.Info("TestScript::OnUpdate {0}", m_Time);
-		}
+			var translation = Transform.Translation;
+			translation.X = (float)Math.Sin(m_AnimationTimer) * m_XRadius;
+			translation.Y = (float)Math.Cos(m_AnimationTimer) * m_YRadius;
+			Transform.Translation = translation + m_Offset;
 
-	}
+			var color = m_SpriteRenderer.Color;
+			color += m_DeltaColor * ts;
+			if (color[m_ColorIndex] >= 1.0f || color[m_ColorIndex] < 0.0f)
+			{
+				if (color[m_ColorIndex] > 1.0f)
+					color[m_ColorIndex] = 1.0f;
+				if (color[m_ColorIndex] < 0.0f)
+					color[m_ColorIndex] = 0.0f;
 
-	public static class Tests
-	{
-		public static void RunTest()
-		{
-			var mat4Size = Marshal.SizeOf(typeof(Matrix4));
-			Log.Warn(mat4Size);
-			//Log.Info(mat4Size);
+				m_DeltaColor[m_ColorIndex] = 0.0f;
+				m_ColorIndex++;
+				if (m_ColorIndex >= 3)
+				{
+					m_DeltaMode = -m_DeltaMode;
+					m_ColorIndex = 0;
+				}
 
+				m_DeltaColor[m_ColorIndex] = m_DeltaMode;
+			}
 
-			var s = new Matrix4(2.5f);
-			var s2 = Matrix4.Inverse(s);
-
-			Log.Info(s2);
-			var v0 = Vector4.One;
-			var v1 = s2 * v0;
-			Log.Info(v1);
-
+			m_SpriteRenderer.Color = color;
 		}
 
 	}

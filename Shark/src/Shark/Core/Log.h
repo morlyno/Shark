@@ -23,6 +23,7 @@ namespace Shark {
 }
 
 #ifndef SK_DISABLE_LOGGING
+#define SK_CORE_LOG(level, ...) ::Shark::Log::GetCoreLogger()->log(level, __VA_ARGS__)
 #define SK_CORE_TRACE(...)		::Shark::Log::GetCoreLogger()->trace(__VA_ARGS__)
 #define SK_CORE_INFO(...)		::Shark::Log::GetCoreLogger()->info(__VA_ARGS__)
 #define SK_CORE_WARN(...)		::Shark::Log::GetCoreLogger()->warn(__VA_ARGS__)
@@ -36,6 +37,7 @@ namespace Shark {
 #define SK_ERROR(...)			::Shark::Log::GetClientLogger()->error(__VA_ARGS__)
 #define SK_CRITICAL(...)		::Shark::Log::GetClientLogger()->critical(__VA_ARGS__)
 #else
+#define SK_CORE_LOG(...)
 #define SK_CORE_TRACE(...)
 #define SK_CORE_INFO(...)
 #define SK_CORE_WARN(...)

@@ -1,14 +1,26 @@
 ﻿
 using System;
+using System.Runtime.InteropServices;
 
 namespace Shark
 {
 
+	[StructLayout(LayoutKind.Sequential)]
 	public struct Vector3 : IFormattable
 	{
 		public float X;
 		public float Y;
 		public float Z;
+
+		public static Vector3 Zero => new Vector3(0.0f);
+		public static Vector3 One => new Vector3(1.0f);
+
+		public static Vector3 Right => new Vector3(1.0f, 0.0f, 0.0f);
+		public static Vector3 Left => new Vector3(-1.0f, 0.0f, 0.0f);
+		public static Vector3 Up => new Vector3(0.0f, 1.0f, 0.0f);
+		public static Vector3 Down => new Vector3(0.0f, -1.0f, 0.0f);
+		public static Vector3 Forwards => new Vector3(0.0f, 0.0f, 1.0f);
+		public static Vector3 Backwards => new Vector3(0.0f, 0.0f, -1.0f);
 
 		public Vector3(float xyz)
 		{
@@ -96,6 +108,15 @@ namespace Shark
 			return this / length;
 		}
 
+		public static Vector3 Lerp(Vector3 p0, Vector3 p1, float t)
+		{
+			return new Vector3(
+				p0.X + (p1.X - p0.X) * t,
+				p0.Y + (p1.Y - p0.Y) * t,
+				p0.Z + (p1.Z - p0.Z) * t
+			);
+		}
+
 		public float this[int index]
 		{
 			get
@@ -140,11 +161,7 @@ namespace Shark
 
 		public string ToString(string format, IFormatProvider formatProvider)
 		{
-			return string.Format("[{0}, {1}, {2}, {3}]",
-				X.ToString(format, formatProvider),
-				Y.ToString(format, formatProvider),
-				Z.ToString(format, formatProvider)
-			);
+			return string.Format("[{0}, {1}, {2}]", X, Y, Z);
 		}
 	}
 

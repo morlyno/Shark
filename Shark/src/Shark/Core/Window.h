@@ -23,7 +23,7 @@ namespace Shark {
 	class Window
 	{
 	public:
-		using EventCallbackFunc = std::function<void(Event& e)>;
+		using EventCallbackFunc = std::function<bool(Event& e)>;
 
 		virtual ~Window() = default;
 		virtual void CreateSwapChain() = 0;
@@ -39,8 +39,6 @@ namespace Shark {
 
 		virtual inline WindowHandle GetHandle() const = 0;
 		virtual Ref<SwapChain> GetSwapChain() const = 0;
-
-		virtual inline bool IsFocused() const = 0;
 
 		virtual inline bool IsVSync() const = 0;
 		virtual void SetVSync(bool VSync) = 0;

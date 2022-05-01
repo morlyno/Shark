@@ -28,7 +28,8 @@ project "SharkFin"
         "%{includeDir.ImGuizmo}",
         "%{includeDir.fmt}",
         "%{includeDir.Optick}",
-        "%{includeDir.glm}"
+        "%{includeDir.glm}",
+        "%{includeDir.Mono}"
     }
 
     flags

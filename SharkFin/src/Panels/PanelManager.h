@@ -18,23 +18,26 @@ namespace Shark {
 	{
 	public:
 		template<typename T, typename... Args>
-		Ref<T> AddPanel(std::string id, Args&&... args)
+		Ref<T> AddPanel(std::string id, bool show, Args&&... args)
 		{
 			auto panel = Ref<T>::Create(std::forward<Args>(args)...);
-			AddPanel(id, panel);
+			AddPanel(id, panel, show);
 			return panel;
 		}
 		template<typename T>
-		Ref<T> GetPanel(std::string id)
+		Ref<T> GetPanel(std::string id) const
 		{
-			return m_Panels[id].As<T>();
+			return m_Panels.at(id).Instance.As<T>();
 		}
 
-		void AddPanel(std::string id, Ref<Panel> panel);
+		void AddPanel(std::string id, Ref<Panel> panel, bool show);
 		void RemovePanel(std::string panelID);
-		bool HasPanel(std::string id);
-		Ref<Panel> GetPanel(std::string id);
-
+		bool HasPanel(std::string id) const;
+		Ref<Panel> GetPanel(std::string id) const;
+		bool IsShown(std::string id) const
+		{
+			return m_Panels.at(id).Shown;
+		}
 
 		template<typename T, typename... Args>
 		Ref<T> AddEditor(std::string id, Args&&... args)
@@ -44,14 +47,14 @@ namespace Shark {
 			return panel;
 		}
 		template<typename T, typename... Args>
-		Ref<T> GetEditor(std::string id, uint32_t index = 0)
+		Ref<T> GetEditor(std::string id, uint32_t index = 0) const
 		{
 			return GetEditor(id, index).As<T>();
 		}
 
 		void AddEditor(std::string id, Ref<Panel> panel);
-		Ref<Panel> GetEditor(std::string id, uint32_t index = 0);
-		stl::vector_view<Ref<Panel>> GetEditors(std::string id);
+		Ref<Panel> GetEditor(std::string id, uint32_t index = 0) const;
+		stl::vector_view<Ref<Panel>> GetEditors(std::string id) const;
 
 		void RemoveEditor(std::string id, uint32_t index = 0);
 		void RemoveEditors(std::string id);
@@ -65,7 +68,12 @@ namespace Shark {
 		void OnEvent(Event& event);
 	private:
 		// sorted?
-		std::unordered_map<std::string, Ref<Panel>> m_Panels;
+		struct PanelData
+		{
+			Ref<Panel> Instance;
+			bool Shown;
+		};
+		std::unordered_map<std::string, PanelData> m_Panels;
 		std::unordered_map<std::string, std::vector<Ref<Panel>>> m_EditorPanels;
 	};
 

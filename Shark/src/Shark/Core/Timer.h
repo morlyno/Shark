@@ -27,7 +27,7 @@ namespace Shark {
 
 			auto duration = stop.QuadPart - m_Start.QuadPart;
 			m_Stoped = true;
-			return (double)duration / (double)frequncy.QuadPart;
+			return (float)duration / (float)frequncy.QuadPart;
 		}
 
 		void StopAndLog()

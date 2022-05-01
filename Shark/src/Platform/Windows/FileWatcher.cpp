@@ -233,8 +233,6 @@ namespace Shark {
 				fileData.FileEvent = Utils::Win32FileActionToFileEvent(fileInfo->Action);
 				fileChanges.push_back(fileData);
 
-				SK_CORE_INFO("File Event: {} {}", FileEventToString(fileData.FileEvent), fileData.FilePath);
-
 				if (!fileInfo->NextEntryOffset)
 					break;
 			}

@@ -29,11 +29,11 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 	}
 
-	void ContentBrowserPanel::OnImGuiRender()
+	void ContentBrowserPanel::OnImGuiRender(bool& shown)
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (!m_ShowPanel)
+		if (!shown)
 			return;
 		
 		if (m_Reload)
@@ -42,7 +42,7 @@ namespace Shark {
 			m_Reload = false;
 		}
 
-		ImGui::Begin("Content Browser", &m_ShowPanel, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		ImGui::Begin("Content Browser", &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
 		DrawMenuBar();
 		ImGui::Separator();

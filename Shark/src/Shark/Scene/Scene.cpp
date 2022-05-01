@@ -6,6 +6,8 @@
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Render/SceneRenderer.h"
 
+#include "Shark/Scripting/ScriptEngine.h"
+
 #include "Shark/Utility/Math.h"
 
 #include "Shark/Debug/enttDebug.h"
@@ -99,6 +101,7 @@ namespace Shark {
 		CopyComponents<RigidBody2DComponent>(srcRegistry, destRegistry, enttMap);
 		CopyComponents<BoxCollider2DComponent>(srcRegistry, destRegistry, enttMap);
 		CopyComponents<CircleCollider2DComponent>(srcRegistry, destRegistry, enttMap);
+		CopyComponents<ScriptComponent>(srcRegistry, destRegistry, enttMap);
 
 		return newScene;
 	}
@@ -108,6 +111,24 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		SetupBox2D();
+
+		// Create Scripts
+		{
+			SK_PROFILE_SCOPED("Scene::OnScenePlay::CreateScripts");
+
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entityID : view)
+			{
+				auto& comp = view.get<ScriptComponent>(entityID);
+				if (comp.ScriptModuleFound)
+				{
+					Entity entity{ entityID, this };
+					UUID uuid = entity.GetUUID();
+					if (ScriptEngine::CreateScript(comp.ScriptName, uuid))
+						comp.Handle = uuid;
+				}
+			}
+		}
 
 		// Create Native Scrips
 		{
@@ -160,14 +181,30 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		auto view = m_Registry.view<NativeScriptComponent>();
-		for (auto entityID : view)
+		// Destroy Scripts
 		{
-			auto& comp = view.get<NativeScriptComponent>(entityID);
-			if (comp.Script)
+			SK_PROFILE_SCOPED("Scene::OnScenePlay::DestroyScripts");
+
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entityID : view)
 			{
-				comp.Script->OnDestroy();
-				comp.DestroyScript(comp.Script);
+				auto& comp = view.get<ScriptComponent>(entityID);
+				if (comp.Handle)
+					ScriptEngine::DestroyScript(comp.Handle);
+			}
+		}
+
+		// Destroy Native Scripts
+		{
+			auto view = m_Registry.view<NativeScriptComponent>();
+			for (auto entityID : view)
+			{
+				auto& comp = view.get<NativeScriptComponent>(entityID);
+				if (comp.Script)
+				{
+					comp.Script->OnDestroy();
+					comp.DestroyScript(comp.Script);
+				}
 			}
 		}
 		
@@ -187,6 +224,18 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnUpdateRuntime");
+
+		{
+			SK_PROFILE_SCOPED("Scene::OnScenePlay::UpdateScripts");
+
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entityID : view)
+			{
+				auto& comp = view.get<ScriptComponent>(entityID);
+				if (comp.Handle)
+					ScriptEngine::UpdateScript(comp.Handle, ts);
+			}
+		}
 
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
@@ -405,10 +454,14 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
+		SK_CORE_ASSERT(uuid.IsValid());
+
 		Entity entity{ m_Registry.create(), this };
-		entity.AddComponent<IDComponent>(uuid);
+		entity.AddComponent<IDComponent>(uuid ? uuid : UUID::Generate());
 		entity.AddComponent<TagComponent>(tag.empty() ? "new Entity" : tag);
 		entity.AddComponent<TransformComponent>();
+
+		m_EntityUUIDMap[uuid] = entity;
 		return entity;
 	}
 
@@ -416,6 +469,16 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
+		if (!entity)
+			return;
+
+		if (!m_IsEditorScene && entity.HasComponent<ScriptComponent>())
+		{
+			ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
+			ScriptEngine::DestroyScript(scriptComp.Handle);
+		}
+
+		m_EntityUUIDMap.erase(entity.GetUUID());
 		m_Registry.destroy(entity);
 	}
 
@@ -423,13 +486,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		auto view = m_Registry.view<IDComponent>();
-		for (auto e : view)
-		{
-			Entity entity{ e, this };
-			if (entity.GetUUID() == uuid)
-				return entity;
-		}
+		const auto entry = m_EntityUUIDMap.find(uuid);
+		if (entry != m_EntityUUIDMap.end())
+			return entry->second;
 		return Entity{};
 	}
 
@@ -445,15 +504,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		if (m_ActiveCameraUUID.IsValid())
-		{
-			auto view = m_Registry.view<CameraComponent>();
-			for (auto e : view)
-			{
-				Entity entity{ e, this };
-				if (entity.GetUUID() == m_ActiveCameraUUID)
-					return entity;
-			}
-		}
+			return m_EntityUUIDMap.at(m_ActiveCameraUUID);
 		return Entity{};
 	}
 
@@ -524,6 +575,7 @@ namespace Shark {
 				bodydef.position = { transform.Position.x, transform.Position.y };
 				bodydef.angle = transform.Rotation.z;
 				bodydef.fixedRotation = rb2d.FixedRotation;
+				bodydef.userData.pointer = (uintptr_t)entity.GetUUID();
 
 				rb2d.RuntimeBody = world->CreateBody(&bodydef);
 

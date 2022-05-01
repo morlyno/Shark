@@ -1,0 +1,117 @@
+Scene:
+  ActiveCamera: 0xbbdb8872e6e21912
+  Entities:
+    - Entity: 0x14b0acb94394c041
+      TagComponent:
+        Tag: Player
+      TransformComponent:
+        Position: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1.46200001, 0.731000006]
+      SpriteRendererComponent:
+        Color: [0.818627477, 0.713584483, 0.104334891, 1]
+        Texture: 0
+        TilingFactor: 1
+      RigidBody2DComponent:
+        Type: Dynamic
+        FixedRotation: true
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 2
+        Restitution: 0
+        RestitutionThreshold: 1
+    - Entity: 0x5e341a7845afd12b
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [10.9783669, 5.04832745, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [3.8718853, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+    - Entity: 0x647ce187fd0f1ceb
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [0.0145327449, -2.47060847, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [49.8395576, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+    - Entity: 0x6802d506a686729b
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [-4.28695583, 7.759758, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [3.8718853, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+    - Entity: 0x8c7a856c8315563b
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [-17.0170174, 1.88892102, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [5.92999077, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+    - Entity: 0xbbdb8872e6e21912
+      TagComponent:
+        Tag: Camera
+      TransformComponent:
+        Position: [0, 7.79384661, -29.3283787]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      CameraComponent:
+        Type: Perspective
+        Aspectratio: 2.07368422
+        PerspectiveFOV: 44.9999924
+        PerspectiveNear: 0.00999999978
+        PerspectiveFar: 1000
+        OrthographicZoom: 10
+        OrthographicNear: -1
+        OrthographicFar: 1

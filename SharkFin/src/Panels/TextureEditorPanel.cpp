@@ -86,7 +86,7 @@ namespace Shark {
 		m_Scene->OnRenderEditor(m_Renderer, m_Camera);
 	}
 
-	void TextureEditorPanel::OnImGuiRender()
+	void TextureEditorPanel::OnImGuiRender(bool& shwon)
 	{
 		SK_PROFILE_FUNCTION();
 

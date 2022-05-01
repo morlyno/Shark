@@ -12,6 +12,7 @@ namespace Shark {
 		virtual ~Camera() = default;
 
 		virtual const glm::mat4& GetProjection() const { return m_Projection; }
+		virtual void SetProjection(const glm::mat4& projection) { m_Projection = projection; }
 	protected:
 		glm::mat4 m_Projection;
 	};

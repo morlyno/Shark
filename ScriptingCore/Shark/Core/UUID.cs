@@ -1,11 +1,13 @@
 ﻿
 using System;
+using System.Runtime.InteropServices;
 
 namespace Shark
 {
+	[StructLayout(LayoutKind.Sequential)]
 	public struct UUID : IFormattable
 	{
-		private readonly ulong m_UUID;
+		private ulong m_UUID;
 
 		public static UUID Generate => InternalCalls.UUID_Generate();
 		public static UUID Null => new UUID(0);
@@ -22,8 +24,9 @@ namespace Shark
 
 		public string ToString(string format, IFormatProvider formatProvider)
 		{
-			return string.Format("0x{0:X}", m_UUID.ToString(format, formatProvider));
+			return string.Format("0x{0:x}", m_UUID);
 		}
+
 	}
 
 }

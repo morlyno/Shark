@@ -16,10 +16,8 @@ namespace Shark {
 	public:
 		SceneHirachyPanel(Ref<Scene> scene = nullptr);
 
-		virtual void OnImGuiRender() override;
+		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
-
-		virtual bool IsShown() const override { return m_ShowPanel; }
 
 		void SetContext(Ref<Scene> scene) { m_Context = scene; }
 		const Ref<Scene>& GetContext() const { return m_Context; }
@@ -48,8 +46,6 @@ namespace Shark {
 		static constexpr const char* s_BodyTypes[] = { "Static", "Dynamic", "Kinematic" };
 
 		bool m_ScriptFound = false;
-
-		bool m_ShowPanel = true;
 	};
 
 }

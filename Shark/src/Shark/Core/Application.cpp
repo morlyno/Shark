@@ -103,12 +103,12 @@ namespace Shark {
 		m_ImGuiLayer->End();
 	}
 
-	void Application::OnEvent(Event& event)
+	bool Application::OnEvent(Event& event)
 	{
 		SK_PROFILE_FUNCTION();
 
 		if (!m_RaiseEvents)
-			return;
+			return false;
 
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
@@ -118,6 +118,8 @@ namespace Shark {
 
 		for (auto it = m_LayerStack.begin(); it != m_LayerStack.end() && !event.Handled; ++it)
 			(*it)->OnEvent(event);
+
+		return event.Handled;
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& event)
@@ -154,11 +156,6 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (event.AltPressed() && event.GetKeyCode() == Key::F4)
-		{
-			CloseApplication();
-			return true;
-		}
 		return false;
 	}
 

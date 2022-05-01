@@ -5,21 +5,21 @@ namespace Shark {
 	class TimeStep
 	{
 	public:
-		TimeStep(double time = 0.0f)
+		TimeStep(float time = 0.0f)
 			: m_Time(time)
 		{}
 
-		operator double() const { return m_Time; }
+		operator float() const { return m_Time; }
 
-		double Seconds() const { return m_Time; }
-		double MilliSeconds() const { return m_Time * 1000.0; }
-		double MicroSeconds() const { return m_Time * (1000.0 * 1000.0); }
-		double NanoSeconds() const { return m_Time * (1000.0 * 1000.0 * 1000.0); }
+		float Seconds() const { return m_Time; }
+		float MilliSeconds() const { return m_Time * 1000.0f; }
+		float MicroSeconds() const { return m_Time * (1000.0f * 1000.0f); }
+		float NanoSeconds() const { return m_Time * (1000.0f * 1000.0f * 1000.0f); }
 
-		double s() const { return Seconds(); }
-		double ms() const { return MilliSeconds(); }
-		double us() const { return MicroSeconds(); }
-		double ns() const { return NanoSeconds(); }
+		float s() const { return Seconds(); }
+		float ms() const { return MilliSeconds(); }
+		float us() const { return MicroSeconds(); }
+		float ns() const { return NanoSeconds(); }
 
 	public:
 		TimeStep operator+(const TimeStep& rhs) const { return m_Time + rhs.m_Time; }
@@ -29,7 +29,7 @@ namespace Shark {
 		TimeStep& operator-=(const TimeStep& rhs) { m_Time += rhs.m_Time; return *this; }
 
 	private:
-		double m_Time;
+		float m_Time;
 	};
 
 }

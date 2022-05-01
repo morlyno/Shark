@@ -1,8 +1,11 @@
 ﻿
 using System;
+using System.Runtime.InteropServices;
 
 namespace Shark
 {
+
+	[StructLayout(LayoutKind.Sequential)]
 	public struct Matrix4 : IFormattable
 	{
 		public Vector4 Collumn0;
@@ -37,11 +40,11 @@ namespace Shark
 
 		public static Matrix4 operator*(Matrix4 lhs, Matrix4 rhs)
 		{
-			return InternalCalls.Matrix4_Mul(ref lhs, ref rhs);
+			return InternalCalls.Matrix4_Matrix4MulMatrix4(ref lhs, ref rhs);
 		}
 		public static Vector4 operator*(Matrix4 lhs, Vector4 rhs)
 		{
-			return InternalCalls.Matrix4_Mul(ref lhs, ref rhs);
+			return InternalCalls.Matrix4_Matrix4MulVector4(ref lhs, ref rhs);
 		}
 
 
@@ -55,6 +58,7 @@ namespace Shark
 		{
 			return Inverse(this);
 		}
+
 
 		public Vector4 this[int index]
 		{

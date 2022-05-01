@@ -1,19 +1,28 @@
 #pragma once
 
-#include <Shark/Render/EditorCamera.h>
-#include <Shark/Render/FrameBuffer.h>
-#include <Shark/Scene/Scene.h>
-#include <Shark/Scene/Entity.h>
-#include <Shark/Render/Texture.h>
-#include <Shark/Render/SceneRenderer.h>
-#include <Shark/Render/Renderer2D.h>
+#include "Shark/Core/Base.h"
+#include "Shark/Core/Project.h"
+#include "Shark/Layer/Layer.h"
 
-#include "Panels/SceneHirachyPanel.h"
-#include "Panels/ContentBrowserPanel.h"
-#include "Panels/TextureEditorPanel.h"
+#include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
+
+#include "Shark/Render/Renderer2D.h"
+#include "Shark/Render/SceneRenderer.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/EditorCamera.h"
+
+#include "Shark/Event/Event.h"
+#include "Shark/Event/WindowEvent.h"
+#include "Shark/Event/KeyEvent.h"
+
+#include "Shark/File/FileWatcher.h"
+
 #include "Panels/PanelManager.h"
 
+#include <imgui.h>
 #include <ImGuizmo.h>
+#include <imgui_internal.h>
 
 namespace Shark {
 
@@ -93,6 +102,8 @@ namespace Shark {
 		glm::mat4 GetViewProjFromCameraEntity(Entity cameraEntity);
 
 		void DistributeEvent(Event& event);
+
+		void CheckScriptComponents();
 
 	private:
 		std::filesystem::path m_StartupProject;
@@ -191,6 +202,8 @@ namespace Shark {
 			}
 		};
 		TextureSourceImportData m_TextureAssetCreateData;
+
+		bool m_HotReloadAssemblies = true;
 
 	};
 

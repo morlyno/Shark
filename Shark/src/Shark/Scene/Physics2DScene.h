@@ -1,11 +1,15 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/UUID.h"
 #include "Shark/Core/TimeStep.h"
 
 #include <box2d/b2_world.h>
+#include <box2d/b2_body.h>
 
 namespace Shark {
+
+	class Entity;
 
 	class Physics2DScene
 	{
@@ -17,6 +21,8 @@ namespace Shark {
 		void DestoryScene();
 
 		void Step(TimeStep ts);
+
+		bool HasBody(const b2Body* body) const;
 
 		b2World* GetWorld() const { return m_World; }
 	private:

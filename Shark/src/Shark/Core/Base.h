@@ -8,6 +8,26 @@
 #error Invalid Configuration
 #endif
 
+#if defined(__clang__) || defined(__GNUC__)
+#	define SK_COMPILER_GCC (1)
+#elif defined(_MSC_VER)
+#	define SK_COMPILER_MSVC (1)
+#else
+#error Compiler not supported
+#endif
+
+////////////////////////////////////////////////////////////////////////
+// Target Platform
+////////////////////////////////////////////////////////////////////////
+
+#if defined(SK_COMPILER_MSVC)
+#define SK_FUNCTION __func__
+#define SK_FUNCTION_DECORATED __FUNCTION__
+#define SK_FUNCTION_SIGNATURE __PRETTY_FUNCTION__
+#else
+#error Compiler not supported
+#endif
+
 
 #if SK_DEBUG
 	#define SK_DEBUG_BREAK() __debugbreak()
@@ -16,6 +36,7 @@
 	#define SK_ENABLE_VERIFY 1
 	#define SK_ENABLE_VALIDATION 1
 	#define SK_IF_DEBUG(x) { x }
+	#define SK_MONO_LOG_LEVEL "debug"
 #endif
 
 #if SK_RELEASE
@@ -25,6 +46,7 @@
 	#define SK_ENABLE_VERIFY 2
 	#define SK_ENABLE_VALIDATION 1
 	#define SK_IF_DEBUG(...)
+	#define SK_MONO_LOG_LEVEL "warning"
 #endif
 
 #define SK_ENABLE_PERF 1

@@ -4,7 +4,7 @@
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/KeyCodes.h"
-#include "Shark/Core/MouseCodes.h"
+#include "Shark/Core/MouseButtons.h"
 
 #include "Shark/Utility/String.h"
 #include "Shark/Render/Renderer.h"
@@ -16,6 +16,8 @@
 
 #include <backends/imgui_impl_win32.h>
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+#include <windowsx.h>
 
 namespace Shark {
 
@@ -185,14 +187,12 @@ namespace Shark {
 			return DefWindowProc(hWnd, msg, wParam, lParam);
 		}
 
-		m_IsFocused = m_hWnd == GetFocus();
-
-		LRESULT retVal = 0;
 		switch (msg)
 		{
 			case WM_DESTROY:
 			{
 				m_Callbackfunc(WindowCloseEvent());
+				return 0;
 				break;
 			}
 
@@ -207,136 +207,277 @@ namespace Shark {
 				else if (wParam == SIZE_MINIMIZED)
 					state = WindowResizeEvent::State::Minimized;
 
-				m_Callbackfunc(WindowResizeEvent(m_Size.y, m_Size.y, state));
+				const bool handled = m_Callbackfunc(WindowResizeEvent(m_Size.y, m_Size.y, state));
 				Renderer::ClearAllCommandBuffers();
 				m_SwapChain->Resize(m_Size.x, m_Size.y);
-				break;
+				return handled ? 0 : 1;
 			}
 
 			case WM_MOVE:
 			{
 				const POINTS pt = MAKEPOINTS(lParam);
 				m_Pos = { pt.x, pt.y };
-				m_Callbackfunc(WindowMoveEvent(pt.x, pt.y));
-				break;
+				const bool handled = m_Callbackfunc(WindowMoveEvent(pt.x, pt.y));
+				return handled ? 0 : 1;
 			}
 
 			// ----- Mouse ----- //
+			case WM_NCMOUSEMOVE:
 			case WM_MOUSEMOVE:
 			{
-				const POINTS pt = MAKEPOINTS(lParam);
-				if (pt.x >= 0 && pt.x < (short)m_Size.x && pt.y >= 0 && pt.y < (short)m_Size.y)
-				{
-					if (!m_IsCaptured)
-					{
-						m_Callbackfunc(WindowFocusEvent(pt.x, pt.y));
-						SetCapture(m_hWnd);
-						m_IsCaptured = true;
-					}
-					m_Callbackfunc(MouseMoveEvent(pt.x, pt.y));
-				}
-				else
-				{
-					if (m_IsCaptured)
-					{
-						if (wParam & (MK_LBUTTON | MK_RBUTTON))
-						{
-							m_Callbackfunc(MouseMoveEvent(pt.x, pt.y));
-						}
-						else
-						{
-							m_Callbackfunc(WindowLostFocusEvent());
-							m_IsCaptured = false;
-							ReleaseCapture();
-						}
-					}
-				}
-				break;
-			}
+				POINT point = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 
-			case WM_CAPTURECHANGED:
-			{
-				m_IsCaptured = false;
-				break;
+				glm::ivec2 mousePos = { point.x, point.y };
+				const bool handled = m_Callbackfunc(MouseMoveEvent(mousePos));
+
+				return handled ? 0 : 1;
 			}
 
 			case WM_LBUTTONDOWN:
-			{
-				const POINTS pt = MAKEPOINTS(lParam);
-				if (!m_IsFocused)
-				{
-					m_IsFocused = true;
-					SetFocus(m_hWnd);
-					m_Callbackfunc(WindowFocusEvent(pt.x, pt.y));
-				}
-				m_Callbackfunc(MousePressedEvent(pt.x, pt.y, Mouse::LeftButton));
-				break;
-			}
+			case WM_LBUTTONDBLCLK:
 			case WM_RBUTTONDOWN:
-			{
-				const POINTS pt = MAKEPOINTS(lParam);
-				m_Callbackfunc(MousePressedEvent(pt.x, pt.y, Mouse::RightButton));
-				break;
-			}
+			case WM_RBUTTONDBLCLK:
+			case WM_MBUTTONDOWN:
+			case WM_MBUTTONDBLCLK:
+			case WM_XBUTTONDOWN:
+			case WM_XBUTTONDBLCLK:
 			case WM_LBUTTONUP:
-			{
-				const POINTS pt = MAKEPOINTS(lParam);
-				m_Callbackfunc(MouseReleasedEvent(pt.x, pt.y, Mouse::LeftButton));
-				break;
-			}
 			case WM_RBUTTONUP:
+			case WM_MBUTTONUP:
+			case WM_XBUTTONUP:
 			{
-				const POINTS pt = MAKEPOINTS(lParam);
-				m_Callbackfunc(MouseReleasedEvent(pt.x, pt.y, Mouse::RightButton));
-				break;
+				POINT cursorPoint;
+				cursorPoint.x = GET_X_LPARAM(lParam);
+				cursorPoint.y = GET_Y_LPARAM(lParam);
+
+				glm::ivec2 mousePos = { cursorPoint.x, cursorPoint.y };
+
+				MouseButton::Type mouseButton = MouseButton::Invalid;
+				bool doubleClick = false;
+				bool mouseUp = false;
+
+				switch (msg)
+				{
+				case WM_LBUTTONDOWN:
+					mouseButton = MouseButton::Left;
+					break;
+				case WM_LBUTTONDBLCLK:
+					doubleClick = true;
+					mouseButton = MouseButton::Left;
+					break;
+				case WM_LBUTTONUP:
+					mouseUp = true;
+					mouseButton = MouseButton::Left;
+					break;
+
+				case WM_RBUTTONDOWN:
+					mouseButton = MouseButton::Right;
+					break;
+				case WM_RBUTTONDBLCLK:
+					doubleClick = true;
+					mouseButton = MouseButton::Right;
+					break;
+				case WM_RBUTTONUP:
+					mouseUp = true;
+					mouseButton = MouseButton::Right;
+					break;
+
+				case WM_MBUTTONDOWN:
+					mouseButton = MouseButton::Middle;
+					break;
+				case WM_MBUTTONDBLCLK:
+					doubleClick = true;
+					mouseButton = MouseButton::Middle;
+					break;
+				case WM_MBUTTONUP:
+					mouseUp = true;
+					mouseButton = MouseButton::Middle;
+					break;
+
+				case WM_XBUTTONDOWN:
+					mouseButton = HIWORD(wParam) == 0x0001 ? MouseButton::Thumb01 : MouseButton::Thumb02;
+					break;
+				case WM_XBUTTONDBLCLK:
+					doubleClick = true;
+					mouseButton = HIWORD(wParam) == 0x0001 ? MouseButton::Thumb01 : MouseButton::Thumb02;
+					break;
+				case WM_XBUTTONUP:
+					mouseUp = true;
+					mouseButton = HIWORD(wParam) == 0x0001 ? MouseButton::Thumb01 : MouseButton::Thumb02;
+					break;
+				}
+				
+				bool handled = false;
+				if (mouseUp)
+				{
+					handled = m_Callbackfunc(MouseButtonReleasedEvent(mousePos, mouseButton));
+				}
+				else if (doubleClick)
+				{
+					handled = m_Callbackfunc(MouseButtonDoubleClicked(mousePos, mouseButton));
+				}
+				else
+				{
+					handled = m_Callbackfunc(MouseButtonPressedEvent(mousePos, mouseButton));
+				}
+
+				return handled ? 0 : 1;
 			}
+
 			case WM_MOUSEWHEEL:
 			{
-				const POINTS pt = MAKEPOINTS(lParam);
-				const int delta = (int)GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA;
-				m_Callbackfunc(MouseScrolledEvent(pt.x, pt.y, delta));
-				break;
+				POINT mousePoint;
+				mousePoint.x = GET_X_LPARAM(lParam);
+				mousePoint.y = GET_Y_LPARAM(lParam);
+
+				ScreenToClient(hWnd, &mousePoint);
+
+				const glm::ivec2 mousePos = { mousePoint.x, mousePoint.y };
+				const short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+				const float spinFactor = 1.0f / WHEEL_DELTA;
+
+				const bool handled = m_Callbackfunc(MouseScrolledEvent(mousePos, (float)wheelDelta * spinFactor));
+				return handled ? 0 : 1;
 			}
 
 			// ----- Keyboard ----- //
 			case WM_SYSKEYDOWN:
 			case WM_KEYDOWN:
 			{
-				//SK_CORE_TRACE("0x{0:x}", wParam);
-				const unsigned int repeat = lParam & 0xFFFF;
+				bool isRepeat = (lParam & BIT(30)) > 0;
 				const bool altPressed = (lParam & BIT(29)) > 0;
-				m_Callbackfunc(KeyPressedEvent((KeyCode)wParam, repeat, altPressed));
+				const KeyCode win32Key = wParam;
+				KeyCode actualKey = win32Key;
+
+				switch (win32Key)
+				{
+					case VK_MENU:
+					{
+						if ((lParam & BIT(24)) == 0)
+						{
+							actualKey = Key::LeftAlt;
+							isRepeat = m_ExtendedKeyState[ExtendedKey::LeftAlt];
+							m_ExtendedKeyState[ExtendedKey::LeftAlt] = true;
+						}
+						else
+						{
+							actualKey = Key::RightAlt;
+							isRepeat = m_ExtendedKeyState[ExtendedKey::RightAlt];
+							m_ExtendedKeyState[ExtendedKey::RightAlt] = true;
+						}
+						break;
+					}
+					case VK_CONTROL:
+					{
+						if ((lParam & BIT(24)) == 0)
+						{
+							actualKey = Key::LeftControl;
+							isRepeat = m_ExtendedKeyState[ExtendedKey::LeftControl];
+							m_ExtendedKeyState[ExtendedKey::LeftControl] = true;
+						}
+						else
+						{
+							actualKey = Key::RightControl;
+							isRepeat = m_ExtendedKeyState[ExtendedKey::RightControl];
+							m_ExtendedKeyState[ExtendedKey::RightControl] = true;
+						}
+						break;
+					}
+					case VK_SHIFT:
+					{
+						if ((lParam & BIT(24)) == 0)
+						{
+							actualKey = Key::LeftControl;
+							isRepeat = m_ExtendedKeyState[ExtendedKey::LeftControl];
+							m_ExtendedKeyState[ExtendedKey::LeftControl] = true;
+						}
+						else
+						{
+							actualKey = Key::RightControl;
+							isRepeat = m_ExtendedKeyState[ExtendedKey::RightControl];
+							m_ExtendedKeyState[ExtendedKey::RightControl] = true;
+						}
+						break;
+					}
+				}
+
+				const bool handled = m_Callbackfunc(KeyPressedEvent(actualKey, isRepeat, altPressed));
+
+				if (handled || msg != WM_SYSKEYDOWN)
+					return 0;
+
 				break;
 			}
 
+			case WM_SYSKEYUP:
 			case WM_KEYUP:
 			{
-				m_Callbackfunc(KeyReleasedEvent((KeyCode)wParam));
+				const KeyCode win32Key = wParam;
+				KeyCode actualKey = win32Key;
+
+				switch (win32Key)
+				{
+					case VK_MENU:
+					{
+						if ((lParam & BIT(24)) == 0)
+						{
+							actualKey = Key::LeftAlt;
+							m_ExtendedKeyState[ExtendedKey::LeftAlt] = false;
+						}
+						else
+						{
+							actualKey = Key::RightAlt;
+							m_ExtendedKeyState[ExtendedKey::RightAlt] = false;
+						}
+						break;
+					}
+					case VK_CONTROL:
+					{
+						if ((lParam & BIT(24)) == 0)
+						{
+							actualKey = Key::LeftControl;
+							m_ExtendedKeyState[ExtendedKey::LeftControl] = false;
+						}
+						else
+						{
+							actualKey = Key::RightControl;
+							m_ExtendedKeyState[ExtendedKey::RightControl] = false;
+						}
+						break;
+					}
+					case VK_SHIFT:
+					{
+						if ((lParam & BIT(24)) == 0)
+						{
+							actualKey = Key::LeftControl;
+							m_ExtendedKeyState[ExtendedKey::LeftControl] = false;
+						}
+						else
+						{
+							actualKey = Key::RightControl;
+							m_ExtendedKeyState[ExtendedKey::RightControl] = false;
+						}
+						break;
+					}
+				}
+
+				const bool handled = m_Callbackfunc(KeyReleasedEvent((KeyCode)wParam));
+
+				if (handled || msg == WM_SYSKEYUP)
+					return 0;
+
 				break;
 			}
 
 			case WM_CHAR:
 			{
-				m_Callbackfunc(KeyCharacterEvent((KeyCode)wParam));
-				break;
+				const bool isRepeat = (lParam & BIT(30)) > 0;
+				m_Callbackfunc(KeyCharacterEvent((KeyCode)wParam, isRepeat));
+				return 0;
 			}
-
-			default: retVal = DefWindowProc(hWnd, msg, wParam, lParam);
 		}
 
-		//bool checkfocus = m_hWnd == GetFocus();
-		//if (m_IsFocused != checkfocus)
-		//	SK_CORE_TRACE("Focus Mismatch | {0} : {1}", m_IsFocused, checkfocus);
-
-		//if (m_IsCaptured != (m_hWnd == GetCapture()))
-		//	SK_CORE_TRACE("Capture Mismatch");
-
-		//if (m_IsFocused != m_IsCaptured)
-		//	SK_CORE_TRACE("Mismatch");
-
-		//SK_CORE_TRACE("DefWindowProc msg: {0:x}", msg);
-
-		return retVal;
+		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 
 }

@@ -31,6 +31,9 @@ namespace Shark {
 
 		static Ref<Scene> Copy(Ref<Scene> srcScene);
 
+		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
+		bool IsEditorScene() { return m_IsEditorScene; }
+
 		void OnScenePlay();
 		void OnSceneStop();
 		void OnSimulateStart();
@@ -69,6 +72,8 @@ namespace Shark {
 		uint32_t GetViewportWidth() const { return m_ViewportWidth; }
 		uint32_t GetViewportHeight() const { return m_ViewportHeight; }
 
+		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
+
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
@@ -80,10 +85,13 @@ namespace Shark {
 		entt::registry m_Registry;
 		UUID m_ActiveCameraUUID = UUID::Null();
 		entt::entity m_RuntimeCamera = entt::null;
+		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
 		Physics2DScene m_PhysicsScene;
+
+		bool m_IsEditorScene = false;
 
 		friend class Entity;
 		friend class SceneHirachyPanel;

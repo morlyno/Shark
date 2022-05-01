@@ -12,7 +12,7 @@ namespace Shark {
 		virtual ~Panel() = default;
 
 		virtual void OnUpdate(TimeStep ts) {}
-		virtual void OnImGuiRender() {}
+		virtual void OnImGuiRender(bool& shown) {}
 
 		virtual void OnEvent(Event& event) {}
 

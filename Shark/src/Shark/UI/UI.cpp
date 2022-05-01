@@ -154,6 +154,42 @@ namespace Shark::UI {
 		return false;
 	}
 
+	bool BeginControls(ImGuiID syncID)
+	{
+		auto& c = GContext->Control;
+		SK_CORE_ASSERT(!c.Active, "Controls Begin/End mismatch");
+
+		if (ImGui::BeginTableEx("ControlsTable", syncID, 2, ImGuiTableFlags_Resizable))
+		{
+			ImGuiStyle& style = ImGui::GetStyle();
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
+			ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
+
+			c.Active = true;
+			return true;
+		}
+		return false;
+	}
+
+	bool BeginControlsGrid(ImGuiID syncID, GridFlags flags)
+	{
+		auto& c = GContext->Control;
+		SK_CORE_ASSERT(!c.Active, "Controls Begin/End mismatch");
+
+		if (ImGui::BeginTableEx("ControlsTable", syncID, 2, ImGuiTableFlags_Resizable))
+		{
+			ImGuiStyle& style = ImGui::GetStyle();
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
+			ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
+
+			c.ActiveGridFlags = flags;
+			c.Active = true;
+			return true;
+		}
+		return false;
+	}
+
+
 	void EndControls()
 	{
 		auto& c = GContext->Control;
@@ -279,6 +315,7 @@ namespace Shark::UI {
 			if (ImGui::Button("Y", { buttonSize, buttonSize }))
 			{
 				val[1] = resetVal[1];
+				changed = true;
 			};
 
 			ImGui::SameLine(0.0f, 0.0f);

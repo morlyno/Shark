@@ -12,7 +12,7 @@ namespace Shark {
 		DirectXGPUTimer(const std::string& name);
 		virtual ~DirectXGPUTimer();
 
-		virtual TimeStep GetTime() const override { return (double)m_LastTickCount / (double)m_LastFrequency; }
+		virtual TimeStep GetTime() const override { return (float)m_LastTickCount / (float)m_LastFrequency; }
 
 		uint64_t GetTickCount() const { return m_LastTickCount; }
 		uint64_t GetFrequency() const { return m_LastFrequency; }

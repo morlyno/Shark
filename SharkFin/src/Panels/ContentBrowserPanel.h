@@ -33,11 +33,9 @@ namespace Shark {
 		ContentBrowserPanel();
 		~ContentBrowserPanel();
 
-		virtual void OnImGuiRender() override;
+		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 
-		virtual bool IsShown() const override { return m_ShowPanel; }
-		
 
 		void Reload() { m_Reload = true; }
 		void OnFileChanged(const std::vector<FileChangedData>& fileEvents) { Reload(); }
@@ -92,8 +90,6 @@ namespace Shark {
 		Settings m_Settings;
 
 		bool m_IgnoreSelection = false;
-
-		bool m_ShowPanel = true;
 
 	};
 

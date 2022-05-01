@@ -4,14 +4,33 @@
 
 namespace Shark {
 
+	namespace utils {
+
+		int MapMouseButtonToVK(MouseButton::Type button)
+		{
+			switch (button)
+			{
+				case MouseButton::Left:    return VK_LBUTTON;
+				case MouseButton::Right:   return VK_RBUTTON;
+				case MouseButton::Middle:  return VK_MBUTTON;
+				case MouseButton::Thumb01: return VK_XBUTTON1;
+				case MouseButton::Thumb02: return VK_XBUTTON2;
+				case MouseButton::Invalid: return 0;
+			}
+			return 0;
+		}
+
+	}
+
 	bool Input::KeyPressed(KeyCode key)
 	{
 		return (bool)(GetKeyState(key) >> 8);
 	}
 
-	bool Input::MousePressed(MouseCode button)
+	bool Input::MousePressed(MouseButton::Type button)
 	{
-		return (bool)(GetKeyState(button) >> 8);
+		const int virtualKey = utils::MapMouseButtonToVK(button);
+		return (bool)(GetKeyState(virtualKey) >> 8);
 	}
 
 	glm::ivec2 Input::MousePos()
@@ -33,7 +52,7 @@ namespace Shark {
 		return MousePos().y;
 	}
 
-	std::pair<int, int> Input::GlobalMousePos()
+	glm::ivec2 Input::GlobalMousePos()
 	{
 		POINT pos;
 		GetCursorPos(&pos);
@@ -42,12 +61,12 @@ namespace Shark {
 
 	int Input::GlobalMousePosX()
 	{
-		return GlobalMousePos().first;
+		return GlobalMousePos().y;
 	}
 
 	int Input::GlobalMousePosY()
 	{
-		return GlobalMousePos().second;
+		return GlobalMousePos().x;
 	}
 
 }

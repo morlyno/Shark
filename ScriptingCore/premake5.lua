@@ -21,16 +21,6 @@ project "ScriptingCore"
         "MultiProcessorCompile"
     }
     
-    postBuildCopySource = "%{prj.location}/../bin/%{outputdir}/%{prj.name}/%{prj.name}"
-    postBuildCopyTargetDir = "%{prj.location}/../SharkFin/Resources/Binaries"
-
-    postbuildcommands
-    {
-        '{ECHO} "Copying ScriptingCore..."',
-        '{ECHO} "Copy: %{postBuildCopySource}.dll => %{postBuildCopyTargetDir}"',
-        '{COPY} %{postBuildCopySource}.dll %{postBuildCopyTargetDir}'
-    }
-
     filter "system:windows"
         systemversion "latest"
         defines "SK_PLATFORM_WINDOWS"
@@ -40,20 +30,7 @@ project "ScriptingCore"
         runtime "Debug"
         symbols "on"
 
-        postbuildcommands
-        {
-            '{ECHO} "Copy: %{postBuildCopySource}.pdb => %{postBuildCopyTargetDir}"',
-            '{COPY} %{postBuildCopySource}.pdb %{postBuildCopyTargetDir}'
-        }
-    
     filter "configurations:Release"
         defines "SK_RELEASE"
         runtime "Release"
         optimize "on"
-        
-    filter {}
-
-    postbuildcommands
-    {
-        '{ECHO} "Done"'
-    }

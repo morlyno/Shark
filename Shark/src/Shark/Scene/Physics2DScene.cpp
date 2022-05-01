@@ -3,6 +3,8 @@
 
 #include "Shark/Core/Project.h"
 
+#include <box2d/b2_contact.h>
+
 namespace Shark {
 
 	Physics2DScene::Physics2DScene()
@@ -43,6 +45,19 @@ namespace Shark {
 			m_Accumulator -= m_FixedTimeStep;
 		}
 
+	}
+
+	bool Physics2DScene::HasBody(const b2Body* body) const
+	{
+		b2Body* iter = m_World->GetBodyList();
+
+		while (iter)
+		{
+			if (iter == body)
+				return true;
+			iter = iter->GetNext();
+		}
+		return false;
 	}
 
 }

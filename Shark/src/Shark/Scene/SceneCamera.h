@@ -51,6 +51,7 @@ namespace Shark {
 		void SetOrthographic(float aspectratio, float zoom, float clipnear, float clipfar) { m_Aspectratio = aspectratio; m_OrthographicZoom = zoom; m_OrthographicNear = clipnear; m_OrthographicFar = clipfar; Recalcualte(); }
 
 		float GetAspectratio() const { return m_Aspectratio; }
+		float SetAspectratio(float aspectratio) { return m_Aspectratio = aspectratio; Recalcualte(); }
 
 		void SetPerspectiveFOV(float fov) { m_PerspectiveFOV = glm::radians(fov); Recalcualte(); }
 		void SetPerspectiveNear(float clipnear) { m_PerspectiveNear = clipnear; Recalcualte(); }

@@ -1,0 +1,41 @@
+Scene:
+  ActiveCamera: 0xd5b92d0481c0e703
+  Entities:
+    - Entity: 0x7fa6ce31e5d5dd30
+      TagComponent:
+        Tag: Background
+      TransformComponent:
+        Position: [0, 0, 0.00100000005]
+        Rotation: [0, 0, 0]
+        Scaling: [10, 10, 10]
+      SpriteRendererComponent:
+        Color: [1, 1, 1, 1]
+        Texture: 12046611585830764490
+        TilingFactor: 1
+    - Entity: 0xc3932487fad200d8
+      TagComponent:
+        Tag: Quad
+      TransformComponent:
+        Position: [-8, 0, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      SpriteRendererComponent:
+        Color: [1, 1, 1, 1]
+        Texture: 0
+        TilingFactor: 1
+    - Entity: 0xd5b92d0481c0e703
+      TagComponent:
+        Tag: Camera
+      TransformComponent:
+        Position: [0, 0, -25]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      CameraComponent:
+        Type: Perspective
+        Aspectratio: 2.07547164
+        PerspectiveFOV: 44.9999924
+        PerspectiveNear: 0.00999999978
+        PerspectiveFar: 1000
+        OrthographicZoom: 10
+        OrthographicNear: -1
+        OrthographicFar: 1

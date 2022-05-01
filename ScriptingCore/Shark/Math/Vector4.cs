@@ -1,9 +1,11 @@
 ﻿
 using System;
+using System.Runtime.InteropServices;
 
 namespace Shark
 {
 
+	[StructLayout(LayoutKind.Sequential)]
 	public struct Vector4 : IFormattable
 	{
 		public float X;
@@ -96,6 +98,16 @@ namespace Shark
 			}
 
 			return this / length;
+		}
+
+		public static Vector4 Lerp(Vector4 p0, Vector4 p1, float t)
+		{
+			return new Vector4(
+				p0.X + (p1.X - p0.X) * t,
+				p0.Y + (p1.Y - p0.Y) * t,
+				p0.Z + (p1.Z - p0.Z) * t,
+				p0.W + (p1.W - p0.W) * t
+			);
 		}
 
 		public float this[int index]

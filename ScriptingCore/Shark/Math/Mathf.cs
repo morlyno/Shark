@@ -37,6 +37,11 @@ namespace Shark
 			return (float)Math.Sqrt((double)val);
 		}
 
+		public static float Lerp(float x0, float x1, float t)
+		{
+			return x0 + (x1 - x0) * t;
+		}
+
 		public static Vector2 Sqrt(Vector2 v)
 		{
 			return new Vector2(

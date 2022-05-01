@@ -12,10 +12,14 @@
 
 #include "Shark/Asset/ResourceManager.h"
 
+#include "Panels/SceneHirachyPanel.h"
+#include "Panels/ContentBrowserPanel.h"
+#include "Panels/TextureEditorPanel.h"
+#include "Panels/PhysicsDebugPanel.h"
+
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/Instrumentor.h"
 
-#include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
@@ -24,6 +28,7 @@
 #define SCENE_HIRACHY_ID "SceneHirachyPanel"
 #define CONTENT_BROWSER_ID "ContentBrowserPanel"
 #define TEXTURE_EDITOR_ID "TextureEditorPanel"
+#define PHYSICS_DEBUG_ID "PhysicsDebugPanel"
 
 namespace Shark {
 
@@ -55,12 +60,13 @@ namespace Shark {
 		// Create and setup Panels
 		m_PanelManager = Scope<PanelManager>::Create();
 
-		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, m_WorkScene);
+		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, true);
 		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
 
-		auto contentBrowserPanel = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID);
+		auto contentBrowserPanel = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, true);
 		contentBrowserPanel->SetOpenAssetCallback(std::bind(&EditorLayer::OpenAssetCallback, this, std::placeholders::_1));
 
+		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, true);
 
 		// Renderer stuff
 		auto& window = Application::Get().GetWindow();
@@ -100,6 +106,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		SK_CORE_ASSERT(!m_ActiveScene->IsEditorScene() ? m_SceneState == SceneState::Play : true);
+
 		m_TimeStep = ts;
 
 		Renderer::NewFrame();
@@ -132,7 +140,7 @@ namespace Shark {
 				m_NeedsResize = false;
 			}
 
-			if (m_ViewportHovered && m_ViewportFocused && m_SceneState != SceneState::Play)
+			if ((m_ViewportHovered || m_ViewportFocused) && m_SceneState != SceneState::Play)
 				m_EditorCamera.OnUpdate(ts);
 
 			switch (m_SceneState)
@@ -262,7 +270,7 @@ namespace Shark {
 				break;
 			}
 
-			case Key::Entf:
+			case Key::Delete:
 			{
 				if (m_SelectetEntity)
 					DeleteEntity(m_SelectetEntity);
@@ -278,10 +286,10 @@ namespace Shark {
 			}
 
 			// ImGuizmo
-			case Key::Q: { if (m_ViewportFocused) { m_CurrentOperation = 0; return true; } break; }
-			case Key::W: { if (m_ViewportFocused) { m_CurrentOperation = ImGuizmo::TRANSLATE; return true; } break; }
-			case Key::E: { if (m_ViewportFocused) { m_CurrentOperation = ImGuizmo::ROTATE; return true; } break; }
-			case Key::R: { if (m_ViewportFocused) { m_CurrentOperation = ImGuizmo::SCALE; return true; } break; }
+			case Key::Q: { m_CurrentOperation = 0; return true; }
+			case Key::W: { m_CurrentOperation = ImGuizmo::TRANSLATE; return true; }
+			case Key::E: { m_CurrentOperation = ImGuizmo::ROTATE; return true; }
+			case Key::R: { m_CurrentOperation = ImGuizmo::SCALE; return true; }
 		}
 
 		return false;
@@ -551,6 +559,18 @@ namespace Shark {
 				ImGui::EndMenu();
 			}
 
+			if (ImGui::BeginMenu("Script"))
+			{
+				if (ImGui::MenuItem("Reload", nullptr, nullptr, m_SceneState == SceneState::Edit))
+				{
+					ScriptEngine::ReloadAssembly();
+					CheckScriptComponents();
+				}
+				ImGui::MenuItem("Hot Reload", nullptr, &m_HotReloadAssemblies);
+
+				ImGui::EndMenu();
+			}
+
 			if (ImGui::BeginMenu("View"))
 			{
 				ImGui::MenuItem("Scene Hirachy", nullptr, &m_ShowSceneHirachyPanel);
@@ -559,7 +579,8 @@ namespace Shark {
 				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
 				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
 				ImGui::MenuItem("AssetRegistry", nullptr, &m_ShowAssetsRegistry);
-
+				ImGui::Separator();
+				ImGui::MenuItem("Physics Debug", nullptr, m_PanelManager->IsShown(PHYSICS_DEBUG_ID));
 				ImGui::EndMenu();
 			}
 
@@ -1635,8 +1656,8 @@ namespace Shark {
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		Ref<Scene> newScene = ResourceManager::CreateMemoryAsset<Scene>();
-		SetActiveScene(newScene);
 		m_WorkScene = newScene;
+		SetActiveScene(newScene);
 	}
 
 	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)
@@ -1650,8 +1671,8 @@ namespace Shark {
 		Ref<Scene> scene = ResourceManager::GetAsset<Scene>(metadata.Handle);
 		if (scene)
 		{
-			SetActiveScene(scene);
 			m_WorkScene = scene;
+			SetActiveScene(scene);
 			return true;
 		}
 		return false;
@@ -1717,18 +1738,27 @@ namespace Shark {
 		m_InitialSceneState = SceneState::Play;
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
+
+		if (m_HotReloadAssemblies)
+		{
+			ScriptEngine::ReloadAssembly();
+			CheckScriptComponents();
+		}
+
+		ScriptEngine::SetActiveScene(m_ActiveScene);
 		m_ActiveScene->OnScenePlay();
 	}
 
 	void EditorLayer::OnSceneStop()
 	{
 		SK_PROFILE_FUNCTION();
-		
-		m_ActiveScene->OnSceneStop();
-		SetActiveScene(m_WorkScene);
 
 		m_SceneState = SceneState::Edit;
 		m_InitialSceneState = SceneState::None;
+
+		m_ActiveScene->OnSceneStop();
+		ScriptEngine::SetActiveScene(nullptr);
+		SetActiveScene(m_WorkScene);
 	}
 
 	void EditorLayer::OnSimulateStart()
@@ -1750,9 +1780,14 @@ namespace Shark {
 
 		if (m_ActiveScene && ResourceManager::IsMemoryAsset(m_ActiveScene->Handle))
 			ResourceManager::UnloadAsset(m_ActiveScene->Handle);
-	
+
+		if (scene)
+		{
+			scene->IsEditorScene(m_InitialSceneState != SceneState::Play);
+			scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		}
+
 		m_ActiveScene = scene;
-		m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		m_SceneRenderer->SetScene(scene);
 		m_CameraPreviewRenderer->SetScene(scene);
 		DistributeEvent(SceneChangedEvent(scene));
@@ -1784,10 +1819,10 @@ namespace Shark {
 			ResourceManager::Init();
 
 			const auto& config = Project::GetActive()->GetConfig();
+			ScriptEngine::LoadAssembly(config.ScriptModulePath);
+
 			if (!LoadScene(config.ProjectDirectory / config.StartupScenePath))
 				NewScene();
-
-			ScriptEngine::LoadAssembly(Project::GetActive()->GetConfig().ScriptModulePath);
 
 			FileWatcher::StartWatching(Project::GetAssetsPath());
 			DistributeEvent(ProjectChangedEvnet(project));
@@ -1812,7 +1847,16 @@ namespace Shark {
 		m_SceneRenderer->SetScene(nullptr);
 		m_CameraPreviewRenderer->SetScene(nullptr);
 		m_PanelManager->GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID)->SetContext(nullptr);
+		m_PanelManager->GetPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID)->SetContext(nullptr);
+
+		SetActiveScene(nullptr);
+
+		// Note(moro): When CloseProject gets called durring application shutdown the application cant Raise event anymore
+		//             to get around this issue the event is distributed internal
+		if (!Application::Get().CanRaiseEvents())
+			OnEvent(SceneChangedEvent(nullptr));
 		ScriptEngine::UnloadAssembly();
+		ScriptEngine::SetActiveScene(nullptr);
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
 		m_WorkScene = nullptr;
@@ -1893,6 +1937,16 @@ namespace Shark {
 	void EditorLayer::DistributeEvent(Event& event)
 	{
 		Application::Get().OnEvent(event);
+	}
+
+	void EditorLayer::CheckScriptComponents()
+	{
+		auto view = m_ActiveScene->GetAllEntitysWith<ScriptComponent>();
+		for (auto entityID : view)
+		{
+			auto& comp = view.get<ScriptComponent>(entityID);
+			comp.ScriptModuleFound = ScriptEngine::HasScriptClass(comp.ScriptName);
+		}
 	}
 
 }

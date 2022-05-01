@@ -44,7 +44,7 @@ namespace Shark {
 		void UpdateLayers(TimeStep timeStep);
 		void RenderImGui();
 
-		void OnEvent(Event& event);
+		bool OnEvent(Event& event);
 
 		void PushLayer(Layer* layer)                   { SK_PROFILE_FUNCTION(); m_LayerStack.PushLayer(layer); layer->OnAttach(); }
 		void PopLayer(Layer* layer)                    { SK_PROFILE_FUNCTION(); m_LayerStack.PopLayer(layer); layer->OnDetach(); }
@@ -58,6 +58,7 @@ namespace Shark {
 		Window& GetWindow()                            { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer()                    { return *m_ImGuiLayer; }
 		const ApplicationSpecification& GetSpecs()     { return m_Specification; }
+		bool CanRaiseEvents() const					   { return m_RaiseEvents; }
 
 	private:
 		bool OnWindowClose(WindowCloseEvent& event);

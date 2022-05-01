@@ -24,7 +24,7 @@ namespace Shark {
 		~TextureEditorPanel();
 
 		virtual void OnUpdate(TimeStep ts) override;
-		virtual void OnImGuiRender() override;
+		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 
 		virtual bool WantDestroy() const override { return !m_Active; }

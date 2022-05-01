@@ -52,11 +52,11 @@ namespace Shark {
 			glm::vec2 mousePos = Input::MousePos();
 			glm::vec2 delta = (mousePos - m_LastMousePos) * 0.003f;
 			m_LastMousePos = mousePos;
-			if (Input::MousePressed(Mouse::LeftButton))
+			if (Input::MousePressed(MouseButton::Left))
 				OnMouseRotate(delta);
-			else if (Input::MousePressed(Mouse::RightButton))
+			else if (Input::MousePressed(MouseButton::Right))
 				OnMouseZoom(delta);
-			else if (Input::MousePressed(Mouse::Middle))
+			else if (Input::MousePressed(MouseButton::Middle))
 				OnMouseMove(delta);
 		}
 	}

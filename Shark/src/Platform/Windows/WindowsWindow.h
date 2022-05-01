@@ -41,8 +41,6 @@ namespace Shark {
 		virtual inline WindowHandle GetHandle() const override { return m_hWnd; }
 		virtual Ref<SwapChain> GetSwapChain() const override { return m_SwapChain; }
 
-		virtual inline bool IsFocused() const override { return m_IsFocused; }
-
 		virtual inline bool IsVSync() const override { return m_VSync; }
 		virtual void SetVSync(bool VSync) override { m_VSync = VSync; }
 		
@@ -57,17 +55,30 @@ namespace Shark {
 	private:
 		HWND m_hWnd;
 
+		Ref<SwapChain> m_SwapChain;
+
+		EventCallbackFunc m_Callbackfunc;
+
 		glm::uvec2 m_Size = glm::uvec2(0);
 		glm::ivec2 m_Pos = glm::ivec2(0);
 
 		std::wstring m_Name;
-		bool m_IsFocused = false;
-		bool m_IsCaptured = false;
 		bool m_VSync;
 
-		Ref<SwapChain> m_SwapChain;
-
-		EventCallbackFunc m_Callbackfunc;
+		struct ExtendedKey
+		{
+			enum Enum
+			{
+				LeftAlt,
+				RightAlt,
+				LeftControl,
+				RightControl,
+				LeftShift,
+				RightShift,
+				Count
+			};
+		};
+		bool m_ExtendedKeyState[ExtendedKey::Count];
 
 	};
 

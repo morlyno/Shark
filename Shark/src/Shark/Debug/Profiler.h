@@ -41,8 +41,8 @@ namespace Shark {
 		void AddDuration(uint64_t tickCount) { m_Durations.push_back(tickCount); }
 		void SetFrequency(uint64_t frequency) { m_Frequency = frequency; }
 
-		TimeStep GetAverage() const { return (double)m_AverageDuration / (double)m_Frequency; }
-		TimeStep GetTotal() const { return (double)m_TotalDuration / (double)m_Frequency; }
+		TimeStep GetAverage() const { return (float)m_AverageDuration / (float)m_Frequency; }
+		TimeStep GetTotal() const { return (float)m_TotalDuration / (float)m_Frequency; }
 	private:
 		std::vector<uint64_t> m_Durations;
 		uint64_t m_AverageDuration = 0;
