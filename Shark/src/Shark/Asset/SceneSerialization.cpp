@@ -6,6 +6,8 @@
 #include "Shark/Utility/YAMLUtils.h"
 #include "Shark/File/FileSystem.h"
 
+#include "Shark/Scripting/ScriptEngine.h"
+
 #include "Shark/Core/Timer.h"
 #include "Shark/Debug/Instrumentor.h"
 
@@ -189,7 +191,6 @@ namespace Shark {
 			out << YAML::Key << "RestitutionThreshold" << YAML::Value << comp.RestitutionThreshold;
 
 			out << YAML::EndMap;
-
 		}
 
 		if (entity.HasComponent<CircleCollider2DComponent>())
@@ -208,9 +209,19 @@ namespace Shark {
 			out << YAML::Key << "RestitutionThreshold" << YAML::Value << comp.RestitutionThreshold;
 
 			out << YAML::EndMap;
-
 		}
 
+		if (entity.HasComponent<ScriptComponent>())
+		{
+			out << YAML::Key << "ScriptComponent" << YAML::Value;
+			out << YAML::BeginMap;
+
+			const auto& comp = entity.GetComponent<ScriptComponent>();
+			out << YAML::Key << "ScriptName" << YAML::Value << comp.ScriptName;
+
+			out << YAML::EndMap;
+		}
+			
 		out << YAML::EndMap;
 
 		return true;
@@ -535,6 +546,19 @@ namespace Shark {
 
 					SK_CORE_TRACE(" - CircleCollider2D Component");
 				}
+
+				auto scriptComponent = entity["ScriptComponent"];
+				if (scriptComponent)
+				{
+					auto name = scriptComponent["ScriptName"];
+
+					auto& comp = deserializedEntity.AddOrReplaceComponent<ScriptComponent>();
+
+					SK_CORE_ASSERT(name, "Couldn't deserialize ScriptComponent::ScriptName");
+					comp.ScriptName = name.as<std::string>();
+					comp.ScriptModuleFound = ScriptEngine::AssemblyHasScript(comp.ScriptName);
+				}
+
 			}
 		}
 		SK_CORE_INFO("Scene Deserialization tock: {:.4f}ms", timer.Stop().MilliSeconds());
