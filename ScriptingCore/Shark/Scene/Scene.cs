@@ -22,7 +22,7 @@ namespace Shark
 		// Destroyes Entity
 		public static void Destroy(Entity entity)
 		{
-			InternalCalls.Scene_DestroyEntity(entity.Handle);
+			InternalCalls.Scene_DestroyEntity(entity.UUID);
 		}
 
 		// Get Entity by UUID
@@ -36,6 +36,20 @@ namespace Shark
 			if (InternalCalls.Scene_IsValidEntityHandle(uuid))
 				return new Entity(uuid);
 			return null;
+		}
+
+		public static UUID GetUUIDFromTag(string tag)
+		{
+			UUID uuid = UUID.Null;
+			InternalCalls.Scene_GetUUIDFromTag(tag, ref uuid);
+			return uuid;
+		}
+
+		public static Entity GetEntityByTag(string tag)
+		{
+			UUID uuid = UUID.Null;
+			InternalCalls.Scene_GetUUIDFromTag(tag, ref uuid);
+			return GetEntityByUUID(uuid);
 		}
 
 		// Returns the active Camera UUID

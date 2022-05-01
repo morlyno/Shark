@@ -6,9 +6,10 @@ namespace Shark
 	public class Entity
 	{
 		private UUID m_Handle = new UUID(0);
-		public UUID Handle => m_Handle;
+		public UUID UUID => m_Handle;
 
 		public Entity() {}
+
 		public Entity(UUID handle)
 		{
 			m_Handle = handle;

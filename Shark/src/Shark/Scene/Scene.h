@@ -17,6 +17,19 @@ namespace Shark {
 
 	class SceneRenderer;
 	class Entity;
+	class Scene;
+
+	class ContactListener : public b2ContactListener
+	{
+	public:
+		void BeginContact(b2Contact* contact) override;
+		void EndContact(b2Contact* contact) override;
+
+		void SetContext(const Ref<Scene>& context);
+
+	private:
+		Ref<Scene> m_Context;
+	};
 
 	class Scene : public Asset
 	{
@@ -90,6 +103,7 @@ namespace Shark {
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
 		Physics2DScene m_PhysicsScene;
+		ContactListener m_ContactListener;
 
 		bool m_IsEditorScene = false;
 

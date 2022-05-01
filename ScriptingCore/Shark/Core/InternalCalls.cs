@@ -83,6 +83,9 @@ namespace Shark
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern UUID Scene_GetActiveCameraUUID();
 
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern void Scene_GetUUIDFromTag(string tag, ref UUID out_UUID);
+
 		#endregion
 
 		#region Entity

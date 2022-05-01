@@ -23,25 +23,33 @@ namespace Shark {
 		static void SetActiveScene(const Ref<Scene> scene);
 		static Ref<Scene> GetActiveScene();
 
-		static bool HasScriptClass(const std::string& className);
+		static MonoImage* GetImage();
+		static MonoImage* GetCoreImage();
 
-		static bool InstantiateEntity(Entity entity);
-		static bool CreateScript(const std::string& scriptName, UUID entityUUID);
-		static bool CreateScript(MonoClass* scriptClass, UUID entityUUID);
-		static void DestroyScript(UUID handle);
-		static void UpdateScript(UUID handle, TimeStep ts);
+		static MonoClass* GetEntityClass();
 
+		static bool AssemblyHasScript(const std::string& className);
 
-		static bool IsValidScriptUUID(UUID handle);
-
-		static MonoObject* GetScriptObject(UUID handle);
 
 		static MonoMethod* GetMethod(const std::string& methodName, bool includeNameSpace = true);
 		static MonoMethod* GetMethodCore(const std::string& methodName, bool includeNameSpace = true);
 
-		static MonoObject* CallMethod(MonoMethod* method, void* object, void** args);
+
+		template<typename... Args>
+		static MonoObject* CallMethod(MonoMethod* method, void* object, Args*... arguments)
+		{
+			if constexpr (sizeof... (arguments) > 0)
+			{
+				void* args[] = {
+					arguments...
+				};
+				return CallMethodInternal(method, object, args);
+			}
+			return CallMethodInternal(method, object, nullptr);
+		}
 
 	private:
+		static MonoObject* CallMethodInternal(MonoMethod* method, void* object, void** args);
 		static MonoMethod* GetMethodInternal(const std::string methodName, bool includeNameSpace, MonoImage* image);
 
 	private:

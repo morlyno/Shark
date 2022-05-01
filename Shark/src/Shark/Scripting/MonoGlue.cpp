@@ -3,7 +3,9 @@
 
 #include "Shark/Core/Log.h"
 #include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
 #include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Scripting/ScriptManager.h"
 #include "Shark/Scene/Components.h"
 
 #include "Shark/Debug/Instrumentor.h"
@@ -78,6 +80,50 @@ namespace Shark {
 		RegsiterInternalCalls();
 	}
 
+	void MonoGlue::CallCollishionBegin(Entity entityA, Entity entityB)
+	{
+		const UUID uuidA = entityA.GetUUID();
+		const UUID uuidB = entityB.GetUUID();
+
+		const bool AIsScript = ScriptManager::Contains(uuidA);
+		const bool BIsScript = ScriptManager::Contains(uuidB);
+
+		if (AIsScript)
+		{
+			auto& script = ScriptManager::GetScript(uuidA);
+			script.OnCollishionBegin(uuidB, BIsScript);
+		}
+		
+		if (BIsScript)
+		{
+			auto& script = ScriptManager::GetScript(uuidB);
+			script.OnCollishionBegin(uuidA, AIsScript);
+		}
+
+	}
+
+	void MonoGlue::CallCollishionEnd(Entity entityA, Entity entityB)
+	{
+		const UUID uuidA = entityA.GetUUID();
+		const UUID uuidB = entityB.GetUUID();
+
+		const bool AIsScript = ScriptManager::Contains(uuidA);
+		const bool BIsScript = ScriptManager::Contains(uuidB);
+
+		if (AIsScript)
+		{
+			auto& script = ScriptManager::GetScript(uuidA);
+			script.OnCollishionEnd(uuidB, BIsScript);
+		}
+
+		if (BIsScript)
+		{
+			auto& script = ScriptManager::GetScript(uuidB);
+			script.OnCollishionEnd(uuidA, AIsScript);
+		}
+
+	}
+
 	void MonoGlue::RegisterComponents()
 	{
 		SK_PROFILE_FUNCTION();
@@ -113,6 +159,7 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Scene_DestroyEntity);
 		SK_ADD_INTERNAL_CALL(Scene_IsValidEntityHandle);
 		SK_ADD_INTERNAL_CALL(Scene_GetActiveCameraUUID);
+		SK_ADD_INTERNAL_CALL(Scene_GetUUIDFromTag);
 
 		SK_ADD_INTERNAL_CALL(Entity_GetName);
 		SK_ADD_INTERNAL_CALL(Entity_SetName);
@@ -268,10 +315,8 @@ namespace Shark {
 			comp.ScriptName = scriptTypeName;
 			comp.ScriptModuleFound = true;
 
-			if (!ScriptEngine::InstantiateEntity(newEntity))
-				return nullptr;
-
-			return ScriptEngine::GetScriptObject(newEntity.GetUUID());
+			auto& script = ScriptManager::Instantiate(newEntity, true);
+			return script.GetObject();
 		}
 
 		void Scene_CreateEntity(MonoString* name, UUID uuid, UUID* out_UUID)
@@ -299,9 +344,11 @@ namespace Shark {
 		{
 			SK_PROFILE_FUNCTION();
 
-			if (ScriptEngine::IsValidScriptUUID(scriptEntityHandle))
-				return ScriptEngine::GetScriptObject(scriptEntityHandle);
-			return nullptr;
+			if (!ScriptManager::Contains(scriptEntityHandle))
+				return nullptr;
+
+			auto& script = ScriptManager::GetScript(scriptEntityHandle);
+			return script.GetObject();
 		}
 
 		bool Scene_IsValidEntityHandle(UUID entityHandle)
@@ -318,6 +365,25 @@ namespace Shark {
 
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
 			return scene->GetActiveCameraUUID();
+		}
+
+		void Scene_GetUUIDFromTag(MonoString* tag, UUID* out_UUID)
+		{
+			SK_PROFILE_FUNCTION();
+
+			const char* cStr = mono_string_to_utf8(tag);
+
+			Ref<Scene> scene = ScriptEngine::GetActiveScene();
+			auto view = scene->GetAllEntitysWith<TagComponent>();
+			for (auto entityID : view)
+			{
+				Entity entity{ entityID, scene };
+				if (entity.GetName() == cStr)
+				{
+					*out_UUID = entity.GetUUID();
+					return;
+				}
+			}
 		}
 
 		#pragma endregion

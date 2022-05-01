@@ -141,6 +141,8 @@ namespace Shark
 		}
 
 
+		public static implicit operator Vector3(Vector2 v) { return new Vector3(v.X, v.Y, 0.0f); }
+
 		public string ToString(string format, IFormatProvider formatProvider)
 		{
 			return string.Format("[{0}, {1}]",

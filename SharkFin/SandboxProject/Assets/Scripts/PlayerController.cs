@@ -6,14 +6,15 @@ namespace Sandbox
 
 	public class PlayerController : Entity
 	{
-		private bool m_KeyControlSpace = false;
+		private bool m_CanJump = true;
+		private bool m_CanDoubleJump = true;
+		private bool m_SpaceKeyControl = false;
 
 		// Movement
 		private float m_MovementSpeed = 5.0f;
-
 		private Vector2 m_JumpForce = Vector2.Up * 15000.0f;
-
 		private RigidBody2DComponent m_RigidBody;
+
 
 		void OnCreate()
 		{
@@ -30,6 +31,17 @@ namespace Sandbox
 		void OnUpdate(TimeStep ts)
 		{
 			Movement(ts);
+		}
+
+		void OnCollishionBegin(Entity entity)
+		{
+			m_CanJump = true;
+			m_CanDoubleJump = true;
+		}
+		
+		void OnCollishionEnd(Entity entity)
+		{
+			m_CanJump = false;
 		}
 
 		private void Movement(TimeStep ts)
@@ -56,9 +68,16 @@ namespace Sandbox
 			velocity.X = delta.X;
 			m_RigidBody.LinearVelocity = velocity;
 
-			if (UtilsKeyPressed(Key.Space, ref m_KeyControlSpace))
+			bool spacePressed = UtilsKeyPressed(Key.Space, ref m_SpaceKeyControl);
+			if (m_CanJump && spacePressed)
 			{
 				m_RigidBody.ApplyLinearImpulse(m_JumpForce);
+				m_CanJump = false;
+			}
+			else if (m_CanDoubleJump && spacePressed)
+			{
+				m_RigidBody.ApplyLinearImpulse(m_JumpForce);
+				m_CanDoubleJump = false;
 			}
 		}
 

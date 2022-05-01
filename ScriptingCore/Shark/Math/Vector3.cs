@@ -12,6 +12,10 @@ namespace Shark
 		public float Y;
 		public float Z;
 
+		public Vector2 XY => new Vector2(X, Y);
+		public Vector2 XZ => new Vector2(X, Z);
+		public Vector2 YZ => new Vector2(Y, Z);
+
 		public static Vector3 Zero => new Vector3(0.0f);
 		public static Vector3 One => new Vector3(1.0f);
 

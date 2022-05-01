@@ -1945,7 +1945,7 @@ namespace Shark {
 		for (auto entityID : view)
 		{
 			auto& comp = view.get<ScriptComponent>(entityID);
-			comp.ScriptModuleFound = ScriptEngine::HasScriptClass(comp.ScriptName);
+			comp.ScriptModuleFound = ScriptEngine::AssemblyHasScript(comp.ScriptName);
 		}
 	}
 

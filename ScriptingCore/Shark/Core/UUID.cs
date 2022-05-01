@@ -22,6 +22,29 @@ namespace Shark
 			return m_UUID != 0;
 		}
 
+		public static bool operator==(UUID lhs, UUID rhs) { return lhs.m_UUID == rhs.m_UUID; }
+		public static bool operator!=(UUID lhs, UUID rhs) { return lhs.m_UUID != rhs.m_UUID; }
+
+		public override bool Equals(object obj)
+		{
+			return base.Equals(obj);
+		}
+
+		public override int GetHashCode()
+		{
+			return base.GetHashCode();
+		}
+
+		public override string ToString()
+		{
+			return ToString(null, null);
+		}
+		
+		public string ToString(string format)
+		{
+			return ToString(format, null);
+		}
+
 		public string ToString(string format, IFormatProvider formatProvider)
 		{
 			return string.Format("0x{0:x}", m_UUID);

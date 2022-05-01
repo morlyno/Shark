@@ -542,12 +542,11 @@ namespace Shark {
 			}
 
 			if (ImGui::InputText("##InputScript", &comp.ScriptName))
-				comp.ScriptModuleFound = ScriptEngine::HasScriptClass(comp.ScriptName);
+				comp.ScriptModuleFound = ScriptEngine::AssemblyHasScript(comp.ScriptName);
 
 			if (comp.ScriptModuleFound)
 			{
 				ImGui::Text("Script Module Found");
-				ImGui::Text("Script Handle: %llu", (uint64_t)comp.Handle);
 			}
 
 		});

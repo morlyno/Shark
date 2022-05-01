@@ -99,6 +99,13 @@ Scene:
         Friction: 1
         Restitution: 0
         RestitutionThreshold: 1
+    - Entity: 0x9738953847bdf443
+      TagComponent:
+        Tag: EntitySpawner
+      TransformComponent:
+        Position: [-0.273704529, 31.422821, -3.81469727e-06]
+        Rotation: [0, 0, 0]
+        Scaling: [32.0370102, 1, 1]
     - Entity: 0xbbdb8872e6e21912
       TagComponent:
         Tag: Camera

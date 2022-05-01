@@ -7,6 +7,8 @@
 #include "Shark/Render/SceneRenderer.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Scripting/ScriptManager.h"
+#include "Shark/Scripting/MonoGlue.h"
 
 #include "Shark/Utility/Math.h"
 
@@ -19,6 +21,7 @@
 #include <box2d/b2_polygon_shape.h>
 #include <box2d/b2_circle_shape.h>
 #include <box2d/b2_fixture.h>
+#include "box2d/b2_contact.h"
 
 namespace Shark {
 
@@ -114,20 +117,23 @@ namespace Shark {
 
 		// Create Scripts
 		{
-			SK_PROFILE_SCOPED("Scene::OnScenePlay::CreateScripts");
+			SK_PROFILE_SCOPED("Scene::OnScenePlay::InstantiateScripts");
 
 			auto view = m_Registry.view<ScriptComponent>();
 			for (auto entityID : view)
 			{
 				auto& comp = view.get<ScriptComponent>(entityID);
-				if (comp.ScriptModuleFound)
-				{
-					Entity entity{ entityID, this };
-					UUID uuid = entity.GetUUID();
-					if (ScriptEngine::CreateScript(comp.ScriptName, uuid))
-						comp.Handle = uuid;
-				}
+				Entity entity{ entityID, this };
+				ScriptManager::Instantiate(entity);
 			}
+
+			for (auto entityID : view)
+			{
+				Entity entity{ entityID, this };
+				auto& script = ScriptManager::GetScript(entity.GetUUID());
+				script.OnCreate();
+			}
+
 		}
 
 		// Create Native Scrips
@@ -186,11 +192,19 @@ namespace Shark {
 			SK_PROFILE_SCOPED("Scene::OnScenePlay::DestroyScripts");
 
 			auto view = m_Registry.view<ScriptComponent>();
+
 			for (auto entityID : view)
 			{
-				auto& comp = view.get<ScriptComponent>(entityID);
-				if (comp.Handle)
-					ScriptEngine::DestroyScript(comp.Handle);
+				Entity entity{ entityID, this };
+				auto& script = ScriptManager::GetScript(entity.GetUUID());
+				script.OnDestroy();
+			}
+
+			for (auto entityID : view)
+			{
+				Entity entity{ entityID, this };
+				const auto& comp = entity.GetComponent<ScriptComponent>();
+				ScriptManager::Destroy(entity);
 			}
 		}
 
@@ -209,6 +223,7 @@ namespace Shark {
 		}
 		
 		m_PhysicsScene.DestoryScene();
+		m_ContactListener.SetContext(nullptr);
 
 		m_RuntimeCamera = entt::null;
 	}
@@ -231,9 +246,9 @@ namespace Shark {
 			auto view = m_Registry.view<ScriptComponent>();
 			for (auto entityID : view)
 			{
-				auto& comp = view.get<ScriptComponent>(entityID);
-				if (comp.Handle)
-					ScriptEngine::UpdateScript(comp.Handle, ts);
+				Entity entity{ entityID, this };
+				auto& script = ScriptManager::GetScript(entity.GetUUID());
+				script.OnUpdate(ts);
 			}
 		}
 
@@ -473,10 +488,7 @@ namespace Shark {
 			return;
 
 		if (!m_IsEditorScene && entity.HasComponent<ScriptComponent>())
-		{
-			ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
-			ScriptEngine::DestroyScript(scriptComp.Handle);
-		}
+			ScriptManager::Destroy(entity, true);
 
 		m_EntityUUIDMap.erase(entity.GetUUID());
 		m_Registry.destroy(entity);
@@ -532,8 +544,10 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
+		m_ContactListener.SetContext(this);
 		m_PhysicsScene.CreateScene();
 		b2World* world = m_PhysicsScene.GetWorld();
+		world->SetContactListener(&m_ContactListener);
 
 		// Add missing RigidBodys
 		{
@@ -615,6 +629,45 @@ namespace Shark {
 				}
 			}
 		}
+	}
+
+	void ContactListener::BeginContact(b2Contact* contact)
+	{
+		b2Fixture* fixtureA = contact->GetFixtureA();
+		b2Fixture* fixtureB = contact->GetFixtureB();
+
+		b2Body* bodyA = fixtureA->GetBody();
+		b2Body* bodyB = fixtureB->GetBody();
+
+		UUID uuidA = (UUID)bodyA->GetUserData().pointer;
+		UUID uuidB = (UUID)bodyB->GetUserData().pointer;
+
+		Entity entityA = m_Context->GetEntityByUUID(uuidA);
+		Entity entityB = m_Context->GetEntityByUUID(uuidB);
+
+		MonoGlue::CallCollishionBegin(entityA, entityB);
+	}
+
+	void ContactListener::EndContact(b2Contact* contact)
+	{
+		b2Fixture* fixtureA = contact->GetFixtureA();
+		b2Fixture* fixtureB = contact->GetFixtureB();
+
+		b2Body* bodyA = fixtureA->GetBody();
+		b2Body* bodyB = fixtureB->GetBody();
+
+		UUID uuidA = (UUID)bodyA->GetUserData().pointer;
+		UUID uuidB = (UUID)bodyB->GetUserData().pointer;
+
+		Entity entityA = m_Context->GetEntityByUUID(uuidA);
+		Entity entityB = m_Context->GetEntityByUUID(uuidB);
+
+		MonoGlue::CallCollishionEnd(entityA, entityB);
+	}
+
+	void ContactListener::SetContext(const Ref<Scene>& context)
+	{
+		m_Context = context;
 	}
 
 }

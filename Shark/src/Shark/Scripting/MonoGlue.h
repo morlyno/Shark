@@ -9,10 +9,15 @@
 
 namespace Shark {
 
+	class Entity;
+
 	class MonoGlue
 	{
 	public:
 		static void Glue();
+
+		static void CallCollishionBegin(Entity entityA, Entity entityB);
+		static void CallCollishionEnd(Entity entityA, Entity entityB);
 
 	public:
 		static void RegisterComponents();
@@ -69,6 +74,7 @@ namespace Shark {
 		MonoObject* Scene_GetScriptObject(UUID scriptEntityHandle);
 		bool Scene_IsValidEntityHandle(UUID entityHandle);
 		UUID Scene_GetActiveCameraUUID();
+		void Scene_GetUUIDFromTag(MonoString* tag, UUID* out_UUID);
 
 		#pragma endregion
 

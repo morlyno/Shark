@@ -41,14 +41,6 @@ namespace Shark {
 	};
 	static ScriptingData s_ScriptData;
 
-	struct ScriptClassData
-	{
-		uint32_t GCHandle = 0;
-		MonoMethod* OnCreate = nullptr;
-		MonoMethod* OnDestroy = nullptr;
-		MonoMethod* OnUpdate = nullptr;
-	};
-	static std::unordered_map<UUID, ScriptClassData> s_ScriptClasses;
 	static Ref<Scene> s_ActiveScene = nullptr;
 
 	namespace utils {
@@ -292,113 +284,26 @@ namespace Shark {
 		return s_ActiveScene;
 	}
 
-	bool ScriptEngine::HasScriptClass(const std::string& className)
+	MonoImage* ScriptEngine::GetImage()
+	{
+		return s_ScriptData.ScriptImage;
+	}
+
+	MonoImage* ScriptEngine::GetCoreImage()
+	{
+		return s_ScriptData.CoreImage;
+	}
+
+	MonoClass* ScriptEngine::GetEntityClass()
+	{
+		return mono_class_from_name_case(s_ScriptData.CoreImage, "Shark", "Entity");
+	}
+
+	bool ScriptEngine::AssemblyHasScript(const std::string& className)
 	{
 		SK_PROFILE_FUNCTION();
 
 		return (bool)utils::GetClassFromNameScript(className);
-	}
-
-	bool ScriptEngine::InstantiateEntity(Entity entity)
-	{
-		if (!entity.HasComponent<ScriptComponent>())
-			return false;
-
-		auto& comp = entity.GetComponent<ScriptComponent>();
-		SK_CORE_ASSERT(comp.ScriptModuleFound);
-		if (CreateScript(comp.ScriptName, entity.GetUUID()))
-		{
-			comp.Handle = entity.GetUUID();
-			return true;
-		}
-		return false;
-	}
-
-	bool ScriptEngine::CreateScript(const std::string& scriptName, UUID entityUUID)
-	{
-		MonoClass* clazz = utils::GetClassFromNameScript(scriptName);
-		SK_CORE_ASSERT(clazz);
-
-		return CreateScript(clazz, entityUUID);
-	}
-
-	bool ScriptEngine::CreateScript(MonoClass* scriptClass, UUID entityUUID)
-	{
-		SK_PROFILE_FUNCTION();
-
-		MonoClass* entityClass = utils::GetClassFromNameCore("Shark.Entity");
-		SK_CORE_ASSERT(entityClass);
-
-		const char* scriptName = mono_class_get_name(scriptClass);
-
-		if (!mono_class_is_subclass_of(scriptClass, entityClass, false))
-		{
-			SK_CORE_ERROR("{} must derive from Shark.Entity", scriptName);
-			return false;
-		}
-
-		SK_CORE_ASSERT(entityUUID.IsValid());
-		ScriptClassData& data = s_ScriptClasses[entityUUID];
-		SK_CORE_ASSERT(!data.GCHandle, "Script Allready Created");
-
-		// Create Script Object
-		MonoObject* object = mono_object_new(mono_domain_get(), scriptClass);
-		data.GCHandle = mono_gchandle_new(object, false);
-
-		// Init Object
-		mono_runtime_object_init(object);
-		MonoClassField* handleField = mono_class_get_field_from_name(entityClass, "m_Handle");
-		mono_field_set_value(object, handleField, &entityUUID);
-
-		// Get Functions
-		data.OnCreate = utils::GetMethodFromClass(fmt::format("{}:OnCreate()", scriptName), true, scriptClass);
-		data.OnDestroy = utils::GetMethodFromClass(fmt::format("{}:OnDestroy()", scriptName), true, scriptClass);
-		data.OnUpdate = utils::GetMethodFromClass(fmt::format("{}:OnUpdate(Shark.TimeStep)", scriptName), true, scriptClass);
-
-		if (data.OnCreate)
-			utils::InvokeClassMethod(object, data.OnCreate);
-		return true;
-	}
-
-	void ScriptEngine::DestroyScript(UUID handle)
-	{
-		SK_PROFILE_FUNCTION();
-
-		ScriptClassData& data = s_ScriptClasses.at(handle);
-		if (data.OnDestroy)
-		{
-			MonoObject* object = mono_gchandle_get_target(data.GCHandle);
-			utils::InvokeClassMethod(object, data.OnDestroy);
-		}
-		mono_gchandle_free(data.GCHandle);
-		s_ScriptClasses.erase(handle);
-	}
-
-	void ScriptEngine::UpdateScript(UUID handle, TimeStep ts)
-	{
-		SK_PROFILE_FUNCTION();
-
-		const ScriptClassData& data = s_ScriptClasses.at(handle);
-		if (data.OnUpdate)
-		{
-			void* args[] = {
-				&ts
-			};
-
-			MonoObject* object = mono_gchandle_get_target(data.GCHandle);
-			utils::InvokeClassMethod(object, data.OnUpdate, args);
-		}
-	}
-
-	bool ScriptEngine::IsValidScriptUUID(UUID handle)
-	{
-		return s_ScriptClasses.find(handle) != s_ScriptClasses.end();
-	}
-
-	MonoObject* ScriptEngine::GetScriptObject(UUID handle)
-	{
-		auto& data = s_ScriptClasses.at(handle);
-		return mono_gchandle_get_target(data.GCHandle);
 	}
 
 	MonoMethod* ScriptEngine::GetMethod(const std::string& methodName, bool includeNameSpace)
@@ -411,7 +316,7 @@ namespace Shark {
 		return GetMethodInternal(methodName, includeNameSpace, s_ScriptData.CoreImage);
 	}
 
-	MonoObject* ScriptEngine::CallMethod(MonoMethod* method, void* object, void** args)
+	MonoObject* ScriptEngine::CallMethodInternal(MonoMethod* method, void* object, void** args)
 	{
 		MonoObject* exeption = nullptr;
 		MonoObject* retVal = mono_runtime_invoke(method, object, args, &exeption);
