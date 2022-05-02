@@ -71,12 +71,12 @@ namespace Sandbox
 			bool spacePressed = UtilsKeyPressed(Key.Space, ref m_SpaceKeyControl);
 			if (m_CanJump && spacePressed)
 			{
-				m_RigidBody.ApplyLinearImpulse(m_JumpForce);
+				m_RigidBody.ApplyForce(m_JumpForce);
 				m_CanJump = false;
 			}
 			else if (m_CanDoubleJump && spacePressed)
 			{
-				m_RigidBody.ApplyLinearImpulse(m_JumpForce);
+				m_RigidBody.ApplyForce(m_JumpForce);
 				m_CanDoubleJump = false;
 			}
 		}

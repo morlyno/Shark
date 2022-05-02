@@ -25,6 +25,7 @@ namespace Shark {
 	class Project : public RefCount
 	{
 	public:
+		static const std::string& GetName();
 		static const std::filesystem::path& GetProjectDirectory();
 
 		static const std::filesystem::path& GetAssetsPath();

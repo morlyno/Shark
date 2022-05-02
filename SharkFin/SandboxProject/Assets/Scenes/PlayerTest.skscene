@@ -19,10 +19,12 @@ Scene:
         Size: [0.5, 0.5]
         Offset: [0, 0]
         Rotation: 0
-        Density: 1
+        Density: 1.5
         Friction: 2
         Restitution: 0
         RestitutionThreshold: 1
+      ScriptComponent:
+        ScriptName: Sandbox.PlayerController
     - Entity: 0x5e341a7845afd12b
       TagComponent:
         Tag: Floor
@@ -42,6 +44,8 @@ Scene:
         Friction: 1
         Restitution: 0
         RestitutionThreshold: 1
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
     - Entity: 0x647ce187fd0f1ceb
       TagComponent:
         Tag: Floor
@@ -61,6 +65,8 @@ Scene:
         Friction: 1
         Restitution: 0
         RestitutionThreshold: 1
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
     - Entity: 0x6802d506a686729b
       TagComponent:
         Tag: Floor
@@ -80,6 +86,8 @@ Scene:
         Friction: 1
         Restitution: 0
         RestitutionThreshold: 1
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
     - Entity: 0x8c7a856c8315563b
       TagComponent:
         Tag: Floor
@@ -99,6 +107,8 @@ Scene:
         Friction: 1
         Restitution: 0
         RestitutionThreshold: 1
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
     - Entity: 0x9738953847bdf443
       TagComponent:
         Tag: EntitySpawner

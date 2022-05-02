@@ -18,6 +18,11 @@ namespace Shark {
 		return Project::GetActive()->GetConfig();
 	}
 
+	const std::string& Project::GetName()
+	{
+		return GetActiveConfig().Name;
+	}
+
 	const std::filesystem::path& Project::GetProjectDirectory()
 	{
 		return GetActiveConfig().ProjectDirectory;

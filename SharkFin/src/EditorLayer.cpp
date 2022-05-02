@@ -568,6 +568,12 @@ namespace Shark {
 				}
 				ImGui::MenuItem("Hot Reload", nullptr, &m_HotReloadAssemblies);
 
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Open IDE"))
+					OpenIDE();
+
+
 				ImGui::EndMenu();
 			}
 
@@ -1947,6 +1953,13 @@ namespace Shark {
 			auto& comp = view.get<ScriptComponent>(entityID);
 			comp.ScriptModuleFound = ScriptEngine::AssemblyHasScript(comp.ScriptName);
 		}
+	}
+
+	void EditorLayer::OpenIDE()
+	{
+		std::filesystem::path solutionPath = Project::GetProjectDirectory() / Project::GetName();
+		solutionPath.replace_extension(".sln");
+		Utility::OpenFile(solutionPath);
 	}
 
 }

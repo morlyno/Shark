@@ -104,6 +104,7 @@ namespace Shark {
 		void DistributeEvent(Event& event);
 
 		void CheckScriptComponents();
+		void OpenIDE();
 
 	private:
 		std::filesystem::path m_StartupProject;
