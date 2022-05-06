@@ -1,6 +1,27 @@
 #pragma once
 
+#include "Shark/Core/Base.h"
+
 namespace Shark {
+
+	namespace NotifyFlag {
+
+		enum Type : uint32_t
+		{
+			None = 0,
+			FileName = BIT(0),
+			DirectoryName = BIT(1),
+			Attributes = BIT(2),
+			Size = BIT(3),
+			LastWrite = BIT(4),
+			LastAccess = BIT(5),
+			Creation = BIT(6),
+			Security = BIT(7),
+
+			All = FileName | DirectoryName | Attributes | Size | LastWrite | LastAccess | Creation | Security
+		};
+
+	}
 
 	enum class FileEvent
 	{
@@ -12,7 +33,7 @@ namespace Shark {
 		NewName
 	};
 
-	inline std::string FileEventToString(FileEvent fileEvent)
+	inline std::string ToString(FileEvent fileEvent)
 	{
 		switch (fileEvent)
 		{
@@ -33,25 +54,37 @@ namespace Shark {
 		std::filesystem::path FilePath;
 	};
 
-	using FileChangedEventFn = std::function<void(const std::vector<FileChangedData>&)>;
+	using FileWatcherCallbackFunc = std::function<void(const std::vector<FileChangedData>&)>;
 
-	class FileWatcher
+
+	struct FileWatcherSpecification
+	{
+		std::filesystem::path Directory;
+		NotifyFlag::Type NotifyFlags;
+		bool WatchSubTrees;
+		FileWatcherCallbackFunc CallbackFunc;
+	};
+
+	class FileWatcher : public RefCount
 	{
 	public:
-		static void StartWatching(const std::filesystem::path& directory);
-		static void StopWatching();
+		virtual void Start() = 0;
+		virtual void Stop() = 0;
 
-		static bool IsRunning();
-		static bool IsPaused();
+		virtual bool IsRunning() = 0;
+		virtual bool IsPaused() = 0;
 
-		static void SkipNextEvent();
-		static void Pause();
-		static void Continue();
+		virtual void SkipNextEvent() = 0;
+		virtual void Pause() = 0;
+		virtual void Continue() = 0;
 
-		static void SetFileChangedCallback(FileChangedEventFn func);
+		virtual void SetCallback(FileWatcherCallbackFunc callback) = 0;
+		virtual void SetDirectory(const std::filesystem::path& directory, bool restartIfRunning) = 0;
 
-	private:
-		static void StartThread();
+		virtual const FileWatcherSpecification& GetSpecification() const = 0;
+		virtual void SetSpecification(const FileWatcherSpecification& specs) = 0;
+
+		static Ref<FileWatcher> Create(const FileWatcherSpecification& specs);
 	};
 
 }

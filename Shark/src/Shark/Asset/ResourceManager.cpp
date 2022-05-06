@@ -1,15 +1,14 @@
 #include "skpch.h"
 #include "ResourceManager.h"
 
-#include "Shark/Utility/Utility.h"
-#include "Shark/Utility/String.h"
+#include "Shark/Utils/String.h"
 
-#include "Shark/Utility/YAMLUtils.h"
+#include "Shark/Utils/YAMLUtils.h"
 #include <yaml-cpp/yaml.h>
 
 namespace Shark {
 
-	AssetRegistry ResourceManager::s_AssetRegistry;
+	std::unordered_map<AssetHandle, AssetMetaData> ResourceManager::s_ImportedAssets;
 	std::unordered_map<AssetHandle, Ref<Asset>> ResourceManager::s_LoadedAssets;
 	std::unordered_map<AssetHandle, Ref<Asset>> ResourceManager::s_MemoryAssets;
 
@@ -17,18 +16,17 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(s_AssetRegistry.Count() == 0);
+		SK_CORE_ASSERT(s_ImportedAssets.empty());
 		SK_CORE_ASSERT(s_MemoryAssets.empty());
 		SK_CORE_ASSERT(s_LoadedAssets.empty());
-		LoadAssetRegistry();
+		ReadImportedAssetsFromDisc();
 	}
 
 	void ResourceManager::Shutdown()
 	{
 		SK_PROFILE_FUNCTION();
 
-		SaveAssetRegistry();
-		s_AssetRegistry.Clear();
+		WriteImportedAssetsToDisc();
 		Unload();
 	}
 
@@ -36,6 +34,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		s_ImportedAssets.clear();
 		s_MemoryAssets.clear();
 		s_LoadedAssets.clear();
 	}
@@ -49,7 +48,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		return handle.IsValid() && (s_AssetRegistry.Contains(handle) || IsMemoryAsset(handle));
+		return handle.IsValid() && (IsImportedAsset(handle) || IsMemoryAsset(handle));
 	}
 
 	bool ResourceManager::IsDataLoaded(AssetHandle handle)
@@ -63,25 +62,35 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		return Utility::Contains(s_MemoryAssets, handle);
+		return s_MemoryAssets.find(handle) != s_MemoryAssets.end();
 	}
 
-	std::filesystem::path ResourceManager::GetRelativePath(const std::filesystem::path& filePath)
+	bool ResourceManager::IsImportedAsset(AssetHandle handle)
+	{
+		return s_ImportedAssets.find(handle) != s_ImportedAssets.end();
+	}
+
+	std::filesystem::path ResourceManager::MakeRelativePath(const std::filesystem::path& filePath)
 	{
 		SK_PROFILE_FUNCTION();
 
-		std::string path = filePath.string();
-		if (path.find(Project::GetAssetsPath().string()) != std::string::npos)
-			return FileSystem::FormatDefaultCopy(std::filesystem::relative(filePath, Project::GetAssetsPath()));
-		return FileSystem::FormatDefaultCopy(std::filesystem::relative(Project::GetAssetsPath() / filePath, Project::GetAssetsPath()));
+		auto relativePath = std::filesystem::relative(Project::AssetsPath() / filePath, Project::AssetsPath());
+		String::FormatDefault(relativePath);
+		return relativePath;
+	}
+
+	std::filesystem::path ResourceManager::GetFileSystemPath(const AssetMetaData& metadata)
+	{
+		std::filesystem::path fsPath = Project::AssetsPath() / metadata.FilePath;
+		return fsPath.lexically_normal();
 	}
 
 	AssetHandle ResourceManager::GetAssetHandleFromFilePath(const std::filesystem::path& filePath)
 	{
 		SK_PROFILE_FUNCTION();
 
-		auto relativePath = GetRelativePath(filePath);
-		for (auto [handle, metadata] : s_AssetRegistry)
+		auto relativePath = MakeRelativePath(filePath);
+		for (auto [handle, metadata] : s_ImportedAssets)
 			if (metadata.FilePath == relativePath)
 				return metadata.Handle;
 		return AssetHandle();
@@ -162,8 +171,8 @@ namespace Shark {
 		}
 
 		s_LoadedAssets.erase(handle);
-		s_AssetRegistry.Remove(handle);
-		SaveAssetRegistry();
+		s_ImportedAssets.erase(handle);
+		WriteImportedAssetsToDisc();
 
 	}
 
@@ -179,25 +188,25 @@ namespace Shark {
 		AssetMetaData metadata;
 		metadata.Handle = asset->Handle;
 		metadata.Type = asset->GetAssetType();
-		metadata.FilePath = GetRelativePath(directoryPath + "/" + fileName);
+		metadata.FilePath = MakeRelativePath(directoryPath + "/" + fileName);
 		metadata.IsDataLoaded = true;
 
-		if (FileSystem::Exists(metadata.FilePath))
+		if (std::filesystem::exists(metadata.FilePath))
 		{
 			uint32_t count = 1;
 			bool foundValidFilePath = false;
 			while (!foundValidFilePath)
 			{
 				metadata.FilePath = fmt::format("{}/{} ({:2})", directoryPath, fileName, count++);
-				foundValidFilePath = !FileSystem::Exists(metadata.FilePath);
+				foundValidFilePath = !std::filesystem::exists(metadata.FilePath);
 			}
 		}
 
 		if (!AssetSerializer::Serialize(asset, metadata))
 			return false;
 
-		s_AssetRegistry[metadata.Handle] = metadata;
-		SaveAssetRegistry();
+		s_ImportedAssets[metadata.Handle] = metadata;
+		WriteImportedAssetsToDisc();
 
 		s_LoadedAssets[handle] = asset;
 		s_MemoryAssets.erase(handle);
@@ -213,7 +222,7 @@ namespace Shark {
 		if (type == AssetType::None)
 			return 0;
 
-		if (!FileSystem::Exists(Project::GetAssetsPath() / filePath))
+		if (!std::filesystem::exists(Project::AssetsPath() / filePath))
 			return 0;
 
 		if (AssetHandle handle = GetAssetHandleFromFilePath(filePath))
@@ -222,15 +231,71 @@ namespace Shark {
 
 		AssetMetaData metadata;
 		metadata.Handle = AssetHandle::Generate();
-		metadata.FilePath = GetRelativePath(filePath);
+		metadata.FilePath = MakeRelativePath(filePath);
 		metadata.Type = type;
 		metadata.IsDataLoaded = false;
-		s_AssetRegistry[metadata.Handle] = metadata;
-		SaveAssetRegistry();
+		s_ImportedAssets[metadata.Handle] = metadata;
+		WriteImportedAssetsToDisc();
 
-		SK_CORE_INFO("Imported Asset", metadata.Handle, metadata.FilePath);
-		SK_CORE_TRACE(" => Handle {:x}, Type {}, FilePath {}", metadata.Handle, AssetTypeToString(metadata.Type), metadata.FilePath);
+		SK_CORE_INFO("Imported Asset");
+		SK_CORE_TRACE(" => Handle: 0x{:x}, Type: {}, FilePath: {}", metadata.Handle, AssetTypeToString(metadata.Type), metadata.FilePath);
 		return metadata.Handle;
+	}
+
+	void ResourceManager::OnFileEvents(const std::vector<FileChangedData>& fileEvents)
+	{
+		std::filesystem::path oldFilePath;
+		for (const FileChangedData& event : fileEvents)
+		{
+			if (event.FileEvent == FileEvent::NewName && !oldFilePath.empty())
+			{
+				OnAssetRenamed(oldFilePath, event.FilePath);
+				break;
+			}
+
+			AssetType assetType = GetAssetTypeFormFilePath(event.FilePath);
+			if (assetType != AssetType::None)
+			{
+				switch (event.FileEvent)
+				{
+					case FileEvent::Deleted: OnAssetDeleted(event.FilePath); break;
+					case FileEvent::OldName: oldFilePath = event.FilePath; break;
+					case FileEvent::NewName: OnAssetRenamed(oldFilePath, event.FilePath);
+				}
+			}
+		}
+	}
+
+	void ResourceManager::OnAssetRenamed(const std::filesystem::path& oldFilePath, const std::filesystem::path& newFilePath)
+	{
+		SK_CORE_ASSERT(oldFilePath.is_absolute());
+		SK_CORE_ASSERT(newFilePath.is_absolute());
+		
+		SK_CORE_ASSERT(oldFilePath != newFilePath, "don't know if this can happen");
+		if (oldFilePath == newFilePath)
+			return;
+
+
+		AssetHandle handle = GetAssetHandleFromFilePath(oldFilePath);
+		AssetMetaData& metadata = GetMetaDataInternal(handle);
+		if (!handle.IsValid())
+			return;
+
+		SK_CORE_ASSERT(std::filesystem::exists(newFilePath));
+		SK_CORE_DEBUG("ResourceManager::OnAssetRenamed");
+		auto relativePath = MakeRelativePath(newFilePath);
+		metadata.FilePath = relativePath;
+		WriteImportedAssetsToDisc();
+	}
+
+	void ResourceManager::OnAssetDeleted(const std::filesystem::path& filePath)
+	{
+		SK_CORE_ASSERT(filePath.is_absolute());
+
+		SK_CORE_DEBUG("ResourceManager::OnAssetDeleted");
+		AssetHandle handle = GetAssetHandleFromFilePath(filePath);
+		if (handle.IsValid())
+			DeleteAsset(handle);
 	}
 
 	static AssetMetaData s_NullMetaData;
@@ -238,8 +303,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (s_AssetRegistry.Contains(handle))
-			return s_AssetRegistry.Get(handle);
+		if (IsImportedAsset(handle))
+			return s_ImportedAssets.at(handle);
 		return s_NullMetaData;
 	}
 
@@ -248,16 +313,16 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		std::string extention = String::ToLowerCopy(fileExtention);
-		if (!Utility::Contains(AssetExtentionMap, extention))
+		if (AssetExtensionMap.find(extention) == AssetExtensionMap.end())
 			return AssetType::None;
-		return AssetExtentionMap[extention];
+		return AssetExtensionMap.at(extention);
 	}
 
-	void ResourceManager::SaveAssetRegistry()
+	void ResourceManager::WriteImportedAssetsToDisc()
 	{
 		SK_PROFILE_FUNCTION();
 
-		const auto filePath = Project::GetProjectDirectory() / "AssetRegistry.skar";
+		const auto filePath = Project::Directory() / "ImportedAssets.yaml";
 
 		YAML::Emitter out;
 
@@ -266,13 +331,35 @@ namespace Shark {
 		out << YAML::Key << "Assets" << YAML::Value;
 		out << YAML::BeginSeq;
 
-		const std::map<UUID, const AssetMetaData&> sortedAssets = { s_AssetRegistry.begin(), s_AssetRegistry.end() };
-		for (const auto& [handle, metadata] : sortedAssets)
+		struct Entry
+		{
+			AssetType Type;
+			std::filesystem::path FilePath;
+		};
+
+		std::map<UUID, Entry> sortedAssets;
+		
+		for (const auto& [uuid, metadata] : s_ImportedAssets)
+		{
+			if (!uuid.IsValid() || metadata.Type == AssetType::None)
+				continue;
+
+			const std::filesystem::path filePath = ResourceManager::GetFileSystemPath(metadata);
+			if (!std::filesystem::exists(filePath))
+				continue;
+
+			auto& entry = sortedAssets[uuid];
+			entry.Type = metadata.Type;
+			entry.FilePath = metadata.FilePath;
+		}
+
+
+		for (const auto& [handle, entry] : sortedAssets)
 		{
 			out << YAML::BeginMap;
 			out << YAML::Key << "Handle" << YAML::Value << YAML::Hex << handle << YAML::Dec;
-			out << YAML::Key << "Type" << YAML::Value << AssetTypeToString(metadata.Type);
-			out << YAML::Key << "FilePath" << YAML::Value << metadata.FilePath;
+			out << YAML::Key << "Type" << YAML::Value << AssetTypeToString(entry.Type);
+			out << YAML::Key << "FilePath" << YAML::Value << entry.FilePath;
 			out << YAML::EndMap;
 		}
 
@@ -290,15 +377,15 @@ namespace Shark {
 		fout.close();
 	}
 
-	void ResourceManager::LoadAssetRegistry()
+	void ResourceManager::ReadImportedAssetsFromDisc()
 	{
 		SK_PROFILE_FUNCTION();
 
-		const auto filePath = Project::GetProjectDirectory() / "AssetRegistry.skar";
+		const auto filePath = Project::Directory() / "ImportedAssets.yaml";
 
-		if (!FileSystem::Exists(filePath))
+		if (!std::filesystem::exists(filePath))
 		{
-			SK_CORE_ERROR("Asset Registry File dosn't exist");
+			SK_CORE_ERROR("ImportedAssets File dosn't exist");
 			return;
 		}
 
@@ -306,11 +393,11 @@ namespace Shark {
 
 		if (!in["Assets"])
 		{
-			SK_CORE_ERROR("Invalid AssetRegistry file");
+			SK_CORE_ERROR("Invalid ImportedAssets file");
 			return;
 		}
 
-		s_AssetRegistry.Clear();
+		s_ImportedAssets.clear();
 
 		auto assets = in["Assets"];
 		for (auto asset : assets)
@@ -329,7 +416,7 @@ namespace Shark {
 			metadata.FilePath = filePath.as<std::filesystem::path>();
 			metadata.IsDataLoaded = false;
 
-			s_AssetRegistry[metadata.Handle] = metadata;
+			s_ImportedAssets[metadata.Handle] = metadata;
 		}
 	}
 

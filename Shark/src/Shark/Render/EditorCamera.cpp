@@ -22,7 +22,7 @@ namespace Shark {
 	}
 
 	EditorCamera::EditorCamera(float aspectratio, float fov, float nearClip, float farClip)
-		: Camera(glm::perspectiveLH(glm::radians(fov), aspectratio, nearClip, farClip)),
+		: Camera(glm::perspective(glm::radians(fov), aspectratio, nearClip, farClip)),
 		m_AspectRatio(aspectratio), m_FOV(glm::radians(fov)), m_NearClip(nearClip), m_FarClip(farClip)
 	{
 		SK_PROFILE_FUNCTION();
@@ -137,14 +137,14 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_View = glm::lookAtLH(m_Position, m_FocusPoint, glm::vec3(0.0f, 1.0f, 0.0f));
+		m_View = glm::lookAt(m_Position, m_FocusPoint, glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 
 	void EditorCamera::UpdateProjection()
 	{
 		SK_PROFILE_FUNCTION();
 		
-		m_Projection = glm::perspectiveLH(m_FOV, m_AspectRatio, m_NearClip, m_FarClip);
+		m_Projection = glm::perspective(m_FOV, m_AspectRatio, m_NearClip, m_FarClip);
 	}
 
 	void EditorCamera::UpdatePosition()

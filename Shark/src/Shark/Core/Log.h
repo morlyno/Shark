@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Shark/Utility/fmtUtils.h"
+#include "Shark/Utils/fmtUtils.h"
 
 #include <spdlog/spdlog.h>
-#include <spdlog/fmt/ostr.h>
 
 namespace Shark {
 

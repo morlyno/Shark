@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Shark/Core/UUID.h"
-#include "Shark/File/FileSystem.h"
+#include "Shark/Utils/String.h"
 
 #include <yaml-cpp/yaml.h>
 #include <glm/glm.hpp>
@@ -63,7 +63,7 @@ namespace YAML {
 		{
 			if (!node.IsScalar())
 				return false;
-			rhs = Shark::FileSystem::FormatDefaultCopy(node.Scalar());
+			rhs = Shark::String::FormatDefaultCopy(node.Scalar());
 			return true;
 		}
 	};

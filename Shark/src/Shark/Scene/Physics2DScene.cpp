@@ -3,30 +3,39 @@
 
 #include "Shark/Core/Project.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 #include <box2d/b2_contact.h>
 
 namespace Shark {
 
 	Physics2DScene::Physics2DScene()
-		: m_Gravity(Project::GetGravity()), m_VelocityIterations(Project::GetVelocityIterations()),
-		  m_PositionIterations(Project::GetPositionIterations()), m_FixedTimeStep(Project::GetFixedTimeStep())
+		: m_Gravity(Project::Gravity()), m_VelocityIterations(Project::VelocityIterations()),
+		  m_PositionIterations(Project::PositionIterations()), m_FixedTimeStep(Project::FixedTimeStep())
 	{
+		SK_PROFILE_FUNCTION();
 	}
 
 	Physics2DScene::~Physics2DScene()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_World)
 			DestoryScene();
 	}
 
 	void Physics2DScene::CreateScene()
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(!m_World);
 		m_World = new b2World({ m_Gravity.x, m_Gravity.y });
 	}
 
 	void Physics2DScene::DestoryScene()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_World)
 		{
 			delete m_World;
@@ -36,6 +45,8 @@ namespace Shark {
 
 	void Physics2DScene::Step(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
+
 		// TODO(moro): cap ts
 		m_Accumulator += ts;
 
@@ -49,6 +60,8 @@ namespace Shark {
 
 	bool Physics2DScene::HasBody(const b2Body* body) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		b2Body* iter = m_World->GetBodyList();
 
 		while (iter)

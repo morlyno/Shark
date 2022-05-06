@@ -2,8 +2,8 @@
 #include "Project.h"
 
 #include "Shark/Core/Timer.h"
-#include "Shark/File/FileSystem.h"
-#include "Shark/Utility/YAMLUtils.h"
+#include "Shark/Utils/String.h"
+#include "Shark/Utils/YAMLUtils.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -18,66 +18,66 @@ namespace Shark {
 		return Project::GetActive()->GetConfig();
 	}
 
-	const std::string& Project::GetName()
+	const std::string& Project::Name()
 	{
 		return GetActiveConfig().Name;
 	}
 
-	const std::filesystem::path& Project::GetProjectDirectory()
+	const std::filesystem::path& Project::Directory()
 	{
 		return GetActiveConfig().ProjectDirectory;
 	}
 
-	const std::filesystem::path& Project::GetAssetsPath()
+	const std::filesystem::path& Project::AssetsPath()
 	{
 		return GetActiveConfig().AssetsDirectory;
 	}
 
-	const std::filesystem::path& Project::GetStartupScenePath()
+	const std::filesystem::path& Project::StartupScenePath()
 	{
 		return GetActiveConfig().StartupScenePath;
 	}
 
-	const glm::vec2& Project::GetGravity()
+	const glm::vec2& Project::Gravity()
 	{
 		return GetActiveConfig().Gravity;
 	}
 
-	uint32_t Project::GetVelocityIterations()
+	uint32_t Project::VelocityIterations()
 	{
 		return GetActiveConfig().VelocityIterations;
 	}
 
-	uint32_t Project::GetPositionIterations()
+	uint32_t Project::PositionIterations()
 	{
 		return GetActiveConfig().PositionIterations;
 	}
 
-	float Project::GetFixedTimeStep()
+	float Project::FixedTimeStep()
 	{
 		return GetActiveConfig().FixedTimeStep;
 	}
 
 	std::filesystem::path Project::RelativeCopy(const std::filesystem::path& filePath)
 	{
-		return FileSystem::FormatDefaultCopy(std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory));
+		return String::FormatDefaultCopy(std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory));
 	}
 
 	std::filesystem::path Project::AbsolueCopy(const std::filesystem::path& filePath)
 	{
-		return FileSystem::FormatDefaultCopy(GetActiveConfig().ProjectDirectory / filePath);
+		return String::FormatDefaultCopy(GetActiveConfig().ProjectDirectory / filePath);
 	}
 
 	void Project::Relative(std::filesystem::path& filePath)
 	{
 		filePath = std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory);
-		FileSystem::FormatDefault(filePath);
+		String::FormatDefault(filePath);
 	}
 
 	void Project::Absolue(std::filesystem::path& filePath)
 	{
 		filePath = GetActiveConfig().ProjectDirectory / filePath;
-		FileSystem::FormatDefault(filePath);
+		String::FormatDefault(filePath);
 	}
 
 	Ref<Project> Project::GetActive()
@@ -206,10 +206,10 @@ namespace Shark {
 			config.FixedTimeStep      = 0.001f;
 		}
 
-		config.ProjectDirectory = FileSystem::FormatDefaultCopy(filePath.parent_path());
-		config.AssetsDirectory = FileSystem::FormatDefaultCopy(config.ProjectDirectory / assetsDirectory);
-		config.StartupScenePath = FileSystem::FormatDefaultCopy(config.ProjectDirectory / startupScenePath);
-		config.ScriptModulePath = FileSystem::FormatDefaultCopy(config.ProjectDirectory / scriptModulePath).string();
+		config.ProjectDirectory = String::FormatDefaultCopy(filePath.parent_path());
+		config.AssetsDirectory = String::FormatDefaultCopy(config.ProjectDirectory / assetsDirectory);
+		config.StartupScenePath = String::FormatDefaultCopy(config.ProjectDirectory / startupScenePath);
+		config.ScriptModulePath = String::FormatDefaultCopy(config.ProjectDirectory / scriptModulePath).string();
 
 		SK_CORE_ASSERT(config.ProjectDirectory.is_absolute());
 		SK_CORE_ASSERT(config.AssetsDirectory.is_absolute());
@@ -217,7 +217,7 @@ namespace Shark {
 
 		TimeStep time = timer.Stop();
 
-		SK_CORE_INFO("Deserializing Project from: {}", filePath);
+		SK_CORE_INFO(L"Deserializing Project from: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
 		SK_CORE_TRACE("  Assets Path: {}", assetsDirectory);
 		SK_CORE_TRACE("  Startup Scene Path: {}", startupScenePath);

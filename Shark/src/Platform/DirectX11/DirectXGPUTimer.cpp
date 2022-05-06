@@ -1,8 +1,6 @@
 #include "skpch.h"
 #include "DirectXGPUTimer.h"
 
-#include "Shark/Utility/Utility.h"
-
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 #ifdef SK_ENABLE_ASSERT

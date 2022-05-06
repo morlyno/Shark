@@ -9,7 +9,7 @@
 
 #include "Shark/Scripting/MonoGlue.h"
 
-#include "Shark/Utility/String.h"
+#include "Shark/Utils/String.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -59,9 +59,9 @@ namespace Shark {
 		std::filesystem::path GetScriptModuleOuputPath()
 		{
 #if SK_DEBUG
-			std::filesystem::path binaryOutputDir = Project::GetProjectDirectory() / "bin/Debug-windows-x86_64";
+			std::filesystem::path binaryOutputDir = Project::Directory() / "bin/Debug-windows-x86_64";
 #elif SK_RELEASE
-			std::filesystem::path binaryOutputDir = Project::GetProjectDirectory() / "bin/Release-windows-x86_64";
+			std::filesystem::path binaryOutputDir = Project::Directory() / "bin/Release-windows-x86_64";
 #else
 			static_assert(false);
 #endif
@@ -303,21 +303,27 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		return (bool)utils::GetClassFromNameScript(className);
+		return utils::GetClassFromNameScript(className) != nullptr;
 	}
 
 	MonoMethod* ScriptEngine::GetMethod(const std::string& methodName, bool includeNameSpace)
 	{
+		SK_PROFILE_FUNCTION();
+
 		return GetMethodInternal(methodName, includeNameSpace, s_ScriptData.ScriptImage);
 	}
 
 	MonoMethod* ScriptEngine::GetMethodCore(const std::string& methodName, bool includeNameSpace)
 	{
+		SK_PROFILE_FUNCTION();
+
 		return GetMethodInternal(methodName, includeNameSpace, s_ScriptData.CoreImage);
 	}
 
 	MonoObject* ScriptEngine::CallMethodInternal(MonoMethod* method, void* object, void** args)
 	{
+		SK_PROFILE_FUNCTION();
+
 		MonoObject* exeption = nullptr;
 		MonoObject* retVal = mono_runtime_invoke(method, object, args, &exeption);
 		if (exeption)
@@ -331,6 +337,8 @@ namespace Shark {
 
 	MonoMethod* ScriptEngine::GetMethodInternal(const std::string methodName, bool includeNameSpace, MonoImage* image)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (MonoMethodDesc* methodDesc = mono_method_desc_new(methodName.c_str(), includeNameSpace))
 		{
 			MonoMethod* method = mono_method_desc_search_in_image(methodDesc, image);

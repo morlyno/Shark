@@ -23,6 +23,25 @@ inline std::ostream& operator<<(std::ostream& out, const ImVec2& v)
 	return out << fmt::format("[{}, {}]", v.x, v.y);
 }
 
+template<typename Char>
+struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
+{
+	template<typename FormatContext>
+	auto format(const ImVec2& vec2, FormatContext& ctx) -> decltype(ctx.out())
+	{
+		auto&& out = ctx.out();
+		format_to(out, "[");
+
+		fmt::formatter<float, Char>::format(vec2.x, ctx);
+		format_to(out, ", ");
+		fmt::formatter<float, Char>::format(vec2.y, ctx);
+
+		format_to(out, "]");
+
+		return out;
+	}
+};
+
 namespace Shark::UI {
 
 	struct UIControl;
@@ -167,17 +186,17 @@ namespace Shark::UI {
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Helpers ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	inline bool ControlS(std::string_view label, glm::vec2& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::vec2(resetVal), glm::vec2(speed), glm::vec2(min), glm::vec2(max), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::vec3& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::vec3(resetVal), glm::vec3(speed), glm::vec3(min), glm::vec3(max), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::vec4& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::vec4(resetVal), glm::vec4(speed), glm::vec4(min), glm::vec4(max), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::vec2& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::vec2(resetVal), glm::vec2(min), glm::vec2(max), glm::vec2(speed), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::vec3& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::vec3(resetVal), glm::vec3(min), glm::vec3(max), glm::vec3(speed), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::vec4& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::vec4(resetVal), glm::vec4(min), glm::vec4(max), glm::vec4(speed), fmt, type); }
 
-	inline bool ControlS(std::string_view label, glm::ivec2& val, int resetVal = int(0), int min = int(0), int max = int(0), int speed = int(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::ivec2(resetVal), glm::ivec2(speed), glm::ivec2(min), glm::ivec2(max), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::ivec3& val, int resetVal = int(0), int min = int(0), int max = int(0), int speed = int(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::ivec3(resetVal), glm::ivec3(speed), glm::ivec3(min), glm::ivec3(max), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::ivec4& val, int resetVal = int(0), int min = int(0), int max = int(0), int speed = int(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::ivec4(resetVal), glm::ivec4(speed), glm::ivec4(min), glm::ivec4(max), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::ivec2& val, int resetVal = int(0), int min = int(0), int max = int(0), int speed = int(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::ivec2(resetVal), glm::ivec2(min), glm::ivec2(max), glm::ivec2(speed), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::ivec3& val, int resetVal = int(0), int min = int(0), int max = int(0), int speed = int(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::ivec3(resetVal), glm::ivec3(min), glm::ivec3(max), glm::ivec3(speed), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::ivec4& val, int resetVal = int(0), int min = int(0), int max = int(0), int speed = int(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::ivec4(resetVal), glm::ivec4(min), glm::ivec4(max), glm::ivec4(speed), fmt, type); }
 
-	inline bool ControlS(std::string_view label, glm::uvec2& val, uint32_t resetVal = uint32_t(0), uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::uvec2(resetVal), glm::uvec2(speed), glm::uvec2(min), glm::uvec2(max), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::uvec3& val, uint32_t resetVal = uint32_t(0), uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::uvec3(resetVal), glm::uvec3(speed), glm::uvec3(min), glm::uvec3(max), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::uvec4& val, uint32_t resetVal = uint32_t(0), uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::uvec4(resetVal), glm::uvec4(speed), glm::uvec4(min), glm::uvec4(max), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::uvec2& val, uint32_t resetVal = uint32_t(0), uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::uvec2(resetVal), glm::uvec2(min), glm::uvec2(max), glm::uvec2(speed), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::uvec3& val, uint32_t resetVal = uint32_t(0), uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::uvec3(resetVal), glm::uvec3(min), glm::uvec3(max), glm::uvec3(speed), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::uvec4& val, uint32_t resetVal = uint32_t(0), uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::uvec4(resetVal), glm::uvec4(min), glm::uvec4(max), glm::uvec4(speed), fmt, type); }
 
  	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Widgets ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

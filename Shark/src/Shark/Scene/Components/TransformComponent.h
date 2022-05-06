@@ -1,8 +1,9 @@
 #pragma once
 
+#define GLM_ENABLE_EXPERIMENTAL 1
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace Shark {
 
@@ -11,7 +12,7 @@ namespace Shark {
 		glm::mat4 GetTranform() const
 		{
 			return glm::translate(glm::mat4(1), Position) *
-				glm::eulerAngleXYZ(Rotation.x, Rotation.y, Rotation.z) *
+				glm::toMat4(glm::quat(Rotation)) *
 				glm::scale(glm::mat4(1), Scaling);
 		}
 

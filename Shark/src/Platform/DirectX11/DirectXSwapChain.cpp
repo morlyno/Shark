@@ -2,7 +2,7 @@
 #include "DirectXSwapChain.h"
 
 #include "Platform/DirectX11/DirectXRenderer.h"
-#include "Platform/Windows/WindowsUtility.h"
+#include "Platform/Windows/WindowsUtils.h"
 
 #include "Shark/Core/Application.h"
 
@@ -39,7 +39,7 @@ namespace Shark {
 		{
 			auto device = DirectXRenderer::GetDevice();
 			HRESULT hr = device->GetDeviceRemovedReason();
-			SK_CORE_ERROR(TranslateErrorCode(hr));
+			SK_CORE_ERROR(WindowsUtils::TranslateErrorCode(hr));
 			SK_CORE_ASSERT(false);
 		}
 

@@ -24,13 +24,13 @@ namespace Shark {
 
 	bool Input::KeyPressed(KeyCode key)
 	{
-		return (bool)(GetKeyState(key) >> 8);
+		return (GetKeyState(key) & 0xFF00) > 0;
 	}
 
 	bool Input::MousePressed(MouseButton::Type button)
 	{
 		const int virtualKey = utils::MapMouseButtonToVK(button);
-		return (bool)(GetKeyState(virtualKey) >> 8);
+		return (GetKeyState(virtualKey) & 0xFF00) > 0;
 	}
 
 	glm::ivec2 Input::MousePos()

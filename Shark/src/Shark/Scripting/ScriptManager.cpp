@@ -5,6 +5,8 @@
 
 #include "Shark/Scene/Components/ScriptComponent.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 #include <mono/metadata/appdomain.h>
 
 namespace Shark {
@@ -15,6 +17,8 @@ namespace Shark {
 
 		bool SplitScriptModuleName(const std::string& scriptModuleName, std::string& out_NameSpace, std::string& out_ClassName)
 		{
+			SK_PROFILE_FUNCTION();
+
 			size_t separator = scriptModuleName.rfind('.');
 			if (separator == std::string::npos)
 			{
@@ -32,6 +36,8 @@ namespace Shark {
 
 	void Script::OnCreate()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_OnCreate)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
@@ -41,6 +47,8 @@ namespace Shark {
 
 	void Script::OnDestroy()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_OnDestroy)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
@@ -50,6 +58,8 @@ namespace Shark {
 
 	void Script::OnUpdate(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_OnUpdate)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
@@ -59,6 +69,8 @@ namespace Shark {
 
 	void Script::OnCollishionBegin(UUID uuid, bool isScript)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_OnCollishionBegin)
 		{
 			if (isScript)
@@ -90,6 +102,8 @@ namespace Shark {
 
 	void Script::OnCollishionEnd(UUID uuid, bool isScript)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_OnCollishionEnd)
 		{
 			if (isScript)
@@ -119,6 +133,8 @@ namespace Shark {
 
 	const Script& ScriptManager::Instantiate(Entity entity, bool callOnCreate)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(entity.HasComponent<ScriptComponent>());
 
 		const auto& comp = entity.GetComponent<ScriptComponent>();
@@ -164,6 +180,8 @@ namespace Shark {
 
 	void ScriptManager::Destroy(Entity entity, bool callOnDestroy)
 	{
+		SK_PROFILE_FUNCTION();
+
 		UUID uuid = entity.GetUUID();
 		Script& script = s_Scripts.at(uuid);
 		if (callOnDestroy)
@@ -175,6 +193,8 @@ namespace Shark {
 
 	void ScriptManager::Cleanup()
 	{
+		SK_PROFILE_FUNCTION();
+
 		for (auto& [uuid, script] : s_Scripts)
 		{
 			script.OnDestroy();
@@ -186,16 +206,22 @@ namespace Shark {
 
 	bool ScriptManager::Contains(UUID handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		return s_Scripts.find(handle) != s_Scripts.end();
 	}
 
 	Script& ScriptManager::GetScript(UUID handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		return s_Scripts.at(handle);
 	}
 
-	const auto& ScriptManager::GetScripts()
+	const std::unordered_map<UUID, Script>& ScriptManager::GetScripts()
 	{
+		SK_PROFILE_FUNCTION();
+
 		return s_Scripts;
 	}
 

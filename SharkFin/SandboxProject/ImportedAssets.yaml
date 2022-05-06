@@ -2,6 +2,9 @@ Assets:
   - Handle: 0x2d77190c75d8b6ee
     Type: Scene
     FilePath: Scenes/Sanbox.skscene
+  - Handle: 0x37dc48808083e849
+    Type: Scene
+    FilePath: Scenes/Cube.skscene
   - Handle: 0x4b9315598476c506
     Type: Scene
     FilePath: Scenes/TwoQuads.skscene
@@ -11,15 +14,15 @@ Assets:
   - Handle: 0x5b3ed9bb804eccc0
     Type: Scene
     FilePath: Scenes/PlayerTest.skscene
-  - Handle: 0x8190ba7b1101db21
-    Type: Texture
-    FilePath: Textures/Gear.sktex
   - Handle: 0xa72e2969608c3fca
     Type: Texture
     FilePath: Textures/Checkerboard.sktex
   - Handle: 0xb0278653dd5629aa
     Type: Scene
     FilePath: Scenes/MipMapTest.skscene
+  - Handle: 0xb8486817d46a0579
+    Type: Texture
+    FilePath: Textures/Gear.sktex
   - Handle: 0xba9cf351d9053a5d
     Type: Scene
     FilePath: Scenes/ScriptTest.skscene
@@ -32,3 +35,6 @@ Assets:
   - Handle: 0xe983de58eb9cb1b1
     Type: Texture
     FilePath: Textures/Checkerboard ( 1).sktex
+  - Handle: 0xf7a7efe695f20cb4
+    Type: Scene
+    FilePath: Scenes/StressTest.skscene

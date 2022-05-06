@@ -1,8 +1,6 @@
 #include "skpch.h"
 #include "DirectXMaterial.h"
 
-#include "Shark/Utility/Utility.h"
-
 #include <d3d11shader.h>
 #include <d3dcompiler.h>
 
@@ -30,21 +28,21 @@ namespace Shark {
 
 	void DirectXMaterial::SetTexture(const std::string& name, Ref<Texture2D> texture)
 	{
-		SK_CORE_ASSERT(Utility::Contains(m_ResourceMap, name));
+		SK_CORE_ASSERT(m_ResourceMap.find(name) != m_ResourceMap.end());
 
 		m_ResourceMap.at(name)->Set(0, texture);
 	}
 
 	void DirectXMaterial::SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index)
 	{
-		SK_CORE_ASSERT(Utility::Contains(m_ResourceMap, name));
+		SK_CORE_ASSERT(m_ResourceMap.find(name) != m_ResourceMap.end());
 
 		m_ResourceMap.at(name)->Set(index, texture);
 	}
 
 	void DirectXMaterial::SetTextureArray(const std::string& name, Ref<Texture2DArray> textureArray)
 	{
-		SK_CORE_ASSERT(Utility::Contains(m_ResourceMap, name));
+		SK_CORE_ASSERT(m_ResourceMap.find(name) != m_ResourceMap.end());
 
 		Ref<Texture2DArray> arr = m_ResourceMap.at(name);
 		SK_CORE_ASSERT(arr->Count() == textureArray->Count());
@@ -54,7 +52,7 @@ namespace Shark {
 
 	void DirectXMaterial::SetBytes(const std::string& name, byte* data, uint32_t size)
 	{
-		SK_CORE_ASSERT(Utility::Contains(m_VariableMap, name));
+		SK_CORE_ASSERT(m_VariableMap.find(name) != m_VariableMap.end());
 
 		const CBVar& var = m_VariableMap.at(name);
 		auto& buffer = m_ConstantBufferData.at(var.BufferSlot);
@@ -64,7 +62,7 @@ namespace Shark {
 
 	byte* DirectXMaterial::GetBytes(const std::string& name) const
 	{
-		SK_CORE_ASSERT(Utility::Contains(m_VariableMap, name));
+		SK_CORE_ASSERT(m_VariableMap.find(name) != m_VariableMap.end());
 
 		const CBVar& var = m_VariableMap.at(name);
 		const auto& buffer = m_ConstantBufferData.at(var.BufferSlot);

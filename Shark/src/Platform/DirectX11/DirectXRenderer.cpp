@@ -33,9 +33,7 @@ namespace Shark {
 		{
 			DXGI_ADAPTER_DESC ad;
 			SK_CHECK(adapter->GetDesc(&ad));
-			char gpudesc[128];
-			wcstombs_s(nullptr, gpudesc, ad.Description, 128);
-			SK_CORE_INFO("GPU: {0}", gpudesc);
+			SK_CORE_INFO(L"GPU: {0}", ad.Description);
 		}
 
 	}

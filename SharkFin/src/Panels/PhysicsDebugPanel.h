@@ -19,9 +19,6 @@ namespace Shark {
 
 	private:
 		Ref<Scene> m_Scene;
-
-		bool m_WantDestroy = false;
-
 	};
 
 }

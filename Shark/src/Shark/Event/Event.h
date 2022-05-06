@@ -98,9 +98,19 @@ namespace Shark {
 		Event& m_Event;
 	};
 
-	inline std::ostream& operator<<(std::ostream& os, const Event& e)
+}
+
+template<typename Event>
+struct fmt::formatter<Event, char, std::enable_if_t<std::is_same_v<Event, Shark::Event> || std::is_base_of_v<Shark::Event, Event>>>
+{	
+	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
 	{
-		return os << e.ToString();
+		return ctx.end();
 	}
 
-}
+	template<typename FormatContext>
+	auto format(const Shark::Event& event, FormatContext& ctx) -> decltype(ctx.out())
+	{
+		return format_to(ctx.out(), event.ToString());
+	}
+};

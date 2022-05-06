@@ -11,10 +11,11 @@ namespace Sandbox
 		private bool m_SpaceKeyControl = false;
 
 		// Movement
-		private float m_MovementSpeed = 5.0f;
-		private Vector2 m_JumpForce = Vector2.Up * 15000.0f;
+		private float m_MovementSpeed;
+		private float m_JumpVelocity = 7.5f;
 		private RigidBody2DComponent m_RigidBody;
 
+		private Entity m_CameraEntity = null;
 
 		void OnCreate()
 		{
@@ -22,6 +23,8 @@ namespace Sandbox
 				AddComponent<RigidBody2DComponent>();
 
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
+
+			m_CameraEntity = Scene.GetEntityByTag("Camera");
 		}
 
 		void OnDestroy()
@@ -31,6 +34,13 @@ namespace Sandbox
 		void OnUpdate(TimeStep ts)
 		{
 			Movement(ts);
+			if (m_CameraEntity != null)
+			{
+				var translation = m_CameraEntity.Transform.Translation;
+				translation.X = Transform.Translation.X;
+				translation.Y = Transform.Translation.Y;
+				m_CameraEntity.Transform.Translation = translation;
+			}
 		}
 
 		void OnCollishionBegin(Entity entity)
@@ -46,37 +56,60 @@ namespace Sandbox
 
 		private void Movement(TimeStep ts)
 		{
-			if (Input.KeyPressed(Key.L))
+			//MovementForce(ts);
+			MovementLinearVelocity(ts);
+			MovementJump(ts);
+		}
+
+		private void MovementLinearVelocity(TimeStep ts)
+		{
+			m_MovementSpeed = 5.0f;
+			if (Input.KeyPressed(Key.Shift))
 			{
-				var transform = m_RigidBody.Transform;
-				m_RigidBody.Transform = transform;
+				m_MovementSpeed = 10.0f;
 			}
 
 			Vector2 delta = Vector2.Zero;
 
 			if (Input.KeyPressed(Key.D))
 			{
-				delta += Vector2.Right * m_MovementSpeed;
+				delta += new Vector2(1.0f, 0.01f) /* Vector2.Right*/ * m_MovementSpeed;
 			}
 
 			if (Input.KeyPressed(Key.A))
 			{
-				delta += Vector2.Left * m_MovementSpeed;
+				delta += new Vector2(-1.0f, 0.01f) /*Vector2.Left*/ * m_MovementSpeed;
 			}
 
 			var velocity = m_RigidBody.LinearVelocity;
 			velocity.X = delta.X;
 			m_RigidBody.LinearVelocity = velocity;
+		}
 
+		private void MovementForce(TimeStep ts)
+		{
+			if (Input.KeyPressed(Key.LeftArrow))
+				m_RigidBody.ApplyForce(Vector2.Left * 1500.0f);
+
+			if (Input.KeyPressed(Key.RightArrow))
+				m_RigidBody.ApplyForce(Vector2.Right * 1500.0f);
+		}
+
+		private void MovementJump(TimeStep ts)
+		{
 			bool spacePressed = UtilsKeyPressed(Key.Space, ref m_SpaceKeyControl);
 			if (m_CanJump && spacePressed)
 			{
-				m_RigidBody.ApplyForce(m_JumpForce);
+				var vel = m_RigidBody.LinearVelocity;
+				vel.Y = m_JumpVelocity;
+				m_RigidBody.LinearVelocity = vel;
 				m_CanJump = false;
 			}
 			else if (m_CanDoubleJump && spacePressed)
 			{
-				m_RigidBody.ApplyForce(m_JumpForce);
+				var vel = m_RigidBody.LinearVelocity;
+				vel.Y = m_JumpVelocity;
+				m_RigidBody.LinearVelocity = vel;
 				m_CanDoubleJump = false;
 			}
 		}

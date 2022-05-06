@@ -3,7 +3,7 @@
 
 #include "Shark/Render/Renderer.h"
 
-#include "Shark/Utility/Math.h"
+#include "Shark/Utils/Math.h"
 #include "Shark/Debug/Profiler.h"
 
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
@@ -12,7 +12,6 @@
 #include "Shark/Debug/Instrumentor.h"
 
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/euler_angles.hpp>
 
 #if SK_ENABLE_VALIDATION
 #define SK_FILL_TEXTURE_ARRAY_DEBUG(texArr, whiteTexture) { auto&& textureArray = (texArr); for (uint32_t i = 0; i < textureArray->Count(); i++) if (!textureArray->Get(i)) textureArray->Set(i, whiteTexture); }
@@ -320,7 +319,7 @@ namespace Shark {
 	{
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), position) *
-			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::toMat4(glm::quat(rotation)) /* glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
 			glm::scale(glm::mat4(1), scaling);
 
 		DrawQuad(transform, texture, tilingfactor, tintcolor, id);
@@ -390,7 +389,7 @@ namespace Shark {
 	{
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), position) *
-			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::toMat4(glm::quat(rotation)) /*glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
 			glm::scale(glm::mat4(1), scaling);
 
 		DrawFilledCircle(transform, color, thickness, fade, id);
@@ -434,7 +433,7 @@ namespace Shark {
 	{
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), position) *
-			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::toMat4(glm::quat(rotation)) /*glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
 			glm::scale(glm::mat4(1), glm::vec3(radius));
 
 		DrawCircle(transform, color, id);
@@ -506,7 +505,7 @@ namespace Shark {
 	{
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), position) *
-			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::toMat4(glm::quat(rotation)) /*glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
 			glm::scale(glm::mat4(1), scaling);
 
 		DrawRect(transform, color, id);
@@ -579,7 +578,7 @@ namespace Shark {
 	{
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), position) *
-			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::toMat4(glm::quat(rotation)) /*glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
 			glm::scale(glm::mat4(1), scaling);
 
 		DrawRectOnTop(transform, color, id);
@@ -613,7 +612,7 @@ namespace Shark {
 	{
 		const auto transform =
 			glm::translate(glm::mat4(1), position) *
-			glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z) *
+			glm::toMat4(glm::quat(rotation)) /*glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
 			glm::scale(glm::mat4(1), glm::vec3(radius));
 
 		DrawCircleOnTop(transform, color, id);

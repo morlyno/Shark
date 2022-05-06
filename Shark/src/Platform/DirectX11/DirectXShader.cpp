@@ -1,8 +1,7 @@
 #include "skpch.h"
 #include "DirectXShader.h"
-#include "Shark/Utility/String.h"
+#include "Shark/Utils/String.h"
 #include "Shark/Core/Timer.h"
-#include "Shark/File/FileSystem.h"
 
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
@@ -151,8 +150,8 @@ namespace Shark {
 		static void CreateCacheDirectoryIfNeeded()
 		{
 			const auto cacheDirectory = Utils::CacheDirectory();
-			if (!FileSystem::Exists(cacheDirectory))
-				FileSystem::CreateDirectorys(cacheDirectory);
+			if (!std::filesystem::exists(cacheDirectory))
+				std::filesystem::create_directories(cacheDirectory);
 		}
 
 	}
@@ -169,7 +168,7 @@ namespace Shark {
 			Timer timer;
 			CompileOrGetCached(shaderSources);
 
-			SK_CORE_TRACE("Shader Compile tock {0:.5f} ms [File: {1}]", timer.Stop().MilliSeconds(), filepath);
+			SK_CORE_TRACE(L"Shader Compile tock {0:.5f} ms [File: {1}]", timer.Stop().MilliSeconds(), filepath);
 		}
 
 		CreateShaders();
@@ -215,7 +214,7 @@ namespace Shark {
 			if (!TryReCompile(shaderSources))
 				return false;
 
-			SK_CORE_TRACE("Shader ReCompile tock {0} ms [File: {1}]", timer.Stop().MilliSeconds(), m_FilePath);
+			SK_CORE_TRACE(L"Shader ReCompile tock {0} ms [File: {1}]", timer.Stop().MilliSeconds(), m_FilePath);
 		}
 		Release();
 

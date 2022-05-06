@@ -10,7 +10,7 @@
 #include "Shark/Scripting/ScriptManager.h"
 #include "Shark/Scripting/MonoGlue.h"
 
-#include "Shark/Utility/Math.h"
+#include "Shark/Utils/Math.h"
 
 #include "Shark/Debug/enttDebug.h"
 #include "Shark/Debug/Instrumentor.h"
@@ -122,9 +122,11 @@ namespace Shark {
 			auto view = m_Registry.view<ScriptComponent>();
 			for (auto entityID : view)
 			{
-				auto& comp = view.get<ScriptComponent>(entityID);
 				Entity entity{ entityID, this };
 				ScriptManager::Instantiate(entity);
+
+				auto& comp = view.get<ScriptComponent>(entityID);
+				comp.HasRuntime = true;
 			}
 
 			for (auto entityID : view)
@@ -196,16 +198,22 @@ namespace Shark {
 			for (auto entityID : view)
 			{
 				Entity entity{ entityID, this };
-				auto& script = ScriptManager::GetScript(entity.GetUUID());
-				script.OnDestroy();
+				auto& comp = entity.GetComponent<ScriptComponent>();
+				if (comp.HasRuntime)
+				{
+					//auto& script = ScriptManager::GetScript(entity.GetUUID());
+					//script.OnDestroy();
+					ScriptManager::Destroy(entity, true);
+					comp.HasRuntime = false;
+				}
 			}
 
-			for (auto entityID : view)
-			{
-				Entity entity{ entityID, this };
-				const auto& comp = entity.GetComponent<ScriptComponent>();
-				ScriptManager::Destroy(entity);
-			}
+			//for (auto entityID : view)
+			//{
+			//	Entity entity{ entityID, this };
+			//	const auto& comp = entity.GetComponent<ScriptComponent>();
+			//	ScriptManager::Destroy(entity);
+			//}
 		}
 
 		// Destroy Native Scripts

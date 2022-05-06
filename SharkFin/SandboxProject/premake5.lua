@@ -25,11 +25,7 @@ project "Sandbox"
     {
         "%{prj.location}/**.cs"
     }
-
-    includedirs
-    {
-    }
-
+    
     links
     {
         "ScriptingCore"

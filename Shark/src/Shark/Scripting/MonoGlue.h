@@ -19,7 +19,7 @@ namespace Shark {
 		static void CallCollishionBegin(Entity entityA, Entity entityB);
 		static void CallCollishionEnd(Entity entityA, Entity entityB);
 
-	public:
+	private:
 		static void RegisterComponents();
 		static void RegsiterInternalCalls();
 

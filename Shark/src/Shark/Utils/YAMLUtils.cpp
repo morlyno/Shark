@@ -28,7 +28,7 @@ namespace YAML {
 
 	YAML::Emitter& operator<<(Emitter& out, const std::filesystem::path& filePath)
 	{
-		return out << Shark::FileSystem::FormatDefaultCopy(filePath).string();
+		return out << Shark::String::FormatDefaultCopy(filePath).string();
 	}
 
 	YAML::Emitter& operator<<(Emitter& out, const Shark::UUID& uuid)

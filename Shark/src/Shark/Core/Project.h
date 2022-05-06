@@ -25,16 +25,16 @@ namespace Shark {
 	class Project : public RefCount
 	{
 	public:
-		static const std::string& GetName();
-		static const std::filesystem::path& GetProjectDirectory();
+		static const std::string& Name();
+		static const std::filesystem::path& Directory();
 
-		static const std::filesystem::path& GetAssetsPath();
-		static const std::filesystem::path& GetStartupScenePath();
+		static const std::filesystem::path& AssetsPath();
+		static const std::filesystem::path& StartupScenePath();
 
-		static const glm::vec2& GetGravity();
-		static uint32_t GetVelocityIterations();
-		static uint32_t GetPositionIterations();
-		static float GetFixedTimeStep();
+		static const glm::vec2& Gravity();
+		static uint32_t VelocityIterations();
+		static uint32_t PositionIterations();
+		static float FixedTimeStep();
 
 		static std::filesystem::path RelativeCopy(const std::filesystem::path& filePath);
 		static std::filesystem::path AbsolueCopy(const std::filesystem::path& filePath);

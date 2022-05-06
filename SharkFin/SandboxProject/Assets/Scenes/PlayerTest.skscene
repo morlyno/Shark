@@ -7,7 +7,7 @@ Scene:
       TransformComponent:
         Position: [0, 0, 0]
         Rotation: [0, 0, 0]
-        Scaling: [1, 1.46200001, 0.731000006]
+        Scaling: [1, 1.46200013, 0.73099941]
       SpriteRendererComponent:
         Color: [0.818627477, 0.713584483, 0.104334891, 1]
         Texture: 0
@@ -88,6 +88,25 @@ Scene:
         RestitutionThreshold: 1
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+    - Entity: 0x7ea5428e94ce6128
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [-23.9843826, 8.69563675, 0]
+        Rotation: [-0, 0, -0.785398185]
+        Scaling: [8.11126232, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
     - Entity: 0x8c7a856c8315563b
       TagComponent:
         Tag: Floor
@@ -109,13 +128,6 @@ Scene:
         RestitutionThreshold: 1
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
-    - Entity: 0x9738953847bdf443
-      TagComponent:
-        Tag: EntitySpawner
-      TransformComponent:
-        Position: [-0.273704529, 31.422821, -3.81469727e-06]
-        Rotation: [0, 0, 0]
-        Scaling: [32.0370102, 1, 1]
     - Entity: 0xbbdb8872e6e21912
       TagComponent:
         Tag: Camera
@@ -125,7 +137,7 @@ Scene:
         Scaling: [1, 1, 1]
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.07368422
+        Aspectratio: 1.94847023
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000

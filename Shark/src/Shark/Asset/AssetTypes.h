@@ -34,7 +34,7 @@ namespace Shark {
 		return AssetType::None;
 	}
 
-	inline std::unordered_map<std::string, AssetType> AssetExtentionMap = {
+	inline const std::unordered_map<std::string, AssetType> AssetExtensionMap = {
 		{ ".skscene", AssetType::Scene },
 		{ ".sktex", AssetType::Texture }
 	};

@@ -4,7 +4,6 @@
 #include "Shark/Core/Window.h"
 #include "Shark/Core/Application.h"
 
-#include "Shark/File/FileSystem.h"
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
 
@@ -64,7 +63,7 @@ namespace Shark {
 		m_CommandBuffer->GetContext()->OMGetBlendState(&m_BlendState, m_BlendFactor, &m_SampleMask);
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
-		if (!ctx.SettingsLoaded && !FileSystem::Exists(ctx.IO.IniFilename))
+		if (!ctx.SettingsLoaded && !std::filesystem::exists(ctx.IO.IniFilename))
 		{
 			SK_CORE_INFO("\"{}\" file not found, continue with defualt settings", ctx.IO.IniFilename);
 			ImGui::LoadIniSettingsFromDisk("Resources/DefaultImGui.ini");

@@ -11,25 +11,23 @@
 #include "Shark/Render/SceneRenderer.h"
 #include "Shark/Render/EditorCamera.h"
 
-#include "Panels/Panel.h"
+#include "Panels/AssetEditorPanel.h"
 
 #include <imgui.h>
 
 namespace Shark {
 
-	class TextureEditorPanel : public Panel
+	class TextureEditorPanel : public EditorPanel
 	{
 	public:
 		TextureEditorPanel(Ref<Texture2D> sourceTexture);
 		~TextureEditorPanel();
 
 		virtual void OnUpdate(TimeStep ts) override;
-		virtual void OnImGuiRender(bool& shown) override;
+		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
 		virtual void OnEvent(Event& event) override;
 
-		virtual bool WantDestroy() const override { return !m_Active; }
-		bool ViewportHovered() const { return m_ViewportHovered; }
-
+		virtual bool ViewportHovered() const override { return m_ViewportHovered; }
 	private:
 		void UI_DrawViewport();
 		void UI_DrawSettings();

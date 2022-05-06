@@ -1,6 +1,6 @@
 #include "skpch.h"
 #include "SceneCamera.h"
-#include "Shark/Utility/Math.h"
+#include "Shark/Utils/Math.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -57,7 +57,7 @@ namespace Shark {
 
 	void SceneCamera::RecaluclatePerspetive()
 	{
-		m_Projection = glm::perspectiveLH(
+		m_Projection = glm::perspective(
 			m_PerspectiveFOV,
 			m_Aspectratio,
 			m_PerspectiveNear,
@@ -67,7 +67,7 @@ namespace Shark {
 
 	void SceneCamera::RecaluclateOrthographic()
 	{
-		m_Projection = glm::orthoLH(
+		m_Projection = glm::ortho(
 			-m_OrthographicZoom * m_Aspectratio,
 			m_OrthographicZoom * m_Aspectratio,
 			-m_OrthographicZoom,

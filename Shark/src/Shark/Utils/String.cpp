@@ -70,4 +70,38 @@ namespace Shark::String {
 		}
 	}
 
+	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path)
+	{
+		std::wstring str = path.native();
+		std::replace(str.begin(), str.end(), L'/', L'\\');
+		return str;
+	}
+
+	void FormatWindows(std::filesystem::path& path)
+	{
+		std::wstring str = path.wstring();
+		std::replace(str.begin(), str.end(), L'/', L'\\');
+		path = str;
+	}
+
+	std::filesystem::path FormatDefaultCopy(const std::filesystem::path& path)
+	{
+		std::wstring str = path.wstring();
+		std::replace(str.begin(), str.end(), L'\\', L'/');
+		return str;
+	}
+
+	void FormatDefault(std::filesystem::path& path)
+	{
+		std::wstring str = path.wstring();
+		std::replace(str.begin(), str.end(), L'\\', L'/');
+		path = str;
+	}
+
+	bool IsDefaultFormat(const std::filesystem::path& path)
+	{
+		const std::wstring& str = path;
+		return str.find(L'\\') == std::wstring::npos;
+	}
+
 }

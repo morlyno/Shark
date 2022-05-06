@@ -1,160 +1,183 @@
 #include "skpch.h"
 #include "FileSystem.h"
+#include "Shark/Utils/PlatformUtils.h"
 
-#include <iostream>
-#include <filesystem>
+#include <fmt/os.h>
 
-#include "Shark/Utility/PlatformUtils.h"
+namespace Shark {
 
-#if SK_LOG_FILESYSTEM
-#define SK_FS_ERROR(...) SK_CORE_ERROR(__VA_ARGS__)
-#define SK_FS_INFO(...) SK_CORE_INFO(__VA_ARGS__)
-#else
-#define SK_FS_ERROR(...) SK_CORE_ASSERT(false, fmt::format(__VA_ARGS__))
-#define SK_FS_INFO(...)
-#endif
+	static Ref<FileWatcher> s_FileWatcher;
 
-namespace Shark::FileSystem {
+	namespace utils {
 
-	bool CreateFile(const std::filesystem::path& path)                        { return CreateFile(path.string()); }
-
-	bool CreateDirectory(const std::string& path)                             { return CreateDirectory(std::filesystem::path(path)); }
-	bool CreateDirectorys(const std::string& path)                            { return CreateDirectorys(std::filesystem::path(path)); }
-	bool Rename(const std::string& oldPath, const std::string& newPath)       { return Rename(std::filesystem::path(oldPath), std::filesystem::path(newPath)); }
-	bool Delete(const std::string& path)                                      { return Delete(std::filesystem::path(path)); }
-	uint32_t DeleteAll(const std::string& path)                               { return DeleteAll(std::filesystem::path(path)); }
-	//bool Exists(const std::string& path)                                      { return Exists(std::filesystem::path(path)); }
-
-
-	bool CreateFile(const std::string& path)
-	{
-		if (Platform::Create_File(path))
-		{ 
-			SK_FS_INFO("File Created [{0}]", path);
-			return true;
+		static void AssureInsteance()
+		{
+			if (!s_FileWatcher)
+			{
+				FileWatcherSpecification specs{};
+				specs.WatchSubTrees = true;
+				specs.NotifyFlags = NotifyFlag::All;
+				s_FileWatcher = FileWatcher::Create(specs);
+			}
 		}
-		SK_FS_ERROR("Failed to Create file [{0}]", path);
-		return false;
+
 	}
 
-	bool CreateDirectory(const std::filesystem::path& path)
+	void FileSystem::StartWatching()
 	{
-		std::error_code err;
-		std::filesystem::create_directory(path, err);
-		if (err)
+		utils::AssureInsteance();
+
+		s_FileWatcher->Start();
+	}
+
+	void FileSystem::StartWatching(const std::filesystem::path& directory)
+	{
+		utils::AssureInsteance();
+
+		s_FileWatcher->SetDirectory(directory, false);
+		s_FileWatcher->Start();
+	}
+
+	void FileSystem::StartWatching(const std::filesystem::path& directory, FileWatcherCallbackFunc callback)
+	{
+		utils::AssureInsteance();
+
+		s_FileWatcher->SetDirectory(directory, false);
+		s_FileWatcher->SetCallback(callback);
+		s_FileWatcher->Start();
+	}
+
+	void FileSystem::StartWatching(const FileWatcherSpecification& specs)
+	{
+		utils::AssureInsteance();
+
+		s_FileWatcher->SetSpecification(specs);
+		s_FileWatcher->Start();
+	}
+
+	void FileSystem::StopWatching()
+	{
+		utils::AssureInsteance();
+
+		s_FileWatcher->Stop();
+	}
+
+	void FileSystem::PauseWatching()
+	{
+		utils::AssureInsteance();
+
+		s_FileWatcher->Pause();
+	}
+
+	void FileSystem::ContinueWatching()
+	{
+		utils::AssureInsteance();
+
+		s_FileWatcher->Continue();
+	}
+
+	void FileSystem::SkipNextFileEvent()
+	{
+		utils::AssureInsteance();
+
+		s_FileWatcher->SkipNextEvent();
+	}
+
+	void FileSystem::SetFileWatcherCallback(FileWatcherCallbackFunc callback)
+	{
+		utils::AssureInsteance();
+
+		s_FileWatcher->SetCallback(callback);
+	}
+
+	Shark::Ref<Shark::FileWatcher> FileSystem::GetFileWatcher()
+	{
+		utils::AssureInsteance();
+
+		return s_FileWatcher;
+	}
+
+	std::filesystem::path FileSystem::MakeFreeFilePath(const std::filesystem::path& directory, const std::filesystem::path& fileName)
+	{
+		SK_CORE_ASSERT(directory.is_absolute());
+		std::filesystem::path fsPath = directory / fileName;
+
+		if (std::filesystem::exists(fsPath))
 		{
-			SK_FS_ERROR(err.message());
+			const std::wstring name = fileName.stem();
+			const std::wstring extension = fileName.extension();
+
+			uint32_t count = 1;
+			bool foundValidFileName = false;
+			while (!foundValidFileName)
+			{
+				fsPath = fmt::format(L"{}/{} ({}).{}", directory, name, count, extension);
+				foundValidFileName = std::filesystem::exists(fsPath);
+			}
+		}
+
+		return fsPath;
+	}
+
+	void FileSystem::MakeFreeFilePath(std::filesystem::path& fsPath)
+	{
+		SK_CORE_ASSERT(fsPath.is_absolute());
+		if (std::filesystem::exists(fsPath))
+		{
+			const std::wstring directory = fsPath.parent_path();
+			const std::wstring name = fsPath.stem();
+			const std::wstring extension = fsPath.extension();
+
+			uint32_t count = 1;
+			bool foundValidFileName = false;
+			while (!foundValidFileName)
+			{
+				fsPath = fmt::format(L"{}/{} ({}).{}", directory, name, count++, extension);
+				foundValidFileName = std::filesystem::exists(fsPath);
+			}
+		}
+	}
+
+	bool FileSystem::CreateScriptFile(const std::filesystem::path& directory, const std::string& projectName, const std::string& scriptName)
+	{
+		const std::string filePath = fmt::format("{}/{}.cs", directory, scriptName);
+		std::ofstream fout(filePath);
+		if (!fout)
 			return false;
-		}
-		SK_FS_INFO("Directory Created [{0}]", path);
+
+		fout << "using Shark;\n";
+		fout << "\n";
+		fout << "namespace " << projectName << "\n";
+		fout << "{\n";
+		fout << "\t\n";
+		fout << "\tpublic class " << scriptName << " : Entity\n";
+		fout << "\t{\n";
+
+		fout << "\t\tvoid OnCreate()\n";
+		fout << "\t\t{\n";
+		fout << "\t\t\t\n";
+		fout << "\t\t}\n";
+
+		fout << "\t\t\n";
+
+		fout << "\t\tvoid OnDestroy()\n";
+		fout << "\t\t{\n";
+		fout << "\t\t\t\n";
+		fout << "\t\t}\n";
+
+		fout << "\t\t\n";
+
+		fout << "\t\tvoid OnUpdate(TimeStep ts)\n";
+		fout << "\t\t{\n";
+		fout << "\t\t\t\n";
+		fout << "\t\t}\n";
+
+		fout << "\t}\n";
+		fout << "\t\n";
+		fout << "}\n";
+
+		fout.close();
 		return true;
-	}
-
-	bool CreateDirectorys(const std::filesystem::path& path)
-	{
-		std::error_code err;
-		std::filesystem::create_directories(path, err);
-		if (err)
-		{
-			SK_FS_ERROR(err.message());
-			return false;
-		}
-		SK_FS_INFO("Directory Created [{0}]", path);
-		return true;
-	}
-
-	bool Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath)
-	{
-		std::error_code err;
-		std::filesystem::rename(oldPath, newPath, err);
-		if (err)
-		{
-			SK_FS_ERROR(err.message());
-			return false;
-		}
-		SK_FS_INFO("Entry Renamed from [{0}] to [{1}]", oldPath, newPath);
-		return true;
-	}
-
-	bool Delete(const std::filesystem::path& path)
-	{
-		std::error_code err;
-		bool result = std::filesystem::remove(path, err);
-		if (err)
-		{
-			SK_FS_ERROR(err.message());
-			return result;
-		}
-		SK_FS_INFO("Deleted [{0}]", path);
-		return result;
-	}
-
-	uint32_t DeleteAll(const std::filesystem::path& path)
-	{
-		std::error_code err;
-		uint32_t deleted = (uint32_t)std::filesystem::remove_all(path, err);
-		if (err)
-		{
-			SK_FS_ERROR(err.message());
-			return deleted;
-		}
-		SK_FS_INFO("Deleted {0} in [{1}]", deleted, path);
-		return deleted;
-	}
-
-	bool Exists(const std::filesystem::path& path)
-	{
-		return std::filesystem::exists(path);
-	}
-
-	std::string FileName(const std::filesystem::path& path)
-	{
-		return std::move(path.stem().string());
-	}
-
-	void SplitFileName(const std::filesystem::path& path, std::string& out_Stem, std::string& out_Extention)
-	{
-		out_Stem = path.stem().string();
-		out_Extention = path.extension().string();
-	}
-
-	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path)
-	{
-		std::wstring str = path.native();
-		std::replace(str.begin(), str.end(), L'/', L'\\');
-		return str;
-	}
-
-	std::filesystem::path FormatDefaultCopy(const std::filesystem::path& path)
-	{
-		std::wstring str = path.wstring();
-		std::replace(str.begin(), str.end(), L'\\', L'/');
-		return str;
-	}
-
-	void FormatWindows(std::filesystem::path& path)
-	{
-		std::wstring str = path.wstring();
-		std::replace(str.begin(), str.end(), L'/', L'\\');
-		path = str;
-	}
-
-	void FormatDefault(std::filesystem::path& path)
-	{
-		std::wstring str = path.wstring();
-		std::replace(str.begin(), str.end(), L'\\', L'/');
-		path = str;
-	}
-
-	bool IsDefaultFormat(const std::filesystem::path& path)
-	{
-		const std::wstring& str = path;
-		return str.find(L'\\') == std::wstring::npos;
-	}
-
-	bool ValidateSceneFilePath(const std::filesystem::path& sceneFilePath)
-	{
-		return !sceneFilePath.empty() && Exists(sceneFilePath) && (sceneFilePath.extension() == L".skscene");
-	}
+	};
 
 }

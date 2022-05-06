@@ -51,9 +51,10 @@ namespace Shark {
 
 		void OnFileChanged(const std::vector<FileChangedData>& fileEvents);
 
-		void OpenAssetCallback(AssetHandle assetHandle);
+		void OpenFileCallback(const std::filesystem::path& filePath);
 
 		void UI_MainMenuBar();
+		void UI_Viewport();
 		void UI_Gizmo();
 		void UI_Info();
 		void UI_Shaders();
@@ -66,8 +67,8 @@ namespace Shark {
 		void UI_ProjectSettings();
 		void UI_Asset();
 		void UI_ImportTexture();
-
 		bool UI_MousePicking();
+		void UI_DebugScripts();
 
 		void DebugRender();
 		void RenderCameraPreview();
@@ -128,22 +129,16 @@ namespace Shark {
 
 		Scope<PanelManager> m_PanelManager;
 
-		bool m_ShowSceneHirachyPanel = true;
-		bool m_ShowAssetsPanel = true;
-
-		bool m_ShowInfo = true;
+		bool m_ShowInfo = false;
 		bool m_ShowEditorCameraControlls = false;
 		bool m_ShowSettings = true;
-		bool m_ShowStats = true;
+		bool m_ShowStats = false;
 		bool m_ReadHoveredEntity = false;
 		bool m_ShowShaders = false;
 		bool m_ShowProjectSettings = false;
-		bool m_ShowAssetsRegistry = false;
+		bool m_ShowAssets = false;
 
 		int m_HoveredEntityID = -1;
-
-		bool m_NegativeEffect = false;
-		bool m_BlurEffect = false;
 
 		float m_TranslationSnap = 0.5f;
 		float m_RotationSnap = 45.0f;
@@ -205,7 +200,6 @@ namespace Shark {
 		TextureSourceImportData m_TextureAssetCreateData;
 
 		bool m_HotReloadAssemblies = true;
-
 	};
 
 }

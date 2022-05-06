@@ -1,35 +1,33 @@
 #pragma once
 
-#undef CreateFile
-#undef CreateDirectory
-#undef DeleteFile
+#include "Shark/Core/Base.h"
+#include "Shark/File/FileWatcher.h"
 
-namespace Shark::FileSystem {
+namespace Shark {
 
-	bool CreateFile(const std::string& path);
-	bool CreateDirectory(const std::string& path);
-	bool CreateDirectorys(const std::string& path);
-	bool Rename(const std::string& oldPath, const std::string& newPath);
-	bool Delete(const std::string& path);
-	uint32_t DeleteAll(const std::string& path);
-	//bool Exists(const std::string& path);
+	class FileSystem
+	{
+	public:
+		static void StartWatching();
+		static void StartWatching(const std::filesystem::path& directory);
+		static void StartWatching(const std::filesystem::path& directory, FileWatcherCallbackFunc callback);
+		static void StartWatching(const FileWatcherSpecification& specs);
+		static void StopWatching();
 
-	bool CreateFile(const std::filesystem::path& path);
-	bool CreateDirectory(const std::filesystem::path& path);
-	bool CreateDirectorys(const std::filesystem::path& path);
-	bool Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
-	bool Delete(const std::filesystem::path& path);
-	uint32_t DeleteAll(const std::filesystem::path& path);
-	bool Exists(const std::filesystem::path& path);
-	std::string FileName(const std::filesystem::path& path);
-	void SplitFileName(const std::filesystem::path& path, std::string& out_Stem, std::string& out_Extention);
+		static void PauseWatching();
+		static void ContinueWatching();
+		static void SkipNextFileEvent();
 
-	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path);
-	std::filesystem::path FormatDefaultCopy(const std::filesystem::path& path);
-	void FormatWindows(std::filesystem::path& path);
-	void FormatDefault(std::filesystem::path& path);
-	bool IsDefaultFormat(const std::filesystem::path& path);
+		static void SetFileWatcherCallback(FileWatcherCallbackFunc callback);
 
-	bool ValidateSceneFilePath(const std::filesystem::path& sceneFilePath);
+		static Ref<FileWatcher> GetFileWatcher();
+
+
+		static std::filesystem::path MakeFreeFilePath(const std::filesystem::path& directory, const std::filesystem::path& fileName);
+		static void MakeFreeFilePath(std::filesystem::path& fsPath);
+
+		static bool CreateScriptFile(const std::filesystem::path& directory, const std::string& projectName, const std::string& scriptName);
+
+	};
 
 }

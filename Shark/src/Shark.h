@@ -13,10 +13,9 @@
 // --------------------------------------
 
 // --- Utility --------------------------
-#include "Shark/Utility/PlatformUtils.h"
-#include "Shark/Utility/Utility.h"
-#include "Shark/Utility/Math.h"
-#include "Shark/Utility/String.h"
+#include "Shark/Utils/PlatformUtils.h"
+#include "Shark/Utils/Math.h"
+#include "Shark/Utils/String.h"
 // --------------------------------------
 
 // --- UI -------------------------------
@@ -25,8 +24,8 @@
 // --------------------------------------
 
 // --- File -----------------------------
+#include "Shark/File/FileWatcher.h"
 #include "Shark/File/FileSystem.h"
-#include "Shark/FIle/FileWatcher.h"
 // --------------------------------------
 
 // --- Event ----------------------------
@@ -74,7 +73,6 @@
 // --- Asset ----------------------------
 #include "Shark/Asset/Asset.h"
 #include "Shark/Asset/AssetTypes.h"
-#include "Shark/Asset/AssetRegistry.h"
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/Asset/SceneSerialization.h"

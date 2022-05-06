@@ -8,14 +8,29 @@
 
 #include "Shark/UI/UI.h"
 
+#include "Shark/Debug/Instrumentor.h"
+
 #include <imgui.h>
 #include <box2d/b2_body.h>
 
-inline std::ostream& operator<<(std::ostream& out, const b2Vec2& value)
+template<typename Char>
+struct fmt::formatter<b2Vec2, Char> : fmt::formatter<float, Char>
 {
-	out << fmt::format("[{}, {}]", value.x, value.y);
-	return out;
-}
+	template<typename FormatContext>
+	auto format(const b2Vec2& vec, FormatContext& ctx) -> decltype(ctx.out())
+	{
+		auto&& out = ctx.out();
+		format_to(out, "[");
+
+		fmt::formatter<float, Char>::format(vec.x, ctx);
+		format_to(out, ", ");
+		fmt::formatter<float, Char>::format(vec.y, ctx);
+
+		format_to(out, "]");
+
+		return out;
+	}
+};
 
 namespace Shark {
 
@@ -36,10 +51,17 @@ namespace Shark {
 
 	PhysicsDebugPanel::PhysicsDebugPanel()
 	{
+		SK_PROFILE_FUNCTION();
+
 	}
 
 	void PhysicsDebugPanel::OnImGuiRender(bool& shown)
 	{
+		SK_PROFILE_FUNCTION();
+
+		if (!shown)
+			return;
+
 		ImGui::Begin("Physics Debug", &shown);
 		
 		if (!m_Scene)
@@ -60,11 +82,15 @@ namespace Shark {
 			ImGuiID syncID = UI::GetIDWithSeed("Controls", UI::GetCurrentID());
 
 			auto view = m_Scene->GetAllEntitysWith<RigidBody2DComponent>();
+
+			ImGui::Text("RigidBodies: %llu", view.size());
+
 			for (auto entityID : view)
 			{
 				Entity entity{ entityID, m_Scene };
 				std::string name = entity.GetName();
-				if (ImGui::TreeNodeEx(name.c_str(), UI::DefualtTreeNodeFlags))
+				ImGui::PushID((int)entity.GetUUID());
+				if (ImGui::TreeNodeEx(name.c_str(), UI::DefualtTreeNodeFlags | ImGuiTreeNodeFlags_Selected))
 				{
 					RigidBody2DComponent& rigidBody = entity.GetComponent<RigidBody2DComponent>();
 					b2Body* body = rigidBody.RuntimeBody;
@@ -77,7 +103,6 @@ namespace Shark {
 						UI::Control("Linear Velocity", fmt::to_string(body->GetLinearVelocity()));
 						UI::Control("Angular Velocity", fmt::to_string(body->GetAngularVelocity()));
 						UI::Control("Mass", fmt::to_string(body->GetMass()));
-						UI::Control("Inertia", fmt::to_string(body->GetInertia()));
 						UI::Control("IsBuller", fmt::to_string(body->IsBullet()));
 						UI::Control("IsAwake", fmt::to_string(body->IsAwake()));
 						UI::Control("IsEnabled", fmt::to_string(body->IsEnabled()));
@@ -86,6 +111,7 @@ namespace Shark {
 
 					ImGui::TreePop();
 				}
+				ImGui::PopID();
 			}
 		}
 
@@ -94,6 +120,8 @@ namespace Shark {
 
 	void PhysicsDebugPanel::OnEvent(Event& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<SceneChangedEvent>([this](auto& event) { m_Scene = event.GetScene(); return false; });
 	}

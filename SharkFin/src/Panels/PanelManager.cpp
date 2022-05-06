@@ -4,116 +4,62 @@
 #include "Panels/SceneHirachyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/TextureEditorPanel.h"
-#include "Shark/Utility/Utility.h"
+
+#include "Shark/Debug/Instrumentor.h"
 
 namespace Shark {
 
-	void PanelManager::AddPanel(std::string id, Ref<Panel> panel, bool show)
+	void PanelManager::AddPanel(const std::string& id, Ref<Panel> panel, bool show)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Panels[id] = { panel, show };
 	}
 
-	void PanelManager::RemovePanel(std::string panelID)
+	void PanelManager::RemovePanel(const std::string& panelID)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Panels.erase(panelID);
 	}
 
-	bool PanelManager::HasPanel(std::string id) const
+	bool PanelManager::HasPanel(const std::string& id) const
 	{
-		return Utility::Contains(m_Panels, id);
+		SK_PROFILE_FUNCTION();
+
+		return m_Panels.find(id) != m_Panels.end();
 	}
 
-	Ref<Panel> PanelManager::GetPanel(std::string id) const
+	Ref<Panel> PanelManager::GetPanel(const std::string& id) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		return m_Panels.at(id).Instance;
 	}
 
 
-
-	Ref<Panel> PanelManager::GetEditor(std::string id, uint32_t index) const
-	{
-		return m_EditorPanels.at(id)[index];
-	}
-
-	void PanelManager::AddEditor(std::string id, Ref<Panel> panel)
-	{
-		m_EditorPanels[id].emplace_back(panel);
-	}
-
-	stl::vector_view<Ref<Panel>> PanelManager::GetEditors(std::string id) const
-	{
-		auto entry = m_EditorPanels.find(id);
-		if (entry != m_EditorPanels.end())
-			return entry->second;
-		return stl::vector_view<Ref<Panel>>();
-	}
-
-	void PanelManager::RemoveEditor(std::string id, uint32_t index)
-	{
-		auto& v = m_EditorPanels.at(id); if (v.size() == 1) (m_EditorPanels.erase(id)); else (v.erase(v.begin() + index));
-	}
-
-	void PanelManager::RemoveEditors(std::string id)
-	{
-		m_EditorPanels.erase(id);
-	}
-
-	void PanelManager::CheckEditorsWantDestroy()
-	{
-		for (auto entry = m_EditorPanels.begin(); entry != m_EditorPanels.end();)
-		{
-			auto& vec = entry->second;
-			for (auto elem = vec.begin(); elem != vec.end();)
-			{
-				if ((*elem)->WantDestroy())
-				{
-					elem = entry->second.erase(elem);
-					continue;
-				}
-				elem++;
-			}
-			if (vec.empty())
-			{
-				entry = m_EditorPanels.erase(entry);
-				continue;
-			}
-			entry++;
-		}
-	}
-
-
-
 	void PanelManager::OnUpdate(TimeStep ts)
 	{
-		for (auto [id, data] : m_Panels)
-			data.Instance->OnUpdate(ts);
+		SK_PROFILE_FUNCTION();
 
-		CheckEditorsWantDestroy();
-		
-		for (auto [id, vec] : m_EditorPanels)
-			for (auto panel : vec)
-				panel->OnUpdate(ts);
+		for (auto& [id, data] : m_Panels)
+			data.Instance->OnUpdate(ts);
 	}
 
 	void PanelManager::OnImGuiRender()
 	{
-		for (auto [id, data] : m_Panels)
-			data.Instance->OnImGuiRender(data.Shown);
+		SK_PROFILE_FUNCTION();
 
-		bool dummy = true;
-		for (auto [id, vec] : m_EditorPanels)
-			for (auto panel : vec)
-				panel->OnImGuiRender(dummy);
+		for (auto& [id, data] : m_Panels)
+			data.Instance->OnImGuiRender(data.Shown);
 	}
 
 	void PanelManager::OnEvent(Event& event)
 	{
-		for (auto [id, data] : m_Panels)
-			data.Instance->OnEvent(event);
+		SK_PROFILE_FUNCTION();
 
-		for (auto [id, vec] : m_EditorPanels)
-			for (auto panel : vec)
-				panel->OnEvent(event);
+		for (auto& [id, data] : m_Panels)
+			data.Instance->OnEvent(event);
 	}
 
 }

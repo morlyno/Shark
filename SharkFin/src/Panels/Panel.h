@@ -13,11 +13,7 @@ namespace Shark {
 
 		virtual void OnUpdate(TimeStep ts) {}
 		virtual void OnImGuiRender(bool& shown) {}
-
 		virtual void OnEvent(Event& event) {}
-
-		virtual bool WantDestroy() const { return false; }
-		virtual bool IsShown() const { return true; }
 	};
 
 }

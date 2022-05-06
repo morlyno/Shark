@@ -1,8 +1,6 @@
 #include "skpch.h"
 #include "Profiler.h"
 
-#include "Shark/Utility/Utility.h"
-
 #include <Windows.h>
 
 namespace Shark {
@@ -43,7 +41,7 @@ namespace Shark {
 
 	TimeStep ProfilerRegistry::GetAverageOf(const std::string& name)
 	{
-		if (!Utility::Contains(s_ProfilingData->Registry, name))
+		if (s_ProfilingData->Registry.find(name) == s_ProfilingData->Registry.end())
 			return 0.0f;
 		const ProfilerInstance& profiler = s_ProfilingData->Registry.at(name);
 		return profiler.GetAverage();
@@ -51,7 +49,7 @@ namespace Shark {
 
 	TimeStep ProfilerRegistry::GetTotalOf(const std::string& name)
 	{
-		if (!Utility::Contains(s_ProfilingData->Registry, name))
+		if (s_ProfilingData->Registry.find(name) == s_ProfilingData->Registry.end())
 			return 0.0f;
 		const ProfilerInstance& profiler = s_ProfilingData->Registry.at(name);
 		return profiler.GetTotal();

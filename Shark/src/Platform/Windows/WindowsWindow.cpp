@@ -6,10 +6,10 @@
 #include "Shark/Core/KeyCodes.h"
 #include "Shark/Core/MouseButtons.h"
 
-#include "Shark/Utility/String.h"
+#include "Shark/Utils/String.h"
 #include "Shark/Render/Renderer.h"
 
-#include "Platform/Windows/WindowsUtility.h"
+#include "Platform/Windows/WindowsUtils.h"
 
 #include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/Profiler.h"
@@ -100,7 +100,7 @@ namespace Shark {
 		{
 			DWORD lastErrorCode = GetLastError();
 			SK_CORE_ERROR("Faled to create Window");
-			SK_CORE_ERROR("Error Msg: {}", TranslateErrorCode(lastErrorCode));
+			SK_CORE_ERROR("Error Msg: {}", WindowsUtils::TranslateErrorCode(lastErrorCode));
 			SK_CORE_ASSERT(false);
 		}
 
@@ -346,7 +346,7 @@ namespace Shark {
 			{
 				bool isRepeat = (lParam & BIT(30)) > 0;
 				const bool altPressed = (lParam & BIT(29)) > 0;
-				const KeyCode win32Key = wParam;
+				const KeyCode win32Key = (KeyCode)wParam;
 				KeyCode actualKey = win32Key;
 
 				switch (win32Key)
@@ -412,7 +412,7 @@ namespace Shark {
 			case WM_SYSKEYUP:
 			case WM_KEYUP:
 			{
-				const KeyCode win32Key = wParam;
+				const KeyCode win32Key = (KeyCode)wParam;
 				KeyCode actualKey = win32Key;
 
 				switch (win32Key)

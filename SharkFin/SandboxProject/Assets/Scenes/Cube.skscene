@@ -1,0 +1,47 @@
+Scene:
+  ActiveCamera: 0x0
+  Entities:
+    - Entity: 0x76d5fa40f9ce0cbf
+      TagComponent:
+        Tag: Right
+      TransformComponent:
+        Position: [0.349999994, 0, 0]
+        Rotation: [0, -0.785398245, 0]
+        Scaling: [1, 1, 1]
+      SpriteRendererComponent:
+        Color: [1, 0.676470578, 0, 1]
+        Texture: 0
+        TilingFactor: 1
+    - Entity: 0x9dbbfe0f105da8a0
+      TagComponent:
+        Tag: Top
+      TransformComponent:
+        Position: [1.25365371e-08, 0.5, 0.349999994]
+        Rotation: [1.57079637, 0.785398185, 0]
+        Scaling: [0.999999881, 1.00000274, 1.00000489]
+      SpriteRendererComponent:
+        Color: [0.834848464, 0.0191272572, 0.975490212, 1]
+        Texture: 0
+        TilingFactor: 1
+    - Entity: 0xb394f435efef476b
+      TagComponent:
+        Tag: Grid
+      TransformComponent:
+        Position: [0, -0.91993916, -0.000301309978]
+        Rotation: [1.57045102, 0, 0]
+        Scaling: [14.9118814, 14.9118795, 14.9118795]
+      SpriteRendererComponent:
+        Color: [1, 1, 1, 1]
+        Texture: 12046611585830764490
+        TilingFactor: 1
+    - Entity: 0xed5cc10bb28a768b
+      TagComponent:
+        Tag: Left
+      TransformComponent:
+        Position: [-0.349999994, 0, 0]
+        Rotation: [0, 0.785398304, 0]
+        Scaling: [1, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.0432525799, 0.208630279, 0.980392158, 1]
+        Texture: 0
+        TilingFactor: 1

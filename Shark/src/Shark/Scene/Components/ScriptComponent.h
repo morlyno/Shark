@@ -10,6 +10,7 @@ namespace Shark {
 	{
 		std::string ScriptName;
 		bool ScriptModuleFound = false;
+		bool HasRuntime = false;
 	};
 
 }

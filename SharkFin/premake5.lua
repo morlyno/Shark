@@ -48,7 +48,8 @@ project "SharkFin"
         
         "GLM_FORCE_SWIZZLE",
         "GLM_FORCE_LEFT_HANDED",
-        
+        "GLM_FORCE_DEPTH_ZERO_TO_ONE",
+
         "FMT_HEADER_ONLY",
         "MONO_DIRECTORY=%{MonoDir}"
     }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shark/Render/RenderCommandBuffer.h"
-#include "Shark/Utility/Utility.h"
 
 #include <d3d11.h>
 

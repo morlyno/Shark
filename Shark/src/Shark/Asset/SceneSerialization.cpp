@@ -3,8 +3,7 @@
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
-#include "Shark/Utility/YAMLUtils.h"
-#include "Shark/File/FileSystem.h"
+#include "Shark/Utils/YAMLUtils.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
 
@@ -265,7 +264,7 @@ namespace Shark {
 
 		YAML::Emitter out;
 
-		SK_CORE_INFO("Searializing Scene to {0}", filepath);
+		SK_CORE_INFO(L"Searializing Scene to {0}", filepath);
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene" << YAML::Value;
@@ -312,7 +311,7 @@ namespace Shark {
 			return false;
 		}
 
-		if (!FileSystem::ValidateSceneFilePath(filepath))
+		if (!std::filesystem::exists(filepath) || filepath.extension() != L".skscene")
 		{
 			SK_CORE_ERROR("Tryed to Deseialize Scene but FilePath is invalid [File: {}]", filepath);
 			return false;
@@ -369,7 +368,7 @@ namespace Shark {
 				if (spriteRendererComponent)
 				{
 					auto color = spriteRendererComponent["Color"];
-					auto textureFilePath = spriteRendererComponent["Texture"];
+					auto textureHandle = spriteRendererComponent["Texture"];
 					auto tilingfactor = spriteRendererComponent["TilingFactor"];
 					auto thickness = spriteRendererComponent["Thickness"];
 					auto geometry = spriteRendererComponent["Geometry"];
@@ -379,13 +378,13 @@ namespace Shark {
 					SK_CORE_ASSERT(color, "Couldn't deserialize SpriteRendererComponent::Color");
 					comp.Color = color.as<glm::vec4>();
 
-					SK_CORE_ASSERT(textureFilePath, "Couldn't deserialize SpriteRendererComponent::Texture");
-					comp.TextureHandle = textureFilePath.as<UUID>();
+					SK_CORE_ASSERT(textureHandle, "Couldn't deserialize SpriteRendererComponent::Texture");
+					comp.TextureHandle = textureHandle.as<UUID>();
 
 					SK_CORE_ASSERT(tilingfactor, "Couldn't deserialize SpriteRendererComponent::TilingFactor");
 					comp.TilingFactor = tilingfactor.as<float>();
 
-					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", textureFilePath);
+					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", comp.TextureHandle);
 				}
 
 				auto circleRendererComponent = entity["CircleRendererComponent"];

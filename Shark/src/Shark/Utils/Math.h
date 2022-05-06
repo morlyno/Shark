@@ -10,4 +10,6 @@ namespace Shark::Math {
 	bool DecomposeRotation(const glm::mat4& ModelMatrix, glm::vec3& Rotation);
 	bool DecomposeScale(const glm::mat4& ModelMatrix, glm::vec3& Scale);
 
+	bool DecomposeTransform(const glm::mat4& ModelMatrix, glm::vec3& out_Scale, glm::vec3& out_Euler, glm::vec3& out_Translation);
+
 }

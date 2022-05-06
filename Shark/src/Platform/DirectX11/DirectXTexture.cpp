@@ -112,7 +112,7 @@ namespace Shark {
 		if (!data)
 		{
 			SK_CORE_ERROR("Failed to load Image!");
-			SK_CORE_WARN("Source: {}", Project::RelativeCopy(filePath));
+			SK_CORE_WARN(L"Source: {}", Project::RelativeCopy(filePath));
 			SK_CORE_WARN("Resource: {}", stbi_failure_reason());
 			return;
 		}

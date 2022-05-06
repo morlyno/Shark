@@ -25,4 +25,13 @@ namespace Shark::String {
 	template<typename Char>
 	const Char* CStrOrNull(const std::basic_string<Char>& string) { return string.size() ? string.data() : nullptr; }
 
+
+	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path);
+	void FormatWindows(std::filesystem::path& path);
+
+	std::filesystem::path FormatDefaultCopy(const std::filesystem::path& path);
+	void FormatDefault(std::filesystem::path& path);
+
+	bool IsDefaultFormat(const std::filesystem::path& path);
+
 }

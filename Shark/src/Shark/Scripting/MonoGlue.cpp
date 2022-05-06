@@ -76,12 +76,16 @@ namespace Shark {
 
 	void MonoGlue::Glue()
 	{
+		SK_PROFILE_FUNCTION();
+
 		RegisterComponents();
 		RegsiterInternalCalls();
 	}
 
 	void MonoGlue::CallCollishionBegin(Entity entityA, Entity entityB)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const UUID uuidA = entityA.GetUUID();
 		const UUID uuidB = entityB.GetUUID();
 
@@ -104,6 +108,8 @@ namespace Shark {
 
 	void MonoGlue::CallCollishionEnd(Entity entityA, Entity entityB)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const UUID uuidA = entityA.GetUUID();
 		const UUID uuidB = entityB.GetUUID();
 
@@ -157,6 +163,7 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Scene_InstantiateScript);
 		SK_ADD_INTERNAL_CALL(Scene_CreateEntity);
 		SK_ADD_INTERNAL_CALL(Scene_DestroyEntity);
+		SK_ADD_INTERNAL_CALL(Scene_GetScriptObject);
 		SK_ADD_INTERNAL_CALL(Scene_IsValidEntityHandle);
 		SK_ADD_INTERNAL_CALL(Scene_GetActiveCameraUUID);
 		SK_ADD_INTERNAL_CALL(Scene_GetUUIDFromTag);

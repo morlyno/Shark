@@ -9,8 +9,8 @@
 
 namespace Shark {
 
-	enum class FilterMode { Nearest, Linear };
-	enum class WrapMode { Repeat, Clamp, Mirror, Border };
+	enum class FilterMode : uint16_t { Nearest, Linear };
+	enum class WrapMode : uint16_t { Repeat, Clamp, Mirror, Border };
 
 	std::string EnumToString(FilterMode filterMode);
 	std::string EnumToString(WrapMode wrapMode);

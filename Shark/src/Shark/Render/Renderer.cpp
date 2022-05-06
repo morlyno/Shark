@@ -1,8 +1,6 @@
 #include "skpch.h"
 #include "Renderer.h"
 
-#include "Shark/Utility/Utility.h"
-
 namespace Shark {
 
 	static Ref<RendererAPI> s_RendererAPI = nullptr;

@@ -1,15 +1,13 @@
 #include "skfpch.h"
 #include "SceneHirachyPanel.h"
 
-#include <Shark/Scene/Components.h>
-#include <Shark/Utility/PlatformUtils.h>
-#include <Shark/Utility/Utility.h>
-#include <Shark/UI/UI.h>
+#include "Shark/Scene/Components.h"
+#include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
-#include <Shark/Core/Input.h>
-#include <Shark/Scene/NativeScriptFactory.h>
+#include "Shark/Core/Input.h"
+#include "Shark/Scene/NativeScriptFactory.h"
 #include "Shark/Core/Project.h"
-#include <Shark/Core/Application.h>
+#include "Shark/Core/Application.h"
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
@@ -70,7 +68,7 @@ namespace Shark {
 	SceneHirachyPanel::SceneHirachyPanel(Ref<Scene> scene)
 		: m_Context(scene)
 	{
-
+		SK_PROFILE_FUNCTION();
 	}
 
 	void SceneHirachyPanel::OnImGuiRender(bool& shown)
@@ -188,6 +186,8 @@ namespace Shark {
 
 	void SceneHirachyPanel::OnEvent(Event& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<SceneChangedEvent>([this](SceneChangedEvent& event) { m_Context = event.GetScene(); return false; });
 	}
@@ -443,7 +443,7 @@ namespace Shark {
 		{
 			int bodyType = (int)comp.Type;
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-			if (ImGui::Combo("##BodyType", &bodyType, s_BodyTypes, (int)Utility::ArraySize(s_BodyTypes)))
+			if (ImGui::Combo("##BodyType", &bodyType, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0])))
 				comp.Type = (RigidBody2DComponent::BodyType)bodyType;
 
 			ImGui::Checkbox("Fixed Rotation", &comp.FixedRotation);
@@ -566,6 +566,8 @@ namespace Shark {
 
 	void SceneHirachyPanel::SelectEntity(Entity entity)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_SelectedEntity = entity;
 		m_SelectionChangedCallback(entity);
 	}

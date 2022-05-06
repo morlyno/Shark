@@ -6,8 +6,7 @@
 
 #include "Shark/UI/UI.h"
 #include "Shark/Core/Input.h"
-#include "Shark/Utility/Math.h"
-#include "Shark/Utility/Utility.h"
+#include "Shark/Utils/Math.h"
 
 #include "Shark/Asset/ResourceManager.h"
 
@@ -86,12 +85,16 @@ namespace Shark {
 		m_Scene->OnRenderEditor(m_Renderer, m_Camera);
 	}
 
-	void TextureEditorPanel::OnImGuiRender(bool& shwon)
+	void TextureEditorPanel::OnImGuiRender(bool& shown, bool& destroy)
 	{
 		SK_PROFILE_FUNCTION();
 
 		if (!m_Active)
+		{
+			shown = false;
+			destroy = true;
 			return;
+		}
 
 		if (m_IsFirstFrame)
 		{
@@ -184,15 +187,15 @@ namespace Shark {
 
 		UI::BeginControlsGrid();
 
-		UI::Control("Format", Utility::EnumToInt(m_Specs.Format), s_FormatItems, (uint32_t)std::size(s_FormatItems));
+		UI::Control("Format", (uint16_t&)m_Specs.Format, s_FormatItems, (uint32_t)std::size(s_FormatItems));
 		UI::Control("Mip Levels", m_Specs.MipLevels, 1, 0, Renderer::GetCapabilities().MaxMipLeves);
-		UI::Control("Mip Filter", Utility::EnumToInt(m_Specs.Sampler.Mip), s_FilterItems, std::size(s_FilterItems));
-		UI::Control("Mip Mode Min", Utility::EnumToInt(m_Specs.Sampler.Min), s_FilterItems, std::size(s_FilterItems));
-		UI::Control("Mip Mode Mag", Utility::EnumToInt(m_Specs.Sampler.Mag), s_FilterItems, std::size(s_FilterItems));
+		UI::Control("Mip Filter", (uint16_t&)m_Specs.Sampler.Mip, s_FilterItems, (uint32_t)std::size(s_FilterItems));
+		UI::Control("Mip Mode Min", (uint16_t&)m_Specs.Sampler.Min, s_FilterItems, (uint32_t)std::size(s_FilterItems));
+		UI::Control("Mip Mode Mag", (uint16_t&)m_Specs.Sampler.Mag, s_FilterItems, (uint32_t)std::size(s_FilterItems));
 
-		UI::Control("Wrap Mode U", Utility::EnumToInt(m_Specs.Sampler.Wrap.U), s_WrapItems, std::size(s_WrapItems));
-		UI::Control("Wrap Mode V", Utility::EnumToInt(m_Specs.Sampler.Wrap.V), s_WrapItems, std::size(s_WrapItems));
-		UI::Control("Wrap Mode W", Utility::EnumToInt(m_Specs.Sampler.Wrap.W), s_WrapItems, std::size(s_WrapItems));
+		UI::Control("Wrap Mode U", (uint16_t&)m_Specs.Sampler.Wrap.U, s_WrapItems, (uint32_t)std::size(s_WrapItems));
+		UI::Control("Wrap Mode V", (uint16_t&)m_Specs.Sampler.Wrap.V, s_WrapItems, (uint32_t)std::size(s_WrapItems));
+		UI::Control("Wrap Mode W", (uint16_t&)m_Specs.Sampler.Wrap.W, s_WrapItems, (uint32_t)std::size(s_WrapItems));
 
 		UI::Control("Anisotropy", m_Specs.Sampler.Anisotropy);
 		UI::Control("Max Anisotropy", m_Specs.Sampler.MaxAnisotropy, 0, 0, capabilities.MaxAnisotropy);
@@ -233,7 +236,7 @@ namespace Shark {
 			auto& app = Application::Get();
 			auto& window = app.GetWindow();
 
-			const float windowRatio = 0.55;
+			const float windowRatio = 0.55f;
 			const float dockSplittRatio = 0.65f;
 
 			const glm::vec2 windowSize = (glm::vec2)window.GetSize() * windowRatio;

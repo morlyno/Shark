@@ -2,13 +2,12 @@
 #include "TextureSerialization.h"
 
 #include "Shark/Core/Project.h"
-#include "Shark/File/FileSystem.h"
 
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Render/Renderer.h"
 
-#include "Shark/Utility/YAMLUtils.h"
-#include "Shark/Utility/String.h"
+#include "Shark/Utils/YAMLUtils.h"
+#include "Shark/Utils/String.h"
 
 #include <yaml-cpp/yaml.h>
 #include <stb_image.h>
@@ -51,7 +50,7 @@ namespace Shark {
 
 	bool TextureSerializer::TryLoadData(Ref<Asset>& asset, const std::filesystem::path& filePath)
 	{
-		if (!FileSystem::Exists(filePath))
+		if (!std::filesystem::exists(filePath))
 			return false;
 
 		asset = Texture2D::Create();
@@ -117,14 +116,14 @@ namespace Shark {
 
 		fout << out.c_str();
 
-		SK_CORE_INFO("Serialized Texture To: {}", filePath);
+		SK_CORE_INFO(L"Serialized Texture To: {}", filePath);
 
 		return true;
 	}
 
 	bool TextureSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& filePath)
 	{
-		if (!FileSystem::Exists(filePath))
+		if (!std::filesystem::exists(filePath))
 			return false;
 
 		YAML::Node in = YAML::LoadFile(filePath);
@@ -173,7 +172,7 @@ namespace Shark {
 
 		stbi_image_free(data);
 
-		SK_CORE_INFO("Deserialize Texture from {}", filePath);
+		SK_CORE_INFO(L"Deserialize Texture from {}", filePath);
 
 		return true;
 	}

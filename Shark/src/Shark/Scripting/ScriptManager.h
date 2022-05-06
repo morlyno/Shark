@@ -7,7 +7,6 @@
 
 #include <mono/metadata/object.h>
 
-
 namespace Shark {
 
 	using GCHandle = uint32_t;
@@ -23,7 +22,7 @@ namespace Shark {
 
 		MonoObject* GetObject() const { return mono_gchandle_get_target(m_GCHandle); }
 
-	private:
+	public:
 		GCHandle m_GCHandle = 0;
 		MonoMethod* m_OnCreate = nullptr;
 		MonoMethod* m_OnDestroy = nullptr;
@@ -44,7 +43,7 @@ namespace Shark {
 		static bool Contains(UUID handle);
 		static Script& GetScript(UUID handle);
 
-		static const auto& GetScripts();
+		static const std::unordered_map<UUID, Script>& GetScripts();
 
 	};
 

@@ -4,10 +4,8 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Asset/Asset.h"
 #include "Shark/Asset/AssetTypes.h"
-#include "Shark/Asset/AssetRegistry.h"
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/File/FileSystem.h"
-#include "Shark/File/FileWatcher.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -22,15 +20,16 @@ namespace Shark {
 
 		static const AssetMetaData& GetMetaData(AssetHandle handle);
 		static const AssetMetaData& GetMetaData(Ref<Asset> asset) { return GetMetaData(asset->Handle); }
-		static const AssetMetaData& GetMetaData(const std::filesystem::path& filePath) { return GetMetaData(GetAssetHandleFromFilePath(GetRelativePath(filePath))); }
+		static const AssetMetaData& GetMetaData(const std::filesystem::path& filePath) { return GetMetaData(GetAssetHandleFromFilePath(MakeRelativePath(filePath))); }
 
 		static bool IsValidAssetHandle(AssetHandle handle);
 		static bool IsDataLoaded(AssetHandle handle);
 		static bool IsMemoryAsset(AssetHandle handle);
+		static bool IsImportedAsset(AssetHandle handle);
 
-		static std::filesystem::path GetRelativePath(const std::filesystem::path& filePath);
-		static std::string GetRelativePathString(const std::filesystem::path& filePath) { return GetRelativePath(filePath).string(); }
-		static std::filesystem::path GetFileSystemPath(const AssetMetaData& metadata) { return Project::GetAssetsPath() / metadata.FilePath; }
+		static std::filesystem::path MakeRelativePath(const std::filesystem::path& filePath);
+		static std::string MakeRelativePathString(const std::filesystem::path& filePath) { return MakeRelativePath(filePath).string(); }
+		static std::filesystem::path GetFileSystemPath(const AssetMetaData& metadata);
 
 		static AssetHandle GetAssetHandleFromFilePath(const std::filesystem::path& filePath);
 
@@ -69,9 +68,7 @@ namespace Shark {
 			if (!metadata.IsDataLoaded)
 			{
 				Ref<Asset> asset = nullptr;
-				FileWatcher::Pause();
 				metadata.IsDataLoaded = AssetSerializer::TryLoadData(asset, metadata);
-				FileWatcher::Continue();
 				if (!metadata.IsDataLoaded)
 					return nullptr;
 
@@ -100,34 +97,33 @@ namespace Shark {
 			static_assert(std::is_base_of_v<Asset, T>, "CreateAsset only works for types with base class Asset!");
 			SK_CORE_ASSERT(GetAssetTypeFormFile(fileName) == T::GetStaticType());
 
-			std::string dirPath = GetRelativePathString(directoryPath);
+			std::string dirPath = MakeRelativePathString(directoryPath);
 
 			AssetMetaData metadata;
 			metadata.Handle = AssetHandle::Generate();
 			metadata.Type = T::GetStaticType();
-			metadata.FilePath = dirPath + "/" + fileName;
+			metadata.FilePath = dirPath.size() > 1 ? dirPath + "/" + fileName : fileName;
 			metadata.IsDataLoaded = true;
 
 			auto filesystemPath = GetFileSystemPath(metadata);
-			if (FileSystem::Exists(filesystemPath))
+			if (std::filesystem::exists(filesystemPath))
 			{
 				uint32_t count = 1;
 				bool foundValidFilePath = false;
 
-				std::string stem;
-				std::string extention;
-				FileSystem::SplitFileName(fileName, stem, extention);
+				std::filesystem::path pathFileName = fileName;
+				std::string path = (directoryPath / pathFileName.stem()).generic_string();
+				std::string extention = pathFileName.extension().string();
 
 				while (!foundValidFilePath)
 				{
-					filesystemPath = fmt::format("{}/{} ({:2}){}", dirPath, stem, count++, extention);
-					foundValidFilePath = !FileSystem::Exists(filesystemPath);
+					filesystemPath = fmt::format("{} ({:2}){}", path, count++, extention);
+					foundValidFilePath = !std::filesystem::exists(filesystemPath);
 				}
-				metadata.FilePath = GetRelativePath(filesystemPath);
+				metadata.FilePath = MakeRelativePath(filesystemPath);
 			}
 
-			s_AssetRegistry[metadata.Handle] = metadata;
-			SaveAssetRegistry();
+			s_ImportedAssets[metadata.Handle] = metadata;
 
 			Ref<T> asset = T::Create(std::forward<Args>(args)...);
 
@@ -135,6 +131,7 @@ namespace Shark {
 			s_LoadedAssets[metadata.Handle] = asset;
 
 			AssetSerializer::Serialize(asset, metadata);
+			WriteImportedAssetsToDisc();
 
 			return asset;
 		}
@@ -153,9 +150,14 @@ namespace Shark {
 			return asset;
 		}
 
-		static const AssetRegistry& GetAssetRegistry() { return s_AssetRegistry; }
+		static const auto& GetAssetRegistry() { return s_ImportedAssets; }
 		static const auto& GetLoadedAssets() { return s_LoadedAssets; }
 		static const auto& GetMemoryAssets() { return s_MemoryAssets; }
+
+		// File Events
+		static void OnFileEvents(const std::vector<FileChangedData>& fileEvents);
+		static void OnAssetRenamed(const std::filesystem::path& oldFilePath, const std::filesystem::path& newFilePath);
+		static void OnAssetDeleted(const std::filesystem::path& filePath);
 
 	private:
 		static AssetMetaData& GetMetaDataInternal(AssetHandle handle);
@@ -163,12 +165,11 @@ namespace Shark {
 		static AssetType GetAssetTypeFormFile(const std::string& file) { return GetAssetTypeFormFilePath(file); }
 		static AssetType GetAssetTypeFormFileExtention(const std::string& fileExtention);
 
-		static void SaveAssetRegistry();
-		static void LoadAssetRegistry();
+		static void WriteImportedAssetsToDisc();
+		static void ReadImportedAssetsFromDisc();
 
 	private:
-		// TODO(moro): remove AssetRegistry and replace with std::unordered_map<AssetHandle, AssetMetaData>
-		static AssetRegistry s_AssetRegistry;
+		static std::unordered_map<AssetHandle, AssetMetaData> s_ImportedAssets;
 		static std::unordered_map<AssetHandle, Ref<Asset>> s_LoadedAssets;
 		static std::unordered_map<AssetHandle, Ref<Asset>> s_MemoryAssets;
 	};
