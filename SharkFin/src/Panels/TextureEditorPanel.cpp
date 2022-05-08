@@ -6,7 +6,7 @@
 
 #include "Shark/UI/UI.h"
 #include "Shark/Core/Input.h"
-#include "Shark/Utils/Math.h"
+#include "Shark/Math/Math.h"
 
 #include "Shark/Asset/ResourceManager.h"
 

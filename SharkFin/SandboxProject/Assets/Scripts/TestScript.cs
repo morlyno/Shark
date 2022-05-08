@@ -5,7 +5,6 @@ namespace Sandbox
 {
 	public class TestScript : Entity
 	{
-		public Vector3 Direction = new Vector3(1.0f, 0.0f, 0.0f);
 		private float m_AnimationTimer = 0.0f;
 		private float m_AnimationSpeed = 2.0f;
 		private float m_XRadius = 2.0f;
@@ -22,13 +21,12 @@ namespace Sandbox
 
 		void OnCreate()
 		{
-			if (!HasComponent<SpriteRendererComponent>())
-				AddComponent<SpriteRendererComponent>();
-
-			m_SpriteRenderer = GetComponent<SpriteRendererComponent>();
+			m_SpriteRenderer = GetOrAddComponent<SpriteRendererComponent>();
 			m_SpriteRenderer.Color = Color.Back;
 
 			m_Offset = Transform.Translation;
+
+			Log.Debug("TestScript.OnCreate");
 		}
 
 		void OnUpdate(TimeStep ts)

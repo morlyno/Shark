@@ -442,11 +442,15 @@ namespace Shark {
 		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)
 		{
 			int bodyType = (int)comp.Type;
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-			if (ImGui::Combo("##BodyType", &bodyType, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0])))
-				comp.Type = (RigidBody2DComponent::BodyType)bodyType;
 
-			ImGui::Checkbox("Fixed Rotation", &comp.FixedRotation);
+			UI::BeginControlsGrid();
+			UI::Control("Body Type", bodyType, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0]));
+			UI::Control("Fixed Rotation", comp.FixedRotation);
+			UI::Control("Bullet", comp.IsBullet);
+			UI::Control("Awake", comp.Awake);
+			UI::Control("Enabled", comp.Enabled);
+			UI::Control("Gravity Scale", comp.GravityScale);
+			UI::EndControlsGrid();
 		});
 		
 		Utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp)

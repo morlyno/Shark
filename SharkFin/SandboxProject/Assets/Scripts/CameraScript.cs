@@ -30,11 +30,11 @@ namespace Sandbox
 			for (uint i = 0; i < 200; i++)
 			{
 				var testScript = Scene.Instantiate<TestScript>("TestScript");
-				testScript.Offset = new Vector3(
-					(float)m_Rng.NextDouble() * 20.0f - 10.0f,
-					(float)m_Rng.NextDouble() * 20.0f - 10.0f,
-					0.0f
-				);
+				//testScript.SetOffset(new Vector3(
+				//	(float)m_Rng.NextDouble() * 20.0f - 10.0f,
+				//	(float)m_Rng.NextDouble() * 20.0f - 10.0f,
+				//	0.0f
+				//));
 			}
 		}
 

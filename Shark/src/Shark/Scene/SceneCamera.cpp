@@ -1,6 +1,6 @@
 #include "skpch.h"
 #include "SceneCamera.h"
-#include "Shark/Utils/Math.h"
+#include "Shark/Math/Math.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 

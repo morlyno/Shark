@@ -151,6 +151,8 @@ namespace Shark {
 			return s_Scripts[entity.GetUUID()];
 		}
 
+		SK_CORE_ASSERT(mono_class_is_subclass_of(clazz, ScriptEngine::GetEntityClass(), false));
+
 		MonoObject* object = mono_object_new(mono_domain_get(), clazz);
 		mono_runtime_object_init(object);
 		GCHandle handle = mono_gchandle_new(object, false);

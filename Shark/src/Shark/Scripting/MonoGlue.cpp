@@ -14,7 +14,9 @@
 #include <mono/metadata/reflection.h>
 
 #include <box2d/b2_body.h>
-#include "box2d/b2_contact.h"
+#include <box2d/b2_contact.h>
+#include <box2d/b2_polygon_shape.h>
+#include <box2d/b2_circle_shape.h>
 
 #define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" SK_STRINGIFY(func), SK_CONNECT(&InternalCalls::, func));
 #define SK_ADD_COMPONENT_BINDING(comp)\
@@ -70,6 +72,30 @@ namespace Shark {
 		static Entity GetEntityActiveScene(UUID uuid)
 		{
 			return ScriptEngine::GetActiveScene()->GetEntityByUUID(uuid);
+		}
+
+		static RigidBody2DComponent::BodyType b2BodyTypeToSharkBodyType(b2BodyType bodyType)
+		{
+			switch (bodyType)
+			{
+				case b2_staticBody:    return RigidBody2DComponent::BodyType::Static;
+				case b2_kinematicBody: return RigidBody2DComponent::BodyType::Kinematic;
+				case b2_dynamicBody:   return RigidBody2DComponent::BodyType::Dynamic;
+			}
+			SK_CORE_ASSERT(false, "Invalid Body Type");
+			return RigidBody2DComponent::BodyType::Static;
+		}
+
+		static b2BodyType SharkBodyTypeTob2BodyType(RigidBody2DComponent::BodyType bodyType)
+		{
+			switch (bodyType)
+			{
+				case RigidBody2DComponent::BodyType::Static:    return b2_staticBody;
+				case RigidBody2DComponent::BodyType::Kinematic: return b2_kinematicBody;
+				case RigidBody2DComponent::BodyType::Dynamic:   return b2_dynamicBody;
+			}
+			SK_CORE_ASSERT(false, "Invalid Body Type");
+			return b2_staticBody;
 		}
 
 	}
@@ -138,6 +164,7 @@ namespace Shark {
 		SK_ADD_COMPONENT_BINDING(TagComponent);
 		SK_ADD_COMPONENT_BINDING(TransformComponent);
 		SK_ADD_COMPONENT_BINDING(SpriteRendererComponent);
+		SK_ADD_COMPONENT_BINDING(CircleRendererComponent);
 		SK_ADD_COMPONENT_BINDING(CameraComponent);
 		SK_ADD_COMPONENT_BINDING(RigidBody2DComponent);
 		SK_ADD_COMPONENT_BINDING(BoxCollider2DComponent);
@@ -163,6 +190,7 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Scene_InstantiateScript);
 		SK_ADD_INTERNAL_CALL(Scene_CreateEntity);
 		SK_ADD_INTERNAL_CALL(Scene_DestroyEntity);
+		SK_ADD_INTERNAL_CALL(Scene_CloneEntity);
 		SK_ADD_INTERNAL_CALL(Scene_GetScriptObject);
 		SK_ADD_INTERNAL_CALL(Scene_IsValidEntityHandle);
 		SK_ADD_INTERNAL_CALL(Scene_GetActiveCameraUUID);
@@ -211,6 +239,8 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetNativeHandle);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetTransform);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetTransform);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetPosition);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetRotation);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetLocalCenter);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetWorldCenter);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetLinearVelocity);
@@ -220,9 +250,50 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_ApplyForce);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_ApplyForceToCenter);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_ApplyTorque);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_ApplyLinearImpulse);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_ApplyLinearImpulseToCenter);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_ApplyAngularImpulse);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetGravityScale);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetGravityScale);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetLinearDamping);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetLinearDamping);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetAngularDamping);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetAngularDamping);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsBullet);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetBullet);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsSleepingAllowed);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetSleepingAllowed);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsAwake);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetAwake);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsEnabled);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetEnabled);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsFixedRotation);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetFixedRotation);
+
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetSensor);
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_IsSensor);
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetDensity);
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_GetDensity);
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetFriction);
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_GetFriction);
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetRestitution);
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_GetRestitution);
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetRestitutionThreshold);
+		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_GetRestitutionThreshold);
+
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetNativeHandle);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetSize);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetSize);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetOffset);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetOffset);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetRotation);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetRotation);
+
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetNativeHandle);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRadius);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRadius);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetOffset);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetOffset);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRotation);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRotation);
+
 	}
 
 	namespace InternalCalls {
@@ -309,7 +380,7 @@ namespace Shark {
 
 		#pragma region Scene
 
-		MonoObject* Scene_InstantiateScript(MonoString* name, MonoReflectionType* scriptType)
+		MonoObject* Scene_InstantiateScript(MonoReflectionType* scriptType, MonoString* name)
 		{
 			SK_PROFILE_FUNCTION();
 
@@ -333,7 +404,7 @@ namespace Shark {
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
 
 			const char* entityName = mono_string_to_utf8(name);
-			Entity entity = scene->CreateEntityWithUUID(uuid, entityName ? entityName : std::string{});
+			Entity entity = scene->CreateEntityWithUUID(uuid.IsValid() ? uuid : UUID::Generate(), entityName ? entityName : std::string{});
 			*out_UUID = entity.GetUUID();
 		}
 
@@ -345,6 +416,17 @@ namespace Shark {
 			Entity entity = scene->GetEntityByUUID(entityHandle);
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
 			scene->DestroyEntity(entity);
+		}
+
+		void Scene_CloneEntity(UUID entityHandle, UUID* out_UUID)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Ref<Scene> scene = ScriptEngine::GetActiveScene();
+			Entity entity = scene->GetEntityByUUID(entityHandle);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity clonedEntity = scene->CloneEntity(entity);
+			*out_UUID = clonedEntity.GetUUID();
 		}
 
 		MonoObject* Scene_GetScriptObject(UUID scriptEntityHandle)
@@ -573,6 +655,70 @@ namespace Shark {
 
 		#pragma endregion
 
+		#pragma region CricleRendererComponent
+
+		glm::vec4 CircleRendererComponent_GetColor(UUID entityHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(entityHandle);
+			SK_INVALID_ENTITY_GUARD(entity, glm::vec4());
+			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
+			return circleRenderer.Color;
+		}
+
+		void CircleRendererComponent_SetColor(UUID entityHandle, glm::vec4 color)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(entityHandle);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
+			circleRenderer.Color = color;
+		}
+
+		float CircleRendererComponent_GetThickness(UUID entityHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(entityHandle);
+			SK_INVALID_ENTITY_GUARD(entity, {});
+			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
+			return circleRenderer.Thickness;
+		}
+
+		void CircleRendererComponent_SetThickness(UUID entityHandle, float thickness)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(entityHandle);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
+			circleRenderer.Thickness = thickness;
+		}
+
+		float CircleRendererComponent_GetFade(UUID entityHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(entityHandle);
+			SK_INVALID_ENTITY_GUARD(entity, {});
+			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
+			return circleRenderer.Fade;
+		}
+
+		void CircleRendererComponent_SetFade(UUID entityHandle, float fade)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(entityHandle);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
+			circleRenderer.Fade = fade;
+		}
+
+		#pragma endregion
+
 		#pragma region CameraComponent
 
 		glm::mat4 CameraComponent_GetProjection(UUID entityHandle)
@@ -789,6 +935,26 @@ namespace Shark {
 			return comp.RuntimeBody;
 		}
 
+		RigidBody2DComponent::BodyType RigidBody2DComponent_GetBodyType(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+
+			return utils::b2BodyTypeToSharkBodyType(body->GetType());
+		}
+
+		void RigidBody2DComponent_SetBodyType(void* nativeHandle, RigidBody2DComponent::BodyType bodyType)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetType(utils::SharkBodyTypeTob2BodyType(bodyType));
+		}
+
 		RigidBody2DTransform RigidBody2DComponent_GetTransform(void* nativeHandle)
 		{
 			SK_PROFILE_FUNCTION();
@@ -799,7 +965,7 @@ namespace Shark {
 			const auto& tf = body->GetTransform();
 			
 			RigidBody2DTransform transform;
-			transform.Postion = { tf.p.x, tf.p.y };
+			transform.Position = { tf.p.x, tf.p.y };
 			transform.Angle = tf.q.GetAngle();
 			return transform;
 		}
@@ -811,8 +977,28 @@ namespace Shark {
 			b2Body* body = (b2Body*)nativeHandle;
 			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
 			
-			const b2Vec2 pos = { transform->Postion.x, transform->Postion.y };
+			const b2Vec2 pos = { transform->Position.x, transform->Position.y };
 			body->SetTransform(pos, transform->Angle);
+		}
+
+		void RigidBody2DComponent_SetPosition(void* nativeHandle, glm::vec2 position)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetTransform({ position.x, position.y }, body->GetAngle());
+		}
+
+		void RigidBody2DComponent_SetRotation(void* nativeHandle, float rotation)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetTransform(body->GetPosition(), rotation);
 		}
 
 		Vector2 RigidBody2DComponent_GetLocalCenter(void* nativeHandle)
@@ -878,63 +1064,480 @@ namespace Shark {
 			body->SetAngularVelocity(angularVelocity);
 		}
 
-		void RigidBody2DComponent_ApplyForce(void* nativeHandle, glm::vec2* force, glm::vec2* point, bool wake)
+		void RigidBody2DComponent_ApplyForce(void* nativeHandle, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType)
 		{
 			SK_PROFILE_FUNCTION();
 
 			b2Body* body = (b2Body*)nativeHandle;
 			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
 
-			body->ApplyForce({ force->x, force-> y }, { point->x, point->y }, wake);
+			if (forceType == PhysicsForce2DType::Force)
+				body->ApplyForce({ force->x, force->y }, { point->x, point->y }, true);
+			else
+				body->ApplyLinearImpulse({ force->x, force->y }, { point->x, point->y }, true);
 		}
 
-		void RigidBody2DComponent_ApplyForceToCenter(void* nativeHandle, glm::vec2* force, bool wake)
+		void RigidBody2DComponent_ApplyForceToCenter(void* nativeHandle, glm::vec2* force, PhysicsForce2DType forceType)
 		{
 			SK_PROFILE_FUNCTION();
 
 			b2Body* body = (b2Body*)nativeHandle;
 			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
 
-			body->ApplyForceToCenter({ force->x, force->y }, wake);
+			if (forceType == PhysicsForce2DType::Force)
+				body->ApplyForceToCenter({ force->x, force->y }, true);
+			else
+				body->ApplyLinearImpulseToCenter({ force->x, force->y }, true);
 		}
 
-		void RigidBody2DComponent_ApplyTorque(void* nativeHandle, float torque, bool wake)
+		void RigidBody2DComponent_ApplyTorque(void* nativeHandle, float torque, PhysicsForce2DType forceType)
 		{
 			SK_PROFILE_FUNCTION();
 
 			b2Body* body = (b2Body*)nativeHandle;
 			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
 
-			body->ApplyTorque(torque, wake);
-		}
-		void RigidBody2DComponent_ApplyLinearImpulse(void* nativeHandle, glm::vec2* impulse, glm::vec2* point, bool wake)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
-
-			body->ApplyLinearImpulse({ impulse->x, impulse->y }, { point->x, point->y }, wake);
+			if (forceType == PhysicsForce2DType::Force)
+				body->ApplyTorque(torque, true);
+			else
+				body->ApplyAngularImpulse(torque, true);
 		}
 
-		void RigidBody2DComponent_ApplyLinearImpulseToCenter(void* nativeHandle, glm::vec2* impulse, bool wake)
+		float RigidBody2DComponent_GetGravityScale(void* nativeHandle)
 		{
 			SK_PROFILE_FUNCTION();
 
 			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			SK_INVALID_BODY_HANDLE_GUARD(body, {});
 
-			body->ApplyForceToCenter({ impulse->x, impulse->y }, wake);
+			return body->GetGravityScale();
 		}
 
-		void RigidBody2DComponent_ApplyAngularImpulse(void* nativeHandle, float impulse, bool wake)
+		void RigidBody2DComponent_SetGravityScale(void* nativeHandle, float gravityScale)
 		{
 			SK_PROFILE_FUNCTION();
 
 			b2Body* body = (b2Body*)nativeHandle;
 			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
 
-			body->ApplyAngularImpulse(impulse, wake);
+			body->SetGravityScale(gravityScale);
+		}
+
+		float RigidBody2DComponent_GetLinearDamping(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+
+			return body->GetLinearDamping();
+		}
+
+		void RigidBody2DComponent_SetLinearDamping(void* nativeHandle, float linearDamping)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetLinearDamping(linearDamping);
+		}
+
+		float RigidBody2DComponent_GetAngularDamping(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+
+			return body->GetAngularDamping();
+		}
+
+		void RigidBody2DComponent_SetAngularDamping(void* nativeHandle, float angularDamping)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetAngularDamping(angularDamping);
+		}
+
+		bool RigidBody2DComponent_IsBullet(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+
+			return body->IsBullet();
+		}
+
+		void RigidBody2DComponent_SetBullet(void* nativeHandle, bool bullet)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetBullet(bullet);
+		}
+
+		bool RigidBody2DComponent_IsSleepingAllowed(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+
+			return body->IsSleepingAllowed();
+		}
+
+		void RigidBody2DComponent_SetSleepingAllowed(void* nativeHandle, bool sleepingAllowed)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetSleepingAllowed(sleepingAllowed);
+		}
+
+		bool RigidBody2DComponent_IsAwake(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+
+			return body->IsAwake();
+		}
+
+		void RigidBody2DComponent_SetAwake(void* nativeHandle, bool awake)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetAwake(awake);
+		}
+
+		bool RigidBody2DComponent_IsEnabled(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+
+			return body->IsEnabled();
+		}
+
+		void RigidBody2DComponent_SetEnabled(void* nativeHandle, bool enabled)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetEnabled(enabled);
+		}
+
+		bool RigidBody2DComponent_IsFixedRotation(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+
+			return body->IsFixedRotation();
+		}
+
+		void RigidBody2DComponent_SetFixedRotation(void* nativeHandle, bool fixedRotation)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Body* body = (b2Body*)nativeHandle;
+			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+
+			body->SetFixedRotation(fixedRotation);
+		}
+
+		#pragma endregion
+
+		#pragma region PhysicsCollider2D
+
+		void PhysicsCollider2D_SetSensor(void* nativeHandle, bool sensor)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			fixture->SetSensor(sensor);
+		}
+
+		bool PhysicsCollider2D_IsSensor(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			return fixture->IsSensor();
+		}
+
+		void PhysicsCollider2D_SetDensity(void* nativeHandle, float density)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			fixture->SetDensity(density);
+		}
+
+		float PhysicsCollider2D_GetDensity(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			return fixture->GetDensity();
+		}
+
+		void PhysicsCollider2D_SetFriction(void* nativeHandle, float friction)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			fixture->SetFriction(friction);
+		}
+
+		float PhysicsCollider2D_GetFriction(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			return fixture->GetFriction();
+		}
+
+		void PhysicsCollider2D_SetRestitution(void* nativeHandle, float restitution)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			fixture->SetRestitution(restitution);
+		}
+
+		float PhysicsCollider2D_GetRestitution(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			return fixture->GetRestitution();
+		}
+
+		void PhysicsCollider2D_SetRestitutionThreshold(void* nativeHandle, float restitutionThreshold)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			fixture->SetRestitutionThreshold(restitutionThreshold);
+		}
+
+		float PhysicsCollider2D_GetRestitutionThreshold(void* nativeHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			b2Fixture* fixture = (b2Fixture*)nativeHandle;
+			return fixture->GetRestitutionThreshold();
+		}
+
+		#pragma endregion
+
+		#pragma region BoxCollider2DComponent
+
+		void* BoxCollider2DComponent_GetNativeHandle(UUID owner)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, nullptr);
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			return comp.RuntimeCollider;
+		}
+
+		glm::vec2 BoxCollider2DComponent_GetSize(UUID owner)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, {});
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			return comp.Size;
+		}
+
+		void BoxCollider2DComponent_SetSize(UUID owner, glm::vec2 size)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			const auto& transform = entity.GetTransform();
+			comp.Size = size;
+
+			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
+			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
+			shape->SetAsBox(comp.Size.x * transform.Scaling.x, comp.Size.y * transform.Scaling.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+		}
+
+		glm::vec2 BoxCollider2DComponent_GetOffset(UUID owner)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, {});
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			return comp.Offset;
+		}
+
+		void BoxCollider2DComponent_SetOffset(UUID owner, glm::vec2 offset)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			const auto& transform = entity.GetTransform();
+			comp.Offset = offset;
+
+			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
+			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
+			shape->SetAsBox(comp.Size.x * transform.Scaling.x, comp.Size.y * transform.Scaling.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+		}
+
+		float BoxCollider2DComponent_GetRotation(UUID owner)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, {});
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			return comp.Rotation;
+		}
+
+		void BoxCollider2DComponent_SetRotation(UUID owner, float rotation)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			const auto& transform = entity.GetTransform();
+			comp.Rotation = rotation;
+
+			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
+			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
+			shape->SetAsBox(comp.Size.x * transform.Scaling.x, comp.Size.y * transform.Scaling.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+		}
+
+		#pragma endregion
+
+		#pragma region CircleCollider2DComponent
+
+		void* CircleCollider2DComponent_GetNativeHandle(UUID owner)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, nullptr);
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			return comp.RuntimeCollider;
+		}
+
+		float CircleCollider2DComponent_GetRadius(UUID owner)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, {});
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			return comp.Radius;
+		}
+
+		void CircleCollider2DComponent_SetRadius(UUID owner, float Radius)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			const auto& transform = entity.GetTransform();
+			comp.Radius = Radius;
+
+			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
+			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
+			shape->m_radius = comp.Radius * transform.Scaling.x;
+			shape->m_p = { comp.Offset.x, comp.Offset.y };
+		}
+
+		glm::vec2 CircleCollider2DComponent_GetOffset(UUID owner)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, {});
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			return comp.Offset;
+		}
+
+		void CircleCollider2DComponent_SetOffset(UUID owner, glm::vec2 offset)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			const auto& transform = entity.GetTransform();
+			comp.Offset = offset;
+
+			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
+			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
+			shape->m_radius = comp.Radius * transform.Scaling.x;
+			shape->m_p = { comp.Offset.x, comp.Offset.y };
+		}
+
+		float CircleCollider2DComponent_GetRotation(UUID owner)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, {});
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			return comp.Rotation;
+		}
+
+		void CircleCollider2DComponent_SetRotation(UUID owner, float rotation)
+		{
+			SK_PROFILE_FUNCTION();
+
+			Entity entity = utils::GetEntityActiveScene(owner);
+			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			const auto& transform = entity.GetTransform();
+			comp.Rotation = rotation;
+
+			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
+			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
+			shape->m_radius = comp.Radius * transform.Scaling.x;
+			shape->m_p = { comp.Offset.x, comp.Offset.y };
 		}
 
 		#pragma endregion

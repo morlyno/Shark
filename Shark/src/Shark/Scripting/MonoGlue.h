@@ -2,6 +2,7 @@
 
 #include "Shark/Core/UUID.h"
 #include "Shark/Scene/Components/TransformComponent.h"
+#include "Shark/Scene/Components/RigidBody2DComponent.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Core/Input.h"
 
@@ -68,9 +69,10 @@ namespace Shark {
 
 		#pragma region Scene
 
-		MonoObject* Scene_InstantiateScript(MonoString* name, MonoReflectionType* scriptType);
+		MonoObject* Scene_InstantiateScript(MonoReflectionType* scriptType, MonoString* name);
 		void Scene_CreateEntity(MonoString* name, UUID uuid, UUID* out_UUID);
 		void Scene_DestroyEntity(UUID entityHandle);
+		void Scene_CloneEntity(UUID entityHandle, UUID* out_UUID);
 		MonoObject* Scene_GetScriptObject(UUID scriptEntityHandle);
 		bool Scene_IsValidEntityHandle(UUID entityHandle);
 		UUID Scene_GetActiveCameraUUID();
@@ -124,6 +126,17 @@ namespace Shark {
 
 		#pragma endregion
 
+		#pragma region CricleRendererComponent
+
+		glm::vec4 CircleRendererComponent_GetColor(UUID entityHandle);
+		void CircleRendererComponent_SetColor(UUID entityHandle, glm::vec4 color);
+		float CircleRendererComponent_GetThickness(UUID entityHandle);
+		void CircleRendererComponent_SetThickness(UUID entityHandle, float thickness);
+		float CircleRendererComponent_GetFade(UUID entityHandle);
+		void CircleRendererComponent_SetFade(UUID entityHandle, float fade);
+
+		#pragma endregion
+
 		#pragma region CameraComponent
 
 		glm::mat4 CameraComponent_GetProjection(UUID entityHandle);
@@ -162,30 +175,94 @@ namespace Shark {
 
 		struct RigidBody2DTransform
 		{
-			glm::vec2 Postion;
+			glm::vec2 Position;
 			float Angle;
 		};
 
 		struct Vector2
 		{
-			float X, Y;
+			float x, y;
+		};
+
+		enum class PhysicsForce2DType
+		{
+			Force = 0,
+			Impulse = 1
 		};
 
 		void* RigidBody2DComponent_GetNativeHandle(UUID owner);
+		RigidBody2DComponent::BodyType RigidBody2DComponent_GetBodyType(void* nativeHandle);
+		void RigidBody2DComponent_SetBodyType(void* nativeHandle, RigidBody2DComponent::BodyType bodyType);
 		RigidBody2DTransform RigidBody2DComponent_GetTransform(void* nativeHandle);
 		void RigidBody2DComponent_SetTransform(void* nativeHandle, RigidBody2DTransform* transform);
+		void RigidBody2DComponent_SetPosition(void* nativeHandle, glm::vec2 position);
+		void RigidBody2DComponent_SetRotation(void* nativeHandle, float rotation);
 		Vector2 RigidBody2DComponent_GetLocalCenter(void* nativeHandle);
 		Vector2 RigidBody2DComponent_GetWorldCenter(void* nativeHandle);
 		Vector2 RigidBody2DComponent_GetLinearVelocity(void* nativeHandle);
 		void RigidBody2DComponent_SetLinearVelocity(void* nativeHandle, glm::vec2* linearVelocity);
 		float RigidBody2DComponent_GetAngularVelocity(void* nativeHandle);
 		void RigidBody2DComponent_SetAngularVelocity(void* nativeHandle, float angularVelocity);
-		void RigidBody2DComponent_ApplyForce(void* nativeHandle, glm::vec2* force, glm::vec2* point, bool wake);
-		void RigidBody2DComponent_ApplyForceToCenter(void* nativeHandle, glm::vec2* force, bool wake);
-		void RigidBody2DComponent_ApplyTorque(void* nativeHandle, float torque, bool wake);
-		void RigidBody2DComponent_ApplyLinearImpulse(void* nativeHandle, glm::vec2* impulse, glm::vec2* point, bool wake);
-		void RigidBody2DComponent_ApplyLinearImpulseToCenter(void* nativeHandle, glm::vec2* impulse, bool wake);
-		void RigidBody2DComponent_ApplyAngularImpulse(void* nativeHandle, float impulse, bool wake);
+		void RigidBody2DComponent_ApplyForce(void* nativeHandle, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType);
+		void RigidBody2DComponent_ApplyForceToCenter(void* nativeHandle, glm::vec2* force, PhysicsForce2DType forceType);
+		void RigidBody2DComponent_ApplyTorque(void* nativeHandle, float torque, PhysicsForce2DType forceType);
+		float RigidBody2DComponent_GetGravityScale(void* nativeHandle);
+		void RigidBody2DComponent_SetGravityScale(void* nativeHandle, float gravityScale);
+		float RigidBody2DComponent_GetLinearDamping(void* nativeHandle);
+		void RigidBody2DComponent_SetLinearDamping(void* nativeHandle, float linearDamping);
+		float RigidBody2DComponent_GetAngularDamping(void* nativeHandle);
+		void RigidBody2DComponent_SetAngularDamping(void* nativeHandle, float angularDamping);
+		bool RigidBody2DComponent_IsBullet(void* nativeHandle);
+		void RigidBody2DComponent_SetBullet(void* nativeHandle, bool bullet);
+		bool RigidBody2DComponent_IsSleepingAllowed(void* nativeHandle);
+		void RigidBody2DComponent_SetSleepingAllowed(void* nativeHandle, bool sleepingAllowed);
+		bool RigidBody2DComponent_IsAwake(void* nativeHandle);
+		void RigidBody2DComponent_SetAwake(void* nativeHandle, bool awake);
+		bool RigidBody2DComponent_IsEnabled(void* nativeHandle);
+		void RigidBody2DComponent_SetEnabled(void* nativeHandle, bool enabled);
+		bool RigidBody2DComponent_IsFixedRotation(void* nativeHandle);
+		void RigidBody2DComponent_SetFixedRotation(void* nativeHandle, bool fixedRotation);
+
+		#pragma endregion
+
+		#pragma region PhysicsCollider2D
+
+		void PhysicsCollider2D_SetSensor(void* nativeHandle, bool sensor);
+		bool PhysicsCollider2D_IsSensor(void* nativeHandle);
+		void PhysicsCollider2D_SetDensity(void* nativeHandle, float density);
+		float PhysicsCollider2D_GetDensity(void* nativeHandle);
+		void PhysicsCollider2D_SetFriction(void* nativeHandle, float friction);
+		float PhysicsCollider2D_GetFriction(void* nativeHandle);
+		void PhysicsCollider2D_SetRestitution(void* nativeHandle, float restitution);
+		float PhysicsCollider2D_GetRestitution(void* nativeHandle);
+		void PhysicsCollider2D_SetRestitutionThreshold(void* nativeHandle, float restitutionThreshold);
+		float PhysicsCollider2D_GetRestitutionThreshold(void* nativeHandle);
+
+		#pragma endregion
+
+		#pragma region BoxCollider2DComponent
+
+		void* BoxCollider2DComponent_GetNativeHandle(UUID owner);
+
+		glm::vec2 BoxCollider2DComponent_GetSize(UUID owner);
+		void BoxCollider2DComponent_SetSize(UUID owner, glm::vec2 size);
+		glm::vec2 BoxCollider2DComponent_GetOffset(UUID owner);
+		void BoxCollider2DComponent_SetOffset(UUID owner, glm::vec2 offset);
+		float BoxCollider2DComponent_GetRotation(UUID owner);
+		void BoxCollider2DComponent_SetRotation(UUID owner, float rotation);
+
+		#pragma endregion
+
+		#pragma region CircleCollider2DComponent
+
+		void* CircleCollider2DComponent_GetNativeHandle(UUID owner);
+
+		float CircleCollider2DComponent_GetRadius(UUID owner);
+		void CircleCollider2DComponent_SetRadius(UUID owner, float Radius);
+		glm::vec2 CircleCollider2DComponent_GetOffset(UUID owner);
+		void CircleCollider2DComponent_SetOffset(UUID owner, glm::vec2 offset);
+		float CircleCollider2DComponent_GetRotation(UUID owner);
+		void CircleCollider2DComponent_SetRotation(UUID owner, float rotation);
 
 		#pragma endregion
 

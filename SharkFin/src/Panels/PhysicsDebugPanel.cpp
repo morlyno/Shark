@@ -62,8 +62,12 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		ImGui::Begin("Physics Debug", &shown);
-		
+		if (!ImGui::Begin("Physics Debug", &shown))
+		{
+			return;
+			ImGui::End();
+		}
+
 		if (!m_Scene)
 		{
 			ImGui::Text("No Active Scene");

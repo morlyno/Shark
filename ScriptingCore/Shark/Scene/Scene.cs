@@ -8,14 +8,13 @@ namespace Shark
 		// Creates new Entity with Script of type T
 		public static T Instantiate<T>(string name) where T : Entity
 		{
-			return (T)InternalCalls.Scene_InstantiateScript(name, typeof(T));
+			return (T)InternalCalls.Scene_InstantiateScript(typeof(T), name);
 		}
 
 		// Creates new Entity
 		public static Entity Instantiate(string name)
 		{
-			UUID out_uuid = new UUID();
-			/*UUID uuid =*/ InternalCalls.Scene_CreateEntity(name, UUID.Null, ref out_uuid);
+			/*UUID uuid =*/ InternalCalls.Scene_CreateEntity(name, UUID.Null, out UUID out_uuid);
 			return new Entity(out_uuid);
 		}
 
@@ -25,9 +24,16 @@ namespace Shark
 			InternalCalls.Scene_DestroyEntity(entity.UUID);
 		}
 
+		// Creates new Entity
+		public static Entity CloneEntity(Entity entity)
+		{
+			InternalCalls.Scene_CloneEntity(entity.UUID, out UUID uuid);
+			return GetEntityByUUID(uuid);
+		}
+
 		// Get Entity by UUID
 		// returns either a script or a basic Entity
-		// if the uuid invalid the return value is null
+		// if the uuid is invalid the return value is null
 		public static Entity GetEntityByUUID(UUID uuid)
 		{
 			Entity entity = InternalCalls.Scene_GetScriptObject(uuid);
@@ -40,15 +46,13 @@ namespace Shark
 
 		public static UUID GetUUIDFromTag(string tag)
 		{
-			UUID uuid = UUID.Null;
-			InternalCalls.Scene_GetUUIDFromTag(tag, ref uuid);
+			InternalCalls.Scene_GetUUIDFromTag(tag, out UUID uuid);
 			return uuid;
 		}
 
 		public static Entity GetEntityByTag(string tag)
 		{
-			UUID uuid = UUID.Null;
-			InternalCalls.Scene_GetUUIDFromTag(tag, ref uuid);
+			InternalCalls.Scene_GetUUIDFromTag(tag, out UUID uuid);
 			return GetEntityByUUID(uuid);
 		}
 

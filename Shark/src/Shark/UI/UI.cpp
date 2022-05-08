@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "UI.h"
 
-#include "Shark/Utils/Math.h"
+#include "Shark/Math/Math.h"
 #include "Shark/Utils/String.h"
 
 #include "Shark/Core/Application.h"

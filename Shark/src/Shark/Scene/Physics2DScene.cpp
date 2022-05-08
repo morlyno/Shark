@@ -62,11 +62,26 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		b2Body* iter = m_World->GetBodyList();
+		const b2Body* iter = m_World->GetBodyList();
 
 		while (iter)
 		{
 			if (iter == body)
+				return true;
+			iter = iter->GetNext();
+		}
+		return false;
+	}
+
+	bool Physics2DScene::HodyHasCollider(const b2Body* body, const b2Fixture* fixture)
+	{
+		SK_PROFILE_FUNCTION();
+
+		const b2Fixture* iter = body->GetFixtureList();
+
+		while (iter)
+		{
+			if (iter == fixture)
 				return true;
 			iter = iter->GetNext();
 		}

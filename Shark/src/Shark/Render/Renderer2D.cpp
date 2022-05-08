@@ -3,7 +3,7 @@
 
 #include "Shark/Render/Renderer.h"
 
-#include "Shark/Utils/Math.h"
+#include "Shark/Math/Math.h"
 #include "Shark/Debug/Profiler.h"
 
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"

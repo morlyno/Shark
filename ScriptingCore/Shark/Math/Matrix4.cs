@@ -50,8 +50,7 @@ namespace Shark
 
 		public static Matrix4 Inverse(Matrix4 mat4)
 		{
-			Matrix4 result = new Matrix4();
-			InternalCalls.Matrix4_Inverse(ref mat4, ref result);
+			InternalCalls.Matrix4_Inverse(ref mat4, out Matrix4 result);
 			return result;
 		}
 		public Matrix4 Inverse()

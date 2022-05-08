@@ -170,6 +170,10 @@ namespace Shark {
 
 			out << YAML::Key << "Type" << YAML::Value << Convert::BodyTypeToString(comp.Type);
 			out << YAML::Key << "FixedRotation" << YAML::Value << comp.FixedRotation;
+			out << YAML::Key << "IsBullet" << YAML::Value << comp.IsBullet;
+			out << YAML::Key << "Awake" << YAML::Value << comp.Awake;
+			out << YAML::Key << "Enabled" << YAML::Value << comp.Enabled;
+			out << YAML::Key << "GravityScale" << YAML::Value << comp.GravityScale;
 
 			out << YAML::EndMap;
 		}
@@ -460,6 +464,10 @@ namespace Shark {
 				{
 					auto type = rigidBody2DComponent["Type"];
 					auto fixedRotation = rigidBody2DComponent["FixedRotation"];
+					auto isBullet = rigidBody2DComponent["IsBullet"];
+					auto awake = rigidBody2DComponent["Awake"];
+					auto enabled = rigidBody2DComponent["Enabled"];
+					auto gravityScale = rigidBody2DComponent["GravityScale"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<RigidBody2DComponent>();
 
@@ -468,6 +476,18 @@ namespace Shark {
 
 					SK_CORE_ASSERT(fixedRotation, "Couldn't desirialize RigidBody2DComponent::FixedRotation");
 					comp.FixedRotation = fixedRotation.as<bool>();
+
+					SK_CORE_ASSERT(isBullet, "Couldn't desirialize RigidBody2DComponent::FixedRotation");
+					comp.IsBullet = isBullet.as<bool>();
+
+					SK_CORE_ASSERT(awake, "Couldn't desirialize RigidBody2DComponent::Awake");
+					comp.Awake = awake.as<bool>();
+
+					SK_CORE_ASSERT(enabled, "Couldn't desirialize RigidBody2DComponent::Enabled");
+					comp.Enabled = enabled.as<bool>();
+
+					SK_CORE_ASSERT(gravityScale, "Couldn't desirialize RigidBody2DComponent::GravityScale");
+					comp.GravityScale = gravityScale.as<float>();
 
 					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", Convert::BodyTypeToString(comp.Type));
 				}

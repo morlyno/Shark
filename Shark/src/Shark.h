@@ -14,7 +14,7 @@
 
 // --- Utility --------------------------
 #include "Shark/Utils/PlatformUtils.h"
-#include "Shark/Utils/Math.h"
+#include "Shark/Math/Math.h"
 #include "Shark/Utils/String.h"
 // --------------------------------------
 

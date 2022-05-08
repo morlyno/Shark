@@ -43,7 +43,7 @@ namespace Shark {
 		int m_SelectedProjectionIndex = -1;
 		static constexpr const char* s_ProjectionItems[] = { "Perspective", "Orthographic" };
 		static constexpr const char* s_GeomatryTypes[] = { "Quad", "Circle" };
-		static constexpr const char* s_BodyTypes[] = { "Static", "Dynamic", "Kinematic" };
+		static constexpr std::string_view s_BodyTypes[] = { "Static", "Dynamic", "Kinematic" };
 
 		bool m_ScriptFound = false;
 	};

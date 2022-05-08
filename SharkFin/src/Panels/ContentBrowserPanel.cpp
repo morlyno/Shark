@@ -484,8 +484,10 @@ namespace Shark {
 
 		std::filesystem::path selectedEntry;
 		std::filesystem::path currentDirectory;
+		std::filesystem::path dragDropEntry;
 		if (m_SelectedEntry) selectedEntry = m_SelectedEntry->Path;
 		if (m_CurrentDirectory) currentDirectory = m_CurrentDirectory->Path;
+		if (m_DragDropEntry) dragDropEntry = m_DragDropEntry->Path;
 
 		m_RootDirectory.ChildEntrys.clear();
 		m_RootDirectory.Type = EntryType::Directory;
@@ -496,6 +498,7 @@ namespace Shark {
 
 		m_SelectedEntry = GetEntry(selectedEntry);
 		m_CurrentDirectory = GetEntry(currentDirectory);
+		m_DragDropEntry = GetEntry(dragDropEntry);
 		if (!m_CurrentDirectory)
 			m_CurrentDirectory = &m_RootDirectory;
 	}
@@ -539,6 +542,9 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		// Textures/Test.png
+
+		if (path.empty())
+			return nullptr;
 
 		if (path == m_RootDirectory.Path)
 			return &m_RootDirectory;

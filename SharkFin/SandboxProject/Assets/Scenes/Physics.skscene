@@ -10,7 +10,7 @@ Scene:
         Scaling: [1, 1, 1]
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.07547164
+        Aspectratio: 1.97712421
         PerspectiveFOV: 45
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -31,6 +31,10 @@ Scene:
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
+        IsBullet: false
+        Awake: true
+        Enabled: true
+        GravityScale: 1
       CircleCollider2DComponent:
         Radius: 0.5
         Offset: [0.5, -0.5]
@@ -53,6 +57,10 @@ Scene:
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
+        IsBullet: false
+        Awake: true
+        Enabled: true
+        GravityScale: 1
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]

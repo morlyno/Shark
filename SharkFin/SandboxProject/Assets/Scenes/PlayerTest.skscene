@@ -15,6 +15,10 @@ Scene:
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: true
+        IsBullet: false
+        Awake: true
+        Enabled: true
+        GravityScale: 1
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -46,6 +50,25 @@ Scene:
         RestitutionThreshold: 1
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+    - Entity: 0x63c6ec00a49d7fa4
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [-24.3999996, 3.30032444, 0]
+        Rotation: [0, 0, -1.57079625]
+        Scaling: [11.9428282, 0.999999821, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
     - Entity: 0x647ce187fd0f1ceb
       TagComponent:
         Tag: Floor
@@ -88,6 +111,25 @@ Scene:
         RestitutionThreshold: 1
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+    - Entity: 0x6c99ee886e60b877
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [24.4400005, 3.02999997, 0]
+        Rotation: [0, 0, -1.57079625]
+        Scaling: [11.9428282, 0.999999821, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
     - Entity: 0x7ea5428e94ce6128
       TagComponent:
         Tag: Floor
@@ -128,6 +170,32 @@ Scene:
         RestitutionThreshold: 1
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+    - Entity: 0x9542421fd34573a5
+      TagComponent:
+        Tag: BallTemplate
+      TransformComponent:
+        Position: [-42.1114731, -15.0414038, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [0.540000021, 0.540000021, 0.540000021]
+      CircleRendererComponent:
+        Color: [0.748182833, 0.0552912168, 0.867647052, 1]
+        Thickness: 1
+        Fade: 0.00200000009
+      RigidBody2DComponent:
+        Type: Dynamic
+        FixedRotation: false
+        IsBullet: false
+        Awake: true
+        Enabled: false
+        GravityScale: 1
+      CircleCollider2DComponent:
+        Radius: 0.5
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 0.5
+        Friction: 0.100000001
+        Restitution: 0.800000012
+        RestitutionThreshold: 1
     - Entity: 0xbbdb8872e6e21912
       TagComponent:
         Tag: Camera
@@ -137,7 +205,7 @@ Scene:
         Scaling: [1, 1, 1]
       CameraComponent:
         Type: Perspective
-        Aspectratio: 1.94847023
+        Aspectratio: 1.97712421
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000

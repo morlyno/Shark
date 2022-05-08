@@ -94,6 +94,15 @@ namespace Shark {
 
 	private:
 		void SetupBox2D();
+
+		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity entityID);
+		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity entityID);
+		void OnCircleCollider2DComponentCreated(entt::registry& registry, entt::entity entityID);
+		
+		void OnRigidBody2DComponentDestroyed(entt::registry& registry, entt::entity entityID);
+		void OnBoxCollider2DComponentDestroyed(entt::registry& registry, entt::entity entityID);
+		void OnCircleCollider2DComponentDestroyed(entt::registry& registry, entt::entity entityID);
+
 	private:
 		entt::registry m_Registry;
 		UUID m_ActiveCameraUUID = UUID::Null();

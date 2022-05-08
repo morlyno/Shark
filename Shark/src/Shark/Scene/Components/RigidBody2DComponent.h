@@ -9,6 +9,10 @@ namespace Shark {
 		enum class BodyType { Static = 0, Dynamic = 1, Kinematic = 2 };
 		BodyType Type = BodyType::Dynamic;
 		bool FixedRotation = false;
+		bool IsBullet = false;
+		bool Awake = true;
+		bool Enabled = true;
+		float GravityScale = 1.0f;
 
 		b2Body* RuntimeBody = nullptr;
 

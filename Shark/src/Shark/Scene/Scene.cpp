@@ -10,7 +10,7 @@
 #include "Shark/Scripting/ScriptManager.h"
 #include "Shark/Scripting/MonoGlue.h"
 
-#include "Shark/Utils/Math.h"
+#include "Shark/Math/Math.h"
 
 #include "Shark/Debug/enttDebug.h"
 #include "Shark/Debug/Instrumentor.h"
@@ -115,6 +115,14 @@ namespace Shark {
 		
 		SetupBox2D();
 
+		m_Registry.on_construct<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentCreated>(this);
+		m_Registry.on_construct<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentCreated>(this);
+		m_Registry.on_construct<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentCreated>(this);
+
+		m_Registry.on_destroy<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentDestroyed>(this);
+		m_Registry.on_destroy<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
+		m_Registry.on_destroy<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
+
 		// Create Scripts
 		{
 			SK_PROFILE_SCOPED("Scene::OnScenePlay::InstantiateScripts");
@@ -188,7 +196,15 @@ namespace Shark {
 	void Scene::OnSceneStop()
 	{
 		SK_PROFILE_FUNCTION();
-		
+
+		m_Registry.on_construct<RigidBody2DComponent>().disconnect<&Scene::OnRigidBody2DComponentCreated>(this);
+		m_Registry.on_construct<BoxCollider2DComponent>().disconnect<&Scene::OnBoxCollider2DComponentCreated>(this);
+		m_Registry.on_construct<CircleCollider2DComponent>().disconnect<&Scene::OnCircleCollider2DComponentCreated>(this);
+
+		m_Registry.on_destroy<RigidBody2DComponent>().disconnect<&Scene::OnRigidBody2DComponentDestroyed>(this);
+		m_Registry.on_destroy<BoxCollider2DComponent>().disconnect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
+		m_Registry.on_destroy<CircleCollider2DComponent>().disconnect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
+
 		// Destroy Scripts
 		{
 			SK_PROFILE_SCOPED("Scene::OnScenePlay::DestroyScripts");
@@ -201,19 +217,12 @@ namespace Shark {
 				auto& comp = entity.GetComponent<ScriptComponent>();
 				if (comp.HasRuntime)
 				{
-					//auto& script = ScriptManager::GetScript(entity.GetUUID());
-					//script.OnDestroy();
 					ScriptManager::Destroy(entity, true);
 					comp.HasRuntime = false;
 				}
 			}
 
-			//for (auto entityID : view)
-			//{
-			//	Entity entity{ entityID, this };
-			//	const auto& comp = entity.GetComponent<ScriptComponent>();
-			//	ScriptManager::Destroy(entity);
-			//}
+			ScriptManager::Cleanup();
 		}
 
 		// Destroy Native Scripts
@@ -597,6 +606,10 @@ namespace Shark {
 				bodydef.position = { transform.Position.x, transform.Position.y };
 				bodydef.angle = transform.Rotation.z;
 				bodydef.fixedRotation = rb2d.FixedRotation;
+				bodydef.bullet = rb2d.IsBullet;
+				bodydef.awake = rb2d.Awake;
+				bodydef.enabled = rb2d.Enabled;
+				bodydef.gravityScale = rb2d.GravityScale;
 				bodydef.userData.pointer = (uintptr_t)entity.GetUUID();
 
 				rb2d.RuntimeBody = world->CreateBody(&bodydef);
@@ -637,6 +650,101 @@ namespace Shark {
 				}
 			}
 		}
+	}
+
+	void Scene::OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity entityID)
+	{
+		SK_CORE_ASSERT(!m_IsEditorScene);
+
+		Entity entity{ entityID, this };
+		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
+		auto& transform = entity.GetTransform();
+
+		b2BodyDef bodydef;
+		bodydef.type = SharkBodyTypeToBox2D(rb2d.Type);
+		bodydef.position = { transform.Position.x, transform.Position.y };
+		bodydef.angle = transform.Rotation.z;
+		bodydef.fixedRotation = rb2d.FixedRotation;
+		bodydef.userData.pointer = (uintptr_t)entity.GetUUID();
+
+		rb2d.RuntimeBody = m_PhysicsScene.GetWorld()->CreateBody(&bodydef);
+	}
+
+	void Scene::OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity entityID)
+	{
+		SK_CORE_ASSERT(!m_IsEditorScene);
+
+		Entity entity{ entityID, this };
+		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
+		auto& transform = entity.GetTransform();
+		auto& bc2d = entity.GetComponent<BoxCollider2DComponent>();
+
+		b2PolygonShape shape;
+		shape.SetAsBox(bc2d.Size.x * transform.Scaling.x, bc2d.Size.y * transform.Scaling.y, { bc2d.Offset.x, bc2d.Offset.y }, bc2d.Rotation);
+
+		b2FixtureDef fixturedef;
+		fixturedef.shape = &shape;
+		fixturedef.friction = bc2d.Friction;
+		fixturedef.density = bc2d.Density;
+		fixturedef.restitution = bc2d.Restitution;
+		fixturedef.restitutionThreshold = bc2d.RestitutionThreshold;
+
+		bc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
+	}
+
+	void Scene::OnCircleCollider2DComponentCreated(entt::registry& registry, entt::entity entityID)
+	{
+		SK_CORE_ASSERT(!m_IsEditorScene);
+
+		Entity entity{ entityID, this };
+		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
+		auto& transform = entity.GetTransform();
+		auto& cc2d = entity.GetComponent<CircleCollider2DComponent>();
+
+		b2CircleShape shape;
+		shape.m_radius = cc2d.Radius * transform.Scaling.x;
+		shape.m_p = { cc2d.Offset.x, cc2d.Offset.y };
+
+		b2FixtureDef fixturedef;
+		fixturedef.shape = &shape;
+		fixturedef.friction = cc2d.Friction;
+		fixturedef.density = cc2d.Density;
+		fixturedef.restitution = cc2d.Restitution;
+		fixturedef.restitutionThreshold = cc2d.RestitutionThreshold;
+
+		cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
+	}
+
+	void Scene::OnRigidBody2DComponentDestroyed(entt::registry& registry, entt::entity entityID)
+	{
+		SK_CORE_ASSERT(!m_IsEditorScene);
+
+		Entity entity{ entityID, this };
+		auto& comp = entity.GetComponent<RigidBody2DComponent>();
+		m_PhysicsScene.GetWorld()->DestroyBody(comp.RuntimeBody);
+		comp.RuntimeBody = nullptr;
+	}
+
+	void Scene::OnBoxCollider2DComponentDestroyed(entt::registry& registry, entt::entity entityID)
+	{
+		SK_CORE_ASSERT(!m_IsEditorScene);
+
+		Entity entity{ entityID, this };
+		auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+		b2Body* body = comp.RuntimeCollider->GetBody();
+		body->DestroyFixture(comp.RuntimeCollider);
+		comp.RuntimeCollider = nullptr;
+	}
+
+	void Scene::OnCircleCollider2DComponentDestroyed(entt::registry& registry, entt::entity entityID)
+	{
+		SK_CORE_ASSERT(!m_IsEditorScene);
+
+		Entity entity{ entityID, this };
+		auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+		b2Body* body = comp.RuntimeCollider->GetBody();
+		body->DestroyFixture(comp.RuntimeCollider);
+		comp.RuntimeCollider = nullptr;
 	}
 
 	void ContactListener::BeginContact(b2Contact* contact)

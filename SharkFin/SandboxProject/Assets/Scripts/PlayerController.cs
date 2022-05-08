@@ -9,20 +9,27 @@ namespace Sandbox
 		private bool m_CanJump = true;
 		private bool m_CanDoubleJump = true;
 		private bool m_SpaceKeyControl = false;
+		private bool m_IKeyControl = false;
+		private bool m_OKeyControl = false;
+		private bool m_UKeyControl = false;
 
 		// Movement
 		private float m_MovementSpeed;
 		private float m_JumpVelocity = 7.5f;
 		private RigidBody2DComponent m_RigidBody;
+		private BoxCollider2DComponent m_BoxCollider;
 
 		private Entity m_CameraEntity = null;
 
+		private Entity m_BallTemplate;
+		private TimeStep m_Time = 0;
+
 		void OnCreate()
 		{
-			if (!HasComponent<RigidBody2DComponent>())
-				AddComponent<RigidBody2DComponent>();
+			m_BallTemplate = Scene.GetEntityByTag("BallTemplate");
 
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
+			m_BoxCollider = GetComponent<BoxCollider2DComponent>();
 
 			m_CameraEntity = Scene.GetEntityByTag("Camera");
 		}
@@ -34,6 +41,26 @@ namespace Sandbox
 		void OnUpdate(TimeStep ts)
 		{
 			Movement(ts);
+
+			if (UtilsKeyPressed(Key.U, ref m_UKeyControl))
+			{
+				CreateBall();
+			}
+
+			if (Input.KeyPressed(Key.T))
+			{
+				CreateBall();
+			}
+			else
+			{
+				m_Time += ts;
+				if (m_Time >= TimeStep.Sec(1.0f))
+				{
+					CreateBall();
+					m_Time = 0;
+				}
+			}
+
 			if (m_CameraEntity != null)
 			{
 				var translation = m_CameraEntity.Transform.Translation;
@@ -59,6 +86,15 @@ namespace Sandbox
 			//MovementForce(ts);
 			MovementLinearVelocity(ts);
 			MovementJump(ts);
+
+			if (UtilsKeyPressed(Key.I, ref m_IKeyControl))
+			{
+				m_BoxCollider.Restitution = 0.7f;
+			}
+			if (UtilsKeyPressed(Key.O, ref m_OKeyControl))
+			{
+				m_BoxCollider.Restitution = 0.0f;
+			}
 		}
 
 		private void MovementLinearVelocity(TimeStep ts)
@@ -73,12 +109,12 @@ namespace Sandbox
 
 			if (Input.KeyPressed(Key.D))
 			{
-				delta += new Vector2(1.0f, 0.01f) /* Vector2.Right*/ * m_MovementSpeed;
+				delta += Vector2.Right * m_MovementSpeed;
 			}
 
 			if (Input.KeyPressed(Key.A))
 			{
-				delta += new Vector2(-1.0f, 0.01f) /*Vector2.Left*/ * m_MovementSpeed;
+				delta += Vector2.Left * m_MovementSpeed;
 			}
 
 			var velocity = m_RigidBody.LinearVelocity;
@@ -112,6 +148,15 @@ namespace Sandbox
 				m_RigidBody.LinearVelocity = vel;
 				m_CanDoubleJump = false;
 			}
+		}
+
+		private void CreateBall()
+		{
+			var ball = Scene.CloneEntity(m_BallTemplate);
+			ball.Name = "Ball";
+			var rigidBody = ball.GetComponent<RigidBody2DComponent>();
+			rigidBody.Position = new Vector2(0.0f, 10.0f);
+			rigidBody.Enabled = true;
 		}
 
 		// until events are implemented this is the best solution for non repeating inputs

@@ -33,6 +33,12 @@ namespace Shark
 			return (T)Activator.CreateInstance(typeof(T), m_Handle);
 		}
 
+		public T GetOrAddComponent<T>() where T : Component
+		{
+			if (!HasComponent<T>())
+				InternalCalls.Entity_AddComponent(m_Handle, typeof(T));
+			return GetComponent<T>();
+		}
 		public T AddComponent<T>() where T : Component
 		{
 			InternalCalls.Entity_AddComponent(m_Handle, typeof(T));

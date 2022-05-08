@@ -3,7 +3,7 @@ using Shark;
 
 namespace Sandbox
 {
-	public class StressTest
+	public class StressTest : Entity
 	{
 		private TimeStep m_SpawnTimer = 2.0f;
 		private TimeStep m_Timer;
@@ -24,7 +24,7 @@ namespace Sandbox
 
 		void SpawnEntity()
 		{
-			for (uint i = 0; i < 200; i++)
+			for (uint i = 0; i < 2; i++)
 			{
 				var testScript = Scene.Instantiate<TestScript>("StressEntity");
 				testScript.Offset = new Vector3(
