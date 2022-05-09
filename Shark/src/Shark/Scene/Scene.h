@@ -4,12 +4,13 @@
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/TimeStep.h"
 
-#include "Shark/Scene/SceneCamera.h"
-#include "Shark/Render/EditorCamera.h"
-
 #include "Shark/Asset/Asset.h"
 
+#include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scene/Physics2DScene.h"
+#include "Shark/Render/EditorCamera.h"
+
+#include "Shark/Math/Bounds2.h"
 
 #include <entt.hpp>
 
@@ -55,6 +56,8 @@ namespace Shark {
 		void OnUpdateEditor(TimeStep ts);
 		void OnSimulate(TimeStep ts);
 
+		void OnEventRuntime(Event& event);
+
 		void OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const glm::mat4& viewProj);
 		void OnRenderRuntime(Ref<SceneRenderer> renderer);
 		void OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
@@ -81,9 +84,11 @@ namespace Shark {
 		void SetActiveCamera(UUID camera) { m_ActiveCameraUUID = camera; }
 		void ResizeCameras(float width, float height);
 
-		void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
-		uint32_t GetViewportWidth() const { return m_ViewportWidth; }
-		uint32_t GetViewportHeight() const { return m_ViewportHeight; }
+		void SetViewportBounds(const Bounds2i& bounds) { m_ViewportBounds = bounds; ResizeCameras((float)bounds.GetWidth(), (float)bounds.GetHeight()); }
+		const Bounds2i& GetViewportBounds() const { return m_ViewportBounds; }
+		//void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
+		uint32_t GetViewportWidth() const { return m_ViewportBounds.GetWidth(); }
+		uint32_t GetViewportHeight() const { return m_ViewportBounds.GetHeight(); }
 
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
 
@@ -109,7 +114,7 @@ namespace Shark {
 		entt::entity m_RuntimeCamera = entt::null;
 		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
 
-		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
+		Bounds2i m_ViewportBounds;
 
 		Physics2DScene m_PhysicsScene;
 		ContactListener m_ContactListener;

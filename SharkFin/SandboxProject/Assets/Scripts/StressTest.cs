@@ -15,7 +15,6 @@ namespace Sandbox
 
 			if (m_Timer > m_SpawnTimer)
 			{
-				Log.Debug("SpawnEntity");
 				SpawnEntity();
 				m_Timer = 0.0f;
 			}

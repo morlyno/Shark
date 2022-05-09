@@ -559,7 +559,7 @@ namespace Shark::UI {
 			for (T i = 0; i < (T)itemsCount; i++)
 			{
 				std::string_view currentItem = items[i];
-				if (ImGui::Selectable(currentItem.data(), currentItem.data() + currentItem.size(), i == index))
+				if (ImGui::Selectable(currentItem.data(), i == index))
 				{
 					index = i;
 					changed = true;

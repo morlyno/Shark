@@ -192,6 +192,8 @@ namespace Shark {
 		{
 			SK_CORE_INFO("ScriptEngine Shutdown");
 
+			UnloadAssembly();
+
 			mono_jit_cleanup(s_ScriptData.RootDomain);
 			s_ScriptData.RootDomain = nullptr;
 			s_ScriptData.RuntimeDomain = nullptr;
@@ -224,8 +226,6 @@ namespace Shark {
 		s_ScriptData.CoreImage = mono_assembly_get_image(s_ScriptData.CoreAssembly);
 		SK_CORE_ASSERT(s_ScriptData.CoreImage);
 
-		MonoGlue::Glue();
-
 		// Scripting
 		s_ScriptData.ScriptAssemblyPath = assemblyPath;
 		s_ScriptData.ScriptAssembly = mono_domain_assembly_open(s_ScriptData.RuntimeDomain, assemblyPath.c_str());
@@ -236,6 +236,8 @@ namespace Shark {
 
 		s_ScriptData.AssemblyLoaded = true;
 
+		MonoGlue::Glue();
+
 		return true;
 	}
 
@@ -243,9 +245,14 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (!s_ScriptData.AssemblyLoaded)
+			return;
+
 		SK_CORE_ASSERT(s_ScriptData.RootDomain != s_ScriptData.RuntimeDomain);
 
 		SK_CORE_INFO("ScriptEngine Assembly Unloaded");
+
+		MonoGlue::UnGlue();
 
 		s_ScriptData.AssemblyLoaded = false;
 
@@ -320,6 +327,19 @@ namespace Shark {
 		return GetMethodInternal(methodName, includeNameSpace, s_ScriptData.CoreImage);
 	}
 
+	MonoMethod* ScriptEngine::GetClassMethod(MonoClass* clazz, const std::string& methodName, bool includeNameSpace)
+	{
+		SK_PROFILE_FUNCTION();
+
+		if (MonoMethodDesc* methodDesc = mono_method_desc_new(methodName.c_str(), includeNameSpace))
+		{
+			MonoMethod* method = mono_method_desc_search_in_class(methodDesc, clazz);
+			mono_method_desc_free(methodDesc);
+			return method;
+		}
+		return nullptr;
+	}
+
 	MonoObject* ScriptEngine::CallMethodInternal(MonoMethod* method, void* object, void** args)
 	{
 		SK_PROFILE_FUNCTION();
@@ -335,7 +355,7 @@ namespace Shark {
 		return retVal;
 	}
 
-	MonoMethod* ScriptEngine::GetMethodInternal(const std::string methodName, bool includeNameSpace, MonoImage* image)
+	MonoMethod* ScriptEngine::GetMethodInternal(const std::string& methodName, bool includeNameSpace, MonoImage* image)
 	{
 		SK_PROFILE_FUNCTION();
 

@@ -65,6 +65,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (event.Handled)
+			return;
+
 		if (event.GetEventType() == MouseScrolledEvent::GetStaticType())
 		{
 			static constexpr float scroll = 7.5f;

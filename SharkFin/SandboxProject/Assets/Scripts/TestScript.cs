@@ -25,8 +25,6 @@ namespace Sandbox
 			m_SpriteRenderer.Color = Color.Back;
 
 			m_Offset = Transform.Translation;
-
-			Log.Debug("TestScript.OnCreate");
 		}
 
 		void OnUpdate(TimeStep ts)

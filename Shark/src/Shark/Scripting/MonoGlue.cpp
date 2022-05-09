@@ -8,6 +8,10 @@
 #include "Shark/Scripting/ScriptManager.h"
 #include "Shark/Scene/Components.h"
 
+#include "Shark/Event/KeyEvent.h"
+
+#include "Shark/Utils/MemoryUtils.h"
+
 #include "Shark/Debug/Instrumentor.h"
 
 #include <mono/metadata/appdomain.h>
@@ -17,6 +21,7 @@
 #include <box2d/b2_contact.h>
 #include <box2d/b2_polygon_shape.h>
 #include <box2d/b2_circle_shape.h>
+#include "../Event/MouseEvent.h"
 
 #define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" SK_STRINGIFY(func), SK_CONNECT(&InternalCalls::, func));
 #define SK_ADD_COMPONENT_BINDING(comp)\
@@ -67,6 +72,18 @@ namespace Shark {
 
 	static std::unordered_map<std::string_view, EntityBindings> s_EntityBindings;
 
+	struct MonoGlueData
+	{
+		MonoMethod* RaiseOnKeyPressedEvent = nullptr;
+		MonoMethod* RaiseOnKeyReleasedEvent = nullptr;
+		MonoMethod* RaiseOnMouseMovedEvent = nullptr;
+		MonoMethod* RaiseOnMouseButtonPressedEvent = nullptr;
+		MonoMethod* RaiseOnMouseButtonReleasedEvent = nullptr;
+		MonoMethod* RaiseOnMouseButtonDoubleClickedEvent = nullptr;
+		MonoMethod* RaiseOnMouseScrolledEvent = nullptr;
+	};
+	static MonoGlueData s_MonoGlue;
+
 	namespace utils {
 
 		static Entity GetEntityActiveScene(UUID uuid)
@@ -104,8 +121,30 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		s_MonoGlue.RaiseOnKeyPressedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnKeyPressed");
+		s_MonoGlue.RaiseOnKeyReleasedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnKeyReleased");
+		s_MonoGlue.RaiseOnMouseMovedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseMoved");
+		s_MonoGlue.RaiseOnMouseButtonPressedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonPressed");
+		s_MonoGlue.RaiseOnMouseButtonReleasedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonReleased");
+		s_MonoGlue.RaiseOnMouseButtonDoubleClickedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonDoubleClicked");
+		s_MonoGlue.RaiseOnMouseScrolledEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseScrolled");
+
+		SK_CORE_ASSERT(s_MonoGlue.RaiseOnKeyPressedEvent);
+		SK_CORE_ASSERT(s_MonoGlue.RaiseOnKeyReleasedEvent);
+		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseMovedEvent);
+		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseButtonPressedEvent);
+		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseButtonReleasedEvent);
+		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseButtonDoubleClickedEvent);
+		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseScrolledEvent);
+
 		RegisterComponents();
 		RegsiterInternalCalls();
+	}
+
+	void MonoGlue::UnGlue()
+	{
+		MemoryUtils::ZeroMemory(s_MonoGlue);
+		s_EntityBindings.clear();
 	}
 
 	void MonoGlue::CallCollishionBegin(Entity entityA, Entity entityB)
@@ -156,6 +195,19 @@ namespace Shark {
 
 	}
 
+	void MonoGlue::OnEvent(Event& event)
+	{
+		EventDispacher dispacher(event);
+		dispacher.DispachEventAlways<KeyPressedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnKeyPressedEvent, nullptr, e.GetKeyCode(), e.IsRepeat()); return false; });
+		dispacher.DispachEventAlways<KeyReleasedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnKeyReleasedEvent, nullptr, e.GetKeyCode()); return false; });
+
+		dispacher.DispachEventAlways<MouseMovedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseMovedEvent, nullptr, e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseButtonPressedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseButtonPressedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseButtonReleasedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseButtonReleasedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseButtonDoubleClickedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseButtonDoubleClickedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseScrolledEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseScrolledEvent, nullptr, e.GetDelta(), e.GetMousePos()); return false; });
+	}
+
 	void MonoGlue::RegisterComponents()
 	{
 		SK_PROFILE_FUNCTION();
@@ -181,7 +233,7 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Input_KeyPressed);
 		SK_ADD_INTERNAL_CALL(Input_MouseButtonPressed);
 		SK_ADD_INTERNAL_CALL(Input_GetMousePos);
-		SK_ADD_INTERNAL_CALL(Input_GetMousePosTotal);
+		SK_ADD_INTERNAL_CALL(Input_GetMousePosGlobal);
 
 		SK_ADD_INTERNAL_CALL(Matrix4_Inverse);
 		SK_ADD_INTERNAL_CALL(Matrix4_Matrix4MulMatrix4);
@@ -195,6 +247,7 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Scene_IsValidEntityHandle);
 		SK_ADD_INTERNAL_CALL(Scene_GetActiveCameraUUID);
 		SK_ADD_INTERNAL_CALL(Scene_GetUUIDFromTag);
+		SK_ADD_INTERNAL_CALL(Scene_GetViewportBounds);
 
 		SK_ADD_INTERNAL_CALL(Entity_GetName);
 		SK_ADD_INTERNAL_CALL(Entity_SetName);
@@ -341,14 +394,16 @@ namespace Shark {
 			return Input::MousePressed(button);
 		}
 
-		glm::ivec2 Input_GetMousePos()
+		Vector2i Input_GetMousePos()
 		{
-			return Input::MousePos();
+			auto p = Input::MousePos();
+			return { p.x, p.y };
 		}
 
-		glm::ivec2 Input_GetMousePosTotal()
+		Vector2i Input_GetMousePosGlobal()
 		{
-			return Input::GlobalMousePos();
+			auto p = Input::GlobalMousePos();
+			return { p.x, p.y };
 		}
 
 		#pragma endregion
@@ -475,7 +530,15 @@ namespace Shark {
 			}
 		}
 
-		#pragma endregion
+		Bounds2i Scene_GetViewportBounds()
+		{
+			SK_PROFILE_FUNCTION();
+
+			Ref<Scene> scene = ScriptEngine::GetActiveScene();
+			return scene->GetViewportBounds();
+		}
+
+#pragma endregion
 
 		#pragma region Entity
 

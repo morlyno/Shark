@@ -116,7 +116,7 @@ namespace Shark {
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(Application::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>([this](KeyPressedEvent& event) { return OnKeyPressed(event); });
 
-		for (auto it = m_LayerStack.begin(); it != m_LayerStack.end() && !event.Handled; ++it)
+		for (auto it = m_LayerStack.begin(); it != m_LayerStack.end(); ++it)
 			(*it)->OnEvent(event);
 
 		return event.Handled;

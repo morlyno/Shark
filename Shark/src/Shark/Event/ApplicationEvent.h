@@ -7,13 +7,13 @@
 
 namespace Shark {
 
-	class ApplicationCloseEvent : public EventBase<EventTypes::ApplicationClosed, EventCategoryApplication>
+	class ApplicationCloseEvent : public EventBase<EventType::ApplicationClosed, EventCategory::Application>
 	{
 	public:
 		ApplicationCloseEvent() = default;
 	};
 
-	class SceneChangedEvent : public EventBase<EventTypes::SceneChanged, EventCategoryApplication>
+	class SceneChangedEvent : public EventBase<EventType::SceneChanged, EventCategory::Application>
 	{
 	public:
 		SceneChangedEvent(Ref<Scene> scene)
@@ -26,7 +26,7 @@ namespace Shark {
 		Ref<Scene> m_Scene;
 	};
 
-	class ProjectChangedEvnet : public EventBase<EventTypes::ProjectChanged, EventCategoryApplication>
+	class ProjectChangedEvnet : public EventBase<EventType::ProjectChanged, EventCategory::Application>
 	{
 	public:
 		ProjectChangedEvnet(Ref<Project> project)

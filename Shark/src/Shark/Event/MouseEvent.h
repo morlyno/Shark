@@ -5,10 +5,10 @@
 
 namespace Shark {
 
-	class MouseMoveEvent : public EventBase<EventTypes::MouseMove, EventCategoryInput | EventCategoryMouse>
+	class MouseMovedEvent : public EventBase<EventType::MouseMoved, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
-		MouseMoveEvent(const glm::ivec2& mousepos)
+		MouseMovedEvent(const glm::ivec2& mousepos)
 			: m_MousePos(mousepos)
 		{}
 
@@ -22,7 +22,7 @@ namespace Shark {
 		glm::ivec2 m_MousePos;
 	};
 
-	class MouseButtonPressedEvent : public EventBase<EventTypes::MouseButtonPressed, EventCategoryInput | EventCategoryMouse>
+	class MouseButtonPressedEvent : public EventBase<EventType::MouseButtonPressed, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
 		MouseButtonPressedEvent(const glm::ivec2& mousePos, MouseButton::Type button)
@@ -41,7 +41,7 @@ namespace Shark {
 		MouseButton::Type m_Button;
 	};
 
-	class MouseButtonReleasedEvent : public EventBase<EventTypes::MouseButtonReleasd, EventCategoryInput | EventCategoryMouse>
+	class MouseButtonReleasedEvent : public EventBase<EventType::MouseButtonReleasd, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
 		MouseButtonReleasedEvent(const glm::ivec2& mousePos, MouseButton::Type button)
@@ -60,10 +60,10 @@ namespace Shark {
 		MouseButton::Type m_Button;
 	};
 
-	class MouseButtonDoubleClicked : public EventBase<EventTypes::MouseButtonDoubleClicked, EventCategoryInput | EventCategoryMouse>
+	class MouseButtonDoubleClickedEvent : public EventBase<EventType::MouseButtonDoubleClicked, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
-		MouseButtonDoubleClicked(const glm::ivec2& mousePos, MouseButton::Type button)
+		MouseButtonDoubleClickedEvent(const glm::ivec2& mousePos, MouseButton::Type button)
 			: m_MousePos(mousePos), m_Button(button)
 		{}
 
@@ -79,7 +79,7 @@ namespace Shark {
 		MouseButton::Type m_Button;
 	};
 
-	class MouseScrolledEvent : public EventBase<EventTypes::MouseScrolled, EventCategoryInput | EventCategoryMouse>
+	class MouseScrolledEvent : public EventBase<EventType::MouseScrolled, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
 		MouseScrolledEvent(const glm::ivec2& mousePos, float delta)

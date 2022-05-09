@@ -25,14 +25,14 @@ namespace Shark
 		internal static extern bool Input_KeyPressed(Key key);
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern bool Input_MouseButtonPressed(Mouse button);
+		internal static extern bool Input_MouseButtonPressed(MouseButton button);
 		
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern Vector2i Input_GetMousePos();
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern Vector2i Input_GetMousePosTotal();
+		internal static extern Vector2i Input_GetMousePosGlobal();
 
 		#endregion
 
@@ -74,6 +74,9 @@ namespace Shark
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern void Scene_GetUUIDFromTag(string tag, out UUID out_UUID);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern Bounds2i Scene_GetViewportBounds();
 
 		#endregion
 

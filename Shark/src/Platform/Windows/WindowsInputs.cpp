@@ -34,7 +34,7 @@ namespace Shark {
 	}
 
 	glm::ivec2 Input::MousePos()
-{
+	{
 		POINT pos;
 		GetCursorPos(&pos);
 		auto& window = Application::Get().GetWindow();

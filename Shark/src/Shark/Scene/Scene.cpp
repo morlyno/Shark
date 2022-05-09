@@ -78,8 +78,9 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		auto newScene = Ref<Scene>::Create();
-		newScene->m_ViewportWidth = srcScene->m_ViewportWidth;
-		newScene->m_ViewportHeight = srcScene->m_ViewportHeight;
+		newScene->m_ViewportBounds = srcScene->m_ViewportBounds;
+		//newScene->m_ViewportWidth = srcScene->m_ViewportWidth;
+		//newScene->m_ViewportHeight = srcScene->m_ViewportHeight;
 		newScene->m_ActiveCameraUUID = srcScene->m_ActiveCameraUUID;
 
 		auto& srcRegistry = srcScene->m_Registry;
@@ -190,7 +191,7 @@ namespace Shark {
 			m_ActiveCameraUUID = cameraEntity.GetUUID();
 			m_RuntimeCamera = cameraEntity;
 		}
-		ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
+		ResizeCameras((float)m_ViewportBounds.GetWidth(), (float)m_ViewportBounds.GetHeight());
 	}
 
 	void Scene::OnSceneStop()
@@ -318,6 +319,12 @@ namespace Shark {
 			transform.Position.y = pos.y;
 			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 		}
+	}
+
+	void Scene::OnEventRuntime(Event& event)
+	{
+		// passes events to scripts
+		MonoGlue::OnEvent(event);
 	}
 
 	void Scene::OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const glm::mat4& viewProj)
@@ -610,6 +617,7 @@ namespace Shark {
 				bodydef.awake = rb2d.Awake;
 				bodydef.enabled = rb2d.Enabled;
 				bodydef.gravityScale = rb2d.GravityScale;
+				bodydef.allowSleep = rb2d.AllowSleep;
 				bodydef.userData.pointer = (uintptr_t)entity.GetUUID();
 
 				rb2d.RuntimeBody = world->CreateBody(&bodydef);

@@ -5,7 +5,7 @@
 
 namespace Shark {
 
-	class KeyPressedEvent : public EventBase<EventTypes::KeyPressed, EventCategoryInput | EventCategoryKeyboard>
+	class KeyPressedEvent : public EventBase<EventType::KeyPressed, EventCategory::Input | EventCategory::Keyboard>
 	{
 	public:
 		KeyPressedEvent(KeyCode keycode, bool isRepeat, bool altPressed)
@@ -24,7 +24,7 @@ namespace Shark {
 		bool m_AltPressed;
 	};
 
-	class KeyReleasedEvent : public EventBase<EventTypes::KeyReleased, EventCategoryInput | EventCategoryKeyboard>
+	class KeyReleasedEvent : public EventBase<EventType::KeyReleased, EventCategory::Input | EventCategory::Keyboard>
 	{
 	public:
 		KeyReleasedEvent(KeyCode keycode)
@@ -38,7 +38,7 @@ namespace Shark {
 		KeyCode m_KeyCode;
 	};
 
-	class KeyCharacterEvent : public EventBase<EventTypes::KeyCharacter, EventCategoryInput | EventCategoryKeyboard>
+	class KeyCharacterEvent : public EventBase<EventType::KeyCharacter, EventCategory::Input | EventCategory::Keyboard>
 	{
 	public:
 		KeyCharacterEvent(KeyCode Character, bool isRepeat)

@@ -12,6 +12,7 @@ namespace Shark {
 		bool IsBullet = false;
 		bool Awake = true;
 		bool Enabled = true;
+		bool AllowSleep = true;
 		float GravityScale = 1.0f;
 
 		b2Body* RuntimeBody = nullptr;

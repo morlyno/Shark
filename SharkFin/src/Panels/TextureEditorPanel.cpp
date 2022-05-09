@@ -45,9 +45,10 @@ namespace Shark {
 
 
 		m_Scene = Ref<Scene>::Create();
-		m_Scene->SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
+		m_Scene->SetViewportBounds(m_ViewportBounds);
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
-		m_Camera.SetProjection((float)m_ViewportSize.x / (float)m_ViewportSize.y, 45, 0.01f, 1000.0f);
+		const auto viewportSize = m_ViewportBounds.GetSize();
+		m_Camera.SetProjection((float)viewportSize.x / (float)viewportSize.y, 45, 0.01f, 1000.0f);
 		m_Camera.SetDistance(1.5f);
 
 
@@ -68,13 +69,14 @@ namespace Shark {
 		if (!m_Active)
 			return;
 
-		if (m_NeedsResize && m_ViewportSize.x != 0 && m_ViewportSize.y != 0)
+		const auto viewportSize = m_ViewportBounds.GetSize();
+		if (m_NeedsResize && viewportSize.x != 0 && viewportSize.y != 0)
 		{
 			SK_CORE_INFO("TextureEditorPanel::OnUpdate Resize");
 
-			m_Camera.Resize((float)m_ViewportSize.x, (float)m_ViewportSize.y);
-			m_Scene->SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
-			m_Renderer->Resize(m_ViewportSize.x, m_ViewportSize.y);
+			m_Camera.Resize((float)viewportSize.x, (float)viewportSize.y);
+			m_Scene->SetViewportBounds(m_ViewportBounds);
+			m_Renderer->Resize(viewportSize.x, viewportSize.y);
 			m_NeedsResize = false;
 		}
 
@@ -137,10 +139,13 @@ namespace Shark {
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
 		const ImVec2 size = ImGui::GetContentRegionAvail();
-		if ((float)m_ViewportSize.x != size.x || (float)m_ViewportSize.y != size.y)
+		const auto viewportSize = m_ViewportBounds.GetSize();
+		if ((float)viewportSize.x != size.x || (float)viewportSize.y != size.y)
 		{
-			SK_CORE_WARN("Resize detected: {} => {}", m_ViewportSize, size);
-			m_ViewportSize = (glm::uvec2)size;
+			SK_CORE_WARN("Resize detected: {} => {}", viewportSize, size);
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			m_ViewportBounds.LowerBound = { (int)window->ContentRegionRect.Min.x, (int)window->ContentRegionRect.Min.y };
+			m_ViewportBounds.UpperBound = { (int)window->ContentRegionRect.Max.x, (int)window->ContentRegionRect.Max.y };
 			m_NeedsResize = true;
 		}
 
@@ -292,7 +297,9 @@ namespace Shark {
 		}
 
 		ImGuiDockNode* viewportNode = ImGui::FindWindowByID(m_ViewportID)->DockNode;
-		m_ViewportSize = { viewportNode->Size.x, viewportNode->Size.y };
+		ImRect rect = viewportNode->Rect();
+		m_ViewportBounds.LowerBound = { (int)rect.Min.x, (int)rect.Min.y };
+		m_ViewportBounds.UpperBound = { (int)rect.Max.x, (int)rect.Max.y };
 	}
 
 }

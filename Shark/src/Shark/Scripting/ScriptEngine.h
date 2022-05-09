@@ -30,27 +30,42 @@ namespace Shark {
 
 		static bool AssemblyHasScript(const std::string& className);
 
-
 		static MonoMethod* GetMethod(const std::string& methodName, bool includeNameSpace = true);
 		static MonoMethod* GetMethodCore(const std::string& methodName, bool includeNameSpace = true);
 
+		static MonoMethod* GetClassMethod(MonoClass* clazz, const std::string& methodName, bool includeNameSpace = true);
 
+	private:
+		template<typename T>
+		static auto ToPointer(const T* val) { return val; }
+		
+		template<typename T>
+		static auto ToPointer(const T& val) { return &val; }
+		
+		template<typename T>
+		static auto ToPointer(T* val) { return val; }
+		
+		template<typename T>
+		static auto ToPointer(T& val) { return &val; }
+
+	public:
 		template<typename... Args>
-		static MonoObject* CallMethod(MonoMethod* method, void* object, Args*... arguments)
+		static MonoObject* CallMethod(MonoMethod* method, void* object, Args&&... arguments)
 		{
 			if constexpr (sizeof... (arguments) > 0)
 			{
-				void* args[] = {
-					arguments...
+				// Note(moro): stupid hack
+				const void* args[] = {
+					ToPointer(arguments)...
 				};
-				return CallMethodInternal(method, object, args);
+				return CallMethodInternal(method, object, (void**)args);
 			}
 			return CallMethodInternal(method, object, nullptr);
 		}
 
 	private:
 		static MonoObject* CallMethodInternal(MonoMethod* method, void* object, void** args);
-		static MonoMethod* GetMethodInternal(const std::string methodName, bool includeNameSpace, MonoImage* image);
+		static MonoMethod* GetMethodInternal(const std::string& methodName, bool includeNameSpace, MonoImage* image);
 
 	private:
 		static void CheckForModuleUpdate();

@@ -95,8 +95,11 @@ namespace Shark {
 		if (m_BlockEvents)
 		{
 			ImGuiIO& io = ImGui::GetIO();
-			event.Handled |= event.IsInCategory(EventCategoryMouse) && io.WantCaptureMouse;
-			event.Handled |= event.IsInCategory(EventCategoryKeyboard) && io.WantCaptureKeyboard;
+			event.Handled |= event.IsInCategory(EventCategory::Mouse) && io.WantCaptureMouse;
+			event.Handled |= event.IsInCategory(EventCategory::Keyboard) && io.WantCaptureKeyboard;
+
+			if (event.Handled)
+				event.Status |= EventStatus::BlockedByImGui;
 		}
 	}
 

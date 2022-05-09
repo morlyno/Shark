@@ -228,7 +228,7 @@ namespace Shark {
 				POINT point = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 
 				glm::ivec2 mousePos = { point.x, point.y };
-				const bool handled = m_Callbackfunc(MouseMoveEvent(mousePos));
+				const bool handled = m_Callbackfunc(MouseMovedEvent(mousePos));
 
 				return handled ? 0 : 1;
 			}
@@ -314,7 +314,7 @@ namespace Shark {
 				}
 				else if (doubleClick)
 				{
-					handled = m_Callbackfunc(MouseButtonDoubleClicked(mousePos, mouseButton));
+					handled = m_Callbackfunc(MouseButtonDoubleClickedEvent(mousePos, mouseButton));
 				}
 				else
 				{

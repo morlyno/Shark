@@ -174,6 +174,7 @@ namespace Shark {
 			out << YAML::Key << "Awake" << YAML::Value << comp.Awake;
 			out << YAML::Key << "Enabled" << YAML::Value << comp.Enabled;
 			out << YAML::Key << "GravityScale" << YAML::Value << comp.GravityScale;
+			out << YAML::Key << "AllowSleep" << YAML::Value << comp.AllowSleep;
 
 			out << YAML::EndMap;
 		}
@@ -468,6 +469,7 @@ namespace Shark {
 					auto awake = rigidBody2DComponent["Awake"];
 					auto enabled = rigidBody2DComponent["Enabled"];
 					auto gravityScale = rigidBody2DComponent["GravityScale"];
+					auto allowSleep = rigidBody2DComponent["AllowSleep"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<RigidBody2DComponent>();
 
@@ -488,6 +490,9 @@ namespace Shark {
 
 					SK_CORE_ASSERT(gravityScale, "Couldn't desirialize RigidBody2DComponent::GravityScale");
 					comp.GravityScale = gravityScale.as<float>();
+					
+					SK_CORE_ASSERT(allowSleep, "Couldn't desirialize RigidBody2DComponent::AllowSleep");
+					comp.AllowSleep = gravityScale.as<bool>(true);
 
 					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", Convert::BodyTypeToString(comp.Type));
 				}

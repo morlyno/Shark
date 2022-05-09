@@ -441,15 +441,14 @@ namespace Shark {
 
 		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)
 		{
-			int bodyType = (int)comp.Type;
-
 			UI::BeginControlsGrid();
-			UI::Control("Body Type", bodyType, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0]));
+			UI::Control("Body Type", (int&)comp.Type, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0]));
 			UI::Control("Fixed Rotation", comp.FixedRotation);
 			UI::Control("Bullet", comp.IsBullet);
 			UI::Control("Awake", comp.Awake);
 			UI::Control("Enabled", comp.Enabled);
 			UI::Control("Gravity Scale", comp.GravityScale);
+			UI::Control("Allow Sleep", comp.AllowSleep);
 			UI::EndControlsGrid();
 		});
 		

@@ -1,5 +1,7 @@
 ﻿
 using Shark;
+using Shark.KeyEvents;
+using Shark.MouseEvents;
 
 namespace Sandbox
 {
@@ -8,10 +10,6 @@ namespace Sandbox
 	{
 		private bool m_CanJump = true;
 		private bool m_CanDoubleJump = true;
-		private bool m_SpaceKeyControl = false;
-		private bool m_IKeyControl = false;
-		private bool m_OKeyControl = false;
-		private bool m_UKeyControl = false;
 
 		// Movement
 		private float m_MovementSpeed;
@@ -23,6 +21,7 @@ namespace Sandbox
 
 		private Entity m_BallTemplate;
 		private TimeStep m_Time = 0;
+		private bool m_AutoSpawnBalls = false;
 
 		void OnCreate()
 		{
@@ -32,26 +31,26 @@ namespace Sandbox
 			m_BoxCollider = GetComponent<BoxCollider2DComponent>();
 
 			m_CameraEntity = Scene.GetEntityByTag("Camera");
+
+			EventHandler.OnKeyPressed += OnKeyPressed;
+			EventHandler.OnMouseScrolled += OnMouseScrolled;
 		}
 
 		void OnDestroy()
 		{
+			EventHandler.OnKeyPressed -= OnKeyPressed;
+			EventHandler.OnMouseScrolled -= OnMouseScrolled;
 		}
 
 		void OnUpdate(TimeStep ts)
 		{
 			Movement(ts);
 
-			if (UtilsKeyPressed(Key.U, ref m_UKeyControl))
-			{
-				CreateBall();
-			}
-
 			if (Input.KeyPressed(Key.T))
 			{
 				CreateBall();
 			}
-			else
+			else if (m_AutoSpawnBalls)
 			{
 				m_Time += ts;
 				if (m_Time >= TimeStep.Sec(1.0f))
@@ -70,6 +69,63 @@ namespace Sandbox
 			}
 		}
 
+		void OnKeyPressed(KeyPressedEvent e)
+		{
+			switch (e.Key)
+			{
+				case Key.U:
+				{
+					CreateBall();
+					break;
+				}
+				case Key.I:
+				{
+					m_BoxCollider.Restitution = 0.7f;
+					break;
+				}
+				case Key.O:
+				{
+					m_BoxCollider.Restitution = 0.0f;
+					break;
+				}
+				case Key.Space:
+				{
+					if (e.IsRepeat)
+						break;
+
+					if (m_CanJump)
+					{
+						var vel = m_RigidBody.LinearVelocity;
+						vel.Y = m_JumpVelocity;
+						m_RigidBody.LinearVelocity = vel;
+						m_CanJump = false;
+					}
+					else if (m_CanDoubleJump)
+					{
+						var vel = m_RigidBody.LinearVelocity;
+						vel.Y = m_JumpVelocity;
+						m_RigidBody.LinearVelocity = vel;
+						m_CanDoubleJump = false;
+					}
+					break;
+				}
+				case Key.P:
+				{
+					if (!e.IsRepeat)
+						m_AutoSpawnBalls = !m_AutoSpawnBalls;
+					break;
+				}
+			}
+
+		}
+
+		void OnMouseScrolled(MouseScrolledEvent e)
+		{
+			var translation = m_CameraEntity.Transform.Translation;
+			translation.Z += e.Delta;
+			m_CameraEntity.Transform.Translation = translation;
+		}
+
 		void OnCollishionBegin(Entity entity)
 		{
 			m_CanJump = true;
@@ -85,16 +141,6 @@ namespace Sandbox
 		{
 			//MovementForce(ts);
 			MovementLinearVelocity(ts);
-			MovementJump(ts);
-
-			if (UtilsKeyPressed(Key.I, ref m_IKeyControl))
-			{
-				m_BoxCollider.Restitution = 0.7f;
-			}
-			if (UtilsKeyPressed(Key.O, ref m_OKeyControl))
-			{
-				m_BoxCollider.Restitution = 0.0f;
-			}
 		}
 
 		private void MovementLinearVelocity(TimeStep ts)
@@ -131,25 +177,6 @@ namespace Sandbox
 				m_RigidBody.ApplyForce(Vector2.Right * 1500.0f);
 		}
 
-		private void MovementJump(TimeStep ts)
-		{
-			bool spacePressed = UtilsKeyPressed(Key.Space, ref m_SpaceKeyControl);
-			if (m_CanJump && spacePressed)
-			{
-				var vel = m_RigidBody.LinearVelocity;
-				vel.Y = m_JumpVelocity;
-				m_RigidBody.LinearVelocity = vel;
-				m_CanJump = false;
-			}
-			else if (m_CanDoubleJump && spacePressed)
-			{
-				var vel = m_RigidBody.LinearVelocity;
-				vel.Y = m_JumpVelocity;
-				m_RigidBody.LinearVelocity = vel;
-				m_CanDoubleJump = false;
-			}
-		}
-
 		private void CreateBall()
 		{
 			var ball = Scene.CloneEntity(m_BallTemplate);
@@ -157,22 +184,6 @@ namespace Sandbox
 			var rigidBody = ball.GetComponent<RigidBody2DComponent>();
 			rigidBody.Position = new Vector2(0.0f, 10.0f);
 			rigidBody.Enabled = true;
-		}
-
-		// until events are implemented this is the best solution for non repeating inputs
-		private static bool UtilsKeyPressed(Key key, ref bool control)
-		{
-			if (Input.KeyPressed(key))
-			{
-				if (control)
-				{
-					control = false;
-					return true;
-				}
-				return false;
-			}
-			control = true;
-			return false;
 		}
 
 	}

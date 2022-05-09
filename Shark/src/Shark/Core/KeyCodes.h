@@ -8,6 +8,8 @@ namespace Shark {
 
 		enum : KeyCode
 		{
+			Invalid                    = 0,
+
 			BackSpace                  = 0x08,
 			Tab                        = 0x09,
 

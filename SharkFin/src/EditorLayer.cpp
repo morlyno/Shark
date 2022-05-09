@@ -73,6 +73,9 @@ namespace Shark {
 		auto& window = Application::Get().GetWindow();
 		m_ViewportWidth = window.GetWidth();
 		m_ViewportHeight = window.GetHeight();
+		m_ViewportBounds.LowerBound = window.GetPos();
+		m_ViewportBounds.UpperBound = window.GetPos() + (glm::ivec2)window.GetSize();
+
 		m_EditorCamera.SetProjection(16.0f / 9.0f, 45, 0.01f, 1000.0f);
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
@@ -118,7 +121,7 @@ namespace Shark {
 			{
 				SK_PROFILE_SCOPED("EditorLayer::OnUpdate Resize");
 
-				m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+				m_ActiveScene->SetViewportBounds(m_ViewportBounds);
 
 				m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_CameraPreviewRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -179,6 +182,10 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		// Cut off all events that got handled by ImGui
+		if (event.Status & EventStatus::BlockedByImGui)
+			return;
+
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
@@ -187,6 +194,11 @@ namespace Shark {
 			m_EditorCamera.OnEvent(event);
 
 		m_PanelManager->OnEvent(event);
+
+		// Note(moro): m_ActiveScene is null when the project closes
+		//             this triggers a scene changed (Scene==null) and project changed event
+		if (m_ActiveScene && m_SceneState == SceneState::Play)
+			m_ActiveScene->OnEventRuntime(event);
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -503,7 +515,8 @@ namespace Shark {
 			m_ViewportHeight = (uint32_t)size.y;
 
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
-			m_ViewportBounds = window->ContentRegionRect;
+			m_ViewportBounds.LowerBound = { (int)window->ContentRegionRect.Min.x, (int)window->ContentRegionRect.Min.y };
+			m_ViewportBounds.UpperBound = { (int)window->ContentRegionRect.Max.x, (int)window->ContentRegionRect.Max.y };
 
 			m_NeedsResize = true;
 		}
@@ -1389,7 +1402,8 @@ namespace Shark {
 		SK_PERF_SCOPED("Mouse Picking");
 		
 		auto [mx, my] = ImGui::GetMousePos();
-		auto [wx, wy] = m_ViewportBounds.Min;
+		float wx = (float)m_ViewportBounds.LowerBound.x;
+		float wy = (float)m_ViewportBounds.LowerBound.y;
 		int x = (int)(mx - wx);
 		int y = (int)(my - wy);
 		m_HoveredEntityID = -1;
@@ -1739,7 +1753,7 @@ namespace Shark {
 		if (scene)
 		{
 			scene->IsEditorScene(m_InitialSceneState != SceneState::Play);
-			scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+			scene->SetViewportBounds(m_ViewportBounds);
 		}
 
 		m_ActiveScene = scene;

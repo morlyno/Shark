@@ -4,13 +4,13 @@
 
 namespace Shark {
 
-	class WindowCloseEvent : public EventBase<EventTypes::WindowClose, EventCategoryWindow>
+	class WindowCloseEvent : public EventBase<EventType::WindowClose, EventCategory::Window>
 	{
 	public:
 		WindowCloseEvent() = default;
 	};
 
-	class WindowResizeEvent : public EventBase<EventTypes::WindowResize, EventCategoryWindow>
+	class WindowResizeEvent : public EventBase<EventType::WindowResize, EventCategory::Window>
 	{
 	public:
 		enum class State { Resize = 0, Maximized, Minimized };
@@ -44,7 +44,7 @@ namespace Shark {
 		State m_State;
 	};
 
-	class WindowMoveEvent : public EventBase<EventTypes::WindowMove, EventCategoryWindow>
+	class WindowMoveEvent : public EventBase<EventType::WindowMove, EventCategory::Window>
 	{
 	public:
 		WindowMoveEvent(int x, int y)
@@ -60,7 +60,7 @@ namespace Shark {
 		int m_X, m_Y;
 	};
 
-	class WindowFocusEvent : public EventBase<EventTypes::WindowFocus, EventCategoryWindow>
+	class WindowFocusEvent : public EventBase<EventType::WindowFocus, EventCategory::Window>
 	{
 	public:
 		WindowFocusEvent(int x, int y)
@@ -76,7 +76,7 @@ namespace Shark {
 		int m_X, m_Y;
 	};
 
-	class WindowLostFocusEvent : public EventBase<EventTypes::WindowLostFocus, EventCategoryWindow>
+	class WindowLostFocusEvent : public EventBase<EventType::WindowLostFocus, EventCategory::Window>
 	{
 	public:
 		WindowLostFocusEvent() = default;

@@ -194,7 +194,7 @@ namespace Shark
 		OemClear                   = 0xFE
 	}
 
-	public enum Mouse : ushort
+	public enum MouseButton : ushort
 	{
 		Left,
 		Right,
@@ -205,18 +205,20 @@ namespace Shark
 		Invalid
 	}
 
-	public struct Vector2i
-	{
-		public int X;
-		public int Y;
-	}
-
 	public static class Input
 	{
 		public static bool KeyPressed(Key key) => InternalCalls.Input_KeyPressed(key);
-		public static bool MouseButtonPressed(Mouse button) => InternalCalls.Input_MouseButtonPressed(button);
-		public static Vector2i MousePos => InternalCalls.Input_GetMousePos();
-		public static Vector2i MousePosTotal => InternalCalls.Input_GetMousePosTotal();
+		public static bool MouseButtonPressed(MouseButton button) => InternalCalls.Input_MouseButtonPressed(button);
+		public static Vector2i MousePos
+		{
+			get
+			{
+				Vector2i mousePos = InternalCalls.Input_GetMousePosGlobal();
+				Bounds2i viewportBounds = Scene.GetViewportBounds();
+				return mousePos - viewportBounds.LowerBound;
+			}
+		}
+		public static Vector2i MousePosTotal => InternalCalls.Input_GetMousePosGlobal();
 	}
 
 }

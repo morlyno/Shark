@@ -63,7 +63,7 @@ namespace Shark {
 		if (m_OnUpdate)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
-			ScriptEngine::CallMethod(m_OnUpdate, object, &ts);
+			ScriptEngine::CallMethod(m_OnUpdate, object, ts);
 		}
 	}
 

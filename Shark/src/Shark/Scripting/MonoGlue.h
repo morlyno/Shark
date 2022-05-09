@@ -6,6 +6,10 @@
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Core/Input.h"
 
+#include "Shark/Event/Event.h"
+
+#include "Shark/Math/Bounds2.h"
+
 #include <mono/metadata/object.h>
 
 namespace Shark {
@@ -16,9 +20,12 @@ namespace Shark {
 	{
 	public:
 		static void Glue();
+		static void UnGlue();
 
 		static void CallCollishionBegin(Entity entityA, Entity entityB);
 		static void CallCollishionEnd(Entity entityA, Entity entityB);
+
+		static void OnEvent(Event& event);
 
 	private:
 		static void RegisterComponents();
@@ -27,6 +34,11 @@ namespace Shark {
 	};
 
 	namespace InternalCalls {
+
+		struct Vector2i
+		{
+			int x, y;
+		};
 
 		#pragma region Log
 
@@ -54,8 +66,8 @@ namespace Shark {
 
 		bool Input_KeyPressed(KeyCode key);
 		bool Input_MouseButtonPressed(MouseButton::Type button);
-		glm::ivec2 Input_GetMousePos();
-		glm::ivec2 Input_GetMousePosTotal();
+		Vector2i Input_GetMousePos();
+		Vector2i Input_GetMousePosGlobal();
 
 		#pragma endregion
 
@@ -77,6 +89,7 @@ namespace Shark {
 		bool Scene_IsValidEntityHandle(UUID entityHandle);
 		UUID Scene_GetActiveCameraUUID();
 		void Scene_GetUUIDFromTag(MonoString* tag, UUID* out_UUID);
+		Bounds2i Scene_GetViewportBounds();
 
 		#pragma endregion
 
