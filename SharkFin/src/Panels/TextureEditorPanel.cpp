@@ -5,7 +5,7 @@
 #include "Shark/Scene/Components/SpriteRendererComponent.h"
 
 #include "Shark/UI/UI.h"
-#include "Shark/Core/Input.h"
+#include "Shark/Input/Input.h"
 #include "Shark/Math/Math.h"
 
 #include "Shark/Asset/ResourceManager.h"

@@ -382,7 +382,7 @@ namespace Shark {
 			{
 				SK_CORE_ASSERT(!m_RenameContext.Entry, "Should never happen");
 				m_RenameContext.Entry = m_SelectedEntry;
-				m_RenameContext.Buffer = m_SelectedEntry->Path.filename().string();
+				m_RenameContext.Buffer = m_SelectedEntry->Path.stem().string();
 				m_RenameContext.FirstFrame = true;
 			}
 
@@ -632,6 +632,7 @@ namespace Shark {
 		if (extension.empty()) return false;
 
 		if (extension == L".csproj") return true;
+		if (extension == L".csproj.user") return true;
 
 		return false;
 	}
@@ -645,12 +646,9 @@ namespace Shark {
 
 		auto newPath = oldPath;
 		newPath.replace_filename(m_RenameContext.Buffer);
+		newPath.replace_extension(oldPath.extension());
 
-		if (!canChangeExtension && (entry.Path.extension() != newPath.extension()))
-		{
-			m_ShowExtensionChangedWarning = true;
-			return;
-		}
+		SK_CORE_ASSERT(newPath.extension() == oldPath.extension());
 
 		// Check for overlapping names
 		if (std::filesystem::exists(newPath))

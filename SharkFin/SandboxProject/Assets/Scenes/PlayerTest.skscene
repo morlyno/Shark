@@ -5,45 +5,9 @@ Scene:
       TagComponent:
         Tag: PlatformMarkerLeft
       TransformComponent:
-        Position: [19.7759037, 14.3001022, -7.62939453e-06]
+        Position: [20, 14.3001022, -7.62939453e-06]
         Rotation: [0, 0, 0]
         Scaling: [1, 1, 1]
-    - Entity: 0x11c394618e866354
-      TagComponent:
-        Tag: PlatformMarkerRight
-      TransformComponent:
-        Position: [20.6215706, 1.2467103, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [1, 1, 1]
-    - Entity: 0x14b0acb94394c041
-      TagComponent:
-        Tag: Player
-      TransformComponent:
-        Position: [0, 0, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [1, 1.46200013, 0.73099941]
-      SpriteRendererComponent:
-        Color: [0.818627477, 0.713584483, 0.104334891, 1]
-        Texture: 0
-        TilingFactor: 1
-      RigidBody2DComponent:
-        Type: Dynamic
-        FixedRotation: true
-        IsBullet: false
-        Awake: true
-        Enabled: true
-        GravityScale: 1
-        AllowSleep: false
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1.5
-        Friction: 2
-        Restitution: 0
-        RestitutionThreshold: 1
-      ScriptComponent:
-        ScriptName: Sandbox.PlayerController
     - Entity: 0x5e341a7845afd12b
       TagComponent:
         Tag: Floor
@@ -51,126 +15,6 @@ Scene:
         Position: [10.9783669, 5.04832745, 0]
         Rotation: [0, 0, 0]
         Scaling: [3.8718853, 1, 1]
-      SpriteRendererComponent:
-        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-      ScriptComponent:
-        ScriptName: Sandbox.FloorScript
-    - Entity: 0x63c6ec00a49d7fa4
-      TagComponent:
-        Tag: Floor
-      TransformComponent:
-        Position: [-24.3999996, 3.30032444, 0]
-        Rotation: [0, 0, -1.57079625]
-        Scaling: [11.9428282, 0.999999821, 1]
-      SpriteRendererComponent:
-        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-    - Entity: 0x647ce187fd0f1ceb
-      TagComponent:
-        Tag: Floor
-      TransformComponent:
-        Position: [0.0145327449, -2.47060847, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [49.8395576, 1, 1]
-      SpriteRendererComponent:
-        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-      ScriptComponent:
-        ScriptName: Sandbox.FloorScript
-    - Entity: 0x6802d506a686729b
-      TagComponent:
-        Tag: Floor
-      TransformComponent:
-        Position: [-4.28695583, 7.759758, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [3.8718853, 1, 1]
-      SpriteRendererComponent:
-        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-      ScriptComponent:
-        ScriptName: Sandbox.FloorScript
-    - Entity: 0x6c99ee886e60b877
-      TagComponent:
-        Tag: Floor
-      TransformComponent:
-        Position: [24.4400005, 3.02999997, 0]
-        Rotation: [0, 0, -1.57079625]
-        Scaling: [11.9428282, 0.999999821, 1]
-      SpriteRendererComponent:
-        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-    - Entity: 0x7ea5428e94ce6128
-      TagComponent:
-        Tag: Floor
-      TransformComponent:
-        Position: [-23.9843826, 8.69563675, 0]
-        Rotation: [-0, 0, -0.785398185]
-        Scaling: [8.11126232, 1, 1]
-      SpriteRendererComponent:
-        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-    - Entity: 0x8c7a856c8315563b
-      TagComponent:
-        Tag: Floor
-      TransformComponent:
-        Position: [-17.0170174, 1.88892102, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [5.92999077, 1, 1]
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -212,6 +56,162 @@ Scene:
         Friction: 0.100000001
         Restitution: 0.800000012
         RestitutionThreshold: 1
+    - Entity: 0x11c394618e866354
+      TagComponent:
+        Tag: PlatformMarkerRight
+      TransformComponent:
+        Position: [20, 1.2467103, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+    - Entity: 0x14b0acb94394c041
+      TagComponent:
+        Tag: Player
+      TransformComponent:
+        Position: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1.46200013, 0.73099941]
+      SpriteRendererComponent:
+        Color: [0.818627477, 0.713584483, 0.104334891, 1]
+        Texture: 0
+        TilingFactor: 1
+      RigidBody2DComponent:
+        Type: Dynamic
+        FixedRotation: true
+        IsBullet: false
+        Awake: true
+        Enabled: true
+        GravityScale: 1
+        AllowSleep: false
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1.5
+        Friction: 2
+        Restitution: 0
+        RestitutionThreshold: 1
+      ScriptComponent:
+        ScriptName: Sandbox.PlayerController
+    - Entity: 0x63c6ec00a49d7fa4
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [-24.3999996, 3.30032444, 0]
+        Rotation: [0, 0, -1.57079625]
+        Scaling: [11.9428282, 0.999999821, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+    - Entity: 0x647ce187fd0f1ceb
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [0.0145327449, -2.47060847, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [49.8395576, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
+    - Entity: 0x7ea5428e94ce6128
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [-23.9843826, 8.69563675, 0]
+        Rotation: [-0, 0, -0.785398185]
+        Scaling: [8.11126232, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+    - Entity: 0x6802d506a686729b
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [-4.28695583, 7.759758, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [3.8718853, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
+    - Entity: 0x6c99ee886e60b877
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [24.4400005, 3.02999997, 0]
+        Rotation: [0, 0, -1.57079625]
+        Scaling: [11.9428282, 0.999999821, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+    - Entity: 0x8c7a856c8315563b
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [-17.0170174, 1.88892102, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [5.92999077, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
     - Entity: 0xbbdb8872e6e21912
       TagComponent:
         Tag: Camera
@@ -221,7 +221,7 @@ Scene:
         Scaling: [1, 1, 1]
       CameraComponent:
         Type: Perspective
-        Aspectratio: 1.97712421
+        Aspectratio: 1.94136286
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -230,7 +230,7 @@ Scene:
         OrthographicFar: 1
     - Entity: 0xe5ff6bf1e4f4123f
       TagComponent:
-        Tag: MovingPlatformw
+        Tag: MovingPlatform
       TransformComponent:
         Position: [1.99478769, 13.9456997, -3.81469863e-06]
         Rotation: [0, 0, 0]

@@ -12,6 +12,9 @@ namespace Shark::UI::Theme {
 		s_Colors->ButtonActiveNoBg     = ImVec4(0.39f, 0.39f, 0.39f, 0.50f);
 
 		s_Colors->TextInvalidInput     = ImVec4(0.80f, 0.30f, 0.10f, 1.00f);
+
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.WindowMinSize = ImVec2(16.0f, 16.0f);
 	}
 
 	void LoadLight()

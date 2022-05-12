@@ -6,13 +6,13 @@ namespace Shark {
 
 		enum Type : uint16_t
 		{
-			Left,
-			Right,
-			Middle,
-			Thumb01,
-			Thumb02,
+			Left        = 0x01,
+			Right       = 0x02,
+			Middle      = 0x04,
+			Thumb01     = 0x05,
+			Thumb02     = 0x06,
 
-			Invalid
+			Invalid     = 0x00
 		};
 
 	}

@@ -2,6 +2,7 @@
 #include "Platform/Windows/WindowsUtils.h"
 
 #include "Shark/Utils/String.h"
+#include "Shark/Utils/MemoryUtils.h"
 
 #include "Shark/Core/Application.h"
 
@@ -67,7 +68,7 @@ namespace Shark {
 			return false;
 
 		SHELLEXECUTEINFOW executeInfo;
-		ZeroMemory(&executeInfo, sizeof(SHELLEXECUTEINFOW));
+		MemoryUtils::ZeroMemory(executeInfo);
 		executeInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 		executeInfo.lpVerb = utils::ExectueVerbToLPCWSTR(specs.Verb);
 		executeInfo.lpFile = specs.Target.c_str();
@@ -76,7 +77,10 @@ namespace Shark {
 		executeInfo.nShow = SW_SHOWDEFAULT;
 
 		if (specs.WaitUntilFinished)
-			executeInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+			executeInfo.fMask |= SEE_MASK_NOCLOSEPROCESS;
+
+		if (specs.InterhitConsole)
+			executeInfo.fMask |= SEE_MASK_NO_CONSOLE;
 
 		BOOL succeded = ShellExecuteExW(&executeInfo);
 		if (!succeded)
@@ -94,7 +98,7 @@ namespace Shark {
 	bool WindowsUtils::RunProjectSetupSilent()
 	{
 		SHELLEXECUTEINFOW executeInfo;
-		ZeroMemory(&executeInfo, sizeof(SHELLEXECUTEINFOW));
+		MemoryUtils::ZeroMemory(executeInfo);
 		executeInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 		executeInfo.lpVerb = L"open";
 

@@ -23,6 +23,7 @@ namespace Shark {
 		std::wstring Params;
 		ExectueVerb Verb = ExectueVerb::Default;
 		bool WaitUntilFinished = false;
+		bool InterhitConsole = true;
 	};
 
 

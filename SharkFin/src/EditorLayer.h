@@ -34,6 +34,18 @@ namespace Shark {
 			None = 0,
 			Edit, Play, Simulate, Pause
 		};
+
+		struct GizmoOperaton
+		{
+			enum Type : std::underlying_type_t<ImGuizmo::OPERATION>
+			{
+				None = 0,
+				Translate = ImGuizmo::TRANSLATE,
+				Rotate = ImGuizmo::ROTATE,
+				Scale = ImGuizmo::SCALE
+			};
+		};
+
 	public:
 		EditorLayer(const std::filesystem::path& startupProject);
 		~EditorLayer();
@@ -51,7 +63,7 @@ namespace Shark {
 
 		void OnFileChanged(const std::vector<FileChangedData>& fileEvents);
 
-		void OpenFileCallback(const std::filesystem::path& filePath);
+		void OnFileClickedCallback(const std::filesystem::path& filePath);
 
 		void UI_MainMenuBar();
 		void UI_Viewport();
@@ -143,7 +155,7 @@ namespace Shark {
 		float m_TranslationSnap = 0.5f;
 		float m_RotationSnap = 45.0f;
 		float m_ScaleSnap = 0.5f;
-		int m_CurrentOperation = 0;
+		GizmoOperaton::Type m_CurrentOperation = GizmoOperaton::None;
 		Entity m_SelectetEntity;
 
 		SceneState m_SceneState = SceneState::Edit;
@@ -156,6 +168,9 @@ namespace Shark {
 		Ref<Texture2D> m_SimulateIcon;
 		Ref<Texture2D> m_PauseIcon;
 		Ref<Texture2D> m_StepIcon;
+
+		Ref<Texture2D> m_CursorIcon;
+		Ref<Texture2D> m_TranslateIcon;
 
 		bool m_ShowColliders = false;
 		bool m_ShowCollidersOnTop = true;

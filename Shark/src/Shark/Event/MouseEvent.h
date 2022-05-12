@@ -1,7 +1,7 @@
 #pragma once
 #include "Shark/Core/Base.h"
 #include "Event.h"
-#include "Shark/Core/MouseButtons.h"
+#include "Shark/Input/MouseButtons.h"
 
 namespace Shark {
 

@@ -2,7 +2,7 @@
 #include "Application.h"
 
 #include "Shark/Event/KeyEvent.h"
-#include "Shark/Core/Input.h"
+#include "Shark/Input/Input.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Render/Renderer.h"
 
@@ -161,6 +161,8 @@ namespace Shark {
 
 	Application::InsteanceCleanup::~InsteanceCleanup()
 	{
+		SK_PROFILE_FUNCTION();
+
 		s_Instance = nullptr;
 	}
 

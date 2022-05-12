@@ -90,6 +90,7 @@ namespace Shark {
 		uint32_t GetViewportWidth() const { return m_ViewportBounds.GetWidth(); }
 		uint32_t GetViewportHeight() const { return m_ViewportBounds.GetHeight(); }
 
+		const auto& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
 
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }

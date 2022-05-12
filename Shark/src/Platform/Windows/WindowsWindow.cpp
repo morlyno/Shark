@@ -3,8 +3,8 @@
 #include "Shark/Event/MouseEvent.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/KeyEvent.h"
-#include "Shark/Core/KeyCodes.h"
-#include "Shark/Core/MouseButtons.h"
+#include "Shark/Input/KeyCodes.h"
+#include "Shark/Input/MouseButtons.h"
 
 #include "Shark/Utils/String.h"
 #include "Shark/Render/Renderer.h"

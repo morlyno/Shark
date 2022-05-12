@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "EditorCamera.h"
 
-#include "Shark/Core/Input.h"
+#include "Shark/Input/Input.h"
 #include "Shark/Event/MouseEvent.h"
 
 #include "Shark/Debug/Instrumentor.h"

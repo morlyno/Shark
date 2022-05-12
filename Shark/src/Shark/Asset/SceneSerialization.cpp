@@ -278,15 +278,8 @@ namespace Shark {
 		out << YAML::Key << "ActiveCamera" << YAML::Value << YAML::Hex << scene->GetActiveCameraUUID() << YAML::Dec;
 		out << YAML::Key << "Entities" << YAML::Value;
 
-		std::map<UUID, Entity> entityIDMap;
-		scene->m_Registry.each([&entityIDMap, scene](auto& entityID)
-		{
-			Entity entity = { entityID, scene };
-			entityIDMap[entity.GetUUID()] = entity;
-		});
-
 		out << YAML::BeginSeq;
-		for (const auto& [uuid, entity] : entityIDMap)
+		for (const auto& [uuid, entity] : scene->GetEntityUUIDMap())
 			SerializeEntity(out, entity, scene);
 		out << YAML::EndSeq;
 
@@ -492,7 +485,7 @@ namespace Shark {
 					comp.GravityScale = gravityScale.as<float>();
 					
 					SK_CORE_ASSERT(allowSleep, "Couldn't desirialize RigidBody2DComponent::AllowSleep");
-					comp.AllowSleep = gravityScale.as<bool>(true);
+					comp.AllowSleep = allowSleep.as<bool>(true);
 
 					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", Convert::BodyTypeToString(comp.Type));
 				}

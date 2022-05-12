@@ -6,7 +6,7 @@ namespace Shark {
 
 	namespace Key {
 
-		enum : KeyCode
+		enum : uint16_t
 		{
 			Invalid                    = 0,
 

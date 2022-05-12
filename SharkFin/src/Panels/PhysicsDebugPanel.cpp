@@ -64,8 +64,8 @@ namespace Shark {
 
 		if (!ImGui::Begin("Physics Debug", &shown))
 		{
-			return;
 			ImGui::End();
+			return;
 		}
 
 		if (!m_Scene)

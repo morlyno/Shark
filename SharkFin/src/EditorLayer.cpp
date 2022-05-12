@@ -8,10 +8,11 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptManager.h"
 
-#include "Shark/File/FileSystem.h"
-#include "Shark/Utils/PlatformUtils.h"
-
 #include "Shark/UI/UI.h"
+
+#include "Shark/File/FileSystem.h"
+
+#include "Shark/Utils/PlatformUtils.h"
 
 #include "Panels/SceneHirachyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
@@ -56,6 +57,8 @@ namespace Shark {
 		m_PauseIcon = Texture2D::Create("Resources/PauseButton.png");
 		m_StepIcon = Texture2D::Create("Resources/StepButton.png");
 
+		m_CursorIcon = Texture2D::Create("Resources/Cursor.png");
+		m_TranslateIcon = Texture2D::Create("Resources/TranslateIcon.png");
 
 		// Create and setup Panels
 		m_PanelManager = Scope<PanelManager>::Create();
@@ -64,7 +67,7 @@ namespace Shark {
 		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
 
 		auto contentBrowserPanel = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, true);
-		contentBrowserPanel->SetOpenFileCallback([this](auto& fs) { this->OpenFileCallback(fs); });
+		contentBrowserPanel->SetOpenFileCallback([this](auto& fs) { this->OnFileClickedCallback(fs); });
 
 		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, true);
 		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, false);
@@ -212,6 +215,10 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		// Disable hot keys when the scene state is not Edit
+		if (m_SceneState != SceneState::Edit)
+			return false;
+
 		const bool control = Input::KeyPressed(Key::Control);
 		const bool shift = Input::KeyPressed(Key::LeftShift);
 
@@ -251,7 +258,6 @@ namespace Shark {
 				if (control && m_SelectetEntity && m_SceneState == SceneState::Edit)
 				{
 					Entity e = m_WorkScene->CloneEntity(m_SelectetEntity);
-					SK_CORE_ASSERT(true);
 					SelectEntity(e);
 					return true;
 				}
@@ -265,6 +271,7 @@ namespace Shark {
 				{
 					const auto& tf = m_SelectetEntity.GetTransform();
 					m_EditorCamera.SetFocusPoint(tf.Position);
+					m_EditorCamera.SetDistance(7.5f);
 					return true;
 				}
 				break;
@@ -286,10 +293,10 @@ namespace Shark {
 			}
 
 			// ImGuizmo
-			case Key::Q: { m_CurrentOperation = 0; return true; }
-			case Key::W: { m_CurrentOperation = ImGuizmo::TRANSLATE; return true; }
-			case Key::E: { m_CurrentOperation = ImGuizmo::ROTATE; return true; }
-			case Key::R: { m_CurrentOperation = ImGuizmo::SCALE; return true; }
+			case Key::Q: { m_CurrentOperation = GizmoOperaton::None; return true; }
+			case Key::W: { m_CurrentOperation = GizmoOperaton::Translate; return true; }
+			case Key::E: { m_CurrentOperation = GizmoOperaton::Rotate; return true; }
+			case Key::R: { m_CurrentOperation = GizmoOperaton::Scale; return true; }
 		}
 
 		return false;
@@ -303,19 +310,22 @@ namespace Shark {
 		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileChanged(fileEvents);
 	}
 
-	void EditorLayer::OpenFileCallback(const std::filesystem::path& filePath)
+	void EditorLayer::OnFileClickedCallback(const std::filesystem::path& filePath)
 	{
 		SK_PROFILE_FUNCTION();
 
-		const auto extension = filePath.extension();
-		const auto fsPath = Project::AbsolueCopy(filePath);
+		//const auto extension = filePath.extension();
+		//if (extension == L".cs")
+		//{
+		//	//IDEUtils::OpenScript(fsPath);
+		//	// open script file
+		//	return;
+		//}
 
-		if (extension == L".cs")
-		{
-			// open script file
+		if (m_SceneState != SceneState::Edit)
 			return;
-		}
 
+		const auto fsPath = Project::AbsolueCopy(filePath);
 		const AssetMetaData& metadata = ResourceManager::GetMetaData(fsPath);
 		if (metadata.IsValid())
 		{
@@ -331,7 +341,6 @@ namespace Shark {
 					Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(metadata.Handle);
 					if (texture)
 					{
-						// TODO(moro): replace with AssetsEditorPanel
 						Ref<AssetEditorPanel> assetEditor = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID);
 						assetEditor->AddEditor<TextureEditorPanel>(texture->Handle, true, texture);
 					}
@@ -367,10 +376,11 @@ namespace Shark {
 		UI_Viewport();
 		UI_MousePicking();
 
+		UI_ToolBar();
+
 		UI_Info();
 		UI_Shaders();
 		UI_EditorCamera();
-		UI_ToolBar();
 		UI_Settings();
 		UI_CameraPrevie();
 		UI_Stats();
@@ -537,7 +547,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (m_CurrentOperation != 0 && m_SelectetEntity)
+		if (m_CurrentOperation != GizmoOperaton::None && m_SelectetEntity)
 		{
 			SK_CORE_ASSERT(m_SelectetEntity.HasComponent<TransformComponent>(), "Every entity is requiert to have a Transform Component");
 
@@ -574,12 +584,11 @@ namespace Shark {
 			float* snap = nullptr;
 			if (Input::KeyPressed(Key::LeftShift))
 			{
-				ImGuizmo::OPERATION operation = (ImGuizmo::OPERATION)m_CurrentOperation;
-				switch (operation)
+				switch (m_CurrentOperation)
 				{
-					case ImGuizmo::TRANSLATE: snap = &m_TranslationSnap; break;
-					case ImGuizmo::ROTATE:    snap = &m_RotationSnap; break;
-					case ImGuizmo::SCALE:     snap = &m_ScaleSnap; break;
+					case GizmoOperaton::Translate: snap = &m_TranslationSnap; break;
+					case GizmoOperaton::Rotate:    snap = &m_RotationSnap; break;
+					case GizmoOperaton::Scale:     snap = &m_ScaleSnap; break;
 				}
 			}
 
@@ -633,26 +642,6 @@ namespace Shark {
 			{
 				ImGui::Text("Selected Entity: InValid");
 			}
-
-			ImGui::NewLine();
-			static MemoryMetrics s_LastMemory;
-			const auto& m = MemoryManager::GetMetrics();
-			ImGui::Text("Memory Usage: %llu", m.MemoryUsage());
-			ImGui::Text("Memory Allocated: %llu", m.MemoryAllocated);
-			ImGui::Text("Memory Freed: %llu", m.MemoryFreed);
-			ImGui::Text("Total Count: %llu", m.TotalAllocated - m.TotalFreed);
-			ImGui::Text("Total Allocated: %llu", m.TotalAllocated);
-			ImGui::Text("Total Freed: %llu", m.TotalFreed);
-
-			ImGui::NewLine();
-
-			ImGui::Text("Memory Usage Delta: %llu", (m.MemoryAllocated - s_LastMemory.MemoryAllocated) - (m.MemoryFreed - s_LastMemory.MemoryFreed));
-			ImGui::Text("Memory Allocated Delta: %llu", m.MemoryAllocated - s_LastMemory.MemoryAllocated);
-			ImGui::Text("Memory Freed Delta: %llu", m.MemoryFreed - s_LastMemory.MemoryFreed);
-			ImGui::Text("Total Count Delta: %llu", (m.TotalAllocated - s_LastMemory.TotalAllocated) - (m.TotalFreed - s_LastMemory.TotalFreed));
-			ImGui::Text("Total Allocated Delta: %llu", m.TotalAllocated - s_LastMemory.TotalAllocated);
-			ImGui::Text("Total Freed Delta: %llu", m.TotalFreed - s_LastMemory.TotalFreed);
-			s_LastMemory = m;
 
 			ImGui::End();
 		}
@@ -833,7 +822,16 @@ namespace Shark {
 		ImGui::Begin("##ViewPortToolBar", nullptr, falgs);
 
 		const float size = ImGui::GetContentRegionAvail().y;
-		UI::MoveCursorX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size * 3.0f * 0.5f) - (style.ItemSpacing.x * 3.0f));
+
+		const auto imageButton = [this, size](auto strid, auto texture) { return ImGui::ImageButtonEx(UI::GetID(strid), texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0, 0 }, { 0, 0, 0, 0 }, { 1, 1, 1, 1 }); };
+		const auto imageButtonDisabled = [this, size](auto strid, auto texture) { ImGui::Image(texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0.5f, 0.5f, 0.5f, 1.0f }); };
+
+		//imageButton("CursorIcon", m_CursorIcon);
+		//ImGui::SameLine();
+		//imageButton("TranslateIcon", m_TranslateIcon);
+		//ImGui::SameLine();
+
+		ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size * 3.0f * 0.5f) - (style.ItemSpacing.x * 3.0f));
 
 		//
 		// Layout          [Play/Stop] [Simluate/Pause] [Step Disabled]
@@ -875,10 +873,6 @@ namespace Shark {
 		//       [Simulate/Pause] => [Pause]
 		//       [Step] => [Step Disabled]
 		//
-
-
-		const auto imageButton = [this, size](auto strid, auto texture) { return ImGui::ImageButtonEx(UI::GetID(strid), texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0, 0 }, { 0, 0, 0, 0 }, { 1, 1, 1, 1 }); };
-		const auto imageButtonDisabled = [this, size](auto strid, auto texture) { ImGui::Image(texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0.5f, 0.5f, 0.5f, 1.0f }); };
 
 		switch (m_SceneState)
 		{
@@ -1704,6 +1698,8 @@ namespace Shark {
 		m_SceneState = SceneState::Play;
 		m_InitialSceneState = SceneState::Play;
 
+		m_CurrentOperation = GizmoOperaton::None;
+
 		SetActiveScene(Scene::Copy(m_WorkScene));
 
 		if (m_HotReloadAssemblies)
@@ -1931,21 +1927,14 @@ namespace Shark {
 		auto solutionPath = Project::Directory() / Project::Name();
 		solutionPath.replace_extension(".sln");
 
-		if (!std::filesystem::exists(solutionPath))
-		{
-			ExecuteSpecs specs;
-			specs.Target = Project::Directory() / "Setup.bat";
-			specs.Verb = ExectueVerb::Open;
-			specs.WaitUntilFinished = true;
-			specs.WorkingDirectory = Project::Directory();
-			PlatformUtils::Execute(specs);
-		}
-
-		if (!std::filesystem::exists(solutionPath))
-		{
-			SK_CORE_ERROR("Can't Find/Generate Solution File");
-			return;
-		}
+		ExecuteSpecs specs;
+		specs.Target = fmt::format(L"{}/Premake/premake5.exe", Project::Directory());
+		// vs2022 dosn't work for some reason but vs2019 still generates vs2022 solution
+		specs.Params = L"vs2019";
+		specs.WaitUntilFinished = true;
+		specs.WorkingDirectory = Project::Directory();
+		specs.InterhitConsole = true;
+		PlatformUtils::Execute(specs);
 
 		PlatformUtils::Execute(ExectueVerb::Open, solutionPath);
 	}

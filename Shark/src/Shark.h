@@ -2,14 +2,18 @@
 
 #include "Shark/Core/Base.h"
 
-#include "Shark/Memory/Allocator.h"
-#include "Shark/Memory/MemoryManager.h"
-
 // --- Core -----------------------------
 #include "Shark/Core/Application.h"
 #include "Shark/Core/TimeStep.h"
-#include "Shark/Core/Input.h"
+#include "Shark/Input/Input.h"
 #include "Shark/Core/Timer.h"
+#include "Shark/Core/Window.h"
+// --------------------------------------
+
+// --- Input ----------------------------
+#include "Shark/Input/Input.h"
+#include "Shark/Input/KeyCodes.h"
+#include "Shark/Input/MouseButtons.h"
 // --------------------------------------
 
 // --- Utility --------------------------
@@ -41,8 +45,6 @@
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
 // --------------------------------------
-
-#include "Shark/Core/Window.h"
 
 // --- Render ---------------------------
 #include "Shark/Render/RendererAPI.h"
