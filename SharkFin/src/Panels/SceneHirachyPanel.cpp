@@ -4,7 +4,7 @@
 #include "Shark/Scene/Components.h"
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
-#include "Shark/Core/Input.h"
+#include "Shark/Input/Input.h"
 #include "Shark/Scene/NativeScriptFactory.h"
 #include "Shark/Core/Project.h"
 #include "Shark/Core/Application.h"

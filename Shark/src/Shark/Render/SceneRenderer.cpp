@@ -10,7 +10,7 @@
 #include "Shark/Math/Math.h"
 #include "Shark/UI/UI.h"
 
-#include "Shark/Core/Input.h"
+#include "Shark/Input/Input.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
