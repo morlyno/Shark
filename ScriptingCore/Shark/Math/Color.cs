@@ -8,10 +8,10 @@ namespace Shark
 	[StructLayout(LayoutKind.Sequential)]
 	public struct Color : IFormattable
 	{
-		public float R;
-		public float G;
-		public float B;
-		public float A;
+		public float r;
+		public float g;
+		public float b;
+		public float a;
 
 		public static Color White   => new Color(1.0f, 1.0f, 1.0f, 1.0f);
 		public static Color Back    => new Color(0.0f, 0.0f, 0.0f, 1.0f);
@@ -26,33 +26,32 @@ namespace Shark
 
 		public Color(float r, float g, float b)
 		{
-			R = r;
-			G = g;
-			B = b;
-			A = 1.0f;
+			this.r = r;
+			this.g = g;
+			this.b = b;
+			this.a = 1.0f;
 		}
 		public Color(float r, float g, float b, float a)
 		{
-			R = r;
-			G = g;
-			B = b;
-			A = a;
+			this.r = r;
+			this.g = g;
+			this.b = b;
+			this.a = a;
 		}
-
 		public Color(Vector4 v)
 		{
-			R = v.X;
-			G = v.Y;
-			B = v.Z;
-			A = v.W;
+			this.r = v.x;
+			this.g = v.y;
+			this.b = v.z;
+			this.a = v.w;
 		}
 
-		public static Color operator+(Color lhs, Color rhs) { return new Color(lhs.R + rhs.R, lhs.G + rhs.G, lhs.B + rhs.B, lhs.A + rhs.A); }
-		public static Color operator-(Color lhs, Color rhs) { return new Color(lhs.R - rhs.R, lhs.G - rhs.G, lhs.B - rhs.B, lhs.A - rhs.A); }
-		public static Color operator*(Color lhs, Color rhs) { return new Color(lhs.R * rhs.R, lhs.G * rhs.G, lhs.B * rhs.B, lhs.A * rhs.A); }
-		public static Color operator*(Color lhs, float scale) { return new Color(lhs.R * scale, lhs.G * scale, lhs.B * scale, lhs.A * scale); }
-		public static Color operator*(float scale, Color rhs) { return new Color(scale * rhs.R, scale * rhs.G, scale * rhs.B, scale * rhs.A); }
-		public static Color operator/(Color lhs, float scale) { return new Color(lhs.R / scale, lhs.G / scale, lhs.B / scale, lhs.A / scale); }
+		public static Color operator+(Color lhs, Color rhs) { return new Color(lhs.r + rhs.r, lhs.g + rhs.g, lhs.b + rhs.b, lhs.a + rhs.a); }
+		public static Color operator-(Color lhs, Color rhs) { return new Color(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b, lhs.a - rhs.a); }
+		public static Color operator*(Color lhs, Color rhs) { return new Color(lhs.r * rhs.r, lhs.g * rhs.g, lhs.b * rhs.b, lhs.a * rhs.a); }
+		public static Color operator*(Color lhs, float scale) { return new Color(lhs.r * scale, lhs.g * scale, lhs.b * scale, lhs.a * scale); }
+		public static Color operator*(float scale, Color rhs) { return new Color(scale * rhs.r, scale * rhs.g, scale * rhs.b, scale * rhs.a); }
+		public static Color operator/(Color lhs, float scale) { return new Color(lhs.r / scale, lhs.g / scale, lhs.b / scale, lhs.a / scale); }
 
 		public float this[int index]
 		{
@@ -60,10 +59,10 @@ namespace Shark
 			{
 				switch (index)
 				{
-					case 0: return R;
-					case 1: return G;
-					case 2: return B;
-					case 3: return A;
+					case 0: return r;
+					case 1: return g;
+					case 2: return b;
+					case 3: return a;
 					default:
 						throw new System.IndexOutOfRangeException($"Index between 0 and 3 expected but {index} provided");
 				}
@@ -72,18 +71,18 @@ namespace Shark
 			{
 				switch (index)
 				{
-					case 0: R = value; break;
-					case 1: G = value; break;
-					case 2: B = value; break;
-					case 3: A = value; break;
+					case 0: r = value; break;
+					case 1: g = value; break;
+					case 2: b = value; break;
+					case 3: a = value; break;
 					default:
 						throw new System.IndexOutOfRangeException($"Index between 0 and 3 expected but {index} provided");
 				}
 			}
 		}
 
-		public static explicit operator Color(Vector4 v) { return new Color(v.X, v.Y, v.Z, v.W);}
-		public static explicit operator Vector4(Color c) { return new Vector4(c.R, c.G, c.B, c.A); }
+		public static explicit operator Color(Vector4 v) { return new Color(v.x, v.y, v.z, v.w);}
+		public static explicit operator Vector4(Color c) { return new Vector4(c.r, c.g, c.b, c.a); }
 
 		public override string ToString()
 		{
@@ -97,10 +96,10 @@ namespace Shark
 		{
 			return string.Format(
 				"RGBA [{0}, {1}, {2}, {3}]",
-				R.ToString(format, formatProvider),
-				G.ToString(format, formatProvider),
-				B.ToString(format, formatProvider),
-				A.ToString(format, formatProvider)
+				r.ToString(format, formatProvider),
+				g.ToString(format, formatProvider),
+				b.ToString(format, formatProvider),
+				a.ToString(format, formatProvider)
 			);
 		}
 	}

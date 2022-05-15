@@ -19,7 +19,6 @@ namespace Shark
 		public static Vector2 Up => new Vector2(0.0f, 1.0f);
 		public static Vector2 Down => new Vector2(0.0f, -1.0f);
 
-
 		public Vector2(float xy)
 		{
 			X = xy;
@@ -77,26 +76,6 @@ namespace Shark
 			return new Vector2(-v.X, -v.Y);
 		}
 
-		public float Dot(Vector2 other)
-		{
-			return Mathf.Dot(this, other);
-		}
-
-		public float Length()
-		{
-			return Mathf.Sqrt(X * Y);
-		}
-
-		public Vector2 Normalize()
-		{
-			float length = Length();
-			if (length == 0)
-			{
-				return new Vector2(0.0f);
-			}
-
-			return this / length;
-		}
 
 		public static Vector2 Lerp(Vector2 p0, Vector2 p1, float t)
 		{
@@ -105,6 +84,42 @@ namespace Shark
 				p0.Y + (p1.Y - p0.Y) * t
 			);
 		}
+		public static float Dot(Vector2 x, Vector2 y)
+		{
+			Vector2 temp = x * y;
+			return temp.X + temp.Y;
+		}
+		public static Vector2 Sqrt(Vector2 v)
+		{
+			return new Vector2(
+				Mathf.Sqrt(v.X),
+				Mathf.Sqrt(v.Y)
+			);
+		}
+		public static Vector2 Normalize(Vector2 vec)
+		{
+			float length = vec.Length;
+			if (length == 0)
+			{
+				return Zero;
+			}
+			return vec / length;
+		}
+
+
+		public float Length
+		{
+			get => Mathf.Sqrt(Dot(this, this));
+		}
+		public void Normalize()
+		{
+			float length = Length;
+			if (length != 0)
+				this = this / length;
+			else
+				this = Zero;
+		}
+
 
 		public float this[int index]
 		{
@@ -139,9 +154,6 @@ namespace Shark
 				}
 			}
 		}
-
-
-		public static implicit operator Vector3(Vector2 v) { return new Vector3(v.X, v.Y, 0.0f); }
 
 		public override string ToString()
 		{

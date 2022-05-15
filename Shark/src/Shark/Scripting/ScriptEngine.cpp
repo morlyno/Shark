@@ -340,7 +340,7 @@ namespace Shark {
 		return nullptr;
 	}
 
-	MonoObject* ScriptEngine::CallMethodInternal(MonoMethod* method, void* object, void** args)
+	MonoObject* ScriptEngine::InvokeMethodInternal(MonoMethod* method, void* object, void** args)
 	{
 		SK_PROFILE_FUNCTION();
 

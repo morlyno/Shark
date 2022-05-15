@@ -41,7 +41,7 @@ namespace Shark {
 		if (m_OnCreate)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
-			ScriptEngine::CallMethod(m_OnCreate, object);
+			ScriptEngine::InvokeMethod(m_OnCreate, object);
 		}
 	}
 
@@ -52,7 +52,7 @@ namespace Shark {
 		if (m_OnDestroy)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
-			ScriptEngine::CallMethod(m_OnDestroy, object);
+			ScriptEngine::InvokeMethod(m_OnDestroy, object);
 		}
 	}
 
@@ -63,7 +63,7 @@ namespace Shark {
 		if (m_OnUpdate)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
-			ScriptEngine::CallMethod(m_OnUpdate, object, ts);
+			ScriptEngine::InvokeMethod(m_OnUpdate, object, ts);
 		}
 	}
 
@@ -79,7 +79,7 @@ namespace Shark {
 				MonoObject* other = mono_gchandle_get_target(s.m_GCHandle);
 				MonoObject* This = mono_gchandle_get_target(m_GCHandle);
 
-				ScriptEngine::CallMethod(m_OnCollishionBegin, This, other);
+				ScriptEngine::InvokeMethod(m_OnCollishionBegin, This, other);
 			}
 			else
 			{
@@ -93,7 +93,7 @@ namespace Shark {
 
 				MonoObject* This = mono_gchandle_get_target(m_GCHandle);
 
-				ScriptEngine::CallMethod(m_OnCollishionBegin, This, object);
+				ScriptEngine::InvokeMethod(m_OnCollishionBegin, This, object);
 
 				mono_gchandle_free(gcHandle);
 			}
@@ -112,7 +112,7 @@ namespace Shark {
 				MonoObject* other = mono_gchandle_get_target(s.m_GCHandle);
 				MonoObject* This = mono_gchandle_get_target(m_GCHandle);
 
-				ScriptEngine::CallMethod(m_OnCollishionEnd, This, other);
+				ScriptEngine::InvokeMethod(m_OnCollishionEnd, This, other);
 			}
 			else
 			{
@@ -125,7 +125,7 @@ namespace Shark {
 				mono_field_set_value(object, field, &uuid);
 
 				MonoObject* This = mono_gchandle_get_target(m_GCHandle);
-				ScriptEngine::CallMethod(m_OnCollishionEnd, This, object);
+				ScriptEngine::InvokeMethod(m_OnCollishionEnd, This, object);
 				mono_gchandle_free(gcHandle);
 			}
 		}

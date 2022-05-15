@@ -30,7 +30,7 @@ namespace Sandbox
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
 			m_BoxCollider = GetComponent<BoxCollider2DComponent>();
 
-			m_CameraEntity = Scene.GetEntityByTag("Camera");
+			m_CameraEntity = Scene.GetActiveCameraEntity();
 
 			EventHandler.OnKeyPressed += OnKeyPressed;
 			EventHandler.OnMouseScrolled += OnMouseScrolled;
@@ -63,8 +63,8 @@ namespace Sandbox
 			if (m_CameraEntity != null)
 			{
 				var translation = m_CameraEntity.Transform.Translation;
-				translation.X = Transform.Translation.X;
-				translation.Y = Transform.Translation.Y;
+				translation.x = Transform.Translation.x;
+				translation.y = Transform.Translation.y;
 				m_CameraEntity.Transform.Translation = translation;
 			}
 		}
@@ -122,7 +122,7 @@ namespace Sandbox
 		void OnMouseScrolled(MouseScrolledEvent e)
 		{
 			var translation = m_CameraEntity.Transform.Translation;
-			translation.Z += e.Delta;
+			translation.z += e.Delta;
 			m_CameraEntity.Transform.Translation = translation;
 		}
 

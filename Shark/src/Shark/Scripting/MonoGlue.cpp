@@ -4,11 +4,15 @@
 #include "Shark/Core/Log.h"
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
-#include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Scripting/ScriptManager.h"
 #include "Shark/Scene/Components.h"
 
+#include "Shark/Asset/ResourceManager.h"
+
+#include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Scripting/ScriptManager.h"
+
 #include "Shark/Event/KeyEvent.h"
+#include "Shark/Event/MouseEvent.h"
 
 #include "Shark/Utils/MemoryUtils.h"
 
@@ -21,7 +25,6 @@
 #include <box2d/b2_contact.h>
 #include <box2d/b2_polygon_shape.h>
 #include <box2d/b2_circle_shape.h>
-#include "../Event/MouseEvent.h"
 
 #define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" SK_STRINGIFY(func), SK_CONNECT(&InternalCalls::, func));
 #define SK_ADD_COMPONENT_BINDING(comp)\
@@ -198,14 +201,14 @@ namespace Shark {
 	void MonoGlue::OnEvent(Event& event)
 	{
 		EventDispacher dispacher(event);
-		dispacher.DispachEventAlways<KeyPressedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnKeyPressedEvent, nullptr, e.GetKeyCode(), e.IsRepeat()); return false; });
-		dispacher.DispachEventAlways<KeyReleasedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnKeyReleasedEvent, nullptr, e.GetKeyCode()); return false; });
+		dispacher.DispachEventAlways<KeyPressedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnKeyPressedEvent, nullptr, e.GetKeyCode(), e.IsRepeat()); return false; });
+		dispacher.DispachEventAlways<KeyReleasedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnKeyReleasedEvent, nullptr, e.GetKeyCode()); return false; });
 
-		dispacher.DispachEventAlways<MouseMovedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseMovedEvent, nullptr, e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseButtonPressedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseButtonPressedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseButtonReleasedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseButtonReleasedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseButtonDoubleClickedEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseButtonDoubleClickedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseScrolledEvent>([](auto& e) { ScriptEngine::CallMethod(s_MonoGlue.RaiseOnMouseScrolledEvent, nullptr, e.GetDelta(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseMovedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseMovedEvent, nullptr, e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseButtonPressedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseButtonPressedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseButtonReleasedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseButtonReleasedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseButtonDoubleClickedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseButtonDoubleClickedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseScrolledEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseScrolledEvent, nullptr, e.GetDelta(), e.GetMousePos()); return false; });
 	}
 
 	void MonoGlue::RegisterComponents()
@@ -346,6 +349,8 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetOffset);
 		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRotation);
 		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRotation);
+
+		SK_ADD_INTERNAL_CALL(ResourceManager_GetAssetHandleFromFilePath);
 
 	}
 
@@ -503,12 +508,12 @@ namespace Shark {
 			return scene->GetEntityByUUID(entityHandle);
 		}
 
-		UUID Scene_GetActiveCameraUUID()
+		void Scene_GetActiveCameraUUID(UUID* out_UUID)
 		{
 			SK_PROFILE_FUNCTION();
 
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			return scene->GetActiveCameraUUID();
+			*out_UUID = scene->GetActiveCameraUUID();
 		}
 
 		void Scene_GetUUIDFromTag(MonoString* tag, UUID* out_UUID)
@@ -676,7 +681,7 @@ namespace Shark {
 			spriteRenderer.Color = color;
 		}
 
-		UUID SpriteRendererComponent_GetTextureHandle(UUID entityHandle)
+		AssetHandle SpriteRendererComponent_GetTextureHandle(UUID entityHandle)
 		{
 			SK_PROFILE_FUNCTION();
 
@@ -686,7 +691,7 @@ namespace Shark {
 			return spriteRenderer.TextureHandle;
 		}
 
-		void SpriteRendererComponent_SetTextureHandle(UUID entityHandle, UUID textureHandle)
+		void SpriteRendererComponent_SetTextureHandle(UUID entityHandle, AssetHandle textureHandle)
 		{
 			SK_PROFILE_FUNCTION();
 
@@ -1601,6 +1606,18 @@ namespace Shark {
 			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
 			shape->m_radius = comp.Radius * transform.Scaling.x;
 			shape->m_p = { comp.Offset.x, comp.Offset.y };
+		}
+
+		#pragma endregion
+
+		#pragma region ResoureManager
+
+		void ResourceManager_GetAssetHandleFromFilePath(MonoString* filePath, AssetHandle* out_AssetHandle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			const wchar_t* cFilePath = mono_string_to_utf16(filePath);
+			*out_AssetHandle = ResourceManager::GetAssetHandleFromFilePath(cFilePath);
 		}
 
 		#pragma endregion

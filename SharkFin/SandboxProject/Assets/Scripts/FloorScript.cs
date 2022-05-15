@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Shark;
+using System.Runtime.InteropServices;
 
 namespace Sandbox
 {
@@ -16,6 +17,7 @@ namespace Sandbox
 		private static Random s_Rng = new Random();
 
 		private SpriteRendererComponent m_SpriteRenderer;
+		private AssetHandle m_CollishionTextureHandle = AssetHandle.Null;
 
 		private static Color[] m_Colors = new Color[]{
 			Color.White, Color.Back, Color.Red,
@@ -26,8 +28,12 @@ namespace Sandbox
 		void OnCreate()
 		{
 			m_SpriteRenderer = GetComponent<SpriteRendererComponent>();
+			m_SpriteRenderer.TilingFactor = 0.25f;
+
 			m_InitColor = m_SpriteRenderer.Color;
 			m_CollishionColor = m_Colors[s_Rng.Next(0, m_Colors.Length)];
+
+			m_CollishionTextureHandle = ResourceManager.GetAssetHandleFromFilePath("Textures/Checkerboard.sktex");
 
 			m_PlayerUUID = Scene.GetUUIDFromTag("Player");
 		}
@@ -35,13 +41,19 @@ namespace Sandbox
 		void OnCollishionBegin(Entity entity)
 		{
 			if (entity.UUID == m_PlayerUUID)
+			{
 				m_SpriteRenderer.Color = m_CollishionColor;
+				m_SpriteRenderer.TextureHandle = m_CollishionTextureHandle;
+			}
 		}
 		
 		void OnCollishionEnd(Entity entity)
 		{
 			if (entity.UUID == m_PlayerUUID)
+			{
 				m_SpriteRenderer.Color = m_InitColor;
+				m_SpriteRenderer.TextureHandle = AssetHandle.Null;
+			}
 		}
 
 	}

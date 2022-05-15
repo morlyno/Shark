@@ -9,7 +9,7 @@ namespace Shark
 			set => InternalCalls.SpriteRendererComponent_SetColor(m_EntityUUID, value);
 		}
 
-		public UUID TextureHandle
+		public AssetHandle TextureHandle
 		{
 			get => InternalCalls.SpriteRendererComponent_GetTextureHandle(m_EntityUUID);
 			set => InternalCalls.SpriteRendererComponent_SetTextureHandle(m_EntityUUID, value);

@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace Shark
 {
@@ -70,7 +71,7 @@ namespace Shark
 		internal static extern bool Scene_IsValidEntityHandle(UUID entityHandle);
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern UUID Scene_GetActiveCameraUUID();
+		internal static extern void Scene_GetActiveCameraUUID(out UUID out_UUID);
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern void Scene_GetUUIDFromTag(string tag, out UUID out_UUID);
@@ -128,10 +129,10 @@ namespace Shark
 		internal static extern void SpriteRendererComponent_SetColor(UUID entityHandle, Color color);
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern UUID SpriteRendererComponent_GetTextureHandle(UUID entityHandle);
+		internal static extern AssetHandle SpriteRendererComponent_GetTextureHandle(UUID entityHandle);
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern void SpriteRendererComponent_SetTextureHandle(UUID entityHandle, UUID textureHandle);
+		internal static extern void SpriteRendererComponent_SetTextureHandle(UUID entityHandle, AssetHandle textureHandle);
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern float SpriteRendererComponent_GetTilingFactor(UUID entityHandle);
@@ -433,6 +434,13 @@ namespace Shark
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern void CircleCollider2DComponent_SetRotation(UUID owner, float rotation);
+
+		#endregion
+
+		#region ResourceManager
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern void ResourceManager_GetAssetHandleFromFilePath(string filePath, out AssetHandle assetHandle);
 
 		#endregion
 

@@ -1,13 +1,15 @@
 #pragma once
 
 #include "Shark/Core/UUID.h"
+
+#include "Shark/Asset/Asset.h"
+
 #include "Shark/Scene/Components/TransformComponent.h"
 #include "Shark/Scene/Components/RigidBody2DComponent.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Input/Input.h"
 
 #include "Shark/Event/Event.h"
-
 #include "Shark/Math/Bounds2.h"
 
 #include <mono/metadata/object.h>
@@ -87,7 +89,7 @@ namespace Shark {
 		void Scene_CloneEntity(UUID entityHandle, UUID* out_UUID);
 		MonoObject* Scene_GetScriptObject(UUID scriptEntityHandle);
 		bool Scene_IsValidEntityHandle(UUID entityHandle);
-		UUID Scene_GetActiveCameraUUID();
+		void Scene_GetActiveCameraUUID(UUID* out_UUID);
 		void Scene_GetUUIDFromTag(MonoString* tag, UUID* out_UUID);
 		Bounds2i Scene_GetViewportBounds();
 
@@ -132,8 +134,8 @@ namespace Shark {
 
 		glm::vec4 SpriteRendererComponent_GetColor(UUID entityHandle);
 		void SpriteRendererComponent_SetColor(UUID entityHandle, glm::vec4 color);
-		UUID SpriteRendererComponent_GetTextureHandle(UUID entityHandle);
-		void SpriteRendererComponent_SetTextureHandle(UUID entityHandle, UUID textureHandle);
+		AssetHandle SpriteRendererComponent_GetTextureHandle(UUID entityHandle);
+		void SpriteRendererComponent_SetTextureHandle(UUID entityHandle, AssetHandle textureHandle);
 		float SpriteRendererComponent_GetTilingFactor(UUID entityHandle);
 		void SpriteRendererComponent_SetTilingFactor(UUID entityHandle, float tilingFactor);
 
@@ -276,6 +278,12 @@ namespace Shark {
 		void CircleCollider2DComponent_SetOffset(UUID owner, glm::vec2 offset);
 		float CircleCollider2DComponent_GetRotation(UUID owner);
 		void CircleCollider2DComponent_SetRotation(UUID owner, float rotation);
+
+		#pragma endregion
+
+		#pragma region ResoureManager
+
+		void ResourceManager_GetAssetHandleFromFilePath(MonoString* filePath, AssetHandle* out_AssetHandle);
 
 		#pragma endregion
 

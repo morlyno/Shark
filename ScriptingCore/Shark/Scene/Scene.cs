@@ -59,7 +59,8 @@ namespace Shark
 		// Returns the active Camera UUID
 		public static UUID GetActiveCameraUUID()
 		{
-			return InternalCalls.Scene_GetActiveCameraUUID();
+			InternalCalls.Scene_GetActiveCameraUUID(out UUID uuid);
+			return uuid;
 		}
 
 		public static Entity GetActiveCameraEntity()

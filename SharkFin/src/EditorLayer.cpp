@@ -1443,6 +1443,8 @@ namespace Shark {
 
 		ImGui::Begin("Debug Scripts");
 
+		ImGui::Text("Scripts: %llu", ScriptManager::GetScripts().size());
+
 		for (auto& [uuid, script] : ScriptManager::GetScripts())
 		{
 			std::string name = fmt::format("0x{:x}", uuid);
@@ -1680,7 +1682,7 @@ namespace Shark {
 
 				std::string directoryPath = ResourceManager::MakeRelativePathString(filePath.parent_path());
 				std::string fileName = filePath.filename().string();
-				return ResourceManager::AddMemoryAssetToRegistry(m_ActiveScene->Handle, directoryPath, fileName);
+				return ResourceManager::ImportMemoryAsset(m_ActiveScene->Handle, directoryPath, fileName);
 			}
 			return false;
 		}

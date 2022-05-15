@@ -43,13 +43,13 @@ namespace Sandbox
 			var translation = Transform.Translation;
 
 			if (Input.KeyPressed(Key.W))
-				translation.Y += MovementSpeed * ts;
+				translation.y += MovementSpeed * ts;
 			if (Input.KeyPressed(Key.A))
-				translation.X -= MovementSpeed * ts;
+				translation.x -= MovementSpeed * ts;
 			if (Input.KeyPressed(Key.S))
-				translation.Y -= MovementSpeed * ts;
+				translation.y -= MovementSpeed * ts;
 			if (Input.KeyPressed(Key.D))
-				translation.X += MovementSpeed * ts;
+				translation.x += MovementSpeed * ts;
 
 			Transform.Translation = translation;
 		}

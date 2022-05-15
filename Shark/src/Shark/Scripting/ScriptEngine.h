@@ -50,7 +50,7 @@ namespace Shark {
 
 	public:
 		template<typename... Args>
-		static MonoObject* CallMethod(MonoMethod* method, void* object, Args&&... arguments)
+		static MonoObject* InvokeMethod(MonoMethod* method, void* object, Args&&... arguments)
 		{
 			if constexpr (sizeof... (arguments) > 0)
 			{
@@ -58,13 +58,13 @@ namespace Shark {
 				const void* args[] = {
 					ToPointer(arguments)...
 				};
-				return CallMethodInternal(method, object, (void**)args);
+				return InvokeMethodInternal(method, object, (void**)args);
 			}
-			return CallMethodInternal(method, object, nullptr);
+			return InvokeMethodInternal(method, object, nullptr);
 		}
 
 	private:
-		static MonoObject* CallMethodInternal(MonoMethod* method, void* object, void** args);
+		static MonoObject* InvokeMethodInternal(MonoMethod* method, void* object, void** args);
 		static MonoMethod* GetMethodInternal(const std::string& methodName, bool includeNameSpace, MonoImage* image);
 
 	private:

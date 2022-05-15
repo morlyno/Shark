@@ -41,7 +41,7 @@ namespace Shark {
 		static void UnloadAsset(AssetHandle handle);
 		static void DeleteAsset(AssetHandle handle);
 
-		static bool AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName);
+		static bool ImportMemoryAsset(AssetHandle handle, const std::string& directoryPath, const std::string& fileName);
 		static AssetHandle ImportAsset(const std::filesystem::path& filePath);
 
 		template<typename T = Asset>

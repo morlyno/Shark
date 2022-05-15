@@ -173,10 +173,9 @@ namespace Shark {
 		s_LoadedAssets.erase(handle);
 		s_ImportedAssets.erase(handle);
 		WriteImportedAssetsToDisc();
-
 	}
 
-	bool ResourceManager::AddMemoryAssetToRegistry(AssetHandle handle, const std::string& directoryPath, const std::string& fileName)
+	bool ResourceManager::ImportMemoryAsset(AssetHandle handle, const std::string& directoryPath, const std::string& fileName)
 	{
 		SK_PROFILE_FUNCTION();
 
