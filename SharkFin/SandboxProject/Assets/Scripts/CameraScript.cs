@@ -10,15 +10,15 @@ namespace Sandbox
 		private Random m_Rng = new Random();
 
 
-		void OnCreate()
+		protected override void OnCreate()
 		{
 		}
 
-		void OnDestroy()
+		protected override void OnDestroy()
 		{
 		}
 
-		void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(TimeStep ts)
 		{
 			Move(ts);
 			//TestEvents();

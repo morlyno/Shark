@@ -85,7 +85,7 @@ namespace Shark {
 		MonoMethod* RaiseOnMouseButtonDoubleClickedEvent = nullptr;
 		MonoMethod* RaiseOnMouseScrolledEvent = nullptr;
 	};
-	static MonoGlueData s_MonoGlue;
+	static Scope<MonoGlueData> s_MonoGlue;
 
 	namespace utils {
 
@@ -120,39 +120,46 @@ namespace Shark {
 
 	}
 
-	void MonoGlue::Glue()
+	void MonoGlue::Init()
 	{
 		SK_PROFILE_FUNCTION();
 
-		s_MonoGlue.RaiseOnKeyPressedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnKeyPressed");
-		s_MonoGlue.RaiseOnKeyReleasedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnKeyReleased");
-		s_MonoGlue.RaiseOnMouseMovedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseMoved");
-		s_MonoGlue.RaiseOnMouseButtonPressedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonPressed");
-		s_MonoGlue.RaiseOnMouseButtonReleasedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonReleased");
-		s_MonoGlue.RaiseOnMouseButtonDoubleClickedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonDoubleClicked");
-		s_MonoGlue.RaiseOnMouseScrolledEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseScrolled");
+		s_MonoGlue = Scope<MonoGlueData>::Create();
 
-		SK_CORE_ASSERT(s_MonoGlue.RaiseOnKeyPressedEvent);
-		SK_CORE_ASSERT(s_MonoGlue.RaiseOnKeyReleasedEvent);
-		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseMovedEvent);
-		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseButtonPressedEvent);
-		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseButtonReleasedEvent);
-		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseButtonDoubleClickedEvent);
-		SK_CORE_ASSERT(s_MonoGlue.RaiseOnMouseScrolledEvent);
+		s_MonoGlue->RaiseOnKeyPressedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnKeyPressed");
+		s_MonoGlue->RaiseOnKeyReleasedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnKeyReleased");
+		s_MonoGlue->RaiseOnMouseMovedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseMoved");
+		s_MonoGlue->RaiseOnMouseButtonPressedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonPressed");
+		s_MonoGlue->RaiseOnMouseButtonReleasedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonReleased");
+		s_MonoGlue->RaiseOnMouseButtonDoubleClickedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonDoubleClicked");
+		s_MonoGlue->RaiseOnMouseScrolledEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseScrolled");
+
+		SK_CORE_ASSERT(s_MonoGlue->RaiseOnKeyPressedEvent);
+		SK_CORE_ASSERT(s_MonoGlue->RaiseOnKeyReleasedEvent);
+		SK_CORE_ASSERT(s_MonoGlue->RaiseOnMouseMovedEvent);
+		SK_CORE_ASSERT(s_MonoGlue->RaiseOnMouseButtonPressedEvent);
+		SK_CORE_ASSERT(s_MonoGlue->RaiseOnMouseButtonReleasedEvent);
+		SK_CORE_ASSERT(s_MonoGlue->RaiseOnMouseButtonDoubleClickedEvent);
+		SK_CORE_ASSERT(s_MonoGlue->RaiseOnMouseScrolledEvent);
 
 		RegisterComponents();
 		RegsiterInternalCalls();
+
+
 	}
 
-	void MonoGlue::UnGlue()
+	void MonoGlue::Shutdown()
 	{
-		MemoryUtils::ZeroMemory(s_MonoGlue);
+		s_MonoGlue = nullptr;
 		s_EntityBindings.clear();
 	}
 
 	void MonoGlue::CallCollishionBegin(Entity entityA, Entity entityB)
 	{
 		SK_PROFILE_FUNCTION();
+
+		if (!s_MonoGlue)
+			return;
 
 		const UUID uuidA = entityA.GetUUID();
 		const UUID uuidB = entityB.GetUUID();
@@ -178,6 +185,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (!s_MonoGlue)
+			return;
+
 		const UUID uuidA = entityA.GetUUID();
 		const UUID uuidB = entityB.GetUUID();
 
@@ -200,15 +210,18 @@ namespace Shark {
 
 	void MonoGlue::OnEvent(Event& event)
 	{
-		EventDispacher dispacher(event);
-		dispacher.DispachEventAlways<KeyPressedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnKeyPressedEvent, nullptr, e.GetKeyCode(), e.IsRepeat()); return false; });
-		dispacher.DispachEventAlways<KeyReleasedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnKeyReleasedEvent, nullptr, e.GetKeyCode()); return false; });
+		if (!s_MonoGlue)
+			return;
 
-		dispacher.DispachEventAlways<MouseMovedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseMovedEvent, nullptr, e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseButtonPressedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseButtonPressedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseButtonReleasedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseButtonReleasedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseButtonDoubleClickedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseButtonDoubleClickedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseScrolledEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue.RaiseOnMouseScrolledEvent, nullptr, e.GetDelta(), e.GetMousePos()); return false; });
+		EventDispacher dispacher(event);
+		dispacher.DispachEventAlways<KeyPressedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnKeyPressedEvent, nullptr, e.GetKeyCode(), e.IsRepeat()); return false; });
+		dispacher.DispachEventAlways<KeyReleasedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnKeyReleasedEvent, nullptr, e.GetKeyCode()); return false; });
+
+		dispacher.DispachEventAlways<MouseMovedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseMovedEvent, nullptr, e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseButtonPressedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseButtonPressedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseButtonReleasedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseButtonReleasedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseButtonDoubleClickedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseButtonDoubleClickedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseScrolledEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseScrolledEvent, nullptr, e.GetDelta(), e.GetMousePos()); return false; });
 	}
 
 	void MonoGlue::RegisterComponents()
@@ -453,9 +466,13 @@ namespace Shark {
 			comp.ScriptName = scriptTypeName;
 			comp.ScriptModuleFound = true;
 
-			auto& script = ScriptManager::Instantiate(newEntity, true);
-			return script.GetObject();
-		}
+			if (ScriptManager::Instantiate(newEntity, true))
+			{
+				auto& script = ScriptManager::GetScript(newEntity.GetUUID());
+				return script.GetObject();
+			}
+			return nullptr;
+		} 
 
 		void Scene_CreateEntity(MonoString* name, UUID uuid, UUID* out_UUID)
 		{

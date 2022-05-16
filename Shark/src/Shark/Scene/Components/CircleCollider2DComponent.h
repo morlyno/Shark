@@ -17,6 +17,8 @@ namespace Shark {
 		float Restitution = 0.0f;
 		float RestitutionThreshold = 1.0f;
 
+		bool IsSensor = false;
+
 		b2Fixture* RuntimeCollider;
 
 		CircleCollider2DComponent() = default;

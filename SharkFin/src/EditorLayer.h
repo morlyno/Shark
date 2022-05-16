@@ -7,6 +7,8 @@
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 
+#include "Shark/Scripting/ScriptEngine.h"
+
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/SceneRenderer.h"
 #include "Shark/Render/Texture.h"
@@ -214,7 +216,16 @@ namespace Shark {
 		};
 		TextureSourceImportData m_TextureAssetCreateData;
 
-		bool m_HotReloadAssemblies = true;
+		enum class AssemblyReloadMode
+		{
+			None,
+			Auto,
+			Always
+		};
+		AssemblyReloadMode m_AssemblyReloadMode = AssemblyReloadMode::Auto;
+
+		BuildConfiguration m_BuildConfig = BuildConfiguration::Debug;
+		std::string m_BuildConfigStr = ToString(BuildConfiguration::Debug);
 	};
 
 }

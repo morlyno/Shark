@@ -25,7 +25,7 @@ namespace Sandbox
 			Color.Cyan, Color.Magenta, Color.Gray
 		};
 
-		void OnCreate()
+		protected override void OnCreate()
 		{
 			m_SpriteRenderer = GetComponent<SpriteRendererComponent>();
 			m_SpriteRenderer.TilingFactor = 0.25f;
@@ -38,7 +38,7 @@ namespace Sandbox
 			m_PlayerUUID = Scene.GetUUIDFromTag("Player");
 		}
 
-		void OnCollishionBegin(Entity entity)
+		protected override void OnCollishionBegin(Entity entity)
 		{
 			if (entity.UUID == m_PlayerUUID)
 			{
@@ -46,8 +46,8 @@ namespace Sandbox
 				m_SpriteRenderer.TextureHandle = m_CollishionTextureHandle;
 			}
 		}
-		
-		void OnCollishionEnd(Entity entity)
+
+		protected override void OnCollishionEnd(Entity entity)
 		{
 			if (entity.UUID == m_PlayerUUID)
 			{

@@ -628,11 +628,12 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		auto extension = filePath.extension();
-		if (extension.empty()) return false;
+		if (!filePath.has_extension())
+			return false;
 
-		if (extension == L".csproj") return true;
-		if (extension == L".csproj.user") return true;
+		const std::wstring fileName = filePath.filename().native();
+
+		if (fileName.find(L".csproj"sv) != std::wstring::npos) return true;
 
 		return false;
 	}

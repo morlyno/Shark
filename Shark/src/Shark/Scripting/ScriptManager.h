@@ -36,7 +36,7 @@ namespace Shark {
 	class ScriptManager
 	{
 	public:
-		static const Script& Instantiate(Entity entity, bool callOnCreate = false);
+		static bool Instantiate(Entity entity, bool callOnCreate = false);
 		static void Destroy(Entity entity, bool callOnDestroy = false);
 		static void Cleanup();
 

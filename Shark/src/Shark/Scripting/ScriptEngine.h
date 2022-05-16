@@ -8,6 +8,15 @@
 
 namespace Shark {
 
+	enum class BuildConfiguration
+	{
+		None = 0,
+		Debug = 1,
+		Release = 2
+	};
+
+	std::string ToString(BuildConfiguration buildConfig);
+
 	class ScriptEngine
 	{
 	public:
@@ -18,7 +27,12 @@ namespace Shark {
 		static void UnloadAssembly();
 		static bool ReloadAssembly();
 
+		static bool ReloadIfNeeded();
+
 		static bool AssemblyLoaded();
+		static void SetBuildConfiguration(BuildConfiguration buildConfig);
+		static BuildConfiguration GetBuildConfiguration();
+
 
 		static void SetActiveScene(const Ref<Scene> scene);
 		static Ref<Scene> GetActiveScene();
@@ -68,7 +82,9 @@ namespace Shark {
 		static MonoMethod* GetMethodInternal(const std::string& methodName, bool includeNameSpace, MonoImage* image);
 
 	private:
+		static void UpdateModules();
 		static void CheckForModuleUpdate();
+		static bool AnyModuleNeedsUpdate();
 
 	};
 

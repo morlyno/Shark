@@ -56,7 +56,6 @@ namespace Shark {
 		specification.VSync = true;
 
 		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/ScriptingCore.dll";
-		SK_CORE_ASSERT(std::filesystem::exists(specification.ScriptConfig.CoreAssemblyPath));
 
 		return new SharkFin(specification, startupProject);
 	}

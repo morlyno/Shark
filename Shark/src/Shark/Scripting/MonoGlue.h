@@ -21,8 +21,8 @@ namespace Shark {
 	class MonoGlue
 	{
 	public:
-		static void Glue();
-		static void UnGlue();
+		static void Init();
+		static void Shutdown();
 
 		static void CallCollishionBegin(Entity entityA, Entity entityB);
 		static void CallCollishionEnd(Entity entityA, Entity entityB);

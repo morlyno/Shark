@@ -462,6 +462,7 @@ namespace Shark {
 			UI::Control("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
 			UI::Control("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
 			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::Control("IsSensor", comp.IsSensor);
 			UI::EndControls();
 		});
 
@@ -475,6 +476,7 @@ namespace Shark {
 			UI::Control("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
 			UI::Control("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
 			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::Control("IsSensor", comp.IsSensor);
 			UI::EndControls();
 		});
 

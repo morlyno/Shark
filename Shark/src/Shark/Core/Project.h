@@ -31,6 +31,8 @@ namespace Shark {
 		static const std::filesystem::path& AssetsPath();
 		static const std::filesystem::path& StartupScenePath();
 
+		static const std::string& ScriptModulePath();
+
 		static const glm::vec2& Gravity();
 		static uint32_t VelocityIterations();
 		static uint32_t PositionIterations();

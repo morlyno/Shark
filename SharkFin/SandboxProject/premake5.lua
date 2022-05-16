@@ -1,3 +1,6 @@
+
+include "dependencies.lua"
+
 workspace "Sandbox"
     architecture "x64"
     startproject "Sandbox"
@@ -9,7 +12,7 @@ workspace "Sandbox"
     }
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
-SharkDir = "C:/dev/c++/shark-scripting"
+-- SharkDir = "C:/dev/c++/shark-merge-scripting-master"
 
 project "Sandbox"
     kind "SharedLib"

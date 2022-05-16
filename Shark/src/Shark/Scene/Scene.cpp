@@ -128,23 +128,33 @@ namespace Shark {
 		{
 			SK_PROFILE_SCOPED("Scene::OnScenePlay::InstantiateScripts");
 
-			auto view = m_Registry.view<ScriptComponent>();
-			for (auto entityID : view)
 			{
-				Entity entity{ entityID, this };
-				ScriptManager::Instantiate(entity);
-
-				auto& comp = view.get<ScriptComponent>(entityID);
-				comp.HasRuntime = true;
+				auto view = m_Registry.view<ScriptComponent>();
+				for (auto entityID : view)
+				{
+					Entity entity{ entityID, this };
+					if (ScriptManager::Instantiate(entity))
+					{
+						auto& comp = view.get<ScriptComponent>(entityID);
+						comp.HasRuntime = true;
+					}
+					else
+					{
+						// Remove Script Component if the Script couldn't be instatiated;
+						entity.RemoveComponent<ScriptComponent>();
+					}
+				}
 			}
 
-			for (auto entityID : view)
 			{
-				Entity entity{ entityID, this };
-				auto& script = ScriptManager::GetScript(entity.GetUUID());
-				script.OnCreate();
+				auto view = m_Registry.view<ScriptComponent>();
+				for (auto entityID : view)
+				{
+					Entity entity{ entityID, this };
+					auto& script = ScriptManager::GetScript(entity.GetUUID());
+					script.OnCreate();
+				}
 			}
-
 		}
 
 		// Create Native Scrips
@@ -323,7 +333,7 @@ namespace Shark {
 
 	void Scene::OnEventRuntime(Event& event)
 	{
-		// passes events to scripts
+		// passes events to C#
 		MonoGlue::OnEvent(event);
 	}
 
@@ -635,6 +645,7 @@ namespace Shark {
 					fixturedef.density = bc2d.Density;
 					fixturedef.restitution = bc2d.Restitution;
 					fixturedef.restitutionThreshold = bc2d.RestitutionThreshold;
+					fixturedef.isSensor = bc2d.IsSensor;
 
 					bc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
 				}
@@ -653,6 +664,7 @@ namespace Shark {
 					fixturedef.density = cc2d.Density;
 					fixturedef.restitution = cc2d.Restitution;
 					fixturedef.restitutionThreshold = cc2d.RestitutionThreshold;
+					fixturedef.isSensor = cc2d.IsSensor;
 
 					cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
 				}
@@ -738,6 +750,9 @@ namespace Shark {
 		SK_CORE_ASSERT(!m_IsEditorScene);
 
 		Entity entity{ entityID, this };
+		if (!entity.HasComponent<RigidBody2DComponent>())
+			return;
+
 		auto& comp = entity.GetComponent<BoxCollider2DComponent>();
 		b2Body* body = comp.RuntimeCollider->GetBody();
 		body->DestroyFixture(comp.RuntimeCollider);
@@ -749,6 +764,9 @@ namespace Shark {
 		SK_CORE_ASSERT(!m_IsEditorScene);
 
 		Entity entity{ entityID, this };
+		if (!entity.HasComponent<RigidBody2DComponent>())
+			return;
+
 		auto& comp = entity.GetComponent<CircleCollider2DComponent>();
 		b2Body* body = comp.RuntimeCollider->GetBody();
 		body->DestroyFixture(comp.RuntimeCollider);

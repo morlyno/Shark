@@ -131,9 +131,15 @@ namespace Shark {
 		}
 	}
 
-	const Script& ScriptManager::Instantiate(Entity entity, bool callOnCreate)
+	bool ScriptManager::Instantiate(Entity entity, bool callOnCreate)
 	{
 		SK_PROFILE_FUNCTION();
+
+		if (!ScriptEngine::GetImage())
+		{
+			SK_CORE_ERROR("No Script loaded");
+			return false;
+		}
 
 		SK_CORE_ASSERT(entity.HasComponent<ScriptComponent>());
 
@@ -148,7 +154,7 @@ namespace Shark {
 		if (!clazz)
 		{
 			SK_CORE_WARN("Script class not Found! Namespace: {}, Class: {}", nameSpace, className);
-			return s_Scripts[entity.GetUUID()];
+			return false;
 		}
 
 		SK_CORE_ASSERT(mono_class_is_subclass_of(clazz, ScriptEngine::GetEntityClass(), false));
@@ -158,8 +164,8 @@ namespace Shark {
 		GCHandle handle = mono_gchandle_new(object, false);
 
 		// init Entity
+		MonoClass* entityClass = ScriptEngine::GetEntityClass();
 		{
-			MonoClass* entityClass = ScriptEngine::GetEntityClass();
 			MonoClassField* field = mono_class_get_field_from_name(entityClass, "m_Handle");
 			mono_field_set_value(object, field, &uuid);
 		}
@@ -177,7 +183,7 @@ namespace Shark {
 		if (callOnCreate)
 			script.OnCreate();
 
-		return script;
+		return true;
 	}
 
 	void ScriptManager::Destroy(Entity entity, bool callOnDestroy)

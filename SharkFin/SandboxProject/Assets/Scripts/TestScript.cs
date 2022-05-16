@@ -19,7 +19,7 @@ namespace Sandbox
 
 		public Vector3 Offset { set { m_Offset = value; } }
 
-		void OnCreate()
+		protected override void OnCreate()
 		{
 			m_SpriteRenderer = GetOrAddComponent<SpriteRendererComponent>();
 			m_SpriteRenderer.Color = Color.Back;
@@ -27,7 +27,7 @@ namespace Sandbox
 			m_Offset = Transform.Translation;
 		}
 
-		void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(TimeStep ts)
 		{
 			m_AnimationTimer += ts * m_AnimationSpeed;
 			m_AnimationSpeed %= (float)Math.PI;

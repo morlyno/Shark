@@ -15,6 +15,13 @@ namespace Shark
 			m_Handle = handle;
 		}
 
+		protected virtual void OnCreate() {}
+		protected virtual void OnDestroy() {}
+		protected virtual void OnUpdate(TimeStep ts) {}
+		protected virtual void OnCollishionBegin(Entity entity) {}
+		protected virtual void OnCollishionEnd(Entity entity) {}
+
+
 		public TransformComponent Transform => new TransformComponent(m_Handle);
 
 		public string Name

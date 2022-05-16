@@ -9,7 +9,7 @@ namespace Sandbox
 		private TimeStep m_Timer;
 		private System.Random m_Rng = new System.Random();
 
-		void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(TimeStep ts)
 		{
 			m_Timer += ts;
 

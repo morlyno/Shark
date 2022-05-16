@@ -1,3 +1,4 @@
+
 using Shark;
 
 namespace Sandbox
@@ -14,7 +15,7 @@ namespace Sandbox
 
 		private RigidBody2DComponent m_RigidBody;
 
-		void OnCreate()
+		protected override void OnCreate()
 		{
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
 
@@ -25,7 +26,7 @@ namespace Sandbox
 			m_RightPoint = markerRight.Transform.Translation.XY;
 		}
 
-		void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(TimeStep ts)
 		{
 			m_Lerp += ts * m_LerpSpeed * m_Direction;
 			if (m_Lerp > 1.0f)

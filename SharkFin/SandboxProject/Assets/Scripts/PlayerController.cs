@@ -23,7 +23,7 @@ namespace Sandbox
 		private TimeStep m_Time = 0;
 		private bool m_AutoSpawnBalls = false;
 
-		void OnCreate()
+		protected override void OnCreate()
 		{
 			m_BallTemplate = Scene.GetEntityByTag("BallTemplate");
 
@@ -36,13 +36,13 @@ namespace Sandbox
 			EventHandler.OnMouseScrolled += OnMouseScrolled;
 		}
 
-		void OnDestroy()
+		protected override void OnDestroy()
 		{
 			EventHandler.OnKeyPressed -= OnKeyPressed;
 			EventHandler.OnMouseScrolled -= OnMouseScrolled;
 		}
 
-		void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(TimeStep ts)
 		{
 			Movement(ts);
 
@@ -126,13 +126,13 @@ namespace Sandbox
 			m_CameraEntity.Transform.Translation = translation;
 		}
 
-		void OnCollishionBegin(Entity entity)
+		protected override void OnCollishionBegin(Entity entity)
 		{
 			m_CanJump = true;
 			m_CanDoubleJump = true;
 		}
-		
-		void OnCollishionEnd(Entity entity)
+
+		protected override void OnCollishionEnd(Entity entity)
 		{
 			m_CanJump = false;
 		}

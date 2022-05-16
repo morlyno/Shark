@@ -38,6 +38,11 @@ namespace Shark {
 		return GetActiveConfig().StartupScenePath;
 	}
 
+	const std::string& Project::ScriptModulePath()
+	{
+		return GetActiveConfig().ScriptModulePath;
+	}
+
 	const glm::vec2& Project::Gravity()
 	{
 		return GetActiveConfig().Gravity;

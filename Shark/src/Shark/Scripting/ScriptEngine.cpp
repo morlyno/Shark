@@ -36,37 +36,41 @@ namespace Shark {
 
 		std::string CoreAssemblyPath;
 		std::string ScriptAssemblyPath;
-
-		bool AssemblyLoaded = false;
 	};
 	static ScriptingData s_ScriptData;
 
 	static Ref<Scene> s_ActiveScene = nullptr;
+	static BuildConfiguration s_BuildConfig = BuildConfiguration::None;
+	static bool s_ForceModuleUpdate = false;
 
 	namespace utils {
 
 		std::filesystem::path GetScriptingCoreOuputPath()
 		{
-#if SK_DEBUG
-			return std::filesystem::current_path() / "../bin/Debug-windows-x86_64/ScriptingCore/ScriptingCore.dll";
-#elif SK_RELEASE
-			return std::filesystem::current_path() / "../bin/Release-windows-x86_64/ScriptingCore/ScriptingCore.dll";
-#else
-			static_assert(false);
-#endif
+			switch (s_BuildConfig)
+			{
+				case BuildConfiguration::Debug:   return (std::filesystem::current_path() / "../bin/Debug-windows-x86_64/ScriptingCore/ScriptingCore.dll").lexically_normal();
+				case BuildConfiguration::Release: return (std::filesystem::current_path() / "../bin/Release-windows-x86_64/ScriptingCore/ScriptingCore.dll").lexically_normal();
+			}
+
+			SK_CORE_ASSERT(false, "Invalid Build Configuration");
+			return std::filesystem::path{};
 		}
 
 		std::filesystem::path GetScriptModuleOuputPath()
 		{
-#if SK_DEBUG
-			std::filesystem::path binaryOutputDir = Project::Directory() / "bin/Debug-windows-x86_64";
-#elif SK_RELEASE
-			std::filesystem::path binaryOutputDir = Project::Directory() / "bin/Release-windows-x86_64";
-#else
-			static_assert(false);
-#endif
+			std::filesystem::path path;
+			switch (s_BuildConfig)
+			{
+				case BuildConfiguration::Debug:   path = Project::Directory() / "bin/Debug-windows-x86_64"; break;
+				case BuildConfiguration::Release: path = Project::Directory() / "bin/Release-windows-x86_64"; break;
+				default:
+					SK_CORE_ASSERT(false, "Invalid Build Configuration");
+					return std::filesystem::path{};
+			}
+
 			std::wstring projectName = String::ToWideCopy(Project::GetActive()->GetConfig().Name);
-			return fmt::format(L"{0}/{1}/{1}.dll", binaryOutputDir.native(), projectName);
+			return fmt::format(L"{0}/{1}/{1}.dll", path, projectName);
 		}
 
 		MonoClass* GetClassFromName(const std::string className, MonoImage* image)
@@ -160,22 +164,35 @@ namespace Shark {
 
 	}
 
+	std::string ToString(BuildConfiguration buildConfig)
+	{
+		switch (buildConfig)
+		{
+			case BuildConfiguration::None:    return "None";
+			case BuildConfiguration::Debug:   return "Debug";
+			case BuildConfiguration::Release: return "Release";
+		}
+
+		SK_CORE_ASSERT(false, "Unkown Build Configuration");
+		return "Unkown";
+	}
+
 	void LogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
 	{
 		auto level = utils::MonoLogLevelTospdlog(log_level);
-		SK_CORE_LOG(level, "{}: {}", log_domain, message);
+		SK_CORE_LOG(level, "{}: {}", log_domain ? log_domain : "Unkown Domain", message);
 	}
 
-	bool ScriptEngine::Init(const std::string& scriptinCoreAssemblyPath)
+	bool ScriptEngine::Init(const std::string& scriptingCoreAssemblyPath)
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO("Init ScriptEngine [{}]", scriptinCoreAssemblyPath);
+		SK_CORE_INFO("Init ScriptEngine [{}]", scriptingCoreAssemblyPath);
 
 		mono_trace_set_level_string(SK_MONO_LOG_LEVEL);
 		mono_trace_set_log_handler(&LogCallback, nullptr);
 
-		s_ScriptData.CoreAssemblyPath = scriptinCoreAssemblyPath;
+		s_ScriptData.CoreAssemblyPath = scriptingCoreAssemblyPath;
 		mono_set_dirs(SK_CONNECT_TO_STRING(MONO_DIRECTORY, /lib), SK_CONNECT_TO_STRING(MONO_DIRECTORY, /etc));
 
 		s_ScriptData.RootDomain = mono_jit_init("Core Domain");
@@ -192,11 +209,8 @@ namespace Shark {
 		{
 			SK_CORE_INFO("ScriptEngine Shutdown");
 
-			UnloadAssembly();
-
 			mono_jit_cleanup(s_ScriptData.RootDomain);
 			s_ScriptData.RootDomain = nullptr;
-			s_ScriptData.RuntimeDomain = nullptr;
 			s_ScriptData.CoreAssembly = nullptr;
 			s_ScriptData.CoreImage = nullptr;
 			s_ScriptData.ScriptAssembly = nullptr;
@@ -210,34 +224,58 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO("ScriptEngine Assembly Loaded [{}]", assemblyPath);
+		s_ScriptData.ScriptAssemblyPath = assemblyPath;
 
-		CheckForModuleUpdate();
+		if (s_ForceModuleUpdate)
+		{
+			UpdateModules();
+			s_ForceModuleUpdate = false;
+		}
+		else
+		{
+			CheckForModuleUpdate();
+		}
 
-		// Create Runtime Domain
 		s_ScriptData.RuntimeDomain = mono_domain_create_appdomain("Script Domain", nullptr);
-		SK_CORE_ASSERT(s_ScriptData.RuntimeDomain);
+		if (!s_ScriptData.RuntimeDomain)
+		{
+			SK_CORE_ERROR("Failed to load Runtime Domain");
+			return false;
+		}
 		mono_domain_set(s_ScriptData.RuntimeDomain, 0);
-
-		// Core
+		
 		s_ScriptData.CoreAssembly = mono_domain_assembly_open(s_ScriptData.RuntimeDomain, s_ScriptData.CoreAssemblyPath.c_str());
-		SK_CORE_ASSERT(s_ScriptData.CoreAssembly);
+		if (!s_ScriptData.CoreAssembly)
+		{
+			SK_CORE_ERROR("Failed to open Core Assembly");
+			return false;
+		}
 
 		s_ScriptData.CoreImage = mono_assembly_get_image(s_ScriptData.CoreAssembly);
-		SK_CORE_ASSERT(s_ScriptData.CoreImage);
+		if (!s_ScriptData.CoreImage)
+		{
+			SK_CORE_ERROR("Failed to get Core Image");
+			return false;
+		}
 
-		// Scripting
-		s_ScriptData.ScriptAssemblyPath = assemblyPath;
+
 		s_ScriptData.ScriptAssembly = mono_domain_assembly_open(s_ScriptData.RuntimeDomain, assemblyPath.c_str());
-		SK_CORE_ASSERT(s_ScriptData.ScriptAssembly);
+		if (!s_ScriptData.ScriptAssembly)
+		{
+			SK_CORE_ERROR("Failed to open Script Assembly");
+			return false;
+		}
 
 		s_ScriptData.ScriptImage = mono_assembly_get_image(s_ScriptData.ScriptAssembly);
-		SK_CORE_ASSERT(s_ScriptData.ScriptImage);
+		if (!s_ScriptData.ScriptImage)
+		{
+			SK_CORE_ERROR("Failed to get Script image");
+			return false;
+		}
 
-		s_ScriptData.AssemblyLoaded = true;
+		MonoGlue::Init();
 
-		MonoGlue::Glue();
-
+		SK_CORE_INFO("ScriptEngine Assembly Loaded [{}]", assemblyPath);
 		return true;
 	}
 
@@ -245,20 +283,13 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (!s_ScriptData.AssemblyLoaded)
+		if (!s_ScriptData.RuntimeDomain)
 			return;
 
-		SK_CORE_ASSERT(s_ScriptData.RootDomain != s_ScriptData.RuntimeDomain);
-
-		SK_CORE_INFO("ScriptEngine Assembly Unloaded");
-
-		MonoGlue::UnGlue();
-
-		s_ScriptData.AssemblyLoaded = false;
+		SK_CORE_INFO("ScriptEngine Assembly Unloaded [{}]", s_ScriptData.ScriptAssemblyPath);
 
 		mono_domain_set(s_ScriptData.RootDomain, 0);
 		mono_domain_unload(s_ScriptData.RuntimeDomain);
-
 		s_ScriptData.RuntimeDomain = nullptr;
 		s_ScriptData.CoreAssembly = nullptr;
 		s_ScriptData.CoreImage = nullptr;
@@ -271,14 +302,33 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		UnloadAssembly();
-		LoadAssembly(s_ScriptData.ScriptAssemblyPath);
+		return LoadAssembly(s_ScriptData.ScriptAssemblyPath);
+	}
 
-		return true;
+	bool ScriptEngine::ReloadIfNeeded()
+	{
+		if (AnyModuleNeedsUpdate())
+		{
+			UnloadAssembly();
+			return LoadAssembly(s_ScriptData.ScriptAssemblyPath);
+		}
+		return false;
 	}
 
 	bool ScriptEngine::AssemblyLoaded()
 	{
-		return s_ScriptData.AssemblyLoaded;
+		return s_ScriptData.ScriptAssembly;
+	}
+
+	void ScriptEngine::SetBuildConfiguration(BuildConfiguration buildConfig)
+	{
+		s_BuildConfig = buildConfig;
+		s_ForceModuleUpdate = true;
+	}
+
+	BuildConfiguration ScriptEngine::GetBuildConfiguration()
+	{
+		return s_BuildConfig;
 	}
 
 	void ScriptEngine::SetActiveScene(const Ref<Scene> scene)
@@ -310,7 +360,10 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		return utils::GetClassFromNameScript(className) != nullptr;
+		if (!s_ScriptData.ScriptAssembly)
+			return false;
+
+		return utils::GetClassFromName(className, s_ScriptData.ScriptImage) != nullptr;
 	}
 
 	MonoMethod* ScriptEngine::GetMethod(const std::string& methodName, bool includeNameSpace)
@@ -368,6 +421,26 @@ namespace Shark {
 		return nullptr;
 	}
 
+	void ScriptEngine::UpdateModules()
+	{
+		const std::array<std::pair<std::filesystem::path, std::filesystem::path>, 2> paths = {
+			std::pair{ utils::GetScriptingCoreOuputPath(), Application::Get().GetSpecs().ScriptConfig.CoreAssemblyPath },
+			std::pair{ utils::GetScriptModuleOuputPath(), Project::GetActive()->GetConfig().ScriptModulePath }
+		};
+
+		for (const auto& [source, target] : paths)
+		{
+			if (std::filesystem::exists(source) && std::filesystem::exists(target))
+			{
+				std::error_code err;
+
+				SK_CORE_WARN(L"Updating Module [{}]", source.filename().replace_extension().native());
+				std::filesystem::copy_file(source, target, std::filesystem::copy_options::overwrite_existing, err);
+				SK_CORE_ASSERT(!err, err.message());
+			}
+		}
+	}
+
 	void ScriptEngine::CheckForModuleUpdate()
 	{
 		SK_PROFILE_FUNCTION();
@@ -391,11 +464,38 @@ namespace Shark {
 				if (targetTime < sourceTime)
 				{
 					SK_CORE_WARN(L"Updating Module [{}]", source.filename().replace_extension().native());
-					std::filesystem::copy_file(source, target, std::filesystem::copy_options::overwrite_existing, err);
+					std::filesystem::copy_file(source, target, std::filesystem::copy_options::update_existing, err);
 					SK_CORE_ASSERT(!err, err.message());
 				}
 			}
 		}
+	}
+
+	bool ScriptEngine::AnyModuleNeedsUpdate()
+	{
+		SK_PROFILE_FUNCTION();
+
+		const std::array<std::pair<std::filesystem::path, std::filesystem::path>, 2> paths = {
+			std::pair{ utils::GetScriptingCoreOuputPath(), Application::Get().GetSpecs().ScriptConfig.CoreAssemblyPath },
+			std::pair{ utils::GetScriptModuleOuputPath(), Project::GetActive()->GetConfig().ScriptModulePath }
+		};
+
+		for (const auto& [source, target] : paths)
+		{
+			if (std::filesystem::exists(source) && std::filesystem::exists(target))
+			{
+				std::error_code err;
+
+				std::filesystem::file_time_type sourceTime = std::filesystem::last_write_time(source, err);
+				SK_CORE_ASSERT(!err, err.message());
+				std::filesystem::file_time_type targetTime = std::filesystem::last_write_time(target, err);
+				SK_CORE_ASSERT(!err, err.message());
+
+				if (targetTime < sourceTime)
+					return true;
+			}
+		}
+		return false;
 	}
 
 }

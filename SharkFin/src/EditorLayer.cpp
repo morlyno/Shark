@@ -473,14 +473,44 @@ namespace Shark {
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("Script"))
+			if (ImGui::BeginMenu("Script", m_SceneState == SceneState::Edit))
 			{
 				if (ImGui::MenuItem("Reload", nullptr, nullptr, m_SceneState == SceneState::Edit))
 				{
 					ScriptEngine::ReloadAssembly();
 					CheckScriptComponents();
 				}
-				ImGui::MenuItem("Hot Reload", nullptr, &m_HotReloadAssemblies);
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Auto Reload", nullptr, m_AssemblyReloadMode == AssemblyReloadMode::Auto))
+					m_AssemblyReloadMode = m_AssemblyReloadMode == AssemblyReloadMode::Auto ? AssemblyReloadMode::None : AssemblyReloadMode::Auto;
+
+				if (ImGui::MenuItem("Hot Reload", nullptr, m_AssemblyReloadMode == AssemblyReloadMode::Always))
+					m_AssemblyReloadMode = m_AssemblyReloadMode == AssemblyReloadMode::Always ? AssemblyReloadMode::None : AssemblyReloadMode::Always;
+
+				ImGui::Separator();
+
+				if (ImGui::BeginMenu("Build Configuration"))
+				{
+					if (ImGui::MenuItem("Debug", nullptr, m_BuildConfig == BuildConfiguration::Debug))
+					{
+						ScriptEngine::SetBuildConfiguration(BuildConfiguration::Debug);
+						ScriptEngine::ReloadAssembly();
+						m_BuildConfig = BuildConfiguration::Debug;
+						m_BuildConfigStr = ToString(BuildConfiguration::Debug);
+					}
+
+					if (ImGui::MenuItem("Release", nullptr, m_BuildConfig == BuildConfiguration::Release))
+					{
+						ScriptEngine::SetBuildConfiguration(BuildConfiguration::Release);
+						ScriptEngine::ReloadAssembly();
+						m_BuildConfig = BuildConfiguration::Release;
+						m_BuildConfigStr = ToString(BuildConfiguration::Release);
+					}
+
+					ImGui::EndMenu();
+				}
 
 				ImGui::Separator();
 
@@ -1443,6 +1473,7 @@ namespace Shark {
 
 		ImGui::Begin("Debug Scripts");
 
+		ImGui::Text("Build Configuration: %s", m_BuildConfigStr.c_str());
 		ImGui::Text("Scripts: %llu", ScriptManager::GetScripts().size());
 
 		for (auto& [uuid, script] : ScriptManager::GetScripts())
@@ -1704,9 +1735,14 @@ namespace Shark {
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
 
-		if (m_HotReloadAssemblies)
+		if (m_AssemblyReloadMode == AssemblyReloadMode::Always)
 		{
 			ScriptEngine::ReloadAssembly();
+			CheckScriptComponents();
+		}
+		else if (m_AssemblyReloadMode == AssemblyReloadMode::Auto)
+		{
+			ScriptEngine::ReloadIfNeeded();
 			CheckScriptComponents();
 		}
 
@@ -1786,6 +1822,7 @@ namespace Shark {
 			ResourceManager::Init();
 
 			const auto& config = Project::GetActive()->GetConfig();
+			ScriptEngine::SetBuildConfiguration(m_BuildConfig);
 			ScriptEngine::LoadAssembly(config.ScriptModulePath);
 
 			if (!LoadScene(config.ProjectDirectory / config.StartupScenePath))
@@ -1824,6 +1861,7 @@ namespace Shark {
 			OnEvent(SceneChangedEvent(nullptr));
 		ScriptEngine::UnloadAssembly();
 		ScriptEngine::SetActiveScene(nullptr);
+		ScriptEngine::SetBuildConfiguration(BuildConfiguration::None);
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
 		m_WorkScene = nullptr;
@@ -1856,6 +1894,9 @@ namespace Shark {
 
 	void EditorLayer::CreateProject()
 	{
+		SK_CORE_ASSERT(false);
+		return;
+
 		SK_PROFILE_FUNCTION();
 
 		auto targetDirectory = PlatformUtils::OpenDirectoryDialog(std::filesystem::current_path());
@@ -1932,7 +1973,8 @@ namespace Shark {
 		ExecuteSpecs specs;
 		specs.Target = fmt::format(L"{}/Premake/premake5.exe", Project::Directory());
 		// vs2022 dosn't work for some reason but vs2019 still generates vs2022 solution
-		specs.Params = L"vs2019";
+		auto sharkDir = std::filesystem::current_path().parent_path();
+		specs.Params = fmt::format(L"{} --sharkdir=\"{}\"", L"vs2019", sharkDir);
 		specs.WaitUntilFinished = true;
 		specs.WorkingDirectory = Project::Directory();
 		specs.InterhitConsole = true;

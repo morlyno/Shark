@@ -193,6 +193,7 @@ namespace Shark {
 			out << YAML::Key << "Friction" << YAML::Value << comp.Friction;
 			out << YAML::Key << "Restitution" << YAML::Value << comp.Restitution;
 			out << YAML::Key << "RestitutionThreshold" << YAML::Value << comp.RestitutionThreshold;
+			out << YAML::Key << "IsSensor" << YAML::Value << comp.IsSensor;
 
 			out << YAML::EndMap;
 		}
@@ -211,6 +212,7 @@ namespace Shark {
 			out << YAML::Key << "Friction" << YAML::Value << comp.Friction;
 			out << YAML::Key << "Restitution" << YAML::Value << comp.Restitution;
 			out << YAML::Key << "RestitutionThreshold" << YAML::Value << comp.RestitutionThreshold;
+			out << YAML::Key << "IsSensor" << YAML::Value << comp.IsSensor;
 
 			out << YAML::EndMap;
 		}
@@ -485,7 +487,7 @@ namespace Shark {
 					comp.GravityScale = gravityScale.as<float>();
 					
 					SK_CORE_ASSERT(allowSleep, "Couldn't desirialize RigidBody2DComponent::AllowSleep");
-					comp.AllowSleep = allowSleep.as<bool>(true);
+					comp.AllowSleep = allowSleep.as<bool>();
 
 					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", Convert::BodyTypeToString(comp.Type));
 				}
@@ -500,6 +502,7 @@ namespace Shark {
 					auto friction = boxCollider2DComponent["Friction"];
 					auto restitution = boxCollider2DComponent["Restitution"];
 					auto restitutionThreshold = boxCollider2DComponent["RestitutionThreshold"];
+					auto isSensor = boxCollider2DComponent["IsSensor"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<BoxCollider2DComponent>();
 
@@ -523,6 +526,9 @@ namespace Shark {
 
 					SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize BoxCollider2DComponent::RestitutionThreshold");
 					comp.RestitutionThreshold = restitutionThreshold.as<float>();
+					
+					SK_CORE_ASSERT(isSensor, "Couldn't desirialize BoxCollider2DComponent::IsSensor");
+					comp.IsSensor = isSensor.as<bool>();
 
 					SK_CORE_TRACE(" - BoxCollider2D Component");
 				}
@@ -537,6 +543,7 @@ namespace Shark {
 					auto friction = cirlceCollider2DComponent["Friction"];
 					auto restitution = cirlceCollider2DComponent["Restitution"];
 					auto restitutionThreshold = cirlceCollider2DComponent["RestitutionThreshold"];
+					auto isSensor = cirlceCollider2DComponent["IsSensor"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
 
@@ -560,6 +567,9 @@ namespace Shark {
 
 					SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize CircleCollider2DComponent::RestitutionThreshold");
 					comp.RestitutionThreshold = restitutionThreshold.as<float>();
+
+					SK_CORE_ASSERT(isSensor, "Couldn't desirialize CircleCollider2DComponent::IsSensor");
+					comp.IsSensor = isSensor.as<bool>(false);
 
 					SK_CORE_TRACE(" - CircleCollider2D Component");
 				}
