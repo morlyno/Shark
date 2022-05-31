@@ -371,20 +371,12 @@ namespace Shark {
 
 		#pragma region Log
 
-		void Log_LogLevel(LogLevel level, MonoString* message)
+		void Log_LogLevel(Log::Level level, MonoString* message)
 		{
 			SK_PROFILE_FUNCTION();
 
 			char* msg = mono_string_to_utf8(message);
-			switch (level)
-			{
-				case LogLevel::Trace: SK_TRACE(msg); break;
-				case LogLevel::Debug: Shark::Log::GetClientLogger()->debug(msg); break;
-				case LogLevel::Info: SK_INFO(msg); break;
-				case LogLevel::Warn: SK_WARN(msg); break;
-				case LogLevel::Error: SK_ERROR(msg); break;
-				case LogLevel::Critical: SK_CRITICAL(msg); break;
-			}
+			SK_CONSOLE_LOG(level, msg);
 		}
 
 		#pragma endregion

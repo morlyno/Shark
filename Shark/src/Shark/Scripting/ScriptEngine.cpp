@@ -132,34 +132,21 @@ namespace Shark {
 			return nullptr;
 		}
 
-		void InvokeClassMethod(MonoObject* object, MonoMethod* method, void** args = nullptr)
-		{
-			SK_PROFILE_FUNCTION();
-
-			MonoObject* exeption = nullptr;
-			mono_runtime_invoke(method, object, args, &exeption);
-			if (exeption)
-			{
-				MonoString* msg = mono_object_to_string(exeption, nullptr);
-				SK_CORE_ERROR(mono_string_to_utf8(msg));
-			}
-		}
-
-		spdlog::level::level_enum MonoLogLevelTospdlog(std::string_view logLevel)
+		Log::Level MonoLogLevelToLogLevel(std::string_view logLevel)
 		{
 			if (logLevel == "debug")
-				return spdlog::level::debug;
+				return Log::Level::Debug;
 			if (logLevel == "info")
-				return spdlog::level::trace;
+				return Log::Level::Trace;
 			if (logLevel == "message")
-				return spdlog::level::info;
+				return Log::Level::Info;
 			if (logLevel == "warning")
-				return spdlog::level::warn;
+				return Log::Level::Warn;
 			if (logLevel == "critical")
-				return spdlog::level::critical;
+				return Log::Level::Critical;
 			if (logLevel == "error")
-				return spdlog::level::err;
-			return spdlog::level::off;
+				return Log::Level::Error;
+			return Log::Level::Trace;
 		}
 
 	}
@@ -177,9 +164,19 @@ namespace Shark {
 		return "Unkown";
 	}
 
+	void ScriptEngine::HandleException(MonoObject* exception)
+	{
+		if (!exception)
+			return;
+
+		MonoString* monoStr = mono_object_to_string(exception, nullptr);
+		const wchar_t* str = mono_string_to_utf16(monoStr);
+		SK_CONSOLE_ERROR(str);
+	}
+
 	void LogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
 	{
-		auto level = utils::MonoLogLevelTospdlog(log_level);
+		auto level = utils::MonoLogLevelToLogLevel(log_level);
 		SK_CORE_LOG(level, "{}: {}", log_domain ? log_domain : "Unkown Domain", message);
 	}
 
@@ -259,7 +256,7 @@ namespace Shark {
 		}
 
 
-		s_ScriptData.ScriptAssembly = mono_domain_assembly_open(s_ScriptData.RuntimeDomain, assemblyPath.c_str());
+		s_ScriptData.ScriptAssembly = mono_domain_assembly_open(s_ScriptData.RuntimeDomain, s_ScriptData.ScriptAssemblyPath.c_str());
 		if (!s_ScriptData.ScriptAssembly)
 		{
 			SK_CORE_ERROR("Failed to open Script Assembly");
@@ -275,7 +272,7 @@ namespace Shark {
 
 		MonoGlue::Init();
 
-		SK_CORE_INFO("ScriptEngine Assembly Loaded [{}]", assemblyPath);
+		SK_CORE_INFO("ScriptEngine Assembly Loaded [{}]", s_ScriptData.ScriptAssemblyPath);
 		return true;
 	}
 
@@ -397,12 +394,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		MonoObject* exeption = nullptr;
-		MonoObject* retVal = mono_runtime_invoke(method, object, args, &exeption);
-		if (exeption)
+		MonoObject* exception = nullptr;
+		MonoObject* retVal = mono_runtime_invoke(method, object, args, &exception);
+		if (exception)
 		{
-			MonoString* msg = mono_object_to_string(exeption, nullptr);
-			SK_CORE_ERROR(mono_string_to_utf8(msg));
+			HandleException(exception);
 			return nullptr;
 		}
 		return retVal;
@@ -430,12 +426,16 @@ namespace Shark {
 
 		for (const auto& [source, target] : paths)
 		{
-			if (std::filesystem::exists(source) && std::filesystem::exists(target))
+			if (std::filesystem::exists(source))
 			{
 				std::error_code err;
 
+				auto parentPath = target.parent_path();
+				if (!std::filesystem::exists(parentPath))
+					std::filesystem::create_directories(parentPath);
+
 				SK_CORE_WARN(L"Updating Module [{}]", source.filename().replace_extension().native());
-				std::filesystem::copy_file(source, target, std::filesystem::copy_options::overwrite_existing, err);
+				std::filesystem::copy_file(source, target, std::filesystem::copy_options::update_existing, err);
 				SK_CORE_ASSERT(!err, err.message());
 			}
 		}
@@ -452,21 +452,35 @@ namespace Shark {
 
 		for (const auto& [source, target] : paths)
 		{
-			if (std::filesystem::exists(source) && std::filesystem::exists(target))
+			if (std::filesystem::exists(source))
 			{
 				std::error_code err;
 
-				std::filesystem::file_time_type sourceTime = std::filesystem::last_write_time(source, err);
-				SK_CORE_ASSERT(!err, err.message());
-				std::filesystem::file_time_type targetTime = std::filesystem::last_write_time(target, err);
-				SK_CORE_ASSERT(!err, err.message());
-
-				if (targetTime < sourceTime)
+				if (std::filesystem::exists(target))
 				{
-					SK_CORE_WARN(L"Updating Module [{}]", source.filename().replace_extension().native());
-					std::filesystem::copy_file(source, target, std::filesystem::copy_options::update_existing, err);
+					std::filesystem::file_time_type sourceTime = std::filesystem::last_write_time(source, err);
+					SK_CORE_ASSERT(!err, err.message());
+					std::filesystem::file_time_type targetTime = std::filesystem::last_write_time(target, err);
+					SK_CORE_ASSERT(!err, err.message());
+
+					if (targetTime < sourceTime)
+					{
+						SK_CORE_WARN(L"Updating Module [{}]", source.filename().replace_extension().native());
+						std::filesystem::copy_file(source, target, std::filesystem::copy_options::update_existing, err);
+						SK_CORE_ASSERT(!err, err.message());
+					}
+				}
+				else
+				{
+					auto parentPath = target.parent_path();
+					if (!std::filesystem::exists(parentPath))
+						std::filesystem::create_directories(parentPath);
+
+					SK_CORE_WARN(L"Copying Module [{}]", source.filename().replace_extension().native());
+					std::filesystem::copy_file(source, target, err);
 					SK_CORE_ASSERT(!err, err.message());
 				}
+
 			}
 		}
 	}

@@ -1,5 +1,5 @@
 Texture:
-  FilePath: C:/dev/c++/shark-dev/SharkFin/SandboxProject/Assets/TextureSources/Gear.png
+  FilePath: Assets/TextureSources/Gear.png
   Format: RGBA8
   MipLeves: 1
   Sampler:

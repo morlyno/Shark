@@ -12,6 +12,8 @@ int main(int argc, char** argv)
 	app->Run();
 	delete app;
 
+	Shark::Log::Shutdown();
+
 	SK_PROFILE_SHUTDOWN();
 
 	return 0;

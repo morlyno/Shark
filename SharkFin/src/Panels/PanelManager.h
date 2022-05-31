@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Panels/Panel.h"
+#include "Shark/Editor/Panel.h"
 
 #include "Shark/stl/container_view.h"
 
@@ -29,6 +29,8 @@ namespace Shark {
 		bool IsShown(const std::string& id) const { return m_Panels.at(id).Shown; }
 		void Show(const std::string& id, bool shown) { m_Panels.at(id).Shown = shown; }
 		bool ToggleShow(const std::string& id) { PanelEntry& entry = m_Panels.at(id); entry.Shown = !entry.Shown; return entry.Shown; }
+
+		void Clear() { m_Panels.clear(); }
 
 	public:
 		void OnUpdate(TimeStep ts);

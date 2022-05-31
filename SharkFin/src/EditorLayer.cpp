@@ -18,6 +18,7 @@
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/TextureEditorPanel.h"
 #include "Panels/PhysicsDebugPanel.h"
+#include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/Instrumentor.h"
@@ -30,6 +31,7 @@
 #define TEXTURE_EDITOR_ID "TextureEditorPanel"
 #define PHYSICS_DEBUG_ID "PhysicsDebugPanel"
 #define ASSET_EDITOR_ID "AssetsEditorPanel"
+#define EDITOR_CONSOLE_ID "EditorConsolePanel"
 
 namespace Shark {
 
@@ -71,6 +73,7 @@ namespace Shark {
 
 		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, true);
 		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, false);
+		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, true);
 
 		// Renderer stuff
 		auto& window = Application::Get().GetWindow();
@@ -106,6 +109,8 @@ namespace Shark {
 
 		CloseProject();
 		FileSystem::SetFileWatcherCallback(nullptr);
+
+		m_PanelManager->Clear();
 	}
 
 	void EditorLayer::OnUpdate(TimeStep ts)
@@ -442,16 +447,6 @@ namespace Shark {
 				if (ImGui::MenuItem("Save Project"))
 					SaveProject();
 
-				if (ImGui::MenuItem("Create Project"))
-					CreateProject();
-
-				if (ImGui::MenuItem("Reopen Project"))
-				{
-					auto projectFile = Project::GetActive()->GetConfig().ProjectDirectory / "Project.skproj";
-					CloseProject();
-					OpenProject(projectFile);
-				}
-
 				ImGui::Separator();
 				if (ImGui::MenuItem("Exit"))
 					Application::Get().CloseApplication();
@@ -463,6 +458,7 @@ namespace Shark {
 			{
 				if (ImGui::MenuItem("Scene Hirachy", nullptr, m_PanelManager->IsShown(SCENE_HIRACHY_ID))) { m_PanelManager->ToggleShow(SCENE_HIRACHY_ID); }
 				if (ImGui::MenuItem("Content Browser", nullptr, m_PanelManager->IsShown(CONTENT_BROWSER_ID))) { m_PanelManager->ToggleShow(CONTENT_BROWSER_ID); }
+				if (ImGui::MenuItem("Console", nullptr, m_PanelManager->IsShown(EDITOR_CONSOLE_ID))) { m_PanelManager->ToggleShow(EDITOR_CONSOLE_ID); }
 				if (ImGui::MenuItem("Physics Debug", nullptr, m_PanelManager->IsShown(PHYSICS_DEBUG_ID))) { m_PanelManager->ToggleShow(PHYSICS_DEBUG_ID); }
 				ImGui::Separator();
 				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
@@ -1152,7 +1148,7 @@ namespace Shark {
 		{
 			UI::ScopedStyle style;
 			if (!m_ProjectEditData.ValidAssetsPath)
-				style.Push(ImGuiCol_Text, UI::Theme::GetColors().TextInvalidInput);
+				style.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
 
 			ImGui::SetNextItemWidth(-1.0f);
 			if (ImGui::InputText("##Assets", &m_ProjectEditData.Assets))
@@ -1170,7 +1166,7 @@ namespace Shark {
 		{
 			UI::ScopedStyle style;
 			if (!m_ProjectEditData.ValidStartupScene)
-				style.Push(ImGuiCol_Text, UI::Theme::GetColors().TextInvalidInput);
+				style.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
 
 			ImGui::SetNextItemWidth(-1.0f);
 			if (ImGui::InputText("##StartupScene", &m_ProjectEditData.StartupScene))
@@ -1747,6 +1743,7 @@ namespace Shark {
 		}
 
 		ScriptEngine::SetActiveScene(m_ActiveScene);
+		DistributeEvent(ScenePlayEvent(m_ActiveScene));
 		m_ActiveScene->OnScenePlay();
 	}
 
@@ -1890,49 +1887,6 @@ namespace Shark {
 
 		ProjectSerializer serializer(Project::GetActive());
 		serializer.Serialize(filePath);
-	}
-
-	void EditorLayer::CreateProject()
-	{
-		SK_CORE_ASSERT(false);
-		return;
-
-		SK_PROFILE_FUNCTION();
-
-		auto targetDirectory = PlatformUtils::OpenDirectoryDialog(std::filesystem::current_path());
-		SK_CORE_ASSERT(targetDirectory.is_absolute());
-		if (targetDirectory.empty())
-			return;
-
-		CloseProject();
-
-		SK_CORE_INFO("Creating Project {}", targetDirectory);
-
-		std::filesystem::create_directories(targetDirectory / "Assets");
-		std::filesystem::create_directories(targetDirectory / "Assets/Scenes");
-		std::filesystem::create_directories(targetDirectory / "Assets/Textures");
-
-		Ref<Project> project = Ref<Project>::Create();
-		auto& config = project->GetConfig();
-		config.Name = "Untitled";
-		config.ProjectDirectory = targetDirectory;
-		config.AssetsDirectory = targetDirectory / "Assets";
-		String::FormatDefault(config.AssetsDirectory);
-		config.StartupScenePath = "";
-		config.Gravity = { 0.0f, 9.81f };
-		config.VelocityIterations = 8;
-		config.PositionIterations = 3;
-		config.FixedTimeStep = 0.001f;
-
-		config.ScriptModulePath = std::string{};
-
-		Project::SetActive(project);
-		ResourceManager::Init();
-		SaveProject();
-		NewScene();
-
-		FileSystem::StartWatching(Project::AssetsPath());
-		DistributeEvent(ProjectChangedEvnet(project));
 	}
 
 	glm::mat4 EditorLayer::GetViewProjFromCameraEntity(Entity cameraEntity)

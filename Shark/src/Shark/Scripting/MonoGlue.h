@@ -44,17 +44,7 @@ namespace Shark {
 
 		#pragma region Log
 
-		enum class LogLevel : uint16_t
-		{
-			Trace = 0,
-			Debug = 1,
-			Info = 2,
-			Warn = 3,
-			Error = 4,
-			Critical = 5
-		};
-
-		void Log_LogLevel(LogLevel level, MonoString* message);
+		void Log_LogLevel(Log::Level level, MonoString* message);
 
 		#pragma endregion
 

@@ -3,7 +3,7 @@
 #include "Shark/Scene/Scene.h"
 #include "Shark/Event/Event.h"
 
-#include "Panel.h"
+#include "Shark/Editor/Panel.h"
 
 namespace Shark {
 

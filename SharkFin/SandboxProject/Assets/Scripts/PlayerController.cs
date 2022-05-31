@@ -2,6 +2,7 @@
 using Shark;
 using Shark.KeyEvents;
 using Shark.MouseEvents;
+using System.Collections.Generic;
 
 namespace Sandbox
 {
@@ -25,6 +26,8 @@ namespace Sandbox
 
 		protected override void OnCreate()
 		{
+			Log.Info("Hi");
+
 			m_BallTemplate = Scene.GetEntityByTag("BallTemplate");
 
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
@@ -67,6 +70,7 @@ namespace Sandbox
 				translation.y = Transform.Translation.y;
 				m_CameraEntity.Transform.Translation = translation;
 			}
+
 		}
 
 		void OnKeyPressed(KeyPressedEvent e)
@@ -115,6 +119,7 @@ namespace Sandbox
 						m_AutoSpawnBalls = !m_AutoSpawnBalls;
 					break;
 				}
+
 			}
 
 		}

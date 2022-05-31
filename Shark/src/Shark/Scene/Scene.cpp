@@ -120,10 +120,6 @@ namespace Shark {
 		m_Registry.on_construct<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentCreated>(this);
 		m_Registry.on_construct<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentCreated>(this);
 
-		m_Registry.on_destroy<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentDestroyed>(this);
-		m_Registry.on_destroy<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
-		m_Registry.on_destroy<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
-
 		// Create Scripts
 		{
 			SK_PROFILE_SCOPED("Scene::OnScenePlay::InstantiateScripts");
@@ -211,10 +207,6 @@ namespace Shark {
 		m_Registry.on_construct<RigidBody2DComponent>().disconnect<&Scene::OnRigidBody2DComponentCreated>(this);
 		m_Registry.on_construct<BoxCollider2DComponent>().disconnect<&Scene::OnBoxCollider2DComponentCreated>(this);
 		m_Registry.on_construct<CircleCollider2DComponent>().disconnect<&Scene::OnCircleCollider2DComponentCreated>(this);
-
-		m_Registry.on_destroy<RigidBody2DComponent>().disconnect<&Scene::OnRigidBody2DComponentDestroyed>(this);
-		m_Registry.on_destroy<BoxCollider2DComponent>().disconnect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
-		m_Registry.on_destroy<CircleCollider2DComponent>().disconnect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
 
 		// Destroy Scripts
 		{
@@ -517,15 +509,26 @@ namespace Shark {
 	void Scene::DestroyEntity(Entity entity)
 	{
 		SK_PROFILE_FUNCTION();
-		
+
 		if (!entity)
 			return;
 
-		if (!m_IsEditorScene && entity.HasComponent<ScriptComponent>())
-			ScriptManager::Destroy(entity, true);
+		if (!m_IsEditorScene)
+		{
+			if (entity.HasComponent<ScriptComponent>())
+				ScriptManager::Destroy(entity, true);
 
-		m_EntityUUIDMap.erase(entity.GetUUID());
+			if (entity.HasComponent<RigidBody2DComponent>())
+			{
+				auto& rb = entity.GetComponent<RigidBody2DComponent>();
+				SK_CORE_ASSERT(rb.RuntimeBody);
+				m_PhysicsScene.GetWorld()->DestroyBody(rb.RuntimeBody);
+			}
+		}
+
+		const UUID uuid = entity.GetUUID();
 		m_Registry.destroy(entity);
+		m_EntityUUIDMap.erase(uuid);
 	}
 
 	Entity Scene::GetEntityByUUID(UUID uuid)
@@ -733,44 +736,6 @@ namespace Shark {
 		fixturedef.restitutionThreshold = cc2d.RestitutionThreshold;
 
 		cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
-	}
-
-	void Scene::OnRigidBody2DComponentDestroyed(entt::registry& registry, entt::entity entityID)
-	{
-		SK_CORE_ASSERT(!m_IsEditorScene);
-
-		Entity entity{ entityID, this };
-		auto& comp = entity.GetComponent<RigidBody2DComponent>();
-		m_PhysicsScene.GetWorld()->DestroyBody(comp.RuntimeBody);
-		comp.RuntimeBody = nullptr;
-	}
-
-	void Scene::OnBoxCollider2DComponentDestroyed(entt::registry& registry, entt::entity entityID)
-	{
-		SK_CORE_ASSERT(!m_IsEditorScene);
-
-		Entity entity{ entityID, this };
-		if (!entity.HasComponent<RigidBody2DComponent>())
-			return;
-
-		auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-		b2Body* body = comp.RuntimeCollider->GetBody();
-		body->DestroyFixture(comp.RuntimeCollider);
-		comp.RuntimeCollider = nullptr;
-	}
-
-	void Scene::OnCircleCollider2DComponentDestroyed(entt::registry& registry, entt::entity entityID)
-	{
-		SK_CORE_ASSERT(!m_IsEditorScene);
-
-		Entity entity{ entityID, this };
-		if (!entity.HasComponent<RigidBody2DComponent>())
-			return;
-
-		auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-		b2Body* body = comp.RuntimeCollider->GetBody();
-		body->DestroyFixture(comp.RuntimeCollider);
-		comp.RuntimeCollider = nullptr;
 	}
 
 	void ContactListener::BeginContact(b2Contact* contact)

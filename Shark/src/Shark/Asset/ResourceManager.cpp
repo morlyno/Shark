@@ -281,7 +281,6 @@ namespace Shark {
 			return;
 
 		SK_CORE_ASSERT(std::filesystem::exists(newFilePath));
-		SK_CORE_DEBUG("ResourceManager::OnAssetRenamed");
 		auto relativePath = MakeRelativePath(newFilePath);
 		metadata.FilePath = relativePath;
 		WriteImportedAssetsToDisc();
@@ -291,7 +290,6 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(filePath.is_absolute());
 
-		SK_CORE_DEBUG("ResourceManager::OnAssetDeleted");
 		AssetHandle handle = GetAssetHandleFromFilePath(filePath);
 		if (handle.IsValid())
 			DeleteAsset(handle);

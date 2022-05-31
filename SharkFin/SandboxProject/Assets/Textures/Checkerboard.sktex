@@ -1,5 +1,5 @@
 Texture:
-  FilePath: C:/dev/c++/shark-dev/SharkFin/SandboxProject/Assets/TextureSources/Checkboard.png
+  FilePath: Assets/TextureSources/Checkboard.png
   Format: RGBA8
   MipLeves: 1
   Sampler:

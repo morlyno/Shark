@@ -134,7 +134,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO(event);
+		SK_CORE_WARN(event);
 		m_Running = false;
 		return false;
 	}

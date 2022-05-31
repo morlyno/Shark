@@ -2,7 +2,7 @@
 
 #include "Shark.h"
 
-#include "Panels/Panel.h"
+#include "Shark/Editor/Panel.h"
 
 #include <imgui.h>
 

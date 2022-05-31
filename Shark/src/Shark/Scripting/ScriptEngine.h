@@ -77,6 +77,8 @@ namespace Shark {
 			return InvokeMethodInternal(method, object, nullptr);
 		}
 
+		static void HandleException(MonoObject* exception);
+
 	private:
 		static MonoObject* InvokeMethodInternal(MonoMethod* method, void* object, void** args);
 		static MonoMethod* GetMethodInternal(const std::string& methodName, bool includeNameSpace, MonoImage* image);

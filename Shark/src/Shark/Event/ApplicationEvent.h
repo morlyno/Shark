@@ -26,6 +26,19 @@ namespace Shark {
 		Ref<Scene> m_Scene;
 	};
 
+	class ScenePlayEvent : public EventBase<EventType::ScenePlay, EventCategory::Application>
+	{
+	public:
+		ScenePlayEvent(Ref<Scene> scene)
+			: m_Scene(scene)
+		{}
+
+		Ref<Scene> GetScene() const { return m_Scene; }
+
+	private:
+		Ref<Scene> m_Scene;
+	};
+
 	class ProjectChangedEvnet : public EventBase<EventType::ProjectChanged, EventCategory::Application>
 	{
 	public:

@@ -30,6 +30,10 @@ namespace Shark
 			set => InternalCalls.Entity_SetName(m_Handle, value);
 		}
 
+		// Remove Component on RigidBody2D BoxCollider2D CircleCollider2D Components
+		// will not work at the moment because there is no system to destroy b2Body/b2Fixtures
+		// when the components get remove
+
 		public bool HasComponent<T>() where T : Component
 		{
 			return InternalCalls.Entity_HasComponent(m_Handle, typeof(T));

@@ -543,7 +543,7 @@ namespace Shark {
 			UI::ScopedStyle scopedStyle;
 			if (!comp.ScriptModuleFound)
 			{
-				scopedStyle.Push(ImGuiCol_Text, UI::Theme::GetColors().TextInvalidInput);
+				scopedStyle.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
 			}
 
 			if (ImGui::InputText("##InputScript", &comp.ScriptName))

@@ -247,8 +247,8 @@ namespace Shark {
 			const glm::vec2 windowSize = (glm::vec2)window.GetSize() * windowRatio;
 			const glm::vec2 windowPos = (glm::vec2)window.GetPos() + (glm::vec2)window.GetSize() * 0.5f - windowSize * 0.5f;
 
-			ImGui::SetNextWindowPos(windowPos);
-			ImGui::SetNextWindowSize(windowSize);
+			ImGui::SetNextWindowPos({ windowPos.x, windowPos.y });
+			ImGui::SetNextWindowSize({ windowSize.x, windowSize.y });
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -269,8 +269,8 @@ namespace Shark {
 			ImGuiWindow* settings = ImGui::FindWindowByID(m_SettingsID);
 
 			ImGui::DockBuilderAddNode(m_DockspaceID, ImGuiDockNodeFlags_DockSpace);
-			ImGui::DockBuilderSetNodeSize(m_DockspaceID, windowSize);
-			ImGui::DockBuilderSetNodePos(m_DockspaceID, windowPos);
+			ImGui::DockBuilderSetNodeSize(m_DockspaceID, { windowSize.x, windowSize.y });
+			ImGui::DockBuilderSetNodePos(m_DockspaceID, { windowPos.x, windowPos.y });
 			ImGui::SetWindowDock(dock, m_DockspaceID, ImGuiCond_Always);
 
 			ImGuiDockNode* dockspaceNode = ImGui::DockBuilderGetNode(m_DockspaceID);

@@ -10,7 +10,7 @@ namespace Shark {
 		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus,
 		MouseMoved, MouseButtonPressed, MouseButtonReleasd, MouseButtonDoubleClicked, MouseScrolled,
 		KeyPressed, KeyReleased, KeyCharacter,
-		ApplicationClosed, SceneChanged, ProjectChanged
+		ApplicationClosed, SceneChanged, ScenePlay, ProjectChanged
 	};
 
 	inline std::string EventTypesToString(EventType eventType)
@@ -33,6 +33,7 @@ namespace Shark {
 			case EventType::KeyCharacter:		       return "KeyCharacter";
 			case EventType::ApplicationClosed:	       return "ApplicationClosed";
 			case EventType::SceneChanged:	           return "SceneChanged";
+			case EventType::ScenePlay:	               return "ScenePlay";
 			case EventType::ProjectChanged:	           return "ProjectChanged";
 		}
 		SK_CORE_ASSERT(false, "Unkown Event Type");
@@ -102,7 +103,14 @@ namespace Shark {
 		{
 			if (!m_Event.Handled && (T::GetStaticType() == m_Event.GetEventType()))
 			{
-				m_Event.Handled |= func(static_cast<T&>(m_Event));
+				constexpr bool RetBool = std::is_same_v<decltype(func((T&)m_Event)), bool>;
+				constexpr bool RetVoid = std::is_same_v<decltype(func((T&)m_Event)), void>;
+				static_assert(RetBool || RetVoid);
+
+				if constexpr (RetBool)
+					m_Event.Handled |= func((T&)m_Event);
+				else
+					func((T&)m_Event);
 				return true;
 			}
 			return false;
@@ -112,7 +120,14 @@ namespace Shark {
 		{
 			if (T::GetStaticType() == m_Event.GetEventType())
 			{
-				m_Event.Handled |= func(static_cast<T&>(m_Event));
+				constexpr bool RetBool = std::is_same_v<decltype(func((T&)m_Event)), bool>;
+				constexpr bool RetVoid = std::is_same_v<decltype(func((T&)m_Event)), void>;
+				static_assert(RetBool || RetVoid);
+
+				if constexpr (RetBool)
+					m_Event.Handled |= func((T&)m_Event);
+				else
+					func((T&)m_Event);
 				return true;
 			}
 			return false;

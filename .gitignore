@@ -7,7 +7,7 @@ Scripts/__pycache__
 SharkFin/Cache
 SharkFin/Assets
 SharkFin/imgui.ini
-SharkFin/Log/*.log
+SharkFin/Logs/*.log
 
 # Visual Studios files
 .vs/

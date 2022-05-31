@@ -7,7 +7,7 @@
 #include "Shark/Event/Event.h"
 #include "Shark/Event/ApplicationEvent.h"
 
-#include "Panels/Panel.h"
+#include "Shark/Editor/Panel.h"
 
 namespace Shark {
 

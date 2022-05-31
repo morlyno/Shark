@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Panels/Panel.h"
+#include "Shark/Editor/Panel.h"
 
 namespace Shark {
 
