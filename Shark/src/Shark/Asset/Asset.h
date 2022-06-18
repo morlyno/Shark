@@ -18,6 +18,17 @@ namespace Shark {
 		bool IsValid() const { return Handle.IsValid() && (Type != AssetType::None) && !FilePath.empty(); }
 	};
 
+	namespace AssetFlag {
+		enum Type : uint16_t
+		{
+			None = 0,
+			Unloaded = BIT(0),
+			FileNotFound = BIT(1),
+			InvalidFile = BIT(2)
+		};
+	}
+	using AssetFlags = std::underlying_type_t<AssetFlag::Type>;
+
 	class Asset : public RefCount
 	{
 	public:
@@ -26,9 +37,18 @@ namespace Shark {
 
 		static AssetType GetStaticType() { return AssetType::None; }
 		virtual AssetType GetAssetType() const { return GetStaticType(); }
-	public:
-		AssetHandle Handle;
 
+		void SetFlag(AssetFlag::Type flag, bool enabled)
+		{
+			if (enabled)
+				Flags |= flag;
+			else
+				Flags &= ~flag;
+		}
+
+	public:
+		AssetHandle Handle = AssetHandle::Null;
+		AssetFlags Flags = AssetFlag::None;
 	};
 
 }

@@ -26,14 +26,14 @@
 namespace Shark {
 
 	template<typename Component>
-	void CopyComponents(entt::registry& srcRegistry, entt::registry& destRegistry, const std::unordered_map<UUID, entt::entity>& enttMap)
+	void CopyComponents(entt::registry& srcRegistry, entt::registry& destRegistry, const std::unordered_map<UUID, Entity>& entityUUIDMap)
 	{
 		SK_PROFILE_FUNCTION();
 
 		auto view = srcRegistry.view<Component>();
 		for (auto srcEntity : view)
 		{
-			entt::entity destEntity = enttMap.at(srcRegistry.get<IDComponent>(srcEntity).ID);
+			Entity destEntity = entityUUIDMap.at(srcRegistry.get<IDComponent>(srcEntity).ID);
 
 			auto& comp = srcRegistry.get<Component>(srcEntity);
 			destRegistry.emplace_or_replace<Component>(destEntity, comp);
@@ -78,34 +78,31 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		auto newScene = Ref<Scene>::Create();
-		newScene->m_ViewportBounds = srcScene->m_ViewportBounds;
-		//newScene->m_ViewportWidth = srcScene->m_ViewportWidth;
-		//newScene->m_ViewportHeight = srcScene->m_ViewportHeight;
+		newScene->m_ViewportWidth = srcScene->m_ViewportWidth;
+		newScene->m_ViewportHeight = srcScene->m_ViewportHeight;
 		newScene->m_ActiveCameraUUID = srcScene->m_ActiveCameraUUID;
 
 		auto& srcRegistry = srcScene->m_Registry;
 		auto& destRegistry = newScene->m_Registry;
 		
-		std::unordered_map<UUID, entt::entity> enttMap;
-
 		auto view = srcRegistry.view<IDComponent>();
 		for (auto e : view)
 		{
 			Entity srcEntity{ e, srcScene };
 
 			UUID uuid = srcEntity.GetUUID();
-			enttMap[uuid] = newScene->CreateEntityWithUUID(uuid, srcEntity.GetName());
+			newScene->m_EntityUUIDMap[uuid] = newScene->CreateEntityWithUUID(uuid, srcEntity.GetName());
 		}
 
-		CopyComponents<TransformComponent>(srcRegistry, destRegistry, enttMap);
-		CopyComponents<SpriteRendererComponent>(srcRegistry, destRegistry, enttMap);
-		CopyComponents<CircleRendererComponent>(srcRegistry, destRegistry, enttMap);
-		CopyComponents<CameraComponent>(srcRegistry, destRegistry, enttMap);
-		CopyComponents<NativeScriptComponent>(srcRegistry, destRegistry, enttMap);
-		CopyComponents<RigidBody2DComponent>(srcRegistry, destRegistry, enttMap);
-		CopyComponents<BoxCollider2DComponent>(srcRegistry, destRegistry, enttMap);
-		CopyComponents<CircleCollider2DComponent>(srcRegistry, destRegistry, enttMap);
-		CopyComponents<ScriptComponent>(srcRegistry, destRegistry, enttMap);
+		CopyComponents<TransformComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
+		CopyComponents<SpriteRendererComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
+		CopyComponents<CircleRendererComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
+		CopyComponents<CameraComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
+		CopyComponents<NativeScriptComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
+		CopyComponents<RigidBody2DComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
+		CopyComponents<BoxCollider2DComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
+		CopyComponents<CircleCollider2DComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
+		CopyComponents<ScriptComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
 
 		return newScene;
 	}
@@ -173,7 +170,7 @@ namespace Shark {
 		if (m_ActiveCameraUUID.IsValid())
 		{
 			Entity activeCamera = GetEntityByUUID(m_ActiveCameraUUID);
-			if (activeCamera.HasComponent<CameraComponent>())
+			if (activeCamera.AllOf<CameraComponent>())
 			{
 				m_RuntimeCamera = activeCamera;
 				activeCameraFound = true;
@@ -197,7 +194,7 @@ namespace Shark {
 			m_ActiveCameraUUID = cameraEntity.GetUUID();
 			m_RuntimeCamera = cameraEntity;
 		}
-		ResizeCameras((float)m_ViewportBounds.GetWidth(), (float)m_ViewportBounds.GetHeight());
+		ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
 	}
 
 	void Scene::OnSceneStop()
@@ -290,10 +287,10 @@ namespace Shark {
 			{
 				Entity entity{ e, this };
 				const auto& rb2d = view.get<RigidBody2DComponent>(entity);
-				auto& transform = entity.GetTransform();
+				auto& transform = entity.Transform();
 				const auto& pos = rb2d.RuntimeBody->GetPosition();
-				transform.Position.x = pos.x;
-				transform.Position.y = pos.y;
+				transform.Translation.x = pos.x;
+				transform.Translation.y = pos.y;
 				transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 			}
 		}
@@ -315,10 +312,10 @@ namespace Shark {
 		{
 			Entity entity{ e, this };
 			const auto& rb2d = view.get<RigidBody2DComponent>(entity);
-			auto& transform = entity.GetTransform();
+			auto& transform = entity.Transform();
 			const auto& pos = rb2d.RuntimeBody->GetPosition();
-			transform.Position.x = pos.x;
-			transform.Position.y = pos.y;
+			transform.Translation.x = pos.x;
+			transform.Translation.y = pos.y;
 			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 		}
 	}
@@ -345,7 +342,7 @@ namespace Shark {
 				Ref<Texture2D> texture;
 				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
 					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
-				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
+				renderer->SubmitQuad(tf.Translation, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
 			}
 		}
 
@@ -354,7 +351,7 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
-				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
+				renderer->SubmitCirlce(tf.Translation, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
 			}
 		}
 
@@ -368,11 +365,11 @@ namespace Shark {
 
 		Entity camerEntity = Entity{ m_RuntimeCamera, this };
 		Camera& camera = camerEntity.GetComponent<CameraComponent>().Camera;
-		auto& tf = camerEntity.GetTransform();
+		auto& tf = camerEntity.Transform();
 
 		renderer->SetScene(this);
 
-		const auto viewProj = camera.GetProjection() * glm::inverse(tf.GetTranform());
+		const auto viewProj = camera.GetProjection() * glm::inverse(tf.CalcTransform());
 		renderer->BeginScene(viewProj);
 
 		{
@@ -383,7 +380,7 @@ namespace Shark {
 				Ref<Texture2D> texture;
 				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
 					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
-				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
+				renderer->SubmitQuad(tf.Translation, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
 			}
 		}
 
@@ -392,7 +389,7 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
-				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
+				renderer->SubmitCirlce(tf.Translation, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
 			}
 		}
 
@@ -405,7 +402,6 @@ namespace Shark {
 		SK_PERF_SCOPED("Scene::OnRenderEditor");
 
 		renderer->SetScene(this);
-
 		renderer->BeginScene(editorCamera.GetViewProjection());
 
 		{
@@ -416,7 +412,7 @@ namespace Shark {
 				Ref<Texture2D> texture;
 				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
 					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
-				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
+				renderer->SubmitQuad(tf.Translation, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
 			}
 		}
 
@@ -425,7 +421,7 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
-				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
+				renderer->SubmitCirlce(tf.Translation, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
 			}
 		}
 
@@ -438,7 +434,6 @@ namespace Shark {
 		SK_PERF_SCOPED("Scene::OnRenderSimulate");
 
 		renderer->SetScene(this);
-
 		renderer->BeginScene(editorCamera.GetViewProjection());
 
 		{
@@ -449,7 +444,7 @@ namespace Shark {
 				Ref<Texture2D> texture;
 				if (ResourceManager::IsValidAssetHandle(sr.TextureHandle))
 					texture = ResourceManager::GetAsset<Texture2D>(sr.TextureHandle);
-				renderer->SubmitQuad(tf.Position, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
+				renderer->SubmitQuad(tf.Translation, tf.Rotation, tf.Scaling, texture, sr.TilingFactor, sr.Color, (int)entity);
 			}
 		}
 
@@ -458,7 +453,7 @@ namespace Shark {
 			for (auto entity : view)
 			{
 				auto& [cr, tf] = view.get<CircleRendererComponent, TransformComponent>(entity);
-				renderer->SubmitCirlce(tf.Position, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
+				renderer->SubmitCirlce(tf.Translation, tf.Rotation, tf.Scaling, cr.Color, cr.Thickness, cr.Fade, (int)entity);
 			}
 		}
 
@@ -480,6 +475,7 @@ namespace Shark {
 		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CircleCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<ScriptComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 
 		return newEntity;
 	}
@@ -502,23 +498,44 @@ namespace Shark {
 		entity.AddComponent<TagComponent>(tag.empty() ? "new Entity" : tag);
 		entity.AddComponent<TransformComponent>();
 
+		SK_CORE_ASSERT(m_EntityUUIDMap.find(uuid) == m_EntityUUIDMap.end());
 		m_EntityUUIDMap[uuid] = entity;
 		return entity;
 	}
 
-	void Scene::DestroyEntity(Entity entity)
+	void Scene::DestroyEntity(Entity entity, bool destroyChildren)
+	{
+		DestroyEntityInternal(entity, destroyChildren);
+	}
+
+	void Scene::DestroyAllEntities()
+	{
+		Ref<Scene> instance = this;
+		m_Registry.each([instance](entt::entity ent)
+		{
+			Entity entity{ ent, instance };
+			instance->DestroyEntityInternal(entity, false);
+		});
+
+		m_EntityUUIDMap.clear();
+	}
+
+	void Scene::DestroyEntityInternal(Entity entity, bool destroyChildren)
 	{
 		SK_PROFILE_FUNCTION();
 
+		SK_CORE_ASSERT(entity);
 		if (!entity)
 			return;
 
+		SK_CORE_ASSERT(m_EntityUUIDMap.find(entity.GetUUID()) != m_EntityUUIDMap.end());
+
 		if (!m_IsEditorScene)
 		{
-			if (entity.HasComponent<ScriptComponent>())
+			if (entity.AllOf<ScriptComponent>())
 				ScriptManager::Destroy(entity, true);
 
-			if (entity.HasComponent<RigidBody2DComponent>())
+			if (entity.AllOf<RigidBody2DComponent>())
 			{
 				auto& rb = entity.GetComponent<RigidBody2DComponent>();
 				SK_CORE_ASSERT(rb.RuntimeBody);
@@ -531,13 +548,12 @@ namespace Shark {
 		m_EntityUUIDMap.erase(uuid);
 	}
 
-	Entity Scene::GetEntityByUUID(UUID uuid)
+	Entity Scene::GetEntityByUUID(UUID uuid) const
 	{
 		SK_PROFILE_FUNCTION();
 		
-		const auto entry = m_EntityUUIDMap.find(uuid);
-		if (entry != m_EntityUUIDMap.end())
-			return entry->second;
+		if (m_EntityUUIDMap.find(uuid) != m_EntityUUIDMap.end())
+			return m_EntityUUIDMap.at(uuid);
 		return Entity{};
 	}
 
@@ -548,13 +564,9 @@ namespace Shark {
 		return m_Registry.valid(entity);
 	}
 
-	Entity Scene::FindActiveCameraEntity()
+	Entity Scene::GetActiveCameraEntity() const
 	{
-		SK_PROFILE_FUNCTION();
-		
-		if (m_ActiveCameraUUID.IsValid())
-			return m_EntityUUIDMap.at(m_ActiveCameraUUID);
-		return Entity{};
+		return GetEntityByUUID(m_ActiveCameraUUID);
 	}
 
 	Entity Scene::GetRuntimeCamera()
@@ -619,11 +631,11 @@ namespace Shark {
 			{
 				Entity entity{ e, this };
 				auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-				auto& transform = entity.GetTransform();
+				auto& transform = entity.Transform();
 
 				b2BodyDef bodydef;
 				bodydef.type = SharkBodyTypeToBox2D(rb2d.Type);
-				bodydef.position = { transform.Position.x, transform.Position.y };
+				bodydef.position = { transform.Translation.x, transform.Translation.y };
 				bodydef.angle = transform.Rotation.z;
 				bodydef.fixedRotation = rb2d.FixedRotation;
 				bodydef.bullet = rb2d.IsBullet;
@@ -635,7 +647,7 @@ namespace Shark {
 
 				rb2d.RuntimeBody = world->CreateBody(&bodydef);
 
-				if (entity.HasComponent<BoxCollider2DComponent>())
+				if (entity.AllOf<BoxCollider2DComponent>())
 				{
 					auto& bc2d = entity.GetComponent<BoxCollider2DComponent>();
 
@@ -653,7 +665,7 @@ namespace Shark {
 					bc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
 				}
 
-				if (entity.HasComponent<CircleCollider2DComponent>())
+				if (entity.AllOf<CircleCollider2DComponent>())
 				{
 					auto& cc2d = entity.GetComponent<CircleCollider2DComponent>();
 
@@ -681,11 +693,11 @@ namespace Shark {
 
 		Entity entity{ entityID, this };
 		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-		auto& transform = entity.GetTransform();
+		auto& transform = entity.Transform();
 
 		b2BodyDef bodydef;
 		bodydef.type = SharkBodyTypeToBox2D(rb2d.Type);
-		bodydef.position = { transform.Position.x, transform.Position.y };
+		bodydef.position = { transform.Translation.x, transform.Translation.y };
 		bodydef.angle = transform.Rotation.z;
 		bodydef.fixedRotation = rb2d.FixedRotation;
 		bodydef.userData.pointer = (uintptr_t)entity.GetUUID();
@@ -699,7 +711,7 @@ namespace Shark {
 
 		Entity entity{ entityID, this };
 		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-		auto& transform = entity.GetTransform();
+		auto& transform = entity.Transform();
 		auto& bc2d = entity.GetComponent<BoxCollider2DComponent>();
 
 		b2PolygonShape shape;
@@ -721,7 +733,7 @@ namespace Shark {
 
 		Entity entity{ entityID, this };
 		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-		auto& transform = entity.GetTransform();
+		auto& transform = entity.Transform();
 		auto& cc2d = entity.GetComponent<CircleCollider2DComponent>();
 
 		b2CircleShape shape;

@@ -155,7 +155,7 @@ namespace Shark {
 			return false;
 
 		fout << out.c_str();
-		TimeStep time = timer.Stop();
+		TimeStep time = timer.ElapsedMilliSeconds();
 
 		SK_CORE_INFO("Serializing Project To: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
@@ -220,7 +220,7 @@ namespace Shark {
 		SK_CORE_ASSERT(config.AssetsDirectory.is_absolute());
 		SK_CORE_ASSERT(config.StartupScenePath.is_absolute());
 
-		TimeStep time = timer.Stop();
+		TimeStep time = timer.ElapsedMilliSeconds();
 
 		SK_CORE_INFO(L"Deserializing Project from: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);

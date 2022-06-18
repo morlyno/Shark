@@ -1,26 +1,30 @@
 #pragma once
 
+#include "Shark/Core/Base.h"
+#include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
 
 namespace Shark::Debug {
 
-	class DebugEntity
+	class EntityView
 	{
 	public:
-		DebugEntity(Entity parent)
+		EntityView(Entity entity)
 		{
-			m_IDComponent                = parent.TryGetComponent<IDComponent>();
-			m_TagComponent               = parent.TryGetComponent<TagComponent>();
-			m_TransformComponent         = parent.TryGetComponent<TransformComponent>();
-			m_SpriteRendererComponent    = parent.TryGetComponent<SpriteRendererComponent>();
-			m_CameraComponent            = parent.TryGetComponent<CameraComponent>();
-			m_NativeScriptComponent      = parent.TryGetComponent<NativeScriptComponent>();
-			m_RigidBody2DComponent       = parent.TryGetComponent<RigidBody2DComponent>();
-			m_BoxCollider2DComponent     = parent.TryGetComponent<BoxCollider2DComponent>();
+			m_IDComponent                = entity.TryGetComponent<IDComponent>();
+			m_TagComponent               = entity.TryGetComponent<TagComponent>();
+			m_TransformComponent         = entity.TryGetComponent<TransformComponent>();
+			m_SpriteRendererComponent    = entity.TryGetComponent<SpriteRendererComponent>();
+			m_CameraComponent            = entity.TryGetComponent<CameraComponent>();
+			m_NativeScriptComponent      = entity.TryGetComponent<NativeScriptComponent>();
+			m_RigidBody2DComponent       = entity.TryGetComponent<RigidBody2DComponent>();
+			m_BoxCollider2DComponent     = entity.TryGetComponent<BoxCollider2DComponent>();
+			m_ScriptComponent            = entity.TryGetComponent<ScriptComponent>();
+			
 		}
 
-		DebugEntity(entt::entity entity, const entt::registry& registry)
+		EntityView(entt::entity entity, const entt::registry& registry)
 		{
 			m_IDComponent                = registry.try_get<IDComponent>(entity);
 			m_TagComponent               = registry.try_get<TagComponent>(entity);
@@ -30,6 +34,7 @@ namespace Shark::Debug {
 			m_NativeScriptComponent      = registry.try_get<NativeScriptComponent>(entity);
 			m_RigidBody2DComponent       = registry.try_get<RigidBody2DComponent>(entity);
 			m_BoxCollider2DComponent     = registry.try_get<BoxCollider2DComponent>(entity);
+			m_ScriptComponent            = registry.try_get<ScriptComponent>(entity);
 		}
 
 	public:
@@ -41,21 +46,32 @@ namespace Shark::Debug {
 		const NativeScriptComponent*           m_NativeScriptComponent     = nullptr;
 		const RigidBody2DComponent*            m_RigidBody2DComponent      = nullptr;
 		const BoxCollider2DComponent*          m_BoxCollider2DComponent    = nullptr;
+		const ScriptComponent*                 m_ScriptComponent           = nullptr;
 
 	};
 
-	class DebugRegistry
+	class SceneView
 	{
 	public:
-		DebugRegistry(const entt::registry& reg)
+		SceneView(Ref<Scene> scene)
 		{
-			reg.each([this, &reg](auto e)
+			auto view = scene->GetAllEntitysWith<UUID>();
+			for (auto entityID : view)
+			{
+				Entity entity = { entityID, scene };
+				m_Entitys.emplace_back(entity);
+			}
+		}
+
+		SceneView(const entt::registry& reg)
+		{
+			reg.each([this, &reg](entt::entity e)
 			{
 				m_Entitys.emplace_back(e, reg);
 			});
 		}
 	private:
-		std::vector<DebugEntity> m_Entitys;
+		std::vector<EntityView> m_Entitys;
 	};
 
 }

@@ -66,7 +66,8 @@ namespace Shark {
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});
 		Entity CreateEntityWithUUID(UUID uuid, const std::string& tag = std::string{});
-		void DestroyEntity(Entity entity);
+		void DestroyEntity(Entity entity, bool destroyChildren = true);
+		void DestroyAllEntities();
 
 		template<typename Component>
 		decltype(auto) GetAllEntitysWith()
@@ -74,23 +75,21 @@ namespace Shark {
 			return m_Registry.view<Component>();
 		}
 
-		Entity GetEntityByUUID(UUID uuid);
+		Entity GetEntityByUUID(UUID uuid) const;
 
 		bool IsValidEntity(Entity entity) const;
 
-		Entity FindActiveCameraEntity();
+		Entity GetActiveCameraEntity() const;
 		Entity GetRuntimeCamera();
 		UUID GetActiveCameraUUID() const { return m_ActiveCameraUUID; }
 		void SetActiveCamera(UUID camera) { m_ActiveCameraUUID = camera; }
 		void ResizeCameras(float width, float height);
 
-		void SetViewportBounds(const Bounds2i& bounds) { m_ViewportBounds = bounds; ResizeCameras((float)bounds.GetWidth(), (float)bounds.GetHeight()); }
-		const Bounds2i& GetViewportBounds() const { return m_ViewportBounds; }
-		//void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
-		uint32_t GetViewportWidth() const { return m_ViewportBounds.GetWidth(); }
-		uint32_t GetViewportHeight() const { return m_ViewportBounds.GetHeight(); }
+		void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
+		uint32_t GetViewportWidth() const { return m_ViewportWidth; }
+		uint32_t GetViewportHeight() const { return m_ViewportHeight; }
 
-		const auto& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
+		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
 
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
@@ -99,6 +98,7 @@ namespace Shark {
 		static Ref<Scene> Create() { return Ref<Scene>::Create(); }
 
 	private:
+		void DestroyEntityInternal(Entity entity, bool destroyChildren);
 		void SetupBox2D();
 
 		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity entityID);
@@ -107,11 +107,11 @@ namespace Shark {
 		
 	private:
 		entt::registry m_Registry;
-		UUID m_ActiveCameraUUID = UUID::Null();
+		UUID m_ActiveCameraUUID = UUID::Null;
 		entt::entity m_RuntimeCamera = entt::null;
-		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
 
-		Bounds2i m_ViewportBounds;
+		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
+		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
 
 		Physics2DScene m_PhysicsScene;
 		ContactListener m_ContactListener;

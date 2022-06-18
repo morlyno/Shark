@@ -5,22 +5,21 @@
 
 namespace Shark {
 
-	class SerializerBase : public RefCount
+	class Serializer
 	{
 	public:
-		virtual bool TryLoadData(Ref<Asset>& asset, const std::filesystem::path& filePath) = 0;
-
-		virtual bool Serialize(Ref<Asset> asset, const std::filesystem::path& filePath) = 0;
-		virtual bool Deserialize(Ref<Asset> asset, const std::filesystem::path& filePath) = 0;
+		virtual bool TryLoadData(Ref<Asset>& asset, const AssetMetaData& metadata) = 0;
+		virtual bool Serialize(const Ref<Asset>& asset, const AssetMetaData& metadata) = 0;
 	};
 
 	class AssetSerializer
 	{
 	public:
-		static bool TryLoadData(Ref<Asset>& asset, const AssetMetaData& metadata);
+		static void RegisterSerializers();
+		static void ReleaseSerializers();
 
-		static bool Serialize(Ref<Asset> asset, const AssetMetaData& metadata);
-		static bool Deserialize(Ref<Asset> asset, const AssetMetaData& metadata);
+		static bool TryLoadData(Ref<Asset>& asset, const AssetMetaData& metadata);
+		static bool Serialize(const Ref<Asset>& asset, const AssetMetaData& metadata);
 	};
 
 }

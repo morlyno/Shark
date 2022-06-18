@@ -26,8 +26,6 @@ namespace Sandbox
 
 		protected override void OnCreate()
 		{
-			Log.Info("Hi");
-
 			m_BallTemplate = Scene.GetEntityByTag("BallTemplate");
 
 			m_RigidBody = GetComponent<RigidBody2DComponent>();

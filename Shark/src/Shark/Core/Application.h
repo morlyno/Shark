@@ -80,8 +80,7 @@ namespace Shark {
 
 		bool m_Minimized = false;
 		bool m_Running = true;
-		int64_t m_LastFrameTime = 0;
-		int64_t m_Frequency;
+		TimeStep m_LastFrameTime = 0;
 
 		bool m_RaiseEvents = true;
 
@@ -93,6 +92,13 @@ namespace Shark {
 	};
 
 	Application* CreateApplication(int argc, char** argv);
-		
+	
+	namespace Core {
+
+		void Init();
+		void Shutdown();
+
+	}
+
 }
 

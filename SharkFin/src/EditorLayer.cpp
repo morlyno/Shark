@@ -68,19 +68,17 @@ namespace Shark {
 		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, true);
 		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
 
-		auto contentBrowserPanel = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, true);
-		contentBrowserPanel->SetOpenFileCallback([this](auto& fs) { this->OnFileClickedCallback(fs); });
-
 		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, true);
 		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, false);
 		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, true);
+
+		auto contentBrowserPanel = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, true);
+		contentBrowserPanel->SetOpenFileCallback([this](auto& fs) { this->OnFileClickedCallback(fs); });
 
 		// Renderer stuff
 		auto& window = Application::Get().GetWindow();
 		m_ViewportWidth = window.GetWidth();
 		m_ViewportHeight = window.GetHeight();
-		m_ViewportBounds.LowerBound = window.GetPos();
-		m_ViewportBounds.UpperBound = window.GetPos() + (glm::ivec2)window.GetSize();
 
 		m_EditorCamera.SetProjection(16.0f / 9.0f, 45, 0.01f, 1000.0f);
 
@@ -123,13 +121,24 @@ namespace Shark {
 
 		Application::Get().GetImGuiLayer().BlockEvents(!(m_ViewportHovered || m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID)->AnyViewportHovered()));
 
+		if (m_ActiveScene->Flags & AssetFlag::Unloaded)
+		{
+			Ref<Scene> scene = ResourceManager::GetAsset<Scene>(m_ActiveScene->Handle);
+			if (scene)
+			{
+				SK_CORE_INFO("Scene Reload Detected");
+				m_WorkScene = scene;
+				SetActiveScene(scene);
+			}
+		}
+
 		if (m_ActiveScene)
 		{
 			if (m_NeedsResize && m_ViewportWidth != 0 && m_ViewportHeight != 0)
 			{
 				SK_PROFILE_SCOPED("EditorLayer::OnUpdate Resize");
 
-				m_ActiveScene->SetViewportBounds(m_ViewportBounds);
+				m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 
 				m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_CameraPreviewRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -274,8 +283,8 @@ namespace Shark {
 			{
 				if (m_SelectetEntity)
 				{
-					const auto& tf = m_SelectetEntity.GetTransform();
-					m_EditorCamera.SetFocusPoint(tf.Position);
+					const auto& tf = m_SelectetEntity.Transform();
+					m_EditorCamera.SetFocusPoint(tf.Translation);
 					m_EditorCamera.SetDistance(7.5f);
 					return true;
 				}
@@ -549,11 +558,7 @@ namespace Shark {
 		{
 			m_ViewportWidth = (uint32_t)size.x;
 			m_ViewportHeight = (uint32_t)size.y;
-
-			ImGuiWindow* window = ImGui::GetCurrentWindow();
-			m_ViewportBounds.LowerBound = { (int)window->ContentRegionRect.Min.x, (int)window->ContentRegionRect.Min.y };
-			m_ViewportBounds.UpperBound = { (int)window->ContentRegionRect.Max.x, (int)window->ContentRegionRect.Max.y };
-
+			m_ViewportPos = ImGui::GetWindowPos();
 			m_NeedsResize = true;
 		}
 
@@ -575,7 +580,7 @@ namespace Shark {
 		
 		if (m_CurrentOperation != GizmoOperaton::None && m_SelectetEntity)
 		{
-			SK_CORE_ASSERT(m_SelectetEntity.HasComponent<TransformComponent>(), "Every entity is requiert to have a Transform Component");
+			SK_CORE_ASSERT(m_SelectetEntity.AllOf<TransformComponent>(), "Every entity is requiert to have a Transform Component");
 
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
 
@@ -589,12 +594,12 @@ namespace Shark {
 			glm::mat4 projection;
 			if (m_SceneState == SceneState::Play)
 			{
-				Entity cameraEntity = m_ActiveScene->FindActiveCameraEntity();
+				Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
 				SceneCamera& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
-				auto& transform = cameraEntity.GetTransform();
+				glm::mat4 transform = cameraEntity.Transform().CalcTransform();
 
 				ImGuizmo::SetOrthographic(camera.GetProjectionType() == SceneCamera::Projection::Orthographic);
-				view = glm::inverse(transform.GetTranform());
+				view = glm::inverse(transform);
 				projection = camera.GetProjection();
 			}
 			else
@@ -604,9 +609,9 @@ namespace Shark {
 				projection = m_EditorCamera.GetProjection();
 			}
 
-			auto& tf = m_SelectetEntity.GetComponent<TransformComponent>();
-			glm::mat4 transform = tf.GetTranform();
-			
+			auto& tf = m_SelectetEntity.Transform();
+			glm::mat4 transform = tf.CalcTransform();
+
 			float* snap = nullptr;
 			if (Input::KeyPressed(Key::LeftShift))
 			{
@@ -626,7 +631,7 @@ namespace Shark {
 				Math::DecomposeTransform(transform, scaling, rotation, translation);
 				
 				glm::vec3 deltaRotation = rotation - tf.Rotation;
-				tf.Position = translation;
+				tf.Translation = translation;
 				tf.Rotation += deltaRotation;
 				tf.Scaling = scaling;
 			}
@@ -765,10 +770,7 @@ namespace Shark {
 							{
 								case AssetType::Scene:
 								{
-									Ref<Scene> scene = ResourceManager::GetAsset<Scene>(handle);
-									SK_CORE_ASSERT(scene);
-									m_WorkScene = scene;
-									SetActiveScene(scene);
+									LoadScene(handle);
 									break;
 								}
 								case AssetType::Texture:
@@ -798,12 +800,7 @@ namespace Shark {
 					if (extention == L".skscene")
 					{
 						AssetHandle handle = ResourceManager::ImportAsset(filePath);
-						Ref<Scene> nextScene = ResourceManager::GetAsset<Scene>(handle);
-						if (nextScene)
-						{
-							SetActiveScene(nextScene);
-							m_WorkScene = nextScene;
-						}
+						LoadScene(handle);
 					}
 					else if (extention == "L.sktex")
 					{
@@ -1236,10 +1233,7 @@ namespace Shark {
 			}
 		}
 
-		ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, ImGui::GetStyle().IndentSpacing * 0.5f);
-
-		const bool importedAssetsOpen = ImGui::TreeNodeEx("Imported Assets", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen);
-		if (importedAssetsOpen)
+		if (ImGui::TreeNodeEx("Imported Assets", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			for (auto [handle, metadata] : ResourceManager::GetAssetRegistry())
 			{
@@ -1282,8 +1276,7 @@ namespace Shark {
 			ImGui::TreePop();
 		}
 
-		const bool loadedAssetsOpen = ImGui::TreeNodeEx("Loaded Assets", UI::TreeNodeSeperatorFlags);
-		if (loadedAssetsOpen)
+		if (ImGui::TreeNodeEx("Loaded Assets", UI::TreeNodeSeperatorFlags))
 		{
 			for (auto [handle, asset] : ResourceManager::GetLoadedAssets())
 			{
@@ -1326,8 +1319,7 @@ namespace Shark {
 			ImGui::TreePop();
 		}
 		
-		const bool memoryAssetsOpen = ImGui::TreeNodeEx("Memory Assets", UI::TreeNodeSeperatorFlags);
-		if (memoryAssetsOpen)
+		if (ImGui::TreeNodeEx("Memory Assets", UI::TreeNodeSeperatorFlags))
 		{
 			for (auto [handle, asset] : ResourceManager::GetMemoryAssets())
 			{
@@ -1363,8 +1355,6 @@ namespace Shark {
 
 			ImGui::TreePop();
 		}
-
-		ImGui::PopStyleVar();
 
 		ImGui::End();
 	}
@@ -1421,9 +1411,9 @@ namespace Shark {
 
 		SK_PERF_SCOPED("Mouse Picking");
 		
+
 		auto [mx, my] = ImGui::GetMousePos();
-		float wx = (float)m_ViewportBounds.LowerBound.x;
-		float wy = (float)m_ViewportBounds.LowerBound.y;
+		auto [wx, wy] = m_ViewportPos;
 		int x = (int)(mx - wx);
 		int y = (int)(my - wy);
 		m_HoveredEntityID = -1;
@@ -1511,10 +1501,10 @@ namespace Shark {
 					{
 						Entity entity{ entityID, m_ActiveScene };
 						auto& collider = view.get<BoxCollider2DComponent>(entityID);
-						auto& tf = entity.GetTransform();
+						auto& tf = entity.Transform();
 
 						glm::mat4 transform =
-							tf.GetTranform() *
+							tf.CalcTransform() *
 							glm::translate(glm::vec3(collider.Offset, 0)) *
 							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 							glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
@@ -1529,10 +1519,10 @@ namespace Shark {
 					{
 						Entity entity{ entityID, m_ActiveScene };
 						auto& collider = view.get<CircleCollider2DComponent>(entityID);
-						auto& tf = entity.GetTransform();
+						auto& tf = entity.Transform();
 
 						glm::mat4 transform =
-							tf.GetTranform() *
+							tf.CalcTransform() *
 							glm::translate(glm::vec3(collider.Offset, 0)) *
 							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 							glm::scale(glm::vec3(collider.Radius, collider.Radius, 1.0f));
@@ -1549,10 +1539,10 @@ namespace Shark {
 					{
 						Entity entity{ entityID, m_ActiveScene };
 						auto& collider = view.get<BoxCollider2DComponent>(entityID);
-						auto& tf = entity.GetTransform();
+						auto& tf = entity.Transform();
 
 						glm::mat4 transform =
-							tf.GetTranform() *
+							tf.CalcTransform() *
 							glm::translate(glm::vec3(collider.Offset, 0)) *
 							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 							glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
@@ -1567,10 +1557,10 @@ namespace Shark {
 					{
 						Entity entity{ entityID, m_ActiveScene };
 						auto& collider = view.get<CircleCollider2DComponent>(entityID);
-						auto& tf = entity.GetTransform();
+						auto& tf = entity.Transform();
 
 						glm::mat4 transform =
-							tf.GetTranform() *
+							tf.CalcTransform() *
 							glm::translate(glm::vec3(collider.Offset, 0)) *
 							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 							glm::scale(glm::vec3(0.0f, 0.0f, collider.Radius));
@@ -1590,7 +1580,7 @@ namespace Shark {
 
 		if (m_ShowCameraPreview)
 		{
-			Entity cameraEntity = m_ActiveScene->FindActiveCameraEntity();
+			Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
 			if (cameraEntity)
 				m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, GetViewProjFromCameraEntity(cameraEntity));
 		}
@@ -1630,8 +1620,8 @@ namespace Shark {
 		{
 			Entity cameraEntity = m_ActiveScene->GetRuntimeCamera();
 			auto& camera = cameraEntity.GetComponent<CameraComponent>();
-			auto& tf = cameraEntity.GetTransform();
-			return camera.GetProjection() * glm::inverse(tf.GetTranform());
+			auto& tf = cameraEntity.Transform();
+			return camera.GetProjection() * glm::inverse(tf.CalcTransform());
 		}
 
 		return m_EditorCamera.GetViewProjection();
@@ -1646,6 +1636,7 @@ namespace Shark {
 		Ref<Scene> newScene = ResourceManager::CreateMemoryAsset<Scene>();
 		m_WorkScene = newScene;
 		SetActiveScene(newScene);
+		m_EditorCamera.SetView(glm::vec3(0.0f), 10.0f, 0.0f, 0.0f);
 	}
 
 	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)
@@ -1661,6 +1652,7 @@ namespace Shark {
 		{
 			m_WorkScene = scene;
 			SetActiveScene(scene);
+			m_EditorCamera.SetView(glm::vec3(0.0f), 10.0f, 0.0f, 0.0f);
 			return true;
 		}
 		return false;
@@ -1675,6 +1667,7 @@ namespace Shark {
 		{
 			m_WorkScene = scene;
 			SetActiveScene(scene);
+			m_EditorCamera.SetView(glm::vec3(0.0f), 10.0f, 0.0f, 0.0f);
 			return true;
 		}
 		return false;
@@ -1784,12 +1777,13 @@ namespace Shark {
 		if (scene)
 		{
 			scene->IsEditorScene(m_InitialSceneState != SceneState::Play);
-			scene->SetViewportBounds(m_ViewportBounds);
+			scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
 		m_ActiveScene = scene;
 		m_SceneRenderer->SetScene(scene);
 		m_CameraPreviewRenderer->SetScene(scene);
+		SelectEntity(Entity{});
 		DistributeEvent(SceneChangedEvent(scene));
 	}
 
@@ -1894,8 +1888,8 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		auto& camera = cameraEntity.GetComponent<CameraComponent>();
-		auto& tf = cameraEntity.GetTransform();
-		return camera.GetProjection() * glm::inverse(tf.GetTranform());
+		auto& tf = cameraEntity.Transform();
+		return camera.GetProjection() * glm::inverse(tf.CalcTransform());
 	}
 
 	void EditorLayer::DistributeEvent(Event& event)

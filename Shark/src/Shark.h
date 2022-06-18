@@ -4,10 +4,14 @@
 
 // --- Core -----------------------------
 #include "Shark/Core/Application.h"
-#include "Shark/Core/TimeStep.h"
-#include "Shark/Input/Input.h"
-#include "Shark/Core/Timer.h"
 #include "Shark/Core/Window.h"
+
+#include "Shark/Core/Project.h"
+#include "Shark/Core/UUID.h"
+
+#include "Shark/Core/Buffer.h"
+#include "Shark/Core/TimeStep.h"
+#include "Shark/Core/Timer.h"
 // --------------------------------------
 
 // --- Input ----------------------------

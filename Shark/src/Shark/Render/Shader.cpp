@@ -1,17 +1,17 @@
 #include "skpch.h"
 #include "Shader.h"
 
-#include "Shark/Render/RendererAPI.h"
+#include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXShader.h"
 
 namespace Shark {
 
 	Ref<Shader> Shader::Create(const std::filesystem::path& filepath)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXShader>::Create(filepath);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXShader>::Create(filepath);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;

@@ -14,6 +14,12 @@
 
 namespace Shark {
 
+	enum class RendererAPIType
+	{
+		None = 0,
+		DirectX11
+	};
+
 	class Renderer
 	{
 	public:
@@ -36,6 +42,9 @@ namespace Shark {
 		static Ref<Texture2D> GetWhiteTexture();
 
 		static Ref<RendererAPI> GetRendererAPI();
+
+		static void SetAPI(RendererAPIType api);
+		static RendererAPIType GetAPI();
 	};
 
 }

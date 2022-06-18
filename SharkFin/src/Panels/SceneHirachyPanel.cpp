@@ -25,7 +25,7 @@ namespace Shark {
 		template<typename Comp, typename UIFunction>
 		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
 		{
-			if (entity.HasComponent<Comp>())
+			if (entity.AllOf<Comp>())
 			{
 				ImGui::PushID(typeid(Comp).name());
 				const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
@@ -51,7 +51,7 @@ namespace Shark {
 							Weak<Scene> scene = entity.GetScene();
 							UUID cameraUUID = scene->GetActiveCameraUUID();
 							if (entity.GetUUID() == cameraUUID)
-								scene->SetActiveCamera(UUID::Null());
+								scene->SetActiveCamera(UUID::Null);
 						}
 
 						entity.RemoveComponent<Comp>();
@@ -261,47 +261,47 @@ namespace Shark {
 			ImGui::OpenPopup("Add Component List");
 		if (ImGui::BeginPopup("Add Component List"))
 		{
-			if (ImGui::Selectable("Transform", false, entity.HasComponent<TransformComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("Transform", false, entity.AllOf<TransformComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<TransformComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("Sprite Renderer", false, entity.HasComponent<SpriteRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("Sprite Renderer", false, entity.AllOf<SpriteRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<SpriteRendererComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("Circle Renderer", false, entity.HasComponent<CircleRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("Circle Renderer", false, entity.AllOf<CircleRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<CircleRendererComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("Scene Camera", false, entity.HasComponent<CameraComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("Scene Camera", false, entity.AllOf<CameraComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<CameraComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("RigidBody 2D", false, entity.HasComponent<RigidBody2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("RigidBody 2D", false, entity.AllOf<RigidBody2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<RigidBody2DComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("BoxCollider 2D", false, entity.HasComponent<BoxCollider2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("BoxCollider 2D", false, entity.AllOf<BoxCollider2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<BoxCollider2DComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("CirlceCollider 2D", false, entity.HasComponent<CircleCollider2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("CirlceCollider 2D", false, entity.AllOf<CircleCollider2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<CircleCollider2DComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("Native Script", false, entity.HasComponent<NativeScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("Native Script", false, entity.AllOf<NativeScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<NativeScriptComponent>();
 				ImGui::CloseCurrentPopup();
 			}
-			if (ImGui::Selectable("Script", false, entity.HasComponent<ScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
+			if (ImGui::Selectable("Script", false, entity.AllOf<ScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
 			{
 				entity.AddComponent<ScriptComponent>();
 				ImGui::CloseCurrentPopup();
@@ -312,7 +312,7 @@ namespace Shark {
 		Utils::DrawComponet<TransformComponent>(entity, "Transform", [](TransformComponent& comp)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Position", comp.Position);
+			UI::Control("Position", comp.Translation);
 			UI::ControlAngle("Rotation", comp.Rotation);
 			UI::ControlS("Scaling", comp.Scaling, 1.0f);
 			UI::EndControls();
@@ -356,7 +356,7 @@ namespace Shark {
 					UI::Text(metadata.FilePath);
 					ImGui::Text("Width: %d, Height: %d", texture->GetImage()->GetWidth(), texture->GetImage()->GetHeight());
 					if (ImGui::Button("Remove"))
-						comp.TextureHandle = AssetHandle::Null();
+						comp.TextureHandle = AssetHandle::Null;
 				}
 				else
 				{

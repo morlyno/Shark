@@ -1,8 +1,10 @@
 ﻿
+using System;
+
 namespace Shark
 {
 
-	public struct TimeStep
+	public struct TimeStep : IFormattable
 	{
 		private float m_Time;
 
@@ -31,6 +33,19 @@ namespace Shark
 
 		public static implicit operator TimeStep(float f) { return new TimeStep(f); }
 		public static implicit operator float(TimeStep This) { return This.m_Time; }
+
+		public override string ToString()
+		{
+			return ToString(null, null);
+		}
+		public string ToString(string format)
+		{
+			return ToString(format, null);
+		}
+		public string ToString(string format, IFormatProvider formatProvider)
+		{
+			return m_Time.ToString(format, formatProvider);
+		}
 	}
 
 }

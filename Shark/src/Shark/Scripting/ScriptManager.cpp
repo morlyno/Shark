@@ -141,7 +141,7 @@ namespace Shark {
 			return false;
 		}
 
-		SK_CORE_ASSERT(entity.HasComponent<ScriptComponent>());
+		SK_CORE_ASSERT(entity.AllOf<ScriptComponent>());
 
 		const auto& comp = entity.GetComponent<ScriptComponent>();
 		UUID uuid = entity.GetUUID();

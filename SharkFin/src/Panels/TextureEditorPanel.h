@@ -49,8 +49,7 @@ namespace Shark {
 
 		TextureSpecification m_Specs;
 
-		//glm::uvec2 m_ViewportSize = { 1280, 720 };
-		Bounds2i m_ViewportBounds;
+		glm::uvec2 m_ViewportSize = { 1280, 720 };
 		bool m_NeedsResize = false;
 
 		bool m_ViewportHovered = false;

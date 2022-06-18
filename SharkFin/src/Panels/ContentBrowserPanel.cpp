@@ -99,9 +99,9 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		const ImGuiStyle& style = ImGui::GetStyle();
-		ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
+		//ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
 		DrawTreeView(m_RootDirectory);
-		ImGui::PopStyleVar();
+		//ImGui::PopStyleVar();
 	}
 
 	void ContentBrowserPanel::DrawTreeView(DirectoryEntry& directory)
@@ -491,7 +491,7 @@ namespace Shark {
 
 		m_RootDirectory.ChildEntrys.clear();
 		m_RootDirectory.Type = EntryType::Directory;
-		m_RootDirectory.Handle = AssetHandle::Null();
+		m_RootDirectory.Handle = AssetHandle::Null;
 		m_RootDirectory.Path = Project::RelativeCopy(rootPath);
 		CacheDirectory(m_RootDirectory, rootPath);
 		m_CurrentDirectory = &m_RootDirectory;

@@ -1,13 +1,12 @@
 #include "skpch.h"
 #include "SceneSerialization.h"
 
+#include "Shark/Core/Timer.h"
+#include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
-#include "Shark/Utils/YAMLUtils.h"
-
 #include "Shark/Scripting/ScriptEngine.h"
-
-#include "Shark/Core/Timer.h"
+#include "Shark/Utils/YAMLUtils.h"
 #include "Shark/Debug/Instrumentor.h"
 
 #include <yaml-cpp/yaml.h>
@@ -87,7 +86,7 @@ namespace Shark {
 		out << YAML::BeginMap;
 		out << YAML::Key << "Entity" << YAML::Value << YAML::Hex << entity.GetUUID() << YAML::Dec;
 
-		if (entity.HasComponent<TagComponent>())
+		if (entity.AllOf<TagComponent>())
 		{
 			out << YAML::Key << "TagComponent" << YAML::Value;
 			out << YAML::BeginMap;
@@ -100,20 +99,20 @@ namespace Shark {
 			SK_CORE_TRACE("Searializing Entity. ID: {0}, TAG: {1}", (uint32_t)entity, comp.Tag);
 		}
 
-		if (entity.HasComponent<TransformComponent>())
+		if (entity.AllOf<TransformComponent>())
 		{
 			out << YAML::Key << "TransformComponent" << YAML::Value;
 			out << YAML::BeginMap;
 
 			auto& comp = entity.GetComponent<TransformComponent>();
-			out << YAML::Key << "Position" << YAML::Value << comp.Position;
+			out << YAML::Key << "Position" << YAML::Value << comp.Translation;
 			out << YAML::Key << "Rotation" << YAML::Value << comp.Rotation;
 			out << YAML::Key << "Scaling" << YAML::Value << comp.Scaling;
 
 			out << YAML::EndMap;
 		}
 		
-		if (entity.HasComponent<SpriteRendererComponent>())
+		if (entity.AllOf<SpriteRendererComponent>())
 		{
 			out << YAML::Key << "SpriteRendererComponent" << YAML::Value;
 			out << YAML::BeginMap;
@@ -126,7 +125,7 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 		
-		if (entity.HasComponent<CircleRendererComponent>())
+		if (entity.AllOf<CircleRendererComponent>())
 		{
 			out << YAML::Key << "CircleRendererComponent" << YAML::Value;
 			out << YAML::BeginMap;
@@ -139,7 +138,7 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 
-		if (entity.HasComponent<CameraComponent>())
+		if (entity.AllOf<CameraComponent>())
 		{
 			out << YAML::Key << "CameraComponent" << YAML::Value;
 			out << YAML::BeginMap;
@@ -161,7 +160,7 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 
-		if (entity.HasComponent<RigidBody2DComponent>())
+		if (entity.AllOf<RigidBody2DComponent>())
 		{
 			out << YAML::Key << "RigidBody2DComponent" << YAML::Value;
 			out << YAML::BeginMap;
@@ -179,7 +178,7 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 
-		if (entity.HasComponent<BoxCollider2DComponent>())
+		if (entity.AllOf<BoxCollider2DComponent>())
 		{
 			out << YAML::Key << "BoxCollider2DComponent" << YAML::Value;
 			out << YAML::BeginMap;
@@ -198,7 +197,7 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 
-		if (entity.HasComponent<CircleCollider2DComponent>())
+		if (entity.AllOf<CircleCollider2DComponent>())
 		{
 			out << YAML::Key << "CircleCollider2DComponent" << YAML::Value;
 			out << YAML::BeginMap;
@@ -217,7 +216,7 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 
-		if (entity.HasComponent<ScriptComponent>())
+		if (entity.AllOf<ScriptComponent>())
 		{
 			out << YAML::Key << "ScriptComponent" << YAML::Value;
 			out << YAML::BeginMap;
@@ -233,102 +232,18 @@ namespace Shark {
 		return true;
 	}
 
-	bool SceneSerializer::TryLoadData(Ref<Asset>& asset, const std::filesystem::path& filePath)
+	static bool LoadScene(const Ref<Scene>& scene, const AssetMetaData& metadata)
 	{
-		asset = Ref<Scene>::Create();
-		return Deserialize(asset.As<Scene>(), filePath);
-	}
-
-	bool SceneSerializer::Serialize(Ref<Asset> asset, const std::filesystem::path& filePath)
-	{
-		SK_CORE_ASSERT(asset);
-		if (!asset && asset->GetAssetType() != AssetType::Scene)
-			return false;
-
-		return Serialize(asset.As<Scene>(), filePath);
-	}
-
-	bool SceneSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& filePath)
-	{
-		SK_CORE_ASSERT(asset);
-		if (!asset && asset->GetAssetType() != AssetType::Scene)
-			return false;
-
-		return Deserialize(asset.As<Scene>(), filePath);
-	}
-
-	bool SceneSerializer::Serialize(Ref<Scene> scene, const std::filesystem::path& filepath)
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!scene)
-		{
-			SK_CORE_WARN("SceneSerializer Scene is null but Serialize was called");
-			return false;
-		}
-
-		Timer timer;
-
-		YAML::Emitter out;
-
-		SK_CORE_INFO(L"Searializing Scene to {0}", filepath);
-
-		out << YAML::BeginMap;
-		out << YAML::Key << "Scene" << YAML::Value;
-
-		out << YAML::BeginMap;
-		out << YAML::Key << "ActiveCamera" << YAML::Value << YAML::Hex << scene->GetActiveCameraUUID() << YAML::Dec;
-		out << YAML::Key << "Entities" << YAML::Value;
-
-		out << YAML::BeginSeq;
-		for (const auto& [uuid, entity] : scene->GetEntityUUIDMap())
-			SerializeEntity(out, entity, scene);
-		out << YAML::EndSeq;
-
-		out << YAML::EndMap;
-		out << YAML::EndMap;
-
-		std::ofstream fout(filepath);
-		if (!fout.good())
-		{
-			SK_CORE_ERROR("Output File Stream Failed!");
-			return false;
-		}
-		fout << out.c_str();
-		fout.close();
-		SK_CORE_INFO("Scene Serialization tock: {:.4f}ms", timer.Stop().MilliSeconds());
-
-		return true;
-	}
-
-	bool SceneSerializer::Deserialize(Ref<Scene> scene, const std::filesystem::path& filepath)
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!scene)
-		{
-			SK_CORE_ERROR("SceneSerializer Scene is null but Deserialize was called");
-			return false;
-		}
-
-		if (!std::filesystem::exists(filepath) || filepath.extension() != L".skscene")
-		{
-			SK_CORE_ERROR("Tryed to Deseialize Scene but FilePath is invalid [File: {}]", filepath);
-			return false;
-		}
-
-		Timer timer;
-
-		YAML::Node in = YAML::LoadFile(filepath);
+		YAML::Node in = YAML::LoadFile(ResourceManager::GetFileSystemPath(metadata));
 		auto sceneNode = in["Scene"];
 		if (!sceneNode)
 			return false;
 
-		scene->m_Registry.clear();
+		SK_CORE_INFO("Loading Scene [{0}]", metadata.FilePath);
 
-		SK_CORE_INFO("Deserializing Scene from: {0}", filepath);
-
-		scene->SetActiveCamera(sceneNode["ActiveCamera"].as<UUID>());
+		auto activeCamera = sceneNode["ActiveCamera"];
+		SK_CORE_ASSERT(activeCamera, "Couldn't Load Active Camera");
+		scene->SetActiveCamera(activeCamera.as<UUID>());
 
 		auto entities = sceneNode["Entities"];
 		if (entities)
@@ -344,8 +259,7 @@ namespace Shark {
 				Entity deserializedEntity = scene->CreateEntityWithUUID(uuid, tag);
 				SK_CORE_TRACE("Deserializing Entity [{}] {:x}", tag, uuid);
 
-				auto transformComponent = entity["TransformComponent"];
-				if (transformComponent)
+				if (auto transformComponent = entity["TransformComponent"])
 				{
 					auto position = transformComponent["Position"];
 					auto rotation = transformComponent["Rotation"];
@@ -353,7 +267,7 @@ namespace Shark {
 					auto& comp = deserializedEntity.AddOrReplaceComponent<TransformComponent>();
 
 					SK_CORE_ASSERT(position, "Couldn't deserialize TransformComponent::Position");
-					comp.Position = position.as<glm::vec3>();
+					comp.Translation = position.as<glm::vec3>();
 
 					SK_CORE_ASSERT(rotation, "Couldn't deserialize TransformComponent::Rotation");
 					comp.Rotation = rotation.as<glm::vec3>();
@@ -364,8 +278,7 @@ namespace Shark {
 					SK_CORE_TRACE(" - Transfrom Component");
 				}
 
-				auto spriteRendererComponent = entity["SpriteRendererComponent"];
-				if (spriteRendererComponent)
+				if (auto spriteRendererComponent = entity["SpriteRendererComponent"])
 				{
 					auto color = spriteRendererComponent["Color"];
 					auto textureHandle = spriteRendererComponent["Texture"];
@@ -387,15 +300,14 @@ namespace Shark {
 					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", comp.TextureHandle);
 				}
 
-				auto circleRendererComponent = entity["CircleRendererComponent"];
-				if (circleRendererComponent)
+				if (auto circleRendererComponent = entity["CircleRendererComponent"])
 				{
 					auto color = circleRendererComponent["Color"];
 					auto thickness = circleRendererComponent["Thickness"];
 					auto fade = circleRendererComponent["Fade"];
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleRendererComponent>();
-					
+
 					SK_CORE_ASSERT(color, "Couldn't deserialize CircleRendererCompnent::Color");
 					comp.Color = color.as<glm::vec4>();
 
@@ -408,8 +320,7 @@ namespace Shark {
 					SK_CORE_TRACE(" - Cirlce Renderer Component");
 				}
 
-				auto cameraComponent = entity["CameraComponent"];
-				if (cameraComponent)
+				if (auto cameraComponent = entity["CameraComponent"])
 				{
 					SceneCamera::Projection projection = SceneCamera::Projection::Perspective;
 					SceneCamera::PerspectiveSpecs ps;
@@ -455,8 +366,7 @@ namespace Shark {
 					SK_CORE_TRACE(" - Camera Component: Type {}", Convert::ProjectionToString(projection));
 				}
 
-				auto rigidBody2DComponent = entity["RigidBody2DComponent"];
-				if (rigidBody2DComponent)
+				if (auto rigidBody2DComponent = entity["RigidBody2DComponent"])
 				{
 					auto type = rigidBody2DComponent["Type"];
 					auto fixedRotation = rigidBody2DComponent["FixedRotation"];
@@ -471,10 +381,10 @@ namespace Shark {
 					SK_CORE_ASSERT(type, "Couldn't desirialize RigidBody2DComponent::Type");
 					comp.Type = Convert::StringToBodyType(type.as<std::string>());
 
-					SK_CORE_ASSERT(fixedRotation, "Couldn't desirialize RigidBody2DComponent::FixedRotation");
+					SK_CORE_ASSERT(isBullet, "Couldn't desirialize RigidBody2DComponent::FixedRotation");
 					comp.FixedRotation = fixedRotation.as<bool>();
 
-					SK_CORE_ASSERT(isBullet, "Couldn't desirialize RigidBody2DComponent::FixedRotation");
+					SK_CORE_ASSERT(isBullet, "Couldn't desirialize RigidBody2DComponent::IsBullet");
 					comp.IsBullet = isBullet.as<bool>();
 
 					SK_CORE_ASSERT(awake, "Couldn't desirialize RigidBody2DComponent::Awake");
@@ -485,15 +395,14 @@ namespace Shark {
 
 					SK_CORE_ASSERT(gravityScale, "Couldn't desirialize RigidBody2DComponent::GravityScale");
 					comp.GravityScale = gravityScale.as<float>();
-					
+
 					SK_CORE_ASSERT(allowSleep, "Couldn't desirialize RigidBody2DComponent::AllowSleep");
 					comp.AllowSleep = allowSleep.as<bool>();
 
 					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", Convert::BodyTypeToString(comp.Type));
 				}
 
-				auto boxCollider2DComponent = entity["BoxCollider2DComponent"];
-				if (boxCollider2DComponent)
+				if (auto boxCollider2DComponent = entity["BoxCollider2DComponent"])
 				{
 					auto size = boxCollider2DComponent["Size"];
 					auto offset = boxCollider2DComponent["Offset"];
@@ -526,52 +435,51 @@ namespace Shark {
 
 					SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize BoxCollider2DComponent::RestitutionThreshold");
 					comp.RestitutionThreshold = restitutionThreshold.as<float>();
-					
+
 					SK_CORE_ASSERT(isSensor, "Couldn't desirialize BoxCollider2DComponent::IsSensor");
 					comp.IsSensor = isSensor.as<bool>();
 
-					SK_CORE_TRACE(" - BoxCollider2D Component");
-				}
+					auto cirlceCollider2DComponent = entity["CircleCollider2DComponent"];
+					if (cirlceCollider2DComponent)
+					{
+						auto radius = cirlceCollider2DComponent["Radius"];
+						auto offset = cirlceCollider2DComponent["Offset"];
+						auto rotation = cirlceCollider2DComponent["Rotation"];
+						auto density = cirlceCollider2DComponent["Density"];
+						auto friction = cirlceCollider2DComponent["Friction"];
+						auto restitution = cirlceCollider2DComponent["Restitution"];
+						auto restitutionThreshold = cirlceCollider2DComponent["RestitutionThreshold"];
+						auto isSensor = cirlceCollider2DComponent["IsSensor"];
+						SK_CORE_TRACE(" - BoxCollider2D Component");
 
-				auto cirlceCollider2DComponent = entity["CircleCollider2DComponent"];
-				if (cirlceCollider2DComponent)
-				{
-					auto radius = cirlceCollider2DComponent["Radius"];
-					auto offset = cirlceCollider2DComponent["Offset"];
-					auto rotation = cirlceCollider2DComponent["Rotation"];
-					auto density = cirlceCollider2DComponent["Density"];
-					auto friction = cirlceCollider2DComponent["Friction"];
-					auto restitution = cirlceCollider2DComponent["Restitution"];
-					auto restitutionThreshold = cirlceCollider2DComponent["RestitutionThreshold"];
-					auto isSensor = cirlceCollider2DComponent["IsSensor"];
+						auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
 
-					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
+						SK_CORE_ASSERT(radius, "Couldn't desirialize CircleCollider2DComponent::Radius");
+						comp.Radius = radius.as<float>();
 
-					SK_CORE_ASSERT(radius, "Couldn't desirialize CircleCollider2DComponent::Radius");
-					comp.Radius = radius.as<float>();
+						SK_CORE_ASSERT(offset, "Couldn't desirialize CircleCollider2DComponent::Offset");
+						comp.Offset = offset.as<glm::vec2>();
 
-					SK_CORE_ASSERT(offset, "Couldn't desirialize CircleCollider2DComponent::Offset");
-					comp.Offset = offset.as<glm::vec2>();
+						SK_CORE_ASSERT(rotation, "Couldn't desirialize CircleCollider2DComponent::Rotation");
+						comp.Rotation = rotation.as<float>();
 
-					SK_CORE_ASSERT(rotation, "Couldn't desirialize CircleCollider2DComponent::Rotation");
-					comp.Rotation = rotation.as<float>();
+						SK_CORE_ASSERT(density, "Couldn't desirialize CircleCollider2DComponent::Density");
+						comp.Density = density.as<float>();
 
-					SK_CORE_ASSERT(density, "Couldn't desirialize CircleCollider2DComponent::Density");
-					comp.Density = density.as<float>();
+						SK_CORE_ASSERT(friction, "Couldn't desirialize CircleCollider2DComponent::Friction");
+						comp.Friction = friction.as<float>();
 
-					SK_CORE_ASSERT(friction, "Couldn't desirialize CircleCollider2DComponent::Friction");
-					comp.Friction = friction.as<float>();
+						SK_CORE_ASSERT(restitution, "Couldn't desirialize CircleCollider2DComponent::Restitution");
+						comp.Restitution = restitution.as<float>();
 
-					SK_CORE_ASSERT(restitution, "Couldn't desirialize CircleCollider2DComponent::Restitution");
-					comp.Restitution = restitution.as<float>();
+						SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize CircleCollider2DComponent::RestitutionThreshold");
+						comp.RestitutionThreshold = restitutionThreshold.as<float>();
 
-					SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize CircleCollider2DComponent::RestitutionThreshold");
-					comp.RestitutionThreshold = restitutionThreshold.as<float>();
+						SK_CORE_ASSERT(isSensor, "Couldn't desirialize CircleCollider2DComponent::IsSensor");
+						comp.IsSensor = isSensor.as<bool>(false);
 
-					SK_CORE_ASSERT(isSensor, "Couldn't desirialize CircleCollider2DComponent::IsSensor");
-					comp.IsSensor = isSensor.as<bool>(false);
-
-					SK_CORE_TRACE(" - CircleCollider2D Component");
+						SK_CORE_TRACE(" - CircleCollider2D Component");
+					}
 				}
 
 				auto scriptComponent = entity["ScriptComponent"];
@@ -587,10 +495,85 @@ namespace Shark {
 
 					SK_CORE_TRACE(" - Script Component [{}]", comp.ScriptName);
 				}
-
 			}
 		}
-		SK_CORE_INFO("Scene Deserialization tock: {:.4f}ms", timer.Stop().MilliSeconds());
+
+		return true;
+	}
+
+	bool SceneSerializer::TryLoadData(Ref<Asset>& asset, const AssetMetaData& metadata)
+	{
+		SK_PROFILE_FUNCTION();
+
+		Ref<Scene> scene = Ref<Scene>::Create();
+		asset = scene;
+		asset->Handle = metadata.Handle;
+
+		if (!ResourceManager::HasExistingFilePath(metadata))
+		{
+			asset->SetFlag(AssetFlag::FileNotFound, true);
+			SK_CORE_ERROR("[Scene Serializer] FileNotFound {0}", metadata.FilePath);
+			return false;
+		}
+
+		Timer timer;
+
+		try
+		{
+			if (!LoadScene(scene, metadata))
+			{
+				scene->SetFlag(AssetFlag::InvalidFile, true);
+				SK_CORE_ERROR("[Scene Serailizer] Invalid File");
+				return false;
+			}
+		}
+		catch (YAML::Exception& e)
+		{
+			scene->SetFlag(AssetFlag::InvalidFile, true);
+			SK_CORE_ERROR("[Scene Serializer] {0}", e.what());
+			return false;
+		}
+
+		SK_CORE_INFO("Scene Deserialization tock: {:.4f}ms", timer.ElapsedMilliSeconds());
+		return true;
+	}
+
+	bool SceneSerializer::Serialize(const Ref<Asset>& asset, const AssetMetaData& metadata)
+	{
+		SK_PROFILE_FUNCTION();
+
+		SK_CORE_ASSERT(asset);
+		if (!asset && asset->GetAssetType() != AssetType::Scene)
+			return false;
+
+		Ref<Scene> scene = asset.As<Scene>();
+
+		Timer timer;
+		YAML::Emitter out;
+
+		SK_CORE_INFO(L"Searializing Scene [{0}]", metadata.FilePath);
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Scene" << YAML::Value;
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "ActiveCamera" << YAML::Value << YAML::Hex << scene->GetActiveCameraUUID() << YAML::Dec;
+		out << YAML::Key << "Entities" << YAML::Value;
+
+		out << YAML::BeginSeq;
+		std::map<UUID, Entity> entityIDMap = std::map(scene->m_EntityUUIDMap.begin(), scene->m_EntityUUIDMap.end());
+		for (const auto& [uuid, entity] : entityIDMap)
+			SerializeEntity(out, entity, scene);
+		out << YAML::EndSeq;
+
+		out << YAML::EndMap;
+		out << YAML::EndMap;
+
+		std::ofstream fout(ResourceManager::GetFileSystemPath(metadata));
+		fout << out.c_str();
+		fout.close();
+
+		SK_CORE_INFO("Scene Serialization tock: {:.4f}ms", timer.ElapsedMilliSeconds());
 		return true;
 	}
 

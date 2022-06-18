@@ -3,6 +3,7 @@
 #include "Shark/Event/MouseEvent.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/KeyEvent.h"
+#include "Shark/Input/Input.h"
 #include "Shark/Input/KeyCodes.h"
 #include "Shark/Input/MouseButtons.h"
 
@@ -102,7 +103,10 @@ namespace Shark {
 			SK_CORE_ERROR("Faled to create Window");
 			SK_CORE_ERROR("Error Msg: {}", WindowsUtils::TranslateErrorCode(lastErrorCode));
 			SK_CORE_ASSERT(false);
+			return;
 		}
+
+		UpdateExtentedKeyStates();
 
 		ShowWindow(m_hWnd, SW_SHOW);
 		UpdateWindow(m_hWnd);
@@ -139,6 +143,17 @@ namespace Shark {
 		}
 
 		m_SwapChain->Present(m_VSync);
+	}
+
+	void WindowsWindow::UpdateExtentedKeyStates()
+	{
+		m_ExtendedKeyState[ExtendedKey::LeftAlt]       = Input::KeyPressed(Key::LeftAlt);
+		m_ExtendedKeyState[ExtendedKey::LeftAlt]       = Input::KeyPressed(Key::LeftAlt);
+		m_ExtendedKeyState[ExtendedKey::RightAlt]      = Input::KeyPressed(Key::RightAlt);
+		m_ExtendedKeyState[ExtendedKey::LeftControl]   = Input::KeyPressed(Key::LeftControl);
+		m_ExtendedKeyState[ExtendedKey::RightControl]  = Input::KeyPressed(Key::RightControl);
+		m_ExtendedKeyState[ExtendedKey::LeftShift]     = Input::KeyPressed(Key::LeftShift);
+		m_ExtendedKeyState[ExtendedKey::RightShift]    = Input::KeyPressed(Key::RightShift);
 	}
 
 	LRESULT WINAPI WindowsWindow::WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

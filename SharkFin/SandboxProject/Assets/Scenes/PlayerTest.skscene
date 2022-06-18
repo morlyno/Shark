@@ -8,34 +8,6 @@ Scene:
         Position: [20, 14.3001022, -7.62939453e-06]
         Rotation: [0, 0, 0]
         Scaling: [1, 1, 1]
-    - Entity: 0x9542421fd34573a5
-      TagComponent:
-        Tag: BallTemplate
-      TransformComponent:
-        Position: [-42.1114731, -15.0414038, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [0.540000021, 0.540000021, 0.540000021]
-      CircleRendererComponent:
-        Color: [0.748182833, 0.0552912168, 0.867647052, 1]
-        Thickness: 1
-        Fade: 0.00200000009
-      RigidBody2DComponent:
-        Type: Dynamic
-        FixedRotation: false
-        IsBullet: false
-        Awake: true
-        Enabled: false
-        GravityScale: 1
-        AllowSleep: true
-      CircleCollider2DComponent:
-        Radius: 0.5
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 0.5
-        Friction: 0.100000001
-        Restitution: 0.800000012
-        RestitutionThreshold: 1
-        IsSensor: false
     - Entity: 0x11c394618e866354
       TagComponent:
         Tag: PlatformMarkerRight
@@ -43,28 +15,6 @@ Scene:
         Position: [20, 1.2467103, 0]
         Rotation: [0, 0, 0]
         Scaling: [1, 1, 1]
-    - Entity: 0x5e341a7845afd12b
-      TagComponent:
-        Tag: Floor
-      TransformComponent:
-        Position: [10.9783669, 5.04832745, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [3.8718853, 1, 1]
-      SpriteRendererComponent:
-        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
-      ScriptComponent:
-        ScriptName: Sandbox.FloorScript
     - Entity: 0x14b0acb94394c041
       TagComponent:
         Tag: Player
@@ -95,6 +45,28 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.PlayerController
+    - Entity: 0x5e341a7845afd12b
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [10.9783669, 5.04832745, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [3.8718853, 1, 1]
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
     - Entity: 0x63c6ec00a49d7fa4
       TagComponent:
         Tag: Floor
@@ -161,13 +133,13 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
-    - Entity: 0x7ea5428e94ce6128
+    - Entity: 0x6c99ee886e60b877
       TagComponent:
         Tag: Floor
       TransformComponent:
-        Position: [-23.9843826, 8.69563675, 0]
-        Rotation: [-0, 0, -0.785398185]
-        Scaling: [8.11126232, 1, 1]
+        Position: [24.4400005, 3.02999997, 0]
+        Rotation: [0, 0, -1.57079625]
+        Scaling: [11.9428282, 0.999999821, 1]
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -183,13 +155,13 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
-    - Entity: 0x6c99ee886e60b877
+    - Entity: 0x7ea5428e94ce6128
       TagComponent:
         Tag: Floor
       TransformComponent:
-        Position: [24.4400005, 3.02999997, 0]
-        Rotation: [0, 0, -1.57079625]
-        Scaling: [11.9428282, 0.999999821, 1]
+        Position: [-23.9843826, 8.69563675, 0]
+        Rotation: [-0, 0, -0.785398185]
+        Scaling: [8.11126232, 1, 1]
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -227,6 +199,25 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+    - Entity: 0x9542421fd34573a5
+      TagComponent:
+        Tag: BallTemplate
+      TransformComponent:
+        Position: [-42.1114731, -15.0414038, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [0.540000021, 0.540000021, 0.540000021]
+      CircleRendererComponent:
+        Color: [0.748182833, 0.0552912168, 0.867647052, 1]
+        Thickness: 1
+        Fade: 0.00200000009
+      RigidBody2DComponent:
+        Type: Dynamic
+        FixedRotation: false
+        IsBullet: false
+        Awake: true
+        Enabled: false
+        GravityScale: 1
+        AllowSleep: true
     - Entity: 0xbbdb8872e6e21912
       TagComponent:
         Tag: Camera
@@ -236,13 +227,47 @@ Scene:
         Scaling: [1, 1, 1]
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.11663818
+        Aspectratio: 2.25285172
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
         OrthographicZoom: 10
         OrthographicNear: -1
         OrthographicFar: 1
+    - Entity: 0xc17b6d6adcc7bc74
+      TagComponent:
+        Tag: BallDestroyer
+      TransformComponent:
+        Position: [0, 6.43789101, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [76.3412781, 44.1148911, 76.3412781]
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: true
+      ScriptComponent:
+        ScriptName: Sandbox.BallDestroyer
+    - Entity: 0xc55718d7fdd18f8f
+      TagComponent:
+        Tag: Camera Otho
+      TransformComponent:
+        Position: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      CameraComponent:
+        Type: Orthographic
+        Aspectratio: 2.25285172
+        PerspectiveFOV: 44.9999924
+        PerspectiveNear: 0.00999999978
+        PerspectiveFar: 1000
+        OrthographicZoom: 13.0200005
+        OrthographicNear: -1
+        OrthographicFar: 20
     - Entity: 0xe5ff6bf1e4f4123f
       TagComponent:
         Tag: MovingPlatform
@@ -273,22 +298,6 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.PlatformScript
-    - Entity: 0xc55718d7fdd18f8f
-      TagComponent:
-        Tag: Camera Otho
-      TransformComponent:
-        Position: [0, 0, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [1, 1, 1]
-      CameraComponent:
-        Type: Orthographic
-        Aspectratio: 2.11663818
-        PerspectiveFOV: 44.9999924
-        PerspectiveNear: 0.00999999978
-        PerspectiveFar: 1000
-        OrthographicZoom: 13.0200005
-        OrthographicNear: -1
-        OrthographicFar: 20
     - Entity: 0xf42ff09aeb3afef2
       TagComponent:
         Tag: Quad
@@ -300,21 +309,3 @@ Scene:
         Color: [1, 1, 1, 1]
         Texture: 0
         TilingFactor: 1
-    - Entity: 0xc17b6d6adcc7bc74
-      TagComponent:
-        Tag: BallDestroyer
-      TransformComponent:
-        Position: [0, 6.43789101, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [76.3412781, 44.1148911, 76.3412781]
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: true
-      ScriptComponent:
-        ScriptName: Sandbox.BallDestroyer

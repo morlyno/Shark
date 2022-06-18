@@ -168,7 +168,7 @@ namespace Shark {
 			Timer timer;
 			CompileOrGetCached(shaderSources);
 
-			SK_CORE_TRACE(L"Shader Compile tock {0:.5f} ms [File: {1}]", timer.Stop().MilliSeconds(), filepath);
+			SK_CORE_TRACE(L"Shader Compile tock {0:.5f} ms [File: {1}]", timer.ElapsedMilliSeconds(), filepath);
 		}
 
 		CreateShaders();
@@ -214,7 +214,7 @@ namespace Shark {
 			if (!TryReCompile(shaderSources))
 				return false;
 
-			SK_CORE_TRACE(L"Shader ReCompile tock {0} ms [File: {1}]", timer.Stop().MilliSeconds(), m_FilePath);
+			SK_CORE_TRACE(L"Shader ReCompile tock {0} ms [File: {1}]", timer.ElapsedMilliSeconds(), m_FilePath);
 		}
 		Release();
 

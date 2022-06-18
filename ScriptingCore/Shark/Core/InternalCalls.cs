@@ -32,9 +32,6 @@ namespace Shark
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern Vector2i Input_GetMousePos();
 		
-		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern Vector2i Input_GetMousePosGlobal();
-
 		#endregion
 
 		#region Matrix4
@@ -75,9 +72,6 @@ namespace Shark
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern void Scene_GetUUIDFromTag(string tag, out UUID out_UUID);
-
-		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern Bounds2i Scene_GetViewportBounds();
 
 		#endregion
 

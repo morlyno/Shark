@@ -25,7 +25,12 @@ namespace Shark {
 		static bool IsValidAssetHandle(AssetHandle handle);
 		static bool IsDataLoaded(AssetHandle handle);
 		static bool IsMemoryAsset(AssetHandle handle);
+
 		static bool IsImportedAsset(AssetHandle handle);
+		static bool IsLoadedAsset(AssetHandle handle);
+
+		static bool HasExistingFilePath(const AssetMetaData& metadata);
+		static bool HasExistingFilePath(Ref<Asset> asset) { return HasExistingFilePath(GetMetaData(asset->Handle)); }
 
 		static std::filesystem::path MakeRelativePath(const std::filesystem::path& filePath);
 		static std::string MakeRelativePathString(const std::filesystem::path& filePath) { return MakeRelativePath(filePath).string(); }
@@ -55,7 +60,7 @@ namespace Shark {
 
 			if (IsMemoryAsset(handle))
 			{
-				Ref<Asset> asset = s_MemoryAssets[handle];
+				Ref<Asset> asset = s_MemoryAssets.at(handle);
 				if (asset->GetAssetType() == T::GetStaticType())
 					return asset.As<T>();
 				return nullptr;
@@ -70,9 +75,8 @@ namespace Shark {
 				Ref<Asset> asset = nullptr;
 				metadata.IsDataLoaded = AssetSerializer::TryLoadData(asset, metadata);
 				if (!metadata.IsDataLoaded)
-					return nullptr;
+					return asset.As<T>(); // returns asset with Error Flags set
 
-				asset->Handle = handle;
 				s_LoadedAssets[handle] = asset;
 
 				if (asset->GetAssetType() == T::GetStaticType())
@@ -80,7 +84,31 @@ namespace Shark {
 				return nullptr;
 			}
 
-			return s_LoadedAssets[handle].As<T>();
+			return s_LoadedAssets.at(handle).As<T>();
+		}
+
+		template<typename T = Asset>
+		static Ref<T> GetLoadedAsset(AssetHandle handle)
+		{
+			SK_PROFILE_FUNCTION();
+
+			static_assert(std::is_base_of_v<Asset, T>, "GetAsset only works for types with base class Asset");
+			if (!handle.IsValid())
+				return nullptr;
+
+			if (IsMemoryAsset(handle))
+			{
+				Ref<Asset> asset = s_MemoryAssets.at(handle);
+				return asset.As<T>();
+			}
+
+			const AssetMetaData& metadata = GetMetaDataInternal(handle);
+			if (!metadata.IsValid())
+				return nullptr;
+
+			if (metadata.IsDataLoaded)
+				return s_LoadedAssets.at(handle).As<T>();
+			return nullptr;
 		}
 
 		// Directory + FileName:

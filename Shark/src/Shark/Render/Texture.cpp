@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "Texture.h"
 
-#include "Shark/Render/RendererAPI.h"
+#include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXTexture.h"
 
 namespace Shark {
@@ -33,10 +33,10 @@ namespace Shark {
 
 	Ref<Texture2D> Texture2D::Create()
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create();
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create();
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
@@ -44,10 +44,10 @@ namespace Shark {
 
 	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specs, void* data)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, data);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specs, data);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
@@ -56,10 +56,10 @@ namespace Shark {
 
 	Ref<Texture2D> Texture2D::Create(ImageFormat format, uint32_t width, uint32_t height, void* data)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(format, width, height, data);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(format, width, height, data);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
@@ -67,10 +67,10 @@ namespace Shark {
 
 	Ref<Texture2D> Texture2D::Create(const std::filesystem::path& filePath)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(filePath);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(filePath);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
@@ -78,10 +78,10 @@ namespace Shark {
 
 	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specs, Ref<Texture2D> data)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2D>::Create(specs, data);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specs, data);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
@@ -89,10 +89,10 @@ namespace Shark {
 
 	Ref<Texture2DArray> Texture2DArray::Create(uint32_t count, uint32_t startOffset)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXTexture2DArray>::Create(count, startOffset);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2DArray>::Create(count, startOffset);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;

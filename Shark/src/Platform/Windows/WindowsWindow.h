@@ -49,6 +49,8 @@ namespace Shark {
 		virtual void Maximize() override { ShowWindow(m_hWnd, SW_MAXIMIZE); }
 
 	private:
+		void UpdateExtentedKeyStates();
+
 		static LRESULT WINAPI WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		static LRESULT WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		LRESULT WINAPI HandleMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

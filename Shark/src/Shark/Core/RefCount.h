@@ -202,7 +202,12 @@ namespace Shark {
 			return !(*this == rhs);
 		}
 
-		T* Raw() const
+		T* Raw()
+		{
+			return m_Instance;
+		}
+		
+		const T* Raw() const
 		{
 			return m_Instance;
 		}
@@ -211,7 +216,7 @@ namespace Shark {
 		Ref<T2> As() const
 		{
 			SK_CORE_ASSERT(m_Instance ? dynamic_cast<T2*>(m_Instance) : true);
-			return static_cast<T2*>(m_Instance);
+			return (T2*)m_Instance;
 		}
 
 		template<typename... Args>

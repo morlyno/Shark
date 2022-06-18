@@ -34,6 +34,7 @@ namespace Shark::Theme {
 
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.WindowMinSize = ImVec2(16.0f, 16.0f);
+		style.IndentSpacing = style.IndentSpacing * 0.5f;
 	}
 
 	void LoadLight()

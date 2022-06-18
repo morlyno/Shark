@@ -135,7 +135,7 @@ namespace Shark {
 
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
-		Bounds2i m_ViewportBounds;
+		ImVec2 m_ViewportPos = ImVec2(0, 0);
 		bool m_NeedsResize = true;
 
 		TimeStep m_TimeStep;

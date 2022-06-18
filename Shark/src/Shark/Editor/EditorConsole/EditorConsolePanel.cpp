@@ -215,14 +215,14 @@ namespace Shark {
 					ImGui::Image(GetIconRenderID(msg.Level), { imageSize, imageSize });
 				}
 			}
+
+			ImGui::PopTextWrapPos();
+			static bool AutoScroll = true;
+			if (AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+				ImGui::SetScrollHereY(1.0f);
+
+			ImGui::EndTable();
 		}
-
-		ImGui::PopTextWrapPos();
-		static bool AutoScroll = true;
-		if (AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-			ImGui::SetScrollHereY(1.0f);
-
-		ImGui::EndTable();
 	}
 
 	void EditorConsolePanel::DrawMenuBar()
@@ -234,7 +234,7 @@ namespace Shark {
 		const ImGuiStyle& style = ImGui::GetStyle();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { style.WindowPadding.x * 0.5f, style.WindowPadding.y });
-		consoleWindow->DC.CursorPos += style.WindowPadding/* * 0.5f*/;
+		consoleWindow->DC.CursorPos += style.WindowPadding;
 
 		if (ImGui::Button("Clear"))
 			Clear();
@@ -246,9 +246,9 @@ namespace Shark {
 
 		const ImVec2 selectableSize = ImVec2(ImGui::GetFontSize() - style.FramePadding.x, ImGui::GetFontSize());
 
-		const float imageSize = ImGui::GetFrameHeight() + style.WindowPadding.y * 1.5f/* * 2.0f*/;
+		const float imageSize = ImGui::GetFrameHeight() + style.WindowPadding.y * 1.5f;
 		const float offsetFromEnd = imageSize * 3 + style.ItemSpacing.x * 2;
-		const float contentRegionX = ImGui::GetContentRegionAvail().x - style.WindowPadding.x/* * 2.0f*/;
+		const float contentRegionX = ImGui::GetContentRegionAvail().x - style.WindowPadding.x;
 		const float offsetFromStart = contentRegionX - offsetFromEnd;
 
 		const auto ImageButton = [](const char* strID, ImTextureID textureID, const ImVec2& size, bool selected) -> bool
@@ -270,16 +270,12 @@ namespace Shark {
 			ImDrawList* drawList = window->DrawList;
 			drawList->AddRectFilled(r.Min, r.Max, bgColor, 5.0f);
 
-			//ImGui::Selectable(strID, selected, ImGuiSelectableFlags_None, size);
-			//window->DC.CursorPos = cursor;
 			ImGui::Image(textureID, size);
-			//return ImGui::ImageButtonEx(ImGui::GetID(strID), textureID, size, ImVec2(0, 0), ImVec2(1, 1), ImVec2(0, 0), /*selected ? ImGui::GetStyleColorVec4(ImGuiCol_Header) : */ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1));
 
 			return pressed;
 		};
 
 		consoleWindow->DC.CursorPosPrevLine.y -= style.WindowPadding.y * 0.75f;
-		//consoleWindow->DC.CursorPos.y -= style.WindowPadding.y;
 
 		ImGui::SameLine(offsetFromStart);
 		const bool infoActive = m_ActiveFilters & FilterFlag::Info;
@@ -300,21 +296,6 @@ namespace Shark {
 		consoleWindow->DC.CursorPosPrevLine.y -= style.WindowPadding.y * 0.25f;
 
 		ImGui::PopStyleVar(); // WindowPadding
-
-		//ImGui::SameLine(0.0f, 50.0f);
-		//const bool infoActive = m_ActiveFilters.HasFlag(FilterFlag::Info);
-		//if (ImGui::Selectable("I", infoActive, ImGuiSelectableFlags_None, selectableSize))
-		//	SetFilter(FilterFlag::Info, !infoActive);
-		//
-		//ImGui::SameLine(0.0f, style.ItemSpacing.x + style.FramePadding.x);
-		//const bool warnActive = m_ActiveFilters.HasFlag(FilterFlag::Warn);
-		//if (ImGui::Selectable("W", warnActive, ImGuiSelectableFlags_None, selectableSize))
-		//	SetFilter(FilterFlag::Warn, !warnActive);
-		//
-		//ImGui::SameLine(0.0f, style.ItemSpacing.x + style.FramePadding.x);
-		//const bool errorActive = m_ActiveFilters.HasFlag(FilterFlag::Error);
-		//if (ImGui::Selectable("E", errorActive, ImGuiSelectableFlags_None, selectableSize))
-		//	SetFilter(FilterFlag::Error, !errorActive);
 
 		ImGui::Separator();
 
@@ -390,7 +371,7 @@ namespace Shark {
 		}
 
 		// Nothing changed
-		if (m_ActiveFilters & flag)
+		if ((bool)(m_ActiveFilters & flag) == enabled)
 			return;
 
 		if (enabled)

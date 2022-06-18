@@ -71,6 +71,7 @@ namespace Shark {
 #define SK_CORE_WARN(...)              ::Shark::Log::GetCoreLogger()->log(spdlog::level::warn, __VA_ARGS__)
 #define SK_CORE_ERROR(...)             ::Shark::Log::GetCoreLogger()->log(spdlog::level::err, __VA_ARGS__)
 #define SK_CORE_CRITICAL(...)          ::Shark::Log::GetCoreLogger()->log(spdlog::level::critical, __VA_ARGS__)
+#define SK_CORE_DEBUG(...)             ::Shark::Log::GetCoreLogger()->log(spdlog::level::debug, __VA_ARGS__)
 
 // Client Logger
 #define SK_LOG(level, ...)             ::Shark::Log::LogMessage(::Shark::Log::GetClientLogger(), level, __VA_ARGS__)

@@ -8,6 +8,8 @@
 
 #include "Shark/Scripting/ScriptEngine.h"
 
+#include "Shark/Utils/TimeUtils.h"
+
 #include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
@@ -27,6 +29,8 @@ namespace Shark {
 
 		SK_CORE_ASSERT(!(specification.FullScreen && specification.Maximized));
 
+		Renderer::Init();
+
 		WindowProps windowprops;
 		windowprops.Name = specification.Name;
 		windowprops.Maximized = specification.Maximized;
@@ -36,7 +40,6 @@ namespace Shark {
 
 		m_Window = Window::Create(windowprops);
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
-		Renderer::Init();
 		m_Window->CreateSwapChain();
 
 		m_ImGuiLayer = CreateImGuiLayer();
@@ -44,8 +47,7 @@ namespace Shark {
 
 		ScriptEngine::Init(specification.ScriptConfig.CoreAssemblyPath);
 
-		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency));
-		QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&m_LastFrameTime));
+		m_LastFrameTime = TimeUtils::Now();
 	}
 
 	Application::~Application()
@@ -68,10 +70,9 @@ namespace Shark {
 			OPTICK_FRAME("MainThread");
 			SK_PERF_NEW_FRAME();
 
-			int64_t time;
-			QueryPerformanceCounter((LARGE_INTEGER*)&time);
-			TimeStep timeStep = (float)(time - m_LastFrameTime) / m_Frequency;
-			m_LastFrameTime = time;
+			TimeStep now = TimeUtils::Now();
+			TimeStep timeStep = now - m_LastFrameTime;
+			m_LastFrameTime = now;
 
 			if (!m_Minimized)
 			{
@@ -164,6 +165,20 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		s_Instance = nullptr;
+	}
+
+	namespace Core {
+
+		void Init()
+		{
+			Log::Init();
+		}
+
+		void Shutdown()
+		{
+			Log::Shutdown();
+		}
+
 	}
 
 }

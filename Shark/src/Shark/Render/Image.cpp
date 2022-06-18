@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "Image.h"
 
-#include "Shark/Render/RendererAPI.h"
+#include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXImage.h"
 
 namespace Shark {
@@ -21,10 +21,10 @@ namespace Shark {
 
 	Ref<Image2D> Image2D::Create()
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXImage2D>::Create();
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create();
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;
@@ -32,10 +32,10 @@ namespace Shark {
 
 	Ref<Image2D> Image2D::Create(const ImageSpecification& specs, void* data)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXImage2D>::Create(specs, data);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs, data);
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;
@@ -43,10 +43,10 @@ namespace Shark {
 
 	Ref<Image2D> Image2D::Create(ImageFormat format, uint32_t width, uint32_t height, void* data)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXImage2D>::Create(format, width, height, data);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(format, width, height, data);
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;
@@ -54,10 +54,10 @@ namespace Shark {
 
 	Ref<Image2D> Image2D::Create(const ImageSpecification& specs, Ref<Image2D> data)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXImage2D>::Create(specs, data);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs, data);
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;

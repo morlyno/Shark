@@ -69,11 +69,6 @@ namespace Shark
 			return GetEntityByUUID(uuid);
 		}
 
-		public static Bounds2i GetViewportBounds()
-		{
-			return InternalCalls.Scene_GetViewportBounds();
-		}
-
 	}
 
 }

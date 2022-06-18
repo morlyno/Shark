@@ -1,17 +1,17 @@
 #include "skpch.h"
 #include "ConstantBuffer.h"
 
-#include "Shark/Render/RendererAPI.h"
+#include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXConstantBuffer.h"
 
 namespace Shark {
 
 	Ref<ConstantBuffer> ConstantBuffer::Create(uint32_t size, uint32_t slot)
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXConstantBuffer>::Create(size, slot);
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXConstantBuffer>::Create(size, slot);
 		}
 		SK_CORE_ASSERT(false, "Unkown RendererAPI");
 		return nullptr;
@@ -19,10 +19,10 @@ namespace Shark {
 
 	Ref<ConstantBufferSet> ConstantBufferSet::Create()
 	{
-		switch (RendererAPI::GetAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
-			case RendererAPI::API::DirectX11: return Ref<DirectXConstantBufferSet>::Create();
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXConstantBufferSet>::Create();
 		}
 		SK_CORE_ASSERT(false, "Unkown RendererAPI");
 		return nullptr;

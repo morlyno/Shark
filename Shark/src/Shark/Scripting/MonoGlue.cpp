@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "MonoGlue.h"
 
+#include "Shark/Core/Application.h"
 #include "Shark/Core/Log.h"
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
@@ -18,6 +19,7 @@
 
 #include "Shark/Debug/Instrumentor.h"
 
+
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/reflection.h>
 
@@ -26,11 +28,13 @@
 #include <box2d/b2_polygon_shape.h>
 #include <box2d/b2_circle_shape.h>
 
+#include <imgui_internal.h>
+
 #define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" SK_STRINGIFY(func), SK_CONNECT(&InternalCalls::, func));
 #define SK_ADD_COMPONENT_BINDING(comp)\
 {\
 	auto& bindings = s_EntityBindings["Shark." SK_STRINGIFY(comp)];\
-	bindings.HasComponent = [](Entity entity) { return entity.HasComponent<comp>(); };\
+	bindings.HasComponent = [](Entity entity) { return entity.AllOf<comp>(); };\
 	bindings.AddComponent = [](Entity entity) { entity.AddComponent<comp>(); };\
 }
 
@@ -249,7 +253,6 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Input_KeyPressed);
 		SK_ADD_INTERNAL_CALL(Input_MouseButtonPressed);
 		SK_ADD_INTERNAL_CALL(Input_GetMousePos);
-		SK_ADD_INTERNAL_CALL(Input_GetMousePosGlobal);
 
 		SK_ADD_INTERNAL_CALL(Matrix4_Inverse);
 		SK_ADD_INTERNAL_CALL(Matrix4_Matrix4MulMatrix4);
@@ -263,7 +266,6 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Scene_IsValidEntityHandle);
 		SK_ADD_INTERNAL_CALL(Scene_GetActiveCameraUUID);
 		SK_ADD_INTERNAL_CALL(Scene_GetUUIDFromTag);
-		SK_ADD_INTERNAL_CALL(Scene_GetViewportBounds);
 
 		SK_ADD_INTERNAL_CALL(Entity_GetName);
 		SK_ADD_INTERNAL_CALL(Entity_SetName);
@@ -406,13 +408,18 @@ namespace Shark {
 
 		Vector2i Input_GetMousePos()
 		{
-			auto p = Input::MousePos();
-			return { p.x, p.y };
-		}
-
-		Vector2i Input_GetMousePosGlobal()
-		{
 			auto p = Input::GlobalMousePos();
+
+			if (Application::Get().GetSpecs().EnableImGui)
+			{
+				ImGuiWindow* viewportWindow = ImGui::FindWindowByName("MainViewport");
+				if (viewportWindow)
+				{
+					p.x -= (int)viewportWindow->Pos.x;
+					p.y -= (int)viewportWindow->Pos.y;
+				}
+			}
+
 			return { p.x, p.y };
 		}
 
@@ -544,14 +551,6 @@ namespace Shark {
 			}
 		}
 
-		Bounds2i Scene_GetViewportBounds()
-		{
-			SK_PROFILE_FUNCTION();
-
-			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			return scene->GetViewportBounds();
-		}
-
 #pragma endregion
 
 		#pragma region Entity
@@ -612,8 +611,8 @@ namespace Shark {
 
 			Entity entity = utils::GetEntityActiveScene(uuid);
 			SK_INVALID_ENTITY_GUARD(entity, glm::vec3());
-			auto& transform = entity.GetTransform();
-			return transform.Position;
+			auto& transform = entity.Transform();
+			return transform.Translation;
 		}
 
 		void TransformComponent_SetTranslation(UUID uuid, glm::vec3 translation)
@@ -622,8 +621,8 @@ namespace Shark {
 
 			Entity entity = utils::GetEntityActiveScene(uuid);
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
-			auto& transform = entity.GetTransform();
-			transform.Position = translation;
+			auto& transform = entity.Transform();
+			transform.Translation = translation;
 		}
 
 		glm::vec3 TransformComponent_GetRotation(UUID uuid)
@@ -632,7 +631,7 @@ namespace Shark {
 
 			Entity entity = utils::GetEntityActiveScene(uuid);
 			SK_INVALID_ENTITY_GUARD(entity, glm::vec3());
-			auto& transform = entity.GetTransform();
+			auto& transform = entity.Transform();
 			return transform.Rotation;
 		}
 
@@ -642,7 +641,7 @@ namespace Shark {
 
 			Entity entity = utils::GetEntityActiveScene(uuid);
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
-			auto& transform = entity.GetTransform();
+			auto& transform = entity.Transform();
 			transform.Rotation = rotation;
 		}
 
@@ -652,7 +651,7 @@ namespace Shark {
 
 			Entity entity = utils::GetEntityActiveScene(uuid);
 			SK_INVALID_ENTITY_GUARD(entity, glm::vec3());
-			auto& transform = entity.GetTransform();
+			auto& transform = entity.Transform();
 			return transform.Scaling;
 		}
 
@@ -662,7 +661,7 @@ namespace Shark {
 
 			Entity entity = utils::GetEntityActiveScene(uuid);
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
-			auto& transform = entity.GetTransform();
+			auto& transform = entity.Transform();
 			transform.Scaling = scaling;
 		}
 
@@ -695,7 +694,7 @@ namespace Shark {
 			SK_PROFILE_FUNCTION();
 
 			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, UUID::Null());
+			SK_INVALID_ENTITY_GUARD(entity, AssetHandle::Null);
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
 			return spriteRenderer.TextureHandle;
 		}
@@ -1457,7 +1456,7 @@ namespace Shark {
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			const auto& transform = entity.GetTransform();
+			const auto& transform = entity.Transform();
 			comp.Size = size;
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
@@ -1484,7 +1483,7 @@ namespace Shark {
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			const auto& transform = entity.GetTransform();
+			const auto& transform = entity.Transform();
 			comp.Offset = offset;
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
@@ -1511,7 +1510,7 @@ namespace Shark {
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			const auto& transform = entity.GetTransform();
+			const auto& transform = entity.Transform();
 			comp.Rotation = rotation;
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
@@ -1552,7 +1551,7 @@ namespace Shark {
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			const auto& transform = entity.GetTransform();
+			const auto& transform = entity.Transform();
 			comp.Radius = Radius;
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
@@ -1580,7 +1579,7 @@ namespace Shark {
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			const auto& transform = entity.GetTransform();
+			const auto& transform = entity.Transform();
 			comp.Offset = offset;
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
@@ -1608,7 +1607,7 @@ namespace Shark {
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			const auto& transform = entity.GetTransform();
+			const auto& transform = entity.Transform();
 			comp.Rotation = rotation;
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);

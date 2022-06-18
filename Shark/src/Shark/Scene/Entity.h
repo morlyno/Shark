@@ -27,7 +27,7 @@ namespace Shark {
 		{
 			SK_PROFILE_FUNCTION();
 			
-			SK_CORE_ASSERT(!HasComponent<Component>());
+			SK_CORE_ASSERT(!AllOf<Component>());
 			return m_Scene->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 		}
 
@@ -44,7 +44,7 @@ namespace Shark {
 		{
 			SK_PROFILE_FUNCTION();
 			
-			SK_CORE_ASSERT(HasComponent<Component>());
+			SK_CORE_ASSERT(AllOf<Component>());
 			m_Scene->m_Registry.remove<Component>(m_EntityHandle);
 		}
 
@@ -53,7 +53,7 @@ namespace Shark {
 		{
 			SK_PROFILE_FUNCTION();
 			
-			SK_CORE_ASSERT(HasComponent<Component>());
+			SK_CORE_ASSERT(AllOf<Component>());
 			return m_Scene->m_Registry.get<Component>(m_EntityHandle);
 		}
 
@@ -65,17 +65,23 @@ namespace Shark {
 			return m_Scene->m_Registry.try_get<Component>(m_EntityHandle);
 		}
 
-		UUID GetUUID();
-		const std::string& GetName();
-		TransformComponent& GetTransform();
-
 		template<typename Component>
-		bool HasComponent() const
+		bool AllOf() const
 		{
 			SK_PROFILE_FUNCTION();
-			
 			return m_Scene->m_Registry.all_of<Component>(m_EntityHandle);
 		}
+
+		template<typename Component>
+		bool AnyOf() const
+		{
+			SK_PROFILE_FUNCTION();
+			return m_Scene->m_Registry.any_of<Component>(m_EntityHandle);
+		}
+
+		UUID GetUUID() { return GetComponent<IDComponent>().ID; }
+		const std::string& GetName() { return GetComponent<TagComponent>().Tag; }
+		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
 
 		bool IsValid() const { return m_Scene->m_Registry.valid(m_EntityHandle); }
 		bool IsNull() const { return m_EntityHandle == entt::null; }
@@ -84,6 +90,8 @@ namespace Shark {
 		operator bool() { return !IsNull() && IsValid(); }
 		operator uint32_t() { return (uint32_t)m_EntityHandle; }
 		bool operator==(const Entity& rhs) { return m_EntityHandle == rhs.m_EntityHandle && m_Scene == rhs.m_Scene; }
+		bool operator!=(const Entity& rhs) { return !(*this == rhs); }
+
 	private:
 		entt::entity m_EntityHandle{ entt::null };
 		Weak<Scene> m_Scene;

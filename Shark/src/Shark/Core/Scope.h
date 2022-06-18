@@ -29,9 +29,9 @@ namespace Shark {
 		T& operator*() const { return *m_Instance; }
 		T* operator->() const { return m_Instance; }
 
-		operator bool() { return m_Instance != nullptr; }
-		bool operator==(const Scope& rhs) { return m_Instance == rhs.m_Instance; }
-		bool operator!=(const Scope& rhs) { return !(*this == rhs); }
+		operator bool() const { return m_Instance != nullptr; }
+		bool operator==(const Scope& rhs) const { return m_Instance == rhs.m_Instance; }
+		bool operator!=(const Scope& rhs) const { return !(*this == rhs); }
 
 
 		template<typename... Args>

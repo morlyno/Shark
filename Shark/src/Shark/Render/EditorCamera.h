@@ -38,6 +38,7 @@ namespace Shark {
 		float GetNearClip() const { return m_NearClip; }
 
 
+		void SetView(const glm::vec3& focuspoint, float distance, float pitch, float yaw) { m_FocusPoint = focuspoint; m_Distance = distance; m_Pitch = pitch; m_Yaw = yaw; UpdatePosition(); UpdateView(); }
 		void SetFocusPoint(const glm::vec3& focuspoint) { m_FocusPoint = focuspoint; UpdatePosition(); UpdateView(); }
 		void SetDistance(float distance) { m_Distance = distance; UpdatePosition(); UpdateView(); }
 		void SetPicht(float pitch) { m_Pitch = glm::radians(pitch); UpdatePosition(); UpdateView(); }

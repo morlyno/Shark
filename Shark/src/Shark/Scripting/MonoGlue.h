@@ -59,7 +59,6 @@ namespace Shark {
 		bool Input_KeyPressed(KeyCode key);
 		bool Input_MouseButtonPressed(MouseButton::Type button);
 		Vector2i Input_GetMousePos();
-		Vector2i Input_GetMousePosGlobal();
 
 		#pragma endregion
 
@@ -81,7 +80,6 @@ namespace Shark {
 		bool Scene_IsValidEntityHandle(UUID entityHandle);
 		void Scene_GetActiveCameraUUID(UUID* out_UUID);
 		void Scene_GetUUIDFromTag(MonoString* tag, UUID* out_UUID);
-		Bounds2i Scene_GetViewportBounds();
 
 		#pragma endregion
 

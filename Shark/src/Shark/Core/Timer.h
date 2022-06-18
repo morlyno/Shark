@@ -2,78 +2,32 @@
 
 #include "Shark/Core/TimeStep.h"
 
+#include <chrono>
+
 namespace Shark {
 
-	class Win32Timer
+	class Timer
 	{
 	public:
-		Win32Timer()
+		using Clock = std::chrono::high_resolution_clock;
+
+		Timer()
 		{
-			QueryPerformanceCounter(&m_Start);
+			m_Start = Clock::now();
 		}
 
-		~Win32Timer()
+		TimeStep Elapsed()
 		{
-			if (!m_Stoped)
-				StopAndLog();
+			return std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - m_Start).count() * 0.001f * 0.001f * 0.001f;
 		}
 
-		TimeStep Stop()
+		float ElapsedMilliSeconds()
 		{
-			LARGE_INTEGER stop;
-			QueryPerformanceCounter(&stop);
-			LARGE_INTEGER frequncy;
-			QueryPerformanceFrequency(&frequncy);
-
-			auto duration = stop.QuadPart - m_Start.QuadPart;
-			m_Stoped = true;
-			return (float)duration / (float)frequncy.QuadPart;
-		}
-
-		void StopAndLog()
-		{
-			TimeStep time = Stop();
-			SK_CORE_TRACE("{} ms", time.MilliSeconds());
+			return Elapsed().MilliSeconds();
 		}
 
 	private:
-		LARGE_INTEGER m_Start;
-		bool m_Stoped = false;
+		Clock::time_point m_Start;
 	};
-
-	class CPPTimer
-	{
-	public:
-		CPPTimer()
-		{
-			m_Start = std::chrono::high_resolution_clock::now();
-		}
-
-		~CPPTimer()
-		{
-			if (!m_Stoped)
-				StopAndLog();
-		}
-
-		double Stop()
-		{
-			auto stop = std::chrono::high_resolution_clock::now();
-			auto duration = stop - m_Start;
-			m_Stoped = true;
-			return (double)duration.count() * 0.001 * 0.001;
-		}
-
-		void StopAndLog()
-		{
-			double time = Stop();
-			SK_CORE_TRACE("{} ms", time);
-		}
-
-	private:
-		std::chrono::high_resolution_clock::time_point m_Start;
-		bool m_Stoped = false;
-	};
-
-	using Timer = Win32Timer;
 
 }
