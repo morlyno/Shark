@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Hash.h"
 
 namespace Shark {
 
@@ -21,6 +22,8 @@ namespace Shark {
 		static constexpr uint64_t Null = 0;
 	private:
 		uint64_t m_UUID = 0;
+
+		friend struct std::hash<UUID>;
 	};
 
 }
@@ -32,7 +35,7 @@ namespace std {
 	{
 		size_t operator()(Shark::UUID uuid) const
 		{
-			return hash<uint64_t>{}(uuid);
+			return ::Shark::Hash::FNV1A(uuid.m_UUID);
 		}
 	};
 

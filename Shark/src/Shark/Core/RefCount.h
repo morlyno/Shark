@@ -371,7 +371,8 @@ namespace std {
 	{
 		auto operator()(const Shark::Ref<T>& val) const
 		{
-			return hash<void*>()((void*)val.Raw());
+			return Shark::Hash::FNV1A(val.Raw());
+			//return hash<void*>()((void*)val.Raw());
 		}
 	};
 
@@ -380,7 +381,8 @@ namespace std {
 	{
 		auto operator()(const Shark::Weak<T>& val) const
 		{
-			return hash<void*>()((void*)val.Raw());
+			return Shark::Hash::FNV1A(val.Raw());
+			//return hash<void*>()((void*)val.Raw());
 		}
 	};
 
