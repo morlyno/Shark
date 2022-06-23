@@ -7,6 +7,7 @@
 #include "Shark/Asset/SceneSerialization.h"
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptManager.h"
+#include "Shark/Scripting/MonoGlue.h"
 
 #include "Shark/UI/UI.h"
 
@@ -22,6 +23,7 @@
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/enttDebug.h"
 
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -215,7 +217,7 @@ namespace Shark {
 		// Note(moro): m_ActiveScene is null when the project closes
 		//             this triggers a scene changed (Scene==null) and project changed event
 		if (m_ActiveScene && m_SceneState == SceneState::Play)
-			m_ActiveScene->OnEventRuntime(event);
+			MonoGlue::OnEvent(event);
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -231,6 +233,9 @@ namespace Shark {
 
 		// Disable hot keys when the scene state is not Edit
 		if (m_SceneState != SceneState::Edit)
+			return false;
+
+		if (event.IsRepeat())
 			return false;
 
 		const bool control = Input::KeyPressed(Key::Control);
@@ -609,31 +614,38 @@ namespace Shark {
 				projection = m_EditorCamera.GetProjection();
 			}
 
-			auto& tf = m_SelectetEntity.Transform();
-			glm::mat4 transform = tf.CalcTransform();
+			glm::mat4 transform = m_SelectetEntity.CalcWorldTransform();
 
-			float* snap = nullptr;
+			float snapVal = 0.0f;
 			if (Input::KeyPressed(Key::LeftShift))
 			{
 				switch (m_CurrentOperation)
 				{
-					case GizmoOperaton::Translate: snap = &m_TranslationSnap; break;
-					case GizmoOperaton::Rotate:    snap = &m_RotationSnap; break;
-					case GizmoOperaton::Scale:     snap = &m_ScaleSnap; break;
+					case GizmoOperaton::Translate: snapVal = m_TranslationSnap; break;
+					case GizmoOperaton::Rotate:    snapVal = m_RotationSnap; break;
+					case GizmoOperaton::Scale:     snapVal = m_ScaleSnap; break;
 				}
 			}
 
-			ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::LOCAL, glm::value_ptr(transform), nullptr, snap);
+			float snap[3] = { snapVal, snapVal, snapVal };
+			glm::mat4 delta;
+			ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::LOCAL, glm::value_ptr(transform), glm::value_ptr(delta), snap);
 
-			if (!Input::KeyPressed(Key::Alt) && ImGuizmo::IsUsing())
+			if (!Input::KeyPressed(Key::Alt) && ImGuizmo::IsUsing() || Input::KeyPressed(Key::Space))
 			{
-				glm::vec3 translation, rotation, scaling;
-				Math::DecomposeTransform(transform, scaling, rotation, translation);
-				
-				glm::vec3 deltaRotation = rotation - tf.Rotation;
-				tf.Translation = translation;
-				tf.Rotation += deltaRotation;
-				tf.Scaling = scaling;
+				Entity parentEntity = m_SelectetEntity.ParentEntity();
+				glm::mat4 localTransform = parentEntity ? glm::inverse(parentEntity.CalcWorldTransform()) * transform : transform;
+
+				auto& tf = m_SelectetEntity.Transform();
+
+				glm::vec3 translation, rotation, scale;
+				if (Math::DecomposeTransform(localTransform, scale, rotation, translation))
+				{
+					glm::vec3 deltaRotation = rotation - tf.Rotation;
+					tf.Translation = translation;
+					tf.Rotation += deltaRotation;
+					tf.Scale = scale;
+				}
 			}
 		}
 	}

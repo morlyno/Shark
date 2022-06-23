@@ -117,18 +117,18 @@ namespace Shark {
 		m_Renderer2D->DrawFilledCircle(position, rotation, scaling, color, thickness, fade, id);
 	}
 
-	void SceneRenderer::SubmitQuad(const glm::mat4& translation, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
+	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_Renderer2D->DrawQuad(translation, texture, tilingfactor, tintcolor, id);
+		m_Renderer2D->DrawQuad(transform, texture, tilingfactor, tintcolor, id);
 	}
 
-	void SceneRenderer::SubmitCircle(const glm::mat4& translation, float thickness, float fade, const glm::vec4& tintcolor, int id)
+	void SceneRenderer::SubmitCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, int id)
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_Renderer2D->DrawFilledCircle(translation, tintcolor, thickness, fade, id);
+		m_Renderer2D->DrawFilledCircle(transform, tintcolor, thickness, fade, id);
 	}
 
 	void SceneRenderer::Resize(uint32_t width, uint32_t height)

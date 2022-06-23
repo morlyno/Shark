@@ -15,7 +15,7 @@ namespace Shark
 			set => InternalCalls.TransformComponent_SetRotation(m_EntityUUID, value);
 		}
 
-		public Vector3 Scaling
+		public Vector3 Scale
 		{
 			get => InternalCalls.TransformComponent_GetScaling(m_EntityUUID);
 			set => InternalCalls.TransformComponent_SetScaling(m_EntityUUID, value);

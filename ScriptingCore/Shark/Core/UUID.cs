@@ -10,7 +10,7 @@ namespace Shark
 		private ulong m_UUID;
 
 		public static UUID Generate => InternalCalls.UUID_Generate();
-		public static UUID Null => new UUID(0);
+		public static UUID Invalid => new UUID(0);
 
 		public UUID(ulong uuid)
 		{

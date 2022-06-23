@@ -31,6 +31,7 @@ namespace Shark {
 	private:
 		void DrawEntityNode(Entity entity);
 		void DrawEntityProperties(Entity entity);
+		void DrawAppEntityPopup();
 
 		void DestroyEntity(Entity entity);
 		void SelectEntity(Entity entity);

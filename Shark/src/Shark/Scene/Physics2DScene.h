@@ -22,6 +22,8 @@ namespace Shark {
 
 		void Step(TimeStep ts);
 
+		void DestroyAllBodies();
+
 		bool HasBody(const b2Body* body) const;
 		bool HodyHasCollider(const b2Body* body, const b2Fixture* fixture);
 

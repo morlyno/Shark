@@ -58,6 +58,17 @@ namespace Shark {
 
 	}
 
+	void Physics2DScene::DestroyAllBodies()
+	{
+		b2Body* iter = m_World->GetBodyList();
+		while (iter)
+		{
+			b2Body* body = iter;
+			iter = iter->GetNext();
+			m_World->DestroyBody(body);
+		}
+	}
+
 	bool Physics2DScene::HasBody(const b2Body* body) const
 	{
 		SK_PROFILE_FUNCTION();

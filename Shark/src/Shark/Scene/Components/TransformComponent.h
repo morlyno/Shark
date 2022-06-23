@@ -13,12 +13,25 @@ namespace Shark {
 		{
 			return glm::translate(glm::mat4(1), Translation) *
 				glm::toMat4(glm::quat(Rotation)) *
-				glm::scale(glm::mat4(1), Scaling);
+				glm::scale(glm::mat4(1), Scale);
 		}
 
 		glm::vec3 Translation = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 Rotation = { 0.0f, 0.0f, 0.0f };
-		glm::vec3 Scaling = { 1.0f, 1.0f, 1.0f };
+		glm::vec3 Scale = { 1.0f, 1.0f, 1.0f };
+	};
+
+	class TransformUtils
+	{
+	public:
+		static TransformComponent AddTransform(const TransformComponent& lhs, const TransformComponent& rhs)
+		{
+			return {
+				lhs.Translation + rhs.Translation,
+				lhs.Rotation + rhs.Rotation,
+				lhs.Scale * rhs.Scale
+			};
+		}
 	};
 
 }

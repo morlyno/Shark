@@ -14,7 +14,7 @@ namespace Shark
 		// Creates new Entity
 		public static Entity Instantiate(string name)
 		{
-			/*UUID uuid =*/ InternalCalls.Scene_CreateEntity(name, UUID.Null, out UUID out_uuid);
+			/*UUID uuid =*/ InternalCalls.Scene_CreateEntity(name, UUID.Invalid, out UUID out_uuid);
 			return new Entity(out_uuid);
 		}
 

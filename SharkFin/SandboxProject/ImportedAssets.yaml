@@ -14,6 +14,9 @@ Assets:
   - Handle: 0x5b3ed9bb804eccc0
     Type: Scene
     FilePath: Scenes/PlayerTest.skscene
+  - Handle: 0x687958ac4bb829af
+    Type: Scene
+    FilePath: Scenes/ParentingTest.skscene
   - Handle: 0xa72e2969608c3fca
     Type: Texture
     FilePath: Textures/Checkerboard.sktex

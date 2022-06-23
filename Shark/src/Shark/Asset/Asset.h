@@ -47,7 +47,7 @@ namespace Shark {
 		}
 
 	public:
-		AssetHandle Handle = AssetHandle::Null;
+		AssetHandle Handle = AssetHandle::Invalid;
 		AssetFlags Flags = AssetFlag::None;
 	};
 

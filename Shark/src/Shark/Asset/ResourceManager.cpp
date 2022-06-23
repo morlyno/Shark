@@ -273,7 +273,8 @@ namespace Shark {
 		if (!std::filesystem::exists(Project::AssetsPath() / filePath))
 			return 0;
 
-		if (AssetHandle handle = GetAssetHandleFromFilePath(filePath))
+		AssetHandle handle = GetAssetHandleFromFilePath(filePath);
+		if (handle.IsValid())
 			return handle;
 
 

@@ -27,8 +27,8 @@ namespace Shark {
 		void SubmitQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const glm::vec4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
 		void SubmitCirlce(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness, float fade, int id = -1);
 
-		void SubmitQuad(const glm::mat4& translation, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id);
-		void SubmitCircle(const glm::mat4& translation, float thickness, float fade, const glm::vec4& tintcolor, int id);
+		void SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id);
+		void SubmitCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, int id);
 
 		void Resize(uint32_t width, uint32_t height);
 

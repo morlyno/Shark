@@ -1,0 +1,48 @@
+Scene:
+  ActiveCamera: 0x0
+  Entities:
+    - Entity: 0x448c1fcc6d52a900
+      TagComponent:
+        Tag: Child
+      TransformComponent:
+        Position: [3, 0, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x990c61c90b4b0c93
+        Children:
+          - Child: 0x68d1eef1d0546d98
+      SpriteRendererComponent:
+        Color: [0.208910033, 0.676470578, 0.497697383, 1]
+        Texture: 0
+        TilingFactor: 1
+    - Entity: 0x68d1eef1d0546d98
+      TagComponent:
+        Tag: CHild2
+      TransformComponent:
+        Position: [0, 2, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x448c1fcc6d52a900
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [1, 1, 1, 1]
+        Texture: 0
+        TilingFactor: 1
+    - Entity: 0x990c61c90b4b0c93
+      TagComponent:
+        Tag: Parent
+      TransformComponent:
+        Position: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          - Child: 0x448c1fcc6d52a900
+      SpriteRendererComponent:
+        Color: [1, 1, 1, 1]
+        Texture: 0
+        TilingFactor: 1

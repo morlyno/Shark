@@ -3,6 +3,7 @@
 #include "Shark/Scene/Components/IDComponent.h"
 #include "Shark/Scene/Components/TagComponent.h"
 #include "Shark/Scene/Components/TransformComponent.h"
+#include "Shark/Scene/Components/RelationshipComponent.h"
 #include "Shark/Scene/Components/SpriteRendererComponent.h"
 #include "Shark/Scene/Components/CameraComponent.h"
 #include "Shark/Scene/Components/NativeScriptComponent.h"

@@ -9,7 +9,7 @@ namespace Shark
 	{
 		private ulong m_AssetHandle;
 
-		public static AssetHandle Null => new AssetHandle(0);
+		public static AssetHandle Invalid => new AssetHandle(0);
 
 		public AssetHandle(ulong assetHandle)
 		{

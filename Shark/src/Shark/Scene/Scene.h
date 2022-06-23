@@ -56,8 +56,6 @@ namespace Shark {
 		void OnUpdateEditor(TimeStep ts);
 		void OnSimulate(TimeStep ts);
 
-		void OnEventRuntime(Event& event);
-
 		void OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const glm::mat4& viewProj);
 		void OnRenderRuntime(Ref<SceneRenderer> renderer);
 		void OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
@@ -66,6 +64,8 @@ namespace Shark {
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});
 		Entity CreateEntityWithUUID(UUID uuid, const std::string& tag = std::string{});
+		Entity CreateChildEntity(Entity parent, const std::string& tag = std::string{});
+		Entity CreateChildEntityWithUUID(Entity parent, UUID uuid, const std::string& tag = std::string{});
 		void DestroyEntity(Entity entity, bool destroyChildren = true);
 		void DestroyAllEntities();
 
@@ -98,8 +98,10 @@ namespace Shark {
 		static Ref<Scene> Create() { return Ref<Scene>::Create(); }
 
 	private:
-		void DestroyEntityInternal(Entity entity, bool destroyChildren);
+		void DestroyEntityInternal(Entity entity, bool destroyChildren, bool first);
 		void SetupBox2D();
+
+		void RenderEntity(const Ref<SceneRenderer>& renderer, Entity entity, const glm::mat4& parentTransform);
 
 		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity entityID);
 		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity entityID);
@@ -107,7 +109,7 @@ namespace Shark {
 		
 	private:
 		entt::registry m_Registry;
-		UUID m_ActiveCameraUUID = UUID::Null;
+		UUID m_ActiveCameraUUID = UUID::Invalid;
 		entt::entity m_RuntimeCamera = entt::null;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;

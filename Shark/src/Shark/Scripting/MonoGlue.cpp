@@ -652,7 +652,7 @@ namespace Shark {
 			Entity entity = utils::GetEntityActiveScene(uuid);
 			SK_INVALID_ENTITY_GUARD(entity, glm::vec3());
 			auto& transform = entity.Transform();
-			return transform.Scaling;
+			return transform.Scale;
 		}
 
 		void TransformComponent_SetScaling(UUID uuid, glm::vec3 scaling)
@@ -662,7 +662,7 @@ namespace Shark {
 			Entity entity = utils::GetEntityActiveScene(uuid);
 			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
 			auto& transform = entity.Transform();
-			transform.Scaling = scaling;
+			transform.Scale = scaling;
 		}
 
 #pragma endregion
@@ -694,7 +694,7 @@ namespace Shark {
 			SK_PROFILE_FUNCTION();
 
 			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, AssetHandle::Null);
+			SK_INVALID_ENTITY_GUARD(entity, AssetHandle::Invalid);
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
 			return spriteRenderer.TextureHandle;
 		}
@@ -1461,7 +1461,7 @@ namespace Shark {
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
 			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
-			shape->SetAsBox(comp.Size.x * transform.Scaling.x, comp.Size.y * transform.Scaling.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+			shape->SetAsBox(comp.Size.x * transform.Scale.x, comp.Size.y * transform.Scale.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
 		}
 
 		glm::vec2 BoxCollider2DComponent_GetOffset(UUID owner)
@@ -1488,7 +1488,7 @@ namespace Shark {
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
 			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
-			shape->SetAsBox(comp.Size.x * transform.Scaling.x, comp.Size.y * transform.Scaling.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+			shape->SetAsBox(comp.Size.x * transform.Scale.x, comp.Size.y * transform.Scale.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
 		}
 
 		float BoxCollider2DComponent_GetRotation(UUID owner)
@@ -1515,7 +1515,7 @@ namespace Shark {
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
 			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
-			shape->SetAsBox(comp.Size.x * transform.Scaling.x, comp.Size.y * transform.Scaling.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+			shape->SetAsBox(comp.Size.x * transform.Scale.x, comp.Size.y * transform.Scale.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
 		}
 
 		#pragma endregion
@@ -1556,7 +1556,7 @@ namespace Shark {
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
 			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
-			shape->m_radius = comp.Radius * transform.Scaling.x;
+			shape->m_radius = comp.Radius * transform.Scale.x;
 			shape->m_p = { comp.Offset.x, comp.Offset.y };
 		}
 
@@ -1584,7 +1584,7 @@ namespace Shark {
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
 			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
-			shape->m_radius = comp.Radius * transform.Scaling.x;
+			shape->m_radius = comp.Radius * transform.Scale.x;
 			shape->m_p = { comp.Offset.x, comp.Offset.y };
 		}
 
@@ -1612,7 +1612,7 @@ namespace Shark {
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
 			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
-			shape->m_radius = comp.Radius * transform.Scaling.x;
+			shape->m_radius = comp.Radius * transform.Scale.x;
 			shape->m_p = { comp.Offset.x, comp.Offset.y };
 		}
 

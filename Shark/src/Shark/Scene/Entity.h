@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Components/IDComponent.h"
 #include "Shark/Scene/Components/TagComponent.h"
 #include "Shark/Scene/Components/TransformComponent.h"
-#include "Shark/Scene/Components/IDComponent.h"
+#include "Shark/Scene/Components/RelationshipComponent.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -83,6 +84,23 @@ namespace Shark {
 		const std::string& GetName() { return GetComponent<TagComponent>().Tag; }
 		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
 
+		void SetParent(Entity parent);
+		void AddChild(Entity child);
+
+		void RemoveParent();
+		void RemoveChild(UUID childID);
+		void RemoveChildren();
+
+		UUID Parent() { return GetComponent<RelationshipComponent>().Parent; }
+		Entity ParentEntity() { return m_Scene->GetEntityByUUID(Parent()); }
+		std::vector<UUID>& Children() { return GetComponent<RelationshipComponent>().Children; }
+
+		bool HasParent() { return GetComponent<RelationshipComponent>().Parent.IsValid(); }
+		bool HasChild(UUID childID);
+		bool HasChildren() { return GetComponent<RelationshipComponent>().Children.size() > 0; }
+
+		glm::mat4 CalcWorldTransform();
+
 		bool IsValid() const { return m_Scene->m_Registry.valid(m_EntityHandle); }
 		bool IsNull() const { return m_EntityHandle == entt::null; }
 
@@ -91,6 +109,9 @@ namespace Shark {
 		operator uint32_t() { return (uint32_t)m_EntityHandle; }
 		bool operator==(const Entity& rhs) { return m_EntityHandle == rhs.m_EntityHandle && m_Scene == rhs.m_Scene; }
 		bool operator!=(const Entity& rhs) { return !(*this == rhs); }
+
+	private:
+		static void RemoveTargetFromParent(Entity me);
 
 	private:
 		entt::entity m_EntityHandle{ entt::null };

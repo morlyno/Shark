@@ -107,11 +107,32 @@ namespace Shark {
 			auto& comp = entity.GetComponent<TransformComponent>();
 			out << YAML::Key << "Position" << YAML::Value << comp.Translation;
 			out << YAML::Key << "Rotation" << YAML::Value << comp.Rotation;
-			out << YAML::Key << "Scaling" << YAML::Value << comp.Scaling;
+			out << YAML::Key << "Scaling" << YAML::Value << comp.Scale;
 
 			out << YAML::EndMap;
 		}
 		
+		if (entity.AllOf<RelationshipComponent>())
+		{
+			out << YAML::Key << "RelationshipComponent" << YAML::Value;
+			out << YAML::BeginMap;
+
+			auto& comp = entity.GetComponent<RelationshipComponent>();
+			out << YAML::Key << "Parent" << YAML::Hex << comp.Parent << YAML::Dec;
+
+			out << YAML::Key << "Children" << YAML::Value;
+			out << YAML::BeginSeq;
+			for (UUID childID : comp.Children)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Child" << YAML::Value << YAML::Hex << childID << YAML::Dec;
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+
+			out << YAML::EndMap;
+		}
+
 		if (entity.AllOf<SpriteRendererComponent>())
 		{
 			out << YAML::Key << "SpriteRendererComponent" << YAML::Value;
@@ -273,9 +294,19 @@ namespace Shark {
 					comp.Rotation = rotation.as<glm::vec3>();
 
 					SK_CORE_ASSERT(scaling, "Couldn't deserialize TransformComponent::Scaling");
-					comp.Scaling = scaling.as<glm::vec3>();
+					comp.Scale = scaling.as<glm::vec3>();
 
 					SK_CORE_TRACE(" - Transfrom Component");
+				}
+
+				if (auto relationshipComponent = entity["RelationshipComponent"])
+				{
+					auto& comp = deserializedEntity.AddOrReplaceComponent<RelationshipComponent>();
+					comp.Parent = relationshipComponent["Parent"].as<UUID>();
+					
+					auto children = relationshipComponent["Children"];
+					for (auto child : children)
+						comp.Children.emplace_back(child["Child"].as<UUID>());
 				}
 
 				if (auto spriteRendererComponent = entity["SpriteRendererComponent"])

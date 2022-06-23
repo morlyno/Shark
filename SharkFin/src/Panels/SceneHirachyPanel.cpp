@@ -51,7 +51,7 @@ namespace Shark {
 							Weak<Scene> scene = entity.GetScene();
 							UUID cameraUUID = scene->GetActiveCameraUUID();
 							if (entity.GetUUID() == cameraUUID)
-								scene->SetActiveCamera(UUID::Null);
+								scene->SetActiveCamera(UUID::Invalid);
 						}
 
 						entity.RemoveComponent<Comp>();
@@ -61,6 +61,21 @@ namespace Shark {
 
 				ImGui::PopID();
 			}
+		}
+
+		// check that parent dosn't have child as parent
+
+		static bool WouldCreateLoop(Entity child, Entity parent)
+		{
+			UUID childUUID = child.GetUUID();
+
+			while (parent.HasParent())
+			{
+				if (parent.Parent() == childUUID)
+					return true;
+				parent = parent.ParentEntity();
+			}
+			return false;
 		}
 
 	}
@@ -80,100 +95,31 @@ namespace Shark {
 
 		if (ImGui::Begin("Scene Hirachy", &shown) && m_Context)
 		{
+			m_Context->m_Registry.each([=](auto entityID)
 			{
-				SK_PROFILE_SCOPED("Loop All Entitys");
-
-				m_Context->m_Registry.each([=](auto entityID)
-				{
-					Entity entity{ entityID, m_Context };
+				Entity entity{ entityID, m_Context };
+				if (!entity.HasParent())
 					DrawEntityNode(entity);
-				});
-			}
+			});
 
-			if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered())
+			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
 				SelectEntity(Entity{});
 
-			if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+			const ImGuiWindow* window = ImGui::GetCurrentWindow();
+			if (ImGui::BeginDragDropTargetCustom(window->WorkRect, window->ID))
 			{
-				if (ImGui::BeginMenu("Create"))
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+				if (payload)
 				{
-					if (ImGui::MenuItem("Entity"))
-					{
-						Entity e = m_Context->CreateEntity("Entity");
-						SelectEntity(e);
-					}
-					if (ImGui::MenuItem("Camera"))
-					{
-						Entity e = m_Context->CreateEntity("Camera");
-						e.AddComponent<CameraComponent>();
-						SelectEntity(e);
-					}
-					if (ImGui::BeginMenu("Geometry"))
-					{
-						if (ImGui::MenuItem("Quad"))
-						{
-							Entity e = m_Context->CreateEntity("Quad");
-							e.AddComponent<SpriteRendererComponent>();
-							SelectEntity(e);
-						}
-						if (ImGui::MenuItem("Circle"))
-						{
-							Entity e = m_Context->CreateEntity("Circle");
-							e.AddComponent<CircleRendererComponent>();
-							SelectEntity(e);
-						}
-						ImGui::EndMenu();
-					}
-					if (ImGui::BeginMenu("Physics2D"))
-					{
-						if (ImGui::BeginMenu("Collider"))
-						{
-							if (ImGui::MenuItem("Box"))
-							{
-								Entity e = m_Context->CreateEntity("Box Collider");
-								e.AddComponent<SpriteRendererComponent>();
-								e.AddComponent<BoxCollider2DComponent>();
-								SelectEntity(e);
-							}
-							if (ImGui::MenuItem("Circle"))
-							{
-								Entity e = m_Context->CreateEntity("Circle Collider");
-								e.AddComponent<CircleRendererComponent>();
-								e.AddComponent<CircleCollider2DComponent>();
-								SelectEntity(e);
-							}
-							ImGui::EndMenu();
-						}
-						if (ImGui::BeginMenu("RigidBody"))
-						{
-							if (ImGui::MenuItem("Box"))
-							{
-								Entity e = m_Context->CreateEntity("Box RigidBody");
-								e.AddComponent<SpriteRendererComponent>();
-								auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
-								rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
-								auto& boxCollider = e.AddComponent<BoxCollider2DComponent>();
-								boxCollider.Density = 1.0f;
-								SelectEntity(e);
-							}
-							if (ImGui::MenuItem("Circle"))
-							{
-								Entity e = m_Context->CreateEntity("Circle RigidBody");
-								e.AddComponent<CircleRendererComponent>();
-								auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
-								rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
-								auto& circleCollider = e.AddComponent<CircleCollider2DComponent>();
-								circleCollider.Density = 1.0f;
-								SelectEntity(e);
-							}
-							ImGui::EndMenu();
-						}
-						ImGui::EndMenu();
-					}
-					ImGui::EndMenu();
+					UUID uuid = *(UUID*)payload->Data;
+					Entity entity = m_Context->GetEntityByUUID(uuid);
+					entity.RemoveParent();
 				}
-				ImGui::EndPopup();
+
+				ImGui::EndDragDropTarget();
 			}
+
+			DrawAppEntityPopup();
 		}
 		ImGui::End();
 
@@ -197,15 +143,39 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		const auto& tag = entity.GetComponent<TagComponent>();
-		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
 		if (m_SelectedEntity == entity)
 			treenodefalgs |= ImGuiTreeNodeFlags_Selected;
 
 		// if entity dosend have child entitys
 		// Draw TreeNode as Leaf
-		treenodefalgs |= ImGuiTreeNodeFlags_Leaf;
+		if (!entity.HasChildren())
+			treenodefalgs |= ImGuiTreeNodeFlags_Leaf;
 
 		bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)(uint32_t)entity, treenodefalgs, tag.Tag.c_str());
+
+		if (ImGui::BeginDragDropSource())
+		{
+			UUID uuid = entity.GetUUID();
+			ImGui::SetDragDropPayload("ENTITY", &uuid, sizeof(UUID));
+
+			ImGui::EndDragDropSource();
+		}
+
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+			if (payload)
+			{
+				SK_CORE_WARN("Entity paload accepted on Entity {} 0x{:x}", entity.GetName(), entity.GetUUID());
+				UUID uuid = *(UUID*)payload->Data;
+				Entity e = m_Context->GetEntityByUUID(uuid);
+
+				if (!Utils::WouldCreateLoop(e, entity))
+					e.SetParent(entity);
+			}
+			ImGui::EndDragDropTarget();
+		}
 
 		if (ImGui::IsItemClicked())
 			SelectEntity(entity);
@@ -229,7 +199,12 @@ namespace Shark {
 
 		if (opened)
 		{
-			// Draw Child Entitys
+			for (auto& childID : entity.Children())
+			{
+				Entity child = m_Context->GetEntityByUUID(childID);
+				DrawEntityNode(child);
+			}
+
 			ImGui::TreePop();
 		}
 
@@ -309,12 +284,36 @@ namespace Shark {
 			ImGui::EndPopup();
 		}
 
-		Utils::DrawComponet<TransformComponent>(entity, "Transform", [](TransformComponent& comp)
+		Utils::DrawComponet<TransformComponent>(entity, "Transform", [&](TransformComponent& comp)
 		{
 			UI::BeginControlsGrid();
+			//if (entity.HasParent())
+			//{
+			//	Entity parent = m_Context->GetEntityByUUID(entity.Parent());
+			//	auto& parentTransform = parent.Transform();
+			//
+			//	TransformComponent tf;
+			//	tf.Translation = comp.Translation - parentTransform.Translation;
+			//	tf.Rotation = comp.Rotation - parentTransform.Rotation;
+			//	tf.Scaling = comp.Scaling / parentTransform.Scaling;
+			//
+			//	UI::Control("Position", tf.Translation);
+			//	UI::ControlAngle("Rotation", tf.Rotation);
+			//	UI::ControlS("Scaling", tf.Scaling, 1.0f);
+			//
+			//	comp.Translation = tf.Translation + parentTransform.Translation;
+			//	comp.Rotation = tf.Rotation + parentTransform.Rotation;
+			//	comp.Scaling = tf.Scaling * parentTransform.Scaling;
+			//}
+			//else
+			//{
+			//	UI::Control("Position", comp.Translation);
+			//	UI::ControlAngle("Rotation", comp.Rotation);
+			//	UI::ControlS("Scaling", comp.Scaling, 1.0f);
+			//}
 			UI::Control("Position", comp.Translation);
 			UI::ControlAngle("Rotation", comp.Rotation);
-			UI::ControlS("Scaling", comp.Scaling, 1.0f);
+			UI::ControlS("Scaling", comp.Scale, 1.0f);
 			UI::EndControls();
 		});
 
@@ -356,7 +355,7 @@ namespace Shark {
 					UI::Text(metadata.FilePath);
 					ImGui::Text("Width: %d, Height: %d", texture->GetImage()->GetWidth(), texture->GetImage()->GetHeight());
 					if (ImGui::Button("Remove"))
-						comp.TextureHandle = AssetHandle::Null;
+						comp.TextureHandle = AssetHandle::Invalid;
 				}
 				else
 				{
@@ -575,6 +574,91 @@ namespace Shark {
 
 		m_SelectedEntity = entity;
 		m_SelectionChangedCallback(entity);
+	}
+
+	void SceneHirachyPanel::DrawAppEntityPopup()
+	{
+		if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+		{
+			if (ImGui::BeginMenu("Create"))
+			{
+				if (ImGui::MenuItem("Entity"))
+				{
+					Entity e = m_Context->CreateEntity("Entity");
+					SelectEntity(e);
+				}
+				if (ImGui::MenuItem("Camera"))
+				{
+					Entity e = m_Context->CreateEntity("Camera");
+					e.AddComponent<CameraComponent>();
+					SelectEntity(e);
+				}
+				if (ImGui::BeginMenu("Geometry"))
+				{
+					if (ImGui::MenuItem("Quad"))
+					{
+						Entity e = m_Context->CreateEntity("Quad");
+						e.AddComponent<SpriteRendererComponent>();
+						SelectEntity(e);
+					}
+					if (ImGui::MenuItem("Circle"))
+					{
+						Entity e = m_Context->CreateEntity("Circle");
+						e.AddComponent<CircleRendererComponent>();
+						SelectEntity(e);
+					}
+					ImGui::EndMenu();
+				}
+				if (ImGui::BeginMenu("Physics2D"))
+				{
+					if (ImGui::BeginMenu("Collider"))
+					{
+						if (ImGui::MenuItem("Box"))
+						{
+							Entity e = m_Context->CreateEntity("Box Collider");
+							e.AddComponent<SpriteRendererComponent>();
+							e.AddComponent<BoxCollider2DComponent>();
+							SelectEntity(e);
+						}
+						if (ImGui::MenuItem("Circle"))
+						{
+							Entity e = m_Context->CreateEntity("Circle Collider");
+							e.AddComponent<CircleRendererComponent>();
+							e.AddComponent<CircleCollider2DComponent>();
+							SelectEntity(e);
+						}
+						ImGui::EndMenu();
+					}
+					if (ImGui::BeginMenu("RigidBody"))
+					{
+						if (ImGui::MenuItem("Box"))
+						{
+							Entity e = m_Context->CreateEntity("Box RigidBody");
+							e.AddComponent<SpriteRendererComponent>();
+							auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
+							rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
+							auto& boxCollider = e.AddComponent<BoxCollider2DComponent>();
+							boxCollider.Density = 1.0f;
+							SelectEntity(e);
+						}
+						if (ImGui::MenuItem("Circle"))
+						{
+							Entity e = m_Context->CreateEntity("Circle RigidBody");
+							e.AddComponent<CircleRendererComponent>();
+							auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
+							rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
+							auto& circleCollider = e.AddComponent<CircleCollider2DComponent>();
+							circleCollider.Density = 1.0f;
+							SelectEntity(e);
+						}
+						ImGui::EndMenu();
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndPopup();
+		}
 	}
 
 }
