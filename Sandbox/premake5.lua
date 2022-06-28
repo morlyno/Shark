@@ -16,11 +16,11 @@ project "Sandbox"
     includedirs
     {
         "%{wks.location}/Shark/src",
-        "%{includeDir.spdlog}",
-        "%{includeDir.ImGui}",
-        "%{includeDir.EnTT}",
-        "%{includeDir.yaml_cpp}",
-        "%{includeDir.box2d}"
+        "%{IncludeDir.spdlog}",
+        "%{IncludeDir.ImGui}",
+        "%{IncludeDir.EnTT}",
+        "%{IncludeDir.yaml_cpp}",
+        "%{IncludeDir.box2d}"
     }
 
     links

@@ -8,22 +8,27 @@ workspace "Shark"
 		"Release"
 	}
 
+    flags
+    {
+        "MultiProcessorCompile"
+    }
+
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 MonoDir = os.getenv("MONO_PROJECT")
 
-includeDir = {}
-includeDir["spdlog"] = "%{wks.location}/Shark/dependencies/spdlog/include"
-includeDir["ImGui"] = "%{wks.location}/Shark/dependencies/ImGui"
-includeDir["stb_image"] = "%{wks.location}/Shark/dependencies/stb_image"
-includeDir["EnTT"] = "%{wks.location}/Shark/dependencies/EnTT/include"
-includeDir["yaml_cpp"] = "%{wks.location}/Shark/dependencies/yaml-cpp/include"
-includeDir["box2d"] = "%{wks.location}/Shark/dependencies/box2d/include"
-includeDir["ImGuizmo"] = "%{wks.location}/Shark/dependencies/ImGuizmo"
-includeDir["fmt"] = "%{wks.location}/Shark/dependencies/fmt/include"
-includeDir["Optick"] = "%{wks.location}/Shark/dependencies/Optick/src"
-includeDir["glm"] = "%{wks.location}/Shark/dependencies/glm"
-includeDir["Mono"] = "%{MonoDir}/include/mono-2.0"
+IncludeDir = {}
+IncludeDir["spdlog"] = "%{wks.location}/Shark/dependencies/spdlog/include"
+IncludeDir["ImGui"] = "%{wks.location}/Shark/dependencies/ImGui"
+IncludeDir["stb_image"] = "%{wks.location}/Shark/dependencies/stb_image"
+IncludeDir["EnTT"] = "%{wks.location}/Shark/dependencies/EnTT/include"
+IncludeDir["yaml_cpp"] = "%{wks.location}/Shark/dependencies/yaml-cpp/include"
+IncludeDir["box2d"] = "%{wks.location}/Shark/dependencies/box2d/include"
+IncludeDir["ImGuizmo"] = "%{wks.location}/Shark/dependencies/ImGuizmo"
+IncludeDir["fmt"] = "%{wks.location}/Shark/dependencies/fmt/include"
+IncludeDir["Optick"] = "%{wks.location}/Shark/dependencies/Optick/src"
+IncludeDir["glm"] = "%{wks.location}/Shark/dependencies/glm"
+IncludeDir["Mono"] = "%{MonoDir}/include/mono-2.0"
 
 Library = {}
 Library["Mono_lib"] = "%{MonoDir}/lib/mono-2.0-sgen.lib"

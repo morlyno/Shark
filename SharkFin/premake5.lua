@@ -20,21 +20,16 @@ project "SharkFin"
     {
         "%{wks.location}/Shark/src",
         "%{wks.location}/SharkFin/src",
-        "%{includeDir.spdlog}",
-        "%{includeDir.ImGui}",
-        "%{includeDir.EnTT}",
-        "%{includeDir.yaml_cpp}",
-        "%{includeDir.box2d}",
-        "%{includeDir.ImGuizmo}",
-        "%{includeDir.fmt}",
-        "%{includeDir.Optick}",
-        "%{includeDir.glm}",
-        "%{includeDir.Mono}"
-    }
-
-    flags
-    {
-        "MultiProcessorCompile"
+        "%{IncludeDir.spdlog}",
+        "%{IncludeDir.ImGui}",
+        "%{IncludeDir.EnTT}",
+        "%{IncludeDir.yaml_cpp}",
+        "%{IncludeDir.box2d}",
+        "%{IncludeDir.ImGuizmo}",
+        "%{IncludeDir.fmt}",
+        "%{IncludeDir.Optick}",
+        "%{IncludeDir.glm}",
+        "%{IncludeDir.Mono}"
     }
 
     links
@@ -51,7 +46,8 @@ project "SharkFin"
         "GLM_FORCE_DEPTH_ZERO_TO_ONE",
 
         "FMT_HEADER_ONLY",
-        "MONO_DIRECTORY=%{MonoDir}"
+        "MONO_DIRECTORY=%{MonoDir}",
+        "YAML_CPP_STATIC_DEFINE"
     }
 
     sharkfin_output_dir = "%{wks.location}/bin/%{outputdir}/%{prj.name}"

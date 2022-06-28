@@ -14,33 +14,28 @@ project "Shark"
     {
         "src/**.h",
         "src/**.cpp",
-        "%{includeDir.stb_image}/*.h",
-        "%{includeDir.stb_image}/*.cpp",
-        "%{includeDir.glm}/**.h",
-        "%{includeDir.glm}/**.inl",
-        "%{includeDir.fmt}/**.h",
-        "%{includeDir.spdlog}/**.h"
+        "%{IncludeDir.stb_image}/*.h",
+        "%{IncludeDir.stb_image}/*.cpp",
+        "%{IncludeDir.glm}/**.h",
+        "%{IncludeDir.glm}/**.inl",
+        "%{IncludeDir.fmt}/**.h",
+        "%{IncludeDir.spdlog}/**.h"
     }
 
     includedirs
     {
         "%{wks.location}/Shark/src",
-        "%{includeDir.spdlog}",
-        "%{includeDir.ImGui}",
-        "%{includeDir.stb_image}",
-        "%{includeDir.EnTT}",
-        "%{includeDir.yaml_cpp}",
-        "%{includeDir.box2d}",
-        "%{includeDir.ImGuizmo}",
-        "%{includeDir.fmt}",
-        "%{includeDir.Optick}",
-        "%{includeDir.glm}",
-        "%{includeDir.Mono}"
-    }
-
-    flags
-    {
-        "MultiProcessorCompile"
+        "%{IncludeDir.spdlog}",
+        "%{IncludeDir.ImGui}",
+        "%{IncludeDir.stb_image}",
+        "%{IncludeDir.EnTT}",
+        "%{IncludeDir.yaml_cpp}",
+        "%{IncludeDir.box2d}",
+        "%{IncludeDir.ImGuizmo}",
+        "%{IncludeDir.fmt}",
+        "%{IncludeDir.Optick}",
+        "%{IncludeDir.glm}",
+        "%{IncludeDir.Mono}"
     }
 
     defines
@@ -52,7 +47,8 @@ project "Shark"
         "GLM_FORCE_DEPTH_ZERO_TO_ONE",
         
         "FMT_HEADER_ONLY",
-        "MONO_DIRECTORY=%{MonoDir}"
+        "MONO_DIRECTORY=%{MonoDir}",
+        "YAML_CPP_STATIC_DEFINE"
     }
 
     filter "system:windows"
