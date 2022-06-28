@@ -22,48 +22,48 @@ namespace Shark {
 		{
 			switch (bodyType)
 			{
+				case RigidBody2DComponent::BodyType::None:        return "None";
 				case RigidBody2DComponent::BodyType::Static:      return "Static";
 				case RigidBody2DComponent::BodyType::Dynamic:     return "Dynamic";
 				case RigidBody2DComponent::BodyType::Kinematic:   return "Kinematic";
 			}
 
 			SK_CORE_ASSERT(false, "Unkonw Body Type");
-			return std::string{};
+			return "Unkown";
 		}
 
 		static RigidBody2DComponent::BodyType StringToBodyType(const std::string bodyType)
 		{
+			if (bodyType == "None") return RigidBody2DComponent::BodyType::None;
 			if (bodyType == "Static") return RigidBody2DComponent::BodyType::Static;
 			if (bodyType == "Dynamic") return RigidBody2DComponent::BodyType::Dynamic;
 			if (bodyType == "Kinematic") return RigidBody2DComponent::BodyType::Kinematic;
 
 			SK_CORE_ASSERT(false, "Unkonw Body Type");
-			return RigidBody2DComponent::BodyType::Static;
+			return RigidBody2DComponent::BodyType::None;
 		}
 
 		static std::string ProjectionToString(SceneCamera::Projection projection)
 		{
 			switch (projection)
 			{
+				case SceneCamera::Projection::None:           return "None";
 				case SceneCamera::Projection::Orthographic:   return "Orthographic";
 				case SceneCamera::Projection::Perspective:    return "Perspective";
 			}
 
 			SK_CORE_ASSERT(false, "Unkown Projection Type");
-			return std::string{};
+			return "Unkown";
 		}
 
 		static SceneCamera::Projection StringToProjection(const std::string& projection)
 		{
+			if (projection == "None")           return SceneCamera::Projection::None;
 			if (projection == "Orthographic")   return SceneCamera::Projection::Orthographic;
 			if (projection == "Perspective")    return SceneCamera::Projection::Perspective;
 
-			SK_CORE_WARN("Use of Lagacy mode for DeSerialization of Projection");
-			if (projection == "0") return SceneCamera::Projection::Perspective;
-			if (projection == "1") return SceneCamera::Projection::Orthographic;
-
 			SK_CORE_ASSERT(false, "Unkown Projection Type");
-			return SceneCamera::Projection::Orthographic;
+			return SceneCamera::Projection::None;
 		}
 
 	}
@@ -469,52 +469,50 @@ namespace Shark {
 
 					SK_CORE_ASSERT(isSensor, "Couldn't desirialize BoxCollider2DComponent::IsSensor");
 					comp.IsSensor = isSensor.as<bool>();
-
-					auto cirlceCollider2DComponent = entity["CircleCollider2DComponent"];
-					if (cirlceCollider2DComponent)
-					{
-						auto radius = cirlceCollider2DComponent["Radius"];
-						auto offset = cirlceCollider2DComponent["Offset"];
-						auto rotation = cirlceCollider2DComponent["Rotation"];
-						auto density = cirlceCollider2DComponent["Density"];
-						auto friction = cirlceCollider2DComponent["Friction"];
-						auto restitution = cirlceCollider2DComponent["Restitution"];
-						auto restitutionThreshold = cirlceCollider2DComponent["RestitutionThreshold"];
-						auto isSensor = cirlceCollider2DComponent["IsSensor"];
-						SK_CORE_TRACE(" - BoxCollider2D Component");
-
-						auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
-
-						SK_CORE_ASSERT(radius, "Couldn't desirialize CircleCollider2DComponent::Radius");
-						comp.Radius = radius.as<float>();
-
-						SK_CORE_ASSERT(offset, "Couldn't desirialize CircleCollider2DComponent::Offset");
-						comp.Offset = offset.as<glm::vec2>();
-
-						SK_CORE_ASSERT(rotation, "Couldn't desirialize CircleCollider2DComponent::Rotation");
-						comp.Rotation = rotation.as<float>();
-
-						SK_CORE_ASSERT(density, "Couldn't desirialize CircleCollider2DComponent::Density");
-						comp.Density = density.as<float>();
-
-						SK_CORE_ASSERT(friction, "Couldn't desirialize CircleCollider2DComponent::Friction");
-						comp.Friction = friction.as<float>();
-
-						SK_CORE_ASSERT(restitution, "Couldn't desirialize CircleCollider2DComponent::Restitution");
-						comp.Restitution = restitution.as<float>();
-
-						SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize CircleCollider2DComponent::RestitutionThreshold");
-						comp.RestitutionThreshold = restitutionThreshold.as<float>();
-
-						SK_CORE_ASSERT(isSensor, "Couldn't desirialize CircleCollider2DComponent::IsSensor");
-						comp.IsSensor = isSensor.as<bool>(false);
-
-						SK_CORE_TRACE(" - CircleCollider2D Component");
-					}
 				}
 
-				auto scriptComponent = entity["ScriptComponent"];
-				if (scriptComponent)
+				if (auto cirlceCollider2DComponent = entity["CircleCollider2DComponent"])
+				{
+					auto radius = cirlceCollider2DComponent["Radius"];
+					auto offset = cirlceCollider2DComponent["Offset"];
+					auto rotation = cirlceCollider2DComponent["Rotation"];
+					auto density = cirlceCollider2DComponent["Density"];
+					auto friction = cirlceCollider2DComponent["Friction"];
+					auto restitution = cirlceCollider2DComponent["Restitution"];
+					auto restitutionThreshold = cirlceCollider2DComponent["RestitutionThreshold"];
+					auto isSensor = cirlceCollider2DComponent["IsSensor"];
+					SK_CORE_TRACE(" - BoxCollider2D Component");
+
+					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
+
+					SK_CORE_ASSERT(radius, "Couldn't desirialize CircleCollider2DComponent::Radius");
+					comp.Radius = radius.as<float>();
+
+					SK_CORE_ASSERT(offset, "Couldn't desirialize CircleCollider2DComponent::Offset");
+					comp.Offset = offset.as<glm::vec2>();
+
+					SK_CORE_ASSERT(rotation, "Couldn't desirialize CircleCollider2DComponent::Rotation");
+					comp.Rotation = rotation.as<float>();
+
+					SK_CORE_ASSERT(density, "Couldn't desirialize CircleCollider2DComponent::Density");
+					comp.Density = density.as<float>();
+
+					SK_CORE_ASSERT(friction, "Couldn't desirialize CircleCollider2DComponent::Friction");
+					comp.Friction = friction.as<float>();
+
+					SK_CORE_ASSERT(restitution, "Couldn't desirialize CircleCollider2DComponent::Restitution");
+					comp.Restitution = restitution.as<float>();
+
+					SK_CORE_ASSERT(restitutionThreshold, "Couldn't desirialize CircleCollider2DComponent::RestitutionThreshold");
+					comp.RestitutionThreshold = restitutionThreshold.as<float>();
+
+					SK_CORE_ASSERT(isSensor, "Couldn't desirialize CircleCollider2DComponent::IsSensor");
+					comp.IsSensor = isSensor.as<bool>(false);
+
+					SK_CORE_TRACE(" - CircleCollider2D Component");
+				}
+
+				if (auto scriptComponent = entity["ScriptComponent"])
 				{
 					auto name = scriptComponent["ScriptName"];
 

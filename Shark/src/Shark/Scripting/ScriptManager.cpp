@@ -17,8 +17,6 @@ namespace Shark {
 
 		bool SplitScriptModuleName(const std::string& scriptModuleName, std::string& out_NameSpace, std::string& out_ClassName)
 		{
-			SK_PROFILE_FUNCTION();
-
 			size_t separator = scriptModuleName.rfind('.');
 			if (separator == std::string::npos)
 			{
@@ -34,10 +32,8 @@ namespace Shark {
 
 	}
 
-	void Script::OnCreate()
+	void Script::OnCreate() const
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (m_OnCreate)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
@@ -45,10 +41,8 @@ namespace Shark {
 		}
 	}
 
-	void Script::OnDestroy()
+	void Script::OnDestroy() const
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (m_OnDestroy)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
@@ -56,10 +50,8 @@ namespace Shark {
 		}
 	}
 
-	void Script::OnUpdate(TimeStep ts)
+	void Script::OnUpdate(TimeStep ts) const
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (m_OnUpdate)
 		{
 			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
@@ -67,10 +59,26 @@ namespace Shark {
 		}
 	}
 
-	void Script::OnCollishionBegin(UUID uuid, bool isScript)
+	void Script::OnPhysicsUpdate(TimeStep fixedTimeStep) const
 	{
-		SK_PROFILE_FUNCTION();
+		if (m_OnPhyicsUpdate)
+		{
+			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
+			ScriptEngine::InvokeMethod(m_OnPhyicsUpdate, object, fixedTimeStep);
+		}
+	}
 
+	void Script::OnUIRender() const
+	{
+		if (m_OnUIRender)
+		{
+			MonoObject* object = mono_gchandle_get_target(m_GCHandle);
+			ScriptEngine::InvokeMethod(m_OnUIRender, object);
+		}
+	}
+
+	void Script::OnCollishionBegin(UUID uuid, bool isScript) const
+	{
 		if (m_OnCollishionBegin)
 		{
 			if (isScript)
@@ -88,8 +96,9 @@ namespace Shark {
 				GCHandle gcHandle = mono_gchandle_new(object, false);
 				mono_runtime_object_init(object);
 
-				MonoClassField* field = mono_class_get_field_from_name(entityClass, "m_Handle");
-				mono_field_set_value(object, field, &uuid);
+				MonoProperty* prop = mono_class_get_property_from_name(entityClass, "ID");
+				void* params[] = { &uuid };
+				mono_property_set_value(prop, object, params, nullptr);
 
 				MonoObject* This = mono_gchandle_get_target(m_GCHandle);
 
@@ -100,10 +109,8 @@ namespace Shark {
 		}
 	}
 
-	void Script::OnCollishionEnd(UUID uuid, bool isScript)
+	void Script::OnCollishionEnd(UUID uuid, bool isScript) const
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (m_OnCollishionEnd)
 		{
 			if (isScript)
@@ -121,8 +128,9 @@ namespace Shark {
 				GCHandle gcHandle = mono_gchandle_new(object, false);
 				mono_runtime_object_init(object);
 
-				MonoClassField* field = mono_class_get_field_from_name(entityClass, "m_Handle");
-				mono_field_set_value(object, field, &uuid);
+				MonoProperty* prop = mono_class_get_property_from_name(entityClass, "ID");
+				void* params[] = { &uuid };
+				mono_property_set_value(prop, object, params, nullptr);
 
 				MonoObject* This = mono_gchandle_get_target(m_GCHandle);
 				ScriptEngine::InvokeMethod(m_OnCollishionEnd, This, object);
@@ -144,6 +152,7 @@ namespace Shark {
 		SK_CORE_ASSERT(entity.AllOf<ScriptComponent>());
 
 		const auto& comp = entity.GetComponent<ScriptComponent>();
+		SK_CORE_ASSERT(!comp.HasRuntime, "Called ScriptManager::Instantiate on allready instantiated Script");
 		UUID uuid = entity.GetUUID();
 
 		std::string nameSpace;
@@ -166,8 +175,11 @@ namespace Shark {
 		// init Entity
 		MonoClass* entityClass = ScriptEngine::GetEntityClass();
 		{
-			MonoClassField* field = mono_class_get_field_from_name(entityClass, "m_Handle");
-			mono_field_set_value(object, field, &uuid);
+			MonoProperty* prop = mono_class_get_property_from_name(entityClass, "ID");
+			void* params[] = {
+				&uuid
+			};
+			mono_property_set_value(prop, object, params, nullptr);
 		}
 
 		Script& script = s_Scripts[uuid];
@@ -177,6 +189,8 @@ namespace Shark {
 		script.m_OnCreate              = ScriptEngine::GetMethod(fmt::format("{}:OnCreate()", comp.ScriptName));
 		script.m_OnDestroy             = ScriptEngine::GetMethod(fmt::format("{}:OnDestroy()", comp.ScriptName));
 		script.m_OnUpdate              = ScriptEngine::GetMethod(fmt::format("{}:OnUpdate(Shark.TimeStep)", comp.ScriptName));
+		script.m_OnPhyicsUpdate        = ScriptEngine::GetMethod(fmt::format("{}:OnPhysicsUpdate(Shark.TimeStep)", comp.ScriptName));
+		script.m_OnUIRender            = ScriptEngine::GetMethod(fmt::format("{}:OnUIRender()", comp.ScriptName));
 		script.m_OnCollishionBegin     = ScriptEngine::GetMethod(fmt::format("{}:OnCollishionBegin(Shark.Entity)", comp.ScriptName));
 		script.m_OnCollishionEnd       = ScriptEngine::GetMethod(fmt::format("{}:OnCollishionEnd(Shark.Entity)", comp.ScriptName));
 
@@ -214,22 +228,16 @@ namespace Shark {
 
 	bool ScriptManager::Contains(UUID handle)
 	{
-		SK_PROFILE_FUNCTION();
-
 		return s_Scripts.find(handle) != s_Scripts.end();
 	}
 
 	Script& ScriptManager::GetScript(UUID handle)
 	{
-		SK_PROFILE_FUNCTION();
-
 		return s_Scripts.at(handle);
 	}
 
 	const std::unordered_map<UUID, Script>& ScriptManager::GetScripts()
 	{
-		SK_PROFILE_FUNCTION();
-
 		return s_Scripts;
 	}
 

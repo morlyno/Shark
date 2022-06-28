@@ -319,7 +319,7 @@ namespace Shark {
 	{
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), position) *
-			glm::toMat4(glm::quat(rotation)) /* glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
+			glm::toMat4(glm::quat(rotation)) *
 			glm::scale(glm::mat4(1), scaling);
 
 		DrawQuad(transform, texture, tilingfactor, tintcolor, id);

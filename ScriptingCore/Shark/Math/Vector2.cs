@@ -179,6 +179,7 @@ namespace Shark
 		public int X;
 		public int Y;
 
+		public static Vector2i Zero => new Vector2i(0, 0);
 
 		public Vector2i(int xy)
 		{
@@ -237,6 +238,11 @@ namespace Shark
 			return new Vector2i(-v.X, -v.Y);
 		}
 
+		public static explicit operator Vector2(Vector2i rhs)
+		{
+			return new Vector2(rhs.X, rhs.Y);
+		}
+
 		public override string ToString()
 		{
 			return ToString(null, null);
@@ -252,7 +258,85 @@ namespace Shark
 				Y.ToString(format, formatProvider)
 			);
 		}
+	}
 
+	[StructLayout(LayoutKind.Sequential)]
+	public struct Vector2u
+	{
+		public uint X;
+		public uint Y;
+
+		public static Vector2u Zero => new Vector2u(0, 0);
+
+		public Vector2u(uint xy)
+		{
+			X = xy;
+			Y = xy;
+		}
+		public Vector2u(uint x, uint y)
+		{
+			X = x;
+			Y = y;
+		}
+		public Vector2u(Vector2u v)
+		{
+			X = v.X;
+			Y = v.Y;
+		}
+
+		public static Vector2u operator +(Vector2u lhs, Vector2u rhs)
+		{
+			return new Vector2u(lhs.X + rhs.X, lhs.Y + rhs.Y);
+		}
+		public static Vector2u operator -(Vector2u lhs, Vector2u rhs)
+		{
+			return new Vector2u(lhs.X - rhs.X, lhs.Y - rhs.Y);
+		}
+		public static Vector2u operator *(Vector2u lhs, Vector2u rhs)
+		{
+			return new Vector2u(lhs.X * rhs.X, lhs.Y * rhs.Y);
+		}
+		public static Vector2u operator /(Vector2u lhs, Vector2u rhs)
+		{
+			return new Vector2u(lhs.X / rhs.X, lhs.Y / rhs.Y);
+		}
+		public static Vector2u operator *(Vector2u lhs, uint s)
+		{
+			return new Vector2u(lhs.X * s, lhs.Y * s);
+		}
+		public static Vector2u operator /(Vector2u lhs, uint s)
+		{
+			return new Vector2u(lhs.X / s, lhs.Y / s);
+		}
+		public static Vector2u operator *(uint s, Vector2u rhs)
+		{
+			return new Vector2u(s * rhs.X, s * rhs.Y);
+		}
+		public static Vector2u operator /(uint s, Vector2u rhs)
+		{
+			return new Vector2u(s / rhs.X, s / rhs.Y);
+		}
+		
+		public static explicit operator Vector2(Vector2u rhs)
+		{
+			return new Vector2(rhs.X, rhs.Y);
+		}
+
+		public override string ToString()
+		{
+			return ToString(null, null);
+		}
+		public string ToString(string format)
+		{
+			return ToString(format, null);
+		}
+		public string ToString(string format, IFormatProvider formatProvider)
+		{
+			return string.Format("[{0}, {1}]",
+				X.ToString(format, formatProvider),
+				Y.ToString(format, formatProvider)
+			);
+		}
 	}
 
 }

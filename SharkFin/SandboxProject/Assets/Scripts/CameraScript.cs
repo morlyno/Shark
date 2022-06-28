@@ -1,55 +1,49 @@
 ﻿
 using Shark;
-using System;
+using Shark.MouseEvents;
 
 namespace Sandbox
 {
 	public class CameraScript : Entity
 	{
 		public float MovementSpeed = 10.0f;
-		private Random m_Rng = new Random();
-
 
 		protected override void OnCreate()
 		{
+			EventHandler.OnMouseScrolled += OnMouseScrolled;
 		}
 
 		protected override void OnDestroy()
 		{
+			EventHandler.OnMouseScrolled -= OnMouseScrolled;
 		}
 
 		protected override void OnUpdate(TimeStep ts)
 		{
 			Move(ts);
-			//TestEvents();
-
 		}
 
-		private void CreateEntities()
+		void OnMouseScrolled(MouseScrolledEvent e)
 		{
-			for (uint i = 0; i < 200; i++)
-			{
-				var testScript = Scene.Instantiate<TestScript>("TestScript");
-				//testScript.SetOffset(new Vector3(
-				//	(float)m_Rng.NextDouble() * 20.0f - 10.0f,
-				//	(float)m_Rng.NextDouble() * 20.0f - 10.0f,
-				//	0.0f
-				//));
-			}
+			var translation = Transform.Translation;
+			translation.z += e.Delta;
+			Transform.Translation = translation;
 		}
 
 		private void Move(TimeStep ts)
 		{
 			var translation = Transform.Translation;
 
-			if (Input.KeyPressed(Key.W))
-				translation.y += MovementSpeed * ts;
-			if (Input.KeyPressed(Key.A))
-				translation.x -= MovementSpeed * ts;
-			if (Input.KeyPressed(Key.S))
-				translation.y -= MovementSpeed * ts;
-			if (Input.KeyPressed(Key.D))
-				translation.x += MovementSpeed * ts;
+			float delta = MovementSpeed * ts;
+
+			if (Input.IsKeyPressed(Key.W))
+				translation.y += delta;
+			if (Input.IsKeyPressed(Key.A))
+				translation.x -= delta;
+			if (Input.IsKeyPressed(Key.S))
+				translation.y -= delta;
+			if (Input.IsKeyPressed(Key.D))
+				translation.x += delta;
 
 			Transform.Translation = translation;
 		}

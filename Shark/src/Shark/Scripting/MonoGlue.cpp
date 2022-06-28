@@ -22,6 +22,7 @@
 
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/reflection.h>
+#include <mono/metadata/exception.h>
 
 #include <box2d/b2_body.h>
 #include <box2d/b2_contact.h>
@@ -30,43 +31,40 @@
 
 #include <imgui_internal.h>
 
+#include <glm/gtx/common.hpp>
+
 #define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" SK_STRINGIFY(func), SK_CONNECT(&InternalCalls::, func));
 #define SK_ADD_COMPONENT_BINDING(comp)\
 {\
 	auto& bindings = s_EntityBindings["Shark." SK_STRINGIFY(comp)];\
 	bindings.HasComponent = [](Entity entity) { return entity.AllOf<comp>(); };\
 	bindings.AddComponent = [](Entity entity) { entity.AddComponent<comp>(); };\
+	bindings.RemoveComponent = [](Entity entity) { entity.RemoveComponent<comp>(); };\
 }
 
 #if SK_DEBUG
-#define SK_GUARD_FAILED_ACTION() SK_CORE_ASSERT(false)
+#define SK_GUARD_FAILED_ACTION() SK_DEBUG_BREAK()
 #else
 #define SK_GUARD_FAILED_ACTION() (void)0
 #endif
 
-#define NULL_ARG
-#define SK_INVALID_ENTITY_GUARD(entity, retVal)\
-if (!entity)\
+#define SK_INVALID_ENTITY_GUARD2(entity, action)\
+if (!(entity))\
 {\
-	SK_CORE_WARN("InternalCalls: Invalid Entity [{}]", SK_FUNCTION);\
-	SK_GUARD_FAILED_ACTION();\
-	return retVal;\
+	SK_CORE_WARN("InternalCalls: Invalid Entity [{}]", SK_FUNCTION_DECORATED); \
+	SK_GUARD_FAILED_ACTION(); \
+	action; \
 }
 
-#define SK_INVALID_NATIVE_HANDLE_GUARD(native_handle, retVal)\
-if (!native_handle)\
-{\
-	SK_CORE_WARN("InternalCalls: Invalid Native Handle [{}]", SK_FUNCTION);\
-	SK_GUARD_FAILED_ACTION();\
-	return retVal;\
-}
 
-#define SK_INVALID_BODY_HANDLE_GUARD(bodyHandle, retVal)\
-if (!::Shark::ScriptEngine::GetActiveScene()->GetPhysicsScene().HasBody(bodyHandle))\
+#define SK_INVALID_ENTITY_GUARD(entity) SK_INVALID_ENTITY_GUARD2(entity, return false)
+
+#define SK_MISSING_COMPONENT_GUARD(entity, comp)\
+if (!(entity).AllOf<comp>())\
 {\
-	SK_CORE_WARN("InternalCalls: Invalid Body Handle [{}]", SK_FUNCTION);\
+	SK_CORE_WARN("InternalCalls: Missing Component [{}]", SK_FUNCTION);\
 	SK_GUARD_FAILED_ACTION();\
-	return retVal;\
+	return false;\
 }
 
 namespace Shark {
@@ -75,6 +73,7 @@ namespace Shark {
 	{
 		bool(*HasComponent)(Entity);
 		void(*AddComponent)(Entity);
+		void(*RemoveComponent)(Entity);
 	};
 
 	static std::unordered_map<std::string_view, EntityBindings> s_EntityBindings;
@@ -93,9 +92,9 @@ namespace Shark {
 
 	namespace utils {
 
-		static Entity GetEntityActiveScene(UUID uuid)
+		static Entity GetEntityActiveScene(uint64_t id)
 		{
-			return ScriptEngine::GetActiveScene()->GetEntityByUUID(uuid);
+			return ScriptEngine::GetActiveScene()->GetEntityByUUID(id);
 		}
 
 		static RigidBody2DComponent::BodyType b2BodyTypeToSharkBodyType(b2BodyType bodyType)
@@ -120,6 +119,13 @@ namespace Shark {
 			}
 			SK_CORE_ASSERT(false, "Invalid Body Type");
 			return b2_staticBody;
+		}
+
+		static const EntityBindings& GetEntityBindings(MonoReflectionType* reflectionType)
+		{
+			MonoType* t = mono_reflection_type_get_type(reflectionType);
+			const char* typeName = mono_type_get_name(t);
+			return s_EntityBindings.at(typeName);
 		}
 
 	}
@@ -148,8 +154,6 @@ namespace Shark {
 
 		RegisterComponents();
 		RegsiterInternalCalls();
-
-
 	}
 
 	void MonoGlue::Shutdown()
@@ -214,6 +218,8 @@ namespace Shark {
 
 	void MonoGlue::OnEvent(Event& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!s_MonoGlue)
 			return;
 
@@ -247,8 +253,10 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		SK_ADD_INTERNAL_CALL(Application_GetWidth);
+		SK_ADD_INTERNAL_CALL(Application_GetHeight);
+
 		SK_ADD_INTERNAL_CALL(Log_LogLevel);
-		SK_ADD_INTERNAL_CALL(UUID_Generate);
 
 		SK_ADD_INTERNAL_CALL(Input_KeyPressed);
 		SK_ADD_INTERNAL_CALL(Input_MouseButtonPressed);
@@ -267,17 +275,22 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Scene_GetActiveCameraUUID);
 		SK_ADD_INTERNAL_CALL(Scene_GetUUIDFromTag);
 
-		SK_ADD_INTERNAL_CALL(Entity_GetName);
-		SK_ADD_INTERNAL_CALL(Entity_SetName);
 		SK_ADD_INTERNAL_CALL(Entity_HasComponent);
 		SK_ADD_INTERNAL_CALL(Entity_AddComponent);
+
+		SK_ADD_INTERNAL_CALL(TagComponent_GetTag);
+		SK_ADD_INTERNAL_CALL(TagComponent_SetTag);
 
 		SK_ADD_INTERNAL_CALL(TransformComponent_GetTranslation);
 		SK_ADD_INTERNAL_CALL(TransformComponent_SetTranslation);
 		SK_ADD_INTERNAL_CALL(TransformComponent_GetRotation);
 		SK_ADD_INTERNAL_CALL(TransformComponent_SetRotation);
-		SK_ADD_INTERNAL_CALL(TransformComponent_GetScaling);
-		SK_ADD_INTERNAL_CALL(TransformComponent_SetScaling);
+		SK_ADD_INTERNAL_CALL(TransformComponent_GetScale);
+		SK_ADD_INTERNAL_CALL(TransformComponent_SetScale);
+		SK_ADD_INTERNAL_CALL(TransformComponent_GetLocalTransform);
+		SK_ADD_INTERNAL_CALL(TransformComponent_SetLocalTransform);
+		SK_ADD_INTERNAL_CALL(TransformComponent_GetWorldTransform);
+		SK_ADD_INTERNAL_CALL(TransformComponent_SetWorldTransform);
 
 		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_GetColor);
 		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_SetColor);
@@ -285,6 +298,13 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_GetTextureHandle);
 		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_GetTilingFactor);
 		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_SetTilingFactor);
+
+		SK_ADD_INTERNAL_CALL(CircleRendererComponent_GetColor);
+		SK_ADD_INTERNAL_CALL(CircleRendererComponent_SetColor);
+		SK_ADD_INTERNAL_CALL(CircleRendererComponent_GetThickness);
+		SK_ADD_INTERNAL_CALL(CircleRendererComponent_SetThickness);
+		SK_ADD_INTERNAL_CALL(CircleRendererComponent_GetFade);
+		SK_ADD_INTERNAL_CALL(CircleRendererComponent_SetFade);
 
 		SK_ADD_INTERNAL_CALL(CameraComponent_GetProjection);
 		SK_ADD_INTERNAL_CALL(CameraComponent_SetProjection);
@@ -307,7 +327,6 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(CameraComponent_GetOrthographicFar);
 		SK_ADD_INTERNAL_CALL(CameraComponent_SetOrthographicFar);
 
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetNativeHandle);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetTransform);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetTransform);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetPosition);
@@ -338,18 +357,16 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsFixedRotation);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetFixedRotation);
 
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetSensor);
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_IsSensor);
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetDensity);
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_GetDensity);
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetFriction);
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_GetFriction);
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetRestitution);
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_GetRestitution);
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_SetRestitutionThreshold);
-		SK_ADD_INTERNAL_CALL(PhysicsCollider2D_GetRestitutionThreshold);
-
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetNativeHandle);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetSensor);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_IsSensor);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetDensity);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetDensity);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetFriction);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetFriction);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetRestitution);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetRestitution);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetRestitutionThreshold);
+		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetRestitutionThreshold);
 		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetSize);
 		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetSize);
 		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetOffset);
@@ -357,7 +374,16 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetRotation);
 		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetRotation);
 
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetNativeHandle);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetSensor);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_IsSensor);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetDensity);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetDensity);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetFriction);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetFriction);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRestitution);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRestitution);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRestitutionThreshold);
+		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRestitutionThreshold);
 		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRadius);
 		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRadius);
 		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetOffset);
@@ -367,29 +393,50 @@ namespace Shark {
 
 		SK_ADD_INTERNAL_CALL(ResourceManager_GetAssetHandleFromFilePath);
 
+		SK_ADD_INTERNAL_CALL(EditorUI_BeginWindow);
+		SK_ADD_INTERNAL_CALL(EditorUI_EndWindow);
+		SK_ADD_INTERNAL_CALL(EditorUI_Text);
+		SK_ADD_INTERNAL_CALL(EditorUI_NewLine);
+		SK_ADD_INTERNAL_CALL(EditorUI_Separator);
+
 	}
 
 	namespace InternalCalls {
+
+		#pragma region Application
+
+		uint32_t Application_GetWidth()
+		{
+			if (Application::Get().GetSpecs().EnableImGui)
+			{
+				ImGuiWindow* mainViewport = ImGui::FindWindowByName("MainViewport");
+				SK_CORE_ASSERT(mainViewport);
+				return (uint32_t)mainViewport->ContentRegionRect.GetWidth();
+			}
+
+			return Application::Get().GetWindow().GetWidth();
+		}
+
+		uint32_t Application_GetHeight()
+		{
+			if (Application::Get().GetSpecs().EnableImGui)
+			{
+				ImGuiWindow* mainViewport = ImGui::FindWindowByName("MainViewport");
+				SK_CORE_ASSERT(mainViewport);
+				return (uint32_t)mainViewport->ContentRegionRect.GetHeight();
+			}
+
+			return Application::Get().GetWindow().GetHeight();
+		}
+
+		#pragma endregion
 
 		#pragma region Log
 
 		void Log_LogLevel(Log::Level level, MonoString* message)
 		{
-			SK_PROFILE_FUNCTION();
-
 			char* msg = mono_string_to_utf8(message);
 			SK_CONSOLE_LOG(level, msg);
-		}
-
-		#pragma endregion
-
-		#pragma region UUID
-
-		UUID UUID_Generate()
-		{
-			SK_PROFILE_FUNCTION();
-
-			return UUID::Generate();
 		}
 
 		#pragma endregion
@@ -406,7 +453,7 @@ namespace Shark {
 			return Input::MousePressed(button);
 		}
 
-		Vector2i Input_GetMousePos()
+		bool Input_GetMousePos(glm::ivec2* out_MousePos)
 		{
 			auto p = Input::GlobalMousePos();
 
@@ -420,7 +467,8 @@ namespace Shark {
 				}
 			}
 
-			return { p.x, p.y };
+			*out_MousePos = { p.x, p.y };
+			return true;
 		}
 
 		#pragma endregion
@@ -429,22 +477,16 @@ namespace Shark {
 
 		void Matrix4_Inverse(glm::mat4* matrix, glm::mat4* out_Result)
 		{
-			SK_PROFILE_FUNCTION();
-
 			*out_Result = glm::inverse(*matrix);
 		}
 
 		glm::mat4 Matrix4_Matrix4MulMatrix4(glm::mat4* lhs, glm::mat4* rhs)
 		{
-			SK_PROFILE_FUNCTION();
-
 			return *lhs * *rhs;
 		}
 
 		glm::vec4 Matrix4_Matrix4MulVector4(glm::mat4* lhs, glm::vec4* rhs)
 		{
-			SK_PROFILE_FUNCTION();
-
 			return *lhs * *rhs;
 		}
 
@@ -454,8 +496,6 @@ namespace Shark {
 
 		MonoObject* Scene_InstantiateScript(MonoReflectionType* scriptType, MonoString* name)
 		{
-			SK_PROFILE_FUNCTION();
-
 			MonoType* monoType = mono_reflection_type_get_type(scriptType);
 			const char* scriptTypeName = mono_type_get_name(monoType);
 
@@ -467,75 +507,68 @@ namespace Shark {
 
 			if (ScriptManager::Instantiate(newEntity, true))
 			{
+				comp.HasRuntime = true;
 				auto& script = ScriptManager::GetScript(newEntity.GetUUID());
 				return script.GetObject();
 			}
 			return nullptr;
 		} 
 
-		void Scene_CreateEntity(MonoString* name, UUID uuid, UUID* out_UUID)
+		void Scene_CreateEntity(MonoString* name, uint64_t entityID, uint64_t* out_EntityID)
 		{
-			SK_PROFILE_FUNCTION();
-
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
 
 			const char* entityName = mono_string_to_utf8(name);
-			Entity entity = scene->CreateEntityWithUUID(uuid.IsValid() ? uuid : UUID::Generate(), entityName ? entityName : std::string{});
-			*out_UUID = entity.GetUUID();
+			Entity entity = scene->CreateEntityWithUUID(entityID, entityName ? entityName : std::string{});
+			*out_EntityID = entity.GetUUID();
 		}
 
-		void Scene_DestroyEntity(UUID entityHandle)
+		void Scene_DestroyEntity(uint64_t entityID)
 		{
-			SK_PROFILE_FUNCTION();
-
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			Entity entity = scene->GetEntityByUUID(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
-			scene->DestroyEntity(entity);
+			auto& queue = scene->GetPostUpdateQueue();
+			queue.push([scene, entityID]()
+			{
+				Entity entity = scene->GetEntityByUUID(entityID);
+				SK_INVALID_ENTITY_GUARD2(entity, return);
+				scene->DestroyEntity(entity);
+			});
+
 		}
 
-		void Scene_CloneEntity(UUID entityHandle, UUID* out_UUID)
+		void Scene_CloneEntity(uint64_t entityID, UUID* out_UUID)
 		{
-			SK_PROFILE_FUNCTION();
-
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			Entity entity = scene->GetEntityByUUID(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = scene->GetEntityByUUID(entityID);
+			SK_INVALID_ENTITY_GUARD2(entity, return);
 			Entity clonedEntity = scene->CloneEntity(entity);
 			*out_UUID = clonedEntity.GetUUID();
 		}
 
-		MonoObject* Scene_GetScriptObject(UUID scriptEntityHandle)
+		MonoObject* Scene_GetScriptObject(uint64_t scriptEntityID)
 		{
-			SK_PROFILE_FUNCTION();
-
-			if (!ScriptManager::Contains(scriptEntityHandle))
+			if (!ScriptManager::Contains(scriptEntityID))
 				return nullptr;
 
-			auto& script = ScriptManager::GetScript(scriptEntityHandle);
+			auto& script = ScriptManager::GetScript(scriptEntityID);
 			return script.GetObject();
 		}
 
-		bool Scene_IsValidEntityHandle(UUID entityHandle)
+		bool Scene_IsValidEntityHandle(uint64_t entityID)
 		{
-			SK_PROFILE_FUNCTION();
-
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			return scene->GetEntityByUUID(entityHandle);
+			return scene->GetEntityByUUID(entityID);
 		}
 
-		void Scene_GetActiveCameraUUID(UUID* out_UUID)
+		bool Scene_GetActiveCameraUUID(uint64_t* out_CameraID)
 		{
-			SK_PROFILE_FUNCTION();
-
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			*out_UUID = scene->GetActiveCameraUUID();
+			*out_CameraID = scene->GetActiveCameraUUID();
+			return true;
 		}
 
-		void Scene_GetUUIDFromTag(MonoString* tag, UUID* out_UUID)
+		bool Scene_GetUUIDFromTag(MonoString* tag, uint64_t* out_EntityID)
 		{
-			SK_PROFILE_FUNCTION();
-
 			const char* cStr = mono_string_to_utf8(tag);
 
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
@@ -545,1087 +578,1551 @@ namespace Shark {
 				Entity entity{ entityID, scene };
 				if (entity.GetName() == cStr)
 				{
-					*out_UUID = entity.GetUUID();
-					return;
+					*out_EntityID = entity.GetUUID();
+					return true;
 				}
 			}
+			return false;
 		}
 
-#pragma endregion
+		#pragma endregion
 
 		#pragma region Entity
 
-		MonoString* Entity_GetName(UUID entityHandle)
+		bool Entity_HasComponent(uint64_t id, MonoReflectionType* type)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, nullptr);
-			const auto& name = entity.GetName();
-			return mono_string_new(mono_domain_get(), name.c_str());
-		}
-
-		void Entity_SetName(UUID entityHandle, MonoString* name)
-		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
-			auto& comp = entity.GetComponent<TagComponent>();
-			comp.Tag = mono_string_to_utf8(name);
-		}
-
-		bool Entity_HasComponent(UUID entityHandle, MonoReflectionType* type)
-		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, false);
-
-			MonoType* t = mono_reflection_type_get_type(type);
-			const char* typeName = mono_type_get_name(t);
-			const auto& bindings = s_EntityBindings.at(typeName);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			
+			auto& bindings = utils::GetEntityBindings(type);
 			return bindings.HasComponent(entity);
 		}
 
-		void Entity_AddComponent(UUID entityHandle, MonoReflectionType* type)
+		void Entity_AddComponent(uint64_t id, MonoReflectionType* type)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD2(entity, return);
 
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			auto& bindings = utils::GetEntityBindings(type);
+			if (bindings.HasComponent(entity))
+				return;
 
-			MonoType* t = mono_reflection_type_get_type(type);
-			const char* typeName = mono_type_get_name(t);
-			const auto& bindings = s_EntityBindings.at(typeName);
 			bindings.AddComponent(entity);
 		}
 
-#pragma endregion
+		void Entity_RemoveComponent(uint64_t id, MonoReflectionType* type)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD2(entity, return);
+
+			auto& bindings = utils::GetEntityBindings(type);
+			if (!bindings.HasComponent(entity))
+				return;
+
+			bindings.RemoveComponent(entity);
+		}
+
+		#pragma endregion
+
+		#pragma region TagComponent
+
+		bool TagComponent_GetTag(uint64_t id, MonoString** out_Tag)
+		{
+			Ref<Scene> scene = ScriptEngine::GetActiveScene();
+			Entity entity = scene->GetEntityByUUID(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_CORE_ASSERT(entity.AllOf<TagComponent>(), "All entities need to have a TagComponent");
+			*out_Tag = mono_string_new(mono_domain_get(), entity.GetName().c_str());
+			return true;
+		}
+
+		bool TagComponent_SetTag(uint64_t id, MonoString* tag)
+		{
+			Ref<Scene> scene = ScriptEngine::GetActiveScene();
+			Entity entity = scene->GetEntityByUUID(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_CORE_ASSERT(entity.AllOf<TagComponent>(), "All entities need to have a TagComponent");
+			char* str = mono_string_to_utf8(tag);
+			if (str)
+			{
+				entity.GetComponent<TagComponent>().Tag = str;
+				return true;
+			}
+			return false;
+		}
+
+		#pragma endregion
 
 		#pragma region TransformComponent
 
-		glm::vec3 TransformComponent_GetTranslation(UUID uuid)
+		bool TransformComponent_GetTranslation(uint64_t id, glm::vec3* out_Translation)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(uuid);
-			SK_INVALID_ENTITY_GUARD(entity, glm::vec3());
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
 			auto& transform = entity.Transform();
-			return transform.Translation;
+			*out_Translation = transform.Translation;
+			return true;
 		}
 
-		void TransformComponent_SetTranslation(UUID uuid, glm::vec3 translation)
+		bool TransformComponent_SetTranslation(uint64_t id, glm::vec3* translation)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(uuid);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
 			auto& transform = entity.Transform();
-			transform.Translation = translation;
+			transform.Translation = *translation;
+			return true;
 		}
 
-		glm::vec3 TransformComponent_GetRotation(UUID uuid)
+		bool TransformComponent_GetRotation(uint64_t id, glm::vec3* out_Rotation)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(uuid);
-			SK_INVALID_ENTITY_GUARD(entity, glm::vec3());
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
 			auto& transform = entity.Transform();
-			return transform.Rotation;
+			*out_Rotation = transform.Rotation;
+			return true;
 		}
 
-		void TransformComponent_SetRotation(UUID uuid, glm::vec3 rotation)
+		bool TransformComponent_SetRotation(uint64_t id, glm::vec3* rotation)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(uuid);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
 			auto& transform = entity.Transform();
-			transform.Rotation = rotation;
+			transform.Rotation = *rotation;
+			return true;
 		}
 
-		glm::vec3 TransformComponent_GetScaling(UUID uuid)
+		bool TransformComponent_GetScale(uint64_t id, glm::vec3* out_Scaling)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(uuid);
-			SK_INVALID_ENTITY_GUARD(entity, glm::vec3());
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
 			auto& transform = entity.Transform();
-			return transform.Scale;
+			*out_Scaling = transform.Scale;
+			return true;
 		}
 
-		void TransformComponent_SetScaling(UUID uuid, glm::vec3 scaling)
+		bool TransformComponent_SetScale(uint64_t id, glm::vec3* scaling)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(uuid);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
 			auto& transform = entity.Transform();
-			transform.Scale = scaling;
+			transform.Scale = *scaling;
+			return true;
 		}
 
-#pragma endregion
+		bool TransformComponent_GetLocalTransform(uint64_t id, TransformComponent* out_LocalTransform)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+
+			*out_LocalTransform = entity.Transform();
+			return true;
+
+		}
+
+		bool TransformComponent_SetLocalTransform(uint64_t id, TransformComponent* localTransform)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+
+			entity.Transform() = *localTransform;
+			return true;
+		}
+
+		bool TransformComponent_GetWorldTransform(uint64_t id, TransformComponent* out_WorldTransform)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+
+			if (!entity.HasParent())
+			{
+				*out_WorldTransform = entity.Transform();
+				return true;
+			}
+
+			Entity parent = entity.ParentEntity();
+			glm::mat4 localToWorld = parent.CalcWorldTransform();
+			
+			auto& tf = entity.Transform();
+			*out_WorldTransform = entity.WorldTransform();
+			return true;
+		}
+
+		bool TransformComponent_SetWorldTransform(uint64_t id, TransformComponent* worldTransform)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+
+			if (!entity.HasParent())
+			{
+				entity.Transform() = *worldTransform;
+				return true;
+			}
+
+
+			Entity parent = entity.ParentEntity();
+			TransformComponent parentWorldTF = parent.WorldTransform();
+			entity.Transform() = TransformUtils::ToLocal(*worldTransform, parentWorldTF);
+
+			const auto a = entity.Transform().Translation;
+			const auto m = glm::fmod(a, 1.0f);
+			const auto abs = glm::abs(m);
+			const auto eequal = glm::equal(abs, glm::vec3(glm::epsilon<float>()));
+			if (glm::any(eequal))
+			{
+				SK_CORE_INFO("InternalCalls SetWorldTransform, Tralstion eqsilonEqual");
+			}
+
+			return true;
+		}
+
+		#pragma endregion
 
 		#pragma region SpriteRendererComponent
 
-		glm::vec4 SpriteRendererComponent_GetColor(UUID entityHandle)
+		bool SpriteRendererComponent_GetColor(uint64_t id, glm::vec4* out_Color)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, glm::vec4());
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, SpriteRendererComponent);
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			return spriteRenderer.Color;
+			*out_Color = spriteRenderer.Color;
+			return true;
 		}
 
-		void SpriteRendererComponent_SetColor(UUID entityHandle, glm::vec4 color)
+		bool SpriteRendererComponent_SetColor(uint64_t id, glm::vec4* color)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, SpriteRendererComponent);
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			spriteRenderer.Color = color;
+			spriteRenderer.Color = *color;
+			return true;
 		}
 
-		AssetHandle SpriteRendererComponent_GetTextureHandle(UUID entityHandle)
+		bool SpriteRendererComponent_GetTextureHandle(uint64_t id, AssetHandle* out_TextureHandle)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, AssetHandle::Invalid);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, SpriteRendererComponent);
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			return spriteRenderer.TextureHandle;
+			*out_TextureHandle = spriteRenderer.TextureHandle;
+			return true;
 		}
 
-		void SpriteRendererComponent_SetTextureHandle(UUID entityHandle, AssetHandle textureHandle)
+		bool SpriteRendererComponent_SetTextureHandle(uint64_t id, AssetHandle* textureHandle)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, SpriteRendererComponent);
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			spriteRenderer.TextureHandle = textureHandle;
+			spriteRenderer.TextureHandle = *textureHandle;
+			return true;
 		}
 
-		float SpriteRendererComponent_GetTilingFactor(UUID entityHandle)
+		bool SpriteRendererComponent_GetTilingFactor(uint64_t id, float* out_TilingFactor)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, float());
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, SpriteRendererComponent);
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			return spriteRenderer.TilingFactor;
+			*out_TilingFactor = spriteRenderer.TilingFactor;
+			return true;
 		}
 
-		void SpriteRendererComponent_SetTilingFactor(UUID entityHandle, float tilingFactor)
+		bool SpriteRendererComponent_SetTilingFactor(uint64_t id, float tilingFactor)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, SpriteRendererComponent);
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
 			spriteRenderer.TilingFactor = tilingFactor;
+			return true;
 		}
 
 		#pragma endregion
 
 		#pragma region CricleRendererComponent
 
-		glm::vec4 CircleRendererComponent_GetColor(UUID entityHandle)
+		bool CircleRendererComponent_GetColor(uint64_t id, glm::vec4* out_Color)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, glm::vec4());
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleRendererComponent);
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			return circleRenderer.Color;
+			*out_Color = circleRenderer.Color;
+			return true;
 		}
 
-		void CircleRendererComponent_SetColor(UUID entityHandle, glm::vec4 color)
+		bool CircleRendererComponent_SetColor(uint64_t id, glm::vec4* color)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleRendererComponent);
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			circleRenderer.Color = color;
+			circleRenderer.Color = *color;
+			return true;
 		}
 
-		float CircleRendererComponent_GetThickness(UUID entityHandle)
+		bool CircleRendererComponent_GetThickness(uint64_t id, float* out_Thickness)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleRendererComponent);
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			return circleRenderer.Thickness;
+			*out_Thickness = circleRenderer.Thickness;
+			return true;
 		}
 
-		void CircleRendererComponent_SetThickness(UUID entityHandle, float thickness)
+		bool CircleRendererComponent_SetThickness(uint64_t id, float thickness)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleRendererComponent);
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
 			circleRenderer.Thickness = thickness;
+			return true;
 		}
 
-		float CircleRendererComponent_GetFade(UUID entityHandle)
+		bool CircleRendererComponent_GetFade(uint64_t id, float* out_Fade)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleRendererComponent);
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			return circleRenderer.Fade;
+			*out_Fade = circleRenderer.Fade;
+			return true;
 		}
 
-		void CircleRendererComponent_SetFade(UUID entityHandle, float fade)
+		bool CircleRendererComponent_SetFade(uint64_t id, float fade)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleRendererComponent);
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
 			circleRenderer.Fade = fade;
+			return true;
 		}
 
 		#pragma endregion
 
 		#pragma region CameraComponent
 
-		glm::mat4 CameraComponent_GetProjection(UUID entityHandle)
+		bool CameraComponent_GetProjection(uint64_t id, glm::mat4* out_Projection)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetProjection();
+			*out_Projection = camera.GetProjection();
+			return true;
 		}
 
-		void CameraComponent_SetProjection(UUID entityHandle, glm::mat4 projection)
+		bool CameraComponent_SetProjection(uint64_t id, glm::mat4* projection)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetProjection(projection);
+			camera.SetProjection(*projection);
+			return true;
 		}
 
-		SceneCamera::Projection CameraComponent_GetProjectionType(UUID entityHandle)
+		bool CameraComponent_GetProjectionType(uint64_t id, SceneCamera::Projection* out_ProjectionType)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetProjectionType();
+			*out_ProjectionType = camera.GetProjectionType();
+			return true;
 		}
 
-		void CameraComponent_SetProjectionType(UUID entityHandle, SceneCamera::Projection projectionType)
+		bool CameraComponent_SetProjectionType(uint64_t id, SceneCamera::Projection projectionType)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetProjectionType(projectionType);
+			return true;
 		}
 		
-		void CameraComponent_SetPerspective(UUID entityHandle, float aspectratio, float fov, float clipnear, float clipfar)
+		bool CameraComponent_SetPerspective(uint64_t id, float aspectratio, float fov, float clipnear, float clipfar)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetPerspective(aspectratio, fov, clipnear, clipfar);
+			return true;
 		}
 
-		void CameraComponent_SetOrthographic(UUID entityHandle, float aspectratio, float zoom, float clipnear, float clipfar)
+		bool CameraComponent_SetOrthographic(uint64_t id, float aspectratio, float zoom, float clipnear, float clipfar)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetOrthographic(aspectratio, zoom, clipnear, clipfar);
+			return true;
 		}
 
-		float CameraComponent_GetAspectratio(UUID entityHandle)
+		bool CameraComponent_GetAspectratio(uint64_t id, float* out_Aspectratio)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetAspectratio();
+			*out_Aspectratio = camera.GetAspectratio();
+			return true;
 		}
 
-		void CameraComponent_SetAspectratio(UUID entityHandle, float aspectratio)
+		bool CameraComponent_SetAspectratio(uint64_t id, float aspectratio)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetAspectratio(aspectratio);
+			return true;
 		}
 
-		float CameraComponent_GetPerspectiveFOV(UUID entityHandle)
+		bool CameraComponent_GetPerspectiveFOV(uint64_t id, float* out_FOV)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetPerspectiveFOV();
+			*out_FOV = camera.GetPerspectiveFOV();
+			return true;
 		}
 
-		void CameraComponent_SetPerspectiveFOV(UUID entityHandle, float fov)
+		bool CameraComponent_SetPerspectiveFOV(uint64_t id, float fov)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetPerspectiveFOV(fov);
+			return true;
 		}
 
-		float CameraComponent_GetPerspectiveNear(UUID entityHandle)
+		bool CameraComponent_GetPerspectiveNear(uint64_t id, float* out_Near)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetPerspectiveNear();
+			*out_Near = camera.GetPerspectiveNear();
+			return true;
 		}
 
-		void CameraComponent_SetPerspectiveNear(UUID entityHandle, float clipnear)
+		bool CameraComponent_SetPerspectiveNear(uint64_t id, float clipnear)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetPerspectiveNear(clipnear);
+			return true;
 		}
 
-		float CameraComponent_GetPerspectiveFar(UUID entityHandle)
+		bool CameraComponent_GetPerspectiveFar(uint64_t id, float* out_Far)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetPerspectiveFar();
+			*out_Far = camera.GetPerspectiveFar();
+			return true;
 		}
 
-		void CameraComponent_SetPerspectiveFar(UUID entityHandle, float clipfar)
+		bool CameraComponent_SetPerspectiveFar(uint64_t id, float clipfar)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetPerspectiveFar(clipfar);
+			return true;
 		}
 
-		float CameraComponent_GetOrthographicZoom(UUID entityHandle)
+		bool CameraComponent_GetOrthographicZoom(uint64_t id, float* out_Zoom)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetOrthographicZoom();
+			*out_Zoom = camera.GetOrthographicZoom();
+			return true;
 		}
 
-		void CameraComponent_SetOrthographicZoom(UUID entityHandle, float zoom)
+		bool CameraComponent_SetOrthographicZoom(uint64_t id, float zoom)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetOrthographicZoom(zoom);
+			return true;
 		}
 
-		float CameraComponent_GetOrthographicNear(UUID entityHandle)
+		bool CameraComponent_GetOrthographicNear(uint64_t id, float* out_Near)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetOrthographicNear();
+			*out_Near = camera.GetOrthographicNear();
+			return true;
 		}
 
-		void CameraComponent_SetOrthographicNear(UUID entityHandle, float clipnear)
+		bool CameraComponent_SetOrthographicNear(uint64_t id, float clipnear)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetOrthographicNear(clipnear);
+			return true;
 		}
 
-		float CameraComponent_GetOrthographicFar(UUID entityHandle)
+		bool CameraComponent_GetOrthographicFar(uint64_t id, float* out_Far)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetOrthographicFar();
+			*out_Far = camera.GetOrthographicFar();
+			return true;
 		}
 		
-		void CameraComponent_SetOrthographicFar(UUID entityHandle, float clipfar)
+		bool CameraComponent_SetOrthographicFar(uint64_t id, float clipfar)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(entityHandle);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CameraComponent);
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 			camera.SetOrthographicFar(clipfar);
+			return true;
 		}
 
 		#pragma endregion
 
 		#pragma region RigidBody2DComponent
 
-		void* RigidBody2DComponent_GetNativeHandle(UUID owner)
+		bool RigidBody2DComponent_GetBodyType(uint64_t id, RigidBody2DComponent::BodyType* out_BodyType)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, nullptr);
-			auto& comp = entity.GetComponent<RigidBody2DComponent>();
-			return comp.RuntimeBody;
+			*out_BodyType = utils::b2BodyTypeToSharkBodyType(body->GetType());
+			return true;
 		}
 
-		RigidBody2DComponent::BodyType RigidBody2DComponent_GetBodyType(void* nativeHandle)
+		bool RigidBody2DComponent_SetBodyType(uint64_t id, RigidBody2DComponent::BodyType bodyType)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return utils::b2BodyTypeToSharkBodyType(body->GetType());
-		}
-
-		void RigidBody2DComponent_SetBodyType(void* nativeHandle, RigidBody2DComponent::BodyType bodyType)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetType(utils::SharkBodyTypeTob2BodyType(bodyType));
+			return true;
 		}
 
-		RigidBody2DTransform RigidBody2DComponent_GetTransform(void* nativeHandle)
+		bool RigidBody2DComponent_GetTransform(uint64_t id, RigidBody2DTransform* out_Transform)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			const auto& tf = body->GetTransform();
 			
 			RigidBody2DTransform transform;
 			transform.Position = { tf.p.x, tf.p.y };
 			transform.Angle = tf.q.GetAngle();
-			return transform;
+			*out_Transform = transform;
+			return true;
 		}
 
-		void RigidBody2DComponent_SetTransform(void* nativeHandle, RigidBody2DTransform* transform)
+		bool RigidBody2DComponent_SetTransform(uint64_t id, RigidBody2DTransform* transform)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
-			
 			const b2Vec2 pos = { transform->Position.x, transform->Position.y };
 			body->SetTransform(pos, transform->Angle);
+			return true;
 		}
 
-		void RigidBody2DComponent_SetPosition(void* nativeHandle, glm::vec2 position)
+		bool RigidBody2DComponent_SetPosition(uint64_t id, glm::vec2* position)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
-
-			body->SetTransform({ position.x, position.y }, body->GetAngle());
+			body->SetTransform({ position->x, position->y }, body->GetAngle());
+			return true;
 		}
 
-		void RigidBody2DComponent_SetRotation(void* nativeHandle, float rotation)
+		bool RigidBody2DComponent_SetRotation(uint64_t id, float rotation)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetTransform(body->GetPosition(), rotation);
+			return true;
 		}
 
-		Vector2 RigidBody2DComponent_GetLocalCenter(void* nativeHandle)
+		bool RigidBody2DComponent_GetLocalCenter(uint64_t id, glm::vec2* out_LocalCenter)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			const b2Vec2 lc = body->GetLocalCenter();
-			return { lc.x, lc.y };
+			*out_LocalCenter = { lc.x, lc.y };
+			return true;
 		}
 
-		Vector2 RigidBody2DComponent_GetWorldCenter(void* nativeHandle)
+		bool RigidBody2DComponent_GetWorldCenter(uint64_t id, glm::vec2* out_WorldCenter)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			const b2Vec2 wc = body->GetWorldCenter();
-			return { wc.x, wc.y };
+			*out_WorldCenter = { wc.x, wc.y };
+			return true;
 		}
 
-		Vector2 RigidBody2DComponent_GetLinearVelocity(void* nativeHandle)
+		bool RigidBody2DComponent_GetLinearVelocity(uint64_t id, glm::vec2* out_LinearVelocity)
 		{
-			SK_PROFILE_FUNCTION();
-
-			const b2Body* body = (const b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			const b2Vec2& lv = body->GetLinearVelocity();
-			return { lv.x, lv.y };
+			*out_LinearVelocity = { lv.x, lv.y };
+			return true;
 		}
 
-		void RigidBody2DComponent_SetLinearVelocity(void* nativeHandle, glm::vec2* linearVelocity)
+		bool RigidBody2DComponent_SetLinearVelocity(uint64_t id, glm::vec2* linearVelocity)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetLinearVelocity({ linearVelocity->x, linearVelocity->y });
+			return true;
 		}
 
-		float RigidBody2DComponent_GetAngularVelocity(void* nativeHandle)
+		bool RigidBody2DComponent_GetAngularVelocity(uint64_t id, float* out_AngularVelocity)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return body->GetAngularVelocity();
+			*out_AngularVelocity = body->GetAngularVelocity();
+			return true;
 		}
 
-		void RigidBody2DComponent_SetAngularVelocity(void* nativeHandle, float angularVelocity)
+		bool RigidBody2DComponent_SetAngularVelocity(uint64_t id, float angularVelocity)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetAngularVelocity(angularVelocity);
+			return true;
 		}
 
-		void RigidBody2DComponent_ApplyForce(void* nativeHandle, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType)
+		bool RigidBody2DComponent_ApplyForce(uint64_t id, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			if (forceType == PhysicsForce2DType::Force)
 				body->ApplyForce({ force->x, force->y }, { point->x, point->y }, true);
 			else
 				body->ApplyLinearImpulse({ force->x, force->y }, { point->x, point->y }, true);
+
+			return true;
 		}
 
-		void RigidBody2DComponent_ApplyForceToCenter(void* nativeHandle, glm::vec2* force, PhysicsForce2DType forceType)
+		bool RigidBody2DComponent_ApplyForceToCenter(uint64_t id, glm::vec2* force, PhysicsForce2DType forceType)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			if (forceType == PhysicsForce2DType::Force)
 				body->ApplyForceToCenter({ force->x, force->y }, true);
 			else
 				body->ApplyLinearImpulseToCenter({ force->x, force->y }, true);
+
+			return true;
 		}
 
-		void RigidBody2DComponent_ApplyTorque(void* nativeHandle, float torque, PhysicsForce2DType forceType)
+		bool RigidBody2DComponent_ApplyTorque(uint64_t id, float torque, PhysicsForce2DType forceType)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			if (forceType == PhysicsForce2DType::Force)
 				body->ApplyTorque(torque, true);
 			else
 				body->ApplyAngularImpulse(torque, true);
+
+			return true;
 		}
 
-		float RigidBody2DComponent_GetGravityScale(void* nativeHandle)
+		bool RigidBody2DComponent_GetGravityScale(uint64_t id, float* out_GravityScale)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return body->GetGravityScale();
+			*out_GravityScale = body->GetGravityScale();
+			return true;
 		}
 
-		void RigidBody2DComponent_SetGravityScale(void* nativeHandle, float gravityScale)
+		bool RigidBody2DComponent_SetGravityScale(uint64_t id, float gravityScale)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			auto& comp = entity.GetComponent<RigidBody2DComponent>();
+			comp.GravityScale = gravityScale;
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetGravityScale(gravityScale);
+			return true;
 		}
 
-		float RigidBody2DComponent_GetLinearDamping(void* nativeHandle)
+		bool RigidBody2DComponent_GetLinearDamping(uint64_t id, float* out_LinearDamping)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return body->GetLinearDamping();
+			*out_LinearDamping = body->GetLinearDamping();
+			return true;
 		}
 
-		void RigidBody2DComponent_SetLinearDamping(void* nativeHandle, float linearDamping)
+		bool RigidBody2DComponent_SetLinearDamping(uint64_t id, float linearDamping)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetLinearDamping(linearDamping);
+			return true;
 		}
 
-		float RigidBody2DComponent_GetAngularDamping(void* nativeHandle)
+		bool RigidBody2DComponent_GetAngularDamping(uint64_t id, float* out_AngularDamping)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return body->GetAngularDamping();
+			*out_AngularDamping = body->GetAngularDamping();
+			return true;
 		}
 
-		void RigidBody2DComponent_SetAngularDamping(void* nativeHandle, float angularDamping)
+		bool RigidBody2DComponent_SetAngularDamping(uint64_t id, float angularDamping)
 		{
-			SK_PROFILE_FUNCTION();
-
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetAngularDamping(angularDamping);
+			return true;
 		}
 
-		bool RigidBody2DComponent_IsBullet(void* nativeHandle)
+		bool RigidBody2DComponent_IsBullet(uint64_t id, bool* out_IsBullet)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return body->IsBullet();
+			*out_IsBullet = body->IsBullet();
+			return true;
 		}
 
-		void RigidBody2DComponent_SetBullet(void* nativeHandle, bool bullet)
+		bool RigidBody2DComponent_SetBullet(uint64_t id, bool bullet)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			auto& comp = entity.GetComponent<RigidBody2DComponent>();
+			comp.IsBullet = bullet;
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetBullet(bullet);
+			return true;
 		}
 
-		bool RigidBody2DComponent_IsSleepingAllowed(void* nativeHandle)
+		bool RigidBody2DComponent_IsSleepingAllowed(uint64_t id, bool* out_SleepingAllowed)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return body->IsSleepingAllowed();
+			*out_SleepingAllowed = body->IsSleepingAllowed();
+			return true;
 		}
 
-		void RigidBody2DComponent_SetSleepingAllowed(void* nativeHandle, bool sleepingAllowed)
+		bool RigidBody2DComponent_SetSleepingAllowed(uint64_t id, bool sleepingAllowed)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			auto& comp = entity.GetComponent<RigidBody2DComponent>();
+			comp.AllowSleep = sleepingAllowed;
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetSleepingAllowed(sleepingAllowed);
+			return true;
 		}
 
-		bool RigidBody2DComponent_IsAwake(void* nativeHandle)
+		bool RigidBody2DComponent_IsAwake(uint64_t id, bool* out_IsAwake)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return body->IsAwake();
+			*out_IsAwake = body->IsAwake();
+			return true;
 		}
 
-		void RigidBody2DComponent_SetAwake(void* nativeHandle, bool awake)
+		bool RigidBody2DComponent_SetAwake(uint64_t id, bool awake)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			auto& comp = entity.GetComponent<RigidBody2DComponent>();
+			comp.Awake = awake;
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetAwake(awake);
+			return true;
 		}
 
-		bool RigidBody2DComponent_IsEnabled(void* nativeHandle)
+		bool RigidBody2DComponent_IsEnabled(uint64_t id, bool* out_IsEnabled)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return body->IsEnabled();
+			*out_IsEnabled = body->IsEnabled();
+			return true;
 		}
 
-		void RigidBody2DComponent_SetEnabled(void* nativeHandle, bool enabled)
+		bool RigidBody2DComponent_SetEnabled(uint64_t id, bool enabled)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			auto& comp = entity.GetComponent<RigidBody2DComponent>();
+			comp.Enabled = enabled;
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetEnabled(enabled);
+			return true;
 		}
 
-		bool RigidBody2DComponent_IsFixedRotation(void* nativeHandle)
+		bool RigidBody2DComponent_IsFixedRotation(uint64_t id, bool* out_FixedRotation)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, {});
-
-			return body->IsFixedRotation();
+			*out_FixedRotation = body->IsFixedRotation();
+			return true;
 		}
 
-		void RigidBody2DComponent_SetFixedRotation(void* nativeHandle, bool fixedRotation)
+		bool RigidBody2DComponent_SetFixedRotation(uint64_t id, bool fixedRotation)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, RigidBody2DComponent);
 
-			b2Body* body = (b2Body*)nativeHandle;
-			SK_INVALID_BODY_HANDLE_GUARD(body, NULL_ARG);
+			auto& comp = entity.GetComponent<RigidBody2DComponent>();
+			comp.FixedRotation = fixedRotation;
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			if (!body)
+				return false;
 
 			body->SetFixedRotation(fixedRotation);
-		}
-
-		#pragma endregion
-
-		#pragma region PhysicsCollider2D
-
-		void PhysicsCollider2D_SetSensor(void* nativeHandle, bool sensor)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			fixture->SetSensor(sensor);
-		}
-
-		bool PhysicsCollider2D_IsSensor(void* nativeHandle)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			return fixture->IsSensor();
-		}
-
-		void PhysicsCollider2D_SetDensity(void* nativeHandle, float density)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			fixture->SetDensity(density);
-		}
-
-		float PhysicsCollider2D_GetDensity(void* nativeHandle)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			return fixture->GetDensity();
-		}
-
-		void PhysicsCollider2D_SetFriction(void* nativeHandle, float friction)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			fixture->SetFriction(friction);
-		}
-
-		float PhysicsCollider2D_GetFriction(void* nativeHandle)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			return fixture->GetFriction();
-		}
-
-		void PhysicsCollider2D_SetRestitution(void* nativeHandle, float restitution)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			fixture->SetRestitution(restitution);
-		}
-
-		float PhysicsCollider2D_GetRestitution(void* nativeHandle)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			return fixture->GetRestitution();
-		}
-
-		void PhysicsCollider2D_SetRestitutionThreshold(void* nativeHandle, float restitutionThreshold)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			fixture->SetRestitutionThreshold(restitutionThreshold);
-		}
-
-		float PhysicsCollider2D_GetRestitutionThreshold(void* nativeHandle)
-		{
-			SK_PROFILE_FUNCTION();
-
-			b2Fixture* fixture = (b2Fixture*)nativeHandle;
-			return fixture->GetRestitutionThreshold();
+			return true;
 		}
 
 		#pragma endregion
 
 		#pragma region BoxCollider2DComponent
 
-		void* BoxCollider2DComponent_GetNativeHandle(UUID owner)
+		bool BoxCollider2DComponent_SetSensor(uint64_t id, bool sensor)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, nullptr);
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			return comp.RuntimeCollider;
-		}
-
-		glm::vec2 BoxCollider2DComponent_GetSize(UUID owner)
-		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			return comp.Size;
+			comp.IsSensor = sensor;
+
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetSensor(sensor);
+			return true;
 		}
 
-		void BoxCollider2DComponent_SetSize(UUID owner, glm::vec2 size)
+		bool BoxCollider2DComponent_IsSensor(uint64_t id, bool* out_IsSensor)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
 
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_IsSensor = fixture->IsSensor();
+			return true;
+		}
+
+		bool BoxCollider2DComponent_SetDensity(uint64_t id, float density)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			comp.Density = density;
+
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetDensity(density);
+			return true;
+		}
+
+		bool BoxCollider2DComponent_GetDensity(uint64_t id, bool* out_Density)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
+
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_Density = fixture->GetDensity();
+			return true;
+		}
+
+		bool BoxCollider2DComponent_SetFriction(uint64_t id, float friction)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			comp.Friction = friction;
+
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetFriction(friction);
+			return true;
+		}
+
+		bool BoxCollider2DComponent_GetFriction(uint64_t id, float* out_Friction)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
+
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_Friction = fixture->GetFriction();
+			return true;
+		}
+
+		bool BoxCollider2DComponent_SetRestitution(uint64_t id, float restitution)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			comp.Restitution = restitution;
+
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetRestitution(restitution);
+			return true;
+		}
+
+		bool BoxCollider2DComponent_GetRestitution(uint64_t id, float* out_Restitution)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
+
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_Restitution = fixture->GetRestitution();
+			return true;
+		}
+
+		bool BoxCollider2DComponent_SetRestitutionThreshold(uint64_t id, float restitutionThreshold)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			comp.RestitutionThreshold = restitutionThreshold;
+
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetRestitutionThreshold(restitutionThreshold);
+			return true;
+		}
+
+		bool BoxCollider2DComponent_GetRestitutionThreshold(uint64_t id, float* out_RestitutionThreshold)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
+
+			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_RestitutionThreshold = fixture->GetRestitutionThreshold();
+			return true;
+		}
+
+		bool BoxCollider2DComponent_GetSize(uint64_t id, glm::vec2* out_Size)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
+
+			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			*out_Size = comp.Size;
+			return true;
+		}
+
+		bool BoxCollider2DComponent_SetSize(uint64_t id, glm::vec2* size)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
 			const auto& transform = entity.Transform();
-			comp.Size = size;
+			comp.Size = *size;
+
+			if (!comp.RuntimeCollider)
+				return true;
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
 			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
 			shape->SetAsBox(comp.Size.x * transform.Scale.x, comp.Size.y * transform.Scale.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+			return true;
 		}
 
-		glm::vec2 BoxCollider2DComponent_GetOffset(UUID owner)
+		bool BoxCollider2DComponent_GetOffset(uint64_t id, glm::vec2* out_Offset)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			return comp.Offset;
+			*out_Offset = comp.Offset;
+			return true;
 		}
 
-		void BoxCollider2DComponent_SetOffset(UUID owner, glm::vec2 offset)
+		bool BoxCollider2DComponent_SetOffset(uint64_t id, glm::vec2* offset)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
 			const auto& transform = entity.Transform();
-			comp.Offset = offset;
+			comp.Offset = *offset;
+
+			if (!comp.RuntimeCollider)
+				return true;
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
 			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
 			shape->SetAsBox(comp.Size.x * transform.Scale.x, comp.Size.y * transform.Scale.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+			return true;
 		}
 
-		float BoxCollider2DComponent_GetRotation(UUID owner)
+		bool BoxCollider2DComponent_GetRotation(uint64_t id, float* out_Rotation)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			return comp.Rotation;
+			*out_Rotation = comp.Rotation;
+			return true;
 		}
 
-		void BoxCollider2DComponent_SetRotation(UUID owner, float rotation)
+		bool BoxCollider2DComponent_SetRotation(uint64_t id, float rotation)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, BoxCollider2DComponent);
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
 			const auto& transform = entity.Transform();
 			comp.Rotation = rotation;
 
+			if (!comp.RuntimeCollider)
+				return true;
+
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
 			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
 			shape->SetAsBox(comp.Size.x * transform.Scale.x, comp.Size.y * transform.Scale.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+			return true;
 		}
 
 		#pragma endregion
 
 		#pragma region CircleCollider2DComponent
 
-		void* CircleCollider2DComponent_GetNativeHandle(UUID owner)
+		bool CircleCollider2DComponent_SetSensor(uint64_t id, bool sensor)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, nullptr);
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			return comp.RuntimeCollider;
-		}
-
-		float CircleCollider2DComponent_GetRadius(UUID owner)
-		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			return comp.Radius;
+			comp.IsSensor = sensor;
+
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetSensor(sensor);
+			return true;
 		}
 
-		void CircleCollider2DComponent_SetRadius(UUID owner, float Radius)
+		bool CircleCollider2DComponent_IsSensor(uint64_t id, bool* out_IsSensor)
 		{
-			SK_PROFILE_FUNCTION();
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
 
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_IsSensor = fixture->IsSensor();
+			return true;
+		}
+
+		bool CircleCollider2DComponent_SetDensity(uint64_t id, float density)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			comp.Density = density;
+
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetDensity(density);
+			return true;
+		}
+
+		bool CircleCollider2DComponent_GetDensity(uint64_t id, bool* out_Density)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
+
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_Density = fixture->GetDensity();
+			return true;
+		}
+
+		bool CircleCollider2DComponent_SetFriction(uint64_t id, float friction)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			comp.Friction = friction;
+
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetFriction(friction);
+			return true;
+		}
+
+		bool CircleCollider2DComponent_GetFriction(uint64_t id, float* out_Friction)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
+
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_Friction = fixture->GetFriction();
+			return true;
+		}
+
+		bool CircleCollider2DComponent_SetRestitution(uint64_t id, float restitution)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			comp.Restitution = restitution;
+
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetRestitution(restitution);
+			return true;
+		}
+
+		bool CircleCollider2DComponent_GetRestitution(uint64_t id, float* out_Restitution)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
+
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_Restitution = fixture->GetRestitution();
+			return true;
+		}
+
+		bool CircleCollider2DComponent_SetRestitutionThreshold(uint64_t id, float restitutionThreshold)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			comp.RestitutionThreshold = restitutionThreshold;
+
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			fixture->SetRestitutionThreshold(restitutionThreshold);
+			return true;
+		}
+
+		bool CircleCollider2DComponent_GetRestitutionThreshold(uint64_t id, float* out_RestitutionThreshold)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
+
+			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
+			if (!fixture)
+				return false;
+
+			*out_RestitutionThreshold = fixture->GetRestitutionThreshold();
+			return true;
+		}
+
+		bool CircleCollider2DComponent_GetRadius(uint64_t id, float* out_Radius)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
+
+			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			*out_Radius = comp.Radius;
+			return true;
+		}
+
+		bool CircleCollider2DComponent_SetRadius(uint64_t id, float Radius)
+		{
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
 			const auto& transform = entity.Transform();
 			comp.Radius = Radius;
 
+			if (!comp.RuntimeCollider)
+				return true;
+
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
 			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
 			shape->m_radius = comp.Radius * transform.Scale.x;
 			shape->m_p = { comp.Offset.x, comp.Offset.y };
+			return true;
 		}
 
-		glm::vec2 CircleCollider2DComponent_GetOffset(UUID owner)
+		bool CircleCollider2DComponent_GetOffset(uint64_t id, glm::vec2* out_Offsets)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			return comp.Offset;
+			*out_Offsets = comp.Offset;
+			return true;
 		}
 
-		void CircleCollider2DComponent_SetOffset(UUID owner, glm::vec2 offset)
+		bool CircleCollider2DComponent_SetOffset(uint64_t id, glm::vec2* offset)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
 			const auto& transform = entity.Transform();
-			comp.Offset = offset;
+			comp.Offset = *offset;
+
+			if (!comp.RuntimeCollider)
+				return true;
 
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
 			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
 			shape->m_radius = comp.Radius * transform.Scale.x;
 			shape->m_p = { comp.Offset.x, comp.Offset.y };
+			return true;
 		}
 
-		float CircleCollider2DComponent_GetRotation(UUID owner)
+		bool CircleCollider2DComponent_GetRotation(uint64_t id, float* out_Rotation)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, {});
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			return comp.Rotation;
+			*out_Rotation = comp.Rotation;
+			return true;
 		}
 
-		void CircleCollider2DComponent_SetRotation(UUID owner, float rotation)
+		bool CircleCollider2DComponent_SetRotation(uint64_t id, float rotation)
 		{
-			SK_PROFILE_FUNCTION();
-
-			Entity entity = utils::GetEntityActiveScene(owner);
-			SK_INVALID_ENTITY_GUARD(entity, NULL_ARG);
+			Entity entity = utils::GetEntityActiveScene(id);
+			SK_INVALID_ENTITY_GUARD(entity);
+			SK_MISSING_COMPONENT_GUARD(entity, CircleCollider2DComponent);
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
 			const auto& transform = entity.Transform();
 			comp.Rotation = rotation;
 
+			if (!comp.RuntimeCollider)
+				return true;
+
 			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
 			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
 			shape->m_radius = comp.Radius * transform.Scale.x;
 			shape->m_p = { comp.Offset.x, comp.Offset.y };
+			return true;
 		}
 
 		#pragma endregion
 
 		#pragma region ResoureManager
 
-		void ResourceManager_GetAssetHandleFromFilePath(MonoString* filePath, AssetHandle* out_AssetHandle)
+		bool ResourceManager_GetAssetHandleFromFilePath(MonoString* filePath, AssetHandle* out_AssetHandle)
 		{
-			SK_PROFILE_FUNCTION();
-
 			const wchar_t* cFilePath = mono_string_to_utf16(filePath);
+			if (!cFilePath)
+				return false;
+
 			*out_AssetHandle = ResourceManager::GetAssetHandleFromFilePath(cFilePath);
+			return true;
+		}
+
+		#pragma endregion
+
+		#pragma region EditorUI
+
+		bool EditorUI_BeginWindow(MonoString* windowTitle)
+		{
+			auto& app = Application::Get();
+			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+				return false;
+
+			char* cWindowTitle = mono_string_to_utf8(windowTitle);
+			return ImGui::Begin(cWindowTitle, nullptr, ImGuiWindowFlags_NoSavedSettings);
+		}
+
+		void EditorUI_EndWindow()
+		{
+			auto& app = Application::Get();
+			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+				return;
+
+			ImGui::End();
+		}
+
+		void EditorUI_Text(MonoString* text)
+		{
+			auto& app = Application::Get();
+			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+				return;
+
+			char* cText = mono_string_to_utf8(text);
+			ImGui::Text(cText);
+		}
+
+		void EditorUI_NewLine()
+		{
+			auto& app = Application::Get();
+			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+				return;
+
+			ImGui::NewLine();
+		}
+
+		void EditorUI_Separator()
+		{
+			auto& app = Application::Get();
+			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+				return;
+
+			ImGui::Separator();
 		}
 
 		#pragma endregion

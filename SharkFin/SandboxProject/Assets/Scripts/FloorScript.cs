@@ -13,14 +13,14 @@ namespace Sandbox
 	{
 		private Color m_InitColor;
 		private Color m_CollishionColor;
-		private UUID m_PlayerUUID;
+		private Entity m_Player;
 		private static Random s_Rng = new Random();
 
 		private SpriteRendererComponent m_SpriteRenderer;
-		private AssetHandle m_CollishionTextureHandle = AssetHandle.Null;
+		private AssetHandle m_CollishionTextureHandle = AssetHandle.Invalid;
 
 		private static Color[] m_Colors = new Color[]{
-			Color.White, Color.Back, Color.Red,
+			Color.White, Color.Black, Color.Red,
 			Color.Green, Color.Blue, Color.Yellow,
 			Color.Cyan, Color.Magenta, Color.Gray
 		};
@@ -35,12 +35,12 @@ namespace Sandbox
 
 			m_CollishionTextureHandle = ResourceManager.GetAssetHandleFromFilePath("Textures/Checkerboard.sktex");
 
-			m_PlayerUUID = Scene.GetUUIDFromTag("Player");
+			m_Player = Scene.GetEntityByTag("Player");
 		}
 
 		protected override void OnCollishionBegin(Entity entity)
 		{
-			if (entity.UUID == m_PlayerUUID)
+			if (entity == m_Player)
 			{
 				m_SpriteRenderer.Color = m_CollishionColor;
 				m_SpriteRenderer.TextureHandle = m_CollishionTextureHandle;
@@ -49,10 +49,10 @@ namespace Sandbox
 
 		protected override void OnCollishionEnd(Entity entity)
 		{
-			if (entity.UUID == m_PlayerUUID)
+			if (entity == m_Player)
 			{
 				m_SpriteRenderer.Color = m_InitColor;
-				m_SpriteRenderer.TextureHandle = AssetHandle.Null;
+				m_SpriteRenderer.TextureHandle = AssetHandle.Invalid;
 			}
 		}
 

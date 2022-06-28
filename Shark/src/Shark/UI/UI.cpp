@@ -232,7 +232,7 @@ namespace Shark::UI {
 		{
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
-			ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
+			//ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
 
 			c.Active = true;
 			return true;
@@ -249,7 +249,7 @@ namespace Shark::UI {
 		{
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
-			ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
+			//ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
 
 			c.ActiveGridFlags = flags;
 			c.Active = true;

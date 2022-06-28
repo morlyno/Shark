@@ -37,10 +37,12 @@ namespace Shark {
 
 	namespace InternalCalls {
 
-		struct Vector2i
-		{
-			int x, y;
-		};
+		#pragma region Application
+
+		uint32_t Application_GetWidth();
+		uint32_t Application_GetHeight();
+
+		#pragma endregion
 
 		#pragma region Log
 
@@ -48,17 +50,11 @@ namespace Shark {
 
 		#pragma endregion
 
-		#pragma region UUID
-
-		UUID UUID_Generate();
-
-		#pragma endregion
-
 		#pragma region Input
 
 		bool Input_KeyPressed(KeyCode key);
 		bool Input_MouseButtonPressed(MouseButton::Type button);
-		Vector2i Input_GetMousePos();
+		bool Input_GetMousePos(glm::ivec2* out_MousePos);
 
 		#pragma endregion
 
@@ -73,104 +69,107 @@ namespace Shark {
 		#pragma region Scene
 
 		MonoObject* Scene_InstantiateScript(MonoReflectionType* scriptType, MonoString* name);
-		void Scene_CreateEntity(MonoString* name, UUID uuid, UUID* out_UUID);
-		void Scene_DestroyEntity(UUID entityHandle);
-		void Scene_CloneEntity(UUID entityHandle, UUID* out_UUID);
-		MonoObject* Scene_GetScriptObject(UUID scriptEntityHandle);
-		bool Scene_IsValidEntityHandle(UUID entityHandle);
-		void Scene_GetActiveCameraUUID(UUID* out_UUID);
-		void Scene_GetUUIDFromTag(MonoString* tag, UUID* out_UUID);
+		void Scene_CreateEntity(MonoString* name, uint64_t entityID, uint64_t* out_EntityID);
+		void Scene_DestroyEntity(uint64_t entityID);
+		void Scene_CloneEntity(uint64_t entityID, UUID* out_UUID);
+		MonoObject* Scene_GetScriptObject(uint64_t scriptEntityID);
+		bool Scene_IsValidEntityHandle(uint64_t entityID);
+		bool Scene_GetActiveCameraUUID(uint64_t* out_CameraID);
+		bool Scene_GetUUIDFromTag(MonoString* tag, uint64_t* out_EntityID);
 
 		#pragma endregion
 
 		#pragma region Entity
 
-		enum class ComponentType : uint16_t
-		{
-			None = 0,
-			ID = 1,
-			Tag = 2,
-			Transform = 3,
-			SpriteRenderer = 4,
-			Camera = 5,
-			RigidBody2D = 6,
-			BoxCollider2D = 7,
-			CircleCollider2D = 8,
-		};
+		bool Entity_HasComponent(uint64_t id, MonoReflectionType* type);
+		void Entity_AddComponent(uint64_t id, MonoReflectionType* type);
+		void Entity_RemoveComponent(uint64_t id, MonoReflectionType* type);
 
-		MonoString* Entity_GetName(UUID entityHandle);
-		void Entity_SetName(UUID entityHandle, MonoString* name);
-		bool Entity_HasComponent(UUID entityHandle, MonoReflectionType* type);
-		void Entity_AddComponent(UUID entityHandle, MonoReflectionType* type);
+		#pragma endregion
+
+		#pragma region TagComponent
+
+		bool TagComponent_GetTag(uint64_t id, MonoString** out_Tag);
+		bool TagComponent_SetTag(uint64_t id, MonoString* tag);
 
 		#pragma endregion
 
 		#pragma region TransformComponent
 
-		glm::vec3 TransformComponent_GetTranslation(UUID uuid);
-		void TransformComponent_SetTranslation(UUID uuid, glm::vec3 translation);
+		bool TransformComponent_GetTranslation(uint64_t id, glm::vec3* out_Translation);
+		bool TransformComponent_SetTranslation(uint64_t id, glm::vec3* translation);
 		
-		glm::vec3 TransformComponent_GetRotation(UUID uuid);
-		void TransformComponent_SetRotation(UUID uuid, glm::vec3 rotation);
+		bool TransformComponent_GetRotation(uint64_t id, glm::vec3* out_Rotation);
+		bool TransformComponent_SetRotation(uint64_t id, glm::vec3* rotation);
 		
-		glm::vec3 TransformComponent_GetScaling(UUID uuid);
-		void TransformComponent_SetScaling(UUID uuid, glm::vec3 scaling);
+		bool TransformComponent_GetScale(uint64_t id, glm::vec3* out_Scaling);
+		bool TransformComponent_SetScale(uint64_t id, glm::vec3* scaling);
+
+		bool TransformComponent_GetLocalTransform(uint64_t id, TransformComponent* out_LocalTransform);
+		bool TransformComponent_SetLocalTransform(uint64_t id, TransformComponent* localTransform);
+		
+		bool TransformComponent_GetWorldTransform(uint64_t id, TransformComponent* out_WorldTransform);
+		bool TransformComponent_SetWorldTransform(uint64_t id, TransformComponent* worldTransform);
 
 		#pragma endregion
 
 		#pragma region SpriteRendererComponent
 
-		glm::vec4 SpriteRendererComponent_GetColor(UUID entityHandle);
-		void SpriteRendererComponent_SetColor(UUID entityHandle, glm::vec4 color);
-		AssetHandle SpriteRendererComponent_GetTextureHandle(UUID entityHandle);
-		void SpriteRendererComponent_SetTextureHandle(UUID entityHandle, AssetHandle textureHandle);
-		float SpriteRendererComponent_GetTilingFactor(UUID entityHandle);
-		void SpriteRendererComponent_SetTilingFactor(UUID entityHandle, float tilingFactor);
+		bool SpriteRendererComponent_GetColor(uint64_t id, glm::vec4* out_Color);
+		bool SpriteRendererComponent_SetColor(uint64_t id, glm::vec4* color);
+
+		bool SpriteRendererComponent_GetTextureHandle(uint64_t id, AssetHandle* out_TextureHandle);
+		bool SpriteRendererComponent_SetTextureHandle(uint64_t id, AssetHandle* textureHandle);
+
+		bool SpriteRendererComponent_GetTilingFactor(uint64_t id, float* out_TilingFactor);
+		bool SpriteRendererComponent_SetTilingFactor(uint64_t id, float tilingFactor);
 
 		#pragma endregion
 
 		#pragma region CricleRendererComponent
 
-		glm::vec4 CircleRendererComponent_GetColor(UUID entityHandle);
-		void CircleRendererComponent_SetColor(UUID entityHandle, glm::vec4 color);
-		float CircleRendererComponent_GetThickness(UUID entityHandle);
-		void CircleRendererComponent_SetThickness(UUID entityHandle, float thickness);
-		float CircleRendererComponent_GetFade(UUID entityHandle);
-		void CircleRendererComponent_SetFade(UUID entityHandle, float fade);
+		bool CircleRendererComponent_GetColor(uint64_t id, glm::vec4* out_Color);
+		bool CircleRendererComponent_SetColor(uint64_t id, glm::vec4* color);
+
+		bool CircleRendererComponent_GetThickness(uint64_t id, float* out_Thickness);
+		bool CircleRendererComponent_SetThickness(uint64_t id, float thickness);
+
+		bool CircleRendererComponent_GetFade(uint64_t id, float* out_Fade);
+		bool CircleRendererComponent_SetFade(uint64_t id, float fade);
 
 		#pragma endregion
 
 		#pragma region CameraComponent
 
-		glm::mat4 CameraComponent_GetProjection(UUID entityHandle);
-		void CameraComponent_SetProjection(UUID entityHandle, glm::mat4 projection);
+		bool CameraComponent_GetProjection(uint64_t id, glm::mat4* out_Projection);
+		bool CameraComponent_SetProjection(uint64_t id, glm::mat4* projection);
 
-		SceneCamera::Projection CameraComponent_GetProjectionType(UUID entityHandle);
-		void CameraComponent_SetProjectionType(UUID entityHandle, SceneCamera::Projection projectionType);
+		bool CameraComponent_GetProjectionType(uint64_t id, SceneCamera::Projection* out_ProjectionType);
+		bool CameraComponent_SetProjectionType(uint64_t id, SceneCamera::Projection projectionType);
 
-		void CameraComponent_SetPerspective(UUID entityHandle, float aspectratio, float fov, float clipnear, float clipfar);
-		void CameraComponent_SetOrthographic(UUID entityHandle, float aspectratio, float zoom, float clipnear, float clipfar);
+		bool CameraComponent_SetPerspective(uint64_t id, float aspectratio, float fov, float clipnear, float clipfar);
+		bool CameraComponent_SetOrthographic(uint64_t id, float aspectratio, float zoom, float clipnear, float clipfar);
 
-		float CameraComponent_GetAspectratio(UUID entityHandle);
-		void CameraComponent_SetAspectratio(UUID entityHandle, float aspectratio);
+		bool CameraComponent_GetAspectratio(uint64_t id, float* out_Aspectratio);
+		bool CameraComponent_SetAspectratio(uint64_t id, float aspectratio);
 
-		float CameraComponent_GetPerspectiveFOV(UUID entityHandle);
-		void CameraComponent_SetPerspectiveFOV(UUID entityHandle, float fov);
+		bool CameraComponent_GetPerspectiveFOV(uint64_t id, float* out_FOV);
+		bool CameraComponent_SetPerspectiveFOV(uint64_t id, float fov);
 
-		float CameraComponent_GetPerspectiveNear(UUID entityHandle);
-		void CameraComponent_SetPerspectiveNear(UUID entityHandle, float clipnear);
+		bool CameraComponent_GetPerspectiveNear(uint64_t id, float* out_Near);
+		bool CameraComponent_SetPerspectiveNear(uint64_t id, float clipnear);
 
-		float CameraComponent_GetPerspectiveFar(UUID entityHandle);
-		void CameraComponent_SetPerspectiveFar(UUID entityHandle, float clipfar);
+		bool CameraComponent_GetPerspectiveFar(uint64_t id, float* out_Far);
+		bool CameraComponent_SetPerspectiveFar(uint64_t id, float clipfar);
 
-		float CameraComponent_GetOrthographicZoom(UUID entityHandle);
-		void CameraComponent_SetOrthographicZoom(UUID entityHandle, float zoom);
+		bool CameraComponent_GetOrthographicZoom(uint64_t id, float* out_Zoom);
+		bool CameraComponent_SetOrthographicZoom(uint64_t id, float zoom);
 
-		float CameraComponent_GetOrthographicNear(UUID entityHandle);
-		void CameraComponent_SetOrthographicNear(UUID entityHandle, float clipnear);
+		bool CameraComponent_GetOrthographicNear(uint64_t id, float* out_Near);
+		bool CameraComponent_SetOrthographicNear(uint64_t id, float clipnear);
 
-		float CameraComponent_GetOrthographicFar(UUID entityHandle);
-		void CameraComponent_SetOrthographicFar(UUID entityHandle, float clipfar);
+		bool CameraComponent_GetOrthographicFar(uint64_t id, float* out_Far);
+		bool CameraComponent_SetOrthographicFar(uint64_t id, float clipfar);
 
 		#pragma endregion
 
@@ -182,98 +181,106 @@ namespace Shark {
 			float Angle;
 		};
 
-		struct Vector2
-		{
-			float x, y;
-		};
-
 		enum class PhysicsForce2DType
 		{
 			Force = 0,
 			Impulse = 1
 		};
 
-		void* RigidBody2DComponent_GetNativeHandle(UUID owner);
-		RigidBody2DComponent::BodyType RigidBody2DComponent_GetBodyType(void* nativeHandle);
-		void RigidBody2DComponent_SetBodyType(void* nativeHandle, RigidBody2DComponent::BodyType bodyType);
-		RigidBody2DTransform RigidBody2DComponent_GetTransform(void* nativeHandle);
-		void RigidBody2DComponent_SetTransform(void* nativeHandle, RigidBody2DTransform* transform);
-		void RigidBody2DComponent_SetPosition(void* nativeHandle, glm::vec2 position);
-		void RigidBody2DComponent_SetRotation(void* nativeHandle, float rotation);
-		Vector2 RigidBody2DComponent_GetLocalCenter(void* nativeHandle);
-		Vector2 RigidBody2DComponent_GetWorldCenter(void* nativeHandle);
-		Vector2 RigidBody2DComponent_GetLinearVelocity(void* nativeHandle);
-		void RigidBody2DComponent_SetLinearVelocity(void* nativeHandle, glm::vec2* linearVelocity);
-		float RigidBody2DComponent_GetAngularVelocity(void* nativeHandle);
-		void RigidBody2DComponent_SetAngularVelocity(void* nativeHandle, float angularVelocity);
-		void RigidBody2DComponent_ApplyForce(void* nativeHandle, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType);
-		void RigidBody2DComponent_ApplyForceToCenter(void* nativeHandle, glm::vec2* force, PhysicsForce2DType forceType);
-		void RigidBody2DComponent_ApplyTorque(void* nativeHandle, float torque, PhysicsForce2DType forceType);
-		float RigidBody2DComponent_GetGravityScale(void* nativeHandle);
-		void RigidBody2DComponent_SetGravityScale(void* nativeHandle, float gravityScale);
-		float RigidBody2DComponent_GetLinearDamping(void* nativeHandle);
-		void RigidBody2DComponent_SetLinearDamping(void* nativeHandle, float linearDamping);
-		float RigidBody2DComponent_GetAngularDamping(void* nativeHandle);
-		void RigidBody2DComponent_SetAngularDamping(void* nativeHandle, float angularDamping);
-		bool RigidBody2DComponent_IsBullet(void* nativeHandle);
-		void RigidBody2DComponent_SetBullet(void* nativeHandle, bool bullet);
-		bool RigidBody2DComponent_IsSleepingAllowed(void* nativeHandle);
-		void RigidBody2DComponent_SetSleepingAllowed(void* nativeHandle, bool sleepingAllowed);
-		bool RigidBody2DComponent_IsAwake(void* nativeHandle);
-		void RigidBody2DComponent_SetAwake(void* nativeHandle, bool awake);
-		bool RigidBody2DComponent_IsEnabled(void* nativeHandle);
-		void RigidBody2DComponent_SetEnabled(void* nativeHandle, bool enabled);
-		bool RigidBody2DComponent_IsFixedRotation(void* nativeHandle);
-		void RigidBody2DComponent_SetFixedRotation(void* nativeHandle, bool fixedRotation);
-
-		#pragma endregion
-
-		#pragma region PhysicsCollider2D
-
-		void PhysicsCollider2D_SetSensor(void* nativeHandle, bool sensor);
-		bool PhysicsCollider2D_IsSensor(void* nativeHandle);
-		void PhysicsCollider2D_SetDensity(void* nativeHandle, float density);
-		float PhysicsCollider2D_GetDensity(void* nativeHandle);
-		void PhysicsCollider2D_SetFriction(void* nativeHandle, float friction);
-		float PhysicsCollider2D_GetFriction(void* nativeHandle);
-		void PhysicsCollider2D_SetRestitution(void* nativeHandle, float restitution);
-		float PhysicsCollider2D_GetRestitution(void* nativeHandle);
-		void PhysicsCollider2D_SetRestitutionThreshold(void* nativeHandle, float restitutionThreshold);
-		float PhysicsCollider2D_GetRestitutionThreshold(void* nativeHandle);
+		bool RigidBody2DComponent_GetBodyType(uint64_t id, RigidBody2DComponent::BodyType* out_BodyType);
+		bool RigidBody2DComponent_SetBodyType(uint64_t id, RigidBody2DComponent::BodyType bodyType);
+		bool RigidBody2DComponent_GetTransform(uint64_t id, RigidBody2DTransform* out_Transform);
+		bool RigidBody2DComponent_SetTransform(uint64_t id, RigidBody2DTransform* transform);
+		bool RigidBody2DComponent_SetPosition(uint64_t id, glm::vec2* position);
+		bool RigidBody2DComponent_SetRotation(uint64_t id, float rotation);
+		bool RigidBody2DComponent_GetLocalCenter(uint64_t id, glm::vec2* out_LocalCenter);
+		bool RigidBody2DComponent_GetWorldCenter(uint64_t id, glm::vec2* out_WorldCenter);
+		bool RigidBody2DComponent_GetLinearVelocity(uint64_t id, glm::vec2* out_LinearVelocity);
+		bool RigidBody2DComponent_SetLinearVelocity(uint64_t id, glm::vec2* linearVelocity);
+		bool RigidBody2DComponent_GetAngularVelocity(uint64_t id, float* out_AngularVelocity);
+		bool RigidBody2DComponent_SetAngularVelocity(uint64_t id, float angularVelocity);
+		bool RigidBody2DComponent_ApplyForce(uint64_t id, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType);
+		bool RigidBody2DComponent_ApplyForceToCenter(uint64_t id, glm::vec2* force, PhysicsForce2DType forceType);
+		bool RigidBody2DComponent_ApplyTorque(uint64_t id, float torque, PhysicsForce2DType forceType);
+		bool RigidBody2DComponent_GetGravityScale(uint64_t id, float* out_GravityScale);
+		bool RigidBody2DComponent_SetGravityScale(uint64_t id, float gravityScale);
+		bool RigidBody2DComponent_GetLinearDamping(uint64_t id, float* out_LinearDamping);
+		bool RigidBody2DComponent_SetLinearDamping(uint64_t id, float linearDamping);
+		bool RigidBody2DComponent_GetAngularDamping(uint64_t id, float* out_AngularDamping);
+		bool RigidBody2DComponent_SetAngularDamping(uint64_t id, float angularDamping);
+		bool RigidBody2DComponent_IsBullet(uint64_t id, bool* out_IsBullet);
+		bool RigidBody2DComponent_SetBullet(uint64_t id, bool bullet);
+		bool RigidBody2DComponent_IsSleepingAllowed(uint64_t id, bool* out_SleepingAllowed);
+		bool RigidBody2DComponent_SetSleepingAllowed(uint64_t id, bool sleepingAllowed);
+		bool RigidBody2DComponent_IsAwake(uint64_t id, bool* out_IsAwake);
+		bool RigidBody2DComponent_SetAwake(uint64_t id, bool awake);
+		bool RigidBody2DComponent_IsEnabled(uint64_t id, bool* out_IsEnabled);
+		bool RigidBody2DComponent_SetEnabled(uint64_t id, bool enabled);
+		bool RigidBody2DComponent_IsFixedRotation(uint64_t id, bool* out_FixedRotation);
+		bool RigidBody2DComponent_SetFixedRotation(uint64_t id, bool fixedRotation);
 
 		#pragma endregion
 
 		#pragma region BoxCollider2DComponent
 
-		void* BoxCollider2DComponent_GetNativeHandle(UUID owner);
+		bool BoxCollider2DComponent_SetSensor(uint64_t id, bool sensor);
+		bool BoxCollider2DComponent_IsSensor(uint64_t id, bool* out_IsSensor);
+		bool BoxCollider2DComponent_SetDensity(uint64_t id, float density);
+		bool BoxCollider2DComponent_GetDensity(uint64_t id, bool* out_Density);
+		bool BoxCollider2DComponent_SetFriction(uint64_t id, float friction);
+		bool BoxCollider2DComponent_GetFriction(uint64_t id, float* out_Friction);
+		bool BoxCollider2DComponent_SetRestitution(uint64_t id, float restitution);
+		bool BoxCollider2DComponent_GetRestitution(uint64_t id, float* out_Restitution);
+		bool BoxCollider2DComponent_SetRestitutionThreshold(uint64_t id, float restitutionThreshold);
+		bool BoxCollider2DComponent_GetRestitutionThreshold(uint64_t id, float* out_RestitutionThreshold);
 
-		glm::vec2 BoxCollider2DComponent_GetSize(UUID owner);
-		void BoxCollider2DComponent_SetSize(UUID owner, glm::vec2 size);
-		glm::vec2 BoxCollider2DComponent_GetOffset(UUID owner);
-		void BoxCollider2DComponent_SetOffset(UUID owner, glm::vec2 offset);
-		float BoxCollider2DComponent_GetRotation(UUID owner);
-		void BoxCollider2DComponent_SetRotation(UUID owner, float rotation);
+		bool BoxCollider2DComponent_GetSize(uint64_t id, glm::vec2* out_Size);
+		bool BoxCollider2DComponent_SetSize(uint64_t id, glm::vec2* size);
+		bool BoxCollider2DComponent_GetOffset(uint64_t id, glm::vec2* out_Offset);
+		bool BoxCollider2DComponent_SetOffset(uint64_t id, glm::vec2* offset);
+		bool BoxCollider2DComponent_GetRotation(uint64_t id, float* out_Rotation);
+		bool BoxCollider2DComponent_SetRotation(uint64_t id, float rotation);
 
 		#pragma endregion
 
 		#pragma region CircleCollider2DComponent
 
-		void* CircleCollider2DComponent_GetNativeHandle(UUID owner);
+		bool CircleCollider2DComponent_SetSensor(uint64_t id, bool sensor);
+		bool CircleCollider2DComponent_IsSensor(uint64_t id, bool* out_IsSensor);
+		bool CircleCollider2DComponent_SetDensity(uint64_t id, float density);
+		bool CircleCollider2DComponent_GetDensity(uint64_t id, bool* out_Density);
+		bool CircleCollider2DComponent_SetFriction(uint64_t id, float friction);
+		bool CircleCollider2DComponent_GetFriction(uint64_t id, float* out_Friction);
+		bool CircleCollider2DComponent_SetRestitution(uint64_t id, float restitution);
+		bool CircleCollider2DComponent_GetRestitution(uint64_t id, float* out_Restitution);
+		bool CircleCollider2DComponent_SetRestitutionThreshold(uint64_t id, float restitutionThreshold);
+		bool CircleCollider2DComponent_GetRestitutionThreshold(uint64_t id, float* out_RestitutionThreshold);
 
-		float CircleCollider2DComponent_GetRadius(UUID owner);
-		void CircleCollider2DComponent_SetRadius(UUID owner, float Radius);
-		glm::vec2 CircleCollider2DComponent_GetOffset(UUID owner);
-		void CircleCollider2DComponent_SetOffset(UUID owner, glm::vec2 offset);
-		float CircleCollider2DComponent_GetRotation(UUID owner);
-		void CircleCollider2DComponent_SetRotation(UUID owner, float rotation);
+		bool CircleCollider2DComponent_GetRadius(uint64_t id, float* out_Radius);
+		bool CircleCollider2DComponent_SetRadius(uint64_t id, float Radius);
+		bool CircleCollider2DComponent_GetOffset(uint64_t id, glm::vec2* out_Offsets);
+		bool CircleCollider2DComponent_SetOffset(uint64_t id, glm::vec2* offset);
+		bool CircleCollider2DComponent_GetRotation(uint64_t id, float* out_Rotation);
+		bool CircleCollider2DComponent_SetRotation(uint64_t id, float rotation);
 
 		#pragma endregion
 
 		#pragma region ResoureManager
 
-		void ResourceManager_GetAssetHandleFromFilePath(MonoString* filePath, AssetHandle* out_AssetHandle);
+		bool ResourceManager_GetAssetHandleFromFilePath(MonoString* filePath, AssetHandle* out_AssetHandle);
 
 		#pragma endregion
+
+		#pragma region EditorUI
+
+		bool EditorUI_BeginWindow(MonoString* windowTitle);
+		void EditorUI_EndWindow();
+		void EditorUI_Text(MonoString* text);
+		void EditorUI_NewLine();
+		void EditorUI_Separator();
+
+		#pragma endregion
+
 
 	}
 

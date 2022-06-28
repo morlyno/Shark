@@ -21,8 +21,8 @@ namespace Sandbox
 
 		protected override void OnCreate()
 		{
-			m_SpriteRenderer = GetOrAddComponent<SpriteRendererComponent>();
-			m_SpriteRenderer.Color = Color.Back;
+			m_SpriteRenderer = GetComponent<SpriteRendererComponent>();
+			m_SpriteRenderer.Color = Color.Black;
 
 			m_Offset = Transform.Translation;
 		}

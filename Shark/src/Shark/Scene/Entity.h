@@ -26,8 +26,6 @@ namespace Shark {
 		template<typename Component, typename... Args>
 		Component& AddComponent(Args&&... args)
 		{
-			SK_PROFILE_FUNCTION();
-			
 			SK_CORE_ASSERT(!AllOf<Component>());
 			return m_Scene->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 		}
@@ -35,16 +33,12 @@ namespace Shark {
 		template<typename Component, typename... Args>
 		Component& AddOrReplaceComponent(Args&&... args)
 		{
-			SK_PROFILE_FUNCTION();
-			
 			return m_Scene->m_Registry.emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 		}
 
 		template<typename Component>
 		void RemoveComponent()
 		{
-			SK_PROFILE_FUNCTION();
-			
 			SK_CORE_ASSERT(AllOf<Component>());
 			m_Scene->m_Registry.remove<Component>(m_EntityHandle);
 		}
@@ -52,8 +46,6 @@ namespace Shark {
 		template<typename Component>
 		Component& GetComponent()
 		{
-			SK_PROFILE_FUNCTION();
-			
 			SK_CORE_ASSERT(AllOf<Component>());
 			return m_Scene->m_Registry.get<Component>(m_EntityHandle);
 		}
@@ -61,22 +53,18 @@ namespace Shark {
 		template<typename Component>
 		Component* TryGetComponent()
 		{
-			SK_PROFILE_FUNCTION();
-			
 			return m_Scene->m_Registry.try_get<Component>(m_EntityHandle);
 		}
 
 		template<typename Component>
 		bool AllOf() const
 		{
-			SK_PROFILE_FUNCTION();
 			return m_Scene->m_Registry.all_of<Component>(m_EntityHandle);
 		}
 
 		template<typename Component>
 		bool AnyOf() const
 		{
-			SK_PROFILE_FUNCTION();
 			return m_Scene->m_Registry.any_of<Component>(m_EntityHandle);
 		}
 
@@ -100,6 +88,7 @@ namespace Shark {
 		bool HasChildren() { return GetComponent<RelationshipComponent>().Children.size() > 0; }
 
 		glm::mat4 CalcWorldTransform();
+		TransformComponent WorldTransform();
 
 		bool IsValid() const { return m_Scene->m_Registry.valid(m_EntityHandle); }
 		bool IsNull() const { return m_EntityHandle == entt::null; }
@@ -112,6 +101,8 @@ namespace Shark {
 
 	private:
 		static void RemoveTargetFromParent(Entity me);
+
+		void WorldRotationScale(glm::vec3& out_Rotation, glm::vec3& out_Scale);
 
 	private:
 		entt::entity m_EntityHandle{ entt::null };

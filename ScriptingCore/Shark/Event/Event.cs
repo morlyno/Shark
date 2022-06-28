@@ -11,23 +11,23 @@ namespace Shark
 	{
 		public class KeyPressedEvent
 		{
-			public Key Key { get; private set; }
+			public Key KeyCode { get; private set; }
 			public bool IsRepeat { get; private set; }
 
-			internal KeyPressedEvent(Key key, bool isRepeat)
+			internal KeyPressedEvent(Key keyCode, bool isRepeat)
 			{
-				Key = key;
+				KeyCode = keyCode;
 				IsRepeat = isRepeat;
 			}
 		}
 
 		public class KeyReleasedEvent
 		{
-			public Key Key { get; private set; }
+			public Key KeyCode { get; private set; }
 
-			internal KeyReleasedEvent(Key key)
+			internal KeyReleasedEvent(Key keyCode)
 			{
-				Key = key;
+				KeyCode = keyCode;
 			}
 		}
 

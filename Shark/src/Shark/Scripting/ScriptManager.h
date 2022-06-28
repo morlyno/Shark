@@ -14,11 +14,13 @@ namespace Shark {
 	class Script
 	{
 	public:
-		void OnCreate();
-		void OnDestroy();
-		void OnUpdate(TimeStep ts);
-		void OnCollishionBegin(UUID uuid, bool isScript);
-		void OnCollishionEnd(UUID uuid, bool isScript);
+		void OnCreate() const;
+		void OnDestroy() const;
+		void OnUpdate(TimeStep ts) const;
+		void OnPhysicsUpdate(TimeStep fixedTimeStep) const;
+		void OnUIRender() const;
+		void OnCollishionBegin(UUID uuid, bool isScript) const;
+		void OnCollishionEnd(UUID uuid, bool isScript) const;
 
 		MonoObject* GetObject() const { return mono_gchandle_get_target(m_GCHandle); }
 
@@ -27,6 +29,8 @@ namespace Shark {
 		MonoMethod* m_OnCreate = nullptr;
 		MonoMethod* m_OnDestroy = nullptr;
 		MonoMethod* m_OnUpdate = nullptr;
+		MonoMethod* m_OnPhyicsUpdate = nullptr;
+		MonoMethod* m_OnUIRender = nullptr;
 		MonoMethod* m_OnCollishionBegin = nullptr;
 		MonoMethod* m_OnCollishionEnd = nullptr;
 

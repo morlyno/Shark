@@ -75,9 +75,25 @@ namespace Shark {
 
 	glm::mat4 Entity::CalcWorldTransform()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (Entity parent = ParentEntity())
 			return parent.CalcWorldTransform() * Transform().CalcTransform();
 		return Transform().CalcTransform();
+	}
+
+	TransformComponent Entity::WorldTransform()
+	{
+		SK_PROFILE_FUNCTION();
+
+		if (!HasParent())
+			return Transform();
+
+		TransformComponent worldTF;
+		WorldRotationScale(worldTF.Rotation, worldTF.Scale);
+		glm::mat4 localToWorld = ParentEntity().CalcWorldTransform();
+		worldTF.Translation = localToWorld * glm::vec4(Transform().Translation, 1.0f);
+		return worldTF;
 	}
 
 	void Entity::RemoveTargetFromParent(Entity target)
@@ -96,6 +112,18 @@ namespace Shark {
 		}
 
 		SK_CORE_ASSERT(false, "Invalid Parent-Child Relationship");
+	}
+
+	void Entity::WorldRotationScale(glm::vec3& out_Rotation, glm::vec3& out_Scale)
+	{
+		Entity entity = *this;
+		while (entity)
+		{
+			const auto& tf = entity.Transform();
+			out_Rotation += tf.Rotation;
+			out_Scale *= tf.Scale;
+			entity = entity.ParentEntity();
+		}
 	}
 
 }

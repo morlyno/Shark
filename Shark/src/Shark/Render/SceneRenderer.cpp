@@ -105,29 +105,21 @@ namespace Shark {
 
 	void SceneRenderer::SubmitQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
 	{
-		SK_PROFILE_FUNCTION();
-		
 		m_Renderer2D->DrawRotatedQuad(position, roation, scaling, texture, tilingfactor, tintcolor, id);
 	}
 
 	void SceneRenderer::SubmitCirlce(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness, float fade, int id)
 	{
-		SK_PROFILE_FUNCTION();
-		
 		m_Renderer2D->DrawFilledCircle(position, rotation, scaling, color, thickness, fade, id);
 	}
 
 	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
 	{
-		SK_PROFILE_FUNCTION();
-
 		m_Renderer2D->DrawQuad(transform, texture, tilingfactor, tintcolor, id);
 	}
 
 	void SceneRenderer::SubmitCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, int id)
 	{
-		SK_PROFILE_FUNCTION();
-
 		m_Renderer2D->DrawFilledCircle(transform, tintcolor, thickness, fade, id);
 	}
 
@@ -145,6 +137,8 @@ namespace Shark {
 
 	void SceneRenderer::OnImGuiRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (ImGui::CollapsingHeader("SceneRenderer"))
 		{
 			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))

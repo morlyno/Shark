@@ -14,7 +14,7 @@ namespace Shark
 		public float a;
 
 		public static Color White   => new Color(1.0f, 1.0f, 1.0f, 1.0f);
-		public static Color Back    => new Color(0.0f, 0.0f, 0.0f, 1.0f);
+		public static Color Black    => new Color(0.0f, 0.0f, 0.0f, 1.0f);
 		public static Color Red     => new Color(1.0f, 0.0f, 0.0f, 1.0f);
 		public static Color Green   => new Color(0.0f, 1.0f, 0.0f, 1.0f);
 		public static Color Blue    => new Color(0.0f, 0.0f, 1.0f, 1.0f);

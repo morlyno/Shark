@@ -21,6 +21,8 @@
 #include <mono/utils/mono-logger.h>
 #include <mono/utils/mono-publib.h>
 
+#define SK_MONO_LOG_LEVEL "warning"
+
 namespace Shark {
 
 	struct ScriptingData
@@ -177,7 +179,7 @@ namespace Shark {
 	void LogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
 	{
 		auto level = utils::MonoLogLevelToLogLevel(log_level);
-		SK_CORE_LOG(level, "{}: {}", log_domain ? log_domain : "Unkown Domain", message);
+		SK_CORE_LOG(level, "{}: {}{}", log_domain ? log_domain : "Unkown Domain", fatal ? "[Fatal] " : "", message);
 	}
 
 	bool ScriptEngine::Init(const std::string& scriptingCoreAssemblyPath)
@@ -355,8 +357,6 @@ namespace Shark {
 
 	bool ScriptEngine::AssemblyHasScript(const std::string& className)
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (!s_ScriptData.ScriptAssembly)
 			return false;
 
@@ -365,22 +365,16 @@ namespace Shark {
 
 	MonoMethod* ScriptEngine::GetMethod(const std::string& methodName, bool includeNameSpace)
 	{
-		SK_PROFILE_FUNCTION();
-
 		return GetMethodInternal(methodName, includeNameSpace, s_ScriptData.ScriptImage);
 	}
 
 	MonoMethod* ScriptEngine::GetMethodCore(const std::string& methodName, bool includeNameSpace)
 	{
-		SK_PROFILE_FUNCTION();
-
 		return GetMethodInternal(methodName, includeNameSpace, s_ScriptData.CoreImage);
 	}
 
 	MonoMethod* ScriptEngine::GetClassMethod(MonoClass* clazz, const std::string& methodName, bool includeNameSpace)
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (MonoMethodDesc* methodDesc = mono_method_desc_new(methodName.c_str(), includeNameSpace))
 		{
 			MonoMethod* method = mono_method_desc_search_in_class(methodDesc, clazz);
@@ -392,8 +386,6 @@ namespace Shark {
 
 	MonoObject* ScriptEngine::InvokeMethodInternal(MonoMethod* method, void* object, void** args)
 	{
-		SK_PROFILE_FUNCTION();
-
 		MonoObject* exception = nullptr;
 		MonoObject* retVal = mono_runtime_invoke(method, object, args, &exception);
 		if (exception)
@@ -406,8 +398,6 @@ namespace Shark {
 
 	MonoMethod* ScriptEngine::GetMethodInternal(const std::string& methodName, bool includeNameSpace, MonoImage* image)
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (MonoMethodDesc* methodDesc = mono_method_desc_new(methodName.c_str(), includeNameSpace))
 		{
 			MonoMethod* method = mono_method_desc_search_in_image(methodDesc, image);
@@ -419,6 +409,8 @@ namespace Shark {
 
 	void ScriptEngine::UpdateModules()
 	{
+		SK_PROFILE_FUNCTION();
+
 		const std::array<std::pair<std::filesystem::path, std::filesystem::path>, 2> paths = {
 			std::pair{ utils::GetScriptingCoreOuputPath(), Application::Get().GetSpecs().ScriptConfig.CoreAssemblyPath },
 			std::pair{ utils::GetScriptModuleOuputPath(), Project::GetActive()->GetConfig().ScriptModulePath }

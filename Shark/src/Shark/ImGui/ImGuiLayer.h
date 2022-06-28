@@ -20,6 +20,8 @@ namespace Shark {
 		virtual void Begin() = 0;
 		virtual void End() = 0;
 
+		virtual bool InFrame() const = 0;
+
 		virtual void BlockEvents(bool block) = 0;
 		virtual void SubmitBlendCallback(bool blend) = 0;
 

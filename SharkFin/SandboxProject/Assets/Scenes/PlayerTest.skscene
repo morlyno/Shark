@@ -8,6 +8,10 @@ Scene:
         Position: [20, 14.3001022, -7.62939453e-06]
         Rotation: [0, 0, 0]
         Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
     - Entity: 0x11c394618e866354
       TagComponent:
         Tag: PlatformMarkerRight
@@ -15,13 +19,21 @@ Scene:
         Position: [20, 1.2467103, 0]
         Rotation: [0, 0, 0]
         Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
     - Entity: 0x14b0acb94394c041
       TagComponent:
         Tag: Player
       TransformComponent:
-        Position: [0, 0, 0]
+        Position: [0, 1.84103084, 0]
         Rotation: [0, 0, 0]
         Scaling: [1, 1.46200013, 0.73099941]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          - Child: 0xbbdb8872e6e21912
       SpriteRendererComponent:
         Color: [0.818627477, 0.713584483, 0.104334891, 1]
         Texture: 0
@@ -45,6 +57,54 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.PlayerController
+    - Entity: 0x208852740dab9b52
+      TagComponent:
+        Tag: DoorSensor
+      TransformComponent:
+        Position: [24.4837399, 1.16422462, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [7.72183704, 6.2280035, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: true
+      ScriptComponent:
+        ScriptName: Sandbox.DoorSensor
+    - Entity: 0x2d7222168d7f312b
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [50.1755829, -2.47000003, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [50.4362755, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
     - Entity: 0x5e341a7845afd12b
       TagComponent:
         Tag: Floor
@@ -52,6 +112,10 @@ Scene:
         Position: [10.9783669, 5.04832745, 0]
         Rotation: [0, 0, 0]
         Scaling: [3.8718853, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -74,6 +138,10 @@ Scene:
         Position: [-24.3999996, 3.30032444, 0.00999999978]
         Rotation: [0, 0, -1.57079625]
         Scaling: [11.9428282, 0.999999821, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -96,6 +164,10 @@ Scene:
         Position: [0.0145327449, -2.47060847, 0]
         Rotation: [0, 0, 0]
         Scaling: [49.8395576, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -118,6 +190,10 @@ Scene:
         Position: [-4.28695583, 7.759758, 0]
         Rotation: [0, 0, 0]
         Scaling: [3.8718853, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -135,11 +211,15 @@ Scene:
         ScriptName: Sandbox.FloorScript
     - Entity: 0x6c99ee886e60b877
       TagComponent:
-        Tag: Floor
+        Tag: Door
       TransformComponent:
         Position: [24.4400005, 3.02999997, 0]
         Rotation: [0, 0, -1.57079625]
         Scaling: [11.9428282, 0.999999821, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -162,6 +242,10 @@ Scene:
         Position: [-23.9843826, 8.69563675, 0]
         Rotation: [-0, 0, -0.785398185]
         Scaling: [8.11126232, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -184,6 +268,10 @@ Scene:
         Position: [-17.0170174, 1.88892102, 0]
         Rotation: [0, 0, 0]
         Scaling: [5.92999077, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         Texture: 0
@@ -206,6 +294,10 @@ Scene:
         Position: [-42.1114731, -15.0414038, 0]
         Rotation: [0, 0, 0]
         Scaling: [0.540000021, 0.540000021, 0.540000021]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       CircleRendererComponent:
         Color: [0.748182833, 0.0552912168, 0.867647052, 1]
         Thickness: 1
@@ -218,16 +310,29 @@ Scene:
         Enabled: false
         GravityScale: 1
         AllowSleep: true
+      CircleCollider2DComponent:
+        Radius: 0.5
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0.400000006
+        RestitutionThreshold: 1
+        IsSensor: false
     - Entity: 0xbbdb8872e6e21912
       TagComponent:
         Tag: Camera
       TransformComponent:
-        Position: [0, 7.79384661, -29.3283787]
+        Position: [0, 0, -42.0822182]
         Rotation: [0, 0, 0]
-        Scaling: [1, 1, 1]
+        Scaling: [1, 0.684931517, 1.00000012]
+      RelationshipComponent:
+        Parent: 0x14b0acb94394c041
+        Children:
+          []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.25285172
+        Aspectratio: 1.89512551
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -241,6 +346,10 @@ Scene:
         Position: [0, 6.43789101, 0]
         Rotation: [0, 0, 0]
         Scaling: [76.3412781, 44.1148911, 76.3412781]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -252,6 +361,32 @@ Scene:
         IsSensor: true
       ScriptComponent:
         ScriptName: Sandbox.BallDestroyer
+    - Entity: 0xc539186ecd448346
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [-25.7128296, 17.9947548, 0]
+        Rotation: [0, 0, 1.43581331]
+        Scaling: [13.9680748, 0.999966443, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
     - Entity: 0xc55718d7fdd18f8f
       TagComponent:
         Tag: Camera Otho
@@ -259,15 +394,45 @@ Scene:
         Position: [0, 0, 0]
         Rotation: [0, 0, 0]
         Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       CameraComponent:
         Type: Orthographic
-        Aspectratio: 2.25285172
+        Aspectratio: 1.89512551
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
         OrthographicZoom: 13.0200005
         OrthographicNear: -1
         OrthographicFar: 20
+    - Entity: 0xdb4aee8ea6736109
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [20.2288933, 16.7452679, 0]
+        Rotation: [0, 0, -1.08275139]
+        Scaling: [18.0373764, 0.999999225, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript
     - Entity: 0xe5ff6bf1e4f4123f
       TagComponent:
         Tag: MovingPlatform
@@ -275,6 +440,10 @@ Scene:
         Position: [1.99478769, 13.9456997, -3.81469863e-06]
         Rotation: [0, 0, 0]
         Scaling: [5.02731562, 0.569610953, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.118440032, 0.410045177, 0.779411793, 1]
         Texture: 0
@@ -305,7 +474,37 @@ Scene:
         Position: [-0.344259977, 1.54446173, 7.09832668]
         Rotation: [0.650556803, -0.0608302988, 0.0797070712]
         Scaling: [5.89680052, 5.89680052, 5.89679861]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         Texture: 0
         TilingFactor: 1
+    - Entity: 0xfd4fa3077eb46a0e
+      TagComponent:
+        Tag: Floor
+      TransformComponent:
+        Position: [0.0145327449, 24.4650364, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [49.8395576, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      ScriptComponent:
+        ScriptName: Sandbox.FloorScript

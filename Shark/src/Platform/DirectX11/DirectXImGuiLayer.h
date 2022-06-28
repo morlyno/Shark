@@ -25,6 +25,8 @@ namespace Shark {
 		virtual void Begin() override;
 		virtual void End() override;
 
+		virtual bool InFrame() const { return m_InFrame; }
+
 		virtual void BlockEvents(bool block) override { m_BlockEvents = block; }
 		virtual void SubmitBlendCallback(bool blend) override;
 
@@ -32,6 +34,7 @@ namespace Shark {
 
 	private:
 		bool m_BlockEvents = false;
+		bool m_InFrame = false;
 
 		Ref<DirectXRenderCommandBuffer> m_CommandBuffer;
 		Ref<DirectXGPUTimer> m_Timer;

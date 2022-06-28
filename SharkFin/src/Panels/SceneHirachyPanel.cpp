@@ -140,8 +140,6 @@ namespace Shark {
 
 	void SceneHirachyPanel::DrawEntityNode(Entity entity)
 	{
-		SK_PROFILE_FUNCTION();
-		
 		const auto& tag = entity.GetComponent<TagComponent>();
 		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
 		if (m_SelectedEntity == entity)
@@ -385,14 +383,26 @@ namespace Shark {
 
 		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)
 		{
-			m_SelectedProjectionIndex = (int)comp.Camera.GetProjectionType();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-			ImGui::Combo("##Projection", &m_SelectedProjectionIndex, s_ProjectionItems, (int)std::size(s_ProjectionItems));
+			
+			auto projectionType = comp.Camera.GetProjectionType();
+			if (ImGui::BeginCombo("##Projection", s_ProjectionItems[(uint32_t)projectionType]))
+			{
+				for (uint32_t i = 1; i < std::size(s_ProjectionItems); i++)
+				{
+					if (ImGui::Selectable(s_ProjectionItems[i], i == (uint32_t)projectionType))
+					{
+						projectionType = (SceneCamera::Projection)i;
+						comp.Camera.SetProjectionType(projectionType);
+					}
+				}
+				ImGui::EndCombo();
+			}
 
 
 			UI::BeginControlsGrid();
 
-			if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Perspective)
+			if (projectionType == SceneCamera::Projection::Perspective)
 			{
 				auto& camera = comp.Camera;
 				camera.SetProjectionType(SceneCamera::Projection::Perspective);
@@ -410,7 +420,7 @@ namespace Shark {
 				if (changed && (clipnear > 0.0f && clipfar > 0.0f && !glm::epsilonEqual(clipnear, clipfar, 0.00001f)))
 					camera.SetPerspective(camera.GetAspectratio(), fov, clipnear, clipfar);
 			}
-			else if (m_SelectedProjectionIndex == (int)SceneCamera::Projection::Orthographic)
+			else if (projectionType == SceneCamera::Projection::Orthographic)
 			{
 				auto& camera = comp.Camera;
 				camera.SetProjectionType(SceneCamera::Projection::Orthographic);
@@ -441,7 +451,9 @@ namespace Shark {
 		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Body Type", (int&)comp.Type, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0]));
+			int index = (int)comp.Type - 1;
+			if (UI::Control("Body Type", index, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0])))
+				comp.Type = (decltype(comp.Type))(index + 1);
 			UI::Control("Fixed Rotation", comp.FixedRotation);
 			UI::Control("Bullet", comp.IsBullet);
 			UI::Control("Awake", comp.Awake);

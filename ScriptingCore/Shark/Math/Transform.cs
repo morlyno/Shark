@@ -9,7 +9,7 @@ namespace Shark
 	{
 		public Vector3 Translation;
 		public Vector3 Rotation;
-		public Vector3 Scaling;
+		public Vector3 Scale;
 	}
 	
 	[StructLayout(LayoutKind.Sequential)]
@@ -17,7 +17,7 @@ namespace Shark
 	{
 		public Vector2 Translation;
 		public float Rotation;
-		public Vector2 Scaling;
+		public Vector2 Scale;
 	}
 	
 	[StructLayout(LayoutKind.Sequential)]

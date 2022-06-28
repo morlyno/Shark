@@ -33,6 +33,7 @@ namespace Shark {
 
 		enum class Projection
 		{
+			None = 0,
 			Perspective, Orthographic
 		};
 	public:

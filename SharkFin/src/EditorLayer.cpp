@@ -169,7 +169,7 @@ namespace Shark {
 				}
 				case SceneState::Simulate:
 				{
-					m_ActiveScene->OnSimulate(ts);
+					m_ActiveScene->OnUpdateSimulate(ts);
 					m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
 					break;
 				}
@@ -180,7 +180,7 @@ namespace Shark {
 						if (m_InitialSceneState == SceneState::Play)
 							m_ActiveScene->OnUpdateRuntime(1.0f / 60.0f);
 						else if (m_InitialSceneState == SceneState::Simulate)
-							m_ActiveScene->OnSimulate(1.0f / 60.0f);
+							m_ActiveScene->OnUpdateSimulate(1.0f / 60.0f);
 
 						m_UpdateNextFrame = false;
 					}
@@ -410,6 +410,9 @@ namespace Shark {
 
 		m_PanelManager->OnImGuiRender();
 
+		for (auto& [uuid, script] : ScriptManager::GetScripts())
+			script.OnUIRender();
+
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
 	}
@@ -542,6 +545,7 @@ namespace Shark {
 
 			ImGui::EndMainMenuBar();
 		}
+
 	}
 
 	void EditorLayer::UI_Viewport()
@@ -1476,15 +1480,19 @@ namespace Shark {
 
 		for (auto& [uuid, script] : ScriptManager::GetScripts())
 		{
-			std::string name = fmt::format("0x{:x}", uuid);
-			if (ImGui::TreeNodeEx(name.c_str(), UI::TreeNodeSeperatorFlags))
+			MonoObject* object = mono_gchandle_get_target(script.m_GCHandle);
+			MonoClass* clazz = mono_object_get_class(object);
+			const char* className = mono_class_get_name(clazz);
+			std::string label = fmt::format("{} 0x{:x}", className, uuid);
+			if (ImGui::TreeNodeEx(label.c_str(), UI::TreeNodeSeperatorFlags))
 			{
 				UI::BeginControlsGrid();
-
 				UI::Control("GCHandle", fmt::to_string(script.m_GCHandle));
 				UI::Control("OnCreate", fmt::to_string((const void*)script.m_OnCreate));
 				UI::Control("OnDestroy", fmt::to_string((const void*)script.m_OnDestroy));
 				UI::Control("OnUpdate", fmt::to_string((const void*)script.m_OnUpdate));
+				UI::Control("OnPhyicsUpdate", fmt::to_string((const void*)script.m_OnPhyicsUpdate));
+				UI::Control("OnUIRender", fmt::to_string((const void*)script.m_OnUIRender));
 				UI::Control("OnCollishionBegin", fmt::to_string((const void*)script.m_OnCollishionBegin));
 				UI::Control("OnCollishionEnd", fmt::to_string((const void*)script.m_OnCollishionEnd));
 
@@ -1594,7 +1602,7 @@ namespace Shark {
 		{
 			Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
 			if (cameraEntity)
-				m_ActiveScene->OnRenderRuntimePreview(m_CameraPreviewRenderer, GetViewProjFromCameraEntity(cameraEntity));
+				m_ActiveScene->OnRenderRuntime(m_CameraPreviewRenderer);
 		}
 	}
 
@@ -1630,10 +1638,10 @@ namespace Shark {
 
 		if (m_SceneState == SceneState::Play)
 		{
-			Entity cameraEntity = m_ActiveScene->GetRuntimeCamera();
+			Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
 			auto& camera = cameraEntity.GetComponent<CameraComponent>();
 			auto& tf = cameraEntity.Transform();
-			return camera.GetProjection() * glm::inverse(tf.CalcTransform());
+			return camera.GetProjection() * glm::inverse(cameraEntity.CalcWorldTransform());
 		}
 
 		return m_EditorCamera.GetViewProjection();
@@ -1774,7 +1782,7 @@ namespace Shark {
 		m_InitialSceneState = SceneState::Simulate;
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
-		m_ActiveScene->OnSimulateStart();
+		m_ActiveScene->OnSimulationPlay();
 	}
 
 	void EditorLayer::SetActiveScene(Ref<Scene> scene)

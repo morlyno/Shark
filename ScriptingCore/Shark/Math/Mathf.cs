@@ -6,6 +6,11 @@ namespace Shark
 	public static class Mathf
 	{
 
+		public static float Abs(float val)
+		{
+			return (float)Math.Abs(val);
+		}
+
 		public static float Sqrt(float val)
 		{
 			return (float)Math.Sqrt((double)val);

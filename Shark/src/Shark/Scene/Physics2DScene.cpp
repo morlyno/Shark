@@ -52,6 +52,9 @@ namespace Shark {
 
 		while (m_Accumulator >= m_FixedTimeStep)
 		{
+			if (m_OnPhysicsStep)
+				m_OnPhysicsStep(m_FixedTimeStep);
+
 			m_World->Step(m_FixedTimeStep, m_VelocityIterations, m_PositionIterations);
 			m_Accumulator -= m_FixedTimeStep;
 		}

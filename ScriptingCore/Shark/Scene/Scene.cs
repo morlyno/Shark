@@ -5,68 +5,61 @@ namespace Shark
 {
 	public static class Scene
 	{
-		// Creates new Entity with Script of type T
 		public static T Instantiate<T>(string name) where T : Entity
-		{
-			return (T)InternalCalls.Scene_InstantiateScript(typeof(T), name);
-		}
+			=> InternalCalls.Scene_InstantiateScript(typeof(T), name) as T;
 
-		// Creates new Entity
 		public static Entity Instantiate(string name)
 		{
-			/*UUID uuid =*/ InternalCalls.Scene_CreateEntity(name, UUID.Invalid, out UUID out_uuid);
-			return new Entity(out_uuid);
+			InternalCalls.Scene_CreateEntity(name, 0, out ulong id);
+			return new Entity(id);
 		}
 
-		// Destroyes Entity
 		public static void Destroy(Entity entity)
-		{
-			InternalCalls.Scene_DestroyEntity(entity.UUID);
-		}
+			=> InternalCalls.Scene_DestroyEntity(entity.ID);
 
-		// Creates new Entity
 		public static Entity CloneEntity(Entity entity)
 		{
-			InternalCalls.Scene_CloneEntity(entity.UUID, out UUID uuid);
-			return GetEntityByUUID(uuid);
+			InternalCalls.Scene_CloneEntity(entity.ID, out ulong id);
+			return GetEntityByID(id);
 		}
 
 		// Get Entity by UUID
 		// returns either a script or a basic Entity
 		// if the uuid is invalid the return value is null
-		public static Entity GetEntityByUUID(UUID uuid)
+		public static Entity GetEntityByID(ulong id)
 		{
-			Entity entity = InternalCalls.Scene_GetScriptObject(uuid);
+			Entity entity = InternalCalls.Scene_GetScriptObject(id);
 			if (entity != null)
 				return entity;
-			if (InternalCalls.Scene_IsValidEntityHandle(uuid))
-				return new Entity(uuid);
+			if (InternalCalls.Scene_IsValidEntityHandle(id))
+				return new Entity(id);
 			return null;
 		}
 
-		public static UUID GetUUIDFromTag(string tag)
+		public static ulong GetIDFromTag(string tag)
 		{
-			InternalCalls.Scene_GetUUIDFromTag(tag, out UUID uuid);
-			return uuid;
+			if (InternalCalls.Scene_GetUUIDFromTag(tag, out ulong id))
+				return id;
+			return 0;
 		}
 
 		public static Entity GetEntityByTag(string tag)
 		{
-			InternalCalls.Scene_GetUUIDFromTag(tag, out UUID uuid);
-			return GetEntityByUUID(uuid);
+			if (InternalCalls.Scene_GetUUIDFromTag(tag, out ulong id))
+				return GetEntityByID(id);
+			return null;
 		}
 
-		// Returns the active Camera UUID
-		public static UUID GetActiveCameraUUID()
+		public static ulong GetActiveCameraID()
 		{
-			InternalCalls.Scene_GetActiveCameraUUID(out UUID uuid);
-			return uuid;
+			InternalCalls.Scene_GetActiveCameraUUID(out ulong id);
+			return id;
 		}
 
-		public static Entity GetActiveCameraEntity()
+		public static Entity GetActiveCamera()
 		{
-			UUID uuid = GetActiveCameraUUID();
-			return GetEntityByUUID(uuid);
+			ulong id = GetActiveCameraID();
+			return GetEntityByID(id);
 		}
 
 	}

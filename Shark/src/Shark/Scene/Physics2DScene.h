@@ -27,6 +27,12 @@ namespace Shark {
 		bool HasBody(const b2Body* body) const;
 		bool HodyHasCollider(const b2Body* body, const b2Fixture* fixture);
 
+		template<typename Func>
+		void SetOnPhyicsStepCallback(const Func& func)
+		{
+			m_OnPhysicsStep = func;
+		}
+
 		b2World* GetWorld() const { return m_World; }
 	private:
 		b2World* m_World = nullptr;
@@ -37,6 +43,8 @@ namespace Shark {
 
 		float m_Accumulator = 0.0f;
 		float m_FixedTimeStep = 0.001f;
+
+		std::function<void(TimeStep)> m_OnPhysicsStep;
 	};
 
 }

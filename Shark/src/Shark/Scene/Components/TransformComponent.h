@@ -24,14 +24,48 @@ namespace Shark {
 	class TransformUtils
 	{
 	public:
-		static TransformComponent AddTransform(const TransformComponent& lhs, const TransformComponent& rhs)
-		{
-			return {
-				lhs.Translation + rhs.Translation,
-				lhs.Rotation + rhs.Rotation,
-				lhs.Scale * rhs.Scale
-			};
-		}
+		static void MakeLocal(TransformComponent& transform, const TransformComponent& worldParent);
+		static void MakeWorld(TransformComponent& transform, const TransformComponent& worldParent);
+
+		static TransformComponent ToLocal(const TransformComponent& world, const TransformComponent& worldParent);
+		static TransformComponent ToWorld(const TransformComponent& local, const TransformComponent& worldParent);
 	};
+
+	inline void TransformUtils::MakeLocal(TransformComponent& transform, const TransformComponent& worldParent)
+	{
+		glm::mat4 worldToLocal = glm::inverse(worldParent.CalcTransform());
+		transform.Translation = worldToLocal * glm::vec4(transform.Translation, 1.0f);
+		transform.Rotation = transform.Rotation - worldParent.Rotation;
+		transform.Scale = transform.Scale / worldParent.Scale;
+	}
+
+	inline void TransformUtils::MakeWorld(TransformComponent& transform, const TransformComponent& worldParent)
+	{
+		glm::mat4 localToWorld = worldParent.CalcTransform();
+		transform.Translation = localToWorld * glm::vec4(transform.Translation, 1.0f);
+		transform.Rotation += worldParent.Rotation;
+		transform.Scale *= worldParent.Scale;
+	}
+
+	inline TransformComponent TransformUtils::ToLocal(const TransformComponent& world, const TransformComponent& worldParent)
+	{
+		// dmat4 fixes the result being off by flt epsilon
+		glm::dmat4 worldToLocal = glm::inverse((glm::dmat4)worldParent.CalcTransform());
+		return {
+			worldToLocal * glm::vec4(world.Translation, 1.0f),
+			world.Rotation - worldParent.Rotation,
+			world.Scale / worldParent.Scale
+		};
+	}
+
+	inline TransformComponent TransformUtils::ToWorld(const TransformComponent& local, const TransformComponent& worldParent)
+	{
+		glm::mat4 localToWorld = worldParent.CalcTransform();
+		return {
+			localToWorld * glm::vec4(local.Translation, 1.0f),
+			local.Rotation + worldParent.Rotation,
+			local.Scale * worldParent.Scale
+		};
+	}
 
 }

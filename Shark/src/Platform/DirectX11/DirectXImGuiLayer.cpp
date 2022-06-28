@@ -115,11 +115,15 @@ namespace Shark {
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 		UI::NewFrame();
+
+		m_InFrame = true;
 	}
 
 	void DirectXImGuiLayer::End()
 	{
 		SK_PROFILE_FUNCTION();
+
+		m_InFrame = false;
 
 		ImGuiIO& io = ImGui::GetIO();
 		auto& window = Application::Get().GetWindow();

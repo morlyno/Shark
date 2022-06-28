@@ -36,7 +36,6 @@
 	#define SK_ENABLE_VERIFY 1
 	#define SK_ENABLE_VALIDATION 1
 	#define SK_IF_DEBUG(x) { x }
-	#define SK_MONO_LOG_LEVEL "debug"
 #endif
 
 #if SK_RELEASE
@@ -46,7 +45,6 @@
 	#define SK_ENABLE_VERIFY 2
 	#define SK_ENABLE_VALIDATION 1
 	#define SK_IF_DEBUG(...)
-	#define SK_MONO_LOG_LEVEL "warning"
 #endif
 
 #define SK_ENABLE_PERF 1

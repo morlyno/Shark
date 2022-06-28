@@ -6,7 +6,7 @@ namespace Shark {
 
 	struct RigidBody2DComponent
 	{
-		enum class BodyType { Static = 0, Dynamic = 1, Kinematic = 2 };
+		enum class BodyType { None = 0, Static, Dynamic, Kinematic };
 		BodyType Type = BodyType::Dynamic;
 		bool FixedRotation = false;
 		bool IsBullet = false;

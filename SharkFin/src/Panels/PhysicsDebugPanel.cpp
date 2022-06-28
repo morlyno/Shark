@@ -112,7 +112,6 @@ namespace Shark {
 						UI::Control("IsEnabled", fmt::to_string(body->IsEnabled()));
 						UI::EndControls();
 					}
-
 					ImGui::TreePop();
 				}
 				ImGui::PopID();

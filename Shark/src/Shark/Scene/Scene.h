@@ -50,13 +50,12 @@ namespace Shark {
 
 		void OnScenePlay();
 		void OnSceneStop();
-		void OnSimulateStart();
+		void OnSimulationPlay();
 
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts);
-		void OnSimulate(TimeStep ts);
+		void OnUpdateSimulate(TimeStep ts);
 
-		void OnRenderRuntimePreview(Ref<SceneRenderer> renderer, const glm::mat4& viewProj);
 		void OnRenderRuntime(Ref<SceneRenderer> renderer);
 		void OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
 		void OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
@@ -76,11 +75,11 @@ namespace Shark {
 		}
 
 		Entity GetEntityByUUID(UUID uuid) const;
+		Entity GetEntityByTag(const std::string& tag);
 
 		bool IsValidEntity(Entity entity) const;
 
 		Entity GetActiveCameraEntity() const;
-		Entity GetRuntimeCamera();
 		UUID GetActiveCameraUUID() const { return m_ActiveCameraUUID; }
 		void SetActiveCamera(UUID camera) { m_ActiveCameraUUID = camera; }
 		void ResizeCameras(float width, float height);
@@ -91,6 +90,7 @@ namespace Shark {
 
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
+		std::queue<std::function<void()>>& GetPostUpdateQueue() { return m_PostUpdateQueue; }
 
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
@@ -100,17 +100,22 @@ namespace Shark {
 	private:
 		void DestroyEntityInternal(Entity entity, bool destroyChildren, bool first);
 		void SetupBox2D();
+		void OnPhyicsStep(TimeStep fixedTimeStep);
 
 		void RenderEntity(const Ref<SceneRenderer>& renderer, Entity entity, const glm::mat4& parentTransform);
 
-		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity entityID);
-		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity entityID);
-		void OnCircleCollider2DComponentCreated(entt::registry& registry, entt::entity entityID);
-		
+		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity ent);
+		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity ent);
+		void OnCircleCollider2DComponentCreated(entt::registry& registry, entt::entity ent);
+
+		void OnRigidBody2DComponentDestroyed(entt::registry& registry, entt::entity ent);
+		void OnBoxCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent);
+		void OnCircleCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent);
+		void OnScriptComponentDestroyed(entt::registry& registry, entt::entity ent);
+
 	private:
 		entt::registry m_Registry;
 		UUID m_ActiveCameraUUID = UUID::Invalid;
-		entt::entity m_RuntimeCamera = entt::null;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
@@ -119,6 +124,8 @@ namespace Shark {
 		ContactListener m_ContactListener;
 
 		bool m_IsEditorScene = false;
+
+		std::queue<std::function<void()>> m_PostUpdateQueue;
 
 		friend class Entity;
 		friend class SceneHirachyPanel;

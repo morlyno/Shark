@@ -13,16 +13,19 @@ namespace Sandbox
 		private bool m_CanDoubleJump = true;
 
 		// Movement
-		private float m_MovementSpeed;
+		private float m_MovementSpeed = 8.0f; // m/s;
 		private float m_JumpVelocity = 7.5f;
 		private RigidBody2DComponent m_RigidBody;
 		private BoxCollider2DComponent m_BoxCollider;
 
-		private Entity m_CameraEntity = null;
+		private Entity m_ActiveCamera = null;
 
 		private Entity m_BallTemplate;
 		private TimeStep m_Time = 0;
 		private bool m_AutoSpawnBalls = false;
+
+		private bool m_ShoudShoot = false;
+		private bool m_AutoShoot = false;
 
 		protected override void OnCreate()
 		{
@@ -31,10 +34,11 @@ namespace Sandbox
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
 			m_BoxCollider = GetComponent<BoxCollider2DComponent>();
 
-			m_CameraEntity = Scene.GetActiveCameraEntity();
+			m_ActiveCamera = Scene.GetActiveCamera();
 
 			EventHandler.OnKeyPressed += OnKeyPressed;
 			EventHandler.OnMouseScrolled += OnMouseScrolled;
+			EventHandler.OnMouseButtonPressed += (e) => { if (e.Button == MouseButton.Left) m_ShoudShoot = true; };
 		}
 
 		protected override void OnDestroy()
@@ -45,9 +49,7 @@ namespace Sandbox
 
 		protected override void OnUpdate(TimeStep ts)
 		{
-			Movement(ts);
-
-			if (Input.KeyPressed(Key.T))
+			if (Input.IsKeyPressed(Key.T))
 			{
 				CreateBall();
 			}
@@ -61,33 +63,32 @@ namespace Sandbox
 				}
 			}
 
-			if (m_CameraEntity != null)
+			if (m_ShoudShoot || m_AutoShoot && Input.IsMouseButtonPressed(MouseButton.Left))
 			{
-				var translation = m_CameraEntity.Transform.Translation;
-				translation.x = Transform.Translation.x;
-				translation.y = Transform.Translation.y;
-				m_CameraEntity.Transform.Translation = translation;
+				var direction = Vector2.Normalize((Vector2)Input.GetMousePos() - (Vector2)Application.Size * 0.5f);
+				direction.Y = -direction.Y;
+
+				Entity bullet = Scene.Instantiate<Bullet>("Bullet");
+				var rigidBody = bullet.GetComponent<RigidBody2DComponent>();
+				rigidBody.Position = m_RigidBody.Position + direction;
+				rigidBody.ApplyForce(direction * 5.0f, PhysicsForce2DType.Impulse);
+				m_ShoudShoot = false;
 			}
 
 		}
 
+		protected override void OnPhysicsUpdate(TimeStep fixedTimeStep)
+		{
+			Movement(fixedTimeStep);
+		}
+
 		void OnKeyPressed(KeyPressedEvent e)
 		{
-			switch (e.Key)
+			switch (e.KeyCode)
 			{
 				case Key.U:
 				{
 					CreateBall();
-					break;
-				}
-				case Key.I:
-				{
-					m_BoxCollider.Restitution = 0.7f;
-					break;
-				}
-				case Key.O:
-				{
-					m_BoxCollider.Restitution = 0.0f;
 					break;
 				}
 				case Key.Space:
@@ -117,6 +118,11 @@ namespace Sandbox
 						m_AutoSpawnBalls = !m_AutoSpawnBalls;
 					break;
 				}
+				case Key.F:
+				{
+					m_AutoShoot = !m_AutoShoot;
+					break;
+				}
 
 			}
 
@@ -124,9 +130,9 @@ namespace Sandbox
 
 		void OnMouseScrolled(MouseScrolledEvent e)
 		{
-			var translation = m_CameraEntity.Transform.Translation;
+			var translation = m_ActiveCamera.Transform.Translation;
 			translation.z += e.Delta;
-			m_CameraEntity.Transform.Translation = translation;
+			m_ActiveCamera.Transform.Translation = translation;
 		}
 
 		protected override void OnCollishionBegin(Entity entity)
@@ -142,42 +148,22 @@ namespace Sandbox
 
 		private void Movement(TimeStep ts)
 		{
-			//MovementForce(ts);
-			MovementLinearVelocity(ts);
-		}
-
-		private void MovementLinearVelocity(TimeStep ts)
-		{
-			m_MovementSpeed = 5.0f;
-			if (Input.KeyPressed(Key.Shift))
-			{
-				m_MovementSpeed = 10.0f;
-			}
-
 			Vector2 delta = Vector2.Zero;
 
-			if (Input.KeyPressed(Key.D))
-			{
-				delta += Vector2.Right * m_MovementSpeed;
-			}
+			if (Input.IsKeyPressed(Key.D))
+				delta += Vector2.Right;
 
-			if (Input.KeyPressed(Key.A))
-			{
-				delta += Vector2.Left * m_MovementSpeed;
-			}
+			if (Input.IsKeyPressed(Key.A))
+				delta += Vector2.Left;
+
+
+			if (Input.IsKeyPressed(Key.Shift))
+				delta.X *= 2.0f;
 
 			var velocity = m_RigidBody.LinearVelocity;
+			delta *= m_MovementSpeed * ts.MilliSeconds;
 			velocity.X = delta.X;
 			m_RigidBody.LinearVelocity = velocity;
-		}
-
-		private void MovementForce(TimeStep ts)
-		{
-			if (Input.KeyPressed(Key.LeftArrow))
-				m_RigidBody.ApplyForce(Vector2.Left * 1500.0f);
-
-			if (Input.KeyPressed(Key.RightArrow))
-				m_RigidBody.ApplyForce(Vector2.Right * 1500.0f);
 		}
 
 		private void CreateBall()
