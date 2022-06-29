@@ -184,7 +184,7 @@ namespace Shark {
 
 						if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoPreviewTooltip))
 						{
-							if (entry.Handle)
+							if (entry.Handle.IsValid())
 								ImGui::SetDragDropPayload("ASSET", &entry.Handle, sizeof(entry.Handle));
 							else if (entry.Type == EntryType::File)
 								ImGui::SetDragDropPayload("ASSET_FILEPATH", entry.Path.native().c_str(), entry.Path.native().size() * sizeof(wchar_t));
@@ -371,7 +371,7 @@ namespace Shark {
 			m_IgnoreSelection = true;
 			SK_CORE_ASSERT(m_SelectedEntry);
 
-			if (ImGui::MenuItem("Reload", nullptr, false, m_SelectedEntry->Handle))
+			if (ImGui::MenuItem("Reload", nullptr, false, m_SelectedEntry->Handle.IsValid()))
 				ResourceManager::ReloadAsset(m_SelectedEntry->Handle);
 
 			if (ImGui::MenuItem("Import", nullptr, false, m_SelectedEntry->Type == EntryType::File && !m_SelectedEntry->Handle.IsValid()))

@@ -200,6 +200,7 @@ namespace Shark {
 					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
 					{
 						ImRect r = window->InnerRect;
+						r.Min.y = table->RowPosY1;
 						r.Max.y = r.Min.y + imageSize;
 						if (r.Contains(ImGui::GetMousePos()))
 						{

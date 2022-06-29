@@ -520,7 +520,7 @@ namespace Shark {
 
 			const char* entityName = mono_string_to_utf8(name);
 			Entity entity = scene->CreateEntityWithUUID(entityID, entityName ? entityName : std::string{});
-			*out_EntityID = entity.GetUUID();
+			*out_EntityID = (uint64_t)entity.GetUUID();
 		}
 
 		void Scene_DestroyEntity(uint64_t entityID)
@@ -563,7 +563,7 @@ namespace Shark {
 		bool Scene_GetActiveCameraUUID(uint64_t* out_CameraID)
 		{
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			*out_CameraID = scene->GetActiveCameraUUID();
+			*out_CameraID = (uint64_t)scene->GetActiveCameraUUID();
 			return true;
 		}
 
@@ -578,7 +578,7 @@ namespace Shark {
 				Entity entity{ entityID, scene };
 				if (entity.GetName() == cStr)
 				{
-					*out_EntityID = entity.GetUUID();
+					*out_EntityID = (uint64_t)entity.GetUUID();
 					return true;
 				}
 			}

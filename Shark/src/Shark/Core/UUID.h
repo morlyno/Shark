@@ -13,9 +13,8 @@ namespace Shark {
 		UUID(uint64_t uuid);
 
 		bool IsValid() const;
-		operator uint64_t() const { return m_UUID; }
-		operator uint64_t() { return m_UUID; }
-		operator bool() const { return IsValid(); }
+		explicit operator uint64_t() const { return m_UUID; }
+		explicit operator uint64_t() { return m_UUID; }
 
 		bool operator<(const UUID& rhs) const { return m_UUID < rhs.m_UUID; }
 		bool operator==(const UUID& rhs) const { return m_UUID == rhs.m_UUID; }
@@ -24,8 +23,6 @@ namespace Shark {
 		static constexpr uint64_t Invalid = 0;
 	private:
 		uint64_t m_UUID = 0;
-
-		friend struct std::hash<UUID>;
 	};
 
 }
@@ -37,7 +34,7 @@ namespace std {
 	{
 		size_t operator()(Shark::UUID uuid) const
 		{
-			return ::Shark::Hash::FNV1A(uuid.m_UUID);
+			return (uint64_t)uuid;
 		}
 	};
 
