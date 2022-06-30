@@ -18,7 +18,7 @@ namespace Shark {
 
 	class Entity;
 
-	class MonoGlue
+	class ScriptingGlue
 	{
 	public:
 		static void Init();

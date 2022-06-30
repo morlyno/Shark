@@ -1,5 +1,5 @@
 #include "skpch.h"
-#include "MonoGlue.h"
+#include "ScriptingGlue.h"
 
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Log.h"
@@ -130,7 +130,7 @@ namespace Shark {
 
 	}
 
-	void MonoGlue::Init()
+	void ScriptingGlue::Init()
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -156,13 +156,13 @@ namespace Shark {
 		RegsiterInternalCalls();
 	}
 
-	void MonoGlue::Shutdown()
+	void ScriptingGlue::Shutdown()
 	{
 		s_MonoGlue = nullptr;
 		s_EntityBindings.clear();
 	}
 
-	void MonoGlue::CallCollishionBegin(Entity entityA, Entity entityB)
+	void ScriptingGlue::CallCollishionBegin(Entity entityA, Entity entityB)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -189,7 +189,7 @@ namespace Shark {
 
 	}
 
-	void MonoGlue::CallCollishionEnd(Entity entityA, Entity entityB)
+	void ScriptingGlue::CallCollishionEnd(Entity entityA, Entity entityB)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -216,7 +216,7 @@ namespace Shark {
 
 	}
 
-	void MonoGlue::OnEvent(Event& event)
+	void ScriptingGlue::OnEvent(Event& event)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -234,7 +234,7 @@ namespace Shark {
 		dispacher.DispachEventAlways<MouseScrolledEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseScrolledEvent, nullptr, e.GetDelta(), e.GetMousePos()); return false; });
 	}
 
-	void MonoGlue::RegisterComponents()
+	void ScriptingGlue::RegisterComponents()
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -249,7 +249,7 @@ namespace Shark {
 		SK_ADD_COMPONENT_BINDING(CircleCollider2DComponent);
 	}
 
-	void MonoGlue::RegsiterInternalCalls()
+	void ScriptingGlue::RegsiterInternalCalls()
 	{
 		SK_PROFILE_FUNCTION();
 

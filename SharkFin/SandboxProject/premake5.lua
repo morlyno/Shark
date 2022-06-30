@@ -21,7 +21,7 @@ project "Sandbox"
     staticruntime "off"
     location "Assets/Scripts"
 
-    targetdir "%{wks.location}/bin/%{outputdir}/%{prj.name}"
+    targetdir "%{wks.location}/Binaries"
     objdir "%{wks.location}/bin/obj/%{outputdir}/%{prj.name}"
 
     files

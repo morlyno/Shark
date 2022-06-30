@@ -180,4 +180,19 @@ namespace Shark {
 		return true;
 	};
 
+	Buffer FileSystem::ReadBinary(const std::filesystem::path& filePath)
+	{
+		Buffer buffer;
+		std::ifstream fin(filePath, std::ios::binary);
+		if (fin)
+		{
+			fin.seekg(0, std::ios::end);
+			size_t fileSize = fin.tellg();
+			fin.seekg(0, std::ios::beg);
+			buffer.Allocate((uint32_t)fileSize);
+			fin.read(buffer.As<char>(), fileSize);
+		}
+		return buffer;
+	}
+
 }

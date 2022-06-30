@@ -221,10 +221,7 @@ namespace Shark {
 			Auto,
 			Always
 		};
-		AssemblyReloadMode m_AssemblyReloadMode = AssemblyReloadMode::Auto;
-
-		BuildConfiguration m_BuildConfig = BuildConfiguration::Debug;
-		std::string m_BuildConfigStr = ToString(BuildConfiguration::Debug);
+		AssemblyReloadMode m_AssemblyReloadMode = AssemblyReloadMode::Always;
 	};
 
 }

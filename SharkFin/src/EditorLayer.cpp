@@ -7,7 +7,7 @@
 #include "Shark/Asset/SceneSerialization.h"
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptManager.h"
-#include "Shark/Scripting/MonoGlue.h"
+#include "Shark/Scripting/ScriptingGlue.h"
 
 #include "Shark/UI/UI.h"
 
@@ -217,7 +217,7 @@ namespace Shark {
 		// Note(moro): m_ActiveScene is null when the project closes
 		//             this triggers a scene changed (Scene==null) and project changed event
 		if (m_ActiveScene && m_SceneState == SceneState::Play)
-			MonoGlue::OnEvent(event);
+			ScriptingGlue::OnEvent(event);
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -504,28 +504,21 @@ namespace Shark {
 
 				ImGui::Separator();
 
-				if (ImGui::BeginMenu("Build Configuration"))
+				if (ImGui::MenuItem("Run Setup"))
 				{
-					if (ImGui::MenuItem("Debug", nullptr, m_BuildConfig == BuildConfiguration::Debug))
-					{
-						ScriptEngine::SetBuildConfiguration(BuildConfiguration::Debug);
-						ScriptEngine::ReloadAssembly();
-						m_BuildConfig = BuildConfiguration::Debug;
-						m_BuildConfigStr = ToString(BuildConfiguration::Debug);
-					}
+					auto solutionPath = Project::Directory() / Project::Name();
+					solutionPath.replace_extension(".sln");
 
-					if (ImGui::MenuItem("Release", nullptr, m_BuildConfig == BuildConfiguration::Release))
-					{
-						ScriptEngine::SetBuildConfiguration(BuildConfiguration::Release);
-						ScriptEngine::ReloadAssembly();
-						m_BuildConfig = BuildConfiguration::Release;
-						m_BuildConfigStr = ToString(BuildConfiguration::Release);
-					}
-
-					ImGui::EndMenu();
+					ExecuteSpecs specs;
+					specs.Target = fmt::format(L"{}/Premake/premake5.exe", Project::Directory());
+					// vs2022 dosn't work for some reason but vs2019 still generates vs2022 solution
+					auto sharkDir = std::filesystem::current_path().parent_path();
+					specs.Params = fmt::format(L"{} --sharkdir=\"{}\"", L"vs2019", sharkDir);
+					specs.WaitUntilFinished = true;
+					specs.WorkingDirectory = Project::Directory();
+					specs.InterhitConsole = true;
+					PlatformUtils::Execute(specs);
 				}
-
-				ImGui::Separator();
 
 				if (ImGui::MenuItem("Open IDE"))
 					OpenIDE();
@@ -1475,7 +1468,6 @@ namespace Shark {
 
 		ImGui::Begin("Debug Scripts");
 
-		ImGui::Text("Build Configuration: %s", m_BuildConfigStr.c_str());
 		ImGui::Text("Scripts: %llu", ScriptManager::GetScripts().size());
 
 		for (auto& [uuid, script] : ScriptManager::GetScripts())
@@ -1751,7 +1743,10 @@ namespace Shark {
 		}
 		else if (m_AssemblyReloadMode == AssemblyReloadMode::Auto)
 		{
-			ScriptEngine::ReloadIfNeeded();
+			SK_CORE_ERROR("AssemblyReloadMode::Auto currently not supported");
+			m_AssemblyReloadMode = AssemblyReloadMode::Always;
+			ScriptEngine::ReloadAssembly();
+			//ScriptEngine::ReloadIfNeeded();
 			CheckScriptComponents();
 		}
 
@@ -1833,7 +1828,6 @@ namespace Shark {
 			ResourceManager::Init();
 
 			const auto& config = Project::GetActive()->GetConfig();
-			ScriptEngine::SetBuildConfiguration(m_BuildConfig);
 			ScriptEngine::LoadAssembly(config.ScriptModulePath);
 
 			if (!LoadScene(config.ProjectDirectory / config.StartupScenePath))
@@ -1872,7 +1866,6 @@ namespace Shark {
 			OnEvent(SceneChangedEvent(nullptr));
 		ScriptEngine::UnloadAssembly();
 		ScriptEngine::SetActiveScene(nullptr);
-		ScriptEngine::SetBuildConfiguration(BuildConfiguration::None);
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
 		m_WorkScene = nullptr;

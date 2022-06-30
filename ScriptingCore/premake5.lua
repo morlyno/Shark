@@ -4,7 +4,7 @@ project "ScriptingCore"
     framework "4.8"
     staticruntime "off"
 
-    targetdir ("%{wks.location}/bin/%{outputdir}/%{prj.name}")
+    targetdir ("%{wks.location}/SharkFin/Resources/Binaries")
     objdir ("%{wks.location}/bin-int/%{outputdir}/%{prj.name}")
 
     files

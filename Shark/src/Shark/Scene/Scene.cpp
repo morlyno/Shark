@@ -8,7 +8,7 @@
 
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptManager.h"
-#include "Shark/Scripting/MonoGlue.h"
+#include "Shark/Scripting/ScriptingGlue.h"
 
 #include "Shark/Math/Math.h"
 
@@ -855,7 +855,7 @@ namespace Shark {
 		Entity entityA = m_Context->GetEntityByUUID(uuidA);
 		Entity entityB = m_Context->GetEntityByUUID(uuidB);
 
-		MonoGlue::CallCollishionBegin(entityA, entityB);
+		ScriptingGlue::CallCollishionBegin(entityA, entityB);
 	}
 
 	void ContactListener::EndContact(b2Contact* contact)
@@ -872,7 +872,7 @@ namespace Shark {
 		Entity entityA = m_Context->GetEntityByUUID(uuidA);
 		Entity entityB = m_Context->GetEntityByUUID(uuidB);
 
-		MonoGlue::CallCollishionEnd(entityA, entityB);
+		ScriptingGlue::CallCollishionEnd(entityA, entityB);
 	}
 
 	void ContactListener::SetContext(const Ref<Scene>& context)
