@@ -195,4 +195,11 @@ namespace Shark {
 		return buffer;
 	}
 
+	void FileSystem::TruncateFile(const std::filesystem::path& filePath)
+	{
+		std::ofstream fout{ filePath, std::ios::trunc };
+		fout.flush();
+		fout.close();
+	}
+
 }

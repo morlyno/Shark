@@ -10,8 +10,6 @@
 #include "Shark/Scene/Physics2DScene.h"
 #include "Shark/Render/EditorCamera.h"
 
-#include "Shark/Math/Bounds2.h"
-
 #include <entt.hpp>
 
 namespace Shark {
@@ -66,7 +64,6 @@ namespace Shark {
 		Entity CreateChildEntity(Entity parent, const std::string& tag = std::string{});
 		Entity CreateChildEntityWithUUID(Entity parent, UUID uuid, const std::string& tag = std::string{});
 		void DestroyEntity(Entity entity, bool destroyChildren = true);
-		void DestroyAllEntities();
 
 		template<typename Component>
 		decltype(auto) GetAllEntitysWith()

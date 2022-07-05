@@ -36,10 +36,10 @@ namespace Sandbox
 			}
 		}
 
-		protected override void OnCollishionBegin(Entity entity)
+		protected override void OnCollishionBegin(Entity entity, bool isSensor)
 		{
-			//if (!(entity is PlayerController))
-			//	return;
+			if (!(entity is PlayerController))
+				return;
 
 			if (m_CollishionCount == 0)
 				m_OpenDoor = true;
@@ -47,10 +47,10 @@ namespace Sandbox
 			m_CollishionCount++;
 		}
 
-		protected override void OnCollishionEnd(Entity entity)
+		protected override void OnCollishionEnd(Entity entity, bool isSensor)
 		{
-			//if (!(entity is PlayerController))
-			//	return;
+			if (!(entity is PlayerController))
+				return;
 
 			if (m_CollishionCount == 1)
 				m_CloseDoor = true;

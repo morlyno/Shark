@@ -1,5 +1,5 @@
 #include "skpch.h"
-#include "ScriptingGlue.h"
+#include "ScriptGlue.h"
 
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Log.h"
@@ -10,7 +10,7 @@
 #include "Shark/Asset/ResourceManager.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Scripting/ScriptManager.h"
+#include "Shark/Scripting/GCManager.h"
 
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/MouseEvent.h"
@@ -21,8 +21,10 @@
 
 
 #include <mono/metadata/appdomain.h>
+#include <mono/metadata/object.h>
 #include <mono/metadata/reflection.h>
 #include <mono/metadata/exception.h>
+#include <mono/metadata/debug-helpers.h>
 
 #include <box2d/b2_body.h>
 #include <box2d/b2_contact.h>
@@ -87,6 +89,10 @@ namespace Shark {
 		MonoMethod* RaiseOnMouseButtonReleasedEvent = nullptr;
 		MonoMethod* RaiseOnMouseButtonDoubleClickedEvent = nullptr;
 		MonoMethod* RaiseOnMouseScrolledEvent = nullptr;
+
+		MonoMethod* EntityOnCollishionBegin = nullptr;
+		MonoMethod* EntityOnCollishionEnd = nullptr;
+
 	};
 	static Scope<MonoGlueData> s_MonoGlue;
 
@@ -94,7 +100,8 @@ namespace Shark {
 
 		static Entity GetEntityActiveScene(uint64_t id)
 		{
-			return ScriptEngine::GetActiveScene()->GetEntityByUUID(id);
+			Ref<Scene> scene = ScriptEngine::GetActiveScene();
+			return scene ? scene->GetEntityByUUID(id) : Entity{};
 		}
 
 		static RigidBody2DComponent::BodyType b2BodyTypeToSharkBodyType(b2BodyType bodyType)
@@ -128,21 +135,32 @@ namespace Shark {
 			return s_EntityBindings.at(typeName);
 		}
 
+		static MonoMethod* GetCoreMethod(const std::string& fullName)
+		{
+			MonoMethodDesc* methodDesc = mono_method_desc_new(fullName.c_str(), true);
+			MonoMethod* method = mono_method_desc_search_in_image(methodDesc, ScriptEngine::GetCoreAssemblyInfo().Image);
+			mono_method_desc_free(methodDesc);
+			return method;
+		}
+
 	}
 
-	void ScriptingGlue::Init()
+	void ScriptGlue::Init()
 	{
 		SK_PROFILE_FUNCTION();
 
 		s_MonoGlue = Scope<MonoGlueData>::Create();
 
-		s_MonoGlue->RaiseOnKeyPressedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnKeyPressed");
-		s_MonoGlue->RaiseOnKeyReleasedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnKeyReleased");
-		s_MonoGlue->RaiseOnMouseMovedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseMoved");
-		s_MonoGlue->RaiseOnMouseButtonPressedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonPressed");
-		s_MonoGlue->RaiseOnMouseButtonReleasedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonReleased");
-		s_MonoGlue->RaiseOnMouseButtonDoubleClickedEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseButtonDoubleClicked");
-		s_MonoGlue->RaiseOnMouseScrolledEvent = ScriptEngine::GetMethodCore("Shark.EventHandler:RaiseOnMouseScrolled");
+		s_MonoGlue->RaiseOnKeyPressedEvent = utils::GetCoreMethod("Shark.EventHandler:RaiseOnKeyPressed");
+		s_MonoGlue->RaiseOnKeyReleasedEvent = utils::GetCoreMethod("Shark.EventHandler:RaiseOnKeyReleased");
+		s_MonoGlue->RaiseOnMouseMovedEvent = utils::GetCoreMethod("Shark.EventHandler:RaiseOnMouseMoved");
+		s_MonoGlue->RaiseOnMouseButtonPressedEvent = utils::GetCoreMethod("Shark.EventHandler:RaiseOnMouseButtonPressed");
+		s_MonoGlue->RaiseOnMouseButtonReleasedEvent = utils::GetCoreMethod("Shark.EventHandler:RaiseOnMouseButtonReleased");
+		s_MonoGlue->RaiseOnMouseButtonDoubleClickedEvent = utils::GetCoreMethod("Shark.EventHandler:RaiseOnMouseButtonDoubleClicked");
+		s_MonoGlue->RaiseOnMouseScrolledEvent = utils::GetCoreMethod("Shark.EventHandler:RaiseOnMouseScrolled");
+
+		s_MonoGlue->EntityOnCollishionBegin = utils::GetCoreMethod("Shark.Entity:OnCollishionBegin");
+		s_MonoGlue->EntityOnCollishionEnd = utils::GetCoreMethod("Shark.Entity:OnCollishionEnd");
 
 		SK_CORE_ASSERT(s_MonoGlue->RaiseOnKeyPressedEvent);
 		SK_CORE_ASSERT(s_MonoGlue->RaiseOnKeyReleasedEvent);
@@ -152,17 +170,20 @@ namespace Shark {
 		SK_CORE_ASSERT(s_MonoGlue->RaiseOnMouseButtonDoubleClickedEvent);
 		SK_CORE_ASSERT(s_MonoGlue->RaiseOnMouseScrolledEvent);
 
+		SK_CORE_ASSERT(s_MonoGlue->EntityOnCollishionBegin);
+		SK_CORE_ASSERT(s_MonoGlue->EntityOnCollishionEnd);
+
 		RegisterComponents();
 		RegsiterInternalCalls();
 	}
 
-	void ScriptingGlue::Shutdown()
+	void ScriptGlue::Shutdown()
 	{
 		s_MonoGlue = nullptr;
 		s_EntityBindings.clear();
 	}
 
-	void ScriptingGlue::CallCollishionBegin(Entity entityA, Entity entityB)
+	static void CallOnCollishion(Entity entityA, Entity entityB, bool aIsSensor, bool bIsSensor, MonoMethod* collishionMethod)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -172,51 +193,62 @@ namespace Shark {
 		const UUID uuidA = entityA.GetUUID();
 		const UUID uuidB = entityB.GetUUID();
 
-		const bool AIsScript = ScriptManager::Contains(uuidA);
-		const bool BIsScript = ScriptManager::Contains(uuidB);
+		GCHandle HandleA = ScriptEngine::ContainsEntityInstance(uuidA) ? ScriptEngine::GetEntityInstance(uuidA) : 0;
+		GCHandle HandleB = ScriptEngine::ContainsEntityInstance(uuidB) ? ScriptEngine::GetEntityInstance(uuidB) : 0;
 
-		if (AIsScript)
-		{
-			auto& script = ScriptManager::GetScript(uuidA);
-			script.OnCollishionBegin(uuidB, BIsScript);
-		}
-		
-		if (BIsScript)
-		{
-			auto& script = ScriptManager::GetScript(uuidB);
-			script.OnCollishionBegin(uuidA, AIsScript);
-		}
-
-	}
-
-	void ScriptingGlue::CallCollishionEnd(Entity entityA, Entity entityB)
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!s_MonoGlue)
+		if (!(HandleA || HandleB))
 			return;
 
-		const UUID uuidA = entityA.GetUUID();
-		const UUID uuidB = entityB.GetUUID();
+		MonoObject* objectA = HandleA ? GCManager::GetManagedObject(HandleA) : nullptr;
+		MonoObject* objectB = HandleB ? GCManager::GetManagedObject(HandleB) : nullptr;
 
-		const bool AIsScript = ScriptManager::Contains(uuidA);
-		const bool BIsScript = ScriptManager::Contains(uuidB);
-
-		if (AIsScript)
+		if (objectA && objectB)
 		{
-			auto& script = ScriptManager::GetScript(uuidA);
-			script.OnCollishionEnd(uuidB, BIsScript);
+			ScriptEngine::InvokeVirtualMethod(objectA, collishionMethod, objectB, bIsSensor);
+			ScriptEngine::InvokeVirtualMethod(objectB, collishionMethod, objectA, aIsSensor);
 		}
-
-		if (BIsScript)
+		else
 		{
-			auto& script = ScriptManager::GetScript(uuidB);
-			script.OnCollishionEnd(uuidA, AIsScript);
+			MonoClass* entityClass = mono_class_from_name_case(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", "Entity");
+			MonoObject* object = mono_object_new(mono_domain_get(), entityClass);
+			mono_runtime_object_init(object);
+			MonoMethodDesc* desc = mono_method_desc_new(":.ctor(ulong)", false);
+			MonoMethod* ctor = mono_method_desc_search_in_class(desc, entityClass);
+
+			UUID uuid;
+			MonoObject* entityObject;
+			bool isSensor = false;
+
+			if (objectA)
+			{
+				uuid = uuidB;
+				entityObject = objectA;
+				isSensor = bIsSensor;
+			}
+			else
+			{
+				uuid = uuidA;
+				entityObject = objectB;
+				isSensor = aIsSensor;
+			}
+
+			ScriptEngine::InvokeMethod(object, ctor, uuid);
+			ScriptEngine::InvokeVirtualMethod(entityObject, collishionMethod, object, isSensor);
 		}
 
 	}
 
-	void ScriptingGlue::OnEvent(Event& event)
+	void ScriptGlue::CallCollishionBegin(Entity entityA, Entity entityB, bool aIsSensor, bool bIsSensor)
+	{
+		CallOnCollishion(entityA, entityB, aIsSensor, bIsSensor, s_MonoGlue->EntityOnCollishionBegin);
+	}
+
+	void ScriptGlue::CallCollishionEnd(Entity entityA, Entity entityB, bool aIsSensor, bool bIsSensor)
+	{
+		CallOnCollishion(entityA, entityB, aIsSensor, bIsSensor, s_MonoGlue->EntityOnCollishionEnd);
+	}
+
+	void ScriptGlue::OnEvent(Event& event)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -224,17 +256,17 @@ namespace Shark {
 			return;
 
 		EventDispacher dispacher(event);
-		dispacher.DispachEventAlways<KeyPressedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnKeyPressedEvent, nullptr, e.GetKeyCode(), e.IsRepeat()); return false; });
-		dispacher.DispachEventAlways<KeyReleasedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnKeyReleasedEvent, nullptr, e.GetKeyCode()); return false; });
+		dispacher.DispachEventAlways<KeyPressedEvent>([](auto& e)                { ScriptEngine::InvokeMethod(nullptr, s_MonoGlue->RaiseOnKeyPressedEvent, e.GetKeyCode(), e.IsRepeat()); });
+		dispacher.DispachEventAlways<KeyReleasedEvent>([](auto& e)               { ScriptEngine::InvokeMethod(nullptr, s_MonoGlue->RaiseOnKeyReleasedEvent, e.GetKeyCode()); });
 
-		dispacher.DispachEventAlways<MouseMovedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseMovedEvent, nullptr, e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseButtonPressedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseButtonPressedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseButtonReleasedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseButtonReleasedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseButtonDoubleClickedEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseButtonDoubleClickedEvent, nullptr, e.GetButton(), e.GetMousePos()); return false; });
-		dispacher.DispachEventAlways<MouseScrolledEvent>([](auto& e) { ScriptEngine::InvokeMethod(s_MonoGlue->RaiseOnMouseScrolledEvent, nullptr, e.GetDelta(), e.GetMousePos()); return false; });
+		dispacher.DispachEventAlways<MouseMovedEvent>([](auto& e)                { ScriptEngine::InvokeMethod(nullptr, s_MonoGlue->RaiseOnMouseMovedEvent, e.GetMousePos()); });
+		dispacher.DispachEventAlways<MouseButtonPressedEvent>([](auto& e)        { ScriptEngine::InvokeMethod(nullptr, s_MonoGlue->RaiseOnMouseButtonPressedEvent, e.GetButton(), e.GetMousePos()); });
+		dispacher.DispachEventAlways<MouseButtonReleasedEvent>([](auto& e)       { ScriptEngine::InvokeMethod(nullptr, s_MonoGlue->RaiseOnMouseButtonReleasedEvent, e.GetButton(), e.GetMousePos()); });
+		dispacher.DispachEventAlways<MouseButtonDoubleClickedEvent>([](auto& e)  { ScriptEngine::InvokeMethod(nullptr, s_MonoGlue->RaiseOnMouseButtonDoubleClickedEvent, e.GetButton(), e.GetMousePos()); });
+		dispacher.DispachEventAlways<MouseScrolledEvent>([](auto& e)             { ScriptEngine::InvokeMethod(nullptr, s_MonoGlue->RaiseOnMouseScrolledEvent, e.GetDelta(), e.GetMousePos()); });
 	}
 
-	void ScriptingGlue::RegisterComponents()
+	void ScriptGlue::RegisterComponents()
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -249,7 +281,7 @@ namespace Shark {
 		SK_ADD_COMPONENT_BINDING(CircleCollider2DComponent);
 	}
 
-	void ScriptingGlue::RegsiterInternalCalls()
+	void ScriptGlue::RegsiterInternalCalls()
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -445,11 +477,35 @@ namespace Shark {
 
 		bool Input_KeyPressed(KeyCode key)
 		{
+			auto& app = Application::Get();
+
+			if (!app.GetWindow().IsFocused())
+				return false;
+
+			if (app.GetSpecs().EnableImGui && ImGui::GetIO().WantCaptureKeyboard)
+			{
+				const ImGuiWindow* activeWindow = GImGui->ActiveIdWindow;
+				if (activeWindow && strcmp(activeWindow->Name, "MainViewport") != 0)
+					return false;
+			}
+
 			return Input::KeyPressed(key);
 		}
 
 		bool Input_MouseButtonPressed(MouseButton::Type button)
 		{
+			auto& app = Application::Get();
+
+			if (!app.GetWindow().IsFocused())
+				return false;
+
+			if (Application::Get().GetSpecs().EnableImGui && ImGui::GetIO().WantCaptureMouse)
+			{
+				const ImGuiWindow* hoveredWindow = GImGui->HoveredWindow;
+				if (hoveredWindow && strcmp(hoveredWindow->Name, "MainViewport") != 0)
+					return false;
+			}
+
 			return Input::MousePressed(button);
 		}
 
@@ -503,13 +559,13 @@ namespace Shark {
 			Entity newEntity = scene->CreateEntity(mono_string_to_utf8(name));
 			auto& comp = newEntity.AddComponent<ScriptComponent>();
 			comp.ScriptName = scriptTypeName;
-			comp.ScriptModuleFound = true;
+			comp.IsExisitingScript = true;
 
-			if (ScriptManager::Instantiate(newEntity, true))
+			if (ScriptEngine::InstantiateEntity(newEntity, true))
 			{
-				comp.HasRuntime = true;
-				auto& script = ScriptManager::GetScript(newEntity.GetUUID());
-				return script.GetObject();
+				comp.IsExisitingScript = true;
+				GCHandle gcHandle = ScriptEngine::GetEntityInstance(newEntity.GetUUID());
+				return GCManager::GetManagedObject(gcHandle);
 			}
 			return nullptr;
 		} 
@@ -547,11 +603,11 @@ namespace Shark {
 
 		MonoObject* Scene_GetScriptObject(uint64_t scriptEntityID)
 		{
-			if (!ScriptManager::Contains(scriptEntityID))
+			if (!ScriptEngine::ContainsEntityInstance(scriptEntityID))
 				return nullptr;
 
-			auto& script = ScriptManager::GetScript(scriptEntityID);
-			return script.GetObject();
+			GCHandle gcHandle = ScriptEngine::GetEntityInstance(scriptEntityID);
+			return GCManager::GetManagedObject(gcHandle);
 		}
 
 		bool Scene_IsValidEntityHandle(uint64_t entityID)

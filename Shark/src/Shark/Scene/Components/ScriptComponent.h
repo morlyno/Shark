@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Shark/Core/UUID.h"
-
+#include "Shark/Scripting/ScriptTypes.h"
 #include <string>
 
 namespace Shark {
@@ -9,8 +8,7 @@ namespace Shark {
 	struct ScriptComponent
 	{
 		std::string ScriptName;
-		bool ScriptModuleFound = false;
-		bool HasRuntime = false;
+		bool IsExisitingScript = false;
 	};
 
 }

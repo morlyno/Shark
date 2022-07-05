@@ -31,6 +31,7 @@ namespace Shark {
 		static bool CreateScriptFile(const std::filesystem::path& directory, const std::string& projectName, const std::string& scriptName);
 
 		static Buffer ReadBinary(const std::filesystem::path& filePath);
+		static void TruncateFile(const std::filesystem::path& filePath);
 
 	};
 

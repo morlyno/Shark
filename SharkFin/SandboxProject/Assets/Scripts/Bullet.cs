@@ -5,7 +5,7 @@ namespace Sandbox
 {
 	public class Bullet : Entity
 	{
-		private float m_MaxLifeTime = 5.0f;
+		private float m_MaxLifeTime = 1.0f;
 		private float m_LifeTime = 0.0f;
 
 		protected override void OnCreate()
@@ -19,7 +19,7 @@ namespace Sandbox
 			rigidBody.Bullet = true;
 			var collider = AddComponent<CircleCollider2DComponent>();
 			collider.Density = 0.2f;
-			collider.Friction = 0.1f;
+			collider.Friction = 0.0f;
 			collider.Restitution = 1.0f;
 		}
 
@@ -29,5 +29,6 @@ namespace Sandbox
 			if (m_LifeTime >= m_MaxLifeTime)
 				Scene.Destroy(this);
 		}
+
 	}
 }

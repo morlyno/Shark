@@ -1,77 +1,90 @@
 #pragma once
 
-#include "Shark/Core/UUID.h"
-#include "Shark/Core/TimeStep.h"
+#include "Shark/Core/Base.h"
 
+#include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
-#include <mono/metadata/object-forward.h>
-#include <mono/metadata/image.h>
+
+#include "Shark/Scripting/ScriptTypes.h"
+#include "Shark/Scripting/ScriptUtils.h"
+
+#include "Shark/utils/Utils.h"
+
+extern "C" {
+	typedef struct _MonoAssembly MonoAssembly;
+	typedef struct _MonoObject MonoObject;
+	typedef struct _MonoMethod MonoMethod;
+}
 
 namespace Shark {
+
+	using EntityInstancesMap = std::unordered_map<UUID, GCHandle>;
+
+	struct ScriptEngineConfig
+	{
+		std::filesystem::path CoreAssemblyPath;
+	};
 
 	class ScriptEngine
 	{
 	public:
-		static bool Init(const std::string& scriptinCoreAssemblyPath);
+		static void Init(const ScriptEngineConfig& config);
 		static void Shutdown();
 
-		static bool LoadAssembly(const std::string& assemblyPath);
-		static void UnloadAssembly();
-		static bool ReloadAssembly();
+		static bool LoadAssemblies(const std::filesystem::path& assemblyPath);
+		static void ReloadAssemblies(const std::filesystem::path& assemblyPath);
+		static void UnloadAssemblies();
 
-		static bool AssemblyLoaded();
+		static const AssemblyInfo& GetCoreAssemblyInfo();
+		static const AssemblyInfo& GetAppAssemblyInfo();
 
-		static void SetActiveScene(const Ref<Scene> scene);
+	public: // Scripting API
+		static void ShutdownRuntime();
+
+		static bool InstantiateEntity(Entity entity, bool invokeOnCreate);
+		static void DestroyEntity(Entity entity, bool invokeOnDestroy);
+
+		static bool ContainsEntityInstance(UUID uuid);
+		static GCHandle GetEntityInstance(UUID uuid);
+		static const EntityInstancesMap& GetEntityInstances();
+
+		static void SetActiveScene(const Ref<Scene>& scene);
 		static Ref<Scene> GetActiveScene();
 
-		static MonoImage* GetImage();
-		static MonoImage* GetCoreImage();
-
-		static MonoClass* GetEntityClass();
-
-		static bool AssemblyHasScript(const std::string& className);
-
-		static MonoMethod* GetMethod(const std::string& methodName, bool includeNameSpace = true);
-		static MonoMethod* GetMethodCore(const std::string& methodName, bool includeNameSpace = true);
-
-		static MonoMethod* GetClassMethod(MonoClass* clazz, const std::string& methodName, bool includeNameSpace = true);
-
-	private:
-		template<typename T>
-		static auto ToPointer(const T* val) { return val; }
-		
-		template<typename T>
-		static auto ToPointer(const T& val) { return &val; }
-		
-		template<typename T>
-		static auto ToPointer(T* val) { return val; }
-		
-		template<typename T>
-		static auto ToPointer(T& val) { return &val; }
-
 	public:
-		template<typename... Args>
-		static MonoObject* InvokeMethod(MonoMethod* method, void* object, Args&&... arguments)
+		template<typename... TArgs>
+		static bool InvokeMethod(MonoObject* object, MonoMethod* method, TArgs&&... args)
 		{
-			if constexpr (sizeof... (arguments) > 0)
-			{
-				// Note(moro): stupid hack
-				const void* args[] = {
-					ToPointer(arguments)...
-				};
-				return InvokeMethodInternal(method, object, (void**)args);
-			}
-			return InvokeMethodInternal(method, object, nullptr);
+			void* params[] = {
+				(void*)Utils::ToPointer(args)...
+			};
+
+			return InvokeMethod(object, method, params);
 		}
 
-		static void HandleException(MonoObject* exception);
+		template<typename... TArgs>
+		static bool InvokeVirtualMethod(MonoObject* object, MonoMethod* method, TArgs&&... args)
+		{
+			void* params[] = {
+				(void*)Utils::ToPointer(args)...
+			};
+
+			return InvokeVirtualMethod(object, method, params);
+		}
+
+		static bool InvokeMethod(MonoObject* object, MonoMethod* method, void** params = nullptr, MonoObject** out_RetVal = nullptr);
+		static bool InvokeVirtualMethod(MonoObject* object, MonoMethod* method, void** params = nullptr, MonoObject** out_RetVal = nullptr);
 
 	private:
-		static MonoObject* InvokeMethodInternal(MonoMethod* method, void* object, void** args);
-		static MonoMethod* GetMethodInternal(const std::string& methodName, bool includeNameSpace, MonoImage* image);
+		static void InitMono();
+		static void ShutdownMono();
+
+		static bool LoadCoreAssembly(const std::filesystem::path& filePath);
+		static bool LoadAppAssembly(const std::filesystem::path& filePath);
 
 		static MonoAssembly* LoadMonoAssembly(const std::filesystem::path& filePath);
 
+		static void UnhandledExeptionHook(MonoObject* exc, void* user_data);
 	};
 
 }

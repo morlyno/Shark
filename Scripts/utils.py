@@ -9,7 +9,7 @@ import pathlib
 
 def SetEnvVar(key:str, val:str):
     val = val.replace("/", "\\")
-    subprocess.call(["setx", key, val])
+    os.environ[key] = val
 
 def GetDownloadsFolderPath():
     subkey = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'

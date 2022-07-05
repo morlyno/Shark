@@ -47,9 +47,12 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		// TODO(moro): cap ts
-		m_Accumulator += ts;
+		m_Profile.Reset();
 
+		const float timeStep = std::min(ts.Seconds(), 0.016f);
+		m_Profile.TimeStep = timeStep;
+
+		m_Accumulator += timeStep;
 		while (m_Accumulator >= m_FixedTimeStep)
 		{
 			if (m_OnPhysicsStep)
@@ -57,8 +60,9 @@ namespace Shark {
 
 			m_World->Step(m_FixedTimeStep, m_VelocityIterations, m_PositionIterations);
 			m_Accumulator -= m_FixedTimeStep;
-		}
 
+			m_Profile.AddStep(m_World->GetProfile());
+		}
 	}
 
 	void Physics2DScene::DestroyAllBodies()
@@ -72,34 +76,31 @@ namespace Shark {
 		}
 	}
 
-	bool Physics2DScene::HasBody(const b2Body* body) const
+	void PhysicsProfile::Reset()
 	{
-		SK_PROFILE_FUNCTION();
-
-		const b2Body* iter = m_World->GetBodyList();
-
-		while (iter)
-		{
-			if (iter == body)
-				return true;
-			iter = iter->GetNext();
-		}
-		return false;
+		TimeStep = 0.0f;
+		NumSteps = 0;
+		Step = 0.0f;
+		Collide = 0.0f;
+		Solve = 0.0f;
+		SolveInit = 0.0f;
+		SolveVelocity = 0.0f;
+		SolvePosition = 0.0f;
+		Broadphase = 0.0f;
+		SolveTOI = 0.0f;
 	}
 
-	bool Physics2DScene::HodyHasCollider(const b2Body* body, const b2Fixture* fixture)
+	void PhysicsProfile::AddStep(const b2Profile& p)
 	{
-		SK_PROFILE_FUNCTION();
-
-		const b2Fixture* iter = body->GetFixtureList();
-
-		while (iter)
-		{
-			if (iter == fixture)
-				return true;
-			iter = iter->GetNext();
-		}
-		return false;
+		NumSteps++;
+		Step += p.step;
+		Collide += p.collide;
+		Solve += p.solve;
+		SolveInit += p.solveInit;
+		SolveVelocity += p.solveVelocity;
+		SolvePosition += p.solvePosition;
+		Broadphase += p.broadphase;
+		SolveTOI += p.solveTOI;
 	}
 
 }

@@ -520,7 +520,7 @@ namespace Shark {
 
 					SK_CORE_ASSERT(name, "Couldn't deserialize ScriptComponent::ScriptName");
 					comp.ScriptName = name.as<std::string>();
-					comp.ScriptModuleFound = ScriptEngine::AssemblyHasScript(comp.ScriptName);
+					comp.IsExisitingScript = ScriptUtils::ValidScriptName(comp.ScriptName);
 
 					SK_CORE_TRACE(" - Script Component [{}]", comp.ScriptName);
 				}

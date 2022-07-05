@@ -16,11 +16,6 @@ project "ScriptingCore"
     {
     }
 
-    flags
-    {
-        "MultiProcessorCompile"
-    }
-    
     filter "system:windows"
         systemversion "latest"
         defines "SK_PLATFORM_WINDOWS"

@@ -43,7 +43,8 @@ namespace Shark {
 
 		virtual inline bool IsVSync() const override { return m_VSync; }
 		virtual void SetVSync(bool VSync) override { m_VSync = VSync; }
-		
+		virtual bool IsFocused() const override { return GetFocus() == m_hWnd; }
+
 		virtual void Kill() override { DestroyWindow(m_hWnd); }
 
 		virtual void Maximize() override { ShowWindow(m_hWnd, SW_MAXIMIZE); }

@@ -7,22 +7,11 @@ namespace Sandbox
 	
 	public class BallDestroyer : Entity
 	{
-		private List<Entity> m_DestroyList = new List<Entity>(5);
-
-		protected override void OnUpdate(TimeStep ts)
-		{
-			foreach (Entity entity in m_DestroyList)
-			{
-				Scene.Destroy(entity);
-			}
-			m_DestroyList.Clear();
-		}
-
-		protected override void OnCollishionEnd(Entity entity)
+		protected override void OnCollishionEnd(Entity entity, bool isSensor)
 		{
 			if (entity.Name == "Ball")
 			{
-				m_DestroyList.Add(entity);
+				Scene.Destroy(entity);
 			}
 		}
 

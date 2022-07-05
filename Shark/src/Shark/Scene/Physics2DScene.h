@@ -11,6 +11,23 @@ namespace Shark {
 
 	class Entity;
 
+	struct PhysicsProfile
+	{
+		float TimeStep;
+		uint32_t NumSteps;
+		float Step;
+		float Collide;
+		float Solve;
+		float SolveInit;
+		float SolveVelocity;
+		float SolvePosition;
+		float Broadphase;
+		float SolveTOI;
+
+		void Reset();
+		void AddStep(const b2Profile& p);
+	};
+
 	class Physics2DScene
 	{
 	public:
@@ -24,14 +41,11 @@ namespace Shark {
 
 		void DestroyAllBodies();
 
-		bool HasBody(const b2Body* body) const;
-		bool HodyHasCollider(const b2Body* body, const b2Fixture* fixture);
+		bool Active() const { return m_World != nullptr; }
+		const PhysicsProfile& GetProfile() const { return m_Profile; }
 
 		template<typename Func>
-		void SetOnPhyicsStepCallback(const Func& func)
-		{
-			m_OnPhysicsStep = func;
-		}
+		void SetOnPhyicsStepCallback(const Func& func) { m_OnPhysicsStep = func; }
 
 		b2World* GetWorld() const { return m_World; }
 	private:
@@ -45,6 +59,8 @@ namespace Shark {
 		float m_FixedTimeStep = 0.001f;
 
 		std::function<void(TimeStep)> m_OnPhysicsStep;
+
+		PhysicsProfile m_Profile;
 	};
 
 }

@@ -45,7 +45,7 @@ namespace Shark {
 		m_ImGuiLayer = CreateImGuiLayer();
 		PushLayer(m_ImGuiLayer);
 
-		ScriptEngine::Init(specification.ScriptConfig.CoreAssemblyPath);
+		ScriptEngine::Init(specification.ScriptConfig);
 
 		m_LastFrameTime = TimeUtils::Now();
 	}

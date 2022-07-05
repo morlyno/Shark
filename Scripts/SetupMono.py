@@ -13,7 +13,7 @@ class Mono:
     Url = "https://download.mono-project.com/archive/6.12.0/windows-installer/mono-6.12.0.107-x64-0.msi"
     Installer = "mono-6.12.0.107-x64-0.msi"
     MonoInstallPath = f"{ProgramFiles}/Mono"
-    EnvKey = "MONO_PROJECT"
+    EnvKey = "MONO_PATH"
 
     @classmethod
     def SetEnvVar(cls):

@@ -29,6 +29,12 @@ namespace Shark {
 			return nullptr;
 		}
 
+		void DefaultErrorHandle(DWORD errorCode)
+		{
+			auto message = WindowsUtils::TranslateErrorCode(errorCode);
+			SK_CORE_ERROR("[Win32] {0}", message);
+		}
+
 	}
 
 	std::string WindowsUtils::TranslateErrorCode(DWORD error)
@@ -166,12 +172,41 @@ namespace Shark {
 		{
 			DWORD lasterror = GetLastError();
 			auto message = TranslateErrorCode(lasterror);
-			SK_CORE_ERROR(message);
+			SK_CORE_ERROR("[Win32] {0}", message);
 			return false;
 		}
 
 		CloseHandle(file);
 		return true;
+	}
+
+	std::string WindowsUtils::GetEnvironmentVariable(const std::string& name)
+	{
+		DWORD bufferSize = GetEnvironmentVariableA(name.c_str(), nullptr, 0);
+		if (bufferSize == 0)
+		{
+			DWORD errorCode = GetLastError();
+			if (errorCode == ERROR_ENVVAR_NOT_FOUND)
+			{
+				SK_CORE_ERROR("[Win32] Environment Variable not found");
+				return std::string{};
+			}
+			utils::DefaultErrorHandle(errorCode);
+			return std::string{};
+		}
+
+		std::string envVar;
+		envVar.resize(bufferSize);
+
+		DWORD result = GetEnvironmentVariableA(name.c_str(), envVar.data(), envVar.size());
+		if (result == 0)
+		{
+			DWORD errorCode = GetLastError();
+			utils::DefaultErrorHandle(errorCode);
+			return std::string{};
+		}
+
+		return envVar;
 	}
 
 	std::filesystem::path WindowsUtils::OpenFileDialog(const std::wstring& filter, uint32_t defaultFilterindex, const std::filesystem::path& defaultPath, bool overrideDefault)

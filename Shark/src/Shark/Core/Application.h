@@ -8,16 +8,13 @@
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
 
+#include "Shark/Scripting/ScriptEngine.h"
+
 #include "Shark/Debug/Instrumentor.h"
 
 int main(int argc, char** argb);
 
 namespace Shark {
-
-	struct ScriptingConfig
-	{
-		std::string CoreAssemblyPath;
-	};
 
 	struct ApplicationSpecification
 	{
@@ -28,7 +25,7 @@ namespace Shark {
 		bool EnableImGui = false;
 		bool VSync = true;
 
-		ScriptingConfig ScriptConfig;
+		ScriptEngineConfig ScriptConfig;
 	};
 
 	class Application

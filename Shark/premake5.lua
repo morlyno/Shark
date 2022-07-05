@@ -10,6 +10,8 @@ project "Shark"
     pchheader "skpch.h"
     pchsource "src/skpch.cpp"
 
+    vectorextensions "AVX2"
+
     files
     {
         "src/**.h",
@@ -40,15 +42,7 @@ project "Shark"
 
     defines
     {
-        "IMGUI_DEFINE_MATH_OPERATORS",
-        
-        "GLM_FORCE_SWIZZLE",
-        "GLM_FORCE_LEFT_HANDED",
-        "GLM_FORCE_DEPTH_ZERO_TO_ONE",
-        
-        "FMT_HEADER_ONLY",
-        "MONO_DIRECTORY=%{MonoDir}",
-        "YAML_CPP_STATIC_DEFINE"
+        DefaultDefines
     }
 
     filter "system:windows"

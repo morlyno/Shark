@@ -15,28 +15,22 @@ workspace "Shark"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
-MonoDir = os.getenv("MONO_PROJECT")
+include "Dependencies.lua"
 
-IncludeDir = {}
-IncludeDir["spdlog"] = "%{wks.location}/Shark/dependencies/spdlog/include"
-IncludeDir["ImGui"] = "%{wks.location}/Shark/dependencies/ImGui"
-IncludeDir["stb_image"] = "%{wks.location}/Shark/dependencies/stb_image"
-IncludeDir["EnTT"] = "%{wks.location}/Shark/dependencies/EnTT/include"
-IncludeDir["yaml_cpp"] = "%{wks.location}/Shark/dependencies/yaml-cpp/include"
-IncludeDir["box2d"] = "%{wks.location}/Shark/dependencies/box2d/include"
-IncludeDir["ImGuizmo"] = "%{wks.location}/Shark/dependencies/ImGuizmo"
-IncludeDir["fmt"] = "%{wks.location}/Shark/dependencies/fmt/include"
-IncludeDir["Optick"] = "%{wks.location}/Shark/dependencies/Optick/src"
-IncludeDir["glm"] = "%{wks.location}/Shark/dependencies/glm"
-IncludeDir["Mono"] = "%{MonoDir}/include/mono-2.0"
+DefaultDefines = {
+	"_USE_MATH_DEFINES",
 
-Library = {}
-Library["Mono_lib"] = "%{MonoDir}/lib/mono-2.0-sgen.lib"
-Library["Mono_dll"] = "%{MonoDir}/bin/mono-2.0-sgen.dll"
+	"IMGUI_DEFINE_MATH_OPERATORS",
+	
+	"GLM_FORCE_SWIZZLE",
+	"GLM_FORCE_LEFT_HANDED",
+	"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+	"GLM_FORCE_INTRINSICS",
 
-Symbols = {}
-Symbols["Mono_lib"] = "%{MonoDir}/lib/mono-2.0-sgen.pdb"
-Symbols["Mono_dll"] = "%{MonoDir}/bin/mono-2.0-sgen.pdb"
+	"FMT_HEADER_ONLY",
+	--"MONO_DIRECTORY=%{MonoDir}",
+	"YAML_CPP_STATIC_DEFINE"
+}
 
 group "Dependencies"
 	include "Shark/dependencies/ImGui"

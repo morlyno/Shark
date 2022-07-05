@@ -53,8 +53,8 @@ namespace Shark::UI {
 
 	enum
 	{
-		DefualtTreeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth,
-		TreeNodeSeperatorFlags = DefualtTreeNodeFlags | ImGuiTreeNodeFlags_Selected
+		DefualtTreeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected,
+		TreeNodeSeperatorFlags = DefualtTreeNodeFlags
 	};
 
 	enum class ControlType : uint16_t

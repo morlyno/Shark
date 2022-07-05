@@ -7,9 +7,8 @@ namespace Shark {
 	class Hash
 	{
 	public:
-		static uint64_t FNV1A(const std::string& str);
-		static uint64_t FNV1A(uint64_t val);
-		static uint64_t FNV1A(const void* ptr);
+		// FNV1a Hash Function
+		static uint64_t GenerateFNV(const std::string& str);
 	};
 
 }

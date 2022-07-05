@@ -10,22 +10,25 @@
 #include "Shark/Input/Input.h"
 
 #include "Shark/Event/Event.h"
-#include "Shark/Math/Bounds2.h"
 
-#include <mono/metadata/object.h>
+extern "C" {
+	typedef struct _MonoObject MonoObject;
+	typedef struct _MonoString MonoString;
+	typedef struct _MonoReflectionType MonoReflectionType;
+}
 
 namespace Shark {
 
 	class Entity;
 
-	class ScriptingGlue
+	class ScriptGlue
 	{
 	public:
 		static void Init();
 		static void Shutdown();
 
-		static void CallCollishionBegin(Entity entityA, Entity entityB);
-		static void CallCollishionEnd(Entity entityA, Entity entityB);
+		static void CallCollishionBegin(Entity entityA, Entity entityB, bool aIsSensor, bool bIsSensor);
+		static void CallCollishionEnd(Entity entityA, Entity entityB, bool aIsSensor, bool bIsSensor);
 
 		static void OnEvent(Event& event);
 

@@ -9,14 +9,13 @@ namespace Sandbox
 
 	public class PlayerController : Entity
 	{
-		private bool m_CanJump = true;
-		private bool m_CanDoubleJump = true;
+		private uint m_CollishionCount = 0;
+		private bool m_ShouldJump = false;
 
 		// Movement
-		private float m_MovementSpeed = 8.0f; // m/s;
-		private float m_JumpVelocity = 7.5f;
+		public float MovementSpeed = 8.0f; // m/s;
+		private float m_JumpForce = 18.0f;
 		private RigidBody2DComponent m_RigidBody;
-		private BoxCollider2DComponent m_BoxCollider;
 
 		private Entity m_ActiveCamera = null;
 
@@ -27,12 +26,13 @@ namespace Sandbox
 		private bool m_ShoudShoot = false;
 		private bool m_AutoShoot = false;
 
+		private bool m_Colliding => m_CollishionCount > 0;
+
 		protected override void OnCreate()
 		{
 			m_BallTemplate = Scene.GetEntityByTag("BallTemplate");
 
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
-			m_BoxCollider = GetComponent<BoxCollider2DComponent>();
 
 			m_ActiveCamera = Scene.GetActiveCamera();
 
@@ -49,11 +49,9 @@ namespace Sandbox
 
 		protected override void OnUpdate(TimeStep ts)
 		{
-			if (Input.IsKeyPressed(Key.T))
-			{
-				CreateBall();
-			}
-			else if (m_AutoSpawnBalls)
+			m_ShouldJump = Input.IsKeyPressed(Key.Space);
+
+			if (m_AutoSpawnBalls)
 			{
 				m_Time += ts;
 				if (m_Time >= TimeStep.Sec(1.0f))
@@ -71,7 +69,7 @@ namespace Sandbox
 				Entity bullet = Scene.Instantiate<Bullet>("Bullet");
 				var rigidBody = bullet.GetComponent<RigidBody2DComponent>();
 				rigidBody.Position = m_RigidBody.Position + direction;
-				rigidBody.ApplyForce(direction * 5.0f, PhysicsForce2DType.Impulse);
+				rigidBody.ApplyForce(direction * 10.0f, PhysicsForce2DType.Impulse);
 				m_ShoudShoot = false;
 			}
 
@@ -96,20 +94,7 @@ namespace Sandbox
 					if (e.IsRepeat)
 						break;
 
-					if (m_CanJump)
-					{
-						var vel = m_RigidBody.LinearVelocity;
-						vel.Y = m_JumpVelocity;
-						m_RigidBody.LinearVelocity = vel;
-						m_CanJump = false;
-					}
-					else if (m_CanDoubleJump)
-					{
-						var vel = m_RigidBody.LinearVelocity;
-						vel.Y = m_JumpVelocity;
-						m_RigidBody.LinearVelocity = vel;
-						m_CanDoubleJump = false;
-					}
+					m_ShouldJump = true;
 					break;
 				}
 				case Key.P:
@@ -135,15 +120,22 @@ namespace Sandbox
 			m_ActiveCamera.Transform.Translation = translation;
 		}
 
-		protected override void OnCollishionBegin(Entity entity)
+		protected override void OnCollishionBegin(Entity entity, bool isSensor)
 		{
-			m_CanJump = true;
-			m_CanDoubleJump = true;
+			if (isSensor)
+				return;
+
+			m_CollishionCount++;
+			Log.Info("Collishion Begin: {0}", m_CollishionCount);
 		}
 
-		protected override void OnCollishionEnd(Entity entity)
+		protected override void OnCollishionEnd(Entity entity, bool isSensor)
 		{
-			m_CanJump = false;
+			if (isSensor)
+				return;
+
+			m_CollishionCount--;
+			Log.Info("Collishion End: {0}", m_CollishionCount);
 		}
 
 		private void Movement(TimeStep ts)
@@ -161,9 +153,15 @@ namespace Sandbox
 				delta.X *= 2.0f;
 
 			var velocity = m_RigidBody.LinearVelocity;
-			delta *= m_MovementSpeed * ts.MilliSeconds;
+			delta *= MovementSpeed * ts.MilliSeconds;
 			velocity.X = delta.X;
 			m_RigidBody.LinearVelocity = velocity;
+
+			if (m_ShouldJump && m_Colliding)
+			{
+				m_RigidBody.LinearVelocity = new Vector2(m_RigidBody.LinearVelocity.X, 0.0f);
+				m_RigidBody.ApplyForce(Vector2.Up * m_JumpForce, PhysicsForce2DType.Impulse);
+			}
 		}
 
 		private void CreateBall()

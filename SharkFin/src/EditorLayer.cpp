@@ -6,8 +6,7 @@
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Asset/SceneSerialization.h"
 #include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Scripting/ScriptManager.h"
-#include "Shark/Scripting/ScriptingGlue.h"
+#include "Shark/Scripting/ScriptGlue.h"
 
 #include "Shark/UI/UI.h"
 
@@ -217,7 +216,7 @@ namespace Shark {
 		// Note(moro): m_ActiveScene is null when the project closes
 		//             this triggers a scene changed (Scene==null) and project changed event
 		if (m_ActiveScene && m_SceneState == SceneState::Play)
-			ScriptingGlue::OnEvent(event);
+			ScriptGlue::OnEvent(event);
 	}
 
 	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
@@ -410,8 +409,8 @@ namespace Shark {
 
 		m_PanelManager->OnImGuiRender();
 
-		for (auto& [uuid, script] : ScriptManager::GetScripts())
-			script.OnUIRender();
+		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+			ScriptUtils::InvokeOnUIRender(gcHandle);
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
@@ -490,7 +489,7 @@ namespace Shark {
 			{
 				if (ImGui::MenuItem("Reload", nullptr, nullptr, m_SceneState == SceneState::Edit))
 				{
-					ScriptEngine::ReloadAssembly();
+					ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
 					CheckScriptComponents();
 				}
 
@@ -1027,6 +1026,52 @@ namespace Shark {
 					UI::Control("Read Hoved Entity", m_ReadHoveredEntity);
 					UI::EndControls();
 				}
+
+				if (ImGui::CollapsingHeader("Profile"))
+				{
+					if (ImGui::TreeNodeEx("Box2D", UI::TreeNodeSeperatorFlags))
+					{
+						auto& physicsScene = m_ActiveScene->GetPhysicsScene();
+						if (physicsScene.Active())
+						{
+							auto& profile = physicsScene.GetProfile();
+
+							ImGui::Text("TimeStep: %f", profile.TimeStep);
+							ImGui::Text("Steps: %d", profile.NumSteps);
+
+							std::map<float, std::string, std::greater<float>> times;
+							times[profile.Step] = "Step";
+							times[profile.Collide] = "Collide";
+							times[profile.Solve] = "Solve";
+							times[profile.SolveInit] = "SolveInit";
+							times[profile.SolveVelocity] = "SolveVelocity";
+							times[profile.SolvePosition] = "SolvePosition";
+							times[profile.Broadphase] = "Broadphase";
+							times[profile.SolveTOI] = "SolveTOI";
+
+							UI::BeginControlsGrid();
+							for (auto& [time, name] : times)
+								UI::Control(name, fmt::to_string(time));
+							UI::EndControls();
+
+							//UI::Control("Step",           fmt::to_string(profile.step));
+							//UI::Control("Collide",        fmt::to_string(profile.collide));
+							//UI::Control("Solve",          fmt::to_string(profile.solve));
+							//UI::Control("Solve Init",     fmt::to_string(profile.solveInit));
+							//UI::Control("Solve Velocity", fmt::to_string(profile.solveVelocity));
+							//UI::Control("Solve Position", fmt::to_string(profile.solvePosition));
+							//UI::Control("BroadPhase",     fmt::to_string(profile.broadphase));
+							//UI::Control("Solve TOI",      fmt::to_string(profile.solveTOI));
+						}
+						else
+						{
+							UI::Text("Phyics Scene inactive");
+						}
+						ImGui::TreePop();
+					}
+
+				}
+
 			}
 			ImGui::End();
 		}
@@ -1468,29 +1513,12 @@ namespace Shark {
 
 		ImGui::Begin("Debug Scripts");
 
-		ImGui::Text("Scripts: %llu", ScriptManager::GetScripts().size());
+		ImGui::Text("Scripts: %llu", ScriptEngine::GetEntityInstances().size());
 
-		for (auto& [uuid, script] : ScriptManager::GetScripts())
+		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 		{
-			MonoObject* object = mono_gchandle_get_target(script.m_GCHandle);
-			MonoClass* clazz = mono_object_get_class(object);
-			const char* className = mono_class_get_name(clazz);
-			std::string label = fmt::format("{} 0x{:x}", className, uuid);
-			if (ImGui::TreeNodeEx(label.c_str(), UI::TreeNodeSeperatorFlags))
-			{
-				UI::BeginControlsGrid();
-				UI::Control("GCHandle", fmt::to_string(script.m_GCHandle));
-				UI::Control("OnCreate", fmt::to_string((const void*)script.m_OnCreate));
-				UI::Control("OnDestroy", fmt::to_string((const void*)script.m_OnDestroy));
-				UI::Control("OnUpdate", fmt::to_string((const void*)script.m_OnUpdate));
-				UI::Control("OnPhyicsUpdate", fmt::to_string((const void*)script.m_OnPhyicsUpdate));
-				UI::Control("OnUIRender", fmt::to_string((const void*)script.m_OnUIRender));
-				UI::Control("OnCollishionBegin", fmt::to_string((const void*)script.m_OnCollishionBegin));
-				UI::Control("OnCollishionEnd", fmt::to_string((const void*)script.m_OnCollishionEnd));
-
-				UI::EndControlsGrid();
-				ImGui::TreePop();
-			}
+			const char* className = ScriptUtils::GetClassName(gcHandle);
+			ImGui::TreeNodeEx(className, UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
 		}
 
 		ImGui::End();
@@ -1738,14 +1766,14 @@ namespace Shark {
 
 		if (m_AssemblyReloadMode == AssemblyReloadMode::Always)
 		{
-			ScriptEngine::ReloadAssembly();
+			ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
 			CheckScriptComponents();
 		}
 		else if (m_AssemblyReloadMode == AssemblyReloadMode::Auto)
 		{
 			SK_CORE_ERROR("AssemblyReloadMode::Auto currently not supported");
 			m_AssemblyReloadMode = AssemblyReloadMode::Always;
-			ScriptEngine::ReloadAssembly();
+			ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
 			//ScriptEngine::ReloadIfNeeded();
 			CheckScriptComponents();
 		}
@@ -1827,9 +1855,9 @@ namespace Shark {
 			Project::SetActive(project);
 			ResourceManager::Init();
 
-			const auto& config = Project::GetActive()->GetConfig();
-			ScriptEngine::LoadAssembly(config.ScriptModulePath);
+			ScriptEngine::LoadAssemblies(Project::ScriptModulePath());
 
+			const auto& config = Project::GetActive()->GetConfig();
 			if (!LoadScene(config.ProjectDirectory / config.StartupScenePath))
 				NewScene();
 
@@ -1864,7 +1892,7 @@ namespace Shark {
 		//             to get around this issue the event is distributed internal
 		if (!Application::Get().CanRaiseEvents())
 			OnEvent(SceneChangedEvent(nullptr));
-		ScriptEngine::UnloadAssembly();
+		ScriptEngine::UnloadAssemblies();
 		ScriptEngine::SetActiveScene(nullptr);
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
@@ -1920,7 +1948,7 @@ namespace Shark {
 		for (auto entityID : view)
 		{
 			auto& comp = view.get<ScriptComponent>(entityID);
-			comp.ScriptModuleFound = ScriptEngine::AssemblyHasScript(comp.ScriptName);
+			comp.IsExisitingScript = ScriptUtils::ValidScriptName(comp.ScriptName);
 		}
 	}
 

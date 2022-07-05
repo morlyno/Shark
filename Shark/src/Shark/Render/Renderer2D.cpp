@@ -126,7 +126,7 @@ namespace Shark {
 			m_LineOnTopVertexBasePtr = new LineVertex[MaxLineOnTopVertices];
 		}
 
-		constexpr double delta = glm::pi<double>() / 10.0f; // 0.31415
+		constexpr double delta = M_PI / 10.0f; // 0.31415
 		glm::vec4 point = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 		for (uint32_t i = 0; i < 20; i++)
 		{

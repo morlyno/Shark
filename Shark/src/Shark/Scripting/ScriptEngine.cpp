@@ -1,108 +1,332 @@
 #include "skpch.h"
 #include "ScriptEngine.h"
 
-#include "Shark/Core/TimeStep.h"
-#include "Shark/Core/Application.h"
-#include "Shark/Core/Project.h"
-
 #include "Shark/Scene/Components/ScriptComponent.h"
 
-#include "Shark/Scripting/ScriptingGlue.h"
-
+#include "Shark/Scripting/ScriptGlue.h"
 #include "Shark/File/FileSystem.h"
-#include "Shark/Utils/String.h"
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Utils/PlatformUtils.h"
 
 #include <mono/jit/jit.h>
+#include <mono/metadata/appdomain.h>
 #include <mono/metadata/assembly.h>
-#include <mono/metadata/image.h>
-#include <mono/metadata/debug-helpers.h>
+#include <mono/metadata/object.h>
 #include <mono/metadata/class.h>
 #include <mono/utils/mono-logger.h>
-#include <mono/utils/mono-publib.h>
-
-#define SK_MONO_LOG_LEVEL "warning"
+#include <mono/metadata/exception.h>
+#include <mono/metadata/debug-helpers.h>
 
 namespace Shark {
 
-	struct ScriptingData
+	enum
+	{
+		CoreAssemblyIndex = 0,
+		AppAssemblyIndex = 1,
+		AssemblyCount = 2
+	};
+
+	struct ScriptEngineData
 	{
 		MonoDomain* RootDomain = nullptr;
 		MonoDomain* RuntimeDomain = nullptr;
-
-		MonoAssembly* CoreAssembly = nullptr;
-		MonoImage* CoreImage = nullptr;
-
-		MonoAssembly* ScriptAssembly = nullptr;
-		MonoImage* ScriptImage = nullptr;
-
-		std::string CoreAssemblyPath;
-		std::string ScriptAssemblyPath;
+		AssemblyInfo Assemblies[AssemblyCount];
+		ScriptEngineConfig Config;
+		EntityInstancesMap EntityInstances;
+		Ref<Scene> ActiveScene;
 	};
-	static ScriptingData s_ScriptData;
 
-	static Ref<Scene> s_ActiveScene = nullptr;
-	static bool s_ForceModuleUpdate = false;
+	struct ScriptEngineData* s_Data = nullptr;
 
 	namespace utils {
 
-		MonoClass* GetClassFromName(const std::string className, MonoImage* image)
+		static std::pair<std::string, std::string> SliptClassFullName(const std::string& fullClassName)
 		{
-			SK_PROFILE_FUNCTION();
+			size_t s = fullClassName.rfind('.');
+			if (s == std::string::npos)
+				return {};
 
-			size_t seperator = className.find_last_of('.');
-
-			std::string nameSpace;
-			std::string name;
-			if (seperator == std::string::npos)
-			{
-				nameSpace = "";
-				name = className;
-			}
-			else
-			{
-				nameSpace = className.substr(0, seperator);
-				name = className.substr(seperator + 1);
-			}
-
-			return mono_class_from_name(image, nameSpace.c_str(), name.c_str());
+			return {
+				fullClassName.substr(0, s),
+				fullClassName.substr(s + 1)
+			};
 		}
 
-		Log::Level MonoLogLevelToLogLevel(std::string_view logLevel)
+	}
+
+	static void MonoTraceLogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
+	{
+		Log::Level level = Log::Level::Trace;
+
+		if (strcmp(log_level, "debug") == 0)
+			level = Log::Level::Debug;
+		else if (strcmp(log_level, "info") == 0)
+			level = Log::Level::Trace;
+		else if (strcmp(log_level, "message") == 0)
+			level = Log::Level::Info;
+		else if (strcmp(log_level, "warning") == 0)
+			level = Log::Level::Warn;
+		else if (strcmp(log_level, "error") == 0)
+			level = Log::Level::Error;
+		else if (strcmp(log_level, "critical") == 0)
+			level = Log::Level::Critical;
+
+		SK_CORE_LOG(level, "{0}: {1}", log_domain ? log_domain : "Mono", message);
+		SK_CORE_ASSERT(!fatal);
+	}
+
+	static void MonoPrintCallback(const char* string, mono_bool is_stdout)
+	{
+		if (is_stdout)
 		{
-			if (logLevel == "debug")
-				return Log::Level::Debug;
-			if (logLevel == "info")
-				return Log::Level::Trace;
-			if (logLevel == "message")
-				return Log::Level::Info;
-			if (logLevel == "warning")
-				return Log::Level::Warn;
-			if (logLevel == "critical")
-				return Log::Level::Critical;
-			if (logLevel == "error")
-				return Log::Level::Error;
-			return Log::Level::Trace;
+			SK_CORE_TRACE("Mono: {0}", string);
+			return;
 		}
 
-		static void PrintAssemblyTypes(MonoAssembly* assembly)
+		std::ofstream fout{ "Logs/Mono.log" };
+		fout << string;
+		fout.flush();
+		fout.close();
+	}
+
+	void ScriptEngine::Init(const ScriptEngineConfig& config)
+	{
+		s_Data = new ScriptEngineData;
+		s_Data->Config = config;
+		InitMono();
+	}
+
+	void ScriptEngine::Shutdown()
+	{
+		ShutdownMono();
+		delete s_Data;
+	} 
+
+	bool ScriptEngine::LoadAssemblies(const std::filesystem::path& assemblyPath)
+	{
+		s_Data->RuntimeDomain = mono_domain_create_appdomain("ScriptDomain", nullptr);
+		SK_CORE_ASSERT(s_Data->RuntimeDomain);
+		mono_domain_set(s_Data->RuntimeDomain, true);
+
+		if (!LoadCoreAssembly(s_Data->Config.CoreAssemblyPath))
+			return false;
+
+		if (!LoadAppAssembly(assemblyPath))
+			return false;
+
+		ScriptGlue::Init();
+
+		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
+
+		return true;
+	}
+
+	void ScriptEngine::ReloadAssemblies(const std::filesystem::path& assemblyPath)
+	{
+		UnloadAssemblies();
+		LoadAssemblies(assemblyPath);
+	}
+
+	void ScriptEngine::UnloadAssemblies()
+	{
+		AssemblyInfo& appInfo = s_Data->Assemblies[AppAssemblyIndex];
+		//mono_assembly_close(appInfo.Assembly);
+		//mono_image_close(appInfo.Image);
+		appInfo.Assembly = nullptr;
+		appInfo.Image = nullptr;
+		appInfo.FilePath = std::filesystem::path{};
+
+		AssemblyInfo& coreInfo = s_Data->Assemblies[CoreAssemblyIndex];
+		//mono_assembly_close(coreInfo.Assembly);
+		//mono_image_close(coreInfo.Image);
+		coreInfo.Assembly = nullptr;
+		coreInfo.Image = nullptr;
+		coreInfo.FilePath = std::filesystem::path{};
+
+		mono_domain_set(s_Data->RootDomain, 1);
+		mono_domain_unload(s_Data->RuntimeDomain);
+		s_Data->RuntimeDomain = nullptr;
+	}
+
+	const AssemblyInfo& ScriptEngine::GetCoreAssemblyInfo()
+	{
+		return s_Data->Assemblies[CoreAssemblyIndex];
+	}
+
+	const AssemblyInfo& ScriptEngine::GetAppAssemblyInfo()
+	{
+		return s_Data->Assemblies[AppAssemblyIndex];
+	}
+
+	void ScriptEngine::ShutdownRuntime()
+	{
+		for (auto& [uuid, gcHandle] : s_Data->EntityInstances)
+			mono_gchandle_free(gcHandle);
+
+		s_Data->EntityInstances.clear();
+	}
+
+	bool ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate)
+	{
+		if (!(entity && entity.AllOf<ScriptComponent>()))
+			return false;
+
+		UUID uuid = entity.GetUUID();
+		if (s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end())
 		{
-			MonoImage* image = mono_assembly_get_image(assembly);
-			const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
-			int numTypes = mono_table_info_get_rows(typeDefinitionsTable);
-
-			for (int i = 0; i < numTypes; i++)
-			{
-				uint32_t cols[MONO_TYPEDEF_SIZE];
-				mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
-
-				const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
-				const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
-
-				SK_CORE_TRACE("{0}.{1}", nameSpace, name);
-			}
+			SK_CORE_ERROR("[ScriptEngine] Called InstantiateEntity twice on same entity");
+			return false;
 		}
 
+		ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
+		
+		auto [nameSpace, name] = utils::SliptClassFullName(scriptComp.ScriptName);
+		MonoClass* clazz = mono_class_from_name_case(s_Data->Assemblies[AppAssemblyIndex].Image, nameSpace.c_str(), name.c_str());
+		if (!clazz)
+			return false;
+
+		MonoClass* entityClass = mono_class_from_name_case(s_Data->Assemblies[CoreAssemblyIndex].Image, "Shark", "Entity");
+		mono_class_is_subclass_of(entityClass, clazz, false);
+
+		MonoObject* object = mono_object_new(s_Data->RuntimeDomain, clazz);
+		mono_runtime_object_init(object);
+		{
+			MonoMethodDesc* methodDesc = mono_method_desc_new(":.ctor(ulong)", false);
+			MonoMethod* method = mono_method_desc_search_in_class(methodDesc, entityClass);
+			mono_method_desc_free(methodDesc);
+			MonoObject* exception = nullptr;
+			void* params[] = { &uuid };
+			mono_runtime_invoke(method, object, params, &exception);
+			ScriptUtils::HandleException(exception);
+		}
+
+		GCHandle gcHandle = mono_gchandle_new(object, false);
+		s_Data->EntityInstances[uuid] = gcHandle;
+
+		if (invokeOnCreate)
+			ScriptUtils::InvokeOnCreate(gcHandle);
+
+		return true;
+	}
+
+	void ScriptEngine::DestroyEntity(Entity entity, bool invokeOnDestroy)
+	{
+		UUID uuid = entity.GetUUID();
+		if (s_Data->EntityInstances.find(uuid) == s_Data->EntityInstances.end())
+		{
+			SK_CORE_ERROR("[ScriptEngine] Call DestroyEntity but entity instance dosn't exist");
+			return;
+		}
+
+		GCHandle gcHandle = GetEntityInstance(entity.GetUUID());
+		MonoObject* object = mono_gchandle_get_target(gcHandle);
+		MonoClass* clazz = mono_object_get_class(object);
+
+		if (invokeOnDestroy)
+			ScriptUtils::InvokeOnDestroy(gcHandle);
+
+		mono_gchandle_free(gcHandle);
+		s_Data->EntityInstances.erase(uuid);
+	}
+
+	bool ScriptEngine::ContainsEntityInstance(UUID uuid)
+	{
+		return s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end();
+	}
+
+	GCHandle ScriptEngine::GetEntityInstance(UUID uuid)
+	{
+		return s_Data->EntityInstances.at(uuid);
+	}
+
+	const EntityInstancesMap& ScriptEngine::GetEntityInstances()
+	{
+		return s_Data->EntityInstances;
+	}
+
+	void ScriptEngine::SetActiveScene(const Ref<Scene>& scene)
+	{
+		s_Data->ActiveScene = scene;
+	}
+
+	Ref<Scene> ScriptEngine::GetActiveScene()
+	{
+		return s_Data->ActiveScene;
+	}
+
+	bool ScriptEngine::InvokeMethod(MonoObject* object, MonoMethod* method, void** params, MonoObject** out_RetVal)
+	{
+		MonoObject* exception = nullptr;
+		MonoObject* retVal = mono_runtime_invoke(method, object, params, &exception);
+		if (exception)
+		{
+			ScriptUtils::HandleException(exception);
+			return false;
+		}
+
+		if (out_RetVal)
+			*out_RetVal = retVal;
+
+		return true;
+	}
+
+	bool ScriptEngine::InvokeVirtualMethod(MonoObject* object, MonoMethod* method, void** params, MonoObject** out_RetVal)
+	{
+		MonoMethod* virtualMethod = mono_object_get_virtual_method(object, method);
+		return InvokeMethod(object, virtualMethod, params, out_RetVal);
+	}
+
+	void ScriptEngine::InitMono()
+	{
+		mono_trace_set_level_string("warning");
+		mono_trace_set_log_handler(&MonoTraceLogCallback, nullptr);
+		mono_trace_set_print_handler(&MonoPrintCallback);
+		mono_trace_set_printerr_handler(&MonoPrintCallback);
+		std::string path = PlatformUtils::GetEnvironmentVariable("MONO_PATH");
+		path.pop_back();
+		path += "/lib";
+		mono_set_assemblies_path(path.c_str());
+		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
+
+		s_Data->RootDomain = mono_jit_init("RootDomain");
+		SK_CORE_ASSERT(s_Data->RootDomain);
+	}
+
+	void ScriptEngine::ShutdownMono()
+	{
+		mono_jit_cleanup(s_Data->RootDomain);
+		s_Data->RootDomain = nullptr;
+	}
+
+	bool ScriptEngine::LoadCoreAssembly(const std::filesystem::path& filePath)
+	{
+		MonoAssembly* assembly = LoadMonoAssembly(filePath);
+		if (!assembly)
+		{
+			SK_CORE_ERROR("[ScriptEngine] Failed to load Core Assembly");
+			return false;
+		}
+
+		AssemblyInfo& info = s_Data->Assemblies[CoreAssemblyIndex];
+		info.Assembly = assembly;
+		info.Image = mono_assembly_get_image(assembly);
+		info.FilePath = filePath;
+		return true;
+	}
+
+	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& filePath)
+	{
+		MonoAssembly* assembly = LoadMonoAssembly(filePath);
+		if (!assembly)
+		{
+			SK_CORE_ERROR("[ScriptEngine] Failed to load App Assembly");
+			return false;
+		}
+
+		AssemblyInfo& info = s_Data->Assemblies[AppAssemblyIndex];
+		info.Assembly = assembly;
+		info.Image = mono_assembly_get_image(assembly);
+		info.FilePath = filePath;
+		return true;
 	}
 
 	MonoAssembly* ScriptEngine::LoadMonoAssembly(const std::filesystem::path& filePath)
@@ -113,7 +337,7 @@ namespace Shark {
 		Buffer fileData = FileSystem::ReadBinary(filePath);
 		
 		MonoImageOpenStatus status;
-		MonoImage* image = mono_image_open_from_data(fileData.As<char>(), fileData.Size, true, &status);
+		MonoImage* image = mono_image_open_from_data_full(fileData.As<char>(), fileData.Size, true, &status, false);
 		if (status != MONO_IMAGE_OK)
 		{
 			const char* errorMsg = mono_image_strerror(status);
@@ -121,214 +345,17 @@ namespace Shark {
 			return false;
 		}
 
-
 		std::string assemblyName = filePath.stem().string();
-		MonoAssembly* assembly = mono_assembly_load_from(image, assemblyName.c_str(), &status);
+		MonoAssembly* assembly = mono_assembly_load_from_full(image, assemblyName.c_str(), &status, false);
 		mono_image_close(image);
 		fileData.Release();
 		return assembly;
 	}
 
-	void ScriptEngine::HandleException(MonoObject* exception)
+	void ScriptEngine::UnhandledExeptionHook(MonoObject* exc, void* user_data)
 	{
-		if (!exception)
-			return;
-
-		MonoString* monoStr = mono_object_to_string(exception, nullptr);
-		const wchar_t* str = mono_string_to_utf16(monoStr);
-		SK_CONSOLE_ERROR(str);
-	}
-
-	void LogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
-	{
-		auto level = utils::MonoLogLevelToLogLevel(log_level);
-		SK_CORE_LOG(level, "{}: {}{}", log_domain ? log_domain : "Unkown Domain", fatal ? "[Fatal] " : "", message);
-	}
-
-	bool ScriptEngine::Init(const std::string& scriptingCoreAssemblyPath)
-	{
-		SK_PROFILE_FUNCTION();
-
-		SK_CORE_INFO("Init ScriptEngine [{}]", scriptingCoreAssemblyPath);
-
-		mono_trace_set_level_string(SK_MONO_LOG_LEVEL);
-		mono_trace_set_log_handler(&LogCallback, nullptr);
-
-		s_ScriptData.CoreAssemblyPath = scriptingCoreAssemblyPath;
-		mono_set_dirs(SK_CONNECT_TO_STRING(MONO_DIRECTORY, /lib), SK_CONNECT_TO_STRING(MONO_DIRECTORY, /etc));
-
-		s_ScriptData.RootDomain = mono_jit_init("Core Domain");
-		SK_CORE_ASSERT(s_ScriptData.RootDomain, "Failed to initialize Domain");
-
-		return true;
-	}
-
-	void ScriptEngine::Shutdown()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (s_ScriptData.RootDomain)
-		{
-			SK_CORE_INFO("ScriptEngine Shutdown");
-
-			mono_jit_cleanup(s_ScriptData.RootDomain);
-			s_ScriptData.RootDomain = nullptr;
-			s_ScriptData.CoreAssembly = nullptr;
-			s_ScriptData.CoreImage = nullptr;
-			s_ScriptData.ScriptAssembly = nullptr;
-			s_ScriptData.ScriptImage = nullptr;
-			s_ScriptData.CoreAssemblyPath.clear();
-			s_ScriptData.ScriptAssemblyPath.clear();
-		}
-	}
-
-	bool ScriptEngine::LoadAssembly(const std::string& assemblyPath)
-	{
-		SK_PROFILE_FUNCTION();
-
-		s_ScriptData.ScriptAssemblyPath = assemblyPath;
-
-		s_ScriptData.RuntimeDomain = mono_domain_create_appdomain("Script Domain", nullptr);
-		if (!s_ScriptData.RuntimeDomain)
-		{
-			SK_CORE_ERROR("Failed to load Runtime Domain");
-			return false;
-		}
-		mono_domain_set(s_ScriptData.RuntimeDomain, 0);
-		
-
-		s_ScriptData.CoreAssembly = LoadMonoAssembly(s_ScriptData.CoreAssemblyPath);
-		if (!s_ScriptData.CoreAssembly)
-			return false;
-
-		s_ScriptData.CoreImage = mono_assembly_get_image(s_ScriptData.CoreAssembly);
-
-
-		s_ScriptData.ScriptAssembly = LoadMonoAssembly(s_ScriptData.ScriptAssemblyPath);
-		if (!s_ScriptData.ScriptAssembly)
-			return false;
-
-		s_ScriptData.ScriptImage = mono_assembly_get_image(s_ScriptData.ScriptAssembly);
-
-		//SK_CORE_INFO("Core Assembly:");
-		//utils::PrintAssemblyTypes(s_ScriptData.CoreAssembly);
-		
-		//SK_CORE_INFO("Script Assembly:");
-		//utils::PrintAssemblyTypes(s_ScriptData.ScriptAssembly);
-
-		ScriptingGlue::Init();
-
-		SK_CORE_INFO("ScriptEngine Assembly Loaded [{}]", s_ScriptData.ScriptAssemblyPath);
-
-		return true;
-	}
-
-	void ScriptEngine::UnloadAssembly()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!s_ScriptData.RuntimeDomain)
-			return;
-
-		SK_CORE_INFO("ScriptEngine Assembly Unloaded [{}]", s_ScriptData.ScriptAssemblyPath);
-
-		mono_domain_set(s_ScriptData.RootDomain, 0);
-		mono_domain_unload(s_ScriptData.RuntimeDomain);
-		s_ScriptData.RuntimeDomain = nullptr;
-		s_ScriptData.CoreAssembly = nullptr;
-		s_ScriptData.CoreImage = nullptr;
-		s_ScriptData.ScriptAssembly = nullptr;
-		s_ScriptData.ScriptImage = nullptr;
-	}
-
-	bool ScriptEngine::ReloadAssembly()
-	{
-		SK_PROFILE_FUNCTION();
-
-		UnloadAssembly();
-		return LoadAssembly(s_ScriptData.ScriptAssemblyPath);
-	}
-
-	bool ScriptEngine::AssemblyLoaded()
-	{
-		return s_ScriptData.ScriptAssembly;
-	}
-
-	void ScriptEngine::SetActiveScene(const Ref<Scene> scene)
-	{
-		s_ActiveScene = scene;
-	}
-
-	Ref<Scene> ScriptEngine::GetActiveScene()
-	{
-		return s_ActiveScene;
-	}
-
-	MonoImage* ScriptEngine::GetImage()
-	{
-		return s_ScriptData.ScriptImage;
-	}
-
-	MonoImage* ScriptEngine::GetCoreImage()
-	{
-		return s_ScriptData.CoreImage;
-	}
-
-	MonoClass* ScriptEngine::GetEntityClass()
-	{
-		return mono_class_from_name_case(s_ScriptData.CoreImage, "Shark", "Entity");
-	}
-
-	bool ScriptEngine::AssemblyHasScript(const std::string& className)
-	{
-		if (!s_ScriptData.ScriptAssembly)
-			return false;
-
-		return utils::GetClassFromName(className, s_ScriptData.ScriptImage) != nullptr;
-	}
-
-	MonoMethod* ScriptEngine::GetMethod(const std::string& methodName, bool includeNameSpace)
-	{
-		return GetMethodInternal(methodName, includeNameSpace, s_ScriptData.ScriptImage);
-	}
-
-	MonoMethod* ScriptEngine::GetMethodCore(const std::string& methodName, bool includeNameSpace)
-	{
-		return GetMethodInternal(methodName, includeNameSpace, s_ScriptData.CoreImage);
-	}
-
-	MonoMethod* ScriptEngine::GetClassMethod(MonoClass* clazz, const std::string& methodName, bool includeNameSpace)
-	{
-		if (MonoMethodDesc* methodDesc = mono_method_desc_new(methodName.c_str(), includeNameSpace))
-		{
-			MonoMethod* method = mono_method_desc_search_in_class(methodDesc, clazz);
-			mono_method_desc_free(methodDesc);
-			return method;
-		}
-		return nullptr;
-	}
-
-	MonoObject* ScriptEngine::InvokeMethodInternal(MonoMethod* method, void* object, void** args)
-	{
-		MonoObject* exception = nullptr;
-		MonoObject* retVal = mono_runtime_invoke(method, object, args, &exception);
-		if (exception)
-		{
-			HandleException(exception);
-			return nullptr;
-		}
-		return retVal;
-	}
-
-	MonoMethod* ScriptEngine::GetMethodInternal(const std::string& methodName, bool includeNameSpace, MonoImage* image)
-	{
-		if (MonoMethodDesc* methodDesc = mono_method_desc_new(methodName.c_str(), includeNameSpace))
-		{
-			MonoMethod* method = mono_method_desc_search_in_image(methodDesc, image);
-			mono_method_desc_free(methodDesc);
-			return method;
-		}
-		return nullptr;
+		MonoString* excecptionMessage = mono_object_to_string(exc, nullptr);
+		SK_CONSOLE_ERROR(ScriptUtils::MonoStringToUTF8(excecptionMessage));
 	}
 
 }

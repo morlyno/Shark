@@ -386,12 +386,12 @@ namespace Shark {
 
 	void DirectXRenderer::AddCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer)
 	{
-		m_CommandBuffers.insert(commandBuffer);
+		m_CommandBuffers.insert(commandBuffer.Raw());
 	}
 
 	void DirectXRenderer::RemoveCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer)
 	{
-		auto entry = m_CommandBuffers.find(commandBuffer);
+		auto entry = m_CommandBuffers.find(commandBuffer.Raw());
 		if (entry != m_CommandBuffers.end())
 			m_CommandBuffers.erase(entry);
 	}

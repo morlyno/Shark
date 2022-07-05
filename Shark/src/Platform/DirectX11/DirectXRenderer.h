@@ -62,7 +62,7 @@ namespace Shark {
 		ID3D11Device* m_Device = nullptr;
 		ID3D11DeviceContext* m_ImmediateContext = nullptr;
 
-		std::unordered_set<Weak<DirectXRenderCommandBuffer>> m_CommandBuffers;
+		std::unordered_set<DirectXRenderCommandBuffer*> m_CommandBuffers;
 
 		Ref<ShaderLibrary> m_ShaderLib;
 		Ref<Texture2D> m_WhiteTexture;

@@ -7,8 +7,7 @@
 #include "Shark/Render/SceneRenderer.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Scripting/ScriptManager.h"
-#include "Shark/Scripting/ScriptingGlue.h"
+#include "Shark/Scripting/ScriptGlue.h"
 
 #include "Shark/Math/Math.h"
 
@@ -126,26 +125,14 @@ namespace Shark {
 				for (auto entityID : view)
 				{
 					Entity entity{ entityID, this };
-					if (ScriptManager::Instantiate(entity))
-					{
-						auto& comp = view.get<ScriptComponent>(entityID);
-						comp.HasRuntime = true;
-					}
-					else
-					{
-						// Remove Script Component if the Script couldn't be instatiated;
-						entity.RemoveComponent<ScriptComponent>();
-					}
+					ScriptEngine::InstantiateEntity(entity, false);
 				}
 			}
 
 			{
-				auto view = m_Registry.view<ScriptComponent>();
-				for (auto entityID : view)
+				for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 				{
-					Entity entity{ entityID, this };
-					auto& script = ScriptManager::GetScript(entity.GetUUID());
-					script.OnCreate();
+					ScriptUtils::InvokeOnCreate(gcHandle);
 				}
 			}
 		}
@@ -224,20 +211,10 @@ namespace Shark {
 		{
 			SK_PROFILE_SCOPED("Scene::OnScenePlay::DestroyScripts");
 
-			auto view = m_Registry.view<ScriptComponent>();
+			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+				ScriptUtils::InvokeOnDestroy(gcHandle);
 
-			for (auto entityID : view)
-			{
-				Entity entity{ entityID, this };
-				auto& comp = entity.GetComponent<ScriptComponent>();
-				if (comp.HasRuntime)
-				{
-					ScriptManager::Destroy(entity, true);
-					comp.HasRuntime = false;
-				}
-			}
-
-			ScriptManager::Cleanup();
+			ScriptEngine::ShutdownRuntime();
 		}
 
 		// Destroy Native Scripts
@@ -273,13 +250,8 @@ namespace Shark {
 		{
 			SK_PROFILE_SCOPED("Shark::Scene::OnUpdateRuntime::UpdateScripts");
 
-			auto view = m_Registry.view<ScriptComponent>();
-			for (auto entityID : view)
-			{
-				Entity entity{ entityID, this };
-				auto& script = ScriptManager::GetScript(entity.GetUUID());
-				script.OnUpdate(ts);
-			}
+			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+				ScriptUtils::InvokeOnUpdate(gcHandle, ts);
 		}
 
 		{
@@ -486,16 +458,6 @@ namespace Shark {
 		DestroyEntityInternal(entity, destroyChildren, true);
 	}
 
-	void Scene::DestroyAllEntities()
-	{
-		SK_PROFILE_FUNCTION();
-
-		m_Registry.clear();
-		ScriptManager::Cleanup();
-		m_PhysicsScene.DestroyAllBodies();
-		m_EntityUUIDMap.clear();
-	}
-
 	void Scene::DestroyEntityInternal(Entity entity, bool destroyChildren, bool first)
 	{
 		SK_PROFILE_FUNCTION();
@@ -508,16 +470,8 @@ namespace Shark {
 
 		if (!m_IsEditorScene)
 		{
-			if (entity.AllOf<ScriptComponent>())
-			{
-				auto& comp = entity.GetComponent<ScriptComponent>();
-				SK_CORE_ASSERT(comp.HasRuntime == ScriptManager::Contains(entity.GetUUID()));
-				if (comp.HasRuntime)
-				{
-					ScriptManager::Destroy(entity, true);
-					comp.HasRuntime = false;
-				}
-			}
+			if (entity.AllOf<ScriptComponent>() && ScriptEngine::ContainsEntityInstance(entity.GetUUID()))
+				ScriptEngine::DestroyEntity(entity, true);
 
 			if (entity.AllOf<RigidBody2DComponent>())
 			{
@@ -698,13 +652,11 @@ namespace Shark {
 
 	void Scene::OnPhyicsStep(TimeStep fixedTimeStep)
 	{
-		auto view = m_Registry.view<ScriptComponent>();
-		for (auto entityID : view)
-		{
-			Entity entity{ entityID, this };
-			auto& script = ScriptManager::GetScript(entity.GetUUID());
-			script.OnPhysicsUpdate(fixedTimeStep);
-		}
+		SK_PROFILE_FUNCTION();
+
+		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+			ScriptUtils::InvokeOnPhysicsUpdate(gcHandle, fixedTimeStep);
+
 	}
 
 	void Scene::RenderEntity(const Ref<SceneRenderer>& renderer, Entity entity, const glm::mat4& parentTransform)
@@ -831,14 +783,14 @@ namespace Shark {
 	void Scene::OnScriptComponentDestroyed(entt::registry& registry, entt::entity ent)
 	{
 		Entity entity{ ent, this };
-		auto& comp = entity.GetComponent<ScriptComponent>();
 
-		if (!comp.HasRuntime)
+		// if id component dosn't exist the callback probably comes from DestroyEntityInternal
+		// so the script is allready destroyed
+		if (!entity.AllOf<IDComponent>())
 			return;
 
-		ScriptManager::Destroy(entity, true);
-		comp.HasRuntime = false;
-		SK_CORE_TRACE("Scene::OnScriptComponentDestroyed");
+		if (ScriptEngine::ContainsEntityInstance(entity.GetUUID()))
+			ScriptEngine::DestroyEntity(entity, true);
 	}
 
 	void ContactListener::BeginContact(b2Contact* contact)
@@ -855,7 +807,7 @@ namespace Shark {
 		Entity entityA = m_Context->GetEntityByUUID(uuidA);
 		Entity entityB = m_Context->GetEntityByUUID(uuidB);
 
-		ScriptingGlue::CallCollishionBegin(entityA, entityB);
+		ScriptGlue::CallCollishionBegin(entityA, entityB, fixtureA->IsSensor(), fixtureB->IsSensor());
 	}
 
 	void ContactListener::EndContact(b2Contact* contact)
@@ -872,7 +824,7 @@ namespace Shark {
 		Entity entityA = m_Context->GetEntityByUUID(uuidA);
 		Entity entityB = m_Context->GetEntityByUUID(uuidB);
 
-		ScriptingGlue::CallCollishionEnd(entityA, entityB);
+		ScriptGlue::CallCollishionEnd(entityA, entityB, fixtureA->IsSensor(), fixtureB->IsSensor());
 	}
 
 	void ContactListener::SetContext(const Ref<Scene>& context)

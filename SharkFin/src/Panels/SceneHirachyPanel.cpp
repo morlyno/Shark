@@ -1,15 +1,18 @@
 #include "skfpch.h"
 #include "SceneHirachyPanel.h"
 
+#include "Shark/Core/Project.h"
+#include "Shark/Core/Application.h"
+
+#include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scene/Components.h"
+#include "Shark/Scene/NativeScriptFactory.h"
+
+#include "Shark/Scripting/ScriptEngine.h"
+
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
 #include "Shark/Input/Input.h"
-#include "Shark/Scene/NativeScriptFactory.h"
-#include "Shark/Core/Project.h"
-#include "Shark/Core/Application.h"
-#include "Shark/Asset/ResourceManager.h"
-#include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -285,30 +288,6 @@ namespace Shark {
 		Utils::DrawComponet<TransformComponent>(entity, "Transform", [&](TransformComponent& comp)
 		{
 			UI::BeginControlsGrid();
-			//if (entity.HasParent())
-			//{
-			//	Entity parent = m_Context->GetEntityByUUID(entity.Parent());
-			//	auto& parentTransform = parent.Transform();
-			//
-			//	TransformComponent tf;
-			//	tf.Translation = comp.Translation - parentTransform.Translation;
-			//	tf.Rotation = comp.Rotation - parentTransform.Rotation;
-			//	tf.Scaling = comp.Scaling / parentTransform.Scaling;
-			//
-			//	UI::Control("Position", tf.Translation);
-			//	UI::ControlAngle("Rotation", tf.Rotation);
-			//	UI::ControlS("Scaling", tf.Scaling, 1.0f);
-			//
-			//	comp.Translation = tf.Translation + parentTransform.Translation;
-			//	comp.Rotation = tf.Rotation + parentTransform.Rotation;
-			//	comp.Scaling = tf.Scaling * parentTransform.Scaling;
-			//}
-			//else
-			//{
-			//	UI::Control("Position", comp.Translation);
-			//	UI::ControlAngle("Rotation", comp.Rotation);
-			//	UI::ControlS("Scaling", comp.Scaling, 1.0f);
-			//}
 			UI::Control("Position", comp.Translation);
 			UI::ControlAngle("Rotation", comp.Rotation);
 			UI::ControlS("Scaling", comp.Scale, 1.0f);
@@ -547,23 +526,16 @@ namespace Shark {
 
 		});
 
-		Utils::DrawComponet<ScriptComponent>(entity, "Script", [](auto& comp)
+		Utils::DrawComponet<ScriptComponent>(entity, "Script", [&](auto& comp)
 		{
 			ImGui::SetNextItemWidth(-1.0f);
 
 			UI::ScopedStyle scopedStyle;
-			if (!comp.ScriptModuleFound)
-			{
+			if (!comp.IsExisitingScript)
 				scopedStyle.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
-			}
 
 			if (ImGui::InputText("##InputScript", &comp.ScriptName))
-				comp.ScriptModuleFound = ScriptEngine::AssemblyHasScript(comp.ScriptName);
-
-			if (comp.ScriptModuleFound)
-			{
-				ImGui::Text("Script Module Found");
-			}
+				comp.IsExisitingScript = ScriptUtils::ValidScriptName(comp.ScriptName);
 
 		});
 

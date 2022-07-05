@@ -19,6 +19,8 @@ namespace Sandbox
 		private SpriteRendererComponent m_SpriteRenderer;
 		private AssetHandle m_CollishionTextureHandle = AssetHandle.Invalid;
 
+		private uint m_CollishionCount = 0;
+
 		private static Color[] m_Colors = new Color[]{
 			Color.White, Color.Black, Color.Red,
 			Color.Green, Color.Blue, Color.Yellow,
@@ -38,18 +40,18 @@ namespace Sandbox
 			m_Player = Scene.GetEntityByTag("Player");
 		}
 
-		protected override void OnCollishionBegin(Entity entity)
+		protected override void OnCollishionBegin(Entity entity, bool isSensor)
 		{
-			if (entity == m_Player)
+			if (m_CollishionCount++ == 0)
 			{
 				m_SpriteRenderer.Color = m_CollishionColor;
 				m_SpriteRenderer.TextureHandle = m_CollishionTextureHandle;
 			}
 		}
 
-		protected override void OnCollishionEnd(Entity entity)
+		protected override void OnCollishionEnd(Entity entity, bool isSensor)
 		{
-			if (entity == m_Player)
+			if (--m_CollishionCount == 0)
 			{
 				m_SpriteRenderer.Color = m_InitColor;
 				m_SpriteRenderer.TextureHandle = AssetHandle.Invalid;

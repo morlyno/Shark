@@ -10,6 +10,8 @@ project "SharkFin"
     pchheader "skfpch.h"
     pchsource "src/skfpch.cpp"
 
+    vectorextensions "AVX2"
+
     files
     {
         "src/**.h",
@@ -39,15 +41,7 @@ project "SharkFin"
 
     defines
     {
-        "IMGUI_DEFINE_MATH_OPERATORS",
-        
-        "GLM_FORCE_SWIZZLE",
-        "GLM_FORCE_LEFT_HANDED",
-        "GLM_FORCE_DEPTH_ZERO_TO_ONE",
-
-        "FMT_HEADER_ONLY",
-        "MONO_DIRECTORY=%{MonoDir}",
-        "YAML_CPP_STATIC_DEFINE"
+        DefaultDefines
     }
 
     sharkfin_output_dir = "%{wks.location}/bin/%{outputdir}/%{prj.name}"

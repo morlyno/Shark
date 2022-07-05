@@ -363,27 +363,3 @@ namespace Shark {
 	};
 
 }
-
-namespace std {
-
-	template<typename T>
-	struct hash<Shark::Ref<T>>
-	{
-		auto operator()(const Shark::Ref<T>& val) const
-		{
-			return Shark::Hash::FNV1A(val.Raw());
-			//return hash<void*>()((void*)val.Raw());
-		}
-	};
-
-	template<typename T>
-	struct hash<Shark::Weak<T>>
-	{
-		auto operator()(const Shark::Weak<T>& val) const
-		{
-			return Shark::Hash::FNV1A(val.Raw());
-			//return hash<void*>()((void*)val.Raw());
-		}
-	};
-
-}

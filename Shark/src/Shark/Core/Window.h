@@ -42,6 +42,7 @@ namespace Shark {
 
 		virtual inline bool IsVSync() const = 0;
 		virtual void SetVSync(bool VSync) = 0;
+		virtual bool IsFocused() const = 0;
 
 		virtual void Kill() = 0;
 
