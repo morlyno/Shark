@@ -4,6 +4,8 @@
 #include "Shark/Scene/Components/ScriptComponent.h"
 
 #include "Shark/Scripting/ScriptGlue.h"
+#include "Shark/Scripting/GCManager.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
 
@@ -30,6 +32,7 @@ namespace Shark {
 		MonoDomain* RootDomain = nullptr;
 		MonoDomain* RuntimeDomain = nullptr;
 		AssemblyInfo Assemblies[AssemblyCount];
+		bool AssembliesLoaded = false;
 		ScriptEngineConfig Config;
 		EntityInstancesMap EntityInstances;
 		Ref<Scene> ActiveScene;
@@ -113,6 +116,8 @@ namespace Shark {
 		if (!LoadAppAssembly(assemblyPath))
 			return false;
 
+		s_Data->AssembliesLoaded = true;
+
 		ScriptGlue::Init();
 
 		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
@@ -128,16 +133,14 @@ namespace Shark {
 
 	void ScriptEngine::UnloadAssemblies()
 	{
+		s_Data->AssembliesLoaded = false;
+
 		AssemblyInfo& appInfo = s_Data->Assemblies[AppAssemblyIndex];
-		//mono_assembly_close(appInfo.Assembly);
-		//mono_image_close(appInfo.Image);
 		appInfo.Assembly = nullptr;
 		appInfo.Image = nullptr;
 		appInfo.FilePath = std::filesystem::path{};
 
 		AssemblyInfo& coreInfo = s_Data->Assemblies[CoreAssemblyIndex];
-		//mono_assembly_close(coreInfo.Assembly);
-		//mono_image_close(coreInfo.Image);
 		coreInfo.Assembly = nullptr;
 		coreInfo.Image = nullptr;
 		coreInfo.FilePath = std::filesystem::path{};
@@ -145,6 +148,11 @@ namespace Shark {
 		mono_domain_set(s_Data->RootDomain, 1);
 		mono_domain_unload(s_Data->RuntimeDomain);
 		s_Data->RuntimeDomain = nullptr;
+	}
+
+	bool ScriptEngine::AssembliesLoaded()
+	{
+		return s_Data->AssembliesLoaded;
 	}
 
 	const AssemblyInfo& ScriptEngine::GetCoreAssemblyInfo()
@@ -163,11 +171,13 @@ namespace Shark {
 			mono_gchandle_free(gcHandle);
 
 		s_Data->EntityInstances.clear();
+
+		GCManager::Collect();
 	}
 
 	bool ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate)
 	{
-		if (!(entity && entity.AllOf<ScriptComponent>()))
+		if (!s_Data->AssembliesLoaded || !(entity && entity.AllOf<ScriptComponent>()))
 			return false;
 
 		UUID uuid = entity.GetUUID();
@@ -305,9 +315,7 @@ namespace Shark {
 		mono_trace_set_log_handler(&MonoTraceLogCallback, nullptr);
 		mono_trace_set_print_handler(&MonoPrintCallback);
 		mono_trace_set_printerr_handler(&MonoPrintCallback);
-		std::string path = PlatformUtils::GetEnvironmentVariable("MONO_PATH");
-		path.pop_back();
-		path += "/lib";
+		std::string path = PlatformUtils::GetEnvironmentVariable("MONO_PATH") + "/lib";
 		mono_set_assemblies_path(path.c_str());
 		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
 

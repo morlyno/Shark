@@ -31,9 +31,12 @@ namespace Shark {
 		}
 	}
 
-	char* ScriptUtils::MonoStringToUTF8(MonoString* monoStr)
+	std::string ScriptUtils::MonoStringToUTF8(MonoString* monoStr)
 	{
-		return mono_string_to_utf8(monoStr);
+		char* cStr = mono_string_to_utf8(monoStr);
+		std::string str = cStr;
+		mono_free(cStr);
+		return str;
 	}
 
 	std::string ScriptUtils::WalkStack()
@@ -107,6 +110,9 @@ namespace Shark {
 
 	bool ScriptUtils::ValidScriptName(const std::string& fullName)
 	{
+		if (!ScriptEngine::AssembliesLoaded())
+			return false;
+
 		size_t i = fullName.rfind('.');
 
 		std::string nameSpace = fullName.substr(0, i);

@@ -16,7 +16,7 @@ namespace Shark {
 	{
 	public:
 		static void HandleException(MonoObject* exception);
-		static char* MonoStringToUTF8(MonoString* monoStr);
+		static std::string MonoStringToUTF8(MonoString* monoStr);
 
 		static std::string WalkStack();
 

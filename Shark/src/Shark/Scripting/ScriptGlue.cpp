@@ -251,20 +251,24 @@ namespace Shark {
 
 	void ScriptGlue::CallCollishionBegin(Entity entityA, Entity entityB, Collider2DType colliderType, bool isSensor)
 	{
+		if (!s_ScriptGlue)
+			return;
+
 		MonoMethod* func = isSensor ? s_ScriptGlue->EntityOnTriggerBegin : s_ScriptGlue->EntityOnCollishionBegin;
 		CallPhyiscsFunc(func, entityA, entityB, colliderType);
 	}
 
 	void ScriptGlue::CallCollishionEnd(Entity entityA, Entity entityB, Collider2DType colliderType, bool isSensor)
 	{
+		if (!s_ScriptGlue)
+			return;
+
 		MonoMethod* func = isSensor ? s_ScriptGlue->EntityOnTriggerEnd : s_ScriptGlue->EntityOnCollishionEnd;
 		CallPhyiscsFunc(func, entityA, entityB, colliderType);
 	}
 
 	void ScriptGlue::OnEvent(Event& event)
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (!s_ScriptGlue)
 			return;
 

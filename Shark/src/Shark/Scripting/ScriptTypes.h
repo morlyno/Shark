@@ -13,8 +13,8 @@ namespace Shark {
 
 	struct AssemblyInfo
 	{
-		MonoAssembly* Assembly;
-		MonoImage* Image;
+		MonoAssembly* Assembly = nullptr;
+		MonoImage* Image = nullptr;
 		std::filesystem::path FilePath;
 	};
 

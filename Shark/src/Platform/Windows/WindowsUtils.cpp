@@ -206,6 +206,8 @@ namespace Shark {
 			return std::string{};
 		}
 
+		envVar.erase(result);
+		std::replace(envVar.begin(), envVar.end(), '\\', '/');
 		return envVar;
 	}
 

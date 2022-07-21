@@ -14,6 +14,8 @@ namespace Shark {
 	{
 	public:
 		static MonoObject* GetManagedObject(GCHandle gcHandle);
+
+		static void Collect();
 	};
 
 }

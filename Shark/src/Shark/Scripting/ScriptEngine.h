@@ -35,6 +35,8 @@ namespace Shark {
 		static void ReloadAssemblies(const std::filesystem::path& assemblyPath);
 		static void UnloadAssemblies();
 
+		static bool AssembliesLoaded();
+
 		static const AssemblyInfo& GetCoreAssemblyInfo();
 		static const AssemblyInfo& GetAppAssemblyInfo();
 
@@ -58,20 +60,14 @@ namespace Shark {
 		template<typename... TArgs>
 		static bool InvokeMethod(MonoObject* object, MonoMethod* method, TArgs&&... args)
 		{
-			void* params[] = {
-				(void*)Utils::ToPointer(args)...
-			};
-
+			void* params[] = { (void*)&args... };
 			return InvokeMethod(object, method, params);
 		}
 
 		template<typename... TArgs>
 		static bool InvokeVirtualMethod(MonoObject* object, MonoMethod* method, TArgs&&... args)
 		{
-			void* params[] = {
-				(void*)Utils::ToPointer(args)...
-			};
-
+			void* params[] = { (void*)&args... };
 			return InvokeVirtualMethod(object, method, params);
 		}
 
