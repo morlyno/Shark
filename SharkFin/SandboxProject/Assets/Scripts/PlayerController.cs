@@ -120,22 +120,14 @@ namespace Sandbox
 			m_ActiveCamera.Transform.Translation = translation;
 		}
 
-		protected override void OnCollishionBegin(Entity entity, bool isSensor)
+		protected override void OnCollishionBegin(Collider2D collider)
 		{
-			if (isSensor)
-				return;
-
 			m_CollishionCount++;
-			Log.Info("Collishion Begin: {0}", m_CollishionCount);
 		}
 
-		protected override void OnCollishionEnd(Entity entity, bool isSensor)
+		protected override void OnCollishionEnd(Collider2D collider)
 		{
-			if (isSensor)
-				return;
-
 			m_CollishionCount--;
-			Log.Info("Collishion End: {0}", m_CollishionCount);
 		}
 
 		private void Movement(TimeStep ts)

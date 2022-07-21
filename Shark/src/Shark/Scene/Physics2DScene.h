@@ -11,6 +11,12 @@ namespace Shark {
 
 	class Entity;
 
+	enum class Collider2DType
+	{
+		BoxCollider,
+		CircleCollider
+	};
+
 	struct PhysicsProfile
 	{
 		float TimeStep;

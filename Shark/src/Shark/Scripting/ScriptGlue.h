@@ -6,6 +6,7 @@
 
 #include "Shark/Scene/Components/TransformComponent.h"
 #include "Shark/Scene/Components/RigidBody2DComponent.h"
+#include "Shark/Scene/Physics2DScene.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Input/Input.h"
 
@@ -27,8 +28,9 @@ namespace Shark {
 		static void Init();
 		static void Shutdown();
 
-		static void CallCollishionBegin(Entity entityA, Entity entityB, bool aIsSensor, bool bIsSensor);
-		static void CallCollishionEnd(Entity entityA, Entity entityB, bool aIsSensor, bool bIsSensor);
+		// Calls the corresponding function on entityA (not on entityB!) 
+		static void CallCollishionBegin(Entity entityA, Entity entityB, Collider2DType colliderType, bool isSensor);
+		static void CallCollishionEnd(Entity entityA, Entity entityB, Collider2DType colliderType, bool isSensor);
 
 		static void OnEvent(Event& event);
 

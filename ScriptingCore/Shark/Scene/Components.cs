@@ -460,16 +460,16 @@ namespace Shark
 			=> InternalCalls.RigidBody2DComponent_ApplyTorque(Entity.ID, torque, forceType);
 	}
 
-	public abstract class PhysicsCollider : Component
+	public abstract class Collider2D : Component
 	{
 		public abstract bool Sensor { get; set; }
 		public abstract float Density { get; set; }
 		public abstract float Friction { get; set; }
 		public abstract float Restitution { get; set; }
-		public abstract float RestitutionThreshold { get; set;  }
+		public abstract float RestitutionThreshold { get; set; }
 	}
 
-	public class BoxCollider2DComponent : PhysicsCollider
+	public class BoxCollider2DComponent : Collider2D
 	{
 		public override bool Sensor
 		{
@@ -560,7 +560,7 @@ namespace Shark
 		}
 	}
 
-	public class CircleCollider2DComponent : PhysicsCollider
+	public class CircleCollider2DComponent : Collider2D
 	{
 		public override bool Sensor
 		{

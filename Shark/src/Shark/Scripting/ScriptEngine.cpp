@@ -228,6 +228,30 @@ namespace Shark {
 		s_Data->EntityInstances.erase(uuid);
 	}
 
+	GCHandle ScriptEngine::CreateTempEntity(Entity entity)
+	{
+		// TODO(moro): maby cache object for later use
+
+		MonoClass* entityClass = mono_class_from_name_case(s_Data->Assemblies[CoreAssemblyIndex].Image, "Shark", "Entity");
+		MonoObject* object = mono_object_new(s_Data->RuntimeDomain, entityClass);
+		GCHandle persistentHandle = mono_gchandle_new(object, false);
+		mono_runtime_object_init(object);
+		
+		MonoMethodDesc* ctorDesc = mono_method_desc_new(":.ctor(ulong)", false);
+		MonoMethod* ctorMethod = mono_method_desc_search_in_class(ctorDesc, entityClass);
+		mono_method_desc_free(ctorDesc);
+		InvokeMethod(object, ctorMethod, entity.GetUUID());
+
+		return persistentHandle;
+	}
+
+	void ScriptEngine::ReleaseTempEntity(GCHandle handle)
+	{
+		// TODO(moro): maby cache object for later use
+
+		mono_gchandle_free(handle);
+	}
+
 	bool ScriptEngine::ContainsEntityInstance(UUID uuid)
 	{
 		return s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end();

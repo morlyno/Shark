@@ -44,6 +44,9 @@ namespace Shark {
 		static bool InstantiateEntity(Entity entity, bool invokeOnCreate);
 		static void DestroyEntity(Entity entity, bool invokeOnDestroy);
 
+		static GCHandle CreateTempEntity(Entity entity);
+		static void ReleaseTempEntity(GCHandle handle);
+
 		static bool ContainsEntityInstance(UUID uuid);
 		static GCHandle GetEntityInstance(UUID uuid);
 		static const EntityInstancesMap& GetEntityInstances();

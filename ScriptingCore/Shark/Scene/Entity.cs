@@ -23,8 +23,11 @@ namespace Shark
 		protected virtual void OnUpdate(TimeStep ts) { }
 		protected virtual void OnPhysicsUpdate(TimeStep fixedTimeStep) { }
 		protected virtual void OnUIRender() { }
-		protected virtual void OnCollishionBegin(Entity entity, bool isSensor) { }
-		protected virtual void OnCollishionEnd(Entity entity, bool isSensor) { }
+		protected virtual void OnCollishionBegin(Collider2D collider) { }
+		protected virtual void OnCollishionEnd(Collider2D collider) { }
+		protected virtual void OnTriggerBegin(Collider2D collider) { }
+		protected virtual void OnTriggerEnd(Collider2D collider) { }
+
 
 		public TransformComponent Transform
 			=> GetComponent<TransformComponent>();

@@ -807,7 +807,14 @@ namespace Shark {
 		Entity entityA = m_Context->GetEntityByUUID(uuidA);
 		Entity entityB = m_Context->GetEntityByUUID(uuidB);
 
-		ScriptGlue::CallCollishionBegin(entityA, entityB, fixtureA->IsSensor(), fixtureB->IsSensor());
+		b2Shape* shapeA = fixtureA->GetShape();
+		b2Shape* shapeB = fixtureB->GetShape();
+
+		Collider2DType colliderTypeA = shapeA->GetType() == b2Shape::e_polygon ? Collider2DType::BoxCollider : Collider2DType::CircleCollider;
+		Collider2DType colliderTypeB = shapeB->GetType() == b2Shape::e_polygon ? Collider2DType::BoxCollider : Collider2DType::CircleCollider;
+
+		ScriptGlue::CallCollishionBegin(entityA, entityB, colliderTypeB, fixtureB->IsSensor());
+		ScriptGlue::CallCollishionBegin(entityB, entityA, colliderTypeA, fixtureA->IsSensor());
 	}
 
 	void ContactListener::EndContact(b2Contact* contact)
@@ -824,7 +831,14 @@ namespace Shark {
 		Entity entityA = m_Context->GetEntityByUUID(uuidA);
 		Entity entityB = m_Context->GetEntityByUUID(uuidB);
 
-		ScriptGlue::CallCollishionEnd(entityA, entityB, fixtureA->IsSensor(), fixtureB->IsSensor());
+		b2Shape* shapeA = fixtureA->GetShape();
+		b2Shape* shapeB = fixtureB->GetShape();
+
+		Collider2DType colliderTypeA = shapeA->GetType() == b2Shape::e_polygon ? Collider2DType::BoxCollider : Collider2DType::CircleCollider;
+		Collider2DType colliderTypeB = shapeB->GetType() == b2Shape::e_polygon ? Collider2DType::BoxCollider : Collider2DType::CircleCollider;
+
+		ScriptGlue::CallCollishionEnd(entityA, entityB, colliderTypeB, fixtureB->IsSensor());
+		ScriptGlue::CallCollishionEnd(entityB, entityA, colliderTypeA, fixtureA->IsSensor());
 	}
 
 	void ContactListener::SetContext(const Ref<Scene>& context)

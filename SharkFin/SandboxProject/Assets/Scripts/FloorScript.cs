@@ -40,7 +40,7 @@ namespace Sandbox
 			m_Player = Scene.GetEntityByTag("Player");
 		}
 
-		protected override void OnCollishionBegin(Entity entity, bool isSensor)
+		protected override void OnCollishionBegin(Collider2D collider)
 		{
 			if (m_CollishionCount++ == 0)
 			{
@@ -49,7 +49,7 @@ namespace Sandbox
 			}
 		}
 
-		protected override void OnCollishionEnd(Entity entity, bool isSensor)
+		protected override void OnCollishionEnd(Collider2D collider)
 		{
 			if (--m_CollishionCount == 0)
 			{
