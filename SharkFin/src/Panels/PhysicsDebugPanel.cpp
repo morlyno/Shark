@@ -8,7 +8,7 @@
 
 #include "Shark/UI/UI.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
 #include <box2d/b2_body.h>

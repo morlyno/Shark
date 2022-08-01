@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "LayerStack.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 

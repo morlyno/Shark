@@ -30,16 +30,9 @@ namespace Shark {
 	void ResourceManager::Shutdown()
 	{
 		WriteImportedAssetsToDisc();
-		Unload();
 		AssetSerializer::ReleaseSerializers();
 		delete s_Data;
 		s_Data = nullptr;
-	}
-
-	void ResourceManager::Unload()
-	{
-		s_Data->ImportedAssets.clear();
-		s_Data->LoadedAssets.clear();
 	}
 
 	const AssetMetaData& ResourceManager::GetMetaData(AssetHandle handle)
@@ -67,8 +60,8 @@ namespace Shark {
 
 	bool ResourceManager::IsMemoryAsset(AssetHandle handle)
 	{
-		const auto& metadata = GetMetaDataInternal(handle);
-		return metadata.IsMemoryAsset;
+const auto& metadata = GetMetaDataInternal(handle);
+return metadata.IsMemoryAsset;
 	}
 
 	bool ResourceManager::IsFileImported(const std::filesystem::path& path)
@@ -156,8 +149,11 @@ namespace Shark {
 		SK_CORE_ASSERT(IsValidAssetHandle(handle));
 
 		AssetMetaData& metadata = GetMetaDataInternal(handle);
-		if (metadata.IsDataLoaded)
-			utils::SetFlag(handle, AssetFlag::Unloaded, true);
+		SK_CORE_ASSERT(metadata.IsDataLoaded == (s_Data->LoadedAssets.find(handle) != s_Data->LoadedAssets.end()));
+		if (!metadata.IsDataLoaded)
+			return;
+
+		utils::SetFlag(handle, AssetFlag::Unloaded, true);
 
 		metadata.IsDataLoaded = false;
 		s_Data->LoadedAssets.erase(handle);

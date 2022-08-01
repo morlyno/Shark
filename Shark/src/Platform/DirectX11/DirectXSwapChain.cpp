@@ -6,7 +6,6 @@
 
 #include "Shark/Core/Application.h"
 
-#include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
@@ -26,7 +25,7 @@ namespace Shark {
 	void DirectXSwapChain::Present(bool vSync)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("SwapChain::Present");
+		SK_PERF_FUNCTION();
 
 		{
 			SK_PROFILE_SCOPED("Swap Buffers");

@@ -2,7 +2,9 @@
 #include "EditorCamera.h"
 
 #include "Shark/Input/Input.h"
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Event/MouseEvent.h"
+
+#include "Shark/Debug/Profiler.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>

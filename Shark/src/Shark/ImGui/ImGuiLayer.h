@@ -31,6 +31,8 @@ namespace Shark {
 		virtual void BlockEvents(bool block) = 0;
 		virtual void SubmitBlendCallback(bool blend) = 0;
 
+		virtual TimeStep GetGPUTime() const = 0;
+
 		static ImGuiLayer* Create();
 	};
 

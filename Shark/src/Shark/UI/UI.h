@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/TimeStep.h"
+
 #include "Shark/ImGui/ImGuiHelpers.h"
 
 #include <imgui.h>

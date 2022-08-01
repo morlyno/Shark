@@ -12,9 +12,8 @@
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
 #include "Shark/Input/Input.h"
-
 #include "Shark/Math/Math.h"
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>

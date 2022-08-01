@@ -7,7 +7,7 @@
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/File/FileSystem.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -16,7 +16,6 @@ namespace Shark {
 	public:
 		static void Init();
 		static void Shutdown();
-		static void Unload();
 
 		static const AssetMetaData& GetMetaData(AssetHandle handle);
 		static const AssetMetaData& GetMetaData(Ref<Asset> asset) { return GetMetaData(asset->Handle); }
@@ -161,6 +160,7 @@ namespace Shark {
 			metadata.Type = TAsset::GetStaticType();
 			metadata.Handle = AssetHandle::Generate();
 			metadata.IsMemoryAsset = true;
+			metadata.IsDataLoaded = true;
 			s_Data->ImportedAssets[metadata.Handle] = metadata;
 
 			Ref<TAsset> asset = TAsset::Create(std::forward<TArgs>(args)...);

@@ -3,71 +3,79 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/TimeStep.h"
 
+#include <optick.h>
+
 #include <queue>
 
 namespace Shark {
 
-	class ProfilerInstance;
+	class PerformanceTimer;
 
-	class ProfilerRegistry
+	class PerformanceProfiler
 	{
 	public:
-		static ProfilerInstance& GetProfiler(const std::string& name);
-		static TimeStep GetAverageOf(const std::string& name);
-		static TimeStep GetTotalOf(const std::string& name);
+		using TimerStorage = std::unordered_map<std::string_view, float>;
+
+	public:
+		static void Initialize();
+		static void Shutdown();
+
+		static void SetSampleRate(uint32_t frameCount);
+		static uint32_t GetSampleRate();
+
 		static void NewFrame();
+		static void Push(std::string_view key, float time);
 
-		static const std::unordered_map<std::string, ProfilerInstance>& GetMap();
-	};
-
-	class ScopedProfiler
-	{
-	public:
-		ScopedProfiler(ProfilerInstance& profiler);
-
-		~ScopedProfiler();
+		static const TimerStorage& GetStatistics();
 
 	private:
-		ProfilerInstance& m_Profiler;
+		static TimerStorage& GetStorage();
+
+	private:
+		uint64_t Frame = 0;
+		uint32_t StorageIndex = 0;
+		TimerStorage TimerStorageBuffers[2];
+		TimerStorage* ActiveStorage = nullptr;
+		TimerStorage* FinishedSotrage = nullptr;
+
+		uint32_t SampleRate = 10;
+
+		float FrameStartTime = 0.0f;
+
+		static PerformanceProfiler* s_Instance;
 	};
 
-	class ProfilerInstance
+	class PerformanceTimer
 	{
 	public:
-		void StartTimer();
-		void EndTimer();
-		void NewFrame();
+		PerformanceTimer(std::string_view key);
+		~PerformanceTimer();
 
-		void AddDuration(uint64_t tickCount) { m_Durations.push_back(tickCount); }
-		void SetFrequency(uint64_t frequency) { m_Frequency = frequency; }
+		void Start();
+		void Stop();
 
-		TimeStep GetAverage() const { return (float)m_AverageDuration / (float)m_Frequency; }
-		TimeStep GetTotal() const { return (float)m_TotalDuration / (float)m_Frequency; }
 	private:
-		std::vector<uint64_t> m_Durations;
-		uint64_t m_AverageDuration = 0;
-		uint64_t m_TotalDuration = 0;
-		uint64_t m_StartTime = 0;
-		uint64_t m_Frequency = 0;
+		std::string_view m_Key;
+		float m_Start;
 	};
 
 }
 
 #if SK_ENABLE_PERF
-#define SK_PERF_NEW_FRAME() ::Shark::ProfilerRegistry::NewFrame()
+#define SK_PERF_NEW_FRAME()  ::Shark::PerformanceProfiler::NewFrame()
 
-#define SK_PERF_REGISTRY_MAP() ::Shark::ProfilerRegistry::GetMap()
-#define SK_PERF_PROFILER(name) ::Shark::ProfilerRegistry::GetProfiler((name))
-#define SK_PERF_ADD_DURATION(name, duration) ::Shark::ProfilerRegistry::GetProfiler((name)).AddDuration((duration))
-#define SK_PERF_SET_FREQUENCY(name, frequency) ::Shark::ProfilerRegistry::GetProfiler((name)).SetFrequency((frequency))
-
-#define SK_PERF_SCOPED(name) ::Shark::ScopedProfiler SK_UNIQUE_VAR_NAME = SK_PERF_PROFILER(name)
+#define SK_PERF_SCOPED(name) ::Shark::PerformanceTimer SK_CONNECT(performanceTimerAutoGenName, __LINE__) { name };
+#define SK_PERF_FUNCTION()   SK_PERF_SCOPED(SK_FUNCTION_DECORATED)
 #else
-#define SK_PERF_NEW_FRAME()
+#define SK_PERF_NEW_FRAME(...)
 
-#define SK_PERF_REGISTRY_MAP()
-#define SK_PERF_PROFILER(name)
-#define SK_PERF_ADD_DURATION(name, duration)
-
-#define SK_PERF_SCOPED(name)
+#define SK_PERF_SCOPED(...)
+#define SK_PERF_FUNCTION(...)
 #endif
+
+
+#define SK_PROFILE_FRAME(name, ...) OPTICK_FRAME(name, __VA_ARGS__)
+#define SK_PROFILE_THREAD(name) OPTICK_THREAD(name)
+#define SK_PROFILE_FUNCTION() OPTICK_EVENT()
+#define SK_PROFILE_SCOPED(name) OPTICK_EVENT(name)
+#define SK_PROFILE_SHUTDOWN() OPTICK_SHUTDOWN()

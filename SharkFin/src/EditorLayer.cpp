@@ -25,7 +25,6 @@
 #include "Shark/Editor/Icons.h"
 
 #include "Shark/Debug/Profiler.h"
-#include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/enttDebug.h"
 
 #include <imgui_internal.h>
@@ -1015,6 +1014,10 @@ namespace Shark {
 						window.SetVSync(vSync);
 
 					UI::Control("Read Hoved Entity", m_ReadHoveredEntity);
+
+					uint32_t count = PerformanceProfiler::GetSampleRate();
+					if (UI::Control("Profiler Frame Count", count, 1, 1, 165))
+						PerformanceProfiler::SetSampleRate(count);
 					UI::EndControls();
 				}
 
@@ -1138,28 +1141,54 @@ namespace Shark {
 
 
 		ImGui::Begin("Times");
-		UI::Text(fmt::format("Mouse Picking: {:.4f}ms", ProfilerRegistry::GetAverageOf("Mouse Picking").MilliSeconds()));
-		UI::Text(fmt::format("Window Update: {:.4f}ms", ProfilerRegistry::GetAverageOf("WindowsWindow::Update").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Editor: {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderEditor").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Runtime: {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderRuntime").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Simulate: {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderSimulate").MilliSeconds()));
-		UI::Text(fmt::format("Sceme Render Runtime Preview: {:.4f}ms", ProfilerRegistry::GetAverageOf("Scene::OnRenderRuntimePreview").MilliSeconds()));
-		ImGui::End();
 
+		struct ProfilerEntry
+		{
+			std::string_view Name;
+			float Time;
+		};
 
-		ImGui::Begin("GPU Times");
-		//UI::Text(fmt::format("Present GPU: {:.4f}ms", Renderer::GetPresentTimer()->GetTime().MilliSeconds()));
-		UI::Text(fmt::format("ImGuiLayer GPU: {:.4f}ms", ProfilerRegistry::GetAverageOf("[GPU] DirectXImGuiLayer::End").MilliSeconds()));
-		ImGui::End();
+		const auto& stats = PerformanceProfiler::GetStatistics();
+		std::vector<ProfilerEntry> sortedEntries;
 
+		auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Time != rhs.Time ? lhs.Time > rhs.Time : lhs.Name > rhs.Name; };
 
-		ImGui::Begin("CPU Times");
-		UI::Text(fmt::format("FrameTime: {:.4f}ms", m_TimeStep.MilliSeconds()));
-		UI::Text(fmt::format("Present CPU: {:.4f}ms", ProfilerRegistry::GetAverageOf("SwapChain::Present").MilliSeconds()));
-		UI::Text(fmt::format("NewFrame: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::NewFrame").MilliSeconds()));
-		UI::Text(fmt::format("Renderer2D EndScene: {:.4f}ms", ProfilerRegistry::GetAverageOf("Renderer2D::EndScene").MilliSeconds()));
-		UI::Text(fmt::format("RenderGeometry: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderGeometry").MilliSeconds()));
-		UI::Text(fmt::format("RenderFullScreenQuad: {:.4f}ms", ProfilerRegistry::GetAverageOf("DirectXRenderer::RenderFullScreenQuad").MilliSeconds()));
+		for (const auto& [name, time] : stats)
+		{
+			ProfilerEntry entry{ name, time };
+			if (entry.Time <= FLT_EPSILON)
+				entry.Time = 0.0f;
+
+			auto where = std::lower_bound(sortedEntries.begin(), sortedEntries.end(), entry, sorter);
+			sortedEntries.insert(where, entry);
+		}
+
+		auto format = [](float seconds) -> std::string
+		{
+			const float epsilon = 1.0f;
+
+			if (seconds <= FLT_EPSILON)
+				return fmt::format("{0:3.6f}ms", 0.0f);
+
+			if (seconds > 60.0f)
+			{
+				float minits = seconds / 60.0f;
+				return fmt::format("{0:3.6f}m", minits);
+			}
+
+			float t = seconds;
+			if (t > epsilon)
+				return fmt::format("{0:3.6f}s", t);
+
+			t *= 1000.0f;
+			return fmt::format("{0:3.6f}ms", t);
+		};
+
+		UI::BeginControls();
+		for (const auto& [name, time] : sortedEntries)
+			UI::Property(name, format(time));
+		UI::EndControls();
+
 		ImGui::End();
 
 	}
@@ -1302,9 +1331,6 @@ namespace Shark {
 
 		if (ImGuizmo::IsUsing())
 			return false;
-
-		SK_PERF_SCOPED("Mouse Picking");
-		
 
 		auto [mx, my] = ImGui::GetMousePos();
 		auto [wx, wy] = m_ViewportPos;

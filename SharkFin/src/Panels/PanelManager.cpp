@@ -5,7 +5,7 @@
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
 #include "Panels/TextureEditorPanel.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 

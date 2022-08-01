@@ -1,7 +1,7 @@
 #include "skfpch.h"
 #include "AssetEditorPanel.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 

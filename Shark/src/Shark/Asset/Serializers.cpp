@@ -16,6 +16,7 @@
 #include "Shark/Render/Texture.h"
 
 #include "Shark/Utils/YAMLUtils.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <yaml-cpp/yaml.h>
 #include <stb_image.h>

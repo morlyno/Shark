@@ -12,11 +12,10 @@
 #include "Platform/DirectX11/DirectXPipeline.h"
 
 #include "Shark/Utils/String.h"
-#include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <backends/imgui_impl_dx11.h>
-#include "../Windows/WindowsUtils.h"
+#include "Platform/Windows/WindowsUtils.h"
 
 namespace Shark {
 
@@ -166,7 +165,6 @@ namespace Shark {
 	void DirectXRenderer::NewFrame()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("DirectXRenderer::NewFrame");
 
 		if (m_IsFirstFrame)
 		{
@@ -201,7 +199,6 @@ namespace Shark {
 	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("DirectXRenderer::RenderFullScreenQuad");
 
 		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
 		ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
@@ -236,7 +233,6 @@ namespace Shark {
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry");
 
 		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
 		ID3D11DeviceContext* ctx = commandBuffer->GetContext();
@@ -281,7 +277,6 @@ namespace Shark {
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("DirectXRenderer::RenderGeometry");
 
 		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
 		ID3D11DeviceContext* ctx = commandBuffer->GetContext();

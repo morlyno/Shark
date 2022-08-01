@@ -1,111 +1,97 @@
 #include "skpch.h"
 #include "Profiler.h"
 
-#include <Windows.h>
+#include "Shark\Utils\TimeUtils.h"
 
 namespace Shark {
 
-	struct ProfilingData
+	PerformanceProfiler* PerformanceProfiler::s_Instance = nullptr;
+
+	void PerformanceProfiler::Initialize()
 	{
-		std::unordered_map<std::string, ProfilerInstance> Registry;
-		uint64_t CPUFrequency = 0;
-	};
-	static Scope<ProfilingData> s_ProfilingData = nullptr;
+		SK_CORE_ASSERT(!s_Instance);
+		s_Instance = new PerformanceProfiler();
+		s_Instance->ActiveStorage = &s_Instance->TimerStorageBuffers[0];
+		s_Instance->FinishedSotrage = &s_Instance->TimerStorageBuffers[1];
+	}
 
-	namespace Utils {
+	void PerformanceProfiler::Shutdown()
+	{
+		SK_CORE_ASSERT(s_Instance);
+		delete s_Instance;
+		s_Instance = nullptr;
+	}
 
-		static uint64_t TickCount()
+	void PerformanceProfiler::SetSampleRate(uint32_t count)
+	{
+		s_Instance->SampleRate = count;
+	}
+
+	uint32_t PerformanceProfiler::GetSampleRate()
+	{
+		return s_Instance->SampleRate;
+	}
+
+	void PerformanceProfiler::NewFrame()
+	{
+		s_Instance->Frame++;
+		if ((s_Instance->Frame % s_Instance->SampleRate) == 0)
 		{
-			LARGE_INTEGER ticks;
-			bool result = QueryPerformanceCounter(&ticks);
-			SK_CORE_ASSERT(result);
-			return ticks.QuadPart;
+			std::swap(s_Instance->ActiveStorage, s_Instance->FinishedSotrage);
+			s_Instance->ActiveStorage->clear();
+
+			if (s_Instance->SampleRate > 1)
+			{
+				for (auto& [name, time] : *s_Instance->FinishedSotrage)
+					time /= (float)s_Instance->SampleRate;
+			}
+
 		}
 
-		static uint64_t Frequency()
-		{
-			LARGE_INTEGER frequency;
-			bool result = QueryPerformanceFrequency(&frequency);
-			SK_CORE_ASSERT(result);
-			return frequency.QuadPart;
-		}
+		float time = TimeUtils::Now();
+		float dur = time - s_Instance->FrameStartTime;
+		Push("Frame", dur);
+		s_Instance->FrameStartTime = time;
+	}
 
+	void PerformanceProfiler::Push(std::string_view key, float time)
+	{
+		auto& storage = s_Instance->GetStorage();
+		storage[key] += time;
+	}
+
+	const PerformanceProfiler::TimerStorage& PerformanceProfiler::GetStatistics()
+	{
+		return *s_Instance->FinishedSotrage;
+	}
+
+	PerformanceProfiler::TimerStorage& PerformanceProfiler::GetStorage()
+	{
+		return *s_Instance->ActiveStorage;
 	}
 
 
-	ProfilerInstance& ProfilerRegistry::GetProfiler(const std::string& name)
+	PerformanceTimer::PerformanceTimer(std::string_view key)
+		: m_Key(key)
 	{
-		return s_ProfilingData->Registry[name];
+		Start();
 	}
 
-
-	TimeStep ProfilerRegistry::GetAverageOf(const std::string& name)
+	PerformanceTimer::~PerformanceTimer()
 	{
-		if (s_ProfilingData->Registry.find(name) == s_ProfilingData->Registry.end())
-			return 0.0f;
-		const ProfilerInstance& profiler = s_ProfilingData->Registry.at(name);
-		return profiler.GetAverage();
+		Stop();
 	}
 
-	TimeStep ProfilerRegistry::GetTotalOf(const std::string& name)
+	void PerformanceTimer::Start()
 	{
-		if (s_ProfilingData->Registry.find(name) == s_ProfilingData->Registry.end())
-			return 0.0f;
-		const ProfilerInstance& profiler = s_ProfilingData->Registry.at(name);
-		return profiler.GetTotal();
+		m_Start = TimeUtils::Now();
 	}
 
-	void ProfilerRegistry::NewFrame()
+	void PerformanceTimer::Stop()
 	{
-		if (!s_ProfilingData)
-			s_ProfilingData = Scope<ProfilingData>::Create();
-
-		s_ProfilingData->CPUFrequency = Utils::Frequency();
-		for (auto&& [name, profiler] : s_ProfilingData->Registry)
-			profiler.NewFrame();
-	}
-
-	const std::unordered_map<std::string, ProfilerInstance>& ProfilerRegistry::GetMap()
-	{
-		return s_ProfilingData->Registry;
-	}
-
-
-	ScopedProfiler::ScopedProfiler(ProfilerInstance& profiler)
-		: m_Profiler(profiler)
-	{
-		profiler.StartTimer();
-	}
-
-	ScopedProfiler::~ScopedProfiler()
-	{
-		m_Profiler.EndTimer();
-	}
-
-
-	void ProfilerInstance::StartTimer()
-	{
-		m_StartTime = Utils::TickCount();
-	}
-
-	void ProfilerInstance::EndTimer()
-	{
-		auto endTime = Utils::TickCount();
-		m_Durations.push_back(endTime - m_StartTime);
-		m_Frequency = s_ProfilingData->CPUFrequency;
-	}
-
-	void ProfilerInstance::NewFrame()
-	{
-		m_AverageDuration = 0;
-		m_TotalDuration = 0;
-		if (m_Durations.size() == 0)
-			return;
-
-		for (auto duration : m_Durations)
-			m_TotalDuration += duration;
-		m_AverageDuration = m_TotalDuration / m_Durations.size();
-		m_Durations.clear();
+		float stop = TimeUtils::Now();
+		float dur = stop - m_Start;
+		PerformanceProfiler::Push(m_Key, dur);
 	}
 
 }

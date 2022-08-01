@@ -9,7 +9,7 @@
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 #include "Platform/DirectX11/DirectXTexture.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -191,7 +191,6 @@ namespace Shark {
 	void Renderer2D::EndScene()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("Renderer2D::EndScene");
 
 		SK_CORE_ASSERT(m_Active);
 

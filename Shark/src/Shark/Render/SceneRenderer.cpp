@@ -11,7 +11,7 @@
 
 #include "Shark/Input/Input.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 

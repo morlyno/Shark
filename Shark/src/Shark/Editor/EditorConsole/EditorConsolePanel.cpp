@@ -9,7 +9,7 @@
 
 #include "Shark/Editor/Icons.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>

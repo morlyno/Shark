@@ -19,7 +19,6 @@
 
 #include "Shark/Math/Math.h"
 #include "Shark/Utils/MemoryUtils.h"
-#include "Shark/Debug/Instrumentor.h"
 
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/object.h>

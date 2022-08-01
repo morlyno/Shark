@@ -4,7 +4,7 @@
 #include <Shark/Core/EntryPoint.h>
 
 #include "EditorLayer.h"
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 

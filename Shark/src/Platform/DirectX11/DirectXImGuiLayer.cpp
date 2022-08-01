@@ -19,7 +19,6 @@
 #include <backends/imgui_impl_win32.h>
 
 #include <ImGuizmo.h>
-#include "Shark/Debug/Instrumentor.h"
 
 namespace Shark {
 
@@ -69,7 +68,7 @@ namespace Shark {
 			ImGui::LoadIniSettingsFromDisk("Resources/DefaultImGui.ini");
 		}
 
-		m_Timer = Ref<DirectXGPUTimer>::Create("ImGui");
+		m_GPUTimer = Ref<DirectXGPUTimer>::Create("ImGui");
 
 		UI::CreateContext();
 	}
@@ -123,7 +122,7 @@ namespace Shark {
 		io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
 
 		m_CommandBuffer->Begin();
-		m_CommandBuffer->BeginTimeQuery(m_Timer);
+		m_CommandBuffer->BeginTimeQuery(m_GPUTimer);
 
 		Ref<DirectXFrameBuffer> dxFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
 		dxFrameBuffer->Bind(m_CommandBuffer->GetContext());
@@ -142,9 +141,8 @@ namespace Shark {
 			}
 		}
 
-		m_CommandBuffer->EndTimeQuery(m_Timer);
-		SK_PERF_ADD_DURATION("[GPU] DirectXImGuiLayer::End", m_Timer->GetTickCount());
-		SK_PERF_SET_FREQUENCY("[GPU] DirectXImGuiLayer::End", m_Timer->GetFrequency());
+		m_GPUTime = m_GPUTimer->GetTime();
+		m_CommandBuffer->EndTimeQuery(m_GPUTimer);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 	}

@@ -10,10 +10,11 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/ImGui/ImGuiLayer.h"
+#include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 int main(int argc, char** argb);
 
@@ -95,7 +96,7 @@ namespace Shark {
 	
 	namespace Core {
 
-		void Init();
+		void Initialize();
 		void Shutdown();
 
 	}

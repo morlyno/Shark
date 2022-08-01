@@ -5,7 +5,7 @@
 #include "Shark/Utils/String.h"
 #include "Shark/Utils/YAMLUtils.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <yaml-cpp/yaml.h>
 

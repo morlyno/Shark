@@ -11,7 +11,6 @@
 #include "Shark/Math/Math.h"
 
 #include "Shark/Debug/enttDebug.h"
-#include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <box2d/b2_world.h>
@@ -226,14 +225,10 @@ namespace Shark {
 	void Scene::OnUpdateRuntime(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("Scene::OnUpdateRuntime");
+		SK_PERF_FUNCTION();
 
-		{
-			SK_PROFILE_SCOPED("Shark::Scene::OnUpdateRuntime::UpdateScripts");
-
-			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-				MethodThunks::OnUpdate(gcHandle, ts);
-		}
+		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+			MethodThunks::OnUpdate(gcHandle, ts);
 
 		{
 			m_PhysicsScene.Step(ts);
@@ -274,7 +269,8 @@ namespace Shark {
 	void Scene::OnUpdateSimulate(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
-		
+		SK_PERF_FUNCTION();
+
 		m_PhysicsScene.Step(ts);
 
 		auto view = m_Registry.view<RigidBody2DComponent>();
@@ -323,7 +319,7 @@ namespace Shark {
 	void Scene::OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("Scene::OnRender");
+		SK_PERF_FUNCTION();
 
 		renderer->SetScene(this);
 		renderer->BeginScene(viewProj);

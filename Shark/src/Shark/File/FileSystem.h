@@ -15,7 +15,7 @@ namespace Shark {
 		static constexpr std::wstring_view InvalidCharactersW = L"\\/:*?\"<>|";
 
 	public:
-		static void Init();
+		static void Initialize();
 		static void Shutdown();
 		static void ProcessEvents();
 

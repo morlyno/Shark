@@ -14,7 +14,7 @@ namespace Shark {
 
 	#define ASSET_DIRECTORY_KEY "AssetsDirectory"
 
-	void FileSystem::Init()
+	void FileSystem::Initialize()
 	{
 		s_FileWatcher = FileWatcher::Create();
 	}

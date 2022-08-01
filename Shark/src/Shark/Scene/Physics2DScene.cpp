@@ -3,7 +3,7 @@
 
 #include "Shark/Core/Project.h"
 
-#include "Shark/Debug/Instrumentor.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <box2d/b2_contact.h>
 
@@ -39,6 +39,7 @@ namespace Shark {
 	void Physics2DScene::Step(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
+		SK_PERF_FUNCTION();
 
 		m_Profile.Reset();
 

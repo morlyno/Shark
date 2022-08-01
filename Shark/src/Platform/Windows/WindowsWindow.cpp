@@ -12,7 +12,6 @@
 
 #include "Platform/Windows/WindowsUtils.h"
 
-#include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <backends/imgui_impl_win32.h>
@@ -122,7 +121,6 @@ namespace Shark {
 	void WindowsWindow::ProcessEvents() const
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED(SK_FUNCTION);
 
 		MSG msg = {};
 		while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))

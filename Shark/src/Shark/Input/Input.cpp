@@ -43,7 +43,7 @@ namespace Shark {
 	};
 	static InputData* s_Data = nullptr;
 
-	void Input::Init()
+	void Input::Initialize()
 	{
 		s_Data = new InputData;
 	}

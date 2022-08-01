@@ -1,16 +1,16 @@
 #include "skpch.h"
 #include "Application.h"
 
+#include "Shark/Core/TimeStep.h"
+#include "Shark/Core/Timer.h"
+
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Input/Input.h"
-#include "Shark/Core/TimeStep.h"
 #include "Shark/Render/Renderer.h"
-
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/TimeUtils.h"
-
 #include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
@@ -73,7 +73,7 @@ namespace Shark {
 
 		while (m_Running)
 		{
-			OPTICK_FRAME("MainThread");
+			SK_PROFILE_FRAME("MainThread");
 			SK_PERF_NEW_FRAME();
 
 			if (!m_Minimized)
@@ -165,17 +165,19 @@ namespace Shark {
 
 	namespace Core {
 
-		void Init()
+		void Initialize()
 		{
 			Log::Initialize();
-			Input::Init();
-			FileSystem::Init();
+			PerformanceProfiler::Initialize();
+			Input::Initialize();
+			FileSystem::Initialize();
 		}
 
 		void Shutdown()
 		{
 			FileSystem::Shutdown();
 			Input::Shutdown();
+			PerformanceProfiler::Shutdown();
 			Log::Shutdown();
 		}
 

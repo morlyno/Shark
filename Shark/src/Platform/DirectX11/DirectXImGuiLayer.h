@@ -26,7 +26,7 @@ namespace Shark {
 		virtual void Begin() override;
 		virtual void End() override;
 
-		virtual bool InFrame() const { return m_InFrame; }
+		virtual bool InFrame() const override { return m_InFrame; }
 		virtual void SetMainViewportID(ImGuiID mainViewportID) override { m_MainViewportID = mainViewportID; }
 		virtual ImGuiID GetMainViewportID() const override { return m_MainViewportID; }
 
@@ -37,13 +37,16 @@ namespace Shark {
 
 
 
+		virtual TimeStep GetGPUTime() const override { return m_GPUTime; }
+
 	private:
 		bool m_BlockEvents = false;
 		bool m_InFrame = false;
 		ImGuiID m_MainViewportID = 0;
 
 		Ref<DirectXRenderCommandBuffer> m_CommandBuffer;
-		Ref<DirectXGPUTimer> m_Timer;
+		Ref<DirectXGPUTimer> m_GPUTimer;
+		TimeStep m_GPUTime;
 
 		ID3D11BlendState* m_BlendState = nullptr;
 		FLOAT m_BlendFactor[4]{};
