@@ -1,6 +1,4 @@
 
-MonoDir = os.getenv("MONO_PATH")
-
 IncludeDir = {}
 IncludeDir["spdlog"] = "%{wks.location}/Shark/dependencies/spdlog/include"
 IncludeDir["ImGui"] = "%{wks.location}/Shark/dependencies/ImGui"
@@ -12,12 +10,17 @@ IncludeDir["ImGuizmo"] = "%{wks.location}/Shark/dependencies/ImGuizmo"
 IncludeDir["fmt"] = "%{wks.location}/Shark/dependencies/fmt/include"
 IncludeDir["Optick"] = "%{wks.location}/Shark/dependencies/Optick/src"
 IncludeDir["glm"] = "%{wks.location}/Shark/dependencies/glm"
-IncludeDir["Mono"] = "%{MonoDir}/include/mono-2.0"
+IncludeDir["Mono"] = "%{wks.location}/Shark/dependencies/mono/include"
+
+LibraryDir = {}
+LibraryDir["mono"] = "%{wks.location}/Shark/dependencies/mono/lib/%{cfg.buildcfg}"
 
 Library = {}
-Library["Mono_lib"] = "%{MonoDir}/lib/mono-2.0-sgen.lib"
-Library["Mono_dll"] = "%{MonoDir}/bin/mono-2.0-sgen.dll"
+Library["mono"] = "%{LibraryDir.mono}/libmono-static-sgen.lib"
 
-Symbols = {}
-Symbols["Mono_lib"] = "%{MonoDir}/lib/mono-2.0-sgen.pdb"
-Symbols["Mono_dll"] = "%{MonoDir}/bin/mono-2.0-sgen.pdb"
+Library["D3D11"] = "d3d11.lib"
+Library["DXGI"] = "dxgi.lib"
+
+Library["Winmm"] = "Winmm.lib"
+Library["Version"] = "Version.lib"
+Library["Bcrypt"] = "Bcrypt.lib"

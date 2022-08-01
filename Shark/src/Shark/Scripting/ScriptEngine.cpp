@@ -315,8 +315,7 @@ namespace Shark {
 		mono_trace_set_log_handler(&MonoTraceLogCallback, nullptr);
 		mono_trace_set_print_handler(&MonoPrintCallback);
 		mono_trace_set_printerr_handler(&MonoPrintCallback);
-		std::string path = PlatformUtils::GetEnvironmentVariable("MONO_PATH") + "/lib";
-		mono_set_assemblies_path(path.c_str());
+		mono_set_assemblies_path("mono/lib");
 		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
 
 		s_Data->RootDomain = mono_jit_init("RootDomain");

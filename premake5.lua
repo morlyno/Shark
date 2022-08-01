@@ -1,5 +1,4 @@
 workspace "Shark"
-	architecture "x64"
 	startproject "SharkFin"
 
 	configurations
@@ -13,9 +12,18 @@ workspace "Shark"
         "MultiProcessorCompile"
     }
 
+	filter "language:C++ or Language:C"
+		architecture "x86_64"
+	filter ""
+
+
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 include "Dependencies.lua"
+
+Settings = {
+	UseVectorExtensions = false
+}
 
 DefaultDefines = {
 	"_USE_MATH_DEFINES",
@@ -28,7 +36,6 @@ DefaultDefines = {
 	"GLM_FORCE_INTRINSICS",
 
 	"FMT_HEADER_ONLY",
-	--"MONO_DIRECTORY=%{MonoDir}",
 	"YAML_CPP_STATIC_DEFINE"
 }
 
@@ -43,4 +50,4 @@ group ""
 include "Shark"
 include "Sandbox"
 include "SharkFin"
-include "ScriptingCore"
+include "Shark-ScriptCore"

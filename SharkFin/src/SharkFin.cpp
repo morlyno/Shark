@@ -14,23 +14,23 @@ namespace Shark {
 		SharkFin(const ApplicationSpecification& specification, std::string_view startupProject)
 			: Application(specification), m_StartupProject(startupProject)
 		{
-			SK_PROFILE_FUNCTION();
+			if (m_StartupProject.empty())
+				m_StartupProject = std::filesystem::absolute(L"SandboxProject\\Project.skproj");
 		}
 
 		virtual ~SharkFin()
 		{
-			SK_PROFILE_FUNCTION();
 		}
 
 		virtual void OnInit() override
 		{
-			SK_PROFILE_FUNCTION();
+			std::filesystem::path workingDirectory = std::filesystem::current_path();
+			if (workingDirectory.stem() == L"SharkFin")
+				workingDirectory = workingDirectory.parent_path();
 
-			if (m_StartupProject.empty())
-				m_StartupProject = std::filesystem::absolute(L"SandboxProject\\Project.skproj");
+			PlatformUtils::SetEnvironmentVariable("SHARK_DIR", workingDirectory.string());
 
-			EditorLayer* editorlayer = new EditorLayer(m_StartupProject);
-			PushLayer(editorlayer);
+			PushLayer(new EditorLayer(m_StartupProject));
 		}
 
 	private:
@@ -39,8 +39,6 @@ namespace Shark {
 
 	Application* CreateApplication(int argc, char** argv)
 	{
-		SK_PROFILE_FUNCTION();
-
 		std::string_view startupProject;
 		if (argc > 1)
 			startupProject = argv[1];
@@ -55,7 +53,7 @@ namespace Shark {
 		specification.EnableImGui = true;
 		specification.VSync = true;
 
-		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/ScriptingCore.dll";
+		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/Shark-ScriptCore.dll";
 
 		return new SharkFin(specification, startupProject);
 	}

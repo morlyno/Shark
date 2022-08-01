@@ -211,6 +211,18 @@ namespace Shark {
 		return envVar;
 	}
 
+	bool WindowsUtils::SetEnvironmentVariable(const std::string& name, const std::string& value)
+	{
+		if (!SetEnvironmentVariableA(name.c_str(), value.c_str()))
+		{
+			DWORD errorCode = GetLastError();
+			utils::DefaultErrorHandle(errorCode);
+			return false;
+		}
+
+		return true;
+	}
+
 	std::filesystem::path WindowsUtils::OpenFileDialog(const std::wstring& filter, uint32_t defaultFilterindex, const std::filesystem::path& defaultPath, bool overrideDefault)
 	{
 		auto& window = Application::Get().GetWindow();

@@ -4,6 +4,7 @@
 
 #undef CreateFile
 #undef GetEnvironmentVariable
+#undef SetEnvironmentVariable
 
 namespace Shark {
 
@@ -48,6 +49,7 @@ namespace Shark {
 		static bool CreateFile(const std::filesystem::path& filePath, bool createAllways);
 
 		static std::string GetEnvironmentVariable(const std::string& name);
+		static bool SetEnvironmentVariable(const std::string& name, const std::string& value);
 
 		static std::filesystem::path OpenFileDialog(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
 		static std::filesystem::path SaveFileDialog(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false, bool appenedFileExetention = true);

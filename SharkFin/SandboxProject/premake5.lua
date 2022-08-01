@@ -1,8 +1,4 @@
-
-include "dependencies.lua"
-
 workspace "Sandbox"
-    architecture "x64"
     startproject "Sandbox"
 
     configurations
@@ -12,17 +8,16 @@ workspace "Sandbox"
     }
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
--- SharkDir = "C:/dev/c++/shark-merge-scripting-master"
+SharkDir = os.getenv("SHARK_DIR")
 
 project "Sandbox"
     kind "SharedLib"
     language "c#"
-    framework "4.8"
-    staticruntime "off"
+    framework "4.7.2"
     location "Assets/Scripts"
 
     targetdir "%{wks.location}/Binaries"
-    objdir "%{wks.location}/bin/obj/%{outputdir}/%{prj.name}"
+    objdir "%{wks.location}/Binaries/Intermediates"
 
     files
     {
@@ -31,7 +26,7 @@ project "Sandbox"
     
     links
     {
-        "ScriptingCore"
+        "Shark-ScriptCore"
     }
     
     filter "system:windows"
@@ -39,17 +34,17 @@ project "Sandbox"
         defines "SK_PLATFORM_WINDOWS"
 
     filter "configurations:Debug"
-        defines "SK_DEBUG"
         runtime "Debug"
-        symbols "on"
+        optimize "Off"
+        symbols "Default"
 
     filter "configurations:Release"
-        defines "SK_RELEASE"
         runtime "Release"
-        optimize "on"
+        optimize "On"
+        symbols "Default"
 
 group "Shark"
-    externalproject "ScriptingCore"
+    externalproject "Shark-ScriptCore"
         kind "SharedLib"
         language "c#"
-        location "%{SharkDir}/ScriptingCore"
+        location "%{SharkDir}/Shark-ScriptCore"

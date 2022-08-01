@@ -504,20 +504,7 @@ namespace Shark {
 				ImGui::Separator();
 
 				if (ImGui::MenuItem("Run Setup"))
-				{
-					auto solutionPath = Project::Directory() / Project::Name();
-					solutionPath.replace_extension(".sln");
-
-					ExecuteSpecs specs;
-					specs.Target = fmt::format(L"{}/Premake/premake5.exe", Project::Directory());
-					// vs2022 dosn't work for some reason but vs2019 still generates vs2022 solution
-					auto sharkDir = std::filesystem::current_path().parent_path();
-					specs.Params = fmt::format(L"{} --sharkdir=\"{}\"", L"vs2019", sharkDir);
-					specs.WaitUntilFinished = true;
-					specs.WorkingDirectory = Project::Directory();
-					specs.InterhitConsole = true;
-					PlatformUtils::Execute(specs);
-				}
+					RunScriptSetup();
 
 				if (ImGui::MenuItem("Open IDE"))
 					OpenIDE();
@@ -1950,25 +1937,28 @@ namespace Shark {
 			auto& comp = view.get<ScriptComponent>(entityID);
 			comp.IsExisitingScript = ScriptUtils::ValidScriptName(comp.ScriptName);
 		}
+
+	}
+
+	void EditorLayer::RunScriptSetup()
+	{
+		ExecuteSpecs specs;
+		specs.Target = fmt::format(L"{}/Premake/premake5.exe", Project::Directory());
+		// vs2022 dosn't work for some reason but vs2019 still generates vs2022 solution
+		auto sharkDir = std::filesystem::current_path().parent_path();
+		specs.Params = L"vs2019";
+		specs.WaitUntilFinished = true;
+		specs.WorkingDirectory = Project::Directory();
+		specs.InterhitConsole = true;
+		PlatformUtils::Execute(specs);
 	}
 
 	void EditorLayer::OpenIDE()
 	{
 		SK_PROFILE_FUNCTION();
 
-		auto solutionPath = Project::Directory() / Project::Name();
-		solutionPath.replace_extension(".sln");
-
-		ExecuteSpecs specs;
-		specs.Target = fmt::format(L"{}/Premake/premake5.exe", Project::Directory());
-		// vs2022 dosn't work for some reason but vs2019 still generates vs2022 solution
-		auto sharkDir = std::filesystem::current_path().parent_path();
-		specs.Params = fmt::format(L"{} --sharkdir=\"{}\"", L"vs2019", sharkDir);
-		specs.WaitUntilFinished = true;
-		specs.WorkingDirectory = Project::Directory();
-		specs.InterhitConsole = true;
-		PlatformUtils::Execute(specs);
-
+		RunScriptSetup();
+		auto solutionPath = fmt::format("{}/{}.sln", Project::Directory(), Project::Name());
 		PlatformUtils::Execute(ExectueVerb::Open, solutionPath);
 	}
 

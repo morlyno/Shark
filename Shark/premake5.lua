@@ -10,7 +10,9 @@ project "Shark"
     pchheader "skpch.h"
     pchsource "src/skpch.cpp"
 
-    vectorextensions "AVX2"
+    if Settings.UseVectorExtensions then
+        vectorextensions "AVX2"
+    end
 
     files
     {
@@ -45,28 +47,37 @@ project "Shark"
         DefaultDefines
     }
 
+    links
+    {
+        "ImGui",
+        "yaml-cpp",
+        "box2d",
+        "ImGuizmo",
+        "OptickCore",
+        "%{Library.mono}"
+    }
+
     filter "system:windows"
         systemversion "latest"
         defines "SK_PLATFORM_WINDOWS"
 
         links
         {
-            "d3d11",
-            "dxgi",
-            "ImGui",
-            "yaml-cpp",
-            "box2d",
-            "ImGuizmo",
-            "OptickCore",
-            "%{Library.Mono_lib}"
+            "%{Library.D3D11}",
+            "%{Library.DXGI}",
+            "%{Library.Winmm}",
+            "%{Library.Version}",
+            "%{Library.Bcrypt}"
         }
 
     filter "configurations:Debug"
         defines "SK_DEBUG"
         runtime "Debug"
-        symbols "on"
+        optimize "Off"
+        symbols "Default"
 
     filter "configurations:Release"
         defines "SK_RELEASE"
         runtime "Release"
-        optimize "on"
+        optimize "On"
+        symbols "Default"

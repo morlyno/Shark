@@ -2,37 +2,38 @@
 from pathlib import Path
 
 import utils
+import subprocess
 
-class Premake:
-    Version = "5.0.0-beta1"
-    Directory = f"./dependencies/premake/bin/{Version}"
+PremakeVersion = "5.0.0-beta1"
+PremakeDirectory = f"./dependencies/premake/bin/{PremakeVersion}"
 
-    Url = f"https://github.com/premake/premake-core/releases/download/v{Version}/premake-{Version}-windows.zip"
-    LicenseUrl = "https://raw.githubusercontent.com/premake/premake-core/master/LICENSE.txt"
+PremakeUrl = f"https://github.com/premake/premake-core/releases/download/v{PremakeVersion}/premake-{PremakeVersion}-windows.zip"
+PremakeLicenseUrl = "https://raw.githubusercontent.com/premake/premake-core/master/LICENSE.txt"
 
-    @classmethod
-    def Install(cls):
-        zipPath = f"{cls.Directory}/premake-{cls.Version}-windows.zip"
-        print("Downloading Premake")
-        utils.DownloadFile(cls.Url, zipPath)
+def InstallPremake():
+    zipPath = f"{PremakeDirectory}/premake-{PremakeVersion}-windows.zip"
+    print("Downloading Premake")
+    utils.DownloadFile(PremakeUrl, zipPath)
 
-        print("Extracting Premake form zip")
-        utils.UnzipFile(zipPath, True)
+    print("Extracting Premake form zip")
+    utils.UnzipFile(zipPath, True)
 
-        print("Download Premake License")
-        licensePath = f"{cls.Directory}/LICENSE.txt"
-        utils.DownloadFile(cls.LicenseUrl, licensePath)
-        return True
+    print("Download Premake License")
+    licensePath = f"{PremakeDirectory}/LICENSE.txt"
+    utils.DownloadFile(PremakeLicenseUrl, licensePath)
+    return True
 
 
-    @classmethod
-    def Validate(cls):
-        premakeExePath = Path(f"{cls.Directory}/premake5.exe")
-        if (not premakeExePath.exists()):
-            installed = cls.Install()
-            if (not installed):
-                print("Premake not installed")
-                return False
-        print(f"Correct Version of Premake Installed at {cls.Directory}/premake5.exe")
-        return True
+def Validate():
+    premakeExePath = Path(f"{PremakeDirectory}/premake5.exe")
+    if (not premakeExePath.exists()):
+        installed = InstallPremake()
+        if (not installed):
+            print("Premake not installed")
+            return False
+    print(f"Correct Version of Premake Installed at {PremakeDirectory}/premake5.exe")
+    return True
 
+def GenerateProject():
+    targetVersion = input("Version: ").lower().strip().removesuffix('\n')
+    subprocess.call([f"{PremakeDirectory}/premake5.exe", targetVersion])

@@ -10,7 +10,9 @@ project "SharkFin"
     pchheader "skfpch.h"
     pchsource "src/skfpch.cpp"
 
-    vectorextensions "AVX2"
+    if Settings.UseVectorExtensions then
+        vectorextensions "AVX2"
+    end
 
     files
     {
@@ -30,8 +32,7 @@ project "SharkFin"
         "%{IncludeDir.ImGuizmo}",
         "%{IncludeDir.fmt}",
         "%{IncludeDir.Optick}",
-        "%{IncludeDir.glm}",
-        "%{IncludeDir.Mono}"
+        "%{IncludeDir.glm}"
     }
 
     links
@@ -53,20 +54,12 @@ project "SharkFin"
     filter "configurations:Debug"
         defines "SK_DEBUG"
         runtime "Debug"
-        symbols "on"
-
-        postbuildcommands
-        {
-            '{COPY} "%{Library.Mono_dll}" "%{sharkfin_output_dir}"',
-            '{COPY} "%{Symbols.Mono_dll}" "%{sharkfin_output_dir}"'
-        }
+        optimize "Off"
+        symbols "Default"
 
     filter "configurations:Release"
         defines "SK_RELEASE"
         runtime "Release"
-        optimize "on"
+        optimize "On"
+        symbols "Default"
 
-        postbuildcommands
-        {
-            '{COPY} "%{Library.Mono_dll}" "%{sharkfin_output_dir}"'
-        }
