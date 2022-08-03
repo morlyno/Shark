@@ -1,7 +1,6 @@
 
 **/bin/
 **/bin-int/
-dependencies/
 Scripts/__pycache__
 
 SharkFin/Cache
