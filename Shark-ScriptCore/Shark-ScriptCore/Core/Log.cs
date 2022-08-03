@@ -16,7 +16,7 @@ namespace Shark
 
 		public static void LogLevel(Level level, string msg)
 		{
-			InternalCalls.Log_LogLevel(level, msg);
+			InternalCalls.Log_LogMessage(level, msg);
 		}
 
 		public static void Trace(string msg)

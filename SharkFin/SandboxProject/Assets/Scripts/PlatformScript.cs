@@ -26,7 +26,7 @@ namespace Sandbox
 			m_RightPoint = markerRight.Transform.Translation.XY;
 		}
 
-		protected override void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(float ts)
 		{
 			m_Lerp += ts * m_LerpSpeed * m_Direction;
 			if (m_Lerp > 1.0f)

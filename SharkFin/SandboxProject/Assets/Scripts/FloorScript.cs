@@ -13,7 +13,6 @@ namespace Sandbox
 	{
 		private Color m_InitColor;
 		private Color m_CollishionColor;
-		private Entity m_Player;
 		private static Random s_Rng = new Random();
 
 		private SpriteRendererComponent m_SpriteRenderer;
@@ -36,8 +35,6 @@ namespace Sandbox
 			m_CollishionColor = m_Colors[s_Rng.Next(0, m_Colors.Length)];
 
 			m_CollishionTextureHandle = ResourceManager.GetAssetHandleFromFilePath("Textures/Checkerboard.sktex");
-
-			m_Player = Scene.GetEntityByTag("Player");
 		}
 
 		protected override void OnCollishionBegin(Collider2D collider)

@@ -40,11 +40,13 @@ namespace Shark
 
 		public static Matrix4 operator*(Matrix4 lhs, Matrix4 rhs)
 		{
-			return InternalCalls.Matrix4_Matrix4MulMatrix4(ref lhs, ref rhs);
+			InternalCalls.Matrix4_Matrix4MulMatrix4(ref lhs, ref rhs, out var result);
+			return result;
 		}
 		public static Vector4 operator*(Matrix4 lhs, Vector4 rhs)
 		{
-			return InternalCalls.Matrix4_Matrix4MulVector4(ref lhs, ref rhs);
+			InternalCalls.Matrix4_Matrix4MulVector4(ref lhs, ref rhs, out var result);
+			return result;
 		}
 
 

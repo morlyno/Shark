@@ -71,6 +71,7 @@ namespace Shark {
 		UUID GetUUID() { return GetComponent<IDComponent>().ID; }
 		const std::string& GetName() { return GetComponent<TagComponent>().Tag; }
 		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
+		glm::mat4 CalcTransform() const { return m_Scene->m_Registry.get<TransformComponent>(m_EntityHandle).CalcTransform(); }
 
 		void SetParent(Entity parent);
 		void AddChild(Entity child);
@@ -79,16 +80,13 @@ namespace Shark {
 		void RemoveChild(UUID childID);
 		void RemoveChildren();
 
-		UUID Parent() { return GetComponent<RelationshipComponent>().Parent; }
-		Entity ParentEntity() { return m_Scene->GetEntityByUUID(Parent()); }
+		UUID ParentUUID() { return GetComponent<RelationshipComponent>().Parent; }
+		Entity Parent() { return m_Scene->GetEntityByUUID(ParentUUID()); }
 		std::vector<UUID>& Children() { return GetComponent<RelationshipComponent>().Children; }
 
 		bool HasParent() { return GetComponent<RelationshipComponent>().Parent.IsValid(); }
 		bool HasChild(UUID childID);
 		bool HasChildren() { return GetComponent<RelationshipComponent>().Children.size() > 0; }
-
-		glm::mat4 CalcWorldTransform();
-		TransformComponent WorldTransform();
 
 		bool IsValid() const { return m_Scene->m_Registry.valid(m_EntityHandle); }
 		bool IsNull() const { return m_EntityHandle == entt::null; }
@@ -101,8 +99,6 @@ namespace Shark {
 
 	private:
 		static void RemoveTargetFromParent(Entity me);
-
-		void WorldRotationScale(glm::vec3& out_Rotation, glm::vec3& out_Scale);
 
 	private:
 		entt::entity m_EntityHandle{ entt::null };

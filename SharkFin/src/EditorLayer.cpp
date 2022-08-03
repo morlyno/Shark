@@ -200,30 +200,16 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		// Cut off all events that got handled by ImGui
-		if (event.Status & EventStatus::BlockedByImGui)
-			return;
-
 		EventDispacher dispacher(event);
-		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowResize));
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
+
+		if (event.Handled)
+			return;
 
 		if (m_ViewportHovered && m_SceneState != SceneState::Play)
 			m_EditorCamera.OnEvent(event);
 
 		m_PanelManager->OnEvent(event);
-
-		// Note(moro): m_ActiveScene is null when the project closes
-		//             this triggers a scene changed (Scene==null) and project changed event
-		if (m_ActiveScene && m_SceneState == SceneState::Play)
-			ScriptGlue::OnEvent(event);
-	}
-
-	bool EditorLayer::OnWindowResize(WindowResizeEvent& event)
-	{
-		SK_PROFILE_FUNCTION();
-
-		return false;
 	}
 
 	bool EditorLayer::OnKeyPressed(KeyPressedEvent& event)
@@ -410,7 +396,7 @@ namespace Shark {
 		m_PanelManager->OnImGuiRender();
 
 		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-			ScriptUtils::InvokeOnUIRender(gcHandle);
+			MethodThunks::OnUIRender(gcHandle);
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
@@ -597,7 +583,7 @@ namespace Shark {
 				projection = m_EditorCamera.GetProjection();
 			}
 
-			glm::mat4 transform = m_SelectetEntity.CalcWorldTransform();
+			glm::mat4 transform = m_ActiveScene->GetWorldSpaceTransform(m_SelectetEntity);
 
 			float snapVal = 0.0f;
 			if (Input::KeyPressed(Key::LeftShift))
@@ -616,13 +602,13 @@ namespace Shark {
 
 			if (!Input::KeyPressed(Key::Alt) && ImGuizmo::IsUsing() || Input::KeyPressed(Key::Space))
 			{
-				Entity parentEntity = m_SelectetEntity.ParentEntity();
-				glm::mat4 localTransform = parentEntity ? glm::inverse(parentEntity.CalcWorldTransform()) * transform : transform;
+				Entity parentEntity = m_SelectetEntity.Parent();
+				glm::mat4 localTransform = parentEntity ? glm::inverse(m_ActiveScene->GetWorldSpaceTransform(parentEntity)) * transform : transform;
 
 				auto& tf = m_SelectetEntity.Transform();
 
 				glm::vec3 translation, rotation, scale;
-				if (Math::DecomposeTransform(localTransform, scale, rotation, translation))
+				if (Math::DecomposeTransform(localTransform, translation, rotation, scale))
 				{
 					glm::vec3 deltaRotation = rotation - tf.Rotation;
 					tf.Translation = translation;
@@ -1648,7 +1634,7 @@ namespace Shark {
 			Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
 			auto& camera = cameraEntity.GetComponent<CameraComponent>();
 			auto& tf = cameraEntity.Transform();
-			return camera.GetProjection() * glm::inverse(cameraEntity.CalcWorldTransform());
+			return camera.GetProjection() * glm::inverse(m_ActiveScene->GetWorldSpaceTransform(cameraEntity));
 		}
 
 		return m_EditorCamera.GetViewProjection();

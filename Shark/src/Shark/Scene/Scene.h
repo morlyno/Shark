@@ -85,6 +85,8 @@ namespace Shark {
 		uint32_t GetViewportWidth() const { return m_ViewportWidth; }
 		uint32_t GetViewportHeight() const { return m_ViewportHeight; }
 
+		glm::mat4 GetWorldSpaceTransform(Entity entity) const;
+
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
 		std::queue<std::function<void()>>& GetPostUpdateQueue() { return m_PostUpdateQueue; }

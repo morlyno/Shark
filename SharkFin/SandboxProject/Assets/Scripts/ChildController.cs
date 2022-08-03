@@ -1,5 +1,4 @@
 ﻿using Shark;
-using Shark.Editor;
 
 namespace Sandbox
 {
@@ -10,10 +9,9 @@ namespace Sandbox
 
 		protected override void OnCreate()
 		{
-			EventHandler.OnKeyPressed += (e) => { if (e.KeyCode == Key.Space) m_LocalMode = !m_LocalMode; };
 		}
 
-		protected override void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(float ts)
 		{
 			Vector3 delta = Vector3.Zero;
 			if (Input.IsKeyPressed(Key.LeftArrow))
@@ -44,21 +42,21 @@ namespace Sandbox
 
 		protected override void OnUIRender()
 		{
-			UI.BeginWindow("C# Test");
+			EditorUI.BeginWindow("C# Test");
 			var local = Transform.LocalTransform;
-			UI.Text("Local Transform");
-			UI.Text("Translation: {0}", local.Translation);
-			UI.Text("Rotation:    {0}", local.Rotation);
-			UI.Text("Scale:       {0}", local.Scale);
+			EditorUI.Text("Local Transform");
+			EditorUI.Text("Translation: {0}", local.Translation);
+			EditorUI.Text("Rotation:    {0}", local.Rotation);
+			EditorUI.Text("Scale:       {0}", local.Scale);
 
 			//UI.NewLine();
 
 			var world = Transform.WorldTransform;
-			UI.Text("World Transform");
-			UI.Text("Translation: {0}", world.Translation);
-			UI.Text("Rotation:    {0}", world.Rotation);
-			UI.Text("Scale:       {0}", world.Scale);
-			UI.EndWindow();
+			EditorUI.Text("World Transform");
+			EditorUI.Text("Translation: {0}", world.Translation);
+			EditorUI.Text("Rotation:    {0}", world.Rotation);
+			EditorUI.Text("Scale:       {0}", world.Scale);
+			EditorUI.EndWindow();
 		}
 
 	}

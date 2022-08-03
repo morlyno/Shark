@@ -118,7 +118,9 @@ namespace Shark {
 
 		s_Data->AssembliesLoaded = true;
 
+		GCManager::Init();
 		ScriptGlue::Init();
+		ScriptUtils::Init();
 
 		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
 
@@ -133,6 +135,10 @@ namespace Shark {
 
 	void ScriptEngine::UnloadAssemblies()
 	{
+		ScriptUtils::Shutdown();
+		ScriptGlue::Shutdown();
+		GCManager::Shutdown();
+
 		s_Data->AssembliesLoaded = false;
 
 		AssemblyInfo& appInfo = s_Data->Assemblies[AppAssemblyIndex];
@@ -165,14 +171,26 @@ namespace Shark {
 		return s_Data->Assemblies[AppAssemblyIndex];
 	}
 
+	MonoDomain* ScriptEngine::GetRuntimeDomain()
+	{
+		return s_Data->RuntimeDomain;
+	}
+
 	void ScriptEngine::ShutdownRuntime()
 	{
 		for (auto& [uuid, gcHandle] : s_Data->EntityInstances)
-			mono_gchandle_free(gcHandle);
+		{
+			GCManager::ReleaseHandle(gcHandle);
+		}
 
 		s_Data->EntityInstances.clear();
 
-		GCManager::Collect();
+		//GCManager::Collect();
+	}
+
+	MonoObject* ScriptEngine::InstantiateClass(MonoClass* klass)
+	{
+		return mono_object_new(s_Data->RuntimeDomain, klass);
 	}
 
 	bool ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate)
@@ -197,7 +215,7 @@ namespace Shark {
 		MonoClass* entityClass = mono_class_from_name_case(s_Data->Assemblies[CoreAssemblyIndex].Image, "Shark", "Entity");
 		mono_class_is_subclass_of(entityClass, clazz, false);
 
-		MonoObject* object = mono_object_new(s_Data->RuntimeDomain, clazz);
+		MonoObject* object = InstantiateClass(clazz);
 		mono_runtime_object_init(object);
 		{
 			MonoMethodDesc* methodDesc = mono_method_desc_new(":.ctor(ulong)", false);
@@ -209,11 +227,11 @@ namespace Shark {
 			ScriptUtils::HandleException(exception);
 		}
 
-		GCHandle gcHandle = mono_gchandle_new(object, false);
+		GCHandle gcHandle = GCManager::CreateHandle(object);
 		s_Data->EntityInstances[uuid] = gcHandle;
 
 		if (invokeOnCreate)
-			ScriptUtils::InvokeOnCreate(gcHandle);
+			MethodThunks::OnCreate(gcHandle);
 
 		return true;
 	}
@@ -229,12 +247,11 @@ namespace Shark {
 
 		GCHandle gcHandle = GetEntityInstance(entity.GetUUID());
 		MonoObject* object = mono_gchandle_get_target(gcHandle);
-		MonoClass* clazz = mono_object_get_class(object);
 
 		if (invokeOnDestroy)
-			ScriptUtils::InvokeOnDestroy(gcHandle);
+			MethodThunks::OnDestroy(gcHandle);
 
-		mono_gchandle_free(gcHandle);
+		GCManager::ReleaseHandle(gcHandle);
 		s_Data->EntityInstances.erase(uuid);
 	}
 
@@ -243,8 +260,8 @@ namespace Shark {
 		// TODO(moro): maby cache object for later use
 
 		MonoClass* entityClass = mono_class_from_name_case(s_Data->Assemblies[CoreAssemblyIndex].Image, "Shark", "Entity");
-		MonoObject* object = mono_object_new(s_Data->RuntimeDomain, entityClass);
-		GCHandle persistentHandle = mono_gchandle_new(object, false);
+		MonoObject* object = InstantiateClass(entityClass);
+		GCHandle persistentHandle = GCManager::CreateHandle(object);
 		mono_runtime_object_init(object);
 		
 		MonoMethodDesc* ctorDesc = mono_method_desc_new(":.ctor(ulong)", false);
@@ -259,9 +276,8 @@ namespace Shark {
 	{
 		// TODO(moro): maby cache object for later use
 
-		mono_gchandle_free(handle);
+		GCManager::ReleaseHandle(handle);
 	}
-
 	bool ScriptEngine::ContainsEntityInstance(UUID uuid)
 	{
 		return s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end();
@@ -301,6 +317,14 @@ namespace Shark {
 			*out_RetVal = retVal;
 
 		return true;
+	}
+
+	MonoObject* ScriptEngine::InvokeMethodR(MonoObject* object, MonoMethod* method, void** params)
+	{
+		MonoObject* ret = nullptr;
+		if (InvokeMethod(object, method, params, &ret))
+			return ret;
+		return nullptr;
 	}
 
 	bool ScriptEngine::InvokeVirtualMethod(MonoObject* object, MonoMethod* method, void** params, MonoObject** out_RetVal)

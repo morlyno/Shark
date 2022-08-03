@@ -6,12 +6,12 @@ namespace Shark {
 
 	bool Input::KeyPressed(KeyCode key)
 	{
-		return GetKeyState(key) & 0xFF00;
+		return GetAsyncKeyState(key) & 0xFF00;
 	}
 
 	bool Input::MousePressed(MouseButton::Type button)
 	{
-		return GetKeyState(button) & 0xFF00;
+		return GetAsyncKeyState(button) & 0xFF00;
 	}
 
 	glm::ivec2 Input::MousePos()

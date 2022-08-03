@@ -1,7 +1,7 @@
 ﻿
-namespace Shark.Editor
+namespace Shark
 {
-	public static class UI
+	public static class EditorUI
 	{
 		public static bool BeginWindow(string windowTitle)
 			=> InternalCalls.EditorUI_BeginWindow(windowTitle);

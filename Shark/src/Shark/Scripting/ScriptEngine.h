@@ -11,6 +11,7 @@
 #include "Shark/utils/Utils.h"
 
 extern "C" {
+	typedef struct _MonoDomain MonoDomain;
 	typedef struct _MonoAssembly MonoAssembly;
 	typedef struct _MonoObject MonoObject;
 	typedef struct _MonoMethod MonoMethod;
@@ -40,8 +41,12 @@ namespace Shark {
 		static const AssemblyInfo& GetCoreAssemblyInfo();
 		static const AssemblyInfo& GetAppAssemblyInfo();
 
+		static MonoDomain* GetRuntimeDomain();
+
 	public: // Scripting API
 		static void ShutdownRuntime();
+
+		static MonoObject* InstantiateClass(MonoClass* klass);
 
 		static bool InstantiateEntity(Entity entity, bool invokeOnCreate);
 		static void DestroyEntity(Entity entity, bool invokeOnDestroy);
@@ -72,6 +77,7 @@ namespace Shark {
 		}
 
 		static bool InvokeMethod(MonoObject* object, MonoMethod* method, void** params = nullptr, MonoObject** out_RetVal = nullptr);
+		static MonoObject* InvokeMethodR(MonoObject* object, MonoMethod* method, void** params = nullptr);
 		static bool InvokeVirtualMethod(MonoObject* object, MonoMethod* method, void** params = nullptr, MonoObject** out_RetVal = nullptr);
 
 	private:

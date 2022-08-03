@@ -12,9 +12,8 @@ namespace Shark
 
 		public static Vector2i GetMousePos()
 		{
-			if (InternalCalls.Input_GetMousePos(out var mousePos))
-				return mousePos;
-			return Vector2i.Zero;
+			InternalCalls.Input_GetMousePos(out var mousePos);
+			return mousePos;
 		}
 
 	}

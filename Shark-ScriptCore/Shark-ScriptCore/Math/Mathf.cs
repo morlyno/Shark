@@ -7,19 +7,18 @@ namespace Shark
 	{
 
 		public static float Abs(float val)
-		{
-			return (float)Math.Abs(val);
-		}
+			=> (float)Math.Abs(val);
 
 		public static float Sqrt(float val)
-		{
-			return (float)Math.Sqrt((double)val);
-		}
+			=> (float)Math.Sqrt((double)val);
 
 		public static float Lerp(float x0, float x1, float t)
 		{
 			return x0 + (x1 - x0) * t;
 		}
+
+		public static float Min(float a, float b)
+			=> Math.Min(a, b);
 
 	}
 }

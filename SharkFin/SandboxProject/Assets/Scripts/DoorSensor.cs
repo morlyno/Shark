@@ -19,7 +19,7 @@ namespace Sandbox
 			m_DoorPos = Door.Transform.Translation;
 		}
 
-		protected override void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(float ts)
 		{
 			if (m_OpenDoor)
 			{

@@ -21,10 +21,6 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 include "Dependencies.lua"
 
-Settings = {
-	UseVectorExtensions = false
-}
-
 DefaultDefines = {
 	"_USE_MATH_DEFINES",
 

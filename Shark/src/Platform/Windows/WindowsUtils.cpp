@@ -198,7 +198,7 @@ namespace Shark {
 		std::string envVar;
 		envVar.resize(bufferSize);
 
-		DWORD result = GetEnvironmentVariableA(name.c_str(), envVar.data(), envVar.size());
+		DWORD result = GetEnvironmentVariableA(name.c_str(), envVar.data(), (DWORD)envVar.size());
 		if (result == 0)
 		{
 			DWORD errorCode = GetLastError();

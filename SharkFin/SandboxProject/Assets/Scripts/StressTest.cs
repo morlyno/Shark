@@ -5,11 +5,11 @@ namespace Sandbox
 {
 	public class StressTest : Entity
 	{
-		private TimeStep m_SpawnTimer = 2.0f;
-		private TimeStep m_Timer;
+		private float m_SpawnTimer = 2.0f;
+		private float m_Timer;
 		private System.Random m_Rng = new System.Random();
 
-		protected override void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(float ts)
 		{
 			m_Timer += ts;
 

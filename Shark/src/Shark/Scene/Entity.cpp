@@ -73,33 +73,10 @@ namespace Shark {
 		return false;
 	}
 
-	glm::mat4 Entity::CalcWorldTransform()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (Entity parent = ParentEntity())
-			return parent.CalcWorldTransform() * Transform().CalcTransform();
-		return Transform().CalcTransform();
-	}
-
-	TransformComponent Entity::WorldTransform()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!HasParent())
-			return Transform();
-
-		TransformComponent worldTF;
-		WorldRotationScale(worldTF.Rotation, worldTF.Scale);
-		glm::mat4 localToWorld = ParentEntity().CalcWorldTransform();
-		worldTF.Translation = localToWorld * glm::vec4(Transform().Translation, 1.0f);
-		return worldTF;
-	}
-
 	void Entity::RemoveTargetFromParent(Entity target)
 	{
 		UUID targetID = target.GetUUID();
-		Entity parentEntity = target.m_Scene->GetEntityByUUID(target.Parent());
+		Entity parentEntity = target.m_Scene->GetEntityByUUID(target.ParentUUID());
 
 		auto& children = parentEntity.Children();
 		for (size_t i = 0; i < children.size(); i++)
@@ -112,18 +89,6 @@ namespace Shark {
 		}
 
 		SK_CORE_ASSERT(false, "Invalid Parent-Child Relationship");
-	}
-
-	void Entity::WorldRotationScale(glm::vec3& out_Rotation, glm::vec3& out_Scale)
-	{
-		Entity entity = *this;
-		while (entity)
-		{
-			const auto& tf = entity.Transform();
-			out_Rotation += tf.Rotation;
-			out_Scale *= tf.Scale;
-			entity = entity.ParentEntity();
-		}
 	}
 
 }

@@ -16,7 +16,7 @@ Scene:
       TagComponent:
         Tag: PlatformMarkerRight
       TransformComponent:
-        Position: [20, 1.2467103, 0]
+        Position: [20, -2.377496, 0]
         Rotation: [0, 0, 0]
         Scaling: [1, 1, 1]
       RelationshipComponent:
@@ -51,7 +51,7 @@ Scene:
         Offset: [0, 0]
         Rotation: 0
         Density: 1.5
-        Friction: 2
+        Friction: 0.100000001
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
@@ -332,7 +332,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 1.89512551
+        Aspectratio: 2.13888884
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -400,7 +400,7 @@ Scene:
           []
       CameraComponent:
         Type: Orthographic
-        Aspectratio: 1.89512551
+        Aspectratio: 2.13888884
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000

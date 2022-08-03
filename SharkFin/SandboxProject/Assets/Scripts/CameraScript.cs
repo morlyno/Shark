@@ -1,6 +1,5 @@
 ﻿
 using Shark;
-using Shark.MouseEvents;
 
 namespace Sandbox
 {
@@ -10,27 +9,19 @@ namespace Sandbox
 
 		protected override void OnCreate()
 		{
-			EventHandler.OnMouseScrolled += OnMouseScrolled;
 		}
 
 		protected override void OnDestroy()
 		{
-			EventHandler.OnMouseScrolled -= OnMouseScrolled;
 		}
 
-		protected override void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(float ts)
 		{
 			Move(ts);
 		}
 
-		void OnMouseScrolled(MouseScrolledEvent e)
-		{
-			var translation = Transform.Translation;
-			translation.z += e.Delta;
-			Transform.Translation = translation;
-		}
 
-		private void Move(TimeStep ts)
+		private void Move(float ts)
 		{
 			var translation = Transform.Translation;
 

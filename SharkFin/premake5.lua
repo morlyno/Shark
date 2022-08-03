@@ -10,9 +10,7 @@ project "SharkFin"
     pchheader "skfpch.h"
     pchsource "src/skfpch.cpp"
 
-    if Settings.UseVectorExtensions then
-        vectorextensions "AVX2"
-    end
+    vectorextensions "AVX2"
 
     files
     {

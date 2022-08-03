@@ -27,7 +27,7 @@ namespace Sandbox
 			m_Offset = Transform.Translation;
 		}
 
-		protected override void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(float ts)
 		{
 			m_AnimationTimer += ts * m_AnimationSpeed;
 			m_AnimationSpeed %= (float)Math.PI;

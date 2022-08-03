@@ -8,6 +8,8 @@ namespace Sandbox
 		private float m_MaxLifeTime = 1.0f;
 		private float m_LifeTime = 0.0f;
 
+		public bool DestroyOnHit = false;
+
 		protected override void OnCreate()
 		{
 			Transform.Scale = new Vector3(0.2f);
@@ -23,10 +25,16 @@ namespace Sandbox
 			collider.Restitution = 1.0f;
 		}
 
-		protected override void OnUpdate(TimeStep ts)
+		protected override void OnUpdate(float ts)
 		{
 			m_LifeTime += ts;
 			if (m_LifeTime >= m_MaxLifeTime)
+				Scene.Destroy(this);
+		}
+
+		protected override void OnCollishionBegin(Collider2D collider)
+		{
+			if (DestroyOnHit)
 				Scene.Destroy(this);
 		}
 

@@ -100,11 +100,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		EventDispacher dispacher(event);
-		dispacher.DispachEvent<ScenePlayEvent>([this](ScenePlayEvent& e)
-		{
-			if (m_ClearOnPlay)
-				Clear();
-		});
+		dispacher.DispachEvent<ScenePlayEvent>([this](ScenePlayEvent& e) { if (m_ClearOnPlay) Clear(); return false; });
 	}
 
 	void EditorConsolePanel::Clear()

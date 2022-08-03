@@ -5,7 +5,7 @@
 
 namespace Shark::Math {
 
-	bool DecomposeTransform(const glm::mat4& ModelMatrix, glm::vec3& out_Scale, glm::vec3& out_Euler, glm::vec3& out_Translation)
+	bool DecomposeTransform(const glm::mat4& ModelMatrix, glm::vec3& out_Translation, glm::vec3& out_Euler, glm::vec3& out_Scale)
 	{
 		using namespace glm;
 

@@ -318,12 +318,22 @@ namespace Shark {
 			m_Instance = nullptr;
 		}
 
-		T& operator*() const
+		T& operator*()
 		{
 			return *m_Instance;
 		}
 
-		T* operator->() const
+		const T& operator*() const
+		{
+			return *m_Instance;
+		}
+
+		T* operator->()
+		{
+			return m_Instance;
+		}
+
+		const T* operator->() const
 		{
 			return m_Instance;
 		}

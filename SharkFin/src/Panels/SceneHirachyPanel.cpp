@@ -74,9 +74,9 @@ namespace Shark {
 
 			while (parent.HasParent())
 			{
-				if (parent.Parent() == childUUID)
+				if (parent.ParentUUID() == childUUID)
 					return true;
-				parent = parent.ParentEntity();
+				parent = parent.Parent();
 			}
 			return false;
 		}

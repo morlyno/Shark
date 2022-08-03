@@ -65,16 +65,6 @@ namespace Shark {
 		virtual EventCategory::Flags GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
 	};
 
-	namespace EventStatus
-	{
-		enum Type : uint16_t
-		{
-			None = 0,
-			BlockedByImGui = BIT(0)
-		};
-		using Flags = uint16_t;
-	};
-
 	class Event
 	{
 	public:
@@ -88,7 +78,6 @@ namespace Shark {
 
 	public:
 		bool Handled = false;
-		EventStatus::Flags Status = EventStatus::None;
 	};
 
 	class EventDispacher
@@ -103,35 +92,12 @@ namespace Shark {
 		{
 			if (!m_Event.Handled && (T::GetStaticType() == m_Event.GetEventType()))
 			{
-				constexpr bool RetBool = std::is_same_v<decltype(func((T&)m_Event)), bool>;
-				constexpr bool RetVoid = std::is_same_v<decltype(func((T&)m_Event)), void>;
-				static_assert(RetBool || RetVoid);
-
-				if constexpr (RetBool)
-					m_Event.Handled |= func((T&)m_Event);
-				else
-					func((T&)m_Event);
+				m_Event.Handled |= func((T&)m_Event);
 				return true;
 			}
 			return false;
 		}
-		template<typename T, typename Func>
-		bool DispachEventAlways(const Func& func)
-		{
-			if (T::GetStaticType() == m_Event.GetEventType())
-			{
-				constexpr bool RetBool = std::is_same_v<decltype(func((T&)m_Event)), bool>;
-				constexpr bool RetVoid = std::is_same_v<decltype(func((T&)m_Event)), void>;
-				static_assert(RetBool || RetVoid);
 
-				if constexpr (RetBool)
-					m_Event.Handled |= func((T&)m_Event);
-				else
-					func((T&)m_Event);
-				return true;
-			}
-			return false;
-		}
 	private:
 		Event& m_Event;
 	};

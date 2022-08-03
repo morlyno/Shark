@@ -59,7 +59,12 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		for (auto& [id, data] : m_Panels)
+		{
+			if (event.Handled)
+				break;
+
 			data.Instance->OnEvent(event);
+		}
 	}
 
 }

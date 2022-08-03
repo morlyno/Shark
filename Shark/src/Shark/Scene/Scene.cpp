@@ -131,9 +131,7 @@ namespace Shark {
 
 			{
 				for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-				{
-					ScriptUtils::InvokeOnCreate(gcHandle);
-				}
+					MethodThunks::OnCreate(gcHandle);
 			}
 		}
 
@@ -212,7 +210,7 @@ namespace Shark {
 			SK_PROFILE_SCOPED("Scene::OnScenePlay::DestroyScripts");
 
 			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-				ScriptUtils::InvokeOnDestroy(gcHandle);
+				MethodThunks::OnDestroy(gcHandle);
 
 			ScriptEngine::ShutdownRuntime();
 		}
@@ -251,7 +249,7 @@ namespace Shark {
 			SK_PROFILE_SCOPED("Shark::Scene::OnUpdateRuntime::UpdateScripts");
 
 			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-				ScriptUtils::InvokeOnUpdate(gcHandle, ts);
+				MethodThunks::OnUpdate(gcHandle, ts);
 		}
 
 		{
@@ -322,7 +320,7 @@ namespace Shark {
 
 		renderer->SetScene(this);
 
-		const auto viewProj = camera.GetProjection() * glm::inverse(cameraEntity.CalcWorldTransform());
+		const auto viewProj = camera.GetProjection() * glm::inverse(GetWorldSpaceTransform(cameraEntity));
 		renderer->BeginScene(viewProj);
 
 		{
@@ -548,6 +546,13 @@ namespace Shark {
 		}
 	}
 
+	glm::mat4 Scene::GetWorldSpaceTransform(Entity entity) const
+	{
+		if (entity.HasParent())
+			return entity.Parent().CalcTransform() * entity.CalcTransform();
+		return entity.CalcTransform();
+	}
+
 	void Scene::SetupBox2D()
 	{
 		SK_PROFILE_FUNCTION();
@@ -655,7 +660,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-			ScriptUtils::InvokeOnPhysicsUpdate(gcHandle, fixedTimeStep);
+			MethodThunks::OnPhysicsUpdate(gcHandle, fixedTimeStep);
 
 	}
 

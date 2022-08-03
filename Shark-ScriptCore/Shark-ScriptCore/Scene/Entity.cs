@@ -5,8 +5,7 @@ namespace Shark
 {
 	public class Entity
 	{
-		public ulong ID { get; internal set; }
-
+		public readonly ulong ID;
 		private Dictionary<Type, Component> m_ComponentCache = new Dictionary<Type, Component>();
 
 		public Entity()
@@ -20,8 +19,8 @@ namespace Shark
 
 		protected virtual void OnCreate() { }
 		protected virtual void OnDestroy() { }
-		protected virtual void OnUpdate(TimeStep ts) { }
-		protected virtual void OnPhysicsUpdate(TimeStep fixedTimeStep) { }
+		protected virtual void OnUpdate(float ts) { }
+		protected virtual void OnPhysicsUpdate(float fixedTimeStep) { }
 		protected virtual void OnUIRender() { }
 		protected virtual void OnCollishionBegin(Collider2D collider) { }
 		protected virtual void OnCollishionEnd(Collider2D collider) { }
@@ -66,7 +65,7 @@ namespace Shark
 			return GetComponent<T>();
 		}
 
-		public void Entity_RemoveComponent<T>() where T : Component
+		public void RemoveComponent<T>() where T : Component
 		{
 			Type type = typeof(T);
 			InternalCalls.Entity_RemoveComponent(ID, type);

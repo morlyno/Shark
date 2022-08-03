@@ -108,6 +108,10 @@ namespace Shark {
 	static_assert(sizeof(float) == 4);
 	static_assert(sizeof(double) == 8);
 
+	static_assert(sizeof(glm::vec2) == sizeof(float) * 2);
+	static_assert(sizeof(glm::vec3) == sizeof(float) * 3);
+	static_assert(sizeof(glm::vec4) == sizeof(float) * 4);
+
 }
 
 
