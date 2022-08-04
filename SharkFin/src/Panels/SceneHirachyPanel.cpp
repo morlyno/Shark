@@ -6,8 +6,6 @@
 
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scene/Components.h"
-#include "Shark/Scene/NativeScriptFactory.h"
-
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/UI/UI.h"
@@ -23,7 +21,7 @@
 
 namespace Shark {
 
-	namespace Utils {
+	namespace utils {
 
 		template<typename Comp, typename UIFunction>
 		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
@@ -42,7 +40,7 @@ namespace Shark {
 				if (opened)
 				{
 					auto& comp = entity.GetComponent<Comp>();
-					func(comp);
+					func(comp, entity);
 				}
 
 				if (ImGui::BeginPopup("Component Settings"))
@@ -73,8 +71,14 @@ namespace Shark {
 			}
 		}
 
-		// check that parent dosn't have child as parent
+		template<typename Component>
+		static void DrawAddComponentButton(const char* name, Entity entity)
+		{
+			if (ImGui::Selectable(name, false, entity.AllOf<Component>() ? ImGuiSelectableFlags_Disabled : 0))
+				entity.AddComponent<Component>();
+		}
 
+		// check that parent dosn't have child as parent
 		static bool WouldCreateLoop(Entity child, Entity parent)
 		{
 			UUID childUUID = child.GetUUID();
@@ -179,7 +183,7 @@ namespace Shark {
 				UUID uuid = *(UUID*)payload->Data;
 				Entity e = m_Context->GetEntityByUUID(uuid);
 
-				if (!Utils::WouldCreateLoop(e, entity))
+				if (!utils::WouldCreateLoop(e, entity))
 					e.SetParent(entity);
 			}
 			ImGui::EndDragDropTarget();
@@ -242,57 +246,22 @@ namespace Shark {
 		ImGui::SameLine();
 		if (ImGui::Button("Add"))
 			ImGui::OpenPopup("Add Component List");
+
 		if (ImGui::BeginPopup("Add Component List"))
 		{
-			if (ImGui::Selectable("Transform", false, entity.AllOf<TransformComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<TransformComponent>();
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Selectable("Sprite Renderer", false, entity.AllOf<SpriteRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<SpriteRendererComponent>();
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Selectable("Circle Renderer", false, entity.AllOf<CircleRendererComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<CircleRendererComponent>();
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Selectable("Scene Camera", false, entity.AllOf<CameraComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<CameraComponent>();
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Selectable("RigidBody 2D", false, entity.AllOf<RigidBody2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<RigidBody2DComponent>();
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Selectable("BoxCollider 2D", false, entity.AllOf<BoxCollider2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<BoxCollider2DComponent>();
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Selectable("CirlceCollider 2D", false, entity.AllOf<CircleCollider2DComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<CircleCollider2DComponent>();
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Selectable("Native Script", false, entity.AllOf<NativeScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<NativeScriptComponent>();
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Selectable("Script", false, entity.AllOf<ScriptComponent>() ? ImGuiSelectableFlags_Disabled : 0))
-			{
-				entity.AddComponent<ScriptComponent>();
-				ImGui::CloseCurrentPopup();
-			}
+			utils::DrawAddComponentButton<TransformComponent>("Transform", entity);
+			utils::DrawAddComponentButton<SpriteRendererComponent>("Sprite Renderer", entity);
+			utils::DrawAddComponentButton<CircleRendererComponent>("Cirlce Renderer", entity);
+			utils::DrawAddComponentButton<CameraComponent>("Camera ", entity);
+			utils::DrawAddComponentButton<RigidBody2DComponent>("Rigidbody 2D", entity);
+			utils::DrawAddComponentButton<BoxCollider2DComponent>("Box Collider 2D", entity);
+			utils::DrawAddComponentButton<CircleCollider2DComponent>("Cirlce Collider 2D", entity);
+			utils::DrawAddComponentButton<ScriptComponent>("Script", entity);
 			ImGui::EndPopup();
 		}
 
-		Utils::DrawComponet<TransformComponent>(entity, "Transform", [&](TransformComponent& comp)
+		
+		utils::DrawComponet<TransformComponent>(entity, "Transform", [](TransformComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			UI::Control("Position", comp.Translation);
@@ -301,7 +270,7 @@ namespace Shark {
 			UI::EndControls();
 		});
 
-		Utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp)
+		utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 
@@ -356,7 +325,7 @@ namespace Shark {
 
 		});
 
-		Utils::DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp)
+		utils::DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 				
@@ -367,7 +336,7 @@ namespace Shark {
 			UI::EndControls();
 		});
 
-		Utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [&](CameraComponent& comp)
+		utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			
@@ -426,15 +395,16 @@ namespace Shark {
 			}
 
 			UUID uuid = entity.GetUUID();
-			bool isMainCamera = m_Context->m_ActiveCameraUUID.IsValid() ? m_Context->m_ActiveCameraUUID == uuid : false;
+			
+			bool isMainCamera = entity.GetScene()->m_ActiveCameraUUID.IsValid() ? entity.GetScene()->m_ActiveCameraUUID == uuid : false;
 			if (UI::Control("Is Active", isMainCamera))
-				m_Context->m_ActiveCameraUUID = uuid;
+				entity.GetScene()->m_ActiveCameraUUID = uuid;
 
 			UI::EndControls();
 
 		});
 
-		Utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp)
+		utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			int index = (int)comp.Type - 1;
@@ -449,7 +419,7 @@ namespace Shark {
 			UI::EndControlsGrid();
 		});
 		
-		Utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp)
+		utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			UI::ControlS("Size", comp.Size, 0.5f);
@@ -463,7 +433,7 @@ namespace Shark {
 			UI::EndControls();
 		});
 
-		Utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp)
+		utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			UI::Control("Radius", comp.Radius, 0.5f);
@@ -477,63 +447,7 @@ namespace Shark {
 			UI::EndControls();
 		});
 
-		Utils::DrawComponet<NativeScriptComponent>(entity, "Native Script", [](NativeScriptComponent& comp)
-		{
-			char inputbuffer[128];
-			strcpy_s(inputbuffer, comp.ScriptTypeName.c_str());
-
-			const bool found = NativeScriptFactory::Exist(inputbuffer);
-
-			if (!found)
-				ImGui::PushStyleColor(ImGuiCol_Text, { 0.8f, 0.0f, 0.0f, 1.0f });
-
-			bool changed = ImGui::InputText("##ScriptNameInput", inputbuffer, std::size(inputbuffer));
-
-			if (!found)
-				ImGui::PopStyleColor();
-
-			if (ImGui::IsItemFocused())
-			{
-				for (const auto& m : NativeScriptFactory::GetMap())
-				{
-					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Bullet;
-					if (m.first == comp.ScriptTypeName)
-						flags |= ImGuiTreeNodeFlags_Selected;
-
-					ImGui::TreeNodeEx(m.first.c_str(), flags);
-					if (ImGui::IsItemClicked())
-					{
-						strcpy_s(inputbuffer, m.first.c_str());
-						changed = true;
-						break;
-					}
-				}
-			}
-
-			if (changed)
-				comp.ScriptTypeName = inputbuffer;
-
-
-			if (found)
-			{
-				if (ImGui::Checkbox("Bound", &comp.Bound))
-				{
-					if (comp.Bound)
-					{
-						NativeScriptFactory::Bind(inputbuffer, comp);
-						SK_CORE_TRACE("Script Bound: {0}", comp.ScriptTypeName);
-					}
-					else
-					{
-						comp.UnBind();
-						SK_CORE_TRACE("Script UnBound: {0}", comp.ScriptTypeName);
-					}
-				}
-			}
-
-		});
-
-		Utils::DrawComponet<ScriptComponent>(entity, "Script", [&](auto& comp)
+		utils::DrawComponet<ScriptComponent>(entity, "Script", [](ScriptComponent& comp, Entity entity)
 		{
 			ImGui::SetNextItemWidth(-1.0f);
 

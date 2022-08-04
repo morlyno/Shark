@@ -1,10 +1,7 @@
 #pragma once
 
 #include "Shark/Scene/Scene.h"
-#include "Shark/Scene/Components/IDComponent.h"
-#include "Shark/Scene/Components/TagComponent.h"
-#include "Shark/Scene/Components/TransformComponent.h"
-#include "Shark/Scene/Components/RelationshipComponent.h"
+#include "Shark/Scene/Components.h"
 
 #include "Shark/Debug/Instrumentor.h"
 
@@ -56,16 +53,16 @@ namespace Shark {
 			return m_Scene->m_Registry.try_get<Component>(m_EntityHandle);
 		}
 
-		template<typename Component>
+		template<typename... Component>
 		bool AllOf() const
 		{
-			return m_Scene->m_Registry.all_of<Component>(m_EntityHandle);
+			return m_Scene->m_Registry.all_of<Component...>(m_EntityHandle);
 		}
 
-		template<typename Component>
+		template<typename... Component>
 		bool AnyOf() const
 		{
-			return m_Scene->m_Registry.any_of<Component>(m_EntityHandle);
+			return m_Scene->m_Registry.any_of<Component...>(m_EntityHandle);
 		}
 
 		UUID GetUUID() { return GetComponent<IDComponent>().ID; }

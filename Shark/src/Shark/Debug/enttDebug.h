@@ -18,7 +18,6 @@ namespace Shark::Debug {
 			m_RelationshipComponent      = entity.TryGetComponent<RelationshipComponent>();
 			m_SpriteRendererComponent    = entity.TryGetComponent<SpriteRendererComponent>();
 			m_CameraComponent            = entity.TryGetComponent<CameraComponent>();
-			m_NativeScriptComponent      = entity.TryGetComponent<NativeScriptComponent>();
 			m_RigidBody2DComponent       = entity.TryGetComponent<RigidBody2DComponent>();
 			m_BoxCollider2DComponent     = entity.TryGetComponent<BoxCollider2DComponent>();
 			m_ScriptComponent            = entity.TryGetComponent<ScriptComponent>();
@@ -33,7 +32,6 @@ namespace Shark::Debug {
 			m_RelationshipComponent      = registry.try_get<RelationshipComponent>(entity);
 			m_SpriteRendererComponent    = registry.try_get<SpriteRendererComponent>(entity);
 			m_CameraComponent            = registry.try_get<CameraComponent>(entity);
-			m_NativeScriptComponent      = registry.try_get<NativeScriptComponent>(entity);
 			m_RigidBody2DComponent       = registry.try_get<RigidBody2DComponent>(entity);
 			m_BoxCollider2DComponent     = registry.try_get<BoxCollider2DComponent>(entity);
 			m_ScriptComponent            = registry.try_get<ScriptComponent>(entity);
@@ -46,7 +44,6 @@ namespace Shark::Debug {
 		const RelationshipComponent*           m_RelationshipComponent     = nullptr;
 		const SpriteRendererComponent*         m_SpriteRendererComponent   = nullptr;
 		const CameraComponent*                 m_CameraComponent           = nullptr;
-		const NativeScriptComponent*           m_NativeScriptComponent     = nullptr;
 		const RigidBody2DComponent*            m_RigidBody2DComponent      = nullptr;
 		const BoxCollider2DComponent*          m_BoxCollider2DComponent    = nullptr;
 		const ScriptComponent*                 m_ScriptComponent           = nullptr;
@@ -64,7 +61,6 @@ namespace Shark::Debug {
 			if (auto* relationshipComponent    = entity.TryGetComponent<RelationshipComponent>())     m_RelationshipComponent = *relationshipComponent;
 			if (auto* spriteRendererComponent  = entity.TryGetComponent<SpriteRendererComponent>())   m_SpriteRendererComponent = *spriteRendererComponent;
 			if (auto* cameraComponent          = entity.TryGetComponent<CameraComponent>())           m_CameraComponent = *cameraComponent;
-			if (auto* nativeScriptComponent    = entity.TryGetComponent<NativeScriptComponent>())     m_NativeScriptComponent = *nativeScriptComponent;
 			if (auto* rigidBody2DComponent     = entity.TryGetComponent<RigidBody2DComponent>())      m_RigidBody2DComponent = *rigidBody2DComponent;
 			if (auto* boxCollider2DComponent   = entity.TryGetComponent<BoxCollider2DComponent>())    m_BoxCollider2DComponent = *boxCollider2DComponent;
 			if (auto* scriptComponent          = entity.TryGetComponent<ScriptComponent>())           m_ScriptComponent = *scriptComponent;
@@ -79,7 +75,6 @@ namespace Shark::Debug {
 			if (auto* relationshipComponent    = registry.try_get<RelationshipComponent>(entity))     m_RelationshipComponent = *relationshipComponent;
 			if (auto* spriteRendererComponent  = registry.try_get<SpriteRendererComponent>(entity))   m_SpriteRendererComponent = *spriteRendererComponent;
 			if (auto* cameraComponent          = registry.try_get<CameraComponent>(entity))           m_CameraComponent = *cameraComponent;
-			if (auto* nativeScriptComponent    = registry.try_get<NativeScriptComponent>(entity))     m_NativeScriptComponent = *nativeScriptComponent;
 			if (auto* rigidBody2DComponent     = registry.try_get<RigidBody2DComponent>(entity))      m_RigidBody2DComponent = *rigidBody2DComponent;
 			if (auto* boxCollider2DComponent   = registry.try_get<BoxCollider2DComponent>(entity))    m_BoxCollider2DComponent = *boxCollider2DComponent;
 			if (auto* scriptComponent          = registry.try_get<ScriptComponent>(entity))           m_ScriptComponent = *scriptComponent;
@@ -92,7 +87,6 @@ namespace Shark::Debug {
 		std::optional<RelationshipComponent> m_RelationshipComponent;
 		std::optional<SpriteRendererComponent> m_SpriteRendererComponent;
 		std::optional<CameraComponent> m_CameraComponent;
-		std::optional<NativeScriptComponent> m_NativeScriptComponent;
 		std::optional<RigidBody2DComponent> m_RigidBody2DComponent;
 		std::optional<BoxCollider2DComponent> m_BoxCollider2DComponent;
 		std::optional<ScriptComponent> m_ScriptComponent;

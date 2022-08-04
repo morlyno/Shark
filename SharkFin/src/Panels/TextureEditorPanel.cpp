@@ -1,8 +1,7 @@
 #include "skfpch.h"
 #include "TextureEditorPanel.h"
 
-#include "Shark/Scene/Components/TransformComponent.h"
-#include "Shark/Scene/Components/SpriteRendererComponent.h"
+#include "Shark/Scene/Components.h"
 
 #include "Shark/UI/UI.h"
 #include "Shark/Input/Input.h"

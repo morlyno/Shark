@@ -4,7 +4,7 @@
 #include "Shark/Event/ApplicationEvent.h"
 
 #include "Shark/Scene/Entity.h"
-#include "Shark/Scene/Components/RigidBody2DComponent.h"
+#include "Shark/Scene/Components.h"
 
 #include "Shark/UI/UI.h"
 

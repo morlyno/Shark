@@ -71,9 +71,7 @@
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/SceneCamera.h"
-#include "Shark/Scene/NativeScript.h"
 #include "Shark/Scene/Components.h"
-#include "Shark/Scene/NativeScriptFactory.h"
 // --------------------------------------
 
 // --- Asset ----------------------------

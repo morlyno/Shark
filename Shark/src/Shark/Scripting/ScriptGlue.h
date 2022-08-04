@@ -4,8 +4,7 @@
 
 #include "Shark/Asset/Asset.h"
 
-#include "Shark/Scene/Components/TransformComponent.h"
-#include "Shark/Scene/Components/RigidBody2DComponent.h"
+#include "Shark/Scene/Components.h"
 #include "Shark/Scene/Physics2DScene.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Input/Input.h"

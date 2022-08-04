@@ -1,9 +1,6 @@
 #include "skpch.h"
 #include "Entity.h"
 
-#include "Shark/Scene/Components/TransformComponent.h"
-#include "Shark/Scene/Components/TagComponent.h"
-
 #include "Shark/Debug/enttDebug.h"
 
 namespace Shark {

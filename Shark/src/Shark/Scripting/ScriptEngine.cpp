@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "ScriptEngine.h"
 
-#include "Shark/Scene/Components/ScriptComponent.h"
+#include "Shark/Scene/Components.h"
 
 #include "Shark/Scripting/ScriptGlue.h"
 #include "Shark/Scripting/GCManager.h"

@@ -98,7 +98,6 @@ namespace Shark {
 		CopyComponents<SpriteRendererComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
 		CopyComponents<CircleRendererComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
 		CopyComponents<CameraComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
-		CopyComponents<NativeScriptComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
 		CopyComponents<RigidBody2DComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
 		CopyComponents<BoxCollider2DComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
 		CopyComponents<CircleCollider2DComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
@@ -131,21 +130,6 @@ namespace Shark {
 			{
 				for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 					MethodThunks::OnCreate(gcHandle);
-			}
-		}
-
-		// Create Native Scrips
-		{
-			auto view = m_Registry.view<NativeScriptComponent>();
-			for (auto entityID : view)
-			{
-				auto& comp = view.get<NativeScriptComponent>(entityID);
-				Entity entity{ entityID, this };
-				if (comp.CreateScript)
-				{
-					comp.Script = comp.CreateScript(entity);
-					comp.Script->OnCreate();
-				}
 			}
 		}
 
@@ -213,20 +197,6 @@ namespace Shark {
 			ScriptEngine::ShutdownRuntime();
 		}
 
-		// Destroy Native Scripts
-		{
-			auto view = m_Registry.view<NativeScriptComponent>();
-			for (auto entityID : view)
-			{
-				auto& comp = view.get<NativeScriptComponent>(entityID);
-				if (comp.Script)
-				{
-					comp.Script->OnDestroy();
-					comp.DestroyScript(comp.Script);
-				}
-			}
-		}
-		
 		m_PhysicsScene.DestoryScene();
 		m_ContactListener.SetContext(nullptr);
 	}
@@ -248,16 +218,6 @@ namespace Shark {
 
 			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 				MethodThunks::OnUpdate(gcHandle, ts);
-		}
-
-		{
-			auto view = m_Registry.view<NativeScriptComponent>();
-			for (auto entityID : view)
-			{
-				auto& nsc = view.get<NativeScriptComponent>(entityID);
-				if (nsc.Script)
-					nsc.Script->OnUpdate(ts);
-			}
 		}
 
 		{
@@ -359,7 +319,6 @@ namespace Shark {
 		CopyComponentIfExists<SpriteRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CircleRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CameraComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<NativeScriptComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CircleCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
