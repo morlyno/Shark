@@ -2,7 +2,7 @@ Project:
   Name: Sandbox
   Assets: Assets
   StartupScene: Assets/Scenes/PlayerTest.skscene
-  ScriptModulePath: Binaries\Sandbox.dll
+  ScriptModulePath: Assets\Scripts\Binaries\Sandbox.dll
   Physics:
     Gravity: [0, -9.81000042]
     VelocityIterations: 8

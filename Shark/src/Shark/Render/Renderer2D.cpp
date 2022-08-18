@@ -21,11 +21,11 @@
 
 namespace Shark {
 
-	Renderer2D::Renderer2D(Ref<FrameBuffer> renderTarget)
+	Renderer2D::Renderer2D(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications)
 	{
 		SK_PROFILE_FUNCTION();
 		
-		Init(renderTarget);
+		Init(renderTarget, specifications);
 	}
 
 	Renderer2D::~Renderer2D()
@@ -40,10 +40,12 @@ namespace Shark {
 			delete[] m_LineVertexBasePtr;
 	}
 
-	void Renderer2D::Init(Ref<FrameBuffer> renderTarget)
+	void Renderer2D::Init(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications)
 	{
 		SK_PROFILE_FUNCTION();
 		
+		m_Specifications = specifications;
+
 		m_WhiteTexture = Renderer::GetWhiteTexture();
 
 		m_ConstantBufferSet = ConstantBufferSet::Create();
@@ -60,6 +62,7 @@ namespace Shark {
 			quadPipelineSpecs.TargetFrameBuffer = renderTarget;
 			quadPipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Quad");
 			quadPipelineSpecs.DebugName = "Renderer2D-Quad";
+			quadPipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
 			m_QuadPipeline = Pipeline::Create(quadPipelineSpecs);
 			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader);
 
@@ -88,6 +91,7 @@ namespace Shark {
 			circlePipelineSpecs.TargetFrameBuffer = renderTarget;
 			circlePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Circle");
 			circlePipelineSpecs.DebugName = "Renderer2D-Circle";
+			circlePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
 			m_CirlcePipeline = Pipeline::Create(circlePipelineSpecs);
 			m_CircleMaterial = Material::Create(circlePipelineSpecs.Shader);
 
@@ -103,27 +107,12 @@ namespace Shark {
 			linePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Line");
 			linePipelineSpecs.DebugName = "Renderer2D-Line";
 			linePipelineSpecs.Primitve = PrimitveType::Line;
+			linePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
 			m_LinePipeline = Pipeline::Create(linePipelineSpecs);
 			m_LineMaterial = Material::Create(linePipelineSpecs.Shader);
 			
 			m_LineVertexBuffer = VertexBuffer::Create(linePipelineSpecs.Shader->GetVertexLayout(), nullptr, MaxLineVertices * sizeof(LineVertex), true);
 			m_LineVertexBasePtr = new LineVertex[MaxLineVertices];
-		}
-
-		// Line On Top
-		{
-			PipelineSpecification lineOnTopPipelineSpecs;
-			lineOnTopPipelineSpecs.TargetFrameBuffer = renderTarget;
-			lineOnTopPipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Line");
-			lineOnTopPipelineSpecs.DebugName = "Renderer2D-LineOnTop";
-			lineOnTopPipelineSpecs.DepthEnabled = false;
-			lineOnTopPipelineSpecs.WriteDepth = false;
-			lineOnTopPipelineSpecs.Primitve = PrimitveType::Line;
-			m_LineOnTopPipeline = Pipeline::Create(lineOnTopPipelineSpecs);
-			m_LineOnTopMaterial = Material::Create(lineOnTopPipelineSpecs.Shader);
-
-			m_LineOnTopVertexBuffer = VertexBuffer::Create(lineOnTopPipelineSpecs.Shader->GetVertexLayout(), nullptr, MaxLineOnTopVertices * sizeof(LineVertex), true);
-			m_LineOnTopVertexBasePtr = new LineVertex[MaxLineOnTopVertices];
 		}
 
 		constexpr double delta = M_PI / 10.0f; // 0.31415
@@ -151,7 +140,6 @@ namespace Shark {
 		m_QuadPipeline->SetFrameBuffer(renderTarget);
 		m_CirlcePipeline->SetFrameBuffer(renderTarget);
 		m_LinePipeline->SetFrameBuffer(renderTarget);
-		m_LineOnTopPipeline->SetFrameBuffer(renderTarget);
 	}
 
 	void Renderer2D::BeginScene(const glm::mat4& viewProj)
@@ -161,6 +149,10 @@ namespace Shark {
 		SK_CORE_ASSERT(!m_Active);
 
 		m_Active = true;
+
+		//m_QuadPipeline->SetDepthTesting(depthEnabled);
+		//m_CirlcePipeline->SetDepthTesting(depthEnabled);
+		//m_LinePipeline->SetDepthTesting(depthEnabled);
 
 		m_ViewProj = viewProj;
 		CBCamera cam{ viewProj };
@@ -183,10 +175,6 @@ namespace Shark {
 		// Line
 		m_LineVertexCount = 0;
 		m_LineVertexIndexPtr = m_LineVertexBasePtr;
-
-		// Line On Top
-		m_LineOnTopVertexCount = 0;
-		m_LineOnTopVertexIndexPtr = m_LineOnTopVertexBasePtr;
 
 
 		m_Statistics.DrawCalls = 0;
@@ -252,18 +240,6 @@ namespace Shark {
 			}
 		}
 
-
-		// Line On Top
-		{
-			uint32_t dataSize = (uint32_t)((uint8_t*)m_LineOnTopVertexIndexPtr - (uint8_t*)m_LineOnTopVertexBasePtr);
-			if (dataSize)
-			{
-				m_LineOnTopVertexBuffer->SetData(m_LineOnTopVertexBasePtr, dataSize);
-
-				Renderer::RenderGeometry(m_CommandBuffer, m_LineOnTopPipeline, m_LineOnTopMaterial, m_ConstantBufferSet, m_LineOnTopVertexBuffer, m_LineOnTopVertexCount);
-				m_Statistics.DrawCalls++;
-			}
-		}
 
 		m_CommandBuffer->EndTimeQuery(m_GeometryPassTimer);
 
@@ -526,112 +502,6 @@ namespace Shark {
 		DrawLine(p3, p0, color, id);
 	}
 
-	void Renderer2D::DrawLineOnTop(const glm::vec2& pos0, const glm::vec2& pos1, const glm::vec4& color, int id)
-	{
-		DrawLineOnTop({ pos0.x, pos0.y, 0.0f }, { pos1.x, pos1.y, 0.0f }, color, id);
-	}
-
-	void Renderer2D::DrawLineOnTop(const glm::vec3& pos0, const glm::vec3& pos1, const glm::vec4& color, int id)
-	{
-		SK_CORE_ASSERT(m_Active);
-
-		if (m_LineOnTopVertexCount >= MaxLineOnTopVertices)
-			FlushAndResetLineOnTop();
-
-		LineVertex* vtx = m_LineOnTopVertexIndexPtr++;
-		vtx->WorldPosition = pos0;
-		vtx->Color = color;
-		vtx->ID = id;
-
-		vtx = m_LineOnTopVertexIndexPtr++;
-		vtx->WorldPosition = pos1;
-		vtx->Color = color;
-		vtx->ID = id;
-
-		m_LineOnTopVertexCount += 2;
-
-		m_Statistics.LineOnTopCount++;
-		m_Statistics.VertexCount += 2;
-		m_Statistics.IndexCount += 2;
-	}
-
-	void Renderer2D::DrawRectOnTop(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id)
-	{
-		DrawRectOnTop({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, id);
-	}
-
-	void Renderer2D::DrawRectOnTop(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id)
-	{
-		const glm::mat4 transform =
-			glm::translate(glm::mat4(1), position) *
-			glm::scale(glm::mat4(1), scaling);
-
-		DrawRectOnTop(transform, color, id);
-	}
-
-	void Renderer2D::DrawRectOnTop(const glm::vec2& position, float rotation, const glm::vec2& scaling, const glm::vec4& color, int id)
-	{
-		DrawRectOnTop({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, color, id);
-	}
-
-	void Renderer2D::DrawRectOnTop(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id)
-	{
-		const glm::mat4 transform =
-			glm::translate(glm::mat4(1), position) *
-			glm::toMat4(glm::quat(rotation)) /*glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
-			glm::scale(glm::mat4(1), scaling);
-
-		DrawRectOnTop(transform, color, id);
-	}
-
-	void Renderer2D::DrawRectOnTop(const glm::mat4& transform, const glm::vec4& color, int id)
-	{
-		SK_CORE_ASSERT(m_Active);
-
-		glm::vec3 p0 = transform * m_QuadVertexPositions[0];
-		glm::vec3 p1 = transform * m_QuadVertexPositions[1];
-		glm::vec3 p2 = transform * m_QuadVertexPositions[2];
-		glm::vec3 p3 = transform * m_QuadVertexPositions[3];
-
-		DrawLineOnTop(p0, p1, color, id);
-		DrawLineOnTop(p1, p2, color, id);
-		DrawLineOnTop(p2, p3, color, id);
-		DrawLineOnTop(p3, p0, color, id);
-	}
-
-	void Renderer2D::DrawCircleOnTop(const glm::vec2& position, float radius, const glm::vec4& color, int id)
-	{
-		const auto transform =
-			glm::translate(glm::mat4(1), glm::vec3(position, 0.0f)) *
-			glm::scale(glm::mat4(1), glm::vec3(radius));
-
-		DrawCircleOnTop(transform, color, id);
-	}
-
-	void Renderer2D::DrawCircleOnTop(const glm::vec3& position, const glm::vec3& rotation, float radius, const glm::vec4& color, int id)
-	{
-		const auto transform =
-			glm::translate(glm::mat4(1), position) *
-			glm::toMat4(glm::quat(rotation)) /*glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
-			glm::scale(glm::mat4(1), glm::vec3(radius));
-
-		DrawCircleOnTop(transform, color, id);
-	}
-
-	void Renderer2D::DrawCircleOnTop(const glm::mat4& transform, const glm::vec4& color, int id)
-	{
-		SK_CORE_ASSERT(m_Active);
-		for (uint32_t i = 0; i < m_CirlceVertexPositions.size() - 1; i++)
-		{
-			glm::vec3 p0 = (transform * m_CirlceVertexPositions[i + 0]).xyz;
-			glm::vec3 p1 = (transform * m_CirlceVertexPositions[i + 1]).xyz;
-			DrawLineOnTop(p0, p1, color, id);
-		}
-		glm::vec3 p0 = (transform * m_CirlceVertexPositions.back()).xyz;
-		glm::vec3 p1 = (transform * m_CirlceVertexPositions.front()).xyz;
-		DrawLineOnTop(p0, p1, color, id);
-	}
-
 	void Renderer2D::FlushAndResetQuad()
 	{
 		SK_PROFILE_FUNCTION();
@@ -719,33 +589,6 @@ namespace Shark {
 		m_LineVertexIndexPtr = m_LineVertexBasePtr;
 
 		m_Statistics.GeometryPassTime += m_LineFlushQuery->GetTime();
-	}
-
-	void Renderer2D::FlushAndResetLineOnTop()
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_ASSERT(m_Active);
-
-		m_CommandBuffer->Begin();
-		m_CommandBuffer->BeginTimeQuery(m_LineOnTopFlushQuery);
-
-		uint32_t dataSize = (uint32_t)((uint8_t*)m_LineOnTopVertexIndexPtr - (uint8_t*)m_LineOnTopVertexBasePtr);
-		if (dataSize)
-		{
-			m_LineOnTopVertexBuffer->SetData(m_LineOnTopVertexBasePtr, dataSize);
-
-			Renderer::RenderGeometry(m_CommandBuffer, m_LineOnTopPipeline, m_LineOnTopMaterial, m_ConstantBufferSet, m_LineOnTopVertexBuffer, m_LineOnTopVertexCount);
-			m_Statistics.DrawCalls++;
-		}
-
-		m_CommandBuffer->EndTimeQuery(m_LineOnTopFlushQuery);
-		m_CommandBuffer->End();
-		m_CommandBuffer->Execute();
-
-		m_LineOnTopVertexCount = 0;
-		m_LineOnTopVertexIndexPtr = m_LineOnTopVertexBasePtr;
-
-		m_Statistics.GeometryPassTime += m_LineOnTopFlushQuery->GetTime();
 	}
 
 }

@@ -211,9 +211,9 @@ namespace Shark {
 		return envVar;
 	}
 
-	bool WindowsUtils::SetEnvironmentVariable(const std::string& name, const std::string& value)
+	bool WindowsUtils::SetEnvironmentVariable(const std::string& key, const std::string& value)
 	{
-		if (!SetEnvironmentVariableA(name.c_str(), value.c_str()))
+		if (!SetEnvironmentVariableA(key.c_str(), value.c_str()))
 		{
 			DWORD errorCode = GetLastError();
 			utils::DefaultErrorHandle(errorCode);

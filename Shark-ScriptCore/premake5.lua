@@ -11,13 +11,8 @@ project "Shark-ScriptCore"
         "Shark-ScriptCore/**.cs"
     }
 
-    includedirs
-    {
-    }
-
     filter "system:windows"
         systemversion "latest"
-        defines "SK_PLATFORM_WINDOWS"
 
     filter "configurations:Debug"
         runtime "Debug"

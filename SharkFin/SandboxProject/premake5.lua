@@ -7,7 +7,6 @@ workspace "Sandbox"
         "Release"
     }
 
-outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 SharkDir = os.getenv("SHARK_DIR")
 
 project "Sandbox"
@@ -16,12 +15,12 @@ project "Sandbox"
     framework "4.7.2"
     location "Assets/Scripts"
 
-    targetdir "%{wks.location}/Binaries"
-    objdir "%{wks.location}/Binaries/Intermediates"
+    targetdir "%{wks.location}/Assets/Scripts/Binaries"
+    objdir "%{wks.location}/Assets/Scripts/Intermediates"
 
     files
     {
-        "%{prj.location}/**.cs"
+        "%{prj.location}/Source/**.cs"
     }
     
     links
@@ -31,7 +30,6 @@ project "Sandbox"
     
     filter "system:windows"
         systemversion "latest"
-        defines "SK_PLATFORM_WINDOWS"
 
     filter "configurations:Debug"
         runtime "Debug"
@@ -47,4 +45,5 @@ group "Shark"
     externalproject "Shark-ScriptCore"
         kind "SharedLib"
         language "c#"
-        location "%{SharkDir}/Shark-ScriptCore"
+        location (SharkDir .. "/Shark-ScriptCore")
+group ""

@@ -205,13 +205,6 @@ namespace Shark {
 		};
 		TextureSourceImportData m_TextureAssetCreateData;
 
-		enum class AssemblyReloadMode
-		{
-			None,
-			Auto,
-			Always
-		};
-		AssemblyReloadMode m_AssemblyReloadMode = AssemblyReloadMode::Always;
 	};
 
 }

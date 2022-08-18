@@ -5,8 +5,7 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
-#include "Shark/Scene/Components/SpriteRendererComponent.h"
-#include "Shark/Scene/Components/CameraComponent.h"
+#include "Shark/Scene/Components.h"
 #include "Shark/Math/Math.h"
 #include "Shark/UI/UI.h"
 

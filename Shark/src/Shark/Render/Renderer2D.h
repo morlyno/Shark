@@ -16,6 +16,11 @@
 
 namespace Shark {
 
+	struct Renderer2DSpecifications
+	{
+		bool UseDepthTesting = true;
+	};
+
 	class Renderer2D : public RefCount
 	{
 	public:
@@ -40,17 +45,16 @@ namespace Shark {
 		};
 
 	public:
-		Renderer2D(Ref<FrameBuffer> renderTarget);
+		Renderer2D(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications = {});
 		~Renderer2D();
 
-		void Init(Ref<FrameBuffer> renderTarget);
+		void Init(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications = {});
 		void ShutDown();
 
 		void SetRenderTarget(Ref<FrameBuffer> renderTarget);
 
 		void BeginScene(const glm::mat4& viewProj);
 		void EndScene();
-
 
 		void DrawQuad(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id = -1);
 		void DrawQuad(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
@@ -91,33 +95,15 @@ namespace Shark {
 		void DrawRect(const glm::mat4& transform, const glm::vec4& color, int id = -1);
 
 
-		void DrawLineOnTop(const glm::vec2& pos0, const glm::vec2& pos1, const glm::vec4& color, int id = -1);
-		void DrawLineOnTop(const glm::vec3& pos0, const glm::vec3& pos1, const glm::vec4& color, int id = -1);
-
-
-		void DrawRectOnTop(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id = -1);
-		void DrawRectOnTop(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
-		void DrawRectOnTop(const glm::vec2& position, float rotation, const glm::vec2& scaling, const glm::vec4& color, int id = -1);
-		void DrawRectOnTop(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
-
-		void DrawRectOnTop(const glm::mat4& transform, const glm::vec4& color, int id = -1);
-
-
-		void DrawCircleOnTop(const glm::vec2& position, float radius, const glm::vec4& color, int id = -1);
-		void DrawCircleOnTop(const glm::vec3& position, const glm::vec3& rotation, float radius, const glm::vec4& color, int id = -1);
-
-		void DrawCircleOnTop(const glm::mat4& transform, const glm::vec4& color, int id = -1);
-
-
 		Ref<RenderCommandBuffer> GetCommandBuffer() const { return m_CommandBuffer; }
 
+		const Renderer2DSpecifications& GetSpecifications() const { return m_Specifications; }
 		const Statistics& GetStatistics() const { return m_Statistics; }
 
 	private:
 		void FlushAndResetQuad();
 		void FlushAndResetCircle();
 		void FlushAndResetLine();
-		void FlushAndResetLineOnTop();
 
 	public:
 		static constexpr uint32_t MaxTextureSlots = 16;
@@ -177,6 +163,7 @@ namespace Shark {
 		};
 
 	private:
+		Renderer2DSpecifications m_Specifications;
 		Statistics m_Statistics;
 		bool m_Active = false;
 
@@ -218,15 +205,6 @@ namespace Shark {
 		uint32_t m_LineVertexCount = 0;
 		LineVertex* m_LineVertexBasePtr = nullptr;
 		LineVertex* m_LineVertexIndexPtr = nullptr;
-
-
-		// Line Without Depth Testing
-		Ref<Pipeline> m_LineOnTopPipeline;
-		Ref<Material> m_LineOnTopMaterial;
-		Ref<VertexBuffer> m_LineOnTopVertexBuffer;
-		uint32_t m_LineOnTopVertexCount = 0;
-		LineVertex* m_LineOnTopVertexBasePtr = nullptr;
-		LineVertex* m_LineOnTopVertexIndexPtr = nullptr;
 
 	};
 

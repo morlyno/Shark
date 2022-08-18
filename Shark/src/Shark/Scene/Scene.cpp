@@ -472,7 +472,7 @@ namespace Shark {
 	glm::mat4 Scene::GetWorldSpaceTransform(Entity entity) const
 	{
 		if (entity.HasParent())
-			return entity.Parent().CalcTransform() * entity.CalcTransform();
+			return GetWorldSpaceTransform(entity.Parent()) * entity.CalcTransform();
 		return entity.CalcTransform();
 	}
 

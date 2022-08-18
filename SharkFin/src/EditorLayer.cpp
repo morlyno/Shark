@@ -476,12 +476,6 @@ namespace Shark {
 
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("Auto Reload", nullptr, m_AssemblyReloadMode == AssemblyReloadMode::Auto))
-					m_AssemblyReloadMode = m_AssemblyReloadMode == AssemblyReloadMode::Auto ? AssemblyReloadMode::None : AssemblyReloadMode::Auto;
-
-				if (ImGui::MenuItem("Hot Reload", nullptr, m_AssemblyReloadMode == AssemblyReloadMode::Always))
-					m_AssemblyReloadMode = m_AssemblyReloadMode == AssemblyReloadMode::Always ? AssemblyReloadMode::None : AssemblyReloadMode::Always;
-
 				ImGui::Separator();
 
 				if (ImGui::MenuItem("Run Setup"))
@@ -1500,84 +1494,41 @@ namespace Shark {
 		{
 			//m_DebugRenderer->SetRenderTarget(m_SceneRenderer->GetExternalCompositFrameBuffer());
 			m_DebugRenderer->BeginScene(GetActiveViewProjection());
-
-			if (m_ShowCollidersOnTop)
 			{
+				auto view = m_ActiveScene->GetAllEntitysWith<BoxCollider2DComponent>();
+				for (auto entityID : view)
 				{
-					auto view = m_ActiveScene->GetAllEntitysWith<BoxCollider2DComponent>();
-					for (auto entityID : view)
-					{
-						Entity entity{ entityID, m_ActiveScene };
-						auto& collider = view.get<BoxCollider2DComponent>(entityID);
-						auto& tf = entity.Transform();
+					Entity entity{ entityID, m_ActiveScene };
+					auto& collider = view.get<BoxCollider2DComponent>(entityID);
+					auto& tf = entity.Transform();
 
-						glm::mat4 transform =
-							tf.CalcTransform() *
-							glm::translate(glm::vec3(collider.Offset, 0)) *
-							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
-							glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
+					glm::mat4 transform =
+						m_ActiveScene->GetWorldSpaceTransform(entity) *
+						glm::translate(glm::vec3(collider.Offset, 0)) *
+						glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
+						glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
 						
-						m_DebugRenderer->DrawRectOnTop(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
-					}
-				}
-
-				{
-					auto view = m_ActiveScene->GetAllEntitysWith<CircleCollider2DComponent>();
-					for (auto entityID : view)
-					{
-						Entity entity{ entityID, m_ActiveScene };
-						auto& collider = view.get<CircleCollider2DComponent>(entityID);
-						auto& tf = entity.Transform();
-
-						glm::mat4 transform =
-							tf.CalcTransform() *
-							glm::translate(glm::vec3(collider.Offset, 0)) *
-							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
-							glm::scale(glm::vec3(collider.Radius, collider.Radius, 1.0f));
-
-						m_DebugRenderer->DrawCircleOnTop(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
-					}
+					m_DebugRenderer->DrawRect(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
 				}
 			}
-			else
+
 			{
+				auto view = m_ActiveScene->GetAllEntitysWith<CircleCollider2DComponent>();
+				for (auto entityID : view)
 				{
-					auto view = m_ActiveScene->GetAllEntitysWith<BoxCollider2DComponent>();
-					for (auto entityID : view)
-					{
-						Entity entity{ entityID, m_ActiveScene };
-						auto& collider = view.get<BoxCollider2DComponent>(entityID);
-						auto& tf = entity.Transform();
+					Entity entity{ entityID, m_ActiveScene };
+					auto& collider = view.get<CircleCollider2DComponent>(entityID);
+					auto& tf = entity.Transform();
 
-						glm::mat4 transform =
-							tf.CalcTransform() *
-							glm::translate(glm::vec3(collider.Offset, 0)) *
-							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
-							glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
+					glm::mat4 transform =
+						m_ActiveScene->GetWorldSpaceTransform(entity) *
+						glm::translate(glm::vec3(collider.Offset, 0)) *
+						glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
+						glm::scale(glm::vec3(collider.Radius, collider.Radius, 1.0f));
 
-						m_DebugRenderer->DrawRect(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
-					}
-				}
-
-				{
-					auto view = m_ActiveScene->GetAllEntitysWith<CircleCollider2DComponent>();
-					for (auto entityID : view)
-					{
-						Entity entity{ entityID, m_ActiveScene };
-						auto& collider = view.get<CircleCollider2DComponent>(entityID);
-						auto& tf = entity.Transform();
-
-						glm::mat4 transform =
-							tf.CalcTransform() *
-							glm::translate(glm::vec3(collider.Offset, 0)) *
-							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
-							glm::scale(glm::vec3(0.0f, 0.0f, collider.Radius));
-
-						m_DebugRenderer->DrawCircle(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
-					}
+					m_DebugRenderer->DrawCircle(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
 				}
 			}
-
 			m_DebugRenderer->EndScene();
 		}
 	}
@@ -1732,19 +1683,8 @@ namespace Shark {
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
 
-		if (m_AssemblyReloadMode == AssemblyReloadMode::Always)
-		{
-			ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
-			CheckScriptComponents();
-		}
-		else if (m_AssemblyReloadMode == AssemblyReloadMode::Auto)
-		{
-			SK_CORE_ERROR("AssemblyReloadMode::Auto currently not supported");
-			m_AssemblyReloadMode = AssemblyReloadMode::Always;
-			ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
-			//ScriptEngine::ReloadIfNeeded();
-			CheckScriptComponents();
-		}
+		ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
+		CheckScriptComponents();
 
 		ScriptEngine::SetActiveScene(m_ActiveScene);
 		DistributeEvent(ScenePlayEvent(m_ActiveScene));
@@ -1936,9 +1876,6 @@ namespace Shark {
 
 	void EditorLayer::OpenIDE()
 	{
-		SK_PROFILE_FUNCTION();
-
-		RunScriptSetup();
 		auto solutionPath = fmt::format("{}/{}.sln", Project::Directory(), Project::Name());
 		PlatformUtils::Execute(ExectueVerb::Open, solutionPath);
 	}
