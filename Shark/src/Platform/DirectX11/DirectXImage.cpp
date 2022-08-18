@@ -45,8 +45,8 @@ namespace Shark {
 		{
 			switch (imageType)
 			{
-				case ImageType::Default: return D3D11_USAGE_DEFAULT;
-				case ImageType::Dynamic: return D3D11_USAGE_DYNAMIC;
+				case ImageType::Texture: return D3D11_USAGE_DEFAULT;
+				//case ImageType::Dynamic: return D3D11_USAGE_DYNAMIC;
 				case ImageType::Storage: return D3D11_USAGE_STAGING;
 				case ImageType::FrameBuffer: return D3D11_USAGE_DEFAULT;
 			}
@@ -56,8 +56,8 @@ namespace Shark {
 
 		UINT CPUAccessFromType(ImageType imageType)
 		{
-			if (imageType == ImageType::Dynamic)
-				return D3D11_CPU_ACCESS_WRITE;
+			//if (imageType == ImageType::Dynamic)
+			//	return D3D11_CPU_ACCESS_WRITE;
 			if (imageType == ImageType::Storage)
 				return D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
 			return 0;
@@ -89,6 +89,28 @@ namespace Shark {
 	{
 		Ref<DirectXImage2D> dxImage = data.As<DirectXImage2D>();
 		CreateImage(nullptr, dxImage);
+	}
+
+	DirectXImage2D::DirectXImage2D(const std::filesystem::path& filePath)
+	{
+		std::string narrorFilePath = filePath.string();
+		int x, y, comp;
+		stbi_uc* data = stbi_load(narrorFilePath.c_str(), &x, &y, &comp, STBI_rgb_alpha);
+		if (!data)
+		{
+			SK_CORE_ERROR("Failed to load Image!");
+			SK_CORE_WARN(L"Source: {}", filePath);
+			SK_CORE_WARN("Resource: {}", stbi_failure_reason());
+			return;
+		}
+
+		m_Specs.Format = ImageFormat::RGBA8;
+		m_Specs.Width = x;
+		m_Specs.Height = y;
+
+		CreateImage(data, nullptr);
+
+		stbi_image_free(data);
 	}
 
 	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView)
@@ -245,8 +267,8 @@ namespace Shark {
 
 		switch (m_Specs.Type)
 		{
-			case ImageType::Default: CreateDefaultImage(data, resource); break;
-			case ImageType::Dynamic: CreateDynamicImage(data, resource); break;
+			case ImageType::Texture: CreateDefaultImage(data, resource); break;
+			//case ImageType::Dynamic: CreateDynamicImage(data, resource); break;
 			case ImageType::Storage: CreateStorageImage(data, resource); break;
 			case ImageType::FrameBuffer: CreateFrameBufferImage(data, resource); break;
 			default: SK_CORE_ASSERT(false, "Unkown ImageType"); return;
@@ -258,7 +280,7 @@ namespace Shark {
 
 	void DirectXImage2D::CreateDefaultImage(void* data, Ref<DirectXImage2D> resource)
 	{
-		SK_CORE_ASSERT(m_Specs.Type == ImageType::Default);
+		SK_CORE_ASSERT(m_Specs.Type == ImageType::Texture);
 
 		auto device = DirectXRenderer::GetDevice();
 
@@ -293,7 +315,9 @@ namespace Shark {
 
 	void DirectXImage2D::CreateDynamicImage(void* data, Ref<DirectXImage2D> resource)
 	{
-		SK_CORE_ASSERT(m_Specs.Type == ImageType::Dynamic);
+		SK_CORE_ASSERT(false);
+		return;
+		//SK_CORE_ASSERT(m_Specs.Type == ImageType::Dynamic);
 
 		auto device = DirectXRenderer::GetDevice();
 

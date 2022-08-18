@@ -67,7 +67,7 @@ namespace Shark {
 		imageSpecs.Height = specs.Height;
 		imageSpecs.Format = specs.Format;
 		imageSpecs.MipLevels = specs.MipLevels;
-		imageSpecs.Type = ImageType::Default;
+		imageSpecs.Type = ImageType::Texture;
 		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
 
 		CreateSampler();
@@ -84,7 +84,7 @@ namespace Shark {
 		imageSpecs.Height = m_Specs.Height;
 		imageSpecs.Format = m_Specs.Format;
 		imageSpecs.MipLevels = 1;
-		imageSpecs.Type = ImageType::Default;
+		imageSpecs.Type = ImageType::Texture;
 		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
 
 		CreateSampler();
@@ -97,7 +97,7 @@ namespace Shark {
 		imageSpecs.Width = m_Specs.Width;
 		imageSpecs.Height = m_Specs.Height;
 		imageSpecs.Format = m_Specs.Format;
-		imageSpecs.Type = ImageType::Default;
+		imageSpecs.Type = ImageType::Texture;
 		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data->GetImage());
 
 		CreateSampler();
@@ -106,29 +106,11 @@ namespace Shark {
 	DirectXTexture2D::DirectXTexture2D(const std::filesystem::path& filePath)
 		: m_FilePath(filePath)
 	{
-		std::string narrorFilePath = filePath.string();
-		int x, y, comp;
-		stbi_uc* data = stbi_load(narrorFilePath.c_str(), &x, &y, &comp, STBI_rgb_alpha);
-		if (!data)
-		{
-			SK_CORE_ERROR("Failed to load Image!");
-			SK_CORE_WARN(L"Source: {}", Project::RelativeCopy(filePath));
-			SK_CORE_WARN("Resource: {}", stbi_failure_reason());
-			return;
-		}
-
-		ImageSpecification imageSpces;
-		imageSpces.Format = ImageFormat::RGBA8;
-		imageSpces.Width = x;
-		imageSpces.Height = y;
-
-		m_Image = Ref<DirectXImage2D>::Create(imageSpces, data);
-
-		stbi_image_free(data);
+		m_Image = Ref<DirectXImage2D>::Create(filePath);
 
 		m_Specs.Format = ImageFormat::RGBA8;
-		m_Specs.Width = x;
-		m_Specs.Height = y;
+		m_Specs.Width = m_Image->GetWidth();
+		m_Specs.Height = m_Image->GetHeight();
 
 		CreateSampler();
 	}
@@ -154,7 +136,7 @@ namespace Shark {
 		imageSpecs.Height = m_Specs.Height;
 		imageSpecs.Format = m_Specs.Format;
 		imageSpecs.MipLevels = m_Specs.MipLevels;
-		imageSpecs.Type = ImageType::Default;
+		imageSpecs.Type = ImageType::Texture;
 
 		if (m_Image)
 			m_Image->Set(imageSpecs, data);
@@ -179,7 +161,7 @@ namespace Shark {
 		imageSpecs.Height = m_Specs.Height;
 		imageSpecs.Format = m_Specs.Format;
 		imageSpecs.MipLevels = m_Specs.MipLevels;
-		imageSpecs.Type = ImageType::Default;
+		imageSpecs.Type = ImageType::Texture;
 
 		if (m_Image)
 			m_Image->Set(imageSpecs, data->GetImage());

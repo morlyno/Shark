@@ -19,6 +19,7 @@ project "Shark"
         "%{IncludeDir.stb_image}/*.h",
         "%{IncludeDir.stb_image}/*.cpp",
         "%{IncludeDir.glm}/**.h",
+        "%{IncludeDir.glm}/**.hpp",
         "%{IncludeDir.glm}/**.inl",
         "%{IncludeDir.fmt}/**.h",
         "%{IncludeDir.spdlog}/**.h"

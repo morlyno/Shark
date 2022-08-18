@@ -65,12 +65,11 @@ namespace Shark {
 
 	Scene::Scene()
 	{
-		SK_PROFILE_FUNCTION();
+		m_Registry.on_destroy<CameraComponent>().connect<&Scene::OnCameraComponentDestroyed>(this);
 	}
 
 	Scene::~Scene()
 	{
-		SK_PROFILE_FUNCTION();
 	}
 
 	Ref<Scene> Scene::Copy(Ref<Scene> srcScene)
@@ -187,7 +186,6 @@ namespace Shark {
 		m_Registry.on_destroy<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
 		m_Registry.on_destroy<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
 		m_Registry.on_destroy<ScriptComponent>().connect<&Scene::OnScriptComponentDestroyed>(this);
-
 	}
 
 	void Scene::OnSceneStop()
@@ -311,74 +309,40 @@ namespace Shark {
 
 	void Scene::OnRenderRuntime(Ref<SceneRenderer> renderer)
 	{
-		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("Scene::OnRenderRuntime");
-
 		Entity cameraEntity = GetEntityByUUID(m_ActiveCameraUUID);
 		Camera& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
 		auto& tf = cameraEntity.Transform();
 
-		renderer->SetScene(this);
-
 		const auto viewProj = camera.GetProjection() * glm::inverse(GetWorldSpaceTransform(cameraEntity));
-		renderer->BeginScene(viewProj);
-
-		{
-			auto view = m_Registry.view<TransformComponent>();
-			for (auto ent : view)
-			{
-				Entity entity{ ent, this };
-				if (entity.HasParent())
-					continue;
-
-				RenderEntity(renderer, entity, glm::mat4(1.0f));
-			}
-		}
-
-		renderer->EndScene();
+		OnRender(renderer, viewProj);
 	}
 
 	void Scene::OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
-		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("Scene::OnRenderEditor");
-
-		renderer->SetScene(this);
-		renderer->BeginScene(editorCamera.GetViewProjection());
-
-		{
-			auto view = m_Registry.view<TransformComponent>();
-			for (auto ent : view)
-			{
-				Entity entity{ ent, this };
-				if (entity.HasParent())
-					continue;
-
-				RenderEntity(renderer, entity, glm::mat4(1.0f));
-			}
-		}
-
-		renderer->EndScene();
+		OnRender(renderer, editorCamera.GetViewProjection());
 	}
 
 	void Scene::OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
+		OnRender(renderer, editorCamera.GetViewProjection());
+	}
+
+	void Scene::OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj)
+	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("Scene::OnRenderSimulate");
+		SK_PERF_SCOPED("Scene::OnRender");
 
 		renderer->SetScene(this);
-		renderer->BeginScene(editorCamera.GetViewProjection());
+		renderer->BeginScene(viewProj);
 
+		auto view = m_Registry.view<TransformComponent>();
+		for (auto ent : view)
 		{
-			auto view = m_Registry.view<TransformComponent>();
-			for (auto ent : view)
-			{
-				Entity entity{ ent, this };
-				if (entity.HasParent())
-					continue;
+			Entity entity{ ent, this };
+			if (entity.HasParent())
+				continue;
 
-				RenderEntity(renderer, entity, glm::mat4(1.0f));
-			}
+			RenderEntity(renderer, entity, glm::mat4(1.0f));
 		}
 
 		renderer->EndScene();
@@ -796,6 +760,18 @@ namespace Shark {
 
 		if (ScriptEngine::ContainsEntityInstance(entity.GetUUID()))
 			ScriptEngine::DestroyEntity(entity, true);
+	}
+
+	void Scene::OnCameraComponentDestroyed(entt::registry& registry, entt::entity ent)
+	{
+		Entity entity{ ent, this };
+
+		if (!entity.AllOf<IDComponent>())
+			return;
+
+		UUID uuid = entity.GetUUID();
+		if (uuid == m_ActiveCameraUUID)
+			m_ActiveCameraUUID = UUID::Invalid;
 	}
 
 	void ContactListener::BeginContact(b2Contact* contact)

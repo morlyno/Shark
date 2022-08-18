@@ -61,7 +61,7 @@ namespace Shark {
 		DirectoryEntry* GetChildEntry(DirectoryEntry& directory, const std::filesystem::path& path);
 		DirectoryEntry* GetParentEntry(const DirectoryEntry& entry);
 
-		Ref<Texture2D> GetCellIcon(const DirectoryEntry& entry);
+		Ref<Image2D> GetCellIcon(const DirectoryEntry& entry);
 		void ImportEntry(DirectoryEntry& entry);
 
 		bool ShouldItemBeIgnored(const std::filesystem::path& filePath);
@@ -84,13 +84,6 @@ namespace Shark {
 
 		float m_CellWidth = 80;
 		float m_CellHeight = 118;
-
-		Ref<Texture2D> m_FolderIcon;
-		Ref<Texture2D> m_FileIcon;
-		Ref<Texture2D> m_PNGIcon;
-		Ref<Texture2D> m_SceneIcon;
-		Ref<Texture2D> m_TextureIcon;
-		Ref<Texture2D> m_ScriptIcon;
 
 		bool m_Reload = false;
 		DirectoryEntry* m_DragDropEntry = nullptr;

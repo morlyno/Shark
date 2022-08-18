@@ -58,6 +58,8 @@ namespace Shark {
 		void OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
 		void OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
 
+		void OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj);
+
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});
 		Entity CreateEntityWithUUID(UUID uuid, const std::string& tag = std::string{});
@@ -111,6 +113,7 @@ namespace Shark {
 		void OnBoxCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent);
 		void OnCircleCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent);
 		void OnScriptComponentDestroyed(entt::registry& registry, entt::entity ent);
+		void OnCameraComponentDestroyed(entt::registry& registry, entt::entity ent);
 
 	private:
 		entt::registry m_Registry;

@@ -25,14 +25,13 @@ namespace Shark {
 
 		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
-		virtual void OnEvent(Event& event) override;
-
-		virtual bool ViewportHovered() const override { return m_ViewportHovered; }
 	private:
 		void UI_DrawViewport();
 		void UI_DrawSettings();
 
 		void SetupWindows();
+
+		void ReCalcCamera();
 
 	private:
 		bool m_Active = true;
@@ -40,7 +39,7 @@ namespace Shark {
 
 		Ref<Scene> m_Scene;
 		Ref<SceneRenderer> m_Renderer;
-		EditorCamera m_Camera;
+		Camera m_Camera;
 
 		Ref<Texture2D> m_SourceTexture;
 
@@ -51,9 +50,6 @@ namespace Shark {
 
 		glm::uvec2 m_ViewportSize = { 1280, 720 };
 		bool m_NeedsResize = false;
-
-		bool m_ViewportHovered = false;
-		bool m_ViewportFocused = false;
 
 		ImGuiID m_DockspaceWindowID;
 		ImGuiID m_DockspaceID;

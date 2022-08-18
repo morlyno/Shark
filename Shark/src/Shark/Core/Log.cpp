@@ -27,13 +27,13 @@ namespace Shark {
 		{
 			std::make_shared<spdlog::sinks::stdout_color_sink_mt>(),
 			std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/App.log", true),
-			std::make_shared<EditorConsoleSink>(0)
+			std::make_shared<EditorConsoleSink>()
 		};
 
 		std::vector<spdlog::sink_ptr> consoleSinks =
 		{
 			std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/App.log", true),
-			std::make_shared<EditorConsoleSink>(0)
+			std::make_shared<EditorConsoleSink>()
 		};
 
 		sharkSinks[0]->set_pattern("%^[%T] %n: %v%$");

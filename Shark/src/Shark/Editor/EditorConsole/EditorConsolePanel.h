@@ -26,6 +26,14 @@ namespace Shark {
 
 			using Flags = uint16_t;
 		};
+
+		enum class MessageLevel
+		{
+			None = 0,
+			Info,
+			Warn,
+			Error
+		};
 	public:
 		EditorConsolePanel();
 		~EditorConsolePanel();
@@ -36,22 +44,25 @@ namespace Shark {
 		void Clear();
 		bool ClearOnPlay() const { return m_ClearOnPlay; }
 
-		void LogMessage(Log::Level level, const std::string& message);
-		static void LogMessage(Log::Level level, const std::string& message, uint32_t console);
+		static void PushMessage(Log::Level level, const std::string& message);
 
 	private:
+		void PushMessage(MessageLevel level, const std::string& message);
+
 		void DrawMessages();
 		void DrawMenuBar();
 		void DrawMessageInspector();
 
 		struct ConsoleMessage;
 		bool Filter(const ConsoleMessage& message);
-		RenderID GetIconRenderID(Log::Level level);
+		RenderID GetIconRenderID(MessageLevel level) const;
 
-		FilterFlag::Type LogLevelToFilterFlag(Log::Level level);
+		FilterFlag::Type LogLevelToFilterFlag(MessageLevel level);
 		void SetFilter(FilterFlag::Type flag, bool enabled);
 		void Refilter();
 		bool AssureFilter();
+
+		ImVec4 MessageColor(MessageLevel level) const;
 
 	private:
 		// Currently only one Console
@@ -59,7 +70,10 @@ namespace Shark {
 
 		struct ConsoleMessage
 		{
-			Log::Level Level;
+			static constexpr size_t MaxFiendlyMessageLength = 100;
+
+			MessageLevel Level;
+			std::string FriendlyMessage;
 			std::string Message;
 		};
 
@@ -76,11 +90,6 @@ namespace Shark {
 
 		bool m_ShowMessageInspector = false;
 		ConsoleMessage m_InspectorMessage;
-
-	private:
-		Ref<Texture2D> m_InfoIcon;
-		Ref<Texture2D> m_WarnIcon;
-		Ref<Texture2D> m_ErrorIcon;
 
 	};
 

@@ -163,16 +163,6 @@ namespace Shark {
 		SceneState m_InitialSceneState = SceneState::None;
 		bool m_UpdateNextFrame = false;
 
-		// ToolBar icons
-		Ref<Texture2D> m_PlayIcon;
-		Ref<Texture2D> m_StopIcon;
-		Ref<Texture2D> m_SimulateIcon;
-		Ref<Texture2D> m_PauseIcon;
-		Ref<Texture2D> m_StepIcon;
-
-		Ref<Texture2D> m_CursorIcon;
-		Ref<Texture2D> m_TranslateIcon;
-
 		bool m_ShowColliders = false;
 		bool m_ShowCollidersOnTop = true;
 

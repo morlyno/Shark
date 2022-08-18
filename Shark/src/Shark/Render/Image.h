@@ -19,8 +19,7 @@ namespace Shark {
 
 	enum class ImageType : uint16_t
 	{
-		Default,
-		Dynamic,
+		Texture,
 		Storage,
 		FrameBuffer
 	};
@@ -31,10 +30,19 @@ namespace Shark {
 		uint32_t Width = 0, Height = 0;
 		uint32_t MipLevels = 1; // 0 == MaxLeves
 
-		ImageType Type = ImageType::Default;
+		ImageType Type = ImageType::Texture;
 	};
 
-	class Image2D : public RefCount
+	class Image : public RefCount
+	{
+	public:
+		virtual ~Image() = default;
+
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
+	};
+
+	class Image2D : public Image
 	{
 	public:
 		virtual ~Image2D() = default;
@@ -52,15 +60,13 @@ namespace Shark {
 		virtual RenderID GetResourceID() const = 0;
 		virtual RenderID GetViewID() const = 0;
 		virtual const ImageSpecification& GetSpecification() const = 0;
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
 
 	public:
 		static Ref<Image2D> Create();
 		static Ref<Image2D> Create(const ImageSpecification& specs, void* data);
 		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, void* data);
-
 		static Ref<Image2D> Create(const ImageSpecification& specs, Ref<Image2D> data);
+		static Ref<Image2D> Create(const std::filesystem::path& filePath);
 	};
 
 }

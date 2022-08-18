@@ -24,8 +24,8 @@ namespace Shark {
 
 	}
 
-	EditorConsoleSink::EditorConsoleSink(uint32_t console)
-		: m_Formatter(std::make_unique<spdlog::pattern_formatter>()), m_Console(console)
+	EditorConsoleSink::EditorConsoleSink()
+		: m_Formatter(std::make_unique<spdlog::pattern_formatter>())
 	{
 	}
 
@@ -40,7 +40,7 @@ namespace Shark {
 
 		spdlog::memory_buf_t buffer;
 		m_Formatter->format(msg, buffer);
-		EditorConsolePanel::LogMessage(utils::spdlogLevelToLogLevel(msg.level), fmt::to_string(buffer), m_Console);
+		EditorConsolePanel::PushMessage(utils::spdlogLevelToLogLevel(msg.level), fmt::to_string(buffer));
 	}
 
 	void EditorConsoleSink::flush()

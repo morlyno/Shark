@@ -47,9 +47,8 @@ namespace Shark {
 		m_Scene = Ref<Scene>::Create();
 		m_Scene->SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
-		m_Camera.SetProjection((float)m_ViewportSize.x / (float)m_ViewportSize.y, 45, 0.01f, 1000.0f);
-		m_Camera.SetDistance(1.5f);
 
+		ReCalcCamera();
 
 		m_Entity = m_Scene->CreateEntity();
 		auto& sr = m_Entity.AddComponent<SpriteRendererComponent>();
@@ -70,19 +69,13 @@ namespace Shark {
 
 		if (m_NeedsResize && m_ViewportSize.x != 0 && m_ViewportSize.y != 0)
 		{
-			SK_CORE_INFO("TextureEditorPanel::OnUpdate Resize");
-
-			m_Camera.Resize((float)m_ViewportSize.x, (float)m_ViewportSize.y);
+			ReCalcCamera();
 			m_Scene->SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 			m_Renderer->Resize(m_ViewportSize.x, m_ViewportSize.y);
 			m_NeedsResize = false;
 		}
 
-		if (m_ViewportFocused)
-			m_Camera.OnUpdate(ts);
-
-		m_Scene->OnUpdateEditor(ts);
-		m_Scene->OnRenderEditor(m_Renderer, m_Camera);
+		m_Scene->OnRender(m_Renderer, m_Camera.GetProjection());
 	}
 
 	void TextureEditorPanel::OnImGuiRender(bool& shown, bool& destroy)
@@ -115,14 +108,6 @@ namespace Shark {
 
 	}
 
-	void TextureEditorPanel::OnEvent(Event& event)
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (m_ViewportHovered)
-			m_Camera.OnEvent(event);
-	}
-
 	void TextureEditorPanel::UI_DrawViewport()
 	{
 		SK_PROFILE_FUNCTION();
@@ -133,13 +118,9 @@ namespace Shark {
 		ImGui::BeginEx("Viewport", m_ViewportID, nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::PopStyleVar(3);
 
-		m_ViewportHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
-		m_ViewportFocused = ImGui::IsWindowFocused();
-
 		const ImVec2 size = ImGui::GetContentRegionAvail();
 		if ((float)m_ViewportSize.x != size.x || (float)m_ViewportSize.y != size.y)
 		{
-			SK_CORE_WARN("Resize detected: {} => {}", m_ViewportSize, size);
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
 			m_ViewportSize.x = (uint32_t)ImGui::GetContentRegionAvail().x;
 			m_ViewportSize.y = (uint32_t)ImGui::GetContentRegionAvail().y;
@@ -297,6 +278,13 @@ namespace Shark {
 		ImRect rect = viewportNode->Rect();
 		m_ViewportSize.x = (uint32_t)rect.GetWidth();
 		m_ViewportSize.y = (uint32_t)rect.GetHeight();
+	}
+
+	void TextureEditorPanel::ReCalcCamera()
+	{
+		const float aspectRatio = (float)m_ViewportSize.x / (float)m_ViewportSize.y;
+		const float zoom = 0.55f;
+		m_Camera = glm::ortho(-aspectRatio * zoom, aspectRatio * zoom, -zoom, zoom);
 	}
 
 }

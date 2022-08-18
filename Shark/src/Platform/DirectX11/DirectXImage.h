@@ -22,6 +22,7 @@ namespace Shark {
 		DirectXImage2D(const ImageSpecification& specs, void* data);
 		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, void* data);
 		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
+		DirectXImage2D(const std::filesystem::path& filePath);
 		DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView);
 		virtual ~DirectXImage2D();
 

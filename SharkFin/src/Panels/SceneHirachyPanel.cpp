@@ -59,6 +59,13 @@ namespace Shark {
 
 						entity.RemoveComponent<Comp>();
 					}
+
+					if (ImGui::MenuItem("Reset"))
+					{
+						auto& comp = entity.GetComponent<Comp>();
+						comp = Comp{};
+					}
+
 					ImGui::EndPopup();
 				}
 

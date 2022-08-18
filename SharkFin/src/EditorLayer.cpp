@@ -19,6 +19,7 @@
 #include "Panels/TextureEditorPanel.h"
 #include "Panels/PhysicsDebugPanel.h"
 #include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
+#include "Shark/Editor/Icons.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/Instrumentor.h"
@@ -53,15 +54,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		// Load icons
-		m_PlayIcon = Texture2D::Create("Resources/PlayButton.png");
-		m_StopIcon = Texture2D::Create("Resources/StopButton.png");
-		m_SimulateIcon = Texture2D::Create("Resources/SimulateButton.png");
-		m_PauseIcon = Texture2D::Create("Resources/PauseButton.png");
-		m_StepIcon = Texture2D::Create("Resources/StepButton.png");
-
-		m_CursorIcon = Texture2D::Create("Resources/Cursor.png");
-		m_TranslateIcon = Texture2D::Create("Resources/TranslateIcon.png");
+		Icons::Init();
 
 		// Create and setup Panels
 		m_PanelManager = Scope<PanelManager>::Create();
@@ -110,6 +103,8 @@ namespace Shark {
 		FileSystem::SetFileWatcherCallback(nullptr);
 
 		m_PanelManager->Clear();
+
+		Icons::Shutdown();
 	}
 
 	void EditorLayer::OnUpdate(TimeStep ts)
@@ -120,7 +115,7 @@ namespace Shark {
 
 		Renderer::NewFrame();
 
-		Application::Get().GetImGuiLayer().BlockEvents(!(m_ViewportHovered || m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID)->AnyViewportHovered()));
+		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
 		if (m_ActiveScene->Flags & AssetFlag::Unloaded)
 		{
@@ -883,68 +878,68 @@ namespace Shark {
 			case SceneState::Edit:
 			{
 				// [Play]
-				if (imageButton("PlayIcon", m_PlayIcon))
+				if (imageButton("PlayIcon", Icons::PlayIcon))
 					OnScenePlay();
 
 				// [Simulate]
 				ImGui::SameLine();
-				if (imageButton("SimulateIcon", m_SimulateIcon))
+				if (imageButton("SimulateIcon", Icons::SimulateIcon))
 					OnSimulateStart();
 
 				// [Step Disabled]
 				ImGui::SameLine();
-				imageButtonDisabled("Step Disabled", m_StepIcon);
+				imageButtonDisabled("Step Disabled", Icons::StepIcon);
 
 				break;
 			}
 			case SceneState::Play:
 			{
 				// [Stop]
-				if (imageButton("StopIcon", m_StopIcon))
+				if (imageButton("StopIcon", Icons::StopIcon))
 					OnSceneStop();
 
 				// [Pause]
 				ImGui::SameLine();
-				if (imageButton("Pause", m_PauseIcon))
+				if (imageButton("Pause", Icons::PauseIcon))
 					m_SceneState = SceneState::Pause;
 
 				// [Step Disabled]
 				ImGui::SameLine();
-				imageButtonDisabled("Step Disabled", m_StepIcon);
+				imageButtonDisabled("Step Disabled", Icons::StepIcon);
 
 				break;
 			}
 			case SceneState::Simulate:
 			{
 				// [Stop]
-				if (imageButton("StopIcon", m_StopIcon))
+				if (imageButton("StopIcon", Icons::StopIcon))
 					OnSceneStop();
 
 				// [Pause]
 				ImGui::SameLine();
-				if (imageButton("Pause", m_PauseIcon))
+				if (imageButton("Pause", Icons::PauseIcon))
 					m_SceneState = SceneState::Pause;
 
 				// [Step Disabled]
 				ImGui::SameLine();
-				imageButtonDisabled("Step Disabled", m_StepIcon);
+				imageButtonDisabled("Step Disabled", Icons::StepIcon);
 
 				break;
 			}
 			case SceneState::Pause:
 			{
 				// [Stop]
-				if (imageButton("StopIcon", m_StopIcon))
+				if (imageButton("StopIcon", Icons::StopIcon))
 					OnSceneStop();
 
 				// [UnPause]
 				ImGui::SameLine();
-				if (imageButton("UnPause", m_PlayIcon))
+				if (imageButton("UnPause", Icons::PlayIcon))
 					m_SceneState = m_InitialSceneState;
 
 				// [Step]
 				ImGui::SameLine();
-				if (imageButton("Step", m_StepIcon))
+				if (imageButton("Step", Icons::StepIcon))
 					m_UpdateNextFrame = true;
 
 				break;

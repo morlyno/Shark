@@ -8,7 +8,7 @@ namespace Shark {
 	class EditorConsoleSink : public spdlog::sinks::sink
 	{
 	public:
-		EditorConsoleSink(uint32_t console);
+		EditorConsoleSink();
 		~EditorConsoleSink();
 
 		void log(const spdlog::details::log_msg& msg) override;
@@ -19,8 +19,6 @@ namespace Shark {
 	private:
 		std::mutex m_Mutex;
 		std::unique_ptr<spdlog::formatter> m_Formatter;
-
-		uint32_t m_Console = 0;
 	};
 
 }

@@ -7,6 +7,8 @@
 #include "Shark/Input/Input.h"
 #include "Shark/Event/ApplicationEvent.h"
 
+#include "Shark/Editor/Icons.h"
+
 #include "Shark/Debug/Instrumentor.h"
 
 #include <imgui.h>
@@ -61,9 +63,8 @@ namespace Shark {
 		SK_CORE_ASSERT(!s_Instance);
 		s_Instance = this;
 
-		m_InfoIcon = Texture2D::Create("Resources/Console/Icon_Info.png");
-		m_WarnIcon = Texture2D::Create("Resources/Console/Icon_Warn.png");
-		m_ErrorIcon = Texture2D::Create("Resources/Console/Icon_Error.png");
+		m_Messages.reserve(m_MaxMessages);
+		m_Filtered.reserve(m_MaxMessages);
 	}
 
 	EditorConsolePanel::~EditorConsolePanel()
@@ -113,45 +114,47 @@ namespace Shark {
 		m_Filtered.clear();
 	}
 
-	void EditorConsolePanel::LogMessage(Log::Level level, const std::string& message)
+	void EditorConsolePanel::PushMessage(Log::Level level, const std::string& message)
 	{
-		SK_PROFILE_FUNCTION();
-
-		if (level == Log::Level::Info || level == Log::Level::Warn || level == Log::Level::Error)
+		SK_CORE_ASSERT(s_Instance);
+		switch (level)
 		{
-			if (m_Messages.size() > m_MaxMessages)
-			{
-				m_Messages.shrink_to_fit();
-
-				if (m_ActiveFilters == FilterFlag::All)
-				{
-					SK_CORE_ASSERT(m_Filtered.capacity() >= m_MaxMessages);
-					m_Filtered.shrink_to_fit();
-				}
-
-				constexpr uint32_t invRatio = 5;
-				const uint32_t eraseCount = m_MaxMessages / invRatio;
-				m_Messages.erase(m_Messages.begin(), m_Messages.begin() + eraseCount);
-				Refilter();
-			}
-
-			ConsoleMessage msg = { level, message };
-			m_Messages.push_back(msg);
-			if (Filter(msg))
-				m_Filtered.emplace_back((uint32_t)m_Messages.size() - 1);
-
+			case Log::Level::Debug:
+			case Log::Level::Trace:
+			case Log::Level::Info:
+				s_Instance->PushMessage(MessageLevel::Info, message);
+				break;
+			case Log::Level::Warn:
+				s_Instance->PushMessage(MessageLevel::Warn, message);
+			case Log::Level::Error:
+			case Log::Level::Critical:
+				s_Instance->PushMessage(MessageLevel::Error, message);
 		}
+
 	}
 
-	void EditorConsolePanel::LogMessage(Log::Level level, const std::string& message, uint32_t console)
+	void EditorConsolePanel::PushMessage(MessageLevel level, const std::string& message)
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(console == 0);
-		if (s_Instance)
+		if (m_Messages.size() > m_MaxMessages)
 		{
-			s_Instance->LogMessage(level, message);
+			const uint32_t invRatio = 5;
+			const uint32_t eraseCount = m_MaxMessages / invRatio;
+			m_Messages.erase(m_Messages.begin(), m_Messages.begin() + eraseCount);
+			Refilter();
 		}
+
+		ConsoleMessage msg;
+		msg.Level = level;
+		msg.Message = message;
+		size_t count = message.find('\n');
+		count = message.find('\n', count + 1);
+		msg.FriendlyMessage = std::string(message, std::min({ message.length(), ConsoleMessage::MaxFiendlyMessageLength, count }));
+
+		m_Messages.push_back(msg);
+		if (Filter(msg))
+			m_Filtered.emplace_back((uint32_t)m_Messages.size() - 1);
 	}
 
 	void EditorConsolePanel::DrawMessages()
@@ -187,11 +190,8 @@ namespace Shark {
 					ImGui::TableNextRow(ImGuiTableRowFlags_None, imageSize);
 					ImGui::TableSetColumnIndex(1);
 
-					if (msg.Level == Log::Level::Critical)
-						ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::ColorConvertFloat4ToU32(Theme::Colors::LogCriticalBg));
-
 					ImGui::AlignTextToFramePadding();
-					utils::PrintTextClipped(msg.Message, Theme::GetLogColor(msg.Level));
+					utils::PrintTextClipped(msg.FriendlyMessage, MessageColor(msg.Level));
 
 					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
 					{
@@ -276,17 +276,17 @@ namespace Shark {
 
 		ImGui::SameLine(offsetFromStart);
 		const bool infoActive = m_ActiveFilters & FilterFlag::Info;
-		if (ImageButton("InfoIcon", m_InfoIcon->GetViewID(), ImVec2(imageSize, imageSize), infoActive))
+		if (ImageButton("InfoIcon", Icons::InfoIcon->GetViewID(), ImVec2(imageSize, imageSize), infoActive))
 			SetFilter(FilterFlag::Info, !infoActive);
 
 		ImGui::SameLine();
 		const bool warnActive = m_ActiveFilters & FilterFlag::Warn;
-		if (ImageButton("WarnIcon", m_WarnIcon->GetViewID(), ImVec2(imageSize, imageSize), warnActive))
+		if (ImageButton("WarnIcon", Icons::WarnIcon->GetViewID(), ImVec2(imageSize, imageSize), warnActive))
 			SetFilter(FilterFlag::Warn, !warnActive);
 
 		ImGui::SameLine();
 		const bool errorActive = m_ActiveFilters & FilterFlag::Error;
-		if (ImageButton("ErrorIcon", m_ErrorIcon->GetViewID(), ImVec2(imageSize, imageSize), errorActive))
+		if (ImageButton("ErrorIcon", Icons::ErrorIcon->GetViewID(), ImVec2(imageSize, imageSize), errorActive))
 			SetFilter(FilterFlag::Error, !errorActive);
 
 		consoleWindow->DC.CursorPos.y -= style.WindowPadding.y * 0.25f;
@@ -323,34 +323,34 @@ namespace Shark {
 
 		switch (message.Level)
 		{
-			case Log::Level::Info: pass = m_ActiveFilters & FilterFlag::Info; break;
-			case Log::Level::Warn: pass = m_ActiveFilters & FilterFlag::Warn; break;
-			case Log::Level::Error: pass = m_ActiveFilters & FilterFlag::Error; break;
+			case MessageLevel::Info: pass = m_ActiveFilters & FilterFlag::Info; break;
+			case MessageLevel::Warn: pass = m_ActiveFilters & FilterFlag::Warn; break;
+			case MessageLevel::Error: pass = m_ActiveFilters & FilterFlag::Error; break;
 		}
 
 		return pass;
 	}
 
-	RenderID EditorConsolePanel::GetIconRenderID(Log::Level level)
+	RenderID EditorConsolePanel::GetIconRenderID(MessageLevel level) const
 	{
 		SK_PROFILE_FUNCTION();
 
 		switch (level)
 		{
-			case Log::Level::Info: return m_InfoIcon->GetViewID();
-			case Log::Level::Warn: return m_WarnIcon->GetViewID();
-			case Log::Level::Error: return m_ErrorIcon->GetViewID();
+			case MessageLevel::Info: return Icons::InfoIcon->GetViewID();
+			case MessageLevel::Warn: return Icons::WarnIcon->GetViewID();
+			case MessageLevel::Error: return Icons::ErrorIcon->GetViewID();
 		}
 		return RenderID();
 	}
 
-	EditorConsolePanel::FilterFlag::Type EditorConsolePanel::LogLevelToFilterFlag(Log::Level level)
+	EditorConsolePanel::FilterFlag::Type EditorConsolePanel::LogLevelToFilterFlag(MessageLevel level)
 	{
 		switch (level)
 		{
-			case Log::Level::Info:  return FilterFlag::Info;
-			case Log::Level::Warn:  return FilterFlag::Warn;
-			case Log::Level::Error: return FilterFlag::Error;
+			case MessageLevel::Info:  return FilterFlag::Info;
+			case MessageLevel::Warn:  return FilterFlag::Warn;
+			case MessageLevel::Error: return FilterFlag::Error;
 		}
 
 		SK_CORE_ASSERT(false, "Invalid Love Level");
@@ -425,6 +425,19 @@ namespace Shark {
 				return false;
 		}
 		return true;
+	}
+
+	ImVec4 EditorConsolePanel::MessageColor(MessageLevel level) const
+	{
+		switch (level)
+		{
+			case MessageLevel::Info:  return Theme::Colors::LogInfo;
+			case MessageLevel::Warn:  return Theme::Colors::LogWarn;
+			case MessageLevel::Error: return Theme::Colors::LogError;
+		}
+
+		SK_CORE_ASSERT(false, "Unkown Message Level");
+		return ImGui::GetStyleColorVec4(ImGuiCol_Text);
 	}
 
 }

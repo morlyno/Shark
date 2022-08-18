@@ -2,8 +2,9 @@
 #include "ContentBrowserPanel.h"
 
 #include "Shark/Core/Project.h"
-#include "Shark/Utils/PlatformUtils.h"
+#include "Shark/Editor/Icons.h"
 
+#include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Debug/Instrumentor.h"
 
 #include <misc/cpp/imgui_stdlib.h>
@@ -16,13 +17,6 @@ namespace Shark {
 
 		if (Project::GetActive())
 			CacheDirectory(Project::AssetsPath());
-
-		m_FolderIcon   = Texture2D::Create("Resources/ContentBrowser/folder_open.png");
-		m_FileIcon     = Texture2D::Create("Resources/ContentBrowser/file.png");
-		m_PNGIcon      = Texture2D::Create("Resources/ContentBrowser/Icon_PNG.png");
-		m_SceneIcon    = Texture2D::Create("Resources/ContentBrowser/Icon_Scene.png");
-		m_TextureIcon  = Texture2D::Create("Resources/ContentBrowser/Icon_Texture.png");
-		m_ScriptIcon  = Texture2D::Create("Resources/ContentBrowser/Icon_Script.png");
 	}
 
 	ContentBrowserPanel::~ContentBrowserPanel()
@@ -218,7 +212,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		Ref<Texture2D> icon = GetCellIcon(entry);
+		Ref<Image2D> icon = GetCellIcon(entry);
 
 		const float imageSize = m_CellWidth;
 		ImGui::Image(icon->GetViewID(), { imageSize, imageSize });
@@ -252,7 +246,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		Ref<Texture2D> cellIcon = m_CreateEntryContext.Type == EntryType::Directory ? m_FolderIcon : m_FileIcon;
+		Ref<Image2D> cellIcon = m_CreateEntryContext.Type == EntryType::Directory ? Icons::FolderIcon : Icons::FileIcon;
 
 		const float imageSize = m_CellWidth;
 		ImGui::Image(cellIcon->GetViewID(), { imageSize, imageSize });
@@ -601,20 +595,20 @@ namespace Shark {
 		return GetEntry(entry.Path.parent_path());
 	}
 
-	Ref<Texture2D> ContentBrowserPanel::GetCellIcon(const DirectoryEntry& entry)
+	Ref<Image2D> ContentBrowserPanel::GetCellIcon(const DirectoryEntry& entry)
 	{
 		SK_PROFILE_FUNCTION();
 
 		if (entry.Type == EntryType::Directory)
-			return m_FolderIcon;
+			return Icons::FolderIcon;
 
 		auto extension = entry.Path.extension();
-		if (extension == L".skscene") return m_SceneIcon;
-		if (extension == L".sktex") return m_TextureIcon;
-		if (extension == L".png") return m_PNGIcon;
-		if (extension == L".cs") return m_ScriptIcon;
+		if (extension == L".skscene") return Icons::SceneIcon;
+		if (extension == L".sktex") return Icons::TextureIcon;
+		if (extension == L".png") return Icons::PNGIcon;
+		if (extension == L".cs") return Icons::ScriptIcon;
 
-		return m_FileIcon;
+		return Icons::FileIcon;
 	}
 
 	void ContentBrowserPanel::ImportEntry(DirectoryEntry& entry)

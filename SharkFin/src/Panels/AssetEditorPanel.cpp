@@ -51,14 +51,4 @@ namespace Shark {
 			entry.Editor->OnEvent(event);
 	}
 
-	bool AssetEditorPanel::AnyViewportHovered() const
-	{
-		SK_PROFILE_FUNCTION();
-
-		for (auto& [id, entry] : m_EditorPanels)
-			if (entry.Editor->ViewportHovered())
-				return true;
-		return false;
-	}
-
 }

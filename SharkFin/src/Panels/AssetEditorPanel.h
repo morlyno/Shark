@@ -9,11 +9,9 @@ namespace Shark {
 	public:
 		virtual ~EditorPanel() = default;
 
-		virtual void OnUpdate(TimeStep ts) = 0;
-		virtual void OnImGuiRender(bool& shown, bool& destroy) = 0;
-		virtual void OnEvent(Event& event) = 0;
-
-		virtual bool ViewportHovered() const = 0;
+		virtual void OnUpdate(TimeStep ts) {};
+		virtual void OnImGuiRender(bool& shown, bool& destroy) {};
+		virtual void OnEvent(Event& event) {};
 	};
 
 	class AssetEditorPanel : public Panel
@@ -33,8 +31,6 @@ namespace Shark {
 		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
-
-		bool AnyViewportHovered() const;
 
 		template<typename T, typename... Args>
 		Ref<T> AddEditor(UUID id, bool shown, Args&&... args)
