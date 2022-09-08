@@ -46,7 +46,6 @@ namespace Shark {
 
 	void GCManager::Collect()
 	{
-		return;
 		mono_gc_collect(mono_gc_max_generation());
 	}
 

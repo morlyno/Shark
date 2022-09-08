@@ -20,22 +20,22 @@
 
 namespace Shark {
 
-	enum
-	{
-		CoreAssemblyIndex = 0,
-		AppAssemblyIndex = 1,
-		AssemblyCount = 2
-	};
-
 	struct ScriptEngineData
 	{
 		MonoDomain* RootDomain = nullptr;
 		MonoDomain* RuntimeDomain = nullptr;
-		AssemblyInfo Assemblies[AssemblyCount];
+		AssemblyInfo CoreAssembly;
+		AssemblyInfo AppAssembly;
 		bool AssembliesLoaded = false;
 		ScriptEngineConfig Config;
 		EntityInstancesMap EntityInstances;
 		Ref<Scene> ActiveScene;
+
+		MonoClass* EntityClass = nullptr;
+		std::unordered_map<std::string, Ref<ScriptClass>> ScriptClasses;
+
+		// Entity => FieldName => Type
+		std::unordered_map<UUID, FieldStorageMap> FieldStorages;
 	};
 
 	struct ScriptEngineData* s_Data = nullptr;
@@ -124,6 +124,8 @@ namespace Shark {
 
 		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
 
+		CacheScriptClasses();
+
 		return true;
 	}
 
@@ -139,14 +141,17 @@ namespace Shark {
 		ScriptGlue::Shutdown();
 		GCManager::Shutdown();
 
+		s_Data->ScriptClasses.clear();
+		s_Data->FieldStorages.clear();
+
 		s_Data->AssembliesLoaded = false;
 
-		AssemblyInfo& appInfo = s_Data->Assemblies[AppAssemblyIndex];
+		AssemblyInfo& appInfo = s_Data->AppAssembly;
 		appInfo.Assembly = nullptr;
 		appInfo.Image = nullptr;
 		appInfo.FilePath = std::filesystem::path{};
 
-		AssemblyInfo& coreInfo = s_Data->Assemblies[CoreAssemblyIndex];
+		AssemblyInfo& coreInfo = s_Data->CoreAssembly;
 		coreInfo.Assembly = nullptr;
 		coreInfo.Image = nullptr;
 		coreInfo.FilePath = std::filesystem::path{};
@@ -163,17 +168,34 @@ namespace Shark {
 
 	const AssemblyInfo& ScriptEngine::GetCoreAssemblyInfo()
 	{
-		return s_Data->Assemblies[CoreAssemblyIndex];
+		return s_Data->CoreAssembly;
 	}
 
 	const AssemblyInfo& ScriptEngine::GetAppAssemblyInfo()
 	{
-		return s_Data->Assemblies[AppAssemblyIndex];
+		return s_Data->AppAssembly;
 	}
 
 	MonoDomain* ScriptEngine::GetRuntimeDomain()
 	{
 		return s_Data->RuntimeDomain;
+	}
+
+	MonoClass* ScriptEngine::GetEntityClass()
+	{
+		return s_Data->EntityClass;
+	}
+
+	Ref<ScriptClass> ScriptEngine::GetScriptClass(const std::string& fullName)
+	{
+		if (s_Data->ScriptClasses.find(fullName) != s_Data->ScriptClasses.end())
+			return s_Data->ScriptClasses.at(fullName);
+		return nullptr;
+	}
+
+	FieldStorageMap& ScriptEngine::GetFieldStorageMap(Entity entity)
+	{
+		return s_Data->FieldStorages[entity.GetUUID()];
 	}
 
 	void ScriptEngine::ShutdownRuntime()
@@ -185,7 +207,7 @@ namespace Shark {
 
 		s_Data->EntityInstances.clear();
 
-		//GCManager::Collect();
+		GCManager::Collect();
 	}
 
 	MonoObject* ScriptEngine::InstantiateClass(MonoClass* klass)
@@ -206,14 +228,18 @@ namespace Shark {
 		}
 
 		ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
-		
-		auto [nameSpace, name] = utils::SliptClassFullName(scriptComp.ScriptName);
-		MonoClass* clazz = mono_class_from_name_case(s_Data->Assemblies[AppAssemblyIndex].Image, nameSpace.c_str(), name.c_str());
-		if (!clazz)
-			return false;
+		Ref<ScriptClass> scriptClass = scriptComp.GetClass();
+		SK_CORE_ASSERT(scriptClass, "Script class not set");
+		MonoClass* clazz = scriptClass->m_Class;
+		MonoClass* entityClass = s_Data->EntityClass;
 
-		MonoClass* entityClass = mono_class_from_name_case(s_Data->Assemblies[CoreAssemblyIndex].Image, "Shark", "Entity");
-		mono_class_is_subclass_of(entityClass, clazz, false);
+		//auto [nameSpace, name] = utils::SliptClassFullName(scriptComp.ScriptName);
+		//MonoClass* clazz = mono_class_from_name_case(s_Data->AppAssembly.Image, nameSpace.c_str(), name.c_str());
+		//if (!clazz)
+		//	return false;
+		//
+		//MonoClass* entityClass = mono_class_from_name_case(s_Data->CoreAssembly.Image, "Shark", "Entity");
+		//SK_CORE_ASSERT(mono_class_is_subclass_of(clazz, entityClass, false));
 
 		MonoObject* object = InstantiateClass(clazz);
 		mono_runtime_object_init(object);
@@ -236,7 +262,7 @@ namespace Shark {
 		return true;
 	}
 
-	void ScriptEngine::DestroyEntity(Entity entity, bool invokeOnDestroy)
+	void ScriptEngine::DestroyInstance(Entity entity, bool invokeOnDestroy)
 	{
 		UUID uuid = entity.GetUUID();
 		if (s_Data->EntityInstances.find(uuid) == s_Data->EntityInstances.end())
@@ -255,11 +281,40 @@ namespace Shark {
 		s_Data->EntityInstances.erase(uuid);
 	}
 
+	void ScriptEngine::SetScriptClass(Entity entity, Ref<ScriptClass> klass)
+	{
+		auto& comp = entity.GetComponent<ScriptComponent>();
+		comp.m_Class = klass;
+
+		auto& fields = klass->GetFields();
+		auto& storages = s_Data->FieldStorages[entity.GetUUID()];
+		storages.clear();
+
+		MonoObject* object = InstantiateClass(klass->m_Class);
+		mono_runtime_object_init(object);
+
+		for (auto& [name, field] : fields)
+		{
+			Ref<FieldStorage> fieldStorage = Ref<FieldStorage>::Create(field);
+			storages[name] = fieldStorage;
+			mono_field_get_value(object, field.Field, fieldStorage->m_Buffer);
+		}
+	}
+
+	void ScriptEngine::OnEntityDestroyed(Entity entity)
+	{
+		UUID uuid = entity.GetUUID();
+		if (ContainsEntityInstance(uuid))
+			DestroyInstance(entity, true);
+
+		s_Data->FieldStorages.erase(uuid);
+	}
+
 	GCHandle ScriptEngine::CreateTempEntity(Entity entity)
 	{
 		// TODO(moro): maby cache object for later use
 
-		MonoClass* entityClass = mono_class_from_name_case(s_Data->Assemblies[CoreAssemblyIndex].Image, "Shark", "Entity");
+		MonoClass* entityClass = mono_class_from_name_case(s_Data->CoreAssembly.Image, "Shark", "Entity");
 		MonoObject* object = InstantiateClass(entityClass);
 		GCHandle persistentHandle = GCManager::CreateHandle(object);
 		mono_runtime_object_init(object);
@@ -286,6 +341,14 @@ namespace Shark {
 	GCHandle ScriptEngine::GetEntityInstance(UUID uuid)
 	{
 		return s_Data->EntityInstances.at(uuid);
+	}
+
+	GCHandle ScriptEngine::GetEntityInstance(Entity entity)
+	{
+		UUID uuid = entity.GetUUID();
+		if (s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end())
+			return s_Data->EntityInstances.at(uuid);
+		return 0;
 	}
 
 	const EntityInstancesMap& ScriptEngine::GetEntityInstances()
@@ -361,7 +424,7 @@ namespace Shark {
 			return false;
 		}
 
-		AssemblyInfo& info = s_Data->Assemblies[CoreAssemblyIndex];
+		AssemblyInfo& info = s_Data->CoreAssembly;
 		info.Assembly = assembly;
 		info.Image = mono_assembly_get_image(assembly);
 		info.FilePath = filePath;
@@ -377,7 +440,7 @@ namespace Shark {
 			return false;
 		}
 
-		AssemblyInfo& info = s_Data->Assemblies[AppAssemblyIndex];
+		AssemblyInfo& info = s_Data->AppAssembly;
 		info.Assembly = assembly;
 		info.Image = mono_assembly_get_image(assembly);
 		info.FilePath = filePath;
@@ -405,6 +468,30 @@ namespace Shark {
 		mono_image_close(image);
 		fileData.Release();
 		return assembly;
+	}
+
+	void ScriptEngine::CacheScriptClasses()
+	{
+		s_Data->EntityClass = mono_class_from_name_case(s_Data->CoreAssembly.Image, "Shark", "Entity");
+
+		MonoImage* appImage = s_Data->AppAssembly.Image;
+		const MonoTableInfo* typeDefTable = mono_image_get_table_info(appImage, MONO_TABLE_TYPEDEF);
+		int numTypes = mono_table_info_get_rows(typeDefTable);
+
+		for (int i = 0; i < numTypes; i++)
+		{
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(typeDefTable, i, cols, MONO_TYPEDEF_SIZE);
+
+			const char* name = mono_metadata_string_heap(appImage, cols[MONO_TYPEDEF_NAME]);
+			const char* nameSpace = mono_metadata_string_heap(appImage, cols[MONO_TYPEDEF_NAMESPACE]);
+			MonoClass* klass = mono_class_from_name(appImage, nameSpace, name);
+			if (!mono_class_is_subclass_of(klass, s_Data->EntityClass, false))
+				continue;
+
+			Ref<ScriptClass> scriptClass = Ref<ScriptClass>::Create(nameSpace, name);
+			s_Data->ScriptClasses[scriptClass->GetName()] = scriptClass;
+		}
 	}
 
 	void ScriptEngine::UnhandledExeptionHook(MonoObject* exc, void* user_data)

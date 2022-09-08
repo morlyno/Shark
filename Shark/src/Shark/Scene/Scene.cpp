@@ -110,6 +110,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
+		m_IsRunning = true;
+
 		SetupBox2D();
 
 		m_PhysicsScene.SetOnPhyicsStepCallback([this](TimeStep fixedTimeStep) { OnPhyicsStep(fixedTimeStep); });
@@ -175,6 +177,8 @@ namespace Shark {
 	void Scene::OnSceneStop()
 	{
 		SK_PROFILE_FUNCTION();
+
+		m_IsRunning = false;
 
 		m_PhysicsScene.SetOnPhyicsStepCallback(nullptr);
 
@@ -391,8 +395,8 @@ namespace Shark {
 
 		if (!m_IsEditorScene)
 		{
-			if (entity.AllOf<ScriptComponent>() && ScriptEngine::ContainsEntityInstance(entity.GetUUID()))
-				ScriptEngine::DestroyEntity(entity, true);
+			if (entity.AllOf<ScriptComponent>())
+				ScriptEngine::OnEntityDestroyed(entity);
 
 			if (entity.AllOf<RigidBody2DComponent>())
 			{
@@ -718,7 +722,7 @@ namespace Shark {
 			return;
 
 		if (ScriptEngine::ContainsEntityInstance(entity.GetUUID()))
-			ScriptEngine::DestroyEntity(entity, true);
+			ScriptEngine::DestroyInstance(entity, true);
 	}
 
 	void Scene::OnCameraComponentDestroyed(entt::registry& registry, entt::entity ent)

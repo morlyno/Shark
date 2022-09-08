@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Scene/SceneCamera.h"
+#include "Shark/Scripting/ScriptTypes.h"
 
 #include <glm/glm.hpp>
 #include "glm/gtx/transform.hpp"
@@ -142,13 +143,21 @@ namespace Shark {
 		CircleCollider2DComponent(const CircleCollider2DComponent&) = default;
 	};
 
-	struct ScriptComponent
+	class ScriptComponent
 	{
+	public:
 		std::string ScriptName;
-		bool IsExisitingScript = false;
+
+	private:
+		Ref<ScriptClass> m_Class;
+
+	public:
+		Ref<ScriptClass> GetClass() { return m_Class; }
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;
+
+		friend class ScriptEngine;
 	};
 
 }

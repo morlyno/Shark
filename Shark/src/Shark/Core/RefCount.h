@@ -112,7 +112,7 @@ namespace Shark {
 				m_Instance->AddRef();
 		}
 
-		explicit Ref(const Weak<T>& weak)
+		Ref(const Weak<T>& weak)
 			: m_Instance(weak.m_Instance)
 		{
 			m_Instance->AddRef();

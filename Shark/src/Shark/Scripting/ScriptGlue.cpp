@@ -534,11 +534,11 @@ namespace Shark
 			auto& comp = newEntity.AddComponent<ScriptComponent>();
 			comp.ScriptName = scriptTypeName;
 			mono_free(scriptTypeName);
-			comp.IsExisitingScript = true;
+			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ScriptName);
+			ScriptEngine::SetScriptClass(newEntity, klass);
 
 			if (ScriptEngine::InstantiateEntity(newEntity, true))
 			{
-				comp.IsExisitingScript = true;
 				GCHandle gcHandle = ScriptEngine::GetEntityInstance(newEntity.GetUUID());
 				return GCManager::GetManagedObject(gcHandle);
 			}

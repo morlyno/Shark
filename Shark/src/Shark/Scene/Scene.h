@@ -45,6 +45,7 @@ namespace Shark {
 
 		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
 		bool IsEditorScene() { return m_IsEditorScene; }
+		bool IsRunning() const { return m_IsRunning; }
 
 		void OnScenePlay();
 		void OnSceneStop();
@@ -126,6 +127,7 @@ namespace Shark {
 		ContactListener m_ContactListener;
 
 		bool m_IsEditorScene = false;
+		bool m_IsRunning = false;
 
 		std::queue<std::function<void()>> m_PostUpdateQueue;
 

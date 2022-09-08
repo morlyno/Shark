@@ -15,6 +15,7 @@ namespace Sandbox
 		private RigidBody2DComponent m_RigidBody;
 
 		private Entity m_BallTemplate;
+		public bool DestroyBallOnHit = false;
 
 		private bool m_WantShoot = false;
 		private float m_ShootCooldown = 0.2f;
@@ -128,7 +129,7 @@ namespace Sandbox
 				direction.Y = -direction.Y;
 
 				Bullet bullet = Scene.Instantiate<Bullet>("Bullet");
-				bullet.DestroyOnHit = true;
+				bullet.DestroyOnHit = DestroyBallOnHit;
 				var rigidBody = bullet.GetComponent<RigidBody2DComponent>();
 				rigidBody.Position = m_RigidBody.Position + direction;
 				rigidBody.ApplyForce(direction * 10000.0f, PhysicsForce2DType.Force);

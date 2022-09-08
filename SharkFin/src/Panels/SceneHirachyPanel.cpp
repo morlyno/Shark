@@ -6,6 +6,7 @@
 
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scene/Components.h"
+#include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/UI/UI.h"
@@ -90,6 +91,22 @@ namespace Shark {
 				parent = parent.Parent();
 			}
 			return false;
+		}
+
+		template<typename T>
+		static void FieldControl(const std::string& fieldName, ManagedField& field, GCHandle handle)
+		{
+			auto value = field.GetValue<T>(handle);
+			if (UI::Control(fieldName, value))
+				field.SetValue(handle, value);
+		}
+
+		template<typename T>
+		static void FieldStorageControl(const std::string& fieldName, Ref<FieldStorage> field)
+		{
+			auto value = field->GetValue<T>();
+			if (UI::Control(fieldName, value))
+				field->SetValue(value);
 		}
 
 	}
@@ -452,11 +469,81 @@ namespace Shark {
 			ImGui::SetNextItemWidth(-1.0f);
 
 			UI::ScopedStyle scopedStyle;
-			if (!comp.IsExisitingScript)
+			if (!comp.GetClass())
 				scopedStyle.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
 
 			if (ImGui::InputText("##InputScript", &comp.ScriptName))
-				comp.IsExisitingScript = ScriptUtils::ValidScriptName(comp.ScriptName);
+			{
+				Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ScriptName);
+				if (klass)
+					ScriptEngine::SetScriptClass(entity, klass);
+			}
+
+			if (!comp.GetClass())
+				return;
+
+			Ref<Scene> scene = entity.GetScene();
+			if (scene->IsRunning())
+			{
+				GCHandle handle = ScriptEngine::GetEntityInstance(entity);
+				UI::BeginControlsGrid();
+				auto& fields = comp.GetClass()->GetFields();
+				for (auto& [name, field] : fields)
+				{
+					if (!(field.Access & Accessibility::Public))
+						continue;
+
+					switch (field.Type)
+					{
+						case ManagedFieldType::Bool:   utils::FieldControl<bool>(name, field, handle); break;
+						//case ManagedFieldType::Char:   utils::FieldControl<wchar_t>(name, field, handle); break;
+						//case ManagedFieldType::Byte:   utils::FieldControl<uint8_t>(name, field, handle); break;
+						//case ManagedFieldType::SByte:  utils::FieldControl<int8_t>(name, field, handle); break;
+						//case ManagedFieldType::Short:  utils::FieldControl<int16_t>(name, field, handle); break;
+						//case ManagedFieldType::UShort: utils::FieldControl<uint16_t>(name, field, handle); break;
+						case ManagedFieldType::Int:    utils::FieldControl<int>(name, field, handle); break;
+						case ManagedFieldType::UInt:   utils::FieldControl<uint32_t>(name, field, handle); break;
+						//case ManagedFieldType::Long:   utils::FieldControl<int64_t>(name, field, handle); break;
+						//case ManagedFieldType::ULong:  utils::FieldControl<uint64_t>(name, field, handle); break;
+						case ManagedFieldType::Float:  utils::FieldControl<float>(name, field, handle); break;
+						//case ManagedFieldType::Double: utils::FieldControl<double>(name, field, handle); break;
+						//case ManagedFieldType::String: utils::FieldControl<ManagedString>(name, field, handle); break;
+						//case ManagedFieldType::Entity: utils::FieldControl<ManagedEntity>(name, field, handle); break;
+					}
+				}
+				UI::EndControlsGrid();
+			}
+			else
+			{
+				auto& fieldStorageMap = ScriptEngine::GetFieldStorageMap(entity);
+
+				UI::BeginControlsGrid();
+				for (auto& [name, fieldStorage] : fieldStorageMap)
+				{
+					const ManagedField& field = fieldStorage->Field;
+					if (!(field.Access & Accessibility::Public))
+						continue;
+
+					switch (field.Type)
+					{
+						case ManagedFieldType::Bool:   utils::FieldStorageControl<bool>(name, fieldStorage); break;
+						//case ManagedFieldType::Char:   utils::FieldStorageControl<wchar_t>(name, fieldStorage); break;
+						//case ManagedFieldType::Byte:   utils::FieldStorageControl<uint8_t>(name, fieldStorage); break;
+						//case ManagedFieldType::SByte:  utils::FieldStorageControl<int8_t>(name, fieldStorage); break;
+						//case ManagedFieldType::Short:  utils::FieldStorageControl<int16_t>(name, fieldStorage); break;
+						//case ManagedFieldType::UShort: utils::FieldStorageControl<uint16_t>(name, fieldStorage); break;
+						case ManagedFieldType::Int:    utils::FieldStorageControl<int>(name, fieldStorage); break;
+						case ManagedFieldType::UInt:   utils::FieldStorageControl<uint32_t>(name, fieldStorage); break;
+						//case ManagedFieldType::Long:   utils::FieldStorageControl<int64_t>(name, fieldStorage); break;
+						//case ManagedFieldType::ULong:  utils::FieldStorageControl<uint64_t>(name, fieldStorage); break;
+						case ManagedFieldType::Float:  utils::FieldStorageControl<float>(name, fieldStorage); break;
+						//case ManagedFieldType::Double: utils::FieldStorageControl<double>(name, fieldStorage); break;
+						//case ManagedFieldType::String: utils::FieldControl<ManagedString>(name, fieldStorage); break;
+						//case ManagedFieldType::Entity: utils::FieldControl<ManagedEntity>(name, fieldStorage); break;
+					}
+				}
+				UI::EndControlsGrid();
+			}
 
 		});
 

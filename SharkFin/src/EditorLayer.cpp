@@ -471,7 +471,7 @@ namespace Shark {
 				if (ImGui::MenuItem("Reload", nullptr, nullptr, m_SceneState == SceneState::Edit))
 				{
 					ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
-					CheckScriptComponents();
+					UpdateScriptComponents();
 				}
 
 				ImGui::Separator();
@@ -1735,7 +1735,7 @@ namespace Shark {
 		if (m_AssemblyReloadMode == AssemblyReloadMode::Always)
 		{
 			ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
-			CheckScriptComponents();
+			UpdateScriptComponents();
 		}
 		else if (m_AssemblyReloadMode == AssemblyReloadMode::Auto)
 		{
@@ -1743,7 +1743,7 @@ namespace Shark {
 			m_AssemblyReloadMode = AssemblyReloadMode::Always;
 			ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
 			//ScriptEngine::ReloadIfNeeded();
-			CheckScriptComponents();
+			UpdateScriptComponents();
 		}
 
 		ScriptEngine::SetActiveScene(m_ActiveScene);
@@ -1908,15 +1908,17 @@ namespace Shark {
 		Application::Get().OnEvent(event);
 	}
 
-	void EditorLayer::CheckScriptComponents()
+	void EditorLayer::UpdateScriptComponents()
 	{
 		SK_PROFILE_FUNCTION();
 
 		auto view = m_ActiveScene->GetAllEntitysWith<ScriptComponent>();
 		for (auto entityID : view)
 		{
+			Entity entity = { entityID, m_ActiveScene };
 			auto& comp = view.get<ScriptComponent>(entityID);
-			comp.IsExisitingScript = ScriptUtils::ValidScriptName(comp.ScriptName);
+			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ScriptName);
+			ScriptEngine::SetScriptClass(entity, klass);
 		}
 
 	}
