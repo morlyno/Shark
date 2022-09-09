@@ -116,7 +116,6 @@ namespace Shark {
 
 		void DistributeEvent(Event& event);
 
-		void UpdateScriptComponents();
 		void RunScriptSetup();
 		void OpenIDE();
 

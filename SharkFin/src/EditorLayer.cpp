@@ -469,10 +469,7 @@ namespace Shark {
 			if (ImGui::BeginMenu("Script", m_SceneState == SceneState::Edit))
 			{
 				if (ImGui::MenuItem("Reload", nullptr, nullptr, m_SceneState == SceneState::Edit))
-				{
-					ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
-					UpdateScriptComponents();
-				}
+					ScriptEngine::ScheduleReload();
 
 				ImGui::Separator();
 
@@ -1731,22 +1728,7 @@ namespace Shark {
 		m_CurrentOperation = GizmoOperaton::None;
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
-
-		if (m_AssemblyReloadMode == AssemblyReloadMode::Always)
-		{
-			ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
-			UpdateScriptComponents();
-		}
-		else if (m_AssemblyReloadMode == AssemblyReloadMode::Auto)
-		{
-			SK_CORE_ERROR("AssemblyReloadMode::Auto currently not supported");
-			m_AssemblyReloadMode = AssemblyReloadMode::Always;
-			ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
-			//ScriptEngine::ReloadIfNeeded();
-			UpdateScriptComponents();
-		}
-
-		ScriptEngine::SetActiveScene(m_ActiveScene);
+		ScriptEngine::OnRuntimeStart(m_ActiveScene);
 		DistributeEvent(ScenePlayEvent(m_ActiveScene));
 		m_ActiveScene->OnScenePlay();
 	}
@@ -1759,7 +1741,7 @@ namespace Shark {
 		m_InitialSceneState = SceneState::None;
 
 		m_ActiveScene->OnSceneStop();
-		ScriptEngine::SetActiveScene(nullptr);
+		ScriptEngine::OnRuntimeShutdown();
 		SetActiveScene(m_WorkScene);
 	}
 
@@ -1830,7 +1812,7 @@ namespace Shark {
 				NewScene();
 
 			FileSystem::StartWatching(Project::AssetsPath());
-			DistributeEvent(ProjectChangedEvnet(project));
+			DistributeEvent(ProjectChangedEvent(project));
 
 			m_ProjectEditData = config;
 		}
@@ -1856,12 +1838,11 @@ namespace Shark {
 
 		SetActiveScene(nullptr);
 
-		// Note(moro): When CloseProject gets called durring application shutdown the application cant Raise event anymore
+		// Note(moro): When CloseProject gets called durring application shutdown the application can't Raise event anymore
 		//             to get around this issue the event is distributed internal
 		if (!Application::Get().CanRaiseEvents())
 			OnEvent(SceneChangedEvent(nullptr));
 		ScriptEngine::UnloadAssemblies();
-		ScriptEngine::SetActiveScene(nullptr);
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
 		m_WorkScene = nullptr;
@@ -1869,7 +1850,7 @@ namespace Shark {
 		FileSystem::StopWatching();
 
 		Project::SetActive(nullptr);
-		DistributeEvent(ProjectChangedEvnet(nullptr));
+		DistributeEvent(ProjectChangedEvent(nullptr));
 	}
 
 	void EditorLayer::SaveProject()
@@ -1906,21 +1887,6 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		Application::Get().OnEvent(event);
-	}
-
-	void EditorLayer::UpdateScriptComponents()
-	{
-		SK_PROFILE_FUNCTION();
-
-		auto view = m_ActiveScene->GetAllEntitysWith<ScriptComponent>();
-		for (auto entityID : view)
-		{
-			Entity entity = { entityID, m_ActiveScene };
-			auto& comp = view.get<ScriptComponent>(entityID);
-			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ScriptName);
-			ScriptEngine::SetScriptClass(entity, klass);
-		}
-
 	}
 
 	void EditorLayer::RunScriptSetup()

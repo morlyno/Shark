@@ -198,7 +198,7 @@ namespace Shark {
 			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 				MethodThunks::OnDestroy(gcHandle);
 
-			ScriptEngine::ShutdownRuntime();
+			ScriptEngine::OnRuntimeShutdown();
 		}
 
 		m_PhysicsScene.DestoryScene();
@@ -721,7 +721,7 @@ namespace Shark {
 		if (!entity.AllOf<IDComponent>())
 			return;
 
-		if (ScriptEngine::ContainsEntityInstance(entity.GetUUID()))
+		if (ScriptEngine::IsInstantiated(entity))
 			ScriptEngine::DestroyInstance(entity, true);
 	}
 

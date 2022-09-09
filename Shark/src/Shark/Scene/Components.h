@@ -143,16 +143,11 @@ namespace Shark {
 		CircleCollider2DComponent(const CircleCollider2DComponent&) = default;
 	};
 
-	class ScriptComponent
+	struct ScriptComponent
 	{
-	public:
 		std::string ScriptName;
-
-	private:
-		Ref<ScriptClass> m_Class;
-
-	public:
-		Ref<ScriptClass> GetClass() { return m_Class; }
+		uint64_t ClassID = 0;
+		//Ref<ScriptClass> Class;
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;

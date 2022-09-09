@@ -520,8 +520,8 @@ namespace Shark {
 
 					SK_CORE_ASSERT(name, "Couldn't deserialize ScriptComponent::ScriptName");
 					comp.ScriptName = name.as<std::string>();
-					Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ScriptName);
-					ScriptEngine::SetScriptClass(deserializedEntity, klass);
+					Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(comp.ScriptName);
+					comp.ClassID = klass->GetID();
 
 					SK_CORE_TRACE(" - Script Component [{}]", comp.ScriptName);
 				}

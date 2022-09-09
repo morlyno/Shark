@@ -27,15 +27,18 @@ namespace Shark {
 		AssemblyInfo CoreAssembly;
 		AssemblyInfo AppAssembly;
 		bool AssembliesLoaded = false;
+		bool ReloadScheduled = false;
 		ScriptEngineConfig Config;
 		EntityInstancesMap EntityInstances;
 		Ref<Scene> ActiveScene;
+		bool IsRunning = false;
 
 		MonoClass* EntityClass = nullptr;
-		std::unordered_map<std::string, Ref<ScriptClass>> ScriptClasses;
+		//std::unordered_map<std::string, Ref<ScriptClass>> ScriptClasses;
+		std::unordered_map<uint64_t, Ref<ScriptClass>> ScriptClasses;
 
 		// Entity => FieldName => Type
-		std::unordered_map<UUID, FieldStorageMap> FieldStorages;
+		std::unordered_map<UUID, FieldStorageMap> FieldStoragesMap;
 	};
 
 	struct ScriptEngineData* s_Data = nullptr;
@@ -102,7 +105,7 @@ namespace Shark {
 	{
 		ShutdownMono();
 		delete s_Data;
-	} 
+	}
 
 	bool ScriptEngine::LoadAssemblies(const std::filesystem::path& assemblyPath)
 	{
@@ -129,10 +132,9 @@ namespace Shark {
 		return true;
 	}
 
-	void ScriptEngine::ReloadAssemblies(const std::filesystem::path& assemblyPath)
+	void ScriptEngine::ScheduleReload()
 	{
-		UnloadAssemblies();
-		LoadAssemblies(assemblyPath);
+		s_Data->ReloadScheduled = true;
 	}
 
 	void ScriptEngine::UnloadAssemblies()
@@ -142,7 +144,7 @@ namespace Shark {
 		GCManager::Shutdown();
 
 		s_Data->ScriptClasses.clear();
-		s_Data->FieldStorages.clear();
+		s_Data->FieldStoragesMap.clear();
 
 		s_Data->AssembliesLoaded = false;
 
@@ -159,6 +161,15 @@ namespace Shark {
 		mono_domain_set(s_Data->RootDomain, 1);
 		mono_domain_unload(s_Data->RuntimeDomain);
 		s_Data->RuntimeDomain = nullptr;
+	}
+
+	void ScriptEngine::Update()
+	{
+		if (!s_Data->IsRunning && s_Data->ReloadScheduled)
+		{
+			ReloadAssemblies();
+			s_Data->ReloadScheduled = false;
+		}
 	}
 
 	bool ScriptEngine::AssembliesLoaded()
@@ -186,20 +197,64 @@ namespace Shark {
 		return s_Data->EntityClass;
 	}
 
-	Ref<ScriptClass> ScriptEngine::GetScriptClass(const std::string& fullName)
+	Ref<ScriptClass> ScriptEngine::GetScriptClassFromName(const std::string& fullName)
 	{
-		if (s_Data->ScriptClasses.find(fullName) != s_Data->ScriptClasses.end())
-			return s_Data->ScriptClasses.at(fullName);
+		const auto i = std::find_if(s_Data->ScriptClasses.begin(), s_Data->ScriptClasses.end(), [&fullName](auto& pair) { return pair.second->GetName() == fullName; });
+		if (i != s_Data->ScriptClasses.end())
+			return i->second;
+		return nullptr;
+
+		//if (s_Data->ScriptClasses.find(fullName) != s_Data->ScriptClasses.end())
+		//	return s_Data->ScriptClasses.at(fullName);
+		//return nullptr;
+	}
+
+	Ref<ScriptClass> ScriptEngine::GetScriptClass(uint64_t id)
+	{
+		if (s_Data->ScriptClasses.find(id) != s_Data->ScriptClasses.end())
+			return s_Data->ScriptClasses.at(id);
 		return nullptr;
 	}
 
 	FieldStorageMap& ScriptEngine::GetFieldStorageMap(Entity entity)
 	{
-		return s_Data->FieldStorages[entity.GetUUID()];
+		return s_Data->FieldStoragesMap[entity.GetUUID()];
 	}
 
-	void ScriptEngine::ShutdownRuntime()
+	void ScriptEngine::InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle)
 	{
+		MonoObject* obj = GCManager::GetManagedObject(handle);
+#if SK_DEBUG
+		{
+			MonoType* monoType = mono_field_get_type(storage->Field);
+			int alignment;
+			int size = mono_type_size(monoType, &alignment);
+			SK_CORE_ASSERT(size <= sizeof(storage->m_Buffer));
+		}
+#endif
+
+		mono_field_get_value(obj, storage->Field, storage->m_Buffer);
+	}
+
+	void ScriptEngine::OnRuntimeStart(Ref<Scene> scene)
+	{
+		s_Data->ActiveScene = scene;
+		s_Data->IsRunning = true;
+
+		// Destroy all entities created to recive default values
+		for (auto& [uuid, handle] : s_Data->EntityInstances)
+			GCManager::ReleaseHandle(handle);
+		s_Data->EntityInstances.clear();
+		GCManager::Collect();
+
+		//std::unordered_map<UUID, std::unordered_map<std::string, Ref<FieldStorage>>> fieldStoragesMap;
+	}
+
+	void ScriptEngine::OnRuntimeShutdown()
+	{
+		s_Data->ActiveScene = nullptr;
+		s_Data->IsRunning = false;
+
 		for (auto& [uuid, gcHandle] : s_Data->EntityInstances)
 		{
 			GCManager::ReleaseHandle(gcHandle);
@@ -228,7 +283,7 @@ namespace Shark {
 		}
 
 		ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
-		Ref<ScriptClass> scriptClass = scriptComp.GetClass();
+		Ref<ScriptClass> scriptClass = ScriptEngine::GetScriptClass(scriptComp.ClassID);
 		SK_CORE_ASSERT(scriptClass, "Script class not set");
 		MonoClass* clazz = scriptClass->m_Class;
 		MonoClass* entityClass = s_Data->EntityClass;
@@ -253,6 +308,17 @@ namespace Shark {
 			ScriptUtils::HandleException(exception);
 		}
 
+		//SK_CORE_ASSERT(s_Data->FieldStorages.find(uuid) != s_Data->FieldStorages.end(), fmt::format("No Field Storages for Entity ({})", entity.GetName()));
+		//SK_CORE_ASSERT(scriptComp.ScriptName != "Sandbox.PlayerController");
+		if (s_Data->FieldStoragesMap.find(uuid) != s_Data->FieldStoragesMap.end())
+		{
+			const FieldStorageMap& fieldStorages = s_Data->FieldStoragesMap[uuid];
+			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(scriptComp.ClassID);
+			auto& fields = klass->m_Fields;
+			for (const auto& [name, fieldStorage] : fieldStorages)
+				mono_field_set_value(object, fields[name].Field, fieldStorage->m_Buffer);
+		}
+
 		GCHandle gcHandle = GCManager::CreateHandle(object);
 		s_Data->EntityInstances[uuid] = gcHandle;
 
@@ -271,8 +337,7 @@ namespace Shark {
 			return;
 		}
 
-		GCHandle gcHandle = GetEntityInstance(entity.GetUUID());
-		MonoObject* object = mono_gchandle_get_target(gcHandle);
+		GCHandle gcHandle = GetInstance(entity);
 
 		if (invokeOnDestroy)
 			MethodThunks::OnDestroy(gcHandle);
@@ -281,33 +346,13 @@ namespace Shark {
 		s_Data->EntityInstances.erase(uuid);
 	}
 
-	void ScriptEngine::SetScriptClass(Entity entity, Ref<ScriptClass> klass)
-	{
-		auto& comp = entity.GetComponent<ScriptComponent>();
-		comp.m_Class = klass;
-
-		auto& fields = klass->GetFields();
-		auto& storages = s_Data->FieldStorages[entity.GetUUID()];
-		storages.clear();
-
-		MonoObject* object = InstantiateClass(klass->m_Class);
-		mono_runtime_object_init(object);
-
-		for (auto& [name, field] : fields)
-		{
-			Ref<FieldStorage> fieldStorage = Ref<FieldStorage>::Create(field);
-			storages[name] = fieldStorage;
-			mono_field_get_value(object, field.Field, fieldStorage->m_Buffer);
-		}
-	}
-
 	void ScriptEngine::OnEntityDestroyed(Entity entity)
 	{
 		UUID uuid = entity.GetUUID();
-		if (ContainsEntityInstance(uuid))
+		if (IsInstantiated(entity))
 			DestroyInstance(entity, true);
 
-		s_Data->FieldStorages.erase(uuid);
+		s_Data->FieldStoragesMap.erase(uuid);
 	}
 
 	GCHandle ScriptEngine::CreateTempEntity(Entity entity)
@@ -318,7 +363,7 @@ namespace Shark {
 		MonoObject* object = InstantiateClass(entityClass);
 		GCHandle persistentHandle = GCManager::CreateHandle(object);
 		mono_runtime_object_init(object);
-		
+
 		MonoMethodDesc* ctorDesc = mono_method_desc_new(":.ctor(ulong)", false);
 		MonoMethod* ctorMethod = mono_method_desc_search_in_class(ctorDesc, entityClass);
 		mono_method_desc_free(ctorDesc);
@@ -333,17 +378,12 @@ namespace Shark {
 
 		GCManager::ReleaseHandle(handle);
 	}
-	bool ScriptEngine::ContainsEntityInstance(UUID uuid)
+	bool ScriptEngine::IsInstantiated(Entity entity)
 	{
-		return s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end();
+		return s_Data->EntityInstances.find(entity.GetUUID()) != s_Data->EntityInstances.end();
 	}
 
-	GCHandle ScriptEngine::GetEntityInstance(UUID uuid)
-	{
-		return s_Data->EntityInstances.at(uuid);
-	}
-
-	GCHandle ScriptEngine::GetEntityInstance(Entity entity)
+	GCHandle ScriptEngine::GetInstance(Entity entity)
 	{
 		UUID uuid = entity.GetUUID();
 		if (s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end())
@@ -354,11 +394,6 @@ namespace Shark {
 	const EntityInstancesMap& ScriptEngine::GetEntityInstances()
 	{
 		return s_Data->EntityInstances;
-	}
-
-	void ScriptEngine::SetActiveScene(const Ref<Scene>& scene)
-	{
-		s_Data->ActiveScene = scene;
 	}
 
 	Ref<Scene> ScriptEngine::GetActiveScene()
@@ -415,6 +450,22 @@ namespace Shark {
 		s_Data->RootDomain = nullptr;
 	}
 
+	void ScriptEngine::ReloadAssemblies()
+	{
+		SK_CORE_ASSERT(!s_Data->IsRunning, "Reloading at runntime not supported");
+
+		for (auto& [uuid, handle] : s_Data->EntityInstances)
+			GCManager::ReleaseHandle(handle);
+		s_Data->EntityInstances.clear();
+
+		auto fieldStorageBackup = s_Data->FieldStoragesMap;
+		std::filesystem::path assemblyPath = s_Data->AppAssembly.FilePath;
+		UnloadAssemblies();
+		LoadAssemblies(assemblyPath);
+		
+		s_Data->FieldStoragesMap = fieldStorageBackup;
+	}
+
 	bool ScriptEngine::LoadCoreAssembly(const std::filesystem::path& filePath)
 	{
 		MonoAssembly* assembly = LoadMonoAssembly(filePath);
@@ -453,7 +504,7 @@ namespace Shark {
 			return nullptr;
 
 		Buffer fileData = FileSystem::ReadBinary(filePath);
-		
+
 		MonoImageOpenStatus status;
 		MonoImage* image = mono_image_open_from_data_full(fileData.As<char>(), fileData.Size, true, &status, false);
 		if (status != MONO_IMAGE_OK)
@@ -490,7 +541,7 @@ namespace Shark {
 				continue;
 
 			Ref<ScriptClass> scriptClass = Ref<ScriptClass>::Create(nameSpace, name);
-			s_Data->ScriptClasses[scriptClass->GetName()] = scriptClass;
+			s_Data->ScriptClasses[scriptClass->GetID()] = scriptClass;
 		}
 	}
 

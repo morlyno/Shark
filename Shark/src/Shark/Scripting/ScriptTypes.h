@@ -85,6 +85,8 @@ namespace Shark {
 			return *(T*)buffer;
 		}
 
+		operator MonoClassField* () { return Field; }
+
 	private:
 		void SetValueInternal(GCHandle handle, const void* value);
 		void GetValueInternal(GCHandle handle, void* value);
@@ -128,6 +130,7 @@ namespace Shark {
 		ScriptClass(const std::string& nameSpace, const std::string& name);
 		ScriptClass(const AssemblyInfo& assembly, const std::string& nameSpace, const std::string& name);
 
+		uint64_t GetID() const { return m_ID; }
 		const std::string& GetName() const { return m_Name; }
 		std::unordered_map<std::string, ManagedField>& GetFields() { return m_Fields; }
 

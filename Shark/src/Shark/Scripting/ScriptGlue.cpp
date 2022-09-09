@@ -195,16 +195,13 @@ namespace Shark
 
 	static void CallPhyiscsFunc(UnmanagedThunk<MonoObject*, MonoObject*> method, Entity entityA, Entity entityB, Collider2DType colliderType)
 	{
-		UUID uuidA = entityA.GetUUID();
-		if (!ScriptEngine::ContainsEntityInstance(uuidA))
+		if (!ScriptEngine::IsInstantiated(entityA))
 			return;
 
-		UUID uuidB = entityB.GetUUID();
-
-		GCHandle objectHandle = ScriptEngine::GetEntityInstance(uuidA);
+		GCHandle objectHandle = ScriptEngine::GetInstance(entityA);
 		MonoObject* object = GCManager::GetManagedObject(objectHandle);
 
-		GCHandle entityHandle = ScriptEngine::ContainsEntityInstance(uuidB) ? ScriptEngine::GetEntityInstance(uuidB) : ScriptEngine::CreateTempEntity(entityB);
+		GCHandle entityHandle = ScriptEngine::IsInstantiated(entityB) ? ScriptEngine::GetInstance(entityB) : ScriptEngine::CreateTempEntity(entityB);
 		MonoObject* entity = GCManager::GetManagedObject(entityHandle);
 
 		GCHandle colliderHandle = utils::CreateColliderObject(entity, colliderType);
@@ -214,7 +211,7 @@ namespace Shark
 		method.Invoke(object, collider, &exception);
 		ScriptUtils::HandleException((MonoObject*)exception);
 
-		if (!ScriptEngine::ContainsEntityInstance(uuidB))
+		if (!ScriptEngine::IsInstantiated(entityB))
 			ScriptEngine::ReleaseTempEntity(entityHandle);
 
 		GCManager::ReleaseHandle(colliderHandle);
@@ -533,13 +530,13 @@ namespace Shark
 			Entity newEntity = scene->CreateEntity(ScriptUtils::MonoStringToUTF8(name));
 			auto& comp = newEntity.AddComponent<ScriptComponent>();
 			comp.ScriptName = scriptTypeName;
+			Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(comp.ScriptName);
+			comp.ClassID = klass->GetID();
 			mono_free(scriptTypeName);
-			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ScriptName);
-			ScriptEngine::SetScriptClass(newEntity, klass);
 
 			if (ScriptEngine::InstantiateEntity(newEntity, true))
 			{
-				GCHandle gcHandle = ScriptEngine::GetEntityInstance(newEntity.GetUUID());
+				GCHandle gcHandle = ScriptEngine::GetInstance(newEntity);
 				return GCManager::GetManagedObject(gcHandle);
 			}
 			return nullptr;
@@ -580,7 +577,9 @@ namespace Shark
 
 		MonoObject* Scene_GetEntityByID(uint64_t entityID)
 		{
-			if (!ScriptEngine::ContainsEntityInstance(entityID))
+			Entity entity = utils::GetEntity(entityID);
+			SK_CORE_ASSERT(entity);
+			if (!ScriptEngine::IsInstantiated(entity))
 			{
 				MonoClass* entityClass = mono_class_from_name_case(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", "Entity");
 
@@ -591,7 +590,7 @@ namespace Shark
 				return entityInstance;
 			}
 
-			GCHandle gcHandle = ScriptEngine::GetEntityInstance(entityID);
+			GCHandle gcHandle = ScriptEngine::GetInstance(entity);
 			return GCManager::GetManagedObject(gcHandle);
 		}
 

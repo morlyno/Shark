@@ -76,6 +76,7 @@ namespace Shark {
 
 			if (!m_Minimized)
 			{
+				ScriptEngine::Update();
 				UpdateLayers(timeStep);
 
 				if (m_Specification.EnableImGui)

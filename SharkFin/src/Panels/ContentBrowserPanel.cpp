@@ -72,7 +72,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		EventDispacher dispacher(event);
-		dispacher.DispachEvent<ProjectChangedEvnet>([this](ProjectChangedEvnet& event) { Reload(); return true; });
+		dispacher.DispachEvent<ProjectChangedEvent>([this](ProjectChangedEvent& event) { Reload(); return true; });
 	}
 
 	void ContentBrowserPanel::OnFileChanged(const std::vector<FileChangedData>& fileEvents)

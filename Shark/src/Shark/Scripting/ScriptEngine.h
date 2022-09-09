@@ -20,7 +20,7 @@ extern "C" {
 namespace Shark {
 
 	using EntityInstancesMap = std::unordered_map<UUID, GCHandle>;
-	using FieldStorageMap = std::unordered_map<std::string, Ref<FieldStorage>>;
+	using FieldStorageMap = std::map<std::string, Ref<FieldStorage>>;
 
 	struct ScriptEngineConfig
 	{
@@ -34,8 +34,9 @@ namespace Shark {
 		static void Shutdown();
 
 		static bool LoadAssemblies(const std::filesystem::path& assemblyPath);
-		static void ReloadAssemblies(const std::filesystem::path& assemblyPath);
+		static void ScheduleReload();
 		static void UnloadAssemblies();
+		static void Update();
 
 		static bool AssembliesLoaded();
 
@@ -45,30 +46,30 @@ namespace Shark {
 		static MonoDomain* GetRuntimeDomain();
 
 		static MonoClass* GetEntityClass();
-		static Ref<ScriptClass> GetScriptClass(const std::string& fullName);
+		static Ref<ScriptClass> GetScriptClassFromName(const std::string& fullName);
+		static Ref<ScriptClass> GetScriptClass(uint64_t id);
 
 		static FieldStorageMap& GetFieldStorageMap(Entity entity);
+		static void InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle);
 
 	public: // Scripting API
-		static void ShutdownRuntime();
+		static void OnRuntimeStart(Ref<Scene> scene);
+		static void OnRuntimeShutdown();
 
 		static MonoObject* InstantiateClass(MonoClass* klass);
 
 		static bool InstantiateEntity(Entity entity, bool invokeOnCreate);
 		static void DestroyInstance(Entity entity, bool invokeOnDestroy);
 
-		static void SetScriptClass(Entity entity, Ref<ScriptClass> klass);
 		static void OnEntityDestroyed(Entity entity);
 
 		static GCHandle CreateTempEntity(Entity entity);
 		static void ReleaseTempEntity(GCHandle handle);
 
-		static bool ContainsEntityInstance(UUID uuid);
-		static GCHandle GetEntityInstance(UUID uuid);
-		static GCHandle GetEntityInstance(Entity entity);
+		static bool IsInstantiated(Entity entity);
+		static GCHandle GetInstance(Entity entity);
 		static const EntityInstancesMap& GetEntityInstances();
 
-		static void SetActiveScene(const Ref<Scene>& scene);
 		static Ref<Scene> GetActiveScene();
 
 	public:
@@ -93,6 +94,8 @@ namespace Shark {
 	private:
 		static void InitMono();
 		static void ShutdownMono();
+
+		static void ReloadAssemblies();
 
 		static bool LoadCoreAssembly(const std::filesystem::path& filePath);
 		static bool LoadAppAssembly(const std::filesystem::path& filePath);

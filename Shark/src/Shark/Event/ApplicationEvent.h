@@ -39,10 +39,10 @@ namespace Shark {
 		Ref<Scene> m_Scene;
 	};
 
-	class ProjectChangedEvnet : public EventBase<EventType::ProjectChanged, EventCategory::Application>
+	class ProjectChangedEvent : public EventBase<EventType::ProjectChanged, EventCategory::Application>
 	{
 	public:
-		ProjectChangedEvnet(Ref<Project> project)
+		ProjectChangedEvent(Ref<Project> project)
 			: m_Project(project)
 		{}
 

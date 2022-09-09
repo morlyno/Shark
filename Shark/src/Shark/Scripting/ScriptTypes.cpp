@@ -96,13 +96,14 @@ namespace Shark {
 				continue;
 
 			ManagedFieldType type = utils::MonoFieldGetManagedFieldType(field);
-			if (type == ManagedFieldType::None)
+			Accessibility::Flags access = utils::GetFieldAccess(field);
+			if (type == ManagedFieldType::None || !(access & Accessibility::Public))
 				continue;
 
 			const char* fieldName = mono_field_get_name(field);
 			ManagedField& managedField = m_Fields[fieldName];
 			managedField.Type = type;
-			managedField.Access = utils::GetFieldAccess(field);
+			managedField.Access = access;
 			managedField.Field = field;
 		}
 	}

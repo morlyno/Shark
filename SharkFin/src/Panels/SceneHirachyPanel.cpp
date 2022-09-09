@@ -469,25 +469,29 @@ namespace Shark {
 			ImGui::SetNextItemWidth(-1.0f);
 
 			UI::ScopedStyle scopedStyle;
-			if (!comp.GetClass())
+			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ClassID);
+			if (!klass)
 				scopedStyle.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
 
 			if (ImGui::InputText("##InputScript", &comp.ScriptName))
 			{
-				Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ScriptName);
+				klass = ScriptEngine::GetScriptClass(comp.ClassID);
 				if (klass)
-					ScriptEngine::SetScriptClass(entity, klass);
+					comp.ClassID = klass->GetID();
 			}
 
-			if (!comp.GetClass())
+			if (!klass)
 				return;
+
+			ImGui::Separator();
 
 			Ref<Scene> scene = entity.GetScene();
 			if (scene->IsRunning())
 			{
-				GCHandle handle = ScriptEngine::GetEntityInstance(entity);
+				GCHandle handle = ScriptEngine::GetInstance(entity);
 				UI::BeginControlsGrid();
-				auto& fields = comp.GetClass()->GetFields();
+				Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ClassID);
+				auto& fields = klass->GetFields();
 				for (auto& [name, field] : fields)
 				{
 					if (!(field.Access & Accessibility::Public))
@@ -515,6 +519,44 @@ namespace Shark {
 			}
 			else
 			{
+				UI::BeginControlsGrid();
+				Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ClassID);
+				auto& fields = klass->GetFields();
+				for (auto& [name, field] : fields)
+				{
+					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
+					if (fieldStorages.find(name) == fieldStorages.end())
+					{
+						if (!ScriptEngine::IsInstantiated(entity))
+							ScriptEngine::InstantiateEntity(entity, false);
+						GCHandle handle = ScriptEngine::GetInstance(entity);
+						Ref<FieldStorage> storage = Ref<FieldStorage>::Create(field);
+						ScriptEngine::InitializeFieldStorage(storage, handle);
+						fieldStorages[name] = storage;
+					}
+
+					Ref<FieldStorage> storage = fieldStorages.at(name);
+					switch (field.Type)
+					{
+						case ManagedFieldType::Bool:   utils::FieldStorageControl<bool>(name, storage); break;
+							//case ManagedFieldType::Char:   utils::FieldStorageControl<wchar_t>(name, fieldStorage); break;
+							//case ManagedFieldType::Byte:   utils::FieldStorageControl<uint8_t>(name, fieldStorage); break;
+							//case ManagedFieldType::SByte:  utils::FieldStorageControl<int8_t>(name, fieldStorage); break;
+							//case ManagedFieldType::Short:  utils::FieldStorageControl<int16_t>(name, fieldStorage); break;
+							//case ManagedFieldType::UShort: utils::FieldStorageControl<uint16_t>(name, fieldStorage); break;
+						case ManagedFieldType::Int:    utils::FieldStorageControl<int>(name, storage); break;
+						case ManagedFieldType::UInt:   utils::FieldStorageControl<uint32_t>(name, storage); break;
+							//case ManagedFieldType::Long:   utils::FieldStorageControl<int64_t>(name, fieldStorage); break;
+							//case ManagedFieldType::ULong:  utils::FieldStorageControl<uint64_t>(name, fieldStorage); break;
+						case ManagedFieldType::Float:  utils::FieldStorageControl<float>(name, storage); break;
+							//case ManagedFieldType::Double: utils::FieldStorageControl<double>(name, fieldStorage); break;
+							//case ManagedFieldType::String: utils::FieldControl<ManagedString>(name, fieldStorage); break;
+							//case ManagedFieldType::Entity: utils::FieldControl<ManagedEntity>(name, fieldStorage); break;
+					}
+				}
+				UI::EndControlsGrid();
+
+#if 0
 				auto& fieldStorageMap = ScriptEngine::GetFieldStorageMap(entity);
 
 				UI::BeginControlsGrid();
@@ -543,6 +585,7 @@ namespace Shark {
 					}
 				}
 				UI::EndControlsGrid();
+#endif
 			}
 
 		});
