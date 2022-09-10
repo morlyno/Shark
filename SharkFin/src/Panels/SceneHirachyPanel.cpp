@@ -511,7 +511,17 @@ namespace Shark {
 						//case ManagedFieldType::ULong:  utils::FieldControl<uint64_t>(name, field, handle); break;
 						case ManagedFieldType::Float:  utils::FieldControl<float>(name, field, handle); break;
 						//case ManagedFieldType::Double: utils::FieldControl<double>(name, field, handle); break;
-						//case ManagedFieldType::String: utils::FieldControl<ManagedString>(name, field, handle); break;
+						case ManagedFieldType::String:
+						{
+							if (UI::ControlCustomBegin(name))
+							{
+								std::string str = field.GetValue<std::string>(handle);
+								if (ImGui::InputText("##inputText", &str))
+									field.SetValue(handle, str);
+								UI::ControlCustomEnd();
+							}
+							break;
+						}
 						//case ManagedFieldType::Entity: utils::FieldControl<ManagedEntity>(name, field, handle); break;
 					}
 				}
@@ -528,7 +538,7 @@ namespace Shark {
 					if (fieldStorages.find(name) == fieldStorages.end())
 					{
 						if (!ScriptEngine::IsInstantiated(entity))
-							ScriptEngine::InstantiateEntity(entity, false);
+							ScriptEngine::InstantiateEntity(entity, false, false);
 						GCHandle handle = ScriptEngine::GetInstance(entity);
 						Ref<FieldStorage> storage = Ref<FieldStorage>::Create(field);
 						ScriptEngine::InitializeFieldStorage(storage, handle);
@@ -539,18 +549,29 @@ namespace Shark {
 					switch (field.Type)
 					{
 						case ManagedFieldType::Bool:   utils::FieldStorageControl<bool>(name, storage); break;
-							//case ManagedFieldType::Char:   utils::FieldStorageControl<wchar_t>(name, fieldStorage); break;
-							//case ManagedFieldType::Byte:   utils::FieldStorageControl<uint8_t>(name, fieldStorage); break;
-							//case ManagedFieldType::SByte:  utils::FieldStorageControl<int8_t>(name, fieldStorage); break;
-							//case ManagedFieldType::Short:  utils::FieldStorageControl<int16_t>(name, fieldStorage); break;
-							//case ManagedFieldType::UShort: utils::FieldStorageControl<uint16_t>(name, fieldStorage); break;
+							//case ManagedFieldType::Char:   utils::FieldStorageControl<wchar_t>(name, storage); break;
+							//case ManagedFieldType::Byte:   utils::FieldStorageControl<uint8_t>(name, storage); break;
+							//case ManagedFieldType::SByte:  utils::FieldStorageControl<int8_t>(name, storage); break;
+							//case ManagedFieldType::Short:  utils::FieldStorageControl<int16_t>(name, storage); break;
+							//case ManagedFieldType::UShort: utils::FieldStorageControl<uint16_t>(name, storage); break;
 						case ManagedFieldType::Int:    utils::FieldStorageControl<int>(name, storage); break;
 						case ManagedFieldType::UInt:   utils::FieldStorageControl<uint32_t>(name, storage); break;
-							//case ManagedFieldType::Long:   utils::FieldStorageControl<int64_t>(name, fieldStorage); break;
-							//case ManagedFieldType::ULong:  utils::FieldStorageControl<uint64_t>(name, fieldStorage); break;
+							//case ManagedFieldType::Long:   utils::FieldStorageControl<int64_t>(name, storage); break;
+							//case ManagedFieldType::ULong:  utils::FieldStorageControl<uint64_t>(name, storage); break;
 						case ManagedFieldType::Float:  utils::FieldStorageControl<float>(name, storage); break;
-							//case ManagedFieldType::Double: utils::FieldStorageControl<double>(name, fieldStorage); break;
-							//case ManagedFieldType::String: utils::FieldControl<ManagedString>(name, fieldStorage); break;
+						//case ManagedFieldType::Double: utils::FieldStorageControl<double>(name, storage); break;
+						case ManagedFieldType::String:
+						{
+							if (UI::ControlCustomBegin(name))
+							{
+								std::string str = storage->GetValue<std::string>();
+								if (ImGui::InputText("##inputText", &str))
+									storage->SetValue(str);
+								UI::ControlCustomEnd();
+							}
+							break;
+						}
+
 							//case ManagedFieldType::Entity: utils::FieldControl<ManagedEntity>(name, fieldStorage); break;
 					}
 				}

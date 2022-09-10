@@ -534,7 +534,7 @@ namespace Shark
 			comp.ClassID = klass->GetID();
 			mono_free(scriptTypeName);
 
-			if (ScriptEngine::InstantiateEntity(newEntity, true))
+			if (ScriptEngine::InstantiateEntity(newEntity, true, false))
 			{
 				GCHandle gcHandle = ScriptEngine::GetInstance(newEntity);
 				return GCManager::GetManagedObject(gcHandle);

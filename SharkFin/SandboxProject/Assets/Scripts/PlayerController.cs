@@ -9,7 +9,7 @@ namespace Sandbox
 		private uint m_CollishionCount = 0;
 		private bool m_ShouldJump = false;
 
-		public float Hallo = -1.0f;
+		public string Test = "Hallo";
 
 		// Movement
 		public float MovementSpeed = 8.0f; // m/s;

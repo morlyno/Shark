@@ -77,6 +77,21 @@ namespace Shark {
 		mono_field_get_value(obj, Field, value);
 	}
 
+	void ManagedField::SetString(GCHandle handle, const std::string& value)
+	{
+		MonoString* monoString = ScriptUtils::UTF8ToMonoString(value);
+		MonoObject* obj = GCManager::GetManagedObject(handle);
+		mono_field_set_value(obj, Field, monoString);
+	}
+
+	std::string ManagedField::GetString(GCHandle handle)
+	{
+		MonoObject* obj = GCManager::GetManagedObject(handle);
+		MonoObject* stringObj = mono_field_get_value_object(ScriptEngine::GetRuntimeDomain(), Field, obj);
+		MonoString* monoString = mono_object_to_string(stringObj, nullptr);
+		return ScriptUtils::MonoStringToUTF8(monoString);
+	}
+
 	ScriptClass::ScriptClass(const std::string& nameSpace, const std::string& name)
 		: ScriptClass(ScriptEngine::GetAppAssemblyInfo(), nameSpace, name)
 	{

@@ -27,7 +27,7 @@ Scene:
       TagComponent:
         Tag: Player
       TransformComponent:
-        Position: [0, 1.84103084, 0]
+        Position: [0.447277188, 1.79727459, 0]
         Rotation: [0, 0, 0]
         Scaling: [1, 1.46200013, 0.73099941]
       RelationshipComponent:
@@ -57,6 +57,13 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.PlayerController
+        Fields:
+          - Name: DestroyBallOnHit
+            Value: true
+          - Name: MovementSpeed
+            Value: 16
+          - Name: Test
+            Value: asdasd
     - Entity: 0x208852740dab9b52
       TagComponent:
         Tag: DoorSensor
@@ -79,6 +86,8 @@ Scene:
         IsSensor: true
       ScriptComponent:
         ScriptName: Sandbox.DoorSensor
+        Fields:
+          []
     - Entity: 0x2d7222168d7f312b
       TagComponent:
         Tag: Floor
@@ -105,6 +114,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0x5e341a7845afd12b
       TagComponent:
         Tag: Floor
@@ -131,6 +142,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0x63c6ec00a49d7fa4
       TagComponent:
         Tag: Floor
@@ -157,6 +170,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0x647ce187fd0f1ceb
       TagComponent:
         Tag: Floor
@@ -183,6 +198,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0x6802d506a686729b
       TagComponent:
         Tag: Floor
@@ -209,6 +226,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0x6c99ee886e60b877
       TagComponent:
         Tag: Door
@@ -235,6 +254,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0x7ea5428e94ce6128
       TagComponent:
         Tag: Floor
@@ -261,6 +282,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0x8c7a856c8315563b
       TagComponent:
         Tag: Floor
@@ -287,6 +310,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0x9542421fd34573a5
       TagComponent:
         Tag: BallTemplate
@@ -332,7 +357,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.13888884
+        Aspectratio: 2.18315029
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -361,6 +386,8 @@ Scene:
         IsSensor: true
       ScriptComponent:
         ScriptName: Sandbox.BallDestroyer
+        Fields:
+          []
     - Entity: 0xc539186ecd448346
       TagComponent:
         Tag: Floor
@@ -387,6 +414,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0xc55718d7fdd18f8f
       TagComponent:
         Tag: Camera Otho
@@ -400,7 +429,7 @@ Scene:
           []
       CameraComponent:
         Type: Orthographic
-        Aspectratio: 2.13888884
+        Aspectratio: 2.18315029
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -433,6 +462,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []
     - Entity: 0xe5ff6bf1e4f4123f
       TagComponent:
         Tag: MovingPlatform
@@ -467,6 +498,8 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.PlatformScript
+        Fields:
+          []
     - Entity: 0xf42ff09aeb3afef2
       TagComponent:
         Tag: Quad
@@ -508,3 +541,5 @@ Scene:
         IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
+        Fields:
+          []

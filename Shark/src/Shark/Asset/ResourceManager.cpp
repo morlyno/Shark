@@ -182,7 +182,6 @@ namespace Shark {
 			Ref<Asset> asset = s_LoadedAssets.at(handle);
 			SK_CORE_ASSERT(asset);
 			asset->SetFlag(AssetFlag::Unloaded, true);
-			asset->Flags |= AssetFlag::Unloaded;
 			UnloadAsset(handle);
 		}
 		LoadAsset(handle);

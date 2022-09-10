@@ -43,22 +43,6 @@ namespace Shark {
 
 	struct ScriptEngineData* s_Data = nullptr;
 
-	namespace utils {
-
-		static std::pair<std::string, std::string> SliptClassFullName(const std::string& fullClassName)
-		{
-			size_t s = fullClassName.rfind('.');
-			if (s == std::string::npos)
-				return {};
-
-			return {
-				fullClassName.substr(0, s),
-				fullClassName.substr(s + 1)
-			};
-		}
-
-	}
-
 	static void MonoTraceLogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
 	{
 		Log::Level level = Log::Level::Trace;
@@ -236,7 +220,7 @@ namespace Shark {
 		mono_field_get_value(obj, storage->Field, storage->m_Buffer);
 	}
 
-	void ScriptEngine::OnRuntimeStart(Ref<Scene> scene)
+	void ScriptEngine::InitializeRuntime(Ref<Scene> scene)
 	{
 		s_Data->ActiveScene = scene;
 		s_Data->IsRunning = true;
@@ -250,7 +234,7 @@ namespace Shark {
 		//std::unordered_map<UUID, std::unordered_map<std::string, Ref<FieldStorage>>> fieldStoragesMap;
 	}
 
-	void ScriptEngine::OnRuntimeShutdown()
+	void ScriptEngine::ShutdownRuntime()
 	{
 		s_Data->ActiveScene = nullptr;
 		s_Data->IsRunning = false;
@@ -270,7 +254,7 @@ namespace Shark {
 		return mono_object_new(s_Data->RuntimeDomain, klass);
 	}
 
-	bool ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate)
+	bool ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields)
 	{
 		if (!s_Data->AssembliesLoaded || !(entity && entity.AllOf<ScriptComponent>()))
 			return false;
@@ -308,19 +292,11 @@ namespace Shark {
 			ScriptUtils::HandleException(exception);
 		}
 
-		//SK_CORE_ASSERT(s_Data->FieldStorages.find(uuid) != s_Data->FieldStorages.end(), fmt::format("No Field Storages for Entity ({})", entity.GetName()));
-		//SK_CORE_ASSERT(scriptComp.ScriptName != "Sandbox.PlayerController");
-		if (s_Data->FieldStoragesMap.find(uuid) != s_Data->FieldStoragesMap.end())
-		{
-			const FieldStorageMap& fieldStorages = s_Data->FieldStoragesMap[uuid];
-			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(scriptComp.ClassID);
-			auto& fields = klass->m_Fields;
-			for (const auto& [name, fieldStorage] : fieldStorages)
-				mono_field_set_value(object, fields[name].Field, fieldStorage->m_Buffer);
-		}
-
 		GCHandle gcHandle = GCManager::CreateHandle(object);
 		s_Data->EntityInstances[uuid] = gcHandle;
+
+		if (initializeFields)
+			InitializeFields(entity);
 
 		if (invokeOnCreate)
 			MethodThunks::OnCreate(gcHandle);
@@ -344,6 +320,53 @@ namespace Shark {
 
 		GCManager::ReleaseHandle(gcHandle);
 		s_Data->EntityInstances.erase(uuid);
+	}
+
+	void ScriptEngine::InitializeFields(Entity entity)
+	{
+		UUID uuid = entity.GetUUID();
+
+		if (s_Data->FieldStoragesMap.find(uuid) != s_Data->FieldStoragesMap.end())
+		{
+			auto& scriptComp = entity.GetComponent<ScriptComponent>();
+			GCHandle handle = GetInstance(entity);
+			MonoObject* object = GCManager::GetManagedObject(handle);
+
+			const FieldStorageMap& fieldStorages = s_Data->FieldStoragesMap[uuid];
+			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(scriptComp.ClassID);
+			auto& fields = klass->m_Fields;
+			for (auto& [name, field] : fields)
+			{
+				if (fieldStorages.find(name) == fieldStorages.end())
+					continue;
+
+				Ref<FieldStorage> storage = fieldStorages.at(name);
+
+				if (field.Type == ManagedFieldType::Entity)
+				{
+					UUID entityID = storage->GetValue<UUID>();
+					MonoObject* entityObj = nullptr;
+					if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
+					{
+						entityObj = GCManager::GetManagedObject(s_Data->EntityInstances.at(entityID));
+					}
+					else
+					{
+						entityObj = CreateEntity(entityID);
+					}
+					mono_field_set_value(object, field, entityObj);
+					continue;
+				}
+
+				if (field.Type == ManagedFieldType::String)
+				{
+					field.SetValue(handle, storage->GetValue<std::string>());
+					continue;
+				}
+
+				mono_field_set_value(object, field, storage->m_Buffer);
+			}
+		}
 	}
 
 	void ScriptEngine::OnEntityDestroyed(Entity entity)
@@ -519,6 +542,19 @@ namespace Shark {
 		mono_image_close(image);
 		fileData.Release();
 		return assembly;
+	}
+
+	MonoObject* ScriptEngine::CreateEntity(UUID uuid)
+	{
+		MonoObject* object = InstantiateClass(s_Data->EntityClass);
+		mono_runtime_object_init(object);
+
+		MonoMethodDesc* ctorDesc = mono_method_desc_new(":.ctor(ulong)", false);
+		MonoMethod* ctorMethod = mono_method_desc_search_in_class(ctorDesc, s_Data->EntityClass);
+		mono_method_desc_free(ctorDesc);
+		InvokeMethod(object, ctorMethod, uuid);
+
+		return object;
 	}
 
 	void ScriptEngine::CacheScriptClasses()

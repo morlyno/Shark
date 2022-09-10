@@ -53,13 +53,15 @@ namespace Shark {
 		static void InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle);
 
 	public: // Scripting API
-		static void OnRuntimeStart(Ref<Scene> scene);
-		static void OnRuntimeShutdown();
+		static void InitializeRuntime(Ref<Scene> scene);
+		static void ShutdownRuntime();
 
 		static MonoObject* InstantiateClass(MonoClass* klass);
 
-		static bool InstantiateEntity(Entity entity, bool invokeOnCreate);
+		static bool InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields);
 		static void DestroyInstance(Entity entity, bool invokeOnDestroy);
+
+		static void InitializeFields(Entity entity);
 
 		static void OnEntityDestroyed(Entity entity);
 
@@ -102,6 +104,7 @@ namespace Shark {
 
 		static MonoAssembly* LoadMonoAssembly(const std::filesystem::path& filePath);
 
+		static MonoObject* CreateEntity(UUID uuid);
 		static void CacheScriptClasses();
 
 		static void UnhandledExeptionHook(MonoObject* exc, void* user_data);

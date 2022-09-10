@@ -68,6 +68,42 @@ namespace Shark {
 
 	}
 
+	static void SerializeFieldStorage(YAML::Emitter& out, Ref<FieldStorage> storage)
+	{
+		switch (storage->Field.Type)
+		{
+			case ManagedFieldType::Bool: out << storage->GetValue<bool>(); break;
+			case ManagedFieldType::Char: out << storage->GetValue<wchar_t>(); break;
+			case ManagedFieldType::Byte: out << storage->GetValue<uint8_t>(); break;
+			case ManagedFieldType::SByte: out << storage->GetValue<int8_t>(); break;
+			case ManagedFieldType::Short: out << storage->GetValue<int16_t>(); break;
+			case ManagedFieldType::UShort: out << storage->GetValue<uint16_t>(); break;
+			case ManagedFieldType::Int: out << storage->GetValue<int>(); break;
+			case ManagedFieldType::UInt: out << storage->GetValue<uint32_t>(); break;
+			case ManagedFieldType::Long: out << storage->GetValue<int64_t>(); break;
+			case ManagedFieldType::ULong: out << storage->GetValue<uint64_t>(); break;
+			case ManagedFieldType::Float: out << storage->GetValue<float>(); break;
+			case ManagedFieldType::Double: out << storage->GetValue<double>(); break;
+			case ManagedFieldType::String:
+			{
+				MonoString* monoString = storage->GetValue<MonoString*>();
+				out << ScriptUtils::MonoStringToUTF8(monoString);
+				break;
+			}
+			case ManagedFieldType::Entity:
+			{
+				UUID entityID = storage->GetValue<UUID>();
+				out << entityID;
+				break;
+			}
+			default:
+			{
+				SK_CORE_ASSERT("Unkown Field Type");
+				break;
+			}
+		}
+	}
+
 	static bool SerializeEntity(YAML::Emitter& out, Entity entity, const Ref<Scene>& scene)
 	{
 		SK_PROFILE_FUNCTION();
@@ -244,6 +280,42 @@ namespace Shark {
 
 			const auto& comp = entity.GetComponent<ScriptComponent>();
 			out << YAML::Key << "ScriptName" << YAML::Value << comp.ScriptName;
+
+			out << YAML::Key << "Fields" << YAML::Value;
+			out << YAML::BeginSeq;
+
+			const auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
+			for (const auto& [name, storage] : fieldStorages)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << name;
+				out << YAML::Key << "Value" << YAML::Value;
+				switch (storage->Field.Type)
+				{
+					case ManagedFieldType::Bool: out << storage->GetValue<bool>(); break;
+					case ManagedFieldType::Char: out << storage->GetValue<wchar_t>(); break;
+					case ManagedFieldType::Byte: out << storage->GetValue<uint8_t>(); break;
+					case ManagedFieldType::SByte: out << storage->GetValue<int8_t>(); break;
+					case ManagedFieldType::Short: out << storage->GetValue<int16_t>(); break;
+					case ManagedFieldType::UShort: out << storage->GetValue<uint16_t>(); break;
+					case ManagedFieldType::Int: out << storage->GetValue<int>(); break;
+					case ManagedFieldType::UInt: out << storage->GetValue<uint32_t>(); break;
+					case ManagedFieldType::Long: out << storage->GetValue<int64_t>(); break;
+					case ManagedFieldType::ULong: out << storage->GetValue<uint64_t>(); break;
+					case ManagedFieldType::Float: out << storage->GetValue<float>(); break;
+					case ManagedFieldType::Double: out << storage->GetValue<double>(); break;
+					case ManagedFieldType::String: out << storage->GetValue<std::string>(); break;
+					case ManagedFieldType::Entity: out << storage->GetValue<UUID>(); break;
+					default:
+					{
+						SK_CORE_ASSERT("Unkown Field Type");
+						break;
+					}
+				}
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
 
 			out << YAML::EndMap;
 		}
@@ -523,6 +595,36 @@ namespace Shark {
 					Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(comp.ScriptName);
 					comp.ClassID = klass->GetID();
 
+					auto fields = scriptComponent["Fields"];
+					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(deserializedEntity);
+					for (auto field : fields)
+					{
+						std::string fieldName = field["Name"].as<std::string>();
+						if (!klass->HasField(fieldName))
+							continue;
+
+						const ManagedField& managedField = klass->GetField(fieldName);
+						Ref<FieldStorage> storage = Ref<FieldStorage>::Create(managedField);
+						fieldStorages[fieldName] = storage;
+						switch (managedField.Type)
+						{
+							case ManagedFieldType::Bool:   storage->SetValue(field["Value"].as<bool>()); break;
+							case ManagedFieldType::Char:   storage->SetValue(field["Value"].as<wchar_t>()); break;
+							case ManagedFieldType::Byte:   storage->SetValue(field["Value"].as<uint8_t>()); break;
+							case ManagedFieldType::SByte:  storage->SetValue(field["Value"].as<int8_t>()); break;
+							case ManagedFieldType::Short:  storage->SetValue(field["Value"].as<int16_t>()); break;
+							case ManagedFieldType::UShort: storage->SetValue(field["Value"].as<uint16_t>()); break;
+							case ManagedFieldType::Int:    storage->SetValue(field["Value"].as<int>()); break;
+							case ManagedFieldType::UInt:   storage->SetValue(field["Value"].as<uint32>()); break;
+							case ManagedFieldType::Long:   storage->SetValue(field["Value"].as<int64_t>()); break;
+							case ManagedFieldType::ULong:  storage->SetValue(field["Value"].as<uint64_t>()); break;
+							case ManagedFieldType::Float:  storage->SetValue(field["Value"].as<float>()); break;
+							case ManagedFieldType::Double: storage->SetValue(field["Value"].as<double>()); break;
+							case ManagedFieldType::String: storage->SetValue(field["Value"].as<std::string>()); break;
+							case ManagedFieldType::Entity: storage->SetValue(field["Value"].as<UUID>()); break;
+						}
+					}
+
 					SK_CORE_TRACE(" - Script Component [{}]", comp.ScriptName);
 				}
 			}
@@ -560,6 +662,8 @@ namespace Shark {
 		catch (YAML::Exception& e)
 		{
 			scene->SetFlag(AssetFlag::InvalidFile, true);
+			scene->m_Registry.clear();
+			scene->m_EntityUUIDMap.clear();
 			SK_CORE_ERROR("[Scene Serializer] {0}", e.what());
 			return false;
 		}

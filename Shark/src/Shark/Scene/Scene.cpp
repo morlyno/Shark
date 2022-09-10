@@ -125,12 +125,19 @@ namespace Shark {
 				for (auto entityID : view)
 				{
 					Entity entity{ entityID, this };
-					ScriptEngine::InstantiateEntity(entity, false);
+					ScriptEngine::InstantiateEntity(entity, false, false);
+				}
+
+				for (auto entityID : view)
+				{
+					Entity entity{ entityID, this };
+					ScriptEngine::InitializeFields(entity);
 				}
 			}
 
 			{
-				for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+
+				for (const auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 					MethodThunks::OnCreate(gcHandle);
 			}
 		}
@@ -198,7 +205,7 @@ namespace Shark {
 			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 				MethodThunks::OnDestroy(gcHandle);
 
-			ScriptEngine::OnRuntimeShutdown();
+			ScriptEngine::ShutdownRuntime();
 		}
 
 		m_PhysicsScene.DestoryScene();
@@ -716,10 +723,12 @@ namespace Shark {
 	{
 		Entity entity{ ent, this };
 
+#if 0
 		// if id component dosn't exist the callback probably comes from DestroyEntityInternal
 		// so the script is allready destroyed
 		if (!entity.AllOf<IDComponent>())
 			return;
+#endif
 
 		if (ScriptEngine::IsInstantiated(entity))
 			ScriptEngine::DestroyInstance(entity, true);

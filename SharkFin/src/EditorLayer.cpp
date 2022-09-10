@@ -1728,7 +1728,7 @@ namespace Shark {
 		m_CurrentOperation = GizmoOperaton::None;
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
-		ScriptEngine::OnRuntimeStart(m_ActiveScene);
+		ScriptEngine::InitializeRuntime(m_ActiveScene);
 		DistributeEvent(ScenePlayEvent(m_ActiveScene));
 		m_ActiveScene->OnScenePlay();
 	}
@@ -1741,7 +1741,7 @@ namespace Shark {
 		m_InitialSceneState = SceneState::None;
 
 		m_ActiveScene->OnSceneStop();
-		ScriptEngine::OnRuntimeShutdown();
+		ScriptEngine::ShutdownRuntime();
 		SetActiveScene(m_WorkScene);
 	}
 

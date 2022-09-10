@@ -267,8 +267,6 @@ namespace Shark {
 			ImGui::DockNodeAddWindow(viewportNode, viewport, false);
 			ImGui::DockNodeAddWindow(settingsNode, settings, true);
 			
-			// NOTE(moro): more context to 19.0f soon
-			//             19.0f shoud be the height of a nodes tabbar
 			const float tabbarHeight = GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f;
 			ImGui::DockBuilderSetNodeSize(dockViewport, viewportNode->Size - ImVec2(0.0f, tabbarHeight));
 		}
