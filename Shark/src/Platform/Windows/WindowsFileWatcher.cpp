@@ -168,6 +168,7 @@ namespace Shark {
 
 	void WindowsFileWatcher::StartWatching(const std::string& key, const std::filesystem::path& dirPath, FileWatcherCallbackFunc callback)
 	{
+		SK_CORE_ASSERT(m_Watches.find(key) == m_Watches.end());
 		WatchData* watchData = CreateWatchData(dirPath.c_str(), (DWORD)NotifyFilter::Default, TRUE);
 		watchData->Callback = callback;
 		watchData->EnabledEvents = EventFilter::All;
@@ -177,6 +178,7 @@ namespace Shark {
 
 	void WindowsFileWatcher::StartWatching(const std::string& key, const std::filesystem::path& dirPath, const WatchingSettings& settings)
 	{
+		SK_CORE_ASSERT(m_Watches.find(key) == m_Watches.end());
 		WatchData* watchData = CreateWatchData(dirPath.c_str(), (DWORD)settings.NofityFilter, settings.IsRecursive);
 		watchData->Callback = settings.Callback;
 		watchData->EnabledEvents = settings.EnabledEvents;
@@ -186,6 +188,7 @@ namespace Shark {
 
 	void WindowsFileWatcher::StopWatching(const std::string& key)
 	{
+		SK_CORE_ASSERT(m_Watches.find(key) != m_Watches.end());
 		if (m_Watches.find(key) == m_Watches.end())
 			return;
 

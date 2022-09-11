@@ -26,6 +26,7 @@
 #include <chrono>
 
 #include <fmt/format.h>
+#include <fmt/chrono.h>
 
 #define GLM_ENABLE_EXPERIMENTAL 1
 #include <glm/glm.hpp>

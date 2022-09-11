@@ -465,9 +465,9 @@ namespace Shark {
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("Script", m_SceneState == SceneState::Edit))
+			if (ImGui::BeginMenu("Script"))
 			{
-				if (ImGui::MenuItem("Reload", nullptr, nullptr, m_SceneState == SceneState::Edit))
+				if (ImGui::MenuItem("Reload"))
 					ScriptEngine::ScheduleReload();
 
 				ImGui::Separator();

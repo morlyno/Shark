@@ -17,6 +17,7 @@
 #include <mono/utils/mono-logger.h>
 #include <mono/metadata/exception.h>
 #include <mono/metadata/debug-helpers.h>
+#include "mono/metadata/attrdefs.h"
 
 namespace Shark {
 
@@ -109,6 +110,15 @@ namespace Shark {
 		ScriptGlue::Init();
 		ScriptUtils::Init();
 
+		WatchingSettings settings;
+		settings.Callback = [](const auto&) { ScriptEngine::ScheduleReload(); };
+		settings.NofityFilter = NotifyFilter::Creation | NotifyFilter::LastWrite;
+		settings.EnabledEvents = EventFilter::Created | EventFilter::Modified;
+		settings.IsRecursive = false;
+
+		Ref<FileWatcher> fileWatcher = FileSystem::GetFileWatcher();
+		fileWatcher->StartWatching("AppAssembly", s_Data->AppAssembly.FilePath.parent_path(), settings);
+
 		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
 
 		CacheScriptClasses();
@@ -152,6 +162,7 @@ namespace Shark {
 		if (!s_Data->IsRunning && s_Data->ReloadScheduled)
 		{
 			ReloadAssemblies();
+
 			s_Data->ReloadScheduled = false;
 		}
 	}
@@ -479,58 +490,13 @@ namespace Shark {
 		s_Data->RootDomain = nullptr;
 	}
 
-	void ScriptEngine::ReloadAssemblies()
-	{
-		SK_CORE_ASSERT(!s_Data->IsRunning, "Reloading at runntime not supported");
-
-		for (auto& [uuid, handle] : s_Data->EntityInstances)
-			GCManager::ReleaseHandle(handle);
-		s_Data->EntityInstances.clear();
-
-		auto fieldStorageBackup = s_Data->FieldStoragesMap;
-		std::filesystem::path assemblyPath = s_Data->AppAssembly.FilePath;
-		UnloadAssemblies();
-		LoadAssemblies(assemblyPath);
-		
-		s_Data->FieldStoragesMap = fieldStorageBackup;
-	}
-
-	bool ScriptEngine::LoadCoreAssembly(const std::filesystem::path& filePath)
-	{
-		MonoAssembly* assembly = LoadMonoAssembly(filePath);
-		if (!assembly)
-		{
-			SK_CORE_ERROR("[ScriptEngine] Failed to load Core Assembly");
-			return false;
-		}
-
-		AssemblyInfo& info = s_Data->CoreAssembly;
-		info.Assembly = assembly;
-		info.Image = mono_assembly_get_image(assembly);
-		info.FilePath = filePath;
-		return true;
-	}
-
-	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& filePath)
-	{
-		MonoAssembly* assembly = LoadMonoAssembly(filePath);
-		if (!assembly)
-		{
-			SK_CORE_ERROR("[ScriptEngine] Failed to load App Assembly");
-			return false;
-		}
-
-		AssemblyInfo& info = s_Data->AppAssembly;
-		info.Assembly = assembly;
-		info.Image = mono_assembly_get_image(assembly);
-		info.FilePath = filePath;
-		return true;
-	}
-
-	MonoAssembly* ScriptEngine::LoadMonoAssembly(const std::filesystem::path& filePath)
+	MonoAssembly* ScriptEngine::LoadCSAssembly(const std::filesystem::path& filePath)
 	{
 		if (!std::filesystem::exists(filePath))
+		{
+			SK_CORE_ERROR("[ScriptEngine] Can't load Assembly! Filepath dosn't exist");
 			return nullptr;
+		}
 
 		Buffer fileData = FileSystem::ReadBinary(filePath);
 
@@ -548,6 +514,81 @@ namespace Shark {
 		mono_image_close(image);
 		fileData.Release();
 		return assembly;
+	}
+
+	bool ScriptEngine::LoadCoreAssembly(const std::filesystem::path& filePath)
+	{
+		MonoAssembly* assembly = LoadCSAssembly(filePath);
+		if (!assembly)
+		{
+			SK_CORE_ERROR("[ScriptEngine] Failed to load Core Assembly");
+			return false;
+		}
+
+		AssemblyInfo& info = s_Data->CoreAssembly;
+		info.Assembly = assembly;
+		info.Image = mono_assembly_get_image(assembly);
+		info.FilePath = filePath;
+		return true;
+	}
+
+	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& filePath)
+	{
+		MonoAssembly* assembly = LoadCSAssembly(filePath);
+		if (!assembly)
+		{
+			SK_CORE_ERROR("[ScriptEngine] Failed to load App Assembly");
+			return false;
+		}
+
+		AssemblyInfo& info = s_Data->AppAssembly;
+		info.Assembly = assembly;
+		info.Image = mono_assembly_get_image(assembly);
+		info.FilePath = filePath;
+		return true;
+	}
+
+	bool ScriptEngine::ReloadAssemblies()
+	{
+		SK_CORE_ASSERT(!s_Data->IsRunning, "Reloading at runntime not supported");
+
+		// Try reload assemlies
+		// is failed keep the old ones
+
+		MonoDomain* newDomain = mono_domain_create_appdomain("ScriptDomain New", nullptr);
+		SK_CORE_ASSERT(newDomain);
+		mono_domain_set(newDomain, true);
+
+		MonoAssembly* coreAssembly = LoadCSAssembly(s_Data->CoreAssembly.FilePath);
+		MonoAssembly* appAssembly = LoadCSAssembly(s_Data->AppAssembly.FilePath);
+
+		if (!coreAssembly || !appAssembly)
+			return false;
+
+		for (auto& [uuid, handle] : s_Data->EntityInstances)
+			GCManager::ReleaseHandle(handle);
+		s_Data->EntityInstances.clear();
+
+		s_Data->CoreAssembly.Assembly = coreAssembly;
+		s_Data->CoreAssembly.Image = mono_assembly_get_image(coreAssembly);
+		s_Data->AppAssembly.Assembly = appAssembly;
+		s_Data->AppAssembly.Image = mono_assembly_get_image(appAssembly);
+
+		ScriptUtils::Shutdown();
+		ScriptGlue::Shutdown();
+		GCManager::Shutdown();
+
+		mono_domain_unload(s_Data->RuntimeDomain);
+		s_Data->RuntimeDomain = newDomain;
+
+		GCManager::Init();
+		ScriptGlue::Init();
+		ScriptUtils::Init();
+
+		CacheScriptClasses();
+
+		SK_CORE_INFO("[ScriptEngine] Assemblies Reloaded");
+		return true;
 	}
 
 	MonoObject* ScriptEngine::CreateEntity(UUID uuid)

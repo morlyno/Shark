@@ -11,6 +11,7 @@ namespace Sandbox
 
 		public string Test = "HalloHallo";
 		public string Bye = "alöskdjf";
+		public Vector3 Direction = Vector3.Right;
 
 		// Movement
 		public float MovementSpeed; // m/s;

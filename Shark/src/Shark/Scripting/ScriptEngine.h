@@ -97,12 +97,12 @@ namespace Shark {
 		static void InitMono();
 		static void ShutdownMono();
 
-		static void ReloadAssemblies();
+		static MonoAssembly* LoadCSAssembly(const std::filesystem::path& filePath);
 
 		static bool LoadCoreAssembly(const std::filesystem::path& filePath);
 		static bool LoadAppAssembly(const std::filesystem::path& filePath);
 
-		static MonoAssembly* LoadMonoAssembly(const std::filesystem::path& filePath);
+		static bool ReloadAssemblies();
 
 		static MonoObject* CreateEntity(UUID uuid);
 		static void CacheScriptClasses();
