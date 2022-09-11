@@ -207,7 +207,6 @@ namespace Shark {
 
 	void ScriptEngine::InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle)
 	{
-		MonoObject* obj = GCManager::GetManagedObject(handle);
 #if SK_DEBUG
 		{
 			MonoType* monoType = mono_field_get_type(storage->Field);
@@ -216,7 +215,14 @@ namespace Shark {
 			SK_CORE_ASSERT(size <= sizeof(storage->m_Buffer));
 		}
 #endif
+		auto& field = storage->Field;
+		if (field.Type == ManagedFieldType::String)
+		{
+			storage->SetValue(field.GetValue<std::string>(handle));
+			return;
+		}
 
+		MonoObject* obj = GCManager::GetManagedObject(handle);
 		mono_field_get_value(obj, storage->Field, storage->m_Buffer);
 	}
 
