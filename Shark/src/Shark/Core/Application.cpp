@@ -8,6 +8,7 @@
 
 #include "Shark/Scripting/ScriptEngine.h"
 
+#include "Shark/File/FileSystem.h"
 #include "Shark/Utils/TimeUtils.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -83,6 +84,7 @@ namespace Shark {
 					RenderImGui();
 			}
 
+			FileSystem::GetFileWatcher()->Update();
 			m_Window->Update();
 		}
 	}
@@ -173,10 +175,12 @@ namespace Shark {
 		void Init()
 		{
 			Log::Init();
+			FileSystem::Init();
 		}
 
 		void Shutdown()
 		{
+			FileSystem::Shutdown();
 			Log::Shutdown();
 		}
 

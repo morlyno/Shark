@@ -37,6 +37,11 @@ namespace Shark {
 
 	}
 
+	std::string WindowsUtils::TranslateLastError()
+	{
+		return TranslateErrorCode(GetLastError());
+	}
+
 	std::string WindowsUtils::TranslateErrorCode(DWORD error)
 	{
 		LPSTR messageBuffer = NULL;

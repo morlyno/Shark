@@ -92,7 +92,7 @@ namespace Shark {
 		else
 			SK_CORE_ASSERT(false, "No Startup Project!");
 
-		FileSystem::SetFileWatcherCallback(std::bind(&EditorLayer::OnFileChanged, this, std::placeholders::_1));
+		FileSystem::SetCallback(std::bind(&EditorLayer::OnFileChanged, this, std::placeholders::_1));
 	}
 
 	void EditorLayer::OnDetach()
@@ -100,7 +100,6 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		CloseProject();
-		FileSystem::SetFileWatcherCallback(nullptr);
 
 		m_PanelManager->Clear();
 

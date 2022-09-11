@@ -32,6 +32,7 @@ namespace Shark {
 	class WindowsUtils
 	{
 	public:
+		static std::string TranslateLastError();
 		static std::string TranslateErrorCode(DWORD error);
 		static void SetThreadName(HANDLE thread, const std::wstring& name);
 		static void SetThreadName(std::thread& thread, const std::wstring& name) { SetThreadName(thread.native_handle(), name); }

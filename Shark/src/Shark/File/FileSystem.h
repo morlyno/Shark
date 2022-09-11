@@ -10,18 +10,12 @@ namespace Shark {
 	class FileSystem
 	{
 	public:
-		static void StartWatching();
-		static void StartWatching(const std::filesystem::path& directory);
-		static void StartWatching(const std::filesystem::path& directory, FileWatcherCallbackFunc callback);
-		static void StartWatching(const FileWatcherSpecification& specs);
+		static void Init();
+		static void Shutdown();
+
+		static void StartWatching(const std::filesystem::path& dirPath);
 		static void StopWatching();
-
-		static void PauseWatching();
-		static void ContinueWatching();
-		static void SkipNextFileEvent();
-
-		static void SetFileWatcherCallback(FileWatcherCallbackFunc callback);
-
+		static void SetCallback(FileWatcherCallbackFunc callback);
 		static Ref<FileWatcher> GetFileWatcher();
 
 

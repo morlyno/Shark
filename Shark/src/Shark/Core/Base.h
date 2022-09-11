@@ -112,6 +112,10 @@ namespace Shark {
 	static_assert(sizeof(glm::vec3) == sizeof(float) * 3);
 	static_assert(sizeof(glm::vec4) == sizeof(float) * 4);
 
+	using namespace std::literals::string_literals;
+	using namespace std::literals::string_view_literals;
+	using namespace std::literals::chrono_literals;
+
 }
 
 

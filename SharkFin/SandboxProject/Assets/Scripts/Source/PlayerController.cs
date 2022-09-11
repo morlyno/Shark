@@ -9,10 +9,11 @@ namespace Sandbox
 		private uint m_CollishionCount = 0;
 		private bool m_ShouldJump = false;
 
-		public string Test = "Hallo";
+		public string Test = "HalloHallo";
+		public string Bye = "alöskdjf";
 
 		// Movement
-		public float MovementSpeed = 8.0f; // m/s;
+		public float MovementSpeed; // m/s;
 		private float m_JumpForce = 18.0f;
 		private RigidBody2DComponent m_RigidBody;
 
@@ -56,6 +57,9 @@ namespace Sandbox
 		{
 			m_ShouldJump = Input.IsKeyPressed(Key.Space);
 			m_WantShoot = Input.IsMouseButtonPressed(MouseButton.Left);
+
+			if (Input.IsKeyPressed(Key.P))
+				CreateBall();
 
 			if (m_ShootCooldownTimer > 0)
 				m_ShootCooldownTimer -= ts;

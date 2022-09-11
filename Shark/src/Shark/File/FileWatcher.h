@@ -4,23 +4,35 @@
 
 namespace Shark {
 
-	namespace NotifyFlag {
-
-		enum Type : uint32_t
+	namespace NotifyFilter {
+		enum Type : uint16_t
 		{
 			None = 0,
 			FileName = BIT(0),
-			DirectoryName = BIT(1),
-			Attributes = BIT(2),
+			DirName = BIT(1),
 			Size = BIT(3),
 			LastWrite = BIT(4),
 			LastAccess = BIT(5),
 			Creation = BIT(6),
-			Security = BIT(7),
 
-			All = FileName | DirectoryName | Attributes | Size | LastWrite | LastAccess | Creation | Security
+			All = FileName | DirName | Size | LastWrite | LastAccess | Creation,
+			Default = FileName | Size | Creation
 		};
+		using Flags = std::underlying_type_t<Type>;
+	}
 
+	namespace EventFilter {
+		enum Type : uint16_t
+		{
+			None = 0,
+			Created = BIT(0),
+			Deleted = BIT(1),
+			Modified = BIT(2),
+			Renamed = BIT(3),
+
+			All = Created | Deleted | Modified | Renamed,
+		};
+		using Flags = std::underlying_type_t<Type>;
 	}
 
 	enum class FileEvent
@@ -50,41 +62,55 @@ namespace Shark {
 
 	struct FileChangedData
 	{
-		FileEvent FileEvent;
+		FileEvent Type;
 		std::filesystem::path FilePath;
+		bool IsDirectory = false;
 	};
 
 	using FileWatcherCallbackFunc = std::function<void(const std::vector<FileChangedData>&)>;
 
-
-	struct FileWatcherSpecification
+	struct WatchingSettings
 	{
-		std::filesystem::path Directory;
-		NotifyFlag::Type NotifyFlags;
-		bool WatchSubTrees;
-		FileWatcherCallbackFunc CallbackFunc;
+		FileWatcherCallbackFunc Callback = nullptr;
+		NotifyFilter::Flags NofityFilter = NotifyFilter::Default;
+		EventFilter::Flags EnabledEvents = EventFilter::All;
+		bool IsRecursive = true;
 	};
 
 	class FileWatcher : public RefCount
 	{
 	public:
-		virtual void Start() = 0;
-		virtual void Stop() = 0;
+		virtual ~FileWatcher() = default;
 
-		virtual bool IsRunning() = 0;
-		virtual bool IsPaused() = 0;
+		virtual void StartWatching(const std::string& key, const std::filesystem::path& dirPath, FileWatcherCallbackFunc callback) = 0;
+		virtual void StartWatching(const std::string& key, const std::filesystem::path& dirPath, const WatchingSettings& settings) = 0;
+		virtual void StopWatching(const std::string& key) = 0;
+		virtual void SetCallback(const std::string& key, FileWatcherCallbackFunc callback) = 0;
 
-		virtual void SkipNextEvent() = 0;
-		virtual void Pause() = 0;
-		virtual void Continue() = 0;
+		virtual bool IsWatching(const std::string& key) = 0;
 
-		virtual void SetCallback(FileWatcherCallbackFunc callback) = 0;
-		virtual void SetDirectory(const std::filesystem::path& directory, bool restartIfRunning) = 0;
+		virtual void Update() = 0;
 
-		virtual const FileWatcherSpecification& GetSpecification() const = 0;
-		virtual void SetSpecification(const FileWatcherSpecification& specs) = 0;
+	public:
+		static Ref<FileWatcher> Create();
 
-		static Ref<FileWatcher> Create(const FileWatcherSpecification& specs);
 	};
 
 }
+
+template<>
+struct fmt::formatter<Shark::FileChangedData>
+{
+	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+	{
+		return ctx.end();
+	}
+
+	template<typename FormatContext>
+	auto format(const Shark::FileChangedData& data, FormatContext& ctx) -> decltype(ctx.out())
+	{
+		format_to(ctx.out(), "({0}) {1}", Shark::ToString(data.Type), data.FilePath);
+		return ctx.out();
+	}
+
+};

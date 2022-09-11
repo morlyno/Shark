@@ -295,7 +295,7 @@ namespace Shark {
 		std::filesystem::path oldFilePath;
 		for (const FileChangedData& event : fileEvents)
 		{
-			if (event.FileEvent == FileEvent::NewName && !oldFilePath.empty())
+			if (event.Type == FileEvent::NewName && !oldFilePath.empty())
 			{
 				OnAssetRenamed(oldFilePath, event.FilePath);
 				break;
@@ -304,7 +304,7 @@ namespace Shark {
 			AssetType assetType = GetAssetTypeFormFilePath(event.FilePath);
 			if (assetType != AssetType::None)
 			{
-				switch (event.FileEvent)
+				switch (event.Type)
 				{
 					case FileEvent::Deleted: OnAssetDeleted(event.FilePath); break;
 					case FileEvent::OldName: oldFilePath = event.FilePath; break;
