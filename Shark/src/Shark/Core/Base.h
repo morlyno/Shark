@@ -53,7 +53,7 @@
 
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
-#define SK_CONNECT(a, b) a##b
+#define SK_CONNECT(a, b) a ## b
 
 #define SK_CONNECT_TO_STRING_IMPL(ab) SK_STRINGIFY(ab)
 #define SK_CONNECT_TO_STRING(a, b) SK_EXPAND(SK_CONNECT_TO_STRING_IMPL(a ## b))
@@ -62,7 +62,10 @@
 
 #define SK_NOT_IMPLEMENTED() SK_CORE_ASSERT(false, "Not Implemented");
 #define SK_DEPRECATED(message) [[deprecated(message)]]
-#define SK_UNIQUE_VAR_NAME SK_CONNECT(unique_var_, __COUNTER__)
+
+#define SK_IMPL_UNIQUE_NAME_BASE_CONNECT(a, b) a ## b
+#define SK_IMPL_UNIQUE_NAME_BASE(x) SK_IMPL_UNIQUE_NAME_BASE_CONNECT(unique_name_, x)
+#define SK_UNIQUE_NAME SK_IMPL_UNIQUE_NAME_BASE(__COUNTER__)
 
 #include <stdint.h>
 

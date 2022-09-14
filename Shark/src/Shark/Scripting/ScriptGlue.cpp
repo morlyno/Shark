@@ -125,13 +125,12 @@ namespace Shark
 			return nullptr;
 		}
 
-		static GCHandle CreateColliderObject(MonoObject* entity, Collider2DType colliderType)
+		static MonoObject* CreateColliderObject(MonoObject* entity, Collider2DType colliderType)
 		{
 			const char* colliderName = colliderType == Collider2DType::BoxCollider ? "BoxCollider2DComponent" : "CircleCollider2DComponent";
 
 			MonoClass* clazz = mono_class_from_name_case(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", colliderName);
 			MonoObject* object = ScriptEngine::InstantiateClass(clazz);
-			GCHandle handle = GCManager::CreateHandle(object);
 			mono_runtime_object_init(object);
 
 			MonoMethodDesc* ctorDesc = mono_method_desc_new(":.ctor()", false);
@@ -145,7 +144,7 @@ namespace Shark
 			mono_property_set_value(property, object, params, &exception);
 			ScriptUtils::HandleException(exception);
 
-			return handle;
+			return object;
 		}
 
 	}
@@ -201,20 +200,19 @@ namespace Shark
 		GCHandle objectHandle = ScriptEngine::GetInstance(entityA);
 		MonoObject* object = GCManager::GetManagedObject(objectHandle);
 
-		GCHandle entityHandle = ScriptEngine::IsInstantiated(entityB) ? ScriptEngine::GetInstance(entityB) : ScriptEngine::CreateTempEntity(entityB);
+		GCHandle entityHandle = ScriptEngine::IsInstantiated(entityB) ? ScriptEngine::GetInstance(entityB) : ScriptEngine::InstantiateBaseEntity(entityB);
 		MonoObject* entity = GCManager::GetManagedObject(entityHandle);
 
-		GCHandle colliderHandle = utils::CreateColliderObject(entity, colliderType);
-		MonoObject* collider = GCManager::GetManagedObject(colliderHandle);
+		MonoObject* collider = utils::CreateColliderObject(entity, colliderType);
 
 		MonoException* exception = nullptr;
 		method.Invoke(object, collider, &exception);
 		ScriptUtils::HandleException((MonoObject*)exception);
 
-		if (!ScriptEngine::IsInstantiated(entityB))
-			ScriptEngine::ReleaseTempEntity(entityHandle);
+		//if (!ScriptEngine::IsInstantiated(entityB))
+		//	ScriptEngine::ReleaseTempEntity(entityHandle);
 
-		GCManager::ReleaseHandle(colliderHandle);
+		//GCManager::ReleaseHandle(colliderHandle);
 	}
 
 	void ScriptGlue::CallCollishionBegin(Entity entityA, Entity entityB, Collider2DType colliderType, bool isSensor)
@@ -578,7 +576,9 @@ namespace Shark
 		MonoObject* Scene_GetEntityByID(uint64_t entityID)
 		{
 			Entity entity = utils::GetEntity(entityID);
-			SK_CORE_ASSERT(entity);
+			if (!entity)
+				return nullptr;
+#if 0
 			if (!ScriptEngine::IsInstantiated(entity))
 			{
 				MonoClass* entityClass = mono_class_from_name_case(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", "Entity");
@@ -588,6 +588,13 @@ namespace Shark
 				MonoMethod* ctor = mono_class_get_method_from_name(entityClass, ".ctor", 1);
 				ScriptEngine::InvokeMethod(entityInstance, ctor, entityID);
 				return entityInstance;
+			}
+#endif
+
+			if (!ScriptEngine::IsInstantiated(entity))
+			{
+				GCHandle handle = ScriptEngine::InstantiateBaseEntity(entity);
+				return GCManager::GetManagedObject(handle);
 			}
 
 			GCHandle gcHandle = ScriptEngine::GetInstance(entity);
@@ -613,7 +620,7 @@ namespace Shark
 					return (uint64_t)entity.GetUUID();
 			}
 
-			return UUID::Invalid;
+			return UUID::Null;
 		}
 
 		#pragma endregion
@@ -847,9 +854,9 @@ namespace Shark
 		{
 			Entity entity = utils::GetEntity(id);
 			if (!entity)
-				return AssetHandle::Invalid;
+				return AssetHandle::Null;
 			if (!entity.AllOf<SpriteRendererComponent>())
-				return AssetHandle::Invalid;
+				return AssetHandle::Null;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
 			return spriteRenderer.TextureHandle;

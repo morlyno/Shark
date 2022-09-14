@@ -46,6 +46,9 @@ namespace Shark
 
 		public T GetComponent<T>() where T : Component, new()
 		{
+			if (!HasComponent<T>())
+				return null;
+
 			Type type = typeof(T);
 			m_ComponentCache.TryGetValue(type, out Component comp);
 

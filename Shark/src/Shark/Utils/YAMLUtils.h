@@ -9,9 +9,9 @@
 namespace YAML {
 
 	template<>
-	struct convert<wchar_t>
+	struct convert<char16_t>
 	{
-		static bool decode(const Node& node, wchar_t& wc)
+		static bool decode(const Node& node, char16_t& wc)
 		{
 			wc = node.as<int16_t>();
 			return true;

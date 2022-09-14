@@ -18,9 +18,10 @@ namespace Shark {
 
 		bool operator<(const UUID& rhs) const { return m_UUID < rhs.m_UUID; }
 		bool operator==(const UUID& rhs) const { return m_UUID == rhs.m_UUID; }
+		bool operator!=(const UUID& rhs) const { return !(*this == rhs); }
 
 		static UUID Generate();
-		static constexpr uint64_t Invalid = 0;
+		static constexpr uint64_t Null = 0;
 	private:
 		uint64_t m_UUID = 0;
 	};

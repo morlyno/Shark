@@ -24,6 +24,69 @@ namespace Shark {
 
 	namespace utils {
 
+		static bool Control(const char* label, glm::vec3& val, float reset = 0.0f)
+		{
+			if (!UI::ControlBeginHelper(label))
+				return false;
+
+			ImGui::TableSetColumnIndex(0);
+			UI::Text(label, UI::PrivateTextFlag::LabelDefault);
+			ImGui::TableSetColumnIndex(1);
+
+			bool changed = false;
+
+			ImGuiStyle& style = ImGui::GetStyle();
+			const float buttonSize = ImGui::GetFrameHeight();
+			const float widthAvail = ImGui::GetContentRegionAvail().x;
+			const float width = (widthAvail - style.ItemSpacing.x * (3 - 1.0f)) / 3 - buttonSize;
+
+			ImGui::PushItemWidth(width);
+
+			if (ImGui::Button("X", { buttonSize, buttonSize }))
+			{
+				val[0] = reset;
+				changed = true;
+			}
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::DragFloat("##X", &val[0], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
+
+
+			ImGui::SameLine();
+			if (ImGui::Button("Y", { buttonSize, buttonSize }))
+			{
+				val[1] = reset;
+				changed = true;
+			};
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::DragFloat("##Y", &val[1], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
+
+
+			ImGui::SameLine();
+			if (ImGui::Button("Z", { buttonSize, buttonSize }))
+			{
+				val[2] = reset;
+				changed = true;
+			}
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::DragFloat("##Z", &val[2], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
+
+			ImGui::PopItemWidth();
+
+			UI::ControlEndHelper();
+			return changed;
+		}
+
+		static bool ControlAngle(const char* label, glm::vec3& radians, float reset = 0.0f)
+		{
+			glm::vec3 degrees = glm::degrees(radians);
+			if (Control(label, degrees, reset))
+			{
+				radians = glm::radians(degrees);
+				return true;
+			}
+			return false;
+		}
+
 		template<typename Comp, typename UIFunction>
 		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
 		{
@@ -53,7 +116,7 @@ namespace Shark {
 							Weak<Scene> scene = entity.GetScene();
 							UUID cameraUUID = scene->GetActiveCameraUUID();
 							if (entity.GetUUID() == cameraUUID)
-								scene->SetActiveCamera(UUID::Invalid);
+								scene->SetActiveCamera(UUID::Null);
 						}
 
 						entity.RemoveComponent<Comp>();
@@ -102,7 +165,7 @@ namespace Shark {
 		}
 
 		template<typename T>
-		static void FieldStorageControl(const std::string& fieldName, Ref<FieldStorage> field)
+		static void FieldControl(const std::string& fieldName, Ref<FieldStorage> field)
 		{
 			auto value = field->GetValue<T>();
 			if (UI::Control(fieldName, value))
@@ -126,6 +189,9 @@ namespace Shark {
 
 		if (ImGui::Begin("Scene Hirachy", &shown) && m_Context)
 		{
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_None))
+				SelectEntity(Entity{});
+
 			m_Context->m_Registry.each([=](auto entityID)
 			{
 				Entity entity{ entityID, m_Context };
@@ -133,13 +199,10 @@ namespace Shark {
 					DrawEntityNode(entity);
 			});
 
-			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
-				SelectEntity(Entity{});
-
 			const ImGuiWindow* window = ImGui::GetCurrentWindow();
 			if (ImGui::BeginDragDropTargetCustom(window->WorkRect, window->ID))
 			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
 				if (payload)
 				{
 					UUID uuid = *(UUID*)payload->Data;
@@ -186,14 +249,14 @@ namespace Shark {
 		if (ImGui::BeginDragDropSource())
 		{
 			UUID uuid = entity.GetUUID();
-			ImGui::SetDragDropPayload("ENTITY", &uuid, sizeof(UUID));
+			ImGui::SetDragDropPayload("ENTITY_ID", &uuid, sizeof(UUID));
 
 			ImGui::EndDragDropSource();
 		}
 
 		if (ImGui::BeginDragDropTarget())
 		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
 			if (payload)
 			{
 				SK_CORE_WARN("Entity paload accepted on Entity {} 0x{:x}", entity.GetName(), entity.GetUUID());
@@ -206,7 +269,7 @@ namespace Shark {
 			ImGui::EndDragDropTarget();
 		}
 
-		if (ImGui::IsItemClicked())
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsItemHovered())
 			SelectEntity(entity);
 
 		bool wantsDestroy = false;
@@ -258,7 +321,8 @@ namespace Shark {
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(IDSpacingWidth);
-		ImGui::Text("0x%16llx", entity.GetUUID());
+		UI::Text(fmt::format("0x{0:16x}", entity.GetUUID()), UI::TextFlag::Selectable);
+		//ImGui::Text("0x%16llx", entity.GetUUID());
 
 		ImGui::SameLine();
 		if (ImGui::Button("Add"))
@@ -281,9 +345,9 @@ namespace Shark {
 		utils::DrawComponet<TransformComponent>(entity, "Transform", [](TransformComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Position", comp.Translation);
-			UI::ControlAngle("Rotation", comp.Rotation);
-			UI::ControlS("Scaling", comp.Scale, 1.0f);
+			utils::Control("Position", comp.Translation);
+			utils::ControlAngle("Rotation", comp.Rotation);
+			utils::Control("Scaling", comp.Scale);
 			UI::EndControls();
 		});
 
@@ -325,7 +389,7 @@ namespace Shark {
 					UI::Text(metadata.FilePath);
 					ImGui::Text("Width: %d, Height: %d", texture->GetImage()->GetWidth(), texture->GetImage()->GetHeight());
 					if (ImGui::Button("Remove"))
-						comp.TextureHandle = AssetHandle::Invalid;
+						comp.TextureHandle = AssetHandle::Null;
 				}
 				else
 				{
@@ -345,10 +409,10 @@ namespace Shark {
 		utils::DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-				
+			
 			UI::ControlColor("Color", comp.Color);
-			UI::Control("Thickness", comp.Thickness, 1.0f, 0.0f, 1.0f, 0.0f, std::string_view{}, UI::ControlType::Slider);
-			UI::Control("Fade", comp.Fade, 0.002f, 0.0f, 10.0f, 0.01f, "%.3f");
+			UI::Control("Thickness", comp.Thickness, 0.1f, 0.0f, 1.0f);
+			UI::Control("Fade", comp.Fade, 0.1f, 0.0f, 10.0f);
 
 			UI::EndControls();
 		});
@@ -385,9 +449,9 @@ namespace Shark {
 				float clipnear = camera.GetPerspectiveNear();
 				float clipfar = camera.GetPerspectiveFar();
 
-				changed |= UI::Control("FOV", fov, 45.0f, 1.0f, 179.0f);
-				changed |= UI::Control("NearClip", clipnear, 0.01f, 0.01f, FLT_MAX);
-				changed |= UI::Control("FarClip", clipfar, 1000.0f, 0.01f, FLT_MAX);
+				changed |= UI::Control("FOV", fov, 0.1f, 1.0f, 179.0f);
+				changed |= UI::Control("NearClip", clipnear, 0.1f, 0.01f, FLT_MAX);
+				changed |= UI::Control("FarClip", clipfar, 0.1f, 0.01f, FLT_MAX);
 
 				if (changed && (clipnear > 0.0f && clipfar > 0.0f && !glm::epsilonEqual(clipnear, clipfar, 0.00001f)))
 					camera.SetPerspective(camera.GetAspectratio(), fov, clipnear, clipfar);
@@ -403,9 +467,9 @@ namespace Shark {
 				float clipnear = camera.GetOrthographicNear();
 				float clipfar = camera.GetOrthographicFar();
 
-				changed |= UI::Control("Zoom", zoom, 10.0f, 0.25f, FLT_MAX);
-				changed |= UI::Control("NearClip", clipnear, -1.0f, -FLT_MAX, -0.01f);
-				changed |= UI::Control("FarClip", clipfar, 1.0f, 0.01f, FLT_MAX);
+				changed |= UI::Control("Zoom", zoom, 0.1f, 0.25f, FLT_MAX);
+				changed |= UI::Control("NearClip", clipnear, 0.1f, -FLT_MAX, -0.01f);
+				changed |= UI::Control("FarClip", clipfar, 0.1f, 0.01f, FLT_MAX);
 
 				if (changed)
 					camera.SetOrthographic(camera.GetAspectratio(), zoom, clipnear, clipfar);
@@ -425,7 +489,7 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 			int index = (int)comp.Type - 1;
-			if (UI::Control("Body Type", index, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0])))
+			if (UI::ControlCombo("Body Type", index, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0])))
 				comp.Type = (decltype(comp.Type))(index + 1);
 			UI::Control("Fixed Rotation", comp.FixedRotation);
 			UI::Control("Bullet", comp.IsBullet);
@@ -439,13 +503,13 @@ namespace Shark {
 		utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::ControlS("Size", comp.Size, 0.5f);
+			UI::Control("Size", comp.Size);
 			UI::Control("Offset", comp.Offset);
 			UI::Control("Angle", comp.Rotation);
-			UI::Control("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
-			UI::Control("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
-			UI::Control("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
-			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::Control("Denstity", comp.Density, 0.1f, 0.0f, FLT_MAX);
+			UI::Control("Friction", comp.Friction, 0.1f, 0.0f, 1.0f);
+			UI::Control("Restitution", comp.Restitution, 0.1f, 0.0f, 1.0f);
+			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.1f, 0.0f, FLT_MAX);
 			UI::Control("IsSensor", comp.IsSensor);
 			UI::EndControls();
 		});
@@ -453,13 +517,13 @@ namespace Shark {
 		utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Radius", comp.Radius, 0.5f);
+			UI::Control("Radius", comp.Radius);
 			UI::Control("Offset", comp.Offset);
 			UI::Control("Angle", comp.Rotation);
-			UI::Control("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
-			UI::Control("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
-			UI::Control("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
-			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::Control("Denstity", comp.Density, 0.1f, 0.0f, FLT_MAX);
+			UI::Control("Friction", comp.Friction, 0.1f, 0.0f, 1.0f);
+			UI::Control("Restitution", comp.Restitution, 0.1f, 0.0f, 1.0f);
+			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.1f, 0.0f, FLT_MAX);
 			UI::Control("IsSensor", comp.IsSensor);
 			UI::EndControls();
 		});
@@ -499,30 +563,40 @@ namespace Shark {
 
 					switch (field.Type)
 					{
-						case ManagedFieldType::Bool:   utils::FieldControl<bool>(name, field, handle); break;
-						//case ManagedFieldType::Char:   utils::FieldControl<wchar_t>(name, field, handle); break;
-						//case ManagedFieldType::Byte:   utils::FieldControl<uint8_t>(name, field, handle); break;
-						//case ManagedFieldType::SByte:  utils::FieldControl<int8_t>(name, field, handle); break;
-						//case ManagedFieldType::Short:  utils::FieldControl<int16_t>(name, field, handle); break;
-						//case ManagedFieldType::UShort: utils::FieldControl<uint16_t>(name, field, handle); break;
-						case ManagedFieldType::Int:    utils::FieldControl<int>(name, field, handle); break;
-						case ManagedFieldType::UInt:   utils::FieldControl<uint32_t>(name, field, handle); break;
-						//case ManagedFieldType::Long:   utils::FieldControl<int64_t>(name, field, handle); break;
-						//case ManagedFieldType::ULong:  utils::FieldControl<uint64_t>(name, field, handle); break;
-						case ManagedFieldType::Float:  utils::FieldControl<float>(name, field, handle); break;
-						//case ManagedFieldType::Double: utils::FieldControl<double>(name, field, handle); break;
-						case ManagedFieldType::String:
+						case ManagedFieldType::Bool:    utils::FieldControl<bool>(name, field, handle); break;
+						//case ManagedFieldType::Char:   utils::FieldControl<char16_t>(name, field, handle); break;
+						case ManagedFieldType::Byte:    utils::FieldControl<uint8_t>(name, field, handle); break;
+						case ManagedFieldType::SByte:   utils::FieldControl<int8_t>(name, field, handle); break;
+						case ManagedFieldType::Short:   utils::FieldControl<int16_t>(name, field, handle); break;
+						case ManagedFieldType::UShort:  utils::FieldControl<uint16_t>(name, field, handle); break;
+						case ManagedFieldType::Int:     utils::FieldControl<int32_t>(name, field, handle); break;
+						case ManagedFieldType::UInt:    utils::FieldControl<uint32_t>(name, field, handle); break;
+						case ManagedFieldType::Long:    utils::FieldControl<int64_t>(name, field, handle); break;
+						case ManagedFieldType::ULong:   utils::FieldControl<uint64_t>(name, field, handle); break;
+						case ManagedFieldType::Float:   utils::FieldControl<float>(name, field, handle); break;
+						case ManagedFieldType::Double:  utils::FieldControl<double>(name, field, handle); break;
+						case ManagedFieldType::Vector2: utils::FieldControl<glm::vec2>(name, field, handle); break;
+						case ManagedFieldType::Vector3:	utils::FieldControl<glm::vec3>(name, field, handle); break;
+						case ManagedFieldType::Vector4:	utils::FieldControl<glm::vec4>(name, field, handle); break;
+						case ManagedFieldType::String:  utils::FieldControl<std::string>(name, field, handle); break;
+						case ManagedFieldType::Entity:
 						{
-							if (UI::ControlCustomBegin(name))
+							UUID uuid = field.GetEntity(handle);
+							UI::Property(name, uuid);
+							if (ImGui::BeginDragDropTarget())
 							{
-								std::string str = field.GetValue<std::string>(handle);
-								if (ImGui::InputText("##inputText", &str))
-									field.SetValue(handle, str);
-								UI::ControlCustomEnd();
+								const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID");
+								if (payload)
+								{
+									UUID entityID = *(UUID*)payload->Data;
+									Entity entity = scene->GetEntityByUUID(entityID);
+									if (entity)
+										field.SetEntity(handle, entity);
+								}
+								ImGui::EndDragDropTarget();
 							}
 							break;
 						}
-						//case ManagedFieldType::Entity: utils::FieldControl<ManagedEntity>(name, field, handle); break;
 					}
 				}
 				UI::EndControlsGrid();
@@ -540,7 +614,7 @@ namespace Shark {
 						if (!ScriptEngine::IsInstantiated(entity))
 							ScriptEngine::InstantiateEntity(entity, false, false);
 						GCHandle handle = ScriptEngine::GetInstance(entity);
-						Ref<FieldStorage> storage = Ref<FieldStorage>::Create(field);
+						Ref<FieldStorage> storage = FieldStorage::FromManagedField(field);
 						ScriptEngine::InitializeFieldStorage(storage, handle);
 						fieldStorages[name] = storage;
 					}
@@ -548,31 +622,39 @@ namespace Shark {
 					Ref<FieldStorage> storage = fieldStorages.at(name);
 					switch (field.Type)
 					{
-						case ManagedFieldType::Bool:   utils::FieldStorageControl<bool>(name, storage); break;
-							//case ManagedFieldType::Char:   utils::FieldStorageControl<wchar_t>(name, storage); break;
-							//case ManagedFieldType::Byte:   utils::FieldStorageControl<uint8_t>(name, storage); break;
-							//case ManagedFieldType::SByte:  utils::FieldStorageControl<int8_t>(name, storage); break;
-							//case ManagedFieldType::Short:  utils::FieldStorageControl<int16_t>(name, storage); break;
-							//case ManagedFieldType::UShort: utils::FieldStorageControl<uint16_t>(name, storage); break;
-						case ManagedFieldType::Int:    utils::FieldStorageControl<int>(name, storage); break;
-						case ManagedFieldType::UInt:   utils::FieldStorageControl<uint32_t>(name, storage); break;
-							//case ManagedFieldType::Long:   utils::FieldStorageControl<int64_t>(name, storage); break;
-							//case ManagedFieldType::ULong:  utils::FieldStorageControl<uint64_t>(name, storage); break;
-						case ManagedFieldType::Float:  utils::FieldStorageControl<float>(name, storage); break;
-						//case ManagedFieldType::Double: utils::FieldStorageControl<double>(name, storage); break;
-						case ManagedFieldType::String:
+						case ManagedFieldType::Bool:    utils::FieldControl<bool>(name, storage); break;
+						//case ManagedFieldType::Char:   utils::FieldControl<char16_t>(name, storage); break;
+						case ManagedFieldType::Byte:    utils::FieldControl<uint8_t>(name, storage); break;
+						case ManagedFieldType::SByte:   utils::FieldControl<int8_t>(name, storage); break;
+						case ManagedFieldType::Short:   utils::FieldControl<int16_t>(name, storage); break;
+						case ManagedFieldType::UShort:  utils::FieldControl<uint16_t>(name, storage); break;
+						case ManagedFieldType::Int:     utils::FieldControl<int32_t>(name, storage); break;
+						case ManagedFieldType::UInt:    utils::FieldControl<uint32_t>(name, storage); break;
+						case ManagedFieldType::Long:    utils::FieldControl<int64_t>(name, storage); break;
+						case ManagedFieldType::ULong:   utils::FieldControl<uint64_t>(name, storage); break;
+						case ManagedFieldType::Float:   utils::FieldControl<float>(name, storage); break;
+						case ManagedFieldType::Double:  utils::FieldControl<double>(name, storage); break;
+						case ManagedFieldType::Vector2: utils::FieldControl<glm::vec2>(name, storage); break;
+						case ManagedFieldType::Vector3:	utils::FieldControl<glm::vec3>(name, storage); break;
+						case ManagedFieldType::Vector4:	utils::FieldControl<glm::vec4>(name, storage); break;
+						case ManagedFieldType::String:  utils::FieldControl<std::string>(name, storage); break;
+						case ManagedFieldType::Entity:
 						{
-							if (UI::ControlCustomBegin(name))
+							UUID uuid = storage->GetValue<UUID>();
+							UI::Property(name, uuid);
+							if (ImGui::BeginDragDropTarget())
 							{
-								std::string str = storage->GetValue<std::string>();
-								if (ImGui::InputText("##inputText", &str))
-									storage->SetValue(str);
-								UI::ControlCustomEnd();
+								const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID");
+								if (payload)
+								{
+									UUID entityID = *(UUID*)payload->Data;
+									if (scene->ValidEntityID(entityID))
+										storage->SetValue(entityID);
+								}
+								ImGui::EndDragDropTarget();
 							}
 							break;
 						}
-
-							//case ManagedFieldType::Entity: utils::FieldControl<ManagedEntity>(name, fieldStorage); break;
 					}
 				}
 				UI::EndControlsGrid();

@@ -13,6 +13,8 @@ extern "C" {
 
 namespace Shark {
 
+	class Entity;
+
 	struct Accessibility
 	{
 		enum Type : uint16_t
@@ -43,7 +45,12 @@ namespace Shark {
 		Float,  // => float
 		Double, // => double
 		String, // => MonoString*
+
 		Entity, // => UUID
+		Vector2,
+		Vector3,
+		Vector4
+
 
 		// TODO(moro):
 		//  - Array
@@ -69,6 +76,9 @@ namespace Shark {
 			case ManagedFieldType::Double: return "Double";
 			case ManagedFieldType::String: return "String";
 			case ManagedFieldType::Entity: return "Entity";
+			case ManagedFieldType::Vector2: return "Vector2";
+			case ManagedFieldType::Vector3: return "Vector3";
+			case ManagedFieldType::Vector4: return "Vector4";
 		}
 		SK_CORE_ASSERT(false, "Unkown ManagedFieldType");
 		return "Unkown";
@@ -91,6 +101,9 @@ namespace Shark {
 		if (type == "Double") return ManagedFieldType::Double;
 		if (type == "String") return ManagedFieldType::String;
 		if (type == "Entity") return ManagedFieldType::Entity;
+		if (type == "Vector2") return ManagedFieldType::Vector2;
+		if (type == "Vector3") return ManagedFieldType::Vector3;
+		if (type == "Vector4") return ManagedFieldType::Vector4;
 
 		SK_CORE_ASSERT(false, "Unkown ManagedFieldType string");
 		return ManagedFieldType::None;
@@ -118,24 +131,20 @@ namespace Shark {
 			: Field(field)
 		{}
 		
-		operator MonoClassField* () { return Field; }
+		operator MonoClassField* () const { return Field; }
 
 		template<typename T>
 		void SetValue(GCHandle handle, const T& value)
 		{
-			static_assert(sizeof(T) <= 8, "Type too large");
-
 			SetValueInternal(handle, &value);
 		}
 
 		template<typename T>
-		T GetValue(GCHandle handle)
+		auto GetValue(GCHandle handle)
 		{
-			static_assert(sizeof(T) <= 8, "Type too large");
-
-			uint8_t buffer[8];
-			GetValueInternal(handle, buffer);
-			return *(T*)buffer;
+			T value;
+			GetValueInternal(handle, &value);
+			return value;
 		}
 
 		template<>
@@ -145,10 +154,13 @@ namespace Shark {
 		}
 
 		template<>
-		std::string GetValue<std::string>(GCHandle handle)
+		auto GetValue<std::string>(GCHandle handle)
 		{
 			return GetString(handle);
 		}
+
+		UUID GetEntity(GCHandle handle);
+		void SetEntity(GCHandle handle, Entity entity);
 
 	private:
 		void SetValueInternal(GCHandle handle, const void* value);
@@ -161,25 +173,21 @@ namespace Shark {
 	class FieldStorage : public RefCount
 	{
 	public:
-		FieldStorage(const ManagedField& field)
-			: Field(field)
-		{
-			memset(m_Buffer, 0, sizeof(m_Buffer));
-		}
-
-	public:
-		ManagedField Field;
+		std::string Name;
+		ManagedFieldType Type = ManagedFieldType::None;
 
 		template<typename T>
 		void SetValue(const T& value)
 		{
+			static_assert(!std::is_same_v<T, Entity>, "Use SetValue<UUID> instead");
 			static_assert(sizeof(T) <= sizeof(m_Buffer));
 			memcpy(m_Buffer, &value, sizeof(T));
 		}
 
 		template<typename T>
-		T GetValue() const
+		auto GetValue() const
 		{
+			static_assert(!std::is_same_v<T, Entity>, "Use GetValue<UUID> instead");
 			static_assert(sizeof(T) <= sizeof(m_Buffer));
 			return *(T*)m_Buffer;
 		}
@@ -191,13 +199,16 @@ namespace Shark {
 		}
 
 		template<>
-		std::string GetValue() const
+		auto GetValue<std::string>() const
 		{
 			return m_String;
 		}
 
+	public:
+		static Ref<FieldStorage> FromManagedField(const ManagedField& field);
+
 	private:
-		uint8_t m_Buffer[8];
+		uint8_t m_Buffer[16]{};
 		std::string m_String;
 
 		friend class ScriptEngine;
@@ -211,9 +222,10 @@ namespace Shark {
 
 		uint64_t GetID() const { return m_ID; }
 		const std::string& GetName() const { return m_Name; }
-		std::unordered_map<std::string, ManagedField>& GetFields() { return m_Fields; }
+		std::map<std::string, ManagedField>& GetFields() { return m_Fields; }
 
 		bool HasField(const std::string& fieldName) const { return m_Fields.find(fieldName) != m_Fields.end(); }
+		ManagedField& GetField(const std::string& fieldName) { return m_Fields.at(fieldName); }
 		const ManagedField& GetField(const std::string& fieldName) const { return m_Fields.at(fieldName); }
 
 	private:
@@ -221,7 +233,7 @@ namespace Shark {
 		uint64_t m_ID;
 		MonoClass* m_Class;
 
-		std::unordered_map<std::string, ManagedField> m_Fields;
+		std::map<std::string, ManagedField> m_Fields;
 
 		friend class ScriptEngine;
 	};

@@ -8,6 +8,7 @@
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
+#include "Shark/Debug/enttDebug.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/appdomain.h>
@@ -192,7 +193,7 @@ namespace Shark {
 		return s_Data->EntityClass;
 	}
 
-	Ref<ScriptClass> ScriptEngine::GetScriptClassFromName(const std::string& fullName)
+	Ref<ScriptClass> ScriptEngine::GetScriptClassFromName(std::string_view fullName)
 	{
 		const auto i = std::find_if(s_Data->ScriptClasses.begin(), s_Data->ScriptClasses.end(), [&fullName](auto& pair) { return pair.second->GetName() == fullName; });
 		if (i != s_Data->ScriptClasses.end())
@@ -218,6 +219,19 @@ namespace Shark {
 
 	void ScriptEngine::InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle)
 	{
+		ManagedField& field = ScriptEngine::GetFieldFromStorage(storage);
+		if (storage->Type == ManagedFieldType::String)
+		{
+			storage->SetValue(field.GetValue<std::string>(handle));
+			return;
+		}
+
+		if (field.Type == ManagedFieldType::Entity)
+		{
+			storage->SetValue(field.GetEntity(handle));
+			return;
+		}
+
 #if SK_DEBUG
 		{
 			MonoType* monoType = mono_field_get_type(storage->Field);
@@ -226,15 +240,20 @@ namespace Shark {
 			SK_CORE_ASSERT(size <= sizeof(storage->m_Buffer));
 		}
 #endif
-		auto& field = storage->Field;
-		if (field.Type == ManagedFieldType::String)
-		{
-			storage->SetValue(field.GetValue<std::string>(handle));
-			return;
-		}
 
 		MonoObject* obj = GCManager::GetManagedObject(handle);
-		mono_field_get_value(obj, storage->Field, storage->m_Buffer);
+		mono_field_get_value(obj, field, storage->m_Buffer);
+	}
+
+	ManagedField& ScriptEngine::GetFieldFromStorage(Ref<FieldStorage> storage)
+	{
+		std::string_view name = storage->Name;
+		size_t i =  name.find(':');
+		SK_CORE_ASSERT(i != std::string::npos, "Invalid Field name");
+		std::string_view className = name.substr(0, i);
+		std::string fieldName = std::string(name.substr(i + 1));
+		Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(className);
+		return klass->GetField(fieldName);
 	}
 
 	void ScriptEngine::InitializeRuntime(Ref<Scene> scene)
@@ -271,16 +290,36 @@ namespace Shark {
 		return mono_object_new(s_Data->RuntimeDomain, klass);
 	}
 
-	bool ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields)
+	GCHandle ScriptEngine::InstantiateBaseEntity(Entity entity)
+	{
+		UUID entityID = entity.GetUUID();
+		SK_CORE_ASSERT(!IsInstantiated(entityID));
+		if (IsInstantiated(entityID))
+			return GetInstance(entityID);
+
+		DEBUG_ENTITY(entity);
+		SK_CORE_ASSERT(!entity.AllOf<ScriptComponent>());
+
+		MonoObject* entityInstance = ScriptEngine::InstantiateClass(s_Data->EntityClass);
+		mono_runtime_object_init(entityInstance);
+		MonoMethod* ctor = mono_class_get_method_from_name(s_Data->EntityClass, ".ctor", 1);
+		ScriptEngine::InvokeMethod(entityInstance, ctor, entityID);
+
+		GCHandle handle = GCManager::CreateHandle(entityInstance);
+		s_Data->EntityInstances[entityID] = handle;
+		return handle;
+	}
+
+	GCHandle ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields)
 	{
 		if (!s_Data->AssembliesLoaded || !(entity && entity.AllOf<ScriptComponent>()))
-			return false;
+			return 0;
 
 		UUID uuid = entity.GetUUID();
 		if (s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end())
 		{
 			SK_CORE_ERROR("[ScriptEngine] Called InstantiateEntity twice on same entity");
-			return false;
+			return 0;
 		}
 
 		ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
@@ -318,7 +357,7 @@ namespace Shark {
 		if (invokeOnCreate)
 			MethodThunks::OnCreate(gcHandle);
 
-		return true;
+		return gcHandle;
 	}
 
 	void ScriptEngine::DestroyInstance(Entity entity, bool invokeOnDestroy)
@@ -362,6 +401,9 @@ namespace Shark {
 				if (field.Type == ManagedFieldType::Entity)
 				{
 					UUID entityID = storage->GetValue<UUID>();
+					if (entityID == UUID::Null)
+						continue;
+
 					MonoObject* entityObj = nullptr;
 					if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
 					{
@@ -395,29 +437,6 @@ namespace Shark {
 		s_Data->FieldStoragesMap.erase(uuid);
 	}
 
-	GCHandle ScriptEngine::CreateTempEntity(Entity entity)
-	{
-		// TODO(moro): maby cache object for later use
-
-		MonoClass* entityClass = mono_class_from_name_case(s_Data->CoreAssembly.Image, "Shark", "Entity");
-		MonoObject* object = InstantiateClass(entityClass);
-		GCHandle persistentHandle = GCManager::CreateHandle(object);
-		mono_runtime_object_init(object);
-
-		MonoMethodDesc* ctorDesc = mono_method_desc_new(":.ctor(ulong)", false);
-		MonoMethod* ctorMethod = mono_method_desc_search_in_class(ctorDesc, entityClass);
-		mono_method_desc_free(ctorDesc);
-		InvokeMethod(object, ctorMethod, entity.GetUUID());
-
-		return persistentHandle;
-	}
-
-	void ScriptEngine::ReleaseTempEntity(GCHandle handle)
-	{
-		// TODO(moro): maby cache object for later use
-
-		GCManager::ReleaseHandle(handle);
-	}
 	bool ScriptEngine::IsInstantiated(Entity entity)
 	{
 		return s_Data->EntityInstances.find(entity.GetUUID()) != s_Data->EntityInstances.end();
@@ -425,9 +444,9 @@ namespace Shark {
 
 	GCHandle ScriptEngine::GetInstance(Entity entity)
 	{
-		UUID uuid = entity.GetUUID();
-		if (s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end())
-			return s_Data->EntityInstances.at(uuid);
+		UUID entityID = entity.GetUUID();
+		if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
+			return s_Data->EntityInstances.at(entityID);
 		return 0;
 	}
 
@@ -593,6 +612,7 @@ namespace Shark {
 
 	MonoObject* ScriptEngine::CreateEntity(UUID uuid)
 	{
+		SK_CORE_ASSERT(uuid != UUID::Null);
 		MonoObject* object = InstantiateClass(s_Data->EntityClass);
 		mono_runtime_object_init(object);
 
@@ -626,6 +646,18 @@ namespace Shark {
 			Ref<ScriptClass> scriptClass = Ref<ScriptClass>::Create(nameSpace, name);
 			s_Data->ScriptClasses[scriptClass->GetID()] = scriptClass;
 		}
+	}
+
+	bool ScriptEngine::IsInstantiated(UUID entityID)
+	{
+		return s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end();
+	}
+
+	GCHandle ScriptEngine::GetInstance(UUID entityID)
+	{
+		if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
+			return s_Data->EntityInstances.at(entityID);
+		return 0;
 	}
 
 	void ScriptEngine::UnhandledExeptionHook(MonoObject* exc, void* user_data)

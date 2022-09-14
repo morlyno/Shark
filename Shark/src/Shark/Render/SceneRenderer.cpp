@@ -152,14 +152,14 @@ namespace Shark {
 			{
 				UI::BeginControlsGrid();
 				const auto& stats = m_Renderer2D->GetStatistics();
-				UI::Control("DrawCalls", fmt::format("{}", stats.DrawCalls));
-				UI::Control("Quads", fmt::format("{}", stats.QuadCount));
-				UI::Control("Cirlces", fmt::format("{}", stats.CircleCount));
-				UI::Control("Lines", fmt::format("{}", stats.LineCount));
-				UI::Control("LinesOnTop", fmt::format("{}", stats.LineOnTopCount));
-				UI::Control("Vertices", fmt::format("{}", stats.VertexCount));
-				UI::Control("Indices", fmt::format("{}", stats.IndexCount));
-				UI::Control("Textures", fmt::format("{}", stats.TextureCount));
+				UI::Property("DrawCalls", fmt::format("{}", stats.DrawCalls));
+				UI::Property("Quads", fmt::format("{}", stats.QuadCount));
+				UI::Property("Cirlces", fmt::format("{}", stats.CircleCount));
+				UI::Property("Lines", fmt::format("{}", stats.LineCount));
+				UI::Property("LinesOnTop", fmt::format("{}", stats.LineOnTopCount));
+				UI::Property("Vertices", fmt::format("{}", stats.VertexCount));
+				UI::Property("Indices", fmt::format("{}", stats.IndexCount));
+				UI::Property("Textures", fmt::format("{}", stats.TextureCount));
 				UI::EndControls();
 
 				ImGui::TreePop();
@@ -169,7 +169,7 @@ namespace Shark {
 			{
 				UI::BeginControlsGrid();
 				const auto& stats = m_Renderer2D->GetStatistics();
-				UI::Control("GeometryPass", fmt::format("{:.4f}ms", stats.GeometryPassTime.MilliSeconds()));
+				UI::Property("GeometryPass", fmt::format("{:.4f}ms", stats.GeometryPassTime.MilliSeconds()));
 				UI::EndControls();
 
 				ImGui::TreePop();

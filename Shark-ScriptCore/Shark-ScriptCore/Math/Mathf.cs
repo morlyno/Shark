@@ -13,12 +13,18 @@ namespace Shark
 			=> (float)Math.Sqrt((double)val);
 
 		public static float Lerp(float x0, float x1, float t)
-		{
-			return x0 + (x1 - x0) * t;
-		}
+			=> x0 + (x1 - x0) * t;
+
+		public static float Pow2(float a)
+			=> a * a;
 
 		public static float Min(float a, float b)
 			=> Math.Min(a, b);
+		public static float Max(float a, float b)
+			=> Math.Max(a, b);
+
+		public static float Clamp(float v, float min, float max)
+			=> Math.Max(Math.Min(v, max), min);
 
 	}
 }

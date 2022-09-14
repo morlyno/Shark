@@ -92,6 +92,11 @@ namespace Shark {
 		return mono_class_get_name(clazz);
 	}
 
+	std::string_view ScriptUtils::GetFieldName(const ManagedField& field)
+	{
+		return mono_field_get_name(field);
+	}
+
 	void* ScriptUtils::GetUnmanagedThunk(MonoMethod* method)
 	{
 		return mono_method_get_unmanaged_thunk(method);

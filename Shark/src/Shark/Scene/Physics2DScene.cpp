@@ -103,4 +103,16 @@ namespace Shark {
 		SolveTOI += p.solveTOI;
 	}
 
+	glm::vec2 Phyiscs2DUtils::FromBody(b2Body* body)
+	{
+		const b2Vec2& pos = body->GetPosition();
+		return { pos.x, pos.y };
+	}
+
+	glm::mat4 Phyiscs2DUtils::GetMatrix(b2Body* body)
+	{
+		return glm::translate(glm::vec3(FromBody(body), 0.0f)) *
+			glm::toMat4(glm::quat(glm::vec3(body->GetAngle())));
+	}
+
 }

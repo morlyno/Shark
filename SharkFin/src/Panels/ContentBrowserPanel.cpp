@@ -485,7 +485,7 @@ namespace Shark {
 
 		m_RootDirectory.ChildEntrys.clear();
 		m_RootDirectory.Type = EntryType::Directory;
-		m_RootDirectory.Handle = AssetHandle::Invalid;
+		m_RootDirectory.Handle = AssetHandle::Null;
 		m_RootDirectory.Path = Project::RelativeCopy(rootPath);
 		CacheDirectory(m_RootDirectory, rootPath);
 		m_CurrentDirectory = &m_RootDirectory;

@@ -46,11 +46,12 @@ namespace Shark {
 		static MonoDomain* GetRuntimeDomain();
 
 		static MonoClass* GetEntityClass();
-		static Ref<ScriptClass> GetScriptClassFromName(const std::string& fullName);
+		static Ref<ScriptClass> GetScriptClassFromName(std::string_view fullName);
 		static Ref<ScriptClass> GetScriptClass(uint64_t id);
 
 		static FieldStorageMap& GetFieldStorageMap(Entity entity);
 		static void InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle);
+		static ManagedField& GetFieldFromStorage(Ref<FieldStorage> storage);
 
 	public: // Scripting API
 		static void InitializeRuntime(Ref<Scene> scene);
@@ -58,20 +59,18 @@ namespace Shark {
 
 		static MonoObject* InstantiateClass(MonoClass* klass);
 
-		static bool InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields);
+		static GCHandle InstantiateBaseEntity(Entity entity);
+		static GCHandle InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields);
 		static void DestroyInstance(Entity entity, bool invokeOnDestroy);
 
 		static void InitializeFields(Entity entity);
 
 		static void OnEntityDestroyed(Entity entity);
 
-		static GCHandle CreateTempEntity(Entity entity);
-		static void ReleaseTempEntity(GCHandle handle);
-
 		static bool IsInstantiated(Entity entity);
 		static GCHandle GetInstance(Entity entity);
-		static const EntityInstancesMap& GetEntityInstances();
 
+		static const EntityInstancesMap& GetEntityInstances();
 		static Ref<Scene> GetActiveScene();
 
 	public:
@@ -106,6 +105,9 @@ namespace Shark {
 
 		static MonoObject* CreateEntity(UUID uuid);
 		static void CacheScriptClasses();
+
+		static bool IsInstantiated(UUID entityID);
+		static GCHandle GetInstance(UUID entityID);
 
 		static void UnhandledExeptionHook(MonoObject* exc, void* user_data);
 	};

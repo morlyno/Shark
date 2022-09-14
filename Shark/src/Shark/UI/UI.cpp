@@ -286,13 +286,13 @@ namespace Shark::UI {
 		if (grid & GridFlag::Label)
 		{
 			ImGui::TableSetColumnIndex(0);
-			UI::Utils::GridSeparator();
+			Utils::GridSeparator();
 		}
 		
 		if (grid & GridFlag::Widget)
 		{
 			ImGui::TableSetColumnIndex(1);
-			UI::Utils::GridSeparator();
+			Utils::GridSeparator();
 		}
 
 		ImGui::TableNextRow();
@@ -434,129 +434,133 @@ namespace Shark::UI {
 	}
 
 	template<typename T>
-	static bool ControlSlider(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* resetVal, const T* min, const T* max, std::string_view fmt)
+	bool ControlScalar(std::string_view label, ImGuiDataType dataType, T& val, float speed, T min, T max, const char* fmt)
 	{
 		if (!ControlBeginHelper(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
 		Text(label, PrivateTextFlag::LabelDefault);
+
 		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		const bool changed = ImGui::DragScalar("##control", dataType, &val, speed, &min, &max, fmt);
 
-		bool changed = false;
-		const bool HasFMT = !fmt.empty();
-		if (!HasFMT)
-			fmt = GContext->DefaultFormat[dataType];
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		const float comps = (float)components;
-		const float buttonSize = ImGui::GetFrameHeight();
-		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (comps - 1)) / comps - buttonSize;
-
-		ImGui::PushItemWidth(width);
-
-		size_t fmtOffset = 0;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val[0] = resetVal[0];
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderScalar("##X", dataType, &val[0], &min[0], &max[0], fmt.data());
-
-		if (components > 1)
-		{
-			if (HasFMT)
-			{
-				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
-				fmtOffset = fmt.find('\n', fmtOffset + 1);
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Y", { buttonSize, buttonSize }))
-			{
-				val[1] = resetVal[1];
-				changed = true;
-			}
-			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::SliderScalar("##Y", dataType, &val[1], &min[1], &max[1], fmt.data() + fmtOffset);
-		}
-
-		if (components > 2)
-		{
-			if (HasFMT)
-			{
-				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
-				fmtOffset = fmt.find('\n', fmtOffset + 1);
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Z", { buttonSize, buttonSize }))
-			{
-				val[2] = resetVal[2];
-				changed = true;
-			}
-			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::SliderScalar("##Z", dataType, &val[2], &min[2], &max[2], fmt.data() + fmtOffset);
-		}
-
-		if (components > 3)
-		{
-			if (HasFMT)
-			{
-				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
-				fmtOffset = fmt.find('\n', fmtOffset + 1);
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("W", { buttonSize, buttonSize }))
-			{
-				val[3] = resetVal[3];
-				changed = true;
-			}
-			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::SliderScalar("##W", dataType, &val[3], &min[3], &max[3], fmt.data() + fmtOffset);
-		}
-
-		ImGui::PopItemWidth();
 		ControlEndHelper();
 		return changed;
 	}
 
-	template<typename T>
-	static bool ControlScalar(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* resetVal, const T* speed, const T* min, const T* max, std::string_view fmt, ControlType type)
+	template<glm::length_t L, typename T, glm::qualifier Q>
+	bool ControlScalarVec(std::string_view label, ImGuiDataType dataType, glm::vec<L, T, Q>& val, float speed, T min, T max, const char* fmt)
 	{
-		if (type == ControlType::Slider)
-			return ControlSlider(label, dataType, val, components, resetVal, min, max, fmt);
+		if (!ControlBeginHelper(label))
+			return false;
 
-		if (type == ControlType::Drag)
-			return ControlDrag(label, dataType, val, components, resetVal, speed, min, max, fmt);
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
 
-		SK_CORE_ASSERT(false, "Unkown ControlType");
-		return false;
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		const bool changed = ImGui::DragScalarN("##control", dataType, &val, (int)L, speed, &min, &max, fmt);
+
+		ControlEndHelper();
+		return changed;
 	}
 
-	bool Control(std::string_view label, float& val,     float resetVal,            float min,            float max,            float speed,            std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, &(val), 1, &(resetVal), &(speed), &(min), &(max), fmt, type); }
-	bool Control(std::string_view label, glm::vec2& val, const glm::vec2& resetVal, const glm::vec2& min, const glm::vec2& max, const glm::vec2& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, glm::value_ptr(val), 2, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::vec3& val, const glm::vec3& resetVal, const glm::vec3& min, const glm::vec3& max, const glm::vec3& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, glm::value_ptr(val), 3, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::vec4& val, const glm::vec4& resetVal, const glm::vec4& min, const glm::vec4& max, const glm::vec4& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, glm::value_ptr(val), 4, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
+	bool Control(std::string_view label, float& val, float speed, float min, float max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_Float, val, speed, min, max, fmt);
+	}
 
-	bool Control(std::string_view label, int& val,        int resetVal,               int min,               int max,               int speed,               std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, &(val), 1, &(resetVal), &(speed), &(min), &(max), fmt, type); }
-	bool Control(std::string_view label, glm::ivec2& val, const glm::ivec2& resetVal, const glm::ivec2& min, const glm::ivec2& max, const glm::ivec2& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, glm::value_ptr(val), 2, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::ivec3& val, const glm::ivec3& resetVal, const glm::ivec3& min, const glm::ivec3& max, const glm::ivec3& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, glm::value_ptr(val), 3, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::ivec4& val, const glm::ivec4& resetVal, const glm::ivec4& min, const glm::ivec4& max, const glm::ivec4& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, glm::value_ptr(val), 4, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
+	bool Control(std::string_view label, double& val, float speed, double min, double max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_Double, val, speed, min, max, fmt);
+	}
 
-	bool Control(std::string_view label, uint32_t& val,   uint32_t resetVal,          uint32_t min,          uint32_t max,          uint32_t speed,          std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, &(val), 1, &(resetVal), &(speed), &(min), &(max), fmt, type); }
-	bool Control(std::string_view label, glm::uvec2& val, const glm::uvec2& resetVal, const glm::uvec2& min, const glm::uvec2& max, const glm::uvec2& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, glm::value_ptr(val), 2, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::uvec3& val, const glm::uvec3& resetVal, const glm::uvec3& min, const glm::uvec3& max, const glm::uvec3& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, glm::value_ptr(val), 3, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::uvec4& val, const glm::uvec4& resetVal, const glm::uvec4& min, const glm::uvec4& max, const glm::uvec4& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, glm::value_ptr(val), 4, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	
-	bool ControlAngle(std::string_view label, float& radians,     float resetVal,            float min,            float max,            float speed,            std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, min, max, speed, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
-	bool ControlAngle(std::string_view label, glm::vec2& radians, const glm::vec2& resetVal, const glm::vec2& min, const glm::vec2& max, const glm::vec2& speed, std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, min, max, speed, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
-	bool ControlAngle(std::string_view label, glm::vec3& radians, const glm::vec3& resetVal, const glm::vec3& min, const glm::vec3& max, const glm::vec3& speed, std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, min, max, speed, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
-	bool ControlAngle(std::string_view label, glm::vec4& radians, const glm::vec4& resetVal, const glm::vec4& min, const glm::vec4& max, const glm::vec4& speed, std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, min, max, speed, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
+	bool Control(std::string_view label, int8_t& val, float speed, int8_t min, int8_t max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_S8, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, int16_t& val, float speed, int16_t min, int16_t max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_S16, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, int32_t& val, float speed, int32_t min, int32_t max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_S32, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, int64_t& val, float speed, int64_t min, int64_t max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_S64, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, uint8_t& val, float speed, uint8_t min, uint8_t max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_U8, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, uint16_t& val, float speed, uint16_t min, uint16_t max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_U16, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, uint32_t& val, float speed, uint32_t min, uint32_t max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_U32, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, uint64_t& val, float speed, uint64_t min, uint64_t max, const char* fmt)
+	{
+		return ControlScalar(label, ImGuiDataType_U64, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, glm::vec2& val, float speed, float min, float max, const char* fmt)
+	{
+		return ControlScalarVec(label, ImGuiDataType_Float, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, glm::vec3& val, float speed, float min, float max, const char* fmt)
+	{
+		return ControlScalarVec(label, ImGuiDataType_Float, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, glm::vec4& val, float speed, float min, float max, const char* fmt)
+	{
+		return ControlScalarVec(label, ImGuiDataType_Float, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, glm::ivec2& val, float speed, int32_t min, int32_t max, const char* fmt)
+	{
+		return ControlScalarVec(label, ImGuiDataType_S32, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, glm::ivec3& val, float speed, int32_t min, int32_t max, const char* fmt)
+	{
+		return ControlScalarVec(label, ImGuiDataType_S32, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, glm::ivec4& val, float speed, int32_t min, int32_t max, const char* fmt)
+	{
+		return ControlScalarVec(label, ImGuiDataType_S32, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, glm::uvec2& val, float speed, uint32_t min, uint32_t max, const char* fmt)
+	{
+		return ControlScalarVec(label, ImGuiDataType_U32, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, glm::uvec3& val, float speed, uint32_t min, uint32_t max, const char* fmt)
+	{
+		return ControlScalarVec(label, ImGuiDataType_U32, val, speed, min, max, fmt);
+	}
+
+	bool Control(std::string_view label, glm::uvec4& val, float speed, uint32_t min, uint32_t max, const char* fmt)
+	{
+		return ControlScalarVec(label, ImGuiDataType_U32, val, speed, min, max, fmt);
+	}
 
 	bool ControlColor(std::string_view label, glm::vec4& color)
 	{
@@ -585,6 +589,20 @@ namespace Shark::UI {
 		ImGui::TableSetColumnIndex(1);
 		const bool changed = ImGui::Checkbox("##Checkbox", &val);
 
+		ControlEndHelper();
+		return changed;
+	}
+
+	bool Control(std::string_view label, std::string& val)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		const bool changed = ImGui::InputText("##control", &val);
 		ControlEndHelper();
 		return changed;
 	}
@@ -643,53 +661,19 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool Control(std::string_view label, uint32_t& index, const std::string_view items[], uint32_t itemsCount)
+	bool ControlCombo(std::string_view label, uint32_t& index, const std::string_view items[], uint32_t itemsCount)
 	{
 		return ControlComboT(label, index, items, itemsCount);
 	}
 
-	bool Control(std::string_view label, uint16_t& index, const std::string_view items[], uint32_t itemsCount)
+	bool ControlCombo(std::string_view label, uint16_t& index, const std::string_view items[], uint32_t itemsCount)
 	{
 		return ControlComboT(label, index, items, itemsCount);
 	}
 
-	bool Control(std::string_view label, int& index, const std::string_view items[], uint32_t itemsCount)
+	bool ControlCombo(std::string_view label, int& index, const std::string_view items[], uint32_t itemsCount)
 	{
 		return ControlComboT(label, index, items, itemsCount);
-	}
-
-	void Control(std::string_view label, std::string_view str, TextFlags flags, TextFlags labelFlags)
-	{
-		if (!ControlBeginHelper(label))
-			return;
-
-		ImGui::TableSetColumnIndex(0);
-		Text(label, labelFlags | PrivateTextFlag::LabelDefault);
-
-		ImGui::TableSetColumnIndex(1);
-		Text(str, flags | PrivateTextFlag::StringDefault);
-
-		ControlEndHelper();
-	}
-
-	void Control(std::string_view label, std::string&& str, TextFlags flags, TextFlags labelFlags)
-	{
-		Control(label, std::string_view(str), flags, labelFlags);
-	}
-
-	void Control(std::string_view label, const char* str, TextFlags flags, TextFlags labelFlags)
-	{
-		Control(label, std::string_view(str), flags, labelFlags);
-	}
-
-	void Control(std::string_view label, const std::filesystem::path& filePath, TextFlags flags, TextFlags labelFalgs)
-	{
-		Control(label, filePath.string(), flags, labelFalgs);
-	}
-
-	void Control(std::string_view label, const std::string& str, TextFlags flags, TextFlags labelFalgs)
-	{
-		Control(label, std::string_view(str), flags, labelFalgs);
 	}
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags)
@@ -709,35 +693,55 @@ namespace Shark::UI {
 		ControlEndHelper();
 	}
 
-	void Control(ImGuiID id, void(*func)(void* data, ImGuiID id), void* data)
+	void Property(std::string_view label, const char* text, TextFlags flags)
 	{
-		if (!ControlBeginHelper(id))
-			return;
-
-		func(data, id);
-
-		ControlEndHelper();
+		Property(label, std::string_view(text), flags);
 	}
 
-	void Control(std::string_view label, void(*func)(void* data, ImGuiID id), void* data)
+	void Property(std::string_view label, std::string_view text, TextFlags flags)
 	{
-		const ImGuiID id = ImGui::GetID(label.data(), label.data() + label.size());
-		if (!ControlBeginHelper(id))
+		if (!ControlBeginHelper(label))
 			return;
 
 		ImGui::TableSetColumnIndex(0);
+		ImGui::AlignTextToFramePadding();
 		Text(label);
 
 		ImGui::TableSetColumnIndex(1);
-		func(data, id);
+		Text(text, flags);
 
 		ControlEndHelper();
 	}
 
+	void Property(std::string_view label, const std::string& text, TextFlags flags)
+	{
+		Property(label, std::string_view(text), flags);
+	}
+
+	void Property(std::string_view label, const std::filesystem::path& path, TextFlags flags)
+	{
+		Property(label, path.string(), flags);
+	}
+
+	void Property(std::string_view label, const UUID& uuid)
+	{
+		if (!ControlBeginHelper(label))
+			return;
+
+		ImGui::TableSetColumnIndex(0);
+		ImGui::AlignTextToFramePadding();
+		Text(label);
+		ImGui::TableSetColumnIndex(1);
+		std::string str = uuid.IsValid() ? fmt::format("0x{0:x}", uuid) : std::string{};
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputTextWithHint("##control", "Null", str.data(), str.size(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+
+		ControlEndHelper();
+	}
 
 	void Text(std::string_view str, TextFlags flags)
 	{
-		UI::ScopedStyle s;
+		ScopedStyle s;
 		if (flags & TextFlag::Disabled)
 			s.Push(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
 
@@ -750,25 +754,19 @@ namespace Shark::UI {
 		ImGui::TextEx(str.data(), str.data() + str.size());
 	}
 
-	void Text(std::string&& str, TextFlags flags)
-	{
-		Text(std::string_view(str), flags);
-	}
-
 	void Text(const char* str, TextFlags flags)
 	{
-		Text(std::string_view(str), flags);
+		return Text(std::string_view(str), flags);
 	}
 
-	void Text(const std::filesystem::path& filePath, TextFlags flags)
+	void Text(const std::string& string, TextFlags flags)
 	{
-		std::string str = filePath.string();
-		Text(std::string_view(str), flags);
+		return Text(std::string_view(string), flags);
 	}
 
-	void Text(const std::string& str, TextFlags flags)
+	void Text(const std::filesystem::path& path, TextFlags flags)
 	{
-		Text(std::string_view(str), flags);
+		return Text(path.string(), flags);
 	}
 
 	void TextSelectable(std::string_view str)
@@ -793,16 +791,6 @@ namespace Shark::UI {
 
 	UIContext::UIContext()
 	{
-		DefaultFormat[ImGuiDataType_S8] = "%d";
-		DefaultFormat[ImGuiDataType_U8] = "%u";
-		DefaultFormat[ImGuiDataType_S16] = "%d";
-		DefaultFormat[ImGuiDataType_U16] = "%u";
-		DefaultFormat[ImGuiDataType_S32] = "%d";
-		DefaultFormat[ImGuiDataType_U32] = "%u";
-		DefaultFormat[ImGuiDataType_S64] = "%d";
-		DefaultFormat[ImGuiDataType_U64] = "%u";
-		DefaultFormat[ImGuiDataType_Float] = "%.2f";
-		DefaultFormat[ImGuiDataType_Double] = "%.2f";
 	}
 
 	UIContext* CreateContext()

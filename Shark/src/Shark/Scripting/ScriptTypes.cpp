@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "ScriptTypes.h"
 
+#include "Shark/Scene/Entity.h"
+
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/GCManager.h"
 
@@ -34,10 +36,25 @@ namespace Shark {
 				case MONO_TYPE_STRING:  return ManagedFieldType::String;
 				case MONO_TYPE_CLASS:
 				{
-					MonoClass* klass = mono_field_get_parent(field);
+					MonoType* monoType = mono_field_get_type(field);
+					MonoClass* klass = mono_type_get_class(monoType);
+					//MonoClass* klass = mono_field_get_parent(field);
 					if (mono_class_is_subclass_of(ScriptEngine::GetEntityClass(), klass, false))
 						return ManagedFieldType::Entity;
 					return ManagedFieldType::None;
+				}
+				case MONO_TYPE_VALUETYPE:
+				{
+					MonoType* monoType = mono_field_get_type(field);
+					char* typeName = mono_type_full_name(monoType);
+					ManagedFieldType result = ManagedFieldType::None;
+
+					if (typeName == "Shark.Vector2"sv) result = ManagedFieldType::Vector2;
+					if (typeName == "Shark.Vector3"sv) result = ManagedFieldType::Vector3;
+					if (typeName == "Shark.Vector4"sv) result = ManagedFieldType::Vector4;
+
+					mono_free(typeName);
+					return result;
 				}
 				case MONO_TYPE_I: SK_CORE_ASSERT(false, "don't know what type this is"); return ManagedFieldType::None;
 				case MONO_TYPE_U: SK_CORE_ASSERT(false, "don't know what type this is"); return ManagedFieldType::None;
@@ -65,6 +82,34 @@ namespace Shark {
 
 	}
 
+	UUID ManagedField::GetEntity(GCHandle handle)
+	{
+		MonoObject* object = GCManager::GetManagedObject(handle);
+		MonoObject* entityObject = mono_field_get_value_object(ScriptEngine::GetRuntimeDomain(), Field, object);
+		if (!entityObject)
+			return UUID::Null;
+
+		MonoClass* klass = mono_object_get_class(entityObject);
+		MonoClassField* idField = mono_class_get_field_from_name(klass, "ID");
+		SK_CORE_ASSERT(idField, "Field Is not an entity");
+		uint64_t id = 0;
+		mono_field_get_value(entityObject, idField, &id);
+		return id;
+	}
+
+	void ManagedField::SetEntity(GCHandle handle, Entity entity)
+	{
+		GCHandle entityHandle;
+		if (ScriptEngine::IsInstantiated(entity))
+			entityHandle = ScriptEngine::GetInstance(entity);
+		else
+			entityHandle = ScriptEngine::InstantiateBaseEntity(entity);
+
+		MonoObject* object = GCManager::GetManagedObject(handle);
+		MonoObject* entityInstance = GCManager::GetManagedObject(entityHandle);
+		mono_field_set_value(object, Field, entityInstance);
+	}
+
 	void ManagedField::SetValueInternal(GCHandle handle, const void* value)
 	{
 		MonoObject* obj = GCManager::GetManagedObject(handle);
@@ -90,6 +135,14 @@ namespace Shark {
 		MonoObject* stringObj = mono_field_get_value_object(ScriptEngine::GetRuntimeDomain(), Field, obj);
 		MonoString* monoString = mono_object_to_string(stringObj, nullptr);
 		return ScriptUtils::MonoStringToUTF8(monoString);
+	}
+
+	Ref<FieldStorage> FieldStorage::FromManagedField(const ManagedField& field)
+	{
+		Ref<FieldStorage> storage = Ref<FieldStorage>::Create();
+		storage->Type = field.Type;
+		storage->Name = mono_field_full_name(field);
+		return storage;
 	}
 
 	ScriptClass::ScriptClass(const std::string& nameSpace, const std::string& name)

@@ -11,12 +11,12 @@ Assets:
   - Handle: 0x5028d59af2f896de
     Type: Scene
     FilePath: Scenes/Physics.skscene
-  - Handle: 0x5b3ed9bb804eccc0
-    Type: Scene
-    FilePath: Scenes/PlayerTest.skscene
   - Handle: 0x687958ac4bb829af
     Type: Scene
     FilePath: Scenes/ParentingTest.skscene
+  - Handle: 0x70b8fb15f6e6bc6f
+    Type: Scene
+    FilePath: Scenes/PlayerTest.skscene
   - Handle: 0x86f39dc7dff51af6
     Type: Scene
     FilePath: Scenes/ParentingScriptingTest.skscene

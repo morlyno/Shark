@@ -6,19 +6,18 @@ namespace Sandbox
 
 	public class PlayerController : Entity
 	{
-		private uint m_CollishionCount = 0;
-		private bool m_ShouldJump = false;
-
-		public string Test = "HalloHallo";
-		public string Bye = "alöskdjf";
-		public Vector3 Direction = Vector3.Right;
-
-		// Movement
-		public float MovementSpeed; // m/s;
-		private float m_JumpForce = 18.0f;
+		public float Acceleration;
+		public float MaxMovementSpeed; // m/s;
+		public float OnGroundDamping = 10.0f;
+		public float JumpForce = 18.0f;
 		private RigidBody2DComponent m_RigidBody;
 
-		private Entity m_BallTemplate;
+		private bool m_Sprint = false;
+		private bool m_WantJump = false;
+		private uint m_CollishionCount = 0;
+
+
+		public Entity BallTemplate;
 		public bool DestroyBallOnHit = false;
 
 		private bool m_WantShoot = false;
@@ -45,9 +44,11 @@ namespace Sandbox
 
 		protected override void OnCreate()
 		{
-			m_BallTemplate = Scene.GetEntityByTag("BallTemplate");
+			//m_BallTemplate = Scene.GetEntityByTag("BallTemplate");
 
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
+			m_RigidBody.LinearDamping = 0.5f;
+			//m_RigidBody.GravityScale = 10.0f;
 		}
 
 		protected override void OnDestroy()
@@ -56,8 +57,9 @@ namespace Sandbox
 
 		protected override void OnUpdate(float ts)
 		{
-			m_ShouldJump = Input.IsKeyPressed(Key.Space);
+			m_WantJump = Input.IsKeyPressed(Key.Space);
 			m_WantShoot = Input.IsMouseButtonPressed(MouseButton.Left);
+			m_Sprint = Input.IsKeyPressed(Key.LeftShift);
 
 			if (Input.IsKeyPressed(Key.P))
 				CreateBall();
@@ -82,8 +84,9 @@ namespace Sandbox
 
 		protected override void OnCollishionBegin(Collider2D collider)
 		{
-			m_CollishionCount++;
+			m_RigidBody.LinearDamping = OnGroundDamping;
 
+			m_CollishionCount++;
 			Entity entity = collider.Entity;
 
 			if (entity is PlatformScript)
@@ -94,6 +97,9 @@ namespace Sandbox
 		{
 			m_CollishionCount--;
 
+			if (!m_Colliding)
+				m_RigidBody.LinearDamping = 0;
+
 			Entity entity = collider.Entity;
 
 			if (entity is PlatformScript)
@@ -102,28 +108,41 @@ namespace Sandbox
 
 		private void Movement(float ts)
 		{
-			Vector2 delta = Vector2.Zero;
+			Vector2 direction = Vector2.Zero;
+			bool apply = false;
 
 			if (Input.IsKeyPressed(Key.D))
-				delta += Vector2.Right;
+			{
+				direction += Vector2.Right;
+				apply = true;
+			}
 
 			if (Input.IsKeyPressed(Key.A))
-				delta += Vector2.Left;
+			{
+				direction += Vector2.Left;
+				apply = true;
+			}
 
+			if (apply)
+			{
+				var velocity = m_RigidBody.LinearVelocity;
+				velocity.X += Acceleration * direction.X * ts;
+				if (!m_Sprint)
+					velocity.X = Mathf.Clamp(velocity.X, -MaxMovementSpeed, MaxMovementSpeed);
+				m_RigidBody.LinearVelocity = velocity;
+				m_RigidBody.LinearDamping = 0;
+			}
+			else if (m_Colliding)
+			{
+				m_RigidBody.LinearDamping = OnGroundDamping;
+			}
 
-			if (Input.IsKeyPressed(Key.Shift))
-				delta.X *= 2.0f;
-
-			var velocity = m_RigidBody.LinearVelocity;
-			delta *= MovementSpeed * ts * 1000.0f;
-			velocity.X = delta.X;
-			m_RigidBody.LinearVelocity = velocity;
-
-			if (m_ShouldJump && m_Colliding)
+			if (m_WantJump && m_Colliding)
 			{
 				m_RigidBody.LinearVelocity = new Vector2(m_RigidBody.LinearVelocity.X, 0.0f);
-				m_RigidBody.ApplyForce(Vector2.Up * m_JumpForce, PhysicsForce2DType.Impulse);
+				m_RigidBody.ApplyForce(Vector2.Up * JumpForce, PhysicsForce2DType.Impulse);
 			}
+
 		}
 
 		private void Shoot()
@@ -145,7 +164,7 @@ namespace Sandbox
 
 		private void CreateBall()
 		{
-			var ball = Scene.CloneEntity(m_BallTemplate);
+			var ball = Scene.CloneEntity(BallTemplate);
 			ball.Name = "Ball";
 			var rigidBody = ball.GetComponent<RigidBody2DComponent>();
 			rigidBody.Position = new Vector2(0.0f, 10.0f);

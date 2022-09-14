@@ -41,14 +41,14 @@ namespace Shark {
 			return;
 
 		RemoveTargetFromParent(*this);
-		relShip.Parent = UUID::Invalid;
+		relShip.Parent = UUID::Null;
 	}
 
 	void Entity::RemoveChild(UUID childID)
 	{
 		Entity childEntity = m_Scene->GetEntityByUUID(childID);
 		RemoveTargetFromParent(childEntity);
-		childEntity.GetComponent<RelationshipComponent>().Parent = UUID::Invalid;
+		childEntity.GetComponent<RelationshipComponent>().Parent = UUID::Null;
 	}
 
 	void Entity::RemoveChildren()
@@ -56,7 +56,7 @@ namespace Shark {
 		for (UUID childID : Children())
 		{
 			Entity child = m_Scene->GetEntityByUUID(childID);
-			child.GetComponent<RelationshipComponent>().Parent = UUID::Invalid;
+			child.GetComponent<RelationshipComponent>().Parent = UUID::Null;
 		}
 		Children().clear();
 	}

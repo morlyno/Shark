@@ -1015,7 +1015,7 @@ namespace Shark {
 
 							UI::BeginControlsGrid();
 							for (auto& [time, name] : times)
-								UI::Control(name, fmt::to_string(time));
+								UI::Property(name, fmt::to_string(time));
 							UI::EndControls();
 
 							//UI::Control("Step",           fmt::to_string(profile.step));
@@ -1214,11 +1214,11 @@ namespace Shark {
 			UI::PopID();
 		}
 
-		UI::Control("Gravity", config.Gravity, { 0.0f, -9.81 });
-		UI::Control("Velocity Iterations", config.VelocityIterations, 8);
-		UI::Control("Position Iterations", config.PositionIterations, 3);
+		UI::Control("Gravity", config.Gravity);
+		UI::Control("Velocity Iterations", config.VelocityIterations);
+		UI::Control("Position Iterations", config.PositionIterations);
 		float fixedTSInMS = config.FixedTimeStep * 1000.0f;
-		if (UI::Control("Fixed Time Step", fixedTSInMS, 1.0f, 0.1f, FLT_MAX, 1.0f, "%.3fms"))
+		if (UI::Control("Fixed Time Step", fixedTSInMS, 0.1f, 0.1f, FLT_MAX, "%.3fms"))
 			config.FixedTimeStep = fixedTSInMS * 0.001f;
 
 		UI::EndControls();
@@ -1282,9 +1282,9 @@ namespace Shark {
 				UI::BeginControlsGrid();
 
 				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
-				UI::Control("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
-				UI::Control("FilePath", metadata.FilePath, textFlags);
-				UI::Control("Type", AssetTypeToString(metadata.Type), textFlags);
+				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
+				UI::Property("FilePath", metadata.FilePath, textFlags);
+				UI::Property("Type", AssetTypeToString(metadata.Type), textFlags);
 
 				UI::EndControls();
 
@@ -1327,9 +1327,9 @@ namespace Shark {
 				UI::BeginControlsGrid();
 
 				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
-				UI::Control("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
-				UI::Control("FilePath", metadata.FilePath, textFlags);
-				UI::Control("Type", AssetTypeToString(metadata.Type), textFlags);
+				UI::Property("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
+				UI::Property("FilePath", metadata.FilePath, textFlags);
+				UI::Property("Type", AssetTypeToString(metadata.Type), textFlags);
 
 				UI::EndControls();
 			}
@@ -1365,8 +1365,8 @@ namespace Shark {
 				UI::BeginControlsGrid();
 
 				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
-				UI::Control("Handle", fmt::format("{:x}", handle), textFlags);
-				UI::Control("Type", AssetTypeToString(asset->GetAssetType()), textFlags);
+				UI::Property("Handle", fmt::format("{:x}", handle), textFlags);
+				UI::Property("Type", AssetTypeToString(asset->GetAssetType()), textFlags);
 
 				UI::EndControls();
 			}

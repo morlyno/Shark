@@ -38,6 +38,8 @@ namespace Shark {
 			ImGui::ItemSize(text_size, 0.0f);
 			if (ImGui::ItemAdd(bb, 0))
 			{
+				//ImGui::RenderTextClipped(bb.Min, bb.Max, text_begin, text_end, &text_size, ImVec2(0, 0), &bb);
+
 				ImVec4 clipRect = bb.ToVec4();
 				window->DrawList->AddText(
 					GImGui->Font,
@@ -148,9 +150,14 @@ namespace Shark {
 		ConsoleMessage msg;
 		msg.Level = level;
 		msg.Message = message;
-		size_t count = message.find('\n');
-		count = message.find('\n', count + 1);
-		msg.FriendlyMessage = std::string(message, std::min({ message.length(), ConsoleMessage::MaxFiendlyMessageLength, count }));
+		size_t count = message.find_first_of("\r\n");
+		count = message.find_first_not_of("\r\n", count);
+		count = message.find_first_of("\r\n", count);
+		count = message.find_first_not_of("\r\n", count);
+		//count = message.find('\n', count + 1);
+		SK_CORE_ASSERT(!(message.length() > ConsoleMessage::MaxFiendlyMessageLength && count > ConsoleMessage::MaxFiendlyMessageLength));
+		msg.FriendlyMessage = std::string(message, 0, std::min({ message.length(), ConsoleMessage::MaxFiendlyMessageLength, count }));
+		//msg.FriendlyMessage = message;
 
 		m_Messages.push_back(msg);
 		if (Filter(msg))
@@ -307,7 +314,8 @@ namespace Shark {
 			bool shown = true;
 			ImGui::Begin("Message Inspector", &shown);
 			auto& msg = m_InspectorMessage.Message;
-			ImGui::TextWrapped(msg.c_str());
+			ImGui::TextUnformatted(msg.c_str());
+			//ImGui::TextWrapped("%s", msg.c_str());
 			ImGui::End();
 
 			if (!shown)

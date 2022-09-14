@@ -92,6 +92,7 @@ namespace Shark {
 		static std::string ObjectToString(MonoObject* obj);
 
 		static const char* GetClassName(GCHandle handle);
+		static std::string_view GetFieldName(const ManagedField& field);
 
 	private:
 		static void* GetUnmanagedThunk(MonoMethod* method);

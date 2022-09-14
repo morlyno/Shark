@@ -68,42 +68,6 @@ namespace Shark {
 
 	}
 
-	static void SerializeFieldStorage(YAML::Emitter& out, Ref<FieldStorage> storage)
-	{
-		switch (storage->Field.Type)
-		{
-			case ManagedFieldType::Bool: out << storage->GetValue<bool>(); break;
-			case ManagedFieldType::Char: out << storage->GetValue<wchar_t>(); break;
-			case ManagedFieldType::Byte: out << storage->GetValue<uint8_t>(); break;
-			case ManagedFieldType::SByte: out << storage->GetValue<int8_t>(); break;
-			case ManagedFieldType::Short: out << storage->GetValue<int16_t>(); break;
-			case ManagedFieldType::UShort: out << storage->GetValue<uint16_t>(); break;
-			case ManagedFieldType::Int: out << storage->GetValue<int>(); break;
-			case ManagedFieldType::UInt: out << storage->GetValue<uint32_t>(); break;
-			case ManagedFieldType::Long: out << storage->GetValue<int64_t>(); break;
-			case ManagedFieldType::ULong: out << storage->GetValue<uint64_t>(); break;
-			case ManagedFieldType::Float: out << storage->GetValue<float>(); break;
-			case ManagedFieldType::Double: out << storage->GetValue<double>(); break;
-			case ManagedFieldType::String:
-			{
-				MonoString* monoString = storage->GetValue<MonoString*>();
-				out << ScriptUtils::MonoStringToUTF8(monoString);
-				break;
-			}
-			case ManagedFieldType::Entity:
-			{
-				UUID entityID = storage->GetValue<UUID>();
-				out << entityID;
-				break;
-			}
-			default:
-			{
-				SK_CORE_ASSERT("Unkown Field Type");
-				break;
-			}
-		}
-	}
-
 	static bool SerializeEntity(YAML::Emitter& out, Entity entity, const Ref<Scene>& scene)
 	{
 		SK_PROFILE_FUNCTION();
@@ -289,28 +253,28 @@ namespace Shark {
 			{
 				out << YAML::BeginMap;
 				out << YAML::Key << "Name" << YAML::Value << name;
+				out << YAML::Key << "Type" << YAML::Value << ToString(storage->Type);
 				out << YAML::Key << "Value" << YAML::Value;
-				switch (storage->Field.Type)
+				switch (storage->Type)
 				{
-					case ManagedFieldType::Bool: out << storage->GetValue<bool>(); break;
-					case ManagedFieldType::Char: out << storage->GetValue<wchar_t>(); break;
-					case ManagedFieldType::Byte: out << storage->GetValue<uint8_t>(); break;
-					case ManagedFieldType::SByte: out << storage->GetValue<int8_t>(); break;
-					case ManagedFieldType::Short: out << storage->GetValue<int16_t>(); break;
+					case ManagedFieldType::Bool:   out << storage->GetValue<bool>(); break;
+					case ManagedFieldType::Char:   out << storage->GetValue<char16_t>(); break;
+					case ManagedFieldType::Byte:   out << storage->GetValue<uint8_t>(); break;
+					case ManagedFieldType::SByte:  out << storage->GetValue<int8_t>(); break;
+					case ManagedFieldType::Short:  out << storage->GetValue<int16_t>(); break;
 					case ManagedFieldType::UShort: out << storage->GetValue<uint16_t>(); break;
-					case ManagedFieldType::Int: out << storage->GetValue<int>(); break;
-					case ManagedFieldType::UInt: out << storage->GetValue<uint32_t>(); break;
-					case ManagedFieldType::Long: out << storage->GetValue<int64_t>(); break;
-					case ManagedFieldType::ULong: out << storage->GetValue<uint64_t>(); break;
-					case ManagedFieldType::Float: out << storage->GetValue<float>(); break;
+					case ManagedFieldType::Int:    out << storage->GetValue<int32_t>(); break;
+					case ManagedFieldType::UInt:   out << storage->GetValue<uint32_t>(); break;
+					case ManagedFieldType::Long:   out << storage->GetValue<int64_t>(); break;
+					case ManagedFieldType::ULong:  out << storage->GetValue<uint64_t>(); break;
+					case ManagedFieldType::Float:  out << storage->GetValue<float>(); break;
 					case ManagedFieldType::Double: out << storage->GetValue<double>(); break;
 					case ManagedFieldType::String: out << storage->GetValue<std::string>(); break;
 					case ManagedFieldType::Entity: out << storage->GetValue<UUID>(); break;
-					default:
-					{
-						SK_CORE_ASSERT("Unkown Field Type");
-						break;
-					}
+					case ManagedFieldType::Vector2: out << storage->GetValue<glm::vec2>(); break;
+					case ManagedFieldType::Vector3: out << storage->GetValue<glm::vec3>(); break;
+					case ManagedFieldType::Vector4: out << storage->GetValue<glm::vec4>(); break;
+					default: SK_CORE_ASSERT("Unkown Field Type"); break;
 				}
 				out << YAML::EndMap;
 			}
@@ -587,34 +551,30 @@ namespace Shark {
 				if (auto scriptComponent = entity["ScriptComponent"])
 				{
 					auto name = scriptComponent["ScriptName"];
-
 					auto& comp = deserializedEntity.AddOrReplaceComponent<ScriptComponent>();
 
 					SK_CORE_ASSERT(name, "Couldn't deserialize ScriptComponent::ScriptName");
 					comp.ScriptName = name.as<std::string>();
 					Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(comp.ScriptName);
-					comp.ClassID = klass->GetID();
+					comp.ClassID = klass ? klass->GetID() : 0;
 
 					auto fields = scriptComponent["Fields"];
 					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(deserializedEntity);
 					for (auto field : fields)
 					{
-						std::string fieldName = field["Name"].as<std::string>();
-						if (!klass->HasField(fieldName))
-							continue;
-
-						const ManagedField& managedField = klass->GetField(fieldName);
-						Ref<FieldStorage> storage = Ref<FieldStorage>::Create(managedField);
-						fieldStorages[fieldName] = storage;
-						switch (managedField.Type)
+						Ref<FieldStorage> storage = Ref<FieldStorage>::Create();
+						storage->Name = field["Name"].as<std::string>();
+						storage->Type = ToManagedFieldType(field["Type"].as<std::string>());
+						fieldStorages[storage->Name] = storage;
+						switch (storage->Type)
 						{
 							case ManagedFieldType::Bool:   storage->SetValue(field["Value"].as<bool>()); break;
-							case ManagedFieldType::Char:   storage->SetValue(field["Value"].as<wchar_t>()); break;
+							case ManagedFieldType::Char:   storage->SetValue(field["Value"].as<char16_t>()); break;
 							case ManagedFieldType::Byte:   storage->SetValue(field["Value"].as<uint8_t>()); break;
 							case ManagedFieldType::SByte:  storage->SetValue(field["Value"].as<int8_t>()); break;
 							case ManagedFieldType::Short:  storage->SetValue(field["Value"].as<int16_t>()); break;
 							case ManagedFieldType::UShort: storage->SetValue(field["Value"].as<uint16_t>()); break;
-							case ManagedFieldType::Int:    storage->SetValue(field["Value"].as<int>()); break;
+							case ManagedFieldType::Int:    storage->SetValue(field["Value"].as<int32_t>()); break;
 							case ManagedFieldType::UInt:   storage->SetValue(field["Value"].as<uint32>()); break;
 							case ManagedFieldType::Long:   storage->SetValue(field["Value"].as<int64_t>()); break;
 							case ManagedFieldType::ULong:  storage->SetValue(field["Value"].as<uint64_t>()); break;
@@ -622,6 +582,10 @@ namespace Shark {
 							case ManagedFieldType::Double: storage->SetValue(field["Value"].as<double>()); break;
 							case ManagedFieldType::String: storage->SetValue(field["Value"].as<std::string>()); break;
 							case ManagedFieldType::Entity: storage->SetValue(field["Value"].as<UUID>()); break;
+							case ManagedFieldType::Vector2: storage->SetValue(field["Value"].as<glm::vec2>()); break;
+							case ManagedFieldType::Vector3: storage->SetValue(field["Value"].as<glm::vec3>()); break;
+							case ManagedFieldType::Vector4: storage->SetValue(field["Value"].as<glm::vec4>()); break;
+							default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); break;
 						}
 					}
 

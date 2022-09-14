@@ -78,6 +78,7 @@ namespace Shark {
 		Entity GetEntityByTag(const std::string& tag);
 
 		bool IsValidEntity(Entity entity) const;
+		bool ValidEntityID(UUID entityID) const;
 
 		Entity GetActiveCameraEntity() const;
 		UUID GetActiveCameraUUID() const { return m_ActiveCameraUUID; }
@@ -118,7 +119,7 @@ namespace Shark {
 
 	private:
 		entt::registry m_Registry;
-		UUID m_ActiveCameraUUID = UUID::Invalid;
+		UUID m_ActiveCameraUUID = UUID::Null;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		std::unordered_map<UUID, Entity> m_EntityUUIDMap;

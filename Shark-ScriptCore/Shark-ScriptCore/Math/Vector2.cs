@@ -106,11 +106,10 @@ namespace Shark
 			return vec / length;
 		}
 
-
+		public float Length2
+			=> Dot(this, this);
 		public float Length
-		{
-			get => Mathf.Sqrt(Dot(this, this));
-		}
+			=> Mathf.Sqrt(Dot(this, this));
 		public void Normalize()
 		{
 			float length = Length;

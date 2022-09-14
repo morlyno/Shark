@@ -69,4 +69,11 @@ namespace Shark {
 		PhysicsProfile m_Profile;
 	};
 
+	namespace Phyiscs2DUtils {
+
+		glm::vec2 FromBody(b2Body* body);
+		glm::mat4 GetMatrix(b2Body* body);
+
+	}
+
 }

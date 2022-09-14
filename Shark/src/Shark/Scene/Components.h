@@ -15,7 +15,7 @@ namespace Shark {
 
 	struct IDComponent
 	{
-		UUID ID = UUID::Invalid;
+		UUID ID = UUID::Null;
 
 		IDComponent() = default;
 		IDComponent(const IDComponent&) = default;
@@ -48,7 +48,7 @@ namespace Shark {
 
 	struct RelationshipComponent
 	{
-		UUID Parent = UUID::Invalid;
+		UUID Parent = UUID::Null;
 		std::vector<UUID> Children;
 
 		RelationshipComponent() = default;

@@ -240,9 +240,19 @@ namespace Shark {
 				Entity entity{ e, this };
 				const auto& rb2d = view.get<RigidBody2DComponent>(entity);
 				auto& transform = entity.Transform();
+				if (entity.HasParent())
+				{
+					glm::mat4 localTransform = glm::inverse(GetWorldSpaceTransform(entity.Parent())) * Phyiscs2DUtils::GetMatrix(rb2d.RuntimeBody);
+					TransformComponent localBodyTransform;
+					Math::DecomposeTransform(localTransform, localBodyTransform.Translation, localBodyTransform.Rotation, localBodyTransform.Scale);
+					transform.Translation.x = localBodyTransform.Translation.x;
+					transform.Translation.y = localBodyTransform.Translation.y;
+					transform.Rotation.z = localBodyTransform.Rotation.z;
+					continue;
+				}
+
 				const auto& pos = rb2d.RuntimeBody->GetPosition();
-				transform.Translation.x = pos.x;
-				transform.Translation.y = pos.y;
+				transform.Translation.xy = Phyiscs2DUtils::FromBody(rb2d.RuntimeBody);
 				transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 			}
 		}
@@ -271,9 +281,19 @@ namespace Shark {
 			Entity entity{ e, this };
 			const auto& rb2d = view.get<RigidBody2DComponent>(entity);
 			auto& transform = entity.Transform();
+			if (entity.HasParent())
+			{
+				glm::mat4 localTransform = glm::inverse(GetWorldSpaceTransform(entity.Parent())) * Phyiscs2DUtils::GetMatrix(rb2d.RuntimeBody);
+				TransformComponent localBodyTransform;
+				Math::DecomposeTransform(localTransform, localBodyTransform.Translation, localBodyTransform.Rotation, localBodyTransform.Scale);
+				transform.Translation.x = localBodyTransform.Translation.x;
+				transform.Translation.y = localBodyTransform.Translation.y;
+				transform.Rotation.z = localBodyTransform.Rotation.z;
+				continue;
+			}
+
 			const auto& pos = rb2d.RuntimeBody->GetPosition();
-			transform.Translation.x = pos.x;
-			transform.Translation.y = pos.y;
+			transform.Translation.xy = Phyiscs2DUtils::FromBody(rb2d.RuntimeBody);
 			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 		}
 	}
@@ -402,9 +422,6 @@ namespace Shark {
 
 		if (!m_IsEditorScene)
 		{
-			if (entity.AllOf<ScriptComponent>())
-				ScriptEngine::OnEntityDestroyed(entity);
-
 			if (entity.AllOf<RigidBody2DComponent>())
 			{
 				auto& rb = entity.GetComponent<RigidBody2DComponent>();
@@ -415,6 +432,10 @@ namespace Shark {
 				if (auto comp = entity.TryGetComponent<BoxCollider2DComponent>()) comp->RuntimeCollider = nullptr;
 				if (auto comp = entity.TryGetComponent<CircleCollider2DComponent>()) comp->RuntimeCollider = nullptr;
 			}
+
+			if (entity.AllOf<ScriptComponent>())
+				ScriptEngine::OnEntityDestroyed(entity);
+
 		}
 
 		if (first)
@@ -463,6 +484,11 @@ namespace Shark {
 		return m_Registry.valid(entity);
 	}
 
+	bool Scene::ValidEntityID(UUID entityID) const
+	{
+		return m_EntityUUIDMap.find(entityID) != m_EntityUUIDMap.end();
+	}
+
 	Entity Scene::GetActiveCameraEntity() const
 	{
 		return GetEntityByUUID(m_ActiveCameraUUID);
@@ -483,7 +509,7 @@ namespace Shark {
 	glm::mat4 Scene::GetWorldSpaceTransform(Entity entity) const
 	{
 		if (entity.HasParent())
-			return entity.Parent().CalcTransform() * entity.CalcTransform();
+			return GetWorldSpaceTransform(entity.Parent()) * entity.CalcTransform();
 		return entity.CalcTransform();
 	}
 
@@ -529,7 +555,10 @@ namespace Shark {
 			{
 				Entity entity{ e, this };
 				auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-				auto& transform = entity.Transform();
+				glm::mat4 worldTransform = GetWorldSpaceTransform(entity);
+				TransformComponent transform;
+				Math::DecomposeTransform(worldTransform, transform.Translation, transform.Rotation, transform.Scale);
+				//auto& transform = entity.Transform();
 
 				//glm::mat4 localToWorld = entity.CalcLocalToWorldTransform();
 				//glm::vec4 translation = localToWorld * glm::vec4(transform.Translation, 1.0f);
@@ -743,7 +772,7 @@ namespace Shark {
 
 		UUID uuid = entity.GetUUID();
 		if (uuid == m_ActiveCameraUUID)
-			m_ActiveCameraUUID = UUID::Invalid;
+			m_ActiveCameraUUID = UUID::Null;
 	}
 
 	void ContactListener::BeginContact(b2Contact* contact)
