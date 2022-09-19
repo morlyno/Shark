@@ -25,10 +25,10 @@ namespace Shark {
 	WindowsWindow::WindowClass WindowsWindow::WindowClass::wndClass;
 
 	WindowsWindow::WindowClass::WindowClass()
-		:
-		hInst(GetModuleHandle(nullptr))
+		: hInst(GetModuleHandleW(nullptr))
 	{
-		WNDCLASSEX wc = { 0 };
+		WNDCLASSEX wc;
+		ZeroMemory(&wc, sizeof(WNDCLASSEX));
 		wc.cbSize = sizeof(wc);
 		wc.style = CS_OWNDC;
 		wc.lpfnWndProc = WindowProcStartUp;
@@ -42,22 +42,17 @@ namespace Shark {
 		wc.lpszClassName = ClassName;
 		wc.hIconSm = nullptr;
 
-		RegisterClassEx(&wc);
+		RegisterClassExW(&wc);
 	}
 
 	WindowsWindow::WindowClass::~WindowClass()
 	{
-		UnregisterClass(ClassName, hInst);
+		UnregisterClassW(ClassName, hInst);
 	}
 
 	WindowsWindow::WindowsWindow(const WindowProps& props)
-		: m_Size(props.Width, props.Height), m_Name(String::ToWideCopy(props.Name)), m_VSync(props.VSync)
+		: m_Size(props.Width, props.Height), m_Name(String::ToWideCopy(props.Name)), m_VSync(props.VSync), m_EventListener(props.EventListener)
 	{
-		SK_PROFILE_FUNCTION();
-
-		//std::string str;
-		//str.resize(props.Name.size());
-		//wcstombs(str.data(), props.Name.c_str(), (size_t)-1);
 		SK_CORE_INFO("Init Windows Window {0} {1} {2}", props.Width, props.Height, props.Name);
 
 		int width, height;
@@ -106,23 +101,17 @@ namespace Shark {
 			return;
 		}
 
-		UpdateExtentedKeyStates();
-
 		ShowWindow(m_hWnd, SW_SHOW);
 		UpdateWindow(m_hWnd);
 	}
 
 	WindowsWindow::~WindowsWindow()
 	{
-		SK_PROFILE_FUNCTION();
-
 		DestroyWindow(m_hWnd);
 	}
 
 	void WindowsWindow::CreateSwapChain()
 	{
-		SK_PROFILE_FUNCTION();
-
 		SwapChainSpecifications swapChainSpecs;
 		swapChainSpecs.Widht = m_Size.x;
 		swapChainSpecs.Height = m_Size.y;
@@ -130,10 +119,10 @@ namespace Shark {
 		m_SwapChain = SwapChain::Create(swapChainSpecs);
 	}
 
-	void WindowsWindow::Update() const
+	void WindowsWindow::ProcessEvents() const
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("WindowsWindow::Update");
+		SK_PERF_SCOPED(SK_FUNCTION);
 
 		MSG msg = {};
 		while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -141,25 +130,18 @@ namespace Shark {
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
 		}
-
-		m_SwapChain->Present(m_VSync);
 	}
 
-	void WindowsWindow::UpdateExtentedKeyStates()
+	void WindowsWindow::ScreenToClient(glm::ivec2& screenPos) const
 	{
-		m_ExtendedKeyState[ExtendedKey::LeftAlt]       = Input::KeyPressed(Key::LeftAlt);
-		m_ExtendedKeyState[ExtendedKey::LeftAlt]       = Input::KeyPressed(Key::LeftAlt);
-		m_ExtendedKeyState[ExtendedKey::RightAlt]      = Input::KeyPressed(Key::RightAlt);
-		m_ExtendedKeyState[ExtendedKey::LeftControl]   = Input::KeyPressed(Key::LeftControl);
-		m_ExtendedKeyState[ExtendedKey::RightControl]  = Input::KeyPressed(Key::RightControl);
-		m_ExtendedKeyState[ExtendedKey::LeftShift]     = Input::KeyPressed(Key::LeftShift);
-		m_ExtendedKeyState[ExtendedKey::RightShift]    = Input::KeyPressed(Key::RightShift);
+		POINT p{ screenPos.x, screenPos.y };
+		::ScreenToClient(m_hWnd, &p);
+		screenPos.x = p.x;
+		screenPos.y = p.y;
 	}
 
 	LRESULT WINAPI WindowsWindow::WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (uMsg == WM_NCCREATE)
 		{
 			const CREATESTRUCTW* const pCreateStruct = reinterpret_cast<CREATESTRUCTW*>(lParam);
@@ -174,8 +156,6 @@ namespace Shark {
 
 	LRESULT WINAPI WindowsWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		SK_PROFILE_FUNCTION();
-
 		WindowsWindow* const pWindow = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 		return pWindow->HandleMsg(hWnd, uMsg, wParam, lParam);
 	}
@@ -187,27 +167,23 @@ namespace Shark {
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 			return 1;
 
-		if (!m_Callbackfunc)
-		{
-			if (msg == WM_SIZE)
-			{
-				m_Size.x = LOWORD(lParam);
-				m_Size.y = HIWORD(lParam);
-			}
-			else if (msg == WM_MOVE)
-			{
-				m_Pos.x = LOWORD(lParam);
-				m_Pos.y = HIWORD(lParam);
-			}
-			return DefWindowProc(hWnd, msg, wParam, lParam);
-		}
-
 		switch (msg)
 		{
 			case WM_DESTROY:
 			{
-				m_Callbackfunc(WindowCloseEvent());
-				return 0;
+				m_EventListener->OnWindowCloseEvent();
+				break;
+			}
+
+			case WM_SETFOCUS:
+			{
+				m_EventListener->OnWindowFocusEvent();
+				break;
+			}
+
+			case WM_KILLFOCUS:
+			{
+				m_EventListener->OnWindowLostFocusEvent();
 				break;
 			}
 
@@ -222,30 +198,58 @@ namespace Shark {
 				else if (wParam == SIZE_MINIMIZED)
 					state = WindowResizeEvent::State::Minimized;
 
-				const bool handled = m_Callbackfunc(WindowResizeEvent(m_Size.y, m_Size.y, state));
-				Renderer::ClearAllCommandBuffers();
-				m_SwapChain->Resize(m_Size.x, m_Size.y);
-				return handled ? 0 : 1;
+				m_EventListener->OnWindowResizeEvent(m_Size.x, m_Size.y, state);
+				break;
 			}
 
 			case WM_MOVE:
 			{
 				const POINTS pt = MAKEPOINTS(lParam);
 				m_Pos = { pt.x, pt.y };
-				const bool handled = m_Callbackfunc(WindowMoveEvent(pt.x, pt.y));
-				return handled ? 0 : 1;
+				m_EventListener->OnWindowMoveEvent(pt.x, pt.y);
+				break;
 			}
 
-			// ----- Mouse ----- //
 			case WM_NCMOUSEMOVE:
 			case WM_MOUSEMOVE:
 			{
-				POINT point = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				glm::ivec2 mousePos{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				ScreenToClient(mousePos);
+				m_EventListener->OnMouseMovedEvent(mousePos);
+				break;
+			}
 
-				glm::ivec2 mousePos = { point.x, point.y };
-				const bool handled = m_Callbackfunc(MouseMovedEvent(mousePos));
+			case WM_LBUTTONUP:
+			case WM_RBUTTONUP:
+			case WM_MBUTTONUP:
+			case WM_XBUTTONUP:
+			{
+				glm::ivec2 mousePos{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				ScreenToClient(mousePos);
+				MouseButton mouseButton = MouseButton::None;
 
-				return handled ? 0 : 1;
+				switch (msg)
+				{
+					case WM_LBUTTONUP:
+						mouseButton = MouseButton::Left;
+						break;
+					case WM_RBUTTONUP:
+						mouseButton = MouseButton::Right;
+						break;
+					case WM_MBUTTONUP:
+						mouseButton = MouseButton::Middle;
+						break;
+					case WM_XBUTTONUP:
+						mouseButton = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::Thumb01 : MouseButton::Thumb02;
+						break;
+				}
+
+				m_DownMouseButtons &= ~(int)mouseButton;
+				if (m_DownMouseButtons == 0 && ::GetCapture() == hWnd)
+					::ReleaseCapture();
+
+				m_EventListener->OnMouseButtonReleasedEvent(mousePos, mouseButton);
+				break;
 			}
 
 			case WM_LBUTTONDOWN:
@@ -256,243 +260,115 @@ namespace Shark {
 			case WM_MBUTTONDBLCLK:
 			case WM_XBUTTONDOWN:
 			case WM_XBUTTONDBLCLK:
-			case WM_LBUTTONUP:
-			case WM_RBUTTONUP:
-			case WM_MBUTTONUP:
-			case WM_XBUTTONUP:
 			{
-				POINT cursorPoint;
-				cursorPoint.x = GET_X_LPARAM(lParam);
-				cursorPoint.y = GET_Y_LPARAM(lParam);
+				POINT cursorPoint{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				::ScreenToClient(hWnd, &cursorPoint);
 
 				glm::ivec2 mousePos = { cursorPoint.x, cursorPoint.y };
-
-				MouseButton::Type mouseButton = MouseButton::Invalid;
+				MouseButton mouseButton = MouseButton::None;
 				bool doubleClick = false;
-				bool mouseUp = false;
 
 				switch (msg)
 				{
-				case WM_LBUTTONDOWN:
-					mouseButton = MouseButton::Left;
-					break;
-				case WM_LBUTTONDBLCLK:
-					doubleClick = true;
-					mouseButton = MouseButton::Left;
-					break;
-				case WM_LBUTTONUP:
-					mouseUp = true;
-					mouseButton = MouseButton::Left;
-					break;
+					case WM_LBUTTONDBLCLK:
+						doubleClick = true;
+					case WM_LBUTTONDOWN:
+						mouseButton = MouseButton::Left;
+						break;
 
-				case WM_RBUTTONDOWN:
-					mouseButton = MouseButton::Right;
-					break;
-				case WM_RBUTTONDBLCLK:
-					doubleClick = true;
-					mouseButton = MouseButton::Right;
-					break;
-				case WM_RBUTTONUP:
-					mouseUp = true;
-					mouseButton = MouseButton::Right;
-					break;
+					case WM_RBUTTONDBLCLK:
+						doubleClick = true;
+					case WM_RBUTTONDOWN:
+						mouseButton = MouseButton::Right;
+						break;
 
-				case WM_MBUTTONDOWN:
-					mouseButton = MouseButton::Middle;
-					break;
-				case WM_MBUTTONDBLCLK:
-					doubleClick = true;
-					mouseButton = MouseButton::Middle;
-					break;
-				case WM_MBUTTONUP:
-					mouseUp = true;
-					mouseButton = MouseButton::Middle;
-					break;
+					case WM_MBUTTONDBLCLK:
+						doubleClick = true;
+					case WM_MBUTTONDOWN:
+						mouseButton = MouseButton::Middle;
+						break;
 
-				case WM_XBUTTONDOWN:
-					mouseButton = HIWORD(wParam) == 0x0001 ? MouseButton::Thumb01 : MouseButton::Thumb02;
-					break;
-				case WM_XBUTTONDBLCLK:
-					doubleClick = true;
-					mouseButton = HIWORD(wParam) == 0x0001 ? MouseButton::Thumb01 : MouseButton::Thumb02;
-					break;
-				case WM_XBUTTONUP:
-					mouseUp = true;
-					mouseButton = HIWORD(wParam) == 0x0001 ? MouseButton::Thumb01 : MouseButton::Thumb02;
-					break;
+					case WM_XBUTTONDBLCLK:
+						doubleClick = true;
+					case WM_XBUTTONDOWN:
+						mouseButton = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::Thumb01 : MouseButton::Thumb02;
+						break;
 				}
-				
+
+				if (m_DownMouseButtons == 0 && ::GetCapture() == NULL)
+					::SetCapture(hWnd);
+				m_DownMouseButtons |= BIT((int)mouseButton);
+
 				bool handled = false;
-				if (mouseUp)
-				{
-					handled = m_Callbackfunc(MouseButtonReleasedEvent(mousePos, mouseButton));
-				}
-				else if (doubleClick)
-				{
-					handled = m_Callbackfunc(MouseButtonDoubleClickedEvent(mousePos, mouseButton));
-				}
+				if (doubleClick)
+					m_EventListener->OnMouseButtonDoubleClickedEvent(mousePos, mouseButton);
 				else
-				{
-					handled = m_Callbackfunc(MouseButtonPressedEvent(mousePos, mouseButton));
-				}
+					m_EventListener->OnMouseButtonPressedEvent(mousePos, mouseButton);
 
-				return handled ? 0 : 1;
+				break;
 			}
 
 			case WM_MOUSEWHEEL:
 			{
-				POINT mousePoint;
-				mousePoint.x = GET_X_LPARAM(lParam);
-				mousePoint.y = GET_Y_LPARAM(lParam);
-
-				ScreenToClient(hWnd, &mousePoint);
-
-				const glm::ivec2 mousePos = { mousePoint.x, mousePoint.y };
-				const short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-				const float spinFactor = 1.0f / WHEEL_DELTA;
-
-				const bool handled = m_Callbackfunc(MouseScrolledEvent(mousePos, (float)wheelDelta * spinFactor));
-				return handled ? 0 : 1;
+				glm::ivec2 mousePos{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				ScreenToClient(mousePos);
+				m_EventListener->OnMouseScrolledEvent(mousePos, (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+				break;
 			}
 
 			// ----- Keyboard ----- //
-			case WM_SYSKEYDOWN:
 			case WM_KEYDOWN:
-			{
-				bool isRepeat = (lParam & BIT(30)) > 0;
-				const bool altPressed = (lParam & BIT(29)) > 0;
-				const KeyCode win32Key = (KeyCode)wParam;
-				KeyCode actualKey = win32Key;
-
-				switch (win32Key)
-				{
-					case VK_MENU:
-					{
-						if ((lParam & BIT(24)) == 0)
-						{
-							actualKey = Key::LeftAlt;
-							isRepeat = m_ExtendedKeyState[ExtendedKey::LeftAlt];
-							m_ExtendedKeyState[ExtendedKey::LeftAlt] = true;
-						}
-						else
-						{
-							actualKey = Key::RightAlt;
-							isRepeat = m_ExtendedKeyState[ExtendedKey::RightAlt];
-							m_ExtendedKeyState[ExtendedKey::RightAlt] = true;
-						}
-						break;
-					}
-					case VK_CONTROL:
-					{
-						if ((lParam & BIT(24)) == 0)
-						{
-							actualKey = Key::LeftControl;
-							isRepeat = m_ExtendedKeyState[ExtendedKey::LeftControl];
-							m_ExtendedKeyState[ExtendedKey::LeftControl] = true;
-						}
-						else
-						{
-							actualKey = Key::RightControl;
-							isRepeat = m_ExtendedKeyState[ExtendedKey::RightControl];
-							m_ExtendedKeyState[ExtendedKey::RightControl] = true;
-						}
-						break;
-					}
-					case VK_SHIFT:
-					{
-						if ((lParam & BIT(24)) == 0)
-						{
-							actualKey = Key::LeftControl;
-							isRepeat = m_ExtendedKeyState[ExtendedKey::LeftControl];
-							m_ExtendedKeyState[ExtendedKey::LeftControl] = true;
-						}
-						else
-						{
-							actualKey = Key::RightControl;
-							isRepeat = m_ExtendedKeyState[ExtendedKey::RightControl];
-							m_ExtendedKeyState[ExtendedKey::RightControl] = true;
-						}
-						break;
-					}
-				}
-
-				const bool handled = m_Callbackfunc(KeyPressedEvent(actualKey, isRepeat, altPressed));
-
-				if (handled || msg != WM_SYSKEYDOWN)
-					return 0;
-
-				break;
-			}
-
-			case WM_SYSKEYUP:
 			case WM_KEYUP:
+			case WM_SYSKEYDOWN:
+			case WM_SYSKEYUP:
 			{
-				const KeyCode win32Key = (KeyCode)wParam;
-				KeyCode actualKey = win32Key;
-
-				switch (win32Key)
+				auto addKeyEvent = [listener = m_EventListener](KeyCode key, bool repeat, bool isDown)
 				{
-					case VK_MENU:
-					{
-						if ((lParam & BIT(24)) == 0)
-						{
-							actualKey = Key::LeftAlt;
-							m_ExtendedKeyState[ExtendedKey::LeftAlt] = false;
-						}
-						else
-						{
-							actualKey = Key::RightAlt;
-							m_ExtendedKeyState[ExtendedKey::RightAlt] = false;
-						}
-						break;
-					}
-					case VK_CONTROL:
-					{
-						if ((lParam & BIT(24)) == 0)
-						{
-							actualKey = Key::LeftControl;
-							m_ExtendedKeyState[ExtendedKey::LeftControl] = false;
-						}
-						else
-						{
-							actualKey = Key::RightControl;
-							m_ExtendedKeyState[ExtendedKey::RightControl] = false;
-						}
-						break;
-					}
-					case VK_SHIFT:
-					{
-						if ((lParam & BIT(24)) == 0)
-						{
-							actualKey = Key::LeftControl;
-							m_ExtendedKeyState[ExtendedKey::LeftControl] = false;
-						}
-						else
-						{
-							actualKey = Key::RightControl;
-							m_ExtendedKeyState[ExtendedKey::RightControl] = false;
-						}
-						break;
-					}
+					if (isDown)
+						listener->OnKeyPressedEvent(key, repeat);
+					else
+						listener->OnKeyReleasedEvent(key);
+				};
+
+				const bool isKeyDown = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
+				SK_CORE_ASSERT(wParam < 0xFF);
+				int virtualKey = (int)wParam;
+				KeyCode key = (KeyCode)virtualKey;
+				bool repeat = lParam & BIT(30);
+				bool altDown = lParam & BIT(29);
+				addKeyEvent(key, repeat, isKeyDown);
+
+				if (key == KeyCode::Alt)
+				{
+					if (Input::IsKeyDownAsync(KeyCode::LeftAlt) == isKeyDown) addKeyEvent(KeyCode::LeftAlt, repeat, isKeyDown);
+					if (Input::IsKeyDownAsync(KeyCode::RightAlt) == isKeyDown) addKeyEvent(KeyCode::RightAlt, repeat, isKeyDown);
 				}
-
-				const bool handled = m_Callbackfunc(KeyReleasedEvent((KeyCode)wParam));
-
-				if (handled || msg == WM_SYSKEYUP)
-					return 0;
-
+				else if (key == KeyCode::Control)
+				{
+					if (Input::IsKeyDownAsync(KeyCode::LeftControl) == isKeyDown) addKeyEvent(KeyCode::LeftControl, repeat, isKeyDown);
+					if (Input::IsKeyDownAsync(KeyCode::RightControl) == isKeyDown) addKeyEvent(KeyCode::RightControl, repeat, isKeyDown);
+				}
+				else if (key == KeyCode::Shift)
+				{
+					if (Input::IsKeyDownAsync(KeyCode::LeftShift) == isKeyDown) addKeyEvent(KeyCode::LeftShift, repeat, isKeyDown);
+					if (Input::IsKeyDownAsync(KeyCode::RightShift) == isKeyDown) addKeyEvent(KeyCode::RightShift, repeat, isKeyDown);
+				}
 				break;
 			}
 
+#if 0
 			case WM_CHAR:
 			{
 				const bool isRepeat = (lParam & BIT(30)) > 0;
-				m_Callbackfunc(KeyCharacterEvent((KeyCode)wParam, isRepeat));
-				return 0;
+				m_Callbackfunc(KeyCharacterEvent((char16_t)wParam, isRepeat));
+				break;
 			}
-		}
+#endif
 
-		return DefWindowProc(hWnd, msg, wParam, lParam);
+			default:
+				return DefWindowProc(hWnd, msg, wParam, lParam);
+		}
+		return 0;
 	}
 
 }

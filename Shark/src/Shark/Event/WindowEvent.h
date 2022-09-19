@@ -4,13 +4,13 @@
 
 namespace Shark {
 
-	class WindowCloseEvent : public EventBase<EventType::WindowClose, EventCategory::Window>
+	class WindowCloseEvent : public EventBase<Event, EventType::WindowClose, EventCategory::Window>
 	{
 	public:
 		WindowCloseEvent() = default;
 	};
 
-	class WindowResizeEvent : public EventBase<EventType::WindowResize, EventCategory::Window>
+	class WindowResizeEvent : public EventBase<Event, EventType::WindowResize, EventCategory::Window>
 	{
 	public:
 		enum class State { Resize = 0, Maximized, Minimized };
@@ -44,7 +44,7 @@ namespace Shark {
 		State m_State;
 	};
 
-	class WindowMoveEvent : public EventBase<EventType::WindowMove, EventCategory::Window>
+	class WindowMoveEvent : public EventBase<Event, EventType::WindowMove, EventCategory::Window>
 	{
 	public:
 		WindowMoveEvent(int x, int y)
@@ -60,26 +60,12 @@ namespace Shark {
 		int m_X, m_Y;
 	};
 
-	class WindowFocusEvent : public EventBase<EventType::WindowFocus, EventCategory::Window>
+	class WindowFocusEvent : public EventBase<Event, EventType::WindowFocus, EventCategory::Window>
 	{
-	public:
-		WindowFocusEvent(int x, int y)
-			: m_X(x), m_Y(y)
-		{}
-
-		int GetX() const { return m_X; }
-		int GetY() const { return m_Y; }
-
-		std::string ToString() const override { return fmt::format("{}, Pos: [{}, {}]", GetName(), m_X, m_Y); }
-
-	private:
-		int m_X, m_Y;
 	};
 
-	class WindowLostFocusEvent : public EventBase<EventType::WindowLostFocus, EventCategory::Window>
+	class WindowLostFocusEvent : public EventBase<Event, EventType::WindowLostFocus, EventCategory::Window>
 	{
-	public:
-		WindowLostFocusEvent() = default;
 	};
 
 }

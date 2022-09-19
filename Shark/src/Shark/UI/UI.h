@@ -16,6 +16,7 @@ namespace ImGui {
 
 	bool TableNextColumn(ImGuiTableRowFlags row_flags, float min_row_height);
 	void SeparatorEx(float thickness, ImGuiSeparatorFlags flags);
+	bool IsWindowFocused(ImGuiWindow* window, ImGuiFocusedFlags flags);
 
 }
 

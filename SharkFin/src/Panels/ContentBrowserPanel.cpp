@@ -37,6 +37,9 @@ namespace Shark {
 			m_Reload = false;
 		}
 
+		if (!m_CurrentDirectory)
+			return;
+
 		ImGui::Begin("Content Browser", &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
 		DrawMenuBar();
@@ -488,7 +491,6 @@ namespace Shark {
 		m_RootDirectory.Handle = AssetHandle::Null;
 		m_RootDirectory.Path = Project::RelativeCopy(rootPath);
 		CacheDirectory(m_RootDirectory, rootPath);
-		m_CurrentDirectory = &m_RootDirectory;
 
 		m_SelectedEntry = GetEntry(selectedEntry);
 		m_CurrentDirectory = GetEntry(currentDirectory);

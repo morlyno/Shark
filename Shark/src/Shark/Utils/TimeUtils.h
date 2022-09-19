@@ -20,12 +20,7 @@ namespace Shark {
 
 		static inline TimeStep Now()
 		{
-			return TimeStep::FromNanoSeconds((float)CurrentTime().time_since_epoch().count());
-		}
-
-		static inline TimeStep GetTimeStep(DefaultClock::duration dur)
-		{
-			return TimeStep::FromNanoSeconds((float)dur.count());
+			return CurrentTime().time_since_epoch();
 		}
 
 	};

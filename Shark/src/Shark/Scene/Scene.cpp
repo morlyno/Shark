@@ -74,36 +74,40 @@ namespace Shark {
 
 	Ref<Scene> Scene::Copy(Ref<Scene> srcScene)
 	{
-		SK_PROFILE_FUNCTION();
-		
-		auto newScene = Ref<Scene>::Create();
-		newScene->m_ViewportWidth = srcScene->m_ViewportWidth;
-		newScene->m_ViewportHeight = srcScene->m_ViewportHeight;
-		newScene->m_ActiveCameraUUID = srcScene->m_ActiveCameraUUID;
+		Ref<Scene> newScene = Ref<Scene>::Create();
+		srcScene->CopyTo(newScene);
+		return newScene;
+	}
 
-		auto& srcRegistry = srcScene->m_Registry;
-		auto& destRegistry = newScene->m_Registry;
-		
-		auto view = srcRegistry.view<IDComponent>();
+	void Scene::CopyTo(Ref<Scene> destScene)
+	{
+		SK_PROFILE_FUNCTION();
+
+		destScene->m_ViewportWidth = m_ViewportWidth;
+		destScene->m_ViewportHeight = m_ViewportHeight;
+		destScene->m_ActiveCameraUUID = m_ActiveCameraUUID;
+
+		auto& destRegistry = destScene->m_Registry;
+
+		auto view = m_Registry.view<IDComponent>();
 		for (auto e : view)
 		{
-			Entity srcEntity{ e, srcScene };
+			Entity srcEntity{ e, this };
 
 			UUID uuid = srcEntity.GetUUID();
-			newScene->m_EntityUUIDMap[uuid] = newScene->CreateEntityWithUUID(uuid, srcEntity.GetName());
+			destScene->m_EntityUUIDMap[uuid] = destScene->CreateEntityWithUUID(uuid, srcEntity.GetName());
 		}
 
-		CopyComponents<TransformComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
-		CopyComponents<RelationshipComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
-		CopyComponents<SpriteRendererComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
-		CopyComponents<CircleRendererComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
-		CopyComponents<CameraComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
-		CopyComponents<RigidBody2DComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
-		CopyComponents<BoxCollider2DComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
-		CopyComponents<CircleCollider2DComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
-		CopyComponents<ScriptComponent>(srcRegistry, destRegistry, newScene->m_EntityUUIDMap);
+		CopyComponents<TransformComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<RelationshipComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<SpriteRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<CircleRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<CameraComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<RigidBody2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<BoxCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<CircleCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<ScriptComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 
-		return newScene;
 	}
 
 	void Scene::OnScenePlay()
@@ -257,11 +261,9 @@ namespace Shark {
 			}
 		}
 
-		while (!m_PostUpdateQueue.empty())
-		{
-			m_PostUpdateQueue.front()();
-			m_PostUpdateQueue.pop();
-		}
+		for (const auto& fn : m_PostUpdateQueue)
+			fn();
+		m_PostUpdateQueue.clear();
 	}
 
 	void Scene::OnUpdateEditor(TimeStep ts)
@@ -629,6 +631,8 @@ namespace Shark {
 
 	void Scene::RenderEntity(const Ref<SceneRenderer>& renderer, Entity entity, const glm::mat4& parentTransform)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const glm::mat4 transform = parentTransform * entity.Transform().CalcTransform();
 
 		if (entity.AllOf<SpriteRendererComponent>())

@@ -91,6 +91,8 @@ namespace Shark {
 
 		virtual void Update() = 0;
 
+		virtual uint32_t GetActiveCount() const = 0;
+
 	public:
 		static Ref<FileWatcher> Create();
 

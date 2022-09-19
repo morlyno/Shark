@@ -114,8 +114,6 @@ namespace Shark {
 
 		glm::mat4 GetViewProjFromCameraEntity(Entity cameraEntity);
 
-		void DistributeEvent(Event& event);
-
 		void RunScriptSetup();
 		void OpenIDE();
 
@@ -138,6 +136,8 @@ namespace Shark {
 		bool m_NeedsResize = true;
 
 		TimeStep m_TimeStep;
+
+		ImGuiID m_MainViewportID = 0;
 
 		Scope<PanelManager> m_PanelManager;
 
@@ -204,13 +204,6 @@ namespace Shark {
 		};
 		TextureSourceImportData m_TextureAssetCreateData;
 
-		enum class AssemblyReloadMode
-		{
-			None,
-			Auto,
-			Always
-		};
-		AssemblyReloadMode m_AssemblyReloadMode = AssemblyReloadMode::Always;
 	};
 
 }

@@ -12,6 +12,7 @@ namespace Shark {
 	public:
 		static void Init();
 		static void Shutdown();
+		static void ProcessEvents();
 
 		static void StartWatching(const std::filesystem::path& dirPath);
 		static void StopWatching();

@@ -15,9 +15,10 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/MouseEvent.h"
 
+#include "Shark/UI/UI.h"
+
 #include "Shark/Math/Math.h"
 #include "Shark/Utils/MemoryUtils.h"
-
 #include "Shark/Debug/Instrumentor.h"
 
 #include <mono/metadata/appdomain.h>
@@ -257,8 +258,9 @@ namespace Shark
 
 		SK_ADD_INTERNAL_CALL(Log_LogMessage);
 
-		SK_ADD_INTERNAL_CALL(Input_KeyPressed);
-		SK_ADD_INTERNAL_CALL(Input_MouseButtonPressed);
+		SK_ADD_INTERNAL_CALL(Input_IsKeyStateSet);
+		SK_ADD_INTERNAL_CALL(Input_IsMouseStateSet);
+		SK_ADD_INTERNAL_CALL(Input_GetMouseScroll);
 		SK_ADD_INTERNAL_CALL(Input_GetMousePos);
 
 		SK_ADD_INTERNAL_CALL(Matrix4_Inverse);
@@ -408,26 +410,30 @@ namespace Shark
 
 		uint32_t Application_GetWidth()
 		{
-			if (Application::Get().GetSpecs().EnableImGui)
+			Ref<Scene> scene = utils::GetScene();
+			SK_CORE_ASSERT(scene);
+			if (!scene)
 			{
-				ImGuiWindow* mainViewport = ImGui::FindWindowByName("MainViewport");
-				SK_CORE_ASSERT(mainViewport);
-				return (uint32_t)mainViewport->ContentRegionRect.GetWidth();
+				MonoException* exception = mono_get_exception_null_reference();
+				mono_raise_exception(exception);
+				SK_CORE_ASSERT(false, "should not be called");
+				return 0;
 			}
-
-			return Application::Get().GetWindow().GetWidth();
+			return scene->GetViewportWidth();
 		}
 
 		uint32_t Application_GetHeight()
 		{
-			if (Application::Get().GetSpecs().EnableImGui)
+			Ref<Scene> scene = utils::GetScene();
+			SK_CORE_ASSERT(scene);
+			if (!scene)
 			{
-				ImGuiWindow* mainViewport = ImGui::FindWindowByName("MainViewport");
-				SK_CORE_ASSERT(mainViewport);
-				return (uint32_t)mainViewport->ContentRegionRect.GetHeight();
+				MonoException* exception = mono_get_exception_null_reference();
+				mono_raise_exception(exception);
+				SK_CORE_ASSERT(false, "should not be called");
+				return 0;
 			}
-
-			return Application::Get().GetWindow().GetHeight();
+			return scene->GetViewportHeight();
 		}
 
 		#pragma endregion
@@ -445,43 +451,60 @@ namespace Shark
 
 		#pragma region Input
 
-		bool Input_KeyPressed(KeyCode key)
+		bool Input_IsKeyStateSet(KeyCode key, KeyState keyState)
 		{
 			auto& app = Application::Get();
-
-			if (!app.GetWindow().IsFocused())
-				return false;
-
-			if (app.GetSpecs().EnableImGui && ImGui::GetIO().WantCaptureKeyboard)
+			if (app.GetSpecs().EnableImGui)
 			{
-				const ImGuiWindow* activeWindow = GImGui->ActiveIdWindow;
-				if (activeWindow && strcmp(activeWindow->Name, "MainViewport") != 0)
+				const ImGuiLayer& imguiLayer = app.GetImGuiLayer();
+				if (imguiLayer.BlocksKeyboardEvents())
+					return false;
+
+				ImGuiWindow* mainViewportWindow = ImGui::FindWindowByID(imguiLayer.GetMainViewportID());
+				if (GImGui->NavWindow != mainViewportWindow)
 					return false;
 			}
 
-			return Input::KeyPressed(key);
+			return Input::GetKeyState(key) == keyState;
 		}
 
-		bool Input_MouseButtonPressed(MouseButton::Type button)
+		bool Input_IsMouseStateSet(MouseButton button, MouseState mouseState)
 		{
 			auto& app = Application::Get();
-
-			if (!app.GetWindow().IsFocused())
-				return false;
-
-			if (Application::Get().GetSpecs().EnableImGui && ImGui::GetIO().WantCaptureMouse)
+			if (app.GetSpecs().EnableImGui)
 			{
-				const ImGuiWindow* hoveredWindow = GImGui->HoveredWindow;
-				if (hoveredWindow && strcmp(hoveredWindow->Name, "MainViewport") != 0)
+				const ImGuiLayer& imguiLayer = app.GetImGuiLayer();
+				if (imguiLayer.BlocksMouseEvents())
+					return false;
+
+				ImGuiWindow* mainViewportWindow = ImGui::FindWindowByID(imguiLayer.GetMainViewportID());
+				if (GImGui->NavWindow != mainViewportWindow)
 					return false;
 			}
 
-			return Input::MousePressed(button);
+			return Input::GetMouseState(button) == mouseState;
+		}
+
+		float Input_GetMouseScroll()
+		{
+			auto& app = Application::Get();
+			if (app.GetSpecs().EnableImGui)
+			{
+				const ImGuiLayer& imguiLayer = app.GetImGuiLayer();
+				if (imguiLayer.BlocksMouseEvents())
+					return false;
+
+				ImGuiWindow* mainViewportWindow = ImGui::FindWindowByID(imguiLayer.GetMainViewportID());
+				if (GImGui->NavWindow != mainViewportWindow)
+					return false;
+			}
+
+			return Input::GetMouseScroll();
 		}
 
 		void Input_GetMousePos(glm::ivec2* out_MousePos)
 		{
-			auto p = Input::GlobalMousePos();
+			auto p = Input::GetScreenMousePosition();
 
 			if (Application::Get().GetSpecs().EnableImGui)
 			{
@@ -499,7 +522,7 @@ namespace Shark
 		#pragma endregion
 
 		#pragma region Matrix4
-
+ 
 		void Matrix4_Inverse(glm::mat4* matrix, glm::mat4* out_Result)
 		{
 			*out_Result = glm::inverse(*matrix);
@@ -553,7 +576,7 @@ namespace Shark
 		{
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
 			auto& queue = scene->GetPostUpdateQueue();
-			queue.push([scene, entityID]()
+			queue.emplace_back([scene, entityID]()
 			{
 				Entity entity = scene->GetEntityByUUID(entityID);
 				if (!entity)

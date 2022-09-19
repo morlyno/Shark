@@ -78,6 +78,31 @@ namespace Shark::Math {
 		return true;
 	}
 
+	bool DecomposeTranslation(const glm::mat4& ModelMatrix, glm::vec3& out_Translation)
+	{
+		using namespace glm;
+
+		mat4 LocalMatrix(ModelMatrix);
+
+		// Normalize the matrix.
+		if (epsilonEqual(LocalMatrix[3][3], static_cast<float>(0), epsilon<float>()))
+			return false;
+
+		// First, isolate perspective.  This is the messiest.
+		if (
+			epsilonNotEqual(LocalMatrix[0][3], static_cast<float>(0), epsilon<float>()) ||
+			epsilonNotEqual(LocalMatrix[1][3], static_cast<float>(0), epsilon<float>()) ||
+			epsilonNotEqual(LocalMatrix[2][3], static_cast<float>(0), epsilon<float>()))
+		{
+			// Clear the perspective partition
+			LocalMatrix[0][3] = LocalMatrix[1][3] = LocalMatrix[2][3] = static_cast<float>(0);
+			LocalMatrix[3][3] = static_cast<float>(1);
+		}
+
+		// Next take care of translation (easy).
+		out_Translation = vec3(LocalMatrix[3]);
+		return true;
+	}
 
 }
 

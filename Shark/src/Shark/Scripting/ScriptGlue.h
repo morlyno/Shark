@@ -54,8 +54,9 @@ namespace Shark {
 
 		#pragma region Input
 
-		bool Input_KeyPressed(KeyCode key);
-		bool Input_MouseButtonPressed(MouseButton::Type button);
+		bool Input_IsKeyStateSet(KeyCode key, KeyState keyState);
+		bool Input_IsMouseStateSet(MouseButton button, MouseState mouseState);
+		float Input_GetMouseScroll();
 		void Input_GetMousePos(glm::ivec2* out_MousePos);
 
 		#pragma endregion

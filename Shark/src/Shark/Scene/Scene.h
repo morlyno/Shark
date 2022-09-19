@@ -42,6 +42,7 @@ namespace Shark {
 		Scene& operator=(Scene&& other) = default;
 
 		static Ref<Scene> Copy(Ref<Scene> srcScene);
+		void CopyTo(Ref<Scene> destScene);
 
 		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
 		bool IsEditorScene() { return m_IsEditorScene; }
@@ -93,7 +94,7 @@ namespace Shark {
 
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
-		std::queue<std::function<void()>>& GetPostUpdateQueue() { return m_PostUpdateQueue; }
+		std::vector<std::function<void()>>& GetPostUpdateQueue() { return m_PostUpdateQueue; }
 
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
@@ -130,7 +131,7 @@ namespace Shark {
 		bool m_IsEditorScene = false;
 		bool m_IsRunning = false;
 
-		std::queue<std::function<void()>> m_PostUpdateQueue;
+		std::vector<std::function<void()>> m_PostUpdateQueue;
 
 		friend class Entity;
 		friend class SceneHirachyPanel;

@@ -147,6 +147,45 @@ namespace ImGui {
 		}
 	}
 
+	bool IsWindowFocused(ImGuiWindow* window, ImGuiFocusedFlags flags)
+	{
+		auto GetCombinedRootWindow = [](ImGuiWindow* window, bool popup_hierarchy, bool dock_hierarchy) -> ImGuiWindow*
+		{
+			ImGuiWindow* last_window = NULL;
+			while (last_window != window)
+			{
+				last_window = window;
+				window = window->RootWindow;
+				if (popup_hierarchy)
+					window = window->RootWindowPopupTree;
+				if (dock_hierarchy)
+					window = window->RootWindowDockTree;
+			}
+			return window;
+		};
+
+		ImGuiContext& g = *GImGui;
+		ImGuiWindow* ref_window = g.NavWindow;
+		ImGuiWindow* cur_window = window;
+
+		if (ref_window == NULL)
+			return false;
+		if (flags & ImGuiFocusedFlags_AnyWindow)
+			return true;
+
+		IM_ASSERT(cur_window); // Not inside a Begin()/End()
+		const bool popup_hierarchy = (flags & ImGuiFocusedFlags_NoPopupHierarchy) == 0;
+		const bool dock_hierarchy = (flags & ImGuiFocusedFlags_DockHierarchy) != 0;
+		if (flags & ImGuiHoveredFlags_RootWindow)
+			cur_window = GetCombinedRootWindow(cur_window, popup_hierarchy, dock_hierarchy);
+
+		if (flags & ImGuiHoveredFlags_ChildWindows)
+			return IsWindowChildOf(ref_window, cur_window, popup_hierarchy, dock_hierarchy);
+		else
+			return (ref_window == cur_window);
+	}
+
+
 }
 
 namespace Shark::UI {

@@ -18,8 +18,14 @@ namespace Shark {
 
 	void FileSystem::Shutdown()
 	{
+		SK_CORE_ASSERT(s_FileWatcher->GetActiveCount() == 0);
 		s_FileWatcher = nullptr;
 		s_Callback = nullptr;
+	}
+
+	void FileSystem::ProcessEvents()
+	{
+		s_FileWatcher->Update();
 	}
 
 	void FileSystem::StartWatching(const std::filesystem::path& dirPath)

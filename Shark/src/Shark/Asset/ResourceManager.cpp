@@ -161,15 +161,7 @@ namespace Shark {
 
 	bool ResourceManager::SaveAsset(Ref<Asset> asset)
 	{
-		SK_PROFILE_FUNCTION();
-
-		if (!asset)
-			return false;
-
-		if (IsMemoryAsset(asset->Handle))
-			return false;
-
-		return AssetSerializer::Serialize(asset, GetMetaDataInternal(asset->Handle));
+		return SaveAsset(asset->Handle);
 	}
 
 	void ResourceManager::ReloadAsset(AssetHandle handle)

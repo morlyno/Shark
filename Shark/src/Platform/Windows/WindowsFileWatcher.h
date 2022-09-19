@@ -23,6 +23,8 @@ namespace Shark {
 
 		virtual void Update() override;
 
+		virtual uint32_t GetActiveCount() const override { return (uint32_t)m_Watches.size(); }
+
 	private:
 		std::map<std::string, WatchData*> m_Watches;
 	};

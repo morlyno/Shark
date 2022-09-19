@@ -2,7 +2,7 @@
 namespace Shark
 {
 
-	public enum Key : ushort
+	public enum KeyCode : ushort
 	{
 		BackSpace = 0x08,
 		Tab = 0x09,

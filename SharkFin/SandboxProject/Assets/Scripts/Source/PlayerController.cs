@@ -14,41 +14,25 @@ namespace Sandbox
 
 		private bool m_Sprint = false;
 		private bool m_WantJump = false;
+		private bool m_CanDoubleJump = false;
 		private uint m_CollishionCount = 0;
 
 
 		public Entity BallTemplate;
 		public bool DestroyBallOnHit = false;
 
+		public bool ShootOnPress = false;
 		private bool m_WantShoot = false;
-		private float m_ShootCooldown = 0.2f;
+		public float ShootCooldown = 0.2f;
 		private float m_ShootCooldownTimer = 0.0f;
+
+		public Entity CameraEntity;
 
 		private bool m_Colliding => m_CollishionCount > 0;
 
-		private uint m_InternalApplyAdditionalGravityCount = 0;
-		private bool m_ApplyAdditionalGravity
-		{
-			get
-			{
-				return m_InternalApplyAdditionalGravityCount > 0;
-			}
-			set
-			{
-				if (value)
-					m_InternalApplyAdditionalGravityCount++;
-				else
-					m_InternalApplyAdditionalGravityCount--;
-			}
-		}
-
 		protected override void OnCreate()
 		{
-			//m_BallTemplate = Scene.GetEntityByTag("BallTemplate");
-
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
-			m_RigidBody.LinearDamping = 0.5f;
-			//m_RigidBody.GravityScale = 10.0f;
 		}
 
 		protected override void OnDestroy()
@@ -57,11 +41,18 @@ namespace Sandbox
 
 		protected override void OnUpdate(float ts)
 		{
-			m_WantJump = Input.IsKeyPressed(Key.Space);
-			m_WantShoot = Input.IsMouseButtonPressed(MouseButton.Left);
-			m_Sprint = Input.IsKeyPressed(Key.LeftShift);
+			m_WantJump = Input.IsKeyPressed(KeyCode.Space);
+			m_WantShoot = ShootOnPress ? Input.IsMousePressed(MouseButton.Left) : Input.IsMouseDown(MouseButton.Left);
+			m_Sprint = Input.IsKeyDown(KeyCode.LeftShift);
 
-			if (Input.IsKeyPressed(Key.P))
+			if (Input.MouseScroll != 0)
+			{
+				Vector3 translation = CameraEntity.Translation;
+				translation.Z += Input.MouseScroll;
+				CameraEntity.Translation = translation;
+			}
+
+			if (Input.IsKeyDown(KeyCode.P))
 				CreateBall();
 
 			if (m_ShootCooldownTimer > 0)
@@ -73,24 +64,15 @@ namespace Sandbox
 
 		protected override void OnPhysicsUpdate(float fixedTimeStep)
 		{
-			if (m_ApplyAdditionalGravity)
-			{
-				var linearVelocity = m_RigidBody.LinearVelocity;
-				linearVelocity.Y = Mathf.Min(Physics2D.Gravity.Y, linearVelocity.Y);
-				m_RigidBody.LinearVelocity = linearVelocity;
-			}
 			Movement(fixedTimeStep);
 		}
 
 		protected override void OnCollishionBegin(Collider2D collider)
 		{
 			m_RigidBody.LinearDamping = OnGroundDamping;
+			m_CanDoubleJump = true;
 
 			m_CollishionCount++;
-			Entity entity = collider.Entity;
-
-			if (entity is PlatformScript)
-				m_ApplyAdditionalGravity = true;
 		}
 
 		protected override void OnCollishionEnd(Collider2D collider)
@@ -99,11 +81,6 @@ namespace Sandbox
 
 			if (!m_Colliding)
 				m_RigidBody.LinearDamping = 0;
-
-			Entity entity = collider.Entity;
-
-			if (entity is PlatformScript)
-				m_ApplyAdditionalGravity = false;
 		}
 
 		private void Movement(float ts)
@@ -111,13 +88,13 @@ namespace Sandbox
 			Vector2 direction = Vector2.Zero;
 			bool apply = false;
 
-			if (Input.IsKeyPressed(Key.D))
+			if (Input.IsKeyDown(KeyCode.D))
 			{
 				direction += Vector2.Right;
 				apply = true;
 			}
 
-			if (Input.IsKeyPressed(Key.A))
+			if (Input.IsKeyDown(KeyCode.A))
 			{
 				direction += Vector2.Left;
 				apply = true;
@@ -137,21 +114,30 @@ namespace Sandbox
 				m_RigidBody.LinearDamping = OnGroundDamping;
 			}
 
+			if (m_CanDoubleJump && m_WantJump && !m_Colliding)
+			{
+				m_RigidBody.LinearVelocity = new Vector2(m_RigidBody.LinearVelocity.X, 0.0f);
+				m_RigidBody.ApplyForce(Vector2.Up * JumpForce, PhysicsForce2DType.Impulse);
+				m_CanDoubleJump = false;
+				m_WantJump = false;
+			}
+
 			if (m_WantJump && m_Colliding)
 			{
 				m_RigidBody.LinearVelocity = new Vector2(m_RigidBody.LinearVelocity.X, 0.0f);
 				m_RigidBody.ApplyForce(Vector2.Up * JumpForce, PhysicsForce2DType.Impulse);
+				m_WantJump = false;
 			}
 
 		}
 
 		private void Shoot()
 		{
-			if (m_ShootCooldownTimer <= 0.0f)
+			if (ShootOnPress || m_ShootCooldownTimer <= 0.0f)
 			{
-				m_ShootCooldownTimer = m_ShootCooldown;
+				m_ShootCooldownTimer = ShootCooldown;
 
-				var direction = Vector2.Normalize((Vector2)Input.GetMousePos() - (Vector2)Application.Size * 0.5f);
+				var direction = Vector2.Normalize((Vector2)Input.MousePos - (Vector2)Application.Size * 0.5f);
 				direction.Y = -direction.Y;
 
 				Bullet bullet = Scene.Instantiate<Bullet>("Bullet");

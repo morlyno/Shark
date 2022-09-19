@@ -1,46 +1,22 @@
 Assets:
-  - Handle: 0x2d77190c75d8b6ee
-    Type: Scene
-    FilePath: Scenes/Sanbox.skscene
   - Handle: 0x37dc48808083e849
     Type: Scene
     FilePath: Scenes/Cube.skscene
-  - Handle: 0x4b9315598476c506
-    Type: Scene
-    FilePath: Scenes/TwoQuads.skscene
   - Handle: 0x5028d59af2f896de
     Type: Scene
     FilePath: Scenes/Physics.skscene
-  - Handle: 0x687958ac4bb829af
-    Type: Scene
-    FilePath: Scenes/ParentingTest.skscene
   - Handle: 0x70b8fb15f6e6bc6f
     Type: Scene
     FilePath: Scenes/PlayerTest.skscene
-  - Handle: 0x86f39dc7dff51af6
-    Type: Scene
-    FilePath: Scenes/ParentingScriptingTest.skscene
   - Handle: 0xa72e2969608c3fca
     Type: Texture
     FilePath: Textures/Checkerboard.sktex
-  - Handle: 0xb0278653dd5629aa
-    Type: Scene
-    FilePath: Scenes/MipMapTest.skscene
   - Handle: 0xb8486817d46a0579
     Type: Texture
     FilePath: Textures/Gear.sktex
-  - Handle: 0xba9cf351d9053a5d
-    Type: Scene
-    FilePath: Scenes/ScriptTest.skscene
   - Handle: 0xbc9198803f5d806e
     Type: Scene
     FilePath: Scenes/PhysicsScene.skscene
-  - Handle: 0xe7e76a933455104d
-    Type: Scene
-    FilePath: Scenes/Quads.skscene
   - Handle: 0xe983de58eb9cb1b1
     Type: Texture
     FilePath: Textures/Checkerboard ( 1).sktex
-  - Handle: 0xf7a7efe695f20cb4
-    Type: Scene
-    FilePath: Scenes/StressTest.skscene

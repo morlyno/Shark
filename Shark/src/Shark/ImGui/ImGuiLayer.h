@@ -3,6 +3,8 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Layer/Layer.h"
 
+#include <imgui.h>
+
 namespace Shark {
 
 	class ImGuiLayer : public Layer
@@ -21,7 +23,11 @@ namespace Shark {
 		virtual void End() = 0;
 
 		virtual bool InFrame() const = 0;
+		virtual void SetMainViewportID(ImGuiID mainViewportID) = 0;
+		virtual ImGuiID GetMainViewportID() const = 0;
 
+		virtual bool BlocksMouseEvents() const = 0;
+		virtual bool BlocksKeyboardEvents() const = 0;
 		virtual void BlockEvents(bool block) = 0;
 		virtual void SubmitBlendCallback(bool blend) = 0;
 

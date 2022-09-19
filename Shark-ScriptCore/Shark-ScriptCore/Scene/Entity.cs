@@ -31,6 +31,12 @@ namespace Shark
 		public TransformComponent Transform
 			=> GetComponent<TransformComponent>();
 
+		public Vector3 Translation
+		{
+			get => Transform.Translation;
+			set => Transform.Translation = value;
+		}
+
 		public string Name
 		{
 			get => GetComponent<TagComponent>().Tag;

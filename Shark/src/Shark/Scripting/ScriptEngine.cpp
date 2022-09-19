@@ -134,6 +134,9 @@ namespace Shark {
 
 	void ScriptEngine::UnloadAssemblies()
 	{
+		Ref<FileWatcher> fileWatcher = FileSystem::GetFileWatcher();
+		fileWatcher->StopWatching("AppAssembly");
+
 		ScriptUtils::Shutdown();
 		ScriptGlue::Shutdown();
 		GCManager::Shutdown();
@@ -220,13 +223,14 @@ namespace Shark {
 	void ScriptEngine::InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle)
 	{
 		ManagedField& field = ScriptEngine::GetFieldFromStorage(storage);
+		SK_CORE_ASSERT(storage->Type == field.Type);
 		if (storage->Type == ManagedFieldType::String)
 		{
 			storage->SetValue(field.GetValue<std::string>(handle));
 			return;
 		}
 
-		if (field.Type == ManagedFieldType::Entity)
+		if (storage->Type == ManagedFieldType::Entity)
 		{
 			storage->SetValue(field.GetEntity(handle));
 			return;
@@ -234,7 +238,7 @@ namespace Shark {
 
 #if SK_DEBUG
 		{
-			MonoType* monoType = mono_field_get_type(storage->Field);
+			MonoType* monoType = mono_field_get_type(field);
 			int alignment;
 			int size = mono_type_size(monoType, &alignment);
 			SK_CORE_ASSERT(size <= sizeof(storage->m_Buffer));

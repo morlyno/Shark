@@ -29,15 +29,14 @@ namespace Shark {
 		WindowsWindow(const WindowProps& props);
 		virtual ~WindowsWindow();
 		virtual void CreateSwapChain() override;
-
-		virtual void SetEventCallbackFunc(const EventCallbackFunc& callback) override { m_Callbackfunc = callback; }
-
-		virtual void Update() const override;
+		virtual void ProcessEvents() const override;
 
 		virtual inline uint32_t GetWidth() const override { return m_Size.x; }
 		virtual inline uint32_t GetHeight() const override { return m_Size.y; }
 		virtual const glm::uvec2& GetSize() const override { return m_Size; }
 		virtual const glm::ivec2& GetPos() const override { return m_Pos; }
+		virtual void ScreenToClient(glm::ivec2& screenPos) const override;
+
 		virtual inline WindowHandle GetHandle() const override { return m_hWnd; }
 		virtual Ref<SwapChain> GetSwapChain() const override { return m_SwapChain; }
 
@@ -46,21 +45,16 @@ namespace Shark {
 		virtual bool IsFocused() const override { return GetFocus() == m_hWnd; }
 
 		virtual void Kill() override { DestroyWindow(m_hWnd); }
-
 		virtual void Maximize() override { ShowWindow(m_hWnd, SW_MAXIMIZE); }
 
 	private:
-		void UpdateExtentedKeyStates();
-
 		static LRESULT WINAPI WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		static LRESULT WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		LRESULT WINAPI HandleMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	private:
 		HWND m_hWnd;
-
 		Ref<SwapChain> m_SwapChain;
-
-		EventCallbackFunc m_Callbackfunc;
+		Ref<EventListener> m_EventListener;
 
 		glm::uvec2 m_Size = glm::uvec2(0);
 		glm::ivec2 m_Pos = glm::ivec2(0);
@@ -68,20 +62,7 @@ namespace Shark {
 		std::wstring m_Name;
 		bool m_VSync;
 
-		struct ExtendedKey
-		{
-			enum Enum
-			{
-				LeftAlt,
-				RightAlt,
-				LeftControl,
-				RightControl,
-				LeftShift,
-				RightShift,
-				Count
-			};
-		};
-		bool m_ExtendedKeyState[ExtendedKey::Count];
+		uint16_t m_DownMouseButtons = 0;
 
 	};
 

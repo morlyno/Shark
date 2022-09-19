@@ -274,7 +274,7 @@ namespace Shark {
 
 		bool wantsDestroy = false;
 
-		if ((m_SelectedEntity == entity) && ImGui::IsWindowHovered() && Input::KeyPressed(Key::Delete))
+		if ((m_SelectedEntity == entity) && ImGui::IsWindowHovered() && Input::IsKeyPressed(KeyCode::Delete))
 		{
 			wantsDestroy = true;
 		}

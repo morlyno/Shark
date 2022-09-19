@@ -25,12 +25,31 @@ namespace Shark
 
 		#region Input
 
+		internal enum KeyState : ushort
+		{
+			None = 0,
+			Pressed,
+			Down,
+			Released
+		}
+
+		internal enum MouseState : ushort
+		{
+			None = 0,
+			Pressed,
+			Down,
+			Released,
+			DoubleClicked
+		}
+
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern bool Input_KeyPressed(Key key);
+		internal static extern bool Input_IsKeyStateSet(KeyCode key, KeyState keyState);
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern bool Input_MouseButtonPressed(MouseButton button);
-		
+		internal static extern bool Input_IsMouseStateSet(MouseButton key, MouseState mouseState);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern float Input_GetMouseScroll();
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern void Input_GetMousePos(out Vector2i mousePos);
