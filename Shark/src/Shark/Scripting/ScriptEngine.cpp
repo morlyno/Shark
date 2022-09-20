@@ -304,12 +304,15 @@ namespace Shark {
 		return mono_object_new(s_Data->RuntimeDomain, klass);
 	}
 
-	GCHandle ScriptEngine::InstantiateBaseEntity(Entity entity)
+	MonoObject* ScriptEngine::InstantiateBaseEntity(Entity entity)
 	{
 		UUID entityID = entity.GetUUID();
 		SK_CORE_ASSERT(!IsInstantiated(entityID));
 		if (IsInstantiated(entityID))
-			return GetInstance(entityID);
+		{
+			GCHandle handle = GetInstance(entityID);
+			return GCManager::GetManagedObject(handle);
+		}
 
 		DEBUG_ENTITY(entity);
 		SK_CORE_ASSERT(!entity.AllOf<ScriptComponent>());
@@ -319,9 +322,7 @@ namespace Shark {
 		MonoMethod* ctor = mono_class_get_method_from_name(s_Data->EntityClass, ".ctor", 1);
 		ScriptEngine::InvokeMethod(entityInstance, ctor, entityID);
 
-		GCHandle handle = GCManager::CreateHandle(entityInstance);
-		s_Data->EntityInstances[entityID] = handle;
-		return handle;
+		return entityInstance;
 	}
 
 	GCHandle ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields)
@@ -451,6 +452,18 @@ namespace Shark {
 		s_Data->FieldStoragesMap.erase(uuid);
 	}
 
+	void ScriptEngine::OnEntityCloned(Entity srcEntity, Entity entity)
+	{
+		SK_CORE_ASSERT(!IsInstantiated(entity));
+		if (!IsInstantiated(srcEntity) || IsInstantiated(entity))
+			return;
+
+		MonoObject* object = GetInstanceObject(srcEntity);
+		MonoObject* cloned = mono_object_clone(object);
+		GCHandle handle = GCManager::CreateHandle(cloned);
+		s_Data->EntityInstances[entity.GetUUID()] = handle;
+	}
+
 	bool ScriptEngine::IsInstantiated(Entity entity)
 	{
 		return s_Data->EntityInstances.find(entity.GetUUID()) != s_Data->EntityInstances.end();
@@ -462,6 +475,12 @@ namespace Shark {
 		if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
 			return s_Data->EntityInstances.at(entityID);
 		return 0;
+	}
+
+	MonoObject* ScriptEngine::GetInstanceObject(Entity entity)
+	{
+		GCHandle handle = GetInstance(entity);
+		return GCManager::GetManagedObject(handle);
 	}
 
 	const EntityInstancesMap& ScriptEngine::GetEntityInstances()

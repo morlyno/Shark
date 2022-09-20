@@ -146,6 +146,16 @@ namespace Shark {
 			return object;
 		}
 
+		static MonoObject* GetOrCreateInstance(Entity entity)
+		{
+			if (ScriptEngine::IsInstantiated(entity))
+			{
+				GCHandle handle = ScriptEngine::GetInstance(entity);
+				return GCManager::GetManagedObject(handle);
+			}
+			return ScriptEngine::InstantiateBaseEntity(entity);
+		}
+
 	}
 
 	template <typename Component>
@@ -199,19 +209,12 @@ namespace Shark {
 		GCHandle objectHandle = ScriptEngine::GetInstance(entityA);
 		MonoObject* object = GCManager::GetManagedObject(objectHandle);
 
-		GCHandle entityHandle = ScriptEngine::IsInstantiated(entityB) ? ScriptEngine::GetInstance(entityB) : ScriptEngine::InstantiateBaseEntity(entityB);
-		MonoObject* entity = GCManager::GetManagedObject(entityHandle);
-
+		MonoObject* entity = utils::GetOrCreateInstance(entityB);
 		MonoObject* collider = utils::CreateColliderObject(entity, colliderType);
 
 		MonoException* exception = nullptr;
 		method.Invoke(object, collider, &exception);
 		ScriptUtils::HandleException((MonoObject*)exception);
-
-		//if (!ScriptEngine::IsInstantiated(entityB))
-		//	ScriptEngine::ReleaseTempEntity(entityHandle);
-
-		//GCManager::ReleaseHandle(colliderHandle);
 	}
 
 	void ScriptGlue::CallCollishionBegin(Entity entityA, Entity entityB, Collider2DType colliderType, bool isSensor)
@@ -265,16 +268,18 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Matrix4_Matrix4MulMatrix4);
 		SK_ADD_INTERNAL_CALL(Matrix4_Matrix4MulVector4);
 
-		SK_ADD_INTERNAL_CALL(Scene_Instantiate);
-		SK_ADD_INTERNAL_CALL(Scene_CreateEntity);
-		SK_ADD_INTERNAL_CALL(Scene_DestroyEntity);
-		SK_ADD_INTERNAL_CALL(Scene_CloneEntity);
-		SK_ADD_INTERNAL_CALL(Scene_GetEntityByID);
-		SK_ADD_INTERNAL_CALL(Scene_GetActiveCameraID);
-		SK_ADD_INTERNAL_CALL(Scene_GetIDFromTag);
-
+		SK_ADD_INTERNAL_CALL(Entity_GetInstance);
+		SK_ADD_INTERNAL_CALL(Entity_HasParent);
+		SK_ADD_INTERNAL_CALL(Entity_GetParent);
+		SK_ADD_INTERNAL_CALL(Entity_GetChildren);
 		SK_ADD_INTERNAL_CALL(Entity_HasComponent);
 		SK_ADD_INTERNAL_CALL(Entity_AddComponent);
+		SK_ADD_INTERNAL_CALL(Entity_Instantiate);
+		SK_ADD_INTERNAL_CALL(Entity_DestroyEntity);
+		SK_ADD_INTERNAL_CALL(Entity_CreateEntity);
+		SK_ADD_INTERNAL_CALL(Entity_CloneEntity);
+		SK_ADD_INTERNAL_CALL(Entity_FindEntityByName);
+		SK_ADD_INTERNAL_CALL(Entity_FindChildEntityByName);
 
 		SK_ADD_INTERNAL_CALL(TagComponent_GetTag);
 		SK_ADD_INTERNAL_CALL(TagComponent_SetTag);
@@ -441,7 +446,7 @@ namespace Shark {
 		void Log_LogMessage(Log::Level level, MonoString* message)
 		{
 			char* msg = mono_string_to_utf8(message);
-			SK_CONSOLE_LOG(level, msg);
+			SK_CONSOLE_LOG(level, msg ? msg : "Message was Null");
 			mono_free(msg);
 		}
 
@@ -527,115 +532,62 @@ namespace Shark {
 
 		#pragma endregion
 
-		#pragma region Scene
+		#pragma region Entity
 
-		MonoObject* Scene_Instantiate(MonoReflectionType* scriptType, MonoString* name)
+		MonoObject* Entity_GetInstance(uint64_t entityID)
 		{
-			MonoType* monoType = mono_reflection_type_get_type(scriptType);
-			char* scriptTypeName = mono_type_get_name(monoType);
+			Entity entity = utils::TryGetEntity(entityID);
+			if (!entity)
+				return false;
 
-			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			Entity newEntity = scene->CreateEntity(ScriptUtils::MonoStringToUTF8(name));
-			auto& comp = newEntity.AddComponent<ScriptComponent>();
-			comp.ScriptName = scriptTypeName;
-			Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(comp.ScriptName);
-			comp.ClassID = klass->GetID();
-			mono_free(scriptTypeName);
-
-			if (ScriptEngine::InstantiateEntity(newEntity, true, false))
+			if (ScriptEngine::IsInstantiated(entity))
 			{
-				GCHandle gcHandle = ScriptEngine::GetInstance(newEntity);
-				return GCManager::GetManagedObject(gcHandle);
+				GCHandle handle = ScriptEngine::GetInstance(entity);
+				return GCManager::GetManagedObject(handle);
 			}
 			return nullptr;
 		}
 
-		uint64_t Scene_CreateEntity(MonoString* name, uint64_t entityID)
+		bool Entity_HasParent(uint64_t entityID)
 		{
-			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-
-			std::string entityName = ScriptUtils::MonoStringToUTF8(name);
-			Entity entity = scene->CreateEntityWithUUID(entityID, entityName);
-			return (uint64_t)entity.GetUUID();
-		}
-
-		void Scene_DestroyEntity(uint64_t entityID)
-		{
-			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			auto& queue = scene->GetPostUpdateQueue();
-			queue.emplace_back([scene, entityID]()
-			{
-				Entity entity = scene->GetEntityByUUID(entityID);
-				if (!entity)
-					return;
-
-				scene->DestroyEntity(entity); });
-		}
-
-		uint64_t Scene_CloneEntity(uint64_t entityID)
-		{
-			Ref<Scene> scene = utils::GetScene();
 			Entity entity = utils::TryGetEntity(entityID);
 			if (!entity)
-				return 0;
+				return false;
 
-			Entity clonedEntity = scene->CloneEntity(entity);
-			return (uint64_t)clonedEntity.GetUUID();
+			return entity.HasParent();
 		}
 
-		MonoObject* Scene_GetEntityByID(uint64_t entityID)
+		MonoObject* Entity_GetParent(uint64_t entityID)
 		{
 			Entity entity = utils::TryGetEntity(entityID);
 			if (!entity)
 				return nullptr;
-#if 0
-			if (!ScriptEngine::IsInstantiated(entity))
-			{
-				MonoClass* entityClass = mono_class_from_name_case(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", "Entity");
 
-				MonoObject* entityInstance = ScriptEngine::InstantiateClass(entityClass);
-				mono_runtime_object_init(entityInstance);
-				MonoMethod* ctor = mono_class_get_method_from_name(entityClass, ".ctor", 1);
-				ScriptEngine::InvokeMethod(entityInstance, ctor, entityID);
-				return entityInstance;
-			}
-#endif
+			Entity parent = entity.Parent();
+			if (!parent)
+				return nullptr;
 
-			if (!ScriptEngine::IsInstantiated(entity))
-			{
-				GCHandle handle = ScriptEngine::InstantiateBaseEntity(entity);
-				return GCManager::GetManagedObject(handle);
-			}
-
-			GCHandle gcHandle = ScriptEngine::GetInstance(entity);
-			return GCManager::GetManagedObject(gcHandle);
+			return utils::GetOrCreateInstance(parent);
 		}
 
-		uint64_t Scene_GetActiveCameraID()
+		MonoArray* Entity_GetChildren(uint64_t entityID)
 		{
-			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			return (uint64_t)scene->GetActiveCameraUUID();
-		}
+			Entity entity = utils::TryGetEntity(entityID);
+			if (!entity)
+				return nullptr;
 
-		uint64_t Scene_GetIDFromTag(MonoString* tag)
-		{
-			std::string str = ScriptUtils::MonoStringToUTF8(tag);
-
-			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			auto view = scene->GetAllEntitysWith<TagComponent>();
-			for (auto entityID : view)
+			Ref<Scene> scene = utils::GetScene();
+			std::vector<UUID> children = entity.Children();
+			MonoArray* arr = mono_array_new(ScriptEngine::GetRuntimeDomain(), ScriptEngine::GetEntityClass(), children.size());
+			for (uint32_t i = 0; i < children.size(); i++)
 			{
-				Entity entity{ entityID, scene };
-				if (entity.GetName() == str)
-					return (uint64_t)entity.GetUUID();
+				Entity child = scene->GetEntityByUUID(children[i]);
+				MonoObject* obj = utils::GetOrCreateInstance(child);
+				mono_array_setref(arr, i, obj);
 			}
 
-			return UUID::Null;
+			return arr;
 		}
-
-		#pragma endregion
-
-		#pragma region Entity
 
 		bool Entity_HasComponent(uint64_t id, MonoReflectionType* type)
 		{
@@ -688,7 +640,99 @@ namespace Shark {
 			bindings.RemoveComponent(entity);
 		}
 
-		#pragma endregion
+		MonoObject* Entity_Instantiate(MonoReflectionType* type, MonoString* name)
+		{
+			MonoType* monoType = mono_reflection_type_get_type(type);
+			char* scriptTypeName = mono_type_get_name(monoType);
+
+			Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(scriptTypeName);
+			if (!klass)
+			{
+				SK_CONSOLE_ERROR("Can't Instantiate Entity\nScript type not found");
+				return nullptr;
+			}
+
+			Ref<Scene> scene = utils::GetScene();
+			Entity newEntity = scene->CreateEntity(ScriptUtils::MonoStringToUTF8(name));
+			auto& comp = newEntity.AddComponent<ScriptComponent>();
+			comp.ScriptName = scriptTypeName;
+			comp.ClassID = klass->GetID();
+			mono_free(scriptTypeName);
+
+			GCHandle handle = ScriptEngine::InstantiateEntity(newEntity, true, false);
+			return handle ? GCManager::GetManagedObject(handle) : nullptr;
+		}
+
+		void Entity_DestroyEntity(uint64_t entityID, bool destroyChildren)
+		{
+			Ref<Scene> scene = utils::GetScene();
+			scene->Submit([scene, entityID, destroyChildren]()
+			{
+				Entity entity = scene->GetEntityByUUID(entityID);
+				if (!entity)
+					return;
+
+				scene->DestroyEntity(entity, destroyChildren);
+			});
+		}
+
+		uint64_t Entity_CreateEntity(MonoString* name)
+		{
+			Ref<Scene> scene = utils::GetScene();
+			if (!scene)
+				return 0;
+
+			std::string entityName = ScriptUtils::MonoStringToUTF8(name);
+			Entity entity = scene->CreateEntity(entityName);
+			return entity.GetUUID();
+		}
+
+		uint64_t Entity_CloneEntity(uint64_t entityID)
+		{
+			Ref<Scene> scene = utils::GetScene();
+			if (!scene)
+				return 0;
+
+			Entity entity = scene->GetEntityByUUID(entityID);
+			if (!entity)
+				return 0;
+
+			Entity clonedEntity = scene->CloneEntity(entity);
+			ScriptEngine::OnEntityCloned(entity, clonedEntity);
+			return clonedEntity.GetUUID();
+		}
+
+		uint64_t Entity_FindEntityByName(MonoString* name)
+		{
+			Ref<Scene> scene = utils::GetScene();
+			if (!scene)
+				return 0;
+
+			std::string entityTag = ScriptUtils::MonoStringToUTF8(name);
+			Entity entity = scene->FindEntityByTag(entityTag);
+			if (entity)
+				return entity.GetUUID();
+			return 0;
+		}
+
+		uint64_t Entity_FindChildEntityByName(uint64_t entityID, MonoString* name, bool recusive)
+		{
+			Ref<Scene> scene = utils::GetScene();
+			if (!scene)
+				return 0;
+
+			Entity entity = scene->GetEntityByUUID(entityID);
+			if (!entity)
+				return 0;
+
+			std::string entityName = ScriptUtils::MonoStringToUTF8(name);
+			Entity childEntity = scene->FindChildEntityByName(entity, entityName, recusive);
+			if (childEntity)
+				return childEntity.GetUUID();
+			return 0;
+		}
+
+#pragma endregion
 
 		#pragma region TagComponent
 

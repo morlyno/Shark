@@ -1,20 +1,20 @@
 #include "skpch.h"
-#include "CommandBuffer.h"
+#include "CommandQueue.h"
 
 namespace Shark {
 
-	CommandBuffer::CommandBuffer(uint32_t bufferSize)
+	CommandQueue::CommandQueue(uint32_t bufferSize)
 	{
 		m_Buffer.Allocate(bufferSize);
 		m_BufferPtr = m_Buffer;
 	}
 
-	CommandBuffer::~CommandBuffer()
+	CommandQueue::~CommandQueue()
 	{
 		m_Buffer.Release();
 	}
 
-	void CommandBuffer::Execute()
+	void CommandQueue::Execute()
 	{
 		if (m_CommandCount > 0)
 		{
@@ -39,7 +39,7 @@ namespace Shark {
 		m_CommandCount = 0;
 	}
 
-	void* CommandBuffer::Allocate(CommandFunc func, uint32_t userFuncSize)
+	void* CommandQueue::Allocate(CommandFunc func, uint32_t userFuncSize)
 	{
 		// CommandFunc | UserFuncSize | UserFunc
 

@@ -77,6 +77,7 @@ namespace Shark {
 
 		Entity GetEntityByUUID(UUID uuid) const;
 		Entity FindEntityByTag(const std::string& tag);
+		Entity FindChildEntityByName(Entity entity, const std::string& name, bool recusive);
 
 		bool IsValidEntity(Entity entity) const;
 		bool ValidEntityID(UUID entityID) const;
@@ -94,7 +95,12 @@ namespace Shark {
 
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
-		std::vector<std::function<void()>>& GetPostUpdateQueue() { return m_PostUpdateQueue; }
+
+		template<typename TFunc>
+		void Submit(const TFunc& func)
+		{
+			m_PostUpdateQueue.emplace_back(func);
+		}
 
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }

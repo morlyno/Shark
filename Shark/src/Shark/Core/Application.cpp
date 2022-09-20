@@ -112,6 +112,8 @@ namespace Shark {
 
 	void Application::ProcessEvents()
 	{
+		SK_PROFILE_FUNCTION();
+
 		FileSystem::ProcessEvents();
 		Input::TransitionStates();
 

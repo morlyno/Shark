@@ -63,16 +63,18 @@ namespace Shark {
 
 		static MonoObject* InstantiateClass(MonoClass* klass);
 
-		static GCHandle InstantiateBaseEntity(Entity entity);
+		static MonoObject* InstantiateBaseEntity(Entity entity);
 		static GCHandle InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields);
 		static void DestroyInstance(Entity entity, bool invokeOnDestroy);
 
 		static void InitializeFields(Entity entity);
 
 		static void OnEntityDestroyed(Entity entity);
+		static void OnEntityCloned(Entity srcEntity, Entity entity);
 
 		static bool IsInstantiated(Entity entity);
 		static GCHandle GetInstance(Entity entity);
+		static MonoObject* GetInstanceObject(Entity entity);
 
 		static const EntityInstancesMap& GetEntityInstances();
 		static Ref<Scene> GetActiveScene();

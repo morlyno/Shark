@@ -2,7 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Window.h"
-#include "Shark/Core/CommandBuffer.h"
+#include "Shark/Core/CommandQueue.h"
 #include "Shark/Event/Event.h"
 #include "Shark/Event/EventListener.h"
 #include "Shark/Event/WindowEvent.h"
@@ -41,10 +41,10 @@ namespace Shark {
 
 		void Run();
 
-		void PushLayer(Layer* layer)                   { SK_PROFILE_FUNCTION(); m_LayerStack.PushLayer(layer); layer->OnAttach(); }
-		void PopLayer(Layer* layer)                    { SK_PROFILE_FUNCTION(); m_LayerStack.PopLayer(layer); layer->OnDetach(); }
-		void PushOverlay(Layer* layer)                 { SK_PROFILE_FUNCTION(); m_LayerStack.PushOverlay(layer); layer->OnAttach(); }
-		void PopOverlay(Layer* layer)                  { SK_PROFILE_FUNCTION(); m_LayerStack.PopOverlay(layer); layer->OnDetach(); }
+		void PushLayer(Layer* layer)                   { m_LayerStack.PushLayer(layer); layer->OnAttach(); }
+		void PopLayer(Layer* layer)                    { m_LayerStack.PopLayer(layer); layer->OnDetach(); }
+		void PushOverlay(Layer* layer)                 { m_LayerStack.PushOverlay(layer); layer->OnAttach(); }
+		void PopOverlay(Layer* layer)                  { m_LayerStack.PopOverlay(layer); layer->OnDetach(); }
 
 		void CloseApplication()                        { m_Running = false; }
 
@@ -88,7 +88,7 @@ namespace Shark {
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
-		CommandBuffer m_EventQueue = CommandBuffer(128);
+		CommandQueue m_EventQueue = CommandQueue(128);
 	};
 
 	Application* CreateApplication(int argc, char** argv);

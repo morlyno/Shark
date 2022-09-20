@@ -5,11 +5,11 @@
 
 namespace Shark {
 
-	class CommandBuffer
+	class CommandQueue
 	{
 	public:
-		CommandBuffer(uint32_t bufferSize = 1024);
-		~CommandBuffer();
+		CommandQueue(uint32_t bufferSize = 1024);
+		~CommandQueue();
 
 		void Execute();
 

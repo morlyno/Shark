@@ -27,13 +27,15 @@ namespace Sandbox
 		public float ShootCooldown = 0.2f;
 		private float m_ShootCooldownTimer = 0.0f;
 
-		public Entity CameraEntity;
+		private Entity m_CameraEntity;
 
 		private bool m_Colliding => m_CollishionCount > 0;
 
 		protected override void OnCreate()
 		{
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
+			//m_CameraEntity = Children[0];
+			m_CameraEntity = FindChildEntityByName("Camera", false);
 		}
 
 		protected override void OnDestroy()
@@ -48,12 +50,12 @@ namespace Sandbox
 
 			if (Input.MouseScroll != 0)
 			{
-				Vector3 translation = CameraEntity.Translation;
+				Vector3 translation = m_CameraEntity.Translation;
 				translation.Z += Input.MouseScroll;
-				CameraEntity.Translation = translation;
+				m_CameraEntity.Translation = translation;
 			}
 
-			if (Input.IsKeyDown(KeyCode.P))
+			if (Input.IsKeyPressed(KeyCode.P))
 				CreateBall();
 
 			if (m_ShootCooldownTimer > 0)
@@ -141,7 +143,7 @@ namespace Sandbox
 				var direction = Vector2.Normalize((Vector2)Input.MousePos - (Vector2)Application.Size * 0.5f);
 				direction.Y = -direction.Y;
 
-				Bullet bullet = Scene.Instantiate<Bullet>("Bullet");
+				Bullet bullet = Instantiate<Bullet>("Bullet");
 				bullet.DestroyOnHit = DestroyBallOnHit;
 				var rigidBody = bullet.GetComponent<RigidBody2DComponent>();
 				rigidBody.Position = m_RigidBody.Position + direction;
@@ -151,7 +153,7 @@ namespace Sandbox
 
 		private void CreateBall()
 		{
-			var ball = Scene.CloneEntity(BallTemplate);
+			var ball = CloneEntity(BallTemplate);
 			ball.Name = "Ball";
 			var rigidBody = ball.GetComponent<RigidBody2DComponent>();
 			rigidBody.Position = new Vector2(0.0f, 10.0f);

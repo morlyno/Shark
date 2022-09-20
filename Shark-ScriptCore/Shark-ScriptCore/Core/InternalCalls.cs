@@ -84,9 +84,6 @@ namespace Shark
 		internal static extern ulong Scene_CloneEntity(ulong entityID);
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern Entity Scene_GetEntityByID(ulong entityID);
-		
-		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern ulong Scene_GetActiveCameraID();
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
@@ -97,6 +94,18 @@ namespace Shark
 		#region Entity
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern object Entity_GetInstance(ulong entityID);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern bool Entity_HasParent(ulong entityID);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern Entity Entity_GetParent(ulong entityID);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern Entity[] Entity_GetChildren(ulong entityID);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern bool Entity_HasComponent(ulong id, System.Type compType);
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
@@ -104,6 +113,24 @@ namespace Shark
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern void Entity_RemoveComponent(ulong id, System.Type compType);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern object Entity_Instantiate(System.Type type, string name);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern object Entity_DestroyEntity(ulong entityID, bool destroyChildren);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern ulong Entity_CreateEntity(string name);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern ulong Entity_CloneEntity(ulong entityID);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern ulong Entity_FindEntityByName(string name);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern ulong Entity_FindChildEntityByName(ulong entityID, string name, bool recusive);
 
 		#endregion
 

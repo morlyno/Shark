@@ -118,14 +118,13 @@ namespace Shark {
 
 	void ManagedField::SetEntity(GCHandle handle, Entity entity)
 	{
-		GCHandle entityHandle;
+		MonoObject* entityInstance;
 		if (ScriptEngine::IsInstantiated(entity))
-			entityHandle = ScriptEngine::GetInstance(entity);
+			entityInstance = ScriptEngine::GetInstanceObject(entity);
 		else
-			entityHandle = ScriptEngine::InstantiateBaseEntity(entity);
+			entityInstance = ScriptEngine::InstantiateBaseEntity(entity);
 
 		MonoObject* object = GCManager::GetManagedObject(handle);
-		MonoObject* entityInstance = GCManager::GetManagedObject(entityHandle);
 		mono_field_set_value(object, Field, entityInstance);
 	}
 

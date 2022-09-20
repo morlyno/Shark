@@ -15,7 +15,7 @@ namespace Sandbox
 
 		protected override void OnCreate()
 		{
-			Door = Scene.GetEntityByTag("Door");
+			Door = FindEntityByName("Door");
 			m_DoorPos = Door.Transform.Translation;
 		}
 

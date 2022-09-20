@@ -13,12 +13,11 @@ namespace Shark {
 		UUID(uint64_t uuid);
 
 		bool IsValid() const;
-		explicit operator uint64_t() const { return m_UUID; }
-		explicit operator uint64_t() { return m_UUID; }
+		operator uint64_t() const { return m_UUID; }
 
-		bool operator<(const UUID& rhs) const { return m_UUID < rhs.m_UUID; }
-		bool operator==(const UUID& rhs) const { return m_UUID == rhs.m_UUID; }
-		bool operator!=(const UUID& rhs) const { return !(*this == rhs); }
+		//bool operator<(const UUID& rhs) const { return m_UUID < rhs.m_UUID; }
+		//bool operator==(const UUID& rhs) const { return m_UUID == rhs.m_UUID; }
+		//bool operator!=(const UUID& rhs) const { return !(*this == rhs); }
 
 		static UUID Generate();
 		static constexpr uint64_t Null = 0;

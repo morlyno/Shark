@@ -481,6 +481,21 @@ namespace Shark {
 		return Entity{};
 	}
 
+	Entity Scene::FindChildEntityByName(Entity entity, const std::string& name, bool recusive)
+	{
+		for (UUID id : entity.Children())
+		{
+			Entity child = m_EntityUUIDMap.at(id);
+			if (child.GetName() == name)
+				return child;
+
+			if (recusive)
+				FindChildEntityByName(child, name, recusive);
+		}
+
+		return Entity{};
+	}
+
 	bool Scene::IsValidEntity(Entity entity)const
 	{
 		return m_Registry.valid(entity);

@@ -11,9 +11,7 @@ namespace Sandbox
 		{
 			Entity entity = collider.Entity;
 			if (entity.Name == "Ball")
-			{
-				Scene.Destroy(entity);
-			}
+				DestroyEntity(entity);
 		}
 
 	}
