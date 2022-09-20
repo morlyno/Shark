@@ -467,7 +467,7 @@ namespace Shark {
 		return Entity{};
 	}
 
-	Entity Scene::GetEntityByTag(const std::string& tag)
+	Entity Scene::FindEntityByTag(const std::string& tag)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -755,13 +755,6 @@ namespace Shark {
 	void Scene::OnScriptComponentDestroyed(entt::registry& registry, entt::entity ent)
 	{
 		Entity entity{ ent, this };
-
-#if 0
-		// if id component dosn't exist the callback probably comes from DestroyEntityInternal
-		// so the script is allready destroyed
-		if (!entity.AllOf<IDComponent>())
-			return;
-#endif
 
 		if (ScriptEngine::IsInstantiated(entity))
 			ScriptEngine::DestroyInstance(entity, true);

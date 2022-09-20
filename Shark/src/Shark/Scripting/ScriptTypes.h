@@ -5,6 +5,7 @@
 extern "C" {
 	typedef struct _MonoAssembly MonoAssembly;
 	typedef struct _MonoImage MonoImage;
+	typedef struct _MonoType MonoType;
 	typedef struct _MonoClass MonoClass;
 	typedef struct _MonoObject MonoObject;
 	typedef struct _MonoString MonoString;
@@ -109,6 +110,17 @@ namespace Shark {
 		return ManagedFieldType::None;
 	}
 
+	inline std::string ToString(Accessibility::Flags access)
+	{
+		std::string result;
+		if (access & Accessibility::Private) result += "Private | ";
+		if (access & Accessibility::Internal) result += "Internal | ";
+		if (access & Accessibility::Protected) result += "Protected | ";
+		if (access & Accessibility::Public) result += "Public | ";
+
+		return result.empty() ? std::string{} : result.substr(0, result.size() - 3);
+	}
+
 	using GCHandle = uint32_t;
 
 	struct AssemblyInfo
@@ -116,6 +128,22 @@ namespace Shark {
 		MonoAssembly* Assembly = nullptr;
 		MonoImage* Image = nullptr;
 		std::filesystem::path FilePath;
+	};
+
+	class ManagedType
+	{
+	public:
+		MonoType* Type;
+
+	public:
+		ManagedType(MonoType* type)
+			: Type(type)
+		{}
+
+		operator MonoType* () const { return Type; }
+
+		int GetSize() const;
+		int GetAlignment() const;
 	};
 
 	class ManagedField
@@ -133,6 +161,8 @@ namespace Shark {
 		
 		operator MonoClassField* () const { return Field; }
 
+		ManagedType GetManagedType() const;
+
 		template<typename T>
 		void SetValue(GCHandle handle, const T& value)
 		{
@@ -140,7 +170,7 @@ namespace Shark {
 		}
 
 		template<typename T>
-		auto GetValue(GCHandle handle)
+		auto GetValue(GCHandle handle) const
 		{
 			T value;
 			GetValueInternal(handle, &value);
@@ -154,20 +184,20 @@ namespace Shark {
 		}
 
 		template<>
-		auto GetValue<std::string>(GCHandle handle)
+		auto GetValue<std::string>(GCHandle handle) const
 		{
 			return GetString(handle);
 		}
 
-		UUID GetEntity(GCHandle handle);
+		UUID GetEntity(GCHandle handle) const;
 		void SetEntity(GCHandle handle, Entity entity);
 
 	private:
 		void SetValueInternal(GCHandle handle, const void* value);
-		void GetValueInternal(GCHandle handle, void* value);
+		void GetValueInternal(GCHandle handle, void* value) const;
 
 		void SetString(GCHandle handle, const std::string& value);
-		std::string GetString(GCHandle handle);
+		std::string GetString(GCHandle handle) const;
 	};
 
 	class FieldStorage : public RefCount

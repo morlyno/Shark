@@ -54,8 +54,8 @@ namespace Shark::UI {
 
 	enum
 	{
-		DefualtTreeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected,
-		TreeNodeSeperatorFlags = DefualtTreeNodeFlags
+		DefaultTreeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected,
+		TreeNodeSeperatorFlags = DefaultTreeNodeFlags
 	};
 
 	namespace TextFlag {
@@ -182,6 +182,7 @@ namespace Shark::UI {
 	void Property(std::string_view label, const std::filesystem::path& path, TextFlags flags = TextFlag::None);
 
 	void Property(std::string_view label, const UUID& uuid);
+	void Property(std::string_view label, int value);
 
  	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Widgets ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -193,6 +194,8 @@ namespace Shark::UI {
 	void Text(const std::filesystem::path& path, TextFlags flags = TextFlag::None);
 
 	void TextSelectable(std::string_view str);
+
+	void TextFramed(std::string_view fmt, ...);
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Types //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

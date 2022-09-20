@@ -39,8 +39,7 @@
 
 #define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" SK_STRINGIFY(func), SK_CONNECT(&InternalCalls::, func));
 
-namespace Shark
-{
+namespace Shark {
 
 	struct EntityBindings
 	{
@@ -60,10 +59,9 @@ namespace Shark
 	};
 	static MonoGlueData* s_ScriptGlue = nullptr;
 
-	namespace utils
-	{
+	namespace utils {
 
-		static Entity GetEntity(uint64_t id)
+		static Entity TryGetEntity(uint64_t id)
 		{
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
 			return scene ? scene->GetEntityByUUID(id) : Entity{};
@@ -459,10 +457,6 @@ namespace Shark
 				const ImGuiLayer& imguiLayer = app.GetImGuiLayer();
 				if (imguiLayer.BlocksKeyboardEvents())
 					return false;
-
-				ImGuiWindow* mainViewportWindow = ImGui::FindWindowByID(imguiLayer.GetMainViewportID());
-				if (GImGui->NavWindow != mainViewportWindow)
-					return false;
 			}
 
 			return Input::GetKeyState(key) == keyState;
@@ -475,10 +469,6 @@ namespace Shark
 			{
 				const ImGuiLayer& imguiLayer = app.GetImGuiLayer();
 				if (imguiLayer.BlocksMouseEvents())
-					return false;
-
-				ImGuiWindow* mainViewportWindow = ImGui::FindWindowByID(imguiLayer.GetMainViewportID());
-				if (GImGui->NavWindow != mainViewportWindow)
 					return false;
 			}
 
@@ -493,10 +483,6 @@ namespace Shark
 				const ImGuiLayer& imguiLayer = app.GetImGuiLayer();
 				if (imguiLayer.BlocksMouseEvents())
 					return false;
-
-				ImGuiWindow* mainViewportWindow = ImGui::FindWindowByID(imguiLayer.GetMainViewportID());
-				if (GImGui->NavWindow != mainViewportWindow)
-					return false;
 			}
 
 			return Input::GetMouseScroll();
@@ -506,9 +492,10 @@ namespace Shark
 		{
 			auto p = Input::GetScreenMousePosition();
 
-			if (Application::Get().GetSpecs().EnableImGui)
+			Application& app = Application::Get();
+			if (app.GetSpecs().EnableImGui)
 			{
-				ImGuiWindow* viewportWindow = ImGui::FindWindowByName("MainViewport");
+				ImGuiWindow* viewportWindow = ImGui::FindWindowByID(app.GetImGuiLayer().GetMainViewportID());
 				if (viewportWindow)
 				{
 					p.x -= (int)viewportWindow->Pos.x;
@@ -588,7 +575,7 @@ namespace Shark
 		uint64_t Scene_CloneEntity(uint64_t entityID)
 		{
 			Ref<Scene> scene = utils::GetScene();
-			Entity entity = utils::GetEntity(entityID);
+			Entity entity = utils::TryGetEntity(entityID);
 			if (!entity)
 				return 0;
 
@@ -598,7 +585,7 @@ namespace Shark
 
 		MonoObject* Scene_GetEntityByID(uint64_t entityID)
 		{
-			Entity entity = utils::GetEntity(entityID);
+			Entity entity = utils::TryGetEntity(entityID);
 			if (!entity)
 				return nullptr;
 #if 0
@@ -652,7 +639,7 @@ namespace Shark
 
 		bool Entity_HasComponent(uint64_t id, MonoReflectionType* type)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
 
@@ -667,7 +654,7 @@ namespace Shark
 
 		void Entity_AddComponent(uint64_t id, MonoReflectionType* type)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -685,7 +672,7 @@ namespace Shark
 
 		void Entity_RemoveComponent(uint64_t id, MonoReflectionType* type)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -707,7 +694,7 @@ namespace Shark
 
 		MonoString* TagComponent_GetTag(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return ScriptUtils::MonoStringEmpty();
 
@@ -716,7 +703,7 @@ namespace Shark
 
 		void TagComponent_SetTag(uint64_t id, MonoString* tag)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -729,7 +716,7 @@ namespace Shark
 
 		void TransformComponent_GetTranslation(uint64_t id, glm::vec3* out_Translation)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -739,7 +726,7 @@ namespace Shark
 
 		void TransformComponent_SetTranslation(uint64_t id, glm::vec3* translation)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -749,7 +736,7 @@ namespace Shark
 
 		void TransformComponent_GetRotation(uint64_t id, glm::vec3* out_Rotation)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -759,7 +746,7 @@ namespace Shark
 
 		void TransformComponent_SetRotation(uint64_t id, glm::vec3* rotation)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -769,7 +756,7 @@ namespace Shark
 
 		void TransformComponent_GetScale(uint64_t id, glm::vec3* out_Scaling)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -779,7 +766,7 @@ namespace Shark
 
 		void TransformComponent_SetScale(uint64_t id, glm::vec3* scaling)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -789,7 +776,7 @@ namespace Shark
 
 		void TransformComponent_GetLocalTransform(uint64_t id, TransformComponent* out_LocalTransform)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -798,7 +785,7 @@ namespace Shark
 
 		void TransformComponent_SetLocalTransform(uint64_t id, TransformComponent* localTransform)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -807,7 +794,7 @@ namespace Shark
 
 		void TransformComponent_GetWorldTransform(uint64_t id, TransformComponent* out_WorldTransform)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -824,7 +811,7 @@ namespace Shark
 
 		void TransformComponent_SetWorldTransform(uint64_t id, TransformComponent* worldTransform)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 
@@ -851,7 +838,7 @@ namespace Shark
 
 		void SpriteRendererComponent_GetColor(uint64_t id, glm::vec4* out_Color)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<SpriteRendererComponent>())
@@ -863,7 +850,7 @@ namespace Shark
 
 		void SpriteRendererComponent_SetColor(uint64_t id, glm::vec4* color)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<SpriteRendererComponent>())
@@ -875,7 +862,7 @@ namespace Shark
 
 		AssetHandle SpriteRendererComponent_GetTextureHandle(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return AssetHandle::Null;
 			if (!entity.AllOf<SpriteRendererComponent>())
@@ -887,7 +874,7 @@ namespace Shark
 
 		void SpriteRendererComponent_SetTextureHandle(uint64_t id, AssetHandle textureHandle)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<SpriteRendererComponent>())
@@ -899,7 +886,7 @@ namespace Shark
 
 		float SpriteRendererComponent_GetTilingFactor(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<SpriteRendererComponent>())
@@ -911,7 +898,7 @@ namespace Shark
 
 		void SpriteRendererComponent_SetTilingFactor(uint64_t id, float tilingFactor)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<SpriteRendererComponent>())
@@ -927,7 +914,7 @@ namespace Shark
 
 		void CircleRendererComponent_GetColor(uint64_t id, glm::vec4* out_Color)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleRendererComponent>())
@@ -939,7 +926,7 @@ namespace Shark
 
 		void CircleRendererComponent_SetColor(uint64_t id, glm::vec4* color)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleRendererComponent>())
@@ -951,7 +938,7 @@ namespace Shark
 
 		float CircleRendererComponent_GetThickness(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CircleRendererComponent>())
@@ -963,7 +950,7 @@ namespace Shark
 
 		void CircleRendererComponent_SetThickness(uint64_t id, float thickness)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleRendererComponent>())
@@ -975,7 +962,7 @@ namespace Shark
 
 		float CircleRendererComponent_GetFade(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CircleRendererComponent>())
@@ -987,7 +974,7 @@ namespace Shark
 
 		void CircleRendererComponent_SetFade(uint64_t id, float fade)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleRendererComponent>())
@@ -1003,7 +990,7 @@ namespace Shark
 
 		void CameraComponent_GetProjection(uint64_t id, glm::mat4* out_Projection)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1015,7 +1002,7 @@ namespace Shark
 
 		void CameraComponent_SetProjection(uint64_t id, glm::mat4* projection)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1027,7 +1014,7 @@ namespace Shark
 
 		SceneCamera::Projection CameraComponent_GetProjectionType(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return SceneCamera::Projection::None;
 			if (!entity.AllOf<CameraComponent>())
@@ -1039,7 +1026,7 @@ namespace Shark
 
 		void CameraComponent_SetProjectionType(uint64_t id, SceneCamera::Projection projectionType)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1051,7 +1038,7 @@ namespace Shark
 
 		void CameraComponent_SetPerspective(uint64_t id, float aspectratio, float fov, float clipnear, float clipfar)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1063,7 +1050,7 @@ namespace Shark
 
 		void CameraComponent_SetOrthographic(uint64_t id, float aspectratio, float zoom, float clipnear, float clipfar)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1075,7 +1062,7 @@ namespace Shark
 
 		float CameraComponent_GetAspectratio(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CameraComponent>())
@@ -1087,7 +1074,7 @@ namespace Shark
 
 		void CameraComponent_SetAspectratio(uint64_t id, float aspectratio)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1099,7 +1086,7 @@ namespace Shark
 
 		float CameraComponent_GetPerspectiveFOV(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CameraComponent>())
@@ -1111,7 +1098,7 @@ namespace Shark
 
 		void CameraComponent_SetPerspectiveFOV(uint64_t id, float fov)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1123,7 +1110,7 @@ namespace Shark
 
 		float CameraComponent_GetPerspectiveNear(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CameraComponent>())
@@ -1135,7 +1122,7 @@ namespace Shark
 
 		void CameraComponent_SetPerspectiveNear(uint64_t id, float clipnear)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1147,7 +1134,7 @@ namespace Shark
 
 		float CameraComponent_GetPerspectiveFar(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CameraComponent>())
@@ -1158,7 +1145,7 @@ namespace Shark
 
 		void CameraComponent_SetPerspectiveFar(uint64_t id, float clipfar)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1170,7 +1157,7 @@ namespace Shark
 
 		float CameraComponent_GetOrthographicZoom(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CameraComponent>())
@@ -1182,7 +1169,7 @@ namespace Shark
 
 		void CameraComponent_SetOrthographicZoom(uint64_t id, float zoom)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1194,7 +1181,7 @@ namespace Shark
 
 		float CameraComponent_GetOrthographicNear(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CameraComponent>())
@@ -1206,7 +1193,7 @@ namespace Shark
 
 		void CameraComponent_SetOrthographicNear(uint64_t id, float clipnear)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1218,7 +1205,7 @@ namespace Shark
 
 		float CameraComponent_GetOrthographicFar(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CameraComponent>())
@@ -1230,7 +1217,7 @@ namespace Shark
 
 		void CameraComponent_SetOrthographicFar(uint64_t id, float clipfar)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CameraComponent>())
@@ -1275,7 +1262,7 @@ namespace Shark
 
 		RigidBody2DComponent::BodyType RigidBody2DComponent_GetBodyType(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return RigidBody2DComponent::BodyType::None;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1290,7 +1277,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetBodyType(uint64_t id, RigidBody2DComponent::BodyType bodyType)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1305,7 +1292,7 @@ namespace Shark
 
 		void RigidBody2DComponent_GetTransform(uint64_t id, RigidBody2DTransform* out_Transform)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1325,7 +1312,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetTransform(uint64_t id, RigidBody2DTransform* transform)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1341,7 +1328,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetPosition(uint64_t id, glm::vec2* position)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1356,7 +1343,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetRotation(uint64_t id, float rotation)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1371,7 +1358,7 @@ namespace Shark
 
 		void RigidBody2DComponent_GetLocalCenter(uint64_t id, glm::vec2* out_LocalCenter)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1387,7 +1374,7 @@ namespace Shark
 
 		void RigidBody2DComponent_GetWorldCenter(uint64_t id, glm::vec2* out_WorldCenter)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1403,7 +1390,7 @@ namespace Shark
 
 		void RigidBody2DComponent_GetLinearVelocity(uint64_t id, glm::vec2* out_LinearVelocity)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1419,7 +1406,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetLinearVelocity(uint64_t id, glm::vec2* linearVelocity)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1434,7 +1421,7 @@ namespace Shark
 
 		float RigidBody2DComponent_GetAngularVelocity(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1449,7 +1436,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetAngularVelocity(uint64_t id, float angularVelocity)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1464,7 +1451,7 @@ namespace Shark
 
 		void RigidBody2DComponent_ApplyForce(uint64_t id, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1482,7 +1469,7 @@ namespace Shark
 
 		void RigidBody2DComponent_ApplyForceToCenter(uint64_t id, glm::vec2* force, PhysicsForce2DType forceType)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1500,7 +1487,7 @@ namespace Shark
 
 		void RigidBody2DComponent_ApplyTorque(uint64_t id, float torque, PhysicsForce2DType forceType)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1518,7 +1505,7 @@ namespace Shark
 
 		float RigidBody2DComponent_GetGravityScale(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1533,7 +1520,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetGravityScale(uint64_t id, float gravityScale)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1551,7 +1538,7 @@ namespace Shark
 
 		float RigidBody2DComponent_GetLinearDamping(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1566,7 +1553,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetLinearDamping(uint64_t id, float linearDamping)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1581,7 +1568,7 @@ namespace Shark
 
 		float RigidBody2DComponent_GetAngularDamping(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1596,7 +1583,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetAngularDamping(uint64_t id, float angularDamping)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1611,7 +1598,7 @@ namespace Shark
 
 		bool RigidBody2DComponent_IsBullet(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1626,7 +1613,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetBullet(uint64_t id, bool bullet)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1644,7 +1631,7 @@ namespace Shark
 
 		bool RigidBody2DComponent_IsSleepingAllowed(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1659,7 +1646,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetSleepingAllowed(uint64_t id, bool sleepingAllowed)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1677,7 +1664,7 @@ namespace Shark
 
 		bool RigidBody2DComponent_IsAwake(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1692,7 +1679,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetAwake(uint64_t id, bool awake)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1710,7 +1697,7 @@ namespace Shark
 
 		bool RigidBody2DComponent_IsEnabled(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1725,7 +1712,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetEnabled(uint64_t id, bool enabled)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1743,7 +1730,7 @@ namespace Shark
 
 		bool RigidBody2DComponent_IsFixedRotation(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1758,7 +1745,7 @@ namespace Shark
 
 		void RigidBody2DComponent_SetFixedRotation(uint64_t id, bool fixedRotation)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<RigidBody2DComponent>())
@@ -1780,7 +1767,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_SetSensor(uint64_t id, bool sensor)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1798,7 +1785,7 @@ namespace Shark
 
 		bool BoxCollider2DComponent_IsSensor(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1813,7 +1800,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_SetDensity(uint64_t id, float density)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1831,7 +1818,7 @@ namespace Shark
 
 		float BoxCollider2DComponent_GetDensity(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1846,7 +1833,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_SetFriction(uint64_t id, float friction)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1864,7 +1851,7 @@ namespace Shark
 
 		float BoxCollider2DComponent_GetFriction(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1879,7 +1866,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_SetRestitution(uint64_t id, float restitution)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1897,7 +1884,7 @@ namespace Shark
 
 		float BoxCollider2DComponent_GetRestitution(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1912,7 +1899,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_SetRestitutionThreshold(uint64_t id, float restitutionThreshold)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1930,7 +1917,7 @@ namespace Shark
 
 		float BoxCollider2DComponent_GetRestitutionThreshold(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1945,7 +1932,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_GetSize(uint64_t id, glm::vec2* out_Size)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1957,7 +1944,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_SetSize(uint64_t id, glm::vec2* size)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1977,7 +1964,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_GetOffset(uint64_t id, glm::vec2* out_Offset)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -1989,7 +1976,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_SetOffset(uint64_t id, glm::vec2* offset)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -2009,7 +1996,7 @@ namespace Shark
 
 		float BoxCollider2DComponent_GetRotation(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -2021,7 +2008,7 @@ namespace Shark
 
 		void BoxCollider2DComponent_SetRotation(uint64_t id, float rotation)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<BoxCollider2DComponent>())
@@ -2045,7 +2032,7 @@ namespace Shark
 
 		void CircleCollider2DComponent_SetSensor(uint64_t id, bool sensor)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2063,7 +2050,7 @@ namespace Shark
 
 		bool CircleCollider2DComponent_IsSensor(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2078,7 +2065,7 @@ namespace Shark
 
 		void CircleCollider2DComponent_SetDensity(uint64_t id, float density)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2096,7 +2083,7 @@ namespace Shark
 
 		float CircleCollider2DComponent_GetDensity(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2111,7 +2098,7 @@ namespace Shark
 
 		void CircleCollider2DComponent_SetFriction(uint64_t id, float friction)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2129,7 +2116,7 @@ namespace Shark
 
 		float CircleCollider2DComponent_GetFriction(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2144,7 +2131,7 @@ namespace Shark
 
 		void CircleCollider2DComponent_SetRestitution(uint64_t id, float restitution)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2162,7 +2149,7 @@ namespace Shark
 
 		float CircleCollider2DComponent_GetRestitution(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2177,7 +2164,7 @@ namespace Shark
 
 		void CircleCollider2DComponent_SetRestitutionThreshold(uint64_t id, float restitutionThreshold)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2195,7 +2182,7 @@ namespace Shark
 
 		float CircleCollider2DComponent_GetRestitutionThreshold(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2210,7 +2197,7 @@ namespace Shark
 
 		float CircleCollider2DComponent_GetRadius(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2222,7 +2209,7 @@ namespace Shark
 
 		void CircleCollider2DComponent_SetRadius(uint64_t id, float Radius)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2243,7 +2230,7 @@ namespace Shark
 
 		void CircleCollider2DComponent_GetOffset(uint64_t id, glm::vec2* out_Offsets)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2255,7 +2242,7 @@ namespace Shark
 
 		void CircleCollider2DComponent_SetOffset(uint64_t id, glm::vec2* offset)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2276,7 +2263,7 @@ namespace Shark
 
 		float CircleCollider2DComponent_GetRotation(uint64_t id)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
 			if (!entity.AllOf<CircleCollider2DComponent>())
@@ -2288,7 +2275,7 @@ namespace Shark
 
 		void CircleCollider2DComponent_SetRotation(uint64_t id, float rotation)
 		{
-			Entity entity = utils::GetEntity(id);
+			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
 			if (!entity.AllOf<CircleCollider2DComponent>())

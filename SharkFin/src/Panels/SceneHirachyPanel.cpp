@@ -539,9 +539,8 @@ namespace Shark {
 
 			if (ImGui::InputText("##InputScript", &comp.ScriptName))
 			{
-				klass = ScriptEngine::GetScriptClass(comp.ClassID);
-				if (klass)
-					comp.ClassID = klass->GetID();
+				klass = ScriptEngine::GetScriptClassFromName(comp.ScriptName);
+				comp.ClassID = klass ? klass->GetID() : 0;
 			}
 
 			if (!klass)

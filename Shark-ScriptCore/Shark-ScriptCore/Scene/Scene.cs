@@ -32,7 +32,7 @@ namespace Shark
 		public static ulong GetIDFromTag(string tag)
 			=> InternalCalls.Scene_GetIDFromTag(tag);
 
-		public static Entity GetEntityByTag(string tag)
+		public static Entity FindEntityByTag(string tag)
 		{
 			ulong entityID = InternalCalls.Scene_GetIDFromTag(tag);
 			return GetEntityByID(entityID);

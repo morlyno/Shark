@@ -20,6 +20,7 @@ extern "C" {
 namespace Shark {
 
 	using EntityInstancesMap = std::unordered_map<UUID, GCHandle>;
+	using ScriptClassMap = std::unordered_map<uint64_t, Ref<ScriptClass>>;
 	using FieldStorageMap = std::map<std::string, Ref<FieldStorage>>;
 
 	struct ScriptEngineConfig
@@ -43,9 +44,12 @@ namespace Shark {
 		static const AssemblyInfo& GetCoreAssemblyInfo();
 		static const AssemblyInfo& GetAppAssemblyInfo();
 
+		static bool IsRunning();
+
 		static MonoDomain* GetRuntimeDomain();
 
 		static MonoClass* GetEntityClass();
+		static const ScriptClassMap& GetScriptClasses();
 		static Ref<ScriptClass> GetScriptClassFromName(std::string_view fullName);
 		static Ref<ScriptClass> GetScriptClass(uint64_t id);
 

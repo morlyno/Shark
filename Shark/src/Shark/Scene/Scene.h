@@ -76,7 +76,7 @@ namespace Shark {
 		}
 
 		Entity GetEntityByUUID(UUID uuid) const;
-		Entity GetEntityByTag(const std::string& tag);
+		Entity FindEntityByTag(const std::string& tag);
 
 		bool IsValidEntity(Entity entity) const;
 		bool ValidEntityID(UUID entityID) const;

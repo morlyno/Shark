@@ -128,9 +128,11 @@ namespace Shark {
 				break;
 			case Log::Level::Warn:
 				s_Instance->PushMessage(MessageLevel::Warn, message);
+				break;
 			case Log::Level::Error:
 			case Log::Level::Critical:
 				s_Instance->PushMessage(MessageLevel::Error, message);
+				break;
 		}
 
 	}

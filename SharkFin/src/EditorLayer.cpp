@@ -8,18 +8,18 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
 
-#include "Shark/UI/UI.h"
-
 #include "Shark/File/FileSystem.h"
-
 #include "Shark/Utils/PlatformUtils.h"
 
+#include "Shark/UI/UI.h"
+
+#include "Shark/Editor/Icons.h"
+#include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
 #include "Panels/SceneHirachyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/TextureEditorPanel.h"
 #include "Panels/PhysicsDebugPanel.h"
-#include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
-#include "Shark/Editor/Icons.h"
+#include "Panels/ScriptEnginePanel.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/Instrumentor.h"
@@ -34,6 +34,7 @@
 #define PHYSICS_DEBUG_ID "PhysicsDebugPanel"
 #define ASSET_EDITOR_ID "AssetsEditorPanel"
 #define EDITOR_CONSOLE_ID "EditorConsolePanel"
+#define SCRIPT_ENGINE_ID "ScriptEnginePanel"
 
 namespace Shark {
 
@@ -65,6 +66,7 @@ namespace Shark {
 		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, true);
 		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, false);
 		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, true);
+		m_PanelManager->AddPanel<ScriptEnginePanel>(SCRIPT_ENGINE_ID, false);
 
 		auto contentBrowserPanel = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, true);
 		contentBrowserPanel->SetOpenFileCallback([this](auto& fs) { this->OnFileClickedCallback(fs); });
@@ -401,8 +403,6 @@ namespace Shark {
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
-
-		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 	}
 
 	void EditorLayer::UI_MainMenuBar()
@@ -464,6 +464,7 @@ namespace Shark {
 				if (ImGui::MenuItem("Scene Hirachy", nullptr, m_PanelManager->IsShown(SCENE_HIRACHY_ID))) { m_PanelManager->ToggleShow(SCENE_HIRACHY_ID); }
 				if (ImGui::MenuItem("Content Browser", nullptr, m_PanelManager->IsShown(CONTENT_BROWSER_ID))) { m_PanelManager->ToggleShow(CONTENT_BROWSER_ID); }
 				if (ImGui::MenuItem("Console", nullptr, m_PanelManager->IsShown(EDITOR_CONSOLE_ID))) { m_PanelManager->ToggleShow(EDITOR_CONSOLE_ID); }
+				if (ImGui::MenuItem("Script Engine", nullptr, m_PanelManager->IsShown(SCRIPT_ENGINE_ID))) { m_PanelManager->ToggleShow(SCRIPT_ENGINE_ID); }
 				if (ImGui::MenuItem("Physics Debug", nullptr, m_PanelManager->IsShown(PHYSICS_DEBUG_ID))) { m_PanelManager->ToggleShow(PHYSICS_DEBUG_ID); }
 				ImGui::Separator();
 				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
@@ -497,7 +498,6 @@ namespace Shark {
 				ImGui::EndMenu();
 			}
 
-
 			ImGui::EndMainMenuBar();
 		}
 
@@ -516,6 +516,10 @@ namespace Shark {
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		const bool anyItemFocused = ImGui::IsAnyItemActive() && GImGui->ActiveId != window->MoveId;
+		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered || anyItemFocused);
+
 		const ImVec2 size = ImGui::GetContentRegionAvail();
 		if (m_ViewportWidth != size.x || m_ViewportHeight != size.y)
 		{
@@ -525,9 +529,8 @@ namespace Shark {
 			m_NeedsResize = true;
 		}
 
-		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalImage();
-
 		UI::SetBlend(false);
+		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalImage();
 		ImGui::Image(fbImage->GetViewID(), size);
 		UI::SetBlend(true);
 
@@ -1001,7 +1004,7 @@ namespace Shark {
 							ImGui::Text("TimeStep: %f", profile.TimeStep);
 							ImGui::Text("Steps: %d", profile.NumSteps);
 
-							std::map<float, std::string, std::greater<float>> times;
+							std::map<float, std::string, std::greater<>> times;
 							times[profile.Step] = "Step";
 							times[profile.Collide] = "Collide";
 							times[profile.Solve] = "Solve";
@@ -1874,14 +1877,6 @@ namespace Shark {
 
 		ProjectSerializer serializer(Project::GetActive());
 		serializer.Serialize(filePath);
-	}
-
-	glm::mat4 EditorLayer::GetViewProjFromCameraEntity(Entity cameraEntity)
-	{
-		SK_PROFILE_FUNCTION();
-
-		auto& camera = cameraEntity.GetComponent<CameraComponent>();
-		return camera.GetProjection() * glm::inverse(m_ActiveScene->GetWorldSpaceTransform(cameraEntity));
 	}
 
 	void EditorLayer::RunScriptSetup()

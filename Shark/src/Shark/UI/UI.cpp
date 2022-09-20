@@ -747,7 +747,10 @@ namespace Shark::UI {
 		Text(label);
 
 		ImGui::TableSetColumnIndex(1);
-		Text(text, flags);
+		if (flags == TextFlag::None)
+			TextFramed(text);
+		else
+			Text(text, flags);
 
 		ControlEndHelper();
 	}
@@ -771,10 +774,29 @@ namespace Shark::UI {
 		ImGui::AlignTextToFramePadding();
 		Text(label);
 		ImGui::TableSetColumnIndex(1);
-		std::string str = uuid.IsValid() ? fmt::format("0x{0:x}", uuid) : std::string{};
+		char buffer[sizeof("0x0123456789ABCDEF")];
+		if (uuid.IsValid())
+			sprintf_s(buffer, "0x%llx", (uint64_t)uuid);
+		else
+			memset(buffer, 0, sizeof(buffer));
 		ImGui::SetNextItemWidth(-1.0f);
-		ImGui::InputTextWithHint("##control", "Null", str.data(), str.size(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+		ImGui::InputTextWithHint("##control", "Null", buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
 
+		ControlEndHelper();
+	}
+
+	void Property(std::string_view label, int value)
+	{
+		if (!ControlBeginHelper(label))
+			return;
+
+		const ImGuiStyle& style = ImGui::GetStyle();
+
+		ImGui::TableSetColumnIndex(0);
+		ImGui::AlignTextToFramePadding();
+		Text(label);
+		ImGui::TableSetColumnIndex(1);
+		TextFramed("%d", value);
 		ControlEndHelper();
 	}
 
@@ -826,6 +848,31 @@ namespace Shark::UI {
 		ImGui::InputTextEx("##InputText", nullptr, (char*)str.data(), (int)str.size(), itemSize, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
 		ImGui::PopStyleColor();
 		ImGui::PopStyleVar();
+	}
+
+	void TextFramed(std::string_view fmt, ...)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		const ImGuiStyle style = ImGui::GetStyle();
+		const ImVec2 pos = ImGui::GetCursorScreenPos();
+		const ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() };
+		const ImRect bb(pos, pos + size);
+		ImGui::ItemSize(size, style.FramePadding.y);
+		if (!ImGui::ItemAdd(bb, 0))
+			return;
+
+		va_list args;
+		va_start(args, fmt);
+		const char* text, *text_end;
+		ImFormatStringToTempBufferV(&text, &text_end, fmt.data(), args);
+		va_end(args);
+
+		const ImU32 frameColor = ImGui::GetColorU32(ImGuiCol_FrameBg);
+		ImGui::RenderFrame(bb.Min, bb.Max, frameColor, true, style.FrameRounding);
+		ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, text, text_end, nullptr, ImVec2(0, 0), &bb);
 	}
 
 	UIContext::UIContext()

@@ -82,7 +82,26 @@ namespace Shark {
 
 	}
 
-	UUID ManagedField::GetEntity(GCHandle handle)
+	int ManagedType::GetSize() const
+	{
+		int alignment;
+		return mono_type_size(Type, &alignment);
+	}
+
+	int ManagedType::GetAlignment() const
+	{
+		int alignment;
+		int size = mono_type_size(Type, &alignment);
+		return alignment;
+	}
+
+	ManagedType ManagedField::GetManagedType() const
+	{
+		MonoType* monoType = mono_field_get_type(Field);
+		return ManagedType(monoType);
+	}
+
+	UUID ManagedField::GetEntity(GCHandle handle) const
 	{
 		MonoObject* object = GCManager::GetManagedObject(handle);
 		MonoObject* entityObject = mono_field_get_value_object(ScriptEngine::GetRuntimeDomain(), Field, object);
@@ -116,7 +135,7 @@ namespace Shark {
 		mono_field_set_value(obj, Field, (void*)value);
 	}
 
-	void ManagedField::GetValueInternal(GCHandle handle, void* value)
+	void ManagedField::GetValueInternal(GCHandle handle, void* value) const
 	{
 		MonoObject* obj = GCManager::GetManagedObject(handle);
 		mono_field_get_value(obj, Field, value);
@@ -129,7 +148,7 @@ namespace Shark {
 		mono_field_set_value(obj, Field, monoString);
 	}
 
-	std::string ManagedField::GetString(GCHandle handle)
+	std::string ManagedField::GetString(GCHandle handle) const
 	{
 		MonoObject* obj = GCManager::GetManagedObject(handle);
 		MonoObject* stringObj = mono_field_get_value_object(ScriptEngine::GetRuntimeDomain(), Field, obj);

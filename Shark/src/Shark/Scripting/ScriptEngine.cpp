@@ -37,7 +37,7 @@ namespace Shark {
 
 		MonoClass* EntityClass = nullptr;
 		//std::unordered_map<std::string, Ref<ScriptClass>> ScriptClasses;
-		std::unordered_map<uint64_t, Ref<ScriptClass>> ScriptClasses;
+		ScriptClassMap ScriptClasses;
 
 		// Entity => FieldName => Type
 		std::unordered_map<UUID, FieldStorageMap> FieldStoragesMap;
@@ -186,6 +186,11 @@ namespace Shark {
 		return s_Data->AppAssembly;
 	}
 
+	bool ScriptEngine::IsRunning()
+	{
+		return s_Data->IsRunning;
+	}
+
 	MonoDomain* ScriptEngine::GetRuntimeDomain()
 	{
 		return s_Data->RuntimeDomain;
@@ -194,6 +199,11 @@ namespace Shark {
 	MonoClass* ScriptEngine::GetEntityClass()
 	{
 		return s_Data->EntityClass;
+	}
+
+	const ScriptClassMap& ScriptEngine::GetScriptClasses()
+	{
+		return s_Data->ScriptClasses;
 	}
 
 	Ref<ScriptClass> ScriptEngine::GetScriptClassFromName(std::string_view fullName)

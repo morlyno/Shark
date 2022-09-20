@@ -78,6 +78,9 @@ Scene:
           - Name: Acceleration
             Type: Float
             Value: 32
+          - Name: AirJumps
+            Type: UInt
+            Value: 1
           - Name: BallTemplate
             Type: Entity
             Value: 10755231564570129317
@@ -603,7 +606,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.02222228
+        Aspectratio: 2.08737874
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -675,7 +678,7 @@ Scene:
           []
       CameraComponent:
         Type: Orthographic
-        Aspectratio: 2.02222228
+        Aspectratio: 2.08737874
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000

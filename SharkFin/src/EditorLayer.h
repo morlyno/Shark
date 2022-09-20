@@ -112,8 +112,6 @@ namespace Shark {
 		void SaveProject();
 		void SaveProject(const std::filesystem::path& filePath);
 
-		glm::mat4 GetViewProjFromCameraEntity(Entity cameraEntity);
-
 		void RunScriptSetup();
 		void OpenIDE();
 

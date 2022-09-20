@@ -94,7 +94,7 @@ namespace Shark {
 				Entity entity{ entityID, m_Scene };
 				std::string name = entity.GetName();
 				ImGui::PushID((int)(uint64_t)entity.GetUUID());
-				if (ImGui::TreeNodeEx(name.c_str(), UI::DefualtTreeNodeFlags | ImGuiTreeNodeFlags_Selected))
+				if (ImGui::TreeNodeEx(name.c_str(), UI::DefaultTreeNodeFlags | ImGuiTreeNodeFlags_Selected))
 				{
 					RigidBody2DComponent& rigidBody = entity.GetComponent<RigidBody2DComponent>();
 					b2Body* body = rigidBody.RuntimeBody;

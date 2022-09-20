@@ -14,7 +14,8 @@ namespace Sandbox
 
 		private bool m_Sprint = false;
 		private bool m_WantJump = false;
-		private bool m_CanDoubleJump = false;
+		public uint AirJumps;
+		private uint m_AirJumpCount = 0;
 		private uint m_CollishionCount = 0;
 
 
@@ -70,7 +71,7 @@ namespace Sandbox
 		protected override void OnCollishionBegin(Collider2D collider)
 		{
 			m_RigidBody.LinearDamping = OnGroundDamping;
-			m_CanDoubleJump = true;
+			m_AirJumpCount = 0;
 
 			m_CollishionCount++;
 		}
@@ -114,11 +115,11 @@ namespace Sandbox
 				m_RigidBody.LinearDamping = OnGroundDamping;
 			}
 
-			if (m_CanDoubleJump && m_WantJump && !m_Colliding)
+			if (m_AirJumpCount < AirJumps && m_WantJump && !m_Colliding)
 			{
 				m_RigidBody.LinearVelocity = new Vector2(m_RigidBody.LinearVelocity.X, 0.0f);
 				m_RigidBody.ApplyForce(Vector2.Up * JumpForce, PhysicsForce2DType.Impulse);
-				m_CanDoubleJump = false;
+				m_AirJumpCount++;
 				m_WantJump = false;
 			}
 
