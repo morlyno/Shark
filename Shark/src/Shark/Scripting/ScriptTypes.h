@@ -48,6 +48,7 @@ namespace Shark {
 		String, // => MonoString*
 
 		Entity, // => UUID
+		Component, // => UUID (same as entity)
 		Vector2,
 		Vector3,
 		Vector4
@@ -133,7 +134,7 @@ namespace Shark {
 	class ManagedType
 	{
 	public:
-		MonoType* Type;
+		MonoType* Type = nullptr;
 
 	public:
 		ManagedType(MonoType* type)
@@ -154,13 +155,7 @@ namespace Shark {
 		MonoClassField* Field = nullptr;
 
 	public:
-		ManagedField() = default;
-		ManagedField(MonoClassField* field)
-			: Field(field)
-		{}
-		
 		operator MonoClassField* () const { return Field; }
-
 		ManagedType GetManagedType() const;
 
 		template<typename T>
@@ -191,6 +186,9 @@ namespace Shark {
 
 		UUID GetEntity(GCHandle handle) const;
 		void SetEntity(GCHandle handle, Entity entity);
+
+		void SetComponent(GCHandle handle, Entity entity);
+		UUID GetComponent(GCHandle handle);
 
 	private:
 		void SetValueInternal(GCHandle handle, const void* value);

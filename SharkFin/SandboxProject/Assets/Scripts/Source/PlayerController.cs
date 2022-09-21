@@ -18,7 +18,6 @@ namespace Sandbox
 		private uint m_AirJumpCount = 0;
 		private uint m_CollishionCount = 0;
 
-
 		public Entity BallTemplate;
 		public bool DestroyBallOnHit = false;
 
@@ -26,16 +25,13 @@ namespace Sandbox
 		private bool m_WantShoot = false;
 		public float ShootCooldown = 0.2f;
 		private float m_ShootCooldownTimer = 0.0f;
-
-		private Entity m_CameraEntity;
-
 		private bool m_Colliding => m_CollishionCount > 0;
+
+		public TransformComponent CameraTransform;
 
 		protected override void OnCreate()
 		{
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
-			//m_CameraEntity = Children[0];
-			m_CameraEntity = FindChildEntityByName("Camera", false);
 		}
 
 		protected override void OnDestroy()
@@ -50,9 +46,9 @@ namespace Sandbox
 
 			if (Input.MouseScroll != 0)
 			{
-				Vector3 translation = m_CameraEntity.Translation;
+				Vector3 translation = CameraTransform.Translation;
 				translation.Z += Input.MouseScroll;
-				m_CameraEntity.Translation = translation;
+				CameraTransform.Translation = translation;
 			}
 
 			if (Input.IsKeyPressed(KeyCode.P))

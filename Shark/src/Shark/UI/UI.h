@@ -172,6 +172,7 @@ namespace Shark::UI {
 	bool ControlCombo(std::string_view label, int& index,      const std::string_view items[], uint32_t itemsCount);
 
 	bool Control(std::string_view label, std::string& val);
+	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();

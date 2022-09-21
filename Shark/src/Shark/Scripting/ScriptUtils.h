@@ -91,6 +91,9 @@ namespace Shark {
 		static MonoString* MonoStringEmpty();
 		static std::string ObjectToString(MonoObject* obj);
 
+		static UUID GetIDFromEntity(MonoObject* object);
+		static MonoObject* GetOrCreateEntity(Entity entity);
+
 		static const char* GetClassName(GCHandle handle);
 		static std::string_view GetFieldName(const ManagedField& field);
 

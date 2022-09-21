@@ -39,8 +39,13 @@ namespace Shark {
 					MonoType* monoType = mono_field_get_type(field);
 					MonoClass* klass = mono_type_get_class(monoType);
 					//MonoClass* klass = mono_field_get_parent(field);
-					if (mono_class_is_subclass_of(ScriptEngine::GetEntityClass(), klass, false))
+					if (mono_class_is_subclass_of(klass, ScriptEngine::GetEntityClass(), false))
 						return ManagedFieldType::Entity;
+
+					MonoClass* componentClass = mono_class_from_name(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", "Component");
+					if (mono_class_is_subclass_of(klass, componentClass, false) && componentClass != klass)
+						return ManagedFieldType::Component;
+
 					return ManagedFieldType::None;
 				}
 				case MONO_TYPE_VALUETYPE:
@@ -118,6 +123,12 @@ namespace Shark {
 
 	void ManagedField::SetEntity(GCHandle handle, Entity entity)
 	{
+		if (!entity)
+		{
+			MonoObject* object = GCManager::GetManagedObject(handle);
+			mono_field_set_value(object, Field, nullptr);
+		}
+
 		MonoObject* entityInstance;
 		if (ScriptEngine::IsInstantiated(entity))
 			entityInstance = ScriptEngine::GetInstanceObject(entity);
@@ -126,6 +137,42 @@ namespace Shark {
 
 		MonoObject* object = GCManager::GetManagedObject(handle);
 		mono_field_set_value(object, Field, entityInstance);
+	}
+
+	void ManagedField::SetComponent(GCHandle handle, Entity entity)
+	{
+		MonoObject* thisArg = GCManager::GetManagedObject(handle);
+		MonoObject* entityObject = ScriptUtils::GetOrCreateEntity(entity);
+
+		MonoType* monoType = mono_field_get_type(Field);
+		MonoClass* componentClass = mono_type_get_class(monoType);
+		MonoClass* baseComponentClass = mono_class_get_parent(componentClass);
+		SK_CORE_ASSERT(baseComponentClass == mono_class_from_name(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", "Component"));
+
+		MonoObject* componentObject = ScriptEngine::InstantiateClass(componentClass);
+		mono_runtime_object_init(componentObject);
+		MonoProperty* property = mono_class_get_property_from_name(baseComponentClass, "Entity");
+		MonoMethod* propertySetter = mono_property_get_set_method(property);
+		ScriptEngine::InvokeMethod(componentObject, propertySetter, (void**)&entityObject);
+
+		mono_field_set_value(thisArg, Field, componentObject);
+	}
+
+	UUID ManagedField::GetComponent(GCHandle handle)
+	{
+		MonoObject* thisArg = GCManager::GetManagedObject(handle);
+		MonoObject* componentObject = mono_field_get_value_object(ScriptEngine::GetRuntimeDomain(), Field, thisArg);
+		if (!componentObject)
+			return 0;
+
+		MonoClass* componentClass = mono_object_get_class(componentObject);
+		MonoClass* baseComponentClass = mono_class_get_parent(componentClass);
+		SK_CORE_ASSERT(baseComponentClass == mono_class_from_name(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", "Component"));
+
+		MonoProperty* property = mono_class_get_property_from_name(baseComponentClass, "Entity");
+		MonoMethod* propertyGetter = mono_property_get_get_method(property);
+		MonoObject* entityObject = ScriptEngine::InvokeMethodR(componentObject, propertyGetter);
+		return ScriptUtils::GetIDFromEntity(entityObject);
 	}
 
 	void ManagedField::SetValueInternal(GCHandle handle, const void* value)

@@ -40,33 +40,28 @@ namespace Shark {
 		static void Update();
 
 		static bool AssembliesLoaded();
-
 		static const AssemblyInfo& GetCoreAssemblyInfo();
 		static const AssemblyInfo& GetAppAssemblyInfo();
-
-		static bool IsRunning();
-
 		static MonoDomain* GetRuntimeDomain();
 
+		static bool IsRunning();
 		static MonoClass* GetEntityClass();
-		static const ScriptClassMap& GetScriptClasses();
-		static Ref<ScriptClass> GetScriptClassFromName(std::string_view fullName);
-		static Ref<ScriptClass> GetScriptClass(uint64_t id);
 
-		static FieldStorageMap& GetFieldStorageMap(Entity entity);
+		static Ref<ScriptClass> GetScriptClass(uint64_t id);
+		static Ref<ScriptClass> GetScriptClassFromName(std::string_view fullName);
+
 		static void InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle);
 		static ManagedField& GetFieldFromStorage(Ref<FieldStorage> storage);
+
+		static const ScriptClassMap& GetScriptClasses();
+		static FieldStorageMap& GetFieldStorageMap(Entity entity);
 
 	public: // Scripting API
 		static void InitializeRuntime(Ref<Scene> scene);
 		static void ShutdownRuntime();
 
-		static MonoObject* InstantiateClass(MonoClass* klass);
-
-		static MonoObject* InstantiateBaseEntity(Entity entity);
 		static GCHandle InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields);
-		static void DestroyInstance(Entity entity, bool invokeOnDestroy);
-
+		static void DestroyEntityInstance(Entity entity, bool invokeOnDestroy);
 		static void InitializeFields(Entity entity);
 
 		static void OnEntityDestroyed(Entity entity);
@@ -76,13 +71,19 @@ namespace Shark {
 		static GCHandle GetInstance(Entity entity);
 		static MonoObject* GetInstanceObject(Entity entity);
 
-		static const EntityInstancesMap& GetEntityInstances();
+		static MonoObject* CreateEntity(UUID uuid);
+		static MonoObject* InstantiateBaseEntity(Entity entity);
+		static MonoObject* InstantiateClass(MonoClass* klass);
+
 		static Ref<Scene> GetActiveScene();
+		static const EntityInstancesMap& GetEntityInstances();
+
 
 	public:
 		template<typename... TArgs>
 		static bool InvokeMethod(MonoObject* object, MonoMethod* method, TArgs&&... args)
 		{
+			static_assert(!(std::is_same_v<MonoObject*, std::decay_t<TArgs>> || ...));
 			void* params[] = { (void*)&args... };
 			return InvokeMethod(object, method, params);
 		}
@@ -90,6 +91,7 @@ namespace Shark {
 		template<typename... TArgs>
 		static bool InvokeVirtualMethod(MonoObject* object, MonoMethod* method, TArgs&&... args)
 		{
+			static_assert(!(std::is_same_v<MonoObject*, std::decay_t<TArgs>> || ...));
 			void* params[] = { (void*)&args... };
 			return InvokeVirtualMethod(object, method, params);
 		}
@@ -97,19 +99,17 @@ namespace Shark {
 		static bool InvokeMethod(MonoObject* object, MonoMethod* method, void** params = nullptr, MonoObject** out_RetVal = nullptr);
 		static MonoObject* InvokeMethodR(MonoObject* object, MonoMethod* method, void** params = nullptr);
 		static bool InvokeVirtualMethod(MonoObject* object, MonoMethod* method, void** params = nullptr, MonoObject** out_RetVal = nullptr);
+		static MonoObject* InvokeVirtualMethodR(MonoObject* object, MonoMethod* method, void** params = nullptr);
 
 	private:
 		static void InitMono();
 		static void ShutdownMono();
 
 		static MonoAssembly* LoadCSAssembly(const std::filesystem::path& filePath);
-
 		static bool LoadCoreAssembly(const std::filesystem::path& filePath);
 		static bool LoadAppAssembly(const std::filesystem::path& filePath);
-
 		static bool ReloadAssemblies();
 
-		static MonoObject* CreateEntity(UUID uuid);
 		static void CacheScriptClasses();
 
 		static bool IsInstantiated(UUID entityID);

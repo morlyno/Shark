@@ -376,6 +376,15 @@ namespace Shark::UI {
 		ImGui::PopID();
 	}
 
+	void ControlHelperDrawLabel(std::string_view label)
+	{
+		SK_CORE_ASSERT(ImGui::GetCurrentTable());
+		ImGui::TableSetColumnIndex(0);
+		ImGui::AlignTextToFramePadding();
+		ImGui::TextEx(label.data(), label.data() + label.size());
+		ImGui::TableSetColumnIndex(1);
+	}
+
 	template<typename T>
 	static bool ControlDrag(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* resetVal, const T* speed, const T* min, const T* max, std::string_view fmt)
 	{
@@ -646,6 +655,59 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	bool Control(std::string_view label, UUID& uuid, const char* dragDropType)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+
+		bool changed = false;
+		char buffer[sizeof("0x0123456789ABCDEF")];
+		if (uuid.IsValid())
+			sprintf_s(buffer, "0x%llx", (uint64_t)uuid);
+		else
+			memset(buffer, 0, sizeof(buffer));
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputTextWithHint("##control", "Null", buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+
+		if (dragDropType)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+				if (payload)
+				{
+					uuid = *(UUID*)payload->Data;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		{
+			UI::ScopedStyle colorStack;
+			colorStack.Push(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
+			colorStack.Push(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
+			colorStack.Push(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+			const float buttonSize = ImGui::GetItemRectSize().y;
+			ImGui::SameLine(0, 0);
+			MoveCursorX(-buttonSize);
+
+			ImGui::BeginChild(UI::GetCurrentID(), ImVec2(buttonSize, buttonSize));
+			if (ImGui::Button("x", { buttonSize, buttonSize }))
+			{
+				uuid = UUID::Null;
+				changed = true;
+			}
+			ImGui::EndChild();
+		}
+
+		ControlEndHelper();
+		return changed;
+	}
+
 	template<typename T>
 	static bool ControlFlagsT(std::string_view label, T& val, const T& flag)
 	{
@@ -872,7 +934,7 @@ namespace Shark::UI {
 
 		const ImU32 frameColor = ImGui::GetColorU32(ImGuiCol_FrameBg);
 		ImGui::RenderFrame(bb.Min, bb.Max, frameColor, true, style.FrameRounding);
-		ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, text, text_end, nullptr, ImVec2(0, 0), &bb);
+		ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, text, text_end, nullptr, ImVec2(0.5f, 0.5f), &bb);
 	}
 
 	UIContext::UIContext()

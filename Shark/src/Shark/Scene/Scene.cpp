@@ -772,7 +772,7 @@ namespace Shark {
 		Entity entity{ ent, this };
 
 		if (ScriptEngine::IsInstantiated(entity))
-			ScriptEngine::DestroyInstance(entity, true);
+			ScriptEngine::DestroyEntityInstance(entity, true);
 	}
 
 	void Scene::OnCameraComponentDestroyed(entt::registry& registry, entt::entity ent)

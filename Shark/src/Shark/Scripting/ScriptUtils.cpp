@@ -85,6 +85,23 @@ namespace Shark {
 		return MonoStringToUTF8(monoStr);
 	}
 
+	UUID ScriptUtils::GetIDFromEntity(MonoObject* object)
+	{
+		MonoClass* klass = mono_object_get_class(object);
+		MonoClassField* idField = mono_class_get_field_from_name(klass, "ID");
+		SK_CORE_ASSERT(idField, "Field Is not an entity");
+		uint64_t id = 0;
+		mono_field_get_value(object, idField, &id);
+		return id;
+	}
+
+	MonoObject* ScriptUtils::GetOrCreateEntity(Entity entity)
+	{
+		if (ScriptEngine::IsInstantiated(entity))
+			return ScriptEngine::GetInstanceObject(entity);
+		return ScriptEngine::CreateEntity(entity.GetUUID());
+	}
+
 	const char* ScriptUtils::GetClassName(GCHandle handle)
 	{
 		MonoObject* object = GCManager::GetManagedObject(handle);

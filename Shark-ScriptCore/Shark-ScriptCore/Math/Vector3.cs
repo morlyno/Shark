@@ -44,6 +44,12 @@ namespace Shark
 			Y = v.Y;
 			Z = v.Z;
 		}
+		public Vector3(Vector2 xy, float z)
+		{
+			X = xy.X;
+			Y = xy.Y;
+			Z = z;
+		}
 
 		public static Vector3 operator +(Vector3 lhs, Vector3 rhs)
 		{

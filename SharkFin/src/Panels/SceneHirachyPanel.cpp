@@ -581,21 +581,18 @@ namespace Shark {
 						case ManagedFieldType::Entity:
 						{
 							UUID uuid = field.GetEntity(handle);
-							UI::Property(name, uuid);
-							if (ImGui::BeginDragDropTarget())
-							{
-								const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID");
-								if (payload)
-								{
-									UUID entityID = *(UUID*)payload->Data;
-									Entity entity = scene->GetEntityByUUID(entityID);
-									if (entity)
-										field.SetEntity(handle, entity);
-								}
-								ImGui::EndDragDropTarget();
-							}
+							if (UI::Control(name, uuid, "ENTITY_ID"))
+								field.SetEntity(handle, scene->GetEntityByUUID(uuid));
 							break;
 						}
+						case ManagedFieldType::Component:
+						{
+							UUID uuid = field.GetComponent(handle);
+							if (UI::Control(name, uuid, "ENTITY_ID"))
+								field.SetComponent(handle, scene->GetEntityByUUID(uuid));
+							break;
+						}
+
 					}
 				}
 				UI::EndControlsGrid();
@@ -640,54 +637,20 @@ namespace Shark {
 						case ManagedFieldType::Entity:
 						{
 							UUID uuid = storage->GetValue<UUID>();
-							UI::Property(name, uuid);
-							if (ImGui::BeginDragDropTarget())
-							{
-								const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID");
-								if (payload)
-								{
-									UUID entityID = *(UUID*)payload->Data;
-									if (scene->ValidEntityID(entityID))
-										storage->SetValue(entityID);
-								}
-								ImGui::EndDragDropTarget();
-							}
+							if (UI::Control(name, uuid, "ENTITY_ID"))
+								storage->SetValue(uuid);
+							break;
+						}
+						case ManagedFieldType::Component:
+						{
+							UUID uuid = storage->GetValue<UUID>();
+							if (UI::Control(name, uuid, "ENTITY_ID"))
+								storage->SetValue(uuid);
 							break;
 						}
 					}
 				}
 				UI::EndControlsGrid();
-
-#if 0
-				auto& fieldStorageMap = ScriptEngine::GetFieldStorageMap(entity);
-
-				UI::BeginControlsGrid();
-				for (auto& [name, fieldStorage] : fieldStorageMap)
-				{
-					const ManagedField& field = fieldStorage->Field;
-					if (!(field.Access & Accessibility::Public))
-						continue;
-
-					switch (field.Type)
-					{
-						case ManagedFieldType::Bool:   utils::FieldStorageControl<bool>(name, fieldStorage); break;
-						//case ManagedFieldType::Char:   utils::FieldStorageControl<wchar_t>(name, fieldStorage); break;
-						//case ManagedFieldType::Byte:   utils::FieldStorageControl<uint8_t>(name, fieldStorage); break;
-						//case ManagedFieldType::SByte:  utils::FieldStorageControl<int8_t>(name, fieldStorage); break;
-						//case ManagedFieldType::Short:  utils::FieldStorageControl<int16_t>(name, fieldStorage); break;
-						//case ManagedFieldType::UShort: utils::FieldStorageControl<uint16_t>(name, fieldStorage); break;
-						case ManagedFieldType::Int:    utils::FieldStorageControl<int>(name, fieldStorage); break;
-						case ManagedFieldType::UInt:   utils::FieldStorageControl<uint32_t>(name, fieldStorage); break;
-						//case ManagedFieldType::Long:   utils::FieldStorageControl<int64_t>(name, fieldStorage); break;
-						//case ManagedFieldType::ULong:  utils::FieldStorageControl<uint64_t>(name, fieldStorage); break;
-						case ManagedFieldType::Float:  utils::FieldStorageControl<float>(name, fieldStorage); break;
-						//case ManagedFieldType::Double: utils::FieldStorageControl<double>(name, fieldStorage); break;
-						//case ManagedFieldType::String: utils::FieldControl<ManagedString>(name, fieldStorage); break;
-						//case ManagedFieldType::Entity: utils::FieldControl<ManagedEntity>(name, fieldStorage); break;
-					}
-				}
-				UI::EndControlsGrid();
-#endif
 			}
 
 		});
