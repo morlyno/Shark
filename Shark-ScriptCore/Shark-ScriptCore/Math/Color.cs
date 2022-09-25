@@ -40,10 +40,10 @@ namespace Shark
 		}
 		public Color(Vector4 v)
 		{
-			this.r = v.x;
-			this.g = v.y;
-			this.b = v.z;
-			this.a = v.w;
+			this.r = v.X;
+			this.g = v.Y;
+			this.b = v.Z;
+			this.a = v.W;
 		}
 
 		public static Color operator+(Color lhs, Color rhs) { return new Color(lhs.r + rhs.r, lhs.g + rhs.g, lhs.b + rhs.b, lhs.a + rhs.a); }
@@ -81,7 +81,7 @@ namespace Shark
 			}
 		}
 
-		public static explicit operator Color(Vector4 v) { return new Color(v.x, v.y, v.z, v.w);}
+		public static explicit operator Color(Vector4 v) { return new Color(v.X, v.Y, v.Z, v.W);}
 		public static explicit operator Vector4(Color c) { return new Vector4(c.r, c.g, c.b, c.a); }
 
 		public override string ToString()

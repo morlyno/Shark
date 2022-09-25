@@ -78,6 +78,7 @@ namespace Shark {
 			case ManagedFieldType::Double: return "Double";
 			case ManagedFieldType::String: return "String";
 			case ManagedFieldType::Entity: return "Entity";
+			case ManagedFieldType::Component: return "Component";
 			case ManagedFieldType::Vector2: return "Vector2";
 			case ManagedFieldType::Vector3: return "Vector3";
 			case ManagedFieldType::Vector4: return "Vector4";
@@ -103,6 +104,7 @@ namespace Shark {
 		if (type == "Double") return ManagedFieldType::Double;
 		if (type == "String") return ManagedFieldType::String;
 		if (type == "Entity") return ManagedFieldType::Entity;
+		if (type == "Component") return ManagedFieldType::Component;
 		if (type == "Vector2") return ManagedFieldType::Vector2;
 		if (type == "Vector3") return ManagedFieldType::Vector3;
 		if (type == "Vector4") return ManagedFieldType::Vector4;

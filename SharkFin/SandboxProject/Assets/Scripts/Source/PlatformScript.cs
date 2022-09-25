@@ -22,8 +22,8 @@ namespace Sandbox
 		{
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
 
-			m_StartPoint = MarkerStart.Transform.Translation.XY;
-			m_EndPoint = MarkerEnd.Transform.Translation.XY;
+			m_StartPoint = MarkerStart.Transform.WorldTransform.Translation.XY;
+			m_EndPoint = MarkerEnd.Transform.WorldTransform.Translation.XY;
 		}
 
 		protected override void OnUpdate(float ts)

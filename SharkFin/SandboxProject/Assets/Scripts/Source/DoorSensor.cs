@@ -15,8 +15,7 @@ namespace Sandbox
 
 		protected override void OnCreate()
 		{
-			Door = FindEntityByName("Door");
-			m_DoorPos = Door.Transform.Translation;
+			m_DoorPos = Door.WorldTransform.Translation;
 		}
 
 		protected override void OnUpdate(float ts)

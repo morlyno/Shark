@@ -2,7 +2,6 @@
 #include "Scene.h"
 
 #include "Shark/Scene/Entity.h"
-#include "Shark/Scene/Components.h"
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Render/SceneRenderer.h"
 
@@ -70,6 +69,7 @@ namespace Shark {
 
 	Scene::~Scene()
 	{
+		m_Registry.on_destroy<CameraComponent>().disconnect<&Scene::OnCameraComponentDestroyed>(this);
 	}
 
 	Ref<Scene> Scene::Copy(Ref<Scene> srcScene)
@@ -246,7 +246,7 @@ namespace Shark {
 				auto& transform = entity.Transform();
 				if (entity.HasParent())
 				{
-					glm::mat4 localTransform = glm::inverse(GetWorldSpaceTransform(entity.Parent())) * Phyiscs2DUtils::GetMatrix(rb2d.RuntimeBody);
+					glm::mat4 localTransform = glm::inverse(GetWorldSpaceTransformMatrix(entity.Parent())) * Phyiscs2DUtils::GetMatrix(rb2d.RuntimeBody);
 					TransformComponent localBodyTransform;
 					Math::DecomposeTransform(localTransform, localBodyTransform.Translation, localBodyTransform.Rotation, localBodyTransform.Scale);
 					transform.Translation.x = localBodyTransform.Translation.x;
@@ -285,7 +285,7 @@ namespace Shark {
 			auto& transform = entity.Transform();
 			if (entity.HasParent())
 			{
-				glm::mat4 localTransform = glm::inverse(GetWorldSpaceTransform(entity.Parent())) * Phyiscs2DUtils::GetMatrix(rb2d.RuntimeBody);
+				glm::mat4 localTransform = glm::inverse(GetWorldSpaceTransformMatrix(entity.Parent())) * Phyiscs2DUtils::GetMatrix(rb2d.RuntimeBody);
 				TransformComponent localBodyTransform;
 				Math::DecomposeTransform(localTransform, localBodyTransform.Translation, localBodyTransform.Rotation, localBodyTransform.Scale);
 				transform.Translation.x = localBodyTransform.Translation.x;
@@ -306,7 +306,7 @@ namespace Shark {
 		Camera& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
 		auto& tf = cameraEntity.Transform();
 
-		const auto viewProj = camera.GetProjection() * glm::inverse(GetWorldSpaceTransform(cameraEntity));
+		const auto viewProj = camera.GetProjection() * glm::inverse(GetWorldSpaceTransformMatrix(cameraEntity));
 		OnRender(renderer, viewProj);
 	}
 
@@ -523,11 +523,68 @@ namespace Shark {
 		}
 	}
 
-	glm::mat4 Scene::GetWorldSpaceTransform(Entity entity) const
+	glm::mat4 Scene::GetWorldSpaceTransformMatrix(Entity entity) const
 	{
 		if (entity.HasParent())
-			return GetWorldSpaceTransform(entity.Parent()) * entity.CalcTransform();
+			return GetWorldSpaceTransformMatrix(entity.Parent()) * entity.CalcTransform();
 		return entity.CalcTransform();
+	}
+
+	TransformComponent Scene::GetWorldSpaceTransform(Entity entity)
+	{
+		if (!entity.HasParent())
+			return entity.Transform();
+
+		glm::mat4 worldSpaceTransform = GetWorldSpaceTransformMatrix(entity);
+		TransformComponent transform;
+		Math::DecomposeTransform(worldSpaceTransform, transform.Translation, transform.Rotation, transform.Scale);
+		return transform;
+	}
+
+	bool Scene::ConvertToLocaSpace(Entity entity, glm::mat4& transformMatrix)
+	{
+		if (!entity.HasParent())
+			return true;
+
+		transformMatrix = glm::inverse(GetWorldSpaceTransformMatrix(entity.Parent())) * transformMatrix;
+		return true;
+	}
+
+	bool Scene::ConvertToWorldSpace(Entity entity, glm::mat4& transformMatrix)
+	{
+		if (!entity.HasParent())
+			return true;
+
+		transformMatrix = GetWorldSpaceTransformMatrix(entity.Parent()) * transformMatrix;
+		return true;
+	}
+
+	bool Scene::ConvertToLocaSpace(Entity entity, TransformComponent& transform)
+	{
+		if (!entity.HasParent())
+			return true;
+
+		glm::mat4 localTransformMatrix = glm::inverse(GetWorldSpaceTransformMatrix(entity.Parent())) * transform.CalcTransform();
+		return Math::DecomposeTransform(localTransformMatrix, transform.Translation, transform.Rotation, transform.Scale);
+	}
+
+	bool Scene::ConvertToWorldSpace(Entity entity, TransformComponent& transform)
+	{
+		if (!entity.HasParent())
+			return true;
+
+		glm::mat4 worldTransformMatrix = GetWorldSpaceTransformMatrix(entity);
+		return Math::DecomposeTransform(worldTransformMatrix, transform.Translation, transform.Rotation, transform.Scale);
+	}
+
+	bool Scene::ConvertToLocaSpace(Entity entity)
+	{
+		return ConvertToLocaSpace(entity, entity.Transform());
+	}
+
+	bool Scene::ConvertToWorldSpace(Entity entity)
+	{
+		return ConvertToWorldSpace(entity, entity.Transform());
 	}
 
 	void Scene::SetupBox2D()
@@ -572,7 +629,7 @@ namespace Shark {
 			{
 				Entity entity{ e, this };
 				auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-				glm::mat4 worldTransform = GetWorldSpaceTransform(entity);
+				glm::mat4 worldTransform = GetWorldSpaceTransformMatrix(entity);
 				TransformComponent transform;
 				Math::DecomposeTransform(worldTransform, transform.Translation, transform.Rotation, transform.Scale);
 				//auto& transform = entity.Transform();

@@ -6,6 +6,7 @@
 
 #include "Shark/Asset/Asset.h"
 
+#include "Shark/Scene/Components.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scene/Physics2DScene.h"
 #include "Shark/Render/EditorCamera.h"
@@ -91,7 +92,15 @@ namespace Shark {
 		uint32_t GetViewportWidth() const { return m_ViewportWidth; }
 		uint32_t GetViewportHeight() const { return m_ViewportHeight; }
 
-		glm::mat4 GetWorldSpaceTransform(Entity entity) const;
+		glm::mat4 GetWorldSpaceTransformMatrix(Entity entity) const;
+		TransformComponent GetWorldSpaceTransform(Entity entity);
+
+		bool ConvertToLocaSpace(Entity entity, glm::mat4& transformMatrix);
+		bool ConvertToWorldSpace(Entity entity, glm::mat4& transformMatrix);
+		bool ConvertToLocaSpace(Entity entity, TransformComponent& transform);
+		bool ConvertToWorldSpace(Entity entity, TransformComponent& transform);
+		bool ConvertToLocaSpace(Entity entity);
+		bool ConvertToWorldSpace(Entity entity);
 
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }

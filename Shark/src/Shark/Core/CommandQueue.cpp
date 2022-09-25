@@ -16,10 +16,10 @@ namespace Shark {
 
 	void CommandQueue::Execute()
 	{
-		if (m_CommandCount > 0)
-		{
-			SK_CORE_INFO("CommandBuffer::Excecute | {0} Commands | {1} bytes", m_CommandCount, m_BufferPtr - m_Buffer);
-		}
+		//if (m_CommandCount > 0)
+		//{
+		//	SK_CORE_INFO("CommandQueue::Excecute | {0} Commands | {1} bytes", m_CommandCount, m_BufferPtr - m_Buffer);
+		//}
 
 		byte* buffer = m_Buffer;
 

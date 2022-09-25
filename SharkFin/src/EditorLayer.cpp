@@ -275,7 +275,7 @@ namespace Shark {
 				if (m_SelectetEntity)
 				{
 					glm::vec3 translation;
-					Math::DecomposeTranslation(m_ActiveScene->GetWorldSpaceTransform(m_SelectetEntity), translation);
+					Math::DecomposeTranslation(m_ActiveScene->GetWorldSpaceTransformMatrix(m_SelectetEntity), translation);
 
 					m_EditorCamera.SetFocusPoint(translation);
 					m_EditorCamera.SetDistance(7.5f);
@@ -575,7 +575,7 @@ namespace Shark {
 				projection = m_EditorCamera.GetProjection();
 			}
 
-			glm::mat4 transform = m_ActiveScene->GetWorldSpaceTransform(m_SelectetEntity);
+			glm::mat4 transform = m_ActiveScene->GetWorldSpaceTransformMatrix(m_SelectetEntity);
 
 			float snapVal = 0.0f;
 			if (Input::IsKeyDown(KeyCode::LeftShift))
@@ -594,9 +594,8 @@ namespace Shark {
 
 			if (!Input::IsKeyDown(KeyCode::LeftAlt) && ImGuizmo::IsUsing())
 			{
-				Entity parentEntity = m_SelectetEntity.Parent();
-				glm::mat4 localTransform = parentEntity ? glm::inverse(m_ActiveScene->GetWorldSpaceTransform(parentEntity)) * transform : transform;
-
+				glm::mat4 localTransform = transform;
+				m_ActiveScene->ConvertToLocaSpace(m_SelectetEntity, localTransform);
 				auto& tf = m_SelectetEntity.Transform();
 
 				glm::vec3 translation, rotation, scale;
@@ -1506,10 +1505,9 @@ namespace Shark {
 					{
 						Entity entity{ entityID, m_ActiveScene };
 						auto& collider = view.get<BoxCollider2DComponent>(entityID);
-						auto& tf = entity.Transform();
 
 						glm::mat4 transform =
-							tf.CalcTransform() *
+							m_ActiveScene->GetWorldSpaceTransformMatrix(entity) *
 							glm::translate(glm::vec3(collider.Offset, 0)) *
 							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 							glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
@@ -1524,10 +1522,9 @@ namespace Shark {
 					{
 						Entity entity{ entityID, m_ActiveScene };
 						auto& collider = view.get<CircleCollider2DComponent>(entityID);
-						auto& tf = entity.Transform();
 
 						glm::mat4 transform =
-							tf.CalcTransform() *
+							m_ActiveScene->GetWorldSpaceTransformMatrix(entity) *
 							glm::translate(glm::vec3(collider.Offset, 0)) *
 							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 							glm::scale(glm::vec3(collider.Radius, collider.Radius, 1.0f));
@@ -1544,10 +1541,9 @@ namespace Shark {
 					{
 						Entity entity{ entityID, m_ActiveScene };
 						auto& collider = view.get<BoxCollider2DComponent>(entityID);
-						auto& tf = entity.Transform();
 
 						glm::mat4 transform =
-							tf.CalcTransform() *
+							m_ActiveScene->GetWorldSpaceTransformMatrix(entity) *
 							glm::translate(glm::vec3(collider.Offset, 0)) *
 							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 							glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
@@ -1562,10 +1558,9 @@ namespace Shark {
 					{
 						Entity entity{ entityID, m_ActiveScene };
 						auto& collider = view.get<CircleCollider2DComponent>(entityID);
-						auto& tf = entity.Transform();
 
 						glm::mat4 transform =
-							tf.CalcTransform() *
+							m_ActiveScene->GetWorldSpaceTransformMatrix(entity) *
 							glm::translate(glm::vec3(collider.Offset, 0)) *
 							glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 							glm::scale(glm::vec3(0.0f, 0.0f, collider.Radius));
@@ -1626,7 +1621,7 @@ namespace Shark {
 			Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
 			auto& camera = cameraEntity.GetComponent<CameraComponent>();
 			auto& tf = cameraEntity.Transform();
-			return camera.GetProjection() * glm::inverse(m_ActiveScene->GetWorldSpaceTransform(cameraEntity));
+			return camera.GetProjection() * glm::inverse(m_ActiveScene->GetWorldSpaceTransformMatrix(cameraEntity));
 		}
 
 		return m_EditorCamera.GetViewProjection();

@@ -28,6 +28,9 @@ namespace Shark
 		public TransformComponent Transform
 			=> GetComponent<TransformComponent>();
 
+		public Transform WorldTransform
+			=> Transform.WorldTransform;
+
 		public Vector3 Translation
 		{
 			get => Transform.Translation;

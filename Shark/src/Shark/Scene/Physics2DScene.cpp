@@ -112,7 +112,7 @@ namespace Shark {
 	glm::mat4 Phyiscs2DUtils::GetMatrix(b2Body* body)
 	{
 		return glm::translate(glm::vec3(FromBody(body), 0.0f)) *
-			glm::toMat4(glm::quat(glm::vec3(body->GetAngle())));
+			glm::toMat4(glm::quat(glm::vec3(0.0f, 0.0f, body->GetAngle())));
 	}
 
 }

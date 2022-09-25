@@ -85,30 +85,27 @@ namespace Sandbox
 		private void Movement(float ts)
 		{
 			Vector2 direction = Vector2.Zero;
-			bool apply = false;
 
 			if (Input.IsKeyDown(KeyCode.D))
-			{
 				direction += Vector2.Right;
-				apply = true;
-			}
 
 			if (Input.IsKeyDown(KeyCode.A))
-			{
 				direction += Vector2.Left;
-				apply = true;
-			}
 
-			if (apply)
+			if (direction != Vector2.Zero)
 			{
 				var velocity = m_RigidBody.LinearVelocity;
-				velocity.X += Acceleration * direction.X * ts;
+				velocity += Acceleration * direction * ts;
 				if (!m_Sprint)
-					velocity.X = Mathf.Clamp(velocity.X, -MaxMovementSpeed, MaxMovementSpeed);
+				{
+					//velocity.X = Mathf.Clamp(velocity.X, -MaxMovementSpeed, MaxMovementSpeed);
+					if (velocity.Length > MaxMovementSpeed)
+						velocity.Length = MaxMovementSpeed;
+				}
 				m_RigidBody.LinearVelocity = velocity;
 				m_RigidBody.LinearDamping = 0;
 			}
-			else if (m_Colliding)
+			else if (true && m_Colliding)
 			{
 				m_RigidBody.LinearDamping = OnGroundDamping;
 			}

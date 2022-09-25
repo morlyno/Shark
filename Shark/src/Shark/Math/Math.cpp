@@ -15,6 +15,21 @@ namespace Shark::Math {
 		if (epsilonEqual(LocalMatrix[3][3], static_cast<float>(0), epsilon<float>()))
 			return false;
 
+#if 1
+		// perspectiveMatrix is used to solve for perspective, but it also provides
+		// an easy way to test for singularity of the upper 3x3 component.
+		mat4 PerspectiveMatrix(LocalMatrix);
+
+		for (length_t i = 0; i < 3; i++)
+			PerspectiveMatrix[i][3] = static_cast<float>(0);
+		PerspectiveMatrix[3][3] = static_cast<float>(1);
+
+		/// TODO: Fixme!
+		if (epsilonEqual(determinant(PerspectiveMatrix), static_cast<float>(0), epsilon<float>()))
+			return false;
+
+#endif
+
 		// First, isolate perspective.  This is the messiest.
 		if (
 			epsilonNotEqual(LocalMatrix[0][3], static_cast<float>(0), epsilon<float>()) ||
@@ -30,6 +45,7 @@ namespace Shark::Math {
 		out_Translation = vec3(LocalMatrix[3]);
 		LocalMatrix[3] = vec4(0, 0, 0, LocalMatrix[3].w);
 
+#if 0
 		vec3 Row[3];
 
 		// Now get scale and shear.
@@ -57,6 +73,54 @@ namespace Shark::Math {
 		// 		Row[i] *= static_cast<float>(-1);
 		// 	}
 		// }
+
+#else
+		vec3 Row[3], Pdum3, Skew;
+
+		// Now get scale and shear.
+		for (length_t i = 0; i < 3; ++i)
+			for (length_t j = 0; j < 3; ++j)
+				Row[i][j] = LocalMatrix[i][j];
+
+		// Compute X scale factor and normalize first row.
+		out_Scale.x = length(Row[0]);// v3Length(Row[0]);
+
+		Row[0] = detail::scale(Row[0], static_cast<float>(1));
+
+		// Compute XY shear factor and make 2nd row orthogonal to 1st.
+		Skew.z = dot(Row[0], Row[1]);
+		Row[1] = detail::combine(Row[1], Row[0], static_cast<float>(1), -Skew.z);
+
+		// Now, compute Y scale and normalize 2nd row.
+		out_Scale.y = length(Row[1]);
+		Row[1] = detail::scale(Row[1], static_cast<float>(1));
+		Skew.z /= out_Scale.y;
+
+		// Compute XZ and YZ shears, orthogonalize 3rd row.
+		Skew.y = glm::dot(Row[0], Row[2]);
+		Row[2] = detail::combine(Row[2], Row[0], static_cast<float>(1), -Skew.y);
+		Skew.x = glm::dot(Row[1], Row[2]);
+		Row[2] = detail::combine(Row[2], Row[1], static_cast<float>(1), -Skew.x);
+
+		// Next, get Z scale and normalize 3rd row.
+		out_Scale.z = length(Row[2]);
+		Row[2] = detail::scale(Row[2], static_cast<float>(1));
+		Skew.y /= out_Scale.z;
+		Skew.x /= out_Scale.z;
+
+		// At this point, the matrix (in rows[]) is orthonormal.
+		// Check for a coordinate system flip.  If the determinant
+		// is -1, then negate the matrix and the scaling factors.
+		Pdum3 = cross(Row[1], Row[2]); // v3Cross(row[1], row[2], Pdum3);
+		if (dot(Row[0], Pdum3) < 0)
+		{
+			for (length_t i = 0; i < 3; i++)
+			{
+				out_Scale[i] *= static_cast<float>(-1);
+				Row[i] *= static_cast<float>(-1);
+			}
+		}
+#endif
 
 		// Now, get the rotations out, as described in the gem.
 

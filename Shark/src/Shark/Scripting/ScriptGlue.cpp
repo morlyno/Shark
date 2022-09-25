@@ -849,7 +849,7 @@ namespace Shark {
 			}
 
 			Ref<Scene> scene = utils::GetScene();
-			glm::mat4 worldTransform = scene->GetWorldSpaceTransform(entity);
+			glm::mat4 worldTransform = scene->GetWorldSpaceTransformMatrix(entity);
 			Math::DecomposeTransform(worldTransform, out_WorldTransform->Translation, out_WorldTransform->Rotation, out_WorldTransform->Scale);
 		}
 

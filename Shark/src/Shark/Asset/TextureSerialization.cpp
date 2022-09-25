@@ -138,7 +138,7 @@ namespace Shark {
 		Timer timer;
 		YAML::Emitter out;
 
-		Ref<Texture2D> texture = texture = asset.As<Texture2D>();
+		Ref<Texture2D> texture = asset.As<Texture2D>();
 		const auto& specs = texture->GetSpecification();
 
 		out << YAML::BeginMap;

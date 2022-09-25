@@ -13,12 +13,14 @@
 #include "Shark/UI/Theme.h"
 #include "Shark/Input/Input.h"
 
+#include "Shark/Math/Math.h"
 #include "Shark/Debug/Instrumentor.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
+#include "glm/gtx/vector_query.hpp"
 
 namespace Shark {
 
@@ -87,54 +89,6 @@ namespace Shark {
 			return false;
 		}
 
-		template<typename Comp, typename UIFunction>
-		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
-		{
-			if (entity.AllOf<Comp>())
-			{
-				ImGui::PushID(typeid(Comp).name());
-				const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
-				ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
-				ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-				const float LineHeight = ImGui::GetItemRectSize().y;
-				if (ImGui::Button("+", { LineHeight, LineHeight }))
-					ImGui::OpenPopup("Component Settings");
-				ImGui::PopStyleColor();
-
-				if (opened)
-				{
-					auto& comp = entity.GetComponent<Comp>();
-					func(comp, entity);
-				}
-
-				if (ImGui::BeginPopup("Component Settings"))
-				{
-					if (ImGui::MenuItem("Delete", nullptr, false, !std::is_same_v<Comp, TransformComponent>))
-					{
-						if constexpr (std::is_same_v<Comp, CameraComponent>)
-						{
-							Weak<Scene> scene = entity.GetScene();
-							UUID cameraUUID = scene->GetActiveCameraUUID();
-							if (entity.GetUUID() == cameraUUID)
-								scene->SetActiveCamera(UUID::Null);
-						}
-
-						entity.RemoveComponent<Comp>();
-					}
-
-					if (ImGui::MenuItem("Reset"))
-					{
-						auto& comp = entity.GetComponent<Comp>();
-						comp = Comp{};
-					}
-
-					ImGui::EndPopup();
-				}
-
-				ImGui::PopID();
-			}
-		}
-
 		template<typename Component>
 		static void DrawAddComponentButton(const char* name, Entity entity)
 		{
@@ -192,11 +146,12 @@ namespace Shark {
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_None))
 				SelectEntity(Entity{});
 
-			m_Context->m_Registry.each([=](auto entityID)
+			Ref<SceneHirachyPanel> instance = this;
+			m_Context->m_Registry.each([instance](auto entityID)
 			{
-				Entity entity{ entityID, m_Context };
+				Entity entity{ entityID, instance->m_Context };
 				if (!entity.HasParent())
-					DrawEntityNode(entity);
+					instance->DrawEntityNode(entity);
 			});
 
 			const ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -235,7 +190,7 @@ namespace Shark {
 	void SceneHirachyPanel::DrawEntityNode(Entity entity)
 	{
 		const auto& tag = entity.GetComponent<TagComponent>();
-		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 		if (m_SelectedEntity == entity)
 			treenodefalgs |= ImGuiTreeNodeFlags_Selected;
 
@@ -244,7 +199,7 @@ namespace Shark {
 		if (!entity.HasChildren())
 			treenodefalgs |= ImGuiTreeNodeFlags_Leaf;
 
-		bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)(uint32_t)entity, treenodefalgs, tag.Tag.c_str());
+		bool opened = ImGui::TreeNodeBehavior(UI::GetID(entity.GetUUID()), treenodefalgs, tag.Tag.c_str());
 
 		if (ImGui::BeginDragDropSource())
 		{
@@ -341,17 +296,34 @@ namespace Shark {
 			ImGui::EndPopup();
 		}
 
-		
-		utils::DrawComponet<TransformComponent>(entity, "Transform", [](TransformComponent& comp, Entity entity)
+		Ref<SceneHirachyPanel> instance = this;
+		DrawComponet<TransformComponent>(entity, "Transform", [instance](TransformComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			utils::Control("Position", comp.Translation);
-			utils::ControlAngle("Rotation", comp.Rotation);
-			utils::Control("Scaling", comp.Scale);
+
+			if (instance->m_TransformInWorldSpace && entity.HasParent())
+			{
+				TransformComponent transform = instance->m_Context->GetWorldSpaceTransform(entity);
+				bool changed = false;
+				changed |= utils::Control("Translation", transform.Translation);
+				changed |= utils::ControlAngle("Rotation", transform.Rotation);
+				changed |= utils::Control("Scale", transform.Scale, 1.0f);
+
+				if (changed && instance->m_Context->ConvertToLocaSpace(entity, transform))
+					entity.Transform() = transform;
+			}
+			else
+			{
+				utils::Control("Translation", comp.Translation);
+				utils::ControlAngle("Rotation", comp.Rotation);
+				utils::Control("Scale", comp.Scale, 1.0f);
+			}
+
+
 			UI::EndControls();
 		});
 
-		utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp, Entity entity)
+		DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 
@@ -406,7 +378,7 @@ namespace Shark {
 
 		});
 
-		utils::DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp, Entity entity)
+		DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			
@@ -417,7 +389,7 @@ namespace Shark {
 			UI::EndControls();
 		});
 
-		utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)
+		DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			
@@ -485,7 +457,7 @@ namespace Shark {
 
 		});
 
-		utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp, Entity entity)
+		DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			int index = (int)comp.Type - 1;
@@ -500,7 +472,7 @@ namespace Shark {
 			UI::EndControlsGrid();
 		});
 		
-		utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp, Entity entity)
+		DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			UI::Control("Size", comp.Size);
@@ -514,7 +486,7 @@ namespace Shark {
 			UI::EndControls();
 		});
 
-		utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp, Entity entity)
+		DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			UI::Control("Radius", comp.Radius);
@@ -528,7 +500,7 @@ namespace Shark {
 			UI::EndControls();
 		});
 
-		utils::DrawComponet<ScriptComponent>(entity, "Script", [](ScriptComponent& comp, Entity entity)
+		DrawComponet<ScriptComponent>(entity, "Script", [](ScriptComponent& comp, Entity entity)
 		{
 			ImGui::SetNextItemWidth(-1.0f);
 

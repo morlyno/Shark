@@ -11,13 +11,16 @@ namespace Shark
 		public float X;
 		public float Y;
 
-		static public Vector2 Zero => new Vector2(0.0f);
-		static public Vector2 One => new Vector2(1.0f);
+		static public Vector2 Zero  => new Vector2(0.0f);
+		static public Vector2 One   => new Vector2(1.0f);
 
 		public static Vector2 Right => new Vector2(1.0f, 0.0f);
-		public static Vector2 Left => new Vector2(-1.0f, 0.0f);
-		public static Vector2 Up => new Vector2(0.0f, 1.0f);
-		public static Vector2 Down => new Vector2(0.0f, -1.0f);
+		public static Vector2 Left  => new Vector2(-1.0f, 0.0f);
+		public static Vector2 Up    => new Vector2(0.0f, 1.0f);
+		public static Vector2 Down  => new Vector2(0.0f, -1.0f);
+
+		public Vector2 XY { get => new Vector2(X, Y); set { X = value.X; Y = value.Y; } }
+		public Vector2 YX { get => new Vector2(Y, X); set { Y = value.X; X = value.Y; } }
 
 		public Vector2(float xy)
 		{
@@ -35,47 +38,19 @@ namespace Shark
 			Y = v.Y;
 		}
 
-		public static Vector2 operator +(Vector2 lhs, Vector2 rhs)
-		{
-			return new Vector2(lhs.X + rhs.X, lhs.Y + rhs.Y);
-		}
-		public static Vector2 operator -(Vector2 lhs, Vector2 rhs)
-		{
-			return new Vector2(lhs.X - rhs.X, lhs.Y - rhs.Y);
-		}
-		public static Vector2 operator *(Vector2 lhs, Vector2 rhs)
-		{
-			return new Vector2(lhs.X * rhs.X, lhs.Y * rhs.Y);
-		}
-		public static Vector2 operator /(Vector2 lhs, Vector2 rhs)
-		{
-			return new Vector2(lhs.X / rhs.X, lhs.Y / rhs.Y);
-		}
-		public static Vector2 operator *(Vector2 lhs, float s)
-		{
-			return new Vector2(lhs.X * s, lhs.Y * s);
-		}
-		public static Vector2 operator /(Vector2 lhs, float s)
-		{
-			return new Vector2(lhs.X / s, lhs.Y / s);
-		}
-		public static Vector2 operator *(float s, Vector2 rhs)
-		{
-			return new Vector2(s * rhs.X, s * rhs.Y);
-		}
-		public static Vector2 operator /(float s, Vector2 rhs)
-		{
-			return new Vector2(s / rhs.X, s / rhs.Y);
-		}
-		public static Vector2 operator +(Vector2 v)
-		{
-			return new Vector2(v);
-		}
-		public static Vector2 operator -(Vector2 v)
-		{
-			return new Vector2(-v.X, -v.Y);
-		}
+		public static Vector2 operator +(Vector2 lhs, Vector2 rhs) => new Vector2(lhs.X + rhs.X, lhs.Y + rhs.Y);
+		public static Vector2 operator -(Vector2 lhs, Vector2 rhs) => new Vector2(lhs.X - rhs.X, lhs.Y - rhs.Y);
+		public static Vector2 operator *(Vector2 lhs, Vector2 rhs) => new Vector2(lhs.X * rhs.X, lhs.Y * rhs.Y);
+		public static Vector2 operator /(Vector2 lhs, Vector2 rhs) => new Vector2(lhs.X / rhs.X, lhs.Y / rhs.Y);
+		public static Vector2 operator *(Vector2 lhs, float s)     => new Vector2(lhs.X * s, lhs.Y * s);
+		public static Vector2 operator /(Vector2 lhs, float s)     => new Vector2(lhs.X / s, lhs.Y / s);
+		public static Vector2 operator *(float s, Vector2 rhs)     => new Vector2(s * rhs.X, s * rhs.Y);
+		public static Vector2 operator /(float s, Vector2 rhs)     => new Vector2(s / rhs.X, s / rhs.Y);
+		public static Vector2 operator +(Vector2 v)                => new Vector2(v);
+		public static Vector2 operator -(Vector2 v)                => new Vector2(-v.X, -v.Y);
 
+		public static bool operator ==(Vector2 lhs, Vector2 rhs)   => lhs.X == rhs.X && lhs.Y == rhs.Y;
+		public static bool operator !=(Vector2 lhs, Vector2 rhs)   => !(lhs == rhs);
 
 		public static Vector2 Lerp(Vector2 p0, Vector2 p1, float t)
 		{
@@ -84,11 +59,7 @@ namespace Shark
 				p0.Y + (p1.Y - p0.Y) * t
 			);
 		}
-		public static float Dot(Vector2 x, Vector2 y)
-		{
-			Vector2 temp = x * y;
-			return temp.X + temp.Y;
-		}
+		public static float Dot(Vector2 a, Vector2 b) => a.X * b.X + a.Y * b.Y;
 		public static Vector2 Sqrt(Vector2 v)
 		{
 			return new Vector2(
@@ -99,26 +70,25 @@ namespace Shark
 		public static Vector2 Normalize(Vector2 vec)
 		{
 			float length = vec.Length;
-			if (length == 0)
-			{
-				return Zero;
-			}
-			return vec / length;
+			if (length != 0)
+				return vec / length;
+			return Zero;
 		}
 
 		public float Length2
 			=> Dot(this, this);
+
 		public float Length
-			=> Mathf.Sqrt(Dot(this, this));
-		public void Normalize()
 		{
-			float length = Length;
-			if (length != 0)
-				this = this / length;
-			else
-				this = Zero;
+			get => Mathf.Sqrt(Dot(this, this));
+			set => this = Normalized * value;
 		}
 
+		public void Normalize()
+			=> this = Normalize(this);
+
+		public Vector2 Normalized
+			=> Normalize(this);
 
 		public float this[int index]
 		{
@@ -154,14 +124,8 @@ namespace Shark
 			}
 		}
 
-		public override string ToString()
-		{
-			return ToString(null, null);
-		}
-		public string ToString(string format)
-		{
-			return ToString(format, null);
-		}
+		public override string ToString() => ToString(null, null);
+		public string ToString(string format) => ToString(format, null);
 		public string ToString(string format, IFormatProvider formatProvider)
 		{
 			return string.Format("[{0}, {1}]",
@@ -170,6 +134,8 @@ namespace Shark
 			);
 		}
 
+		public override bool Equals(object obj) => base.Equals(obj);
+		public override int GetHashCode() => base.GetHashCode();
 	}
 
 	[StructLayout(LayoutKind.Sequential)]

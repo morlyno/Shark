@@ -17,6 +17,9 @@ Assets:
   - Handle: 0xbc9198803f5d806e
     Type: Scene
     FilePath: Scenes/PhysicsScene.skscene
+  - Handle: 0xd4a60fcf5543bd54
+    Type: Scene
+    FilePath: Scenes/Test.skscene
   - Handle: 0xe983de58eb9cb1b1
     Type: Texture
     FilePath: Textures/Checkerboard ( 1).sktex
