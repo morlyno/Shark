@@ -1,8 +1,10 @@
 #include "skpch.h"
 #include "Icons.h"
+#include "Shark\Core\Timer.h"
 
 namespace Shark {
 
+	Ref<Image2D> Icons::SettingsIcon;
 	Ref<Image2D> Icons::FileIcon;
 	Ref<Image2D> Icons::FolderIcon;
 	Ref<Image2D> Icons::PNGIcon;
@@ -20,6 +22,11 @@ namespace Shark {
 
 	void Icons::Init()
 	{
+		SK_CORE_INFO("Loading Icons...");
+		Timer timer;
+
+		SettingsIcon  = Image2D::Create("Resources/Icon_Settings.png");
+
 		FileIcon      = Image2D::Create("Resources/ContentBrowser/Icon_File.png");
 		FolderIcon    = Image2D::Create("Resources/ContentBrowser/Icon_Folder.png");
 		PNGIcon       = Image2D::Create("Resources/ContentBrowser/Icon_PNG.png");
@@ -33,9 +40,11 @@ namespace Shark {
 		
 		PlayIcon      = Image2D::Create("Resources/Toolbar/Icon_Play.png");
 		StopIcon      = Image2D::Create("Resources/Toolbar/Icon_Stop.png");
-		PauseIcon     = Image2D::Create("Resources/Toolbar/Icon_Stop.png");
+		PauseIcon     = Image2D::Create("Resources/Toolbar/Icon_Pause.png");
 		SimulateIcon  = Image2D::Create("Resources/Toolbar/Icon_Simulate.png");
 		StepIcon      = Image2D::Create("Resources/Toolbar/Icon_Step.png");
+
+		SK_CORE_INFO("Icons Loaded in {0}ms", timer.ElapsedMilliSeconds());
 	}
 
 	void Icons::Shutdown()
@@ -58,5 +67,23 @@ namespace Shark {
 		StepIcon      = nullptr;
 	}
 
+	void Icons::Reload()
+	{
+		SettingsIcon->ReloadFromDisc();
+		FileIcon->ReloadFromDisc();
+		FolderIcon->ReloadFromDisc();
+		PNGIcon->ReloadFromDisc();
+		SceneIcon->ReloadFromDisc();
+		ScriptIcon->ReloadFromDisc();
+		TextureIcon->ReloadFromDisc();
+		InfoIcon->ReloadFromDisc();
+		WarnIcon->ReloadFromDisc();
+		ErrorIcon->ReloadFromDisc();
+		PlayIcon->ReloadFromDisc();
+		StopIcon->ReloadFromDisc();
+		PauseIcon->ReloadFromDisc();
+		SimulateIcon->ReloadFromDisc();
+		StepIcon->ReloadFromDisc();
+	}
 
 }

@@ -9,8 +9,12 @@ namespace Shark {
 	public:
 		Buffer() = default;
 		Buffer(std::nullptr_t) {}
+		Buffer(byte* data) : Data(data) {}
 		Buffer(byte* data, uint32_t size) : Data(data), Size(size) {}
 		~Buffer() = default;
+
+		Buffer& operator=(byte* data) { Data = data;        Size = 0; return *this; }
+		Buffer& operator=(void* data) { Data = (byte*)data; Size = 0; return *this; }
 
 		void Allocate(uint32_t size);
 		void Release();

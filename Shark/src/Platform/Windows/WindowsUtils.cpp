@@ -37,6 +37,15 @@ namespace Shark {
 
 	}
 
+	static void CheckHResult(HRESULT hr)
+	{
+		if (hr != S_OK)
+		{
+			std::string msg = std::system_category().message(hr);
+			SK_CORE_ERROR("[Win32] {0}", msg);
+		}
+	}
+
 	std::string WindowsUtils::TranslateErrorCode(DWORD error)
 	{
 		LPSTR messageBuffer = NULL;
@@ -108,11 +117,11 @@ namespace Shark {
 		executeInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 		executeInfo.lpVerb = L"open";
 
-		std::filesystem::path premakeExe = Project::Directory() / "Premake/premake5.exe";
+		std::filesystem::path premakeExe = Project::GetDirectory() / "Premake/premake5.exe";
 		executeInfo.lpFile = premakeExe.c_str();
-		executeInfo.lpDirectory = Project::Directory().c_str();
+		executeInfo.lpDirectory = Project::GetDirectory().c_str();
 
-		std::filesystem::path scriptPath = fmt::format("\"{}/premake5.lua\"", Project::Directory());
+		std::filesystem::path scriptPath = fmt::format("\"{}/premake5.lua\"", Project::GetDirectory());
 		executeInfo.lpParameters = scriptPath.c_str();
 		executeInfo.nShow = SW_HIDE;
 		executeInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
@@ -153,7 +162,6 @@ namespace Shark {
 	bool WindowsUtils::OpenFileWith(const std::filesystem::path& file)
 	{
 		std::filesystem::path exeFile = WindowsUtils::OpenFileDialog(L"exe|*.exe");
-		SK_CORE_ASSERT(std::filesystem::exists(exeFile));
 		if (!exeFile.empty())
 		{
 			ExecuteSpecs specs;
@@ -286,10 +294,65 @@ namespace Shark {
 		return result;
 	}
 
+	void WindowsUtils::MoveFileToRecycleBin(const std::filesystem::path& file)
+	{
+		IShellItem* recycleBin = GetRecycleBin();
+		if (!recycleBin)
+			return;
+
+		HRESULT hr;
+		IShellItem* fileItem = nullptr;
+		std::error_code errorCode;
+		std::filesystem::path windowsFilePath = std::filesystem::canonical(file, errorCode);
+		if (errorCode)
+		{
+			SK_CORE_ERROR("[WindowsUtils] getting the canonical path failed!");
+			SK_CORE_ERROR("[WindowsUtils] Reason: {0}", errorCode.message());
+			return;
+		}
+
+		hr = SHCreateItemFromParsingName(windowsFilePath.c_str(), NULL, IID_PPV_ARGS(&fileItem));
+		CheckHResult(hr);
+
+		if (SUCCEEDED(hr))
+		{
+			ITransferSource* transferSource = nullptr;
+			if (SUCCEEDED(recycleBin->BindToHandler(NULL, BHID_Transfer, IID_PPV_ARGS(&transferSource))))
+			{
+				IShellItem* resultItem = nullptr;
+				transferSource->RecycleItem(fileItem, recycleBin, 0, &resultItem);
+				transferSource->Release();
+			}
+			fileItem->Release();
+		}
+		recycleBin->Release();
+	}
+
+	IShellItem* WindowsUtils::GetRecycleBin()
+	{
+		IShellItem* recycleBin = nullptr;
+
+		IKnownFolderManager* knownFolderManager = nullptr;
+		if (SUCCEEDED(::CoCreateInstance(CLSID_KnownFolderManager, NULL, CLSCTX_INPROC_SERVER, IID_IKnownFolderManager, (void**)&knownFolderManager)))
+		{
+			IKnownFolder* recycleBinFolder = nullptr;
+			if (SUCCEEDED(knownFolderManager->GetFolder(FOLDERID_RecycleBinFolder, &recycleBinFolder)))
+			{
+				recycleBinFolder->GetShellItem(0, IID_IShellItem, (void**)&recycleBin);
+				recycleBinFolder->Release();
+			}
+
+			knownFolderManager->Release();
+		}
+
+		return recycleBin;
+	}
+
 	bool WindowsUtils::FileDialogShared(HWND parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, bool appenedFileExetention, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result)
 	{
 		bool success = false;
 
+		// maby allready done, not 100% sure
 		// TODO(moro): attach DataType/File extention to out_Result (only necessary for FileSaveDialog)
 
 		IFileDialog* fileDialog;

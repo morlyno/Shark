@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/ImGui/ImGuiHelpers.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -11,13 +12,6 @@
 static inline ImVec4 operator*(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs); }
 static inline ImVec4 operator/(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs); }
 #endif
-
-namespace ImGui {
-
-	bool TableNextColumn(ImGuiTableRowFlags row_flags, float min_row_height);
-	void SeparatorEx(float thickness, ImGuiSeparatorFlags flags);
-
-}
 
 inline std::ostream& operator<<(std::ostream& out, const ImVec2& v)
 {
@@ -119,11 +113,18 @@ namespace Shark::UI {
 
 	inline ImGuiID GetCurrentID()                                              { return GImGui->CurrentWindow->IDStack.back(); }
 
+	ImGuiID GenerateID();
+
 	inline void MoveCursor(const ImVec2& delta)                                { ImGui::SetCursorPos(ImGui::GetCursorPos() + delta); }
 	inline void MoveCursorX(float deltaX)                                      { MoveCursor({ deltaX, 0.0f }); }
 	inline void MoveCursorY(float deltaY)                                      { MoveCursor({ 0.0f, deltaY }); }
 
 	void SetBlend(bool blend);
+
+	ImU32 ToColor32(const ImVec4& color);
+	ImU32 ToColor32(const ImVec4& color, float alpha);
+
+	ImVec4 GetColor(ImGuiCol color, float override_alpha);
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,25 +140,25 @@ namespace Shark::UI {
 	bool ControlBeginHelper(std::string_view strID);
 	void ControlEndHelper();
 
-	bool Control(std::string_view label, float& val,     float resetVal            = float(0),     float min            = float(0),     float max            = float(0),     float speed            = float(1),     std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool Control(std::string_view label, glm::vec2& val, const glm::vec2& resetVal = glm::vec2(0), const glm::vec2& min = glm::vec2(0), const glm::vec2& max = glm::vec2(0), const glm::vec2& speed = glm::vec2(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool Control(std::string_view label, glm::vec3& val, const glm::vec3& resetVal = glm::vec3(0), const glm::vec3& min = glm::vec3(0), const glm::vec3& max = glm::vec3(0), const glm::vec3& speed = glm::vec3(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool Control(std::string_view label, glm::vec4& val, const glm::vec4& resetVal = glm::vec4(0), const glm::vec4& min = glm::vec4(0), const glm::vec4& max = glm::vec4(0), const glm::vec4& speed = glm::vec4(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
+	bool Control(std::string_view label, float& val,     float min            = float(0),     float max            = float(0),     float speed            = float(1), const char* fmt = "%.2f");
+	bool Control(std::string_view label, glm::vec2& val, const glm::vec2& min = glm::vec2(0), const glm::vec2& max = glm::vec2(0), const glm::vec2& speed = glm::vec2(1));
+	bool Control(std::string_view label, glm::vec3& val, const glm::vec3& min = glm::vec3(0), const glm::vec3& max = glm::vec3(0), const glm::vec3& speed = glm::vec3(1));
+	bool Control(std::string_view label, glm::vec4& val, const glm::vec4& min = glm::vec4(0), const glm::vec4& max = glm::vec4(0), const glm::vec4& speed = glm::vec4(1));
 
-	bool Control(std::string_view label, int& val,        int resetVal               = int(0),        int min               = int(0),        int max               = int(0),        int speed               = int(1),        std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool Control(std::string_view label, glm::ivec2& val, const glm::ivec2& resetVal = glm::ivec2(0), const glm::ivec2& min = glm::ivec2(0), const glm::ivec2& max = glm::ivec2(0), const glm::ivec2& speed = glm::ivec2(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool Control(std::string_view label, glm::ivec3& val, const glm::ivec3& resetVal = glm::ivec3(0), const glm::ivec3& min = glm::ivec3(0), const glm::ivec3& max = glm::ivec3(0), const glm::ivec3& speed = glm::ivec3(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool Control(std::string_view label, glm::ivec4& val, const glm::ivec4& resetVal = glm::ivec4(0), const glm::ivec4& min = glm::ivec4(0), const glm::ivec4& max = glm::ivec4(0), const glm::ivec4& speed = glm::ivec4(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
+	bool Control(std::string_view label, int& val,        int min               = int(0),        int max               = int(0),        int speed               = int(1));
+	bool Control(std::string_view label, glm::ivec2& val, const glm::ivec2& min = glm::ivec2(0), const glm::ivec2& max = glm::ivec2(0), const glm::ivec2& speed = glm::ivec2(1));
+	bool Control(std::string_view label, glm::ivec3& val, const glm::ivec3& min = glm::ivec3(0), const glm::ivec3& max = glm::ivec3(0), const glm::ivec3& speed = glm::ivec3(1));
+	bool Control(std::string_view label, glm::ivec4& val, const glm::ivec4& min = glm::ivec4(0), const glm::ivec4& max = glm::ivec4(0), const glm::ivec4& speed = glm::ivec4(1));
 
-	bool Control(std::string_view label, uint32_t& val,   uint32_t resetVal          = uint32_t(0),   uint32_t min          = uint32_t(0),   uint32_t max          = uint32_t(0),   uint32_t speed          = uint32_t(1),   std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool Control(std::string_view label, glm::uvec2& val, const glm::uvec2& resetVal = glm::uvec2(0), const glm::uvec2& min = glm::uvec2(0), const glm::uvec2& max = glm::uvec2(0), const glm::uvec2& speed = glm::uvec2(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool Control(std::string_view label, glm::uvec3& val, const glm::uvec3& resetVal = glm::uvec3(0), const glm::uvec3& min = glm::uvec3(0), const glm::uvec3& max = glm::uvec3(0), const glm::uvec3& speed = glm::uvec3(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool Control(std::string_view label, glm::uvec4& val, const glm::uvec4& resetVal = glm::uvec4(0), const glm::uvec4& min = glm::uvec4(0), const glm::uvec4& max = glm::uvec4(0), const glm::uvec4& speed = glm::uvec4(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
+	bool Control(std::string_view label, uint32_t& val,   uint32_t min          = uint32_t(0),   uint32_t max          = uint32_t(0),   uint32_t speed          = uint32_t(1));
+	bool Control(std::string_view label, glm::uvec2& val, const glm::uvec2& min = glm::uvec2(0), const glm::uvec2& max = glm::uvec2(0), const glm::uvec2& speed = glm::uvec2(1));
+	bool Control(std::string_view label, glm::uvec3& val, const glm::uvec3& min = glm::uvec3(0), const glm::uvec3& max = glm::uvec3(0), const glm::uvec3& speed = glm::uvec3(1));
+	bool Control(std::string_view label, glm::uvec4& val, const glm::uvec4& min = glm::uvec4(0), const glm::uvec4& max = glm::uvec4(0), const glm::uvec4& speed = glm::uvec4(1));
 
-	bool ControlAngle(std::string_view label, float& radians,     float resetVal            = float(0),     float min            = float(0),     float max            = float(0),     float speed            = float(1),     std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool ControlAngle(std::string_view label, glm::vec2& radians, const glm::vec2& resetVal = glm::vec2(0), const glm::vec2& min = glm::vec2(0), const glm::vec2& max = glm::vec2(0), const glm::vec2& speed = glm::vec2(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool ControlAngle(std::string_view label, glm::vec3& radians, const glm::vec3& resetVal = glm::vec3(0), const glm::vec3& min = glm::vec3(0), const glm::vec3& max = glm::vec3(0), const glm::vec3& speed = glm::vec3(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
-	bool ControlAngle(std::string_view label, glm::vec4& radians, const glm::vec4& resetVal = glm::vec4(0), const glm::vec4& min = glm::vec4(0), const glm::vec4& max = glm::vec4(0), const glm::vec4& speed = glm::vec4(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag);
+	bool ControlAngle(std::string_view label, float& radians,     float min            = float(0),     float max            = float(0),     float speed            = float(1));
+	bool ControlAngle(std::string_view label, glm::vec2& radians, const glm::vec2& min = glm::vec2(0), const glm::vec2& max = glm::vec2(0), const glm::vec2& speed = glm::vec2(1));
+	bool ControlAngle(std::string_view label, glm::vec3& radians, const glm::vec3& min = glm::vec3(0), const glm::vec3& max = glm::vec3(0), const glm::vec3& speed = glm::vec3(1));
+	bool ControlAngle(std::string_view label, glm::vec4& radians, const glm::vec4& min = glm::vec4(0), const glm::vec4& max = glm::vec4(0), const glm::vec4& speed = glm::vec4(1));
 
 	bool ControlColor(std::string_view label, glm::vec4& color);
 
@@ -187,17 +188,17 @@ namespace Shark::UI {
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Helpers ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	inline bool ControlS(std::string_view label, glm::vec2& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::vec2(resetVal), glm::vec2(min), glm::vec2(max), glm::vec2(speed), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::vec3& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::vec3(resetVal), glm::vec3(min), glm::vec3(max), glm::vec3(speed), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::vec4& val, float resetVal = 0.0f, float min = 0.0f, float max = 0.0f, float speed = 1.0f, std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::vec4(resetVal), glm::vec4(min), glm::vec4(max), glm::vec4(speed), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::vec2& val, float min = 0.0f, float max = 0.0f, float speed = 1.0f) { return Control(label, val, glm::vec2(min), glm::vec2(max), glm::vec2(speed)); }
+	inline bool ControlS(std::string_view label, glm::vec3& val, float min = 0.0f, float max = 0.0f, float speed = 1.0f) { return Control(label, val, glm::vec3(min), glm::vec3(max), glm::vec3(speed)); }
+	inline bool ControlS(std::string_view label, glm::vec4& val, float min = 0.0f, float max = 0.0f, float speed = 1.0f) { return Control(label, val, glm::vec4(min), glm::vec4(max), glm::vec4(speed)); }
 
-	inline bool ControlS(std::string_view label, glm::ivec2& val, int resetVal = int(0), int min = int(0), int max = int(0), int speed = int(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::ivec2(resetVal), glm::ivec2(min), glm::ivec2(max), glm::ivec2(speed), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::ivec3& val, int resetVal = int(0), int min = int(0), int max = int(0), int speed = int(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::ivec3(resetVal), glm::ivec3(min), glm::ivec3(max), glm::ivec3(speed), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::ivec4& val, int resetVal = int(0), int min = int(0), int max = int(0), int speed = int(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::ivec4(resetVal), glm::ivec4(min), glm::ivec4(max), glm::ivec4(speed), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::ivec2& val, int min = int(0), int max = int(0), int speed = int(1)) { return Control(label, val, glm::ivec2(min), glm::ivec2(max), glm::ivec2(speed)); }
+	inline bool ControlS(std::string_view label, glm::ivec3& val, int min = int(0), int max = int(0), int speed = int(1)) { return Control(label, val, glm::ivec3(min), glm::ivec3(max), glm::ivec3(speed)); }
+	inline bool ControlS(std::string_view label, glm::ivec4& val, int min = int(0), int max = int(0), int speed = int(1)) { return Control(label, val, glm::ivec4(min), glm::ivec4(max), glm::ivec4(speed)); }
 
-	inline bool ControlS(std::string_view label, glm::uvec2& val, uint32_t resetVal = uint32_t(0), uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::uvec2(resetVal), glm::uvec2(min), glm::uvec2(max), glm::uvec2(speed), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::uvec3& val, uint32_t resetVal = uint32_t(0), uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::uvec3(resetVal), glm::uvec3(min), glm::uvec3(max), glm::uvec3(speed), fmt, type); }
-	inline bool ControlS(std::string_view label, glm::uvec4& val, uint32_t resetVal = uint32_t(0), uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1), std::string_view fmt = std::string_view{}, ControlType type = ControlType::Drag) { return Control(label, val, glm::uvec4(resetVal), glm::uvec4(min), glm::uvec4(max), glm::uvec4(speed), fmt, type); }
+	inline bool ControlS(std::string_view label, glm::uvec2& val, uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1)) { return Control(label, val, glm::uvec2(min), glm::uvec2(max), glm::uvec2(speed)); }
+	inline bool ControlS(std::string_view label, glm::uvec3& val, uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1)) { return Control(label, val, glm::uvec3(min), glm::uvec3(max), glm::uvec3(speed)); }
+	inline bool ControlS(std::string_view label, glm::uvec4& val, uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1)) { return Control(label, val, glm::uvec4(min), glm::uvec4(max), glm::uvec4(speed)); }
 
  	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Widgets ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -210,6 +211,10 @@ namespace Shark::UI {
 	void Text(const std::string& str,                TextFlags flags = TextFlag::None);
 
 	void TextSelectable(std::string_view str);
+
+	bool Search(ImGuiID id, char* buffer, int bufferSize);
+	bool InputTextFiltered(ImGuiID id, char* buffer, int bufferSize, const wchar_t* filterItems, int filterSize);
+	bool InputTextFiltered(ImGuiID id, char* buffer, int bufferSize, const wchar_t* filterItems);
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Types //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,11 +232,113 @@ namespace Shark::UI {
 
 	struct ScopedStyle
 	{
-		ScopedStyle() = default;
-		ScopedStyle(ImGuiStyleVar idx, float val)          { Push(idx, val); }
-		ScopedStyle(ImGuiStyleVar idx, const ImVec2& val)  { Push(idx, val); }
-		ScopedStyle(ImGuiCol idx, const ImVec4& col)       { Push(idx, col); }
-		~ScopedStyle()                                     { Pop(); }
+		ScopedStyle(ImGuiStyleVar style, float val)              { ImGui::PushStyleVar(style, val); }
+		ScopedStyle(ImGuiStyleVar style, const ImVec2& val)      { ImGui::PushStyleVar(style, val); }
+		~ScopedStyle()                                           { ImGui::PopStyleVar(); }
+	};
+	
+	struct ScopedColor
+	{
+		ScopedColor(ImGuiCol color, const ImVec4& val)           { ImGui::PushStyleColor(color, val); }
+		~ScopedColor()                                           { ImGui::PopStyleColor(); }
+	};
+
+	class ScopedStyleStack
+	{
+	public:
+		ScopedStyleStack() = default;
+
+		ScopedStyleStack(ImGuiStyleVar style, const ImVec2& val)
+		{
+			ImGui::PushStyleVar(style, val);
+			m_Count++;
+		}
+
+		ScopedStyleStack(ImGuiStyleVar style, const float& val)
+		{
+			ImGui::PushStyleVar(style, val);
+			m_Count++;
+		}
+
+		template<typename... TArgs>
+		ScopedStyleStack(ImGuiStyleVar style, const ImVec2& val, TArgs&&... args)
+			: ScopedStyleStack(args...)
+		{
+			ImGui::PushStyleVar(style, val);
+			m_Count++;
+		}
+
+		template<typename... TArgs>
+		ScopedStyleStack(ImGuiStyleVar style, const float& val, TArgs&&... args)
+			: ScopedStyleStack(args...)
+		{
+			ImGui::PushStyleVar(style, val);
+			m_Count++;
+		}
+
+		~ScopedStyleStack()
+		{
+			ImGui::PopStyleVar(m_Count);
+		}
+
+		void Push(ImGuiStyleVar style, const ImVec2& val)
+		{
+			ImGui::PushStyleVar(style, val);
+			m_Count++;
+		}
+
+		void Push(ImGuiStyleVar style, float val)
+		{
+			ImGui::PushStyleVar(style, val);
+			m_Count++;
+		}
+
+	private:
+		uint32_t m_Count = 0;
+	};
+
+	class ScopedColorStack
+	{
+	public:
+		ScopedColorStack() = default;
+
+		ScopedColorStack(ImGuiCol color, const ImVec4& val)
+		{
+			ImGui::PushStyleColor(color, val);
+			m_Count++;
+		}
+
+		template<typename... TArgs>
+		ScopedColorStack(ImGuiCol color, const ImVec4& val, TArgs&&... args)
+			: ScopedColorStack(args...)
+		{
+			ImGui::PushStyleColor(color, val);
+			m_Count++;
+		}
+
+		~ScopedColorStack()
+		{
+			ImGui::PopStyleColor(m_Count);
+		}
+
+		void Push(ImGuiCol color, const ImVec4& val)
+		{
+			ImGui::PushStyleColor(color, val);
+			m_Count++;
+		}
+
+
+	private:
+		uint32_t m_Count = 0;
+	};
+
+	struct LagacyScopedStyleStack
+	{
+		LagacyScopedStyleStack() = default;
+		LagacyScopedStyleStack(ImGuiStyleVar idx, float val)          { Push(idx, val); }
+		LagacyScopedStyleStack(ImGuiStyleVar idx, const ImVec2& val)  { Push(idx, val); }
+		LagacyScopedStyleStack(ImGuiCol idx, const ImVec4& col)       { Push(idx, col); }
+		~LagacyScopedStyleStack()                                     { Pop(); }
 
 		void Pop()                                         { ImGui::PopStyleVar(VarCount); ImGui::PopStyleColor(ColorCount); VarCount = 0; ColorCount = 0; }
 		void PopVar(int count = -1)                        { ImGui::PopStyleVar(count); count == -1 ? VarCount = 0 : VarCount -= count; }
@@ -245,6 +352,29 @@ namespace Shark::UI {
 		uint32_t ColorCount = 0;
 	};
 
+	struct ScopedIndent
+	{
+		ScopedIndent(float indent = 0) : Indent(indent) { ImGui::Indent(indent); }
+		~ScopedIndent() { ImGui::Unindent(Indent); }
+
+		float Indent;
+	};
+
+	struct ScopedClipRect
+	{
+		ScopedClipRect(const ImVec2& clip_rect_min, const ImVec2& clip_rect_max, bool intersect_with_current_clip_rect = false)
+		{
+			ImGui::PushClipRect(clip_rect_min, clip_rect_max, intersect_with_current_clip_rect);
+		}
+		ScopedClipRect(const ImRect& clip_rect, bool intersect_with_current_clip_rect = false)
+		{
+			ImGui::PushClipRect(clip_rect.Min, clip_rect.Max, intersect_with_current_clip_rect);
+		}
+		~ScopedClipRect()
+		{
+			ImGui::PopClipRect();
+		}
+	};
 
 	struct UIControl
 	{

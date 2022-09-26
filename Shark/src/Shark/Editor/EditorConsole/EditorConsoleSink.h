@@ -1,7 +1,7 @@
 #pragma once
 
 #include <spdlog/spdlog.h>
-
+#include <spdlog/pattern_formatter.h>
 
 namespace Shark {
 
@@ -18,7 +18,11 @@ namespace Shark {
 
 	private:
 		std::mutex m_Mutex;
-		std::unique_ptr<spdlog::formatter> m_Formatter;
+		std::unique_ptr<spdlog::formatter> m_MessageFormatter;
+		std::unique_ptr<spdlog::formatter> m_TimeFormatter;
+
+		std::string m_CachedTime;
+		std::chrono::seconds m_LastFormatTime;
 	};
 
 }

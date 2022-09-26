@@ -13,75 +13,40 @@ namespace Shark {
 
 	static Ref<Project> s_ActiveProject = nullptr;
 
-	static const ProjectConfig& GetActiveConfig()
+	const std::string& Project::GetName()
 	{
-		return Project::GetActive()->GetConfig();
+		return s_ActiveProject->Name;
 	}
 
-	const std::string& Project::Name()
+	const std::filesystem::path& Project::GetDirectory()
 	{
-		return GetActiveConfig().Name;
+		return s_ActiveProject->Directory;
 	}
 
-	const std::filesystem::path& Project::Directory()
+	const std::filesystem::path& Project::GetAssetsPath()
 	{
-		return GetActiveConfig().ProjectDirectory;
-	}
-
-	const std::filesystem::path& Project::AssetsPath()
-	{
-		return GetActiveConfig().AssetsDirectory;
-	}
-
-	const std::filesystem::path& Project::StartupScenePath()
-	{
-		return GetActiveConfig().StartupScenePath;
-	}
-
-	const std::string& Project::ScriptModulePath()
-	{
-		return GetActiveConfig().ScriptModulePath;
-	}
-
-	const glm::vec2& Project::Gravity()
-	{
-		return GetActiveConfig().Gravity;
-	}
-
-	uint32_t Project::VelocityIterations()
-	{
-		return GetActiveConfig().VelocityIterations;
-	}
-
-	uint32_t Project::PositionIterations()
-	{
-		return GetActiveConfig().PositionIterations;
-	}
-
-	float Project::FixedTimeStep()
-	{
-		return GetActiveConfig().FixedTimeStep;
+		return s_ActiveProject->AssetsDirectory;
 	}
 
 	std::filesystem::path Project::RelativeCopy(const std::filesystem::path& filePath)
 	{
-		return String::FormatDefaultCopy(std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory));
+		return String::FormatDefaultCopy(std::filesystem::relative(filePath, s_ActiveProject->Directory));
 	}
 
 	std::filesystem::path Project::AbsolueCopy(const std::filesystem::path& filePath)
 	{
-		return String::FormatDefaultCopy(GetActiveConfig().ProjectDirectory / filePath);
+		return String::FormatDefaultCopy(s_ActiveProject->Directory / filePath);
 	}
 
 	void Project::Relative(std::filesystem::path& filePath)
 	{
-		filePath = std::filesystem::relative(filePath, GetActiveConfig().ProjectDirectory);
+		filePath = std::filesystem::relative(filePath, s_ActiveProject->Directory);
 		String::FormatDefault(filePath);
 	}
 
 	void Project::Absolue(std::filesystem::path& filePath)
 	{
-		filePath = GetActiveConfig().ProjectDirectory / filePath;
+		filePath = s_ActiveProject->Directory / filePath;
 		String::FormatDefault(filePath);
 	}
 
@@ -116,10 +81,10 @@ namespace Shark {
 
 		YAML::Emitter out;
 
-		const auto& config = m_Project->GetConfig();
-		const auto assetsPath = std::filesystem::relative(config.AssetsDirectory, config.ProjectDirectory);
-		const auto startupScenePath = std::filesystem::relative(config.StartupScenePath, config.ProjectDirectory);
-		const auto scriptModulePath = std::filesystem::relative(config.ScriptModulePath, config.ProjectDirectory).string();
+		const auto& config = *m_Project;
+		const auto assetsPath = std::filesystem::relative(config.AssetsDirectory, config.Directory);
+		const auto startupScenePath = std::filesystem::relative(config.StartupScenePath, config.Directory);
+		const auto scriptModulePath = std::filesystem::relative(config.ScriptModulePath, config.Directory).string();
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Project" << YAML::Value;
@@ -155,7 +120,7 @@ namespace Shark {
 			return false;
 
 		fout << out.c_str();
-		TimeStep time = timer.ElapsedMilliSeconds();
+		float time = timer.ElapsedMilliSeconds();
 
 		SK_CORE_INFO("Serializing Project To: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
@@ -167,7 +132,7 @@ namespace Shark {
 		SK_CORE_TRACE("    ValocityIterations: {}", config.VelocityIterations);
 		SK_CORE_TRACE("    PositionIterations: {}", config.PositionIterations);
 		SK_CORE_TRACE("    FixedTimeStep: {}", config.FixedTimeStep);
-		SK_CORE_INFO("Project Serialization tock: {}ms", time.MilliSeconds());
+		SK_CORE_INFO("Project Serialization tock: {}ms", time);
 
 		return true;
 	}
@@ -189,7 +154,7 @@ namespace Shark {
 		if (!project)
 			return false;
 
-		auto& config = m_Project->m_Config;
+		auto& config = *m_Project;
 		config.Name             = project["Name"].as<std::string>();
 		auto assetsDirectory    = project["Assets"].as<std::filesystem::path>();
 		auto startupScenePath   = project["StartupScene"].as<std::filesystem::path>();
@@ -211,12 +176,12 @@ namespace Shark {
 			config.FixedTimeStep      = 0.001f;
 		}
 
-		config.ProjectDirectory = String::FormatDefaultCopy(filePath.parent_path());
-		config.AssetsDirectory = String::FormatDefaultCopy(config.ProjectDirectory / assetsDirectory);
-		config.StartupScenePath = String::FormatDefaultCopy(config.ProjectDirectory / startupScenePath);
-		config.ScriptModulePath = String::FormatDefaultCopy(config.ProjectDirectory / scriptModulePath).string();
+		config.Directory = String::FormatDefaultCopy(filePath.parent_path());
+		config.AssetsDirectory = String::FormatDefaultCopy(config.Directory / assetsDirectory);
+		config.StartupScenePath = String::FormatDefaultCopy(config.Directory / startupScenePath);
+		config.ScriptModulePath = String::FormatDefaultCopy(config.Directory / scriptModulePath).string();
 
-		SK_CORE_ASSERT(config.ProjectDirectory.is_absolute());
+		SK_CORE_ASSERT(config.Directory.is_absolute());
 		SK_CORE_ASSERT(config.AssetsDirectory.is_absolute());
 		SK_CORE_ASSERT(config.StartupScenePath.is_absolute());
 

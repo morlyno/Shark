@@ -100,6 +100,9 @@ namespace Shark {
 
 	void ScriptEngine::Shutdown()
 	{
+		if (s_Data->AssembliesLoaded)
+			UnloadAssemblies();
+
 		ShutdownMono();
 		delete s_Data;
 	} 
@@ -184,8 +187,7 @@ namespace Shark {
 		}
 
 		s_Data->EntityInstances.clear();
-
-		//GCManager::Collect();
+		GCManager::Collect();
 	}
 
 	MonoObject* ScriptEngine::InstantiateClass(MonoClass* klass)
@@ -335,6 +337,8 @@ namespace Shark {
 
 	void ScriptEngine::InitMono()
 	{
+		FileSystem::TruncateFile("Logs/Mono.log");
+		
 		mono_trace_set_level_string("warning");
 		mono_trace_set_log_handler(&MonoTraceLogCallback, nullptr);
 		mono_trace_set_print_handler(&MonoPrintCallback);

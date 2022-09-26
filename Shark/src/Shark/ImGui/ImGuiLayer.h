@@ -25,10 +25,7 @@ namespace Shark {
 		virtual void BlockEvents(bool block) = 0;
 		virtual void SubmitBlendCallback(bool blend) = 0;
 
-		virtual void SetDarkStyle() = 0;
-
+		static ImGuiLayer* Create();
 	};
-
-	ImGuiLayer* CreateImGuiLayer();
 
 }

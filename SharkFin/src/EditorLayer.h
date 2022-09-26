@@ -62,7 +62,7 @@ namespace Shark {
 	private:
 		bool OnKeyPressed(KeyPressedEvent& event);
 
-		void OnFileChanged(const std::vector<FileChangedData>& fileEvents);
+		void OnFileEvents(const std::vector<FileChangedData>& fileEvents);
 
 		void OnFileClickedCallback(const std::filesystem::path& filePath);
 
@@ -150,6 +150,7 @@ namespace Shark {
 		bool m_ShowShaders = false;
 		bool m_ShowProjectSettings = false;
 		bool m_ShowAssets = false;
+		bool m_ShowThemeEditor = false;
 
 		int m_HoveredEntityID = -1;
 
@@ -177,10 +178,10 @@ namespace Shark {
 			bool ValidStartupScene = true;
 
 			ProjectEditData() = default;
-			ProjectEditData(const ProjectConfig& config)
+			ProjectEditData(Ref<Project> project)
 			{
-				Assets = Project::RelativeCopy(config.AssetsDirectory).string();
-				StartupScene = Project::RelativeCopy(config.StartupScenePath).string();
+				Assets = Project::RelativeCopy(project->AssetsDirectory).string();
+				StartupScene = Project::RelativeCopy(project->StartupScenePath).string();
 				ValidAssetsPath = true;
 				ValidStartupScene = true;
 			}
@@ -204,6 +205,8 @@ namespace Shark {
 			}
 		};
 		TextureSourceImportData m_TextureAssetCreateData;
+
+		bool m_ReloadEditorIcons = false;
 
 	};
 

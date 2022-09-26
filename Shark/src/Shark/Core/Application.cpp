@@ -42,7 +42,7 @@ namespace Shark {
 		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		m_Window->CreateSwapChain();
 
-		m_ImGuiLayer = CreateImGuiLayer();
+		m_ImGuiLayer = ImGuiLayer::Create();
 		PushLayer(m_ImGuiLayer);
 
 		ScriptEngine::Init(specification.ScriptConfig);

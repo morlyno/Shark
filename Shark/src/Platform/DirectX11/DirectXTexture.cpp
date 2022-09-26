@@ -104,13 +104,14 @@ namespace Shark {
 	}
 
 	DirectXTexture2D::DirectXTexture2D(const std::filesystem::path& filePath)
-		: m_FilePath(filePath)
 	{
 		m_Image = Ref<DirectXImage2D>::Create(filePath);
 
-		m_Specs.Format = ImageFormat::RGBA8;
-		m_Specs.Width = m_Image->GetWidth();
-		m_Specs.Height = m_Image->GetHeight();
+		auto& imageSpec = m_Image->GetSpecification();
+		m_Specs.Format = imageSpec.Format;
+		m_Specs.Width = imageSpec.Width;
+		m_Specs.Height = imageSpec.Height;
+		m_Specs.MipLevels = imageSpec.MipLevels;
 
 		CreateSampler();
 	}

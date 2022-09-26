@@ -469,6 +469,15 @@ namespace Shark {
 		}
 	}
 
+	void Scene::SetViewportSize(uint32_t width, uint32_t height)
+	{
+		m_ViewportWidth = width;
+		m_ViewportHeight = height;
+
+		if (m_ViewportWidth != 0 && m_ViewportHeight != 0)
+			ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
+	}
+
 	glm::mat4 Scene::GetWorldSpaceTransform(Entity entity) const
 	{
 		if (entity.HasParent())

@@ -23,31 +23,6 @@ namespace ImGui {
 		return (g.FontSize + g.Style.ItemSpacing.y) * items_count - g.Style.ItemSpacing.y + (g.Style.WindowPadding.y * 2);
 	}
 
-	bool TableNextColumn(ImGuiTableRowFlags row_flags = 0, float min_row_height = 0.0f)
-	{
-		ImGuiContext& g = *GImGui;
-		ImGuiTable* table = g.CurrentTable;
-		if (!table)
-			return false;
-
-		if (table->IsInsideRow && table->CurrentColumn + 1 < table->ColumnsCount)
-		{
-			if (table->CurrentColumn != -1)
-				TableEndCell(table);
-			TableBeginCell(table, table->CurrentColumn + 1);
-		}
-		else
-		{
-			TableNextRow(row_flags, min_row_height);
-			TableBeginCell(table, 0);
-		}
-
-		// Return whether the column is visible. User may choose to skip submitting items based on this return value,
-		// however they shouldn't skip submitting for columns that may have the tallest contribution to row height.
-		int column_n = table->CurrentColumn;
-		return (table->RequestOutputMaskByIndex & ((ImU64)1 << column_n)) != 0;
-	}
-
 	template<typename T>
 	bool CheckboxFlagsT(const char* label, T* flags, T flags_value)
 	{
@@ -75,76 +50,6 @@ namespace ImGui {
 				*flags &= ~flags_value;
 		}
 		return pressed;
-	}
-
-	// Horizontal/vertical separating line
-	void SeparatorEx(float thickness, ImGuiSeparatorFlags flags)
-	{
-		ImGuiWindow* window = GetCurrentWindow();
-		if (window->SkipItems)
-			return;
-
-		ImGuiContext& g = *GImGui;
-		IM_ASSERT(ImIsPowerOfTwo(flags & (ImGuiSeparatorFlags_Horizontal | ImGuiSeparatorFlags_Vertical)));   // Check that only 1 option is selected
-
-		float thickness_draw = 1.0f;
-		float thickness_layout = 0.0f;
-		if (flags & ImGuiSeparatorFlags_Vertical)
-		{
-			// Vertical separator, for menu bars (use current line height). Not exposed because it is misleading and it doesn't have an effect on regular layout.
-			float y1 = window->DC.CursorPos.y;
-			float y2 = window->DC.CursorPos.y + window->DC.CurrLineSize.y;
-			const ImRect bb(ImVec2(window->DC.CursorPos.x, y1), ImVec2(window->DC.CursorPos.x + thickness_draw, y2));
-			ItemSize(ImVec2(thickness_layout, 0.0f));
-			if (!ItemAdd(bb, 0))
-				return;
-
-			// Draw
-			window->DrawList->AddLine(ImVec2(bb.Min.x, bb.Min.y), ImVec2(bb.Min.x, bb.Max.y), GetColorU32(ImGuiCol_Separator), thickness);
-			if (g.LogEnabled)
-				LogText(" |");
-		}
-		else if (flags & ImGuiSeparatorFlags_Horizontal)
-		{
-			// Horizontal Separator
-			float x1 = window->Pos.x;
-			float x2 = window->Pos.x + window->Size.x;
-
-			// FIXME-WORKRECT: old hack (#205) until we decide of consistent behavior with WorkRect/Indent and Separator
-			if (g.GroupStack.Size > 0 && g.GroupStack.back().WindowID == window->ID)
-				x1 += window->DC.Indent.x;
-
-			// FIXME-WORKRECT: In theory we should simply be using WorkRect.Min.x/Max.x everywhere but it isn't aesthetically what we want,
-			// need to introduce a variant of WorkRect for that purpose. (#4787)
-			if (ImGuiTable* table = g.CurrentTable)
-			{
-				x1 = table->Columns[table->CurrentColumn].MinX;
-				x2 = table->Columns[table->CurrentColumn].MaxX;
-			}
-
-			ImGuiOldColumns* columns = (flags & ImGuiSeparatorFlags_SpanAllColumns) ? window->DC.CurrentColumns : NULL;
-			if (columns)
-				PushColumnsBackground();
-
-			// We don't provide our width to the layout so that it doesn't get feed back into AutoFit
-			// FIXME: This prevents ->CursorMaxPos based bounding box evaluation from working (e.g. TableEndCell)
-			const ImRect bb(ImVec2(x1, window->DC.CursorPos.y), ImVec2(x2, window->DC.CursorPos.y + thickness_draw));
-			ItemSize(ImVec2(0.0f, thickness_layout));
-			const bool item_visible = ItemAdd(bb, 0);
-			if (item_visible)
-			{
-				// Draw
-				window->DrawList->AddLine(bb.Min, ImVec2(bb.Max.x, bb.Min.y), GetColorU32(ImGuiCol_Separator), thickness);
-				if (g.LogEnabled)
-					LogRenderedText(&bb.Min, "--------------------------------\n");
-
-			}
-			if (columns)
-			{
-				PopColumnsBackground();
-				columns->LineMinY = window->DC.CursorPos.y;
-			}
-		}
 	}
 
 }
@@ -179,10 +84,47 @@ namespace Shark::UI {
 
 	UIContext* GContext = nullptr;
 
+	ImGuiID GenerateID()
+	{
+		ImGuiWindow* window = GImGui->CurrentWindow;
+		return window->GetID(window->IDStack.front());
+	}
+
 	void SetBlend(bool blend)
 	{
 		ImGuiLayer& ctx = Application::Get().GetImGuiLayer();
 		ctx.SubmitBlendCallback(blend);
+	}
+
+	ImU32 ToColor32(const ImVec4& color)
+	{
+		ImU32 out;
+		out = ((ImU32)IM_F32_TO_INT8_SAT(color.x)) << IM_COL32_R_SHIFT;
+		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.y)) << IM_COL32_G_SHIFT;
+		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.z)) << IM_COL32_B_SHIFT;
+		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.w)) << IM_COL32_A_SHIFT;
+		return out;
+	}
+
+	ImU32 ToColor32(const ImVec4& color, float alpha)
+	{
+		ImU32 out;
+		out = ((ImU32)IM_F32_TO_INT8_SAT(color.x)) << IM_COL32_R_SHIFT;
+		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.y)) << IM_COL32_G_SHIFT;
+		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.z)) << IM_COL32_B_SHIFT;
+		out |= ((ImU32)IM_F32_TO_INT8_SAT(alpha)) << IM_COL32_A_SHIFT;
+		return out;
+	}
+
+	ImVec4 GetColor(ImGuiCol color, float override_alpha)
+	{
+		const ImVec4& col = ImGui::GetStyleColorVec4(color);
+		return {
+			col.x,
+			col.y,
+			col.z,
+			override_alpha
+		};
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -338,7 +280,7 @@ namespace Shark::UI {
 	}
 
 	template<typename T>
-	static bool ControlDrag(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* resetVal, const T* speed, const T* min, const T* max, std::string_view fmt)
+	static bool ControlDrag(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* speed, const T* min, const T* max, const char* fmt)
 	{
 		static_assert(std::is_scalar_v<T>);
 
@@ -350,81 +292,35 @@ namespace Shark::UI {
 		ImGui::TableSetColumnIndex(1);
 
 		bool changed = false;
-		const bool HasFMT = !fmt.empty();
-		if (!HasFMT)
-			fmt = GContext->DefaultFormat[dataType];
 
-		ImGuiStyle& style = ImGui::GetStyle();
+		const ImGuiStyle& style = ImGui::GetStyle();
 		const float comps = (float)components;
-		const float buttonSize = ImGui::GetFrameHeight();
+		//const float buttonSize = ImGui::GetFrameHeight();
 		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (comps - 1.0f)) / comps - buttonSize;
+		const float width = (widthAvail - style.ItemSpacing.x * (comps - 1.0f)) / comps;
 
 		ImGui::PushItemWidth(width);
 
 		size_t fmtOffset = 0;
 
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val[0] = resetVal[0] ;
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::DragScalar("##X", dataType, val, (float)speed[0], min, max, fmt.data());
+		changed |= ImGui::DragScalar("##X", dataType, val, (float)speed[0] * 0.1f, min, max, fmt);
 
 		if (components > 1)
 		{
-			if (HasFMT)
-			{
-				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
-				fmtOffset = fmt.find('\n', fmtOffset + 1);
-			}
-
 			ImGui::SameLine();
-			if (ImGui::Button("Y", { buttonSize, buttonSize }))
-			{
-				val[1] = resetVal[1];
-				changed = true;
-			};
-
-			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::DragScalar("##Y", dataType, &val[1], (float)speed[1], &min[1], &max[1], fmt.data() + fmtOffset);
+			changed |= ImGui::DragScalar("##Y", dataType, &val[1], (float)speed[1] * 0.1f, &min[1], &max[1], fmt);
 		}
 
 		if (components > 2)
 		{
-			if (HasFMT)
-			{
-				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
-				fmtOffset = fmt.find('\n', fmtOffset + 1);
-			}
-
 			ImGui::SameLine();
-			if (ImGui::Button("Z", { buttonSize, buttonSize }))
-			{
-				val[2] = resetVal[2];
-				changed = true;
-			}
-			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::DragScalar("##Z", dataType, &val[2], (float)speed[2], &min[2], &max[2], fmt.data() + fmtOffset);
+			changed |= ImGui::DragScalar("##Z", dataType, &val[2], (float)speed[2] * 0.1f, &min[2], &max[2], fmt);
 		}
 
 		if (components > 3)
 		{
-			if (HasFMT)
-			{
-				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
-				fmtOffset = fmt.find('\n', fmtOffset + 1);
-			}
-
 			ImGui::SameLine();
-			if (ImGui::Button("W", { buttonSize, buttonSize }))
-			{
-				val[3] = resetVal[3];
-				changed = true;
-			}
-			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::DragScalar("##W", dataType, &val[3], (float)speed[3], &min[3], &max[3], fmt.data() + fmtOffset);
+			changed |= ImGui::DragScalar("##W", dataType, &val[3], (float)speed[3] * 0.1f, &min[3], &max[3], fmt);
 		}
 
 		ImGui::PopItemWidth();
@@ -434,7 +330,7 @@ namespace Shark::UI {
 	}
 
 	template<typename T>
-	static bool ControlSlider(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* resetVal, const T* min, const T* max, std::string_view fmt)
+	static bool ControlSlider(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* min, const T* max)
 	{
 		if (!ControlBeginHelper(label))
 			return false;
@@ -444,80 +340,32 @@ namespace Shark::UI {
 		ImGui::TableSetColumnIndex(1);
 
 		bool changed = false;
-		const bool HasFMT = !fmt.empty();
-		if (!HasFMT)
-			fmt = GContext->DefaultFormat[dataType];
 
 		ImGuiStyle& style = ImGui::GetStyle();
 		const float comps = (float)components;
-		const float buttonSize = ImGui::GetFrameHeight();
 		const float widthAvail = ImGui::GetContentRegionAvail().x;
-		const float width = (widthAvail - style.ItemSpacing.x * (comps - 1)) / comps - buttonSize;
+		const float width = (widthAvail - style.ItemSpacing.x * (comps - 1)) / comps;
 
 		ImGui::PushItemWidth(width);
 
-		size_t fmtOffset = 0;
-
-		if (ImGui::Button("X", { buttonSize, buttonSize }))
-		{
-			val[0] = resetVal[0];
-			changed = true;
-		}
-		ImGui::SameLine(0.0f, 0.0f);
-		changed |= ImGui::SliderScalar("##X", dataType, &val[0], &min[0], &max[0], fmt.data());
+		changed |= ImGui::SliderScalar("##X", dataType, &val[0], &min[0], &max[0]);
 
 		if (components > 1)
 		{
-			if (HasFMT)
-			{
-				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
-				fmtOffset = fmt.find('\n', fmtOffset + 1);
-			}
-
 			ImGui::SameLine();
-			if (ImGui::Button("Y", { buttonSize, buttonSize }))
-			{
-				val[1] = resetVal[1];
-				changed = true;
-			}
-			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::SliderScalar("##Y", dataType, &val[1], &min[1], &max[1], fmt.data() + fmtOffset);
+			changed |= ImGui::SliderScalar("##Y", dataType, &val[1], &min[1], &max[1]);
 		}
 
 		if (components > 2)
 		{
-			if (HasFMT)
-			{
-				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
-				fmtOffset = fmt.find('\n', fmtOffset + 1);
-			}
-
 			ImGui::SameLine();
-			if (ImGui::Button("Z", { buttonSize, buttonSize }))
-			{
-				val[2] = resetVal[2];
-				changed = true;
-			}
-			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::SliderScalar("##Z", dataType, &val[2], &min[2], &max[2], fmt.data() + fmtOffset);
+			changed |= ImGui::SliderScalar("##Z", dataType, &val[2], &min[2], &max[2]);
 		}
 
 		if (components > 3)
 		{
-			if (HasFMT)
-			{
-				SK_CORE_ASSERT(fmtOffset != std::string::npos, "Invalid fmt");
-				fmtOffset = fmt.find('\n', fmtOffset + 1);
-			}
-
 			ImGui::SameLine();
-			if (ImGui::Button("W", { buttonSize, buttonSize }))
-			{
-				val[3] = resetVal[3];
-				changed = true;
-			}
-			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::SliderScalar("##W", dataType, &val[3], &min[3], &max[3], fmt.data() + fmtOffset);
+			changed |= ImGui::SliderScalar("##W", dataType, &val[3], &min[3], &max[3]);
 		}
 
 		ImGui::PopItemWidth();
@@ -526,37 +374,35 @@ namespace Shark::UI {
 	}
 
 	template<typename T>
-	static bool ControlScalar(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* resetVal, const T* speed, const T* min, const T* max, std::string_view fmt, ControlType type)
+	static bool ControlScalar(std::string_view label, ImGuiDataType dataType, T* val, uint32_t components, const T* speed, const T* min, const T* max, const char* fmt = "%.2f")
 	{
-		if (type == ControlType::Slider)
-			return ControlSlider(label, dataType, val, components, resetVal, min, max, fmt);
 
-		if (type == ControlType::Drag)
-			return ControlDrag(label, dataType, val, components, resetVal, speed, min, max, fmt);
+		// maby add opting to switch to slider
+		return ControlDrag(label, dataType, val, components, speed, min, max, fmt);
 
 		SK_CORE_ASSERT(false, "Unkown ControlType");
 		return false;
 	}
 
-	bool Control(std::string_view label, float& val,     float resetVal,            float min,            float max,            float speed,            std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, &(val), 1, &(resetVal), &(speed), &(min), &(max), fmt, type); }
-	bool Control(std::string_view label, glm::vec2& val, const glm::vec2& resetVal, const glm::vec2& min, const glm::vec2& max, const glm::vec2& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, glm::value_ptr(val), 2, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::vec3& val, const glm::vec3& resetVal, const glm::vec3& min, const glm::vec3& max, const glm::vec3& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, glm::value_ptr(val), 3, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::vec4& val, const glm::vec4& resetVal, const glm::vec4& min, const glm::vec4& max, const glm::vec4& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_Float, glm::value_ptr(val), 4, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
+	bool Control(std::string_view label, float& val, float min, float max, float speed, const char* fmt)                     { return ControlScalar(label, ImGuiDataType_Float, &val, 1, &speed, &min, &max, fmt); }
+	bool Control(std::string_view label, glm::vec2& val, const glm::vec2& min, const glm::vec2& max, const glm::vec2& speed) { return ControlScalar(label, ImGuiDataType_Float, glm::value_ptr(val), 2, glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max)); }
+	bool Control(std::string_view label, glm::vec3& val, const glm::vec3& min, const glm::vec3& max, const glm::vec3& speed) { return ControlScalar(label, ImGuiDataType_Float, glm::value_ptr(val), 3, glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max)); }
+	bool Control(std::string_view label, glm::vec4& val, const glm::vec4& min, const glm::vec4& max, const glm::vec4& speed) { return ControlScalar(label, ImGuiDataType_Float, glm::value_ptr(val), 4, glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max)); }
 
-	bool Control(std::string_view label, int& val,        int resetVal,               int min,               int max,               int speed,               std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, &(val), 1, &(resetVal), &(speed), &(min), &(max), fmt, type); }
-	bool Control(std::string_view label, glm::ivec2& val, const glm::ivec2& resetVal, const glm::ivec2& min, const glm::ivec2& max, const glm::ivec2& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, glm::value_ptr(val), 2, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::ivec3& val, const glm::ivec3& resetVal, const glm::ivec3& min, const glm::ivec3& max, const glm::ivec3& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, glm::value_ptr(val), 3, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::ivec4& val, const glm::ivec4& resetVal, const glm::ivec4& min, const glm::ivec4& max, const glm::ivec4& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_S32, glm::value_ptr(val), 4, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
+	bool Control(std::string_view label, int& val,        int min,               int max,               int speed)               { return ControlScalar(label, ImGuiDataType_S32, &val,                1, &speed,                &min,                &max); }
+	bool Control(std::string_view label, glm::ivec2& val, const glm::ivec2& min, const glm::ivec2& max, const glm::ivec2& speed) { return ControlScalar(label, ImGuiDataType_S32, glm::value_ptr(val), 2, glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max)); }
+	bool Control(std::string_view label, glm::ivec3& val, const glm::ivec3& min, const glm::ivec3& max, const glm::ivec3& speed) { return ControlScalar(label, ImGuiDataType_S32, glm::value_ptr(val), 3, glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max)); }
+	bool Control(std::string_view label, glm::ivec4& val, const glm::ivec4& min, const glm::ivec4& max, const glm::ivec4& speed) { return ControlScalar(label, ImGuiDataType_S32, glm::value_ptr(val), 4, glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max)); }
 
-	bool Control(std::string_view label, uint32_t& val,   uint32_t resetVal,          uint32_t min,          uint32_t max,          uint32_t speed,          std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, &(val), 1, &(resetVal), &(speed), &(min), &(max), fmt, type); }
-	bool Control(std::string_view label, glm::uvec2& val, const glm::uvec2& resetVal, const glm::uvec2& min, const glm::uvec2& max, const glm::uvec2& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, glm::value_ptr(val), 2, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::uvec3& val, const glm::uvec3& resetVal, const glm::uvec3& min, const glm::uvec3& max, const glm::uvec3& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, glm::value_ptr(val), 3, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
-	bool Control(std::string_view label, glm::uvec4& val, const glm::uvec4& resetVal, const glm::uvec4& min, const glm::uvec4& max, const glm::uvec4& speed, std::string_view fmt, ControlType type) { return ControlScalar(label, ImGuiDataType_U32, glm::value_ptr(val), 4, glm::value_ptr(resetVal), glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max), fmt, type); }
+	bool Control(std::string_view label, uint32_t& val,   uint32_t min,          uint32_t max,          uint32_t speed)          { return ControlScalar(label, ImGuiDataType_U32, &(val),              1, &speed,                &min,                &max); }
+	bool Control(std::string_view label, glm::uvec2& val, const glm::uvec2& min, const glm::uvec2& max, const glm::uvec2& speed) { return ControlScalar(label, ImGuiDataType_U32, glm::value_ptr(val), 2, glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max)); }
+	bool Control(std::string_view label, glm::uvec3& val, const glm::uvec3& min, const glm::uvec3& max, const glm::uvec3& speed) { return ControlScalar(label, ImGuiDataType_U32, glm::value_ptr(val), 3, glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max)); }
+	bool Control(std::string_view label, glm::uvec4& val, const glm::uvec4& min, const glm::uvec4& max, const glm::uvec4& speed) { return ControlScalar(label, ImGuiDataType_U32, glm::value_ptr(val), 4, glm::value_ptr(speed), glm::value_ptr(min), glm::value_ptr(max)); }
 	
-	bool ControlAngle(std::string_view label, float& radians,     float resetVal,            float min,            float max,            float speed,            std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, min, max, speed, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
-	bool ControlAngle(std::string_view label, glm::vec2& radians, const glm::vec2& resetVal, const glm::vec2& min, const glm::vec2& max, const glm::vec2& speed, std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, min, max, speed, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
-	bool ControlAngle(std::string_view label, glm::vec3& radians, const glm::vec3& resetVal, const glm::vec3& min, const glm::vec3& max, const glm::vec3& speed, std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, min, max, speed, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
-	bool ControlAngle(std::string_view label, glm::vec4& radians, const glm::vec4& resetVal, const glm::vec4& min, const glm::vec4& max, const glm::vec4& speed, std::string_view fmt, ControlType type) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, resetVal, min, max, speed, fmt, type); if (changed) { radians = glm::radians(degrees); return true; } return false; }
+	bool ControlAngle(std::string_view label, float& radians,     float min,            float max,            float speed)            { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, min, max, speed); if (changed) { radians = glm::radians(degrees); return true; } return false; }
+	bool ControlAngle(std::string_view label, glm::vec2& radians, const glm::vec2& min, const glm::vec2& max, const glm::vec2& speed) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, min, max, speed); if (changed) { radians = glm::radians(degrees); return true; } return false; }
+	bool ControlAngle(std::string_view label, glm::vec3& radians, const glm::vec3& min, const glm::vec3& max, const glm::vec3& speed) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, min, max, speed); if (changed) { radians = glm::radians(degrees); return true; } return false; }
+	bool ControlAngle(std::string_view label, glm::vec4& radians, const glm::vec4& min, const glm::vec4& max, const glm::vec4& speed) { auto degrees = glm::degrees(radians); const bool changed = Control(label, degrees, min, max, speed); if (changed) { radians = glm::radians(degrees); return true; } return false; }
 
 	bool ControlColor(std::string_view label, glm::vec4& color)
 	{
@@ -721,7 +567,7 @@ namespace Shark::UI {
 
 	void Control(std::string_view label, void(*func)(void* data, ImGuiID id), void* data)
 	{
-		const ImGuiID id = ImGui::GetID(label.data(), label.data() + label.size());
+		const ImGuiID id = GetID(label);
 		if (!ControlBeginHelper(id))
 			return;
 
@@ -737,7 +583,7 @@ namespace Shark::UI {
 
 	void Text(std::string_view str, TextFlags flags)
 	{
-		UI::ScopedStyle s;
+		UI::ScopedColorStack s;
 		if (flags & TextFlag::Disabled)
 			s.Push(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
 
@@ -789,6 +635,72 @@ namespace Shark::UI {
 		ImGui::InputTextEx("##InputText", nullptr, (char*)str.data(), (int)str.size(), itemSize, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
 		ImGui::PopStyleColor();
 		ImGui::PopStyleVar();
+	}
+
+	bool Search(ImGuiID id, char* buffer, int bufferSize)
+	{
+		ScopedID scopedID(id);
+		const bool changed = ImGui::InputTextWithHint("##search", "Search ...", buffer, bufferSize);
+
+		const float buttonSize = ImGui::GetItemRectSize().y;
+		ImGui::SameLine(0, 0);
+		MoveCursorX(-buttonSize);
+
+		ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+		ScopedColorStack colors(
+			ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
+			ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
+			ImGuiCol_ButtonHovered, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f }
+		);
+
+		ImGuiLastItemData lastItemData = GImGui->LastItemData;
+		ImGui::BeginChild(id, ImVec2(buttonSize, buttonSize));
+		const bool clear = ImGui::Button("x", { buttonSize, buttonSize });
+		ImGui::EndChild();
+		GImGui->LastItemData = lastItemData;
+
+		if (clear)
+		{
+			memset(buffer, '\0', bufferSize);
+			ImGui::SetKeyboardFocusHere(-1);
+		}
+
+		return changed || clear;
+	}
+
+	bool InputTextFiltered(ImGuiID id, char* buffer, int bufferSize, const wchar_t* filterItems, int itemCount)
+	{
+		ScopedID scopedID(id);
+
+		struct FilterData
+		{
+			const wchar_t* Items;
+			int Count;
+		};
+
+		auto filterFunc = [](ImGuiInputTextCallbackData* data) -> int
+		{
+			FilterData& filterData = *(FilterData*)data->UserData;
+			for (int i = 0; i < filterData.Count; i++)
+				if (data->EventChar == filterData.Items[i])
+					return 1;
+			return 0;
+		};
+
+		FilterData filterData;
+		filterData.Items = filterItems;
+		filterData.Count = itemCount;
+
+		return ImGui::InputTextEx(id, "##inputFileName", nullptr, buffer, bufferSize, ImVec2(0, 0), ImGuiInputTextFlags_CallbackCharFilter, filterFunc, &filterData);
+	}
+
+	bool InputTextFiltered(ImGuiID id, char* buffer, int bufferSize, const wchar_t* filterItems)
+	{
+		const int count = (int)wcslen(filterItems);
+		if (count <= 1)
+			return false;
+
+		return InputTextFiltered(id, buffer, bufferSize, filterItems, count - 1);
 	}
 
 	UIContext::UIContext()

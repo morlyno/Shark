@@ -1,8 +1,11 @@
 #include "skpch.h"
 #include "FileSystem.h"
+
+#include "Shark/Core/Project.h"
 #include "Shark/Utils/PlatformUtils.h"
 
 #include <fmt/os.h>
+#include "Shark/Utils/String.h"
 
 namespace Shark {
 
@@ -95,6 +98,27 @@ namespace Shark {
 		utils::AssureInsteance();
 
 		return s_FileWatcher;
+	}
+
+	std::filesystem::path FileSystem::GetUnsusedPath(const std::filesystem::path& filePath)
+	{
+		if (!std::filesystem::exists(filePath))
+			return filePath;
+
+		std::filesystem::path path = filePath;
+		const std::filesystem::path directory = filePath.parent_path();
+		const std::wstring name = filePath.stem();
+		const std::wstring extension = filePath.extension();
+
+		uint32_t count = 1;
+		bool foundValidFileName = false;
+		while (!foundValidFileName)
+		{
+			path = fmt::format(L"{}/{} ({}).{}", directory, name, count, extension);
+			foundValidFileName = std::filesystem::exists(path);
+		}
+
+		return path;
 	}
 
 	std::filesystem::path FileSystem::MakeFreeFilePath(const std::filesystem::path& directory, const std::filesystem::path& fileName)
@@ -200,6 +224,32 @@ namespace Shark {
 		std::ofstream fout{ filePath, std::ios::trunc };
 		fout.flush();
 		fout.close();
+	}
+
+	bool FileSystem::Exists(const std::filesystem::path& filepath)
+	{
+		if (std::filesystem::exists(filepath))
+			return true;
+
+		if (filepath.is_relative() && std::filesystem::exists(Project::GetDirectory() / filepath))
+			return true;
+
+		return false;
+	}
+
+	std::string FileSystem::ParseFileName(const std::filesystem::path& filePath)
+	{
+		return filePath.stem().string();
+	}
+
+	std::filesystem::path FileSystem::GetRelative(const std::filesystem::path& path)
+	{
+		return Project::RelativeCopy(path);
+	}
+
+	std::filesystem::path FileSystem::GetAbsolute(const std::filesystem::path& path)
+	{
+		return Project::AbsolueCopy(path);
 	}
 
 }

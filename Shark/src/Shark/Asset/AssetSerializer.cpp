@@ -5,6 +5,7 @@
 
 #include "Shark/Asset/SceneSerialization.h"
 #include "Shark/Asset/TextureSerialization.h"
+#include "Shark/Asset/TextureSource.h"
 
 namespace Shark {
 
@@ -15,6 +16,7 @@ namespace Shark {
 		s_Serializers[AssetType::None] = nullptr;
 		s_Serializers[AssetType::Scene] = Scope<SceneSerializer>::Create();
 		s_Serializers[AssetType::Texture] = Scope<TextureSerializer>::Create();
+		s_Serializers[AssetType::TextureSource] = Scope<TextureSourceSerializer>::Create();
 	}
 
 	void AssetSerializer::ReleaseSerializers()
@@ -40,6 +42,18 @@ namespace Shark {
 
 		SK_CORE_ASSERT(false, "Serializer was null");
 		return false;
+	}
+
+	bool TextureSourceSerializer::TryLoadData(Ref<Asset>& asset, const AssetMetaData& metadata)
+	{
+		Ref<TextureSource> textureSource = Ref<TextureSource>::Create();
+		asset = textureSource;
+		return true;
+	}
+
+	bool TextureSourceSerializer::Serialize(const Ref<Asset>& asset, const AssetMetaData& metadata)
+	{
+		return true;
 	}
 
 }

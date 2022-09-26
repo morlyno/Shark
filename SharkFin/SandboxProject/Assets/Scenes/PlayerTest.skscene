@@ -332,7 +332,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.13888884
+        Aspectratio: 2.38297868
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -400,7 +400,7 @@ Scene:
           []
       CameraComponent:
         Type: Orthographic
-        Aspectratio: 2.13888884
+        Aspectratio: 2.38297868
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000

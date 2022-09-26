@@ -22,6 +22,10 @@ namespace Shark {
 		static const AssetMetaData& GetMetaData(Ref<Asset> asset) { return GetMetaData(asset->Handle); }
 		static const AssetMetaData& GetMetaData(const std::filesystem::path& filePath) { return GetMetaData(GetAssetHandleFromFilePath(MakeRelativePath(filePath))); }
 
+		static AssetType GetAssetTypeFormFilePath(const std::filesystem::path& filePath) { return GetAssetTypeFormExtension(filePath.extension().string()); }
+		static AssetType GetAssetTypeFormFileName(const std::string& file) { return GetAssetTypeFormFilePath(file); }
+		static AssetType GetAssetTypeFormExtension(const std::string& fileExtension);
+
 		static bool IsValidAssetHandle(AssetHandle handle);
 		static bool IsDataLoaded(AssetHandle handle);
 		static bool IsMemoryAsset(AssetHandle handle);
@@ -35,6 +39,8 @@ namespace Shark {
 		static std::filesystem::path MakeRelativePath(const std::filesystem::path& filePath);
 		static std::string MakeRelativePathString(const std::filesystem::path& filePath) { return MakeRelativePath(filePath).string(); }
 		static std::filesystem::path GetFileSystemPath(const AssetMetaData& metadata);
+		static std::filesystem::path GetProjectPath(const AssetMetaData& metadata);
+		static std::string GetFileSystemPathString(const AssetMetaData& metadata) { return GetFileSystemPath(metadata).string(); }
 
 		static AssetHandle GetAssetHandleFromFilePath(const std::filesystem::path& filePath);
 
@@ -123,7 +129,7 @@ namespace Shark {
 
 			static_assert(!std::is_same_v<Asset, T>);
 			static_assert(std::is_base_of_v<Asset, T>, "CreateAsset only works for types with base class Asset!");
-			SK_CORE_ASSERT(GetAssetTypeFormFile(fileName) == T::GetStaticType());
+			SK_CORE_ASSERT(GetAssetTypeFormFileName(fileName) == T::GetStaticType());
 
 			std::string dirPath = MakeRelativePathString(directoryPath);
 
@@ -189,10 +195,6 @@ namespace Shark {
 
 	private:
 		static AssetMetaData& GetMetaDataInternal(AssetHandle handle);
-		static AssetType GetAssetTypeFormFilePath(const std::filesystem::path& filePath) { return GetAssetTypeFormFileExtention(filePath.extension().string()); }
-		static AssetType GetAssetTypeFormFile(const std::string& file) { return GetAssetTypeFormFilePath(file); }
-		static AssetType GetAssetTypeFormFileExtention(const std::string& fileExtention);
-
 		static void WriteImportedAssetsToDisc();
 		static void ReadImportedAssetsFromDisc();
 

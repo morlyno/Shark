@@ -81,12 +81,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		const bool open = ImGui::Begin("Console", &shown);
-		ImGui::PopStyleVar();
-
-		if (open)
+		if (ImGui::Begin("Console", &shown))
 		{
 			DrawMenuBar();
 			DrawMessages();
@@ -114,7 +109,7 @@ namespace Shark {
 		m_Filtered.clear();
 	}
 
-	void EditorConsolePanel::PushMessage(Log::Level level, const std::string& message)
+	void EditorConsolePanel::PushMessage(Log::Level level, const std::string& time, const std::string& message)
 	{
 		SK_CORE_ASSERT(s_Instance);
 		switch (level)
@@ -122,18 +117,19 @@ namespace Shark {
 			case Log::Level::Debug:
 			case Log::Level::Trace:
 			case Log::Level::Info:
-				s_Instance->PushMessage(MessageLevel::Info, message);
+				s_Instance->PushMessage(MessageLevel::Info, time, message);
 				break;
 			case Log::Level::Warn:
-				s_Instance->PushMessage(MessageLevel::Warn, message);
+				s_Instance->PushMessage(MessageLevel::Warn, time, message);
+				break;
 			case Log::Level::Error:
 			case Log::Level::Critical:
-				s_Instance->PushMessage(MessageLevel::Error, message);
+				s_Instance->PushMessage(MessageLevel::Error, time, message);
 		}
 
 	}
 
-	void EditorConsolePanel::PushMessage(MessageLevel level, const std::string& message)
+	void EditorConsolePanel::PushMessage(MessageLevel level, const std::string& time, const std::string& message)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -147,10 +143,12 @@ namespace Shark {
 
 		ConsoleMessage msg;
 		msg.Level = level;
+		msg.Time = time;
+		SK_CORE_ASSERT(msg.Time.size() == 8);
 		msg.Message = message;
-		size_t count = message.find('\n');
+		size_t count = message.find_first_of("\r\n");
 		count = message.find('\n', count + 1);
-		msg.FriendlyMessage = std::string(message, std::min({ message.length(), ConsoleMessage::MaxFiendlyMessageLength, count }));
+		msg.FriendlyMessage = std::string(message, 0, std::min({ message.length(), ConsoleMessage::MaxFiendlyMessageLength, count }));
 
 		m_Messages.push_back(msg);
 		if (Filter(msg))
@@ -166,15 +164,21 @@ namespace Shark {
 		const float twoLinesTextHeight = ImGui::GetFontSize() * 2.0f;
 		const float imageSize = ImGui::GetFontSize() * 2.0f + style.FramePadding.y * 2.0f;
 
-		if (ImGui::BeginTable("Messages", 2, ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg))
+		UI::MoveCursorY(-style.ItemSpacing.y);
+		ImGuiID childID = ImGui::GetID("cpMessages");
+		ImGui::BeginChild(childID);
+
+		if (ImGui::BeginTable("Messages", 3, /*ImGuiTableFlags_ScrollY | */ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInner | ImGuiTableFlags_SizingFixedFit))
 		{
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
 			ImGuiTable* table = ImGui::GetCurrentTable();
 
-			ImGui::Indent(style.WindowPadding.x);
-			ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, imageSize + style.WindowPadding.x);
-
+			//ImGui::Indent(style.WindowPadding.x);
 			ImGui::PushTextWrapPos(window->WorkRect.Max.x - window->WorkRect.Min.x - style.WindowPadding.x);
+
+			const ImVec2 textSize = ImGui::CalcTextSize("00:00:00");
+			ImGui::TableSetupColumn("##levelImage", ImGuiTableColumnFlags_WidthFixed, imageSize);
+			ImGui::TableSetupColumn("##time", ImGuiTableColumnFlags_WidthFixed, textSize.x);
 
 			ImGuiListClipper clipper;
 			clipper.Begin((int)m_Filtered.size());
@@ -187,13 +191,18 @@ namespace Shark {
 					if (!Filter(msg))
 						continue;
 
-					ImGui::TableNextRow(ImGuiTableRowFlags_None, imageSize);
+					//ImGui::TableNextRow(ImGuiTableRowFlags_None, imageSize);
+					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(1);
+					UI::MoveCursorY((imageSize - ImGui::GetFontSize()) * 0.5f);
+					ImGui::TextColored(Theme::Colors::LogTimeColor, msg.Time.c_str());
+
+					ImGui::TableSetColumnIndex(2);
 
 					ImGui::AlignTextToFramePadding();
 					utils::PrintTextClipped(msg.FriendlyMessage, MessageColor(msg.Level));
 
-					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
 					{
 						ImRect r = window->InnerRect;
 						r.Min.y = table->RowPosY1;
@@ -214,24 +223,26 @@ namespace Shark {
 			}
 
 			ImGui::PopTextWrapPos();
-			static bool AutoScroll = true;
-			if (AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-				ImGui::SetScrollHereY(1.0f);
-
 			ImGui::EndTable();
 		}
+
+		static bool AutoScroll = true;
+		if (AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+			ImGui::SetScrollHereY(1.0f);
+
+		ImGui::EndChild();
 	}
 
 	void EditorConsolePanel::DrawMenuBar()
 	{
 		SK_PROFILE_FUNCTION();
 
-		ImGuiWindow* consoleWindow = ImGui::GetCurrentWindow();
-		ImDrawList* drawList = consoleWindow->DrawList;
 		const ImGuiStyle& style = ImGui::GetStyle();
 
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { style.WindowPadding.x * 0.5f, style.WindowPadding.y });
-		consoleWindow->DC.CursorPos += style.WindowPadding;
+		//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { style.WindowPadding.x * 0.5f, style.WindowPadding.y });
+		//UI::MoveCursorX(-style.WindowPadding.x * 0.5f);
+		ImGuiWindow* consoleWindow = ImGui::GetCurrentWindow();
+		//consoleWindow->DC.CursorPos += style.WindowPadding;
 
 		if (ImGui::Button("Clear"))
 			Clear();
@@ -243,18 +254,24 @@ namespace Shark {
 
 		const ImVec2 selectableSize = ImVec2(ImGui::GetFontSize() - style.FramePadding.x, ImGui::GetFontSize());
 
-		const float imageSize = ImGui::GetFrameHeight() + style.WindowPadding.y * 1.5f;
-		const float offsetFromEnd = imageSize * 3 + style.ItemSpacing.x * 2;
-		const float contentRegionX = ImGui::GetContentRegionAvail().x - style.WindowPadding.x;
+		const float imageSize = ImGui::GetFrameHeight() + style.WindowPadding.x * 1.5f/* + style.FramePadding.y * 2.0f*/;
+		const float offsetFromEnd = imageSize * 3.0f + style.ItemSpacing.x * 2.0f;
+		const float contentRegionX = ImGui::GetContentRegionAvail().x + style.FramePadding.x * 0.5f;
 		const float offsetFromStart = contentRegionX - offsetFromEnd;
 
 		const auto ImageButton = [](const char* strID, ImTextureID textureID, const ImVec2& size, bool selected) -> bool
 		{
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			const ImGuiStyle& style = ImGui::GetStyle();
 			ImRect r = { window->DC.CursorPos, window->DC.CursorPos + size };
+			const ImGuiID id = ImGui::GetID(strID);
+
+			ImGui::ItemSize(r);
+			if (!ImGui::ItemAdd(r, id))
+				return false;
 
 			bool hovered, held;
-			bool pressed = ImGui::ButtonBehavior(r, ImGui::GetID(strID), &hovered, &held);
+			bool pressed = ImGui::ButtonBehavior(r, id, &hovered, &held);
 
 			ImU32 bgColor = 0x00000000;
 			if (held)
@@ -264,35 +281,34 @@ namespace Shark {
 			else if (selected)
 				bgColor = 0xff303030;
 
-			ImDrawList* drawList = window->DrawList;
-			drawList->AddRectFilled(r.Min, r.Max, bgColor, 5.0f);
+			ImGui::RenderFrame(r.Min - ImVec2{ 2.0f, 2.0f }, r.Max + ImVec2{ 2.0f, 2.0f }, bgColor, true, 5.0f);
 
-			ImGui::Image(textureID, size);
+			ImDrawList* drawList = window->DrawList;
+			drawList->AddImage(textureID, r.Min, r.Max);
+			//drawList->AddImage(textureID, r.Min, r.Max);
 
 			return pressed;
 		};
 
-		consoleWindow->DC.CursorPosPrevLine.y -= style.WindowPadding.y * 0.75f;
+		{
+			consoleWindow->DC.CursorPosPrevLine.y -= style.WindowPadding.y * 0.75f;
+			UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x, style.ItemSpacing.y * 0.5f });
 
-		ImGui::SameLine(offsetFromStart);
-		const bool infoActive = m_ActiveFilters & FilterFlag::Info;
-		if (ImageButton("InfoIcon", Icons::InfoIcon->GetViewID(), ImVec2(imageSize, imageSize), infoActive))
-			SetFilter(FilterFlag::Info, !infoActive);
+			ImGui::SameLine(offsetFromStart);
+			const bool infoActive = m_ActiveFilters & FilterFlag::Info;
+			if (ImageButton("InfoIcon", Icons::InfoIcon->GetViewID(), ImVec2(imageSize, imageSize), infoActive))
+				SetFilter(FilterFlag::Info, !infoActive);
 
-		ImGui::SameLine();
-		const bool warnActive = m_ActiveFilters & FilterFlag::Warn;
-		if (ImageButton("WarnIcon", Icons::WarnIcon->GetViewID(), ImVec2(imageSize, imageSize), warnActive))
-			SetFilter(FilterFlag::Warn, !warnActive);
+			ImGui::SameLine();
+			const bool warnActive = m_ActiveFilters & FilterFlag::Warn;
+			if (ImageButton("WarnIcon", Icons::WarnIcon->GetViewID(), ImVec2(imageSize, imageSize), warnActive))
+				SetFilter(FilterFlag::Warn, !warnActive);
 
-		ImGui::SameLine();
-		const bool errorActive = m_ActiveFilters & FilterFlag::Error;
-		if (ImageButton("ErrorIcon", Icons::ErrorIcon->GetViewID(), ImVec2(imageSize, imageSize), errorActive))
-			SetFilter(FilterFlag::Error, !errorActive);
-
-		consoleWindow->DC.CursorPos.y -= style.WindowPadding.y * 0.25f;
-		consoleWindow->DC.CursorPosPrevLine.y -= style.WindowPadding.y * 0.25f;
-
-		ImGui::PopStyleVar(); // WindowPadding
+			ImGui::SameLine();
+			const bool errorActive = m_ActiveFilters & FilterFlag::Error;
+			if (ImageButton("ErrorIcon", Icons::ErrorIcon->GetViewID(), ImVec2(imageSize, imageSize), errorActive))
+				SetFilter(FilterFlag::Error, !errorActive);
+		}
 
 		ImGui::Separator();
 

@@ -23,6 +23,71 @@ namespace Shark {
 
 	namespace utils {
 
+		static bool Control(const char* label, glm::vec3& val, float reset = 0.0f)
+		{
+			if (!UI::ControlBeginHelper(label))
+				return false;
+
+			ImGui::TableSetColumnIndex(0);
+			UI::Text(label, UI::PrivateTextFlag::LabelDefault);
+			ImGui::TableSetColumnIndex(1);
+
+			bool changed = false;
+
+			ImGuiStyle& style = ImGui::GetStyle();
+			const float buttonSize = ImGui::GetFrameHeight();
+			const float widthAvail = ImGui::GetContentRegionAvail().x;
+			const float width = (widthAvail - style.ItemSpacing.x * (3 - 1.0f)) / 3 - buttonSize;
+
+			ImGui::PushItemWidth(width);
+
+			size_t fmtOffset = 0;
+
+			if (ImGui::Button("X", { buttonSize, buttonSize }))
+			{
+				val[0] = reset;
+				changed = true;
+			}
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::DragFloat("##X", &val[0], 0.1f, 0.0f, 0.0f, "%.2f");
+
+
+			ImGui::SameLine();
+			if (ImGui::Button("Y", { buttonSize, buttonSize }))
+			{
+				val[1] = reset;
+				changed = true;
+			};
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::DragFloat("##Y", &val[1], 0.1f, 0.0f, 0.0f, "%.2f");
+
+
+			ImGui::SameLine();
+			if (ImGui::Button("Z", { buttonSize, buttonSize }))
+			{
+				val[2] = reset;
+				changed = true;
+			}
+			ImGui::SameLine(0.0f, 0.0f);
+			changed |= ImGui::DragFloat("##Z", &val[2], 0.1f, 0.0f, 0.0f, "%.2f");
+
+			ImGui::PopItemWidth();
+
+			UI::ControlEndHelper();
+			return changed;
+		}
+
+		static bool ControlAngle(const char* label, glm::vec3& radians, float reset = 0.0f)
+		{
+			glm::vec3 degrees = glm::degrees(radians);
+			if (Control(label, degrees, reset))
+			{
+				radians = glm::radians(degrees);
+				return true;
+			}
+			return false;
+		}
+
 		template<typename Comp, typename UIFunction>
 		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
 		{
@@ -30,12 +95,22 @@ namespace Shark {
 			{
 				ImGui::PushID(typeid(Comp).name());
 				const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
-				ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
-				ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-				const float LineHeight = ImGui::GetItemRectSize().y;
-				if (ImGui::Button("+", { LineHeight, LineHeight }))
-					ImGui::OpenPopup("Component Settings");
-				ImGui::PopStyleColor();
+				//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
+				const ImVec2 headerEnd = ImGui::GetItemRectMax() - ImGui::GetWindowPos();
+				const float buttonSize = ImGui::GetItemRectSize().y;
+				ImGui::SameLine(headerEnd.x - buttonSize);
+				{
+					UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+					UI::ScopedColorStack colors(
+						ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
+						ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
+						ImGuiCol_ButtonHovered, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f }
+					);
+
+					if (ImGui::Button("+", { buttonSize, buttonSize }))
+						ImGui::OpenPopup("Component Settings");
+				}
+
 
 				if (opened)
 				{
@@ -46,23 +121,10 @@ namespace Shark {
 				if (ImGui::BeginPopup("Component Settings"))
 				{
 					if (ImGui::MenuItem("Delete", nullptr, false, !std::is_same_v<Comp, TransformComponent>))
-					{
-						if constexpr (std::is_same_v<Comp, CameraComponent>)
-						{
-							Weak<Scene> scene = entity.GetScene();
-							UUID cameraUUID = scene->GetActiveCameraUUID();
-							if (entity.GetUUID() == cameraUUID)
-								scene->SetActiveCamera(UUID::Invalid);
-						}
-
 						entity.RemoveComponent<Comp>();
-					}
 
 					if (ImGui::MenuItem("Reset"))
-					{
-						auto& comp = entity.GetComponent<Comp>();
-						comp = Comp{};
-					}
+						entity.GetComponent<Comp>() = Comp{};
 
 					ImGui::EndPopup();
 				}
@@ -109,6 +171,8 @@ namespace Shark {
 
 		if (ImGui::Begin("Scene Hirachy", &shown) && m_Context)
 		{
+			m_HirachyFocused = ImGui::IsWindowFocused();
+
 			m_Context->m_Registry.each([=](auto entityID)
 			{
 				Entity entity{ entityID, m_Context };
@@ -138,6 +202,7 @@ namespace Shark {
 		ImGui::End();
 
 		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+		m_PropertiesFocused = ImGui::IsWindowFocused();
 		if (m_SelectedEntity)
 			DrawEntityProperties(m_SelectedEntity);
 		ImGui::End();
@@ -150,6 +215,17 @@ namespace Shark {
 
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<SceneChangedEvent>([this](SceneChangedEvent& event) { m_Context = event.GetScene(); return false; });
+		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(SceneHirachyPanel::OnKeyPressedEvent));
+	}
+
+	bool SceneHirachyPanel::OnKeyPressedEvent(KeyPressedEvent& event)
+	{
+		if (event.GetKeyCode() == Key::Delete && (m_HirachyFocused || m_PropertiesFocused))
+		{
+			DestroyEntity(m_SelectedEntity);
+			return true;
+		}
+		return false;
 	}
 
 	void SceneHirachyPanel::DrawEntityNode(Entity entity)
@@ -264,9 +340,9 @@ namespace Shark {
 		utils::DrawComponet<TransformComponent>(entity, "Transform", [](TransformComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Position", comp.Translation);
-			UI::ControlAngle("Rotation", comp.Rotation);
-			UI::ControlS("Scaling", comp.Scale, 1.0f);
+			utils::Control("Position", comp.Translation);
+			utils::ControlAngle("Rotation", comp.Rotation);
+			utils::Control("Scaling", comp.Scale, 1.0f);
 			UI::EndControls();
 		});
 
@@ -319,7 +395,7 @@ namespace Shark {
 				UI::ControlEndHelper();
 			}
 
-			UI::Control("TilingFactor", comp.TilingFactor, 1.0f);
+			UI::Control("TilingFactor", comp.TilingFactor, 0.0f, 0.0f, 0.1f);
 
 			UI::EndControls();
 
@@ -330,8 +406,8 @@ namespace Shark {
 			UI::BeginControlsGrid();
 				
 			UI::ControlColor("Color", comp.Color);
-			UI::Control("Thickness", comp.Thickness, 1.0f, 0.0f, 1.0f, 0.0f, std::string_view{}, UI::ControlType::Slider);
-			UI::Control("Fade", comp.Fade, 0.002f, 0.0f, 10.0f, 0.01f, "%.3f");
+			UI::Control("Thickness", comp.Thickness, 0.0f, 1.0f, 0.1f);
+			UI::Control("Fade", comp.Fade, 0.0f, 10.0f, 0.01f);
 
 			UI::EndControls();
 		});
@@ -368,9 +444,9 @@ namespace Shark {
 				float clipnear = camera.GetPerspectiveNear();
 				float clipfar = camera.GetPerspectiveFar();
 
-				changed |= UI::Control("FOV", fov, 45.0f, 1.0f, 179.0f);
-				changed |= UI::Control("NearClip", clipnear, 0.01f, 0.01f, FLT_MAX);
-				changed |= UI::Control("FarClip", clipfar, 1000.0f, 0.01f, FLT_MAX);
+				changed |= UI::Control("FOV", fov, 1.0f, 179.0f);
+				changed |= UI::Control("NearClip", clipnear, 0.01f, FLT_MAX);
+				changed |= UI::Control("FarClip", clipfar, 0.01f, FLT_MAX);
 
 				if (changed && (clipnear > 0.0f && clipfar > 0.0f && !glm::epsilonEqual(clipnear, clipfar, 0.00001f)))
 					camera.SetPerspective(camera.GetAspectratio(), fov, clipnear, clipfar);
@@ -386,9 +462,9 @@ namespace Shark {
 				float clipnear = camera.GetOrthographicNear();
 				float clipfar = camera.GetOrthographicFar();
 
-				changed |= UI::Control("Zoom", zoom, 10.0f, 0.25f, FLT_MAX);
-				changed |= UI::Control("NearClip", clipnear, -1.0f, -FLT_MAX, -0.01f);
-				changed |= UI::Control("FarClip", clipfar, 1.0f, 0.01f, FLT_MAX);
+				changed |= UI::Control("Zoom", zoom, 0.25f, FLT_MAX);
+				changed |= UI::Control("NearClip", clipnear, -FLT_MAX, -0.01f);
+				changed |= UI::Control("FarClip", clipfar, 0.01f, FLT_MAX);
 
 				if (changed)
 					camera.SetOrthographic(camera.GetAspectratio(), zoom, clipnear, clipfar);
@@ -422,13 +498,13 @@ namespace Shark {
 		utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::ControlS("Size", comp.Size, 0.5f);
+			UI::ControlS("Size", comp.Size);
 			UI::Control("Offset", comp.Offset);
 			UI::Control("Angle", comp.Rotation);
-			UI::Control("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
-			UI::Control("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
-			UI::Control("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
-			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::Control("Denstity", comp.Density, 0.0f, FLT_MAX);
+			UI::Control("Friction", comp.Friction, 0.0f, 1.0f);
+			UI::Control("Restitution", comp.Restitution, 0.0f, 1.0f);
+			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.0f, FLT_MAX);
 			UI::Control("IsSensor", comp.IsSensor);
 			UI::EndControls();
 		});
@@ -436,13 +512,13 @@ namespace Shark {
 		utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Radius", comp.Radius, 0.5f);
+			UI::Control("Radius", comp.Radius);
 			UI::Control("Offset", comp.Offset);
 			UI::Control("Angle", comp.Rotation);
-			UI::Control("Denstity", comp.Density, 1.0f, 0.0f, FLT_MAX);
-			UI::Control("Friction", comp.Friction, 0.0f, 0.0f, 1.0f);
-			UI::Control("Restitution", comp.Restitution, 0.0f, 0.0f, 1.0f);
-			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.5f, 0.0f, FLT_MAX);
+			UI::Control("Denstity", comp.Density, 0.0f, FLT_MAX);
+			UI::Control("Friction", comp.Friction, 0.0f, 1.0f);
+			UI::Control("Restitution", comp.Restitution, 0.0f, 1.0f);
+			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.0f, FLT_MAX);
 			UI::Control("IsSensor", comp.IsSensor);
 			UI::EndControls();
 		});
@@ -451,7 +527,7 @@ namespace Shark {
 		{
 			ImGui::SetNextItemWidth(-1.0f);
 
-			UI::ScopedStyle scopedStyle;
+			UI::LagacyScopedStyleStack scopedStyle;
 			if (!comp.IsExisitingScript)
 				scopedStyle.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
 

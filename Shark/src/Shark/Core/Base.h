@@ -5,27 +5,19 @@
 #endif
 
 #if (!defined(SK_RELEASE) && !defined(SK_DEBUG)) || (defined(SK_RELEASE) && defined(SK_DEBUG))
-#error Invalid Configuration
+	#error Invalid Configuration
 #endif
 
-#if defined(__clang__) || defined(__GNUC__)
-#	define SK_COMPILER_GCC (1)
-#elif defined(_MSC_VER)
-#	define SK_COMPILER_MSVC (1)
+#if defined(_MSC_VER)
+	#define SK_COMPILER_MSVC (1)
 #else
-#error Compiler not supported
+	#error Compiler not supported
 #endif
-
-////////////////////////////////////////////////////////////////////////
-// Target Platform
-////////////////////////////////////////////////////////////////////////
 
 #if defined(SK_COMPILER_MSVC)
-#define SK_FUNCTION __func__
-#define SK_FUNCTION_DECORATED __FUNCTION__
-#define SK_FUNCTION_SIGNATURE __PRETTY_FUNCTION__
-#else
-#error Compiler not supported
+	#define SK_FUNCTION __func__
+	#define SK_FUNCTION_DECORATED __FUNCTION__
+	#define SK_FUNCTION_SIGNATURE __PRETTY_FUNCTION__
 #endif
 
 
@@ -35,6 +27,7 @@
 	#define SK_ENABLE_ASSERT 1
 	#define SK_ENABLE_VERIFY 1
 	#define SK_ENABLE_VALIDATION 1
+	#define SK_ENABLE_PERF 1
 	#define SK_IF_DEBUG(x) { x }
 #endif
 
@@ -44,19 +37,16 @@
 	#define SK_ENABLE_ASSERT 1
 	#define SK_ENABLE_VERIFY 2
 	#define SK_ENABLE_VALIDATION 1
+	#define SK_ENABLE_PERF 1
 	#define SK_IF_DEBUG(...)
 #endif
 
-#define SK_ENABLE_PERF 1
 
 #define BIT(x) (1 << x)
 
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
 #define SK_CONNECT(a, b) a##b
-
-#define SK_CONNECT_TO_STRING_IMPL(ab) SK_STRINGIFY(ab)
-#define SK_CONNECT_TO_STRING(a, b) SK_EXPAND(SK_CONNECT_TO_STRING_IMPL(a ## b))
 
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 
@@ -70,24 +60,7 @@ namespace Shark {
 
 	using byte = unsigned char;
 
-	struct Empty { template<typename T> Empty(const T&) {} };
-
-	struct RenderID
-	{
-		uintptr_t ID;
-		
-		constexpr RenderID() : ID((uintptr_t)nullptr) {}
-		constexpr RenderID(std::nullptr_t) : ID((uintptr_t)nullptr) {}
-		constexpr RenderID(uintptr_t id) : ID(id) {}
-		constexpr RenderID(void* id) : ID((uintptr_t)id) {}
-		constexpr operator uintptr_t() const { return ID; }
-		constexpr operator void*() const { return (void*)ID; }
-
-		constexpr bool operator==(const RenderID& rhs) const { return ID == rhs.ID; }
-		constexpr bool operator!=(const RenderID& rhs) const { return !(*this == rhs); }
-		constexpr operator bool() const { return ID; }
-	};
-
+	using RenderID = void*;
 	using WindowHandle = void*;
 
 	static_assert(sizeof(uint8_t) == 1);
@@ -111,6 +84,7 @@ namespace Shark {
 	static_assert(sizeof(glm::vec2) == sizeof(float) * 2);
 	static_assert(sizeof(glm::vec3) == sizeof(float) * 3);
 	static_assert(sizeof(glm::vec4) == sizeof(float) * 4);
+	static_assert(sizeof(glm::mat4) == sizeof(float) * 4 * 4);
 
 }
 

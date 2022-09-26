@@ -10,32 +10,25 @@
 namespace Shark {
 
 	Physics2DScene::Physics2DScene()
-		: m_Gravity(Project::Gravity()), m_VelocityIterations(Project::VelocityIterations()),
-		  m_PositionIterations(Project::PositionIterations()), m_FixedTimeStep(Project::FixedTimeStep())
+		: m_Gravity(Project::GetActive()->Gravity), m_VelocityIterations(Project::GetActive()->VelocityIterations),
+		  m_PositionIterations(Project::GetActive()->PositionIterations), m_FixedTimeStep(Project::GetActive()->FixedTimeStep)
 	{
-		SK_PROFILE_FUNCTION();
 	}
 
 	Physics2DScene::~Physics2DScene()
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (m_World)
 			DestoryScene();
 	}
 
 	void Physics2DScene::CreateScene()
 	{
-		SK_PROFILE_FUNCTION();
-
 		SK_CORE_ASSERT(!m_World);
 		m_World = new b2World({ m_Gravity.x, m_Gravity.y });
 	}
 
 	void Physics2DScene::DestoryScene()
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (m_World)
 		{
 			delete m_World;

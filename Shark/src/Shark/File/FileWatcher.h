@@ -50,8 +50,9 @@ namespace Shark {
 
 	struct FileChangedData
 	{
-		FileEvent FileEvent;
+		FileEvent Type;
 		std::filesystem::path FilePath;
+		bool IsDirectory = false;
 	};
 
 	using FileWatcherCallbackFunc = std::function<void(const std::vector<FileChangedData>&)>;
@@ -88,3 +89,20 @@ namespace Shark {
 	};
 
 }
+
+template<>
+struct fmt::formatter<Shark::FileChangedData>
+{
+	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+	{
+		return ctx.end();
+	}
+
+	template<typename FormatContext>
+	auto format(const Shark::FileChangedData& data, FormatContext& ctx) -> decltype(ctx.out())
+	{
+		format_to(ctx.out(), "({0}) {1}", Shark::ToString(data.Type), data.FilePath);
+		return ctx.out();
+	}
+
+};

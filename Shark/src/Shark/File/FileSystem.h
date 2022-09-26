@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/RefCount.h"
 #include "Shark/File/FileWatcher.h"
 
 #include "Shark/Core/Buffer.h"
@@ -24,7 +25,7 @@ namespace Shark {
 
 		static Ref<FileWatcher> GetFileWatcher();
 
-
+		static std::filesystem::path GetUnsusedPath(const std::filesystem::path& filePath);
 		static std::filesystem::path MakeFreeFilePath(const std::filesystem::path& directory, const std::filesystem::path& fileName);
 		static void MakeFreeFilePath(std::filesystem::path& fsPath);
 
@@ -33,6 +34,12 @@ namespace Shark {
 		static Buffer ReadBinary(const std::filesystem::path& filePath);
 		static void TruncateFile(const std::filesystem::path& filePath);
 
+	public: // custom filesystem (works for filepath relative to project)
+		static bool Exists(const std::filesystem::path& filepath);
+		static std::string ParseFileName(const std::filesystem::path& filePath);
+
+		static std::filesystem::path GetRelative(const std::filesystem::path& path);
+		static std::filesystem::path GetAbsolute(const std::filesystem::path& path);
 	};
 
 }

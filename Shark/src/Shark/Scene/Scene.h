@@ -83,7 +83,7 @@ namespace Shark {
 		void SetActiveCamera(UUID camera) { m_ActiveCameraUUID = camera; }
 		void ResizeCameras(float width, float height);
 
-		void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
+		void SetViewportSize(uint32_t width, uint32_t height);
 		uint32_t GetViewportWidth() const { return m_ViewportWidth; }
 		uint32_t GetViewportHeight() const { return m_ViewportHeight; }
 

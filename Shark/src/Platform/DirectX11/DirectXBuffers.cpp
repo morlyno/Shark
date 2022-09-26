@@ -29,8 +29,6 @@ namespace Shark {
 
 	void DirectXVertexBuffer::Resize(uint32_t size)
 	{
-		// TODO(moro): fix-me buffer is empty after resize. the data should get copied into the new buffer.
-
 		SK_CORE_ASSERT(m_Dynamic);
 		m_Size = size;
 		D3D11_BUFFER_DESC bd = {};

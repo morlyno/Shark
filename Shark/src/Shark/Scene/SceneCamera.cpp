@@ -42,6 +42,9 @@ namespace Shark {
 
 	void SceneCamera::Resize(float width, float height)
 	{
+		if (width == 0 || height == 0)
+			return;
+
 		m_Aspectratio = width / height;
 
 		Recalcualte();

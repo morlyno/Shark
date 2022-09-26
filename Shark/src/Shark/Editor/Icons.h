@@ -8,6 +8,8 @@ namespace Shark {
 	class Icons
 	{
 	public:
+		static Ref<Image2D> SettingsIcon;
+
 		static Ref<Image2D> FileIcon;
 		static Ref<Image2D> FolderIcon;
 		static Ref<Image2D> PNGIcon;
@@ -28,6 +30,7 @@ namespace Shark {
 	public:
 		static void Init();
 		static void Shutdown();
+		static void Reload();
 
 	};
 

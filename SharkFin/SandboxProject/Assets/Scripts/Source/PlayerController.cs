@@ -128,11 +128,18 @@ namespace Sandbox
 				direction.Y = -direction.Y;
 
 				Bullet bullet = Scene.Instantiate<Bullet>("Bullet");
-				bullet.DestroyOnHit = true;
+				bullet.DestroyOnHit = false;
 				var rigidBody = bullet.GetComponent<RigidBody2DComponent>();
 				rigidBody.Position = m_RigidBody.Position + direction;
 				rigidBody.ApplyForce(direction * 10000.0f, PhysicsForce2DType.Force);
+				Log.Info("Bullet Shot! Direction {0}", direction);
+				Log.Warn("TestTestTest\nHalloHalloHallo\nTagTagTag");
 			}
+		}
+
+		private void DoError(string fmt, string str)
+		{
+			DoError(fmt + str, str);
 		}
 
 		private void CreateBall()

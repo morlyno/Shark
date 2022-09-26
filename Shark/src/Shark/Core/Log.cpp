@@ -37,12 +37,10 @@ namespace Shark {
 		};
 
 		sharkSinks[0]->set_pattern("%^[%T] %n: %v%$");
-		sharkSinks[1]->set_pattern("[%T] [%l] %n: %v");
+		sharkSinks[1]->set_pattern("[%c] [%l] %n: %v");
 		clientSinks[0]->set_pattern("%^[%T] %n: %v%$");
-		clientSinks[1]->set_pattern("[%T] [%l] %n: %v");
-		clientSinks[2]->set_pattern("%^[%T] %n: %v%$");
-		consoleSinks[0]->set_pattern("[%T] [%l] %n: %v");
-		consoleSinks[1]->set_pattern("%^[%T] %n: %v%$");
+		clientSinks[1]->set_pattern("[%c] [%l] %n: %v");
+		consoleSinks[0]->set_pattern("[%c] [%l] %n: %v");
 
 		s_CoreLogger = std::make_shared<spdlog::logger>("SHARK", sharkSinks.begin(), sharkSinks.end());
 		s_CoreLogger->set_level(spdlog::level::trace);

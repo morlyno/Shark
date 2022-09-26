@@ -4,7 +4,9 @@
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Render/Texture.h"
+
 #include "Shark/Event/Event.h"
+#include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/ApplicationEvent.h"
 
 #include "Shark/Editor/Panel.h"
@@ -29,6 +31,8 @@ namespace Shark {
 		void SetSelectionChangedCallback(const Func& func) { m_SelectionChangedCallback = func; }
 
 	private:
+		bool OnKeyPressedEvent(KeyPressedEvent& event);
+
 		void DrawEntityNode(Entity entity);
 		void DrawEntityProperties(Entity entity);
 		void DrawAppEntityPopup();
@@ -38,6 +42,9 @@ namespace Shark {
 	private:
 		Ref<Scene> m_Context;
 		Entity m_SelectedEntity;
+
+		bool m_HirachyFocused = false;
+		bool m_PropertiesFocused = false;
 
 		std::function<void(Entity entity)> m_SelectionChangedCallback = [](auto) {};
 

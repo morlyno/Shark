@@ -5,6 +5,7 @@
 #include "Shark/Core/Timer.h"
 
 #include "Shark/Asset/ResourceManager.h"
+#include "Shark/Asset/TextureSource.h"
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/Utils/YAMLUtils.h"
@@ -78,10 +79,9 @@ namespace Shark {
 
 		TextureSpecification specs;
 
-		std::filesystem::path sourcePath = texture["FilePath"].as<std::filesystem::path>();
-		Project::Absolue(sourcePath);
-		SK_CORE_ASSERT(sourcePath.is_absolute());
-		SK_CORE_ASSERT(std::filesystem::is_regular_file(sourcePath));
+		AssetHandle sourceHandle = texture["TextureSource"].as<AssetHandle>();
+		const auto& tsMetadata = ResourceManager::GetMetaData(sourceHandle);
+		std::filesystem::path sourcePath = ResourceManager::GetFileSystemPath(tsMetadata);
 
 		specs.Format = Convert::StringToImageFormat(texture["Format"].as<std::string>());
 		specs.MipLevels = texture["MipLeves"].as<uint32_t>();
@@ -138,15 +138,15 @@ namespace Shark {
 		Timer timer;
 		YAML::Emitter out;
 
-		Ref<Texture2D> texture = texture = asset.As<Texture2D>();
+		Ref<Texture2D> texture = asset.As<Texture2D>();
 		const auto& specs = texture->GetSpecification();
+		AssetHandle textureSourceHandle = ResourceManager::GetAssetHandleFromFilePath(texture->GetFilePath());
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Texture" << YAML::Value;
 
 		out << YAML::BeginMap;
-		auto textureFilePath = Project::RelativeCopy(texture->GetFilePath());
-		out << YAML::Key << "FilePath" << YAML::Value << textureFilePath;
+		out << YAML::Key << "TextureSource" << YAML::Value << textureSourceHandle;
 		out << YAML::Key << "Format" << YAML::Value << EnumToString(specs.Format);
 		out << YAML::Key << "MipLeves" << YAML::Value << specs.MipLevels;
 		out << YAML::Key << "Sampler";
@@ -183,6 +183,102 @@ namespace Shark {
 
 		SK_CORE_TRACE("Texture Serialization tock {0:.4f}", timer.ElapsedMilliSeconds());
 		return true;
+	}
+
+	bool TextureSerializer::Deserialize(Ref<Texture2D>& textureAsset, const std::filesystem::path& filePath)
+	{
+		SK_PROFILE_FUNCTION();
+
+		textureAsset = Texture2D::Create();
+
+		if (!FileSystem::Exists(filePath))
+		{
+			textureAsset->SetFlag(AssetFlag::FileNotFound, true);
+			SK_CORE_ERROR("[Texture Serializer] FileNotFound {0}", filePath);
+			return false;
+		}
+
+		SK_CORE_INFO(L"Loading Texture [{0}]", filePath);
+		Timer timer;
+
+		YAML::Node in = YAML::LoadFile(FileSystem::GetAbsolute(filePath));
+		auto texture = in["Texture"];
+		if (!texture)
+		{
+			textureAsset->SetFlag(AssetFlag::InvalidFile, true);
+			SK_CORE_ERROR("[Texture Serializer] Texture Node not found");
+			return false;
+		}
+
+		TextureSpecification specs;
+
+		AssetHandle sourceHandle = texture["TextureSource"].as<AssetHandle>();
+		const auto& tsMetadata = ResourceManager::GetMetaData(sourceHandle);
+		std::filesystem::path sourcePath = ResourceManager::GetFileSystemPath(tsMetadata);
+
+		specs.Format = Convert::StringToImageFormat(texture["Format"].as<std::string>());
+		specs.MipLevels = texture["MipLeves"].as<uint32_t>();
+
+		auto sampler = texture["Sampler"];
+		specs.Sampler.Min = Convert::StringToFilterMode(sampler["MinFilter"].as<std::string>());
+		specs.Sampler.Mag = Convert::StringToFilterMode(sampler["MagFilter"].as<std::string>());
+		specs.Sampler.Mip = Convert::StringToFilterMode(sampler["MipFilter"].as<std::string>());
+
+		specs.Sampler.Wrap.U = Convert::StringToAddressMode(sampler["AddressModeU"].as<std::string>());
+		specs.Sampler.Wrap.V = Convert::StringToAddressMode(sampler["AddressModeV"].as<std::string>());
+		specs.Sampler.Wrap.W = Convert::StringToAddressMode(sampler["AddressModeW"].as<std::string>());
+
+		specs.Sampler.BorderColor = sampler["BorderColor"].as<glm::vec4>();
+		specs.Sampler.Anisotropy = sampler["Anisotropy"].as<bool>();
+		specs.Sampler.MaxAnisotropy = sampler["MaxAnisotropy"].as<uint32_t>();
+		specs.Sampler.LODBias = sampler["LODBias"].as<float>();
+
+		int x, y, comp;
+		std::string narrowPath = sourcePath.string();
+		stbi_uc* data = stbi_load(narrowPath.c_str(), &x, &y, &comp, STBI_rgb_alpha);
+		if (!data)
+		{
+			textureAsset->SetFlag(AssetFlag::InvalidFile, true);
+			SK_CORE_ERROR("[Texture Serializer] Failed to load Image Data: {}", stbi_failure_reason());
+			return false;
+		}
+
+		specs.Width = x;
+		specs.Height = y;
+		specs.Format = ImageFormat::RGBA8;
+
+		textureAsset->Set(specs, data);
+		textureAsset->SetFilePath(sourcePath);
+		if (specs.MipLevels != 1)
+			Renderer::GenerateMips(textureAsset->GetImage());
+
+		stbi_image_free(data);
+
+		SK_CORE_TRACE("Texture Loaded in {0:.4f}ms", timer.ElapsedMilliSeconds());
+		return true;
+	}
+
+	std::filesystem::path TextureSerializer::DeserializeSourcePath(const std::filesystem::path& filePath)
+	{
+		SK_PROFILE_FUNCTION();
+
+		if (!FileSystem::Exists(filePath))
+		{
+			SK_CORE_ERROR("[Texture Serializer] FileNotFound {0}", filePath);
+			return false;
+		}
+
+		YAML::Node in = YAML::LoadFile(FileSystem::GetAbsolute(filePath));
+		auto texture = in["Texture"];
+		if (!texture)
+		{
+			SK_CORE_ERROR("[Texture Serializer] Texture Node not found");
+			return std::filesystem::path{};
+		}
+
+		AssetHandle sourceHandle = texture["TextureSource"].as<AssetHandle>();
+		const auto& tsMetadata = ResourceManager::GetMetaData(sourceHandle);
+		return ResourceManager::GetFileSystemPath(tsMetadata);
 	}
 
 }

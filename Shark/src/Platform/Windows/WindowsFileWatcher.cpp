@@ -154,14 +154,14 @@ namespace Shark {
 		// Temp Data
 		const BOOL watchSubTrees = m_Specs.WatchSubTrees;
 		std::vector<FileChangedData> fileChanges;
-		DWORD buffer[2048];
+		DWORD buffer[4096];
 		DWORD bytesReturned = 0;
 		DWORD offset = 0;
 		ZeroMemory(buffer, sizeof(buffer));
 
 		while (m_Running)
 		{
-			BOOL result = ReadDirectoryChangesW(
+			BOOL result = ReadDirectoryChangesExW(
 				directoryHandle,
 				buffer,
 				sizeof(buffer),
@@ -169,7 +169,8 @@ namespace Shark {
 				notifyFlags,
 				&bytesReturned,
 				&overlapped,
-				nullptr
+				nullptr,
+				ReadDirectoryNotifyExtendedInformation
 			);
 
 			DWORD event = WaitForMultipleObjects(2, events, FALSE, INFINITE);
@@ -191,14 +192,16 @@ namespace Shark {
 
 			while (true)
 			{
-				FILE_NOTIFY_INFORMATION* fileInfo = (FILE_NOTIFY_INFORMATION*)((byte*)buffer + offset);
+				//FILE_NOTIFY_INFORMATION* fileInfo = (FILE_NOTIFY_INFORMATION*)((byte*)buffer + offset);
+				FILE_NOTIFY_EXTENDED_INFORMATION* fileInfo = (FILE_NOTIFY_EXTENDED_INFORMATION*)((byte*)buffer + offset);
 				offset += fileInfo->NextEntryOffset;
 
 				const size_t length = fileInfo->FileNameLength / sizeof(WCHAR);
 
 				FileChangedData fileData;
 				fileData.FilePath = String::FormatDefaultCopy(m_Specs.Directory / std::wstring(fileInfo->FileName, length));
-				fileData.FileEvent = utils::Win32FileActionToFileEvent(fileInfo->Action);
+				fileData.Type = utils::Win32FileActionToFileEvent(fileInfo->Action);
+				fileData.IsDirectory = fileInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY;
 				fileChanges.push_back(fileData);
 
 				if (!fileInfo->NextEntryOffset)

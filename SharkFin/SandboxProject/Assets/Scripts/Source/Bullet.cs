@@ -5,7 +5,7 @@ namespace Sandbox
 {
 	public class Bullet : Entity
 	{
-		private float m_MaxLifeTime = 1.0f;
+		private float m_MaxLifeTime = 5.0f;
 		private float m_LifeTime = 0.0f;
 
 		public bool DestroyOnHit = false;

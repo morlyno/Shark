@@ -6,6 +6,8 @@
 #undef GetEnvironmentVariable
 #undef SetEnvironmentVariable
 
+struct IShellItem;
+
 namespace Shark {
 
 	enum class ExectueVerb
@@ -56,7 +58,11 @@ namespace Shark {
 
 		static std::filesystem::path OpenDirectoryDialog(const std::filesystem::path& defaultPath = std::filesystem::path{});
 
+		static void MoveFileToRecycleBin(const std::filesystem::path& file);
+
 	private:
+		static IShellItem* GetRecycleBin();
+
 		static bool FileDialogShared(HWND parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, bool appenedFileExetention, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result);
 	};
 

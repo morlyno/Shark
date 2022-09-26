@@ -47,8 +47,13 @@ namespace Shark {
 	public:
 		virtual ~Image2D() = default;
 
+		virtual bool IsValid() const = 0;
+
 		virtual void Set(const ImageSpecification& specs, void* data) = 0;
 		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) = 0;
+		virtual void Set(const std::filesystem::path& filePath) = 0;
+
+		virtual void ReloadFromDisc() = 0;
 
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
@@ -60,6 +65,9 @@ namespace Shark {
 		virtual RenderID GetResourceID() const = 0;
 		virtual RenderID GetViewID() const = 0;
 		virtual const ImageSpecification& GetSpecification() const = 0;
+
+		virtual const std::filesystem::path& GetFilePath() const = 0;
+		virtual void SetFilePath(const std::filesystem::path& filePath) = 0;
 
 	public:
 		static Ref<Image2D> Create();

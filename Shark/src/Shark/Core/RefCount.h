@@ -83,7 +83,7 @@ namespace Shark {
 			m_Instance = other.m_Instance;
 			if (m_Instance)
 				m_Instance->AddRef();
-		return *this;
+			return *this;
 		}
 
 		const Ref& operator=(Ref&& other)
@@ -124,7 +124,7 @@ namespace Shark {
 			Release();
 			m_Instance = other.m_Instance;
 			if (m_Instance)
-				m_Instance->AddRef(); 
+				m_Instance->AddRef();
 		}
 
 		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
@@ -206,7 +206,7 @@ namespace Shark {
 		{
 			return m_Instance;
 		}
-		
+
 		const T* Raw() const
 		{
 			return m_Instance;
@@ -293,7 +293,7 @@ namespace Shark {
 
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
 		Weak(Weak<T2>&& other)
-		: m_Instance(other.m_Instance)
+			: m_Instance(other.m_Instance)
 		{
 			other.m_Instance = nullptr;
 		}

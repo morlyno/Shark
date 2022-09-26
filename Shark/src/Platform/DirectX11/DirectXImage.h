@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shark/Core/Buffer.h"
 #include "Shark/Render/Image.h"
 
 #include <d3d11.h>
@@ -20,15 +21,20 @@ namespace Shark {
 	public:
 		DirectXImage2D();
 		DirectXImage2D(const ImageSpecification& specs, void* data);
-		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, void* data);
 		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
+		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, void* data);
 		DirectXImage2D(const std::filesystem::path& filePath);
 		DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView);
 		virtual ~DirectXImage2D();
 
+		virtual bool IsValid() const override { return m_Resource && m_View; }
+
 		virtual void Set(const ImageSpecification& specs, void* data) override;
 		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) override;
+		virtual void Set(const std::filesystem::path& filePath) override;
 		
+		virtual void ReloadFromDisc() override;
+
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual bool CopyTo(Ref<Image2D> image) override;
@@ -38,19 +44,23 @@ namespace Shark {
 
 		virtual RenderID GetResourceID() const override { return m_Resource; }
 		virtual RenderID GetViewID() const override { return m_View; }
-		virtual const ImageSpecification& GetSpecification() const override { return m_Specs; }
-		virtual uint32_t GetWidth() const override { return m_Specs.Width; }
-		virtual uint32_t GetHeight() const override { return m_Specs.Width; }
+		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
+		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
+		virtual uint32_t GetHeight() const override { return m_Specification.Width; }
+
+		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
+		virtual void SetFilePath(const std::filesystem::path& filePath) override { m_FilePath = filePath; }
 
 		ID3D11Texture2D* GetResourceNative() const { return m_Resource; }
 		ID3D11ShaderResourceView* GetViewNative() const { return m_View; }
 
 	private:
-		void CreateImage(void* data, Ref<DirectXImage2D> resource);
-		void CreateDefaultImage(void* data, Ref<DirectXImage2D> resource);
-		void CreateDynamicImage(void* data, Ref<DirectXImage2D> resource);
-		void CreateStorageImage(void* data, Ref<DirectXImage2D> resource);
-		void CreateFrameBufferImage(void* data, Ref<DirectXImage2D> resource);
+		void Release();
+		Buffer LoadDataFromFile(const std::filesystem::path& filePath);
+		std::filesystem::path GetSourcePath(const std::filesystem::path& filePath) const;
+
+		void CreateResource();
+		void UpdateResource();
 
 		void CreateView();
 		bool IsDepthImage();
@@ -59,10 +69,13 @@ namespace Shark {
 		bool IsImageCompadibleIgnoreMipLeves(const ImageSpecification& specs) const;
 
 	private:
-		ImageSpecification m_Specs;
+		ImageSpecification m_Specification;
+		Buffer m_ImageData;
 
 		ID3D11Texture2D* m_Resource = nullptr;
 		ID3D11ShaderResourceView* m_View = nullptr;
+
+		std::filesystem::path m_FilePath;
 
 		friend class DirectXRenderer;
 	};

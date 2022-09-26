@@ -1,5 +1,5 @@
 Texture:
-  FilePath: Assets/TextureSources/Checkboard.png
+  TextureSource: 13665817056289373643
   Format: RGBA8
   MipLeves: 1
   Sampler:

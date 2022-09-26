@@ -18,6 +18,8 @@
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/TextureEditorPanel.h"
 #include "Panels/PhysicsDebugPanel.h"
+
+#include "Shark/Editor/EditorSettings.h"
 #include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
 #include "Shark/Editor/Icons.h"
 
@@ -53,10 +55,10 @@ namespace Shark {
 	void EditorLayer::OnAttach()
 	{
 		SK_PROFILE_FUNCTION();
-		
+
 		Icons::Init();
 
-		// Create and setup Panels
+		EditorSettings::Init();
 		m_PanelManager = Scope<PanelManager>::Create();
 
 		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, true);
@@ -65,16 +67,12 @@ namespace Shark {
 		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, true);
 		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, false);
 		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, true);
+		m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, true);
 
-		auto contentBrowserPanel = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, true);
-		contentBrowserPanel->SetOpenFileCallback([this](auto& fs) { this->OnFileClickedCallback(fs); });
-
-		// Renderer stuff
-		auto& window = Application::Get().GetWindow();
-		m_ViewportWidth = window.GetWidth();
-		m_ViewportHeight = window.GetHeight();
-
-		m_EditorCamera.SetProjection(16.0f / 9.0f, 45, 0.01f, 1000.0f);
+		if (!m_StartupProject.empty())
+			OpenProject(m_StartupProject);
+		else
+			SK_CORE_ASSERT(false, "No Startup Project!");
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
 		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
@@ -85,14 +83,7 @@ namespace Shark {
 		imageSpecs.Type = ImageType::Storage;
 		m_MousePickingImage = Image2D::Create(imageSpecs, nullptr);
 
-
-		// Load Project
-		if (!m_StartupProject.empty())
-			OpenProject(m_StartupProject);
-		else
-			SK_CORE_ASSERT(false, "No Startup Project!");
-
-		FileSystem::SetFileWatcherCallback(std::bind(&EditorLayer::OnFileChanged, this, std::placeholders::_1));
+		FileSystem::SetFileWatcherCallback(std::bind(&EditorLayer::OnFileEvents, this, std::placeholders::_1));
 	}
 
 	void EditorLayer::OnDetach()
@@ -278,9 +269,12 @@ namespace Shark {
 
 			case Key::Delete:
 			{
-				if (m_SelectetEntity)
+				if (m_SelectetEntity && m_ViewportFocused)
+				{
 					DeleteEntity(m_SelectetEntity);
-				return true;
+					return true;
+				}
+				break;
 			}
 
 			// Toggle VSync
@@ -301,12 +295,12 @@ namespace Shark {
 		return false;
 	}
 
-	void EditorLayer::OnFileChanged(const std::vector<FileChangedData>& fileEvents)
+	void EditorLayer::OnFileEvents(const std::vector<FileChangedData>& fileEvents)
 	{
-		SK_PROFILE_FUNCTION();
+		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileEvents(fileEvents);
 
+		// NOTE(moro): Resource Manager must be the last thing to recive file events
 		ResourceManager::OnFileEvents(fileEvents);
-		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileChanged(fileEvents);
 	}
 
 	void EditorLayer::OnFileClickedCallback(const std::filesystem::path& filePath)
@@ -353,6 +347,12 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (m_ReloadEditorIcons)
+		{
+			Icons::Reload();
+			m_ReloadEditorIcons = false;
+		}
+
 		const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
 			                                  ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
@@ -389,6 +389,8 @@ namespace Shark {
 		UI_DebugScripts();
 
 		m_PanelManager->OnImGuiRender();
+		
+		Theme::DrawThemeEditor(m_ShowThemeEditor);
 
 		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 			MethodThunks::OnUIRender(gcHandle);
@@ -451,6 +453,15 @@ namespace Shark {
 				ImGui::EndMenu();
 			}
 
+			if (ImGui::BeginMenu("Edit"))
+			{
+				if (ImGui::MenuItem("Reload Icons")) m_ReloadEditorIcons = true;
+				ImGui::Separator();
+				ImGui::MenuItem("Theme Editor", nullptr, &m_ShowThemeEditor);
+
+				ImGui::EndMenu();
+			}
+
 			if (ImGui::BeginMenu("View"))
 			{
 				if (ImGui::MenuItem("Scene Hirachy", nullptr, m_PanelManager->IsShown(SCENE_HIRACHY_ID))) { m_PanelManager->ToggleShow(SCENE_HIRACHY_ID); }
@@ -461,8 +472,6 @@ namespace Shark {
 				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
 				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
 				ImGui::MenuItem("Assets", nullptr, &m_ShowAssets);
-				ImGui::Separator();
-				ImGui::MenuItem("Physics Debug", nullptr, m_PanelManager->IsShown(PHYSICS_DEBUG_ID));
 				ImGui::EndMenu();
 			}
 
@@ -470,7 +479,7 @@ namespace Shark {
 			{
 				if (ImGui::MenuItem("Reload", nullptr, nullptr, m_SceneState == SceneState::Edit))
 				{
-					ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
+					ScriptEngine::ReloadAssemblies(Project::GetActive()->ScriptModulePath);
 					CheckScriptComponents();
 				}
 
@@ -751,6 +760,17 @@ namespace Shark {
 									SelectEntity(entity);
 									break;
 								}
+								case AssetType::TextureSource:
+								{
+									const auto& metadata = ResourceManager::GetMetaData(handle);
+									m_TextureAssetCreateData.Clear();
+									auto sourcePath = ResourceManager::GetFileSystemPath(metadata);
+									m_TextureAssetCreateData.TextureSourcePath = sourcePath.string();
+									m_TextureAssetCreateData.TextureFileName = sourcePath.stem().string();
+									m_TextureAssetCreateData.OpenPopup = true;
+									m_TextureAssetCreateData.CreateEntityAfterCreation = true;
+									break;
+								}
 							}
 						}
 					}
@@ -802,16 +822,18 @@ namespace Shark {
 		constexpr ImGuiWindowFlags falgs = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
 
 		ImGuiStyle& style = ImGui::GetStyle();
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 2 });
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, { 0, 0 });
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, style.ItemSpacing.y });
+		
+		UI::ScopedStyle windowPadding(ImGuiStyleVar_WindowPadding, { 0, 2 });
+		UI::ScopedStyle innerItemSpacing(ImGuiStyleVar_ItemInnerSpacing, { 0, 0 });
+		UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, { 2, style.ItemSpacing.y });
+		UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
 		auto colHovered = style.Colors[ImGuiCol_ButtonHovered];
 		auto colActive = style.Colors[ImGuiCol_ButtonActive];
 		colHovered.w = colActive.w = 0.5f;
 
-		ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colHovered);
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, colActive);
+		UI::ScopedColor button(ImGuiCol_Button, { 0, 0, 0, 0 });
+		UI::ScopedColor buttonHovered(ImGuiCol_ButtonHovered, colHovered);
+		UI::ScopedColor buttonActive(ImGuiCol_ButtonActive, colActive);
 		ImGui::Begin("##ViewPortToolBar", nullptr, falgs);
 
 		const float size = ImGui::GetContentRegionAvail().y;
@@ -940,11 +962,7 @@ namespace Shark {
 			}
 		}
 
-
 		ImGui::End();
-
-		ImGui::PopStyleColor(3);
-		ImGui::PopStyleVar(3);
 	}
 
 	void EditorLayer::UI_Settings()
@@ -1144,7 +1162,7 @@ namespace Shark {
 
 		ImGui::Begin("Project", &m_ShowProjectSettings);
 
-		auto& config = Project::GetActive()->GetConfig();
+		auto& config = *Project::GetActive();
 		const ImGuiStyle& style = ImGui::GetStyle();
 		const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
 
@@ -1159,7 +1177,7 @@ namespace Shark {
 
 		if (UI::ControlCustomBegin("Assets"))
 		{
-			UI::ScopedStyle style;
+			UI::LagacyScopedStyleStack style;
 			if (!m_ProjectEditData.ValidAssetsPath)
 				style.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
 
@@ -1177,7 +1195,7 @@ namespace Shark {
 
 		if (UI::ControlCustomBegin("StartupScene"))
 		{
-			UI::ScopedStyle style;
+			UI::LagacyScopedStyleStack style;
 			if (!m_ProjectEditData.ValidStartupScene)
 				style.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
 
@@ -1212,11 +1230,11 @@ namespace Shark {
 			UI::PopID();
 		}
 
-		UI::Control("Gravity", config.Gravity, { 0.0f, -9.81 });
-		UI::Control("Velocity Iterations", config.VelocityIterations, 8);
-		UI::Control("Position Iterations", config.PositionIterations, 3);
+		UI::Control("Gravity", config.Gravity);
+		UI::Control("Velocity Iterations", config.VelocityIterations);
+		UI::Control("Position Iterations", config.PositionIterations);
 		float fixedTSInMS = config.FixedTimeStep * 1000.0f;
-		if (UI::Control("Fixed Time Step", fixedTSInMS, 1.0f, 0.1f, FLT_MAX, 1.0f, "%.3fms"))
+		if (UI::Control("Fixed Time Step", fixedTSInMS, 0.1f, FLT_MAX, 1.0f, "%.3fms"))
 			config.FixedTimeStep = fixedTSInMS * 0.001f;
 
 		UI::EndControls();
@@ -1251,6 +1269,8 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Imported Assets", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
 		{
+			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+
 			for (auto [handle, metadata] : ResourceManager::GetAssetRegistry())
 			{
 				if (!SearchBuffer.empty())
@@ -1294,6 +1314,8 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Loaded Assets", UI::TreeNodeSeperatorFlags))
 		{
+			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+
 			for (auto [handle, asset] : ResourceManager::GetLoadedAssets())
 			{
 				const auto& metadata = ResourceManager::GetMetaData(asset);
@@ -1337,6 +1359,8 @@ namespace Shark {
 		
 		if (ImGui::TreeNodeEx("Memory Assets", UI::TreeNodeSeperatorFlags))
 		{
+			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+
 			for (auto [handle, asset] : ResourceManager::GetMemoryAssets())
 			{
 				if (!SearchBuffer.empty())
@@ -1388,12 +1412,12 @@ namespace Shark {
 		if (ImGui::BeginPopupModal("Import Texture"))
 		{
 			UI::Text("Input FileName");
-			UI::Text(fmt::format("Parent Path: {}/Texture", Project::AssetsPath()));
+			UI::Text(fmt::format("Parent Path: {}/Texture", Project::GetAssetsPath()));
 			ImGui::InputText("##FileName", &m_TextureAssetCreateData.TextureFileName);
 
 			if (ImGui::Button("Import"))
 			{
-				std::string directory = String::ToNarrowCopy(fmt::format(L"{}/Textures", Project::AssetsPath().native()));
+				std::string directory = String::ToNarrowCopy(fmt::format(L"{}/Textures", Project::GetAssetsPath().native()));
 				std::string fileName = std::filesystem::path(m_TextureAssetCreateData.TextureFileName).replace_extension(".sktex").string();
 
 				Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, m_TextureAssetCreateData.TextureSourcePath);
@@ -1654,7 +1678,7 @@ namespace Shark {
 
 		if (ResourceManager::IsMemoryAsset(m_WorkScene->Handle))
 		{
-			auto filePath = PlatformUtils::SaveFileDialog(L"|*.*|Scene|*.skscene", 2, Project::AssetsPath(), true);
+			auto filePath = PlatformUtils::SaveFileDialog(L"|*.*|Scene|*.skscene", 2, Project::GetAssetsPath(), true);
 			if (!filePath.empty())
 			{
 				SK_CORE_ASSERT(filePath.extension() == L".skscene");
@@ -1683,7 +1707,7 @@ namespace Shark {
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
 
-		ScriptEngine::ReloadAssemblies(Project::ScriptModulePath());
+		ScriptEngine::ReloadAssemblies(Project::GetActive()->ScriptModulePath);
 		CheckScriptComponents();
 
 		ScriptEngine::SetActiveScene(m_ActiveScene);
@@ -1732,8 +1756,6 @@ namespace Shark {
 		}
 
 		m_ActiveScene = scene;
-		m_SceneRenderer->SetScene(scene);
-		m_CameraPreviewRenderer->SetScene(scene);
 		SelectEntity(Entity{});
 		DistributeEvent(SceneChangedEvent(scene));
 	}
@@ -1763,16 +1785,16 @@ namespace Shark {
 			Project::SetActive(project);
 			ResourceManager::Init();
 
-			ScriptEngine::LoadAssemblies(Project::ScriptModulePath());
+			ScriptEngine::LoadAssemblies(Project::GetActive()->ScriptModulePath);
 
-			const auto& config = Project::GetActive()->GetConfig();
-			if (!LoadScene(config.ProjectDirectory / config.StartupScenePath))
+			Ref<Project> project = Project::GetActive();
+			if (!LoadScene(project->Directory / project->StartupScenePath))
 				NewScene();
 
-			FileSystem::StartWatching(Project::AssetsPath());
+			FileSystem::StartWatching(Project::GetAssetsPath());
 			DistributeEvent(ProjectChangedEvnet(project));
 
-			m_ProjectEditData = config;
+			m_ProjectEditData = project;
 		}
 	}
 
@@ -1818,8 +1840,7 @@ namespace Shark {
 
 		SK_CORE_ASSERT(Project::GetActive());
 
-		auto& config = Project::GetActive()->GetConfig();
-		SaveProject(config.ProjectDirectory / "Project.skproj");
+		SaveProject(Project::GetDirectory() / "Project.skproj");
 	}
 
 	void EditorLayer::SaveProject(const std::filesystem::path& filePath)
@@ -1864,19 +1885,19 @@ namespace Shark {
 	void EditorLayer::RunScriptSetup()
 	{
 		ExecuteSpecs specs;
-		specs.Target = fmt::format(L"{}/Premake/premake5.exe", Project::Directory());
+		specs.Target = fmt::format(L"{}/Premake/premake5.exe", Project::GetDirectory());
 		// vs2022 dosn't work for some reason but vs2019 still generates vs2022 solution
 		auto sharkDir = std::filesystem::current_path().parent_path();
 		specs.Params = L"vs2019";
 		specs.WaitUntilFinished = true;
-		specs.WorkingDirectory = Project::Directory();
+		specs.WorkingDirectory = Project::GetDirectory();
 		specs.InterhitConsole = true;
 		PlatformUtils::Execute(specs);
 	}
 
 	void EditorLayer::OpenIDE()
 	{
-		auto solutionPath = fmt::format("{}/{}.sln", Project::Directory(), Project::Name());
+		auto solutionPath = fmt::format("{}/{}.sln", Project::GetDirectory(), Project::GetName());
 		PlatformUtils::Execute(ExectueVerb::Open, solutionPath);
 	}
 

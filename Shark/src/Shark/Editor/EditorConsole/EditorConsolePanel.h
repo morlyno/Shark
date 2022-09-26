@@ -44,10 +44,10 @@ namespace Shark {
 		void Clear();
 		bool ClearOnPlay() const { return m_ClearOnPlay; }
 
-		static void PushMessage(Log::Level level, const std::string& message);
+		static void PushMessage(Log::Level level, const std::string& time, const std::string& message);
 
 	private:
-		void PushMessage(MessageLevel level, const std::string& message);
+		void PushMessage(MessageLevel level, const std::string& time, const std::string& message);
 
 		void DrawMessages();
 		void DrawMenuBar();
@@ -73,6 +73,7 @@ namespace Shark {
 			static constexpr size_t MaxFiendlyMessageLength = 100;
 
 			MessageLevel Level;
+			std::string Time;
 			std::string FriendlyMessage;
 			std::string Message;
 		};

@@ -11,7 +11,7 @@
 
 namespace Shark {
 
-	class DirectXImGuiLayer : ImGuiLayer
+	class DirectXImGuiLayer : public ImGuiLayer
 	{
 	public:
 		DirectXImGuiLayer();
@@ -21,6 +21,7 @@ namespace Shark {
 		virtual void OnDetach() override;
 
 		virtual void OnEvent(Event& event) override;
+		virtual void OnImGuiRender() override;
 
 		virtual void Begin() override;
 		virtual void End() override;
@@ -30,7 +31,7 @@ namespace Shark {
 		virtual void BlockEvents(bool block) override { m_BlockEvents = block; }
 		virtual void SubmitBlendCallback(bool blend) override;
 
-		virtual void SetDarkStyle() override;
+
 
 	private:
 		bool m_BlockEvents = false;

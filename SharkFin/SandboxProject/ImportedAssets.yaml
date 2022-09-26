@@ -1,4 +1,10 @@
 Assets:
+  - Handle: 0x53ced70c7d0f062
+    Type: Texture
+    FilePath: Textures/S.sktex
+  - Handle: 0xc3ae82a4d4287b2
+    Type: TextureSource
+    FilePath: TextureSources/PlayButton.png
   - Handle: 0x2d77190c75d8b6ee
     Type: Scene
     FilePath: Scenes/Sanbox.skscene
@@ -8,6 +14,9 @@ Assets:
   - Handle: 0x4b9315598476c506
     Type: Scene
     FilePath: Scenes/TwoQuads.skscene
+  - Handle: 0x4e142bb5b0024afe
+    Type: Texture
+    FilePath: Textures/SimulateButton.sktex
   - Handle: 0x5028d59af2f896de
     Type: Scene
     FilePath: Scenes/Physics.skscene
@@ -23,24 +32,39 @@ Assets:
   - Handle: 0xa72e2969608c3fca
     Type: Texture
     FilePath: Textures/Checkerboard.sktex
+  - Handle: 0xa72e2969608c3fcb
+    Type: Texture
+    FilePath: Textures/Checkerboard ( 2).sktex
   - Handle: 0xb0278653dd5629aa
     Type: Scene
     FilePath: Scenes/MipMapTest.skscene
   - Handle: 0xb8486817d46a0579
     Type: Texture
     FilePath: Textures/Gear.sktex
+  - Handle: 0xb85e9f06e2d44d3f
+    Type: TextureSource
+    FilePath: TextureSources/Test.png
   - Handle: 0xba9cf351d9053a5d
     Type: Scene
     FilePath: Scenes/ScriptTest.skscene
   - Handle: 0xbc9198803f5d806e
     Type: Scene
     FilePath: Scenes/PhysicsScene.skscene
+  - Handle: 0xbd8cd25ce305a8fb
+    Type: TextureSource
+    FilePath: TextureSources/Gear.png
+  - Handle: 0xbda6bc35459a3dcb
+    Type: TextureSource
+    FilePath: TextureSources/Checkboard.png
   - Handle: 0xe7e76a933455104d
     Type: Scene
     FilePath: Scenes/Quads.skscene
-  - Handle: 0xe983de58eb9cb1b1
-    Type: Texture
-    FilePath: Textures/Checkerboard ( 1).sktex
+  - Handle: 0xef721da14212bfee
+    Type: TextureSource
+    FilePath: TextureSources/SimulateButton.png
+  - Handle: 0xf0fac11dc216d02c
+    Type: TextureSource
+    FilePath: TextureSources/S.png
   - Handle: 0xf7a7efe695f20cb4
     Type: Scene
     FilePath: Scenes/StressTest.skscene
