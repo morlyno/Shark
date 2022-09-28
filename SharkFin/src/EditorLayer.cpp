@@ -4,7 +4,6 @@
 #include "Shark/Core/Project.h"
 #include <Shark/Scene/Components.h>
 #include "Shark/Asset/ResourceManager.h"
-#include "Shark/Asset/SceneSerialization.h"
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
 
@@ -15,7 +14,7 @@
 #include "Shark/Utils/PlatformUtils.h"
 
 #include "Panels/SceneHirachyPanel.h"
-#include "Panels/ContentBrowserPanel.h"
+#include "Panels/ContentBrowser/ContentBrowserPanel.h"
 #include "Panels/TextureEditorPanel.h"
 #include "Panels/PhysicsDebugPanel.h"
 
@@ -29,6 +28,7 @@
 
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
+#include "Panels/AssetsPanel.h"
 
 #define SCENE_HIRACHY_ID "SceneHirachyPanel"
 #define CONTENT_BROWSER_ID "ContentBrowserPanel"
@@ -36,6 +36,7 @@
 #define PHYSICS_DEBUG_ID "PhysicsDebugPanel"
 #define ASSET_EDITOR_ID "AssetsEditorPanel"
 #define EDITOR_CONSOLE_ID "EditorConsolePanel"
+#define ASSETS_PANEL_ID "AssetsPanel"
 
 namespace Shark {
 
@@ -61,13 +62,14 @@ namespace Shark {
 		EditorSettings::Init();
 		m_PanelManager = Scope<PanelManager>::Create();
 
-		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, true);
+		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, "Scene Hirachy", true);
 		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
 
-		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, true);
-		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, false);
-		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, true);
-		m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, true);
+		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, "Pyhsics Debug", true);
+		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, "Assets Editor", false);
+		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, "Console", true);
+		m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, "Content Browser", true);
+		m_PanelManager->AddPanel<AssetsPanel>(ASSETS_PANEL_ID, "Assets", false);
 
 		if (!m_StartupProject.empty())
 			OpenProject(m_StartupProject);
@@ -335,7 +337,7 @@ namespace Shark {
 					if (texture)
 					{
 						Ref<AssetEditorPanel> assetEditor = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID);
-						assetEditor->AddEditor<TextureEditorPanel>(texture->Handle, true, texture);
+						assetEditor->AddEditor<TextureEditorPanel>(texture->Handle, "Texture Editor", true, texture);
 					}
 					break;
 				}
@@ -384,7 +386,6 @@ namespace Shark {
 		UI_CameraPrevie();
 		UI_Stats();
 		UI_ProjectSettings();
-		UI_Asset();
 		UI_ImportTexture();
 		UI_DebugScripts();
 
@@ -434,6 +435,11 @@ namespace Shark {
 
 				ImGui::Separator();
 
+				if (ImGui::MenuItem("Import Asset"))
+					ImportAssetDialog();
+
+				ImGui::Separator();
+
 				if (ImGui::MenuItem("Open Project"))
 					OpenProject();
 				if (ImGui::BeginMenu("Recent Projects"))
@@ -462,16 +468,12 @@ namespace Shark {
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("View"))
+			m_PanelManager->DrawPanelsMenu();
+			if (ImGui::BeginMenu("Panels"))
 			{
-				if (ImGui::MenuItem("Scene Hirachy", nullptr, m_PanelManager->IsShown(SCENE_HIRACHY_ID))) { m_PanelManager->ToggleShow(SCENE_HIRACHY_ID); }
-				if (ImGui::MenuItem("Content Browser", nullptr, m_PanelManager->IsShown(CONTENT_BROWSER_ID))) { m_PanelManager->ToggleShow(CONTENT_BROWSER_ID); }
-				if (ImGui::MenuItem("Console", nullptr, m_PanelManager->IsShown(EDITOR_CONSOLE_ID))) { m_PanelManager->ToggleShow(EDITOR_CONSOLE_ID); }
-				if (ImGui::MenuItem("Physics Debug", nullptr, m_PanelManager->IsShown(PHYSICS_DEBUG_ID))) { m_PanelManager->ToggleShow(PHYSICS_DEBUG_ID); }
 				ImGui::Separator();
 				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
 				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
-				ImGui::MenuItem("Assets", nullptr, &m_ShowAssets);
 				ImGui::EndMenu();
 			}
 
@@ -517,14 +519,16 @@ namespace Shark {
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin("MainViewport");
-		ImGui::PopStyleVar(3);
+		ImGui::PopStyleVar(4);
 
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
 		const ImVec2 size = ImGui::GetContentRegionAvail();
+
 
 		if (m_ViewportWidth != size.x || m_ViewportHeight != size.y)
 		{
@@ -1242,163 +1246,6 @@ namespace Shark {
 		ImGui::End();
 	}
 
-	void EditorLayer::UI_Asset()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!m_ShowAssets)
-			return;
-
-		ImGui::Begin("Assets", &m_ShowAssets);
-
-		static std::string SearchBuffer;
-		ImGui::SetNextItemWidth(-1.0f);
-		static bool SearchHasUppercase = false;
-		if (ImGui::InputText("##SearchBuffer", &SearchBuffer))
-		{
-			SearchHasUppercase = false;
-			for (auto& c : SearchBuffer)
-			{
-				if (isupper(c))
-				{
-					SearchHasUppercase = true;
-					break;
-				}
-			}
-		}
-
-		if (ImGui::TreeNodeEx("Imported Assets", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-
-			for (auto [handle, metadata] : ResourceManager::GetAssetRegistry())
-			{
-				if (!SearchBuffer.empty())
-				{
-					std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
-					std::string typeStr = AssetTypeToString(metadata.Type);
-					std::string filePathStr = metadata.FilePath.string();
-
-					if (!SearchHasUppercase)
-					{
-						String::ToLower(handleStrHex);
-						String::ToLower(typeStr);
-						String::ToLower(filePathStr);
-					}
-
-					bool matchFound = false;
-
-					matchFound |= handleStrHex.find(SearchBuffer) != std::string::npos;
-					matchFound |= filePathStr.find(SearchBuffer) != std::string::npos;
-					matchFound |= typeStr.find(SearchBuffer) != std::string::npos;
-
-					if (!matchFound)
-						continue;
-				}
-
-
-				UI::BeginControlsGrid();
-
-				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
-				UI::Control("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
-				UI::Control("FilePath", metadata.FilePath, textFlags);
-				UI::Control("Type", AssetTypeToString(metadata.Type), textFlags);
-
-				UI::EndControls();
-
-				ImGui::Separator();
-			}
-
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNodeEx("Loaded Assets", UI::TreeNodeSeperatorFlags))
-		{
-			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-
-			for (auto [handle, asset] : ResourceManager::GetLoadedAssets())
-			{
-				const auto& metadata = ResourceManager::GetMetaData(asset);
-
-				if (!SearchBuffer.empty())
-				{
-					std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
-					std::string typeStr = AssetTypeToString(metadata.Type);
-					std::string filePathStr = metadata.FilePath.string();
-
-					if (!SearchHasUppercase)
-					{
-						String::ToLower(handleStrHex);
-						String::ToLower(typeStr);
-						String::ToLower(filePathStr);
-					}
-
-					bool matchFound = false;
-
-					matchFound |= handleStrHex.find(SearchBuffer) != std::string::npos;
-					matchFound |= filePathStr.find(SearchBuffer) != std::string::npos;
-					matchFound |= typeStr.find(SearchBuffer) != std::string::npos;
-
-					if (!matchFound)
-						continue;
-				}
-
-
-				UI::BeginControlsGrid();
-
-				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
-				UI::Control("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
-				UI::Control("FilePath", metadata.FilePath, textFlags);
-				UI::Control("Type", AssetTypeToString(metadata.Type), textFlags);
-
-				UI::EndControls();
-			}
-
-			ImGui::TreePop();
-		}
-		
-		if (ImGui::TreeNodeEx("Memory Assets", UI::TreeNodeSeperatorFlags))
-		{
-			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-
-			for (auto [handle, asset] : ResourceManager::GetMemoryAssets())
-			{
-				if (!SearchBuffer.empty())
-				{
-					std::string handleStrHex = fmt::format("{:x}", handle);
-					std::string typeStr = AssetTypeToString(asset->GetAssetType());
-
-					if (!SearchHasUppercase)
-					{
-						String::ToLower(handleStrHex);
-						String::ToLower(typeStr);
-					}
-
-					bool matchFound = false;
-
-					matchFound |= handleStrHex.find(SearchBuffer) != std::string::npos;
-					matchFound |= typeStr.find(SearchBuffer) != std::string::npos;
-
-					if (!matchFound)
-						continue;
-				}
-
-
-				UI::BeginControlsGrid();
-
-				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
-				UI::Control("Handle", fmt::format("{:x}", handle), textFlags);
-				UI::Control("Type", AssetTypeToString(asset->GetAssetType()), textFlags);
-
-				UI::EndControls();
-			}
-
-			ImGui::TreePop();
-		}
-
-		ImGui::End();
-	}
-
 	void EditorLayer::UI_ImportTexture()
 	{
 		SK_PROFILE_FUNCTION();
@@ -1775,7 +1622,7 @@ namespace Shark {
 
 		SK_CORE_INFO("Opening Project [{}]", filePath);
 
-		auto project = Ref<Project>::Create();
+		auto project = Ref<ProjectInstance>::Create();
 		ProjectSerializer serializer(project);
 		if (serializer.Deserialize(filePath))
 		{
@@ -1787,7 +1634,6 @@ namespace Shark {
 
 			ScriptEngine::LoadAssemblies(Project::GetActive()->ScriptModulePath);
 
-			Ref<Project> project = Project::GetActive();
 			if (!LoadScene(project->Directory / project->StartupScenePath))
 				NewScene();
 
@@ -1836,21 +1682,25 @@ namespace Shark {
 
 	void EditorLayer::SaveProject()
 	{
-		SK_PROFILE_FUNCTION();
-
 		SK_CORE_ASSERT(Project::GetActive());
-
 		SaveProject(Project::GetDirectory() / "Project.skproj");
 	}
 
 	void EditorLayer::SaveProject(const std::filesystem::path& filePath)
 	{
-		SK_PROFILE_FUNCTION();
-
 		SK_CORE_ASSERT(Project::GetActive());
-
 		ProjectSerializer serializer(Project::GetActive());
 		serializer.Serialize(filePath);
+	}
+
+	void EditorLayer::ImportAssetDialog()
+	{
+		auto results = PlatformUtils::OpenFileDialogMuliSelect(L"", 1, Project::GetAssetsPath());
+		for (const auto& path : results)
+		{
+			if (!ResourceManager::IsFileImported(path))
+				ResourceManager::ImportAsset(path);
+		}
 	}
 
 	glm::mat4 EditorLayer::GetViewProjFromCameraEntity(Entity cameraEntity)

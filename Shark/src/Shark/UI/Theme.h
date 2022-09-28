@@ -19,8 +19,9 @@ namespace Shark::Theme {
 
 		static ImVec4 PropertyField;
 		static ImVec4 InfoField;
-		static ImVec4 Border;
 		static ImVec4 BorderColored;
+		static ImVec4 BorderColoredWeak;
+
 		static ImVec4 ShadowColored;
 
 		// Console

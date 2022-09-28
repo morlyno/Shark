@@ -5,22 +5,17 @@
 
 namespace Shark {
 
-	AssetEditorPanel::AssetEditorPanel()
+	AssetEditorPanel::AssetEditorPanel(const char* panelName)
+		: Panel(panelName)
 	{
-		SK_PROFILE_FUNCTION();
-
 	}
 
 	AssetEditorPanel::~AssetEditorPanel()
 	{
-		SK_PROFILE_FUNCTION();
-
 	}
 
 	void AssetEditorPanel::OnUpdate(TimeStep ts)
 	{
-		SK_PROFILE_FUNCTION();
-
 		for (auto& [id, entry] : m_EditorPanels)
 			entry.Editor->OnUpdate(ts);
 	}
@@ -45,8 +40,6 @@ namespace Shark {
 
 	void AssetEditorPanel::OnEvent(Event& event)
 	{
-		SK_PROFILE_FUNCTION();
-
 		for (auto& [id, entry] : m_EditorPanels)
 			entry.Editor->OnEvent(event);
 	}

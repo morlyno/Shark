@@ -20,7 +20,7 @@ namespace Shark {
 	class TextureEditorPanel : public EditorPanel
 	{
 	public:
-		TextureEditorPanel(Ref<Texture2D> sourceTexture);
+		TextureEditorPanel(const char* panelName, Ref<Texture2D> sourceTexture);
 		~TextureEditorPanel();
 
 		virtual void OnUpdate(TimeStep ts) override;

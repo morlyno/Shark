@@ -56,7 +56,8 @@ namespace Shark {
 
 	EditorConsolePanel* EditorConsolePanel::s_Instance = nullptr;
 
-	EditorConsolePanel::EditorConsolePanel()
+	EditorConsolePanel::EditorConsolePanel(const char* panelName)
+		: Panel(panelName)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -81,7 +82,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (ImGui::Begin("Console", &shown))
+		if (ImGui::Begin(PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
 		{
 			DrawMenuBar();
 			DrawMessages();
@@ -160,25 +161,24 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		const ImGuiStyle& style = ImGui::GetStyle();
+		const ImGuiWindow* consoleWindow = ImGui::GetCurrentWindow();
+
+		UI::ScopedStyle childRounding(ImGuiStyleVar_ChildRounding, 0);
 
 		const float twoLinesTextHeight = ImGui::GetFontSize() * 2.0f;
 		const float imageSize = ImGui::GetFontSize() * 2.0f + style.FramePadding.y * 2.0f;
 
-		UI::MoveCursorY(-style.ItemSpacing.y);
-		ImGuiID childID = ImGui::GetID("cpMessages");
-		ImGui::BeginChild(childID);
-
-		if (ImGui::BeginTable("Messages", 3, /*ImGuiTableFlags_ScrollY | */ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInner | ImGuiTableFlags_SizingFixedFit))
+		if (ImGui::BeginTable("Messages", 3, ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
 		{
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
 			ImGuiTable* table = ImGui::GetCurrentTable();
 
-			//ImGui::Indent(style.WindowPadding.x);
 			ImGui::PushTextWrapPos(window->WorkRect.Max.x - window->WorkRect.Min.x - style.WindowPadding.x);
 
 			const ImVec2 textSize = ImGui::CalcTextSize("00:00:00");
 			ImGui::TableSetupColumn("##levelImage", ImGuiTableColumnFlags_WidthFixed, imageSize);
 			ImGui::TableSetupColumn("##time", ImGuiTableColumnFlags_WidthFixed, textSize.x);
+			ImGui::TableSetupColumn("##message", ImGuiTableColumnFlags_WidthStretch);
 
 			ImGuiListClipper clipper;
 			clipper.Begin((int)m_Filtered.size());
@@ -191,7 +191,6 @@ namespace Shark {
 					if (!Filter(msg))
 						continue;
 
-					//ImGui::TableNextRow(ImGuiTableRowFlags_None, imageSize);
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(1);
 					UI::MoveCursorY((imageSize - ImGui::GetFontSize()) * 0.5f);
@@ -223,14 +222,13 @@ namespace Shark {
 			}
 
 			ImGui::PopTextWrapPos();
+
+			static bool AutoScroll = true;
+			if (AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+				ImGui::SetScrollHereY(1.0f);
+
 			ImGui::EndTable();
 		}
-
-		static bool AutoScroll = true;
-		if (AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-			ImGui::SetScrollHereY(1.0f);
-
-		ImGui::EndChild();
 	}
 
 	void EditorConsolePanel::DrawMenuBar()

@@ -10,22 +10,19 @@ namespace Shark {
 	{
 	public:
 		template<typename T, typename... Args>
-		Ref<T> AddPanel(const std::string& id, bool show, Args&&... args)
+		Ref<T> AddPanel(const std::string& id, const char* panelName, bool show, Args&&... args)
 		{
-			auto panel = Ref<T>::Create(std::forward<Args>(args)...);
-			AddPanel(id, panel, show);
+			auto panel = Ref<T>::Create(panelName, std::forward<Args>(args)...);
+			m_Panels[id] = { panel, show };
 			return panel;
 		}
-		template<typename T>
-		Ref<T> GetPanel(const std::string& id) const
-		{
-			return m_Panels.at(id).Instance.As<T>();
-		}
 
-		void AddPanel(const std::string& id, Ref<Panel> panel, bool show);
-		void RemovePanel(const std::string& panelID);
-		bool HasPanel(const std::string& id) const;
-		Ref<Panel> GetPanel(const std::string& id) const;
+		template<typename T = Panel>
+		Ref<T> GetPanel(const std::string& id) const { return m_Panels.at(id).Instance.As<T>(); }
+
+		void RemovePanel(const std::string& panelID) { m_Panels.erase(panelID); }
+		bool HasPanel(const std::string& id) const { return m_Panels.find(id) != m_Panels.end(); }
+
 		bool IsShown(const std::string& id) const { return m_Panels.at(id).Shown; }
 		void Show(const std::string& id, bool shown) { m_Panels.at(id).Shown = shown; }
 		bool ToggleShow(const std::string& id) { PanelEntry& entry = m_Panels.at(id); entry.Shown = !entry.Shown; return entry.Shown; }
@@ -36,8 +33,10 @@ namespace Shark {
 		void OnUpdate(TimeStep ts);
 		void OnImGuiRender();
 		void OnEvent(Event& event);
+
+		void DrawPanelsMenu();
+
 	private:
-		// sorted?
 		struct PanelEntry
 		{
 			Ref<Panel> Instance;

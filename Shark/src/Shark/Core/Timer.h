@@ -30,4 +30,23 @@ namespace Shark {
 		Clock::time_point m_Start;
 	};
 
+	class ScopedTimer
+	{
+	public:
+		ScopedTimer(std::string_view name)
+			: m_Name(name)
+		{
+		}
+
+		~ScopedTimer()
+		{
+			const float millis = m_Timer.ElapsedMilliSeconds();
+			SK_CORE_TRACE("[Timer] {0} took {1}ms", m_Name, millis);
+		}
+
+	private:
+		Timer m_Timer;
+		std::string_view m_Name;
+	};
+
 }

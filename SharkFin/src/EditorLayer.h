@@ -78,7 +78,6 @@ namespace Shark {
 		void UI_CameraPrevie();
 		void UI_Stats();
 		void UI_ProjectSettings();
-		void UI_Asset();
 		void UI_ImportTexture();
 		bool UI_MousePicking();
 		void UI_DebugScripts();
@@ -111,6 +110,8 @@ namespace Shark {
 		void CloseProject();
 		void SaveProject();
 		void SaveProject(const std::filesystem::path& filePath);
+
+		void ImportAssetDialog();
 
 		glm::mat4 GetViewProjFromCameraEntity(Entity cameraEntity);
 
@@ -149,7 +150,6 @@ namespace Shark {
 		bool m_ReadHoveredEntity = false;
 		bool m_ShowShaders = false;
 		bool m_ShowProjectSettings = false;
-		bool m_ShowAssets = false;
 		bool m_ShowThemeEditor = false;
 
 		int m_HoveredEntityID = -1;
@@ -178,7 +178,7 @@ namespace Shark {
 			bool ValidStartupScene = true;
 
 			ProjectEditData() = default;
-			ProjectEditData(Ref<Project> project)
+			ProjectEditData(Ref<ProjectInstance> project)
 			{
 				Assets = Project::RelativeCopy(project->AssetsDirectory).string();
 				StartupScene = Project::RelativeCopy(project->StartupScenePath).string();

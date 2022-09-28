@@ -1,11 +1,7 @@
 #include "skpch.h"
 #include "AssetSerializer.h"
 
-#include "Shark/Asset/ResourceManager.h"
-
-#include "Shark/Asset/SceneSerialization.h"
-#include "Shark/Asset/TextureSerialization.h"
-#include "Shark/Asset/TextureSource.h"
+#include "Shark/Asset/Serializers.h"
 
 namespace Shark {
 
@@ -13,10 +9,10 @@ namespace Shark {
 
 	void AssetSerializer::RegisterSerializers()
 	{
-		s_Serializers[AssetType::None] = nullptr;
 		s_Serializers[AssetType::Scene] = Scope<SceneSerializer>::Create();
 		s_Serializers[AssetType::Texture] = Scope<TextureSerializer>::Create();
 		s_Serializers[AssetType::TextureSource] = Scope<TextureSourceSerializer>::Create();
+		s_Serializers[AssetType::ScriptFile] = Scope<ScriptFileSerializer>::Create();
 	}
 
 	void AssetSerializer::ReleaseSerializers()
@@ -26,34 +22,26 @@ namespace Shark {
 
 	bool AssetSerializer::TryLoadData(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
-		const auto& serializer = s_Serializers.at(metadata.Type);
-		if (serializer)
+		if (s_Serializers.find(metadata.Type) != s_Serializers.end())
+		{
+			const auto& serializer = s_Serializers.at(metadata.Type);
 			return serializer->TryLoadData(asset, metadata);
+		}
 
-		SK_CORE_ASSERT(false, "Serializer was null");
+		SK_CORE_ASSERT(false, "Serializer not found");
 		return false;
 	}
 
 	bool AssetSerializer::Serialize(const Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
-		const auto& serializer = s_Serializers.at(metadata.Type);
-		if (serializer)
+		if (s_Serializers.find(metadata.Type) != s_Serializers.end())
+		{
+			const auto& serializer = s_Serializers.at(metadata.Type);
 			return serializer->Serialize(asset, metadata);
+		}
 
-		SK_CORE_ASSERT(false, "Serializer was null");
+		SK_CORE_ASSERT(false, "Serializer not found");
 		return false;
-	}
-
-	bool TextureSourceSerializer::TryLoadData(Ref<Asset>& asset, const AssetMetaData& metadata)
-	{
-		Ref<TextureSource> textureSource = Ref<TextureSource>::Create();
-		asset = textureSource;
-		return true;
-	}
-
-	bool TextureSourceSerializer::Serialize(const Ref<Asset>& asset, const AssetMetaData& metadata)
-	{
-		return true;
 	}
 
 }

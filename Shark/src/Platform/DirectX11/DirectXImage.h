@@ -46,7 +46,7 @@ namespace Shark {
 		virtual RenderID GetViewID() const override { return m_View; }
 		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
-		virtual uint32_t GetHeight() const override { return m_Specification.Width; }
+		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
 
 		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
 		virtual void SetFilePath(const std::filesystem::path& filePath) override { m_FilePath = filePath; }

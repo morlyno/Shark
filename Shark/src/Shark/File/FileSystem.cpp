@@ -162,6 +162,11 @@ namespace Shark {
 		}
 	}
 
+	bool FileSystem::IsValidFileName(std::string_view fileName)
+	{
+		return fileName.find_first_of("\\/:*?\"<>|") == std::string_view::npos;
+	}
+
 	bool FileSystem::CreateScriptFile(const std::filesystem::path& directory, const std::string& projectName, const std::string& scriptName)
 	{
 		const std::string filePath = fmt::format("{}/{}.cs", directory, scriptName);

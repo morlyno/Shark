@@ -18,7 +18,8 @@
 
 namespace Shark {
 
-	TextureEditorPanel::TextureEditorPanel(Ref<Texture2D> sourceTexture)
+	TextureEditorPanel::TextureEditorPanel(const char* panelName, Ref<Texture2D> sourceTexture)
+		: EditorPanel(PanelName)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -96,7 +97,7 @@ namespace Shark {
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::BeginEx("Texture Editor", m_DockspaceWindowID, &m_Active, ImGuiWindowFlags_NoSavedSettings);
+		ImGui::BeginEx(PanelName, m_DockspaceWindowID, &m_Active, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::PopStyleVar(2);
 
 		ImGui::DockSpace(m_DockspaceID);

@@ -46,6 +46,12 @@ namespace Shark {
 		}
 	}
 
+	static void LogHResult(HRESULT hr)
+	{
+		std::string msg = std::system_category().message(hr);
+		SK_CORE_ERROR("[Win32] {0}", msg);
+	}
+
 	std::string WindowsUtils::TranslateErrorCode(DWORD error)
 	{
 		LPSTR messageBuffer = NULL;
@@ -234,18 +240,27 @@ namespace Shark {
 	std::filesystem::path WindowsUtils::OpenFileDialog(const std::wstring& filter, uint32_t defaultFilterindex, const std::filesystem::path& defaultPath, bool overrideDefault)
 	{
 		auto& window = Application::Get().GetWindow();
-		std::filesystem::path result;
-		if (FileDialogShared((HWND)window.GetHandle(), false, filter, defaultFilterindex, false, defaultPath, overrideDefault, result))
-			return result;
+		std::vector<std::filesystem::path> results;
+		if (FileDialogShared((HWND)window.GetHandle(), false, false, filter, defaultFilterindex, false, defaultPath, overrideDefault, results))
+			return results.back();
 		return {};
 	}
 
 	std::filesystem::path WindowsUtils::SaveFileDialog(const std::wstring& filter, uint32_t defaultFilterindex, const std::filesystem::path& defaultPath, bool overrideDefault, bool appenedFileExetention)
 	{
 		auto& window = Application::Get().GetWindow();
-		std::filesystem::path result;
-		if (FileDialogShared((HWND)window.GetHandle(), true, filter, defaultFilterindex, appenedFileExetention, defaultPath, overrideDefault, result))
-			return result;
+		std::vector<std::filesystem::path> results;
+		if (FileDialogShared((HWND)window.GetHandle(), true, false, filter, defaultFilterindex, appenedFileExetention, defaultPath, overrideDefault, results))
+			return results.back();
+		return {};
+	}
+
+	std::vector<std::filesystem::path> WindowsUtils::OpenFileDialogMuliSelect(const std::wstring& filter, uint32_t defaultFilterindex, const std::filesystem::path& defaultPath, bool overrideDefault)
+	{
+		auto& window = Application::Get().GetWindow();
+		std::vector<std::filesystem::path> results;
+		if (FileDialogShared((HWND)window.GetHandle(), false, true, filter, defaultFilterindex, false, defaultPath, overrideDefault, results))
+			return results;
 		return {};
 	}
 
@@ -287,8 +302,62 @@ namespace Shark {
 					shellItem->Release();
 				}
 
-				fileDialog->Release();
 			}
+			fileDialog->Release();
+		}
+
+		return result;
+	}
+
+	std::vector<std::filesystem::path> WindowsUtils::OpenDirectoryDialogMultiSelect(const std::filesystem::path& defaultPath)
+	{
+		std::vector<std::filesystem::path> result;
+
+		IFileOpenDialog* fileDialog;
+		if (SUCCEEDED(::CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileOpenDialog, (void**)&fileDialog)))
+		{
+			DWORD flags;
+			fileDialog->GetOptions(&flags);
+			fileDialog->SetOptions(flags | FOS_PICKFOLDERS | FOS_DONTADDTORECENT | FOS_ALLOWMULTISELECT);
+
+			if (!defaultPath.empty())
+			{
+				auto windowsDefaultPath = std::filesystem::absolute(defaultPath);
+				windowsDefaultPath = String::FormatWindowsCopy(windowsDefaultPath);
+				IShellItem* defualtPathItem;
+				if (SUCCEEDED(::SHCreateItemFromParsingName(windowsDefaultPath.c_str(), NULL, IID_PPV_ARGS(&defualtPathItem))))
+				{
+					fileDialog->SetDefaultFolder(defualtPathItem);
+				}
+			}
+
+			auto& window = Application::Get().GetWindow();
+			if (SUCCEEDED(fileDialog->Show((HWND)window.GetHandle())))
+			{
+				IShellItemArray* shellItemArray;
+				if (SUCCEEDED(fileDialog->GetResults(&shellItemArray)))
+				{
+					DWORD count = 0;
+					shellItemArray->GetCount(&count);
+					for (uint32_t i = 0; i < count; i++)
+					{
+						IShellItem* shellItem;
+						if (SUCCEEDED(shellItemArray->GetItemAt(i, &shellItem)))
+						{
+							PWSTR filePath;
+							if (SUCCEEDED(shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
+							{
+								result.emplace_back(String::FormatDefaultCopy(filePath));
+								CoTaskMemFree(filePath);
+							}
+							shellItem->Release();
+						}
+					}
+					shellItemArray->Release();
+				}
+
+			}
+			fileDialog->Release();
 		}
 
 		return result;
@@ -348,7 +417,7 @@ namespace Shark {
 		return recycleBin;
 	}
 
-	bool WindowsUtils::FileDialogShared(HWND parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, bool appenedFileExetention, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result)
+	bool WindowsUtils::FileDialogShared(HWND parentWindow, bool save, bool multiSelect, const std::wstring& filter, uint32_t defaultFilterIndex, bool appenedFileExetention, const std::filesystem::path& defaultPath, bool overrideDefault, std::vector<std::filesystem::path>& out_MultiSelectResults)
 	{
 		bool success = false;
 
@@ -361,6 +430,10 @@ namespace Shark {
 			DWORD flags;
 			fileDialog->GetOptions(&flags);
 			flags |= FOS_DONTADDTORECENT | FOS_FILEMUSTEXIST;
+
+			if (multiSelect)
+				flags |= FOS_ALLOWMULTISELECT;
+
 			fileDialog->SetOptions(flags);
 
 			if (!defaultPath.empty())
@@ -412,25 +485,55 @@ namespace Shark {
 
 			if (SUCCEEDED(fileDialog->Show(parentWindow)))
 			{
-				IShellItem* shellItem;
-				if (SUCCEEDED(fileDialog->GetResult(&shellItem)))
+				if (multiSelect)
 				{
-					PWSTR filePath;
-					if (SUCCEEDED(shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
+					IFileOpenDialog* fileOpendDialog = nullptr;
+					if (SUCCEEDED(fileDialog->QueryInterface(IID_IFileOpenDialog, (void**)&fileOpendDialog)))
 					{
-						out_Result = filePath;
-						String::FormatDefault(out_Result);
+						IShellItemArray* results = nullptr;
+						if (SUCCEEDED(fileOpendDialog->GetResults(&results)))
+						{
+							DWORD count = 0;
+							results->GetCount(&count);
+							out_MultiSelectResults.reserve(count);
+							for (DWORD i = 0; i < count; i++)
+							{
+								IShellItem* shellItem = nullptr;
+								if (SUCCEEDED(results->GetItemAt(i, &shellItem)))
+								{
+									PWSTR filePath;
+									if (SUCCEEDED(shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
+									{
+										out_MultiSelectResults.emplace_back(String::FormatDefaultCopy(filePath));
+										CoTaskMemFree(filePath);
+									}
+									shellItem->Release();
+								}
+							}
+							results->Release();
+						}
+						fileOpendDialog->Release();
+					}
+				}
+				else
+				{
+					IShellItem* shellItem;
+					if (SUCCEEDED(fileDialog->GetResult(&shellItem)))
+					{
+						PWSTR filePath;
+						if (SUCCEEDED(shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
+						{
+							out_MultiSelectResults.emplace_back(String::FormatDefaultCopy(filePath));
+							CoTaskMemFree(filePath);
+						}
 
-						CoTaskMemFree(filePath);
+						shellItem->Release();
 					}
 
-					shellItem->Release();
+					fileDialog->Release();
 				}
-
-				fileDialog->Release();
 			}
 		}
-
 		return true;
 	}
 

@@ -42,14 +42,14 @@ namespace Shark {
 	class ProjectChangedEvnet : public EventBase<EventType::ProjectChanged, EventCategory::Application>
 	{
 	public:
-		ProjectChangedEvnet(Ref<Project> project)
+		ProjectChangedEvnet(Ref<ProjectInstance> project)
 			: m_Project(project)
 		{}
 
-		Ref<Project> GetProject() const { return m_Project; }
+		Ref<ProjectInstance> GetProject() const { return m_Project; }
 
 	private:
-		Ref<Project> m_Project;
+		Ref<ProjectInstance> m_Project;
 	};
 
 }

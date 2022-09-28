@@ -49,7 +49,8 @@ namespace Shark {
 
 	}
 
-	PhysicsDebugPanel::PhysicsDebugPanel()
+	PhysicsDebugPanel::PhysicsDebugPanel(const char* panelName)
+		: Panel(panelName)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -62,7 +63,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (!ImGui::Begin("Physics Debug", &shown))
+		if (!ImGui::Begin(PanelName, &shown))
 		{
 			ImGui::End();
 			return;

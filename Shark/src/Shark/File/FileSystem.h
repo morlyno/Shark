@@ -11,6 +11,9 @@ namespace Shark {
 	class FileSystem
 	{
 	public:
+		static constexpr std::string_view InvalidCharacters = "\\/:*?\"<>|";
+
+	public:
 		static void StartWatching();
 		static void StartWatching(const std::filesystem::path& directory);
 		static void StartWatching(const std::filesystem::path& directory, FileWatcherCallbackFunc callback);
@@ -28,6 +31,8 @@ namespace Shark {
 		static std::filesystem::path GetUnsusedPath(const std::filesystem::path& filePath);
 		static std::filesystem::path MakeFreeFilePath(const std::filesystem::path& directory, const std::filesystem::path& fileName);
 		static void MakeFreeFilePath(std::filesystem::path& fsPath);
+
+		static bool IsValidFileName(std::string_view fileName);
 
 		static bool CreateScriptFile(const std::filesystem::path& directory, const std::string& projectName, const std::string& scriptName);
 

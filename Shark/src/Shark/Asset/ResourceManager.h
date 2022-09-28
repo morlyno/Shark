@@ -20,18 +20,14 @@ namespace Shark {
 
 		static const AssetMetaData& GetMetaData(AssetHandle handle);
 		static const AssetMetaData& GetMetaData(Ref<Asset> asset) { return GetMetaData(asset->Handle); }
-		static const AssetMetaData& GetMetaData(const std::filesystem::path& filePath) { return GetMetaData(GetAssetHandleFromFilePath(MakeRelativePath(filePath))); }
+		static const AssetMetaData& GetMetaData(const std::filesystem::path& filePath) { return GetMetaData(GetAssetHandleFromFilePath(filePath)); }
 
-		static AssetType GetAssetTypeFormFilePath(const std::filesystem::path& filePath) { return GetAssetTypeFormExtension(filePath.extension().string()); }
-		static AssetType GetAssetTypeFormFileName(const std::string& file) { return GetAssetTypeFormFilePath(file); }
+		static AssetType GetAssetTypeFormFilePath(const std::filesystem::path& filePath);
 		static AssetType GetAssetTypeFormExtension(const std::string& fileExtension);
 
 		static bool IsValidAssetHandle(AssetHandle handle);
-		static bool IsDataLoaded(AssetHandle handle);
 		static bool IsMemoryAsset(AssetHandle handle);
-
-		static bool IsImportedAsset(AssetHandle handle);
-		static bool IsLoadedAsset(AssetHandle handle);
+		static bool IsFileImported(const std::filesystem::path& path);
 
 		static bool HasExistingFilePath(const AssetMetaData& metadata);
 		static bool HasExistingFilePath(Ref<Asset> asset) { return HasExistingFilePath(GetMetaData(asset->Handle)); }
@@ -46,7 +42,6 @@ namespace Shark {
 
 		static bool LoadAsset(AssetHandle handle);
 		static bool SaveAsset(AssetHandle handle);
-		static bool SaveAsset(Ref<Asset> asset);
 		static void ReloadAsset(AssetHandle handle);
 
 		static void UnloadAsset(AssetHandle handle);
@@ -58,23 +53,19 @@ namespace Shark {
 		template<typename T = Asset>
 		static Ref<T> GetAsset(AssetHandle handle)
 		{
-			SK_PROFILE_FUNCTION();
-
 			static_assert(std::is_base_of_v<Asset, T>, "GetAsset only works for types with base class Asset");
-			if (!handle.IsValid())
-				return nullptr;
-
-			if (IsMemoryAsset(handle))
-			{
-				Ref<Asset> asset = s_MemoryAssets.at(handle);
-				if (asset->GetAssetType() == T::GetStaticType())
-					return asset.As<T>();
-				return nullptr;
-			}
 
 			AssetMetaData& metadata = GetMetaDataInternal(handle);
 			if (!metadata.IsValid())
 				return nullptr;
+
+			if (metadata.IsMemoryAsset)
+			{
+				Ref<Asset> asset = s_Data->LoadedAssets.at(handle);
+				if (asset->GetAssetType() == T::GetStaticType())
+					return asset.As<T>();
+				return nullptr;
+			}
 
 			if (!metadata.IsDataLoaded)
 			{
@@ -83,37 +74,27 @@ namespace Shark {
 				if (!metadata.IsDataLoaded)
 					return asset.As<T>(); // returns asset with Error Flags set
 
-				s_LoadedAssets[handle] = asset;
+				s_Data->LoadedAssets[handle] = asset;
 
 				if (asset->GetAssetType() == T::GetStaticType())
 					return asset.As<T>();
 				return nullptr;
 			}
 
-			return s_LoadedAssets.at(handle).As<T>();
+			return s_Data->LoadedAssets.at(handle).As<T>();
 		}
 
 		template<typename T = Asset>
 		static Ref<T> GetLoadedAsset(AssetHandle handle)
 		{
-			SK_PROFILE_FUNCTION();
-
 			static_assert(std::is_base_of_v<Asset, T>, "GetAsset only works for types with base class Asset");
-			if (!handle.IsValid())
-				return nullptr;
-
-			if (IsMemoryAsset(handle))
-			{
-				Ref<Asset> asset = s_MemoryAssets.at(handle);
-				return asset.As<T>();
-			}
 
 			const AssetMetaData& metadata = GetMetaDataInternal(handle);
 			if (!metadata.IsValid())
 				return nullptr;
 
 			if (metadata.IsDataLoaded)
-				return s_LoadedAssets.at(handle).As<T>();
+				return s_Data->LoadedAssets.at(handle).As<T>();
 			return nullptr;
 		}
 
@@ -129,7 +110,7 @@ namespace Shark {
 
 			static_assert(!std::is_same_v<Asset, T>);
 			static_assert(std::is_base_of_v<Asset, T>, "CreateAsset only works for types with base class Asset!");
-			SK_CORE_ASSERT(GetAssetTypeFormFileName(fileName) == T::GetStaticType());
+			//SK_CORE_ASSERT(GetAssetTypeFormFileName(fileName) == T::GetStaticType());
 
 			std::string dirPath = MakeRelativePathString(directoryPath);
 
@@ -157,12 +138,12 @@ namespace Shark {
 				metadata.FilePath = MakeRelativePath(filesystemPath);
 			}
 
-			s_ImportedAssets[metadata.Handle] = metadata;
+			s_Data->ImportedAssets[metadata.Handle] = metadata;
 
 			Ref<T> asset = T::Create(std::forward<Args>(args)...);
 
 			asset->Handle = metadata.Handle;
-			s_LoadedAssets[metadata.Handle] = asset;
+			s_Data->LoadedAssets[metadata.Handle] = asset;
 
 			AssetSerializer::Serialize(asset, metadata);
 			WriteImportedAssetsToDisc();
@@ -170,23 +151,26 @@ namespace Shark {
 			return asset;
 		}
 
-		template<typename T, typename... Args>
-		static Ref<T> CreateMemoryAsset(Args&&... args)
+		template<typename TAsset, typename... TArgs>
+		static Ref<TAsset> CreateMemoryAsset(TArgs&&... args)
 		{
-			SK_PROFILE_FUNCTION();
+			static_assert(std::is_base_of_v<Asset, TAsset>, "CreateMemoryAsset only works for types with base class Asset!");
 
-			static_assert(std::is_base_of_v<Asset, T>, "CreateMemoryAsset only works for types with base class Asset!");
+			AssetMetaData metadata;
+			metadata.Type = TAsset::GetStaticType();
+			metadata.Handle = AssetHandle::Generate();
+			metadata.IsMemoryAsset = true;
+			s_Data->ImportedAssets[metadata.Handle] = metadata;
 
-			AssetHandle handle = AssetHandle::Generate();
-			Ref<T> asset = T::Create(std::forward<Args>(args)...);
-			asset->Handle = handle;
-			s_MemoryAssets[handle] = asset;
+			Ref<TAsset> asset = TAsset::Create(std::forward<TArgs>(args)...);
+			asset->Handle = metadata.Handle;
+			s_Data->LoadedAssets[metadata.Handle] = asset;
+
 			return asset;
 		}
 
-		static const auto& GetAssetRegistry() { return s_ImportedAssets; }
-		static const auto& GetLoadedAssets() { return s_LoadedAssets; }
-		static const auto& GetMemoryAssets() { return s_MemoryAssets; }
+		static const auto& GetAssetRegistry() { return s_Data->ImportedAssets; }
+		static const auto& GetLoadedAssets() { return s_Data->LoadedAssets; }
 
 		// File Events
 		static void OnFileEvents(const std::vector<FileChangedData>& fileEvents);
@@ -198,10 +182,12 @@ namespace Shark {
 		static void WriteImportedAssetsToDisc();
 		static void ReadImportedAssetsFromDisc();
 
-	private:
-		static std::unordered_map<AssetHandle, AssetMetaData> s_ImportedAssets;
-		static std::unordered_map<AssetHandle, Ref<Asset>> s_LoadedAssets;
-		static std::unordered_map<AssetHandle, Ref<Asset>> s_MemoryAssets;
+		struct ResourceManagerData
+		{
+			std::unordered_map<AssetHandle, AssetMetaData> ImportedAssets;
+			std::unordered_map<AssetHandle, Ref<Asset>> LoadedAssets;
+		};
+		static ResourceManagerData* s_Data;
 	};
 
 }

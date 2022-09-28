@@ -56,14 +56,17 @@ namespace Shark {
 		static std::filesystem::path OpenFileDialog(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
 		static std::filesystem::path SaveFileDialog(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false, bool appenedFileExetention = true);
 
+		static std::vector<std::filesystem::path> OpenFileDialogMuliSelect(const std::wstring& filter, uint32_t defaultFilterindex = 1, const std::filesystem::path& defaultPath = {}, bool overrideDefault = false);
+
 		static std::filesystem::path OpenDirectoryDialog(const std::filesystem::path& defaultPath = std::filesystem::path{});
+		static std::vector<std::filesystem::path> OpenDirectoryDialogMultiSelect(const std::filesystem::path& defaultPath = std::filesystem::path{});
 
 		static void MoveFileToRecycleBin(const std::filesystem::path& file);
 
 	private:
 		static IShellItem* GetRecycleBin();
 
-		static bool FileDialogShared(HWND parentWindow, bool save, const std::wstring& filter, uint32_t defaultFilterIndex, bool appenedFileExetention, const std::filesystem::path& defaultPath, bool overrideDefault, std::filesystem::path& out_Result);
+		static bool FileDialogShared(HWND parentWindow, bool save, bool multiSelect, const std::wstring& filter, uint32_t defaultFilterIndex, bool appenedFileExetention, const std::filesystem::path& defaultPath, bool overrideDefault, std::vector<std::filesystem::path>& out_MultiSelectResults);
 	};
 
 }

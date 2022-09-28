@@ -668,41 +668,6 @@ namespace Shark::UI {
 		return changed || clear;
 	}
 
-	bool InputTextFiltered(ImGuiID id, char* buffer, int bufferSize, const wchar_t* filterItems, int itemCount)
-	{
-		ScopedID scopedID(id);
-
-		struct FilterData
-		{
-			const wchar_t* Items;
-			int Count;
-		};
-
-		auto filterFunc = [](ImGuiInputTextCallbackData* data) -> int
-		{
-			FilterData& filterData = *(FilterData*)data->UserData;
-			for (int i = 0; i < filterData.Count; i++)
-				if (data->EventChar == filterData.Items[i])
-					return 1;
-			return 0;
-		};
-
-		FilterData filterData;
-		filterData.Items = filterItems;
-		filterData.Count = itemCount;
-
-		return ImGui::InputTextEx(id, "##inputFileName", nullptr, buffer, bufferSize, ImVec2(0, 0), ImGuiInputTextFlags_CallbackCharFilter, filterFunc, &filterData);
-	}
-
-	bool InputTextFiltered(ImGuiID id, char* buffer, int bufferSize, const wchar_t* filterItems)
-	{
-		const int count = (int)wcslen(filterItems);
-		if (count <= 1)
-			return false;
-
-		return InputTextFiltered(id, buffer, bufferSize, filterItems, count - 1);
-	}
-
 	UIContext::UIContext()
 	{
 		DefaultFormat[ImGuiDataType_S8] = "%d";

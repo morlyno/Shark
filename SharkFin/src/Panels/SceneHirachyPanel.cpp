@@ -156,8 +156,8 @@ namespace Shark {
 
 	}
 
-	SceneHirachyPanel::SceneHirachyPanel(Ref<Scene> scene)
-		: m_Context(scene)
+	SceneHirachyPanel::SceneHirachyPanel(const char* panelName, Ref<Scene> scene)
+		: Panel(panelName), m_Context(scene)
 	{
 		SK_PROFILE_FUNCTION();
 	}
@@ -169,7 +169,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (ImGui::Begin("Scene Hirachy", &shown) && m_Context)
+		if (ImGui::Begin(PanelName, &shown) && m_Context)
 		{
 			m_HirachyFocused = ImGui::IsWindowFocused();
 

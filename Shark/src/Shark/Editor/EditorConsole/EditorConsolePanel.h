@@ -35,7 +35,7 @@ namespace Shark {
 			Error
 		};
 	public:
-		EditorConsolePanel();
+		EditorConsolePanel(const char* panelName);
 		~EditorConsolePanel();
 
 		virtual void OnImGuiRender(bool& shown) override;

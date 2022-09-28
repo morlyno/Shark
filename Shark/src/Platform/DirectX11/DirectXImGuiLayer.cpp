@@ -47,8 +47,8 @@ namespace Shark {
 		ImGuiStyle& style = ImGui::GetStyle();
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
-			style.WindowRounding = 0.0f;
-			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+			//style.WindowRounding = 0.0f;
+			//style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
 
 

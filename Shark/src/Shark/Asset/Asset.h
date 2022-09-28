@@ -14,8 +14,9 @@ namespace Shark {
 		AssetType Type = AssetType::None;
 		std::filesystem::path FilePath; // relative to Assets (not Project!)
 		bool IsDataLoaded = false;
+		bool IsMemoryAsset = false;
 
-		bool IsValid() const { return Handle.IsValid() && (Type != AssetType::None) && !FilePath.empty(); }
+		bool IsValid() const { return Handle.IsValid() && (Type != AssetType::None) /*&& (IsMemoryAsset || !FilePath.empty())*/; }
 	};
 
 	namespace AssetFlag {

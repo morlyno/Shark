@@ -1,70 +1,112 @@
 Assets:
-  - Handle: 0x53ced70c7d0f062
-    Type: Texture
-    FilePath: Textures/S.sktex
-  - Handle: 0xc3ae82a4d4287b2
-    Type: TextureSource
-    FilePath: TextureSources/PlayButton.png
-  - Handle: 0x2d77190c75d8b6ee
-    Type: Scene
-    FilePath: Scenes/Sanbox.skscene
   - Handle: 0x37dc48808083e849
     Type: Scene
     FilePath: Scenes/Cube.skscene
-  - Handle: 0x4b9315598476c506
-    Type: Scene
-    FilePath: Scenes/TwoQuads.skscene
-  - Handle: 0x4e142bb5b0024afe
-    Type: Texture
-    FilePath: Textures/SimulateButton.sktex
-  - Handle: 0x5028d59af2f896de
-    Type: Scene
-    FilePath: Scenes/Physics.skscene
-  - Handle: 0x5b3ed9bb804eccc0
-    Type: Scene
-    FilePath: Scenes/PlayerTest.skscene
-  - Handle: 0x687958ac4bb829af
-    Type: Scene
-    FilePath: Scenes/ParentingTest.skscene
-  - Handle: 0x86f39dc7dff51af6
-    Type: Scene
-    FilePath: Scenes/ParentingScriptingTest.skscene
-  - Handle: 0xa72e2969608c3fca
-    Type: Texture
-    FilePath: Textures/Checkerboard.sktex
-  - Handle: 0xa72e2969608c3fcb
-    Type: Texture
-    FilePath: Textures/Checkerboard ( 2).sktex
   - Handle: 0xb0278653dd5629aa
     Type: Scene
     FilePath: Scenes/MipMapTest.skscene
-  - Handle: 0xb8486817d46a0579
-    Type: Texture
-    FilePath: Textures/Gear.sktex
-  - Handle: 0xb85e9f06e2d44d3f
-    Type: TextureSource
-    FilePath: TextureSources/Test.png
-  - Handle: 0xba9cf351d9053a5d
+  - Handle: 0x86f39dc7dff51af6
     Type: Scene
-    FilePath: Scenes/ScriptTest.skscene
+    FilePath: Scenes/ParentingScriptingTest.skscene
+  - Handle: 0x687958ac4bb829af
+    Type: Scene
+    FilePath: Scenes/ParentingTest.skscene
+  - Handle: 0x5028d59af2f896de
+    Type: Scene
+    FilePath: Scenes/Physics.skscene
   - Handle: 0xbc9198803f5d806e
     Type: Scene
     FilePath: Scenes/PhysicsScene.skscene
-  - Handle: 0xbd8cd25ce305a8fb
-    Type: TextureSource
-    FilePath: TextureSources/Gear.png
-  - Handle: 0xbda6bc35459a3dcb
-    Type: TextureSource
-    FilePath: TextureSources/Checkboard.png
+  - Handle: 0x5b3ed9bb804eccc0
+    Type: Scene
+    FilePath: Scenes/PlayerTest.skscene
   - Handle: 0xe7e76a933455104d
     Type: Scene
     FilePath: Scenes/Quads.skscene
-  - Handle: 0xef721da14212bfee
-    Type: TextureSource
-    FilePath: TextureSources/SimulateButton.png
-  - Handle: 0xf0fac11dc216d02c
-    Type: TextureSource
-    FilePath: TextureSources/S.png
+  - Handle: 0x2d77190c75d8b6ee
+    Type: Scene
+    FilePath: Scenes/Sanbox.skscene
+  - Handle: 0xba9cf351d9053a5d
+    Type: Scene
+    FilePath: Scenes/ScriptTest.skscene
   - Handle: 0xf7a7efe695f20cb4
     Type: Scene
     FilePath: Scenes/StressTest.skscene
+  - Handle: 0x4b9315598476c506
+    Type: Scene
+    FilePath: Scenes/TwoQuads.skscene
+  - Handle: 0xa72e2969608c3fcb
+    Type: Texture
+    FilePath: Textures/Checkerboard ( 2).sktex
+  - Handle: 0xa72e2969608c3fca
+    Type: Texture
+    FilePath: Textures/Checkerboard.sktex
+  - Handle: 0xb8486817d46a0579
+    Type: Texture
+    FilePath: Textures/Gear.sktex
+  - Handle: 0x53ced70c7d0f062
+    Type: Texture
+    FilePath: Textures/S.sktex
+  - Handle: 0x4e142bb5b0024afe
+    Type: Texture
+    FilePath: Textures/SimulateButton.sktex
+  - Handle: 0xbda6bc35459a3dcb
+    Type: TextureSource
+    FilePath: TextureSources/Checkboard.png
+  - Handle: 0xbd8cd25ce305a8fb
+    Type: TextureSource
+    FilePath: TextureSources/Gear.png
+  - Handle: 0xc3ae82a4d4287b2
+    Type: TextureSource
+    FilePath: TextureSources/PlayButton.png
+  - Handle: 0xf0fac11dc216d02c
+    Type: TextureSource
+    FilePath: TextureSources/S.png
+  - Handle: 0xef721da14212bfee
+    Type: TextureSource
+    FilePath: TextureSources/SimulateButton.png
+  - Handle: 0xb85e9f06e2d44d3f
+    Type: TextureSource
+    FilePath: TextureSources/Test.png
+  - Handle: 0xffecbc207de076ba
+    Type: TextureSource
+    FilePath: TextureSources/castle_brick_broken_06_diff_4k.png
+  - Handle: 0xd70a4d03a8c805b0
+    Type: TextureSource
+    FilePath: TextureSources/clarens_night_01_4k.png
+  - Handle: 0xcd437c60b052fcff
+    Type: ScriptFile
+    FilePath: Scripts/Source/BallDestroyer.cs
+  - Handle: 0x5bb4ff2e7ac0ce76
+    Type: ScriptFile
+    FilePath: Scripts/Source/BasicScript.cs
+  - Handle: 0x5a3b2c3a72211aab
+    Type: ScriptFile
+    FilePath: Scripts/Source/Bullet.cs
+  - Handle: 0x35b0136ecd032bb7
+    Type: ScriptFile
+    FilePath: Scripts/Source/CameraScript.cs
+  - Handle: 0xc0767fb861928954
+    Type: ScriptFile
+    FilePath: Scripts/Source/ChildController.cs
+  - Handle: 0x468fe37b1048351c
+    Type: ScriptFile
+    FilePath: Scripts/Source/DoorSensor.cs
+  - Handle: 0x1cff5a51dc5c2ea5
+    Type: ScriptFile
+    FilePath: Scripts/Source/EmptyScript.cs
+  - Handle: 0x46a00932d83b7ce4
+    Type: ScriptFile
+    FilePath: Scripts/Source/FloorScript.cs
+  - Handle: 0x56ebdc8a7f1569c4
+    Type: ScriptFile
+    FilePath: Scripts/Source/PlatformScript.cs
+  - Handle: 0xd352284d5df640cf
+    Type: ScriptFile
+    FilePath: Scripts/Source/PlayerController.cs
+  - Handle: 0x4a3a57230810199c
+    Type: ScriptFile
+    FilePath: Scripts/Source/StressTest.cs
+  - Handle: 0xce0b9ef18f1d952b
+    Type: ScriptFile
+    FilePath: Scripts/Source/TestScript.cs

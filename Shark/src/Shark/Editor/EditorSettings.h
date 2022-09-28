@@ -5,7 +5,7 @@
 
 namespace Shark {
 
-	class EditorSettings : public RefCount
+	class EditorSettings
 	{
 	public:
 		static void Init();
@@ -14,7 +14,12 @@ namespace Shark {
 		static EditorSettings& Get();
 
 	public:
-		float ContentBrowserThumbnailSize = 120.0f;
+		struct ContentBrowserSettings
+		{
+			float ThumbnailSize = 120.0f;
+			bool GenerateThumbnails = true;
+		};
+		ContentBrowserSettings ContentBrowser;
 	};
 
 }

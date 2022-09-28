@@ -11,7 +11,20 @@
 
 namespace Shark {
 
-	static Ref<Project> s_ActiveProject = nullptr;
+	static Ref<ProjectInstance> s_ActiveProject = nullptr;
+
+	std::filesystem::path ProjectInstance::GetRelative(const std::filesystem::path& filePath)
+	{
+		if (filePath.is_absolute())
+			return String::FormatDefaultCopy(std::filesystem::relative(filePath, Directory));
+		return filePath;
+	}
+
+	std::filesystem::path ProjectInstance::GetAbsolue(const std::filesystem::path& filePath)
+	{
+		return String::FormatDefaultCopy(Directory / filePath);
+	}
+
 
 	const std::string& Project::GetName()
 	{
@@ -30,39 +43,37 @@ namespace Shark {
 
 	std::filesystem::path Project::RelativeCopy(const std::filesystem::path& filePath)
 	{
-		return String::FormatDefaultCopy(std::filesystem::relative(filePath, s_ActiveProject->Directory));
+		return s_ActiveProject->GetRelative(filePath);
 	}
 
 	std::filesystem::path Project::AbsolueCopy(const std::filesystem::path& filePath)
 	{
-		return String::FormatDefaultCopy(s_ActiveProject->Directory / filePath);
+		return s_ActiveProject->GetAbsolue(filePath);
 	}
 
 	void Project::Relative(std::filesystem::path& filePath)
 	{
-		filePath = std::filesystem::relative(filePath, s_ActiveProject->Directory);
-		String::FormatDefault(filePath);
+		filePath = s_ActiveProject->GetRelative(filePath);
 	}
 
 	void Project::Absolue(std::filesystem::path& filePath)
 	{
-		filePath = s_ActiveProject->Directory / filePath;
-		String::FormatDefault(filePath);
+		filePath = s_ActiveProject->GetAbsolue(filePath);
 	}
 
-	Ref<Project> Project::GetActive()
+	Ref<ProjectInstance> Project::GetActive()
 	{
 		return s_ActiveProject;
 	}
 
-	void Project::SetActive(Ref<Project> project)
+	void Project::SetActive(Ref<ProjectInstance> project)
 	{
 		s_ActiveProject = project;
 	}
 
 
 
-	ProjectSerializer::ProjectSerializer(Ref<Project> project)
+	ProjectSerializer::ProjectSerializer(Ref<ProjectInstance> project)
 		: m_Project(project)
 	{
 	}
@@ -132,7 +143,7 @@ namespace Shark {
 		SK_CORE_TRACE("    ValocityIterations: {}", config.VelocityIterations);
 		SK_CORE_TRACE("    PositionIterations: {}", config.PositionIterations);
 		SK_CORE_TRACE("    FixedTimeStep: {}", config.FixedTimeStep);
-		SK_CORE_INFO("Project Serialization tock: {}ms", time);
+		SK_CORE_INFO("Project Serialization took: {:.4f}ms", time);
 
 		return true;
 	}
@@ -161,20 +172,10 @@ namespace Shark {
 		auto scriptModulePath   = project["ScriptModulePath"].as<std::filesystem::path>();
 
 		auto physics = project["Physics"];
-		if (physics)
-		{
-			config.Gravity            = physics["Gravity"].as<glm::vec2>();
-			config.VelocityIterations = physics["VelocityIterations"].as<uint32_t>();
-			config.PositionIterations = physics["PositionIterations"].as<uint32_t>();
-			config.FixedTimeStep      = physics["FixedTimeStep"].as<float>();
-		}
-		else
-		{
-			config.Gravity            = { 0.0f, 9.81f };
-			config.VelocityIterations = 8;
-			config.PositionIterations = 3;
-			config.FixedTimeStep      = 0.001f;
-		}
+		config.Gravity            = physics["Gravity"].as<glm::vec2>(glm::vec2(0.0f, 9.81f));
+		config.VelocityIterations = physics["VelocityIterations"].as<uint32_t>(8);
+		config.PositionIterations = physics["PositionIterations"].as<uint32_t>(3);
+		config.FixedTimeStep      = physics["FixedTimeStep"].as<float>(0.001f);
 
 		config.Directory = String::FormatDefaultCopy(filePath.parent_path());
 		config.AssetsDirectory = String::FormatDefaultCopy(config.Directory / assetsDirectory);
@@ -185,7 +186,7 @@ namespace Shark {
 		SK_CORE_ASSERT(config.AssetsDirectory.is_absolute());
 		SK_CORE_ASSERT(config.StartupScenePath.is_absolute());
 
-		TimeStep time = timer.ElapsedMilliSeconds();
+		float time = timer.ElapsedMilliSeconds();
 
 		SK_CORE_INFO(L"Deserializing Project from: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
@@ -197,7 +198,7 @@ namespace Shark {
 		SK_CORE_TRACE("    ValocityIterations: {}", config.VelocityIterations);
 		SK_CORE_TRACE("    PositionIterations: {}", config.PositionIterations);
 		SK_CORE_TRACE("    FixedTimeStep: {}", config.FixedTimeStep);
-		SK_CORE_INFO("Project Deserialization tock: {}ms", time.MilliSeconds());
+		SK_CORE_INFO("Project Deserialization took: {:.4f}ms", time);
 
 		return true;
 	}

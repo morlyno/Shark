@@ -9,8 +9,8 @@ namespace Shark::Theme {
 	ImVec4 Colors::TextInvalidInput;
 	ImVec4 Colors::PropertyField;
 	ImVec4 Colors::InfoField;
-	ImVec4 Colors::Border;
 	ImVec4 Colors::BorderColored;
+	ImVec4 Colors::BorderColoredWeak;
 	ImVec4 Colors::ShadowColored;
 	ImVec4 Colors::LogInfo;
 	ImVec4 Colors::LogWarn;
@@ -35,7 +35,7 @@ namespace Shark::Theme {
 		colors[ImGuiCol_TitleBgActive]          = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
 		colors[ImGuiCol_TitleBgCollapsed]       = ImVec4(0.10f, 0.10f, 0.10f, 0.75f);
 		colors[ImGuiCol_MenuBarBg]              = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-		colors[ImGuiCol_ScrollbarBg]            = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_ScrollbarBg]            = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
 		colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
 		colors[ImGuiCol_ScrollbarGrabHovered]   = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
 		colors[ImGuiCol_ScrollbarGrabActive]    = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
@@ -86,8 +86,8 @@ namespace Shark::Theme {
 
 		Colors::PropertyField                   = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
 		Colors::InfoField                       = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-		Colors::Border                          = ImVec4(0.08f, 0.08f, 0.08f, 0.75f);
 		Colors::BorderColored                   = ImVec4(0.23f, 0.04f, 0.36f, 0.75f);
+		Colors::BorderColoredWeak               = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
 		Colors::ShadowColored                   = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
 
 		Colors::LogInfo                         = ImVec4(0.00f, 0.80f, 0.00f, 1.00f);
@@ -100,6 +100,10 @@ namespace Shark::Theme {
 		style.IndentSpacing = style.IndentSpacing * 0.5f;
 		style.FrameBorderSize = 1.0f;
 		style.FrameRounding = 3.0f;
+		style.GrabRounding = 2.0f;
+		style.PopupRounding = 3.0f;
+		style.WindowRounding = 6.0f;
+		style.ChildRounding = 6.0f;
 	}
 
 	void LoadLight()
@@ -129,8 +133,8 @@ namespace Shark::Theme {
 				ImGui::ColorEdit4("TextInvalidInput", (float*)&Colors::TextInvalidInput);
 				ImGui::ColorEdit4("PropertyField", (float*)&Colors::PropertyField);
 				ImGui::ColorEdit4("InfoField", (float*)&Colors::InfoField);
-				ImGui::ColorEdit4("Border", (float*)&Colors::Border);
-				ImGui::ColorEdit4("BorderActive", (float*)&Colors::BorderColored);
+				ImGui::ColorEdit4("BorderColored", (float*)&Colors::BorderColored);
+				ImGui::ColorEdit4("BorderColoredWeak", (float*)&Colors::BorderColoredWeak);
 				ImGui::ColorEdit4("ShadowColored", (float*)&Colors::ShadowColored);
 				ImGui::ColorEdit4("LogInfo", (float*)&Colors::LogInfo);
 				ImGui::ColorEdit4("LogWarn", (float*)&Colors::LogWarn);
@@ -157,8 +161,8 @@ namespace Shark::Theme {
 			Colors::TextInvalidInput                = ImVec4(0.80f, 0.30f, 0.10f, 1.00f);
 			Colors::PropertyField                   = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
 			Colors::InfoField                       = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-			Colors::Border                          = ImVec4(0.08f, 0.08f, 0.08f, 0.75f);
 			Colors::BorderColored                   = ImVec4(0.23f, 0.04f, 0.36f, 0.75f);
+			Colors::BorderColoredWeak               = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
 			Colors::ShadowColored                   = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
 			Colors::LogInfo                         = ImVec4(0.00f, 0.80f, 0.00f, 1.00f);
 			Colors::LogWarn                         = ImVec4(0.85f, 0.85f, 0.00f, 1.00f);

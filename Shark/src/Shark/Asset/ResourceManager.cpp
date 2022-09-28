@@ -18,16 +18,11 @@ namespace Shark {
 
 	}
 
-	std::unordered_map<AssetHandle, AssetMetaData> ResourceManager::s_ImportedAssets;
-	std::unordered_map<AssetHandle, Ref<Asset>> ResourceManager::s_LoadedAssets;
-	std::unordered_map<AssetHandle, Ref<Asset>> ResourceManager::s_MemoryAssets;
+	ResourceManager::ResourceManagerData* ResourceManager::s_Data = nullptr;
 
 	void ResourceManager::Init()
 	{
-		SK_CORE_ASSERT(s_ImportedAssets.empty());
-		SK_CORE_ASSERT(s_MemoryAssets.empty());
-		SK_CORE_ASSERT(s_LoadedAssets.empty());
-
+		s_Data = new ResourceManagerData;
 		AssetSerializer::RegisterSerializers();
 		ReadImportedAssetsFromDisc();
 	}
@@ -37,18 +32,24 @@ namespace Shark {
 		WriteImportedAssetsToDisc();
 		Unload();
 		AssetSerializer::ReleaseSerializers();
+		delete s_Data;
+		s_Data = nullptr;
 	}
 
 	void ResourceManager::Unload()
 	{
-		s_ImportedAssets.clear();
-		s_MemoryAssets.clear();
-		s_LoadedAssets.clear();
+		s_Data->ImportedAssets.clear();
+		s_Data->LoadedAssets.clear();
 	}
 
 	const AssetMetaData& ResourceManager::GetMetaData(AssetHandle handle)
 	{
 		return GetMetaDataInternal(handle);
+	}
+
+	AssetType ResourceManager::GetAssetTypeFormFilePath(const std::filesystem::path& filePath)
+	{
+		return GetAssetTypeFormExtension(filePath.extension().string());
 	}
 
 	AssetType ResourceManager::GetAssetTypeFormExtension(const std::string& fileExtension)
@@ -61,27 +62,18 @@ namespace Shark {
 
 	bool ResourceManager::IsValidAssetHandle(AssetHandle handle)
 	{
-		return handle.IsValid() && (IsImportedAsset(handle) || IsMemoryAsset(handle));
-	}
-
-	bool ResourceManager::IsDataLoaded(AssetHandle handle)
-	{
-		return GetMetaData(handle).IsDataLoaded;
+		return s_Data->ImportedAssets.find(handle) != s_Data->ImportedAssets.end();
 	}
 
 	bool ResourceManager::IsMemoryAsset(AssetHandle handle)
 	{
-		return s_MemoryAssets.find(handle) != s_MemoryAssets.end();
+		const auto& metadata = GetMetaDataInternal(handle);
+		return metadata.IsMemoryAsset;
 	}
 
-	bool ResourceManager::IsImportedAsset(AssetHandle handle)
+	bool ResourceManager::IsFileImported(const std::filesystem::path& path)
 	{
-		return s_ImportedAssets.find(handle) != s_ImportedAssets.end();
-	}
-
-	bool ResourceManager::IsLoadedAsset(AssetHandle handle)
-	{
-		return s_LoadedAssets.find(handle) != s_LoadedAssets.end();
+		return GetAssetHandleFromFilePath(path).IsValid();
 	}
 
 	bool ResourceManager::HasExistingFilePath(const AssetMetaData& metadata)
@@ -115,7 +107,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		auto relativePath = MakeRelativePath(filePath);
-		for (const auto& [handle, metadata] : s_ImportedAssets)
+		for (const auto& [handle, metadata] : s_Data->ImportedAssets)
 			if (metadata.FilePath == relativePath)
 				return metadata.Handle;
 		return AssetHandle();
@@ -123,54 +115,35 @@ namespace Shark {
 
 	bool ResourceManager::LoadAsset(AssetHandle handle)
 	{
-		SK_PROFILE_FUNCTION();
-
 		auto& metadata = GetMetaDataInternal(handle);
-		if (!metadata.IsDataLoaded)
+		if (!metadata.IsDataLoaded && !metadata.IsMemoryAsset)
 		{
 			Ref<Asset> asset = nullptr;
 			metadata.IsDataLoaded = AssetSerializer::TryLoadData(asset, metadata);
 			asset->Handle = handle;
-			s_LoadedAssets[handle] = asset;
+			s_Data->LoadedAssets[handle] = asset;
 		}
 		return metadata.IsDataLoaded;
 	}
 
 	bool ResourceManager::SaveAsset(AssetHandle handle)
 	{
-		SK_PROFILE_FUNCTION();
-
-		if (IsMemoryAsset(handle))
-			return false;
-
 		const auto& metadata = GetMetaDataInternal(handle);
-		if (!metadata.IsDataLoaded)
+		if (metadata.IsMemoryAsset || !metadata.IsDataLoaded)
 			return false;
 
-		return AssetSerializer::Serialize(GetAsset(handle), metadata);
-	}
-
-	bool ResourceManager::SaveAsset(Ref<Asset> asset)
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!asset)
-			return false;
-
-		if (IsMemoryAsset(asset->Handle))
-			return false;
-
-		return AssetSerializer::Serialize(asset, GetMetaDataInternal(asset->Handle));
+		return AssetSerializer::Serialize(s_Data->LoadedAssets.at(handle), metadata);
 	}
 
 	void ResourceManager::ReloadAsset(AssetHandle handle)
 	{
-		SK_PROFILE_FUNCTION();
-
 		AssetMetaData& metadata = GetMetaDataInternal(handle);
+		if (metadata.IsMemoryAsset)
+			return;
+
 		if (metadata.IsDataLoaded)
 		{
-			Ref<Asset> asset = s_LoadedAssets.at(handle);
+			Ref<Asset> asset = s_Data->LoadedAssets.at(handle);
 			SK_CORE_ASSERT(asset);
 			asset->SetFlag(AssetFlag::Unloaded, true);
 			asset->Flags |= AssetFlag::Unloaded;
@@ -181,54 +154,38 @@ namespace Shark {
 
 	void ResourceManager::UnloadAsset(AssetHandle handle)
 	{
-		SK_PROFILE_FUNCTION();
-
 		SK_CORE_ASSERT(IsValidAssetHandle(handle));
-		if (IsMemoryAsset(handle))
-		{
-			utils::SetFlag(handle, AssetFlag::Unloaded, true);
-			s_MemoryAssets.erase(handle);
-			return;
-		}
 
 		AssetMetaData& metadata = GetMetaDataInternal(handle);
 		if (metadata.IsDataLoaded)
 			utils::SetFlag(handle, AssetFlag::Unloaded, true);
 
 		metadata.IsDataLoaded = false;
-		s_LoadedAssets.erase(handle);
+		s_Data->LoadedAssets.erase(handle);
+
+		if (metadata.IsMemoryAsset)
+			s_Data->ImportedAssets.erase(handle);
 	}
 
 	void ResourceManager::DeleteAsset(AssetHandle handle)
 	{
-		SK_PROFILE_FUNCTION();
+		const bool isMemoryAsset = GetMetaDataInternal(handle).IsMemoryAsset;
 
-		if (IsMemoryAsset(handle))
-		{
-			s_MemoryAssets.erase(handle);
-			return;
-		}
+		s_Data->LoadedAssets.erase(handle);
+		s_Data->ImportedAssets.erase(handle);
 
-		s_LoadedAssets.erase(handle);
-		s_ImportedAssets.erase(handle);
-		WriteImportedAssetsToDisc();
+		if (!isMemoryAsset)
+			WriteImportedAssetsToDisc();
 	}
 
 	bool ResourceManager::ImportMemoryAsset(AssetHandle handle, const std::string& directoryPath, const std::string& fileName)
-
 	{
-		SK_PROFILE_FUNCTION();
-
-		if (!IsMemoryAsset(handle))
+		AssetMetaData& metadata = GetMetaDataInternal(handle);
+		if (!metadata.IsValid())
 			return false;
 
-		Ref<Asset> asset = s_MemoryAssets.at(handle);
-
-		AssetMetaData metadata;
-		metadata.Handle = asset->Handle;
-		metadata.Type = asset->GetAssetType();
 		metadata.FilePath = MakeRelativePath(directoryPath + "/" + fileName);
-		metadata.IsDataLoaded = true;
+		metadata.IsMemoryAsset = false;
 
 		if (std::filesystem::exists(metadata.FilePath))
 		{
@@ -241,22 +198,20 @@ namespace Shark {
 			}
 		}
 
+		Ref<Asset> asset = s_Data->LoadedAssets.at(handle);
 		if (!AssetSerializer::Serialize(asset, metadata))
+		{
+			metadata.FilePath.clear();
+			metadata.IsMemoryAsset = true;
 			return false;
+		}
 
-		s_ImportedAssets[metadata.Handle] = metadata;
 		WriteImportedAssetsToDisc();
-
-		s_LoadedAssets[handle] = asset;
-		s_MemoryAssets.erase(handle);
-
 		return true;
 	}
 
 	AssetHandle ResourceManager::ImportAsset(const std::filesystem::path& filePath)
 	{
-		SK_PROFILE_FUNCTION();
-
 		AssetType type = GetAssetTypeFormFilePath(filePath);
 		if (type == AssetType::None)
 			return 0;
@@ -274,7 +229,7 @@ namespace Shark {
 		metadata.FilePath = MakeRelativePath(filePath);
 		metadata.Type = type;
 		metadata.IsDataLoaded = false;
-		s_ImportedAssets[metadata.Handle] = metadata;
+		s_Data->ImportedAssets[metadata.Handle] = metadata;
 		WriteImportedAssetsToDisc();
 
 		SK_CORE_INFO("Imported Asset");
@@ -339,17 +294,13 @@ namespace Shark {
 	static AssetMetaData s_NullMetaData;
 	AssetMetaData& ResourceManager::GetMetaDataInternal(AssetHandle handle)
 	{
-		SK_PROFILE_FUNCTION();
-
-		if (IsImportedAsset(handle))
-			return s_ImportedAssets.at(handle);
+		if (s_Data->ImportedAssets.find(handle) != s_Data->ImportedAssets.end())
+			return s_Data->ImportedAssets.at(handle);
 		return s_NullMetaData;
 	}
 
 	void ResourceManager::WriteImportedAssetsToDisc()
 	{
-		SK_PROFILE_FUNCTION();
-
 		const auto filePath = Project::GetDirectory() / "ImportedAssets.yaml";
 
 		YAML::Emitter out;
@@ -361,31 +312,41 @@ namespace Shark {
 
 		struct Entry
 		{
+			AssetHandle Handle;
 			AssetType Type;
 			std::filesystem::path FilePath;
+
+			bool operator<(const Entry& rhs) const
+			{
+				if (Type == rhs.Type)
+				{
+					if (FilePath == rhs.FilePath)
+						return Handle < rhs.Handle;
+					return FilePath < rhs.FilePath;
+				}
+				return Type < rhs.Type;
+			}
 		};
 
-		std::map<UUID, Entry> sortedAssets;
+		std::set<Entry> sortedAssets;
 		
-		for (const auto& [uuid, metadata] : s_ImportedAssets)
+		for (const auto& [assetHandle, metadata] : s_Data->ImportedAssets)
 		{
-			if (!uuid.IsValid() || metadata.Type == AssetType::None)
+			if (!metadata.IsValid() || metadata.IsMemoryAsset)
 				continue;
 
 			const std::filesystem::path filePath = ResourceManager::GetFileSystemPath(metadata);
 			if (!std::filesystem::exists(filePath))
 				continue;
 
-			auto& entry = sortedAssets[uuid];
-			entry.Type = metadata.Type;
-			entry.FilePath = metadata.FilePath;
+			sortedAssets.emplace(Entry{ metadata.Handle, metadata.Type, metadata.FilePath });
 		}
 
 
-		for (const auto& [handle, entry] : sortedAssets)
+		for (const auto& entry : sortedAssets)
 		{
 			out << YAML::BeginMap;
-			out << YAML::Key << "Handle" << YAML::Value << YAML::Hex << handle << YAML::Dec;
+			out << YAML::Key << "Handle" << YAML::Value << YAML::Hex << entry.Handle << YAML::Dec;
 			out << YAML::Key << "Type" << YAML::Value << AssetTypeToString(entry.Type);
 			out << YAML::Key << "FilePath" << YAML::Value << entry.FilePath;
 			out << YAML::EndMap;
@@ -425,7 +386,7 @@ namespace Shark {
 			return;
 		}
 
-		s_ImportedAssets.clear();
+		s_Data->ImportedAssets.clear();
 
 		auto assets = in["Assets"];
 		for (auto asset : assets)
@@ -447,7 +408,7 @@ namespace Shark {
 			if (!ResourceManager::HasExistingFilePath(metadata))
 				continue;
 
-			s_ImportedAssets[metadata.Handle] = metadata;
+			s_Data->ImportedAssets[metadata.Handle] = metadata;
 		}
 	}
 
