@@ -16,7 +16,7 @@ namespace Shark {
 			Creation = BIT(6),
 
 			All = FileName | DirName | Size | LastWrite | LastAccess | Creation,
-			Default = FileName | Size | Creation
+			Default = FileName | DirName | Size | Creation
 		};
 		using Flags = std::underlying_type_t<Type>;
 	}

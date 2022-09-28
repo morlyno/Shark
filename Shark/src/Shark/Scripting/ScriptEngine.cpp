@@ -96,6 +96,16 @@ namespace Shark {
 
 	bool ScriptEngine::LoadAssemblies(const std::filesystem::path& assemblyPath)
 	{
+		WatchingSettings settings;
+		settings.Callback = [](const auto& e) { SK_CONSOLE_INFO("\n{0}", fmt::join(e, "\n")); ScriptEngine::ScheduleReload(); };
+		settings.NofityFilter = NotifyFilter::Creation | NotifyFilter::LastWrite;
+		settings.EnabledEvents = EventFilter::Created | EventFilter::Modified;
+		settings.IsRecursive = false;
+
+		Ref<FileWatcher> fileWatcher = FileSystem::GetFileWatcher();
+		fileWatcher->StartWatching("AppAssembly", assemblyPath.parent_path(), settings);
+
+
 		s_Data->RuntimeDomain = mono_domain_create_appdomain("ScriptDomain", nullptr);
 		SK_CORE_ASSERT(s_Data->RuntimeDomain);
 		mono_domain_set(s_Data->RuntimeDomain, true);
@@ -111,15 +121,6 @@ namespace Shark {
 		GCManager::Init();
 		ScriptGlue::Init();
 		ScriptUtils::Init();
-
-		WatchingSettings settings;
-		settings.Callback = [](const auto&) { ScriptEngine::ScheduleReload(); };
-		settings.NofityFilter = NotifyFilter::Creation | NotifyFilter::LastWrite;
-		settings.EnabledEvents = EventFilter::Created | EventFilter::Modified;
-		settings.IsRecursive = false;
-
-		Ref<FileWatcher> fileWatcher = FileSystem::GetFileWatcher();
-		fileWatcher->StartWatching("AppAssembly", s_Data->AppAssembly.FilePath.parent_path(), settings);
 
 		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
 
@@ -316,6 +317,8 @@ namespace Shark {
 		GCHandle gcHandle = GCManager::CreateHandle(object);
 		s_Data->EntityInstances[uuid] = gcHandle;
 
+		// NOTE(moro): this is probably no longer necassary becaus entity fields get a new allocated object
+		//             the actual instance is provided when calling Entity.As
 		if (initializeFields)
 			InitializeFields(entity);
 
@@ -342,6 +345,9 @@ namespace Shark {
 
 	void ScriptEngine::InitializeFields(Entity entity)
 	{
+		if (!s_Data->AssembliesLoaded)
+			return;
+
 		UUID uuid = entity.GetUUID();
 
 		if (s_Data->FieldStoragesMap.find(uuid) != s_Data->FieldStoragesMap.end())
