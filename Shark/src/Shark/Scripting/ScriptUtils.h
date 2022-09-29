@@ -4,6 +4,8 @@
 
 #include "Shark/Scripting/ScriptTypes.h"
 
+#undef GetClassName
+
 extern "C" {
 	typedef struct _MonoClass MonoClass;
 	typedef struct _MonoObject MonoObject;
@@ -89,11 +91,11 @@ namespace Shark {
 		static MonoString* MonoStringEmpty();
 		static std::string ObjectToString(MonoObject* obj);
 
-		static MonoObject* BoxValue(MonoClass* valueClass, void* value);
+		static UUID GetIDFromEntity(MonoObject* object);
+		static MonoObject* GetOrCreateEntity(Entity entity);
 
 		static const char* GetClassName(GCHandle handle);
-
-		static bool ValidScriptName(const std::string& fullName);
+		static std::string_view GetFieldName(const ManagedField& field);
 
 	private:
 		static void* GetUnmanagedThunk(MonoMethod* method);

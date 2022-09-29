@@ -9,6 +9,7 @@
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
 
+#include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptUtils.h"
 
 #include "Shark/Render/Renderer.h"
@@ -282,6 +283,43 @@ namespace Shark {
 			const auto& comp = entity.GetComponent<ScriptComponent>();
 			out << YAML::Key << "ScriptName" << YAML::Value << comp.ScriptName;
 
+			out << YAML::Key << "Fields" << YAML::Value;
+			out << YAML::BeginSeq;
+
+			const auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
+			for (const auto& [name, storage] : fieldStorages)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << name;
+				out << YAML::Key << "Type" << YAML::Value << ToString(storage->Type);
+				out << YAML::Key << "Value" << YAML::Value;
+				switch (storage->Type)
+				{
+					case ManagedFieldType::Bool:      out << storage->GetValue<bool>(); break;
+					case ManagedFieldType::Char:      out << storage->GetValue<char16_t>(); break;
+					case ManagedFieldType::Byte:      out << storage->GetValue<uint8_t>(); break;
+					case ManagedFieldType::SByte:     out << storage->GetValue<int8_t>(); break;
+					case ManagedFieldType::Short:     out << storage->GetValue<int16_t>(); break;
+					case ManagedFieldType::UShort:    out << storage->GetValue<uint16_t>(); break;
+					case ManagedFieldType::Int:       out << storage->GetValue<int32_t>(); break;
+					case ManagedFieldType::UInt:      out << storage->GetValue<uint32_t>(); break;
+					case ManagedFieldType::Long:      out << storage->GetValue<int64_t>(); break;
+					case ManagedFieldType::ULong:     out << storage->GetValue<uint64_t>(); break;
+					case ManagedFieldType::Float:     out << storage->GetValue<float>(); break;
+					case ManagedFieldType::Double:    out << storage->GetValue<double>(); break;
+					case ManagedFieldType::String:    out << storage->GetValue<std::string>(); break;
+					case ManagedFieldType::Entity:    out << storage->GetValue<UUID>(); break;
+					case ManagedFieldType::Component: out << storage->GetValue<UUID>(); break;
+					case ManagedFieldType::Vector2:   out << storage->GetValue<glm::vec2>(); break;
+					case ManagedFieldType::Vector3:   out << storage->GetValue<glm::vec3>(); break;
+					case ManagedFieldType::Vector4:   out << storage->GetValue<glm::vec4>(); break;
+					default: SK_CORE_ASSERT("Unkown Field Type"); break;
+				}
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+
 			out << YAML::EndMap;
 		}
 
@@ -552,12 +590,44 @@ namespace Shark {
 				if (auto scriptComponent = entity["ScriptComponent"])
 				{
 					auto name = scriptComponent["ScriptName"];
-
 					auto& comp = deserializedEntity.AddOrReplaceComponent<ScriptComponent>();
 
 					SK_CORE_ASSERT(name, "Couldn't deserialize ScriptComponent::ScriptName");
 					comp.ScriptName = name.as<std::string>();
-					comp.IsExisitingScript = ScriptUtils::ValidScriptName(comp.ScriptName);
+					Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(comp.ScriptName);
+					comp.ClassID = klass ? klass->GetID() : 0;
+
+					auto fields = scriptComponent["Fields"];
+					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(deserializedEntity);
+					for (auto field : fields)
+					{
+						Ref<FieldStorage> storage = Ref<FieldStorage>::Create();
+						storage->Name = field["Name"].as<std::string>();
+						storage->Type = ToManagedFieldType(field["Type"].as<std::string>());
+						fieldStorages[storage->Name] = storage;
+						switch (storage->Type)
+						{
+							case ManagedFieldType::Bool:      storage->SetValue(field["Value"].as<bool>()); break;
+							case ManagedFieldType::Char:      storage->SetValue(field["Value"].as<char16_t>()); break;
+							case ManagedFieldType::Byte:      storage->SetValue(field["Value"].as<uint8_t>()); break;
+							case ManagedFieldType::SByte:     storage->SetValue(field["Value"].as<int8_t>()); break;
+							case ManagedFieldType::Short:     storage->SetValue(field["Value"].as<int16_t>()); break;
+							case ManagedFieldType::UShort:    storage->SetValue(field["Value"].as<uint16_t>()); break;
+							case ManagedFieldType::Int:       storage->SetValue(field["Value"].as<int32_t>()); break;
+							case ManagedFieldType::UInt:      storage->SetValue(field["Value"].as<uint32>()); break;
+							case ManagedFieldType::Long:      storage->SetValue(field["Value"].as<int64_t>()); break;
+							case ManagedFieldType::ULong:     storage->SetValue(field["Value"].as<uint64_t>()); break;
+							case ManagedFieldType::Float:     storage->SetValue(field["Value"].as<float>()); break;
+							case ManagedFieldType::Double:    storage->SetValue(field["Value"].as<double>()); break;
+							case ManagedFieldType::String:    storage->SetValue(field["Value"].as<std::string>()); break;
+							case ManagedFieldType::Entity:    storage->SetValue(field["Value"].as<UUID>()); break;
+							case ManagedFieldType::Component: storage->SetValue(field["Value"].as<UUID>()); break;
+							case ManagedFieldType::Vector2:   storage->SetValue(field["Value"].as<glm::vec2>()); break;
+							case ManagedFieldType::Vector3:   storage->SetValue(field["Value"].as<glm::vec3>()); break;
+							case ManagedFieldType::Vector4:   storage->SetValue(field["Value"].as<glm::vec4>()); break;
+							default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); break;
+						}
+					}
 
 					SK_CORE_TRACE(" - Script Component [{}]", comp.ScriptName);
 				}
@@ -596,6 +666,8 @@ namespace Shark {
 		catch (YAML::Exception& e)
 		{
 			scene->SetFlag(AssetFlag::InvalidFile, true);
+			scene->m_Registry.clear();
+			scene->m_EntityUUIDMap.clear();
 			SK_CORE_ERROR("[Scene Serializer] {0}", e.what());
 			return false;
 		}

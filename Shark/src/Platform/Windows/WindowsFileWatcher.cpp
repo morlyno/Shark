@@ -23,204 +23,200 @@ namespace Shark {
 			return FileEvent::None;
 		}
 
-		static DWORD SharkNotifyFalgsToWin32(NotifyFlag::Type flags)
+		static EventFilter::Type ActionToEventFilter(DWORD fileAction)
 		{
-			DWORD notifyFlags = 0;
-
-			if (flags & NotifyFlag::FileName) notifyFlags |= FILE_NOTIFY_CHANGE_FILE_NAME;
-			if (flags & NotifyFlag::DirectoryName) notifyFlags |= FILE_NOTIFY_CHANGE_DIR_NAME;
-			if (flags & NotifyFlag::Attributes) notifyFlags |= FILE_NOTIFY_CHANGE_ATTRIBUTES;
-			if (flags & NotifyFlag::Size) notifyFlags |= FILE_NOTIFY_CHANGE_SIZE;
-			if (flags & NotifyFlag::LastWrite) notifyFlags |= FILE_NOTIFY_CHANGE_LAST_WRITE;
-			if (flags & NotifyFlag::LastAccess) notifyFlags |= FILE_NOTIFY_CHANGE_LAST_ACCESS;
-			if (flags & NotifyFlag::Creation) notifyFlags |= FILE_NOTIFY_CHANGE_CREATION;
-			if (flags & NotifyFlag::Security) notifyFlags |= FILE_NOTIFY_CHANGE_SECURITY;
-
-			return notifyFlags;
+			switch (fileAction)
+			{
+				case 0:                            return EventFilter::None;
+				case FILE_ACTION_ADDED:            return EventFilter::Created;
+				case FILE_ACTION_REMOVED:          return EventFilter::Deleted;
+				case FILE_ACTION_MODIFIED:         return EventFilter::Modified;
+				case FILE_ACTION_RENAMED_OLD_NAME: return EventFilter::Renamed;
+				case FILE_ACTION_RENAMED_NEW_NAME: return EventFilter::Renamed;
+			}
+			SK_CORE_ASSERT(false, "Unkown FileEvent");
+			return EventFilter::None;
 		}
 
 	}
 
-	WindowsFileWatcher::WindowsFileWatcher(const FileWatcherSpecification& specification)
-		: m_Specs(specification)
+	struct WatchData
 	{
+		OVERLAPPED Overlapped;
+		HANDLE DirectoryHandle;
+		DWORD Buffer[1024];
+		bool IsRecursive;
+		DWORD NotifyFilter;
+		EventFilter::Flags EnabledEvents;
+		wchar_t DirectoryPath[260];
+		FileWatcherCallbackFunc Callback;
+		bool Stop;
+	};
+
+	static void WatchResult(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped);
+
+	static bool ReadChanges(WatchData* watchData, bool stopWatch = false)
+	{
+		return ReadDirectoryChangesExW(
+			watchData->DirectoryHandle,
+			watchData->Buffer,
+			sizeof(watchData->Buffer),
+			watchData->IsRecursive,
+			watchData->NotifyFilter,
+			NULL,
+			&watchData->Overlapped,
+			stopWatch ? NULL : &WatchResult,
+			ReadDirectoryNotifyExtendedInformation
+		);
 	}
 
-	WindowsFileWatcher::~WindowsFileWatcher()
+	static void WatchResult(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
 	{
-	}
+		WatchData* watchData = (WatchData*)lpOverlapped;
 
-	void WindowsFileWatcher::Start()
-	{
-		if (m_Running || !std::filesystem::is_directory(m_Specs.Directory))
-			return;
-
-		SK_CORE_ASSERT(std::filesystem::is_directory(m_Specs.Directory), "Path for FileWatcher is not a Directory");
-		m_Thread = std::thread(std::bind(&WindowsFileWatcher::WatcherFunction, this));
-	}
-
-	void WindowsFileWatcher::Stop()
-	{
-		if (!m_Running || !m_Thread.joinable())
-			return;
-
-		m_Running = false;
-		SetEvent(m_StopThreadEvent);
-		m_Thread.join();
-		SK_CORE_INFO(L"File Watcher Stoped Watching {}", m_Specs.Directory);
-	}
-
-	void WindowsFileWatcher::SetDirectory(const std::filesystem::path& directory, bool restartIfRunning)
-	{
-		if (!m_Running)
+		if (dwErrorCode == ERROR_SUCCESS && watchData->Callback)
 		{
-			m_Specs.Directory = directory;
-			return;
+			sizeof(FILE_NOTIFY_INFORMATION);
+			FILE_NOTIFY_EXTENDED_INFORMATION* notify = nullptr;
+			DWORD offset = 0;
+
+			std::vector<FileChangedData> fileEvents;
+
+			while (true)
+			{
+				notify = (FILE_NOTIFY_EXTENDED_INFORMATION*)((byte*)watchData->Buffer + offset);
+				offset += notify->NextEntryOffset;
+
+				EventFilter::Type currentEvent = utils::ActionToEventFilter(notify->Action);
+				if (watchData->EnabledEvents & currentEvent)
+				{
+					auto& event = fileEvents.emplace_back();
+					event.Type = utils::Win32FileActionToFileEvent(notify->Action);
+					event.IsDirectory = notify->FileAttributes & FILE_ATTRIBUTE_DIRECTORY;
+					event.FilePath = fmt::format(L"{}/{}", watchData->DirectoryPath, std::wstring(notify->FileName, notify->FileNameLength / sizeof(WCHAR)));
+				}
+
+				if (!notify->NextEntryOffset)
+					break;
+			}
+
+			if (!fileEvents.empty())
+				watchData->Callback(fileEvents);
 		}
 
-		if (restartIfRunning)
-		{
-			Stop();
-			m_Specs.Directory = directory;
-			Start();
-		}
+		if (!watchData->Stop)
+			ReadChanges(watchData);
 	}
 
-	void WindowsFileWatcher::WatcherFunction()
+	static WatchData* CreateWatchData(LPCWSTR dirPath, DWORD notifyFilter, BOOL isRecursive)
 	{
-		if (m_Running)
-			return;
-
-		m_Running = true;
-
-		WindowsUtils::SetThreadName(L"FileWatcher");
-
-		// get directory handle
-		HANDLE directoryHandle = CreateFileW(
-			m_Specs.Directory.c_str(),
+		WatchData* watchData = new WatchData;
+		memset(watchData, 0, sizeof(WatchData));
+		watchData->DirectoryHandle = CreateFileW(
+			dirPath,
 			GENERIC_READ,
-			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
 			NULL,
 			OPEN_EXISTING,
 			FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
 			NULL
 		);
-		if (directoryHandle == INVALID_HANDLE_VALUE)
+
+		if (watchData->DirectoryHandle == INVALID_HANDLE_VALUE)
 		{
-			DWORD error = GetLastError();
-			std::string msg = WindowsUtils::TranslateErrorCode(error);
-			SK_CORE_ASSERT(false, fmt::format("CreateFileW Failed! Error Msg: {} ", msg));
+			delete watchData;
+			DWORD lastError = GetLastError();
+			std::string msg = std::system_category().message(lastError);
+			SK_CORE_ERROR("[FileWatcher] CreateFileW failed! {}", msg);
+			return nullptr;
+		}
+
+		watchData->Overlapped.hEvent = CreateEventW(NULL, TRUE, FALSE, NULL);
+		watchData->IsRecursive = isRecursive;
+		watchData->NotifyFilter = notifyFilter;
+
+		if (ReadChanges(watchData))
+			return watchData;
+
+		CloseHandle(watchData->DirectoryHandle);
+		CloseHandle(watchData->Overlapped.hEvent);
+		delete watchData;
+		return nullptr;
+	}
+
+	static void DestroyWatchData(WatchData* watchData)
+	{
+		if (watchData)
 			return;
-		}
 
-		// Notify Flags
-		const DWORD notifyFlags = utils::SharkNotifyFalgsToWin32(m_Specs.NotifyFlags);
+		watchData->Stop = true;
+		CancelIo(watchData->DirectoryHandle);
+		ReadChanges(watchData, true);
 
+		if (!HasOverlappedIoCompleted(&watchData->Overlapped))
+			SleepEx(6, TRUE);
 
-		// Overlapped and Events
-		OVERLAPPED overlapped;
-		ZeroMemory(&overlapped, sizeof(OVERLAPPED));
-		overlapped.Offset = 0;
-		overlapped.hEvent = CreateEventW(NULL, TRUE, FALSE, NULL);
-		if (overlapped.hEvent == NULL)
-		{
-			DWORD error = GetLastError();
-			std::string msg = WindowsUtils::TranslateErrorCode(error);
-			SK_CORE_ERROR("Create Event Failed! Error Msg: {}", msg);
-			SK_CORE_ASSERT(false);
+		CloseHandle(watchData->DirectoryHandle);
+		CloseHandle(watchData->Overlapped.hEvent);
+		delete watchData;
+	}
 
-			// Clean up
-			CloseHandle(directoryHandle);
+	WindowsFileWatcher::~WindowsFileWatcher()
+	{
+		for (auto& [key, watchData] : m_Watches)
+			DestroyWatchData(watchData);
+	}
+
+	void WindowsFileWatcher::StartWatching(const std::string& key, const std::filesystem::path& dirPath, FileWatcherCallbackFunc callback)
+	{
+		SK_CORE_ASSERT(m_Watches.find(key) == m_Watches.end());
+		WatchData* watchData = CreateWatchData(dirPath.c_str(), (DWORD)NotifyFilter::Default, TRUE);
+		watchData->Callback = callback;
+		watchData->EnabledEvents = EventFilter::All;
+		wcscpy_s(watchData->DirectoryPath, dirPath.c_str());
+		m_Watches.emplace(key, watchData);
+	}
+
+	void WindowsFileWatcher::StartWatching(const std::string& key, const std::filesystem::path& dirPath, const WatchingSettings& settings)
+	{
+		SK_CORE_ASSERT(m_Watches.find(key) == m_Watches.end());
+		WatchData* watchData = CreateWatchData(dirPath.c_str(), (DWORD)settings.NofityFilter, settings.IsRecursive);
+		watchData->Callback = settings.Callback;
+		watchData->EnabledEvents = settings.EnabledEvents;
+		wcscpy_s(watchData->DirectoryPath, dirPath.c_str());
+		m_Watches.emplace(key, watchData);
+	}
+
+	void WindowsFileWatcher::StopWatching(const std::string& key)
+	{
+		SK_CORE_ASSERT(m_Watches.find(key) != m_Watches.end());
+		if (m_Watches.find(key) == m_Watches.end())
 			return;
-		}
 
-		HANDLE events[2];
-		events[0] = overlapped.hEvent;
-		events[1] = CreateEventW(NULL, TRUE, FALSE, NULL);
-		m_StopThreadEvent = events[1];
-		if (m_StopThreadEvent == NULL)
-		{
-			DWORD error = GetLastError();
-			std::string msg = WindowsUtils::TranslateErrorCode(error);
-			SK_CORE_ERROR("Create Event Failed! Error Msg: {}", msg);
+		WatchData* watchData = m_Watches.at(key);
+		m_Watches.erase(key);
+		DestroyWatchData(watchData);
+	}
 
-			// Clean up
-			CloseHandle(overlapped.hEvent);
-			CloseHandle(directoryHandle);
-			return;
-		}
+	void WindowsFileWatcher::SetCallback(const std::string& key, FileWatcherCallbackFunc callback)
+	{
+		m_Watches.at(key)->Callback = callback;
+	}
 
+	bool WindowsFileWatcher::IsWatching(const std::string& key)
+	{
+		auto iter = m_Watches.find(key);
+		return iter != m_Watches.end() && !iter->second->Stop;
+	}
 
-		// Temp Data
-		const BOOL watchSubTrees = m_Specs.WatchSubTrees;
-		std::vector<FileChangedData> fileChanges;
-		DWORD buffer[4096];
-		DWORD bytesReturned = 0;
-		DWORD offset = 0;
-		ZeroMemory(buffer, sizeof(buffer));
+	void WindowsFileWatcher::Update()
+	{
+		MsgWaitForMultipleObjectsEx(0, NULL, 0, QS_ALLINPUT, MWMO_ALERTABLE);
+	}
 
-		while (m_Running)
-		{
-			BOOL result = ReadDirectoryChangesExW(
-				directoryHandle,
-				buffer,
-				sizeof(buffer),
-				watchSubTrees,
-				notifyFlags,
-				&bytesReturned,
-				&overlapped,
-				nullptr,
-				ReadDirectoryNotifyExtendedInformation
-			);
-
-			DWORD event = WaitForMultipleObjects(2, events, FALSE, INFINITE);
-			if (event == WAIT_OBJECT_0 + 1)
-				continue;
-
-			SK_CORE_VERIFY(result, fmt::format("Failed to Read Changes! Error Msg: {}", WindowsUtils::TranslateErrorCode(GetLastError())));
-			if (!result)
-				continue;
-
-			offset = 0;
-			fileChanges.clear();
-
-			if (m_SkipNextEvent || m_Paused)
-			{
-				m_SkipNextEvent = false;
-				continue;
-			}
-
-			while (true)
-			{
-				//FILE_NOTIFY_INFORMATION* fileInfo = (FILE_NOTIFY_INFORMATION*)((byte*)buffer + offset);
-				FILE_NOTIFY_EXTENDED_INFORMATION* fileInfo = (FILE_NOTIFY_EXTENDED_INFORMATION*)((byte*)buffer + offset);
-				offset += fileInfo->NextEntryOffset;
-
-				const size_t length = fileInfo->FileNameLength / sizeof(WCHAR);
-
-				FileChangedData fileData;
-				fileData.FilePath = String::FormatDefaultCopy(m_Specs.Directory / std::wstring(fileInfo->FileName, length));
-				fileData.Type = utils::Win32FileActionToFileEvent(fileInfo->Action);
-				fileData.IsDirectory = fileInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY;
-				fileChanges.push_back(fileData);
-
-				if (!fileInfo->NextEntryOffset)
-					break;
-			}
-
-			if (m_Specs.CallbackFunc)
-				m_Specs.CallbackFunc(fileChanges);
-		}
-
-		// Clean up
-		CloseHandle(directoryHandle);
-
-		CloseHandle(events[0]);
-		CloseHandle(events[1]);
-
-		m_StopThreadEvent = NULL;
-
-		m_Running = false;
+	Ref<FileWatcher> FileWatcher::Create()
+	{
+		return Ref<WindowsFileWatcher>::Create();
 	}
 
 }

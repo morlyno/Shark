@@ -33,8 +33,8 @@ namespace Sandbox
 			m_AnimationSpeed %= (float)Math.PI;
 
 			var translation = Transform.Translation;
-			translation.x = (float)Math.Sin(m_AnimationTimer) * m_XRadius;
-			translation.y = (float)Math.Cos(m_AnimationTimer) * m_YRadius;
+			translation.X = (float)Math.Sin(m_AnimationTimer) * m_XRadius;
+			translation.Y = (float)Math.Cos(m_AnimationTimer) * m_YRadius;
 			Transform.Translation = translation + m_Offset;
 
 			var color = m_SpriteRenderer.Color;

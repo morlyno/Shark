@@ -29,13 +29,13 @@ namespace Sandbox
 		{
 			m_LifeTime += ts;
 			if (m_LifeTime >= m_MaxLifeTime)
-				Scene.Destroy(this);
+				DestroyEntity(this);
 		}
 
 		protected override void OnCollishionBegin(Collider2D collider)
 		{
 			if (DestroyOnHit)
-				Scene.Destroy(this);
+				DestroyEntity(this);
 		}
 
 	}

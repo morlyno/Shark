@@ -50,7 +50,7 @@ namespace Shark {
 		bool IsOK() const { return Flags == AssetFlag::None; }
 
 	public:
-		AssetHandle Handle = AssetHandle::Invalid;
+		AssetHandle Handle = AssetHandle::Null;
 		AssetFlags Flags = AssetFlag::None;
 	};
 

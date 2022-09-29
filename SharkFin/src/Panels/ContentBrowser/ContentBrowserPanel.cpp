@@ -181,7 +181,7 @@ namespace Shark {
 	void ContentBrowserPanel::OnEvent(Event& event)
 	{
 		EventDispacher dispacher(event);
-		dispacher.DispachEvent<ProjectChangedEvnet>([this](auto& e) { m_NextProject = e.GetProject(); return false; });
+		dispacher.DispachEvent<ProjectChangedEvent>([this](auto& e) { m_NextProject = e.GetProject(); return false; });
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(ContentBrowserPanel::OnKeyPressedEvent));
 	}
 
@@ -288,7 +288,7 @@ namespace Shark {
 		switch (event.GetKeyCode())
 		{
 
-			case Key::Delete:
+			case KeyCode::Delete:
 			{
 				if (m_SelectedItem)
 				{
@@ -298,7 +298,7 @@ namespace Shark {
 				break;
 			}
 
-			case Key::F2:
+			case KeyCode::F2:
 			{
 				if (m_SelectedItem)
 				{
@@ -782,12 +782,12 @@ namespace Shark {
 		if (!EditorSettings::Get().ContentBrowser.GenerateThumbnails)
 			return;
 
-		ScopedTimer timer("ContentBrowserPanel::GenerateThumbnails");
+		//ScopedTimer timer("ContentBrowserPanel::GenerateThumbnails");
 
 		for (Ref<ContentBrowserItem> item : m_CurrentItems)
 		{
 			const auto& metadata = ResourceManager::GetMetaData(item->GetHandle());
-			if (metadata.IsValid())
+			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource)
 			{
 				SK_CORE_ASSERT(item->m_Thumbnail == nullptr);
 				item->m_Thumbnail = GetThumbnail(metadata);

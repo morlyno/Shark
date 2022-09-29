@@ -1,26 +1,55 @@
 #pragma once
 #include "Shark/Core/Base.h"
+#include "Shark/Event/Event.h"
 #include "Shark/Input/KeyCodes.h"
 #include "Shark/Input/MouseButtons.h"
 
 namespace Shark {
 
-	namespace Input {
+	enum class KeyState : uint16_t
+	{
+		None = 0,
+		Pressed,
+		Down,
+		Released
+	};
 
-		bool KeyPressed(KeyCode key);
-		
-		bool MousePressed(MouseButton::Type button);
+	enum class MouseState : uint16_t
+	{
+		None = 0,
+		Pressed,
+		Down,
+		Released,
+		DoubleClicked
+	};
 
-		// Relative to Window
-		glm::ivec2 MousePos();
-		int MousePosX();
-		int MousePosY();
+	class Input
+	{
+	public:
+		static void Init();
+		static void Shutdown();
 
-		// Relative to Screen
-		glm::ivec2 GlobalMousePos();
-		int GlobalMousePosX();
-		int GlobalMousePosY();
+		static void TransitionStates();
+		static void OnEvent(Event& event);
 
-	}
+		static bool IsKeyDownAsync(KeyCode key);
+		static bool IsMouseDownAsync(MouseButton button);
+
+		static KeyState GetKeyState(KeyCode key);
+		static bool IsKeyPressed(KeyCode key);
+		static bool IsKeyDown(KeyCode key);
+		static bool IsKeyRelease(KeyCode key);
+
+		static MouseState GetMouseState(MouseButton button);
+		static bool IsMousePressed(MouseButton button);
+		static bool IsMouseDown(MouseButton button);
+		static bool IsMouseRelease(MouseButton button);
+		static bool IsMouseDoubleClicked(MouseButton button);
+
+		static float GetMouseScroll();
+
+		static glm::ivec2 GetMousePosition();
+		static glm::ivec2 GetScreenMousePosition();
+	};
 
 }

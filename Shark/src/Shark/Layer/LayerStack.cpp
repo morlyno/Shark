@@ -7,8 +7,6 @@ namespace Shark {
 
 	LayerStack::~LayerStack()
 	{
-		SK_PROFILE_FUNCTION();
-
 		for (auto l : m_Layers)
 		{
 			l->OnDetach();
@@ -18,8 +16,6 @@ namespace Shark {
 
 	void LayerStack::Clear()
 	{
-		SK_PROFILE_FUNCTION();
-
 		for (auto l : m_Layers)
 		{
 			l->OnDetach();
@@ -31,23 +27,17 @@ namespace Shark {
 
 	void LayerStack::PushLayer(Layer* layer)
 	{
-		SK_PROFILE_FUNCTION();
-
 		m_Layers.emplace(m_Layers.begin() + m_LayerStackIndex, layer);
 		++m_LayerStackIndex;
 	}
 
 	void LayerStack::PushOverlay(Layer* layer)
 	{
-		SK_PROFILE_FUNCTION();
-
 		m_Layers.emplace_back(layer);
 	}
 
 	void LayerStack::PopLayer(Layer* layer)
 	{
-		SK_PROFILE_FUNCTION();
-
 		auto it = std::find(m_Layers.begin(), m_Layers.end(), layer);
 		if (it != m_Layers.end())
 		{
@@ -58,8 +48,6 @@ namespace Shark {
 
 	void LayerStack::PopOverlay(Layer* layer)
 	{
-		SK_PROFILE_FUNCTION();
-
 		auto it = std::find(m_Layers.begin(), m_Layers.end(), layer);
 		if (it != m_Layers.end())
 		{

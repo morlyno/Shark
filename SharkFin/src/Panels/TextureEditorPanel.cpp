@@ -170,15 +170,15 @@ namespace Shark {
 
 		UI::BeginControlsGrid();
 
-		UI::Control("Format", (uint16_t&)m_Specs.Format, s_FormatItems, (uint32_t)std::size(s_FormatItems));
+		UI::ControlCombo("Format", (uint16_t&)m_Specs.Format, s_FormatItems, (uint32_t)std::size(s_FormatItems));
 		UI::Control("Mip Levels", m_Specs.MipLevels, 1, 0, Renderer::GetCapabilities().MaxMipLeves);
-		UI::Control("Mip Filter", (uint16_t&)m_Specs.Sampler.Mip, s_FilterItems, (uint32_t)std::size(s_FilterItems));
-		UI::Control("Mip Mode Min", (uint16_t&)m_Specs.Sampler.Min, s_FilterItems, (uint32_t)std::size(s_FilterItems));
-		UI::Control("Mip Mode Mag", (uint16_t&)m_Specs.Sampler.Mag, s_FilterItems, (uint32_t)std::size(s_FilterItems));
+		UI::ControlCombo("Mip Filter", (uint16_t&)m_Specs.Sampler.Mip, s_FilterItems, (uint32_t)std::size(s_FilterItems));
+		UI::ControlCombo("Mip Mode Min", (uint16_t&)m_Specs.Sampler.Min, s_FilterItems, (uint32_t)std::size(s_FilterItems));
+		UI::ControlCombo("Mip Mode Mag", (uint16_t&)m_Specs.Sampler.Mag, s_FilterItems, (uint32_t)std::size(s_FilterItems));
 
-		UI::Control("Wrap Mode U", (uint16_t&)m_Specs.Sampler.Wrap.U, s_WrapItems, (uint32_t)std::size(s_WrapItems));
-		UI::Control("Wrap Mode V", (uint16_t&)m_Specs.Sampler.Wrap.V, s_WrapItems, (uint32_t)std::size(s_WrapItems));
-		UI::Control("Wrap Mode W", (uint16_t&)m_Specs.Sampler.Wrap.W, s_WrapItems, (uint32_t)std::size(s_WrapItems));
+		UI::ControlCombo("Wrap Mode U", (uint16_t&)m_Specs.Sampler.Wrap.U, s_WrapItems, (uint32_t)std::size(s_WrapItems));
+		UI::ControlCombo("Wrap Mode V", (uint16_t&)m_Specs.Sampler.Wrap.V, s_WrapItems, (uint32_t)std::size(s_WrapItems));
+		UI::ControlCombo("Wrap Mode W", (uint16_t&)m_Specs.Sampler.Wrap.W, s_WrapItems, (uint32_t)std::size(s_WrapItems));
 
 		UI::Control("Anisotropy", m_Specs.Sampler.Anisotropy);
 		UI::Control("Max Anisotropy", m_Specs.Sampler.MaxAnisotropy, 0, 0, capabilities.MaxAnisotropy);
@@ -268,8 +268,6 @@ namespace Shark {
 			ImGui::DockNodeAddWindow(viewportNode, viewport, false);
 			ImGui::DockNodeAddWindow(settingsNode, settings, true);
 			
-			// NOTE(moro): more context to 19.0f soon
-			//             19.0f shoud be the height of a nodes tabbar
 			const float tabbarHeight = GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f;
 			ImGui::DockBuilderSetNodeSize(dockViewport, viewportNode->Size - ImVec2(0.0f, tabbarHeight));
 		}

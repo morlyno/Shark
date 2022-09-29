@@ -6,6 +6,7 @@
 
 #include "Shark/Asset/Asset.h"
 
+#include "Shark/Scene/Components.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scene/Physics2DScene.h"
 #include "Shark/Render/EditorCamera.h"
@@ -42,9 +43,11 @@ namespace Shark {
 		Scene& operator=(Scene&& other) = default;
 
 		static Ref<Scene> Copy(Ref<Scene> srcScene);
+		void CopyTo(Ref<Scene> destScene);
 
 		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
 		bool IsEditorScene() { return m_IsEditorScene; }
+		bool IsRunning() const { return m_IsRunning; }
 
 		void OnScenePlay();
 		void OnSceneStop();
@@ -74,9 +77,11 @@ namespace Shark {
 		}
 
 		Entity GetEntityByUUID(UUID uuid) const;
-		Entity GetEntityByTag(const std::string& tag);
+		Entity FindEntityByTag(const std::string& tag);
+		Entity FindChildEntityByName(Entity entity, const std::string& name, bool recusive);
 
 		bool IsValidEntity(Entity entity) const;
+		bool ValidEntityID(UUID entityID) const;
 
 		Entity GetActiveCameraEntity() const;
 		UUID GetActiveCameraUUID() const { return m_ActiveCameraUUID; }
@@ -87,11 +92,24 @@ namespace Shark {
 		uint32_t GetViewportWidth() const { return m_ViewportWidth; }
 		uint32_t GetViewportHeight() const { return m_ViewportHeight; }
 
-		glm::mat4 GetWorldSpaceTransform(Entity entity) const;
+		glm::mat4 GetWorldSpaceTransformMatrix(Entity entity) const;
+		TransformComponent GetWorldSpaceTransform(Entity entity);
+
+		bool ConvertToLocaSpace(Entity entity, glm::mat4& transformMatrix);
+		bool ConvertToWorldSpace(Entity entity, glm::mat4& transformMatrix);
+		bool ConvertToLocaSpace(Entity entity, TransformComponent& transform);
+		bool ConvertToWorldSpace(Entity entity, TransformComponent& transform);
+		bool ConvertToLocaSpace(Entity entity);
+		bool ConvertToWorldSpace(Entity entity);
 
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
-		std::queue<std::function<void()>>& GetPostUpdateQueue() { return m_PostUpdateQueue; }
+
+		template<typename TFunc>
+		void Submit(const TFunc& func)
+		{
+			m_PostUpdateQueue.emplace_back(func);
+		}
 
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
@@ -117,7 +135,7 @@ namespace Shark {
 
 	private:
 		entt::registry m_Registry;
-		UUID m_ActiveCameraUUID = UUID::Invalid;
+		UUID m_ActiveCameraUUID = UUID::Null;
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
@@ -126,8 +144,9 @@ namespace Shark {
 		ContactListener m_ContactListener;
 
 		bool m_IsEditorScene = false;
+		bool m_IsRunning = false;
 
-		std::queue<std::function<void()>> m_PostUpdateQueue;
+		std::vector<std::function<void()>> m_PostUpdateQueue;
 
 		friend class Entity;
 		friend class SceneHirachyPanel;

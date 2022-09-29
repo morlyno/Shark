@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-
+﻿
 namespace Shark
 {
 	public class Entity
 	{
 		public readonly ulong ID;
-		private Dictionary<Type, Component> m_ComponentCache = new Dictionary<Type, Component>();
 
 		public Entity()
 		{
@@ -31,32 +28,39 @@ namespace Shark
 		public TransformComponent Transform
 			=> GetComponent<TransformComponent>();
 
+		public Transform WorldTransform
+			=> Transform.WorldTransform;
+
+		public Vector3 Translation
+		{
+			get => Transform.Translation;
+			set => Transform.Translation = value;
+		}
+
 		public string Name
 		{
 			get => GetComponent<TagComponent>().Tag;
 			set => GetComponent<TagComponent>().Tag = value;
 		}
 
-		// Remove Component on RigidBody2D BoxCollider2D CircleCollider2D Components
-		// will not work at the moment because there is no system to destroy b2Body/b2Fixtures
-		// when the components get remove
+		public Entity Parent
+			=> InternalCalls.Entity_GetParent(ID);
+
+		public Entity[] Children
+			=> InternalCalls.Entity_GetChildren(ID);
+
 
 		public bool HasComponent<T>() where T : Component
 			=> InternalCalls.Entity_HasComponent(ID, typeof(T));
 
 		public T GetComponent<T>() where T : Component, new()
 		{
-			Type type = typeof(T);
-			m_ComponentCache.TryGetValue(type, out Component comp);
+			if (!HasComponent<T>())
+				return null;
 
-			if (comp == null)
-			{
-				comp = new T();
-				comp.Entity = this;
-				m_ComponentCache[type] = comp;
-			}
-
-			return comp as T;
+			T comp = new T();
+			comp.Entity = this;
+			return comp;
 		}
 
 		public T AddComponent<T>() where T : Component, new()
@@ -66,11 +70,47 @@ namespace Shark
 		}
 
 		public void RemoveComponent<T>() where T : Component
+			=> InternalCalls.Entity_RemoveComponent(ID, typeof(T));
+
+
+		public T As<T>() where T : Entity
+			=> InternalCalls.Entity_GetInstance(ID) as T;
+
+		public T Instantiate<T>(string name) where T : Entity
 		{
-			Type type = typeof(T);
-			InternalCalls.Entity_RemoveComponent(ID, type);
-			m_ComponentCache.Remove(type);
+			object instance = InternalCalls.Entity_Instantiate(typeof(T), name);
+			return instance as T;
 		}
+		
+		public Entity Instantiate(string name)
+		{
+			ulong id = InternalCalls.Entity_CreateEntity(name);
+			return new Entity(id);
+		}
+
+		public void DestroyEntity(Entity entity, bool destroyChildren = true)
+			=> InternalCalls.Entity_DestroyEntity(entity.ID, destroyChildren);
+
+		public Entity CloneEntity(Entity entity)
+		{
+			ulong id = InternalCalls.Entity_CloneEntity(entity.ID);
+			return new Entity(id);
+		}
+
+		public Entity FindEntityByName(string name)
+		{
+			ulong id = InternalCalls.Entity_FindEntityByName(name);
+			return new Entity(id);
+		}
+
+		public Entity FindChildEntityByName(string name, bool recusive = true)
+		{
+			ulong id = InternalCalls.Entity_FindChildEntityByName(ID, name, recusive);
+			return new Entity(id);
+		}
+
+		public Entity GetEntityByID(ulong entityID)
+			=> new Entity(entityID);
 
 	}
 

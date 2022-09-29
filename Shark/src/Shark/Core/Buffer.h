@@ -21,10 +21,19 @@ namespace Shark {
 		void Write(const void* data, uint32_t size, uint32_t offset = 0);
 
 		template<typename T>
+		void Write(const T& data, uint32_t offset = 0)
+		{
+			Write(&data, sizeof(T), offset);
+		}
+
+		template<typename T>
 		T* As() { return (T*)Data; }
 		
 		template<typename T>
 		const T* As() const { return (const T*)Data; }
+
+		operator byte* () { return Data; }
+		operator byte* () const { return Data; }
 
 		byte* Data = nullptr;
 		uint32_t Size = 0;

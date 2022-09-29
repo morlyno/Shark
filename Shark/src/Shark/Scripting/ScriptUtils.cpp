@@ -85,30 +85,33 @@ namespace Shark {
 		return MonoStringToUTF8(monoStr);
 	}
 
-	MonoObject* ScriptUtils::BoxValue(MonoClass* valueClass, void* value)
+	UUID ScriptUtils::GetIDFromEntity(MonoObject* object)
 	{
-		return mono_value_box(ScriptEngine::GetRuntimeDomain(), valueClass, value);
+		MonoClass* klass = mono_object_get_class(object);
+		MonoClassField* idField = mono_class_get_field_from_name(klass, "ID");
+		SK_CORE_ASSERT(idField, "Field Is not an entity");
+		uint64_t id = 0;
+		mono_field_get_value(object, idField, &id);
+		return id;
+	}
+
+	MonoObject* ScriptUtils::GetOrCreateEntity(Entity entity)
+	{
+		if (ScriptEngine::IsInstantiated(entity))
+			return ScriptEngine::GetInstanceObject(entity);
+		return ScriptEngine::CreateEntity(entity.GetUUID());
 	}
 
 	const char* ScriptUtils::GetClassName(GCHandle handle)
 	{
-		MonoObject* object = mono_gchandle_get_target(handle);
+		MonoObject* object = GCManager::GetManagedObject(handle);
 		MonoClass* clazz = mono_object_get_class(object);
 		return mono_class_get_name(clazz);
 	}
 
-	bool ScriptUtils::ValidScriptName(const std::string& fullName)
+	std::string_view ScriptUtils::GetFieldName(const ManagedField& field)
 	{
-		if (!ScriptEngine::AssembliesLoaded())
-			return false;
-
-		size_t i = fullName.rfind('.');
-
-		std::string nameSpace = fullName.substr(0, i);
-		std::string name = fullName.substr(i + 1);
-
-		MonoClass* clazz = mono_class_from_name_case(ScriptEngine::GetAppAssemblyInfo().Image, nameSpace.c_str(), name.c_str());
-		return clazz != nullptr;
+		return mono_field_get_name(field);
 	}
 
 	void* ScriptUtils::GetUnmanagedThunk(MonoMethod* method)

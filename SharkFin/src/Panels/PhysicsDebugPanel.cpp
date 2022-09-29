@@ -95,22 +95,23 @@ namespace Shark {
 				Entity entity{ entityID, m_Scene };
 				std::string name = entity.GetName();
 				ImGui::PushID((int)(uint64_t)entity.GetUUID());
-				if (ImGui::TreeNodeEx(name.c_str(), UI::DefualtTreeNodeFlags | ImGuiTreeNodeFlags_Selected))
+				if (ImGui::TreeNodeEx(name.c_str(), UI::DefaultTreeNodeFlags | ImGuiTreeNodeFlags_Selected))
 				{
 					RigidBody2DComponent& rigidBody = entity.GetComponent<RigidBody2DComponent>();
 					b2Body* body = rigidBody.RuntimeBody;
 					if (body)
 					{
 						UI::BeginControlsGrid(syncID);
-						UI::Control("Type", utils::Box2DBodyTypeToString(body->GetType()));
-						UI::Control("Position", fmt::to_string(body->GetPosition()));
-						UI::Control("Angle", fmt::to_string(body->GetAngle()));
-						UI::Control("Linear Velocity", fmt::to_string(body->GetLinearVelocity()));
-						UI::Control("Angular Velocity", fmt::to_string(body->GetAngularVelocity()));
-						UI::Control("Mass", fmt::to_string(body->GetMass()));
-						UI::Control("IsBuller", fmt::to_string(body->IsBullet()));
-						UI::Control("IsAwake", fmt::to_string(body->IsAwake()));
-						UI::Control("IsEnabled", fmt::to_string(body->IsEnabled()));
+						UI::Property("Type", utils::Box2DBodyTypeToString(body->GetType()));
+						UI::Property("Position", fmt::to_string(body->GetPosition()));
+						UI::Property("Angle", fmt::to_string(body->GetAngle()));
+						UI::Property("Linear Velocity", fmt::format("{0:2.7f}", body->GetLinearVelocity()));
+						UI::Property("Linear Damping", fmt::format("{0:2.7f}", body->GetLinearDamping()));
+						UI::Property("Angular Velocity", fmt::to_string(body->GetAngularVelocity()));
+						UI::Property("Mass", fmt::to_string(body->GetMass()));
+						UI::Property("IsBuller", fmt::to_string(body->IsBullet()));
+						UI::Property("IsAwake", fmt::to_string(body->IsAwake()));
+						UI::Property("IsEnabled", fmt::to_string(body->IsEnabled()));
 						UI::EndControls();
 					}
 					ImGui::TreePop();

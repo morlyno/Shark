@@ -10,93 +10,47 @@
 namespace Shark {
 
 	static Ref<FileWatcher> s_FileWatcher;
+	static FileWatcherCallbackFunc s_Callback = nullptr;
 
-	namespace utils {
+	#define ASSET_DIRECTORY_KEY "AssetsDirectory"
 
-		static void AssureInsteance()
-		{
-			if (!s_FileWatcher)
-			{
-				FileWatcherSpecification specs{};
-				specs.WatchSubTrees = true;
-				specs.NotifyFlags = NotifyFlag::All;
-				s_FileWatcher = FileWatcher::Create(specs);
-			}
-		}
-
+	void FileSystem::Init()
+	{
+		s_FileWatcher = FileWatcher::Create();
 	}
 
-	void FileSystem::StartWatching()
+	void FileSystem::Shutdown()
 	{
-		utils::AssureInsteance();
-
-		s_FileWatcher->Start();
+		SK_CORE_ASSERT(s_FileWatcher->GetActiveCount() == 0);
+		s_FileWatcher = nullptr;
+		s_Callback = nullptr;
 	}
 
-	void FileSystem::StartWatching(const std::filesystem::path& directory)
+	void FileSystem::ProcessEvents()
 	{
-		utils::AssureInsteance();
-
-		s_FileWatcher->SetDirectory(directory, false);
-		s_FileWatcher->Start();
+		s_FileWatcher->Update();
 	}
 
-	void FileSystem::StartWatching(const std::filesystem::path& directory, FileWatcherCallbackFunc callback)
+	void FileSystem::StartWatching(const std::filesystem::path& dirPath)
 	{
-		utils::AssureInsteance();
-
-		s_FileWatcher->SetDirectory(directory, false);
-		s_FileWatcher->SetCallback(callback);
-		s_FileWatcher->Start();
-	}
-
-	void FileSystem::StartWatching(const FileWatcherSpecification& specs)
-	{
-		utils::AssureInsteance();
-
-		s_FileWatcher->SetSpecification(specs);
-		s_FileWatcher->Start();
+		s_FileWatcher->StartWatching(ASSET_DIRECTORY_KEY, dirPath, s_Callback);
 	}
 
 	void FileSystem::StopWatching()
 	{
-		utils::AssureInsteance();
-
-		s_FileWatcher->Stop();
+		s_FileWatcher->StopWatching(ASSET_DIRECTORY_KEY);
 	}
 
-	void FileSystem::PauseWatching()
+	void FileSystem::SetCallback(FileWatcherCallbackFunc callback)
 	{
-		utils::AssureInsteance();
+		s_Callback = callback;
+		if (s_FileWatcher->IsWatching(ASSET_DIRECTORY_KEY))
+			s_FileWatcher->SetCallback(ASSET_DIRECTORY_KEY, callback);
 
-		s_FileWatcher->Pause();
 	}
 
-	void FileSystem::ContinueWatching()
+	Ref<FileWatcher> FileSystem::GetFileWatcher()
 	{
-		utils::AssureInsteance();
-
-		s_FileWatcher->Continue();
-	}
-
-	void FileSystem::SkipNextFileEvent()
-	{
-		utils::AssureInsteance();
-
-		s_FileWatcher->SkipNextEvent();
-	}
-
-	void FileSystem::SetFileWatcherCallback(FileWatcherCallbackFunc callback)
-	{
-		utils::AssureInsteance();
-
-		s_FileWatcher->SetCallback(callback);
-	}
-
-	Shark::Ref<Shark::FileWatcher> FileSystem::GetFileWatcher()
-	{
-		utils::AssureInsteance();
-
 		return s_FileWatcher;
 	}
 

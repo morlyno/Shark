@@ -8,6 +8,7 @@
 
 #include "Shark/Scripting/ScriptEngine.h"
 
+#include "Shark/File/FileSystem.h"
 #include "Shark/Utils/TimeUtils.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -26,6 +27,7 @@ namespace Shark {
 
 		SK_CORE_ASSERT(!s_Instance, "Application allready set");
 		s_Instance = this;
+		Application* app = this;
 
 		SK_CORE_ASSERT(!(specification.FullScreen && specification.Maximized));
 
@@ -37,13 +39,15 @@ namespace Shark {
 		windowprops.Width = specification.WindowWidth;
 		windowprops.Height = specification.WindowHeight;
 		windowprops.VSync = specification.VSync;
-
+		windowprops.EventListener = Ref<EventListener>::Create([app](Event& e) { app->OnEvent(e); });
 		m_Window = Window::Create(windowprops);
-		m_Window->SetEventCallbackFunc(SK_BIND_EVENT_FN(Application::OnEvent));
 		m_Window->CreateSwapChain();
 
-		m_ImGuiLayer = ImGuiLayer::Create();
-		PushLayer(m_ImGuiLayer);
+		if (specification.EnableImGui)
+		{
+			m_ImGuiLayer = ImGuiLayer::Create();
+			PushOverlay(m_ImGuiLayer);
+		}
 
 		ScriptEngine::Init(specification.ScriptConfig);
 
@@ -59,6 +63,8 @@ namespace Shark {
 		m_LayerStack.Clear();
 		ScriptEngine::Shutdown();
 		Renderer::ShutDown();
+
+		s_Instance = nullptr;
 	}
 
 	void Application::Run()
@@ -70,79 +76,83 @@ namespace Shark {
 			OPTICK_FRAME("MainThread");
 			SK_PERF_NEW_FRAME();
 
-			TimeStep now = TimeUtils::Now();
-			TimeStep timeStep = now - m_LastFrameTime;
-			m_LastFrameTime = now;
-
 			if (!m_Minimized)
 			{
-				UpdateLayers(timeStep);
+				if (m_NeedsResize)
+				{
+					Renderer::ClearAllCommandBuffers();
+					Ref<SwapChain> swapChain = m_Window->GetSwapChain();
+					swapChain->Resize(m_Window->GetWidth(), m_Window->GetHeight());
+					m_NeedsResize = false;
+				}
+
+				ScriptEngine::Update();
+
+				for (auto& layer : m_LayerStack)
+					layer->OnUpdate(m_TimeStep);
 
 				if (m_Specification.EnableImGui)
-					RenderImGui();
+				{
+					m_ImGuiLayer->Begin();
+					for (auto& layer : m_LayerStack)
+						layer->OnImGuiRender();
+					m_ImGuiLayer->End();
+				}
 			}
 
-			m_Window->Update();
+			ProcessEvents();
+
+			m_Window->GetSwapChain()->Present(m_Window->IsVSync());
+
+			TimeStep now = TimeUtils::Now();
+			m_TimeStep = now - m_LastFrameTime;
+			m_LastFrameTime = now;
 		}
 	}
 
-	void Application::UpdateLayers(TimeStep timeStep)
+	void Application::ProcessEvents()
 	{
 		SK_PROFILE_FUNCTION();
 
-		for (auto layer : m_LayerStack)
-			layer->OnUpdate(timeStep);
+		FileSystem::ProcessEvents();
+		Input::TransitionStates();
+
+		m_Window->ProcessEvents();
+		m_EventQueue.Execute();
 	}
 
-	void Application::RenderImGui()
-	{
-		SK_PROFILE_FUNCTION();
-
-		m_ImGuiLayer->Begin();
-		for (auto layer : m_LayerStack)
-			layer->OnImGuiRender();
-		m_ImGuiLayer->End();
-	}
-
-	bool Application::OnEvent(Event& event)
+	void Application::OnEvent(Event& event)
 	{
 		SK_PROFILE_FUNCTION();
 
 		if (!m_RaiseEvents)
-			return false;
+			return;
+
+		if (m_Specification.EnableImGui)
+		{
+			event.Handled |= event.IsInCategory(EventCategory::Mouse) && m_ImGuiLayer->BlocksMouseEvents();
+			event.Handled |= event.IsInCategory(EventCategory::Keyboard) && m_ImGuiLayer->BlocksKeyboardEvents();
+		}
+
+		Input::OnEvent(event);
 
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
-		dispacher.DispachEvent<ApplicationCloseEvent>(SK_BIND_EVENT_FN(Application::OnApplicationClose));
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(Application::OnWindowResize));
-		dispacher.DispachEvent<KeyPressedEvent>([this](KeyPressedEvent& event) { return OnKeyPressed(event); });
 
-		for (auto it = m_LayerStack.begin(); it != m_LayerStack.end() && !event.Handled; ++it)
+		for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend() && !event.Handled; ++it)
 			(*it)->OnEvent(event);
-
-		return event.Handled;
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& event)
 	{
-		SK_PROFILE_FUNCTION();
-
-		OnEvent(ApplicationCloseEvent());
-		return false;
-	}
-
-	bool Application::OnApplicationClose(ApplicationCloseEvent& event)
-	{
-		SK_PROFILE_FUNCTION();
-
-		SK_CORE_WARN(event);
-		m_Running = false;
+		CloseApplication();
 		return false;
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& event)
 	{
-		SK_PROFILE_FUNCTION();
+		m_NeedsResize = true;
 
 		if (event.IsMinimized())
 		{
@@ -153,29 +163,19 @@ namespace Shark {
 		return false;
 	}
 
-	bool Application::OnKeyPressed(KeyPressedEvent& event)
-	{
-		SK_PROFILE_FUNCTION();
-
-		return false;
-	}
-
-	Application::InsteanceCleanup::~InsteanceCleanup()
-	{
-		SK_PROFILE_FUNCTION();
-
-		s_Instance = nullptr;
-	}
-
 	namespace Core {
 
 		void Init()
 		{
 			Log::Init();
+			Input::Init();
+			FileSystem::Init();
 		}
 
 		void Shutdown()
 		{
+			FileSystem::Shutdown();
+			Input::Shutdown();
 			Log::Shutdown();
 		}
 

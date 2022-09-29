@@ -26,6 +26,7 @@
 #include <chrono>
 
 #include <fmt/format.h>
+#include <fmt/chrono.h>
 
 #define GLM_ENABLE_EXPERIMENTAL 1
 #include <glm/glm.hpp>
@@ -46,3 +47,4 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
+#include "Shark/Core/Timer.h"

@@ -6,42 +6,31 @@ namespace Sandbox
 
 	public class PlayerController : Entity
 	{
-		private uint m_CollishionCount = 0;
-		private bool m_ShouldJump = false;
-
-		// Movement
-		public float MovementSpeed = 8.0f; // m/s;
-		private float m_JumpForce = 18.0f;
+		public float Acceleration;
+		public float MaxMovementSpeed; // m/s;
+		public float OnGroundDamping = 10.0f;
+		public float JumpForce = 18.0f;
 		private RigidBody2DComponent m_RigidBody;
 
-		private Entity m_BallTemplate;
+		private bool m_Sprint = false;
+		private bool m_WantJump = false;
+		public uint AirJumps;
+		private uint m_AirJumpCount = 0;
+		private uint m_CollishionCount = 0;
 
+		public Entity BallTemplate;
+		public bool DestroyBallOnHit = false;
+
+		public bool ShootOnPress = false;
 		private bool m_WantShoot = false;
-		private float m_ShootCooldown = 0.2f;
+		public float ShootCooldown = 0.2f;
 		private float m_ShootCooldownTimer = 0.0f;
-
 		private bool m_Colliding => m_CollishionCount > 0;
 
-		private uint m_InternalApplyAdditionalGravityCount = 0;
-		private bool m_ApplyAdditionalGravity
-		{
-			get
-			{
-				return m_InternalApplyAdditionalGravityCount > 0;
-			}
-			set
-			{
-				if (value)
-					m_InternalApplyAdditionalGravityCount++;
-				else
-					m_InternalApplyAdditionalGravityCount--;
-			}
-		}
+		public TransformComponent CameraTransform;
 
 		protected override void OnCreate()
 		{
-			m_BallTemplate = Scene.GetEntityByTag("BallTemplate");
-
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
 		}
 
@@ -51,8 +40,19 @@ namespace Sandbox
 
 		protected override void OnUpdate(float ts)
 		{
-			m_ShouldJump = Input.IsKeyPressed(Key.Space);
-			m_WantShoot = Input.IsMouseButtonPressed(MouseButton.Left);
+			m_WantJump = Input.IsKeyPressed(KeyCode.Space);
+			m_WantShoot = ShootOnPress ? Input.IsMousePressed(MouseButton.Left) : Input.IsMouseDown(MouseButton.Left);
+			m_Sprint = Input.IsKeyDown(KeyCode.LeftShift);
+
+			if (Input.MouseScroll != 0)
+			{
+				Vector3 translation = CameraTransform.Translation;
+				translation.Z += Input.MouseScroll;
+				CameraTransform.Translation = translation;
+			}
+
+			if (Input.IsKeyPressed(KeyCode.P))
+				CreateBall();
 
 			if (m_ShootCooldownTimer > 0)
 				m_ShootCooldownTimer -= ts;
@@ -63,88 +63,90 @@ namespace Sandbox
 
 		protected override void OnPhysicsUpdate(float fixedTimeStep)
 		{
-			if (m_ApplyAdditionalGravity)
-			{
-				var linearVelocity = m_RigidBody.LinearVelocity;
-				linearVelocity.Y = Mathf.Min(Physics2D.Gravity.Y, linearVelocity.Y);
-				m_RigidBody.LinearVelocity = linearVelocity;
-			}
 			Movement(fixedTimeStep);
 		}
 
 		protected override void OnCollishionBegin(Collider2D collider)
 		{
+			m_RigidBody.LinearDamping = OnGroundDamping;
+			m_AirJumpCount = 0;
+
 			m_CollishionCount++;
-
-			Entity entity = collider.Entity;
-
-			if (entity is PlatformScript)
-				m_ApplyAdditionalGravity = true;
 		}
 
 		protected override void OnCollishionEnd(Collider2D collider)
 		{
 			m_CollishionCount--;
 
-			Entity entity = collider.Entity;
-
-			if (entity is PlatformScript)
-				m_ApplyAdditionalGravity = false;
+			if (!m_Colliding)
+				m_RigidBody.LinearDamping = 0;
 		}
 
 		private void Movement(float ts)
 		{
-			Vector2 delta = Vector2.Zero;
+			Vector2 direction = Vector2.Zero;
 
-			if (Input.IsKeyPressed(Key.D))
-				delta += Vector2.Right;
+			if (Input.IsKeyDown(KeyCode.D))
+				direction += Vector2.Right;
 
-			if (Input.IsKeyPressed(Key.A))
-				delta += Vector2.Left;
+			if (Input.IsKeyDown(KeyCode.A))
+				direction += Vector2.Left;
 
+			if (direction != Vector2.Zero)
+			{
+				var velocity = m_RigidBody.LinearVelocity;
+				velocity += Acceleration * direction * ts;
+				if (!m_Sprint)
+				{
+					//velocity.X = Mathf.Clamp(velocity.X, -MaxMovementSpeed, MaxMovementSpeed);
+					if (velocity.Length > MaxMovementSpeed)
+						velocity.Length = MaxMovementSpeed;
+				}
+				m_RigidBody.LinearVelocity = velocity;
+				m_RigidBody.LinearDamping = 0;
+			}
+			else if (true && m_Colliding)
+			{
+				m_RigidBody.LinearDamping = OnGroundDamping;
+			}
 
-			if (Input.IsKeyPressed(Key.Shift))
-				delta.X *= 2.0f;
-
-			var velocity = m_RigidBody.LinearVelocity;
-			delta *= MovementSpeed * ts * 1000.0f;
-			velocity.X = delta.X;
-			m_RigidBody.LinearVelocity = velocity;
-
-			if (m_ShouldJump && m_Colliding)
+			if (m_AirJumpCount < AirJumps && m_WantJump && !m_Colliding)
 			{
 				m_RigidBody.LinearVelocity = new Vector2(m_RigidBody.LinearVelocity.X, 0.0f);
-				m_RigidBody.ApplyForce(Vector2.Up * m_JumpForce, PhysicsForce2DType.Impulse);
+				m_RigidBody.ApplyForce(Vector2.Up * JumpForce, PhysicsForce2DType.Impulse);
+				m_AirJumpCount++;
+				m_WantJump = false;
 			}
+
+			if (m_WantJump && m_Colliding)
+			{
+				m_RigidBody.LinearVelocity = new Vector2(m_RigidBody.LinearVelocity.X, 0.0f);
+				m_RigidBody.ApplyForce(Vector2.Up * JumpForce, PhysicsForce2DType.Impulse);
+				m_WantJump = false;
+			}
+
 		}
 
 		private void Shoot()
 		{
-			if (m_ShootCooldownTimer <= 0.0f)
+			if (ShootOnPress || m_ShootCooldownTimer <= 0.0f)
 			{
-				m_ShootCooldownTimer = m_ShootCooldown;
+				m_ShootCooldownTimer = ShootCooldown;
 
-				var direction = Vector2.Normalize((Vector2)Input.GetMousePos() - (Vector2)Application.Size * 0.5f);
+				var direction = Vector2.Normalize((Vector2)Input.MousePos - (Vector2)Application.Size * 0.5f);
 				direction.Y = -direction.Y;
 
-				Bullet bullet = Scene.Instantiate<Bullet>("Bullet");
-				bullet.DestroyOnHit = false;
+				Bullet bullet = Instantiate<Bullet>("Bullet");
+				bullet.DestroyOnHit = DestroyBallOnHit;
 				var rigidBody = bullet.GetComponent<RigidBody2DComponent>();
 				rigidBody.Position = m_RigidBody.Position + direction;
 				rigidBody.ApplyForce(direction * 10000.0f, PhysicsForce2DType.Force);
-				Log.Info("Bullet Shot! Direction {0}", direction);
-				Log.Warn("TestTestTest\nHalloHalloHallo\nTagTagTag");
 			}
-		}
-
-		private void DoError(string fmt, string str)
-		{
-			DoError(fmt + str, str);
 		}
 
 		private void CreateBall()
 		{
-			var ball = Scene.CloneEntity(m_BallTemplate);
+			var ball = CloneEntity(BallTemplate);
 			ball.Name = "Ball";
 			var rigidBody = ball.GetComponent<RigidBody2DComponent>();
 			rigidBody.Position = new Vector2(0.0f, 10.0f);

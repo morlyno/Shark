@@ -7,41 +7,26 @@
 
 namespace Shark {
 
+	struct WatchData;
+
 	class WindowsFileWatcher : public FileWatcher
 	{
 	public:
-		WindowsFileWatcher() = default;
-		WindowsFileWatcher(const FileWatcherSpecification& specification);
-		~WindowsFileWatcher();
+		virtual ~WindowsFileWatcher();
 
-		virtual void Start() override;
-		virtual void Stop() override;
+		virtual void StartWatching(const std::string& key, const std::filesystem::path& dirPath, FileWatcherCallbackFunc callback) override;
+		virtual void StartWatching(const std::string& key, const std::filesystem::path& dirPath, const WatchingSettings& settings) override;
+		virtual void StopWatching(const std::string& key) override;
+		virtual void SetCallback(const std::string& key, FileWatcherCallbackFunc callback) override;
 
-		virtual bool IsRunning() override { return m_Running; }
-		virtual bool IsPaused() override { return m_Paused; }
+		virtual bool IsWatching(const std::string& key) override;
 
-		virtual void SkipNextEvent() override { m_SkipNextEvent = true; }
-		virtual void Pause() override { m_Paused = true; }
-		virtual void Continue() override { m_Paused = false; }
+		virtual void Update() override;
 
-		virtual void SetCallback(FileWatcherCallbackFunc callback) override { m_Specs.CallbackFunc = callback; }
-		virtual void SetDirectory(const std::filesystem::path& directory, bool restartIfRunning) override;
-
-		virtual const FileWatcherSpecification& GetSpecification() const override { return m_Specs; }
-		virtual void SetSpecification(const FileWatcherSpecification& specs) override { m_Specs = specs; }
+		virtual uint32_t GetActiveCount() const override { return (uint32_t)m_Watches.size(); }
 
 	private:
-		void WatcherFunction();
-
-	private:
-		std::thread m_Thread;
-		FileWatcherSpecification m_Specs;
-
-		bool m_Running = false;
-		bool m_SkipNextEvent = false;
-		bool m_Paused = false;
-
-		HANDLE m_StopThreadEvent = NULL;
+		std::map<std::string, WatchData*> m_Watches;
 	};
 
 }

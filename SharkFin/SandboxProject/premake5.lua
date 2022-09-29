@@ -15,8 +15,8 @@ project "Sandbox"
     framework "4.7.2"
     location "Assets/Scripts"
 
-    targetdir "%{wks.location}/Assets/Scripts/Binaries"
-    objdir "%{wks.location}/Assets/Scripts/Intermediates"
+    targetdir "%{wks.location}/Binaries"
+    objdir "%{wks.location}/Intermediates"
 
     files
     {

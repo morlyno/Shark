@@ -5,6 +5,11 @@
 
 namespace YAML {
 
+	YAML::Emitter& operator<<(Emitter& out, wchar_t wc)
+	{
+		return out << (int16_t)wc;
+	}
+
 	YAML::Emitter& operator<<(Emitter& out, const glm::vec2& f2)
 	{
 		out << Flow;

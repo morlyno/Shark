@@ -98,9 +98,11 @@ namespace Shark {
 				UI::BeginControlsGrid();
 
 				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
-				UI::Control("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
-				UI::Control("FilePath", metadata.FilePath, textFlags);
-				UI::Control("Type", AssetTypeToString(metadata.Type), textFlags);
+				char buffer[sizeof("0x0123456789ABCDEF")];
+				sprintf_s(buffer, "0x%llx", (uint64_t)metadata.Handle);
+				UI::Property("Handle", buffer, textFlags);
+				UI::Property("FilePath", metadata.FilePath, textFlags);
+				UI::Property("Type", AssetTypeToString(metadata.Type), textFlags);
 
 				UI::EndControls();
 
@@ -147,9 +149,11 @@ namespace Shark {
 				UI::BeginControlsGrid();
 
 				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
-				UI::Control("Handle", fmt::format("{:x}", metadata.Handle), textFlags);
-				UI::Control("FilePath", metadata.FilePath, textFlags);
-				UI::Control("Type", AssetTypeToString(metadata.Type), textFlags);
+				char buffer[sizeof("0x0123456789ABCDEF")];
+				sprintf_s(buffer, "0x%llx", (uint64_t)metadata.Handle);
+				UI::Property("Handle", buffer, textFlags);
+				UI::Property("FilePath", metadata.FilePath, textFlags);
+				UI::Property("Type", AssetTypeToString(metadata.Type), textFlags);
 				bool isMemoryAsset = metadata.IsMemoryAsset;
 				UI::Control("Memory", isMemoryAsset);
 

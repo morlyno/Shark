@@ -43,8 +43,6 @@ project "SharkFin"
         DefaultDefines
     }
 
-    sharkfin_output_dir = "%{wks.location}/bin/%{outputdir}/%{prj.name}"
-
     filter "system:windows"
         systemversion "latest"
         defines "SK_PLATFORM_WINDOWS"

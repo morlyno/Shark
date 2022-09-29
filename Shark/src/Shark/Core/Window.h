@@ -1,6 +1,7 @@
 #pragma once
 #include "Shark/Core/Base.h"
 #include "Shark/Event/Event.h"
+#include "Shark/Event/EventListener.h"
 
 #include "Shark/Render/SwapChain.h"
 
@@ -13,6 +14,7 @@ namespace Shark {
 		int Height = 720;
 		bool VSync = true;
 		bool Maximized = false;
+		Ref<EventListener> EventListener;
 
 		WindowProps() = default;
 		WindowProps(const std::string& name, int width, int height, bool VSync)
@@ -23,19 +25,16 @@ namespace Shark {
 	class Window
 	{
 	public:
-		using EventCallbackFunc = std::function<bool(Event& e)>;
-
 		virtual ~Window() = default;
 		virtual void CreateSwapChain() = 0;
 
-		virtual void SetEventCallbackFunc(const EventCallbackFunc& callback) = 0;
-
-		virtual void Update() const = 0;
+		virtual void ProcessEvents() const = 0;
 
 		virtual inline uint32_t GetWidth() const = 0;
 		virtual inline uint32_t GetHeight() const = 0;
 		virtual const glm::uvec2& GetSize() const = 0;
 		virtual const glm::ivec2& GetPos() const = 0;
+		virtual void ScreenToClient(glm::ivec2& screenPos) const = 0;
 
 		virtual inline WindowHandle GetHandle() const = 0;
 		virtual Ref<SwapChain> GetSwapChain() const = 0;

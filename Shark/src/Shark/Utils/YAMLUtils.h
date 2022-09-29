@@ -9,6 +9,16 @@
 namespace YAML {
 
 	template<>
+	struct convert<char16_t>
+	{
+		static bool decode(const Node& node, char16_t& wc)
+		{
+			wc = node.as<int16_t>();
+			return true;
+		}
+	};
+
+	template<>
 	struct convert<glm::vec2>
 	{
 		static bool decode(const Node& node, glm::vec2& f2)
@@ -77,6 +87,7 @@ namespace YAML {
 		}
 	};
 
+	Emitter& operator<<(Emitter& out, wchar_t);
 	Emitter& operator<<(Emitter& out, const glm::vec2& f2);
 	Emitter& operator<<(Emitter& out, const glm::vec3& f3);
 	Emitter& operator<<(Emitter& out, const glm::vec4& f4);

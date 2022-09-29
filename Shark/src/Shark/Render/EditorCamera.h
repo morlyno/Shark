@@ -3,6 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Camera.h"
 #include "Shark/Event/Event.h"
+#include "Shark/Event/MouseEvent.h"
 #include "Shark/Core/TimeStep.h"
 
 #include <glm/glm.hpp>
@@ -53,6 +54,9 @@ namespace Shark {
 
 		void OnUpdate(TimeStep ts);
 		void OnEvent(Event& event);
+	private:
+		bool OnMouseScolledEvent(MouseScrolledEvent& event);
+
 	private:
 		glm::vec3 GetForwardDirection() const;
 		glm::vec3 GetUpwardsDirection() const;

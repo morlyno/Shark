@@ -160,7 +160,7 @@ namespace Shark {
 				ImGui::SetNextItemWidth(thumbnailSize - padding * 2.0f - style.FramePadding.x * 2.0f);
 				auto filter = [](ImGuiInputTextCallbackData* data) -> int
 				{
-					if (FileSystem::InvalidCharacters.find(data->EventChar) != std::string_view::npos)
+					if (FileSystem::InvalidCharactersW.find(data->EventChar) != std::wstring_view::npos)
 					{
 						*(bool*)data->UserData = true;
 						return 1;

@@ -10,7 +10,7 @@ namespace Shark
 		Thumb01 = 0x05,
 		Thumb02 = 0x06,
 
-		Invalid = 0x00
+		None = 0x00
 	}
 
 }

@@ -46,13 +46,16 @@
 
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
-#define SK_CONNECT(a, b) a##b
+#define SK_CONNECT(a, b) a ## b
 
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 
 #define SK_NOT_IMPLEMENTED() SK_CORE_ASSERT(false, "Not Implemented");
 #define SK_DEPRECATED(message) [[deprecated(message)]]
-#define SK_UNIQUE_VAR_NAME SK_CONNECT(unique_var_, __COUNTER__)
+
+#define SK_IMPL_UNIQUE_NAME_BASE_CONNECT(a, b) a ## b
+#define SK_IMPL_UNIQUE_NAME_BASE(x) SK_IMPL_UNIQUE_NAME_BASE_CONNECT(unique_name_, x)
+#define SK_UNIQUE_NAME SK_IMPL_UNIQUE_NAME_BASE(__COUNTER__)
 
 #include <stdint.h>
 
@@ -85,6 +88,10 @@ namespace Shark {
 	static_assert(sizeof(glm::vec3) == sizeof(float) * 3);
 	static_assert(sizeof(glm::vec4) == sizeof(float) * 4);
 	static_assert(sizeof(glm::mat4) == sizeof(float) * 4 * 4);
+
+	using namespace std::literals::string_literals;
+	using namespace std::literals::string_view_literals;
+	using namespace std::literals::chrono_literals;
 
 }
 

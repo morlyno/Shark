@@ -12,20 +12,16 @@ namespace Shark {
 	{
 	public:
 		static constexpr std::string_view InvalidCharacters = "\\/:*?\"<>|";
+		static constexpr std::wstring_view InvalidCharactersW = L"\\/:*?\"<>|";
 
 	public:
-		static void StartWatching();
-		static void StartWatching(const std::filesystem::path& directory);
-		static void StartWatching(const std::filesystem::path& directory, FileWatcherCallbackFunc callback);
-		static void StartWatching(const FileWatcherSpecification& specs);
+		static void Init();
+		static void Shutdown();
+		static void ProcessEvents();
+
+		static void StartWatching(const std::filesystem::path& dirPath);
 		static void StopWatching();
-
-		static void PauseWatching();
-		static void ContinueWatching();
-		static void SkipNextFileEvent();
-
-		static void SetFileWatcherCallback(FileWatcherCallbackFunc callback);
-
+		static void SetCallback(FileWatcherCallbackFunc callback);
 		static Ref<FileWatcher> GetFileWatcher();
 
 		static std::filesystem::path GetUnsusedPath(const std::filesystem::path& filePath);

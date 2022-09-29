@@ -248,6 +248,8 @@ namespace Shark {
 
 	Buffer DirectXImage2D::LoadDataFromFile(const std::filesystem::path& filePath)
 	{
+		ScopedTimer timer("DirectXImage2D::LoadDataFromFile");
+
 		std::string narrorFilePath = filePath.string();
 		int x, y, comp;
 		Buffer imageData;

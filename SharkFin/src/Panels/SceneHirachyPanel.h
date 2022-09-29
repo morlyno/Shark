@@ -39,10 +39,116 @@ namespace Shark {
 
 		void DestroyEntity(Entity entity);
 		void SelectEntity(Entity entity);
+
+		template<typename Comp, typename UIFunction>
+		void DrawComponet(Entity entity, const char* lable, UIFunction func)
+		{
+			if (entity.AllOf<Comp>())
+			{
+				ImGui::PushID(typeid(Comp).name());
+				const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
+
+				const ImVec2 headerEnd = ImGui::GetItemRectMax() - ImGui::GetWindowPos();
+				const float buttonSize = ImGui::GetItemRectSize().y;
+				ImGui::SameLine(headerEnd.x - buttonSize);
+				{
+					UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+					UI::ScopedColorStack colors(
+						ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
+						ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
+						ImGuiCol_ButtonHovered, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f }
+					);
+
+					if (ImGui::Button("+", { buttonSize, buttonSize }))
+						ImGui::OpenPopup("Component Settings");
+				}
+
+				if (opened)
+				{
+					auto& comp = entity.GetComponent<Comp>();
+					func(comp, entity);
+				}
+
+				if (ImGui::BeginPopup("Component Settings"))
+				{
+					if (ImGui::MenuItem("Delete", nullptr, false, !std::is_same_v<Comp, TransformComponent>))
+						entity.RemoveComponent<Comp>();
+
+					if (ImGui::MenuItem("Reset"))
+					{
+						if (std::is_same_v<Comp, TransformComponent> && m_TransformInWorldSpace)
+						{
+							auto& transform = entity.Transform();
+							transform = TransformComponent{};
+							m_Context->ConvertToLocaSpace(entity, transform);
+						}
+						else
+						{
+							auto& comp = entity.GetComponent<Comp>();
+							comp = Comp{};
+						}
+					}
+
+					if constexpr (std::is_same_v<Comp, TransformComponent>)
+					{
+						ImGui::Separator();
+
+						if (ImGui::MenuItem("Reset Translation"))
+						{
+							if (m_TransformInWorldSpace)
+							{
+								m_Context->ConvertToWorldSpace(entity);
+								entity.Transform().Translation = glm::vec3(0.0f);
+								m_Context->ConvertToLocaSpace(entity);
+							}
+							else
+							{
+								entity.Transform().Translation = glm::vec3(0.0f);
+							}
+						}
+						
+						if (ImGui::MenuItem("Reset Rotation"))
+						{
+							if (m_TransformInWorldSpace)
+							{
+								m_Context->ConvertToWorldSpace(entity);
+								entity.Transform().Rotation = glm::vec3(0.0f);
+								m_Context->ConvertToLocaSpace(entity);
+							}
+							else
+							{
+								entity.Transform().Rotation = glm::vec3(0.0f);
+							}
+						}
+						
+						if (ImGui::MenuItem("Reset Scale"))
+						{
+							if (m_TransformInWorldSpace)
+							{
+								m_Context->ConvertToWorldSpace(entity);
+								entity.Transform().Scale = glm::vec3(1.0f);
+								m_Context->ConvertToLocaSpace(entity);
+							}
+							else
+							{
+								entity.Transform().Scale = glm::vec3(1.0f);
+							}
+						}
+
+						ImGui::MenuItem("Show World Space", nullptr, &m_TransformInWorldSpace);
+					}
+
+					ImGui::EndPopup();
+				}
+
+				ImGui::PopID();
+			}
+		}
 	private:
 		Ref<Scene> m_Context;
 		Entity m_SelectedEntity;
 
+		bool m_TransformInWorldSpace = false;
 		bool m_HirachyFocused = false;
 		bool m_PropertiesFocused = false;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Scene/SceneCamera.h"
+#include "Shark/Scripting/ScriptTypes.h"
 
 #include <glm/glm.hpp>
 #include "glm/gtx/transform.hpp"
@@ -14,7 +15,7 @@ namespace Shark {
 
 	struct IDComponent
 	{
-		UUID ID = UUID::Invalid;
+		UUID ID = UUID::Null;
 
 		IDComponent() = default;
 		IDComponent(const IDComponent&) = default;
@@ -47,7 +48,7 @@ namespace Shark {
 
 	struct RelationshipComponent
 	{
-		UUID Parent = UUID::Invalid;
+		UUID Parent = UUID::Null;
 		std::vector<UUID> Children;
 
 		RelationshipComponent() = default;
@@ -145,10 +146,13 @@ namespace Shark {
 	struct ScriptComponent
 	{
 		std::string ScriptName;
-		bool IsExisitingScript = false;
+		uint64_t ClassID = 0;
+		//Ref<ScriptClass> Class;
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;
+
+		friend class ScriptEngine;
 	};
 
 }

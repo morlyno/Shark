@@ -2,6 +2,9 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Window.h"
+#include "Shark/Core/CommandQueue.h"
+#include "Shark/Event/Event.h"
+#include "Shark/Event/EventListener.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/ApplicationEvent.h"
 #include "Shark/Event/KeyEvent.h"
@@ -38,46 +41,45 @@ namespace Shark {
 
 		void Run();
 
-		void UpdateLayers(TimeStep timeStep);
-		void RenderImGui();
-
-		bool OnEvent(Event& event);
-
-		void PushLayer(Layer* layer)                   { SK_PROFILE_FUNCTION(); m_LayerStack.PushLayer(layer); layer->OnAttach(); }
-		void PopLayer(Layer* layer)                    { SK_PROFILE_FUNCTION(); m_LayerStack.PopLayer(layer); layer->OnDetach(); }
-		void PushOverlay(Layer* layer)                 { SK_PROFILE_FUNCTION(); m_LayerStack.PushOverlay(layer); layer->OnAttach(); }
-		void PopOverlay(Layer* layer)                  { SK_PROFILE_FUNCTION(); m_LayerStack.PopOverlay(layer); layer->OnDetach(); }
+		void PushLayer(Layer* layer)                   { m_LayerStack.PushLayer(layer); layer->OnAttach(); }
+		void PopLayer(Layer* layer)                    { m_LayerStack.PopLayer(layer); layer->OnDetach(); }
+		void PushOverlay(Layer* layer)                 { m_LayerStack.PushOverlay(layer); layer->OnAttach(); }
+		void PopOverlay(Layer* layer)                  { m_LayerStack.PopOverlay(layer); layer->OnDetach(); }
 
 		void CloseApplication()                        { m_Running = false; }
 
 		static Application* GetPtr()                   { return s_Instance; }
 		static Application& Get()                      { return *s_Instance; }
+
 		Window& GetWindow()                            { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer()                    { return *m_ImGuiLayer; }
 		const ApplicationSpecification& GetSpecs()     { return m_Specification; }
 		bool CanRaiseEvents() const					   { return m_RaiseEvents; }
 
+		template<typename TEvent, typename... TArgs>
+		void QueueEvent(TArgs&&... args)
+		{
+			Application* app = this;
+			m_EventQueue.Submit([app, args...]() { app->OnEvent(TEvent(args...)); });
+		}
+
+	private:
+		void ProcessEvents();
+		void OnEvent(Event& event);
+
 	private:
 		bool OnWindowClose(WindowCloseEvent& event);
-		bool OnApplicationClose(ApplicationCloseEvent& event);
 		bool OnWindowResize(WindowResizeEvent& event);
-		bool OnKeyPressed(KeyPressedEvent& event);
 
 	private:
 		static Application* s_Instance;
-
-		struct InsteanceCleanup
-		{
-			InsteanceCleanup() = default;
-			~InsteanceCleanup();
-		};
-		InsteanceCleanup m_InsteanceCleanup;
-
 		ApplicationSpecification m_Specification;
 
+		bool m_NeedsResize = false;
 		bool m_Minimized = false;
 		bool m_Running = true;
 		TimeStep m_LastFrameTime = 0;
+		TimeStep m_TimeStep;
 
 		bool m_RaiseEvents = true;
 
@@ -86,6 +88,7 @@ namespace Shark {
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
+		CommandQueue m_EventQueue = CommandQueue(128);
 	};
 
 	Application* CreateApplication(int argc, char** argv);

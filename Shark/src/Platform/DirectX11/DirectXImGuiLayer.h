@@ -27,7 +27,11 @@ namespace Shark {
 		virtual void End() override;
 
 		virtual bool InFrame() const { return m_InFrame; }
+		virtual void SetMainViewportID(ImGuiID mainViewportID) override { m_MainViewportID = mainViewportID; }
+		virtual ImGuiID GetMainViewportID() const override { return m_MainViewportID; }
 
+		virtual bool BlocksMouseEvents() const override { return m_BlockEvents && ImGui::GetIO().WantCaptureMouse; }
+		virtual bool BlocksKeyboardEvents() const override { return m_BlockEvents && ImGui::GetIO().WantCaptureKeyboard; }
 		virtual void BlockEvents(bool block) override { m_BlockEvents = block; }
 		virtual void SubmitBlendCallback(bool blend) override;
 
@@ -36,6 +40,7 @@ namespace Shark {
 	private:
 		bool m_BlockEvents = false;
 		bool m_InFrame = false;
+		ImGuiID m_MainViewportID = 0;
 
 		Ref<DirectXRenderCommandBuffer> m_CommandBuffer;
 		Ref<DirectXGPUTimer> m_Timer;

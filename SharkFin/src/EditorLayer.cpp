@@ -7,16 +7,18 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
 
-#include "Shark/UI/UI.h"
-
 #include "Shark/File/FileSystem.h"
-
 #include "Shark/Utils/PlatformUtils.h"
 
+#include "Shark/UI/UI.h"
+
+#include "Shark/Editor/Icons.h"
+#include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
 #include "Panels/SceneHirachyPanel.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
 #include "Panels/TextureEditorPanel.h"
 #include "Panels/PhysicsDebugPanel.h"
+#include "Panels/ScriptEnginePanel.h"
 
 #include "Shark/Editor/EditorSettings.h"
 #include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
@@ -36,6 +38,7 @@
 #define PHYSICS_DEBUG_ID "PhysicsDebugPanel"
 #define ASSET_EDITOR_ID "AssetsEditorPanel"
 #define EDITOR_CONSOLE_ID "EditorConsolePanel"
+#define SCRIPT_ENGINE_ID "ScriptEnginePanel"
 #define ASSETS_PANEL_ID "AssetsPanel"
 
 namespace Shark {
@@ -70,11 +73,7 @@ namespace Shark {
 		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, "Console", true);
 		m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, "Content Browser", true);
 		m_PanelManager->AddPanel<AssetsPanel>(ASSETS_PANEL_ID, "Assets", false);
-
-		if (!m_StartupProject.empty())
-			OpenProject(m_StartupProject);
-		else
-			SK_CORE_ASSERT(false, "No Startup Project!");
+		m_PanelManager->AddPanel<ScriptEnginePanel>(SCRIPT_ENGINE_ID, "Script Engine", false);
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
 		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
@@ -85,7 +84,20 @@ namespace Shark {
 		imageSpecs.Type = ImageType::Storage;
 		m_MousePickingImage = Image2D::Create(imageSpecs, nullptr);
 
-		FileSystem::SetFileWatcherCallback(std::bind(&EditorLayer::OnFileEvents, this, std::placeholders::_1));
+		// Load Project
+		if (!m_StartupProject.empty())
+			OpenProject(m_StartupProject);
+		else
+			SK_CORE_ASSERT(false, "No Startup Project!");
+
+		FileSystem::SetCallback(std::bind(&EditorLayer::OnFileEvents, this, std::placeholders::_1));
+
+		auto& app = Application::Get();
+		if (app.GetSpecs().EnableImGui)
+		{
+			m_MainViewportID = ImHashStr("MainViewport");
+			app.GetImGuiLayer().SetMainViewportID(m_MainViewportID);
+		}
 	}
 
 	void EditorLayer::OnDetach()
@@ -93,7 +105,6 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		CloseProject();
-		FileSystem::SetFileWatcherCallback(nullptr);
 
 		m_PanelManager->Clear();
 
@@ -107,8 +118,6 @@ namespace Shark {
 		m_TimeStep = ts;
 
 		Renderer::NewFrame();
-
-		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered);
 
 		if (m_ActiveScene->Flags & AssetFlag::Unloaded)
 		{
@@ -211,14 +220,14 @@ namespace Shark {
 		if (event.IsRepeat())
 			return false;
 
-		const bool control = Input::KeyPressed(Key::Control);
-		const bool shift = Input::KeyPressed(Key::LeftShift);
+		const bool control = Input::IsKeyDown(KeyCode::LeftControl);
+		const bool shift = Input::IsKeyDown(KeyCode::LeftShift);
 
 		switch (event.GetKeyCode())
 		{
 
 			// New Scene
-			case Key::N:
+			case KeyCode::N:
 			{
 				if (control)
 				{
@@ -229,7 +238,7 @@ namespace Shark {
 			}
 
 			// Save Scene
-			case Key::S:
+			case KeyCode::S:
 			{
 				if (control)
 				{
@@ -245,7 +254,7 @@ namespace Shark {
 			}
 
 			// Copy Entity
-			case Key::D:
+			case KeyCode::D:
 			{
 				if (control && m_SelectetEntity && m_SceneState == SceneState::Edit)
 				{
@@ -257,19 +266,21 @@ namespace Shark {
 			}
 
 			// Focus Selected Entity
-			case Key::F:
+			case KeyCode::F:
 			{
 				if (m_SelectetEntity)
 				{
-					const auto& tf = m_SelectetEntity.Transform();
-					m_EditorCamera.SetFocusPoint(tf.Translation);
+					glm::vec3 translation;
+					Math::DecomposeTranslation(m_ActiveScene->GetWorldSpaceTransformMatrix(m_SelectetEntity), translation);
+
+					m_EditorCamera.SetFocusPoint(translation);
 					m_EditorCamera.SetDistance(7.5f);
 					return true;
 				}
 				break;
 			}
 
-			case Key::Delete:
+			case KeyCode::Delete:
 			{
 				if (m_SelectetEntity && m_ViewportFocused)
 				{
@@ -280,7 +291,7 @@ namespace Shark {
 			}
 
 			// Toggle VSync
-			case Key::V:
+			case KeyCode::V:
 			{
 				auto& window = Application::Get().GetWindow();
 				window.SetVSync(!window.IsVSync());
@@ -288,10 +299,10 @@ namespace Shark {
 			}
 
 			// ImGuizmo
-			case Key::Q: { m_CurrentOperation = GizmoOperaton::None; return true; }
-			case Key::W: { m_CurrentOperation = GizmoOperaton::Translate; return true; }
-			case Key::E: { m_CurrentOperation = GizmoOperaton::Rotate; return true; }
-			case Key::R: { m_CurrentOperation = GizmoOperaton::Scale; return true; }
+			case KeyCode::Q: { m_CurrentOperation = GizmoOperaton::None; return true; }
+			case KeyCode::W: { m_CurrentOperation = GizmoOperaton::Translate; return true; }
+			case KeyCode::E: { m_CurrentOperation = GizmoOperaton::Rotate; return true; }
+			case KeyCode::R: { m_CurrentOperation = GizmoOperaton::Scale; return true; }
 		}
 
 		return false;
@@ -477,15 +488,10 @@ namespace Shark {
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("Script", m_SceneState == SceneState::Edit))
+			if (ImGui::BeginMenu("Script"))
 			{
-				if (ImGui::MenuItem("Reload", nullptr, nullptr, m_SceneState == SceneState::Edit))
-				{
-					ScriptEngine::ReloadAssemblies(Project::GetActive()->ScriptModulePath);
-					CheckScriptComponents();
-				}
-
-				ImGui::Separator();
+				if (ImGui::MenuItem("Reload"))
+					ScriptEngine::ScheduleReload();
 
 				ImGui::Separator();
 
@@ -507,7 +513,6 @@ namespace Shark {
 				ImGui::EndMenu();
 			}
 
-
 			ImGui::EndMainMenuBar();
 		}
 
@@ -521,15 +526,17 @@ namespace Shark {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("MainViewport");
+		ImGui::BeginEx("MainViewport", m_MainViewportID);
 		ImGui::PopStyleVar(4);
 
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		const bool anyItemFocused = ImGui::IsAnyItemActive() && GImGui->ActiveId != window->MoveId;
+		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered || anyItemFocused);
+
 		const ImVec2 size = ImGui::GetContentRegionAvail();
-
-
 		if (m_ViewportWidth != size.x || m_ViewportHeight != size.y)
 		{
 			m_ViewportWidth = (uint32_t)size.x;
@@ -538,9 +545,8 @@ namespace Shark {
 			m_NeedsResize = true;
 		}
 
-		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalImage();
-
 		UI::SetBlend(false);
+		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalImage();
 		ImGui::Image(fbImage->GetViewID(), size);
 		UI::SetBlend(true);
 
@@ -585,10 +591,10 @@ namespace Shark {
 				projection = m_EditorCamera.GetProjection();
 			}
 
-			glm::mat4 transform = m_ActiveScene->GetWorldSpaceTransform(m_SelectetEntity);
+			glm::mat4 transform = m_ActiveScene->GetWorldSpaceTransformMatrix(m_SelectetEntity);
 
 			float snapVal = 0.0f;
-			if (Input::KeyPressed(Key::LeftShift))
+			if (Input::IsKeyDown(KeyCode::LeftShift))
 			{
 				switch (m_CurrentOperation)
 				{
@@ -602,11 +608,10 @@ namespace Shark {
 			glm::mat4 delta;
 			ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::LOCAL, glm::value_ptr(transform), glm::value_ptr(delta), snap);
 
-			if (!Input::KeyPressed(Key::Alt) && ImGuizmo::IsUsing() || Input::KeyPressed(Key::Space))
+			if (!Input::IsKeyDown(KeyCode::LeftAlt) && ImGuizmo::IsUsing())
 			{
-				Entity parentEntity = m_SelectetEntity.Parent();
-				glm::mat4 localTransform = parentEntity ? glm::inverse(m_ActiveScene->GetWorldSpaceTransform(parentEntity)) * transform : transform;
-
+				glm::mat4 localTransform = transform;
+				m_ActiveScene->ConvertToLocaSpace(m_SelectetEntity, localTransform);
 				auto& tf = m_SelectetEntity.Transform();
 
 				glm::vec3 translation, rotation, scale;
@@ -1023,7 +1028,7 @@ namespace Shark {
 							ImGui::Text("TimeStep: %f", profile.TimeStep);
 							ImGui::Text("Steps: %d", profile.NumSteps);
 
-							std::map<float, std::string, std::greater<float>> times;
+							std::map<float, std::string, std::greater<>> times;
 							times[profile.Step] = "Step";
 							times[profile.Collide] = "Collide";
 							times[profile.Solve] = "Solve";
@@ -1035,7 +1040,7 @@ namespace Shark {
 
 							UI::BeginControlsGrid();
 							for (auto& [time, name] : times)
-								UI::Control(name, fmt::to_string(time));
+								UI::Property(name, fmt::to_string(time));
 							UI::EndControls();
 
 							//UI::Control("Step",           fmt::to_string(profile.step));
@@ -1238,7 +1243,7 @@ namespace Shark {
 		UI::Control("Velocity Iterations", config.VelocityIterations);
 		UI::Control("Position Iterations", config.PositionIterations);
 		float fixedTSInMS = config.FixedTimeStep * 1000.0f;
-		if (UI::Control("Fixed Time Step", fixedTSInMS, 0.1f, FLT_MAX, 1.0f, "%.3fms"))
+		if (UI::Control("Fixed Time Step", fixedTSInMS, 0.1f, 0.1f, FLT_MAX, "%.3fms"))
 			config.FixedTimeStep = fixedTSInMS * 0.001f;
 
 		UI::EndControls();
@@ -1310,7 +1315,7 @@ namespace Shark {
 		int height = (int)specs.Height;
 		if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 		{
-			const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::KeyPressed(Key::Alt) && m_ViewportHovered;
+			const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::IsKeyDown(KeyCode::LeftAlt) && m_ViewportHovered;
 
 			if (m_ReadHoveredEntity || selectEntity)
 			{
@@ -1374,7 +1379,7 @@ namespace Shark {
 					auto& tf = entity.Transform();
 
 					glm::mat4 transform =
-						m_ActiveScene->GetWorldSpaceTransform(entity) *
+						m_ActiveScene->GetWorldSpaceTransformMatrix(entity) *
 						glm::translate(glm::vec3(collider.Offset, 0)) *
 						glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 						glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
@@ -1392,7 +1397,7 @@ namespace Shark {
 					auto& tf = entity.Transform();
 
 					glm::mat4 transform =
-						m_ActiveScene->GetWorldSpaceTransform(entity) *
+						m_ActiveScene->GetWorldSpaceTransformMatrix(entity) *
 						glm::translate(glm::vec3(collider.Offset, 0)) *
 						glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 						glm::scale(glm::vec3(collider.Radius, collider.Radius, 1.0f));
@@ -1451,7 +1456,7 @@ namespace Shark {
 			Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
 			auto& camera = cameraEntity.GetComponent<CameraComponent>();
 			auto& tf = cameraEntity.Transform();
-			return camera.GetProjection() * glm::inverse(m_ActiveScene->GetWorldSpaceTransform(cameraEntity));
+			return camera.GetProjection() * glm::inverse(m_ActiveScene->GetWorldSpaceTransformMatrix(cameraEntity));
 		}
 
 		return m_EditorCamera.GetViewProjection();
@@ -1523,22 +1528,26 @@ namespace Shark {
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 		SK_CORE_ASSERT(m_ActiveScene == m_WorkScene);
 
+		auto filePath = PlatformUtils::SaveFileDialog(L"|*.*|Scene|*.skscene", 2, Project::GetAssetsPath(), true);
+		if (filePath.empty())
+			return false;
+
+		SK_CORE_ASSERT(filePath.extension() == L".skscene");
+		if (filePath.extension() != L".skscene")
+			return false;
+
 		if (ResourceManager::IsMemoryAsset(m_WorkScene->Handle))
 		{
-			auto filePath = PlatformUtils::SaveFileDialog(L"|*.*|Scene|*.skscene", 2, Project::GetAssetsPath(), true);
-			if (!filePath.empty())
-			{
-				SK_CORE_ASSERT(filePath.extension() == L".skscene");
-
-				std::string directoryPath = ResourceManager::MakeRelativePathString(filePath.parent_path());
-				std::string fileName = filePath.filename().string();
-				return ResourceManager::ImportMemoryAsset(m_ActiveScene->Handle, directoryPath, fileName);
-			}
-			return false;
+			std::string directoryPath = ResourceManager::MakeRelativePathString(filePath.parent_path());
+			std::string fileName = filePath.filename().string();
+			return ResourceManager::ImportMemoryAsset(m_WorkScene->Handle, directoryPath, fileName);
 		}
 
-		SK_CORE_ASSERT(false, "Normal assets currently cant be saved at a different location");
-		return false;
+		std::string directoryPath = ResourceManager::MakeRelativePathString(filePath.parent_path());
+		std::string fileName = filePath.filename().string();
+		Ref<Scene> newScene = ResourceManager::CreateAsset<Scene>(directoryPath, fileName);
+		m_WorkScene->CopyTo(newScene);
+		return ResourceManager::SaveAsset(newScene->Handle);
 	}
 
 	void EditorLayer::OnScenePlay()
@@ -1553,12 +1562,8 @@ namespace Shark {
 		m_CurrentOperation = GizmoOperaton::None;
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
-
-		ScriptEngine::ReloadAssemblies(Project::GetActive()->ScriptModulePath);
-		CheckScriptComponents();
-
-		ScriptEngine::SetActiveScene(m_ActiveScene);
-		DistributeEvent(ScenePlayEvent(m_ActiveScene));
+		ScriptEngine::InitializeRuntime(m_ActiveScene);
+		Application::Get().QueueEvent<ScenePlayEvent>(m_ActiveScene);
 		m_ActiveScene->OnScenePlay();
 	}
 
@@ -1570,7 +1575,7 @@ namespace Shark {
 		m_InitialSceneState = SceneState::None;
 
 		m_ActiveScene->OnSceneStop();
-		ScriptEngine::SetActiveScene(nullptr);
+		ScriptEngine::ShutdownRuntime();
 		SetActiveScene(m_WorkScene);
 	}
 
@@ -1594,7 +1599,10 @@ namespace Shark {
 		if (m_ActiveScene && ResourceManager::IsMemoryAsset(m_ActiveScene->Handle))
 			ResourceManager::UnloadAsset(m_ActiveScene->Handle);
 
-		SelectEntity(Entity{});
+		if (scene && m_SelectetEntity)
+			SelectEntity(scene->GetEntityByUUID(m_SelectetEntity.GetUUID()));
+		else
+			SelectEntity(Entity{});
 
 		if (scene)
 		{
@@ -1603,8 +1611,9 @@ namespace Shark {
 		}
 
 		m_ActiveScene = scene;
-		SelectEntity(Entity{});
-		DistributeEvent(SceneChangedEvent(scene));
+		m_SceneRenderer->SetScene(scene);
+		m_CameraPreviewRenderer->SetScene(scene);
+		Application::Get().QueueEvent<SceneChangedEvent>(scene);
 	}
 
 	void EditorLayer::OpenProject()
@@ -1637,8 +1646,8 @@ namespace Shark {
 			if (!LoadScene(project->Directory / project->StartupScenePath))
 				NewScene();
 
+			Application::Get().QueueEvent<ProjectChangedEvent>(project);
 			FileSystem::StartWatching(Project::GetAssetsPath());
-			DistributeEvent(ProjectChangedEvnet(project));
 
 			m_ProjectEditData = project;
 		}
@@ -1664,12 +1673,11 @@ namespace Shark {
 
 		SetActiveScene(nullptr);
 
-		// Note(moro): When CloseProject gets called durring application shutdown the application cant Raise event anymore
-		//             to get around this issue the event is distributed internal
+		// Note(moro): When CloseProject gets called durring application shutdown the application can't Raise Events anymore
+		//             to get around this the event is distributed internal
 		if (!Application::Get().CanRaiseEvents())
 			OnEvent(SceneChangedEvent(nullptr));
 		ScriptEngine::UnloadAssemblies();
-		ScriptEngine::SetActiveScene(nullptr);
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
 		m_WorkScene = nullptr;
@@ -1677,7 +1685,7 @@ namespace Shark {
 		FileSystem::StopWatching();
 
 		Project::SetActive(nullptr);
-		DistributeEvent(ProjectChangedEvnet(nullptr));
+		Application::Get().QueueEvent<ProjectChangedEvent>(nullptr);
 	}
 
 	void EditorLayer::SaveProject()
@@ -1701,35 +1709,6 @@ namespace Shark {
 			if (!ResourceManager::IsFileImported(path))
 				ResourceManager::ImportAsset(path);
 		}
-	}
-
-	glm::mat4 EditorLayer::GetViewProjFromCameraEntity(Entity cameraEntity)
-	{
-		SK_PROFILE_FUNCTION();
-
-		auto& camera = cameraEntity.GetComponent<CameraComponent>();
-		auto& tf = cameraEntity.Transform();
-		return camera.GetProjection() * glm::inverse(tf.CalcTransform());
-	}
-
-	void EditorLayer::DistributeEvent(Event& event)
-	{
-		SK_PROFILE_FUNCTION();
-
-		Application::Get().OnEvent(event);
-	}
-
-	void EditorLayer::CheckScriptComponents()
-	{
-		SK_PROFILE_FUNCTION();
-
-		auto view = m_ActiveScene->GetAllEntitysWith<ScriptComponent>();
-		for (auto entityID : view)
-		{
-			auto& comp = view.get<ScriptComponent>(entityID);
-			comp.IsExisitingScript = ScriptUtils::ValidScriptName(comp.ScriptName);
-		}
-
 	}
 
 	void EditorLayer::RunScriptSetup()

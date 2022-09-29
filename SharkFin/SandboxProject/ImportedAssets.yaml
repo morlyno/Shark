@@ -2,15 +2,9 @@ Assets:
   - Handle: 0x37dc48808083e849
     Type: Scene
     FilePath: Scenes/Cube.skscene
-  - Handle: 0xb0278653dd5629aa
+  - Handle: 0xa9ee34220b696ff1
     Type: Scene
-    FilePath: Scenes/MipMapTest.skscene
-  - Handle: 0x86f39dc7dff51af6
-    Type: Scene
-    FilePath: Scenes/ParentingScriptingTest.skscene
-  - Handle: 0x687958ac4bb829af
-    Type: Scene
-    FilePath: Scenes/ParentingTest.skscene
+    FilePath: Scenes/Parenting.skscene
   - Handle: 0x5028d59af2f896de
     Type: Scene
     FilePath: Scenes/Physics.skscene
@@ -20,21 +14,6 @@ Assets:
   - Handle: 0x5b3ed9bb804eccc0
     Type: Scene
     FilePath: Scenes/PlayerTest.skscene
-  - Handle: 0xe7e76a933455104d
-    Type: Scene
-    FilePath: Scenes/Quads.skscene
-  - Handle: 0x2d77190c75d8b6ee
-    Type: Scene
-    FilePath: Scenes/Sanbox.skscene
-  - Handle: 0xba9cf351d9053a5d
-    Type: Scene
-    FilePath: Scenes/ScriptTest.skscene
-  - Handle: 0xf7a7efe695f20cb4
-    Type: Scene
-    FilePath: Scenes/StressTest.skscene
-  - Handle: 0x4b9315598476c506
-    Type: Scene
-    FilePath: Scenes/TwoQuads.skscene
   - Handle: 0xa72e2969608c3fcb
     Type: Texture
     FilePath: Textures/Checkerboard ( 2).sktex
@@ -77,18 +56,9 @@ Assets:
   - Handle: 0xcd437c60b052fcff
     Type: ScriptFile
     FilePath: Scripts/Source/BallDestroyer.cs
-  - Handle: 0x5bb4ff2e7ac0ce76
-    Type: ScriptFile
-    FilePath: Scripts/Source/BasicScript.cs
   - Handle: 0x5a3b2c3a72211aab
     Type: ScriptFile
     FilePath: Scripts/Source/Bullet.cs
-  - Handle: 0x35b0136ecd032bb7
-    Type: ScriptFile
-    FilePath: Scripts/Source/CameraScript.cs
-  - Handle: 0xc0767fb861928954
-    Type: ScriptFile
-    FilePath: Scripts/Source/ChildController.cs
   - Handle: 0x468fe37b1048351c
     Type: ScriptFile
     FilePath: Scripts/Source/DoorSensor.cs
@@ -104,9 +74,6 @@ Assets:
   - Handle: 0xd352284d5df640cf
     Type: ScriptFile
     FilePath: Scripts/Source/PlayerController.cs
-  - Handle: 0x4a3a57230810199c
-    Type: ScriptFile
-    FilePath: Scripts/Source/StressTest.cs
   - Handle: 0xce0b9ef18f1d952b
     Type: ScriptFile
     FilePath: Scripts/Source/TestScript.cs

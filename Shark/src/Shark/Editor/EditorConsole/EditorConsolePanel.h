@@ -70,7 +70,7 @@ namespace Shark {
 
 		struct ConsoleMessage
 		{
-			static constexpr size_t MaxFiendlyMessageLength = 100;
+			static constexpr size_t MaxFiendlyMessageLength = 300;
 
 			MessageLevel Level;
 			std::string Time;

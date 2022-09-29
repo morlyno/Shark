@@ -90,14 +90,6 @@ namespace Shark {
 
 	void DirectXImGuiLayer::OnEvent(Event& event)
 	{
-		SK_PROFILE_FUNCTION();
-
-		if (m_BlockEvents)
-		{
-			ImGuiIO& io = ImGui::GetIO();
-			event.Handled |= event.IsInCategory(EventCategory::Mouse) && io.WantCaptureMouse;
-			event.Handled |= event.IsInCategory(EventCategory::Keyboard) && io.WantCaptureKeyboard;
-		}
 	}
 
 	void DirectXImGuiLayer::OnImGuiRender()

@@ -47,14 +47,8 @@ namespace Shark::UI {
 
 	enum
 	{
-		DefualtTreeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected,
-		TreeNodeSeperatorFlags = DefualtTreeNodeFlags
-	};
-
-	enum class ControlType : uint16_t
-	{
-		Drag,
-		Slider
+		DefaultTreeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected,
+		TreeNodeSeperatorFlags = DefaultTreeNodeFlags
 	};
 
 	namespace TextFlag {
@@ -96,6 +90,7 @@ namespace Shark::UI {
 	inline ImGuiID GetID(const char* strID)                                    { return GImGui->CurrentWindow->GetID(strID); }
 	inline ImGuiID GetID(const std::string& strID)                             { return GImGui->CurrentWindow->GetID(strID.data(), strID.data() + strID.size()); }
 	inline ImGuiID GetID(const std::string_view& strID)                        { return GImGui->CurrentWindow->GetID(strID.data(), strID.data() + strID.size()); }
+	inline ImGuiID GetID(UUID uuid)                                            { static_assert(sizeof(void*) == sizeof(uint64_t)); return GImGui->CurrentWindow->GetID((void*)(uint64_t)uuid);}
 
 	inline ImGuiID GetIDWithSeed(int intID, uint32_t seed)                     { const ImGuiID id = ImHashData(&intID, sizeof(int), seed); ImGui::KeepAliveID(id); return id; }
 	inline ImGuiID GetIDWithSeed(void* ptrID, uint32_t seed)                   { const ImGuiID id = ImHashData(&ptrID, sizeof(void*), seed); ImGui::KeepAliveID(id); return id; }
@@ -140,25 +135,30 @@ namespace Shark::UI {
 	bool ControlBeginHelper(std::string_view strID);
 	void ControlEndHelper();
 
-	bool Control(std::string_view label, float& val,     float min            = float(0),     float max            = float(0),     float speed            = float(1), const char* fmt = "%.2f");
-	bool Control(std::string_view label, glm::vec2& val, const glm::vec2& min = glm::vec2(0), const glm::vec2& max = glm::vec2(0), const glm::vec2& speed = glm::vec2(1));
-	bool Control(std::string_view label, glm::vec3& val, const glm::vec3& min = glm::vec3(0), const glm::vec3& max = glm::vec3(0), const glm::vec3& speed = glm::vec3(1));
-	bool Control(std::string_view label, glm::vec4& val, const glm::vec4& min = glm::vec4(0), const glm::vec4& max = glm::vec4(0), const glm::vec4& speed = glm::vec4(1));
+	bool Control(std::string_view label, float& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
+	bool Control(std::string_view label, double& val, float speed = 0.1f, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
 
-	bool Control(std::string_view label, int& val,        int min               = int(0),        int max               = int(0),        int speed               = int(1));
-	bool Control(std::string_view label, glm::ivec2& val, const glm::ivec2& min = glm::ivec2(0), const glm::ivec2& max = glm::ivec2(0), const glm::ivec2& speed = glm::ivec2(1));
-	bool Control(std::string_view label, glm::ivec3& val, const glm::ivec3& min = glm::ivec3(0), const glm::ivec3& max = glm::ivec3(0), const glm::ivec3& speed = glm::ivec3(1));
-	bool Control(std::string_view label, glm::ivec4& val, const glm::ivec4& min = glm::ivec4(0), const glm::ivec4& max = glm::ivec4(0), const glm::ivec4& speed = glm::ivec4(1));
+	bool Control(std::string_view label, int8_t& val, float speed = 0.1f, int8_t min = 0, int8_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, int16_t& val, float speed = 0.1f, int16_t min = 0, int16_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, int32_t& val, float speed = 0.1f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, int64_t& val, float speed = 0.1f, int64_t min = 0, int64_t max = 0, const char* fmt = nullptr);
 
-	bool Control(std::string_view label, uint32_t& val,   uint32_t min          = uint32_t(0),   uint32_t max          = uint32_t(0),   uint32_t speed          = uint32_t(1));
-	bool Control(std::string_view label, glm::uvec2& val, const glm::uvec2& min = glm::uvec2(0), const glm::uvec2& max = glm::uvec2(0), const glm::uvec2& speed = glm::uvec2(1));
-	bool Control(std::string_view label, glm::uvec3& val, const glm::uvec3& min = glm::uvec3(0), const glm::uvec3& max = glm::uvec3(0), const glm::uvec3& speed = glm::uvec3(1));
-	bool Control(std::string_view label, glm::uvec4& val, const glm::uvec4& min = glm::uvec4(0), const glm::uvec4& max = glm::uvec4(0), const glm::uvec4& speed = glm::uvec4(1));
+	bool Control(std::string_view label, uint8_t& val, float speed = 0.1f, uint8_t min = 0, uint8_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, uint16_t& val, float speed = 0.1f, uint16_t min = 0, uint16_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, uint32_t& val, float speed = 0.1f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, uint64_t& val, float speed = 0.1f, uint64_t min = 0, uint64_t max = 0, const char* fmt = nullptr);
 
-	bool ControlAngle(std::string_view label, float& radians,     float min            = float(0),     float max            = float(0),     float speed            = float(1));
-	bool ControlAngle(std::string_view label, glm::vec2& radians, const glm::vec2& min = glm::vec2(0), const glm::vec2& max = glm::vec2(0), const glm::vec2& speed = glm::vec2(1));
-	bool ControlAngle(std::string_view label, glm::vec3& radians, const glm::vec3& min = glm::vec3(0), const glm::vec3& max = glm::vec3(0), const glm::vec3& speed = glm::vec3(1));
-	bool ControlAngle(std::string_view label, glm::vec4& radians, const glm::vec4& min = glm::vec4(0), const glm::vec4& max = glm::vec4(0), const glm::vec4& speed = glm::vec4(1));
+	bool Control(std::string_view label, glm::vec2& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::vec3& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::vec4& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
+
+	bool Control(std::string_view label, glm::ivec2& val, float speed = 0.1f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::ivec3& val, float speed = 0.1f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::ivec4& val, float speed = 0.1f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
+
+	bool Control(std::string_view label, glm::uvec2& val, float speed = 0.1f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::uvec3& val, float speed = 0.1f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::uvec4& val, float speed = 0.1f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
 
 	bool ControlColor(std::string_view label, glm::vec4& color);
 
@@ -168,50 +168,36 @@ namespace Shark::UI {
 	bool ControlFlags(std::string_view label,  int32_t& val,  int32_t flag);
 	bool ControlFlags(std::string_view label, uint32_t& val, uint32_t flag);
 
-	bool Control(std::string_view label, uint32_t& index, const std::string_view items[], uint32_t itemsCount);
-	bool Control(std::string_view label, uint16_t& index, const std::string_view items[], uint32_t itemsCount);
-	bool Control(std::string_view label, int& index,      const std::string_view items[], uint32_t itemsCount);
+	bool ControlCombo(std::string_view label, uint32_t& index, const std::string_view items[], uint32_t itemsCount);
+	bool ControlCombo(std::string_view label, uint16_t& index, const std::string_view items[], uint32_t itemsCount);
+	bool ControlCombo(std::string_view label, int& index,      const std::string_view items[], uint32_t itemsCount);
 
-	void Control(std::string_view label, std::string_view str, TextFlags flags = TextFlag::None, TextFlags labelFlags = TextFlag::None);
-	void Control(std::string_view label, std::string&& str,    TextFlags flags = TextFlag::None, TextFlags labelFlags = TextFlag::None);
-	void Control(std::string_view label, const char* str,      TextFlags flags = TextFlag::None, TextFlags labelFlags = TextFlag::None);
-
-	void Control(std::string_view label, const std::filesystem::path& filePath, TextFlags flags = TextFlag::None, TextFlags labelFalgs = TextFlag::None);
-	void Control(std::string_view label, const std::string& filePath,           TextFlags flags = TextFlag::None, TextFlags labelFalgs = TextFlag::None);
+	bool Control(std::string_view label, std::string& val);
+	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();
 
-	void Control(ImGuiID id, void(*func)(void* data, ImGuiID id), void* data = nullptr);
-	void Control(std::string_view label, void(*func)(void* data, ImGuiID id), void* data = nullptr);
+	void Property(std::string_view label, const char* text, TextFlags flags = TextFlag::None);
+	void Property(std::string_view label, std::string_view text, TextFlags flags = TextFlag::None);
+	void Property(std::string_view label, const std::string& text, TextFlags flags = TextFlag::None);
+	void Property(std::string_view label, const std::filesystem::path& path, TextFlags flags = TextFlag::None);
 
-	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Helpers ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	inline bool ControlS(std::string_view label, glm::vec2& val, float min = 0.0f, float max = 0.0f, float speed = 1.0f) { return Control(label, val, glm::vec2(min), glm::vec2(max), glm::vec2(speed)); }
-	inline bool ControlS(std::string_view label, glm::vec3& val, float min = 0.0f, float max = 0.0f, float speed = 1.0f) { return Control(label, val, glm::vec3(min), glm::vec3(max), glm::vec3(speed)); }
-	inline bool ControlS(std::string_view label, glm::vec4& val, float min = 0.0f, float max = 0.0f, float speed = 1.0f) { return Control(label, val, glm::vec4(min), glm::vec4(max), glm::vec4(speed)); }
-
-	inline bool ControlS(std::string_view label, glm::ivec2& val, int min = int(0), int max = int(0), int speed = int(1)) { return Control(label, val, glm::ivec2(min), glm::ivec2(max), glm::ivec2(speed)); }
-	inline bool ControlS(std::string_view label, glm::ivec3& val, int min = int(0), int max = int(0), int speed = int(1)) { return Control(label, val, glm::ivec3(min), glm::ivec3(max), glm::ivec3(speed)); }
-	inline bool ControlS(std::string_view label, glm::ivec4& val, int min = int(0), int max = int(0), int speed = int(1)) { return Control(label, val, glm::ivec4(min), glm::ivec4(max), glm::ivec4(speed)); }
-
-	inline bool ControlS(std::string_view label, glm::uvec2& val, uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1)) { return Control(label, val, glm::uvec2(min), glm::uvec2(max), glm::uvec2(speed)); }
-	inline bool ControlS(std::string_view label, glm::uvec3& val, uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1)) { return Control(label, val, glm::uvec3(min), glm::uvec3(max), glm::uvec3(speed)); }
-	inline bool ControlS(std::string_view label, glm::uvec4& val, uint32_t min = uint32_t(0), uint32_t max = uint32_t(0), uint32_t speed = uint32_t(1)) { return Control(label, val, glm::uvec4(min), glm::uvec4(max), glm::uvec4(speed)); }
+	void Property(std::string_view label, const UUID& uuid);
+	void Property(std::string_view label, int value);
 
  	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Widgets ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	void Text(std::string_view str, TextFlags flags = TextFlag::None);
-	void Text(std::string&& str,    TextFlags flags = TextFlag::None);
 	void Text(const char* str,      TextFlags flags = TextFlag::None);
 
-	void Text(const std::filesystem::path& filePath, TextFlags flags = TextFlag::None);
-	void Text(const std::string& str,                TextFlags flags = TextFlag::None);
+	void Text(const std::string& string, TextFlags flags = TextFlag::None);
+	void Text(const std::filesystem::path& path, TextFlags flags = TextFlag::None);
 
 	void TextSelectable(std::string_view str);
 
+	void TextFramed(std::string_view fmt, ...);
 	bool Search(ImGuiID id, char* buffer, int bufferSize);
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -385,8 +371,6 @@ namespace Shark::UI {
 	struct UIContext
 	{
 		UIControl Control;
-
-		std::string_view DefaultFormat[ImGuiDataType_COUNT];
 
 		UIContext();
 	};

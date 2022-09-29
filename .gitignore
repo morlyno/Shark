@@ -16,5 +16,5 @@ SharkFin/Logs/*.log
 **.vcxproj.user
 *.csproj*
 SharkFin/Resources/Binaries
-SharkFin/SandboxProject/Assets/Scripts/Binaries
-SharkFin/SandboxProject/Assets/Scripts/Intermediates
+SharkFin/SandboxProject/Binaries
+SharkFin/SandboxProject/Intermediates

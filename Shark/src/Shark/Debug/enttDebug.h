@@ -12,6 +12,9 @@ namespace Shark::Debug {
 	public:
 		EntityView(Entity entity)
 		{
+			if (!entity)
+				return;
+
 			m_IDComponent                = entity.TryGetComponent<IDComponent>();
 			m_TagComponent               = entity.TryGetComponent<TagComponent>();
 			m_TransformComponent         = entity.TryGetComponent<TransformComponent>();
@@ -117,3 +120,9 @@ namespace Shark::Debug {
 	};
 
 }
+
+#if SK_DEBUG
+#define DEBUG_ENTITY(entity) ::Shark::Debug::EntityView SK_UNIQUE_NAME (entity);
+#else
+#define DEBUG_ENTITY(...)
+#endif

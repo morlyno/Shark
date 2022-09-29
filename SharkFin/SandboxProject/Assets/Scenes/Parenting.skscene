@@ -9,7 +9,7 @@ Scene:
         Rotation: [0, 0, 0]
         Scaling: [200, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           - Child: 0x7cf1d7996374c146
           - Child: 0x6fdb5a41218a9400
@@ -87,6 +87,9 @@ Scene:
           - Name: CameraEntity
             Type: Entity
             Value: 13536563132073384210
+          - Name: CameraTransform
+            Type: Component
+            Value: 13536563132073384210
           - Name: DestroyBallOnHit
             Type: Bool
             Value: true
@@ -108,15 +111,41 @@ Scene:
           - Name: m_Sprint
             Type: Bool
             Value: false
+    - Entity: 0x1cd1bc363480e23a
+      TagComponent:
+        Tag: World
+      TransformComponent:
+        Position: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          - Child: 0xfd4fa3077eb46a0e
+          - Child: 0xf42ff09aeb3afef2
+          - Child: 0xdb4aee8ea6736109
+          - Child: 0xc539186ecd448346
+          - Child: 0x8c7a856c8315563b
+          - Child: 0x6802d506a686729b
+          - Child: 0x647ce187fd0f1ceb
+          - Child: 0x63c6ec00a49d7fa4
+          - Child: 0x7ea5428e94ce6128
+          - Child: 0x5e341a7845afd12b
+          - Child: 0x2d7222168d7f312b
+          - Child: 0x7b4d0118b16159d
+          - Child: 0x254bebf86f98cdc4
+          - Child: 0x6b0daeee1247ba4c
+          - Child: 0xc17b6d6adcc7bc74
+          - Child: 0x505f9635ee9f1c57
     - Entity: 0x208852740dab9b52
       TagComponent:
         Tag: DoorSensor
       TransformComponent:
-        Position: [24.4837399, 1.16422462, 0]
+        Position: [0, -2.09841681, 0]
         Rotation: [0, 0, 0]
         Scaling: [7.72183704, 6.2280035, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x505f9635ee9f1c57
         Children:
           []
       BoxCollider2DComponent:
@@ -131,16 +160,29 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.DoorSensor
         Fields:
+          - Name: Door
+            Type: Entity
+            Value: 7825548097267742839
+    - Entity: 0x254bebf86f98cdc4
+      TagComponent:
+        Tag: Markers
+      TransformComponent:
+        Position: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x1cd1bc363480e23a
+        Children:
           []
     - Entity: 0x2a6678a292180870
       TagComponent:
-        Tag: ElevatorOutside
+        Tag: Platform
       TransformComponent:
-        Position: [31.6583652, 8.42409325, -3.8146909e-06]
+        Position: [0, 0, -3.8146909e-06]
         Rotation: [0, 0, 0]
         Scaling: [5.02731562, 0.569610953, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x6b0daeee1247ba4c
         Children:
           []
       SpriteRendererComponent:
@@ -199,7 +241,7 @@ Scene:
         Rotation: [0, 0, 0]
         Scaling: [50.4362755, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -249,6 +291,18 @@ Scene:
         Color: [1, 1, 1, 1]
         Texture: 0
         TilingFactor: 1
+    - Entity: 0x505f9635ee9f1c57
+      TagComponent:
+        Tag: DoorToOutside
+      TransformComponent:
+        Position: [24.3732548, 3.21249652, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x1cd1bc363480e23a
+        Children:
+          - Child: 0x208852740dab9b52
+          - Child: 0x6c99ee886e60b877
     - Entity: 0x5cd9d6e9c1328d56
       TagComponent:
         Tag: Marker2
@@ -287,7 +341,7 @@ Scene:
         Rotation: [0, 0, 0]
         Scaling: [3.8718853, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -330,7 +384,7 @@ Scene:
         Rotation: [0, 0, -1.57079625]
         Scaling: [11.9428282, 0.999999821, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -358,7 +412,7 @@ Scene:
         Rotation: [0, 0, 0]
         Scaling: [49.8395576, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -386,7 +440,7 @@ Scene:
         Rotation: [0, 0, 0]
         Scaling: [3.8718853, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -406,15 +460,28 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
+    - Entity: 0x6b0daeee1247ba4c
+      TagComponent:
+        Tag: Elevator Outside
+      TransformComponent:
+        Position: [31.747963, 2.85303879, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x1cd1bc363480e23a
+        Children:
+          - Child: 0xb40282b589fd46d2
+          - Child: 0xded8ef491cadce32
+          - Child: 0x2a6678a292180870
     - Entity: 0x6c99ee886e60b877
       TagComponent:
         Tag: Door
       TransformComponent:
-        Position: [24.4400005, 3.02999997, 0]
+        Position: [0, 0, 0]
         Rotation: [0, 0, -1.57079625]
         Scaling: [11.9428282, 0.999999821, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x505f9635ee9f1c57
         Children:
           []
       SpriteRendererComponent:
@@ -472,7 +539,7 @@ Scene:
         Rotation: [-0, 0, -0.785398185]
         Scaling: [8.11126232, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -530,7 +597,7 @@ Scene:
         Rotation: [0, 0, 0]
         Scaling: [5.92999077, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -584,13 +651,13 @@ Scene:
         IsSensor: false
     - Entity: 0xb40282b589fd46d2
       TagComponent:
-        Tag: ElevatorMarkerOutsideTop
+        Tag: MarkerTop
       TransformComponent:
-        Position: [32, 7.92744923, 0]
+        Position: [0, 5.24952698, 0]
         Rotation: [0, 0, 0]
         Scaling: [1, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x6b0daeee1247ba4c
         Children:
           []
     - Entity: 0xbbdb8872e6e21912
@@ -606,7 +673,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.08737874
+        Aspectratio: 2.14742446
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -621,7 +688,7 @@ Scene:
         Rotation: [0, 0, 0]
         Scaling: [76.3412781, 44.1148911, 76.3412781]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       BoxCollider2DComponent:
@@ -645,7 +712,7 @@ Scene:
         Rotation: [0, 0, 1.43581331]
         Scaling: [13.9680748, 0.999966443, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -665,26 +732,6 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0xc55718d7fdd18f8f
-      TagComponent:
-        Tag: Camera Otho
-      TransformComponent:
-        Position: [0, 0, 0]
-        Rotation: [0, 0, 0]
-        Scaling: [1, 1, 1]
-      RelationshipComponent:
-        Parent: 0x0
-        Children:
-          []
-      CameraComponent:
-        Type: Orthographic
-        Aspectratio: 2.08737874
-        PerspectiveFOV: 44.9999924
-        PerspectiveNear: 0.00999999978
-        PerspectiveFar: 1000
-        OrthographicZoom: 13.0200005
-        OrthographicNear: -1
-        OrthographicFar: 20
     - Entity: 0xd1694f396ce9d961
       TagComponent:
         Tag: Marker8
@@ -708,7 +755,7 @@ Scene:
         Rotation: [0, 0, -1.08275139]
         Scaling: [18.0373764, 0.999999225, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -730,13 +777,13 @@ Scene:
           []
     - Entity: 0xded8ef491cadce32
       TagComponent:
-        Tag: ElevatorMarkerOutsideBottem
+        Tag: MarkerBottem
       TransformComponent:
-        Position: [32, -2.50523639, 0]
+        Position: [0, -5.13965702, 0]
         Rotation: [0, 0, 0]
         Scaling: [1, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x6b0daeee1247ba4c
         Children:
           []
     - Entity: 0xf2da79c29bb14fc7
@@ -771,7 +818,7 @@ Scene:
         Rotation: [0.650556803, -0.0608302988, 0.0797070712]
         Scaling: [5.89680052, 5.89680052, 5.89679861]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:
@@ -786,7 +833,7 @@ Scene:
         Rotation: [0, 0, 0]
         Scaling: [49.8395576, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0x1cd1bc363480e23a
         Children:
           []
       SpriteRendererComponent:

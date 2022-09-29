@@ -6,18 +6,21 @@
 
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scene/Components.h"
+#include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
 #include "Shark/Input/Input.h"
 
+#include "Shark/Math/Math.h"
 #include "Shark/Debug/Instrumentor.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
+#include "glm/gtx/vector_query.hpp"
 
 namespace Shark {
 
@@ -41,15 +44,13 @@ namespace Shark {
 
 			ImGui::PushItemWidth(width);
 
-			size_t fmtOffset = 0;
-
 			if (ImGui::Button("X", { buttonSize, buttonSize }))
 			{
 				val[0] = reset;
 				changed = true;
 			}
 			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::DragFloat("##X", &val[0], 0.1f, 0.0f, 0.0f, "%.2f");
+			changed |= ImGui::DragFloat("##X", &val[0], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
 
 
 			ImGui::SameLine();
@@ -59,7 +60,7 @@ namespace Shark {
 				changed = true;
 			};
 			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::DragFloat("##Y", &val[1], 0.1f, 0.0f, 0.0f, "%.2f");
+			changed |= ImGui::DragFloat("##Y", &val[1], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
 
 
 			ImGui::SameLine();
@@ -69,7 +70,7 @@ namespace Shark {
 				changed = true;
 			}
 			ImGui::SameLine(0.0f, 0.0f);
-			changed |= ImGui::DragFloat("##Z", &val[2], 0.1f, 0.0f, 0.0f, "%.2f");
+			changed |= ImGui::DragFloat("##Z", &val[2], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
 
 			ImGui::PopItemWidth();
 
@@ -86,51 +87,6 @@ namespace Shark {
 				return true;
 			}
 			return false;
-		}
-
-		template<typename Comp, typename UIFunction>
-		static void DrawComponet(Entity entity, const char* lable, UIFunction func)
-		{
-			if (entity.AllOf<Comp>())
-			{
-				ImGui::PushID(typeid(Comp).name());
-				const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
-				//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() + 16 - 23);
-				const ImVec2 headerEnd = ImGui::GetItemRectMax() - ImGui::GetWindowPos();
-				const float buttonSize = ImGui::GetItemRectSize().y;
-				ImGui::SameLine(headerEnd.x - buttonSize);
-				{
-					UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-					UI::ScopedColorStack colors(
-						ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
-						ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
-						ImGuiCol_ButtonHovered, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f }
-					);
-
-					if (ImGui::Button("+", { buttonSize, buttonSize }))
-						ImGui::OpenPopup("Component Settings");
-				}
-
-
-				if (opened)
-				{
-					auto& comp = entity.GetComponent<Comp>();
-					func(comp, entity);
-				}
-
-				if (ImGui::BeginPopup("Component Settings"))
-				{
-					if (ImGui::MenuItem("Delete", nullptr, false, !std::is_same_v<Comp, TransformComponent>))
-						entity.RemoveComponent<Comp>();
-
-					if (ImGui::MenuItem("Reset"))
-						entity.GetComponent<Comp>() = Comp{};
-
-					ImGui::EndPopup();
-				}
-
-				ImGui::PopID();
-			}
 		}
 
 		template<typename Component>
@@ -154,6 +110,22 @@ namespace Shark {
 			return false;
 		}
 
+		template<typename T>
+		static void FieldControl(const std::string& fieldName, ManagedField& field, GCHandle handle)
+		{
+			auto value = field.GetValue<T>(handle);
+			if (UI::Control(fieldName, value))
+				field.SetValue(handle, value);
+		}
+
+		template<typename T>
+		static void FieldControl(const std::string& fieldName, Ref<FieldStorage> field)
+		{
+			auto value = field->GetValue<T>();
+			if (UI::Control(fieldName, value))
+				field->SetValue(value);
+		}
+
 	}
 
 	SceneHirachyPanel::SceneHirachyPanel(const char* panelName, Ref<Scene> scene)
@@ -171,22 +143,21 @@ namespace Shark {
 
 		if (ImGui::Begin(PanelName, &shown) && m_Context)
 		{
-			m_HirachyFocused = ImGui::IsWindowFocused();
-
-			m_Context->m_Registry.each([=](auto entityID)
-			{
-				Entity entity{ entityID, m_Context };
-				if (!entity.HasParent())
-					DrawEntityNode(entity);
-			});
-
-			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_None))
 				SelectEntity(Entity{});
+
+			Ref<SceneHirachyPanel> instance = this;
+			m_Context->m_Registry.each([instance](auto entityID)
+			{
+				Entity entity{ entityID, instance->m_Context };
+				if (!entity.HasParent())
+					instance->DrawEntityNode(entity);
+			});
 
 			const ImGuiWindow* window = ImGui::GetCurrentWindow();
 			if (ImGui::BeginDragDropTargetCustom(window->WorkRect, window->ID))
 			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
 				if (payload)
 				{
 					UUID uuid = *(UUID*)payload->Data;
@@ -220,7 +191,7 @@ namespace Shark {
 
 	bool SceneHirachyPanel::OnKeyPressedEvent(KeyPressedEvent& event)
 	{
-		if (event.GetKeyCode() == Key::Delete && (m_HirachyFocused || m_PropertiesFocused))
+		if (event.GetKeyCode() == KeyCode::Delete && (m_HirachyFocused || m_PropertiesFocused))
 		{
 			DestroyEntity(m_SelectedEntity);
 			return true;
@@ -231,7 +202,7 @@ namespace Shark {
 	void SceneHirachyPanel::DrawEntityNode(Entity entity)
 	{
 		const auto& tag = entity.GetComponent<TagComponent>();
-		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+		ImGuiTreeNodeFlags treenodefalgs = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 		if (m_SelectedEntity == entity)
 			treenodefalgs |= ImGuiTreeNodeFlags_Selected;
 
@@ -240,19 +211,19 @@ namespace Shark {
 		if (!entity.HasChildren())
 			treenodefalgs |= ImGuiTreeNodeFlags_Leaf;
 
-		bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)(uint32_t)entity, treenodefalgs, tag.Tag.c_str());
+		bool opened = ImGui::TreeNodeBehavior(UI::GetID(entity.GetUUID()), treenodefalgs, tag.Tag.c_str());
 
 		if (ImGui::BeginDragDropSource())
 		{
 			UUID uuid = entity.GetUUID();
-			ImGui::SetDragDropPayload("ENTITY", &uuid, sizeof(UUID));
+			ImGui::SetDragDropPayload("ENTITY_ID", &uuid, sizeof(UUID));
 
 			ImGui::EndDragDropSource();
 		}
 
 		if (ImGui::BeginDragDropTarget())
 		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
 			if (payload)
 			{
 				SK_CORE_WARN("Entity paload accepted on Entity {} 0x{:x}", entity.GetName(), entity.GetUUID());
@@ -265,12 +236,12 @@ namespace Shark {
 			ImGui::EndDragDropTarget();
 		}
 
-		if (ImGui::IsItemClicked())
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsItemHovered())
 			SelectEntity(entity);
 
 		bool wantsDestroy = false;
 
-		if ((m_SelectedEntity == entity) && ImGui::IsWindowHovered() && Input::KeyPressed(Key::Delete))
+		if ((m_SelectedEntity == entity) && ImGui::IsWindowHovered() && Input::IsKeyPressed(KeyCode::Delete))
 		{
 			wantsDestroy = true;
 		}
@@ -317,7 +288,8 @@ namespace Shark {
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(IDSpacingWidth);
-		ImGui::Text("0x%16llx", entity.GetUUID());
+		UI::Text(fmt::format("0x{0:16x}", entity.GetUUID()), UI::TextFlag::Selectable);
+		//ImGui::Text("0x%16llx", entity.GetUUID());
 
 		ImGui::SameLine();
 		if (ImGui::Button("Add"))
@@ -336,17 +308,34 @@ namespace Shark {
 			ImGui::EndPopup();
 		}
 
-		
-		utils::DrawComponet<TransformComponent>(entity, "Transform", [](TransformComponent& comp, Entity entity)
+		Ref<SceneHirachyPanel> instance = this;
+		DrawComponet<TransformComponent>(entity, "Transform", [instance](TransformComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			utils::Control("Position", comp.Translation);
-			utils::ControlAngle("Rotation", comp.Rotation);
-			utils::Control("Scaling", comp.Scale, 1.0f);
+
+			if (instance->m_TransformInWorldSpace && entity.HasParent())
+			{
+				TransformComponent transform = instance->m_Context->GetWorldSpaceTransform(entity);
+				bool changed = false;
+				changed |= utils::Control("Translation", transform.Translation);
+				changed |= utils::ControlAngle("Rotation", transform.Rotation);
+				changed |= utils::Control("Scale", transform.Scale, 1.0f);
+
+				if (changed && instance->m_Context->ConvertToLocaSpace(entity, transform))
+					entity.Transform() = transform;
+			}
+			else
+			{
+				utils::Control("Translation", comp.Translation);
+				utils::ControlAngle("Rotation", comp.Rotation);
+				utils::Control("Scale", comp.Scale, 1.0f);
+			}
+
+
 			UI::EndControls();
 		});
 
-		utils::DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp, Entity entity)
+		DrawComponet<SpriteRendererComponent>(entity, "SpriteRenderer", [](SpriteRendererComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 
@@ -384,7 +373,7 @@ namespace Shark {
 					UI::Text(metadata.FilePath);
 					ImGui::Text("Width: %d, Height: %d", texture->GetImage()->GetWidth(), texture->GetImage()->GetHeight());
 					if (ImGui::Button("Remove"))
-						comp.TextureHandle = AssetHandle::Invalid;
+						comp.TextureHandle = AssetHandle::Null;
 				}
 				else
 				{
@@ -401,18 +390,18 @@ namespace Shark {
 
 		});
 
-		utils::DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp, Entity entity)
+		DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-				
+			
 			UI::ControlColor("Color", comp.Color);
-			UI::Control("Thickness", comp.Thickness, 0.0f, 1.0f, 0.1f);
-			UI::Control("Fade", comp.Fade, 0.0f, 10.0f, 0.01f);
+			UI::Control("Thickness", comp.Thickness, 0.1f, 0.0f, 1.0f);
+			UI::Control("Fade", comp.Fade, 0.1f, 0.0f, 10.0f);
 
 			UI::EndControls();
 		});
 
-		utils::DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)
+		DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			
@@ -444,9 +433,9 @@ namespace Shark {
 				float clipnear = camera.GetPerspectiveNear();
 				float clipfar = camera.GetPerspectiveFar();
 
-				changed |= UI::Control("FOV", fov, 1.0f, 179.0f);
-				changed |= UI::Control("NearClip", clipnear, 0.01f, FLT_MAX);
-				changed |= UI::Control("FarClip", clipfar, 0.01f, FLT_MAX);
+				changed |= UI::Control("FOV", fov, 0.1f, 1.0f, 179.0f);
+				changed |= UI::Control("NearClip", clipnear, 0.1f, 0.01f, FLT_MAX);
+				changed |= UI::Control("FarClip", clipfar, 0.1f, 0.01f, FLT_MAX);
 
 				if (changed && (clipnear > 0.0f && clipfar > 0.0f && !glm::epsilonEqual(clipnear, clipfar, 0.00001f)))
 					camera.SetPerspective(camera.GetAspectratio(), fov, clipnear, clipfar);
@@ -462,9 +451,9 @@ namespace Shark {
 				float clipnear = camera.GetOrthographicNear();
 				float clipfar = camera.GetOrthographicFar();
 
-				changed |= UI::Control("Zoom", zoom, 0.25f, FLT_MAX);
-				changed |= UI::Control("NearClip", clipnear, -FLT_MAX, -0.01f);
-				changed |= UI::Control("FarClip", clipfar, 0.01f, FLT_MAX);
+				changed |= UI::Control("Zoom", zoom, 0.1f, 0.25f, FLT_MAX);
+				changed |= UI::Control("NearClip", clipnear, 0.1f, -FLT_MAX, -0.01f);
+				changed |= UI::Control("FarClip", clipfar, 0.1f, 0.01f, FLT_MAX);
 
 				if (changed)
 					camera.SetOrthographic(camera.GetAspectratio(), zoom, clipnear, clipfar);
@@ -480,11 +469,11 @@ namespace Shark {
 
 		});
 
-		utils::DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp, Entity entity)
+		DrawComponet<RigidBody2DComponent>(entity, "RigidBody 2D", [](RigidBody2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			int index = (int)comp.Type - 1;
-			if (UI::Control("Body Type", index, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0])))
+			if (UI::ControlCombo("Body Type", index, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0])))
 				comp.Type = (decltype(comp.Type))(index + 1);
 			UI::Control("Fixed Rotation", comp.FixedRotation);
 			UI::Control("Bullet", comp.IsBullet);
@@ -495,44 +484,158 @@ namespace Shark {
 			UI::EndControlsGrid();
 		});
 		
-		utils::DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp, Entity entity)
+		DrawComponet<BoxCollider2DComponent>(entity, "BoxCollider 2D", [](BoxCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::ControlS("Size", comp.Size);
+			UI::Control("Size", comp.Size);
 			UI::Control("Offset", comp.Offset);
 			UI::Control("Angle", comp.Rotation);
-			UI::Control("Denstity", comp.Density, 0.0f, FLT_MAX);
-			UI::Control("Friction", comp.Friction, 0.0f, 1.0f);
-			UI::Control("Restitution", comp.Restitution, 0.0f, 1.0f);
-			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.0f, FLT_MAX);
+			UI::Control("Denstity", comp.Density, 0.1f, 0.0f, FLT_MAX);
+			UI::Control("Friction", comp.Friction, 0.1f, 0.0f, 1.0f);
+			UI::Control("Restitution", comp.Restitution, 0.1f, 0.0f, 1.0f);
+			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.1f, 0.0f, FLT_MAX);
 			UI::Control("IsSensor", comp.IsSensor);
 			UI::EndControls();
 		});
 
-		utils::DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp, Entity entity)
+		DrawComponet<CircleCollider2DComponent>(entity, "CircleCollider 2D", [](CircleCollider2DComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			UI::Control("Radius", comp.Radius);
 			UI::Control("Offset", comp.Offset);
 			UI::Control("Angle", comp.Rotation);
-			UI::Control("Denstity", comp.Density, 0.0f, FLT_MAX);
-			UI::Control("Friction", comp.Friction, 0.0f, 1.0f);
-			UI::Control("Restitution", comp.Restitution, 0.0f, 1.0f);
-			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.0f, FLT_MAX);
+			UI::Control("Denstity", comp.Density, 0.1f, 0.0f, FLT_MAX);
+			UI::Control("Friction", comp.Friction, 0.1f, 0.0f, 1.0f);
+			UI::Control("Restitution", comp.Restitution, 0.1f, 0.0f, 1.0f);
+			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.1f, 0.0f, FLT_MAX);
 			UI::Control("IsSensor", comp.IsSensor);
 			UI::EndControls();
 		});
 
-		utils::DrawComponet<ScriptComponent>(entity, "Script", [](ScriptComponent& comp, Entity entity)
+		DrawComponet<ScriptComponent>(entity, "Script", [](ScriptComponent& comp, Entity entity)
 		{
 			ImGui::SetNextItemWidth(-1.0f);
 
-			UI::LagacyScopedStyleStack scopedStyle;
-			if (!comp.IsExisitingScript)
+			UI::ScopedColorStack scopedStyle;
+			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ClassID);
+			if (!klass)
 				scopedStyle.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
 
 			if (ImGui::InputText("##InputScript", &comp.ScriptName))
-				comp.IsExisitingScript = ScriptUtils::ValidScriptName(comp.ScriptName);
+			{
+				klass = ScriptEngine::GetScriptClassFromName(comp.ScriptName);
+				comp.ClassID = klass ? klass->GetID() : 0;
+			}
+
+			if (!klass)
+				return;
+
+			ImGui::Separator();
+
+			Ref<Scene> scene = entity.GetScene();
+			if (scene->IsRunning())
+			{
+				GCHandle handle = ScriptEngine::GetInstance(entity);
+				UI::BeginControlsGrid();
+				Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ClassID);
+				auto& fields = klass->GetFields();
+				for (auto& [name, field] : fields)
+				{
+					if (!(field.Access & Accessibility::Public))
+						continue;
+
+					switch (field.Type)
+					{
+						case ManagedFieldType::Bool:    utils::FieldControl<bool>(name, field, handle); break;
+						//case ManagedFieldType::Char:   utils::FieldControl<char16_t>(name, field, handle); break;
+						case ManagedFieldType::Byte:    utils::FieldControl<uint8_t>(name, field, handle); break;
+						case ManagedFieldType::SByte:   utils::FieldControl<int8_t>(name, field, handle); break;
+						case ManagedFieldType::Short:   utils::FieldControl<int16_t>(name, field, handle); break;
+						case ManagedFieldType::UShort:  utils::FieldControl<uint16_t>(name, field, handle); break;
+						case ManagedFieldType::Int:     utils::FieldControl<int32_t>(name, field, handle); break;
+						case ManagedFieldType::UInt:    utils::FieldControl<uint32_t>(name, field, handle); break;
+						case ManagedFieldType::Long:    utils::FieldControl<int64_t>(name, field, handle); break;
+						case ManagedFieldType::ULong:   utils::FieldControl<uint64_t>(name, field, handle); break;
+						case ManagedFieldType::Float:   utils::FieldControl<float>(name, field, handle); break;
+						case ManagedFieldType::Double:  utils::FieldControl<double>(name, field, handle); break;
+						case ManagedFieldType::Vector2: utils::FieldControl<glm::vec2>(name, field, handle); break;
+						case ManagedFieldType::Vector3:	utils::FieldControl<glm::vec3>(name, field, handle); break;
+						case ManagedFieldType::Vector4:	utils::FieldControl<glm::vec4>(name, field, handle); break;
+						case ManagedFieldType::String:  utils::FieldControl<std::string>(name, field, handle); break;
+						case ManagedFieldType::Entity:
+						{
+							UUID uuid = field.GetEntity(handle);
+							if (UI::Control(name, uuid, "ENTITY_ID"))
+								field.SetEntity(handle, scene->GetEntityByUUID(uuid));
+							break;
+						}
+						case ManagedFieldType::Component:
+						{
+							UUID uuid = field.GetComponent(handle);
+							if (UI::Control(name, uuid, "ENTITY_ID"))
+								field.SetComponent(handle, scene->GetEntityByUUID(uuid));
+							break;
+						}
+
+					}
+				}
+				UI::EndControlsGrid();
+			}
+			else
+			{
+				UI::BeginControlsGrid();
+				Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ClassID);
+				auto& fields = klass->GetFields();
+				for (auto& [name, field] : fields)
+				{
+					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
+					if (fieldStorages.find(name) == fieldStorages.end())
+					{
+						if (!ScriptEngine::IsInstantiated(entity))
+							ScriptEngine::InstantiateEntity(entity, false, false);
+						GCHandle handle = ScriptEngine::GetInstance(entity);
+						Ref<FieldStorage> storage = FieldStorage::FromManagedField(field);
+						ScriptEngine::InitializeFieldStorage(storage, handle);
+						fieldStorages[name] = storage;
+					}
+
+					Ref<FieldStorage> storage = fieldStorages.at(name);
+					switch (field.Type)
+					{
+						case ManagedFieldType::Bool:    utils::FieldControl<bool>(name, storage); break;
+						//case ManagedFieldType::Char:   utils::FieldControl<char16_t>(name, storage); break;
+						case ManagedFieldType::Byte:    utils::FieldControl<uint8_t>(name, storage); break;
+						case ManagedFieldType::SByte:   utils::FieldControl<int8_t>(name, storage); break;
+						case ManagedFieldType::Short:   utils::FieldControl<int16_t>(name, storage); break;
+						case ManagedFieldType::UShort:  utils::FieldControl<uint16_t>(name, storage); break;
+						case ManagedFieldType::Int:     utils::FieldControl<int32_t>(name, storage); break;
+						case ManagedFieldType::UInt:    utils::FieldControl<uint32_t>(name, storage); break;
+						case ManagedFieldType::Long:    utils::FieldControl<int64_t>(name, storage); break;
+						case ManagedFieldType::ULong:   utils::FieldControl<uint64_t>(name, storage); break;
+						case ManagedFieldType::Float:   utils::FieldControl<float>(name, storage); break;
+						case ManagedFieldType::Double:  utils::FieldControl<double>(name, storage); break;
+						case ManagedFieldType::Vector2: utils::FieldControl<glm::vec2>(name, storage); break;
+						case ManagedFieldType::Vector3:	utils::FieldControl<glm::vec3>(name, storage); break;
+						case ManagedFieldType::Vector4:	utils::FieldControl<glm::vec4>(name, storage); break;
+						case ManagedFieldType::String:  utils::FieldControl<std::string>(name, storage); break;
+						case ManagedFieldType::Entity:
+						{
+							UUID uuid = storage->GetValue<UUID>();
+							if (UI::Control(name, uuid, "ENTITY_ID"))
+								storage->SetValue(uuid);
+							break;
+						}
+						case ManagedFieldType::Component:
+						{
+							UUID uuid = storage->GetValue<UUID>();
+							if (UI::Control(name, uuid, "ENTITY_ID"))
+								storage->SetValue(uuid);
+							break;
+						}
+					}
+				}
+				UI::EndControlsGrid();
+			}
 
 		});
 

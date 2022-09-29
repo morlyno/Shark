@@ -22,7 +22,8 @@ project "Shark"
         "%{IncludeDir.glm}/**.hpp",
         "%{IncludeDir.glm}/**.inl",
         "%{IncludeDir.fmt}/**.h",
-        "%{IncludeDir.spdlog}/**.h"
+        "%{IncludeDir.spdlog}/**.h",
+        "%{IncludeDir.Mono}/**.h"
     }
 
     includedirs

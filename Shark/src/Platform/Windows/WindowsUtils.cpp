@@ -52,16 +52,10 @@ namespace Shark {
 		SK_CORE_ERROR("[Win32] {0}", msg);
 	}
 
+
 	std::string WindowsUtils::TranslateErrorCode(DWORD error)
 	{
-		LPSTR messageBuffer = NULL;
-		DWORD size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, error, 0, messageBuffer, 0, NULL);
-
-		auto message = std::string(messageBuffer, size);
-
-		LocalFree(messageBuffer);
-
-		return message;
+		return std::system_category().message(error);
 	}
 
 	void WindowsUtils::SetThreadName(HANDLE thread, const std::wstring& name)

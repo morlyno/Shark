@@ -81,7 +81,7 @@ namespace Shark {
 
 	private:
 		CBItemType m_Type = CBItemType::None;
-		AssetHandle m_Handle = AssetHandle::Invalid;
+		AssetHandle m_Handle = AssetHandle::Null;
 		std::string m_Name;
 		State::Flags m_State = State::None;
 

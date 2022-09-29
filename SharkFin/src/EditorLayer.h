@@ -113,11 +113,6 @@ namespace Shark {
 
 		void ImportAssetDialog();
 
-		glm::mat4 GetViewProjFromCameraEntity(Entity cameraEntity);
-
-		void DistributeEvent(Event& event);
-
-		void CheckScriptComponents();
 		void RunScriptSetup();
 		void OpenIDE();
 
@@ -140,6 +135,8 @@ namespace Shark {
 		bool m_NeedsResize = true;
 
 		TimeStep m_TimeStep;
+
+		ImGuiID m_MainViewportID = 0;
 
 		Scope<PanelManager> m_PanelManager;
 

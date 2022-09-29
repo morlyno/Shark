@@ -53,8 +53,8 @@ namespace Shark {
 		using Flags = uint16_t;
 	}
 
-	template<EventType Type, EventCategory::Flags Category>
-	class EventBase : public Event
+	template<typename Base, EventType Type, EventCategory::Flags Category>
+	class EventBase : public Base
 	{
 	public:
 		static constexpr EventType GetStaticType() { return Type; }
@@ -74,7 +74,14 @@ namespace Shark {
 		virtual std::string GetName() const = 0;
 		virtual std::string ToString() const { return GetName(); }
 		virtual EventCategory::Flags GetEventCategoryFlags() const = 0;
-		bool IsInCategory(EventCategory::Flags category) const { return GetEventCategoryFlags() & category; }
+		bool IsInCategory(EventCategory::Flags category) const { return (GetEventCategoryFlags() & category) == category; }
+
+		template<typename TEvent>
+		TEvent& As()
+		{
+			SK_CORE_ASSERT(TEvent::GetStaticType() == GetEventType());
+			return (TEvent&)*this;
+		}
 
 	public:
 		bool Handled = false;

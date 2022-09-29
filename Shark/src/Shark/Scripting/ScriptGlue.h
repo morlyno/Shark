@@ -13,6 +13,7 @@
 
 extern "C" {
 	typedef struct _MonoObject MonoObject;
+	typedef struct _MonoArray MonoArray;
 	typedef struct _MonoString MonoString;
 	typedef struct _MonoReflectionType MonoReflectionType;
 }
@@ -54,8 +55,9 @@ namespace Shark {
 
 		#pragma region Input
 
-		bool Input_KeyPressed(KeyCode key);
-		bool Input_MouseButtonPressed(MouseButton::Type button);
+		bool Input_IsKeyStateSet(KeyCode key, KeyState keyState);
+		bool Input_IsMouseStateSet(MouseButton button, MouseState mouseState);
+		float Input_GetMouseScroll();
 		void Input_GetMousePos(glm::ivec2* out_MousePos);
 
 		#pragma endregion
@@ -68,23 +70,21 @@ namespace Shark {
 
 		#pragma endregion
 
-		#pragma region Scene
-
-		MonoObject* Scene_Instantiate(MonoReflectionType* scriptType, MonoString* name);
-		uint64_t Scene_CreateEntity(MonoString* name, uint64_t entityID);
-		void Scene_DestroyEntity(uint64_t entityID);
-		uint64_t Scene_CloneEntity(uint64_t entityID);
-		MonoObject* Scene_GetEntityByID(uint64_t scriptEntityID);
-		uint64_t Scene_GetActiveCameraID();
-		uint64_t Scene_GetIDFromTag(MonoString* tag);
-
-		#pragma endregion
-
 		#pragma region Entity
 
+		MonoObject* Entity_GetInstance(uint64_t entityID);
+		bool Entity_HasParent(uint64_t entityID);
+		MonoObject* Entity_GetParent(uint64_t entityID);
+		MonoArray* Entity_GetChildren(uint64_t entityID);
 		bool Entity_HasComponent(uint64_t id, MonoReflectionType* type);
 		void Entity_AddComponent(uint64_t id, MonoReflectionType* type);
 		void Entity_RemoveComponent(uint64_t id, MonoReflectionType* type);
+		MonoObject* Entity_Instantiate(MonoReflectionType* type, MonoString* name);
+		void Entity_DestroyEntity(uint64_t entityID, bool destroyChildren);
+		uint64_t Entity_CreateEntity(MonoString* name);
+		uint64_t Entity_CloneEntity(uint64_t entityID);
+		uint64_t Entity_FindEntityByName(MonoString* name);
+		uint64_t Entity_FindChildEntityByName(uint64_t, MonoString* name, bool recusive);
 
 		#pragma endregion
 

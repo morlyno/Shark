@@ -5,53 +5,60 @@
 
 namespace Shark {
 
-	class KeyPressedEvent : public EventBase<EventType::KeyPressed, EventCategory::Input | EventCategory::Keyboard>
+	class KeyEvent : public Event
 	{
 	public:
-		KeyPressedEvent(KeyCode keycode, bool isRepeat, bool altPressed)
-			: m_KeyCode(keycode), m_IsRepeat(isRepeat), m_AltPressed(altPressed)
+		virtual KeyCode GetKeyCode() const { return KeyCode::None; };
+		virtual bool IsRepeat() const { return false; }
+	};
+
+	class KeyPressedEvent : public EventBase<KeyEvent, EventType::KeyPressed, EventCategory::Input | EventCategory::Keyboard>
+	{
+	public:
+		KeyPressedEvent(KeyCode keycode, bool isRepeat)
+			: m_KeyCode(keycode), m_IsRepeat(isRepeat)
 		{}
 
-		KeyCode GetKeyCode() const { return m_KeyCode; }
-		bool IsRepeat() const { return m_IsRepeat; }
-		bool AltPressed() const { return m_AltPressed; }
+		virtual KeyCode GetKeyCode() const override { return m_KeyCode; }
+		virtual bool IsRepeat() const override { return m_IsRepeat; }
 
-		std::string ToString() const override { return fmt::format("{}, Key: {} [{}], IsRepeat: {}, AltDown: {}", GetName(), Key::ToString(m_KeyCode), m_KeyCode, m_IsRepeat, m_AltPressed); }
+		std::string ToString() const override { return fmt::format("{}, Key: {} [{}], IsRepeat: {}", GetName(), Shark::ToString(m_KeyCode), (uint16_t)m_KeyCode, m_IsRepeat); }
 
 	private:
 		KeyCode m_KeyCode;
 		bool m_IsRepeat;
-		bool m_AltPressed;
 	};
 
-	class KeyReleasedEvent : public EventBase<EventType::KeyReleased, EventCategory::Input | EventCategory::Keyboard>
+	class KeyReleasedEvent : public EventBase<KeyEvent, EventType::KeyReleased, EventCategory::Input | EventCategory::Keyboard>
 	{
 	public:
 		KeyReleasedEvent(KeyCode keycode)
 			: m_KeyCode(keycode)
 		{}
 
-		KeyCode GetKeyCode() const { return m_KeyCode; }
-		std::string ToString() const override { return fmt::format("{}, Key: {} [{}]", GetName(), Key::ToString(m_KeyCode), m_KeyCode); }
+		virtual KeyCode GetKeyCode() const override { return m_KeyCode; }
+		std::string ToString() const override { return fmt::format("{}, Key: {} [{}]", GetName(), Shark::ToString(m_KeyCode), (uint16_t)m_KeyCode); }
 
 	private:
 		KeyCode m_KeyCode;
 	};
 
-	class KeyCharacterEvent : public EventBase<EventType::KeyCharacter, EventCategory::Input | EventCategory::Keyboard>
+#if 0
+	class KeyCharacterEvent : public EventBase<KeyEvent, EventType::KeyCharacter, EventCategory::Input | EventCategory::Keyboard>
 	{
 	public:
-		KeyCharacterEvent(KeyCode Character, bool isRepeat)
-			: m_KeyCode(Character), m_IsRepeat(isRepeat)
+		KeyCharacterEvent(char16_t utf16Char, bool isRepeat)
+			: m_UTF16Char(utf16Char), m_IsRepeat(isRepeat)
 		{}
 
-		KeyCode GetKeyCode() const { return m_KeyCode; }
-		bool IsRepeat() const { return m_IsRepeat; }
-		std::string ToString() const override { return fmt::format("{0}, Key: {1} [0x{1:x}], IsRepeat: {2}", GetName(), (unsigned char)m_KeyCode, IsRepeat()); }
+		char16_t GetCharacter() const { return m_UTF16Char; }
+		virtual bool IsRepeat() const override { return m_IsRepeat; }
+		std::string ToString() const override { return fmt::format("{0}, Key: {1} [0x{1:x}], IsRepeat: {2}", GetName(), (wchar_t)m_UTF16Char, IsRepeat()); }
 
 	private:
-		KeyCode m_KeyCode;
+		char16_t m_UTF16Char;
 		bool m_IsRepeat;
 	};
+#endif
 
 }
