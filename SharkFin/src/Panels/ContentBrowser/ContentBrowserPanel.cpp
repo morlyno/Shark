@@ -32,8 +32,6 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		std::lock_guard guard(m_Mutex);
-
 		for (auto& func : m_PostRenderQueue)
 			func();
 		m_PostRenderQueue.clear();
@@ -187,9 +185,6 @@ namespace Shark {
 
 	void ContentBrowserPanel::OnFileEvents(const std::vector<FileChangedData>& fileEvents)
 	{
-		// Note(moro): when the new FileWatcher from the Scripting branch gets merged in
-		//             locking the main thread is no loger necessary
-		std::lock_guard guard(m_Mutex);
 		SK_CORE_ASSERT(m_ChangesBlocked == false);
 
 		if (m_SkipNextFileEvents)

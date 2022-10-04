@@ -173,8 +173,6 @@ namespace Shark {
 		static ContentBrowserPanel& Get() { return *s_Instance; }
 
 	private:
-		std::mutex m_Mutex;
-
 		Ref<ProjectInstance> m_Project;
 		Ref<ProjectInstance> m_NextProject;
 
