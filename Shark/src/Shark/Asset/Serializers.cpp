@@ -112,8 +112,8 @@ namespace Shark {
 
 		if (!out.good())
 		{
-			SK_CORE_ERROR("Bad Yaml Emitter! Skipping Entity {0}", (uint32_t)entity);
-			SK_CORE_ERROR(fmt::format("Yaml Error: {}", out.GetLastError()));
+			SK_CORE_ERROR_TAG("Serialization", "Bad Yaml Emitter! Skipping Entity {0}", (uint32_t)entity);
+			SK_CORE_ERROR_TAG("Serialization", fmt::format("Yaml Error: {}", out.GetLastError()));
 			SK_CORE_ASSERT(false);
 			return false;
 		}
@@ -134,7 +134,7 @@ namespace Shark {
 
 			out << YAML::EndMap;
 
-			SK_CORE_TRACE("Searializing Entity. ID: {0}, TAG: {1}", (uint32_t)entity, comp.Tag);
+			SK_CORE_TRACE_TAG("Serialization", "Searializing Entity. ID: 0x{0:x}, TAG: {1}", (uint32_t)entity, comp.Tag);
 		}
 
 		if (entity.AllOf<TransformComponent>())
@@ -335,7 +335,7 @@ namespace Shark {
 		if (!sceneNode)
 			return false;
 
-		SK_CORE_INFO("Loading Scene [{0}]", metadata.FilePath);
+		SK_CORE_INFO_TAG("Serialization", "Loading Scene [{0}]", metadata.FilePath);
 
 		auto activeCamera = sceneNode["ActiveCamera"];
 		SK_CORE_ASSERT(activeCamera, "Couldn't Load Active Camera");
@@ -353,7 +353,7 @@ namespace Shark {
 				auto tag = tagComp["Tag"].as<std::string>();
 
 				Entity deserializedEntity = scene->CreateEntityWithUUID(uuid, tag);
-				SK_CORE_TRACE("Deserializing Entity [{}] {:x}", tag, uuid);
+				SK_CORE_TRACE_TAG("Serialization", "Deserializing Entity [{0}] {1:x}", tag, uuid);
 
 				if (auto transformComponent = entity["TransformComponent"])
 				{
@@ -370,8 +370,6 @@ namespace Shark {
 
 					SK_CORE_ASSERT(scaling, "Couldn't deserialize TransformComponent::Scaling");
 					comp.Scale = scaling.as<glm::vec3>();
-
-					SK_CORE_TRACE(" - Transfrom Component");
 				}
 
 				if (auto relationshipComponent = entity["RelationshipComponent"])
@@ -402,8 +400,6 @@ namespace Shark {
 
 					SK_CORE_ASSERT(tilingfactor, "Couldn't deserialize SpriteRendererComponent::TilingFactor");
 					comp.TilingFactor = tilingfactor.as<float>();
-
-					SK_CORE_TRACE(" - Sprite Renderer Component: Texture {0}", comp.TextureHandle);
 				}
 
 				if (auto circleRendererComponent = entity["CircleRendererComponent"])
@@ -422,8 +418,6 @@ namespace Shark {
 
 					SK_CORE_ASSERT(fade, "Couldn't deserialize CirlceRendererComponent::Fade");
 					comp.Fade = fade.as<float>();
-
-					SK_CORE_TRACE(" - Cirlce Renderer Component");
 				}
 
 				if (auto cameraComponent = entity["CameraComponent"])
@@ -468,8 +462,7 @@ namespace Shark {
 					SK_CORE_ASSERT(orthographicNear, "Couldn't deserialize CameraComponent::OrthographicNear");
 					os.Far = orthographicFar.as<float>();
 
-					auto& comp = deserializedEntity.AddOrReplaceComponent<CameraComponent>(SceneCamera(projection, aspecRatio, ps, os));
-					SK_CORE_TRACE(" - Camera Component: Type {}", Convert::ProjectionToString(projection));
+					deserializedEntity.AddOrReplaceComponent<CameraComponent>(SceneCamera(projection, aspecRatio, ps, os));
 				}
 
 				if (auto rigidBody2DComponent = entity["RigidBody2DComponent"])
@@ -504,8 +497,6 @@ namespace Shark {
 
 					SK_CORE_ASSERT(allowSleep, "Couldn't desirialize RigidBody2DComponent::AllowSleep");
 					comp.AllowSleep = allowSleep.as<bool>();
-
-					SK_CORE_TRACE(" - RigidBody2D Component: Type {}", Convert::BodyTypeToString(comp.Type));
 				}
 
 				if (auto boxCollider2DComponent = entity["BoxCollider2DComponent"])
@@ -556,7 +547,6 @@ namespace Shark {
 					auto restitution = cirlceCollider2DComponent["Restitution"];
 					auto restitutionThreshold = cirlceCollider2DComponent["RestitutionThreshold"];
 					auto isSensor = cirlceCollider2DComponent["IsSensor"];
-					SK_CORE_TRACE(" - BoxCollider2D Component");
 
 					auto& comp = deserializedEntity.AddOrReplaceComponent<CircleCollider2DComponent>();
 
@@ -583,8 +573,6 @@ namespace Shark {
 
 					SK_CORE_ASSERT(isSensor, "Couldn't desirialize CircleCollider2DComponent::IsSensor");
 					comp.IsSensor = isSensor.as<bool>(false);
-
-					SK_CORE_TRACE(" - CircleCollider2D Component");
 				}
 
 				if (auto scriptComponent = entity["ScriptComponent"])
@@ -628,8 +616,6 @@ namespace Shark {
 							default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); break;
 						}
 					}
-
-					SK_CORE_TRACE(" - Script Component [{}]", comp.ScriptName);
 				}
 			}
 		}
@@ -648,7 +634,7 @@ namespace Shark {
 		if (!ResourceManager::HasExistingFilePath(metadata))
 		{
 			asset->SetFlag(AssetFlag::FileNotFound, true);
-			SK_CORE_ERROR("[Scene Serializer] FileNotFound {0}", metadata.FilePath);
+			SK_CORE_ERROR_TAG("Serialization", "Scene file not found! {0}", metadata.FilePath);
 			return false;
 		}
 
@@ -659,7 +645,7 @@ namespace Shark {
 			if (!LoadScene(scene, metadata))
 			{
 				scene->SetFlag(AssetFlag::InvalidFile, true);
-				SK_CORE_ERROR("[Scene Serailizer] Invalid File");
+				SK_CORE_ERROR_TAG("Serialization", "Invalid Scene File");
 				return false;
 			}
 		}
@@ -668,7 +654,7 @@ namespace Shark {
 			scene->SetFlag(AssetFlag::InvalidFile, true);
 			scene->m_Registry.clear();
 			scene->m_EntityUUIDMap.clear();
-			SK_CORE_ERROR("[Scene Serializer] {0}", e.what());
+			SK_CORE_ERROR_TAG("Serialization", "Failed to read Scene File! {0}", e.what());
 			return false;
 		}
 
@@ -688,7 +674,7 @@ namespace Shark {
 		ScopedTimer timer("Scene Serialization");
 		YAML::Emitter out;
 
-		SK_CORE_INFO(L"Searializing Scene [{0}]", metadata.FilePath);
+		SK_CORE_INFO_TAG("Serialization", "Searializing Scene [{0}]", metadata.FilePath.generic_string());
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene" << YAML::Value;
@@ -728,19 +714,19 @@ namespace Shark {
 		if (!ResourceManager::HasExistingFilePath(metadata))
 		{
 			asset->SetFlag(AssetFlag::FileNotFound, true);
-			SK_CORE_ERROR("[Texture Serializer] FileNotFound {0}", metadata.FilePath);
+			SK_CORE_ERROR_TAG("Serialization", "Failed To Load Texture! FileNotFound {0}", metadata.FilePath);
 			return false;
 		}
 
-		SK_CORE_INFO(L"Loading Texture [{0}]", metadata.FilePath);
-		Timer timer;
+		SK_CORE_INFO_TAG("Serialization", "Loading Texture [{0}]", metadata.FilePath.generic_string());
+		ScopedTimer timer("Loading Texture");
 
 		YAML::Node in = YAML::LoadFile(ResourceManager::GetFileSystemPath(metadata));
 		auto texture = in["Texture"];
 		if (!texture)
 		{
 			asset->SetFlag(AssetFlag::InvalidFile, true);
-			SK_CORE_ERROR("[Texture Serializer] Texture Node not found");
+			SK_CORE_ERROR_TAG("Serialization", "Failed To Load Texture! Invalid Texture Asset File");
 			return false;
 		}
 
@@ -767,28 +753,25 @@ namespace Shark {
 		specs.Sampler.MaxAnisotropy = sampler["MaxAnisotropy"].as<uint32_t>();
 		specs.Sampler.LODBias = sampler["LODBias"].as<float>();
 
-		int x, y, comp;
-		std::string narrowPath = sourcePath.string();
-		stbi_uc* data = stbi_load(narrowPath.c_str(), &x, &y, &comp, STBI_rgb_alpha);
-		if (!data)
-		{
-			asset->SetFlag(AssetFlag::InvalidFile, true);
-			SK_CORE_ERROR("[Texture Serializer] Failed to load Image Data: {}", stbi_failure_reason());
+		TextureMetadata textureMetadata;
+		TextureSourceSerializer serializer;
+		if (!serializer.LoadImageData(sourcePath, textureMetadata))
 			return false;
+
+		specs.Width = textureMetadata.Width;
+		specs.Height = textureMetadata.Height;
+		specs.Format = textureMetadata.Format;
+
+		textureAsset->Set(specs, textureMetadata.ImageData.Data);
+		textureAsset->SetFilePath(sourcePath);
+
+		if (specs.MipLevels != 1)
+		{
+			SK_CORE_TRACE_TAG("Serialization", "Generating {0} Mips", specs.MipLevels);
+			Renderer::GenerateMips(textureAsset->GetImage());
 		}
 
-		specs.Width = x;
-		specs.Height = y;
-		specs.Format = ImageFormat::RGBA8;
-
-		textureAsset->Set(specs, data);
-		textureAsset->SetFilePath(sourcePath);
-		if (specs.MipLevels != 1)
-			Renderer::GenerateMips(textureAsset->GetImage());
-
-		stbi_image_free(data);
-
-		SK_CORE_TRACE("Texture Loaded in {0:.4f}ms", timer.ElapsedMilliSeconds());
+		textureMetadata.ImageData.Release();
 		return true;
 	}
 
@@ -800,7 +783,7 @@ namespace Shark {
 		if (!asset)
 			return false;
 
-		SK_CORE_INFO(L"Serializing Texture [{0}]", metadata.FilePath);
+		SK_CORE_INFO_TAG("Serialization", "Serializing Texture [{0}]", metadata.FilePath);
 
 		ScopedTimer timer("Texture Serialization");
 		YAML::Emitter out;
@@ -839,7 +822,7 @@ namespace Shark {
 
 		if (!out.good())
 		{
-			SK_CORE_ERROR("YAML Error: {}", out.GetLastError());
+			SK_CORE_ERROR_TAG("Serialization", "Failed to serialize Texture! {0}", out.GetLastError());
 			SK_CORE_ASSERT(false);
 			return false;
 		}
@@ -857,15 +840,15 @@ namespace Shark {
 
 		if (!FileSystem::Exists(filePath))
 		{
-			SK_CORE_ERROR("[Texture Serializer] FileNotFound {0}", filePath);
-			return false;
+			SK_CORE_ERROR_TAG("Serialization", "Texture File not found! {0}", filePath);
+			return std::filesystem::path{};
 		}
 
 		YAML::Node in = YAML::LoadFile(FileSystem::GetAbsolute(filePath));
 		auto texture = in["Texture"];
 		if (!texture)
 		{
-			SK_CORE_ERROR("[Texture Serializer] Texture Node not found");
+			SK_CORE_ERROR_TAG("Serialization", "Texture Node not found");
 			return std::filesystem::path{};
 		}
 
@@ -890,7 +873,32 @@ namespace Shark {
 		return true;
 	}
 
-	#pragma endregion
+	bool TextureSourceSerializer::LoadImageData(const std::filesystem::path& filePath, TextureMetadata& outTextureMetadata)
+	{
+		if (!FileSystem::Exists(filePath))
+			return false;
+
+		ScopedTimer timer("Loding Image Data");
+
+		int x, y, comp;
+		std::string narrowPath = filePath.string();
+		stbi_uc* data = stbi_load(narrowPath.c_str(), &x, &y, &comp, STBI_rgb_alpha);
+		if (!data)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Failed to load Image Data: {}", stbi_failure_reason());
+			return false;
+		}
+
+		outTextureMetadata.Width = x;
+		outTextureMetadata.Height = y;
+		outTextureMetadata.Format = ImageFormat::RGBA8;
+		outTextureMetadata.ImageData = Buffer::Copy(data, (uint64_t)x * y * 4);
+
+		stbi_image_free(data);
+		return true;
+	}
+
+#pragma endregion
 
 	#pragma region Script File
 

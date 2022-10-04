@@ -28,7 +28,7 @@ namespace Shark {
 		}
 		else
 		{
-			SK_CORE_WARN("SceneRenderer Unkown Viewport Size!");
+			SK_CORE_WARN_TAG("SceneRenderer", "Unkown Viewport Size");
 			m_ViewportWidth = 1280;
 			m_ViewportHeight = 720;
 		}

@@ -17,4 +17,6 @@ namespace ImGui {
 
 	bool InputTextEx(ImGuiID id, const char* label, const char* hint, char* buf, int buf_size, const ImVec2& size_arg = ImVec2(0, 0), ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = NULL, void* callback_user_data = NULL);
 
+	void ReadOnlyCheckbox(const char* label, bool value);
+
 }

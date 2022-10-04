@@ -13,7 +13,7 @@ namespace Shark {
 		ScriptFile = 4
 	};
 
-	inline std::string AssetTypeToString(AssetType assetType)
+	inline std::string ToString(AssetType assetType)
 	{
 		switch (assetType)
 		{

@@ -219,11 +219,9 @@ namespace Shark {
 	{
 		SetState(State::Renaming, false);
 
+		// TODO(moro): error prompt
 		if (name.empty())
-		{
-			SK_CORE_WARN("[ContentBrowserItem] Can't rename item to empty name");
 			return;
-		}
 
 		ContentBrowserPanel::Get().SkipNextFileEvents();
 
@@ -238,11 +236,8 @@ namespace Shark {
 
 			std::error_code error;
 			std::filesystem::rename(oldPath, newPath, error);
-			if (error)
-			{
-				SK_ERROR(error.message());
+			if (error) // TODO(moro): error prompt
 				return;
-			}
 
 			m_Name = newPath.stem().string();
 			newPath = std::filesystem::relative(newPath, cbPanel.GetProject()->Directory);
@@ -260,11 +255,8 @@ namespace Shark {
 
 		std::error_code error;
 		std::filesystem::rename(oldPath, newPath, error);
-		if (error)
-		{
-			SK_ERROR(error.message());
+		if (error) // TODO(moro): error prompt
 			return;
-		}
 
 		m_Name = newPath.stem().string();
 	}
@@ -311,7 +303,7 @@ namespace Shark {
 		if (!metadata.IsValid())
 			return "Asset";
 
-		return AssetTypeToString(metadata.Type);
+		return ToString(metadata.Type);
 	}
 
 	DirectoryInfo::DirectoryInfo(Ref<DirectoryInfo> parent, const std::filesystem::path& filePath, AssetHandle handle)

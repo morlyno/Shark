@@ -1,17 +1,12 @@
 #include "skpch.h"
 #include "DirectXMaterial.h"
 
+#include "Platform/DirectX11/DirectXRenderer.h"
+
 #include <d3d11shader.h>
 #include <d3dcompiler.h>
 
 #include <unordered_map>
-
-#ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
-#else
-#define SK_CHECK(call) call
-#endif
-
 
 namespace Shark {
 
@@ -81,7 +76,7 @@ namespace Shark {
 		{
 			const auto& vtxBinary = shaderBinarys.at(ShaderStage::Vertex);
 			ID3D11ShaderReflection* reflection;
-			SK_CHECK(D3DReflect(vtxBinary.data(), vtxBinary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
+			SK_DX11_CALL(D3DReflect(vtxBinary.data(), vtxBinary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
 
 
 			D3D11_SHADER_DESC desc;
@@ -117,7 +112,7 @@ namespace Shark {
 		{
 			const auto& pxlBinary = shaderBinarys.at(ShaderStage::Pixel);
 			ID3D11ShaderReflection* reflection;
-			SK_CHECK(D3DReflect(pxlBinary.data(), pxlBinary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
+			SK_DX11_CALL(D3DReflect(pxlBinary.data(), pxlBinary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
 
 			D3D11_SHADER_DESC desc;
 			reflection->GetDesc(&desc);

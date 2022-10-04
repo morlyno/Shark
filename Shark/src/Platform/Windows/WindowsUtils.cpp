@@ -8,6 +8,7 @@
 
 #include <shellapi.h>
 #include <ShlObj.h>
+#include <comdef.h>
 
 namespace Shark {
 
@@ -29,33 +30,30 @@ namespace Shark {
 			return nullptr;
 		}
 
-		void DefaultErrorHandle(DWORD errorCode)
-		{
-			auto message = WindowsUtils::TranslateErrorCode(errorCode);
-			SK_CORE_ERROR("[Win32] {0}", message);
-		}
-
 	}
 
 	static void CheckHResult(HRESULT hr)
 	{
 		if (hr != S_OK)
 		{
-			std::string msg = std::system_category().message(hr);
-			SK_CORE_ERROR("[Win32] {0}", msg);
+			_com_error error(hr);
+			std::string msg = String::ToNarrowCopy(std::wstring_view(error.ErrorMessage()));
+			SK_CORE_ERROR_TAG("Windows", msg);
 		}
 	}
 
 	static void LogHResult(HRESULT hr)
 	{
-		std::string msg = std::system_category().message(hr);
-		SK_CORE_ERROR("[Win32] {0}", msg);
+		_com_error error(hr);
+		std::string msg = String::ToNarrowCopy(std::wstring_view(error.ErrorMessage()));
+		SK_CORE_ERROR_TAG("Windows", msg);
 	}
 
 
-	std::string WindowsUtils::TranslateErrorCode(DWORD error)
+	std::string WindowsUtils::TranslateHResult(HRESULT hResult)
 	{
-		return std::system_category().message(error);
+		_com_error error(hResult);
+		return String::ToNarrowCopy(std::wstring_view(error.ErrorMessage()));
 	}
 
 	void WindowsUtils::SetThreadName(HANDLE thread, const std::wstring& name)
@@ -63,8 +61,9 @@ namespace Shark {
 		HRESULT hr = SetThreadDescription(thread, name.c_str());
 		if (FAILED(hr))
 		{
-			DWORD code = HRESULT_CODE(hr);
-			SK_CORE_ERROR("Failed to set Thead Name! {}", WindowsUtils::TranslateErrorCode(code));
+			_com_error error(hr);
+			std::string msg = String::ToNarrowCopy(std::wstring_view(error.ErrorMessage()));
+			SK_CORE_ERROR_TAG("Windows", "Failed to set Thead Name! {}", msg);
 		}
 	}
 
@@ -101,7 +100,7 @@ namespace Shark {
 		if (!succeded)
 		{
 			DWORD lastError = GetLastError();
-			SK_CORE_ERROR("ShellExectueExW Failed! {}", WindowsUtils::TranslateErrorCode(lastError));
+			SK_CORE_ERROR_TAG("Windows", "ShellExectueExW Failed! {}", std::system_category().message(lastError));
 			return false;
 		}
 
@@ -130,7 +129,7 @@ namespace Shark {
 		if (!succeded)
 		{
 			DWORD lastError = GetLastError();
-			SK_CORE_ERROR("ShellExectueExW Failed! {}", WindowsUtils::TranslateErrorCode(lastError));
+			SK_CORE_ERROR_TAG("Windows", "ShellExectueExW Failed! {}", std::system_category().message(lastError));
 			return false;
 		}
 
@@ -179,8 +178,8 @@ namespace Shark {
 		if (file == INVALID_HANDLE_VALUE)
 		{
 			DWORD lasterror = GetLastError();
-			auto message = TranslateErrorCode(lasterror);
-			SK_CORE_ERROR("[Win32] {0}", message);
+			auto message = std::system_category().message(lasterror);
+			SK_CORE_ERROR_TAG("Windows", "Failed to create file! {0}", message);
 			return false;
 		}
 
@@ -196,10 +195,11 @@ namespace Shark {
 			DWORD errorCode = GetLastError();
 			if (errorCode == ERROR_ENVVAR_NOT_FOUND)
 			{
-				SK_CORE_ERROR("[Win32] Environment Variable not found");
+				SK_CORE_ERROR_TAG("Windows", "Environment Variable not found");
 				return std::string{};
 			}
-			utils::DefaultErrorHandle(errorCode);
+			auto msg = std::system_category().message(errorCode);
+			SK_CORE_ERROR_TAG("Windows", "Failed to get EnvironmentVariable! {0}", msg);
 			return std::string{};
 		}
 
@@ -210,7 +210,8 @@ namespace Shark {
 		if (result == 0)
 		{
 			DWORD errorCode = GetLastError();
-			utils::DefaultErrorHandle(errorCode);
+			auto msg = std::system_category().message(errorCode);
+			SK_CORE_ERROR_TAG("Windows", "Failed to get EnvironmentVariable! {0}", msg);
 			return std::string{};
 		}
 
@@ -224,7 +225,8 @@ namespace Shark {
 		if (!SetEnvironmentVariableA(key.c_str(), value.c_str()))
 		{
 			DWORD errorCode = GetLastError();
-			utils::DefaultErrorHandle(errorCode);
+			auto msg = std::system_category().message(errorCode);
+			SK_CORE_ERROR_TAG("Windows", "Failed to set EnvironmentVariable! {0}", msg);
 			return false;
 		}
 
@@ -369,8 +371,8 @@ namespace Shark {
 		std::filesystem::path windowsFilePath = std::filesystem::canonical(file, errorCode);
 		if (errorCode)
 		{
-			SK_CORE_ERROR("[WindowsUtils] getting the canonical path failed!");
-			SK_CORE_ERROR("[WindowsUtils] Reason: {0}", errorCode.message());
+			SK_CORE_ERROR_TAG("Windows", "getting the canonical path failed!");
+			SK_CORE_ERROR_TAG("Windows", "Reason: {0}", errorCode.message());
 			return;
 		}
 

@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <glm/glm.hpp>
+#include <stack>
 
 
 #ifdef IMGUI_DEFINE_MATH_OPERATORS
@@ -87,7 +88,7 @@ namespace Shark::UI {
 
 	inline ImGuiID GetID(int intID)                                            { return GImGui->CurrentWindow->GetID(intID); }
 	inline ImGuiID GetID(void* ptrID)                                          { return GImGui->CurrentWindow->GetID(ptrID); }
-	inline ImGuiID GetID(const char* strID)                                    { return GImGui->CurrentWindow->GetID(strID); }
+	inline ImGuiID GetID(const char* strID, const char* strEnd = nullptr)      { return GImGui->CurrentWindow->GetID(strID, strEnd); }
 	inline ImGuiID GetID(const std::string& strID)                             { return GImGui->CurrentWindow->GetID(strID.data(), strID.data() + strID.size()); }
 	inline ImGuiID GetID(const std::string_view& strID)                        { return GImGui->CurrentWindow->GetID(strID.data(), strID.data() + strID.size()); }
 	inline ImGuiID GetID(UUID uuid)                                            { static_assert(sizeof(void*) == sizeof(uint64_t)); return GImGui->CurrentWindow->GetID((void*)(uint64_t)uuid);}
@@ -101,7 +102,7 @@ namespace Shark::UI {
 	inline void PushID(ImGuiID id)                                             { GImGui->CurrentWindow->IDStack.push_back(id) ;}
 	inline void PushID(int intID)                                              { PushID(GetID(intID)); }
 	inline void PushID(void* ptrID)                                            { PushID(GetID(ptrID)); }
-	inline void PushID(const char* strID)                                      { PushID(GetID(strID)); }
+	inline void PushID(const char* strID, const char* strEnd = nullptr)        { PushID(GetID(strID, strEnd)); }
 	inline void PushID(const std::string& strID)                               { PushID(GetID(strID)); }
 	inline void PushID(const std::string_view& strID)                          { PushID(GetID(strID)); }
 	inline void PopID()                                                        { GImGui->CurrentWindow->IDStack.pop_back(); }
@@ -120,6 +121,9 @@ namespace Shark::UI {
 	ImU32 ToColor32(const ImVec4& color, float alpha);
 
 	ImVec4 GetColor(ImGuiCol color, float override_alpha);
+
+	void PushFramedTextAlign(const ImVec2& align);
+	void PopFramedTextAlign();
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -185,6 +189,7 @@ namespace Shark::UI {
 
 	void Property(std::string_view label, const UUID& uuid);
 	void Property(std::string_view label, int value);
+	void Property(std::string_view label, bool value);
 
  	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Widgets ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,7 +213,7 @@ namespace Shark::UI {
 		ScopedID(ImGuiID id)                               { PushID(id); }
 		ScopedID(int intID)                                { PushID(intID); }
 		ScopedID(void* ptrID)                              { PushID(ptrID); }
-		ScopedID(const char* strID)                        { PushID(strID); }
+		ScopedID(const char* strID, const char* strEnd)    { PushID(strID, strEnd); }
 		ScopedID(const std::string& strID)                 { PushID(strID); }
 		ScopedID(const std::string_view& strID)            { PushID(strID); }
 		~ScopedID()                                        { PopID(); }
@@ -360,6 +365,18 @@ namespace Shark::UI {
 		}
 	};
 
+	struct ScopedFramedTextAlign
+	{
+		ScopedFramedTextAlign(const ImVec2& align)
+		{
+			PushFramedTextAlign(align);
+		}
+		~ScopedFramedTextAlign()
+		{
+			PopFramedTextAlign();
+		}
+	};
+
 	struct UIControl
 	{
 		bool Active = false;
@@ -371,6 +388,8 @@ namespace Shark::UI {
 	struct UIContext
 	{
 		UIControl Control;
+		ImVec2 FramedTextAlign = ImVec2(0.0f, 0.0f);
+		std::stack<ImVec2> FramedTextAlignStack;
 
 		UIContext();
 	};

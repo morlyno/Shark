@@ -9,12 +9,6 @@
 #include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/Profiler.h"
 
-#ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
-#else
-#define SK_CHECK(call) call
-#endif
-
 namespace Shark {
 
 	DirectXSwapChain::DirectXSwapChain(const SwapChainSpecifications& specs)
@@ -53,7 +47,7 @@ namespace Shark {
 		if (m_Specs.Widht == width && m_Specs.Height == height)
 			return;
 
-		SK_CORE_WARN("DirectXSwapChain::Resize w:{} h:{}", width, height);
+		SK_CORE_WARN_TAG("Renderer", "Resizing Swapchain ({}, {})", width, height);
 
 		m_Specs.Widht = width;
 		m_Specs.Height = height;
@@ -71,7 +65,7 @@ namespace Shark {
 			specs.IsSwapChainTarget = true;
 
 			ID3D11Texture2D* backBuffer = nullptr;
-			m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer);
+			SK_DX11_CALL(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer));
 			D3D11_TEXTURE2D_DESC desc;
 			backBuffer->GetDesc(&desc);
 
@@ -129,7 +123,7 @@ namespace Shark {
 
 		auto* fac = DirectXRenderer::GetFactory();
 		auto* dev = DirectXRenderer::GetDevice();
-		SK_CHECK(fac->CreateSwapChain(dev, &scd, &m_SwapChain));
+		SK_DX11_CALL(fac->CreateSwapChain(dev, &scd, &m_SwapChain));
 
 
 		// FrameBuffer
@@ -142,7 +136,7 @@ namespace Shark {
 		specs.IsSwapChainTarget = true;
 
 		ID3D11Texture2D* backBuffer = nullptr;
-		m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer);
+		SK_DX11_CALL(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer));
 		D3D11_TEXTURE2D_DESC desc;
 		backBuffer->GetDesc(&desc);
 

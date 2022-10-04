@@ -44,7 +44,7 @@ namespace Shark {
 		void Clear();
 		bool ClearOnPlay() const { return m_ClearOnPlay; }
 
-		static void PushMessage(Log::Level level, const std::string& time, const std::string& message);
+		static void PushMessage(LogLevelType level, const std::string& time, const std::string& message);
 
 	private:
 		void PushMessage(MessageLevel level, const std::string& time, const std::string& message);

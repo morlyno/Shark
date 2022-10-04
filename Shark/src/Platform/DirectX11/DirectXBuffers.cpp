@@ -4,12 +4,6 @@
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
-#ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
-#else
-#define SK_CHECK(call) call
-#endif
-
 namespace Shark {
 
 	//////////////////////////////////////////////////////////////////////////
@@ -41,7 +35,7 @@ namespace Shark {
 
 		if (m_VertexBuffer)
 			m_VertexBuffer->Release();
-		SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
+		SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
 	}
 
 	void DirectXVertexBuffer::SetData(void* data, uint32_t size)
@@ -57,7 +51,7 @@ namespace Shark {
 		);
 
 		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_CHECK(ctx->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
+		SK_DX11_CALL(ctx->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
 		memcpy(ms.pData, data, size);
 		ctx->Unmap(m_VertexBuffer, 0);
 	}
@@ -91,11 +85,11 @@ namespace Shark {
 			D3D11_SUBRESOURCE_DATA srd = {};
 			srd.pSysMem = data;
 
-			SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&bd, &srd, &m_VertexBuffer));
+			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bd, &srd, &m_VertexBuffer));
 		}
 		else
 		{
-			SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
+			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
 		}
 	}
 
@@ -131,7 +125,7 @@ namespace Shark {
 
 		if (m_IndexBuffer)
 			m_IndexBuffer->Release();
-		SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
+		SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
 	}
 
 	void DirectXIndexBuffer::SetData(IndexType* data, uint32_t count)
@@ -151,7 +145,7 @@ namespace Shark {
 		);
 
 		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_CHECK(ctx->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
+		SK_DX11_CALL(ctx->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
 		memcpy(ms.pData, data, m_Size);
 		ctx->Unmap(m_IndexBuffer, 0);
 	}
@@ -182,11 +176,11 @@ namespace Shark {
 			D3D11_SUBRESOURCE_DATA i_srd = {};
 			i_srd.pSysMem = data;
 
-			SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, &i_srd, &m_IndexBuffer));
+			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, &i_srd, &m_IndexBuffer));
 		}
 		else
 		{
-			SK_CHECK(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
+			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
 		}
 	}
 

@@ -8,12 +8,6 @@
 
 #include <stb_image.h>
 
-#ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR(SK_STRINGIFY(call) "0x{0:x}", hr); SK_DEBUG_BREAK(); }
-#else
-#define SK_CHECK(call) call
-#endif
-
 namespace Shark {
 
 	namespace utils {
@@ -66,6 +60,19 @@ namespace Shark {
 			return 0;
 		}
 
+		uint32_t GetFormatDataSize(ImageFormat imageFormat)
+		{
+			switch (imageFormat)
+			{
+				case ImageFormat::None: return 0;
+				case ImageFormat::RGBA8: return 4;
+				case ImageFormat::R32_SINT: return 4;
+				case ImageFormat::Depth32: return 4;
+			}
+			SK_CORE_ASSERT(false, "Unkown ImageFormat");
+			return 0;
+		}
+
 	}
 
 	DirectXImage2D::DirectXImage2D()
@@ -75,7 +82,8 @@ namespace Shark {
 	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, void* data)
 		: m_Specification(specs)
 	{
-		m_ImageData = data;
+		m_ImageData.Data = (byte*)data;
+		m_ImageData.Size = (uint64_t)specs.Width * specs.Height * utils::GetFormatDataSize(specs.Format);
 		CreateResource();
 		UpdateResource();
 	}
@@ -124,7 +132,9 @@ namespace Shark {
 		Release();
 
 		m_Specification = specs;
-		m_ImageData = data;
+		m_ImageData.Data = (byte*)data;
+		m_ImageData.Size = (uint64_t)specs.Width * specs.Height * utils::GetFormatDataSize(specs.Format);
+
 		CreateResource();
 		UpdateResource();
 	}
@@ -248,28 +258,20 @@ namespace Shark {
 
 	Buffer DirectXImage2D::LoadDataFromFile(const std::filesystem::path& filePath)
 	{
-		ScopedTimer timer("DirectXImage2D::LoadDataFromFile");
-
-		std::string narrorFilePath = filePath.string();
-		int x, y, comp;
-		Buffer imageData;
-		imageData.Data = stbi_load(narrorFilePath.c_str(), &x, &y, &comp, STBI_rgb_alpha);
-		imageData.Size = x * y * comp;
-
-		m_Specification.Format = ImageFormat::RGBA8;
-		m_Specification.Width = x;
-		m_Specification.Height = y;
-		m_Specification.MipLevels = 1;
-		m_Specification.Type = ImageType::Texture;
-
-		if (!imageData.Data)
+		TextureMetadata metadata;
+		TextureSourceSerializer serializer;
+		if (serializer.LoadImageData(filePath, metadata))
 		{
-			SK_CORE_ERROR("Failed to load Image!");
-			SK_CORE_WARN(L"Source: {}", filePath);
-			SK_CORE_WARN("Reson: {}", stbi_failure_reason());
+			m_Specification.Format = metadata.Format;
+			m_Specification.Width = metadata.Width;
+			m_Specification.Height = metadata.Height;
+			m_Specification.MipLevels = 1;
+			m_Specification.Type = ImageType::Texture;
+
+			return metadata.ImageData;
 		}
 
-		return imageData;
+		return Buffer{};
 	}
 
 	std::filesystem::path DirectXImage2D::GetSourcePath(const std::filesystem::path& filePath) const
@@ -317,7 +319,7 @@ namespace Shark {
 				break;
 		}
 
-		SK_CHECK(device->CreateTexture2D(&desc, nullptr, &m_Resource));
+		SK_DX11_CALL(device->CreateTexture2D(&desc, nullptr, &m_Resource));
 		if (m_Specification.Type != ImageType::Storage)
 			CreateView();
 	}
@@ -341,7 +343,7 @@ namespace Shark {
 		viewDesc.Texture2D.MipLevels = -1;
 		viewDesc.Texture2D.MostDetailedMip = 0;
 
-		SK_CHECK(device->CreateShaderResourceView(m_Resource, &viewDesc, &m_View));
+		SK_DX11_CALL(device->CreateShaderResourceView(m_Resource, &viewDesc, &m_View));
 	}
 
 	bool DirectXImage2D::IsDepthImage()

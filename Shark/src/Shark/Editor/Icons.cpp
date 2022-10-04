@@ -23,7 +23,7 @@ namespace Shark {
 	void Icons::Init()
 	{
 		SK_CORE_INFO("Loading Icons...");
-		Timer timer;
+		ScopedTimer timer("Loading Icons");
 
 		SettingsIcon  = Image2D::Create("Resources/Icon_Settings.png");
 
@@ -43,8 +43,6 @@ namespace Shark {
 		PauseIcon     = Image2D::Create("Resources/Toolbar/Icon_Pause.png");
 		SimulateIcon  = Image2D::Create("Resources/Toolbar/Icon_Simulate.png");
 		StepIcon      = Image2D::Create("Resources/Toolbar/Icon_Step.png");
-
-		SK_CORE_INFO("Icons Loaded in {0}ms", timer.ElapsedMilliSeconds());
 	}
 
 	void Icons::Shutdown()

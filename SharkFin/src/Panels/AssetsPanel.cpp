@@ -65,8 +65,6 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Imported Assets", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-
 			for (const auto& [handle, metadata] : ResourceManager::GetAssetRegistry())
 			{
 				if (!IsAssetTypeEnabled(metadata.Type))
@@ -75,7 +73,7 @@ namespace Shark {
 				if (!searchBufferView.empty())
 				{
 					std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
-					std::string typeStr = AssetTypeToString(metadata.Type);
+					std::string typeStr = ToString(metadata.Type);
 					std::string filePathStr = metadata.FilePath.string();
 
 					if (!m_SearchHasUppercase)
@@ -97,12 +95,11 @@ namespace Shark {
 
 				UI::BeginControlsGrid();
 
-				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
 				char buffer[sizeof("0x0123456789ABCDEF")];
 				sprintf_s(buffer, "0x%llx", (uint64_t)metadata.Handle);
-				UI::Property("Handle", buffer, textFlags);
-				UI::Property("FilePath", metadata.FilePath, textFlags);
-				UI::Property("Type", AssetTypeToString(metadata.Type), textFlags);
+				UI::Property("Handle", buffer);
+				UI::Property("FilePath", metadata.FilePath);
+				UI::Property("Type", ToString(metadata.Type));
 
 				UI::EndControls();
 
@@ -114,8 +111,6 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Loaded Assets", UI::TreeNodeSeperatorFlags))
 		{
-			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-
 			for (const auto& [handle, asset] : ResourceManager::GetLoadedAssets())
 			{
 				const auto& metadata = ResourceManager::GetMetaData(asset);
@@ -125,7 +120,7 @@ namespace Shark {
 				if (!searchBufferView.empty())
 				{
 					std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
-					std::string typeStr = AssetTypeToString(metadata.Type);
+					std::string typeStr = ToString(metadata.Type);
 					std::string filePathStr = metadata.FilePath.string();
 
 					if (!m_SearchHasUppercase)
@@ -148,14 +143,12 @@ namespace Shark {
 
 				UI::BeginControlsGrid();
 
-				const UI::TextFlags textFlags = UI::TextFlag::Selectable | UI::TextFlag::Aligned;
 				char buffer[sizeof("0x0123456789ABCDEF")];
 				sprintf_s(buffer, "0x%llx", (uint64_t)metadata.Handle);
-				UI::Property("Handle", buffer, textFlags);
-				UI::Property("FilePath", metadata.FilePath, textFlags);
-				UI::Property("Type", AssetTypeToString(metadata.Type), textFlags);
-				bool isMemoryAsset = metadata.IsMemoryAsset;
-				UI::Control("Memory", isMemoryAsset);
+				UI::Property("Handle", buffer);
+				UI::Property("FilePath", metadata.FilePath);
+				UI::Property("Type", ToString(metadata.Type));
+				UI::Property("Memory", metadata.IsMemoryAsset);
 
 				UI::EndControls();
 

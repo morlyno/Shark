@@ -50,7 +50,7 @@ namespace Shark {
 		if (!mono_error_ok(&error))
 		{
 			const char* msg = mono_error_get_message(&error);
-			SK_CORE_ERROR(msg);
+			SK_CORE_ERROR_TAG("Scripting", msg);
 			mono_error_cleanup(&error);
 			return true;
 		}

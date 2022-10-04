@@ -399,6 +399,7 @@ namespace Shark {
 		UI_ProjectSettings();
 		UI_ImportTexture();
 		UI_DebugScripts();
+		UI_LogSettings();
 
 		m_PanelManager->OnImGuiRender();
 		
@@ -485,6 +486,7 @@ namespace Shark {
 				ImGui::Separator();
 				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
 				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
+				ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
 				ImGui::EndMenu();
 			}
 
@@ -1359,6 +1361,29 @@ namespace Shark {
 			ImGui::TreeNodeEx(className, UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
 		}
 
+		ImGui::End();
+	}
+
+
+	void EditorLayer::UI_LogSettings()
+	{
+		if (!m_ShowLogSettings)
+			return;
+
+		if (ImGui::Begin("Log", &m_ShowLogSettings))
+		{
+			auto& tags = Log::GetMutableTags();
+			ImGui::Separator();
+			for (auto& [tag, data] : tags)
+			{
+				UI::BeginControlsGrid();
+				UI::Property("Tag", tag);
+				UI::ControlCombo("Level", (uint16_t&)data.Level, LogLevelStrings, (uint16_t)std::size(LogLevelStrings));
+				UI::Control("Enabled", data.Enabled);
+				UI::EndControls();
+				ImGui::Separator();
+			}
+		}
 		ImGui::End();
 	}
 

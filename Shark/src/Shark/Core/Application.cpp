@@ -167,7 +167,7 @@ namespace Shark {
 
 		void Init()
 		{
-			Log::Init();
+			Log::Initialize();
 			Input::Init();
 			FileSystem::Init();
 		}

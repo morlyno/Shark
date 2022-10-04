@@ -25,7 +25,20 @@ namespace Shark::String {
 		return std::move(result);
 	}
 
+	std::string ToNarrowCopy(std::wstring_view str)
+	{
+		std::string result;
+		ToNarrow(str, result);
+		return std::move(result);
+	}
+
 	void ToNarrow(const std::wstring& str, std::string& out_Result)
+	{
+		out_Result.resize(str.size());
+		wcstombs_s(nullptr, out_Result.data(), out_Result.size() + 1, str.data(), (str.size() + 1) * sizeof(std::wstring::value_type));
+	}
+
+	void ToNarrow(std::wstring_view str, std::string& out_Result)
 	{
 		out_Result.resize(str.size());
 		wcstombs_s(nullptr, out_Result.data(), out_Result.size() + 1, str.data(), (str.size() + 1) * sizeof(std::wstring::value_type));

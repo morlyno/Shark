@@ -10,13 +10,6 @@
 
 #include <d3dcompiler.h>
 
-
-#ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
-#else
-#define SK_CHECK(call) call
-#endif
-
 namespace Shark {
 
 	namespace Utils {
@@ -165,10 +158,8 @@ namespace Shark {
 		auto shaderSources = PreProzess(file);
 		
 		{
-			Timer timer;
+			ScopedTimer timer("Shader Compile");
 			CompileOrGetCached(shaderSources);
-
-			SK_CORE_TRACE(L"Shader Compile took {0:.5f} ms [File: {1}]", timer.ElapsedMilliSeconds(), filepath);
 		}
 
 		CreateShaders();
@@ -210,11 +201,9 @@ namespace Shark {
 		auto shaderSources = PreProzess(file);
 
 		{
-			Timer timer;
+			ScopedTimer timer("Shader ReCompile");
 			if (!TryReCompile(shaderSources))
 				return false;
-
-			SK_CORE_TRACE(L"Shader ReCompile took {0:.5f} ms [File: {1}]", timer.ElapsedMilliSeconds(), m_FilePath);
 		}
 		Release();
 
@@ -229,7 +218,7 @@ namespace Shark {
 	{
 		ID3D11ShaderReflection* reflection;
 		auto&& binary = m_ShaderBinarys[ShaderStage::Vertex];
-		SK_CHECK(D3DReflect(binary.data(), binary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
+		SK_DX11_CALL(D3DReflect(binary.data(), binary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
 		ID3D11ShaderReflectionConstantBuffer* constantBuffer = reflection->GetConstantBufferByName(name.c_str());
 		SK_CORE_ASSERT(constantBuffer);
 		D3D11_SHADER_BUFFER_DESC bufferDesc;
@@ -423,7 +412,7 @@ namespace Shark {
 		for (auto&& [stage, binary] : m_ShaderBinarys)
 		{
 			ID3D11ShaderReflection* reflection;
-			SK_CHECK(D3DReflect((void*)binary.data(), (UINT)binary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
+			SK_DX11_CALL(D3DReflect((void*)binary.data(), (UINT)binary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
 
 			D3D11_SHADER_DESC desc;
 			reflection->GetDesc(&desc);
@@ -484,17 +473,17 @@ namespace Shark {
 	{
 		ID3D11ShaderReflection* reflection;
 
-		SK_CHECK(D3DReflect((void*)vtx_src.data(), (UINT)vtx_src.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
+		SK_DX11_CALL(D3DReflect((void*)vtx_src.data(), (UINT)vtx_src.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
 
 		D3D11_SHADER_DESC vsdesc;
-		SK_CHECK(reflection->GetDesc(&vsdesc));
+		SK_DX11_CALL(reflection->GetDesc(&vsdesc));
 
 		std::vector<D3D11_INPUT_ELEMENT_DESC> m_InputElements;
 		m_InputElements.reserve(vsdesc.InputParameters);
 		for (UINT i = 0; i < vsdesc.InputParameters; ++i)
 		{
 			D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
-			SK_CHECK(reflection->GetInputParameterDesc(i, &paramDesc));
+			SK_DX11_CALL(reflection->GetInputParameterDesc(i, &paramDesc));
 
 			D3D11_INPUT_ELEMENT_DESC elementDesc;
 			elementDesc.SemanticName = paramDesc.SemanticName;
@@ -534,7 +523,7 @@ namespace Shark {
 		m_VertexLayout.Init();
 
 		auto dev = DirectXRenderer::GetDevice();
-		SK_CHECK(dev->CreateInputLayout(m_InputElements.data(), (UINT)m_InputElements.size(), (void*)vtx_src.data(), (UINT)vtx_src.size(), &m_InputLayout));
+		SK_DX11_CALL(dev->CreateInputLayout(m_InputElements.data(), (UINT)m_InputElements.size(), (void*)vtx_src.data(), (UINT)vtx_src.size(), &m_InputLayout));
 		reflection->Release();
 
 	}
@@ -550,8 +539,8 @@ namespace Shark {
 		{
 			switch (stage)
 			{
-				case ShaderStage::Vertex: SK_CHECK(dev->CreateVertexShader((void*)binary.data(), binary.size(), nullptr, &m_VertexShader)); break;
-				case ShaderStage::Pixel:  SK_CHECK(dev->CreatePixelShader((void*)binary.data(), binary.size(), nullptr, &m_PixelShader)); break;
+				case ShaderStage::Vertex: SK_DX11_CALL(dev->CreateVertexShader((void*)binary.data(), binary.size(), nullptr, &m_VertexShader)); break;
+				case ShaderStage::Pixel:  SK_DX11_CALL(dev->CreatePixelShader((void*)binary.data(), binary.size(), nullptr, &m_PixelShader)); break;
 				default:                  SK_CORE_ASSERT(false); break;
 			}
 		}

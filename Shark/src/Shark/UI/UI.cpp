@@ -127,6 +127,18 @@ namespace Shark::UI {
 		};
 	}
 
+	void PushFramedTextAlign(const ImVec2& align)
+	{
+		GContext->FramedTextAlignStack.push(GContext->FramedTextAlign);
+		GContext->FramedTextAlign = align;
+	}
+
+	void PopFramedTextAlign()
+	{
+		GContext->FramedTextAlign = GContext->FramedTextAlignStack.top();
+		GContext->FramedTextAlignStack.pop();
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -718,6 +730,16 @@ namespace Shark::UI {
 		ControlEndHelper();
 	}
 
+	void Property(std::string_view label, bool value)
+	{
+		if (!ControlBeginHelper(label))
+			return;
+
+		ControlHelperDrawLabel(label);
+		ImGui::ReadOnlyCheckbox("##property", value);
+		ControlEndHelper();
+	}
+
 	void Text(std::string_view str, TextFlags flags)
 	{
 		UI::ScopedColorStack s;
@@ -776,7 +798,14 @@ namespace Shark::UI {
 
 		const ImGuiStyle style = ImGui::GetStyle();
 		const ImVec2 pos = ImGui::GetCursorScreenPos();
-		const ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() };
+		ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() };
+		
+		if (GImGui->NextItemData.Flags & ImGuiNextItemDataFlags_HasWidth)
+			size.x = GImGui->NextItemData.Width;
+
+		const ImRect textRect = { pos + style.FramePadding, pos + size - style.FramePadding };
+		const ImRect frameRect = { pos, pos + size };
+
 		const ImRect bb(pos, pos + size);
 		ImGui::ItemSize(size, style.FramePadding.y);
 		if (!ImGui::ItemAdd(bb, 0))
@@ -789,8 +818,17 @@ namespace Shark::UI {
 		va_end(args);
 
 		const ImU32 frameColor = ImGui::GetColorU32(ImGuiCol_FrameBg);
-		ImGui::RenderFrame(bb.Min, bb.Max, frameColor, true, style.FrameRounding);
-		ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, text, text_end, nullptr, ImVec2(0.5f, 0.5f), &bb);
+		ImGui::RenderFrame(frameRect.Min, frameRect.Max, frameColor, true, style.FrameRounding);
+		ImGui::RenderTextClipped(textRect.Min, textRect.Max, text, text_end, nullptr, GContext->FramedTextAlign, &textRect);
+
+		UI::ScopedID scopedID(text, text_end);
+		if (ImGui::BeginPopupContextItem("TextSettingsPopup"))
+		{
+			if (ImGui::Selectable("Copy"))
+				ImGui::SetClipboardText(text);
+
+			ImGui::EndPopup();
+		}
 	}
 		
 	bool Search(ImGuiID id, char* buffer, int bufferSize)
@@ -861,6 +899,7 @@ namespace Shark::UI {
 		SK_CORE_ASSERT(GContext->Control.Active == false, "Controls Begin/End mismatch");
 		SK_CORE_ASSERT(GContext->Control.WidgetCount == 0);
 		SK_CORE_ASSERT(GContext->Control.ActiveGridFlags == GridFlag::None);
+		SK_CORE_ASSERT(GContext->FramedTextAlignStack.size() == 0);
 	}
 
 }

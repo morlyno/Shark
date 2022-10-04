@@ -11,6 +11,8 @@
 #include <set>
 #include <d3d11.h>
 
+#define SK_DX11_CALL(call) { HRESULT hr = (call); if (FAILED(hr)) { auto renderer = ::Shark::DirectXRenderer::Get(); renderer->HandleError(hr); } }
+
 namespace Shark {
 
 	class DirectXRenderer : public RendererAPI
@@ -43,6 +45,8 @@ namespace Shark {
 		uint64_t GetGPUFrequncy() const { return m_GPUFrequency; }
 		uint64_t HasValidFrequncy() const { return m_IsValidFrequency; }
 
+		void HandleError(HRESULT hr);
+
 	private:
 		void PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet);
 		void QueryCapabilities();
@@ -69,8 +73,6 @@ namespace Shark {
 
 		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;
 		Ref<DirectXIndexBuffer> m_QuadIndexBuffer;
-
-		ID3D11SamplerState* m_ClampSampler;
 
 		ID3D11Query* m_FrequencyQuery = nullptr;
 		uint64_t m_GPUFrequency = 0;

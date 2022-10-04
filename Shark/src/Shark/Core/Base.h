@@ -41,7 +41,6 @@
 	#define SK_IF_DEBUG(...)
 #endif
 
-
 #define BIT(x) (1 << x)
 
 #define SK_STRINGIFY(x) #x

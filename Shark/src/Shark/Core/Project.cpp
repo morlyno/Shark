@@ -120,13 +120,12 @@ namespace Shark {
 
 		if (!out.good())
 		{
-			SK_CORE_ERROR("YAML Error: {}", out.GetLastError());
+			SK_CORE_ERROR_TAG("Serialization", "Failed to serialize project! {0}", out.GetLastError());
 			SK_CORE_ASSERT(false);
 			return false;
 		}
 
 		std::ofstream fout(filePath);
-		SK_CORE_ASSERT(fout, "ofstream flailed to open file");
 		if (!fout)
 			return false;
 
@@ -188,7 +187,7 @@ namespace Shark {
 
 		float time = timer.ElapsedMilliSeconds();
 
-		SK_CORE_INFO(L"Deserializing Project from: {}", filePath);
+		SK_CORE_INFO("Deserializing Project from: {}", filePath);
 		SK_CORE_TRACE("  Name: {}", config.Name);
 		SK_CORE_TRACE("  Assets Path: {}", assetsDirectory);
 		SK_CORE_TRACE("  Startup Scene Path: {}", startupScenePath);

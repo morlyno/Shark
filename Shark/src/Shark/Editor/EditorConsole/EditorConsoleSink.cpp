@@ -7,19 +7,19 @@ namespace Shark {
 
 	namespace utils {
 
-		Log::Level spdlogLevelToLogLevel(spdlog::level::level_enum level)
+		LogLevelType spdlogLevelToLogLevel(spdlog::level::level_enum level)
 		{
 			switch (level)
 			{
-				case spdlog::level::trace:     return Log::Level::Trace;
-				case spdlog::level::debug:     return Log::Level::Debug;
-				case spdlog::level::info:      return Log::Level::Info;
-				case spdlog::level::warn:      return Log::Level::Warn;
-				case spdlog::level::err:       return Log::Level::Error;
-				case spdlog::level::critical:  return Log::Level::Critical;
+				case spdlog::level::trace:     return LogLevelType::Trace;
+				case spdlog::level::debug:     return LogLevelType::Debug;
+				case spdlog::level::info:      return LogLevelType::Info;
+				case spdlog::level::warn:      return LogLevelType::Warn;
+				case spdlog::level::err:       return LogLevelType::Error;
+				case spdlog::level::critical:  return LogLevelType::Critical;
 			}
 			SK_CORE_ASSERT(false, "Unkown Log Level");
-			return Log::Level::Trace;
+			return LogLevelType::Trace;
 		}
 
 	}

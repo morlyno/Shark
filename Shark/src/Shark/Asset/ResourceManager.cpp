@@ -166,7 +166,7 @@ namespace Shark {
 			s_Data->ImportedAssets.erase(handle);
 	}
 
-	void ResourceManager::DeleteAsset(AssetHandle handle)
+	void ResourceManager::RemoveAsset(AssetHandle handle)
 	{
 		const bool isMemoryAsset = GetMetaDataInternal(handle).IsMemoryAsset;
 
@@ -231,8 +231,7 @@ namespace Shark {
 		s_Data->ImportedAssets[metadata.Handle] = metadata;
 		WriteImportedAssetsToDisc();
 
-		SK_CORE_INFO("Imported Asset");
-		SK_CORE_TRACE(" => Handle: 0x{:x}, Type: {}, FilePath: {}", metadata.Handle, AssetTypeToString(metadata.Type), metadata.FilePath);
+		SK_CORE_INFO_TAG("ResourceManager", "Imported Asset => Handle: 0x{:x}, Type: {}, FilePath: {}", metadata.Handle, ToString(metadata.Type), metadata.FilePath);
 		return metadata.Handle;
 	}
 
@@ -287,7 +286,7 @@ namespace Shark {
 
 		AssetHandle handle = GetAssetHandleFromFilePath(filePath);
 		if (handle.IsValid())
-			DeleteAsset(handle);
+			RemoveAsset(handle);
 	}
 
 	static AssetMetaData s_NullMetaData;
@@ -346,7 +345,7 @@ namespace Shark {
 		{
 			out << YAML::BeginMap;
 			out << YAML::Key << "Handle" << YAML::Value << YAML::Hex << entry.Handle << YAML::Dec;
-			out << YAML::Key << "Type" << YAML::Value << AssetTypeToString(entry.Type);
+			out << YAML::Key << "Type" << YAML::Value << ToString(entry.Type);
 			out << YAML::Key << "FilePath" << YAML::Value << entry.FilePath;
 			out << YAML::EndMap;
 		}
@@ -357,7 +356,7 @@ namespace Shark {
 		std::ofstream fout(filePath);
 		if (!fout)
 		{
-			SK_CORE_ERROR("Output File Stream Failed");
+			SK_CORE_ERROR_TAG("Serialization", "Failed to write imported assets to disc");
 			return;
 		}
 
@@ -373,7 +372,7 @@ namespace Shark {
 
 		if (!std::filesystem::exists(filePath))
 		{
-			SK_CORE_ERROR("ImportedAssets File dosn't exist");
+			SK_CORE_ERROR_TAG("Serialization", "ImportedAssets.yaml not found");
 			return;
 		}
 
@@ -381,7 +380,7 @@ namespace Shark {
 
 		if (!in["Assets"])
 		{
-			SK_CORE_ERROR("Invalid ImportedAssets file");
+			SK_CORE_ERROR_TAG("Serialization", "Invalid ImportedAssets file");
 			return;
 		}
 

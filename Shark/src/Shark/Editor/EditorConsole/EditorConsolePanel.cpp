@@ -112,21 +112,21 @@ namespace Shark {
 		m_Filtered.clear();
 	}
 
-	void EditorConsolePanel::PushMessage(Log::Level level, const std::string& time, const std::string& message)
+	void EditorConsolePanel::PushMessage(LogLevelType level, const std::string& time, const std::string& message)
 	{
 		SK_CORE_ASSERT(s_Instance);
 		switch (level)
 		{
-			case Log::Level::Debug:
-			case Log::Level::Trace:
-			case Log::Level::Info:
+			case LogLevelType::Debug:
+			case LogLevelType::Trace:
+			case LogLevelType::Info:
 				s_Instance->PushMessage(MessageLevel::Info, time, message);
 				break;
-			case Log::Level::Warn:
+			case LogLevelType::Warn:
 				s_Instance->PushMessage(MessageLevel::Warn, time, message);
 				break;
-			case Log::Level::Error:
-			case Log::Level::Critical:
+			case LogLevelType::Error:
+			case LogLevelType::Critical:
 				s_Instance->PushMessage(MessageLevel::Error, time, message);
 				break;
 		}

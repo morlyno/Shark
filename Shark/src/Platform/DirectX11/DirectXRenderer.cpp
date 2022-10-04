@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "DirectXRenderer.h"
 #include "Shark/Core/Application.h"
+#include "Shark/Core/Timer.h"
 
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
@@ -10,18 +11,12 @@
 #include "Platform/DirectX11/DirectXBuffers.h"
 #include "Platform/DirectX11/DirectXPipeline.h"
 
+#include "Shark/Utils/String.h"
 #include "Shark/Debug/Instrumentor.h"
 #include "Shark/Debug/Profiler.h"
-#include "Shark/Core/Timer.h"
 
 #include <backends/imgui_impl_dx11.h>
-
-
-#ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR(SK_STRINGIFY(call) "0x{0:x}", hr); SK_DEBUG_BREAK(); }
-#else
-#define SK_CHECK(call) call
-#endif
+#include "../Windows/WindowsUtils.h"
 
 namespace Shark {
 
@@ -29,11 +24,11 @@ namespace Shark {
 
 	namespace Utils {
 
-		static void LogAdapter(IDXGIAdapter* adapter)
+		static std::string GetGPUDescription(IDXGIAdapter* adapter)
 		{
-			DXGI_ADAPTER_DESC ad;
-			SK_CHECK(adapter->GetDesc(&ad));
-			SK_CORE_INFO(L"GPU: {0}", ad.Description);
+			DXGI_ADAPTER_DESC ad = {};
+			SK_DX11_CALL(adapter->GetDesc(&ad));
+			return String::ToNarrowCopy(std::wstring_view(ad.Description));
 		}
 
 	}
@@ -59,18 +54,21 @@ namespace Shark {
 		SK_CORE_ASSERT(s_Instance == nullptr);
 		s_Instance = this;
 
-		SK_CHECK(CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)));
+		SK_CORE_INFO_TAG("Renderer", "Initializing DirectX Renderer");
+
+		SK_DX11_CALL(CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)));
 
 		IDXGIAdapter* adapter = nullptr;
-		SK_CHECK(m_Factory->EnumAdapters(0, &adapter));
-		Utils::LogAdapter(adapter);
+		SK_DX11_CALL(m_Factory->EnumAdapters(0, &adapter));
+		SK_CORE_INFO_TAG("Renderer", "GPU Selected ({0})", Utils::GetGPUDescription(adapter));
+		
 
 		UINT createdeviceFalgs = 0u;
 #if SK_ENABLE_VALIDATION
 		createdeviceFalgs |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-		SK_CHECK(D3D11CreateDevice(
+		SK_DX11_CALL(D3D11CreateDevice(
 			adapter,
 			D3D_DRIVER_TYPE_UNKNOWN,
 			nullptr,
@@ -120,18 +118,11 @@ namespace Shark {
 		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, vertices, (uint32_t)sizeof(vertices));
 		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create(indices, (uint32_t)(sizeof(indices) / sizeof(*indices)));
 
-		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		m_Device->CreateSamplerState(&samplerDesc, &m_ClampSampler);
-
 		// Frequency Query
 		D3D11_QUERY_DESC queryDesc;
 		queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
 		queryDesc.MiscFlags = 0;
-		SK_CHECK(m_Device->CreateQuery(&queryDesc, &m_FrequencyQuery));
+		SK_DX11_CALL(m_Device->CreateQuery(&queryDesc, &m_FrequencyQuery));
 	}
 
 	void DirectXRenderer::ShutDown()
@@ -144,12 +135,6 @@ namespace Shark {
 		m_QuadIndexBuffer = nullptr;
 
 		SK_CORE_ASSERT(m_CommandBuffers.empty(), "All RenderCommandBuffers need to be destroy befor Renderer shuts down");
-
-		if (m_ClampSampler)
-		{
-			m_ClampSampler->Release();
-			m_ClampSampler = nullptr;
-		}
 
 		if (m_FrequencyQuery)
 		{
@@ -357,7 +342,7 @@ namespace Shark {
 		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
 		ID3D11Texture2D* texture = nullptr;
-		SK_CHECK(m_Device->CreateTexture2D(&textureDesc, nullptr, &texture));
+		SK_DX11_CALL(m_Device->CreateTexture2D(&textureDesc, nullptr, &texture));
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
 		viewDesc.Format = textureDesc.Format;
@@ -365,7 +350,7 @@ namespace Shark {
 		viewDesc.Texture2D.MipLevels = -1;
 		viewDesc.Texture2D.MostDetailedMip = 0;
 		ID3D11ShaderResourceView* view = nullptr;
-		SK_CHECK(m_Device->CreateShaderResourceView(texture, &viewDesc, &view));
+		SK_DX11_CALL(m_Device->CreateShaderResourceView(texture, &viewDesc, &view));
 
 		m_ImmediateContext->CopySubresourceRegion(texture, 0, 0, 0, 0, dxImage->m_Resource, 0, nullptr);
 		m_ImmediateContext->GenerateMips(view);
@@ -396,6 +381,19 @@ namespace Shark {
 			m_CommandBuffers.erase(entry);
 	}
 
+	void DirectXRenderer::HandleError(HRESULT hr)
+	{
+		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_HUNG || hr == DXGI_ERROR_DEVICE_RESET)
+		{
+			HRESULT deviceRemovedHR = m_Device->GetDeviceRemovedReason();
+			auto deviceRemovedReason = WindowsUtils::TranslateHResult(deviceRemovedHR);
+			SK_CORE_CRITICAL_TAG("Renderer", deviceRemovedReason);
+			return;
+		}
+
+		SK_CORE_ERROR_TAG("Renderer", WindowsUtils::TranslateHResult(hr));
+	}
+
 	void DirectXRenderer::PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet)
 	{
 		SK_PROFILE_FUNCTION();
@@ -409,7 +407,7 @@ namespace Shark {
 		}
 
 		for (auto&& [slot, data] : material->m_ConstantBufferData)
-			material->m_ConstnatBufferSet->Set(slot, data.Data, data.Size);
+			material->m_ConstnatBufferSet->Set(slot, data.Data, (uint32_t)data.Size); // TODO: maby convert to uint64_t
 
 		if (constantBufferSet)
 		{

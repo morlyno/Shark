@@ -74,6 +74,12 @@ namespace Shark {
 	{
 		WatchData* watchData = (WatchData*)lpOverlapped;
 
+		if (dwErrorCode != ERROR_SUCCESS)
+		{
+			std::string msg = std::system_category().message(dwErrorCode);
+			SK_CORE_ERROR_TAG("FileWatcher", "Reading Directory Changes failed! {0}", msg);
+		}
+
 		if (dwErrorCode == ERROR_SUCCESS && watchData->Callback)
 		{
 			sizeof(FILE_NOTIFY_INFORMATION);
@@ -127,7 +133,7 @@ namespace Shark {
 			delete watchData;
 			DWORD lastError = GetLastError();
 			std::string msg = std::system_category().message(lastError);
-			SK_CORE_ERROR("[FileWatcher] CreateFileW failed! {}", msg);
+			SK_CORE_ERROR_TAG("FileWatcher", "CreateFileW failed! {}", msg);
 			return nullptr;
 		}
 

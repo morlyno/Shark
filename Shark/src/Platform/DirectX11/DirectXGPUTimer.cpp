@@ -3,12 +3,6 @@
 
 #include "Platform/DirectX11/DirectXRenderer.h"
 
-#ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR(SK_STRINGIFY(call) " 0x{0:x}", hr); SK_DEBUG_BREAK(); }
-#else
-#define SK_CHECK(call) call
-#endif
-
 namespace Shark {
 
 	DirectXGPUTimer::DirectXGPUTimer(const std::string& name)
@@ -21,8 +15,8 @@ namespace Shark {
 		desc.MiscFlags = 0;
 		for (uint32_t i = 0; i < NumQueries; i++)
 		{
-			SK_CHECK(dev->CreateQuery(&desc, &m_StartQuery[i]));
-			SK_CHECK(dev->CreateQuery(&desc, &m_EndQuery[i]));
+			SK_DX11_CALL(dev->CreateQuery(&desc, &m_StartQuery[i]));
+			SK_DX11_CALL(dev->CreateQuery(&desc, &m_EndQuery[i]));
 		}
 	}
 

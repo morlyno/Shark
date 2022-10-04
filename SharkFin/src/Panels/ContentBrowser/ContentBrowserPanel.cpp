@@ -189,14 +189,9 @@ namespace Shark {
 
 		if (m_SkipNextFileEvents)
 		{
-			SK_CORE_DEBUG("File Events Skiped");
-			SK_CORE_INFO("{0}", fmt::join(fileEvents, "\n"));
 			m_SkipNextFileEvents = false;
 			return;
 		}
-
-		SK_CORE_DEBUG(SK_FUNCTION);
-		SK_CORE_INFO("{0}", fmt::join(fileEvents, "\n"));
 
 		for (uint32_t i = 0; i < fileEvents.size(); i++)
 		{
@@ -777,7 +772,7 @@ namespace Shark {
 		if (!EditorSettings::Get().ContentBrowser.GenerateThumbnails)
 			return;
 
-		//ScopedTimer timer("ContentBrowserPanel::GenerateThumbnails");
+		ScopedTimer timer("ContentBrowserPanel::GenerateThumbnails");
 
 		for (Ref<ContentBrowserItem> item : m_CurrentItems)
 		{
@@ -819,8 +814,8 @@ namespace Shark {
 		if (errorCode)
 		{
 			m_SkipNextFileEvents = false;
-			SK_CORE_ERROR("[ContentBrowserPanel] Failed to create Directory (Path: {0})", m_Project->Directory / m_CurrentDirectory->FilePath / name);
-			SK_CORE_ERROR("[ContentBrowserPanel] Reason: {0}", errorCode.message());
+			SK_CORE_ERROR("Failed to create Directory (Path: {0})", m_Project->Directory / m_CurrentDirectory->FilePath / name);
+			SK_CORE_ERROR("Reason: {0}", errorCode.message());
 			return nullptr;
 		}
 

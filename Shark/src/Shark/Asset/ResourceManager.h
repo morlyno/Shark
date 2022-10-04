@@ -45,7 +45,7 @@ namespace Shark {
 		static void ReloadAsset(AssetHandle handle);
 
 		static void UnloadAsset(AssetHandle handle);
-		static void DeleteAsset(AssetHandle handle);
+		static void RemoveAsset(AssetHandle handle);
 
 		static bool ImportMemoryAsset(AssetHandle handle, const std::string& directoryPath, const std::string& fileName);
 		static AssetHandle ImportAsset(const std::filesystem::path& filePath);
@@ -145,6 +145,7 @@ namespace Shark {
 			asset->Handle = metadata.Handle;
 			s_Data->LoadedAssets[metadata.Handle] = asset;
 
+			SK_CORE_INFO_TAG("ResourceManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", ToString(metadata.Type), metadata.Handle, metadata.FilePath);
 			AssetSerializer::Serialize(asset, metadata);
 			WriteImportedAssetsToDisc();
 
@@ -165,6 +166,8 @@ namespace Shark {
 			Ref<TAsset> asset = TAsset::Create(std::forward<TArgs>(args)...);
 			asset->Handle = metadata.Handle;
 			s_Data->LoadedAssets[metadata.Handle] = asset;
+
+			SK_CORE_INFO_TAG("ResourceManager", "Memory Asset Created (Type: {0}, Handle: 0x{1:x}", ToString(metadata.Type));
 
 			return asset;
 		}

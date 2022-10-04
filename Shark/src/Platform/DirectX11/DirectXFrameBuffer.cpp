@@ -3,12 +3,6 @@
 
 #include "Platform/DirectX11/DirectXRenderer.h"
 
-#ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
-#else
-#define SK_CHECK(call) call
-#endif
-
 namespace Shark {
 
 	namespace Utils {
@@ -171,7 +165,7 @@ namespace Shark {
 		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		dsv.Texture2D.MipSlice = 0u;
 		dsv.Flags = 0u;
-		SK_CHECK(dev->CreateDepthStencilView(d3dImage->GetResourceNative(), &dsv, &m_DepthStencil));
+		SK_DX11_CALL(dev->CreateDepthStencilView(d3dImage->GetResourceNative(), &dsv, &m_DepthStencil));
 
 	}
 
@@ -199,7 +193,7 @@ namespace Shark {
 		desc.Texture2D = D3D11_TEX2D_RTV{};
 
 		ID3D11RenderTargetView* fb;
-		SK_CHECK(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
+		SK_DX11_CALL(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
 		m_FrameBuffers.push_back(fb);
 	}
 
@@ -216,7 +210,7 @@ namespace Shark {
 		desc.Texture2D = D3D11_TEX2D_RTV{};
 
 		ID3D11RenderTargetView* fb;
-		SK_CHECK(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
+		SK_DX11_CALL(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
 		m_FrameBuffers.push_back(fb);
 	}
 
@@ -260,7 +254,7 @@ namespace Shark {
 			}
 		}
 
-		SK_CHECK(DirectXRenderer::GetDevice()->CreateBlendState(&bd, &m_BlendState));
+		SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBlendState(&bd, &m_BlendState));
 
 		m_Count = (uint32_t)m_FrameBuffers.size();
 	}

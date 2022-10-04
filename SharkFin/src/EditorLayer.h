@@ -81,6 +81,7 @@ namespace Shark {
 		void UI_ImportTexture();
 		bool UI_MousePicking();
 		void UI_DebugScripts();
+		void UI_LogSettings();
 
 		void DebugRender();
 		void RenderCameraPreview();
@@ -117,6 +118,9 @@ namespace Shark {
 		void OpenIDE();
 
 	private:
+		static constexpr std::string_view LogLevelStrings[] = { "Trace"sv, "Debug"sv, "Info"sv, "Warn"sv, "Error"sv, "Critical"sv/*, "Off"sv*/ };
+
+	private:
 		std::filesystem::path m_StartupProject;
 
 		EditorCamera m_EditorCamera;
@@ -148,6 +152,7 @@ namespace Shark {
 		bool m_ShowShaders = false;
 		bool m_ShowProjectSettings = false;
 		bool m_ShowThemeEditor = false;
+		bool m_ShowLogSettings = false;
 
 		int m_HoveredEntityID = -1;
 

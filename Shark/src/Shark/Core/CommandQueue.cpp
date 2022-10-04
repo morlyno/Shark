@@ -6,7 +6,7 @@ namespace Shark {
 	CommandQueue::CommandQueue(uint32_t bufferSize)
 	{
 		m_Buffer.Allocate(bufferSize);
-		m_BufferPtr = m_Buffer;
+		m_BufferPtr = m_Buffer.Data;
 	}
 
 	CommandQueue::~CommandQueue()
@@ -21,7 +21,7 @@ namespace Shark {
 		//	SK_CORE_INFO("CommandQueue::Excecute | {0} Commands | {1} bytes", m_CommandCount, m_BufferPtr - m_Buffer);
 		//}
 
-		byte* buffer = m_Buffer;
+		byte* buffer = m_Buffer.Data;
 
 		while (buffer < m_BufferPtr)
 		{
@@ -35,7 +35,7 @@ namespace Shark {
 			buffer += userFuncSize;
 		}
 
-		m_BufferPtr = m_Buffer;
+		m_BufferPtr = m_Buffer.Data;
 		m_CommandCount = 0;
 	}
 
@@ -43,7 +43,7 @@ namespace Shark {
 	{
 		// CommandFunc | UserFuncSize | UserFunc
 
-		if ((m_BufferPtr + sizeof(CommandFunc) + sizeof(uint32_t) + userFuncSize) >= (m_Buffer + m_Buffer.Size))
+		if ((m_BufferPtr + sizeof(CommandFunc) + sizeof(uint32_t) + userFuncSize) >= (m_Buffer.Data + m_Buffer.Size))
 		{
 			// TODO(moro): Grow Buffer
 			SK_CORE_ASSERT(false, "Command Buffer to small");

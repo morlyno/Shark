@@ -96,7 +96,7 @@ namespace Shark {
 		{
 			DWORD lastErrorCode = GetLastError();
 			SK_CORE_ERROR("Faled to create Window");
-			SK_CORE_ERROR("Error Msg: {}", WindowsUtils::TranslateErrorCode(lastErrorCode));
+			SK_CORE_ERROR("Error Msg: {}", std::system_category().message(lastErrorCode));
 			SK_CORE_ASSERT(false);
 			return;
 		}
@@ -164,8 +164,12 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-			return 1;
+		{
+			SK_PROFILE_SCOPED("ImGui_ImplWin32_WndProcHandler");
+
+			if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+				return 1;
+		}
 
 		switch (msg)
 		{

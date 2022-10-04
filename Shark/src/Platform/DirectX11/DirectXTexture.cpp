@@ -6,12 +6,6 @@
 
 #include <stb_image.h>
 
-#ifdef SK_ENABLE_ASSERT
-#define SK_CHECK(call) if(HRESULT hr = (call); FAILED(hr)) { SK_CORE_ERROR("0x{0:x}", hr); SK_DEBUG_BREAK(); }
-#else
-#define SK_CHECK(call) call
-#endif
-
 namespace Shark {
 
 	namespace utils {
@@ -205,7 +199,7 @@ namespace Shark {
 			desc.BorderColor[i] = m_Specs.Sampler.BorderColor[i];
 
 		auto device = DirectXRenderer::GetDevice();
-		SK_CHECK(device->CreateSamplerState(&desc, &m_Sampler));
+		SK_DX11_CALL(device->CreateSamplerState(&desc, &m_Sampler));
 	}
 
 

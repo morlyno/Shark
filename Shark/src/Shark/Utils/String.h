@@ -6,7 +6,9 @@ namespace Shark::String {
 	void ToLower(std::string& str);
 
 	std::string ToNarrowCopy(const std::wstring& str);
+	std::string ToNarrowCopy(std::wstring_view str);
 	void ToNarrow(const std::wstring& str, std::string& out_Result);
+	void ToNarrow(std::wstring_view str, std::string& out_Result);
 
 	std::wstring ToWideCopy(const std::string& str);
 	void ToWide(const std::string& str, std::wstring& out_Result);

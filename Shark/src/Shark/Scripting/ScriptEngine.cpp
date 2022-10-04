@@ -48,22 +48,23 @@ namespace Shark {
 
 	static void MonoTraceLogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
 	{
-		Log::Level level = Log::Level::Trace;
+		LogLevelType level = LogLevelType::Trace;
 
 		if (strcmp(log_level, "debug") == 0)
-			level = Log::Level::Debug;
+			level = LogLevelType::Debug;
 		else if (strcmp(log_level, "info") == 0)
-			level = Log::Level::Trace;
+			level = LogLevelType::Trace;
 		else if (strcmp(log_level, "message") == 0)
-			level = Log::Level::Info;
+			level = LogLevelType::Info;
 		else if (strcmp(log_level, "warning") == 0)
-			level = Log::Level::Warn;
+			level = LogLevelType::Warn;
 		else if (strcmp(log_level, "error") == 0)
-			level = Log::Level::Error;
+			level = LogLevelType::Error;
 		else if (strcmp(log_level, "critical") == 0)
-			level = Log::Level::Critical;
+			level = LogLevelType::Critical;
 
-		SK_CORE_LOG(level, "{0}: {1}", log_domain ? log_domain : "Mono", message);
+		const char* domain = log_domain ? log_domain : "Mono";
+		Log::LogMessage(LoggerType::Core, level, "", "[{0}] {1}", domain, message);
 		SK_CORE_ASSERT(!fatal);
 	}
 
@@ -71,7 +72,7 @@ namespace Shark {
 	{
 		if (is_stdout)
 		{
-			SK_CORE_TRACE("Mono: {0}", string);
+			SK_CORE_TRACE_TAG("Mono", string);
 			return;
 		}
 
@@ -83,6 +84,8 @@ namespace Shark {
 
 	void ScriptEngine::Init(const ScriptEngineConfig& config)
 	{
+		SK_CORE_INFO_TAG("Scripting", "Script Engine is Initializing");
+
 		s_Data = new ScriptEngineData;
 		s_Data->Config = config;
 		InitMono();
@@ -90,6 +93,8 @@ namespace Shark {
 
 	void ScriptEngine::Shutdown()
 	{
+		SK_CORE_INFO_TAG("Scripting", "Script Engine is Shutting down");
+
 		if (s_Data->AssembliesLoaded)
 			UnloadAssemblies();
 
@@ -99,6 +104,8 @@ namespace Shark {
 
 	bool ScriptEngine::LoadAssemblies(const std::filesystem::path& assemblyPath)
 	{
+		SK_CORE_INFO_TAG("Scripting", "Loading Assemblies");
+
 		WatchingSettings settings;
 		settings.Callback = [](const auto&) { ScriptEngine::ScheduleReload(); };
 		settings.NofityFilter = NotifyFilter::Creation | NotifyFilter::LastWrite;
@@ -139,6 +146,8 @@ namespace Shark {
 
 	void ScriptEngine::UnloadAssemblies()
 	{
+		SK_CORE_INFO_TAG("Scripting", "Unloading Assemblies");
+
 		Ref<FileWatcher> fileWatcher = FileSystem::GetFileWatcher();
 		fileWatcher->StopWatching("AppAssembly");
 
@@ -547,18 +556,18 @@ namespace Shark {
 	{
 		if (!std::filesystem::exists(filePath))
 		{
-			SK_CORE_ERROR("[ScriptEngine] Can't load Assembly! Filepath dosn't exist");
+			SK_CORE_ERROR_TAG("Scripting", "Can't load Assembly! Filepath dosn't exist");
 			return nullptr;
 		}
 
 		Buffer fileData = FileSystem::ReadBinary(filePath);
 
 		MonoImageOpenStatus status;
-		MonoImage* image = mono_image_open_from_data_full(fileData.As<char>(), fileData.Size, true, &status, false);
+		MonoImage* image = mono_image_open_from_data_full(fileData.As<char>(), (uint32_t)fileData.Size, true, &status, false);
 		if (status != MONO_IMAGE_OK)
 		{
 			const char* errorMsg = mono_image_strerror(status);
-			SK_CORE_ERROR("Failed to open Image from {0}\n\t Message: {1}", filePath, errorMsg);
+			SK_CORE_ERROR_TAG("Scripting", "Failed to open Image from {0}\n\t Message: {1}", filePath, errorMsg);
 			return nullptr;
 		}
 
@@ -574,7 +583,7 @@ namespace Shark {
 		MonoAssembly* assembly = LoadCSAssembly(filePath);
 		if (!assembly)
 		{
-			SK_CORE_ERROR("[ScriptEngine] Failed to load Core Assembly");
+			SK_CORE_ERROR_TAG("Scripting", "Failed to load Core Assembly");
 			return false;
 		}
 
@@ -590,7 +599,7 @@ namespace Shark {
 		MonoAssembly* assembly = LoadCSAssembly(filePath);
 		if (!assembly)
 		{
-			SK_CORE_ERROR("[ScriptEngine] Failed to load App Assembly");
+			SK_CORE_ERROR_TAG("Scripting", "Failed to load App Assembly");
 			return false;
 		}
 
@@ -605,10 +614,12 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(!s_Data->IsRunning, "Reloading at runntime not supported");
 
+		SK_CORE_INFO_TAG("Scripting", "Reloading Assemblies");
+
 		// Try reload assemlies
 		// is failed keep the old ones
 
-		MonoDomain* newDomain = mono_domain_create_appdomain("ScriptDomain New", nullptr);
+		MonoDomain* newDomain = mono_domain_create_appdomain("ScriptDomain", nullptr);
 		SK_CORE_ASSERT(newDomain);
 		mono_domain_set(newDomain, true);
 
@@ -640,7 +651,8 @@ namespace Shark {
 
 		CacheScriptClasses();
 
-		SK_CORE_INFO("[ScriptEngine] Assemblies Reloaded");
+		SK_CONSOLE_INFO("Assemblies Reloaded");
+		SK_CORE_INFO_TAG("Scripting", "Assemblies Reloaded");
 		return true;
 	}
 

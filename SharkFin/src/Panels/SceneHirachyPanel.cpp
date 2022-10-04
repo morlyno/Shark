@@ -226,7 +226,6 @@ namespace Shark {
 			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
 			if (payload)
 			{
-				SK_CORE_WARN("Entity paload accepted on Entity {} 0x{:x}", entity.GetName(), entity.GetUUID());
 				UUID uuid = *(UUID*)payload->Data;
 				Entity e = m_Context->GetEntityByUUID(uuid);
 
@@ -283,12 +282,13 @@ namespace Shark {
 		const float WindowWidth = ImGui::GetContentRegionAvail().x;
 
 		auto& tag = entity.GetComponent<TagComponent>();
-		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - IDSpacingWidth - style.FramePadding.x * 2.0f);
+		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - IDSpacingWidth - style.ItemSpacing.x * 2.0f);
 		ImGui::InputText("##Tag", &tag.Tag);
 
 		ImGui::SameLine();
-		ImGui::SetNextItemWidth(IDSpacingWidth);
-		UI::Text(fmt::format("0x{0:16x}", entity.GetUUID()), UI::TextFlag::Selectable);
+		ImGui::SetNextItemWidth(IDSpacingWidth/* - style.FramePadding.x * 2.0f*/);
+		UI::TextFramed("0x%16llx", (uint64_t)entity.GetUUID());
+		//UI::Text(fmt::format("0x{0:16x}", entity.GetUUID()), UI::TextFlag::Selectable);
 		//ImGui::Text("0x%16llx", entity.GetUUID());
 
 		ImGui::SameLine();
