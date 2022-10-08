@@ -32,7 +32,7 @@ namespace Shark {
 
 		void Resize(uint32_t width, uint32_t height);
 
-		void OnImGuiRender();
+		void DrawSettings();
 
 		Ref<Image2D> GetFinalImage() const { return m_ExternalCompositeFrameBuffer->GetImage(0); }
 		Ref<Image2D> GetIDImage() const { return m_GeometryFrameBuffer->GetImage(1); }

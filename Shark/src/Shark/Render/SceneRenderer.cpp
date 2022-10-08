@@ -134,11 +134,9 @@ namespace Shark {
 		m_NeedsResize = true;
 	}
 
-	void SceneRenderer::OnImGuiRender()
+	void SceneRenderer::DrawSettings()
 	{
-		SK_PROFILE_FUNCTION();
-
-		if (ImGui::CollapsingHeader("SceneRenderer"))
+		if (ImGui::CollapsingHeader("Scene Renderer"))
 		{
 			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{

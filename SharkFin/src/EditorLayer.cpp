@@ -19,6 +19,8 @@
 #include "Panels/TextureEditorPanel.h"
 #include "Panels/PhysicsDebugPanel.h"
 #include "Panels/ScriptEnginePanel.h"
+#include "Panels/AssetsPanel.h"
+#include "Panels/SettingsPanel.h"
 
 #include "Shark/Editor/EditorSettings.h"
 #include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
@@ -29,7 +31,6 @@
 
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include "Panels/AssetsPanel.h"
 
 #define SCENE_HIRACHY_ID "SceneHirachyPanel"
 #define CONTENT_BROWSER_ID "ContentBrowserPanel"
@@ -39,6 +40,7 @@
 #define EDITOR_CONSOLE_ID "EditorConsolePanel"
 #define SCRIPT_ENGINE_ID "ScriptEnginePanel"
 #define ASSETS_PANEL_ID "AssetsPanel"
+#define SETTINGS_PANEL_ID "SettingsPanel"
 
 namespace Shark {
 
@@ -47,12 +49,10 @@ namespace Shark {
 	EditorLayer::EditorLayer(const std::filesystem::path& startupProject)
 		: Layer("EditorLayer"), m_StartupProject(startupProject)
 	{
-		SK_PROFILE_FUNCTION();
 	}
 
 	EditorLayer::~EditorLayer()
 	{
-		SK_PROFILE_FUNCTION();
 	}
 
 	void EditorLayer::OnAttach()
@@ -67,10 +67,11 @@ namespace Shark {
 		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, "Scene Hirachy", true);
 		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
 
-		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, "Pyhsics Debug", true);
-		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, "Assets Editor", false);
 		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, "Console", true);
 		m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, "Content Browser", true);
+		m_PanelManager->AddPanel<SettingsPanel>(SETTINGS_PANEL_ID, "Settings", true);
+		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, "Pyhsics Debug", false);
+		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, "Assets Editor", false);
 		m_PanelManager->AddPanel<AssetsPanel>(ASSETS_PANEL_ID, "Assets", false);
 		m_PanelManager->AddPanel<ScriptEnginePanel>(SCRIPT_ENGINE_ID, "Script Engine", false);
 
@@ -97,6 +98,8 @@ namespace Shark {
 			m_MainViewportID = ImHashStr("MainViewport");
 			app.GetImGuiLayer().SetMainViewportID(m_MainViewportID);
 		}
+
+		RegisterSettingNodes();
 	}
 
 	void EditorLayer::OnDetach()
@@ -392,9 +395,7 @@ namespace Shark {
 		UI_Info();
 		UI_Shaders();
 		UI_EditorCamera();
-		UI_Settings();
 		UI_CameraPrevie();
-		UI_Stats();
 		UI_ProjectSettings();
 		UI_ImportTexture();
 		UI_DebugScripts();
@@ -975,102 +976,6 @@ namespace Shark {
 		ImGui::End();
 	}
 
-	void EditorLayer::UI_Settings()
-	{
-		SK_PROFILE_FUNCTION();
-		
-		if (m_ShowSettings)
-		{
-			if (ImGui::Begin("Settings", &m_ShowSettings))
-			{
-				m_SceneRenderer->OnImGuiRender();
-
-				if (ImGui::CollapsingHeader("Visualization"))
-				{
-					if (ImGui::TreeNodeEx("View", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
-					{
-						UI::BeginControlsGrid();
-						UI::Control("Camera Preview", m_ShowCameraPreview);
-						UI::EndControls();
-						ImGui::TreePop();
-					}
-
-					if (ImGui::TreeNodeEx("Colliders", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
-					{
-						UI::BeginControlsGrid();
-						UI::Control("Show", m_ShowColliders);
-						UI::Control("OnTop", m_ShowCollidersOnTop);
-						UI::EndControls();
-						ImGui::TreePop();
-					}
-				}
-
-				if (ImGui::CollapsingHeader("Stuff"))
-				{
-					UI::BeginControlsGrid();
-					auto& window = Application::Get().GetWindow();
-					bool vSync = window.IsVSync();
-					if (UI::Control("VSync", vSync))
-						window.SetVSync(vSync);
-
-					UI::Control("Read Hoved Entity", m_ReadHoveredEntity);
-
-					uint32_t count = PerformanceProfiler::GetSampleRate();
-					if (UI::Control("Profiler Frame Count", count, 1, 1, 165))
-						PerformanceProfiler::SetSampleRate(count);
-					UI::EndControls();
-				}
-
-				if (ImGui::CollapsingHeader("Profile"))
-				{
-					if (ImGui::TreeNodeEx("Box2D", UI::TreeNodeSeperatorFlags))
-					{
-						auto& physicsScene = m_ActiveScene->GetPhysicsScene();
-						if (physicsScene.Active())
-						{
-							auto& profile = physicsScene.GetProfile();
-
-							ImGui::Text("TimeStep: %f", profile.TimeStep);
-							ImGui::Text("Steps: %d", profile.NumSteps);
-
-							std::map<float, std::string, std::greater<>> times;
-							times[profile.Step] = "Step";
-							times[profile.Collide] = "Collide";
-							times[profile.Solve] = "Solve";
-							times[profile.SolveInit] = "SolveInit";
-							times[profile.SolveVelocity] = "SolveVelocity";
-							times[profile.SolvePosition] = "SolvePosition";
-							times[profile.Broadphase] = "Broadphase";
-							times[profile.SolveTOI] = "SolveTOI";
-
-							UI::BeginControlsGrid();
-							for (auto& [time, name] : times)
-								UI::Property(name, fmt::to_string(time));
-							UI::EndControls();
-
-							//UI::Control("Step",           fmt::to_string(profile.step));
-							//UI::Control("Collide",        fmt::to_string(profile.collide));
-							//UI::Control("Solve",          fmt::to_string(profile.solve));
-							//UI::Control("Solve Init",     fmt::to_string(profile.solveInit));
-							//UI::Control("Solve Velocity", fmt::to_string(profile.solveVelocity));
-							//UI::Control("Solve Position", fmt::to_string(profile.solvePosition));
-							//UI::Control("BroadPhase",     fmt::to_string(profile.broadphase));
-							//UI::Control("Solve TOI",      fmt::to_string(profile.solveTOI));
-						}
-						else
-						{
-							UI::Text("Phyics Scene inactive");
-						}
-						ImGui::TreePop();
-					}
-
-				}
-
-			}
-			ImGui::End();
-		}
-	}
-
 	static void CameraPreviewResizeCallback(ImGuiSizeCallbackData* data)
 	{
 		SK_PROFILE_FUNCTION();
@@ -1122,75 +1027,63 @@ namespace Shark {
 
 	void EditorLayer::UI_Stats()
 	{
-		SK_PROFILE_FUNCTION();
-		
-		if (!m_ShowStats)
-			return;
-
-		ImGui::Begin("Debug Renderer");
-		const Renderer2D::Statistics& s = m_DebugRenderer->GetStatistics();
-		ImGui::Text("Draw Calls: %d", s.DrawCalls);
-		ImGui::Text("Quad Count: %d", s.QuadCount);
-		ImGui::Text("Circle Count: %d", s.CircleCount);
-		ImGui::Text("Line Count: %d", s.LineCount);
-		ImGui::Text("Line On Top Count: %d", s.LineOnTopCount);
-		ImGui::Text("Vertex Count: %d", s.VertexCount);
-		ImGui::Text("Index Count: %d", s.IndexCount);
-		ImGui::Text("Texture Count: %d", s.TextureCount);
-		ImGui::End();
-
-
-		ImGui::Begin("Times");
-
-		struct ProfilerEntry
+		if (ImGui::CollapsingHeader("Times"))
 		{
-			std::string_view Name;
-			float Time;
-		};
-
-		const auto& stats = PerformanceProfiler::GetStatistics();
-		std::vector<ProfilerEntry> sortedEntries;
-
-		auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Time != rhs.Time ? lhs.Time > rhs.Time : lhs.Name > rhs.Name; };
-
-		for (const auto& [name, time] : stats)
-		{
-			ProfilerEntry entry{ name, time };
-			if (entry.Time <= FLT_EPSILON)
-				entry.Time = 0.0f;
-
-			auto where = std::lower_bound(sortedEntries.begin(), sortedEntries.end(), entry, sorter);
-			sortedEntries.insert(where, entry);
-		}
-
-		auto format = [](float seconds) -> std::string
-		{
-			const float epsilon = 1.0f;
-
-			if (seconds <= FLT_EPSILON)
-				return fmt::format("{0:3.6f}ms", 0.0f);
-
-			if (seconds > 60.0f)
+			struct ProfilerEntry
 			{
-				float minits = seconds / 60.0f;
-				return fmt::format("{0:3.6f}m", minits);
+				std::string_view Name;
+				float Time;
+			};
+
+			const auto& stats = PerformanceProfiler::GetStatistics();
+			std::vector<ProfilerEntry> sortedEntries;
+
+			auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Time != rhs.Time ? lhs.Time > rhs.Time : lhs.Name > rhs.Name; };
+
+			for (const auto& [name, time] : stats)
+			{
+				ProfilerEntry entry{ name, time };
+				if (entry.Time <= FLT_EPSILON)
+					entry.Time = 0.0f;
+
+				auto where = std::lower_bound(sortedEntries.begin(), sortedEntries.end(), entry, sorter);
+				sortedEntries.insert(where, entry);
 			}
 
-			float t = seconds;
-			if (t > epsilon)
-				return fmt::format("{0:3.6f}s", t);
+			auto format = [](float seconds) -> std::string
+			{
+				const float epsilon = 1.0f;
 
-			t *= 1000.0f;
-			return fmt::format("{0:3.6f}ms", t);
-		};
+				if (seconds <= FLT_EPSILON)
+					return fmt::format("{0:3.6f}ms", 0.0f);
 
-		UI::BeginControls();
-		for (const auto& [name, time] : sortedEntries)
-			UI::Property(name, format(time));
-		UI::EndControls();
+				if (seconds > 60.0f)
+				{
+					float minits = seconds / 60.0f;
+					return fmt::format("{0:3.6f}m", minits);
+				}
 
-		ImGui::End();
+				float t = seconds;
+				if (t > epsilon)
+					return fmt::format("{0:3.6f}s", t);
 
+				t *= 1000.0f;
+				return fmt::format("{0:3.6f}ms", t);
+			};
+
+			UI::BeginControls();
+			uint32_t count = PerformanceProfiler::GetSampleRate();
+			if (UI::Control("Profiler Frame Count", count, 1, 1, 165))
+				PerformanceProfiler::SetSampleRate(count);
+			UI::EndControls();
+
+			ImGui::Separator();
+
+			UI::BeginControlsGrid();
+			for (const auto& [name, time] : sortedEntries)
+				UI::Property(name, format(time));
+			UI::EndControls();
+		}
 	}
 
 	void EditorLayer::UI_ProjectSettings()
@@ -1413,10 +1306,41 @@ namespace Shark {
 		ImGui::End();
 	}
 
+	void EditorLayer::RegisterSettingNodes()
+	{
+		Ref<SettingsPanel> settingsPanel = m_PanelManager->GetPanel<SettingsPanel>(SETTINGS_PANEL_ID);
+		settingsPanel->AddNode(std::bind(&SceneRenderer::DrawSettings, m_SceneRenderer));
+		settingsPanel->AddNode(std::bind(&EditorLayer::UI_Stats, this));
+		settingsPanel->AddNode([this]()
+		{
+			if (ImGui::CollapsingHeader("Visualization"))
+			{
+				UI::ScopedIndent indent(ImGui::GetStyle().IndentSpacing);
+				UI::BeginControlsGrid();
+				UI::Control("Camera Preview", m_ShowCameraPreview);
+				UI::Control("Colliders", m_ShowColliders);
+				UI::EndControlsGrid();
+			}
+		});
+		settingsPanel->AddNode([this]()
+		{
+			if (ImGui::CollapsingHeader("Stuff"))
+			{
+				UI::BeginControlsGrid();
+				auto& window = Application::Get().GetWindow();
+				bool vSync = window.IsVSync();
+				if (UI::Control("VSync", vSync))
+					window.SetVSync(vSync);
+
+				UI::Control("Read Hoved Entity", m_ReadHoveredEntity);
+
+				UI::EndControls();
+			}
+		});
+	}
+
 	void EditorLayer::DebugRender()
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (m_ShowColliders)
 		{
 			//m_DebugRenderer->SetRenderTarget(m_SceneRenderer->GetExternalCompositFrameBuffer());
@@ -1434,7 +1358,7 @@ namespace Shark {
 						glm::translate(glm::vec3(collider.Offset, 0)) *
 						glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 						glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
-						
+					
 					m_DebugRenderer->DrawRect(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
 				}
 			}

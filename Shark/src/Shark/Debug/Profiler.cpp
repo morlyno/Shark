@@ -34,8 +34,7 @@ namespace Shark {
 
 	void PerformanceProfiler::NewFrame()
 	{
-		s_Instance->Frame++;
-		if ((s_Instance->Frame % s_Instance->SampleRate) == 0)
+		if ((++s_Instance->Frame % s_Instance->SampleRate) == 0)
 		{
 			std::swap(s_Instance->ActiveStorage, s_Instance->FinishedSotrage);
 			s_Instance->ActiveStorage->clear();

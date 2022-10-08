@@ -61,9 +61,7 @@ namespace Shark {
 		virtual void OnImGuiRender() override;
 	private:
 		bool OnKeyPressed(KeyPressedEvent& event);
-
 		void OnFileEvents(const std::vector<FileChangedData>& fileEvents);
-
 		void OnFileClickedCallback(const std::filesystem::path& filePath);
 
 		void UI_MainMenuBar();
@@ -74,7 +72,6 @@ namespace Shark {
 		void UI_EditorCamera();
 		void UI_DragDrop();
 		void UI_ToolBar();
-		void UI_Settings();
 		void UI_CameraPrevie();
 		void UI_Stats();
 		void UI_ProjectSettings();
@@ -82,6 +79,8 @@ namespace Shark {
 		bool UI_MousePicking();
 		void UI_DebugScripts();
 		void UI_LogSettings();
+
+		void RegisterSettingNodes();
 
 		void DebugRender();
 		void RenderCameraPreview();
@@ -146,7 +145,6 @@ namespace Shark {
 
 		bool m_ShowInfo = false;
 		bool m_ShowEditorCameraControlls = false;
-		bool m_ShowSettings = true;
 		bool m_ShowStats = false;
 		bool m_ReadHoveredEntity = false;
 		bool m_ShowShaders = false;
@@ -167,8 +165,6 @@ namespace Shark {
 		bool m_UpdateNextFrame = false;
 
 		bool m_ShowColliders = false;
-		bool m_ShowCollidersOnTop = true;
-
 		bool m_ShowCameraPreview = false;
 
 		struct ProjectEditData

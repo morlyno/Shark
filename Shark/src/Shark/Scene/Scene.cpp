@@ -225,7 +225,7 @@ namespace Shark {
 	void Scene::OnUpdateRuntime(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_FUNCTION();
+		SK_PERF_SCOPED("Scene::OnUpdateRuntime");
 
 		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 			MethodThunks::OnUpdate(gcHandle, ts);
@@ -269,7 +269,7 @@ namespace Shark {
 	void Scene::OnUpdateSimulate(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_FUNCTION();
+		SK_PERF_SCOPED("Scene::OnUpdateSimulate");
 
 		m_PhysicsScene.Step(ts);
 
@@ -319,7 +319,7 @@ namespace Shark {
 	void Scene::OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_FUNCTION();
+		SK_PERF_SCOPED("Scene::OnRender");
 
 		renderer->SetScene(this);
 		renderer->BeginScene(viewProj);

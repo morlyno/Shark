@@ -39,7 +39,7 @@ namespace Shark {
 	void Physics2DScene::Step(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_FUNCTION();
+		SK_PERF_SCOPED("Physics2DScene::Step");
 
 		m_Profile.Reset();
 
