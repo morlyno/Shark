@@ -24,7 +24,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (!ImGui::Begin(PanelName, &shown))
+		if (!ImGui::Begin(m_PanelName, &shown))
 		{
 			ImGui::End();
 			return;

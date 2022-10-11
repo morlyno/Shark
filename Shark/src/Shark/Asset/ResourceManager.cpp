@@ -233,11 +233,15 @@ return metadata.IsMemoryAsset;
 
 	void ResourceManager::OnFileEvents(const std::vector<FileChangedData>& fileEvents)
 	{
+#if 0
 		std::filesystem::path oldFilePath;
 		for (const FileChangedData& event : fileEvents)
 		{
 			if (event.Type == FileEvent::NewName && !oldFilePath.empty())
 			{
+				if (event.FilePath.extension() == ".TMP")
+					continue;
+
 				OnAssetRenamed(oldFilePath, event.FilePath);
 				break;
 			}
@@ -249,10 +253,33 @@ return metadata.IsMemoryAsset;
 				{
 					case FileEvent::Deleted: OnAssetDeleted(event.FilePath); break;
 					case FileEvent::OldName: oldFilePath = event.FilePath; break;
-					case FileEvent::NewName: OnAssetRenamed(oldFilePath, event.FilePath);
 				}
 			}
 		}
+#endif
+
+		for (uint32_t i = 0; i < fileEvents.size(); i++)
+		{
+			const FileChangedData& event = fileEvents[i];
+			// if (event.FilePath.extension() == ".TMP")
+			// 	continue;
+
+			switch (event.Type)
+			{
+				case FileEvent::Deleted:
+					OnAssetDeleted(event.FilePath);
+					break;
+
+				case FileEvent::NewName:
+				{
+					SK_CORE_ASSERT(i > 0);
+					SK_CORE_ASSERT(fileEvents[i - 1].Type == FileEvent::OldName);
+					auto& oldNameEvent = fileEvents[i - 1];
+					OnAssetRenamed(oldNameEvent.FilePath, event.FilePath);
+				}
+			}
+		}
+
 	}
 
 	void ResourceManager::OnAssetRenamed(const std::filesystem::path& oldFilePath, const std::filesystem::path& newFilePath)
@@ -264,6 +291,8 @@ return metadata.IsMemoryAsset;
 		if (oldFilePath == newFilePath)
 			return;
 
+		if (!std::filesystem::exists(newFilePath))
+			return;
 
 		AssetHandle handle = GetAssetHandleFromFilePath(oldFilePath);
 		AssetMetaData& metadata = GetMetaDataInternal(handle);
@@ -279,6 +308,7 @@ return metadata.IsMemoryAsset;
 	void ResourceManager::OnAssetDeleted(const std::filesystem::path& filePath)
 	{
 		SK_CORE_ASSERT(filePath.is_absolute());
+		SK_CORE_ASSERT(!std::filesystem::exists(filePath));
 
 		AssetHandle handle = GetAssetHandleFromFilePath(filePath);
 		if (handle.IsValid())

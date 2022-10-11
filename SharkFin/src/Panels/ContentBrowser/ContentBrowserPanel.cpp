@@ -43,7 +43,7 @@ namespace Shark {
 		CheckForReload();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
-		const bool open = ImGui::Begin(PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		const bool open = ImGui::Begin(m_PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::PopStyleVar();
 
 		if (open)

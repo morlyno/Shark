@@ -25,7 +25,6 @@ namespace Shark {
 		return String::FormatDefaultCopy(Directory / filePath);
 	}
 
-
 	const std::string& Project::GetName()
 	{
 		return s_ActiveProject->Name;
@@ -69,6 +68,20 @@ namespace Shark {
 	void Project::SetActive(Ref<ProjectInstance> project)
 	{
 		s_ActiveProject = project;
+	}
+
+	Ref<ProjectInstance> Project::Create(const std::filesystem::path& directory, const std::string& name)
+	{
+		auto project = Ref<ProjectInstance>::Create();
+		project->Name = name;
+		project->Directory = String::FormatDefaultCopy(directory);
+		project->AssetsDirectory = fmt::format("{0}/Assets", project->Directory);
+		project->ScriptModulePath = fmt::format("{0}/Binaries/{1}.dll", project->Directory, project->Name);
+		project->Gravity = { 0.0f, -9.81f };
+		project->VelocityIterations = 8;
+		project->PositionIterations = 3;
+		project->FixedTimeStep = 0.001f;
+		return project;
 	}
 
 
@@ -127,9 +140,13 @@ namespace Shark {
 
 		std::ofstream fout(filePath);
 		if (!fout)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Failed to create file stream! (Filepath: {0})", filePath);
 			return false;
+		}
 
-		fout << out.c_str();
+		//fout << out.c_str();
+		fout.write(out.c_str(), out.size());
 		float time = timer.ElapsedMilliSeconds();
 
 		SK_CORE_INFO("Serializing Project To: {}", filePath);

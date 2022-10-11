@@ -6,6 +6,8 @@
 
 #include "Shark/Core/Buffer.h"
 
+#undef CreateFile
+
 namespace Shark {
 
 	class FileSystem
@@ -32,7 +34,10 @@ namespace Shark {
 
 		static bool CreateScriptFile(const std::filesystem::path& directory, const std::string& projectName, const std::string& scriptName);
 
+		static bool CreateFile(const std::filesystem::path& filePath, bool overrideExisiting = false);
 		static Buffer ReadBinary(const std::filesystem::path& filePath);
+		static std::string ReadString(const std::filesystem::path& filePath);
+
 		static void TruncateFile(const std::filesystem::path& filePath);
 
 	public: // custom filesystem (works for filepath relative to project)

@@ -84,7 +84,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (ImGui::Begin(PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+		if (ImGui::Begin(m_PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
 		{
 			DrawMenuBar();
 			DrawMessages();

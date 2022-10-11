@@ -37,7 +37,10 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(IsStateSet(State::Deleted) == false);
 		if (IsStateSet(State::Deleted))
+		{
+			SK_CORE_ERROR_TAG("UI", "Tried to draw deleted ContentBrowserItem! ({0})", m_Name);
 			return CBItemAction::ReloadRequired;
+		}
 
 		UI::ScopedID id(this);
 		CBItemAction::Flags result = CBItemAction::None;
@@ -127,6 +130,21 @@ namespace Shark {
 						const float ratio = (float)m_Thumbnail->GetWidth() / (float)m_Thumbnail->GetHeight();
 						ImGui::Image(m_Thumbnail->GetViewID(), ImVec2(64 * ratio, 64));
 					}
+					ImGui::EndDragDropSource();
+				}
+			}
+
+			if (m_Type == CBItemType::Directory)
+			{
+				if (ImGui::BeginDragDropSource())
+				{
+					auto& cbPanel = ContentBrowserPanel::Get();
+					Ref<DirectoryInfo> directory = cbPanel.GetDirectory(m_Handle);
+					std::string absolutPath = cbPanel.GetProject()->GetAbsolue(directory->FilePath).string();
+					char path[260];
+					strcpy_s(path, absolutPath.c_str());
+					ImGui::SetDragDropPayload(UI_DRAGDROP_DIRECTORY_TYPE, path, sizeof(path));
+					ImGui::Text(path);
 					ImGui::EndDragDropSource();
 				}
 			}

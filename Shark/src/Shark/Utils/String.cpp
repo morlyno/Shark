@@ -32,6 +32,11 @@ namespace Shark::String {
 		return std::move(result);
 	}
 
+	std::string ToNarrowCopy(const wchar_t* str)
+	{
+		return ToNarrowCopy(std::wstring_view(str));
+	}
+
 	void ToNarrow(const std::wstring& str, std::string& out_Result)
 	{
 		out_Result.resize(str.size());
@@ -80,6 +85,19 @@ namespace Shark::String {
 			out_Array.emplace_back(str.substr(start, end - start));
 
 			start = str.find_first_not_of(' ', end + 1);
+		}
+	}
+
+	void Replace(std::string& str, std::string_view from, std::string_view to)
+	{
+		if (from.empty())
+			return;
+
+		size_t pos = 0;
+		while ((pos = str.find(from, pos)) != std::string::npos)
+		{
+			str.replace(pos, from.length(), to);
+			pos += to.length();
 		}
 	}
 

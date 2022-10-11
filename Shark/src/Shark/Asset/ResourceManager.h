@@ -167,7 +167,7 @@ namespace Shark {
 			asset->Handle = metadata.Handle;
 			s_Data->LoadedAssets[metadata.Handle] = asset;
 
-			SK_CORE_INFO_TAG("ResourceManager", "Memory Asset Created (Type: {0}, Handle: 0x{1:x}", ToString(metadata.Type));
+			SK_CORE_INFO_TAG("ResourceManager", "Memory Asset Created (Type: {0}, Handle: 0x{1:x}", ToString(metadata.Type), metadata.Handle);
 
 			return asset;
 		}

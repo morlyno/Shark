@@ -25,7 +25,7 @@ namespace Shark {
 
 		const ImGuiStyle& style = ImGui::GetStyle();
 		UI::ScopedStyle windowPadding(ImGuiStyleVar_WindowPadding, style.WindowPadding * 0.5f);
-		ImGui::Begin(PanelName, &shown, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+		ImGui::Begin(m_PanelName, &shown, ImGuiWindowFlags_AlwaysVerticalScrollbar);
 
 		{
 			UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });

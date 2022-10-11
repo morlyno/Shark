@@ -212,6 +212,11 @@ namespace Shark {
 			return m_Instance;
 		}
 
+		Ref Clone() const
+		{
+			return Create(*m_Instance);
+		}
+
 		template<typename T2>
 		Ref<T2> As() const
 		{

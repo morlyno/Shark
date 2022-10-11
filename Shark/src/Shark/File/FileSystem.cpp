@@ -163,6 +163,11 @@ namespace Shark {
 		return true;
 	};
 
+	bool FileSystem::CreateFile(const std::filesystem::path& filePath, bool overrideExisiting)
+	{
+		return PlatformUtils::CreateFile(filePath, overrideExisiting);
+	}
+
 	Buffer FileSystem::ReadBinary(const std::filesystem::path& filePath)
 	{
 		Buffer buffer;
@@ -172,8 +177,23 @@ namespace Shark {
 			fin.seekg(0, std::ios::end);
 			size_t fileSize = fin.tellg();
 			fin.seekg(0, std::ios::beg);
-			buffer.Allocate((uint32_t)fileSize);
+			buffer.Allocate(fileSize);
 			fin.read(buffer.As<char>(), fileSize);
+		}
+		return buffer;
+	}
+
+	std::string FileSystem::ReadString(const std::filesystem::path& filePath)
+	{
+		std::string buffer;
+		std::ifstream fin(filePath);
+		if (fin)
+		{
+			fin.seekg(0, std::ios::end);
+			size_t fileSize = fin.tellg();
+			fin.seekg(0, std::ios::beg);
+			buffer.resize(fileSize);
+			fin.read(buffer.data(), fileSize);
 		}
 		return buffer;
 	}

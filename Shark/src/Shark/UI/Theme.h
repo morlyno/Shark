@@ -11,6 +11,8 @@ namespace Shark::Theme {
 
 	struct Colors
 	{
+		static ImVec4 WindowBgLight;
+
 		static ImVec4 ButtonNoBg;
 		static ImVec4 ButtonHoveredNoBg;
 		static ImVec4 ButtonActiveNoBg;

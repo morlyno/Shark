@@ -140,7 +140,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (ImGui::Begin(PanelName, &shown) && m_Context)
+		if (ImGui::Begin(m_PanelName, &shown) && m_Context)
 		{
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_None))
 				SelectEntity(Entity{});

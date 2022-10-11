@@ -198,8 +198,12 @@ namespace Shark {
 	{
 		MonoObject* obj = GCManager::GetManagedObject(handle);
 		MonoObject* stringObj = mono_field_get_value_object(ScriptEngine::GetRuntimeDomain(), Field, obj);
-		MonoString* monoString = mono_object_to_string(stringObj, nullptr);
-		return ScriptUtils::MonoStringToUTF8(monoString);
+		if (stringObj)
+		{
+			MonoString* monoString = mono_object_to_string(stringObj, nullptr);
+			return ScriptUtils::MonoStringToUTF8(monoString);
+		}
+		return std::string{};
 	}
 
 	Ref<FieldStorage> FieldStorage::FromManagedField(const ManagedField& field)

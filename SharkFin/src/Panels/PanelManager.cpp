@@ -37,7 +37,7 @@ namespace Shark {
 		if (ImGui::BeginMenu("Panels"))
 		{
 			for (auto& [id, data] : m_Panels)
-				ImGui::MenuItem(data.Instance->PanelName, nullptr, &data.Shown);
+				ImGui::MenuItem(data.Instance->GetName(), nullptr, &data.Shown);
 
 			ImGui::EndMenu();
 		}

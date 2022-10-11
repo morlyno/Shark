@@ -3,6 +3,8 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/TimeStep.h"
 
+#include "Shark/Asset/Asset.h"
+
 #include "Shark/ImGui/ImGuiHelpers.h"
 
 #include <imgui.h>
@@ -10,6 +12,9 @@
 #include <glm/glm.hpp>
 #include <stack>
 
+#define UI_DRAGDROP_ASSET_TYPE "ASSET"
+#define UI_DRAGDROP_ENTITY_TYPE "ENTITY"
+#define UI_DRAGDROP_DIRECTORY_TYPE "DIRECTORY"
 
 #ifdef IMGUI_DEFINE_MATH_OPERATORS
 static inline ImVec4 operator*(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs); }
@@ -141,6 +146,8 @@ namespace Shark::UI {
 	bool ControlBeginHelper(std::string_view strID);
 	void ControlEndHelper();
 
+	float ControlContentRegionWidth();
+
 	bool Control(std::string_view label, float& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
 	bool Control(std::string_view label, double& val, float speed = 0.1f, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
 
@@ -179,7 +186,10 @@ namespace Shark::UI {
 	bool ControlCombo(std::string_view label, int& index,      const std::string_view items[], uint32_t itemsCount);
 
 	bool Control(std::string_view label, std::string& val);
+	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType = nullptr);
 	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);
+	bool ControlAssetPath(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = UI_DRAGDROP_ASSET_TYPE);
+	bool ControlAssetPath(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType = UI_DRAGDROP_ASSET_TYPE);
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();
@@ -206,6 +216,8 @@ namespace Shark::UI {
 
 	void TextFramed(std::string_view fmt, ...);
 	bool Search(ImGuiID id, char* buffer, int bufferSize);
+	
+	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Types //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -309,7 +321,7 @@ namespace Shark::UI {
 
 		~ScopedColorStack()
 		{
-			ImGui::PopStyleColor(m_Count);
+			PopAll();
 		}
 
 		void Push(ImGuiCol color, const ImVec4& val)
@@ -318,6 +330,15 @@ namespace Shark::UI {
 			m_Count++;
 		}
 
+		void Pop()
+		{
+			ImGui::PopStyleColor();
+		}
+
+		void PopAll()
+		{
+			ImGui::PopStyleColor(m_Count);
+		}
 
 	private:
 		uint32_t m_Count = 0;

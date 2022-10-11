@@ -29,6 +29,8 @@
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/enttDebug.h"
 
+#include <fmt/printf.h>
+
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
@@ -452,6 +454,16 @@ namespace Shark {
 
 				ImGui::Separator();
 
+				if (ImGui::MenuItem("Create Project"))
+				{
+					auto projectDirectory = PlatformUtils::SaveDirectoryDialog();
+					if (!projectDirectory.empty())
+					{
+						auto project = CreateProject(projectDirectory);
+						SetProject(project);
+					}
+				}
+
 				if (ImGui::MenuItem("Open Project"))
 					OpenProject();
 				if (ImGui::BeginMenu("Recent Projects"))
@@ -462,7 +474,7 @@ namespace Shark {
 					ImGui::EndMenu();
 				}
 				if (ImGui::MenuItem("Save Project"))
-					SaveProject();
+					SaveActiveProject();
 
 				ImGui::Separator();
 				if (ImGui::MenuItem("Exit"))
@@ -1634,7 +1646,7 @@ namespace Shark {
 
 		SK_CORE_ASSERT(Project::GetActive());
 
-		SaveProject();
+		SaveActiveProject();
 
 		SK_CORE_INFO("Closing Project");
 
@@ -1663,17 +1675,82 @@ namespace Shark {
 		Application::Get().QueueEvent<ProjectChangedEvent>(nullptr);
 	}
 
-	void EditorLayer::SaveProject()
+	void EditorLayer::SaveActiveProject()
 	{
 		SK_CORE_ASSERT(Project::GetActive());
-		SaveProject(Project::GetDirectory() / "Project.skproj");
+		SaveActiveProject(fmt::format("{0}/{1}.skproj", Project::GetDirectory(), Project::GetName()));
 	}
 
-	void EditorLayer::SaveProject(const std::filesystem::path& filePath)
+	void EditorLayer::SaveActiveProject(const std::filesystem::path& filePath)
 	{
 		SK_CORE_ASSERT(Project::GetActive());
 		ProjectSerializer serializer(Project::GetActive());
 		serializer.Serialize(filePath);
+	}
+
+	void EditorLayer::SetProject(Ref<ProjectInstance> project)
+	{
+		if (Project::GetActive())
+			CloseProject();
+
+		Project::SetActive(project);
+		ResourceManager::Init();
+
+		ScriptEngine::LoadAssemblies(Project::GetActive()->ScriptModulePath);
+
+		if (!LoadScene(project->Directory / project->StartupScenePath))
+			NewScene();
+
+		Application::Get().QueueEvent<ProjectChangedEvent>(project);
+		FileSystem::StartWatching(Project::GetAssetsPath());
+
+		m_ProjectEditData = project;
+	}
+
+	Ref<ProjectInstance> EditorLayer::CreateProject(const std::filesystem::path& projectDirectory)
+	{
+		// Create Directory
+
+		std::string name = projectDirectory.filename().string();
+		if (std::filesystem::exists(projectDirectory))
+		{
+			SK_CORE_ERROR("Directory already exists!");
+			return nullptr;
+		}
+
+		std::filesystem::create_directories(projectDirectory);
+		auto project = Project::Create(projectDirectory, name);
+
+		std::filesystem::create_directory(projectDirectory / "Binaries");
+		std::filesystem::create_directory(projectDirectory / "Assets");
+		std::filesystem::create_directory(projectDirectory / "Assets/Scenes");
+		std::filesystem::create_directory(projectDirectory / "Assets/Scripts");
+		std::filesystem::create_directory(projectDirectory / "Assets/Scripts/Source");
+		std::filesystem::create_directory(projectDirectory / "Assets/Textures");
+		std::filesystem::create_directory(projectDirectory / "Assets/TextureSources");
+
+		CreateProjectPremakeFile(project);
+		std::filesystem::copy_file("Resources/Project/Setup.bat", fmt::format("{0}/Setup.bat", project->Directory));
+		std::filesystem::copy("Resources/Project/Premake", project->Directory / "Premake", std::filesystem::copy_options::recursive);
+
+		ProjectSerializer serializer(project);
+		serializer.Serialize(fmt::format("{0}/{1}.skproj", project->Directory, project->Name));
+
+		return project;
+	}
+
+	void EditorLayer::CreateProjectPremakeFile(Ref<ProjectInstance> project)
+	{
+		const std::string projectNameToken = "%PROJECT_NAME%";
+
+		std::string premakeTemplate = FileSystem::ReadString("Resources/Project/PremakeFileTemplate.lua");
+		String::Replace(premakeTemplate, projectNameToken,  project->Name);
+
+		std::ofstream fout(fmt::format("{0}/premake5.lua", project->Directory));
+		SK_CORE_ASSERT(fout);
+		fout << premakeTemplate;
+		fout.close();
+
 	}
 
 	void EditorLayer::ImportAssetDialog()

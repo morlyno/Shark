@@ -7,19 +7,19 @@ namespace Shark {
 	class ProjectInstance : public RefCount
 	{
 	public:
-		std::string Name;
-		std::filesystem::path Directory;
+		std::string Name;                       // Untitled
+		std::filesystem::path Directory;        // Empty
 
-		std::filesystem::path AssetsDirectory;
-		std::filesystem::path StartupScenePath;
+		std::filesystem::path AssetsDirectory;  // Assets
+		std::filesystem::path StartupScenePath; // Empty
 
-		std::string ScriptModulePath;
+		std::string ScriptModulePath;           // Binaries/{Name}.dll
 
 		// Physics
-		glm::vec2 Gravity;
-		uint32_t VelocityIterations;
-		uint32_t PositionIterations;
-		float FixedTimeStep;
+		glm::vec2 Gravity;                      // 0.0f, -9.81f
+		uint32_t VelocityIterations;            // 8
+		uint32_t PositionIterations;            // 3
+		float FixedTimeStep;                    // 0.001f
 
 	public:
 		std::filesystem::path GetRelative(const std::filesystem::path& filePath);
@@ -41,6 +41,8 @@ namespace Shark {
 
 		static Ref<ProjectInstance> GetActive();
 		static void SetActive(Ref<ProjectInstance> project);
+
+		static Ref<ProjectInstance> Create(const std::filesystem::path& directory, const std::string& name);
 
 	};
 

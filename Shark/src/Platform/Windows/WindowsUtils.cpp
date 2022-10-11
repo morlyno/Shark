@@ -305,6 +305,52 @@ namespace Shark {
 		return result;
 	}
 
+
+	std::filesystem::path WindowsUtils::SaveDirectoryDialog(const std::filesystem::path& defaultPath)
+	{
+		std::filesystem::path result;
+
+		IFileSaveDialog* fileDialog;
+		if (SUCCEEDED(::CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileSaveDialog, (void**)&fileDialog)))
+		{
+			DWORD flags;
+			fileDialog->GetOptions(&flags);
+			fileDialog->SetOptions(flags | FOS_PICKFOLDERS | FOS_DONTADDTORECENT);
+
+			if (!defaultPath.empty())
+			{
+				auto windowsDefaultPath = std::filesystem::absolute(defaultPath);
+				windowsDefaultPath = String::FormatWindowsCopy(windowsDefaultPath);
+				IShellItem* defualtPathItem;
+				if (SUCCEEDED(::SHCreateItemFromParsingName(windowsDefaultPath.c_str(), NULL, IID_PPV_ARGS(&defualtPathItem))))
+				{
+					fileDialog->SetDefaultFolder(defualtPathItem);
+				}
+			}
+
+			auto& window = Application::Get().GetWindow();
+			if (SUCCEEDED(fileDialog->Show((HWND)window.GetHandle())))
+			{
+				IShellItem* shellItem;
+				if (SUCCEEDED(fileDialog->GetResult(&shellItem)))
+				{
+					PWSTR filePath;
+					if (SUCCEEDED(shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
+					{
+						result = filePath;
+						CoTaskMemFree(filePath);
+					}
+
+					shellItem->Release();
+				}
+
+			}
+			fileDialog->Release();
+		}
+
+		return result;
+	}
+
 	std::vector<std::filesystem::path> WindowsUtils::OpenDirectoryDialogMultiSelect(const std::filesystem::path& defaultPath)
 	{
 		std::vector<std::filesystem::path> result;

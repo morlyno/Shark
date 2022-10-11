@@ -1,12 +1,15 @@
 #include "skpch.h"
 #include "UI.h"
 
+#include "Shark/Core/Application.h"
+#include "Shark/Core/Buffer.h"
+#include "Shark/Asset/ResourceManager.h"
+
 #include "Shark/Math/Math.h"
+#include "Shark/File/FileSystem.h"
 #include "Shark/Utils/String.h"
 
-#include "Shark/Core/Application.h"
-
-#include "Shark/Core/Buffer.h"
+#include "Shark/UI/Theme.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -291,6 +294,19 @@ namespace Shark::UI {
 		ImGui::PopID();
 	}
 
+	float ControlContentRegionWidth()
+	{
+		auto& c = GContext->Control;
+		if (!c.Active)
+			return 0.0f;
+
+		uint32_t columnIndex = ImGui::TableGetColumnIndex();
+		ImGui::TableSetColumnIndex(1);
+		float contentRegionWidth = ImGui::GetContentRegionAvail().x;
+		ImGui::TableSetColumnIndex(columnIndex);
+		return contentRegionWidth;
+	}
+
 	void ControlHelperDrawLabel(std::string_view label)
 	{
 		SK_CORE_ASSERT(ImGui::GetCurrentTable());
@@ -524,6 +540,45 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		const float inputTextWidth = GImGui->NextItemData.Flags & ImGuiNextItemDataFlags_HasWidth ? GImGui->NextItemData.Width : -1.0f;
+
+		ControlHelperDrawLabel(label);
+
+		std::string strPath = path.generic_string();
+		bool changed = false;
+
+		ImGui::SetNextItemWidth(inputTextWidth);
+		if (ImGui::InputText("##control", &strPath))
+		{
+			path = strPath;
+			changed = true;
+		}
+
+		if (dragDropType)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+				if (payload)
+				{
+					char payloadPath[260];
+					strcpy_s(payloadPath, std::min(260, payload->DataSize), (const char*)payload->Data);
+					path = payloadPath;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		ControlEndHelper();
+		return changed;
+	}
+
 	bool Control(std::string_view label, UUID& uuid, const char* dragDropType)
 	{
 		if (!ControlBeginHelper(label))
@@ -570,6 +625,74 @@ namespace Shark::UI {
 				changed = true;
 			}
 			ImGui::EndChild();
+		}
+
+		ControlEndHelper();
+		return changed;
+	}
+
+	bool ControlAssetPath(std::string_view label, AssetHandle& assetHandle, const char* dragDropType)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+
+		bool changed = false;
+		const auto& metadata = ResourceManager::GetMetaData(assetHandle);
+
+		std::string path = metadata.FilePath.string();
+		TextFramed(path);
+
+		if (dragDropType)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+				if (payload)
+				{
+					assetHandle = *(AssetHandle*)payload->Data;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		ControlEndHelper();
+		return changed;
+	}
+
+	bool ControlAssetPath(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+
+		std::string strPath = assetPath.generic_string();
+		bool changed = false;
+
+		ImGui::SetNextItemWidth(-1.0f);
+		if (ImGui::InputText("##control", &strPath))
+		{
+			assetPath = strPath;
+			changed = true;
+		}
+
+		if (dragDropType)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+				if (payload)
+				{
+					char payloadPath[260];
+					strcpy_s(payloadPath, std::min(260, payload->DataSize), (const char*)payload->Data);
+					assetPath = payloadPath;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
 		}
 
 		ControlEndHelper();
@@ -860,6 +983,21 @@ namespace Shark::UI {
 		}
 
 		return changed || clear;
+	}
+
+	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput)
+	{
+		auto filter = [](ImGuiInputTextCallbackData* data) -> int
+		{
+			if (FileSystem::InvalidCharactersW.find(data->EventChar) != std::wstring_view::npos)
+			{
+				*(bool*)data->UserData = true;
+				return 1;
+			}
+			return 0;
+		};
+
+		return ImGui::InputText(label, buffer, bufferSize, ImGuiInputTextFlags_CallbackCharFilter, filter, &out_InvalidInput);
 	}
 
 	UIContext::UIContext()

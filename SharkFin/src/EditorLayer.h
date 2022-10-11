@@ -108,8 +108,11 @@ namespace Shark {
 		void OpenProject();
 		void OpenProject(const std::filesystem::path& filePath);
 		void CloseProject();
-		void SaveProject();
-		void SaveProject(const std::filesystem::path& filePath);
+		void SaveActiveProject();
+		void SaveActiveProject(const std::filesystem::path& filePath);
+		void SetProject(Ref<ProjectInstance> project);
+		Ref<ProjectInstance> CreateProject(const std::filesystem::path& projectDirectory);
+		void CreateProjectPremakeFile(Ref<ProjectInstance> project);
 
 		void ImportAssetDialog();
 
@@ -151,6 +154,7 @@ namespace Shark {
 		bool m_ShowProjectSettings = false;
 		bool m_ShowThemeEditor = false;
 		bool m_ShowLogSettings = false;
+		bool m_ShowCreateProject = false;
 
 		int m_HoveredEntityID = -1;
 
@@ -205,6 +209,13 @@ namespace Shark {
 		TextureSourceImportData m_TextureAssetCreateData;
 
 		bool m_ReloadEditorIcons = false;
+
+		struct CreateProjectData
+		{
+			std::string Name = "Untitled";
+			std::filesystem::path Directory;
+		};
+		CreateProjectData m_CreateProjectData;
 
 	};
 

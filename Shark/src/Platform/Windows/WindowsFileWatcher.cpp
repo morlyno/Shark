@@ -78,6 +78,8 @@ namespace Shark {
 		{
 			std::string msg = std::system_category().message(dwErrorCode);
 			SK_CORE_ERROR_TAG("FileWatcher", "Reading Directory Changes failed! {0}", msg);
+			SK_CORE_ASSERT(dwNumberOfBytesTransfered == 0);
+			return;
 		}
 
 		if (dwErrorCode == ERROR_SUCCESS && watchData->Callback)
@@ -107,7 +109,10 @@ namespace Shark {
 			}
 
 			if (!fileEvents.empty())
+			{
+				SK_CORE_TRACE_TAG("FileWatcher", "File Events detected{0}", fmt::join(fileEvents, "\n{0}"));
 				watchData->Callback(fileEvents);
+			}
 		}
 
 		if (!watchData->Stop)
@@ -144,6 +149,7 @@ namespace Shark {
 		if (ReadChanges(watchData))
 			return watchData;
 
+		SK_CORE_ERROR_TAG("FileWatcher", "Failed to Create Watch for '{0}'", String::ToNarrowCopy(dirPath));
 		CloseHandle(watchData->DirectoryHandle);
 		CloseHandle(watchData->Overlapped.hEvent);
 		delete watchData;
@@ -181,6 +187,7 @@ namespace Shark {
 		watchData->EnabledEvents = EventFilter::All;
 		wcscpy_s(watchData->DirectoryPath, dirPath.c_str());
 		m_Watches.emplace(key, watchData);
+		SK_CORE_INFO_TAG("FileWatcher", "Started watching {0} ({1})", key, String::ToNarrowCopy(watchData->DirectoryPath));
 	}
 
 	void WindowsFileWatcher::StartWatching(const std::string& key, const std::filesystem::path& dirPath, const WatchingSettings& settings)
@@ -191,6 +198,7 @@ namespace Shark {
 		watchData->EnabledEvents = settings.EnabledEvents;
 		wcscpy_s(watchData->DirectoryPath, dirPath.c_str());
 		m_Watches.emplace(key, watchData);
+		SK_CORE_INFO_TAG("FileWatcher", "Started watching {0} ({1})", key, String::ToNarrowCopy(watchData->DirectoryPath));
 	}
 
 	void WindowsFileWatcher::StopWatching(const std::string& key)
@@ -200,6 +208,7 @@ namespace Shark {
 			return;
 
 		WatchData* watchData = m_Watches.at(key);
+		SK_CORE_INFO_TAG("FileWatcher", "Stoped watching {0} ({1})", key, String::ToNarrowCopy(watchData->DirectoryPath));
 		m_Watches.erase(key);
 		DestroyWatchData(watchData);
 	}

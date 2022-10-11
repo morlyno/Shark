@@ -15,7 +15,7 @@ namespace Shark {
 			: Application(specification), m_StartupProject(startupProject)
 		{
 			if (m_StartupProject.empty())
-				m_StartupProject = std::filesystem::absolute(L"SandboxProject\\Project.skproj");
+				m_StartupProject = std::filesystem::absolute(L"SandboxProject\\Sandbox.skproj");
 		}
 
 		virtual ~SharkFin()
