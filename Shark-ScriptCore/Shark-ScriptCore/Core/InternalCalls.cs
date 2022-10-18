@@ -103,6 +103,9 @@ namespace Shark
 		internal static extern Entity Entity_GetParent(ulong entityID);
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern void Entity_SetParent(ulong entityID, ulong parentID);
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern Entity[] Entity_GetChildren(ulong entityID);
 
 		[MethodImpl(MethodImplOptions.InternalCall)]

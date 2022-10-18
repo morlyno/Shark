@@ -44,7 +44,10 @@ namespace Shark
 		}
 
 		public Entity Parent
-			=> InternalCalls.Entity_GetParent(ID);
+		{
+			get => InternalCalls.Entity_GetParent(ID);
+			set => InternalCalls.Entity_SetParent(ID, value.ID);
+		}
 
 		public Entity[] Children
 			=> InternalCalls.Entity_GetChildren(ID);

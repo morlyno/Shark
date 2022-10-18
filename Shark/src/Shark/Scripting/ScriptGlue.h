@@ -75,6 +75,7 @@ namespace Shark {
 		MonoObject* Entity_GetInstance(uint64_t entityID);
 		bool Entity_HasParent(uint64_t entityID);
 		MonoObject* Entity_GetParent(uint64_t entityID);
+		void Entity_SetParent(uint64_t entityID, uint64_t parentID);
 		MonoArray* Entity_GetChildren(uint64_t entityID);
 		bool Entity_HasComponent(uint64_t id, MonoReflectionType* type);
 		void Entity_AddComponent(uint64_t id, MonoReflectionType* type);

@@ -270,6 +270,7 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(Entity_GetInstance);
 		SK_ADD_INTERNAL_CALL(Entity_HasParent);
 		SK_ADD_INTERNAL_CALL(Entity_GetParent);
+		SK_ADD_INTERNAL_CALL(Entity_SetParent);
 		SK_ADD_INTERNAL_CALL(Entity_GetChildren);
 		SK_ADD_INTERNAL_CALL(Entity_HasComponent);
 		SK_ADD_INTERNAL_CALL(Entity_AddComponent);
@@ -587,6 +588,19 @@ namespace Shark {
 				return nullptr;
 
 			return utils::GetOrCreateInstance(parent);
+		}
+
+		void Entity_SetParent(uint64_t entityID, uint64_t parentID)
+		{
+			Entity entity = utils::TryGetEntity(entityID);
+			if (!entity)
+				return;
+
+			Entity parent = utils::TryGetEntity(parentID);
+			if (!parent)
+				return;
+
+			entity.SetParent(parent);
 		}
 
 		MonoArray* Entity_GetChildren(uint64_t entityID)
