@@ -25,7 +25,10 @@ namespace Shark {
 		Ref<FrameBuffer> m_FrameBuffer;
 
 		IDXGISwapChain* m_SwapChain = nullptr;
+		
+#if SK_DX11_VSYNC_WITH_OUTPUT
 		IDXGIOutput* m_Output = nullptr;
+#endif
 	};
 
 }

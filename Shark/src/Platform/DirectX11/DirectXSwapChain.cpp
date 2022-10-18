@@ -27,6 +27,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_FUNCTION();
 
+#if SK_DX11_VSYNC_WITH_OUTPUT
 		{
 			SK_PROFILE_SCOPED("Swap Buffers");
 
@@ -38,6 +39,14 @@ namespace Shark {
 			SK_PROFILE_SCOPED("WaitForVBlank");
 			SK_DX11_CALL(m_Output->WaitForVBlank());
 		}
+#else
+		{
+			SK_PROFILE_SCOPED("Swap Buffers");
+
+			SK_DX11_CALL(m_SwapChain->Present(vSync ? 1 : 0, 0));
+	}
+
+#endif
 
 	}
 
@@ -54,8 +63,10 @@ namespace Shark {
 		m_FrameBuffer = nullptr;
 		SK_DX11_CALL(m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0));
 		
+#if SK_DX11_VSYNC_WITH_OUTPUT
 		m_Output->Release();
 		SK_DX11_CALL(m_SwapChain->GetContainingOutput(&m_Output));
+#endif
 
 		FrameBufferSpecification specs;
 		specs.Width = m_Specs.Widht;
@@ -93,11 +104,13 @@ namespace Shark {
 			m_SwapChain = nullptr;
 		}
 
+#if SK_DX11_VSYNC_WITH_OUTPUT
 		if (m_Output)
 		{
 			m_Output->Release();
 			m_Output = nullptr;
 		}
+#endif
 
 		auto& window = Application::Get().GetWindow();
 
@@ -157,7 +170,9 @@ namespace Shark {
 
 		backBuffer->Release();
 
+#if SK_DX11_VSYNC_WITH_OUTPUT
 		SK_DX11_CALL(m_SwapChain->GetContainingOutput(&m_Output));
+#endif
 	}
 
 }

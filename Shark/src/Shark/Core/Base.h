@@ -41,6 +41,8 @@
 	#define SK_IF_DEBUG(...)
 #endif
 
+#define SK_DX11_VSYNC_WITH_OUTPUT 0
+
 #define BIT(x) (1 << x)
 
 #define SK_STRINGIFY(x) #x
