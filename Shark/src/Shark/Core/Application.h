@@ -79,8 +79,11 @@ namespace Shark {
 		bool m_NeedsResize = false;
 		bool m_Minimized = false;
 		bool m_Running = true;
-		TimeStep m_LastFrameTime = 0;
+		//TimeStep m_LastFrameTime = 0;
 		TimeStep m_TimeStep;
+
+		int64_t m_LastFrameTime = 0;
+		int64_t m_Frequency;
 
 		bool m_RaiseEvents = true;
 

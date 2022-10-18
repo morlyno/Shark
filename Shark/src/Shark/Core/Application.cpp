@@ -51,7 +51,10 @@ namespace Shark {
 
 		ScriptEngine::Init(specification.ScriptConfig);
 
-		m_LastFrameTime = TimeUtils::Now();
+		//m_LastFrameTime = TimeUtils::Now();
+
+		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency));
+		QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&m_LastFrameTime));
 	}
 
 	Application::~Application()
@@ -104,9 +107,18 @@ namespace Shark {
 
 			m_Window->GetSwapChain()->Present(m_Window->IsVSync());
 
-			TimeStep now = TimeUtils::Now();
-			m_TimeStep = now - m_LastFrameTime;
-			m_LastFrameTime = now;
+			//TimeStep now = TimeUtils::Now();
+			//m_TimeStep = now - m_LastFrameTime;
+			//m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
+			//SK_CORE_TRACE("Timestep: {0}", m_TimeStep);
+			//m_LastFrameTime = now;
+
+			int64_t time;
+			QueryPerformanceCounter((LARGE_INTEGER*)&time);
+			m_TimeStep = (float)(time - m_LastFrameTime) / m_Frequency;
+			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
+			m_LastFrameTime = time;
+
 		}
 	}
 
