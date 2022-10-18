@@ -7,6 +7,9 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
 
+#include "Shark/Physics2D/Physics2D.h"
+#include "Shark/Physics2D/Physics2DUtils.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
 
@@ -33,6 +36,8 @@
 
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
+
+#include <box2d/b2_body.h>
 
 #define SCENE_HIRACHY_ID "SceneHirachyPanel"
 #define CONTENT_BROWSER_ID "ContentBrowserPanel"
@@ -79,7 +84,10 @@ namespace Shark {
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
 		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
-		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer());
+
+		Renderer2DSpecifications renderer2DSpecs;
+		renderer2DSpecs.UseDepthTesting = false;
+		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer(), renderer2DSpecs);
 
 		// Readable Mouse image for Mouse Picking
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
@@ -460,7 +468,7 @@ namespace Shark {
 					if (!projectDirectory.empty())
 					{
 						auto project = CreateProject(projectDirectory);
-						SetProject(project);
+						OpenProject(fmt::format("{0}/{0}.skproj", project->Directory, project->Name));
 					}
 				}
 
@@ -1355,41 +1363,63 @@ namespace Shark {
 	{
 		if (m_ShowColliders)
 		{
+			auto physicsScene = Physics2D::GetScene();
+
 			//m_DebugRenderer->SetRenderTarget(m_SceneRenderer->GetExternalCompositFrameBuffer());
 			m_DebugRenderer->BeginScene(GetActiveViewProjection());
 			{
-				auto view = m_ActiveScene->GetAllEntitysWith<BoxCollider2DComponent>();
+				auto view = m_ActiveScene->GetAllEntitiesWith<BoxCollider2DComponent>();
 				for (auto entityID : view)
 				{
 					Entity entity{ entityID, m_ActiveScene };
 					auto& collider = view.get<BoxCollider2DComponent>(entityID);
-					auto& tf = entity.Transform();
 
-					glm::mat4 transform =
-						m_ActiveScene->GetWorldSpaceTransformMatrix(entity) *
+					TransformComponent transform = m_ActiveScene->GetWorldSpaceTransform(entity);
+					if (physicsScene && physicsScene->HasActor(entity))
+					{
+						auto actor = physicsScene->GetActor(entity);
+						b2Body* body = actor->GetBody();
+						const auto& pos = body->GetPosition();
+						transform.Translation = { pos.x, pos.y, 0.0f };
+						transform.Translation.y = pos.y;
+						transform.Rotation.z = body->GetAngle();
+					}
+
+					glm::mat4 transformMatrix =
+						transform.CalcTransform() *
 						glm::translate(glm::vec3(collider.Offset, 0)) *
 						glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 						glm::scale(glm::vec3(collider.Size * 2.0f, 1.0f));
 					
-					m_DebugRenderer->DrawRect(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
+					m_DebugRenderer->DrawRect(transformMatrix, { 0.1f, 0.3f, 0.9f, 1.0f });
 				}
 			}
 
 			{
-				auto view = m_ActiveScene->GetAllEntitysWith<CircleCollider2DComponent>();
+				auto view = m_ActiveScene->GetAllEntitiesWith<CircleCollider2DComponent>();
 				for (auto entityID : view)
 				{
 					Entity entity{ entityID, m_ActiveScene };
 					auto& collider = view.get<CircleCollider2DComponent>(entityID);
-					auto& tf = entity.Transform();
 
-					glm::mat4 transform =
-						m_ActiveScene->GetWorldSpaceTransformMatrix(entity) *
+					TransformComponent transform = entity.Transform();
+					if (physicsScene && physicsScene->HasActor(entity))
+					{
+						auto actor = physicsScene->GetActor(entity);
+						b2Body* body = actor->GetBody();
+						const auto& pos = body->GetPosition();
+						transform.Translation.xy = { pos.x, pos.y };
+						transform.Rotation.z = body->GetAngle();
+					}
+					m_ActiveScene->ConvertToWorldSpace(entity, transform);
+
+					glm::mat4 transformMatrix =
+						transform.CalcTransform() *
 						glm::translate(glm::vec3(collider.Offset, 0)) *
 						glm::rotate(collider.Rotation, glm::vec3(0.0f, 0.0f, 1.0f)) *
 						glm::scale(glm::vec3(collider.Radius, collider.Radius, 1.0f));
 
-					m_DebugRenderer->DrawCircle(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
+					m_DebugRenderer->DrawCircle(transformMatrix, { 0.1f, 0.3f, 0.9f, 1.0f });
 				}
 			}
 			m_DebugRenderer->EndScene();
@@ -1593,7 +1623,7 @@ namespace Shark {
 
 		if (scene)
 		{
-			scene->IsEditorScene(m_InitialSceneState != SceneState::Play);
+			scene->IsEditorScene(m_SceneState == SceneState::Edit);
 			scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
@@ -1627,6 +1657,7 @@ namespace Shark {
 
 			Project::SetActive(project);
 			ResourceManager::Init();
+			Physics2D::Initialize();
 
 			ScriptEngine::LoadAssemblies(Project::GetActive()->ScriptModulePath);
 
@@ -1650,8 +1681,6 @@ namespace Shark {
 
 		SK_CORE_INFO("Closing Project");
 
-		ResourceManager::Shutdown();
-
 		m_ActiveScene = nullptr;
 		m_SceneRenderer->SetScene(nullptr);
 		m_CameraPreviewRenderer->SetScene(nullptr);
@@ -1664,7 +1693,10 @@ namespace Shark {
 		//             to get around this the event is distributed internal
 		if (!Application::Get().CanRaiseEvents())
 			OnEvent(SceneChangedEvent(nullptr));
+
 		ScriptEngine::UnloadAssemblies();
+		Physics2D::Shutdown();
+		ResourceManager::Shutdown();
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
 		m_WorkScene = nullptr;
@@ -1686,25 +1718,6 @@ namespace Shark {
 		SK_CORE_ASSERT(Project::GetActive());
 		ProjectSerializer serializer(Project::GetActive());
 		serializer.Serialize(filePath);
-	}
-
-	void EditorLayer::SetProject(Ref<ProjectInstance> project)
-	{
-		if (Project::GetActive())
-			CloseProject();
-
-		Project::SetActive(project);
-		ResourceManager::Init();
-
-		ScriptEngine::LoadAssemblies(Project::GetActive()->ScriptModulePath);
-
-		if (!LoadScene(project->Directory / project->StartupScenePath))
-			NewScene();
-
-		Application::Get().QueueEvent<ProjectChangedEvent>(project);
-		FileSystem::StartWatching(Project::GetAssetsPath());
-
-		m_ProjectEditData = project;
 	}
 
 	Ref<ProjectInstance> EditorLayer::CreateProject(const std::filesystem::path& projectDirectory)

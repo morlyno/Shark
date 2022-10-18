@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "Math.h"
 
+#include "Shark/Scene/Components.h"
+
 #include <glm/gtx/euler_angles.hpp>
 
 namespace Shark::Math {
@@ -140,6 +142,11 @@ namespace Shark::Math {
 		}
 
 		return true;
+	}
+
+	bool DecomposeTransform(const glm::mat4& ModelMatrix, TransformComponent& out_Transform)
+	{
+		return DecomposeTransform(ModelMatrix, out_Transform.Translation, out_Transform.Rotation, out_Transform.Scale);
 	}
 
 	bool DecomposeTranslation(const glm::mat4& ModelMatrix, glm::vec3& out_Translation)

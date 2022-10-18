@@ -5,8 +5,10 @@
 #include "Shark/Asset/Asset.h"
 
 #include "Shark/Scene/Components.h"
-#include "Shark/Scene/Physics2DScene.h"
 #include "Shark/Scene/SceneCamera.h"
+
+#include "Shark/Physics2D/PhysicsScene.h"
+
 #include "Shark/Input/Input.h"
 
 #include "Shark/Event/Event.h"
@@ -196,8 +198,8 @@ namespace Shark {
 			Impulse = 1
 		};
 
-		RigidBody2DComponent::BodyType RigidBody2DComponent_GetBodyType(uint64_t id);
-		void RigidBody2DComponent_SetBodyType(uint64_t id, RigidBody2DComponent::BodyType bodyType);
+		RigidBody2DType RigidBody2DComponent_GetBodyType(uint64_t id);
+		void RigidBody2DComponent_SetBodyType(uint64_t id, RigidBody2DType bodyType);
 		void RigidBody2DComponent_GetTransform(uint64_t id, RigidBody2DTransform* out_Transform);
 		void RigidBody2DComponent_SetTransform(uint64_t id, RigidBody2DTransform* transform);
 		void RigidBody2DComponent_SetPosition(uint64_t id, glm::vec2* position);

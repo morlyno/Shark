@@ -603,7 +603,7 @@ namespace Shark {
 							case ManagedFieldType::Short:     storage->SetValue(field["Value"].as<int16_t>()); break;
 							case ManagedFieldType::UShort:    storage->SetValue(field["Value"].as<uint16_t>()); break;
 							case ManagedFieldType::Int:       storage->SetValue(field["Value"].as<int32_t>()); break;
-							case ManagedFieldType::UInt:      storage->SetValue(field["Value"].as<uint32>()); break;
+							case ManagedFieldType::UInt:      storage->SetValue(field["Value"].as<uint32_t>()); break;
 							case ManagedFieldType::Long:      storage->SetValue(field["Value"].as<int64_t>()); break;
 							case ManagedFieldType::ULong:     storage->SetValue(field["Value"].as<uint64_t>()); break;
 							case ManagedFieldType::Float:     storage->SetValue(field["Value"].as<float>()); break;

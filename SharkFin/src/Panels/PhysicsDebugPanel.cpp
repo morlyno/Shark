@@ -5,6 +5,7 @@
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
+#include "Shark/Physics2D/Physics2D.h"
 
 #include "Shark/UI/UI.h"
 
@@ -76,9 +77,10 @@ namespace Shark {
 			return;
 		}
 
-		if (m_Scene->IsEditorScene())
+		auto physicsScene = Physics2D::GetScene();
+		if (!physicsScene)
 		{
-			ImGui::TextWrapped("Physics Debug Panel only active when the scene is playing");
+			ImGui::TextWrapped("No Physics Scene");
 			ImGui::End();
 			return;
 		}
@@ -86,7 +88,7 @@ namespace Shark {
 		{
 			ImGuiID syncID = UI::GetIDWithSeed("Controls", UI::GetCurrentID());
 
-			auto view = m_Scene->GetAllEntitysWith<RigidBody2DComponent>();
+			auto view = m_Scene->GetAllEntitiesWith<RigidBody2DComponent>();
 
 			ImGui::Text("RigidBodies: %llu", view.size());
 
@@ -97,10 +99,10 @@ namespace Shark {
 				ImGui::PushID((int)(uint64_t)entity.GetUUID());
 				if (ImGui::TreeNodeEx(name.c_str(), UI::DefaultTreeNodeFlags | ImGuiTreeNodeFlags_Selected))
 				{
-					RigidBody2DComponent& rigidBody = entity.GetComponent<RigidBody2DComponent>();
-					b2Body* body = rigidBody.RuntimeBody;
-					if (body)
+					if (physicsScene->HasActor(entity))
 					{
+						auto actor = physicsScene->GetActor(entity);
+						b2Body* body = actor->GetBody();
 						UI::BeginControlsGrid(syncID);
 						UI::Property("Type", utils::Box2DBodyTypeToString(body->GetType()));
 						UI::Property("Position", fmt::to_string(body->GetPosition()));

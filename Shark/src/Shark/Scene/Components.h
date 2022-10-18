@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shark/Asset/Asset.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scripting/ScriptTypes.h"
 
@@ -99,7 +100,7 @@ namespace Shark {
 		bool AllowSleep = true;
 		float GravityScale = 1.0f;
 
-		b2Body* RuntimeBody = nullptr;
+		// b2Body* RuntimeBody = nullptr;
 
 		RigidBody2DComponent() = default;
 		RigidBody2DComponent(const RigidBody2DComponent&) = default;

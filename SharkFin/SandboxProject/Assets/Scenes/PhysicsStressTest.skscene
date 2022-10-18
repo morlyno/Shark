@@ -1,0 +1,62 @@
+Scene:
+  ActiveCamera: 0x3a63595bbbb9839c
+  Entities:
+    - Entity: 0x1a48d16ad84cacd
+      TagComponent:
+        Tag: Entity
+      TransformComponent:
+        Position: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
+      ScriptComponent:
+        ScriptName: Sandbox.StressTest
+        Fields:
+          []
+    - Entity: 0x3a63595bbbb9839c
+      TagComponent:
+        Tag: Camera
+      TransformComponent:
+        Position: [0, 8, -55]
+        Rotation: [0, 0, 0]
+        Scaling: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
+      CameraComponent:
+        Type: Perspective
+        Aspectratio: 2.12949634
+        PerspectiveFOV: 44.9999924
+        PerspectiveNear: 0.00999999978
+        PerspectiveFar: 1000
+        OrthographicZoom: 10
+        OrthographicNear: -1
+        OrthographicFar: 1
+    - Entity: 0x656266dd3e8b348b
+      TagComponent:
+        Tag: Ground
+      TransformComponent:
+        Position: [0, -15, 0]
+        Rotation: [0, 0, 0]
+        Scaling: [100, 1, 1]
+      RelationshipComponent:
+        Parent: 0x0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [1, 1, 1, 1]
+        Texture: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false

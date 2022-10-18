@@ -100,7 +100,7 @@ namespace Shark::Debug {
 	public:
 		SceneView(Ref<Scene> scene)
 		{
-			auto view = scene->GetAllEntitysWith<IDComponent>();
+			auto view = scene->GetAllEntitiesWith<IDComponent>();
 			for (auto entityID : view)
 			{
 				Entity entity = { entityID, scene };

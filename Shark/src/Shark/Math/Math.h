@@ -2,9 +2,14 @@
 
 #include <glm/glm.hpp>
 
+namespace Shark {
+	struct TransformComponent;
+}
+
 namespace Shark::Math {
 
 	bool DecomposeTransform(const glm::mat4& ModelMatrix, glm::vec3& out_Translation, glm::vec3& out_Euler, glm::vec3& out_Scale);
+	bool DecomposeTransform(const glm::mat4& ModelMatrix, TransformComponent& out_Transform);
 	bool DecomposeTranslation(const glm::mat4& ModelMatrix, glm::vec3& out_Translation);
 
 	template <class T, std::enable_if_t<std::_Is_standard_unsigned_integer<T>, int> = 0>

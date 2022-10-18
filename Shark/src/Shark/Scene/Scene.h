@@ -8,7 +8,7 @@
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Scene/SceneCamera.h"
-#include "Shark/Scene/Physics2DScene.h"
+
 #include "Shark/Render/EditorCamera.h"
 
 #include <entt.hpp>
@@ -18,18 +18,6 @@ namespace Shark {
 	class SceneRenderer;
 	class Entity;
 	class Scene;
-
-	class ContactListener : public b2ContactListener
-	{
-	public:
-		void BeginContact(b2Contact* contact) override;
-		void EndContact(b2Contact* contact) override;
-
-		void SetContext(const Ref<Scene>& context);
-
-	private:
-		Ref<Scene> m_Context;
-	};
 
 	class Scene : public Asset
 	{
@@ -63,6 +51,8 @@ namespace Shark {
 
 		void OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj);
 
+		void OnFixedUpdate(float ts);
+
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});
 		Entity CreateEntityWithUUID(UUID uuid, const std::string& tag = std::string{});
@@ -70,10 +60,10 @@ namespace Shark {
 		Entity CreateChildEntityWithUUID(Entity parent, UUID uuid, const std::string& tag = std::string{});
 		void DestroyEntity(Entity entity, bool destroyChildren = true);
 
-		template<typename Component>
-		decltype(auto) GetAllEntitysWith()
+		template<typename... TComponents, typename... TExclude>
+		decltype(auto) GetAllEntitiesWith(entt::exclude_t<TExclude...> = {})
 		{
-			return m_Registry.view<Component>();
+			return m_Registry.view<TComponents...>(entt::exclude<TExclude...>);
 		}
 
 		Entity GetEntityByUUID(UUID uuid) const;
@@ -103,7 +93,6 @@ namespace Shark {
 		bool ConvertToWorldSpace(Entity entity);
 
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
-		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
 
 		template<typename TFunc>
 		void Submit(const TFunc& func)
@@ -139,9 +128,6 @@ namespace Shark {
 
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
-
-		Physics2DScene m_PhysicsScene;
-		ContactListener m_ContactListener;
 
 		bool m_IsEditorScene = false;
 		bool m_IsRunning = false;

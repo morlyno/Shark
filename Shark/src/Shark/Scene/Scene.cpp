@@ -8,6 +8,9 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
 
+#include "Shark/Physics2D/Physics2D.h"
+#include "Shark/Physics2D/PhysicsScene.h"
+
 #include "Shark/Math/Math.h"
 
 #include "Shark/Debug/enttDebug.h"
@@ -115,9 +118,16 @@ namespace Shark {
 		
 		m_IsRunning = true;
 
-		SetupBox2D();
+		Physics2D::CreateScene(this);
 
-		m_PhysicsScene.SetOnPhyicsStepCallback([this](TimeStep fixedTimeStep) { OnPhyicsStep(fixedTimeStep); });
+		m_Registry.on_construct<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentCreated>(this);
+		m_Registry.on_construct<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentCreated>(this);
+		m_Registry.on_construct<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentCreated>(this);
+
+		m_Registry.on_destroy<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentDestroyed>(this);
+		m_Registry.on_destroy<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
+		m_Registry.on_destroy<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
+		m_Registry.on_destroy<ScriptComponent>().connect<&Scene::OnScriptComponentDestroyed>(this);
 
 		// Create Scripts
 		{
@@ -172,16 +182,6 @@ namespace Shark {
 			m_ActiveCameraUUID = cameraEntity.GetUUID();
 		}
 		ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight);
-
-
-		m_Registry.on_construct<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentCreated>(this);
-		m_Registry.on_construct<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentCreated>(this);
-		m_Registry.on_construct<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentCreated>(this);
-
-		m_Registry.on_destroy<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentDestroyed>(this);
-		m_Registry.on_destroy<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
-		m_Registry.on_destroy<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
-		m_Registry.on_destroy<ScriptComponent>().connect<&Scene::OnScriptComponentDestroyed>(this);
 	}
 
 	void Scene::OnSceneStop()
@@ -189,8 +189,6 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_IsRunning = false;
-
-		m_PhysicsScene.SetOnPhyicsStepCallback(nullptr);
 
 		m_Registry.on_construct<RigidBody2DComponent>().disconnect<&Scene::OnRigidBody2DComponentCreated>(this);
 		m_Registry.on_construct<BoxCollider2DComponent>().disconnect<&Scene::OnBoxCollider2DComponentCreated>(this);
@@ -211,15 +209,12 @@ namespace Shark {
 			ScriptEngine::ShutdownRuntime();
 		}
 
-		m_PhysicsScene.DestoryScene();
-		m_ContactListener.SetContext(nullptr);
+		Physics2D::ReleaseScene();
 	}
 
 	void Scene::OnSimulationPlay()
 	{
-		SK_PROFILE_FUNCTION();
-		
-		SetupBox2D();
+		Physics2D::CreateScene(this);
 	}
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
@@ -227,34 +222,16 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnUpdateRuntime");
 
-		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-			MethodThunks::OnUpdate(gcHandle, ts);
-
 		{
-			m_PhysicsScene.Step(ts);
+			SK_PROFILE_SCOPED("Update Scripts");
+			SK_PERF_SCOPED("Update Scripts");
 
-			auto view = m_Registry.view<RigidBody2DComponent>();
-			for (auto e : view)
-			{
-				Entity entity{ e, this };
-				const auto& rb2d = view.get<RigidBody2DComponent>(entity);
-				auto& transform = entity.Transform();
-				if (entity.HasParent())
-				{
-					glm::mat4 localTransform = glm::inverse(GetWorldSpaceTransformMatrix(entity.Parent())) * Phyiscs2DUtils::GetMatrix(rb2d.RuntimeBody);
-					TransformComponent localBodyTransform;
-					Math::DecomposeTransform(localTransform, localBodyTransform.Translation, localBodyTransform.Rotation, localBodyTransform.Scale);
-					transform.Translation.x = localBodyTransform.Translation.x;
-					transform.Translation.y = localBodyTransform.Translation.y;
-					transform.Rotation.z = localBodyTransform.Rotation.z;
-					continue;
-				}
-
-				const auto& pos = rb2d.RuntimeBody->GetPosition();
-				transform.Translation.xy = Phyiscs2DUtils::FromBody(rb2d.RuntimeBody);
-				transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
-			}
+			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+				MethodThunks::OnUpdate(gcHandle, ts);
 		}
+
+		Ref<Physics2DScene> physicsScene = Physics2D::GetScene();
+		physicsScene->Simulate(ts);
 
 		for (const auto& fn : m_PostUpdateQueue)
 			fn();
@@ -263,7 +240,6 @@ namespace Shark {
 
 	void Scene::OnUpdateEditor(TimeStep ts)
 	{
-		SK_PROFILE_FUNCTION();
 	}
 
 	void Scene::OnUpdateSimulate(TimeStep ts)
@@ -271,29 +247,8 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnUpdateSimulate");
 
-		m_PhysicsScene.Step(ts);
-
-		auto view = m_Registry.view<RigidBody2DComponent>();
-		for (auto e : view)
-		{
-			Entity entity{ e, this };
-			const auto& rb2d = view.get<RigidBody2DComponent>(entity);
-			auto& transform = entity.Transform();
-			if (entity.HasParent())
-			{
-				glm::mat4 localTransform = glm::inverse(GetWorldSpaceTransformMatrix(entity.Parent())) * Phyiscs2DUtils::GetMatrix(rb2d.RuntimeBody);
-				TransformComponent localBodyTransform;
-				Math::DecomposeTransform(localTransform, localBodyTransform.Translation, localBodyTransform.Rotation, localBodyTransform.Scale);
-				transform.Translation.x = localBodyTransform.Translation.x;
-				transform.Translation.y = localBodyTransform.Translation.y;
-				transform.Rotation.z = localBodyTransform.Rotation.z;
-				continue;
-			}
-
-			const auto& pos = rb2d.RuntimeBody->GetPosition();
-			transform.Translation.xy = Phyiscs2DUtils::FromBody(rb2d.RuntimeBody);
-			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
-		}
+		Ref<Physics2DScene> physicsScene = Physics2D::GetScene();
+		physicsScene->Simulate(ts);
 	}
 
 	void Scene::OnRenderRuntime(Ref<SceneRenderer> renderer)
@@ -335,6 +290,12 @@ namespace Shark {
 		}
 
 		renderer->EndScene();
+	}
+
+	void Scene::OnFixedUpdate(float ts)
+	{
+		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+			MethodThunks::OnPhysicsUpdate(gcHandle, ts);
 	}
 
 	Entity Scene::CloneEntity(Entity srcEntity)
@@ -422,18 +383,12 @@ namespace Shark {
 		{
 			if (entity.AllOf<RigidBody2DComponent>())
 			{
-				auto& rb = entity.GetComponent<RigidBody2DComponent>();
-				SK_CORE_ASSERT(rb.RuntimeBody);
-				m_PhysicsScene.GetWorld()->DestroyBody(rb.RuntimeBody);
-				rb.RuntimeBody = nullptr;
-
-				if (auto comp = entity.TryGetComponent<BoxCollider2DComponent>()) comp->RuntimeCollider = nullptr;
-				if (auto comp = entity.TryGetComponent<CircleCollider2DComponent>()) comp->RuntimeCollider = nullptr;
+				auto physicsScene = Physics2D::GetScene();
+				physicsScene->DestroyActor(entity);
 			}
 
 			if (entity.AllOf<ScriptComponent>())
 				ScriptEngine::OnEntityDestroyed(entity);
-
 		}
 
 		if (first)
@@ -592,120 +547,6 @@ namespace Shark {
 		return ConvertToWorldSpace(entity, entity.Transform());
 	}
 
-	void Scene::SetupBox2D()
-	{
-		SK_PROFILE_FUNCTION();
-		
-		m_ContactListener.SetContext(this);
-		m_PhysicsScene.CreateScene();
-		b2World* world = m_PhysicsScene.GetWorld();
-		world->SetContactListener(&m_ContactListener);
-
-		// Add missing RigidBodys
-		{
-			auto view = m_Registry.view<BoxCollider2DComponent>();
-			for (auto entity : view)
-			{
-				if (!m_Registry.all_of<RigidBody2DComponent>(entity))
-				{
-					auto& rb = m_Registry.emplace<RigidBody2DComponent>(entity);
-					rb.Type = RigidBody2DComponent::BodyType::Static;
-				}
-			}
-		}
-
-		// Add missing RigidBodys
-		{
-			auto view = m_Registry.view<CircleCollider2DComponent>();
-			for (auto entity : view)
-			{
-				if (!m_Registry.all_of<RigidBody2DComponent>(entity))
-				{
-					auto& rb = m_Registry.emplace<RigidBody2DComponent>(entity);
-					rb.Type = RigidBody2DComponent::BodyType::Static;
-				}
-			}
-		}
-
-		// Setup Box2D side
-		{
-			auto view = m_Registry.view<RigidBody2DComponent>();
-			for (auto e : view)
-			{
-				Entity entity{ e, this };
-				auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-				glm::mat4 worldTransform = GetWorldSpaceTransformMatrix(entity);
-				TransformComponent transform;
-				Math::DecomposeTransform(worldTransform, transform.Translation, transform.Rotation, transform.Scale);
-				//auto& transform = entity.Transform();
-
-				//glm::mat4 localToWorld = entity.CalcLocalToWorldTransform();
-				//glm::vec4 translation = localToWorld * glm::vec4(transform.Translation, 1.0f);
-				//glm::vec4 rotation = localToWorld * glm::vec4(transform.Rotation, 0.0f);
-
-				b2BodyDef bodydef;
-				bodydef.type = SharkBodyTypeToBox2D(rb2d.Type);
-				bodydef.position = { transform.Translation.x, transform.Translation.y };
-				bodydef.angle = transform.Rotation.z;
-				bodydef.fixedRotation = rb2d.FixedRotation;
-				bodydef.bullet = rb2d.IsBullet;
-				bodydef.awake = rb2d.Awake;
-				bodydef.enabled = rb2d.Enabled;
-				bodydef.gravityScale = rb2d.GravityScale;
-				bodydef.allowSleep = rb2d.AllowSleep;
-				bodydef.userData.pointer = (uintptr_t)(uint64_t)entity.GetUUID();
-
-				rb2d.RuntimeBody = world->CreateBody(&bodydef);
-
-				if (entity.AllOf<BoxCollider2DComponent>())
-				{
-					auto& bc2d = entity.GetComponent<BoxCollider2DComponent>();
-
-					b2PolygonShape shape;
-					shape.SetAsBox(bc2d.Size.x * transform.Scale.x, bc2d.Size.y * transform.Scale.y, { bc2d.Offset.x, bc2d.Offset.y }, bc2d.Rotation);
-
-					b2FixtureDef fixturedef;
-					fixturedef.shape = &shape;
-					fixturedef.friction = bc2d.Friction;
-					fixturedef.density = bc2d.Density;
-					fixturedef.restitution = bc2d.Restitution;
-					fixturedef.restitutionThreshold = bc2d.RestitutionThreshold;
-					fixturedef.isSensor = bc2d.IsSensor;
-
-					bc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
-				}
-
-				if (entity.AllOf<CircleCollider2DComponent>())
-				{
-					auto& cc2d = entity.GetComponent<CircleCollider2DComponent>();
-
-					b2CircleShape shape;
-					shape.m_radius = cc2d.Radius * transform.Scale.x;
-					shape.m_p = { cc2d.Offset.x, cc2d.Offset.y };
-
-					b2FixtureDef fixturedef;
-					fixturedef.shape = &shape;
-					fixturedef.friction = cc2d.Friction;
-					fixturedef.density = cc2d.Density;
-					fixturedef.restitution = cc2d.Restitution;
-					fixturedef.restitutionThreshold = cc2d.RestitutionThreshold;
-					fixturedef.isSensor = cc2d.IsSensor;
-
-					cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
-				}
-			}
-		}
-	}
-
-	void Scene::OnPhyicsStep(TimeStep fixedTimeStep)
-	{
-		SK_PROFILE_FUNCTION();
-
-		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-			MethodThunks::OnPhysicsUpdate(gcHandle, fixedTimeStep);
-
-	}
-
 	void Scene::RenderEntity(const Ref<SceneRenderer>& renderer, Entity entity, const glm::mat4& parentTransform)
 	{
 		SK_PROFILE_FUNCTION();
@@ -733,17 +574,7 @@ namespace Shark {
 		SK_CORE_ASSERT(!m_IsEditorScene);
 
 		Entity entity{ ent, this };
-		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-		auto& transform = entity.Transform();
-
-		b2BodyDef bodydef;
-		bodydef.type = SharkBodyTypeToBox2D(rb2d.Type);
-		bodydef.position = { transform.Translation.x, transform.Translation.y };
-		bodydef.angle = transform.Rotation.z;
-		bodydef.fixedRotation = rb2d.FixedRotation;
-		bodydef.userData.pointer = (uintptr_t)(uint64_t)entity.GetUUID();
-
-		rb2d.RuntimeBody = m_PhysicsScene.GetWorld()->CreateBody(&bodydef);
+		Physics2D::GetScene()->CreateActor(entity);
 	}
 
 	void Scene::OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity ent)
@@ -751,21 +582,7 @@ namespace Shark {
 		SK_CORE_ASSERT(!m_IsEditorScene);
 
 		Entity entity{ ent, this };
-		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-		auto& transform = entity.Transform();
-		auto& bc2d = entity.GetComponent<BoxCollider2DComponent>();
-
-		b2PolygonShape shape;
-		shape.SetAsBox(bc2d.Size.x * transform.Scale.x, bc2d.Size.y * transform.Scale.y, { bc2d.Offset.x, bc2d.Offset.y }, bc2d.Rotation);
-
-		b2FixtureDef fixturedef;
-		fixturedef.shape = &shape;
-		fixturedef.friction = bc2d.Friction;
-		fixturedef.density = bc2d.Density;
-		fixturedef.restitution = bc2d.Restitution;
-		fixturedef.restitutionThreshold = bc2d.RestitutionThreshold;
-
-		bc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
+		Physics2D::GetScene()->OnColliderCreated(entity, entity.GetComponent<BoxCollider2DComponent>());
 	}
 
 	void Scene::OnCircleCollider2DComponentCreated(entt::registry& registry, entt::entity ent)
@@ -773,60 +590,31 @@ namespace Shark {
 		SK_CORE_ASSERT(!m_IsEditorScene);
 
 		Entity entity{ ent, this };
-		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-		auto& transform = entity.Transform();
-		auto& cc2d = entity.GetComponent<CircleCollider2DComponent>();
-
-		b2CircleShape shape;
-		shape.m_radius = cc2d.Radius * transform.Scale.x;
-		shape.m_p = { cc2d.Offset.x, cc2d.Offset.y };
-
-		b2FixtureDef fixturedef;
-		fixturedef.shape = &shape;
-		fixturedef.friction = cc2d.Friction;
-		fixturedef.density = cc2d.Density;
-		fixturedef.restitution = cc2d.Restitution;
-		fixturedef.restitutionThreshold = cc2d.RestitutionThreshold;
-
-		cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
+		Physics2D::GetScene()->OnColliderCreated(entity, entity.GetComponent<CircleCollider2DComponent>());
 	}
 
 	void Scene::OnRigidBody2DComponentDestroyed(entt::registry& registry, entt::entity ent)
 	{
+		SK_CORE_ASSERT(!m_IsEditorScene);
+
 		Entity entity{ ent, this };
-		auto& rb2d = entity.GetComponent<RigidBody2DComponent>();
-		
-		if (rb2d.RuntimeBody)
-		{
-			m_PhysicsScene.GetWorld()->DestroyBody(rb2d.RuntimeBody);
-			rb2d.RuntimeBody = nullptr;
-		}
+		Physics2D::GetScene()->DestroyActor(entity);
 	}
 
 	void Scene::OnBoxCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent)
 	{
-		Entity entity{ ent, this };
-		auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+		SK_CORE_ASSERT(!m_IsEditorScene);
 
-		if (comp.RuntimeCollider)
-		{
-			b2Body* body = comp.RuntimeCollider->GetBody();
-			body->DestroyFixture(comp.RuntimeCollider);
-			comp.RuntimeCollider = nullptr;
-		}
+		Entity entity{ ent, this };
+		Physics2D::GetScene()->OnColliderDestroyed(entity, entity.GetComponent<BoxCollider2DComponent>());
 	}
 
 	void Scene::OnCircleCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent)
 	{
-		Entity entity{ ent, this };
-		auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+		SK_CORE_ASSERT(!m_IsEditorScene);
 
-		if (comp.RuntimeCollider)
-		{
-			b2Body* body = comp.RuntimeCollider->GetBody();
-			body->DestroyFixture(comp.RuntimeCollider);
-			comp.RuntimeCollider = nullptr;
-		}
+		Entity entity{ ent, this };
+		Physics2D::GetScene()->OnColliderDestroyed(entity, entity.GetComponent<CircleCollider2DComponent>());
 	}
 
 	void Scene::OnScriptComponentDestroyed(entt::registry& registry, entt::entity ent)
@@ -847,59 +635,6 @@ namespace Shark {
 		UUID uuid = entity.GetUUID();
 		if (uuid == m_ActiveCameraUUID)
 			m_ActiveCameraUUID = UUID::Null;
-	}
-
-	void ContactListener::BeginContact(b2Contact* contact)
-	{
-		b2Fixture* fixtureA = contact->GetFixtureA();
-		b2Fixture* fixtureB = contact->GetFixtureB();
-
-		b2Body* bodyA = fixtureA->GetBody();
-		b2Body* bodyB = fixtureB->GetBody();
-
-		UUID uuidA = (UUID)bodyA->GetUserData().pointer;
-		UUID uuidB = (UUID)bodyB->GetUserData().pointer;
-
-		Entity entityA = m_Context->GetEntityByUUID(uuidA);
-		Entity entityB = m_Context->GetEntityByUUID(uuidB);
-
-		b2Shape* shapeA = fixtureA->GetShape();
-		b2Shape* shapeB = fixtureB->GetShape();
-
-		Collider2DType colliderTypeA = shapeA->GetType() == b2Shape::e_polygon ? Collider2DType::BoxCollider : Collider2DType::CircleCollider;
-		Collider2DType colliderTypeB = shapeB->GetType() == b2Shape::e_polygon ? Collider2DType::BoxCollider : Collider2DType::CircleCollider;
-
-		ScriptGlue::CallCollishionBegin(entityA, entityB, colliderTypeB, fixtureB->IsSensor());
-		ScriptGlue::CallCollishionBegin(entityB, entityA, colliderTypeA, fixtureA->IsSensor());
-	}
-
-	void ContactListener::EndContact(b2Contact* contact)
-	{
-		b2Fixture* fixtureA = contact->GetFixtureA();
-		b2Fixture* fixtureB = contact->GetFixtureB();
-
-		b2Body* bodyA = fixtureA->GetBody();
-		b2Body* bodyB = fixtureB->GetBody();
-
-		UUID uuidA = (UUID)bodyA->GetUserData().pointer;
-		UUID uuidB = (UUID)bodyB->GetUserData().pointer;
-
-		Entity entityA = m_Context->GetEntityByUUID(uuidA);
-		Entity entityB = m_Context->GetEntityByUUID(uuidB);
-
-		b2Shape* shapeA = fixtureA->GetShape();
-		b2Shape* shapeB = fixtureB->GetShape();
-
-		Collider2DType colliderTypeA = shapeA->GetType() == b2Shape::e_polygon ? Collider2DType::BoxCollider : Collider2DType::CircleCollider;
-		Collider2DType colliderTypeB = shapeB->GetType() == b2Shape::e_polygon ? Collider2DType::BoxCollider : Collider2DType::CircleCollider;
-
-		ScriptGlue::CallCollishionEnd(entityA, entityB, colliderTypeB, fixtureB->IsSensor());
-		ScriptGlue::CallCollishionEnd(entityB, entityA, colliderTypeA, fixtureA->IsSensor());
-	}
-
-	void ContactListener::SetContext(const Ref<Scene>& context)
-	{
-		m_Context = context;
 	}
 
 }

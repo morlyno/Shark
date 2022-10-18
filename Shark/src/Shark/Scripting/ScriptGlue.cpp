@@ -12,6 +12,8 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/GCManager.h"
 
+#include "Shark/Physics2D/Physics2D.h"
+
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/MouseEvent.h"
 
@@ -35,7 +37,6 @@
 #include <imgui_internal.h>
 
 #include <glm/gtx/common.hpp>
-
 #define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" SK_STRINGIFY(func), SK_CONNECT(&InternalCalls::, func));
 
 namespace Shark {
@@ -1310,74 +1311,48 @@ namespace Shark {
 
 		void Physics2D_GetGravity(glm::vec2* out_Gravity)
 		{
-			Ref<Scene> scene = utils::GetScene();
-			auto& phyiscsScene = scene->GetPhysicsScene();
-			if (!phyiscsScene.GetWorld())
-			{
-				*out_Gravity = glm::vec2(0.0f);
-				return;
-			}
-
-			auto gravity = phyiscsScene.GetWorld()->GetGravity();
-			out_Gravity->x = gravity.x;
-			out_Gravity->y = gravity.y;
+			auto phyiscsScene = Physics2D::GetScene();
+			*out_Gravity = phyiscsScene->GetGravity();
 		}
 
 		void Physics2D_SetGravity(glm::vec2* gravity)
 		{
-			Ref<Scene> scene = utils::GetScene();
-			auto& phyiscsScene = scene->GetPhysicsScene();
-			if (!phyiscsScene.GetWorld())
-				return;
-
-			phyiscsScene.GetWorld()->SetGravity({ gravity->x, gravity->y });
+			auto phyiscsScene = Physics2D::GetScene();
+			phyiscsScene->SetGravity(*gravity);
 		}
 
 		#pragma endregion
 
 		#pragma region RigidBody2DComponent
 
-		RigidBody2DComponent::BodyType RigidBody2DComponent_GetBodyType(uint64_t id)
+		RigidBody2DType RigidBody2DComponent_GetBodyType(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return RigidBody2DComponent::BodyType::None;
-			if (!entity.AllOf<RigidBody2DComponent>())
-				return RigidBody2DComponent::BodyType::None;
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
+				return RigidBody2DType::None;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return RigidBody2DComponent::BodyType::None;
-
-			return utils::b2BodyTypeToSharkBodyType(body->GetType());
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			return actor->GetBodyType();
 		}
 
-		void RigidBody2DComponent_SetBodyType(uint64_t id, RigidBody2DComponent::BodyType bodyType)
+		void RigidBody2DComponent_SetBodyType(uint64_t id, RigidBody2DType bodyType)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			body->SetType(utils::SharkBodyTypeTob2BodyType(bodyType));
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			actor->SetBodyType(bodyType);
 		}
 
 		void RigidBody2DComponent_GetTransform(uint64_t id, RigidBody2DTransform* out_Transform)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			const auto& tf = body->GetTransform();
 
@@ -1390,14 +1365,11 @@ namespace Shark {
 		void RigidBody2DComponent_SetTransform(uint64_t id, RigidBody2DTransform* transform)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			const b2Vec2 pos = { transform->Position.x, transform->Position.y };
 			body->SetTransform(pos, transform->Angle);
@@ -1406,14 +1378,11 @@ namespace Shark {
 		void RigidBody2DComponent_SetPosition(uint64_t id, glm::vec2* position)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetTransform({ position->x, position->y }, body->GetAngle());
 		}
@@ -1421,14 +1390,11 @@ namespace Shark {
 		void RigidBody2DComponent_SetRotation(uint64_t id, float rotation)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetTransform(body->GetPosition(), rotation);
 		}
@@ -1436,14 +1402,11 @@ namespace Shark {
 		void RigidBody2DComponent_GetLocalCenter(uint64_t id, glm::vec2* out_LocalCenter)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			const b2Vec2 lc = body->GetLocalCenter();
 			*out_LocalCenter = { lc.x, lc.y };
@@ -1452,14 +1415,11 @@ namespace Shark {
 		void RigidBody2DComponent_GetWorldCenter(uint64_t id, glm::vec2* out_WorldCenter)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			const b2Vec2 wc = body->GetWorldCenter();
 			*out_WorldCenter = { wc.x, wc.y };
@@ -1468,14 +1428,11 @@ namespace Shark {
 		void RigidBody2DComponent_GetLinearVelocity(uint64_t id, glm::vec2* out_LinearVelocity)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			const b2Vec2& lv = body->GetLinearVelocity();
 			*out_LinearVelocity = { lv.x, lv.y };
@@ -1484,14 +1441,11 @@ namespace Shark {
 		void RigidBody2DComponent_SetLinearVelocity(uint64_t id, glm::vec2* linearVelocity)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetLinearVelocity({ linearVelocity->x, linearVelocity->y });
 		}
@@ -1499,14 +1453,11 @@ namespace Shark {
 		float RigidBody2DComponent_GetAngularVelocity(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return 0.0f;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return 0.0f;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			return body->GetAngularVelocity();
 		}
@@ -1514,14 +1465,11 @@ namespace Shark {
 		void RigidBody2DComponent_SetAngularVelocity(uint64_t id, float angularVelocity)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetAngularVelocity(angularVelocity);
 		}
@@ -1529,14 +1477,11 @@ namespace Shark {
 		void RigidBody2DComponent_ApplyForce(uint64_t id, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			if (forceType == PhysicsForce2DType::Force)
 				body->ApplyForce({ force->x, force->y }, { point->x, point->y }, true);
@@ -1547,14 +1492,11 @@ namespace Shark {
 		void RigidBody2DComponent_ApplyForceToCenter(uint64_t id, glm::vec2* force, PhysicsForce2DType forceType)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			if (forceType == PhysicsForce2DType::Force)
 				body->ApplyForceToCenter({ force->x, force->y }, true);
@@ -1565,14 +1507,11 @@ namespace Shark {
 		void RigidBody2DComponent_ApplyTorque(uint64_t id, float torque, PhysicsForce2DType forceType)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			if (forceType == PhysicsForce2DType::Force)
 				body->ApplyTorque(torque, true);
@@ -1583,14 +1522,11 @@ namespace Shark {
 		float RigidBody2DComponent_GetGravityScale(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return 0.0f;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return 0.0f;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			return body->GetGravityScale();
 		}
@@ -1598,17 +1534,14 @@ namespace Shark {
 		void RigidBody2DComponent_SetGravityScale(uint64_t id, float gravityScale)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
 			comp.GravityScale = gravityScale;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetGravityScale(gravityScale);
 		}
@@ -1616,14 +1549,11 @@ namespace Shark {
 		float RigidBody2DComponent_GetLinearDamping(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return 0.0f;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return 0.0f;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			return body->GetLinearDamping();
 		}
@@ -1631,14 +1561,11 @@ namespace Shark {
 		void RigidBody2DComponent_SetLinearDamping(uint64_t id, float linearDamping)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetLinearDamping(linearDamping);
 		}
@@ -1646,14 +1573,11 @@ namespace Shark {
 		float RigidBody2DComponent_GetAngularDamping(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return 0.0f;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return 0.0f;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			return body->GetAngularDamping();
 		}
@@ -1661,14 +1585,11 @@ namespace Shark {
 		void RigidBody2DComponent_SetAngularDamping(uint64_t id, float angularDamping)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetAngularDamping(angularDamping);
 		}
@@ -1676,14 +1597,11 @@ namespace Shark {
 		bool RigidBody2DComponent_IsBullet(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return false;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			return body->IsBullet();
 		}
@@ -1691,17 +1609,14 @@ namespace Shark {
 		void RigidBody2DComponent_SetBullet(uint64_t id, bool bullet)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
 			comp.IsBullet = bullet;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetBullet(bullet);
 		}
@@ -1709,14 +1624,11 @@ namespace Shark {
 		bool RigidBody2DComponent_IsSleepingAllowed(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return false;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			return body->IsSleepingAllowed();
 		}
@@ -1724,17 +1636,14 @@ namespace Shark {
 		void RigidBody2DComponent_SetSleepingAllowed(uint64_t id, bool sleepingAllowed)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
 			comp.AllowSleep = sleepingAllowed;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetSleepingAllowed(sleepingAllowed);
 		}
@@ -1742,14 +1651,11 @@ namespace Shark {
 		bool RigidBody2DComponent_IsAwake(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return false;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			return body->IsAwake();
 		}
@@ -1757,17 +1663,14 @@ namespace Shark {
 		void RigidBody2DComponent_SetAwake(uint64_t id, bool awake)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
 			comp.Awake = awake;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetAwake(awake);
 		}
@@ -1775,14 +1678,11 @@ namespace Shark {
 		bool RigidBody2DComponent_IsEnabled(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return false;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			return body->IsEnabled();
 		}
@@ -1790,17 +1690,14 @@ namespace Shark {
 		void RigidBody2DComponent_SetEnabled(uint64_t id, bool enabled)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
 			comp.Enabled = enabled;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetEnabled(enabled);
 		}
@@ -1808,14 +1705,11 @@ namespace Shark {
 		bool RigidBody2DComponent_IsFixedRotation(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return false;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			return body->IsFixedRotation();
 		}
@@ -1823,17 +1717,14 @@ namespace Shark {
 		void RigidBody2DComponent_SetFixedRotation(uint64_t id, bool fixedRotation)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity || !entity.AllOf<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
 			comp.FixedRotation = fixedRotation;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			auto actor = Physics2D::GetScene()->GetActor(entity);
+			b2Body* body = actor->GetBody();
 
 			body->SetFixedRotation(fixedRotation);
 		}

@@ -532,7 +532,7 @@ namespace Shark {
 			ImGui::Separator();
 
 			Ref<Scene> scene = entity.GetScene();
-			if (scene->IsRunning())
+			if (ScriptEngine::IsRunning())
 			{
 				GCHandle handle = ScriptEngine::GetInstance(entity);
 				UI::BeginControlsGrid();

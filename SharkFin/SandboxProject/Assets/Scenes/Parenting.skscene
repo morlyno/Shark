@@ -190,7 +190,7 @@ Scene:
         Texture: 0
         TilingFactor: 1
       RigidBody2DComponent:
-        Type: Static
+        Type: Kinematic
         FixedRotation: false
         IsBullet: false
         Awake: true
@@ -673,7 +673,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.14742446
+        Aspectratio: 2.12949634
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000

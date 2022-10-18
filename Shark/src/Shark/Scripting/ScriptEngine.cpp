@@ -584,6 +584,7 @@ namespace Shark {
 		if (!assembly)
 		{
 			SK_CORE_ERROR_TAG("Scripting", "Failed to load Core Assembly");
+			SK_CONSOLE_ERROR("Failed to load Core Assembly");
 			return false;
 		}
 
@@ -600,6 +601,7 @@ namespace Shark {
 		if (!assembly)
 		{
 			SK_CORE_ERROR_TAG("Scripting", "Failed to load App Assembly");
+			SK_CONSOLE_ERROR("Failed to load App Assembly");
 			return false;
 		}
 

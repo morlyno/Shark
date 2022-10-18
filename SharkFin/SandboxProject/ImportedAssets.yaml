@@ -11,6 +11,9 @@ Assets:
   - Handle: 0xbc9198803f5d806e
     Type: Scene
     FilePath: Scenes/PhysicsScene.skscene
+  - Handle: 0x6c4b3aa12fde4bbb
+    Type: Scene
+    FilePath: Scenes/PhysicsStressTest.skscene
   - Handle: 0x5b3ed9bb804eccc0
     Type: Scene
     FilePath: Scenes/PlayerTest.skscene
@@ -68,6 +71,9 @@ Assets:
   - Handle: 0x46a00932d83b7ce4
     Type: ScriptFile
     FilePath: Scripts/Source/FloorScript.cs
+  - Handle: 0xdaf3929b18a99003
+    Type: ScriptFile
+    FilePath: Scripts/Source/Physics/StressTest.cs
   - Handle: 0x56ebdc8a7f1569c4
     Type: ScriptFile
     FilePath: Scripts/Source/PlatformScript.cs
