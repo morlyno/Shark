@@ -26,6 +26,7 @@ namespace Shark {
 	struct ScriptEngineConfig
 	{
 		std::filesystem::path CoreAssemblyPath;
+		bool EnableDebugging;
 	};
 
 	class ScriptEngine
