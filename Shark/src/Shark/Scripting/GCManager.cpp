@@ -6,42 +6,32 @@
 
 namespace Shark {
 
-	struct GCManagerData
-	{
-		std::unordered_set<GCHandle> Handles;
-	};
-	static GCManagerData* s_GCData = nullptr;
-
 	void GCManager::Init()
 	{
-		s_GCData = new GCManagerData();
 	}
 
 	void GCManager::Shutdown()
 	{
-		delete s_GCData;
-		s_GCData = nullptr;
 	}
 
 	GCHandle GCManager::CreateHandle(MonoObject* obj)
 	{
-		GCHandle handle = mono_gchandle_new(obj, false);
-		SK_CORE_ASSERT(s_GCData->Handles.find(handle) == s_GCData->Handles.end());
-		s_GCData->Handles.emplace(handle);
-		return handle;
+		return mono_gchandle_new_v2(obj, false);
 	}
 
 	void GCManager::ReleaseHandle(GCHandle handle)
 	{
-		SK_CORE_ASSERT(s_GCData->Handles.find(handle) != s_GCData->Handles.end());
-		s_GCData->Handles.erase(handle);
-		mono_gchandle_free(handle);
+		mono_gchandle_free_v2(handle);
 	}
 
 	MonoObject* GCManager::GetManagedObject(GCHandle gcHandle)
 	{
-		SK_CORE_ASSERT(s_GCData->Handles.find(gcHandle) != s_GCData->Handles.end());
-		return mono_gchandle_get_target(gcHandle);
+		MonoObject* object = mono_gchandle_get_target_v2(gcHandle);
+		if (object && mono_object_get_vtable(object))
+			return object;
+
+		SK_CORE_WARN_TAG("Scripting", "MonoObject retrieved from GCHandle was invalid");
+		return nullptr;
 	}
 
 	void GCManager::Collect()
