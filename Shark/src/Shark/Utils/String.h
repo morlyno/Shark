@@ -19,6 +19,12 @@ namespace Shark::String {
 
 	void Replace(std::string& str, std::string_view from, std::string_view to);
 
+	void RemovePrefix(std::string& str, uint32_t count);
+	void RemoveSuffix(std::string& str, uint32_t count);
+
+	void Strip(std::string& str, char c = ' ');
+	void StripBack(std::string& str, char c = ' ');
+	void StripFront(std::string& str, char c = ' ');
 
 	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path);
 	void FormatWindows(std::filesystem::path& path);
