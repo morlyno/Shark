@@ -101,6 +101,36 @@ namespace Shark::String {
 		}
 	}
 
+	void RemovePrefix(std::string& str, uint32_t count)
+	{
+		str.erase(0, count);
+	}
+
+	void RemoveSuffix(std::string& str, uint32_t count)
+	{
+		str.erase(str.size() - count, std::string::npos);
+	}
+
+	void Strip(std::string& str, char c)
+	{
+		StripFront(str, c);
+		StripBack(str, c);
+	}
+
+	void StripBack(std::string& str, char c)
+	{
+		size_t offset = str.find_last_not_of(c);
+		if (offset != std::string::npos)
+			str.erase(offset + 1);
+	}
+
+	void StripFront(std::string& str, char c)
+	{
+		size_t end = str.find_first_not_of(c);
+		if (end != std::string::npos)
+			str.erase(0, end);
+	}
+
 	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path)
 	{
 		std::wstring str = path.native();
