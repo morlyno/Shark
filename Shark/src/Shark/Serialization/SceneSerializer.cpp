@@ -384,7 +384,7 @@ namespace Shark {
 				{
 					auto& component = entity.AddOrReplaceComponent<CameraComponent>();
 
-					auto projection = ToEnumSceneCameraProjection(componentNode["Type"].as<std::string>());
+					auto projection = StringToSceneCameraProjection(componentNode["Type"].as<std::string>());
 					float aspecRatio = componentNode["Aspectratio"].as<float>();
 
 					SceneCamera::PerspectiveSpecs ps;
@@ -403,7 +403,7 @@ namespace Shark {
 				if (auto componentNode = entityNode["RigidBody2DComponent"])
 				{
 					auto& component = entity.AddOrReplaceComponent<RigidBody2DComponent>();
-					component.Type = ToEnumRigidBody2DType(componentNode["Type"].as<std::string>());
+					component.Type = StringToRigidBody2DType(componentNode["Type"].as<std::string>());
 					component.FixedRotation = componentNode["FixedRotation"].as<bool>();
 					component.IsBullet = componentNode["IsBullet"].as<bool>();
 					component.Awake = componentNode["Awake"].as<bool>();

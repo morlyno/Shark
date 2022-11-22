@@ -169,7 +169,7 @@ namespace Shark {
 		return "Unkown";
 	}
 
-	inline RigidBody2DComponent::BodyType ToEnumRigidBody2DType(std::string_view type)
+	inline RigidBody2DComponent::BodyType StringToRigidBody2DType(std::string_view type)
 	{
 		if (type == "None") return RigidBody2DComponent::BodyType::None;
 		if (type == "Static") return RigidBody2DComponent::BodyType::Static;

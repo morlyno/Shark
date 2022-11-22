@@ -189,13 +189,13 @@ namespace Shark {
 		auto& samplerNode = textureNode["Sampler"];
 		if (samplerNode)
 		{
-			specification.Sampler.Min = ToEnumFilterMode(samplerNode["MinFilter"].as<std::string>("Linear"));
-			specification.Sampler.Mag = ToEnumFilterMode(samplerNode["MagFilter"].as<std::string>("Linear"));
-			specification.Sampler.Mip = ToEnumFilterMode(samplerNode["MipFilter"].as<std::string>("Linear"));
+			specification.Sampler.Min = StringToFilterMode(samplerNode["MinFilter"].as<std::string>("Linear"));
+			specification.Sampler.Mag = StringToFilterMode(samplerNode["MagFilter"].as<std::string>("Linear"));
+			specification.Sampler.Mip = StringToFilterMode(samplerNode["MipFilter"].as<std::string>("Linear"));
 
-			specification.Sampler.Wrap.U = ToEnumWrapMode(samplerNode["AddressModeU"].as<std::string>("Repeat"));
-			specification.Sampler.Wrap.V = ToEnumWrapMode(samplerNode["AddressModeV"].as<std::string>("Repeat"));
-			specification.Sampler.Wrap.W = ToEnumWrapMode(samplerNode["AddressModeW"].as<std::string>("Repeat"));
+			specification.Sampler.Wrap.U = StringToWrapMode(samplerNode["AddressModeU"].as<std::string>("Repeat"));
+			specification.Sampler.Wrap.V = StringToWrapMode(samplerNode["AddressModeV"].as<std::string>("Repeat"));
+			specification.Sampler.Wrap.W = StringToWrapMode(samplerNode["AddressModeW"].as<std::string>("Repeat"));
 
 			specification.Sampler.BorderColor = samplerNode["BorderColor"].as<glm::vec4>();
 			specification.Sampler.Anisotropy = samplerNode["Anisotropy"].as<bool>();
