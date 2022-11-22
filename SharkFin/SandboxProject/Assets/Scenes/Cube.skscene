@@ -1,47 +1,64 @@
 Scene:
+  Name: Untitled
   ActiveCamera: 0x0
   Entities:
-    - Entity: 0x76d5fa40f9ce0cbf
+    - Entity: 8563025423490747583
       TagComponent:
-        Tag: Right
+        Name: Right
       TransformComponent:
-        Position: [0.349999994, 0, 0]
+        Translation: [0.349999994, 0, 0]
         Rotation: [0, -0.785398245, 0]
-        Scaling: [1, 1, 1]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [1, 0.676470578, 0, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x9dbbfe0f105da8a0
+    - Entity: 11365957425252116640
       TagComponent:
-        Tag: Top
+        Name: Top
       TransformComponent:
-        Position: [1.25365371e-08, 0.5, 0.349999994]
+        Translation: [1.25365371e-08, 0.5, 0.349999994]
         Rotation: [1.57079637, 0.785398185, 0]
-        Scaling: [0.999999881, 1.00000274, 1.00000489]
+        Scale: [0.999999881, 1.00000274, 1.00000489]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.834848464, 0.0191272572, 0.975490212, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0xb394f435efef476b
+    - Entity: 12940236141838157675
       TagComponent:
-        Tag: Grid
+        Name: Grid
       TransformComponent:
-        Position: [0, -0.91993916, -0.000301309978]
+        Translation: [0, -0.91993916, -0.000301309978]
         Rotation: [1.57045102, 0, 0]
-        Scaling: [14.9118814, 14.9118795, 14.9118795]
+        Scale: [14.9118814, 14.9118795, 14.9118795]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 12046611585830764490
+        TextureHandle: 12046611585830764490
         TilingFactor: 1
-    - Entity: 0xed5cc10bb28a768b
+    - Entity: 17103757740830520971
       TagComponent:
-        Tag: Left
+        Name: Left
       TransformComponent:
-        Position: [-0.349999994, 0, 0]
+        Translation: [-0.349999994, 0, 0]
         Rotation: [0, 0.785398304, 0]
-        Scaling: [1, 1, 1]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.0432525799, 0.208630279, 0.980392158, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1

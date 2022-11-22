@@ -12,7 +12,7 @@ namespace Shark {
 		static void ReleaseSerializers();
 
 		static bool TryLoadData(Ref<Asset>& asset, const AssetMetaData& metadata);
-		static bool Serialize(const Ref<Asset>& asset, const AssetMetaData& metadata);
+		static bool Serialize(Ref<Asset> asset, const AssetMetaData& metadata);
 	};
 
 }

@@ -146,7 +146,7 @@ namespace Shark {
 		auto dev = DirectXRenderer::GetDevice();
 
 		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
-			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", EnumToString(atachment->Image->GetSpecification().Format), EnumToString(atachment->Format)));
+			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment->Image->GetSpecification().Format), ToString(atachment->Format)));
 
 		if (!atachment->Image)
 		{
@@ -155,7 +155,7 @@ namespace Shark {
 			specs.Height = m_Specification.Height;
 			specs.Format = ImageFormat::Depth32;
 			specs.Type = ImageType::FrameBuffer;
-			atachment->Image = Image2D::Create(specs, nullptr);
+			atachment->Image = Image2D::Create(specs);
 		}
 		auto d3dImage = atachment->Image.As<DirectXImage2D>();
 
@@ -174,7 +174,7 @@ namespace Shark {
 		auto dev = DirectXRenderer::GetDevice();
 
 		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
-			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", EnumToString(atachment->Image->GetSpecification().Format), EnumToString(atachment->Format)));
+			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment->Image->GetSpecification().Format), ToString(atachment->Format)));
 
 		if (!atachment->Image)
 		{
@@ -183,7 +183,7 @@ namespace Shark {
 			specs.Height = m_Specification.Height;
 			specs.Format = atachment->Format;
 			specs.Type = ImageType::FrameBuffer;
-			atachment->Image = Image2D::Create(specs, nullptr);
+			atachment->Image = Image2D::Create(specs);
 		}
 		auto d3dImage = atachment->Image.As<DirectXImage2D>();
 

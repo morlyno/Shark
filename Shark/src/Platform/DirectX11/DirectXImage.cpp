@@ -2,8 +2,9 @@
 #include "DirectXImage.h"
 
 #include "Shark/Asset/ResourceManager.h"
-#include "Shark/Asset/Serializers.h"
+#include "Shark/Serialization/TextureSerializers.h"
 
+#include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 #include <stb_image.h>
@@ -79,35 +80,35 @@ namespace Shark {
 	{
 	}
 
-	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, void* data)
+	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs)
 		: m_Specification(specs)
 	{
-		m_ImageData.Data = (byte*)data;
-		m_ImageData.Size = (uint64_t)specs.Width * specs.Height * utils::GetFormatDataSize(specs.Format);
 		CreateResource();
-		UpdateResource();
+	}
+
+	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, Buffer imageData)
+		: m_Specification(specs)
+	{
+		CreateResource();
+		UpdateResource(imageData);
 	}
 
 	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data)
 		: m_Specification(specs)
 	{
 		CreateResource();
-		data->CopyTo(this);
+		if (data)
+			data->CopyTo(this);
 	}
 
-	DirectXImage2D::DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, void* data)
-		: DirectXImage2D({ format, width, height }, data)
+	DirectXImage2D::DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
+		: DirectXImage2D({ format, width, height }, imageData)
 	{
 	}
 
 	DirectXImage2D::DirectXImage2D(const std::filesystem::path& filePath)
 	{
-		std::filesystem::path sourcePath = GetSourcePath(filePath);
-		m_FilePath = sourcePath;
-		m_ImageData = LoadDataFromFile(sourcePath);
-		CreateResource();
-		UpdateResource();
-		m_ImageData.Release();
+		Set(filePath);
 	}
 
 	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView)
@@ -127,16 +128,13 @@ namespace Shark {
 			m_View->Release();
 	}
 
-	void DirectXImage2D::Set(const ImageSpecification& specs, void* data)
+	void DirectXImage2D::Set(const ImageSpecification& specs, Buffer imageData)
 	{
 		Release();
 
 		m_Specification = specs;
-		m_ImageData.Data = (byte*)data;
-		m_ImageData.Size = (uint64_t)specs.Width * specs.Height * utils::GetFormatDataSize(specs.Format);
-
 		CreateResource();
-		UpdateResource();
+		UpdateResource(imageData);
 	}
 
 	void DirectXImage2D::Set(const ImageSpecification& specs, Ref<Image2D> data)
@@ -153,14 +151,36 @@ namespace Shark {
 
 	void DirectXImage2D::Set(const std::filesystem::path& filePath)
 	{
-		Release();
+		ImageFormat format;
+		int width, height, components;
+		Buffer imagedata;
 
-		std::filesystem::path sourcePath = GetSourcePath(filePath);
-		m_FilePath = sourcePath;
-		m_ImageData = LoadDataFromFile(sourcePath);
+		Buffer filedata = FileSystem::ReadBinary(filePath);
+		imagedata.Data = stbi_load_from_memory(filedata.As<stbi_uc>(), (int)filedata.Size, &width, &height, &components, STBI_rgb_alpha);
+		filedata.Release();
+
+		SK_CORE_ASSERT(imagedata.Data);
+		if (!imagedata.Data)
+		{
+			SK_CORE_ERROR_TAG("Renderer", "Failed to load Image from disc! {}", filePath);
+			SK_CORE_WARN_TAG("Renderer", stbi_failure_reason());
+			return;
+		}
+
+		imagedata.Size = (uint64_t)width * height * components;
+		format = ImageFormat::RGBA8;
+
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+		m_Specification.Format = ImageFormat::RGBA8;
+		m_Specification.MipLevels = 0;
+		m_Specification.Type = ImageType::Texture;
+
 		CreateResource();
-		UpdateResource();
-		m_ImageData.Release();
+		UpdateResource(imagedata);
+
+		DirectXImage2D* instance = this;
+		DirectXRenderer::Get()->GenerateMips(instance);
 	}
 
 	void DirectXImage2D::ReloadFromDisc()
@@ -179,7 +199,7 @@ namespace Shark {
 
 		Release();
 		CreateResource();
-		UpdateResource();
+		// UpdateResource();
 	}
 
 	bool DirectXImage2D::CopyTo(Ref<Image2D> image)
@@ -258,31 +278,18 @@ namespace Shark {
 
 	Buffer DirectXImage2D::LoadDataFromFile(const std::filesystem::path& filePath)
 	{
-		TextureMetadata metadata;
-		TextureSourceSerializer serializer;
-		if (serializer.LoadImageData(filePath, metadata))
+		AssetHandle sourceHandle = ResourceManager::GetAssetHandleFromFilePath(filePath);
+		auto source = ResourceManager::GetAsset<TextureSource>(sourceHandle);
+		if (source)
 		{
-			m_Specification.Format = metadata.Format;
-			m_Specification.Width = metadata.Width;
-			m_Specification.Height = metadata.Height;
-			m_Specification.MipLevels = 1;
-			m_Specification.Type = ImageType::Texture;
-
-			return metadata.ImageData;
+			m_Specification.Format = source->Format;
+			m_Specification.Width = source->Width;
+			m_Specification.Height = source->Height;
+			m_Specification.MipLevels = 0;
+			return source->ImageData;
 		}
 
 		return Buffer{};
-	}
-
-	std::filesystem::path DirectXImage2D::GetSourcePath(const std::filesystem::path& filePath) const
-	{
-		AssetType type = ResourceManager::GetAssetTypeFormFilePath(filePath);
-		if (type == AssetType::TextureSource)
-			return filePath;
-		
-		SK_CORE_ASSERT(type == AssetType::Texture);
-		TextureSerializer serializer;
-		return serializer.DeserializeSourcePath(filePath);
 	}
 
 	void DirectXImage2D::CreateResource()
@@ -324,12 +331,12 @@ namespace Shark {
 			CreateView();
 	}
 
-	void DirectXImage2D::UpdateResource()
+	void DirectXImage2D::UpdateResource(Buffer imageData)
 	{
-		if (m_ImageData.Data)
+		if (imageData.Data)
 		{
 			auto context = DirectXRenderer::GetContext();
-			context->UpdateSubresource(m_Resource, 0, nullptr, m_ImageData.As<const void*>(), m_Specification.Width * 4, 0);
+			context->UpdateSubresource(m_Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * 4, 0);
 		}
 	}
 

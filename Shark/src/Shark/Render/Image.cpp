@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	std::string EnumToString(ImageFormat format)
+	std::string ToString(ImageFormat format)
 	{
 		switch (format)
 		{
@@ -30,23 +30,23 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Image2D> Image2D::Create(const ImageSpecification& specs, void* data)
+	Ref<Image2D> Image2D::Create(const ImageSpecification& specs)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs, data);
+			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs);
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;
 	}
 
-	Ref<Image2D> Image2D::Create(ImageFormat format, uint32_t width, uint32_t height, void* data)
+	Ref<Image2D> Image2D::Create(const ImageSpecification& specs, Buffer imageData)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(format, width, height, data);
+			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs, imageData);
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;
@@ -58,6 +58,17 @@ namespace Shark {
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs, data);
+		}
+		SK_CORE_ASSERT(false, "Unkown Renderer API");
+		return nullptr;
+	}
+
+	Ref<Image2D> Image2D::Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
+	{
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(format, width, height, imageData);
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;

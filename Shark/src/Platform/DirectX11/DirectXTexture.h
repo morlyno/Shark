@@ -11,13 +11,15 @@ namespace Shark {
 	{
 	public:
 		DirectXTexture2D();
-		DirectXTexture2D(const TextureSpecification& specs, void* data);
-		DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, void* data);
+		DirectXTexture2D(const TextureSpecification& specs, Buffer imageData);
+		DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		DirectXTexture2D(const TextureSpecification& specs, Ref<Texture2D> data);
 		DirectXTexture2D(const std::filesystem::path& filePath);
 		virtual ~DirectXTexture2D();
 
-		virtual void Set(const TextureSpecification& specs, void* data) override;
+		virtual void Release() override;
+
+		virtual void Set(const TextureSpecification& specs, Buffer data) override;
 		virtual void SetSampler(const SamplerSpecification& specs) override;
 
 		virtual void Set(const TextureSpecification& specs, Ref<Texture2D> data) override;
@@ -53,8 +55,8 @@ namespace Shark {
 		virtual ~DirectXTexture2DArray() = default;
 
 		virtual Ref<Texture2D> Create(uint32_t index) override;
-		virtual Ref<Texture2D> Create(uint32_t index, const TextureSpecification& specs, void* data) override;
-		virtual Ref<Texture2D> Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, void* data) override;
+		virtual Ref<Texture2D> Create(uint32_t index, const TextureSpecification& specs, Buffer imageData) override;
+		virtual Ref<Texture2D> Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, Buffer imageData) override;
 
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) override;
 		virtual Ref<Texture2D> Get(uint32_t index) const override;

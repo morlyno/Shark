@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Buffer.h"
 
 #include <glm/glm.hpp>
 
@@ -15,7 +16,7 @@ namespace Shark {
 		Depth32,
 		Depth = Depth32
 	};
-	std::string EnumToString(ImageFormat format);
+	std::string ToString(ImageFormat format);
 
 	enum class ImageType : uint16_t
 	{
@@ -49,7 +50,7 @@ namespace Shark {
 
 		virtual bool IsValid() const = 0;
 
-		virtual void Set(const ImageSpecification& specs, void* data) = 0;
+		virtual void Set(const ImageSpecification& specs, Buffer imageData) = 0;
 		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) = 0;
 		virtual void Set(const std::filesystem::path& filePath) = 0;
 
@@ -71,9 +72,10 @@ namespace Shark {
 
 	public:
 		static Ref<Image2D> Create();
-		static Ref<Image2D> Create(const ImageSpecification& specs, void* data);
-		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, void* data);
+		static Ref<Image2D> Create(const ImageSpecification& specs);
+		static Ref<Image2D> Create(const ImageSpecification& specs, Buffer imageData);
 		static Ref<Image2D> Create(const ImageSpecification& specs, Ref<Image2D> data);
+		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		static Ref<Image2D> Create(const std::filesystem::path& filePath);
 	};
 

@@ -84,7 +84,7 @@ namespace Shark {
 		// Readable Mouse image for Mouse Picking
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
 		imageSpecs.Type = ImageType::Storage;
-		m_MousePickingImage = Image2D::Create(imageSpecs, nullptr);
+		m_MousePickingImage = Image2D::Create(imageSpecs);
 
 		// Load Project
 		if (!m_StartupProject.empty())

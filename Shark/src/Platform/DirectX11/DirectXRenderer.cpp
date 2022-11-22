@@ -96,7 +96,7 @@ namespace Shark {
 		m_ShaderLib->Load("Resources/Shaders/BlurEffect.hlsl");
 
 		uint32_t color = 0xFFFFFFFF;
-		m_WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, &color);
+		m_WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, Buffer::FromValue(color));
 
 		VertexLayout layout = {
 			{ VertexDataType::Float2, "Position" }
@@ -318,9 +318,15 @@ namespace Shark {
 	void DirectXRenderer::GenerateMips(Ref<Image2D> image)
 	{
 		SK_PROFILE_FUNCTION();
+		auto dxImage = image.As<DirectXImage2D>();
+		GenerateMips(dxImage.Raw());
+	}
 
-		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
-		const auto& specs = dxImage->GetSpecification();
+	void DirectXRenderer::GenerateMips(DirectXImage2D* image)
+	{
+		SK_PROFILE_FUNCTION();
+
+		const auto& specs = image->GetSpecification();
 
 		if (specs.MipLevels == 1)
 			return;
@@ -347,9 +353,9 @@ namespace Shark {
 		ID3D11ShaderResourceView* view = nullptr;
 		SK_DX11_CALL(m_Device->CreateShaderResourceView(texture, &viewDesc, &view));
 
-		m_ImmediateContext->CopySubresourceRegion(texture, 0, 0, 0, 0, dxImage->m_Resource, 0, nullptr);
+		m_ImmediateContext->CopySubresourceRegion(texture, 0, 0, 0, 0, image->m_Resource, 0, nullptr);
 		m_ImmediateContext->GenerateMips(view);
-		m_ImmediateContext->CopyResource(dxImage->m_Resource, texture);
+		m_ImmediateContext->CopyResource(image->m_Resource, texture);
 
 		view->Release();
 		texture->Release();

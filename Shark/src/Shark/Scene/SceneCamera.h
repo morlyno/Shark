@@ -92,4 +92,27 @@ namespace Shark {
 		float m_OrthographicNear = -1.0f, m_OrthographicFar = 1.0f;
 	};
 
+	constexpr std::string_view ToStringView(SceneCamera::Projection projection)
+	{
+		switch (projection)
+		{
+			case SceneCamera::Projection::None:          return "None"sv;
+			case SceneCamera::Projection::Perspective:   return "Perspective"sv;
+			case SceneCamera::Projection::Orthographic:  return "Orthographic"sv;
+		}
+
+		SK_CORE_ASSERT(false, "Unkown SceneCamera::Projection");
+		return std::string_view{};
+	}
+
+	constexpr SceneCamera::Projection StringToSceneCameraProjection(std::string_view projection)
+	{
+		if (projection == "None") return SceneCamera::Projection::None;
+		if (projection == "Perspective") return SceneCamera::Projection::Perspective;
+		if (projection == "Orthographic") return SceneCamera::Projection::Orthographic;
+
+		SK_CORE_ASSERT(false, "Unkonw SceneCamera::Projection string");
+		return SceneCamera::Projection::None;
+	}
+
 }

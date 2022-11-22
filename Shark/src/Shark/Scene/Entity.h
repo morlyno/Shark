@@ -13,8 +13,8 @@ namespace Shark {
 	{
 	public:
 		Entity() = default;
-		Entity(uint32_t entityhandle, const Weak<Scene>& scene);
-		Entity(entt::entity entityhandle, const Weak<Scene>& scene);
+		Entity(uint32_t entityhandle, Weak<Scene> scene);
+		Entity(entt::entity entityhandle, Weak<Scene> scene);
 		Entity(const Entity&) = default;
 
 		Weak<Scene> GetScene() const { return m_Scene; }

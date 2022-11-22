@@ -20,16 +20,17 @@ namespace Shark {
 	{
 	public:
 		DirectXImage2D();
-		DirectXImage2D(const ImageSpecification& specs, void* data);
+		DirectXImage2D(const ImageSpecification& specs);
+		DirectXImage2D(const ImageSpecification& specs, Buffer imageData);
 		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
-		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, void* data);
+		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		DirectXImage2D(const std::filesystem::path& filePath);
 		DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView);
 		virtual ~DirectXImage2D();
 
 		virtual bool IsValid() const override { return m_Resource && m_View; }
 
-		virtual void Set(const ImageSpecification& specs, void* data) override;
+		virtual void Set(const ImageSpecification& specs, Buffer imageData) override;
 		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) override;
 		virtual void Set(const std::filesystem::path& filePath) override;
 		
@@ -57,10 +58,9 @@ namespace Shark {
 	private:
 		void Release();
 		Buffer LoadDataFromFile(const std::filesystem::path& filePath);
-		std::filesystem::path GetSourcePath(const std::filesystem::path& filePath) const;
 
 		void CreateResource();
-		void UpdateResource();
+		void UpdateResource(Buffer imageData);
 
 		void CreateView();
 		bool IsDepthImage();
@@ -70,7 +70,6 @@ namespace Shark {
 
 	private:
 		ImageSpecification m_Specification;
-		Buffer m_ImageData;
 
 		ID3D11Texture2D* m_Resource = nullptr;
 		ID3D11ShaderResourceView* m_View = nullptr;

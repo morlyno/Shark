@@ -8,6 +8,7 @@ namespace Shark {
 	{
 	public:
 		Buffer() = default;
+		Buffer(std::nullptr_t) {}
 		Buffer(byte* data, uint64_t size) : Data(data), Size(size) {}
 		virtual ~Buffer() = default;
 
@@ -28,10 +29,15 @@ namespace Shark {
 		template<typename T>
 		const T* As() const { return (const T*)Data; }
 
+		template<typename TValue>
+		static Buffer FromValue(const TValue& value) { return Buffer((byte*)&value, sizeof(TValue)); }
+		template<typename TType, uint64_t TSize>
+		static Buffer FromArray(const TType(&array)[TSize]) { return Buffer((byte*)array, TSize * sizeof(TType)); }
+		static Buffer Copy(const byte* data, uint64_t Size);
+
+	public:
 		byte* Data = nullptr;
 		uint64_t Size = 0;
-
-		static Buffer Copy(const byte* data, uint64_t Size);
 	};
 
 	class ScopedBuffer : public Buffer

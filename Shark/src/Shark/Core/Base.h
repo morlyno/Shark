@@ -34,8 +34,8 @@
 #if SK_RELEASE
 	#define SK_DEBUG_BREAK() __debugbreak()
 	#define SK_ENABLE_MEMORY_TRACING 0
-	#define SK_ENABLE_ASSERT 1
-	#define SK_ENABLE_VERIFY 2
+	#define SK_ENABLE_ASSERT 0
+	#define SK_ENABLE_VERIFY 1
 	#define SK_ENABLE_VALIDATION 1
 	#define SK_ENABLE_PERF 1
 	#define SK_IF_DEBUG(...)
@@ -47,7 +47,9 @@
 
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
-#define SK_CONNECT(a, b) a ## b
+
+#define SK_IMPL_CONNECT(a, b) a##b
+#define SK_CONNECT(a, b) SK_IMPL_CONNECT(a, b)
 
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 

@@ -1,32 +1,42 @@
 Scene:
+  Name: Untitled
   ActiveCamera: 0xbbdb8872e6e21912
   Entities:
-    - Entity: 0x7b4d0118b16159d
+    - Entity: 555297427839915421
       TagComponent:
-        Tag: Runway
+        Name: Runway
       TransformComponent:
-        Position: [137.667343, 7.63050079, 0]
+        Translation: [137.667343, 7.63050079, 0]
         Rotation: [0, 0, 0]
-        Scaling: [200, 1, 1]
+        Scale: [200, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
-          - Child: 0x7cf1d7996374c146
-          - Child: 0x6fdb5a41218a9400
-          - Child: 0x5cd9d6e9c1328d56
-          - Child: 0x35ab5b9e80d8d945
-          - Child: 0x82750c6e7b4a0386
-          - Child: 0x2b4eedd8b79c2853
-          - Child: 0x4906fb640dac2f3d
-          - Child: 0x5cffc3e0d6d82fa6
-          - Child: 0xd1694f396ce9d961
-          - Child: 0x61adb7e4a8f1838b
-          - Child: 0x808b9592f051584f
-          - Child: 0xf2da79c29bb14fc7
+          - 9003214183888896326
+          - 8060135193891738624
+          - 6690615020892622166
+          - 3867285441352358213
+          - 9400433465860162438
+          - 3120693106863515731
+          - 5262169621773692733
+          - 6701290140995170214
+          - 15089679134540552545
+          - 7038483985364779915
+          - 9262661516947183695
+          - 17499433178844188615
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -40,20 +50,20 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0x14b0acb94394c041
+    - Entity: 1490881388362383425
       TagComponent:
-        Tag: Player
+        Name: Player
       TransformComponent:
-        Position: [0.447277188, 1.79727459, 0]
+        Translation: [0.447277188, 1.79727459, 0]
         Rotation: [0, 0, 0]
-        Scaling: [1, 1.46200013, 0.73099941]
+        Scale: [1, 1.46200013, 0.73099941]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
-          - Child: 0xbbdb8872e6e21912
+          - 13536563132073384210
       SpriteRendererComponent:
         Color: [0.818627477, 0.713584483, 0.104334891, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
       RigidBody2DComponent:
         Type: Dynamic
@@ -61,8 +71,17 @@ Scene:
         IsBullet: false
         Awake: true
         Enabled: true
-        GravityScale: 1
         AllowSleep: false
+        GravityScale: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1.5
+        Friction: 0.100000001
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -87,6 +106,9 @@ Scene:
           - Name: CameraEntity
             Type: Entity
             Value: 13536563132073384210
+          - Name: CameraTransform
+            Type: Component
+            Value: 13536563132073384210
           - Name: DestroyBallOnHit
             Type: Bool
             Value: true
@@ -108,17 +130,26 @@ Scene:
           - Name: m_Sprint
             Type: Bool
             Value: false
-    - Entity: 0x208852740dab9b52
+    - Entity: 2344214264445377362
       TagComponent:
-        Tag: DoorSensor
+        Name: DoorSensor
       TransformComponent:
-        Position: [24.4837399, 1.16422462, 0]
+        Translation: [24.4837399, 1.16422462, 0]
         Rotation: [0, 0, 0]
-        Scaling: [7.72183704, 6.2280035, 1]
+        Scale: [7.72183704, 6.2280035, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: true
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -131,21 +162,23 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.DoorSensor
         Fields:
-          []
-    - Entity: 0x2a6678a292180870
+          - Name: Door
+            Type: Entity
+            Value: 7825548097267742839
+    - Entity: 3055262036848543856
       TagComponent:
-        Tag: ElevatorOutside
+        Name: ElevatorOutside
       TransformComponent:
-        Position: [31.6583652, 8.42409325, -3.8146909e-06]
+        Translation: [31.6583652, 8.42409325, -3.8146909e-06]
         Rotation: [0, 0, 0]
-        Scaling: [5.02731562, 0.569610953, 1]
+        Scale: [5.02731562, 0.569610953, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.118440032, 0.410045177, 0.779411793, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
       RigidBody2DComponent:
         Type: Static
@@ -153,8 +186,17 @@ Scene:
         IsBullet: false
         Awake: true
         Enabled: true
-        GravityScale: 1
         AllowSleep: true
+        GravityScale: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -176,36 +218,45 @@ Scene:
           - Name: MarkerStart
             Type: Entity
             Value: 16057847568682307122
-    - Entity: 0x2b4eedd8b79c2853
+    - Entity: 3120693106863515731
       TagComponent:
-        Tag: Marker5
+        Name: Marker5
       TransformComponent:
-        Position: [-0.25, 2.98948908, 0]
+        Translation: [-0.25, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x2d7222168d7f312b
+    - Entity: 3274717359310319915
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [50.1755829, -2.47000003, 0]
+        Translation: [50.1755829, -2.47000003, 0]
         Rotation: [0, 0, 0]
-        Scaling: [50.4362755, 1, 1]
+        Scale: [50.4362755, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -219,81 +270,90 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0x35ab5b9e80d8d945
+    - Entity: 3867285441352358213
       TagComponent:
-        Tag: Marker3
+        Name: Marker3
       TransformComponent:
-        Position: [-0.349999994, 2.98948908, 0]
+        Translation: [-0.349999994, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x4906fb640dac2f3d
+    - Entity: 5262169621773692733
       TagComponent:
-        Tag: Marker6
+        Name: Marker6
       TransformComponent:
-        Position: [-0.200000003, 2.98948908, 0]
+        Translation: [-0.200000003, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x5cd9d6e9c1328d56
+    - Entity: 6690615020892622166
       TagComponent:
-        Tag: Marker2
+        Name: Marker2
       TransformComponent:
-        Position: [-0.400000006, 2.98948908, 0]
+        Translation: [-0.400000006, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x5cffc3e0d6d82fa6
+    - Entity: 6701290140995170214
       TagComponent:
-        Tag: Marker7
+        Name: Marker7
       TransformComponent:
-        Position: [-0.150000006, 2.98948908, 0]
+        Translation: [-0.150000006, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x5e341a7845afd12b
+    - Entity: 6788079642221728043
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [10.9783669, 5.04832745, 0]
+        Translation: [10.9783669, 5.04832745, 0]
         Rotation: [0, 0, 0]
-        Scaling: [3.8718853, 1, 1]
+        Scale: [3.8718853, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -307,36 +367,45 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0x61adb7e4a8f1838b
+    - Entity: 7038483985364779915
       TagComponent:
-        Tag: Marker9
+        Name: Marker9
       TransformComponent:
-        Position: [-0.0500000007, 2.98948908, 0]
+        Translation: [-0.0500000007, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x63c6ec00a49d7fa4
+    - Entity: 7189693342649515940
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [-24.3999996, 3.30032444, 0.00999999978]
+        Translation: [-24.3999996, 3.30032444, 0.00999999978]
         Rotation: [0, 0, -1.57079625]
-        Scaling: [11.9428282, 0.999999821, 1]
+        Scale: [11.9428282, 0.999999821, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -350,21 +419,30 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0x647ce187fd0f1ceb
+    - Entity: 7240910275087375595
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [0.0145327449, -2.47060847, 0]
+        Translation: [0.0145327449, -2.47060847, 0]
         Rotation: [0, 0, 0]
-        Scaling: [49.8395576, 1, 1]
+        Scale: [49.8395576, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -378,21 +456,30 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0x6802d506a686729b
+    - Entity: 7494786954438275739
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [-4.28695583, 7.759758, 0]
+        Translation: [-4.28695583, 7.759758, 0]
         Rotation: [0, 0, 0]
-        Scaling: [3.8718853, 1, 1]
+        Scale: [3.8718853, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -406,21 +493,30 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0x6c99ee886e60b877
+    - Entity: 7825548097267742839
       TagComponent:
-        Tag: Door
+        Name: Door
       TransformComponent:
-        Position: [24.4400005, 3.02999997, 0]
+        Translation: [24.4400005, 3.02999997, 0]
         Rotation: [0, 0, -1.57079625]
-        Scaling: [11.9428282, 0.999999821, 1]
+        Scale: [11.9428282, 0.999999821, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -434,51 +530,60 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0x6fdb5a41218a9400
+    - Entity: 8060135193891738624
       TagComponent:
-        Tag: Marker1
+        Name: Marker1
       TransformComponent:
-        Position: [-0.449999988, 2.98948908, 0]
+        Translation: [-0.449999988, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x7cf1d7996374c146
+    - Entity: 9003214183888896326
       TagComponent:
-        Tag: Marker0
+        Name: Marker0
       TransformComponent:
-        Position: [-0.498937309, 2.98948908, 0]
+        Translation: [-0.498937309, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x7ea5428e94ce6128
+    - Entity: 9125773400085520680
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [-23.9843826, 8.69563675, 0]
+        Translation: [-23.9843826, 8.69563675, 0]
         Rotation: [-0, 0, -0.785398185]
-        Scaling: [8.11126232, 1, 1]
+        Scale: [8.11126232, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -492,51 +597,60 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0x808b9592f051584f
+    - Entity: 9262661516947183695
       TagComponent:
-        Tag: Marker10
+        Name: Marker10
       TransformComponent:
-        Position: [0, 2.98948908, 0]
+        Translation: [0, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x82750c6e7b4a0386
+    - Entity: 9400433465860162438
       TagComponent:
-        Tag: Marker4
+        Name: Marker4
       TransformComponent:
-        Position: [-0.300000012, 2.98948908, 0]
+        Translation: [-0.300000012, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0x8c7a856c8315563b
+    - Entity: 10122549813570786875
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [-17.0170174, 1.88892102, 0]
+        Translation: [-17.0170174, 1.88892102, 0]
         Rotation: [0, 0, 0]
-        Scaling: [5.92999077, 1, 1]
+        Scale: [5.92999077, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -550,15 +664,15 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0x9542421fd34573a5
+    - Entity: 10755231564570129317
       TagComponent:
-        Tag: BallTemplate
+        Name: BallTemplate
       TransformComponent:
-        Position: [-42.1114731, -15.0414038, 0]
+        Translation: [-42.1114731, -15.0414038, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.540000021, 0.540000021, 0.540000021]
+        Scale: [0.540000021, 0.540000021, 0.540000021]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       CircleRendererComponent:
@@ -571,8 +685,8 @@ Scene:
         IsBullet: false
         Awake: true
         Enabled: false
-        GravityScale: 1
         AllowSleep: true
+        GravityScale: 1
       CircleCollider2DComponent:
         Radius: 0.5
         Offset: [0, 0]
@@ -582,48 +696,57 @@ Scene:
         Restitution: 0.400000006
         RestitutionThreshold: 1
         IsSensor: false
-    - Entity: 0xb40282b589fd46d2
+    - Entity: 12971073592996218578
       TagComponent:
-        Tag: ElevatorMarkerOutsideTop
+        Name: ElevatorMarkerOutsideTop
       TransformComponent:
-        Position: [32, 7.92744923, 0]
+        Translation: [32, 7.92744923, 0]
         Rotation: [0, 0, 0]
-        Scaling: [1, 1, 1]
+        Scale: [1, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
-    - Entity: 0xbbdb8872e6e21912
+    - Entity: 13536563132073384210
       TagComponent:
-        Tag: Camera
+        Name: Camera
       TransformComponent:
-        Position: [0, 0, -42.0822182]
+        Translation: [0, 0, -42.0822182]
         Rotation: [0, 0, 0]
-        Scaling: [1, 0.684931517, 1.00000012]
+        Scale: [1, 0.684931517, 1.00000012]
       RelationshipComponent:
-        Parent: 0x14b0acb94394c041
+        Parent: 1490881388362383425
         Children:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.08737874
+        Aspectratio: 2.25285172
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
         OrthographicZoom: 10
         OrthographicNear: -1
         OrthographicFar: 1
-    - Entity: 0xc17b6d6adcc7bc74
+    - Entity: 13941857377193540724
       TagComponent:
-        Tag: BallDestroyer
+        Name: BallDestroyer
       TransformComponent:
-        Position: [0, 6.43789101, 0]
+        Translation: [0, 6.43789101, 0]
         Rotation: [0, 0, 0]
-        Scaling: [76.3412781, 44.1148911, 76.3412781]
+        Scale: [76.3412781, 44.1148911, 76.3412781]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: true
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -637,21 +760,30 @@ Scene:
         ScriptName: Sandbox.BallDestroyer
         Fields:
           []
-    - Entity: 0xc539186ecd448346
+    - Entity: 14211416963313599302
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [-25.7128296, 17.9947548, 0]
+        Translation: [-25.7128296, 17.9947548, 0]
         Rotation: [0, 0, 1.43581331]
-        Scaling: [13.9680748, 0.999966443, 1]
+        Scale: [13.9680748, 0.999966443, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -665,56 +797,65 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0xc55718d7fdd18f8f
+    - Entity: 14219861664401035151
       TagComponent:
-        Tag: Camera Otho
+        Name: Camera Otho
       TransformComponent:
-        Position: [0, 0, 0]
+        Translation: [0, 0, 0]
         Rotation: [0, 0, 0]
-        Scaling: [1, 1, 1]
+        Scale: [1, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       CameraComponent:
         Type: Orthographic
-        Aspectratio: 2.08737874
+        Aspectratio: 2.25285172
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
         OrthographicZoom: 13.0200005
         OrthographicNear: -1
         OrthographicFar: 20
-    - Entity: 0xd1694f396ce9d961
+    - Entity: 15089679134540552545
       TagComponent:
-        Tag: Marker8
+        Name: Marker8
       TransformComponent:
-        Position: [-0.100000001, 2.98948908, 0]
+        Translation: [-0.100000001, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0xdb4aee8ea6736109
+    - Entity: 15801704539028152585
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [20.2288933, 16.7452679, 0]
+        Translation: [20.2288933, 16.7452679, 0]
         Rotation: [0, 0, -1.08275139]
-        Scaling: [18.0373764, 0.999999225, 1]
+        Scale: [18.0373764, 0.999999225, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -728,31 +869,31 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
-    - Entity: 0xded8ef491cadce32
+    - Entity: 16057847568682307122
       TagComponent:
-        Tag: ElevatorMarkerOutsideBottem
+        Name: ElevatorMarkerOutsideBottem
       TransformComponent:
-        Position: [32, -2.50523639, 0]
+        Translation: [32, -2.50523639, 0]
         Rotation: [0, 0, 0]
-        Scaling: [1, 1, 1]
+        Scale: [1, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
-    - Entity: 0xf2da79c29bb14fc7
+    - Entity: 17499433178844188615
       TagComponent:
-        Tag: End
+        Name: End
       TransformComponent:
-        Position: [0.5, 2.98948908, 0]
+        Translation: [0.5, 2.98948908, 0]
         Rotation: [0, 0, 0]
-        Scaling: [0.00200000009, 5, 1]
+        Scale: [0.00200000009, 5, 1]
       RelationshipComponent:
-        Parent: 0x7b4d0118b16159d
+        Parent: 555297427839915421
         Children:
           []
       SpriteRendererComponent:
         Color: [0.622549057, 0.0671376586, 0.0671376586, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
@@ -763,36 +904,54 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-    - Entity: 0xf42ff09aeb3afef2
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+    - Entity: 17595546817321959154
       TagComponent:
-        Tag: Quad
+        Name: Quad
       TransformComponent:
-        Position: [-0.344259977, 1.54446173, 7.09832668]
+        Translation: [-0.344259977, 1.54446173, 7.09832668]
         Rotation: [0.650556803, -0.0608302988, 0.0797070712]
-        Scaling: [5.89680052, 5.89680052, 5.89679861]
+        Scale: [5.89680052, 5.89680052, 5.89679861]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
-    - Entity: 0xfd4fa3077eb46a0e
+    - Entity: 18252987067341761038
       TagComponent:
-        Tag: Floor
+        Name: Floor
       TransformComponent:
-        Position: [0.0145327449, 24.4650364, 0]
+        Translation: [0.0145327449, 24.4650364, 0]
         Rotation: [0, 0, 0]
-        Scaling: [49.8395576, 1, 1]
+        Scale: [49.8395576, 1, 1]
       RelationshipComponent:
-        Parent: 0x0
+        Parent: 0
         Children:
           []
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 1
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]

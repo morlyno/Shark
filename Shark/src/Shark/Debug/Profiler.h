@@ -64,7 +64,7 @@ namespace Shark {
 #if SK_ENABLE_PERF
 #define SK_PERF_NEW_FRAME()  ::Shark::PerformanceProfiler::NewFrame()
 
-#define SK_PERF_SCOPED(name) ::Shark::PerformanceTimer SK_CONNECT(performanceTimerAutoGenName, __LINE__) { name };
+#define SK_PERF_SCOPED(name) ::Shark::PerformanceTimer SK_CONNECT(performanceTimerAutoGenName, __LINE__) = ::Shark::PerformanceTimer{ name }
 #define SK_PERF_FUNCTION()   SK_PERF_SCOPED(SK_FUNCTION_DECORATED)
 #else
 #define SK_PERF_NEW_FRAME(...)

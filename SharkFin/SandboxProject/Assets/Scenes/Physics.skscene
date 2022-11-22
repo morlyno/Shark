@@ -1,69 +1,38 @@
 Scene:
+  Name: Untitled
   ActiveCamera: 0x2e44ed8b65b9472e
   Entities:
-    - Entity: 0x2e44ed8b65b9472e
+    - Entity: 3334050807123887918
       TagComponent:
-        Tag: Camera
+        Name: Camera
       TransformComponent:
-        Position: [0, 0.0552585721, -28.6937923]
+        Translation: [0, 0.0552585721, -28.6937923]
         Rotation: [0, 0, 0]
-        Scaling: [1, 1, 1]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.11663818
+        Aspectratio: 2.25285172
         PerspectiveFOV: 45
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
         OrthographicZoom: 10
         OrthographicNear: -1
         OrthographicFar: 1
-    - Entity: 0xf9a00f12967e85c0
+    - Entity: 5592006915575172109
       TagComponent:
-        Tag: Ground
+        Name: Circle
       TransformComponent:
-        Position: [1.65705359, -9.35008907, -9.99820941e-07]
-        Rotation: [0, -0, -1.02152908]
-        Scaling: [19.3302097, 0.528312922, 1]
-      SpriteRendererComponent:
-        Color: [0.171613112, 0.45588237, 0.0692762434, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
-    - Entity: 0x98e79eb8911cd801
-      TagComponent:
-        Tag: Ground
-      TransformComponent:
-        Position: [-0.325770617, -1.76883614, -9.60547254e-07]
-        Rotation: [0, -0, -0.211496517]
-        Scaling: [19.3302097, 0.528312922, 1]
-      SpriteRendererComponent:
-        Color: [0.171613112, 0.45588237, 0.0692762434, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
-    - Entity: 0x4d9acca97862cc0d
-      TagComponent:
-        Tag: Circle
-      TransformComponent:
-        Position: [0, 0, 0]
+        Translation: [0, 0, 0]
         Rotation: [0, 0, 0]
-        Scaling: [1, 1, 1]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
       CircleRendererComponent:
         Color: [0.451901883, 0.0493800528, 0.671568632, 1]
         Thickness: 1
@@ -74,8 +43,8 @@ Scene:
         IsBullet: false
         Awake: true
         Enabled: true
-        GravityScale: 1
         AllowSleep: true
+        GravityScale: 1
       CircleCollider2DComponent:
         Radius: 0.5
         Offset: [0.5, -0.5]
@@ -85,36 +54,20 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-    - Entity: 0xb21e72814b0007ed
+    - Entity: 8382816973804689435
       TagComponent:
-        Tag: Ground
+        Name: Quad
       TransformComponent:
-        Position: [13.1343651, -9.47965813, -9.8246835e-07]
-        Rotation: [0, -0, 0.34689483]
-        Scaling: [19.3302078, 0.528312981, 1]
-      SpriteRendererComponent:
-        Color: [0.171613112, 0.45588237, 0.0692762434, 1]
-        Texture: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
-    - Entity: 0x7455bf9fa4be581b
-      TagComponent:
-        Tag: Quad
-      TransformComponent:
-        Position: [-3.29856825, 1.48684013, 0]
+        Translation: [-3.29856825, 1.48684013, 0]
         Rotation: [0, -0, 0]
-        Scaling: [1, 1, 1]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.79411763, 0.443767548, 0, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
       RigidBody2DComponent:
         Type: Dynamic
@@ -122,8 +75,8 @@ Scene:
         IsBullet: false
         Awake: true
         Enabled: true
-        GravityScale: 1
         AllowSleep: true
+        GravityScale: 1
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -133,17 +86,138 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-    - Entity: 0xfdcd99b0a765cd7f
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+    - Entity: 11017949528930965505
       TagComponent:
-        Tag: Ground
+        Name: Ground
       TransformComponent:
-        Position: [-0.325770617, -1.76883614, -9.60547254e-07]
+        Translation: [-0.325770617, -1.76883614, -9.60547254e-07]
         Rotation: [0, -0, -0.211496517]
-        Scaling: [19.3302097, 0.528312922, 1]
+        Scale: [19.3302097, 0.528312922, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
       SpriteRendererComponent:
         Color: [0.171613112, 0.45588237, 0.0692762434, 1]
-        Texture: 0
+        TextureHandle: 0
         TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+    - Entity: 12834821887687133165
+      TagComponent:
+        Name: Ground
+      TransformComponent:
+        Translation: [13.1343651, -9.47965813, -9.8246835e-07]
+        Rotation: [0, -0, 0.34689483]
+        Scale: [19.3302078, 0.528312981, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.171613112, 0.45588237, 0.0692762434, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+    - Entity: 17987393484226463168
+      TagComponent:
+        Name: Ground
+      TransformComponent:
+        Translation: [1.65705359, -9.35008907, -9.99820941e-07]
+        Rotation: [0, -0, -1.02152908]
+        Scale: [19.3302097, 0.528312922, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.171613112, 0.45588237, 0.0692762434, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+    - Entity: 18288442645823212927
+      TagComponent:
+        Name: Ground
+      TransformComponent:
+        Translation: [-0.325770617, -1.76883614, -9.60547254e-07]
+        Rotation: [0, -0, -0.211496517]
+        Scale: [19.3302097, 0.528312922, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.171613112, 0.45588237, 0.0692762434, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]

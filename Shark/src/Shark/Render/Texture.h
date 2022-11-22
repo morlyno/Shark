@@ -9,11 +9,34 @@
 
 namespace Shark {
 
+	class TextureSource : public Asset
+	{
+	public:
+		TextureSource() = default;
+		virtual ~TextureSource()
+		{
+			ImageData.Release();
+		}
+
+		static AssetType GetStaticType() { return AssetType::TextureSource; }
+		virtual AssetType GetAssetType() const override { return GetStaticType(); }
+
+		static Ref<TextureSource> Create() { return Ref<TextureSource>::Create(); }
+
+		Buffer ImageData;
+		ImageFormat Format;
+		uint32_t Width = 0, Height = 0;
+	};
+
+
 	enum class FilterMode : uint16_t { Nearest, Linear };
 	enum class WrapMode : uint16_t { Repeat, Clamp, Mirror, Border };
 
-	std::string EnumToString(FilterMode filterMode);
-	std::string EnumToString(WrapMode wrapMode);
+	std::string ToString(FilterMode filterMode);
+	std::string ToString(WrapMode wrapMode);
+
+	FilterMode StringToFilterMode(std::string_view filterMode);
+	WrapMode StringToWrapMode(std::string_view wrapMode);
 
 	struct TextureWrapModes
 	{
@@ -52,7 +75,9 @@ namespace Shark {
 	public:
 		virtual ~Texture2D() = default;
 
-		virtual void Set(const TextureSpecification& specs, void* data) = 0;
+		virtual void Release() = 0;
+
+		virtual void Set(const TextureSpecification& specs, Buffer data) = 0;
 		virtual void SetSampler(const SamplerSpecification& specs) = 0;
 
 		virtual void Set(const TextureSpecification& specs, Ref<Texture2D> data) = 0;
@@ -69,8 +94,8 @@ namespace Shark {
 
 	public:
 		static Ref<Texture2D> Create();
-		static Ref<Texture2D> Create(const TextureSpecification& specs, void* data);
-		static Ref<Texture2D> Create(ImageFormat format, uint32_t width, uint32_t height, void* data);
+		static Ref<Texture2D> Create(const TextureSpecification& specs, Buffer imageData);
+		static Ref<Texture2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 
 		static Ref<Texture2D> Create(const TextureSpecification& specs, Ref<Texture2D> data);
 		static Ref<Texture2D> Create(Ref<Texture2D> data) { return Create(data->GetSpecification(), data); }
@@ -84,8 +109,8 @@ namespace Shark {
 		virtual ~Texture2DArray() = default;
 
 		virtual Ref<Texture2D> Create(uint32_t index) = 0;
-		virtual Ref<Texture2D> Create(uint32_t index, const TextureSpecification& specs, void* data) = 0;
-		virtual Ref<Texture2D> Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, void* data) = 0;
+		virtual Ref<Texture2D> Create(uint32_t index, const TextureSpecification& specs, Buffer imageData) = 0;
+		virtual Ref<Texture2D> Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, Buffer imageData) = 0;
 
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) = 0;
 		virtual Ref<Texture2D> Get(uint32_t index) const = 0;

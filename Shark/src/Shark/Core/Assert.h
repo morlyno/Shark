@@ -15,17 +15,13 @@
 #define SK_CORE_ASSERT(...) (void)0
 #endif
 
-#if SK_ENABLE_VERIFY == 1
-#define SK_INTERNAL_VERIFY_IMPL(arg, msg) if (!(arg)) { SK_CORE_ERROR(msg); SK_DEBUG_BREAK(); }
-#elif SK_ENABLE_VERIFY == 2
-#define SK_INTERNAL_VERIFY_IMPL(arg, msg) if (!(arg)) { SK_CORE_ERROR(msg); }
-#endif
-
-#if (SK_ENABLE_VERIFY > 0)
-#define SK_INTERNAL_VERIFY_MSG(arg, msg) SK_INTERNAL_VERIFY_IMPL(arg, fmt::format("Verify {} Failed: {}", SK_STRINGIFY(arg), msg))
-#define SK_INTERNAL_VERIFY_NO_MSG(arg, ...) SK_INTERNAL_VERIFY_IMPL(arg, fmt::format("Verify {} Failed at {}:{}", SK_STRINGIFY(arg), __FILE__, __LINE__))
+#if SK_ENABLE_VERIFY
+#define SK_INTERNAL_VERIFY_MSG(arg, msg) if (!(arg)) { SK_CORE_CRITICAL(fmt::format("Verify {} Failed: {}", SK_STRINGIFY(arg), msg)); SK_DEBUG_BREAK(); }
+#define SK_INTERNAL_VERIFY_NO_MSG(arg, ...) if (!(arg)) { SK_CORE_CRITICAL(fmt::format("Verify {} Failed at {}:{}", SK_STRINGIFY(arg), __FILE__, __LINE__)); SK_DEBUG_BREAK(); }
 #define SK_INTERNAL_VERIFY_GET_MACRO_2(arg0, arg1, macro, ...) macro
 #define SK_INTERNAL_VERIFY_GET_MACRO(...) SK_EXPAND(SK_INTERNAL_VERIFY_GET_MACRO_2(__VA_ARGS__, SK_INTERNAL_VERIFY_MSG, SK_INTERNAL_VERIFY_NO_MSG))
 
 #define SK_CORE_VERIFY(...) SK_EXPAND(SK_INTERNAL_VERIFY_GET_MACRO(__VA_ARGS__)(__VA_ARGS__))
+#else
+#define SK_CORE_VERIFY(...) (void)0
 #endif

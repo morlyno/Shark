@@ -34,7 +34,7 @@ namespace Shark {
 	class Scene : public Asset
 	{
 	public:
-		Scene();
+		Scene(const std::string& name = "Untitled");
 		~Scene();
 		
 		Scene(const Scene& other) = delete;
@@ -44,6 +44,11 @@ namespace Shark {
 
 		static Ref<Scene> Copy(Ref<Scene> srcScene);
 		void CopyTo(Ref<Scene> destScene);
+
+		const std::string& GetName() const { return m_Name; }
+		void SetName(const std::string& name) { m_Name = name; }
+
+		void DestroyEntities();
 
 		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
 		bool IsEditorScene() { return m_IsEditorScene; }
@@ -103,6 +108,9 @@ namespace Shark {
 		bool ConvertToWorldSpace(Entity entity);
 
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
+
+		// returns all entities sorted by UUID
+		std::vector<Entity> GetEntitiesSorted();
 		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
 
 		template<typename TFunc>
@@ -134,6 +142,8 @@ namespace Shark {
 		void OnCameraComponentDestroyed(entt::registry& registry, entt::entity ent);
 
 	private:
+		std::string m_Name;
+
 		entt::registry m_Registry;
 		UUID m_ActiveCameraUUID = UUID::Null;
 

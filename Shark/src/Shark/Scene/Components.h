@@ -155,4 +155,29 @@ namespace Shark {
 		friend class ScriptEngine;
 	};
 
+	inline std::string_view ToStringView(RigidBody2DComponent::BodyType type)
+	{
+		switch (type)
+		{
+			case RigidBody2DComponent::BodyType::None: return "None";
+			case RigidBody2DComponent::BodyType::Static: return "Static";
+			case RigidBody2DComponent::BodyType::Dynamic: return "Dynamic";
+			case RigidBody2DComponent::BodyType::Kinematic: return "Kinematic";
+		}
+
+		SK_CORE_ASSERT(false, "Unkown RigidBody2DType");
+		return "Unkown";
+	}
+
+	inline RigidBody2DComponent::BodyType ToEnumRigidBody2DType(std::string_view type)
+	{
+		if (type == "None") return RigidBody2DComponent::BodyType::None;
+		if (type == "Static") return RigidBody2DComponent::BodyType::Static;
+		if (type == "Dynamic") return RigidBody2DComponent::BodyType::Dynamic;
+		if (type == "Kinematic") return RigidBody2DComponent::BodyType::Kinematic;
+
+		SK_CORE_ASSERT(false, "Unkown RigidBody2DType string");
+		return RigidBody2DComponent::BodyType::None;
+	}
+
 }

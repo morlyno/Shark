@@ -170,32 +170,31 @@ namespace Shark {
 
 	Buffer FileSystem::ReadBinary(const std::filesystem::path& filePath)
 	{
-		Buffer buffer;
-		std::ifstream fin(filePath, std::ios::binary);
-		if (fin)
-		{
-			fin.seekg(0, std::ios::end);
-			size_t fileSize = fin.tellg();
-			fin.seekg(0, std::ios::beg);
-			buffer.Allocate(fileSize);
-			fin.read(buffer.As<char>(), fileSize);
-		}
-		return buffer;
+		std::ifstream stream(filePath, std::ios::ate | std::ios::binary);
+		if (!stream)
+			return Buffer{};
+
+		uint64_t streamSize = (uint64_t)stream.tellg();
+		if (!streamSize)
+			return Buffer{};
+
+		stream.seekg(0, std::ios::beg);
+
+		Buffer filedata;
+		filedata.Allocate(streamSize);
+		stream.read(filedata.As<char>(), streamSize);
+		return filedata;
 	}
 
 	std::string FileSystem::ReadString(const std::filesystem::path& filePath)
 	{
-		std::string buffer;
-		std::ifstream fin(filePath);
-		if (fin)
-		{
-			fin.seekg(0, std::ios::end);
-			size_t fileSize = fin.tellg();
-			fin.seekg(0, std::ios::beg);
-			buffer.resize(fileSize);
-			fin.read(buffer.data(), fileSize);
-		}
-		return buffer;
+		std::ifstream stream(filePath);
+		if (!stream)
+			return std::string{};
+
+		std::stringstream strStream;
+		strStream << stream.rdbuf();
+		return strStream.str();
 	}
 
 	void FileSystem::TruncateFile(const std::filesystem::path& filePath)

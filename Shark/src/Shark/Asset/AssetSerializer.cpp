@@ -1,11 +1,14 @@
 #include "skpch.h"
 #include "AssetSerializer.h"
 
-#include "Shark/Asset/Serializers.h"
+#include "Shark/Serialization/SerializerBase.h"
+#include "Shark/Serialization/SceneSerializer.h"
+#include "Shark/Serialization/TextureSerializers.h"
+#include "Shark/Serialization/ScriptSerializers.h"
 
 namespace Shark {
 
-	static std::unordered_map<AssetType, Scope<Serializer>> s_Serializers;
+	static std::unordered_map<AssetType, Scope<SerializerBase>> s_Serializers;
 
 	void AssetSerializer::RegisterSerializers()
 	{
@@ -25,14 +28,14 @@ namespace Shark {
 		if (s_Serializers.find(metadata.Type) != s_Serializers.end())
 		{
 			const auto& serializer = s_Serializers.at(metadata.Type);
-			return serializer->TryLoadData(asset, metadata);
+			return serializer->Deserialize(asset, metadata);
 		}
 
 		SK_CORE_ASSERT(false, "Serializer not found");
 		return false;
 	}
 
-	bool AssetSerializer::Serialize(const Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool AssetSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
 		if (s_Serializers.find(metadata.Type) != s_Serializers.end())
 		{

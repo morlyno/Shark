@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	std::string EnumToString(FilterMode filterMode)
+	std::string ToString(FilterMode filterMode)
 	{
 		switch (filterMode)
 		{
@@ -17,7 +17,7 @@ namespace Shark {
 		return "Unkown";
 	}
 
-	std::string EnumToString(WrapMode wrapMode)
+	std::string ToString(WrapMode wrapMode)
 	{
 		switch (wrapMode)
 		{
@@ -28,6 +28,26 @@ namespace Shark {
 		}
 		SK_CORE_ASSERT(false, "Unkown FilterMode");
 		return "Unkown";
+	}
+
+	FilterMode StringToFilterMode(std::string_view filterMode)
+	{
+		if (filterMode == "Nearest") return FilterMode::Nearest;
+		if (filterMode == "Linear") return FilterMode::Linear;
+
+		SK_CORE_ASSERT(false, "Unkown FilterMode");
+		return FilterMode::Linear;
+	}
+
+	WrapMode StringToWrapMode(std::string_view wrapMode)
+	{
+		if (wrapMode == "Repeat") return WrapMode::Repeat;
+		if (wrapMode == "Clamp") return WrapMode::Clamp;
+		if (wrapMode == "Mirror") return WrapMode::Mirror;
+		if (wrapMode == "Border") return WrapMode::Border;
+
+		SK_CORE_ASSERT(false, "Unkown wrap mode");
+		return WrapMode::Repeat;
 	}
 
 
@@ -42,24 +62,24 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specs, void* data)
+	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specs, Buffer imageData)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specs, data);
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specs, imageData);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
 	}
 
 
-	Ref<Texture2D> Texture2D::Create(ImageFormat format, uint32_t width, uint32_t height, void* data)
+	Ref<Texture2D> Texture2D::Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(format, width, height, data);
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(format, width, height, imageData);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;

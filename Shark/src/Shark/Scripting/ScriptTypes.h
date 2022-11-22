@@ -87,7 +87,7 @@ namespace Shark {
 		return "Unkown";
 	}
 
-	inline ManagedFieldType ToManagedFieldType(const std::string& type)
+	inline ManagedFieldType StringToManagedFieldType(const std::string& type)
 	{
 		if (type == "None") return ManagedFieldType::None;
 		if (type == "Bool") return ManagedFieldType::Bool;

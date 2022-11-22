@@ -21,6 +21,14 @@ namespace YAML {
 	template<>
 	struct convert<glm::vec2>
 	{
+		static Node encode(const glm::vec2& val)
+		{
+			Node node(NodeType::Sequence);
+			node.push_back(val.x);
+			node.push_back(val.y);
+			return node;
+		}
+
 		static bool decode(const Node& node, glm::vec2& f2)
 		{
 			if (!node.IsSequence() || node.size() != 2)
@@ -36,6 +44,15 @@ namespace YAML {
 	template<>
 	struct convert<glm::vec3>
 	{
+		static Node encode(const glm::vec3& val)
+		{
+			Node node(NodeType::Sequence);
+			node.push_back(val.x);
+			node.push_back(val.y);
+			node.push_back(val.z);
+			return node;
+		}
+
 		static bool decode(const Node& node, glm::vec3& f3)
 		{
 			if (!node.IsSequence() || node.size() != 3)
@@ -52,6 +69,16 @@ namespace YAML {
 	template<>
 	struct convert<glm::vec4>
 	{
+		static Node encode(const glm::vec4& val)
+		{
+			Node node(NodeType::Sequence);
+			node.push_back(val.x);
+			node.push_back(val.y);
+			node.push_back(val.z);
+			node.push_back(val.w);
+			return node;
+		}
+
 		static bool decode(const Node& node, glm::vec4& f4)
 		{
 			if (!node.IsSequence() || node.size() != 4)
@@ -67,8 +94,32 @@ namespace YAML {
 	};
 
 	template<>
+	struct convert<std::string_view>
+	{
+		static Node encode(std::string_view str)
+		{
+			return Node(std::string(str));
+		}
+
+		static bool decode(const Node& node, std::string_view& str)
+		{
+			if (node.IsScalar())
+			{
+				str = node.Scalar();
+				return true;
+			}
+			return false;
+		}
+	};
+
+	template<>
 	struct convert<std::filesystem::path>
 	{
+		static Node encode(const std::filesystem::path& path)
+		{
+			return Node(path.generic_string());
+		}
+
 		static bool decode(const Node& node, std::filesystem::path& rhs)
 		{
 			if (!node.IsScalar())
@@ -81,6 +132,11 @@ namespace YAML {
 	template<>
 	struct convert<Shark::UUID>
 	{
+		static Node encode(const Shark::UUID& uuid)
+		{
+			return Node((uint64_t)uuid);
+		}
+
 		static bool decode(const Node& node, Shark::UUID& rhs)
 		{
 			return convert<uint64_t>::decode(node, (uint64_t&)rhs);

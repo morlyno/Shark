@@ -32,6 +32,7 @@ namespace Shark {
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount) override;
 
 		virtual void GenerateMips(Ref<Image2D> image) override;
+		void GenerateMips(DirectXImage2D* image);
 
 		virtual void ClearAllCommandBuffers() override;
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }

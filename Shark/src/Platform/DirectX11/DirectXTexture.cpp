@@ -53,7 +53,7 @@ namespace Shark {
 	{
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specs, void* data)
+	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specs, Buffer imageData)
 		: m_Specs(specs)
 	{
 		ImageSpecification imageSpecs;
@@ -62,12 +62,12 @@ namespace Shark {
 		imageSpecs.Format = specs.Format;
 		imageSpecs.MipLevels = specs.MipLevels;
 		imageSpecs.Type = ImageType::Texture;
-		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
+		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, imageData);
 
 		CreateSampler();
 	}
 
-	DirectXTexture2D::DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, void* data)
+	DirectXTexture2D::DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
 	{
 		m_Specs.Format = format;
 		m_Specs.Width = width;
@@ -79,7 +79,7 @@ namespace Shark {
 		imageSpecs.Format = m_Specs.Format;
 		imageSpecs.MipLevels = 1;
 		imageSpecs.Type = ImageType::Texture;
-		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
+		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, imageData);
 
 		CreateSampler();
 	}
@@ -116,7 +116,15 @@ namespace Shark {
 			m_Sampler->Release();
 	}
 
-	void DirectXTexture2D::Set(const TextureSpecification& specs, void* data)
+	void DirectXTexture2D::Release()
+	{
+		if (m_Sampler)
+			m_Sampler->Release();
+
+		m_Image = nullptr;
+	}
+
+	void DirectXTexture2D::Set(const TextureSpecification& specs, Buffer data)
 	{
 		m_Specs = specs;
 
@@ -218,16 +226,16 @@ namespace Shark {
 		return texture;
 	}
 
-	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, const TextureSpecification& specs, void* data)
+	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, const TextureSpecification& specs, Buffer imageData)
 	{
-		auto texture = Ref<DirectXTexture2D>::Create(specs, data);
+		auto texture = Ref<DirectXTexture2D>::Create(specs, imageData);
 		SetTexture(index, texture);
 		return texture;
 	}
 
-	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, void* data)
+	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
 	{
-		auto texture = Ref<DirectXTexture2D>::Create(format, width, height, data);
+		auto texture = Ref<DirectXTexture2D>::Create(format, width, height, imageData);
 		SetTexture(index, texture);
 		return texture;
 	}

@@ -61,7 +61,8 @@ namespace Shark {
 	}
 
 
-	Scene::Scene()
+	Scene::Scene(const std::string& name)
+		: m_Name(name)
 	{
 		m_Registry.on_destroy<CameraComponent>().connect<&Scene::OnCameraComponentDestroyed>(this);
 	}
@@ -107,6 +108,13 @@ namespace Shark {
 		CopyComponents<CircleCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<ScriptComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 
+	}
+
+	void Scene::DestroyEntities()
+	{
+		m_Registry.clear();
+		m_ActiveCameraUUID = UUID::Null;
+		m_EntityUUIDMap.clear();
 	}
 
 	void Scene::OnScenePlay()
@@ -562,6 +570,23 @@ namespace Shark {
 
 		transformMatrix = GetWorldSpaceTransformMatrix(entity.Parent()) * transformMatrix;
 		return true;
+	}
+
+	std::vector<Entity> Scene::GetEntitiesSorted()
+	{
+		std::vector<Entity> entities;
+		entities.reserve(m_EntityUUIDMap.size());
+		{
+			auto view = m_Registry.view<IDComponent>();
+			for (auto ent : view)
+				entities.emplace_back(ent, this);
+
+			std::sort(entities.begin(), entities.end(), [](Entity lhs, Entity rhs)
+			{
+				return lhs.GetUUID() < rhs.GetUUID();
+			});
+		}
+		return entities;
 	}
 
 	bool Scene::ConvertToLocaSpace(Entity entity, TransformComponent& transform)
