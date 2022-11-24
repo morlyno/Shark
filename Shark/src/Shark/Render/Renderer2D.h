@@ -128,8 +128,6 @@ namespace Shark {
 		std::array<glm::vec4, 20> m_CirlceVertexPositions;
 
 	private:
-		using Index = IndexBuffer::IndexType;
-
 		struct QuadVertex
 		{
 			glm::vec3 WorldPosition;

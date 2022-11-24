@@ -9,178 +9,232 @@ namespace Shark {
 	//////////////////////////////////////////////////////////////////////////
    /// VertexBuffer /////////////////////////////////////////////////////////
 
-	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, void* data, uint32_t size, bool dynamic)
-		: m_Layout(layout), m_Size(size), m_Dynamic(dynamic)
+	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, uint32_t size, bool dynamic, Buffer vertexData)
+		: m_Layout(layout)
 	{
-		CreateBuffer(data, size);
+		ReCreateBuffer(size, dynamic, vertexData);
 	}
 
 	DirectXVertexBuffer::~DirectXVertexBuffer()
 	{
+		Release();
+	}
+
+	void DirectXVertexBuffer::Release()
+	{
 		if (m_VertexBuffer)
+		{
 			m_VertexBuffer->Release();
+			m_VertexBuffer = nullptr;
+		}
 	}
 
 	void DirectXVertexBuffer::Resize(uint32_t size)
 	{
 		SK_CORE_ASSERT(m_Dynamic);
+		if (m_Dynamic)
+			ReCreateBuffer(size, true, nullptr);
+	}
+
+	void DirectXVertexBuffer::Resize(Buffer vertexData)
+	{
+		ReCreateBuffer(vertexData.Size, m_Dynamic, vertexData);
+	}
+
+	void DirectXVertexBuffer::SetData(Buffer vertexData)
+	{
+		SK_CORE_ASSERT(m_Dynamic);
+		if (m_Dynamic && vertexData.Size <= m_Size)
+		{
+			auto ctx = DirectXRenderer::GetContext();
+
+			D3D11_MAPPED_SUBRESOURCE ms;
+			SK_DX11_CALL(ctx->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
+			memcpy(ms.pData, vertexData.Data, vertexData.Size);
+			ctx->Unmap(m_VertexBuffer, 0);
+		}
+	}
+
+	Buffer DirectXVertexBuffer::GetWritableBuffer()
+	{
+		SK_CORE_ASSERT(m_Dynamic);
+
+		if (m_Dynamic)
+		{
+			auto context = DirectXRenderer::GetContext();
+			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+			HRESULT result = context->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+			if (SUCCEEDED(result))
+			{
+				DirectXRenderer::Get()->HandleError(result);
+				return {};
+			}
+
+			Buffer writableBuffer;
+			writableBuffer.Data = (byte*)mappedSubresource.pData;
+			writableBuffer.Size = m_Size;
+			m_Mapped = true;
+		}
+
+		return {};
+	}
+
+	void DirectXVertexBuffer::CloseWritableBuffer()
+	{
+		if (m_Mapped)
+		{
+			auto context = DirectXRenderer::GetContext();
+			context->Unmap(m_VertexBuffer, 0);
+		}
+	}
+
+	void DirectXVertexBuffer::ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData)
+	{
+		SK_CORE_VERIFY(dynamic || vertexData);
+
+		Release();
+
+		auto device = DirectXRenderer::GetDevice();
+
 		m_Size = size;
+		m_Dynamic = dynamic;
+
 		D3D11_BUFFER_DESC bd = {};
 		bd.ByteWidth = size;
 		bd.StructureByteStride = m_Layout.GetVertexSize();
-		bd.Usage = D3D11_USAGE_DYNAMIC;
+		bd.Usage = dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bd.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0u;
 		bd.MiscFlags = 0u;
 
-		if (m_VertexBuffer)
-			m_VertexBuffer->Release();
-		SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
-	}
-
-	void DirectXVertexBuffer::SetData(void* data, uint32_t size)
-	{
-		SK_CORE_ASSERT(m_VertexBuffer);
-
-		auto ctx = DirectXRenderer::GetContext();
-		SK_CORE_ASSERT(m_Dynamic, "Buffer must be dynamic");
-		SK_IF_DEBUG(
-			D3D11_BUFFER_DESC bd;
-			m_VertexBuffer->GetDesc(&bd);
-			SK_CORE_ASSERT(size <= bd.ByteWidth, "The Size of the Data is to big");
-		);
-
-		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_DX11_CALL(ctx->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-		memcpy(ms.pData, data, size);
-		ctx->Unmap(m_VertexBuffer, 0);
-	}
-
-	void DirectXVertexBuffer::Bind(ID3D11DeviceContext* ctx)
-	{
-		const UINT stride = m_Layout.GetVertexSize();
-		constexpr UINT offset = 0u;
-		ctx->IASetVertexBuffers(0u, 1u, &m_VertexBuffer, &stride, &offset);
-	}
-
-	void DirectXVertexBuffer::UnBind(ID3D11DeviceContext* ctx)
-	{
-		ID3D11Buffer* nullBuffer = nullptr;
-		constexpr UINT null = 0;
-		ctx->IASetVertexBuffers(0u, 1u, &nullBuffer, &null, &null);
-	}
-
-	void DirectXVertexBuffer::CreateBuffer(void* data, uint32_t size)
-	{
-		D3D11_BUFFER_DESC bd = {};
-		bd.ByteWidth = m_Size;
-		bd.StructureByteStride = m_Layout.GetVertexSize();
-		bd.Usage = m_Dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
-		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bd.CPUAccessFlags = m_Dynamic ? D3D11_CPU_ACCESS_WRITE : 0u;
-		bd.MiscFlags = 0u;
-
-		if (data)
+		if (vertexData)
 		{
 			D3D11_SUBRESOURCE_DATA srd = {};
-			srd.pSysMem = data;
+			srd.pSysMem = vertexData.Data;
 
-			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bd, &srd, &m_VertexBuffer));
+			SK_DX11_CALL(device->CreateBuffer(&bd, &srd, &m_VertexBuffer));
 		}
 		else
 		{
-			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
+			SK_DX11_CALL(device->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
 		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
    /// IndexBuffer //////////////////////////////////////////////////////////
 
-	DirectXIndexBuffer::DirectXIndexBuffer(IndexType* data, uint32_t count, bool dynamic)
-		: m_Count(count), m_Size(count * sizeof(IndexType)), m_Dynamic(dynamic)
+	DirectXIndexBuffer::DirectXIndexBuffer(uint32_t count, bool dynmaic, Buffer indexData)
 	{
-		CreateBuffer(data, count);
+		ReCreateBuffer(count, dynmaic, indexData);
 	}
 
 	DirectXIndexBuffer::~DirectXIndexBuffer()
 	{
+		Release();
+	}
+
+	void DirectXIndexBuffer::Release()
+	{
 		if (m_IndexBuffer)
+		{
 			m_IndexBuffer->Release();
+			m_IndexBuffer = nullptr;
+		}
 	}
 
 	void DirectXIndexBuffer::Resize(uint32_t count)
 	{
-		// TODO(moro): fix-me buffer is empty after resize. the data should get copied into the new buffer.
+		if (count == m_Count)
+			return;
 
 		SK_CORE_ASSERT(m_Dynamic);
-		m_Count = count;
-		m_Size = count * sizeof(IndexType);
-		D3D11_BUFFER_DESC i_bd = {};
-		i_bd.ByteWidth = m_Size;
-		i_bd.StructureByteStride = sizeof(IndexType);
-		i_bd.Usage = D3D11_USAGE_DYNAMIC;
-		i_bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		i_bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		i_bd.MiscFlags = 0u;
-
-		if (m_IndexBuffer)
-			m_IndexBuffer->Release();
-		SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
+		if (m_Dynamic)
+			ReCreateBuffer(count, true, nullptr);
 	}
 
-	void DirectXIndexBuffer::SetData(IndexType* data, uint32_t count)
+	void DirectXIndexBuffer::Resize(Buffer vertexData)
 	{
-		auto ctx = DirectXRenderer::GetContext();
+		if (m_Size == vertexData.Size)
+			return;
 
-		m_Count = count;
-
-		SK_CORE_ASSERT(m_IndexBuffer)
-			
-		SK_CORE_ASSERT(m_Dynamic, "Buffer must be dynamic");
-		SK_IF_DEBUG(
-			D3D11_BUFFER_DESC bd;
-			m_IndexBuffer->GetDesc(&bd);
-			SK_CORE_ASSERT(m_Size <= bd.ByteWidth, "The size of the Buffer and the data must be equal");
-			SK_CORE_ASSERT(m_Count * sizeof(IndexType) <= bd.ByteWidth);
-		);
-
-		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_DX11_CALL(ctx->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-		memcpy(ms.pData, data, m_Size);
-		ctx->Unmap(m_IndexBuffer, 0);
+		ReCreateBuffer(vertexData.Size / sizeof(uint32_t), m_Dynamic, vertexData);
 	}
 
-	void DirectXIndexBuffer::Bind(ID3D11DeviceContext* ctx)
+	void DirectXIndexBuffer::SetData(Buffer indexData)
 	{
-		ctx->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0u);
-	}
-
-	void DirectXIndexBuffer::UnBind(ID3D11DeviceContext* ctx)
-	{
-		ID3D11Buffer* nullBuffer = nullptr;
-		ctx->IASetIndexBuffer(nullBuffer, DXGI_FORMAT_UNKNOWN, 0u);
-	}
-
-	void DirectXIndexBuffer::CreateBuffer(IndexType* data, uint32_t count)
-	{
-		D3D11_BUFFER_DESC i_bd = {};
-		i_bd.ByteWidth = m_Size;
-		i_bd.StructureByteStride = sizeof(IndexType);
-		i_bd.Usage = m_Dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
-		i_bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		i_bd.CPUAccessFlags = m_Dynamic ? D3D11_CPU_ACCESS_WRITE : 0u;
-		i_bd.MiscFlags = 0u;
-
-		if (data)
+		SK_CORE_ASSERT(m_Dynamic);
+		if (m_Dynamic && indexData.Size <= m_Size)
 		{
-			D3D11_SUBRESOURCE_DATA i_srd = {};
-			i_srd.pSysMem = data;
+			auto ctx = DirectXRenderer::GetContext();
 
-			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, &i_srd, &m_IndexBuffer));
+			D3D11_MAPPED_SUBRESOURCE mappedSubresouce;
+			SK_DX11_CALL(ctx->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresouce));
+			memcpy(mappedSubresouce.pData, indexData.Data, indexData.Size);
+			ctx->Unmap(m_IndexBuffer, 0);
+		}
+	}
+
+	Buffer DirectXIndexBuffer::GetWritableBuffer()
+	{
+		SK_CORE_ASSERT(m_Dynamic);
+
+		if (m_Dynamic)
+		{
+			auto context = DirectXRenderer::GetContext();
+			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+			HRESULT result = context->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+			if (SUCCEEDED(result))
+			{
+				DirectXRenderer::Get()->HandleError(result);
+				return {};
+			}
+
+			Buffer writableBuffer;
+			writableBuffer.Data = (byte*)mappedSubresource.pData;
+			writableBuffer.Size = m_Size;
+			m_Mapped = true;
+		}
+
+		return {};
+	}
+
+	void DirectXIndexBuffer::CloseWritableBuffer()
+	{
+		if (m_Mapped)
+		{
+			auto context = DirectXRenderer::GetContext();
+			context->Unmap(m_IndexBuffer, 0);
+		}
+	}
+
+	void DirectXIndexBuffer::ReCreateBuffer(uint32_t count, bool dynamic, Buffer indexData)
+	{
+		SK_CORE_VERIFY(dynamic || indexData);
+
+		Release();
+
+		m_Count = count;
+		m_Size = count * sizeof(uint32_t);
+		m_Dynamic = dynamic;
+
+		D3D11_BUFFER_DESC bufferDesc = {};
+		bufferDesc.ByteWidth = m_Size;
+		bufferDesc.StructureByteStride = sizeof(uint32_t);
+		bufferDesc.Usage = dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		bufferDesc.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0u;
+		bufferDesc.MiscFlags = 0u;
+
+		if (indexData)
+		{
+			D3D11_SUBRESOURCE_DATA subresourceData = {};
+			subresourceData.pSysMem = indexData.Data;
+
+			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bufferDesc, &subresourceData, &m_IndexBuffer));
 		}
 		else
 		{
-			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&i_bd, nullptr, &m_IndexBuffer));
+			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bufferDesc, nullptr, &m_IndexBuffer));
 		}
 	}
 

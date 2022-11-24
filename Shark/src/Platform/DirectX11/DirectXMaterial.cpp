@@ -62,7 +62,7 @@ namespace Shark {
 		const CBVar& var = m_VariableMap.at(name);
 		const auto& buffer = m_ConstantBufferData.at(var.BufferSlot);
 
-		return buffer.Data + var.Offset;
+		return buffer.Data() + var.Offset;
 
 	}
 

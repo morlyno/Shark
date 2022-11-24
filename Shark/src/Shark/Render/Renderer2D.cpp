@@ -66,9 +66,9 @@ namespace Shark {
 			m_QuadPipeline = Pipeline::Create(quadPipelineSpecs);
 			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader);
 
-			m_QuadVertexBuffer = VertexBuffer::Create(quadPipelineSpecs.Shader->GetVertexLayout(), nullptr, MaxQuadVertices * sizeof(QuadVertex), true);
+			m_QuadVertexBuffer = VertexBuffer::Create(quadPipelineSpecs.Shader->GetVertexLayout(), MaxQuadVertices * sizeof(QuadVertex), true, nullptr);
 
-			Index* quadIndices = new Index[MaxQuadIndices];
+			uint32_t* quadIndices = new uint32_t[MaxQuadIndices];
 			for (uint32_t i = 0, j = 0; i < MaxQuadIndices; i += 6, j += 4)
 			{
 				quadIndices[i + 0] = j + 0;
@@ -79,7 +79,7 @@ namespace Shark {
 				quadIndices[i + 4] = j + 3;
 				quadIndices[i + 5] = j + 0;
 			}
-			m_QuadIndexBuffer = IndexBuffer::Create(quadIndices, MaxQuadIndices);
+			m_QuadIndexBuffer = IndexBuffer::Create(MaxQuadIndices, false, Buffer::FromArray(quadIndices, MaxQuadIndices));
 			delete[] quadIndices;
 
 			m_QuadVertexBasePtr = new QuadVertex[MaxQuadVertices];
@@ -95,7 +95,7 @@ namespace Shark {
 			m_CirlcePipeline = Pipeline::Create(circlePipelineSpecs);
 			m_CircleMaterial = Material::Create(circlePipelineSpecs.Shader);
 
-			m_CircleVertexBuffer = VertexBuffer::Create(circlePipelineSpecs.Shader->GetVertexLayout(), nullptr, MaxCircleVertices * sizeof(CircleVertex), true);
+			m_CircleVertexBuffer = VertexBuffer::Create(circlePipelineSpecs.Shader->GetVertexLayout(), MaxCircleVertices * sizeof(CircleVertex), true, nullptr);
 			m_CircleVertexBasePtr = new CircleVertex[MaxCircleVertices];
 		}
 
@@ -111,7 +111,7 @@ namespace Shark {
 			m_LinePipeline = Pipeline::Create(linePipelineSpecs);
 			m_LineMaterial = Material::Create(linePipelineSpecs.Shader);
 			
-			m_LineVertexBuffer = VertexBuffer::Create(linePipelineSpecs.Shader->GetVertexLayout(), nullptr, MaxLineVertices * sizeof(LineVertex), true);
+			m_LineVertexBuffer = VertexBuffer::Create(linePipelineSpecs.Shader->GetVertexLayout(), MaxLineVertices * sizeof(LineVertex), true, nullptr);
 			m_LineVertexBasePtr = new LineVertex[MaxLineVertices];
 		}
 
@@ -203,7 +203,7 @@ namespace Shark {
 			uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexIndexPtr - (uint8_t*)m_QuadVertexBasePtr);
 			if (dataSize)
 			{
-				m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
+				m_QuadVertexBuffer->SetData({ m_QuadVertexBasePtr, dataSize });
 
 				SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_Textures"), m_WhiteTexture);
 				//m_QuadMaterial->SetTextureArray("g_Textures", m_QuadTextureArray);
@@ -219,7 +219,7 @@ namespace Shark {
 			uint32_t dataSize = (uint32_t)((uint8_t*)m_CircleVertexIndexPtr - (uint8_t*)m_CircleVertexBasePtr);
 			if (dataSize)
 			{
-				m_CircleVertexBuffer->SetData(m_CircleVertexBasePtr, dataSize);
+				m_CircleVertexBuffer->SetData({ m_CircleVertexBasePtr, dataSize });
 
 				Renderer::RenderGeometry(m_CommandBuffer, m_CirlcePipeline, m_CircleMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount);
 				m_Statistics.DrawCalls++;
@@ -232,7 +232,7 @@ namespace Shark {
 			uint32_t dataSize = (uint32_t)((uint8_t*)m_LineVertexIndexPtr - (uint8_t*)m_LineVertexBasePtr);
 			if (dataSize)
 			{
-				m_LineVertexBuffer->SetData(m_LineVertexBasePtr, dataSize);
+				m_LineVertexBuffer->SetData({ m_LineVertexBasePtr, dataSize });
 
 				Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
 				m_Statistics.DrawCalls++;
@@ -512,7 +512,7 @@ namespace Shark {
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexIndexPtr - (uint8_t*)m_QuadVertexBasePtr);
 		if (dataSize)
 		{
-			m_QuadVertexBuffer->SetData(m_QuadVertexBasePtr, dataSize);
+			m_QuadVertexBuffer->SetData({ m_QuadVertexBasePtr, dataSize });
 
 			SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_Textures"), m_WhiteTexture);
 			Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_QuadMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
@@ -547,7 +547,7 @@ namespace Shark {
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_CircleVertexIndexPtr - (uint8_t*)m_CircleVertexBasePtr);
 		if (dataSize)
 		{
-			m_CircleVertexBuffer->SetData(m_CircleVertexBasePtr, dataSize);
+			m_CircleVertexBuffer->SetData({ m_CircleVertexBasePtr, dataSize });
 
 			Renderer::RenderGeometry(m_CommandBuffer, m_CirlcePipeline, m_CircleMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount);
 			m_Statistics.DrawCalls++;
@@ -574,7 +574,7 @@ namespace Shark {
 		uint32_t dataSize = (uint32_t)((uint8_t*)m_LineVertexIndexPtr - (uint8_t*)m_LineVertexBasePtr);
 		if (dataSize)
 		{
-			m_LineVertexBuffer->SetData(m_LineVertexBasePtr, dataSize);
+			m_LineVertexBuffer->SetData({ m_LineVertexBasePtr, dataSize });
 
 			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
 			m_Statistics.DrawCalls++;

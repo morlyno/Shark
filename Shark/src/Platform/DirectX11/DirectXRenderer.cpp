@@ -114,8 +114,8 @@ namespace Shark {
 			2, 3, 0
 		};
 
-		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, vertices, (uint32_t)sizeof(vertices));
-		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create(indices, (uint32_t)(sizeof(indices) / sizeof(*indices)));
+		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, (uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
+		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
 
 		// Frequency Query
 		D3D11_QUERY_DESC queryDesc;
@@ -408,7 +408,7 @@ namespace Shark {
 		}
 
 		for (auto&& [slot, data] : material->m_ConstantBufferData)
-			material->m_ConstnatBufferSet->Set(slot, data.Data, (uint32_t)data.Size); // TODO: maby convert to uint64_t
+			material->m_ConstnatBufferSet->Set(slot, data.Data(), (uint32_t)data.Size()); // TODO: maby convert to uint64_t
 
 		if (constantBufferSet)
 		{
