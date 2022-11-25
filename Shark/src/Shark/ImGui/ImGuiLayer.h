@@ -29,7 +29,6 @@ namespace Shark {
 		virtual bool BlocksMouseEvents() const = 0;
 		virtual bool BlocksKeyboardEvents() const = 0;
 		virtual void BlockEvents(bool block) = 0;
-		virtual void SubmitBlendCallback(bool blend) = 0;
 
 		virtual TimeStep GetGPUTime() const = 0;
 

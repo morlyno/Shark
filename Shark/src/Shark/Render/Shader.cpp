@@ -38,13 +38,13 @@ namespace Shark {
 
 	void ShaderLibrary::Add(Ref<Shader> shader, const std::string& name)
 	{
-		SK_CORE_ASSERT(!Exists(name));
+		SK_CORE_VERIFY(!Exists(name));
 		m_Shaders[name] = shader;
 	}
 
 	Ref<Shader> ShaderLibrary::Get(const std::string& name)
 	{
-		SK_CORE_ASSERT(Exists(name));
+		SK_CORE_VERIFY(Exists(name));
 		return m_Shaders[name];
 	}
 

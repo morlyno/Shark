@@ -5,12 +5,7 @@ namespace Shark {
 
 	void Buffer::Allocate(uint64_t size)
 	{
-		SK_CORE_ASSERT(!Data);
-		if (Data)
-		{
-			// TODO(moro): let buffer grow;
-			return;
-		}
+		Release();
 
 		Size = size;
 		Data = (byte*)operator new(size);
@@ -25,7 +20,7 @@ namespace Shark {
 
 	void Buffer::Write(const void* data, uint64_t size, uint64_t offset)
 	{
-		SK_CORE_ASSERT((size + offset) <= Size, fmt::format("({0} + {1}) <= {2}", size, offset, Size));
+		SK_CORE_VERIFY((size + offset) <= Size, "Out of range! ({0} + {1}) <= {2}", size, offset, Size);
 		if ((size + offset) > Size)
 			return;
 

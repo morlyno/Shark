@@ -68,8 +68,8 @@ namespace Shark {
 	{
 		m_DeferredContext->ClearState();
 		ID3D11CommandList* dummyList;
-		HRESULT hr = m_DeferredContext->FinishCommandList(false, &dummyList);
-		SK_CORE_ASSERT(SUCCEEDED(hr), WindowsUtils::TranslateHResult(hr));
+		SK_DX11_CALL(m_DeferredContext->FinishCommandList(false, &dummyList));
+		//SK_CORE_ASSERT(SUCCEEDED(hr), WindowsUtils::TranslateHResult(hr));
 		dummyList->Release();
 
 		if (m_CommandList)

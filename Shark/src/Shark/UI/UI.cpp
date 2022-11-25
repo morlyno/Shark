@@ -93,12 +93,6 @@ namespace Shark::UI {
 		return window->GetID(window->IDStack.front());
 	}
 
-	void SetBlend(bool blend)
-	{
-		ImGuiLayer& ctx = Application::Get().GetImGuiLayer();
-		ctx.SubmitBlendCallback(blend);
-	}
-
 	ImU32 ToColor32(const ImVec4& color)
 	{
 		ImU32 out;

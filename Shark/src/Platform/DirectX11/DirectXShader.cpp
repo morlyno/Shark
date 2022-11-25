@@ -1,12 +1,14 @@
 #include "skpch.h"
 #include "DirectXShader.h"
-#include "Shark/Utils/String.h"
+
+#include "Shark/Core/Application.h"
 #include "Shark/Core/Timer.h"
+
+#include "Shark/File/FileSystem.h"
+#include "Shark/Utils/String.h"
 
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
-
-#include "Shark/Core/Application.h"
 
 #include <d3dcompiler.h>
 
@@ -154,7 +156,7 @@ namespace Shark {
 		m_FilePath = filepath;
 		m_FileName = filepath.filename().replace_extension().string();
 
-		std::string file = ReadFile(filepath);
+		std::string file = FileSystem::ReadString(filepath);
 		auto shaderSources = PreProzess(file);
 		
 		{
@@ -197,7 +199,7 @@ namespace Shark {
 
 	bool DirectXShader::ReCompile()
 	{
-		std::string file = ReadFile(m_FilePath);
+		std::string file = FileSystem::ReadString(m_FilePath);
 		auto shaderSources = PreProzess(file);
 
 		{
@@ -246,22 +248,6 @@ namespace Shark {
 		ctx->VSSetShader(nullvs, nullptr, 0u);
 		ctx->PSSetShader(nullps, nullptr, 0u);
 		ctx->IASetInputLayout(nullil);
-	}
-
-	std::string DirectXShader::ReadFile(const std::filesystem::path& filepath)
-	{
-		std::string result;
-		std::ifstream in(filepath, std::ios::in, std::ios::binary);
-		SK_CORE_ASSERT(in, fmt::format("File not found! Filepath: {}", filepath));
-		if (in)
-		{
-			in.seekg(0u, std::ios::end);
-			result.resize((size_t)in.tellg());
-			in.seekg(0u, std::ios::beg);
-			in.read(&result[0], result.size());
-			in.close();
-		}
-		return std::move(result);
 	}
 
 	std::unordered_map<ShaderStage, std::string> DirectXShader::PreProzess(const std::string& file)
@@ -353,6 +339,7 @@ namespace Shark {
 			if (std::filesystem::exists(cacheFile))
 			{
 				std::ifstream in(cacheFile, std::ios::in | std::ios::binary);
+				SK_CORE_ASSERT(in);
 				if (in)
 				{
 					auto& binary = m_ShaderBinarys[stage];
@@ -364,11 +351,6 @@ namespace Shark {
 					in.read((char*)binary.data(), binary.size());
 					in.close();
 				}
-				else
-				{
-					SK_CORE_ASSERT(false);
-				}
-
 			}
 			else
 			{

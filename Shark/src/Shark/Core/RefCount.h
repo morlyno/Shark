@@ -158,7 +158,7 @@ namespace Shark {
 		{
 			if (m_Instance)
 			{
-				SK_CORE_ASSERT(m_Instance->GetRefCount() != 0, "Release was called but refcount was 0");
+				SK_CORE_VERIFY(m_Instance->GetRefCount() != 0, "Release was called but refcount was 0");
 				if (m_Instance->DecRef() == 0)
 					delete m_Instance;
 				m_Instance = nullptr;
@@ -220,7 +220,7 @@ namespace Shark {
 		template<typename T2>
 		Ref<T2> As() const
 		{
-			SK_CORE_ASSERT(m_Instance ? dynamic_cast<T2*>(m_Instance) : true);
+			SK_CORE_VERIFY(m_Instance ? dynamic_cast<T2*>(m_Instance) : true);
 			return (T2*)m_Instance;
 		}
 
@@ -366,7 +366,7 @@ namespace Shark {
 		template<typename T2>
 		Weak<T2> As() const
 		{
-			SK_CORE_ASSERT(dynamic_cast<T2*>(m_Instance));
+			SK_CORE_VERIFY(dynamic_cast<T2*>(m_Instance));
 			return static_cast<T2*>(m_Instance);
 		}
 

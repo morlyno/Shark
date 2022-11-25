@@ -17,7 +17,8 @@ namespace Shark {
 
 	void Entity::SetParent(Entity parent)
 	{
-		SK_CORE_ASSERT(parent);
+		if (!parent && HasParent())
+			RemoveParent();
 
 		if (HasParent())
 			RemoveParent();
@@ -29,6 +30,8 @@ namespace Shark {
 	void Entity::AddChild(Entity child)
 	{
 		SK_CORE_ASSERT(!HasChild(child.GetUUID()));
+		if (HasChild(child.GetUUID()))
+			return;
 
 		GetComponent<RelationshipComponent>().Children.emplace_back(child.GetUUID());
 		child.GetComponent<RelationshipComponent>().Parent = GetUUID();
@@ -85,6 +88,7 @@ namespace Shark {
 			}
 		}
 
+		SK_CORE_ERROR("Invalid Parent-Child Relationship");
 		SK_CORE_ASSERT(false, "Invalid Parent-Child Relationship");
 	}
 

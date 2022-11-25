@@ -38,7 +38,7 @@ namespace Shark {
 
 	void DirectXVertexBuffer::Resize(Buffer vertexData)
 	{
-		ReCreateBuffer(vertexData.Size, m_Dynamic, vertexData);
+		ReCreateBuffer((uint32_t)vertexData.Size, m_Dynamic, vertexData);
 	}
 
 	void DirectXVertexBuffer::SetData(Buffer vertexData)
@@ -157,7 +157,7 @@ namespace Shark {
 		if (m_Size == vertexData.Size)
 			return;
 
-		ReCreateBuffer(vertexData.Size / sizeof(uint32_t), m_Dynamic, vertexData);
+		ReCreateBuffer((uint32_t)vertexData.Count<uint32_t>(), m_Dynamic, vertexData);
 	}
 
 	void DirectXIndexBuffer::SetData(Buffer indexData)

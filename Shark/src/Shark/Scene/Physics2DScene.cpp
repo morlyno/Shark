@@ -23,7 +23,7 @@ namespace Shark {
 
 	void Physics2DScene::CreateScene()
 	{
-		SK_CORE_ASSERT(!m_World);
+		SK_CORE_VERIFY(!m_World);
 		m_World = new b2World({ m_Gravity.x, m_Gravity.y });
 	}
 

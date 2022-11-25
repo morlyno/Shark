@@ -31,6 +31,12 @@ namespace Shark {
 			return (T*)Data;
 		}
 		
+		template<typename T>
+		uint64_t Count() const
+		{
+			return Size / sizeof(T);
+		}
+
 		operator bool() const
 		{
 			return Data;

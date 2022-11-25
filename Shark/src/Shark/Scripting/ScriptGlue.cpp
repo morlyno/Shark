@@ -419,7 +419,7 @@ namespace Shark {
 			{
 				MonoException* exception = mono_get_exception_null_reference();
 				mono_raise_exception(exception);
-				SK_CORE_ASSERT(false, "should not be called");
+				SK_CORE_VERIFY(false, "should not be called");
 				return 0;
 			}
 			return scene->GetViewportWidth();
@@ -433,7 +433,7 @@ namespace Shark {
 			{
 				MonoException* exception = mono_get_exception_null_reference();
 				mono_raise_exception(exception);
-				SK_CORE_ASSERT(false, "should not be called");
+				SK_CORE_VERIFY(false, "should not be called");
 				return 0;
 			}
 			return scene->GetViewportHeight();

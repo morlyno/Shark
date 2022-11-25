@@ -333,7 +333,7 @@ namespace Shark {
 				};
 
 				const bool isKeyDown = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
-				SK_CORE_ASSERT(wParam < 0xFF);
+				SK_CORE_VERIFY(wParam < 0xFF);
 				int virtualKey = (int)wParam;
 				KeyCode key = (KeyCode)virtualKey;
 				bool repeat = lParam & BIT(30);

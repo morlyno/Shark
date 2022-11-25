@@ -132,10 +132,7 @@ namespace Shark {
 		const ImVec2 cursor = ImGui::GetCursorPos();
 		ImGui::InvisibleButton("Dummy", size);
 		ImGui::SetCursorPos(cursor);
-
-		UI::SetBlend(false);
 		ImGui::Image(m_Renderer->GetFinalImage()->GetViewID(), size);
-		UI::SetBlend(true);
 
 		ImGui::End();
 	}

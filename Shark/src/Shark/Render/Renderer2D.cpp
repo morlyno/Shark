@@ -136,7 +136,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		SK_CORE_ASSERT(!m_Active);
+		SK_CORE_VERIFY(!m_Active);
 		m_QuadPipeline->SetFrameBuffer(renderTarget);
 		m_CirlcePipeline->SetFrameBuffer(renderTarget);
 		m_LinePipeline->SetFrameBuffer(renderTarget);
@@ -146,7 +146,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		SK_CORE_ASSERT(!m_Active);
+		SK_CORE_VERIFY(!m_Active);
 
 		m_Active = true;
 
@@ -192,7 +192,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(m_Active);
+		SK_CORE_VERIFY(m_Active);
 
 		m_CommandBuffer->Begin();
 
@@ -307,7 +307,7 @@ namespace Shark {
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id)
 	{
-		SK_CORE_ASSERT(m_Active);
+		SK_CORE_VERIFY(m_Active);
 
 		if (m_QuadIndexCount >= MaxQuadIndices)
 			FlushAndResetQuad();
@@ -372,7 +372,7 @@ namespace Shark {
 
 	void Renderer2D::DrawFilledCircle(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int id)
 	{
-		SK_CORE_ASSERT(m_Active);
+		SK_CORE_VERIFY(m_Active);
 
 		if (m_CircleIndexCount >= MaxCircleIndices)
 			FlushAndResetCircle();
@@ -416,7 +416,7 @@ namespace Shark {
 
 	void Renderer2D::DrawCircle(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
-		SK_CORE_ASSERT(m_Active);
+		SK_CORE_VERIFY(m_Active);
 		for (uint32_t i = 0; i < m_CirlceVertexPositions.size() - 1; i++)
 		{
 			glm::vec3 p0 = (transform * m_CirlceVertexPositions[i + 0]).xyz;
@@ -435,7 +435,7 @@ namespace Shark {
 
 	void Renderer2D::DrawLine(const glm::vec3& pos0, const glm::vec3& pos1, const glm::vec4& color, int id)
 	{
-		SK_CORE_ASSERT(m_Active);
+		SK_CORE_VERIFY(m_Active);
 
 		if (m_LineVertexCount >= MaxLineVertices)
 			FlushAndResetLine();
@@ -488,7 +488,7 @@ namespace Shark {
 
 	void Renderer2D::DrawRect(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
-		SK_CORE_ASSERT(m_Active);
+		SK_CORE_VERIFY(m_Active);
 
 		glm::vec3 p0 = transform * m_QuadVertexPositions[0];
 		glm::vec3 p1 = transform * m_QuadVertexPositions[1];
@@ -504,7 +504,7 @@ namespace Shark {
 	void Renderer2D::FlushAndResetQuad()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_ASSERT(m_Active);
+		SK_CORE_VERIFY(m_Active);
 
 		m_CommandBuffer->Begin();
 		m_CommandBuffer->BeginTimeQuery(m_QuadFlushQuery);
@@ -539,7 +539,7 @@ namespace Shark {
 	void Renderer2D::FlushAndResetCircle()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_ASSERT(m_Active);
+		SK_CORE_VERIFY(m_Active);
 
 		m_CommandBuffer->Begin();
 		m_CommandBuffer->BeginTimeQuery(m_CircleFlushQuery);
@@ -566,7 +566,7 @@ namespace Shark {
 	void Renderer2D::FlushAndResetLine()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_ASSERT(m_Active);
+		SK_CORE_VERIFY(m_Active);
 
 		m_CommandBuffer->Begin();
 		m_CommandBuffer->BeginTimeQuery(m_LineFlushQuery);

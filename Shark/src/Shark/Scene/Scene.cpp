@@ -385,7 +385,7 @@ namespace Shark {
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<RelationshipComponent>();
 
-		SK_CORE_ASSERT(m_EntityUUIDMap.find(uuid) == m_EntityUUIDMap.end());
+		SK_CORE_VERIFY(m_EntityUUIDMap.find(uuid) == m_EntityUUIDMap.end());
 		m_EntityUUIDMap[uuid] = entity;
 		return entity;
 	}
@@ -424,7 +424,7 @@ namespace Shark {
 		if (!entity)
 			return;
 
-		SK_CORE_ASSERT(m_EntityUUIDMap.find(entity.GetUUID()) != m_EntityUUIDMap.end());
+		SK_CORE_VERIFY(m_EntityUUIDMap.find(entity.GetUUID()) != m_EntityUUIDMap.end());
 
 		if (!m_IsEditorScene)
 		{

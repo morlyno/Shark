@@ -148,7 +148,6 @@ namespace Shark {
 		ConsoleMessage msg;
 		msg.Level = level;
 		msg.Time = time;
-		SK_CORE_ASSERT(msg.Time.size() == 8);
 		msg.Message = message;
 		size_t count = message.find_first_of("\r\n");
 		count = message.find_first_not_of("\r\n", count);

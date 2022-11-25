@@ -77,7 +77,7 @@ namespace Shark {
 
 	std::filesystem::path FileSystem::MakeFreeFilePath(const std::filesystem::path& directory, const std::filesystem::path& fileName)
 	{
-		SK_CORE_ASSERT(directory.is_absolute());
+		SK_CORE_VERIFY(directory.is_absolute());
 		std::filesystem::path fsPath = directory / fileName;
 
 		if (std::filesystem::exists(fsPath))
@@ -99,7 +99,7 @@ namespace Shark {
 
 	void FileSystem::MakeFreeFilePath(std::filesystem::path& fsPath)
 	{
-		SK_CORE_ASSERT(fsPath.is_absolute());
+		SK_CORE_VERIFY(fsPath.is_absolute());
 		if (std::filesystem::exists(fsPath))
 		{
 			const std::wstring directory = fsPath.parent_path();

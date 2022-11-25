@@ -50,8 +50,7 @@ namespace Shark {
 			//style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 		}
 
-
-		SK_CORE_ASSERT(SK_PLATFORM_WINDOWS, "ImGui currently only works with Windows!");
+		static_assert(SK_PLATFORM_WINDOWS, "ImGui currently only works with Windows!");
 		Window& window = Application::Get().GetWindow();
 		ImGui_ImplWin32_Init(window.GetHandle());
 
@@ -59,7 +58,6 @@ namespace Shark {
 		ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), m_CommandBuffer->GetContext());
 		ImGui_ImplDX11_CreateDeviceObjects();
 		ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, m_CommandBuffer->GetContext());
-		m_CommandBuffer->GetContext()->OMGetBlendState(&m_BlendState, m_BlendFactor, &m_SampleMask);
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
 		if (!ctx.SettingsLoaded && !std::filesystem::exists(ctx.IO.IniFilename))
@@ -82,9 +80,6 @@ namespace Shark {
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
-
-		m_CommandBuffer = nullptr;
-		m_BlendState->Release();
 	}
 
 	void DirectXImGuiLayer::OnEvent(Event& event)
@@ -98,9 +93,6 @@ namespace Shark {
 	void DirectXImGuiLayer::Begin()
 	{
 		SK_PROFILE_FUNCTION();
-
-		while (!m_BlendQueue.empty())
-			m_BlendQueue.pop();
 
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -145,43 +137,6 @@ namespace Shark {
 		m_CommandBuffer->EndTimeQuery(m_GPUTimer);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
-	}
-
-	void BlendCallback(const ImDrawList*, const ImDrawCmd* cmd)
-	{
-		DirectXImGuiLayer* This = (DirectXImGuiLayer*)cmd->UserCallbackData;
-		SK_CORE_ASSERT(This);
-		if (!This)
-			return;
-
-		SK_CORE_ASSERT(This->m_BlendState);
-
-		ID3D11DeviceContext* ctx = This->m_CommandBuffer->GetContext();
-
-		bool blend = This->m_BlendQueue.front();
-		This->m_BlendQueue.pop();
-
-		if (blend)
-		{
-			ctx->OMSetBlendState(This->m_BlendState, This->m_BlendFactor, This->m_SampleMask);
-		}
-		else
-		{
-			ID3D11BlendState* null = nullptr;
-			ctx->OMSetBlendState(null, nullptr, 0xFFFFFFFF);
-		}
-	}
-
-	void DirectXImGuiLayer::SubmitBlendCallback(bool blend)
-	{
-		SK_CORE_ASSERT(m_BlendState);
-
-		ImGuiWindow* window = GImGui->CurrentWindow;
-		SK_CORE_ASSERT(window);
-
-		m_BlendQueue.push(blend);
-		window->DrawList->AddCallback(BlendCallback, this);
-
 	}
 
 }

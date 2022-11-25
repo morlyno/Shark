@@ -9,7 +9,7 @@ namespace Shark {
 
 	void PerformanceProfiler::Initialize()
 	{
-		SK_CORE_ASSERT(!s_Instance);
+		SK_CORE_VERIFY(!s_Instance);
 		s_Instance = new PerformanceProfiler();
 		s_Instance->ActiveStorage = &s_Instance->TimerStorageBuffers[0];
 		s_Instance->FinishedSotrage = &s_Instance->TimerStorageBuffers[1];
@@ -17,7 +17,6 @@ namespace Shark {
 
 	void PerformanceProfiler::Shutdown()
 	{
-		SK_CORE_ASSERT(s_Instance);
 		delete s_Instance;
 		s_Instance = nullptr;
 	}

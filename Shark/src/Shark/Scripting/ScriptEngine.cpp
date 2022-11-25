@@ -117,7 +117,7 @@ namespace Shark {
 
 
 		s_Data->RuntimeDomain = mono_domain_create_appdomain("ScriptDomain", nullptr);
-		SK_CORE_ASSERT(s_Data->RuntimeDomain);
+		SK_CORE_VERIFY(s_Data->RuntimeDomain);
 		mono_domain_set(s_Data->RuntimeDomain, true);
 
 		if (!LoadCoreAssembly(s_Data->Config.CoreAssemblyPath))
@@ -233,7 +233,7 @@ namespace Shark {
 	void ScriptEngine::InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle)
 	{
 		ManagedField& field = ScriptEngine::GetFieldFromStorage(storage);
-		SK_CORE_ASSERT(storage->Type == field.Type);
+		SK_CORE_VERIFY(storage->Type == field.Type);
 		if (storage->Type == ManagedFieldType::String)
 		{
 			storage->SetValue(field.GetValue<std::string>(handle));
@@ -320,7 +320,7 @@ namespace Shark {
 
 		ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
 		Ref<ScriptClass> scriptClass = ScriptEngine::GetScriptClass(scriptComp.ClassID);
-		SK_CORE_ASSERT(scriptClass, "Script class not set");
+		SK_CORE_VERIFY(scriptClass, "Script class not set");
 
 		MonoObject* object = InstantiateClass(scriptClass->m_Class);
 		mono_runtime_object_init(object);
@@ -453,7 +453,7 @@ namespace Shark {
 
 	MonoObject* ScriptEngine::CreateEntity(UUID uuid)
 	{
-		SK_CORE_ASSERT(uuid != UUID::Null);
+		SK_CORE_VERIFY(uuid != UUID::Null);
 		MonoObject* object = InstantiateClass(s_Data->EntityClass);
 		mono_runtime_object_init(object);
 
@@ -475,7 +475,6 @@ namespace Shark {
 			return GCManager::GetManagedObject(handle);
 		}
 
-		DEBUG_ENTITY(entity);
 		SK_CORE_ASSERT(!entity.AllOf<ScriptComponent>());
 
 		MonoObject* entityInstance = ScriptEngine::InstantiateClass(s_Data->EntityClass);
@@ -543,7 +542,7 @@ namespace Shark {
 		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
 
 		s_Data->RootDomain = mono_jit_init("RootDomain");
-		SK_CORE_ASSERT(s_Data->RootDomain);
+		SK_CORE_VERIFY(s_Data->RootDomain);
 	}
 
 	void ScriptEngine::ShutdownMono()
@@ -612,7 +611,7 @@ namespace Shark {
 
 	bool ScriptEngine::ReloadAssemblies()
 	{
-		SK_CORE_ASSERT(!s_Data->IsRunning, "Reloading at runntime not supported");
+		SK_CORE_VERIFY(!s_Data->IsRunning, "Reloading at runntime not supported");
 
 		SK_CORE_INFO_TAG("Scripting", "Reloading Assemblies");
 
@@ -620,7 +619,7 @@ namespace Shark {
 		// is failed keep the old ones
 
 		MonoDomain* newDomain = mono_domain_create_appdomain("ScriptDomain", nullptr);
-		SK_CORE_ASSERT(newDomain);
+		SK_CORE_VERIFY(newDomain);
 		mono_domain_set(newDomain, true);
 
 		MonoAssembly* coreAssembly = LoadCSAssembly(s_Data->CoreAssembly.FilePath);

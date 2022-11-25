@@ -7,7 +7,7 @@ namespace Shark {
 
 	void EditorSettings::Init()
 	{
-		SK_CORE_ASSERT(!s_Instance);
+		SK_CORE_VERIFY(!s_Instance);
 		s_Instance = new EditorSettings();
 	}
 

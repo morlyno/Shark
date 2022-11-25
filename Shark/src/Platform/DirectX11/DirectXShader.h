@@ -36,7 +36,6 @@ namespace Shark {
 
 		std::unordered_map<ShaderStage, std::vector<byte>> GetShaderBinarys() const { return m_ShaderBinarys; }
 	private:
-		std::string ReadFile(const std::filesystem::path& filepath);
 		std::unordered_map<ShaderStage, std::string> PreProzess(const std::string& file);
 		bool TryReCompile(std::unordered_map<ShaderStage, std::string>& shaderSources);
 		void CompileOrGetCached(std::unordered_map<ShaderStage, std::string>& shaderSources);

@@ -23,7 +23,7 @@ namespace Shark {
 		template<typename Component, typename... Args>
 		Component& AddComponent(Args&&... args)
 		{
-			SK_CORE_ASSERT(!AllOf<Component>());
+			SK_CORE_VERIFY(!AllOf<Component>());
 			return m_Scene->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 		}
 
@@ -36,14 +36,14 @@ namespace Shark {
 		template<typename Component>
 		void RemoveComponent()
 		{
-			SK_CORE_ASSERT(AllOf<Component>());
+			SK_CORE_VERIFY(AllOf<Component>());
 			m_Scene->m_Registry.remove<Component>(m_EntityHandle);
 		}
 
 		template<typename Component>
 		Component& GetComponent()
 		{
-			SK_CORE_ASSERT(AllOf<Component>());
+			SK_CORE_VERIFY(AllOf<Component>());
 			return m_Scene->m_Registry.get<Component>(m_EntityHandle);
 		}
 

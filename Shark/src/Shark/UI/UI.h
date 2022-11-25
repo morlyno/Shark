@@ -122,8 +122,6 @@ namespace Shark::UI {
 	inline void MoveCursorX(float deltaX)                                      { MoveCursor({ deltaX, 0.0f }); }
 	inline void MoveCursorY(float deltaY)                                      { MoveCursor({ 0.0f, deltaY }); }
 
-	void SetBlend(bool blend);
-
 	ImU32 ToColor32(const ImVec4& color);
 	ImU32 ToColor32(const ImVec4& color, float alpha);
 

@@ -139,7 +139,7 @@ namespace Shark {
 
 	void DirectXImage2D::Set(const ImageSpecification& specs, Ref<Image2D> data)
 	{
-		SK_CORE_ASSERT(this != data.Raw());
+		SK_CORE_VERIFY(this != data.Raw());
 
 		Release();
 
@@ -185,7 +185,7 @@ namespace Shark {
 
 	void DirectXImage2D::ReloadFromDisc()
 	{
-		SK_CORE_ASSERT(!m_FilePath.empty());
+		SK_CORE_VERIFY(!m_FilePath.empty());
 		Set(m_FilePath);
 	}
 
@@ -205,7 +205,7 @@ namespace Shark {
 	bool DirectXImage2D::CopyTo(Ref<Image2D> image)
 	{
 		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
-		SK_CORE_ASSERT(m_Resource && dxImage->m_Resource);
+		SK_CORE_VERIFY(m_Resource && dxImage->m_Resource);
 
 		const auto& destSpecs = dxImage->GetSpecification();
 		if (!IsImageCompadible(dxImage->m_Specification))
@@ -222,7 +222,7 @@ namespace Shark {
 	bool DirectXImage2D::CopyMipTo(Ref<Image2D> image, uint32_t mip)
 	{
 		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
-		SK_CORE_ASSERT(m_Resource && dxImage->m_Resource);
+		SK_CORE_VERIFY(m_Resource && dxImage->m_Resource);
 
 		const auto& destSpecs = dxImage->GetSpecification();
 		if (!IsImageCompadibleIgnoreMipLeves(dxImage->m_Specification))

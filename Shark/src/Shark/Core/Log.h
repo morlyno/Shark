@@ -42,7 +42,7 @@ namespace Shark {
 	class Log
 	{
 	public:
-		struct TagData
+		struct TagSettings
 		{
 			LogLevelType Level = LogLevelType::Trace;
 			bool Enabled = true;
@@ -55,47 +55,15 @@ namespace Shark {
 		static std::shared_ptr<spdlog::logger> GetCoreLogger() { return GetCoreLogger(); }
 		static std::shared_ptr<spdlog::logger> GetClientLogger() { return GetClientLogger(); }
 		static std::shared_ptr<spdlog::logger> GetConsoleLogger() { return GetConsoleLogger(); }
-		static const std::map<std::string_view, TagData>& GetTags() { return s_Data->Tags; }
-		static std::map<std::string_view, TagData>& GetMutableTags() { return s_Data->Tags; }
 
-		static void EnableTag(std::string_view tag, bool enabled) { s_Data->Tags[tag].Enabled = enabled; }
-		static void SetTagLevel(std::string_view tag, LogLevelType level) { s_Data->Tags[tag].Level = level; }
+		static bool HasTag(std::string_view tag) { return s_Data->EnabledTags.find(tag) != s_Data->EnabledTags.end(); }
+		static std::map<std::string_view, TagSettings>& EnabledTags() { return s_Data->EnabledTags; }
 
-		template<typename TFirst, typename... TRest>
-		static void LogMessage(LoggerType loggerType, LogLevelType level, std::string_view tag, TFirst&& firstArg, TRest&&... args)
-		{
-			if (!tag.empty())
-			{
-				auto& tagData = s_Data->Tags[tag];
-				if (!tagData.Enabled || level < tagData.Level)
-					return;
-			}
+		template<typename... TArgs>
+		static void LogMessage(LoggerType loggerType, LogLevelType level, std::string_view tag, TArgs&&... args);
 
-			auto logger = GetLogger(loggerType);
-			auto format = fmt::format(tag.empty() ? "{1}" : "[{0}] {1}", tag, std::forward<TFirst>(firstArg));
-
-			switch (level)
-			{
-				case LogLevelType::Trace:
-					logger->trace(format, std::forward<TRest>(args)...);
-					break;
-				case LogLevelType::Debug:
-					logger->debug(format, std::forward<TRest>(args)...);
-					break;
-				case LogLevelType::Info:
-					logger->info(format, std::forward<TRest>(args)...);
-					break;
-				case LogLevelType::Warn:
-					logger->warn(format, std::forward<TRest>(args)...);
-					break;
-				case LogLevelType::Error:
-					logger->error(format, std::forward<TRest>(args)...);
-					break;
-				case LogLevelType::Critical:
-					logger->critical(format, std::forward<TRest>(args)...);
-					break;
-			}
-		}
+		template<typename... TArgs>
+		static void PrintAssertMessage(LoggerType loggerType, std::string_view prefix, TArgs&&... args);
 
 	private:
 		struct LogData
@@ -104,7 +72,7 @@ namespace Shark {
 			std::shared_ptr<spdlog::logger> ClientLogger;
 			std::shared_ptr<spdlog::logger> ConsoleLogger;
 
-			std::map<std::string_view, TagData> Tags;
+			std::map<std::string_view, TagSettings> EnabledTags;
 		};
 		static LogData* s_Data;
 
@@ -147,3 +115,54 @@ namespace Shark {
 #define SK_CONSOLE_WARN(...)                ::Shark::Log::LogMessage(::Shark::LoggerType::Console, ::Shark::LogLevelType::Warn, "", __VA_ARGS__)
 #define SK_CONSOLE_ERROR(...)               ::Shark::Log::LogMessage(::Shark::LoggerType::Console, ::Shark::LogLevelType::Error, "", __VA_ARGS__)
 #define SK_CONSOLE_CRITICAL(...)            ::Shark::Log::LogMessage(::Shark::LoggerType::Console, ::Shark::LogLevelType::Critical, "", __VA_ARGS__)
+
+namespace Shark {
+
+	template<typename... TArgs>
+	void Log::LogMessage(LoggerType loggerType, LogLevelType level, std::string_view tag, TArgs&&... args)
+	{
+		auto& setting = s_Data->EnabledTags[tag];
+		if (setting.Enabled && setting.Level <= level)
+		{
+			auto logger = GetLogger(loggerType);
+			std::string format = tag.empty() ? "{0}{1}" : "[{0}] {1}";
+
+			switch (level)
+			{
+				case LogLevelType::Trace:
+					logger->trace(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					break;
+				case LogLevelType::Debug:
+					logger->debug(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					break;
+				case LogLevelType::Info:
+					logger->info(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					break;
+				case LogLevelType::Warn:
+					logger->warn(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					break;
+				case LogLevelType::Error:
+					logger->error(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					break;
+				case LogLevelType::Critical:
+					logger->critical(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					break;
+			}
+		}
+	}
+
+	template<typename... TArgs>
+	inline void Log::PrintAssertMessage(LoggerType loggerType, std::string_view prefix, TArgs&&... args)
+	{
+		auto logger = GetLogger(loggerType);
+		logger->error("{0}: {1}", prefix, fmt::format(std::forward<TArgs>(args)...));
+	}
+	
+	template<>
+	inline void Log::PrintAssertMessage(LoggerType loggerType, std::string_view prefix)
+	{
+		auto logger = GetLogger(loggerType);
+		logger->error("{0}", prefix);
+	}
+
+}

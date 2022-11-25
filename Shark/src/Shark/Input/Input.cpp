@@ -41,22 +41,22 @@ namespace Shark {
 		std::unordered_map<MouseButton, MouseState> MouseButtonStates;
 		float MouseScroll = 0.0f;
 	};
-	static InputData* s_Data = nullptr;
+	static InputData* s_InputData = nullptr;
 
 	void Input::Initialize()
 	{
-		s_Data = new InputData;
+		s_InputData = new InputData;
 	}
 
 	void Input::Shutdown()
 	{
-		delete s_Data;
-		s_Data = nullptr;
+		delete s_InputData;
+		s_InputData = nullptr;
 	}
 
 	void Input::TransitionStates()
 	{
-		for (auto& [key, state] : s_Data->KeyStates)
+		for (auto& [key, state] : s_InputData->KeyStates)
 		{
 			switch (state)
 			{
@@ -65,7 +65,7 @@ namespace Shark {
 			}
 		}
 
-		for (auto& [key, state] : s_Data->MouseButtonStates)
+		for (auto& [key, state] : s_InputData->MouseButtonStates)
 		{
 			switch (state)
 			{
@@ -75,7 +75,7 @@ namespace Shark {
 			}
 		}
 
-		s_Data->MouseScroll = 0.0f;
+		s_InputData->MouseScroll = 0.0f;
 	}
 
 	void OnKeyEvent(KeyEvent& event)
@@ -85,8 +85,8 @@ namespace Shark {
 
 		switch (event.GetEventType())
 		{
-			case EventType::KeyPressed: s_Data->KeyStates[event.GetKeyCode()] = KeyState::Pressed; break;
-			case EventType::KeyReleased: s_Data->KeyStates[event.GetKeyCode()] = KeyState::Released; break;
+			case EventType::KeyPressed: s_InputData->KeyStates[event.GetKeyCode()] = KeyState::Pressed; break;
+			case EventType::KeyReleased: s_InputData->KeyStates[event.GetKeyCode()] = KeyState::Released; break;
 		}
 	}
 
@@ -94,10 +94,10 @@ namespace Shark {
 	{
 		switch (event.GetEventType())
 		{
-			case EventType::MouseButtonPressed: s_Data->MouseButtonStates[event.GetButton()] = MouseState::Pressed; break;
-			case EventType::MouseButtonReleasd: s_Data->MouseButtonStates[event.GetButton()] = MouseState::Released; break;
-			case EventType::MouseButtonDoubleClicked: s_Data->MouseButtonStates[event.GetButton()] = MouseState::DoubleClicked; break;
-			case EventType::MouseScrolled: s_Data->MouseScroll = event.As<MouseScrolledEvent>().GetDelta(); break;
+			case EventType::MouseButtonPressed: s_InputData->MouseButtonStates[event.GetButton()] = MouseState::Pressed; break;
+			case EventType::MouseButtonReleasd: s_InputData->MouseButtonStates[event.GetButton()] = MouseState::Released; break;
+			case EventType::MouseButtonDoubleClicked: s_InputData->MouseButtonStates[event.GetButton()] = MouseState::DoubleClicked; break;
+			case EventType::MouseScrolled: s_InputData->MouseScroll = event.As<MouseScrolledEvent>().GetDelta(); break;
 		}
 	}
 
@@ -121,7 +121,7 @@ namespace Shark {
 
 	KeyState Input::GetKeyState(KeyCode key)
 	{
-		return s_Data->KeyStates[key];
+		return s_InputData->KeyStates[key];
 	}
 
 	bool Input::IsKeyPressed(KeyCode key)
@@ -133,7 +133,7 @@ namespace Shark {
 			case KeyCode::Control: return IsKeyPressed(KeyCode::LeftControl) || IsKeyPressed(KeyCode::RightControl);
 		}
 
-		return s_Data->KeyStates[key] == KeyState::Pressed;
+		return s_InputData->KeyStates[key] == KeyState::Pressed;
 	}
 
 	bool Input::IsKeyDown(KeyCode key)
@@ -145,7 +145,7 @@ namespace Shark {
 			case KeyCode::Control: return IsKeyDown(KeyCode::LeftControl) || IsKeyDown(KeyCode::RightControl);
 		}
 
-		return s_Data->KeyStates[key] == KeyState::Down;
+		return s_InputData->KeyStates[key] == KeyState::Down;
 	}
 
 	bool Input::IsKeyRelease(KeyCode key)
@@ -157,37 +157,37 @@ namespace Shark {
 			case KeyCode::Control: return IsKeyRelease(KeyCode::LeftControl) || IsKeyRelease(KeyCode::RightControl);
 		}
 
-		return s_Data->KeyStates[key] == KeyState::Released;
+		return s_InputData->KeyStates[key] == KeyState::Released;
 	}
 
 	MouseState Input::GetMouseState(MouseButton button)
 	{
-		return s_Data->MouseButtonStates[button];
+		return s_InputData->MouseButtonStates[button];
 	}
 
 	bool Input::IsMousePressed(MouseButton button)
 	{
-		return s_Data->MouseButtonStates[button] == MouseState::Pressed;
+		return s_InputData->MouseButtonStates[button] == MouseState::Pressed;
 	}
 
 	bool Input::IsMouseDown(MouseButton button)
 	{
-		return s_Data->MouseButtonStates[button] == MouseState::Down;
+		return s_InputData->MouseButtonStates[button] == MouseState::Down;
 	}
 
 	bool Input::IsMouseRelease(MouseButton button)
 	{
-		return s_Data->MouseButtonStates[button] == MouseState::Released;
+		return s_InputData->MouseButtonStates[button] == MouseState::Released;
 	}
 
 	bool Input::IsMouseDoubleClicked(MouseButton button)
 	{
-		return s_Data->MouseButtonStates[button] == MouseState::DoubleClicked;
+		return s_InputData->MouseButtonStates[button] == MouseState::DoubleClicked;
 	}
 
 	float Input::GetMouseScroll()
 	{
-		return s_Data->MouseScroll;
+		return s_InputData->MouseScroll;
 	}
 
 #if SK_PLATFORM_WINDOWS

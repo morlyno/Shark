@@ -559,10 +559,8 @@ namespace Shark {
 			m_NeedsResize = true;
 		}
 
-		UI::SetBlend(false);
 		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalImage();
 		ImGui::Image(fbImage->GetViewID(), size);
-		UI::SetBlend(true);
 
 		UI_Gizmo();
 		UI_DragDrop();
@@ -1027,12 +1025,8 @@ namespace Shark {
 			ImGui::SetNextWindowSizeConstraints({ 0, 0 }, { FLT_MAX, FLT_MAX }, CameraPreviewResizeCallback, &viewportSize);
 
 			ImGui::Begin("Camera Preview", nullptr, ImGuiWindowFlags_NoTitleBar);
-
-			UI::SetBlend(false);
 			Ref<Image2D> image = m_CameraPreviewRenderer->GetFinalImage();
 			ImGui::Image(image->GetViewID(), ImGui::GetContentRegionAvail());
-			UI::SetBlend(true);
-
 			ImGui::End();
 		}
 	}
@@ -1303,7 +1297,7 @@ namespace Shark {
 
 		if (ImGui::Begin("Log", &m_ShowLogSettings))
 		{
-			auto& tags = Log::GetMutableTags();
+			auto& tags = Log::EnabledTags();
 			ImGui::Separator();
 			for (auto& [tag, data] : tags)
 			{

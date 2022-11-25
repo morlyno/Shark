@@ -53,7 +53,7 @@
 
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 
-#define SK_NOT_IMPLEMENTED() SK_CORE_ASSERT(false, "Not Implemented");
+#define SK_NOT_IMPLEMENTED() SK_CORE_ERROR("Not Implemented!"); SK_DEBUG_BREAK()
 #define SK_DEPRECATED(message) [[deprecated(message)]]
 
 #define SK_IMPL_UNIQUE_NAME_BASE_CONNECT(a, b) a ## b

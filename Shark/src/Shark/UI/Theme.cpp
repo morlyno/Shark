@@ -119,12 +119,12 @@ namespace Shark::Theme {
 
 	void LoadLight()
 	{
-		SK_CORE_ASSERT(false);
+		SK_NOT_IMPLEMENTED();
 	}
 
 	void LoadTheme(const std::filesystem::path& file)
 	{
-		SK_CORE_ASSERT(false);
+		SK_NOT_IMPLEMENTED();
 	}
 
 	void DrawThemeEditor(bool& shown)

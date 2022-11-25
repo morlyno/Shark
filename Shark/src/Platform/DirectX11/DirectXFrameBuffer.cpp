@@ -146,7 +146,7 @@ namespace Shark {
 		auto dev = DirectXRenderer::GetDevice();
 
 		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
-			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment->Image->GetSpecification().Format), ToString(atachment->Format)));
+			"Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment->Image->GetSpecification().Format), ToString(atachment->Format));
 
 		if (!atachment->Image)
 		{
@@ -174,7 +174,7 @@ namespace Shark {
 		auto dev = DirectXRenderer::GetDevice();
 
 		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
-			fmt::format("Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment->Image->GetSpecification().Format), ToString(atachment->Format)));
+			"Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment->Image->GetSpecification().Format), ToString(atachment->Format));
 
 		if (!atachment->Image)
 		{
@@ -199,7 +199,7 @@ namespace Shark {
 
 	void DirectXFrameBuffer::CreateFrameBufferFromImage(FrameBufferAtachment* atachment)
 	{
-		SK_CORE_ASSERT(atachment->Image);
+		SK_CORE_VERIFY(atachment->Image);
 
 		ID3D11Device* dev = DirectXRenderer::GetDevice();
 		Ref<DirectXImage2D> d3dImage = atachment->Image.As<DirectXImage2D>();
@@ -235,7 +235,7 @@ namespace Shark {
 			bd.RenderTarget[i].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
 			bd.RenderTarget[i].BlendOp = D3D11_BLEND_OP_ADD;
 			bd.RenderTarget[i].SrcBlendAlpha = D3D11_BLEND_ONE;
-			bd.RenderTarget[i].DestBlendAlpha = D3D11_BLEND_ZERO;
+			bd.RenderTarget[i].DestBlendAlpha = D3D11_BLEND_ONE;
 			bd.RenderTarget[i].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 			bd.RenderTarget[i].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		}

@@ -247,13 +247,13 @@ namespace Shark {
 
 	Ref<Texture2D> DirectXTexture2DArray::Get(uint32_t index) const
 	{
-		SK_CORE_ASSERT(index < m_Count, "Index out of range");
+		SK_CORE_VERIFY(index < m_Count, "Index out of range");
 		return m_TextureArray[index];
 	}
 
 	void DirectXTexture2DArray::SetTexture(uint32_t index, Ref<DirectXTexture2D> texture)
 	{
-		SK_CORE_ASSERT(index < m_Count, "Index out of range");
+		SK_CORE_VERIFY(index < m_Count, "Index out of range");
 
 		if (texture)
 		{

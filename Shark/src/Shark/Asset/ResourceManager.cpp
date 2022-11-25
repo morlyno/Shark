@@ -146,7 +146,7 @@ return metadata.IsMemoryAsset;
 
 	void ResourceManager::UnloadAsset(AssetHandle handle)
 	{
-		SK_CORE_ASSERT(IsValidAssetHandle(handle));
+		SK_CORE_VERIFY(IsValidAssetHandle(handle));
 
 		AssetMetaData& metadata = GetMetaDataInternal(handle);
 		SK_CORE_ASSERT(metadata.IsDataLoaded == (s_Data->LoadedAssets.find(handle) != s_Data->LoadedAssets.end()));

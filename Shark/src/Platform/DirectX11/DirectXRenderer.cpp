@@ -50,7 +50,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(s_Instance == nullptr);
+		SK_CORE_VERIFY(s_Instance == nullptr);
 		s_Instance = this;
 
 		SK_CORE_INFO_TAG("Renderer", "Initializing DirectX Renderer");

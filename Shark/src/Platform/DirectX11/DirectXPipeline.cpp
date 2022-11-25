@@ -55,8 +55,8 @@ namespace Shark {
 			desc.FillMode = specs.WireFrame ? D3D11_FILL_WIREFRAME : D3D11_FILL_SOLID;
 			desc.CullMode = specs.BackFaceCulling ? D3D11_CULL_BACK : D3D11_CULL_NONE;
 
-			HRESULT hr = dev->CreateRasterizerState(&desc, &m_RasterizerState);
-			SK_CORE_ASSERT(SUCCEEDED(hr), fmt::format("D3D11Device::CreateRasterizerState Failed! {}:{}", __FILE__, __LINE__))
+			SK_DX11_CALL(dev->CreateRasterizerState(&desc, &m_RasterizerState));
+			//SK_CORE_ASSERT(SUCCEEDED(hr), fmt::format("D3D11Device::CreateRasterizerState Failed! {}:{}", __FILE__, __LINE__))
 		}
 
 		// DepthStencil
@@ -66,8 +66,8 @@ namespace Shark {
 			desc.DepthWriteMask = specs.WriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 			desc.DepthFunc = D3D11_COMPARISON_LESS;
 			
-			HRESULT hr = dev->CreateDepthStencilState(&desc, &m_DepthStencilState);
-			SK_CORE_ASSERT(SUCCEEDED(hr), fmt::format("D3D11Device::CreateDepthStencilState Failed! {}:{}", __FILE__, __LINE__))
+			SK_DX11_CALL(dev->CreateDepthStencilState(&desc, &m_DepthStencilState));
+			//SK_CORE_ASSERT(SUCCEEDED(hr), fmt::format("D3D11Device::CreateDepthStencilState Failed! {}:{}", __FILE__, __LINE__))
 		}
 
 		m_PrimitveTopology = Utils::SharkPrimitveTopologyToD3D11(m_Specification.Primitve);

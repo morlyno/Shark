@@ -33,9 +33,6 @@ namespace Shark {
 		virtual bool BlocksMouseEvents() const override { return m_BlockEvents && ImGui::GetIO().WantCaptureMouse; }
 		virtual bool BlocksKeyboardEvents() const override { return m_BlockEvents && ImGui::GetIO().WantCaptureKeyboard; }
 		virtual void BlockEvents(bool block) override { m_BlockEvents = block; }
-		virtual void SubmitBlendCallback(bool blend) override;
-
-
 
 		virtual TimeStep GetGPUTime() const override { return m_GPUTime; }
 
@@ -47,14 +44,6 @@ namespace Shark {
 		Ref<DirectXRenderCommandBuffer> m_CommandBuffer;
 		Ref<DirectXGPUTimer> m_GPUTimer;
 		TimeStep m_GPUTime;
-
-		ID3D11BlendState* m_BlendState = nullptr;
-		FLOAT m_BlendFactor[4]{};
-		UINT m_SampleMask{};
-
-		std::queue<bool> m_BlendQueue;
-
-		friend void BlendCallback(const ImDrawList*, const ImDrawCmd*);
 	};
 
 }

@@ -25,7 +25,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(!s_Instance, "Application allready set");
+		SK_CORE_VERIFY(!s_Instance, "Application allready set");
 		s_Instance = this;
 		Application* app = this;
 
