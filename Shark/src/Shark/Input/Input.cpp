@@ -196,9 +196,7 @@ namespace Shark {
 		POINT pos;
 		GetCursorPos(&pos);
 		auto& window = Application::Get().GetWindow();
-		glm::ivec2 mousePos{ pos.x, pos.y };
-		window.ScreenToClient(mousePos);
-		return mousePos;
+		return window.ScreenToWindow({ pos.x, pos.y });
 	}
 
 	glm::ivec2 Input::GetScreenMousePosition()

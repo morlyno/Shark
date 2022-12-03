@@ -122,7 +122,7 @@ namespace Shark {
 	void Log::LogMessage(LoggerType loggerType, LogLevelType level, std::string_view tag, TArgs&&... args)
 	{
 		auto& setting = s_Data->EnabledTags[tag];
-		if (setting.Enabled && setting.Level <= level)
+		if (setting.Enabled && level >= setting.Level)
 		{
 			auto logger = GetLogger(loggerType);
 			std::string format = tag.empty() ? "{0}{1}" : "[{0}] {1}";

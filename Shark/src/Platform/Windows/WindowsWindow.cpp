@@ -18,76 +18,84 @@
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 #include <windowsx.h>
+#undef GetClassName
 
 namespace Shark {
 
-	WindowsWindow::WindowClass WindowsWindow::WindowClass::wndClass;
-
-	WindowsWindow::WindowClass::WindowClass()
-		: hInst(GetModuleHandleW(nullptr))
+	class WindowsWindow::WindowClass
 	{
-		WNDCLASSEX wc;
-		ZeroMemory(&wc, sizeof(WNDCLASSEX));
-		wc.cbSize = sizeof(wc);
-		wc.style = CS_OWNDC;
-		wc.lpfnWndProc = WindowProcStartUp;
-		wc.cbClsExtra = 0;
-		wc.cbWndExtra = 0;
-		wc.hInstance = hInst;
-		wc.hIcon = nullptr;
-		wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-		wc.hbrBackground = nullptr;
-		wc.lpszMenuName = nullptr;
-		wc.lpszClassName = ClassName;
-		wc.hIconSm = nullptr;
-
-		RegisterClassExW(&wc);
-	}
-
-	WindowsWindow::WindowClass::~WindowClass()
-	{
-		UnregisterClassW(ClassName, hInst);
-	}
-
-	WindowsWindow::WindowsWindow(const WindowProps& props)
-		: m_Size(props.Width, props.Height), m_Name(String::ToWideCopy(props.Name)), m_VSync(props.VSync), m_EventListener(props.EventListener)
-	{
-		SK_CORE_INFO("Init Windows Window {0} {1} {2}", props.Width, props.Height, props.Name);
-
-		int width, height;
-		DWORD flags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
-		
-		if (props.Maximized)
+	public:
+		WindowClass::WindowClass()
+			: m_HInstance(GetModuleHandleW(nullptr))
 		{
-			flags |= WS_MAXIMIZE;
-			width = CW_USEDEFAULT;
-			height = CW_USEDEFAULT;
-		}
-		else
-		{
-			RECT rect;
-			rect.left = 100;
-			rect.right = m_Size.x + rect.left;
-			rect.top = 100;
-			rect.bottom = m_Size.y + rect.top;
-			AdjustWindowRectEx(&rect, flags, FALSE, 0);
+			m_HInstance = GetModuleHandleA(nullptr);
 
-			width = rect.right - rect.left;
-			height = rect.bottom - rect.top;
+			WNDCLASSEXW wc;
+			ZeroMemory(&wc, sizeof(WNDCLASSEXW));
+			wc.cbSize = sizeof(wc);
+			wc.style = CS_OWNDC;
+			wc.lpfnWndProc = &WindowsWindow::WindowProcStartUp;
+			wc.cbClsExtra = 0;
+			wc.cbWndExtra = 0;
+			wc.hInstance = m_HInstance;
+			wc.hIcon = nullptr;
+			wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+			wc.hbrBackground = nullptr;
+			wc.lpszMenuName = nullptr;
+			wc.lpszClassName = m_ClassName.c_str();
+			wc.hIconSm = nullptr;
+
+			RegisterClassExW(&wc);
 		}
 
+		WindowClass::~WindowClass()
+		{
+			UnregisterClassW(m_ClassName.c_str(), m_HInstance);
+		}
+
+		const std::wstring& GetClassName() const { return m_ClassName; }
+		HINSTANCE GetHInstance() const { return m_HInstance; }
+
+	private:
+		HINSTANCE m_HInstance;
+		std::wstring m_ClassName = L"Shark";
+	};
+
+	Scope<WindowsWindow::WindowClass> WindowsWindow::s_WindowClass = nullptr;
+
+	WindowsWindow::WindowsWindow(const WindowSpecification& spec)
+	{
+		SK_CORE_INFO("Init Windows Window {0} {1} {2}", spec.Width, spec.Height, spec.Title);
+
+		m_Title = spec.Title;
+		m_Size = { spec.Width, spec.Height };
+		m_EventListener = spec.EventListener;
+
+		if (!s_WindowClass)
+			s_WindowClass = Scope<WindowsWindow::WindowClass>::Create();
+
+		DWORD windowFlags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+
+		RECT windowRect{};
+		windowRect.left = 100;
+		windowRect.top = 100;
+		windowRect.right = spec.Width + windowRect.left;
+		windowRect.bottom = spec.Height + windowRect.top;
+		AdjustWindowRect(&windowRect, windowFlags, false);
+
+		std::wstring windowName = String::ToWideCopy(m_Title);
 		m_hWnd = CreateWindowExW(
 			0,
-			WindowClass::GetName(),
-			m_Name.c_str(),
-			flags,
+			s_WindowClass->GetClassName().c_str(),
+			windowName.c_str(),
+			windowFlags,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
-			width,
-			height,
+			windowRect.right - windowRect.left,
+			windowRect.bottom - windowRect.top,
 			nullptr,
 			nullptr,
-			WindowClass::GetHInst(),
+			s_WindowClass->GetHInstance(),
 			this
 		);
 
@@ -102,6 +110,27 @@ namespace Shark {
 
 		ShowWindow(m_hWnd, SW_SHOW);
 		UpdateWindow(m_hWnd);
+
+		if (!spec.Decorated)
+		{
+		}
+
+		SetFullscreen(spec.Fullscreen);
+
+#if 0
+		if (spec.Fullscreen)
+		{
+			SetFullscreen(true);
+		}
+#endif
+
+		SwapChainSpecifications swapChainSpecs;
+		swapChainSpecs.Widht = m_Size.x;
+		swapChainSpecs.Height = m_Size.y;
+		swapChainSpecs.BufferCount = 3;
+		swapChainSpecs.Handle = m_hWnd;
+		swapChainSpecs.Fullscreen = spec.Fullscreen;
+		m_SwapChain = SwapChain::Create(swapChainSpecs);
 	}
 
 	WindowsWindow::~WindowsWindow()
@@ -109,13 +138,9 @@ namespace Shark {
 		DestroyWindow(m_hWnd);
 	}
 
-	void WindowsWindow::CreateSwapChain()
+	void WindowsWindow::SwapBuffers()
 	{
-		SwapChainSpecifications swapChainSpecs;
-		swapChainSpecs.Widht = m_Size.x;
-		swapChainSpecs.Height = m_Size.y;
-		swapChainSpecs.BufferCount = 3;
-		m_SwapChain = SwapChain::Create(swapChainSpecs);
+		m_SwapChain->Present(m_VSync);
 	}
 
 	void WindowsWindow::ProcessEvents() const
@@ -130,32 +155,146 @@ namespace Shark {
 		}
 	}
 
-	void WindowsWindow::ScreenToClient(glm::ivec2& screenPos) const
+	void WindowsWindow::KillWindow()
+	{
+		DestroyWindow(m_hWnd);
+	}
+
+	void WindowsWindow::SetFullscreen(bool fullscreen)
+	{
+		if (m_Fullscreen == fullscreen)
+			return;
+
+		bool previousWasFullscreen = m_Fullscreen;
+		m_Fullscreen = fullscreen;
+
+		LONG windowStyle = GetWindowLong(m_hWnd, GWL_STYLE);
+		const LONG fullscreenModeStyle = WS_POPUP;
+		LONG windowedModeStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
+
+		// TODO(moro): settings in WindowSpecification
+		windowedModeStyle |= WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_THICKFRAME;
+
+		if (fullscreen)
+		{
+			if (previousWasFullscreen)
+			{
+				m_PreFullscreenWindowPlacement.length = sizeof(WINDOWPLACEMENT);
+				GetWindowPlacement(m_hWnd, &m_PreFullscreenWindowPlacement);
+			}
+
+			windowStyle &= ~windowedModeStyle;
+			windowStyle |= fullscreenModeStyle;
+
+			SetWindowLong(m_hWnd, GWL_STYLE, windowStyle);
+			SetWindowPos(m_hWnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+
+			RECT clientRect;
+			GetClientRect(m_hWnd, &clientRect);
+
+			// Grab current monitor data for sizing
+			HMONITOR monitor = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTOPRIMARY);
+			MONITORINFO monitorInfo;
+			monitorInfo.cbSize = sizeof(MONITORINFO);
+			GetMonitorInfo(monitor, &monitorInfo);
+
+			LONG monitorWidth = monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left;
+			//LONG targetClientWidth = std::min(monitorWidth, clientRect.right - clientRect.left);
+
+			LONG monitorHeight = monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top;
+			//LONG targetClientHeight = std::min(monitorHeight, clientRect.bottom - clientRect.top);
+			
+			SetWindowPos(
+				m_hWnd,
+				NULL,
+				monitorInfo.rcMonitor.left,
+				monitorInfo.rcMonitor.top,
+				monitorWidth,
+				monitorHeight,
+				SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING
+			);
+
+		}
+		else
+		{
+			windowStyle &= ~fullscreenModeStyle;
+			windowStyle |= windowedModeStyle;
+			SetWindowLong(m_hWnd, GWL_STYLE, windowStyle);
+			SetWindowPos(m_hWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+
+			if (m_PreFullscreenWindowPlacement.length)
+			{
+				SetWindowPlacement(m_hWnd, &m_PreFullscreenWindowPlacement);
+			}
+		}
+
+		RECT clientRect;
+		GetClientRect(m_hWnd, &clientRect);
+		const int width = clientRect.right - clientRect.left;
+		const int height = clientRect.bottom - clientRect.top;
+
+		if (m_SwapChain)
+			m_SwapChain->SetFullscreen(fullscreen);
+	}
+
+	void WindowsWindow::SetTitle(const std::string& title)
+	{
+		m_Title = title;
+		std::wstring wideTitle = String::ToWideCopy(title);
+		SetWindowTextW(m_hWnd, wideTitle.c_str());
+	}
+
+	void WindowsWindow::CenterWindow()
+	{
+		HMONITOR monitor = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTOPRIMARY);
+		MONITORINFO monitorInfo;
+		monitorInfo.cbSize = sizeof(MONITORINFO);
+		GetMonitorInfo(monitor, &monitorInfo);
+
+		SetWindowPos(
+			m_hWnd,
+			NULL,
+			(monitorInfo.rcMonitor.right - m_Size.x) / 2,
+			(monitorInfo.rcMonitor.bottom - m_Size.y) / 2,
+			m_Size.x,
+			m_Size.y,
+			SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING
+		);
+	}
+
+	glm::ivec2 WindowsWindow::ScreenToWindow(const glm::ivec2& screenPos) const
 	{
 		POINT p{ screenPos.x, screenPos.y };
-		::ScreenToClient(m_hWnd, &p);
-		screenPos.x = p.x;
-		screenPos.y = p.y;
+		if (::ScreenToClient(m_hWnd, &p))
+			return { p.x, p.y };
+		return { 0, 0 };
 	}
 
-	LRESULT WINAPI WindowsWindow::WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	glm::ivec2 WindowsWindow::WindowToScreen(const glm::ivec2& windowPos) const
 	{
-		if (uMsg == WM_NCCREATE)
+		POINT p{ windowPos.x, windowPos.y };
+		if (::ClientToScreen(m_hWnd, &p))
+			return { p.x, p.y };
+		return { 0, 0 };
+	}
+
+	LRESULT WINAPI WindowsWindow::WindowProcStartUp(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		if (msg == WM_CREATE)
 		{
-			const CREATESTRUCTW* const pCreateStruct = reinterpret_cast<CREATESTRUCTW*>(lParam);
-			WindowsWindow* const pWindow = static_cast<WindowsWindow*>(pCreateStruct->lpCreateParams);
-			SK_CORE_ASSERT(pWindow, "Window pointer not created");
-			SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow));
-			SetWindowLongPtr(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&WindowProc));
-			return pWindow->HandleMsg(hWnd, uMsg, wParam, lParam);
+			auto createStruct = (CREATESTRUCT*)lParam;
+			auto window = (WindowsWindow*)createStruct->lpCreateParams;
+			SetWindowLongPtrW(hWnd, GWLP_USERDATA, (LONG_PTR)window);
+			SetWindowLongPtrW(hWnd, GWLP_WNDPROC, (LONG_PTR)&WindowsWindow::WindowProc);
+			return window->HandleMsg(hWnd, msg, wParam, lParam);
 		}
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 
-	LRESULT WINAPI WindowsWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	LRESULT WINAPI WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
-		WindowsWindow* const pWindow = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-		return pWindow->HandleMsg(hWnd, uMsg, wParam, lParam);
+		auto window = (WindowsWindow*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+		return window->HandleMsg(hWnd, msg, wParam, lParam);
 	}
 
 	LRESULT __stdcall WindowsWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -201,6 +340,9 @@ namespace Shark {
 					state = WindowResizeEvent::State::Minimized;
 
 				m_EventListener->OnWindowResizeEvent(m_Size.x, m_Size.y, state);
+
+				// TODO(moro): figure out why the window style changes
+				ShowWindow(m_hWnd, SW_SHOW);
 				break;
 			}
 
@@ -215,8 +357,7 @@ namespace Shark {
 			case WM_NCMOUSEMOVE:
 			case WM_MOUSEMOVE:
 			{
-				glm::ivec2 mousePos{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-				ScreenToClient(mousePos);
+				auto mousePos = ScreenToWindow({ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) });
 				m_EventListener->OnMouseMovedEvent(mousePos);
 				break;
 			}
@@ -226,8 +367,7 @@ namespace Shark {
 			case WM_MBUTTONUP:
 			case WM_XBUTTONUP:
 			{
-				glm::ivec2 mousePos{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-				ScreenToClient(mousePos);
+				auto mousePos = ScreenToWindow({ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) });
 				MouseButton mouseButton = MouseButton::None;
 
 				switch (msg)
@@ -312,8 +452,7 @@ namespace Shark {
 
 			case WM_MOUSEWHEEL:
 			{
-				glm::ivec2 mousePos{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-				ScreenToClient(mousePos);
+				auto mousePos = ScreenToWindow({ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) });
 				m_EventListener->OnMouseScrolledEvent(mousePos, (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
 				break;
 			}

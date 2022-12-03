@@ -29,19 +29,22 @@ namespace Shark {
 		s_Instance = this;
 		Application* app = this;
 
-		SK_CORE_ASSERT(!(specification.FullScreen && specification.Maximized));
-
 		Renderer::Init();
 
-		WindowProps windowprops;
-		windowprops.Name = specification.Name;
-		windowprops.Maximized = specification.Maximized;
-		windowprops.Width = specification.WindowWidth;
-		windowprops.Height = specification.WindowHeight;
-		windowprops.VSync = specification.VSync;
-		windowprops.EventListener = Ref<EventListener>::Create([app](Event& e) { app->OnEvent(e); });
-		m_Window = Window::Create(windowprops);
-		m_Window->CreateSwapChain();
+		WindowSpecification windowSpec;
+		windowSpec.Title = specification.Name;
+		windowSpec.Width = specification.WindowWidth;
+		windowSpec.Height = specification.WindowHeight;
+		windowSpec.Decorated = specification.Decorated;
+		windowSpec.Fullscreen = specification.FullScreen;
+		windowSpec.VSync = specification.VSync;
+		windowSpec.EventListener = Ref<EventListener>::Create([app](Event& e) { app->OnEvent(e); });
+		m_Window = Window::Create(windowSpec);
+		if (specification.Maximized)
+			m_Window->Maximize();
+		else
+			m_Window->CenterWindow();
+
 
 		if (specification.EnableImGui)
 		{
@@ -83,9 +86,7 @@ namespace Shark {
 			{
 				if (m_NeedsResize)
 				{
-					Renderer::ClearAllCommandBuffers();
-					Ref<SwapChain> swapChain = m_Window->GetSwapChain();
-					swapChain->Resize(m_Window->GetWidth(), m_Window->GetHeight());
+					UpdateSwapchainSize();
 					m_NeedsResize = false;
 				}
 
@@ -101,11 +102,11 @@ namespace Shark {
 						layer->OnImGuiRender();
 					m_ImGuiLayer->End();
 				}
+
+				m_Window->SwapBuffers();
 			}
 
 			ProcessEvents();
-
-			m_Window->GetSwapChain()->Present(m_Window->IsVSync());
 
 			//TimeStep now = TimeUtils::Now();
 			//m_TimeStep = now - m_LastFrameTime;
@@ -122,6 +123,18 @@ namespace Shark {
 		}
 	}
 
+	void Application::SwitchFullscreenMode()
+	{
+		const bool nextMode = !m_Window->IsFullscreen();
+
+		Application* app = this;
+		Ref<SwapChain> swapchain = m_Window->GetSwapChain();
+
+		m_Window->SetFullscreen(nextMode);
+		//Renderer::SubmitPostRender([swapchain, nextMode]() { swapchain->SetFullscreen(nextMode); });
+		//Renderer::SubmitPostRender([app]() { app->UpdateSwapchainSize(); });
+	}
+
 	void Application::ProcessEvents()
 	{
 		SK_PROFILE_FUNCTION();
@@ -130,7 +143,13 @@ namespace Shark {
 		Input::TransitionStates();
 
 		m_Window->ProcessEvents();
-		m_EventQueue.Execute();
+
+		while (!m_EventQueue.empty())
+		{
+			auto& func = m_EventQueue.front();
+			func();
+			m_EventQueue.pop();
+		}
 	}
 
 	void Application::OnEvent(Event& event)
@@ -158,21 +177,26 @@ namespace Shark {
 
 	bool Application::OnWindowClose(WindowCloseEvent& event)
 	{
+		SK_CORE_WARN("Window Closed");
 		CloseApplication();
 		return false;
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& event)
 	{
-		m_NeedsResize = true;
-
-		if (event.IsMinimized())
-		{
-			m_Minimized = true;
+		m_Minimized = event.IsMinimized();
+		if (m_Minimized)
 			return false;
-		}
-		m_Minimized = false;
+
+		m_NeedsResize = true;
 		return false;
+	}
+
+	void Application::UpdateSwapchainSize()
+	{
+		Renderer::ClearAllCommandBuffers();
+		auto swapchain = m_Window->GetSwapChain();
+		swapchain->Resize(m_Window->GetWidth(), m_Window->GetHeight());
 	}
 
 	namespace Core {

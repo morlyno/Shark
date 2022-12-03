@@ -14,10 +14,12 @@ namespace Shark {
 
 		virtual void Present(bool vSync) override;
 		virtual void Resize(uint32_t width, uint32_t height) override;
+		virtual void SetFullscreen(bool fullscreen) override;
 
 		virtual Ref<FrameBuffer> GetFrameBuffer() const override { return m_FrameBuffer; }
 
 	private:
+		void ResizeSwapChain(uint32_t width, uint32_t height);
 		void ReCreateSwapChain();
 
 	private:
@@ -25,10 +27,6 @@ namespace Shark {
 		Ref<FrameBuffer> m_FrameBuffer;
 
 		IDXGISwapChain* m_SwapChain = nullptr;
-		
-#if SK_DX11_VSYNC_WITH_OUTPUT
-		IDXGIOutput* m_Output = nullptr;
-#endif
 	};
 
 }

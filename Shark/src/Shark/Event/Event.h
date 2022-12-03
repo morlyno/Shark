@@ -111,8 +111,8 @@ namespace Shark {
 
 }
 
-template<typename Event>
-struct fmt::formatter<Event, char, std::enable_if_t<std::is_same_v<Event, Shark::Event> || std::is_base_of_v<Shark::Event, Event>>>
+template<typename TEvent>
+struct fmt::formatter<TEvent, char, std::enable_if_t<std::is_same_v<TEvent, Shark::Event> || std::is_base_of_v<Shark::Event, TEvent>>>
 {	
 	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
 	{
@@ -120,7 +120,7 @@ struct fmt::formatter<Event, char, std::enable_if_t<std::is_same_v<Event, Shark:
 	}
 
 	template<typename FormatContext>
-	auto format(const Shark::Event& event, FormatContext& ctx) -> decltype(ctx.out())
+	auto format(const TEvent& event, FormatContext& ctx) -> decltype(ctx.out())
 	{
 		return format_to(ctx.out(), event.ToString());
 	}

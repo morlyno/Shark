@@ -9,6 +9,7 @@ namespace Shark {
 	{
 		uint32_t Widht, Height;
 		uint32_t BufferCount;
+		bool Fullscreen = false;
 		WindowHandle Handle;
 	};
 
@@ -19,6 +20,8 @@ namespace Shark {
 
 		virtual void Present(bool vSync) = 0;
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
+
+		virtual void SetFullscreen(bool fullscreen) = 0;
 
 		virtual Ref<FrameBuffer> GetFrameBuffer() const = 0;
 

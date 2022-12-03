@@ -24,6 +24,7 @@ namespace Shark {
 	{
 		std::string Name = "UnNamed";
 		uint32_t WindowWidth = 1280, WindowHeight = 720;
+		bool Decorated = true;
 		bool Maximized = false;
 		bool FullScreen = false;
 		bool EnableImGui = false;
@@ -56,22 +57,29 @@ namespace Shark {
 		ImGuiLayer& GetImGuiLayer()                    { return *m_ImGuiLayer; }
 		const ApplicationSpecification& GetSpecs()     { return m_Specification; }
 		bool CanRaiseEvents() const					   { return m_RaiseEvents; }
+		void SwitchFullscreenMode();
 
 		template<typename TEvent, typename... TArgs>
 		void QueueEvent(TArgs&&... args)
 		{
 			Application* app = this;
-			m_EventQueue.Submit([app, args...]() { app->OnEvent(TEvent(args...)); });
+			m_EventQueue.push([app, args...]() { app->OnEvent(TEvent(args...)); });
+		}
+
+		template<typename TFunc>
+		void QueueEvent(const TFunc& func)
+		{
+			m_EventQueue.push(func);
 		}
 
 	private:
 		void ProcessEvents();
 		void OnEvent(Event& event);
-
-	private:
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnWindowResize(WindowResizeEvent& event);
 
+	public:
+		void UpdateSwapchainSize();
 	private:
 		static Application* s_Instance;
 		ApplicationSpecification m_Specification;
@@ -92,7 +100,7 @@ namespace Shark {
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
-		CommandQueue m_EventQueue = CommandQueue(128);
+		std::queue<std::function<void()>> m_EventQueue;
 	};
 
 	Application* CreateApplication(int argc, char** argv);

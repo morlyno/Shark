@@ -32,9 +32,9 @@ namespace Shark {
 		}
 	}
 
-	void PanelManager::DrawPanelsMenu()
+	void PanelManager::DrawPanelsMenu(const char* menuName)
 	{
-		if (ImGui::BeginMenu("Panels"))
+		if (ImGui::BeginMenu(menuName))
 		{
 			for (auto& [id, data] : m_Panels)
 				ImGui::MenuItem(data.Instance->GetName(), nullptr, &data.Shown);

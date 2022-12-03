@@ -20,6 +20,17 @@ namespace Shark {
 		DirectX11
 	};
 
+	inline std::string_view ToStringView(RendererAPIType api)
+	{
+		switch (api)
+		{
+			case RendererAPIType::None: return "None"sv;
+			case RendererAPIType::DirectX11: return "DirectX11"sv;
+		}
+		SK_CORE_ASSERT(false, "Unkown RendererAPIType");
+		return "Unkown";
+	}
+
 	class Renderer
 	{
 	public:

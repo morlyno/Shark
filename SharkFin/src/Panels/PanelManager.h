@@ -34,7 +34,7 @@ namespace Shark {
 		void OnImGuiRender();
 		void OnEvent(Event& event);
 
-		void DrawPanelsMenu();
+		void DrawPanelsMenu(const char* menuName);
 
 	private:
 		struct PanelEntry

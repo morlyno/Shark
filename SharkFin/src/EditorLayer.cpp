@@ -217,6 +217,13 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (event.GetKeyCode() == KeyCode::F4 && Input::IsKeyDown(KeyCode::Alt))
+		{
+			auto& app = Application::Get();
+			app.CloseApplication();
+			return true;
+		}
+
 		// Disable hot keys when the scene state is not Edit
 		if (m_SceneState != SceneState::Edit)
 			return false;
@@ -226,6 +233,7 @@ namespace Shark {
 
 		const bool control = Input::IsKeyDown(KeyCode::LeftControl);
 		const bool shift = Input::IsKeyDown(KeyCode::LeftShift);
+		const bool altDown = Input::IsKeyDown(KeyCode::Alt);
 
 		switch (event.GetKeyCode())
 		{
@@ -298,7 +306,7 @@ namespace Shark {
 			case KeyCode::V:
 			{
 				auto& window = Application::Get().GetWindow();
-				window.SetVSync(!window.IsVSync());
+				window.EnableVSync(!window.VSyncEnabled());
 				return true;
 			}
 
@@ -492,15 +500,22 @@ namespace Shark {
 				ImGui::EndMenu();
 			}
 
-			m_PanelManager->DrawPanelsMenu();
-			if (ImGui::BeginMenu("Panels"))
+			m_PanelManager->DrawPanelsMenu("View");
+			if (ImGui::BeginMenu("View"))
 			{
 				ImGui::Separator();
 				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
 				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
 				ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
+				ImGui::Separator();
+
+				auto& app = Application::Get();
+				if (ImGui::MenuItem("Fullscreen", nullptr, app.GetWindow().IsFullscreen()))
+					app.SwitchFullscreenMode();
+
 				ImGui::EndMenu();
 			}
+
 
 			if (ImGui::BeginMenu("Script"))
 			{
@@ -1334,9 +1349,9 @@ namespace Shark {
 			{
 				UI::BeginControlsGrid();
 				auto& window = Application::Get().GetWindow();
-				bool vSync = window.IsVSync();
+				bool vSync = window.VSyncEnabled();
 				if (UI::Control("VSync", vSync))
-					window.SetVSync(vSync);
+					window.EnableVSync(vSync);
 
 				UI::Control("Read Hoved Entity", m_ReadHoveredEntity);
 
@@ -1595,6 +1610,7 @@ namespace Shark {
 		m_SceneRenderer->SetScene(scene);
 		m_CameraPreviewRenderer->SetScene(scene);
 		Application::Get().QueueEvent<SceneChangedEvent>(scene);
+		UpdateWindowTitle();
 	}
 
 	void EditorLayer::OpenProject()
@@ -1774,6 +1790,23 @@ namespace Shark {
 	{
 		auto solutionPath = fmt::format("{}/{}.sln", Project::GetDirectory(), Project::GetName());
 		PlatformUtils::Execute(ExectueVerb::Open, solutionPath);
+	}
+
+	void EditorLayer::UpdateWindowTitle()
+	{
+		// Scene File name (Scene Name) - Editor Name - Platform - Renderer
+
+		std::string sceneFilePath;
+		std::string sceneName;
+		if (m_ActiveScene)
+		{
+			auto& metadata = ResourceManager::GetMetaData(m_ActiveScene);
+			sceneFilePath = metadata.FilePath.filename().string();
+			sceneName = m_ActiveScene->GetName();
+		}
+
+		std::string title = fmt::format("{} ({}) - SharkFin - {} {} ({}) - {}", sceneFilePath, sceneName, PlatformUtils::GetPlatform(), PlatformUtils::GetArchitecture(), PlatformUtils::GetConfiguration(), ToStringView(Renderer::GetAPI()));
+		Application::Get().GetWindow().SetTitle(title);
 	}
 
 }

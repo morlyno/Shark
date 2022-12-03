@@ -28,9 +28,6 @@ namespace Shark {
 	void Log::Initialize()
 	{
 		s_Data = new LogData();
-		auto& tagData = s_Data->EnabledTags[""];
-		tagData.Enabled = false;
-		tagData.Level = LogLevelType::Off;
 
 		std::vector<spdlog::sink_ptr> sharkSinks =
 		{

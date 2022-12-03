@@ -532,6 +532,8 @@ namespace Shark {
 
 	void ScriptEngine::InitMono()
 	{
+		SK_CORE_INFO_TAG("Scripting", "Initializing Mono");
+
 		FileSystem::TruncateFile("Logs/Mono.log");
 		
 		mono_trace_set_level_string("warning");
@@ -590,6 +592,8 @@ namespace Shark {
 		info.Assembly = assembly;
 		info.Image = mono_assembly_get_image(assembly);
 		info.FilePath = filePath;
+
+		SK_CORE_INFO_TAG("Scripting", "Core Assembly Loaded. ({0})", info.FilePath);
 		return true;
 	}
 
@@ -606,6 +610,8 @@ namespace Shark {
 		info.Assembly = assembly;
 		info.Image = mono_assembly_get_image(assembly);
 		info.FilePath = filePath;
+
+		SK_CORE_INFO_TAG("Scripting", "App Assembly Loaded. ({0})", info.FilePath);
 		return true;
 	}
 
@@ -616,7 +622,7 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Scripting", "Reloading Assemblies");
 
 		// Try reload assemlies
-		// is failed keep the old ones
+		// if failed keep the old ones
 
 		MonoDomain* newDomain = mono_domain_create_appdomain("ScriptDomain", nullptr);
 		SK_CORE_VERIFY(newDomain);

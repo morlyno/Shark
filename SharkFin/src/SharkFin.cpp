@@ -50,6 +50,8 @@ namespace Shark {
 		specification.WindowWidth = 1280;
 		specification.WindowHeight = 720;
 		specification.Maximized = true;
+		specification.Decorated = true;
+		specification.FullScreen = true;
 		specification.EnableImGui = true;
 		specification.VSync = true;
 

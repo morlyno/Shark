@@ -56,6 +56,27 @@ namespace Shark {
 		return String::ToNarrowCopy(std::wstring_view(error.ErrorMessage()));
 	}
 
+	std::string_view WindowsUtils::GetPlatform()
+	{
+		return "Windows"sv;
+	}
+
+	std::string_view WindowsUtils::GetConfiguration()
+	{
+#if SK_DEBUG
+		return "Debug"sv;
+#elif SK_RELEASE
+		return "Release"sv;
+#else
+#error Unkown Configuration
+#endif
+	}
+
+	std::string_view WindowsUtils::GetArchitecture()
+	{
+		return "x64";
+	}
+
 	void WindowsUtils::SetThreadName(HANDLE thread, const std::wstring& name)
 	{
 		HRESULT hr = SetThreadDescription(thread, name.c_str());

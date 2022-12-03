@@ -33,6 +33,8 @@ namespace Shark {
 		bool operator==(const Scope& rhs) const { return m_Instance == rhs.m_Instance; }
 		bool operator!=(const Scope& rhs) const { return !(*this == rhs); }
 
+		T* Raw() { return m_Instance; }
+		const T* Raw() const { return m_Instance; }
 
 		template<typename... Args>
 		static Scope Create(Args&&... args) { return std::move(Scope(new T(std::forward<Args>(args)...))); }

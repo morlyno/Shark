@@ -10,48 +10,52 @@ namespace Shark {
 	class WindowsWindow : public Window
 	{
 	private:
-		class WindowClass
-		{
-		private:
-			WindowClass();
-			~WindowClass();
-			WindowClass(const WindowClass&) = delete;
-			WindowClass& operator=(const WindowClass&) = delete;
-		public:
-			static inline const wchar_t* GetName() { return wndClass.ClassName; }
-			static inline HINSTANCE GetHInst() { return wndClass.hInst; }
-		private:
-			static WindowClass wndClass;
-			HINSTANCE hInst;
-			const wchar_t* ClassName = L"Shark";
-		};
+		class WindowClass;
+
 	public:
-		WindowsWindow(const WindowProps& props);
+		WindowsWindow(const WindowSpecification& spec);
 		virtual ~WindowsWindow();
-		virtual void CreateSwapChain() override;
+		
+		virtual void SwapBuffers() override;
 		virtual void ProcessEvents() const override;
 
-		virtual inline uint32_t GetWidth() const override { return m_Size.x; }
-		virtual inline uint32_t GetHeight() const override { return m_Size.y; }
-		virtual const glm::uvec2& GetSize() const override { return m_Size; }
-		virtual const glm::ivec2& GetPos() const override { return m_Pos; }
-		virtual void ScreenToClient(glm::ivec2& screenPos) const override;
+		virtual void KillWindow() override;
 
-		virtual inline WindowHandle GetHandle() const override { return m_hWnd; }
+		virtual void SetFullscreen(bool fullscreen) override;
+		virtual bool IsFullscreen() const override { return m_Fullscreen; }
+
+		virtual void SetTitle(const std::string& title) override;
+		virtual const std::string& GetTitle() const override { return m_Title; }
+
+		virtual void Maximize() override { ShowWindow(m_hWnd, SW_MAXIMIZE); }
+		virtual void CenterWindow() override;
+		virtual bool IsResizable() const override { return true; }
+		virtual void SetResizable(bool resizable) override {}
+
+		virtual bool IsFocused() const override { return GetFocus() == m_hWnd; }
+		virtual void SetFocused() override { SetFocus(m_hWnd); }
+
+		virtual bool VSyncEnabled() const override { return m_VSync; }
+		virtual void EnableVSync(bool enabled) override { m_VSync = enabled; }
+
+		virtual uint32_t GetWidth() const override { return m_Size.x; }
+		virtual uint32_t GetHeight() const override { return m_Size.y; }
+		virtual const glm::uvec2& GetSize() const override { return m_Size; }
+		virtual const glm::ivec2& GetPosition() const override { return m_Pos; }
+		virtual glm::ivec2 ScreenToWindow(const glm::ivec2& screenPos) const override;
+		virtual glm::ivec2 WindowToScreen(const glm::ivec2& windowPos) const override;
+
+		virtual WindowHandle GetHandle() const override { return m_hWnd; }
 		virtual Ref<SwapChain> GetSwapChain() const override { return m_SwapChain; }
 
-		virtual inline bool IsVSync() const override { return m_VSync; }
-		virtual void SetVSync(bool VSync) override { m_VSync = VSync; }
-		virtual bool IsFocused() const override { return GetFocus() == m_hWnd; }
-
-		virtual void Kill() override { DestroyWindow(m_hWnd); }
-		virtual void Maximize() override { ShowWindow(m_hWnd, SW_MAXIMIZE); }
-
 	private:
-		static LRESULT WINAPI WindowProcStartUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-		static LRESULT WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		static LRESULT WINAPI WindowProcStartUp(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		static LRESULT WINAPI WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		LRESULT WINAPI HandleMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 	private:
+		static Scope<WindowClass> s_WindowClass;
+
 		HWND m_hWnd;
 		Ref<SwapChain> m_SwapChain;
 		Ref<EventListener> m_EventListener;
@@ -59,11 +63,15 @@ namespace Shark {
 		glm::uvec2 m_Size = glm::uvec2(0);
 		glm::ivec2 m_Pos = glm::ivec2(0);
 
-		std::wstring m_Name;
+		std::string m_Title;
 		bool m_VSync;
 
 		uint16_t m_DownMouseButtons = 0;
 
+		bool m_Fullscreen = false;
+		WINDOWPLACEMENT m_PreFullscreenWindowPlacement{};
+
+		friend class WindowClass;
 	};
 
 }

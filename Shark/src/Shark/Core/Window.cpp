@@ -7,10 +7,11 @@ namespace Shark {
 
 #if SK_PLATFORM_WINDOWS
 
-	Scope<Window> Window::Create(const WindowProps& properties)
+	Scope<Window> Window::Create(const WindowSpecification& spec)
 	{
-		return Scope<WindowsWindow>::Create(properties);
+		return Scope<WindowsWindow>::Create(spec);
 	}
+
 #endif
 
 }

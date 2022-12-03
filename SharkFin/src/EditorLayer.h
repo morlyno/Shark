@@ -119,6 +119,8 @@ namespace Shark {
 		void RunScriptSetup();
 		void OpenIDE();
 
+		void UpdateWindowTitle();
+
 	private:
 		static constexpr std::string_view LogLevelStrings[] = { "Trace"sv, "Debug"sv, "Info"sv, "Warn"sv, "Error"sv, "Critical"sv/*, "Off"sv*/ };
 

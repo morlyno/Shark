@@ -220,7 +220,7 @@ namespace Shark {
 			const float dockSplittRatio = 0.65f;
 
 			const glm::vec2 windowSize = (glm::vec2)window.GetSize() * windowRatio;
-			const glm::vec2 windowPos = (glm::vec2)window.GetPos() + (glm::vec2)window.GetSize() * 0.5f - windowSize * 0.5f;
+			const glm::vec2 windowPos = (glm::vec2)window.GetPosition() + (glm::vec2)window.GetSize() * 0.5f - windowSize * 0.5f;
 
 			ImGui::SetNextWindowPos({ windowPos.x, windowPos.y });
 			ImGui::SetNextWindowSize({ windowSize.x, windowSize.y });

@@ -36,6 +36,10 @@ namespace Shark {
 	public:
 		static std::string TranslateHResult(HRESULT hResult);
 
+		static std::string_view GetPlatform();
+		static std::string_view GetConfiguration();
+		static std::string_view GetArchitecture();
+
 		static void SetThreadName(HANDLE thread, const std::wstring& name);
 		static void SetThreadName(std::thread& thread, const std::wstring& name) { SetThreadName(thread.native_handle(), name); }
 		static void SetThreadName(const std::wstring& name) { SetThreadName(GetCurrentThread(), name); }
