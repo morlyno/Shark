@@ -6,6 +6,7 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXSwapChain.h"
 
 #include <stb_image.h>
 
@@ -97,8 +98,7 @@ namespace Shark {
 		: m_Specification(specs)
 	{
 		CreateResource();
-		if (data)
-			data->CopyTo(this);
+		UpdateResource(data.As<DirectXImage2D>());
 	}
 
 	DirectXImage2D::DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
@@ -120,12 +120,56 @@ namespace Shark {
 			CreateView();
 	}
 
+	DirectXImage2D::DirectXImage2D(Ref<DirectXSwapChain> swapchain, bool createView)
+	{
+		auto& scSpec = swapchain->GetSpecification();
+		m_Specification.Width = scSpec.Widht;
+		m_Specification.Height = scSpec.Height;
+		m_Specification.Type = ImageType::FrameBuffer;
+		m_Specification.Format = ImageFormat::RGBA8;
+
+		Ref<DirectXImage2D> instance = this;
+		Renderer::Submit([instance, swapchain, createView]()
+		{
+			IDXGISwapChain* dxSwapchain = swapchain->GetSwapChain();
+			ID3D11Texture2D* texture = nullptr;
+			SK_DX11_CALL(dxSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&texture));
+			instance->m_Resource = texture;
+
+			if (createView)
+				instance->RT_CreateView();
+		});
+
+	}
+
 	DirectXImage2D::~DirectXImage2D()
+	{
+		Release();
+	}
+
+	void DirectXImage2D::Release()
+	{
+		Renderer::SubmitResourceFree([resource = m_Resource, view = m_View]()
+		{
+			if (resource)
+				resource->Release();
+			if (view)
+				view->Release();
+		});
+
+		m_Resource = nullptr;
+		m_View = nullptr;
+	}
+
+	void DirectXImage2D::RT_Release()
 	{
 		if (m_Resource)
 			m_Resource->Release();
 		if (m_View)
 			m_View->Release();
+
+		m_Resource = nullptr;
+		m_View = nullptr;
 	}
 
 	void DirectXImage2D::Set(const ImageSpecification& specs, Buffer imageData)
@@ -146,7 +190,7 @@ namespace Shark {
 		m_Specification = specs;
 
 		CreateResource();
-		data->CopyTo(this);
+		UpdateResource(data.As<DirectXImage2D>());
 	}
 
 	void DirectXImage2D::Set(const std::filesystem::path& filePath)
@@ -176,11 +220,15 @@ namespace Shark {
 		m_Specification.MipLevels = 0;
 		m_Specification.Type = ImageType::Texture;
 
-		CreateResource();
-		UpdateResource(imagedata);
+		Ref<DirectXImage2D> instance = this;
+		Renderer::Submit([instance, imagedata]() mutable
+		{
+			instance->RT_CreateResource();
+			instance->RT_UpdateResource(imagedata);
+			imagedata.Release();
 
-		DirectXImage2D* instance = this;
-		DirectXRenderer::Get()->GenerateMips(instance);
+			DirectXRenderer::Get()->RT_GenerateMips(instance);
+		});
 	}
 
 	void DirectXImage2D::ReloadFromDisc()
@@ -204,40 +252,26 @@ namespace Shark {
 
 	bool DirectXImage2D::CopyTo(Ref<Image2D> image)
 	{
-		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
-		SK_CORE_VERIFY(m_Resource && dxImage->m_Resource);
-
-		const auto& destSpecs = dxImage->GetSpecification();
-		if (!IsImageCompadible(dxImage->m_Specification))
+		const auto& destSpecs = image->GetSpecification();
+		if (!IsImageCompadible(destSpecs))
 		{
 			SK_CORE_WARN("Unable to Copy Resource!");
 			return false;
 		}
 
-		auto ctx = DirectXRenderer::GetContext();
-		ctx->CopyResource(dxImage->m_Resource, m_Resource);
-		return true;
-	}
-
-	bool DirectXImage2D::CopyMipTo(Ref<Image2D> image, uint32_t mip)
-	{
-		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
-		SK_CORE_VERIFY(m_Resource && dxImage->m_Resource);
-
-		const auto& destSpecs = dxImage->GetSpecification();
-		if (!IsImageCompadibleIgnoreMipLeves(dxImage->m_Specification))
+		Ref<DirectXImage2D> instance = this;
+		Renderer::Submit([instance, dxImage = image.As<DirectXImage2D>()]()
 		{
-			SK_CORE_WARN("Unable to Copy Subresource!");
-			return false;
-		}
+			instance->RT_UpdateResource(dxImage);
+		});
 
-		auto ctx = DirectXRenderer::GetContext();
-		ctx->CopySubresourceRegion(dxImage->m_Resource, mip, 0, 0, 0, m_Resource, mip, nullptr);
 		return true;
 	}
 
 	bool DirectXImage2D::ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel)
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
 		if (m_Specification.Type != ImageType::Storage)
 		{
 			SK_CORE_WARN("Read Pixel only works with ImageType::Sotrage!");
@@ -262,18 +296,12 @@ namespace Shark {
 		return true;
 	}
 
-	void DirectXImage2D::Release()
+	void DirectXImage2D::RT_CopyTo(Ref<Image2D> image)
 	{
-		if (m_Resource)
-		{
-			m_Resource->Release();
-			m_Resource = nullptr;
-		}
-		if (m_View)
-		{
-			m_View->Release();
-			m_View = nullptr;
-		}
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		auto dxImage = image.As<DirectXImage2D>();
+		dxImage->RT_UpdateResource(this);
 	}
 
 	Buffer DirectXImage2D::LoadDataFromFile(const std::filesystem::path& filePath)
@@ -294,6 +322,45 @@ namespace Shark {
 
 	void DirectXImage2D::CreateResource()
 	{
+		Ref<DirectXImage2D> instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->RT_CreateResource();
+		});
+	}
+
+	void DirectXImage2D::UpdateResource(Buffer imageData)
+	{
+		Ref<DirectXImage2D> instance = this;
+		Buffer buffer = Buffer::Copy(imageData);
+		Renderer::Submit([instance, buffer]() mutable
+		{
+			instance->RT_UpdateResource(buffer);
+			buffer.Release();
+		});
+	}
+
+	void DirectXImage2D::UpdateResource(Ref<DirectXImage2D> imageData)
+	{
+		Ref<DirectXImage2D> instance = this;
+		Renderer::Submit([instance, imageData]()
+		{
+			instance->RT_UpdateResource(imageData);
+		});
+	}
+
+	void DirectXImage2D::CreateView()
+	{
+		Ref<DirectXImage2D> instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->RT_CreateView();
+		});
+	}
+
+	void DirectXImage2D::RT_CreateResource()
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		auto device = DirectXRenderer::GetDevice();
 
 		D3D11_TEXTURE2D_DESC desc{};
@@ -328,21 +395,30 @@ namespace Shark {
 
 		SK_DX11_CALL(device->CreateTexture2D(&desc, nullptr, &m_Resource));
 		if (m_Specification.Type != ImageType::Storage)
-			CreateView();
+			RT_CreateView();
 	}
 
-	void DirectXImage2D::UpdateResource(Buffer imageData)
+	void DirectXImage2D::RT_UpdateResource(Buffer imageData)
 	{
-		if (imageData.Data)
-		{
-			auto context = DirectXRenderer::GetContext();
-			context->UpdateSubresource(m_Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * 4, 0);
-		}
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		SK_CORE_VERIFY(imageData);
+
+		auto context = DirectXRenderer::GetContext();
+		context->UpdateSubresource(m_Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * 4, 0);
 	}
 
-	void DirectXImage2D::CreateView()
+	void DirectXImage2D::RT_UpdateResource(Ref<DirectXImage2D> imageData)
 	{
-		auto device = DirectXRenderer::GetDevice();
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		SK_CORE_VERIFY(imageData);
+
+		auto ctx = DirectXRenderer::GetContext();
+		ctx->CopyResource(m_Resource, imageData->m_Resource);
+	}
+
+	void DirectXImage2D::RT_CreateView()
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
 		viewDesc.Format = utils::ImageFormatToD3D11ForView(m_Specification.Format);
@@ -350,22 +426,8 @@ namespace Shark {
 		viewDesc.Texture2D.MipLevels = -1;
 		viewDesc.Texture2D.MostDetailedMip = 0;
 
+		auto device = DirectXRenderer::GetDevice();
 		SK_DX11_CALL(device->CreateShaderResourceView(m_Resource, &viewDesc, &m_View));
-	}
-
-	bool DirectXImage2D::IsDepthImage()
-	{
-		return m_Specification.Format == ImageFormat::Depth32;
-	}
-
-	bool DirectXImage2D::IsImageCompadible(const ImageSpecification& specs) const
-	{
-		return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format && m_Specification.MipLevels == specs.MipLevels;
-	}
-
-	bool DirectXImage2D::IsImageCompadibleIgnoreMipLeves(const ImageSpecification& specs) const
-	{
-		return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format;
 	}
 
 }

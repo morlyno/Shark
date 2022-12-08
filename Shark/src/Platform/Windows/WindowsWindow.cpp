@@ -233,8 +233,8 @@ namespace Shark {
 		const int width = clientRect.right - clientRect.left;
 		const int height = clientRect.bottom - clientRect.top;
 
-		if (m_SwapChain)
-			m_SwapChain->SetFullscreen(fullscreen);
+		//if (m_SwapChain)
+		//	m_SwapChain->SetFullscreen(fullscreen);
 	}
 
 	void WindowsWindow::SetTitle(const std::string& title)

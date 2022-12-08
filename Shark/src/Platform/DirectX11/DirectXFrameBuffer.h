@@ -11,8 +11,11 @@ namespace Shark {
 	class DirectXFrameBuffer : public FrameBuffer
 	{
 	public:
-		DirectXFrameBuffer(const FrameBufferSpecification& specs, bool isSwapChainTarget = false);
+		DirectXFrameBuffer(const FrameBufferSpecification& specs);
 		virtual ~DirectXFrameBuffer();
+
+		virtual void Release() override;
+		void RT_Release();
 
 		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer) override { Clear(commandBuffer, m_Specification.ClearColor); }
 		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer, const glm::vec4& clearcolor) override;
@@ -20,13 +23,6 @@ namespace Shark {
 		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearcolor) override;
 		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) override;
 
-		void Clear(ID3D11DeviceContext* ctx) { Clear(ctx, m_Specification.ClearColor); }
-		void Clear(ID3D11DeviceContext* ctx, const glm::vec4& clearcolor);
-		void ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index) { ClearAtachment(ctx, index, m_Specification.ClearColor); }
-		void ClearAtachment(ID3D11DeviceContext* ctx, uint32_t index, const glm::vec4& clearcolor);
-		void ClearDepth(ID3D11DeviceContext* ctx);
-
-		virtual void Release() override;
 		virtual std::pair<uint32_t, uint32_t> GetSize() const override { return { m_Specification.Width, m_Specification.Height }; }
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
@@ -35,15 +31,23 @@ namespace Shark {
 
 		virtual const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
 
-		void Bind(ID3D11DeviceContext* ctx);
-		void UnBind(ID3D11DeviceContext* ctx);
+		void RT_Bind(ID3D11DeviceContext* ctx);
+		void RT_UnBind(ID3D11DeviceContext* ctx);
 
-	protected:
+	private:
+		void CreateBuffers();
 		void CreateDepth32Buffer(FrameBufferAtachment* atachment);
 		void CreateFrameBuffer(FrameBufferAtachment* atachment, DXGI_FORMAT dxgiformat);
 		void CreateFrameBufferFromImage(FrameBufferAtachment* atachment);
 
-		void CreateBuffers();
+		void RT_CreateBlendState();
+
+		bool IsColorAtachment(FrameBufferAtachment* atachment) const;
+
+	private:
+		void RT_Clear(Ref<DirectXRenderCommandBuffer> commandBuffer, const glm::vec4& clearColor);
+		void RT_ClearAtachment(Ref<DirectXRenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearColor);
+		void RT_ClearDepth(Ref<DirectXRenderCommandBuffer> commandBuffer);
 
 	protected:
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;

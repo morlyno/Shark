@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "DirectXRenderCommandBuffer.h"
 
+#include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXGPUTimer.h"
 
@@ -18,54 +19,74 @@ namespace Shark {
 
 	DirectXRenderCommandBuffer::~DirectXRenderCommandBuffer()
 	{
-		if (m_CommandList)
-			m_CommandList->Release();
-		if (m_DeferredContext)
-			m_DeferredContext->Release();
+		Release();
 
 		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
 		renderer->RemoveCommandBuffer(this);
 	}
 
+	void DirectXRenderCommandBuffer::Release()
+	{
+		Renderer::SubmitResourceFree([context = m_DeferredContext, commandList = m_CommandList]()
+		{
+			if (commandList)
+				commandList->Release();
+			if (context)
+				context->Release();
+		});
+
+		m_CommandList = nullptr;
+		m_DeferredContext = nullptr;
+	}
+
 	void DirectXRenderCommandBuffer::Begin()
 	{
-		m_Active = true;
-		if (m_CommandList)
+		Ref<DirectXRenderCommandBuffer> instance = this;
+		Renderer::Submit([instance]()
 		{
-			m_CommandList->Release();
-			m_CommandList = nullptr;
-		}
+			instance->RT_Begin();
+		});
 	}
 
 	void DirectXRenderCommandBuffer::End()
 	{
-		if (m_CommandList)
-			m_CommandList->Release();
-
-		SK_DX11_CALL(m_DeferredContext->FinishCommandList(FALSE, &m_CommandList));
-		m_Active = false;
+		Ref<DirectXRenderCommandBuffer> instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->RT_End();
+		});
 	}
 
 	void DirectXRenderCommandBuffer::Execute()
 	{
-		auto ctx = DirectXRenderer::GetContext();
-		ctx->ExecuteCommandList(m_CommandList, FALSE);
+		Ref<DirectXRenderCommandBuffer> instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->RT_Execute();
+		});
 	}
 
 	void DirectXRenderCommandBuffer::BeginTimeQuery(Ref<GPUTimer> counter)
 	{
-		Ref<DirectXGPUTimer> dxCounter = counter.As<DirectXGPUTimer>();
-		dxCounter->StartQuery(m_DeferredContext);
+		Ref<DirectXRenderCommandBuffer> instance = this;
+		Renderer::Submit([instance, counter]()
+		{
+			instance->RT_BeginTimeQuery(counter);
+		});
 	}
 
 	void DirectXRenderCommandBuffer::EndTimeQuery(Ref<GPUTimer> counter)
 	{
-		Ref<DirectXGPUTimer> dxCounter = counter.As<DirectXGPUTimer>();
-		dxCounter->EndQuery(m_DeferredContext);
+		Ref<DirectXRenderCommandBuffer> instance = this;
+		Renderer::Submit([instance, counter]()
+		{
+			instance->RT_EndTimeQuery(counter);
+		});
 	}
 
 	void DirectXRenderCommandBuffer::ClearState()
 	{
+		m_DeferredContext->Flush();
 		m_DeferredContext->ClearState();
 		ID3D11CommandList* dummyList;
 		SK_DX11_CALL(m_DeferredContext->FinishCommandList(false, &dummyList));
@@ -77,6 +98,48 @@ namespace Shark {
 			m_CommandList->Release();
 			m_CommandList = nullptr;
 		}
+	}
+
+	void DirectXRenderCommandBuffer::RT_Begin()
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		m_Active = true;
+	}
+
+	void DirectXRenderCommandBuffer::RT_End()
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		if (m_CommandList)
+			m_CommandList->Release();
+
+		SK_DX11_CALL(m_DeferredContext->FinishCommandList(FALSE, &m_CommandList));
+		m_Active = false;
+	}
+
+	void DirectXRenderCommandBuffer::RT_Execute()
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		auto context = DirectXRenderer::GetContext();
+		context->ExecuteCommandList(m_CommandList, FALSE);
+	}
+
+	void DirectXRenderCommandBuffer::RT_BeginTimeQuery(Ref<GPUTimer> timer)
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		Ref<DirectXGPUTimer> dxTimer = timer.As<DirectXGPUTimer>();
+		dxTimer->RT_StartQuery(m_DeferredContext);
+	}
+
+	void DirectXRenderCommandBuffer::RT_EndTimeQuery(Ref<GPUTimer> timer)
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		Ref<DirectXGPUTimer> dxTimer = timer.As<DirectXGPUTimer>();
+		dxTimer->RT_EndQuery(m_DeferredContext);
 	}
 
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shark/Core/CommandQueue.h"
 #include "Shark/Render/RendererAPI.h"
 #include "Platform/DirectX11/DirectXBuffers.h"
 #include "Platform/DirectX11/DirectXGPUTimer.h"
@@ -7,6 +8,7 @@
 #include "Platform/DirectX11/DirectXMaterial.h"
 #include "Platform/DirectX11/DirectXConstantBuffer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
+#include "Platform/DirectX11/DirectXSwapChain.h"
 
 #include <set>
 #include <d3d11.h>
@@ -24,7 +26,11 @@ namespace Shark {
 		virtual void Init() override;
 		virtual void ShutDown() override;
 
-		virtual void NewFrame() override;
+		virtual void BeginFrame() override;
+		virtual void EndFrame() override;
+
+		void RegisterSwapchain(Ref<DirectXSwapChain> swapchain) { m_Swapchain = swapchain; }
+		virtual void ResizeSwapChain(uint32_t widht, uint32_t height) override;
 
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) override;
 
@@ -32,7 +38,7 @@ namespace Shark {
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount) override;
 
 		virtual void GenerateMips(Ref<Image2D> image) override;
-		void GenerateMips(DirectXImage2D* image);
+		void RT_GenerateMips(Ref<DirectXImage2D> image);
 
 		virtual void ClearAllCommandBuffers() override;
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
@@ -48,9 +54,16 @@ namespace Shark {
 
 		void HandleError(HRESULT hr);
 
+		virtual bool IsInsideFrame() const override{ return m_Active; }
+
 	private:
-		void PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet);
+		void RT_PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet);
 		void QueryCapabilities();
+
+		void RT_BeginFrequencyQuery();
+		void RT_EndFrequencyQuery();
+		void RT_ClearAllCommandBuffers();
+		void RT_ResizeSwapChain();
 
 	public:
 		static Ref<DirectXRenderer>     Get()                  { return s_Instance; }
@@ -61,7 +74,9 @@ namespace Shark {
 	private:
 		static DirectXRenderer* s_Instance;
 
+		bool m_ResourceCreated = false;
 		bool m_IsFirstFrame = true;
+		bool m_Active = false;
 
 		IDXGIFactory* m_Factory = nullptr;
 		ID3D11Device* m_Device = nullptr;
@@ -79,11 +94,14 @@ namespace Shark {
 		uint64_t m_GPUFrequency = 0;
 		bool m_IsValidFrequency = false;
 		bool m_FrequencyQueryActive = false;
-
-		bool m_NeedsResize = false;
-		uint32_t m_WindowWidth = 0, m_WindowHeight = 0;
+		bool m_DoFrequencyQuery = true;
 
 		RendererCapabilities m_Capabilities;
+
+		// Resize Swapchain data
+		Ref<DirectXSwapChain> m_Swapchain;
+		uint32_t m_Width, m_Height;
+		bool m_SwapchainNeedsResize = false;
 
 	};
 

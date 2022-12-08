@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "DirectXPipeline.h"
 
+#include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 namespace Shark {
@@ -44,6 +45,33 @@ namespace Shark {
 	DirectXPipeline::DirectXPipeline(const PipelineSpecification& specs)
 		: m_Specification(specs)
 	{
+		Ref<DirectXPipeline> instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->RT_Init();
+		});
+	}
+
+	DirectXPipeline::~DirectXPipeline()
+	{
+		Renderer::SubmitResourceFree([rasterizer = m_RasterizerState, depthStencil = m_DepthStencilState]()
+		{
+			if (rasterizer)
+				rasterizer->Release();
+			if (depthStencil)
+				depthStencil->Release();
+		});
+	}
+
+	void DirectXPipeline::SetFrameBuffer(Ref<FrameBuffer> frameBuffer)
+	{
+		m_FrameBuffer = frameBuffer.As<DirectXFrameBuffer>();
+		m_Specification.TargetFrameBuffer = frameBuffer;
+	}
+
+	void DirectXPipeline::RT_Init()
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		ID3D11Device* dev = DirectXRenderer::GetDevice();
 
 		m_Shader = m_Specification.Shader.As<DirectXShader>();
@@ -52,8 +80,8 @@ namespace Shark {
 		// Rasterizer
 		{
 			D3D11_RASTERIZER_DESC desc = CD3D11_RASTERIZER_DESC(CD3D11_DEFAULT());
-			desc.FillMode = specs.WireFrame ? D3D11_FILL_WIREFRAME : D3D11_FILL_SOLID;
-			desc.CullMode = specs.BackFaceCulling ? D3D11_CULL_BACK : D3D11_CULL_NONE;
+			desc.FillMode = m_Specification.WireFrame ? D3D11_FILL_WIREFRAME : D3D11_FILL_SOLID;
+			desc.CullMode = m_Specification.BackFaceCulling ? D3D11_CULL_BACK : D3D11_CULL_NONE;
 
 			SK_DX11_CALL(dev->CreateRasterizerState(&desc, &m_RasterizerState));
 			//SK_CORE_ASSERT(SUCCEEDED(hr), fmt::format("D3D11Device::CreateRasterizerState Failed! {}:{}", __FILE__, __LINE__))
@@ -62,30 +90,15 @@ namespace Shark {
 		// DepthStencil
 		{
 			D3D11_DEPTH_STENCIL_DESC desc = CD3D11_DEPTH_STENCIL_DESC(CD3D11_DEFAULT());
-			desc.DepthEnable = specs.DepthEnabled;
-			desc.DepthWriteMask = specs.WriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
+			desc.DepthEnable = m_Specification.DepthEnabled;
+			desc.DepthWriteMask = m_Specification.WriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 			desc.DepthFunc = D3D11_COMPARISON_LESS;
-			
+
 			SK_DX11_CALL(dev->CreateDepthStencilState(&desc, &m_DepthStencilState));
 			//SK_CORE_ASSERT(SUCCEEDED(hr), fmt::format("D3D11Device::CreateDepthStencilState Failed! {}:{}", __FILE__, __LINE__))
 		}
 
 		m_PrimitveTopology = Utils::SharkPrimitveTopologyToD3D11(m_Specification.Primitve);
-
-	}
-
-	DirectXPipeline::~DirectXPipeline()
-	{
-		if (m_RasterizerState)
-			m_RasterizerState->Release();
-		if (m_DepthStencilState)
-			m_DepthStencilState->Release();
-	}
-
-	void DirectXPipeline::SetFrameBuffer(Ref<FrameBuffer> frameBuffer)
-	{
-		m_FrameBuffer = frameBuffer.As<DirectXFrameBuffer>();
-		m_Specification.TargetFrameBuffer = frameBuffer;
 	}
 
 }

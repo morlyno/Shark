@@ -47,6 +47,8 @@ namespace Shark {
 
 	void Icons::Shutdown()
 	{
+		SettingsIcon  = nullptr;
+
 		FileIcon      = nullptr;
 		FolderIcon    = nullptr;
 		PNGIcon       = nullptr;

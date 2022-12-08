@@ -15,13 +15,17 @@ namespace Shark {
 		: m_Specs(specs)
 	{
 		ReCreateSwapChain();
+		DirectXRenderer::Get()->RegisterSwapchain(this);
 	}
 
 	DirectXSwapChain::~DirectXSwapChain()
 	{
-		m_SwapChain->SetFullscreenState(false, nullptr);
-		if (m_SwapChain)
-			m_SwapChain->Release();
+		Renderer::SubmitResourceFree([swapchain = m_SwapChain]
+		{
+			swapchain->SetFullscreenState(false, nullptr);
+			if (swapchain)
+				swapchain->Release();
+		});
 	}
 
 	void DirectXSwapChain::Present(bool vSync)
@@ -29,10 +33,12 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_FUNCTION();
 
-		//SK_DX11_CALL(m_SwapChain->Present(vSync ? 1 : 0, 0));
+		SK_DX11_CALL(m_SwapChain->Present(vSync ? 1 : 0, 0));
 
+#if 0
 		HRESULT result = m_SwapChain->Present(vSync ? 1 : 0, 0);
 		SK_DX11_CALL(result);
+
 		if (result == 0x887a0001)
 		{
 			BOOL isFullscreen;
@@ -46,40 +52,88 @@ namespace Shark {
 			//ReCreateSwapChain();
 			return;
 		}
+#endif
 
 	}
 
 	void DirectXSwapChain::Resize(uint32_t width, uint32_t height)
 	{
 		SK_PROFILE_FUNCTION();
-
-		if (m_Specs.Widht == width && m_Specs.Height == height)
-			return;
-
 		ResizeSwapChain(width, height);
 	}
 
 	void DirectXSwapChain::SetFullscreen(bool fullscreen)
 	{
 		m_Specs.Fullscreen = fullscreen;
-		m_SwapChain->SetFullscreenState(fullscreen, nullptr);
 
-		//Renderer::ClearAllCommandBuffers();
-		//ReCreateSwapChain();
+		Ref<DirectXSwapChain> instance = this;
+		Renderer::Submit([instance, fullscreen]()
+		{
+			instance->RT_SetFullscreen(fullscreen);
+		});
 	}
 
-	void DirectXSwapChain::ResizeSwapChain(uint32_t width, uint32_t height)
+	void DirectXSwapChain::RT_SetFullscreen(bool fullscreen)
 	{
-		SK_PROFILE_FUNCTION();
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		m_SwapChain->SetFullscreenState(fullscreen, nullptr);
+	}
+
+	void DirectXSwapChain::ResizeSwapChain(uint32_t width, uint32_t height, bool alwaysResize)
+	{
+		if (!alwaysResize && (m_Specs.Widht == width && m_Specs.Height == height))
+			return;
 
 		SK_CORE_WARN_TAG("Renderer", "Resizing Swapchain ({}, {})", width, height);
 
 		m_Specs.Widht = width;
 		m_Specs.Height = height;
-		//ReCreateSwapChain();
+
+		Ref<DirectXSwapChain> instance = this;
+		Renderer::Submit([instance, width, height, frameBuffer = m_FrameBuffer]()
+		{
+			if (frameBuffer)
+				frameBuffer->RT_Release();
+
+			instance->RT_ResizeDXSwapChain(width, height);
+		});
 
 		m_FrameBuffer = nullptr;
+
+		FrameBufferSpecification specs;
+		specs.Width = width;
+		specs.Height = height;
+		specs.Atachments = { ImageFormat::RGBA8 };
+		specs.ClearColor = { 0.8f, 0.6f, 0.3f, 1.0f };
+		specs.IsSwapChainTarget = true;
+		specs.Atachments[0].Image = Ref<DirectXImage2D>::Create(instance, false);
+		m_FrameBuffer = Ref<DirectXFrameBuffer>::Create(specs);
+	}
+
+	void DirectXSwapChain::RT_ResizeDXSwapChain(uint32_t width, uint32_t height)
+	{
+		SK_PROFILE_FUNCTION();
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		DirectXRenderer::GetContext()->ClearState();
+		DirectXRenderer::GetContext()->Flush();
+
 		SK_DX11_CALL(m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0));
+	}
+
+	void DirectXSwapChain::ReCreateSwapChain()
+	{
+		Ref<DirectXSwapChain> instance = this;
+		Renderer::Submit([instance, frameBuffer = m_FrameBuffer]()
+		{
+			if (frameBuffer)
+				frameBuffer->RT_Release();
+
+			instance->RT_ReCreateDXSwapChain();
+		});
+
+		m_FrameBuffer = nullptr;
 
 		FrameBufferSpecification specs;
 		specs.Width = m_Specs.Widht;
@@ -87,35 +141,26 @@ namespace Shark {
 		specs.Atachments = { ImageFormat::RGBA8 };
 		specs.ClearColor = { 0.8f, 0.6f, 0.3f, 1.0f };
 		specs.IsSwapChainTarget = true;
-
-		ID3D11Texture2D* backBuffer = nullptr;
-		SK_DX11_CALL(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer));
-		D3D11_TEXTURE2D_DESC desc;
-		backBuffer->GetDesc(&desc);
-
-		ImageSpecification imageSpecs;
-		imageSpecs.Width = desc.Width;
-		imageSpecs.Height = desc.Height;
-		imageSpecs.Format = ImageFormat::RGBA8;
-		imageSpecs.Type = ImageType::FrameBuffer;
-		imageSpecs.MipLevels = desc.MipLevels;
-		specs.Atachments[0].Image = Ref<DirectXImage2D>::Create(imageSpecs, backBuffer, false);
-
-		m_FrameBuffer = FrameBuffer::Create(specs);
-
-		backBuffer->Release();
+		specs.Atachments[0].Image = Ref<DirectXImage2D>::Create(instance, false);
+		m_FrameBuffer = Ref<DirectXFrameBuffer>::Create(specs);
 	}
 
-	void DirectXSwapChain::ReCreateSwapChain()
+	void DirectXSwapChain::RT_ReCreateDXSwapChain()
 	{
 		SK_PROFILE_FUNCTION();
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
-		m_FrameBuffer = nullptr;
 		if (m_SwapChain)
 		{
-			m_SwapChain->Release();
+			ULONG refCount = m_SwapChain->Release();
 			m_SwapChain = nullptr;
 		}
+
+		DirectXRenderer::GetContext()->ClearState();
+		DirectXRenderer::GetContext()->Flush();
+
+		//SK_CORE_ASSERT(m_FrameBuffer == nullptr);
+		//SK_CORE_ASSERT(m_SwapChain == nullptr);
 
 		DXGI_SWAP_CHAIN_DESC scd{};
 
@@ -146,32 +191,6 @@ namespace Shark {
 		auto* fac = DirectXRenderer::GetFactory();
 		auto* dev = DirectXRenderer::GetDevice();
 		SK_DX11_CALL(fac->CreateSwapChain(dev, &scd, &m_SwapChain));
-
-		// FrameBuffer
-
-		FrameBufferSpecification specs;
-		specs.Width = m_Specs.Widht;
-		specs.Height = m_Specs.Height;
-		specs.Atachments = { ImageFormat::RGBA8 };
-		specs.ClearColor = { 0.8f, 0.6f, 0.3f, 1.0f };
-		specs.IsSwapChainTarget = true;
-
-		ID3D11Texture2D* backBuffer = nullptr;
-		SK_DX11_CALL(m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer));
-		D3D11_TEXTURE2D_DESC desc;
-		backBuffer->GetDesc(&desc);
-
-		ImageSpecification imageSpecs;
-		imageSpecs.Width = desc.Width;
-		imageSpecs.Height = desc.Height;
-		imageSpecs.Format = ImageFormat::RGBA8;
-		imageSpecs.Type = ImageType::FrameBuffer;
-		imageSpecs.MipLevels = desc.MipLevels;
-		specs.Atachments[0].Image = Ref<DirectXImage2D>::Create(imageSpecs, backBuffer, false);
-
-		m_FrameBuffer = FrameBuffer::Create(specs);
-
-		backBuffer->Release();
 	}
 
 }

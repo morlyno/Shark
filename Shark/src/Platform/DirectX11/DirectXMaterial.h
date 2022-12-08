@@ -69,7 +69,7 @@ namespace Shark {
 		byte* GetBytes(const std::string& name) const;
 
 	private:
-		void Reflect();
+		void RT_Reflect();
 
 	private:
 		Ref<DirectXShader> m_Shader;

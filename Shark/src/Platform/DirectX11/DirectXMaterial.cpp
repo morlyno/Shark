@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "DirectXMaterial.h"
 
+#include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 #include <d3d11shader.h>
@@ -13,12 +14,15 @@ namespace Shark {
 	DirectXMaterial::DirectXMaterial(Ref<Shader> shader)
 		: m_Shader(shader.As<DirectXShader>())
 	{
-		Reflect();
+		Ref<DirectXMaterial> instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->RT_Reflect();
+		});
 	}
 
 	DirectXMaterial::~DirectXMaterial()
 	{
-
 	}
 
 	void DirectXMaterial::SetTexture(const std::string& name, Ref<Texture2D> texture)
@@ -63,11 +67,11 @@ namespace Shark {
 		const auto& buffer = m_ConstantBufferData.at(var.BufferSlot);
 
 		return buffer.Data() + var.Offset;
-
 	}
 
-	void DirectXMaterial::Reflect()
+	void DirectXMaterial::RT_Reflect()
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		m_ConstnatBufferSet = Ref<DirectXConstantBufferSet>::Create();
 
 		const auto& shaderBinarys = m_Shader->GetShaderBinarys();
@@ -93,7 +97,7 @@ namespace Shark {
 				reflection->GetResourceBindingDescByName(bufferDesc.Name, &bindDesc);
 
 				SK_CORE_ASSERT(bindDesc.BindCount == 1);
-				m_ConstnatBufferSet->Create(bufferDesc.Size, bindDesc.BindPoint);
+				m_ConstnatBufferSet->RT_Create(bufferDesc.Size, bindDesc.BindPoint);
 				m_ConstantBufferData[bindDesc.BindPoint].Allocate(bufferDesc.Size);
 
 				for (uint32_t j = 0; j < bufferDesc.Variables; j++)

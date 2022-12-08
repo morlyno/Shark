@@ -30,6 +30,7 @@ namespace Shark {
 		Application* app = this;
 
 		Renderer::Init();
+		Renderer::WaitAndRender();
 
 		WindowSpecification windowSpec;
 		windowSpec.Title = specification.Name;
@@ -68,6 +69,8 @@ namespace Shark {
 
 		m_LayerStack.Clear();
 		ScriptEngine::Shutdown();
+
+		m_Window = nullptr;
 		Renderer::ShutDown();
 
 		s_Instance = nullptr;
@@ -82,13 +85,11 @@ namespace Shark {
 			SK_PROFILE_FRAME("MainThread");
 			SK_PERF_NEW_FRAME();
 
+			ProcessEvents();
+
 			if (!m_Minimized)
 			{
-				if (m_NeedsResize)
-				{
-					UpdateSwapchainSize();
-					m_NeedsResize = false;
-				}
+				Renderer::BeginFrame();
 
 				ScriptEngine::Update();
 
@@ -97,16 +98,15 @@ namespace Shark {
 
 				if (m_Specification.EnableImGui)
 				{
-					m_ImGuiLayer->Begin();
-					for (auto& layer : m_LayerStack)
-						layer->OnImGuiRender();
-					m_ImGuiLayer->End();
+					Application* app = this;
+					Renderer::Submit([app]() { app->RenderImGui(); });
+					Renderer::Submit([app]() { app->m_ImGuiLayer->End(); });
 				}
 
+				Renderer::EndFrame();
+				Renderer::WaitAndRender();
 				m_Window->SwapBuffers();
 			}
-
-			ProcessEvents();
 
 			//TimeStep now = TimeUtils::Now();
 			//m_TimeStep = now - m_LastFrameTime;
@@ -133,6 +133,14 @@ namespace Shark {
 		m_Window->SetFullscreen(nextMode);
 		//Renderer::SubmitPostRender([swapchain, nextMode]() { swapchain->SetFullscreen(nextMode); });
 		//Renderer::SubmitPostRender([app]() { app->UpdateSwapchainSize(); });
+	}
+
+	void Application::RenderImGui()
+	{
+		m_ImGuiLayer->Begin();
+
+		for (auto& layer : m_LayerStack)
+			layer->OnImGuiRender();
 	}
 
 	void Application::ProcessEvents()
@@ -179,6 +187,9 @@ namespace Shark {
 	{
 		SK_CORE_WARN("Window Closed");
 		CloseApplication();
+
+		// Note(moro): hack so thack ImGui dosn't crash because the window dosn't exist anymore
+		m_Minimized = true;
 		return false;
 	}
 
@@ -188,15 +199,8 @@ namespace Shark {
 		if (m_Minimized)
 			return false;
 
-		m_NeedsResize = true;
+		Renderer::ResizeSwapChain(event.GetWidth(), event.GetHeight());
 		return false;
-	}
-
-	void Application::UpdateSwapchainSize()
-	{
-		Renderer::ClearAllCommandBuffers();
-		auto swapchain = m_Window->GetSwapChain();
-		swapchain->Resize(m_Window->GetWidth(), m_Window->GetHeight());
 	}
 
 	namespace Core {

@@ -7,8 +7,11 @@ namespace Shark {
 	{
 		Release();
 
-		Size = size;
-		Data = (byte*)operator new(size);
+		if (size)
+		{
+			Size = size;
+			Data = (byte*)operator new(size);
+		}
 	}
 
 	void Buffer::Release()
@@ -38,6 +41,11 @@ namespace Shark {
 		buffer.Allocate(Size);
 		buffer.Write(data, Size);
 		return buffer;
+	}
+
+	Buffer Buffer::Copy(Buffer buffer)
+	{
+		return Copy(buffer.Data, buffer.Size);
 	}
 
 }

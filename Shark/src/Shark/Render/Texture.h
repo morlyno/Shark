@@ -117,6 +117,8 @@ namespace Shark {
 
 		virtual uint32_t Count() const = 0;
 
+		virtual void RT_Set(uint32_t index, Ref<Texture2D> texture) = 0;
+
 	public:
 		static Ref<Texture2DArray> Create(uint32_t count, uint32_t startOffset = 0);
 	};

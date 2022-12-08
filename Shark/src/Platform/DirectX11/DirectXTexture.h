@@ -39,6 +39,8 @@ namespace Shark {
 	private:
 		void CreateSampler();
 
+		void RT_CreateSampler();
+
 	private:
 		TextureSpecification m_Specs;
 
@@ -63,8 +65,11 @@ namespace Shark {
 
 		virtual uint32_t Count() const override { return m_Count; }
 
+		virtual void RT_Set(uint32_t index, Ref<Texture2D> texture) override;
+
 	private:
 		void SetTexture(uint32_t index, Ref<DirectXTexture2D> texture);
+		void RT_SetTexture(uint32_t index, Ref<DirectXTexture2D> texture);
 
 	private:
 		uint32_t m_Count;

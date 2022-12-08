@@ -25,8 +25,8 @@ namespace Shark {
 
 		while (buffer < m_BufferPtr)
 		{
-			CommandFunc cmdFunc = *(CommandFunc*)buffer;
-			buffer += sizeof(CommandFunc);
+			CommandFn cmdFunc = *(CommandFn*)buffer;
+			buffer += sizeof(CommandFn);
 
 			uint32_t userFuncSize = *(uint32_t*)buffer;
 			buffer += sizeof(uint32_t);
@@ -39,19 +39,19 @@ namespace Shark {
 		m_CommandCount = 0;
 	}
 
-	void* CommandQueue::Allocate(CommandFunc func, uint32_t userFuncSize)
+	void* CommandQueue::Allocate(CommandFn func, uint32_t userFuncSize)
 	{
 		// CommandFunc | UserFuncSize | UserFunc
 
-		if ((m_BufferPtr + sizeof(CommandFunc) + sizeof(uint32_t) + userFuncSize) >= (m_Buffer.Data + m_Buffer.Size))
+		if ((m_BufferPtr + sizeof(CommandFn) + sizeof(uint32_t) + userFuncSize) >= (m_Buffer.Data + m_Buffer.Size))
 		{
 			// TODO(moro): Grow Buffer
 			SK_CORE_ASSERT(false, "Command Buffer to small");
 			return nullptr;
 		}
 
-		*(CommandFunc*)m_BufferPtr = func;
-		m_BufferPtr += sizeof(CommandFunc);
+		*(CommandFn*)m_BufferPtr = func;
+		m_BufferPtr += sizeof(CommandFn);
 
 		*(uint32_t*)m_BufferPtr = userFuncSize;
 		m_BufferPtr += sizeof(uint32_t);

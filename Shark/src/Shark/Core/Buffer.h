@@ -62,6 +62,7 @@ namespace Shark {
 		}
 
 		static Buffer Copy(const byte* data, uint64_t Size);
+		static Buffer Copy(Buffer buffer);
 
 	public:
 		byte* Data = nullptr;

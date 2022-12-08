@@ -18,13 +18,13 @@ namespace Shark {
 		uint64_t GetFrequency() const { return m_LastFrequency; }
 
 	public:
-		void StartQuery(ID3D11DeviceContext* targetContext);
-		void EndQuery(ID3D11DeviceContext* targetContext);
+		void RT_StartQuery(ID3D11DeviceContext* targetContext);
+		void RT_EndQuery(ID3D11DeviceContext* targetContext);
 
 		static constexpr uint32_t NumQueries = 5;
 	private:
 		void NextIndex();
-		void UpdateTime();
+		void RT_UpdateTime();
 
 	private:
 		ID3D11Query* m_StartQuery[NumQueries]{};

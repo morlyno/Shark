@@ -31,17 +31,17 @@ namespace Shark {
 
 		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name);
 
-		void Bind(ID3D11DeviceContext* ctx);
-		void UnBind(ID3D11DeviceContext* ctx);
+		void RT_Bind(ID3D11DeviceContext* ctx);
+		void RT_UnBind(ID3D11DeviceContext* ctx);
 
 		std::unordered_map<ShaderStage, std::vector<byte>> GetShaderBinarys() const { return m_ShaderBinarys; }
 	private:
 		std::unordered_map<ShaderStage, std::string> PreProzess(const std::string& file);
-		bool TryReCompile(std::unordered_map<ShaderStage, std::string>& shaderSources);
-		void CompileOrGetCached(std::unordered_map<ShaderStage, std::string>& shaderSources);
+		bool RT_TryReCompile(std::unordered_map<ShaderStage, std::string>& shaderSources);
+		void RT_CompileOrGetCached(std::unordered_map<ShaderStage, std::string>& shaderSources);
 		void Reflect();
-		void CreateInputlayout(const std::vector<byte>& vtx_src);
-		void CreateShaders();
+		void RT_CreateInputlayout(const std::vector<byte>& vtx_src);
+		void RT_CreateShaders();
 
 	private:
 		ID3D11PixelShader* m_PixelShader = nullptr;

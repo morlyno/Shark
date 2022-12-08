@@ -22,8 +22,10 @@ namespace Shark {
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual void SetFullscreen(bool fullscreen) = 0;
+		virtual void RT_SetFullscreen(bool fullscreen) = 0;
 
 		virtual Ref<FrameBuffer> GetFrameBuffer() const = 0;
+		virtual const SwapChainSpecifications& GetSpecification() const = 0;
 
 	public:
 		static Ref<SwapChain> Create(const SwapChainSpecifications& specs);

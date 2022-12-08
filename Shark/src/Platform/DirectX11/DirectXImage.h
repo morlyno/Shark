@@ -16,6 +16,8 @@ namespace Shark {
 
 	}
 
+	class DirectXSwapChain;
+
 	class DirectXImage2D : public Image2D
 	{
 	public:
@@ -26,7 +28,11 @@ namespace Shark {
 		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		DirectXImage2D(const std::filesystem::path& filePath);
 		DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView);
+		DirectXImage2D(Ref<DirectXSwapChain> swapchain, bool createView);
 		virtual ~DirectXImage2D();
+
+		void Release();
+		void RT_Release();
 
 		virtual bool IsValid() const override { return m_Resource && m_View; }
 
@@ -39,7 +45,6 @@ namespace Shark {
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual bool CopyTo(Ref<Image2D> image) override;
-		virtual bool CopyMipTo(Ref<Image2D> image, uint32_t mip) override;
 
 		virtual bool ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) override;
 
@@ -55,18 +60,27 @@ namespace Shark {
 		ID3D11Texture2D* GetResourceNative() const { return m_Resource; }
 		ID3D11ShaderResourceView* GetViewNative() const { return m_View; }
 
+	public:
+		virtual void RT_CopyTo(Ref<Image2D> image) override;
+
 	private:
-		void Release();
 		Buffer LoadDataFromFile(const std::filesystem::path& filePath);
 
 		void CreateResource();
 		void UpdateResource(Buffer imageData);
+		void UpdateResource(Ref<DirectXImage2D> imageData);
 
 		void CreateView();
-		bool IsDepthImage();
 
-		bool IsImageCompadible(const ImageSpecification& specs) const;
-		bool IsImageCompadibleIgnoreMipLeves(const ImageSpecification& specs) const;
+		bool IsDepthImage() { return m_Specification.Format == ImageFormat::Depth32; }
+		bool IsImageCompadible(const ImageSpecification& specs) const { return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format && m_Specification.MipLevels == specs.MipLevels; }
+		bool IsImageCompadibleIgnoreMipLeves(const ImageSpecification& specs) const { return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format; }
+
+	private:
+		void RT_CreateResource();
+		void RT_UpdateResource(Buffer imageData);
+		void RT_UpdateResource(Ref<DirectXImage2D> imageData);
+		void RT_CreateView();
 
 	private:
 		ImageSpecification m_Specification;

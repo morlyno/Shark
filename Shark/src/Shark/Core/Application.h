@@ -73,6 +73,8 @@ namespace Shark {
 		}
 
 	private:
+		void RenderImGui();
+
 		void ProcessEvents();
 		void OnEvent(Event& event);
 		bool OnWindowClose(WindowCloseEvent& event);

@@ -55,9 +55,15 @@ namespace Shark {
 		ImGui_ImplWin32_Init(window.GetHandle());
 
 		m_CommandBuffer = Ref<DirectXRenderCommandBuffer>::Create();
-		ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), m_CommandBuffer->GetContext());
-		ImGui_ImplDX11_CreateDeviceObjects();
-		ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, m_CommandBuffer->GetContext());
+
+		Renderer::Submit([commandBuffer = m_CommandBuffer]()
+		{
+			Window& window = Application::Get().GetWindow();
+
+			ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), commandBuffer->GetContext());
+			ImGui_ImplDX11_CreateDeviceObjects();
+			ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, commandBuffer->GetContext());
+		});
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
 		if (!ctx.SettingsLoaded && !std::filesystem::exists(ctx.IO.IniFilename))
@@ -75,11 +81,13 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		UI::DestroyContext();
-
-		ImGui_ImplDX11_Shutdown();
-		ImGui_ImplWin32_Shutdown();
-		ImGui::DestroyContext();
+		Renderer::SubmitResourceFree([]()
+		{
+			UI::DestroyContext();
+			ImGui_ImplDX11_Shutdown();
+			ImGui_ImplWin32_Shutdown();
+			ImGui::DestroyContext();
+		});
 	}
 
 	void DirectXImGuiLayer::OnEvent(Event& event)
@@ -93,6 +101,7 @@ namespace Shark {
 	void DirectXImGuiLayer::Begin()
 	{
 		SK_PROFILE_FUNCTION();
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -106,6 +115,7 @@ namespace Shark {
 	void DirectXImGuiLayer::End()
 	{
 		SK_PROFILE_FUNCTION();
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		m_InFrame = false;
 
@@ -113,11 +123,11 @@ namespace Shark {
 		auto& window = Application::Get().GetWindow();
 		io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
 
-		m_CommandBuffer->Begin();
-		m_CommandBuffer->BeginTimeQuery(m_GPUTimer);
+		m_CommandBuffer->RT_Begin();
+		m_CommandBuffer->RT_BeginTimeQuery(m_GPUTimer);
 
 		Ref<DirectXFrameBuffer> dxFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
-		dxFrameBuffer->Bind(m_CommandBuffer->GetContext());
+		dxFrameBuffer->RT_Bind(m_CommandBuffer->GetContext());
 
 		{
 			SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render")
@@ -134,9 +144,9 @@ namespace Shark {
 		}
 
 		m_GPUTime = m_GPUTimer->GetTime();
-		m_CommandBuffer->EndTimeQuery(m_GPUTimer);
-		m_CommandBuffer->End();
-		m_CommandBuffer->Execute();
+		m_CommandBuffer->RT_EndTimeQuery(m_GPUTimer);
+		m_CommandBuffer->RT_End();
+		m_CommandBuffer->RT_Execute();
 	}
 
 }

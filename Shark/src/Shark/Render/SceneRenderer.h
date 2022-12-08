@@ -16,7 +16,7 @@ namespace Shark {
 	class SceneRenderer : public RefCount
 	{
 	public:
-		SceneRenderer(Ref<Scene> scene);
+		SceneRenderer(Ref<Scene> scene, const std::string& debugName = "Untitled");
 		~SceneRenderer();
 
 		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
@@ -48,6 +48,7 @@ namespace Shark {
 
 	private:
 		Ref<Scene> m_Scene;
+		std::string m_DebugName;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;

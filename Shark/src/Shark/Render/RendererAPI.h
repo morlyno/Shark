@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/CommandQueue.h"
 
 #include "Shark/Render/RenderCommandBuffer.h"
 #include "Shark/Render/FrameBuffer.h"
@@ -10,6 +11,7 @@
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/Material.h"
+#include "Shark/Render/SwapChain.h"
 
 namespace Shark {
 
@@ -30,7 +32,10 @@ namespace Shark {
 		virtual void Init() = 0;
 		virtual void ShutDown() = 0;
 		
-		virtual void NewFrame() = 0;
+		virtual void BeginFrame() = 0;
+		virtual void EndFrame() = 0;
+
+		virtual void ResizeSwapChain(uint32_t widht, uint32_t height) = 0;
 
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) = 0;
 
@@ -44,6 +49,9 @@ namespace Shark {
 
 		virtual Ref<ShaderLibrary> GetShaderLib() = 0;
 		virtual Ref<Texture2D> GetWhiteTexture() = 0;
+
+		virtual bool IsInsideFrame() const = 0;
+
 	};
 
 }

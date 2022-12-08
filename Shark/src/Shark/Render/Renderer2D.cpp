@@ -163,10 +163,10 @@ namespace Shark {
 		m_QuadVertexIndexPtr = m_QuadVertexBasePtr;
 
 		m_QuadTextureSlotIndex = 1;
-		Ref<Texture2DArray> quadTextureArray = m_QuadMaterial->GetTextureArray("g_Textures");
-		quadTextureArray->Set(0, m_WhiteTexture);
-		for (uint32_t i = 1; i < MaxTextureSlots; i++)
-			quadTextureArray->Set(i, nullptr);
+		//Ref<Texture2DArray> quadTextureArray = m_QuadMaterial->GetTextureArray("g_Textures");
+		//quadTextureArray->Set(0, m_WhiteTexture);
+		//for (uint32_t i = 1; i < MaxTextureSlots; i++)
+		//	quadTextureArray->Set(i, nullptr);
 
 		// Circle
 		m_CircleIndexCount = 0;
@@ -205,7 +205,20 @@ namespace Shark {
 			{
 				m_QuadVertexBuffer->SetData({ m_QuadVertexBasePtr, dataSize });
 
-				SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_Textures"), m_WhiteTexture);
+				//SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_Textures"), m_WhiteTexture);
+				//SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_SamplerState"), m_WhiteTexture);
+
+				Ref<Renderer2D> instance = this;
+				Renderer::Submit([instance]()
+				{
+					Ref<Texture2DArray> textureArray = instance->m_QuadMaterial->GetTextureArray("g_Textures");
+					for (uint32_t i = 0; i < textureArray->Count(); i++)
+					{
+						if (!textureArray->Get(i))
+							textureArray->RT_Set(i, instance->m_WhiteTexture);
+					}
+				});
+
 				//m_QuadMaterial->SetTextureArray("g_Textures", m_QuadTextureArray);
 				Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_QuadMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
 

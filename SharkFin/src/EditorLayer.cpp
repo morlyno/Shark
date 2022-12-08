@@ -77,8 +77,8 @@ namespace Shark {
 		m_PanelManager->AddPanel<AssetsPanel>(ASSETS_PANEL_ID, "Assets", false);
 		m_PanelManager->AddPanel<ScriptEnginePanel>(SCRIPT_ENGINE_ID, "Script Engine", false);
 
-		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
-		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene);
+		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene, "Viewport");
+		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene, "Camera Preview");
 		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer());
 
 		// Readable Mouse image for Mouse Picking
@@ -102,6 +102,8 @@ namespace Shark {
 		}
 
 		RegisterSettingNodes();
+
+		//Renderer::WaitAndRender();
 	}
 
 	void EditorLayer::OnDetach()
@@ -120,8 +122,6 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_TimeStep = ts;
-
-		Renderer::NewFrame();
 
 		if (m_ActiveScene->Flags & AssetFlag::Unloaded)
 		{
@@ -511,8 +511,12 @@ namespace Shark {
 
 				auto& app = Application::Get();
 				if (ImGui::MenuItem("Fullscreen", nullptr, app.GetWindow().IsFullscreen()))
-					app.SwitchFullscreenMode();
-
+				{
+					auto& window = app.GetWindow();
+					const bool nextMode = !window.IsFullscreen();
+					window.SetFullscreen(nextMode);
+					window.GetSwapChain()->RT_SetFullscreen(nextMode);
+				}
 				ImGui::EndMenu();
 			}
 
@@ -1262,8 +1266,7 @@ namespace Shark {
 			if (m_ReadHoveredEntity || selectEntity)
 			{
 				Ref<Image2D> idImage = m_SceneRenderer->GetIDImage();
-				if (!idImage->CopyTo(m_MousePickingImage))
-					return false;
+				idImage->RT_CopyTo(m_MousePickingImage);
 
 				if (!m_MousePickingImage->ReadPixel(x, y, (uint32_t&)m_HoveredEntityID))
 					return false;

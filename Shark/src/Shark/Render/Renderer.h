@@ -11,6 +11,7 @@
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/FrameBuffer.h"
 #include "Shark/Render/Pipeline.h"
+#include "Shark/Render/SwapChain.h"
 
 namespace Shark {
 
@@ -37,7 +38,27 @@ namespace Shark {
 		static void Init();
 		static void ShutDown();
 
-		static void NewFrame();
+		static void BeginFrame();
+		static void EndFrame();
+
+		static void WaitAndRender();
+		static bool IsOnRenderThread();
+		static bool IsExecuting();
+
+		static void ResizeSwapChain(uint32_t widht, uint32_t height);
+
+		template<typename TFunc>
+		static void Submit(const TFunc& func)
+		{
+			SK_CORE_VERIFY(!IsExecuting());
+			GetCommandQueue().Submit(func);
+		}
+
+		template<typename TFunc>
+		static void SubmitResourceFree(const TFunc& func)
+		{
+			GetResourceFreeQueue().Submit(func);
+		}
 
 		static void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material);
 
@@ -52,10 +73,20 @@ namespace Shark {
 		static Ref<ShaderLibrary> GetShaderLib();
 		static Ref<Texture2D> GetWhiteTexture();
 
+		static bool IsInsideFrame();
+
 		static Ref<RendererAPI> GetRendererAPI();
 
 		static void SetAPI(RendererAPIType api);
 		static RendererAPIType GetAPI();
+
+	private:
+		static CommandQueue& GetCommandQueue();
+		static CommandQueue& GetResourceFreeQueue();
+
+	private:
+		static Ref<RendererAPI> s_RendererAPI;
+		friend class DirectXRenderer;
 	};
 
 }

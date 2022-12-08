@@ -5,6 +5,7 @@
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 #include <stb_image.h>
+#include "Shark/Render/Renderer.h"
 
 namespace Shark {
 
@@ -112,15 +113,18 @@ namespace Shark {
 
 	DirectXTexture2D::~DirectXTexture2D()
 	{
-		if (m_Sampler)
-			m_Sampler->Release();
+		Release();
 	}
 
 	void DirectXTexture2D::Release()
 	{
-		if (m_Sampler)
-			m_Sampler->Release();
+		Renderer::SubmitResourceFree([sampler = m_Sampler]()
+		{
+			if (sampler)
+				sampler->Release();
+		});
 
+		m_Sampler = nullptr;
 		m_Image = nullptr;
 	}
 
@@ -128,11 +132,13 @@ namespace Shark {
 	{
 		m_Specs = specs;
 
-		if (m_Sampler)
+		Renderer::SubmitResourceFree([sampler = m_Sampler]()
 		{
-			m_Sampler->Release();
-			m_Sampler = nullptr;
-		}
+			if (sampler)
+				sampler->Release();
+		});
+
+		m_Sampler = nullptr;
 
 		ImageSpecification imageSpecs;
 		imageSpecs.Width = m_Specs.Width;
@@ -153,11 +159,13 @@ namespace Shark {
 	{
 		m_Specs = specs;
 
-		if (m_Sampler)
+		Renderer::SubmitResourceFree([sampler = m_Sampler]()
 		{
-			m_Sampler->Release();
-			m_Sampler = nullptr;
-		}
+			if (sampler)
+				sampler->Release();
+		});
+
+		m_Sampler = nullptr;
 
 		ImageSpecification imageSpecs;
 		imageSpecs.Width = m_Specs.Width;
@@ -178,17 +186,30 @@ namespace Shark {
 	{
 		m_Specs.Sampler = specs;
 		
-		if (m_Sampler)
+		Renderer::SubmitResourceFree([sampler = m_Sampler]()
 		{
-			m_Sampler->Release();
-			m_Sampler = nullptr;
-		}
+			if (sampler)
+				sampler->Release();
+		});
 
+		m_Sampler = nullptr;
 		CreateSampler();
 	}
 
 	void DirectXTexture2D::CreateSampler()
 	{
+		SK_CORE_ASSERT(!m_Sampler, "Sampler already created");
+		Ref<DirectXTexture2D> instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->RT_CreateSampler();
+		});
+	}
+
+
+	void DirectXTexture2D::RT_CreateSampler()
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_CORE_ASSERT(!m_Sampler, "Sampler already created");
 
 		D3D11_SAMPLER_DESC desc{};
@@ -209,7 +230,6 @@ namespace Shark {
 		auto device = DirectXRenderer::GetDevice();
 		SK_DX11_CALL(device->CreateSamplerState(&desc, &m_Sampler));
 	}
-
 
 	DirectXTexture2DArray::DirectXTexture2DArray(uint32_t count, uint32_t startOffset)
 		: m_Count(count), m_StartOffset(startOffset)
@@ -251,8 +271,25 @@ namespace Shark {
 		return m_TextureArray[index];
 	}
 
+	void DirectXTexture2DArray::RT_Set(uint32_t index, Ref<Texture2D> texture)
+	{
+		RT_SetTexture(index, texture.As<DirectXTexture2D>());
+	}
+
 	void DirectXTexture2DArray::SetTexture(uint32_t index, Ref<DirectXTexture2D> texture)
 	{
+		SK_CORE_VERIFY(index < m_Count, "Index out of range");
+
+		Ref<DirectXTexture2DArray> instance = this;
+		Renderer::Submit([instance, index, texture]()
+		{
+			instance->RT_SetTexture(index, texture);
+		});
+	}
+
+	void DirectXTexture2DArray::RT_SetTexture(uint32_t index, Ref<DirectXTexture2D> texture)
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_CORE_VERIFY(index < m_Count, "Index out of range");
 
 		if (texture)

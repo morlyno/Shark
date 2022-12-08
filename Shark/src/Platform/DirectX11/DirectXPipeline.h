@@ -20,6 +20,9 @@ namespace Shark {
 		virtual const PipelineSpecification& GetSpecification() const override { return m_Specification; }
 
 	private:
+		void RT_Init();
+
+	private:
 		PipelineSpecification m_Specification;
 		Ref<DirectXShader> m_Shader;
 		Ref<DirectXFrameBuffer> m_FrameBuffer;

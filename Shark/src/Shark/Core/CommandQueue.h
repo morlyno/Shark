@@ -8,10 +8,14 @@ namespace Shark {
 	class CommandQueue
 	{
 	public:
+		using CommandFn = void(*)(void*);
+
+	public:
 		CommandQueue(uint32_t bufferSize = 1024);
 		~CommandQueue();
 
 		void Execute();
+		void* Allocate(CommandFn func, uint32_t userFuncSize);
 
 		template<typename TFunc>
 		void Submit(const TFunc& func)
@@ -28,10 +32,6 @@ namespace Shark {
 		}
 
 		uint32_t GetCommandCount() const { return m_CommandCount; }
-
-	private:
-		using CommandFunc = void(*)(void*);
-		void* Allocate(CommandFunc func, uint32_t userFuncSize);
 	private:
 		Buffer m_Buffer;
 		byte* m_BufferPtr = nullptr;

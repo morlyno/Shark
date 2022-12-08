@@ -15,8 +15,8 @@
 
 namespace Shark {
 
-	SceneRenderer::SceneRenderer(Ref<Scene> scene)
-		: m_Scene(scene)
+	SceneRenderer::SceneRenderer(Ref<Scene> scene, const std::string& debugName)
+		: m_Scene(scene), m_DebugName(debugName)
 	{
 		SK_PROFILE_FUNCTION();
 		
@@ -128,6 +128,8 @@ namespace Shark {
 		
 		if (m_ViewportWidth == width && m_ViewportHeight == height)
 			return;
+
+		SK_CORE_INFO_TAG("SceneRenderer", "Resizing Scene Renderer {} ({}, {})", m_DebugName, width, height);
 
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;

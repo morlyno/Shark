@@ -2,45 +2,68 @@
 #include "DirectXGPUTimer.h"
 
 #include "Platform/DirectX11/DirectXRenderer.h"
+#include "Shark/Render/Renderer.h"
 
 namespace Shark {
 
 	DirectXGPUTimer::DirectXGPUTimer(const std::string& name)
 		: m_Name(name)
 	{
-		auto dev = DirectXRenderer::GetDevice();
-
-		D3D11_QUERY_DESC desc;
-		desc.Query = D3D11_QUERY_TIMESTAMP;
-		desc.MiscFlags = 0;
-		for (uint32_t i = 0; i < NumQueries; i++)
+		Ref<DirectXGPUTimer> instance = this;
+		Renderer::Submit([instance]()
 		{
-			SK_DX11_CALL(dev->CreateQuery(&desc, &m_StartQuery[i]));
-			SK_DX11_CALL(dev->CreateQuery(&desc, &m_EndQuery[i]));
-		}
+			auto device = DirectXRenderer::GetDevice();
+
+			D3D11_QUERY_DESC desc;
+			desc.Query = D3D11_QUERY_TIMESTAMP;
+			desc.MiscFlags = 0;
+			for (uint32_t i = 0; i < NumQueries; i++)
+			{
+				SK_DX11_CALL(device->CreateQuery(&desc, &instance->m_StartQuery[i]));
+				SK_DX11_CALL(device->CreateQuery(&desc, &instance->m_EndQuery[i]));
+			}
+		});
 	}
 
 	DirectXGPUTimer::~DirectXGPUTimer()
 	{
-		for (uint32_t i = 0; i < NumQueries; i++)
+		ID3D11Query* startQueries[NumQueries];
+		ID3D11Query* endQueries[NumQueries];
+		memcpy(startQueries, m_StartQuery, sizeof(startQueries));
+		memcpy(endQueries, m_EndQuery, sizeof(endQueries));
+
+		Renderer::SubmitResourceFree([startQueries, endQueries, count = NumQueries]()
 		{
-			if (m_StartQuery[i])
-				m_StartQuery[i]->Release();
-			if (m_EndQuery[i])
-				m_EndQuery[i]->Release();
-		}
+			for (uint32_t i = 0; i < count; i++)
+			{
+				if (startQueries[i])
+					startQueries[i]->Release();
+				if (endQueries[i])
+					endQueries[i]->Release();
+			}
+		});
+
+		for (auto& q : m_StartQuery)
+			q = nullptr;
+
+		for (auto& q : m_EndQuery)
+			q = nullptr;
 	}
 
-	void DirectXGPUTimer::StartQuery(ID3D11DeviceContext* targetContext)
+	void DirectXGPUTimer::RT_StartQuery(ID3D11DeviceContext* targetContext)
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
 		targetContext->End(m_StartQuery[m_Index]);
 	}
 
-	void DirectXGPUTimer::EndQuery(ID3D11DeviceContext* targetContext)
+	void DirectXGPUTimer::RT_EndQuery(ID3D11DeviceContext* targetContext)
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
 		targetContext->End(m_EndQuery[m_Index]);
 
-		UpdateTime();
+		RT_UpdateTime();
 		NextIndex();
 	}
 
@@ -50,8 +73,10 @@ namespace Shark {
 		m_DataIndex = (m_Index + 1) % NumQueries;
 	}
 
-	void DirectXGPUTimer::UpdateTime()
+	void DirectXGPUTimer::RT_UpdateTime()
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
 		ID3D11DeviceContext* ctx = DirectXRenderer::GetContext();
 
 		Ref<DirectXRenderer> dxRenderer = DirectXRenderer::Get();

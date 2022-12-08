@@ -4,6 +4,7 @@
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Timer.h"
 
+#include "Shark/Render/Renderer.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/String.h"
 
@@ -156,18 +157,21 @@ namespace Shark {
 		m_FilePath = filepath;
 		m_FileName = filepath.filename().replace_extension().string();
 
-		std::string file = FileSystem::ReadString(filepath);
-		auto shaderSources = PreProzess(file);
-		
+		Ref<DirectXShader> instance = this;
+		Renderer::Submit([instance]()
 		{
-			ScopedTimer timer("Shader Compile");
-			CompileOrGetCached(shaderSources);
-		}
+			std::string file = FileSystem::ReadString(instance->m_FilePath);
+			auto shaderSources = instance->PreProzess(file);
+		
+			{
+				ScopedTimer timer("Shader Compile");
+				instance->RT_CompileOrGetCached(shaderSources);
+			}
 
-		CreateShaders();
-		CreateInputlayout(m_ShaderBinarys[ShaderStage::Vertex]);
-		//Reflect();
-
+			instance->RT_CreateShaders();
+			instance->RT_CreateInputlayout(instance->m_ShaderBinarys[ShaderStage::Vertex]);
+			//Reflect();
+		});
 	}
 
 	DirectXShader::~DirectXShader()
@@ -177,47 +181,47 @@ namespace Shark {
 
 	void DirectXShader::Release()
 	{
-		if (m_PixelShader)
+		Renderer::SubmitResourceFree([pixel = m_PixelShader, vertex = m_VertexShader, inputLayout = m_InputLayout]()
 		{
-			m_PixelShader->Release();
-			m_PixelShader = nullptr;
-		}
+			if (pixel)
+				pixel->Release();
+			if (vertex)
+				vertex->Release();
+			if (inputLayout)
+				inputLayout->Release();
+		});
 
-		if (m_VertexShader)
-		{
-			m_VertexShader->Release();
-			m_VertexShader = nullptr;
-		}
-
-		if (m_InputLayout)
-		{
-			m_InputLayout->Release();
-			m_InputLayout = nullptr;
-		}
-
+		m_PixelShader = nullptr;
+		m_VertexShader = nullptr;
+		m_InputLayout = nullptr;
 	}
 
 	bool DirectXShader::ReCompile()
 	{
-		std::string file = FileSystem::ReadString(m_FilePath);
-		auto shaderSources = PreProzess(file);
-
+		Ref<DirectXShader> instance = this;
+		Renderer::Submit([instance]()
 		{
-			ScopedTimer timer("Shader ReCompile");
-			if (!TryReCompile(shaderSources))
-				return false;
-		}
-		Release();
+			std::string file = FileSystem::ReadString(instance->m_FilePath);
+			auto shaderSources = instance->PreProzess(file);
 
-		CreateShaders();
-		CreateInputlayout(m_ShaderBinarys[ShaderStage::Vertex]);
-		//Reflect();
+			{
+				ScopedTimer timer("Shader ReCompile");
+				if (!instance->RT_TryReCompile(shaderSources))
+					return;
+			}
+			instance->Release();
+
+			instance->RT_CreateShaders();
+			instance->RT_CreateInputlayout(instance->m_ShaderBinarys[ShaderStage::Vertex]);
+			//Reflect();
+		});
 
 		return true;
 	}
 
 	Ref<ConstantBuffer> DirectXShader::CreateConstantBuffer(const std::string& name)
 	{
+#if 0
 		ID3D11ShaderReflection* reflection;
 		auto&& binary = m_ShaderBinarys[ShaderStage::Vertex];
 		SK_DX11_CALL(D3DReflect(binary.data(), binary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
@@ -231,17 +235,25 @@ namespace Shark {
 		reflection->Release();
 
 		return ConstantBuffer::Create(bufferDesc.Size, inputDesc.BindPoint);
+#endif
+
+		SK_NOT_IMPLEMENTED();
+		return nullptr;
 	}
 
-	void DirectXShader::Bind(ID3D11DeviceContext* ctx)
+	void DirectXShader::RT_Bind(ID3D11DeviceContext* ctx)
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
 		ctx->VSSetShader(m_VertexShader, nullptr, 0u);
 		ctx->PSSetShader(m_PixelShader, nullptr, 0u);
 		ctx->IASetInputLayout(m_InputLayout);
 	}
 
-	void DirectXShader::UnBind(ID3D11DeviceContext* ctx)
+	void DirectXShader::RT_UnBind(ID3D11DeviceContext* ctx)
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
 		ID3D11VertexShader* nullvs = nullptr;
 		ID3D11PixelShader* nullps = nullptr;
 		ID3D11InputLayout* nullil = nullptr;
@@ -282,8 +294,9 @@ namespace Shark {
 
 	}
 
-	bool DirectXShader::TryReCompile(std::unordered_map<ShaderStage, std::string>& shaderSources)
+	bool DirectXShader::RT_TryReCompile(std::unordered_map<ShaderStage, std::string>& shaderSources)
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		std::filesystem::path cacheDirectory = Utils::CacheDirectory();
 		Utils::CreateCacheDirectoryIfNeeded();
 
@@ -326,8 +339,9 @@ namespace Shark {
 		return true;
 	}
 
-	void DirectXShader::CompileOrGetCached(std::unordered_map<ShaderStage, std::string>& shaderSources)
+	void DirectXShader::RT_CompileOrGetCached(std::unordered_map<ShaderStage, std::string>& shaderSources)
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		std::filesystem::path cacheDirectory = Utils::CacheDirectory();
 		Utils::CreateCacheDirectoryIfNeeded();
 
@@ -391,6 +405,8 @@ namespace Shark {
 
 	void DirectXShader::Reflect()
 	{
+		SK_NOT_IMPLEMENTED();
+#if 0
 		for (auto&& [stage, binary] : m_ShaderBinarys)
 		{
 			ID3D11ShaderReflection* reflection;
@@ -449,10 +465,12 @@ namespace Shark {
 			}
 			reflection->Release();
 		}
+#endif
 	}
 
-	void DirectXShader::CreateInputlayout(const std::vector<byte>& vtx_src)
+	void DirectXShader::RT_CreateInputlayout(const std::vector<byte>& vtx_src)
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		ID3D11ShaderReflection* reflection;
 
 		SK_DX11_CALL(D3DReflect((void*)vtx_src.data(), (UINT)vtx_src.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
@@ -510,8 +528,9 @@ namespace Shark {
 
 	}
 
-	void DirectXShader::CreateShaders()
+	void DirectXShader::RT_CreateShaders()
 	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		auto* dev = DirectXRenderer::GetDevice();
 
 		SK_CORE_ASSERT(m_VertexShader == nullptr);

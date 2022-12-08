@@ -18,6 +18,7 @@ namespace Shark {
 		virtual void Resize(Buffer vertexData) override;
 		virtual void SetData(Buffer vertexData) override;
 
+		// Call only on Render Thread
 		virtual Buffer GetWritableBuffer() override;
 		virtual void CloseWritableBuffer() override;
 
@@ -25,6 +26,9 @@ namespace Shark {
 
 	private:
 		void ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData);
+
+		void RT_SetData(Buffer vertexData);
+		void RT_ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData);
 
 	private:
 		VertexLayout m_Layout;
@@ -48,7 +52,7 @@ namespace Shark {
 		virtual void Release() override;
 
 		virtual void Resize(uint32_t count) override;
-		virtual void Resize(Buffer vertexData) override;
+		virtual void Resize(Buffer indexData) override;
 		virtual void SetData(Buffer indexData) override;
 
 		virtual Buffer GetWritableBuffer() override;
@@ -59,6 +63,9 @@ namespace Shark {
 
 	private:
 		void ReCreateBuffer(uint32_t count, bool dynamic, Buffer indexData);
+
+		void RT_SetData(Buffer indexData);
+		void RT_ReCreateBuffer(uint32_t count, bool dynamic, Buffer indexData);
 
 	private:
 		ID3D11Buffer* m_IndexBuffer = nullptr;

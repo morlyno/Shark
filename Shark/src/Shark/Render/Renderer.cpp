@@ -5,11 +5,21 @@
 
 namespace Shark {
 
-	static Ref<RendererAPI> s_RendererAPI = nullptr;
+	Ref<RendererAPI> Renderer::s_RendererAPI = nullptr;
 	static RendererAPIType s_API = RendererAPIType::None;
+	struct RendererData
+	{
+		CommandQueue RenderCommandQueue = CommandQueue(1024 * 1024 * 10 /* 10mb */);
+		CommandQueue ResourceFreeQueue = CommandQueue(1024 * 10 /* 10kb */);
+		bool CommandQueueExecuting = false;
+
+	};
+	static RendererData* s_RendererData;
 
 	void Renderer::Init()
 	{
+		s_RendererData = new RendererData();
+
 		switch (s_API)
 		{
 			case RendererAPIType::None:        SK_CORE_ASSERT(false, "RendererAPI not specified"); break;
@@ -22,11 +32,42 @@ namespace Shark {
 	void Renderer::ShutDown()
 	{
 		s_RendererAPI = nullptr;
+		delete s_RendererData;
+		s_RendererData = nullptr;
 	}
 
-	void Renderer::NewFrame()
+	void Renderer::BeginFrame()
 	{
-		s_RendererAPI->NewFrame();
+		s_RendererAPI->BeginFrame();
+	}
+
+	void Renderer::EndFrame()
+	{
+		s_RendererAPI->EndFrame();
+	}
+
+	void Renderer::WaitAndRender()
+	{
+		s_RendererData->CommandQueueExecuting = true;
+		s_RendererData->RenderCommandQueue.Execute();
+
+		s_RendererData->ResourceFreeQueue.Execute();
+		s_RendererData->CommandQueueExecuting = false;
+	}
+
+	bool Renderer::IsOnRenderThread()
+	{
+		return s_RendererData->CommandQueueExecuting;
+	}
+
+	bool Renderer::IsExecuting()
+	{
+		return s_RendererData->CommandQueueExecuting;
+	}
+
+	void Renderer::ResizeSwapChain(uint32_t widht, uint32_t height)
+	{
+		s_RendererAPI->ResizeSwapChain(widht, height);
 	}
 
 	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
@@ -69,6 +110,11 @@ namespace Shark {
 		return s_RendererAPI->GetWhiteTexture();
 	}
 
+	bool Renderer::IsInsideFrame()
+	{
+		return s_RendererAPI ? s_RendererAPI->IsInsideFrame() : true;
+	}
+
 	Ref<RendererAPI> Renderer::GetRendererAPI()
 	{
 		return s_RendererAPI;
@@ -82,6 +128,16 @@ namespace Shark {
 	RendererAPIType Renderer::GetAPI()
 	{
 		return s_API;
+	}
+
+	CommandQueue& Renderer::GetCommandQueue()
+	{
+		return s_RendererData->RenderCommandQueue;
+	}
+
+	CommandQueue& Renderer::GetResourceFreeQueue()
+	{
+		return s_RendererData->ResourceFreeQueue;
 	}
 
 }

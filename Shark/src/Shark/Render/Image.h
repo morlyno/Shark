@@ -59,7 +59,6 @@ namespace Shark {
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual bool CopyTo(Ref<Image2D> image) = 0;
-		virtual bool CopyMipTo(Ref<Image2D> image, uint32_t mip) = 0;
 
 		virtual bool ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) = 0;
 
@@ -69,6 +68,9 @@ namespace Shark {
 
 		virtual const std::filesystem::path& GetFilePath() const = 0;
 		virtual void SetFilePath(const std::filesystem::path& filePath) = 0;
+
+	public:
+		virtual void RT_CopyTo(Ref<Image2D> image) = 0;
 
 	public:
 		static Ref<Image2D> Create();
