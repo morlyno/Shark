@@ -179,7 +179,6 @@ namespace Shark {
 	void ContentBrowserPanel::OnEvent(Event& event)
 	{
 		EventDispacher dispacher(event);
-		dispacher.DispachEvent<ProjectChangedEvent>([this](auto& e) { m_NextProject = e.GetProject(); return false; });
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(ContentBrowserPanel::OnKeyPressedEvent));
 	}
 

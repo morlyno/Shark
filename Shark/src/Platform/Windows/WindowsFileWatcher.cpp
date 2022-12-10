@@ -110,7 +110,7 @@ namespace Shark {
 
 			if (!fileEvents.empty())
 			{
-				SK_CORE_TRACE_TAG("FileWatcher", "File Events detected{0}", fmt::join(fileEvents, "\n{0}"));
+				SK_CORE_TRACE_TAG("FileWatcher", "File Events detected\n{0}", fmt::join(fileEvents, "\n"));
 				watchData->Callback(fileEvents);
 			}
 		}

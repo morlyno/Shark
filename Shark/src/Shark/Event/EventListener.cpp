@@ -83,6 +83,7 @@ namespace Shark {
 		OnEvent<ApplicationClosedEvent>();
 	}
 
+#if 0
 	void EventListener::OnSceneChagedEvent(Ref<Scene> scene)
 	{
 		OnEvent<SceneChangedEvent>(scene);
@@ -97,5 +98,6 @@ namespace Shark {
 	{
 		OnEvent<ProjectChangedEvent>(project);
 	}
+#endif
 
 }

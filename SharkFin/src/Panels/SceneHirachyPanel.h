@@ -21,7 +21,7 @@ namespace Shark {
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 
-		void SetContext(Ref<Scene> scene) { m_Context = scene; }
+		virtual void SetContext(Ref<Scene> scene) override { m_Context = scene; }
 		const Ref<Scene>& GetContext() const { return m_Context; }
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }

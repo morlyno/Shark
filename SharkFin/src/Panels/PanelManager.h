@@ -36,6 +36,11 @@ namespace Shark {
 
 		void DrawPanelsMenu(const char* menuName);
 
+		void SetContext(Ref<Scene> context);
+		void OnScenePlay();
+		void OnSceneStop();
+		void OnProjectChanged(Ref<ProjectInstance> project);
+
 	private:
 		struct PanelEntry
 		{

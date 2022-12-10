@@ -129,7 +129,7 @@ namespace Shark {
 		if (m_ViewportWidth == width && m_ViewportHeight == height)
 			return;
 
-		SK_CORE_INFO_TAG("SceneRenderer", "Resizing Scene Renderer {} ({}, {})", m_DebugName, width, height);
+		//SK_CORE_INFO_TAG("SceneRenderer", "Resizing Scene Renderer {} ({}, {})", m_DebugName, width, height);
 
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;

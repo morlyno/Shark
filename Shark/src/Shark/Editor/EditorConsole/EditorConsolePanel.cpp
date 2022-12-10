@@ -94,14 +94,6 @@ namespace Shark {
 		DrawMessageInspector();
 	}
 
-	void EditorConsolePanel::OnEvent(Event& event)
-	{
-		SK_PROFILE_FUNCTION();
-
-		EventDispacher dispacher(event);
-		dispacher.DispachEvent<ScenePlayEvent>([this](ScenePlayEvent& e) { if (m_ClearOnPlay) Clear(); return false; });
-	}
-
 	void EditorConsolePanel::Clear()
 	{
 		SK_PROFILE_FUNCTION();
@@ -110,6 +102,12 @@ namespace Shark {
 		m_ShowMessageInspector = false;
 
 		m_Filtered.clear();
+	}
+
+	void EditorConsolePanel::OnScenePlay()
+	{
+		if (m_ClearOnPlay)
+			Clear();
 	}
 
 	void EditorConsolePanel::PushMessage(LogLevelType level, const std::string& time, const std::string& message)

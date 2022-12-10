@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Project.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Event/Event.h"
+#include "Shark/Scene/Scene.h"
 
 namespace Shark {
 
@@ -15,6 +17,11 @@ namespace Shark {
 		virtual void OnUpdate(TimeStep ts) {}
 		virtual void OnImGuiRender(bool& shown) {}
 		virtual void OnEvent(Event& event) {}
+
+		virtual void SetContext(Ref<Scene> context) {}
+		virtual void OnScenePlay() {};
+		virtual void OnSceneStop() {};
+		virtual void OnProjectChanged(Ref<ProjectInstance> project) {}
 
 		const char* GetName() const { return m_PanelName; }
 

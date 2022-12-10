@@ -123,6 +123,8 @@ namespace Shark {
 		
 		m_IsRunning = true;
 
+		ScriptEngine::InitializeRuntime(this);
+
 		SetupBox2D();
 
 		m_PhysicsScene.SetOnPhyicsStepCallback([this](TimeStep fixedTimeStep) { OnPhyicsStep(fixedTimeStep); });

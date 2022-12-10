@@ -3,8 +3,6 @@
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Components.h"
 
-#include "Shark/Debug/Profiler.h"
-
 #include <entt.hpp>
 
 namespace Shark {

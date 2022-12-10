@@ -184,7 +184,6 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		EventDispacher dispacher(event);
-		dispacher.DispachEvent<SceneChangedEvent>([this](SceneChangedEvent& event) { m_Context = event.GetScene(); return false; });
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(SceneHirachyPanel::OnKeyPressedEvent));
 	}
 

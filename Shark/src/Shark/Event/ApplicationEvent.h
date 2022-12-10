@@ -13,6 +13,7 @@ namespace Shark {
 		ApplicationClosedEvent() = default;
 	};
 
+#if 0
 	class SceneChangedEvent : public EventBase<Event, EventType::SceneChanged, EventCategory::Application>
 	{
 	public:
@@ -51,5 +52,6 @@ namespace Shark {
 	private:
 		Ref<ProjectInstance> m_Project;
 	};
+#endif
 
 }

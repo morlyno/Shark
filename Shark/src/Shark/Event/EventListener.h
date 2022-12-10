@@ -33,9 +33,11 @@ namespace Shark {
 		void OnKeyReleasedEvent(KeyCode key);
 
 		void OnApplicationClosedEvent();
+#if 0
 		void OnSceneChagedEvent(Ref<Scene> scene);
 		void OnScenePlayEvent(Ref<Scene> scene);
 		void OnProjectChangedEvent(Ref<ProjectInstance> project);
+#endif
 
 	private:
 		template<typename TEvent, typename... TArgs>

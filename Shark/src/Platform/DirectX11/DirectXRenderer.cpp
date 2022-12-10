@@ -495,7 +495,7 @@ namespace Shark {
 		m_DoFrequencyQuery = false;
 
 		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
-		HRESULT hr = m_ImmediateContext->GetData(m_FrequencyQuery, &disjointData, sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT), 0);
+		HRESULT hr = m_ImmediateContext->GetData(m_FrequencyQuery, &disjointData, sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT), D3D11_ASYNC_GETDATA_DONOTFLUSH);
 		if (hr == S_OK)
 		{
 			m_GPUFrequency = disjointData.Frequency;

@@ -95,7 +95,7 @@ namespace Shark {
 		FileSystem::SetCallback(std::bind(&EditorLayer::OnFileEvents, this, std::placeholders::_1));
 
 		auto& app = Application::Get();
-		if (app.GetSpecs().EnableImGui)
+		if (app.GetSpecification().EnableImGui)
 		{
 			m_MainViewportID = ImHashStr("MainViewport");
 			app.GetImGuiLayer().SetMainViewportID(m_MainViewportID);
@@ -468,7 +468,8 @@ namespace Shark {
 					if (!projectDirectory.empty())
 					{
 						auto project = CreateProject(projectDirectory);
-						SetProject(project);
+						OpenProject(project->GetProjectFilePath());
+						//SetProject(project);
 					}
 				}
 
@@ -1561,8 +1562,7 @@ namespace Shark {
 		m_CurrentOperation = GizmoOperaton::None;
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
-		ScriptEngine::InitializeRuntime(m_ActiveScene);
-		Application::Get().QueueEvent<ScenePlayEvent>(m_ActiveScene);
+		m_PanelManager->OnScenePlay();
 		m_ActiveScene->OnScenePlay();
 	}
 
@@ -1574,7 +1574,7 @@ namespace Shark {
 		m_InitialSceneState = SceneState::None;
 
 		m_ActiveScene->OnSceneStop();
-		ScriptEngine::ShutdownRuntime();
+		m_PanelManager->OnSceneStop();
 		SetActiveScene(m_WorkScene);
 	}
 
@@ -1612,7 +1612,7 @@ namespace Shark {
 		m_ActiveScene = scene;
 		m_SceneRenderer->SetScene(scene);
 		m_CameraPreviewRenderer->SetScene(scene);
-		Application::Get().QueueEvent<SceneChangedEvent>(scene);
+		m_PanelManager->SetContext(scene);
 		UpdateWindowTitle();
 	}
 
@@ -1642,11 +1642,11 @@ namespace Shark {
 			ResourceManager::Init();
 
 			ScriptEngine::LoadAssemblies(Project::GetActive()->ScriptModulePath);
+			m_PanelManager->OnProjectChanged(project);
 
 			if (!LoadScene(project->Directory / project->StartupScenePath))
 				NewScene();
 
-			Application::Get().QueueEvent<ProjectChangedEvent>(project);
 			FileSystem::StartWatching(Project::GetAssetsPath());
 
 			m_ProjectEditData = project;
@@ -1668,15 +1668,15 @@ namespace Shark {
 		m_ActiveScene = nullptr;
 		m_SceneRenderer->SetScene(nullptr);
 		m_CameraPreviewRenderer->SetScene(nullptr);
-		m_PanelManager->GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID)->SetContext(nullptr);
-		m_PanelManager->GetPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID)->SetContext(nullptr);
 
 		SetActiveScene(nullptr);
 
+#if 0
 		// Note(moro): When CloseProject gets called durring application shutdown the application can't Raise Events anymore
 		//             to get around this the event is distributed internal
 		if (!Application::Get().CanRaiseEvents())
 			OnEvent(SceneChangedEvent(nullptr));
+#endif
 		ScriptEngine::UnloadAssemblies();
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
@@ -1685,7 +1685,8 @@ namespace Shark {
 		FileSystem::StopWatching();
 
 		Project::SetActive(nullptr);
-		Application::Get().QueueEvent<ProjectChangedEvent>(nullptr);
+		//Application::Get().QueueEvent<ProjectChangedEvent>(nullptr);
+		m_PanelManager->OnProjectChanged(nullptr);
 	}
 
 	void EditorLayer::SaveActiveProject()
@@ -1699,25 +1700,6 @@ namespace Shark {
 		SK_CORE_ASSERT(Project::GetActive());
 		ProjectSerializer serializer(Project::GetActive());
 		serializer.Serialize(filePath);
-	}
-
-	void EditorLayer::SetProject(Ref<ProjectInstance> project)
-	{
-		if (Project::GetActive())
-			CloseProject();
-
-		Project::SetActive(project);
-		ResourceManager::Init();
-
-		ScriptEngine::LoadAssemblies(Project::GetActive()->ScriptModulePath);
-
-		if (!LoadScene(project->Directory / project->StartupScenePath))
-			NewScene();
-
-		Application::Get().QueueEvent<ProjectChangedEvent>(project);
-		FileSystem::StartWatching(Project::GetAssetsPath());
-
-		m_ProjectEditData = project;
 	}
 
 	Ref<ProjectInstance> EditorLayer::CreateProject(const std::filesystem::path& projectDirectory)

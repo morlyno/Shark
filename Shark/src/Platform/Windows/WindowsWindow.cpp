@@ -70,6 +70,7 @@ namespace Shark {
 		m_Title = spec.Title;
 		m_Size = { spec.Width, spec.Height };
 		m_EventListener = spec.EventListener;
+		m_VSync = spec.VSync;
 
 		if (!s_WindowClass)
 			s_WindowClass = Scope<WindowsWindow::WindowClass>::Create();

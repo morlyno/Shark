@@ -25,6 +25,11 @@ namespace Shark {
 		return String::FormatDefaultCopy(Directory / filePath);
 	}
 
+	std::filesystem::path ProjectInstance::GetProjectFilePath() const
+	{
+		return fmt::format("{}/{}.skproj", Directory, Name);
+	}
+
 	const std::string& Project::GetName()
 	{
 		return s_ActiveProject->Name;

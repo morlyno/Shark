@@ -13,9 +13,8 @@ namespace Shark {
 		PhysicsDebugPanel(const char* panelName);
 
 		virtual void OnImGuiRender(bool& shown) override;
-		virtual void OnEvent(Event& event) override;
 
-		void SetContext(const Ref<Scene>& scene) { m_Scene = scene; }
+		virtual void SetContext(Ref<Scene> scene) override { m_Scene = scene; }
 
 	private:
 		Ref<Scene> m_Scene;

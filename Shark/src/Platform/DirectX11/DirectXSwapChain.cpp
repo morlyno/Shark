@@ -33,27 +33,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_FUNCTION();
 
-		SK_DX11_CALL(m_SwapChain->Present(vSync ? 1 : 0, 0));
-
-#if 0
-		HRESULT result = m_SwapChain->Present(vSync ? 1 : 0, 0);
-		SK_DX11_CALL(result);
-
-		if (result == 0x887a0001)
-		{
-			BOOL isFullscreen;
-			IDXGIOutput* output = nullptr;
-			SK_DX11_CALL(m_SwapChain->GetFullscreenState(&isFullscreen, &output));
-			SK_CORE_ASSERT(isFullscreen == !!m_Specs.Fullscreen);
-
-			//m_Specs.Fullscreen = false;
-			Renderer::ClearAllCommandBuffers();
-			ResizeSwapChain(m_Specs.Widht, m_Specs.Height);
-			//ReCreateSwapChain();
-			return;
-		}
-#endif
-
+		SK_DX11_CALL(m_SwapChain->Present((vSync ? 1u : 0u), 0));
 	}
 
 	void DirectXSwapChain::Resize(uint32_t width, uint32_t height)

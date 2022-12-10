@@ -77,6 +77,20 @@ namespace Shark {
 		return "x64";
 	}
 
+	uint64_t WindowsUtils::GetPerformanceCount()
+	{
+		LARGE_INTEGER largeInteger;
+		QueryPerformanceCounter(&largeInteger);
+		return largeInteger.QuadPart;
+	}
+
+	uint64_t WindowsUtils::GetPerformanceFrequency()
+	{
+		LARGE_INTEGER largeInteger;
+		QueryPerformanceFrequency(&largeInteger);
+		return largeInteger.QuadPart;
+	}
+
 	void WindowsUtils::SetThreadName(HANDLE thread, const std::wstring& name)
 	{
 		HRESULT hr = SetThreadDescription(thread, name.c_str());

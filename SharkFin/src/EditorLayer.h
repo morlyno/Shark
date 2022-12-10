@@ -110,7 +110,6 @@ namespace Shark {
 		void CloseProject();
 		void SaveActiveProject();
 		void SaveActiveProject(const std::filesystem::path& filePath);
-		void SetProject(Ref<ProjectInstance> project);
 		Ref<ProjectInstance> CreateProject(const std::filesystem::path& projectDirectory);
 		void CreateProjectPremakeFile(Ref<ProjectInstance> project);
 

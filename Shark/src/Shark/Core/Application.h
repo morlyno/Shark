@@ -41,24 +41,26 @@ namespace Shark {
 
 		virtual void OnInit() = 0;
 
+		void PushLayer(Layer* layer);
+		void PopLayer(Layer* layer);
+		void PushOverlay(Layer* layer);
+		void PopOverlay(Layer* layer);
+
 		void Run();
 
-		void PushLayer(Layer* layer)                   { m_LayerStack.PushLayer(layer); layer->OnAttach(); }
-		void PopLayer(Layer* layer)                    { m_LayerStack.PopLayer(layer); layer->OnDetach(); }
-		void PushOverlay(Layer* layer)                 { m_LayerStack.PushOverlay(layer); layer->OnAttach(); }
-		void PopOverlay(Layer* layer)                  { m_LayerStack.PopOverlay(layer); layer->OnDetach(); }
+	public:
+		void CloseApplication() { m_Running = false; }
 
-		void CloseApplication()                        { m_Running = false; }
+		TimeStep GetCPUTime() const { return m_CPUTime; }
+		TimeStep GetFrameTime() const { return m_TimeStep; }
 
-		static Application* GetPtr()                   { return s_Instance; }
-		static Application& Get()                      { return *s_Instance; }
+		Window& GetWindow() { return *m_Window; }
+		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
+		const ApplicationSpecification& GetSpecification() const { return m_Specification; }
 
-		Window& GetWindow()                            { return *m_Window; }
-		ImGuiLayer& GetImGuiLayer()                    { return *m_ImGuiLayer; }
-		const ApplicationSpecification& GetSpecs()     { return m_Specification; }
-		bool CanRaiseEvents() const					   { return m_RaiseEvents; }
-		void SwitchFullscreenMode();
+		static Application& Get() { return *s_Instance; }
 
+	public:
 		template<typename TEvent, typename... TArgs>
 		void QueueEvent(TArgs&&... args)
 		{
@@ -72,6 +74,12 @@ namespace Shark {
 			m_EventQueue.push(func);
 		}
 
+		template<typename TFunc>
+		void AddEventCallback(const TFunc& func)
+		{
+			m_EventCallbacks.push_back(func);
+		}
+
 	private:
 		void RenderImGui();
 
@@ -80,22 +88,16 @@ namespace Shark {
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnWindowResize(WindowResizeEvent& event);
 
-	public:
-		void UpdateSwapchainSize();
 	private:
 		static Application* s_Instance;
 		ApplicationSpecification m_Specification;
 
-		bool m_NeedsResize = false;
 		bool m_Minimized = false;
 		bool m_Running = true;
-		//TimeStep m_LastFrameTime = 0;
-		TimeStep m_TimeStep;
+		float m_LastFrameTime = 0;
+		TimeStep m_TimeStep = 0.0f;
+		TimeStep m_CPUTime;
 
-		int64_t m_LastFrameTime = 0;
-		int64_t m_Frequency;
-
-		bool m_RaiseEvents = true;
 
 		Scope<Window> m_Window;
 		// Owned by LayerStack
@@ -103,6 +105,7 @@ namespace Shark {
 		LayerStack m_LayerStack;
 
 		std::queue<std::function<void()>> m_EventQueue;
+		std::vector<std::function<bool(Event&)>> m_EventCallbacks;
 	};
 
 	Application* CreateApplication(int argc, char** argv);

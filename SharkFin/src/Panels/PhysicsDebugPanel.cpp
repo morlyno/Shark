@@ -123,12 +123,4 @@ namespace Shark {
 		ImGui::End();
 	}
 
-	void PhysicsDebugPanel::OnEvent(Event& event)
-	{
-		SK_PROFILE_FUNCTION();
-
-		EventDispacher dispacher(event);
-		dispacher.DispachEvent<SceneChangedEvent>([this](auto& event) { m_Scene = event.GetScene(); return false; });
-	}
-
 }

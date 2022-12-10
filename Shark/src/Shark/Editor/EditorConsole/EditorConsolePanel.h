@@ -39,12 +39,14 @@ namespace Shark {
 		~EditorConsolePanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
-		virtual void OnEvent(Event& event) override;
 
 		void Clear();
 		bool ClearOnPlay() const { return m_ClearOnPlay; }
 
 		static void PushMessage(LogLevelType level, const std::string& time, const std::string& message);
+
+	private:
+		virtual void OnScenePlay() override;
 
 	private:
 		void PushMessage(MessageLevel level, const std::string& time, const std::string& message);

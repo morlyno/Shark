@@ -477,7 +477,7 @@ namespace Shark {
 		bool Input_IsKeyStateSet(KeyCode key, KeyState keyState)
 		{
 			auto& app = Application::Get();
-			if (app.GetSpecs().EnableImGui)
+			if (app.GetSpecification().EnableImGui)
 			{
 				const ImGuiLayer& imguiLayer = app.GetImGuiLayer();
 				if (imguiLayer.BlocksKeyboardEvents())
@@ -490,7 +490,7 @@ namespace Shark {
 		bool Input_IsMouseStateSet(MouseButton button, MouseState mouseState)
 		{
 			auto& app = Application::Get();
-			if (app.GetSpecs().EnableImGui)
+			if (app.GetSpecification().EnableImGui)
 			{
 				const ImGuiLayer& imguiLayer = app.GetImGuiLayer();
 				if (imguiLayer.BlocksMouseEvents())
@@ -503,7 +503,7 @@ namespace Shark {
 		float Input_GetMouseScroll()
 		{
 			auto& app = Application::Get();
-			if (app.GetSpecs().EnableImGui)
+			if (app.GetSpecification().EnableImGui)
 			{
 				const ImGuiLayer& imguiLayer = app.GetImGuiLayer();
 				if (imguiLayer.BlocksMouseEvents())
@@ -518,7 +518,7 @@ namespace Shark {
 			auto p = Input::GetScreenMousePosition();
 
 			Application& app = Application::Get();
-			if (app.GetSpecs().EnableImGui)
+			if (app.GetSpecification().EnableImGui)
 			{
 				ImGuiWindow* viewportWindow = ImGui::FindWindowByID(app.GetImGuiLayer().GetMainViewportID());
 				if (viewportWindow)
@@ -2388,7 +2388,7 @@ namespace Shark {
 		bool EditorUI_BeginWindow(MonoString* windowTitle)
 		{
 			auto& app = Application::Get();
-			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
 				return false;
 
 			char* cWindowTitle = mono_string_to_utf8(windowTitle);
@@ -2400,7 +2400,7 @@ namespace Shark {
 		void EditorUI_EndWindow()
 		{
 			auto& app = Application::Get();
-			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
 				return;
 
 			ImGui::End();
@@ -2409,7 +2409,7 @@ namespace Shark {
 		void EditorUI_Text(MonoString* text)
 		{
 			auto& app = Application::Get();
-			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
 				return;
 
 			char* cText = mono_string_to_utf8(text);
@@ -2420,7 +2420,7 @@ namespace Shark {
 		void EditorUI_NewLine()
 		{
 			auto& app = Application::Get();
-			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
 				return;
 
 			ImGui::NewLine();
@@ -2429,7 +2429,7 @@ namespace Shark {
 		void EditorUI_Separator()
 		{
 			auto& app = Application::Get();
-			if (!(app.GetSpecs().EnableImGui && app.GetImGuiLayer().InFrame()))
+			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
 				return;
 
 			ImGui::Separator();

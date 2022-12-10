@@ -11,6 +11,7 @@
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/TimeUtils.h"
+#include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
@@ -54,18 +55,11 @@ namespace Shark {
 		}
 
 		ScriptEngine::Init(specification.ScriptConfig);
-
-		//m_LastFrameTime = TimeUtils::Now();
-
-		QueryPerformanceFrequency(reinterpret_cast<LARGE_INTEGER*>(&m_Frequency));
-		QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&m_LastFrameTime));
 	}
 
 	Application::~Application()
 	{
 		SK_PROFILE_FUNCTION();
-
-		m_RaiseEvents = false;
 
 		m_LayerStack.Clear();
 		ScriptEngine::Shutdown();
@@ -76,14 +70,41 @@ namespace Shark {
 		s_Instance = nullptr;
 	}
 
+	void Application::PushLayer(Layer* layer)
+	{
+		m_LayerStack.PushLayer(layer);
+		layer->OnAttach();
+	}
+
+	void Application::PopLayer(Layer* layer)
+	{
+		m_LayerStack.PopLayer(layer);
+		layer->OnDetach();
+	}
+
+	void Application::PushOverlay(Layer* layer)
+	{
+		m_LayerStack.PushOverlay(layer);
+		layer->OnAttach();
+	}
+
+	void Application::PopOverlay(Layer* layer)
+	{
+		m_LayerStack.PopOverlay(layer);
+		layer->OnDetach();
+	}
+
 	void Application::Run()
 	{
 		OnInit();
+		m_LastFrameTime = PlatformUtils::GetTime();
 
 		while (m_Running)
 		{
 			SK_PROFILE_FRAME("MainThread");
 			SK_PERF_NEW_FRAME();
+
+			Timer cpuTimer;
 
 			ProcessEvents();
 
@@ -105,34 +126,15 @@ namespace Shark {
 
 				Renderer::EndFrame();
 				Renderer::WaitAndRender();
+				m_CPUTime = cpuTimer.Elapsed();
 				m_Window->SwapBuffers();
 			}
 
-			//TimeStep now = TimeUtils::Now();
-			//m_TimeStep = now - m_LastFrameTime;
-			//m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
-			//SK_CORE_TRACE("Timestep: {0}", m_TimeStep);
-			//m_LastFrameTime = now;
-
-			int64_t time;
-			QueryPerformanceCounter((LARGE_INTEGER*)&time);
-			m_TimeStep = (float)(time - m_LastFrameTime) / m_Frequency;
+			float time = PlatformUtils::GetTime();
+			m_TimeStep = time - m_LastFrameTime;
 			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
 			m_LastFrameTime = time;
-
 		}
-	}
-
-	void Application::SwitchFullscreenMode()
-	{
-		const bool nextMode = !m_Window->IsFullscreen();
-
-		Application* app = this;
-		Ref<SwapChain> swapchain = m_Window->GetSwapChain();
-
-		m_Window->SetFullscreen(nextMode);
-		//Renderer::SubmitPostRender([swapchain, nextMode]() { swapchain->SetFullscreen(nextMode); });
-		//Renderer::SubmitPostRender([app]() { app->UpdateSwapchainSize(); });
 	}
 
 	void Application::RenderImGui()
@@ -164,9 +166,6 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (!m_RaiseEvents)
-			return;
-
 		if (m_Specification.EnableImGui)
 		{
 			event.Handled |= event.IsInCategory(EventCategory::Mouse) && m_ImGuiLayer->BlocksMouseEvents();
@@ -175,12 +174,18 @@ namespace Shark {
 
 		Input::OnEvent(event);
 
+		if (event.Handled)
+			return;
+
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(Application::OnWindowResize));
 
 		for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend() && !event.Handled; ++it)
 			(*it)->OnEvent(event);
+
+		for (const auto& callback : m_EventCallbacks)
+			callback(event);
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& event)

@@ -43,4 +43,28 @@ namespace Shark {
 		}
 	}
 
+	void PanelManager::SetContext(Ref<Scene> context)
+	{
+		for (auto& [id, data] : m_Panels)
+			data.Instance->SetContext(context);
+	}
+
+	void PanelManager::OnScenePlay()
+	{
+		for (auto& [id, data] : m_Panels)
+			data.Instance->OnScenePlay();
+	}
+
+	void PanelManager::OnSceneStop()
+	{
+		for (auto& [id, data] : m_Panels)
+			data.Instance->OnSceneStop();
+	}
+
+	void PanelManager::OnProjectChanged(Ref<ProjectInstance> project)
+	{
+		for (auto& [id, data] : m_Panels)
+			data.Instance->OnProjectChanged(project);
+	}
+
 }

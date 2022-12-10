@@ -25,6 +25,8 @@ namespace Shark {
 		std::filesystem::path GetRelative(const std::filesystem::path& filePath);
 		std::filesystem::path GetAbsolue(const std::filesystem::path& filePath);
 
+		std::filesystem::path GetProjectFilePath() const;
+
 	};
 
 	class Project

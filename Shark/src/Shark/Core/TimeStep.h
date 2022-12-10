@@ -27,11 +27,22 @@ namespace Shark {
 		float ns() const { return NanoSeconds(); }
 
 	public:
+		std::string ToString() const;
+
+	public:
 		TimeStep operator+(const TimeStep& rhs) const { return m_Time + rhs.m_Time; }
 		TimeStep operator-(const TimeStep& rhs) const { return m_Time - rhs.m_Time; }
+		TimeStep operator*(const TimeStep& rhs) const { return m_Time * rhs.m_Time; }
+		TimeStep operator/(const TimeStep& rhs) const { return m_Time / rhs.m_Time; }
+		TimeStep operator*(float scale) const { return m_Time * scale; }
+		TimeStep operator/(float scale) const { return m_Time / scale; }
 
 		TimeStep& operator+=(const TimeStep& rhs) { m_Time += rhs.m_Time; return *this; }
 		TimeStep& operator-=(const TimeStep& rhs) { m_Time -= rhs.m_Time; return *this; }
+		TimeStep& operator*=(const TimeStep& rhs) { m_Time *= rhs.m_Time; return *this; }
+		TimeStep& operator/=(const TimeStep& rhs) { m_Time /= rhs.m_Time; return *this; }
+		TimeStep& operator*=(float scale) { m_Time *= scale; return *this; }
+		TimeStep& operator/=(float scale) { m_Time /= scale; return *this; }
 
 	public:
 		static TimeStep FromSeconds(float seconds) { return TimeStep(seconds); }
@@ -47,5 +58,24 @@ namespace Shark {
 	private:
 		float m_Time;
 	};
+
+	inline std::string TimeStep::ToString() const
+	{
+		if (m_Time <= FLT_EPSILON)
+			return fmt::format("{0:3.6f}ms", 0.0f);
+
+		if (m_Time > 60.0f)
+		{
+			float minits = m_Time / 60.0f;
+			return fmt::format("{0:3.6f}m", minits);
+		}
+
+		float t = m_Time;
+		if (t > 1.0f)
+			return fmt::format("{0:3.6f}s", t);
+
+		t *= 1000.0f;
+		return fmt::format("{0:3.6f}ms", t);
+	}
 
 }

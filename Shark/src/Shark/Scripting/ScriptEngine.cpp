@@ -120,6 +120,9 @@ namespace Shark {
 		SK_CORE_VERIFY(s_Data->RuntimeDomain);
 		mono_domain_set(s_Data->RuntimeDomain, true);
 
+		s_Data->CoreAssembly.FilePath = s_Data->Config.CoreAssemblyPath;
+		s_Data->AppAssembly.FilePath = assemblyPath;
+
 		if (!LoadCoreAssembly(s_Data->Config.CoreAssemblyPath))
 			return false;
 
