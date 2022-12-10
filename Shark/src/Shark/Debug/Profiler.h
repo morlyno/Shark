@@ -1,74 +1,53 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Application.h"
 #include "Shark/Core/TimeStep.h"
+#include "Shark/Utils/PlatformUtils.h"
 
 #include <optick.h>
 
-#include <queue>
-
 namespace Shark {
 
-	class PerformanceTimer;
+	struct FrameData
+	{
+		float Duration = 0.0f;
+		std::string_view Descriptor;
+	};
 
 	class PerformanceProfiler
 	{
 	public:
-		using TimerStorage = std::unordered_map<std::string_view, float>;
+		PerformanceProfiler() = default;
+		~PerformanceProfiler() = default;
 
-	public:
-		static void Initialize();
-		static void Shutdown();
+		void Clear();
+		void Add(std::string_view descriptor, float duration);
 
-		static void SetSampleRate(uint32_t frameCount);
-		static uint32_t GetSampleRate();
-
-		static void NewFrame();
-		static void Push(std::string_view key, float time);
-
-		static const TimerStorage& GetStatistics();
+		FrameData* GetStorage(std::string_view descriptor);
+		const auto& GetFrameStorage() const { return m_FrameStorage; }
 
 	private:
-		static TimerStorage& GetStorage();
-
-	private:
-		uint64_t Frame = 0;
-		uint32_t StorageIndex = 0;
-		TimerStorage TimerStorageBuffers[2];
-		TimerStorage* ActiveStorage = nullptr;
-		TimerStorage* FinishedSotrage = nullptr;
-
-		uint32_t SampleRate = 10;
-
-		float FrameStartTime = 0.0f;
-
-		static PerformanceProfiler* s_Instance;
+		std::map<std::string_view, FrameData> m_FrameStorage;
 	};
 
-	class PerformanceTimer
+	struct ProfilerEvent
 	{
-	public:
-		PerformanceTimer(std::string_view key);
-		~PerformanceTimer();
-
-		void Start();
-		void Stop();
+		ProfilerEvent(PerformanceProfiler* profiler, std::string_view descriptor);
+		~ProfilerEvent();
 
 	private:
-		std::string_view m_Key;
-		float m_Start;
+		int64_t m_Start;
+		int64_t m_Stop;
+		FrameData* Storage = nullptr;
 	};
 
 }
 
 #if SK_ENABLE_PERF
-#define SK_PERF_NEW_FRAME()  ::Shark::PerformanceProfiler::NewFrame()
-
-#define SK_PERF_SCOPED(name) ::Shark::PerformanceTimer SK_CONNECT(performanceTimerAutoGenName, __LINE__) = ::Shark::PerformanceTimer{ name }
-#define SK_PERF_FUNCTION()   SK_PERF_SCOPED(SK_FUNCTION_DECORATED)
+#define SK_PERF_SCOPED(name) ::Shark::ProfilerEvent SK_CONNECT(eventAutoGenName, __LINE__) = ::Shark::ProfilerEvent{ Application::Get().GetProfiler(), name }
+#define SK_PERF_FUNCTION() SK_PERF_SCOPED(SK_FUNCTION_DECORATED)
 #else
-#define SK_PERF_NEW_FRAME(...)
-
 #define SK_PERF_SCOPED(...)
 #define SK_PERF_FUNCTION(...)
 #endif

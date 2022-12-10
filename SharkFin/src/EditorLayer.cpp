@@ -1055,60 +1055,66 @@ namespace Shark {
 	{
 		if (ImGui::CollapsingHeader("Times"))
 		{
-			struct ProfilerEntry
+			auto& app = Application::Get();
+			PerformanceProfiler* profiler = app.GetProfiler();
+
+			if (!profiler)
 			{
-				std::string_view Name;
-				float Time;
-			};
-
-			const auto& stats = PerformanceProfiler::GetStatistics();
-			std::vector<ProfilerEntry> sortedEntries;
-
-			auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Time != rhs.Time ? lhs.Time > rhs.Time : lhs.Name > rhs.Name; };
-
-			for (const auto& [name, time] : stats)
-			{
-				ProfilerEntry entry{ name, time };
-				if (entry.Time <= FLT_EPSILON)
-					entry.Time = 0.0f;
-
-				auto where = std::lower_bound(sortedEntries.begin(), sortedEntries.end(), entry, sorter);
-				sortedEntries.insert(where, entry);
+				UI::Text("Profiler is disabled.");
+				return;
 			}
 
-			auto format = [](float seconds) -> std::string
+
 			{
-				const float epsilon = 1.0f;
+				const auto& frameStorages = profiler->GetFrameStorage();
 
-				if (seconds <= FLT_EPSILON)
-					return fmt::format("{0:3.6f}ms", 0.0f);
+				m_ProfilerStatsAccumulator["Frame"] += app.GetFrameTime();
+				m_ProfilerStatsAccumulator["CPU"] += app.GetCPUTime();
 
-				if (seconds > 60.0f)
+				size_t index = 2;
+				for (const auto& [descriptor, data] : frameStorages)
+					m_ProfilerStatsAccumulator[(std::string)data.Descriptor] += data.Duration;
+				
+				if (++m_ProfilerSampleCount >= m_ProfilerSamples)
 				{
-					float minits = seconds / 60.0f;
-					return fmt::format("{0:3.6f}m", minits);
+					const auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Duration != rhs.Duration ? lhs.Duration > rhs.Duration : lhs.Descriptor > rhs.Descriptor; };
+
+					m_ProfilerStats.reserve(m_ProfilerStatsAccumulator.size());
+					m_ProfilerStats.resize(2);
+					for (const auto& [descriptor, duration] : m_ProfilerStatsAccumulator)
+					{
+						ProfilerEntry entry = { descriptor, duration / (float)m_ProfilerSamples };
+
+						if (descriptor == "Frame")
+						{
+							m_ProfilerStats[0] = entry;
+							continue;
+						}
+
+						if (descriptor == "CPU")
+						{
+							m_ProfilerStats[1] = entry;
+							continue;
+						}
+
+						const auto where = std::lower_bound(m_ProfilerStats.begin() + 2, m_ProfilerStats.end(), entry, sorter);
+						m_ProfilerStats.insert(where, entry);
+					}
+
+					m_ProfilerStatsAccumulator.clear();
+					m_ProfilerSampleCount = 0;
 				}
+			}
 
-				float t = seconds;
-				if (t > epsilon)
-					return fmt::format("{0:3.6f}s", t);
-
-				t *= 1000.0f;
-				return fmt::format("{0:3.6f}ms", t);
-			};
-
-			UI::BeginControls();
-			uint32_t count = PerformanceProfiler::GetSampleRate();
-			if (UI::Control("Profiler Frame Count", count, 1, 1, 165))
-				PerformanceProfiler::SetSampleRate(count);
-			UI::EndControls();
-
-			ImGui::Separator();
 
 			UI::BeginControlsGrid();
-			for (const auto& [name, time] : sortedEntries)
-				UI::Property(name, format(time));
-			UI::EndControls();
+			UI::Control("Samples", m_ProfilerSamples);
+			UI::EndControlsGrid();
+
+			UI::BeginControlsGrid();
+			for (const auto& entry : m_ProfilerStats)
+				UI::Property(entry.Descriptor, entry.Duration.ToString());
+			UI::EndControlsGrid();
 		}
 	}
 

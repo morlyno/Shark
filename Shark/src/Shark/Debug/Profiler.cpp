@@ -1,95 +1,42 @@
 #include "skpch.h"
 #include "Profiler.h"
 
-#include "Shark\Utils\TimeUtils.h"
-
 namespace Shark {
 
-	PerformanceProfiler* PerformanceProfiler::s_Instance = nullptr;
-
-	void PerformanceProfiler::Initialize()
+	void PerformanceProfiler::Clear()
 	{
-		SK_CORE_VERIFY(!s_Instance);
-		s_Instance = new PerformanceProfiler();
-		s_Instance->ActiveStorage = &s_Instance->TimerStorageBuffers[0];
-		s_Instance->FinishedSotrage = &s_Instance->TimerStorageBuffers[1];
+		m_FrameStorage.clear();
 	}
 
-	void PerformanceProfiler::Shutdown()
+	void PerformanceProfiler::Add(std::string_view descriptor, float duration)
 	{
-		delete s_Instance;
-		s_Instance = nullptr;
+		FrameData* storage = GetStorage(descriptor);
+		storage->Descriptor = descriptor;
+		storage->Duration += duration;
 	}
 
-	void PerformanceProfiler::SetSampleRate(uint32_t count)
+	FrameData* PerformanceProfiler::GetStorage(std::string_view descriptor)
 	{
-		s_Instance->SampleRate = count;
+		return &m_FrameStorage[descriptor];
 	}
 
-	uint32_t PerformanceProfiler::GetSampleRate()
+	ProfilerEvent::ProfilerEvent(PerformanceProfiler* profiler, std::string_view descriptor)
 	{
-		return s_Instance->SampleRate;
-	}
-
-	void PerformanceProfiler::NewFrame()
-	{
-		if ((++s_Instance->Frame % s_Instance->SampleRate) == 0)
+		if (profiler)
 		{
-			std::swap(s_Instance->ActiveStorage, s_Instance->FinishedSotrage);
-			s_Instance->ActiveStorage->clear();
-
-			if (s_Instance->SampleRate > 1)
-			{
-				for (auto& [name, time] : *s_Instance->FinishedSotrage)
-					time /= (float)s_Instance->SampleRate;
-			}
-
+			Storage = profiler->GetStorage(descriptor);
+			Storage->Descriptor = descriptor;
+			m_Start = PlatformUtils::GetPerformanceCount();
 		}
-
-		float time = TimeUtils::Now();
-		float dur = time - s_Instance->FrameStartTime;
-		Push("Frame", dur);
-		s_Instance->FrameStartTime = time;
 	}
 
-	void PerformanceProfiler::Push(std::string_view key, float time)
+	ProfilerEvent::~ProfilerEvent()
 	{
-		auto& storage = s_Instance->GetStorage();
-		storage[key] += time;
-	}
-
-	const PerformanceProfiler::TimerStorage& PerformanceProfiler::GetStatistics()
-	{
-		return *s_Instance->FinishedSotrage;
-	}
-
-	PerformanceProfiler::TimerStorage& PerformanceProfiler::GetStorage()
-	{
-		return *s_Instance->ActiveStorage;
-	}
-
-
-	PerformanceTimer::PerformanceTimer(std::string_view key)
-		: m_Key(key)
-	{
-		Start();
-	}
-
-	PerformanceTimer::~PerformanceTimer()
-	{
-		Stop();
-	}
-
-	void PerformanceTimer::Start()
-	{
-		m_Start = TimeUtils::Now();
-	}
-
-	void PerformanceTimer::Stop()
-	{
-		float stop = TimeUtils::Now();
-		float dur = stop - m_Start;
-		PerformanceProfiler::Push(m_Key, dur);
+		if (Storage)
+		{
+			m_Stop = PlatformUtils::GetPerformanceCount();
+			Storage->Duration += (float)(m_Stop - m_Start) / (float)PlatformUtils::GetPerformanceFrequency();
+		}
 	}
 
 }

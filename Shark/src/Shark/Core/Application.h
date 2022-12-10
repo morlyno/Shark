@@ -12,13 +12,13 @@
 #include "Shark/ImGui/ImGuiLayer.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
-#include "Shark/Scripting/ScriptEngine.h"
-
-#include "Shark/Debug/Profiler.h"
+//#include "Shark/Debug/Profiler.h"
 
 int main(int argc, char** argb);
 
 namespace Shark {
+
+	class PerformanceProfiler;
 
 	struct ApplicationSpecification
 	{
@@ -53,6 +53,7 @@ namespace Shark {
 
 		TimeStep GetCPUTime() const { return m_CPUTime; }
 		TimeStep GetFrameTime() const { return m_TimeStep; }
+		PerformanceProfiler* GetProfiler() const { return m_Profiler; }
 
 		Window& GetWindow() { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
@@ -98,6 +99,7 @@ namespace Shark {
 		TimeStep m_TimeStep = 0.0f;
 		TimeStep m_CPUTime;
 
+		PerformanceProfiler* m_Profiler = nullptr;
 
 		Scope<Window> m_Window;
 		// Owned by LayerStack

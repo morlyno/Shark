@@ -31,7 +31,7 @@ namespace Shark {
 	void DirectXSwapChain::Present(bool vSync)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_FUNCTION();
+		SK_PERF_SCOPED("SwapChain Present");
 
 		SK_DX11_CALL(m_SwapChain->Present((vSync ? 1u : 0u), 0));
 	}

@@ -30,6 +30,8 @@ namespace Shark {
 		s_Instance = this;
 		Application* app = this;
 
+		m_Profiler = new PerformanceProfiler;
+
 		Renderer::Init();
 		Renderer::WaitAndRender();
 
@@ -67,6 +69,8 @@ namespace Shark {
 		m_Window = nullptr;
 		Renderer::ShutDown();
 
+		delete m_Profiler;
+
 		s_Instance = nullptr;
 	}
 
@@ -102,7 +106,6 @@ namespace Shark {
 		while (m_Running)
 		{
 			SK_PROFILE_FRAME("MainThread");
-			SK_PERF_NEW_FRAME();
 
 			Timer cpuTimer;
 
@@ -121,6 +124,7 @@ namespace Shark {
 				{
 					Application* app = this;
 					Renderer::Submit([app]() { app->RenderImGui(); });
+					Renderer::Submit([app]() { app->m_Profiler->Clear(); });
 					Renderer::Submit([app]() { app->m_ImGuiLayer->End(); });
 				}
 
@@ -213,7 +217,6 @@ namespace Shark {
 		void Initialize()
 		{
 			Log::Initialize();
-			PerformanceProfiler::Initialize();
 			Input::Initialize();
 			FileSystem::Initialize();
 		}
@@ -222,7 +225,6 @@ namespace Shark {
 		{
 			FileSystem::Shutdown();
 			Input::Shutdown();
-			PerformanceProfiler::Shutdown();
 			Log::Shutdown();
 		}
 

@@ -218,6 +218,16 @@ namespace Shark {
 		};
 		CreateProjectData m_CreateProjectData;
 
+		struct ProfilerEntry
+		{
+			std::string Descriptor;
+			TimeStep Duration;
+		};
+
+		std::vector<ProfilerEntry> m_ProfilerStats;
+		std::map<std::string, TimeStep> m_ProfilerStatsAccumulator;
+		uint32_t m_ProfilerSamples = 10;
+		uint32_t m_ProfilerSampleCount = 0;
 	};
 
 }
