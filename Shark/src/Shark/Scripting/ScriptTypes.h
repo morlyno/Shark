@@ -124,7 +124,7 @@ namespace Shark {
 		return result.empty() ? std::string{} : result.substr(0, result.size() - 3);
 	}
 
-	using GCHandle = uint32_t;
+	using GCHandle = void*;
 
 	struct AssemblyInfo
 	{

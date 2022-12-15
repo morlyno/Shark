@@ -18,7 +18,9 @@
 #include <mono/utils/mono-logger.h>
 #include <mono/metadata/exception.h>
 #include <mono/metadata/debug-helpers.h>
-#include "mono/metadata/attrdefs.h"
+#include <mono/metadata/attrdefs.h>
+#include <mono/metadata/mono-debug.h>
+#include <mono/metadata/threads.h>
 
 namespace Shark {
 
@@ -546,8 +548,24 @@ namespace Shark {
 		mono_set_assemblies_path("mono/lib");
 		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
 
+		if (s_Data->Config.EnableDebugging)
+		{
+			const char* argv[2] = {
+				"--debugger-agent=transport=dt_socket,address=127.0.0.1:2550,server=y,suspend=n,loglevel=3,logfile=Logs/MonoDebugger.log",
+				"--soft-breakpoints"
+			};
+
+			mono_jit_parse_options(2, (char**)argv);
+			mono_debug_init(MONO_DEBUG_FORMAT_MONO);
+		}
+
 		s_Data->RootDomain = mono_jit_init("RootDomain");
 		SK_CORE_VERIFY(s_Data->RootDomain);
+
+		if (s_Data->Config.EnableDebugging)
+			mono_debug_domain_create(s_Data->RootDomain);
+
+		mono_thread_set_main(mono_thread_current());
 	}
 
 	void ScriptEngine::ShutdownMono()
@@ -573,6 +591,20 @@ namespace Shark {
 			const char* errorMsg = mono_image_strerror(status);
 			SK_CORE_ERROR_TAG("Scripting", "Failed to open Image from {0}\n\t Message: {1}", filePath, errorMsg);
 			return nullptr;
+		}
+
+		if (s_Data->Config.EnableDebugging)
+		{
+			std::filesystem::path pdbPath = filePath;
+			pdbPath.replace_extension(".pdb");
+
+			if (FileSystem::Exists(pdbPath))
+			{
+				Buffer pdbData = FileSystem::ReadBinary(pdbPath);
+				mono_debug_open_image_from_memory(image, pdbData.As<mono_byte>(), (int)pdbData.Size);
+				SK_CORE_INFO_TAG("Scripting", "Loaded PDB {}", pdbPath);
+				pdbData.Release();
+			}
 		}
 
 		std::string assemblyName = filePath.stem().string();

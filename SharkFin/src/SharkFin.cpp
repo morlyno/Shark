@@ -56,6 +56,7 @@ namespace Shark {
 		specification.VSync = true;
 
 		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/Shark-ScriptCore.dll";
+		specification.ScriptConfig.EnableDebugging = true;
 
 		return new SharkFin(specification, startupProject);
 	}
