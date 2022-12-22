@@ -180,6 +180,9 @@ namespace Shark {
 		void Physics2D_GetGravity(glm::vec2* out_Gravity);
 		void Physics2D_SetGravity(glm::vec2* gravity);
 
+		bool Physics2D_GetAllowSleep();
+		void Physics2D_SetAllowSleep(bool allowSleep);
+
 		#pragma endregion
 
 		#pragma region RigidBody2DComponent

@@ -91,7 +91,7 @@ namespace Shark {
 
 		glm::mat4 GetActiveViewProjection() const;
 
-		void NewScene();
+		void NewScene(const std::string& name = "New Scene");
 
 		bool LoadScene(AssetHandle handle);
 		bool LoadScene(const std::filesystem::path& filePath);

@@ -9,7 +9,11 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Debug/enttDebug.h"
 
-#define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK();
+#if SK_DEBUG
+#define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK()
+#else
+#define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__)
+#endif
 
 namespace YAML {
 
@@ -42,7 +46,7 @@ namespace YAML {
 				case Shark::ManagedFieldType::Vector2: node.force_insert("Value", storage->GetValue<glm::vec2>()); break;
 				case Shark::ManagedFieldType::Vector3: node.force_insert("Value", storage->GetValue<glm::vec3>()); break;
 				case Shark::ManagedFieldType::Vector4: node.force_insert("Value", storage->GetValue<glm::vec4>()); break;
-				default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType");
+				default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); break;
 			}
 			return node;
 		}
@@ -76,7 +80,7 @@ namespace YAML {
 				case Shark::ManagedFieldType::Vector2: storage->SetValue(node["Value"].as<glm::vec2>()); break;
 				case Shark::ManagedFieldType::Vector3: storage->SetValue(node["Value"].as<glm::vec3>()); break;
 				case Shark::ManagedFieldType::Vector4: storage->SetValue(node["Value"].as<glm::vec4>()); break;
-				default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType");
+				default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); return false;
 			}
 
 			return true;
@@ -137,7 +141,7 @@ namespace Shark {
 		Ref<Scene> scene = Ref<Scene>::Create();
 		if (!DeserializeFromYAML(scene, filedata))
 		{
-			SK_SERIALIZATION_ERROR("Failed to load data from YAML!");
+			SK_SERIALIZATION_ERROR("Failed to deserialize Scene! {}", m_ErrorMsg);
 			return false;
 		}
 
@@ -198,7 +202,7 @@ namespace Shark {
 				out << YAML::Key << "Children" << YAML::Value << component->Children;
 				out << YAML::EndMap;
 			}
-			
+
 			if (auto component = entity.TryGetComponent<SpriteRendererComponent>())
 			{
 				out << YAML::Key << "SpriteRendererComponent";
@@ -208,7 +212,7 @@ namespace Shark {
 				out << YAML::Key << "TilingFactor" << YAML::Value << component->TilingFactor;
 				out << YAML::EndMap;
 			}
-			
+
 			if (auto component = entity.TryGetComponent<CircleRendererComponent>())
 			{
 				out << YAML::Key << "CircleRendererComponent";
@@ -218,7 +222,7 @@ namespace Shark {
 				out << YAML::Key << "Fade" << YAML::Value << component->Fade;
 				out << YAML::EndMap;
 			}
-			
+
 			if (auto component = entity.TryGetComponent<CameraComponent>())
 			{
 				out << YAML::Key << "CameraComponent";
@@ -235,7 +239,7 @@ namespace Shark {
 				out << YAML::Key << "OrthographicFar" << YAML::Value << camera.GetOrthographicFar();
 				out << YAML::EndMap;
 			}
-			
+
 			if (auto component = entity.TryGetComponent<RigidBody2DComponent>())
 			{
 				out << YAML::Key << "RigidBody2DComponent";
@@ -249,7 +253,7 @@ namespace Shark {
 				out << YAML::Key << "GravityScale" << YAML::Value << component->GravityScale;
 				out << YAML::EndMap;
 			}
-			
+
 			if (auto component = entity.TryGetComponent<BoxCollider2DComponent>())
 			{
 				out << YAML::Key << "BoxCollider2DComponent";
@@ -264,7 +268,7 @@ namespace Shark {
 				out << YAML::Key << "IsSensor" << YAML::Value << component->IsSensor;
 				out << YAML::EndMap;
 			}
-			
+
 			if (auto component = entity.TryGetComponent<CircleCollider2DComponent>())
 			{
 				out << YAML::Key << "CircleCollider2DComponent";
@@ -279,22 +283,7 @@ namespace Shark {
 				out << YAML::Key << "IsSensor" << YAML::Value << component->IsSensor;
 				out << YAML::EndMap;
 			}
-			
-			if (auto component = entity.TryGetComponent<BoxCollider2DComponent>())
-			{
-				out << YAML::Key << "BoxCollider2DComponent";
-				out << YAML::BeginMap;
-				out << YAML::Key << "Size" << YAML::Value << component->Size;
-				out << YAML::Key << "Offset" << YAML::Value << component->Offset;
-				out << YAML::Key << "Rotation" << YAML::Value << component->Rotation;
-				out << YAML::Key << "Density" << YAML::Value << component->Density;
-				out << YAML::Key << "Friction" << YAML::Value << component->Friction;
-				out << YAML::Key << "Restitution" << YAML::Value << component->Restitution;
-				out << YAML::Key << "RestitutionThreshold" << YAML::Value << component->RestitutionThreshold;
-				out << YAML::Key << "IsSensor" << YAML::Value << component->IsSensor;
-				out << YAML::EndMap;
-			}
-			
+
 			if (auto component = entity.TryGetComponent<ScriptComponent>())
 			{
 				out << YAML::Key << "ScriptComponent";
@@ -311,7 +300,7 @@ namespace Shark {
 				out << YAML::EndSeq;
 				out << YAML::EndMap;
 			}
-			
+
 			out << YAML::EndMap;
 		}
 
@@ -324,139 +313,148 @@ namespace Shark {
 
 	bool SceneSerializer::DeserializeFromYAML(Ref<Scene> scene, const std::string& filedata)
 	{
-		YAML::Node node = YAML::Load(filedata);
-
-		YAML::Node sceneNode = node["Scene"];
-		if (!sceneNode)
-			return false;
-		
-		const std::string sceneName = node["Scene"].as<std::string>("Untitled");
-		scene->SetName(sceneName);
-		SK_CORE_TRACE_TAG("Serialization", " - Scene Name: {}", sceneName);
-
-		const UUID activeCameraID = sceneNode["ActiveCamera"].as<UUID>(UUID::Null);
-		scene->SetActiveCamera(activeCameraID);
-		SK_CORE_TRACE_TAG("Serialization", " - Active Camera: {}", activeCameraID);
-
-		YAML::Node entitiesNode = sceneNode["Entities"];
-		if (entitiesNode)
+		try
 		{
-			for (auto entityNode : entitiesNode)
+			YAML::Node node = YAML::Load(filedata);
+
+			YAML::Node sceneNode = node["Scene"];
+			if (!sceneNode)
+				return false;
+
+			const std::string sceneName = node["Scene"].as<std::string>("Untitled");
+			scene->SetName(sceneName);
+			SK_CORE_TRACE_TAG("Serialization", " - Scene Name: {}", sceneName);
+
+			const UUID activeCameraID = sceneNode["ActiveCamera"].as<UUID>(UUID::Null);
+			scene->SetActiveCamera(activeCameraID);
+			SK_CORE_TRACE_TAG("Serialization", " - Active Camera: {}", activeCameraID);
+
+			YAML::Node entitiesNode = sceneNode["Entities"];
+			if (entitiesNode)
 			{
-				const UUID id = entityNode["Entity"].as<UUID>(UUID::Null);
-				const std::string name = entityNode["TagComponent"]["Name"].as<std::string>();
-
-				Entity entity = scene->CreateEntityWithUUID(id, name);
-				SK_CORE_TRACE_TAG("Serialization", " - Entity {} - {}", entity.GetName(), entity.GetUUID());
-
-				if (auto componentNode = entityNode["TransformComponent"])
+				for (auto entityNode : entitiesNode)
 				{
-					auto& component = entity.AddOrReplaceComponent<TransformComponent>();
-					component.Translation = componentNode["Translation"].as<glm::vec3>();
-					component.Rotation    = componentNode["Rotation"].as<glm::vec3>();
-					component.Scale       = componentNode["Scale"].as<glm::vec3>();
-				}
-				
-				if (auto componentNode = entityNode["RelationshipComponent"])
-				{
-					auto& component = entity.AddOrReplaceComponent<RelationshipComponent>();
-					component.Parent = componentNode["Parent"].as<UUID>();
-					component.Children = componentNode["Children"].as<std::vector<UUID>>();
-				}
-				
-				if (auto componentNode = entityNode["SpriteRendererComponent"])
-				{
-					auto& component = entity.AddOrReplaceComponent<SpriteRendererComponent>();
-					component.Color = componentNode["Color"].as<glm::vec4>();
-					component.TextureHandle = componentNode["TextureHandle"].as<AssetHandle>();
-					component.TilingFactor = componentNode["TilingFactor"].as<float>();
-				}
-				
-				if (auto componentNode = entityNode["CircleRendererComponent"])
-				{
-					auto& component = entity.AddOrReplaceComponent<CircleRendererComponent>();
-					component.Color = componentNode["Color"].as<glm::vec4>();
-					component.Thickness = componentNode["Thickness"].as<float>();
-					component.Fade = componentNode["Fade"].as<float>();
-				}
-				
-				if (auto componentNode = entityNode["CameraComponent"])
-				{
-					auto& component = entity.AddOrReplaceComponent<CameraComponent>();
+					const UUID id = entityNode["Entity"].as<UUID>(UUID::Null);
+					const std::string name = entityNode["TagComponent"]["Name"].as<std::string>();
 
-					auto projection = StringToSceneCameraProjection(componentNode["Type"].as<std::string>());
-					float aspecRatio = componentNode["Aspectratio"].as<float>();
+					Entity entity = scene->CreateEntityWithUUID(id, name);
+					SK_CORE_TRACE_TAG("Serialization", " - Entity {} - {}", entity.GetName(), entity.GetUUID());
 
-					SceneCamera::PerspectiveSpecs ps;
-					ps.FOV = componentNode["PerspectiveFOV"].as<float>();
-					ps.Near = componentNode["PerspectiveNear"].as<float>();
-					ps.Far = componentNode["PerspectiveFar"].as<float>();
-
-					SceneCamera::OrthographicSpecs os;
-					os.Zoom = componentNode["OrthographicZoom"].as<float>();
-					os.Near = componentNode["OrthographicNear"].as<float>();
-					os.Far = componentNode["OrthographicFar"].as<float>();
-
-					component.Camera = SceneCamera(projection, aspecRatio, ps, os);
-				}
-
-				if (auto componentNode = entityNode["RigidBody2DComponent"])
-				{
-					auto& component = entity.AddOrReplaceComponent<RigidBody2DComponent>();
-					component.Type = StringToRigidBody2DType(componentNode["Type"].as<std::string>());
-					component.FixedRotation = componentNode["FixedRotation"].as<bool>();
-					component.IsBullet = componentNode["IsBullet"].as<bool>();
-					component.Awake = componentNode["Awake"].as<bool>();
-					component.Enabled = componentNode["Enabled"].as<bool>();
-					component.AllowSleep = componentNode["AllowSleep"].as<bool>();
-					component.GravityScale = componentNode["GravityScale"].as<float>();
-				}
-				
-				if (auto componentNode = entityNode["BoxCollider2DComponent"])
-				{
-					auto& component = entity.AddOrReplaceComponent<BoxCollider2DComponent>();
-					component.Size = componentNode["Size"].as<glm::vec2>();
-					component.Offset = componentNode["Offset"].as<glm::vec2>();
-					component.Rotation = componentNode["Rotation"].as<float>();
-					component.Density = componentNode["Density"].as<float>();
-					component.Friction = componentNode["Friction"].as<float>();
-					component.Restitution = componentNode["Restitution"].as<float>();
-					component.RestitutionThreshold = componentNode["RestitutionThreshold"].as<float>();
-					component.IsSensor = componentNode["IsSensor"].as<bool>();
-				}
-				
-				if (auto componentNode = entityNode["CircleCollider2DComponent"])
-				{
-					auto& component = entity.AddOrReplaceComponent<CircleCollider2DComponent>();
-					component.Radius = componentNode["Radius"].as<float>();
-					component.Offset = componentNode["Offset"].as<glm::vec2>();
-					component.Rotation = componentNode["Rotation"].as<float>();
-					component.Density = componentNode["Density"].as<float>();
-					component.Friction = componentNode["Friction"].as<float>();
-					component.Restitution = componentNode["Restitution"].as<float>();
-					component.RestitutionThreshold = componentNode["RestitutionThreshold"].as<float>();
-					component.IsSensor = componentNode["IsSensor"].as<bool>();
-				}
-				
-				if (auto componentNode = entityNode["ScriptComponent"])
-				{
-					auto& component = entity.AddOrReplaceComponent<ScriptComponent>();
-					component.ScriptName = componentNode["ScriptName"].as<std::string>();
-
-					Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(component.ScriptName);
-					component.ClassID = klass ? klass->GetID() : 0;
-
-					auto fields = componentNode["Fields"];
-					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
-
-					for (auto field : fields)
+					if (auto componentNode = entityNode["TransformComponent"])
 					{
-						Ref<FieldStorage> storage = field.as<Ref<FieldStorage>>();
-						fieldStorages[storage->Name] = storage;
+						auto& component = entity.AddOrReplaceComponent<TransformComponent>();
+						component.Translation = componentNode["Translation"].as<glm::vec3>();
+						component.Rotation = componentNode["Rotation"].as<glm::vec3>();
+						component.Scale = componentNode["Scale"].as<glm::vec3>();
 					}
+
+					if (auto componentNode = entityNode["RelationshipComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<RelationshipComponent>();
+						component.Parent = componentNode["Parent"].as<UUID>();
+						component.Children = componentNode["Children"].as<std::vector<UUID>>();
+					}
+
+					if (auto componentNode = entityNode["SpriteRendererComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<SpriteRendererComponent>();
+						component.Color = componentNode["Color"].as<glm::vec4>();
+						component.TextureHandle = componentNode["TextureHandle"].as<AssetHandle>();
+						component.TilingFactor = componentNode["TilingFactor"].as<float>();
+					}
+
+					if (auto componentNode = entityNode["CircleRendererComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<CircleRendererComponent>();
+						component.Color = componentNode["Color"].as<glm::vec4>();
+						component.Thickness = componentNode["Thickness"].as<float>();
+						component.Fade = componentNode["Fade"].as<float>();
+					}
+
+					if (auto componentNode = entityNode["CameraComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<CameraComponent>();
+
+						auto projection = StringToSceneCameraProjection(componentNode["Type"].as<std::string>());
+						float aspecRatio = componentNode["Aspectratio"].as<float>();
+
+						SceneCamera::PerspectiveSpecs ps;
+						ps.FOV = componentNode["PerspectiveFOV"].as<float>();
+						ps.Near = componentNode["PerspectiveNear"].as<float>();
+						ps.Far = componentNode["PerspectiveFar"].as<float>();
+
+						SceneCamera::OrthographicSpecs os;
+						os.Zoom = componentNode["OrthographicZoom"].as<float>();
+						os.Near = componentNode["OrthographicNear"].as<float>();
+						os.Far = componentNode["OrthographicFar"].as<float>();
+
+						component.Camera = SceneCamera(projection, aspecRatio, ps, os);
+					}
+
+					if (auto componentNode = entityNode["RigidBody2DComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<RigidBody2DComponent>();
+						component.Type = StringToRigidBody2DType(componentNode["Type"].as<std::string>());
+						component.FixedRotation = componentNode["FixedRotation"].as<bool>();
+						component.IsBullet = componentNode["IsBullet"].as<bool>();
+						component.Awake = componentNode["Awake"].as<bool>();
+						component.Enabled = componentNode["Enabled"].as<bool>();
+						component.AllowSleep = componentNode["AllowSleep"].as<bool>();
+						component.GravityScale = componentNode["GravityScale"].as<float>();
+					}
+
+					if (auto componentNode = entityNode["BoxCollider2DComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<BoxCollider2DComponent>();
+						component.Size = componentNode["Size"].as<glm::vec2>();
+						component.Offset = componentNode["Offset"].as<glm::vec2>();
+						component.Rotation = componentNode["Rotation"].as<float>();
+						component.Density = componentNode["Density"].as<float>();
+						component.Friction = componentNode["Friction"].as<float>();
+						component.Restitution = componentNode["Restitution"].as<float>();
+						component.RestitutionThreshold = componentNode["RestitutionThreshold"].as<float>();
+						component.IsSensor = componentNode["IsSensor"].as<bool>();
+					}
+
+					if (auto componentNode = entityNode["CircleCollider2DComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<CircleCollider2DComponent>();
+						component.Radius = componentNode["Radius"].as<float>();
+						component.Offset = componentNode["Offset"].as<glm::vec2>();
+						component.Rotation = componentNode["Rotation"].as<float>();
+						component.Density = componentNode["Density"].as<float>();
+						component.Friction = componentNode["Friction"].as<float>();
+						component.Restitution = componentNode["Restitution"].as<float>();
+						component.RestitutionThreshold = componentNode["RestitutionThreshold"].as<float>();
+						component.IsSensor = componentNode["IsSensor"].as<bool>();
+					}
+
+					if (auto componentNode = entityNode["ScriptComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<ScriptComponent>();
+						component.ScriptName = componentNode["ScriptName"].as<std::string>();
+
+						Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(component.ScriptName);
+						component.ClassID = klass ? klass->GetID() : 0;
+
+						auto fields = componentNode["Fields"];
+						auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
+
+						for (auto field : fields)
+						{
+							Ref<FieldStorage> storage = field.as<Ref<FieldStorage>>();
+							fieldStorages[storage->Name] = storage;
+						}
+					}
+
 				}
-				
 			}
+		}
+		catch (const YAML::Exception& e)
+		{
+			m_ErrorMsg = e.what();
+			SK_CORE_ASSERT(false);
+			return false;
 		}
 
 		return true;

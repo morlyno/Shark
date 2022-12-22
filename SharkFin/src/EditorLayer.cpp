@@ -90,7 +90,7 @@ namespace Shark {
 		if (!m_StartupProject.empty())
 			OpenProject(m_StartupProject);
 		else
-			SK_CORE_ASSERT(false, "No Startup Project!");
+			SK_CORE_VERIFY(false, "No Startup Project!");
 
 		FileSystem::SetCallback(std::bind(&EditorLayer::OnFileEvents, this, std::placeholders::_1));
 
@@ -1468,13 +1468,13 @@ namespace Shark {
 		return m_EditorCamera.GetViewProjection();
 	}
 
-	void EditorLayer::NewScene()
+	void EditorLayer::NewScene(const std::string& name)
 	{
 		SK_PROFILE_FUNCTION();
 		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
-		Ref<Scene> newScene = ResourceManager::CreateMemoryAsset<Scene>();
+		Ref<Scene> newScene = ResourceManager::CreateMemoryAsset<Scene>(name);
 		m_WorkScene = newScene;
 		SetActiveScene(newScene);
 		m_EditorCamera.SetView(glm::vec3(0.0f), 10.0f, 0.0f, 0.0f);
@@ -1651,7 +1651,7 @@ namespace Shark {
 			m_PanelManager->OnProjectChanged(project);
 
 			if (!LoadScene(project->Directory / project->StartupScenePath))
-				NewScene();
+				NewScene("Empty Fallback Scene");
 
 			FileSystem::StartWatching(Project::GetAssetsPath());
 

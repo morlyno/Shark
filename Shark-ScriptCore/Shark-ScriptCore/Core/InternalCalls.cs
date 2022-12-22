@@ -303,6 +303,12 @@ namespace Shark
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		internal static extern void Physics2D_SetGravity(ref Vector2 gravity);
 
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern bool Physics2D_GetAllowSleep();
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		internal static extern bool Physics2D_SetAllowSleep(bool allowSleep);
+
 		#endregion
 
 		#region RigidBody2DComponent

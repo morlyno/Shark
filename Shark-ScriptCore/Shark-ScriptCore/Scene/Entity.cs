@@ -1,4 +1,8 @@
 ﻿
+using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics.Tracing;
+
 namespace Shark
 {
 	public class Entity
@@ -19,11 +23,20 @@ namespace Shark
 		protected virtual void OnUpdate(float ts) { }
 		protected virtual void OnPhysicsUpdate(float fixedTimeStep) { }
 		protected virtual void OnUIRender() { }
-		protected virtual void OnCollishionBegin(Collider2D collider) { }
-		protected virtual void OnCollishionEnd(Collider2D collider) { }
-		protected virtual void OnTriggerBegin(Collider2D collider) { }
-		protected virtual void OnTriggerEnd(Collider2D collider) { }
+		//protected virtual void OnCollishionBegin(Collider2D collider) { }
+		//protected virtual void OnCollishionEnd(Collider2D collider) { }
+		//protected virtual void OnTriggerBegin(Collider2D collider) { }
+		//protected virtual void OnTriggerEnd(Collider2D collider) { }
 
+		public event Action<Collider2D> OnCollishionBegin;
+		public event Action<Collider2D> OnCollishionEnd;
+		public event Action<Collider2D> OnTriggerBegin;
+		public event Action<Collider2D> OnTriggerEnd;
+
+		internal void InvokeOnCollishionBegin(Collider2D collider) => OnCollishionBegin?.Invoke(collider);
+		internal void InvokeOnCollishionEnd(Collider2D collider) => OnCollishionEnd?.Invoke(collider);
+		internal void InvokeOnTriggerBegin(Collider2D collider) => OnTriggerBegin?.Invoke(collider);
+		internal void InvokeOnTriggerEnd(Collider2D collider) => OnTriggerEnd?.Invoke(collider);
 
 		public TransformComponent Transform
 			=> GetComponent<TransformComponent>();
@@ -35,6 +48,18 @@ namespace Shark
 		{
 			get => Transform.Translation;
 			set => Transform.Translation = value;
+		}
+
+		public Vector3 Rotation
+		{
+			get => Transform.Rotation;
+			set => Transform.Rotation = value;
+		}
+
+		public Vector3 Scale
+		{
+			get => Transform.Scale;
+			set => Transform.Scale = value;
 		}
 
 		public string Name

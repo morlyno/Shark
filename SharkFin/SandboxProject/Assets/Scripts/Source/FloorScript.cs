@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 using Shark;
 using System.Runtime.InteropServices;
 
@@ -13,7 +8,6 @@ namespace Sandbox
 	{
 		private Color m_InitColor;
 		private Color m_CollishionColor;
-		private static Random s_Rng = new Random();
 
 		private SpriteRendererComponent m_SpriteRenderer;
 		private AssetHandle m_CollishionTextureHandle = AssetHandle.Invalid;
@@ -32,12 +26,15 @@ namespace Sandbox
 			m_SpriteRenderer.TilingFactor = 0.25f;
 
 			m_InitColor = m_SpriteRenderer.Color;
-			m_CollishionColor = m_Colors[s_Rng.Next(0, m_Colors.Length)];
+			m_CollishionColor = m_Colors[Random.Int(0, m_Colors.Length)];
 
 			m_CollishionTextureHandle = ResourceManager.GetAssetHandleFromFilePath("Textures/Checkerboard.sktex");
+
+			OnCollishionBegin += CollishionBegin;
+			OnCollishionEnd += CollishionEnd;
 		}
 
-		protected override void OnCollishionBegin(Collider2D collider)
+		protected void CollishionBegin(Collider2D collider)
 		{
 			if (m_CollishionCount++ == 0)
 			{
@@ -46,7 +43,7 @@ namespace Sandbox
 			}
 		}
 
-		protected override void OnCollishionEnd(Collider2D collider)
+		protected void CollishionEnd(Collider2D collider)
 		{
 			if (--m_CollishionCount == 0)
 			{

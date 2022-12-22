@@ -23,18 +23,18 @@ namespace Sandbox
 			collider.Density = 0.2f;
 			collider.Friction = 0.0f;
 			collider.Restitution = 1.0f;
+
+			OnCollishionBegin += (c) =>
+			{
+				if (DestroyOnHit)
+					DestroyEntity(this);
+			};
 		}
 
 		protected override void OnUpdate(float ts)
 		{
 			m_LifeTime += ts;
 			if (m_LifeTime >= m_MaxLifeTime)
-				DestroyEntity(this);
-		}
-
-		protected override void OnCollishionBegin(Collider2D collider)
-		{
-			if (DestroyOnHit)
 				DestroyEntity(this);
 		}
 

@@ -16,6 +16,9 @@ namespace Sandbox
 		protected override void OnCreate()
 		{
 			m_DoorPos = Door.WorldTransform.Translation;
+
+			OnCollishionBegin += CollishionBegin;
+			OnCollishionEnd += CollishionEnd;
 		}
 
 		protected override void OnUpdate(float ts)
@@ -35,7 +38,7 @@ namespace Sandbox
 			}
 		}
 
-		protected override void OnCollishionBegin(Collider2D collider)
+		protected void CollishionBegin(Collider2D collider)
 		{
 			Entity entity = collider.Entity;
 			//if (!(entity is PlayerController))
@@ -47,7 +50,7 @@ namespace Sandbox
 			m_CollishionCount++;
 		}
 
-		protected override void OnCollishionEnd(Collider2D collider)
+		protected void CollishionEnd(Collider2D collider)
 		{
 			Entity entity = collider.Entity;
 			//if (!(entity is PlayerController))

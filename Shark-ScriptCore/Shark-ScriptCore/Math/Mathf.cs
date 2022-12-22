@@ -5,6 +5,8 @@ namespace Shark
 {
 	public static class Mathf
 	{
+		public static readonly float Deg2Rad = 0.01745329251994329576923690768489f;
+		public static readonly float Rad2Deg = 57.295779513082320876798154814105f;
 
 		public static float Abs(float val)
 			=> (float)Math.Abs(val);

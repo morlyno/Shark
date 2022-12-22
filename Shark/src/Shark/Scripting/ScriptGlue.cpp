@@ -179,10 +179,10 @@ namespace Shark {
 
 		s_ScriptGlue = new MonoGlueData();
 
-		s_ScriptGlue->EntityOnCollishionBegin = utils::GetCoreMethod("Shark.Entity:OnCollishionBegin");
-		s_ScriptGlue->EntityOnCollishionEnd = utils::GetCoreMethod("Shark.Entity:OnCollishionEnd");
-		s_ScriptGlue->EntityOnTriggerBegin = utils::GetCoreMethod("Shark.Entity:OnTriggerBegin");
-		s_ScriptGlue->EntityOnTriggerEnd = utils::GetCoreMethod("Shark.Entity:OnTriggerEnd");
+		s_ScriptGlue->EntityOnCollishionBegin = utils::GetCoreMethod("Shark.Entity:InvokeOnCollishionBegin");
+		s_ScriptGlue->EntityOnCollishionEnd = utils::GetCoreMethod("Shark.Entity:InvokeOnCollishionEnd");
+		s_ScriptGlue->EntityOnTriggerBegin = utils::GetCoreMethod("Shark.Entity:InvokeOnTriggerBegin");
+		s_ScriptGlue->EntityOnTriggerEnd = utils::GetCoreMethod("Shark.Entity:InvokeOnTriggerEnd");
 
 		SK_CORE_ASSERT(s_ScriptGlue->EntityOnCollishionBegin.Method);
 		SK_CORE_ASSERT(s_ScriptGlue->EntityOnCollishionEnd.Method);
@@ -332,7 +332,11 @@ namespace Shark {
 
 		SK_ADD_INTERNAL_CALL(Physics2D_GetGravity);
 		SK_ADD_INTERNAL_CALL(Physics2D_SetGravity);
+		SK_ADD_INTERNAL_CALL(Physics2D_GetAllowSleep);
+		SK_ADD_INTERNAL_CALL(Physics2D_SetAllowSleep);
 
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetBodyType);
+		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetBodyType);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetTransform);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetTransform);
 		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetPosition);
@@ -809,6 +813,13 @@ namespace Shark {
 
 			auto& transform = entity.Transform();
 			transform.Translation = *translation;
+
+			if (entity.AllOf<RigidBody2DComponent>())
+			{
+				auto& rigidBody = entity.GetComponent<RigidBody2DComponent>();
+				if (rigidBody.RuntimeBody)
+					rigidBody.RuntimeBody->SetTransform({ translation->x, translation->y }, rigidBody.RuntimeBody->GetAngle());
+			}
 		}
 
 		void TransformComponent_GetRotation(uint64_t id, glm::vec3* out_Rotation)
@@ -829,6 +840,13 @@ namespace Shark {
 
 			auto& transform = entity.Transform();
 			transform.Rotation = *rotation;
+
+			if (entity.AllOf<RigidBody2DComponent>())
+			{
+				auto& rigidBody = entity.GetComponent<RigidBody2DComponent>();
+				if (rigidBody.RuntimeBody)
+					rigidBody.RuntimeBody->SetTransform(rigidBody.RuntimeBody->GetPosition(), rotation->z);
+			}
 		}
 
 		void TransformComponent_GetScale(uint64_t id, glm::vec3* out_Scaling)
@@ -1331,6 +1349,26 @@ namespace Shark {
 				return;
 
 			phyiscsScene.GetWorld()->SetGravity({ gravity->x, gravity->y });
+		}
+
+		bool Physics2D_GetAllowSleep()
+		{
+			Ref<Scene> scene = utils::GetScene();
+			auto& phyiscsScene = scene->GetPhysicsScene();
+			if (!phyiscsScene.GetWorld())
+				return false;
+
+			return phyiscsScene.GetWorld()->GetAllowSleeping();
+		}
+
+		void Physics2D_SetAllowSleep(bool allowSleep)
+		{
+			Ref<Scene> scene = utils::GetScene();
+			auto& phyiscsScene = scene->GetPhysicsScene();
+			if (!phyiscsScene.GetWorld())
+				return;
+
+			phyiscsScene.GetWorld()->SetAllowSleeping(allowSleep);
 		}
 
 		#pragma endregion

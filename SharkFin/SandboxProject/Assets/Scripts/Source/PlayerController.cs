@@ -28,10 +28,17 @@ namespace Sandbox
 		private bool m_Colliding => m_CollishionCount > 0;
 
 		public TransformComponent CameraTransform;
+		private Entity m_BallContainer;
 
 		protected override void OnCreate()
 		{
+			OnCollishionBegin += CollishionBegin;
+			OnCollishionEnd += CollishionEnd;
+
+			m_BallContainer = Instantiate("BallContainer");
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
+
+			Log.Info("HiHiHiHi");
 		}
 
 		protected override void OnDestroy()
@@ -66,7 +73,7 @@ namespace Sandbox
 			Movement(fixedTimeStep);
 		}
 
-		protected override void OnCollishionBegin(Collider2D collider)
+		protected void CollishionBegin(Collider2D collider)
 		{
 			m_RigidBody.LinearDamping = OnGroundDamping;
 			m_AirJumpCount = 0;
@@ -74,7 +81,7 @@ namespace Sandbox
 			m_CollishionCount++;
 		}
 
-		protected override void OnCollishionEnd(Collider2D collider)
+		protected void CollishionEnd(Collider2D collider)
 		{
 			m_CollishionCount--;
 
@@ -147,6 +154,7 @@ namespace Sandbox
 		private void CreateBall()
 		{
 			var ball = CloneEntity(BallTemplate);
+			ball.Parent = m_BallContainer;
 			ball.Name = "Ball";
 			var rigidBody = ball.GetComponent<RigidBody2DComponent>();
 			rigidBody.Position = new Vector2(0.0f, 10.0f);

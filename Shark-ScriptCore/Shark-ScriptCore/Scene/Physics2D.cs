@@ -15,5 +15,11 @@ namespace Shark
 				InternalCalls.Physics2D_SetGravity(ref value);
 			}
 		}
+
+		public static bool AllowSleep
+		{
+			get => InternalCalls.Physics2D_GetAllowSleep();
+			set => InternalCalls.Physics2D_SetAllowSleep(value);
+		}
 	}
 }

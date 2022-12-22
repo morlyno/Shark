@@ -15,6 +15,9 @@ namespace Shark {
 	private:
 		std::string SerializeToYAML(Ref<Scene> scene);
 		bool DeserializeFromYAML(Ref<Scene> scene, const std::string& filedata);
+
+	private:
+		std::string m_ErrorMsg;
 	};
 
 }

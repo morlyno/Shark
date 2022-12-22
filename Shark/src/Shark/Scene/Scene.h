@@ -123,6 +123,7 @@ namespace Shark {
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
 		static Ref<Scene> Create() { return Ref<Scene>::Create(); }
+		static Ref<Scene> Create(const std::string& name) { return Ref<Scene>::Create(name); }
 
 	private:
 		void DestroyEntityInternal(Entity entity, bool destroyChildren, bool first);

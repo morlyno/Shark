@@ -56,11 +56,17 @@ namespace Shark
 			Y = v.Y;
 			Z = v.Z;
 		}
-		public Vector3(Vector2 xy, float z)
+		public Vector3(Vector2 xy, float z = 0.0f)
 		{
 			X = xy.X;
 			Y = xy.Y;
 			Z = z;
+		}
+		public Vector3(float x, Vector2 yz)
+		{
+			X = x;
+			Y = yz.X;
+			Z = yz.Y;
 		}
 
 		public static Vector3 operator +(Vector3 lhs, Vector3 rhs) => new Vector3(lhs.X + rhs.X, lhs.Y + rhs.Y, lhs.Z + rhs.Z);
