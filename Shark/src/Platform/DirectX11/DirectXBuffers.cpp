@@ -67,7 +67,7 @@ namespace Shark {
 			auto context = DirectXRenderer::GetContext();
 			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 			HRESULT result = context->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-			if (SUCCEEDED(result))
+			if (FAILED(result))
 			{
 				DirectXRenderer::Get()->HandleError(result);
 				return {};
@@ -77,6 +77,7 @@ namespace Shark {
 			writableBuffer.Data = (byte*)mappedSubresource.pData;
 			writableBuffer.Size = m_Size;
 			m_Mapped = true;
+			return writableBuffer;
 		}
 
 		return {};
@@ -221,7 +222,7 @@ namespace Shark {
 			auto context = DirectXRenderer::GetContext();
 			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 			HRESULT result = context->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-			if (SUCCEEDED(result))
+			if (FAILED(result))
 			{
 				DirectXRenderer::Get()->HandleError(result);
 				return {};
@@ -231,6 +232,7 @@ namespace Shark {
 			writableBuffer.Data = (byte*)mappedSubresource.pData;
 			writableBuffer.Size = m_Size;
 			m_Mapped = true;
+			return writableBuffer;
 		}
 
 		return {};
