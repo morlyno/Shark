@@ -38,6 +38,7 @@ namespace Shark {
 		Ref<Image2D> GetIDImage() const { return m_GeometryFrameBuffer->GetImage(1); }
 		Ref<FrameBuffer> GetExternalCompositFrameBuffer() const { return m_ExternalCompositeFrameBuffer; }
 
+		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
 		const Renderer2D::Statistics& GetRenderer2DStats() const { return m_Renderer2D->GetStatistics(); }
 
 	private:

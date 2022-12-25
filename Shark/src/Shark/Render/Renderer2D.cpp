@@ -40,7 +40,7 @@ namespace Shark {
 			delete[] m_LineVertexBasePtr;
 	}
 
-	void Renderer2D::Init(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications)
+	void Renderer2D::Init(Ref<FrameBuffer> framebuffer, const Renderer2DSpecifications& specifications)
 	{
 		SK_PROFILE_FUNCTION();
 		
@@ -56,13 +56,34 @@ namespace Shark {
 		m_GeometryPassTimer = GPUTimer::Create();
 		m_QuadFlushQuery = GPUTimer::Create();
 
+		// Depth Only Pass
+		{
+			FrameBufferSpecification depthOnlyFramebufferSpec;
+			depthOnlyFramebufferSpec.Width = framebuffer->GetWidth();
+			depthOnlyFramebufferSpec.Height = framebuffer->GetHeight();
+			depthOnlyFramebufferSpec.Atachments = { ImageFormat::Depth32 };
+			depthOnlyFramebufferSpec.Atachments[0].Image = framebuffer->GetDepthImage();
+
+			PipelineSpecification pipelineSpec;
+			pipelineSpec.TargetFrameBuffer = FrameBuffer::Create(depthOnlyFramebufferSpec);
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadDepthPass");
+			pipelineSpec.DebugName = "Renderer2D - Quad Depth Only Pass";
+			pipelineSpec.WriteDepth = true;
+			pipelineSpec.DepthOperator = DepthCompareOperator::LessEqual;
+			m_DepthPassPipeline = Pipeline::Create(pipelineSpec);
+			m_DepthPassMaterial = Material::Create(pipelineSpec.Shader);
+		}
+
 		// Quad
 		{
 			PipelineSpecification quadPipelineSpecs;
-			quadPipelineSpecs.TargetFrameBuffer = renderTarget;
+			quadPipelineSpecs.TargetFrameBuffer = framebuffer;
 			quadPipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Quad");
 			quadPipelineSpecs.DebugName = "Renderer2D-Quad";
 			quadPipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
+			quadPipelineSpecs.WriteDepth = false;
+			//quadPipelineSpecs.WriteDepth = true;
+			quadPipelineSpecs.DepthOperator = DepthCompareOperator::Equal;
 			m_QuadPipeline = Pipeline::Create(quadPipelineSpecs);
 			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader);
 
@@ -88,7 +109,7 @@ namespace Shark {
 		// Circle
 		{
 			PipelineSpecification circlePipelineSpecs;
-			circlePipelineSpecs.TargetFrameBuffer = renderTarget;
+			circlePipelineSpecs.TargetFrameBuffer = framebuffer;
 			circlePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Circle");
 			circlePipelineSpecs.DebugName = "Renderer2D-Circle";
 			circlePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
@@ -103,7 +124,7 @@ namespace Shark {
 		// Line
 		{
 			PipelineSpecification linePipelineSpecs;
-			linePipelineSpecs.TargetFrameBuffer = renderTarget;
+			linePipelineSpecs.TargetFrameBuffer = framebuffer;
 			linePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Line");
 			linePipelineSpecs.DebugName = "Renderer2D-Line";
 			linePipelineSpecs.Primitve = PrimitveType::Line;
@@ -140,6 +161,11 @@ namespace Shark {
 		m_QuadPipeline->SetFrameBuffer(renderTarget);
 		m_CirlcePipeline->SetFrameBuffer(renderTarget);
 		m_LinePipeline->SetFrameBuffer(renderTarget);
+	}
+
+	void Renderer2D::Resize(uint32_t width, uint32_t height)
+	{
+		m_DepthPassPipeline->GetSpecification().TargetFrameBuffer->Resize(width, height);
 	}
 
 	void Renderer2D::BeginScene(const glm::mat4& viewProj)
@@ -198,28 +224,28 @@ namespace Shark {
 
 		m_CommandBuffer->BeginTimeQuery(m_GeometryPassTimer);
 
+		m_DepthPassPipeline->GetSpecification().TargetFrameBuffer->Clear(m_CommandBuffer);
+
+		// Depth Pass
+		{
+			// Quad
+			uint32_t quadDataSize = (uint32_t)((uint8_t*)m_QuadVertexIndexPtr - (uint8_t*)m_QuadVertexBasePtr);
+			if (quadDataSize)
+			{
+				m_QuadVertexBuffer->SetData({ m_QuadVertexBasePtr, quadDataSize });
+				Renderer::RenderGeometry(m_CommandBuffer, m_DepthPassPipeline, m_DepthPassMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
+			}
+		}
+
 		// Quad
 		{
 			uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexIndexPtr - (uint8_t*)m_QuadVertexBasePtr);
 			if (dataSize)
 			{
-				m_QuadVertexBuffer->SetData({ m_QuadVertexBasePtr, dataSize });
+				//m_QuadVertexBuffer->SetData({ m_QuadVertexBasePtr, dataSize });
+				SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_Textures"), m_WhiteTexture);
 
-				//SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_Textures"), m_WhiteTexture);
-				//SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_SamplerState"), m_WhiteTexture);
-
-				Ref<Renderer2D> instance = this;
-				Renderer::Submit([instance]()
-				{
-					Ref<Texture2DArray> textureArray = instance->m_QuadMaterial->GetTextureArray("g_Textures");
-					for (uint32_t i = 0; i < textureArray->Count(); i++)
-					{
-						if (!textureArray->Get(i))
-							textureArray->RT_Set(i, instance->m_WhiteTexture);
-					}
-				});
-
-				//m_QuadMaterial->SetTextureArray("g_Textures", m_QuadTextureArray);
+				// Geometry Pass
 				Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_QuadMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
 
 				m_Statistics.DrawCalls++;

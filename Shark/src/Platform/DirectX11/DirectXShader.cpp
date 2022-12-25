@@ -219,6 +219,24 @@ namespace Shark {
 		return true;
 	}
 
+	bool DirectXShader::RT_ReCompile()
+	{
+		std::string file = FileSystem::ReadString(m_FilePath);
+		auto shaderSources = PreProzess(file);
+
+		{
+			ScopedTimer timer("Shader ReCompile");
+			if (!RT_TryReCompile(shaderSources))
+				return false;
+		}
+
+		Release();
+		RT_CreateShaders();
+		RT_CreateInputlayout(m_ShaderBinarys[ShaderStage::Vertex]);
+
+		return true;
+	}
+
 	Ref<ConstantBuffer> DirectXShader::CreateConstantBuffer(const std::string& name)
 	{
 #if 0

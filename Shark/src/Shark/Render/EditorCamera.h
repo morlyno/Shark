@@ -74,7 +74,11 @@ namespace Shark {
 		void OnMouseMove(const glm::vec2& delta);
 		void OnMouseZoom(const glm::vec2& delta);
 	private:
-		float m_AspectRatio = 1.77778f, m_FOV = glm::radians(45.0f), m_NearClip = 0.01f, m_FarClip = 1000.0f;
+		float m_AspectRatio = 16.0f / 9.0f;
+		float m_FOV = glm::radians(45.0f);
+		float m_NearClip = 1.00f;
+		float m_FarClip = 1000.0f;
+
 		float m_Distance = 10.0f;
 		float m_Pitch = 0.0f, m_Yaw = 0.0f;
 

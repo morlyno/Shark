@@ -13,6 +13,12 @@ namespace Shark {
 		Triangle, Line, Dot
 	};
 
+	enum class DepthCompareOperator
+	{
+		Equal, Less, Greater,
+		LessEqual, GreaterEqual
+	};
+
 	struct PipelineSpecification
 	{
 		bool BackFaceCulling = false;
@@ -24,6 +30,7 @@ namespace Shark {
 		Ref<FrameBuffer> TargetFrameBuffer;
 		Ref<Shader> Shader;
 
+		DepthCompareOperator DepthOperator = DepthCompareOperator::LessEqual;
 		PrimitveType Primitve = PrimitveType::Triangle;
 
 		std::string DebugName;

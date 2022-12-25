@@ -496,8 +496,6 @@ namespace Shark {
 
 	bool WindowsUtils::FileDialogShared(HWND parentWindow, bool save, bool multiSelect, const std::wstring& filter, uint32_t defaultFilterIndex, bool appenedFileExetention, const std::filesystem::path& defaultPath, bool overrideDefault, std::vector<std::filesystem::path>& out_MultiSelectResults)
 	{
-		bool success = false;
-
 		// maby allready done, not 100% sure
 		// TODO(moro): attach DataType/File extention to out_Result (only necessary for FileSaveDialog)
 
@@ -611,7 +609,7 @@ namespace Shark {
 				}
 			}
 		}
-		return true;
+		return out_MultiSelectResults.size();
 	}
 
 }

@@ -79,6 +79,7 @@ namespace Shark {
 
 			m_GeometryFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_ExternalCompositeFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_Renderer2D->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_NeedsResize = false;
 		}
 
@@ -175,6 +176,10 @@ namespace Shark {
 				ImGui::TreePop();
 			}
 
+			Ref<Image2D> depthImage = m_Renderer2D->GetDepthImage();
+			const float ratio = (float)depthImage->GetHeight() / (float)depthImage->GetWidth();
+			const ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x * ratio };
+			ImGui::Image(depthImage->GetViewID(), size);
 		}
 	}
 

@@ -176,13 +176,8 @@ namespace Shark {
 		}
 
 		Ref<DirectXFrameBuffer> instance = this;
-		Renderer::Submit([instance]()
-		{
-			instance->m_Count = (uint32_t)instance->m_FrameBuffers.size();
-
-			instance->RT_CreateBlendState();
-		});
-
+		Renderer::Submit([instance]() { instance->m_Count = (uint32_t)instance->m_FrameBuffers.size(); });
+		Renderer::Submit([instance]() { instance->RT_CreateBlendState(); });
 	}
 
 	void DirectXFrameBuffer::CreateDepth32Buffer(FrameBufferAtachment* atachment)
@@ -214,7 +209,6 @@ namespace Shark {
 
 			SK_DX11_CALL(dev->CreateDepthStencilView(d3dImage->GetResourceNative(), &dsv, &instance->m_DepthStencil));
 		});
-
 	}
 
 	void DirectXFrameBuffer::CreateFrameBuffer(FrameBufferAtachment* atachment, DXGI_FORMAT dxgiformat)

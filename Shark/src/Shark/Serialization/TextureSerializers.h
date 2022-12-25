@@ -6,6 +6,7 @@ namespace Shark {
 
 	class Texture2D;
 	class TextureSource;
+	class Image2D;
 
 	class TextureSourceSerializer : public SerializerBase
 	{
@@ -26,6 +27,19 @@ namespace Shark {
 
 		// bool SerializeToAssetPack(Stream& stream, Ref<Texture2D> texture);
 		// bool DeserializeFromAssetPack(Stream& stream, Ref<Texture2D> texture);
+	};
+
+
+	class ImageSerializer
+	{
+	public:
+		ImageSerializer(Ref<Image2D> image);
+		~ImageSerializer() = default;
+
+		bool Serialize(const std::filesystem::path& filepath);
+		bool Deserialize(const std::filesystem::path& filepath);
+	private:
+		Ref<Image2D> m_Image;
 	};
 
 }

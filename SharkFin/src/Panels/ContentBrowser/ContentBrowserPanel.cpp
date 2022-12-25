@@ -5,6 +5,7 @@
 #include "Shark/Editor/EditorSettings.h"
 #include "Shark/Editor/Icons.h"
 #include "Shark/Asset/Assets.h"
+#include "Shark/Serialization/TextureSerializers.h"
 
 namespace Shark {
 
@@ -761,7 +762,13 @@ namespace Shark {
 			Icons::FileIcon;
 
 		if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource)
-			return Image2D::Create(ResourceManager::GetFileSystemPath(metadata));
+		{
+			auto image = Image2D::Create();
+			ImageSerializer serializer(image);
+			if (serializer.Deserialize(ResourceManager::GetFileSystemPath(metadata)))
+				return image;
+			return nullptr;
+		}
 
 		return GetIcon(metadata);
 	}

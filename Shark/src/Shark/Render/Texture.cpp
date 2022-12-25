@@ -85,23 +85,23 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const std::filesystem::path& filePath)
-	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(filePath);
-		}
-		SK_CORE_ASSERT(false, "Unkown API");
-		return nullptr;
-	}
-
 	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specs, Ref<Texture2D> data)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specs, data);
+		}
+		SK_CORE_ASSERT(false, "Unkown API");
+		return nullptr;
+	}
+
+	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specification, Ref<TextureSource> source)
+	{
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specification, source);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;

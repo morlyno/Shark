@@ -321,7 +321,7 @@ namespace Shark {
 			if (!sceneNode)
 				return false;
 
-			const std::string sceneName = node["Scene"].as<std::string>("Untitled");
+			const std::string sceneName = sceneNode["Name"].as<std::string>();
 			scene->SetName(sceneName);
 			SK_CORE_TRACE_TAG("Serialization", " - Scene Name: {}", sceneName);
 

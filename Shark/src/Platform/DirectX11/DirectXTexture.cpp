@@ -52,6 +52,7 @@ namespace Shark {
 
 	DirectXTexture2D::DirectXTexture2D()
 	{
+		m_Image = Ref<DirectXImage2D>::Create();
 	}
 
 	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specs, Buffer imageData)
@@ -98,17 +99,9 @@ namespace Shark {
 		CreateSampler();
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const std::filesystem::path& filePath)
+	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specification, Ref<TextureSource> source)
 	{
-		m_Image = Ref<DirectXImage2D>::Create(filePath);
-
-		auto& imageSpec = m_Image->GetSpecification();
-		m_Specs.Format = imageSpec.Format;
-		m_Specs.Width = imageSpec.Width;
-		m_Specs.Height = imageSpec.Height;
-		m_Specs.MipLevels = imageSpec.MipLevels;
-
-		CreateSampler();
+		Set(specification, source);
 	}
 
 	DirectXTexture2D::~DirectXTexture2D()
@@ -125,7 +118,7 @@ namespace Shark {
 		});
 
 		m_Sampler = nullptr;
-		m_Image = nullptr;
+		m_Image->Release();
 	}
 
 	void DirectXTexture2D::Set(const TextureSpecification& specs, Buffer data)
@@ -194,6 +187,40 @@ namespace Shark {
 
 		m_Sampler = nullptr;
 		CreateSampler();
+	}
+
+	void DirectXTexture2D::Set(const SamplerSpecification& samplerSpecification, Ref<TextureSource> textureSource)
+	{
+		Ref<DirectXTexture2D> instance = this;
+
+		Renderer::Submit([instance, samplerSpecification, textureSource]()
+		{
+			instance->RT_Set(samplerSpecification, textureSource);
+		});
+	}
+
+	void DirectXTexture2D::RT_Set(const SamplerSpecification& samplerSpecification, Ref<TextureSource> textureSource)
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		Release();
+
+		m_Specs.Format = textureSource->Format;
+		m_Specs.Width = textureSource->Width;
+		m_Specs.Height = textureSource->Height;
+		m_Specs.MipLevels = 0;
+		m_Specs.Sampler = samplerSpecification;
+
+		m_TextureSource = textureSource;
+		
+		ImageSpecification imageSpec;
+		imageSpec.Format = m_Specs.Format;
+		imageSpec.Width = m_Specs.Width;
+		imageSpec.Height = m_Specs.Height;
+		imageSpec.MipLevels = m_Specs.MipLevels;
+		imageSpec.Type = ImageType::Texture;
+		m_Image->RT_Set(imageSpec, textureSource->ImageData);
+		RT_CreateSampler();
 	}
 
 	void DirectXTexture2D::CreateSampler()

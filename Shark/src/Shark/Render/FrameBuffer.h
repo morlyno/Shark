@@ -39,6 +39,8 @@ namespace Shark {
 		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 		virtual std::pair<uint32_t, uint32_t> GetSize() const = 0;
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual Ref<Image2D> GetImage(uint32_t index = 0) = 0;

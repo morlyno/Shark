@@ -3,6 +3,7 @@
 
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Render/Texture.h"
+#include "Shark/Render/Image.h"
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/Utils/YAMLUtils.h"
@@ -138,7 +139,7 @@ namespace Shark {
 	std::string TextureSerializer::SerializeToYAML(Ref<Texture2D> texture)
 	{
 		const TextureSpecification& specification = texture->GetSpecification();
-		AssetHandle sourceHandle = ResourceManager::GetAssetHandleFromFilePath(texture->GetFilePath());
+		AssetHandle sourceHandle = texture->GetTextureSource()->Handle;
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -180,36 +181,73 @@ namespace Shark {
 		AssetHandle sourceHandle = textureNode["TextureSource"].as<AssetHandle>();
 		Ref<TextureSource> textureSource = ResourceManager::GetAsset<TextureSource>(sourceHandle);
 
-		TextureSpecification specification;
-		specification.Format = textureSource->Format;
-		specification.Width = textureSource->Width;
-		specification.Height = textureSource->Height;
-		specification.MipLevels = 0;
-
+		SamplerSpecification sampler;
 		auto& samplerNode = textureNode["Sampler"];
 		if (samplerNode)
 		{
-			specification.Sampler.Min = StringToFilterMode(samplerNode["MinFilter"].as<std::string>("Linear"));
-			specification.Sampler.Mag = StringToFilterMode(samplerNode["MagFilter"].as<std::string>("Linear"));
-			specification.Sampler.Mip = StringToFilterMode(samplerNode["MipFilter"].as<std::string>("Linear"));
+			sampler.Min = StringToFilterMode(samplerNode["MinFilter"].as<std::string>("Linear"));
+			sampler.Mag = StringToFilterMode(samplerNode["MagFilter"].as<std::string>("Linear"));
+			sampler.Mip = StringToFilterMode(samplerNode["MipFilter"].as<std::string>("Linear"));
 
-			specification.Sampler.Wrap.U = StringToWrapMode(samplerNode["AddressModeU"].as<std::string>("Repeat"));
-			specification.Sampler.Wrap.V = StringToWrapMode(samplerNode["AddressModeV"].as<std::string>("Repeat"));
-			specification.Sampler.Wrap.W = StringToWrapMode(samplerNode["AddressModeW"].as<std::string>("Repeat"));
+			sampler.Wrap.U = StringToWrapMode(samplerNode["AddressModeU"].as<std::string>("Repeat"));
+			sampler.Wrap.V = StringToWrapMode(samplerNode["AddressModeV"].as<std::string>("Repeat"));
+			sampler.Wrap.W = StringToWrapMode(samplerNode["AddressModeW"].as<std::string>("Repeat"));
 
-			specification.Sampler.BorderColor = samplerNode["BorderColor"].as<glm::vec4>();
-			specification.Sampler.Anisotropy = samplerNode["Anisotropy"].as<bool>();
-			specification.Sampler.MaxAnisotropy = samplerNode["MaxAnisotropy"].as<uint32_t>();
-			specification.Sampler.LODBias = samplerNode["LODBias"].as<float>();
+			sampler.BorderColor = samplerNode["BorderColor"].as<glm::vec4>();
+			sampler.Anisotropy = samplerNode["Anisotropy"].as<bool>();
+			sampler.MaxAnisotropy = samplerNode["MaxAnisotropy"].as<uint32_t>();
+			sampler.LODBias = samplerNode["LODBias"].as<float>();
 		}
 
-		texture->Set(specification, textureSource->ImageData);
-		texture->SetFilePath(ResourceManager::GetFileSystemPath(sourceHandle));
+		texture->Set(sampler, textureSource);
+		Renderer::GenerateMips(texture->GetImage());
 
-		if (specification.MipLevels != 0)
+		return true;
+	}
+
+	ImageSerializer::ImageSerializer(Ref<Image2D> image)
+		: m_Image(image)
+	{
+	}
+
+	bool ImageSerializer::Serialize(const std::filesystem::path& filepath)
+	{
+		return true;
+	}
+
+	bool ImageSerializer::Deserialize(const std::filesystem::path& filepath)
+	{
+		int width, height, components;
+		Buffer imagedata;
+
+		Buffer filedata = FileSystem::ReadBinary(filepath);
+		imagedata.Data = stbi_load_from_memory(filedata.As<stbi_uc>(), (int)filedata.Size, &width, &height, &components, STBI_rgb_alpha);
+		imagedata.Size = (uint64_t)width * height * components;
+		filedata.Release();
+
+		SK_CORE_ASSERT(imagedata);
+		if (!imagedata)
 		{
-			Renderer::GenerateMips(texture->GetImage());
+			SK_CORE_ERROR_TAG("Serialization", "Failed to load Image from disc! {}", filepath);
+			SK_CORE_WARN_TAG("Serialization", stbi_failure_reason());
+			return false;
 		}
+
+		ImageSpecification spec;
+		spec.Format = ImageFormat::RGBA8;
+		spec.Width = width;
+		spec.Height = height;
+		spec.Type = ImageType::Texture;
+		spec.MipLevels = 0;
+
+		Renderer::Submit([image = m_Image, spec, imagedata]() mutable
+		{
+			image->RT_Set(spec, imagedata);
+			imagedata.Release();
+		});
+
+		if (spec.MipLevels != 1)
+			Renderer::GenerateMips(m_Image);
 
 		return true;
 	}

@@ -103,7 +103,7 @@ namespace Shark {
 
 		RegisterSettingNodes();
 
-		//Renderer::WaitAndRender();
+		Renderer::WaitAndRender();
 	}
 
 	void EditorLayer::OnDetach()
@@ -505,6 +505,7 @@ namespace Shark {
 			if (ImGui::BeginMenu("View"))
 			{
 				ImGui::Separator();
+				ImGui::MenuItem("DebugScripts", nullptr, &m_ShowDebugScripts);
 				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
 				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
 				ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
@@ -713,7 +714,7 @@ namespace Shark {
 				{
 					UI::Text(fmt::format("Path: {}", shader->GetFilePath()));
 					if (ImGui::Button("ReCompile"))
-						shader->ReCompile();
+						shader->RT_ReCompile();
 					if (ImGui::Button("Reflect"))
 						shader->LogReflection();
 					// IDEA: Print Shader Detailes (From Reflection)
@@ -751,6 +752,14 @@ namespace Shark {
 				if (UI::Control("Distance", distance, 10))
 					if (distance >= 0.25f)
 						m_EditorCamera.SetDistance(distance);
+
+				float nearClip = m_EditorCamera.GetNearClip();
+				if (UI::Control("near", nearClip))
+					m_EditorCamera.SetNearClip(nearClip);
+				
+				float farClip = m_EditorCamera.GetFarClip();
+				if (UI::Control("Far", farClip))
+					m_EditorCamera.SetFarClip(farClip);
 
 				if (ImGui::Button("Reset"))
 				{
@@ -1228,7 +1237,9 @@ namespace Shark {
 				std::string directory = String::ToNarrowCopy(fmt::format(L"{}/Textures", Project::GetAssetsPath().native()));
 				std::string fileName = std::filesystem::path(m_TextureAssetCreateData.TextureFileName).replace_extension(".sktex").string();
 
-				Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, m_TextureAssetCreateData.TextureSourcePath);
+				const auto& metadata = ResourceManager::GetMetaData(m_TextureAssetCreateData.TextureSourcePath);
+				Ref<TextureSource> textureSource = ResourceManager::GetAsset<TextureSource>(metadata.Handle);
+				Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, SamplerSpecification{}, textureSource);
 
 				if (m_TextureAssetCreateData.CreateEntityAfterCreation)
 				{
@@ -1272,10 +1283,8 @@ namespace Shark {
 
 			if (m_ReadHoveredEntity || selectEntity)
 			{
-				Ref<Image2D> idImage = m_SceneRenderer->GetIDImage();
-				idImage->RT_CopyTo(m_MousePickingImage);
-
-				if (!m_MousePickingImage->ReadPixel(x, y, (uint32_t&)m_HoveredEntityID))
+				m_MousePickingImage->RT_SetImageData(m_SceneRenderer->GetIDImage());
+				if (!m_MousePickingImage->RT_ReadPixel(x, y, (uint32_t&)m_HoveredEntityID))
 					return false;
 			}
 
@@ -1299,18 +1308,19 @@ namespace Shark {
 
 	void EditorLayer::UI_DebugScripts()
 	{
-		SK_PROFILE_FUNCTION();
+		if (!m_ShowDebugScripts)
+			return;
 
-		ImGui::Begin("Debug Scripts");
-
-		ImGui::Text("Scripts: %llu", ScriptEngine::GetEntityInstances().size());
-
-		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+		if (ImGui::Begin("Debug Scripts", &m_ShowDebugScripts))
 		{
-			const char* className = ScriptUtils::GetClassName(gcHandle);
-			ImGui::TreeNodeEx(className, UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-		}
+			ImGui::Text("Scripts: %llu", ScriptEngine::GetEntityInstances().size());
 
+			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
+			{
+				const char* className = ScriptUtils::GetClassName(gcHandle);
+				ImGui::TreeNodeEx(className, UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+			}
+		}
 		ImGui::End();
 	}
 

@@ -156,6 +156,7 @@ namespace Shark {
 		bool m_ShowThemeEditor = false;
 		bool m_ShowLogSettings = false;
 		bool m_ShowCreateProject = false;
+		bool m_ShowDebugScripts = false;
 
 		int m_HoveredEntityID = -1;
 

@@ -83,6 +83,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		destScene->m_Name = m_Name;
 		destScene->m_ViewportWidth = m_ViewportWidth;
 		destScene->m_ViewportHeight = m_ViewportHeight;
 		destScene->m_ActiveCameraUUID = m_ActiveCameraUUID;

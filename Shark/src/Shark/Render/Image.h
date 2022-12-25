@@ -52,25 +52,22 @@ namespace Shark {
 
 		virtual void Set(const ImageSpecification& specs, Buffer imageData) = 0;
 		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) = 0;
-		virtual void Set(const std::filesystem::path& filePath) = 0;
-
-		virtual void ReloadFromDisc() = 0;
+		virtual void RT_Set(const ImageSpecification& spec, Buffer imagedata) = 0;
 
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
-		virtual bool CopyTo(Ref<Image2D> image) = 0;
+		virtual void SetImageData(Ref<Image2D> image) = 0;
+		virtual void RT_SetImageData(Ref<Image2D> image) = 0;
+		virtual Ref<Image2D> GetStorageImage() = 0;
+		virtual Ref<Image2D> RT_GetStorageImage() = 0;
 
-		virtual bool ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) = 0;
+		virtual Buffer RT_GetWritableBuffer() = 0;
+		virtual void RT_CloseWritableBuffer() = 0;
+		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) = 0;
 
 		virtual RenderID GetResourceID() const = 0;
 		virtual RenderID GetViewID() const = 0;
 		virtual const ImageSpecification& GetSpecification() const = 0;
-
-		virtual const std::filesystem::path& GetFilePath() const = 0;
-		virtual void SetFilePath(const std::filesystem::path& filePath) = 0;
-
-	public:
-		virtual void RT_CopyTo(Ref<Image2D> image) = 0;
 
 	public:
 		static Ref<Image2D> Create();
@@ -78,7 +75,8 @@ namespace Shark {
 		static Ref<Image2D> Create(const ImageSpecification& specs, Buffer imageData);
 		static Ref<Image2D> Create(const ImageSpecification& specs, Ref<Image2D> data);
 		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
-		static Ref<Image2D> Create(const std::filesystem::path& filePath);
+
+		static Ref<Image2D> LoadFromDisc(const std::filesystem::path& filepath);
 	};
 
 }

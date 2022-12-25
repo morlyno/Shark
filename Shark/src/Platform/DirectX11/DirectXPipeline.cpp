@@ -40,6 +40,21 @@ namespace Shark {
 			return (D3D11_PRIMITIVE_TOPOLOGY)0;
 		}
 
+		static D3D11_COMPARISON_FUNC ToD3D11Comparison(DepthCompareOperator compareOperator)
+		{
+			switch (compareOperator)
+			{
+				case DepthCompareOperator::Equal: return D3D11_COMPARISON_EQUAL;
+				case DepthCompareOperator::Less: return D3D11_COMPARISON_LESS;
+				case DepthCompareOperator::Greater: return D3D11_COMPARISON_GREATER;
+				case DepthCompareOperator::LessEqual: return D3D11_COMPARISON_LESS_EQUAL;
+				case DepthCompareOperator::GreaterEqual: return D3D11_COMPARISON_GREATER_EQUAL;
+			}
+
+			SK_CORE_ASSERT(false, "Unkown DepthCompareOperator");
+			return (D3D11_COMPARISON_FUNC)0;
+		}
+
 	}
 
 	DirectXPipeline::DirectXPipeline(const PipelineSpecification& specs)
@@ -84,7 +99,6 @@ namespace Shark {
 			desc.CullMode = m_Specification.BackFaceCulling ? D3D11_CULL_BACK : D3D11_CULL_NONE;
 
 			SK_DX11_CALL(dev->CreateRasterizerState(&desc, &m_RasterizerState));
-			//SK_CORE_ASSERT(SUCCEEDED(hr), fmt::format("D3D11Device::CreateRasterizerState Failed! {}:{}", __FILE__, __LINE__))
 		}
 
 		// DepthStencil
@@ -92,10 +106,9 @@ namespace Shark {
 			D3D11_DEPTH_STENCIL_DESC desc = CD3D11_DEPTH_STENCIL_DESC(CD3D11_DEFAULT());
 			desc.DepthEnable = m_Specification.DepthEnabled;
 			desc.DepthWriteMask = m_Specification.WriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-			desc.DepthFunc = D3D11_COMPARISON_LESS;
+			desc.DepthFunc = Utils::ToD3D11Comparison(m_Specification.DepthOperator);
 
 			SK_DX11_CALL(dev->CreateDepthStencilState(&desc, &m_DepthStencilState));
-			//SK_CORE_ASSERT(SUCCEEDED(hr), fmt::format("D3D11Device::CreateDepthStencilState Failed! {}:{}", __FILE__, __LINE__))
 		}
 
 		m_PrimitveTopology = Utils::SharkPrimitveTopologyToD3D11(m_Specification.Primitve);

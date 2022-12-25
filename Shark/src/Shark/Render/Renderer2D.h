@@ -52,6 +52,7 @@ namespace Shark {
 		void ShutDown();
 
 		void SetRenderTarget(Ref<FrameBuffer> renderTarget);
+		void Resize(uint32_t width, uint32_t height);
 
 		void BeginScene(const glm::mat4& viewProj);
 		void EndScene();
@@ -99,6 +100,8 @@ namespace Shark {
 
 		const Renderer2DSpecifications& GetSpecifications() const { return m_Specifications; }
 		const Statistics& GetStatistics() const { return m_Statistics; }
+
+		Ref<Image2D> GetDepthImage() const { return m_DepthPassPipeline->GetSpecification().TargetFrameBuffer->GetDepthImage(); }
 
 	private:
 		void FlushAndResetQuad();
@@ -177,16 +180,19 @@ namespace Shark {
 		Ref<GPUTimer> m_LineFlushQuery;
 		Ref<GPUTimer> m_LineOnTopFlushQuery;
 
+		Ref<Pipeline> m_DepthPassPipeline;
+		Ref<Material> m_DepthPassMaterial;
+
 		// Quad
 		Ref<Pipeline> m_QuadPipeline;
 		Ref<Material> m_QuadMaterial;
+		Ref<Texture2D> m_QuadTextureArray;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
 		uint32_t m_QuadTextureSlotIndex = 1;
 		uint32_t m_QuadIndexCount = 0;
 		QuadVertex* m_QuadVertexBasePtr = nullptr;
 		QuadVertex* m_QuadVertexIndexPtr = nullptr;
-
 
 		// Circle
 		Ref<Pipeline> m_CirlcePipeline;

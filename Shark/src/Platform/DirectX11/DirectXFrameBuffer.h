@@ -24,6 +24,8 @@ namespace Shark {
 		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) override;
 
 		virtual std::pair<uint32_t, uint32_t> GetSize() const override { return { m_Specification.Width, m_Specification.Height }; }
+		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
+		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual Ref<Image2D> GetImage(uint32_t index = 0) override { return m_Specification.Atachments[index].Image; }

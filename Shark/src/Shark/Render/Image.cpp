@@ -2,6 +2,7 @@
 #include "Image.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Serialization/TextureSerializers.h"
 #include "Platform/DirectX11/DirectXImage.h"
 
 namespace Shark {
@@ -74,14 +75,12 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Image2D> Image2D::Create(const std::filesystem::path& filePath)
+	Ref<Image2D> Image2D::LoadFromDisc(const std::filesystem::path& filepath)
 	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(filePath);
-		}
-		SK_CORE_ASSERT(false, "Unkown Renderer API");
+		auto image = Image2D::Create();
+		ImageSerializer serializer(image);
+		if (serializer.Deserialize(filepath))
+			return image;
 		return nullptr;
 	}
 

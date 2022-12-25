@@ -5,6 +5,8 @@
 
 #include <d3d11.h>
 
+#undef UpdateResource
+
 namespace Shark {
 
 	namespace utils {
@@ -26,7 +28,6 @@ namespace Shark {
 		DirectXImage2D(const ImageSpecification& specs, Buffer imageData);
 		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
 		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
-		DirectXImage2D(const std::filesystem::path& filePath);
 		DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView);
 		DirectXImage2D(Ref<DirectXSwapChain> swapchain, bool createView);
 		virtual ~DirectXImage2D();
@@ -38,15 +39,19 @@ namespace Shark {
 
 		virtual void Set(const ImageSpecification& specs, Buffer imageData) override;
 		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) override;
-		virtual void Set(const std::filesystem::path& filePath) override;
-		
-		virtual void ReloadFromDisc() override;
+
+		virtual void RT_Set(const ImageSpecification& spec, Buffer imagedata) override;
 
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
-		virtual bool CopyTo(Ref<Image2D> image) override;
+		virtual void SetImageData(Ref<Image2D> image) override;
+		virtual void RT_SetImageData(Ref<Image2D> image) override;
+		virtual Ref<Image2D> GetStorageImage() override;
+		virtual Ref<Image2D> RT_GetStorageImage() override;
 
-		virtual bool ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) override;
+		virtual Buffer RT_GetWritableBuffer() override;
+		virtual void RT_CloseWritableBuffer() override;
+		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) override;
 
 		virtual RenderID GetResourceID() const override { return m_Resource; }
 		virtual RenderID GetViewID() const override { return m_View; }
@@ -54,18 +59,11 @@ namespace Shark {
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
 
-		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
-		virtual void SetFilePath(const std::filesystem::path& filePath) override { m_FilePath = filePath; }
-
+	public:
 		ID3D11Texture2D* GetResourceNative() const { return m_Resource; }
 		ID3D11ShaderResourceView* GetViewNative() const { return m_View; }
 
-	public:
-		virtual void RT_CopyTo(Ref<Image2D> image) override;
-
 	private:
-		Buffer LoadDataFromFile(const std::filesystem::path& filePath);
-
 		void CreateResource();
 		void UpdateResource(Buffer imageData);
 		void UpdateResource(Ref<DirectXImage2D> imageData);
@@ -84,11 +82,10 @@ namespace Shark {
 
 	private:
 		ImageSpecification m_Specification;
+		bool m_Mapped = false;
 
 		ID3D11Texture2D* m_Resource = nullptr;
 		ID3D11ShaderResourceView* m_View = nullptr;
-
-		std::filesystem::path m_FilePath;
 
 		friend class DirectXRenderer;
 	};

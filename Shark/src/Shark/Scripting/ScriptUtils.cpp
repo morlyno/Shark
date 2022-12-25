@@ -155,7 +155,7 @@ namespace Shark {
 	{
 		MonoException* exception = nullptr;
 		MonoObject* object = GCManager::GetManagedObject(handle);
-		s_UtilsData->OnDestroy.Invoke(object, &exception);
+		s_UtilsData->OnUIRender.Invoke(object, &exception);
 		ScriptUtils::HandleException((MonoObject*)exception);
 	}
 

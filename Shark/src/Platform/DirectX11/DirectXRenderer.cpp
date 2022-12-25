@@ -94,6 +94,7 @@ namespace Shark {
 		m_ShaderLib = Ref<ShaderLibrary>::Create();
 
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadDepthPass.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Circle.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Line.hlsl");
 

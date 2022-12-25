@@ -78,16 +78,22 @@ namespace Shark {
 		virtual void Release() = 0;
 
 		virtual void Set(const TextureSpecification& specs, Buffer data) = 0;
+		virtual void Set(const TextureSpecification& specs, Ref<Texture2D> data) = 0;
 		virtual void SetSampler(const SamplerSpecification& specs) = 0;
 
-		virtual void Set(const TextureSpecification& specs, Ref<Texture2D> data) = 0;
+		virtual void Set(const SamplerSpecification& spec, Ref<TextureSource> textureSource) = 0;
+		virtual void RT_Set(const SamplerSpecification& spec, Ref<TextureSource> textureSource) = 0;
 
 		virtual RenderID GetViewID() const = 0;
 		virtual Ref<Image2D> GetImage() const = 0;
 		virtual const TextureSpecification& GetSpecification() const = 0;
 
+#if 0
 		virtual const std::filesystem::path& GetFilePath() const = 0;
 		virtual void SetFilePath(const std::filesystem::path& filePath) = 0;
+#endif
+
+		virtual Ref<TextureSource> GetTextureSource() const = 0;
 
 		static AssetType GetStaticType() { return AssetType::Texture; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
@@ -99,8 +105,7 @@ namespace Shark {
 
 		static Ref<Texture2D> Create(const TextureSpecification& specs, Ref<Texture2D> data);
 		static Ref<Texture2D> Create(Ref<Texture2D> data) { return Create(data->GetSpecification(), data); }
-
-		static Ref<Texture2D> Create(const std::filesystem::path& filePath);
+		static Ref<Texture2D> Create(const SamplerSpecification& specification, Ref<TextureSource> source);
 	};
 
 	class Texture2DArray : public RefCount
