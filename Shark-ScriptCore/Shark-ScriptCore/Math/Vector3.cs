@@ -107,9 +107,9 @@ namespace Shark
 		public static Vector3 Sqrt(Vector3 v)
 		{
 			return new Vector3(
-				(float)Math.Sqrt(v.X),
-				(float)Math.Sqrt(v.Y),
-				(float)Math.Sqrt(v.Z)
+				Mathf.Sqrt(v.X),
+				Mathf.Sqrt(v.Y),
+				Mathf.Sqrt(v.Z)
 			);
 		}
 		public static Vector3 Normalize(Vector3 vec)
