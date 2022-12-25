@@ -21,21 +21,17 @@ struct VSOUT
     float4 Pos : SV_POSITION;
 };
 
-float4 main(VSIN vsin) : SV_POSITION
+VSOUT main(VSIN vsin) : SV_POSITION
 {
-    float4 pos = mul(ViewProjection, float4(vsin.Pos, 1.0f));
-    return pos;
+    VSOUT vsout;
+    vsout.Pos = mul(ViewProjection, float4(vsin.Pos, 1.0f));
+    return vsout;
 }
 
 
 #type Pixel
 #version ps_4_0
 
-struct PSIN
+void main()
 {
-};
-
-void main(PSIN psin)
-{
-    //return psout;
 }

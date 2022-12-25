@@ -108,9 +108,19 @@ namespace Shark {
 		m_Renderer2D->DrawRotatedQuad(position, roation, scaling, texture, tilingfactor, tintcolor, id);
 	}
 
-	void SceneRenderer::SubmitCirlce(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness, float fade, int id)
+	void SceneRenderer::SubmitFilledCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness, float fade, int id)
 	{
 		m_Renderer2D->DrawFilledCircle(position, rotation, scaling, color, thickness, fade, id);
+	}
+
+	void SceneRenderer::SubmitCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id)
+	{
+		m_Renderer2D->DrawCircle(position, rotation, scaling, color, id);
+	}
+
+	void SceneRenderer::SubmitCircle(const glm::mat4& transform, const glm::vec4& tintcolor, int id)
+	{
+		m_Renderer2D->DrawCircle(transform, tintcolor, id);
 	}
 
 	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
@@ -118,7 +128,7 @@ namespace Shark {
 		m_Renderer2D->DrawQuad(transform, texture, tilingfactor, tintcolor, id);
 	}
 
-	void SceneRenderer::SubmitCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, int id)
+	void SceneRenderer::SubmitFilledCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, int id)
 	{
 		m_Renderer2D->DrawFilledCircle(transform, tintcolor, thickness, fade, id);
 	}

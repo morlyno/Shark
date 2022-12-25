@@ -63,15 +63,27 @@ namespace Shark {
 			depthOnlyFramebufferSpec.Height = framebuffer->GetHeight();
 			depthOnlyFramebufferSpec.Atachments = { ImageFormat::Depth32 };
 			depthOnlyFramebufferSpec.Atachments[0].Image = framebuffer->GetDepthImage();
+			m_DepthFrameBuffer = FrameBuffer::Create(depthOnlyFramebufferSpec);
 
 			PipelineSpecification pipelineSpec;
-			pipelineSpec.TargetFrameBuffer = FrameBuffer::Create(depthOnlyFramebufferSpec);
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadDepthPass");
-			pipelineSpec.DebugName = "Renderer2D - Quad Depth Only Pass";
+			pipelineSpec.TargetFrameBuffer = m_DepthFrameBuffer;
 			pipelineSpec.WriteDepth = true;
 			pipelineSpec.DepthOperator = DepthCompareOperator::LessEqual;
-			m_DepthPassPipeline = Pipeline::Create(pipelineSpec);
-			m_DepthPassMaterial = Material::Create(pipelineSpec.Shader);
+
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadDepthPass");
+			pipelineSpec.DebugName = "Renderer2D - Quad Depth Only Pass";
+			m_QuadDepthPassPipeline = Pipeline::Create(pipelineSpec);
+			m_QuadDepthPassMaterial = Material::Create(pipelineSpec.Shader);
+
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleDepthPass");
+			pipelineSpec.DebugName = "Renderer2D - Circle Depth Only Pass";
+			m_CircleDepthPassPipeline = Pipeline::Create(pipelineSpec);
+			m_CircleDepthPassMaterial = Material::Create(pipelineSpec.Shader);
+
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_LineDepthPass");
+			pipelineSpec.DebugName = "Renderer2D - Line Depth Only Pass";
+			m_LineDepthPassPipeline = Pipeline::Create(pipelineSpec);
+			m_LineDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 		}
 
 		// Quad
@@ -113,6 +125,8 @@ namespace Shark {
 			circlePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Circle");
 			circlePipelineSpecs.DebugName = "Renderer2D-Circle";
 			circlePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
+			circlePipelineSpecs.WriteDepth = false;
+			circlePipelineSpecs.DepthOperator = DepthCompareOperator::Equal;
 			m_CirlcePipeline = Pipeline::Create(circlePipelineSpecs);
 			m_CircleMaterial = Material::Create(circlePipelineSpecs.Shader);
 
@@ -141,8 +155,8 @@ namespace Shark {
 		for (uint32_t i = 0; i < 20; i++)
 		{
 			const double r0 = (double)i * delta;
-			point.x = (float)glm::sin(r0);
-			point.y = (float)glm::cos(r0);
+			point.x = (float)glm::sin(r0) * 0.5f;
+			point.y = (float)glm::cos(r0) * 0.5f;
 
 			m_CirlceVertexPositions[i] = point;
 		}
@@ -165,7 +179,7 @@ namespace Shark {
 
 	void Renderer2D::Resize(uint32_t width, uint32_t height)
 	{
-		m_DepthPassPipeline->GetSpecification().TargetFrameBuffer->Resize(width, height);
+		m_DepthFrameBuffer->Resize(width, height);
 	}
 
 	void Renderer2D::BeginScene(const glm::mat4& viewProj)
@@ -221,10 +235,9 @@ namespace Shark {
 		SK_CORE_VERIFY(m_Active);
 
 		m_CommandBuffer->Begin();
-
 		m_CommandBuffer->BeginTimeQuery(m_GeometryPassTimer);
 
-		m_DepthPassPipeline->GetSpecification().TargetFrameBuffer->Clear(m_CommandBuffer);
+		m_DepthFrameBuffer->Clear(m_CommandBuffer);
 
 		// Depth Pass
 		{
@@ -233,7 +246,23 @@ namespace Shark {
 			if (quadDataSize)
 			{
 				m_QuadVertexBuffer->SetData({ m_QuadVertexBasePtr, quadDataSize });
-				Renderer::RenderGeometry(m_CommandBuffer, m_DepthPassPipeline, m_DepthPassMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
+				Renderer::RenderGeometry(m_CommandBuffer, m_QuadDepthPassPipeline, m_QuadDepthPassMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
+			}
+
+			// Cirlce
+			uint32_t circleDataSize = (uint32_t)((uint8_t*)m_CircleVertexIndexPtr - (uint8_t*)m_CircleVertexBasePtr);
+			if (circleDataSize)
+			{
+				m_CircleVertexBuffer->SetData({ m_CircleVertexBasePtr, circleDataSize });
+				Renderer::RenderGeometry(m_CommandBuffer, m_CircleDepthPassPipeline, m_CircleDepthPassMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount);
+			}
+
+			// Line
+			uint32_t lineDataSize = (uint32_t)((uint8_t*)m_LineVertexIndexPtr - (uint8_t*)m_LineVertexBasePtr);
+			if (lineDataSize)
+			{
+				m_LineVertexBuffer->SetData({ m_LineVertexBasePtr, lineDataSize });
+				Renderer::RenderGeometry(m_CommandBuffer, m_LineDepthPassPipeline, m_LineDepthPassMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
 			}
 		}
 
@@ -242,12 +271,9 @@ namespace Shark {
 			uint32_t dataSize = (uint32_t)((uint8_t*)m_QuadVertexIndexPtr - (uint8_t*)m_QuadVertexBasePtr);
 			if (dataSize)
 			{
-				//m_QuadVertexBuffer->SetData({ m_QuadVertexBasePtr, dataSize });
 				SK_FILL_TEXTURE_ARRAY_DEBUG(m_QuadMaterial->GetTextureArray("g_Textures"), m_WhiteTexture);
 
-				// Geometry Pass
 				Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, m_QuadMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
-
 				m_Statistics.DrawCalls++;
 			}
 		}
@@ -258,8 +284,6 @@ namespace Shark {
 			uint32_t dataSize = (uint32_t)((uint8_t*)m_CircleVertexIndexPtr - (uint8_t*)m_CircleVertexBasePtr);
 			if (dataSize)
 			{
-				m_CircleVertexBuffer->SetData({ m_CircleVertexBasePtr, dataSize });
-
 				Renderer::RenderGeometry(m_CommandBuffer, m_CirlcePipeline, m_CircleMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_QuadIndexBuffer, m_CircleIndexCount);
 				m_Statistics.DrawCalls++;
 			}
@@ -271,8 +295,6 @@ namespace Shark {
 			uint32_t dataSize = (uint32_t)((uint8_t*)m_LineVertexIndexPtr - (uint8_t*)m_LineVertexBasePtr);
 			if (dataSize)
 			{
-				m_LineVertexBuffer->SetData({ m_LineVertexBasePtr, dataSize });
-
 				Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
 				m_Statistics.DrawCalls++;
 			}
@@ -453,6 +475,16 @@ namespace Shark {
 		DrawCircle(transform, color, id);
 	}
 
+	void Renderer2D::DrawCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scale, const glm::vec4& color, int id)
+	{
+		const glm::mat4 transform =
+			glm::translate(glm::mat4(1), position) *
+			glm::toMat4(glm::quat(rotation)) /*glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
+			glm::scale(glm::mat4(1), scale);
+
+		DrawCircle(transform, color, id);
+	}
+
 	void Renderer2D::DrawCircle(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
 		SK_CORE_VERIFY(m_Active);
@@ -542,6 +574,9 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetQuad()
 	{
+		SK_CORE_VERIFY(false);
+		return;
+
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(m_Active);
 
@@ -577,6 +612,9 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetCircle()
 	{
+		SK_CORE_VERIFY(false);
+		return;
+
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(m_Active);
 
@@ -604,6 +642,9 @@ namespace Shark {
 
 	void Renderer2D::FlushAndResetLine()
 	{
+		SK_CORE_VERIFY(false);
+		return;
+
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(m_Active);
 

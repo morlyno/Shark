@@ -80,6 +80,7 @@ namespace Shark {
 
 		void DrawCircle(const glm::vec2& position, float radius, const glm::vec4& color, int id = -1);
 		void DrawCircle(const glm::vec3& position, const glm::vec3& rotation, float radius, const glm::vec4& color, int id = -1);
+		void DrawCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scale, const glm::vec4& color, int id = -1);
 
 		void DrawCircle(const glm::mat4& transform, const glm::vec4& color, int id = -1);
 
@@ -101,7 +102,7 @@ namespace Shark {
 		const Renderer2DSpecifications& GetSpecifications() const { return m_Specifications; }
 		const Statistics& GetStatistics() const { return m_Statistics; }
 
-		Ref<Image2D> GetDepthImage() const { return m_DepthPassPipeline->GetSpecification().TargetFrameBuffer->GetDepthImage(); }
+		Ref<Image2D> GetDepthImage() const { return m_DepthFrameBuffer->GetDepthImage(); }
 
 	private:
 		void FlushAndResetQuad();
@@ -180,8 +181,18 @@ namespace Shark {
 		Ref<GPUTimer> m_LineFlushQuery;
 		Ref<GPUTimer> m_LineOnTopFlushQuery;
 
-		Ref<Pipeline> m_DepthPassPipeline;
-		Ref<Material> m_DepthPassMaterial;
+
+		// Depth
+		Ref<FrameBuffer> m_DepthFrameBuffer;
+
+		Ref<Pipeline> m_QuadDepthPassPipeline;
+		Ref<Material> m_QuadDepthPassMaterial;
+		
+		Ref<Pipeline> m_CircleDepthPassPipeline;
+		Ref<Material> m_CircleDepthPassMaterial;
+
+		Ref<Pipeline> m_LineDepthPassPipeline;
+		Ref<Material> m_LineDepthPassMaterial;
 
 		// Quad
 		Ref<Pipeline> m_QuadPipeline;

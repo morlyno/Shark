@@ -297,7 +297,7 @@ namespace Shark {
 		{
 			utils::DrawAddComponentButton<TransformComponent>("Transform", entity);
 			utils::DrawAddComponentButton<SpriteRendererComponent>("Sprite Renderer", entity);
-			utils::DrawAddComponentButton<CircleRendererComponent>("Cirlce Renderer", entity);
+			utils::DrawAddComponentButton<CircleRendererComponent>("Circle Renderer", entity);
 			utils::DrawAddComponentButton<CameraComponent>("Camera ", entity);
 			utils::DrawAddComponentButton<RigidBody2DComponent>("Rigidbody 2D", entity);
 			utils::DrawAddComponentButton<BoxCollider2DComponent>("Box Collider 2D", entity);
@@ -395,6 +395,7 @@ namespace Shark {
 			UI::ControlColor("Color", comp.Color);
 			UI::Control("Thickness", comp.Thickness, 0.1f, 0.0f, 1.0f);
 			UI::Control("Fade", comp.Fade, 0.1f, 0.0f, 10.0f);
+			UI::Control("Filled", comp.Filled);
 
 			UI::EndControls();
 		});

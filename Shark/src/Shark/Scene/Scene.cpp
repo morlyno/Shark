@@ -748,7 +748,10 @@ namespace Shark {
 		if (entity.AllOf<CircleRendererComponent>())
 		{
 			auto& cr = entity.GetComponent<CircleRendererComponent>();
-			renderer->SubmitCircle(transform, cr.Thickness, cr.Fade, cr.Color, (int)entity.GetHandle());
+			if (cr.Filled)
+				renderer->SubmitFilledCircle(transform, cr.Thickness, cr.Fade, cr.Color, (int)entity.GetHandle());
+			else
+				renderer->SubmitCircle(transform, cr.Color, (int)entity.GetHandle());
 		}
 
 		for (auto& childID : entity.Children())
