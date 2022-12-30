@@ -15,10 +15,15 @@ namespace Shark {
 
 		virtual void Resize(uint32_t size) = 0;
 		virtual void Resize(Buffer vertexData) = 0;
-		virtual void SetData(Buffer vertexData) = 0;
+		virtual void SetData(Buffer vertexData, bool allowResize = false) = 0;
 
-		virtual Buffer GetWritableBuffer() = 0;
+		virtual void OpenWritableBuffer() = 0;
 		virtual void CloseWritableBuffer() = 0;
+		virtual void Write(Buffer vertexData, uint64_t offset) = 0;
+
+		virtual bool RT_OpenBuffer() = 0;
+		virtual void RT_CloseBuffer() = 0;
+		virtual Buffer RT_GetBuffer() = 0;
 
 		virtual uint32_t GetSize() const = 0;
 
@@ -35,7 +40,9 @@ namespace Shark {
 
 		virtual void Resize(uint32_t count) = 0;
 		virtual void Resize(Buffer vertexData) = 0;
-		virtual void SetData(Buffer indexData) = 0;
+		virtual void SetData(Buffer indexData, bool allowResize = false) = 0;
+
+		virtual void RT_Resize(uint32_t count, Buffer indexData) = 0;
 
 		virtual Buffer GetWritableBuffer() = 0;
 		virtual void CloseWritableBuffer() = 0;

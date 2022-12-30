@@ -111,6 +111,7 @@ namespace Shark {
 			Timer cpuTimer;
 
 			ProcessEvents();
+			ExecuteMainThreadQueue();
 
 			if (!m_Minimized)
 			{
@@ -142,6 +143,23 @@ namespace Shark {
 		}
 	}
 
+	void Application::QueueEvent(const std::function<void()>& func)
+	{
+		m_EventQueue.push(func);
+	}
+
+	void Application::AddEventCallback(const std::function<bool(Event&)>& func)
+	{
+		m_EventCallbacks.push_back(func);
+	}
+
+	void Application::SubmitToMainThread(const std::function<void()>& func)
+	{
+		std::scoped_lock lock(m_MainThreadMutex);
+
+		m_MainThreadQueue.push_back(func);
+	}
+
 	void Application::RenderImGui()
 	{
 		m_ImGuiLayer->Begin();
@@ -165,6 +183,20 @@ namespace Shark {
 			func();
 			m_EventQueue.pop();
 		}
+	}
+
+	void Application::ExecuteMainThreadQueue()
+	{
+		std::vector<std::function<void()>> queue;
+
+		{
+			std::scoped_lock lock(m_MainThreadMutex);
+
+			queue = std::move(m_MainThreadQueue);
+		}
+
+		for (const auto& func : queue)
+			func();
 	}
 
 	void Application::OnEvent(Event& event)

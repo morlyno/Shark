@@ -68,23 +68,15 @@ namespace Shark {
 			Application* app = this;
 			m_EventQueue.push([app, args...]() { app->OnEvent(TEvent(args...)); });
 		}
-
-		template<typename TFunc>
-		void QueueEvent(const TFunc& func)
-		{
-			m_EventQueue.push(func);
-		}
-
-		template<typename TFunc>
-		void AddEventCallback(const TFunc& func)
-		{
-			m_EventCallbacks.push_back(func);
-		}
+		void QueueEvent(const std::function<void()>& func);
+		void AddEventCallback(const std::function<bool(Event&)>& func);
+		void SubmitToMainThread(const std::function<void()>& func);
 
 	private:
 		void RenderImGui();
 
 		void ProcessEvents();
+		void ExecuteMainThreadQueue();
 		void OnEvent(Event& event);
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnWindowResize(WindowResizeEvent& event);
@@ -105,6 +97,9 @@ namespace Shark {
 		// Owned by LayerStack
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
+
+		std::mutex m_MainThreadMutex;
+		std::vector<std::function<void()>> m_MainThreadQueue;
 
 		std::queue<std::function<void()>> m_EventQueue;
 		std::vector<std::function<bool(Event&)>> m_EventCallbacks;

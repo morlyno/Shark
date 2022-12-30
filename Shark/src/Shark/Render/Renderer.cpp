@@ -75,6 +75,21 @@ namespace Shark {
 		s_RendererAPI->RenderFullScreenQuad(commandBuffer, pipeline, material);
 	}
 
+	void Renderer::BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer)
+	{
+		s_RendererAPI->BeginBatch(renderCommandBuffer, pipeline, vertexBuffer, indexBuffer);
+	}
+
+	void Renderer::RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, uint32_t indexCount, uint32_t startIndex)
+	{
+		s_RendererAPI->RenderBatch(renderCommandBuffer, material, constantBufferSet, indexCount, startIndex);
+	}
+
+	void Renderer::EndBatch(Ref<RenderCommandBuffer> renderCommandBuffer)
+	{
+		s_RendererAPI->EndBatch(renderCommandBuffer);
+	}
+
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
 	{
 		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, constantBufferSet, vertexBuffer, indexBuffer, indexCount);
@@ -88,6 +103,11 @@ namespace Shark {
 	void Renderer::GenerateMips(Ref<Image2D> image)
 	{
 		s_RendererAPI->GenerateMips(image);
+	}
+
+	void Renderer::RT_GenerateMips(Ref<Image2D> image)
+	{
+		s_RendererAPI->RT_GenerateMips(image);
 	}
 
 	void Renderer::ClearAllCommandBuffers()

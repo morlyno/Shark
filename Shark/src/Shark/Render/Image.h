@@ -7,6 +7,8 @@
 
 namespace Shark {
 
+	class TextureSource;
+
 	enum class ImageFormat : uint16_t
 	{
 		None = 0,
@@ -52,7 +54,9 @@ namespace Shark {
 
 		virtual void Set(const ImageSpecification& specs, Buffer imageData) = 0;
 		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) = 0;
+		virtual void Set(Ref<TextureSource> source, uint32_t mipLeves) = 0;
 		virtual void RT_Set(const ImageSpecification& spec, Buffer imagedata) = 0;
+		virtual void RT_Set(Ref<TextureSource> source, uint32_t mipLeves) = 0;
 
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
@@ -75,6 +79,7 @@ namespace Shark {
 		static Ref<Image2D> Create(const ImageSpecification& specs, Buffer imageData);
 		static Ref<Image2D> Create(const ImageSpecification& specs, Ref<Image2D> data);
 		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
+		static Ref<Image2D> Create(Ref<TextureSource> source, uint32_t mipLeves);
 
 		static Ref<Image2D> LoadFromDisc(const std::filesystem::path& filepath);
 	};

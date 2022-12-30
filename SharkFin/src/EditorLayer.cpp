@@ -1234,20 +1234,24 @@ namespace Shark {
 
 			if (ImGui::Button("Import"))
 			{
-				std::string directory = String::ToNarrowCopy(fmt::format(L"{}/Textures", Project::GetAssetsPath().native()));
-				std::string fileName = std::filesystem::path(m_TextureAssetCreateData.TextureFileName).replace_extension(".sktex").string();
-
-				const auto& metadata = ResourceManager::GetMetaData(m_TextureAssetCreateData.TextureSourcePath);
-				Ref<TextureSource> textureSource = ResourceManager::GetAsset<TextureSource>(metadata.Handle);
-				Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, SamplerSpecification{}, textureSource);
-
-				if (m_TextureAssetCreateData.CreateEntityAfterCreation)
+				EditorLayer* editor = this;
+				Application::Get().SubmitToMainThread([editor]()
 				{
-					Entity entity = m_ActiveScene->CreateEntity();
-					auto& sr = entity.AddComponent<SpriteRendererComponent>();
-					sr.TextureHandle = texture->Handle;
-					SelectEntity(entity);
-				}
+					std::string directory = String::ToNarrowCopy(fmt::format(L"{}/Textures", Project::GetAssetsPath().native()));
+					std::string fileName = std::filesystem::path(editor->m_TextureAssetCreateData.TextureFileName).replace_extension(".sktex").string();
+
+					const auto& metadata = ResourceManager::GetMetaData(editor->m_TextureAssetCreateData.TextureSourcePath);
+					Ref<TextureSource> textureSource = ResourceManager::GetAsset<TextureSource>(metadata.Handle);
+					Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, SamplerSpecification{}, textureSource);
+
+					if (editor->m_TextureAssetCreateData.CreateEntityAfterCreation)
+					{
+						Entity entity = editor->m_ActiveScene->CreateEntity();
+						auto& sr = entity.AddComponent<SpriteRendererComponent>();
+						sr.TextureHandle = texture->Handle;
+						editor->SelectEntity(entity);
+					}
+				});
 
 				ImGui::CloseCurrentPopup();
 			}

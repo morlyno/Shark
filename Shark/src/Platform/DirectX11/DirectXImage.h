@@ -28,6 +28,7 @@ namespace Shark {
 		DirectXImage2D(const ImageSpecification& specs, Buffer imageData);
 		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
 		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
+		DirectXImage2D(Ref<TextureSource> source, uint32_t mipLevels);
 		DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView);
 		DirectXImage2D(Ref<DirectXSwapChain> swapchain, bool createView);
 		virtual ~DirectXImage2D();
@@ -39,8 +40,10 @@ namespace Shark {
 
 		virtual void Set(const ImageSpecification& specs, Buffer imageData) override;
 		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) override;
+		virtual void Set(Ref<TextureSource> source, uint32_t mipLevels) override;
 
 		virtual void RT_Set(const ImageSpecification& spec, Buffer imagedata) override;
+		virtual void RT_Set(Ref<TextureSource> source, uint32_t mipLevels) override;
 
 		virtual void Resize(uint32_t width, uint32_t height) override;
 

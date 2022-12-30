@@ -101,7 +101,14 @@ namespace Shark {
 
 	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specification, Ref<TextureSource> source)
 	{
-		Set(specification, source);
+		m_TextureSource = source;
+		ImageSpecification imageSpec;
+		imageSpec.Width = source->Width;
+		imageSpec.Height = source->Height;
+		imageSpec.Format = source->Format;
+		imageSpec.Type = ImageType::Texture;
+		m_Image = Ref<DirectXImage2D>::Create(imageSpec, source->ImageData);
+		CreateSampler();
 	}
 
 	DirectXTexture2D::~DirectXTexture2D()

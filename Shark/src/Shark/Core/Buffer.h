@@ -15,6 +15,7 @@ namespace Shark {
 		~Buffer() = default;
 
 		void Allocate(uint64_t size);
+		void Resize(uint64_t newSize, bool canShrink = true);
 		void Release();
 		void Write(const void* data, uint64_t size, uint64_t offset = 0);
 		void Write(const byte* data, uint64_t size, uint64_t offset = 0);
@@ -31,6 +32,12 @@ namespace Shark {
 			return (T*)Data;
 		}
 		
+		template<typename T>
+		T* Offset(uint64_t offset)
+		{
+			return (T*)Data + offset;
+		}
+
 		template<typename T>
 		uint64_t Count() const
 		{
@@ -67,6 +74,9 @@ namespace Shark {
 	public:
 		byte* Data = nullptr;
 		uint64_t Size = 0;
+
+		byte* End() { return Data + Size; }
+		const byte* End() const { return Data + Size; }
 	};
 
 	class ScopedBuffer
@@ -75,7 +85,10 @@ namespace Shark {
 		ScopedBuffer() = default;
 		ScopedBuffer(std::nullptr_t) {}
 		ScopedBuffer(const ScopedBuffer&) = delete;
-		const ScopedBuffer& operator=(const ScopedBuffer&) = delete;
+		ScopedBuffer& operator=(const ScopedBuffer&) = delete;
+
+		ScopedBuffer(ScopedBuffer&&) = default;
+		ScopedBuffer& operator=(ScopedBuffer&&) = default;
 
 		ScopedBuffer(byte* data, uint64_t size) : m_Buffer(data, size) {}
 		template<typename T>
@@ -84,6 +97,7 @@ namespace Shark {
 		~ScopedBuffer() { m_Buffer.Release(); }
 
 		void Allocate(uint64_t size) { m_Buffer.Allocate(size); }
+		void Resize(uint64_t newSize, bool canShrink = true) { m_Buffer.Resize(newSize, canShrink); }
 		void Release() { m_Buffer.Release(); }
 		void Write(const void* data, uint64_t size, uint64_t offset = 0) { m_Buffer.Write(data, size, offset); }
 		void Write(const byte* data, uint64_t size, uint64_t offset = 0) { m_Buffer.Write(data, size, offset); }
@@ -100,10 +114,20 @@ namespace Shark {
 			return m_Buffer.As<T>();
 		}
 
+		template<typename T>
+		T* Offset(uint64_t offset)
+		{
+			return m_Buffer.Offset<T>(offset);
+		}
+
 		operator bool() const { return m_Buffer; }
 
 		byte* Data() const { return m_Buffer.Data; }
 		uint64_t Size() const { return m_Buffer.Size; }
+
+		byte* End() { return m_Buffer.End(); }
+
+		Buffer GetBuffer() const { return m_Buffer; }
 
 	private:
 		Buffer m_Buffer;

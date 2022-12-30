@@ -44,54 +44,87 @@ namespace Shark {
 		ReCreateBuffer((uint32_t)vertexData.Size, m_Dynamic, vertexData);
 	}
 
-	void DirectXVertexBuffer::SetData(Buffer vertexData)
+	void DirectXVertexBuffer::SetData(Buffer vertexData, bool allowResize)
 	{
 		SK_CORE_ASSERT(m_Dynamic);
+		if (!m_Dynamic)
+			return;
 
 		Ref<DirectXVertexBuffer> instance = this;
 		Buffer buffer = Buffer::Copy(vertexData);
-		Renderer::Submit([instance, buffer]() mutable
+		Renderer::Submit([instance, buffer, allowResize]() mutable
 		{
-			instance->RT_SetData(buffer);
+			instance->RT_SetData(buffer, allowResize);
 			buffer.Release();
 		});
 	}
 
-	Buffer DirectXVertexBuffer::GetWritableBuffer()
+	void DirectXVertexBuffer::OpenWritableBuffer()
 	{
-		SK_CORE_ASSERT(m_Dynamic);
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		SK_CORE_VERIFY(m_Dynamic);
 
-		if (m_Dynamic)
+		Ref<DirectXVertexBuffer> instance = this;
+		Renderer::Submit([instance]()
 		{
-			auto context = DirectXRenderer::GetContext();
-			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-			HRESULT result = context->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-			if (FAILED(result))
-			{
-				DirectXRenderer::Get()->HandleError(result);
-				return {};
-			}
-
-			Buffer writableBuffer;
-			writableBuffer.Data = (byte*)mappedSubresource.pData;
-			writableBuffer.Size = m_Size;
-			m_Mapped = true;
-			return writableBuffer;
-		}
-
-		return {};
+			instance->RT_OpenBuffer();
+		});
 	}
 
 	void DirectXVertexBuffer::CloseWritableBuffer()
 	{
+		Ref<DirectXVertexBuffer> instance = this;
+		Renderer::Submit([instance]()
+		{
+			if (instance->m_Mapped)
+				instance->RT_CloseBuffer();
+		});
+	}
+
+	void DirectXVertexBuffer::Write(Buffer vertexData, uint64_t offset)
+	{
+		SK_CORE_VERIFY(m_Dynamic);
+
+		Ref<DirectXVertexBuffer> instance = this;
+		Buffer buffer = Buffer::Copy(vertexData);
+		Renderer::Submit([instance, buffer, offset]() mutable
+		{
+			SK_CORE_VERIFY(instance->m_Mapped);
+			instance->m_WritableBuffer.Write(buffer, offset);
+			buffer.Release();
+		});
+	}
+
+	bool DirectXVertexBuffer::RT_OpenBuffer()
+	{
+		SK_CORE_VERIFY(m_Dynamic);
+		SK_CORE_VERIFY(!m_Mapped);
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
-		if (m_Mapped)
+		auto context = DirectXRenderer::GetContext();
+		D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+		HRESULT result = context->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+		if (FAILED(result))
 		{
-			auto context = DirectXRenderer::GetContext();
-			context->Unmap(m_VertexBuffer, 0);
+			DirectXRenderer::Get()->HandleError(result);
+			return false;
 		}
+
+		m_WritableBuffer.Data = (byte*)mappedSubresource.pData;
+		m_WritableBuffer.Size = m_Size;
+		m_Mapped = true;
+		return true;
+	}
+
+	void DirectXVertexBuffer::RT_CloseBuffer()
+	{
+		SK_CORE_VERIFY(m_Mapped);
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		auto context = DirectXRenderer::GetContext();
+		context->Unmap(m_VertexBuffer, 0);
+		m_Mapped = false;
+
+		m_WritableBuffer = Buffer{};
 	}
 
 	void DirectXVertexBuffer::ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData)
@@ -108,9 +141,15 @@ namespace Shark {
 		});
 	}
 
-	void DirectXVertexBuffer::RT_SetData(Buffer vertexData)
+	void DirectXVertexBuffer::RT_SetData(Buffer vertexData, bool allowResize)
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		if (vertexData.Size > m_Size && allowResize)
+		{
+			RT_ReCreateBuffer(vertexData.Size, m_Dynamic, vertexData);
+			return;
+		}
 
 		if (m_Dynamic && vertexData.Size <= m_Size)
 		{
@@ -190,26 +229,34 @@ namespace Shark {
 			ReCreateBuffer(count, true, nullptr);
 	}
 
-	void DirectXIndexBuffer::Resize(Buffer vertexData)
+	void DirectXIndexBuffer::Resize(Buffer indexData)
 	{
-		if (m_Size == vertexData.Size)
+		if (m_Size == indexData.Size)
 			return;
 
-		ReCreateBuffer((uint32_t)vertexData.Count<uint32_t>(), m_Dynamic, vertexData);
+		ReCreateBuffer((uint32_t)indexData.Count<uint32_t>(), m_Dynamic, indexData);
 	}
 
-	void DirectXIndexBuffer::SetData(Buffer indexData)
+	void DirectXIndexBuffer::SetData(Buffer indexData, bool allowResize)
 	{
 		SK_CORE_ASSERT(m_Dynamic);
 
 		Ref<DirectXIndexBuffer> instance = this;
 		Buffer buffer = Buffer::Copy(indexData);
 
-		Renderer::Submit([instance, buffer]() mutable
+		Renderer::Submit([instance, buffer, allowResize]() mutable
 		{
-			instance->RT_SetData(buffer);
+			instance->RT_SetData(buffer, allowResize);
 			buffer.Release();
 		});
+	}
+
+	void DirectXIndexBuffer::RT_Resize(uint32_t count, Buffer indexData)
+	{
+		if ((count == m_Count) || (!m_Dynamic && !indexData))
+			return;
+
+		ReCreateBuffer(count, m_Dynamic, indexData);
 	}
 
 	Buffer DirectXIndexBuffer::GetWritableBuffer()
@@ -261,9 +308,15 @@ namespace Shark {
 		});
 	}
 
-	void DirectXIndexBuffer::RT_SetData(Buffer indexData)
+	void DirectXIndexBuffer::RT_SetData(Buffer indexData, bool allowResize)
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		if (indexData.Size > m_Size && allowResize)
+		{
+			RT_ReCreateBuffer(indexData.Size, m_Dynamic, indexData);
+			return;
+		}
 
 		if (m_Dynamic && indexData.Size <= m_Size)
 		{

@@ -5,6 +5,7 @@
 #include "Shark/Serialization/TextureSerializers.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Texture.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXSwapChain.h"
 
@@ -137,6 +138,17 @@ namespace Shark {
 
 	}
 
+	DirectXImage2D::DirectXImage2D(Ref<TextureSource> source, uint32_t mipLevels)
+	{
+		m_Specification.Width = source->Width;
+		m_Specification.Height = source->Height;
+		m_Specification.Format = source->Format;
+		m_Specification.Type = ImageType::Texture;
+		m_Specification.MipLevels = mipLevels;
+		CreateResource();
+		UpdateResource(source->ImageData);
+	}
+
 	DirectXImage2D::~DirectXImage2D()
 	{
 		Release();
@@ -188,12 +200,36 @@ namespace Shark {
 		UpdateResource(data.As<DirectXImage2D>());
 	}
 
+	void DirectXImage2D::Set(Ref<TextureSource> source, uint32_t mipLevels)
+	{
+		Release();
+		m_Specification.Width = source->Width;
+		m_Specification.Height = source->Height;
+		m_Specification.Type = ImageType::Texture;
+		m_Specification.Format = source->Format;
+		m_Specification.MipLevels = mipLevels;
+		CreateResource();
+		UpdateResource(source->ImageData);
+	}
+
 	void DirectXImage2D::RT_Set(const ImageSpecification& spec, Buffer imagedata)
 	{
 		Release();
 		m_Specification = spec;
 		RT_CreateResource();
 		RT_UpdateResource(imagedata);
+	}
+
+	void DirectXImage2D::RT_Set(Ref<TextureSource> source, uint32_t mipLevels)
+	{
+		Release();
+		m_Specification.Width = source->Width;
+		m_Specification.Height = source->Height;
+		m_Specification.Type = ImageType::Texture;
+		m_Specification.Format = source->Format;
+		m_Specification.MipLevels = mipLevels;
+		RT_CreateResource();
+		RT_UpdateResource(source->ImageData);
 	}
 
 	void DirectXImage2D::Resize(uint32_t width, uint32_t height)
@@ -399,6 +435,9 @@ namespace Shark {
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_CORE_VERIFY(imageData);
+
+		SK_CORE_VERIFY(imageData.Size == ((uint64_t)m_Specification.Width * m_Specification.Height * utils::GetFormatDataSize(m_Specification.Format)));
+		SK_CORE_VERIFY(utils::GetFormatDataSize(m_Specification.Format) == 4);
 
 		auto context = DirectXRenderer::GetContext();
 		context->UpdateSubresource(m_Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * 4, 0);

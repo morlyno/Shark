@@ -14,6 +14,18 @@ namespace Shark {
 		}
 	}
 
+	void Buffer::Resize(uint64_t newSize, bool canShrink)
+	{
+		if (newSize == Size || !canShrink && newSize < Size)
+			return;
+
+		byte* newData = (byte*)operator new(newSize);
+		memcpy(newData, Data, std::min(Size, newSize));
+		operator delete(Data);
+		Data = newData;
+		Size = newSize;
+	}
+
 	void Buffer::Release()
 	{
 		operator delete(Data);

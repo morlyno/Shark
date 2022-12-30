@@ -34,11 +34,15 @@ namespace Shark {
 
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) override;
 
+		virtual void BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer) override;
+		virtual void RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, uint32_t indexCount, uint32_t startIndex) override;
+		virtual void EndBatch(Ref<RenderCommandBuffer> renderCommandBuffer) override;
+
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount) override;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount) override;
 
 		virtual void GenerateMips(Ref<Image2D> image) override;
-		void RT_GenerateMips(Ref<DirectXImage2D> image);
+		virtual void RT_GenerateMips(Ref<Image2D> image) override;
 
 		virtual void ClearAllCommandBuffers() override;
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }

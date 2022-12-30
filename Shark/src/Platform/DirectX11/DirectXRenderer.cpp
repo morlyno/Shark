@@ -251,6 +251,66 @@ namespace Shark {
 		});
 	}
 
+	void DirectXRenderer::BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer)
+	{
+		SK_PROFILE_FUNCTION();
+
+		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
+		Ref<DirectXVertexBuffer> dxVB = vertexBuffer.As<DirectXVertexBuffer>();
+		Ref<DirectXIndexBuffer> dxIB = indexBuffer.As<DirectXIndexBuffer>();
+		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
+		Ref<DirectXRenderer> instance = this;
+
+		Renderer::Submit([instance, commandBuffer, dxVB, dxIB, dxPipeline]()
+		{
+			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
+
+			const UINT offset = 0;
+			const UINT stride = dxVB->m_Layout.GetVertexSize();
+			ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
+
+			ctx->IASetIndexBuffer(dxIB->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+
+			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
+
+			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
+			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
+
+			// TODO(moro): move InputLayout to Pipeline
+			ctx->IASetInputLayout(dxShader->m_InputLayout);
+
+			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+
+			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+
+			ctx->RSSetState(dxPipeline->m_RasterizerState);
+			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
+
+			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
+		});
+	}
+
+	void DirectXRenderer::RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, uint32_t indexCount, uint32_t startIndex)
+	{
+		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
+		Ref<DirectXMaterial> dxMaterial = material.As<DirectXMaterial>();
+		Ref<DirectXConstantBufferSet> dxCBSet = constantBufferSet.As<DirectXConstantBufferSet>();
+		Ref<DirectXRenderer> instance = this;
+		Renderer::Submit([instance, commandBuffer, dxMaterial, dxCBSet, indexCount, startIndex]()
+		{
+			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
+			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial, dxCBSet);
+			ctx->DrawIndexed(indexCount, startIndex, 0);
+		});
+	}
+
+	void DirectXRenderer::EndBatch(Ref<RenderCommandBuffer> renderCommandBuffer)
+	{
+	}
+
 	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
 	{
 		SK_PROFILE_FUNCTION();
@@ -353,7 +413,7 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderer::RT_GenerateMips(Ref<DirectXImage2D> image)
+	void DirectXRenderer::RT_GenerateMips(Ref<Image2D> image)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
@@ -392,9 +452,10 @@ namespace Shark {
 			return;
 		}
 
-		m_ImmediateContext->CopySubresourceRegion(texture, 0, 0, 0, 0, image->m_Resource, 0, nullptr);
+		auto dxImage = image.As<DirectXImage2D>();
+		m_ImmediateContext->CopySubresourceRegion(texture, 0, 0, 0, 0, dxImage->m_Resource, 0, nullptr);
 		m_ImmediateContext->GenerateMips(view);
-		m_ImmediateContext->CopyResource(image->m_Resource, texture);
+		m_ImmediateContext->CopyResource(dxImage->m_Resource, texture);
 
 		view->Release();
 		texture->Release();

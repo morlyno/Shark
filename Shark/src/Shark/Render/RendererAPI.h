@@ -38,11 +38,16 @@ namespace Shark {
 		virtual void ResizeSwapChain(uint32_t widht, uint32_t height) = 0;
 
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) = 0;
+		
+		virtual void BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer) = 0;
+		virtual void RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, uint32_t indexCount, uint32_t startIndex) = 0;
+		virtual void EndBatch(Ref<RenderCommandBuffer> renderCommandBuffer) = 0;
 
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount) = 0;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount) = 0;;
 
 		virtual void GenerateMips(Ref<Image2D> image) = 0;
+		virtual void RT_GenerateMips(Ref<Image2D> image) = 0;
 
 		virtual void ClearAllCommandBuffers() = 0;
 		virtual const RendererCapabilities& GetCapabilities() const = 0;

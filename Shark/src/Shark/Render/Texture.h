@@ -24,7 +24,7 @@ namespace Shark {
 		static Ref<TextureSource> Create() { return Ref<TextureSource>::Create(); }
 
 		Buffer ImageData;
-		ImageFormat Format;
+		ImageFormat Format = ImageFormat::None;
 		uint32_t Width = 0, Height = 0;
 	};
 

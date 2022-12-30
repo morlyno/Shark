@@ -16,19 +16,24 @@ namespace Shark {
 
 		virtual void Resize(uint32_t size) override;
 		virtual void Resize(Buffer vertexData) override;
-		virtual void SetData(Buffer vertexData) override;
-
-		// Call only on Render Thread
-		virtual Buffer GetWritableBuffer() override;
+		virtual void SetData(Buffer vertexData, bool allowResize) override;
+		
+		virtual void OpenWritableBuffer() override;
 		virtual void CloseWritableBuffer() override;
+		virtual void Write(Buffer vertexData, uint64_t offset) override;
+
+		virtual bool RT_OpenBuffer() override;
+		virtual void RT_CloseBuffer() override;
+		virtual Buffer RT_GetBuffer() override { return m_WritableBuffer; }
 
 		virtual uint32_t GetSize() const { return m_Size; }
 
 	private:
 		void ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData);
 
-		void RT_SetData(Buffer vertexData);
+		void RT_SetData(Buffer vertexData, bool allowResize);
 		void RT_ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData);
+
 
 	private:
 		VertexLayout m_Layout;
@@ -38,6 +43,7 @@ namespace Shark {
 		bool m_Dynamic;
 
 		bool m_Mapped = false;
+		Buffer m_WritableBuffer;
 
 		friend class DirectXRenderer;
 	};
@@ -53,7 +59,9 @@ namespace Shark {
 
 		virtual void Resize(uint32_t count) override;
 		virtual void Resize(Buffer indexData) override;
-		virtual void SetData(Buffer indexData) override;
+		virtual void SetData(Buffer indexData, bool allowResize = false) override;
+
+		virtual void RT_Resize(uint32_t count, Buffer indexData) override;
 
 		virtual Buffer GetWritableBuffer() override;
 		virtual void CloseWritableBuffer() override;
@@ -64,7 +72,7 @@ namespace Shark {
 	private:
 		void ReCreateBuffer(uint32_t count, bool dynamic, Buffer indexData);
 
-		void RT_SetData(Buffer indexData);
+		void RT_SetData(Buffer indexData, bool allowResize = false);
 		void RT_ReCreateBuffer(uint32_t count, bool dynamic, Buffer indexData);
 
 	private:

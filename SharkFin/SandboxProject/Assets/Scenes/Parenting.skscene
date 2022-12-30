@@ -37,15 +37,6 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
@@ -73,15 +64,6 @@ Scene:
         Enabled: true
         AllowSleep: false
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1.5
-        Friction: 0.100000001
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -176,15 +158,6 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: true
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: true
       ScriptComponent:
         ScriptName: Sandbox.DoorSensor
         Fields:
@@ -225,15 +198,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -285,15 +249,6 @@ Scene:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
         TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -403,15 +358,6 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
@@ -455,15 +401,6 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
@@ -492,15 +429,6 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
@@ -520,15 +448,6 @@ Scene:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
         TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -570,15 +489,6 @@ Scene:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
         TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -646,15 +556,6 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
@@ -704,15 +605,6 @@ Scene:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
         TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -782,9 +674,9 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.25285172
+        Aspectratio: 2.07637644
         PerspectiveFOV: 44.9999924
-        PerspectiveNear: 0.00999999978
+        PerspectiveNear: 1
         PerspectiveFar: 1000
         OrthographicZoom: 10
         OrthographicNear: -1
@@ -800,15 +692,6 @@ Scene:
         Parent: 2076647844189626938
         Children:
           []
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: true
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -837,15 +720,6 @@ Scene:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
         TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -898,15 +772,6 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
@@ -946,15 +811,6 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
     - Entity: 17595546817321959154
       TagComponent:
         Name: Quad
@@ -985,15 +841,6 @@ Scene:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
         TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]

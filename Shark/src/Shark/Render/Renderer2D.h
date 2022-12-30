@@ -51,7 +51,6 @@ namespace Shark {
 		void Init(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications = {});
 		void ShutDown();
 
-		void SetRenderTarget(Ref<FrameBuffer> renderTarget);
 		void Resize(uint32_t width, uint32_t height);
 
 		void BeginScene(const glm::mat4& viewProj);
@@ -105,26 +104,30 @@ namespace Shark {
 		Ref<Image2D> GetDepthImage() const { return m_DepthFrameBuffer->GetDepthImage(); }
 
 	private:
-		void FlushAndResetQuad();
-		void FlushAndResetCircle();
-		void FlushAndResetLine();
+		struct QuadBatch;
+
+		void AssureQuadVertexDataSize();
+		void AssureCircleVertexDataSize();
+		void AssureLineVertexDataSize();
+
+		void BeginQaudBatch();
+		uint32_t AddTexture(QuadBatch* batch, Ref<Texture2D> texture);
+		void PrepareMaterial(Ref<Material> material, const QuadBatch& batch);
+		void ResizeQuadIndexBuffer(uint64_t indexCount);
 
 	public:
 		static constexpr uint32_t MaxTextureSlots = 16;
 
-		static constexpr uint32_t MaxQuads = 200000;
-		static constexpr uint32_t MaxQuadVertices = MaxQuads * 4;
-		static constexpr uint32_t MaxQuadIndices = MaxQuads * 6;
+		static constexpr uint32_t DefaultQuadCount = 100;
+		static constexpr uint32_t DefaultQuadVertices = DefaultQuadCount * 4;
+		static constexpr uint32_t DefaultQuadIndices = DefaultQuadCount * 6;
 
-		static constexpr uint32_t MaxCircles = 20000;
-		static constexpr uint32_t MaxCircleVertices = MaxCircles * 4;
-		static constexpr uint32_t MaxCircleIndices = MaxCircles * 6;
+		static constexpr uint32_t DefaultCircleCount = 100;
+		static constexpr uint32_t DefaultCircleVertices = DefaultCircleCount * 4;
+		static constexpr uint32_t DefaultCircleIndices = DefaultCircleCount * 6;
 
-		static constexpr uint32_t MaxLines = 20000;
-		static constexpr uint32_t MaxLineVertices = MaxLines * 2;
-
-		static constexpr uint32_t MaxLinesOnTop = 2000;
-		static constexpr uint32_t MaxLineOnTopVertices = MaxLinesOnTop * 2;
+		static constexpr uint32_t DefaultLineCount = 100;
+		static constexpr uint32_t DefaultLineVertices = DefaultLineCount * 2;
 
 	private:
 		const glm::vec4 m_QuadVertexPositions[4] = { { -0.5f, 0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { -0.5f, -0.5f, 0.0f, 1.0f } };
@@ -194,32 +197,47 @@ namespace Shark {
 		Ref<Pipeline> m_LineDepthPassPipeline;
 		Ref<Material> m_LineDepthPassMaterial;
 
+		
+		struct QuadBatch
+		{
+			uint64_t VertexOffset = 0;
+			uint64_t IndexCount = 0;
+			uint64_t VertexCount = 0;
+			std::vector<Ref<Texture2D>> Textures;
+
+			QuadBatch(uint64_t dataOffset)
+			{
+				VertexOffset = dataOffset;
+				Textures.reserve(16);
+			}
+		};
+
 		// Quad
 		Ref<Pipeline> m_QuadPipeline;
 		Ref<Material> m_QuadMaterial;
 		Ref<Texture2D> m_QuadTextureArray;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
-		uint32_t m_QuadTextureSlotIndex = 1;
+		Buffer m_QuadVertexData;
+		std::vector<QuadBatch> m_QuadBatches;
+		QuadBatch* m_QuadBatch;
 		uint32_t m_QuadIndexCount = 0;
-		QuadVertex* m_QuadVertexBasePtr = nullptr;
-		QuadVertex* m_QuadVertexIndexPtr = nullptr;
 
 		// Circle
-		Ref<Pipeline> m_CirlcePipeline;
-		Ref<VertexBuffer> m_CircleVertexBuffer;
+		Ref<Pipeline> m_CirclePipeline;
 		Ref<Material> m_CircleMaterial;
+		Ref<VertexBuffer> m_CircleVertexBuffer;
+		Ref<IndexBuffer> m_CircleIndexBuffer;
+		Buffer m_CircleVertexData;
 		uint32_t m_CircleIndexCount = 0;
-		CircleVertex* m_CircleVertexBasePtr = nullptr;
-		CircleVertex* m_CircleVertexIndexPtr = nullptr;
+		uint64_t m_CircleVertexCount = 0;
 
 		// Line
 		Ref<Pipeline> m_LinePipeline;
 		Ref<Material> m_LineMaterial;
 		Ref<VertexBuffer> m_LineVertexBuffer;
+		Buffer m_LineVertexData;
 		uint32_t m_LineVertexCount = 0;
-		LineVertex* m_LineVertexBasePtr = nullptr;
-		LineVertex* m_LineVertexIndexPtr = nullptr;
 
 	};
 

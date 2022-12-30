@@ -57,7 +57,7 @@ namespace Shark {
 			return false;
 		}
 
-		imagedata.Size = (uint64_t)width * height * components;
+		imagedata.Size = (uint64_t)width * height * 4;
 		format = ImageFormat::RGBA8;
 
 		Ref<TextureSource> textureSource = Ref<TextureSource>::Create();
@@ -75,17 +75,43 @@ namespace Shark {
 		return true;
 	}
 
+	bool TextureSourceSerializer::DeserializeFromTexture(Ref<TextureSource>& textureSource, const std::filesystem::path& filepath)
+	{
+		if (!FileSystem::Exists(filepath))
+		{
+			SK_SERIALIZATION_ERROR("Path not found! {0}", filepath);
+			return false;
+		}
+
+		std::string filedata = FileSystem::ReadString(FileSystem::GetAbsolute(filepath));
+		if (filedata.empty())
+		{
+			SK_SERIALIZATION_ERROR("File was empty!");
+			return false;
+		}
+
+		YAML::Node node = YAML::Load(filedata);
+
+		YAML::Node textureNode = node["Texture"];
+		if (!textureNode)
+			return false;
+
+		AssetHandle sourceHandle = textureNode["TextureSource"].as<AssetHandle>();
+		textureSource = ResourceManager::GetAsset<TextureSource>(sourceHandle);
+		return textureSource != nullptr;
+	}
+
 	bool TextureSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing Texture to {}", metadata.FilePath);
 		Timer timer;
 
-		if (!ResourceManager::HasExistingFilePath(metadata))
-		{
-			SK_SERIALIZATION_ERROR("Path not found! {0}", metadata.FilePath);
-			return false;
-		}
+		//if (!ResourceManager::HasExistingFilePath(metadata))
+		//{
+		//	SK_SERIALIZATION_ERROR("Path not found! {0}", metadata.FilePath);
+		//	return false;
+		//}
 
 		std::string result = SerializeToYAML(asset.As<Texture2D>());
 		if (result.empty())
@@ -217,12 +243,32 @@ namespace Shark {
 
 	bool ImageSerializer::Deserialize(const std::filesystem::path& filepath)
 	{
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Image from {}", filepath);
+		Timer timer;
+
+		AssetType assetType = ResourceManager::GetAssetTypeFormFilePath(filepath);
+		if (assetType == AssetType::Texture)
+		{
+			Ref<TextureSource> textureSource;
+			TextureSourceSerializer serializer;
+			if (serializer.DeserializeFromTexture(textureSource, filepath))
+			{
+				m_Image->Set(textureSource, 0);
+				Renderer::GenerateMips(m_Image);
+				SK_CORE_INFO_TAG("Serialization", "Deserializing Image took {}", timer.Elapsed());
+				return true;
+			}
+
+			SK_CORE_ERROR_TAG("Serialization", "Failed to load Image from disc! Failed to load TextureSource from Texture");
+			return false;
+		}
+
 		int width, height, components;
 		Buffer imagedata;
 
 		Buffer filedata = FileSystem::ReadBinary(filepath);
 		imagedata.Data = stbi_load_from_memory(filedata.As<stbi_uc>(), (int)filedata.Size, &width, &height, &components, STBI_rgb_alpha);
-		imagedata.Size = (uint64_t)width * height * components;
+		imagedata.Size = (uint64_t)width * height * 4;
 		filedata.Release();
 
 		SK_CORE_ASSERT(imagedata);
@@ -244,11 +290,12 @@ namespace Shark {
 		{
 			image->RT_Set(spec, imagedata);
 			imagedata.Release();
+
+			if (spec.MipLevels != 1)
+				Renderer::RT_GenerateMips(image);
 		});
 
-		if (spec.MipLevels != 1)
-			Renderer::GenerateMips(m_Image);
-
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Image took {}", timer.Elapsed());
 		return true;
 	}
 
