@@ -394,7 +394,7 @@ namespace Shark {
 
 				ID3DBlob* shaderBinary = nullptr;
 				ID3DBlob* errorMsg = nullptr;
-				if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), 0, 0, &shaderBinary, &errorMsg)))
+				if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), D3DCOMPILE_DEBUG, 0, &shaderBinary, &errorMsg)))
 				{
 					SK_CORE_ERROR("Shader Compile Failed");
 					SK_CORE_ERROR(" - Stage: {0}", Utils::StageToString(stage));

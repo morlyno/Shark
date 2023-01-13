@@ -8,6 +8,8 @@
 
 #include "Shark/Core/Buffer.h"
 
+#include <d3d11.h>
+
 namespace Shark {
 
 	class DirectXMaterial : public Material
@@ -27,6 +29,7 @@ namespace Shark {
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index) override;
 		virtual void SetTextureArray(const std::string& name, Ref<Texture2DArray> textureArray) override;
 
+		virtual void SetImage(const std::string& name, Ref<Image2D> image, uint32_t binding) override;
 
 		virtual void SetFloat(const std::string& name, float val) override { SetBytes(name, (byte*)&val, sizeof(val)); }
 		virtual void SetFloat2(const std::string& name, const glm::vec2& vec2) override { SetBytes(name, (byte*)&vec2, sizeof(vec2)); }
@@ -77,6 +80,9 @@ namespace Shark {
 		Ref<DirectXConstantBufferSet> m_ConstnatBufferSet;
 		std::unordered_map<uint32_t, ScopedBuffer> m_ConstantBufferData;
 		std::unordered_map<std::string, CBVar> m_VariableMap;
+
+		std::unordered_map<std::string, Ref<DirectXImage2D>> m_ImageMap;
+		std::unordered_map<std::string, uint32_t> m_BindingMap;
 
 		std::unordered_map<std::string, Ref<DirectXTexture2DArray>> m_ResourceMap;
 

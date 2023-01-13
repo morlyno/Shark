@@ -36,6 +36,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		m_Specifications = specifications;
+		m_GeometryFrameBuffer = framebuffer;
 
 		m_WhiteTexture = Renderer::GetWhiteTexture();
 
@@ -44,22 +45,57 @@ namespace Shark {
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
 
-		m_GeometryPassTimer = GPUTimer::Create();
-		m_QuadFlushQuery = GPUTimer::Create();
+		m_GeometryPassTimer = GPUTimer::Create("Geometry Pass");
+		m_OpaqueGeometryPassTimer = GPUTimer::Create("Opaque Geometry Pass");
+		m_OITGeoemtryPassTimer = GPUTimer::Create("OIT Geometry Pass");
 
-		// Depth Only Pass
+		// Composite
 		{
+			PipelineSpecification pipelineSpec;
+			pipelineSpec.TargetFrameBuffer = framebuffer;
+			pipelineSpec.DebugName = "Renderer2D - Composite";
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Composite");
+			//pipelineSpec.BackFaceCulling = true;
+			pipelineSpec.DepthEnabled = true;
+			pipelineSpec.WriteDepth = true;
+			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
+			m_CompositePipeline = Pipeline::Create(pipelineSpec);
+			m_CompositeMaterial = Material::Create(pipelineSpec.Shader);
+		}
+
+		{
+			FrameBufferSpecification transparentGeometryFramebufferSpec;
+			transparentGeometryFramebufferSpec.Width = framebuffer->GetWidth();
+			transparentGeometryFramebufferSpec.Height = framebuffer->GetHeight();
+			transparentGeometryFramebufferSpec.Atachments = { ImageFormat::RGBA16F, ImageFormat::R16F, ImageFormat::R32_SINT, ImageFormat::Depth32 };
+			transparentGeometryFramebufferSpec.Atachments[3].Image = framebuffer->GetDepthImage();
+			transparentGeometryFramebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+			transparentGeometryFramebufferSpec.IndipendendClearColor[1] = { 1.0f, 0.0f, 0.0f, 0.0f };
+			transparentGeometryFramebufferSpec.IndipendendClearColor[2] = { -1.0f, -1.0f, -1.0f, -1.0f };
+			transparentGeometryFramebufferSpec.Atachments[0].Blend.SourceColorFactor = BlendFactor::One;
+			transparentGeometryFramebufferSpec.Atachments[0].Blend.DestinationColorFactor = BlendFactor::One;
+			transparentGeometryFramebufferSpec.Atachments[1].Blend.SourceColorFactor = BlendFactor::Zero;
+			transparentGeometryFramebufferSpec.Atachments[1].Blend.DestinationColorFactor = BlendFactor::InverseSourceColor;
+			m_TransparentGeometryFrameBuffer = FrameBuffer::Create(transparentGeometryFramebufferSpec);
+
+
 			FrameBufferSpecification depthOnlyFramebufferSpec;
 			depthOnlyFramebufferSpec.Width = framebuffer->GetWidth();
 			depthOnlyFramebufferSpec.Height = framebuffer->GetHeight();
 			depthOnlyFramebufferSpec.Atachments = { ImageFormat::Depth32 };
+			m_TransparentDepthBuffer = FrameBuffer::Create(depthOnlyFramebufferSpec);
+
 			depthOnlyFramebufferSpec.Atachments[0].Image = framebuffer->GetDepthImage();
 			m_DepthFrameBuffer = FrameBuffer::Create(depthOnlyFramebufferSpec);
 
+		}
+
+		// Depth Only Pass
+		{
 			PipelineSpecification pipelineSpec;
 			pipelineSpec.TargetFrameBuffer = m_DepthFrameBuffer;
 			pipelineSpec.WriteDepth = true;
-			pipelineSpec.DepthOperator = DepthCompareOperator::LessEqual;
+			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
 
 			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadDepthPass");
 			pipelineSpec.DebugName = "Renderer2D - Quad Depth Only Pass";
@@ -75,7 +111,19 @@ namespace Shark {
 			pipelineSpec.DebugName = "Renderer2D - Line Depth Only Pass";
 			m_LineDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_LineDepthPassMaterial = Material::Create(pipelineSpec.Shader);
+
+			pipelineSpec.TargetFrameBuffer = m_TransparentDepthBuffer;
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadDepthPass");
+			pipelineSpec.DebugName = "Renderer2D - Transparent Quad Depth Only Pass";
+			m_TransparentQuadDepthPassPipeline = Pipeline::Create(pipelineSpec);
+			m_TransparentQuadDepthPassMaterial = Material::Create(pipelineSpec.Shader);
+
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleDepthPass");
+			pipelineSpec.DebugName = "Renderer2D - Transparent Circle Depth Only Pass";
+			m_TransparentCircleDepthPassPipeline = Pipeline::Create(pipelineSpec);
+			m_TransparentCircleDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 		}
+
 
 		// Quad
 		{
@@ -107,7 +155,7 @@ namespace Shark {
 
 			m_QuadVertexData.Allocate(DefaultQuadVertices * sizeof QuadVertex);
 		}
-
+		
 		// Circle
 		{
 			PipelineSpecification circlePipelineSpecs;
@@ -124,8 +172,7 @@ namespace Shark {
 			m_CircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
 			m_CircleIndexBuffer = m_QuadIndexBuffer;
 		}
-
-
+		
 		// Line
 		{
 			PipelineSpecification linePipelineSpecs;
@@ -142,6 +189,42 @@ namespace Shark {
 			m_LineVertexBuffer = VertexBuffer::Create(linePipelineSpecs.Shader->GetVertexLayout(), DefaultLineVertices * sizeof LineVertex, true, nullptr);
 			m_LineVertexData.Allocate(DefaultLineVertices * sizeof LineVertex);
 		}
+
+
+		// Transparent Quad
+		{
+			PipelineSpecification pipelineSpec;
+			pipelineSpec.TargetFrameBuffer = m_TransparentGeometryFrameBuffer;
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadTransparent");
+			pipelineSpec.DebugName = "Renderer2D Quad Transparent";
+			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
+			pipelineSpec.WriteDepth = false;
+			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
+			m_TransparentQuadPipeline = Pipeline::Create(pipelineSpec);
+			m_TransparentQuadMaterial = Material::Create(pipelineSpec.Shader);
+
+			m_TransparentQuadVertexBuffer = VertexBuffer::Create(pipelineSpec.Shader->GetVertexLayout(), DefaultQuadVertices * sizeof QuadVertex, true, nullptr);
+			m_TransparentQuadVertexData.Allocate(DefaultQuadVertices * sizeof QuadVertex);
+			m_TransparentQuadIndexBuffer = m_QuadIndexBuffer;
+		}
+
+		// Transparent Circle
+		{
+			PipelineSpecification pielineSpec;
+			pielineSpec.TargetFrameBuffer = m_TransparentGeometryFrameBuffer;
+			pielineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleTransparent");
+			pielineSpec.DebugName = "Renderer2D Circle Transparent";
+			pielineSpec.DepthEnabled = specifications.UseDepthTesting;
+			pielineSpec.WriteDepth = false;
+			pielineSpec.DepthOperator = DepthCompareOperator::Less;
+			m_TransparentCirclePipeline = Pipeline::Create(pielineSpec);
+			m_TransparentCircleMaterial = Material::Create(pielineSpec.Shader);
+
+			m_TransparentCircleVertexBuffer = VertexBuffer::Create(pielineSpec.Shader->GetVertexLayout(), DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
+			m_TransparentCircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
+			m_TransparentCircleIndexBuffer = m_TransparentQuadIndexBuffer;
+		}
+
 
 		constexpr double delta = M_PI / 10.0f; // 0.31415
 		glm::vec4 point = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -165,6 +248,8 @@ namespace Shark {
 	void Renderer2D::Resize(uint32_t width, uint32_t height)
 	{
 		m_DepthFrameBuffer->Resize(width, height);
+		m_TransparentDepthBuffer->Resize(width, height);
+		m_TransparentGeometryFrameBuffer->Resize(width, height);
 	}
 
 	void Renderer2D::BeginScene(const glm::mat4& viewProj)
@@ -183,24 +268,24 @@ namespace Shark {
 		m_QuadBatches.clear();
 		m_QuadIndexCount = 0;
 		m_QuadBatch = &m_QuadBatches.emplace_back(0);
-
+		
+		// Transparent Quad
+		m_TransparentQuadBatches.clear();
+		m_TransparentQuadIndexCount = 0;
+		m_TransparentQuadBatch = &m_TransparentQuadBatches.emplace_back(0);
+		
 		// Circle
 		m_CircleIndexCount = 0;
 		m_CircleVertexCount = 0;
 
+		// Transparent Circle
+		m_TransparentCircleIndexCount = 0;
+		m_TransparentCircleVertexCount = 0;
+
 		// Line
 		m_LineVertexCount = 0;
 
-
-		m_Statistics.DrawCalls = 0;
-		m_Statistics.QuadCount = 0;
-		m_Statistics.CircleCount = 0;
-		m_Statistics.LineCount = 0;
-		m_Statistics.LineOnTopCount = 0;
-		m_Statistics.VertexCount = 0;
-		m_Statistics.IndexCount = 0;
-		m_Statistics.TextureCount = 1;
-		m_Statistics.GeometryPassTime = 0.0f;
+		memset(&m_Statistics, 0, sizeof(m_Statistics));
 	}
 
 	void Renderer2D::EndScene()
@@ -212,70 +297,11 @@ namespace Shark {
 		m_CommandBuffer->Begin();
 		m_CommandBuffer->BeginTimeQuery(m_GeometryPassTimer);
 
-		m_DepthFrameBuffer->Clear(m_CommandBuffer);
-
-		// Quad Depth Pass
-		if (m_QuadIndexCount)
-		{
-			if (m_QuadIndexBuffer->GetCount() < m_QuadIndexCount)
-				ResizeQuadIndexBuffer(m_QuadIndexCount);
-
-			m_QuadVertexBuffer->SetData(m_QuadVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_QuadDepthPassPipeline, m_QuadDepthPassMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
-		}
-
-		// Circle Depth Pass
-		if (m_CircleIndexCount)
-		{
-			if (m_CircleIndexBuffer->GetCount() < m_CircleIndexCount)
-				ResizeQuadIndexBuffer(m_CircleIndexCount);
-
-			m_CircleVertexBuffer->SetData(m_CircleVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_CircleDepthPassPipeline, m_CircleDepthPassMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
-		}
-
-		// Line Depth Pass
-		if (m_LineVertexCount)
-		{
-			m_LineVertexBuffer->SetData(m_LineVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_LineDepthPassPipeline, m_LineDepthPassMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
-		}
-
-		// Quad
-		if (m_QuadIndexCount)
-		{
-			Renderer::BeginBatch(m_CommandBuffer, m_QuadPipeline, m_QuadVertexBuffer, m_QuadIndexBuffer);
-			uint32_t indexOffset = 0;
-			for (const auto& batch : m_QuadBatches)
-			{
-				PrepareMaterial(m_QuadMaterial, batch);
-				Renderer::RenderBatch(m_CommandBuffer, m_QuadMaterial, m_ConstantBufferSet, batch.IndexCount, indexOffset);
-				indexOffset += batch.IndexCount;
-				m_Statistics.DrawCalls++;
-			}
-			Renderer::EndBatch(m_CommandBuffer);
-		}
-
-
-		// Circle
-		if (m_CircleIndexCount)
-		{
-			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePipeline, m_CircleMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
-			m_Statistics.DrawCalls++;
-		}
-
-
-		// Line
-		if (m_LineVertexCount)
-		{
-			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
-			m_Statistics.DrawCalls++;
-		}
-
+		ClearPass();
+		OpaqueGeometryPass();
+		OITGeometryPass();
 
 		m_CommandBuffer->EndTimeQuery(m_GeometryPassTimer);
-
-
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 
@@ -371,6 +397,39 @@ namespace Shark {
 		m_Statistics.IndexCount += 6;
 	}
 
+	void Renderer2D::DrawQuadTransparent(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id)
+	{
+		SK_CORE_VERIFY(m_Active);
+
+		if (m_TransparentQuadBatch->Textures.size() > MaxTextureSlots)
+			BeginQaudBatch();
+
+		auto& batch = *m_TransparentQuadBatch;
+		uint32_t textureSlot = AddTexture(&batch, texture ? texture : m_WhiteTexture);
+
+		AssureTransparentQuadVertexDataSize();
+
+		QuadVertex* memory = m_TransparentQuadVertexData.Offset<QuadVertex>(batch.VertexOffset + batch.VertexCount);
+		for (uint32_t i = 0; i < 4; i++)
+		{
+			memory->WorldPosition = transform * m_QuadVertexPositions[i];
+			memory->Color = color;
+			memory->Tex = m_TextureCoords[i];
+			memory->TextureSlot = textureSlot;
+			memory->TilingFactor = tilingfactor;
+			memory->ID = id;
+			memory++;
+		}
+
+		batch.VertexCount += 4;
+		batch.IndexCount += 6;
+		m_TransparentQuadIndexCount += 6;
+
+		m_Statistics.QuadCount++;
+		m_Statistics.VertexCount += 4;
+		m_Statistics.IndexCount += 6;
+	}
+
 	void Renderer2D::DrawFilledCircle(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, float thickness, float fade, int id)
 	{
 		DrawFilledCircle({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, thickness, fade, id);
@@ -415,6 +474,32 @@ namespace Shark {
 
 		m_CircleVertexCount += 4;
 		m_CircleIndexCount += 6;
+
+		m_Statistics.CircleCount++;
+		m_Statistics.VertexCount += 4;
+		m_Statistics.IndexCount += 6;
+	}
+
+	void Renderer2D::DrawFilledCircleTransparent(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int id)
+	{
+		SK_CORE_VERIFY(m_Active);
+
+		AssureTransparentCircleVertexDataSize();
+
+		CircleVertex* memory = m_TransparentCircleVertexData.Offset<CircleVertex>(m_TransparentCircleVertexCount);
+		for (uint32_t i = 0; i < 4; i++)
+		{
+			memory->WorldPosition = transform * m_QuadVertexPositions[i];
+			memory->LocalPosition = m_QuadVertexPositions[i] * 2.0f;
+			memory->Color = color;
+			memory->Thickness = thickness;
+			memory->Fade = fade;
+			memory->ID = id;
+			memory++;
+		}
+
+		m_TransparentCircleVertexCount += 4;
+		m_TransparentCircleIndexCount += 6;
 
 		m_Statistics.CircleCount++;
 		m_Statistics.VertexCount += 4;
@@ -536,16 +621,150 @@ namespace Shark {
 		DrawLine(p3, p0, color, id);
 	}
 
+	void Renderer2D::ClearPass()
+	{
+		m_DepthFrameBuffer->Clear(m_CommandBuffer);
+		m_TransparentDepthBuffer->Clear(m_CommandBuffer);
+		m_TransparentGeometryFrameBuffer->Clear(m_CommandBuffer);
+	}
+
+	void Renderer2D::OpaqueGeometryPass()
+	{
+		m_CommandBuffer->BeginTimeQuery(m_OpaqueGeometryPassTimer);
+
+		if (m_QuadIndexCount)
+		{
+			if (m_QuadIndexBuffer->GetCount() < m_QuadIndexCount)
+				ResizeQuadIndexBuffer(m_QuadIndexCount);
+
+			m_QuadVertexBuffer->SetData(m_QuadVertexData, true);
+			Renderer::RenderGeometry(m_CommandBuffer, m_QuadDepthPassPipeline, m_QuadDepthPassMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
+			m_Statistics.DrawCalls++;
+		}
+
+		if (m_CircleIndexCount)
+		{
+			if (m_CircleIndexBuffer->GetCount() < m_CircleIndexCount)
+				ResizeQuadIndexBuffer(m_CircleIndexCount);
+
+			m_CircleVertexBuffer->SetData(m_CircleVertexData, true);
+			Renderer::RenderGeometry(m_CommandBuffer, m_CircleDepthPassPipeline, m_CircleDepthPassMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
+			m_Statistics.DrawCalls++;
+		}
+
+		if (m_LineVertexCount)
+		{
+			m_LineVertexBuffer->SetData(m_LineVertexData, true);
+			Renderer::RenderGeometry(m_CommandBuffer, m_LineDepthPassPipeline, m_LineDepthPassMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
+			m_Statistics.DrawCalls++;
+		}
+
+
+		if (m_QuadIndexCount)
+		{
+			Renderer::BeginBatch(m_CommandBuffer, m_QuadPipeline, m_QuadVertexBuffer, m_QuadIndexBuffer);
+			uint32_t indexOffset = 0;
+			for (const auto& batch : m_QuadBatches)
+			{
+				PrepareMaterial(m_QuadMaterial, batch);
+				Renderer::RenderBatch(m_CommandBuffer, m_QuadMaterial, m_ConstantBufferSet, batch.IndexCount, indexOffset);
+				indexOffset += batch.IndexCount;
+				m_Statistics.DrawCalls++;
+			}
+			Renderer::EndBatch(m_CommandBuffer);
+		}
+
+		if (m_CircleIndexCount)
+		{
+			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePipeline, m_CircleMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
+			m_Statistics.DrawCalls++;
+		}
+
+		if (m_LineVertexCount)
+		{
+			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
+			m_Statistics.DrawCalls++;
+		}
+
+		m_CommandBuffer->EndTimeQuery(m_OpaqueGeometryPassTimer);
+	}
+
+	void Renderer2D::OITGeometryPass()
+	{
+		m_CommandBuffer->BeginTimeQuery(m_OITGeoemtryPassTimer);
+
+		if (m_TransparentQuadIndexCount)
+		{
+			if (m_TransparentQuadIndexBuffer->GetCount() < m_TransparentQuadIndexCount)
+				ResizeQuadIndexBuffer(m_TransparentQuadIndexCount);
+
+			m_TransparentQuadVertexBuffer->SetData(m_TransparentQuadVertexData, true);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentQuadDepthPassPipeline, m_TransparentQuadDepthPassMaterial, m_ConstantBufferSet, m_TransparentQuadVertexBuffer, m_TransparentQuadIndexBuffer, m_TransparentQuadIndexCount);
+			m_Statistics.DrawCalls++;
+		}
+
+		if (m_TransparentCircleIndexCount)
+		{
+			if (m_TransparentCircleIndexBuffer->GetCount() < m_TransparentCircleIndexCount)
+				ResizeQuadIndexBuffer(m_TransparentCircleIndexCount);
+
+			m_TransparentCircleVertexBuffer->SetData(m_TransparentCircleVertexData, true);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCircleDepthPassPipeline, m_TransparentCircleDepthPassMaterial, m_ConstantBufferSet, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
+			m_Statistics.DrawCalls++;
+		}
+
+		if (m_TransparentQuadIndexCount)
+		{
+			Renderer::BeginBatch(m_CommandBuffer, m_TransparentQuadPipeline, m_TransparentQuadVertexBuffer, m_TransparentQuadIndexBuffer);
+			uint32_t indexOffset = 0;
+			for (const auto& batch : m_TransparentQuadBatches)
+			{
+				PrepareMaterial(m_TransparentQuadMaterial, batch);
+				Renderer::RenderBatch(m_CommandBuffer, m_TransparentQuadMaterial, m_ConstantBufferSet, batch.IndexCount, indexOffset);
+				indexOffset += batch.IndexCount;
+				m_Statistics.DrawCalls++;
+			}
+			Renderer::EndBatch(m_CommandBuffer);
+		}
+
+		if (m_TransparentCircleIndexCount)
+		{
+			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCirclePipeline, m_TransparentCircleMaterial, m_ConstantBufferSet, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
+			m_Statistics.DrawCalls++;
+		}
+
+		m_CompositeMaterial->SetImage("AccumulationImage", m_TransparentGeometryFrameBuffer->GetImage(0), 0);
+		m_CompositeMaterial->SetImage("RevealImage", m_TransparentGeometryFrameBuffer->GetImage(1), 1);
+		m_CompositeMaterial->SetImage("IDImage", m_TransparentGeometryFrameBuffer->GetImage(2), 2);
+		m_CompositeMaterial->SetImage("DepthImage", m_TransparentDepthBuffer->GetDepthImage(), 3);
+		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositePipeline, m_CompositeMaterial);
+		m_Statistics.DrawCalls++;
+
+		m_CommandBuffer->EndTimeQuery(m_OITGeoemtryPassTimer);
+	}
+
 	void Renderer2D::AssureQuadVertexDataSize()
 	{
 		if (m_QuadBatch->VertexOffset + m_QuadBatch->VertexCount >= m_QuadVertexData.Count<QuadVertex>())
 			m_QuadVertexData.Resize(m_QuadVertexData.Size * 2);
 	}
 
+	void Renderer2D::AssureTransparentQuadVertexDataSize()
+	{
+		if (m_TransparentQuadBatch->VertexOffset + m_TransparentQuadBatch->VertexCount >= m_TransparentQuadVertexData.Count<QuadVertex>())
+			m_TransparentQuadVertexData.Resize(m_TransparentQuadVertexData.Size * 2);
+	}
+
 	void Renderer2D::AssureCircleVertexDataSize()
 	{
 		if (m_CircleVertexCount >= m_CircleVertexData.Count<CircleVertex>())
 			m_CircleVertexData.Resize(m_CircleVertexData.Size * 2);
+	}
+
+	void Renderer2D::AssureTransparentCircleVertexDataSize()
+	{
+		if (m_TransparentCircleVertexCount >= m_TransparentCircleVertexData.Count<CircleVertex>())
+			m_TransparentCircleVertexData.Resize(m_TransparentCircleVertexData.Size * 2);
 	}
 
 	void Renderer2D::AssureLineVertexDataSize()

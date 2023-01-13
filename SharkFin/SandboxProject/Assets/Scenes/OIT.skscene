@@ -1,0 +1,49 @@
+Scene:
+  Name: New Scene
+  ActiveCamera: 0x0
+  Entities:
+    - Entity: 4614677312430084994
+      TagComponent:
+        Name: Quad
+      TransformComponent:
+        Translation: [1.30098939, 1.00174737, -1.59470022]
+        Rotation: [0, 0, 0]
+        Scale: [2.02999997, 2.02999997, 2.02999997]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0, 0, 1, 0.75]
+        TextureHandle: 0
+        TilingFactor: 1
+    - Entity: 5563182808342215571
+      TagComponent:
+        Name: Quad
+      TransformComponent:
+        Translation: [0.693237066, 0.536584198, -0.789178431]
+        Rotation: [0, 0, 0]
+        Scale: [2.02999997, 2.02999997, 2.02999997]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [1, 1, 0, 0.75]
+        TextureHandle: 0
+        TilingFactor: 1
+    - Entity: 6486072799019229595
+      TagComponent:
+        Name: Quad
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [2.02999997, 2.02999997, 2.02999997]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [1, 0, 0, 0.75]
+        TextureHandle: 0
+        TilingFactor: 1

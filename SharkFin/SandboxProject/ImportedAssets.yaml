@@ -2,6 +2,12 @@ Assets:
   - Handle: 0x37dc48808083e849
     Type: Scene
     FilePath: Scenes/Cube.skscene
+  - Handle: 0xe4f93e473d8986d4
+    Type: Scene
+    FilePath: Scenes/DepthTest.skscene
+  - Handle: 0xfae4a308ce9caa38
+    Type: Scene
+    FilePath: Scenes/OIT.skscene
   - Handle: 0xa9ee34220b696ff1
     Type: Scene
     FilePath: Scenes/Parenting.skscene

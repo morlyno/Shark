@@ -97,11 +97,13 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Serializing Scene to {}", metadata.FilePath);
 		Timer timer;
 
+#if 0
 		if (!ResourceManager::HasExistingFilePath(metadata))
 		{
 			SK_SERIALIZATION_ERROR("Path not found! {0}", metadata.FilePath);
 			return false;
 		}
+#endif
 
 		std::string result = SerializeToYAML(asset.As<Scene>());
 		if (result.empty())

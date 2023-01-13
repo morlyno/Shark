@@ -41,8 +41,8 @@ namespace Shark {
 			fbspecs.Width = m_ViewportWidth;
 			fbspecs.Height = m_ViewportHeight;
 			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
-			fbspecs.Atachments[1].Blend = false;
-			fbspecs.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+			fbspecs.Atachments[1].BlendEnabled = false;
+			fbspecs.ClearColor = m_ClearColor;
 			m_GeometryFrameBuffer = FrameBuffer::Create(fbspecs);
 			m_Renderer2D = Ref<Renderer2D>::Create(m_GeometryFrameBuffer);
 		}
@@ -55,7 +55,7 @@ namespace Shark {
 			fbspecs.Height = m_ViewportHeight;
 			fbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
-			fbspecs.Atachments[1].Blend = false;
+			fbspecs.Atachments[1].BlendEnabled = false;
 			fbspecs.Atachments[0].Image = m_GeometryFrameBuffer->GetImage(0);
 			fbspecs.Atachments[1].Image = m_GeometryFrameBuffer->GetImage(1);
 			fbspecs.Atachments[2].Image = m_GeometryFrameBuffer->GetDepthImage();
@@ -123,14 +123,20 @@ namespace Shark {
 		m_Renderer2D->DrawCircle(transform, tintcolor, id);
 	}
 
-	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
+	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, bool isTransparent, int id)
 	{
-		m_Renderer2D->DrawQuad(transform, texture, tilingfactor, tintcolor, id);
+		if (isTransparent)
+			m_Renderer2D->DrawQuadTransparent(transform, texture, tilingfactor, tintcolor, id);
+		else
+			m_Renderer2D->DrawQuad(transform, texture, tilingfactor, tintcolor, id);
 	}
 
-	void SceneRenderer::SubmitFilledCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, int id)
+	void SceneRenderer::SubmitFilledCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, bool isTransparent, int id)
 	{
-		m_Renderer2D->DrawFilledCircle(transform, tintcolor, thickness, fade, id);
+		if (isTransparent)
+			m_Renderer2D->DrawFilledCircleTransparent(transform, tintcolor, thickness, fade, id);
+		else
+			m_Renderer2D->DrawFilledCircle(transform, tintcolor, thickness, fade, id);
 	}
 
 	void SceneRenderer::Resize(uint32_t width, uint32_t height)
@@ -149,11 +155,21 @@ namespace Shark {
 
 	void SceneRenderer::DrawSettings()
 	{
-		if (ImGui::CollapsingHeader("Scene Renderer"))
+		auto profiler = Application::Get().GetProfiler();
+		profiler->Add("Geometry Pass", m_Renderer2D->GetStatistics().GeometryPassTime);
+		profiler->Add("Opaque Geometry Pass", m_Renderer2D->GetStatistics().OpaqueGeometryTime);
+		profiler->Add("OIT Geometry Pass", m_Renderer2D->GetStatistics().OITGeometryTime);
+
+		const void* treeNodeID = this;
+		if (ImGui::TreeNodeEx(treeNodeID, ImGuiTreeNodeFlags_CollapsingHeader, "Scene Renderer [%s]", m_DebugName.c_str()))
 		{
 			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
 				UI::BeginControlsGrid();
+
+				if (UI::ControlColor("Clear Color", m_ClearColor))
+					m_GeometryFrameBuffer->SetClearColor(m_ClearColor);
+
 				UI::EndControls();
 
 				ImGui::TreePop();
@@ -167,7 +183,6 @@ namespace Shark {
 				UI::Property("Quads", fmt::format("{}", stats.QuadCount));
 				UI::Property("Cirlces", fmt::format("{}", stats.CircleCount));
 				UI::Property("Lines", fmt::format("{}", stats.LineCount));
-				UI::Property("LinesOnTop", fmt::format("{}", stats.LineOnTopCount));
 				UI::Property("Vertices", fmt::format("{}", stats.VertexCount));
 				UI::Property("Indices", fmt::format("{}", stats.IndexCount));
 				UI::Property("Textures", fmt::format("{}", stats.TextureCount));
@@ -176,20 +191,44 @@ namespace Shark {
 				ImGui::TreePop();
 			}
 
-			if (ImGui::TreeNodeEx("GPU Times", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
-			{
-				UI::BeginControlsGrid();
-				const auto& stats = m_Renderer2D->GetStatistics();
-				UI::Property("GeometryPass", fmt::format("{:.4f}ms", stats.GeometryPassTime.MilliSeconds()));
-				UI::EndControls();
+			UI::ScopedStyle treeNodeIndent(ImGuiStyleVar_IndentSpacing, 0.0f);
 
+			if (ImGui::TreeNodeEx("Depth Buffer", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				Ref<Image2D> depthImage = m_Renderer2D->GetDepthImage();
+				const float ratio = (float)depthImage->GetHeight() / (float)depthImage->GetWidth();
+				const ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x * ratio };
+				ImGui::Image(depthImage->GetViewID(), size);
 				ImGui::TreePop();
 			}
 
-			Ref<Image2D> depthImage = m_Renderer2D->GetDepthImage();
-			const float ratio = (float)depthImage->GetHeight() / (float)depthImage->GetWidth();
-			const ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x * ratio };
-			ImGui::Image(depthImage->GetViewID(), size);
+			if (ImGui::TreeNodeEx("Transparent Geometry", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				Ref<Image2D> image = m_Renderer2D->m_TransparentGeometryFrameBuffer->GetImage(0);
+				const float ratio = (float)image->GetHeight() / (float)image->GetWidth();
+				const ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x * ratio };
+				ImGui::Image(image->GetViewID(), size);
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNodeEx("Revealage", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				Ref<Image2D> image = m_Renderer2D->m_TransparentGeometryFrameBuffer->GetImage(1);
+				const float ratio = (float)image->GetHeight() / (float)image->GetWidth();
+				const ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x * ratio };
+				ImGui::Image(image->GetViewID(), size);
+				ImGui::TreePop();
+			}
+			
+			if (ImGui::TreeNodeEx("Transparent Depth", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
+			{
+				Ref<Image2D> image = m_Renderer2D->m_TransparentDepthBuffer->GetDepthImage();
+				const float ratio = (float)image->GetHeight() / (float)image->GetWidth();
+				const ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x * ratio };
+				ImGui::Image(image->GetViewID(), size);
+				ImGui::TreePop();
+			}
+
 		}
 	}
 

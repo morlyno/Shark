@@ -1379,6 +1379,32 @@ namespace Shark {
 
 				UI::Control("Read Hoved Entity", m_ReadHoveredEntity);
 
+				UI::Control("Read Pixel", m_ReadPixel);
+
+				if (m_ReadPixel)
+				{
+					if (Input::IsMouseDown(MouseButton::Right))
+					{
+						auto [mx, my] = ImGui::GetMousePos();
+						auto [wx, wy] = m_ViewportPos;
+						int x = (int)(mx - wx);
+						int y = (int)(my - wy);
+
+						auto finalImage = m_SceneRenderer->GetFinalImage();
+						auto storage = finalImage->RT_GetStorageImage();
+						uint32_t pixel;
+						if (storage->RT_ReadPixel(x, y, pixel))
+						{
+							auto color = ImGui::ColorConvertU32ToFloat4(pixel);
+							m_HoveredColor = { color.x, color.y, color.z, color.w };
+						}
+					}
+
+					UI::PropertyColor("Color", m_HoveredColor);
+				}
+
+
+
 				UI::EndControls();
 			}
 		});

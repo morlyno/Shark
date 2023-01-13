@@ -17,9 +17,8 @@ namespace Shark {
 		virtual void Release() override;
 		void RT_Release();
 
-		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer) override { Clear(commandBuffer, m_Specification.ClearColor); }
-		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer, const glm::vec4& clearcolor) override;
-		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) override { ClearAtachment(commandBuffer, index, m_Specification.ClearColor); }
+		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer);
+		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) override;
 		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearcolor) override;
 		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) override;
 
@@ -27,6 +26,8 @@ namespace Shark {
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
 		virtual void Resize(uint32_t width, uint32_t height) override;
+
+		virtual void SetClearColor(const glm::vec4& clearColor) override { m_Specification.ClearColor = clearColor; }
 
 		virtual Ref<Image2D> GetImage(uint32_t index = 0) override { return m_Specification.Atachments[index].Image; }
 		virtual Ref<Image2D> GetDepthImage() override { return m_DepthStencilAtachment->Image; }
@@ -47,9 +48,11 @@ namespace Shark {
 		bool IsColorAtachment(FrameBufferAtachment* atachment) const;
 
 	private:
-		void RT_Clear(Ref<DirectXRenderCommandBuffer> commandBuffer, const glm::vec4& clearColor);
+		void RT_Clear(Ref<DirectXRenderCommandBuffer> commandBuffer);
 		void RT_ClearAtachment(Ref<DirectXRenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearColor);
 		void RT_ClearDepth(Ref<DirectXRenderCommandBuffer> commandBuffer);
+
+		bool FormatSupportsBlending(ImageFormat format);
 
 	protected:
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;

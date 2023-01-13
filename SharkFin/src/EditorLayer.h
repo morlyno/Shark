@@ -157,6 +157,8 @@ namespace Shark {
 		bool m_ShowLogSettings = false;
 		bool m_ShowCreateProject = false;
 		bool m_ShowDebugScripts = false;
+		bool m_ReadPixel = false;
+		glm::vec4 m_HoveredColor;
 
 		int m_HoveredEntityID = -1;
 

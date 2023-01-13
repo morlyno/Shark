@@ -28,8 +28,8 @@ namespace Shark {
 		void SubmitFilledCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness, float fade, int id = -1);
 		void SubmitCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
 
-		void SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id);
-		void SubmitFilledCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, int id);
+		void SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, bool isTransparent, int id);
+		void SubmitFilledCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, bool isTransparent, int id);
 		void SubmitCircle(const glm::mat4& transform, const glm::vec4& tintcolor, int id);
 
 
@@ -60,11 +60,11 @@ namespace Shark {
 
 		// Geometry
 		Ref<FrameBuffer> m_GeometryFrameBuffer;
-		
 		Ref<FrameBuffer> m_ExternalCompositeFrameBuffer;
 
 		bool m_NeedsResize = true;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
+		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 	};
 
 }

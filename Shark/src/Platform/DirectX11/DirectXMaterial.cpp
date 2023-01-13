@@ -49,6 +49,12 @@ namespace Shark {
 			arr->Set(i, textureArray->Get(i));
 	}
 
+	void DirectXMaterial::SetImage(const std::string& name, Ref<Image2D> image, uint32_t binding)
+	{
+		m_ImageMap[name] = image.As<DirectXImage2D>();
+		m_BindingMap[name] = binding;
+	}
+
 	void DirectXMaterial::SetBytes(const std::string& name, byte* data, uint32_t size)
 	{
 		SK_CORE_VERIFY(m_VariableMap.find(name) != m_VariableMap.end());

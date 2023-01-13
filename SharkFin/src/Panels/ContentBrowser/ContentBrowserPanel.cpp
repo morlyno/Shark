@@ -764,10 +764,12 @@ namespace Shark {
 		if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource)
 		{
 			auto image = Image2D::Create();
-			ImageSerializer serializer(image);
-			if (serializer.Deserialize(ResourceManager::GetFileSystemPath(metadata)))
-				return image;
-			return nullptr;
+			Application::Get().SubmitToMainThread([image, path = ResourceManager::GetFileSystemPath(metadata)]()
+			{
+				ImageSerializer serializer(image);
+				serializer.Deserialize(path);
+			});
+			return image;
 		}
 
 		return GetIcon(metadata);
@@ -778,7 +780,7 @@ namespace Shark {
 		if (!EditorSettings::Get().ContentBrowser.GenerateThumbnails)
 			return;
 
-		ScopedTimer timer("ContentBrowserPanel::GenerateThumbnails");
+		//ScopedTimer timer("ContentBrowserPanel::GenerateThumbnails");
 
 		for (Ref<ContentBrowserItem> item : m_CurrentItems)
 		{

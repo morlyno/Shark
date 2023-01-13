@@ -94,11 +94,14 @@ namespace Shark {
 		m_ShaderLib = Ref<ShaderLibrary>::Create();
 
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadTransparent.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadDepthPass.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Circle.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/Renderer2D_CircleTransparent.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_CircleDepthPass.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Line.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_LineDepthPass.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Composite.hlsl");
 
 		m_ShaderLib->Load("Resources/Shaders/FullScreen.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/CompositWidthDepth.hlsl");
@@ -244,7 +247,14 @@ namespace Shark {
 			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
-			instance->RT_PrepareAndBindMaterialForRendering(dxCommandBuffer, dxMaterial, nullptr);
+			for (const auto& [name, binding] : dxMaterial->m_BindingMap)
+			{
+				auto image = dxMaterial->m_ImageMap.at(name);
+				auto view = image->GetViewNative();
+				ctx->PSSetShaderResources(binding, 1, &view);
+			}
+
+			//instance->RT_PrepareAndBindMaterialForRendering(dxCommandBuffer, dxMaterial, nullptr);
 
 			ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			ctx->DrawIndexed(6, 0, 0);

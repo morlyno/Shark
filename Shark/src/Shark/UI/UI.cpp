@@ -857,6 +857,24 @@ namespace Shark::UI {
 		ControlEndHelper();
 	}
 
+	void Property(std::string_view label, TimeStep timestep)
+	{
+		Property(label, timestep.ToString());
+	}
+
+	void PropertyColor(std::string_view label, const glm::vec4& color)
+	{
+		if (!ControlBeginHelper(label))
+			return;
+
+		ControlHelperDrawLabel(label);
+		glm::vec4 c = color;
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::ColorEdit4("##property", glm::value_ptr(c));
+		//ImGui::ReadOnlyCheckbox("##property", value);
+		ControlEndHelper();
+	}
+
 	void Text(std::string_view str, TextFlags flags)
 	{
 		UI::ScopedColorStack s;

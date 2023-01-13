@@ -1,0 +1,94 @@
+Scene:
+  Name: New Scene
+  ActiveCamera: 0x0
+  Entities:
+    - Entity: 5844435799948036700
+      TagComponent:
+        Name: Quad
+      TransformComponent:
+        Translation: [1.09881377, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [1, 0, 1, 0.494117647]
+        TextureHandle: 0
+        TilingFactor: 1
+    - Entity: 9417297151690144133
+      TagComponent:
+        Name: Quad
+      TransformComponent:
+        Translation: [-3.41769767, 0, 4]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.913725495, 1, 0, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+    - Entity: 9554913045559483356
+      TagComponent:
+        Name: Quad
+      TransformComponent:
+        Translation: [-0.733368158, 0, 2]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0, 1, 0.909803927, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+    - Entity: 10264646555161304556
+      TagComponent:
+        Name: Quad
+      TransformComponent:
+        Translation: [-1.98458171, 0, 3]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0, 1, 0.321568638, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+    - Entity: 12636123879179134592
+      TagComponent:
+        Name: Quad
+      TransformComponent:
+        Translation: [-5, 0, 5]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [1, 0, 0, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+    - Entity: 14794288146413021951
+      TagComponent:
+        Name: Quad
+      TransformComponent:
+        Translation: [0.319155633, 0, 1]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0, 0, 1, 0.494117647]
+        TextureHandle: 0
+        TilingFactor: 1

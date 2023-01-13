@@ -13,6 +13,9 @@ namespace Shark {
 	{
 		None = 0,
 		RGBA8,
+		RGBA16F,
+		R8,
+		R16F,
 		R32_SINT,
 
 		Depth32,

@@ -742,14 +742,14 @@ namespace Shark {
 		if (entity.AllOf<SpriteRendererComponent>())
 		{
 			auto& sr = entity.GetComponent<SpriteRendererComponent>();
-			renderer->SubmitQuad(transform, ResourceManager::GetAsset<Texture2D>(sr.TextureHandle), sr.TilingFactor, sr.Color, (int)entity.GetHandle());
+			renderer->SubmitQuad(transform, ResourceManager::GetAsset<Texture2D>(sr.TextureHandle), sr.TilingFactor, sr.Color, sr.Transparent, (int)entity.GetHandle());
 		}
 
 		if (entity.AllOf<CircleRendererComponent>())
 		{
 			auto& cr = entity.GetComponent<CircleRendererComponent>();
 			if (cr.Filled)
-				renderer->SubmitFilledCircle(transform, cr.Thickness, cr.Fade, cr.Color, (int)entity.GetHandle());
+				renderer->SubmitFilledCircle(transform, cr.Thickness, cr.Fade, cr.Color, cr.Transparent, (int)entity.GetHandle());
 			else
 				renderer->SubmitCircle(transform, cr.Color, (int)entity.GetHandle());
 		}

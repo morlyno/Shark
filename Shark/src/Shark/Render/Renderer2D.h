@@ -14,6 +14,8 @@
 
 #include <glm/glm.hpp>
 
+#define RENDERER2D_DEPTH_ONLY_PASS 1
+
 namespace Shark {
 
 	struct Renderer2DSpecifications
@@ -31,17 +33,15 @@ namespace Shark {
 			uint32_t QuadCount;
 			uint32_t CircleCount;
 			uint32_t LineCount;
-			uint32_t LineOnTopCount;
 
 			uint32_t VertexCount;
 			uint32_t IndexCount;
 
 			uint32_t TextureCount;
 
-			// Currently not correct
-			// only messures the last draw calles not the Flushes
-			// Can be fixed by switching to resizable Batches
 			TimeStep GeometryPassTime;
+			TimeStep OpaqueGeometryTime;
+			TimeStep OITGeometryTime;
 		};
 
 	public:
@@ -68,6 +68,7 @@ namespace Shark {
 
 		void DrawQuad(const glm::mat4& transform, const glm::vec4& color, int id = -1);
 		void DrawQuad(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id = -1);
+		void DrawQuadTransparent(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id = -1);
 
 
 		void DrawFilledCircle(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
@@ -75,7 +76,7 @@ namespace Shark {
 		void DrawFilledCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
 
 		void DrawFilledCircle(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int id = -1);
-
+		void DrawFilledCircleTransparent(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int id = -1);
 
 		void DrawCircle(const glm::vec2& position, float radius, const glm::vec4& color, int id = -1);
 		void DrawCircle(const glm::vec3& position, const glm::vec3& rotation, float radius, const glm::vec4& color, int id = -1);
@@ -101,13 +102,20 @@ namespace Shark {
 		const Renderer2DSpecifications& GetSpecifications() const { return m_Specifications; }
 		const Statistics& GetStatistics() const { return m_Statistics; }
 
-		Ref<Image2D> GetDepthImage() const { return m_DepthFrameBuffer->GetDepthImage(); }
+		Ref<Image2D> GetDepthImage() const { return m_GeometryFrameBuffer->GetDepthImage(); }
+
+	private:
+		void ClearPass();
+		void OpaqueGeometryPass();
+		void OITGeometryPass();
 
 	private:
 		struct QuadBatch;
 
 		void AssureQuadVertexDataSize();
+		void AssureTransparentQuadVertexDataSize();
 		void AssureCircleVertexDataSize();
+		void AssureTransparentCircleVertexDataSize();
 		void AssureLineVertexDataSize();
 
 		void BeginQaudBatch();
@@ -179,25 +187,33 @@ namespace Shark {
 		glm::mat4 m_ViewProj;
 
 		Ref<GPUTimer> m_GeometryPassTimer;
-		Ref<GPUTimer> m_QuadFlushQuery;
-		Ref<GPUTimer> m_CircleFlushQuery;
-		Ref<GPUTimer> m_LineFlushQuery;
-		Ref<GPUTimer> m_LineOnTopFlushQuery;
+		Ref<GPUTimer> m_OpaqueGeometryPassTimer;
+		Ref<GPUTimer> m_OITGeoemtryPassTimer;
 
-
-		// Depth
+		Ref<FrameBuffer> m_GeometryFrameBuffer;
+		Ref<FrameBuffer> m_TransparentGeometryFrameBuffer;
 		Ref<FrameBuffer> m_DepthFrameBuffer;
+		Ref<FrameBuffer> m_TransparentDepthBuffer;
 
 		Ref<Pipeline> m_QuadDepthPassPipeline;
 		Ref<Material> m_QuadDepthPassMaterial;
 		
+		Ref<Pipeline> m_TransparentQuadDepthPassPipeline;
+		Ref<Material> m_TransparentQuadDepthPassMaterial;
+
+		Ref<Pipeline> m_TransparentCircleDepthPassPipeline;
+		Ref<Material> m_TransparentCircleDepthPassMaterial;
+
 		Ref<Pipeline> m_CircleDepthPassPipeline;
 		Ref<Material> m_CircleDepthPassMaterial;
 
 		Ref<Pipeline> m_LineDepthPassPipeline;
 		Ref<Material> m_LineDepthPassMaterial;
 
-		
+		// Composite
+		Ref<Pipeline> m_CompositePipeline;
+		Ref<Material> m_CompositeMaterial;
+
 		struct QuadBatch
 		{
 			uint64_t VertexOffset = 0;
@@ -215,7 +231,7 @@ namespace Shark {
 		// Quad
 		Ref<Pipeline> m_QuadPipeline;
 		Ref<Material> m_QuadMaterial;
-		Ref<Texture2D> m_QuadTextureArray;
+		//Ref<Texture2D> m_QuadTextureArray;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
 		Buffer m_QuadVertexData;
@@ -231,13 +247,36 @@ namespace Shark {
 		Buffer m_CircleVertexData;
 		uint32_t m_CircleIndexCount = 0;
 		uint64_t m_CircleVertexCount = 0;
-
+		
 		// Line
 		Ref<Pipeline> m_LinePipeline;
 		Ref<Material> m_LineMaterial;
 		Ref<VertexBuffer> m_LineVertexBuffer;
 		Buffer m_LineVertexData;
 		uint32_t m_LineVertexCount = 0;
+
+
+		// Quad Transparent
+		Ref<Pipeline> m_TransparentQuadPipeline;
+		Ref<Material> m_TransparentQuadMaterial;
+		Ref<VertexBuffer> m_TransparentQuadVertexBuffer;
+		Ref<IndexBuffer> m_TransparentQuadIndexBuffer;
+		Buffer m_TransparentQuadVertexData;
+		std::vector<QuadBatch> m_TransparentQuadBatches;
+		QuadBatch* m_TransparentQuadBatch;
+		uint32_t m_TransparentQuadIndexCount = 0;
+
+		// Transparent Circle
+		Ref<Pipeline> m_TransparentCirclePipeline;
+		Ref<Material> m_TransparentCircleMaterial;
+		Ref<VertexBuffer> m_TransparentCircleVertexBuffer;
+		Ref<IndexBuffer> m_TransparentCircleIndexBuffer;
+		Buffer m_TransparentCircleVertexData;
+		uint32_t m_TransparentCircleIndexCount = 0;
+		uint64_t m_TransparentCircleVertexCount = 0;
+
+
+		friend class SceneRenderer;
 
 	};
 

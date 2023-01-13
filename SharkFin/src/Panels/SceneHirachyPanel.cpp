@@ -383,6 +383,7 @@ namespace Shark {
 			}
 
 			UI::Control("TilingFactor", comp.TilingFactor, 0.0f, 0.0f, 0.1f);
+			UI::Control("Transparent", comp.Transparent);
 
 			UI::EndControls();
 
@@ -396,6 +397,7 @@ namespace Shark {
 			UI::Control("Thickness", comp.Thickness, 0.1f, 0.0f, 1.0f);
 			UI::Control("Fade", comp.Fade, 0.1f, 0.0f, 10.0f);
 			UI::Control("Filled", comp.Filled);
+			UI::Control("Transparent", comp.Transparent);
 
 			UI::EndControls();
 		});

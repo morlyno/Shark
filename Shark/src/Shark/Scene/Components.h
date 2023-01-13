@@ -60,6 +60,7 @@ namespace Shark {
 		glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		AssetHandle TextureHandle;
 		float TilingFactor = 1.0f;
+		bool Transparent = false;
 
 		SpriteRendererComponent() = default;
 		SpriteRendererComponent(const SpriteRendererComponent&) = default;
@@ -71,6 +72,7 @@ namespace Shark {
 		float Thickness = 1.0f;
 		float Fade = 0.002f;
 		bool Filled = true;
+		bool Transparent = false;
 
 		CircleRendererComponent() = default;
 		CircleRendererComponent(const CircleRendererComponent&) = default;

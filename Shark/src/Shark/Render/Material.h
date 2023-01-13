@@ -30,6 +30,7 @@ namespace Shark {
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index) = 0;
 		virtual void SetTextureArray(const std::string& name, Ref<Texture2DArray> textureArray) = 0;
 
+		virtual void SetImage(const std::string& name, Ref<Image2D> image, uint32_t binding) = 0;
 
 		virtual float GetFloat(const std::string& name) const = 0;
 		virtual const glm::vec2& GetFloat2(const std::string& name) const = 0;

@@ -21,6 +21,9 @@ namespace Shark {
 			{
 				case ImageFormat::None: return DXGI_FORMAT_UNKNOWN;
 				case ImageFormat::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
+				case ImageFormat::RGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+				case ImageFormat::R8: return DXGI_FORMAT_R8_UNORM;
+				case ImageFormat::R16F: return DXGI_FORMAT_R16_FLOAT;
 				case ImageFormat::R32_SINT: return DXGI_FORMAT_R32_SINT;
 				case ImageFormat::Depth32: return DXGI_FORMAT_R32_TYPELESS;
 			}
@@ -34,6 +37,9 @@ namespace Shark {
 			{
 				case ImageFormat::None: return DXGI_FORMAT_UNKNOWN;
 				case ImageFormat::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
+				case ImageFormat::RGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+				case ImageFormat::R8: return DXGI_FORMAT_R8_UNORM;
+				case ImageFormat::R16F: return DXGI_FORMAT_R16_FLOAT;
 				case ImageFormat::R32_SINT: return DXGI_FORMAT_R32_SINT;
 				case ImageFormat::Depth32: return DXGI_FORMAT_R32_FLOAT;
 			}
@@ -69,6 +75,9 @@ namespace Shark {
 			{
 				case ImageFormat::None: return 0;
 				case ImageFormat::RGBA8: return 4;
+				case ImageFormat::RGBA16F: return 8; // 4 * 2bytes
+				case ImageFormat::R8: return 1;
+				case ImageFormat::R16F: return 2;
 				case ImageFormat::R32_SINT: return 4;
 				case ImageFormat::Depth32: return 4;
 			}
@@ -334,6 +343,9 @@ namespace Shark {
 			SK_CORE_WARN("Read Pixel only works with ImageType::Sotrage!");
 			return false;
 		}
+
+		if (x >= m_Specification.Width || y >= m_Specification.Height)
+			return false;
 
 		auto ctx = DirectXRenderer::GetContext();
 		D3D11_MAPPED_SUBRESOURCE ms;
