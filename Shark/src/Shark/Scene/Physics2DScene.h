@@ -54,6 +54,7 @@ namespace Shark {
 		void SetOnPhyicsStepCallback(const Func& func) { m_OnPhysicsStep = func; }
 
 		b2World* GetWorld() const { return m_World; }
+		b2Body* GetBody(Entity entity) const;
 	private:
 		b2World* m_World = nullptr;
 
@@ -71,6 +72,7 @@ namespace Shark {
 
 	namespace Phyiscs2DUtils {
 
+		b2Vec2 ToB2Vec(const glm::vec2& vec);
 		glm::vec2 FromBody(b2Body* body);
 		glm::mat4 GetMatrix(b2Body* body);
 

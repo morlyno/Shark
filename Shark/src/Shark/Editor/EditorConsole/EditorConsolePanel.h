@@ -43,7 +43,7 @@ namespace Shark {
 		void Clear();
 		bool ClearOnPlay() const { return m_ClearOnPlay; }
 
-		static void PushMessage(LogLevelType level, const std::string& time, const std::string& message);
+		static void PushMessage(Log::Level level, const std::string& time, const std::string& message);
 
 	private:
 		virtual void OnScenePlay() override;

@@ -87,7 +87,7 @@ namespace Shark {
 
 		bool m_Minimized = false;
 		bool m_Running = true;
-		float m_LastFrameTime = 0;
+		uint64_t m_LastTickCount = 0;
 		TimeStep m_TimeStep = 0.0f;
 		TimeStep m_CPUTime;
 

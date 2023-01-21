@@ -376,4 +376,9 @@ namespace Shark {
 		SK_CORE_ASSERT(std::is_sorted(SubDirectories.begin(), SubDirectories.end(), [](const auto& lhs, const auto& rhs) { return lhs->FilePath < rhs->FilePath; }));
 	}
 
+	void DirectoryInfo::AddAsset(AssetHandle handle)
+	{
+		Assets.emplace_back(handle);
+	}
+
 }

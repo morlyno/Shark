@@ -50,23 +50,23 @@ namespace Shark {
 
 	static void MonoTraceLogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
 	{
-		LogLevelType level = LogLevelType::Trace;
+		Log::Level level = Log::Level::Trace;
 
 		if (strcmp(log_level, "debug") == 0)
-			level = LogLevelType::Debug;
+			level = Log::Level::Debug;
 		else if (strcmp(log_level, "info") == 0)
-			level = LogLevelType::Trace;
+			level = Log::Level::Trace;
 		else if (strcmp(log_level, "message") == 0)
-			level = LogLevelType::Info;
+			level = Log::Level::Info;
 		else if (strcmp(log_level, "warning") == 0)
-			level = LogLevelType::Warn;
+			level = Log::Level::Warn;
 		else if (strcmp(log_level, "error") == 0)
-			level = LogLevelType::Error;
+			level = Log::Level::Error;
 		else if (strcmp(log_level, "critical") == 0)
-			level = LogLevelType::Critical;
+			level = Log::Level::Critical;
 
 		const char* domain = log_domain ? log_domain : "Mono";
-		Log::LogMessage(LoggerType::Core, level, "", "[{0}] {1}", domain, message);
+		Log::LogMessage(Log::Logger::Core, level, "", "[{0}] {1}", domain, message);
 		SK_CORE_ASSERT(!fatal);
 	}
 

@@ -23,6 +23,8 @@ namespace Shark::Debug {
 			m_CameraComponent            = entity.TryGetComponent<CameraComponent>();
 			m_RigidBody2DComponent       = entity.TryGetComponent<RigidBody2DComponent>();
 			m_BoxCollider2DComponent     = entity.TryGetComponent<BoxCollider2DComponent>();
+			m_FrictionJointComponent     = entity.TryGetComponent<DistanceJointComponent>();
+			m_HingeJointComponent        = entity.TryGetComponent<HingeJointComponent>();
 			m_ScriptComponent            = entity.TryGetComponent<ScriptComponent>();
 			
 		}
@@ -37,6 +39,8 @@ namespace Shark::Debug {
 			m_CameraComponent            = registry.try_get<CameraComponent>(entity);
 			m_RigidBody2DComponent       = registry.try_get<RigidBody2DComponent>(entity);
 			m_BoxCollider2DComponent     = registry.try_get<BoxCollider2DComponent>(entity);
+			m_FrictionJointComponent     = registry.try_get<DistanceJointComponent>(entity);
+			m_HingeJointComponent        = registry.try_get<HingeJointComponent>(entity);
 			m_ScriptComponent            = registry.try_get<ScriptComponent>(entity);
 		}
 
@@ -49,6 +53,8 @@ namespace Shark::Debug {
 		const CameraComponent*                 m_CameraComponent           = nullptr;
 		const RigidBody2DComponent*            m_RigidBody2DComponent      = nullptr;
 		const BoxCollider2DComponent*          m_BoxCollider2DComponent    = nullptr;
+		const DistanceJointComponent*          m_FrictionJointComponent    = nullptr;
+		const HingeJointComponent*             m_HingeJointComponent       = nullptr;
 		const ScriptComponent*                 m_ScriptComponent           = nullptr;
 
 	};
@@ -66,6 +72,8 @@ namespace Shark::Debug {
 			if (auto* cameraComponent          = entity.TryGetComponent<CameraComponent>())           m_CameraComponent = *cameraComponent;
 			if (auto* rigidBody2DComponent     = entity.TryGetComponent<RigidBody2DComponent>())      m_RigidBody2DComponent = *rigidBody2DComponent;
 			if (auto* boxCollider2DComponent   = entity.TryGetComponent<BoxCollider2DComponent>())    m_BoxCollider2DComponent = *boxCollider2DComponent;
+			if (auto* frictionJointComponent   = entity.TryGetComponent<DistanceJointComponent>())    m_FrictionJointComponent = *frictionJointComponent;
+			if (auto* hingeJointComponent   = entity.TryGetComponent<HingeJointComponent>())          m_HingeJointComponent = *hingeJointComponent;
 			if (auto* scriptComponent          = entity.TryGetComponent<ScriptComponent>())           m_ScriptComponent = *scriptComponent;
 
 		}
@@ -80,6 +88,8 @@ namespace Shark::Debug {
 			if (auto* cameraComponent          = registry.try_get<CameraComponent>(entity))           m_CameraComponent = *cameraComponent;
 			if (auto* rigidBody2DComponent     = registry.try_get<RigidBody2DComponent>(entity))      m_RigidBody2DComponent = *rigidBody2DComponent;
 			if (auto* boxCollider2DComponent   = registry.try_get<BoxCollider2DComponent>(entity))    m_BoxCollider2DComponent = *boxCollider2DComponent;
+			if (auto* frictionJointComponent   = registry.try_get<DistanceJointComponent>(entity))    m_FrictionJointComponent = *frictionJointComponent;
+			if (auto* hingeJointComponent      = registry.try_get<HingeJointComponent>(entity))       m_HingeJointComponent = *hingeJointComponent;
 			if (auto* scriptComponent          = registry.try_get<ScriptComponent>(entity))           m_ScriptComponent = *scriptComponent;
 		}
 
@@ -92,6 +102,8 @@ namespace Shark::Debug {
 		std::optional<CameraComponent> m_CameraComponent;
 		std::optional<RigidBody2DComponent> m_RigidBody2DComponent;
 		std::optional<BoxCollider2DComponent> m_BoxCollider2DComponent;
+		std::optional<DistanceJointComponent> m_FrictionJointComponent;
+		std::optional<HingeJointComponent> m_HingeJointComponent;
 		std::optional<ScriptComponent> m_ScriptComponent;
 	};
 

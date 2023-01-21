@@ -19,6 +19,9 @@
 #include <box2d/b2_circle_shape.h>
 #include <box2d/b2_fixture.h>
 #include "box2d/b2_contact.h"
+#include "box2d/b2_friction_joint.h"
+#include "box2d/b2_distance_joint.h"
+#include "box2d/b2_revolute_joint.h"
 
 namespace Shark {
 
@@ -107,6 +110,8 @@ namespace Shark {
 		CopyComponents<RigidBody2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<BoxCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<CircleCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<DistanceJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<HingeJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<ScriptComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 
 	}
@@ -361,6 +366,8 @@ namespace Shark {
 		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CircleCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<DistanceJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<HingeJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<ScriptComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 
 		return newEntity;
@@ -509,7 +516,7 @@ namespace Shark {
 
 	bool Scene::ValidEntityID(UUID entityID) const
 	{
-		return m_EntityUUIDMap.find(entityID) != m_EntityUUIDMap.end();
+		return entityID.IsValid() && m_EntityUUIDMap.find(entityID) != m_EntityUUIDMap.end();
 	}
 
 	Entity Scene::GetActiveCameraEntity() const
@@ -719,6 +726,79 @@ namespace Shark {
 					fixturedef.isSensor = cc2d.IsSensor;
 
 					cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
+				}
+
+			}
+
+			{
+				auto view = m_Registry.view<DistanceJointComponent>();
+				for (entt::entity ent : view)
+				{
+					Entity entity{ ent, this };
+					auto& distanceJointComp = entity.GetComponent<DistanceJointComponent>();
+
+					if (!ValidEntityID(distanceJointComp.ConnectedEntity))
+						continue;
+
+					Entity connectedEntity = GetEntityByUUID(distanceJointComp.ConnectedEntity);
+					SK_CORE_ASSERT(connectedEntity);
+
+					auto connectedBody = m_PhysicsScene.GetBody(connectedEntity);
+					auto body = m_PhysicsScene.GetBody(entity);
+					if (!body || !connectedBody)
+						continue;
+
+					b2DistanceJointDef def;
+					const b2Vec2 anchorA = body->GetPosition() + Phyiscs2DUtils::ToB2Vec(distanceJointComp.AnchorOffsetA);
+					const b2Vec2 anchorB = connectedBody->GetPosition() + Phyiscs2DUtils::ToB2Vec(distanceJointComp.AnchorOffsetB);
+
+					def.Initialize(body, connectedBody, anchorA, anchorB);
+					def.collideConnected = distanceJointComp.CollideConnected;
+
+					if (distanceJointComp.MinLength >= 0.0f)
+						def.minLength = distanceJointComp.MinLength;
+
+					if (distanceJointComp.MaxLength >= 0.0f)
+						def.maxLength = distanceJointComp.MaxLength;
+
+					def.stiffness = distanceJointComp.Stiffness;
+					def.damping = distanceJointComp.Damping;
+
+					b2Joint* joint = world->CreateJoint(&def);
+					distanceJointComp.RuntimeJoint = (b2DistanceJoint*)joint;
+				}
+			}
+
+			{
+				auto view = m_Registry.view<HingeJointComponent>();
+				for (entt::entity ent : view)
+				{
+					Entity entity{ ent, this };
+					auto& hingeJointComp = entity.GetComponent<HingeJointComponent>();
+
+					if (!ValidEntityID(hingeJointComp.ConnectedEntity))
+						continue;
+
+					Entity connectedEntity = GetEntityByUUID(hingeJointComp.ConnectedEntity);
+					SK_CORE_ASSERT(connectedEntity);
+
+					auto connectedBody = m_PhysicsScene.GetBody(connectedEntity);
+					auto body = m_PhysicsScene.GetBody(entity);
+					if (!body || !connectedBody)
+						continue;
+
+					b2RevoluteJointDef def;
+					def.Initialize(body, connectedBody, Phyiscs2DUtils::ToB2Vec(hingeJointComp.Anchor));
+					def.collideConnected = hingeJointComp.CollideConnected;
+
+					def.lowerAngle = hingeJointComp.LowerAngle;
+					def.upperAngle = hingeJointComp.UpperAngle;
+					def.enableMotor = hingeJointComp.EnableMotor;
+					def.motorSpeed = hingeJointComp.MotorSpeed;
+					def.maxMotorTorque = hingeJointComp.MaxMotorTorque;
+
+					b2Joint* joint = world->CreateJoint(&def);
+					hingeJointComp.RuntimeJoint = (b2RevoluteJoint*)joint;
 				}
 			}
 		}

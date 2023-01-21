@@ -70,6 +70,16 @@ namespace Shark {
 		}
 	}
 
+	b2Body* Physics2DScene::GetBody(Entity entity) const
+	{
+		if (entity && entity.AllOf<RigidBody2DComponent>())
+		{
+			auto& comp = entity.GetComponent<RigidBody2DComponent>();
+			return comp.RuntimeBody;
+		}
+		return nullptr;
+	}
+
 	void PhysicsProfile::Reset()
 	{
 		TimeStep = 0.0f;
@@ -95,6 +105,11 @@ namespace Shark {
 		SolvePosition += p.solvePosition;
 		Broadphase += p.broadphase;
 		SolveTOI += p.solveTOI;
+	}
+
+	b2Vec2 Phyiscs2DUtils::ToB2Vec(const glm::vec2& vec)
+	{
+		return { vec.x, vec.y };
 	}
 
 	glm::vec2 Phyiscs2DUtils::FromBody(b2Body* body)

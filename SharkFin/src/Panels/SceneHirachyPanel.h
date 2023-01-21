@@ -48,6 +48,7 @@ namespace Shark {
 				ImGui::PushID(typeid(Comp).name());
 				const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
 
+				UI::ScopedID scopedEntityID(entity.GetUUID());
 				const ImVec2 headerEnd = ImGui::GetItemRectMax() - ImGui::GetWindowPos();
 				const float buttonSize = ImGui::GetItemRectSize().y;
 				ImGui::SameLine(headerEnd.x - buttonSize);

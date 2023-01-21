@@ -205,16 +205,23 @@ namespace Shark {
 			{
 				case FileEvent::Created:
 				{
+					Ref<DirectoryInfo> parent = GetDirectory(event.FilePath.parent_path());
+					if (!parent)
+						break;
+
 					if (isDirectory)
 					{
-						Ref<DirectoryInfo> parent = GetDirectory(event.FilePath.parent_path());
-						if (parent)
-						{
-							std::filesystem::path filePath = m_Project->GetRelative(event.FilePath);
-							Ref<DirectoryInfo> directory = Ref<DirectoryInfo>::Create(parent, filePath, AssetHandle::Generate());
-							parent->AddDirectory(directory);
-							m_DirectoryHandleMap[directory->Handle] = directory;
-						}
+						std::filesystem::path filePath = m_Project->GetRelative(event.FilePath);
+						Ref<DirectoryInfo> directory = Ref<DirectoryInfo>::Create(parent, filePath, AssetHandle::Generate());
+						parent->AddDirectory(directory);
+						m_DirectoryHandleMap[directory->Handle] = directory;
+					}
+
+					if (!isDirectory)
+					{
+						const auto& metadata = ResourceManager::GetMetaData(event.FilePath);
+						if (metadata.IsValid())
+							parent->AddAsset(metadata.Handle);
 					}
 					break;
 				}
@@ -228,15 +235,8 @@ namespace Shark {
 						break;
 					}
 
-					const auto& metadata = ResourceManager::GetMetaData(event.FilePath);
-					if (metadata.IsValid())
-					{
-						Ref<DirectoryInfo> directory = GetDirectory(event.FilePath.parent_path());
-						directory->Assets.erase(std::find(directory->Assets.begin(), directory->Assets.end(), metadata.Handle));
-
-						auto item = m_CurrentItems.Get(metadata.Handle);
-						Internal_OnItemDeleted(item);
-					}
+					// TODO(moro): fix-me
+					Reload();
 					break;
 				}
 				case FileEvent::OldName:
@@ -256,7 +256,7 @@ namespace Shark {
 						break;
 					}
 
-					const auto& metadata = ResourceManager::GetMetaData(event.FilePath);
+					const auto& metadata = ResourceManager::GetMetaData(event2.FilePath);
 					if (metadata.IsValid())
 					{
 						if (auto item = m_CurrentItems.Get(metadata.Handle))

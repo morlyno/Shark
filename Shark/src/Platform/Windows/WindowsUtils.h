@@ -40,9 +40,8 @@ namespace Shark {
 		static std::string_view GetConfiguration();
 		static std::string_view GetArchitecture();
 
-		static float GetTime() { return (float)GetPerformanceCount() / (float)GetPerformanceFrequency(); }
-		static uint64_t GetPerformanceCount();
-		static uint64_t GetPerformanceFrequency();
+		static uint64_t GetTicks();
+		static uint64_t GetTicksPerSecond();
 
 		static void SetThreadName(HANDLE thread, const std::wstring& name);
 		static void SetThreadName(std::thread& thread, const std::wstring& name) { SetThreadName(thread.native_handle(), name); }

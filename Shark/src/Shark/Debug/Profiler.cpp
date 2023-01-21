@@ -26,7 +26,7 @@ namespace Shark {
 		{
 			Storage = profiler->GetStorage(descriptor);
 			Storage->Descriptor = descriptor;
-			m_Start = PlatformUtils::GetPerformanceCount();
+			m_Start = PlatformUtils::GetTicks();
 		}
 	}
 
@@ -34,8 +34,8 @@ namespace Shark {
 	{
 		if (Storage)
 		{
-			m_Stop = PlatformUtils::GetPerformanceCount();
-			Storage->Duration += (float)(m_Stop - m_Start) / (float)PlatformUtils::GetPerformanceFrequency();
+			m_Stop = PlatformUtils::GetTicks();
+			Storage->Duration += (float)(m_Stop - m_Start) / (float)PlatformUtils::GetTicksPerSecond();
 		}
 	}
 

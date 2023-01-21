@@ -10,6 +10,8 @@
 
 class b2Body;
 class b2Fixture;
+class b2DistanceJoint;
+class b2RevoluteJoint;
 
 namespace Shark {
 
@@ -144,6 +146,39 @@ namespace Shark {
 
 		CircleCollider2DComponent() = default;
 		CircleCollider2DComponent(const CircleCollider2DComponent&) = default;
+	};
+
+	struct DistanceJointComponent
+	{
+		UUID ConnectedEntity = UUID::Null;
+		bool CollideConnected = true;
+
+		glm::vec2 AnchorOffsetA;
+		glm::vec2 AnchorOffsetB;
+
+		float MinLength = -1.0f;
+		float MaxLength = -1.0f;
+
+		float Stiffness = 0.0f;
+		float Damping = 0.0f;
+
+		b2DistanceJoint* RuntimeJoint;
+	};
+
+	struct HingeJointComponent
+	{
+		UUID ConnectedEntity = UUID::Null;
+		bool CollideConnected = true;
+
+		glm::vec2 Anchor = glm::vec2(0.0f);
+		float LowerAngle = 0.0f;
+		float UpperAngle = 0.0f;
+
+		bool EnableMotor = false;
+		float MotorSpeed = 0.0f;
+		float MaxMotorTorque = 0.0f;
+
+		b2RevoluteJoint* RuntimeJoint;
 	};
 
 	struct ScriptComponent

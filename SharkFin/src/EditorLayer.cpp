@@ -322,10 +322,8 @@ namespace Shark {
 
 	void EditorLayer::OnFileEvents(const std::vector<FileChangedData>& fileEvents)
 	{
-		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileEvents(fileEvents);
-
-		// NOTE(moro): Resource Manager must be the last thing to recive file events
 		ResourceManager::OnFileEvents(fileEvents);
+		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileEvents(fileEvents);
 	}
 
 	void EditorLayer::OnFileClickedCallback(const std::filesystem::path& filePath)
@@ -1062,18 +1060,15 @@ namespace Shark {
 
 	void EditorLayer::UI_Stats()
 	{
-		if (ImGui::CollapsingHeader("Times"))
+		if (!ImGui::CollapsingHeader("Times"))
+			return;
+
+		auto& app = Application::Get();
+		PerformanceProfiler* profiler = app.GetProfiler();
+
+		if (profiler)
 		{
-			auto& app = Application::Get();
-			PerformanceProfiler* profiler = app.GetProfiler();
-
-			if (!profiler)
-			{
-				UI::Text("Profiler is disabled.");
-				return;
-			}
-
-
+			UI::Text("Profiler is disabled.");
 			{
 				const auto& frameStorages = profiler->GetFrameStorage();
 
@@ -1083,7 +1078,7 @@ namespace Shark {
 				size_t index = 2;
 				for (const auto& [descriptor, data] : frameStorages)
 					m_ProfilerStatsAccumulator[(std::string)data.Descriptor] += data.Duration;
-				
+
 				if (++m_ProfilerSampleCount >= m_ProfilerSamples)
 				{
 					const auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Duration != rhs.Duration ? lhs.Duration > rhs.Duration : lhs.Descriptor > rhs.Descriptor; };
@@ -1125,6 +1120,26 @@ namespace Shark {
 				UI::Property(entry.Descriptor, entry.Duration.ToString());
 			UI::EndControlsGrid();
 		}
+
+		if (ImGui::TreeNodeEx("Physics", UI::DefaultTreeNodeFlags))
+		{
+			UI::BeginControlsGrid();
+			const auto& profile = m_ActiveScene->GetPhysicsScene().GetProfile();
+			UI::Property("TimeStep", profile.TimeStep);
+			UI::Property("Steps", profile.NumSteps);
+			UI::Property("Step", profile.Step);
+			UI::Property("Collide", profile.Collide);
+			UI::Property("Solve", profile.Solve);
+			UI::Property("SolveInit", profile.SolveInit);
+			UI::Property("SolveVelocity", profile.SolveVelocity);
+			UI::Property("SolvePosition", profile.SolvePosition);
+			UI::Property("Broadphase", profile.Broadphase);
+			UI::Property("SolveTOI", profile.SolveTOI);
+			UI::EndControlsGrid();
+
+			ImGui::TreePop();
+		}
+
 	}
 
 	void EditorLayer::UI_ProjectSettings()

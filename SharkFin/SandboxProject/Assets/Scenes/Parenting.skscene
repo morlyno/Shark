@@ -674,7 +674,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.07637644
+        Aspectratio: 2.15459871
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 1
         PerspectiveFar: 1000
@@ -823,7 +823,7 @@ Scene:
         Children:
           []
       SpriteRendererComponent:
-        Color: [1, 1, 1, 1]
+        Color: [0.0840061083, 0.228351206, 0.90196079, 1]
         TextureHandle: 0
         TilingFactor: 1
     - Entity: 18252987067341761038

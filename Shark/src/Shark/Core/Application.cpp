@@ -102,7 +102,7 @@ namespace Shark {
 	void Application::Run()
 	{
 		OnInit();
-		m_LastFrameTime = PlatformUtils::GetTime();
+		m_LastTickCount = PlatformUtils::GetTicks();
 
 		while (m_Running)
 		{
@@ -136,10 +136,11 @@ namespace Shark {
 				m_Window->SwapBuffers();
 			}
 
-			float time = PlatformUtils::GetTime();
-			m_TimeStep = time - m_LastFrameTime;
+			const uint64_t ticks = PlatformUtils::GetTicks();
+			m_TimeStep = (float)(ticks - m_LastTickCount) / PlatformUtils::GetTicksPerSecond();
+			SK_LOG_IF(m_TimeStep > 1.0f, Log::Logger::Core, Log::Level::Warn, "Core", "Large Timestep! {}", m_TimeStep);
 			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
-			m_LastFrameTime = time;
+			m_LastTickCount = ticks;
 		}
 	}
 

@@ -286,6 +286,36 @@ namespace Shark {
 				out << YAML::EndMap;
 			}
 
+			if (auto component = entity.TryGetComponent<DistanceJointComponent>())
+			{
+				out << YAML::Key << "DistanceJointComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "ConnectedEntity" << YAML::Value << component->ConnectedEntity;
+				out << YAML::Key << "CollideConnected" << YAML::Value << component->CollideConnected;
+				out << YAML::Key << "AnchorOffsetA" << YAML::Value << component->AnchorOffsetA;
+				out << YAML::Key << "AnchorOffsetB" << YAML::Value << component->AnchorOffsetB;
+				out << YAML::Key << "MinLength" << YAML::Value << component->MinLength;
+				out << YAML::Key << "MaxLength" << YAML::Value << component->MaxLength;
+				out << YAML::Key << "Stiffness" << YAML::Value << component->Stiffness;
+				out << YAML::Key << "Damping" << YAML::Value << component->Damping;
+				out << YAML::EndMap;
+			}
+
+			if (auto component = entity.TryGetComponent<HingeJointComponent>())
+			{
+				out << YAML::Key << "HingeJointComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "ConnectedEntity" << YAML::Value << component->ConnectedEntity;
+				out << YAML::Key << "CollideConnected" << YAML::Value << component->CollideConnected;
+				out << YAML::Key << "Anchor" << YAML::Value << component->Anchor;
+				out << YAML::Key << "LowerAngle" << YAML::Value << component->LowerAngle;
+				out << YAML::Key << "UpperAngle" << YAML::Value << component->UpperAngle;
+				out << YAML::Key << "EnableMotor" << YAML::Value << component->EnableMotor;
+				out << YAML::Key << "MotorSpeed" << YAML::Value << component->MotorSpeed;
+				out << YAML::Key << "MaxMotorTorque" << YAML::Value << component->MaxMotorTorque;
+				out << YAML::EndMap;
+			}
+
 			if (auto component = entity.TryGetComponent<ScriptComponent>())
 			{
 				out << YAML::Key << "ScriptComponent";
@@ -429,6 +459,32 @@ namespace Shark {
 						component.Restitution = componentNode["Restitution"].as<float>();
 						component.RestitutionThreshold = componentNode["RestitutionThreshold"].as<float>();
 						component.IsSensor = componentNode["IsSensor"].as<bool>();
+					}
+
+					if (auto componentNode = entityNode["DistanceJointComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<DistanceJointComponent>();
+						component.ConnectedEntity = componentNode["ConnectedEntity"].as<UUID>();
+						component.CollideConnected = componentNode["CollideConnected"].as<bool>();
+						component.AnchorOffsetA = componentNode["AnchorOffsetA"].as<glm::vec2>();
+						component.AnchorOffsetB = componentNode["AnchorOffsetB"].as<glm::vec2>();
+						component.MinLength = componentNode["MinLength"].as<float>();
+						component.MaxLength = componentNode["MaxLength"].as<float>();
+						component.Stiffness = componentNode["Stiffness"].as<float>();
+						component.Damping = componentNode["Damping"].as<float>();
+					}
+
+					if (auto componentNode = entityNode["HingeJointComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<HingeJointComponent>();
+						component.ConnectedEntity = componentNode["ConnectedEntity"].as<UUID>();
+						component.CollideConnected = componentNode["CollideConnected"].as<bool>();
+						component.Anchor = componentNode["Anchor"].as<glm::vec2>();
+						component.LowerAngle = componentNode["LowerAngle"].as<float>();
+						component.UpperAngle = componentNode["UpperAngle"].as<float>();
+						component.EnableMotor = componentNode["EnableMotor"].as<bool>();
+						component.MotorSpeed = componentNode["MotorSpeed"].as<float>();
+						component.MaxMotorTorque = componentNode["MaxMotorTorque"].as<float>();
 					}
 
 					if (auto componentNode = entityNode["ScriptComponent"])

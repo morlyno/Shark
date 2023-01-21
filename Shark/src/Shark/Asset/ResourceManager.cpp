@@ -266,6 +266,16 @@ return metadata.IsMemoryAsset;
 
 			switch (event.Type)
 			{
+				case FileEvent::Created:
+				{
+					AssetType assetType = GetAssetTypeFormFilePath(event.FilePath);
+					if (assetType == AssetType::None)
+						break;
+
+					ImportAsset(event.FilePath);
+					break;
+				}
+
 				case FileEvent::Deleted:
 					OnAssetDeleted(event.FilePath);
 					break;
@@ -276,6 +286,7 @@ return metadata.IsMemoryAsset;
 					SK_CORE_ASSERT(fileEvents[i - 1].Type == FileEvent::OldName);
 					auto& oldNameEvent = fileEvents[i - 1];
 					OnAssetRenamed(oldNameEvent.FilePath, event.FilePath);
+					break;
 				}
 			}
 		}

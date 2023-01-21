@@ -12,13 +12,13 @@ namespace Shark {
 
 	Log::LogData* Log::s_Data;
 
-	std::shared_ptr<spdlog::logger> Log::GetLogger(LoggerType loggerType)
+	std::shared_ptr<spdlog::logger> Log::GetLogger(Log::Logger loggerType)
 	{
-		if (loggerType == LoggerType::Core)
+		if (loggerType == Log::Logger::Core)
 			return s_Data->CoreLogger;
-		else if (loggerType == LoggerType::Client)
+		else if (loggerType == Log::Logger::Client)
 			return s_Data->ClientLogger;
-		else if (loggerType == LoggerType::Console)
+		else if (loggerType == Log::Logger::Console)
 			return s_Data->ConsoleLogger;
 		SK_CORE_ASSERT(false, "Unkown LoggerType");
 		return nullptr;

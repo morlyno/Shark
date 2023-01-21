@@ -280,6 +280,8 @@ namespace Shark {
 		const float WindowWidth = ImGui::GetContentRegionAvail().x;
 
 		auto& tag = entity.GetComponent<TagComponent>();
+		UI::PushID(entity.GetUUID());
+		//UI::ScopedID id(entity.GetUUID());
 		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - IDSpacingWidth - style.ItemSpacing.x * 2.0f);
 		ImGui::InputText("##Tag", &tag.Tag);
 
@@ -302,9 +304,13 @@ namespace Shark {
 			utils::DrawAddComponentButton<RigidBody2DComponent>("Rigidbody 2D", entity);
 			utils::DrawAddComponentButton<BoxCollider2DComponent>("Box Collider 2D", entity);
 			utils::DrawAddComponentButton<CircleCollider2DComponent>("Cirlce Collider 2D", entity);
+			utils::DrawAddComponentButton<DistanceJointComponent>("Distance Joint 2D", entity);
+			utils::DrawAddComponentButton<HingeJointComponent>("Hinge Joint 2D", entity);
 			utils::DrawAddComponentButton<ScriptComponent>("Script", entity);
 			ImGui::EndPopup();
 		}
+
+		UI::PopID();
 
 		Ref<SceneHirachyPanel> instance = this;
 		DrawComponet<TransformComponent>(entity, "Transform", [instance](TransformComponent& comp, Entity entity)
@@ -510,6 +516,34 @@ namespace Shark {
 			UI::Control("Restitution", comp.Restitution, 0.1f, 0.0f, 1.0f);
 			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.1f, 0.0f, FLT_MAX);
 			UI::Control("IsSensor", comp.IsSensor);
+			UI::EndControls();
+		});
+
+		DrawComponet<DistanceJointComponent>(entity, "Distance Joint 2D", [](DistanceJointComponent& component, Entity entity)
+		{
+			UI::BeginControlsGrid();
+			UI::Control("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::Control("AnchorA", component.AnchorOffsetA);
+			UI::Control("AnchorB", component.AnchorOffsetB);
+			UI::Control("Min Length", component.MinLength);
+			UI::Control("Max Length", component.MaxLength);
+			UI::Control("Stiffness", component.Stiffness);
+			UI::Control("Damping", component.Damping);
+			UI::Control("Collide Connected", component.CollideConnected);
+			UI::EndControls();
+		});
+		
+		DrawComponet<HingeJointComponent>(entity, "Hinge Joint 2D", [](HingeJointComponent& component, Entity entity)
+		{
+			UI::BeginControlsGrid();
+			UI::Control("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::Control("Anchor", component.Anchor);
+			UI::Control("Lower Angle", component.LowerAngle);
+			UI::Control("Upper Angle", component.UpperAngle);
+			UI::Control("Enable Motor", component.EnableMotor);
+			UI::Control("Motor Speed", component.MotorSpeed);
+			UI::Control("Max Motor Torque", component.MaxMotorTorque);
+			UI::Control("Collide Connected", component.CollideConnected);
 			UI::EndControls();
 		});
 

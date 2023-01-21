@@ -5,6 +5,9 @@ Assets:
   - Handle: 0xe4f93e473d8986d4
     Type: Scene
     FilePath: Scenes/DepthTest.skscene
+  - Handle: 0x20734855b5d47bcd
+    Type: Scene
+    FilePath: Scenes/Joints.skscene
   - Handle: 0xfae4a308ce9caa38
     Type: Scene
     FilePath: Scenes/OIT.skscene

@@ -161,7 +161,7 @@ namespace Shark::UI {
 		auto& c = GContext->Control;
 		SK_CORE_ASSERT(!c.Active, "Controls Begin/End mismatch");
 
-		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable))
+		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp))
 		{
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
@@ -227,6 +227,11 @@ namespace Shark::UI {
 	void EndControlsGrid()
 	{
 		return EndControls();
+	}
+
+	void ControlSetupColumns(std::string_view label, ImGuiTableColumnFlags flags, float init_width_or_weight)
+	{
+		ImGui::TableSetupColumn(label.data(), flags, init_width_or_weight);
 	}
 
 	static void DrawControlSeperator(GridFlags grid)
@@ -860,6 +865,16 @@ namespace Shark::UI {
 	void Property(std::string_view label, TimeStep timestep)
 	{
 		Property(label, timestep.ToString());
+	}
+
+	void Property(std::string_view label, float value)
+	{
+		Property(label, fmt::to_string(value));
+	}
+
+	void Property(std::string_view label, uint32_t value)
+	{
+		Property(label, fmt::to_string(value));
 	}
 
 	void PropertyColor(std::string_view label, const glm::vec4& color)

@@ -49,7 +49,7 @@ namespace Shark {
 
 		#pragma region Log
 
-		void Log_LogMessage(LogLevelType level, MonoString* message);
+		void Log_LogMessage(Log::Level level, MonoString* message);
 
 		#pragma endregion
 

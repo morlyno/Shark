@@ -77,14 +77,14 @@ namespace Shark {
 		return "x64";
 	}
 
-	uint64_t WindowsUtils::GetPerformanceCount()
+	uint64_t WindowsUtils::GetTicks()
 	{
 		LARGE_INTEGER largeInteger;
 		QueryPerformanceCounter(&largeInteger);
 		return largeInteger.QuadPart;
 	}
 
-	uint64_t WindowsUtils::GetPerformanceFrequency()
+	uint64_t WindowsUtils::GetTicksPerSecond()
 	{
 		LARGE_INTEGER largeInteger;
 		QueryPerformanceFrequency(&largeInteger);

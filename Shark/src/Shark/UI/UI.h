@@ -12,8 +12,6 @@
 #include <glm/glm.hpp>
 #include <stack>
 
-#define UI_DRAGDROP_ASSET_TYPE "ASSET"
-#define UI_DRAGDROP_ENTITY_TYPE "ENTITY"
 #define UI_DRAGDROP_DIRECTORY_TYPE "DIRECTORY"
 
 #ifdef IMGUI_DEFINE_MATH_OPERATORS
@@ -107,6 +105,7 @@ namespace Shark::UI {
 	inline ImGuiID GetIDWithSeed(std::string_view strID, uint32_t seed)        { const ImGuiID id = ImHashStr(strID.data(), strID.size(), seed); ImGui::KeepAliveID(id); return id; }
 
 	inline void PushID(ImGuiID id)                                             { GImGui->CurrentWindow->IDStack.push_back(id) ;}
+	inline void PushID(UUID id)                                                { PushID(GetID(id)); }
 	inline void PushID(int intID)                                              { PushID(GetID(intID)); }
 	inline void PushID(void* ptrID)                                            { PushID(GetID(ptrID)); }
 	inline void PushID(const char* strID, const char* strEnd = nullptr)        { PushID(GetID(strID, strEnd)); }
@@ -133,12 +132,21 @@ namespace Shark::UI {
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	struct DragDropID
+	{
+		static constexpr const char* Asset = "ASSET";
+		static constexpr const char* Entity = "ENTITY_ID";
+		static constexpr const char* Directroy = "DIRECTORY";
+	};
+
 	bool BeginControls();
 	bool BeginControlsGrid(GridFlags flags = GridFlag::Label);
 	bool BeginControls(ImGuiID syncID);
 	bool BeginControlsGrid(ImGuiID syncID, GridFlags flags = GridFlag::Label);
 	void EndControls();
 	void EndControlsGrid();
+
+	void ControlSetupColumns(std::string_view label, ImGuiTableColumnFlags flags = 0, float init_width_or_weight = 0.0f);
 
 	bool ControlBeginHelper(ImGuiID id);
 	bool ControlBeginHelper(std::string_view strID);
@@ -186,8 +194,8 @@ namespace Shark::UI {
 	bool Control(std::string_view label, std::string& val);
 	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType = nullptr);
 	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);
-	bool ControlAssetPath(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = UI_DRAGDROP_ASSET_TYPE);
-	bool ControlAssetPath(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType = UI_DRAGDROP_ASSET_TYPE);
+	bool ControlAssetPath(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
+	bool ControlAssetPath(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType = DragDropID::Asset);
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();
@@ -198,7 +206,9 @@ namespace Shark::UI {
 	void Property(std::string_view label, const std::filesystem::path& path, TextFlags flags = TextFlag::None);
 
 	void Property(std::string_view label, const UUID& uuid);
+	void Property(std::string_view label, float value);
 	void Property(std::string_view label, int value);
+	void Property(std::string_view label, uint32_t value);
 	void Property(std::string_view label, bool value);
 
 	void Property(std::string_view label, TimeStep timestep);
@@ -227,6 +237,7 @@ namespace Shark::UI {
 	struct ScopedID
 	{
 		ScopedID(ImGuiID id)                               { PushID(id); }
+		ScopedID(UUID id)                                  { PushID(id); }
 		ScopedID(int intID)                                { PushID(intID); }
 		ScopedID(void* ptrID)                              { PushID(ptrID); }
 		ScopedID(const char* strID, const char* strEnd)    { PushID(strID, strEnd); }

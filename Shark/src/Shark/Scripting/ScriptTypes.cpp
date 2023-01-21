@@ -127,6 +127,7 @@ namespace Shark {
 		{
 			MonoObject* object = GCManager::GetManagedObject(handle);
 			mono_field_set_value(object, Field, nullptr);
+			return;
 		}
 
 		MonoObject* entityInstance;
