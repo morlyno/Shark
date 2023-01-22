@@ -159,6 +159,18 @@ namespace Shark {
 		static constexpr const char* s_GeomatryTypes[] = { "Quad", "Circle" };
 		static constexpr std::string_view s_BodyTypes[] = { "Static", "Dynamic", "Kinematic" };
 
+		struct ComponentData
+		{
+			std::string_view Name;
+			void(*Add)(Entity);
+			bool(*Has)(Entity);
+		};
+		std::vector<ComponentData> m_Components;
+
+		char m_SearchComponentBuffer[260]{};
+		std::string_view m_SearchPattern;
+		bool m_SearchCaseSensitive = false;
+
 		bool m_ScriptFound = false;
 	};
 

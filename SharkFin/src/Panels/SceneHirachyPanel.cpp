@@ -13,13 +13,14 @@
 #include "Shark/UI/Theme.h"
 #include "Shark/Input/Input.h"
 #include "Shark/Math/Math.h"
+#include "Shark/Utils/String.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
-#include "glm/gtx/vector_query.hpp"
+#include <glm/gtx/vector_query.hpp>
 
 namespace Shark {
 
@@ -130,7 +131,19 @@ namespace Shark {
 	SceneHirachyPanel::SceneHirachyPanel(const char* panelName, Ref<Scene> scene)
 		: Panel(panelName), m_Context(scene)
 	{
-		SK_PROFILE_FUNCTION();
+		#define COMPONENT_DATA_ARGS(name, compT) { name, [](Entity entity) { entity.AddComponent<compT>(); }, [](Entity entity) { return entity.AllOf<compT>(); } }
+		m_Components.push_back(COMPONENT_DATA_ARGS("Transform", TransformComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Sprite Renderer", SpriteRendererComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Circle Renderer", CircleRendererComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Camera", CameraComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Rigidbody 2D", RigidBody2DComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Box Collider 2D", BoxCollider2DComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Circle Collider 2D", CircleCollider2DComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Distance Joint 2D", DistanceJointComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Hinge Joint 2D", HingeJointComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Prismatic Joint 2D", PrismaticJointComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 	}
 
 	void SceneHirachyPanel::OnImGuiRender(bool& shown)
@@ -297,18 +310,29 @@ namespace Shark {
 
 		if (ImGui::BeginPopup("Add Component List"))
 		{
-			utils::DrawAddComponentButton<TransformComponent>("Transform", entity);
-			utils::DrawAddComponentButton<SpriteRendererComponent>("Sprite Renderer", entity);
-			utils::DrawAddComponentButton<CircleRendererComponent>("Circle Renderer", entity);
-			utils::DrawAddComponentButton<CameraComponent>("Camera ", entity);
-			utils::DrawAddComponentButton<RigidBody2DComponent>("Rigidbody 2D", entity);
-			utils::DrawAddComponentButton<BoxCollider2DComponent>("Box Collider 2D", entity);
-			utils::DrawAddComponentButton<CircleCollider2DComponent>("Cirlce Collider 2D", entity);
-			utils::DrawAddComponentButton<DistanceJointComponent>("Distance Joint 2D", entity);
-			utils::DrawAddComponentButton<HingeJointComponent>("Hinge Joint 2D", entity);
-			utils::DrawAddComponentButton<PrismaticJointComponent>("Prismatic Joint 2D", entity);
-			utils::DrawAddComponentButton<PulleyJointComponent>("Pulley Joint 2D", entity);
-			utils::DrawAddComponentButton<ScriptComponent>("Script", entity);
+			if (UI::Search(UI::GenerateID(), m_SearchComponentBuffer, sizeof(m_SearchComponentBuffer)))
+			{
+				m_SearchPattern = m_SearchComponentBuffer;
+
+				m_SearchCaseSensitive = false;
+				for (const auto& c : m_SearchPattern)
+				{
+					if (std::isupper(c))
+					{
+						m_SearchCaseSensitive = true;
+						break;
+					}
+				}
+			}
+
+			for (const auto& [name, add, has] : m_Components)
+			{
+				if (m_SearchPattern.size() && !String::Contains(name, m_SearchPattern, m_SearchCaseSensitive))
+					continue;
+
+				if (ImGui::Selectable(name.data(), false, has(entity) ? ImGuiSelectableFlags_Disabled : 0))
+					add(entity);
+			}
 			ImGui::EndPopup();
 		}
 

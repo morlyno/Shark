@@ -2,6 +2,8 @@
 
 namespace Shark::String {
 
+	bool Contains(std::string_view text, std::string_view pattern, bool caseSensitive = true);
+
 	std::string ToLowerCopy(const std::string& str);
 	void ToLower(std::string& str);
 

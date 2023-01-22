@@ -1,7 +1,22 @@
 #include "skpch.h"
 #include "String.h"
+#include <functional>
 
 namespace Shark::String {
+
+	bool Contains(std::string_view text, std::string_view pattern, bool caseSensitive)
+	{
+		bool(*comparer)(const char& lhs, const char& rhs);
+
+		if (caseSensitive)
+			comparer = [](const auto& lhs, const auto& rhs) { return lhs == rhs; };
+		else
+			comparer = [](const auto& lhs, const auto& rhs) { return std::tolower(lhs) == std::tolower(rhs); };
+
+		std::default_searcher searcher(pattern.begin(), pattern.end(), comparer);
+		const auto i = std::search(text.begin(), text.end(), searcher);
+		return i != text.end();
+	}
 
 	std::string ToLowerCopy(const std::string& str)
 	{
