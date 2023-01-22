@@ -55,6 +55,8 @@ namespace Shark {
 
 		b2World* GetWorld() const { return m_World; }
 		b2Body* GetBody(Entity entity) const;
+
+		float GetTimeStep() const { return m_FixedTimeStep; }
 	private:
 		b2World* m_World = nullptr;
 
@@ -73,6 +75,7 @@ namespace Shark {
 	namespace Phyiscs2DUtils {
 
 		b2Vec2 ToB2Vec(const glm::vec2& vec);
+		inline glm::vec2 ToGLMVec(const b2Vec2& vec) { return glm::vec2(vec.x, vec.y); }
 		glm::vec2 FromBody(b2Body* body);
 		glm::mat4 GetMatrix(b2Body* body);
 

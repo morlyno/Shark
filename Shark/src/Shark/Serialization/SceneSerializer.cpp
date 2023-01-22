@@ -316,6 +316,37 @@ namespace Shark {
 				out << YAML::EndMap;
 			}
 
+			if (auto component = entity.TryGetComponent<PrismaticJointComponent>())
+			{
+				out << YAML::Key << "PrismaticJointComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "ConnectedEntity" << YAML::Value << component->ConnectedEntity;
+				out << YAML::Key << "CollideConnected" << YAML::Value << component->CollideConnected;
+				out << YAML::Key << "Anchor" << YAML::Value << component->Anchor;
+				out << YAML::Key << "Axis" << YAML::Value << component->Axis;
+				out << YAML::Key << "EnableLimit" << YAML::Value << component->EnableLimit;
+				out << YAML::Key << "LowerTranslation" << YAML::Value << component->LowerTranslation;
+				out << YAML::Key << "UpperTranslation" << YAML::Value << component->UpperTranslation;
+				out << YAML::Key << "EnableMotor" << YAML::Value << component->EnableMotor;
+				out << YAML::Key << "MotorSpeed" << YAML::Value << component->MotorSpeed;
+				out << YAML::Key << "MaxMotorForce" << YAML::Value << component->MaxMotorForce;
+				out << YAML::EndMap;
+			}
+
+			if (auto component = entity.TryGetComponent<PulleyJointComponent>())
+			{
+				out << YAML::Key << "PulleyJointComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "ConnectedEntity" << YAML::Value << component->ConnectedEntity;
+				out << YAML::Key << "CollideConnected" << YAML::Value << component->CollideConnected;
+				out << YAML::Key << "AnchorA" << YAML::Value << component->AnchorA;
+				out << YAML::Key << "AnchorB" << YAML::Value << component->AnchorB;
+				out << YAML::Key << "GroundAnchorA" << YAML::Value << component->GroundAnchorA;
+				out << YAML::Key << "GroundAnchorB" << YAML::Value << component->GroundAnchorB;
+				out << YAML::Key << "Ratio" << YAML::Value << component->Ratio;
+				out << YAML::EndMap;
+			}
+
 			if (auto component = entity.TryGetComponent<ScriptComponent>())
 			{
 				out << YAML::Key << "ScriptComponent";
@@ -485,6 +516,33 @@ namespace Shark {
 						component.EnableMotor = componentNode["EnableMotor"].as<bool>();
 						component.MotorSpeed = componentNode["MotorSpeed"].as<float>();
 						component.MaxMotorTorque = componentNode["MaxMotorTorque"].as<float>();
+					}
+
+					if (auto componentNode = entityNode["PrismaticJointComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<PrismaticJointComponent>();
+						component.ConnectedEntity = componentNode["ConnectedEntity"].as<UUID>();
+						component.CollideConnected = componentNode["CollideConnected"].as<bool>();
+						component.Anchor = componentNode["Anchor"].as<glm::vec2>();
+						component.Axis = componentNode["Axis"].as<glm::vec2>();
+						component.EnableLimit = componentNode["EnableLimit"].as<bool>();
+						component.LowerTranslation = componentNode["LowerTranslation"].as<float>();
+						component.UpperTranslation = componentNode["UpperTranslation"].as<float>();
+						component.EnableMotor = componentNode["EnableMotor"].as<bool>();
+						component.MotorSpeed = componentNode["MotorSpeed"].as<float>();
+						component.MaxMotorForce = componentNode["MaxMotorForce"].as<float>();
+					}
+
+					if (auto componentNode = entityNode["PulleyJointComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<PulleyJointComponent>();
+						component.ConnectedEntity = componentNode["ConnectedEntity"].as<UUID>();
+						component.CollideConnected = componentNode["CollideConnected"].as<bool>();
+						component.AnchorA = componentNode["AnchorA"].as<glm::vec2>();
+						component.AnchorB = componentNode["AnchorB"].as<glm::vec2>();
+						component.GroundAnchorA = componentNode["GroundAnchorA"].as<glm::vec2>();
+						component.GroundAnchorB = componentNode["GroundAnchorB"].as<glm::vec2>();
+						component.Ratio = componentNode["Ratio"].as<float>();
 					}
 
 					if (auto componentNode = entityNode["ScriptComponent"])

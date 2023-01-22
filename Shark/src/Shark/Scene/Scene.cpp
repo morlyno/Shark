@@ -22,6 +22,8 @@
 #include "box2d/b2_friction_joint.h"
 #include "box2d/b2_distance_joint.h"
 #include "box2d/b2_revolute_joint.h"
+#include "box2d/b2_prismatic_joint.h"
+#include "box2d/b2_pulley_joint.h"
 
 namespace Shark {
 
@@ -112,6 +114,8 @@ namespace Shark {
 		CopyComponents<CircleCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<DistanceJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<HingeJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<PrismaticJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<PulleyJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<ScriptComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 
 	}
@@ -368,6 +372,8 @@ namespace Shark {
 		CopyComponentIfExists<CircleCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<DistanceJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<HingeJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<PrismaticJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<PulleyJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<ScriptComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 
 		return newEntity;
@@ -799,6 +805,73 @@ namespace Shark {
 
 					b2Joint* joint = world->CreateJoint(&def);
 					hingeJointComp.RuntimeJoint = (b2RevoluteJoint*)joint;
+				}
+			}
+
+			{
+				auto view = m_Registry.view<PrismaticJointComponent>();
+				for (entt::entity ent : view)
+				{
+					Entity entity{ ent, this };
+					auto& component = entity.GetComponent<PrismaticJointComponent>();
+
+					if (!ValidEntityID(component.ConnectedEntity))
+						continue;
+
+					Entity connectedEntity = GetEntityByUUID(component.ConnectedEntity);
+					SK_CORE_ASSERT(connectedEntity);
+
+					auto connectedBody = m_PhysicsScene.GetBody(connectedEntity);
+					auto body = m_PhysicsScene.GetBody(entity);
+					if (!body || !connectedBody)
+						continue;
+
+					b2PrismaticJointDef def;
+					def.Initialize(body, connectedBody, Phyiscs2DUtils::ToB2Vec(component.Anchor), Phyiscs2DUtils::ToB2Vec(component.Axis));
+					def.collideConnected = component.CollideConnected;
+
+					def.enableLimit = component.EnableLimit;
+					def.lowerTranslation = component.LowerTranslation;
+					def.upperTranslation = component.UpperTranslation;
+					def.enableMotor = component.EnableMotor;
+					def.motorSpeed = component.MotorSpeed;
+					def.maxMotorForce = component.MaxMotorForce;
+
+					b2Joint* joint = world->CreateJoint(&def);
+					component.RuntimeJoint = (b2PrismaticJoint*)joint;
+				}
+			}
+
+			{
+				auto view = m_Registry.view<PulleyJointComponent>();
+				for (entt::entity ent : view)
+				{
+					Entity entity{ ent, this };
+					auto& component = entity.GetComponent<PulleyJointComponent>();
+
+					if (!ValidEntityID(component.ConnectedEntity))
+						continue;
+
+					Entity connectedEntity = GetEntityByUUID(component.ConnectedEntity);
+					SK_CORE_ASSERT(connectedEntity);
+
+					auto connectedBody = m_PhysicsScene.GetBody(connectedEntity);
+					auto body = m_PhysicsScene.GetBody(entity);
+					if (!body || !connectedBody)
+						continue;
+
+					b2PulleyJointDef def;
+					def.Initialize(body, connectedBody,
+						           Phyiscs2DUtils::ToB2Vec(component.GroundAnchorA),
+						           Phyiscs2DUtils::ToB2Vec(component.GroundAnchorB),
+						           body->GetPosition() + Phyiscs2DUtils::ToB2Vec(component.AnchorA),
+						           connectedBody->GetPosition() + Phyiscs2DUtils::ToB2Vec(component.AnchorB),
+						           component.Ratio);
+
+					def.collideConnected = component.CollideConnected;
+
+					b2Joint* joint = world->CreateJoint(&def);
+					component.RuntimeJoint = (b2PulleyJoint*)joint;
 				}
 			}
 		}

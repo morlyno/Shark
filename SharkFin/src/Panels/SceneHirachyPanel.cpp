@@ -306,6 +306,8 @@ namespace Shark {
 			utils::DrawAddComponentButton<CircleCollider2DComponent>("Cirlce Collider 2D", entity);
 			utils::DrawAddComponentButton<DistanceJointComponent>("Distance Joint 2D", entity);
 			utils::DrawAddComponentButton<HingeJointComponent>("Hinge Joint 2D", entity);
+			utils::DrawAddComponentButton<PrismaticJointComponent>("Prismatic Joint 2D", entity);
+			utils::DrawAddComponentButton<PulleyJointComponent>("Pulley Joint 2D", entity);
 			utils::DrawAddComponentButton<ScriptComponent>("Script", entity);
 			ImGui::EndPopup();
 		}
@@ -543,6 +545,35 @@ namespace Shark {
 			UI::Control("Enable Motor", component.EnableMotor);
 			UI::Control("Motor Speed", component.MotorSpeed);
 			UI::Control("Max Motor Torque", component.MaxMotorTorque);
+			UI::Control("Collide Connected", component.CollideConnected);
+			UI::EndControls();
+		});
+		
+		DrawComponet<PrismaticJointComponent>(entity, "Prismatic Joint 2D", [](PrismaticJointComponent& component, Entity entity)
+		{
+			UI::BeginControlsGrid();
+			UI::Control("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::Control("Anchor", component.Anchor);
+			UI::Control("Axis", component.Axis);
+			UI::Control("Enable Limit", component.EnableLimit);
+			UI::Control("Lower Translation", component.LowerTranslation);
+			UI::Control("Upper Translation", component.UpperTranslation);
+			UI::Control("Enable Motor", component.EnableMotor);
+			UI::Control("Motor Speed", component.MotorSpeed);
+			UI::Control("Max Motor Force", component.MaxMotorForce);
+			UI::Control("Collide Connected", component.CollideConnected);
+			UI::EndControls();
+		});
+		
+		DrawComponet<PulleyJointComponent>(entity, "Pulley Joint 2D", [](PulleyJointComponent& component, Entity entity)
+		{
+			UI::BeginControlsGrid();
+			UI::Control("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::Control("AnchorA", component.AnchorA);
+			UI::Control("AnchorB", component.AnchorB);
+			UI::Control("Ground AnchorA", component.GroundAnchorA);
+			UI::Control("Ground AnchorB", component.GroundAnchorB);
+			UI::Control("Ratio", component.Ratio, FLT_EPSILON, FLT_MAX);
 			UI::Control("Collide Connected", component.CollideConnected);
 			UI::EndControls();
 		});

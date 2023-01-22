@@ -12,6 +12,8 @@ class b2Body;
 class b2Fixture;
 class b2DistanceJoint;
 class b2RevoluteJoint;
+class b2PrismaticJoint;
+class b2PulleyJoint;
 
 namespace Shark {
 
@@ -179,6 +181,39 @@ namespace Shark {
 		float MaxMotorTorque = 0.0f;
 
 		b2RevoluteJoint* RuntimeJoint;
+	};
+
+	struct PrismaticJointComponent
+	{
+		UUID ConnectedEntity = UUID::Null;
+		bool CollideConnected = true;
+
+		glm::vec2 Anchor = glm::vec2(0.0f);
+		glm::vec2 Axis = glm::vec2(1.0f, 0.0f);
+
+		bool EnableLimit = false;
+		float LowerTranslation = 0.0f;
+		float UpperTranslation = 0.0f;
+
+		bool EnableMotor = false;
+		float MaxMotorForce = 0.0f;
+		float MotorSpeed = 0.0f;
+
+		b2PrismaticJoint* RuntimeJoint;
+	};
+
+	struct PulleyJointComponent
+	{
+		UUID ConnectedEntity = UUID::Null;
+		bool CollideConnected = true;
+
+		glm::vec2 AnchorA = glm::vec2(0.0f);
+		glm::vec2 AnchorB = glm::vec2(0.0f);
+		glm::vec2 GroundAnchorA = glm::vec2(0.0f);
+		glm::vec2 GroundAnchorB = glm::vec2(0.0f);
+		float Ratio = 1.0f;
+
+		b2PulleyJoint* RuntimeJoint;
 	};
 
 	struct ScriptComponent

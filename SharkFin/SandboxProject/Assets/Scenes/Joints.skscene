@@ -2,6 +2,62 @@ Scene:
   Name: Untitled
   ActiveCamera: 0xbbdb8872e6e21912
   Entities:
+    - Entity: 99374724913528899
+      TagComponent:
+        Name: Prismatic A
+      TransformComponent:
+        Translation: [11.1055298, 4.27020216, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 546865776657676701
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [1, 1, 1, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+      RigidBody2DComponent:
+        Type: Dynamic
+        FixedRotation: false
+        IsBullet: false
+        Awake: true
+        Enabled: true
+        AllowSleep: true
+        GravityScale: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      PrismaticJointComponent:
+        ConnectedEntity: 3955673462127707157
+        CollideConnected: true
+        Anchor: [11.1059999, 4.26999998]
+        Axis: [1, 0]
+        EnableLimit: false
+        LowerTranslation: 0
+        UpperTranslation: 0
+        EnableMotor: false
+        MotorSpeed: 0
+        MaxMotorForce: 0
+    - Entity: 546865776657676701
+      TagComponent:
+        Name: Primatic
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 99374724913528899
+          - 3955673462127707157
+          - 6339339384337201734
     - Entity: 779216506898399951
       TagComponent:
         Name: Circle
@@ -176,12 +232,83 @@ Scene:
           - 7494786954438275739
           - 7240910275087375595
           - 7189693342649515940
-          - 6788079642221728043
           - 13803745095599733871
           - 7971993281584199363
           - 1380530076899569671
           - 779216506898399951
           - 13802724810542002879
+    - Entity: 3719233782163807302
+      TagComponent:
+        Name: A
+      TransformComponent:
+        Translation: [53.5087509, 2.62229443, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 17242256274606975090
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.696293175, 0.107530795, 0.877451003, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+      RigidBody2DComponent:
+        Type: Dynamic
+        FixedRotation: false
+        IsBullet: false
+        Awake: true
+        Enabled: true
+        AllowSleep: true
+        GravityScale: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+      PulleyJointComponent:
+        ConnectedEntity: 17509201931412007199
+        CollideConnected: true
+        AnchorA: [0, 0]
+        AnchorB: [0, 0]
+        GroundAnchorA: [53.5089989, 2.62199998]
+        GroundAnchorB: [57.9259987, 7.8670001]
+        Ratio: 1
+    - Entity: 3955673462127707157
+      TagComponent:
+        Name: Prismatic B
+      TransformComponent:
+        Translation: [15.9846869, 5.80323219, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 546865776657676701
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [1, 1, 1, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+      RigidBody2DComponent:
+        Type: Dynamic
+        FixedRotation: false
+        IsBullet: false
+        Awake: true
+        Enabled: true
+        AllowSleep: true
+        GravityScale: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
     - Entity: 4543316607250362612
       TagComponent:
         Name: Car
@@ -227,6 +354,21 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
+    - Entity: 6339339384337201734
+      TagComponent:
+        Name: Prismatic Anchor
+      TransformComponent:
+        Translation: [13.5597553, 4.98113537, 0]
+        Rotation: [0, 0, 0]
+        Scale: [0.300000012, 0.300000012, 0.300000012]
+      RelationshipComponent:
+        Parent: 546865776657676701
+        Children:
+          []
+      CircleRendererComponent:
+        Color: [1, 0, 0, 1]
+        Thickness: 1
+        Fade: 0.00200000009
     - Entity: 6693983604047464155
       TagComponent:
         Name: Body
@@ -259,34 +401,6 @@ Scene:
         Restitution: 0
         RestitutionThreshold: 1
         IsSensor: false
-    - Entity: 6788079642221728043
-      TagComponent:
-        Name: Floor
-      TransformComponent:
-        Translation: [10.9783669, 5.04832745, 0]
-        Rotation: [0, 0, 0]
-        Scale: [3.8718853, 1, 1]
-      RelationshipComponent:
-        Parent: 2076647844189626938
-        Children:
-          []
-      SpriteRendererComponent:
-        Color: [0.132342368, 0.544117689, 0.0613466054, 1]
-        TextureHandle: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 1
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
-      ScriptComponent:
-        ScriptName: Sandbox.FloorScript
-        Fields:
-          []
     - Entity: 7189693342649515940
       TagComponent:
         Name: Floor
@@ -399,6 +513,21 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
+    - Entity: 8349384432737817368
+      TagComponent:
+        Name: Anchor A
+      TransformComponent:
+        Translation: [53.6503525, 7.86679935, 0]
+        Rotation: [0, 0, 0]
+        Scale: [0.470599979, 0.470599979, 0.470599979]
+      RelationshipComponent:
+        Parent: 17242256274606975090
+        Children:
+          []
+      CircleRendererComponent:
+        Color: [1, 0, 0, 1]
+        Thickness: 1
+        Fade: 0.00200000009
     - Entity: 8621581381285946785
       TagComponent:
         Name: Anchor
@@ -459,6 +588,21 @@ Scene:
         ScriptName: Sandbox.FloorScript
         Fields:
           []
+    - Entity: 10768503380105661201
+      TagComponent:
+        Name: Anchor B
+      TransformComponent:
+        Translation: [57.9262848, 7.86679935, 0]
+        Rotation: [0, 0, 0]
+        Scale: [0.470599979, 0.470599979, 0.470599979]
+      RelationshipComponent:
+        Parent: 17242256274606975090
+        Children:
+          []
+      CircleRendererComponent:
+        Color: [1, 0, 0, 1]
+        Thickness: 1
+        Fade: 0.00200000009
     - Entity: 11527274304391531337
       TagComponent:
         Name: Circle
@@ -513,7 +657,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.25285172
+        Aspectratio: 2.14258552
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 1
         PerspectiveFar: 1000
@@ -565,6 +709,52 @@ Scene:
         Fade: 0.00200000009
       CircleCollider2DComponent:
         Radius: 0.5
+        Offset: [0, 0]
+        Rotation: 0
+        Density: 1
+        Friction: 0.200000003
+        Restitution: 0
+        RestitutionThreshold: 1
+        IsSensor: false
+    - Entity: 17242256274606975090
+      TagComponent:
+        Name: Pulley
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 3719233782163807302
+          - 17509201931412007199
+          - 8349384432737817368
+          - 10768503380105661201
+    - Entity: 17509201931412007199
+      TagComponent:
+        Name: B
+      TransformComponent:
+        Translation: [57.8317528, 2.26788568, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 17242256274606975090
+        Children:
+          []
+      SpriteRendererComponent:
+        Color: [0.799019575, 0.082252048, 0.398473322, 1]
+        TextureHandle: 0
+        TilingFactor: 1
+      RigidBody2DComponent:
+        Type: Dynamic
+        FixedRotation: false
+        IsBullet: false
+        Awake: true
+        Enabled: true
+        AllowSleep: true
+        GravityScale: 1
+      BoxCollider2DComponent:
+        Size: [0.5, 0.5]
         Offset: [0, 0]
         Rotation: 0
         Density: 1

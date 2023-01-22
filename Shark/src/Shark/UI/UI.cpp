@@ -306,6 +306,19 @@ namespace Shark::UI {
 		return contentRegionWidth;
 	}
 
+	bool Header(std::string_view label, ImGuiTreeNodeFlags flags)
+	{
+		UI::ScopedStyle indent(ImGuiStyleVar_IndentSpacing, 0.0f);
+		const bool open = ImGui::TreeNodeEx(label.data(), flags);
+		return open;
+	}
+
+	void PopHeader()
+	{
+		UI::ScopedStyle indent(ImGuiStyleVar_IndentSpacing, 0.0f);
+		ImGui::TreePop();
+	}
+
 	void ControlHelperDrawLabel(std::string_view label)
 	{
 		SK_CORE_ASSERT(ImGui::GetCurrentTable());
@@ -862,11 +875,6 @@ namespace Shark::UI {
 		ControlEndHelper();
 	}
 
-	void Property(std::string_view label, TimeStep timestep)
-	{
-		Property(label, timestep.ToString());
-	}
-
 	void Property(std::string_view label, float value)
 	{
 		Property(label, fmt::to_string(value));
@@ -875,6 +883,19 @@ namespace Shark::UI {
 	void Property(std::string_view label, uint32_t value)
 	{
 		Property(label, fmt::to_string(value));
+	}
+
+	void Property(std::string_view label, const glm::vec2& value)
+	{
+		ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
+		glm::vec2 v = value;
+		Control(label, v);
+		ImGui::PopItemFlag();
+	}
+
+	void Property(std::string_view label, TimeStep timestep)
+	{
+		Property(label, timestep.ToString());
 	}
 
 	void PropertyColor(std::string_view label, const glm::vec4& color)

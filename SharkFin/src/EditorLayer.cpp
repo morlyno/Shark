@@ -226,7 +226,19 @@ namespace Shark {
 
 		// Disable hot keys when the scene state is not Edit
 		if (m_SceneState != SceneState::Edit)
+		{
+			if (event.GetKeyCode() == KeyCode::F && m_SelectetEntity)
+			{
+				glm::vec3 translation;
+				Math::DecomposeTranslation(m_ActiveScene->GetWorldSpaceTransformMatrix(m_SelectetEntity), translation);
+
+				m_EditorCamera.SetFocusPoint(translation);
+				m_EditorCamera.SetDistance(7.5f);
+				return true;
+			}
+
 			return false;
+		}
 
 		if (event.IsRepeat())
 			return false;

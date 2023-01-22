@@ -54,7 +54,10 @@ namespace Shark::UI {
 	enum
 	{
 		DefaultTreeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected,
-		TreeNodeSeperatorFlags = DefaultTreeNodeFlags
+		TreeNodeSeperatorFlags = DefaultTreeNodeFlags,
+
+		DefaultHeaderFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_Framed,
+		DefaultThinHeaderFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected
 	};
 
 	namespace TextFlag {
@@ -154,6 +157,9 @@ namespace Shark::UI {
 
 	float ControlContentRegionWidth();
 
+	bool Header(std::string_view label, ImGuiTreeNodeFlags flags = DefaultHeaderFlags);
+	void PopHeader();
+
 	bool Control(std::string_view label, float& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
 	bool Control(std::string_view label, double& val, float speed = 0.1f, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
 
@@ -211,6 +217,7 @@ namespace Shark::UI {
 	void Property(std::string_view label, uint32_t value);
 	void Property(std::string_view label, bool value);
 
+	void Property(std::string_view label, const glm::vec2& value);
 	void Property(std::string_view label, TimeStep timestep);
 
 	void PropertyColor(std::string_view label, const glm::vec4& color);
