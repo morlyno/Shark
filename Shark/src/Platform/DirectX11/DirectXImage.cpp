@@ -22,6 +22,8 @@ namespace Shark {
 				case ImageFormat::None: return DXGI_FORMAT_UNKNOWN;
 				case ImageFormat::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
 				case ImageFormat::RGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+				case ImageFormat::RGB32F: return DXGI_FORMAT_R32G32B32_FLOAT;
+				case ImageFormat::RGBA32F: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 				case ImageFormat::R8: return DXGI_FORMAT_R8_UNORM;
 				case ImageFormat::R16F: return DXGI_FORMAT_R16_FLOAT;
 				case ImageFormat::R32_SINT: return DXGI_FORMAT_R32_SINT;
@@ -38,6 +40,8 @@ namespace Shark {
 				case ImageFormat::None: return DXGI_FORMAT_UNKNOWN;
 				case ImageFormat::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
 				case ImageFormat::RGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+				case ImageFormat::RGB32F: return DXGI_FORMAT_R32G32B32_FLOAT;
+				case ImageFormat::RGBA32F: return DXGI_FORMAT_R32G32B32A32_FLOAT;
 				case ImageFormat::R8: return DXGI_FORMAT_R8_UNORM;
 				case ImageFormat::R16F: return DXGI_FORMAT_R16_FLOAT;
 				case ImageFormat::R32_SINT: return DXGI_FORMAT_R32_SINT;
@@ -76,6 +80,8 @@ namespace Shark {
 				case ImageFormat::None: return 0;
 				case ImageFormat::RGBA8: return 4;
 				case ImageFormat::RGBA16F: return 8; // 4 * 2bytes
+				case ImageFormat::RGBA32F: return 4 * 4; // 4 * 4bytes
+				case ImageFormat::RGB32F: return 3 * 4; // 3 * 4bytes
 				case ImageFormat::R8: return 1;
 				case ImageFormat::R16F: return 2;
 				case ImageFormat::R32_SINT: return 4;
@@ -101,14 +107,16 @@ namespace Shark {
 		: m_Specification(specs)
 	{
 		CreateResource();
-		UpdateResource(imageData);
+		if (imageData)
+			UpdateResource(imageData);
 	}
 
 	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data)
 		: m_Specification(specs)
 	{
 		CreateResource();
-		UpdateResource(data.As<DirectXImage2D>());
+		if (data)
+			UpdateResource(data.As<DirectXImage2D>());
 	}
 
 	DirectXImage2D::DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
@@ -449,10 +457,10 @@ namespace Shark {
 		SK_CORE_VERIFY(imageData);
 
 		SK_CORE_VERIFY(imageData.Size == ((uint64_t)m_Specification.Width * m_Specification.Height * utils::GetFormatDataSize(m_Specification.Format)));
-		SK_CORE_VERIFY(utils::GetFormatDataSize(m_Specification.Format) == 4);
 
 		auto context = DirectXRenderer::GetContext();
-		context->UpdateSubresource(m_Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * 4, 0);
+		const uint32_t formatDataSize = utils::GetFormatDataSize(m_Specification.Format);
+		context->UpdateSubresource(m_Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * formatDataSize, 0);
 	}
 
 	void DirectXImage2D::RT_UpdateResource(Ref<DirectXImage2D> imageData)

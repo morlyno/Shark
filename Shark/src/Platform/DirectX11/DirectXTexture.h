@@ -15,6 +15,7 @@ namespace Shark {
 		DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		DirectXTexture2D(const TextureSpecification& specs, Ref<Texture2D> data);
 		DirectXTexture2D(const SamplerSpecification& samplerSpecification, Ref<TextureSource> source);
+		DirectXTexture2D(Ref<Image2D> image, bool sharedImage);
 		virtual ~DirectXTexture2D();
 
 		virtual void Release() override;

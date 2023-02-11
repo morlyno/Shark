@@ -58,6 +58,9 @@ namespace Shark {
 	{
 	}
 
+	static Ref<Texture2D> s_FontAtlas;
+	static Ref<Texture2D> s_HTexture;
+
 	void EditorLayer::OnAttach()
 	{
 		SK_PROFILE_FUNCTION();
@@ -106,7 +109,10 @@ namespace Shark {
 
 		Renderer::WaitAndRender();
 
-		Font::Test("C:/Windows/Fonts/Arial.ttf");
+		Font::Initialize();
+		auto images = Font::Test("C:/Windows/Fonts/comic.ttf");
+		s_FontAtlas = images.first;
+		s_HTexture = images.second;
 	}
 
 	void EditorLayer::OnDetach()
@@ -117,6 +123,9 @@ namespace Shark {
 
 		m_PanelManager->Clear();
 
+		s_FontAtlas = nullptr;
+		s_HTexture = nullptr;
+		Font::Shutdown();
 		Icons::Shutdown();
 	}
 
@@ -426,6 +435,11 @@ namespace Shark {
 
 		m_PanelManager->OnImGuiRender();
 		
+		ImGui::Begin("Debug");
+		ImGui::Image(s_FontAtlas->GetViewID(), { (float)s_FontAtlas->GetSpecification().Width, (float)s_FontAtlas->GetSpecification().Height }, ImVec2(0, 1), ImVec2(1, 0), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 1));
+		ImGui::Image(s_HTexture->GetViewID(), ImVec2{ (float)s_HTexture->GetSpecification().Width, (float)s_HTexture->GetSpecification().Height } * 4.0f, ImVec2(0, 1), ImVec2(1, 0), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 1));
+		ImGui::End();
+
 		Theme::DrawThemeEditor(m_ShowThemeEditor);
 
 		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())

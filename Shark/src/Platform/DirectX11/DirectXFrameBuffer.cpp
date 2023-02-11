@@ -16,6 +16,7 @@ namespace Shark {
 				case ImageFormat::Depth32:                   SK_CORE_ASSERT(false, "Invalid Format");       return DXGI_FORMAT_UNKNOWN;
 				case ImageFormat::RGBA8:                     return DXGI_FORMAT_R8G8B8A8_UNORM;
 				case ImageFormat::RGBA16F:                   return DXGI_FORMAT_R16G16B16A16_FLOAT;
+				case ImageFormat::RGBA32F:                   return DXGI_FORMAT_R32G32B32A32_FLOAT;
 				case ImageFormat::R8:                        return DXGI_FORMAT_R8_UNORM;
 				case ImageFormat::R16F:                      return DXGI_FORMAT_R16_FLOAT;
 				case ImageFormat::R32_SINT:                  return DXGI_FORMAT_R32_SINT;
@@ -215,6 +216,8 @@ namespace Shark {
 				case ImageFormat::None:               CreateFrameBufferFromImage(atachment._Ptr);                                       break;
 				case ImageFormat::RGBA8:              CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R8G8B8A8_UNORM);                    break;
 				case ImageFormat::RGBA16F:            CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R16G16B16A16_FLOAT);                break;
+				case ImageFormat::RGB32F:             CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R32G32B32_FLOAT);                   break;
+				case ImageFormat::RGBA32F:            CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R32G32B32A32_FLOAT);                break;
 				case ImageFormat::R8:                 CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R8_UNORM);                          break;
 				case ImageFormat::R16F:               CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R16_FLOAT);                         break;
 				case ImageFormat::R32_SINT:           CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R32_SINT);                          break;

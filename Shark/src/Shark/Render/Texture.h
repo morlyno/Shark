@@ -106,6 +106,8 @@ namespace Shark {
 		static Ref<Texture2D> Create(const TextureSpecification& specs, Ref<Texture2D> data);
 		static Ref<Texture2D> Create(Ref<Texture2D> data) { return Create(data->GetSpecification(), data); }
 		static Ref<Texture2D> Create(const SamplerSpecification& specification, Ref<TextureSource> source);
+
+		static Ref<Texture2D> Create(Ref<Image2D> image, bool sharedImage = true);
 	};
 
 	class Texture2DArray : public RefCount

@@ -107,6 +107,17 @@ namespace Shark {
 		return nullptr;
 	}
 
+	Ref<Texture2D> Texture2D::Create(Ref<Image2D> image, bool sharedImage)
+	{
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(image, sharedImage);
+		}
+		SK_CORE_ASSERT(false, "Unkown API");
+		return nullptr;
+	}
+
 	Ref<Texture2DArray> Texture2DArray::Create(uint32_t count, uint32_t startOffset)
 	{
 		switch (Renderer::GetAPI())

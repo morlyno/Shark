@@ -111,6 +111,18 @@ namespace Shark {
 		CreateSampler();
 	}
 
+	DirectXTexture2D::DirectXTexture2D(Ref<Image2D> image, bool sharedImage)
+	{
+		m_Image = image.As<DirectXImage2D>();
+
+		const auto& imageSpec = image->GetSpecification();
+		m_Specs.Width = imageSpec.Width;
+		m_Specs.Height = imageSpec.Height;
+		m_Specs.MipLevels = imageSpec.MipLevels;
+
+		CreateSampler();
+	}
+
 	DirectXTexture2D::~DirectXTexture2D()
 	{
 		Release();
