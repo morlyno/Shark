@@ -39,7 +39,9 @@ project "Shark"
         "%{IncludeDir.fmt}",
         "%{IncludeDir.Optick}",
         "%{IncludeDir.glm}",
-        "%{IncludeDir.Mono}"
+        "%{IncludeDir.Mono}",
+        "%{IncludeDir.msdfgen}",
+        "%{IncludeDir.msdf_atlas_gen}"
     }
 
     defines
@@ -54,6 +56,7 @@ project "Shark"
         "box2d",
         "ImGuizmo",
         "OptickCore",
+        "msdf-atlas-gen",
         "%{Library.mono}"
     }
 

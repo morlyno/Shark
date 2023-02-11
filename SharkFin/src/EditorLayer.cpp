@@ -6,6 +6,7 @@
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
+#include "Shark/Render/Font.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
@@ -104,6 +105,8 @@ namespace Shark {
 		RegisterSettingNodes();
 
 		Renderer::WaitAndRender();
+
+		Font::Test("C:/Windows/Fonts/Arial.ttf");
 	}
 
 	void EditorLayer::OnDetach()

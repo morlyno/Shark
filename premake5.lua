@@ -41,6 +41,7 @@ group "Dependencies"
 	include "Shark/dependencies/box2d"
 	include "Shark/dependencies/ImGuizmo"
 	include "Shark/dependencies/Optick"
+	include "Shark/dependencies/msdf-atlas-gen"
 group ""
 
 include "Shark"

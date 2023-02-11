@@ -22,3 +22,6 @@
 [submodule "Shark/dependencies/spdlog"]
 	path = Shark/dependencies/spdlog
 	url = https://github.com/morlyno/spdlog
+[submodule "Shark/dependencies/msdf-atlas-gen"]
+	path = Shark/dependencies/msdf-atlas-gen
+	url = https://github.com/TheCherno/msdf-atlas-gen

@@ -11,6 +11,8 @@ IncludeDir["fmt"] = "%{wks.location}/Shark/dependencies/fmt/include"
 IncludeDir["Optick"] = "%{wks.location}/Shark/dependencies/Optick/src"
 IncludeDir["glm"] = "%{wks.location}/Shark/dependencies/glm"
 IncludeDir["Mono"] = "%{wks.location}/Shark/dependencies/mono/include"
+IncludeDir["msdfgen"] = "%{wks.location}/Shark/dependencies/msdf-atlas-gen/msdfgen"
+IncludeDir["msdf_atlas_gen"] = "%{wks.location}/Shark/dependencies/msdf-atlas-gen/msdf-atlas-gen"
 
 LibraryDir = {}
 LibraryDir["mono"] = "%{wks.location}/Shark/dependencies/mono/lib/%{cfg.buildcfg}"
