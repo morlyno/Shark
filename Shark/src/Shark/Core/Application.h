@@ -51,6 +51,7 @@ namespace Shark {
 	public:
 		void CloseApplication() { m_Running = false; }
 
+		float GetTime() const { return m_Time; }
 		TimeStep GetCPUTime() const { return m_CPUTime; }
 		TimeStep GetFrameTime() const { return m_TimeStep; }
 		PerformanceProfiler* GetProfiler() const { return m_Profiler; }
@@ -90,6 +91,7 @@ namespace Shark {
 		uint64_t m_LastTickCount = 0;
 		TimeStep m_TimeStep = 0.0f;
 		TimeStep m_CPUTime;
+		float m_Time = 0.0f;
 
 		PerformanceProfiler* m_Profiler = nullptr;
 

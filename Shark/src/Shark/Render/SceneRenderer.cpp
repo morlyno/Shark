@@ -179,13 +179,14 @@ namespace Shark {
 			{
 				UI::BeginControlsGrid();
 				const auto& stats = m_Renderer2D->GetStatistics();
-				UI::Property("DrawCalls", fmt::format("{}", stats.DrawCalls));
-				UI::Property("Quads", fmt::format("{}", stats.QuadCount));
-				UI::Property("Cirlces", fmt::format("{}", stats.CircleCount));
-				UI::Property("Lines", fmt::format("{}", stats.LineCount));
-				UI::Property("Vertices", fmt::format("{}", stats.VertexCount));
-				UI::Property("Indices", fmt::format("{}", stats.IndexCount));
-				UI::Property("Textures", fmt::format("{}", stats.TextureCount));
+				UI::Property("DrawCalls", stats.DrawCalls);
+				UI::Property("Quads", stats.QuadCount);
+				UI::Property("Cirlces", stats.CircleCount);
+				UI::Property("Lines", stats.LineCount);
+				UI::Property("Glyphs", stats.GlyphCount);
+				UI::Property("Vertices", stats.VertexCount);
+				UI::Property("Indices", stats.IndexCount);
+				UI::Property("Textures", stats.TextureCount);
 				UI::EndControls();
 
 				ImGui::TreePop();

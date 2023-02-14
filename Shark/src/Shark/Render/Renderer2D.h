@@ -11,6 +11,7 @@
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/Material.h"
+#include "Shark/Render/Font.h"
 
 #include <glm/glm.hpp>
 
@@ -33,6 +34,7 @@ namespace Shark {
 			uint32_t QuadCount;
 			uint32_t CircleCount;
 			uint32_t LineCount;
+			uint32_t GlyphCount;
 
 			uint32_t VertexCount;
 			uint32_t IndexCount;
@@ -96,6 +98,7 @@ namespace Shark {
 
 		void DrawRect(const glm::mat4& transform, const glm::vec4& color, int id = -1);
 
+		void DrawString(const std::string& string, Ref<Font> font, const glm::mat4& transform);
 
 		Ref<RenderCommandBuffer> GetCommandBuffer() const { return m_CommandBuffer; }
 
@@ -117,6 +120,7 @@ namespace Shark {
 		void AssureCircleVertexDataSize();
 		void AssureTransparentCircleVertexDataSize();
 		void AssureLineVertexDataSize();
+		void AssureTextVertexDataSize(uint32_t glyphCount);
 
 		void BeginQaudBatch();
 		uint32_t AddTexture(QuadBatch* batch, Ref<Texture2D> texture);
@@ -136,6 +140,10 @@ namespace Shark {
 
 		static constexpr uint32_t DefaultLineCount = 100;
 		static constexpr uint32_t DefaultLineVertices = DefaultLineCount * 2;
+
+		static constexpr uint32_t DefaultTextCount = 100;
+		static constexpr uint32_t DefaultTextVertices = DefaultTextCount * 4;
+		static constexpr uint32_t DefaultTextIndices = DefaultTextCount * 6;
 
 	private:
 		const glm::vec4 m_QuadVertexPositions[4] = { { -0.5f, 0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { -0.5f, -0.5f, 0.0f, 1.0f } };
@@ -168,6 +176,13 @@ namespace Shark {
 			glm::vec3 WorldPosition;
 			glm::vec4 Color;
 			int ID;
+		};
+
+		struct TextVertex
+		{
+			glm::vec3 WorldPosition;
+			glm::vec4 Color;
+			glm::vec2 TexCoord;
 		};
 
 		struct CBCamera
@@ -275,6 +290,14 @@ namespace Shark {
 		uint32_t m_TransparentCircleIndexCount = 0;
 		uint64_t m_TransparentCircleVertexCount = 0;
 
+		// Text
+		Ref<Pipeline> m_TextPipeline;
+		Ref<Material> m_TextMaterial;
+		Ref<VertexBuffer> m_TextVertexBuffer;
+		Ref<IndexBuffer> m_TextIndexBuffer;
+		Buffer m_TextVertexData;
+		uint32_t m_TextIndexCount = 0;
+		uint32_t m_TextVertexCount = 0;
 
 		friend class SceneRenderer;
 

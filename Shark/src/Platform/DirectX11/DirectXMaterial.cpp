@@ -131,6 +131,8 @@ namespace Shark {
 			{
 				D3D11_SHADER_INPUT_BIND_DESC bindDesc;
 				reflection->GetResourceBindingDesc(i, &bindDesc);
+				if (bindDesc.Type == D3D_SIT_SAMPLER)
+					continue;
 
 				m_ResourceMap[bindDesc.Name] = Ref<DirectXTexture2DArray>::Create(bindDesc.BindCount, bindDesc.BindPoint);
 			}

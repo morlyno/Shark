@@ -231,6 +231,9 @@ namespace Shark {
 		std::map<std::string, TimeStep> m_ProfilerStatsAccumulator;
 		uint32_t m_ProfilerSamples = 10;
 		uint32_t m_ProfilerSampleCount = 0;
+
+
+		Ref<Font> m_Font;
 	};
 
 }

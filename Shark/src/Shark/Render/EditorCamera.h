@@ -76,7 +76,7 @@ namespace Shark {
 	private:
 		float m_AspectRatio = 16.0f / 9.0f;
 		float m_FOV = glm::radians(45.0f);
-		float m_NearClip = 1.00f;
+		float m_NearClip = 0.001f;
 		float m_FarClip = 1000.0f;
 
 		float m_Distance = 10.0f;

@@ -2,12 +2,10 @@
 #include "Renderer2D.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/MSDFData.h"
 
 #include "Shark/Math/Math.h"
 #include "Shark/Debug/Profiler.h"
-
-#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
-#include "Platform/DirectX11/DirectXTexture.h"
 
 #include "Shark/Debug/Profiler.h"
 
@@ -225,6 +223,24 @@ namespace Shark {
 			m_TransparentCircleIndexBuffer = m_TransparentQuadIndexBuffer;
 		}
 
+		// Text
+		{
+			PipelineSpecification pipelineSpec;
+			pipelineSpec.TargetFrameBuffer = framebuffer;
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Text");
+			pipelineSpec.DebugName = "Renderer2D-Text";
+			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
+			pipelineSpec.WriteDepth = true;
+			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
+			m_TextPipeline = Pipeline::Create(pipelineSpec);
+			m_TextMaterial = Material::Create(pipelineSpec.Shader);
+
+			m_TextVertexBuffer = VertexBuffer::Create(pipelineSpec.Shader->GetVertexLayout(), DefaultTextVertices * sizeof(TextVertex), true, nullptr);
+			m_TextIndexBuffer = m_QuadIndexBuffer;
+
+			m_TextVertexData.Allocate(DefaultTextVertices * sizeof TextVertex);
+		}
+
 
 		constexpr double delta = M_PI / 10.0f; // 0.31415
 		glm::vec4 point = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -284,6 +300,10 @@ namespace Shark {
 
 		// Line
 		m_LineVertexCount = 0;
+
+		// Text
+		m_TextIndexCount = 0;
+		m_TextVertexCount = 0;
 
 		memset(&m_Statistics, 0, sizeof(m_Statistics));
 	}
@@ -621,6 +641,84 @@ namespace Shark {
 		DrawLine(p3, p0, color, id);
 	}
 
+	void Renderer2D::DrawString(const std::string& string, Ref<Font> font, const glm::mat4& transform)
+	{
+		SK_CORE_VERIFY(m_Active);
+
+		const auto& fontGeometry = font->GetMSDFData()->FontGeometry;
+		const auto& metrics = fontGeometry.getMetrics();
+		Ref<Texture2D> fontAtlas = font->GetFontAtlas();
+
+		float x = 0.0f;
+		float y = 0.0f;
+		float fsScale = 1.0f / (metrics.ascenderY - metrics.descenderY);
+		
+		std::vector<uint32_t> unicodeString;
+		msdf_atlas::utf8Decode(unicodeString, string.c_str());
+
+		AssureTextVertexDataSize(unicodeString.size());
+		m_TextMaterial->SetTexture("g_FontAtlas", fontAtlas);
+
+		for (size_t index = 0; index < unicodeString.size(); index++)
+		{
+			const char32_t character = unicodeString[index];
+			const char32_t nextCharacter = (index + 1) >= unicodeString.size() ? ' ' : unicodeString[index + 1];
+
+			auto glyph = fontGeometry.getGlyph(character);
+			if (!glyph)
+				glyph = fontGeometry.getGlyph('?');
+			if (!glyph)
+				continue;
+
+			double al, ab, ar, at;
+			glyph->getQuadAtlasBounds(al, ab, ar, at);
+			glm::vec2 textCoordMin = glm::vec2(al, ab);
+			glm::vec2 textCoordMax = glm::vec2(ar, at);
+
+			double pl, pb, pr, pt;
+			glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+			glm::vec2 quadMin = glm::vec2(pl, pb);
+			glm::vec2 quadMax = glm::vec2(pr, pt);
+
+			quadMin *= fsScale;
+			quadMax *= fsScale;
+			quadMin += glm::vec2(x, y);
+			quadMax += glm::vec2(x, y);
+
+			float texelWidth = 1.0f / fontAtlas->GetWidth();
+			float texelHeight = 1.0f / fontAtlas->GetHeight();
+			textCoordMin *= glm::vec2(texelWidth, texelHeight);
+			textCoordMax *= glm::vec2(texelWidth, texelHeight);
+
+			double advance = glyph->getAdvance();
+			fontGeometry.getAdvance(advance, character, nextCharacter);
+
+			const float kerningOffset = 0.0f;
+			x += fsScale * advance + kerningOffset;
+
+			// Render
+			const std::array<glm::vec2, 4> quadPositions = { glm::vec2(quadMin.x, quadMax.y), quadMax, glm::vec2(quadMax.x,quadMin.y), quadMin };
+			const std::array<glm::vec2, 4> textCoords = { glm::vec2(textCoordMin.x, textCoordMax.y), textCoordMax, glm::vec2(textCoordMax.x,textCoordMin.y), textCoordMin };
+
+			TextVertex* memory = m_TextVertexData.Offset<TextVertex>(m_TextVertexCount);
+			for (uint32_t i = 0; i < 4; i++)
+			{
+				memory->WorldPosition = glm::vec4(quadPositions[i], 0.0f, 1.0f) * transform/* * m_QuadVertexPositions[i]*/;
+				memory->Color = glm::vec4(1.0f);
+				memory->TexCoord = textCoords[i];
+				memory++;
+			}
+
+			m_TextVertexCount += 4;
+			m_TextIndexCount += 6;
+
+			m_Statistics.GlyphCount++;
+			m_Statistics.VertexCount += 4;
+			m_Statistics.IndexCount += 6;
+		}
+
+	}
+
 	void Renderer2D::ClearPass()
 	{
 		m_DepthFrameBuffer->Clear(m_CommandBuffer);
@@ -683,6 +781,16 @@ namespace Shark {
 		if (m_LineVertexCount)
 		{
 			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
+			m_Statistics.DrawCalls++;
+		}
+
+		if (m_TextIndexCount)
+		{
+			if (m_TextIndexBuffer->GetCount() < m_TextIndexCount)
+				ResizeQuadIndexBuffer(m_TextIndexCount);
+
+			m_TextVertexBuffer->SetData(m_TextVertexData, true);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TextPipeline, m_TextMaterial, m_ConstantBufferSet, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
@@ -771,6 +879,12 @@ namespace Shark {
 	{
 		if (m_LineVertexCount >= m_LineVertexData.Count<LineVertex>())
 			m_LineVertexData.Resize(m_LineVertexData.Size * 2);
+	}
+
+	void Renderer2D::AssureTextVertexDataSize(uint32_t glyphCount)
+	{
+		if ((m_TextVertexCount + glyphCount) >= m_TextVertexData.Count<TextVertex>())
+			m_TextVertexData.Resize(std::max<uint64_t>(m_TextVertexData.Size * 2, m_TextVertexCount + glyphCount));
 	}
 
 	void Renderer2D::BeginQaudBatch()

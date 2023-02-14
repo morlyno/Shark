@@ -102,6 +102,7 @@ namespace Shark {
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Line.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_LineDepthPass.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Composite.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Text.hlsl");
 
 		m_ShaderLib->Load("Resources/Shaders/FullScreen.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/CompositWidthDepth.hlsl");

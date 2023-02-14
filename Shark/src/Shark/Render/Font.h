@@ -6,13 +6,23 @@
 
 namespace Shark {
 
-	class Font
+	struct MSDFData;
+
+	class Font : public RefCount
 	{
 	public:
-		static void Initialize();
-		static void Shutdown();
+		Font(const std::filesystem::path& fontPath);
+		~Font();
 
-		static std::pair<Ref<Texture2D>, Ref<Texture2D>> Test(const std::filesystem::path& fontPath);
+		const MSDFData* GetMSDFData() const { return m_MSDFData; }
+		Ref<Texture2D> GetFontAtlas() const { return m_FontAtlas; }
+
+	private:
+		void Init(const std::filesystem::path& fontPath);
+
+	private:
+		MSDFData* m_MSDFData = nullptr;
+		Ref<Texture2D> m_FontAtlas;
 	};
 
 }

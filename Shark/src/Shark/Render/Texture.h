@@ -77,6 +77,9 @@ namespace Shark {
 
 		virtual void Release() = 0;
 
+		uint32_t GetWidth() const { return GetImage()->GetWidth(); }
+		uint32_t GetHeight() const { return GetImage()->GetHeight(); }
+
 		virtual void Set(const TextureSpecification& specs, Buffer data) = 0;
 		virtual void Set(const TextureSpecification& specs, Ref<Texture2D> data) = 0;
 		virtual void SetSampler(const SamplerSpecification& specs) = 0;

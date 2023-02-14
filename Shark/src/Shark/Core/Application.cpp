@@ -141,6 +141,7 @@ namespace Shark {
 			SK_LOG_IF(m_TimeStep > 1.0f, Log::Logger::Core, Log::Level::Warn, "Core", "Large Timestep! {}", m_TimeStep);
 			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
 			m_LastTickCount = ticks;
+			m_Time += m_TimeStep;
 		}
 	}
 
