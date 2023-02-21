@@ -108,6 +108,12 @@ namespace Shark {
 	{
 		SK_CORE_INFO_TAG("Scripting", "Loading Assemblies");
 
+		if (!s_Data)
+		{
+			SK_CORE_WARN("Core", "ScriptEngine.LoadAssemblies called but ScriptEngine is not Initialized!");
+			return false;
+		}
+
 		WatchingSettings settings;
 		settings.Callback = [](const auto&) { ScriptEngine::ScheduleReload(); };
 		settings.NofityFilter = NotifyFilter::Creation | NotifyFilter::LastWrite;

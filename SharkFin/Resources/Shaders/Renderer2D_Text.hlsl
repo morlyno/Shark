@@ -11,12 +11,14 @@ struct VSIN
     float3 Pos : Position;
     float4 Color : Color;
     float2 TexCoord : TexCoord;
+    int ID : ID;
 };
 
 struct VSOUT
 {
     float4 Color : Color;
     float2 TexCoord : TexCoord;
+    int ID : ID;
     float4 Pos : SV_POSITION;
 };
 
@@ -26,6 +28,7 @@ VSOUT main(VSIN vsin)
     vsout.Pos = mul(ViewProjection, float4(vsin.Pos, 1.0f));
     vsout.Color = vsin.Color;
     vsout.TexCoord = vsin.TexCoord;
+    vsout.ID = vsin.ID;
     return vsout;
 }
 
@@ -40,6 +43,7 @@ struct PSIN
 {
     float4 Color : Color;
     float2 TexCoord : TexCoord;
+    int ID : ID;
 };
 
 struct PSOUT
@@ -77,8 +81,6 @@ PSOUT main(PSIN psin)
         discard;
     
     psout.Color = float4(psin.Color.rgb, opacity);
-    psout.Color = float4(0.2f, 0.8f, 0.6f, opacity);
-    psout.ID = -1;
-    
+    psout.ID = psin.ID;
     return psout;
 }

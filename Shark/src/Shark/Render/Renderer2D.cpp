@@ -641,7 +641,7 @@ namespace Shark {
 		DrawLine(p3, p0, color, id);
 	}
 
-	void Renderer2D::DrawString(const std::string& string, Ref<Font> font, const glm::mat4& transform)
+	void Renderer2D::DrawString(const std::string& string, Ref<Font> font, const glm::mat4& transform, float kerning, float lineSpacing, const glm::vec4& color, int id)
 	{
 		SK_CORE_VERIFY(m_Active);
 
@@ -663,6 +663,13 @@ namespace Shark {
 		{
 			const char32_t character = unicodeString[index];
 			const char32_t nextCharacter = (index + 1) >= unicodeString.size() ? ' ' : unicodeString[index + 1];
+
+			if (character == '\n')
+			{
+				x = 0.0f;
+				y -= metrics.lineHeight + lineSpacing;
+				continue;
+			}
 
 			auto glyph = fontGeometry.getGlyph(character);
 			if (!glyph)
@@ -693,20 +700,20 @@ namespace Shark {
 			double advance = glyph->getAdvance();
 			fontGeometry.getAdvance(advance, character, nextCharacter);
 
-			const float kerningOffset = 0.0f;
-			x += fsScale * advance + kerningOffset;
+			x += fsScale * advance + kerning;
 
 			// Render
 			const std::array<glm::vec2, 4> quadPositions = { glm::vec2(quadMin.x, quadMax.y), quadMax, glm::vec2(quadMax.x,quadMin.y), quadMin };
 			const std::array<glm::vec2, 4> textCoords = { glm::vec2(textCoordMin.x, textCoordMax.y), textCoordMax, glm::vec2(textCoordMax.x,textCoordMin.y), textCoordMin };
 
-			TextVertex* memory = m_TextVertexData.Offset<TextVertex>(m_TextVertexCount);
+			TextVertex* vertex = m_TextVertexData.Offset<TextVertex>(m_TextVertexCount);
 			for (uint32_t i = 0; i < 4; i++)
 			{
-				memory->WorldPosition = glm::vec4(quadPositions[i], 0.0f, 1.0f) * transform/* * m_QuadVertexPositions[i]*/;
-				memory->Color = glm::vec4(1.0f);
-				memory->TexCoord = textCoords[i];
-				memory++;
+				vertex->WorldPosition = transform * glm::vec4(quadPositions[i], 0.0f, 1.0f);
+				vertex->Color = color;
+				vertex->TexCoord = textCoords[i];
+				vertex->ID = id;
+				vertex++;
 			}
 
 			m_TextVertexCount += 4;
@@ -883,8 +890,8 @@ namespace Shark {
 
 	void Renderer2D::AssureTextVertexDataSize(uint32_t glyphCount)
 	{
-		if ((m_TextVertexCount + glyphCount) >= m_TextVertexData.Count<TextVertex>())
-			m_TextVertexData.Resize(std::max<uint64_t>(m_TextVertexData.Size * 2, m_TextVertexCount + glyphCount));
+		if ((m_TextVertexCount + glyphCount * 4) >= m_TextVertexData.Count<TextVertex>())
+			m_TextVertexData.Resize(std::max<uint64_t>(m_TextVertexData.Size * 2, m_TextVertexCount + glyphCount * sizeof TextVertex * 4));
 	}
 
 	void Renderer2D::BeginQaudBatch()

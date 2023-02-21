@@ -1,0 +1,20 @@
+Scene:
+  Name: New Scene
+  ActiveCamera: 0x0
+  Entities:
+    - Entity: 14659873421909837908
+      TagComponent:
+        Name: Entity
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      TextRendererComponent:
+        FontFile: c:\windows\fonts\comic.ttf
+        Text: "Hallo\nSecond Line"
+        Color: [1, 1, 1, 1]
+        Kerning: 0

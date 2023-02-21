@@ -105,15 +105,11 @@ namespace Shark {
 		RegisterSettingNodes();
 
 		Renderer::WaitAndRender();
-
-		m_Font = Ref<Font>::Create("C:/Windows/Fonts/arial.ttf");
 	}
 
 	void EditorLayer::OnDetach()
 	{
 		SK_PROFILE_FUNCTION();
-
-		m_Font = nullptr;
 
 		CloseProject();
 
@@ -197,10 +193,6 @@ namespace Shark {
 
 			RenderCameraPreview();
 			DebugRender();
-
-			m_DebugRenderer->BeginScene(m_EditorCamera.GetViewProjection());
-			m_DebugRenderer->DrawString(u8"Hällo Dude :) ²³", m_Font, glm::identity<glm::mat4>());
-			m_DebugRenderer->EndScene();
 		}
 
 		m_PanelManager->OnUpdate(ts);

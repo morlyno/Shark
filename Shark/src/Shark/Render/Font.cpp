@@ -19,10 +19,7 @@ namespace Shark {
 		msdf_atlas::ImmediateAtlasGenerator<S, N, GEN_FN, msdf_atlas::BitmapAtlasStorage<T, N>> generator(width, height);
 		generator.setAttributes(attributes);
 		generator.setThreadCount(std::thread::hardware_concurrency());
-
-		Timer timer;
 		generator.generate(glyphs.data(), (int)glyphs.size());
-		SK_CORE_TRACE_TAG("Font", "Generated Atlas in {}", timer.Elapsed());
 
 		auto bitmap = (msdfgen::BitmapConstRef<T, N>)generator.atlasStorage();
 
@@ -86,20 +83,25 @@ namespace Shark {
 		atlasPacker.setPixelRange(2);
 		atlasPacker.setMiterLimit(1.0);
 		atlasPacker.setPadding(0);
-		atlasPacker.setScale(40);
+		//atlasPacker.setScale(40);
+		atlasPacker.setMinimumScale(40.0);
 		int result = atlasPacker.pack(m_MSDFData->Glyphs.data(), m_MSDFData->Glyphs.size());
 		SK_CORE_ASSERT(result == 0);
 
 		int width, height;
 		atlasPacker.getDimensions(width, height);
 		int scale = atlasPacker.getScale();
+		SK_CORE_TRACE_TAG("Font", "Scale: {}", scale);
 
+		Timer timer;
 
-		// Edge Coloring
 		for (msdf_atlas::GlyphGeometry& glyph : m_MSDFData->Glyphs)
-			glyph.edgeColoring(msdfgen::edgeColoringByDistance, 3.0, 0);
+			glyph.edgeColoring(msdfgen::edgeColoringInkTrap, 3.0, 0);
+		SK_CORE_TRACE_TAG("Font", "Edge Coloring took {}", timer.Elapsed());
 
+		timer.Reset();
 		m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
+		SK_CORE_TRACE_TAG("Font", "Generated Atlas in {}", timer.Elapsed());
 
 		msdfgen::destroyFont(font);
 		msdfgen::deinitializeFreetype(freetype);

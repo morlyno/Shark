@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shark/Render/Font.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scripting/ScriptTypes.h"
 
@@ -80,6 +81,16 @@ namespace Shark {
 
 		CircleRendererComponent() = default;
 		CircleRendererComponent(const CircleRendererComponent&) = default;
+	};
+
+	struct TextRendererComponent
+	{
+		std::string FontFile;
+		Ref<Font> Font;
+		std::string Text;
+		glm::vec4 Color = glm::vec4(1.0f);
+		float Kerning = 0.0f;
+		float LineSpacing = 0.0f;
 	};
 
 	struct CameraComponent

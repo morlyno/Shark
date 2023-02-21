@@ -225,6 +225,17 @@ namespace Shark {
 				out << YAML::EndMap;
 			}
 
+			if (auto component = entity.TryGetComponent<TextRendererComponent>())
+			{
+				out << YAML::Key << "TextRendererComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "FontFile" << YAML::Value << component->FontFile;
+				out << YAML::Key << "Text" << YAML::Value << component->Text;
+				out << YAML::Key << "Color" << YAML::Value << component->Color;
+				out << YAML::Key << "Kerning" << YAML::Value << component->Kerning;
+				out << YAML::EndMap;
+			}
+
 			if (auto component = entity.TryGetComponent<CameraComponent>())
 			{
 				out << YAML::Key << "CameraComponent";
@@ -432,6 +443,19 @@ namespace Shark {
 						component.Color = componentNode["Color"].as<glm::vec4>();
 						component.Thickness = componentNode["Thickness"].as<float>();
 						component.Fade = componentNode["Fade"].as<float>();
+					}
+
+					if (auto componentNode = entityNode["TextRendererComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<TextRendererComponent>();
+						component.FontFile = componentNode["FontFile"].as<std::string>();
+						component.Text = componentNode["Text"].as<std::string>();
+						component.Color = componentNode["Color"].as<glm::vec4>();
+						component.Kerning = componentNode["Kerning"].as<float>();
+
+						if (FileSystem::Exists(component.FontFile))
+							Application::Get().SubmitToMainThread([&component]() { component.Font = Ref<Font>::Create(component.FontFile); });
+
 					}
 
 					if (auto componentNode = entityNode["CameraComponent"])

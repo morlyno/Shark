@@ -16,6 +16,11 @@ namespace Shark {
 			m_Start = Clock::now();
 		}
 
+		void Reset()
+		{
+			m_Start = Clock::now();
+		}
+
 		TimeStep Elapsed()
 		{
 			return std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - m_Start).count() * 0.001f * 0.001f * 0.001f;

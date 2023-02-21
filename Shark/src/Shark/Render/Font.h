@@ -14,6 +14,8 @@ namespace Shark {
 		Font(const std::filesystem::path& fontPath);
 		~Font();
 
+		void Load(const std::filesystem::path& fontPath);
+
 		const MSDFData* GetMSDFData() const { return m_MSDFData; }
 		Ref<Texture2D> GetFontAtlas() const { return m_FontAtlas; }
 

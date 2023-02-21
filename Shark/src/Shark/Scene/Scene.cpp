@@ -108,6 +108,7 @@ namespace Shark {
 		CopyComponents<RelationshipComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<SpriteRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<CircleRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<TextRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<CameraComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<RigidBody2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<BoxCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
@@ -366,6 +367,7 @@ namespace Shark {
 		CopyComponentIfExists<TransformComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<SpriteRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CircleRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<TextRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CameraComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
@@ -905,6 +907,12 @@ namespace Shark {
 				renderer->SubmitFilledCircle(transform, cr.Thickness, cr.Fade, cr.Color, cr.Transparent, (int)entity.GetHandle());
 			else
 				renderer->SubmitCircle(transform, cr.Color, (int)entity.GetHandle());
+		}
+
+		if (entity.AllOf<TextRendererComponent>())
+		{
+			const auto& component = entity.GetComponent<TextRendererComponent>();
+			renderer->SubmitText(transform, component.Font, component.Text, component.Kerning, component.LineSpacing, component.Color, (int)entity.GetHandle());
 		}
 
 		for (auto& childID : entity.Children())

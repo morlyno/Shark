@@ -256,7 +256,7 @@ namespace Shark {
 		if ((count == m_Count) || (!m_Dynamic && !indexData))
 			return;
 
-		ReCreateBuffer(count, m_Dynamic, indexData);
+		RT_ReCreateBuffer(count, m_Dynamic, indexData);
 	}
 
 	Buffer DirectXIndexBuffer::GetWritableBuffer()

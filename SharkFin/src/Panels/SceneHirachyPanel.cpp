@@ -135,6 +135,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Transform", TransformComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Sprite Renderer", SpriteRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Circle Renderer", CircleRendererComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Text Renderer", TextRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Camera", CameraComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Rigidbody 2D", RigidBody2DComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Box Collider 2D", BoxCollider2DComponent));
@@ -432,6 +433,35 @@ namespace Shark {
 			UI::Control("Transparent", comp.Transparent);
 
 			UI::EndControls();
+		});
+
+		DrawComponet<TextRendererComponent>(entity, "Text Renderer", [](TextRendererComponent& comp, Entity entity)
+		{
+			UI::BeginControlsGrid();
+
+			UI::Control("Font File", comp.FontFile);
+
+			if (UI::ControlCustomBegin("Text"))
+			{
+				ImGui::SetNextItemWidth(-1.0f);
+				ImGui::InputTextMultiline("##Text", &comp.Text);
+				UI::ControlCustomEnd();
+			}
+			//UI::Control("Text", comp.Text);
+
+			UI::ControlColor("Color", comp.Color);
+			UI::Control("Kerning", comp.Kerning);
+			UI::Control("Line Spacing", comp.LineSpacing);
+			UI::EndControls();
+
+			if (FileSystem::Exists(comp.FontFile) && ImGui::Button("Generate Font"))
+			{
+				Application::Get().SubmitToMainThread([&font = comp.Font, fontFile = comp.FontFile]()
+				{
+					font = Ref<Font>::Create(fontFile);
+				});
+			}
+
 		});
 
 		DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)

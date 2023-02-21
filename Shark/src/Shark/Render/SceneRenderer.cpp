@@ -123,6 +123,14 @@ namespace Shark {
 		m_Renderer2D->DrawCircle(transform, tintcolor, id);
 	}
 
+	void SceneRenderer::SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id)
+	{
+		if (!font)
+			return;
+
+		m_Renderer2D->DrawString(text, font, transform, kerning, lineSpacing, color, id);
+	}
+
 	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, bool isTransparent, int id)
 	{
 		if (isTransparent)

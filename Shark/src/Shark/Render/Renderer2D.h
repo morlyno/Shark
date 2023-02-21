@@ -98,7 +98,7 @@ namespace Shark {
 
 		void DrawRect(const glm::mat4& transform, const glm::vec4& color, int id = -1);
 
-		void DrawString(const std::string& string, Ref<Font> font, const glm::mat4& transform);
+		void DrawString(const std::string& string, Ref<Font> font, const glm::mat4& transform, float kerning, float lineSpacing, const glm::vec4& color, int id = -1);
 
 		Ref<RenderCommandBuffer> GetCommandBuffer() const { return m_CommandBuffer; }
 
@@ -183,6 +183,7 @@ namespace Shark {
 			glm::vec3 WorldPosition;
 			glm::vec4 Color;
 			glm::vec2 TexCoord;
+			int ID;
 		};
 
 		struct CBCamera

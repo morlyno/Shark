@@ -32,6 +32,7 @@ namespace Shark {
 		void SubmitFilledCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, bool isTransparent, int id);
 		void SubmitCircle(const glm::mat4& transform, const glm::vec4& tintcolor, int id);
 
+		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
 
 		void Resize(uint32_t width, uint32_t height);
 
