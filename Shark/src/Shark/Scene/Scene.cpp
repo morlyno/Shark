@@ -912,7 +912,7 @@ namespace Shark {
 		if (entity.AllOf<TextRendererComponent>())
 		{
 			const auto& component = entity.GetComponent<TextRendererComponent>();
-			renderer->SubmitText(transform, component.Font, component.Text, component.Kerning, component.LineSpacing, component.Color, (int)entity.GetHandle());
+			renderer->SubmitText(transform, ResourceManager::GetAsset<Font>(component.FontHandle), component.Text, component.Kerning, component.LineSpacing, component.Color, (int)entity.GetHandle());
 		}
 
 		for (auto& childID : entity.Children())

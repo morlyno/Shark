@@ -160,30 +160,30 @@ namespace Shark::UI {
 	bool Header(std::string_view label, ImGuiTreeNodeFlags flags = DefaultHeaderFlags);
 	void PopHeader();
 
-	bool Control(std::string_view label, float& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
-	bool Control(std::string_view label, double& val, float speed = 0.1f, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
+	bool Control(std::string_view label, float& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
+	bool Control(std::string_view label, double& val, float speed = 0.05f, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
 
-	bool Control(std::string_view label, int8_t& val, float speed = 0.1f, int8_t min = 0, int8_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, int16_t& val, float speed = 0.1f, int16_t min = 0, int16_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, int32_t& val, float speed = 0.1f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, int64_t& val, float speed = 0.1f, int64_t min = 0, int64_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, int8_t& val, float speed = 0.05f, int8_t min = 0, int8_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, int16_t& val, float speed = 0.05f, int16_t min = 0, int16_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, int32_t& val, float speed = 0.05f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, int64_t& val, float speed = 0.05f, int64_t min = 0, int64_t max = 0, const char* fmt = nullptr);
 
-	bool Control(std::string_view label, uint8_t& val, float speed = 0.1f, uint8_t min = 0, uint8_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, uint16_t& val, float speed = 0.1f, uint16_t min = 0, uint16_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, uint32_t& val, float speed = 0.1f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, uint64_t& val, float speed = 0.1f, uint64_t min = 0, uint64_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, uint8_t& val, float speed = 0.05f, uint8_t min = 0, uint8_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, uint16_t& val, float speed = 0.05f, uint16_t min = 0, uint16_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, uint32_t& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, uint64_t& val, float speed = 0.05f, uint64_t min = 0, uint64_t max = 0, const char* fmt = nullptr);
 
-	bool Control(std::string_view label, glm::vec2& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::vec3& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::vec4& val, float speed = 0.1f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::vec2& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::vec3& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::vec4& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
 
-	bool Control(std::string_view label, glm::ivec2& val, float speed = 0.1f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::ivec3& val, float speed = 0.1f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::ivec4& val, float speed = 0.1f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::ivec2& val, float speed = 0.05f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::ivec3& val, float speed = 0.05f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::ivec4& val, float speed = 0.05f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
 
-	bool Control(std::string_view label, glm::uvec2& val, float speed = 0.1f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::uvec3& val, float speed = 0.1f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::uvec4& val, float speed = 0.1f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::uvec2& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::uvec3& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, glm::uvec4& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
 
 	bool ControlColor(std::string_view label, glm::vec4& color);
 
@@ -200,8 +200,8 @@ namespace Shark::UI {
 	bool Control(std::string_view label, std::string& val);
 	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType = nullptr);
 	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);
-	bool ControlAssetPath(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
-	bool ControlAssetPath(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType = DragDropID::Asset);
+	bool ControlAsset(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
+	bool ControlAsset(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType = DragDropID::Asset);
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();

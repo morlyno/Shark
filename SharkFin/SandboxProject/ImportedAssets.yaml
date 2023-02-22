@@ -89,3 +89,15 @@ Assets:
   - Handle: 0xce0b9ef18f1d952b
     Type: ScriptFile
     FilePath: Scripts/Source/TestScript.cs
+  - Handle: 0x9d17a29059f56ce4
+    Type: Font
+    FilePath: Fonts/Comic Sans/comic.ttf
+  - Handle: 0x9be209ae7d7cd660
+    Type: Font
+    FilePath: Fonts/Comic Sans/comicbd.ttf
+  - Handle: 0xc9261fb84e0fbf59
+    Type: Font
+    FilePath: Fonts/Comic Sans/comici.ttf
+  - Handle: 0x987488d63d817f29
+    Type: Font
+    FilePath: Fonts/Comic Sans/comicz.ttf

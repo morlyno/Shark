@@ -56,6 +56,7 @@ namespace Shark {
 				UI::ControlFlags("Texture", m_EnabledTypes, AssetTypeFlag::Texture);
 				UI::ControlFlags("TextureSource", m_EnabledTypes, AssetTypeFlag::TextureSource);
 				UI::ControlFlags("ScriptFile", m_EnabledTypes, AssetTypeFlag::ScriptFile);
+				UI::ControlFlags("Font", m_EnabledTypes, AssetTypeFlag::Font);
 				UI::EndControls();
 				ImGui::EndPopup();
 			}
@@ -170,6 +171,7 @@ namespace Shark {
 			case AssetType::Texture:       return m_EnabledTypes & AssetTypeFlag::Texture;
 			case AssetType::TextureSource: return m_EnabledTypes & AssetTypeFlag::TextureSource;
 			case AssetType::ScriptFile:    return m_EnabledTypes & AssetTypeFlag::ScriptFile;
+			case AssetType::Font:          return m_EnabledTypes & AssetTypeFlag::Font;
 		}
 
 		SK_CORE_ASSERT(false, "Unkown AssetType");

@@ -53,6 +53,8 @@ namespace Shark {
 		template<typename T = Asset>
 		static Ref<T> GetAsset(AssetHandle handle)
 		{
+			SK_PROFILE_FUNCTION();
+
 			static_assert(std::is_base_of_v<Asset, T>, "GetAsset only works for types with base class Asset");
 
 			AssetMetaData& metadata = GetMetaDataInternal(handle);

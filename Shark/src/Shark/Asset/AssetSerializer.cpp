@@ -5,6 +5,7 @@
 #include "Shark/Serialization/SceneSerializer.h"
 #include "Shark/Serialization/TextureSerializers.h"
 #include "Shark/Serialization/ScriptSerializers.h"
+#include "Shark/Serialization/Serializers.h"
 
 namespace Shark {
 
@@ -16,6 +17,7 @@ namespace Shark {
 		s_Serializers[AssetType::Texture] = Scope<TextureSerializer>::Create();
 		s_Serializers[AssetType::TextureSource] = Scope<TextureSourceSerializer>::Create();
 		s_Serializers[AssetType::ScriptFile] = Scope<ScriptFileSerializer>::Create();
+		s_Serializers[AssetType::Font] = Scope<FontSerializer>::Create();
 	}
 
 	void AssetSerializer::ReleaseSerializers()

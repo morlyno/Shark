@@ -9,6 +9,11 @@ namespace Shark {
 	class Log
 	{
 	public:
+		struct Tags
+		{
+			static constexpr std::string_view Serialization = "Serialization";
+		};
+
 		enum class Level : uint16_t
 		{
 			Trace = 0,

@@ -17,6 +17,8 @@ namespace Shark {
 
 	bool TextureSourceSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing TextureSource to {}", metadata.FilePath);
 		Timer timer;
@@ -33,6 +35,8 @@ namespace Shark {
 
 	bool TextureSourceSerializer::Deserialize(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_INFO_TAG("Serialization", "Deserializing TextureSource from {}", metadata.FilePath);
 		Timer timer;
 
@@ -77,6 +81,8 @@ namespace Shark {
 
 	bool TextureSourceSerializer::DeserializeFromTexture(Ref<TextureSource>& textureSource, const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!FileSystem::Exists(filepath))
 		{
 			SK_SERIALIZATION_ERROR("Path not found! {0}", filepath);
@@ -103,6 +109,8 @@ namespace Shark {
 
 	bool TextureSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing Texture to {}", metadata.FilePath);
 		Timer timer;
@@ -132,6 +140,8 @@ namespace Shark {
 
 	bool TextureSerializer::Deserialize(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Texture from {}", metadata.FilePath);
 		Timer timer;
 
@@ -164,6 +174,8 @@ namespace Shark {
 
 	std::string TextureSerializer::SerializeToYAML(Ref<Texture2D> texture)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const TextureSpecification& specification = texture->GetSpecification();
 		AssetHandle sourceHandle = texture->GetTextureSource()->Handle;
 
@@ -198,6 +210,8 @@ namespace Shark {
 
 	bool TextureSerializer::DesrializeFromYAML(Ref<Texture2D> texture, const std::string& filedata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Node node = YAML::Load(filedata);
 
 		YAML::Node textureNode = node["Texture"];
@@ -243,6 +257,8 @@ namespace Shark {
 
 	bool ImageSerializer::Deserialize(const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Image from {}", filepath);
 		Timer timer;
 

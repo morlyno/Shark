@@ -28,8 +28,9 @@ namespace Shark {
 				Texture = BIT(1),
 				TextureSource = BIT(2),
 				ScriptFile = BIT(3),
+				Font = BIT(4),
 
-				All = Scene | Texture | TextureSource | ScriptFile
+				All = Scene | Texture | TextureSource | ScriptFile | Font
 			};
 			using Flags = std::underlying_type_t<Type>;
 		};

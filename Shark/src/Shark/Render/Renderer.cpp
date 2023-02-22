@@ -2,6 +2,7 @@
 #include "Renderer.h"
 
 #include "Platform/DirectX11/DirectXRenderer.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -48,6 +49,9 @@ namespace Shark {
 
 	void Renderer::WaitAndRender()
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_FUNCTION();
+
 		s_RendererData->CommandQueueExecuting = true;
 		s_RendererData->RenderCommandQueue.Execute();
 

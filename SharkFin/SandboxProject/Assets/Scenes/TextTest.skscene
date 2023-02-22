@@ -14,7 +14,7 @@ Scene:
         Children:
           []
       TextRendererComponent:
-        FontFile: c:\windows\fonts\comic.ttf
+        FontHandle: 11319694929287277796
         Text: "Hallo\nSecond Line"
         Color: [1, 1, 1, 1]
         Kerning: 0

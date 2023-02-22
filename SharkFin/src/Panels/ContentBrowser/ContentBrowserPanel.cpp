@@ -252,6 +252,7 @@ namespace Shark {
 								item->m_Name = event2.FilePath.stem().string();
 
 							directory->FilePath = std::filesystem::relative(event2.FilePath, m_Project->Directory);
+							directory->Name = directory->FilePath.stem().string();
 						}
 						break;
 					}

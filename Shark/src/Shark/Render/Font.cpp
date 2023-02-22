@@ -3,6 +3,7 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/MSDFData.h"
+#include "Shark/Debug/Profiler.h"
 
 #undef INFINITE
 #include <msdf-atlas-gen.h>
@@ -47,6 +48,8 @@ namespace Shark {
 
 	void Font::Init(const std::filesystem::path& fontPath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		msdfgen::FreetypeHandle* freetype = msdfgen::initializeFreetype();
 
 		std::string fontPathString = fontPath.string();
@@ -95,13 +98,21 @@ namespace Shark {
 
 		Timer timer;
 
-		for (msdf_atlas::GlyphGeometry& glyph : m_MSDFData->Glyphs)
-			glyph.edgeColoring(msdfgen::edgeColoringInkTrap, 3.0, 0);
-		SK_CORE_TRACE_TAG("Font", "Edge Coloring took {}", timer.Elapsed());
+		{
+			SK_PROFILE_SCOPED("Edge Coloring");
 
-		timer.Reset();
-		m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
-		SK_CORE_TRACE_TAG("Font", "Generated Atlas in {}", timer.Elapsed());
+			for (msdf_atlas::GlyphGeometry& glyph : m_MSDFData->Glyphs)
+				glyph.edgeColoring(msdfgen::edgeColoringInkTrap, 3.0, 0);
+			SK_CORE_TRACE_TAG("Font", "Edge Coloring took {}", timer.Elapsed());
+		}
+
+		{
+			SK_PROFILE_SCOPED("Create Texture Atlas");
+
+			timer.Reset();
+			m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
+			SK_CORE_TRACE_TAG("Font", "Generated Atlas in {}", timer.Elapsed());
+		}
 
 		msdfgen::destroyFont(font);
 		msdfgen::deinitializeFreetype(freetype);

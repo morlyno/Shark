@@ -643,7 +643,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool ControlAssetPath(std::string_view label, AssetHandle& assetHandle, const char* dragDropType)
+	bool ControlAsset(std::string_view label, AssetHandle& assetHandle, const char* dragDropType)
 	{
 		if (!ControlBeginHelper(label))
 			return false;
@@ -654,7 +654,19 @@ namespace Shark::UI {
 		const auto& metadata = ResourceManager::GetMetaData(assetHandle);
 
 		std::string path = metadata.FilePath.string();
-		TextFramed(path);
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputText("##IDStr", path.data(), path.length(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+
+		//TextFramed(path);
+		{
+			if (ImGui::BeginPopupContextItem("Settings"))
+			{
+				char buffer[18];
+				sprintf(buffer, "0x%16llx", (uint64_t)assetHandle);
+				ImGui::InputText("##IDStr", buffer, 18, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+				ImGui::EndPopup();
+			}
+		}
 
 		if (dragDropType)
 		{
@@ -670,11 +682,29 @@ namespace Shark::UI {
 			}
 		}
 
+		{
+			UI::ScopedColorStack colorStack(ImGuiCol_Button, ImVec4(0, 0, 0, 0),
+				                            ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0),
+				                            ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+
+			const float buttonSize = ImGui::GetItemRectSize().y;
+			ImGui::SameLine(0, 0);
+			MoveCursorX(-buttonSize);
+
+			ImGui::BeginChild(UI::GetCurrentID(), ImVec2(buttonSize, buttonSize));
+			if (ImGui::Button("x", { buttonSize, buttonSize }))
+			{
+				assetHandle = AssetHandle::Null;
+				changed = true;
+			}
+			ImGui::EndChild();
+		}
+
 		ControlEndHelper();
 		return changed;
 	}
 
-	bool ControlAssetPath(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType)
+	bool ControlAsset(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType)
 	{
 		if (!ControlBeginHelper(label))
 			return false;
@@ -953,10 +983,10 @@ namespace Shark::UI {
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, style.FramePadding.y));
 
-		const ImVec2 textSize = ImGui::CalcTextSize(str.data(), str.data() + str.size());
-		const ImVec2 itemSize = ImGui::CalcItemSize(ImVec2(0.0f, 0.0f), textSize.x + style.FramePadding.x * 2.0f + 1.0f, textSize.y + style.FramePadding.y * 2.0f);
+		//const ImVec2 textSize = ImGui::CalcTextSize(str.data(), str.data() + str.size());
+		//const ImVec2 itemSize = ImGui::CalcItemSize(ImVec2(0.0f, 0.0f), textSize.x + style.FramePadding.x * 2.0f + 1.0f, textSize.y + style.FramePadding.y * 2.0f);
 
-		ImGui::InputTextEx("##InputText", nullptr, (char*)str.data(), (int)str.size(), itemSize, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+		ImGui::InputTextEx("##InputText", nullptr, (char*)str.data(), (int)str.size(), ImVec2(0, 0), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
 		ImGui::PopStyleColor();
 		ImGui::PopStyleVar();
 	}
@@ -992,6 +1022,7 @@ namespace Shark::UI {
 		ImGui::RenderFrame(frameRect.Min, frameRect.Max, frameColor, true, style.FrameRounding);
 		ImGui::RenderTextClipped(textRect.Min, textRect.Max, text, text_end, nullptr, GContext->FramedTextAlign, &textRect);
 
+#if 0
 		UI::ScopedID scopedID(text, text_end);
 		if (ImGui::BeginPopupContextItem("TextSettingsPopup"))
 		{
@@ -1000,6 +1031,7 @@ namespace Shark::UI {
 
 			ImGui::EndPopup();
 		}
+#endif
 	}
 		
 	bool Search(ImGuiID id, char* buffer, int bufferSize)

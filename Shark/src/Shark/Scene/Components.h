@@ -85,8 +85,7 @@ namespace Shark {
 
 	struct TextRendererComponent
 	{
-		std::string FontFile;
-		Ref<Font> Font;
+		AssetHandle FontHandle;
 		std::string Text;
 		glm::vec4 Color = glm::vec4(1.0f);
 		float Kerning = 0.0f;

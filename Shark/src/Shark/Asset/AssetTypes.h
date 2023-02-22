@@ -10,7 +10,8 @@ namespace Shark {
 		Scene = 1,
 		Texture = 2,
 		TextureSource = 3,
-		ScriptFile = 4
+		ScriptFile = 4,
+		Font
 	};
 
 	inline std::string ToString(AssetType assetType)
@@ -22,6 +23,7 @@ namespace Shark {
 			case AssetType::Texture: return "Texture";
 			case AssetType::TextureSource: return "TextureSource";
 			case AssetType::ScriptFile: return "ScriptFile";
+			case AssetType::Font: return "Font";
 		}
 
 		SK_CORE_ASSERT(false, "Unkown AssetType");
@@ -35,6 +37,7 @@ namespace Shark {
 		if (assetType == "Texture") return AssetType::Texture;
 		if (assetType == "TextureSource") return AssetType::TextureSource;
 		if (assetType == "ScriptFile") return AssetType::ScriptFile;
+		if (assetType == "Font") return AssetType::Font;
 
 		SK_CORE_ASSERT(false, "Unkown AssetType");
 		return AssetType::None;
@@ -44,7 +47,8 @@ namespace Shark {
 		{ ".skscene", AssetType::Scene },
 		{ ".sktex", AssetType::Texture },
 		{ ".png", AssetType::TextureSource },
-		{ ".cs", AssetType::ScriptFile }
+		{ ".cs", AssetType::ScriptFile },
+		{ ".ttf", AssetType::Font }
 	};
 
 }

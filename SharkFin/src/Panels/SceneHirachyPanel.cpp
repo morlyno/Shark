@@ -439,29 +439,18 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 
-			UI::Control("Font File", comp.FontFile);
-
 			if (UI::ControlCustomBegin("Text"))
 			{
 				ImGui::SetNextItemWidth(-1.0f);
 				ImGui::InputTextMultiline("##Text", &comp.Text);
 				UI::ControlCustomEnd();
 			}
-			//UI::Control("Text", comp.Text);
 
+			UI::ControlAsset("Font", comp.FontHandle);
 			UI::ControlColor("Color", comp.Color);
-			UI::Control("Kerning", comp.Kerning);
-			UI::Control("Line Spacing", comp.LineSpacing);
+			UI::Control("Kerning", comp.Kerning, 0.005f);
+			UI::Control("Line Spacing", comp.LineSpacing, 0.01f);
 			UI::EndControls();
-
-			if (FileSystem::Exists(comp.FontFile) && ImGui::Button("Generate Font"))
-			{
-				Application::Get().SubmitToMainThread([&font = comp.Font, fontFile = comp.FontFile]()
-				{
-					font = Ref<Font>::Create(fontFile);
-				});
-			}
-
 		});
 
 		DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)
@@ -685,14 +674,14 @@ namespace Shark {
 						case ManagedFieldType::Entity:
 						{
 							UUID uuid = field.GetEntity(handle);
-							if (UI::Control(name, uuid, "ENTITY_ID"))
+							if (UI::Control(name, uuid, UI::DragDropID::Entity))
 								field.SetEntity(handle, scene->GetEntityByUUID(uuid));
 							break;
 						}
 						case ManagedFieldType::Component:
 						{
 							UUID uuid = field.GetComponent(handle);
-							if (UI::Control(name, uuid, "ENTITY_ID"))
+							if (UI::Control(name, uuid, UI::DragDropID::Entity))
 								field.SetComponent(handle, scene->GetEntityByUUID(uuid));
 							break;
 						}
@@ -741,14 +730,14 @@ namespace Shark {
 						case ManagedFieldType::Entity:
 						{
 							UUID uuid = storage->GetValue<UUID>();
-							if (UI::Control(name, uuid, "ENTITY_ID"))
+							if (UI::Control(name, uuid, UI::DragDropID::Entity))
 								storage->SetValue(uuid);
 							break;
 						}
 						case ManagedFieldType::Component:
 						{
 							UUID uuid = storage->GetValue<UUID>();
-							if (UI::Control(name, uuid, "ENTITY_ID"))
+							if (UI::Control(name, uuid, UI::DragDropID::Entity))
 								storage->SetValue(uuid);
 							break;
 						}

@@ -93,6 +93,8 @@ namespace Shark {
 
 	bool SceneSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing Scene to {}", metadata.FilePath);
 		Timer timer;
@@ -124,6 +126,8 @@ namespace Shark {
 
 	bool SceneSerializer::Deserialize(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene from {}", metadata.FilePath);
 		Timer timer;
 
@@ -156,6 +160,8 @@ namespace Shark {
 
 	std::string SceneSerializer::SerializeToYAML(Ref<Scene> scene)
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene" /*<< YAML::Value << scene->GetName()*/;
@@ -229,7 +235,7 @@ namespace Shark {
 			{
 				out << YAML::Key << "TextRendererComponent";
 				out << YAML::BeginMap;
-				out << YAML::Key << "FontFile" << YAML::Value << component->FontFile;
+				out << YAML::Key << "FontHandle" << YAML::Value << component->FontHandle;
 				out << YAML::Key << "Text" << YAML::Value << component->Text;
 				out << YAML::Key << "Color" << YAML::Value << component->Color;
 				out << YAML::Key << "Kerning" << YAML::Value << component->Kerning;
@@ -387,6 +393,8 @@ namespace Shark {
 
 	bool SceneSerializer::DeserializeFromYAML(Ref<Scene> scene, const std::string& filedata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		try
 		{
 			YAML::Node node = YAML::Load(filedata);
@@ -448,14 +456,10 @@ namespace Shark {
 					if (auto componentNode = entityNode["TextRendererComponent"])
 					{
 						auto& component = entity.AddOrReplaceComponent<TextRendererComponent>();
-						component.FontFile = componentNode["FontFile"].as<std::string>();
+						component.FontHandle = componentNode["FontHandle"].as<AssetHandle>(AssetHandle::Null);
 						component.Text = componentNode["Text"].as<std::string>();
 						component.Color = componentNode["Color"].as<glm::vec4>();
 						component.Kerning = componentNode["Kerning"].as<float>();
-
-						if (FileSystem::Exists(component.FontFile))
-							Application::Get().SubmitToMainThread([&component]() { component.Font = Ref<Font>::Create(component.FontFile); });
-
 					}
 
 					if (auto componentNode = entityNode["CameraComponent"])
