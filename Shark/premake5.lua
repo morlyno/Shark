@@ -68,6 +68,7 @@ project "Shark"
         {
             "%{Library.D3D11}",
             "%{Library.DXGI}",
+            "%{Library.dxguid}",
             "%{Library.Winmm}",
             "%{Library.Version}",
             "%{Library.Bcrypt}"

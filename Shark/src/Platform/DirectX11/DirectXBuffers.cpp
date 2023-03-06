@@ -5,6 +5,8 @@
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
+#include "Shark/Debug/Profiler.h"
+
 namespace Shark {
 
 	//////////////////////////////////////////////////////////////////////////
@@ -143,6 +145,7 @@ namespace Shark {
 
 	void DirectXVertexBuffer::RT_SetData(Buffer vertexData, bool allowResize)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		if (vertexData.Size > m_Size && allowResize)
@@ -310,6 +313,7 @@ namespace Shark {
 
 	void DirectXIndexBuffer::RT_SetData(Buffer indexData, bool allowResize)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		if (indexData.Size > m_Size && allowResize)

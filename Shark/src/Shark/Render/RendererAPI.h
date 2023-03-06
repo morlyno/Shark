@@ -35,8 +35,6 @@ namespace Shark {
 		virtual void BeginFrame() = 0;
 		virtual void EndFrame() = 0;
 
-		virtual void ResizeSwapChain(uint32_t widht, uint32_t height) = 0;
-
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) = 0;
 		
 		virtual void BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer) = 0;
@@ -49,12 +47,12 @@ namespace Shark {
 		virtual void GenerateMips(Ref<Image2D> image) = 0;
 		virtual void RT_GenerateMips(Ref<Image2D> image) = 0;
 
-		virtual void ClearAllCommandBuffers() = 0;
 		virtual const RendererCapabilities& GetCapabilities() const = 0;
 
 		virtual Ref<ShaderLibrary> GetShaderLib() = 0;
 		virtual Ref<Texture2D> GetWhiteTexture() = 0;
 
+		virtual bool ResourcesCreated() const = 0;
 		virtual bool IsInsideFrame() const = 0;
 
 	};

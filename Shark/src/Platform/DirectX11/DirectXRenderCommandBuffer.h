@@ -23,7 +23,7 @@ namespace Shark {
 		virtual void BeginTimeQuery(Ref<GPUTimer> counter) override;
 		virtual void EndTimeQuery(Ref<GPUTimer> counter) override;
 
-		void ClearState();
+		void RT_ClearState();
 
 	public:
 		void RT_Begin();

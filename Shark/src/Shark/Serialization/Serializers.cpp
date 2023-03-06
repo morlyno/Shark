@@ -15,12 +15,12 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO_TAG(Log::Tags::Serialization, "Deserializing Font from {}", metadata.FilePath);
+		SK_CORE_INFO_TAG(Tag::Serialization, "Deserializing Font from {}", metadata.FilePath);
 		Timer timer;
 
 		if (!ResourceManager::HasExistingFilePath(metadata))
 		{
-			SK_CORE_ERROR_TAG(Log::Tags::Serialization, "Path not found! {0}", metadata.FilePath);
+			SK_CORE_ERROR_TAG(Tag::Serialization, "Path not found! {0}", metadata.FilePath);
 			return false;
 		}
 
@@ -28,7 +28,7 @@ namespace Shark {
 		std::string filedata = FileSystem::ReadString(fontFile);
 		if (filedata.empty())
 		{
-			SK_CORE_ERROR_TAG(Log::Tags::Serialization, "File was empty!");
+			SK_CORE_ERROR_TAG(Tag::Serialization, "File was empty!");
 			return false;
 		}
 

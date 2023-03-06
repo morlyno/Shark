@@ -45,12 +45,11 @@ namespace Shark {
 		static bool IsOnRenderThread();
 		static bool IsExecuting();
 
-		static void ResizeSwapChain(uint32_t widht, uint32_t height);
-
 		template<typename TFunc>
 		static void Submit(const TFunc& func)
 		{
 			SK_CORE_VERIFY(!IsExecuting());
+			SK_CORE_VERIFY(IsDuringStartup() || IsInsideFrame());
 			GetCommandQueue().Submit(func);
 		}
 
@@ -72,12 +71,12 @@ namespace Shark {
 		static void GenerateMips(Ref<Image2D> image);
 		static void RT_GenerateMips(Ref<Image2D> image);
 
-		static void ClearAllCommandBuffers();
 		static const RendererCapabilities& GetCapabilities();
 
 		static Ref<ShaderLibrary> GetShaderLib();
 		static Ref<Texture2D> GetWhiteTexture();
 
+		static bool ResourcesCreated();
 		static bool IsInsideFrame();
 
 		static Ref<RendererAPI> GetRendererAPI();
@@ -88,6 +87,8 @@ namespace Shark {
 	private:
 		static CommandQueue& GetCommandQueue();
 		static CommandQueue& GetResourceFreeQueue();
+
+		static bool IsDuringStartup();
 
 	private:
 		static Ref<RendererAPI> s_RendererAPI;

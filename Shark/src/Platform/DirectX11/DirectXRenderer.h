@@ -15,6 +15,10 @@
 
 #define SK_DX11_CALL(call) { HRESULT hr = (call); if (FAILED(hr)) { auto renderer = ::Shark::DirectXRenderer::Get(); renderer->HandleError(hr); } }
 
+#define SK_ENABLE_INFOQUEUE SK_ENABLE_VALIDATION
+
+struct IDXGIInfoQueue;
+
 namespace Shark {
 
 	class DirectXRenderer : public RendererAPI
@@ -29,9 +33,6 @@ namespace Shark {
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;
 
-		void RegisterSwapchain(Ref<DirectXSwapChain> swapchain) { m_Swapchain = swapchain; }
-		virtual void ResizeSwapChain(uint32_t widht, uint32_t height) override;
-
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) override;
 
 		virtual void BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer) override;
@@ -44,7 +45,6 @@ namespace Shark {
 		virtual void GenerateMips(Ref<Image2D> image) override;
 		virtual void RT_GenerateMips(Ref<Image2D> image) override;
 
-		virtual void ClearAllCommandBuffers() override;
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
 
 		virtual Ref<ShaderLibrary> GetShaderLib() override { return m_ShaderLib; }
@@ -58,7 +58,10 @@ namespace Shark {
 
 		void HandleError(HRESULT hr);
 
-		virtual bool IsInsideFrame() const override{ return m_Active; }
+		virtual bool IsInsideFrame() const override { return m_Active; }
+		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
+		void RT_FlushInfoQueue();
+		void RT_PrepareForSwapchainResize();
 
 	private:
 		void RT_PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet);
@@ -66,25 +69,30 @@ namespace Shark {
 
 		void RT_BeginFrequencyQuery();
 		void RT_EndFrequencyQuery();
-		void RT_ClearAllCommandBuffers();
-		void RT_ResizeSwapChain();
+
+		void RT_CreateDevice();
+		void RT_CreateInfoQueue();
+		static void RT_LogMessages(IDXGIInfoQueue* infoQueue);
+		
 
 	public:
 		static Ref<DirectXRenderer>     Get()                  { return s_Instance; }
 		static ID3D11Device*            GetDevice()            { return s_Instance->m_Device; }
 		static ID3D11DeviceContext*     GetContext()           { return s_Instance->m_ImmediateContext; }
 		static IDXGIFactory*            GetFactory()           { return s_Instance->m_Factory; }
+		ID3D11Debug* GetDebug() { return m_Debug; }
 
 	private:
 		static DirectXRenderer* s_Instance;
 
 		bool m_ResourceCreated = false;
-		bool m_IsFirstFrame = true;
 		bool m_Active = false;
 
 		IDXGIFactory* m_Factory = nullptr;
 		ID3D11Device* m_Device = nullptr;
 		ID3D11DeviceContext* m_ImmediateContext = nullptr;
+		ID3D11Debug* m_Debug = nullptr;
+		IDXGIInfoQueue* m_InfoQueue = nullptr;
 
 		std::unordered_set<DirectXRenderCommandBuffer*> m_CommandBuffers;
 
@@ -101,12 +109,6 @@ namespace Shark {
 		bool m_DoFrequencyQuery = true;
 
 		RendererCapabilities m_Capabilities;
-
-		// Resize Swapchain data
-		Ref<DirectXSwapChain> m_Swapchain;
-		uint32_t m_Width, m_Height;
-		bool m_SwapchainNeedsResize = false;
-
 	};
 
 

@@ -33,6 +33,14 @@ namespace Shark {
 		ScriptEngineConfig ScriptConfig;
 	};
 
+	enum class ApplicationState
+	{
+		None = 0,
+		Startup,
+		Running,
+		Shutdown,
+	};
+
 	class Application
 	{
 	public:
@@ -54,7 +62,9 @@ namespace Shark {
 		float GetTime() const { return m_Time; }
 		TimeStep GetCPUTime() const { return m_CPUTime; }
 		TimeStep GetFrameTime() const { return m_TimeStep; }
+		uint64_t GetFrameCount() const { return m_FrameCount; }
 		PerformanceProfiler* GetProfiler() const { return m_Profiler; }
+		ApplicationState GetApplicationState() const { return m_State; }
 
 		Window& GetWindow() { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
@@ -81,17 +91,20 @@ namespace Shark {
 		void OnEvent(Event& event);
 		bool OnWindowClose(WindowCloseEvent& event);
 		bool OnWindowResize(WindowResizeEvent& event);
+		bool OnWindowLostFocus(WindowLostFocusEvent& event);
 
 	private:
 		static Application* s_Instance;
 		ApplicationSpecification m_Specification;
 
+		ApplicationState m_State = ApplicationState::Startup;
 		bool m_Minimized = false;
 		bool m_Running = true;
 		uint64_t m_LastTickCount = 0;
 		TimeStep m_TimeStep = 0.0f;
 		TimeStep m_CPUTime;
 		float m_Time = 0.0f;
+		uint64_t m_FrameCount = 0;
 
 		PerformanceProfiler* m_Profiler = nullptr;
 

@@ -9,6 +9,7 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Debug/enttDebug.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/appdomain.h>
@@ -106,6 +107,7 @@ namespace Shark {
 
 	bool ScriptEngine::LoadAssemblies(const std::filesystem::path& assemblyPath)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Scripting", "Loading Assemblies");
 
 		if (!s_Data)
@@ -157,6 +159,7 @@ namespace Shark {
 
 	void ScriptEngine::UnloadAssemblies()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Scripting", "Unloading Assemblies");
 
 		Ref<FileWatcher> fileWatcher = FileSystem::GetFileWatcher();
@@ -243,6 +246,7 @@ namespace Shark {
 
 	void ScriptEngine::InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		ManagedField& field = ScriptEngine::GetFieldFromStorage(storage);
 		SK_CORE_VERIFY(storage->Type == field.Type);
 		if (storage->Type == ManagedFieldType::String)
@@ -293,6 +297,8 @@ namespace Shark {
 
 	void ScriptEngine::InitializeRuntime(Ref<Scene> scene)
 	{
+		SK_PROFILE_FUNCTION();
+
 		s_Data->ActiveScene = scene;
 		s_Data->IsRunning = true;
 
@@ -307,6 +313,8 @@ namespace Shark {
 
 	void ScriptEngine::ShutdownRuntime()
 	{
+		SK_PROFILE_FUNCTION();
+
 		s_Data->ActiveScene = nullptr;
 		s_Data->IsRunning = false;
 
@@ -322,6 +330,7 @@ namespace Shark {
 
 	GCHandle ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields)
 	{
+		SK_PROFILE_FUNCTION();
 		if (!s_Data->AssembliesLoaded || !(entity && entity.AllOf<ScriptComponent>()))
 			return 0;
 
@@ -353,6 +362,7 @@ namespace Shark {
 
 	void ScriptEngine::DestroyEntityInstance(Entity entity, bool invokeOnDestroy)
 	{
+		SK_PROFILE_FUNCTION();
 		UUID uuid = entity.GetUUID();
 		if (s_Data->EntityInstances.find(uuid) == s_Data->EntityInstances.end())
 			return;
@@ -368,6 +378,7 @@ namespace Shark {
 
 	void ScriptEngine::InitializeFields(Entity entity)
 	{
+		SK_PROFILE_FUNCTION();
 		if (!s_Data->AssembliesLoaded)
 			return;
 
@@ -433,6 +444,7 @@ namespace Shark {
 
 	void ScriptEngine::OnEntityCloned(Entity srcEntity, Entity entity)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_ASSERT(!IsInstantiated(entity));
 		if (!IsInstantiated(srcEntity) || IsInstantiated(entity))
 			return;
@@ -464,6 +476,7 @@ namespace Shark {
 
 	MonoObject* ScriptEngine::CreateEntity(UUID uuid)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(uuid != UUID::Null);
 		MonoObject* object = InstantiateClass(s_Data->EntityClass);
 		mono_runtime_object_init(object);
@@ -478,6 +491,7 @@ namespace Shark {
 
 	MonoObject* ScriptEngine::InstantiateBaseEntity(Entity entity)
 	{
+		SK_PROFILE_FUNCTION();
 		UUID entityID = entity.GetUUID();
 		SK_CORE_ASSERT(!IsInstantiated(entityID));
 		if (IsInstantiated(entityID))
@@ -513,6 +527,7 @@ namespace Shark {
 
 	bool ScriptEngine::InvokeMethod(MonoObject* object, MonoMethod* method, void** params, MonoObject** out_RetVal)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoObject* exception = nullptr;
 		MonoObject* retVal = mono_runtime_invoke(method, object, params, &exception);
 		if (exception)
@@ -529,6 +544,7 @@ namespace Shark {
 
 	MonoObject* ScriptEngine::InvokeMethodR(MonoObject* object, MonoMethod* method, void** params)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoObject* ret = nullptr;
 		if (InvokeMethod(object, method, params, &ret))
 			return ret;
@@ -537,12 +553,14 @@ namespace Shark {
 
 	bool ScriptEngine::InvokeVirtualMethod(MonoObject* object, MonoMethod* method, void** params, MonoObject** out_RetVal)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoMethod* virtualMethod = mono_object_get_virtual_method(object, method);
 		return InvokeMethod(object, virtualMethod, params, out_RetVal);
 	}
 
 	void ScriptEngine::InitMono()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Scripting", "Initializing Mono");
 
 		FileSystem::TruncateFile("Logs/Mono.log");
@@ -576,12 +594,14 @@ namespace Shark {
 
 	void ScriptEngine::ShutdownMono()
 	{
+		SK_PROFILE_FUNCTION();
 		mono_jit_cleanup(s_Data->RootDomain);
 		s_Data->RootDomain = nullptr;
 	}
 
 	MonoAssembly* ScriptEngine::LoadCSAssembly(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
 		if (!std::filesystem::exists(filePath))
 		{
 			SK_CORE_ERROR_TAG("Scripting", "Can't load Assembly! Filepath dosn't exist");
@@ -622,6 +642,7 @@ namespace Shark {
 
 	bool ScriptEngine::LoadCoreAssembly(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoAssembly* assembly = LoadCSAssembly(filePath);
 		if (!assembly)
 		{
@@ -640,6 +661,7 @@ namespace Shark {
 
 	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoAssembly* assembly = LoadCSAssembly(filePath);
 		if (!assembly)
 		{
@@ -658,6 +680,7 @@ namespace Shark {
 
 	bool ScriptEngine::ReloadAssemblies()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(!s_Data->IsRunning, "Reloading at runntime not supported");
 
 		SK_CORE_INFO_TAG("Scripting", "Reloading Assemblies");
@@ -704,6 +727,7 @@ namespace Shark {
 
 	void ScriptEngine::CacheScriptClasses()
 	{
+		SK_PROFILE_FUNCTION();
 		s_Data->EntityClass = mono_class_from_name_case(s_Data->CoreAssembly.Image, "Shark", "Entity");
 		s_Data->EntityCtor = mono_class_get_method_from_name(s_Data->EntityClass, ".ctor", 1);
 

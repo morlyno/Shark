@@ -1,4 +1,5 @@
 #include "skpch.h"
+#undef GetMessage
 #include "DirectXRenderer.h"
 
 #include "Shark/Core/Application.h"
@@ -19,6 +20,11 @@
 #include "Platform/Windows/WindowsUtils.h"
 
 #include <backends/imgui_impl_dx11.h>
+#include <dxgidebug.h>
+
+#if SK_ENABLE_VALIDATION
+#define DX11_VALIDATE_CONTEXT(ctx) DirectXRenderer::Get()->GetDebug()->ValidateContext(ctx);
+#endif
 
 namespace Shark {
 
@@ -59,40 +65,21 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Renderer", "Initializing DirectX Renderer");
 
 		Ref<DirectXRenderer> instance = this;
-
-		Renderer::Submit([instance]()
+		Renderer::Submit([this, instance]()
 		{
-			SK_DX11_CALL(CreateDXGIFactory(IID_PPV_ARGS(&instance->m_Factory)));
+			RT_CreateInfoQueue();
+			RT_CreateDevice();
+			QueryCapabilities();
+			SK_DX11_CALL(m_Device->QueryInterface(&m_Debug));
 
-			IDXGIAdapter* adapter = nullptr;
-			SK_DX11_CALL(instance->m_Factory->EnumAdapters(0, &adapter));
-			SK_CORE_INFO_TAG("Renderer", "GPU Selected ({0})", Utils::GetGPUDescription(adapter));
 
-			UINT createdeviceFalgs = 0u;
-#if SK_ENABLE_VALIDATION
-			createdeviceFalgs |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-
-			SK_DX11_CALL(D3D11CreateDevice(
-				adapter,
-				D3D_DRIVER_TYPE_UNKNOWN,
-				nullptr,
-				createdeviceFalgs,
-				nullptr,
-				0,
-				D3D11_SDK_VERSION,
-				&instance->m_Device,
-				nullptr,
-				&instance->m_ImmediateContext
-			));
-
-			adapter->Release();
-
-			instance->QueryCapabilities();
+			D3D11_QUERY_DESC queryDesc;
+			queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+			queryDesc.MiscFlags = 0;
+			SK_DX11_CALL(instance->m_Device->CreateQuery(&queryDesc, &instance->m_FrequencyQuery));
 		});
 
 		m_ShaderLib = Ref<ShaderLibrary>::Create();
-
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadTransparent.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadDepthPass.hlsl");
@@ -109,8 +96,7 @@ namespace Shark {
 		m_ShaderLib->Load("Resources/Shaders/NegativeEffect.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/BlurEffect.hlsl");
 
-		uint32_t color = 0xFFFFFFFF;
-		m_WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, Buffer::FromValue(color));
+		m_WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, Buffer::FromValue(0xFFFFFFFF));
 
 		VertexLayout layout = {
 			{ VertexDataType::Float2, "Position" }
@@ -131,15 +117,6 @@ namespace Shark {
 		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, (uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
 		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
 
-		Renderer::Submit([instance]()
-		{
-			// Frequency Query
-			D3D11_QUERY_DESC queryDesc;
-			queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
-			queryDesc.MiscFlags = 0;
-			SK_DX11_CALL(instance->m_Device->CreateQuery(&queryDesc, &instance->m_FrequencyQuery));
-		});
-
 		Renderer::Submit([instance]() { SK_CORE_INFO_TAG("Renderer", "Resources Created"); instance->m_ResourceCreated = true; });
 	}
 
@@ -154,21 +131,21 @@ namespace Shark {
 
 		SK_CORE_ASSERT(m_CommandBuffers.empty(), "All RenderCommandBuffers need to be destroy befor Renderer shuts down");
 
-		Renderer::SubmitResourceFree([frequencyQuery = m_FrequencyQuery, factory = m_Factory, context = m_ImmediateContext, device = m_Device]()
+		Renderer::SubmitResourceFree([frequencyQuery = m_FrequencyQuery, factory = m_Factory, context = m_ImmediateContext, device = m_Device, debug = m_Debug, infoQueue = m_InfoQueue]()
 		{
-			if (frequencyQuery)
-				frequencyQuery->Release();
-			if (factory)
-				factory->Release();
-			if (context)
-				context->Release();
-			if (device)
-				device->Release();
+			frequencyQuery->Release();
+			factory->Release();
+			debug->Release();
+			RT_LogMessages(infoQueue);
+			infoQueue->Release();
+			context->Release();
+			device->Release();
 		});
 
-		m_Swapchain = nullptr;
 		m_FrequencyQuery = nullptr;
 		m_Factory = nullptr;
+		m_InfoQueue = nullptr;
+		m_Debug = nullptr;
 		m_ImmediateContext = nullptr;
 		m_Device = nullptr;
 
@@ -180,16 +157,6 @@ namespace Shark {
 	{
 		m_Active = true;
 
-		if (m_SwapchainNeedsResize)
-		{
-			//m_Swapchain->m_Specs.Widht = m_Width;
-			//m_Swapchain->m_Specs.Height = m_Height;
-			//m_Swapchain->ReCreateSwapChain();
-			ClearAllCommandBuffers();
-			m_Swapchain->Resize(m_Width, m_Height);
-			m_SwapchainNeedsResize = false;
-		}
-
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([instance]()
 		{
@@ -200,22 +167,13 @@ namespace Shark {
 	void DirectXRenderer::EndFrame()
 	{
 		Ref<DirectXRenderer> instance = this;
-		Renderer::Submit([instance]()
+		Renderer::Submit([this, instance]()
 		{
-			instance->RT_EndFrequencyQuery();
+			RT_EndFrequencyQuery();
+			RT_LogMessages(m_InfoQueue);
 		});
 
 		m_Active = false;
-	}
-
-	void DirectXRenderer::ResizeSwapChain(uint32_t widht, uint32_t height)
-	{
-		//RT_ClearAllCommandBuffers();
-
-		m_Width = widht;
-		m_Height = height;
-		m_SwapchainNeedsResize = true;
-
 	}
 
 	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
@@ -228,6 +186,8 @@ namespace Shark {
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, dxMaterial, vertexBuffer = m_QuadVertexBuffer, indexBuffer = m_QuadIndexBuffer]()
 		{
+			SK_PROFILE_SCOPED("DirectXRenderer::RenderFullScreenQuad");
+
 			ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
 
 			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
@@ -258,6 +218,7 @@ namespace Shark {
 			//instance->RT_PrepareAndBindMaterialForRendering(dxCommandBuffer, dxMaterial, nullptr);
 
 			ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			DX11_VALIDATE_CONTEXT(ctx);
 			ctx->DrawIndexed(6, 0, 0);
 		});
 	}
@@ -274,6 +235,8 @@ namespace Shark {
 
 		Renderer::Submit([instance, commandBuffer, dxVB, dxIB, dxPipeline]()
 		{
+			SK_PROFILE_SCOPED("DirectXRenderer::BeginBatch");
+
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
 			const UINT offset = 0;
@@ -312,8 +275,11 @@ namespace Shark {
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([instance, commandBuffer, dxMaterial, dxCBSet, indexCount, startIndex]()
 		{
+			SK_PROFILE_SCOPED("DirectXRenderer::RenderBatch");
+
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial, dxCBSet);
+			DX11_VALIDATE_CONTEXT(ctx);
 			ctx->DrawIndexed(indexCount, startIndex, 0);
 		});
 	}
@@ -335,6 +301,8 @@ namespace Shark {
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([instance, commandBuffer, dxVB, dxIB, dxPipeline, dxMaterial, dxCBSet, indexCount]()
 		{
+			SK_PROFILE_SCOPED("DirectXRenderer::RenderGeometry");
+
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
 			const UINT offset = 0;
@@ -365,6 +333,7 @@ namespace Shark {
 
 			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
 
+			DX11_VALIDATE_CONTEXT(ctx);
 			ctx->DrawIndexed(indexCount, 0, 0);
 		});
 	}
@@ -381,6 +350,8 @@ namespace Shark {
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([instance, commandBuffer, dxVB, dxPipeline, dxMaterial, dxCBSet, vertexCount]()
 		{
+			SK_PROFILE_SCOPED("DirectXRenderer::RenderGeometry");
+
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
 			const UINT offset = 0;
@@ -409,6 +380,7 @@ namespace Shark {
 
 			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
 
+			DX11_VALIDATE_CONTEXT(ctx);
 			ctx->Draw(vertexCount, 0);
 		});
 	}
@@ -472,17 +444,6 @@ namespace Shark {
 		texture->Release();
 	}
 
-	void DirectXRenderer::ClearAllCommandBuffers()
-	{
-		SK_PROFILE_FUNCTION();
-
-		Ref<DirectXRenderer> instance = this;
-		Renderer::Submit([instance]()
-		{
-			instance->RT_ClearAllCommandBuffers();
-		});
-	}
-
 	void DirectXRenderer::AddCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer)
 	{
 		m_CommandBuffers.insert(commandBuffer.Raw());
@@ -505,7 +466,30 @@ namespace Shark {
 			return;
 		}
 
-		SK_CORE_ERROR_TAG("Renderer", WindowsUtils::TranslateHResult(hr));
+		RT_LogMessages(m_InfoQueue);
+
+		static bool BreakOnError = true;
+		if (BreakOnError)
+		{
+			SK_DEBUG_BREAK();
+		}
+
+		//SK_CORE_ERROR_TAG("Renderer", WindowsUtils::TranslateHResult(hr));
+	}
+
+	void DirectXRenderer::RT_FlushInfoQueue()
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		RT_LogMessages(m_InfoQueue);
+	}
+
+	void DirectXRenderer::RT_PrepareForSwapchainResize()
+	{
+		//SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		for (auto context : m_CommandBuffers)
+			context->RT_ClearState();
+		m_ImmediateContext->ClearState();
+		m_ImmediateContext->Flush();
 	}
 
 	void DirectXRenderer::RT_PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet)
@@ -554,6 +538,7 @@ namespace Shark {
 
 	void DirectXRenderer::RT_BeginFrequencyQuery()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		if (m_DoFrequencyQuery)
@@ -562,6 +547,7 @@ namespace Shark {
 
 	void DirectXRenderer::RT_EndFrequencyQuery()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		if (m_DoFrequencyQuery)
@@ -579,28 +565,91 @@ namespace Shark {
 		}
 	}
 
-	void DirectXRenderer::RT_ClearAllCommandBuffers()
-	{
-		for (auto& c : m_CommandBuffers)
-			c->ClearState();
-		m_ImmediateContext->ClearState();
-	}
-
-	void DirectXRenderer::RT_ResizeSwapChain()
+	void DirectXRenderer::RT_CreateDevice()
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
-		for (const auto& c : m_CommandBuffers)
-		{
-			c->ClearState();
-		}
-		m_ImmediateContext->Flush();
-		m_ImmediateContext->ClearState();
+		SK_DX11_CALL(CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)));
 
-		//dxSwapchain->RT_ResizeSwapChain(widht, height);
-		m_Swapchain->m_Specs.Widht = m_Width;
-		m_Swapchain->m_Specs.Height = m_Height;
-		m_Swapchain->ReCreateSwapChain();
+		IDXGIAdapter* adapter = nullptr;
+		SK_DX11_CALL(m_Factory->EnumAdapters(0, &adapter));
+		SK_CORE_INFO_TAG("Renderer", "GPU Selected ({0})", Utils::GetGPUDescription(adapter));
+
+		UINT createdeviceFalgs = 0u;
+#if SK_ENABLE_VALIDATION
+		createdeviceFalgs |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+		SK_DX11_CALL(D3D11CreateDevice(
+			adapter,
+			D3D_DRIVER_TYPE_UNKNOWN,
+			nullptr,
+			createdeviceFalgs,
+			nullptr,
+			0,
+			D3D11_SDK_VERSION,
+			&m_Device,
+			nullptr,
+			&m_ImmediateContext
+		));
+
+		adapter->Release();
+	}
+
+	void DirectXRenderer::RT_CreateInfoQueue()
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		typedef HRESULT(WINAPI* DXGIGetDebugInterface)(REFIID, void**);
+
+		const auto hModDxgiDebug = LoadLibraryEx(L"dxgidebug.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+		if (!hModDxgiDebug)
+			return;
+
+		DXGIGetDebugInterface dxgiGetDebugInterface = (DXGIGetDebugInterface)GetProcAddress(hModDxgiDebug, "DXGIGetDebugInterface");
+		if (!dxgiGetDebugInterface)
+			return;
+
+		SK_DX11_CALL(dxgiGetDebugInterface(__uuidof(IDXGIInfoQueue), (void**)&m_InfoQueue));
+
+		SK_DX11_CALL(m_InfoQueue->PushEmptyRetrievalFilter(DXGI_DEBUG_ALL));
+		SK_DX11_CALL(m_InfoQueue->PushEmptyStorageFilter(DXGI_DEBUG_ALL));
+
+		SK_DX11_CALL(m_InfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true));
+		SK_DX11_CALL(m_InfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true));
+	}
+
+	void DirectXRenderer::RT_LogMessages(IDXGIInfoQueue* infoQueue)
+	{
+		SK_PROFILE_FUNCTION();
+
+		const auto& producer = DXGI_DEBUG_ALL;
+
+		Buffer messageBuffer;
+		uint64_t count = infoQueue->GetNumStoredMessages(producer);
+		for (uint64_t i = 0; i < count; i++)
+		{
+			uint64_t messageLength;
+			SK_DX11_CALL(infoQueue->GetMessage(producer, i, nullptr, &messageLength));
+
+			messageBuffer.Resize(messageLength, false);
+			auto message = messageBuffer.As<DXGI_INFO_QUEUE_MESSAGE>();
+
+			SK_DX11_CALL(infoQueue->GetMessage(producer, i, message, &messageLength));
+
+			switch (message->Severity)
+			{
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_MESSAGE: SK_CORE_TRACE_TAG(Tag::None, "{}", message->pDescription); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_INFO: SK_CORE_INFO_TAG(Tag::None, "{}", message->pDescription); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING: SK_CORE_WARN_TAG(Tag::None, "{}", message->pDescription); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR: SK_CORE_ERROR_TAG(Tag::None, "{}", message->pDescription); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION: SK_CORE_CRITICAL_TAG(Tag::None, "{}", message->pDescription); break;
+				default: SK_CORE_WARN_TAG(Tag::None, "Unkown Severity! {}", message->pDescription); break;
+			}
+		}
+
+		infoQueue->ClearStoredMessages(producer);
+		messageBuffer.Release();
 	}
 
 }

@@ -32,9 +32,6 @@ namespace Shark {
 
 		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name);
 
-		void RT_Bind(ID3D11DeviceContext* ctx);
-		void RT_UnBind(ID3D11DeviceContext* ctx);
-
 		std::unordered_map<ShaderStage, std::vector<byte>> GetShaderBinarys() const { return m_ShaderBinarys; }
 	private:
 		std::unordered_map<ShaderStage, std::string> PreProzess(const std::string& file);

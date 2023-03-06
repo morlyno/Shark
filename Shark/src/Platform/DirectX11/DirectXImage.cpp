@@ -249,6 +249,23 @@ namespace Shark {
 		RT_UpdateResource(source->ImageData);
 	}
 
+	void DirectXImage2D::RT_Invalidate(Ref<DirectXSwapChain> swapchain, bool createView)
+	{
+		auto& scSpec = swapchain->GetSpecification();
+		m_Specification.Width = scSpec.Widht;
+		m_Specification.Height = scSpec.Height;
+		m_Specification.Type = ImageType::FrameBuffer;
+		m_Specification.Format = ImageFormat::RGBA8;
+
+		IDXGISwapChain* dxSwapchain = swapchain->GetSwapChain();
+		ID3D11Texture2D* texture = nullptr;
+		SK_DX11_CALL(dxSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&texture));
+		m_Resource = texture;
+
+		if (createView)
+			RT_CreateView();
+	}
+
 	void DirectXImage2D::Resize(uint32_t width, uint32_t height)
 	{
 		if (m_Specification.Width == width && m_Specification.Height == height)

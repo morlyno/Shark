@@ -525,10 +525,13 @@ namespace Shark {
 				auto& app = Application::Get();
 				if (ImGui::MenuItem("Fullscreen", nullptr, app.GetWindow().IsFullscreen()))
 				{
-					auto& window = app.GetWindow();
-					const bool nextMode = !window.IsFullscreen();
-					window.SetFullscreen(nextMode);
-					window.GetSwapChain()->RT_SetFullscreen(nextMode);
+					Application::Get().SubmitToMainThread([]()
+					{
+						auto& window = Application::Get().GetWindow();
+						const bool nextMode = !window.IsFullscreen();
+						window.SetFullscreen(nextMode);
+						//window.GetSwapChain()->Resize(window.GetWidth(), window.GetHeight());
+					});
 				}
 				ImGui::EndMenu();
 			}

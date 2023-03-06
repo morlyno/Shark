@@ -44,6 +44,7 @@ namespace Shark {
 
 		virtual void RT_Set(const ImageSpecification& spec, Buffer imagedata) override;
 		virtual void RT_Set(Ref<TextureSource> source, uint32_t mipLevels) override;
+		void RT_Invalidate(Ref<DirectXSwapChain> swapchain, bool createView = false);
 
 		virtual void Resize(uint32_t width, uint32_t height) override;
 

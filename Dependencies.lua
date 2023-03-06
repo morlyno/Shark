@@ -22,6 +22,7 @@ Library["mono"] = "%{LibraryDir.mono}/libmono-static-sgen.lib"
 
 Library["D3D11"] = "d3d11.lib"
 Library["DXGI"] = "dxgi.lib"
+Library["dxguid"] = "dxguid.lib"
 
 Library["Winmm"] = "Winmm.lib"
 Library["Version"] = "Version.lib"

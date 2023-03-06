@@ -32,12 +32,18 @@ namespace Shark {
 		virtual Ref<Image2D> GetImage(uint32_t index = 0) override { return m_Specification.Atachments[index].Image; }
 		virtual Ref<Image2D> GetDepthImage() override { return m_DepthStencilAtachment->Image; }
 
-		virtual const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
+		virtual const FrameBufferSpecification& GetSpecification() const override { return m_Specification; }
+		virtual FrameBufferSpecification& GetSpecificationMutable() override { return m_Specification; }
 
 		void RT_Bind(ID3D11DeviceContext* ctx);
 		void RT_UnBind(ID3D11DeviceContext* ctx);
 
+		void RT_Invalidate();
+
 	private:
+		void RT_CreateAtachment(FrameBufferAtachment& atachment);
+		void RT_CreateDepthAtachment(FrameBufferAtachment& atachment);
+
 		void CreateBuffers();
 		void CreateDepth32Buffer(FrameBufferAtachment* atachment);
 		void CreateFrameBuffer(FrameBufferAtachment* atachment, DXGI_FORMAT dxgiformat);
@@ -46,6 +52,7 @@ namespace Shark {
 		void RT_CreateBlendState();
 
 		bool IsColorAtachment(FrameBufferAtachment* atachment) const;
+		bool IsDepthAtachemnt(const FrameBufferAtachment& atachment) const;
 
 	private:
 		void RT_Clear(Ref<DirectXRenderCommandBuffer> commandBuffer);

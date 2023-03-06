@@ -69,11 +69,6 @@ namespace Shark {
 		return s_RendererData->CommandQueueExecuting;
 	}
 
-	void Renderer::ResizeSwapChain(uint32_t widht, uint32_t height)
-	{
-		s_RendererAPI->ResizeSwapChain(widht, height);
-	}
-
 	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
 	{
 		s_RendererAPI->RenderFullScreenQuad(commandBuffer, pipeline, material);
@@ -114,11 +109,6 @@ namespace Shark {
 		s_RendererAPI->RT_GenerateMips(image);
 	}
 
-	void Renderer::ClearAllCommandBuffers()
-{
-		s_RendererAPI->ClearAllCommandBuffers();
-	}
-
 	const RendererCapabilities& Renderer::GetCapabilities()
 	{
 		return s_RendererAPI->GetCapabilities();
@@ -132,6 +122,11 @@ namespace Shark {
 	Ref<Texture2D> Renderer::GetWhiteTexture()
 	{
 		return s_RendererAPI->GetWhiteTexture();
+	}
+
+	bool Renderer::ResourcesCreated()
+	{
+		return s_RendererAPI->ResourcesCreated();
 	}
 
 	bool Renderer::IsInsideFrame()
@@ -162,6 +157,11 @@ namespace Shark {
 	CommandQueue& Renderer::GetResourceFreeQueue()
 	{
 		return s_RendererData->ResourceFreeQueue;
+	}
+
+	bool Renderer::IsDuringStartup()
+	{
+		return Application::Get().GetApplicationState() == ApplicationState::Startup;
 	}
 
 }

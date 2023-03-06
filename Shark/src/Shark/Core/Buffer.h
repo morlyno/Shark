@@ -19,6 +19,7 @@ namespace Shark {
 		void Release();
 		void Write(const void* data, uint64_t size, uint64_t offset = 0);
 		void Write(const byte* data, uint64_t size, uint64_t offset = 0);
+		void SetZero();
 
 		template<typename T>
 		void Write(const T& data, uint64_t offset = 0)
@@ -71,6 +72,8 @@ namespace Shark {
 
 		static Buffer Copy(const byte* data, uint64_t Size);
 		static Buffer Copy(Buffer buffer);
+
+		static Buffer New(uint64_t size, bool setZero = false);
 
 	public:
 		byte* Data = nullptr;

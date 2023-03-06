@@ -80,6 +80,7 @@ namespace Shark {
 		virtual Ref<Image2D> GetDepthImage() = 0;
 
 		virtual const FrameBufferSpecification& GetSpecification() const = 0;
+		virtual FrameBufferSpecification& GetSpecificationMutable() = 0;
 
 		static Ref<FrameBuffer> Create(const FrameBufferSpecification& specs);
 	};

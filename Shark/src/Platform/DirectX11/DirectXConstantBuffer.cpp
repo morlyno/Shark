@@ -3,6 +3,8 @@
 
 #include "Shark/Core/Buffer.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Debug/Profiler.h"
+
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 namespace Shark {
@@ -47,6 +49,8 @@ namespace Shark {
 
 	void DirectXConstantBuffer::RT_Set(Buffer buffer)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		auto* ctx = DirectXRenderer::GetContext();
 

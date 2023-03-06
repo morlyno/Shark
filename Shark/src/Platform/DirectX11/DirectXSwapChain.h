@@ -17,7 +17,6 @@ namespace Shark {
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual void SetFullscreen(bool fullscreen) override;
-		virtual void RT_SetFullscreen(bool fullscreen) override;
 
 		virtual Ref<FrameBuffer> GetFrameBuffer() const override { return m_FrameBuffer; }
 
@@ -28,10 +27,9 @@ namespace Shark {
 
 	private:
 		void ResizeSwapChain(uint32_t widht, uint32_t height, bool alwaysResize = false);
-		void RT_ResizeDXSwapChain(uint32_t width, uint32_t height);
+		void RT_ResizeSwapChain(uint32_t width, uint32_t height);
 
 		void ReCreateSwapChain();
-		void RT_ReCreateDXSwapChain();
 
 	private:
 		SwapChainSpecifications m_Specs;

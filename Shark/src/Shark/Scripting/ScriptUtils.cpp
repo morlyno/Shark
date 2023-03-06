@@ -4,6 +4,8 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/GCManager.h"
 
+#include "Shark/Debug/Profiler.h"
+
 #include <mono/metadata/object.h>
 #include <mono/metadata/debug-helpers.h>
 
@@ -121,6 +123,7 @@ namespace Shark {
 
 	void MethodThunks::OnCreate(GCHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoException* exception = nullptr;
 		MonoObject* object = GCManager::GetManagedObject(handle);
 		s_UtilsData->OnCreate.Invoke(object, &exception);
@@ -129,6 +132,7 @@ namespace Shark {
 
 	void MethodThunks::OnDestroy(GCHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoException* exception = nullptr;
 		MonoObject* object = GCManager::GetManagedObject(handle);
 		s_UtilsData->OnDestroy.Invoke(object, &exception);
@@ -137,6 +141,7 @@ namespace Shark {
 
 	void MethodThunks::OnUpdate(GCHandle handle, float ts)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoException* exception = nullptr;
 		MonoObject* object = GCManager::GetManagedObject(handle);
 		s_UtilsData->OnUpdate.Invoke(object, ts, &exception);
@@ -145,6 +150,7 @@ namespace Shark {
 
 	void MethodThunks::OnPhysicsUpdate(GCHandle handle, float ts)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoException* exception = nullptr;
 		MonoObject* object = GCManager::GetManagedObject(handle);
 		s_UtilsData->OnPhyiscsUpdate.Invoke(object, ts, &exception);
@@ -153,6 +159,7 @@ namespace Shark {
 
 	void MethodThunks::OnUIRender(GCHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		MonoException* exception = nullptr;
 		MonoObject* object = GCManager::GetManagedObject(handle);
 		s_UtilsData->OnUIRender.Invoke(object, &exception);

@@ -2,6 +2,8 @@
 #include "DirectXRenderCommandBuffer.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Debug/Profiler.h"
+
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXGPUTimer.h"
 
@@ -12,8 +14,13 @@ namespace Shark {
 
 	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer()
 	{
+		Ref<DirectXRenderCommandBuffer> instance = this;
 		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		SK_DX11_CALL(renderer->GetDevice()->CreateDeferredContext(0, &m_DeferredContext));
+		Renderer::Submit([instance, renderer]()
+		{
+			Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
+			SK_DX11_CALL(renderer->GetDevice()->CreateDeferredContext(0, &instance->m_DeferredContext));
+		});
 		renderer->AddCommandBuffer(this);
 	}
 
@@ -84,7 +91,7 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderCommandBuffer::ClearState()
+	void DirectXRenderCommandBuffer::RT_ClearState()
 	{
 		m_DeferredContext->Flush();
 		m_DeferredContext->ClearState();
@@ -102,6 +109,7 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::RT_Begin()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		m_Active = true;
@@ -109,6 +117,7 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::RT_End()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		if (m_CommandList)
@@ -120,6 +129,7 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::RT_Execute()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		auto context = DirectXRenderer::GetContext();
@@ -128,6 +138,7 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::RT_BeginTimeQuery(Ref<GPUTimer> timer)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		Ref<DirectXGPUTimer> dxTimer = timer.As<DirectXGPUTimer>();
@@ -136,6 +147,7 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::RT_EndTimeQuery(Ref<GPUTimer> timer)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		Ref<DirectXGPUTimer> dxTimer = timer.As<DirectXGPUTimer>();

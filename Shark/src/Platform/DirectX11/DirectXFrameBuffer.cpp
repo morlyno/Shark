@@ -2,6 +2,7 @@
 #include "DirectXFrameBuffer.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Debug/Profiler.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 namespace Shark {
@@ -206,6 +207,79 @@ namespace Shark {
 		ctx->RSSetViewports(1, &nullvp);
 	}
 
+	void DirectXFrameBuffer::RT_Invalidate()
+	{
+		for (auto& atachment : m_Specification.Atachments)
+		{
+			if (IsDepthAtachemnt(atachment))
+			{
+				m_DepthStencilAtachment = &atachment;
+			}
+
+			RT_CreateAtachment(atachment);
+		}
+
+		m_Count = m_FrameBuffers.size();
+		RT_CreateBlendState();
+	}
+
+	void DirectXFrameBuffer::RT_CreateAtachment(FrameBufferAtachment& atachment)
+	{
+		SK_CORE_ASSERT(atachment.Image ? atachment.Image->GetSpecification().Format == atachment.Format : true,
+			"Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment.Image->GetSpecification().Format), ToString(atachment.Format));
+
+		if (!atachment.Image)
+		{
+			ImageSpecification specs;
+			specs.Width = m_Specification.Width;
+			specs.Height = m_Specification.Height;
+			specs.Format = atachment.Format;
+			specs.Type = ImageType::FrameBuffer;
+			atachment.Image = Image2D::Create();
+			atachment.Image->RT_Set(specs, Buffer{});
+		}
+		auto d3dImage = atachment.Image.As<DirectXImage2D>();
+
+		auto dev = DirectXRenderer::GetDevice();
+
+		D3D11_RENDER_TARGET_VIEW_DESC desc{};
+		desc.Format = Utils::FBAtachmentToDXGIFormat(atachment.Format);
+		desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		desc.Texture2D = D3D11_TEX2D_RTV{};
+
+		ID3D11RenderTargetView* fb;
+		SK_DX11_CALL(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
+		m_FrameBuffers.push_back(fb);
+	}
+
+	void DirectXFrameBuffer::RT_CreateDepthAtachment(FrameBufferAtachment& atachment)
+	{
+		SK_CORE_ASSERT(atachment.Image ? atachment.Image->GetSpecification().Format == atachment.Format : true,
+			"Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment.Image->GetSpecification().Format), ToString(atachment.Format));
+
+		if (!atachment.Image)
+		{
+			ImageSpecification specs;
+			specs.Width = m_Specification.Width;
+			specs.Height = m_Specification.Height;
+			specs.Format = atachment.Format;
+			specs.Type = ImageType::FrameBuffer;
+			atachment.Image = Image2D::Create();
+			atachment.Image->RT_Set(specs, nullptr);
+		}
+		auto d3dImage = atachment.Image.As<DirectXImage2D>();
+
+		auto dev = DirectXRenderer::GetDevice();
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
+		dsv.Format = Utils::FBAtachmentToDXGIFormat(atachment.Format);
+		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		dsv.Texture2D.MipSlice = 0u;
+		dsv.Flags = 0u;
+
+		SK_DX11_CALL(dev->CreateDepthStencilView(d3dImage->GetResourceNative(), &dsv, &m_DepthStencil));
+	}
+
 	void DirectXFrameBuffer::CreateBuffers()
 	{
 		uint32_t index = 0;
@@ -282,6 +356,9 @@ namespace Shark {
 		Ref<DirectXFrameBuffer> instance = this;
 		Renderer::Submit([instance, d3dImage, dxgiformat]()
 		{
+			if (!d3dImage->GetResourceNative())
+				return;
+
 			auto dev = DirectXRenderer::GetDevice();
 
 			D3D11_RENDER_TARGET_VIEW_DESC desc;
@@ -318,7 +395,7 @@ namespace Shark {
 
 	void DirectXFrameBuffer::RT_CreateBlendState()
 	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		//SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		m_Viewport.TopLeftX = 0;
 		m_Viewport.TopLeftY = 0;
@@ -384,6 +461,16 @@ namespace Shark {
 		return false;
 	}
 
+	bool DirectXFrameBuffer::IsDepthAtachemnt(const FrameBufferAtachment& atachment) const
+	{
+		switch (atachment.Format)
+		{
+			case ImageFormat::Depth32:
+				return true;
+		}
+		return false;
+	}
+
 	void DirectXFrameBuffer::RT_Clear(Ref<DirectXRenderCommandBuffer> commandBuffer)
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
@@ -400,6 +487,7 @@ namespace Shark {
 
 	void DirectXFrameBuffer::RT_ClearAtachment(Ref<DirectXRenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearColor)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		auto ctx = commandBuffer->GetContext();
@@ -408,6 +496,7 @@ namespace Shark {
 
 	void DirectXFrameBuffer::RT_ClearDepth(Ref<DirectXRenderCommandBuffer> commandBuffer)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		auto ctx = commandBuffer->GetContext();

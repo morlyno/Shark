@@ -11,7 +11,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#if SK_ENABLE_VALIDATION
+#if SK_ENABLE_VALIDATION && false
 #define SK_FILL_TEXTURE_ARRAY_DEBUG(texArr, whiteTexture) { auto&& textureArray = (texArr); for (uint32_t i = 0; i < textureArray->Count(); i++) if (!textureArray->Get(i)) textureArray->Set(i, whiteTexture); }
 #else
 #define SK_FILL_TEXTURE_ARRAY_DEBUG(...)

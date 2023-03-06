@@ -7,6 +7,7 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/String.h"
+#include "Shark/Debug/Profiler.h"
 
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
@@ -160,6 +161,8 @@ namespace Shark {
 		Ref<DirectXShader> instance = this;
 		Renderer::Submit([instance]()
 		{
+			SK_PROFILE_SCOPED("DirectXShader::DirectXShader");
+
 			std::string file = FileSystem::ReadString(instance->m_FilePath);
 			auto shaderSources = instance->PreProzess(file);
 		
@@ -259,27 +262,6 @@ namespace Shark {
 		return nullptr;
 	}
 
-	void DirectXShader::RT_Bind(ID3D11DeviceContext* ctx)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		ctx->VSSetShader(m_VertexShader, nullptr, 0u);
-		ctx->PSSetShader(m_PixelShader, nullptr, 0u);
-		ctx->IASetInputLayout(m_InputLayout);
-	}
-
-	void DirectXShader::RT_UnBind(ID3D11DeviceContext* ctx)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		ID3D11VertexShader* nullvs = nullptr;
-		ID3D11PixelShader* nullps = nullptr;
-		ID3D11InputLayout* nullil = nullptr;
-		ctx->VSSetShader(nullvs, nullptr, 0u);
-		ctx->PSSetShader(nullps, nullptr, 0u);
-		ctx->IASetInputLayout(nullil);
-	}
-
 	std::unordered_map<ShaderStage, std::string> DirectXShader::PreProzess(const std::string& file)
 	{
 		std::unordered_map<ShaderStage, std::string> shaders;
@@ -325,11 +307,14 @@ namespace Shark {
 			define[0].Name = "DIRECTX";
 			define[0].Definition = "1";
 
+			UINT flags = 0;
+			flags |= D3DCOMPILE_DEBUG;
+
 			auto version = Utils::ExtractVersion(src);
 
 			ID3DBlob* shaderBinary = nullptr;
 			ID3DBlob* errorMsg = nullptr;
-			if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), 0, 0, &shaderBinary, &errorMsg)))
+			if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), flags, 0, &shaderBinary, &errorMsg)))
 			{
 				SK_CORE_ERROR("Shader Compile Failed");
 				SK_CORE_ERROR(" - File: {0}", Utils::StageToString(stage));
@@ -390,11 +375,14 @@ namespace Shark {
 				define[0].Name = "DIRECTX";
 				define[0].Definition = "1";
 
+				UINT flags = 0;
+				flags |= D3DCOMPILE_DEBUG;
+
 				auto version = Utils::ExtractVersion(src);
 
 				ID3DBlob* shaderBinary = nullptr;
 				ID3DBlob* errorMsg = nullptr;
-				if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), D3DCOMPILE_DEBUG, 0, &shaderBinary, &errorMsg)))
+				if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), flags, 0, &shaderBinary, &errorMsg)))
 				{
 					SK_CORE_ERROR("Shader Compile Failed");
 					SK_CORE_ERROR(" - Stage: {0}", Utils::StageToString(stage));
@@ -563,6 +551,12 @@ namespace Shark {
 				default:                  SK_CORE_ASSERT(false); break;
 			}
 		}
+
+		if (m_VertexShader)
+			m_VertexShader->SetPrivateData(WKPDID_D3DDebugObjectName, m_FileName.length() + 1, m_FileName.c_str());
+
+		if (m_PixelShader)
+			m_PixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, m_FileName.length() + 1, m_FileName.c_str());
 	}
 
 }

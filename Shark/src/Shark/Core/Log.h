@@ -6,14 +6,16 @@
 
 namespace Shark {
 
+	struct Tag
+	{
+		static constexpr std::string_view None = "";
+		static constexpr std::string_view Serialization = "Serialization";
+		static constexpr std::string_view Renderer = "Renderer";
+	};
+
 	class Log
 	{
 	public:
-		struct Tags
-		{
-			static constexpr std::string_view Serialization = "Serialization";
-		};
-
 		enum class Level : uint16_t
 		{
 			Trace = 0,

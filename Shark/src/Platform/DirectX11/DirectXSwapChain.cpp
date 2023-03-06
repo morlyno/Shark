@@ -15,7 +15,6 @@ namespace Shark {
 		: m_Specs(specs)
 	{
 		ReCreateSwapChain();
-		DirectXRenderer::Get()->RegisterSwapchain(this);
 	}
 
 	DirectXSwapChain::~DirectXSwapChain()
@@ -33,7 +32,21 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("SwapChain Present");
 
-		SK_DX11_CALL(m_SwapChain->Present((vSync ? 1u : 0u), 0));
+		HRESULT hr = m_SwapChain->Present((vSync ? 1u : 0u), 0);
+
+		if (hr == DXGI_ERROR_INVALID_CALL)
+		{
+			auto& window = Application::Get().GetWindow();
+			RT_ResizeSwapChain(window.GetWidth(), window.GetHeight());
+			return;
+		}
+
+		if (FAILED(hr))
+			DirectXRenderer::Get()->HandleError(hr);
+
+		auto& window = Application::Get().GetWindow();
+		if (window.GetWidth() != m_Specs.Widht || window.GetHeight() != m_Specs.Height)
+			RT_ResizeSwapChain(window.GetWidth(), window.GetHeight());
 	}
 
 	void DirectXSwapChain::Resize(uint32_t width, uint32_t height)
@@ -46,18 +59,10 @@ namespace Shark {
 	{
 		m_Specs.Fullscreen = fullscreen;
 
-		Ref<DirectXSwapChain> instance = this;
-		Renderer::Submit([instance, fullscreen]()
+		Renderer::Submit([swapchain = m_SwapChain, fullscreen]()
 		{
-			instance->RT_SetFullscreen(fullscreen);
+			swapchain->SetFullscreenState(fullscreen, nullptr);
 		});
-	}
-
-	void DirectXSwapChain::RT_SetFullscreen(bool fullscreen)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		m_SwapChain->SetFullscreenState(fullscreen, nullptr);
 	}
 
 	void DirectXSwapChain::ResizeSwapChain(uint32_t width, uint32_t height, bool alwaysResize)
@@ -70,13 +75,16 @@ namespace Shark {
 		m_Specs.Widht = width;
 		m_Specs.Height = height;
 
+		//Renderer::ClearAllCommandBuffers();
 		Ref<DirectXSwapChain> instance = this;
-		Renderer::Submit([instance, width, height, frameBuffer = m_FrameBuffer]()
+		Renderer::Submit([instance, width, height, frameBuffer = m_FrameBuffer, swapchain = m_SwapChain]()
 		{
 			if (frameBuffer)
 				frameBuffer->RT_Release();
 
-			instance->RT_ResizeDXSwapChain(width, height);
+			auto renderer = DirectXRenderer::Get();
+			renderer->RT_PrepareForSwapchainResize();
+			swapchain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 		});
 
 		m_FrameBuffer = nullptr;
@@ -91,26 +99,69 @@ namespace Shark {
 		m_FrameBuffer = Ref<DirectXFrameBuffer>::Create(specs);
 	}
 
-	void DirectXSwapChain::RT_ResizeDXSwapChain(uint32_t width, uint32_t height)
+	void DirectXSwapChain::RT_ResizeSwapChain(uint32_t width, uint32_t height)
 	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		m_Specs.Widht = width;
+		m_Specs.Height = height;
 
-		DirectXRenderer::GetContext()->ClearState();
-		DirectXRenderer::GetContext()->Flush();
+		m_FrameBuffer->RT_Release();
+		auto renderer = DirectXRenderer::Get();
+		renderer->RT_PrepareForSwapchainResize();
+		m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 
-		SK_DX11_CALL(m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0));
+		auto& spec = m_FrameBuffer->GetSpecificationMutable();
+		spec.Width = width;
+		spec.Height = height;
+		spec.Atachments[0].Image.As<DirectXImage2D>()->RT_Invalidate(this);
+		m_FrameBuffer->RT_Invalidate();
 	}
 
 	void DirectXSwapChain::ReCreateSwapChain()
 	{
 		Ref<DirectXSwapChain> instance = this;
-		Renderer::Submit([instance, frameBuffer = m_FrameBuffer]()
+		Renderer::Submit([this, instance, frameBuffer = m_FrameBuffer]()
 		{
 			if (frameBuffer)
 				frameBuffer->RT_Release();
 
-			instance->RT_ReCreateDXSwapChain();
+			if (m_SwapChain)
+			{
+				ULONG refCount = m_SwapChain->Release();
+				m_SwapChain = nullptr;
+			}
+
+			//SK_CORE_ASSERT(m_FrameBuffer == nullptr);
+			//SK_CORE_ASSERT(m_SwapChain == nullptr);
+
+			DXGI_SWAP_CHAIN_DESC scd{};
+
+			if (m_Specs.Widht == 0 || m_Specs.Height == 0)
+			{
+				m_Specs.Widht = 1280;
+				m_Specs.Height = 720;
+			}
+
+			scd.BufferDesc.Width = m_Specs.Widht;
+			scd.BufferDesc.Height = m_Specs.Height;
+
+			scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+			scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+			scd.BufferDesc.RefreshRate.Denominator = 0u;
+			scd.BufferDesc.RefreshRate.Numerator = 0u;
+			scd.SampleDesc.Count = 1u;
+			scd.SampleDesc.Quality = 0u;
+			scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+			scd.BufferCount = m_Specs.BufferCount;
+			scd.OutputWindow = (HWND)m_Specs.Handle;
+			scd.Windowed = !m_Specs.Fullscreen;
+			scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+			//scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+			scd.Flags = 0;
+
+			auto* fac = DirectXRenderer::GetFactory();
+			auto* dev = DirectXRenderer::GetDevice();
+			SK_DX11_CALL(fac->CreateSwapChain(dev, &scd, &m_SwapChain));
 		});
 
 		m_FrameBuffer = nullptr;
@@ -123,54 +174,6 @@ namespace Shark {
 		specs.IsSwapChainTarget = true;
 		specs.Atachments[0].Image = Ref<DirectXImage2D>::Create(instance, false);
 		m_FrameBuffer = Ref<DirectXFrameBuffer>::Create(specs);
-	}
-
-	void DirectXSwapChain::RT_ReCreateDXSwapChain()
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		if (m_SwapChain)
-		{
-			ULONG refCount = m_SwapChain->Release();
-			m_SwapChain = nullptr;
-		}
-
-		DirectXRenderer::GetContext()->ClearState();
-		DirectXRenderer::GetContext()->Flush();
-
-		//SK_CORE_ASSERT(m_FrameBuffer == nullptr);
-		//SK_CORE_ASSERT(m_SwapChain == nullptr);
-
-		DXGI_SWAP_CHAIN_DESC scd{};
-
-		if (m_Specs.Widht == 0 || m_Specs.Height == 0)
-		{
-			m_Specs.Widht = 1280;
-			m_Specs.Height = 720;
-		}
-
-		scd.BufferDesc.Width = m_Specs.Widht;
-		scd.BufferDesc.Height = m_Specs.Height;
-
-		scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-		scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-		scd.BufferDesc.RefreshRate.Denominator = 0u;
-		scd.BufferDesc.RefreshRate.Numerator = 0u;
-		scd.SampleDesc.Count = 1u;
-		scd.SampleDesc.Quality = 0u;
-		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		scd.BufferCount = m_Specs.BufferCount;
-		scd.OutputWindow = (HWND)m_Specs.Handle;
-		scd.Windowed = !m_Specs.Fullscreen;
-		scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		//scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		scd.Flags = 0;
-
-		auto* fac = DirectXRenderer::GetFactory();
-		auto* dev = DirectXRenderer::GetDevice();
-		SK_DX11_CALL(fac->CreateSwapChain(dev, &scd, &m_SwapChain));
 	}
 
 }

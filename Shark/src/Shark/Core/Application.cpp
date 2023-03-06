@@ -50,7 +50,6 @@ namespace Shark {
 		else
 			m_Window->CenterWindow();
 
-
 		if (specification.EnableImGui)
 		{
 			m_ImGuiLayer = ImGuiLayer::Create();
@@ -102,6 +101,7 @@ namespace Shark {
 	void Application::Run()
 	{
 		OnInit();
+		m_State = ApplicationState::Running;
 		m_LastTickCount = PlatformUtils::GetTicks();
 
 		while (m_Running)
@@ -111,11 +111,11 @@ namespace Shark {
 			Timer cpuTimer;
 
 			ProcessEvents();
-			ExecuteMainThreadQueue();
 
 			if (!m_Minimized)
 			{
 				Renderer::BeginFrame();
+				ExecuteMainThreadQueue();
 
 				ScriptEngine::Update();
 
@@ -131,9 +131,12 @@ namespace Shark {
 				}
 
 				Renderer::EndFrame();
+
+				// On Render Thread
 				Renderer::WaitAndRender();
 				m_CPUTime = cpuTimer.Elapsed();
 				m_Window->SwapBuffers();
+				m_FrameCount++;
 			}
 
 			const uint64_t ticks = PlatformUtils::GetTicks();
@@ -143,6 +146,8 @@ namespace Shark {
 			m_LastTickCount = ticks;
 			m_Time += m_TimeStep;
 		}
+		
+		m_State = ApplicationState::Shutdown;
 	}
 
 	void Application::QueueEvent(const std::function<void()>& func)
@@ -219,6 +224,7 @@ namespace Shark {
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
 		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(Application::OnWindowResize));
+		dispacher.DispachEvent<WindowLostFocusEvent>(SK_BIND_EVENT_FN(Application::OnWindowLostFocus));
 
 		for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend() && !event.Handled; ++it)
 			(*it)->OnEvent(event);
@@ -243,7 +249,21 @@ namespace Shark {
 		if (m_Minimized)
 			return false;
 
-		Renderer::ResizeSwapChain(event.GetWidth(), event.GetHeight());
+		return false;
+	}
+
+	bool Application::OnWindowLostFocus(WindowLostFocusEvent& event)
+	{
+		if (m_Window->IsFullscreen())
+		{
+			Application::Get().SubmitToMainThread([this]
+			{
+				m_Window->SetFullscreen(false);
+				//auto swapchain = m_Window->GetSwapChain();
+				//swapchain->Resize(m_Window->GetWidth(), m_Window->GetHeight());
+			});
+		}
+
 		return false;
 	}
 

@@ -47,6 +47,11 @@ namespace Shark {
 		Write((const void*)data, size, offset);
 	}
 
+	void Buffer::SetZero()
+	{
+		memset(Data, 0, Size);
+	}
+
 	Buffer Buffer::Copy(const byte* data, uint64_t Size)
 	{
 		Buffer buffer;
@@ -58,6 +63,17 @@ namespace Shark {
 	Buffer Buffer::Copy(Buffer buffer)
 	{
 		return Copy(buffer.Data, buffer.Size);
+	}
+
+	Buffer Buffer::New(uint64_t size, bool setZero)
+	{
+		Buffer buffer;
+		buffer.Allocate(size);
+
+		if (setZero)
+			buffer.SetZero();
+
+		return buffer;
 	}
 
 }

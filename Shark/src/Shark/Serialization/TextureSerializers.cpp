@@ -287,7 +287,6 @@ namespace Shark {
 		imagedata.Size = (uint64_t)width * height * 4;
 		filedata.Release();
 
-		SK_CORE_ASSERT(imagedata);
 		if (!imagedata)
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to load Image from disc! {}", filepath);

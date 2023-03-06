@@ -151,7 +151,7 @@ namespace Shark {
 
 		// Create Scripts
 		{
-			SK_PROFILE_SCOPED("Scene::OnScenePlay::InstantiateScripts");
+			SK_PROFILE_SCOPED("Instantiate Scripts");
 
 			{
 				auto view = m_Registry.view<ScriptComponent>();
@@ -169,6 +169,7 @@ namespace Shark {
 			}
 
 			{
+				SK_PROFILE_SCOPED("Invoke OnCreate");
 
 				for (const auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 					MethodThunks::OnCreate(gcHandle);

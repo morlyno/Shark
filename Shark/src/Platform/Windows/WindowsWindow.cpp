@@ -173,7 +173,6 @@ namespace Shark {
 		const LONG fullscreenModeStyle = WS_POPUP;
 		LONG windowedModeStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
 
-		// TODO(moro): settings in WindowSpecification
 		windowedModeStyle |= WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_THICKFRAME;
 
 		if (fullscreen)
@@ -234,8 +233,12 @@ namespace Shark {
 		const int width = clientRect.right - clientRect.left;
 		const int height = clientRect.bottom - clientRect.top;
 
-		//if (m_SwapChain)
-		//	m_SwapChain->SetFullscreen(fullscreen);
+		if (m_SwapChain)
+		{
+			m_SwapChain->SetFullscreen(fullscreen);
+			// NOTE(moro): should this really be hear?
+			m_SwapChain->Resize(width, height);
+		}
 	}
 
 	void WindowsWindow::SetTitle(const std::string& title)
