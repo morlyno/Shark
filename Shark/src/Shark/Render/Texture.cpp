@@ -10,6 +10,7 @@ namespace Shark {
 	{
 		switch (filterMode)
 		{
+			case FilterMode::None: return "None";
 			case FilterMode::Nearest: return "Nearest";
 			case FilterMode::Linear:  return "Linear";
 		}
@@ -21,35 +22,71 @@ namespace Shark {
 	{
 		switch (wrapMode)
 		{
+			case WrapMode::None: return "None";
 			case WrapMode::Repeat: return "Repeat";
 			case WrapMode::Clamp:  return "Clamp";
 			case WrapMode::Mirror: return "Mirror";
-			case WrapMode::Border: return "Border";
 		}
 		SK_CORE_ASSERT(false, "Unkown FilterMode");
 		return "Unkown";
 	}
+	
+	std::string_view ToStringView(FilterMode filterMode)
+	{
+		switch (filterMode)
+		{
+			case FilterMode::None: return "None"sv;
+			case FilterMode::Nearest: return "Nearest"sv;
+			case FilterMode::Linear:  return "Linear"sv;
+		}
+		SK_CORE_ASSERT(false, "Unkown FilterMode");
+		return "Unkown"sv;
+	}
+
+	std::string_view ToStringView(WrapMode wrapMode)
+	{
+		switch (wrapMode)
+		{
+			case WrapMode::None: return "None"sv;
+			case WrapMode::Repeat: return "Repeat"sv;
+			case WrapMode::Clamp:  return "Clamp"sv;
+			case WrapMode::Mirror: return "Mirror"sv;
+		}
+		SK_CORE_ASSERT(false, "Unkown FilterMode");
+		return "Unkown"sv;
+	}
 
 	FilterMode StringToFilterMode(std::string_view filterMode)
 	{
+		if (filterMode == "None") return FilterMode::None;
 		if (filterMode == "Nearest") return FilterMode::Nearest;
 		if (filterMode == "Linear") return FilterMode::Linear;
 
 		SK_CORE_ASSERT(false, "Unkown FilterMode");
-		return FilterMode::Linear;
+		return FilterMode::None;
 	}
 
 	WrapMode StringToWrapMode(std::string_view wrapMode)
 	{
+		if (wrapMode == "None") return WrapMode::None;
 		if (wrapMode == "Repeat") return WrapMode::Repeat;
 		if (wrapMode == "Clamp") return WrapMode::Clamp;
 		if (wrapMode == "Mirror") return WrapMode::Mirror;
-		if (wrapMode == "Border") return WrapMode::Border;
 
 		SK_CORE_ASSERT(false, "Unkown wrap mode");
-		return WrapMode::Repeat;
+		return WrapMode::None;
 	}
 
+	Ref<Texture2DArray> Texture2DArray::Create(uint32_t count, uint32_t startOffset)
+	{
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2DArray>::Create(count, startOffset);
+		}
+		SK_CORE_ASSERT(false, "Unknown API");
+		return nullptr;
+	}
 
 	Ref<Texture2D> Texture2D::Create()
 	{
@@ -62,71 +99,46 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specs, Buffer imageData)
+	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specification, Buffer imageData)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specs, imageData);
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specification, imageData);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
 	}
 
+	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specification, Ref<TextureSource> textureSource)
+	{
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specification, textureSource);
+		}
+		SK_CORE_ASSERT(false, "Unkown API");
+		return nullptr;
+	}
+
+	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage)
+	{
+		switch (Renderer::GetAPI())
+		{
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specification, image, sharedImage);
+		}
+		SK_CORE_ASSERT(false, "Unkown API");
+		return nullptr;
+	}
 
 	Ref<Texture2D> Texture2D::Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
 	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(format, width, height, imageData);
-		}
-		SK_CORE_ASSERT(false, "Unkown API");
-		return nullptr;
-	}
-
-	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specs, Ref<Texture2D> data)
-	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specs, data);
-		}
-		SK_CORE_ASSERT(false, "Unkown API");
-		return nullptr;
-	}
-
-	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specification, Ref<TextureSource> source)
-	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specification, source);
-		}
-		SK_CORE_ASSERT(false, "Unkown API");
-		return nullptr;
-	}
-
-	Ref<Texture2D> Texture2D::Create(Ref<Image2D> image, bool sharedImage)
-	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(image, sharedImage);
-		}
-		SK_CORE_ASSERT(false, "Unkown API");
-		return nullptr;
-	}
-
-	Ref<Texture2DArray> Texture2DArray::Create(uint32_t count, uint32_t startOffset)
-	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2DArray>::Create(count, startOffset);
-		}
-		SK_CORE_ASSERT(false, "Unknown API");
-		return nullptr;
+		TextureSpecification specification;
+		specification.Format = format;
+		specification.Width = width;
+		specification.Height = height;
+		return Create(specification, imageData);
 	}
 
 }

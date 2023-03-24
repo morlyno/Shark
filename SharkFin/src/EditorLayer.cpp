@@ -146,7 +146,10 @@ namespace Shark {
 				m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_CameraPreviewRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
-				m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
+
+				m_MousePickingImage->GetSpecificationMutable().Width = m_ViewportWidth;
+				m_MousePickingImage->GetSpecificationMutable().Height = m_ViewportHeight;
+				m_MousePickingImage->Invalidate();
 
 				m_NeedsResize = false;
 			}
@@ -1273,7 +1276,7 @@ namespace Shark {
 
 					const auto& metadata = ResourceManager::GetMetaData(editor->m_TextureAssetCreateData.TextureSourcePath);
 					Ref<TextureSource> textureSource = ResourceManager::GetAsset<TextureSource>(metadata.Handle);
-					Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, SamplerSpecification{}, textureSource);
+					Ref<Texture2D> texture = ResourceManager::CreateAsset<Texture2D>(directory, fileName, TextureSpecification{}, textureSource);
 
 					if (editor->m_TextureAssetCreateData.CreateEntityAfterCreation)
 					{

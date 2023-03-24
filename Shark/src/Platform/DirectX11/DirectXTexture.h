@@ -11,37 +11,33 @@ namespace Shark {
 	{
 	public:
 		DirectXTexture2D();
-		DirectXTexture2D(const TextureSpecification& specs, Buffer imageData);
-		DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
-		DirectXTexture2D(const TextureSpecification& specs, Ref<Texture2D> data);
-		DirectXTexture2D(const SamplerSpecification& samplerSpecification, Ref<TextureSource> source);
-		DirectXTexture2D(Ref<Image2D> image, bool sharedImage);
+		DirectXTexture2D(const TextureSpecification& specification, Buffer imageData);
+		DirectXTexture2D(const TextureSpecification& specification, Ref<TextureSource> textureSource);
+		DirectXTexture2D(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage = true);
 		virtual ~DirectXTexture2D();
 
+		virtual void Invalidate() override;
+
 		virtual void Release() override;
+		virtual void RT_Release() override;
 
-		virtual void Set(const TextureSpecification& specs, Buffer data) override;
-		virtual void Set(const TextureSpecification& specs, Ref<Texture2D> data) override;
-		virtual void SetSampler(const SamplerSpecification& specs) override;
+		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
+		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
 
-		virtual void Set(const SamplerSpecification& samplerSpecification, Ref<TextureSource> textureSource) override;
-		virtual void RT_Set(const SamplerSpecification& samplerSpecification, Ref<TextureSource> textureSource) override;
+		virtual Ref<TextureSource> GetTextureSource() const override { return m_TextureSource; }
+		virtual void SetTextureSource(Ref<TextureSource> textureSource) override;
 
 		virtual RenderID GetViewID() const override { return m_Image->GetViewID(); }
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
-		virtual const TextureSpecification& GetSpecification() const override { return m_Specs; }
+		virtual const TextureSpecification& GetSpecification() const override { return m_Specification; }
+		virtual TextureSpecification& GetSpecificationMutable() override { return m_Specification; }
 
-		virtual Ref<TextureSource> GetTextureSource() const override { return m_TextureSource; }
-
+	public:
 		ID3D11SamplerState* GetSamplerNative() const { return m_Sampler; }
 		ID3D11ShaderResourceView* GetViewNative() const { return m_Image->GetViewNative(); }
 
 	private:
-		void CreateSampler();
-		void RT_CreateSampler();
-
-	private:
-		TextureSpecification m_Specs;
+		TextureSpecification m_Specification;
 		Ref<TextureSource> m_TextureSource;
 
 		Ref<DirectXImage2D> m_Image;
@@ -55,10 +51,6 @@ namespace Shark {
 	public:
 		DirectXTexture2DArray(uint32_t count, uint32_t startOffset = 0);
 		virtual ~DirectXTexture2DArray() = default;
-
-		virtual Ref<Texture2D> Create(uint32_t index) override;
-		virtual Ref<Texture2D> Create(uint32_t index, const TextureSpecification& specs, Buffer imageData) override;
-		virtual Ref<Texture2D> Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, Buffer imageData) override;
 
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) override;
 		virtual Ref<Texture2D> Get(uint32_t index) const override;

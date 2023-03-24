@@ -20,6 +20,7 @@ namespace Shark {
 	{
 		//SK_LOG_IF(m_CommandCount > 0, Log::Logger::Core, Log::Level::Trace, Tag::Renderer, "CommandQueue::Excecute | {0} Commands | {1} bytes", m_CommandCount, (uint64_t)(m_BufferPtr - m_Buffer.Data));
 
+		m_Locked = true;
 		byte* buffer = m_Buffer.Data;
 		while (buffer < m_BufferPtr)
 		{
@@ -36,6 +37,7 @@ namespace Shark {
 
 		m_BufferPtr = m_Buffer.Data;
 		m_CommandCount = 0;
+		m_Locked = false;
 	}
 
 	void* CommandQueue::Allocate(CommandFn func, uint32_t userFuncSize)

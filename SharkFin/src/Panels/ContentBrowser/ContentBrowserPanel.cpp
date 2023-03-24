@@ -481,7 +481,12 @@ namespace Shark {
 				Reload();
 
 			if (action & CBItemAction::ReloadAsset)
-				ResourceManager::ReloadAsset(item->GetHandle());
+			{
+				Application::Get().SubmitToMainThread([item]()
+				{
+					ResourceManager::ReloadAsset(item->GetHandle());
+				});
+			}
 
 			if (action & CBItemAction::InvalidFilenameInput)
 			{

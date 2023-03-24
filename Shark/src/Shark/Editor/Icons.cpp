@@ -46,6 +46,25 @@ namespace Shark {
 		StepIcon      = Image2D::LoadFromDisc("Resources/Toolbar/Icon_Step.png");
 	}
 
+	void Icons::InitWithDummyImages()
+	{
+		SettingsIcon  = Image2D::Create();
+		FileIcon      = Image2D::Create();
+		FolderIcon    = Image2D::Create();
+		PNGIcon       = Image2D::Create();
+		SceneIcon     = Image2D::Create();
+		ScriptIcon    = Image2D::Create();
+		TextureIcon   = Image2D::Create();
+		InfoIcon      = Image2D::Create();
+		WarnIcon      = Image2D::Create();
+		ErrorIcon     = Image2D::Create();
+		PlayIcon      = Image2D::Create();
+		StopIcon      = Image2D::Create();
+		PauseIcon     = Image2D::Create();
+		SimulateIcon  = Image2D::Create();
+		StepIcon      = Image2D::Create();
+	}
+
 	void Icons::Shutdown()
 	{
 		SettingsIcon  = nullptr;

@@ -32,10 +32,13 @@ namespace Shark {
 		}
 
 		uint32_t GetCommandCount() const { return m_CommandCount; }
+		bool IsLocked() const { return m_Locked; };
 	private:
 		Buffer m_Buffer;
 		byte* m_BufferPtr = nullptr;
 		uint32_t m_CommandCount = 0;
+
+		bool m_Locked = false;
 	};
 
 }

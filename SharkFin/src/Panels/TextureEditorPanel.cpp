@@ -40,7 +40,12 @@ namespace Shark {
 		ImGui::FocusWindow(ImGui::FindWindowByID(m_ViewportID));
 
 		m_SourceTexture = sourceTexture;
-		m_EditTexture = ResourceManager::CreateMemoryAsset<Texture2D>(sourceTexture);
+
+		m_EditTexture = ResourceManager::CreateMemoryAsset<Texture2D>();
+		m_EditTexture->GetSpecificationMutable() = m_SourceTexture->GetSpecification();
+		m_EditTexture->Invalidate();
+		m_EditTexture->GetImage()->SetImageData(m_SourceTexture->GetImage());
+
 		m_Specs = m_EditTexture->GetSpecification();
 
 
@@ -168,19 +173,12 @@ namespace Shark {
 		UI::BeginControlsGrid();
 
 		UI::ControlCombo("Format", (uint16_t&)m_Specs.Format, s_FormatItems, (uint32_t)std::size(s_FormatItems));
-		UI::Control("Mip Levels", m_Specs.MipLevels, 1, 0, Renderer::GetCapabilities().MaxMipLeves);
-		UI::ControlCombo("Mip Filter", (uint16_t&)m_Specs.Sampler.Mip, s_FilterItems, (uint32_t)std::size(s_FilterItems));
-		UI::ControlCombo("Mip Mode Min", (uint16_t&)m_Specs.Sampler.Min, s_FilterItems, (uint32_t)std::size(s_FilterItems));
-		UI::ControlCombo("Mip Mode Mag", (uint16_t&)m_Specs.Sampler.Mag, s_FilterItems, (uint32_t)std::size(s_FilterItems));
-
-		UI::ControlCombo("Wrap Mode U", (uint16_t&)m_Specs.Sampler.Wrap.U, s_WrapItems, (uint32_t)std::size(s_WrapItems));
-		UI::ControlCombo("Wrap Mode V", (uint16_t&)m_Specs.Sampler.Wrap.V, s_WrapItems, (uint32_t)std::size(s_WrapItems));
-		UI::ControlCombo("Wrap Mode W", (uint16_t&)m_Specs.Sampler.Wrap.W, s_WrapItems, (uint32_t)std::size(s_WrapItems));
+		UI::Control("Generate Mips", m_Specs.GenerateMips);
+		UI::ControlCombo("Filter", (uint16_t&)m_Specs.Sampler.Filter, s_FilterItems, (uint32_t)std::size(s_FilterItems));
+		UI::ControlCombo("Wrap Mode", (uint16_t&)m_Specs.Sampler.Wrap, s_WrapItems, (uint32_t)std::size(s_WrapItems));
 
 		UI::Control("Anisotropy", m_Specs.Sampler.Anisotropy);
 		UI::Control("Max Anisotropy", m_Specs.Sampler.MaxAnisotropy, 0, 0, capabilities.MaxAnisotropy);
-		UI::Control("LODBias", m_Specs.Sampler.LODBias, 0.0f, capabilities.MinLODBias, capabilities.MaxLODBias);
-		UI::ControlColor("Border Color", m_Specs.Sampler.BorderColor);
 
 		UI::EndControls();
 
@@ -188,8 +186,10 @@ namespace Shark {
 
 		if (ImGui::Button("Update"))
 		{
-			m_EditTexture->Set(m_Specs, m_SourceTexture);
-			if (m_Specs.MipLevels != 1)
+			m_EditTexture->GetSpecificationMutable() = m_Specs;
+			m_EditTexture->Invalidate();
+			m_EditTexture->GetImage()->SetImageData(m_SourceTexture->GetImage());
+			if (m_Specs.GenerateMips)
 				Renderer::GenerateMips(m_EditTexture->GetImage());
 		}
 
@@ -198,7 +198,10 @@ namespace Shark {
 
 		if (ImGui::Button("Finish"))
 		{
-			m_SourceTexture->Set(m_Specs, m_EditTexture);
+			m_SourceTexture->GetSpecificationMutable() = m_Specs;
+			m_SourceTexture->Invalidate();
+			m_SourceTexture->GetImage()->SetImageData(m_EditTexture->GetImage());
+
 			ResourceManager::SaveAsset(m_SourceTexture->Handle);
 			ResourceManager::ReloadAsset(m_SourceTexture->Handle);
 		}

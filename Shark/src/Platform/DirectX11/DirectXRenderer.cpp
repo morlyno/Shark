@@ -20,10 +20,13 @@
 #include "Platform/Windows/WindowsUtils.h"
 
 #include <backends/imgui_impl_dx11.h>
+#include <dxgi1_3.h>
 #include <dxgidebug.h>
 
-#if SK_ENABLE_VALIDATION
+#if SK_ENABLE_VALIDATION && false
 #define DX11_VALIDATE_CONTEXT(ctx) DirectXRenderer::Get()->GetDebug()->ValidateContext(ctx);
+#else
+#define DX11_VALIDATE_CONTEXT(ctx)
 #endif
 
 namespace Shark {
@@ -67,11 +70,39 @@ namespace Shark {
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([this, instance]()
 		{
-			RT_CreateInfoQueue();
+			UINT factoryFlags = SK_ENABLE_VALIDATION ? DXGI_CREATE_FACTORY_DEBUG : 0;
+
+			DX11_VERIFY(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&instance->m_InfoQueue)));
+			DX11_VERIFY(CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&instance->m_Factory)));
+
+			DX11_VERIFY(m_InfoQueue->PushEmptyRetrievalFilter(DXGI_DEBUG_ALL));
+			DX11_VERIFY(m_InfoQueue->PushEmptyStorageFilter(DXGI_DEBUG_ALL));
+
+			DX11_VERIFY(m_InfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true));
+			DX11_VERIFY(m_InfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true));
+
+			//RT_CreateInfoQueue();
 			RT_CreateDevice();
 			QueryCapabilities();
 			SK_DX11_CALL(m_Device->QueryInterface(&m_Debug));
 
+			ID3D11InfoQueue* infoQueue = nullptr;
+			m_Device->QueryInterface(&infoQueue);
+			DX11_VERIFY(infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true));
+			DX11_VERIFY(infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true));
+			
+			D3D11_MESSAGE_ID deniedMessages[] = { D3D11_MESSAGE_ID_DEVICE_DRAW_SHADERRESOURCEVIEW_NOT_SET };
+			D3D11_MESSAGE_SEVERITY deniedSeverities[] = { D3D11_MESSAGE_SEVERITY_MESSAGE, D3D11_MESSAGE_SEVERITY_INFO };
+
+			D3D11_INFO_QUEUE_FILTER filter{};
+			filter.DenyList.NumIDs = std::size(deniedMessages);
+			filter.DenyList.pIDList = deniedMessages;
+			filter.DenyList.NumSeverities = std::size(deniedSeverities);
+			filter.DenyList.pSeverityList = deniedSeverities;
+			DX11_VERIFY(infoQueue->PushRetrievalFilter(&filter));
+			DX11_VERIFY(infoQueue->PushStorageFilter(&filter));
+
+			infoQueue->Release();
 
 			D3D11_QUERY_DESC queryDesc;
 			queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
@@ -131,6 +162,12 @@ namespace Shark {
 
 		SK_CORE_ASSERT(m_CommandBuffers.empty(), "All RenderCommandBuffers need to be destroy befor Renderer shuts down");
 
+		Renderer::Submit([context = m_ImmediateContext]()
+		{
+			context->ClearState();
+			context->Flush();
+		});
+
 		Renderer::SubmitResourceFree([frequencyQuery = m_FrequencyQuery, factory = m_Factory, context = m_ImmediateContext, device = m_Device, debug = m_Debug, infoQueue = m_InfoQueue]()
 		{
 			frequencyQuery->Release();
@@ -151,6 +188,8 @@ namespace Shark {
 
 		Renderer::WaitAndRender();
 		s_Instance = nullptr;
+
+		CheckPostShutdown();
 	}
 
 	void DirectXRenderer::BeginFrame()
@@ -170,6 +209,7 @@ namespace Shark {
 		Renderer::Submit([this, instance]()
 		{
 			RT_EndFrequencyQuery();
+			RT_FlushDXMessages();
 			RT_LogMessages(m_InfoQueue);
 		});
 
@@ -422,6 +462,11 @@ namespace Shark {
 		if (!texture)
 			return;
 
+#if SK_DEBUG
+		static constexpr std::string_view TextureName = "GenerateMips Texture";
+		texture->SetPrivateData(WKPDID_D3DDebugObjectName, TextureName.length(), TextureName.data());
+#endif
+
 		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
 		viewDesc.Format = textureDesc.Format;
 		viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
@@ -434,6 +479,12 @@ namespace Shark {
 			texture->Release();
 			return;
 		}
+
+#if SK_DEBUG
+		static constexpr std::string_view ViewName = "GenerateMips View";
+		view->SetPrivateData(WKPDID_D3DDebugObjectName, ViewName.length(), ViewName.data());
+#endif
+
 
 		auto dxImage = image.As<DirectXImage2D>();
 		m_ImmediateContext->CopySubresourceRegion(texture, 0, 0, 0, 0, dxImage->m_Resource, 0, nullptr);
@@ -466,6 +517,7 @@ namespace Shark {
 			return;
 		}
 
+		RT_FlushDXMessages();
 		RT_LogMessages(m_InfoQueue);
 
 		static bool BreakOnError = true;
@@ -480,6 +532,7 @@ namespace Shark {
 	void DirectXRenderer::RT_FlushInfoQueue()
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		RT_FlushDXMessages();
 		RT_LogMessages(m_InfoQueue);
 	}
 
@@ -569,7 +622,7 @@ namespace Shark {
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
-		SK_DX11_CALL(CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)));
+		//SK_DX11_CALL(CreateDXGIFactory(IID_PPV_ARGS(&m_Factory)));
 
 		IDXGIAdapter* adapter = nullptr;
 		SK_DX11_CALL(m_Factory->EnumAdapters(0, &adapter));
@@ -619,6 +672,40 @@ namespace Shark {
 		SK_DX11_CALL(m_InfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true));
 	}
 
+	void DirectXRenderer::RT_FlushDXMessages()
+	{
+		ID3D11InfoQueue* infoQueue;
+		HRESULT hr = m_Device->QueryInterface(&infoQueue);
+		DX11_VERIFY(hr);
+		if (SUCCEEDED(hr))
+		{
+			Buffer messageBuffer;
+			uint64_t count = infoQueue->GetNumStoredMessages();
+			for (uint64_t i = 0; i < count; i++)
+			{
+				uint64_t messageLength;
+				SK_DX11_CALL(infoQueue->GetMessage(i, nullptr, &messageLength));
+
+				messageBuffer.Resize(messageLength, false);
+				auto message = messageBuffer.As<D3D11_MESSAGE>();
+
+				SK_DX11_CALL(infoQueue->GetMessage(i, message, &messageLength));
+
+				m_InfoQueue->AddMessage(DXGI_DEBUG_D3D11,
+					(DXGI_INFO_QUEUE_MESSAGE_CATEGORY)message->Category,
+					(DXGI_INFO_QUEUE_MESSAGE_SEVERITY)message->Severity,
+					(DXGI_INFO_QUEUE_MESSAGE_ID)message->ID,
+					message->pDescription
+				);
+
+			}
+
+			infoQueue->ClearStoredMessages();
+			infoQueue->Release();
+			messageBuffer.Release();
+		}
+	}
+
 	void DirectXRenderer::RT_LogMessages(IDXGIInfoQueue* infoQueue)
 	{
 		SK_PROFILE_FUNCTION();
@@ -650,6 +737,29 @@ namespace Shark {
 
 		infoQueue->ClearStoredMessages(producer);
 		messageBuffer.Release();
+	}
+
+	void DirectXRenderer::CheckPostShutdown()
+	{
+		HRESULT hr;
+
+		IDXGIDebug* debug = nullptr;
+		hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug));
+		if (SUCCEEDED(hr))
+		{
+			hr = debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+			if (SUCCEEDED(hr))
+			{
+				IDXGIInfoQueue* infoQueue = nullptr;
+				hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&infoQueue));
+				if (SUCCEEDED(hr))
+				{
+					RT_LogMessages(infoQueue);
+					infoQueue->Release();
+				}
+			}
+			debug->Release();
+		}
 	}
 
 }

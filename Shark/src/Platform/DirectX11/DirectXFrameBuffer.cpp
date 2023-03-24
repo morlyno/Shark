@@ -71,15 +71,7 @@ namespace Shark {
 
 	DirectXFrameBuffer::~DirectXFrameBuffer()
 	{
-		for (auto buffer : m_FrameBuffers)
-			if (buffer)
-				buffer->Release();
-
-		if (m_DepthStencil)
-			m_DepthStencil->Release();
-
-		if (m_BlendState)
-			m_BlendState->Release();
+		Release();
 	}
 
 	void DirectXFrameBuffer::Release()
@@ -176,7 +168,15 @@ namespace Shark {
 		m_Specification.Height = height;
 
 		for (auto& atachment : m_Specification.Atachments)
-			atachment.Image->Resize(width, height);
+		{
+			auto& specification = atachment.Image->GetSpecificationMutable();
+			if (specification.Width == width && specification.Height == height)
+				continue;
+
+			specification.Width = width;
+			specification.Height = height;
+			atachment.Image->Invalidate();
+		}
 
 		Release();
 		CreateBuffers();
@@ -230,13 +230,14 @@ namespace Shark {
 
 		if (!atachment.Image)
 		{
-			ImageSpecification specs;
-			specs.Width = m_Specification.Width;
-			specs.Height = m_Specification.Height;
-			specs.Format = atachment.Format;
-			specs.Type = ImageType::FrameBuffer;
-			atachment.Image = Image2D::Create();
-			atachment.Image->RT_Set(specs, Buffer{});
+			Ref<Image2D> image = Image2D::Create();
+			auto& specification = image->GetSpecificationMutable();
+			specification.Width = m_Specification.Width;
+			specification.Height = m_Specification.Height;
+			specification.Format = atachment.Format;
+			specification.Type = ImageType::FrameBuffer;
+			image->RT_Invalidate();
+			atachment.Image = image;
 		}
 		auto d3dImage = atachment.Image.As<DirectXImage2D>();
 
@@ -259,13 +260,14 @@ namespace Shark {
 
 		if (!atachment.Image)
 		{
-			ImageSpecification specs;
-			specs.Width = m_Specification.Width;
-			specs.Height = m_Specification.Height;
-			specs.Format = atachment.Format;
-			specs.Type = ImageType::FrameBuffer;
-			atachment.Image = Image2D::Create();
-			atachment.Image->RT_Set(specs, nullptr);
+			Ref<Image2D> image = Image2D::Create();
+			auto& specification = image->GetSpecificationMutable();
+			specification.Width = m_Specification.Width;
+			specification.Height = m_Specification.Height;
+			specification.Format = atachment.Format;
+			specification.Type = ImageType::FrameBuffer;
+			image->RT_Invalidate();
+			atachment.Image = image;
 		}
 		auto d3dImage = atachment.Image.As<DirectXImage2D>();
 

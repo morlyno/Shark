@@ -164,4 +164,9 @@ namespace Shark {
 		return Application::Get().GetApplicationState() == ApplicationState::Startup;
 	}
 
+	bool Renderer::IsDuringShutdown()
+	{
+		return Application::Get().GetApplicationState() == ApplicationState::Shutdown;
+	}
+
 }

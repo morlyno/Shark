@@ -11,7 +11,7 @@ namespace Shark {
 
 	namespace utils {
 
-		D3D11_FILTER_TYPE FilterModeToD3D11(FilterMode filterMode)
+		D3D11_FILTER_TYPE ConvertToDX11(FilterMode filterMode)
 		{
 			switch (filterMode)
 			{
@@ -22,110 +22,122 @@ namespace Shark {
 			return (D3D11_FILTER_TYPE)0;
 		}
 
-		D3D11_TEXTURE_ADDRESS_MODE AddressModeToD3D11(WrapMode addressMode)
+		D3D11_TEXTURE_ADDRESS_MODE ConvertToDX11(WrapMode addressMode)
 		{
 			switch (addressMode)
 			{
 				case WrapMode::Repeat: return D3D11_TEXTURE_ADDRESS_WRAP;
 				case WrapMode::Clamp:  return D3D11_TEXTURE_ADDRESS_CLAMP;
 				case WrapMode::Mirror: return D3D11_TEXTURE_ADDRESS_MIRROR;
-				case WrapMode::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
 			}
 			SK_CORE_ASSERT(false, "Unkown AddressMode");
 			return (D3D11_TEXTURE_ADDRESS_MODE)0;
 		}
 
-		D3D11_FILTER MakeFilter(const SamplerSpecification& specs)
-		{
-			if (specs.Anisotropy)
-				return D3D11_FILTER_ANISOTROPIC;
-			
-			return D3D11_ENCODE_BASIC_FILTER(
-				utils::FilterModeToD3D11(specs.Min),
-				utils::FilterModeToD3D11(specs.Mag),
-				utils::FilterModeToD3D11(specs.Mip),
-				D3D11_FILTER_REDUCTION_TYPE_STANDARD
-			);
-		}
-
 	}
 
 	DirectXTexture2D::DirectXTexture2D()
+		: m_Image(Ref<DirectXImage2D>::Create())
 	{
-		m_Image = Ref<DirectXImage2D>::Create();
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specs, Buffer imageData)
-		: m_Specs(specs)
+	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, Buffer imageData)
+		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create())
 	{
-		ImageSpecification imageSpecs;
-		imageSpecs.Width = specs.Width;
-		imageSpecs.Height = specs.Height;
-		imageSpecs.Format = specs.Format;
-		imageSpecs.MipLevels = specs.MipLevels;
-		imageSpecs.Type = ImageType::Texture;
-		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, imageData);
-
-		CreateSampler();
+		m_Image->SetInitalData(Buffer::Copy(imageData));
+		Invalidate();
+		m_Image->ReleaseInitalData();
 	}
 
-	DirectXTexture2D::DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
+	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, Ref<TextureSource> textureSource)
+		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create())
 	{
-		m_Specs.Format = format;
-		m_Specs.Width = width;
-		m_Specs.Height = height;
-
-		ImageSpecification imageSpecs;
-		imageSpecs.Width = m_Specs.Width;
-		imageSpecs.Height = m_Specs.Height;
-		imageSpecs.Format = m_Specs.Format;
-		imageSpecs.MipLevels = 1;
-		imageSpecs.Type = ImageType::Texture;
-		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, imageData);
-
-		CreateSampler();
+		SetTextureSource(textureSource);
+		Invalidate();
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specs, Ref<Texture2D> data)
-		: m_Specs(specs)
+	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage)
 	{
-		ImageSpecification imageSpecs;
-		imageSpecs.Width = m_Specs.Width;
-		imageSpecs.Height = m_Specs.Height;
-		imageSpecs.Format = m_Specs.Format;
-		imageSpecs.Type = ImageType::Texture;
-		m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data->GetImage());
+		m_Specification.Width = image->GetWidth();
+		m_Specification.Height = image->GetHeight();
+		m_Specification.Format = image->GetSpecification().Format;
+		m_Specification.Sampler = specification;
 
-		CreateSampler();
-	}
+		Invalidate();
+		
+		if (sharedImage)
+			m_Image = image.As<DirectXImage2D>();
+		else
+			m_Image = Ref<DirectXImage2D>::Create(image->GetSpecification(), image);
 
-	DirectXTexture2D::DirectXTexture2D(const SamplerSpecification& specification, Ref<TextureSource> source)
-	{
-		m_TextureSource = source;
-		ImageSpecification imageSpec;
-		imageSpec.Width = source->Width;
-		imageSpec.Height = source->Height;
-		imageSpec.Format = source->Format;
-		imageSpec.Type = ImageType::Texture;
-		m_Image = Ref<DirectXImage2D>::Create(imageSpec, source->ImageData);
-		CreateSampler();
-	}
-
-	DirectXTexture2D::DirectXTexture2D(Ref<Image2D> image, bool sharedImage)
-	{
-		m_Image = image.As<DirectXImage2D>();
-
-		const auto& imageSpec = image->GetSpecification();
-		m_Specs.Width = imageSpec.Width;
-		m_Specs.Height = imageSpec.Height;
-		m_Specs.MipLevels = imageSpec.MipLevels;
-
-		CreateSampler();
 	}
 
 	DirectXTexture2D::~DirectXTexture2D()
 	{
 		Release();
+	}
+
+	void DirectXTexture2D::Invalidate()
+	{
+		SK_CORE_VERIFY(m_Specification.Width != 0);
+		SK_CORE_VERIFY(m_Specification.Height != 0);
+
+#if SK_ENABLE_VERIFY
+		if (m_TextureSource)
+		{
+			if (m_TextureSource->Width != m_Specification.Width || m_TextureSource->Height != m_Specification.Height || m_TextureSource->Format != m_Specification.Format)
+			{
+				SK_CORE_WARN_TAG(Tag::Renderer, "DirectXTexture2D::Invalidate - The Size or Format specified are different then the Size or Format from the TextureSource!\n"
+					                            "\tThe Image will be initialized without any InitalData\n"
+					                            "\tTexture: [{}, {}] - {} TextureSource: [{}, {}] - {}",
+					                            m_Specification.Width, m_Specification.Height, ToString(m_Specification.Format), m_TextureSource->Width, m_TextureSource->Height, ToString(m_TextureSource->Format));
+			}
+		}
+#endif
+
+		Renderer::SubmitResourceFree([sampler = m_Sampler]()
+		{
+			if (sampler)
+				sampler->Release();
+		});
+
+		m_Sampler = nullptr;
+
+		// NOTE(moro): if the image is null it means the image gets set outside of Invalidate.
+		//             for eaxample creating a texture with a shared image
+		if (m_Image)
+		{
+			ImageSpecification& specification = m_Image->GetSpecificationMutable();
+			specification.Format = m_Specification.Format;
+			specification.Width = m_Specification.Width;
+			specification.Height = m_Specification.Height;
+			specification.MipLevels = m_Specification.GenerateMips ? 0 : 1;
+			specification.Type = ImageType::Texture;
+			m_Image->Invalidate();
+
+			if (m_Specification.GenerateMips)
+				Renderer::GenerateMips(m_Image);
+		}
+
+		Ref<DirectXTexture2D> instance = this;
+		Renderer::Submit([instance]()
+		{
+			const auto& samplerSpec = instance->m_Specification.Sampler;
+			D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT{});
+			D3D11_FILTER_TYPE filter = utils::ConvertToDX11(samplerSpec.Filter);
+			samplerDesc.Filter = samplerSpec.Anisotropy ?
+				D3D11_FILTER_ANISOTROPIC :
+				D3D11_ENCODE_BASIC_FILTER(filter, filter, D3D11_FILTER_TYPE_LINEAR, D3D11_FILTER_REDUCTION_TYPE_STANDARD);
+			D3D11_TEXTURE_ADDRESS_MODE addressMode = utils::ConvertToDX11(samplerSpec.Wrap);
+			samplerDesc.AddressU = addressMode;
+			samplerDesc.AddressV = addressMode;
+			samplerDesc.AddressW = addressMode;
+			samplerDesc.MaxAnisotropy = samplerSpec.MaxAnisotropy;
+
+			Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
+			ID3D11Device* device = renderer->GetDevice();
+			DX11_VERIFY(device->CreateSamplerState(&samplerDesc, &instance->m_Sampler));
+		});
 	}
 
 	void DirectXTexture2D::Release()
@@ -140,142 +152,22 @@ namespace Shark {
 		m_Image->Release();
 	}
 
-	void DirectXTexture2D::Set(const TextureSpecification& specs, Buffer data)
+	void DirectXTexture2D::RT_Release()
 	{
-		m_Specs = specs;
-
-		Renderer::SubmitResourceFree([sampler = m_Sampler]()
-		{
-			if (sampler)
-				sampler->Release();
-		});
-
-		m_Sampler = nullptr;
-
-		ImageSpecification imageSpecs;
-		imageSpecs.Width = m_Specs.Width;
-		imageSpecs.Height = m_Specs.Height;
-		imageSpecs.Format = m_Specs.Format;
-		imageSpecs.MipLevels = m_Specs.MipLevels;
-		imageSpecs.Type = ImageType::Texture;
-
-		if (m_Image)
-			m_Image->Set(imageSpecs, data);
-		else
-			m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data);
-
-		CreateSampler();
+		m_Sampler->Release();
+		m_Image->RT_Release();
 	}
 
-	void DirectXTexture2D::Set(const TextureSpecification& specs, Ref<Texture2D> data)
+	void DirectXTexture2D::SetTextureSource(Ref<TextureSource> textureSource)
 	{
-		m_Specs = specs;
-
-		Renderer::SubmitResourceFree([sampler = m_Sampler]()
-		{
-			if (sampler)
-				sampler->Release();
-		});
-
-		m_Sampler = nullptr;
-
-		ImageSpecification imageSpecs;
-		imageSpecs.Width = m_Specs.Width;
-		imageSpecs.Height = m_Specs.Height;
-		imageSpecs.Format = m_Specs.Format;
-		imageSpecs.MipLevels = m_Specs.MipLevels;
-		imageSpecs.Type = ImageType::Texture;
-
-		if (m_Image)
-			m_Image->Set(imageSpecs, data->GetImage());
-		else
-			m_Image = Ref<DirectXImage2D>::Create(imageSpecs, data->GetImage());
-
-		CreateSampler();
-	}
-
-	void DirectXTexture2D::SetSampler(const SamplerSpecification& specs)
-	{
-		m_Specs.Sampler = specs;
-		
-		Renderer::SubmitResourceFree([sampler = m_Sampler]()
-		{
-			if (sampler)
-				sampler->Release();
-		});
-
-		m_Sampler = nullptr;
-		CreateSampler();
-	}
-
-	void DirectXTexture2D::Set(const SamplerSpecification& samplerSpecification, Ref<TextureSource> textureSource)
-	{
-		Ref<DirectXTexture2D> instance = this;
-
-		Renderer::Submit([instance, samplerSpecification, textureSource]()
-		{
-			instance->RT_Set(samplerSpecification, textureSource);
-		});
-	}
-
-	void DirectXTexture2D::RT_Set(const SamplerSpecification& samplerSpecification, Ref<TextureSource> textureSource)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		Release();
-
-		m_Specs.Format = textureSource->Format;
-		m_Specs.Width = textureSource->Width;
-		m_Specs.Height = textureSource->Height;
-		m_Specs.MipLevels = 0;
-		m_Specs.Sampler = samplerSpecification;
-
 		m_TextureSource = textureSource;
-		
-		ImageSpecification imageSpec;
-		imageSpec.Format = m_Specs.Format;
-		imageSpec.Width = m_Specs.Width;
-		imageSpec.Height = m_Specs.Height;
-		imageSpec.MipLevels = m_Specs.MipLevels;
-		imageSpec.Type = ImageType::Texture;
-		m_Image->RT_Set(imageSpec, textureSource->ImageData);
-		RT_CreateSampler();
+		m_Image->SetInitalData(textureSource->ImageData);
+		m_Specification.Width = textureSource->Width;
+		m_Specification.Height = textureSource->Height;
+		m_Specification.Format = textureSource->Format;
 	}
 
-	void DirectXTexture2D::CreateSampler()
-	{
-		SK_CORE_ASSERT(!m_Sampler, "Sampler already created");
-		Ref<DirectXTexture2D> instance = this;
-		Renderer::Submit([instance]()
-		{
-			instance->RT_CreateSampler();
-		});
-	}
-
-
-	void DirectXTexture2D::RT_CreateSampler()
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-		SK_CORE_ASSERT(!m_Sampler, "Sampler already created");
-
-		D3D11_SAMPLER_DESC desc{};
-		desc.Filter = utils::MakeFilter(m_Specs.Sampler);
-		desc.MaxAnisotropy = m_Specs.Sampler.MaxAnisotropy;
-
-		desc.AddressU = utils::AddressModeToD3D11(m_Specs.Sampler.Wrap.U);
-		desc.AddressV = utils::AddressModeToD3D11(m_Specs.Sampler.Wrap.V);
-		desc.AddressW = utils::AddressModeToD3D11(m_Specs.Sampler.Wrap.W);
-
-		desc.MipLODBias = m_Specs.Sampler.LODBias;
-		desc.MinLOD = 0;
-		desc.MaxLOD = D3D11_FLOAT32_MAX;
-
-		for (uint32_t i = 0; i < 4; i++)
-			desc.BorderColor[i] = m_Specs.Sampler.BorderColor[i];
-
-		auto device = DirectXRenderer::GetDevice();
-		SK_DX11_CALL(device->CreateSamplerState(&desc, &m_Sampler));
-	}
+#pragma region Texture Array
 
 	DirectXTexture2DArray::DirectXTexture2DArray(uint32_t count, uint32_t startOffset)
 		: m_Count(count), m_StartOffset(startOffset)
@@ -283,27 +175,6 @@ namespace Shark {
 		m_TextureArray.resize(count, nullptr);
 		m_Views.resize(count, nullptr);
 		m_Samplers.resize(count, nullptr);
-	}
-
-	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index)
-	{
-		auto texture = Ref<DirectXTexture2D>::Create();
-		SetTexture(index, texture);
-		return texture;
-	}
-
-	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, const TextureSpecification& specs, Buffer imageData)
-	{
-		auto texture = Ref<DirectXTexture2D>::Create(specs, imageData);
-		SetTexture(index, texture);
-		return texture;
-	}
-
-	Ref<Texture2D> DirectXTexture2DArray::Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
-	{
-		auto texture = Ref<DirectXTexture2D>::Create(format, width, height, imageData);
-		SetTexture(index, texture);
-		return texture;
 	}
 
 	void DirectXTexture2DArray::Set(uint32_t index, Ref<Texture2D> texture)
@@ -351,5 +222,7 @@ namespace Shark {
 			m_Samplers[index] = nullptr;
 		}
 	}
+
+#pragma endregion
 
 }

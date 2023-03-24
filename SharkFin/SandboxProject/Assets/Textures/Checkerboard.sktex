@@ -3,13 +3,7 @@ Texture:
   Format: RGBA8
   MipLeves: 1
   Sampler:
-    MinFilter: Nearest
-    MagFilter: Nearest
-    MipFilter: Linear
-    AddressModeU: Repeat
-    AddressModeV: Repeat
-    AddressModeW: Repeat
-    BorderColor: [0, 0, 0, 0]
+    Filter: Nearest
+    Wrap: Repeat
     Anisotropy: false
     MaxAnisotropy: 0
-    LODBias: 0

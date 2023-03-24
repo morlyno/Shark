@@ -29,6 +29,7 @@ namespace Shark {
 
 	public:
 		static void Init();
+		static void InitWithDummyImages();
 		static void Shutdown();
 		static void Reload();
 

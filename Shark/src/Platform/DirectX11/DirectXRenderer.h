@@ -14,6 +14,15 @@
 #include <d3d11.h>
 
 #define SK_DX11_CALL(call) { HRESULT hr = (call); if (FAILED(hr)) { auto renderer = ::Shark::DirectXRenderer::Get(); renderer->HandleError(hr); } }
+#define DX11_VERIFY(call_or_hresult)\
+{\
+	HRESULT _hresult = (call_or_hresult);\
+	if (FAILED(_hresult))\
+	{\
+		auto renderer = ::Shark::DirectXRenderer::Get();\
+		renderer->HandleError(_hresult);\
+	}\
+}
 
 #define SK_ENABLE_INFOQUEUE SK_ENABLE_VALIDATION
 
@@ -72,8 +81,10 @@ namespace Shark {
 
 		void RT_CreateDevice();
 		void RT_CreateInfoQueue();
+		void RT_FlushDXMessages();
 		static void RT_LogMessages(IDXGIInfoQueue* infoQueue);
-		
+
+		void CheckPostShutdown();
 
 	public:
 		static Ref<DirectXRenderer>     Get()                  { return s_Instance; }

@@ -186,20 +186,14 @@ namespace Shark {
 		out << YAML::BeginMap;
 		out << YAML::Key << "TextureSource" << YAML::Value << sourceHandle;
 		out << YAML::Key << "Format" << YAML::Value << ToString(specification.Format);
-		out << YAML::Key << "GenerateMips" << YAML::Value << (specification.MipLevels != 1);
+		out << YAML::Key << "GenerateMips" << YAML::Value << specification.GenerateMips;
 		out << YAML::Key << "Sampler";
 
 		out << YAML::BeginMap;
-		out << YAML::Key << "MinFilter" << YAML::Value << ToString(specification.Sampler.Min);
-		out << YAML::Key << "MagFilter" << YAML::Value << ToString(specification.Sampler.Min);
-		out << YAML::Key << "MipFilter" << YAML::Value << ToString(specification.Sampler.Mip);
-		out << YAML::Key << "AddressModeU" << YAML::Value << ToString(specification.Sampler.Wrap.U);
-		out << YAML::Key << "AddressModeV" << YAML::Value << ToString(specification.Sampler.Wrap.V);
-		out << YAML::Key << "AddressModeW" << YAML::Value << ToString(specification.Sampler.Wrap.W);
-		out << YAML::Key << "BorderColor" << YAML::Value << specification.Sampler.BorderColor;
+		out << YAML::Key << "Filter" << YAML::Value << ToString(specification.Sampler.Filter);
+		out << YAML::Key << "Wrap" << YAML::Value << ToString(specification.Sampler.Wrap);
 		out << YAML::Key << "Anisotropy" << YAML::Value << specification.Sampler.Anisotropy;
 		out << YAML::Key << "MaxAnisotropy" << YAML::Value << specification.Sampler.MaxAnisotropy;
-		out << YAML::Key << "LODBias" << YAML::Value << specification.Sampler.LODBias;
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
@@ -221,27 +215,26 @@ namespace Shark {
 		AssetHandle sourceHandle = textureNode["TextureSource"].as<AssetHandle>();
 		Ref<TextureSource> textureSource = ResourceManager::GetAsset<TextureSource>(sourceHandle);
 
-		SamplerSpecification sampler;
-		auto& samplerNode = textureNode["Sampler"];
-		if (samplerNode)
+		auto& specification = texture->GetSpecificationMutable();
+		specification.GenerateMips = textureNode["GenerateMips"].as<bool>(true);
+
+		if (auto samplerNode = textureNode["Sampler"])
 		{
-			sampler.Min = StringToFilterMode(samplerNode["MinFilter"].as<std::string>("Linear"));
-			sampler.Mag = StringToFilterMode(samplerNode["MagFilter"].as<std::string>("Linear"));
-			sampler.Mip = StringToFilterMode(samplerNode["MipFilter"].as<std::string>("Linear"));
-
-			sampler.Wrap.U = StringToWrapMode(samplerNode["AddressModeU"].as<std::string>("Repeat"));
-			sampler.Wrap.V = StringToWrapMode(samplerNode["AddressModeV"].as<std::string>("Repeat"));
-			sampler.Wrap.W = StringToWrapMode(samplerNode["AddressModeW"].as<std::string>("Repeat"));
-
-			sampler.BorderColor = samplerNode["BorderColor"].as<glm::vec4>();
+			auto& sampler = specification.Sampler;
+			sampler.Filter = StringToFilterMode(samplerNode["Filter"].as<std::string>("Linear"));
+			sampler.Wrap = StringToWrapMode(samplerNode["Wrap"].as<std::string>("Repeat"));
 			sampler.Anisotropy = samplerNode["Anisotropy"].as<bool>();
 			sampler.MaxAnisotropy = samplerNode["MaxAnisotropy"].as<uint32_t>();
-			sampler.LODBias = samplerNode["LODBias"].as<float>();
 		}
 
-		texture->Set(sampler, textureSource);
-		Renderer::GenerateMips(texture->GetImage());
+		SK_CORE_TRACE_TAG(Tag::Serialization, " - Generate Mips {}", specification.GenerateMips);
+		SK_CORE_TRACE_TAG(Tag::Serialization, " - Filter {}", ToStringView(specification.Sampler.Filter));
+		SK_CORE_TRACE_TAG(Tag::Serialization, " - Wrap {}", ToStringView(specification.Sampler.Wrap));
+		SK_CORE_TRACE_TAG(Tag::Serialization, " - Anisotropy Enabled {}", specification.Sampler.Anisotropy);
+		SK_CORE_TRACE_TAG(Tag::Serialization, " - Max Anisotropy {}", specification.Sampler.MaxAnisotropy);
 
+		texture->SetTextureSource(textureSource);
+		texture->Invalidate();
 		return true;
 	}
 
@@ -269,8 +262,17 @@ namespace Shark {
 			TextureSourceSerializer serializer;
 			if (serializer.DeserializeFromTexture(textureSource, filepath))
 			{
-				m_Image->Set(textureSource, 0);
-				Renderer::GenerateMips(m_Image);
+				auto& specification = m_Image->GetSpecificationMutable();
+				specification.Width = textureSource->Width;
+				specification.Height = textureSource->Height;
+				specification.Format = textureSource->Format;
+				specification.MipLevels = 1;
+				specification.Type = ImageType::Texture;
+
+				m_Image->SetInitalData(textureSource->ImageData);
+				m_Image->Invalidate();
+				m_Image->SetInitalData(nullptr);
+
 				SK_CORE_INFO_TAG("Serialization", "Deserializing Image took {}", timer.Elapsed());
 				return true;
 			}
@@ -294,21 +296,16 @@ namespace Shark {
 			return false;
 		}
 
-		ImageSpecification spec;
-		spec.Format = ImageFormat::RGBA8;
-		spec.Width = width;
-		spec.Height = height;
-		spec.Type = ImageType::Texture;
-		spec.MipLevels = 0;
+		auto& specification = m_Image->GetSpecificationMutable();
+		specification.Format = ImageFormat::RGBA8;
+		specification.Width = width;
+		specification.Height = height;
+		specification.Type = ImageType::Texture;
+		specification.MipLevels = 1;
 
-		Renderer::Submit([image = m_Image, spec, imagedata]() mutable
-		{
-			image->RT_Set(spec, imagedata);
-			imagedata.Release();
-
-			if (spec.MipLevels != 1)
-				Renderer::RT_GenerateMips(image);
-		});
+		m_Image->SetInitalData(imagedata);
+		m_Image->Invalidate();
+		m_Image->ReleaseInitalData();
 
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Image took {}", timer.Elapsed());
 		return true;

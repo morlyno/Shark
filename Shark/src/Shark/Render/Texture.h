@@ -29,11 +29,26 @@ namespace Shark {
 	};
 
 
-	enum class FilterMode : uint16_t { Nearest, Linear };
-	enum class WrapMode : uint16_t { Repeat, Clamp, Mirror, Border };
+	enum class FilterMode : uint16_t
+	{
+		None = 0,
+		Nearest,
+		Linear
+	};
+
+	enum class WrapMode : uint16_t
+	{
+		None = 0,
+		Repeat,
+		Clamp,
+		Mirror
+	};
 
 	std::string ToString(FilterMode filterMode);
 	std::string ToString(WrapMode wrapMode);
+
+	std::string_view ToStringView(FilterMode filterMode);
+	std::string_view ToStringView(WrapMode wrapMode);
 
 	FilterMode StringToFilterMode(std::string_view filterMode);
 	WrapMode StringToWrapMode(std::string_view wrapMode);
@@ -47,26 +62,17 @@ namespace Shark {
 
 	struct SamplerSpecification
 	{
-		FilterMode Min = FilterMode::Linear;
-		FilterMode Mag = FilterMode::Linear;
-		FilterMode Mip = FilterMode::Linear;
-		TextureWrapModes Wrap = WrapMode::Repeat;
-		glm::vec4 BorderColor = glm::vec4(0);
-
+		FilterMode Filter = FilterMode::Linear;
+		WrapMode Wrap = WrapMode::Repeat;
 		bool Anisotropy = false;
 		uint32_t MaxAnisotropy = 0;
-
-		float LODBias = 0.0f;
 	};
 
 	struct TextureSpecification
 	{
+		uint32_t Width = 0, Height = 0;
 		ImageFormat Format = ImageFormat::RGBA8;
-		uint32_t Width = 0;
-		uint32_t Height = 0;
-
-		uint32_t MipLevels = 1;
-
+		bool GenerateMips = false;
 		SamplerSpecification Sampler;
 	};
 
@@ -75,52 +81,39 @@ namespace Shark {
 	public:
 		virtual ~Texture2D() = default;
 
+		virtual void Invalidate() = 0;
+
 		virtual void Release() = 0;
+		virtual void RT_Release() = 0;
 
-		uint32_t GetWidth() const { return GetImage()->GetWidth(); }
-		uint32_t GetHeight() const { return GetImage()->GetHeight(); }
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
 
-		virtual void Set(const TextureSpecification& specs, Buffer data) = 0;
-		virtual void Set(const TextureSpecification& specs, Ref<Texture2D> data) = 0;
-		virtual void SetSampler(const SamplerSpecification& specs) = 0;
+		virtual Ref<TextureSource> GetTextureSource() const = 0;
 
-		virtual void Set(const SamplerSpecification& spec, Ref<TextureSource> textureSource) = 0;
-		virtual void RT_Set(const SamplerSpecification& spec, Ref<TextureSource> textureSource) = 0;
+		virtual void SetTextureSource(Ref<TextureSource> textureSource) = 0;
 
 		virtual RenderID GetViewID() const = 0;
 		virtual Ref<Image2D> GetImage() const = 0;
 		virtual const TextureSpecification& GetSpecification() const = 0;
+		virtual TextureSpecification& GetSpecificationMutable() = 0;
 
-#if 0
-		virtual const std::filesystem::path& GetFilePath() const = 0;
-		virtual void SetFilePath(const std::filesystem::path& filePath) = 0;
-#endif
-
-		virtual Ref<TextureSource> GetTextureSource() const = 0;
-
+	public: // Asset Interface
 		static AssetType GetStaticType() { return AssetType::Texture; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
 	public:
 		static Ref<Texture2D> Create();
-		static Ref<Texture2D> Create(const TextureSpecification& specs, Buffer imageData);
+		static Ref<Texture2D> Create(const TextureSpecification& specification, Buffer imageData);
+		static Ref<Texture2D> Create(const TextureSpecification& specification, Ref<TextureSource> textureSource);
+		static Ref<Texture2D> Create(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage = true);
 		static Ref<Texture2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
-
-		static Ref<Texture2D> Create(const TextureSpecification& specs, Ref<Texture2D> data);
-		static Ref<Texture2D> Create(Ref<Texture2D> data) { return Create(data->GetSpecification(), data); }
-		static Ref<Texture2D> Create(const SamplerSpecification& specification, Ref<TextureSource> source);
-
-		static Ref<Texture2D> Create(Ref<Image2D> image, bool sharedImage = true);
 	};
 
 	class Texture2DArray : public RefCount
 	{
 	public:
 		virtual ~Texture2DArray() = default;
-
-		virtual Ref<Texture2D> Create(uint32_t index) = 0;
-		virtual Ref<Texture2D> Create(uint32_t index, const TextureSpecification& specs, Buffer imageData) = 0;
-		virtual Ref<Texture2D> Create(uint32_t index, ImageFormat format, uint32_t width, uint32_t height, Buffer imageData) = 0;
 
 		virtual void Set(uint32_t index, Ref<Texture2D> texture) = 0;
 		virtual Ref<Texture2D> Get(uint32_t index) const = 0;

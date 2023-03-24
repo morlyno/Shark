@@ -11,7 +11,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#if SK_ENABLE_VALIDATION && false
+#if SK_ENABLE_VALIDATION
 #define SK_FILL_TEXTURE_ARRAY_DEBUG(texArr, whiteTexture) { auto&& textureArray = (texArr); for (uint32_t i = 0; i < textureArray->Count(); i++) if (!textureArray->Get(i)) textureArray->Set(i, whiteTexture); }
 #else
 #define SK_FILL_TEXTURE_ARRAY_DEBUG(...)
@@ -252,6 +252,7 @@ namespace Shark {
 
 			m_CirlceVertexPositions[i] = point;
 		}
+
 	}
 
 	void Renderer2D::ShutDown()
@@ -259,6 +260,9 @@ namespace Shark {
 		m_QuadVertexData.Release();
 		m_CircleVertexData.Release();
 		m_LineVertexData.Release();
+		m_TextVertexData.Release();
+		m_TransparentQuadVertexData.Release();
+		m_TransparentCircleVertexData.Release();
 	}
 
 	void Renderer2D::Resize(uint32_t width, uint32_t height)

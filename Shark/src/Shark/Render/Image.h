@@ -43,42 +43,38 @@ namespace Shark {
 		ImageType Type = ImageType::Texture;
 	};
 
-	class Image : public RefCount
-	{
-	public:
-		virtual ~Image() = default;
-
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
-	};
-
-	class Image2D : public Image
+	class Image2D : public RefCount
 	{
 	public:
 		virtual ~Image2D() = default;
 
-		virtual bool IsValid() const = 0;
+		virtual void Invalidate() = 0;
+		virtual void RT_Invalidate() = 0;
 
-		virtual void Set(const ImageSpecification& specs, Buffer imageData) = 0;
-		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) = 0;
-		virtual void Set(Ref<TextureSource> source, uint32_t mipLeves) = 0;
-		virtual void RT_Set(const ImageSpecification& spec, Buffer imagedata) = 0;
-		virtual void RT_Set(Ref<TextureSource> source, uint32_t mipLeves) = 0;
+		virtual void Release() = 0;
+		virtual void RT_Release() = 0;
 
-		virtual void Resize(uint32_t width, uint32_t height) = 0;
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
 
+		virtual void SetImageData(Buffer buffer) = 0;
 		virtual void SetImageData(Ref<Image2D> image) = 0;
 		virtual void RT_SetImageData(Ref<Image2D> image) = 0;
-		virtual Ref<Image2D> GetStorageImage() = 0;
-		virtual Ref<Image2D> RT_GetStorageImage() = 0;
 
-		virtual Buffer RT_GetWritableBuffer() = 0;
-		virtual void RT_CloseWritableBuffer() = 0;
+		virtual Ref<Image2D> RT_GetStorageImage() = 0;
 		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) = 0;
+
+		// Dosn't copy the buffer
+		virtual void SetInitalData(Buffer initalData) = 0;
+		virtual void RT_SetInitalData(Buffer initalData) = 0;
+		virtual void ReleaseInitalData() = 0;
+		virtual void RT_ReleaseInitalData() = 0;
+		virtual Buffer RT_GetInitalData() const = 0;
 
 		virtual RenderID GetResourceID() const = 0;
 		virtual RenderID GetViewID() const = 0;
 		virtual const ImageSpecification& GetSpecification() const = 0;
+		virtual ImageSpecification& GetSpecificationMutable() = 0;
 
 	public:
 		static Ref<Image2D> Create();
@@ -86,7 +82,6 @@ namespace Shark {
 		static Ref<Image2D> Create(const ImageSpecification& specs, Buffer imageData);
 		static Ref<Image2D> Create(const ImageSpecification& specs, Ref<Image2D> data);
 		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
-		static Ref<Image2D> Create(Ref<TextureSource> source, uint32_t mipLeves);
 
 		static Ref<Image2D> LoadFromDisc(const std::filesystem::path& filepath);
 	};

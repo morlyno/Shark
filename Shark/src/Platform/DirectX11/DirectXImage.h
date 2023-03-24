@@ -15,6 +15,7 @@ namespace Shark {
 		DXGI_FORMAT ImageFormatToD3D11ForView(ImageFormat format);
 		D3D11_USAGE UsageFromImageType(ImageType imageType);
 		UINT CPUAccessFromType(ImageType imageType);
+		uint32_t GetFormatDataSize(ImageFormat imageFormat);
 
 	}
 
@@ -27,66 +28,58 @@ namespace Shark {
 		DirectXImage2D(const ImageSpecification& specs);
 		DirectXImage2D(const ImageSpecification& specs, Buffer imageData);
 		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
-		DirectXImage2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
-		DirectXImage2D(Ref<TextureSource> source, uint32_t mipLevels);
-		DirectXImage2D(const ImageSpecification& specs, ID3D11Texture2D* resource, bool createView);
 		DirectXImage2D(Ref<DirectXSwapChain> swapchain, bool createView);
 		virtual ~DirectXImage2D();
 
-		void Release();
-		void RT_Release();
+		virtual void Invalidate() override;
+		virtual void RT_Invalidate() override;
 
-		virtual bool IsValid() const override { return m_Resource && m_View; }
+		virtual void Release() override;
+		virtual void RT_Release() override;
 
-		virtual void Set(const ImageSpecification& specs, Buffer imageData) override;
-		virtual void Set(const ImageSpecification& specs, Ref<Image2D> data) override;
-		virtual void Set(Ref<TextureSource> source, uint32_t mipLevels) override;
+		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
+		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
 
-		virtual void RT_Set(const ImageSpecification& spec, Buffer imagedata) override;
-		virtual void RT_Set(Ref<TextureSource> source, uint32_t mipLevels) override;
 		void RT_Invalidate(Ref<DirectXSwapChain> swapchain, bool createView = false);
 
-		virtual void Resize(uint32_t width, uint32_t height) override;
-
+		virtual void SetImageData(Buffer buffer) override;
 		virtual void SetImageData(Ref<Image2D> image) override;
 		virtual void RT_SetImageData(Ref<Image2D> image) override;
-		virtual Ref<Image2D> GetStorageImage() override;
-		virtual Ref<Image2D> RT_GetStorageImage() override;
 
-		virtual Buffer RT_GetWritableBuffer() override;
-		virtual void RT_CloseWritableBuffer() override;
+		virtual Ref<Image2D> RT_GetStorageImage() override;
 		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) override;
+
+		virtual void SetInitalData(Buffer initalData) override;
+		virtual void RT_SetInitalData(Buffer initalData) override;
+		virtual void ReleaseInitalData() override;
+		virtual void RT_ReleaseInitalData() override;
+		virtual Buffer RT_GetInitalData() const override { return m_InitalData; }
 
 		virtual RenderID GetResourceID() const override { return m_Resource; }
 		virtual RenderID GetViewID() const override { return m_View; }
 		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
-		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
-		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
+		virtual ImageSpecification& GetSpecificationMutable() override { return m_Specification; }
 
 	public:
 		ID3D11Texture2D* GetResourceNative() const { return m_Resource; }
 		ID3D11ShaderResourceView* GetViewNative() const { return m_View; }
 
 	private:
-		void CreateResource();
 		void UpdateResource(Buffer imageData);
 		void UpdateResource(Ref<DirectXImage2D> imageData);
-
-		void CreateView();
 
 		bool IsDepthImage() { return m_Specification.Format == ImageFormat::Depth32; }
 		bool IsImageCompadible(const ImageSpecification& specs) const { return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format && m_Specification.MipLevels == specs.MipLevels; }
 		bool IsImageCompadibleIgnoreMipLeves(const ImageSpecification& specs) const { return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format; }
 
 	private:
-		void RT_CreateResource();
 		void RT_UpdateResource(Buffer imageData);
 		void RT_UpdateResource(Ref<DirectXImage2D> imageData);
 		void RT_CreateView();
 
 	private:
 		ImageSpecification m_Specification;
-		bool m_Mapped = false;
+		Buffer m_InitalData;
 
 		ID3D11Texture2D* m_Resource = nullptr;
 		ID3D11ShaderResourceView* m_View = nullptr;
