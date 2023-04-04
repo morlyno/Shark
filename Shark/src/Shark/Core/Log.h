@@ -9,6 +9,7 @@ namespace Shark {
 	struct Tag
 	{
 		static constexpr std::string_view None = "";
+		static constexpr std::string_view Core = "Core";
 		static constexpr std::string_view Serialization = "Serialization";
 		static constexpr std::string_view Renderer = "Renderer";
 	};

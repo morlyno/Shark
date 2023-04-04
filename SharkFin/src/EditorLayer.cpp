@@ -1083,7 +1083,7 @@ namespace Shark {
 			return;
 
 		auto& app = Application::Get();
-		PerformanceProfiler* profiler = app.GetProfiler();
+		PerformanceProfiler* profiler = app.GetSecondaryProfiler();
 
 		if (profiler)
 		{

@@ -64,6 +64,7 @@ namespace Shark {
 		TimeStep GetFrameTime() const { return m_TimeStep; }
 		uint64_t GetFrameCount() const { return m_FrameCount; }
 		PerformanceProfiler* GetProfiler() const { return m_Profiler; }
+		PerformanceProfiler* GetSecondaryProfiler() const { return m_SecondaryProfiler; }
 		ApplicationState GetApplicationState() const { return m_State; }
 
 		Window& GetWindow() { return *m_Window; }
@@ -107,6 +108,7 @@ namespace Shark {
 		uint64_t m_FrameCount = 0;
 
 		PerformanceProfiler* m_Profiler = nullptr;
+		PerformanceProfiler* m_SecondaryProfiler = nullptr;
 
 		Scope<Window> m_Window;
 		// Owned by LayerStack

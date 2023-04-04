@@ -32,6 +32,7 @@ namespace Shark {
 		Application* app = this;
 
 		m_Profiler = new PerformanceProfiler;
+		m_SecondaryProfiler = new PerformanceProfiler;
 
 		Renderer::Init();
 		Renderer::WaitAndRender();
@@ -126,8 +127,6 @@ namespace Shark {
 				{
 					Application* app = this;
 					Renderer::Submit([app]() { app->RenderImGui(); });
-					Renderer::Submit([app]() { app->m_Profiler->Clear(); });
-					Renderer::Submit([app]() { app->m_ImGuiLayer->End(); });
 				}
 
 				Renderer::EndFrame();
@@ -141,10 +140,13 @@ namespace Shark {
 
 			const uint64_t ticks = PlatformUtils::GetTicks();
 			m_TimeStep = (float)(ticks - m_LastTickCount) / PlatformUtils::GetTicksPerSecond();
-			SK_LOG_IF(m_TimeStep > 1.0f, Log::Logger::Core, Log::Level::Warn, "Core", "Large Timestep! {}", m_TimeStep);
+			SK_LOG_IF(m_TimeStep > 1.0f, Log::Logger::Core, Log::Level::Warn, Tag::Core, "Large Timestep! {}", m_TimeStep);
 			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
 			m_LastTickCount = ticks;
 			m_Time += m_TimeStep;
+
+			m_SecondaryProfiler->Clear();
+			std::swap(m_Profiler, m_SecondaryProfiler);
 		}
 		
 		m_State = ApplicationState::Shutdown;
@@ -173,6 +175,8 @@ namespace Shark {
 
 		for (auto& layer : m_LayerStack)
 			layer->OnImGuiRender();
+
+		m_ImGuiLayer->End();
 	}
 
 	void Application::ProcessEvents()
