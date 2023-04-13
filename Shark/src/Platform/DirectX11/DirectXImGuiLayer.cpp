@@ -41,6 +41,11 @@ namespace Shark {
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
+		io.FontDefault = io.Fonts->AddFontFromFileTTF("Resources/Fonts/OpenSans/OpenSans-SemiBold.ttf", 15.0f * 2.0f);
+		io.FontDefault->Scale = 0.55f;
+		io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/arial.ttf", 14.0f);
+		io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/segoeui.ttf", 16.0f);
+
 		Theme::LoadDark();
 
 		ImGuiStyle& style = ImGui::GetStyle();
