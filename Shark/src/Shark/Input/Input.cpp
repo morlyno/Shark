@@ -45,12 +45,12 @@ namespace Shark {
 
 	void Input::Initialize()
 	{
-		s_InputData = new InputData;
+		s_InputData = sknew InputData;
 	}
 
 	void Input::Shutdown()
 	{
-		delete s_InputData;
+		skdelete s_InputData;
 		s_InputData = nullptr;
 	}
 

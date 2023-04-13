@@ -30,7 +30,7 @@ namespace Shark {
 
 			PlatformUtils::SetEnvironmentVariable("SHARK_DIR", workingDirectory.string());
 
-			PushLayer(new EditorLayer(m_StartupProject));
+			PushLayer(sknew EditorLayer(m_StartupProject));
 		}
 
 	private:
@@ -58,7 +58,7 @@ namespace Shark {
 		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/Shark-ScriptCore.dll";
 		specification.ScriptConfig.EnableDebugging = true;
 
-		return new SharkFin(specification, startupProject);
+		return sknew SharkFin(specification, startupProject);
 	}
 
 }

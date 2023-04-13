@@ -2,7 +2,9 @@
 #include "EditorLayer.h"
 
 #include "Shark/Core/Project.h"
-#include <Shark/Scene/Components.h>
+#include "Shark/Core/Memory.h"
+
+#include "Shark/Scene/Components.h"
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
@@ -382,6 +384,30 @@ namespace Shark {
 		}
 	}
 
+	static std::string BytesToString(uint64_t bytes)
+	{
+		if (bytes > (1024 * 1024 * 1024))
+		{
+			float val = (float)bytes / (1024 * 1024 * 1024);
+			return fmt::format("{0:.2f} GB", val);
+		}
+
+		if (bytes > (1024 * 1024))
+		{
+			float val = (float)bytes / (1024 * 1024);
+			return fmt::format("{0:.2f} MB", val);
+		}
+
+		if (bytes > (1024))
+		{
+			float val = (float)bytes / (1024);
+			return fmt::format("{0:.2f} KB", val);
+		}
+
+		float val = (float)bytes;
+		return fmt::format("{0:.2f} bytes", val);
+	}
+
 	void EditorLayer::OnImGuiRender()
 	{
 		SK_PROFILE_FUNCTION();
@@ -424,6 +450,7 @@ namespace Shark {
 		UI_ImportTexture();
 		UI_DebugScripts();
 		UI_LogSettings();
+		UI_Statistics();
 
 		m_PanelManager->OnImGuiRender();
 		
@@ -434,6 +461,44 @@ namespace Shark {
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
+
+#if 0
+		if (ImGui::Begin("Memory"))
+		{
+			{
+				const AllocatorData::AllocationStatsMap& statsMap = Allocator::GetAllocationStatsMap();
+
+				std::map<uint64_t, std::string, std::greater<>> sortedMap;
+				for (const auto& [desc, size] : statsMap)
+				{
+					std::string str = desc;
+					if (str.find("class") != std::string::npos)
+						String::RemovePrefix(str, 6);
+
+					size_t i = str.find_last_of("\\/");
+					if (i != std::string::npos)
+						str = str.substr(i + 1);
+
+					sortedMap[size] = str;
+				}
+
+				UI::Text(fmt::format("Total allocated {}", BytesToString(GMemoryStats.TotalAllocated)));
+				UI::Text(fmt::format("Total freed {}", BytesToString(GMemoryStats.TotalFreed)));
+				UI::Text(fmt::format("Current usage {}", BytesToString(GMemoryStats.CurrentUsage())));
+
+				ImGui::Separator();
+
+				for (const auto& [size, desc] : sortedMap)
+				{
+					auto str = BytesToString(size);
+					ImGui::Text("%s: %s", desc.c_str(), str.c_str());
+				}
+			}
+
+		}
+		ImGui::End();
+#endif
+
 	}
 
 	void EditorLayer::UI_MainMenuBar()
@@ -523,6 +588,7 @@ namespace Shark {
 				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
 				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
 				ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
+				ImGui::MenuItem("Statistics", nullptr, &m_ShowStatistics);
 				ImGui::Separator();
 
 				auto& app = Application::Get();
@@ -1077,7 +1143,7 @@ namespace Shark {
 		}
 	}
 
-	void EditorLayer::UI_Stats()
+	void EditorLayer::UI_ProfilerStats()
 	{
 		if (!ImGui::CollapsingHeader("Times"))
 			return;
@@ -1385,11 +1451,76 @@ namespace Shark {
 		ImGui::End();
 	}
 
+	void EditorLayer::UI_Statistics()
+	{
+		if (!m_ShowStatistics)
+			return;
+
+		if (ImGui::Begin("Statistics", &m_ShowStatistics))
+		{
+			if (ImGui::BeginTabBar("TabBar"))
+			{
+				if (ImGui::BeginTabItem("Memory"))
+				{
+					UI::TextF("Total allocated {}", BytesToString(Allocator::GetMemoryStats().TotalAllocated));
+					UI::TextF("Total freed {}", BytesToString(Allocator::GetMemoryStats().TotalFreed));
+					UI::TextF("Current Usage {}", BytesToString(Allocator::GetMemoryStats().CurrentUsage()));
+
+					ImGui::Separator();
+
+					static char SearchBuffer[250]{};
+					UI::Search(UI::GenerateID(), SearchBuffer, std::size(SearchBuffer));
+
+					struct Entry
+					{
+						std::string Descriptor;
+						bool IsFile = false;
+						std::string Size;
+					};
+					std::map<uint64_t, Entry, std::greater<>> entries;
+
+					for (const auto& [desc, size] : Allocator::GetAllocationStatsMap())
+					{
+						if (!String::Contains(desc, SearchBuffer, false))
+							continue;
+
+						auto& entry = entries[size];
+						entry.Size = BytesToString(size);
+
+						std::string str = desc;
+						if (str.find("class") != std::string::npos)
+							String::RemovePrefix(str, 6);
+
+						size_t i = str.find_last_of("\\/");
+						if (i != std::string::npos)
+						{
+							str = str.substr(i + 1);
+							entry.IsFile = true;
+						}
+
+						entry.Descriptor = str;
+					}
+
+					for (const auto& [size, entry] : entries)
+					{
+						UI::ScopedColorConditional color(ImGuiCol_Text, ImVec4(0.2f, 0.3f, 0.9f, 1.0f), entry.IsFile);
+						ImGui::Text("%s %s", entry.Descriptor.c_str(), entry.Size.c_str());
+					}
+
+					ImGui::EndTabItem();
+				}
+
+				ImGui::EndTabBar();
+			}
+		}
+		ImGui::End();
+	}
+
 	void EditorLayer::RegisterSettingNodes()
 	{
 		Ref<SettingsPanel> settingsPanel = m_PanelManager->GetPanel<SettingsPanel>(SETTINGS_PANEL_ID);
 		settingsPanel->AddNode(std::bind(&SceneRenderer::DrawSettings, m_SceneRenderer));
-		settingsPanel->AddNode(std::bind(&EditorLayer::UI_Stats, this));
+		settingsPanel->AddNode(std::bind(&EditorLayer::UI_ProfilerStats, this));
 		settingsPanel->AddNode([this]()
 		{
 			if (ImGui::CollapsingHeader("Visualization"))

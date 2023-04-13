@@ -10,7 +10,7 @@ namespace Shark {
 		for (auto l : m_Layers)
 		{
 			l->OnDetach();
-			delete l;
+			skdelete l;
 		}
 	}
 
@@ -19,7 +19,7 @@ namespace Shark {
 		for (auto l : m_Layers)
 		{
 			l->OnDetach();
-			delete l;
+			skdelete l;
 		}
 		m_Layers.clear();
 		m_LayerStackIndex = 0;

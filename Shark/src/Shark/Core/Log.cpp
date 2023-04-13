@@ -27,7 +27,7 @@ namespace Shark {
 
 	void Log::Initialize()
 	{
-		s_Data = new LogData();
+		s_Data = sknew LogData();
 
 		std::vector<spdlog::sink_ptr> sharkSinks =
 		{
@@ -66,7 +66,7 @@ namespace Shark {
 
 	void Log::Shutdown()
 	{
-		delete s_Data;
+		skdelete s_Data;
 		s_Data = nullptr;
 	}
 

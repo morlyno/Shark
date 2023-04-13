@@ -73,12 +73,13 @@ namespace Shark {
 		void UI_DragDrop();
 		void UI_ToolBar();
 		void UI_CameraPrevie();
-		void UI_Stats();
+		void UI_ProfilerStats();
 		void UI_ProjectSettings();
 		void UI_ImportTexture();
 		bool UI_MousePicking();
 		void UI_DebugScripts();
 		void UI_LogSettings();
+		void UI_Statistics();
 
 		void RegisterSettingNodes();
 
@@ -157,6 +158,7 @@ namespace Shark {
 		bool m_ShowLogSettings = false;
 		bool m_ShowCreateProject = false;
 		bool m_ShowDebugScripts = false;
+		bool m_ShowStatistics = false;
 		bool m_ReadPixel = false;
 		glm::vec4 m_HoveredColor;
 

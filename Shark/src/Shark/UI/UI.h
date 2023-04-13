@@ -231,6 +231,12 @@ namespace Shark::UI {
 	void Text(const std::string& string, TextFlags flags = TextFlag::None);
 	void Text(const std::filesystem::path& path, TextFlags flags = TextFlag::None);
 
+	template<typename... TArgs>
+	void TextF(std::string_view fmt, TArgs&&... args)
+	{
+		Text(fmt::format(fmt, std::forward<TArgs>(args)...));
+	}
+
 	void TextSelectable(std::string_view str);
 
 	void TextFramed(std::string_view fmt, ...);
@@ -264,6 +270,15 @@ namespace Shark::UI {
 	{
 		ScopedColor(ImGuiCol color, const ImVec4& val)           { ImGui::PushStyleColor(color, val); }
 		~ScopedColor()                                           { ImGui::PopStyleColor(); }
+	};
+
+	class ScopedColorConditional
+	{
+	public:
+		ScopedColorConditional(ImGuiCol color, const ImVec4& val, bool push) { if (push) { m_Pushed = true; ImGui::PushStyleColor(color, val); } }
+		~ScopedColorConditional() { if (m_Pushed) ImGui::PopStyleColor(); }
+	private:
+		bool m_Pushed = false;
 	};
 
 	class ScopedStyleStack

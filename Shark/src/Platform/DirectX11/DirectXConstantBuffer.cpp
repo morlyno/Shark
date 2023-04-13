@@ -41,9 +41,10 @@ namespace Shark {
 		Ref<DirectXConstantBuffer> instance = this;
 		Buffer buffer = Buffer::Copy((byte*)data, (uint64_t)size);
 
-		Renderer::Submit([instance, buffer]()
+		Renderer::Submit([instance, buffer]() mutable
 		{
 			instance->RT_Set(buffer);
+			buffer.Release();
 		});
 	}
 

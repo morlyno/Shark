@@ -24,14 +24,14 @@ namespace Shark {
 	void Physics2DScene::CreateScene()
 	{
 		SK_CORE_VERIFY(!m_World);
-		m_World = new b2World({ m_Gravity.x, m_Gravity.y });
+		m_World = sknew b2World({ m_Gravity.x, m_Gravity.y });
 	}
 
 	void Physics2DScene::DestoryScene()
 	{
 		if (m_World)
 		{
-			delete m_World;
+			skdelete m_World;
 			m_World = nullptr;
 		}
 	}

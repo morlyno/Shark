@@ -22,7 +22,7 @@ namespace Shark {
 
 	void ResourceManager::Init()
 	{
-		s_Data = new ResourceManagerData;
+		s_Data = sknew ResourceManagerData;
 		AssetSerializer::RegisterSerializers();
 		ReadImportedAssetsFromDisc();
 	}
@@ -31,7 +31,7 @@ namespace Shark {
 	{
 		WriteImportedAssetsToDisc();
 		AssetSerializer::ReleaseSerializers();
-		delete s_Data;
+		skdelete s_Data;
 		s_Data = nullptr;
 	}
 

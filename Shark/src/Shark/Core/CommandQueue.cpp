@@ -7,13 +7,14 @@ namespace Shark {
 
 	CommandQueue::CommandQueue(uint32_t bufferSize)
 	{
-		m_Buffer.Allocate(bufferSize);
-		m_BufferPtr = m_Buffer.Data;
+		m_Buffer = sknew byte[bufferSize];
+		m_BufferSize = bufferSize;
+		m_BufferPtr = m_Buffer;
 	}
 
 	CommandQueue::~CommandQueue()
 	{
-		m_Buffer.Release();
+		skdelete m_Buffer;
 	}
 
 	void CommandQueue::Execute()
@@ -21,7 +22,7 @@ namespace Shark {
 		//SK_LOG_IF(m_CommandCount > 0, Log::Logger::Core, Log::Level::Trace, Tag::Renderer, "CommandQueue::Excecute | {0} Commands | {1} bytes", m_CommandCount, (uint64_t)(m_BufferPtr - m_Buffer.Data));
 
 		m_Locked = true;
-		byte* buffer = m_Buffer.Data;
+		byte* buffer = m_Buffer;
 		while (buffer < m_BufferPtr)
 		{
 			SK_PROFILE_SCOPED("Execute Command");
@@ -35,7 +36,7 @@ namespace Shark {
 			buffer += userFuncSize;
 		}
 
-		m_BufferPtr = m_Buffer.Data;
+		m_BufferPtr = m_Buffer;
 		m_CommandCount = 0;
 		m_Locked = false;
 	}
@@ -45,11 +46,19 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		// CommandFunc | UserFuncSize | UserFunc
 
-		if ((m_BufferPtr + sizeof(CommandFn) + sizeof(uint32_t) + userFuncSize) >= (m_Buffer.Data + m_Buffer.Size))
+		if ((m_BufferPtr + sizeof(CommandFn) + sizeof(uint32_t) + userFuncSize) >= (m_Buffer + m_BufferSize))
 		{
-			uint64_t bufferPtrOffset = m_BufferPtr - m_Buffer.Data;
-			m_Buffer.Resize(m_Buffer.Size + m_Buffer.Size / 2);
-			m_BufferPtr = m_Buffer.Data + bufferPtrOffset;
+			uint64_t bufferPtrOffset = m_BufferPtr - m_Buffer;
+
+			uint64_t newSize = m_BufferSize + m_BufferSize / 2;
+			byte* newBuffer = sknew byte[newSize];
+			memcpy(newBuffer, m_Buffer, m_BufferSize);
+
+			skdelete m_Buffer;
+			m_Buffer = newBuffer;
+			m_BufferSize = newSize;
+
+			m_BufferPtr = m_Buffer + bufferPtrOffset;
 		}
 
 		*(CommandFn*)m_BufferPtr = func;

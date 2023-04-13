@@ -121,7 +121,7 @@ namespace Shark {
 
 	static WatchData* CreateWatchData(LPCWSTR dirPath, DWORD notifyFilter, BOOL isRecursive)
 	{
-		WatchData* watchData = new WatchData;
+		WatchData* watchData = sknew WatchData;
 		memset(watchData, 0, sizeof(WatchData));
 		watchData->DirectoryHandle = CreateFileW(
 			dirPath,
@@ -135,7 +135,7 @@ namespace Shark {
 
 		if (watchData->DirectoryHandle == INVALID_HANDLE_VALUE)
 		{
-			delete watchData;
+			skdelete watchData;
 			DWORD lastError = GetLastError();
 			std::string msg = std::system_category().message(lastError);
 			SK_CORE_ERROR_TAG("FileWatcher", "CreateFileW failed! {}", msg);
@@ -152,7 +152,7 @@ namespace Shark {
 		SK_CORE_ERROR_TAG("FileWatcher", "Failed to Create Watch for '{0}'", String::ToNarrowCopy(dirPath));
 		CloseHandle(watchData->DirectoryHandle);
 		CloseHandle(watchData->Overlapped.hEvent);
-		delete watchData;
+		skdelete watchData;
 		return nullptr;
 	}
 
@@ -170,7 +170,7 @@ namespace Shark {
 
 		CloseHandle(watchData->DirectoryHandle);
 		CloseHandle(watchData->Overlapped.hEvent);
-		delete watchData;
+		skdelete watchData;
 	}
 
 	WindowsFileWatcher::~WindowsFileWatcher()

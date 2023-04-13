@@ -177,7 +177,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		s_ScriptGlue = new MonoGlueData();
+		s_ScriptGlue = sknew MonoGlueData();
 
 		s_ScriptGlue->EntityOnCollishionBegin = utils::GetCoreMethod("Shark.Entity:InvokeOnCollishionBegin");
 		s_ScriptGlue->EntityOnCollishionEnd = utils::GetCoreMethod("Shark.Entity:InvokeOnCollishionEnd");
@@ -195,7 +195,7 @@ namespace Shark {
 
 	void ScriptGlue::Shutdown()
 	{
-		delete s_ScriptGlue;
+		skdelete s_ScriptGlue;
 		s_ScriptGlue = nullptr;
 		s_EntityBindings.clear();
 	}

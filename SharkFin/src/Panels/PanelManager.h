@@ -2,8 +2,6 @@
 
 #include "Shark/Editor/Panel.h"
 
-#include "Shark/stl/container_view.h"
-
 namespace Shark {
 
 	class PanelManager

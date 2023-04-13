@@ -31,8 +31,8 @@ namespace Shark {
 		s_Instance = this;
 		Application* app = this;
 
-		m_Profiler = new PerformanceProfiler;
-		m_SecondaryProfiler = new PerformanceProfiler;
+		m_Profiler = sknew PerformanceProfiler;
+		m_SecondaryProfiler = sknew PerformanceProfiler;
 
 		Renderer::Init();
 		Renderer::WaitAndRender();
@@ -70,7 +70,7 @@ namespace Shark {
 		m_Window = nullptr;
 		Renderer::ShutDown();
 
-		delete m_Profiler;
+		skdelete m_Profiler;
 
 		s_Instance = nullptr;
 	}

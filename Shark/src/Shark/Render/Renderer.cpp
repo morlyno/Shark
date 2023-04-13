@@ -10,7 +10,7 @@ namespace Shark {
 	static RendererAPIType s_API = RendererAPIType::None;
 	struct RendererData
 	{
-		CommandQueue RenderCommandQueue = CommandQueue(1024 * 1024 * 10 /* 10mb */);
+		CommandQueue RenderCommandQueue = CommandQueue(1024 * 10 /* 10kb */);
 		CommandQueue ResourceFreeQueue = CommandQueue(1024 * 10 /* 10kb */);
 		bool CommandQueueExecuting = false;
 
@@ -19,7 +19,7 @@ namespace Shark {
 
 	void Renderer::Init()
 	{
-		s_RendererData = new RendererData();
+		s_RendererData = sknew RendererData();
 
 		switch (s_API)
 		{
@@ -33,7 +33,7 @@ namespace Shark {
 	void Renderer::ShutDown()
 	{
 		s_RendererAPI = nullptr;
-		delete s_RendererData;
+		skdelete s_RendererData;
 		s_RendererData = nullptr;
 	}
 

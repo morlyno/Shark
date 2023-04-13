@@ -8,7 +8,7 @@ int main(int argc, char** argv)
 
 	auto app = Shark::CreateApplication(argc, argv);
 	app->Run();
-	delete app;
+	skdelete app;
 
 	Shark::Core::Shutdown();
 

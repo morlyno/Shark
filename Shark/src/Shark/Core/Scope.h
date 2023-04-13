@@ -24,7 +24,7 @@ namespace Shark {
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, int> = 0>
 		const Scope& operator=(Scope<T2>&& other) { Release(); m_Instance = other.m_Instance; other.m_Instance = nullptr; return *this; }
 
-		void Release() { delete m_Instance; m_Instance = nullptr; }
+		void Release() { skdelete m_Instance; m_Instance = nullptr; }
 
 		T& operator*() const { return *m_Instance; }
 		T* operator->() const { return m_Instance; }
@@ -37,7 +37,7 @@ namespace Shark {
 		const T* Raw() const { return m_Instance; }
 
 		template<typename... Args>
-		static Scope Create(Args&&... args) { return std::move(Scope(new T(std::forward<Args>(args)...))); }
+		static Scope Create(Args&&... args) { return std::move(Scope(new(typeid(T).name()) T(std::forward<Args>(args)...))); }
 
 	private:
 		T* m_Instance = nullptr;

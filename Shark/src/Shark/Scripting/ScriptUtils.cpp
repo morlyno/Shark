@@ -23,7 +23,7 @@ namespace Shark {
 
 	void ScriptUtils::Init()
 	{
-		s_UtilsData = new ScriptUtilsData();
+		s_UtilsData = sknew ScriptUtilsData();
 		MonoClass* entityClass = mono_class_from_name_case(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", "Entity");
 		s_UtilsData->OnCreate = mono_class_get_method_from_name(entityClass, "OnCreate", 0);
 		s_UtilsData->OnDestroy = mono_class_get_method_from_name(entityClass, "OnDestroy", 0);
@@ -34,7 +34,7 @@ namespace Shark {
 
 	void ScriptUtils::Shutdown()
 	{
-		delete s_UtilsData;
+		skdelete s_UtilsData;
 		s_UtilsData = nullptr;
 	}
 

@@ -8,12 +8,12 @@ namespace Shark {
 	void EditorSettings::Init()
 	{
 		SK_CORE_VERIFY(!s_Instance);
-		s_Instance = new EditorSettings();
+		s_Instance = sknew EditorSettings();
 	}
 
 	void EditorSettings::Shutdown()
 	{
-		delete s_Instance;
+		skdelete s_Instance;
 		s_Instance = nullptr;
 	}
 

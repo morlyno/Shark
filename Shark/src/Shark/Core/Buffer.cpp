@@ -10,7 +10,7 @@ namespace Shark {
 		if (size)
 		{
 			Size = size;
-			Data = (byte*)operator new(size);
+			Data = sknew byte[size];
 		}
 	}
 
@@ -19,16 +19,16 @@ namespace Shark {
 		if (newSize == Size || !canShrink && newSize < Size)
 			return;
 
-		byte* newData = (byte*)operator new(newSize);
+		byte* newData = sknew byte[newSize];
 		memcpy(newData, Data, std::min(Size, newSize));
-		operator delete(Data);
+		skdelete[] Data;
 		Data = newData;
 		Size = newSize;
 	}
 
 	void Buffer::Release()
 	{
-		operator delete(Data);
+		skdelete[] Data;
 		Data = nullptr;
 		Size = 0;
 	}

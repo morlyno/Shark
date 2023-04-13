@@ -1086,7 +1086,7 @@ namespace Shark::UI {
 
 	UIContext* CreateContext()
 	{
-		UIContext* ctx = new UIContext();
+		UIContext* ctx = sknew UIContext();
 		if (!GContext)
 			SetContext(ctx);
 		return ctx;
@@ -1098,7 +1098,7 @@ namespace Shark::UI {
 			ctx = GContext;
 		if (ctx == GContext)
 			SetContext(nullptr);
-		delete ctx;
+		skdelete ctx;
 	}
 
 	void SetContext(UIContext* ctx)

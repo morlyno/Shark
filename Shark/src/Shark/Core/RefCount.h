@@ -160,7 +160,7 @@ namespace Shark {
 			{
 				SK_CORE_VERIFY(m_Instance->GetRefCount() != 0, "Release was called but refcount was 0");
 				if (m_Instance->DecRef() == 0)
-					delete m_Instance;
+					skdelete m_Instance;
 				m_Instance = nullptr;
 			}
 		}
@@ -227,7 +227,7 @@ namespace Shark {
 		template<typename... Args>
 		static Ref Create(Args&&... args)
 		{
-			return new T(std::forward<Args>(args)...);
+			return new(typeid(T).name()) T(std::forward<Args>(args)...);
 		}
 
 	private:

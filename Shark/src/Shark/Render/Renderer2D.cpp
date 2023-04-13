@@ -137,7 +137,7 @@ namespace Shark {
 
 			m_QuadVertexBuffer = VertexBuffer::Create(quadPipelineSpecs.Shader->GetVertexLayout(), DefaultQuadVertices * sizeof(QuadVertex), true, nullptr);
 
-			uint32_t* quadIndices = new uint32_t[DefaultQuadIndices];
+			uint32_t* quadIndices = sknew uint32_t[DefaultQuadIndices];
 			for (uint32_t i = 0, j = 0; i < DefaultQuadIndices; i += 6, j += 4)
 			{
 				quadIndices[i + 0] = j + 0;
@@ -149,7 +149,7 @@ namespace Shark {
 				quadIndices[i + 5] = j + 0;
 			}
 			m_QuadIndexBuffer = IndexBuffer::Create(DefaultQuadIndices, false, Buffer::FromArray(quadIndices, DefaultQuadIndices));
-			delete[] quadIndices;
+			skdelete[] quadIndices;
 
 			m_QuadVertexData.Allocate(DefaultQuadVertices * sizeof QuadVertex);
 		}
@@ -939,7 +939,7 @@ namespace Shark {
 		SK_CORE_VERIFY((indexCount % 6) == 0);
 		Renderer::Submit([indexBuffer = m_QuadIndexBuffer, indexCount]()
 		{
-			uint32_t* quadIndices = new uint32_t[indexCount];
+			uint32_t* quadIndices = sknew uint32_t[indexCount];
 			for (uint32_t i = 0, j = 0; i < indexCount; i += 6, j += 4)
 			{
 				quadIndices[i + 0] = j + 0;
@@ -951,7 +951,7 @@ namespace Shark {
 				quadIndices[i + 5] = j + 0;
 			}
 			indexBuffer->RT_Resize(indexCount, { quadIndices, indexCount * sizeof uint32_t });
-			delete[] quadIndices;
+			skdelete[] quadIndices;
 		});
 	}
 

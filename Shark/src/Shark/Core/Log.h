@@ -44,9 +44,9 @@ namespace Shark {
 		static void Shutdown();
 
 		static std::shared_ptr<spdlog::logger> GetLogger(Log::Logger loggerType);
-		static std::shared_ptr<spdlog::logger> GetCoreLogger() { return GetCoreLogger(); }
-		static std::shared_ptr<spdlog::logger> GetClientLogger() { return GetClientLogger(); }
-		static std::shared_ptr<spdlog::logger> GetConsoleLogger() { return GetConsoleLogger(); }
+		static std::shared_ptr<spdlog::logger> GetCoreLogger() { return s_Data->CoreLogger; }
+		static std::shared_ptr<spdlog::logger> GetClientLogger() { return s_Data->ClientLogger; }
+		static std::shared_ptr<spdlog::logger> GetConsoleLogger() { return s_Data->ConsoleLogger; }
 
 		static bool HasTag(std::string_view tag) { return s_Data->EnabledTags.find(tag) != s_Data->EnabledTags.end(); }
 		static std::map<std::string_view, TagSettings>& EnabledTags() { return s_Data->EnabledTags; }

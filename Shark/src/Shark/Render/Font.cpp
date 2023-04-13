@@ -37,13 +37,13 @@ namespace Shark {
 
 	Font::Font(const std::filesystem::path& fontPath)
 	{
-		m_MSDFData = new MSDFData();
+		m_MSDFData = sknew MSDFData();
 		Init(fontPath);
 	}
 
 	Font::~Font()
 	{
-		delete m_MSDFData;
+		skdelete m_MSDFData;
 	}
 
 	void Font::Init(const std::filesystem::path& fontPath)

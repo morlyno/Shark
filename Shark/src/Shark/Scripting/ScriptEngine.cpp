@@ -89,7 +89,7 @@ namespace Shark {
 	{
 		SK_CORE_INFO_TAG("Scripting", "Script Engine is Initializing");
 
-		s_Data = new ScriptEngineData;
+		s_Data = sknew ScriptEngineData;
 		s_Data->Config = config;
 		InitMono();
 	}
@@ -102,7 +102,7 @@ namespace Shark {
 			UnloadAssemblies();
 
 		ShutdownMono();
-		delete s_Data;
+		skdelete s_Data;
 	}
 
 	bool ScriptEngine::LoadAssemblies(const std::filesystem::path& assemblyPath)

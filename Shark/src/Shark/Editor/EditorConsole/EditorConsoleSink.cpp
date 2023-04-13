@@ -61,7 +61,7 @@ namespace Shark {
 	void EditorConsoleSink::set_pattern(const std::string& pattern)
 	{
 		std::lock_guard lock(m_Mutex);
-		m_MessageFormatter = std::unique_ptr<spdlog::formatter>(new spdlog::pattern_formatter(pattern));
+		m_MessageFormatter = std::unique_ptr<spdlog::formatter>(sknew spdlog::pattern_formatter(pattern));
 	}
 
 	void EditorConsoleSink::set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter)
