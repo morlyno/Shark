@@ -1,6 +1,4 @@
-
-#type Vertex
-#version vs_4_0
+#pragma stage : Vertex
 
 cbuffer SceneData : register(b0)
 {
@@ -23,8 +21,7 @@ Output main(
     return output;
 }
 
-#type Pixel
-#version ps_4_0
+#pragma stage : Pixel
 
 void main()
 {

@@ -1,8 +1,19 @@
 #pragma once
 
+namespace Shark {
+
+	enum class Case
+	{
+		Sensitive,
+		Ingnore
+	};
+
+}
+
 namespace Shark::String {
 
 	bool Contains(std::string_view text, std::string_view pattern, bool caseSensitive = true);
+	bool Compare(std::string_view lhs, std::string_view rhs, Case comapreCase);
 
 	std::string ToLowerCopy(const std::string& str);
 	void ToLower(std::string& str);

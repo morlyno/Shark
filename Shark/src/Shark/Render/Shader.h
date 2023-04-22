@@ -12,19 +12,12 @@ namespace Shark {
 	public:
 		virtual ~Shader() = default;
 
-		virtual VertexLayout& GetVertexLayout() = 0;
+		virtual bool Reload(bool forceCompile = false) = 0;
 
+		virtual const std::string& GetName() const = 0;
 		virtual const std::filesystem::path& GetFilePath() const = 0;
-		virtual const std::string& GetFileName() const = 0;
-
-		virtual bool ReCompile() = 0;
-		virtual bool RT_ReCompile() = 0;
-		virtual void LogReflection() = 0;
-
-		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name) = 0;
-
 	public:
-		static Ref<Shader> Create(const std::filesystem::path& filepath);
+		static Ref<Shader> Create();
 	};
 
 	class ShaderLibrary : public RefCount
@@ -33,30 +26,17 @@ namespace Shark {
 		ShaderLibrary() = default;
 		~ShaderLibrary() { Clear(); }
 
-		ShaderLibrary(const ShaderLibrary&) = delete;
-		ShaderLibrary& operator=(const ShaderLibrary&) = delete;
+		Ref<Shader> Load(const std::filesystem::path& filepath, bool forceCompile = false, bool disableOptimization = false);
+		Ref<Shader> Get(const std::string& name) { return m_ShaderMap.at(name); }
 
-		Ref<Shader> Load(const std::filesystem::path& filepath);
-		Ref<Shader> Load(const std::filesystem::path& filepath, const std::string name);
+		bool Exists(const std::string& name) { return m_ShaderMap.find(name) != m_ShaderMap.end(); }
+		void Clear() { m_ShaderMap.clear(); }
 
-		void Add(Ref<Shader> shader);
-		void Add(Ref<Shader> shader, const std::string& name);
-
-		Ref<Shader> Get(const std::string& name);
-		Ref<Shader> TryGet(const std::string& name);
-
-		Ref<Shader> Remove(const std::string& name);
-		Ref<Shader> Remove(Ref<Shader> shader);
-
-		bool Exists(const std::string& name);
-		bool Exists(Ref<Shader> shader);
-
-		void Clear();
-
-		std::unordered_map<std::string, Ref<Shader>>::const_iterator begin() const { return m_Shaders.cbegin(); }
-		std::unordered_map<std::string, Ref<Shader>>::const_iterator end() const { return m_Shaders.cend(); }
+		std::unordered_map<std::string, Ref<Shader>>::const_iterator begin() const { return m_ShaderMap.cbegin(); }
+		std::unordered_map<std::string, Ref<Shader>>::const_iterator end() const { return m_ShaderMap.cend(); }
 	private:
-		std::unordered_map<std::string, Ref<Shader>> m_Shaders;
+		std::unordered_map<std::string, Ref<Shader>> m_ShaderMap;
+
 	};
 
 }

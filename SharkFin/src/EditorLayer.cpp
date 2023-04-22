@@ -8,7 +8,6 @@
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
-#include "Shark/Render/Font.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
@@ -797,10 +796,9 @@ namespace Shark {
 				{
 					UI::Text(fmt::format("Path: {}", shader->GetFilePath()));
 					if (ImGui::Button("ReCompile"))
-						shader->RT_ReCompile();
+						Application::Get().SubmitToMainThread(std::bind(&Shader::Reload, shader, true));
 					if (ImGui::Button("Reflect"))
-						shader->LogReflection();
-					// IDEA: Print Shader Detailes (From Reflection)
+						(void)0;//shader->LogReflection();
 					ImGui::TreePop();
 				}
 			}

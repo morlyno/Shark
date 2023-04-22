@@ -4,6 +4,8 @@
 
 #include <chrono>
 
+#define SK_SCOPED_TIMER(_name) ::Shark::ScopedTimer SK_UNIQUE_NAME (_name)
+
 namespace Shark {
 
 	class Timer

@@ -1,5 +1,4 @@
-#type vertex
-#version vs_4_0
+#pragma stage vertex
 
 struct VSOUT
 {
@@ -15,8 +14,7 @@ VSOUT main(float2 pos : Position)
     return vsout;
 }
 
-#type pixel
-#version ps_4_0
+#pragma stage : pixel
 
 Texture2D Frame;
 SamplerState Sampler;

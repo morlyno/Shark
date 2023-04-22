@@ -37,10 +37,12 @@ VSOUT main(VSIN vsin)
     return vsout;
 }
 
-#pragma stage : Pixel
+#pragma stage : pixel
 
 Texture2D g_Textures[16] : register(t0);
 SamplerState g_SamplerState[16];
+
+sampler2D JustASampler;
 
 struct PSIN
 {
@@ -80,6 +82,8 @@ PSOUT main(PSIN psin)
         case 14: psout.Color = g_Textures[14].Sample(g_SamplerState[14], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
         case 15: psout.Color = g_Textures[15].Sample(g_SamplerState[15], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
     }
+    
+    psout.Color += tex2D(JustASampler, psin.TexCoord);
     
     psout.ID = psin.ID;
     

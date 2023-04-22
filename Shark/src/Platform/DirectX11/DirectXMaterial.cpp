@@ -80,11 +80,11 @@ namespace Shark {
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		m_ConstnatBufferSet = Ref<DirectXConstantBufferSet>::Create();
 
-		const auto& shaderBinarys = m_Shader->GetShaderBinarys();
+		const auto& shaderBinarys = m_Shader->GetShaderBinaries();
 		
 		// VertexShader
 		{
-			const auto& vtxBinary = shaderBinarys.at(ShaderStage::Vertex);
+			const auto& vtxBinary = shaderBinarys.at(ShaderUtils::ShaderStage::Vertex);
 			ID3D11ShaderReflection* reflection;
 			SK_DX11_CALL(D3DReflect(vtxBinary.data(), vtxBinary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
 
@@ -120,7 +120,7 @@ namespace Shark {
 
 		// PixelShader
 		{
-			const auto& pxlBinary = shaderBinarys.at(ShaderStage::Pixel);
+			const auto& pxlBinary = shaderBinarys.at(ShaderUtils::ShaderStage::Pixel);
 			ID3D11ShaderReflection* reflection;
 			SK_DX11_CALL(D3DReflect(pxlBinary.data(), pxlBinary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
 

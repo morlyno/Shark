@@ -238,7 +238,7 @@ namespace Shark {
 			const UINT stride = vertexBuffer->m_Layout.GetVertexSize();
 			ctx->IASetVertexBuffers(0, 1, &vertexBuffer->m_VertexBuffer, &stride, &offset);
 			ctx->IASetIndexBuffer(indexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-			ctx->IASetInputLayout(dxShader->m_InputLayout);
+			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
 			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
@@ -291,8 +291,7 @@ namespace Shark {
 			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
 			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
 
-			// TODO(moro): move InputLayout to Pipeline
-			ctx->IASetInputLayout(dxShader->m_InputLayout);
+			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
@@ -357,8 +356,7 @@ namespace Shark {
 			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
 			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
 
-			// TODO(moro): move InputLayout to Pipeline
-			ctx->IASetInputLayout(dxShader->m_InputLayout);
+			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
 			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial, dxCBSet);
 
@@ -404,8 +402,7 @@ namespace Shark {
 			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
 			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
 
-			// TODO(moro): move InputLayout to Pipeline
-			ctx->IASetInputLayout(dxShader->m_InputLayout);
+			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
 			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial, dxCBSet);
 

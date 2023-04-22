@@ -1,4 +1,6 @@
 
+VULKAN_SDK = os.getenv("VULKAN_SDK")
+
 IncludeDir = {}
 IncludeDir["spdlog"] = "%{wks.location}/Shark/dependencies/spdlog/include"
 IncludeDir["ImGui"] = "%{wks.location}/Shark/dependencies/ImGui"
@@ -13,9 +15,11 @@ IncludeDir["glm"] = "%{wks.location}/Shark/dependencies/glm"
 IncludeDir["Mono"] = "%{wks.location}/Shark/dependencies/mono/include"
 IncludeDir["msdfgen"] = "%{wks.location}/Shark/dependencies/msdf-atlas-gen/msdfgen"
 IncludeDir["msdf_atlas_gen"] = "%{wks.location}/Shark/dependencies/msdf-atlas-gen/msdf-atlas-gen"
+IncludeDir["Vulkan_SDK"] = "%{VULKAN_SDK}/Include"
 
 LibraryDir = {}
 LibraryDir["mono"] = "%{wks.location}/Shark/dependencies/mono/lib/%{cfg.buildcfg}"
+LibraryDir["VulkanSDK"] = "%{VULKAN_SDK}/Lib"
 
 Library = {}
 Library["mono"] = "%{LibraryDir.mono}/libmono-static-sgen.lib"
@@ -23,6 +27,16 @@ Library["mono"] = "%{LibraryDir.mono}/libmono-static-sgen.lib"
 Library["D3D11"] = "d3d11.lib"
 Library["DXGI"] = "dxgi.lib"
 Library["dxguid"] = "dxguid.lib"
+
+Library["ShaderC_Release"] = "%{LibraryDir.VulkanSDK}/shaderc_shared.lib"
+Library["SPIRV_Cross_Release"] = "%{LibraryDir.VulkanSDK}/spirv-cross-core.lib"
+Library["SPIRV_Cross_GLSL_Release"] = "%{LibraryDir.VulkanSDK}/spirv-cross-glsl.lib"
+Library["SPIRV_Cross_HLSL_Release"] = "%{LibraryDir.VulkanSDK}/spirv-cross-hlsl.lib"
+
+Library["ShaderC_Debug"] = "%{LibraryDir.VulkanSDK}/shaderc_sharedd.lib"
+Library["SPIRV_Cross_Debug"] = "%{LibraryDir.VulkanSDK}/spirv-cross-cored.lib"
+Library["SPIRV_Cross_GLSL_Debug"] = "%{LibraryDir.VulkanSDK}/spirv-cross-glsld.lib"
+Library["SPIRV_Cross_HLSL_Debug"] = "%{LibraryDir.VulkanSDK}/spirv-cross-hlsld.lib"
 
 Library["Winmm"] = "Winmm.lib"
 Library["Version"] = "Version.lib"

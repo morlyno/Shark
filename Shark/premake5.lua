@@ -41,7 +41,8 @@ project "Shark"
         "%{IncludeDir.glm}",
         "%{IncludeDir.Mono}",
         "%{IncludeDir.msdfgen}",
-        "%{IncludeDir.msdf_atlas_gen}"
+        "%{IncludeDir.msdf_atlas_gen}",
+        "%{IncludeDir.Vulkan_SDK}"
     }
 
     defines
@@ -80,8 +81,24 @@ project "Shark"
         optimize "Off"
         symbols "Default"
 
+        links
+        {
+            "%{Library.ShaderC_Debug}",
+            "%{Library.SPIRV_Cross_Debug}",
+            "%{Library.SPIRV_Cross_GLSL_Debug}",
+            "%{Library.SPIRV_Cross_HLSL_Debug}",
+        }
+
     filter "configurations:Release"
         defines "SK_RELEASE"
         runtime "Release"
         optimize "On"
         symbols "Default"
+        
+        links
+        {
+            "%{Library.ShaderC_Release}",
+            "%{Library.SPIRV_Cross_Release}",
+            "%{Library.SPIRV_Cross_GLSL_Release}",
+            "%{Library.SPIRV_Cross_HLSL_Release}",
+        }

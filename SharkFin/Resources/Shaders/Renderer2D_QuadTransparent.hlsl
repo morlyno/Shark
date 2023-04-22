@@ -1,5 +1,4 @@
-#type Vertex
-#version vs_4_0
+#pragma stage : Vertex
 
 cbuffer SceneData : register(b0)
 {
@@ -38,9 +37,7 @@ VSOUT main(VSIN vsin)
     return vsout;
 }
 
-
-#type Pixel
-#version ps_4_0
+#pragma stage : Pixel
 
 Texture2D g_Textures[16] : register(t0);
 SamplerState g_SamplerState[16];

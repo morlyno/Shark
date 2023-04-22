@@ -11,170 +11,14 @@
 
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
+#include "Platform/DirectX11/DirectXShaderCompiler.h"
 
 #include <d3dcompiler.h>
 
 namespace Shark {
 
-	namespace Utils {
-
-		static const char* D3DConstBufferTypeAsString(D3D_CBUFFER_TYPE d3dcbuffertype)
-		{
-			switch ((int)d3dcbuffertype)
-			{
-				case D3D_CT_CBUFFER: return SK_STRINGIFY(D3D_CT_CBUFFER);
-				case D3D_CT_TBUFFER: return SK_STRINGIFY(D3D_CT_TBUFFER);
-			}
-			return "Unkonw";
-		}
-
-		static const char* D3DTypeAsString(D3D_SHADER_INPUT_TYPE d3dtype)
-		{
-			switch ((int)d3dtype)
-			{
-				case D3D_SIT_CBUFFER: return SK_STRINGIFY(D3D_SIT_CBUFFER);
-				case D3D_SIT_TBUFFER: return SK_STRINGIFY(D3D_SIT_TBUFFER);
-				case D3D_SIT_TEXTURE: return SK_STRINGIFY(D3D_SIT_TEXTURE);
-				case D3D_SIT_SAMPLER: return SK_STRINGIFY(D3D_SIT_SAMPLER);
-			}
-			return "Unkown";
-		}
-
-		static const char* D3DReturnTypeAsString(D3D_RESOURCE_RETURN_TYPE d3dreturntype)
-		{
-			switch ((int)d3dreturntype)
-			{
-				case D3D_RETURN_TYPE_UNORM:	     return SK_STRINGIFY(D3D11_RETURN_TYPE_UNORM);
-				case D3D_RETURN_TYPE_SNORM:	     return SK_STRINGIFY(D3D11_RETURN_TYPE_SNORM);
-				case D3D_RETURN_TYPE_SINT:	     return SK_STRINGIFY(D3D11_RETURN_TYPE_SINT);
-				case D3D_RETURN_TYPE_UINT:	     return SK_STRINGIFY(D3D11_RETURN_TYPE_UINT);
-				case D3D_RETURN_TYPE_FLOAT:	     return SK_STRINGIFY(D3D11_RETURN_TYPE_FLOAT);
-				case D3D_RETURN_TYPE_MIXED:	     return SK_STRINGIFY(D3D11_RETURN_TYPE_MIXED);
-				case D3D_RETURN_TYPE_DOUBLE:	 return SK_STRINGIFY(D3D11_RETURN_TYPE_DOUBLE);
-				case D3D_RETURN_TYPE_CONTINUED:  return SK_STRINGIFY(D3D11_RETURN_TYPE_CONTINUED);
-			}
-			return "Unkown";
-		}
-
-		static const char* D3DDimensionAsString(D3D_SRV_DIMENSION d3ddimension)
-		{
-			switch (d3ddimension)
-			{
-				case D3D_SRV_DIMENSION_UNKNOWN:			  return SK_STRINGIFY(D3D_SRV_DIMENSION_UNKNOWN);
-				case D3D_SRV_DIMENSION_BUFFER:			  return SK_STRINGIFY(D3D_SRV_DIMENSION_BUFFER);
-				case D3D_SRV_DIMENSION_TEXTURE1D:		  return SK_STRINGIFY(D3D_SRV_DIMENSION_TEXTURE1D);
-				case D3D_SRV_DIMENSION_TEXTURE1DARRAY:	  return SK_STRINGIFY(D3D_SRV_DIMENSION_TEXTURE1DARRAY);
-				case D3D_SRV_DIMENSION_TEXTURE2D:		  return SK_STRINGIFY(D3D_SRV_DIMENSION_TEXTURE2D);
-				case D3D_SRV_DIMENSION_TEXTURE2DARRAY:	  return SK_STRINGIFY(D3D_SRV_DIMENSION_TEXTURE2DARRAY);
-				case D3D_SRV_DIMENSION_TEXTURE2DMS:		  return SK_STRINGIFY(D3D_SRV_DIMENSION_TEXTURE2DMS);
-				case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY:  return SK_STRINGIFY(D3D_SRV_DIMENSION_TEXTURE2DMSARRAY);
-				case D3D_SRV_DIMENSION_TEXTURE3D:		  return SK_STRINGIFY(D3D_SRV_DIMENSION_TEXTURE3D);
-				case D3D_SRV_DIMENSION_TEXTURECUBE:		  return SK_STRINGIFY(D3D_SRV_DIMENSION_TEXTURECUBE);
-				case D3D_SRV_DIMENSION_TEXTURECUBEARRAY:  return SK_STRINGIFY(D3D_SRV_DIMENSION_TEXTURECUBEARRAY);
-				case D3D_SRV_DIMENSION_BUFFEREX:          return SK_STRINGIFY(D3D_SRV_DIMENSION_BUFFEREX);
-			}
-			return "Unkown";
-		}
-
-		static VertexDataType DXGIFormatToVertexDataType(DXGI_FORMAT format)
-		{
-			switch (format)
-			{
-				case DXGI_FORMAT_R32_FLOAT:           return VertexDataType::Float;
-				case DXGI_FORMAT_R32G32_FLOAT:        return VertexDataType::Float2;
-				case DXGI_FORMAT_R32G32B32_FLOAT:     return VertexDataType::Float3;
-				case DXGI_FORMAT_R32G32B32A32_FLOAT:  return VertexDataType::Float4;
-				case DXGI_FORMAT_R32_SINT:            return VertexDataType::Int;
-				case DXGI_FORMAT_R32G32_SINT:         return VertexDataType::Int2;
-				case DXGI_FORMAT_R32G32B32_SINT:      return VertexDataType::Int3;
-				case DXGI_FORMAT_R32G32B32A32_SINT:   return VertexDataType::Int4;
-			}
-			SK_CORE_ASSERT(false, "Unkown format");
-			return VertexDataType::None;
-		}
-
-		static ShaderStage StringToEnum(const std::string& typestr)
-		{
-			std::string str = String::ToLowerCopy(typestr);
-			if (str == "vertex")
-				return ShaderStage::Vertex;
-			if (str == "pixel" || str == "fragment")
-				return ShaderStage::Pixel;
-			SK_CORE_ASSERT(false, "could not detect shader type");
-			return ShaderStage::None;
-		}
-
-		static const char* StageToString(ShaderStage stage)
-		{
-			switch (stage)
-			{
-				case ShaderStage::Vertex: return "Vertex";
-				case ShaderStage::Pixel: return "Pixel";
-			}
-			SK_CORE_ASSERT(false);
-			return nullptr;
-		}
-
-		static std::string ExtractVersion(std::string& src)
-		{
-			size_t versiontokenpos = src.find("#version");
-			if (versiontokenpos == std::string::npos)
-				return std::string{};
-
-			size_t versionpos = src.find_first_not_of(" ", versiontokenpos + strlen("#version"));
-			size_t end = src.find_first_of("\n ", versionpos);
-			std::string version = src.substr(versionpos, end - versionpos);
-			src.erase(versiontokenpos, end - versiontokenpos);
-			return version;
-		}
-
-		static std::filesystem::path CacheDirectory()
-		{
-			return "Cache/Shaders/DirectX";
-		}
-
-		static const char* FileExtension(ShaderStage stage)
-		{
-			switch (stage)
-			{
-				case ShaderStage::Vertex:  return ".cached_directx.vert";
-				case ShaderStage::Pixel:   return ".cached_directx.pixl";
-			}
-			SK_CORE_ASSERT(false, "Unkown Shader stage");
-			return nullptr;
-		}
-
-		static void CreateCacheDirectoryIfNeeded()
-		{
-			const auto cacheDirectory = Utils::CacheDirectory();
-			if (!std::filesystem::exists(cacheDirectory))
-				std::filesystem::create_directories(cacheDirectory);
-		}
-
-	}
-
-	DirectXShader::DirectXShader(const std::filesystem::path& filepath)
+	DirectXShader::DirectXShader()
 	{
-		m_FilePath = filepath;
-		m_FileName = filepath.filename().replace_extension().string();
-
-		Ref<DirectXShader> instance = this;
-		Renderer::Submit([instance]()
-		{
-			SK_PROFILE_SCOPED("DirectXShader::DirectXShader");
-
-			std::string file = FileSystem::ReadString(instance->m_FilePath);
-			auto shaderSources = instance->PreProzess(file);
-		
-			{
-				ScopedTimer timer("Shader Compile");
-				instance->RT_CompileOrGetCached(shaderSources);
-			}
-
-			instance->RT_CreateShaders();
-			instance->RT_CreateInputlayout(instance->m_ShaderBinarys[ShaderStage::Vertex]);
-			//Reflect();
-		});
 	}
 
 	DirectXShader::~DirectXShader()
@@ -184,379 +28,52 @@ namespace Shark {
 
 	void DirectXShader::Release()
 	{
-		Renderer::SubmitResourceFree([pixel = m_PixelShader, vertex = m_VertexShader, inputLayout = m_InputLayout]()
+		Renderer::SubmitResourceFree([pixel = m_PixelShader, vertex = m_VertexShader]()
 		{
 			if (pixel)
 				pixel->Release();
 			if (vertex)
 				vertex->Release();
-			if (inputLayout)
-				inputLayout->Release();
 		});
 
 		m_PixelShader = nullptr;
 		m_VertexShader = nullptr;
-		m_InputLayout = nullptr;
 	}
 
-	bool DirectXShader::ReCompile()
+	bool DirectXShader::Reload(bool forceCompile)
 	{
+		Ref<DirectXShaderCompiler> compiler = Ref<DirectXShaderCompiler>::Create(m_FilePath);
+		if (!compiler->Reload(forceCompile))
+			return false;
+
+		Release();
+		LoadShader(compiler->GetShaderBinary());
+		return true;
+	}
+
+	void DirectXShader::LoadShader(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& shaderBinary)
+	{
+		auto renderer = DirectXRenderer::Get();
+		auto device = renderer->GetDevice();
+
+		m_ShaderBinary = shaderBinary;
+
 		Ref<DirectXShader> instance = this;
 		Renderer::Submit([instance]()
 		{
-			std::string file = FileSystem::ReadString(instance->m_FilePath);
-			auto shaderSources = instance->PreProzess(file);
+			auto renderer = DirectXRenderer::Get();
+			auto device = renderer->GetDevice();
 
+			for (const auto& [stage, binary] : instance->m_ShaderBinary)
 			{
-				ScopedTimer timer("Shader ReCompile");
-				if (!instance->RT_TryReCompile(shaderSources))
-					return;
+				switch (stage)
+				{
+					case ShaderUtils::ShaderStage::Vertex: SK_DX11_CALL(device->CreateVertexShader(binary.data(), binary.size(), nullptr, &instance->m_VertexShader)); break;
+					case ShaderUtils::ShaderStage::Pixel: SK_DX11_CALL(device->CreatePixelShader(binary.data(), binary.size(), nullptr, &instance->m_PixelShader)); break;
+					default: SK_CORE_VERIFY(false, "Unkown Shader Stage");
+				}
 			}
-			instance->Release();
-
-			instance->RT_CreateShaders();
-			instance->RT_CreateInputlayout(instance->m_ShaderBinarys[ShaderStage::Vertex]);
-			//Reflect();
 		});
-
-		return true;
-	}
-
-	bool DirectXShader::RT_ReCompile()
-	{
-		std::string file = FileSystem::ReadString(m_FilePath);
-		auto shaderSources = PreProzess(file);
-
-		{
-			ScopedTimer timer("Shader ReCompile");
-			if (!RT_TryReCompile(shaderSources))
-				return false;
-		}
-
-		Release();
-		RT_CreateShaders();
-		RT_CreateInputlayout(m_ShaderBinarys[ShaderStage::Vertex]);
-
-		return true;
-	}
-
-	Ref<ConstantBuffer> DirectXShader::CreateConstantBuffer(const std::string& name)
-	{
-#if 0
-		ID3D11ShaderReflection* reflection;
-		auto&& binary = m_ShaderBinarys[ShaderStage::Vertex];
-		SK_DX11_CALL(D3DReflect(binary.data(), binary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
-		ID3D11ShaderReflectionConstantBuffer* constantBuffer = reflection->GetConstantBufferByName(name.c_str());
-		SK_CORE_ASSERT(constantBuffer);
-		D3D11_SHADER_BUFFER_DESC bufferDesc;
-		constantBuffer->GetDesc(&bufferDesc);
-		D3D11_SHADER_INPUT_BIND_DESC inputDesc;
-		reflection->GetResourceBindingDescByName(name.c_str(), &inputDesc);
-
-		reflection->Release();
-
-		return ConstantBuffer::Create(bufferDesc.Size, inputDesc.BindPoint);
-#endif
-
-		SK_NOT_IMPLEMENTED();
-		return nullptr;
-	}
-
-	std::unordered_map<ShaderStage, std::string> DirectXShader::PreProzess(const std::string& file)
-	{
-		std::unordered_map<ShaderStage, std::string> shaders;
-
-		const char* TypeToken = "#type";
-		size_t TokenLenght = strlen(TypeToken);
-
-		size_t offset = 0;
-		while (offset != std::string::npos)
-		{
-			size_t token_pos = file.find(TypeToken, offset);
-			if (token_pos == std::string::npos)
-				break;
-
-			token_pos = file.find_first_not_of(" ", token_pos + TokenLenght);
-			size_t type_end = file.find_first_of("\n ", token_pos);
-			ShaderStage type = Utils::StringToEnum(file.substr(token_pos, type_end - token_pos));
-			offset = type_end;
-
-			size_t src_end = file.find(TypeToken, offset);
-			std::string src = file.substr(offset, src_end - offset);
-			offset = src_end;
-
-			SK_CORE_ASSERT(shaders.find(type) == shaders.end());
-			shaders[type] = src;
-
-		}
-
-		return std::move(shaders);
-
-	}
-
-	bool DirectXShader::RT_TryReCompile(std::unordered_map<ShaderStage, std::string>& shaderSources)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-		std::filesystem::path cacheDirectory = Utils::CacheDirectory();
-		Utils::CreateCacheDirectoryIfNeeded();
-
-		std::unordered_map<ShaderStage, std::vector<byte>> tempShaderBinarys;
-		for (auto&& [stage, src] : shaderSources)
-		{
-			D3D_SHADER_MACRO define[1];
-			define[0].Name = "DIRECTX";
-			define[0].Definition = "1";
-
-			UINT flags = 0;
-			flags |= D3DCOMPILE_DEBUG;
-
-			auto version = Utils::ExtractVersion(src);
-
-			ID3DBlob* shaderBinary = nullptr;
-			ID3DBlob* errorMsg = nullptr;
-			if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), flags, 0, &shaderBinary, &errorMsg)))
-			{
-				SK_CORE_ERROR("Shader Compile Failed");
-				SK_CORE_ERROR(" - File: {0}", Utils::StageToString(stage));
-				SK_CORE_ERROR(" - Error Msg: {0}", (char*)errorMsg->GetBufferPointer());
-				return false;
-			}
-
-			auto& binary = tempShaderBinarys[stage];
-			binary.resize(shaderBinary->GetBufferSize());
-			memcpy(binary.data(), shaderBinary->GetBufferPointer(), shaderBinary->GetBufferSize());
-		}
-
-		for (auto&& [stage, binary] : tempShaderBinarys)
-		{
-			std::filesystem::path cacheFile = cacheDirectory / (m_FileName + Utils::FileExtension(stage));
-			std::ofstream out(cacheFile, std::ios::out | std::ios::binary);
-			SK_CORE_ASSERT(out);
-			if (out)
-			{
-				out.write((const char*)(binary.data()), binary.size());
-				out.close();
-			}
-		}
-		m_ShaderBinarys = std::move(tempShaderBinarys);
-		return true;
-	}
-
-	void DirectXShader::RT_CompileOrGetCached(std::unordered_map<ShaderStage, std::string>& shaderSources)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-		std::filesystem::path cacheDirectory = Utils::CacheDirectory();
-		Utils::CreateCacheDirectoryIfNeeded();
-
-		m_ShaderBinarys.clear();
-		for (auto&& [stage, src] : shaderSources)
-		{
-			std::filesystem::path cacheFile = cacheDirectory / (m_FileName + Utils::FileExtension(stage));
-
-			if (std::filesystem::exists(cacheFile))
-			{
-				std::ifstream in(cacheFile, std::ios::in | std::ios::binary);
-				SK_CORE_ASSERT(in);
-				if (in)
-				{
-					auto& binary = m_ShaderBinarys[stage];
-
-					in.seekg(0, std::ios::end);
-					binary.resize(in.tellg());
-					in.seekg(0, std::ios::beg);
-
-					in.read((char*)binary.data(), binary.size());
-					in.close();
-				}
-			}
-			else
-			{
-				D3D_SHADER_MACRO define[1];
-				define[0].Name = "DIRECTX";
-				define[0].Definition = "1";
-
-				UINT flags = 0;
-				flags |= D3DCOMPILE_DEBUG;
-
-				auto version = Utils::ExtractVersion(src);
-
-				ID3DBlob* shaderBinary = nullptr;
-				ID3DBlob* errorMsg = nullptr;
-				if (FAILED(D3DCompile(src.c_str(), src.size(), m_FileName.c_str(), nullptr, nullptr, "main", version.c_str(), flags, 0, &shaderBinary, &errorMsg)))
-				{
-					SK_CORE_ERROR("Shader Compile Failed");
-					SK_CORE_ERROR(" - Stage: {0}", Utils::StageToString(stage));
-					SK_CORE_ERROR(" - Error Msg: {0}", (char*)errorMsg->GetBufferPointer());
-					SK_CORE_ASSERT(false);
-					errorMsg->Release();
-				}
-
-				auto& binary = m_ShaderBinarys[stage];
-				binary.resize(shaderBinary->GetBufferSize());
-				memcpy(binary.data(), shaderBinary->GetBufferPointer(), shaderBinary->GetBufferSize());
-				shaderBinary->Release();
-
-				std::ofstream out(cacheFile, std::ios::out | std::ios::binary);
-				SK_CORE_ASSERT(out);
-				if (out)
-				{
-					out.write((const char*)(binary.data()), binary.size());
-					out.close();
-				}
-			}
-
-		}
-
-	}
-
-	void DirectXShader::Reflect()
-	{
-		SK_NOT_IMPLEMENTED();
-#if 0
-		for (auto&& [stage, binary] : m_ShaderBinarys)
-		{
-			ID3D11ShaderReflection* reflection;
-			SK_DX11_CALL(D3DReflect((void*)binary.data(), (UINT)binary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
-
-			D3D11_SHADER_DESC desc;
-			reflection->GetDesc(&desc);
-
-			SK_CORE_TRACE("{0} Shader Reflection", Utils::StageToString(stage));
-			SK_CORE_TRACE(" - Buffers: {0}", desc.ConstantBuffers);
-
-			for (uint32_t i = 0; i < desc.ConstantBuffers; i++)
-			{
-				auto buffer = reflection->GetConstantBufferByIndex(i);
-				D3D11_SHADER_BUFFER_DESC bufferdesc;
-				buffer->GetDesc(&bufferdesc);
-
-				SK_CORE_TRACE("   - Name: {0}", bufferdesc.Name);
-				SK_CORE_TRACE("     - Type: {0}", Utils::D3DConstBufferTypeAsString(bufferdesc.Type));
-				SK_CORE_TRACE("     - Size: {0}", bufferdesc.Size);
-				SK_CORE_TRACE("     - Flags: 0x{0:x}", bufferdesc.uFlags);
-				SK_CORE_TRACE("     - Variables: {0}", bufferdesc.Variables);
-
-				for (uint32_t i = 0; i < bufferdesc.Variables; i++)
-				{
-					auto variable = buffer->GetVariableByIndex(i);
-					D3D11_SHADER_VARIABLE_DESC variabledesc;
-					variable->GetDesc(&variabledesc);
-					
-					SK_CORE_TRACE("       - Name: {0}", variabledesc.Name);
-					SK_CORE_TRACE("         - Offset: {0}", variabledesc.StartOffset);
-					SK_CORE_TRACE("         - Size: {0}", variabledesc.Size);
-					SK_CORE_TRACE("         - Flags: 0x{0:x}", variabledesc.uFlags);
-					SK_CORE_TRACE("         - StartTexture: {0}", variabledesc.StartTexture);
-					SK_CORE_TRACE("         - TextureSize: {0}", variabledesc.TextureSize);
-					SK_CORE_TRACE("         - StartSampler: {0}", variabledesc.StartSampler);
-					SK_CORE_TRACE("         - SamplerSize: {0}", variabledesc.SamplerSize);
-				}
-
-			}
-
-			SK_CORE_TRACE(" - Resources: {0}", desc.BoundResources);
-
-			for (uint32_t i = 0; i < desc.BoundResources; i++)
-			{
-				D3D11_SHADER_INPUT_BIND_DESC ibd;
-				reflection->GetResourceBindingDesc(i, &ibd);
-				SK_CORE_TRACE("   - Name: {0}", ibd.Name);
-				SK_CORE_TRACE("     - Type: {0}", Utils::D3DTypeAsString(ibd.Type));
-				SK_CORE_TRACE("     - BindPoint: {0}", ibd.BindPoint);
-				SK_CORE_TRACE("     - BindCount: {0}", ibd.BindCount);
-				SK_CORE_TRACE("     - Flags: 0x{0:x}", ibd.uFlags);
-				SK_CORE_TRACE("     - ReturnType: {0}", Utils::D3DReturnTypeAsString(ibd.ReturnType));
-				SK_CORE_TRACE("     - Dimension: {0}", Utils::D3DDimensionAsString(ibd.Dimension));
-				SK_CORE_TRACE("     - NumSampler: {0}", ibd.NumSamples);
-			}
-			reflection->Release();
-		}
-#endif
-	}
-
-	void DirectXShader::RT_CreateInputlayout(const std::vector<byte>& vtx_src)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-		ID3D11ShaderReflection* reflection;
-
-		SK_DX11_CALL(D3DReflect((void*)vtx_src.data(), (UINT)vtx_src.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
-
-		D3D11_SHADER_DESC vsdesc;
-		SK_DX11_CALL(reflection->GetDesc(&vsdesc));
-
-		std::vector<D3D11_INPUT_ELEMENT_DESC> m_InputElements;
-		m_InputElements.reserve(vsdesc.InputParameters);
-		for (UINT i = 0; i < vsdesc.InputParameters; ++i)
-		{
-			D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
-			SK_DX11_CALL(reflection->GetInputParameterDesc(i, &paramDesc));
-
-			D3D11_INPUT_ELEMENT_DESC elementDesc;
-			elementDesc.SemanticName = paramDesc.SemanticName;
-			elementDesc.SemanticIndex = paramDesc.SemanticIndex;
-			elementDesc.InputSlot = 0;
-			elementDesc.AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
-			elementDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-			elementDesc.InstanceDataStepRate = 0;
-
-			if (paramDesc.Mask == 1)
-			{
-				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32_UINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32_SINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32_FLOAT;
-			}
-			else if (paramDesc.Mask <= 3)
-			{
-				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32G32_UINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32G32_SINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
-			}
-			else if (paramDesc.Mask <= 7)
-			{
-				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32_UINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32_SINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-			}
-			else if (paramDesc.Mask <= 15)
-			{
-				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			}
-			m_InputElements.push_back(elementDesc);
-			m_VertexLayout.Add({ Utils::DXGIFormatToVertexDataType(elementDesc.Format), elementDesc.SemanticName });
-		}
-		m_VertexLayout.Init();
-
-		auto dev = DirectXRenderer::GetDevice();
-		SK_DX11_CALL(dev->CreateInputLayout(m_InputElements.data(), (UINT)m_InputElements.size(), (void*)vtx_src.data(), (UINT)vtx_src.size(), &m_InputLayout));
-		reflection->Release();
-
-	}
-
-	void DirectXShader::RT_CreateShaders()
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-		auto* dev = DirectXRenderer::GetDevice();
-
-		SK_CORE_ASSERT(m_VertexShader == nullptr);
-		SK_CORE_ASSERT(m_PixelShader == nullptr);
-
-		for (auto&& [stage, binary] : m_ShaderBinarys)
-		{
-			switch (stage)
-			{
-				case ShaderStage::Vertex: SK_DX11_CALL(dev->CreateVertexShader((void*)binary.data(), binary.size(), nullptr, &m_VertexShader)); break;
-				case ShaderStage::Pixel:  SK_DX11_CALL(dev->CreatePixelShader((void*)binary.data(), binary.size(), nullptr, &m_PixelShader)); break;
-				default:                  SK_CORE_ASSERT(false); break;
-			}
-		}
-
-		if (m_VertexShader)
-			m_VertexShader->SetPrivateData(WKPDID_D3DDebugObjectName, m_FileName.length() + 1, m_FileName.c_str());
-
-		if (m_PixelShader)
-			m_PixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, m_FileName.length() + 1, m_FileName.c_str());
 	}
 
 }

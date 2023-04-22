@@ -18,6 +18,18 @@ namespace Shark::String {
 		return i != text.end();
 	}
 
+	bool Compare(std::string_view lhs, std::string_view rhs, Case comapreCase)
+	{
+		bool(*comparer)(const char& lhs, const char& rhs);
+
+		if (comapreCase == Case::Sensitive)
+			comparer = [](const auto& lhs, const auto& rhs) { return lhs == rhs; };
+		else if (comapreCase == Case::Ingnore)
+			comparer = [](const auto& lhs, const auto& rhs) { return std::tolower(lhs) == std::tolower(rhs); };
+
+		return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), comparer);
+	}
+
 	std::string ToLowerCopy(const std::string& str)
 	{
 		std::string result = str;

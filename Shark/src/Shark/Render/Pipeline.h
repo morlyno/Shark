@@ -33,6 +33,8 @@ namespace Shark {
 		DepthCompareOperator DepthOperator = DepthCompareOperator::LessEqual;
 		PrimitveType Primitve = PrimitveType::Triangle;
 
+		VertexLayout Layout;
+
 		std::string DebugName;
 	};
 

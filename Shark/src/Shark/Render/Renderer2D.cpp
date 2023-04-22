@@ -53,6 +53,9 @@ namespace Shark {
 			pipelineSpec.TargetFrameBuffer = framebuffer;
 			pipelineSpec.DebugName = "Renderer2D - Composite";
 			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Composite");
+			pipelineSpec.Layout = {
+				{ VertexDataType::Float2, "Position" }
+			};
 			//pipelineSpec.BackFaceCulling = true;
 			pipelineSpec.DepthEnabled = true;
 			pipelineSpec.WriteDepth = true;
@@ -88,6 +91,30 @@ namespace Shark {
 
 		}
 
+		VertexLayout quadVertexLayout = {
+				{ VertexDataType::Float3, "Position" },
+				{ VertexDataType::Float4, "Color" },
+				{ VertexDataType::Float2, "TexCoord" },
+				{ VertexDataType::Int, "TextureIndex" },
+				{ VertexDataType::Float, "TilingFactor" },
+				{ VertexDataType::Int, "ID" }
+		};
+
+		VertexLayout circleVertexLayout = {
+			{ VertexDataType::Float3, "WorldPosition" },
+			{ VertexDataType::Float2, "LocalPosition" },
+			{ VertexDataType::Float4, "Color" },
+			{ VertexDataType::Float, "Thickness" },
+			{ VertexDataType::Float, "Fade" },
+			{ VertexDataType::Int, "ID" }
+		};
+
+		VertexLayout lineVertexLayout = {
+				{ VertexDataType::Float3, "Position" },
+				{ VertexDataType::Float4, "Color" },
+				{ VertexDataType::Int, "ID" }
+		};
+
 		// Depth Only Pass
 		{
 			PipelineSpecification pipelineSpec;
@@ -96,27 +123,32 @@ namespace Shark {
 			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
 
 			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadDepthPass");
+			pipelineSpec.Layout = quadVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Quad Depth Only Pass";
 			m_QuadDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_QuadDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 
 			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleDepthPass");
+			pipelineSpec.Layout = circleVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Circle Depth Only Pass";
 			m_CircleDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_CircleDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 
 			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_LineDepthPass");
+			pipelineSpec.Layout = lineVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Line Depth Only Pass";
 			m_LineDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_LineDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 
 			pipelineSpec.TargetFrameBuffer = m_TransparentDepthBuffer;
 			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadDepthPass");
+			pipelineSpec.Layout = quadVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Transparent Quad Depth Only Pass";
 			m_TransparentQuadDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_TransparentQuadDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 
 			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleDepthPass");
+			pipelineSpec.Layout = circleVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Transparent Circle Depth Only Pass";
 			m_TransparentCircleDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_TransparentCircleDepthPassMaterial = Material::Create(pipelineSpec.Shader);
@@ -128,6 +160,7 @@ namespace Shark {
 			PipelineSpecification quadPipelineSpecs;
 			quadPipelineSpecs.TargetFrameBuffer = framebuffer;
 			quadPipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Quad");
+			quadPipelineSpecs.Layout = quadVertexLayout;
 			quadPipelineSpecs.DebugName = "Renderer2D-Quad";
 			quadPipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
 			quadPipelineSpecs.WriteDepth = false;
@@ -135,7 +168,7 @@ namespace Shark {
 			m_QuadPipeline = Pipeline::Create(quadPipelineSpecs);
 			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader);
 
-			m_QuadVertexBuffer = VertexBuffer::Create(quadPipelineSpecs.Shader->GetVertexLayout(), DefaultQuadVertices * sizeof(QuadVertex), true, nullptr);
+			m_QuadVertexBuffer = VertexBuffer::Create(quadPipelineSpecs.Layout, DefaultQuadVertices * sizeof(QuadVertex), true, nullptr);
 
 			uint32_t* quadIndices = sknew uint32_t[DefaultQuadIndices];
 			for (uint32_t i = 0, j = 0; i < DefaultQuadIndices; i += 6, j += 4)
@@ -159,6 +192,7 @@ namespace Shark {
 			PipelineSpecification circlePipelineSpecs;
 			circlePipelineSpecs.TargetFrameBuffer = framebuffer;
 			circlePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Circle");
+			circlePipelineSpecs.Layout = circleVertexLayout;
 			circlePipelineSpecs.DebugName = "Renderer2D-Circle";
 			circlePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
 			circlePipelineSpecs.WriteDepth = false;
@@ -166,7 +200,7 @@ namespace Shark {
 			m_CirclePipeline = Pipeline::Create(circlePipelineSpecs);
 			m_CircleMaterial = Material::Create(circlePipelineSpecs.Shader);
 
-			m_CircleVertexBuffer = VertexBuffer::Create(circlePipelineSpecs.Shader->GetVertexLayout(), DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
+			m_CircleVertexBuffer = VertexBuffer::Create(circlePipelineSpecs.Layout, DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
 			m_CircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
 			m_CircleIndexBuffer = m_QuadIndexBuffer;
 		}
@@ -176,6 +210,7 @@ namespace Shark {
 			PipelineSpecification linePipelineSpecs;
 			linePipelineSpecs.TargetFrameBuffer = framebuffer;
 			linePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Line");
+			linePipelineSpecs.Layout = lineVertexLayout;
 			linePipelineSpecs.DebugName = "Renderer2D-Line";
 			linePipelineSpecs.Primitve = PrimitveType::Line;
 			linePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
@@ -184,7 +219,7 @@ namespace Shark {
 			m_LinePipeline = Pipeline::Create(linePipelineSpecs);
 			m_LineMaterial = Material::Create(linePipelineSpecs.Shader);
 			
-			m_LineVertexBuffer = VertexBuffer::Create(linePipelineSpecs.Shader->GetVertexLayout(), DefaultLineVertices * sizeof LineVertex, true, nullptr);
+			m_LineVertexBuffer = VertexBuffer::Create(linePipelineSpecs.Layout, DefaultLineVertices * sizeof LineVertex, true, nullptr);
 			m_LineVertexData.Allocate(DefaultLineVertices * sizeof LineVertex);
 		}
 
@@ -194,6 +229,7 @@ namespace Shark {
 			PipelineSpecification pipelineSpec;
 			pipelineSpec.TargetFrameBuffer = m_TransparentGeometryFrameBuffer;
 			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadTransparent");
+			pipelineSpec.Layout = quadVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D Quad Transparent";
 			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
 			pipelineSpec.WriteDepth = false;
@@ -201,24 +237,25 @@ namespace Shark {
 			m_TransparentQuadPipeline = Pipeline::Create(pipelineSpec);
 			m_TransparentQuadMaterial = Material::Create(pipelineSpec.Shader);
 
-			m_TransparentQuadVertexBuffer = VertexBuffer::Create(pipelineSpec.Shader->GetVertexLayout(), DefaultQuadVertices * sizeof QuadVertex, true, nullptr);
+			m_TransparentQuadVertexBuffer = VertexBuffer::Create(pipelineSpec.Layout, DefaultQuadVertices * sizeof QuadVertex, true, nullptr);
 			m_TransparentQuadVertexData.Allocate(DefaultQuadVertices * sizeof QuadVertex);
 			m_TransparentQuadIndexBuffer = m_QuadIndexBuffer;
 		}
 
 		// Transparent Circle
 		{
-			PipelineSpecification pielineSpec;
-			pielineSpec.TargetFrameBuffer = m_TransparentGeometryFrameBuffer;
-			pielineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleTransparent");
-			pielineSpec.DebugName = "Renderer2D Circle Transparent";
-			pielineSpec.DepthEnabled = specifications.UseDepthTesting;
-			pielineSpec.WriteDepth = false;
-			pielineSpec.DepthOperator = DepthCompareOperator::Less;
-			m_TransparentCirclePipeline = Pipeline::Create(pielineSpec);
-			m_TransparentCircleMaterial = Material::Create(pielineSpec.Shader);
+			PipelineSpecification pipelineSpec;
+			pipelineSpec.TargetFrameBuffer = m_TransparentGeometryFrameBuffer;
+			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleTransparent");
+			pipelineSpec.Layout = circleVertexLayout;
+			pipelineSpec.DebugName = "Renderer2D Circle Transparent";
+			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
+			pipelineSpec.WriteDepth = false;
+			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
+			m_TransparentCirclePipeline = Pipeline::Create(pipelineSpec);
+			m_TransparentCircleMaterial = Material::Create(pipelineSpec.Shader);
 
-			m_TransparentCircleVertexBuffer = VertexBuffer::Create(pielineSpec.Shader->GetVertexLayout(), DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
+			m_TransparentCircleVertexBuffer = VertexBuffer::Create(pipelineSpec.Layout, DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
 			m_TransparentCircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
 			m_TransparentCircleIndexBuffer = m_TransparentQuadIndexBuffer;
 		}
@@ -228,6 +265,12 @@ namespace Shark {
 			PipelineSpecification pipelineSpec;
 			pipelineSpec.TargetFrameBuffer = framebuffer;
 			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Text");
+			pipelineSpec.Layout = {
+				{ VertexDataType::Float3, "Position" },
+				{ VertexDataType::Float4, "Color" },
+				{ VertexDataType::Float2, "TexCoord" },
+				{ VertexDataType::Int, "ID" }
+			};
 			pipelineSpec.DebugName = "Renderer2D-Text";
 			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
 			pipelineSpec.WriteDepth = true;
@@ -235,7 +278,7 @@ namespace Shark {
 			m_TextPipeline = Pipeline::Create(pipelineSpec);
 			m_TextMaterial = Material::Create(pipelineSpec.Shader);
 
-			m_TextVertexBuffer = VertexBuffer::Create(pipelineSpec.Shader->GetVertexLayout(), DefaultTextVertices * sizeof(TextVertex), true, nullptr);
+			m_TextVertexBuffer = VertexBuffer::Create(pipelineSpec.Layout, DefaultTextVertices * sizeof(TextVertex), true, nullptr);
 			m_TextIndexBuffer = m_QuadIndexBuffer;
 
 			m_TextVertexData.Allocate(DefaultTextVertices * sizeof TextVertex);

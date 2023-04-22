@@ -2,60 +2,39 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Shader.h"
+#include "Platform/DirectX11/ShaderUtils.h"
 
 #include <d3d11.h>
 #include <d3d11shader.h>
 
 namespace Shark {
 
-	enum class ShaderStage
-	{
-		None = 0,
-		Vertex, Pixel
-	};
-
 	class DirectXShader : public Shader
 	{
 	public:
-		DirectXShader(const std::filesystem::path& filepath);
+		DirectXShader();
 		virtual ~DirectXShader();
 		void Release();
 
-		virtual VertexLayout& GetVertexLayout() override { return m_VertexLayout; };
+		virtual bool Reload(bool forceCompile = false) override;
 
 		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
-		virtual const std::string& GetFileName() const override { return m_FileName; }
+		virtual const std::string& GetName() const override { return m_Name; }
 
-		virtual bool ReCompile() override;
-		virtual bool RT_ReCompile() override;
-		virtual void LogReflection() override { Reflect(); }
-
-		virtual Ref<ConstantBuffer> CreateConstantBuffer(const std::string& name);
-
-		std::unordered_map<ShaderStage, std::vector<byte>> GetShaderBinarys() const { return m_ShaderBinarys; }
+		const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& GetShaderBinaries() const { return m_ShaderBinary; }
 	private:
-		std::unordered_map<ShaderStage, std::string> PreProzess(const std::string& file);
-		bool RT_TryReCompile(std::unordered_map<ShaderStage, std::string>& shaderSources);
-		void RT_CompileOrGetCached(std::unordered_map<ShaderStage, std::string>& shaderSources);
-		void Reflect();
-		void RT_CreateInputlayout(const std::vector<byte>& vtx_src);
-		void RT_CreateShaders();
+		void LoadShader(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& shaderBinary);
 
 	private:
 		ID3D11PixelShader* m_PixelShader = nullptr;
 		ID3D11VertexShader* m_VertexShader = nullptr;
 		
-		ID3D11InputLayout* m_InputLayout = nullptr;
-
-		std::unordered_map<ShaderStage, std::vector<byte>> m_ShaderBinarys;
+		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>> m_ShaderBinary;
 		std::filesystem::path m_FilePath;
-		std::string m_FileName;
-		std::filesystem::path m_CacheFilePath;
-
-		VertexLayout m_VertexLayout;
+		std::string m_Name;
 
 		friend class DirectXRenderer;
-
+		friend class DirectXShaderCompiler;
 	};
 
 }

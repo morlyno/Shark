@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	namespace Utils {
+	namespace utils {
 
 		static DXGI_FORMAT VertexDataTypeToDXGI_FORMAT(VertexDataType type)
 		{
@@ -31,9 +31,9 @@ namespace Shark {
 		{
 			switch (topology)
 			{
-			case PrimitveType::Triangle:  return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			case PrimitveType::Line:      return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
-			case PrimitveType::Dot:       return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+				case PrimitveType::Triangle:  return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+				case PrimitveType::Line:      return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+				case PrimitveType::Dot:       return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
 			}
 
 			SK_CORE_ASSERT(false, "Unkonw Topology");
@@ -69,12 +69,14 @@ namespace Shark {
 
 	DirectXPipeline::~DirectXPipeline()
 	{
-		Renderer::SubmitResourceFree([rasterizer = m_RasterizerState, depthStencil = m_DepthStencilState]()
+		Renderer::SubmitResourceFree([rasterizer = m_RasterizerState, depthStencil = m_DepthStencilState, inputLayout = m_InputLayout]()
 		{
 			if (rasterizer)
 				rasterizer->Release();
 			if (depthStencil)
 				depthStencil->Release();
+			if (inputLayout)
+				inputLayout->Release();
 		});
 	}
 
@@ -106,12 +108,29 @@ namespace Shark {
 			D3D11_DEPTH_STENCIL_DESC desc = CD3D11_DEPTH_STENCIL_DESC(CD3D11_DEFAULT());
 			desc.DepthEnable = m_Specification.DepthEnabled;
 			desc.DepthWriteMask = m_Specification.WriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-			desc.DepthFunc = Utils::ToD3D11Comparison(m_Specification.DepthOperator);
+			desc.DepthFunc = utils::ToD3D11Comparison(m_Specification.DepthOperator);
 
 			SK_DX11_CALL(dev->CreateDepthStencilState(&desc, &m_DepthStencilState));
 		}
 
-		m_PrimitveTopology = Utils::SharkPrimitveTopologyToD3D11(m_Specification.Primitve);
+		m_PrimitveTopology = utils::SharkPrimitveTopologyToD3D11(m_Specification.Primitve);
+
+		std::vector<D3D11_INPUT_ELEMENT_DESC> inputElements;
+		for (auto& element : m_Specification.Layout)
+		{
+			D3D11_INPUT_ELEMENT_DESC inputElementDesc{};
+			inputElementDesc.SemanticName = element.Semantic.c_str();
+			inputElementDesc.SemanticIndex = 0;
+			inputElementDesc.Format = utils::VertexDataTypeToDXGI_FORMAT(element.Type);
+			inputElementDesc.InputSlot = 0;
+			inputElementDesc.AlignedByteOffset = element.Offset;
+			inputElementDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+			inputElementDesc.InstanceDataStepRate = 0;
+			inputElements.emplace_back(inputElementDesc);
+		}
+		const auto& shaderBinaryWithInputSignature = m_Specification.Shader.As<DirectXShader>()->GetShaderBinaries().at(ShaderUtils::ShaderStage::Vertex);
+		SK_DX11_CALL(dev->CreateInputLayout(inputElements.data(), inputElements.size(), shaderBinaryWithInputSignature.data(), shaderBinaryWithInputSignature.size(), &m_InputLayout));
+
 	}
 
 }
