@@ -17,6 +17,13 @@ namespace Shark {
 
 	class DirectXShaderCompiler : public RefCount
 	{
+	private:
+		struct CompileOptions
+		{
+			bool Optimize;
+			bool GenerateDebugInfo;
+			bool AutoCombineImageSamplers;
+		};
 	public:
 		DirectXShaderCompiler(const std::filesystem::path& shaderSourcePath, bool disableOptimization = false);
 		DirectXShaderCompiler(const std::filesystem::path& shaderSourcePath, const DirectXShaderCompilerOptions& options);
@@ -36,17 +43,41 @@ namespace Shark {
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> PreProcessHLSL(const std::string& source);
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> PreProcessGLSL(const std::string& source);
 
-		bool CompileOrGetBinaries(ShaderUtils::ShaderStage::Flags changedModules, bool forceCompile);
-		bool CompileHLSL(ShaderUtils::ShaderStage::Type stage, const std::string& hlslSourceCode, std::vector<byte>& binary) const;
+		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> PreProcessHLSLSource(const std::string& source);
+		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> PreProcessGLSLSource(const std::string& source);
+
+		bool CompileOrLoadBinaries(ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile);
+		bool CompileOrLoadBinary(ShaderUtils::ShaderStage::Type stage, ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile);
+
+		std::string Compile(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& outputBinary, std::vector<uint32_t>& outputSPIRVDebug);
+		std::string CompileHLSL(ShaderUtils::ShaderStage::Type stage, const std::string& hlslSourceCode, std::vector<byte>& binary) const;
+		std::string CrossCompileToHLSL(const std::vector<uint32_t>& spirvBinary);
+
+		void SerializeDirectX(ShaderUtils::ShaderStage::Type stage, const std::vector<byte>& directXData);
+		bool TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData);
+
+		void RelfectShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>> spirvData);
 
 	private:
 		ShaderUtils::ShaderLanguage m_Language;
+		ShaderUtils::ShaderStage::Flags m_Stages = ShaderUtils::ShaderStage::None;
 		DirectXShaderCompilerOptions m_Options;
 		std::filesystem::path m_ShaderSourcePath;
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> m_ShaderSource;
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>> m_SPIRVData;
-		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> m_HLSLShaderSource;
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>> m_ShaderBinary;
+
+		struct Metadata
+		{
+			ShaderUtils::ShaderStage::Type Stage = ShaderUtils::ShaderStage::None;
+			uint64_t HashCode = 0;
+			// TODO(moro): std::string HLSLVersion;
+		};
+		std::unordered_map<ShaderUtils::ShaderStage::Type, Metadata> m_ShaderStageMetadata;
+
+		ShaderUtils::ShaderStage::Flags m_StagesWrittenToCache = ShaderUtils::ShaderStage::None;
+
+		friend class DirectXShaderCache;
 	};
 
 }

@@ -23,4 +23,14 @@ namespace Shark {
 		return "Unkown";
 	}
 
+	ShaderUtils::ShaderStage::Type StringToShaderStage(const std::string& shaderStage)
+	{
+		if (shaderStage == "None") return ShaderUtils::ShaderStage::None;
+		if (shaderStage == "Vertex") return ShaderUtils::ShaderStage::Vertex;
+		if (shaderStage == "Pixel") return ShaderUtils::ShaderStage::Pixel;
+
+		SK_CORE_ASSERT(false, "Unkown ShaderStage");
+		return ShaderUtils::ShaderStage::None;
+	}
+
 }

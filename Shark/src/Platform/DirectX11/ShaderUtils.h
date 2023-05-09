@@ -9,7 +9,9 @@ namespace Shark::ShaderUtils {
 		{
 			None = 0,
 			Vertex = BIT(0),
-			Pixel = BIT(1)
+			Pixel = BIT(1),
+
+			All = Vertex | Pixel
 		};
 		using Flags = uint16_t;
 	}
@@ -25,5 +27,6 @@ namespace Shark::ShaderUtils {
 namespace Shark {
 
 	std::string ToString(ShaderUtils::ShaderStage::Type stage);
+	ShaderUtils::ShaderStage::Type StringToShaderStage(const std::string& shaderStage);
 
 }
