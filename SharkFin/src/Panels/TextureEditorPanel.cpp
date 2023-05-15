@@ -44,7 +44,7 @@ namespace Shark {
 		m_EditTexture = ResourceManager::CreateMemoryAsset<Texture2D>();
 		m_EditTexture->GetSpecificationMutable() = m_SourceTexture->GetSpecification();
 		m_EditTexture->Invalidate();
-		m_EditTexture->GetImage()->SetImageData(m_SourceTexture->GetImage());
+		m_EditTexture->GetImage()->UploadImageData(m_SourceTexture->GetImage());
 
 		m_Specs = m_EditTexture->GetSpecification();
 
@@ -188,7 +188,7 @@ namespace Shark {
 		{
 			m_EditTexture->GetSpecificationMutable() = m_Specs;
 			m_EditTexture->Invalidate();
-			m_EditTexture->GetImage()->SetImageData(m_SourceTexture->GetImage());
+			m_EditTexture->GetImage()->UploadImageData(m_SourceTexture->GetImage());
 			if (m_Specs.GenerateMips)
 				Renderer::GenerateMips(m_EditTexture->GetImage());
 		}
@@ -200,7 +200,7 @@ namespace Shark {
 		{
 			m_SourceTexture->GetSpecificationMutable() = m_Specs;
 			m_SourceTexture->Invalidate();
-			m_SourceTexture->GetImage()->SetImageData(m_EditTexture->GetImage());
+			m_SourceTexture->GetImage()->UploadImageData(m_EditTexture->GetImage());
 
 			ResourceManager::SaveAsset(m_SourceTexture->Handle);
 			ResourceManager::ReloadAsset(m_SourceTexture->Handle);

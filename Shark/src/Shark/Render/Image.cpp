@@ -47,17 +47,6 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Image2D> Image2D::Create(const ImageSpecification& specs, Buffer imageData)
-	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs, imageData);
-		}
-		SK_CORE_ASSERT(false, "Unkown Renderer API");
-		return nullptr;
-	}
-
 	Ref<Image2D> Image2D::Create(const ImageSpecification& specs, Ref<Image2D> data)
 	{
 		switch (Renderer::GetAPI())
@@ -67,15 +56,6 @@ namespace Shark {
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;
-	}
-
-	Ref<Image2D> Image2D::Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
-	{
-		ImageSpecification specification;
-		specification.Width = width;
-		specification.Height = height;
-		specification.Format = format;
-		return Create(specification, imageData);
 	}
 
 }

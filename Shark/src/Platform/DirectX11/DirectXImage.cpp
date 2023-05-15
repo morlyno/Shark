@@ -103,14 +103,6 @@ namespace Shark {
 		Invalidate();
 	}
 
-	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, Buffer imageData)
-		: m_Specification(specs)
-	{
-		m_InitalData = Buffer::Copy(imageData);
-		Invalidate();
-		Renderer::Submit([buffer = m_InitalData]() mutable { buffer.Release(); });
-	}
-
 	DirectXImage2D::DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data)
 		: m_Specification(specs)
 	{
@@ -166,7 +158,7 @@ namespace Shark {
 		switch (m_Specification.Type)
 		{
 			case ImageType::Texture:
-				texture2dDesc.Usage = (m_InitalData && m_Specification.MipLevels == 1) ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT;
+				texture2dDesc.Usage = D3D11_USAGE_DEFAULT;
 				texture2dDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 				break;
 			case ImageType::FrameBuffer:
@@ -179,25 +171,12 @@ namespace Shark {
 				break;
 		}
 
-		D3D11_SUBRESOURCE_DATA* subresourceData = nullptr;
-
-		if (m_InitalData && m_Specification.MipLevels == 1)
-		{
-			D3D11_SUBRESOURCE_DATA sd{};
-			sd.pSysMem = m_InitalData.Data;
-			sd.SysMemPitch = m_Specification.Width * utils::GetFormatDataSize(m_Specification.Format);
-			subresourceData = &sd;
-		}
-
 		auto renderer = DirectXRenderer::Get();
 		auto device = renderer->GetDevice();
-		DX11_VERIFY(device->CreateTexture2D(&texture2dDesc, subresourceData, &m_Resource));
+		DX11_VERIFY(device->CreateTexture2D(&texture2dDesc, nullptr, &m_Resource));
 
 		if (m_Specification.DebugName.size())
 			DX11_VERIFY(D3D_SET_OBJECT_NAME_A(m_Resource, m_Specification.DebugName.c_str()));
-
-		if (m_InitalData && m_Specification.MipLevels != 1)
-			RT_UpdateResource(m_InitalData);
 
 		if (m_Specification.Type != ImageType::Storage)
 		{
@@ -270,23 +249,23 @@ namespace Shark {
 			RT_CreateView();
 	}
 
-	void DirectXImage2D::SetImageData(Ref<Image2D> image)
-	{
-		Ref<DirectXImage2D> instance = this;
-		Renderer::Submit([instance, dxImage = image.As<DirectXImage2D>()]()
-		{
-			instance->RT_SetImageData(dxImage);
-		});
-	}
-
-	void DirectXImage2D::SetImageData(Buffer buffer)
+	void DirectXImage2D::UploadImageData(Buffer buffer)
 	{
 		UpdateResource(buffer);
 	}
 
-	void DirectXImage2D::RT_SetImageData(Ref<Image2D> image)
+	void DirectXImage2D::RT_UploadImageData(Buffer buffer)
 	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		RT_UpdateResource(buffer);
+	}
+
+	void DirectXImage2D::UploadImageData(Ref<Image2D> image)
+	{
+		UpdateResource(image.As<DirectXImage2D>());
+	}
+
+	void DirectXImage2D::RT_UploadImageData(Ref<Image2D> image)
+	{
 		RT_UpdateResource(image.As<DirectXImage2D>());
 	}
 
@@ -300,7 +279,7 @@ namespace Shark {
 		specification.MipLevels = m_Specification.MipLevels;
 		specification.Type = ImageType::Storage;
 		storageImage->RT_Invalidate();
-		storageImage->RT_SetImageData(this);
+		storageImage->RT_UploadImageData(this);
 		return storageImage;
 	}
 
@@ -329,38 +308,9 @@ namespace Shark {
 		return true;
 	}
 
-	void DirectXImage2D::SetInitalData(Buffer initalData)
-	{
-		Ref<DirectXImage2D> instance = this;
-		Renderer::Submit([instance, initalData]()
-		{
-			instance->m_InitalData = initalData;
-		});
-	}
-
-	void DirectXImage2D::RT_SetInitalData(Buffer initalData)
-	{
-		m_InitalData = initalData;
-	}
-
-	void DirectXImage2D::ReleaseInitalData()
-	{
-		if (m_InitalData)
-		{
-			Renderer::Submit([buffer = m_InitalData]() mutable
-			{
-				buffer.Release();
-			});
-		}
-	}
-
-	void DirectXImage2D::RT_ReleaseInitalData()
-	{
-		m_InitalData.Release();
-	}
-
 	void DirectXImage2D::UpdateResource(Buffer imageData)
 	{
+		SK_CORE_ASSERT(imageData);
 		Ref<DirectXImage2D> instance = this;
 		Buffer buffer = Buffer::Copy(imageData);
 		Renderer::Submit([instance, buffer]() mutable

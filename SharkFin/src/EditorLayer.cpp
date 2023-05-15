@@ -1385,7 +1385,7 @@ namespace Shark {
 
 			if (m_ReadHoveredEntity || selectEntity)
 			{
-				m_MousePickingImage->RT_SetImageData(m_SceneRenderer->GetIDImage());
+				m_MousePickingImage->RT_UploadImageData(m_SceneRenderer->GetIDImage());
 				if (!m_MousePickingImage->RT_ReadPixel(x, y, (uint32_t&)m_HoveredEntityID))
 					return false;
 			}

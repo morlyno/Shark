@@ -31,9 +31,8 @@ namespace Shark {
 		spec.Height = bitmap.height;
 		spec.Format = F;
 		spec.GenerateMips = false;
-		fontAtlas->GetImage()->SetInitalData(Buffer::Copy(bitmap.pixels, bitmap.width * bitmap.height * N * sizeof T));
+		fontAtlas->SetImageData(Buffer::Copy(bitmap.pixels, bitmap.width * bitmap.height * N * sizeof T));
 		fontAtlas->Invalidate();
-		fontAtlas->GetImage()->ReleaseInitalData();
 	}
 
 	Font::Font(const std::filesystem::path& fontPath)

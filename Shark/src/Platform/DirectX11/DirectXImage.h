@@ -26,7 +26,6 @@ namespace Shark {
 	public:
 		DirectXImage2D();
 		DirectXImage2D(const ImageSpecification& specs);
-		DirectXImage2D(const ImageSpecification& specs, Buffer imageData);
 		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
 		DirectXImage2D(Ref<DirectXSwapChain> swapchain, bool createView);
 		virtual ~DirectXImage2D();
@@ -44,18 +43,13 @@ namespace Shark {
 
 		void RT_Invalidate(Ref<DirectXSwapChain> swapchain, bool createView = false);
 
-		virtual void SetImageData(Buffer buffer) override;
-		virtual void SetImageData(Ref<Image2D> image) override;
-		virtual void RT_SetImageData(Ref<Image2D> image) override;
+		virtual void UploadImageData(Buffer buffer) override;
+		virtual void RT_UploadImageData(Buffer buffer) override;
+		virtual void UploadImageData(Ref<Image2D> image) override;
+		virtual void RT_UploadImageData(Ref<Image2D> image) override;
 
 		virtual Ref<Image2D> RT_GetStorageImage() override;
 		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) override;
-
-		virtual void SetInitalData(Buffer initalData) override;
-		virtual void RT_SetInitalData(Buffer initalData) override;
-		virtual void ReleaseInitalData() override;
-		virtual void RT_ReleaseInitalData() override;
-		virtual Buffer RT_GetInitalData() const override { return m_InitalData; }
 
 		virtual RenderID GetResourceID() const override { return m_Resource; }
 		virtual RenderID GetViewID() const override { return m_View; }
@@ -81,7 +75,6 @@ namespace Shark {
 
 	private:
 		ImageSpecification m_Specification;
-		Buffer m_InitalData;
 
 		ID3D11Texture2D* m_Resource = nullptr;
 		ID3D11ShaderResourceView* m_View = nullptr;

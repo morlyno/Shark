@@ -42,15 +42,13 @@ namespace Shark {
 	}
 
 	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, Buffer imageData)
-		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create())
+		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create()), m_ImageData(Buffer::Copy(imageData))
 	{
-		m_Image->SetInitalData(Buffer::Copy(imageData));
 		Invalidate();
-		m_Image->ReleaseInitalData();
 	}
 
 	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, Ref<TextureSource> textureSource)
-		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create())
+		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create()), m_ImageData(textureSource->ImageData)
 	{
 		SetTextureSource(textureSource);
 		Invalidate();
@@ -118,6 +116,7 @@ namespace Shark {
 			specification.Type = ImageType::Texture;
 			specification.DebugName = m_Specification.DebugName;
 			m_Image->Invalidate();
+			UploadImageData();
 
 			if (m_Specification.GenerateMips)
 				Renderer::GenerateMips(m_Image);
@@ -170,13 +169,26 @@ namespace Shark {
 		m_Image->RT_Release();
 	}
 
+	void DirectXTexture2D::SetImageData(Buffer imageData)
+	{
+		m_ImageData = Buffer::Copy(imageData);
+	}
+
 	void DirectXTexture2D::SetTextureSource(Ref<TextureSource> textureSource)
 	{
 		m_TextureSource = textureSource;
-		m_Image->SetInitalData(textureSource->ImageData);
 		m_Specification.Width = textureSource->Width;
 		m_Specification.Height = textureSource->Height;
 		m_Specification.Format = textureSource->Format;
+	}
+
+	void DirectXTexture2D::UploadImageData()
+	{
+		SK_CORE_ASSERT(m_ImageData);
+		Renderer::Submit([instance = Ref(this)]()
+		{
+			instance->m_Image->RT_UploadImageData(instance->m_ImageData);
+		});
 	}
 
 #pragma region Texture Array

@@ -94,8 +94,9 @@ namespace Shark {
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
 
-		virtual Ref<TextureSource> GetTextureSource() const = 0;
+		virtual void SetImageData(Buffer imageData) = 0;
 
+		virtual Ref<TextureSource> GetTextureSource() const = 0;
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) = 0;
 
 		virtual RenderID GetViewID() const = 0;

@@ -61,19 +61,13 @@ namespace Shark {
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
 
-		virtual void SetImageData(Buffer buffer) = 0;
-		virtual void SetImageData(Ref<Image2D> image) = 0;
-		virtual void RT_SetImageData(Ref<Image2D> image) = 0;
+		virtual void UploadImageData(Buffer buffer) = 0;
+		virtual void RT_UploadImageData(Buffer buffer) = 0;
+		virtual void UploadImageData(Ref<Image2D> image) = 0;
+		virtual void RT_UploadImageData(Ref<Image2D> image) = 0;
 
 		virtual Ref<Image2D> RT_GetStorageImage() = 0;
 		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) = 0;
-
-		// Dosn't copy the buffer
-		virtual void SetInitalData(Buffer initalData) = 0;
-		virtual void RT_SetInitalData(Buffer initalData) = 0;
-		virtual void ReleaseInitalData() = 0;
-		virtual void RT_ReleaseInitalData() = 0;
-		virtual Buffer RT_GetInitalData() const = 0;
 
 		virtual RenderID GetResourceID() const = 0;
 		virtual RenderID GetViewID() const = 0;
@@ -83,9 +77,7 @@ namespace Shark {
 	public:
 		static Ref<Image2D> Create();
 		static Ref<Image2D> Create(const ImageSpecification& specs);
-		static Ref<Image2D> Create(const ImageSpecification& specs, Buffer imageData);
 		static Ref<Image2D> Create(const ImageSpecification& specs, Ref<Image2D> data);
-		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 	};
 
 }

@@ -25,6 +25,8 @@ namespace Shark {
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
 
+		virtual void SetImageData(Buffer imageData) override;
+
 		virtual Ref<TextureSource> GetTextureSource() const override { return m_TextureSource; }
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) override;
 
@@ -38,8 +40,12 @@ namespace Shark {
 		ID3D11ShaderResourceView* GetViewNative() const { return m_Image->GetViewNative(); }
 
 	private:
+		void UploadImageData();
+
+	private:
 		TextureSpecification m_Specification;
 		Ref<TextureSource> m_TextureSource;
+		Buffer m_ImageData;
 
 		Ref<DirectXImage2D> m_Image;
 		ID3D11SamplerState* m_Sampler = nullptr;;
