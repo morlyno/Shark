@@ -15,13 +15,22 @@ namespace Shark {
 		return true;
 	}
 
-	bool ScriptFileSerializer::Deserialize(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool ScriptFileSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
 		SK_CORE_INFO_TAG("Serialization", "Deserializing ScriptFile from {}", metadata.FilePath);
 		Timer timer;
 
 		asset = Ref<ScriptFile>::Create();
 		asset->Handle = metadata.Handle;
+
+		SK_CORE_INFO_TAG("Serialization", "Deserializing ScriptFile took {}ms", timer.ElapsedMilliSeconds());
+		return true;
+	}
+
+	bool ScriptFileSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
+	{
+		SK_CORE_INFO_TAG("Serialization", "Deserializing ScriptFile from {}", assetPath);
+		Timer timer;
 
 		SK_CORE_INFO_TAG("Serialization", "Deserializing ScriptFile took {}ms", timer.ElapsedMilliSeconds());
 		return true;

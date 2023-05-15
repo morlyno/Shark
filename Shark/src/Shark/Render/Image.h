@@ -41,6 +41,8 @@ namespace Shark {
 		uint32_t MipLevels = 1; // 0 == MaxLeves
 
 		ImageType Type = ImageType::Texture;
+
+		std::string DebugName;
 	};
 
 	class Image2D : public RefCount
@@ -50,6 +52,8 @@ namespace Shark {
 
 		virtual void Invalidate() = 0;
 		virtual void RT_Invalidate() = 0;
+
+		virtual bool Validate() const = 0;
 
 		virtual void Release() = 0;
 		virtual void RT_Release() = 0;
@@ -82,8 +86,6 @@ namespace Shark {
 		static Ref<Image2D> Create(const ImageSpecification& specs, Buffer imageData);
 		static Ref<Image2D> Create(const ImageSpecification& specs, Ref<Image2D> data);
 		static Ref<Image2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
-
-		static Ref<Image2D> LoadFromDisc(const std::filesystem::path& filepath);
 	};
 
 }

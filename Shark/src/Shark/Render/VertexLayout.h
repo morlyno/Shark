@@ -54,8 +54,8 @@ namespace Shark {
 		void Add(const VertexElement& element);
 		void Init();
 
-		uint32_t GetVertexSize();
-		uint32_t GetElementCount();
+		uint32_t GetVertexSize() const;
+		uint32_t GetElementCount() const;
 
 		std::vector<VertexElement>::iterator begin();
 		std::vector<VertexElement>::iterator end();

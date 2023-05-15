@@ -112,7 +112,7 @@ return metadata.IsMemoryAsset;
 		if (!metadata.IsDataLoaded && !metadata.IsMemoryAsset)
 		{
 			Ref<Asset> asset = nullptr;
-			metadata.IsDataLoaded = AssetSerializer::TryLoadData(asset, metadata);
+			metadata.IsDataLoaded = AssetSerializer::TryLoadAsset(asset, metadata);
 			asset->Handle = handle;
 			s_Data->LoadedAssets[handle] = asset;
 		}

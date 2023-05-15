@@ -284,6 +284,7 @@ namespace Shark {
 		{
 			FileSystem::Shutdown();
 			Input::Shutdown();
+			Renderer::ReportLiveObejcts();
 			Log::Shutdown();
 		}
 

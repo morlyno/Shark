@@ -7,6 +7,8 @@
 
 namespace Shark {
 
+	class Texture2D;
+
 	class ImGuiLayer : public Layer
 	{
 	public:
@@ -31,6 +33,9 @@ namespace Shark {
 		virtual void BlockEvents(bool block) = 0;
 
 		virtual TimeStep GetGPUTime() const = 0;
+
+		virtual void AddTexture(Ref<Texture2D> texture) = 0;
+		virtual void BindFontSampler() = 0;
 
 		static ImGuiLayer* Create();
 	};

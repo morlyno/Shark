@@ -29,11 +29,11 @@ namespace Shark {
 		//	return false;
 		//}
 
-		SK_CORE_INFO_TAG("Serialization", "Serializing TextureSource took {}ms", timer.ElapsedMilliSeconds());
+		SK_CORE_INFO_TAG("Serialization", "Serializing TextureSource took {}", timer.Elapsed());
 		return true;
 	}
 
-	bool TextureSourceSerializer::Deserialize(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool TextureSourceSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -69,17 +69,64 @@ namespace Shark {
 		textureSource->Format = format;
 		textureSource->Width = width;
 		textureSource->Height = height;
+		textureSource->SourcePath = ResourceManager::GetProjectPath(metadata);
 
 		asset = textureSource;
 		asset->Handle = metadata.Handle;
 
 		SK_CORE_TRACE_TAG("Serialization", " - Size: [{}, {}]", textureSource->Width, textureSource->Height);
 		SK_CORE_TRACE_TAG("Serialization", " - Format: {}", ToString(textureSource->Format));
-		SK_CORE_INFO_TAG("Serialization", "Deserializing TextureSource took {}ms", timer.ElapsedMilliSeconds());
+		SK_CORE_INFO_TAG("Serialization", "Deserializing TextureSource took {}", timer.Elapsed());
 		return true;
 	}
 
-	bool TextureSourceSerializer::DeserializeFromTexture(Ref<TextureSource>& textureSource, const std::filesystem::path& filepath)
+	bool TextureSourceSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
+	{
+		SK_PROFILE_FUNCTION();
+
+		SK_CORE_INFO_TAG("Serialization", "Deserializing TextureSource from {}", assetPath);
+		Timer timer;
+
+		std::filesystem::path filesystemPath = std::filesystem::exists(assetPath) ? assetPath : FileSystem::GetAbsolute(assetPath);
+
+		if (!FileSystem::Exists(filesystemPath))
+		{
+			SK_SERIALIZATION_ERROR("Path not found! {0}", assetPath);
+			return false;
+		}
+
+		ImageFormat format;
+		int width, height, components;
+		Buffer imagedata;
+
+		Buffer filedata = FileSystem::ReadBinary(filesystemPath);
+		imagedata.Data = stbi_load_from_memory(filedata.As<stbi_uc>(), (int)filedata.Size, &width, &height, &components, STBI_rgb_alpha);
+		filedata.Release();
+
+		if (!imagedata.Data)
+		{
+			SK_SERIALIZATION_ERROR("Failed to read image! {0}", assetPath);
+			SK_CORE_WARN_TAG("Serialization", stbi_failure_reason());
+			return false;
+		}
+
+		imagedata.Size = (uint64_t)width * height * 4;
+		format = ImageFormat::RGBA8;
+
+		Ref<TextureSource> textureSource = asset.As<TextureSource>();
+		textureSource->ImageData = imagedata;
+		textureSource->Format = format;
+		textureSource->Width = width;
+		textureSource->Height = height;
+		textureSource->SourcePath = assetPath;
+
+		SK_CORE_TRACE_TAG("Serialization", " - Size: [{}, {}]", textureSource->Width, textureSource->Height);
+		SK_CORE_TRACE_TAG("Serialization", " - Format: {}", ToString(textureSource->Format));
+		SK_CORE_INFO_TAG("Serialization", "Deserializing TextureSource took {}", timer.Elapsed());
+		return true;
+	}
+
+	bool TextureSourceSerializer::TryLoadAssetFromTexture(Ref<TextureSource>& textureSource, const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -134,11 +181,11 @@ namespace Shark {
 		fout << result;
 		fout.close();
 
-		SK_CORE_INFO_TAG("Serialization", "Serializing Texture took {}ms", timer.ElapsedMilliSeconds());
+		SK_CORE_INFO_TAG("Serialization", "Serializing Texture took {}", timer.Elapsed());
 		return true;
 	}
 
-	bool TextureSerializer::Deserialize(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool TextureSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -168,7 +215,37 @@ namespace Shark {
 		asset = texture;
 		asset->Handle = metadata.Handle;
 
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Texture took {}ms", timer.ElapsedMilliSeconds());
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Texture took {}", timer.Elapsed());
+		return true;
+	}
+
+	bool TextureSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
+	{
+		SK_PROFILE_FUNCTION();
+
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Texture from {}", assetPath);
+		Timer timer;
+
+		if (!FileSystem::Exists(assetPath))
+		{
+			SK_SERIALIZATION_ERROR("Path not found! {0}", assetPath);
+			return false;
+		}
+
+		std::string filedata = FileSystem::ReadString(FileSystem::GetAbsolute(assetPath));
+		if (filedata.empty())
+		{
+			SK_SERIALIZATION_ERROR("File was empty!");
+			return false;
+		}
+
+		if (!DesrializeFromYAML(asset.As<Texture2D>(), filedata))
+		{
+			SK_SERIALIZATION_ERROR("Failed to load data from YAML!");
+			return false;
+		}
+
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Texture took {}", timer.Elapsed());
 		return true;
 	}
 
@@ -233,11 +310,15 @@ namespace Shark {
 		SK_CORE_TRACE_TAG(Tag::Serialization, " - Anisotropy Enabled {}", specification.Sampler.Anisotropy);
 		SK_CORE_TRACE_TAG(Tag::Serialization, " - Max Anisotropy {}", specification.Sampler.MaxAnisotropy);
 
-		texture->SetTextureSource(textureSource);
-		texture->Invalidate();
+		Application::Get().SubmitToMainThread([texture, textureSource]()
+		{
+			texture->SetTextureSource(textureSource);
+			texture->Invalidate();
+		});
 		return true;
 	}
 
+#if 0
 	ImageSerializer::ImageSerializer(Ref<Image2D> image)
 		: m_Image(image)
 	{
@@ -310,5 +391,6 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Image took {}", timer.Elapsed());
 		return true;
 	}
+#endif
 
 }

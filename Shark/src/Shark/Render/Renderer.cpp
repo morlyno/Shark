@@ -8,18 +8,13 @@ namespace Shark {
 
 	Ref<RendererAPI> Renderer::s_RendererAPI = nullptr;
 	static RendererAPIType s_API = RendererAPIType::None;
-	struct RendererData
-	{
-		CommandQueue RenderCommandQueue = CommandQueue(1024 * 10 /* 10kb */);
-		CommandQueue ResourceFreeQueue = CommandQueue(1024 * 10 /* 10kb */);
-		bool CommandQueueExecuting = false;
 
-	};
-	static RendererData* s_RendererData;
+	static CommandQueue* s_RenderCommandQueue[2];
 
 	void Renderer::Init()
 	{
-		s_RendererData = sknew RendererData();
+		s_RenderCommandQueue[0] = sknew CommandQueue(1024 * 10);
+		s_RenderCommandQueue[1] = sknew CommandQueue(1024 * 10);
 
 		switch (s_API)
 		{
@@ -33,8 +28,8 @@ namespace Shark {
 	void Renderer::ShutDown()
 	{
 		s_RendererAPI = nullptr;
-		skdelete s_RendererData;
-		s_RendererData = nullptr;
+		skdelete s_RenderCommandQueue[0];
+		skdelete s_RenderCommandQueue[1];
 	}
 
 	void Renderer::BeginFrame()
@@ -52,21 +47,13 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_FUNCTION();
 
-		s_RendererData->CommandQueueExecuting = true;
-		s_RendererData->RenderCommandQueue.Execute();
-
-		s_RendererData->ResourceFreeQueue.Execute();
-		s_RendererData->CommandQueueExecuting = false;
+		std::swap(s_RenderCommandQueue[0], s_RenderCommandQueue[1]);
+		s_RenderCommandQueue[1]->Execute();
 	}
 
 	bool Renderer::IsOnRenderThread()
 	{
-		return s_RendererData->CommandQueueExecuting;
-	}
-
-	bool Renderer::IsExecuting()
-	{
-		return s_RendererData->CommandQueueExecuting;
+		return true;
 	}
 
 	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
@@ -134,6 +121,17 @@ namespace Shark {
 		return s_RendererAPI ? s_RendererAPI->IsInsideFrame() : true;
 	}
 
+	void Renderer::ReportLiveObejcts()
+	{
+		switch (s_API)
+		{
+			case RendererAPIType::None: return;
+			case RendererAPIType::DirectX11: DirectXRenderer::ReportLiveObejcts(); return;
+		}
+
+		SK_CORE_ASSERT(false, "Unkown Renderer API");
+	}
+
 	Ref<RendererAPI> Renderer::GetRendererAPI()
 	{
 		return s_RendererAPI;
@@ -151,12 +149,12 @@ namespace Shark {
 
 	CommandQueue& Renderer::GetCommandQueue()
 	{
-		return s_RendererData->RenderCommandQueue;
+		return *s_RenderCommandQueue[0];
 	}
 
 	CommandQueue& Renderer::GetResourceFreeQueue()
 	{
-		return s_RendererData->ResourceFreeQueue;
+		return *s_RenderCommandQueue[0];
 	}
 
 	bool Renderer::IsDuringStartup()

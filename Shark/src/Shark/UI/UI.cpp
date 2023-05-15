@@ -1084,9 +1084,10 @@ namespace Shark::UI {
 	{
 	}
 
-	UIContext* CreateContext()
+	UIContext* CreateContext(ImGuiLayer* imguiLayer)
 	{
 		UIContext* ctx = sknew UIContext();
+		ctx->ImGuiLayer = imguiLayer;
 		if (!GContext)
 			SetContext(ctx);
 		return ctx;
@@ -1118,6 +1119,14 @@ namespace Shark::UI {
 		SK_CORE_ASSERT(GContext->Control.WidgetCount == 0);
 		SK_CORE_ASSERT(GContext->Control.ActiveGridFlags == GridFlag::None);
 		SK_CORE_ASSERT(GContext->FramedTextAlignStack.size() == 0);
+	}
+
+	void Texture(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		GContext->ImGuiLayer->AddTexture(texture);
+		ImGui::Image(texture->GetViewID(), size, uv0, uv1, tint_col, border_col);
+		GContext->ImGuiLayer->BindFontSampler();
 	}
 
 }

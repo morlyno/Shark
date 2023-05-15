@@ -72,7 +72,7 @@ namespace Shark {
 			if (!metadata.IsDataLoaded)
 			{
 				Ref<Asset> asset = nullptr;
-				metadata.IsDataLoaded = AssetSerializer::TryLoadData(asset, metadata);
+				metadata.IsDataLoaded = AssetSerializer::TryLoadAsset(asset, metadata);
 				if (!metadata.IsDataLoaded)
 					return asset.As<T>(); // returns asset with Error Flags set
 

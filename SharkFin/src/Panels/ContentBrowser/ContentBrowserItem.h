@@ -2,7 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Asset/Asset.h"
-#include "Shark/Render/Image.h"
+#include "Shark/Render/Texture.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -52,9 +52,9 @@ namespace Shark {
 		};
 	public:
 		ContentBrowserItem() = default;
-		ContentBrowserItem(CBItemType type, AssetHandle handle, const std::string& name, Ref<Image2D> icon);
+		ContentBrowserItem(CBItemType type, AssetHandle handle, const std::string& name, Ref<Texture2D> icon);
 		ContentBrowserItem(Ref<DirectoryInfo> directory);
-		ContentBrowserItem(const AssetMetaData& metadata, Ref<Image2D> icon);
+		ContentBrowserItem(const AssetMetaData& metadata, Ref<Texture2D> icon);
 		~ContentBrowserItem();
 
 		CBItemType GetType() const { return m_Type; }
@@ -85,8 +85,8 @@ namespace Shark {
 		std::string m_Name;
 		State::Flags m_State = State::None;
 
-		Ref<Image2D> m_Icon;
-		Ref<Image2D> m_Thumbnail;
+		Ref<Texture2D> m_Icon;
+		Ref<Texture2D> m_Thumbnail;
 
 		bool m_IsHovered = false;
 

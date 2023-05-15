@@ -78,13 +78,4 @@ namespace Shark {
 		return Create(specification, imageData);
 	}
 
-	Ref<Image2D> Image2D::LoadFromDisc(const std::filesystem::path& filepath)
-	{
-		auto image = Image2D::Create();
-		ImageSerializer serializer(image);
-		if (serializer.Deserialize(filepath))
-			return image;
-		return nullptr;
-	}
-
 }

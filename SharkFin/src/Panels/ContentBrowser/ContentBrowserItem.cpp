@@ -14,7 +14,7 @@
 
 namespace Shark {
 
-	ContentBrowserItem::ContentBrowserItem(CBItemType type, AssetHandle handle, const std::string& name, Ref<Image2D> icon)
+	ContentBrowserItem::ContentBrowserItem(CBItemType type, AssetHandle handle, const std::string& name, Ref<Texture2D> icon)
 		: m_Type(type), m_Handle(handle), m_Name(name), m_Icon(icon)
 	{
 	}
@@ -24,7 +24,7 @@ namespace Shark {
 	{
 	}
 
-	ContentBrowserItem::ContentBrowserItem(const AssetMetaData& metadata, Ref<Image2D> icon)
+	ContentBrowserItem::ContentBrowserItem(const AssetMetaData& metadata, Ref<Texture2D> icon)
 		: m_Type(CBItemType::Asset), m_Handle(metadata.Handle), m_Name(metadata.FilePath.stem().string()), m_Icon(icon)
 	{
 	}
@@ -128,7 +128,7 @@ namespace Shark {
 					if (m_Thumbnail)
 					{
 						const float ratio = (float)m_Thumbnail->GetWidth() / (float)m_Thumbnail->GetHeight();
-						ImGui::Image(m_Thumbnail->GetViewID(), ImVec2(64 * ratio, 64));
+						UI::Texture(m_Thumbnail, ImVec2(64 * ratio, 64));
 					}
 					ImGui::EndDragDropSource();
 				}
@@ -149,17 +149,24 @@ namespace Shark {
 				}
 			}
 
-			const float borderSize = 2.0f;
-			drawList->AddImageRounded(
-				m_Thumbnail ? m_Thumbnail->GetViewID() : m_Icon->GetViewID(),
-				thumbnailTopLeft + ImVec2(borderSize, borderSize),
-				thumbnailBottemRight - ImVec2(borderSize, borderSize),
-				ImVec2(0, 0),
-				ImVec2(1, 1),
-				IM_COL32_WHITE,
-				rounding - 1,
-				ImDrawFlags_RoundCornersTop
-			);
+			{
+				const float borderSize = 2.0f;
+				Ref<Texture2D> texture = (m_Thumbnail && m_Thumbnail->Validate()) ? m_Thumbnail : m_Icon;
+
+				ImGuiLayer& imguiLayer = Application::Get().GetImGuiLayer();
+				imguiLayer.AddTexture(texture);
+				drawList->AddImageRounded(
+					m_Thumbnail ? m_Thumbnail->GetViewID() : m_Icon->GetViewID(),
+					thumbnailTopLeft + ImVec2(borderSize, borderSize),
+					thumbnailBottemRight - ImVec2(borderSize, borderSize),
+					ImVec2(0, 0),
+					ImVec2(1, 1),
+					IM_COL32_WHITE,
+					rounding - 1,
+					ImDrawFlags_RoundCornersTop
+				);
+				imguiLayer.BindFontSampler();
+			}
 
 			UI::ScopedIndent indent(style.FramePadding.x);
 			ImGui::PushClipRect(infoTopLeft, infoBottemRight, true);

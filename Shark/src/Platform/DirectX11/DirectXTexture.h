@@ -17,6 +17,7 @@ namespace Shark {
 		virtual ~DirectXTexture2D();
 
 		virtual void Invalidate() override;
+		virtual bool Validate() const override;
 
 		virtual void Release() override;
 		virtual void RT_Release() override;

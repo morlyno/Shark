@@ -24,8 +24,6 @@ namespace Shark {
 		{
 			None = 0,
 			Unloaded = BIT(0),
-			FileNotFound = BIT(1),
-			InvalidFile = BIT(2)
 		};
 	}
 	using AssetFlags = std::underlying_type_t<AssetFlag::Type>;

@@ -51,6 +51,13 @@ namespace Shark {
 			return Data;
 		}
 
+		template<typename T>
+		void CopyTo(std::vector<T>& dest)
+		{
+			dest.resize(Count<T>());
+			memcpy(dest.data(), Data, Size);
+		}
+
 	public:
 		template<typename TValue>
 		static Buffer FromValue(const TValue& value)

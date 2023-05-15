@@ -59,8 +59,8 @@ namespace Shark {
 		virtual Ref<ShaderLibrary> GetShaderLib() override { return m_ShaderLib; }
 		virtual Ref<Texture2D> GetWhiteTexture() override { return m_WhiteTexture; }
 
-		void AddCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer);
-		void RemoveCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer);
+		void AddCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer);
+		void RemoveCommandBuffer(DirectXRenderCommandBuffer* commandBuffer);
 
 		uint64_t GetGPUFrequncy() const { return m_GPUFrequency; }
 		uint64_t HasValidFrequncy() const { return m_IsValidFrequency; }
@@ -71,6 +71,8 @@ namespace Shark {
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
 		void RT_FlushInfoQueue();
 		void RT_PrepareForSwapchainResize();
+
+		static void ReportLiveObejcts();
 
 	private:
 		void RT_PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet);
@@ -83,8 +85,6 @@ namespace Shark {
 		void RT_CreateInfoQueue();
 		void RT_FlushDXMessages();
 		static void RT_LogMessages(IDXGIInfoQueue* infoQueue);
-
-		void CheckPostShutdown();
 
 	public:
 		static Ref<DirectXRenderer>     Get()                  { return s_Instance; }

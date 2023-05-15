@@ -43,13 +43,11 @@ namespace Shark {
 
 		static void WaitAndRender();
 		static bool IsOnRenderThread();
-		static bool IsExecuting();
 
 		template<typename TFunc>
 		static void Submit(const TFunc& func)
 		{
 			SK_CORE_VERIFY(!GetCommandQueue().IsLocked());
-			SK_CORE_VERIFY(!IsExecuting());
 			SK_CORE_VERIFY(IsDuringStartup() || IsDuringShutdown() || IsInsideFrame());
 			GetCommandQueue().Submit(func);
 		}
@@ -80,6 +78,8 @@ namespace Shark {
 
 		static bool ResourcesCreated();
 		static bool IsInsideFrame();
+
+		static void ReportLiveObejcts();
 
 		static Ref<RendererAPI> GetRendererAPI();
 

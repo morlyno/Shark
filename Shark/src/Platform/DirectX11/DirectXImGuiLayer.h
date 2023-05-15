@@ -3,6 +3,7 @@
 #include "Shark/ImGui/ImGuiLayer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 #include "Platform/DirectX11/DirectXGPUTimer.h"
+#include "Platform/DirectX11/DirectXTexture.h"
 
 #include <imgui.h>
 
@@ -36,6 +37,12 @@ namespace Shark {
 
 		virtual TimeStep GetGPUTime() const override { return m_GPUTime; }
 
+		virtual void AddTexture(Ref<Texture2D> texture) override;
+		virtual void BindFontSampler() override;
+
+	public:
+		ID3D11SamplerState* GetImGuiFontSampler() const { return m_ImGuiFontSampler; }
+
 	private:
 		bool m_BlockEvents = false;
 		bool m_InFrame = false;
@@ -44,6 +51,14 @@ namespace Shark {
 		Ref<DirectXRenderCommandBuffer> m_CommandBuffer;
 		Ref<DirectXGPUTimer> m_GPUTimer;
 		TimeStep m_GPUTime;
+
+		ID3D11SamplerState* m_ImGuiFontSampler = nullptr;
+
+		std::vector<Ref<DirectXTexture2D>> m_UsedTextures;
+		uint32_t m_UsedTextureIndex = 0;
+		//std::unordered_map<ImTextureID, Ref<DirectXTexture2D>> m_UsedTextures;
+
+		friend void BindSamplerCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd);
 	};
 
 }

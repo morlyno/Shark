@@ -103,6 +103,9 @@ namespace Shark {
 
 		m_Sampler = nullptr;
 
+		if (m_Specification.DebugName.empty() && m_TextureSource)
+			m_Specification.DebugName = m_TextureSource->SourcePath.string();
+
 		// NOTE(moro): if the image is null it means the image gets set outside of Invalidate.
 		//             for eaxample creating a texture with a shared image
 		if (m_Image)
@@ -113,6 +116,7 @@ namespace Shark {
 			specification.Height = m_Specification.Height;
 			specification.MipLevels = m_Specification.GenerateMips ? 0 : 1;
 			specification.Type = ImageType::Texture;
+			specification.DebugName = m_Specification.DebugName;
 			m_Image->Invalidate();
 
 			if (m_Specification.GenerateMips)
@@ -137,7 +141,15 @@ namespace Shark {
 			Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
 			ID3D11Device* device = renderer->GetDevice();
 			DX11_VERIFY(device->CreateSamplerState(&samplerDesc, &instance->m_Sampler));
+
+			if (instance->m_Specification.DebugName.size())
+				D3D_SET_OBJECT_NAME_A(instance->m_Sampler, instance->m_Specification.DebugName.c_str());
 		});
+	}
+
+	bool DirectXTexture2D::Validate() const
+	{
+		return m_Image->Validate() && m_Sampler;
 	}
 
 	void DirectXTexture2D::Release()

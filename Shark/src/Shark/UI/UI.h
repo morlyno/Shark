@@ -43,6 +43,11 @@ struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
 	}
 };
 
+namespace Shark {
+	class ImGuiLayer;
+	class Texture2D;
+}
+
 namespace Shark::UI {
 
 	struct UIControl;
@@ -243,6 +248,8 @@ namespace Shark::UI {
 	bool Search(ImGuiID id, char* buffer, int bufferSize);
 	
 	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
+
+	void Texture(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Types //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -445,6 +452,7 @@ namespace Shark::UI {
 
 	struct UIContext
 	{
+		ImGuiLayer* ImGuiLayer;
 		UIControl Control;
 		ImVec2 FramedTextAlign = ImVec2(0.0f, 0.0f);
 		std::stack<ImVec2> FramedTextAlignStack;
@@ -455,7 +463,7 @@ namespace Shark::UI {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    /// Init // Update /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	UIContext* CreateContext();
+	UIContext* CreateContext(ImGuiLayer* imguiLayer);
 	void DestroyContext(UIContext* ctx = nullptr);
 
 	void SetContext(UIContext* ctx);

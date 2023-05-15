@@ -8,24 +8,24 @@ namespace Shark {
 	class Icons
 	{
 	public:
-		static Ref<Image2D> SettingsIcon;
+		static Ref<Texture2D> SettingsIcon;
 
-		static Ref<Image2D> FileIcon;
-		static Ref<Image2D> FolderIcon;
-		static Ref<Image2D> PNGIcon;
-		static Ref<Image2D> SceneIcon;
-		static Ref<Image2D> ScriptIcon;
-		static Ref<Image2D> TextureIcon;
+		static Ref<Texture2D> FileIcon;
+		static Ref<Texture2D> FolderIcon;
+		static Ref<Texture2D> PNGIcon;
+		static Ref<Texture2D> SceneIcon;
+		static Ref<Texture2D> ScriptIcon;
+		static Ref<Texture2D> TextureIcon;
 
-		static Ref<Image2D> InfoIcon;
-		static Ref<Image2D> WarnIcon;
-		static Ref<Image2D> ErrorIcon;
+		static Ref<Texture2D> InfoIcon;
+		static Ref<Texture2D> WarnIcon;
+		static Ref<Texture2D> ErrorIcon;
 
-		static Ref<Image2D> PlayIcon;
-		static Ref<Image2D> StopIcon;
-		static Ref<Image2D> PauseIcon;
-		static Ref<Image2D> SimulateIcon;
-		static Ref<Image2D> StepIcon;
+		static Ref<Texture2D> PlayIcon;
+		static Ref<Texture2D> StopIcon;
+		static Ref<Texture2D> PauseIcon;
+		static Ref<Texture2D> SimulateIcon;
+		static Ref<Texture2D> StepIcon;
 
 	public:
 		static void Init();

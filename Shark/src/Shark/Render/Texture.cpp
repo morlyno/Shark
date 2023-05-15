@@ -3,6 +3,8 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXTexture.h"
+#include "Shark/Serialization/TextureSerializers.h"
+#include "Shark/Asset/AssetUtils.h"
 
 namespace Shark {
 
@@ -139,6 +141,29 @@ namespace Shark {
 		specification.Width = width;
 		specification.Height = height;
 		return Create(specification, imageData);
+	}
+
+	Ref<Texture2D> Texture2D::LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& specification)
+	{
+		Ref<TextureSource> source;
+		AssetType assetType = AssetUtils::GetAssetTypeFromPath(filepath);
+		switch (assetType)
+		{
+			case AssetType::Texture:
+			{
+				TextureSourceSerializer serializer;
+				serializer.TryLoadAssetFromTexture(source, filepath);
+				break;
+			}
+			case AssetType::TextureSource:
+			{
+				source = Ref<TextureSource>::Create();
+				TextureSourceSerializer serializer;
+				serializer.Deserialize(source, filepath);
+			}
+		}
+
+		return Create(specification, source);
 	}
 
 }

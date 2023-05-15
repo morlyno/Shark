@@ -7,6 +7,8 @@
 
 #include "Panels/ContentBrowser/ContentBrowserItem.h"
 
+#include <future>
+
 #undef CreateDirectory
 
 namespace Shark {
@@ -140,8 +142,8 @@ namespace Shark {
 		void CacheDirectoryHandles(Ref<DirectoryInfo> directory);
 		void ClearHistroy();
 
-		Ref<Image2D> GetIcon(const AssetMetaData& metadata);
-		Ref<Image2D> GetThumbnail(const AssetMetaData& metadata);
+		Ref<Texture2D> GetIcon(const AssetMetaData& metadata);
+		Ref<Texture2D> GetThumbnail(const AssetMetaData& metadata);
 		void GenerateThumbnails();
 		//Ref<DirectoryInfo> FindDirectory(const std::filesystem::path& filePath);
 		Ref<DirectoryInfo> GetDirectory(AssetHandle handle);
@@ -193,7 +195,9 @@ namespace Shark {
 		uint32_t m_HistoryIndex = -1;
 
 		std::unordered_map<AssetHandle, Ref<DirectoryInfo>> m_DirectoryHandleMap;
-		std::unordered_map<std::string, Ref<Image2D>> m_IconExtensionMap;
+		std::unordered_map<std::string, Ref<Texture2D>> m_IconExtensionMap;
+		Ref<Texture2D> m_FileIcon;
+		Ref<Texture2D> m_FolderIcon;
 
 		bool m_ReloadScheduled = true;
 
@@ -213,6 +217,8 @@ namespace Shark {
 		friend class ContentBrowserItem;
 
 		std::vector<std::function<void()>> m_PostRenderQueue;
+
+		std::future<void> m_GenerateThumbnailsFuture;
 	};
 
 }

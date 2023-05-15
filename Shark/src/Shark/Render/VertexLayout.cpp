@@ -25,12 +25,12 @@ namespace Shark {
 		CalcOffsetAndSize();
 	}
 
-	uint32_t VertexLayout::GetVertexSize()
+	uint32_t VertexLayout::GetVertexSize() const
 	{
 		return m_VertexSize;
 	}
 
-	uint32_t VertexLayout::GetElementCount()
+	uint32_t VertexLayout::GetElementCount() const
 	{
 		return (uint32_t)m_Elements.size();
 	}

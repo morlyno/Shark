@@ -188,8 +188,6 @@ namespace Shark {
 
 		Renderer::WaitAndRender();
 		s_Instance = nullptr;
-
-		CheckPostShutdown();
 	}
 
 	void DirectXRenderer::BeginFrame()
@@ -492,14 +490,14 @@ namespace Shark {
 		texture->Release();
 	}
 
-	void DirectXRenderer::AddCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer)
+	void DirectXRenderer::AddCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer)
 	{
 		m_CommandBuffers.insert(commandBuffer.Raw());
 	}
 
-	void DirectXRenderer::RemoveCommandBuffer(const Weak<DirectXRenderCommandBuffer>& commandBuffer)
+	void DirectXRenderer::RemoveCommandBuffer(DirectXRenderCommandBuffer* commandBuffer)
 	{
-		auto entry = m_CommandBuffers.find(commandBuffer.Raw());
+		auto entry = m_CommandBuffers.find(commandBuffer);
 		if (entry != m_CommandBuffers.end())
 			m_CommandBuffers.erase(entry);
 	}
@@ -540,6 +538,23 @@ namespace Shark {
 			context->RT_ClearState();
 		m_ImmediateContext->ClearState();
 		m_ImmediateContext->Flush();
+	}
+
+	void DirectXRenderer::ReportLiveObejcts()
+	{
+		IDXGIDebug1* debug;
+		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug))))
+		{
+			debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+
+			IDXGIInfoQueue* infoQueue;
+			if (SUCCEEDED(debug->QueryInterface(IID_PPV_ARGS(&infoQueue))))
+			{
+				RT_LogMessages(infoQueue);
+				infoQueue->Release();
+			}
+			debug->Release();
+		}
 	}
 
 	void DirectXRenderer::RT_PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet)
@@ -681,7 +696,11 @@ namespace Shark {
 			for (uint64_t i = 0; i < count; i++)
 			{
 				uint64_t messageLength;
-				SK_DX11_CALL(infoQueue->GetMessage(i, nullptr, &messageLength));
+				if (HRESULT hr = infoQueue->GetMessage(i, nullptr, &messageLength); FAILED(hr))
+				{
+					SK_CORE_ERROR_TAG("Renderer", "Failed to receive message from InfoQueue");
+					continue;
+				}
 
 				messageBuffer.Resize(messageLength, false);
 				auto message = messageBuffer.As<D3D11_MESSAGE>();
@@ -734,29 +753,6 @@ namespace Shark {
 
 		infoQueue->ClearStoredMessages(producer);
 		messageBuffer.Release();
-	}
-
-	void DirectXRenderer::CheckPostShutdown()
-	{
-		HRESULT hr;
-
-		IDXGIDebug* debug = nullptr;
-		hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug));
-		if (SUCCEEDED(hr))
-		{
-			hr = debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
-			if (SUCCEEDED(hr))
-			{
-				IDXGIInfoQueue* infoQueue = nullptr;
-				hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&infoQueue));
-				if (SUCCEEDED(hr))
-				{
-					RT_LogMessages(infoQueue);
-					infoQueue->Release();
-				}
-			}
-			debug->Release();
-		}
 	}
 
 }

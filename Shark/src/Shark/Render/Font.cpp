@@ -11,7 +11,7 @@
 namespace Shark {
 
 	template <typename T, typename S, int N, ImageFormat F, msdf_atlas::GeneratorFunction<S, N> GEN_FN>
-	static Ref<Texture2D> CreateTextureAltas(const std::vector<msdf_atlas::GlyphGeometry>& glyphs, uint32_t width, uint32_t height)
+	static void CreateTextureAltas(const std::vector<msdf_atlas::GlyphGeometry>& glyphs, uint32_t width, uint32_t height, Ref<Texture2D> fontAtlas)
 	{
 		msdf_atlas::GeneratorAttributes attributes;
 		attributes.config.overlapSupport = true;
@@ -24,15 +24,16 @@ namespace Shark {
 
 		auto bitmap = (msdfgen::BitmapConstRef<T, N>)generator.atlasStorage();
 
-		msdfgen::savePng(bitmap, "FontAtlas.png");
+		//msdfgen::savePng(bitmap, "FontAtlas.png");
 
-		TextureSpecification spec;
+		auto& spec = fontAtlas->GetSpecificationMutable();
 		spec.Width = bitmap.width;
 		spec.Height = bitmap.height;
 		spec.Format = F;
 		spec.GenerateMips = false;
-
-		return Texture2D::Create(spec, { bitmap.pixels, (uint64_t)(bitmap.width * bitmap.height * N * sizeof(T)) });
+		fontAtlas->GetImage()->SetInitalData(Buffer::Copy(bitmap.pixels, bitmap.width * bitmap.height * N * sizeof T));
+		fontAtlas->Invalidate();
+		fontAtlas->GetImage()->ReleaseInitalData();
 	}
 
 	Font::Font(const std::filesystem::path& fontPath)
@@ -44,6 +45,15 @@ namespace Shark {
 	Font::~Font()
 	{
 		skdelete m_MSDFData;
+	}
+
+	void Font::Load(const std::filesystem::path& fontPath)
+	{
+		if (m_MSDFData)
+			skdelete m_MSDFData;
+
+		m_MSDFData = sknew MSDFData();
+		Init(fontPath);
 	}
 
 	void Font::Init(const std::filesystem::path& fontPath)
@@ -110,7 +120,7 @@ namespace Shark {
 			SK_PROFILE_SCOPED("Create Texture Atlas");
 
 			timer.Reset();
-			m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
+			CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height, m_FontAtlas);
 			SK_CORE_TRACE_TAG("Font", "Generated Atlas in {}", timer.Elapsed());
 		}
 

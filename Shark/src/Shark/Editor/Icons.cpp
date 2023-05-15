@@ -5,64 +5,64 @@
 
 namespace Shark {
 
-	Ref<Image2D> Icons::SettingsIcon;
-	Ref<Image2D> Icons::FileIcon;
-	Ref<Image2D> Icons::FolderIcon;
-	Ref<Image2D> Icons::PNGIcon;
-	Ref<Image2D> Icons::SceneIcon;
-	Ref<Image2D> Icons::ScriptIcon;
-	Ref<Image2D> Icons::TextureIcon;
-	Ref<Image2D> Icons::InfoIcon;
-	Ref<Image2D> Icons::WarnIcon;
-	Ref<Image2D> Icons::ErrorIcon;
-	Ref<Image2D> Icons::PlayIcon;
-	Ref<Image2D> Icons::StopIcon;
-	Ref<Image2D> Icons::PauseIcon;
-	Ref<Image2D> Icons::SimulateIcon;
-	Ref<Image2D> Icons::StepIcon;
+	Ref<Texture2D> Icons::SettingsIcon;
+	Ref<Texture2D> Icons::FileIcon;
+	Ref<Texture2D> Icons::FolderIcon;
+	Ref<Texture2D> Icons::PNGIcon;
+	Ref<Texture2D> Icons::SceneIcon;
+	Ref<Texture2D> Icons::ScriptIcon;
+	Ref<Texture2D> Icons::TextureIcon;
+	Ref<Texture2D> Icons::InfoIcon;
+	Ref<Texture2D> Icons::WarnIcon;
+	Ref<Texture2D> Icons::ErrorIcon;
+	Ref<Texture2D> Icons::PlayIcon;
+	Ref<Texture2D> Icons::StopIcon;
+	Ref<Texture2D> Icons::PauseIcon;
+	Ref<Texture2D> Icons::SimulateIcon;
+	Ref<Texture2D> Icons::StepIcon;
 
 	void Icons::Init()
 	{
 		SK_CORE_INFO("Loading Icons...");
 		ScopedTimer timer("Loading Icons");
 
-		SettingsIcon  = Image2D::LoadFromDisc("Resources/Icon_Settings.png");
+		SettingsIcon  = Texture2D::LoadFromDisc("Resources/Icon_Settings.png");
 
-		FileIcon      = Image2D::LoadFromDisc("Resources/ContentBrowser/Icon_File.png");
-		FolderIcon    = Image2D::LoadFromDisc("Resources/ContentBrowser/Icon_Folder.png");
-		PNGIcon       = Image2D::LoadFromDisc("Resources/ContentBrowser/Icon_PNG.png");
-		SceneIcon     = Image2D::LoadFromDisc("Resources/ContentBrowser/Icon_Scene.png");
-		ScriptIcon    = Image2D::LoadFromDisc("Resources/ContentBrowser/Icon_Script.png");
-		TextureIcon   = Image2D::LoadFromDisc("Resources/ContentBrowser/Icon_Texture.png");
+		FileIcon      = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_File.png");
+		FolderIcon    = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Folder.png");
+		PNGIcon       = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_PNG.png");
+		SceneIcon     = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Scene.png");
+		ScriptIcon    = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Script.png");
+		TextureIcon   = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Texture.png");
 
-		InfoIcon      = Image2D::LoadFromDisc("Resources/Console/Icon_Info.png");
-		WarnIcon      = Image2D::LoadFromDisc("Resources/Console/Icon_Warn.png");
-		ErrorIcon     = Image2D::LoadFromDisc("Resources/Console/Icon_Error.png");
+		InfoIcon      = Texture2D::LoadFromDisc("Resources/Console/Icon_Info.png");
+		WarnIcon      = Texture2D::LoadFromDisc("Resources/Console/Icon_Warn.png");
+		ErrorIcon     = Texture2D::LoadFromDisc("Resources/Console/Icon_Error.png");
 		
-		PlayIcon      = Image2D::LoadFromDisc("Resources/Toolbar/Icon_Play.png");
-		StopIcon      = Image2D::LoadFromDisc("Resources/Toolbar/Icon_Stop.png");
-		PauseIcon     = Image2D::LoadFromDisc("Resources/Toolbar/Icon_Pause.png");
-		SimulateIcon  = Image2D::LoadFromDisc("Resources/Toolbar/Icon_Simulate.png");
-		StepIcon      = Image2D::LoadFromDisc("Resources/Toolbar/Icon_Step.png");
+		PlayIcon      = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Play.png");
+		StopIcon      = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Stop.png");
+		PauseIcon     = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Pause.png");
+		SimulateIcon  = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Simulate.png");
+		StepIcon      = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Step.png");
 	}
 
 	void Icons::InitWithDummyImages()
 	{
-		SettingsIcon  = Image2D::Create();
-		FileIcon      = Image2D::Create();
-		FolderIcon    = Image2D::Create();
-		PNGIcon       = Image2D::Create();
-		SceneIcon     = Image2D::Create();
-		ScriptIcon    = Image2D::Create();
-		TextureIcon   = Image2D::Create();
-		InfoIcon      = Image2D::Create();
-		WarnIcon      = Image2D::Create();
-		ErrorIcon     = Image2D::Create();
-		PlayIcon      = Image2D::Create();
-		StopIcon      = Image2D::Create();
-		PauseIcon     = Image2D::Create();
-		SimulateIcon  = Image2D::Create();
-		StepIcon      = Image2D::Create();
+		SettingsIcon  = Texture2D::Create();
+		FileIcon      = Texture2D::Create();
+		FolderIcon    = Texture2D::Create();
+		PNGIcon       = Texture2D::Create();
+		SceneIcon     = Texture2D::Create();
+		ScriptIcon    = Texture2D::Create();
+		TextureIcon   = Texture2D::Create();
+		InfoIcon      = Texture2D::Create();
+		WarnIcon      = Texture2D::Create();
+		ErrorIcon     = Texture2D::Create();
+		PlayIcon      = Texture2D::Create();
+		StopIcon      = Texture2D::Create();
+		PauseIcon     = Texture2D::Create();
+		SimulateIcon  = Texture2D::Create();
+		StepIcon      = Texture2D::Create();
 	}
 
 	void Icons::Shutdown()
@@ -87,29 +87,32 @@ namespace Shark {
 		StepIcon      = nullptr;
 	}
 
-	static void ReloadImageFromDisc(Ref<Image2D> image, const std::filesystem::path& filepath)
+	static void ReloadIconFromDisc(Ref<Texture2D> icon, const std::filesystem::path& filepath)
 	{
-		ImageSerializer serializer(image);
-		serializer.Deserialize(filepath);
+		Ref<TextureSource> source = Ref<TextureSource>::Create();
+		TextureSourceSerializer serializer;
+		serializer.Deserialize(source, filepath);
+		icon->SetTextureSource(source);
+		icon->Invalidate();
 	}
 
 	void Icons::Reload()
 	{
-		ReloadImageFromDisc(SettingsIcon, "Resources/Icon_Settings.png");
-		ReloadImageFromDisc(FileIcon,     "Resources/ContentBrowser/Icon_File.png");
-		ReloadImageFromDisc(FolderIcon,   "Resources/ContentBrowser/Icon_Folder.png");
-		ReloadImageFromDisc(PNGIcon,      "Resources/ContentBrowser/Icon_PNG.png");
-		ReloadImageFromDisc(SceneIcon,    "Resources/ContentBrowser/Icon_Scene.png");
-		ReloadImageFromDisc(ScriptIcon,   "Resources/ContentBrowser/Icon_Script.png");
-		ReloadImageFromDisc(TextureIcon,  "Resources/ContentBrowser/Icon_Texture.png");
-		ReloadImageFromDisc(InfoIcon,     "Resources/Console/Icon_Info.png");
-		ReloadImageFromDisc(WarnIcon,     "Resources/Console/Icon_Warn.png");
-		ReloadImageFromDisc(ErrorIcon,    "Resources/Console/Icon_Error.png");
-		ReloadImageFromDisc(PlayIcon,     "Resources/Toolbar/Icon_Play.png");
-		ReloadImageFromDisc(StopIcon,     "Resources/Toolbar/Icon_Stop.png");
-		ReloadImageFromDisc(PauseIcon,    "Resources/Toolbar/Icon_Pause.png");
-		ReloadImageFromDisc(SimulateIcon, "Resources/Toolbar/Icon_Simulate.png");
-		ReloadImageFromDisc(StepIcon,     "Resources/Toolbar/Icon_Step.png");
+		ReloadIconFromDisc(SettingsIcon, "Resources/Icon_Settings.png");
+		ReloadIconFromDisc(FileIcon,     "Resources/ContentBrowser/Icon_File.png");
+		ReloadIconFromDisc(FolderIcon,   "Resources/ContentBrowser/Icon_Folder.png");
+		ReloadIconFromDisc(PNGIcon,      "Resources/ContentBrowser/Icon_PNG.png");
+		ReloadIconFromDisc(SceneIcon,    "Resources/ContentBrowser/Icon_Scene.png");
+		ReloadIconFromDisc(ScriptIcon,   "Resources/ContentBrowser/Icon_Script.png");
+		ReloadIconFromDisc(TextureIcon,  "Resources/ContentBrowser/Icon_Texture.png");
+		ReloadIconFromDisc(InfoIcon,     "Resources/Console/Icon_Info.png");
+		ReloadIconFromDisc(WarnIcon,     "Resources/Console/Icon_Warn.png");
+		ReloadIconFromDisc(ErrorIcon,    "Resources/Console/Icon_Error.png");
+		ReloadIconFromDisc(PlayIcon,     "Resources/Toolbar/Icon_Play.png");
+		ReloadIconFromDisc(StopIcon,     "Resources/Toolbar/Icon_Stop.png");
+		ReloadIconFromDisc(PauseIcon,    "Resources/Toolbar/Icon_Pause.png");
+		ReloadIconFromDisc(SimulateIcon, "Resources/Toolbar/Icon_Simulate.png");
+		ReloadIconFromDisc(StepIcon,     "Resources/Toolbar/Icon_Step.png");
 	}
 
 }

@@ -193,6 +193,9 @@ namespace Shark {
 		auto device = renderer->GetDevice();
 		DX11_VERIFY(device->CreateTexture2D(&texture2dDesc, subresourceData, &m_Resource));
 
+		if (m_Specification.DebugName.size())
+			DX11_VERIFY(D3D_SET_OBJECT_NAME_A(m_Resource, m_Specification.DebugName.c_str()));
+
 		if (m_InitalData && m_Specification.MipLevels != 1)
 			RT_UpdateResource(m_InitalData);
 
@@ -204,18 +207,35 @@ namespace Shark {
 			shaderResourceViewDesc.Texture2D.MipLevels = -1;
 			shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
 			DX11_VERIFY(device->CreateShaderResourceView(m_Resource, &shaderResourceViewDesc, &m_View));
+
+			if (m_Specification.DebugName.size())
+				DX11_VERIFY(D3D_SET_OBJECT_NAME_A(m_View, m_Specification.DebugName.c_str()));
 		}
 
 	}
 
+	bool DirectXImage2D::Validate() const
+	{
+		// for Storage Images m_View is null
+		bool viewValid = m_View || m_Specification.Type == ImageType::Storage;
+
+		return m_Resource && viewValid;
+	}
+
 	void DirectXImage2D::Release()
 	{
-		Renderer::SubmitResourceFree([resource = m_Resource, view = m_View]()
+		Renderer::SubmitResourceFree([resource = m_Resource, view = m_View, debugName = m_Specification.DebugName]()
 		{
 			if (resource)
-				resource->Release();
+			{
+				ULONG refcount = resource->Release();
+				SK_CORE_WARN("Resource {} RefCount: {}", debugName, refcount);
+			}
 			if (view)
-				view->Release();
+			{
+				ULONG refcount = view->Release();
+				SK_CORE_WARN("View {} RefCount: {}", debugName, refcount);
+			}
 		});
 
 		m_Resource = nullptr;

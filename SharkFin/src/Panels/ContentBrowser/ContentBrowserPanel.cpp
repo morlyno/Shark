@@ -5,6 +5,7 @@
 #include "Shark/Editor/EditorSettings.h"
 #include "Shark/Editor/Icons.h"
 #include "Shark/Asset/Assets.h"
+#include "Shark/Asset/AssetUtils.h"
 #include "Shark/Serialization/TextureSerializers.h"
 
 namespace Shark {
@@ -19,6 +20,8 @@ namespace Shark {
 		m_IconExtensionMap[".sktex"] = Icons::TextureIcon;
 		m_IconExtensionMap[".png"] = Icons::PNGIcon;
 		m_IconExtensionMap[".cs"] = Icons::ScriptIcon;
+		m_FileIcon = Icons::FileIcon;
+		m_FolderIcon = Icons::FolderIcon;
 
 		memset(m_SearchBuffer, 0, sizeof(m_SearchBuffer));
 	}
@@ -317,7 +320,7 @@ namespace Shark {
 			m_CurrentItems.Clear();
 
 			for (Ref<DirectoryInfo> subdir : directory->SubDirectories)
-				m_CurrentItems.Items.emplace_back(Ref<ContentBrowserItem>::Create(CBItemType::Directory, subdir->Handle, subdir->FilePath.stem().string(), Icons::FolderIcon));
+				m_CurrentItems.Items.emplace_back(Ref<ContentBrowserItem>::Create(CBItemType::Directory, subdir->Handle, subdir->FilePath.stem().string(), m_FolderIcon));
 
 			for (AssetHandle assetHandle : directory->Assets)
 			{
@@ -361,8 +364,9 @@ namespace Shark {
 			m_SelectedItem = nullptr;
 		}
 
-		GenerateThumbnails();
-
+		Ref instance = this;
+		m_GenerateThumbnailsFuture = std::async(std::launch::async, [instance]() { instance->GenerateThumbnails(); });
+		//GenerateThumbnails();
 	}
 
 	void ContentBrowserPanel::Internal_MoveForward()
@@ -754,28 +758,45 @@ namespace Shark {
 		m_HistoryIndex = -1;
 	}
 
-	Ref<Image2D> ContentBrowserPanel::GetIcon(const AssetMetaData& metadata)
+	Ref<Texture2D> ContentBrowserPanel::GetIcon(const AssetMetaData& metadata)
 	{
 		std::string extension = metadata.FilePath.extension().string();
 		if (m_IconExtensionMap.find(extension) != m_IconExtensionMap.end())
 			return m_IconExtensionMap.at(extension);
-		return Icons::FileIcon;
+		return m_FileIcon;
 	}
 
-	Ref<Image2D> ContentBrowserPanel::GetThumbnail(const AssetMetaData& metadata)
+
+	Ref<Texture2D> ContentBrowserPanel::GetThumbnail(const AssetMetaData& metadata)
 	{
 		if (!metadata.IsValid())
-			Icons::FileIcon;
+			m_FileIcon;
 
-		if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource)
+		if (metadata.Type != AssetType::Texture && metadata.Type != AssetType::TextureSource && metadata.Type != AssetType::Font)
+			return GetIcon(metadata);
+
+		Ref<Asset> asset = AssetUtils::Create(metadata.Type);
+		AssetSerializer::Deserialize(asset, ResourceManager::GetFileSystemPath(metadata));
+
+		switch (metadata.Type)
 		{
-			auto image = Image2D::Create();
-			Application::Get().SubmitToMainThread([image, path = ResourceManager::GetFileSystemPath(metadata)]()
+			//case AssetType::Scene:
+			case AssetType::Texture:
 			{
-				ImageSerializer serializer(image);
-				serializer.Deserialize(path);
-			});
-			return image;
+				return asset.As<Texture2D>();
+			}
+			case AssetType::TextureSource:
+			{
+				auto texture = Texture2D::Create();
+				Application::Get().SubmitToMainThread([texture, source = asset.As<TextureSource>()]()
+				{
+					texture->SetTextureSource(source);
+					texture->Invalidate();
+				});
+				return texture;
+			}
+			//case AssetType::ScriptFile: 
+			case AssetType::Font: return asset.As<Font>()->GetFontAtlas();
 		}
 
 		return GetIcon(metadata);
@@ -783,15 +804,17 @@ namespace Shark {
 
 	void ContentBrowserPanel::GenerateThumbnails()
 	{
+		SK_CORE_WARN_TAG("UI", "Generating Thumbnails");
+		ScopedTimer timer("Generating Thumbnails");
 		if (!EditorSettings::Get().ContentBrowser.GenerateThumbnails)
 			return;
 
 		//ScopedTimer timer("ContentBrowserPanel::GenerateThumbnails");
-
-		for (Ref<ContentBrowserItem> item : m_CurrentItems)
+		auto currentItems = m_CurrentItems;
+		for (Ref<ContentBrowserItem> item : currentItems)
 		{
 			const auto& metadata = ResourceManager::GetMetaData(item->GetHandle());
-			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource)
+			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource || metadata.Type == AssetType::Font)
 			{
 				SK_CORE_ASSERT(item->m_Thumbnail == nullptr);
 				item->m_Thumbnail = GetThumbnail(metadata);

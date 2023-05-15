@@ -60,14 +60,15 @@ namespace Shark {
 		ImGui_ImplWin32_Init(window.GetHandle());
 
 		m_CommandBuffer = Ref<DirectXRenderCommandBuffer>::Create();
-
-		Renderer::Submit([commandBuffer = m_CommandBuffer]()
+		Renderer::Submit([instance = this, commandBuffer = m_CommandBuffer]()
 		{
 			Window& window = Application::Get().GetWindow();
+			auto context = commandBuffer->GetContext();
 
-			ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), commandBuffer->GetContext());
+			ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), context);
 			ImGui_ImplDX11_CreateDeviceObjects();
-			ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, commandBuffer->GetContext());
+			ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, context);
+			context->PSGetSamplers(0, 1, &instance->m_ImGuiFontSampler);
 		});
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
@@ -79,19 +80,20 @@ namespace Shark {
 
 		m_GPUTimer = Ref<DirectXGPUTimer>::Create("ImGui");
 
-		UI::CreateContext();
+		UI::CreateContext(this);
 	}
 
 	void DirectXImGuiLayer::OnDetach()
 	{
 		SK_PROFILE_FUNCTION();
 
-		Renderer::SubmitResourceFree([]()
+		Renderer::SubmitResourceFree([sampler = m_ImGuiFontSampler]()
 		{
 			UI::DestroyContext();
 			ImGui_ImplDX11_Shutdown();
 			ImGui_ImplWin32_Shutdown();
 			ImGui::DestroyContext();
+			sampler->Release();
 		});
 	}
 
@@ -107,6 +109,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		m_UsedTextures.clear();
+		m_UsedTextureIndex = 0;
 
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -152,6 +157,31 @@ namespace Shark {
 		m_CommandBuffer->RT_EndTimeQuery(m_GPUTimer);
 		m_CommandBuffer->RT_End();
 		m_CommandBuffer->RT_Execute();
+	}
+
+	void BindSamplerCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
+	{
+		DirectXImGuiLayer* imguiLayer = (DirectXImGuiLayer*)cmd->UserCallbackData;
+		const auto& usedTextures = imguiLayer->m_UsedTextures;
+
+		auto context = imguiLayer->m_CommandBuffer->GetContext();
+		auto texture = imguiLayer->m_UsedTextures[imguiLayer->m_UsedTextureIndex++];
+		auto sampler = texture->GetSamplerNative();
+		SK_CORE_ASSERT(sampler);
+		context->PSSetSamplers(0, 1, &sampler);
+	}
+
+	void DirectXImGuiLayer::AddTexture(Ref<Texture2D> texture)
+	{
+		m_UsedTextures.emplace_back(texture.As<DirectXTexture2D>());
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		drawList->AddCallback(&BindSamplerCallback, this);
+	}
+
+	void DirectXImGuiLayer::BindFontSampler()
+	{
+		m_CommandBuffer->GetContext()->PSSetSamplers(0, 1, &m_ImGuiFontSampler);
 	}
 
 }

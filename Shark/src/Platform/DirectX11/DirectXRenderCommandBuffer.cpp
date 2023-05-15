@@ -21,7 +21,7 @@ namespace Shark {
 			Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
 			SK_DX11_CALL(renderer->GetDevice()->CreateDeferredContext(0, &instance->m_DeferredContext));
 		});
-		renderer->AddCommandBuffer(this);
+		renderer->AddCommandBuffer(instance);
 	}
 
 	DirectXRenderCommandBuffer::~DirectXRenderCommandBuffer()

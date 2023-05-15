@@ -26,6 +26,8 @@ namespace Shark {
 		Buffer ImageData;
 		ImageFormat Format = ImageFormat::None;
 		uint32_t Width = 0, Height = 0;
+
+		std::filesystem::path SourcePath;
 	};
 
 
@@ -74,6 +76,8 @@ namespace Shark {
 		ImageFormat Format = ImageFormat::RGBA8;
 		bool GenerateMips = false;
 		SamplerSpecification Sampler;
+
+		std::string DebugName;
 	};
 
 	class Texture2D : public Asset
@@ -82,6 +86,7 @@ namespace Shark {
 		virtual ~Texture2D() = default;
 
 		virtual void Invalidate() = 0;
+		virtual bool Validate() const = 0;
 
 		virtual void Release() = 0;
 		virtual void RT_Release() = 0;
@@ -108,6 +113,8 @@ namespace Shark {
 		static Ref<Texture2D> Create(const TextureSpecification& specification, Ref<TextureSource> textureSource);
 		static Ref<Texture2D> Create(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage = true);
 		static Ref<Texture2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
+
+		static Ref<Texture2D> LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& samplerSpecification = {});
 	};
 
 	class Texture2DArray : public RefCount

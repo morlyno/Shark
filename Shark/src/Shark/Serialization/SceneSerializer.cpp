@@ -124,7 +124,7 @@ namespace Shark {
 		return true;
 	}
 
-	bool SceneSerializer::Deserialize(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool SceneSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -153,6 +153,36 @@ namespace Shark {
 
 		asset = scene;
 		asset->Handle = metadata.Handle;
+
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene took {}ms", timer.ElapsedMilliSeconds());
+		return true;
+	}
+
+	bool SceneSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
+	{
+		SK_PROFILE_FUNCTION();
+
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene from {}", assetPath);
+		Timer timer;
+
+		if (!FileSystem::Exists(assetPath))
+		{
+			SK_SERIALIZATION_ERROR("Path not found! {0}", assetPath);
+			return false;
+		}
+
+		std::string filedata = FileSystem::ReadString(FileSystem::GetAbsolute(assetPath));
+		if (filedata.empty())
+		{
+			SK_SERIALIZATION_ERROR("File was empty!");
+			return false;
+		}
+
+		if (!DeserializeFromYAML(asset.As<Scene>(), filedata))
+		{
+			SK_SERIALIZATION_ERROR("Failed to deserialize Scene! {}", m_ErrorMsg);
+			return false;
+		}
 
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene took {}ms", timer.ElapsedMilliSeconds());
 		return true;

@@ -11,7 +11,7 @@ namespace Shark {
 		return true;
 	}
 
-	bool FontSerializer::Deserialize(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool FontSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -24,17 +24,30 @@ namespace Shark {
 			return false;
 		}
 
-		std::filesystem::path fontFile = ResourceManager::GetFileSystemPath(metadata);
-		std::string filedata = FileSystem::ReadString(fontFile);
-		if (filedata.empty())
+		std::filesystem::path fontPath = ResourceManager::GetFileSystemPath(metadata);
+		Ref<Font> font = Ref<Font>::Create(fontPath);
+		asset = font;
+		asset->Handle = metadata.Handle;
+
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Font took {}ms", timer.ElapsedMilliSeconds());
+		return true;
+	}
+
+	bool FontSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
+	{
+		SK_PROFILE_FUNCTION();
+
+		SK_CORE_INFO_TAG(Tag::Serialization, "Deserializing Font from {}", assetPath);
+		Timer timer;
+
+		if (!FileSystem::Exists(assetPath))
 		{
-			SK_CORE_ERROR_TAG(Tag::Serialization, "File was empty!");
+			SK_CORE_ERROR_TAG(Tag::Serialization, "Path not found! {0}", assetPath);
 			return false;
 		}
 
-		Ref<Font> font = Ref<Font>::Create(fontFile);
-		asset = font;
-		asset->Handle = metadata.Handle;
+		Ref<Font> font = asset.As<Font>();
+		font->Load(FileSystem::GetAbsolute(assetPath));
 
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Font took {}ms", timer.ElapsedMilliSeconds());
 		return true;

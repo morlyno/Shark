@@ -197,6 +197,36 @@ namespace Shark {
 		return strStream.str();
 	}
 
+	bool FileSystem::WriteBinary(const std::filesystem::path& filePath, Buffer fileData, bool createDirectoriesIfNeeded)
+	{
+		const auto directory = filePath.parent_path();
+		if (createDirectoriesIfNeeded && !std::filesystem::exists(directory))
+			std::filesystem::create_directories(directory);
+
+		std::ofstream stream(filePath);
+		if (!stream)
+			return false;
+
+		stream.write(fileData.As<const char>(), fileData.Size);
+		stream.close();
+		return true;
+	}
+
+	bool FileSystem::WriteString(const std::filesystem::path& filePath, const std::string& fileData, bool createDirectoriesIfNeeded)
+	{
+		const auto directory = filePath.parent_path();
+		if (createDirectoriesIfNeeded && !std::filesystem::exists(directory))
+			std::filesystem::create_directories(directory);
+
+		std::ofstream stream(filePath);
+		if (!stream)
+			return false;
+
+		stream.write(fileData.data(), fileData.size());
+		stream.close();
+		return true;
+	}
+
 	void FileSystem::TruncateFile(const std::filesystem::path& filePath)
 	{
 		std::ofstream fout{ filePath, std::ios::trunc };
