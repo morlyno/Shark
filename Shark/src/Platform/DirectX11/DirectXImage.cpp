@@ -206,15 +206,9 @@ namespace Shark {
 		Renderer::SubmitResourceFree([resource = m_Resource, view = m_View, debugName = m_Specification.DebugName]()
 		{
 			if (resource)
-			{
-				ULONG refcount = resource->Release();
-				SK_CORE_WARN("Resource {} RefCount: {}", debugName, refcount);
-			}
+				resource->Release();
 			if (view)
-			{
-				ULONG refcount = view->Release();
-				SK_CORE_WARN("View {} RefCount: {}", debugName, refcount);
-			}
+				view->Release();
 		});
 
 		m_Resource = nullptr;

@@ -9,7 +9,7 @@ namespace Shark {
 
 	class WindowsWindow : public Window
 	{
-	private:
+	public:
 		class WindowClass;
 
 	public:
@@ -54,7 +54,7 @@ namespace Shark {
 		LRESULT WINAPI HandleMsg(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	private:
-		static Scope<WindowClass> s_WindowClass;
+		Ref<WindowClass> m_WindowClass;
 
 		HWND m_hWnd;
 		Ref<SwapChain> m_SwapChain;

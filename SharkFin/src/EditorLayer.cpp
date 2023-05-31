@@ -117,6 +117,7 @@ namespace Shark {
 		m_PanelManager->Clear();
 
 		Icons::Shutdown();
+		EditorSettings::Shutdown();
 	}
 
 	void EditorLayer::OnUpdate(TimeStep ts)
@@ -381,30 +382,6 @@ namespace Shark {
 				}
 			}
 		}
-	}
-
-	static std::string BytesToString(uint64_t bytes)
-	{
-		if (bytes > (1024 * 1024 * 1024))
-		{
-			float val = (float)bytes / (1024 * 1024 * 1024);
-			return fmt::format("{0:.2f} GB", val);
-		}
-
-		if (bytes > (1024 * 1024))
-		{
-			float val = (float)bytes / (1024 * 1024);
-			return fmt::format("{0:.2f} MB", val);
-		}
-
-		if (bytes > (1024))
-		{
-			float val = (float)bytes / (1024);
-			return fmt::format("{0:.2f} KB", val);
-		}
-
-		float val = (float)bytes;
-		return fmt::format("{0:.2f} bytes", val);
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -1460,9 +1437,9 @@ namespace Shark {
 			{
 				if (ImGui::BeginTabItem("Memory"))
 				{
-					UI::TextF("Total allocated {}", BytesToString(Allocator::GetMemoryStats().TotalAllocated));
-					UI::TextF("Total freed {}", BytesToString(Allocator::GetMemoryStats().TotalFreed));
-					UI::TextF("Current Usage {}", BytesToString(Allocator::GetMemoryStats().CurrentUsage()));
+					UI::TextF("Total allocated {}", Utils::BytesToString(Allocator::GetMemoryStats().TotalAllocated));
+					UI::TextF("Total freed {}", Utils::BytesToString(Allocator::GetMemoryStats().TotalFreed));
+					UI::TextF("Current Usage {}", Utils::BytesToString(Allocator::GetMemoryStats().CurrentUsage()));
 
 					ImGui::Separator();
 
@@ -1483,7 +1460,7 @@ namespace Shark {
 							continue;
 
 						auto& entry = entries[size];
-						entry.Size = BytesToString(size);
+						entry.Size = Utils::BytesToString(size);
 
 						std::string str = desc;
 						if (str.find("class") != std::string::npos)

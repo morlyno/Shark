@@ -99,7 +99,7 @@ namespace Shark {
 	class DirectoryInfo : public RefCount
 	{
 	public:
-		DirectoryInfo(Ref<DirectoryInfo> parent, const std::filesystem::path& filePath, AssetHandle handle);
+		DirectoryInfo(Weak<DirectoryInfo> parent, const std::filesystem::path& filePath, AssetHandle handle);
 		~DirectoryInfo();
 		void Reload();
 
@@ -110,7 +110,7 @@ namespace Shark {
 		std::string Name;
 		AssetHandle Handle;
 
-		Ref<DirectoryInfo> Parent;
+		Weak<DirectoryInfo> Parent;
 		std::vector<Ref<DirectoryInfo>> SubDirectories;
 		std::vector<AssetHandle> Assets;
 	};

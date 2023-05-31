@@ -513,9 +513,10 @@ namespace Shark {
 
 			UUID uuid = entity.GetUUID();
 			
-			bool isMainCamera = entity.GetScene()->m_ActiveCameraUUID.IsValid() ? entity.GetScene()->m_ActiveCameraUUID == uuid : false;
+			Ref<Scene> scene = entity.GetScene().GetRef();
+			bool isMainCamera = scene->m_ActiveCameraUUID.IsValid() ? scene->m_ActiveCameraUUID == uuid : false;
 			if (UI::Control("Is Active", isMainCamera))
-				entity.GetScene()->m_ActiveCameraUUID = uuid;
+				scene->m_ActiveCameraUUID = uuid;
 
 			UI::EndControls();
 
@@ -641,7 +642,7 @@ namespace Shark {
 
 			ImGui::Separator();
 
-			Ref<Scene> scene = entity.GetScene();
+			Ref<Scene> scene = entity.GetScene().GetRef();
 			if (scene->IsRunning())
 			{
 				GCHandle handle = ScriptEngine::GetInstance(entity);

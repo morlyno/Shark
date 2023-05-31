@@ -4,8 +4,6 @@
 #include <map>
 #include <unordered_map>
 
-#define SK_TRACK_MEMORY 1
-
 namespace Shark {
 
 	namespace Internal {
@@ -39,6 +37,9 @@ namespace Shark {
 			}
 		};
 
+		template<typename TKey, typename TValue>
+		using UntrackedMapAllocator = UntrackedAllocator<std::pair<const TKey, TValue>>;
+
 	}
 
 	struct MemoryStats
@@ -53,6 +54,7 @@ namespace Shark {
 		void* Memory;
 		size_t Size;
 		const char* Descriptor;
+		int Line = -1;
 	};
 
 	struct AllocatorData
@@ -77,13 +79,23 @@ namespace Shark {
 		static void* Allocate(size_t size);
 		static void* Allocate(size_t size, const char* desc);
 		static void* Allocate(size_t size, const char* file, int line);
-		static void* Allocate(size_t size, const char* func, const char* file, int line);
 		static void Free(void* memory);
+
+		static void* Reallocate(void* memory, size_t newSize);
+		static void* Reallocate(void* memory, size_t newSize, const char* desc);
+		static void* Reallocate(void* memory, size_t newSize, const char* file, int line);
 
 		static const AllocatorData::AllocationStatsMap& GetAllocationStatsMap() { return s_Data->m_AllocationStatsMap; }
 		static const MemoryStats& GetMemoryStats() { return s_Data->m_MemoryStats; }
+
+		static const AllocatorData::AllocationMap& GetAllocationMap() { return s_Data->m_AllocationMap; }
+
+	private:
+		static void* InternalReallocate(void* memory, size_t newSize, const char* descOrFile = s_NullDesc, int line = -1);
+
 	private:
 		inline static AllocatorData* s_Data = nullptr;
+		inline static const char* s_NullDesc = "(null)";
 	};
 
 }
@@ -108,21 +120,14 @@ void* __CRTDECL operator new(size_t size, const char* file, int line);
 _NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
 void* __CRTDECL operator new[](size_t size, const char* file, int line);
 
-_NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
-void* __CRTDECL operator new(size_t size, const char* func, const char* file, int line);
-
-_NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
-void* __CRTDECL operator new[](size_t size, const char* func, const char* file, int line);
-
 void __CRTDECL operator delete(void* memory) noexcept;
 void __CRTDECL operator delete(void* memory, const char* desc) noexcept;
 void __CRTDECL operator delete(void* memory, const char* file, int line) noexcept;
-void __CRTDECL operator delete(void* memory, const char* func, const char* file, int line) noexcept;
 void __CRTDECL operator delete[](void* memory) noexcept;
 void __CRTDECL operator delete[](void* memory, const char* desc) noexcept;
-void __CRTDECL operator delete[](void* memory, const char* func, const char* file, int line) noexcept;
+void __CRTDECL operator delete[](void* memory, const char* file, int line) noexcept;
 
-#define sknew new(__FUNCTION__, __FILE__, __LINE__)
+#define sknew new(__FILE__, __LINE__)
 #define skdelete delete
 
 #else

@@ -6,28 +6,10 @@ namespace Shark {
 	{
 	public:
 		RefCount() = default;
-		RefCount(const RefCount& other)
-			: m_RefCount(other.m_RefCount)
-		{}
-
-		RefCount(RefCount&& other)
-			: m_RefCount(other.m_RefCount)
-		{
-			other.m_RefCount = 0;
-		}
-
-		const RefCount& operator=(const RefCount& other)
-		{
-			m_RefCount = other.m_RefCount;
-			return *this;
-		}
-
-		const RefCount& operator=(RefCount&& other)
-		{
-			m_RefCount = other.m_RefCount;
-			other.m_RefCount = 0;
-			return *this;
-		}
+		RefCount(const RefCount& other) = delete;
+		RefCount(RefCount&& other) = delete;
+		const RefCount& operator=(const RefCount& other) = delete;
+		const RefCount& operator=(RefCount&& other) = delete;
 		virtual ~RefCount() = default;
 
 		uint32_t GetRefCount() const
@@ -35,7 +17,7 @@ namespace Shark {
 			return m_RefCount;
 		}
 
-	protected:
+	private:
 		uint32_t AddRef()
 		{
 			return ++m_RefCount;
@@ -46,8 +28,14 @@ namespace Shark {
 			return --m_RefCount;
 		}
 
+		std::weak_ptr<uint8_t> GetWeakCheckData()
+		{
+			return m_WeakCheckData;
+		}
+
 	private:
 		uint32_t m_RefCount = 0;
+		std::shared_ptr<uint8_t> m_WeakCheckData = std::make_shared<uint8_t>();
 
 		template<typename T>
 		friend class Ref;
@@ -65,32 +53,24 @@ namespace Shark {
 		Ref() = default;
 		Ref(std::nullptr_t) {};
 		Ref(const Ref& other)
-			: m_Instance(other.m_Instance)
 		{
-			if (m_Instance)
-				m_Instance->AddRef();
+			ReleaseAndAssign(other);
 		}
 
 		Ref(Ref&& other)
-			: m_Instance(other.m_Instance)
 		{
-			other.m_Instance = nullptr;
+			ReleaseAndMove(std::move(other));
 		}
 
 		const Ref& operator=(const Ref& other)
 		{
-			Release();
-			m_Instance = other.m_Instance;
-			if (m_Instance)
-				m_Instance->AddRef();
+			ReleaseAndAssign(other);
 			return *this;
 		}
 
 		const Ref& operator=(Ref&& other)
 		{
-			Release();
-			m_Instance = other.m_Instance;
-			other.m_Instance = nullptr;
+			ReleaseAndMove(std::move(other));
 			return *this;
 		}
 
@@ -107,50 +87,35 @@ namespace Shark {
 
 		Ref(T* inst)
 		{
+			Release();
 			m_Instance = inst;
 			if (m_Instance)
 				m_Instance->AddRef();
 		}
 
-		Ref(const Weak<T>& weak)
-			: m_Instance(weak.m_Instance)
-		{
-			m_Instance->AddRef();
-		}
-
 		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
 		Ref(const Ref<T2>& other)
 		{
-			Release();
-			m_Instance = other.m_Instance;
-			if (m_Instance)
-				m_Instance->AddRef();
+			ReleaseAndAssign(other);
 		}
 
 		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
 		Ref(Ref<T2>&& other)
 		{
-			Release();
-			m_Instance = other.m_Instance;
-			other.m_Instance = nullptr;
+			ReleaseAndMove(std::move(other));
 		}
 
 		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
 		const Ref& operator=(const Ref<T2>& other)
 		{
-			Release();
-			m_Instance = other.m_Instance;
-			if (m_Instance)
-				m_Instance->AddRef();
+			ReleaseAndAssign(other);
 			return *this;
 		}
 
 		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
 		const Ref& operator=(Ref<T2>&& other)
 		{
-			Release();
-			m_Instance = other.m_Instance;
-			other.m_Instance = nullptr;
+			ReleaseAndMove(std::move(other));
 			return *this;
 		}
 
@@ -160,7 +125,9 @@ namespace Shark {
 			{
 				SK_CORE_VERIFY(m_Instance->GetRefCount() != 0, "Release was called but refcount was 0");
 				if (m_Instance->DecRef() == 0)
+				{
 					skdelete m_Instance;
+				}
 				m_Instance = nullptr;
 			}
 		}
@@ -231,6 +198,24 @@ namespace Shark {
 		}
 
 	private:
+		template<typename T2>
+		void ReleaseAndAssign(const Ref<T2>& other)
+		{
+			Release();
+			m_Instance = other.m_Instance;
+			if (m_Instance)
+				m_Instance->AddRef();
+		}
+
+		template<typename T2>
+		void ReleaseAndMove(Ref<T2>&& other)
+		{
+			Release();
+			m_Instance = other.m_Instance;
+			other.m_Instance = nullptr;
+		}
+
+	private:
 		T* m_Instance = nullptr;
 
 		template<typename> friend class Ref;
@@ -244,118 +229,50 @@ namespace Shark {
 	public:
 		Weak() = default;
 		Weak(std::nullptr_t) {}
-		Weak(const Weak& other)
-			: m_Instance(other.m_Instance)
-		{
-			m_Instance = other.m_Instance;
-		}
 
-		Weak(Weak&& other)
-			: m_Instance(other.m_Instance)
+		Weak(Ref<T> ref)
 		{
-			m_Instance = other.m_Instance;
-			other.m_Instance = nullptr;
-		}
-
-		const Weak& operator=(const Weak& other)
-		{
-			Release();
-			m_Instance = other.m_Instance;
-			return *this;
-		}
-
-		const Weak& operator=(Weak&& other)
-		{
-			Release();
-			m_Instance = other.m_Instance;
-			other.m_Instance = nullptr;
-			return *this;
-		}
-
-		const Weak& operator=(std::nullptr_t)
-		{
-			Release();
-			return *this;
-		}
-
-		~Weak()
-		{
-			Release();
+			Assign(ref.Raw());
 		}
 
 		Weak(T* inst)
-			: m_Instance(inst)
-		{}
-
-		Weak(const Ref<T>& ref)
-			: m_Instance(ref.m_Instance)
-		{}
-
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		Weak(const Weak<T2>& other)
-			: m_Instance(other.m_Instance)
-		{}
-
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		Weak(Weak<T2>&& other)
-			: m_Instance(other.m_Instance)
 		{
-			other.m_Instance = nullptr;
+			Assign(inst);
 		}
 
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		const Weak& operator=(const Weak<T2>& other)
+		const Weak& operator=(Ref<T> ref)
 		{
-			m_Instance = other.m_Instance;
+			Assign(ref.Raw());
 			return *this;
 		}
 
-		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, bool> = true>
-		const Weak& operator=(Weak<T2>&& other)
+		const Weak& operator=(T* inst)
 		{
-			m_Instance = other.m_Instance;
-			other.m_Instance = nullptr;
+			Assign(inst);
 			return *this;
 		}
 
-		void Release()
+		Ref<T> GetRef() const
 		{
-			m_Instance = nullptr;
-		}
-
-		T& operator*()
-		{
-			return *m_Instance;
-		}
-
-		const T& operator*() const
-		{
-			return *m_Instance;
-		}
-
-		T* operator->()
-		{
+			SK_CORE_VERIFY(!Expired());
 			return m_Instance;
 		}
 
-		const T* operator->() const
+		Ref<T> TryGetRef() const
 		{
+			if (Expired())
+				return nullptr;
 			return m_Instance;
+		}
+
+		bool Expired() const
+		{
+			return m_WeakControlData.expired();
 		}
 
 		operator bool() const
 		{
-			return m_Instance != nullptr;
-		}
-
-		bool operator==(const Weak& rhs) const
-		{
-			return m_Instance == rhs.m_Instance;
-		}
-
-		bool operator!=(const Weak& rhs) const
-		{
-			return !(*this == rhs);
+			return !Expired() && m_Instance;
 		}
 
 		T* Raw() const
@@ -363,15 +280,17 @@ namespace Shark {
 			return m_Instance;
 		}
 
-		template<typename T2>
-		Weak<T2> As() const
+	private:
+		void Assign(T* inst)
 		{
-			SK_CORE_VERIFY(dynamic_cast<T2*>(m_Instance));
-			return static_cast<T2*>(m_Instance);
+			m_Instance = inst;
+			if (inst)
+				m_WeakControlData = inst->GetWeakCheckData();
 		}
 
 	private:
 		T* m_Instance = nullptr;
+		std::weak_ptr<uint8_t> m_WeakControlData;
 
 		template<typename> friend class Weak;
 		template<typename> friend class Ref;

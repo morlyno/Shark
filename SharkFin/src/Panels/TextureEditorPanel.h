@@ -10,10 +10,9 @@
 #include "Shark/Scene/Entity.h"
 #include "Shark/Render/SceneRenderer.h"
 #include "Shark/Render/EditorCamera.h"
+#include "Shark/UI/UI.h"
 
 #include "Panels/AssetEditorPanel.h"
-
-#include <imgui.h>
 
 namespace Shark {
 

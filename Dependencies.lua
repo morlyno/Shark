@@ -41,3 +41,4 @@ Library["SPIRV_Cross_HLSL_Debug"] = "%{LibraryDir.VulkanSDK}/spirv-cross-hlsld.l
 Library["Winmm"] = "Winmm.lib"
 Library["Version"] = "Version.lib"
 Library["Bcrypt"] = "Bcrypt.lib"
+Library["WinSock"] = "Ws2_32.lib"

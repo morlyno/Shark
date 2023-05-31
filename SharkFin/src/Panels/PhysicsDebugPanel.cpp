@@ -10,7 +10,6 @@
 
 #include "Shark/Debug/Profiler.h"
 
-#include <imgui.h>
 #include <box2d/b2_body.h>
 #include "box2d/b2_fixture.h"
 #include "box2d/b2_joint.h"

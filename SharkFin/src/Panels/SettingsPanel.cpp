@@ -1,7 +1,7 @@
 #include "skfpch.h"
 #include "SettingsPanel.h"
 
-#include <imgui.h>
+#include "Shark/UI/UI.h"
 
 namespace Shark {
 

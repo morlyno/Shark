@@ -20,7 +20,6 @@ namespace Shark {
 		virtual bool Validate() const override;
 
 		virtual void Release() override;
-		virtual void RT_Release() override;
 
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
@@ -46,6 +45,7 @@ namespace Shark {
 		TextureSpecification m_Specification;
 		Ref<TextureSource> m_TextureSource;
 		Buffer m_ImageData;
+		bool m_ImageDataOwned = false;
 
 		Ref<DirectXImage2D> m_Image;
 		ID3D11SamplerState* m_Sampler = nullptr;;

@@ -22,52 +22,52 @@ namespace Shark {
 		Component& AddComponent(Args&&... args)
 		{
 			SK_CORE_VERIFY(!AllOf<Component>());
-			return m_Scene->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+			return m_Scene.GetRef()->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 		}
 
 		template<typename Component, typename... Args>
 		Component& AddOrReplaceComponent(Args&&... args)
 		{
-			return m_Scene->m_Registry.emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
+			return m_Scene.GetRef()->m_Registry.emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
 		}
 
 		template<typename Component>
 		void RemoveComponent()
 		{
 			SK_CORE_VERIFY(AllOf<Component>());
-			m_Scene->m_Registry.remove<Component>(m_EntityHandle);
+			m_Scene.GetRef()->m_Registry.remove<Component>(m_EntityHandle);
 		}
 
 		template<typename Component>
 		Component& GetComponent()
 		{
 			SK_CORE_VERIFY(AllOf<Component>());
-			return m_Scene->m_Registry.get<Component>(m_EntityHandle);
+			return m_Scene.GetRef()->m_Registry.get<Component>(m_EntityHandle);
 		}
 
 		template<typename Component>
 		Component* TryGetComponent()
 		{
-			return m_Scene->m_Registry.try_get<Component>(m_EntityHandle);
+			return m_Scene.GetRef()->m_Registry.try_get<Component>(m_EntityHandle);
 		}
 
 		template<typename... Component>
 		bool AllOf() const
 		{
-			return m_Scene->m_Registry.all_of<Component...>(m_EntityHandle);
+			return m_Scene.GetRef()->m_Registry.all_of<Component...>(m_EntityHandle);
 		}
 
 		template<typename... Component>
 		bool AnyOf() const
 		{
-			return m_Scene->m_Registry.any_of<Component...>(m_EntityHandle);
+			return m_Scene.GetRef()->m_Registry.any_of<Component...>(m_EntityHandle);
 		}
 
 		UUID GetUUID() { return GetComponent<IDComponent>().ID; }
-		UUID GetUUID() const { return m_Scene->m_Registry.get<IDComponent>(m_EntityHandle).ID; }
+		UUID GetUUID() const { return m_Scene.GetRef()->m_Registry.get<IDComponent>(m_EntityHandle).ID; }
 		const std::string& GetName() { return GetComponent<TagComponent>().Tag; }
 		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
-		glm::mat4 CalcTransform() const { return m_Scene->m_Registry.get<TransformComponent>(m_EntityHandle).CalcTransform(); }
+		glm::mat4 CalcTransform() const { return m_Scene.GetRef()->m_Registry.get<TransformComponent>(m_EntityHandle).CalcTransform(); }
 
 		void SetParent(Entity parent);
 		void AddChild(Entity child);
@@ -77,14 +77,14 @@ namespace Shark {
 		void RemoveChildren();
 
 		UUID ParentUUID() { return GetComponent<RelationshipComponent>().Parent; }
-		Entity Parent() { return m_Scene->GetEntityByUUID(ParentUUID()); }
+		Entity Parent() { return m_Scene.GetRef()->GetEntityByUUID(ParentUUID()); }
 		std::vector<UUID>& Children() { return GetComponent<RelationshipComponent>().Children; }
 
 		bool HasParent() { return GetComponent<RelationshipComponent>().Parent.IsValid(); }
 		bool HasChild(UUID childID);
 		bool HasChildren() { return GetComponent<RelationshipComponent>().Children.size() > 0; }
 
-		bool IsValid() const { return m_Scene->m_Registry.valid(m_EntityHandle); }
+		bool IsValid() const { return m_Scene.GetRef()->m_Registry.valid(m_EntityHandle); }
 		bool IsNull() const { return m_EntityHandle == entt::null; }
 
 		operator entt::entity() { return m_EntityHandle; }

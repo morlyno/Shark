@@ -48,7 +48,7 @@ namespace Shark {
 		static void Submit(const TFunc& func)
 		{
 			SK_CORE_VERIFY(!GetCommandQueue().IsLocked());
-			SK_CORE_VERIFY(IsDuringStartup() || IsDuringShutdown() || IsInsideFrame());
+			//SK_CORE_VERIFY(IsDuringStartup() || IsDuringShutdown() || IsInsideFrame());
 			GetCommandQueue().Submit(func);
 		}
 

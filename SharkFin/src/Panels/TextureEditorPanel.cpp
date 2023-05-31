@@ -13,9 +13,6 @@
 
 #include "Shark/Core/Application.h"
 
-#include <imgui.h>
-#include <imgui_internal.h>
-
 namespace Shark {
 
 	TextureEditorPanel::TextureEditorPanel(const char* panelName, Ref<Texture2D> sourceTexture)

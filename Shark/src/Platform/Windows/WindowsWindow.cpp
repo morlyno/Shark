@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace Shark {
 
-	class WindowsWindow::WindowClass
+	class WindowsWindow::WindowClass : public RefCount
 	{
 	public:
 		WindowClass::WindowClass()
@@ -61,7 +61,7 @@ namespace Shark {
 		std::wstring m_ClassName = L"Shark";
 	};
 
-	Scope<WindowsWindow::WindowClass> WindowsWindow::s_WindowClass = nullptr;
+	static Weak<WindowsWindow::WindowClass> s_WindowClass;
 
 	WindowsWindow::WindowsWindow(const WindowSpecification& spec)
 	{
@@ -72,8 +72,12 @@ namespace Shark {
 		m_EventListener = spec.EventListener;
 		m_VSync = spec.VSync;
 
-		if (!s_WindowClass)
-			s_WindowClass = Scope<WindowsWindow::WindowClass>::Create();
+		m_WindowClass = s_WindowClass.TryGetRef();
+		if (!m_WindowClass)
+		{
+			m_WindowClass = Ref<WindowClass>::Create();
+			s_WindowClass = m_WindowClass;
+		}
 
 		DWORD windowFlags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 
@@ -87,7 +91,7 @@ namespace Shark {
 		std::wstring windowName = String::ToWideCopy(m_Title);
 		m_hWnd = CreateWindowExW(
 			0,
-			s_WindowClass->GetClassName().c_str(),
+			m_WindowClass->GetClassName().c_str(),
 			windowName.c_str(),
 			windowFlags,
 			CW_USEDEFAULT,
@@ -96,7 +100,7 @@ namespace Shark {
 			windowRect.bottom - windowRect.top,
 			nullptr,
 			nullptr,
-			s_WindowClass->GetHInstance(),
+			m_WindowClass->GetHInstance(),
 			this
 		);
 

@@ -364,20 +364,21 @@ namespace Shark {
 		
 		Entity newEntity = CreateEntity();
 
-		CopyComponentIfExists<TagComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<TransformComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<SpriteRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<CircleRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<TextRendererComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<CameraComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<CircleCollider2DComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<DistanceJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<HingeJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<PrismaticJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<PulleyJointComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<ScriptComponent>(srcEntity, srcEntity.m_Scene->m_Registry, newEntity, m_Registry);
+		Ref<Scene> srcScene = srcEntity.GetScene().GetRef();
+		CopyComponentIfExists<TagComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<TransformComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<SpriteRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<CircleRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<TextRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<CameraComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<CircleCollider2DComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<DistanceJointComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<HingeJointComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<PrismaticJointComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<PulleyJointComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<ScriptComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 
 		return newEntity;
 	}

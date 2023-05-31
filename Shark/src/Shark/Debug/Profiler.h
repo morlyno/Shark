@@ -52,9 +52,16 @@ namespace Shark {
 #define SK_PERF_FUNCTION(...)
 #endif
 
-
+#if SK_ENABLE_PROFILER
 #define SK_PROFILE_FRAME(name, ...) OPTICK_FRAME(name, __VA_ARGS__)
 #define SK_PROFILE_THREAD(name) OPTICK_THREAD(name)
 #define SK_PROFILE_FUNCTION() OPTICK_EVENT()
 #define SK_PROFILE_SCOPED(name) OPTICK_EVENT(name)
 #define SK_PROFILE_SHUTDOWN() OPTICK_SHUTDOWN()
+#else
+#define SK_PROFILE_FRAME(...)
+#define SK_PROFILE_THREAD(...)
+#define SK_PROFILE_FUNCTION(...)
+#define SK_PROFILE_SCOPED(...)
+#define SK_PROFILE_SHUTDOWN(...)
+#endif

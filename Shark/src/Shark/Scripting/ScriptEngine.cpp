@@ -637,6 +637,8 @@ namespace Shark {
 		MonoAssembly* assembly = mono_assembly_load_from_full(image, assemblyName.c_str(), &status, false);
 		mono_image_close(image);
 		fileData.Release();
+
+		SK_CORE_INFO_TAG("Scripting", "Loaded Assembly: {}", filePath);
 		return assembly;
 	}
 

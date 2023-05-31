@@ -45,7 +45,6 @@
 	#include <Windows.h>
 #endif
 
-#include "Shark/Core/Memory.h"
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/Timer.h"

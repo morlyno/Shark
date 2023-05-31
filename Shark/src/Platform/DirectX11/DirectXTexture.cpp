@@ -34,6 +34,13 @@ namespace Shark {
 			return (D3D11_TEXTURE_ADDRESS_MODE)0;
 		}
 
+		std::string GenerateSamplerName(const SamplerSpecification& specification)
+		{
+			if (specification.Anisotropy)
+				return fmt::format("Sampler - Anisotropic {}", specification.MaxAnisotropy);
+			return fmt::format("Sampler - {} {}", ToString(specification.Filter), ToString(specification.Wrap));
+		}
+
 	}
 
 	DirectXTexture2D::DirectXTexture2D()
@@ -42,13 +49,13 @@ namespace Shark {
 	}
 
 	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, Buffer imageData)
-		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create()), m_ImageData(Buffer::Copy(imageData))
+		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create()), m_ImageData(Buffer::Copy(imageData)), m_ImageDataOwned(true)
 	{
 		Invalidate();
 	}
 
 	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, Ref<TextureSource> textureSource)
-		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create()), m_ImageData(textureSource->ImageData)
+		: m_Specification(specification), m_Image(Ref<DirectXImage2D>::Create())
 	{
 		SetTextureSource(textureSource);
 		Invalidate();
@@ -141,8 +148,8 @@ namespace Shark {
 			ID3D11Device* device = renderer->GetDevice();
 			DX11_VERIFY(device->CreateSamplerState(&samplerDesc, &instance->m_Sampler));
 
-			if (instance->m_Specification.DebugName.size())
-				D3D_SET_OBJECT_NAME_A(instance->m_Sampler, instance->m_Specification.DebugName.c_str());
+			std::string samplerName = utils::GenerateSamplerName(instance->m_Specification.Sampler);
+			D3D_SET_OBJECT_NAME_A(instance->m_Sampler, samplerName.c_str());
 		});
 	}
 
@@ -161,22 +168,32 @@ namespace Shark {
 
 		m_Sampler = nullptr;
 		m_Image->Release();
-	}
 
-	void DirectXTexture2D::RT_Release()
-	{
-		m_Sampler->Release();
-		m_Image->RT_Release();
+		if (m_ImageData && m_ImageDataOwned)
+		{
+			m_ImageData.Release();
+			m_ImageDataOwned = false;
+		}
+
 	}
 
 	void DirectXTexture2D::SetImageData(Buffer imageData)
 	{
+		if (m_ImageData && m_ImageDataOwned)
+			m_ImageData.Release();
+
 		m_ImageData = Buffer::Copy(imageData);
+		m_ImageDataOwned = true;
 	}
 
 	void DirectXTexture2D::SetTextureSource(Ref<TextureSource> textureSource)
 	{
+		if (m_ImageData && m_ImageDataOwned)
+			m_ImageData.Release();
+
 		m_TextureSource = textureSource;
+		m_ImageData = textureSource->ImageData;
+		m_ImageDataOwned = false;
 		m_Specification.Width = textureSource->Width;
 		m_Specification.Height = textureSource->Height;
 		m_Specification.Format = textureSource->Format;

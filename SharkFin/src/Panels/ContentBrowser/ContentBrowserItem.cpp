@@ -124,7 +124,7 @@ namespace Shark {
 				if (ImGui::BeginDragDropSource())
 				{
 					ImGui::SetDragDropPayload("ASSET", &m_Handle, sizeof(AssetHandle));
-					ImGui::Text(m_Name);
+					UI::Text(m_Name);
 					if (m_Thumbnail)
 					{
 						const float ratio = (float)m_Thumbnail->GetWidth() / (float)m_Thumbnail->GetHeight();
@@ -331,7 +331,7 @@ namespace Shark {
 		return ToString(metadata.Type);
 	}
 
-	DirectoryInfo::DirectoryInfo(Ref<DirectoryInfo> parent, const std::filesystem::path& filePath, AssetHandle handle)
+	DirectoryInfo::DirectoryInfo(Weak<DirectoryInfo> parent, const std::filesystem::path& filePath, AssetHandle handle)
 		: Parent(parent), FilePath(ContentBrowserPanel::Get().GetProject()->GetRelative(filePath)), Name(filePath.stem().string()), Handle(handle)
 	{
 		Reload();

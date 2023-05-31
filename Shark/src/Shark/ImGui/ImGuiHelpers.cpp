@@ -316,15 +316,6 @@ static void InputTextReconcileUndoStateAfterUserCallback(ImGuiInputTextState* st
 
 extern ImGuiContext* GImGui;
 
-void ImGui::Text(const std::string& fmt, ...)
-{
-	const char* cfmt = fmt.c_str();
-	va_list args;
-	va_start(args, cfmt);
-	TextV(cfmt, args);
-	va_end(args);
-}
-
 bool ImGui::TableNextColumn(ImGuiTableRowFlags row_flags = 0, float min_row_height = 0.0f)
 {
 	ImGuiContext& g = *GImGui;

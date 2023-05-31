@@ -8,8 +8,6 @@
 
 namespace ImGui {
 
-	void Text(const std::string& fmt, ...);
-
 	bool TableNextColumn(ImGuiTableRowFlags row_flags, float min_row_height);
 
 	bool TreeNode(ImTextureID textureID, const char* label, ImGuiTreeNodeFlags flags = 0);

@@ -29,6 +29,14 @@ namespace Shark {
 	ContentBrowserPanel::~ContentBrowserPanel()
 	{
 		s_Instance = nullptr;
+
+		Weak baseDir = m_BaseDirectory;
+
+		m_BreadcrumbTrailData.clear();
+		m_History.clear();
+
+		m_CurrentDirectory = nullptr;
+		m_BaseDirectory = nullptr;
 	}
 
 	void ContentBrowserPanel::OnImGuiRender(bool& shown)
@@ -178,6 +186,10 @@ namespace Shark {
 		}
 		ImGui::End();
 
+		if (m_GenerateThumbnailsFuture.valid() && m_GenerateThumbnailsFuture.wait_for(0s) == std::future_status::ready)
+		{
+			m_GenerateThumbnailsFuture = std::future<void>{};
+		}
 	}
 
 	void ContentBrowserPanel::OnEvent(Event& event)
@@ -347,7 +359,7 @@ namespace Shark {
 			while (breadcrumb)
 			{
 				m_BreadcrumbTrailData.insert(m_BreadcrumbTrailData.begin(), breadcrumb);
-				breadcrumb = breadcrumb->Parent;
+				breadcrumb = breadcrumb->Parent.TryGetRef();
 			}
 		}
 
@@ -409,7 +421,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
-		Ref<DirectoryInfo> parent = directory->Parent;
+		Ref<DirectoryInfo> parent = directory->Parent.GetRef();
 		SK_CORE_ASSERT(parent);
 		parent->SubDirectories.erase(std::find(parent->SubDirectories.begin(), parent->SubDirectories.end(), directory));
 		m_DirectoryHandleMap.erase(directory->Handle);

@@ -17,7 +17,9 @@ namespace Shark {
 		{
 			return val;
 		}
-		
+
+		std::string BytesToString(uint64_t bytes);
+
 	}
 
 }

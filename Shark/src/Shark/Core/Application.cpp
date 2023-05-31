@@ -10,13 +10,13 @@
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/File/FileSystem.h"
-
+#include "Shark/Utils/String.h"
 #include "Shark/Utils/TimeUtils.h"
 #include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Debug/Profiler.h"
 
-#include <imgui.h>
 #include <optick.h>
+#include <optick_memory.h>
 
 namespace Shark {
 
@@ -71,6 +71,7 @@ namespace Shark {
 		Renderer::ShutDown();
 
 		skdelete m_Profiler;
+		skdelete m_SecondaryProfiler;
 
 		s_Instance = nullptr;
 	}
@@ -271,10 +272,117 @@ namespace Shark {
 		return false;
 	}
 
+	namespace utils {
+
+		static void DumpMemory(std::ostream& out)
+		{
+			if (Allocator::GetAllocationStatsMap().empty())
+				return;
+
+			AllocatorData::AllocationStatsMap statsMap = Allocator::GetAllocationStatsMap();
+
+			std::ostringstream tempOut;
+
+			tempOut << "======================\n";
+			tempOut << " Current Memory Usage \n";
+			tempOut << "======================\n";
+			tempOut << "Total allocated " << Utils::BytesToString(Allocator::GetMemoryStats().TotalAllocated) << '\n';
+			tempOut << "Total freed " << Utils::BytesToString(Allocator::GetMemoryStats().TotalFreed) << '\n';
+			tempOut << "Current Usage " << Utils::BytesToString(Allocator::GetMemoryStats().CurrentUsage()) << '\n';
+
+			tempOut << "----------------------\n";
+
+			struct Entry
+			{
+				std::string Descriptor;
+				bool IsFile = false;
+				std::string Size;
+				uint64_t ByteSize;
+				bool operator>(const Entry& rhs) const { return ByteSize > rhs.ByteSize; }
+			};
+			std::vector<Entry> entries;
+
+			for (const auto& [desc, size] : statsMap)
+			{
+				if (size == 0)
+					continue;
+
+				Entry entry;
+				entry.ByteSize = size;
+				entry.Size = Utils::BytesToString(size);
+
+				std::string str = desc;
+				if (str.find("class") != std::string::npos)
+					String::RemovePrefix(str, 6);
+
+				size_t i = str.find_last_of("\\/");
+				if (i != std::string::npos)
+				{
+					str = str.substr(i + 1);
+					entry.IsFile = true;
+				}
+
+				entry.Descriptor = str;
+
+				const auto where = std::lower_bound(entries.begin(), entries.end(), entry, std::greater<>{});
+				entries.insert(where, entry);
+			}
+
+			if (entries.empty())
+				return;
+
+			for (const auto& entry : entries)
+			{
+				tempOut << fmt::format("  {} {}", entry.Descriptor, entry.Size) << '\n';
+			}
+			tempOut << "======================\n";
+
+			out << tempOut.str();
+		}
+
+		static void DumpMemoryAllocations(std::ostream& out, bool ignoreEntriesWithNullDescriptor = false)
+		{
+			if (Allocator::GetAllocationMap().empty())
+				return;
+
+			AllocatorData::AllocationMap allocMap = Allocator::GetAllocationMap();
+
+			out << "======================\n";
+			out << " Current Allocations \n";
+			out << "======================\n";
+
+			for (const auto& [memory, alloc] : allocMap)
+			{
+				if (ignoreEntriesWithNullDescriptor && (!alloc.Descriptor || strcmp(alloc.Descriptor, "(null)") == 0))
+					continue;
+
+				auto makeDesc = [](const Allocation& alloc) -> std::string
+				{
+					std::string result = alloc.Descriptor;
+
+					if (alloc.Line != -1)
+						result += fmt::format("({})", alloc.Line);
+
+					return result;
+				};
+
+				out << fmt::format("  {} {} {}\n", makeDesc(alloc), alloc.Memory, Utils::BytesToString(alloc.Size));
+			}
+			out << "======================\n";
+		}
+
+	}
+
 	namespace Core {
 
 		void Initialize()
 		{
+#if SK_TRACK_MEMORY && SK_ENABLE_PROFILER
+			Optick::Memory::SetAllocator([](size_t size) { return Allocator::Allocate(size, "Optick"); },
+										 [](void* memory) { Allocator::Free(memory); },
+										 nullptr);
+#endif
+
 			Log::Initialize();
 			Input::Initialize();
 			FileSystem::Initialize();
@@ -286,6 +394,10 @@ namespace Shark {
 			Input::Shutdown();
 			Renderer::ReportLiveObejcts();
 			Log::Shutdown();
+			SK_PROFILE_SHUTDOWN();
+
+			utils::DumpMemory(std::cout);
+			//utils::DumpMemoryAllocations(std::cout);
 		}
 
 	}

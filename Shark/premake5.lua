@@ -72,7 +72,8 @@ project "Shark"
             "%{Library.dxguid}",
             "%{Library.Winmm}",
             "%{Library.Version}",
-            "%{Library.Bcrypt}"
+            "%{Library.Bcrypt}",
+            "%{Library.WinSock}"
         }
 
     filter "configurations:Debug"

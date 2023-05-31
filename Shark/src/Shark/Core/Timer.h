@@ -47,8 +47,7 @@ namespace Shark {
 
 		~ScopedTimer()
 		{
-			const float millis = m_Timer.ElapsedMilliSeconds();
-			SK_CORE_TRACE_TAG("Timer", "{0} took {1}ms", m_Name, millis);
+			SK_CORE_TRACE_TAG("Timer", "{0} took {1}", m_Name, m_Timer.Elapsed());
 		}
 
 	private:

@@ -158,7 +158,7 @@ namespace Shark {
 
 	static void DestroyWatchData(WatchData* watchData)
 	{
-		if (watchData)
+		if (!watchData)
 			return;
 
 		watchData->Stop = true;
