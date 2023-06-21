@@ -7,7 +7,7 @@ namespace Shark {
 	enum class EventType
 	{
 		None = 0,
-		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus,
+		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus, WindowDrop,
 		MouseMoved, MouseButtonPressed, MouseButtonReleasd, MouseButtonDoubleClicked, MouseScrolled,
 		KeyPressed, KeyReleased, KeyCharacter,
 		ApplicationClosed, SceneChanged, ScenePlay, ProjectChanged
@@ -23,6 +23,7 @@ namespace Shark {
 			case EventType::WindowMove:		           return "WindowMove";
 			case EventType::WindowFocus:		       return "WindowFocus";
 			case EventType::WindowLostFocus:	       return "WindowLostFocus";
+			case EventType::WindowDrop:	               return "WindowDrop";
 			case EventType::MouseMoved:			       return "MouseMoved";
 			case EventType::MouseButtonPressed:        return "MouseButtonPressed";
 			case EventType::MouseButtonReleasd:        return "MouseButtonReleasd";

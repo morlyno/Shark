@@ -22,6 +22,8 @@ namespace Shark {
 		void OnWindowMoveEvent(int x, int y);
 		void OnWindowFocusEvent();
 		void OnWindowLostFocusEvent();
+		void OnWindowDropEvent(const std::vector<std::filesystem::path>& paths);
+		void OnWindowDropEvent(std::vector<std::filesystem::path>&& paths);
 
 		void OnMouseMovedEvent(const glm::ivec2& mousePos);
 		void OnMouseButtonPressedEvent(const glm::ivec2& mousePos, MouseButton button);
@@ -43,7 +45,7 @@ namespace Shark {
 		template<typename TEvent, typename... TArgs>
 		void OnEvent(TArgs&&... args)
 		{
-			m_Callback(TEvent(args...));
+			m_Callback(TEvent(std::forward<TArgs>(args)...));
 		}
 
 	private:

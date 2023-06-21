@@ -80,6 +80,7 @@ namespace Shark {
 		}
 
 		DWORD windowFlags = WS_SIZEBOX | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+		DWORD exWindowFlags = WS_EX_ACCEPTFILES;
 
 		RECT windowRect{};
 		windowRect.left = 100;
@@ -90,7 +91,7 @@ namespace Shark {
 
 		std::wstring windowName = String::ToWideCopy(m_Title);
 		m_hWnd = CreateWindowExW(
-			0,
+			exWindowFlags,
 			m_WindowClass->GetClassName().c_str(),
 			windowName.c_str(),
 			windowFlags,
@@ -513,6 +514,27 @@ namespace Shark {
 				break;
 			}
 #endif
+
+			case WM_DROPFILES:
+			{
+				std::vector<std::filesystem::path> paths;
+
+				WCHAR name[MAX_PATH];
+				HDROP hDrop = (HDROP)wParam;
+
+				UINT count = DragQueryFileW(hDrop, 0xFFFFFFFF, name, MAX_PATH);
+
+				for (UINT i = 0; i < count; i++)
+				{
+					DragQueryFileW(hDrop, i, name, MAX_PATH);
+					paths.emplace_back(name);
+				}
+
+				DragFinish(hDrop);
+
+				m_EventListener->OnWindowDropEvent(std::move(paths));
+				break;
+			}
 
 			default:
 				return DefWindowProc(hWnd, msg, wParam, lParam);

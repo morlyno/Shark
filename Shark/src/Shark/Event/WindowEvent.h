@@ -68,4 +68,23 @@ namespace Shark {
 	{
 	};
 
+	class WindowDropEvent : public EventBase<Event, EventType::WindowDrop, EventCategory::Window>
+	{
+	public:
+		WindowDropEvent(const std::vector<std::filesystem::path>& paths)
+			: m_Paths(paths)
+		{}
+
+		WindowDropEvent(std::vector<std::filesystem::path>&& paths)
+			: m_Paths(std::move(paths))
+		{}
+		
+		const std::vector<std::filesystem::path>& GetPaths() const { return m_Paths; }
+
+		std::string ToString() const override { return fmt::format("{}\n\t- {}", GetName(), fmt::join(m_Paths, "\n\t- ")); }
+
+	private:
+		std::vector<std::filesystem::path> m_Paths;
+	};
+
 }

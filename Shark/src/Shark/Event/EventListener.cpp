@@ -43,6 +43,16 @@ namespace Shark {
 		OnEvent<WindowLostFocusEvent>();
 	}
 
+	void EventListener::OnWindowDropEvent(const std::vector<std::filesystem::path>& paths)
+	{
+		OnEvent<WindowDropEvent>(paths);
+	}
+
+	void EventListener::OnWindowDropEvent(std::vector<std::filesystem::path>&& paths)
+	{
+		OnEvent<WindowDropEvent>(std::move(paths));
+	}
+
 	void EventListener::OnMouseMovedEvent(const glm::ivec2& mousePos)
 	{
 		OnEvent<MouseMovedEvent>(mousePos);
