@@ -11,6 +11,8 @@ namespace Shark {
 	public:
 		virtual ~Material() = default;
 
+		virtual bool HasResource(const std::string& name) const = 0;
+
 		virtual void SetFloat(const std::string& name, float val) = 0;
 		virtual void SetFloat2(const std::string& name, const glm::vec2& vec2) = 0;
 		virtual void SetFloat3(const std::string& name, const glm::vec3& vec3) = 0;

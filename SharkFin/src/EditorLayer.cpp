@@ -72,7 +72,7 @@ namespace Shark {
 		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
 
 		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, "Console", true);
-		m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, "Content Browser", true);
+		m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, "Content Browser", true, std::bind(&EditorLayer::OpenAssetEditor, this, std::placeholders::_1));
 		m_PanelManager->AddPanel<SettingsPanel>(SETTINGS_PANEL_ID, "Settings", true);
 		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, "Pyhsics Debug", false);
 		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, "Assets Editor", false);
@@ -1548,6 +1548,15 @@ namespace Shark {
 				UI::EndControls();
 			}
 		});
+	}
+
+	void EditorLayer::OpenAssetEditor(AssetHandle assetHandle)
+	{
+		if (!ResourceManager::IsValidAssetHandle(assetHandle))
+			return;
+
+		auto panel = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID);
+		panel->AddEditor<TextureEditorPanel>(assetHandle, "Textur Editor", true, ResourceManager::GetAsset<Texture2D>(assetHandle));
 	}
 
 	void EditorLayer::DebugRender()

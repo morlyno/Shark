@@ -968,6 +968,12 @@ namespace Shark {
 
 	void Renderer2D::PrepareMaterial(Ref<Material> material, const QuadBatch& batch)
 	{
+		if (!material->HasResource("g_Textures"))
+		{
+			SK_CORE_ERROR_TAG("Renderer", "Material has no Resource Named g_Textures!");
+			return;
+		}
+
 		uint32_t index = 0;
 		auto array = material->GetTextureArray("g_Textures");
 		for (const auto& texture : batch.Textures)

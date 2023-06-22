@@ -113,8 +113,8 @@ return metadata.IsMemoryAsset;
 		{
 			Ref<Asset> asset = nullptr;
 			metadata.IsDataLoaded = AssetSerializer::TryLoadAsset(asset, metadata);
-			asset->Handle = handle;
-			s_Data->LoadedAssets[handle] = asset;
+			if (metadata.IsDataLoaded)
+				s_Data->LoadedAssets[handle] = asset;
 		}
 		return metadata.IsDataLoaded;
 	}

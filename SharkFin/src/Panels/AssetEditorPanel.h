@@ -7,7 +7,7 @@ namespace Shark {
 	class EditorPanel : public RefCount
 	{
 	public:
-		EditorPanel(const char* panelName) : PanelName(PanelName) {}
+		EditorPanel(const char* panelName) : PanelName(panelName) {}
 		virtual ~EditorPanel() = default;
 
 		virtual void OnUpdate(TimeStep ts) {};

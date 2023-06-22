@@ -37,7 +37,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO_TAG("Serialization", "Deserializing TextureSource from {}", metadata.FilePath);
+		SK_CORE_INFO_TAG("Serialization", "Loading TextureSource from {}", metadata.FilePath);
 		Timer timer;
 
 		if (!ResourceManager::HasExistingFilePath(metadata))
@@ -189,7 +189,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Texture from {}", metadata.FilePath);
+		SK_CORE_INFO_TAG("Serialization", "Loading Texture from {}", metadata.FilePath);
 		Timer timer;
 
 		if (!ResourceManager::HasExistingFilePath(metadata))

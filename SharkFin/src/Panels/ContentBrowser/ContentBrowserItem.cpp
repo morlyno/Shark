@@ -388,4 +388,15 @@ namespace Shark {
 		Assets.emplace_back(handle);
 	}
 
+	bool DirectoryInfo::Erase(AssetHandle handle)
+	{
+		const auto iter = std::find(Assets.begin(), Assets.end(), handle);
+		if (iter != Assets.end())
+		{
+			Assets.erase(iter);
+			return true;
+		}
+		return true;
+	}
+
 }

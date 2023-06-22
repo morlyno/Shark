@@ -22,12 +22,15 @@ namespace Shark {
 		TextureEditorPanel(const char* panelName, Ref<Texture2D> sourceTexture);
 		~TextureEditorPanel();
 
+		void SetTexture(Ref<Texture2D> sourceTexture);
+
 		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
 	private:
 		void UI_DrawViewport();
 		void UI_DrawSettings();
 
+		void Init();
 		void SetupWindows();
 
 		void ReCalcCamera();
@@ -35,6 +38,7 @@ namespace Shark {
 	private:
 		bool m_Active = true;
 		bool m_IsFirstFrame = true;
+		bool m_Initialized = false;
 
 		Ref<Scene> m_Scene;
 		Ref<SceneRenderer> m_Renderer;
@@ -45,7 +49,7 @@ namespace Shark {
 		Ref<Texture2D> m_EditTexture;
 		Entity m_Entity;
 
-		TextureSpecification m_Specs;
+		TextureSpecification m_Specification;
 
 		glm::uvec2 m_ViewportSize = { 1280, 720 };
 		bool m_NeedsResize = false;
@@ -60,8 +64,8 @@ namespace Shark {
 		WrapMode m_WrapMode = WrapMode::Repeat;
 #endif
 
-		static constexpr std::string_view s_FilterItems[] = { "Neares", "Linear" };
-		static constexpr std::string_view s_WrapItems[] = { "Repeat", "Clamp", "Mirror", "Border" };
+		static constexpr std::string_view s_FilterItems[] = { "None", "Neares", "Linear" };
+		static constexpr std::string_view s_WrapItems[] = { "None", "Repeat", "Clamp", "Mirror", "Border" };
 		static constexpr std::string_view s_FormatItems[] = { "None", "RGBA8", "R32_SINT", "Depth32", "Should never appear" };
 
 	};

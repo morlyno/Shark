@@ -101,11 +101,15 @@ namespace Shark {
 		bool m_CaseSensitive;
 	};
 
+	using CBOpenAssetCallbackFn = std::function<void(AssetHandle)>;
+
 	class ContentBrowserPanel : public Panel
 	{
 	public:
-		ContentBrowserPanel(const char* panelName);
+		ContentBrowserPanel(const char* panelName, CBOpenAssetCallbackFn callback = nullptr);
 		~ContentBrowserPanel();
+
+		void RegisterOpenAssetCallback(CBOpenAssetCallbackFn callback) { m_OpenAssetCallback = callback; }
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
@@ -179,8 +183,9 @@ namespace Shark {
 		Ref<ProjectInstance> m_Project;
 		Ref<ProjectInstance> m_NextProject;
 
-		bool m_PanelFocused = false;
+		CBOpenAssetCallbackFn m_OpenAssetCallback;
 
+		bool m_PanelFocused = false;
 		bool m_ChangesBlocked = false;
 
 		Ref<DirectoryInfo> m_BaseDirectory;
@@ -219,6 +224,7 @@ namespace Shark {
 		std::vector<std::function<void()>> m_PostRenderQueue;
 
 		std::future<void> m_GenerateThumbnailsFuture;
+		std::atomic<bool> m_StopGenerateThumbnails = false;
 	};
 
 }

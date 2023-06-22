@@ -47,6 +47,8 @@ namespace Shark {
 		static bool Exists(const std::filesystem::path& filepath);
 		static std::string ParseFileName(const std::filesystem::path& filePath);
 
+		static bool IsInDirectory(const std::filesystem::path& directory, const std::filesystem::path& path);
+
 		static std::filesystem::path GetRelative(const std::filesystem::path& path);
 		static std::filesystem::path GetAbsolute(const std::filesystem::path& path);
 	};

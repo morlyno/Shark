@@ -10,11 +10,13 @@
 
 namespace Shark {
 
-	ContentBrowserPanel::ContentBrowserPanel(const char* panelName)
+	ContentBrowserPanel::ContentBrowserPanel(const char* panelName, CBOpenAssetCallbackFn callback)
 		: Panel(panelName)
 	{
 		SK_CORE_ASSERT(!s_Instance);
 		s_Instance = this;
+
+		m_OpenAssetCallback = callback;
 
 		m_IconExtensionMap[".skscene"] = Icons::SceneIcon;
 		m_IconExtensionMap[".sktex"] = Icons::TextureIcon;
@@ -208,6 +210,8 @@ namespace Shark {
 			return;
 		}
 
+		bool anyInCurrentDirectory = false;
+
 		for (uint32_t i = 0; i < fileEvents.size(); i++)
 		{
 			const FileChangedData& event = fileEvents[i];
@@ -238,6 +242,8 @@ namespace Shark {
 						if (metadata.IsValid())
 							parent->AddAsset(metadata.Handle);
 					}
+
+					anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
 					break;
 				}
 				case FileEvent::Deleted:
@@ -250,8 +256,19 @@ namespace Shark {
 						break;
 					}
 
-					// TODO(moro): fix-me
-					Reload();
+					const auto& metadata = ResourceManager::GetMetaData(event.FilePath);
+					if (m_CurrentItems.Contains(metadata.Handle))
+					{
+						m_CurrentItems.Erase(metadata.Handle);
+						m_CurrentDirectory->Assets.erase(std::find(m_CurrentDirectory->Assets.begin(), m_CurrentDirectory->Assets.end(), metadata.Handle));
+						anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
+						break;
+					}
+
+					Ref<DirectoryInfo> parent = GetDirectory(event.FilePath.parent_path());
+					parent->Erase(metadata.Handle);
+
+					anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
 					break;
 				}
 				case FileEvent::OldName:
@@ -269,6 +286,7 @@ namespace Shark {
 							directory->FilePath = std::filesystem::relative(event2.FilePath, m_Project->Directory);
 							directory->Name = directory->FilePath.stem().string();
 						}
+						anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
 						break;
 					}
 
@@ -278,12 +296,16 @@ namespace Shark {
 						if (auto item = m_CurrentItems.Get(metadata.Handle))
 							item->m_Name = event2.FilePath.stem().string();
 					}
+					anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
 					break;
 				}
 			}
 
-			Internal_ChangeDirectory(m_CurrentDirectory, false);
 		}
+
+		if (anyInCurrentDirectory)
+			Internal_ChangeDirectory(m_CurrentDirectory, false);
+
 	}
 
 	bool ContentBrowserPanel::OnKeyPressedEvent(KeyPressedEvent& event)
@@ -377,6 +399,9 @@ namespace Shark {
 		}
 
 		Ref instance = this;
+		m_StopGenerateThumbnails = true;
+		if (m_GenerateThumbnailsFuture.valid())
+			m_GenerateThumbnailsFuture.wait();
 		m_GenerateThumbnailsFuture = std::async(std::launch::async, [instance]() { instance->GenerateThumbnails(); });
 		//GenerateThumbnails();
 	}
@@ -478,8 +503,19 @@ namespace Shark {
 		{
 			CBItemAction::Flags action = item->Draw();
 
-			if (action & CBItemAction::Open && item->GetType() == CBItemType::Directory)
-				ChangeDirectory(GetDirectory(item->GetHandle()));
+			if (action & CBItemAction::Open)
+			{
+				switch (item->GetType())
+				{
+					case CBItemType::Directory:
+						ChangeDirectory(GetDirectory(item->GetHandle()));
+						break;
+					case CBItemType::Asset:
+						if (m_OpenAssetCallback)
+							m_OpenAssetCallback(item->GetHandle());
+						break;
+				}
+			}
 
 			if (action & CBItemAction::OpenInExplorer)
 			{
@@ -821,10 +857,18 @@ namespace Shark {
 		if (!EditorSettings::Get().ContentBrowser.GenerateThumbnails)
 			return;
 
-		//ScopedTimer timer("ContentBrowserPanel::GenerateThumbnails");
+		m_StopGenerateThumbnails = false;
+
 		auto currentItems = m_CurrentItems;
 		for (Ref<ContentBrowserItem> item : currentItems)
 		{
+			if (m_StopGenerateThumbnails)
+			{
+				SK_CORE_WARN_TAG("UI", "Generating Thumbnails Stoped");
+				break;
+			}
+
+
 			const auto& metadata = ResourceManager::GetMetaData(item->GetHandle());
 			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource || metadata.Type == AssetType::Font)
 			{
@@ -832,6 +876,8 @@ namespace Shark {
 				item->m_Thumbnail = GetThumbnail(metadata);
 			}
 		}
+
+		m_StopGenerateThumbnails = false;
 	}
 
 	Ref<DirectoryInfo> ContentBrowserPanel::GetDirectory(AssetHandle handle)

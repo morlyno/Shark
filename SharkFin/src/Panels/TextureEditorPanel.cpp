@@ -16,55 +16,28 @@
 namespace Shark {
 
 	TextureEditorPanel::TextureEditorPanel(const char* panelName, Ref<Texture2D> sourceTexture)
-		: EditorPanel(PanelName)
+		: EditorPanel(panelName)
 	{
-		SK_PROFILE_FUNCTION();
-
-		m_DockspaceWindowID = UI::GetID(fmt::format("DockspaceWindow{}", sourceTexture->Handle));
-		m_DockspaceID       = UI::GetID(fmt::format("DockSpace{}", sourceTexture->Handle));
-		m_ViewportID        = UI::GetID(fmt::format("Viewport{}", sourceTexture->Handle));
-		m_SettingsID        = UI::GetID(fmt::format("Settings{}", sourceTexture->Handle));
-
-		// Check if current texture has allready been used
-		ImGuiWindow* window = ImGui::FindWindowByID(m_DockspaceWindowID);
-		if (window && window->LastFrameActive == (ImGui::GetFrameCount() - 1))
-		{
-			m_Active = false;
-			return;
-		}
-
-		SetupWindows();
-		ImGui::FocusWindow(ImGui::FindWindowByID(m_ViewportID));
-
-		m_SourceTexture = sourceTexture;
-
-		m_EditTexture = ResourceManager::CreateMemoryAsset<Texture2D>();
-		m_EditTexture->GetSpecificationMutable() = m_SourceTexture->GetSpecification();
-		m_EditTexture->Invalidate();
-		m_EditTexture->GetImage()->UploadImageData(m_SourceTexture->GetImage());
-
-		m_Specs = m_EditTexture->GetSpecification();
-
-
-		m_Scene = Ref<Scene>::Create();
-		m_Scene->SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
-		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
-
-		ReCalcCamera();
-
-		m_Entity = m_Scene->CreateEntity();
-		auto& sr = m_Entity.AddComponent<SpriteRendererComponent>();
-		sr.TextureHandle = m_EditTexture->Handle;
+		SetTexture(sourceTexture);
 	}
 
 	TextureEditorPanel::~TextureEditorPanel()
 	{
-		SK_PROFILE_FUNCTION();
+	}
+
+	void TextureEditorPanel::SetTexture(Ref<Texture2D> sourceTexture)
+	{
+		m_SourceTexture = sourceTexture;
+		m_IsFirstFrame = true;
+		m_Initialized = false;
 	}
 
 	void TextureEditorPanel::OnUpdate(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
+
+		if (!m_Initialized)
+			return;
 
 		if (!m_Active)
 			return;
@@ -84,6 +57,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (!m_SourceTexture)
+			return;
+
 		if (!m_Active)
 		{
 			shown = false;
@@ -93,8 +69,8 @@ namespace Shark {
 
 		if (m_IsFirstFrame)
 		{
+			Init();
 			m_IsFirstFrame = false;
-			return;
 		}
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -120,7 +96,10 @@ namespace Shark {
 		ImGui::BeginEx("Viewport", m_ViewportID, nullptr, ImGuiWindowFlags_NoSavedSettings);
 		ImGui::PopStyleVar(3);
 
-		const ImVec2 size = ImGui::GetContentRegionAvail();
+		ImVec2 size = ImGui::GetContentRegionAvail();
+		if (size.x == 0 || size.y == 0)
+			size = { (float)m_ViewportSize.x, (float)m_ViewportSize.y };
+
 		if ((float)m_ViewportSize.x != size.x || (float)m_ViewportSize.y != size.y)
 		{
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -169,13 +148,41 @@ namespace Shark {
 
 		UI::BeginControlsGrid();
 
-		UI::ControlCombo("Format", (uint16_t&)m_Specs.Format, s_FormatItems, (uint32_t)std::size(s_FormatItems));
-		UI::Control("Generate Mips", m_Specs.GenerateMips);
-		UI::ControlCombo("Filter", (uint16_t&)m_Specs.Sampler.Filter, s_FilterItems, (uint32_t)std::size(s_FilterItems));
-		UI::ControlCombo("Wrap Mode", (uint16_t&)m_Specs.Sampler.Wrap, s_WrapItems, (uint32_t)std::size(s_WrapItems));
+		UI::ControlCombo("Format", (uint16_t&)m_Specification.Format, s_FormatItems, (uint32_t)std::size(s_FormatItems));
+		UI::Control("Generate Mips", m_Specification.GenerateMips);
+		UI::ControlCombo("Filter", s_FilterItems[(uint16_t)m_Specification.Sampler.Filter], [&index = (uint16_t&)m_Specification.Sampler.Filter]()
+		{
+			bool changed = false;
 
-		UI::Control("Anisotropy", m_Specs.Sampler.Anisotropy);
-		UI::Control("Max Anisotropy", m_Specs.Sampler.MaxAnisotropy, 0, 0, capabilities.MaxAnisotropy);
+			for (uint16_t i = 1; i < std::size(s_FilterItems); i++)
+			{
+				std::string_view currentItem = s_FilterItems[i];
+				if (ImGui::Selectable(currentItem.data(), i == index))
+				{
+					index = i;
+					changed = true;
+				}
+			}
+			return changed;
+		});
+		UI::ControlCombo("Wrap Mode", s_FilterItems[(uint16_t)m_Specification.Sampler.Wrap], [&index = (uint16_t&)m_Specification.Sampler.Wrap]()
+		{
+			bool changed = false;
+
+			for (uint16_t i = 1; i < std::size(s_WrapItems); i++)
+			{
+				std::string_view currentItem = s_WrapItems[i];
+				if (ImGui::Selectable(currentItem.data(), i == index))
+				{
+					index = i;
+					changed = true;
+				}
+			}
+			return changed;
+		});
+
+		UI::Control("Anisotropy", m_Specification.Sampler.Anisotropy);
+		UI::Control("Max Anisotropy", m_Specification.Sampler.MaxAnisotropy, 0, 0, capabilities.MaxAnisotropy);
 
 		UI::EndControls();
 
@@ -183,19 +190,19 @@ namespace Shark {
 
 		if (ImGui::Button("Update"))
 		{
-			m_EditTexture->GetSpecificationMutable() = m_Specs;
+			m_EditTexture->GetSpecificationMutable() = m_Specification;
 			m_EditTexture->Invalidate();
 			m_EditTexture->GetImage()->UploadImageData(m_SourceTexture->GetImage());
-			if (m_Specs.GenerateMips)
+			if (m_Specification.GenerateMips)
 				Renderer::GenerateMips(m_EditTexture->GetImage());
 		}
 
 		if (ImGui::Button("Reset"))
-			m_Specs = m_SourceTexture->GetSpecification();
+			m_Specification = m_SourceTexture->GetSpecification();
 
 		if (ImGui::Button("Finish"))
 		{
-			m_SourceTexture->GetSpecificationMutable() = m_Specs;
+			m_SourceTexture->GetSpecificationMutable() = m_Specification;
 			m_SourceTexture->Invalidate();
 			m_SourceTexture->GetImage()->UploadImageData(m_EditTexture->GetImage());
 
@@ -205,6 +212,40 @@ namespace Shark {
 #endif
 
 		ImGui::End();
+	}
+
+	void TextureEditorPanel::Init()
+	{
+		m_DockspaceWindowID = UI::GetID(fmt::format("DockspaceWindow{}", m_SourceTexture->Handle));
+		m_DockspaceID = UI::GetID(fmt::format("DockSpace{}", m_SourceTexture->Handle));
+		m_ViewportID = UI::GetID(fmt::format("Viewport{}", m_SourceTexture->Handle));
+		m_SettingsID = UI::GetID(fmt::format("Settings{}", m_SourceTexture->Handle));
+
+		// Check if current texture has allready been used
+		ImGuiWindow* window = ImGui::FindWindowByID(m_DockspaceWindowID);
+		if (window && window->LastFrameActive == (ImGui::GetFrameCount() - 1))
+		{
+			m_Active = false;
+			return;
+		}
+
+		SetupWindows();
+		ImGui::FocusWindow(ImGui::FindWindowByID(m_ViewportID));
+
+		m_EditTexture = ResourceManager::CreateMemoryAsset<Texture2D>(m_SourceTexture->GetSpecification().Sampler, m_SourceTexture->GetImage(), false);
+		m_Specification = m_EditTexture->GetSpecification();
+
+		m_Scene = Ref<Scene>::Create();
+		m_Scene->SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
+		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
+
+		ReCalcCamera();
+
+		m_Entity = m_Scene->CreateEntity();
+		auto& sr = m_Entity.AddComponent<SpriteRendererComponent>();
+		sr.TextureHandle = m_EditTexture->Handle;
+
+		m_Initialized = true;
 	}
 
 	void TextureEditorPanel::SetupWindows()

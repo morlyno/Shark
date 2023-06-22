@@ -202,6 +202,29 @@ namespace Shark::UI {
 	bool ControlCombo(std::string_view label, uint16_t& index, const std::string_view items[], uint32_t itemsCount);
 	bool ControlCombo(std::string_view label, int& index,      const std::string_view items[], uint32_t itemsCount);
 
+	template<typename TFunc>
+	bool ControlCombo(std::string_view label, std::string_view preview, const TFunc& func)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+
+		ImGui::TableSetColumnIndex(1);
+
+		bool changed = false;
+		ImGui::SetNextItemWidth(-1.0f);
+		if (ImGui::BeginCombo("#combo", preview.data()))
+		{
+			changed = func();
+			ImGui::EndCombo();
+		}
+
+		ControlEndHelper();
+		return changed;
+	}
+
 	bool Control(std::string_view label, std::string& val);
 	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType = nullptr);
 	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);

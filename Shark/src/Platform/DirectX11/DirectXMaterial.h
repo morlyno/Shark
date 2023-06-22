@@ -25,6 +25,8 @@ namespace Shark {
 		DirectXMaterial(Ref<Shader> shader);
 		virtual ~DirectXMaterial();
 
+		virtual bool HasResource(const std::string& name) const override { return m_ResourceMap.find(name) != m_ResourceMap.end(); }
+
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture) override;
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index) override;
 		virtual void SetTextureArray(const std::string& name, Ref<Texture2DArray> textureArray) override;

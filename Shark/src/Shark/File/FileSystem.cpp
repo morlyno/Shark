@@ -250,6 +250,16 @@ namespace Shark {
 		return filePath.stem().string();
 	}
 
+	bool FileSystem::IsInDirectory(const std::filesystem::path& directory, const std::filesystem::path& path)
+	{
+		auto absolutDir = GetAbsolute(directory);
+		if (!std::filesystem::is_directory(directory))
+			return false;
+
+		auto pathAbsolut = GetAbsolute(path);
+		return absolutDir == pathAbsolut.parent_path();
+	}
+
 	std::filesystem::path FileSystem::GetRelative(const std::filesystem::path& path)
 	{
 		return Project::RelativeCopy(path);

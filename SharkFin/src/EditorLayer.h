@@ -83,6 +83,8 @@ namespace Shark {
 
 		void RegisterSettingNodes();
 
+		void OpenAssetEditor(AssetHandle assetHandle);
+
 		void DebugRender();
 		void RenderCameraPreview();
 

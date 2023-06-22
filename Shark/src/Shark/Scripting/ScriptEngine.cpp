@@ -68,7 +68,7 @@ namespace Shark {
 
 		const char* domain = log_domain ? log_domain : "Mono";
 		Log::LogMessage(Log::Logger::Core, level, "", "[{0}] {1}", domain, message);
-		SK_CORE_ASSERT(!fatal);
+		SK_CORE_VERIFY(!fatal);
 	}
 
 	static void MonoPrintCallback(const char* string, mono_bool is_stdout)
@@ -604,7 +604,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		if (!std::filesystem::exists(filePath))
 		{
-			SK_CORE_ERROR_TAG("Scripting", "Can't load Assembly! Filepath dosn't exist");
+			SK_CORE_ERROR_TAG("Scripting", "Can't load Assembly! Filepath dosn't exist \"{}\"", filePath);
 			return nullptr;
 		}
 
@@ -745,7 +745,7 @@ namespace Shark {
 			const char* name = mono_metadata_string_heap(appImage, cols[MONO_TYPEDEF_NAME]);
 			const char* nameSpace = mono_metadata_string_heap(appImage, cols[MONO_TYPEDEF_NAMESPACE]);
 			MonoClass* klass = mono_class_from_name(appImage, nameSpace, name);
-			if (!mono_class_is_subclass_of(klass, s_Data->EntityClass, false))
+			if (!klass || !mono_class_is_subclass_of(klass, s_Data->EntityClass, false))
 				continue;
 
 			Ref<ScriptClass> scriptClass = Ref<ScriptClass>::Create(nameSpace, name);

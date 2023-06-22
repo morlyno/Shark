@@ -106,6 +106,8 @@ namespace Shark {
 		void AddDirectory(Ref<DirectoryInfo> directory);
 		void AddAsset(AssetHandle handle);
 
+		bool Erase(AssetHandle handle);
+
 		std::filesystem::path FilePath;
 		std::string Name;
 		AssetHandle Handle;

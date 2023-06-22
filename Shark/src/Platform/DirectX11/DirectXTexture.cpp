@@ -123,10 +123,14 @@ namespace Shark {
 			specification.Type = ImageType::Texture;
 			specification.DebugName = m_Specification.DebugName;
 			m_Image->Invalidate();
-			UploadImageData();
 
-			if (m_Specification.GenerateMips)
-				Renderer::GenerateMips(m_Image);
+			if (m_ImageData)
+			{
+				UploadImageData();
+
+				if (m_Specification.GenerateMips)
+					Renderer::GenerateMips(m_Image);
+			}
 		}
 
 		Ref<DirectXTexture2D> instance = this;
