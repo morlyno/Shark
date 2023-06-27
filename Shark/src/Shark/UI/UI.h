@@ -137,6 +137,8 @@ namespace Shark::UI {
 	void PushFramedTextAlign(const ImVec2& align);
 	void PopFramedTextAlign();
 
+	ImVec2 CalcItemSizeFromText(const char* text, const char* textEnd = nullptr);
+
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -270,7 +272,9 @@ namespace Shark::UI {
 	void TextFramed(std::string_view fmt, ...);
 	bool Search(ImGuiID id, char* buffer, int bufferSize);
 	
+	bool InputFileName(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
 	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
+	bool InputPath(const char* label, char* buffer, int bufferSize);
 
 	void Texture(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 

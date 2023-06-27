@@ -7,6 +7,7 @@
 #include "Shark/Core/Buffer.h"
 
 #undef CreateFile
+#undef CopyFile
 
 namespace Shark {
 
@@ -51,6 +52,24 @@ namespace Shark {
 
 		static std::filesystem::path GetRelative(const std::filesystem::path& path);
 		static std::filesystem::path GetAbsolute(const std::filesystem::path& path);
+
+#if 0
+		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination);
+		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options);
+		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options, std::error_code& error);
+		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::error_code& error);
+#endif
+
+		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination);
+		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options);
+		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::string& errorMsg);
+		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options, std::string& errorMsg);
+
+		static bool CreateDirectories(const std::filesystem::path& path);
+		static bool CreateDirectories(const std::filesystem::path& path, std::string& errorMsg);
+
+	private:
+		static std::filesystem::path GetFSPath(const std::filesystem::path& path);
 	};
 
 }

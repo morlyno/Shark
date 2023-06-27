@@ -89,7 +89,7 @@ namespace Shark {
 		windowRect.bottom = spec.Height + windowRect.top;
 		AdjustWindowRect(&windowRect, windowFlags, false);
 
-		std::wstring windowName = String::ToWideCopy(m_Title);
+		std::wstring windowName = String::ToWide(m_Title);
 		m_hWnd = CreateWindowExW(
 			exWindowFlags,
 			m_WindowClass->GetClassName().c_str(),
@@ -249,7 +249,7 @@ namespace Shark {
 	void WindowsWindow::SetTitle(const std::string& title)
 	{
 		m_Title = title;
-		std::wstring wideTitle = String::ToWideCopy(title);
+		std::wstring wideTitle = String::ToWide(title);
 		SetWindowTextW(m_hWnd, wideTitle.c_str());
 	}
 

@@ -38,6 +38,7 @@ namespace Shark {
 
 	class ContentBrowserItem : public RefCount
 	{
+	private:
 		struct State
 		{
 			enum Type : uint16_t

@@ -211,17 +211,17 @@ return metadata.IsMemoryAsset;
 		if (type == AssetType::None)
 			return 0;
 
-		if (!std::filesystem::exists(Project::GetAssetsPath() / filePath))
-			return 0;
+		auto fsPath = FileSystem::GetAbsolute(filePath);
+		if (!FileSystem::Exists(fsPath))
+			return AssetHandle::Invalid;
 
-		AssetHandle handle = GetAssetHandleFromFilePath(filePath);
-		if (handle.IsValid())
+		AssetHandle handle = GetAssetHandleFromFilePath(fsPath);
+		if (handle != AssetHandle::Invalid)
 			return handle;
-
 
 		AssetMetaData metadata;
 		metadata.Handle = AssetHandle::Generate();
-		metadata.FilePath = MakeRelativePath(filePath);
+		metadata.FilePath = MakeRelativePath(fsPath);
 		metadata.Type = type;
 		metadata.IsDataLoaded = false;
 		s_Data->ImportedAssets[metadata.Handle] = metadata;

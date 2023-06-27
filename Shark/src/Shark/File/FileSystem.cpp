@@ -229,7 +229,7 @@ namespace Shark {
 
 	void FileSystem::TruncateFile(const std::filesystem::path& filePath)
 	{
-		std::ofstream fout{ filePath, std::ios::trunc };
+		std::ofstream fout{ GetFSPath(filePath), std::ios::trunc };
 		fout.flush();
 		fout.close();
 	}
@@ -268,6 +268,116 @@ namespace Shark {
 	std::filesystem::path FileSystem::GetAbsolute(const std::filesystem::path& path)
 	{
 		return Project::AbsolueCopy(path);
+	}
+
+	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination)
+	{
+		return CopyFile(source, destination, std::filesystem::copy_options::none);
+	}
+
+	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options)
+	{
+		auto fsSource = GetFSPath(source);
+		auto fsDestination = GetFSPath(destination);
+
+		std::error_code error;
+		bool copied = std::filesystem::copy_file(fsSource, fsDestination, options, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("FileSystem", "Failed to copy file! {} => {}\n\t{}", fsSource, fsDestination, error.message());
+			throw std::filesystem::filesystem_error("copy_file", fsDestination, fsDestination, error);
+		}
+
+		return copied;
+	}
+
+	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::string& errorMsg)
+	{
+		return CopyFile(source, destination, std::filesystem::copy_options::none, errorMsg);
+	}
+
+	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options, std::string& errorMsg)
+	{
+		auto fsSource = GetFSPath(source);
+		auto fsDestination = GetFSPath(destination);
+
+		SK_CORE_ASSERT(std::filesystem::exists(fsSource));
+		SK_CORE_ASSERT(std::filesystem::exists(fsDestination.parent_path()));
+
+		std::error_code error;
+		bool copied = std::filesystem::copy_file(fsSource, fsDestination, options, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("FileSystem", "Failed to copy file! {} => {}\n\t{}", fsSource, fsDestination, error.message());
+			errorMsg = error.message();
+			return copied;
+		}
+
+		errorMsg.clear();
+		return copied;
+	}
+
+	bool FileSystem::CreateDirectories(const std::filesystem::path& path)
+	{
+		auto fsPath = GetFSPath(path);
+
+		std::error_code error;
+		bool created = std::filesystem::create_directories(fsPath, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("FileSystem", "Failed to create directories! {}\n\t{}", fsPath);
+			throw std::filesystem::filesystem_error("create_directories", fsPath, error);
+		}
+
+		return created;
+	}
+
+	bool FileSystem::CreateDirectories(const std::filesystem::path& path, std::string& errorMsg)
+	{
+		auto fsPath = GetFSPath(path);
+
+		std::error_code error;
+		bool created = std::filesystem::create_directories(fsPath, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("FileSystem", "Failed to create directories! {}\n\t{}", fsPath);
+			errorMsg = error.message();
+			return created;
+		}
+
+		errorMsg.clear();
+		return created;
+	}
+
+#if 0
+	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination)
+	{
+		return CopyFile(source, destination, std::filesystem::copy_options::none);
+	}
+
+	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options)
+	{
+		auto fsSource = GetAbsolute(source);
+		auto fsDestination = GetAbsolute(destination);
+		return std::filesystem::copy_file(fsSource, fsDestination, options);
+	}
+
+	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options, std::error_code& error)
+	{
+		auto fsSource = GetAbsolute(source);
+		auto fsDestination = GetAbsolute(destination);
+		return std::filesystem::copy_file(fsSource, fsDestination, options, error);
+	}
+
+	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::error_code& error)
+	{
+		return CopyFile(source, destination, std::filesystem::copy_options::none, error);
+	}
+#endif
+
+	std::filesystem::path FileSystem::GetFSPath(const std::filesystem::path& path)
+	{
+		return path.is_absolute() ? path : std::filesystem::exists(path) ? path : GetAbsolute(path);
 	}
 
 }

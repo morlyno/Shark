@@ -61,6 +61,7 @@ namespace Shark {
 		virtual void OnImGuiRender() override;
 	private:
 		bool OnKeyPressed(KeyPressedEvent& event);
+		bool OnWindowDropEvent(WindowDropEvent& event);
 		void OnFileEvents(const std::vector<FileChangedData>& fileEvents);
 		void OnFileClickedCallback(const std::filesystem::path& filePath);
 
@@ -80,6 +81,8 @@ namespace Shark {
 		void UI_DebugScripts();
 		void UI_LogSettings();
 		void UI_Statistics();
+		void UI_OpenProjectModal();
+		void UI_ImportAsset();
 
 		void RegisterSettingNodes();
 
@@ -115,8 +118,6 @@ namespace Shark {
 		void SaveActiveProject(const std::filesystem::path& filePath);
 		Ref<ProjectInstance> CreateProject(const std::filesystem::path& projectDirectory);
 		void CreateProjectPremakeFile(Ref<ProjectInstance> project);
-
-		void ImportAssetDialog();
 
 		void RunScriptSetup();
 		void OpenIDE();
@@ -235,6 +236,51 @@ namespace Shark {
 		std::map<std::string, TimeStep> m_ProfilerStatsAccumulator;
 		uint32_t m_ProfilerSamples = 10;
 		uint32_t m_ProfilerSampleCount = 0;
+
+		struct OpenProjectModal
+		{
+			bool Show = false;
+			std::filesystem::path ProjectFile;
+			bool OpenPopup = false;
+
+			void Open(const std::filesystem::path& projectFile)
+			{
+				Show = true;
+				ProjectFile = projectFile;
+				OpenPopup = true;
+			}
+
+			void Reset()
+			{
+				Show = false;
+				ProjectFile = "";
+				OpenPopup = false;
+			}
+		};
+		OpenProjectModal m_OpenProjectModal;
+
+		struct ImportAssetData
+		{
+			bool Show = false;
+			AssetType Type = AssetType::None;
+			std::string DestinationPath;
+			std::string SourcePath;
+
+			std::string Error;
+			bool ShowError = false;
+			float ShowErrorTimer = 0.0f;
+			static constexpr float ShowErrorDuration = 4.0f;
+		};
+		ImportAssetData m_ImportAssetData;
+
+		std::unordered_map<AssetType, std::string> m_DefaultAssetDirectories = {
+			{ AssetType::Scene, "Scenes" },
+			{ AssetType::Texture, "Textures" },
+			{ AssetType::TextureSource, "TextureSources" },
+			{ AssetType::ScriptFile, "Scripts/Source" },
+			{ AssetType::Font, "Fonts" }
+		};
+
 	};
 
 }

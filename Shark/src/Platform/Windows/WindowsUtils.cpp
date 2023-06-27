@@ -37,7 +37,7 @@ namespace Shark {
 		if (hr != S_OK)
 		{
 			_com_error error(hr);
-			std::string msg = String::ToNarrowCopy(std::wstring_view(error.ErrorMessage()));
+			std::string msg = String::ToNarrow(std::wstring_view(error.ErrorMessage()));
 			SK_CORE_ERROR_TAG("Windows", msg);
 		}
 	}
@@ -45,7 +45,7 @@ namespace Shark {
 	static void LogHResult(HRESULT hr)
 	{
 		_com_error error(hr);
-		std::string msg = String::ToNarrowCopy(std::wstring_view(error.ErrorMessage()));
+		std::string msg = String::ToNarrow(std::wstring_view(error.ErrorMessage()));
 		SK_CORE_ERROR_TAG("Windows", msg);
 	}
 
@@ -53,7 +53,7 @@ namespace Shark {
 	std::string WindowsUtils::TranslateHResult(HRESULT hResult)
 	{
 		_com_error error(hResult);
-		return String::ToNarrowCopy(std::wstring_view(error.ErrorMessage()));
+		return String::ToNarrow(std::wstring_view(error.ErrorMessage()));
 	}
 
 	std::string_view WindowsUtils::GetPlatform()
@@ -97,7 +97,7 @@ namespace Shark {
 		if (FAILED(hr))
 		{
 			_com_error error(hr);
-			std::string msg = String::ToNarrowCopy(std::wstring_view(error.ErrorMessage()));
+			std::string msg = String::ToNarrow(std::wstring_view(error.ErrorMessage()));
 			SK_CORE_ERROR_TAG("Windows", "Failed to set Thead Name! {}", msg);
 		}
 	}

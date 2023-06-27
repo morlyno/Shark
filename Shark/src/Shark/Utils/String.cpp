@@ -45,48 +45,49 @@ namespace Shark::String {
 		});
 	}
 
-	std::string ToNarrowCopy(const std::wstring& str)
+	std::string ToNarrow(const std::wstring& wide)
 	{
-		std::string result;
-		ToNarrow(str, result);
-		return std::move(result);
+		std::string narrow;
+		narrow.resize(wide.size() * 2);
+		size_t actual;
+		wcstombs_s(&actual, narrow.data(), narrow.size(), wide.c_str(), _TRUNCATE);
+		narrow.resize(actual - 1);
+		return narrow;
 	}
 
-	std::string ToNarrowCopy(std::wstring_view str)
+	std::string ToNarrow(std::wstring_view wide)
 	{
-		std::string result;
-		ToNarrow(str, result);
-		return std::move(result);
+		std::string narrow;
+		narrow.resize(wide.size() * 2);
+		size_t actual;
+		wcstombs_s(&actual, narrow.data(), narrow.size(), wide.data(), _TRUNCATE);
+		narrow.resize(actual - 1);
+		return narrow;
 	}
 
-	std::string ToNarrowCopy(const wchar_t* str)
+	std::string ToNarrow(const wchar_t* wide)
 	{
-		return ToNarrowCopy(std::wstring_view(str));
+		std::string narrow;
+		size_t wideLength = wcslen(wide);
+		narrow.resize(wideLength * 2);
+		size_t actual;
+		wcstombs_s(&actual, narrow.data(), narrow.size(), wide, _TRUNCATE);
+		narrow.resize(actual - 1);
+		return narrow;
 	}
 
-	void ToNarrow(const std::wstring& str, std::string& out_Result)
+	std::wstring ToWide(const std::string& narrow)
 	{
-		out_Result.resize(str.size());
-		wcstombs_s(nullptr, out_Result.data(), out_Result.size() + 1, str.data(), (str.size() + 1) * sizeof(std::wstring::value_type));
-	}
-
-	void ToNarrow(std::wstring_view str, std::string& out_Result)
-	{
-		out_Result.resize(str.size());
-		wcstombs_s(nullptr, out_Result.data(), out_Result.size() + 1, str.data(), (str.size() + 1) * sizeof(std::wstring::value_type));
-	}
-
-	std::wstring ToWideCopy(const std::string& str)
-	{
-		std::wstring result;
-		ToWide(str, result);
-		return result;
-	}
-
-	void ToWide(const std::string& str, std::wstring& out_Result)
-	{
-		out_Result.resize(str.size());
-		mbstowcs_s(nullptr, out_Result.data(), out_Result.size() + 1, str.data(), (str.size() + 1) * sizeof(std::wstring::value_type));
+		std::wstring wide;
+		wide.resize(narrow.size() + 1);
+		size_t actual;
+		mbstowcs_s(&actual, wide.data(), wide.size(), narrow.c_str(), _TRUNCATE);
+		if (actual > 0)
+		{
+			wide.resize(actual - 1);
+			return wide;
+		}
+		return {};
 	}
 
 	void SplitString(const std::string& str, std::string_view splitter, std::vector<std::string>& out_Array)

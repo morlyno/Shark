@@ -136,6 +136,13 @@ namespace Shark::UI {
 		GContext->FramedTextAlignStack.pop();
 	}
 
+	ImVec2 CalcItemSizeFromText(const char* text, const char* textEnd)
+	{
+		const ImGuiStyle& style = ImGui::GetStyle();
+		const ImVec2 textSize = ImGui::CalcTextSize(text, textEnd);
+		return { textSize.x + style.FramePadding.x * 2.0f, textSize.y + style.FramePadding.y * 2.0f };
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1065,7 +1072,7 @@ namespace Shark::UI {
 		return changed || clear;
 	}
 
-	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput)
+	bool InputFileName(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput)
 	{
 		auto filter = [](ImGuiInputTextCallbackData* data) -> int
 		{
@@ -1078,6 +1085,28 @@ namespace Shark::UI {
 		};
 
 		return ImGui::InputText(label, buffer, bufferSize, ImGuiInputTextFlags_CallbackCharFilter, filter, &out_InvalidInput);
+	}
+
+	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput)
+	{
+		auto filter = [](ImGuiInputTextCallbackData* data) -> int
+		{
+			if (!(data->EventChar == L'\\' || data->EventChar == L'/') && FileSystem::InvalidCharactersW.find(data->EventChar) != std::wstring_view::npos)
+			{
+				*(bool*)data->UserData = true;
+				return 1;
+			}
+			return 0;
+		};
+
+		out_InvalidInput = false;
+		return ImGui::InputText(label, buffer, bufferSize, ImGuiInputTextFlags_CallbackCharFilter, filter, &out_InvalidInput);
+	}
+
+	bool InputPath(const char* label, char* buffer, int bufferSize)
+	{
+		bool dummy;
+		return InputPath(label, buffer, bufferSize, dummy);
 	}
 
 	UIContext::UIContext()

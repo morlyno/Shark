@@ -39,7 +39,7 @@ namespace Shark {
 		{
 			DXGI_ADAPTER_DESC ad = {};
 			SK_DX11_CALL(adapter->GetDesc(&ad));
-			return String::ToNarrowCopy(std::wstring_view(ad.Description));
+			return String::ToNarrow(std::wstring_view(ad.Description));
 		}
 
 	}

@@ -6,6 +6,7 @@
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Asset/ResourceManager.h"
+#include "Shark/Asset/AssetUtils.h"
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
 
@@ -209,6 +210,7 @@ namespace Shark {
 
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
+		dispacher.DispachEvent<WindowDropEvent>(SK_BIND_EVENT_FN(EditorLayer::OnWindowDropEvent));
 
 		if (event.Handled)
 			return;
@@ -338,6 +340,34 @@ namespace Shark {
 		return false;
 	}
 
+	bool EditorLayer::OnWindowDropEvent(WindowDropEvent& event)
+	{
+		for (const auto& path : event.GetPaths())
+		{
+			if (!std::filesystem::is_regular_file(path))
+				break;
+
+			if (path.extension() == ".skproj")
+			{
+				m_OpenProjectModal.Open(path);
+				break;
+			}
+
+			AssetType assetType = AssetUtils::GetAssetTypeFromPath(path);
+			if (assetType != AssetType::None)
+			{
+				m_ImportAssetData.Show = true;
+				m_ImportAssetData.Type = assetType;
+				m_ImportAssetData.SourcePath = path.generic_string();
+				m_ImportAssetData.DestinationPath = fmt::format("{}/{}", m_DefaultAssetDirectories.at(assetType), path.stem().generic_string());
+				break;
+			}
+
+		}
+
+		return false;
+	}
+
 	void EditorLayer::OnFileEvents(const std::vector<FileChangedData>& fileEvents)
 	{
 		ResourceManager::OnFileEvents(fileEvents);
@@ -427,6 +457,8 @@ namespace Shark {
 		UI_DebugScripts();
 		UI_LogSettings();
 		UI_Statistics();
+		UI_OpenProjectModal();
+		UI_ImportAsset();
 
 		m_PanelManager->OnImGuiRender();
 		
@@ -512,8 +544,7 @@ namespace Shark {
 
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("Import Asset"))
-					ImportAssetDialog();
+				ImGui::MenuItem("Import Asset");
 
 				ImGui::Separator();
 
@@ -1312,7 +1343,7 @@ namespace Shark {
 				EditorLayer* editor = this;
 				Application::Get().SubmitToMainThread([editor]()
 				{
-					std::string directory = String::ToNarrowCopy(fmt::format(L"{}/Textures", Project::GetAssetsPath().native()));
+					std::string directory = String::ToNarrow(fmt::format(L"{}/Textures", Project::GetAssetsPath().native()));
 					std::string fileName = std::filesystem::path(editor->m_TextureAssetCreateData.TextureFileName).replace_extension(".sktex").string();
 
 					const auto& metadata = ResourceManager::GetMetaData(editor->m_TextureAssetCreateData.TextureSourcePath);
@@ -1489,6 +1520,169 @@ namespace Shark {
 			}
 		}
 		ImGui::End();
+	}
+
+	void EditorLayer::UI_OpenProjectModal()
+	{
+		if (!m_OpenProjectModal.Show)
+			return;
+
+		if (m_OpenProjectModal.OpenPopup)
+		{
+			ImGui::OpenPopup("Open Project");
+			m_OpenProjectModal.OpenPopup = false;
+		}
+
+		if (ImGui::BeginPopupModal("Open Project"))
+		{
+			ImGui::Text("Do you want to Open this Project?");
+			UI::Text(m_OpenProjectModal.ProjectFile);
+
+			const ImGuiStyle& style = ImGui::GetStyle();
+
+			ImVec2 openTextSize = ImGui::CalcTextSize("Open");
+			ImVec2 closeTextSize = ImGui::CalcTextSize("Close");
+			
+			ImVec2 openButtonSize = { openTextSize.x + style.FramePadding.x * 2.0f, openTextSize.y + style.FramePadding.y * 2.0f };
+			ImVec2 closeButtonSize = { closeTextSize.x + style.FramePadding.x * 2.0f, closeTextSize.y + style.FramePadding.y * 2.0f };
+
+			ImVec2 contentRegion = ImGui::GetContentRegionMax();
+
+			ImVec2 openButtonPos = {
+				contentRegion.x - closeButtonSize.x - style.ItemSpacing.x - openButtonSize.x,
+				contentRegion.y - openButtonSize.y
+			};
+
+			ImGui::SetCursorPos(openButtonPos);
+			if (ImGui::Button("Open"))
+			{
+				OpenProject(m_OpenProjectModal.ProjectFile);
+				m_OpenProjectModal.Reset();
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Close"))
+			{
+				m_OpenProjectModal.Reset();
+			}
+
+			ImGui::EndPopup();
+		}
+	}
+
+	void EditorLayer::UI_ImportAsset()
+	{
+		if (!m_ImportAssetData.Show)
+			return;
+
+		if (ImGui::Begin("Import Asset"))
+		{
+			const ImGuiStyle& style = ImGui::GetStyle();
+
+			UI::TextF("Importing Asset from {}", m_ImportAssetData.SourcePath);
+
+			char buffer[MAX_PATH];
+			strcpy_s(buffer, m_ImportAssetData.DestinationPath.c_str());
+
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - UI::CalcItemSizeFromText("...").x - style.ItemSpacing.x);
+
+			bool invalidInput;
+			if (UI::InputPath("##destPath", buffer, MAX_PATH, invalidInput))
+				m_ImportAssetData.DestinationPath = buffer;
+
+			if (invalidInput)
+			{
+				m_ImportAssetData.Error = "Filepaths aren't allowed to containe any of the folloing character!\n:*?\"<>|";
+				m_ImportAssetData.ShowError = true;
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("..."))
+			{
+				auto path = PlatformUtils::SaveFileDialog(L"", 1, Project::GetAssetsPath(), true, false);
+				path.replace_extension();
+				m_ImportAssetData.DestinationPath = std::filesystem::relative(path, Project::GetAssetsPath()).generic_string();
+			}
+
+			if (m_ImportAssetData.ShowError)
+			{
+				UI::ScopedColor errorText(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
+				UI::Text(m_ImportAssetData.Error);
+				m_ImportAssetData.ShowErrorTimer += m_TimeStep;
+				if (m_ImportAssetData.ShowErrorTimer >= m_ImportAssetData.ShowErrorDuration)
+				{
+					m_ImportAssetData.ShowError = false;
+					m_ImportAssetData.ShowErrorTimer = 0.0f;
+				}
+			}
+
+			ImVec2 importTextSize = ImGui::CalcTextSize("Import");
+			ImVec2 cancleTextSize = ImGui::CalcTextSize("Cancle");
+
+			ImVec2 importButtonSize = { importTextSize.x + style.FramePadding.x * 2.0f, importTextSize.y + style.FramePadding.y * 2.0f };
+			ImVec2 cancleButtonSize = { cancleTextSize.x + style.FramePadding.x * 2.0f, cancleTextSize.y + style.FramePadding.y * 2.0f };
+
+			ImVec2 contentRegion = ImGui::GetContentRegionMax();
+
+			ImVec2 importButtonPos = {
+				contentRegion.x - cancleButtonSize.x - style.ItemSpacing.x - importButtonSize.x,
+				contentRegion.y - importButtonSize.y
+			};
+
+			ImGui::SetCursorPos(importButtonPos);
+			if (ImGui::Button("Import"))
+			{
+				std::filesystem::path destination = Project::GetAssetsPath() / m_ImportAssetData.DestinationPath;
+				std::filesystem::path source = m_ImportAssetData.SourcePath;
+
+				bool tryImport = true;
+
+				if (destination.native().find(L"..") != std::wstring::npos)
+				{
+					m_ImportAssetData.Error = "Invalid Destination Path";
+					m_ImportAssetData.ShowError = true;
+					tryImport = false;
+				}
+
+				if (source.native().find(L"..") != std::wstring::npos)
+				{
+					m_ImportAssetData.Error = "Invalid Source Path";
+					m_ImportAssetData.ShowError = true;
+					tryImport = false;
+				}
+
+				if (tryImport)
+				{
+					destination.replace_extension(source.extension());
+
+#if 0
+					auto destinationDirectory = destination.parent_path();
+					if (!FileSystem::Exists(destinationDirectory))
+						FileSystem::CreateDirectories(destinationDirectory);
+#endif
+
+					std::string errorMsg;
+					if (!FileSystem::CopyFile(source, destination, errorMsg))
+					{
+						m_ImportAssetData.Error = errorMsg;
+						m_ImportAssetData.ShowError = true;
+					}
+					else
+					{
+						ResourceManager::ImportAsset(destination);
+						m_ImportAssetData = {};
+					}
+				}
+			}
+			
+			ImGui::SameLine();
+			if (ImGui::Button("Cancle"))
+			{
+				m_ImportAssetData = {};
+			}
+
+			ImGui::End();
+		}
 	}
 
 	void EditorLayer::RegisterSettingNodes()
@@ -1941,16 +2135,6 @@ namespace Shark {
 		fout << premakeTemplate;
 		fout.close();
 
-	}
-
-	void EditorLayer::ImportAssetDialog()
-	{
-		auto results = PlatformUtils::OpenFileDialogMuliSelect(L"", 1, Project::GetAssetsPath());
-		for (const auto& path : results)
-		{
-			if (!ResourceManager::IsFileImported(path))
-				ResourceManager::ImportAsset(path);
-		}
 	}
 
 	void EditorLayer::RunScriptSetup()
