@@ -158,6 +158,14 @@ namespace Shark {
 		});
 	}
 
+	void DirectXFrameBuffer::ClearColorAtachments(Ref<RenderCommandBuffer> commandBuffer)
+	{
+		Ref<DirectXFrameBuffer> instance = this;
+		Renderer::Submit([instance, cmdBuffer = commandBuffer.As<DirectXRenderCommandBuffer>()]()
+		{
+			instance->RT_ClearColorAtachments(cmdBuffer);
+		});
+	}
 
 	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)
 	{
@@ -503,6 +511,19 @@ namespace Shark {
 
 		auto ctx = commandBuffer->GetContext();
 		ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1.0f, 0u);
+	}
+
+	void DirectXFrameBuffer::RT_ClearColorAtachments(Ref<DirectXRenderCommandBuffer> commandBuffer)
+	{
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		for (uint32_t i = 0; i < m_Count; i++)
+		{
+			if (m_Specification.IndipendendClearColor.find(i) != m_Specification.IndipendendClearColor.end())
+				RT_ClearAtachment(commandBuffer, i, m_Specification.IndipendendClearColor.at(i));
+			else
+				RT_ClearAtachment(commandBuffer, i, m_Specification.ClearColor);
+		}
 	}
 
 	bool DirectXFrameBuffer::FormatSupportsBlending(ImageFormat format)

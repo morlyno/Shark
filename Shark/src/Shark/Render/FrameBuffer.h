@@ -68,6 +68,7 @@ namespace Shark {
 		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) = 0;
 		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearcolor) = 0;
 		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) = 0;
+		virtual void ClearColorAtachments(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 		virtual std::pair<uint32_t, uint32_t> GetSize() const = 0;
 		virtual uint32_t GetWidth() const = 0;

@@ -17,6 +17,11 @@ namespace Shark {
 		return nullptr;
 	}
 
+	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout, Buffer vertexData, bool dynamic)
+	{
+		return Create(layout, vertexData.Size, dynamic, vertexData);
+	}
+
 	Ref<IndexBuffer> IndexBuffer::Create(uint32_t count, bool dynmaic, Buffer indexData)
 	{
 		switch (Renderer::GetAPI())
@@ -27,4 +32,11 @@ namespace Shark {
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;
 	}
+
+	Ref<IndexBuffer> IndexBuffer::Create(Buffer indexData, bool dynamic)
+	{
+		SK_CORE_VERIFY((indexData.Size % sizeof(uint32_t)) == 0);
+		return Create(indexData.Size / sizeof(uint32_t), dynamic, indexData);
+	}
+
 }

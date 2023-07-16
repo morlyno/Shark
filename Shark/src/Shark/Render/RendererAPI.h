@@ -8,6 +8,7 @@
 #include "Shark/Render/Shader.h"
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/Texture.h"
+#include "Shark/Render/Mesh.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/Material.h"
@@ -43,6 +44,8 @@ namespace Shark {
 
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount) = 0;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount) = 0;;
+
+		virtual void RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet) = 0;
 
 		virtual void GenerateMips(Ref<Image2D> image) = 0;
 		virtual void RT_GenerateMips(Ref<Image2D> image) = 0;

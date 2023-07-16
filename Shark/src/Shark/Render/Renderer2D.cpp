@@ -775,9 +775,9 @@ namespace Shark {
 
 	void Renderer2D::ClearPass()
 	{
-		m_DepthFrameBuffer->Clear(m_CommandBuffer);
+		//m_DepthFrameBuffer->Clear(m_CommandBuffer);
 		m_TransparentDepthBuffer->Clear(m_CommandBuffer);
-		m_TransparentGeometryFrameBuffer->Clear(m_CommandBuffer);
+		m_TransparentGeometryFrameBuffer->ClearColorAtachments(m_CommandBuffer);
 	}
 
 	void Renderer2D::OpaqueGeometryPass()

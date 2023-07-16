@@ -43,6 +43,7 @@ namespace Shark {
 			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
 			fbspecs.Atachments[1].BlendEnabled = false;
 			fbspecs.ClearColor = m_ClearColor;
+			fbspecs.IndipendendClearColor[1] = { -1.0f, -1.0f, -1.0f, -1.0f };
 			m_GeometryFrameBuffer = FrameBuffer::Create(fbspecs);
 			m_Renderer2D = Ref<Renderer2D>::Create(m_GeometryFrameBuffer);
 		}
@@ -62,6 +63,24 @@ namespace Shark {
 			m_ExternalCompositeFrameBuffer = FrameBuffer::Create(fbspecs);
 		}
 
+		// Mesh Pipeline
+		{
+			PipelineSpecification specification;
+			specification.TargetFrameBuffer = m_GeometryFrameBuffer;
+			specification.Shader = Renderer::GetShaderLib()->Get("DefaultMeshShader");
+			specification.Layout = VertexLayout{
+				{ VertexDataType::Float3, "Position" },
+				{ VertexDataType::Float4, "Color" }
+			};
+			specification.DebugName = "DefaultMeshShader";
+			m_MeshPipeline = Pipeline::Create(specification);
+		}
+
+		m_CameraCB = ConstantBuffer::Create(sizeof(CBCamera), 0);
+		m_MeshDataCB = ConstantBuffer::Create(sizeof(CBMeshData), 1);
+		m_ConstantBufferSet = ConstantBufferSet::Create();
+		m_ConstantBufferSet->Add(m_CameraCB);
+		m_ConstantBufferSet->Add(m_MeshDataCB);
 	}
 
 	SceneRenderer::~SceneRenderer()
@@ -83,19 +102,19 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
-		//m_Renderer2D->SetRenderTarget(m_GeometryFrameBuffer);
+		CBCamera camera;
+		camera.ViewProj = viewProj;
+		m_CameraCB->UploadData(Buffer::FromValue(camera));
+
+		m_CommandBuffer->Begin();
+		m_GeometryFrameBuffer->Clear(m_CommandBuffer);
+
 		m_Renderer2D->BeginScene(viewProj);
 	}
 
 	void SceneRenderer::EndScene()
 	{
 		SK_PROFILE_FUNCTION();
-
-		m_CommandBuffer->Begin();
-
-		m_GeometryFrameBuffer->ClearAtachment(m_CommandBuffer, 0);
-		m_GeometryFrameBuffer->ClearAtachment(m_CommandBuffer, 1, { -1.0f, -1.0f, -1.0f, -1.0f });
-		m_GeometryFrameBuffer->ClearDepth(m_CommandBuffer);
 
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
@@ -129,6 +148,19 @@ namespace Shark {
 			return;
 
 		m_Renderer2D->DrawString(text, font, transform, kerning, lineSpacing, color, id);
+	}
+
+	void SceneRenderer::SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, int id)
+	{
+		if (!mesh)
+			return;
+
+		CBMeshData meshData;
+		meshData.Transform = transform;
+		meshData.ID = id;
+		m_MeshDataCB->UploadData(Buffer::FromValue(meshData));
+
+		Renderer::RenderMesh(m_CommandBuffer, mesh, m_MeshPipeline, m_ConstantBufferSet);
 	}
 
 	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, bool isTransparent, int id)

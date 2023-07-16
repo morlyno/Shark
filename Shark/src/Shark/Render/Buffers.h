@@ -29,6 +29,7 @@ namespace Shark {
 
 	public:
 		static Ref<VertexBuffer> Create(const VertexLayout& layout, uint32_t size, bool dynamic, Buffer vertexData);
+		static Ref<VertexBuffer> Create(const VertexLayout& layout, Buffer vertexData, bool dynamic = false);
 	};
 
 	// 32-Bit IndexBuffer
@@ -52,6 +53,7 @@ namespace Shark {
 
 	public:
 		static Ref<IndexBuffer> Create(uint32_t count, bool dynmaic, Buffer indexData);
+		static Ref<IndexBuffer> Create(Buffer indexData, bool dynamic = false);
 	};
 
 }

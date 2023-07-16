@@ -21,6 +21,7 @@ namespace Shark {
 		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) override;
 		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearcolor) override;
 		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) override;
+		virtual void ClearColorAtachments(Ref<RenderCommandBuffer> commandBuffer) override;
 
 		virtual std::pair<uint32_t, uint32_t> GetSize() const override { return { m_Specification.Width, m_Specification.Height }; }
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
@@ -58,6 +59,7 @@ namespace Shark {
 		void RT_Clear(Ref<DirectXRenderCommandBuffer> commandBuffer);
 		void RT_ClearAtachment(Ref<DirectXRenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearColor);
 		void RT_ClearDepth(Ref<DirectXRenderCommandBuffer> commandBuffer);
+		void RT_ClearColorAtachments(Ref<DirectXRenderCommandBuffer> commandBuffer);
 
 		bool FormatSupportsBlending(ImageFormat format);
 

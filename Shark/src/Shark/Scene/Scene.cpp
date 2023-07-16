@@ -917,6 +917,13 @@ namespace Shark {
 			renderer->SubmitText(transform, ResourceManager::GetAsset<Font>(component.FontHandle), component.Text, component.Kerning, component.LineSpacing, component.Color, (int)entity.GetHandle());
 		}
 
+		if (entity.AllOf<MeshRendererComponent>())
+		{
+			const auto& component = entity.GetComponent<MeshRendererComponent>();
+			if (component.Mesh)
+				renderer->SubmitMesh(transform, component.Mesh, (int)entity.GetHandle());
+		}
+
 		for (auto& childID : entity.Children())
 			RenderEntity(renderer, GetEntityByUUID(childID), transform);
 	}

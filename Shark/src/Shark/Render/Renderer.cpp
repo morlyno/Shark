@@ -86,6 +86,11 @@ namespace Shark {
 		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, constantBufferSet, vertexBuffer, vertexCount);
 	}
 
+	void Renderer::RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet)
+	{
+		s_RendererAPI->RenderMesh(renderCommandBuffer, mesh, pipeline, constantBufferSet);
+	}
+
 	void Renderer::GenerateMips(Ref<Image2D> image)
 	{
 		s_RendererAPI->GenerateMips(image);

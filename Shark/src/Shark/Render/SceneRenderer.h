@@ -8,6 +8,7 @@
 #include "Shark/Render/RenderCommandBuffer.h"
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/Mesh.h"
 
 namespace Shark {
 
@@ -34,6 +35,8 @@ namespace Shark {
 
 		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
 
+		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, int id);
+
 		void Resize(uint32_t width, uint32_t height);
 
 		void DrawSettings();
@@ -51,17 +54,28 @@ namespace Shark {
 			glm::mat4 ViewProj;
 		};
 
+		struct alignas(16) CBMeshData
+		{
+			glm::mat4 Transform;
+			int ID;
+		};
+
 	private:
 		Ref<Scene> m_Scene;
 		std::string m_DebugName;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
-		Ref<ConstantBuffer> m_CameraConstantBuffer;
+
+		Ref<ConstantBuffer> m_CameraCB;
+		Ref<ConstantBuffer> m_MeshDataCB;
+		Ref<ConstantBufferSet> m_ConstantBufferSet;
 
 		// Geometry
 		Ref<FrameBuffer> m_GeometryFrameBuffer;
 		Ref<FrameBuffer> m_ExternalCompositeFrameBuffer;
+
+		Ref<Pipeline> m_MeshPipeline;
 
 		bool m_NeedsResize = true;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;

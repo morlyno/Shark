@@ -81,7 +81,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(m_CBMap.find(slot) == m_CBMap.end());
 
-		Ref<DirectXConstantBuffer> cb = Ref<DirectXConstantBuffer>::Create(size, slot);
+		auto cb = Ref<DirectXConstantBuffer>::Create(size, slot);
 		m_CBMap[slot] = cb;
 		return cb;
 	}
@@ -97,7 +97,12 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(m_CBMap.find(slot) != m_CBMap.end());
 
-		m_CBMap[slot]->Set(data, size);
+		m_CBMap.at(slot)->Set(data, size);
+	}
+
+	void DirectXConstantBufferSet::Add(Ref<ConstantBuffer> constantBuffer)
+	{
+		m_CBMap[constantBuffer->GetSlot()] = constantBuffer.As<DirectXConstantBuffer>();
 	}
 
 	Ref<ConstantBuffer> DirectXConstantBufferSet::RT_Create(uint32_t size, uint32_t slot)

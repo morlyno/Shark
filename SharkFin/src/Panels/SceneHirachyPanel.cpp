@@ -6,6 +6,7 @@
 
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scene/Components.h"
+#include "Shark/Render/MeshFactory.h"
 #include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
@@ -136,6 +137,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Sprite Renderer", SpriteRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Circle Renderer", CircleRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Text Renderer", TextRendererComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Mesh Renderer", MeshRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Camera", CameraComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Rigidbody 2D", RigidBody2DComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Box Collider 2D", BoxCollider2DComponent));
@@ -451,6 +453,12 @@ namespace Shark {
 			UI::Control("Kerning", comp.Kerning, 0.005f);
 			UI::Control("Line Spacing", comp.LineSpacing, 0.01f);
 			UI::EndControls();
+		});
+
+		DrawComponet<MeshRendererComponent>(entity, "Mesh Renderer", [](MeshRendererComponent& comp, Entity entity)
+		{
+			if (ImGui::Button("Cube"))
+				comp.Mesh = MeshFactory::CreateCube();
 		});
 
 		DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)

@@ -563,7 +563,8 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Scripting", "Initializing Mono");
 
-		FileSystem::TruncateFile("Logs/Mono.log");
+		if (std::filesystem::exists("Logs/Mono.log"))
+			FileSystem::TruncateFile("Logs/Mono.log");
 		
 		mono_trace_set_level_string("warning");
 		mono_trace_set_log_handler(&MonoTraceLogCallback, nullptr);
