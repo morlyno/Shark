@@ -43,6 +43,11 @@ project "SharkFin"
         DefaultDefines
     }
 
+    postbuildcommands
+    {
+        '{COPYFILE} "%{Assimp.Binary}" "%{cfg.targetdir}"'
+    }
+
     filter "system:windows"
         systemversion "latest"
         defines "SK_PLATFORM_WINDOWS"

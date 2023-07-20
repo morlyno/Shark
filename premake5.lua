@@ -45,6 +45,6 @@ group "Dependencies"
 group ""
 
 include "Shark"
-include "Sandbox"
+-- include "Sandbox"
 include "SharkFin"
 include "Shark-ScriptCore"

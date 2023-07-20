@@ -42,3 +42,10 @@ Library["Winmm"] = "Winmm.lib"
 Library["Version"] = "Version.lib"
 Library["Bcrypt"] = "Bcrypt.lib"
 Library["WinSock"] = "Ws2_32.lib"
+
+Assimp = {
+    BaseDir = "%{wks.location}/Shark/dependencies/Assimp",
+    IncludeDir = "%{Assimp.BaseDir}/include",
+    Library = "%{Assimp.BaseDir}/lib/assimp-vc143-mt.lib",
+    Binary = "%{Assimp.BaseDir}/bin/assimp-vc143-mt.dll",
+}
