@@ -12,7 +12,7 @@ namespace Shark {
 	public:
 		virtual ~Shader() = default;
 
-		virtual bool Reload(bool forceCompile = false) = 0;
+		virtual bool Reload(bool forceCompile = false, bool disableOptimization = false) = 0;
 
 		virtual const std::string& GetName() const = 0;
 		virtual const std::filesystem::path& GetFilePath() const = 0;

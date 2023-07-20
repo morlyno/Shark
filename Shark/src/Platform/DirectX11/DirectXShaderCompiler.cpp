@@ -157,7 +157,14 @@ namespace Shark {
 
 		if (forceCompile || changedStages)
 		{
-			RelfectShaderStages(m_SPIRVData);
+			try
+			{
+				RelfectShaderStages(m_SPIRVData);
+			}
+			catch (const std::exception& e)
+			{
+				SK_CORE_ERROR(e.what());
+			}
 		}
 
 		return true;

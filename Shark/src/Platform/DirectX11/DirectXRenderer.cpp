@@ -120,7 +120,7 @@ namespace Shark {
 		});
 
 		m_ShaderLib = Ref<ShaderLibrary>::Create();
-		m_ShaderLib->Load("Resources/Shaders/DefaultMeshShader.hlsl", true, true);
+		m_ShaderLib->Load("Resources/Shaders/DefaultMeshShader.hlsl");
 
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadTransparent.hlsl");
@@ -444,7 +444,6 @@ namespace Shark {
 
 			auto vertexBuffer = mesh->GetVertexBuffer().As<DirectXVertexBuffer>();
 			auto indexBuffer = mesh->GetIndexBuffer().As<DirectXIndexBuffer>();
-			auto material = mesh->GetMaterial().As<DirectXMaterial>();
 
 			const UINT offset = 0;
 			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
@@ -477,6 +476,59 @@ namespace Shark {
 
 			DX11_VALIDATE_CONTEXT(ctx);
 			ctx->DrawIndexed(indexBuffer->GetCount(), 0, 0);
+		});
+	}
+
+	void DirectXRenderer::RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline, Ref<ConstantBuffer> sceneDataCB)
+	{
+		SK_PROFILE_FUNCTION();
+
+		Ref instance = this;
+		Renderer::Submit([instance, commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>(), mesh, submeshIndex, dxPipeline = pipeline.As<DirectXPipeline>(), dxSceneDataCB = sceneDataCB.As<DirectXConstantBuffer>()]()
+		{
+			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
+
+			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
+
+			auto vertexBuffer = mesh->GetVertexBuffer().As<DirectXVertexBuffer>();
+			auto indexBuffer = mesh->GetIndexBuffer().As<DirectXIndexBuffer>();
+
+			const UINT offset = 0;
+			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
+			ctx->IASetVertexBuffers(0, 1, &vertexBuffer->m_VertexBuffer, &stride, &offset);
+
+			ctx->IASetIndexBuffer(indexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+
+			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
+
+			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
+			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
+
+			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
+
+			const auto& submeshes = mesh->GetSubmeshes();
+			const auto& submesh = submeshes[submeshIndex];
+
+			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+			Ref<DirectXMaterial> material = materialTable->GetMaterial(submesh.MaterialIndex).As<DirectXMaterial>();
+
+			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, material, nullptr);
+			ctx->VSSetConstantBuffers(dxSceneDataCB->m_Slot, 1, &dxSceneDataCB->m_ConstBuffer);
+
+			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+
+			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+
+			ctx->RSSetState(dxPipeline->m_RasterizerState);
+			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
+
+			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
+
+			DX11_VALIDATE_CONTEXT(ctx);
+			ctx->DrawIndexed(submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
 		});
 	}
 

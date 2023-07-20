@@ -22,6 +22,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
 #include <glm/gtx/vector_query.hpp>
+#include "Shark/Serialization/AssimpImporter.h"
 
 namespace Shark {
 
@@ -125,6 +126,21 @@ namespace Shark {
 			auto value = field->GetValue<T>();
 			if (UI::Control(fieldName, value))
 				field->SetValue(value);
+		}
+
+		static void DrawMeshNode(Mesh::Node& node)
+		{
+			if (ImGui::TreeNodeEx(node.Name.c_str()))
+			{
+				UI::BeginControls();
+				UI::Control("Transform", node.Transform);
+				UI::EndControls();
+
+				for (auto& child : node.Children)
+					DrawMeshNode(child);
+
+				ImGui::TreePop();
+			}
 		}
 
 	}
@@ -459,6 +475,15 @@ namespace Shark {
 		{
 			if (ImGui::Button("Cube"))
 				comp.Mesh = MeshFactory::CreateCube();
+
+			if (ImGui::Button("Load From File"))
+			{
+				AssimpImporter assimpImporter;
+				comp.Mesh = assimpImporter.TryLoad("Assets/Meshes/nano.fbx");
+			}
+
+			if (comp.Mesh)
+				utils::DrawMeshNode(comp.Mesh->GetRootNode());
 		});
 
 		DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)

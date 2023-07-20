@@ -46,6 +46,7 @@ namespace Shark {
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount) = 0;;
 
 		virtual void RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet) = 0;
+		virtual void RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline, Ref<ConstantBuffer> sceneDataCB) = 0;
 
 		virtual void GenerateMips(Ref<Image2D> image) = 0;
 		virtual void RT_GenerateMips(Ref<Image2D> image) = 0;

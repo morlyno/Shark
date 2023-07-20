@@ -42,7 +42,8 @@ project "Shark"
         "%{IncludeDir.Mono}",
         "%{IncludeDir.msdfgen}",
         "%{IncludeDir.msdf_atlas_gen}",
-        "%{IncludeDir.Vulkan_SDK}"
+        "%{IncludeDir.Vulkan_SDK}",
+        "%{Assimp.IncludeDir}"
     }
 
     defines
@@ -58,7 +59,8 @@ project "Shark"
         "ImGuizmo",
         "OptickCore",
         "msdf-atlas-gen",
-        "%{Library.mono}"
+        "%{Library.mono}",
+        "%{Assimp.Library}"
     }
 
     filter "system:windows"

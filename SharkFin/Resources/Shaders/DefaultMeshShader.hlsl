@@ -18,12 +18,17 @@ struct VSOutput
     float4 Position : SV_POSITION;
 };
 
-VSOutput main(float3 position : Position, float4 color : Color)
+VSOutput main(float3 position : Position)
 {
     VSOutput output;
     output.Position = mul(Transform, float4(position, 1.0f));
     output.Position = mul(ViewProjection, output.Position);
-    output.Color = color;
+    //output.Position = mul(Transform, float4(position, 1.0f));
+    //output.Position = mul(ViewProjection, output.Position);
+    float3 color = position;
+    color += float3(1.0f, 1.0f, 1.0f);
+    color *= 0.5f;
+    output.Color = float4(color, 1.0f);
     output.ID = ID;
     return output;
 }

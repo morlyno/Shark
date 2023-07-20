@@ -804,7 +804,9 @@ namespace Shark {
 				{
 					UI::Text(fmt::format("Path: {}", shader->GetFilePath()));
 					if (ImGui::Button("ReCompile"))
-						Application::Get().SubmitToMainThread(std::bind(&Shader::Reload, shader, true));
+						Application::Get().SubmitToMainThread([s = shader]() { s->Reload(true); });
+					if (ImGui::Button("ReCompile (Debug)"))
+						Application::Get().SubmitToMainThread([s = shader]() { s->Reload(true, true); });
 					if (ImGui::Button("Reflect"))
 						(void)0;//shader->LogReflection();
 					ImGui::TreePop();

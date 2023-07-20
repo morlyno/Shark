@@ -192,6 +192,8 @@ namespace Shark::UI {
 	bool Control(std::string_view label, glm::uvec3& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
 	bool Control(std::string_view label, glm::uvec4& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
 
+	bool Control(std::string_view label, glm::mat4& matrix, float speed = 0.05f, float min = 0, float max = 0, const char* fmt = nullptr);
+
 	bool ControlColor(std::string_view label, glm::vec4& color);
 
 	bool Control(std::string_view label, bool& val);
@@ -248,6 +250,7 @@ namespace Shark::UI {
 	void Property(std::string_view label, bool value);
 
 	void Property(std::string_view label, const glm::vec2& value);
+	void Property(std::string_view label, const glm::mat4& matrix);
 	void Property(std::string_view label, TimeStep timestep);
 
 	void PropertyColor(std::string_view label, const glm::vec4& color);

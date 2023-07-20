@@ -16,6 +16,9 @@ namespace Shark {
 
 		void Allocate(uint64_t size);
 		void Resize(uint64_t newSize, bool canShrink = true);
+		void Grow(uint64_t amount) { Resize(Size + amount); }
+		template<typename TType>
+		void Grow(uint64_t count) { Resize(Size + count * sizeof(TType)); }
 		void Release();
 		void Write(const void* data, uint64_t size, uint64_t offset = 0);
 		void Write(const byte* data, uint64_t size, uint64_t offset = 0);
@@ -75,6 +78,12 @@ namespace Shark {
 		static Buffer FromArray(TType* array, uint64_t size)
 		{
 			return Buffer((byte*)array, size * sizeof(TType));
+		}
+
+		template<typename TType>
+		static Buffer FromArray(const std::vector<TType>& array)
+		{
+			return Buffer((byte*)array.data(), array.size() * sizeof(TType));
 		}
 
 		static Buffer Copy(const byte* data, uint64_t Size);

@@ -16,7 +16,7 @@ namespace Shark {
 		virtual ~DirectXShader();
 		void Release();
 
-		virtual bool Reload(bool forceCompile = false) override;
+		virtual bool Reload(bool forceCompile = false, bool disableOptimization = false) override;
 
 		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
 		virtual const std::string& GetName() const override { return m_Name; }

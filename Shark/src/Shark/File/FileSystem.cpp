@@ -188,7 +188,7 @@ namespace Shark {
 
 	std::string FileSystem::ReadString(const std::filesystem::path& filePath)
 	{
-		std::ifstream stream(filePath);
+		std::ifstream stream(GetFSPath(filePath));
 		if (!stream)
 			return std::string{};
 

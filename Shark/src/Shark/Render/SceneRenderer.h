@@ -49,15 +49,12 @@ namespace Shark {
 		const Renderer2D::Statistics& GetRenderer2DStats() const { return m_Renderer2D->GetStatistics(); }
 
 	private:
+		void RenderMeshNode(const glm::mat4& parentTransform, Ref<Mesh> mesh, const Mesh::Node& node, int id);
+
+	private:
 		struct CBCamera
 		{
 			glm::mat4 ViewProj;
-		};
-
-		struct alignas(16) CBMeshData
-		{
-			glm::mat4 Transform;
-			int ID;
 		};
 
 	private:
@@ -68,8 +65,6 @@ namespace Shark {
 		Ref<RenderCommandBuffer> m_CommandBuffer;
 
 		Ref<ConstantBuffer> m_CameraCB;
-		Ref<ConstantBuffer> m_MeshDataCB;
-		Ref<ConstantBufferSet> m_ConstantBufferSet;
 
 		// Geometry
 		Ref<FrameBuffer> m_GeometryFrameBuffer;

@@ -7,26 +7,20 @@ namespace Shark {
 
 	Ref<Mesh> MeshFactory::CreateCube()
 	{
+#if 0
 		VertexLayout layout = {
 			{ VertexDataType::Float3, "Position" },
-			{ VertexDataType::Float4, "Color" }
 		};
 
-		struct Vertex
-		{
-			glm::vec3 Position;
-			glm::vec4 Color;
-		};
-
-		Vertex vertices[] = {
-			{ { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ {  0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ { -0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ {  0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ { -0.5f, -0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ {  0.5f, -0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ { -0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
-			{ {  0.5f,  0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } }
+		glm::vec3 vertices[] = {
+			{ -0.5f, -0.5f, -0.5f },
+			{  0.5f, -0.5f, -0.5f },
+			{ -0.5f,  0.5f, -0.5f },
+			{  0.5f,  0.5f, -0.5f },
+			{ -0.5f, -0.5f,  0.5f },
+			{  0.5f, -0.5f,  0.5f },
+			{ -0.5f,  0.5f,  0.5f },
+			{  0.5f,  0.5f,  0.5f }
 		};
 
 		uint32_t indices[] = {
@@ -43,6 +37,8 @@ namespace Shark {
 		Ref<Material> material = Material::Create(Renderer::GetShaderLib()->Get("DefaultMeshShader"));
 
 		return Mesh::Create(vertexBuffer, indexBuffer, material);
+#endif
+		return nullptr;
 	}
 
 }

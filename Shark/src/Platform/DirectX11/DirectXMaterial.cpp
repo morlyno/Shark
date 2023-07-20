@@ -138,6 +138,8 @@ namespace Shark {
 			}
 		}
 
+		m_Valid = true;
+
 	}
 
 }

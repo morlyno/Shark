@@ -69,18 +69,13 @@ namespace Shark {
 			specification.TargetFrameBuffer = m_GeometryFrameBuffer;
 			specification.Shader = Renderer::GetShaderLib()->Get("DefaultMeshShader");
 			specification.Layout = VertexLayout{
-				{ VertexDataType::Float3, "Position" },
-				{ VertexDataType::Float4, "Color" }
+				{ VertexDataType::Float3, "Position" }
 			};
 			specification.DebugName = "DefaultMeshShader";
 			m_MeshPipeline = Pipeline::Create(specification);
 		}
 
 		m_CameraCB = ConstantBuffer::Create(sizeof(CBCamera), 0);
-		m_MeshDataCB = ConstantBuffer::Create(sizeof(CBMeshData), 1);
-		m_ConstantBufferSet = ConstantBufferSet::Create();
-		m_ConstantBufferSet->Add(m_CameraCB);
-		m_ConstantBufferSet->Add(m_MeshDataCB);
 	}
 
 	SceneRenderer::~SceneRenderer()
@@ -150,17 +145,39 @@ namespace Shark {
 		m_Renderer2D->DrawString(text, font, transform, kerning, lineSpacing, color, id);
 	}
 
+	void SceneRenderer::RenderMeshNode(const glm::mat4& parentTransform, Ref<Mesh> mesh, const Mesh::Node& node, int id)
+	{
+		glm::mat4 transform = parentTransform * node.Transform;
+
+		if (node.HasMesh)
+		{
+			const auto& submeshes = mesh->GetSubmeshes();
+			const auto& submesh = submeshes[node.MeshIndex];
+
+			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+			if (materialTable->HasMaterial(submesh.MaterialIndex))
+			{
+				Ref<Material> material = materialTable->GetMaterial(submesh.MaterialIndex);
+				if (material->IsValid())
+				{
+					material->SetMat4("c_MeshData.Transform", transform);
+					material->SetInt("c_MeshData.ID", id);
+				}
+			}
+
+			Renderer::RenderSubmesh(m_CommandBuffer, mesh, node.MeshIndex, m_MeshPipeline, m_CameraCB);
+		}
+
+		for (const auto& child : node.Children)
+			RenderMeshNode(transform, mesh, child, id);
+	}
+
 	void SceneRenderer::SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, int id)
 	{
 		if (!mesh)
 			return;
 
-		CBMeshData meshData;
-		meshData.Transform = transform;
-		meshData.ID = id;
-		m_MeshDataCB->UploadData(Buffer::FromValue(meshData));
-
-		Renderer::RenderMesh(m_CommandBuffer, mesh, m_MeshPipeline, m_ConstantBufferSet);
+		RenderMeshNode(transform, mesh, mesh->GetRootNode(), id);
 	}
 
 	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, bool isTransparent, int id)

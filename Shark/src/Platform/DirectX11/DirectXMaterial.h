@@ -25,6 +25,8 @@ namespace Shark {
 		DirectXMaterial(Ref<Shader> shader);
 		virtual ~DirectXMaterial();
 
+		virtual bool IsValid() const override { return m_Valid; }
+
 		virtual bool HasResource(const std::string& name) const override { return m_ResourceMap.find(name) != m_ResourceMap.end(); }
 
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture) override;
@@ -87,6 +89,8 @@ namespace Shark {
 		std::unordered_map<std::string, uint32_t> m_BindingMap;
 
 		std::unordered_map<std::string, Ref<DirectXTexture2DArray>> m_ResourceMap;
+
+		bool m_Valid = false;
 
 		friend class DirectXRenderer;
 	};

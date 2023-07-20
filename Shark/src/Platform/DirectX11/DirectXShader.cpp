@@ -40,9 +40,9 @@ namespace Shark {
 		m_VertexShader = nullptr;
 	}
 
-	bool DirectXShader::Reload(bool forceCompile)
+	bool DirectXShader::Reload(bool forceCompile, bool disableOptimization)
 	{
-		Ref<DirectXShaderCompiler> compiler = Ref<DirectXShaderCompiler>::Create(m_FilePath);
+		Ref<DirectXShaderCompiler> compiler = Ref<DirectXShaderCompiler>::Create(m_FilePath, disableOptimization);
 		if (!compiler->Reload(forceCompile))
 			return false;
 

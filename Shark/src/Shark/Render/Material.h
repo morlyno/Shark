@@ -6,10 +6,13 @@
 
 namespace Shark {
 
+	// TODO(moro): Create Material with Reflection data provided from the Shader/ShaderCompiler
 	class Material : public RefCount
 	{
 	public:
 		virtual ~Material() = default;
+
+		virtual bool IsValid() const = 0;
 
 		virtual bool HasResource(const std::string& name) const = 0;
 

@@ -514,6 +514,39 @@ namespace Shark::UI {
 		return ControlScalarVec(label, ImGuiDataType_U32, val, speed, min, max, fmt);
 	}
 
+	bool Control(std::string_view label, glm::mat4& matrix, float speed, float min, float max, const char* fmt)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+
+		bool changed = false;
+
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		changed |= ImGui::DragFloat4("##control0", glm::value_ptr(matrix[0]), speed, min, max, fmt);
+
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		changed |= ImGui::DragFloat4("##control1", glm::value_ptr(matrix[1]), speed, min, max, fmt);
+
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		changed |= ImGui::DragFloat4("##control2", glm::value_ptr(matrix[2]), speed, min, max, fmt);
+
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		changed |= ImGui::DragFloat4("##control3", glm::value_ptr(matrix[3]), speed, min, max, fmt);
+
+		ControlEndHelper();
+		return changed;
+	}
+
 	bool ControlColor(std::string_view label, glm::vec4& color)
 	{
 		if (!ControlBeginHelper(label))
@@ -927,6 +960,14 @@ namespace Shark::UI {
 		ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
 		glm::vec2 v = value;
 		Control(label, v);
+		ImGui::PopItemFlag();
+	}
+
+	void Property(std::string_view label, const glm::mat4& matrix)
+	{
+		ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
+		glm::mat4 m = matrix;
+		Control(label, m);
 		ImGui::PopItemFlag();
 	}
 
