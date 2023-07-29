@@ -30,6 +30,24 @@ namespace Shark::String {
 		return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), comparer);
 	}
 
+	bool StartsWith(std::string_view lhs, std::string_view rhs, Case compareCase)
+	{
+		if (lhs.length() < rhs.length())
+			return false;
+
+		lhs.remove_suffix(lhs.length() - rhs.length());
+		return Compare(lhs, rhs, compareCase);
+	}
+
+	bool EndsWith(std::string_view lhs, std::string_view rhs, Case compareCase)
+	{
+		if (lhs.length() < rhs.length())
+			return false;
+
+		lhs.remove_prefix(lhs.length() - rhs.length());
+		return Compare(lhs, rhs, compareCase);
+	}
+
 	std::string ToLowerCopy(const std::string& str)
 	{
 		std::string result = str;
@@ -116,6 +134,20 @@ namespace Shark::String {
 		}
 	}
 
+	std::vector<std::string> SplitString(const std::string& str, std::string_view splitter)
+	{
+		std::vector<std::string> result;
+		SplitString(str, splitter, result);
+		return result;
+	}
+
+	std::vector<std::wstring> SplitString(const std::wstring& str, std::wstring_view splitter)
+	{
+		std::vector<std::wstring> result;
+		SplitString(str, splitter, result);
+		return result;
+	}
+
 	void Replace(std::string& str, std::string_view from, std::string_view to)
 	{
 		if (from.empty())
@@ -126,6 +158,30 @@ namespace Shark::String {
 		{
 			str.replace(pos, from.length(), to);
 			pos += to.length();
+		}
+	}
+
+	void Remove(std::string& str, std::string_view pattern)
+	{
+		if (pattern.empty())
+			return;
+
+		size_t pos = 0;
+		while ((pos = str.find(pattern, pos)) != std::string::npos)
+		{
+			str.erase(pos, pattern.length());
+		}
+	}
+
+	void RemoveFirst(std::string& str, std::string_view pattern)
+	{
+		if (pattern.empty())
+			return;
+
+		size_t pos = 0;
+		if ((pos = str.find(pattern, pos)) != std::string::npos)
+		{
+			str.erase(pos, pattern.length());
 		}
 	}
 

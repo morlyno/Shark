@@ -188,7 +188,7 @@ namespace Shark {
 
 	std::string FileSystem::ReadString(const std::filesystem::path& filePath)
 	{
-		std::ifstream stream(GetFSPath(filePath));
+		std::ifstream stream(filePath);
 		if (!stream)
 			return std::string{};
 
@@ -260,9 +260,17 @@ namespace Shark {
 		return absolutDir == pathAbsolut.parent_path();
 	}
 
-	std::filesystem::path FileSystem::GetRelative(const std::filesystem::path& path)
+	std::filesystem::path FileSystem::GetRelative(const std::filesystem::path& path, RelativeMode mode)
 	{
-		return Project::RelativeCopy(path);
+		switch (mode)
+		{
+			case RelativeMode::WorkingDirectory: return std::filesystem::relative(path);
+			case RelativeMode::Project: return Project::RelativeCopy(path);
+			case RelativeMode::Assets: return std::filesystem::relative(path, Project::GetAssetsPath());
+		}
+
+		SK_CORE_ASSERT(false, "Unkown RelativeMode");
+		return std::filesystem::relative(path);
 	}
 
 	std::filesystem::path FileSystem::GetAbsolute(const std::filesystem::path& path)

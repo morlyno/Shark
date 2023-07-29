@@ -64,7 +64,7 @@ namespace Shark {
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
 
-		Ref<ConstantBuffer> m_CameraCB;
+		glm::mat4 m_ViewProjection;
 
 		// Geometry
 		Ref<FrameBuffer> m_GeometryFrameBuffer;

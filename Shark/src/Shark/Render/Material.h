@@ -12,9 +12,14 @@ namespace Shark {
 	public:
 		virtual ~Material() = default;
 
-		virtual bool IsValid() const = 0;
+		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture) = 0;
+		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index) = 0;
 
-		virtual bool HasResource(const std::string& name) const = 0;
+		virtual void SetImage(const std::string& name, Ref<Image2D> image) = 0;
+		virtual void SetImage(const std::string& name, Ref<Image2D> image, uint32_t index) = 0;
+
+		virtual void SetSampler(const std::string& name, RenderID sampler) = 0;
+		virtual void SetSampler(const std::string& name, RenderID sampler, uint32_t index) = 0;
 
 		virtual void SetFloat(const std::string& name, float val) = 0;
 		virtual void SetFloat2(const std::string& name, const glm::vec2& vec2) = 0;
@@ -31,11 +36,14 @@ namespace Shark {
 		virtual void SetMat3(const std::string& name, const glm::mat3& mat3) = 0;
 		virtual void SetMat4(const std::string& name, const glm::mat4& mat4) = 0;
 
-		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture) = 0;
-		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index) = 0;
-		virtual void SetTextureArray(const std::string& name, Ref<Texture2DArray> textureArray) = 0;
+		virtual Ref<Texture2D> GetTexture(const std::string& name) const = 0;
+		virtual Ref<Texture2D> GetTexture(const std::string& name, uint32_t index) const = 0;
 
-		virtual void SetImage(const std::string& name, Ref<Image2D> image, uint32_t binding) = 0;
+		virtual Ref<Image2D> GetImage(const std::string& name) const = 0;
+		virtual Ref<Image2D> GetImage(const std::string& name, uint32_t index) const = 0;
+
+		virtual RenderID GetSampler(const std::string& name) const = 0;
+		virtual RenderID GetSampler(const std::string& name, uint32_t index) const = 0;
 
 		virtual float GetFloat(const std::string& name) const = 0;
 		virtual const glm::vec2& GetFloat2(const std::string& name) const = 0;
@@ -51,10 +59,6 @@ namespace Shark {
 
 		virtual const glm::mat3& GetMat3(const std::string& name) const = 0;
 		virtual const glm::mat4& GetMat4(const std::string& name) const = 0;
-
-		virtual Ref<Texture2D> GetTexture(const std::string& name) const = 0;
-		virtual Ref<Texture2D> GetTexture(const std::string& name, uint32_t index) const = 0;
-		virtual Ref<Texture2DArray> GetTextureArray(const std::string& name) const = 0;
 
 	public:
 		static Ref<Material> Create(Ref<Shader> shader);

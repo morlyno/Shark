@@ -47,6 +47,12 @@ namespace Shark {
 		Write((const void*)data, size, offset);
 	}
 
+	Buffer Buffer::SubBuffer(uint32_t offset, uint32_t size)
+	{
+		SK_CORE_ASSERT((offset + size) <= Size);
+		return Buffer(Data + offset, size);
+	}
+
 	void Buffer::SetZero()
 	{
 		memset(Data, 0, Size);

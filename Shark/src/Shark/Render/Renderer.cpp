@@ -66,9 +66,9 @@ namespace Shark {
 		s_RendererAPI->BeginBatch(renderCommandBuffer, pipeline, vertexBuffer, indexBuffer);
 	}
 
-	void Renderer::RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, uint32_t indexCount, uint32_t startIndex)
+	void Renderer::RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, uint32_t indexCount, uint32_t startIndex)
 	{
-		s_RendererAPI->RenderBatch(renderCommandBuffer, material, constantBufferSet, indexCount, startIndex);
+		s_RendererAPI->RenderBatch(renderCommandBuffer, material, indexCount, startIndex);
 	}
 
 	void Renderer::EndBatch(Ref<RenderCommandBuffer> renderCommandBuffer)
@@ -76,24 +76,24 @@ namespace Shark {
 		s_RendererAPI->EndBatch(renderCommandBuffer);
 	}
 
-	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
 	{
-		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, constantBufferSet, vertexBuffer, indexBuffer, indexCount);
+		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, vertexBuffer, indexBuffer, indexCount);
 	}
 
-	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount)
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount)
 	{
-		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, constantBufferSet, vertexBuffer, vertexCount);
+		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, vertexBuffer, vertexCount);
 	}
 
-	void Renderer::RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet)
+	void Renderer::RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline)
 	{
-		s_RendererAPI->RenderMesh(renderCommandBuffer, mesh, pipeline, constantBufferSet);
+		s_RendererAPI->RenderMesh(renderCommandBuffer, mesh, pipeline);
 	}
 
-	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline, Ref<ConstantBuffer> sceneDataCB)
+	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline)
 	{
-		s_RendererAPI->RenderSubmesh(renderCommandBuffer, mesh, submeshIndex, pipeline, sceneDataCB);
+		s_RendererAPI->RenderSubmesh(renderCommandBuffer, mesh, submeshIndex, pipeline);
 	}
 
 	void Renderer::GenerateMips(Ref<Image2D> image)

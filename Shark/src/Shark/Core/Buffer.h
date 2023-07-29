@@ -22,7 +22,9 @@ namespace Shark {
 		void Release();
 		void Write(const void* data, uint64_t size, uint64_t offset = 0);
 		void Write(const byte* data, uint64_t size, uint64_t offset = 0);
+		void Write(const Buffer buffer, uint64_t offset = 0) { Write(buffer.Data, buffer.Size, offset); }
 		void SetZero();
+		Buffer SubBuffer(uint32_t offset, uint32_t size);
 
 		template<typename T>
 		void Write(const T& data, uint64_t offset = 0)
@@ -36,6 +38,12 @@ namespace Shark {
 			return (T*)Data;
 		}
 		
+		template<typename T>
+		T& Value() const
+		{
+			return *(T*)Data;
+		}
+
 		template<typename T>
 		T* Offset(uint64_t offset)
 		{

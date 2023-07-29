@@ -14,131 +14,158 @@ namespace Shark {
 	DirectXMaterial::DirectXMaterial(Ref<Shader> shader)
 		: m_Shader(shader.As<DirectXShader>())
 	{
-		Ref<DirectXMaterial> instance = this;
-		Renderer::Submit([instance]()
-		{
-			instance->RT_Reflect();
-		});
+		Initialize();
 	}
 
 	DirectXMaterial::~DirectXMaterial()
 	{
 	}
 
-	void DirectXMaterial::SetTexture(const std::string& name, Ref<Texture2D> texture)
+	Ref<Texture2D> DirectXMaterial::GetTexture(const std::string& name) const
 	{
-		SK_CORE_VERIFY(m_ResourceMap.find(name) != m_ResourceMap.end());
-
-		m_ResourceMap.at(name)->Set(0, texture);
+		SK_CORE_VERIFY(HasResourceName(name));
+		return m_Resources.at(name).Texture;
 	}
 
-	void DirectXMaterial::SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index)
+	Ref<Texture2D> DirectXMaterial::GetTexture(const std::string& name, uint32_t index) const
 	{
-		SK_CORE_VERIFY(m_ResourceMap.find(name) != m_ResourceMap.end());
-
-		m_ResourceMap.at(name)->Set(index, texture);
+		std::string arrayName = fmt::format("{}_{}", name, index);
+		SK_CORE_VERIFY(HasResourceName(arrayName));
+		return m_Resources.at(arrayName).Texture;
 	}
 
-	void DirectXMaterial::SetTextureArray(const std::string& name, Ref<Texture2DArray> textureArray)
+	Ref<Image2D> DirectXMaterial::GetImage(const std::string& name) const
 	{
-		SK_CORE_VERIFY(m_ResourceMap.find(name) != m_ResourceMap.end());
-
-		Ref<Texture2DArray> arr = m_ResourceMap.at(name);
-		SK_CORE_ASSERT(arr->Count() == textureArray->Count());
-		for (uint32_t i = 0; i < textureArray->Count(); i++)
-			arr->Set(i, textureArray->Get(i));
+		SK_CORE_VERIFY(HasResourceName(name));
+		return m_Resources.at(name).Image;
 	}
 
-	void DirectXMaterial::SetImage(const std::string& name, Ref<Image2D> image, uint32_t binding)
+	Ref<Image2D> DirectXMaterial::GetImage(const std::string& name, uint32_t index) const
 	{
-		m_ImageMap[name] = image.As<DirectXImage2D>();
-		m_BindingMap[name] = binding;
+		std::string arrayName = fmt::format("{}_{}", name, index);
+		SK_CORE_VERIFY(HasResourceName(arrayName));
+		return m_Resources.at(arrayName).Image;
 	}
 
-	void DirectXMaterial::SetBytes(const std::string& name, byte* data, uint32_t size)
+	RenderID DirectXMaterial::GetSampler(const std::string& name) const
 	{
-		SK_CORE_VERIFY(m_VariableMap.find(name) != m_VariableMap.end());
-
-		const CBVar& var = m_VariableMap.at(name);
-		auto& buffer = m_ConstantBufferData.at(var.BufferSlot);
-		SK_CORE_ASSERT(size == var.Size, fmt::format("Invalid Data Size! Data Size is: {} but Size must be: {}", size, var.Size));
-		buffer.Write(data, size, var.Offset);
+		SK_CORE_VERIFY(HasResourceName(name));
+		return m_Resources.at(name).Sampler;
 	}
 
-	byte* DirectXMaterial::GetBytes(const std::string& name) const
+	RenderID DirectXMaterial::GetSampler(const std::string& name, uint32_t index) const
 	{
-		SK_CORE_VERIFY(m_VariableMap.find(name) != m_VariableMap.end());
-
-		const CBVar& var = m_VariableMap.at(name);
-		const auto& buffer = m_ConstantBufferData.at(var.BufferSlot);
-
-		return buffer.Data() + var.Offset;
+		std::string arrayName = fmt::format("{}_{}", name, index);
+		SK_CORE_VERIFY(HasResourceName(arrayName));
+		return m_Resources.at(arrayName).Sampler;
 	}
 
-	void DirectXMaterial::RT_Reflect()
+	void DirectXMaterial::SetResource(const std::string& name, Ref<Texture2D> texture, Ref<Image2D> image, RenderID sampler)
 	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-		m_ConstnatBufferSet = Ref<DirectXConstantBufferSet>::Create();
+		SK_CORE_VERIFY(HasResourceName(name));
+		auto& resource = m_Resources.at(name);
 
-		const auto& shaderBinarys = m_Shader->GetShaderBinaries();
-		
-		// VertexShader
+		static bool s_BreakWhenInputAndResourceTypeDontMatch = true;
+#define SK_CORE_ASSERT_CONDITIONAL(cond, ...) if (cond) SK_CORE_ASSERT(__VA_ARGS__);
+
+		if (texture)
 		{
-			const auto& vtxBinary = shaderBinarys.at(ShaderUtils::ShaderStage::Vertex);
-			ID3D11ShaderReflection* reflection;
-			SK_DX11_CALL(D3DReflect(vtxBinary.data(), vtxBinary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
+			SK_CORE_ASSERT_CONDITIONAL(s_BreakWhenInputAndResourceTypeDontMatch, resource.Type == ShaderReflection::ResourceType::Sampler2D);
+			resource.Texture = texture.As<DirectXTexture2D>();
+			resource.Image = texture->GetImage().As<DirectXImage2D>();
+			resource.Sampler = resource.Texture->GetSamplerNative();
+			return;
+		}
 
+		if (image)
+		{
+			SK_CORE_ASSERT_CONDITIONAL(s_BreakWhenInputAndResourceTypeDontMatch, resource.Type == ShaderReflection::ResourceType::Texture2D);
+			resource.Texture = nullptr;
+			resource.Image = image.As<DirectXImage2D>();
+			resource.Sampler = nullptr;
+			return;
+		}
 
-			D3D11_SHADER_DESC desc;
-			reflection->GetDesc(&desc);
+		if (sampler)
+		{
+			SK_CORE_ASSERT_CONDITIONAL(s_BreakWhenInputAndResourceTypeDontMatch, resource.Type == ShaderReflection::ResourceType::Sampler);
+			resource.Texture = nullptr;
+			resource.Image = nullptr;
+			resource.Sampler = (ID3D11SamplerState*)sampler;
+			return;
+		}
 
-			for (uint32_t i = 0; i < desc.ConstantBuffers; i++)
+		resource.Texture = nullptr;
+		resource.Image = nullptr;
+		resource.Sampler = nullptr;
+	}
+
+	void DirectXMaterial::SetResource(const std::string& name, uint32_t index, Ref<Texture2D> texture, Ref<Image2D> image, RenderID sampler)
+	{
+		SetResource(fmt::format("{}_{}", name, index), texture, image, sampler);
+	}
+
+	void DirectXMaterial::SetBytes(const std::string& name, Buffer data)
+	{
+		SK_CORE_VERIFY(m_ConstantBufferMembers.find(name) != m_ConstantBufferMembers.end());
+		auto& member = m_ConstantBufferMembers.at(name);
+		member.UploadBufferRef.Write(data);
+	}
+
+	Buffer DirectXMaterial::GetBytes(const std::string& name) const
+	{
+		SK_CORE_VERIFY(m_ConstantBufferMembers.find(name) != m_ConstantBufferMembers.end());
+		auto& member = m_ConstantBufferMembers.at(name);
+		return member.UploadBufferRef;
+	}
+
+	void DirectXMaterial::RT_UploadBuffers()
+	{
+		for (const auto& [name, cbData] : m_ConstantBuffers)
+			cbData.Buffer->RT_UploadData(cbData.UploadBuffer.GetBuffer());
+	}
+
+	void DirectXMaterial::Initialize()
+	{
+		const auto& reflectionData = m_Shader->GetReflectionData();
+
+		for (const auto& [name, constantBuffer] : reflectionData.ConstantBuffers)
+		{
+			SK_CORE_VERIFY(m_ConstantBuffers.find(name) == m_ConstantBuffers.end());
+			auto& cb = m_ConstantBuffers[name];
+			cb.Buffer = Ref<DirectXConstantBuffer>::Create(constantBuffer.Size, constantBuffer.Binding);
+			cb.UploadBuffer.Allocate(constantBuffer.Size);
+			cb.Stage = constantBuffer.Stage;
+
+			for (const auto& member : constantBuffer.Members)
 			{
-				ID3D11ShaderReflectionConstantBuffer* constantBuffer = reflection->GetConstantBufferByIndex(i);
-
-				D3D11_SHADER_BUFFER_DESC bufferDesc;
-				constantBuffer->GetDesc(&bufferDesc);
-
-				D3D11_SHADER_INPUT_BIND_DESC bindDesc;
-				reflection->GetResourceBindingDescByName(bufferDesc.Name, &bindDesc);
-
-				SK_CORE_ASSERT(bindDesc.BindCount == 1);
-				m_ConstnatBufferSet->RT_Create(bufferDesc.Size, bindDesc.BindPoint);
-				m_ConstantBufferData[bindDesc.BindPoint].Allocate(bufferDesc.Size);
-
-				for (uint32_t j = 0; j < bufferDesc.Variables; j++)
-				{
-					ID3D11ShaderReflectionVariable* variable = constantBuffer->GetVariableByIndex(j);
-					D3D11_SHADER_VARIABLE_DESC variableDesc;
-					variable->GetDesc(&variableDesc);
-
-					std::string variableName = fmt::format("{}.{}", bufferDesc.Name, variableDesc.Name);
-					m_VariableMap[variableName] = { bindDesc.BindPoint, variableDesc.StartOffset, variableDesc.Size };
-				}
+				auto& memberData = m_ConstantBufferMembers[member.Name];
+				memberData.Size = member.Size;
+				memberData.Offset = member.Offset;
+				memberData.UploadBufferRef = cb.UploadBuffer.GetBuffer().SubBuffer(member.Offset, member.Size);
 			}
 		}
 
-		// PixelShader
+		for (const auto& [name, resource] : reflectionData.Resources)
 		{
-			const auto& pxlBinary = shaderBinarys.at(ShaderUtils::ShaderStage::Pixel);
-			ID3D11ShaderReflection* reflection;
-			SK_DX11_CALL(D3DReflect(pxlBinary.data(), pxlBinary.size(), __uuidof(ID3D11ShaderReflection), (void**)&reflection));
-
-			D3D11_SHADER_DESC desc;
-			reflection->GetDesc(&desc);
-
-			for (uint32_t i = 0; i < desc.BoundResources; i++)
+			if (resource.ArraySize == 0)
 			{
-				D3D11_SHADER_INPUT_BIND_DESC bindDesc;
-				reflection->GetResourceBindingDesc(i, &bindDesc);
-				if (bindDesc.Type == D3D_SIT_SAMPLER)
-					continue;
+				auto& res = m_Resources[name];
+				res.Type = resource.Type;
+				res.Stage = resource.Stage;
+				res.Binding = resource.Binding;
+				continue;
+			}
 
-				m_ResourceMap[bindDesc.Name] = Ref<DirectXTexture2DArray>::Create(bindDesc.BindCount, bindDesc.BindPoint);
+			for (uint32_t i = 0; i < resource.ArraySize; i++)
+			{
+				auto& res = m_Resources[fmt::format("{}_{}", name, i)];
+				res.Type = resource.Type;
+				res.Stage = resource.Stage;
+				res.Binding = resource.Binding + i;
+				continue;
 			}
 		}
-
-		m_Valid = true;
 
 	}
 

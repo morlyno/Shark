@@ -107,6 +107,9 @@ namespace Shark {
 		RegisterSettingNodes();
 
 		Renderer::WaitAndRender();
+
+		//Renderer::GetShaderLib()->Load("Resources/Shaders/TypeTest.hlsl", true, true);
+		//Renderer::GetShaderLib()->Load("Resources/Shaders/ReflectionTest.glsl", true, true);
 	}
 
 	void EditorLayer::OnDetach()
@@ -798,15 +801,19 @@ namespace Shark {
 
 		if (ImGui::Begin("Shaders", &m_ShowShaders))
 		{
+			ImGui::Checkbox("Disable Optimization", &m_ShaderCompilerDisableOptimization);
+
+			if (ImGui::Button("Reload All"))
+				for (const auto& [key, shader] : *Renderer::GetShaderLib())
+					Application::Get().SubmitToMainThread([s = shader]() { s->Reload(true); });
+
 			for (auto&& [key, shader] : *Renderer::GetShaderLib())
 			{
 				if (ImGui::TreeNodeEx(key.c_str()))
 				{
 					UI::Text(fmt::format("Path: {}", shader->GetFilePath()));
 					if (ImGui::Button("ReCompile"))
-						Application::Get().SubmitToMainThread([s = shader]() { s->Reload(true); });
-					if (ImGui::Button("ReCompile (Debug)"))
-						Application::Get().SubmitToMainThread([s = shader]() { s->Reload(true, true); });
+						Application::Get().SubmitToMainThread([s = shader, disableOptimization = m_ShaderCompilerDisableOptimization]() { s->Reload(true, disableOptimization); });
 					if (ImGui::Button("Reflect"))
 						(void)0;//shader->LogReflection();
 					ImGui::TreePop();

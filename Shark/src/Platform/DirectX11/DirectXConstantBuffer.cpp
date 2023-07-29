@@ -61,6 +61,19 @@ namespace Shark {
 		ctx->Unmap(m_ConstBuffer, 0);
 	}
 
+	void DirectXConstantBuffer::RT_UploadData(Buffer data)
+	{
+		SK_PROFILE_FUNCTION();
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		auto* ctx = DirectXRenderer::GetContext();
+
+		D3D11_MAPPED_SUBRESOURCE ms;
+		SK_DX11_CALL(ctx->Map(m_ConstBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
+		memcpy(ms.pData, data.Data, data.Size);
+		ctx->Unmap(m_ConstBuffer, 0);
+	}
+
 	void DirectXConstantBuffer::RT_CreateBuffer()
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
@@ -75,51 +88,6 @@ namespace Shark {
 
 		auto* dev = DirectXRenderer::GetDevice();
 		SK_DX11_CALL(dev->CreateBuffer(&bd, nullptr, &m_ConstBuffer));
-	}
-
-	Ref<ConstantBuffer> DirectXConstantBufferSet::Create(uint32_t size, uint32_t slot)
-	{
-		SK_CORE_ASSERT(m_CBMap.find(slot) == m_CBMap.end());
-
-		auto cb = Ref<DirectXConstantBuffer>::Create(size, slot);
-		m_CBMap[slot] = cb;
-		return cb;
-	}
-
-	Ref<ConstantBuffer> DirectXConstantBufferSet::Get(uint32_t slot) const
-	{
-		SK_CORE_ASSERT(m_CBMap.find(slot) != m_CBMap.end());
-
-		return m_CBMap.at(slot);
-	}
-
-	void DirectXConstantBufferSet::Set(uint32_t slot, void* data, uint32_t size)
-	{
-		SK_CORE_ASSERT(m_CBMap.find(slot) != m_CBMap.end());
-
-		m_CBMap.at(slot)->Set(data, size);
-	}
-
-	void DirectXConstantBufferSet::Add(Ref<ConstantBuffer> constantBuffer)
-	{
-		m_CBMap[constantBuffer->GetSlot()] = constantBuffer.As<DirectXConstantBuffer>();
-	}
-
-	Ref<ConstantBuffer> DirectXConstantBufferSet::RT_Create(uint32_t size, uint32_t slot)
-	{
-		SK_CORE_ASSERT(m_CBMap.find(slot) == m_CBMap.end());
-
-		Ref<DirectXConstantBuffer> cb = Ref<DirectXConstantBuffer>::Create();
-		cb->RT_Init(size, slot);
-		m_CBMap[slot] = cb;
-		return cb;
-	}
-
-	void DirectXConstantBufferSet::RT_Set(uint32_t slot, Buffer data)
-	{
-		SK_CORE_ASSERT(m_CBMap.find(slot) != m_CBMap.end());
-
-		m_CBMap[slot]->RT_Set(data);
 	}
 
 }

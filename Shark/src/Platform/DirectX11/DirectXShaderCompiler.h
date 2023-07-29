@@ -55,8 +55,10 @@ namespace Shark {
 
 		void SerializeDirectX(ShaderUtils::ShaderStage::Type stage, const std::vector<byte>& directXData);
 		bool TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData);
+		void SerializeReflectionData();
+		bool ReadReflectionData();
 
-		void RelfectShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>> spirvData);
+		void ReflectShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>> spirvData);
 
 	private:
 		ShaderUtils::ShaderLanguage m_Language;
@@ -66,6 +68,7 @@ namespace Shark {
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> m_ShaderSource;
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>> m_SPIRVData;
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>> m_ShaderBinary;
+		ShaderReflectionData m_ReflectionData;
 
 		struct Metadata
 		{

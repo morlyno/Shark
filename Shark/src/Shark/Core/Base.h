@@ -70,6 +70,7 @@ _61,_62,_63,N,...) N
 #pragma endregion
 
 #define BIT(x) (1 << x)
+#define SET_BIT(_bit, _value) (0b ## _value << _bit)
 
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x

@@ -199,7 +199,6 @@ namespace Shark {
 		Ref<RenderCommandBuffer> m_CommandBuffer;
 
 		Ref<Texture2D> m_WhiteTexture;
-		Ref<ConstantBufferSet> m_ConstantBufferSet;
 		glm::mat4 m_ViewProj;
 
 		Ref<GPUTimer> m_GeometryPassTimer;

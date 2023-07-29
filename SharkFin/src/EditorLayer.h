@@ -281,6 +281,8 @@ namespace Shark {
 			{ AssetType::Font, "Fonts" }
 		};
 
+		bool m_ShaderCompilerDisableOptimization = false;
+
 	};
 
 }

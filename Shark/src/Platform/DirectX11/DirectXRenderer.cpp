@@ -120,7 +120,7 @@ namespace Shark {
 		});
 
 		m_ShaderLib = Ref<ShaderLibrary>::Create();
-		m_ShaderLib->Load("Resources/Shaders/DefaultMeshShader.hlsl");
+		m_ShaderLib->Load("Resources/Shaders/DefaultMeshShader.glsl");
 
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadTransparent.hlsl");
@@ -257,14 +257,7 @@ namespace Shark {
 			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
-			for (const auto& [name, binding] : dxMaterial->m_BindingMap)
-			{
-				auto image = dxMaterial->m_ImageMap.at(name);
-				auto view = image->GetViewNative();
-				ctx->PSSetShaderResources(binding, 1, &view);
-			}
-
-			//instance->RT_PrepareAndBindMaterialForRendering(dxCommandBuffer, dxMaterial, nullptr);
+			instance->RT_PrepareAndBindMaterialForRendering(dxCommandBuffer, dxMaterial);
 
 			ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			DX11_VALIDATE_CONTEXT(ctx);
@@ -315,18 +308,17 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderer::RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, uint32_t indexCount, uint32_t startIndex)
+	void DirectXRenderer::RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, uint32_t indexCount, uint32_t startIndex)
 	{
 		Ref<DirectXRenderCommandBuffer> commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>();
 		Ref<DirectXMaterial> dxMaterial = material.As<DirectXMaterial>();
-		Ref<DirectXConstantBufferSet> dxCBSet = constantBufferSet.As<DirectXConstantBufferSet>();
 		Ref<DirectXRenderer> instance = this;
-		Renderer::Submit([instance, commandBuffer, dxMaterial, dxCBSet, indexCount, startIndex]()
+		Renderer::Submit([instance, commandBuffer, dxMaterial, indexCount, startIndex]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderer::RenderBatch");
 
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
-			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial, dxCBSet);
+			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial);
 			DX11_VALIDATE_CONTEXT(ctx);
 			ctx->DrawIndexed(indexCount, startIndex, 0);
 		});
@@ -336,7 +328,7 @@ namespace Shark {
 	{
 	}
 
-	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
+	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -345,9 +337,8 @@ namespace Shark {
 		Ref<DirectXIndexBuffer> dxIB = indexBuffer.As<DirectXIndexBuffer>();
 		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
 		Ref<DirectXMaterial> dxMaterial = material.As<DirectXMaterial>();
-		Ref<DirectXConstantBufferSet> dxCBSet = constantBufferSet.As<DirectXConstantBufferSet>();
 		Ref<DirectXRenderer> instance = this;
-		Renderer::Submit([instance, commandBuffer, dxVB, dxIB, dxPipeline, dxMaterial, dxCBSet, indexCount]()
+		Renderer::Submit([instance, commandBuffer, dxVB, dxIB, dxPipeline, dxMaterial, indexCount]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderer::RenderGeometry");
 
@@ -367,7 +358,7 @@ namespace Shark {
 
 			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
-			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial, dxCBSet);
+			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial);
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
@@ -385,7 +376,7 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<ConstantBufferSet> constantBufferSet, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount)
+	void DirectXRenderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -393,9 +384,8 @@ namespace Shark {
 		Ref<DirectXVertexBuffer> dxVB = vertexBuffer.As<DirectXVertexBuffer>();
 		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
 		Ref<DirectXMaterial> dxMaterial = material.As<DirectXMaterial>();
-		Ref<DirectXConstantBufferSet> dxCBSet = constantBufferSet.As<DirectXConstantBufferSet>();
 		Ref<DirectXRenderer> instance = this;
-		Renderer::Submit([instance, commandBuffer, dxVB, dxPipeline, dxMaterial, dxCBSet, vertexCount]()
+		Renderer::Submit([instance, commandBuffer, dxVB, dxPipeline, dxMaterial, vertexCount]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderer::RenderGeometry");
 
@@ -413,7 +403,7 @@ namespace Shark {
 
 			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
-			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial, dxCBSet);
+			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, dxMaterial);
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
@@ -431,12 +421,12 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderer::RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline, Ref<ConstantBufferSet> constantBufferSet)
+	void DirectXRenderer::RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline)
 	{
 		SK_PROFILE_FUNCTION();
 
 		Ref instance = this;
-		Renderer::Submit([instance, commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>(), mesh, dxPipeline = pipeline.As<DirectXPipeline>(), dxCBSet = constantBufferSet.As<DirectXConstantBufferSet>()]()
+		Renderer::Submit([instance, commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>(), mesh, dxPipeline = pipeline.As<DirectXPipeline>()]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
 
@@ -459,9 +449,7 @@ namespace Shark {
 
 			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
-			//instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, material, dxCBSet);
-			for (const auto& [slot, cb] : dxCBSet->m_CBMap)
-				ctx->VSSetConstantBuffers(slot, 1, &cb->m_ConstBuffer);
+			//instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, material);
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
@@ -479,12 +467,12 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderer::RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline, Ref<ConstantBuffer> sceneDataCB)
+	void DirectXRenderer::RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline)
 	{
 		SK_PROFILE_FUNCTION();
 
 		Ref instance = this;
-		Renderer::Submit([instance, commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>(), mesh, submeshIndex, dxPipeline = pipeline.As<DirectXPipeline>(), dxSceneDataCB = sceneDataCB.As<DirectXConstantBuffer>()]()
+		Renderer::Submit([instance, commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>(), mesh, submeshIndex, dxPipeline = pipeline.As<DirectXPipeline>()]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
 
@@ -513,8 +501,7 @@ namespace Shark {
 			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
 			Ref<DirectXMaterial> material = materialTable->GetMaterial(submesh.MaterialIndex).As<DirectXMaterial>();
 
-			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, material, nullptr);
-			ctx->VSSetConstantBuffers(dxSceneDataCB->m_Slot, 1, &dxSceneDataCB->m_ConstBuffer);
+			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, material);
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
@@ -669,38 +656,61 @@ namespace Shark {
 		}
 	}
 
-	void DirectXRenderer::RT_PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> renderCommandBuffer, Ref<DirectXMaterial> material, Ref<DirectXConstantBufferSet> constantBufferSet)
+	void DirectXRenderer::RT_PrepareAndBindMaterialForRendering(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXMaterial> material)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
-		ID3D11DeviceContext* ctx = renderCommandBuffer->GetContext();
+		ID3D11DeviceContext* context = commandBuffer->GetContext();
 
-		for (auto&& [name, textureArray] : material->m_ResourceMap)
+		material->RT_UploadBuffers();
+		for (const auto& [name, cbData] : material->m_ConstantBuffers)
 		{
-			ctx->PSSetShaderResources(textureArray->m_StartOffset, textureArray->m_Count, textureArray->m_Views.data());
-			ctx->PSSetSamplers(textureArray->m_StartOffset, textureArray->m_Count, textureArray->m_Samplers.data());
-		}
+			Ref<DirectXConstantBuffer> constantBuffer = cbData.Buffer;
 
-		for (auto&& [slot, data] : material->m_ConstantBufferData)
-			material->m_ConstnatBufferSet->RT_Set(slot, Buffer(data.Data(), data.Size())); // TODO: maby convert to uint64_t
-
-		if (constantBufferSet)
-		{
-			auto& cbMap = constantBufferSet->m_CBMap;
-			Ref<DirectXConstantBufferSet> matCBSet = material->m_ConstnatBufferSet;
-			for (auto& [slot, cb] : matCBSet->m_CBMap)
+			switch (cbData.Stage)
 			{
-				const auto it = cbMap.find(slot);
-				Ref<DirectXConstantBuffer> c = (it != cbMap.end()) ? it->second : cb;
-				ctx->VSSetConstantBuffers(c->m_Slot, 1, &c->m_ConstBuffer);
+				case ShaderReflection::ShaderStage::Vertex:
+					context->VSSetConstantBuffers(constantBuffer->m_Slot, 1, &constantBuffer->m_ConstBuffer);
+					break;
+			
+				case ShaderReflection::ShaderStage::Pixel:
+					context->PSSetConstantBuffers(constantBuffer->m_Slot, 1, &constantBuffer->m_ConstBuffer);
+					break;
 			}
 		}
-		else
+
+		for (const auto& [name, resource] : material->m_Resources)
 		{
-			Ref<DirectXConstantBufferSet> matCBSet = material->m_ConstnatBufferSet;
-			for (auto& [slot, cb] : matCBSet->m_CBMap)
-				ctx->VSSetConstantBuffers(cb->m_Slot, 1, &cb->m_ConstBuffer);
+			switch (resource.Type)
+			{
+				case ShaderReflection::ResourceType::Texture2D:
+				case ShaderReflection::ResourceType::Sampler:
+				case ShaderReflection::ResourceType::Sampler2D:
+				{
+					switch (resource.Stage)
+					{
+						case ShaderReflection::ShaderStage::Vertex:
+							if (resource.Image)
+								context->VSSetShaderResources(resource.Binding, 1, &resource.Image->m_View);
+							if (resource.Sampler)
+								context->VSSetSamplers(resource.Binding, 1, &resource.Sampler);
+							break;
+
+						case ShaderReflection::ShaderStage::Pixel:
+							if (resource.Image)
+								context->PSSetShaderResources(resource.Binding, 1, &resource.Image->m_View);
+							if (resource.Sampler)
+								context->PSSetSamplers(resource.Binding, 1, &resource.Sampler);
+							break;
+					}
+					break;
+				}
+
+				default:
+					SK_CORE_ASSERT(false, "ResourceType {} not Implemented!", ToString(resource.Type));
+					break;
+			}
 		}
 
 	}

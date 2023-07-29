@@ -17,15 +17,4 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<ConstantBufferSet> ConstantBufferSet::Create()
-	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXConstantBufferSet>::Create();
-		}
-		SK_CORE_ASSERT(false, "Unkown RendererAPI");
-		return nullptr;
-	}
-
 }

@@ -11,6 +11,15 @@
 
 namespace Shark {
 
+	enum class RelativeMode
+	{
+		WorkingDirectory,
+		Project,
+		Assets,
+
+		Default = WorkingDirectory
+	};
+
 	class FileSystem
 	{
 	public:
@@ -50,7 +59,7 @@ namespace Shark {
 
 		static bool IsInDirectory(const std::filesystem::path& directory, const std::filesystem::path& path);
 
-		static std::filesystem::path GetRelative(const std::filesystem::path& path);
+		static std::filesystem::path GetRelative(const std::filesystem::path& path, RelativeMode mode = RelativeMode::Default);
 		static std::filesystem::path GetAbsolute(const std::filesystem::path& path);
 
 #if 0

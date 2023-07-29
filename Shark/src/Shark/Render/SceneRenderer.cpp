@@ -74,8 +74,6 @@ namespace Shark {
 			specification.DebugName = "DefaultMeshShader";
 			m_MeshPipeline = Pipeline::Create(specification);
 		}
-
-		m_CameraCB = ConstantBuffer::Create(sizeof(CBCamera), 0);
 	}
 
 	SceneRenderer::~SceneRenderer()
@@ -97,9 +95,7 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
-		CBCamera camera;
-		camera.ViewProj = viewProj;
-		m_CameraCB->UploadData(Buffer::FromValue(camera));
+		m_ViewProjection = viewProj;
 
 		m_CommandBuffer->Begin();
 		m_GeometryFrameBuffer->Clear(m_CommandBuffer);
@@ -158,14 +154,12 @@ namespace Shark {
 			if (materialTable->HasMaterial(submesh.MaterialIndex))
 			{
 				Ref<Material> material = materialTable->GetMaterial(submesh.MaterialIndex);
-				if (material->IsValid())
-				{
-					material->SetMat4("c_MeshData.Transform", transform);
-					material->SetInt("c_MeshData.ID", id);
-				}
+				material->SetMat4("u_MeshData.Transform", transform);
+				material->SetInt("u_MeshData.ID", id);
+				material->SetMat4("u_SceneData.ViewProjection", m_ViewProjection);
 			}
 
-			Renderer::RenderSubmesh(m_CommandBuffer, mesh, node.MeshIndex, m_MeshPipeline, m_CameraCB);
+			Renderer::RenderSubmesh(m_CommandBuffer, mesh, node.MeshIndex, m_MeshPipeline);
 		}
 
 		for (const auto& child : node.Children)

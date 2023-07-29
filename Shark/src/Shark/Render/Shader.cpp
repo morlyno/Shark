@@ -21,6 +21,9 @@ namespace Shark {
 	Ref<Shader> ShaderLibrary::Load(const std::filesystem::path& filepath, bool forceCompile, bool disableOptimization)
 	{
 		auto shader = DirectXShaderCompiler::Compile(filepath, forceCompile, disableOptimization);
+		if (!shader)
+			return nullptr;
+
 		SK_CORE_VERIFY(!Exists(shader->GetName()));
 		m_ShaderMap[shader->GetName()] = shader;
 		return shader;

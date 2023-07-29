@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Shark {
+namespace Shark::String {
 
 	enum class Case
 	{
@@ -8,12 +8,11 @@ namespace Shark {
 		Ingnore
 	};
 
-}
-
-namespace Shark::String {
-
 	bool Contains(std::string_view text, std::string_view pattern, bool caseSensitive = true);
-	bool Compare(std::string_view lhs, std::string_view rhs, Case comapreCase);
+	bool Compare(std::string_view lhs, std::string_view rhs, Case compareCase);
+
+	bool StartsWith(std::string_view lhs, std::string_view rhs, Case compareCase = Case::Sensitive);
+	bool EndsWith(std::string_view lhs, std::string_view rhs, Case compareCase = Case::Sensitive);
 
 	std::string ToLowerCopy(const std::string& str);
 	void ToLower(std::string& str);
@@ -26,7 +25,12 @@ namespace Shark::String {
 	void SplitString(const std::string& str, std::string_view splitter, std::vector<std::string>& out_Array);
 	void SplitString(const std::wstring& str, std::wstring_view splitter, std::vector<std::wstring>& out_Array);
 
+	std::vector<std::string> SplitString(const std::string& str, std::string_view splitter);
+	std::vector<std::wstring> SplitString(const std::wstring& str, std::wstring_view splitter);
+
 	void Replace(std::string& str, std::string_view from, std::string_view to);
+	void Remove(std::string& str, std::string_view pattern);
+	void RemoveFirst(std::string& str, std::string_view pattern);
 
 	void RemovePrefix(std::string& str, uint32_t count);
 	void RemoveSuffix(std::string& str, uint32_t count);

@@ -30,6 +30,7 @@ namespace Shark {
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) override;
 
 		virtual RenderID GetViewID() const override { return m_Image->GetViewID(); }
+		virtual RenderID GetSamplerID() const override { return m_Sampler; }
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
 		virtual const TextureSpecification& GetSpecification() const override { return m_Specification; }
 		virtual TextureSpecification& GetSpecificationMutable() override { return m_Specification; }

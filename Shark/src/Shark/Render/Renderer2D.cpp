@@ -38,9 +38,6 @@ namespace Shark {
 
 		m_WhiteTexture = Renderer::GetWhiteTexture();
 
-		m_ConstantBufferSet = ConstantBufferSet::Create();
-		m_ConstantBufferSet->Create(sizeof(CBCamera), 0);
-
 		m_CommandBuffer = RenderCommandBuffer::Create();
 
 		m_GeometryPassTimer = GPUTimer::Create("Geometry Pass");
@@ -324,8 +321,6 @@ namespace Shark {
 		m_Active = true;
 
 		m_ViewProj = viewProj;
-		CBCamera cam{ viewProj };
-		m_ConstantBufferSet->Get(0)->Set(&cam, sizeof(CBCamera));
 
 		// Quad
 		m_QuadBatches.clear();
@@ -789,8 +784,9 @@ namespace Shark {
 			if (m_QuadIndexBuffer->GetCount() < m_QuadIndexCount)
 				ResizeQuadIndexBuffer(m_QuadIndexCount);
 
+			m_QuadDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
 			m_QuadVertexBuffer->SetData(m_QuadVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_QuadDepthPassPipeline, m_QuadDepthPassMaterial, m_ConstantBufferSet, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_QuadDepthPassPipeline, m_QuadDepthPassMaterial, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
@@ -799,15 +795,17 @@ namespace Shark {
 			if (m_CircleIndexBuffer->GetCount() < m_CircleIndexCount)
 				ResizeQuadIndexBuffer(m_CircleIndexCount);
 
+			m_CircleDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
 			m_CircleVertexBuffer->SetData(m_CircleVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_CircleDepthPassPipeline, m_CircleDepthPassMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_CircleDepthPassPipeline, m_CircleDepthPassMaterial, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
 		if (m_LineVertexCount)
 		{
+			m_LineDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
 			m_LineVertexBuffer->SetData(m_LineVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_LineDepthPassPipeline, m_LineDepthPassMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_LineDepthPassPipeline, m_LineDepthPassMaterial, m_LineVertexBuffer, m_LineVertexCount);
 			m_Statistics.DrawCalls++;
 		}
 
@@ -816,10 +814,11 @@ namespace Shark {
 		{
 			Renderer::BeginBatch(m_CommandBuffer, m_QuadPipeline, m_QuadVertexBuffer, m_QuadIndexBuffer);
 			uint32_t indexOffset = 0;
+			m_QuadMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
 			for (const auto& batch : m_QuadBatches)
 			{
 				PrepareMaterial(m_QuadMaterial, batch);
-				Renderer::RenderBatch(m_CommandBuffer, m_QuadMaterial, m_ConstantBufferSet, batch.IndexCount, indexOffset);
+				Renderer::RenderBatch(m_CommandBuffer, m_QuadMaterial, batch.IndexCount, indexOffset);
 				indexOffset += batch.IndexCount;
 				m_Statistics.DrawCalls++;
 			}
@@ -828,13 +827,15 @@ namespace Shark {
 
 		if (m_CircleIndexCount)
 		{
-			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePipeline, m_CircleMaterial, m_ConstantBufferSet, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
+			m_CircleMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePipeline, m_CircleMaterial, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
 		if (m_LineVertexCount)
 		{
-			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_ConstantBufferSet, m_LineVertexBuffer, m_LineVertexCount);
+			m_LineMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_LineVertexBuffer, m_LineVertexCount);
 			m_Statistics.DrawCalls++;
 		}
 
@@ -843,8 +844,9 @@ namespace Shark {
 			if (m_TextIndexBuffer->GetCount() < m_TextIndexCount)
 				ResizeQuadIndexBuffer(m_TextIndexCount);
 
+			m_TextMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
 			m_TextVertexBuffer->SetData(m_TextVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_TextPipeline, m_TextMaterial, m_ConstantBufferSet, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TextPipeline, m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
@@ -860,8 +862,9 @@ namespace Shark {
 			if (m_TransparentQuadIndexBuffer->GetCount() < m_TransparentQuadIndexCount)
 				ResizeQuadIndexBuffer(m_TransparentQuadIndexCount);
 
+			m_TransparentQuadDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
 			m_TransparentQuadVertexBuffer->SetData(m_TransparentQuadVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentQuadDepthPassPipeline, m_TransparentQuadDepthPassMaterial, m_ConstantBufferSet, m_TransparentQuadVertexBuffer, m_TransparentQuadIndexBuffer, m_TransparentQuadIndexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentQuadDepthPassPipeline, m_TransparentQuadDepthPassMaterial, m_TransparentQuadVertexBuffer, m_TransparentQuadIndexBuffer, m_TransparentQuadIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
@@ -870,8 +873,9 @@ namespace Shark {
 			if (m_TransparentCircleIndexBuffer->GetCount() < m_TransparentCircleIndexCount)
 				ResizeQuadIndexBuffer(m_TransparentCircleIndexCount);
 
+			m_TransparentCircleDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
 			m_TransparentCircleVertexBuffer->SetData(m_TransparentCircleVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCircleDepthPassPipeline, m_TransparentCircleDepthPassMaterial, m_ConstantBufferSet, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCircleDepthPassPipeline, m_TransparentCircleDepthPassMaterial, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
@@ -879,10 +883,11 @@ namespace Shark {
 		{
 			Renderer::BeginBatch(m_CommandBuffer, m_TransparentQuadPipeline, m_TransparentQuadVertexBuffer, m_TransparentQuadIndexBuffer);
 			uint32_t indexOffset = 0;
+			m_TransparentQuadMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
 			for (const auto& batch : m_TransparentQuadBatches)
 			{
 				PrepareMaterial(m_TransparentQuadMaterial, batch);
-				Renderer::RenderBatch(m_CommandBuffer, m_TransparentQuadMaterial, m_ConstantBufferSet, batch.IndexCount, indexOffset);
+				Renderer::RenderBatch(m_CommandBuffer, m_TransparentQuadMaterial, batch.IndexCount, indexOffset);
 				indexOffset += batch.IndexCount;
 				m_Statistics.DrawCalls++;
 			}
@@ -891,14 +896,15 @@ namespace Shark {
 
 		if (m_TransparentCircleIndexCount)
 		{
-			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCirclePipeline, m_TransparentCircleMaterial, m_ConstantBufferSet, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
+			m_TransparentCircleMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCirclePipeline, m_TransparentCircleMaterial, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
-		m_CompositeMaterial->SetImage("AccumulationImage", m_TransparentGeometryFrameBuffer->GetImage(0), 0);
-		m_CompositeMaterial->SetImage("RevealImage", m_TransparentGeometryFrameBuffer->GetImage(1), 1);
-		m_CompositeMaterial->SetImage("IDImage", m_TransparentGeometryFrameBuffer->GetImage(2), 2);
-		m_CompositeMaterial->SetImage("DepthImage", m_TransparentDepthBuffer->GetDepthImage(), 3);
+		m_CompositeMaterial->SetImage("AccumulationImage", m_TransparentGeometryFrameBuffer->GetImage(0));
+		m_CompositeMaterial->SetImage("RevealImage", m_TransparentGeometryFrameBuffer->GetImage(1));
+		m_CompositeMaterial->SetImage("IDImage", m_TransparentGeometryFrameBuffer->GetImage(2));
+		m_CompositeMaterial->SetImage("DepthImage", m_TransparentDepthBuffer->GetDepthImage());
 		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositePipeline, m_CompositeMaterial);
 		m_Statistics.DrawCalls++;
 
@@ -968,19 +974,21 @@ namespace Shark {
 
 	void Renderer2D::PrepareMaterial(Ref<Material> material, const QuadBatch& batch)
 	{
-		if (!material->HasResource("g_Textures"))
+		uint32_t index = 0;
+		for (const auto& texture : batch.Textures)
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Material has no Resource Named g_Textures!");
-			return;
+			//material->SetTexture("g_Textures", texture, index++);
+			material->SetImage("g_Textures", texture->GetImage(), index);
+			material->SetSampler("g_SamplerState", texture->GetSamplerID(), index);
+			index++;
 		}
 
-		uint32_t index = 0;
-		auto array = material->GetTextureArray("g_Textures");
-		for (const auto& texture : batch.Textures)
-			array->Set(index++, texture);
-
-		for (; index < array->Count(); index++)
-			array->Set(index, m_WhiteTexture);
+		for (; index < MaxTextureSlots; index++)
+		{
+			//material->SetTexture("g_Textures", m_WhiteTexture, index);
+			material->SetImage("g_Textures", m_WhiteTexture->GetImage(), index);
+			material->SetSampler("g_SamplerState", m_WhiteTexture->GetSamplerID(), index);
+		}
 	}
 
 	void Renderer2D::ResizeQuadIndexBuffer(uint64_t indexCount)

@@ -665,16 +665,16 @@ Scene:
       TagComponent:
         Name: Camera
       TransformComponent:
-        Translation: [0, 0, -42.0822182]
-        Rotation: [0, 0, 0]
-        Scale: [1, 0.684931517, 1.00000012]
+        Translation: [-5.96046448e-08, 0, -42.0822258]
+        Rotation: [0, -0, 0]
+        Scale: [1, 0.683994472, 1.36799037]
       RelationshipComponent:
         Parent: 1490881388362383425
         Children:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.14258552
+        Aspectratio: 2.09734511
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 1
         PerspectiveFar: 1000

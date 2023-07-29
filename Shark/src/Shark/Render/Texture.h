@@ -99,6 +99,7 @@ namespace Shark {
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) = 0;
 
 		virtual RenderID GetViewID() const = 0;
+		virtual RenderID GetSamplerID() const = 0;
 		virtual Ref<Image2D> GetImage() const = 0;
 		virtual const TextureSpecification& GetSpecification() const = 0;
 		virtual TextureSpecification& GetSpecificationMutable() = 0;

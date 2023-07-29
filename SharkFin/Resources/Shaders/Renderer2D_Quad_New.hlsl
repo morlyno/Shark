@@ -1,6 +1,6 @@
 #pragma stage : vertex
 
-cbuffer SceneData : register(b0)
+cbuffer u_SceneData : register(b0)
 {
     matrix ViewProjection;
 }

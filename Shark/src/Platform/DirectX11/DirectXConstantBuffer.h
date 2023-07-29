@@ -21,6 +21,8 @@ namespace Shark {
 
 		void RT_Set(Buffer buffer);
 
+		virtual void RT_UploadData(Buffer data) override;
+
 		virtual uint32_t GetSize() const override { return m_Size; }
 		virtual uint32_t GetSlot() const override { return m_Slot; }
 
@@ -31,24 +33,6 @@ namespace Shark {
 		ID3D11Buffer* m_ConstBuffer = nullptr;
 		uint32_t m_Size = 0;
 		uint32_t m_Slot = 0;
-
-		friend class DirectXRenderer;
-	};
-
-	class DirectXConstantBufferSet : public ConstantBufferSet
-	{
-	public:
-		virtual Ref<ConstantBuffer> Create(uint32_t size, uint32_t slot) override;
-		virtual Ref<ConstantBuffer> Get(uint32_t slot) const override;
-		virtual void Set(uint32_t slot, void* data, uint32_t size) override;
-		virtual void Add(Ref<ConstantBuffer> constantBuffer) override;
-
-	public:
-		Ref<ConstantBuffer> RT_Create(uint32_t size, uint32_t slot);
-		void RT_Set(uint32_t slot, Buffer data);
-
-	private:
-		std::map<uint32_t, Ref<DirectXConstantBuffer>> m_CBMap;
 
 		friend class DirectXRenderer;
 	};
