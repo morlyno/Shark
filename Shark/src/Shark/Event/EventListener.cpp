@@ -58,6 +58,11 @@ namespace Shark {
 		OnEvent<MouseMovedEvent>(mousePos);
 	}
 
+	void EventListener::OnMouseMovedRelativeEvent(const glm::ivec2& mouseDelta)
+	{
+		OnEvent<MouseMovedRelativeEvent>(mouseDelta);
+	}
+
 	void EventListener::OnMouseButtonPressedEvent(const glm::ivec2& mousePos, MouseButton button)
 	{
 		OnEvent<MouseButtonPressedEvent>(mousePos, button);

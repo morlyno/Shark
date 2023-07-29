@@ -114,6 +114,13 @@ namespace Shark {
 			return;
 		}
 
+		RAWINPUTDEVICE rawInputDevice;
+		rawInputDevice.usUsagePage = 1;
+		rawInputDevice.usUsage = 2;
+		rawInputDevice.dwFlags = RIDEV_INPUTSINK;
+		rawInputDevice.hwndTarget = m_hWnd;
+		RegisterRawInputDevices(&rawInputDevice, 1, sizeof(RAWINPUTDEVICE));
+
 		ShowWindow(m_hWnd, SW_SHOW);
 		UpdateWindow(m_hWnd);
 
@@ -360,6 +367,24 @@ namespace Shark {
 				const POINTS pt = MAKEPOINTS(lParam);
 				m_Pos = { pt.x, pt.y };
 				m_EventListener->OnWindowMoveEvent(pt.x, pt.y);
+				break;
+			}
+
+			case WM_INPUT:
+			{
+				RAWINPUT rawInput;
+				ZeroMemory(&rawInput, sizeof(RAWINPUT));
+				UINT size = sizeof(RAWINPUT);
+				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &rawInput, &size, sizeof(RAWINPUTHEADER));
+				if ((rawInput.data.mouse.usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE)
+				{
+					const auto& mouse = rawInput.data.mouse;
+					m_EventListener->OnMouseMovedRelativeEvent({ mouse.lLastX, mouse.lLastY });
+				}
+
+				if ((GET_RAWINPUT_CODE_WPARAM(wParam) & RIM_INPUT) == RIM_INPUT)
+					return DefWindowProc(hWnd, msg, wParam, lParam);
+
 				break;
 			}
 

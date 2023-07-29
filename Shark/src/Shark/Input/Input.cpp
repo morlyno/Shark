@@ -35,11 +35,26 @@ namespace Shark {
 		return "Unkown";
 	}
 
+	std::string ToString(CursorMode cursorMode)
+	{
+		switch (cursorMode)
+		{
+			case CursorMode::Show: return "Show";
+			case CursorMode::Hide: return "Hide";
+			case CursorMode::HideKeepInPlace: return "HideKeepInPlace";
+		}
+
+		SK_CORE_ASSERT(false, "Unkown CursorMode");
+		return "Unkown";
+	}
+
 	struct InputData
 	{
 		std::unordered_map<KeyCode, KeyState> KeyStates;
 		std::unordered_map<MouseButton, MouseState> MouseButtonStates;
 		float MouseScroll = 0.0f;
+		glm::vec2 MouseDelta = glm::vec2(0.0f);
+		CursorMode CursorMode = CursorMode::Show;
 	};
 	static InputData* s_InputData = nullptr;
 
@@ -76,6 +91,7 @@ namespace Shark {
 		}
 
 		s_InputData->MouseScroll = 0.0f;
+		s_InputData->MouseDelta = glm::ivec2(0);
 	}
 
 	void OnKeyEvent(KeyEvent& event)
@@ -98,6 +114,7 @@ namespace Shark {
 			case EventType::MouseButtonReleasd: s_InputData->MouseButtonStates[event.GetButton()] = MouseState::Released; break;
 			case EventType::MouseButtonDoubleClicked: s_InputData->MouseButtonStates[event.GetButton()] = MouseState::DoubleClicked; break;
 			case EventType::MouseScrolled: s_InputData->MouseScroll = event.As<MouseScrolledEvent>().GetDelta(); break;
+			case EventType::MouseMovedRelative: s_InputData->MouseDelta = event.As<MouseMovedRelativeEvent>().GetMouseDelta(); break;
 		}
 	}
 
@@ -107,6 +124,39 @@ namespace Shark {
 			OnKeyEvent((KeyEvent&)event);
 		if (event.IsInCategory(EventCategory::Mouse))
 			OnMouseEvent((MouseEvent&)event);
+	}
+
+	void Input::SetCursorMode(CursorMode mode)
+	{
+		switch (mode)
+		{
+			case CursorMode::Show:
+				ShowCursor(TRUE);
+				ClipCursor(NULL);
+				SK_CORE_TRACE_TAG("Input", "CursorMode Changed ({} => {})", ToString(s_InputData->CursorMode), "Show");
+				break;
+			case CursorMode::Hide:
+				ShowCursor(FALSE);
+				ClipCursor(NULL);
+				SK_CORE_TRACE_TAG("Input", "CursorMode Changed ({} => {})", ToString(s_InputData->CursorMode), "Hide");
+				break;
+			case CursorMode::HideKeepInPlace:
+			{
+				ShowCursor(FALSE);
+				glm::vec2 mousePoint = GetScreenMousePosition();
+				RECT rect;
+				rect.left = rect.right = mousePoint.x;
+				rect.top = rect.bottom = mousePoint.y;
+				ClipCursor(&rect);
+				SK_CORE_TRACE_TAG("Input", "CursorMode Changed ({} => {})", ToString(s_InputData->CursorMode), "HideKeepInPlace");
+				break;
+			}
+		}
+	}
+
+	CursorMode Input::GetCursorMode()
+	{
+		return s_InputData->CursorMode;
 	}
 
 	bool Input::IsKeyDownAsync(KeyCode key)
@@ -188,6 +238,11 @@ namespace Shark {
 	float Input::GetMouseScroll()
 	{
 		return s_InputData->MouseScroll;
+	}
+
+	glm::ivec2 Input::GetMouseDelta()
+	{
+		return s_InputData->MouseDelta;
 	}
 
 #if SK_PLATFORM_WINDOWS

@@ -26,6 +26,7 @@ namespace Shark {
 		void OnWindowDropEvent(std::vector<std::filesystem::path>&& paths);
 
 		void OnMouseMovedEvent(const glm::ivec2& mousePos);
+		void OnMouseMovedRelativeEvent(const glm::ivec2& mouseDelta);
 		void OnMouseButtonPressedEvent(const glm::ivec2& mousePos, MouseButton button);
 		void OnMouseButtonReleasedEvent(const glm::ivec2& mousePos, MouseButton button);
 		void OnMouseButtonDoubleClickedEvent(const glm::ivec2& mousePos, MouseButton button);

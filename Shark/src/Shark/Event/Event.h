@@ -8,7 +8,7 @@ namespace Shark {
 	{
 		None = 0,
 		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus, WindowDrop,
-		MouseMoved, MouseButtonPressed, MouseButtonReleasd, MouseButtonDoubleClicked, MouseScrolled,
+		MouseMoved, MouseMovedRelative, MouseButtonPressed, MouseButtonReleasd, MouseButtonDoubleClicked, MouseScrolled,
 		KeyPressed, KeyReleased, KeyCharacter,
 		ApplicationClosed, SceneChanged, ScenePlay, ProjectChanged
 	};
@@ -25,6 +25,7 @@ namespace Shark {
 			case EventType::WindowLostFocus:	       return "WindowLostFocus";
 			case EventType::WindowDrop:	               return "WindowDrop";
 			case EventType::MouseMoved:			       return "MouseMoved";
+			case EventType::MouseMovedRelative:        return "MouseMovedRelative";
 			case EventType::MouseButtonPressed:        return "MouseButtonPressed";
 			case EventType::MouseButtonReleasd:        return "MouseButtonReleasd";
 			case EventType::MouseButtonDoubleClicked:  return "MouseButtonDoubleClicked";

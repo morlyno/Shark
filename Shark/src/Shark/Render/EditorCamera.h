@@ -61,6 +61,9 @@ namespace Shark {
 		glm::vec3 GetForwardDirection() const;
 		glm::vec3 GetUpwardsDirection() const;
 		glm::vec3 GetRightDirection() const;
+		glm::vec3 GetLeftDirection() const;
+		glm::vec3 GetBackwardsDirection() const;
+		glm::vec3 GetDownwardsDirection() const;
 		glm::quat GetRotation() const;
 
 		glm::vec2 GetMoveSpeed();
@@ -73,7 +76,14 @@ namespace Shark {
 		void OnMouseRotate(const glm::vec2& delta);
 		void OnMouseMove(const glm::vec2& delta);
 		void OnMouseZoom(const glm::vec2& delta);
+
+		// Dosn't update the View Matrix. Zo apply the changes call EditorCamera::UpdateView.
+		void Move(const glm::vec3& direction, float delta);
+		void Rotate(const glm::vec2& delta);
 	private:
+		float m_MoveSpeed = 20.0f;
+		float m_RotateSpeed = 1.0f;
+
 		float m_AspectRatio = 16.0f / 9.0f;
 		float m_FOV = glm::radians(45.0f);
 		float m_NearClip = 0.001f;

@@ -32,6 +32,26 @@ namespace Shark {
 		glm::ivec2 m_MousePos;
 	};
 
+	class MouseMovedRelativeEvent : public EventBase<MouseEvent, EventType::MouseMovedRelative, EventCategory::Input | EventCategory::Mouse>
+	{
+	public:
+		MouseMovedRelativeEvent(const glm::ivec2& delta)
+			: m_Delta(delta)
+		{}
+
+		virtual const glm::ivec2& GetMousePos() const override { return { 0.0f, 0.0f }; }
+		virtual int GetX() const override { return 0; }
+		virtual int GetY() const override { return 0; }
+		virtual MouseButton GetButton() const override { return MouseButton::None; }
+
+		const glm::ivec2& GetMouseDelta() const { return m_Delta; }
+
+		std::string ToString() const override { return fmt::format("{}, Delta: {}", GetName(), m_Delta); }
+
+	private:
+		glm::ivec2 m_Delta;
+	};
+
 	class MouseButtonPressedEvent : public EventBase<MouseEvent, EventType::MouseButtonPressed, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:

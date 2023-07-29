@@ -50,6 +50,41 @@ namespace Shark {
 			else if (Input::IsMouseDown(MouseButton::Middle))
 				OnMouseMove(delta);
 		}
+
+		if (Input::IsMousePressed(MouseButton::Right))
+			Input::SetCursorMode(CursorMode::HideKeepInPlace);
+
+		if (Input::IsMouseRelease(MouseButton::Right))
+			Input::SetCursorMode(CursorMode::Show);
+
+		if (Input::IsMouseDown(MouseButton::Right))
+		{
+			float moveSpeed = m_MoveSpeed;
+			if (Input::IsKeyDown(KeyCode::LeftShift))
+				moveSpeed *= 4.0f;
+
+			glm::vec3 direction = glm::vec3(0.0f);
+			if (Input::IsKeyDown(KeyCode::W)) direction += GetForwardDirection();
+			if (Input::IsKeyDown(KeyCode::A)) direction += GetLeftDirection();
+			if (Input::IsKeyDown(KeyCode::S)) direction += GetBackwardsDirection();
+			if (Input::IsKeyDown(KeyCode::D)) direction += GetRightDirection();
+			if (Input::IsKeyDown(KeyCode::E)) direction += glm::vec3(0.0f, 1.0f, 0.0f);
+			if (Input::IsKeyDown(KeyCode::Q)) direction += glm::vec3(0.0f, -1.0f, 0.0f);
+			Move(direction, moveSpeed * ts);
+
+			bool viewChanged = direction != glm::vec3{ 0.0f, 0.0f, 0.0f };
+
+			const glm::vec2 mouseDelta = Input::GetMouseDelta();
+			const glm::vec2 rotation = mouseDelta * (m_RotateSpeed * ts);
+			if (rotation.x != 0.0f || rotation.y != 0.0f)
+			{
+				Rotate(rotation);
+				viewChanged = true;
+			}
+
+			if (viewChanged)
+				UpdateView();
+		}
 	}
 
 	void EditorCamera::OnEvent(Event& event)
@@ -84,6 +119,21 @@ namespace Shark {
 	glm::vec3 EditorCamera::GetRightDirection() const
 	{
 		return glm::rotate(GetRotation(), glm::vec3(1.0f, 0.0f, 0.0f));
+	}
+
+	glm::vec3 EditorCamera::GetLeftDirection() const
+	{
+		return glm::rotate(GetRotation(), glm::vec3(-1.0f, 0.0f, 0.0f));
+	}
+
+	glm::vec3 EditorCamera::GetBackwardsDirection() const
+	{
+		return glm::rotate(GetRotation(), glm::vec3(0.0f, 0.0f, -1.0f));
+	}
+
+	glm::vec3 EditorCamera::GetDownwardsDirection() const
+	{
+		return glm::rotate(GetRotation(), glm::vec3(0.0f, -1.0f, 0.0f));
 	}
 
 	glm::quat EditorCamera::GetRotation() const
@@ -159,6 +209,20 @@ namespace Shark {
 			m_Distance = 0.25f;
 		UpdatePosition();
 		UpdateView();
+	}
+
+	void EditorCamera::Move(const glm::vec3& direction, float delta)
+	{
+		m_Position += direction * delta;
+		m_FocusPoint += direction * delta;
+	}
+
+	void EditorCamera::Rotate(const glm::vec2& delta)
+	{
+		m_Pitch += delta.y;
+		m_Yaw += delta.x;
+
+		UpdatePosition();
 	}
 
 }

@@ -334,10 +334,10 @@ namespace Shark {
 			}
 
 			// ImGuizmo
-			case KeyCode::Q: { m_CurrentOperation = GizmoOperaton::None; return true; }
-			case KeyCode::W: { m_CurrentOperation = GizmoOperaton::Translate; return true; }
-			case KeyCode::E: { m_CurrentOperation = GizmoOperaton::Rotate; return true; }
-			case KeyCode::R: { m_CurrentOperation = GizmoOperaton::Scale; return true; }
+			case KeyCode::Q: { if (!Input::IsMouseDown(MouseButton::Right)) m_CurrentOperation = GizmoOperaton::None; return true; }
+			case KeyCode::W: { if (!Input::IsMouseDown(MouseButton::Right)) m_CurrentOperation = GizmoOperaton::Translate; return true; }
+			case KeyCode::E: { if (!Input::IsMouseDown(MouseButton::Right)) m_CurrentOperation = GizmoOperaton::Rotate; return true; }
+			case KeyCode::R: { if (!Input::IsMouseDown(MouseButton::Right)) m_CurrentOperation = GizmoOperaton::Scale; return true; }
 		}
 
 		return false;

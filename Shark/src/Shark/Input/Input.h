@@ -23,6 +23,13 @@ namespace Shark {
 		DoubleClicked
 	};
 
+	enum class CursorMode
+	{
+		Show,
+		Hide,
+		HideKeepInPlace
+	};
+
 	class Input
 	{
 	public:
@@ -31,6 +38,9 @@ namespace Shark {
 
 		static void TransitionStates();
 		static void OnEvent(Event& event);
+
+		static void SetCursorMode(CursorMode mode);
+		static CursorMode GetCursorMode();
 
 		static bool IsKeyDownAsync(KeyCode key);
 		static bool IsMouseDownAsync(MouseButton button);
@@ -48,8 +58,11 @@ namespace Shark {
 
 		static float GetMouseScroll();
 
+		static glm::ivec2 GetMouseDelta();
 		static glm::ivec2 GetMousePosition();
 		static glm::ivec2 GetScreenMousePosition();
 	};
+
+	std::string ToString(CursorMode cursorMode);
 
 }
