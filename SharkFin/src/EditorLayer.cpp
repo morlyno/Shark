@@ -261,6 +261,12 @@ namespace Shark {
 		switch (event.GetKeyCode())
 		{
 
+			case KeyCode::Escape:
+			{
+				Input::SetDefaultCursorMode();
+				break;
+			}
+
 			// New Scene
 			case KeyCode::N:
 			{
@@ -462,6 +468,7 @@ namespace Shark {
 		UI_Statistics();
 		UI_OpenProjectModal();
 		UI_ImportAsset();
+		UI_Stuff();
 
 		m_PanelManager->OnImGuiRender();
 		
@@ -638,6 +645,7 @@ namespace Shark {
 				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
 				ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
 				ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
+				ImGui::MenuItem("Stuff Panel", nullptr, &m_ShowStuffPanel);
 				ImGui::EndMenu();
 			}
 
@@ -831,7 +839,8 @@ namespace Shark {
 		{
 			if (ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls))
 			{
-				UI::BeginControls();
+				ImGuiID controlsID = UI::GenerateID();
+				UI::BeginControls(controlsID);
 
 				//UI::DragFloat("Position", m_EditorCamera.GetPosition());
 
@@ -858,6 +867,24 @@ namespace Shark {
 				float farClip = m_EditorCamera.GetFarClip();
 				if (UI::Control("Far", farClip))
 					m_EditorCamera.SetFarClip(farClip);
+
+				UI::EndControls();
+				ImGui::Separator();
+				UI::BeginControls(controlsID);
+
+				float flySpeed = m_EditorCamera.GetFlySpeed();
+				if (UI::Control("Movement Speed", flySpeed))
+					m_EditorCamera.SetFlySpeed(flySpeed);
+
+				float rotationSpeed = m_EditorCamera.GetRotationSpeed();
+				if (UI::Control("Rotation Speed", rotationSpeed))
+					m_EditorCamera.SetRotationSpeed(rotationSpeed);
+
+				float speedup = m_EditorCamera.GetSpeedup();
+				if (UI::Control("Speedup", speedup))
+					m_EditorCamera.SetSpeedup(speedup);
+
+				UI::EndControls();
 
 				if (ImGui::Button("Reset"))
 				{
@@ -1692,6 +1719,37 @@ namespace Shark {
 
 			ImGui::End();
 		}
+	}
+
+	void EditorLayer::UI_Stuff()
+	{
+		if (!m_ShowStuffPanel)
+			return;
+
+		ImGui::Begin("Stuff", &m_ShowStuffPanel);
+		ImGui::Text("Shurtcuts only available when this window is showing");
+
+		if (ImGui::Button("Show Cursor"))
+			Input::SetCursorMode(CursorMode::Show);
+		ImGui::Text("Shortcut: ,");
+		if (Input::IsKeyPressed(KeyCode::OemComma))
+			Input::SetCursorMode(CursorMode::Show);
+
+
+		if (ImGui::Button("Hide Cursor"))
+			Input::SetCursorMode(CursorMode::Hide);
+		ImGui::Text("Shortcut: .");
+		if (Input::IsKeyPressed(KeyCode::OemPeriod))
+			Input::SetCursorMode(CursorMode::Hide);
+
+
+		if (ImGui::Button("HideKeepInPlace Cursor"))
+			Input::SetCursorMode(CursorMode::HideKeepInPlace);
+		ImGui::Text("Shortcut: -");
+		if (Input::IsKeyPressed(KeyCode::OemMinus))
+			Input::SetCursorMode(CursorMode::HideKeepInPlace);
+
+		ImGui::End();
 	}
 
 	void EditorLayer::RegisterSettingNodes()

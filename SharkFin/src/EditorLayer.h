@@ -83,6 +83,7 @@ namespace Shark {
 		void UI_Statistics();
 		void UI_OpenProjectModal();
 		void UI_ImportAsset();
+		void UI_Stuff();
 
 		void RegisterSettingNodes();
 
@@ -162,6 +163,7 @@ namespace Shark {
 		bool m_ShowCreateProject = false;
 		bool m_ShowDebugScripts = false;
 		bool m_ShowStatistics = false;
+		bool m_ShowStuffPanel = false;
 		bool m_ReadPixel = false;
 		glm::vec4 m_HoveredColor;
 

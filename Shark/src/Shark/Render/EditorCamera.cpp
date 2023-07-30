@@ -50,40 +50,42 @@ namespace Shark {
 			else if (Input::IsMouseDown(MouseButton::Middle))
 				OnMouseMove(delta);
 		}
-
-		if (Input::IsMousePressed(MouseButton::Right))
-			Input::SetCursorMode(CursorMode::HideKeepInPlace);
-
-		if (Input::IsMouseRelease(MouseButton::Right))
-			Input::SetCursorMode(CursorMode::Show);
-
-		if (Input::IsMouseDown(MouseButton::Right))
+		else
 		{
-			float moveSpeed = m_MoveSpeed;
-			if (Input::IsKeyDown(KeyCode::LeftShift))
-				moveSpeed *= 4.0f;
+			if (Input::IsMousePressed(MouseButton::Right))
+				Input::SetCursorMode(CursorMode::HideKeepInPlace);
 
-			glm::vec3 direction = glm::vec3(0.0f);
-			if (Input::IsKeyDown(KeyCode::W)) direction += GetForwardDirection();
-			if (Input::IsKeyDown(KeyCode::A)) direction += GetLeftDirection();
-			if (Input::IsKeyDown(KeyCode::S)) direction += GetBackwardsDirection();
-			if (Input::IsKeyDown(KeyCode::D)) direction += GetRightDirection();
-			if (Input::IsKeyDown(KeyCode::E)) direction += glm::vec3(0.0f, 1.0f, 0.0f);
-			if (Input::IsKeyDown(KeyCode::Q)) direction += glm::vec3(0.0f, -1.0f, 0.0f);
-			Move(direction, moveSpeed * ts);
+			if (Input::IsMouseRelease(MouseButton::Right))
+				Input::SetCursorMode(CursorMode::Show);
 
-			bool viewChanged = direction != glm::vec3{ 0.0f, 0.0f, 0.0f };
-
-			const glm::vec2 mouseDelta = Input::GetMouseDelta();
-			const glm::vec2 rotation = mouseDelta * (m_RotateSpeed * ts);
-			if (rotation.x != 0.0f || rotation.y != 0.0f)
+			if (Input::IsMouseDown(MouseButton::Right))
 			{
-				Rotate(rotation);
-				viewChanged = true;
-			}
+				float moveSpeed = m_MoveSpeed;
+				if (Input::IsKeyDown(KeyCode::LeftShift))
+					moveSpeed *= 4.0f;
 
-			if (viewChanged)
-				UpdateView();
+				glm::vec3 direction = glm::vec3(0.0f);
+				if (Input::IsKeyDown(KeyCode::W)) direction += GetForwardDirection();
+				if (Input::IsKeyDown(KeyCode::A)) direction += GetLeftDirection();
+				if (Input::IsKeyDown(KeyCode::S)) direction += GetBackwardsDirection();
+				if (Input::IsKeyDown(KeyCode::D)) direction += GetRightDirection();
+				if (Input::IsKeyDown(KeyCode::E)) direction += glm::vec3(0.0f, 1.0f, 0.0f);
+				if (Input::IsKeyDown(KeyCode::Q)) direction += glm::vec3(0.0f, -1.0f, 0.0f);
+				Move(direction, moveSpeed * ts);
+
+				bool viewChanged = direction != glm::vec3{ 0.0f, 0.0f, 0.0f };
+
+				const glm::vec2 mouseDelta = Input::GetMouseDelta();
+				const glm::vec2 rotation = mouseDelta * (m_RotateSpeed * ts);
+				if (rotation.x != 0.0f || rotation.y != 0.0f)
+				{
+					Rotate(rotation);
+					viewChanged = true;
+				}
+
+				if (viewChanged)
+					UpdateView();
+			}
 		}
 	}
 
@@ -179,6 +181,11 @@ namespace Shark {
 		m_Position = m_FocusPoint - GetForwardDirection() * m_Distance;
 	}
 
+	void EditorCamera::UpdateFocusPoint()
+	{
+		m_FocusPoint = m_Position + GetForwardDirection() * m_Distance;
+	}
+
 	void EditorCamera::OnMouseRotate(const glm::vec2& delta)
 	{
 		m_Pitch += delta.y;
@@ -222,7 +229,7 @@ namespace Shark {
 		m_Pitch += delta.y;
 		m_Yaw += delta.x;
 
-		UpdatePosition();
+		UpdateFocusPoint();
 	}
 
 }

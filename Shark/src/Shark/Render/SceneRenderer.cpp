@@ -34,6 +34,7 @@ namespace Shark {
 		}
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
+		m_Timer = GPUTimer::Create("SceneRenderer");
 
 		// Geometry
 		{
@@ -69,9 +70,10 @@ namespace Shark {
 			specification.TargetFrameBuffer = m_GeometryFrameBuffer;
 			specification.Shader = Renderer::GetShaderLib()->Get("DefaultMeshShader");
 			specification.Layout = VertexLayout{
-				{ VertexDataType::Float3, "Position" }
+				{ VertexDataType::Float3, "Position" },
+				{ VertexDataType::Float3, "Normal" }
 			};
-			specification.DebugName = "DefaultMeshShader";
+			specification.DebugName = "Default Mesh Pipeline";
 			m_MeshPipeline = Pipeline::Create(specification);
 		}
 	}
@@ -98,6 +100,7 @@ namespace Shark {
 		m_ViewProjection = viewProj;
 
 		m_CommandBuffer->Begin();
+		m_CommandBuffer->BeginTimeQuery(m_Timer);
 		m_GeometryFrameBuffer->Clear(m_CommandBuffer);
 
 		m_Renderer2D->BeginScene(viewProj);
@@ -107,6 +110,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		m_CommandBuffer->EndTimeQuery(m_Timer);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 
@@ -207,6 +211,7 @@ namespace Shark {
 	void SceneRenderer::DrawSettings()
 	{
 		auto profiler = Application::Get().GetProfiler();
+		profiler->Add("SceneRenderer GPU", m_Timer->GetTime());
 		profiler->Add("Geometry Pass", m_Renderer2D->GetStatistics().GeometryPassTime);
 		profiler->Add("Opaque Geometry Pass", m_Renderer2D->GetStatistics().OpaqueGeometryTime);
 		profiler->Add("OIT Geometry Pass", m_Renderer2D->GetStatistics().OITGeometryTime);

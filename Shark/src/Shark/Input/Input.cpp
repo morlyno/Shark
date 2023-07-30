@@ -126,23 +126,49 @@ namespace Shark {
 			OnMouseEvent((MouseEvent&)event);
 	}
 
+	void Input::SetDefaultCursorMode()
+	{
+		CURSORINFO cursorInfo;
+		cursorInfo.cbSize = sizeof(CURSORINFO);
+		GetCursorInfo(&cursorInfo);
+		if (cursorInfo.flags & CURSOR_SUPPRESSED)
+			while (ShowCursor(TRUE));
+
+		if (cursorInfo.flags & CURSOR_SHOWING)
+		{
+			ShowCursor(TRUE);
+			while (ShowCursor(FALSE));
+		}
+
+		ClipCursor(NULL);
+		s_InputData->CursorMode = CursorMode::Show;
+	}
+
 	void Input::SetCursorMode(CursorMode mode)
 	{
+		if (s_InputData->CursorMode == mode)
+			return;
+
+		const bool isCursorHidden = s_InputData->CursorMode != CursorMode::Show;
+
 		switch (mode)
 		{
 			case CursorMode::Show:
-				ShowCursor(TRUE);
+				if (isCursorHidden)
+					ShowCursor(TRUE);
 				ClipCursor(NULL);
 				SK_CORE_TRACE_TAG("Input", "CursorMode Changed ({} => {})", ToString(s_InputData->CursorMode), "Show");
 				break;
 			case CursorMode::Hide:
-				ShowCursor(FALSE);
+				if (!isCursorHidden)
+					ShowCursor(FALSE);
 				ClipCursor(NULL);
 				SK_CORE_TRACE_TAG("Input", "CursorMode Changed ({} => {})", ToString(s_InputData->CursorMode), "Hide");
 				break;
 			case CursorMode::HideKeepInPlace:
 			{
-				ShowCursor(FALSE);
+				if (!isCursorHidden)
+					ShowCursor(FALSE);
 				glm::vec2 mousePoint = GetScreenMousePosition();
 				RECT rect;
 				rect.left = rect.right = mousePoint.x;
@@ -152,6 +178,7 @@ namespace Shark {
 				break;
 			}
 		}
+		s_InputData->CursorMode = mode;
 	}
 
 	CursorMode Input::GetCursorMode()

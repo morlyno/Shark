@@ -51,6 +51,14 @@ namespace Shark {
 		float GetPitch() const { return glm::degrees(m_Pitch); }
 		float GetYaw() const { return glm::degrees(m_Yaw); }
 
+		float GetFlySpeed() const { return m_MoveSpeed; }
+		void SetFlySpeed(float speed) { m_MoveSpeed = speed; }
+
+		float GetSpeedup() const { return m_Speedup; }
+		void SetSpeedup(float speedup) { m_Speedup = speedup; }
+
+		float GetRotationSpeed() const { return m_RotateSpeed; }
+		void SetRotationSpeed(float rotationSpeed) { m_RotateSpeed = rotationSpeed; }
 
 		void OnUpdate(TimeStep ts);
 		void OnEvent(Event& event);
@@ -72,6 +80,7 @@ namespace Shark {
 		void UpdateView();
 		void UpdateProjection();
 		void UpdatePosition();
+		void UpdateFocusPoint();
 
 		void OnMouseRotate(const glm::vec2& delta);
 		void OnMouseMove(const glm::vec2& delta);
@@ -82,7 +91,8 @@ namespace Shark {
 		void Rotate(const glm::vec2& delta);
 	private:
 		float m_MoveSpeed = 20.0f;
-		float m_RotateSpeed = 1.0f;
+		float m_RotateSpeed = 1.5f;
+		float m_Speedup = 4.0f;
 
 		float m_AspectRatio = 16.0f / 9.0f;
 		float m_FOV = glm::radians(45.0f);

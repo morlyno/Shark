@@ -63,6 +63,7 @@ namespace Shark {
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
+		Ref<GPUTimer> m_Timer;
 
 		glm::mat4 m_ViewProjection;
 

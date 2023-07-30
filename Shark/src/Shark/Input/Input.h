@@ -39,6 +39,7 @@ namespace Shark {
 		static void TransitionStates();
 		static void OnEvent(Event& event);
 
+		static void SetDefaultCursorMode();
 		static void SetCursorMode(CursorMode mode);
 		static CursorMode GetCursorMode();
 
