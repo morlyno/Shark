@@ -71,7 +71,8 @@ namespace Shark {
 			specification.Shader = Renderer::GetShaderLib()->Get("DefaultMeshShader");
 			specification.Layout = VertexLayout{
 				{ VertexDataType::Float3, "Position" },
-				{ VertexDataType::Float3, "Normal" }
+				{ VertexDataType::Float3, "Normal" },
+				{ VertexDataType::Float2, "UV" }
 			};
 			specification.DebugName = "Default Mesh Pipeline";
 			m_MeshPipeline = Pipeline::Create(specification);
@@ -152,18 +153,24 @@ namespace Shark {
 		if (node.HasMesh)
 		{
 			const auto& submeshes = mesh->GetSubmeshes();
-			const auto& submesh = submeshes[node.MeshIndex];
-
-			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-			if (materialTable->HasMaterial(submesh.MaterialIndex))
+			for (uint32_t meshIndex : node.MeshIndices)
 			{
-				Ref<Material> material = materialTable->GetMaterial(submesh.MaterialIndex);
-				material->SetMat4("u_MeshData.Transform", transform);
-				material->SetInt("u_MeshData.ID", id);
-				material->SetMat4("u_SceneData.ViewProjection", m_ViewProjection);
-			}
+				const auto& submesh = submeshes[meshIndex];
 
-			Renderer::RenderSubmesh(m_CommandBuffer, mesh, node.MeshIndex, m_MeshPipeline);
+				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+				if (materialTable->HasMaterial(submesh.MaterialIndex))
+				{
+					Ref<MeshMaterial> meshMaterial = materialTable->GetMeshMaterial(submesh.MaterialIndex);
+					Ref<Material> material = meshMaterial->GetMaterial();
+					//Ref<Material> material = materialTable->GetMaterial(submesh.MaterialIndex);
+					material->SetMat4("u_MeshData.Transform", transform);
+					material->SetInt("u_MeshData.ID", id);
+					material->SetMat4("u_SceneData.ViewProjection", m_ViewProjection);
+					material->SetTexture("u_Albedo", meshMaterial->GetAlbedo());
+				}
+
+				Renderer::RenderSubmesh(m_CommandBuffer, mesh, meshIndex, m_MeshPipeline);
+			}
 		}
 
 		for (const auto& child : node.Children)

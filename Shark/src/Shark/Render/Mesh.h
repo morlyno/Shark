@@ -5,6 +5,24 @@
 
 namespace Shark {
 
+	class MeshMaterial : public RefCount
+	{
+	public:
+		MeshMaterial(const std::string& name, Ref<Shader> shader)
+			: m_Name(name), m_Material(Material::Create(shader))
+		{}
+
+		Ref<Material> GetMaterial() const { return m_Material; }
+		Ref<Texture2D> GetAlbedo() const { return m_Albedo; }
+
+	private:
+		std::string m_Name;
+		Ref<Material> m_Material;
+		Ref<Texture2D> m_Albedo;
+
+		friend class AssimpImporter;
+	};
+
 	class MaterialTable : public RefCount
 	{
 	public:
@@ -15,17 +33,30 @@ namespace Shark {
 
 		Ref<Material> GetMaterial(uint32_t index) const
 		{
+			return m_Materials.at(index)->GetMaterial();
+		}
+
+		Ref<MeshMaterial> GetMeshMaterial(uint32_t index) const
+		{
 			return m_Materials.at(index);
 		}
 
-		void AddMaterial(uint32_t index, Ref<Material> material)
+		//void AddMaterial(uint32_t index, Ref<Material> material)
+		//{
+		//	SK_CORE_ASSERT(!HasMaterial(index));
+		//	m_Materials[index] = Ref<MeshMaterial>::Create(material);
+		//}
+		
+		void AddMaterial(uint32_t index, Ref<MeshMaterial> material)
 		{
 			SK_CORE_ASSERT(!HasMaterial(index));
 			m_Materials[index] = material;
 		}
 
 	private:
-		std::map<uint32_t, Ref<Material>> m_Materials;
+		std::map<uint32_t, Ref<MeshMaterial>> m_Materials;
+
+		friend class AssimpImporter;
 	};
 
 	class Mesh : public RefCount
@@ -42,7 +73,7 @@ namespace Shark {
 		struct Node
 		{
 			bool HasMesh = false;
-			uint32_t MeshIndex = 0;
+			std::vector<uint32_t> MeshIndices;
 			Node* Parent = nullptr;
 			std::vector<Node> Children;
 			glm::mat4 Transform;

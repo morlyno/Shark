@@ -4,6 +4,8 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/File/FileSystem.h"
 
+#include "Shark/Asset/ResourceManager.h"
+
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -29,54 +31,59 @@ namespace Shark {
 		if (!FileSystem::Exists(filePath))
 			return nullptr;
 
-#if 0
-		std::string content = FileSystem::ReadString(filePath);
-
-		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFileFromMemory(content.c_str(), content.size(), aiProcess_Triangulate | /*aiProcess_JoinIdenticalVertices | */aiProcess_ConvertToLeftHanded);
-#else
 		Assimp::Importer importer;
 		auto fsFilePath = FileSystem::GetAbsolute(filePath).string();
-		const aiScene* scene = importer.ReadFile(fsFilePath, aiProcess_Triangulate | /*aiProcess_JoinIdenticalVertices | */aiProcess_ConvertToLeftHanded);
-#endif
+		const aiScene* scene = importer.ReadFile(fsFilePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | /*aiProcess_JoinIdenticalVertices | */aiProcess_ConvertToLeftHanded);
 
 		if (!scene)
 			return nullptr;
 
 		VertexLayout layout = {
-			{ VertexDataType::Float3, "Position" }
+			{ VertexDataType::Float3, "Position" },
+			{ VertexDataType::Float3, "Normal" },
+			{ VertexDataType::Float2, "UV" }
 		};
 
-#if 0
-		aiMesh* mesh = scene->mMeshes[0];
-		std::vector<glm::vec3> vertices;
-		for (uint32_t i = 0; i < mesh->mNumVertices; i++)
+		struct Vertex
 		{
-			aiVector3D& vertex = mesh->mVertices[i];
-			vertices.push_back(glm::vec3{ vertex.x, vertex.y, vertex.z });
-		}
+			glm::vec3 Position;
+			glm::vec3 Normal;
+			glm::vec2 UV;
+		};
 
-		std::vector<uint32_t> indices;
-		for (uint32_t i = 0; i < mesh->mNumFaces; i++)
-		{
-			aiFace& face = mesh->mFaces[i];
-			SK_CORE_ASSERT(face.mNumIndices == 3);
-			indices.push_back(face.mIndices[0]);
-			indices.push_back(face.mIndices[1]);
-			indices.push_back(face.mIndices[2]);
-		}
-
-		auto vertexBuffer = VertexBuffer::Create(layout, Buffer::FromArray(vertices));
-		auto indexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
-		auto material = Material::Create(Renderer::GetShaderLib()->Get("DefaultMeshShader"));
-
-		return Mesh::Create(vertexBuffer, indexBuffer, material);
-#endif
-
-		Buffer vertices;
+		std::vector<Vertex> vertices;
 		Buffer indices;
 		std::vector<Mesh::SubMesh> submeshes;
 		Ref<MaterialTable> materialTable = Ref<MaterialTable>::Create();
+
+		{
+			std::filesystem::path rootPath = filePath.parent_path();
+			for (uint32_t materialIndex = 0; materialIndex < scene->mNumMaterials; materialIndex++)
+			{
+				aiMaterial* material = scene->mMaterials[materialIndex];
+				std::string name = material->GetName().C_Str();
+				SK_CORE_DEBUG("Material: {}", name);
+
+				Ref<MeshMaterial> meshMaterial = Ref<MeshMaterial>::Create(name, Renderer::GetShaderLib()->Get("DefaultMeshShader"));
+				materialTable->AddMaterial(materialIndex, meshMaterial);
+
+				aiString textureFileName;
+				if (material->GetTexture(aiTextureType_DIFFUSE, 0, &textureFileName) == aiReturn_SUCCESS)
+				{
+					auto texturePath = rootPath / textureFileName.C_Str();
+					if (FileSystem::Exists(texturePath))
+					{
+						TextureSpecification specification;
+						specification.GenerateMips = true;
+						meshMaterial->m_Albedo = Texture2D::LoadFromDisc(texturePath);
+					}
+				}
+
+				if (!meshMaterial->m_Albedo)
+					meshMaterial->m_Albedo = Renderer::GetWhiteTexture();
+
+			}
+		}
 
 		{
 			uint64_t vertexOffset = 0;
@@ -87,13 +94,18 @@ namespace Shark {
 				auto& submesh = submeshes.emplace_back();
 
 				aiMesh* mesh = scene->mMeshes[meshIndex];
-				vertices.Grow<glm::vec3>(mesh->mNumVertices);
-				vertices.Write(mesh->mVertices, mesh->mNumVertices * sizeof(glm::vec3), vertexOffset * sizeof(glm::vec3));
+				for (uint32_t i = 0; i < mesh->mNumVertices; i++)
+				{
+					auto& vertex = vertices.emplace_back();
+					vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+					vertex.Normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+					vertex.UV = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+				}
+
 				submesh.BaseVertex = vertexOffset;
 				submesh.BaseIndex = indexOffset;
 				submesh.IndexCount = mesh->mNumFaces * 3;
-				submesh.MaterialIndex = meshIndex;
-				materialTable->AddMaterial(meshIndex, Material::Create(Renderer::GetShaderLib()->Get("DefaultMeshShader")));
+				submesh.MaterialIndex = mesh->mMaterialIndex;
 
 				vertexOffset += mesh->mNumVertices;
 
@@ -108,10 +120,10 @@ namespace Shark {
 			}
 		}
 
-		auto vertexBuffer = VertexBuffer::Create(layout, vertices);
+		auto vertexBuffer = VertexBuffer::Create(layout, Buffer::FromArray(vertices));
 		auto indexBuffer = IndexBuffer::Create(indices);
 
-		vertices.Release();
+		vertices = {};
 		indices.Release();
 
 		auto mesh = Ref<Mesh>::Create();
@@ -127,14 +139,13 @@ namespace Shark {
 
 	void AssimpImporter::AddNode(Mesh::Node* meshNode, aiNode* node)
 	{
-		SK_CORE_ASSERT(!(node->mNumMeshes > 1));
-
 		meshNode->Transform = utils::AssimpMatrixToGLM(node->mTransformation);
 		meshNode->Name = node->mName.C_Str();
-		if (node->mNumMeshes == 1)
+		meshNode->HasMesh = node->mNumMeshes > 0;
+
+		for (uint32_t i = 0; i < node->mNumMeshes; i++)
 		{
-			meshNode->HasMesh = true;
-			meshNode->MeshIndex = node->mMeshes[0];
+			meshNode->MeshIndices.emplace_back(node->mMeshes[0]);
 		}
 
 		for (uint32_t childIndex = 0; childIndex < node->mNumChildren; childIndex++)

@@ -51,7 +51,7 @@ namespace Shark {
 
 		std::string Compile(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& outputBinary, std::vector<uint32_t>& outputSPIRVDebug);
 		std::string CompileHLSL(ShaderUtils::ShaderStage::Type stage, const std::string& hlslSourceCode, std::vector<byte>& binary) const;
-		std::string CrossCompileToHLSL(const std::vector<uint32_t>& spirvBinary);
+		std::string CrossCompileToHLSL(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary);
 
 		void SerializeDirectX(ShaderUtils::ShaderStage::Type stage, const std::vector<byte>& directXData);
 		bool TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData);

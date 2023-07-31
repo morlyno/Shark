@@ -614,7 +614,7 @@ namespace Shark {
 
 		std::string hlslSource;
 		if (m_Language != ShaderUtils::ShaderLanguage::HLSL)
-			hlslSource = CrossCompileToHLSL(outputSPIRVDebug);
+			hlslSource = CrossCompileToHLSL(stage, outputSPIRVDebug);
 
 		if (std::string error = CompileHLSL(stage, hlslSource.size() ? hlslSource : preprocessedSource, outputBinary); error.size())
 		{
@@ -656,13 +656,14 @@ namespace Shark {
 		return {};
 	}
 
-	std::string DirectXShaderCompiler::CrossCompileToHLSL(const std::vector<uint32_t>& spirvBinary)
+	std::string DirectXShaderCompiler::CrossCompileToHLSL(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary)
 	{
 		spirv_cross::CompilerHLSL compilerHLSL(spirvBinary);
 		spirv_cross::CompilerHLSL::Options options;
 		options.shader_model = 40;
 		compilerHLSL.set_hlsl_options(options);
 
+		if (stage == ShaderUtils::ShaderStage::Vertex)
 		{
 			spirv_cross::Compiler compiler(spirvBinary);
 			spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();

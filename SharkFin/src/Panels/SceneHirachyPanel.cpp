@@ -476,10 +476,16 @@ namespace Shark {
 			if (ImGui::Button("Cube"))
 				comp.Mesh = MeshFactory::CreateCube();
 
-			if (ImGui::Button("Load From File"))
+			if (ImGui::Button("Load nano.fbx"))
 			{
 				AssimpImporter assimpImporter;
-				comp.Mesh = assimpImporter.TryLoad("Assets/Meshes/nano.fbx");
+				comp.Mesh = assimpImporter.TryLoad(Project::AbsolueCopy("Assets/Meshes/nano.fbx"));
+			}
+			
+			if (ImGui::Button("Load sponza"))
+			{
+				AssimpImporter assimpImporter;
+				comp.Mesh = assimpImporter.TryLoad(Project::AbsolueCopy("Assets/Meshes/Sponza/sponza.obj"));
 			}
 
 			if (comp.Mesh)
