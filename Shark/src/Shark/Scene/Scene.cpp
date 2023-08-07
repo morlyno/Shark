@@ -3,6 +3,7 @@
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Asset/ResourceManager.h"
+#include "Shark/Render/Renderer.h"
 #include "Shark/Render/SceneRenderer.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
@@ -352,7 +353,7 @@ namespace Shark {
 			if (entity.HasParent())
 				continue;
 
-			RenderEntity(renderer, entity, glm::mat4(1.0f));
+			RenderEntityHirachy(renderer, entity, glm::mat4(1.0f));
 		}
 
 		renderer->EndScene();
@@ -890,11 +891,20 @@ namespace Shark {
 
 	}
 
-	void Scene::RenderEntity(const Ref<SceneRenderer>& renderer, Entity entity, const glm::mat4& parentTransform)
+	void Scene::RenderEntityHirachy(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& parentTransform)
+	{
+		const glm::mat4 transform = parentTransform * entity.Transform().CalcTransform();
+
+		RenderEntity(renderer, entity, transform);
+
+		for (auto& childID : entity.Children())
+			RenderEntityHirachy(renderer, GetEntityByUUID(childID), transform);
+	}
+
+	void Scene::RenderEntity(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& transform)
 	{
 		SK_PROFILE_FUNCTION();
-
-		const glm::mat4 transform = parentTransform * entity.Transform().CalcTransform();
+		SK_PERF_FUNCTION();
 
 		if (entity.AllOf<SpriteRendererComponent>())
 		{
@@ -920,12 +930,23 @@ namespace Shark {
 		if (entity.AllOf<MeshRendererComponent>())
 		{
 			const auto& component = entity.GetComponent<MeshRendererComponent>();
-			if (component.Mesh)
-				renderer->SubmitMesh(transform, component.Mesh, (int)entity.GetHandle());
+			if (ResourceManager::IsValidAssetHandle(component.MeshHandle))
+			{
+				Ref<Mesh> mesh = ResourceManager::GetAsset<Mesh>(component.MeshHandle);
+
+#if SK_ENABLE_ASSERT
+				const auto& submesh = mesh->GetMeshSource()->GetSubmeshes()[component.SubmeshIndex];
+				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+				Ref<MaterialAsset> materialAsset = materialTable->HasMaterial(submesh.MaterialIndex) ?
+					                               materialTable->GetMaterial(submesh.MaterialIndex) :
+					                               mesh->GetMeshSource()->GetMaterialTable()->GetMaterial(submesh.MaterialIndex);
+				SK_CORE_ASSERT(!materialAsset->IsDirty());
+#endif
+
+				renderer->SubmitMesh(transform, mesh, component.SubmeshIndex, (int)entity.GetHandle());
+			}
 		}
 
-		for (auto& childID : entity.Children())
-			RenderEntity(renderer, GetEntityByUUID(childID), transform);
 	}
 
 	void Scene::OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity ent)

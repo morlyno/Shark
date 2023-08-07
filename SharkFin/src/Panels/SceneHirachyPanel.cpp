@@ -6,7 +6,7 @@
 
 #include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scene/Components.h"
-#include "Shark/Render/MeshFactory.h"
+#include "Shark/Render/Renderer.h"
 #include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
@@ -126,21 +126,6 @@ namespace Shark {
 			auto value = field->GetValue<T>();
 			if (UI::Control(fieldName, value))
 				field->SetValue(value);
-		}
-
-		static void DrawMeshNode(Mesh::Node& node)
-		{
-			if (ImGui::TreeNodeEx(node.Name.c_str()))
-			{
-				UI::BeginControls();
-				UI::Control("Transform", node.Transform);
-				UI::EndControls();
-
-				for (auto& child : node.Children)
-					DrawMeshNode(child);
-
-				ImGui::TreePop();
-			}
 		}
 
 	}
@@ -473,23 +458,78 @@ namespace Shark {
 
 		DrawComponet<MeshRendererComponent>(entity, "Mesh Renderer", [](MeshRendererComponent& comp, Entity entity)
 		{
-			if (ImGui::Button("Cube"))
-				comp.Mesh = MeshFactory::CreateCube();
 
-			if (ImGui::Button("Load nano.fbx"))
+			UI::BeginControlsGrid();
+			UI::ControlAsset("Mesh", comp.MeshHandle);
+
+			if (comp.MeshHandle == AssetHandle::Invalid)
 			{
-				AssimpImporter assimpImporter;
-				comp.Mesh = assimpImporter.TryLoad(Project::AbsolueCopy("Assets/Meshes/nano.fbx"));
-			}
-			
-			if (ImGui::Button("Load sponza"))
-			{
-				AssimpImporter assimpImporter;
-				comp.Mesh = assimpImporter.TryLoad(Project::AbsolueCopy("Assets/Meshes/Sponza/sponza.obj"));
+				UI::EndControls();
+				return;
 			}
 
-			if (comp.Mesh)
-				utils::DrawMeshNode(comp.Mesh->GetRootNode());
+			Ref<Mesh> mesh = ResourceManager::GetAsset<Mesh>(comp.MeshHandle);
+			Ref<MeshSource> meshSource = mesh->GetMeshSource();
+			const auto& submeshes = meshSource->GetSubmeshes();
+			const auto& submesh = submeshes[comp.SubmeshIndex];
+
+			{
+				UI::ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly, meshSource->GetSubmeshCount() == 1);
+				UI::Control("Submesh Index", comp.SubmeshIndex, 0.05f, 0, meshSource->GetSubmeshCount() - 1, nullptr, ImGuiSliderFlags_AlwaysClamp);
+			}
+
+			{
+				UI::ScopedFramedTextAlign align({ 0.5f, 0.5f });
+				UI::Property("Material Index", submesh.MaterialIndex);
+			}
+
+			UI::EndControls();
+
+			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+			if (materialTable->HasMaterial(submesh.MaterialIndex))
+			{
+				Ref<MaterialAsset> material = materialTable->GetMaterial(submesh.MaterialIndex);
+				if (UI::Header("Albedo"))
+				{
+					UI::BeginControlsGrid();
+
+					glm::vec3 color = material->GetAlbedoColor();
+					if (UI::ControlColor("Color", color))
+						material->SetAlbedoColor(color);
+
+					AssetHandle textureHandle = material->GetAlbedoTexture();
+					if (UI::ControlAsset("Texture", textureHandle))
+						material->SetAlbedoTexture(textureHandle);
+
+					bool use = material->UseAlbedo();
+					if (UI::Control("Enable", use))
+						material->SetUseAlbedo(use);
+
+					if (material->IsDirty())
+					{
+						Ref<Material> mat = material->GetMaterial();
+						mat->SetFloat3("u_PBRData.Albedo", material->GetAlbedoColor());
+						if (material->UseAlbedo())
+							mat->SetTexture("u_Albedo", ResourceManager::GetAsset<Texture2D>(material->GetAlbedoTexture()));
+						else
+							mat->SetTexture("u_Albedo", Renderer::GetWhiteTexture());
+
+						material->SetDirty(false);
+					}
+
+					UI::EndControls();
+					UI::PopHeader();
+				}
+			}
+			else
+			{
+				if (ImGui::Button("Add Material"))
+				{
+					Ref<MaterialAsset> material = Ref<MaterialAsset>::Create("Material", Material::Create(Renderer::GetShaderLib()->Get("DefaultMeshShader")));
+					materialTable->AddMaterial(submesh.MaterialIndex, material);
+				}
+			}
+
 		});
 
 		DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)

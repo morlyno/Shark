@@ -41,6 +41,102 @@ Assets:
   - Handle: 0x4e142bb5b0024afe
     Type: Texture
     FilePath: Textures/SimulateButton.sktex
+  - Handle: 0x373950dd853f91a3
+    Type: Texture
+    FilePath: Textures/body_dif.sktex
+  - Handle: 0x33a728bc19112c2a
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/background.png
+  - Handle: 0xd4f3cb76769fb735
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/chain_texture.png
+  - Handle: 0x90fad94fa8831ac8
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/gi_flag.png
+  - Handle: 0xab36c4501647c375
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/lion.png
+  - Handle: 0xe670a0d04ed4213f
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/spnza_bricks_a_diff.png
+  - Handle: 0xc718f310537a4ce9
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_arch_diff.png
+  - Handle: 0x35111cd3dbccccac
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_ceiling_a_diff.png
+  - Handle: 0x342ea22a7e3ad4f1
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_column_a_diff.png
+  - Handle: 0xd5fe5f1e2b282595
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_column_b_diff.png
+  - Handle: 0xb9111fd9419b62a3
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_column_c_diff.png
+  - Handle: 0xfc4cef914f3d34d5
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_curtain_blue_diff.png
+  - Handle: 0x467de3ef2629665
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_curtain_diff.png
+  - Handle: 0x4802b4b51c1f7ecf
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_curtain_green_diff.png
+  - Handle: 0xa04016ff2ab0d5eb
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_details_diff.png
+  - Handle: 0xa2b3b48dfb45b6f4
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_fabric_blue_diff.png
+  - Handle: 0x3112ccf0f1755873
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_fabric_diff.png
+  - Handle: 0x569908e1cfe9b97f
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_fabric_green_diff.png
+  - Handle: 0x59fb96f2ebe971af
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_flagpole_diff.png
+  - Handle: 0xde626421097934c6
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_floor_a_diff.png
+  - Handle: 0xa000dc7498bd19ef
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_roof_diff.png
+  - Handle: 0xa228b3a98fffab89
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/sponza_thorn_diff.png
+  - Handle: 0x904a449ff2ec2c22
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/vase_dif.png
+  - Handle: 0xf6a8229f0ade6929
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/vase_hanging.png
+  - Handle: 0xaca5aef502239cc4
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/vase_plant.png
+  - Handle: 0x6690d9ed39ac5a7f
+    Type: TextureSource
+    FilePath: MeshSources/Sponza/textures/vase_round.png
+  - Handle: 0x654be78f65640d59
+    Type: TextureSource
+    FilePath: MeshSources/nano_textured/arm_dif.png
+  - Handle: 0xa405da02c69685a3
+    Type: TextureSource
+    FilePath: MeshSources/nano_textured/body_dif.png
+  - Handle: 0xbedb90321a3e6f32
+    Type: TextureSource
+    FilePath: MeshSources/nano_textured/glass_dif.png
+  - Handle: 0xcf6395444e3ce811
+    Type: TextureSource
+    FilePath: MeshSources/nano_textured/hand_dif.png
+  - Handle: 0xff1c94b40b63c186
+    Type: TextureSource
+    FilePath: MeshSources/nano_textured/helmet_diff.png
+  - Handle: 0xbe7df15d508b7ba0
+    Type: TextureSource
+    FilePath: MeshSources/nano_textured/leg_dif.png
   - Handle: 0xbda6bc35459a3dcb
     Type: TextureSource
     FilePath: TextureSources/Checkboard.png
@@ -101,3 +197,30 @@ Assets:
   - Handle: 0x987488d63d817f29
     Type: Font
     FilePath: Fonts/Comic Sans/comicz.ttf
+  - Handle: 0x6fefc46126790c29
+    Type: MeshSource
+    FilePath: MeshSources/Sponza/sponza.obj
+  - Handle: 0x7295a92118886b17
+    Type: MeshSource
+    FilePath: MeshSources/nano.obj
+  - Handle: 0x13109418a8a6c4a6
+    Type: MeshSource
+    FilePath: MeshSources/nano_textured/nanosuit.obj
+  - Handle: 0xd94b635f38737d53
+    Type: MeshSource
+    FilePath: MeshSources/nanosuit.obj
+  - Handle: 0xdd3a5fdb6778b71a
+    Type: MeshSource
+    FilePath: MeshSources/suzanne.obj
+  - Handle: 0xb0eeed2d150a8740
+    Type: Mesh
+    FilePath: Meshes/nano.skmesh
+  - Handle: 0x49cfea789388db0e
+    Type: Mesh
+    FilePath: Meshes/nanosuit.skmesh
+  - Handle: 0xac8ec1cca4b8779c
+    Type: Mesh
+    FilePath: Meshes/sponza.skmesh
+  - Handle: 0x20fcc1cbc106895a
+    Type: Mesh
+    FilePath: Meshes/suzanne.skmesh

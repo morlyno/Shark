@@ -4,6 +4,7 @@
 #include "Shark/Render/Mesh.h"
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scripting/ScriptTypes.h"
+#include "Shark/Math/Math.h"
 
 #include <glm/glm.hpp>
 #include "glm/gtx/transform.hpp"
@@ -46,6 +47,11 @@ namespace Shark {
 			return glm::translate(glm::mat4(1), Translation) *
 				glm::toMat4(glm::quat(Rotation)) *
 				glm::scale(glm::mat4(1), Scale);
+		}
+
+		void SetTransform(const glm::mat4& transform)
+		{
+			Math::DecomposeTransform(transform, Translation, Rotation, Scale);
 		}
 
 		TransformComponent() = default;
@@ -95,7 +101,8 @@ namespace Shark {
 
 	struct MeshRendererComponent
 	{
-		Ref<Mesh> Mesh;
+		AssetHandle MeshHandle;
+		uint32_t SubmeshIndex;
 	};
 
 	struct CameraComponent

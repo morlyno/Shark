@@ -30,11 +30,11 @@ namespace Sandbox
 		protected override void OnUpdate(float ts)
 		{
 			m_AnimationTimer += ts * m_AnimationSpeed;
-			m_AnimationSpeed %= (float)Math.PI;
+			m_AnimationSpeed %= (float)System.Math.PI;
 
 			var translation = Transform.Translation;
-			translation.X = (float)Math.Sin(m_AnimationTimer) * m_XRadius;
-			translation.Y = (float)Math.Cos(m_AnimationTimer) * m_YRadius;
+			translation.X = (float)System.Math.Sin(m_AnimationTimer) * m_XRadius;
+			translation.Y = (float)System.Math.Cos(m_AnimationTimer) * m_YRadius;
 			Transform.Translation = translation + m_Offset;
 
 			var color = m_SpriteRenderer.Color;

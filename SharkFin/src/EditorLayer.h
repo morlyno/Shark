@@ -125,6 +125,9 @@ namespace Shark {
 
 		void UpdateWindowTitle();
 
+		void InstantiateMesh(Ref<Mesh> mesh);
+		void InstantiateMeshNode(Ref<Mesh> mesh, const MeshSource::Node& node, Entity parent);
+
 	private:
 		static constexpr std::string_view LogLevelStrings[] = { "Trace"sv, "Debug"sv, "Info"sv, "Warn"sv, "Error"sv, "Critical"sv/*, "Off"sv*/ };
 
@@ -280,7 +283,10 @@ namespace Shark {
 			{ AssetType::Texture, "Textures" },
 			{ AssetType::TextureSource, "TextureSources" },
 			{ AssetType::ScriptFile, "Scripts/Source" },
-			{ AssetType::Font, "Fonts" }
+			{ AssetType::Font, "Fonts" },
+			{ AssetType::MeshSource, "MeshSources" },
+			{ AssetType::Mesh, "Meshes" },
+			{ AssetType::Material, "Material" }
 		};
 
 		bool m_ShaderCompilerDisableOptimization = false;

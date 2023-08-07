@@ -3,14 +3,18 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Shader.h"
 #include "Shark/Render/Texture.h"
+#include "Shark/Render/ShaderReflection.h"
 
 namespace Shark {
 
-	// TODO(moro): Create Material with Reflection data provided from the Shader/ShaderCompiler
 	class Material : public RefCount
 	{
 	public:
 		virtual ~Material() = default;
+
+		virtual Ref<Shader> GetShader() const = 0;
+		virtual ShaderReflection::UpdateFrequencyType GetUpdateFrequency(const std::string& name) const = 0;
+		virtual void SetUpdateFrequency(const std::string& name, ShaderReflection::UpdateFrequencyType updateFrequency) = 0;
 
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture) = 0;
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index) = 0;
@@ -18,8 +22,8 @@ namespace Shark {
 		virtual void SetImage(const std::string& name, Ref<Image2D> image) = 0;
 		virtual void SetImage(const std::string& name, Ref<Image2D> image, uint32_t index) = 0;
 
-		virtual void SetSampler(const std::string& name, RenderID sampler) = 0;
-		virtual void SetSampler(const std::string& name, RenderID sampler, uint32_t index) = 0;
+		virtual void SetSampler(const std::string& name, Ref<SamplerWrapper> sampler) = 0;
+		virtual void SetSampler(const std::string& name, Ref<SamplerWrapper> sampler, uint32_t index) = 0;
 
 		virtual void SetFloat(const std::string& name, float val) = 0;
 		virtual void SetFloat2(const std::string& name, const glm::vec2& vec2) = 0;
@@ -62,6 +66,81 @@ namespace Shark {
 
 	public:
 		static Ref<Material> Create(Ref<Shader> shader);
+	};
+
+	class MaterialAsset : public Asset
+	{
+	public:
+		MaterialAsset() = default;
+		MaterialAsset(const std::string& name, Ref<Material> material)
+			: m_Name(name), m_Material(material)
+		{}
+
+		const std::string& GetName() const { return m_Name; }
+		Ref<Material> GetMaterial() const { return m_Material; }
+
+		bool IsDirty() const { return m_Dirty; }
+		void SetDirty(bool dirty) { m_Dirty = dirty; }
+
+		const glm::vec3& GetAlbedoColor() const { return m_AlbedoColor; }
+		AssetHandle GetAlbedoTexture() const { return m_AlbedoTexture; }
+		bool UseAlbedo() const { return m_UseAlbedo; }
+
+		void SetAlbedoColor(const glm::vec3& color) { m_AlbedoColor = color; m_Dirty = true; }
+		void SetAlbedoTexture(AssetHandle handle) { m_AlbedoTexture = handle; m_Dirty = true; }
+		void SetUseAlbedo(bool use) { m_UseAlbedo = use; m_Dirty = true; }
+
+	private:
+		std::string m_Name;
+		Ref<Material> m_Material;
+
+		bool m_Dirty = false;
+
+		glm::vec3 m_AlbedoColor = glm::vec3(1.0f);
+		AssetHandle m_AlbedoTexture;
+		bool m_UseAlbedo = true;
+
+		friend class MaterialSerializer;
+		friend class MeshSourceSerializer;
+	};
+
+	class MaterialTable : public RefCount
+	{
+	public:
+		using MaterialMap = std::map<uint32_t, Ref<MaterialAsset>>;
+
+	public:
+		MaterialTable() = default;
+		~MaterialTable() = default;
+
+		bool HasMaterial(uint32_t index) const
+		{
+			return m_MaterialAssets.find(index) != m_MaterialAssets.end();
+		}
+
+		Ref<MaterialAsset> GetMaterial(uint32_t index) const
+		{
+			SK_CORE_ASSERT(HasMaterial(index));
+			return m_MaterialAssets.at(index);
+		}
+
+		void AddMaterial(uint32_t index, Ref<MaterialAsset> materialAsset)
+		{
+			SK_CORE_ASSERT(!HasMaterial(index));
+			m_MaterialAssets[index] = materialAsset;
+		}
+
+		void RemoveMaterial(uint32_t index)
+		{
+			m_MaterialAssets.erase(index);
+		}
+
+		MaterialMap::iterator begin() { return m_MaterialAssets.begin(); }
+		MaterialMap::iterator end() { return m_MaterialAssets.end(); }
+
+	private:
+		MaterialMap m_MaterialAssets;
+
 	};
 
 }

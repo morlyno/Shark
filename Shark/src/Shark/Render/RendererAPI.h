@@ -47,6 +47,7 @@ namespace Shark {
 
 		virtual void RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline) = 0;
 		virtual void RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline) = 0;
+		virtual void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData) = 0;
 
 		virtual void GenerateMips(Ref<Image2D> image) = 0;
 		virtual void RT_GenerateMips(Ref<Image2D> image) = 0;

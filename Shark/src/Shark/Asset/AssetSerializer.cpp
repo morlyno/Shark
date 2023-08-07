@@ -8,6 +8,9 @@
 #include "Shark/Serialization/TextureSerializers.h"
 #include "Shark/Serialization/ScriptSerializers.h"
 #include "Shark/Serialization/Serializers.h"
+#include "Shark/Serialization/MeshSourceSerializer.h"
+#include "Shark/Serialization/MeshSerializer.h"
+#include "Shark/Serialization/MaterialSerializer.h"
 
 namespace Shark {
 
@@ -20,6 +23,9 @@ namespace Shark {
 		s_Serializers[AssetType::TextureSource] = Scope<TextureSourceSerializer>::Create();
 		s_Serializers[AssetType::ScriptFile] = Scope<ScriptFileSerializer>::Create();
 		s_Serializers[AssetType::Font] = Scope<FontSerializer>::Create();
+		s_Serializers[AssetType::MeshSource] = Scope<MeshSourceSerializer>::Create();
+		s_Serializers[AssetType::Mesh] = Scope<MeshSerializer>::Create();
+		s_Serializers[AssetType::Material] = Scope<MaterialSerializer>::Create();
 	}
 
 	void AssetSerializer::ReleaseSerializers()

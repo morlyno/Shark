@@ -80,6 +80,8 @@ namespace Shark {
 		std::string DebugName;
 	};
 
+	class SamplerWrapper;
+
 	class Texture2D : public Asset
 	{
 	public:
@@ -99,7 +101,7 @@ namespace Shark {
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) = 0;
 
 		virtual RenderID GetViewID() const = 0;
-		virtual RenderID GetSamplerID() const = 0;
+		virtual Ref<SamplerWrapper> GetSampler() const = 0;
 		virtual Ref<Image2D> GetImage() const = 0;
 		virtual const TextureSpecification& GetSpecification() const = 0;
 		virtual TextureSpecification& GetSpecificationMutable() = 0;
@@ -117,6 +119,13 @@ namespace Shark {
 
 		static Ref<Texture2D> LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& samplerSpecification = {});
 	};
+
+	class SamplerWrapper : public RefCount
+	{
+	public:
+		virtual RenderID GetSamplerID() const = 0;
+	};
+
 
 	class Texture2DArray : public RefCount
 	{

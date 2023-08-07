@@ -124,8 +124,12 @@ namespace Shark {
 		void Internal_ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistroy);
 		void Internal_MoveForward();
 		void Internal_MoveBackward();
+		void Internal_OnAssetRemoved(Ref<ContentBrowserItem> item);
 		void Internal_OnItemDeleted(Ref<ContentBrowserItem> item);
 		void Internal_OnDirectoryDeleted(Ref<DirectoryInfo> directory);
+
+		void OnAssetRemoved(Ref<ContentBrowserItem> item);
+		void OnItemDeleted(Ref<ContentBrowserItem> item);
 
 		void ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistroy = true);
 		void MoveForward();

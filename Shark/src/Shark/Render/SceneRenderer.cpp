@@ -36,6 +36,8 @@ namespace Shark {
 		m_CommandBuffer = RenderCommandBuffer::Create();
 		m_Timer = GPUTimer::Create("SceneRenderer");
 
+		m_CBSceneData = ConstantBuffer::Create(sizeof(CBCamera), 0);
+
 		// Geometry
 		{
 			FrameBufferSpecification fbspecs;
@@ -98,7 +100,10 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
+		m_MeshTransformCBIndex = 0;
+
 		m_ViewProjection = viewProj;
+		m_CBSceneData->UploadData(Buffer::FromValue(viewProj));
 
 		m_CommandBuffer->Begin();
 		m_CommandBuffer->BeginTimeQuery(m_Timer);
@@ -146,43 +151,22 @@ namespace Shark {
 		m_Renderer2D->DrawString(text, font, transform, kerning, lineSpacing, color, id);
 	}
 
-	void SceneRenderer::RenderMeshNode(const glm::mat4& parentTransform, Ref<Mesh> mesh, const Mesh::Node& node, int id)
+	void SceneRenderer::SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id)
 	{
-		glm::mat4 transform = parentTransform * node.Transform;
+		SK_CORE_VERIFY(mesh);
+		
+		SK_CORE_VERIFY(m_MeshTransformCBIndex <= m_MeshTransformCBs.size());
+		if (m_MeshTransformCBs.size() == m_MeshTransformCBIndex)
+			m_MeshTransformCBs.emplace_back(ConstantBuffer::Create(sizeof(CBMeshData), 1));
 
-		if (node.HasMesh)
-		{
-			const auto& submeshes = mesh->GetSubmeshes();
-			for (uint32_t meshIndex : node.MeshIndices)
-			{
-				const auto& submesh = submeshes[meshIndex];
+		CBMeshData meshData;
+		meshData.Transform = transform;
+		meshData.ID = id;
 
-				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-				if (materialTable->HasMaterial(submesh.MaterialIndex))
-				{
-					Ref<MeshMaterial> meshMaterial = materialTable->GetMeshMaterial(submesh.MaterialIndex);
-					Ref<Material> material = meshMaterial->GetMaterial();
-					//Ref<Material> material = materialTable->GetMaterial(submesh.MaterialIndex);
-					material->SetMat4("u_MeshData.Transform", transform);
-					material->SetInt("u_MeshData.ID", id);
-					material->SetMat4("u_SceneData.ViewProjection", m_ViewProjection);
-					material->SetTexture("u_Albedo", meshMaterial->GetAlbedo());
-				}
+		Ref<ConstantBuffer> cbMeshData = m_MeshTransformCBs[m_MeshTransformCBIndex++];
+		cbMeshData->UploadData(Buffer::FromValue(meshData));
 
-				Renderer::RenderSubmesh(m_CommandBuffer, mesh, meshIndex, m_MeshPipeline);
-			}
-		}
-
-		for (const auto& child : node.Children)
-			RenderMeshNode(transform, mesh, child, id);
-	}
-
-	void SceneRenderer::SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, int id)
-	{
-		if (!mesh)
-			return;
-
-		RenderMeshNode(transform, mesh, mesh->GetRootNode(), id);
+		Renderer::RenderSubmesh(m_CommandBuffer, m_MeshPipeline, mesh, submeshIndex, m_CBSceneData, cbMeshData);
 	}
 
 	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, bool isTransparent, int id)
@@ -242,6 +226,7 @@ namespace Shark {
 			{
 				UI::BeginControlsGrid();
 				const auto& stats = m_Renderer2D->GetStatistics();
+				UI::PushFramedTextAlign({ 0.5f, 0.5f });
 				UI::Property("DrawCalls", stats.DrawCalls);
 				UI::Property("Quads", stats.QuadCount);
 				UI::Property("Cirlces", stats.CircleCount);
@@ -250,6 +235,9 @@ namespace Shark {
 				UI::Property("Vertices", stats.VertexCount);
 				UI::Property("Indices", stats.IndexCount);
 				UI::Property("Textures", stats.TextureCount);
+				UI::Property("Mesh CBs", m_MeshTransformCBs.size());
+				UI::Property("  In Use", m_MeshTransformCBIndex);
+				UI::PopFramedTextAlign();
 				UI::EndControls();
 
 				ImGui::TreePop();

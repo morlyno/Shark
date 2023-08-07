@@ -164,13 +164,15 @@ return metadata.IsMemoryAsset;
 
 	void ResourceManager::RemoveAsset(AssetHandle handle)
 	{
-		const bool isMemoryAsset = GetMetaDataInternal(handle).IsMemoryAsset;
+		AssetMetaData metadata = GetMetaDataInternal(handle);
 
 		s_Data->LoadedAssets.erase(handle);
 		s_Data->ImportedAssets.erase(handle);
 
-		if (!isMemoryAsset)
+		if (!metadata.IsMemoryAsset)
 			WriteImportedAssetsToDisc();
+
+		SK_CORE_INFO_TAG("ResourceManager", "Asset Removed => Handle: 0x{:x}, Type: {}, FilePath: {}", handle, ToString(metadata.Type), metadata.FilePath);
 	}
 
 	bool ResourceManager::ImportMemoryAsset(AssetHandle handle, const std::string& directoryPath, const std::string& fileName)

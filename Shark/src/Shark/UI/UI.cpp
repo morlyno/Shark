@@ -386,7 +386,7 @@ namespace Shark::UI {
 	}
 
 	template<typename T>
-	bool ControlScalar(std::string_view label, ImGuiDataType dataType, T& val, float speed, T min, T max, const char* fmt)
+	bool ControlScalar(std::string_view label, ImGuiDataType dataType, T& val, float speed, T min, T max, const char* fmt, ImGuiSliderFlags flags = ImGuiSliderFlags_None)
 	{
 		if (!ControlBeginHelper(label))
 			return false;
@@ -396,7 +396,7 @@ namespace Shark::UI {
 
 		ImGui::TableSetColumnIndex(1);
 		ImGui::SetNextItemWidth(-1.0f);
-		const bool changed = ImGui::DragScalar("##control", dataType, &val, speed, &min, &max, fmt);
+		const bool changed = ImGui::DragScalar("##control", dataType, &val, speed, &min, &max, fmt, flags);
 
 		ControlEndHelper();
 		return changed;
@@ -459,9 +459,9 @@ namespace Shark::UI {
 		return ControlScalar(label, ImGuiDataType_U16, val, speed, min, max, fmt);
 	}
 
-	bool Control(std::string_view label, uint32_t& val, float speed, uint32_t min, uint32_t max, const char* fmt)
+	bool Control(std::string_view label, uint32_t& val, float speed, uint32_t min, uint32_t max, const char* fmt, ImGuiSliderFlags flags)
 	{
-		return ControlScalar(label, ImGuiDataType_U32, val, speed, min, max, fmt);
+		return ControlScalar(label, ImGuiDataType_U32, val, speed, min, max, fmt, flags);
 	}
 
 	bool Control(std::string_view label, uint64_t& val, float speed, uint64_t min, uint64_t max, const char* fmt)
@@ -542,6 +542,22 @@ namespace Shark::UI {
 		ImGui::TableSetColumnIndex(1);
 		ImGui::SetNextItemWidth(-1.0f);
 		changed |= ImGui::DragFloat4("##control3", glm::value_ptr(matrix[3]), speed, min, max, fmt);
+
+		ControlEndHelper();
+		return changed;
+	}
+
+	bool ControlColor(std::string_view label, glm::vec3& color)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		const bool changed = ImGui::ColorEdit3("##ColorEdit3", glm::value_ptr(color));
 
 		ControlEndHelper();
 		return changed;
@@ -867,12 +883,12 @@ namespace Shark::UI {
 		ControlEndHelper();
 	}
 
-	void Property(std::string_view label, const char* text, TextFlags flags)
+	void Property(std::string_view label, const char* text)
 	{
-		Property(label, std::string_view(text), flags);
+		Property(label, std::string_view(text));
 	}
 
-	void Property(std::string_view label, std::string_view text, TextFlags flags)
+	void Property(std::string_view label, std::string_view text)
 	{
 		if (!ControlBeginHelper(label))
 			return;
@@ -882,22 +898,19 @@ namespace Shark::UI {
 		Text(label);
 
 		ImGui::TableSetColumnIndex(1);
-		if (flags == TextFlag::None)
-			TextFramed(text);
-		else
-			Text(text, flags);
+		TextFramed(text);
 
 		ControlEndHelper();
 	}
 
-	void Property(std::string_view label, const std::string& text, TextFlags flags)
+	void Property(std::string_view label, const std::string& text)
 	{
-		Property(label, std::string_view(text), flags);
+		Property(label, std::string_view(text));
 	}
 
-	void Property(std::string_view label, const std::filesystem::path& path, TextFlags flags)
+	void Property(std::string_view label, const std::filesystem::path& path)
 	{
-		Property(label, path.string(), flags);
+		Property(label, path.string());
 	}
 
 	void Property(std::string_view label, const UUID& uuid)
@@ -951,6 +964,11 @@ namespace Shark::UI {
 	}
 
 	void Property(std::string_view label, uint32_t value)
+	{
+		Property(label, fmt::to_string(value));
+	}
+
+	void Property(std::string_view label, uint64_t value)
 	{
 		Property(label, fmt::to_string(value));
 	}
@@ -1081,7 +1099,7 @@ namespace Shark::UI {
 		}
 #endif
 	}
-		
+
 	bool Search(ImGuiID id, char* buffer, int bufferSize)
 	{
 		ScopedID scopedID(id);

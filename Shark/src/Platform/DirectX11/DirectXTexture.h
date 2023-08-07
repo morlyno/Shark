@@ -7,6 +7,18 @@
 
 namespace Shark {
 
+	class DirectXSamplerWrapper : public SamplerWrapper
+	{
+	public:
+		virtual RenderID GetSamplerID() const override { return m_Sampler; }
+
+	private:
+		ID3D11SamplerState* m_Sampler;
+
+		friend class DirectXTexture2D;
+		friend class DirectXRenderer;
+	};
+
 	class DirectXTexture2D : public Texture2D
 	{
 	public:
@@ -14,6 +26,7 @@ namespace Shark {
 		DirectXTexture2D(const TextureSpecification& specification, Buffer imageData);
 		DirectXTexture2D(const TextureSpecification& specification, Ref<TextureSource> textureSource);
 		DirectXTexture2D(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage = true);
+		DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		virtual ~DirectXTexture2D();
 
 		virtual void Invalidate() override;
@@ -30,7 +43,7 @@ namespace Shark {
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) override;
 
 		virtual RenderID GetViewID() const override { return m_Image->GetViewID(); }
-		virtual RenderID GetSamplerID() const override { return m_Sampler; }
+		virtual Ref<SamplerWrapper> GetSampler() const override { return m_SamplerWrapper; }
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
 		virtual const TextureSpecification& GetSpecification() const override { return m_Specification; }
 		virtual TextureSpecification& GetSpecificationMutable() override { return m_Specification; }
@@ -49,7 +62,8 @@ namespace Shark {
 		bool m_ImageDataOwned = false;
 
 		Ref<DirectXImage2D> m_Image;
-		ID3D11SamplerState* m_Sampler = nullptr;;
+		ID3D11SamplerState* m_Sampler = nullptr;
+		Ref<DirectXSamplerWrapper> m_SamplerWrapper = Ref<DirectXSamplerWrapper>::Create();
 
 		friend class DirectXRenderer;
 	};

@@ -18,14 +18,18 @@ namespace Shark {
 		DirectXMaterial(Ref<Shader> shader);
 		virtual ~DirectXMaterial();
 
+		virtual Ref<Shader> GetShader() const override { return m_Shader; }
+		virtual ShaderReflection::UpdateFrequencyType GetUpdateFrequency(const std::string& name) const override;
+		virtual void SetUpdateFrequency(const std::string& name, ShaderReflection::UpdateFrequencyType updateFrequency) override;
+
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture) override { SetResource(name, texture, nullptr, nullptr); }
 		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index) override { SetResource(name, index, texture, nullptr, nullptr); }
 
 		virtual void SetImage(const std::string& name, Ref<Image2D> image) override { SetResource(name, nullptr, image, nullptr); }
 		virtual void SetImage(const std::string& name, Ref<Image2D> image, uint32_t index) override { SetResource(name, index, nullptr, image, nullptr); }
 
-		virtual void SetSampler(const std::string& name, RenderID sampler) override { SetResource(name, nullptr, nullptr, sampler); }
-		virtual void SetSampler(const std::string& name, RenderID sampler, uint32_t index) override { SetResource(name, index, nullptr, nullptr, sampler); }
+		virtual void SetSampler(const std::string& name, Ref<SamplerWrapper> sampler) override { SetResource(name, nullptr, nullptr, sampler); }
+		virtual void SetSampler(const std::string& name, Ref<SamplerWrapper> sampler, uint32_t index) override { SetResource(name, index, nullptr, nullptr, sampler); }
 
 		virtual void SetFloat(const std::string& name, float val) override { SetBytes(name, Buffer::FromValue(val)); }
 		virtual void SetFloat2(const std::string& name, const glm::vec2& val) override { SetBytes(name, Buffer::FromValue(val)); }
@@ -67,16 +71,17 @@ namespace Shark {
 		virtual const glm::mat4& GetMat4(const std::string& name) const override { return GetBytes(name).Value<glm::mat4>(); }
 
 	private:
-		void SetResource(const std::string& name, Ref<Texture2D> texture, Ref<Image2D> image, RenderID sampler);
-		void SetResource(const std::string& name, uint32_t index, Ref<Texture2D> texture, Ref<Image2D> image, RenderID sampler);
+		void SetResource(const std::string& name, Ref<Texture2D> texture, Ref<Image2D> image, Ref<SamplerWrapper> sampler);
+		void SetResource(const std::string& name, uint32_t index, Ref<Texture2D> texture, Ref<Image2D> image, Ref<SamplerWrapper> sampler);
 
 		void SetBytes(const std::string& name, Buffer data);
 		Buffer GetBytes(const std::string& name) const;
 
 	private:
 		bool HasResourceName(const std::string& name) const { return m_Resources.find(name) != m_Resources.end(); }
+		bool HasBuffer(const std::string& name) const { return m_ConstantBuffers.find(name) != m_ConstantBuffers.end(); }
 
-		void RT_UploadBuffers();
+		void RT_UpdateDirtyBuffers();
 
 	private:
 		void Initialize();
@@ -86,9 +91,13 @@ namespace Shark {
 
 		struct ConstantBufferData
 		{
+			uint32_t Size = 0;
+			uint32_t Binding = 0;
+			ShaderReflection::UpdateFrequencyType UpdateFrequency = ShaderReflection::UpdateFrequencyType::None;
 			Ref<DirectXConstantBuffer> Buffer;
 			ScopedBuffer UploadBuffer;
 			ShaderReflection::ShaderStage Stage = ShaderReflection::ShaderStage::None;
+			bool Dirty = false;
 		};
 
 		struct CBMember
@@ -96,6 +105,7 @@ namespace Shark {
 			uint32_t Offset = 0;
 			uint32_t Size = 0;
 			Buffer UploadBufferRef;
+			ConstantBufferData* Parent = nullptr;
 		};
 
 		std::unordered_map<std::string, ConstantBufferData> m_ConstantBuffers;
@@ -109,7 +119,7 @@ namespace Shark {
 
 			Ref<DirectXTexture2D> Texture;
 			Ref<DirectXImage2D> Image;
-			ID3D11SamplerState* Sampler = nullptr;
+			Ref<DirectXSamplerWrapper> Sampler;
 		};
 
 		std::unordered_map<std::string, Resource> m_Resources;

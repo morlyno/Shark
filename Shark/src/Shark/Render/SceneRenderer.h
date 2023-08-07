@@ -35,7 +35,7 @@ namespace Shark {
 
 		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
 
-		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, int id);
+		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id);
 
 		void Resize(uint32_t width, uint32_t height);
 
@@ -49,17 +49,28 @@ namespace Shark {
 		const Renderer2D::Statistics& GetRenderer2DStats() const { return m_Renderer2D->GetStatistics(); }
 
 	private:
-		void RenderMeshNode(const glm::mat4& parentTransform, Ref<Mesh> mesh, const Mesh::Node& node, int id);
-
-	private:
 		struct CBCamera
 		{
 			glm::mat4 ViewProj;
 		};
 
+		struct CBMeshData
+		{
+			glm::mat4 Transform;
+			int ID;
+			int padding1;
+			int padding2;
+			int padding3;
+		};
+
 	private:
 		Ref<Scene> m_Scene;
 		std::string m_DebugName;
+
+		Ref<ConstantBuffer> m_CBSceneData;
+
+		uint32_t m_MeshTransformCBIndex = 0;
+		std::vector<Ref<ConstantBuffer>> m_MeshTransformCBs;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;

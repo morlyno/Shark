@@ -73,6 +73,8 @@ namespace Shark {
 	static void WatchResult(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
 	{
 		WatchData* watchData = (WatchData*)lpOverlapped;
+		if (watchData->Stop)
+			return;
 
 		if (dwErrorCode != ERROR_SUCCESS)
 		{

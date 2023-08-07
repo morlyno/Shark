@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Shader.h"
+#include "Shark/Render/ShaderReflection.h"
 
 #include "Platform/DirectX11/ShaderUtils.h"
 
@@ -50,15 +51,22 @@ namespace Shark {
 		bool CompileOrLoadBinary(ShaderUtils::ShaderStage::Type stage, ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile);
 
 		std::string Compile(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& outputBinary, std::vector<uint32_t>& outputSPIRVDebug);
+		std::string CompileFromSPIRV(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary, std::vector<byte>& outputBinary);
 		std::string CompileHLSL(ShaderUtils::ShaderStage::Type stage, const std::string& hlslSourceCode, std::vector<byte>& binary) const;
 		std::string CrossCompileToHLSL(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary);
 
 		void SerializeDirectX(ShaderUtils::ShaderStage::Type stage, const std::vector<byte>& directXData);
-		bool TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData);
+		void TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData);
+		void SerializeSPIRV(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvData);
+		void TryLoadSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVData);
+
+		void TryLoadDirectXAndSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& outputDirectXData, std::vector<uint32_t>& outputSPIRVData);
+
 		void SerializeReflectionData();
 		bool ReadReflectionData();
 
-		void ReflectShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>> spirvData);
+		void ReflectAllShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>>& spirvData);
+		void ReflectShaderStage(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary);
 
 	private:
 		ShaderUtils::ShaderLanguage m_Language;

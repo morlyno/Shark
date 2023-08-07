@@ -130,7 +130,8 @@ namespace Shark {
 		void SetupBox2D();
 		void OnPhyicsStep(TimeStep fixedTimeStep);
 
-		void RenderEntity(const Ref<SceneRenderer>& renderer, Entity entity, const glm::mat4& parentTransform);
+		void RenderEntityHirachy(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& parentTransform);
+		void RenderEntity(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& transform);
 
 		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity ent);
 		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity ent);

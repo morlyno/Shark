@@ -53,6 +53,7 @@ namespace Shark {
 
 		virtual void RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline) override;
 		virtual void RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline) override;
+		virtual void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData) override;
 
 		virtual void GenerateMips(Ref<Image2D> image) override;
 		virtual void RT_GenerateMips(Ref<Image2D> image) override;
@@ -111,7 +112,7 @@ namespace Shark {
 		std::unordered_set<DirectXRenderCommandBuffer*> m_CommandBuffers;
 
 		Ref<ShaderLibrary> m_ShaderLib;
-		Ref<Texture2D> m_WhiteTexture;
+		Ref<DirectXTexture2D> m_WhiteTexture;
 
 		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;
 		Ref<DirectXIndexBuffer> m_QuadIndexBuffer;

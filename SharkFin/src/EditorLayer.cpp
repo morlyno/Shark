@@ -36,6 +36,9 @@
 
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
+#include "Shark/Serialization/AssimpImporter.h"
+#include "Shark/Serialization/MeshSerializer.h"
+#include "Shark/Serialization/MeshSourceSerializer.h"
 
 #define SCENE_HIRACHY_ID "SceneHirachyPanel"
 #define CONTENT_BROWSER_ID "ContentBrowserPanel"
@@ -48,6 +51,8 @@
 #define SETTINGS_PANEL_ID "SettingsPanel"
 
 namespace Shark {
+
+	extern MeshSourceSerializerSettings g_MeshSourceSerializerSettings;
 
 	static bool s_ShowDemoWindow = false;
 
@@ -110,6 +115,7 @@ namespace Shark {
 
 		//Renderer::GetShaderLib()->Load("Resources/Shaders/TypeTest.hlsl", true, true);
 		//Renderer::GetShaderLib()->Load("Resources/Shaders/ReflectionTest.glsl", true, true);
+
 	}
 
 	void EditorLayer::OnDetach()
@@ -351,6 +357,8 @@ namespace Shark {
 
 	bool EditorLayer::OnWindowDropEvent(WindowDropEvent& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		for (const auto& path : event.GetPaths())
 		{
 			if (!std::filesystem::is_regular_file(path))
@@ -379,6 +387,8 @@ namespace Shark {
 
 	void EditorLayer::OnFileEvents(const std::vector<FileChangedData>& fileEvents)
 	{
+		SK_PROFILE_FUNCTION();
+
 		ResourceManager::OnFileEvents(fileEvents);
 		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileEvents(fileEvents);
 	}
@@ -470,6 +480,27 @@ namespace Shark {
 		UI_ImportAsset();
 		UI_Stuff();
 
+		{
+			static AssetHandle meshSourceHandle = AssetHandle::Invalid;
+			static AssetHandle meshHandle = AssetHandle::Invalid;
+			bool changed = false;
+			ImGui::Begin("debug");
+			UI::BeginControls();
+			changed |= UI::Control("GenerateMips", g_MeshSourceSerializerSettings.GenerateMips);
+			changed |= UI::Control("Anisotropy", g_MeshSourceSerializerSettings.Anisotropy);
+			changed |= UI::Control("MaxAnisotropy", g_MeshSourceSerializerSettings.MaxAnisotropy);
+			UI::ControlAsset("MeshSource", meshSourceHandle);
+			UI::ControlAsset("Mesh", meshHandle);
+			UI::EndControls();
+			ImGui::End();
+
+			if (changed)
+			{
+				ResourceManager::ReloadAsset(meshSourceHandle);
+				ResourceManager::ReloadAsset(meshHandle);
+			}
+		}
+
 		m_PanelManager->OnImGuiRender();
 		
 		Theme::DrawThemeEditor(m_ShowThemeEditor);
@@ -554,7 +585,26 @@ namespace Shark {
 
 				ImGui::Separator();
 
-				ImGui::MenuItem("Import Asset");
+				if (ImGui::MenuItem("Import Asset In Place"))
+				{
+					auto files = PlatformUtils::OpenFileDialogMuliSelect(L"", 1, Project::GetAssetsPath(), true);
+					for (const auto& file : files)
+					{
+						if (ResourceManager::IsFileImported(file))
+							continue;
+
+						AssetType assetType = ResourceManager::GetAssetTypeFormFilePath(file);
+						if (assetType == AssetType::MeshSource)
+						{
+							AssimpImporter importer;
+							importer.Import(file);
+							continue;
+						}
+
+						ResourceManager::ImportAsset(file);
+					}
+				}
+					
 
 				ImGui::Separator();
 
@@ -917,10 +967,10 @@ namespace Shark {
 					AssetHandle handle = *(AssetHandle*)payload->Data;
 					if (ResourceManager::IsValidAssetHandle(handle))
 					{
-						const AssetMetaData& metaData = ResourceManager::GetMetaData(handle);
-						if (metaData.IsValid())
+						const AssetMetaData& metadata = ResourceManager::GetMetaData(handle);
+						if (metadata.IsValid())
 						{
-							switch (metaData.Type)
+							switch (metadata.Type)
 							{
 								case AssetType::Scene:
 								{
@@ -937,13 +987,19 @@ namespace Shark {
 								}
 								case AssetType::TextureSource:
 								{
-									const auto& metadata = ResourceManager::GetMetaData(handle);
 									m_TextureAssetCreateData.Clear();
 									auto sourcePath = ResourceManager::GetFileSystemPath(metadata);
 									m_TextureAssetCreateData.TextureSourcePath = sourcePath.string();
 									m_TextureAssetCreateData.TextureFileName = sourcePath.stem().string();
 									m_TextureAssetCreateData.OpenPopup = true;
 									m_TextureAssetCreateData.CreateEntityAfterCreation = true;
+									break;
+								}
+								case AssetType::Mesh:
+								{
+									Ref<Mesh> mesh = ResourceManager::GetAsset<Mesh>(metadata.Handle);
+									if (mesh)
+										InstantiateMesh(mesh);
 									break;
 								}
 							}
@@ -1187,6 +1243,8 @@ namespace Shark {
 
 	void EditorLayer::UI_ProfilerStats()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!ImGui::CollapsingHeader("Times"))
 			return;
 
@@ -1454,6 +1512,8 @@ namespace Shark {
 
 	void EditorLayer::UI_DebugScripts()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_ShowDebugScripts)
 			return;
 
@@ -1473,6 +1533,8 @@ namespace Shark {
 
 	void EditorLayer::UI_LogSettings()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_ShowLogSettings)
 			return;
 
@@ -1495,6 +1557,8 @@ namespace Shark {
 
 	void EditorLayer::UI_Statistics()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_ShowStatistics)
 			return;
 
@@ -1518,32 +1582,44 @@ namespace Shark {
 						std::string Descriptor;
 						bool IsFile = false;
 						std::string Size;
+						uint64_t ByteSize;
+						bool operator>(const Entry& rhs) const { return ByteSize > rhs.ByteSize; }
 					};
-					std::map<uint64_t, Entry, std::greater<>> entries;
 
-					for (const auto& [desc, size] : Allocator::GetAllocationStatsMap())
+					std::vector<Entry> entries;
+
 					{
-						if (!String::Contains(desc, SearchBuffer, false))
-							continue;
-
-						auto& entry = entries[size];
-						entry.Size = Utils::BytesToString(size);
-
-						std::string str = desc;
-						if (str.find("class") != std::string::npos)
-							String::RemovePrefix(str, 6);
-
-						size_t i = str.find_last_of("\\/");
-						if (i != std::string::npos)
+						SK_PROFILE_SCOPED("Add Entries");
+						for (const auto& [desc, size] : Allocator::GetAllocationStatsMap())
 						{
-							str = str.substr(i + 1);
-							entry.IsFile = true;
-						}
+							if (!String::Contains(desc, SearchBuffer, false))
+								continue;
 
-						entry.Descriptor = str;
+							auto& entry = entries.emplace_back();
+							entry.Size = Utils::BytesToString(size);
+							entry.ByteSize = size;
+
+							std::string str = desc;
+							if (str.find("class") != std::string::npos)
+								String::RemovePrefix(str, 6);
+
+							size_t i = str.find_last_of("\\/");
+							if (i != std::string::npos)
+							{
+								str = str.substr(i + 1);
+								entry.IsFile = true;
+							}
+
+							entry.Descriptor = str;
+						}
 					}
 
-					for (const auto& [size, entry] : entries)
+					{
+						SK_PROFILE_SCOPED("Sort Entries");
+						std::sort(entries.begin(), entries.end(), std::greater{});
+					}
+
+					for (const auto& entry : entries)
 					{
 						UI::ScopedColorConditional color(ImGuiCol_Text, ImVec4(0.2f, 0.3f, 0.9f, 1.0f), entry.IsFile);
 						ImGui::Text("%s %s", entry.Descriptor.c_str(), entry.Size.c_str());
@@ -1560,6 +1636,8 @@ namespace Shark {
 
 	void EditorLayer::UI_OpenProjectModal()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_OpenProjectModal.Show)
 			return;
 
@@ -1608,6 +1686,8 @@ namespace Shark {
 
 	void EditorLayer::UI_ImportAsset()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_ImportAssetData.Show)
 			return;
 
@@ -1723,6 +1803,8 @@ namespace Shark {
 
 	void EditorLayer::UI_Stuff()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_ShowStuffPanel)
 			return;
 
@@ -1804,8 +1886,6 @@ namespace Shark {
 					UI::PropertyColor("Color", m_HoveredColor);
 				}
 
-
-
 				UI::EndControls();
 			}
 		});
@@ -1813,15 +1893,25 @@ namespace Shark {
 
 	void EditorLayer::OpenAssetEditor(AssetHandle assetHandle)
 	{
-		if (!ResourceManager::IsValidAssetHandle(assetHandle))
+		const AssetMetaData& metadata = ResourceManager::GetMetaData(assetHandle);
+		if (!metadata.IsValid())
 			return;
 
-		auto panel = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID);
-		panel->AddEditor<TextureEditorPanel>(assetHandle, "Textur Editor", true, ResourceManager::GetAsset<Texture2D>(assetHandle));
+		Ref<AssetEditorPanel> assetEditor = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID);
+
+		switch (metadata.Type)
+		{
+			case AssetType::Texture:
+				assetEditor->AddEditor<TextureEditorPanel>(assetHandle, "Textur Editor", true, ResourceManager::GetAsset<Texture2D>(assetHandle));
+				break;
+		}
+
 	}
 
 	void EditorLayer::DebugRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_ShowColliders)
 		{
 			//m_DebugRenderer->SetRenderTarget(m_SceneRenderer->GetExternalCompositFrameBuffer());
@@ -1879,15 +1969,11 @@ namespace Shark {
 
 	Entity EditorLayer::CreateEntity(const std::string& name)
 	{
-		SK_PROFILE_FUNCTION();
-
 		return m_ActiveScene->CreateEntity(name);
 	}
 
 	void EditorLayer::DeleteEntity(Entity entity)
 	{
-		SK_PROFILE_FUNCTION();
-
 		if (entity.GetUUID() == m_ActiveScene->GetActiveCameraUUID())
 			m_ActiveScene->SetActiveCamera(UUID());
 
@@ -1897,8 +1983,6 @@ namespace Shark {
 
 	void EditorLayer::SelectEntity(Entity entity)
 	{
-		SK_PROFILE_FUNCTION();
-
 		m_SelectetEntity = entity;
 		m_PanelManager->GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID)->SetSelectedEntity(entity);
 	}
@@ -2153,6 +2237,8 @@ namespace Shark {
 
 	void EditorLayer::SaveActiveProject(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(Project::GetActive());
 		ProjectSerializer serializer(Project::GetActive());
 		serializer.Serialize(filePath);
@@ -2238,6 +2324,52 @@ namespace Shark {
 
 		std::string title = fmt::format("{} ({}) - SharkFin - {} {} ({}) - {}", sceneFilePath, sceneName, PlatformUtils::GetPlatform(), PlatformUtils::GetArchitecture(), PlatformUtils::GetConfiguration(), ToStringView(Renderer::GetAPI()));
 		Application::Get().GetWindow().SetTitle(title);
+	}
+
+	void EditorLayer::InstantiateMesh(Ref<Mesh> mesh)
+	{
+		SK_PROFILE_FUNCTION();
+
+		Ref<MeshSource> source = mesh->GetMeshSource();
+		InstantiateMeshNode(mesh, source->GetRootNode(), Entity{});
+	}
+
+	void EditorLayer::InstantiateMeshNode(Ref<Mesh> mesh, const MeshSource::Node& node, Entity parent)
+	{
+		SK_PROFILE_FUNCTION();
+
+		Ref<MeshSource> source = mesh->GetMeshSource();
+
+		if (node.MeshIndices.size() > 1)
+		{
+			Entity dummyParent = m_ActiveScene->CreateChildEntity(parent, fmt::format("{} (Split Node)", node.Name));
+			dummyParent.Transform().SetTransform(node.Transform);
+
+			for (uint32_t meshIndex = 0; meshIndex < node.MeshIndices.size(); meshIndex++)
+			{
+				Entity entity = m_ActiveScene->CreateChildEntity(dummyParent, fmt::format("{}_{}", node.Name, meshIndex));
+				auto& meshComp = entity.AddComponent<MeshRendererComponent>();
+				meshComp.MeshHandle = mesh->Handle;
+				meshComp.SubmeshIndex = meshIndex;
+			}
+
+			for (const auto& childNode : node.Children)
+				InstantiateMeshNode(mesh, childNode, dummyParent);
+			return;
+		}
+
+		Entity entity = m_ActiveScene->CreateChildEntity(parent, node.Name);
+		entity.Transform().SetTransform(node.Transform);
+		if (node.MeshIndices.size() == 1)
+		{
+			auto& meshComp = entity.AddComponent<MeshRendererComponent>();
+			meshComp.MeshHandle = mesh->Handle;
+			meshComp.SubmeshIndex = node.MeshIndices[0];
+		}
+
+		for (const auto& childNode : node.Children)
+			InstantiateMeshNode(mesh, childNode, entity);
+
 	}
 
 }

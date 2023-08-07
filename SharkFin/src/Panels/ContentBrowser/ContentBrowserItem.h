@@ -21,6 +21,7 @@ namespace Shark {
 			Deleted = BIT(4),
 			ReloadAsset = BIT(5),
 			InvalidFilenameInput = BIT(6),
+			AssetRemoved = BIT(7),
 
 			ReloadRequired = BIT(15)
 		};
@@ -69,6 +70,7 @@ namespace Shark {
 
 		void StartRenameing();
 		void Rename(const std::string& name);
+		void RemoveAsset();
 		void Delete();
 
 		bool IsRenaming() const { return IsStateSet(State::Renaming); }

@@ -177,7 +177,7 @@ namespace Shark::UI {
 
 	bool Control(std::string_view label, uint8_t& val, float speed = 0.05f, uint8_t min = 0, uint8_t max = 0, const char* fmt = nullptr);
 	bool Control(std::string_view label, uint16_t& val, float speed = 0.05f, uint16_t min = 0, uint16_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, uint32_t& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
+	bool Control(std::string_view label, uint32_t& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr, ImGuiSliderFlags flags = ImGuiSliderFlags_None);
 	bool Control(std::string_view label, uint64_t& val, float speed = 0.05f, uint64_t min = 0, uint64_t max = 0, const char* fmt = nullptr);
 
 	bool Control(std::string_view label, glm::vec2& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
@@ -194,6 +194,7 @@ namespace Shark::UI {
 
 	bool Control(std::string_view label, glm::mat4& matrix, float speed = 0.05f, float min = 0, float max = 0, const char* fmt = nullptr);
 
+	bool ControlColor(std::string_view label, glm::vec3& color);
 	bool ControlColor(std::string_view label, glm::vec4& color);
 
 	bool Control(std::string_view label, bool& val);
@@ -238,15 +239,16 @@ namespace Shark::UI {
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();
 
-	void Property(std::string_view label, const char* text, TextFlags flags = TextFlag::None);
-	void Property(std::string_view label, std::string_view text, TextFlags flags = TextFlag::None);
-	void Property(std::string_view label, const std::string& text, TextFlags flags = TextFlag::None);
-	void Property(std::string_view label, const std::filesystem::path& path, TextFlags flags = TextFlag::None);
+	void Property(std::string_view label, const char* text);
+	void Property(std::string_view label, std::string_view text);
+	void Property(std::string_view label, const std::string& text);
+	void Property(std::string_view label, const std::filesystem::path& path);
 
 	void Property(std::string_view label, const UUID& uuid);
 	void Property(std::string_view label, float value);
 	void Property(std::string_view label, int value);
 	void Property(std::string_view label, uint32_t value);
+	void Property(std::string_view label, uint64_t value);
 	void Property(std::string_view label, bool value);
 
 	void Property(std::string_view label, const glm::vec2& value);
@@ -273,6 +275,7 @@ namespace Shark::UI {
 	void TextSelectable(std::string_view str);
 
 	void TextFramed(std::string_view fmt, ...);
+	void TextCenteredFramed(std::string_view fmt, ...);
 	bool Search(ImGuiID id, char* buffer, int bufferSize);
 	
 	bool InputFileName(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
@@ -469,6 +472,18 @@ namespace Shark::UI {
 		~ScopedFramedTextAlign()
 		{
 			PopFramedTextAlign();
+		}
+	};
+
+	struct ScopedItemFlag
+	{
+		ScopedItemFlag(ImGuiItemFlags flag, bool enabled)
+		{
+			ImGui::PushItemFlag(flag, enabled);
+		}
+		~ScopedItemFlag()
+		{
+			ImGui::PopItemFlag();
 		}
 	};
 

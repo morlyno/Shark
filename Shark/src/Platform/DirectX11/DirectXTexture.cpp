@@ -69,12 +69,24 @@ namespace Shark {
 		m_Specification.Sampler = specification;
 
 		Invalidate();
-		
+
 		if (sharedImage)
 			m_Image = image.As<DirectXImage2D>();
 		else
 			m_Image = Ref<DirectXImage2D>::Create(image->GetSpecification(), image);
 
+	}
+
+	DirectXTexture2D::DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
+	{
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+		m_Specification.Format = format;
+		m_Image = Ref<DirectXImage2D>::Create();
+		m_ImageData = Buffer::Copy(imageData);
+		m_ImageDataOwned = true;
+
+		Invalidate();
 	}
 
 	DirectXTexture2D::~DirectXTexture2D()
@@ -154,6 +166,8 @@ namespace Shark {
 
 			std::string samplerName = utils::GenerateSamplerName(instance->m_Specification.Sampler);
 			D3D_SET_OBJECT_NAME_A(instance->m_Sampler, samplerName.c_str());
+
+			instance->m_SamplerWrapper->m_Sampler = instance->m_Sampler;
 		});
 	}
 

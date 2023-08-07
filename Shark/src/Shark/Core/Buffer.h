@@ -54,7 +54,7 @@ namespace Shark {
 		template<typename T>
 		uint64_t Count() const
 		{
-			return Size / sizeof(T);
+			return (Size + sizeof(T) - 1) / sizeof(T);
 		}
 
 		operator bool() const

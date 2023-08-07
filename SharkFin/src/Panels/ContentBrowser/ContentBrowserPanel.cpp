@@ -428,6 +428,23 @@ namespace Shark {
 		Internal_ChangeDirectory(m_History[--m_HistoryIndex], false);
 	}
 
+	void ContentBrowserPanel::Internal_OnAssetRemoved(Ref<ContentBrowserItem> item)
+	{
+		SK_CORE_ASSERT(!m_ChangesBlocked);
+
+		if (m_CurrentItems.Contains(item->GetHandle()))
+			m_CurrentItems.Erase(item->GetHandle());
+
+		if (m_SelectedItem == item)
+			SelectItem(nullptr);
+
+		const auto& metadata = ResourceManager::GetMetaData(item->GetHandle());
+		auto fsPath = ResourceManager::GetFileSystemPath(metadata);
+		auto directory = GetDirectory(fsPath.parent_path());
+		if (directory)
+			directory->Erase(item->GetHandle());
+	}
+
 	void ContentBrowserPanel::Internal_OnItemDeleted(Ref<ContentBrowserItem> item)
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
@@ -438,18 +455,50 @@ namespace Shark {
 		if (m_SelectedItem == item)
 			SelectItem(nullptr);
 
-		if (auto directory = GetDirectory(item->GetHandle()))
-			Internal_OnDirectoryDeleted(directory);
+		if (item->GetType() == CBItemType::Directory)
+		{
+			if (auto directory = GetDirectory(item->GetHandle()))
+				Internal_OnDirectoryDeleted(directory);
+		}
+		else
+		{
+			const auto& metadata = ResourceManager::GetMetaData(item->GetHandle());
+			auto fsPath = ResourceManager::GetFileSystemPath(metadata);
+			auto directory = GetDirectory(fsPath.parent_path());
+			if (directory)
+				directory->Erase(item->GetHandle());
+		}
 	}
 
 	void ContentBrowserPanel::Internal_OnDirectoryDeleted(Ref<DirectoryInfo> directory)
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
+		for (const auto& subdir : directory->SubDirectories)
+			Internal_OnDirectoryDeleted(subdir);
+
 		Ref<DirectoryInfo> parent = directory->Parent.GetRef();
 		SK_CORE_ASSERT(parent);
 		parent->SubDirectories.erase(std::find(parent->SubDirectories.begin(), parent->SubDirectories.end(), directory));
 		m_DirectoryHandleMap.erase(directory->Handle);
+	}
+
+	void ContentBrowserPanel::OnAssetRemoved(Ref<ContentBrowserItem> item)
+	{
+		Ref instance = this;
+		m_PostRenderQueue.emplace_back([instance, item]()
+		{
+			instance->Internal_OnAssetRemoved(item);
+		});
+	}
+
+	void ContentBrowserPanel::OnItemDeleted(Ref<ContentBrowserItem> item)
+	{
+		Ref instance = this;
+		m_PostRenderQueue.emplace_back([instance, item]()
+		{
+			instance->Internal_OnItemDeleted(item);
+		});
 	}
 
 	void ContentBrowserPanel::ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistroy)
@@ -539,6 +588,12 @@ namespace Shark {
 					ResourceManager::ReloadAsset(item->GetHandle());
 				});
 			}
+
+			if (action & CBItemAction::AssetRemoved)
+				OnAssetRemoved(item);
+
+			if (action & CBItemAction::Deleted)
+				OnItemDeleted(item);
 
 			if (action & CBItemAction::InvalidFilenameInput)
 			{

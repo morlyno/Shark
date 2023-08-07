@@ -1,160 +1,88 @@
 #include "skpch.h"
 #include "AssimpImporter.h"
 
-#include "Shark/Render/Renderer.h"
+#include "Shark/Asset/ResourceManager.h"
 #include "Shark/File/FileSystem.h"
 
-#include "Shark/Asset/ResourceManager.h"
+#include "Shark/Utils/YAMLUtils.h"
+
+#include <yaml-cpp/yaml.h>
 
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
+#include <numeric>
+
 namespace Shark {
 
-	namespace utils {
-
-		static glm::mat4 AssimpMatrixToGLM(aiMatrix4x4 matrix)
-		{
-			glm::mat4 result;
-			for (uint32_t i = 0; i < 4; i++)
-				for (uint32_t j = 0; j < 4; j++)
-					result[i][j] = matrix[i][j];
-			result = glm::transpose(result);
-			return result;
-		}
-
-	}
-
-	Ref<Mesh> AssimpImporter::TryLoad(const std::filesystem::path& filePath)
+	void AssimpImporter::Import(const std::filesystem::path& filePath)
 	{
 		if (!FileSystem::Exists(filePath))
-			return nullptr;
+			return;
+
+		const auto fsPath = FileSystem::GetAbsolute(filePath);
+		if (ResourceManager::IsFileImported(fsPath))
+			return;
+
+		const std::string sourceName = filePath.stem().string();
 
 		Assimp::Importer importer;
-		auto fsFilePath = FileSystem::GetAbsolute(filePath).string();
-		const aiScene* scene = importer.ReadFile(fsFilePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | /*aiProcess_JoinIdenticalVertices | */aiProcess_ConvertToLeftHanded);
+		const auto fsFilePath = FileSystem::GetAbsolute(filePath).string();
+		const aiScene* scene = importer.ReadFile(fsFilePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded);
 
 		if (!scene)
-			return nullptr;
+			return;
 
-		VertexLayout layout = {
-			{ VertexDataType::Float3, "Position" },
-			{ VertexDataType::Float3, "Normal" },
-			{ VertexDataType::Float2, "UV" }
-		};
-
-		struct Vertex
+		AssetHandle meshSourceHandle = ResourceManager::ImportAsset(filePath);
+		const auto textures = LoadTextures(scene, fsPath.parent_path());
+		for (const auto& texturePath : textures)
 		{
-			glm::vec3 Position;
-			glm::vec3 Normal;
-			glm::vec2 UV;
-		};
-
-		std::vector<Vertex> vertices;
-		Buffer indices;
-		std::vector<Mesh::SubMesh> submeshes;
-		Ref<MaterialTable> materialTable = Ref<MaterialTable>::Create();
-
-		{
-			std::filesystem::path rootPath = filePath.parent_path();
-			for (uint32_t materialIndex = 0; materialIndex < scene->mNumMaterials; materialIndex++)
-			{
-				aiMaterial* material = scene->mMaterials[materialIndex];
-				std::string name = material->GetName().C_Str();
-				SK_CORE_DEBUG("Material: {}", name);
-
-				Ref<MeshMaterial> meshMaterial = Ref<MeshMaterial>::Create(name, Renderer::GetShaderLib()->Get("DefaultMeshShader"));
-				materialTable->AddMaterial(materialIndex, meshMaterial);
-
-				aiString textureFileName;
-				if (material->GetTexture(aiTextureType_DIFFUSE, 0, &textureFileName) == aiReturn_SUCCESS)
-				{
-					auto texturePath = rootPath / textureFileName.C_Str();
-					if (FileSystem::Exists(texturePath))
-					{
-						TextureSpecification specification;
-						specification.GenerateMips = true;
-						meshMaterial->m_Albedo = Texture2D::LoadFromDisc(texturePath);
-					}
-				}
-
-				if (!meshMaterial->m_Albedo)
-					meshMaterial->m_Albedo = Renderer::GetWhiteTexture();
-
-			}
+			if (!ResourceManager::IsFileImported(texturePath))
+				ResourceManager::ImportAsset(texturePath);
 		}
 
-		{
-			uint64_t vertexOffset = 0;
-			uint64_t indexOffset = 0;
-
-			for (uint32_t meshIndex = 0; meshIndex < scene->mNumMeshes; meshIndex++)
-			{
-				auto& submesh = submeshes.emplace_back();
-
-				aiMesh* mesh = scene->mMeshes[meshIndex];
-				for (uint32_t i = 0; i < mesh->mNumVertices; i++)
-				{
-					auto& vertex = vertices.emplace_back();
-					vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-					vertex.Normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
-					vertex.UV = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
-				}
-
-				submesh.BaseVertex = vertexOffset;
-				submesh.BaseIndex = indexOffset;
-				submesh.IndexCount = mesh->mNumFaces * 3;
-				submesh.MaterialIndex = mesh->mMaterialIndex;
-
-				vertexOffset += mesh->mNumVertices;
-
-				indices.Grow<uint32_t>(submesh.IndexCount);
-				for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; faceIndex++)
-				{
-					aiFace& face = mesh->mFaces[faceIndex];
-					SK_CORE_ASSERT(face.mNumIndices == 3);
-					indices.Write(face.mIndices, face.mNumIndices * sizeof(uint32_t), indexOffset * sizeof(uint32_t));
-					indexOffset += 3;
-				}
-			}
-		}
-
-		auto vertexBuffer = VertexBuffer::Create(layout, Buffer::FromArray(vertices));
-		auto indexBuffer = IndexBuffer::Create(indices);
-
-		vertices = {};
-		indices.Release();
-
-		auto mesh = Ref<Mesh>::Create();
-		mesh->m_VertexBuffer = vertexBuffer;
-		mesh->m_IndexBuffer = indexBuffer;
-		mesh->m_MaterialTable = materialTable;
-		mesh->m_SubMeshes = std::move(submeshes);
-
-		AddNode(&mesh->m_RootNode, scene->mRootNode);
-
-		return mesh;
+		const std::filesystem::path meshAssetPath = fmt::format("{}/Meshes/{}.skmesh", Project::GetAssetsPath().string(), filePath.stem().string());
+		CreateMeshAssetFile(meshAssetPath, meshSourceHandle);
 	}
 
-	void AssimpImporter::AddNode(Mesh::Node* meshNode, aiNode* node)
+	std::vector<std::filesystem::path> AssimpImporter::LoadTextures(const aiScene* scene, const std::filesystem::path& rootPath)
 	{
-		meshNode->Transform = utils::AssimpMatrixToGLM(node->mTransformation);
-		meshNode->Name = node->mName.C_Str();
-		meshNode->HasMesh = node->mNumMeshes > 0;
+		std::vector<std::filesystem::path> textures;
 
-		for (uint32_t i = 0; i < node->mNumMeshes; i++)
+		for (uint32_t materialIndex = 0; materialIndex < scene->mNumMaterials; materialIndex++)
 		{
-			meshNode->MeshIndices.emplace_back(node->mMeshes[0]);
+			aiMaterial* material = scene->mMaterials[materialIndex];
+
+			aiString textureFileName;
+			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &textureFileName) == aiReturn_SUCCESS)
+			{
+				auto texturePath = rootPath / textureFileName.C_Str();
+				if (FileSystem::Exists(texturePath))
+					textures.emplace_back(texturePath);
+			}
+
 		}
 
-		for (uint32_t childIndex = 0; childIndex < node->mNumChildren; childIndex++)
-		{
-			auto& child = meshNode->Children.emplace_back();
-			child.Parent = meshNode;
-			AddNode(&child, node->mChildren[childIndex]);
-		}
+		return textures;
+	}
 
+	void AssimpImporter::CreateMeshAssetFile(const std::filesystem::path& filepath, AssetHandle sourceHandle)
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Mesh" << YAML::Value;
+		out << YAML::BeginMap;
+		out << YAML::Key << "MeshSource" << YAML::Value << sourceHandle;
+		out << YAML::Key << "SubmeshIndices" << YAML::Value << std::vector<uint32_t>{};
+		out << YAML::Key << "Materials" << YAML::Value;
+		out << YAML::BeginMap;
+		out << YAML::EndMap;
+		out << YAML::EndMap;
+		out << YAML::EndMap;
+		FileSystem::WriteString(filepath, out.c_str());
+
+		ResourceManager::ImportAsset(filepath);
 	}
 
 }

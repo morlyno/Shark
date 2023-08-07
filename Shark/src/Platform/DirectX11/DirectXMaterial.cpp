@@ -21,6 +21,24 @@ namespace Shark {
 	{
 	}
 
+	ShaderReflection::UpdateFrequencyType DirectXMaterial::GetUpdateFrequency(const std::string& name) const
+	{
+		if (!HasBuffer(name))
+			return ShaderReflection::UpdateFrequencyType::None;
+
+		auto& buffer = m_ConstantBuffers.at(name);
+		return buffer.UpdateFrequency;
+	}
+
+	void DirectXMaterial::SetUpdateFrequency(const std::string& name, ShaderReflection::UpdateFrequencyType updateFrequency)
+	{
+		if (!HasBuffer(name))
+			return;
+
+		auto& buffer = m_ConstantBuffers.at(name);
+		buffer.UpdateFrequency = updateFrequency;
+	}
+
 	Ref<Texture2D> DirectXMaterial::GetTexture(const std::string& name) const
 	{
 		SK_CORE_VERIFY(HasResourceName(name));
@@ -50,17 +68,17 @@ namespace Shark {
 	RenderID DirectXMaterial::GetSampler(const std::string& name) const
 	{
 		SK_CORE_VERIFY(HasResourceName(name));
-		return m_Resources.at(name).Sampler;
+		return m_Resources.at(name).Sampler->GetSamplerID();
 	}
 
 	RenderID DirectXMaterial::GetSampler(const std::string& name, uint32_t index) const
 	{
 		std::string arrayName = fmt::format("{}_{}", name, index);
 		SK_CORE_VERIFY(HasResourceName(arrayName));
-		return m_Resources.at(arrayName).Sampler;
+		return m_Resources.at(arrayName).Sampler->GetSamplerID();
 	}
 
-	void DirectXMaterial::SetResource(const std::string& name, Ref<Texture2D> texture, Ref<Image2D> image, RenderID sampler)
+	void DirectXMaterial::SetResource(const std::string& name, Ref<Texture2D> texture, Ref<Image2D> image, Ref<SamplerWrapper> sampler)
 	{
 		SK_CORE_VERIFY(HasResourceName(name));
 		auto& resource = m_Resources.at(name);
@@ -73,7 +91,7 @@ namespace Shark {
 			SK_CORE_ASSERT_CONDITIONAL(s_BreakWhenInputAndResourceTypeDontMatch, resource.Type == ShaderReflection::ResourceType::Sampler2D);
 			resource.Texture = texture.As<DirectXTexture2D>();
 			resource.Image = texture->GetImage().As<DirectXImage2D>();
-			resource.Sampler = resource.Texture->GetSamplerNative();
+			resource.Sampler = texture->GetSampler().As<DirectXSamplerWrapper>();
 			return;
 		}
 
@@ -91,7 +109,7 @@ namespace Shark {
 			SK_CORE_ASSERT_CONDITIONAL(s_BreakWhenInputAndResourceTypeDontMatch, resource.Type == ShaderReflection::ResourceType::Sampler);
 			resource.Texture = nullptr;
 			resource.Image = nullptr;
-			resource.Sampler = (ID3D11SamplerState*)sampler;
+			resource.Sampler = sampler.As<DirectXSamplerWrapper>();
 			return;
 		}
 
@@ -100,7 +118,7 @@ namespace Shark {
 		resource.Sampler = nullptr;
 	}
 
-	void DirectXMaterial::SetResource(const std::string& name, uint32_t index, Ref<Texture2D> texture, Ref<Image2D> image, RenderID sampler)
+	void DirectXMaterial::SetResource(const std::string& name, uint32_t index, Ref<Texture2D> texture, Ref<Image2D> image, Ref<SamplerWrapper> sampler)
 	{
 		SetResource(fmt::format("{}_{}", name, index), texture, image, sampler);
 	}
@@ -108,8 +126,15 @@ namespace Shark {
 	void DirectXMaterial::SetBytes(const std::string& name, Buffer data)
 	{
 		SK_CORE_VERIFY(m_ConstantBufferMembers.find(name) != m_ConstantBufferMembers.end());
+
 		auto& member = m_ConstantBufferMembers.at(name);
+		if (member.Parent->UpdateFrequency != ShaderReflection::UpdateFrequencyType::PerMaterial)
+		{
+			SK_CORE_WARN_TAG("Renderer", "Buffer ({}) with UpdateFrequency {} set in Material", name, ToString(member.Parent->UpdateFrequency));
+		}
+
 		member.UploadBufferRef.Write(data);
+		member.Parent->Dirty = true;
 	}
 
 	Buffer DirectXMaterial::GetBytes(const std::string& name) const
@@ -119,10 +144,25 @@ namespace Shark {
 		return member.UploadBufferRef;
 	}
 
-	void DirectXMaterial::RT_UploadBuffers()
+	void DirectXMaterial::RT_UpdateDirtyBuffers()
 	{
-		for (const auto& [name, cbData] : m_ConstantBuffers)
+		for (auto& [name, cbData] : m_ConstantBuffers)
+		{
+			if (!cbData.Dirty)
+				continue;
+
+			if (!cbData.Buffer)
+			{
+				auto& buffer = cbData.Buffer;
+				buffer = Ref<DirectXConstantBuffer>::Create();
+				buffer->SetSize(cbData.Size);
+				buffer->SetBinding(cbData.Binding);
+				buffer->RT_Invalidate();
+			}
+
 			cbData.Buffer->RT_UploadData(cbData.UploadBuffer.GetBuffer());
+			cbData.Dirty = false;
+		}
 	}
 
 	void DirectXMaterial::Initialize()
@@ -133,7 +173,10 @@ namespace Shark {
 		{
 			SK_CORE_VERIFY(m_ConstantBuffers.find(name) == m_ConstantBuffers.end());
 			auto& cb = m_ConstantBuffers[name];
-			cb.Buffer = Ref<DirectXConstantBuffer>::Create(constantBuffer.Size, constantBuffer.Binding);
+			cb.Size = constantBuffer.Size;
+			cb.Binding = constantBuffer.Binding;
+			cb.UpdateFrequency = constantBuffer.UpdateFrequency;
+			//cb.Buffer = Ref<DirectXConstantBuffer>::Create(constantBuffer.Size, constantBuffer.Binding);
 			cb.UploadBuffer.Allocate(constantBuffer.Size);
 			cb.Stage = constantBuffer.Stage;
 
@@ -143,6 +186,7 @@ namespace Shark {
 				memberData.Size = member.Size;
 				memberData.Offset = member.Offset;
 				memberData.UploadBufferRef = cb.UploadBuffer.GetBuffer().SubBuffer(member.Offset, member.Size);
+				memberData.Parent = &cb;
 			}
 		}
 

@@ -154,7 +154,7 @@ namespace Sandbox
 		private void CreateBall()
 		{
 			var ball = CloneEntity(BallTemplate);
-			ball.Parent = m_BallContainer;
+			//ball.Parent = m_BallContainer;
 			ball.Name = "Ball";
 			var rigidBody = ball.GetComponent<RigidBody2DComponent>();
 			rigidBody.Position = new Vector2(0.0f, 10.0f);

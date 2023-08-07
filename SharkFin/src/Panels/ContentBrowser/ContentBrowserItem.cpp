@@ -110,6 +110,12 @@ namespace Shark {
 				if (ImGui::MenuItem("Rename", "F2"))
 					StartRenameing();
 
+				if (ImGui::MenuItem("Remove Asset"))
+				{
+					RemoveAsset();
+					result |= CBItemAction::AssetRemoved;
+				}
+
 				if (ImGui::MenuItem("Delete", "Del"))
 				{
 					Delete();
@@ -284,6 +290,11 @@ namespace Shark {
 			return;
 
 		m_Name = newPath.stem().string();
+	}
+
+	void ContentBrowserItem::RemoveAsset()
+	{
+		ResourceManager::RemoveAsset(m_Handle);
 	}
 
 	void ContentBrowserItem::Delete()

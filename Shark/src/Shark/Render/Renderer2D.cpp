@@ -281,6 +281,18 @@ namespace Shark {
 			m_TextVertexData.Allocate(DefaultTextVertices * sizeof TextVertex);
 		}
 
+		m_QuadMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_TransparentQuadMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_QuadDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_TransparentQuadDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_CircleMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_TransparentCircleMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_CircleDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_TransparentCircleDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_LineMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_LineDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+		m_TextMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
+
 
 		constexpr double delta = M_PI / 10.0f; // 0.31415
 		glm::vec4 point = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -979,7 +991,7 @@ namespace Shark {
 		{
 			//material->SetTexture("g_Textures", texture, index++);
 			material->SetImage("g_Textures", texture->GetImage(), index);
-			material->SetSampler("g_SamplerState", texture->GetSamplerID(), index);
+			material->SetSampler("g_SamplerState", texture->GetSampler(), index);
 			index++;
 		}
 
@@ -987,7 +999,7 @@ namespace Shark {
 		{
 			//material->SetTexture("g_Textures", m_WhiteTexture, index);
 			material->SetImage("g_Textures", m_WhiteTexture->GetImage(), index);
-			material->SetSampler("g_SamplerState", m_WhiteTexture->GetSamplerID(), index);
+			material->SetSampler("g_SamplerState", m_WhiteTexture->GetSampler(), index);
 		}
 	}
 

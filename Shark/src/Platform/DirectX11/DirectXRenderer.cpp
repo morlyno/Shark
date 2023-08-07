@@ -138,7 +138,7 @@ namespace Shark {
 		m_ShaderLib->Load("Resources/Shaders/NegativeEffect.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/BlurEffect.hlsl");
 
-		m_WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, Buffer::FromValue(0xFFFFFFFF));
+		m_WhiteTexture = Ref<DirectXTexture2D>::Create(ImageFormat::RGBA8, 1, 1, Buffer::FromValue(0xFFFFFFFF));
 
 		VertexLayout layout = {
 			{ VertexDataType::Float2, "Position" }
@@ -432,8 +432,9 @@ namespace Shark {
 
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
-			auto vertexBuffer = mesh->GetVertexBuffer().As<DirectXVertexBuffer>();
-			auto indexBuffer = mesh->GetIndexBuffer().As<DirectXIndexBuffer>();
+			Ref<MeshSource> meshSource = mesh->GetMeshSource();
+			auto vertexBuffer = meshSource->GetVertexBuffer().As<DirectXVertexBuffer>();
+			auto indexBuffer = meshSource->GetIndexBuffer().As<DirectXIndexBuffer>();
 
 			const UINT offset = 0;
 			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
@@ -478,8 +479,9 @@ namespace Shark {
 
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
-			auto vertexBuffer = mesh->GetVertexBuffer().As<DirectXVertexBuffer>();
-			auto indexBuffer = mesh->GetIndexBuffer().As<DirectXIndexBuffer>();
+			Ref<MeshSource> meshSource = mesh->GetMeshSource();
+			auto vertexBuffer = meshSource->GetVertexBuffer().As<DirectXVertexBuffer>();
+			auto indexBuffer = meshSource->GetIndexBuffer().As<DirectXIndexBuffer>();
 
 			const UINT offset = 0;
 			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
@@ -495,13 +497,77 @@ namespace Shark {
 
 			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
-			const auto& submeshes = mesh->GetSubmeshes();
+			const auto& submeshes = meshSource->GetSubmeshes();
 			const auto& submesh = submeshes[submeshIndex];
 
 			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
 			Ref<DirectXMaterial> material = materialTable->GetMaterial(submesh.MaterialIndex).As<DirectXMaterial>();
 
 			instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, material);
+
+			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+
+			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+
+			ctx->RSSetState(dxPipeline->m_RasterizerState);
+			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
+
+			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
+
+			DX11_VALIDATE_CONTEXT(ctx);
+			ctx->DrawIndexed(submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
+		});
+	}
+
+	void DirectXRenderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData)
+	{
+		SK_PROFILE_FUNCTION();
+
+		Ref instance = this;
+		auto dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
+		auto dxPipeline = pipeline.As<DirectXPipeline>();
+		auto cbSceneData = sceneData.As<DirectXConstantBuffer>();
+		auto cbMeshData = meshData.As<DirectXConstantBuffer>();
+		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, mesh, submeshIndex, cbSceneData, cbMeshData]()
+		{
+			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
+
+			ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
+
+			Ref<MeshSource> meshSource = mesh->GetMeshSource();
+			auto vertexBuffer = meshSource->GetVertexBuffer().As<DirectXVertexBuffer>();
+			auto indexBuffer = meshSource->GetIndexBuffer().As<DirectXIndexBuffer>();
+
+			const UINT offset = 0;
+			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
+			ctx->IASetVertexBuffers(0, 1, &vertexBuffer->m_VertexBuffer, &stride, &offset);
+
+			ctx->IASetIndexBuffer(indexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+
+			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
+
+			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
+			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
+
+			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
+
+			const auto& submeshes = meshSource->GetSubmeshes();
+			const auto& submesh = submeshes[submeshIndex];
+
+			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+			Ref<MaterialTable> sourceMaterialTable = meshSource->GetMaterialTable();
+
+			Ref<DirectXMaterial> material = materialTable->HasMaterial(submesh.MaterialIndex) ?
+				                            materialTable->GetMaterial(submesh.MaterialIndex)->GetMaterial().As<DirectXMaterial>() :
+				                            sourceMaterialTable->GetMaterial(submesh.MaterialIndex)->GetMaterial().As<DirectXMaterial>();
+
+			instance->RT_PrepareAndBindMaterialForRendering(dxCommandBuffer, material);
+
+			ctx->VSSetConstantBuffers(cbSceneData->GetBinding(), 1, &cbSceneData->m_ConstantBuffer);
+			ctx->VSSetConstantBuffers(cbMeshData->GetBinding(), 1, &cbMeshData->m_ConstantBuffer);
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
@@ -663,49 +729,68 @@ namespace Shark {
 
 		ID3D11DeviceContext* context = commandBuffer->GetContext();
 
-		material->RT_UploadBuffers();
+		material->RT_UpdateDirtyBuffers();
 		for (const auto& [name, cbData] : material->m_ConstantBuffers)
 		{
 			Ref<DirectXConstantBuffer> constantBuffer = cbData.Buffer;
+			if (!constantBuffer)
+				continue;
 
 			switch (cbData.Stage)
 			{
 				case ShaderReflection::ShaderStage::Vertex:
-					context->VSSetConstantBuffers(constantBuffer->m_Slot, 1, &constantBuffer->m_ConstBuffer);
+					context->VSSetConstantBuffers(constantBuffer->m_Binding, 1, &constantBuffer->m_ConstantBuffer);
 					break;
 			
 				case ShaderReflection::ShaderStage::Pixel:
-					context->PSSetConstantBuffers(constantBuffer->m_Slot, 1, &constantBuffer->m_ConstBuffer);
+					context->PSSetConstantBuffers(constantBuffer->m_Binding, 1, &constantBuffer->m_ConstantBuffer);
 					break;
 			}
 		}
+
+		const auto bindShaderResourceView = [context](ShaderReflection::ShaderStage stage, uint32_t binding, ID3D11ShaderResourceView* view)
+		{
+			if (!view)
+				return;
+
+			switch (stage)
+			{
+				case ShaderReflection::ShaderStage::Vertex: context->VSSetShaderResources(binding, 1, &view); break;
+				case ShaderReflection::ShaderStage::Pixel: context->PSSetShaderResources(binding, 1, &view); break;
+			}
+		};
+
+		const auto bindSampler = [context](ShaderReflection::ShaderStage stage, uint32_t binding, ID3D11SamplerState* sampler)
+		{
+			if (!sampler)
+				return;
+
+			switch (stage)
+			{
+				case ShaderReflection::ShaderStage::Vertex: context->VSSetSamplers(binding, 1, &sampler); break;
+				case ShaderReflection::ShaderStage::Pixel: context->PSSetSamplers(binding, 1, &sampler); break;
+			}
+		};
+
+		ID3D11ShaderResourceView* whiteTextureView = m_WhiteTexture->GetViewNative();
+		ID3D11SamplerState* whiteTextureSampler = m_WhiteTexture->GetSamplerNative();
 
 		for (const auto& [name, resource] : material->m_Resources)
 		{
 			switch (resource.Type)
 			{
 				case ShaderReflection::ResourceType::Texture2D:
-				case ShaderReflection::ResourceType::Sampler:
-				case ShaderReflection::ResourceType::Sampler2D:
-				{
-					switch (resource.Stage)
-					{
-						case ShaderReflection::ShaderStage::Vertex:
-							if (resource.Image)
-								context->VSSetShaderResources(resource.Binding, 1, &resource.Image->m_View);
-							if (resource.Sampler)
-								context->VSSetSamplers(resource.Binding, 1, &resource.Sampler);
-							break;
-
-						case ShaderReflection::ShaderStage::Pixel:
-							if (resource.Image)
-								context->PSSetShaderResources(resource.Binding, 1, &resource.Image->m_View);
-							if (resource.Sampler)
-								context->PSSetSamplers(resource.Binding, 1, &resource.Sampler);
-							break;
-					}
+					bindShaderResourceView(resource.Stage, resource.Binding, resource.Image ? resource.Image->m_View : whiteTextureView);
 					break;
-				}
+
+				case ShaderReflection::ResourceType::Sampler:
+					bindSampler(resource.Stage, resource.Binding, resource.Sampler ? resource.Sampler->m_Sampler : whiteTextureSampler);
+					break;
+
+				case ShaderReflection::ResourceType::Sampler2D:
+					bindShaderResourceView(resource.Stage, resource.Binding, resource.Image ? resource.Image->m_View : whiteTextureView);
+					bindSampler(resource.Stage, resource.Binding, resource.Sampler ? resource.Sampler->m_Sampler : whiteTextureSampler);
+					break;
 
 				default:
 					SK_CORE_ASSERT(false, "ResourceType {} not Implemented!", ToString(resource.Type));

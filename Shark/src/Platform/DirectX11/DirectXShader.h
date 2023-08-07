@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/Shader.h"
+#include "Shark/Render/ShaderReflection.h"
 #include "Platform/DirectX11/ShaderUtils.h"
 
 #include <d3d11.h>

@@ -52,6 +52,7 @@ namespace YAML {
 			Node node(NodeType::Map);
 			node.force_insert("Name", constantBuffer.Name);
 			node.force_insert("Stage", Shark::ToString(constantBuffer.Stage));
+			node.force_insert("UpdateFrequency", Shark::ToString(constantBuffer.UpdateFrequency));
 			node.force_insert("Binding", constantBuffer.Binding);
 			node.force_insert("Size", constantBuffer.Size);
 			node.force_insert("MemberCount", constantBuffer.MemberCount);
@@ -61,11 +62,12 @@ namespace YAML {
 
 		static bool decode(const Node& node, Shark::ShaderReflection::ConstantBuffer& outConstantBuffer)
 		{
-			if (!node.IsMap() || node.size() != 6)
+			if (!node.IsMap() || node.size() != 7)
 				return false;
 
 			outConstantBuffer.Name = node["Name"].as<std::string>();
 			outConstantBuffer.Stage = Shark::StringToShaderReflectionShaderStage(node["Stage"].as<std::string>());
+			outConstantBuffer.UpdateFrequency = Shark::StringToShaderReflectionUpdateFrequency(node["UpdateFrequency"].as<std::string>());
 			outConstantBuffer.Binding = node["Binding"].as<uint32_t>();
 			outConstantBuffer.Size = node["Size"].as<uint32_t>();
 			outConstantBuffer.MemberCount = node["MemberCount"].as<uint32_t>();
@@ -189,6 +191,11 @@ namespace Shark {
 			return "Cache/Shaders/DirectX";
 		}
 
+		static std::string_view GetSPIRVCacheDirectory()
+		{
+			return "Cache/Shaders/DirectX/SPIRV";
+		}
+
 		static std::string_view GetReflectionDataCacheDirectory()
 		{
 			return "Cache/Shaders/ReflectionData";
@@ -269,6 +276,24 @@ namespace Shark {
 			return fullName.substr(0, fullName.find_last_of('.'));
 		}
 
+		static std::chrono::system_clock::time_point GetFileTimeAsSystemTime(const std::filesystem::path filepath)
+		{
+			const auto fileTime = std::filesystem::last_write_time(filepath).time_since_epoch().count() - std::filesystem::__std_fs_file_time_epoch_adjustment;
+			return std::chrono::system_clock::time_point(std::chrono::system_clock::duration(fileTime));
+		}
+
+		static ShaderReflection::UpdateFrequencyType GetUpdateFrequencyFromBinding(uint32_t binding)
+		{
+			static constexpr uint32_t BindingPerScene = 0;
+			static constexpr uint32_t BindingPerDrawCall = 1;
+
+			if (binding == BindingPerScene)
+				return ShaderReflection::UpdateFrequencyType::PerScene;
+			if (binding == BindingPerDrawCall)
+				return ShaderReflection::UpdateFrequencyType::PerDrawCall;
+
+			return ShaderReflection::UpdateFrequencyType::PerMaterial;
+		}
 	}
 
 
@@ -309,7 +334,7 @@ namespace Shark {
 
 		if (forceCompile || changedStages)
 		{
-			ReflectShaderStages(m_SPIRVData);
+			ReflectAllShaderStages(m_SPIRVData);
 			SerializeReflectionData();
 		}
 
@@ -328,6 +353,7 @@ namespace Shark {
 
 		shader->LoadShader(compiler->m_ShaderBinary);
 		shader->SetReflectionData(compiler->m_ReflectionData);
+
 		return shader;
 	}
 
@@ -491,32 +517,42 @@ namespace Shark {
 	bool DirectXShaderCompiler::CompileOrLoadBinary(ShaderUtils::ShaderStage::Type stage, ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile)
 	{
 		std::vector<byte>& binary = m_ShaderBinary[stage];
+		std::vector<uint32_t>& spirvBinary = m_SPIRVData[stage];
 
 		if (!forceCompile && !(changedStages & stage))
-			TryLoadDirectX(stage, binary);
+			TryLoadDirectXAndSPIRV(stage, binary, spirvBinary);
+
+		if (binary.empty() && !spirvBinary.empty())
+		{
+			std::string error = CompileFromSPIRV(stage, spirvBinary, binary);
+			SK_CORE_ASSERT(error.empty() == !binary.empty());
+			if (error.empty() && !binary.empty())
+			{
+				SerializeDirectX(stage, binary);
+				SerializeSPIRV(stage, spirvBinary);
+			}
+		}
 
 		if (binary.empty())
 		{
-			std::string error = Compile(stage, binary, m_SPIRVData[stage]);
+			std::string error = Compile(stage, binary, spirvBinary);
 			if (error.empty())
 			{
 				SerializeDirectX(stage, binary);
+				SerializeSPIRV(stage, spirvBinary);
 				return true;
 			}
 
 			SK_CORE_ERROR_TAG("Renderer", "Failed to Compile Shader! Trying to load older Version from Cache.\n{}", error);
-			TryLoadDirectX(stage, binary);
+			TryLoadDirectXAndSPIRV(stage, binary, spirvBinary);
 			if (binary.size())
 			{
 				const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
-				auto fileTime = std::filesystem::last_write_time(cacheFile).time_since_epoch().count() - std::filesystem::__std_fs_file_time_epoch_adjustment;
-				auto lastWritten = std::chrono::system_clock::time_point(std::chrono::system_clock::duration(fileTime));
-				SK_CORE_WARN_TAG("Renderer", "Cached Shader loaded\n\tSource: {}\n\tModified: {}", cacheFile, lastWritten);
-				return true;
+				SK_CORE_WARN_TAG("Renderer", "Older Shader loaded\n\tSource: {}\n\tModified: {}", cacheFile, utils::GetFileTimeAsSystemTime(cacheFile));
 			}
 			else
 			{
-				SK_CORE_ERROR_TAG("Renderer", "Failed to load Shader from Cache!");
+				SK_CORE_ERROR_TAG("Renderer", "Failed to load older Shader version from Cache!");
 				return false;
 			}
 		}
@@ -624,6 +660,15 @@ namespace Shark {
 		return {};
 	}
 
+	std::string DirectXShaderCompiler::CompileFromSPIRV(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary, std::vector<byte>& outputBinary)
+	{
+		std::string hlslSourceCode = CrossCompileToHLSL(stage, spirvBinary);
+		if (hlslSourceCode.empty())
+			return "Cross Compiling SPIRV to HLSL Failed";
+
+		return CompileHLSL(stage, hlslSourceCode, outputBinary);
+	}
+
 	std::string DirectXShaderCompiler::CompileHLSL(ShaderUtils::ShaderStage::Type stage, const std::string& hlslSourceCode, std::vector<byte>& outputBinary) const
 	{
 		UINT flags = 0;
@@ -694,15 +739,39 @@ namespace Shark {
 		m_StagesWrittenToCache |= stage;
 	}
 
-	bool DirectXShaderCompiler::TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData)
+	void DirectXShaderCompiler::TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData)
 	{
 		const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
 		Buffer fileData = FileSystem::ReadBinary(cacheFile);
 		if (!fileData)
-			return false;
+			return;
 
 		fileData.CopyTo(directXData);
 		fileData.Release();
+		return;
+	}
+
+	void DirectXShaderCompiler::SerializeSPIRV(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvData)
+	{
+		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
+		FileSystem::WriteBinary(cacheFile, Buffer::FromArray(spirvData));
+	}
+
+	void DirectXShaderCompiler::TryLoadSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVData)
+	{
+		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
+		Buffer fileData = FileSystem::ReadBinary(cacheFile);
+		if (!fileData)
+			return;
+
+		fileData.CopyTo(outputSPIRVData);
+		fileData.Release();
+	}
+
+	void DirectXShaderCompiler::TryLoadDirectXAndSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& outputDirectXData, std::vector<uint32_t>& outputSPIRVData)
+	{
+		TryLoadDirectX(stage, outputDirectXData);
+		TryLoadSPIRV(stage, outputSPIRVData);
 	}
 
 	void DirectXShaderCompiler::SerializeReflectionData()
@@ -760,139 +829,153 @@ namespace Shark {
 		return true;
 	}
 
-	void DirectXShaderCompiler::ReflectShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>> spirvData)
+	void DirectXShaderCompiler::ReflectAllShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>>& spirvData)
 	{
 		for (const auto& [stage, spirvBinary] : spirvData)
 		{
-			SK_CORE_TRACE_TAG("Renderer", "===========================");
-			SK_CORE_TRACE_TAG("Renderer", " DirectX Shader Reflection");
-			SK_CORE_TRACE_TAG("Renderer", "===========================");
-
-			spirv_cross::Compiler compiler(spirvBinary);
-			spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
-
-			SK_CORE_TRACE_TAG("Renderer", "Constant Buffers:");
-			for (const auto& constantBuffer : shaderResources.uniform_buffers)
+			try
 			{
-				const spirv_cross::SPIRType& bufferType = compiler.get_type(constantBuffer.type_id);
-				std::string name = compiler.get_name(constantBuffer.id);
-				if (name.empty())
-					name = constantBuffer.name;
+				ReflectShaderStage(stage, spirvBinary);
+			}
+			catch (const spirv_cross::CompilerError& error)
+			{
+				SK_CORE_ERROR_TAG("Renderer", "Failed to reflect shader stage!\n\tStage: {}\n\Error Message: {}", stage, error.what());
+			}
+		}
+	}
 
-				uint32_t size = compiler.get_declared_struct_size(bufferType);
-				uint32_t memberCount = bufferType.member_types.size();
-				uint32_t binding = compiler.get_decoration(constantBuffer.id, spv::DecorationBinding);
+	void DirectXShaderCompiler::ReflectShaderStage(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary)
+	{
+		SK_CORE_TRACE_TAG("Renderer", "===========================");
+		SK_CORE_TRACE_TAG("Renderer", " DirectX Shader Reflection");
+		SK_CORE_TRACE_TAG("Renderer", "===========================");
 
-				auto& data = m_ReflectionData.ConstantBuffers[name];
-				data.Name = name;
-				data.Stage = utils::ToShaderReflectionShaderStage(stage);
-				data.Binding = binding;
-				data.Size = size;
-				data.MemberCount = memberCount;
+		spirv_cross::Compiler compiler(spirvBinary);
+		spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
 
-				SK_CORE_TRACE_TAG("Renderer", "  Name: {}", name);
-				SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", binding);
-				SK_CORE_TRACE_TAG("Renderer", "  Size: {}", size);
-				SK_CORE_TRACE_TAG("Renderer", "  Members: {}", memberCount);
+		SK_CORE_TRACE_TAG("Renderer", "Constant Buffers:");
+		for (const auto& constantBuffer : shaderResources.uniform_buffers)
+		{
+			const spirv_cross::SPIRType& bufferType = compiler.get_type(constantBuffer.type_id);
+			std::string name = compiler.get_name(constantBuffer.id);
+			if (name.empty())
+				name = constantBuffer.name;
 
-				uint32_t index = 0;
-				uint32_t offset = 0;
-				for (const auto& member : bufferType.member_types)
-				{
-					auto& memberData = data.Members.emplace_back();
-					const spirv_cross::SPIRType& memberType = compiler.get_type(member);
-					const auto& memberName = compiler.get_member_name(constantBuffer.base_type_id, index);
-					memberData.Name = fmt::format("{}.{}", name, memberName);
-					memberData.Type = utils::GetVariableType(memberType);
-					memberData.Size = compiler.get_declared_struct_member_size(bufferType, index);
-					memberData.Offset = offset;
-					index++;
-					offset += memberData.Size;
+			uint32_t size = compiler.get_declared_struct_size(bufferType);
+			uint32_t memberCount = bufferType.member_types.size();
+			uint32_t binding = compiler.get_decoration(constantBuffer.id, spv::DecorationBinding);
 
-					SK_CORE_TRACE_TAG("Renderer", "   Member: {}", memberData.Name);
-					SK_CORE_TRACE_TAG("Renderer", "    - Type: {}", ToString(memberData.Type));
-					SK_CORE_TRACE_TAG("Renderer", "    - Size: {}", memberData.Size);
-					SK_CORE_TRACE_TAG("Renderer", "    - Offset: {}", memberData.Offset);
-				}
+			auto& data = m_ReflectionData.ConstantBuffers[name];
+			data.Name = name;
+			data.Stage = utils::ToShaderReflectionShaderStage(stage);
+			data.UpdateFrequency = utils::GetUpdateFrequencyFromBinding(data.Binding);
+			data.Binding = binding;
+			data.Size = size;
+			data.MemberCount = memberCount;
 
-				SK_CORE_TRACE_TAG("Renderer", "-------------------");
+			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", name);
+			SK_CORE_TRACE_TAG("Renderer", "  UpdateFrequency", ToString(data.UpdateFrequency));
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Size: {}", size);
+			SK_CORE_TRACE_TAG("Renderer", "  Members: {}", memberCount);
+
+			uint32_t index = 0;
+			uint32_t offset = 0;
+			for (const auto& member : bufferType.member_types)
+			{
+				auto& memberData = data.Members.emplace_back();
+				const spirv_cross::SPIRType& memberType = compiler.get_type(member);
+				const auto& memberName = compiler.get_member_name(constantBuffer.base_type_id, index);
+				memberData.Name = fmt::format("{}.{}", name, memberName);
+				memberData.Type = utils::GetVariableType(memberType);
+				memberData.Size = compiler.get_declared_struct_member_size(bufferType, index);
+				memberData.Offset = offset;
+				index++;
+				offset += memberData.Size;
+
+				SK_CORE_TRACE_TAG("Renderer", "   Member: {}", memberData.Name);
+				SK_CORE_TRACE_TAG("Renderer", "    - Type: {}", ToString(memberData.Type));
+				SK_CORE_TRACE_TAG("Renderer", "    - Size: {}", memberData.Size);
+				SK_CORE_TRACE_TAG("Renderer", "    - Offset: {}", memberData.Offset);
 			}
 
-			SK_CORE_TRACE_TAG("Renderer", "Combined Sampled Images:");
-			for (const auto& resource : shaderResources.sampled_images)
+			SK_CORE_TRACE_TAG("Renderer", "-------------------");
+		}
+
+		SK_CORE_TRACE_TAG("Renderer", "Combined Sampled Images:");
+		for (const auto& resource : shaderResources.sampled_images)
+		{
+			const auto& imageType = compiler.get_type(resource.type_id);
+			const auto& name = resource.name;
+
+			auto& reflectionData = m_ReflectionData.Resources[name];
+			reflectionData.Name = name;
+			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
+			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			reflectionData.ArraySize = imageType.array[0];
+
+			switch (imageType.image.dim)
 			{
-				const auto& imageType = compiler.get_type(resource.type_id);
-				const auto& name = resource.name;
-
-				auto& reflectionData = m_ReflectionData.Resources[name];
-				reflectionData.Name = name;
-				reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
-				reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				reflectionData.ArraySize = imageType.array[0];
-
-				switch (imageType.image.dim)
-				{
-					case spv::Dim2D: reflectionData.Type = ShaderReflection::ResourceType::Sampler2D; break;
-					case spv::Dim3D: reflectionData.Type = ShaderReflection::ResourceType::Sampler3D; break;
-					case spv::DimCube: reflectionData.Type = ShaderReflection::ResourceType::SamplerCube; break;
-					default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
-				}
-
-				SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
-				SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
-				SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
-				SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
-				SK_CORE_TRACE_TAG("Renderer", "-------------------");
+				case spv::Dim2D: reflectionData.Type = ShaderReflection::ResourceType::Sampler2D; break;
+				case spv::Dim3D: reflectionData.Type = ShaderReflection::ResourceType::Sampler3D; break;
+				case spv::DimCube: reflectionData.Type = ShaderReflection::ResourceType::SamplerCube; break;
+				default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
 			}
-			
-			SK_CORE_TRACE_TAG("Renderer", "Textures:");
-			for (const auto& resource : shaderResources.separate_images)
+
+			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
+			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
+			SK_CORE_TRACE_TAG("Renderer", "-------------------");
+		}
+
+		SK_CORE_TRACE_TAG("Renderer", "Textures:");
+		for (const auto& resource : shaderResources.separate_images)
+		{
+			const auto& imageType = compiler.get_type(resource.type_id);
+
+			auto& reflectionData = m_ReflectionData.Resources[resource.name];
+			reflectionData.Name = resource.name;
+			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
+			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			reflectionData.ArraySize = imageType.array[0];
+
+			switch (imageType.image.dim)
 			{
-				const auto& imageType = compiler.get_type(resource.type_id);
-
-				auto& reflectionData = m_ReflectionData.Resources[resource.name];
-				reflectionData.Name = resource.name;
-				reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
-				reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				reflectionData.ArraySize = imageType.array[0];
-				
-				switch (imageType.image.dim)
-				{
-					case spv::Dim2D: reflectionData.Type = ShaderReflection::ResourceType::Texture2D; break;
-					case spv::Dim3D: reflectionData.Type = ShaderReflection::ResourceType::Texture3D; break;
-					case spv::DimCube: reflectionData.Type = ShaderReflection::ResourceType::TextureCube; break;
-					default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
-				}
-
-				SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
-				SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
-				SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
-				SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
-				SK_CORE_TRACE_TAG("Renderer", "-------------------");
-
+				case spv::Dim2D: reflectionData.Type = ShaderReflection::ResourceType::Texture2D; break;
+				case spv::Dim3D: reflectionData.Type = ShaderReflection::ResourceType::Texture3D; break;
+				case spv::DimCube: reflectionData.Type = ShaderReflection::ResourceType::TextureCube; break;
+				default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
 			}
-			
-			SK_CORE_TRACE_TAG("Renderer", "Samplers:");
-			for (const auto& resource : shaderResources.separate_samplers)
-			{
-				const auto& imageType = compiler.get_type(resource.type_id);
-				const auto& name = resource.name;
 
-				auto& reflectionData = m_ReflectionData.Resources[name];
-				reflectionData.Name = name;
-				reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
-				reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				reflectionData.ArraySize = imageType.array[0];
-				reflectionData.Type = ShaderReflection::ResourceType::Sampler;
-
-				SK_CORE_TRACE_TAG("Renderer", "  Name: {}", name);
-				SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
-				SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
-				SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
-				SK_CORE_TRACE_TAG("Renderer", "-------------------");
-			}
+			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
+			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
+			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 
 		}
+
+		SK_CORE_TRACE_TAG("Renderer", "Samplers:");
+		for (const auto& resource : shaderResources.separate_samplers)
+		{
+			const auto& imageType = compiler.get_type(resource.type_id);
+			const auto& name = resource.name;
+
+			auto& reflectionData = m_ReflectionData.Resources[name];
+			reflectionData.Name = name;
+			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
+			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			reflectionData.ArraySize = imageType.array[0];
+			reflectionData.Type = ShaderReflection::ResourceType::Sampler;
+
+			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", name);
+			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
+			SK_CORE_TRACE_TAG("Renderer", "-------------------");
+		}
+
 	}
 
 }

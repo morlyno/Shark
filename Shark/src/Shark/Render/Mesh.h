@@ -1,108 +1,27 @@
 #pragma once
 
-#include "Shark/Render/Buffers.h"
+#include "Shark/Asset/Asset.h"
 #include "Shark/Render/Material.h"
+#include "Shark/Render/MeshSource.h"
 
 namespace Shark {
 
-	class MeshMaterial : public RefCount
+	class Mesh : public Asset
 	{
-	public:
-		MeshMaterial(const std::string& name, Ref<Shader> shader)
-			: m_Name(name), m_Material(Material::Create(shader))
-		{}
-
-		Ref<Material> GetMaterial() const { return m_Material; }
-		Ref<Texture2D> GetAlbedo() const { return m_Albedo; }
-
-	private:
-		std::string m_Name;
-		Ref<Material> m_Material;
-		Ref<Texture2D> m_Albedo;
-
-		friend class AssimpImporter;
-	};
-
-	class MaterialTable : public RefCount
-	{
-	public:
-		bool HasMaterial(uint32_t index) const
-		{
-			return m_Materials.find(index) != m_Materials.end();
-		}
-
-		Ref<Material> GetMaterial(uint32_t index) const
-		{
-			return m_Materials.at(index)->GetMaterial();
-		}
-
-		Ref<MeshMaterial> GetMeshMaterial(uint32_t index) const
-		{
-			return m_Materials.at(index);
-		}
-
-		//void AddMaterial(uint32_t index, Ref<Material> material)
-		//{
-		//	SK_CORE_ASSERT(!HasMaterial(index));
-		//	m_Materials[index] = Ref<MeshMaterial>::Create(material);
-		//}
-		
-		void AddMaterial(uint32_t index, Ref<MeshMaterial> material)
-		{
-			SK_CORE_ASSERT(!HasMaterial(index));
-			m_Materials[index] = material;
-		}
-
-	private:
-		std::map<uint32_t, Ref<MeshMaterial>> m_Materials;
-
-		friend class AssimpImporter;
-	};
-
-	class Mesh : public RefCount
-	{
-	public:
-		struct SubMesh
-		{
-			uint32_t IndexCount = 0;
-			uint32_t BaseIndex = 0;
-			uint32_t BaseVertex = 0;
-			uint32_t MaterialIndex = 0;
-		};
-
-		struct Node
-		{
-			bool HasMesh = false;
-			std::vector<uint32_t> MeshIndices;
-			Node* Parent = nullptr;
-			std::vector<Node> Children;
-			glm::mat4 Transform;
-			std::string Name;
-		};
-
 	public:
 		Mesh() = default;
-		~Mesh() = default;
+		virtual ~Mesh() = default;
 
-		Ref<VertexBuffer> GetVertexBuffer() const { return m_VertexBuffer; }
-		Ref<IndexBuffer> GetIndexBuffer() const { return m_IndexBuffer; }
+		Ref<MeshSource> GetMeshSource() const { return m_MeshSource; }
 		Ref<MaterialTable> GetMaterialTable() const { return m_MaterialTable; }
-		const std::vector<SubMesh>& GetSubmeshes() const { return m_SubMeshes; }
-		uint32_t GetSubmeshCount() const { return m_SubMeshes.size(); }
-
-		const Node& GetRootNode() const { return m_RootNode; }
-		Node& GetRootNode() { return m_RootNode; }
-
-	private:
-		Ref<VertexBuffer> m_VertexBuffer;
-		Ref<IndexBuffer> m_IndexBuffer;
+		std::vector<uint32_t> GetSubmeshIndices() const { return m_SubmeshIndices; }
+		
+	public:
+		Ref<MeshSource> m_MeshSource;
 		Ref<MaterialTable> m_MaterialTable;
+		std::vector<uint32_t> m_SubmeshIndices;
 
-		std::vector<SubMesh> m_SubMeshes;
-
-		Node m_RootNode;
-
-		friend class AssimpImporter;
+		friend class MeshSerializer;
 	};
 
 }
