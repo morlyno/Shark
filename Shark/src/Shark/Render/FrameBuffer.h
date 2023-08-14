@@ -55,6 +55,8 @@ namespace Shark {
 		std::map<uint32_t, glm::vec4> IndipendendClearColor;
 
 		bool IsSwapChainTarget = false;
+
+		std::string DebugName;
 	};
 
 	class FrameBuffer : public RefCount

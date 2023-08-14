@@ -59,6 +59,8 @@ namespace Shark {
 		{ ".cs", AssetType::ScriptFile },
 		{ ".ttf", AssetType::Font },
 		{ ".obj", AssetType::MeshSource },
+		{ ".fbx", AssetType::MeshSource },
+		{ ".gltf", AssetType::MeshSource },
 		{ ".skmesh", AssetType::Mesh },
 		{ ".skmat", AssetType::Material }
 	};

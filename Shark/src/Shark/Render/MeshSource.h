@@ -20,7 +20,7 @@ namespace Shark {
 		struct Node
 		{
 			std::string Name;
-			glm::mat4 Transform;
+			glm::mat4 Transform = glm::identity<glm::mat4>();
 			std::vector<uint32_t> MeshIndices;
 			Node* Parent = nullptr;
 			std::vector<Node> Children;
@@ -28,6 +28,7 @@ namespace Shark {
 
 	public:
 		MeshSource() = default;
+		MeshSource(Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, Ref<MaterialTable> materialTable);
 		virtual ~MeshSource() = default;
 
 		const Ref<VertexBuffer> GetVertexBuffer() const { return m_VertexBuffer; }
@@ -36,6 +37,13 @@ namespace Shark {
 		const std::vector<SubMesh>& GetSubmeshes() const { return m_SubMeshes; }
 		uint32_t GetSubmeshCount() const { return m_SubMeshes.size(); }
 		const Node& GetRootNode() const { return m_RootNode; }
+
+	public:
+		virtual AssetType GetAssetType() const override { return GetStaticType(); }
+		static AssetType GetStaticType() { return AssetType::MeshSource; }
+
+		static Ref<MeshSource> Create() { return Ref<MeshSource>::Create(); }
+		static Ref<MeshSource> Create(Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, Ref<MaterialTable> materialTable) { return Ref<MeshSource>::Create(vertexBuffer, indexBuffer, materialTable); }
 
 	private:
 		Ref<VertexBuffer> m_VertexBuffer;

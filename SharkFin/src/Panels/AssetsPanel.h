@@ -8,7 +8,7 @@ namespace Shark {
 	class AssetsPanel : public Panel
 	{
 	public:
-		AssetsPanel(const char* panelName);
+		AssetsPanel(const std::string& panelName);
 		virtual ~AssetsPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
@@ -19,23 +19,25 @@ namespace Shark {
 		bool m_SearchHasUppercase = false;
 		bool m_CaseSensitive = false;
 
-		struct AssetTypeFlag
-		{
-			enum Type : uint16_t
-			{
-				None = 0,
-				Scene = BIT(0),
-				Texture = BIT(1),
-				TextureSource = BIT(2),
-				ScriptFile = BIT(3),
-				Font = BIT(4),
+		//struct AssetTypeFlag
+		//{
+		//	enum Type : uint16_t
+		//	{
+		//		None = 0,
+		//		Scene = BIT(0),
+		//		Texture = BIT(1),
+		//		TextureSource = BIT(2),
+		//		ScriptFile = BIT(3),
+		//		Font = BIT(4),
+		//
+		//		All = Scene | Texture | TextureSource | ScriptFile | Font
+		//	};
+		//	using Flags = std::underlying_type_t<Type>;
+		//};
 
-				All = Scene | Texture | TextureSource | ScriptFile | Font
-			};
-			using Flags = std::underlying_type_t<Type>;
-		};
+		std::map<AssetType, bool> m_EnabledTypes;
 
-		AssetTypeFlag::Flags m_EnabledTypes = AssetTypeFlag::All;
+		//AssetTypeFlag::Flags m_EnabledTypes = AssetTypeFlag::All;
 	};
 
 }

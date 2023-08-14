@@ -727,6 +727,12 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
+		if (!material)
+		{
+			SK_CORE_ERROR_TAG("Renderer", "Tried to bind Material but Material is null");
+			return;
+		}
+
 		ID3D11DeviceContext* context = commandBuffer->GetContext();
 
 		material->RT_UpdateDirtyBuffers();

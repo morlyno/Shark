@@ -58,7 +58,7 @@ namespace Shark {
 
 	EditorConsolePanel* EditorConsolePanel::s_Instance = nullptr;
 
-	EditorConsolePanel::EditorConsolePanel(const char* panelName)
+	EditorConsolePanel::EditorConsolePanel(const std::string& panelName)
 		: Panel(panelName)
 	{
 		SK_PROFILE_FUNCTION();
@@ -84,7 +84,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (ImGui::Begin(m_PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+		if (ImGui::Begin(m_PanelName.c_str(), &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
 		{
 			DrawMenuBar();
 			DrawMessages();

@@ -41,6 +41,7 @@ namespace Shark {
 		// Geometry
 		{
 			FrameBufferSpecification fbspecs;
+			fbspecs.DebugName = "SceneRenderer Geometry";
 			fbspecs.Width = m_ViewportWidth;
 			fbspecs.Height = m_ViewportHeight;
 			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
@@ -55,6 +56,7 @@ namespace Shark {
 		// External Composite
 		{
 			FrameBufferSpecification fbspecs;
+			fbspecs.DebugName = "SceneRenderer External Composite";
 			fbspecs.Width = m_ViewportWidth;
 			fbspecs.Height = m_ViewportHeight;
 			fbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -202,10 +204,13 @@ namespace Shark {
 	void SceneRenderer::DrawSettings()
 	{
 		auto profiler = Application::Get().GetProfiler();
-		profiler->Add("SceneRenderer GPU", m_Timer->GetTime());
-		profiler->Add("Geometry Pass", m_Renderer2D->GetStatistics().GeometryPassTime);
-		profiler->Add("Opaque Geometry Pass", m_Renderer2D->GetStatistics().OpaqueGeometryTime);
-		profiler->Add("OIT Geometry Pass", m_Renderer2D->GetStatistics().OITGeometryTime);
+		if (profiler)
+		{
+			profiler->Add("[GPU] SceneRenderer", m_Timer->GetTime());
+			profiler->Add("[GPU] Geometry Pass", m_Renderer2D->GetStatistics().GeometryPassTime);
+			profiler->Add("[GPU] Opaque Geometry Pass", m_Renderer2D->GetStatistics().OpaqueGeometryTime);
+			profiler->Add("[GPU] OIT Geometry Pass", m_Renderer2D->GetStatistics().OITGeometryTime);
+		}
 
 		const void* treeNodeID = this;
 		if (ImGui::TreeNodeEx(treeNodeID, ImGuiTreeNodeFlags_CollapsingHeader, "Scene Renderer [%s]", m_DebugName.c_str()))
@@ -226,7 +231,7 @@ namespace Shark {
 			{
 				UI::BeginControlsGrid();
 				const auto& stats = m_Renderer2D->GetStatistics();
-				UI::PushFramedTextAlign({ 0.5f, 0.5f });
+				//UI::ScopedFramedTextAlign textAlign({ 0.5f, 0.5f });
 				UI::Property("DrawCalls", stats.DrawCalls);
 				UI::Property("Quads", stats.QuadCount);
 				UI::Property("Cirlces", stats.CircleCount);
@@ -237,7 +242,6 @@ namespace Shark {
 				UI::Property("Textures", stats.TextureCount);
 				UI::Property("Mesh CBs", m_MeshTransformCBs.size());
 				UI::Property("  In Use", m_MeshTransformCBIndex);
-				UI::PopFramedTextAlign();
 				UI::EndControls();
 
 				ImGui::TreePop();

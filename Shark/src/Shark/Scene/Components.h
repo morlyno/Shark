@@ -103,6 +103,7 @@ namespace Shark {
 	{
 		AssetHandle MeshHandle;
 		uint32_t SubmeshIndex;
+		// TODO(moro): maybe add material
 	};
 
 	struct CameraComponent

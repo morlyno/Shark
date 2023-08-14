@@ -11,7 +11,7 @@ namespace Shark {
 	class Panel : public RefCount
 	{
 	public:
-		Panel(const char* panelName) : m_PanelName(panelName) {}
+		Panel(const std::string& panelName) : m_PanelName(panelName) {}
 		virtual ~Panel() = default;
 
 		virtual void OnUpdate(TimeStep ts) {}
@@ -23,10 +23,10 @@ namespace Shark {
 		virtual void OnSceneStop() {};
 		virtual void OnProjectChanged(Ref<ProjectInstance> project) {}
 
-		const char* GetName() const { return m_PanelName; }
+		const std::string& GetName() const { return m_PanelName; }
 
 	protected:
-		const char* m_PanelName = nullptr;
+		std::string m_PanelName;
 	};
 
 }

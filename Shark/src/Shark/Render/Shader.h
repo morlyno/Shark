@@ -27,7 +27,8 @@ namespace Shark {
 		~ShaderLibrary() { Clear(); }
 
 		Ref<Shader> Load(const std::filesystem::path& filepath, bool forceCompile = false, bool disableOptimization = false);
-		Ref<Shader> Get(const std::string& name) { return m_ShaderMap.at(name); }
+		Ref<Shader> Get(const std::string& name);
+		Ref<Shader> TryGet(const std::string& name);
 
 		bool Exists(const std::string& name) { return m_ShaderMap.find(name) != m_ShaderMap.end(); }
 		void Clear() { m_ShaderMap.clear(); }

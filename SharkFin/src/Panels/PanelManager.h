@@ -8,7 +8,7 @@ namespace Shark {
 	{
 	public:
 		template<typename T, typename... Args>
-		Ref<T> AddPanel(const std::string& id, const char* panelName, bool show, Args&&... args)
+		Ref<T> AddPanel(const std::string& id, const std::string& panelName, bool show, Args&&... args)
 		{
 			auto panel = Ref<T>::Create(panelName, std::forward<Args>(args)...);
 			m_Panels[id] = { panel, show };
@@ -32,7 +32,7 @@ namespace Shark {
 		void OnImGuiRender();
 		void OnEvent(Event& event);
 
-		void DrawPanelsMenu(const char* menuName);
+		void DrawPanelsMenu(const std::string& menuName);
 
 		void SetContext(Ref<Scene> context);
 		void OnScenePlay();

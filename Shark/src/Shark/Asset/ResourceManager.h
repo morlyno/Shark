@@ -129,7 +129,7 @@ namespace Shark {
 				bool foundValidFilePath = false;
 
 				std::filesystem::path pathFileName = fileName;
-				std::string path = (directoryPath / pathFileName.stem()).generic_string();
+				std::string path = (Project::GetAssetsPath() / dirPath / pathFileName.stem()).generic_string();
 				std::string extention = pathFileName.extension().string();
 
 				while (!foundValidFilePath)
@@ -179,9 +179,9 @@ namespace Shark {
 		static const auto& GetLoadedAssets() { return s_Data->LoadedAssets; }
 
 		// File Events
-		static void OnFileEvents(const std::vector<FileChangedData>& fileEvents);
-		static void OnAssetRenamed(const std::filesystem::path& oldFilePath, const std::filesystem::path& newFilePath);
+		static void OnAssetCreated(const std::filesystem::path& filePath);
 		static void OnAssetDeleted(const std::filesystem::path& filePath);
+		static void OnAssetRenamed(const std::filesystem::path& oldFilePath, const std::string& newName);
 
 	private:
 		static AssetMetaData& GetMetaDataInternal(AssetHandle handle);

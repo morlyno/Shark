@@ -22,7 +22,7 @@ namespace Shark {
 		m_ErrorMsg.clear();
 
 		std::string result = SerializeToYAML(asset.As<MaterialAsset>());
-		if (!result.empty())
+		if (result.empty())
 		{
 			SK_CORE_ERROR_TAG("Serialization", "YAML result was empty!\n\tError Message: {}", m_ErrorMsg);
 			return false;
@@ -105,8 +105,8 @@ namespace Shark {
 		out << YAML::BeginMap;
 		out << YAML::Key << "Material" << YAML::Value;
 		out << YAML::BeginMap;
-		out << YAML::Key << "Name" << YAML::Value << material->GetName();
-		out << YAML::Key << "Shader" << YAML::Value << material->GetMaterial()->GetShader()->GetName();
+
+		out << YAML::Key << "AlbedoColor" << YAML::Value << material->GetAlbedoColor();
 		out << YAML::Key << "AlbedoTexture" << YAML::Value << material->GetAlbedoTexture();
 		out << YAML::Key << "UseAlbedo" << YAML::Value << material->UseAlbedo();
 		out << YAML::EndMap;
@@ -117,32 +117,37 @@ namespace Shark {
 
 	bool MaterialSerializer::DeserializeFromYAML(Ref<MaterialAsset> material, const std::string& filedata)
 	{
-		auto rootNode = YAML::Load(filedata);
-		if (!rootNode)
+		try
 		{
-			m_ErrorMsg = "Failed to load YAML";
+			auto rootNode = YAML::Load(filedata);
+			if (!rootNode)
+			{
+				m_ErrorMsg = "Failed to load YAML";
+				return false;
+			}
+
+			auto materialNode = rootNode["Material"];
+			if (!materialNode)
+			{
+				m_ErrorMsg = "Material Node not found";
+				return false;
+			}
+
+			glm::vec3 albedoColor = materialNode["AlbedoColor"].as<glm::vec3>(glm::vec3(1.0f));
+			AssetHandle albedoTexture = materialNode["AlbedoTexture"].as<AssetHandle>();
+			bool useAlbedo = materialNode["UseAlbedo"].as<bool>();
+
+			material->SetAlbedoColor(albedoColor);
+			material->SetAlbedoTexture(albedoTexture);
+			material->SetUseAlbedo(useAlbedo);
+		}
+		catch (const YAML::Exception& exception)
+		{
+			m_ErrorMsg = exception.what();
+			SK_CORE_ASSERT(false);
 			return false;
 		}
-
-		auto materialNode = rootNode["Material"];
-		if (!materialNode)
-		{
-			m_ErrorMsg = "Material Node not found";
-			return false;
-		}
-
-		std::string name = materialNode["Name"].as<std::string>();
-		std::string shaderName = materialNode["Shader"].as<std::string>();
-		AssetHandle albedoTexture = materialNode["AlbedoTexture"].as<AssetHandle>();
-		bool useAlbedo = materialNode["UseAlbdeo"].as<bool>();
-
-		material->m_Name = name;
-		if (Ref<Shader> shader = Renderer::GetShaderLib()->Get(shaderName))
-			material->m_Material = Material::Create(shader);
-
-		material->m_AlbedoTexture = albedoTexture;
-		material->m_UseAlbedo = useAlbedo;
-
+		return true;
 	}
 
 }

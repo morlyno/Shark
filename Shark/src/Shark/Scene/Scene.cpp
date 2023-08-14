@@ -467,7 +467,8 @@ namespace Shark {
 		if (first)
 		{
 			entity.RemoveParent();
-			entity.RemoveChildren();
+			if (!destroyChildren)
+				entity.RemoveChildren();
 		}
 
 		if (destroyChildren)

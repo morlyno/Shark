@@ -29,4 +29,17 @@ namespace Shark {
 		return shader;
 	}
 
+	Ref<Shader> ShaderLibrary::Get(const std::string& name)
+	{
+		SK_CORE_VERIFY(Exists(name));
+		return m_ShaderMap.at(name);
+	}
+
+	Ref<Shader> ShaderLibrary::TryGet(const std::string& name)
+	{
+		if (Exists(name))
+			return m_ShaderMap.at(name);
+		return nullptr;
+	}
+
 }

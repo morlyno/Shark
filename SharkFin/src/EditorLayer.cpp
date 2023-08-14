@@ -10,6 +10,8 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
 
+#include "Shark/Render/MeshFactory.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
 
@@ -19,7 +21,9 @@
 #include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
 #include "Panels/SceneHirachyPanel.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
-#include "Panels/TextureEditorPanel.h"
+#include "Panels/AssetEditorPanel.h"
+#include "Panels/Editors/TextureEditorPanel.h"
+#include "Panels/Editors/MaterialEditorPanel.h"
 #include "Panels/PhysicsDebugPanel.h"
 #include "Panels/ScriptEnginePanel.h"
 #include "Panels/AssetsPanel.h"
@@ -36,7 +40,6 @@
 
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include "Shark/Serialization/AssimpImporter.h"
 #include "Shark/Serialization/MeshSerializer.h"
 #include "Shark/Serialization/MeshSourceSerializer.h"
 
@@ -389,7 +392,43 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		ResourceManager::OnFileEvents(fileEvents);
+		for (uint32_t index = 0; index < fileEvents.size(); index++)
+		{
+			const auto& event = fileEvents[index];
+
+			if (event.IsDirectory)
+				continue;
+
+			if (event.Type == FileEvent::None || event.Type == FileEvent::Modified || event.Type == FileEvent::NewName)
+				continue;
+
+			const bool isFileImported = ResourceManager::IsFileImported(event.FilePath);
+			if (event.Type == FileEvent::Created && isFileImported)
+				continue;
+			
+			if (event.Type == FileEvent::Deleted && !isFileImported)
+				continue;
+
+			AssetType assetType = AssetUtils::GetAssetTypeFromPath(event.FilePath);
+			if (assetType != AssetType::None)
+			{
+				auto& assetFileEvent = m_PendingAssetFileEvents.emplace_back();
+				assetFileEvent.Action = event.Type;
+				assetFileEvent.AssetPath = event.FilePath;
+				assetFileEvent.Type = assetType;
+
+				assetFileEvent.ActionString = ToString(event.Type);
+
+				if (event.Type == FileEvent::OldName)
+				{
+					SK_CORE_VERIFY(index < fileEvents.size() && fileEvents[index + 1].Type == FileEvent::NewName);
+					const auto& newNameEvent = fileEvents[index + 1];
+					assetFileEvent.NewName = newNameEvent.FilePath.stem().string();
+					assetFileEvent.ActionString = "Name Changed";
+				}
+			}
+		}
+
 		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileEvents(fileEvents);
 	}
 
@@ -479,6 +518,9 @@ namespace Shark {
 		UI_OpenProjectModal();
 		UI_ImportAsset();
 		UI_Stuff();
+		UI_PendingAssetFileEvents();
+		UI_CreateMeshAsset();
+
 
 		{
 			static AssetHandle meshSourceHandle = AssetHandle::Invalid;
@@ -593,14 +635,6 @@ namespace Shark {
 						if (ResourceManager::IsFileImported(file))
 							continue;
 
-						AssetType assetType = ResourceManager::GetAssetTypeFormFilePath(file);
-						if (assetType == AssetType::MeshSource)
-						{
-							AssimpImporter importer;
-							importer.Import(file);
-							continue;
-						}
-
 						ResourceManager::ImportAsset(file);
 					}
 				}
@@ -712,7 +746,7 @@ namespace Shark {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::BeginEx("MainViewport", m_MainViewportID);
+		ImGui::BeginEx("MainViewport", m_MainViewportID, nullptr, ImGuiWindowFlags_None);
 		ImGui::PopStyleVar(4);
 
 		m_ViewportHovered = ImGui::IsWindowHovered();
@@ -957,93 +991,108 @@ namespace Shark {
 		if (m_SceneState != SceneState::Edit)
 			return;
 
-		if (ImGui::BeginDragDropTarget())
+		if (!ImGui::BeginDragDropTarget())
+			return;
+
+		// Asset
 		{
-			// Asset
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET");
+			if (payload)
 			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET");
-				if (payload)
+				AssetHandle handle = UI::GetPayloadDataAs<AssetHandle>(payload);
+				const auto& metadata = ResourceManager::GetMetaData(handle);
+				if (metadata.IsValid())
 				{
-					AssetHandle handle = *(AssetHandle*)payload->Data;
-					if (ResourceManager::IsValidAssetHandle(handle))
+					switch (metadata.Type)
 					{
-						const AssetMetaData& metadata = ResourceManager::GetMetaData(handle);
-						if (metadata.IsValid())
+						case AssetType::Scene:
 						{
-							switch (metadata.Type)
+							LoadScene(handle);
+							break;
+						}
+						case AssetType::Texture:
+						{
+							Entity entity = m_ActiveScene->CreateEntity();
+							auto& sr = entity.AddComponent<SpriteRendererComponent>();
+							sr.TextureHandle = handle;
+							SelectEntity(entity);
+							break;
+						}
+						case AssetType::TextureSource:
+						{
+							m_TextureAssetCreateData.Clear();
+							auto sourcePath = ResourceManager::GetFileSystemPath(metadata);
+							m_TextureAssetCreateData.TextureSourcePath = sourcePath.string();
+							m_TextureAssetCreateData.TextureFileName = sourcePath.stem().string();
+							m_TextureAssetCreateData.OpenPopup = true;
+							m_TextureAssetCreateData.CreateEntityAfterCreation = true;
+							break;
+						}
+						case AssetType::Mesh:
+						{
+							Ref<Mesh> mesh = ResourceManager::GetAsset<Mesh>(metadata.Handle);
+							if (mesh)
+								InstantiateMesh(mesh);
+							break;
+						}
+						case AssetType::MeshSource:
+						{
+#if 0
+							Ref<MeshSource> meshSource = ResourceManager::GetAsset<MeshSource>(metadata.Handle);
+							if (meshSource)
 							{
-								case AssetType::Scene:
-								{
-									LoadScene(handle);
-									break;
-								}
-								case AssetType::Texture:
-								{
-									Entity entity = m_ActiveScene->CreateEntity();
-									auto& sr = entity.AddComponent<SpriteRendererComponent>();
-									sr.TextureHandle = handle;
-									SelectEntity(entity);
-									break;
-								}
-								case AssetType::TextureSource:
-								{
-									m_TextureAssetCreateData.Clear();
-									auto sourcePath = ResourceManager::GetFileSystemPath(metadata);
-									m_TextureAssetCreateData.TextureSourcePath = sourcePath.string();
-									m_TextureAssetCreateData.TextureFileName = sourcePath.stem().string();
-									m_TextureAssetCreateData.OpenPopup = true;
-									m_TextureAssetCreateData.CreateEntityAfterCreation = true;
-									break;
-								}
-								case AssetType::Mesh:
-								{
-									Ref<Mesh> mesh = ResourceManager::GetAsset<Mesh>(metadata.Handle);
-									if (mesh)
-										InstantiateMesh(mesh);
-									break;
-								}
+								std::string directory = fmt::format("{}/Meshes", Project::GetAssetsPath());
+								Ref<Mesh> mesh = ResourceManager::CreateAsset<Mesh>(directory, metadata.FilePath.stem().string(), meshSource);
+								InstantiateMesh(mesh);
 							}
+							break;
+#endif
+
+							m_CreateMeshAssetData = {};
+							m_CreateMeshAssetData.Show = true;
+							m_CreateMeshAssetData.MeshSource = handle;
+							m_CreateMeshAssetData.DestinationPath = metadata.FilePath.filename().string();
+							m_CreateMeshAssetData.MeshDirectory = m_DefaultAssetDirectories.at(AssetType::Mesh);
 						}
 					}
-
 				}
-			}
 
-			// ASSET_FILEPATH
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_FILEPATH");
-				if (payload)
-				{
-					std::filesystem::path filePath = std::wstring((const wchar_t*)payload->Data, payload->DataSize / sizeof(wchar_t));
-					Project::Absolue(filePath);
-					const auto extention = filePath.extension();
-					
-					if (extention == L".skscene")
-					{
-						AssetHandle handle = ResourceManager::ImportAsset(filePath);
-						LoadScene(handle);
-					}
-					else if (extention == "L.sktex")
-					{
-						AssetHandle handle = ResourceManager::ImportAsset(filePath);
-						Entity newEntity = CreateEntity();
-						auto& sr = newEntity.AddComponent<SpriteRendererComponent>();
-						sr.TextureHandle = handle;
-						SelectEntity(newEntity);
-					}
-					else if (extention == L".png")
-					{
-						m_TextureAssetCreateData.Clear();
-						m_TextureAssetCreateData.TextureSourcePath = filePath.string();
-						m_TextureAssetCreateData.OpenPopup = true;
-						m_TextureAssetCreateData.CreateEntityAfterCreation = true;
-					}
-				}
 			}
-
-			ImGui::EndDragDropTarget();
 		}
 
+		// ASSET_FILEPATH
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_FILEPATH");
+			if (payload)
+			{
+				std::filesystem::path filePath = std::wstring((const wchar_t*)payload->Data, payload->DataSize / sizeof(wchar_t));
+				Project::Absolue(filePath);
+				const auto extention = filePath.extension();
+					
+				if (extention == L".skscene")
+				{
+					AssetHandle handle = ResourceManager::ImportAsset(filePath);
+					LoadScene(handle);
+				}
+				else if (extention == "L.sktex")
+				{
+					AssetHandle handle = ResourceManager::ImportAsset(filePath);
+					Entity newEntity = CreateEntity();
+					auto& sr = newEntity.AddComponent<SpriteRendererComponent>();
+					sr.TextureHandle = handle;
+					SelectEntity(newEntity);
+				}
+				else if (extention == L".png")
+				{
+					m_TextureAssetCreateData.Clear();
+					m_TextureAssetCreateData.TextureSourcePath = filePath.string();
+					m_TextureAssetCreateData.OpenPopup = true;
+					m_TextureAssetCreateData.CreateEntityAfterCreation = true;
+				}
+			}
+		}
+
+		ImGui::EndDragDropTarget();
 	}
 
 	void EditorLayer::UI_ToolBar()
@@ -1069,7 +1118,8 @@ namespace Shark {
 
 		const float size = ImGui::GetContentRegionAvail().y;
 
-		const auto imageButton = [this, size](auto strid, auto texture) { return ImGui::ImageButtonEx(UI::GetID(strid), texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0, 0 }, { 0, 0, 0, 0 }, { 1, 1, 1, 1 }); };
+		// TODO(moro): add padding of { 0, 0 } to ImageButton
+		const auto imageButton = [this, size](auto strid, auto texture) { return ImGui::ImageButtonEx(UI::GetID(strid), texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 1, 1, 1, 1 }); };
 		const auto imageButtonDisabled = [this, size](auto strid, auto texture) { ImGui::Image(texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0.5f, 0.5f, 0.5f, 1.0f }); };
 
 		//imageButton("CursorIcon", m_CursorIcon);
@@ -1834,6 +1884,160 @@ namespace Shark {
 		ImGui::End();
 	}
 
+	void EditorLayer::UI_Objects()
+	{
+		if (!m_ShowObjects)
+			return;
+
+		ImGui::Begin("Objects", &m_ShowObjects);
+
+		ImGui::Button("Cube");
+		if (ImGui::BeginDragDropSource())
+		{
+			if (m_CubeMesh == AssetHandle::Invalid)
+			{
+				Ref<MeshSource> meshSource = MeshFactory::GetCube();
+				Ref<Mesh> mesh = ResourceManager::CreateMemoryAsset<Mesh>(meshSource, Ref<MaterialTable>::Create(), std::vector<uint32_t>{});
+				m_CubeMesh = mesh->Handle;
+			}
+
+			ImGui::SetDragDropPayload(UI::DragDropID::Asset, &m_CubeMesh, sizeof(AssetHandle));
+			ImGui::EndDragDropSource();
+		}
+		
+		ImGui::Button("Sphere");
+		if (ImGui::BeginDragDropSource())
+		{
+			if (m_SphereMesh == AssetHandle::Invalid)
+			{
+				Ref<MeshSource> meshSource = MeshFactory::GetSphere();
+				Ref<Mesh> mesh = ResourceManager::CreateMemoryAsset<Mesh>(meshSource, Ref<MaterialTable>::Create(), std::vector<uint32_t>{});
+				m_SphereMesh = mesh->Handle;
+			}
+
+			ImGui::SetDragDropPayload(UI::DragDropID::Asset, &m_SphereMesh, sizeof(AssetHandle));
+			ImGui::EndDragDropSource();
+		}
+
+		ImGui::End();
+	}
+
+	void EditorLayer::UI_PendingAssetFileEvents()
+	{
+		if (m_PendingAssetFileEvents.empty())
+			return;
+
+		ImGui::Begin("Pending Asset File Events");
+
+		const auto applyFileEvent = [](const AssetFileEventData& event)
+		{
+			switch (event.Action)
+			{
+				case FileEvent::Created: ResourceManager::OnAssetCreated(event.AssetPath); return;
+				case FileEvent::Deleted: ResourceManager::OnAssetDeleted(event.AssetPath); return;
+				case FileEvent::OldName: ResourceManager::OnAssetRenamed(event.AssetPath, event.NewName); return;
+			}
+		};
+
+		if (ImGui::Button("Apply All"))
+		{
+			for (const auto& event : m_PendingAssetFileEvents)
+				applyFileEvent(event);
+			m_PendingAssetFileEvents.clear();
+		}
+
+		if (ImGui::Button("Cancle All"))
+			m_PendingAssetFileEvents.clear();
+
+		for (auto iter = m_PendingAssetFileEvents.begin(); iter != m_PendingAssetFileEvents.end();)
+		{
+			UI::ScopedID id(iter._Ptr);
+			const auto& event = *iter;
+			auto relativePath = ResourceManager::MakeRelativePath(event.AssetPath);
+			UI::TextF("Path: {}", relativePath);
+			UI::TextF("Action: {}", event.ActionString);
+
+			if (event.Action == FileEvent::OldName)
+				UI::TextF("New Filename: {}", event.NewName);
+
+			if (ImGui::Button("Apply"))
+			{
+				applyFileEvent(event);
+				iter = m_PendingAssetFileEvents.erase(iter);
+				continue;
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Cancle"))
+			{
+				iter = m_PendingAssetFileEvents.erase(iter);
+				continue;
+			}
+
+			iter++;
+		}
+
+		ImGui::End();
+	}
+
+	void EditorLayer::UI_CreateMeshAsset()
+	{
+		if (!m_CreateMeshAssetData.Show)
+			return;
+
+		if (ImGui::Begin("Create Mesh Asset"))
+		{
+			const auto& style = ImGui::GetStyle();
+
+			{
+				UI::ScopedColor textDisabled(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
+				const ImVec2 itemSize = UI::CalcItemSizeFromText(m_CreateMeshAssetData.MeshDirectory.c_str());
+				ImGui::SetNextItemWidth(itemSize.x);
+				UI::TextFramed(m_CreateMeshAssetData.MeshDirectory.c_str());
+			}
+
+			ImGui::SameLine();
+
+			{
+				char inputBuffer[MAX_PATH];
+				strcpy_s(inputBuffer, m_CreateMeshAssetData.DestinationPath.c_str());
+				ImGui::SetNextItemWidth(-1.0f);
+				if (UI::InputPath("##MeshAssetPath", inputBuffer, std::size(inputBuffer)))
+					m_CreateMeshAssetData.DestinationPath = inputBuffer;
+			}
+
+			float minYCursorPos = ImGui::GetCursorPosY();
+
+			const ImVec2 createTextSize = ImGui::CalcTextSize("Create");
+			const ImVec2 cancleTextSize = ImGui::CalcTextSize("Cancle");
+			const ImVec2 createButtonSize = { createTextSize.x + style.FramePadding.x * 2.0f, createTextSize.y + style.FramePadding.y * 2.0f };
+			const ImVec2 cancleButtonSize = { cancleTextSize.x + style.FramePadding.x * 2.0f, cancleTextSize.y + style.FramePadding.y * 2.0f };
+			const ImVec2 contentRegion = ImGui::GetContentRegionMax();
+			const ImVec2 createButtonPos = {
+				contentRegion.x - cancleButtonSize.x - style.ItemSpacing.x - createButtonSize.x,
+				std::max(contentRegion.y - createButtonSize.y, minYCursorPos)
+			};
+
+			ImGui::SetCursorPos(createButtonPos);
+			if (ImGui::Button("Create"))
+			{
+				Ref<MeshSource> meshSource = ResourceManager::GetAsset<MeshSource>(m_CreateMeshAssetData.MeshSource);
+				Ref<Mesh> mesh = ResourceManager::CreateAsset<Mesh>(m_CreateMeshAssetData.MeshDirectory, m_CreateMeshAssetData.DestinationPath, meshSource);
+				InstantiateMesh(mesh);
+				m_CreateMeshAssetData = {};
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Cancle"))
+			{
+				m_CreateMeshAssetData = {};
+			}
+
+			ImGui::End();
+		}
+
+	}
+
 	void EditorLayer::RegisterSettingNodes()
 	{
 		Ref<SettingsPanel> settingsPanel = m_PanelManager->GetPanel<SettingsPanel>(SETTINGS_PANEL_ID);
@@ -1897,13 +2101,23 @@ namespace Shark {
 		if (!metadata.IsValid())
 			return;
 
+		m_PanelManager->Show(ASSET_EDITOR_ID, true);
 		Ref<AssetEditorPanel> assetEditor = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID);
 
 		switch (metadata.Type)
 		{
 			case AssetType::Texture:
-				assetEditor->AddEditor<TextureEditorPanel>(assetHandle, "Textur Editor", true, ResourceManager::GetAsset<Texture2D>(assetHandle));
+			{
+				Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(assetHandle);
+				assetEditor->AddEditor<TextureEditorPanel>(assetHandle, fmt::format("Texture Editor ({})", metadata.FilePath.stem()), true, texture);
 				break;
+			}
+			case AssetType::Material:
+			{
+				Ref<MaterialAsset> materialAsset = ResourceManager::GetAsset<MaterialAsset>(assetHandle);
+				assetEditor->AddEditor<MaterialEditorPanel>(assetHandle, fmt::format("Material Editor ({})", metadata.FilePath.stem()), true, materialAsset);
+				break;
+			}
 		}
 
 	}

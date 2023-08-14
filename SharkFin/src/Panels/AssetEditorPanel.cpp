@@ -1,13 +1,15 @@
 #include "skfpch.h"
 #include "AssetEditorPanel.h"
 
+#include "Shark/UI/UI.h"
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
-	AssetEditorPanel::AssetEditorPanel(const char* panelName)
+	AssetEditorPanel::AssetEditorPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
+		m_DockspaceID = UI::GetIDWithSeed("AssetEditorPanelDockspace", (uint32_t)this);
 	}
 
 	AssetEditorPanel::~AssetEditorPanel()
@@ -24,6 +26,30 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (!shown)
+			return;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+		const bool opened = ImGui::Begin(m_PanelName.c_str(), &shown);
+		ImGui::PopStyleVar();
+
+		if (opened)
+		{
+			ImGui::DockSpace(m_DockspaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_NoWindowMenuButton);
+
+			DrawPanels();
+		}
+		ImGui::End();
+	}
+
+	void AssetEditorPanel::OnEvent(Event& event)
+	{
+		for (auto& [id, entry] : m_EditorPanels)
+			entry.Editor->OnEvent(event);
+	}
+
+	void AssetEditorPanel::DrawPanels()
+	{
 		for (auto it = m_EditorPanels.begin(); it != m_EditorPanels.end();)
 		{
 			auto& entry = it->second;
@@ -36,12 +62,6 @@ namespace Shark {
 
 			it++;
 		}
-	}
-
-	void AssetEditorPanel::OnEvent(Event& event)
-	{
-		for (auto& [id, entry] : m_EditorPanels)
-			entry.Editor->OnEvent(event);
 	}
 
 }

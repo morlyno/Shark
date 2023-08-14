@@ -106,7 +106,7 @@ namespace Shark {
 	class ContentBrowserPanel : public Panel
 	{
 	public:
-		ContentBrowserPanel(const char* panelName, CBOpenAssetCallbackFn callback = nullptr);
+		ContentBrowserPanel(const std::string& panelName, CBOpenAssetCallbackFn callback = nullptr);
 		~ContentBrowserPanel();
 
 		void RegisterOpenAssetCallback(CBOpenAssetCallbackFn callback) { m_OpenAssetCallback = callback; }

@@ -84,6 +84,9 @@ namespace Shark {
 		void UI_OpenProjectModal();
 		void UI_ImportAsset();
 		void UI_Stuff();
+		void UI_Objects();
+		void UI_PendingAssetFileEvents();
+		void UI_CreateMeshAsset();
 
 		void RegisterSettingNodes();
 
@@ -168,6 +171,7 @@ namespace Shark {
 		bool m_ShowStatistics = false;
 		bool m_ShowStuffPanel = false;
 		bool m_ReadPixel = false;
+		bool m_ShowObjects = true;
 		glm::vec4 m_HoveredColor;
 
 		int m_HoveredEntityID = -1;
@@ -290,6 +294,31 @@ namespace Shark {
 		};
 
 		bool m_ShaderCompilerDisableOptimization = false;
+
+		AssetHandle m_CubeMesh;
+		AssetHandle m_SphereMesh;
+
+		struct AssetFileEventData
+		{
+			FileEvent Action = FileEvent::None;
+			std::filesystem::path AssetPath;
+			AssetType Type;
+
+			std::string ActionString;
+			// Only used with FileEvent::NewName
+			std::string NewName;
+		};
+
+		std::vector<AssetFileEventData> m_PendingAssetFileEvents;
+
+		struct CreateMeshAssetData
+		{
+			bool Show = false;
+			AssetHandle MeshSource = AssetHandle::Invalid;
+			std::string DestinationPath;
+			std::string MeshDirectory;
+		};
+		CreateMeshAssetData m_CreateMeshAssetData;
 
 	};
 

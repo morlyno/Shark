@@ -172,8 +172,7 @@ namespace Shark {
 		for (uint32_t materialIndex = 0; materialIndex < scene->mNumMaterials; materialIndex++)
 		{
 			aiMaterial* material = scene->mMaterials[materialIndex];
-			aiString name = material->GetName();
-			Ref<MaterialAsset> materialAsset = Ref<MaterialAsset>::Create(name.C_Str(), Material::Create(Renderer::GetShaderLib()->Get("DefaultMeshShader")));
+			Ref<MaterialAsset> materialAsset = Ref<MaterialAsset>::Create(Material::Create(Renderer::GetShaderLib()->Get("DefaultMeshShader")));
 			materialTable->AddMaterial(materialIndex, materialAsset);
 
 			aiString textureFileName;

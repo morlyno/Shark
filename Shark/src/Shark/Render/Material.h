@@ -71,13 +71,13 @@ namespace Shark {
 	class MaterialAsset : public Asset
 	{
 	public:
-		MaterialAsset() = default;
-		MaterialAsset(const std::string& name, Ref<Material> material)
-			: m_Name(name), m_Material(material)
+		MaterialAsset();
+		MaterialAsset(Ref<Material> material)
+			: m_Material(material)
 		{}
 
-		const std::string& GetName() const { return m_Name; }
 		Ref<Material> GetMaterial() const { return m_Material; }
+		void SetMaterial(Ref<Material> material) { m_Material = material; }
 
 		bool IsDirty() const { return m_Dirty; }
 		void SetDirty(bool dirty) { m_Dirty = dirty; }
@@ -90,15 +90,23 @@ namespace Shark {
 		void SetAlbedoTexture(AssetHandle handle) { m_AlbedoTexture = handle; m_Dirty = true; }
 		void SetUseAlbedo(bool use) { m_UseAlbedo = use; m_Dirty = true; }
 
+		void UpdateMaterial();
+		void UpdateMaterialIfDirty() { if (IsDirty()) UpdateMaterial(); }
+
+	public:
+		virtual AssetType GetAssetType() const override { return GetStaticType(); }
+		static AssetType GetStaticType() { return AssetType::Material; }
+
+		static Ref<MaterialAsset> Create() { return Ref<MaterialAsset>::Create(); }
+
 	private:
-		std::string m_Name;
 		Ref<Material> m_Material;
 
 		bool m_Dirty = false;
 
 		glm::vec3 m_AlbedoColor = glm::vec3(1.0f);
 		AssetHandle m_AlbedoTexture;
-		bool m_UseAlbedo = true;
+		bool m_UseAlbedo = false;
 
 		friend class MaterialSerializer;
 		friend class MeshSourceSerializer;
@@ -128,6 +136,11 @@ namespace Shark {
 		{
 			SK_CORE_ASSERT(!HasMaterial(index));
 			m_MaterialAssets[index] = materialAsset;
+		}
+
+		void SetMaterial(uint32_t index, Ref<MaterialAsset> material)
+		{
+			m_MaterialAssets[index] = material;
 		}
 
 		void RemoveMaterial(uint32_t index)

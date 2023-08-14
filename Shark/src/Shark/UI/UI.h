@@ -139,6 +139,12 @@ namespace Shark::UI {
 
 	ImVec2 CalcItemSizeFromText(const char* text, const char* textEnd = nullptr);
 
+	template<typename T> const T& GetPayloadDataAs(const ImGuiPayload* payload)
+	{
+		SK_CORE_VERIFY(payload && payload->DataSize == sizeof(T));
+		return *(T*)payload->Data;
+	}
+
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -235,6 +241,28 @@ namespace Shark::UI {
 	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);
 	bool ControlAsset(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
 	bool ControlAsset(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType = DragDropID::Asset);
+
+	template<typename TAsset>
+	bool ControlAsset(std::string_view label, Ref<TAsset>& asset, const char* dragDropType = DragDropID::Asset)
+	{
+		AssetHandle assetHandle = asset ? asset->Handle : AssetHandle::Invalid;
+		if (ControlAsset(label, assetHandle, dragDropType))
+		{
+			if (assetHandle == AssetHandle::Invalid)
+			{
+				asset = nullptr;
+				return true;
+			}
+
+			const auto& metadata = ResourceManager::GetMetaData(assetHandle);
+			if (metadata.Type != TAsset::GetStaticType())
+				return false;
+
+			asset = ResourceManager::GetAsset<TAsset>(assetHandle);
+			return true;
+		}
+		return false;
+	}
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();

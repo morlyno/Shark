@@ -7,7 +7,7 @@
 
 namespace Shark {
 
-	AssetsPanel::AssetsPanel(const char* panelName)
+	AssetsPanel::AssetsPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
 		memset(m_SearchBuffer, 0, sizeof(m_SearchBuffer));
@@ -25,7 +25,7 @@ namespace Shark {
 
 		const ImGuiStyle& style = ImGui::GetStyle();
 		UI::ScopedStyle windowPadding(ImGuiStyleVar_WindowPadding, style.WindowPadding * 0.5f);
-		ImGui::Begin(m_PanelName, &shown, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+		ImGui::Begin(m_PanelName.c_str(), &shown, ImGuiWindowFlags_AlwaysVerticalScrollbar);
 
 		{
 			UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
@@ -51,12 +51,15 @@ namespace Shark {
 			if (ImGui::BeginPopup("Settings"))
 			{
 				UI::BeginControls();
-				UI::ControlFlags("All", m_EnabledTypes, AssetTypeFlag::All);
-				UI::ControlFlags("Scene", m_EnabledTypes, AssetTypeFlag::Scene);
-				UI::ControlFlags("Texture", m_EnabledTypes, AssetTypeFlag::Texture);
-				UI::ControlFlags("TextureSource", m_EnabledTypes, AssetTypeFlag::TextureSource);
-				UI::ControlFlags("ScriptFile", m_EnabledTypes, AssetTypeFlag::ScriptFile);
-				UI::ControlFlags("Font", m_EnabledTypes, AssetTypeFlag::Font);
+				for (auto& [type, enabled] : m_EnabledTypes)
+					UI::Control(ToString(type), enabled);
+
+				//UI::ControlFlags("All", m_EnabledTypes, AssetTypeFlag::All);
+				//UI::ControlFlags("Scene", m_EnabledTypes, AssetTypeFlag::Scene);
+				//UI::ControlFlags("Texture", m_EnabledTypes, AssetTypeFlag::Texture);
+				//UI::ControlFlags("TextureSource", m_EnabledTypes, AssetTypeFlag::TextureSource);
+				//UI::ControlFlags("ScriptFile", m_EnabledTypes, AssetTypeFlag::ScriptFile);
+				//UI::ControlFlags("Font", m_EnabledTypes, AssetTypeFlag::Font);
 				UI::EndControls();
 				ImGui::EndPopup();
 			}
@@ -164,18 +167,23 @@ namespace Shark {
 
 	bool AssetsPanel::IsAssetTypeEnabled(AssetType assetType)
 	{
-		switch (assetType)
-		{
-			case AssetType::None:          return false;
-			case AssetType::Scene:         return m_EnabledTypes & AssetTypeFlag::Scene;
-			case AssetType::Texture:       return m_EnabledTypes & AssetTypeFlag::Texture;
-			case AssetType::TextureSource: return m_EnabledTypes & AssetTypeFlag::TextureSource;
-			case AssetType::ScriptFile:    return m_EnabledTypes & AssetTypeFlag::ScriptFile;
-			case AssetType::Font:          return m_EnabledTypes & AssetTypeFlag::Font;
-		}
+		if (m_EnabledTypes.find(assetType) == m_EnabledTypes.end())
+			m_EnabledTypes[assetType] = true;
 
-		SK_CORE_ASSERT(false, "Unkown AssetType");
-		return false;
+		return m_EnabledTypes.at(assetType);
+
+		//switch (assetType)
+		//{
+		//	case AssetType::None:          return false;
+		//	case AssetType::Scene:         return m_EnabledTypes & AssetTypeFlag::Scene;
+		//	case AssetType::Texture:       return m_EnabledTypes & AssetTypeFlag::Texture;
+		//	case AssetType::TextureSource: return m_EnabledTypes & AssetTypeFlag::TextureSource;
+		//	case AssetType::ScriptFile:    return m_EnabledTypes & AssetTypeFlag::ScriptFile;
+		//	case AssetType::Font:          return m_EnabledTypes & AssetTypeFlag::Font;
+		//}
+		//
+		//SK_CORE_ASSERT(false, "Unkown AssetType");
+		//return false;
 	}
 
 }

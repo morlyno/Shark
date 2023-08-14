@@ -10,7 +10,7 @@ namespace Shark {
 	class PhysicsDebugPanel : public Panel
 	{
 	public:
-		PhysicsDebugPanel(const char* panelName);
+		PhysicsDebugPanel(const std::string& panelName);
 
 		virtual void OnImGuiRender(bool& shown) override;
 

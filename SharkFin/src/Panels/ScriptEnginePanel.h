@@ -7,7 +7,7 @@ namespace Shark {
 	class ScriptEnginePanel : public Panel
 	{
 	public:
-		ScriptEnginePanel(const char* panelName);
+		ScriptEnginePanel(const std::string& panelName);
 
 		virtual void OnImGuiRender(bool& shown) override;
 

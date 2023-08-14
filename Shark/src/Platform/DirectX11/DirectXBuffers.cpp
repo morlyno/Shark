@@ -304,6 +304,10 @@ namespace Shark {
 		Ref<DirectXIndexBuffer> instance = this;
 		Buffer buffer = Buffer::Copy(indexData);
 
+		m_Count = count;
+		m_Size = count * sizeof(uint32_t);
+		m_Dynamic = dynamic;
+
 		Renderer::Submit([instance, count, dynamic, buffer]() mutable
 		{
 			instance->RT_ReCreateBuffer(count, dynamic, buffer);

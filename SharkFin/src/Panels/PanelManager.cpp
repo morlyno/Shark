@@ -1,11 +1,7 @@
 #include "skfpch.h"
 #include "PanelManager.h"
 
-#include "Panels/SceneHirachyPanel.h"
-#include "Panels/ContentBrowser/ContentBrowserPanel.h"
-#include "Panels/TextureEditorPanel.h"
-
-#include "Shark/Debug/Profiler.h"
+#include "Shark/UI/UI.h"
 
 namespace Shark {
 
@@ -32,12 +28,12 @@ namespace Shark {
 		}
 	}
 
-	void PanelManager::DrawPanelsMenu(const char* menuName)
+	void PanelManager::DrawPanelsMenu(const std::string& menuName)
 	{
-		if (ImGui::BeginMenu(menuName))
+		if (ImGui::BeginMenu(menuName.c_str()))
 		{
 			for (auto& [id, data] : m_Panels)
-				ImGui::MenuItem(data.Instance->GetName(), nullptr, &data.Shown);
+				ImGui::MenuItem(data.Instance->GetName().c_str(), nullptr, &data.Shown);
 
 			ImGui::EndMenu();
 		}

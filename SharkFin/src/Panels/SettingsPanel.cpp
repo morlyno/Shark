@@ -7,7 +7,7 @@ namespace Shark {
 
 	static SettingsPanel* s_Instance = nullptr;
 
-	SettingsPanel::SettingsPanel(const char* panelName)
+	SettingsPanel::SettingsPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
 		SK_CORE_ASSERT(s_Instance == nullptr);
@@ -24,7 +24,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (!ImGui::Begin(m_PanelName, &shown))
+		if (!ImGui::Begin(m_PanelName.c_str(), &shown))
 		{
 			ImGui::End();
 			return;

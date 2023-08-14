@@ -328,6 +328,7 @@ namespace Shark {
 			specs.Height = m_Specification.Height;
 			specs.Format = ImageFormat::Depth32;
 			specs.Type = ImageType::FrameBuffer;
+			specs.DebugName = fmt::format("{} Depth Atachment", m_Specification.DebugName);
 			atachment->Image = Image2D::Create(specs);
 		}
 		auto d3dImage = atachment->Image.As<DirectXImage2D>();
@@ -359,6 +360,7 @@ namespace Shark {
 			specs.Height = m_Specification.Height;
 			specs.Format = atachment->Format;
 			specs.Type = ImageType::FrameBuffer;
+			specs.DebugName = fmt::format("{} Atachment", m_Specification.DebugName);
 			atachment->Image = Image2D::Create(specs);
 		}
 		auto d3dImage = atachment->Image.As<DirectXImage2D>();

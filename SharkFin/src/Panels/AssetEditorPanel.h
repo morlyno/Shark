@@ -1,21 +1,25 @@
 #pragma once
 
 #include "Shark/Editor/Panel.h"
+#include "Shark/UI/UI.h"
 
 namespace Shark {
 
 	class EditorPanel : public RefCount
 	{
 	public:
-		EditorPanel(const char* panelName) : PanelName(panelName) {}
+		EditorPanel(const std::string& panelName, ImGuiID parentDockspaceID)
+			: m_PanelName(panelName), m_ParentDockspaceID(parentDockspaceID)
+		{}
 		virtual ~EditorPanel() = default;
 
 		virtual void OnUpdate(TimeStep ts) {};
 		virtual void OnImGuiRender(bool& shown, bool& destroy) {};
 		virtual void OnEvent(Event& event) {};
 
-	public:
-		const char* PanelName = nullptr;
+	protected:
+		std::string m_PanelName;
+		ImGuiID m_ParentDockspaceID;
 	};
 
 	class AssetEditorPanel : public Panel
@@ -29,7 +33,7 @@ namespace Shark {
 		};
 
 	public:
-		AssetEditorPanel(const char* panelName);
+		AssetEditorPanel(const std::string& panelName);
 		virtual ~AssetEditorPanel();
 
 		virtual void OnUpdate(TimeStep ts) override;
@@ -37,12 +41,12 @@ namespace Shark {
 		virtual void OnEvent(Event& event) override;
 
 		template<typename T, typename... Args>
-		Ref<T> AddEditor(UUID id, const char* panelName, bool shown, Args&&... args)
+		Ref<T> AddEditor(UUID id, const std::string& panelName, bool shown, Args&&... args)
 		{
 			if (m_EditorPanels.find(id) != m_EditorPanels.end())
-				return nullptr;
+				return GetEditor<T>(id);
 
-			Ref<T> editor = Ref<T>::Create(panelName, std::forward<Args>(args)...);
+			Ref<T> editor = Ref<T>::Create(panelName, m_DockspaceID, std::forward<Args>(args)...);
 			m_EditorPanels[id] = { editor, shown, false };
 			return editor;
 		}
@@ -50,7 +54,7 @@ namespace Shark {
 		template<typename T = EditorPanel>
 		Ref<T> GetEditor(UUID id)
 		{
-			return m_EditorPanels.at(id);
+			return m_EditorPanels.at(id).Editor.As<T>();
 		}
 
 		void RemoveEditor(UUID id)
@@ -64,7 +68,11 @@ namespace Shark {
 		}
 
 	private:
+		void DrawPanels();
+
+	private:
 		std::unordered_map<UUID, EditorPanelEntry> m_EditorPanels;
+		ImGuiID m_DockspaceID;
 	};
 
 }	

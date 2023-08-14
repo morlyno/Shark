@@ -146,7 +146,8 @@ namespace Shark {
 			m_LastTickCount = ticks;
 			m_Time += m_TimeStep;
 
-			m_SecondaryProfiler->Clear();
+			if (m_SecondaryProfiler)
+				m_SecondaryProfiler->Clear();
 			std::swap(m_Profiler, m_SecondaryProfiler);
 		}
 		

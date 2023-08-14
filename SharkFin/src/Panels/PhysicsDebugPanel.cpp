@@ -85,7 +85,7 @@ namespace Shark {
 		return SK_STRINGIFY(e_unknownJoint);
 	}
 
-	PhysicsDebugPanel::PhysicsDebugPanel(const char* panelName)
+	PhysicsDebugPanel::PhysicsDebugPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
 	}
@@ -97,7 +97,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (!ImGui::Begin(m_PanelName, &shown))
+		if (!ImGui::Begin(m_PanelName.c_str(), &shown))
 		{
 			ImGui::End();
 			return;

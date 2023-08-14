@@ -10,7 +10,7 @@
 
 namespace Shark {
 
-	ContentBrowserPanel::ContentBrowserPanel(const char* panelName, CBOpenAssetCallbackFn callback)
+	ContentBrowserPanel::ContentBrowserPanel(const std::string& panelName, CBOpenAssetCallbackFn callback)
 		: Panel(panelName)
 	{
 		SK_CORE_ASSERT(!s_Instance);
@@ -57,7 +57,7 @@ namespace Shark {
 		CheckForReload();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
-		const bool open = ImGui::Begin(m_PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		const bool open = ImGui::Begin(m_PanelName.c_str(), &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::PopStyleVar();
 
 		if (open)
@@ -120,7 +120,7 @@ namespace Shark {
 				UI::MoveCursorY(-style.ItemSpacing.y);
 
 				UI::ScopedStyle childRounding(ImGuiStyleVar_ChildRounding, ImGui::GetCurrentWindowRead()->WindowRounding);
-				if (ImGui::BeginChild("##contentView", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysUseWindowPadding | ImGuiWindowFlags_ScrollbarrNoRoundTop))
+				if (ImGui::BeginChild("##contentView", ImVec2(0, 0), false, ImGuiWindowFlags_AlwaysUseWindowPadding/* | ImGuiWindowFlags_ScrollbarrNoRoundTop*/))
 				{
 					const float padding = 8.0f;
 					const float panelWidth = ImGui::GetContentRegionAvail().x;
@@ -137,7 +137,7 @@ namespace Shark {
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
 						SelectItem(nullptr);
 
-					if (ImGui::BeginPopupContextWindow("##DirectoryPopup", ImGuiMouseButton_Right, false))
+					if (ImGui::BeginPopupContextWindow("##DirectoryPopup", ImGuiMouseButton_Right | ImGuiPopupFlags_NoOpenOverItems))
 					{
 						if (ImGui::MenuItem("Open In Explorer"))
 							PlatformUtils::OpenExplorer(m_Project->Directory / m_CurrentDirectory->FilePath);
@@ -158,6 +158,9 @@ namespace Shark {
 
 							if (ImGui::MenuItem("Scene"))
 								CreateAsset<Scene>(m_CurrentDirectory, "New Scene.skscene", true);
+
+							if (ImGui::MenuItem("Material"))
+								CreateAsset<MaterialAsset>(m_CurrentDirectory, "New Material.skmat", true);
 
 							ImGui::EndMenu();
 						}

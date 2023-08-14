@@ -40,9 +40,6 @@ namespace Shark {
 		virtual void AddTexture(Ref<Texture2D> texture) override;
 		virtual void BindFontSampler() override;
 
-	public:
-		ID3D11SamplerState* GetImGuiFontSampler() const { return m_ImGuiFontSampler; }
-
 	private:
 		bool m_BlockEvents = false;
 		bool m_InFrame = false;

@@ -6,7 +6,7 @@ namespace Shark {
 	class SettingsPanel : public Panel
 	{
 	public:
-		SettingsPanel(const char* panelName);
+		SettingsPanel(const std::string& panelName);
 		virtual ~SettingsPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;

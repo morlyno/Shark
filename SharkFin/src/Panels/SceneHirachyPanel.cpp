@@ -22,7 +22,6 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
 #include <glm/gtx/vector_query.hpp>
-#include "Shark/Serialization/AssimpImporter.h"
 
 namespace Shark {
 
@@ -130,7 +129,7 @@ namespace Shark {
 
 	}
 
-	SceneHirachyPanel::SceneHirachyPanel(const char* panelName, Ref<Scene> scene)
+	SceneHirachyPanel::SceneHirachyPanel(const std::string& panelName, Ref<Scene> scene)
 		: Panel(panelName), m_Context(scene)
 	{
 		#define COMPONENT_DATA_ARGS(name, compT) { name, [](Entity entity) { entity.AddComponent<compT>(); }, [](Entity entity) { return entity.AllOf<compT>(); } }
@@ -157,7 +156,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (ImGui::Begin(m_PanelName, &shown) && m_Context)
+		if (ImGui::Begin(m_PanelName.c_str(), &shown) && m_Context)
 		{
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_None))
 				SelectEntity(Entity{});
@@ -478,14 +477,16 @@ namespace Shark {
 				UI::Control("Submesh Index", comp.SubmeshIndex, 0.05f, 0, meshSource->GetSubmeshCount() - 1, nullptr, ImGuiSliderFlags_AlwaysClamp);
 			}
 
-			{
-				UI::ScopedFramedTextAlign align({ 0.5f, 0.5f });
-				UI::Property("Material Index", submesh.MaterialIndex);
-			}
+			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+			Ref<MaterialAsset> material;
+			if (materialTable->HasMaterial(submesh.MaterialIndex))
+				material = materialTable->GetMaterial(submesh.MaterialIndex);
+
+			if (UI::ControlAsset("Material", material) && material->GetMaterial())
+				materialTable->SetMaterial(submesh.MaterialIndex, material);
 
 			UI::EndControls();
 
-			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
 			if (materialTable->HasMaterial(submesh.MaterialIndex))
 			{
 				Ref<MaterialAsset> material = materialTable->GetMaterial(submesh.MaterialIndex);
@@ -519,14 +520,6 @@ namespace Shark {
 
 					UI::EndControls();
 					UI::PopHeader();
-				}
-			}
-			else
-			{
-				if (ImGui::Button("Add Material"))
-				{
-					Ref<MaterialAsset> material = Ref<MaterialAsset>::Create("Material", Material::Create(Renderer::GetShaderLib()->Get("DefaultMeshShader")));
-					materialTable->AddMaterial(submesh.MaterialIndex, material);
 				}
 			}
 

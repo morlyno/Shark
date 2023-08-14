@@ -35,15 +35,30 @@ Assets:
   - Handle: 0xb8486817d46a0579
     Type: Texture
     FilePath: Textures/Gear.sktex
+  - Handle: 0x5bdd8688a564750e
+    Type: Texture
+    FilePath: Textures/Nano/arm_dif.sktex
+  - Handle: 0xbf5d2e4071bc5c14
+    Type: Texture
+    FilePath: Textures/Nano/body_dif.sktex
+  - Handle: 0x38632951378711a8
+    Type: Texture
+    FilePath: Textures/Nano/glass_dif.sktex
+  - Handle: 0x66118592d14a2bee
+    Type: Texture
+    FilePath: Textures/Nano/hand_dif.sktex
+  - Handle: 0x9b810bc56a7fdda6
+    Type: Texture
+    FilePath: Textures/Nano/helmet_diff.sktex
+  - Handle: 0x69f179ef807f81c5
+    Type: Texture
+    FilePath: Textures/Nano/leg_dif.sktex
   - Handle: 0x53ced70c7d0f062
     Type: Texture
     FilePath: Textures/S.sktex
   - Handle: 0x4e142bb5b0024afe
     Type: Texture
     FilePath: Textures/SimulateButton.sktex
-  - Handle: 0x373950dd853f91a3
-    Type: Texture
-    FilePath: Textures/body_dif.sktex
   - Handle: 0x33a728bc19112c2a
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/background.png
@@ -119,6 +134,30 @@ Assets:
   - Handle: 0x6690d9ed39ac5a7f
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/vase_round.png
+  - Handle: 0x646042561b52fafc
+    Type: TextureSource
+    FilePath: MeshSources/muro/Muro_body_dm.png
+  - Handle: 0xeb20efb1f3d6eccd
+    Type: TextureSource
+    FilePath: MeshSources/muro/Muro_body_dm_clean.png
+  - Handle: 0xd5f7c422fc2be171
+    Type: TextureSource
+    FilePath: MeshSources/muro/Muro_body_nm.png
+  - Handle: 0x920a477feb5ffe2c
+    Type: TextureSource
+    FilePath: MeshSources/muro/Muro_body_sm.png
+  - Handle: 0x34bb4d4cde3731d5
+    Type: TextureSource
+    FilePath: MeshSources/muro/Muro_body_sm_clean.png
+  - Handle: 0x3bc23f27759537c
+    Type: TextureSource
+    FilePath: MeshSources/muro/Muro_head_dm.png
+  - Handle: 0x17beaa350c6420b6
+    Type: TextureSource
+    FilePath: MeshSources/muro/Muro_head_nm.png
+  - Handle: 0xdd006a9bf4d705ca
+    Type: TextureSource
+    FilePath: MeshSources/muro/Muro_head_sm.png
   - Handle: 0x654be78f65640d59
     Type: TextureSource
     FilePath: MeshSources/nano_textured/arm_dif.png
@@ -137,6 +176,24 @@ Assets:
   - Handle: 0xbe7df15d508b7ba0
     Type: TextureSource
     FilePath: MeshSources/nano_textured/leg_dif.png
+  - Handle: 0x4e2203357d8c52bf
+    Type: TextureSource
+    FilePath: MeshSources/nanoboy.fbm/arm_dif.png
+  - Handle: 0x818d28d77bbb768f
+    Type: TextureSource
+    FilePath: MeshSources/nanoboy.fbm/body_dif.png
+  - Handle: 0x7df90caa0ecb183c
+    Type: TextureSource
+    FilePath: MeshSources/nanoboy.fbm/glass_dif.png
+  - Handle: 0x9b7a47166790890d
+    Type: TextureSource
+    FilePath: MeshSources/nanoboy.fbm/hand_dif.png
+  - Handle: 0x90eab51b0612d1c2
+    Type: TextureSource
+    FilePath: MeshSources/nanoboy.fbm/helmet_diff.png
+  - Handle: 0x4ffec557b0f13456
+    Type: TextureSource
+    FilePath: MeshSources/nanoboy.fbm/leg_dif.png
   - Handle: 0xbda6bc35459a3dcb
     Type: TextureSource
     FilePath: TextureSources/Checkboard.png
@@ -200,27 +257,39 @@ Assets:
   - Handle: 0x6fefc46126790c29
     Type: MeshSource
     FilePath: MeshSources/Sponza/sponza.obj
-  - Handle: 0x7295a92118886b17
+  - Handle: 0xe6bd92c91bd0e84d
     Type: MeshSource
-    FilePath: MeshSources/nano.obj
+    FilePath: MeshSources/muro/muro.obj
   - Handle: 0x13109418a8a6c4a6
     Type: MeshSource
     FilePath: MeshSources/nano_textured/nanosuit.obj
-  - Handle: 0xd94b635f38737d53
+  - Handle: 0xbfcf23f822cc119
     Type: MeshSource
-    FilePath: MeshSources/nanosuit.obj
+    FilePath: MeshSources/nanoboy.fbx
   - Handle: 0xdd3a5fdb6778b71a
     Type: MeshSource
     FilePath: MeshSources/suzanne.obj
-  - Handle: 0xb0eeed2d150a8740
+  - Handle: 0x1e4cd972aa9eb4cf
     Type: Mesh
-    FilePath: Meshes/nano.skmesh
-  - Handle: 0x49cfea789388db0e
+    FilePath: Meshes/muro ( 1).obj
+  - Handle: 0xb1ac319ef39b96fd
     Type: Mesh
-    FilePath: Meshes/nanosuit.skmesh
+    FilePath: Meshes/muro ( 2).obj
+  - Handle: 0x23e3b6e040f9be29
+    Type: Mesh
+    FilePath: Meshes/muro.obj
+  - Handle: 0xb29ba0e0e71be739
+    Type: Mesh
+    FilePath: Meshes/nanoboy
   - Handle: 0xac8ec1cca4b8779c
     Type: Mesh
     FilePath: Meshes/sponza.skmesh
   - Handle: 0x20fcc1cbc106895a
     Type: Mesh
     FilePath: Meshes/suzanne.skmesh
+  - Handle: 0x9e61add02d96c775
+    Type: Material
+    FilePath: Materials/NanoBody.skmat
+  - Handle: 0x89c2b272d70ce9bf
+    Type: Material
+    FilePath: Materials/TestMaterial.skmat
