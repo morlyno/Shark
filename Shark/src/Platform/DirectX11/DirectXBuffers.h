@@ -26,7 +26,9 @@ namespace Shark {
 		virtual void RT_CloseBuffer() override;
 		virtual Buffer RT_GetBuffer() override { return m_WritableBuffer; }
 
-		virtual uint32_t GetSize() const { return m_Size; }
+		virtual uint32_t GetVertexSize() const override { return m_Layout.GetVertexSize(); }
+		virtual uint32_t GetBufferSize() const override { return m_Size; }
+		virtual uint32_t GetVertexCount() const override { return m_Size / GetVertexSize(); }
 
 	private:
 		void ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData);

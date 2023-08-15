@@ -110,6 +110,7 @@ namespace Shark {
 		CopyComponents<SpriteRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<CircleRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<TextRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<MeshRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<CameraComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<RigidBody2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<BoxCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
@@ -371,6 +372,7 @@ namespace Shark {
 		CopyComponentIfExists<SpriteRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CircleRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<TextRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<MeshRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CameraComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);

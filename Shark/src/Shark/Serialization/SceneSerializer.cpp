@@ -272,6 +272,15 @@ namespace Shark {
 				out << YAML::EndMap;
 			}
 
+			if (auto component = entity.TryGetComponent<MeshRendererComponent>())
+			{
+				out << YAML::Key << "MeshRendererComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "MeshHandle" << YAML::Value << component->MeshHandle;
+				out << YAML::Key << "SubmeshIndex" << YAML::Value << component->SubmeshIndex;
+				out << YAML::EndMap;
+			}
+
 			if (auto component = entity.TryGetComponent<CameraComponent>())
 			{
 				out << YAML::Key << "CameraComponent";
@@ -486,10 +495,17 @@ namespace Shark {
 					if (auto componentNode = entityNode["TextRendererComponent"])
 					{
 						auto& component = entity.AddOrReplaceComponent<TextRendererComponent>();
-						component.FontHandle = componentNode["FontHandle"].as<AssetHandle>(AssetHandle::Null);
+						component.FontHandle = componentNode["FontHandle"].as<AssetHandle>();
 						component.Text = componentNode["Text"].as<std::string>();
 						component.Color = componentNode["Color"].as<glm::vec4>();
 						component.Kerning = componentNode["Kerning"].as<float>();
+					}
+
+					if (auto componentNode = entityNode["MeshRendererComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<MeshRendererComponent>();
+						component.MeshHandle = componentNode["MeshHandle"].as<AssetHandle>();
+						component.SubmeshIndex = componentNode["SubmeshIndex"].as<uint32_t>();
 					}
 
 					if (auto componentNode = entityNode["CameraComponent"])

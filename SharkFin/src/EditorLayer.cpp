@@ -1356,7 +1356,7 @@ namespace Shark {
 			UI::EndControlsGrid();
 		}
 
-		if (ImGui::TreeNodeEx("Physics", UI::DefaultTreeNodeFlags))
+		if (ImGui::TreeNodeEx("Physics", UI::DefaultThinHeaderFlags))
 		{
 			UI::BeginControlsGrid();
 			const auto& profile = m_ActiveScene->GetPhysicsScene().GetProfile();
@@ -1574,7 +1574,7 @@ namespace Shark {
 			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 			{
 				const char* className = ScriptUtils::GetClassName(gcHandle);
-				ImGui::TreeNodeEx(className, UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+				ImGui::TreeNodeEx(className, UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
 			}
 		}
 		ImGui::End();

@@ -67,7 +67,7 @@ namespace Shark {
 
 		std::string_view searchBufferView = m_SearchBuffer;
 
-		if (ImGui::TreeNodeEx("Imported Assets", UI::TreeNodeSeperatorFlags | ImGuiTreeNodeFlags_DefaultOpen))
+		if (ImGui::TreeNodeEx("Imported Assets", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			for (const auto& [handle, metadata] : ResourceManager::GetAssetRegistry())
 			{
@@ -113,7 +113,7 @@ namespace Shark {
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNodeEx("Loaded Assets", UI::TreeNodeSeperatorFlags))
+		if (ImGui::TreeNodeEx("Loaded Assets", UI::DefaultThinHeaderFlags))
 		{
 			for (const auto& [handle, asset] : ResourceManager::GetLoadedAssets())
 			{

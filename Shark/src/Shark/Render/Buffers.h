@@ -25,7 +25,9 @@ namespace Shark {
 		virtual void RT_CloseBuffer() = 0;
 		virtual Buffer RT_GetBuffer() = 0;
 
-		virtual uint32_t GetSize() const = 0;
+		virtual uint32_t GetVertexSize() const = 0;
+		virtual uint32_t GetBufferSize() const = 0;
+		virtual uint32_t GetVertexCount() const = 0;
 
 	public:
 		static Ref<VertexBuffer> Create(const VertexLayout& layout, uint32_t size, bool dynamic, Buffer vertexData);

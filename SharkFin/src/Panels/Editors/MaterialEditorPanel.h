@@ -15,6 +15,7 @@ namespace Shark {
 
 		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
+		virtual void OnEvent(Event& event) override;
 
 		void DrawSettings();
 		void DrawViewport();

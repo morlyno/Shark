@@ -78,6 +78,20 @@ namespace Shark {
 
 	}
 
+	void MaterialEditorPanel::OnEvent(Event& event)
+	{
+		EventDispacher dispacher(event);
+		dispacher.DispachEvent<KeyPressedEvent>([this](KeyPressedEvent& e)
+		{
+			if (e.GetKeyCode() == KeyCode::F)
+			{
+				m_Camera.SetFocusPoint(glm::vec3(0.0f));
+				return true;
+			}
+			return false;
+		});
+	}
+
 	void MaterialEditorPanel::DrawSettings()
 	{
 		ImGui::SetNextWindowDockID(m_SettingsDockID);

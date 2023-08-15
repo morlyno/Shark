@@ -38,6 +38,8 @@ namespace Shark {
 		uint32_t GetSubmeshCount() const { return m_SubMeshes.size(); }
 		const Node& GetRootNode() const { return m_RootNode; }
 
+		uint32_t GetSubmeshVertexCount(uint32_t submeshIndex) const;
+
 	public:
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 		static AssetType GetStaticType() { return AssetType::MeshSource; }

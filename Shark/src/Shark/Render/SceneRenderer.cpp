@@ -102,6 +102,8 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
+		m_Statistics = {};
+
 		m_MeshTransformCBIndex = 0;
 
 		m_ViewProjection = viewProj;
@@ -169,6 +171,10 @@ namespace Shark {
 		cbMeshData->UploadData(Buffer::FromValue(meshData));
 
 		Renderer::RenderSubmesh(m_CommandBuffer, m_MeshPipeline, mesh, submeshIndex, m_CBSceneData, cbMeshData);
+
+		m_Statistics.DrawCalls++;
+		m_Statistics.VertexCount += mesh->GetMeshSource()->GetSubmeshVertexCount(submeshIndex);
+		m_Statistics.IndexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].IndexCount;
 	}
 
 	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, bool isTransparent, int id)
@@ -230,19 +236,29 @@ namespace Shark {
 			if (ImGui::TreeNodeEx("Statistics", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
 				UI::BeginControlsGrid();
-				const auto& stats = m_Renderer2D->GetStatistics();
-				//UI::ScopedFramedTextAlign textAlign({ 0.5f, 0.5f });
-				UI::Property("DrawCalls", stats.DrawCalls);
-				UI::Property("Quads", stats.QuadCount);
-				UI::Property("Cirlces", stats.CircleCount);
-				UI::Property("Lines", stats.LineCount);
-				UI::Property("Glyphs", stats.GlyphCount);
-				UI::Property("Vertices", stats.VertexCount);
-				UI::Property("Indices", stats.IndexCount);
-				UI::Property("Textures", stats.TextureCount);
+				UI::Property("DrawCalls", m_Statistics.DrawCalls);
+				UI::Property("Vertices", m_Statistics.VertexCount);
+				UI::Property("Indices", m_Statistics.IndexCount);
+
 				UI::Property("Mesh CBs", m_MeshTransformCBs.size());
 				UI::Property("  In Use", m_MeshTransformCBIndex);
 				UI::EndControls();
+
+				if (ImGui::TreeNodeEx("Renderer2D", UI::DefaultThinHeaderFlags))
+				{
+					UI::BeginControlsGrid();
+					const auto& stats = m_Renderer2D->GetStatistics();
+					UI::Property("DrawCalls", stats.DrawCalls);
+					UI::Property("Quads", stats.QuadCount);
+					UI::Property("Cirlces", stats.CircleCount);
+					UI::Property("Lines", stats.LineCount);
+					UI::Property("Glyphs", stats.GlyphCount);
+					UI::Property("Vertices", stats.VertexCount);
+					UI::Property("Indices", stats.IndexCount);
+					UI::Property("Textures", stats.TextureCount);
+					UI::EndControls();
+					ImGui::TreePop();
+				}
 
 				ImGui::TreePop();
 			}

@@ -58,9 +58,6 @@ namespace Shark::UI {
 
 	enum
 	{
-		DefaultTreeNodeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected,
-		TreeNodeSeperatorFlags = DefaultTreeNodeFlags,
-
 		DefaultHeaderFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_Framed,
 		DefaultThinHeaderFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected
 	};

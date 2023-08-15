@@ -28,14 +28,14 @@ namespace Shark {
 		for (const auto& [id, klass] : scriptClasses)
 		{
 			ImGuiID syncID = ImGui::GetID("PropertyGrid");
-			if (ImGui::TreeNodeEx(klass->GetName().c_str(), UI::DefaultTreeNodeFlags))
+			if (ImGui::TreeNodeEx(klass->GetName().c_str(), UI::DefaultThinHeaderFlags))
 			{
 				const auto& fields = klass->GetFields();
 
 				ImGui::Text("%llu public fields", fields.size());
 				for (const auto& [fieldName, managedField] : fields)
 				{
-					if (ImGui::TreeNodeEx(fieldName.c_str(), UI::DefaultTreeNodeFlags))
+					if (ImGui::TreeNodeEx(fieldName.c_str(), UI::DefaultThinHeaderFlags))
 					{
 						ImVec2 c = ImGui::GetCursorScreenPos();
 						UI::BeginControlsGrid(syncID);

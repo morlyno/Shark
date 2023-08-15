@@ -17,6 +17,9 @@ namespace Shark {
 	class SceneRenderer : public RefCount
 	{
 	public:
+		struct Statistics;
+
+	public:
 		SceneRenderer(Ref<Scene> scene, const std::string& debugName = "Untitled");
 		~SceneRenderer();
 
@@ -48,7 +51,16 @@ namespace Shark {
 		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
 		const Renderer2D::Statistics& GetRenderer2DStats() const { return m_Renderer2D->GetStatistics(); }
 
+		const Statistics& GetStatisitcs() const { return m_Statistics; }
+
 	private:
+		struct Statistics
+		{
+			uint32_t DrawCalls = 0;
+			uint32_t VertexCount = 0;
+			uint32_t IndexCount = 0;
+		};
+
 		struct CBCamera
 		{
 			glm::mat4 ViewProj;
@@ -66,6 +78,7 @@ namespace Shark {
 	private:
 		Ref<Scene> m_Scene;
 		std::string m_DebugName;
+		Statistics m_Statistics;
 
 		Ref<ConstantBuffer> m_CBSceneData;
 
