@@ -36,6 +36,8 @@ namespace Shark {
 		virtual void BeginFrame() = 0;
 		virtual void EndFrame() = 0;
 
+		virtual TimeStep GetGPUTime() const = 0;
+
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) = 0;
 		
 		virtual void BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer) = 0;

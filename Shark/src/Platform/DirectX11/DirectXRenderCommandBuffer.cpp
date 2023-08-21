@@ -78,7 +78,7 @@ namespace Shark {
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance, counter]()
 		{
-			instance->RT_BeginTimeQuery(counter);
+			instance->RT_BeginTimeQuery(counter.As<DirectXGPUTimer>());
 		});
 	}
 
@@ -87,7 +87,7 @@ namespace Shark {
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance, counter]()
 		{
-			instance->RT_EndTimeQuery(counter);
+			instance->RT_EndTimeQuery(counter.As<DirectXGPUTimer>());
 		});
 	}
 
@@ -136,22 +136,14 @@ namespace Shark {
 		context->ExecuteCommandList(m_CommandList, FALSE);
 	}
 
-	void DirectXRenderCommandBuffer::RT_BeginTimeQuery(Ref<GPUTimer> timer)
+	void DirectXRenderCommandBuffer::RT_BeginTimeQuery(Ref<DirectXGPUTimer> timer)
 	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		Ref<DirectXGPUTimer> dxTimer = timer.As<DirectXGPUTimer>();
-		dxTimer->RT_StartQuery(m_DeferredContext);
+		timer->RT_StartQuery(m_DeferredContext);
 	}
 
-	void DirectXRenderCommandBuffer::RT_EndTimeQuery(Ref<GPUTimer> timer)
+	void DirectXRenderCommandBuffer::RT_EndTimeQuery(Ref<DirectXGPUTimer> timer)
 	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		Ref<DirectXGPUTimer> dxTimer = timer.As<DirectXGPUTimer>();
-		dxTimer->RT_EndQuery(m_DeferredContext);
+		timer->RT_EndQuery(m_DeferredContext);
 	}
 
 }

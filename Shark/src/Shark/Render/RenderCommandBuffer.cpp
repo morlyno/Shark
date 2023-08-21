@@ -14,6 +14,7 @@ namespace Shark {
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXRenderCommandBuffer>::Create();
 		}
+
 		SK_CORE_ASSERT(false, "Unkonw RendererAPI");
 		return nullptr;
 	}

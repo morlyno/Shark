@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "Memory.h"
 
+#include <tracy/Tracy.hpp>
+
 namespace Shark {
 
 	void Allocator::Init()
@@ -11,12 +13,15 @@ namespace Shark {
 
 	void* Allocator::AllocateRaw(size_t size)
 	{
-		return malloc(size);
+		void* memory = malloc(size);
+		TracyAlloc(memory, size);
+		return memory;
 	}
 
 	void Allocator::FreeRaw(void* memory)
 	{
 		free(memory);
+		TracyFree(memory);
 	}
 
 	void* Allocator::Allocate(size_t size)
@@ -25,6 +30,7 @@ namespace Shark {
 			Init();
 
 		void* memory = malloc(size);
+		TracyAlloc(memory, size);
 
 		{
 			std::scoped_lock lock(s_Data->m_Mutex);
@@ -46,6 +52,7 @@ namespace Shark {
 			Init();
 
 		void* memory = malloc(size);
+		TracyAlloc(memory, size);
 
 		{
 			std::scoped_lock lock(s_Data->m_Mutex);
@@ -67,6 +74,7 @@ namespace Shark {
 			Init();
 
 		void* memory = malloc(size);
+		TracyAlloc(memory, size);
 
 		{
 			std::scoped_lock lock(s_Data->m_Mutex);
@@ -113,6 +121,8 @@ namespace Shark {
 		}
 
 		free(memory);
+		TracyFree(memory);
+
 	}
 
 	void* Allocator::Reallocate(void* memory, size_t newSize)

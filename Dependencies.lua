@@ -49,3 +49,15 @@ Assimp = {
     Library = "%{Assimp.BaseDir}/lib/assimp-vc143-mt.lib",
     Binary = "%{Assimp.BaseDir}/bin/assimp-vc143-mt.dll",
 }
+
+tracy = {
+    BaseDir = "%{wks.location}/Shark/dependencies/tracy",
+    IncludeDir = "%{tracy.BaseDir}/public",
+    Files = {
+        "%{tracy.IncludeDir}/tracy/*.hpp",
+        "%{tracy.IncludeDir}/libbacktrace/*.hpp",
+        "%{tracy.IncludeDir}/common/*.hpp",
+        "%{tracy.IncludeDir}/client/*.hpp",
+        "%{tracy.IncludeDir}/TracyClient.cpp"
+    },
+}

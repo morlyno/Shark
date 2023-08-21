@@ -90,11 +90,17 @@ namespace Shark {
 
 	bool MeshSourceSerializer::TryLoad(Ref<MeshSource> meshSource, const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
 		if (!std::filesystem::exists(filepath))
 			return false;
 
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(filepath.string(), aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded);
+		const aiScene* scene = nullptr;
+
+		{
+			SK_PROFILE_SCOPED("Assimp::Importer::ReadFile");
+			scene = importer.ReadFile(filepath.string(), aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded);
+		}
 
 		if (!scene)
 			return false;
@@ -108,6 +114,7 @@ namespace Shark {
 
 	void MeshSourceSerializer::LoadBuffersAndSubMeshes(const aiScene* scene, Ref<VertexBuffer>& outVertexBuffer, Ref<IndexBuffer>& outIndexBuffer, std::vector<MeshSource::SubMesh>& outSubMeshes)
 	{
+		SK_PROFILE_FUNCTION();
 		VertexLayout layout = {
 			{ VertexDataType::Float3, "Position" },
 			{ VertexDataType::Float3, "Normal" },
@@ -163,10 +170,13 @@ namespace Shark {
 
 		outVertexBuffer = VertexBuffer::Create(layout, Buffer::FromArray(vertices));
 		outIndexBuffer = IndexBuffer::Create(indices);
+
+		indices.Release();
 	}
 
 	Ref<MaterialTable> MeshSourceSerializer::LoadMaterialTable(const aiScene* scene, const std::filesystem::path& rootPath)
 	{
+		SK_PROFILE_FUNCTION();
 		Ref<MaterialTable> materialTable = Ref<MaterialTable>::Create();
 
 		for (uint32_t materialIndex = 0; materialIndex < scene->mNumMaterials; materialIndex++)
@@ -210,6 +220,7 @@ namespace Shark {
 
 	void MeshSourceSerializer::UpdateMaterials(Ref<MaterialTable> materialTable)
 	{
+		SK_PROFILE_FUNCTION();
 		for (const auto& [index, materialAsset] : *materialTable)
 		{
 			Ref<Material> material = materialAsset->GetMaterial();
@@ -222,6 +233,7 @@ namespace Shark {
 
 	void MeshSourceSerializer::AddNode(MeshSource::Node* meshNode, aiNode* node)
 	{
+		SK_PROFILE_FUNCTION();
 		meshNode->Name = node->mName.C_Str();
 		meshNode->Transform = utils::AssimpMatrixToGLM(node->mTransformation);
 		for (uint32_t i = 0; i < node->mNumMeshes; i++)

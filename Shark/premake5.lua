@@ -23,7 +23,8 @@ project "Shark"
         "%{IncludeDir.glm}/**.inl",
         "%{IncludeDir.fmt}/**.h",
         "%{IncludeDir.spdlog}/**.h",
-        "%{IncludeDir.Mono}/**.h"
+        "%{IncludeDir.Mono}/**.h",
+        tracy.Files
     }
 
     includedirs
@@ -43,7 +44,8 @@ project "Shark"
         "%{IncludeDir.msdfgen}",
         "%{IncludeDir.msdf_atlas_gen}",
         "%{IncludeDir.Vulkan_SDK}",
-        "%{Assimp.IncludeDir}"
+        "%{Assimp.IncludeDir}",
+        "%{tracy.IncludeDir}"
     }
 
     defines
@@ -62,6 +64,9 @@ project "Shark"
         "%{Library.mono}",
         "%{Assimp.Library}"
     }
+
+    filter "files:dependencies/tracy/**.cpp"
+        flags { "NoPCH" }
 
     filter "system:windows"
         systemversion "latest"

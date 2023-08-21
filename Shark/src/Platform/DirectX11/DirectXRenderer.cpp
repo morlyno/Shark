@@ -159,6 +159,8 @@ namespace Shark {
 		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, (uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
 		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
 
+		m_GPUTimer = Ref<DirectXGPUTimer>::Create("GPU");
+
 		Renderer::Submit([instance]() { SK_CORE_INFO_TAG("Renderer", "Resources Created"); instance->m_ResourceCreated = true; });
 	}
 
@@ -190,6 +192,7 @@ namespace Shark {
 			device->Release();
 		});
 
+		m_GPUTimer = nullptr;
 		m_FrequencyQuery = nullptr;
 		m_Factory = nullptr;
 		m_InfoQueue = nullptr;
@@ -208,6 +211,7 @@ namespace Shark {
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([instance]()
 		{
+			instance->m_GPUTimer->RT_StartQuery(instance->m_ImmediateContext);
 			instance->RT_BeginFrequencyQuery();
 		});
 	}
@@ -220,6 +224,7 @@ namespace Shark {
 			RT_EndFrequencyQuery();
 			RT_FlushDXMessages();
 			RT_LogMessages(m_InfoQueue);
+			instance->m_GPUTimer->RT_EndQuery(m_ImmediateContext);
 		});
 
 		m_Active = false;

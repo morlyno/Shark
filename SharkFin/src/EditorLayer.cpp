@@ -12,6 +12,8 @@
 
 #include "Shark/Render/MeshFactory.h"
 
+#include "Shark/Serialization/MeshSourceSerializer.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
 
@@ -40,8 +42,6 @@
 
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include "Shark/Serialization/MeshSerializer.h"
-#include "Shark/Serialization/MeshSourceSerializer.h"
 
 #define SCENE_HIRACHY_ID "SceneHirachyPanel"
 #define CONTENT_BROWSER_ID "ContentBrowserPanel"
@@ -1309,6 +1309,7 @@ namespace Shark {
 
 				m_ProfilerStatsAccumulator["Frame"] += app.GetFrameTime();
 				m_ProfilerStatsAccumulator["CPU"] += app.GetCPUTime();
+				m_ProfilerStatsAccumulator["GPU"] += app.GetGPUTime();
 
 				size_t index = 2;
 				for (const auto& [descriptor, data] : frameStorages)
@@ -1318,8 +1319,9 @@ namespace Shark {
 				{
 					const auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Duration != rhs.Duration ? lhs.Duration > rhs.Duration : lhs.Descriptor > rhs.Descriptor; };
 
+					const uint32_t reservedSlots = 3;
 					m_ProfilerStats.reserve(m_ProfilerStatsAccumulator.size());
-					m_ProfilerStats.resize(2);
+					m_ProfilerStats.resize(reservedSlots);
 					for (const auto& [descriptor, duration] : m_ProfilerStatsAccumulator)
 					{
 						ProfilerEntry entry = { descriptor, duration / (float)m_ProfilerSamples };
@@ -1336,7 +1338,13 @@ namespace Shark {
 							continue;
 						}
 
-						const auto where = std::lower_bound(m_ProfilerStats.begin() + 2, m_ProfilerStats.end(), entry, sorter);
+						if (descriptor == "GPU")
+						{
+							m_ProfilerStats[2] = entry;
+							continue;
+						}
+
+						const auto where = std::lower_bound(m_ProfilerStats.begin() + reservedSlots, m_ProfilerStats.end(), entry, sorter);
 						m_ProfilerStats.insert(where, entry);
 					}
 

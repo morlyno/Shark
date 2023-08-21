@@ -910,6 +910,8 @@ namespace Shark {
 
 	void ContentBrowserPanel::GenerateThumbnails()
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_WARN_TAG("UI", "Generating Thumbnails");
 		ScopedTimer timer("Generating Thumbnails");
 		if (!EditorSettings::Get().ContentBrowser.GenerateThumbnails)

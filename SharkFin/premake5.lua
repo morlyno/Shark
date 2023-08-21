@@ -30,7 +30,8 @@ project "SharkFin"
         "%{IncludeDir.ImGuizmo}",
         "%{IncludeDir.fmt}",
         "%{IncludeDir.Optick}",
-        "%{IncludeDir.glm}"
+        "%{IncludeDir.glm}",
+        "%{tracy.IncludeDir}"
     }
 
     links

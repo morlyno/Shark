@@ -32,7 +32,10 @@ DefaultDefines = {
 	"GLM_FORCE_INTRINSICS",
 
 	"FMT_HEADER_ONLY",
-	"YAML_CPP_STATIC_DEFINE"
+	"YAML_CPP_STATIC_DEFINE",
+
+	"TRACY_ENABLE",
+	"TRACY_ON_DEMAND"
 }
 
 group "Dependencies"

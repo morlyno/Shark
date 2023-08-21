@@ -42,6 +42,8 @@ namespace Shark {
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;
 
+		virtual TimeStep GetGPUTime() const override { return m_GPUTimer->GetTime(); }
+
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) override;
 
 		virtual void BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer) override;
@@ -116,6 +118,8 @@ namespace Shark {
 
 		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;
 		Ref<DirectXIndexBuffer> m_QuadIndexBuffer;
+
+		Ref<DirectXGPUTimer> m_GPUTimer;
 
 		ID3D11Query* m_FrequencyQuery = nullptr;
 		uint64_t m_GPUFrequency = 0;

@@ -140,14 +140,14 @@ namespace Shark {
 		dxFrameBuffer->RT_Bind(m_CommandBuffer->GetContext());
 
 		{
-			SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render")
+			SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render");
 
 			ImGui::Render();
 			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 			{
-				SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render Platform")
+				SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render Platform");
 				ImGui::UpdatePlatformWindows();
 				ImGui::RenderPlatformWindowsDefault();
 			}

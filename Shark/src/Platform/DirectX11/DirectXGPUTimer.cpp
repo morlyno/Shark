@@ -13,6 +13,8 @@ namespace Shark {
 		Renderer::Submit([instance]()
 		{
 			auto device = DirectXRenderer::GetDevice();
+			const auto startQueryName = fmt::format("{} (Start)", instance->m_Name);
+			const auto endQueryName = fmt::format("{} (End)", instance->m_Name);
 
 			D3D11_QUERY_DESC desc;
 			desc.Query = D3D11_QUERY_TIMESTAMP;
@@ -21,6 +23,9 @@ namespace Shark {
 			{
 				SK_DX11_CALL(device->CreateQuery(&desc, &instance->m_StartQuery[i]));
 				SK_DX11_CALL(device->CreateQuery(&desc, &instance->m_EndQuery[i]));
+
+				D3D_SET_OBJECT_NAME_A(instance->m_StartQuery[i], startQueryName.c_str());
+				D3D_SET_OBJECT_NAME_A(instance->m_EndQuery[i], endQueryName.c_str());
 			}
 		});
 	}

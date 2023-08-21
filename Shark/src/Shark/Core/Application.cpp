@@ -15,8 +15,10 @@
 #include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Debug/Profiler.h"
 
+#if SK_PROFILER == SK_PROFILER_OPTICK
 #include <optick.h>
 #include <optick_memory.h>
+#endif
 
 namespace Shark {
 
@@ -134,7 +136,9 @@ namespace Shark {
 
 				// On Render Thread
 				Renderer::WaitAndRender();
+
 				m_CPUTime = cpuTimer.Elapsed();
+				m_GPUTime = Renderer::GetRendererAPI()->GetGPUTime();
 				m_Window->SwapBuffers();
 				m_FrameCount++;
 			}
@@ -378,24 +382,21 @@ namespace Shark {
 
 		void Initialize()
 		{
-#if SK_TRACK_MEMORY && SK_ENABLE_PROFILER
-			Optick::Memory::SetAllocator([](size_t size) { return Allocator::Allocate(size, "Optick"); },
-										 [](void* memory) { Allocator::Free(memory); },
-										 nullptr);
-#endif
-
 			Log::Initialize();
 			Input::Initialize();
 			FileSystem::Initialize();
+
+			SK_CORE_INFO("Core Initialized");
 		}
 
 		void Shutdown()
 		{
+			SK_CORE_INFO("Core Shutting down");
+
 			FileSystem::Shutdown();
 			Input::Shutdown();
 			Renderer::ReportLiveObejcts();
 			Log::Shutdown();
-			SK_PROFILE_SHUTDOWN();
 
 			utils::DumpMemory(std::cout);
 			//utils::DumpMemoryAllocations(std::cout);

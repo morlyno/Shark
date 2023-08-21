@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Shark/Render/RenderCommandBuffer.h"
-
+#include "Platform/DirectX11/DirectXGPUTimer.h"
 #include <d3d11.h>
 
 namespace Shark {
@@ -29,8 +29,9 @@ namespace Shark {
 		void RT_Begin();
 		void RT_End();
 		void RT_Execute();
-		void RT_BeginTimeQuery(Ref<GPUTimer> timer);
-		void RT_EndTimeQuery(Ref<GPUTimer> timer);
+
+		void RT_BeginTimeQuery(Ref<DirectXGPUTimer> timer);
+		void RT_EndTimeQuery(Ref<DirectXGPUTimer> timer);
 
 	private:
 		ID3D11DeviceContext* m_DeferredContext = nullptr;
