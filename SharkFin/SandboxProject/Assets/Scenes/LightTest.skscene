@@ -1,0 +1,159 @@
+Scene:
+  Name: New Scene
+  ActiveCamera: 0x0
+  Entities:
+    - Entity: 1194870384185560200
+      TagComponent:
+        Name: Helmet
+      TransformComponent:
+        Translation: [-0.00861161947, 0.175054371, 12.903985]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 7949924827424306827
+        Children:
+          - 6660810434991923791
+      MeshRendererComponent:
+        MeshHandle: 12870057247951808313
+        SubmeshIndex: 5
+    - Entity: 3425509147272918070
+      TagComponent:
+        Name: Entity
+      TransformComponent:
+        Translation: [-0.982565403, 10.7915077, -3.76871777]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      PointLightComponent:
+        Color: [1, 1, 1, 1]
+        Intensity: 4.1500001
+    - Entity: 6446354670182306028
+      TagComponent:
+        Name: Hand.Right
+      TransformComponent:
+        Translation: [-2.26385379, 1.38876379, -4.03182077]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 12521187829927315161
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 12870057247951808313
+        SubmeshIndex: 4
+    - Entity: 6660810434991923791
+      TagComponent:
+        Name: Visor
+      TransformComponent:
+        Translation: [0.085033834, 0.483501256, 1.51640308]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 1194870384185560200
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 12870057247951808313
+        SubmeshIndex: 6
+    - Entity: 7949924827424306827
+      TagComponent:
+        Name: Body
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [-1.57102942, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15543422971191323528
+        Children:
+          - 11206354369733617200
+          - 12521187829927315161
+          - 1194870384185560200
+          - 11859646068384192473
+          - 13104555687333856589
+      MeshRendererComponent:
+        MeshHandle: 12870057247951808313
+        SubmeshIndex: 0
+    - Entity: 11206354369733617200
+      TagComponent:
+        Name: Arm.Left
+      TransformComponent:
+        Translation: [1.5674305, -0.620876551, 13.0057802]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 7949924827424306827
+        Children:
+          - 18410432903465999211
+      MeshRendererComponent:
+        MeshHandle: 12870057247951808313
+        SubmeshIndex: 1
+    - Entity: 11859646068384192473
+      TagComponent:
+        Name: Leg.Left
+      TransformComponent:
+        Translation: [0.706875265, 0.601572692, 8.12595654]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 7949924827424306827
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 12870057247951808313
+        SubmeshIndex: 7
+    - Entity: 12521187829927315161
+      TagComponent:
+        Name: Arm.Right
+      TransformComponent:
+        Translation: [-1.61779892, -0.54245019, 12.9945631]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 7949924827424306827
+        Children:
+          - 6446354670182306028
+      MeshRendererComponent:
+        MeshHandle: 12870057247951808313
+        SubmeshIndex: 3
+    - Entity: 13104555687333856589
+      TagComponent:
+        Name: Leg.Right
+      TransformComponent:
+        Translation: [-0.739572763, 0.590147614, 8.13320351]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 7949924827424306827
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 12870057247951808313
+        SubmeshIndex: 8
+    - Entity: 15543422971191323528
+      TagComponent:
+        Name: RootNode
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 7949924827424306827
+    - Entity: 18410432903465999211
+      TagComponent:
+        Name: Hand.Left
+      TransformComponent:
+        Translation: [2.36193657, 1.38374925, -4.12391186]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 11206354369733617200
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 12870057247951808313
+        SubmeshIndex: 2

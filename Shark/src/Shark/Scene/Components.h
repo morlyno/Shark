@@ -106,6 +106,12 @@ namespace Shark {
 		// TODO(moro): maybe add material
 	};
 
+	struct PointLightComponent
+	{
+		glm::vec4 Color = glm::vec4(1.0f);
+		float Intensity = 1.0f;
+	};
+
 	struct CameraComponent
 	{
 		SceneCamera Camera;

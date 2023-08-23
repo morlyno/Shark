@@ -47,6 +47,8 @@ namespace Shark {
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> PreProcessHLSLSource(const std::string& source);
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> PreProcessGLSLSource(const std::string& source);
 
+		std::string GetMetadata(const std::string& source);
+
 		bool CompileOrLoadBinaries(ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile);
 		bool CompileOrLoadBinary(ShaderUtils::ShaderStage::Type stage, ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile);
 
@@ -68,6 +70,9 @@ namespace Shark {
 		void ReflectAllShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>>& spirvData);
 		void ReflectShaderStage(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary);
 
+		struct Metadata;
+		std::map<uint32_t, ShaderReflection::UpdateFrequencyType> GetUpdateFrequencies(const Metadata& metadata);
+
 	private:
 		ShaderUtils::ShaderLanguage m_Language;
 		ShaderUtils::ShaderStage::Flags m_Stages = ShaderUtils::ShaderStage::None;
@@ -82,7 +87,8 @@ namespace Shark {
 		{
 			ShaderUtils::ShaderStage::Type Stage = ShaderUtils::ShaderStage::None;
 			uint64_t HashCode = 0;
-			// TODO(moro): std::string HLSLVersion;
+			std::string SourceMetadata;
+			std::filesystem::path CacheFile;
 		};
 		std::unordered_map<ShaderUtils::ShaderStage::Type, Metadata> m_ShaderStageMetadata;
 

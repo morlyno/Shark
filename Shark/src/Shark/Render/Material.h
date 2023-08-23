@@ -90,6 +90,14 @@ namespace Shark {
 		void SetAlbedoTexture(AssetHandle handle) { m_AlbedoTexture = handle; m_Dirty = true; }
 		void SetUseAlbedo(bool use) { m_UseAlbedo = use; m_Dirty = true; }
 
+		float GetMetallic() const { return m_Metallic; }
+		float GetRoughness() const { return m_Roughness; }
+		float GetAO() const { return m_AO; }
+
+		void SetMetallic(float metallic) { m_Metallic = metallic; m_Dirty = true; }
+		void SetRoughness(float roughness) { m_Roughness = roughness; m_Dirty = true; }
+		void SetAO(float ao) { m_AO = ao; m_Dirty = true; }
+
 		void UpdateMaterial();
 		void UpdateMaterialIfDirty() { if (IsDirty()) UpdateMaterial(); }
 
@@ -107,6 +115,10 @@ namespace Shark {
 		glm::vec3 m_AlbedoColor = glm::vec3(1.0f);
 		AssetHandle m_AlbedoTexture;
 		bool m_UseAlbedo = false;
+
+		float m_Metallic = 0.0f;
+		float m_Roughness = 0.0f;
+		float m_AO = 0.0f;
 
 		friend class MaterialSerializer;
 		friend class MeshSourceSerializer;
@@ -138,8 +150,15 @@ namespace Shark {
 			m_MaterialAssets[index] = materialAsset;
 		}
 
+		// Adds or Sets the Material at the given index. If Material is null Removes the Material at the given index
 		void SetMaterial(uint32_t index, Ref<MaterialAsset> material)
 		{
+			if (!material)
+			{
+				RemoveMaterial(index);
+				return;
+			}
+
 			m_MaterialAssets[index] = material;
 		}
 

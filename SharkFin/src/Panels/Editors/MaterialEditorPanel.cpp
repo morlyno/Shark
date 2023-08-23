@@ -34,10 +34,8 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
-		if (m_ViewportHovered || m_ViewportFocused)
-			m_Camera.OnUpdate(ts);
-
-		m_Scene->OnRender(m_Renderer, m_Camera.GetViewProjection());
+		m_Camera.OnUpdate(ts, m_ViewportHovered || m_ViewportFocused);
+		m_Scene->OnRender(m_Renderer, m_Camera.GetViewProjection(), m_Camera.GetPosition());
 	}
 
 	void MaterialEditorPanel::OnImGuiRender(bool& shown, bool& destroy)
@@ -61,7 +59,7 @@ namespace Shark {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::SetNextWindowDockID(m_ParentDockspaceID, ImGuiCond_Appearing);
-		const bool opened = ImGui::Begin(m_PanelName.c_str(), &m_Active, ImGuiWindowFlags_NoSavedSettings);
+		const bool opened = ImGui::Begin(m_PanelName.c_str(), &m_Active);
 		ImGui::PopStyleVar(2);
 
 		if (!opened)
@@ -73,7 +71,8 @@ namespace Shark {
 		ImGui::DockSpace(m_DockspaceID);
 		ImGui::End();
 
-		DrawViewport();
+		if (!m_Tiny)
+			DrawViewport();
 		DrawSettings();
 
 	}
@@ -95,38 +94,25 @@ namespace Shark {
 	void MaterialEditorPanel::DrawSettings()
 	{
 		ImGui::SetNextWindowDockID(m_SettingsDockID);
-		ImGui::Begin(m_SettingsName.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+		ImGui::Begin(m_SettingsName.c_str());
 
-		UI::TextF("Shader: {}", m_Material->GetMaterial()->GetShader()->GetName());
+		m_MaterialEditor->DrawInline();
 
-		if (ImGui::TreeNodeEx("Albedo", ImGuiTreeNodeFlags_DefaultOpen | UI::DefaultHeaderFlags))
+		if (ImGui::BeginPopupContextWindow("PanelSettings", ImGuiPopupFlags_MouseButtonRight))
 		{
-			UI::BeginControlsGrid();
-
-			glm::vec3 color = m_Material->GetAlbedoColor();
-			if (UI::ControlColor("Color", color))
-				m_Material->SetAlbedoColor(color);
-
-			AssetHandle textureHandle = m_Material->GetAlbedoTexture();
-			if (UI::ControlAsset("Texture", textureHandle))
-				m_Material->SetAlbedoTexture(textureHandle);
-
-			bool use = m_Material->UseAlbedo();
-			if (UI::Control("Enable", use))
-				m_Material->SetUseAlbedo(use);
-
-			UI::EndControls();
-			ImGui::TreePop();
+			if (m_Tiny)
+			{
+				if (ImGui::Button("Make Big"))
+					m_Tiny = false;
+			}
+			else
+			{
+				if (ImGui::Button("Make Tiny"))
+					m_Tiny = true;
+			}
+			ImGui::EndPopup();
 		}
 
-		if (m_Material->IsDirty())
-		{
-			//Ref<Material> mat = m_Material->GetMaterial();
-			//mat->SetFloat3("u_PBRData.Albedo", m_Material->GetAlbedoColor());
-			//mat->SetTexture("u_Albedo", m_Material->UseAlbedo() ? ResourceManager::GetAsset<Texture2D>(m_Material->GetAlbedoTexture()) : Renderer::GetWhiteTexture());
-			//m_Material->SetDirty(false);
-			m_Material->UpdateMaterial();
-		}
 
 		if (ImGui::Button("Save"))
 		{
@@ -142,7 +128,7 @@ namespace Shark {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::SetNextWindowDockID(m_ViewportDockID);
-		ImGui::Begin(m_ViewportName.c_str(), nullptr, ImGuiWindowFlags_NoSavedSettings);
+		ImGui::Begin(m_ViewportName.c_str());
 		ImGui::PopStyleVar(3);
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
@@ -172,6 +158,8 @@ namespace Shark {
 
 	void MaterialEditorPanel::Initialize()
 	{
+		m_MaterialEditor = Scope<MaterialEditor>::Create("", m_Material);
+
 		ImGuiWindow* window = ImGui::FindWindowByName(m_PanelName.c_str());
 		if (window && window->LastFrameActive == (ImGui::GetFrameCount() - 1))
 		{
@@ -197,6 +185,11 @@ namespace Shark {
 		mc.MeshHandle = sphere->Handle;
 		mc.SubmeshIndex = 0;
 
+		Entity lightEntity = m_Scene->CreateEntity("Light");
+		lightEntity.Transform().Translation = { -4.0f, 3.0f, -2.0f };
+		auto& pl = lightEntity.AddComponent<PointLightComponent>();
+		pl.Intensity = 3.0f;
+
 		m_IsInitialized = true;
 	}
 
@@ -219,6 +212,74 @@ namespace Shark {
 
 		viewportNode = ImGui::DockBuilderGetNode(m_ViewportDockID);
 		m_ViewportSize = { viewportNode->Size.x, viewportNode->Size.y };
+	}
+
+	MaterialEditor::MaterialEditor(const std::string& name, Ref<MaterialAsset> material)
+		: m_Name(name), m_Material(material)
+	{
+	}
+
+	void MaterialEditor::Draw()
+	{
+		ImGui::Begin(m_Name.c_str());
+		DrawInline();
+		ImGui::End();
+	}
+
+	void MaterialEditor::DrawInline()
+	{
+		if (!m_Material)
+			return;
+
+		UI::ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly, m_Readonly);
+
+		UI::TextF("Shader: {}", m_Material->GetMaterial()->GetShader()->GetName());
+
+		if (ImGui::TreeNodeEx("Albedo", ImGuiTreeNodeFlags_DefaultOpen | UI::DefaultHeaderFlags))
+		{
+			UI::BeginControlsGrid();
+
+			glm::vec3 color = m_Material->GetAlbedoColor();
+			if (UI::ControlColor("Color", color))
+				m_Material->SetAlbedoColor(color);
+
+			AssetHandle textureHandle = m_Material->GetAlbedoTexture();
+			if (UI::ControlAsset("Texture", textureHandle) && !m_Readonly)
+				m_Material->SetAlbedoTexture(textureHandle);
+
+			bool use = m_Material->UseAlbedo();
+			if (UI::Control("Enable", use) && !m_Readonly)
+				m_Material->SetUseAlbedo(use);
+
+			UI::EndControls();
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("PBR", ImGuiTreeNodeFlags_DefaultOpen | UI::DefaultHeaderFlags))
+		{
+			UI::BeginControlsGrid();
+
+			float metallic = m_Material->GetMetallic();
+			if (UI::Control("Metallic", metallic, 0.05f, 0.0f, 1.0f))
+				m_Material->SetMetallic(metallic);
+
+			float roughness = m_Material->GetRoughness();
+			if (UI::Control("Roughness", roughness, 0.05f, 0.0f, 1.0f))
+				m_Material->SetRoughness(roughness);
+
+			float ao = m_Material->GetAO();
+			if (UI::Control("AO", ao, 0.05f, 0.0f, 1.0f))
+				m_Material->SetAO(ao);
+
+			UI::EndControls();
+
+			ImGui::TreePop();
+		}
+
+		m_Material->UpdateMaterialIfDirty();
+
+
 	}
 
 }

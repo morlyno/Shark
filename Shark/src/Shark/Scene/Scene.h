@@ -66,7 +66,7 @@ namespace Shark {
 		void OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
 		void OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
 
-		void OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj);
+		void OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj, const glm::vec3& cameraPosition);
 
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});

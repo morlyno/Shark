@@ -138,6 +138,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Circle Renderer", CircleRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Text Renderer", TextRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Mesh Renderer", MeshRendererComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Point Light", PointLightComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Camera", CameraComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Rigidbody 2D", RigidBody2DComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Box Collider 2D", BoxCollider2DComponent));
@@ -147,6 +148,9 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Prismatic Joint 2D", PrismaticJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
+
+		m_MaterialEditor = Scope<MaterialEditor>::Create("Material", nullptr);
+		UpdateMaterialEditor(m_SelectedEntity);
 	}
 
 	void SceneHirachyPanel::OnImGuiRender(bool& shown)
@@ -193,6 +197,7 @@ namespace Shark {
 			DrawEntityProperties(m_SelectedEntity);
 		ImGui::End();
 
+		m_MaterialEditor->Draw();
 	}
 
 	void SceneHirachyPanel::OnEvent(Event& event)
@@ -201,6 +206,12 @@ namespace Shark {
 
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(SceneHirachyPanel::OnKeyPressedEvent));
+	}
+
+	void SceneHirachyPanel::SetSelectedEntity(Entity entity)
+	{
+		m_SelectedEntity = entity;
+		UpdateMaterialEditor(entity);
 	}
 
 	bool SceneHirachyPanel::OnKeyPressedEvent(KeyPressedEvent& event)
@@ -455,13 +466,13 @@ namespace Shark {
 			UI::EndControls();
 		});
 
-		DrawComponet<MeshRendererComponent>(entity, "Mesh Renderer", [](MeshRendererComponent& comp, Entity entity)
+		DrawComponet<MeshRendererComponent>(entity, "Mesh Renderer", [this](MeshRendererComponent& comp, Entity entity)
 		{
-
 			UI::BeginControlsGrid();
-			UI::ControlAsset("Mesh", comp.MeshHandle);
+			if (UI::ControlAsset("Mesh", comp.MeshHandle))
+				UpdateMaterialEditor(entity);
 
-			if (comp.MeshHandle == AssetHandle::Invalid)
+			if (!ResourceManager::IsValidAssetHandle(comp.MeshHandle))
 			{
 				UI::EndControls();
 				return;
@@ -482,47 +493,21 @@ namespace Shark {
 			if (materialTable->HasMaterial(submesh.MaterialIndex))
 				material = materialTable->GetMaterial(submesh.MaterialIndex);
 
-			if (UI::ControlAsset("Material", material) && material->GetMaterial())
-				materialTable->SetMaterial(submesh.MaterialIndex, material);
-
-			UI::EndControls();
-
-			if (materialTable->HasMaterial(submesh.MaterialIndex))
+			if (UI::ControlAsset("Material", material))
 			{
-				Ref<MaterialAsset> material = materialTable->GetMaterial(submesh.MaterialIndex);
-				if (UI::Header("Albedo"))
-				{
-					UI::BeginControlsGrid();
-
-					glm::vec3 color = material->GetAlbedoColor();
-					if (UI::ControlColor("Color", color))
-						material->SetAlbedoColor(color);
-
-					AssetHandle textureHandle = material->GetAlbedoTexture();
-					if (UI::ControlAsset("Texture", textureHandle))
-						material->SetAlbedoTexture(textureHandle);
-
-					bool use = material->UseAlbedo();
-					if (UI::Control("Enable", use))
-						material->SetUseAlbedo(use);
-
-					if (material->IsDirty())
-					{
-						Ref<Material> mat = material->GetMaterial();
-						mat->SetFloat3("u_PBRData.Albedo", material->GetAlbedoColor());
-						if (material->UseAlbedo())
-							mat->SetTexture("u_Albedo", ResourceManager::GetAsset<Texture2D>(material->GetAlbedoTexture()));
-						else
-							mat->SetTexture("u_Albedo", Renderer::GetWhiteTexture());
-
-						material->SetDirty(false);
-					}
-
-					UI::EndControls();
-					UI::PopHeader();
-				}
+				materialTable->SetMaterial(submesh.MaterialIndex, material);
+				UpdateMaterialEditor(entity);
 			}
 
+			UI::EndControls();
+		});
+
+		DrawComponet<PointLightComponent>(entity, "Point Light", [](PointLightComponent& comp, Entity entity)
+		{
+			UI::BeginControlsGrid();
+			UI::ControlColor("Color", comp.Color);
+			UI::Control("Falloff Multiplier", comp.Intensity);
+			UI::EndControls();
 		});
 
 		DrawComponet<CameraComponent>(entity, "Scene Camera", [](CameraComponent& comp, Entity entity)
@@ -840,6 +825,36 @@ namespace Shark {
 
 		m_SelectedEntity = entity;
 		m_SelectionChangedCallback(entity);
+		UpdateMaterialEditor(entity);
+	}
+
+	void SceneHirachyPanel::UpdateMaterialEditor(Entity entity)
+	{
+		if (!entity)
+		{
+			m_MaterialEditor->SetMaterial(nullptr);
+			return;
+		}
+
+		if (entity.AllOf<MeshRendererComponent>())
+		{
+			const auto& mc = entity.GetComponent<MeshRendererComponent>();
+			if (ResourceManager::IsValidAssetHandle(mc.MeshHandle))
+			{
+				Ref<Mesh> mesh = ResourceManager::GetAsset<Mesh>(mc.MeshHandle);
+				Ref<MeshSource> meshSource = mesh->GetMeshSource();
+				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+				Ref<MaterialTable> sourceMaterialTable = meshSource->GetMaterialTable();
+
+				const auto& submesh = meshSource->GetSubmeshes()[mc.SubmeshIndex];
+
+				Ref<MaterialAsset> material = materialTable->HasMaterial(submesh.MaterialIndex) ?
+					materialTable->GetMaterial(submesh.MaterialIndex) :
+					sourceMaterialTable->GetMaterial(submesh.MaterialIndex);
+
+				m_MaterialEditor->SetMaterial(material);
+			}
+		}
 	}
 
 	void SceneHirachyPanel::DrawAppEntityPopup()

@@ -111,6 +111,7 @@ namespace Shark {
 		CopyComponents<CircleRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<TextRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<MeshRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<PointLightComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<CameraComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<RigidBody2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<BoxCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
@@ -325,27 +326,40 @@ namespace Shark {
 		Camera& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
 		auto& tf = cameraEntity.Transform();
 
-		const auto viewProj = camera.GetProjection() * glm::inverse(GetWorldSpaceTransformMatrix(cameraEntity));
-		OnRender(renderer, viewProj);
+		TransformComponent transform = GetWorldSpaceTransform(cameraEntity);
+		const auto viewProj = camera.GetProjection() * glm::inverse(transform.CalcTransform());
+		OnRender(renderer, viewProj, transform.Translation);
 	}
 
 	void Scene::OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
-		OnRender(renderer, editorCamera.GetViewProjection());
+		OnRender(renderer, editorCamera.GetViewProjection(), editorCamera.GetPosition());
 	}
 
 	void Scene::OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
-		OnRender(renderer, editorCamera.GetViewProjection());
+		OnRender(renderer, editorCamera.GetViewProjection(), editorCamera.GetPosition());
 	}
 
-	void Scene::OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj)
+	void Scene::OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj, const glm::vec3& cameraPosition)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnRender");
 
 		renderer->SetScene(this);
-		renderer->BeginScene(viewProj);
+		renderer->BeginScene(viewProj, cameraPosition);
+
+		{
+			auto view = m_Registry.view<TransformComponent, PointLightComponent>();
+			if (view.size_hint())
+			{
+				entt::entity ent = view.front();
+				Entity entity{ ent, this };
+				TransformComponent worldTransform = GetWorldSpaceTransform(entity);
+				const auto& pointLight = entity.GetComponent<PointLightComponent>();
+				renderer->SubmitPointLight(worldTransform.Translation, pointLight.Color, pointLight.Intensity);
+			}
+		}
 
 		auto view = m_Registry.view<TransformComponent>();
 		for (auto ent : view)
@@ -373,6 +387,7 @@ namespace Shark {
 		CopyComponentIfExists<CircleRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<TextRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<MeshRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<PointLightComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CameraComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<BoxCollider2DComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);

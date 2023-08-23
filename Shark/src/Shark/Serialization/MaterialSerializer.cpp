@@ -109,6 +109,9 @@ namespace Shark {
 		out << YAML::Key << "AlbedoColor" << YAML::Value << material->GetAlbedoColor();
 		out << YAML::Key << "AlbedoTexture" << YAML::Value << material->GetAlbedoTexture();
 		out << YAML::Key << "UseAlbedo" << YAML::Value << material->UseAlbedo();
+		out << YAML::Key << "Metallic" << YAML::Value << material->GetMetallic();
+		out << YAML::Key << "Roughness" << YAML::Value << material->GetRoughness();
+		out << YAML::Key << "AO" << YAML::Value << material->GetAO();
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 		m_ErrorMsg = out.GetLastError();
@@ -133,13 +136,23 @@ namespace Shark {
 				return false;
 			}
 
-			glm::vec3 albedoColor = materialNode["AlbedoColor"].as<glm::vec3>(glm::vec3(1.0f));
+			glm::vec3 albedoColor = materialNode["AlbedoColor"].as<glm::vec3>();
 			AssetHandle albedoTexture = materialNode["AlbedoTexture"].as<AssetHandle>();
 			bool useAlbedo = materialNode["UseAlbedo"].as<bool>();
+
+			float metallic = materialNode["Metallic"].as<float>();
+			float reoughness = materialNode["Roughness"].as<float>();
+			float ao = materialNode["AO"].as<float>();
 
 			material->SetAlbedoColor(albedoColor);
 			material->SetAlbedoTexture(albedoTexture);
 			material->SetUseAlbedo(useAlbedo);
+
+			material->SetMetallic(metallic);
+			material->SetRoughness(reoughness);
+			material->SetAO(ao);
+
+			material->UpdateMaterial();
 		}
 		catch (const YAML::Exception& exception)
 		{

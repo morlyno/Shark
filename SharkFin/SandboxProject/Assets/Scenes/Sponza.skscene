@@ -2950,6 +2950,20 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 302
+    - Entity: 9428703014261331129
+      TagComponent:
+        Name: Entity
+      TransformComponent:
+        Translation: [0, 21.6513062, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      PointLightComponent:
+        Color: [1, 1, 1, 1]
+        Intensity: 240.800003
     - Entity: 9429602692012350168
       TagComponent:
         Name: sponza_339

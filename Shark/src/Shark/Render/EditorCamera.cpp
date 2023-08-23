@@ -36,8 +36,12 @@ namespace Shark {
 		UpdateProjection();
 	}
 
-	void EditorCamera::OnUpdate(TimeStep ts)
+	void EditorCamera::OnUpdate(TimeStep ts, bool update)
 	{
+		m_Update = update;
+		if (!m_Update)
+			return;
+
 		if (Input::IsKeyDown(KeyCode::LeftAlt))
 		{
 			glm::vec2 mousePos = Input::GetMousePosition();

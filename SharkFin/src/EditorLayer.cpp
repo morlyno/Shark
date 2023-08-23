@@ -169,8 +169,7 @@ namespace Shark {
 				m_NeedsResize = false;
 			}
 
-			if ((m_ViewportHovered || m_ViewportFocused) && m_SceneState != SceneState::Play)
-				m_EditorCamera.OnUpdate(ts);
+			m_EditorCamera.OnUpdate(ts, (m_ViewportHovered/* || m_ViewportFocused*/) && m_SceneState != SceneState::Play);
 
 			switch (m_SceneState)
 			{
@@ -520,7 +519,7 @@ namespace Shark {
 		UI_Stuff();
 		UI_PendingAssetFileEvents();
 		UI_CreateMeshAsset();
-
+		UI_Objects();
 
 		{
 			static AssetHandle meshSourceHandle = AssetHandle::Invalid;
@@ -690,6 +689,7 @@ namespace Shark {
 				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
 				ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
 				ImGui::MenuItem("Statistics", nullptr, &m_ShowStatistics);
+				ImGui::MenuItem("Objects", nullptr, &m_ShowObjects);
 				ImGui::Separator();
 
 				auto& app = Application::Get();
@@ -967,6 +967,10 @@ namespace Shark {
 				float speedup = m_EditorCamera.GetSpeedup();
 				if (UI::Control("Speedup", speedup))
 					m_EditorCamera.SetSpeedup(speedup);
+
+				float fov = m_EditorCamera.GetFOV();
+				if (UI::Control("FOV", fov))
+					m_EditorCamera.SetFOV(fov);
 
 				UI::EndControls();
 

@@ -17,6 +17,9 @@ namespace Shark {
 		virtual void OnImGuiRender(bool& shown, bool& destroy) {};
 		virtual void OnEvent(Event& event) {};
 
+		void SetPanelName(const std::string& name) { m_PanelName = name; }
+		const std::string& GetPanelName() const { return m_PanelName; }
+
 	protected:
 		std::string m_PanelName;
 		ImGuiID m_ParentDockspaceID;

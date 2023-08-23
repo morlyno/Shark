@@ -80,6 +80,12 @@ namespace Shark {
 		auto& hashCodes = m_CachedShaderSourceHashCodes.at(compiler->GetShaderSourcePath());
 		for (const auto& [stage, metadata] : compiler->m_ShaderStageMetadata)
 		{
+			if (!std::filesystem::exists(metadata.CacheFile))
+			{
+				changedStages |= stage;
+				continue;
+			}
+
 			if (hashCodes.find(stage) == hashCodes.end())
 			{
 				changedStages |= stage;

@@ -25,7 +25,7 @@ namespace Shark {
 
 		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
 
-		void BeginScene(const glm::mat4& viewProj);
+		void BeginScene(const glm::mat4& viewProj, const glm::vec3& cameraPosition);
 		void EndScene();
 
 		void SubmitQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const glm::vec4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
@@ -38,6 +38,7 @@ namespace Shark {
 
 		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
 
+		void SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity);
 		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id);
 
 		void Resize(uint32_t width, uint32_t height);
@@ -64,6 +65,15 @@ namespace Shark {
 		struct CBCamera
 		{
 			glm::mat4 ViewProj;
+			glm::vec3 Position;
+			float Padding;
+		};
+
+		struct CBLight
+		{
+			glm::vec4 Color;
+			glm::vec3 Position;
+			float Intensity;
 		};
 
 		struct CBMeshData
@@ -81,6 +91,7 @@ namespace Shark {
 		Statistics m_Statistics;
 
 		Ref<ConstantBuffer> m_CBSceneData;
+		Ref<ConstantBuffer> m_CBLight;
 
 		uint32_t m_MeshTransformCBIndex = 0;
 		std::vector<Ref<ConstantBuffer>> m_MeshTransformCBs;
@@ -90,6 +101,7 @@ namespace Shark {
 		Ref<GPUTimer> m_Timer;
 
 		glm::mat4 m_ViewProjection;
+		glm::vec3 m_CameraPosition;
 
 		// Geometry
 		Ref<FrameBuffer> m_GeometryFrameBuffer;

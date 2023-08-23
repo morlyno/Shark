@@ -10,6 +10,7 @@
 #include "Shark/Event/ApplicationEvent.h"
 
 #include "Shark/Editor/Panel.h"
+#include "Panels/Editors/MaterialEditorPanel.h"
 
 namespace Shark {
 
@@ -25,7 +26,7 @@ namespace Shark {
 		const Ref<Scene>& GetContext() const { return m_Context; }
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
-		void SetSelectedEntity(Entity entity) { m_SelectedEntity = entity; }
+		void SetSelectedEntity(Entity entity);
 
 		template<typename Func>
 		void SetSelectionChangedCallback(const Func& func) { m_SelectionChangedCallback = func; }
@@ -39,6 +40,7 @@ namespace Shark {
 
 		void DestroyEntity(Entity entity);
 		void SelectEntity(Entity entity);
+		void UpdateMaterialEditor(Entity entity);
 
 		template<typename Comp, typename UIFunction>
 		void DrawComponet(Entity entity, const char* lable, UIFunction func)
@@ -148,6 +150,8 @@ namespace Shark {
 	private:
 		Ref<Scene> m_Context;
 		Entity m_SelectedEntity;
+
+		Scope<MaterialEditor> m_MaterialEditor = nullptr;
 
 		bool m_TransformInWorldSpace = false;
 		bool m_HirachyFocused = false;

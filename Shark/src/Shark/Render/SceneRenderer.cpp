@@ -2,10 +2,11 @@
 #include "SceneRenderer.h"
 
 #include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Components.h"
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
-#include "Shark/Scene/Components.h"
+#include "Shark/Render/MeshFactory.h"
 #include "Shark/Math/Math.h"
 #include "Shark/UI/UI.h"
 
@@ -37,6 +38,7 @@ namespace Shark {
 		m_Timer = GPUTimer::Create("SceneRenderer");
 
 		m_CBSceneData = ConstantBuffer::Create(sizeof(CBCamera), 0);
+		m_CBLight = ConstantBuffer::Create(sizeof(CBLight), 1);
 
 		// Geometry
 		{
@@ -72,7 +74,7 @@ namespace Shark {
 		{
 			PipelineSpecification specification;
 			specification.TargetFrameBuffer = m_GeometryFrameBuffer;
-			specification.Shader = Renderer::GetShaderLib()->Get("DefaultMeshShader");
+			specification.Shader = Renderer::GetShaderLib()->Get("SharkPBR");
 			specification.Layout = VertexLayout{
 				{ VertexDataType::Float3, "Position" },
 				{ VertexDataType::Float3, "Normal" },
@@ -81,6 +83,7 @@ namespace Shark {
 			specification.DebugName = "Default Mesh Pipeline";
 			m_MeshPipeline = Pipeline::Create(specification);
 		}
+
 	}
 
 	SceneRenderer::~SceneRenderer()
@@ -88,7 +91,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 	}
 
-	void SceneRenderer::BeginScene(const glm::mat4& viewProj)
+	void SceneRenderer::BeginScene(const glm::mat4& viewProj, const glm::vec3& cameraPosition)
 	{
 		SK_PROFILE_FUNCTION();
 		
@@ -107,7 +110,12 @@ namespace Shark {
 		m_MeshTransformCBIndex = 0;
 
 		m_ViewProjection = viewProj;
-		m_CBSceneData->UploadData(Buffer::FromValue(viewProj));
+		m_CameraPosition = cameraPosition;
+
+		CBCamera cbCamera;
+		cbCamera.ViewProj = m_ViewProjection;
+		cbCamera.Position = m_CameraPosition;
+		m_CBSceneData->UploadData(Buffer::FromValue(cbCamera));
 
 		m_CommandBuffer->Begin();
 		m_CommandBuffer->BeginTimeQuery(m_Timer);
@@ -155,6 +163,15 @@ namespace Shark {
 		m_Renderer2D->DrawString(text, font, transform, kerning, lineSpacing, color, id);
 	}
 
+	void SceneRenderer::SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity)
+	{
+		CBLight cbLight;
+		cbLight.Color = color;
+		cbLight.Position = position;
+		cbLight.Intensity = intensity;
+		m_CBLight->UploadData(Buffer::FromValue(cbLight));
+	}
+
 	void SceneRenderer::SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id)
 	{
 		SK_CORE_VERIFY(mesh);
@@ -170,7 +187,7 @@ namespace Shark {
 		Ref<ConstantBuffer> cbMeshData = m_MeshTransformCBs[m_MeshTransformCBIndex++];
 		cbMeshData->UploadData(Buffer::FromValue(meshData));
 
-		Renderer::RenderSubmesh(m_CommandBuffer, m_MeshPipeline, mesh, submeshIndex, m_CBSceneData, cbMeshData);
+		Renderer::RenderSubmesh(m_CommandBuffer, m_MeshPipeline, mesh, submeshIndex, m_CBSceneData, cbMeshData, m_CBLight);
 
 		m_Statistics.DrawCalls++;
 		m_Statistics.VertexCount += mesh->GetMeshSource()->GetSubmeshVertexCount(submeshIndex);

@@ -579,6 +579,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	// TODO(moro): Ignores ImGuiItemFlag_Readonly
 	bool Control(std::string_view label, bool& val)
 	{
 		if (!ControlBeginHelper(label))
@@ -699,6 +700,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	// TODO(moro): Ignores ImGuiItemFlag_Readonly
 	bool ControlAsset(std::string_view label, AssetHandle& assetHandle, const char* dragDropType)
 	{
 		if (!ControlBeginHelper(label))
@@ -709,9 +711,14 @@ namespace Shark::UI {
 		bool changed = false;
 		const auto& metadata = ResourceManager::GetMetaData(assetHandle);
 
-		std::string path = metadata.FilePath.string();
+		std::string name;
+		if (metadata.IsMemoryAsset)
+			name = fmt::format("0x{:x}", assetHandle);
+		else
+			name = metadata.FilePath.string();
+
 		ImGui::SetNextItemWidth(-1.0f);
-		ImGui::InputText("##IDStr", path.data(), path.length(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+		ImGui::InputText("##IDStr", name.data(), name.length(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
 
 		//TextFramed(path);
 		{

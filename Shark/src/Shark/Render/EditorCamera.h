@@ -34,7 +34,7 @@ namespace Shark {
 		void SetNearClip(float nearClip) { m_NearClip = nearClip; UpdateProjection(); }
 
 		float GetAspectRatio() const { return m_AspectRatio; }
-		float GetFOV() const { return glm::radians(m_FOV); }
+		float GetFOV() const { return glm::degrees(m_FOV); }
 		float GetFarClip() const { return m_FarClip; }
 		float GetNearClip() const { return m_NearClip; }
 
@@ -60,7 +60,7 @@ namespace Shark {
 		float GetRotationSpeed() const { return m_RotateSpeed; }
 		void SetRotationSpeed(float rotationSpeed) { m_RotateSpeed = rotationSpeed; }
 
-		void OnUpdate(TimeStep ts);
+		void OnUpdate(TimeStep ts, bool update);
 		void OnEvent(Event& event);
 	private:
 		bool OnMouseScolledEvent(MouseScrolledEvent& event);
@@ -90,6 +90,8 @@ namespace Shark {
 		void Move(const glm::vec3& direction, float delta);
 		void Rotate(const glm::vec2& delta);
 	private:
+		bool m_Update = false;
+
 		float m_MoveSpeed = 20.0f;
 		float m_RotateSpeed = 1.5f;
 		float m_Speedup = 4.0f;

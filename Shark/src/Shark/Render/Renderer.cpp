@@ -96,9 +96,14 @@ namespace Shark {
 		s_RendererAPI->RenderSubmesh(renderCommandBuffer, mesh, submeshIndex, pipeline);
 	}
 
-	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData)
+	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData)
 	{
-		s_RendererAPI->RenderSubmesh(commandBuffer, pipeline, mesh, submeshIndex, sceneData, meshData);
+		s_RendererAPI->RenderSubmesh(commandBuffer, pipeline, mesh, submeshIndex, sceneData, meshData, lightData);
+	}
+
+	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData)
+	{
+		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, submeshIndex, material, sceneData);
 	}
 
 	void Renderer::GenerateMips(Ref<Image2D> image)

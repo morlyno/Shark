@@ -170,9 +170,33 @@ namespace Shark {
 			asset->Handle = metadata.Handle;
 			s_Data->LoadedAssets[metadata.Handle] = asset;
 
-			SK_CORE_INFO_TAG("ResourceManager", "Memory Asset Created (Type: {0}, Handle: 0x{1:x}", ToString(metadata.Type), metadata.Handle);
-
+			SK_CORE_INFO_TAG("ResourceManager", "Memory Asset Created (Type: {0}, Handle: 0x{1:x})", ToString(metadata.Type), metadata.Handle);
 			return asset;
+		}
+
+		// Adds an Asset to the ResourceManager and gives it a valid AssetHandle
+		template<typename TAsset>
+		static void AddMemoryAsset(Ref<TAsset> asset)
+		{
+			static_assert(std::is_base_of_v<Asset, TAsset>, "CreateMemoryAsset only works for types with base class Asset!");
+
+			if (ResourceManager::IsValidAssetHandle(asset->Handle))
+			{
+				SK_CORE_ERROR_TAG("ResourceManager", "Tried to add a Memory Asset but Asset has a valid AssetHandle");
+				return;
+			}
+
+			AssetMetaData metadata;
+			metadata.Type = TAsset::GetStaticType();
+			metadata.Handle = AssetHandle::Generate();
+			metadata.IsMemoryAsset = true;
+			metadata.IsDataLoaded = true;
+			s_Data->ImportedAssets[metadata.Handle] = metadata;
+
+			asset->Handle = metadata.Handle;
+			s_Data->LoadedAssets[metadata.Handle] = asset;
+
+			SK_CORE_INFO_TAG("ResourceManager", "Memory Asset Added (Type: {}, Handle: 0x{:x})", ToString(metadata.Type), metadata.Handle);
 		}
 
 		static const auto& GetAssetRegistry() { return s_Data->ImportedAssets; }

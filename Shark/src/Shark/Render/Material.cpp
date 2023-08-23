@@ -20,14 +20,17 @@ namespace Shark {
 	}
 
 	MaterialAsset::MaterialAsset()
-		: m_Material(Material::Create(Renderer::GetShaderLib()->Get("DefaultMeshShader")))
+		: m_Material(Material::Create(Renderer::GetShaderLib()->Get("SharkPBR")))
 	{
 	}
 
 	void MaterialAsset::UpdateMaterial()
 	{
-		m_Material->SetFloat3("u_PBRData.Albedo", m_AlbedoColor);
+		m_Material->SetFloat3("u_PBR.Albedo", m_AlbedoColor);
 		m_Material->SetTexture("u_Albedo", m_UseAlbedo ? ResourceManager::GetAsset<Texture2D>(m_AlbedoTexture) : Renderer::GetWhiteTexture());
+		m_Material->SetFloat("u_PBR.Metallic", m_Metallic);
+		m_Material->SetFloat("u_PBR.Roughness", m_Roughness);
+		m_Material->SetFloat("u_PBR.AO", m_AO);
 		SetDirty(false);
 	}
 

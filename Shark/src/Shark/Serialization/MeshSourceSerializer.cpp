@@ -182,7 +182,7 @@ namespace Shark {
 		for (uint32_t materialIndex = 0; materialIndex < scene->mNumMaterials; materialIndex++)
 		{
 			aiMaterial* material = scene->mMaterials[materialIndex];
-			Ref<MaterialAsset> materialAsset = Ref<MaterialAsset>::Create(Material::Create(Renderer::GetShaderLib()->Get("DefaultMeshShader")));
+			Ref<MaterialAsset> materialAsset = MaterialAsset::Create();
 			materialTable->AddMaterial(materialIndex, materialAsset);
 
 			aiString textureFileName;
@@ -210,8 +210,21 @@ namespace Shark {
 			}
 
 			aiVector3D diffuseColor;
+
+			// TODO(moro): Test If Diffuse color can be removed. PBR Materials should have the color stored in Base Color
 			if (material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor) == aiReturn_SUCCESS)
 				materialAsset->SetAlbedoColor({ diffuseColor.x, diffuseColor.y, diffuseColor.z });
+
+			if (material->Get(AI_MATKEY_BASE_COLOR, diffuseColor) == aiReturn_SUCCESS)
+				materialAsset->SetAlbedoColor({ diffuseColor.x, diffuseColor.y, diffuseColor.z });
+
+			float metallic;
+			if (material->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == aiReturn_SUCCESS)
+				materialAsset->SetMetallic(metallic);
+
+			float roughness;
+			if (material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == aiReturn_SUCCESS)
+				materialAsset->SetRoughness(roughness);
 
 		}
 
@@ -222,13 +235,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		for (const auto& [index, materialAsset] : *materialTable)
-		{
-			Ref<Material> material = materialAsset->GetMaterial();
-			Ref<Texture2D> albedo = ResourceManager::GetAsset<Texture2D>(materialAsset->GetAlbedoTexture());
-			material->SetTexture("u_Albedo", albedo && materialAsset->UseAlbedo() ? albedo : Renderer::GetWhiteTexture());
-			material->SetFloat3("u_PBRData.Albedo", materialAsset->GetAlbedoColor());
-			materialAsset->SetDirty(false);
-		}
+			materialAsset->UpdateMaterial();
 	}
 
 	void MeshSourceSerializer::AddNode(MeshSource::Node* meshNode, aiNode* node)

@@ -274,10 +274,23 @@ namespace Shark {
 
 			if (auto component = entity.TryGetComponent<MeshRendererComponent>())
 			{
+				AssetHandle meshHandle = AssetHandle::Invalid;
+				if (!ResourceManager::IsMemoryAsset(component->MeshHandle))
+					meshHandle = component->MeshHandle;
+
 				out << YAML::Key << "MeshRendererComponent";
 				out << YAML::BeginMap;
-				out << YAML::Key << "MeshHandle" << YAML::Value << component->MeshHandle;
+				out << YAML::Key << "MeshHandle" << YAML::Value << meshHandle;
 				out << YAML::Key << "SubmeshIndex" << YAML::Value << component->SubmeshIndex;
+				out << YAML::EndMap;
+			}
+
+			if (auto component = entity.TryGetComponent<PointLightComponent>())
+			{
+				out << YAML::Key << "PointLightComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "Color" << YAML::Value << component->Color;
+				out << YAML::Key << "Intensity" << YAML::Value << component->Intensity;
 				out << YAML::EndMap;
 			}
 
@@ -506,6 +519,13 @@ namespace Shark {
 						auto& component = entity.AddOrReplaceComponent<MeshRendererComponent>();
 						component.MeshHandle = componentNode["MeshHandle"].as<AssetHandle>();
 						component.SubmeshIndex = componentNode["SubmeshIndex"].as<uint32_t>();
+					}
+
+					if (auto componentNode = entityNode["PointLightComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<PointLightComponent>();
+						component.Color = componentNode["Color"].as<glm::vec4>();
+						component.Intensity = componentNode["Intensity"].as<float>();
 					}
 
 					if (auto componentNode = entityNode["CameraComponent"])

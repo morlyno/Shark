@@ -8,6 +8,26 @@
 
 namespace Shark {
 
+	class MaterialEditor
+	{
+	public:
+		MaterialEditor(const std::string& name, Ref<MaterialAsset> material);
+
+		void Draw();
+		void DrawInline();
+
+		void SetReadonly(bool readonly) { m_Readonly = readonly; }
+
+		void SetName(const std::string& name) { m_Name = name; }
+		void SetMaterial(Ref<MaterialAsset> material) { m_Material = material; }
+
+	private:
+		std::string m_Name;
+		Ref<MaterialAsset> m_Material;
+
+		bool m_Readonly = false;
+	};
+
 	class MaterialEditorPanel : public EditorPanel
 	{
 	public:
@@ -25,9 +45,13 @@ namespace Shark {
 		void SetupWindows();
 
 	private:
+		bool m_Tiny = false;
+
 		bool m_IsInitialized = false;
 		bool m_Active = true;
 		bool m_IsFirstFrame = true;
+
+		Scope<MaterialEditor> m_MaterialEditor;
 		Ref<MaterialAsset> m_Material;
 
 		glm::vec2 m_ViewportSize;

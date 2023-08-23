@@ -8,6 +8,9 @@ Assets:
   - Handle: 0x20734855b5d47bcd
     Type: Scene
     FilePath: Scenes/Joints.skscene
+  - Handle: 0x5077abb6a41d9199
+    Type: Scene
+    FilePath: Scenes/LightTest.skscene
   - Handle: 0xfae4a308ce9caa38
     Type: Scene
     FilePath: Scenes/OIT.skscene
@@ -296,3 +299,6 @@ Assets:
   - Handle: 0x89c2b272d70ce9bf
     Type: Material
     FilePath: Materials/TestMaterial.skmat
+  - Handle: 0x3810048859c52f6
+    Type: Material
+    FilePath: Materials/WiteMaterial.skmat

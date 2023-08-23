@@ -121,6 +121,8 @@ namespace Shark {
 
 		m_ShaderLib = Ref<ShaderLibrary>::Create();
 		m_ShaderLib->Load("Resources/Shaders/DefaultMeshShader.glsl");
+		m_ShaderLib->Load("Resources/Shaders/SharkPBR.glsl");
+		m_ShaderLib->Load("Resources/Shaders/FlatColor.glsl");
 
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
 		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadTransparent.hlsl");
@@ -526,7 +528,7 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData)
+	void DirectXRenderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -535,7 +537,8 @@ namespace Shark {
 		auto dxPipeline = pipeline.As<DirectXPipeline>();
 		auto cbSceneData = sceneData.As<DirectXConstantBuffer>();
 		auto cbMeshData = meshData.As<DirectXConstantBuffer>();
-		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, mesh, submeshIndex, cbSceneData, cbMeshData]()
+		auto cbLight = lightData.As<DirectXConstantBuffer>();
+		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, mesh, submeshIndex, cbSceneData, cbMeshData, cbLight]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
 
@@ -573,6 +576,67 @@ namespace Shark {
 
 			ctx->VSSetConstantBuffers(cbSceneData->GetBinding(), 1, &cbSceneData->m_ConstantBuffer);
 			ctx->VSSetConstantBuffers(cbMeshData->GetBinding(), 1, &cbMeshData->m_ConstantBuffer);
+			if (cbLight)
+				ctx->PSSetConstantBuffers(cbLight->GetBinding(), 1, &cbLight->m_ConstantBuffer);
+
+			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+
+			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
+
+			ctx->RSSetState(dxPipeline->m_RasterizerState);
+			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
+
+			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
+
+			DX11_VALIDATE_CONTEXT(ctx);
+			ctx->DrawIndexed(submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
+		});
+	}
+
+	void DirectXRenderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData)
+	{
+		SK_PROFILE_FUNCTION();
+
+		Ref instance = this;
+		auto dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
+		auto dxPipeline = pipeline.As<DirectXPipeline>();
+		auto dxMaterial = material.As<DirectXMaterial>();
+		auto cbSceneData = sceneData.As<DirectXConstantBuffer>();
+		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, mesh, submeshIndex, dxMaterial, cbSceneData]()
+		{
+			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
+
+			ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
+
+			Ref<MeshSource> meshSource = mesh->GetMeshSource();
+			auto vertexBuffer = meshSource->GetVertexBuffer().As<DirectXVertexBuffer>();
+			auto indexBuffer = meshSource->GetIndexBuffer().As<DirectXIndexBuffer>();
+
+			const UINT offset = 0;
+			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
+			ctx->IASetVertexBuffers(0, 1, &vertexBuffer->m_VertexBuffer, &stride, &offset);
+
+			ctx->IASetIndexBuffer(indexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+
+			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
+
+			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
+			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
+
+			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
+
+			const auto& submeshes = meshSource->GetSubmeshes();
+			const auto& submesh = submeshes[submeshIndex];
+
+			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+			Ref<MaterialTable> sourceMaterialTable = meshSource->GetMaterialTable();
+
+			instance->RT_PrepareAndBindMaterialForRendering(dxCommandBuffer, dxMaterial);
+
+			ctx->VSSetConstantBuffers(cbSceneData->GetBinding(), 1, &cbSceneData->m_ConstantBuffer);
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 

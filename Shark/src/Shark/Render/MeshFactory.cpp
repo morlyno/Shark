@@ -72,7 +72,7 @@ namespace Shark {
 		material->UpdateMaterialIfDirty();
 		materialTable->AddMaterial(0, material);
 
-		return ResourceManager::CreateMemoryAsset<MeshSource>(vertexBuffer, indexBuffer, materialTable);
+		return MeshSource::Create(vertexBuffer, indexBuffer, materialTable);
 	}
 
 	Ref<MeshSource> MeshFactory::CreateSphere(int latDiv, int longDiv)
@@ -111,6 +111,13 @@ namespace Shark {
 			}
 		}
 
+		// add the cap vertices
+		const auto iNorthPole = (unsigned short)vertices.size();
+		vertices.emplace_back().Position = base;
+
+		const auto iSouthPole = (unsigned short)vertices.size();
+		vertices.emplace_back().Position = -base;
+
 		for (auto& vertex : vertices)
 		{
 			vertex.Normal = glm::normalize(vertex.Position);
@@ -119,13 +126,6 @@ namespace Shark {
 		}
 
 		std::vector<uint32_t> indices;
-
-		// add the cap vertices
-		const auto iNorthPole = (unsigned short)vertices.size();
-		vertices.emplace_back().Position = base;
-
-		const auto iSouthPole = (unsigned short)vertices.size();
-		vertices.emplace_back().Position = -base;
 
 		const auto calcIdx = [latDiv, longDiv](unsigned short iLat, unsigned short iLong)
 		{ return iLat * longDiv + iLong; };
@@ -178,7 +178,7 @@ namespace Shark {
 		material->UpdateMaterialIfDirty();
 		materialTable->AddMaterial(0, material);
 
-		return ResourceManager::CreateMemoryAsset<MeshSource>(vertexBuffer, indexBuffer, materialTable);
+		return MeshSource::Create(vertexBuffer, indexBuffer, materialTable);
 	}
 
 	Ref<MeshSource> MeshFactory::GetCube()
@@ -186,6 +186,7 @@ namespace Shark {
 		if (s_MeshFactoryCache.CubeHandle == AssetHandle::Invalid)
 		{
 			auto meshSource = CreateCube();
+			ResourceManager::AddMemoryAsset(meshSource);
 			s_MeshFactoryCache.CubeHandle = meshSource->Handle;
 			return meshSource;
 		}
@@ -198,6 +199,7 @@ namespace Shark {
 		if (s_MeshFactoryCache.SphereHandle == AssetHandle::Invalid)
 		{
 			auto meshSource = CreateSphere();
+			ResourceManager::AddMemoryAsset(meshSource);
 			s_MeshFactoryCache.SphereHandle = meshSource->Handle;
 			return meshSource;
 		}

@@ -1,5 +1,7 @@
 Material:
-  Name: ""
-  Shader: ""
+  AlbedoColor: [1, 1, 1]
   AlbedoTexture: 0
   UseAlbedo: true
+  Metallic: 0
+  Roughness: 0
+  AO: 0

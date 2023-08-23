@@ -4,6 +4,7 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/Math/Math.h"
 #include "Shark/Utils/String.h"
+#include "Shark/Utils/Utils.h"
 
 #include "Platform/DirectX11/ShaderUtils.h"
 #include "Platform/DirectX11/DirectXShader.h"
@@ -220,6 +221,11 @@ namespace Shark {
 			return "";
 		}
 
+		static std::string GetDirectXCacheFile(const std::string& fileName, ShaderUtils::ShaderStage::Type stage)
+		{
+			return fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), fileName, utils::GetCacheFileExtension(stage));
+		}
+
 		static ShaderReflection::ShaderStage ToShaderReflectionShaderStage(ShaderUtils::ShaderStage::Type stage)
 		{
 			switch (stage)
@@ -378,6 +384,8 @@ namespace Shark {
 			auto& metadata = m_ShaderStageMetadata[stage];
 			metadata.Stage = stage;
 			metadata.HashCode = Hash::GenerateFNV(moduleSource);
+			metadata.SourceMetadata = GetMetadata(moduleSource);
+			metadata.CacheFile = utils::GetDirectXCacheFile(m_ShaderSourcePath.stem().string(), stage);
 
 			m_Stages |= stage;
 		}
@@ -394,6 +402,7 @@ namespace Shark {
 			auto& metadata = m_ShaderStageMetadata[stage];
 			metadata.Stage = stage;
 			metadata.HashCode = Hash::GenerateFNV(moduleSource);
+			metadata.SourceMetadata = GetMetadata(moduleSource);
 
 			m_Stages |= stage;
 		}
@@ -490,6 +499,27 @@ namespace Shark {
 		}
 
 		return shaderSource;
+	}
+
+	std::string DirectXShaderCompiler::GetMetadata(const std::string& source)
+	{
+		static constexpr std::string_view BeginMetadataToken = "begin_metadata";
+		static constexpr std::string_view EndMetadataToken = "end_metadata";
+
+		size_t begin = source.find(BeginMetadataToken);
+		if (begin == std::string::npos)
+			return {};
+
+		size_t end = source.find(EndMetadataToken);
+		if (end == std::string::npos)
+			return {};
+
+		size_t endOfLineEnd = source.find_first_of("\r\n", end);
+
+		std::string metadata = source.substr(begin, endOfLineEnd - begin);
+		String::Remove(metadata, "// ");
+		String::Remove(metadata, "//");
+		return metadata;
 	}
 
 	bool DirectXShaderCompiler::CompileOrLoadBinaries(ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile)
@@ -853,6 +883,9 @@ namespace Shark {
 		spirv_cross::Compiler compiler(spirvBinary);
 		spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
 
+		const auto& metadata = m_ShaderStageMetadata.at(stage);
+		auto overriddenUpdateFruequencies = GetUpdateFrequencies(metadata);
+
 		SK_CORE_TRACE_TAG("Renderer", "Constant Buffers:");
 		for (const auto& constantBuffer : shaderResources.uniform_buffers)
 		{
@@ -868,13 +901,13 @@ namespace Shark {
 			auto& data = m_ReflectionData.ConstantBuffers[name];
 			data.Name = name;
 			data.Stage = utils::ToShaderReflectionShaderStage(stage);
-			data.UpdateFrequency = utils::GetUpdateFrequencyFromBinding(data.Binding);
+			data.UpdateFrequency = Utils::Contains(overriddenUpdateFruequencies, binding) ? overriddenUpdateFruequencies.at(binding) : utils::GetUpdateFrequencyFromBinding(binding);
 			data.Binding = binding;
 			data.Size = size;
 			data.MemberCount = memberCount;
 
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", name);
-			SK_CORE_TRACE_TAG("Renderer", "  UpdateFrequency", ToString(data.UpdateFrequency));
+			SK_CORE_TRACE_TAG("Renderer", "  UpdateFrequency: {}", ToString(data.UpdateFrequency));
 			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", binding);
 			SK_CORE_TRACE_TAG("Renderer", "  Size: {}", size);
 			SK_CORE_TRACE_TAG("Renderer", "  Members: {}", memberCount);
@@ -976,6 +1009,58 @@ namespace Shark {
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 		}
 
+	}
+
+	std::map<uint32_t, Shark::ShaderReflection::UpdateFrequencyType> DirectXShaderCompiler::GetUpdateFrequencies(const Metadata& metadata)
+	{
+		if (metadata.SourceMetadata.empty())
+			return {};
+
+		std::map<uint32_t, ShaderReflection::UpdateFrequencyType> overriddenUpdateFruequencies;
+		std::string_view overrides = metadata.SourceMetadata;
+
+		size_t bol = 0;
+		size_t eol = 0;
+
+		const std::string_view BindingToken = "binding=";
+		const std::string_view UpdateFrequencyToken = "UpdateFrequency::";
+
+		size_t offset = 0;
+
+		while (true)
+		{
+			bol = overrides.find("set", offset);
+			if (bol == std::string::npos)
+				break;
+
+			eol = overrides.find_first_of("\r\n", bol);
+			offset = eol;
+			std::string_view line = overrides.substr(bol, eol - bol);
+			size_t bindingBegin = line.find(BindingToken);
+			if (bindingBegin == std::string::npos)
+				continue;
+
+			size_t bindingValueBegin = bindingBegin + BindingToken.length();
+			size_t bindingValueEnd = line.find(' ', bindingValueBegin);
+			std::string bindingString = std::string(line.substr(bindingValueBegin, bindingValueEnd - bindingValueBegin));
+
+			size_t updateFrequencyBegin = line.find(UpdateFrequencyToken);
+			if (updateFrequencyBegin == std::string::npos)
+				continue;
+
+			size_t updateFrequencyValueBegin = updateFrequencyBegin + UpdateFrequencyToken.length();
+			size_t updateFrequencyValueEnd = line.find_first_of(" \r\n", updateFrequencyValueBegin);
+			std::string updateFrequencyString = std::string(line.substr(updateFrequencyValueBegin, updateFrequencyValueEnd - updateFrequencyValueBegin));
+
+			String::Strip(bindingString);
+			String::Strip(updateFrequencyString);
+
+			uint32_t binding = std::atoi(bindingString.c_str());
+			ShaderReflection::UpdateFrequencyType updateFrequency = StringToShaderReflectionUpdateFrequency(updateFrequencyString);
+			overriddenUpdateFruequencies[binding] = updateFrequency;
+		}
+
+		return overriddenUpdateFruequencies;
 	}
 
 }

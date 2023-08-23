@@ -26,6 +26,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (m_EditorPanels.empty())
+			shown = false;
+
 		if (!shown)
 			return;
 
@@ -36,9 +39,9 @@ namespace Shark {
 		if (opened)
 		{
 			ImGui::DockSpace(m_DockspaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_NoWindowMenuButton);
-
 			DrawPanels();
 		}
+
 		ImGui::End();
 	}
 
