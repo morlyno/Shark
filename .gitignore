@@ -1,10 +1,10 @@
 
-**/bin/
-**/bin-int/
+bin/
+!Shark/dependencies/Assimp/bin
+bin-int/
 Scripts/__pycache__
 
 SharkFin/Cache
-SharkFin/Assets
 SharkFin/imgui.ini
 SharkFin/Logs/*.log
 
