@@ -4,6 +4,7 @@
 #include "Shark/Core/Application.h"
 #include "Shark/Render/Renderer.h"
 
+#include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/Windows/WindowsUtils.h"
 
@@ -12,7 +13,7 @@
 namespace Shark {
 
 	DirectXSwapChain::DirectXSwapChain(const SwapChainSpecifications& specs)
-		: m_Specs(specs)
+		: m_Specification(specs)
 	{
 		ReCreateSwapChain();
 	}
@@ -36,6 +37,7 @@ namespace Shark {
 
 		if (hr == DXGI_ERROR_INVALID_CALL)
 		{
+			SK_CORE_ERROR_TAG("Renderer", "Present Failed (DXGI_ERROR_INVALID_CALL). Resizing Swapching to fix");
 			auto& window = Application::Get().GetWindow();
 			RT_ResizeSwapChain(window.GetWidth(), window.GetHeight());
 			return;
@@ -45,7 +47,7 @@ namespace Shark {
 			DirectXRenderer::Get()->HandleError(hr);
 
 		auto& window = Application::Get().GetWindow();
-		if (window.GetWidth() != m_Specs.Widht || window.GetHeight() != m_Specs.Height)
+		if (window.GetWidth() != m_Specification.Width || window.GetHeight() != m_Specification.Height)
 			RT_ResizeSwapChain(window.GetWidth(), window.GetHeight());
 	}
 
@@ -57,7 +59,7 @@ namespace Shark {
 
 	void DirectXSwapChain::SetFullscreen(bool fullscreen)
 	{
-		m_Specs.Fullscreen = fullscreen;
+		m_Specification.Fullscreen = fullscreen;
 
 		Renderer::Submit([swapchain = m_SwapChain, fullscreen]()
 		{
@@ -65,86 +67,34 @@ namespace Shark {
 		});
 	}
 
-	void DirectXSwapChain::ResizeSwapChain(uint32_t width, uint32_t height, bool alwaysResize)
+	void DirectXSwapChain::Release()
 	{
-		if (!alwaysResize && (m_Specs.Widht == width && m_Specs.Height == height))
-			return;
-
-		SK_CORE_WARN_TAG("Renderer", "Resizing Swapchain ({}, {})", width, height);
-
-		m_Specs.Widht = width;
-		m_Specs.Height = height;
-
-		//Renderer::ClearAllCommandBuffers();
-		Ref<DirectXSwapChain> instance = this;
-		Renderer::Submit([instance, width, height, frameBuffer = m_FrameBuffer, swapchain = m_SwapChain]()
+		Renderer::Submit([swapchain = m_SwapChain]()
 		{
-			if (frameBuffer)
-				frameBuffer->RT_Release();
-
-			auto renderer = DirectXRenderer::Get();
-			renderer->RT_PrepareForSwapchainResize();
-			swapchain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+			if (swapchain)
+				swapchain->Release();
 		});
 
 		m_FrameBuffer = nullptr;
-
-		FrameBufferSpecification specs;
-		specs.Width = width;
-		specs.Height = height;
-		specs.Atachments = { ImageFormat::RGBA8 };
-		specs.ClearColor = { 0.8f, 0.6f, 0.3f, 1.0f };
-		specs.IsSwapChainTarget = true;
-		specs.Atachments[0].Image = Ref<DirectXImage2D>::Create(instance, false);
-		m_FrameBuffer = Ref<DirectXFrameBuffer>::Create(specs);
-	}
-
-	void DirectXSwapChain::RT_ResizeSwapChain(uint32_t width, uint32_t height)
-	{
-		m_Specs.Widht = width;
-		m_Specs.Height = height;
-
-		m_FrameBuffer->RT_Release();
-		auto renderer = DirectXRenderer::Get();
-		renderer->RT_PrepareForSwapchainResize();
-		m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-
-		auto& spec = m_FrameBuffer->GetSpecificationMutable();
-		spec.Width = width;
-		spec.Height = height;
-		spec.Atachments[0].Image.As<DirectXImage2D>()->RT_Invalidate(this);
-		m_FrameBuffer->RT_Invalidate();
+		m_SwapChain = nullptr;
 	}
 
 	void DirectXSwapChain::ReCreateSwapChain()
 	{
+		m_Specification.Width = std::max(m_Specification.Width, 8u);
+		m_Specification.Height = std::max(m_Specification.Height, 8u);
+
+		Release();
+
 		Ref<DirectXSwapChain> instance = this;
-		Renderer::Submit([this, instance, frameBuffer = m_FrameBuffer]()
+		Renderer::Submit([instance, width = m_Specification.Width, height = m_Specification.Height, bufferCount = m_Specification.BufferCount, windowHandle = m_Specification.Window, fullscreen = m_Specification.Fullscreen]()
 		{
-			if (frameBuffer)
-				frameBuffer->RT_Release();
-
-			if (m_SwapChain)
-			{
-				ULONG refCount = m_SwapChain->Release();
-				m_SwapChain = nullptr;
-			}
-
-			//SK_CORE_ASSERT(m_FrameBuffer == nullptr);
-			//SK_CORE_ASSERT(m_SwapChain == nullptr);
-
 			DXGI_SWAP_CHAIN_DESC scd{};
 
-			if (m_Specs.Widht == 0 || m_Specs.Height == 0)
-			{
-				m_Specs.Widht = 1280;
-				m_Specs.Height = 720;
-			}
+			scd.BufferDesc.Width = width;
+			scd.BufferDesc.Height = height;
 
-			scd.BufferDesc.Width = m_Specs.Widht;
-			scd.BufferDesc.Height = m_Specs.Height;
-
-			scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			scd.BufferDesc.Format = utils::ImageFormatToD3D11ForResource(instance->m_Format);
 			scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 			scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 			scd.BufferDesc.RefreshRate.Denominator = 0u;
@@ -152,28 +102,139 @@ namespace Shark {
 			scd.SampleDesc.Count = 1u;
 			scd.SampleDesc.Quality = 0u;
 			scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-			scd.BufferCount = m_Specs.BufferCount;
-			scd.OutputWindow = (HWND)m_Specs.Handle;
-			scd.Windowed = !m_Specs.Fullscreen;
-			scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-			//scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+			scd.BufferCount = bufferCount;
+			scd.OutputWindow = (HWND)windowHandle;
+			scd.Windowed = !fullscreen;
+			//scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+			scd.SwapEffect = instance->m_SwapEffect;
 			scd.Flags = 0;
 
-			auto* fac = DirectXRenderer::GetFactory();
-			auto* dev = DirectXRenderer::GetDevice();
-			SK_DX11_CALL(fac->CreateSwapChain(dev, &scd, &m_SwapChain));
+			auto renderer = DirectXRenderer::Get();
+			auto factory = renderer->GetFactory();
+			auto device = renderer->GetDevice();
+
+			IDXGISwapChain* swapchain = nullptr;
+			DirectXAPI::CreateSwapChain(factory, device, scd, swapchain);
+			instance->m_SwapChain = swapchain;
 		});
 
-		m_FrameBuffer = nullptr;
+		Ref<DirectXImage2D> swapchainImage = Ref<DirectXImage2D>::Create();
+		auto& imageSpec = swapchainImage->GetSpecificationMutable();
+		imageSpec.Width = m_Specification.Width;
+		imageSpec.Height = m_Specification.Height;
+		imageSpec.Format = m_Format;
+		imageSpec.Type = ImageType::FrameBuffer;
 
-		FrameBufferSpecification specs;
-		specs.Width = m_Specs.Widht;
-		specs.Height = m_Specs.Height;
-		specs.Atachments = { ImageFormat::RGBA8 };
-		specs.ClearColor = { 0.8f, 0.6f, 0.3f, 1.0f };
-		specs.IsSwapChainTarget = true;
-		specs.Atachments[0].Image = Ref<DirectXImage2D>::Create(instance, false);
-		m_FrameBuffer = Ref<DirectXFrameBuffer>::Create(specs);
+		Renderer::Submit([instance, swapchainImage]()
+		{
+			ID3D11Texture2D* resource = nullptr;
+			instance->m_SwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void**)&resource);
+			swapchainImage->SetResource(resource);
+		});
+
+		FrameBufferSpecification spec;
+		spec.Width = m_Specification.Width;
+		spec.Height = m_Specification.Height;
+		spec.Atachments = { m_Format };
+		spec.ClearColor = { 0.8f, 0.6f, 0.3f, 1.0f };
+		spec.IsSwapChainTarget = true;
+		spec.ExistingImages[0] = swapchainImage;
+		spec.DebugName = "SwapChain";
+		m_FrameBuffer = Ref<DirectXFrameBuffer>::Create(spec);
+	}
+
+	void DirectXSwapChain::ResizeSwapChain(uint32_t width, uint32_t height, bool alwaysResize)
+	{
+		width = std::max(width, 8u);
+		height = std::max(height, 8u);
+
+		if (!alwaysResize && (m_Specification.Width == width && m_Specification.Height == height))
+			return;
+
+		SK_CORE_WARN_TAG("Renderer", "Resizing Swapchain ({}, {})", width, height);
+
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+
+		m_FrameBuffer->Release();
+
+		Ref<DirectXSwapChain> instance = this;
+		Renderer::Submit([instance, width, height, bufferCount = m_Specification.BufferCount]()
+		{
+			auto renderer = DirectXRenderer::Get();
+			renderer->RT_PrepareForSwapchainResize();
+
+			instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, utils::ImageFormatToD3D11ForResource(instance->m_Format), 0);
+		});
+
+		Ref<DirectXImage2D> swapchainImage = Ref<DirectXImage2D>::Create();
+		auto& imageSpec = swapchainImage->GetSpecificationMutable();
+		imageSpec.Width = m_Specification.Width;
+		imageSpec.Height = m_Specification.Height;
+		imageSpec.Format = m_Format;
+		imageSpec.Type = ImageType::FrameBuffer;
+
+		Renderer::Submit([instance, swapchainImage]()
+		{
+			ID3D11Texture2D* resource = nullptr;
+			instance->m_SwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void**)&resource);
+			swapchainImage->SetResource(resource);
+		});
+
+		FrameBufferSpecification& spec = m_FrameBuffer->GetSpecificationMutable();
+		spec.Width = width;
+		spec.Height = height;
+		spec.Atachments = { m_Format };
+		spec.ClearColor = { 0.8f, 0.6f, 0.3f, 1.0f };
+		spec.ExistingImages[0] = swapchainImage;
+		spec.IsSwapChainTarget = true;
+		m_FrameBuffer->Invalidate();
+	}
+
+	void DirectXSwapChain::RT_ResizeSwapChain(uint32_t width, uint32_t height, bool alwaysResize)
+	{
+		width = std::max(width, 8u);
+		height = std::max(height, 8u);
+
+		if (!alwaysResize && (m_Specification.Width == width && m_Specification.Height == height))
+			return;
+
+		SK_CORE_WARN_TAG("Renderer", "Resizing Swapchain ({}, {})", width, height);
+
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+
+		m_FrameBuffer->RT_Release();
+
+		auto renderer = DirectXRenderer::Get();
+		renderer->RT_PrepareForSwapchainResize();
+		m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, utils::ImageFormatToD3D11ForResource(m_Format), 0);
+
+
+		ID3D11Texture2D* swapchainBuffer = nullptr;
+		m_SwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void**)&swapchainBuffer);
+
+		ImageSpecification imageSpec;
+		imageSpec.Format = m_Format;
+		imageSpec.Type = ImageType::FrameBuffer;
+		imageSpec.Width = width;
+		imageSpec.Height = height;
+		auto swapchainImage = Ref<DirectXImage2D>::Create(imageSpec, swapchainBuffer, false);
+
+		FrameBufferSpecification& spec = m_FrameBuffer->GetSpecificationMutable();
+		if (spec.ExistingImages[0])
+		{
+			spec.ExistingImages[0]->RT_Release();
+			spec.ExistingImages[0] = nullptr;
+		}
+
+		spec.Width = width;
+		spec.Height = height;
+		spec.Atachments = { m_Format };
+		spec.ClearColor = { 0.8f, 0.6f, 0.3f, 1.0f };
+		spec.ExistingImages[0] = swapchainImage;
+		spec.IsSwapChainTarget = true;
+		m_FrameBuffer->RT_Invalidate();
 	}
 
 }

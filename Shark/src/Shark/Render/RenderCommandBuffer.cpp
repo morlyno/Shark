@@ -9,7 +9,7 @@ namespace Shark {
 
 	Ref<RenderCommandBuffer> RenderCommandBuffer::Create()
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXRenderCommandBuffer>::Create();

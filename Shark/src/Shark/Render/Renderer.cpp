@@ -3,33 +3,105 @@
 
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Shark/Debug/Profiler.h"
+#include <future>
 
 namespace Shark {
 
 	Ref<RendererAPI> Renderer::s_RendererAPI = nullptr;
-	static RendererAPIType s_API = RendererAPIType::None;
 
-	static CommandQueue* s_RenderCommandQueue[2];
+	struct RendererData
+	{
+		Ref<ShaderLibrary> m_ShaderLibrary;
+
+		Ref<Texture2D> m_WhiteTexture;
+		Ref<Texture2D> m_BlackTexture;
+	};
+
+	static RendererData* s_Data = nullptr;
+	static constexpr uint32_t s_CommandQueueCount = 2;
+	static RenderCommandQueue* s_CommandQueue[s_CommandQueueCount];
+	static uint32_t s_CommandQueueSubmissionIndex = 0;
+
+	static bool s_SingleThreadedIsExecuting = false;
+
+	Ref<RendererAPI> RendererAPI::Create()
+	{
+		switch (RendererAPI::GetCurrentAPI())
+		{
+			case RendererAPIType::None:        SK_CORE_ASSERT(false, "RendererAPI not specified"); break;
+			case RendererAPIType::DirectX11:   return Ref<DirectXRenderer>::Create(); break;
+		}
+
+		SK_CORE_ASSERT(false, "Unkown RendererAPI");
+		return nullptr;
+	}
 
 	void Renderer::Init()
 	{
-		s_RenderCommandQueue[0] = sknew CommandQueue(1024 * 10);
-		s_RenderCommandQueue[1] = sknew CommandQueue(1024 * 10);
+		SK_PROFILE_FUNCTION();
 
-		switch (s_API)
+		s_CommandQueue[0] = sknew RenderCommandQueue();
+		s_CommandQueue[1] = sknew RenderCommandQueue();
+
+		s_RendererAPI = RendererAPI::Create();
+
+		s_Data = sknew RendererData;
+		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
+
+		// 3D
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/DefaultMeshShader.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FlatColor.glsl");
+
+		// 2D
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_QuadTransparent.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_QuadDepthPass.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Circle.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_CircleTransparent.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_CircleDepthPass.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Line.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_LineDepthPass.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Composite.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Text.hlsl");
+
+		// Misc
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FullScreen.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/CompositWidthDepth.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/NegativeEffect.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/BlurEffect.hlsl");
+
+		// Compile Shaders
+		Renderer::WaitAndRender();
+
 		{
-			case RendererAPIType::None:        SK_CORE_ASSERT(false, "RendererAPI not specified"); break;
-			case RendererAPIType::DirectX11:   s_RendererAPI = Ref<DirectXRenderer>::Create(); break;
-			default:
-				SK_CORE_ASSERT(false, "Unkonw RendererAPI");
+			TextureSpecification spec;
+			spec.Format = ImageFormat::RGBA8;
+			spec.Width = 1;
+			spec.Height = 1;
+			spec.GenerateMips = false;
+
+			spec.DebugName = "White Texture";
+			s_Data->m_WhiteTexture = Texture2D::Create(spec, Buffer::FromValue(0xFFFFFFFF));
+
+			spec.DebugName = "Balck Texture";
+			s_Data->m_BlackTexture = Texture2D::Create(spec, Buffer::FromValue(0x00000000));
 		}
 	}
 
 	void Renderer::ShutDown()
 	{
+		SK_PROFILE_FUNCTION();
+
+		s_Data->m_ShaderLibrary = nullptr;
+		s_Data->m_WhiteTexture = nullptr;
+		skdelete s_Data;
+
 		s_RendererAPI = nullptr;
-		skdelete s_RenderCommandQueue[0];
-		skdelete s_RenderCommandQueue[1];
+		Renderer::WaitAndRender();
+
+		skdelete s_CommandQueue[0];
+		skdelete s_CommandQueue[1];
 	}
 
 	void Renderer::BeginFrame()
@@ -45,15 +117,17 @@ namespace Shark {
 	void Renderer::WaitAndRender()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_FUNCTION();
+		SK_PERF_SCOPED("Renderer::WaitAndRender");
 
-		std::swap(s_RenderCommandQueue[0], s_RenderCommandQueue[1]);
-		s_RenderCommandQueue[1]->Execute();
-	}
+		const uint32_t executeIndex = s_CommandQueueSubmissionIndex;
+		s_CommandQueueSubmissionIndex = (s_CommandQueueSubmissionIndex + 1) & s_CommandQueueCount;
 
-	bool Renderer::IsOnRenderThread()
-	{
-		return true;
+		s_SingleThreadedIsExecuting = true;
+		std::async(std::launch::async, [executeIndex]()
+		{
+			s_CommandQueue[executeIndex]->Execute();
+		});
+		s_SingleThreadedIsExecuting = false;
 	}
 
 	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
@@ -86,11 +160,6 @@ namespace Shark {
 		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, vertexBuffer, vertexCount);
 	}
 
-	void Renderer::RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline)
-	{
-		s_RendererAPI->RenderMesh(renderCommandBuffer, mesh, pipeline);
-	}
-
 	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline)
 	{
 		s_RendererAPI->RenderSubmesh(renderCommandBuffer, mesh, submeshIndex, pipeline);
@@ -116,34 +185,9 @@ namespace Shark {
 		s_RendererAPI->RT_GenerateMips(image);
 	}
 
-	const RendererCapabilities& Renderer::GetCapabilities()
-	{
-		return s_RendererAPI->GetCapabilities();
-	}
-
-	Ref<ShaderLibrary> Renderer::GetShaderLib()
-	{
-		return s_RendererAPI->GetShaderLib();
-	}
-
-	Ref<Texture2D> Renderer::GetWhiteTexture()
-	{
-		return s_RendererAPI->GetWhiteTexture();
-	}
-
-	bool Renderer::ResourcesCreated()
-	{
-		return s_RendererAPI->ResourcesCreated();
-	}
-
-	bool Renderer::IsInsideFrame()
-	{
-		return s_RendererAPI ? s_RendererAPI->IsInsideFrame() : true;
-	}
-
 	void Renderer::ReportLiveObejcts()
 	{
-		switch (s_API)
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: return;
 			case RendererAPIType::DirectX11: DirectXRenderer::ReportLiveObejcts(); return;
@@ -157,34 +201,34 @@ namespace Shark {
 		return s_RendererAPI;
 	}
 
-	void Renderer::SetAPI(RendererAPIType api)
+	Ref<ShaderLibrary> Renderer::GetShaderLibrary()
 	{
-		s_API = api;
+		return s_Data->m_ShaderLibrary;
 	}
 
-	RendererAPIType Renderer::GetAPI()
+	Ref<Texture2D> Renderer::GetWhiteTexture()
 	{
-		return s_API;
+		return s_Data->m_WhiteTexture;
 	}
 
-	CommandQueue& Renderer::GetCommandQueue()
+	Ref<Texture2D> Renderer::GetBlackTexture()
 	{
-		return *s_RenderCommandQueue[0];
+		return s_Data->m_BlackTexture;
 	}
 
-	CommandQueue& Renderer::GetResourceFreeQueue()
+	const RendererCapabilities& Renderer::GetCapabilities()
 	{
-		return *s_RenderCommandQueue[0];
+		return s_RendererAPI->GetCapabilities();
 	}
 
-	bool Renderer::IsDuringStartup()
+	bool Renderer::IsOnRenderThread()
 	{
-		return Application::Get().GetApplicationState() == ApplicationState::Startup;
+		return s_SingleThreadedIsExecuting;
 	}
 
-	bool Renderer::IsDuringShutdown()
+	RenderCommandQueue& Renderer::GetCommandQueue()
 	{
-		return Application::Get().GetApplicationState() == ApplicationState::Shutdown;
+		return *s_CommandQueue[s_CommandQueueSubmissionIndex];
 	}
 
 }

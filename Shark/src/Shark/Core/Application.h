@@ -2,7 +2,6 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Window.h"
-#include "Shark/Core/CommandQueue.h"
 #include "Shark/Event/Event.h"
 #include "Shark/Event/EventListener.h"
 #include "Shark/Event/WindowEvent.h"
@@ -67,6 +66,7 @@ namespace Shark {
 		PerformanceProfiler* GetProfiler() const { return m_Profiler; }
 		PerformanceProfiler* GetSecondaryProfiler() const { return m_SecondaryProfiler; }
 		ApplicationState GetApplicationState() const { return m_State; }
+		std::thread::id GetMainThreadID() const { return m_MainThreadID; }
 
 		Window& GetWindow() { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
@@ -98,6 +98,8 @@ namespace Shark {
 	private:
 		static Application* s_Instance;
 		ApplicationSpecification m_Specification;
+
+		std::thread::id m_MainThreadID;
 
 		ApplicationState m_State = ApplicationState::Startup;
 		bool m_Minimized = false;

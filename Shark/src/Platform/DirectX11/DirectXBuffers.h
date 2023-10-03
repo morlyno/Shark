@@ -13,6 +13,7 @@ namespace Shark {
 		virtual ~DirectXVertexBuffer();
 
 		virtual void Release() override;
+		virtual void RT_Release() override;
 
 		virtual void Resize(uint32_t size) override;
 		virtual void Resize(Buffer vertexData) override;
@@ -58,6 +59,7 @@ namespace Shark {
 		virtual ~DirectXIndexBuffer();
 
 		virtual void Release() override;
+		virtual void RT_Release() override;
 
 		virtual void Resize(uint32_t count) override;
 		virtual void Resize(Buffer indexData) override;

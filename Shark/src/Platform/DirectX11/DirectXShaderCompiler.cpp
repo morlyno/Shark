@@ -403,6 +403,7 @@ namespace Shark {
 			metadata.Stage = stage;
 			metadata.HashCode = Hash::GenerateFNV(moduleSource);
 			metadata.SourceMetadata = GetMetadata(moduleSource);
+			metadata.CacheFile = utils::GetDirectXCacheFile(m_ShaderSourcePath.stem().string(), stage);
 
 			m_Stages |= stage;
 		}

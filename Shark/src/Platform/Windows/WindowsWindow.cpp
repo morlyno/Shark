@@ -124,30 +124,21 @@ namespace Shark {
 		ShowWindow(m_hWnd, SW_SHOW);
 		UpdateWindow(m_hWnd);
 
-		if (!spec.Decorated)
-		{
-		}
-
 		SetFullscreen(spec.Fullscreen);
 
-#if 0
-		if (spec.Fullscreen)
-		{
-			SetFullscreen(true);
-		}
-#endif
-
 		SwapChainSpecifications swapChainSpecs;
-		swapChainSpecs.Widht = m_Size.x;
+		swapChainSpecs.Width = m_Size.x;
 		swapChainSpecs.Height = m_Size.y;
 		swapChainSpecs.BufferCount = 3;
-		swapChainSpecs.Handle = m_hWnd;
+		swapChainSpecs.Window = m_hWnd;
 		swapChainSpecs.Fullscreen = spec.Fullscreen;
 		m_SwapChain = SwapChain::Create(swapChainSpecs);
 	}
 
 	WindowsWindow::~WindowsWindow()
 	{
+		SK_PROFILE_FUNCTION();
+
 		DestroyWindow(m_hWnd);
 	}
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Shark/Core/CommandQueue.h"
 #include "Shark/Render/RendererAPI.h"
 #include "Platform/DirectX11/DirectXBuffers.h"
 #include "Platform/DirectX11/DirectXGPUTimer.h"
@@ -42,8 +41,6 @@ namespace Shark {
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;
 
-		virtual TimeStep GetGPUTime() const override { return m_GPUTimer->GetTime(); }
-
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) override;
 
 		virtual void BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer) override;
@@ -53,7 +50,6 @@ namespace Shark {
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount) override;
 		virtual void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount) override;
 
-		virtual void RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline) override;
 		virtual void RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline) override;
 		virtual void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData) override;
 		virtual void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData) override;
@@ -61,10 +57,12 @@ namespace Shark {
 		virtual void GenerateMips(Ref<Image2D> image) override;
 		virtual void RT_GenerateMips(Ref<Image2D> image) override;
 
+		virtual TimeStep GetGPUTime() const override { return m_GPUTimer->GetTime(); }
+
+		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
 
-		virtual Ref<ShaderLibrary> GetShaderLib() override { return m_ShaderLib; }
-		virtual Ref<Texture2D> GetWhiteTexture() override { return m_WhiteTexture; }
+		void BindFrameBuffer(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXFrameBuffer> framebuffer);
 
 		void AddCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer);
 		void RemoveCommandBuffer(DirectXRenderCommandBuffer* commandBuffer);
@@ -74,8 +72,6 @@ namespace Shark {
 
 		void HandleError(HRESULT hr);
 
-		virtual bool IsInsideFrame() const override { return m_Active; }
-		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
 		void RT_FlushInfoQueue();
 		void RT_PrepareForSwapchainResize();
 
@@ -104,7 +100,6 @@ namespace Shark {
 		static DirectXRenderer* s_Instance;
 
 		bool m_ResourceCreated = false;
-		bool m_Active = false;
 
 		IDXGIFactory* m_Factory = nullptr;
 		ID3D11Device* m_Device = nullptr;
@@ -113,9 +108,6 @@ namespace Shark {
 		IDXGIInfoQueue* m_InfoQueue = nullptr;
 
 		std::unordered_set<DirectXRenderCommandBuffer*> m_CommandBuffers;
-
-		Ref<ShaderLibrary> m_ShaderLib;
-		Ref<DirectXTexture2D> m_WhiteTexture;
 
 		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;
 		Ref<DirectXIndexBuffer> m_QuadIndexBuffer;

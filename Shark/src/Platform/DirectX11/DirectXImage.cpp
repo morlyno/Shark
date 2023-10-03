@@ -6,6 +6,7 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Texture.h"
+#include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXSwapChain.h"
 
@@ -91,6 +92,21 @@ namespace Shark {
 			return 0;
 		}
 
+		static std::string GenerateDebugName(const ImageSpecification& specification)
+		{
+			return fmt::format("{} - {} ({}, {}) Mips: {}", ToString(specification.Type), ToString(specification.Format), specification.Width, specification.Height, specification.MipLevels ? fmt::to_string(specification.MipLevels) : "Max");
+		}
+
+		static bool IsDepthFormat(ImageFormat format)
+		{
+			switch (format)
+			{
+				case ImageFormat::Depth32:
+					return true;
+			}
+			return false;
+		}
+
 	}
 
 	DirectXImage2D::DirectXImage2D()
@@ -110,26 +126,14 @@ namespace Shark {
 		UpdateResource(data.As<DirectXImage2D>());
 	}
 
-	DirectXImage2D::DirectXImage2D(Ref<DirectXSwapChain> swapchain, bool createView)
+	DirectXImage2D::DirectXImage2D(const ImageSpecification& spec, ID3D11Texture2D* resource, bool createView)
+		: m_Specification(spec), m_Resource(resource)
 	{
-		auto& scSpec = swapchain->GetSpecification();
-		m_Specification.Width = scSpec.Widht;
-		m_Specification.Height = scSpec.Height;
-		m_Specification.Type = ImageType::FrameBuffer;
-		m_Specification.Format = ImageFormat::RGBA8;
-
-		Ref<DirectXImage2D> instance = this;
-		Renderer::Submit([instance, swapchain, createView]()
+		if (createView)
 		{
-			IDXGISwapChain* dxSwapchain = swapchain->GetSwapChain();
-			ID3D11Texture2D* texture = nullptr;
-			SK_DX11_CALL(dxSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&texture));
-			instance->m_Resource = texture;
-
-			if (createView)
-				instance->RT_CreateView();
-		});
-
+			Ref<DirectXImage2D> instance = this;
+			Renderer::Submit([instance]() { instance->RT_CreateView(); });
+		}
 	}
 
 	DirectXImage2D::~DirectXImage2D()
@@ -163,7 +167,7 @@ namespace Shark {
 				break;
 			case ImageType::FrameBuffer:
 				texture2dDesc.Usage = D3D11_USAGE_DEFAULT;
-				texture2dDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (IsDepthImage() ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET);
+				texture2dDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (utils::IsDepthFormat(m_Specification.Format) ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET);
 				break;
 			case ImageType::Storage:
 				texture2dDesc.Usage = D3D11_USAGE_STAGING;
@@ -173,10 +177,11 @@ namespace Shark {
 
 		auto renderer = DirectXRenderer::Get();
 		auto device = renderer->GetDevice();
-		DX11_VERIFY(device->CreateTexture2D(&texture2dDesc, nullptr, &m_Resource));
+		DirectXAPI::CreateTexture2D(device, texture2dDesc, nullptr, m_Resource);
 
-		if (m_Specification.DebugName.size())
-			DX11_VERIFY(D3D_SET_OBJECT_NAME_A(m_Resource, m_Specification.DebugName.c_str()));
+		if (m_Specification.DebugName.empty())
+			m_Specification.DebugName = utils::GenerateDebugName(m_Specification);
+		DX11_VERIFY(D3D_SET_OBJECT_NAME_A(m_Resource, m_Specification.DebugName.c_str()));
 
 		if (m_Specification.Type != ImageType::Storage)
 		{
@@ -185,10 +190,8 @@ namespace Shark {
 			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 			shaderResourceViewDesc.Texture2D.MipLevels = -1;
 			shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
-			DX11_VERIFY(device->CreateShaderResourceView(m_Resource, &shaderResourceViewDesc, &m_View));
-
-			if (m_Specification.DebugName.size())
-				DX11_VERIFY(D3D_SET_OBJECT_NAME_A(m_View, m_Specification.DebugName.c_str()));
+			DirectXAPI::CreateShaderResourceView(device, m_Resource, shaderResourceViewDesc, m_View);
+			DX11_VERIFY(D3D_SET_OBJECT_NAME_A(m_View, m_Specification.DebugName.c_str()));
 		}
 
 	}
@@ -203,7 +206,10 @@ namespace Shark {
 
 	void DirectXImage2D::Release()
 	{
-		Renderer::SubmitResourceFree([resource = m_Resource, view = m_View, debugName = m_Specification.DebugName]()
+		if (!m_Resource && !m_View)
+			return;
+
+		Renderer::SubmitResourceFree([resource = m_Resource, view = m_View]()
 		{
 			if (resource)
 				resource->Release();
@@ -226,21 +232,69 @@ namespace Shark {
 		m_View = nullptr;
 	}
 
-	void DirectXImage2D::RT_Invalidate(Ref<DirectXSwapChain> swapchain, bool createView)
+	void DirectXImage2D::Resize(uint32_t width, uint32_t height)
 	{
-		auto& scSpec = swapchain->GetSpecification();
-		m_Specification.Width = scSpec.Widht;
-		m_Specification.Height = scSpec.Height;
-		m_Specification.Type = ImageType::FrameBuffer;
-		m_Specification.Format = ImageFormat::RGBA8;
+		if (m_Specification.Width == width && m_Specification.Height == height)
+			return;
 
-		IDXGISwapChain* dxSwapchain = swapchain->GetSwapChain();
-		ID3D11Texture2D* texture = nullptr;
-		SK_DX11_CALL(dxSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&texture));
-		m_Resource = texture;
+		m_Specification.Width = width;
+		m_Specification.Height = height;
 
-		if (createView)
-			RT_CreateView();
+		if (m_Specification.DebugName.empty())
+			m_Specification.DebugName = utils::GenerateDebugName(m_Specification);
+
+		Ref<DirectXImage2D> instance = this;
+		Renderer::Submit([instance, format = m_Specification.Format, width, height, mips = m_Specification.MipLevels, type = m_Specification.Type]()
+		{
+			auto renderer = DirectXRenderer::Get();
+			ID3D11Device* device = renderer->GetDevice();
+
+			instance->RT_Release();
+
+			D3D11_TEXTURE2D_DESC texture2dDesc{};
+			texture2dDesc.Width = width;
+			texture2dDesc.Height = height;
+			texture2dDesc.Format = utils::ImageFormatToD3D11ForResource(format);
+			texture2dDesc.MipLevels = mips;
+			texture2dDesc.ArraySize = 1;
+			texture2dDesc.SampleDesc.Count = 1;
+			texture2dDesc.SampleDesc.Quality = 0;
+			switch (type)
+			{
+				case ImageType::Texture:
+					texture2dDesc.Usage = D3D11_USAGE_DEFAULT;
+					texture2dDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+					break;
+				case ImageType::FrameBuffer:
+					texture2dDesc.Usage = D3D11_USAGE_DEFAULT;
+					texture2dDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (utils::IsDepthFormat(format) ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET);
+					break;
+				case ImageType::Storage:
+					texture2dDesc.Usage = D3D11_USAGE_STAGING;
+					texture2dDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
+					break;
+			}
+
+			ID3D11Texture2D* resource = nullptr;
+			DirectXAPI::CreateTexture2D(device, texture2dDesc, nullptr, resource);
+			DirectXAPI::SetDebugName(resource, instance->m_Specification.DebugName.c_str());
+			instance->m_Resource = resource;
+
+			if (type != ImageType::Storage)
+			{
+				D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc{};
+				shaderResourceViewDesc.Format = utils::ImageFormatToD3D11ForView(format);
+				shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+				shaderResourceViewDesc.Texture2D.MipLevels = -1;
+				shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+
+				ID3D11ShaderResourceView* view = nullptr;
+				DirectXAPI::CreateShaderResourceView(device, resource, shaderResourceViewDesc, view);
+				DirectXAPI::SetDebugName(view, instance->m_Specification.DebugName.c_str());
+				instance->m_View = view;
+			}
+
+		});
 	}
 
 	void DirectXImage2D::UploadImageData(Buffer buffer)

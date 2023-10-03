@@ -8,7 +8,7 @@ namespace Shark {
 
 	Ref<Pipeline> Pipeline::Create(const PipelineSpecification& specs)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI Spcified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXPipeline>::Create(specs);

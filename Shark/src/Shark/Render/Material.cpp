@@ -10,7 +10,7 @@ namespace Shark {
 
 	Ref<Material> Material::Create(Ref<Shader> shader)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXMaterial>::Create(shader);
@@ -20,7 +20,7 @@ namespace Shark {
 	}
 
 	MaterialAsset::MaterialAsset()
-		: m_Material(Material::Create(Renderer::GetShaderLib()->Get("SharkPBR")))
+		: m_Material(Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR")))
 	{
 	}
 

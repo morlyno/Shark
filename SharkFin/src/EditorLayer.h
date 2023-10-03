@@ -34,7 +34,7 @@ namespace Shark {
 		enum class SceneState
 		{
 			None = 0,
-			Edit, Play, Simulate, Pause
+			Edit, Play, Simulate
 		};
 
 		struct GizmoOperaton
@@ -111,7 +111,15 @@ namespace Shark {
 		void OnScenePlay();
 		void OnSceneStop();
 
-		void OnSimulateStart();
+		void OnSimulationPlay();
+		void OnSimulationStop();
+
+		void SubmitOnScenePlay();
+		void SubmitOnSceneStop();
+		void SubmitOnSimulationPlay();
+		void SubmitOnSimulationStop();
+		void SubmitSetScenePaused(bool paused);
+		void SubmitStepScene(uint32_t frames);
 
 		void SetActiveScene(Ref<Scene> scene);
 
@@ -125,6 +133,7 @@ namespace Shark {
 
 		void RunScriptSetup();
 		void OpenIDE();
+		void AssembliesReloadedHook();
 
 		void UpdateWindowTitle();
 
@@ -180,11 +189,11 @@ namespace Shark {
 		float m_RotationSnap = 45.0f;
 		float m_ScaleSnap = 0.5f;
 		GizmoOperaton::Type m_CurrentOperation = GizmoOperaton::None;
+		bool m_RenderGizmo = true;
+
 		Entity m_SelectetEntity;
 
 		SceneState m_SceneState = SceneState::Edit;
-		SceneState m_InitialSceneState = SceneState::None;
-		bool m_UpdateNextFrame = false;
 
 		bool m_ShowColliders = false;
 		bool m_ShowCameraPreview = false;

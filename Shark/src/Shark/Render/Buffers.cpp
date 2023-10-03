@@ -8,7 +8,7 @@ namespace Shark {
 
 	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout, uint32_t size, bool dynamic, Buffer vertexData)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXVertexBuffer>::Create(layout, size, dynamic, vertexData);
@@ -24,7 +24,7 @@ namespace Shark {
 
 	Ref<IndexBuffer> IndexBuffer::Create(uint32_t count, bool dynmaic, Buffer indexData)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXIndexBuffer>::Create(count, dynmaic, indexData);

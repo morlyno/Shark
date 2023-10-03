@@ -116,9 +116,7 @@ namespace Shark {
 
 		Renderer::WaitAndRender();
 
-		//Renderer::GetShaderLib()->Load("Resources/Shaders/TypeTest.hlsl", true, true);
-		//Renderer::GetShaderLib()->Load("Resources/Shaders/ReflectionTest.glsl", true, true);
-
+		ScriptEngine::RegisterAssembliesReloadedHook(std::bind(&EditorLayer::AssembliesReloadedHook, this));
 	}
 
 	void EditorLayer::OnDetach()
@@ -189,21 +187,6 @@ namespace Shark {
 				{
 					m_ActiveScene->OnUpdateSimulate(ts);
 					m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
-					break;
-				}
-				case SceneState::Pause:
-				{
-					if (m_UpdateNextFrame)
-					{
-						if (m_InitialSceneState == SceneState::Play)
-							m_ActiveScene->OnUpdateRuntime(1.0f / 60.0f);
-						else if (m_InitialSceneState == SceneState::Simulate)
-							m_ActiveScene->OnUpdateSimulate(1.0f / 60.0f);
-
-						m_UpdateNextFrame = false;
-					}
-
-					m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
 					break;
 				}
 			}
@@ -546,8 +529,10 @@ namespace Shark {
 		
 		Theme::DrawThemeEditor(m_ShowThemeEditor);
 
+#if TODO
 		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 			MethodThunks::OnUIRender(gcHandle);
+#endif
 
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
@@ -778,6 +763,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
+		if (!m_RenderGizmo)
+			return;
+
 		if (m_CurrentOperation != GizmoOperaton::None && m_SelectetEntity)
 		{
 			SK_CORE_ASSERT(m_SelectetEntity.AllOf<TransformComponent>(), "Every entity is requiert to have a Transform Component");
@@ -896,10 +884,10 @@ namespace Shark {
 			ImGui::Checkbox("Disable Optimization", &m_ShaderCompilerDisableOptimization);
 
 			if (ImGui::Button("Reload All"))
-				for (const auto& [key, shader] : *Renderer::GetShaderLib())
+				for (const auto& [key, shader] : *Renderer::GetShaderLibrary())
 					Application::Get().SubmitToMainThread([s = shader]() { s->Reload(true); });
 
-			for (auto&& [key, shader] : *Renderer::GetShaderLib())
+			for (auto&& [key, shader] : *Renderer::GetShaderLibrary())
 			{
 				if (ImGui::TreeNodeEx(key.c_str()))
 				{
@@ -1105,7 +1093,7 @@ namespace Shark {
 		
 		constexpr ImGuiWindowFlags falgs = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
 
-		ImGuiStyle& style = ImGui::GetStyle();
+		const ImGuiStyle& style = ImGui::GetStyle();
 		
 		UI::ScopedStyle windowPadding(ImGuiStyleVar_WindowPadding, { 0, 2 });
 		UI::ScopedStyle innerItemSpacing(ImGuiStyleVar_ItemInnerSpacing, { 0, 0 });
@@ -1120,128 +1108,72 @@ namespace Shark {
 		UI::ScopedColor buttonActive(ImGuiCol_ButtonActive, colActive);
 		ImGui::Begin("##ViewPortToolBar", nullptr, falgs);
 
-		const float size = ImGui::GetContentRegionAvail().y;
+		const float height = ImGui::GetContentRegionAvail().y;
+		const ImVec2 size = { height, height };
 
-		// TODO(moro): add padding of { 0, 0 } to ImageButton
-		const auto imageButton = [this, size](auto strid, auto texture) { return ImGui::ImageButtonEx(UI::GetID(strid), texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 1, 1, 1, 1 }); };
-		const auto imageButtonDisabled = [this, size](auto strid, auto texture) { ImGui::Image(texture->GetViewID(), { size, size }, { 0, 0 }, { 1, 1 }, { 0.5f, 0.5f, 0.5f, 1.0f }); };
-
-		//imageButton("CursorIcon", m_CursorIcon);
-		//ImGui::SameLine();
-		//imageButton("TranslateIcon", m_TranslateIcon);
-		//ImGui::SameLine();
-
-		ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size * 3.0f * 0.5f) - (style.ItemSpacing.x * 3.0f));
-
-		//
-		// Layout          [Play/Stop] [Simluate/Pause] [Step Disabled]
-		// Layout Paused   [Stop]      [UnPause]        [Step]
-		//
-		// [UnPause] => either SceneState::Play || SceneState::Simulate
-		//
-		// 
-		// m_ScenePause == true:
-		// 
-		//    SceneState::Editor:
-		//       Error Not Possible
-		//    
-		//    SceneState::Play:
-		//       [Stop] => [Stop]
-		//       [UnPause] => [Unpause]
-		//       [Step] => [Step]
-		//    
-		//    SceneState::Simulate:
-		//       [Stop] => [Stop]
-		//       [UnPause] => [Unpause]
-		//       [Step] => [Step]
-		// 
-		// 
-		// m_ScenePaused == false:
-		// 
-		//    SceneState::Editor:
-		//       [Play/Stop] => [Play]
-		//       [Simluate/Pause] => [Simulate]
-		//       [Step] => [Step Disabled]
-		//   
-		//    SceneState::Play:
-		//       [Play/Stop] => [Stop]
-		//       [Simulate/Pause] => [Pause]
-		//       [Step] => [Step Disabled]
-		//   
-		//    SceneState::Simulate:
-		//       [Play/Stop] => [Stop]
-		//       [Simulate/Pause] => [Pause]
-		//       [Step] => [Step Disabled]
-		//
+		ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size.x * 3.0f * 0.5f) - (style.ItemSpacing.x * 3.0f));
 
 		switch (m_SceneState)
 		{
 			case SceneState::Edit:
 			{
-				// [Play]
-				if (imageButton("PlayIcon", Icons::PlayIcon))
-					OnScenePlay();
+				if (ImGui::ImageButton("Play", Icons::PlayIcon->GetViewID(), size))
+					SubmitOnScenePlay();
 
-				// [Simulate]
 				ImGui::SameLine();
-				if (imageButton("SimulateIcon", Icons::SimulateIcon))
-					OnSimulateStart();
 
-				// [Step Disabled]
+				if (ImGui::ImageButton("Simulate", Icons::SimulateIcon->GetViewID(), size))
+					SubmitOnSimulationPlay();
+
 				ImGui::SameLine();
-				imageButtonDisabled("Step Disabled", Icons::StepIcon);
+				{
+					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, true);
+					ImGui::ImageButton("Step Disabled", Icons::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 1.0f });
+				}
 
 				break;
 			}
 			case SceneState::Play:
 			{
-				// [Stop]
-				if (imageButton("StopIcon", Icons::StopIcon))
-					OnSceneStop();
+				if (ImGui::ImageButton("Stop", Icons::StopIcon->GetViewID(), size))
+					SubmitOnSceneStop();
 
-				// [Pause]
 				ImGui::SameLine();
-				if (imageButton("Pause", Icons::PauseIcon))
-					m_SceneState = SceneState::Pause;
 
-				// [Step Disabled]
+				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? Icons::PlayIcon : Icons::PauseIcon;
+				if (ImGui::ImageButton("PausePlay", pausePlayIcon->GetViewID(), size))
+					SubmitSetScenePaused(!m_ActiveScene->IsPaused());
+
 				ImGui::SameLine();
-				imageButtonDisabled("Step Disabled", Icons::StepIcon);
+
+				{
+					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
+					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+					if (ImGui::ImageButton("Step", Icons::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
+						SubmitStepScene(1);
+				}
 
 				break;
 			}
 			case SceneState::Simulate:
 			{
-				// [Stop]
-				if (imageButton("StopIcon", Icons::StopIcon))
-					OnSceneStop();
+				if (ImGui::ImageButton(Icons::StopIcon->GetViewID(), size))
+					SubmitOnSimulationStop();
 
-				// [Pause]
 				ImGui::SameLine();
-				if (imageButton("Pause", Icons::PauseIcon))
-					m_SceneState = SceneState::Pause;
 
-				// [Step Disabled]
+				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? Icons::PlayIcon : Icons::PauseIcon;
+				if (ImGui::ImageButton(pausePlayIcon->GetViewID(), size))
+					SubmitSetScenePaused(!m_ActiveScene->IsPaused());
+
 				ImGui::SameLine();
-				imageButtonDisabled("Step Disabled", Icons::StepIcon);
 
-				break;
-			}
-			case SceneState::Pause:
-			{
-				// [Stop]
-				if (imageButton("StopIcon", Icons::StopIcon))
-					OnSceneStop();
-
-				// [UnPause]
-				ImGui::SameLine();
-				if (imageButton("UnPause", Icons::PlayIcon))
-					m_SceneState = m_InitialSceneState;
-
-				// [Step]
-				ImGui::SameLine();
-				if (imageButton("Step", Icons::StepIcon))
-					m_UpdateNextFrame = true;
+				{
+					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
+					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+					if (ImGui::ImageButton("Step", Icons::StepIcon->GetViewID(), size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
+						SubmitStepScene(1);
+				}
 
 				break;
 			}
@@ -2319,13 +2251,10 @@ namespace Shark {
 	void EditorLayer::OnScenePlay()
 	{
 		SK_PROFILE_FUNCTION();
-		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		m_SceneState = SceneState::Play;
-		m_InitialSceneState = SceneState::Play;
-
-		m_CurrentOperation = GizmoOperaton::None;
+		m_RenderGizmo = false;
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
 		m_PanelManager->OnScenePlay();
@@ -2337,24 +2266,65 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_SceneState = SceneState::Edit;
-		m_InitialSceneState = SceneState::None;
+		m_RenderGizmo = true;
 
 		m_ActiveScene->OnSceneStop();
 		m_PanelManager->OnSceneStop();
 		SetActiveScene(m_WorkScene);
 	}
 
-	void EditorLayer::OnSimulateStart()
+	void EditorLayer::OnSimulationPlay()
 	{
 		SK_PROFILE_FUNCTION();
-		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
 		m_SceneState = SceneState::Simulate;
-		m_InitialSceneState = SceneState::Simulate;
+		m_RenderGizmo = false;
 
 		SetActiveScene(Scene::Copy(m_WorkScene));
 		m_ActiveScene->OnSimulationPlay();
+	}
+
+	void EditorLayer::OnSimulationStop()
+	{
+		SK_PROFILE_FUNCTION();
+
+		m_SceneState = SceneState::Edit;
+		m_RenderGizmo = true;
+
+		m_ActiveScene->OnSimulationStop();
+		m_PanelManager->OnSceneStop();
+		SetActiveScene(m_WorkScene);
+	}
+
+	void EditorLayer::SubmitOnScenePlay()
+	{
+		Application::Get().SubmitToMainThread([this]() { OnScenePlay(); });
+	}
+
+	void EditorLayer::SubmitOnSceneStop()
+	{
+		Application::Get().SubmitToMainThread([this]() { OnSceneStop(); });
+	}
+
+	void EditorLayer::SubmitOnSimulationPlay()
+	{
+		Application::Get().SubmitToMainThread([this]() { OnSimulationPlay(); });
+	}
+
+	void EditorLayer::SubmitOnSimulationStop()
+	{
+		Application::Get().SubmitToMainThread([this]() { OnSimulationStop(); });
+	}
+
+	void EditorLayer::SubmitSetScenePaused(bool paused)
+	{
+		Application::Get().SubmitToMainThread([paused, scene = m_ActiveScene]() { scene->SetPaused(paused); });
+	}
+
+	void EditorLayer::SubmitStepScene(uint32_t frames)
+	{
+		Application::Get().SubmitToMainThread([frames, scene = m_ActiveScene]() { scene->Step(frames); });
 	}
 
 	void EditorLayer::SetActiveScene(Ref<Scene> scene)
@@ -2365,13 +2335,11 @@ namespace Shark {
 			ResourceManager::UnloadAsset(m_ActiveScene->Handle);
 
 		if (scene && m_SelectetEntity)
-			SelectEntity(scene->GetEntityByUUID(m_SelectetEntity.GetUUID()));
-		else
-			SelectEntity(Entity{});
+			SelectEntity(scene->TryGetEntityByUUID(m_SelectetEntity.GetUUID()));
 
 		if (scene)
 		{
-			scene->IsEditorScene(m_InitialSceneState != SceneState::Play);
+			scene->IsEditorScene(m_SceneState != SceneState::Play);
 			scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
@@ -2535,6 +2503,21 @@ namespace Shark {
 		PlatformUtils::Execute(ExectueVerb::Open, solutionPath);
 	}
 
+	void EditorLayer::AssembliesReloadedHook()
+	{
+		if (!m_ActiveScene)
+			return;
+
+		auto view = m_ActiveScene->GetAllEntitysWith<ScriptComponent>();
+		for (auto ent : view)
+		{
+			Entity entity{ ent, m_ActiveScene };
+			auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+			Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(scriptComponent.ScriptName);
+			scriptComponent.ClassID = klass ? klass->GetID() : 0;
+		}
+	}
+
 	void EditorLayer::UpdateWindowTitle()
 	{
 		// Scene File name (Scene Name) - Editor Name - Platform - Renderer
@@ -2548,7 +2531,7 @@ namespace Shark {
 			sceneName = m_ActiveScene->GetName();
 		}
 
-		std::string title = fmt::format("{} ({}) - SharkFin - {} {} ({}) - {}", sceneFilePath, sceneName, PlatformUtils::GetPlatform(), PlatformUtils::GetArchitecture(), PlatformUtils::GetConfiguration(), ToStringView(Renderer::GetAPI()));
+		std::string title = fmt::format("{} ({}) - SharkFin - {} {} ({}) - {}", sceneFilePath, sceneName, PlatformUtils::GetPlatform(), PlatformUtils::GetArchitecture(), PlatformUtils::GetConfiguration(), ToStringView(RendererAPI::GetCurrentAPI()));
 		Application::Get().GetWindow().SetTitle(title);
 	}
 

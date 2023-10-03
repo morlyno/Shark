@@ -37,17 +37,19 @@ namespace Shark {
 		EntityInstancesMap EntityInstances;
 		Ref<Scene> ActiveScene;
 		bool IsRunning = false;
+		AssembliesReloadedHookFn ReloadHook;
 
 		MonoClass* EntityClass = nullptr;
 		MonoMethod* EntityCtor = nullptr;
-		//std::unordered_map<std::string, Ref<ScriptClass>> ScriptClasses;
 		ScriptClassMap ScriptClasses;
 
 		// Entity => FieldName => Type
 		std::unordered_map<UUID, FieldStorageMap> FieldStoragesMap;
 	};
 
-	struct ScriptEngineData* s_Data = nullptr;
+	inline namespace ScriptEngine_Dummy {
+		struct ScriptEngineData* s_Data = nullptr;
+	}
 
 	static void MonoTraceLogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
 	{
@@ -103,6 +105,11 @@ namespace Shark {
 
 		ShutdownMono();
 		skdelete s_Data;
+	}
+
+	void ScriptEngine::RegisterAssembliesReloadedHook(const AssembliesReloadedHookFn& hook)
+	{
+		s_Data->ReloadHook = hook;
 	}
 
 	bool ScriptEngine::LoadAssemblies(const std::filesystem::path& assemblyPath)
@@ -340,7 +347,12 @@ namespace Shark {
 
 		ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
 		Ref<ScriptClass> scriptClass = ScriptEngine::GetScriptClass(scriptComp.ClassID);
-		SK_CORE_VERIFY(scriptClass, "Script class not set");
+		if (!scriptClass)
+		{
+			SK_CORE_ERROR_TAG("ScriptEngine", "Failed to find Script Class! (ClassID: {}, Script Name: {})", scriptComp.ClassID, scriptComp.ScriptName);
+			return nullptr;
+		}
+
 
 		MonoObject* object = InstantiateClass(scriptClass->m_Class);
 		mono_runtime_object_init(object);
@@ -406,7 +418,7 @@ namespace Shark {
 					if (entityID == UUID::Null)
 						continue;
 
-					Entity entity = s_Data->ActiveScene->GetEntityByUUID(entityID);
+					Entity entity = s_Data->ActiveScene->TryGetEntityByUUID(entityID);
 					field.SetEntity(handle, entity);
 					continue;
 				}
@@ -417,7 +429,7 @@ namespace Shark {
 					if (entityID == UUID::Null)
 						continue;
 
-					Entity entity = s_Data->ActiveScene->GetEntityByUUID(entityID);
+					Entity entity = s_Data->ActiveScene->TryGetEntityByUUID(entityID);
 					field.SetComponent(handle, entity);
 					continue;
 				}
@@ -709,6 +721,7 @@ namespace Shark {
 		s_Data->CoreAssembly.Image = mono_assembly_get_image(coreAssembly);
 		s_Data->AppAssembly.Assembly = appAssembly;
 		s_Data->AppAssembly.Image = mono_assembly_get_image(appAssembly);
+		s_Data->AssembliesLoaded = true;
 
 		ScriptUtils::Shutdown();
 		ScriptGlue::Shutdown();
@@ -725,6 +738,10 @@ namespace Shark {
 
 		SK_CONSOLE_INFO("Assemblies Reloaded");
 		SK_CORE_INFO_TAG("Scripting", "Assemblies Reloaded");
+
+		if (s_Data->ReloadHook)
+			s_Data->ReloadHook();
+
 		return true;
 	}
 

@@ -70,6 +70,8 @@ namespace Shark {
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([this, instance]()
 		{
+			SK_PROFILE_SCOPED("DirectXRenderer::Init");
+
 			bool enableBreakOnSeverity = false;
 
 			UINT factoryFlags = SK_ENABLE_VALIDATION ? DXGI_CREATE_FACTORY_DEBUG : 0;
@@ -119,29 +121,6 @@ namespace Shark {
 			SK_DX11_CALL(instance->m_Device->CreateQuery(&queryDesc, &instance->m_FrequencyQuery));
 		});
 
-		m_ShaderLib = Ref<ShaderLibrary>::Create();
-		m_ShaderLib->Load("Resources/Shaders/DefaultMeshShader.glsl");
-		m_ShaderLib->Load("Resources/Shaders/SharkPBR.glsl");
-		m_ShaderLib->Load("Resources/Shaders/FlatColor.glsl");
-
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadTransparent.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_QuadDepthPass.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Circle.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_CircleTransparent.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_CircleDepthPass.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Line.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_LineDepthPass.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Composite.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/Renderer2D_Text.hlsl");
-
-		m_ShaderLib->Load("Resources/Shaders/FullScreen.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/CompositWidthDepth.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/NegativeEffect.hlsl");
-		m_ShaderLib->Load("Resources/Shaders/BlurEffect.hlsl");
-
-		m_WhiteTexture = Ref<DirectXTexture2D>::Create(ImageFormat::RGBA8, 1, 1, Buffer::FromValue(0xFFFFFFFF));
-
 		VertexLayout layout = {
 			{ VertexDataType::Float2, "Position" }
 		};
@@ -170,18 +149,12 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_ShaderLib = nullptr;
-		m_WhiteTexture = nullptr;
+		SK_CORE_INFO_TAG("Renderer", "Shuting down DirectX Renderer");
+
 		m_QuadVertexBuffer = nullptr;
 		m_QuadIndexBuffer = nullptr;
 
 		SK_CORE_ASSERT(m_CommandBuffers.empty(), "All RenderCommandBuffers need to be destroy befor Renderer shuts down");
-
-		Renderer::Submit([context = m_ImmediateContext]()
-		{
-			context->ClearState();
-			context->Flush();
-		});
 
 		Renderer::SubmitResourceFree([frequencyQuery = m_FrequencyQuery, factory = m_Factory, context = m_ImmediateContext, device = m_Device, debug = m_Debug, infoQueue = m_InfoQueue]()
 		{
@@ -202,14 +175,11 @@ namespace Shark {
 		m_ImmediateContext = nullptr;
 		m_Device = nullptr;
 
-		Renderer::WaitAndRender();
 		s_Instance = nullptr;
 	}
 
 	void DirectXRenderer::BeginFrame()
 	{
-		m_Active = true;
-
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([instance]()
 		{
@@ -228,8 +198,6 @@ namespace Shark {
 			RT_LogMessages(m_InfoQueue);
 			instance->m_GPUTimer->RT_EndQuery(m_ImmediateContext);
 		});
-
-		m_Active = false;
 	}
 
 	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
@@ -425,53 +393,6 @@ namespace Shark {
 
 			DX11_VALIDATE_CONTEXT(ctx);
 			ctx->Draw(vertexCount, 0);
-		});
-	}
-
-	void DirectXRenderer::RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline)
-	{
-		SK_PROFILE_FUNCTION();
-
-		Ref instance = this;
-		Renderer::Submit([instance, commandBuffer = renderCommandBuffer.As<DirectXRenderCommandBuffer>(), mesh, dxPipeline = pipeline.As<DirectXPipeline>()]()
-		{
-			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
-
-			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
-
-			Ref<MeshSource> meshSource = mesh->GetMeshSource();
-			auto vertexBuffer = meshSource->GetVertexBuffer().As<DirectXVertexBuffer>();
-			auto indexBuffer = meshSource->GetIndexBuffer().As<DirectXIndexBuffer>();
-
-			const UINT offset = 0;
-			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
-			ctx->IASetVertexBuffers(0, 1, &vertexBuffer->m_VertexBuffer, &stride, &offset);
-
-			ctx->IASetIndexBuffer(indexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-
-			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
-
-			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
-			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
-
-			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
-
-			//instance->RT_PrepareAndBindMaterialForRendering(commandBuffer, material);
-
-			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
-
-			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
-			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
-
-			ctx->RSSetState(dxPipeline->m_RasterizerState);
-			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
-			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
-
-			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
-
-			DX11_VALIDATE_CONTEXT(ctx);
-			ctx->DrawIndexed(indexBuffer->GetCount(), 0, 0);
 		});
 	}
 
@@ -724,6 +645,12 @@ namespace Shark {
 		texture->Release();
 	}
 
+	void DirectXRenderer::BindFrameBuffer(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXFrameBuffer> framebuffer)
+	{
+		auto context = commandBuffer->GetContext();
+		context->OMSetRenderTargets(framebuffer->m_Count, framebuffer->m_FrameBuffers.data(), framebuffer->m_DepthStencil);
+	}
+
 	void DirectXRenderer::AddCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer)
 	{
 		m_CommandBuffers.insert(commandBuffer.Raw());
@@ -847,8 +774,9 @@ namespace Shark {
 			}
 		};
 
-		ID3D11ShaderResourceView* whiteTextureView = m_WhiteTexture->GetViewNative();
-		ID3D11SamplerState* whiteTextureSampler = m_WhiteTexture->GetSamplerNative();
+		Ref<DirectXTexture2D> whiteTexture = Renderer::GetWhiteTexture().As<DirectXTexture2D>();
+		ID3D11ShaderResourceView* whiteTextureView = whiteTexture->GetViewNative();
+		ID3D11SamplerState* whiteTextureSampler = whiteTexture->GetSamplerNative();
 
 		for (const auto& [name, resource] : material->m_Resources)
 		{

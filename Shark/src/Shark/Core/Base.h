@@ -18,6 +18,9 @@
 	#define SK_FUNCTION_NAME __func__
 	#define SK_FUNCTION_DECORATED __FUNCTION__
 	#define SK_FUNCTION_SIGNATURE __PRETTY_FUNCTION__
+
+	#define SK_FILE __FILE__
+	#define SK_LINE __LINE__
 #endif
 
 

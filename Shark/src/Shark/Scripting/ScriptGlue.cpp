@@ -63,7 +63,7 @@ namespace Shark {
 		static Entity TryGetEntity(uint64_t id)
 		{
 			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			return scene ? scene->GetEntityByUUID(id) : Entity{};
+			return scene ? scene->TryGetEntityByUUID(id) : Entity{};
 		}
 
 		static Ref<Scene> GetScene()
@@ -618,7 +618,7 @@ namespace Shark {
 			MonoArray* arr = mono_array_new(ScriptEngine::GetRuntimeDomain(), ScriptEngine::GetEntityClass(), children.size());
 			for (uint32_t i = 0; i < children.size(); i++)
 			{
-				Entity child = scene->GetEntityByUUID(children[i]);
+				Entity child = scene->TryGetEntityByUUID(children[i]);
 				MonoObject* obj = utils::GetOrCreateInstance(child);
 				mono_array_setref(arr, i, obj);
 			}
@@ -705,7 +705,7 @@ namespace Shark {
 			Ref<Scene> scene = utils::GetScene();
 			scene->Submit([scene, entityID, destroyChildren]()
 			{
-				Entity entity = scene->GetEntityByUUID(entityID);
+				Entity entity = scene->TryGetEntityByUUID(entityID);
 				if (!entity)
 					return;
 
@@ -730,7 +730,7 @@ namespace Shark {
 			if (!scene)
 				return 0;
 
-			Entity entity = scene->GetEntityByUUID(entityID);
+			Entity entity = scene->TryGetEntityByUUID(entityID);
 			if (!entity)
 				return 0;
 
@@ -758,7 +758,7 @@ namespace Shark {
 			if (!scene)
 				return 0;
 
-			Entity entity = scene->GetEntityByUUID(entityID);
+			Entity entity = scene->TryGetEntityByUUID(entityID);
 			if (!entity)
 				return 0;
 

@@ -13,7 +13,7 @@ namespace Shark {
 
 	ImGuiLayer* ImGuiLayer::Create()
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI specified"); return nullptr;
 			case RendererAPIType::DirectX11: return (ImGuiLayer*)sknew DirectXImGuiLayer();

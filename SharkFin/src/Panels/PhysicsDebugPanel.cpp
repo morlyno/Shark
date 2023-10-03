@@ -174,8 +174,8 @@ namespace Shark {
 							UI::BeginControlsGrid(syncID);
 							b2Joint* joint = jointEdge->joint;
 							UI::Property("Type", ToStringView(joint->GetType()));
-							Entity bodyAEntity = m_Scene->GetEntityByUUID((UUID)joint->GetBodyA()->GetUserData().pointer);
-							Entity bodyBEntity = m_Scene->GetEntityByUUID((UUID)joint->GetBodyB()->GetUserData().pointer);
+							Entity bodyAEntity = m_Scene->TryGetEntityByUUID((UUID)joint->GetBodyA()->GetUserData().pointer);
+							Entity bodyBEntity = m_Scene->TryGetEntityByUUID((UUID)joint->GetBodyB()->GetUserData().pointer);
 							UI::Property("Body A", bodyAEntity.GetName());
 							UI::Property("Body B", bodyBEntity.GetName());
 							UI::Property("Anchor A", Phyiscs2DUtils::ToGLMVec(joint->GetAnchorA()));

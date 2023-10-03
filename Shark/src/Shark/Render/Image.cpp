@@ -21,13 +21,27 @@ namespace Shark {
 			case ImageFormat::R8: return "R8";
 			case ImageFormat::R16F: return "R16F";
 		}
-		SK_CORE_ASSERT(false);
-		return "Unkonw";
+
+		SK_CORE_ASSERT(false, "Unkown ImageFormat");
+		return "Unkown";
+	}
+
+	std::string ToString(ImageType type)
+	{
+		switch (type)
+		{
+			case ImageType::Texture: return "Texture";
+			case ImageType::Storage: return "Storage";
+			case ImageType::FrameBuffer: return "FrameBuffer";
+		}
+
+		SK_CORE_ASSERT(false, "Unkown ImageType");
+		return "Unkown";
 	}
 
 	Ref<Image2D> Image2D::Create()
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create();
@@ -38,7 +52,7 @@ namespace Shark {
 
 	Ref<Image2D> Image2D::Create(const ImageSpecification& specs)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs);
@@ -49,7 +63,7 @@ namespace Shark {
 
 	Ref<Image2D> Image2D::Create(const ImageSpecification& specs, Ref<Image2D> data)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs, data);

@@ -68,9 +68,17 @@ namespace Shark {
 			{
 				switch (stage)
 				{
-					case ShaderUtils::ShaderStage::Vertex: SK_DX11_CALL(device->CreateVertexShader(binary.data(), binary.size(), nullptr, &instance->m_VertexShader)); break;
-					case ShaderUtils::ShaderStage::Pixel: SK_DX11_CALL(device->CreatePixelShader(binary.data(), binary.size(), nullptr, &instance->m_PixelShader)); break;
-					default: SK_CORE_VERIFY(false, "Unkown Shader Stage");
+					case ShaderUtils::ShaderStage::Vertex:
+						SK_DX11_CALL(device->CreateVertexShader(binary.data(), binary.size(), nullptr, &instance->m_VertexShader));
+						D3D_SET_OBJECT_NAME_A(instance->m_VertexShader, instance->m_Name.c_str());
+						break;
+					case ShaderUtils::ShaderStage::Pixel:
+						SK_DX11_CALL(device->CreatePixelShader(binary.data(), binary.size(), nullptr, &instance->m_PixelShader));
+						D3D_SET_OBJECT_NAME_A(instance->m_PixelShader, instance->m_Name.c_str());
+						break;
+					default:
+						SK_CORE_VERIFY(false, "Unkown Shader Stage");
+						break;
 				}
 			}
 		});

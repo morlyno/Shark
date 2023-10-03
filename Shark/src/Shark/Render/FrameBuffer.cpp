@@ -6,12 +6,12 @@
 
 namespace Shark {
 
-    Ref<FrameBuffer> FrameBuffer::Create(const FrameBufferSpecification& specs)
+    Ref<FrameBuffer> FrameBuffer::Create(const FrameBufferSpecification& spec)
     {
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXFrameBuffer>::Create(specs);
+			case RendererAPIType::DirectX11: return Ref<DirectXFrameBuffer>::Create(spec);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;

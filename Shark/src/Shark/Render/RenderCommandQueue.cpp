@@ -1,27 +1,27 @@
 #include "skpch.h"
-#include "CommandQueue.h"
+#include "RenderCommandQueue.h"
 
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
-	CommandQueue::CommandQueue(uint32_t bufferSize)
+	RenderCommandQueue::RenderCommandQueue()
 	{
-		m_Buffer = sknew byte[bufferSize];
-		m_BufferSize = bufferSize;
+		m_BufferSize = 1024 * 1024 * 10; // 10mb
+		m_Buffer = sknew byte[m_BufferSize];
 		m_BufferPtr = m_Buffer;
 	}
 
-	CommandQueue::~CommandQueue()
+	RenderCommandQueue::~RenderCommandQueue()
 	{
 		skdelete m_Buffer;
 	}
 
-	void CommandQueue::Execute()
+	void RenderCommandQueue::Execute()
 	{
 		//SK_LOG_IF(m_CommandCount > 0, Log::Logger::Core, Log::Level::Trace, Tag::Renderer, "CommandQueue::Excecute | {0} Commands | {1} bytes", m_CommandCount, (uint64_t)(m_BufferPtr - m_Buffer.Data));
 
-		m_Locked = true;
+		m_Executing = true;
 		byte* buffer = m_Buffer;
 		while (buffer < m_BufferPtr)
 		{
@@ -38,10 +38,10 @@ namespace Shark {
 
 		m_BufferPtr = m_Buffer;
 		m_CommandCount = 0;
-		m_Locked = false;
+		m_Executing = false;
 	}
 
-	void* CommandQueue::Allocate(CommandFn func, uint32_t userFuncSize)
+	void* RenderCommandQueue::Allocate(CommandFn func, uint32_t userFuncSize)
 	{
 		SK_PROFILE_FUNCTION();
 		// CommandFunc | UserFuncSize | UserFunc

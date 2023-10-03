@@ -43,7 +43,7 @@ namespace Shark {
 		if (argc > 1)
 			startupProject = argv[1];
 
-		Renderer::SetAPI(RendererAPIType::DirectX11);
+		RendererAPI::SetAPI(RendererAPIType::DirectX11);
 
 		ApplicationSpecification specification;
 		specification.Name = "SharkFin";

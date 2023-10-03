@@ -180,7 +180,7 @@ namespace Shark {
 				if (payload)
 				{
 					UUID uuid = *(UUID*)payload->Data;
-					Entity entity = m_Context->GetEntityByUUID(uuid);
+					Entity entity = m_Context->TryGetEntityByUUID(uuid);
 					entity.RemoveParent();
 				}
 
@@ -252,7 +252,7 @@ namespace Shark {
 			if (payload)
 			{
 				UUID uuid = *(UUID*)payload->Data;
-				Entity e = m_Context->GetEntityByUUID(uuid);
+				Entity e = m_Context->TryGetEntityByUUID(uuid);
 
 				if (!utils::WouldCreateLoop(e, entity))
 					e.SetParent(entity);
@@ -284,7 +284,7 @@ namespace Shark {
 		{
 			for (auto& childID : entity.Children())
 			{
-				Entity child = m_Context->GetEntityByUUID(childID);
+				Entity child = m_Context->TryGetEntityByUUID(childID);
 				DrawEntityNode(child);
 			}
 
@@ -733,14 +733,14 @@ namespace Shark {
 						{
 							UUID uuid = field.GetEntity(handle);
 							if (UI::Control(name, uuid, UI::DragDropID::Entity))
-								field.SetEntity(handle, scene->GetEntityByUUID(uuid));
+								field.SetEntity(handle, scene->TryGetEntityByUUID(uuid));
 							break;
 						}
 						case ManagedFieldType::Component:
 						{
 							UUID uuid = field.GetComponent(handle);
 							if (UI::Control(name, uuid, UI::DragDropID::Entity))
-								field.SetComponent(handle, scene->GetEntityByUUID(uuid));
+								field.SetComponent(handle, scene->TryGetEntityByUUID(uuid));
 							break;
 						}
 

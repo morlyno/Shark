@@ -15,17 +15,12 @@
 #include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Debug/Profiler.h"
 
-#if SK_PROFILER == SK_PROFILER_OPTICK
-#include <optick.h>
-#include <optick_memory.h>
-#endif
-
 namespace Shark {
 
 	Application* Application::s_Instance = nullptr;
 
 	Application::Application(const ApplicationSpecification& specification)
-		: m_Specification(specification)
+		: m_Specification(specification), m_MainThreadID(std::this_thread::get_id())
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -66,7 +61,10 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		Renderer::WaitAndRender();
+
 		m_LayerStack.Clear();
+		m_ImGuiLayer = nullptr;
 		ScriptEngine::Shutdown();
 
 		m_Window = nullptr;
@@ -118,6 +116,8 @@ namespace Shark {
 
 			if (!m_Minimized)
 			{
+				Renderer::WaitAndRender();
+
 				Renderer::BeginFrame();
 				ExecuteMainThreadQueue();
 
@@ -134,13 +134,11 @@ namespace Shark {
 
 				Renderer::EndFrame();
 
-				// On Render Thread
-				Renderer::WaitAndRender();
+				Application* app = this;
+				Renderer::Submit([app]() { app->m_Window->SwapBuffers(); });
 
 				m_CPUTime = cpuTimer.Elapsed();
 				m_GPUTime = Renderer::GetRendererAPI()->GetGPUTime();
-				m_Window->SwapBuffers();
-				m_FrameCount++;
 			}
 
 			const uint64_t ticks = PlatformUtils::GetTicks();
@@ -153,6 +151,8 @@ namespace Shark {
 			if (m_SecondaryProfiler)
 				m_SecondaryProfiler->Clear();
 			std::swap(m_Profiler, m_SecondaryProfiler);
+
+			m_FrameCount++;
 		}
 		
 		m_State = ApplicationState::Shutdown;
@@ -177,6 +177,12 @@ namespace Shark {
 
 	void Application::RenderImGui()
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("Application::RenderImGui");
+
+		if (m_State == ApplicationState::Shutdown)
+			return;
+
 		m_ImGuiLayer->Begin();
 
 		for (auto& layer : m_LayerStack)

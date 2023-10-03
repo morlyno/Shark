@@ -34,6 +34,14 @@ namespace Shark {
 		m_VertexBuffer = nullptr;
 	}	
 
+	void DirectXVertexBuffer::RT_Release()
+	{
+		if (m_VertexBuffer)
+			m_VertexBuffer->Release();
+
+		m_VertexBuffer = nullptr;
+	}
+
 	void DirectXVertexBuffer::Resize(uint32_t size)
 	{
 		SK_CORE_ASSERT(m_Dynamic);
@@ -170,7 +178,7 @@ namespace Shark {
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_CORE_VERIFY(dynamic || vertexData);
 
-		Release();
+		RT_Release();
 
 		auto device = DirectXRenderer::GetDevice();
 
@@ -218,6 +226,14 @@ namespace Shark {
 			if (indexBuffer)
 				indexBuffer->Release();
 		});
+
+		m_IndexBuffer = nullptr;
+	}
+
+	void DirectXIndexBuffer::RT_Release()
+	{
+		if (m_IndexBuffer)
+			m_IndexBuffer->Release();
 
 		m_IndexBuffer = nullptr;
 	}
@@ -342,7 +358,7 @@ namespace Shark {
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_CORE_VERIFY(dynamic || indexData);
 
-		Release();
+		RT_Release();
 
 		m_Count = count;
 		m_Size = count * sizeof(uint32_t);

@@ -7,10 +7,10 @@ namespace Shark {
 
 	struct SwapChainSpecifications
 	{
-		uint32_t Widht, Height;
+		uint32_t Width, Height;
 		uint32_t BufferCount;
 		bool Fullscreen = false;
-		WindowHandle Handle;
+		WindowHandle Window;
 	};
 
 	class SwapChain : public RefCount

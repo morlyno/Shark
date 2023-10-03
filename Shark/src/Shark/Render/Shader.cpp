@@ -9,7 +9,7 @@ namespace Shark {
 
 	Ref<Shader> Shader::Create()
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXShader>::Create();

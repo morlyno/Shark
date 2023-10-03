@@ -22,6 +22,7 @@ namespace Shark {
 	using EntityInstancesMap = std::unordered_map<UUID, GCHandle>;
 	using ScriptClassMap = std::unordered_map<uint64_t, Ref<ScriptClass>>;
 	using FieldStorageMap = std::map<std::string, Ref<FieldStorage>>;
+	using AssembliesReloadedHookFn = std::function<void()>;
 
 	struct ScriptEngineConfig
 	{
@@ -34,6 +35,8 @@ namespace Shark {
 	public:
 		static void Init(const ScriptEngineConfig& config);
 		static void Shutdown();
+
+		static void RegisterAssembliesReloadedHook(const AssembliesReloadedHookFn& hook);
 
 		static bool LoadAssemblies(const std::filesystem::path& assemblyPath);
 		static void ScheduleReload();

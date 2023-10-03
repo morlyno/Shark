@@ -8,7 +8,7 @@ namespace Shark {
 
 	Ref<GPUTimer> GPUTimer::Create(const std::string& name)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXGPUTimer>::Create(name);

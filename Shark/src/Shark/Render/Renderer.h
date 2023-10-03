@@ -4,6 +4,7 @@
 
 #include "Shark/Render/RendererAPI.h"
 
+#include "Shark/Render/RenderCommandQueue.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shader.h"
 #include "Shark/Render/Texture.h"
@@ -15,23 +16,6 @@
 
 namespace Shark {
 
-	enum class RendererAPIType
-	{
-		None = 0,
-		DirectX11
-	};
-
-	inline std::string_view ToStringView(RendererAPIType api)
-	{
-		switch (api)
-		{
-			case RendererAPIType::None: return "None"sv;
-			case RendererAPIType::DirectX11: return "DirectX11"sv;
-		}
-		SK_CORE_ASSERT(false, "Unkown RendererAPIType");
-		return "Unkown";
-	}
-
 	class Renderer
 	{
 	public:
@@ -42,21 +26,28 @@ namespace Shark {
 		static void EndFrame();
 
 		static void WaitAndRender();
-		static bool IsOnRenderThread();
 
 		template<typename TFunc>
 		static void Submit(const TFunc& func)
 		{
-			SK_CORE_VERIFY(!GetCommandQueue().IsLocked());
-			//SK_CORE_VERIFY(IsDuringStartup() || IsDuringShutdown() || IsInsideFrame());
-			GetCommandQueue().Submit(func);
+			auto& commandQueue = GetCommandQueue();
+			SK_CORE_VERIFY(!commandQueue.IsExecuting());
+			
+			auto command = [](void* funcPtr)
+			{
+				auto cmdPtr = (TFunc*)funcPtr;
+				(*cmdPtr)();
+				cmdPtr->~TFunc();
+			};
+
+			void* storage = commandQueue.Allocate(command, sizeof(TFunc));
+			new (storage) TFunc(func);
 		}
 
 		template<typename TFunc>
 		static void SubmitResourceFree(const TFunc& func)
 		{
-			SK_CORE_VERIFY(!GetResourceFreeQueue().IsLocked());
-			GetResourceFreeQueue().Submit(func);
+			Submit(func);
 		}
 
 		static void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material);
@@ -68,7 +59,6 @@ namespace Shark {
 		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount);
 		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount);
 
-		static void RenderMesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, Ref<Pipeline> pipeline);
 		static void RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline);
 		static void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData);
 		static void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData);
@@ -76,27 +66,20 @@ namespace Shark {
 		static void GenerateMips(Ref<Image2D> image);
 		static void RT_GenerateMips(Ref<Image2D> image);
 
-		static const RendererCapabilities& GetCapabilities();
-
-		static Ref<ShaderLibrary> GetShaderLib();
-		static Ref<Texture2D> GetWhiteTexture();
-
-		static bool ResourcesCreated();
-		static bool IsInsideFrame();
-
 		static void ReportLiveObejcts();
 
+	public:
 		static Ref<RendererAPI> GetRendererAPI();
 
-		static void SetAPI(RendererAPIType api);
-		static RendererAPIType GetAPI();
+		static Ref<ShaderLibrary> GetShaderLibrary();
+		static Ref<Texture2D> GetWhiteTexture();
+		static Ref<Texture2D> GetBlackTexture();
+
+		static const RendererCapabilities& GetCapabilities();
+		static bool IsOnRenderThread();
 
 	private:
-		static CommandQueue& GetCommandQueue();
-		static CommandQueue& GetResourceFreeQueue();
-
-		static bool IsDuringStartup();
-		static bool IsDuringShutdown();
+		static RenderCommandQueue& GetCommandQueue();
 
 	private:
 		static Ref<RendererAPI> s_RendererAPI;

@@ -12,6 +12,7 @@ namespace Shark {
 	public:
 		virtual ~VertexBuffer() = default;
 		virtual void Release() = 0;
+		virtual void RT_Release() = 0;
 
 		virtual void Resize(uint32_t size) = 0;
 		virtual void Resize(Buffer vertexData) = 0;
@@ -40,6 +41,7 @@ namespace Shark {
 	public:
 		virtual ~IndexBuffer() = default;
 		virtual void Release() = 0;
+		virtual void RT_Release() = 0;
 
 		virtual void Resize(uint32_t count) = 0;
 		virtual void Resize(Buffer vertexData) = 0;

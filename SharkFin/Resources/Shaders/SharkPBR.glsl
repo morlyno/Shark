@@ -129,7 +129,7 @@ void main()
 
     vec3 F0 = vec3(0.04);
 
-    vec3 albedo = u_PBR.Albedo * texture(u_Albedo, v_UV).xyz;
+    vec3 albedo = u_PBR.Albedo * texture(u_Albedo, v_UV).rgb;
     F0 = mix(F0, albedo.xyz, u_PBR.Metallic);
 
     // reflectance equation

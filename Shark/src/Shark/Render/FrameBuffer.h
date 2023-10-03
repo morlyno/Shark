@@ -37,13 +37,12 @@ namespace Shark {
 
 	struct FrameBufferAtachment
 	{
+		ImageFormat Format;
 		bool BlendEnabled = false;
 		BlendSpecification Blend;
-		ImageFormat Format;
-		Ref<Image2D> Image = nullptr;
 
-		FrameBufferAtachment(ImageFormat format, bool blend = true)
-			: Format(format), BlendEnabled(blend) {}
+		FrameBufferAtachment(ImageFormat format)
+			: Format(format) {}
 	};
 
 	struct FrameBufferSpecification
@@ -51,7 +50,9 @@ namespace Shark {
 		uint32_t Width = 0, Height = 0;
 		std::vector<FrameBufferAtachment> Atachments;
 		glm::vec4 ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+		bool ClearOnLoad = false;
 
+		std::map<uint32_t, Ref<Image2D>> ExistingImages;
 		std::map<uint32_t, glm::vec4> IndipendendClearColor;
 
 		bool IsSwapChainTarget = false;
@@ -64,28 +65,29 @@ namespace Shark {
 	public:
 		virtual ~FrameBuffer() = default;
 
+		virtual void Invalidate() = 0;
+		virtual void RT_Invalidate() = 0;
+
 		virtual void Release() = 0;
+		virtual void RT_Release() = 0;
+
+		virtual void Resize(uint32_t widht, uint32_t height) = 0;
 
 		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer) = 0;
-		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) = 0;
-		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearcolor) = 0;
-		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) = 0;
 		virtual void ClearColorAtachments(Ref<RenderCommandBuffer> commandBuffer) = 0;
-
-		virtual std::pair<uint32_t, uint32_t> GetSize() const = 0;
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
-		virtual void Resize(uint32_t width, uint32_t height) = 0;
+		virtual void ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index) = 0;
+		virtual void ClearDepth(Ref<RenderCommandBuffer> commandBuffer) = 0;
 
 		virtual void SetClearColor(const glm::vec4& clearColor) = 0;
 
-		virtual Ref<Image2D> GetImage(uint32_t index = 0) = 0;
-		virtual Ref<Image2D> GetDepthImage() = 0;
+		virtual Ref<Image2D> GetImage(uint32_t index = 0) const = 0;
+		virtual Ref<Image2D> GetDepthImage() const = 0;
 
 		virtual const FrameBufferSpecification& GetSpecification() const = 0;
 		virtual FrameBufferSpecification& GetSpecificationMutable() = 0;
 
-		static Ref<FrameBuffer> Create(const FrameBufferSpecification& specs);
+	public:
+		static Ref<FrameBuffer> Create(const FrameBufferSpecification& spec);
 	};
 
 }

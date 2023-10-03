@@ -136,8 +136,8 @@ namespace Shark {
 		m_CommandBuffer->RT_Begin();
 		m_CommandBuffer->RT_BeginTimeQuery(m_GPUTimer);
 
-		Ref<DirectXFrameBuffer> dxFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
-		dxFrameBuffer->RT_Bind(m_CommandBuffer->GetContext());
+		Ref<DirectXFrameBuffer> swapchainFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
+		DirectXRenderer::Get()->BindFrameBuffer(m_CommandBuffer, swapchainFrameBuffer);
 
 		{
 			SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render");

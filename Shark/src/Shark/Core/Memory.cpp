@@ -20,8 +20,8 @@ namespace Shark {
 
 	void Allocator::FreeRaw(void* memory)
 	{
-		free(memory);
 		TracyFree(memory);
+		free(memory);
 	}
 
 	void* Allocator::Allocate(size_t size)

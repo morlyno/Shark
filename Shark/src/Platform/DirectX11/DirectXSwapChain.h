@@ -19,20 +19,19 @@ namespace Shark {
 		virtual void SetFullscreen(bool fullscreen) override;
 
 		virtual Ref<FrameBuffer> GetFrameBuffer() const override { return m_FrameBuffer; }
-
-		virtual const SwapChainSpecifications& GetSpecification() const override { return m_Specs; }
-
-	public:
-		IDXGISwapChain* GetSwapChain() const { return m_SwapChain; }
+		virtual const SwapChainSpecifications& GetSpecification() const override { return m_Specification; }
 
 	private:
-		void ResizeSwapChain(uint32_t widht, uint32_t height, bool alwaysResize = false);
-		void RT_ResizeSwapChain(uint32_t width, uint32_t height);
+		void Release();
 
 		void ReCreateSwapChain();
+		void ResizeSwapChain(uint32_t widht, uint32_t height, bool alwaysResize = false);
+		void RT_ResizeSwapChain(uint32_t width, uint32_t height, bool alwaysResize = false);
 
 	private:
-		SwapChainSpecifications m_Specs;
+		const DXGI_SWAP_EFFECT m_SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+		ImageFormat m_Format = ImageFormat::RGBA8;
+		SwapChainSpecifications m_Specification;
 		Ref<DirectXFrameBuffer> m_FrameBuffer;
 
 		IDXGISwapChain* m_SwapChain = nullptr;

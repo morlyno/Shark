@@ -57,6 +57,7 @@ namespace Shark {
 		void OnScenePlay();
 		void OnSceneStop();
 		void OnSimulationPlay();
+		void OnSimulationStop();
 
 		void OnUpdateRuntime(TimeStep ts);
 		void OnUpdateEditor(TimeStep ts);
@@ -81,7 +82,7 @@ namespace Shark {
 			return m_Registry.view<Component>();
 		}
 
-		Entity GetEntityByUUID(UUID uuid) const;
+		Entity TryGetEntityByUUID(UUID uuid) const;
 		Entity FindEntityByTag(const std::string& tag);
 		Entity FindChildEntityByName(Entity entity, const std::string& name, bool recusive);
 
@@ -119,6 +120,11 @@ namespace Shark {
 			m_PostUpdateQueue.emplace_back(func);
 		}
 
+		void Step(uint32_t frames) { m_StepFrames = frames; }
+		void SetPaused(bool paused) { m_Paused = paused; }
+		bool IsPaused() const { return m_Paused; }
+
+	public:
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
@@ -127,7 +133,8 @@ namespace Shark {
 
 	private:
 		void DestroyEntityInternal(Entity entity, bool destroyChildren, bool first);
-		void SetupBox2D();
+		void OnPhysics2DPlay(bool connectWithScriptingAPI);
+		void OnPhysics2DStop();
 		void OnPhyicsStep(TimeStep fixedTimeStep);
 
 		void RenderEntityHirachy(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& parentTransform);
@@ -157,6 +164,9 @@ namespace Shark {
 
 		bool m_IsEditorScene = false;
 		bool m_IsRunning = false;
+
+		bool m_Paused = false;
+		uint32_t m_StepFrames = 0;
 
 		std::vector<std::function<void()>> m_PostUpdateQueue;
 

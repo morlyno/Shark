@@ -64,9 +64,9 @@ namespace Shark {
 			fbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
 			fbspecs.Atachments[1].BlendEnabled = false;
-			fbspecs.Atachments[0].Image = m_GeometryFrameBuffer->GetImage(0);
-			fbspecs.Atachments[1].Image = m_GeometryFrameBuffer->GetImage(1);
-			fbspecs.Atachments[2].Image = m_GeometryFrameBuffer->GetDepthImage();
+			fbspecs.ExistingImages[0] = m_GeometryFrameBuffer->GetImage(0);
+			fbspecs.ExistingImages[1] = m_GeometryFrameBuffer->GetImage(1);
+			fbspecs.ExistingImages[2] = m_GeometryFrameBuffer->GetDepthImage();
 			m_ExternalCompositeFrameBuffer = FrameBuffer::Create(fbspecs);
 		}
 
@@ -74,7 +74,7 @@ namespace Shark {
 		{
 			PipelineSpecification specification;
 			specification.TargetFrameBuffer = m_GeometryFrameBuffer;
-			specification.Shader = Renderer::GetShaderLib()->Get("SharkPBR");
+			specification.Shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
 			specification.Layout = VertexLayout{
 				{ VertexDataType::Float3, "Position" },
 				{ VertexDataType::Float3, "Normal" },

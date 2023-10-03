@@ -4,17 +4,19 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Debug/Profiler.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXAPI.h"
 
 namespace Shark {
 
-	namespace Utils {
+	namespace utils {
 
 		static DXGI_FORMAT FBAtachmentToDXGIFormat(ImageFormat format)
 		{
 			switch (format)
 			{
 				case ImageFormat::None:                      SK_CORE_ASSERT(false, "No Foramt Specified");  return DXGI_FORMAT_UNKNOWN;
-				case ImageFormat::Depth32:                   SK_CORE_ASSERT(false, "Invalid Format");       return DXGI_FORMAT_UNKNOWN;
+					//case ImageFormat::Depth32:                   SK_CORE_ASSERT(false, "Invalid Format");       return DXGI_FORMAT_UNKNOWN;
+				case ImageFormat::Depth32:                   return DXGI_FORMAT_D32_FLOAT;
 				case ImageFormat::RGBA8:                     return DXGI_FORMAT_R8G8B8A8_UNORM;
 				case ImageFormat::RGBA16F:                   return DXGI_FORMAT_R16G16B16A16_FLOAT;
 				case ImageFormat::RGBA32F:                   return DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -61,12 +63,41 @@ namespace Shark {
 			return (D3D11_BLEND_OP)0;
 		}
 
+		static bool IsDepthAtachment(const FrameBufferAtachment& atachment)
+		{
+			switch (atachment.Format)
+			{
+				case ImageFormat::Depth32:
+					return true;
+			}
+			return false;
+		}
+
+		static bool FormatSupportsBlending(ImageFormat format)
+		{
+			switch (format)
+			{
+				case ImageFormat::RGBA8:
+				case ImageFormat::RGBA16F:
+				case ImageFormat::R8:
+				case ImageFormat::R16F:
+					return true;
+
+				case ImageFormat::Depth32:
+				case ImageFormat::R32_SINT:
+					return false;
+			}
+
+			SK_CORE_ASSERT(false, "Unkown ImageFormat");
+			return false;
+		}
+
 	}
 
 	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs)
 		: m_Specification(specs)
 	{
-		CreateBuffers();
+		Invalidate();
 	}
 
 	DirectXFrameBuffer::~DirectXFrameBuffer()
@@ -74,43 +105,262 @@ namespace Shark {
 		Release();
 	}
 
+	void DirectXFrameBuffer::Invalidate()
+	{
+		SK_CORE_VERIFY(m_Specification.ClearOnLoad == false, "ClearOnLoad not implemented");
+		Release();
+
+		SK_CORE_VERIFY(m_Specification.DebugName.size());
+
+		FrameBufferAtachment* depthAtachment = nullptr;
+		Ref<DirectXImage2D> depthImage;
+
+		for (uint32_t i = 0; i < m_Specification.Atachments.size(); i++)
+		{
+			auto& atachment = m_Specification.Atachments[i];
+
+			if (utils::IsDepthAtachment(atachment))
+			{
+				SK_CORE_VERIFY(!depthAtachment, "A Framebuffer can only have one Depth Atachment!");
+				depthAtachment = &atachment;
+
+				const auto existingImage = m_Specification.ExistingImages.find(i);
+				if (existingImage != m_Specification.ExistingImages.end() && existingImage->second)
+				{
+					depthImage = existingImage->second.As<DirectXImage2D>();
+					continue;
+				}
+
+				ImageSpecification imageSpec;
+				imageSpec.Format = atachment.Format;
+				imageSpec.Type = ImageType::FrameBuffer;
+				imageSpec.Width = m_Specification.Width;
+				imageSpec.Height = m_Specification.Height;
+				imageSpec.MipLevels = 1;
+				imageSpec.DebugName = fmt::format("{} Depth Atachment", m_Specification.DebugName);
+				depthImage = Ref<DirectXImage2D>::Create(imageSpec);
+
+				continue;
+			}
+
+			const auto existingImage = m_Specification.ExistingImages.find(i);
+			if (existingImage != m_Specification.ExistingImages.end() && existingImage->second)
+			{
+				m_Images.push_back(existingImage->second.As<DirectXImage2D>());
+				continue;
+			}
+
+			ImageSpecification imageSpec;
+			imageSpec.Format = atachment.Format;
+			imageSpec.Type = ImageType::FrameBuffer;
+			imageSpec.Width = m_Specification.Width;
+			imageSpec.Height = m_Specification.Height;
+			imageSpec.MipLevels = 1;
+			imageSpec.DebugName = fmt::format("{} Atachment {}", m_Specification.DebugName, m_Images.size());
+			m_Images.push_back(Ref<DirectXImage2D>::Create(imageSpec));
+		}
+
+		uint32_t imageIndex = 0;
+		for (auto& atachment : m_Specification.Atachments)
+		{
+			if (utils::IsDepthAtachment(atachment))
+				continue;
+
+			Ref<DirectXImage2D> image = m_Images[imageIndex++];
+			Ref<DirectXFrameBuffer> instance = this;
+			Renderer::Submit([instance, format = atachment.Format, image]()
+			{
+				auto renderer = DirectXRenderer::Get();
+				ID3D11Device* device = renderer->GetDevice();
+
+				D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+				viewDesc.Format = utils::FBAtachmentToDXGIFormat(format);
+				viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+				viewDesc.Texture2D.MipSlice = 0;
+
+				ID3D11RenderTargetView* view = nullptr;
+				DirectXAPI::CreateRenderTargetView(device, image->GetResourceNative(), viewDesc, view);
+				D3D_SET_OBJECT_NAME_A(view, instance->m_Specification.DebugName.c_str());
+				instance->m_FrameBuffers.push_back(view);
+			});
+		}
+
+		if (depthAtachment)
+		{
+			Ref<DirectXFrameBuffer> instance = this;
+			Renderer::Submit([instance, format = depthAtachment->Format, depthImage]()
+			{
+				instance->RT_CreateDepthStencilAtachment(format, depthImage);
+			});
+		}
+
+		Ref<DirectXFrameBuffer> instance = this;
+		Renderer::Submit([instance, width = m_Specification.Width, height = m_Specification.Height]()
+		{
+			D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(D3D11_DEFAULT);
+			bd.AlphaToCoverageEnable = false;
+			bd.IndependentBlendEnable = true;
+
+			for (uint32_t index = 0; index != instance->m_Specification.Atachments.size(); index++)
+			{
+				const auto& atachment = instance->m_Specification.Atachments[index];
+				bd.RenderTarget[index].BlendEnable = utils::FormatSupportsBlending(atachment.Format) && atachment.BlendEnabled;
+
+				auto& desc = bd.RenderTarget[index];
+				desc.SrcBlend = utils::ToD3D11Blend(atachment.Blend.SourceColorFactor);
+				desc.DestBlend = utils::ToD3D11Blend(atachment.Blend.DestinationColorFactor);
+				desc.BlendOp = utils::ToD3D11BlendOp(atachment.Blend.ColorOperator);
+				desc.SrcBlendAlpha = utils::ToD3D11Blend(atachment.Blend.SourceAlphaFactor);
+				desc.DestBlendAlpha = utils::ToD3D11Blend(atachment.Blend.DestinationAlphaFactor);
+				desc.BlendOpAlpha = utils::ToD3D11BlendOp(atachment.Blend.AlphaOperator);
+				desc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+			}
+
+			auto renderer = DirectXRenderer::Get();
+			ID3D11Device* device = renderer->GetDevice();
+			DirectXAPI::CreateBlendState(device, bd, instance->m_BlendState);
+
+			instance->RT_SetViewport(width, height);
+			instance->m_Count = instance->m_FrameBuffers.size();
+		});
+
+		m_DepthStencilImage = depthImage;
+		m_DepthStencilAtachment = depthAtachment;
+	}
+
+	void DirectXFrameBuffer::RT_Invalidate()
+	{
+		SK_CORE_VERIFY(m_Specification.ClearOnLoad == false, "ClearOnLoad not implemented");
+
+		auto renderer = DirectXRenderer::Get();
+		ID3D11Device* device = renderer->GetDevice();
+
+		RT_Release();
+
+		FrameBufferAtachment* depthAtachment = nullptr;
+		Ref<DirectXImage2D> depthImage;
+
+		for (uint32_t i = 0; i < m_Specification.Atachments.size(); i++)
+		{
+			auto& atachment = m_Specification.Atachments[i];
+
+			if (utils::IsDepthAtachment(atachment))
+			{
+				SK_CORE_VERIFY(!depthAtachment, "A Framebuffer can only have one Depth Atachment!")
+					depthAtachment = &atachment;
+
+				depthImage = Ref<DirectXImage2D>::Create();
+				auto& imageSpec = depthImage->GetSpecificationMutable();
+				imageSpec.Format = atachment.Format;
+				imageSpec.Type = ImageType::FrameBuffer;
+				imageSpec.Width = m_Specification.Width;
+				imageSpec.Height = m_Specification.Height;
+				imageSpec.MipLevels = 1;
+				imageSpec.DebugName = fmt::format("{} Depth Atachment", m_Specification.DebugName);
+				depthImage->RT_Invalidate();
+
+				continue;
+			}
+
+			const auto existingImage = m_Specification.ExistingImages.find(i);
+			if (existingImage != m_Specification.ExistingImages.end() && existingImage->second)
+			{
+				m_Images.push_back(existingImage->second.As<DirectXImage2D>());
+				continue;
+			}
+
+			auto image = Ref<DirectXImage2D>::Create();
+			auto& imageSpec = image->GetSpecificationMutable();
+			imageSpec.Format = atachment.Format;
+			imageSpec.Type = ImageType::FrameBuffer;
+			imageSpec.Width = m_Specification.Width;
+			imageSpec.Height = m_Specification.Height;
+			imageSpec.MipLevels = 1;
+			imageSpec.DebugName = fmt::format("{} Atachment {}", m_Specification.DebugName, m_Images.size());
+			image->RT_Invalidate();
+			m_Images.push_back(image);
+		}
+
+		uint32_t imageIndex = 0;
+		for (auto& atachment : m_Specification.Atachments)
+		{
+			if (utils::IsDepthAtachment(atachment))
+				continue;
+
+			D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+			viewDesc.Format = utils::FBAtachmentToDXGIFormat(atachment.Format);
+			viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+			viewDesc.Texture2D.MipSlice = 0;
+
+			ID3D11RenderTargetView* view = nullptr;
+			DirectXAPI::CreateRenderTargetView(device, m_Images[imageIndex++]->GetResourceNative(), viewDesc, view);
+			m_FrameBuffers.push_back(view);
+		}
+
+		if (depthAtachment)
+		{
+			RT_CreateDepthStencilAtachment(depthAtachment->Format, depthImage);
+		}
+
+		D3D11_BLEND_DESC bd = CD3D11_BLEND_DESC(D3D11_DEFAULT);
+		bd.AlphaToCoverageEnable = false;
+		bd.IndependentBlendEnable = true;
+
+		for (uint32_t index = 0; index != m_Specification.Atachments.size(); index++)
+		{
+			const auto& atachment = m_Specification.Atachments[index];
+			bd.RenderTarget[index].BlendEnable = utils::FormatSupportsBlending(atachment.Format) && atachment.BlendEnabled;
+
+			auto& desc = bd.RenderTarget[index];
+			desc.SrcBlend = utils::ToD3D11Blend(atachment.Blend.SourceColorFactor);
+			desc.DestBlend = utils::ToD3D11Blend(atachment.Blend.DestinationColorFactor);
+			desc.BlendOp = utils::ToD3D11BlendOp(atachment.Blend.ColorOperator);
+			desc.SrcBlendAlpha = utils::ToD3D11Blend(atachment.Blend.SourceAlphaFactor);
+			desc.DestBlendAlpha = utils::ToD3D11Blend(atachment.Blend.DestinationAlphaFactor);
+			desc.BlendOpAlpha = utils::ToD3D11BlendOp(atachment.Blend.AlphaOperator);
+			desc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		}
+
+		DirectXAPI::CreateBlendState(device, bd, m_BlendState);
+
+		RT_SetViewport(m_Specification.Width, m_Specification.Height);
+		m_Count = m_FrameBuffers.size();
+
+		m_DepthStencilImage = depthImage;
+		m_DepthStencilAtachment = depthAtachment;
+	}
+
 	void DirectXFrameBuffer::Release()
 	{
-		Renderer::SubmitResourceFree([frameBuffers = m_FrameBuffers, depthStencil = m_DepthStencil, blendState = m_BlendState]()
+		Renderer::Submit([frameBuffers = m_FrameBuffers, depthStencil = m_DepthStencil, blendState = m_BlendState]()
 		{
-			for (auto& buffer : frameBuffers)
-			{
-				if (buffer)
-					buffer->Release();
-			}
+			for (auto buffer : frameBuffers)
+				buffer->Release();
 
 			if (depthStencil)
 				depthStencil->Release();
 
 			if (blendState)
 				blendState->Release();
-
 		});
 
 		m_FrameBuffers.clear();
+		m_Images.clear();
+		m_DepthStencilImage = nullptr;
 		m_DepthStencil = nullptr;
 		m_BlendState = nullptr;
-
 	}
 
 	void DirectXFrameBuffer::RT_Release()
 	{
-		for (auto& buffer : m_FrameBuffers)
-		{
-			if (buffer)
-				buffer->Release();
-		}
+		for (auto buffer : m_FrameBuffers)
+			buffer->Release();
 
-		for (auto& atachment : m_Specification.Atachments)
-		{
-			auto image = atachment.Image.As<DirectXImage2D>();
+		for (auto& image : m_Images)
 			image->RT_Release();
-		}
+
+		if (m_DepthStencilImage)
+			m_DepthStencilImage->RT_Release();
 
 		if (m_DepthStencil)
 			m_DepthStencil->Release();
@@ -119,432 +369,125 @@ namespace Shark {
 			m_BlendState->Release();
 
 		m_FrameBuffers.clear();
+		m_Images.clear();
+		m_DepthStencilImage = nullptr;
 		m_DepthStencil = nullptr;
 		m_BlendState = nullptr;
 	}
 
-	void DirectXFrameBuffer::Clear(Ref<RenderCommandBuffer> commandBuffer)
+	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)
 	{
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+
+		for (Ref<DirectXImage2D> image : m_Images)
+			image->Resize(width, height);
+
+		m_DepthStencilImage->Resize(width, height);
+
 		Ref<DirectXFrameBuffer> instance = this;
-		Renderer::Submit([instance, cmdBuffer = commandBuffer.As<DirectXRenderCommandBuffer>()]()
+		for (uint32_t i = 0; i < m_Count; i++)
 		{
-			instance->RT_Clear(cmdBuffer);
-		});
+			Ref<DirectXImage2D> image = m_Images[i];
+			const auto& atachment = m_Specification.Atachments[i];
+
+			Renderer::Submit([instance, format = atachment.Format, image, index = i]()
+			{
+				auto renderer = DirectXRenderer::Get();
+				ID3D11Device* device = renderer->GetDevice();
+
+				D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+				viewDesc.Format = utils::FBAtachmentToDXGIFormat(format);
+				viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+				viewDesc.Texture2D.MipSlice = 0;
+
+				ID3D11RenderTargetView* view = nullptr;
+				DirectXAPI::CreateRenderTargetView(device, image->GetResourceNative(), viewDesc, view);
+
+				if (auto framebuffer = instance->m_FrameBuffers[index])
+					framebuffer->Release();
+
+				instance->m_FrameBuffers[index] = view;
+			});
+		}
+
+		if (m_DepthStencilAtachment)
+		{
+			Renderer::Submit([instance, format = m_DepthStencilAtachment->Format, depthImage = m_DepthStencilImage]()
+			{
+				if (instance->m_DepthStencil)
+					instance->m_DepthStencil->Release();
+				instance->m_DepthStencil = nullptr;
+
+				instance->RT_CreateDepthStencilAtachment(format, depthImage);
+			});
+		}
+
+		Renderer::Submit([instance, width, height]() { instance->RT_SetViewport(width, height); });
 	}
 
-	void DirectXFrameBuffer::ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearcolor)
+	void DirectXFrameBuffer::Clear(Ref<RenderCommandBuffer> commandBuffer)
 	{
-		Ref<DirectXFrameBuffer> instance = this;
-		Renderer::Submit([instance, index, cmdBuffer = commandBuffer.As<DirectXRenderCommandBuffer>(), color = clearcolor]()
-		{
-			instance->RT_ClearAtachment(cmdBuffer, index, color);
-		});
+		ClearColorAtachments(commandBuffer);
+		ClearDepth(commandBuffer);
+	}
+
+	void DirectXFrameBuffer::ClearColorAtachments(Ref<RenderCommandBuffer> commandBuffer)
+	{
+		for (uint32_t i = 0; i < m_Count; i++)
+			ClearAtachment(commandBuffer, i);
 	}
 
 	void DirectXFrameBuffer::ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index)
 	{
-		if (m_Specification.IndipendendClearColor.find(index) != m_Specification.IndipendendClearColor.end())
-			ClearAtachment(commandBuffer, index, m_Specification.IndipendendClearColor.at(index));
-		else
-			ClearAtachment(commandBuffer, index, m_Specification.ClearColor);
+		const glm::vec4 clearColor = Utils::Contains(m_Specification.IndipendendClearColor, index) ? m_Specification.IndipendendClearColor.at(index) : m_Specification.ClearColor;
+		Ref<DirectXFrameBuffer> instance = this;
+		Renderer::Submit([instance, dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>(), clearColor, index]()
+		{
+			auto context = dxCommandBuffer->GetContext();
+			auto view = instance->m_FrameBuffers[index];
+			context->ClearRenderTargetView(view, glm::value_ptr(clearColor));
+		});
 	}
 
 	void DirectXFrameBuffer::ClearDepth(Ref<RenderCommandBuffer> commandBuffer)
 	{
 		Ref<DirectXFrameBuffer> instance = this;
-		Renderer::Submit([instance, cmdBuffer = commandBuffer.As<DirectXRenderCommandBuffer>()]()
+		Renderer::Submit([instance, dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>()]()
 		{
-			instance->RT_ClearDepth(cmdBuffer);
-		});
-	}
-
-	void DirectXFrameBuffer::ClearColorAtachments(Ref<RenderCommandBuffer> commandBuffer)
-	{
-		Ref<DirectXFrameBuffer> instance = this;
-		Renderer::Submit([instance, cmdBuffer = commandBuffer.As<DirectXRenderCommandBuffer>()]()
-		{
-			instance->RT_ClearColorAtachments(cmdBuffer);
-		});
-	}
-
-	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)
-	{
-		if (m_Specification.Width == width && m_Specification.Height == height)
-			return;
-
-		m_Specification.Width = width;
-		m_Specification.Height = height;
-
-		for (auto& atachment : m_Specification.Atachments)
-		{
-			auto& specification = atachment.Image->GetSpecificationMutable();
-			if (specification.Width == width && specification.Height == height)
-				continue;
-
-			specification.Width = width;
-			specification.Height = height;
-			atachment.Image->Invalidate();
-		}
-
-		Release();
-		CreateBuffers();
-	}
-
-	void DirectXFrameBuffer::RT_Bind(ID3D11DeviceContext* ctx)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		ctx->OMSetRenderTargets(m_Count, m_FrameBuffers.data(), m_DepthStencil);
-		ctx->OMSetBlendState(m_BlendState, nullptr, 0xFFFFFFFF);
-		ctx->RSSetViewports(1, &m_Viewport);
-	}
-
-	void DirectXFrameBuffer::RT_UnBind(ID3D11DeviceContext* ctx)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		ID3D11DepthStencilState* nulldss = nullptr;
-		std::vector<ID3D11RenderTargetView*> nullrtvs(m_Count, nullptr);
-		ID3D11DepthStencilView* nulldsv = nullptr;
-		ID3D11BlendState* nullds = nullptr;
-		D3D11_VIEWPORT nullvp{ 0 };
-
-		ctx->OMSetDepthStencilState(nulldss, 0);
-		ctx->OMSetRenderTargets(m_Count, nullrtvs.data(), nulldsv);
-		ctx->OMSetBlendState(nullds, nullptr, 0xFFFFFFFF);
-		ctx->RSSetViewports(1, &nullvp);
-	}
-
-	void DirectXFrameBuffer::RT_Invalidate()
-	{
-		for (auto& atachment : m_Specification.Atachments)
-		{
-			if (IsDepthAtachemnt(atachment))
-			{
-				m_DepthStencilAtachment = &atachment;
-			}
-
-			RT_CreateAtachment(atachment);
-		}
-
-		m_Count = m_FrameBuffers.size();
-		RT_CreateBlendState();
-	}
-
-	void DirectXFrameBuffer::RT_CreateAtachment(FrameBufferAtachment& atachment)
-	{
-		SK_CORE_ASSERT(atachment.Image ? atachment.Image->GetSpecification().Format == atachment.Format : true,
-			"Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment.Image->GetSpecification().Format), ToString(atachment.Format));
-
-		if (!atachment.Image)
-		{
-			Ref<Image2D> image = Image2D::Create();
-			auto& specification = image->GetSpecificationMutable();
-			specification.Width = m_Specification.Width;
-			specification.Height = m_Specification.Height;
-			specification.Format = atachment.Format;
-			specification.Type = ImageType::FrameBuffer;
-			image->RT_Invalidate();
-			atachment.Image = image;
-		}
-		auto d3dImage = atachment.Image.As<DirectXImage2D>();
-
-		auto dev = DirectXRenderer::GetDevice();
-
-		D3D11_RENDER_TARGET_VIEW_DESC desc{};
-		desc.Format = Utils::FBAtachmentToDXGIFormat(atachment.Format);
-		desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-		desc.Texture2D = D3D11_TEX2D_RTV{};
-
-		ID3D11RenderTargetView* fb;
-		SK_DX11_CALL(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
-		m_FrameBuffers.push_back(fb);
-	}
-
-	void DirectXFrameBuffer::RT_CreateDepthAtachment(FrameBufferAtachment& atachment)
-	{
-		SK_CORE_ASSERT(atachment.Image ? atachment.Image->GetSpecification().Format == atachment.Format : true,
-			"Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment.Image->GetSpecification().Format), ToString(atachment.Format));
-
-		if (!atachment.Image)
-		{
-			Ref<Image2D> image = Image2D::Create();
-			auto& specification = image->GetSpecificationMutable();
-			specification.Width = m_Specification.Width;
-			specification.Height = m_Specification.Height;
-			specification.Format = atachment.Format;
-			specification.Type = ImageType::FrameBuffer;
-			image->RT_Invalidate();
-			atachment.Image = image;
-		}
-		auto d3dImage = atachment.Image.As<DirectXImage2D>();
-
-		auto dev = DirectXRenderer::GetDevice();
-
-		D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
-		dsv.Format = Utils::FBAtachmentToDXGIFormat(atachment.Format);
-		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-		dsv.Texture2D.MipSlice = 0u;
-		dsv.Flags = 0u;
-
-		SK_DX11_CALL(dev->CreateDepthStencilView(d3dImage->GetResourceNative(), &dsv, &m_DepthStencil));
-	}
-
-	void DirectXFrameBuffer::CreateBuffers()
-	{
-		uint32_t index = 0;
-		for (auto atachment = m_Specification.Atachments.begin(); atachment != m_Specification.Atachments.end(); ++atachment, index++)
-		{
-			switch (atachment->Format)
-			{
-				case ImageFormat::None:               CreateFrameBufferFromImage(atachment._Ptr);                                       break;
-				case ImageFormat::RGBA8:              CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R8G8B8A8_UNORM);                    break;
-				case ImageFormat::RGBA16F:            CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R16G16B16A16_FLOAT);                break;
-				case ImageFormat::RGB32F:             CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R32G32B32_FLOAT);                   break;
-				case ImageFormat::RGBA32F:            CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R32G32B32A32_FLOAT);                break;
-				case ImageFormat::R8:                 CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R8_UNORM);                          break;
-				case ImageFormat::R16F:               CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R16_FLOAT);                         break;
-				case ImageFormat::R32_SINT:           CreateFrameBuffer(atachment._Ptr, DXGI_FORMAT_R32_SINT);                          break;
-				case ImageFormat::Depth32:            m_DepthStencilAtachment = atachment._Ptr;  CreateDepth32Buffer(atachment._Ptr);   break;
-
-				default:                              SK_CORE_ASSERT(false);                                                            break;
-			}
-		}
-
-		Ref<DirectXFrameBuffer> instance = this;
-		Renderer::Submit([instance]() { instance->m_Count = (uint32_t)instance->m_FrameBuffers.size(); });
-		Renderer::Submit([instance]() { instance->RT_CreateBlendState(); });
-	}
-
-	void DirectXFrameBuffer::CreateDepth32Buffer(FrameBufferAtachment* atachment)
-	{
-		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
-			"Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment->Image->GetSpecification().Format), ToString(atachment->Format));
-
-		if (!atachment->Image)
-		{
-			ImageSpecification specs;
-			specs.Width = m_Specification.Width;
-			specs.Height = m_Specification.Height;
-			specs.Format = ImageFormat::Depth32;
-			specs.Type = ImageType::FrameBuffer;
-			specs.DebugName = fmt::format("{} Depth Atachment", m_Specification.DebugName);
-			atachment->Image = Image2D::Create(specs);
-		}
-		auto d3dImage = atachment->Image.As<DirectXImage2D>();
-
-		Ref<DirectXFrameBuffer> instance = this;
-		Renderer::Submit([instance, d3dImage]()
-		{
-			auto dev = DirectXRenderer::GetDevice();
-
-			D3D11_DEPTH_STENCIL_VIEW_DESC dsv;
-			dsv.Format = DXGI_FORMAT_D32_FLOAT;
-			dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-			dsv.Texture2D.MipSlice = 0u;
-			dsv.Flags = 0u;
-
-			SK_DX11_CALL(dev->CreateDepthStencilView(d3dImage->GetResourceNative(), &dsv, &instance->m_DepthStencil));
-		});
-	}
-
-	void DirectXFrameBuffer::CreateFrameBuffer(FrameBufferAtachment* atachment, DXGI_FORMAT dxgiformat)
-	{
-		SK_CORE_ASSERT(atachment->Image ? atachment->Image->GetSpecification().Format == atachment->Format : true,
-			"Formats don't Match! Existing Image: {}, Atachment: {}", ToString(atachment->Image->GetSpecification().Format), ToString(atachment->Format));
-
-		if (!atachment->Image)
-		{
-			ImageSpecification specs;
-			specs.Width = m_Specification.Width;
-			specs.Height = m_Specification.Height;
-			specs.Format = atachment->Format;
-			specs.Type = ImageType::FrameBuffer;
-			specs.DebugName = fmt::format("{} Atachment", m_Specification.DebugName);
-			atachment->Image = Image2D::Create(specs);
-		}
-		auto d3dImage = atachment->Image.As<DirectXImage2D>();
-
-		Ref<DirectXFrameBuffer> instance = this;
-		Renderer::Submit([instance, d3dImage, dxgiformat]()
-		{
-			if (!d3dImage->GetResourceNative())
+			if (!instance->m_DepthStencil)
 				return;
 
-			auto dev = DirectXRenderer::GetDevice();
-
-			D3D11_RENDER_TARGET_VIEW_DESC desc;
-			desc.Format = dxgiformat;
-			desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-			desc.Texture2D = D3D11_TEX2D_RTV{};
-
-			ID3D11RenderTargetView* fb;
-			SK_DX11_CALL(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
-			instance->m_FrameBuffers.push_back(fb);
+			auto context = dxCommandBuffer->GetContext();
+			context->ClearDepthStencilView(instance->m_DepthStencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		});
 	}
 
-	void DirectXFrameBuffer::CreateFrameBufferFromImage(FrameBufferAtachment* atachment)
+	void DirectXFrameBuffer::RT_CreateDepthStencilAtachment(ImageFormat format, Ref<DirectXImage2D> depthImage)
 	{
-		SK_CORE_VERIFY(atachment->Image);
+		auto renderer = DirectXRenderer::Get();
+		ID3D11Device* device = renderer->GetDevice();
 
-		Ref<DirectXImage2D> d3dImage = atachment->Image.As<DirectXImage2D>();
-		Ref<DirectXFrameBuffer> instance = this;
-		Renderer::Submit([instance, d3dImage, format = atachment->Format]()
-		{
-			ID3D11Device* dev = DirectXRenderer::GetDevice();
+		D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
+		viewDesc.Format = utils::FBAtachmentToDXGIFormat(format);
+		viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		viewDesc.Texture2D.MipSlice = 0;
+		viewDesc.Flags = 0;
 
-			D3D11_RENDER_TARGET_VIEW_DESC desc;
-			desc.Format = Utils::FBAtachmentToDXGIFormat(format);
-			desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-			desc.Texture2D = D3D11_TEX2D_RTV{};
-
-			ID3D11RenderTargetView* fb;
-			SK_DX11_CALL(dev->CreateRenderTargetView(d3dImage->GetResourceNative(), &desc, &fb));
-			instance->m_FrameBuffers.push_back(fb);
-		});
+		ID3D11DepthStencilView* view = nullptr;
+		DirectXAPI::CreateDepthStencilView(device, depthImage->GetResourceNative(), viewDesc, view);
+		D3D_SET_OBJECT_NAME_A(view, m_Specification.DebugName.c_str());
+		m_DepthStencil = view;
 	}
 
-	void DirectXFrameBuffer::RT_CreateBlendState()
+	void DirectXFrameBuffer::RT_SetViewport(uint32_t width, uint32_t height)
 	{
-		//SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
 		m_Viewport.TopLeftX = 0;
 		m_Viewport.TopLeftY = 0;
-		m_Viewport.Width = (FLOAT)m_Specification.Width;
-		m_Viewport.Height = (FLOAT)m_Specification.Height;
+		m_Viewport.Width = (FLOAT)width;
+		m_Viewport.Height = (FLOAT)height;
 		m_Viewport.MinDepth = 0;
 		m_Viewport.MaxDepth = 1;
-
-		D3D11_BLEND_DESC bd;
-		bd.AlphaToCoverageEnable = false;
-		bd.IndependentBlendEnable = true;
-
-#if 1
-		for (uint32_t i = 0; i < 8; i++)
-		{
-			bd.RenderTarget[i].BlendEnable = false;
-			bd.RenderTarget[i].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-			bd.RenderTarget[i].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-			bd.RenderTarget[i].BlendOp = D3D11_BLEND_OP_ADD;
-			bd.RenderTarget[i].SrcBlendAlpha = D3D11_BLEND_ONE;
-			bd.RenderTarget[i].DestBlendAlpha = D3D11_BLEND_ONE;
-			bd.RenderTarget[i].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-			bd.RenderTarget[i].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		}
-#endif
-
-		uint32_t index = 0;
-		for (auto& atachment : m_Specification.Atachments)
-		{
-			if (/*IsColorAtachment(&atachment) && */FormatSupportsBlending(atachment.Format))
-				bd.RenderTarget[index].BlendEnable = atachment.BlendEnabled;
-
-			auto& desc = bd.RenderTarget[index];
-			desc.SrcBlend = Utils::ToD3D11Blend(atachment.Blend.SourceColorFactor);
-			desc.DestBlend = Utils::ToD3D11Blend(atachment.Blend.DestinationColorFactor);
-			desc.BlendOp = Utils::ToD3D11BlendOp(atachment.Blend.ColorOperator);
-			desc.SrcBlendAlpha = Utils::ToD3D11Blend(atachment.Blend.SourceAlphaFactor);
-			desc.DestBlendAlpha = Utils::ToD3D11Blend(atachment.Blend.DestinationAlphaFactor);
-			desc.BlendOpAlpha = Utils::ToD3D11BlendOp(atachment.Blend.AlphaOperator);
-
-			index++;
-		}
-
-		SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBlendState(&bd, &m_BlendState));
-	}
-
-	bool DirectXFrameBuffer::IsColorAtachment(FrameBufferAtachment* atachment) const
-	{
-		switch (atachment->Format)
-		{
-			case ImageFormat::RGBA8:
-			case ImageFormat::RGBA16F:
-			case ImageFormat::R8:
-			case ImageFormat::R16F:
-			case ImageFormat::R32_SINT:
-				return true;
-
-			case ImageFormat::Depth32:
-				return false;
-		}
-
-		SK_CORE_ASSERT(false, "Invalid Atachment");
-		return false;
-	}
-
-	bool DirectXFrameBuffer::IsDepthAtachemnt(const FrameBufferAtachment& atachment) const
-	{
-		switch (atachment.Format)
-		{
-			case ImageFormat::Depth32:
-				return true;
-		}
-		return false;
-	}
-
-	void DirectXFrameBuffer::RT_Clear(Ref<DirectXRenderCommandBuffer> commandBuffer)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		for (uint32_t i = 0; i < m_Count; i++)
-		{
-			if (m_Specification.IndipendendClearColor.find(i) != m_Specification.IndipendendClearColor.end())
-				RT_ClearAtachment(commandBuffer, i, m_Specification.IndipendendClearColor.at(i));
-			else
-				RT_ClearAtachment(commandBuffer, i, m_Specification.ClearColor);
-		}
-		RT_ClearDepth(commandBuffer);
-	}
-
-	void DirectXFrameBuffer::RT_ClearAtachment(Ref<DirectXRenderCommandBuffer> commandBuffer, uint32_t index, const glm::vec4& clearColor)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		auto ctx = commandBuffer->GetContext();
-		ctx->ClearRenderTargetView(m_FrameBuffers[index], glm::value_ptr(clearColor));
-	}
-
-	void DirectXFrameBuffer::RT_ClearDepth(Ref<DirectXRenderCommandBuffer> commandBuffer)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		auto ctx = commandBuffer->GetContext();
-		ctx->ClearDepthStencilView(m_DepthStencil, D3D11_CLEAR_DEPTH, 1.0f, 0u);
-	}
-
-	void DirectXFrameBuffer::RT_ClearColorAtachments(Ref<DirectXRenderCommandBuffer> commandBuffer)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		for (uint32_t i = 0; i < m_Count; i++)
-		{
-			if (m_Specification.IndipendendClearColor.find(i) != m_Specification.IndipendendClearColor.end())
-				RT_ClearAtachment(commandBuffer, i, m_Specification.IndipendendClearColor.at(i));
-			else
-				RT_ClearAtachment(commandBuffer, i, m_Specification.ClearColor);
-		}
-	}
-
-	bool DirectXFrameBuffer::FormatSupportsBlending(ImageFormat format)
-	{
-		switch (format)
-		{
-			case ImageFormat::RGBA8:
-			case ImageFormat::RGBA16F:
-			case ImageFormat::R8:
-			case ImageFormat::R16F:
-				return true;
-
-			case ImageFormat::Depth32:
-			case ImageFormat::R32_SINT:
-				return false;
-		}
-
-		SK_CORE_ASSERT(false, "Unkown ImageFormat");
-		return false;
 	}
 
 }

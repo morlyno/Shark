@@ -49,7 +49,7 @@ namespace Shark {
 			PipelineSpecification pipelineSpec;
 			pipelineSpec.TargetFrameBuffer = framebuffer;
 			pipelineSpec.DebugName = "Renderer2D - Composite";
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Composite");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Composite");
 			pipelineSpec.Layout = {
 				{ VertexDataType::Float2, "Position" }
 			};
@@ -63,10 +63,10 @@ namespace Shark {
 
 		{
 			FrameBufferSpecification transparentGeometryFramebufferSpec;
-			transparentGeometryFramebufferSpec.Width = framebuffer->GetWidth();
-			transparentGeometryFramebufferSpec.Height = framebuffer->GetHeight();
+			transparentGeometryFramebufferSpec.Width = framebuffer->GetSpecification().Width;
+			transparentGeometryFramebufferSpec.Height = framebuffer->GetSpecification().Height;
 			transparentGeometryFramebufferSpec.Atachments = { ImageFormat::RGBA16F, ImageFormat::R16F, ImageFormat::R32_SINT, ImageFormat::Depth32 };
-			transparentGeometryFramebufferSpec.Atachments[3].Image = framebuffer->GetDepthImage();
+			transparentGeometryFramebufferSpec.ExistingImages[3] = framebuffer->GetDepthImage();
 			transparentGeometryFramebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 			transparentGeometryFramebufferSpec.IndipendendClearColor[1] = { 1.0f, 0.0f, 0.0f, 0.0f };
 			transparentGeometryFramebufferSpec.IndipendendClearColor[2] = { -1.0f, -1.0f, -1.0f, -1.0f };
@@ -74,16 +74,19 @@ namespace Shark {
 			transparentGeometryFramebufferSpec.Atachments[0].Blend.DestinationColorFactor = BlendFactor::One;
 			transparentGeometryFramebufferSpec.Atachments[1].Blend.SourceColorFactor = BlendFactor::Zero;
 			transparentGeometryFramebufferSpec.Atachments[1].Blend.DestinationColorFactor = BlendFactor::InverseSourceColor;
+			transparentGeometryFramebufferSpec.DebugName = "Renderer2D - Transparent Geometry";
 			m_TransparentGeometryFrameBuffer = FrameBuffer::Create(transparentGeometryFramebufferSpec);
 
 
 			FrameBufferSpecification depthOnlyFramebufferSpec;
-			depthOnlyFramebufferSpec.Width = framebuffer->GetWidth();
-			depthOnlyFramebufferSpec.Height = framebuffer->GetHeight();
+			depthOnlyFramebufferSpec.Width = framebuffer->GetSpecification().Width;
+			depthOnlyFramebufferSpec.Height = framebuffer->GetSpecification().Height;
 			depthOnlyFramebufferSpec.Atachments = { ImageFormat::Depth32 };
+			depthOnlyFramebufferSpec.DebugName = "Renderer2D - Transparent Depth";
 			m_TransparentDepthBuffer = FrameBuffer::Create(depthOnlyFramebufferSpec);
 
-			depthOnlyFramebufferSpec.Atachments[0].Image = framebuffer->GetDepthImage();
+			depthOnlyFramebufferSpec.ExistingImages[0] = framebuffer->GetDepthImage();
+			depthOnlyFramebufferSpec.DebugName = "Renderer2D - Depth";
 			m_DepthFrameBuffer = FrameBuffer::Create(depthOnlyFramebufferSpec);
 
 		}
@@ -119,32 +122,32 @@ namespace Shark {
 			pipelineSpec.WriteDepth = true;
 			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
 
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadDepthPass");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_QuadDepthPass");
 			pipelineSpec.Layout = quadVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Quad Depth Only Pass";
 			m_QuadDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_QuadDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleDepthPass");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_CircleDepthPass");
 			pipelineSpec.Layout = circleVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Circle Depth Only Pass";
 			m_CircleDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_CircleDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_LineDepthPass");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_LineDepthPass");
 			pipelineSpec.Layout = lineVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Line Depth Only Pass";
 			m_LineDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_LineDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 
 			pipelineSpec.TargetFrameBuffer = m_TransparentDepthBuffer;
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadDepthPass");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_QuadDepthPass");
 			pipelineSpec.Layout = quadVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Transparent Quad Depth Only Pass";
 			m_TransparentQuadDepthPassPipeline = Pipeline::Create(pipelineSpec);
 			m_TransparentQuadDepthPassMaterial = Material::Create(pipelineSpec.Shader);
 
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleDepthPass");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_CircleDepthPass");
 			pipelineSpec.Layout = circleVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D - Transparent Circle Depth Only Pass";
 			m_TransparentCircleDepthPassPipeline = Pipeline::Create(pipelineSpec);
@@ -156,7 +159,7 @@ namespace Shark {
 		{
 			PipelineSpecification quadPipelineSpecs;
 			quadPipelineSpecs.TargetFrameBuffer = framebuffer;
-			quadPipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Quad");
+			quadPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
 			quadPipelineSpecs.Layout = quadVertexLayout;
 			quadPipelineSpecs.DebugName = "Renderer2D-Quad";
 			quadPipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
@@ -188,7 +191,7 @@ namespace Shark {
 		{
 			PipelineSpecification circlePipelineSpecs;
 			circlePipelineSpecs.TargetFrameBuffer = framebuffer;
-			circlePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Circle");
+			circlePipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Circle");
 			circlePipelineSpecs.Layout = circleVertexLayout;
 			circlePipelineSpecs.DebugName = "Renderer2D-Circle";
 			circlePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
@@ -206,7 +209,7 @@ namespace Shark {
 		{
 			PipelineSpecification linePipelineSpecs;
 			linePipelineSpecs.TargetFrameBuffer = framebuffer;
-			linePipelineSpecs.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Line");
+			linePipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Line");
 			linePipelineSpecs.Layout = lineVertexLayout;
 			linePipelineSpecs.DebugName = "Renderer2D-Line";
 			linePipelineSpecs.Primitve = PrimitveType::Line;
@@ -225,7 +228,7 @@ namespace Shark {
 		{
 			PipelineSpecification pipelineSpec;
 			pipelineSpec.TargetFrameBuffer = m_TransparentGeometryFrameBuffer;
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_QuadTransparent");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_QuadTransparent");
 			pipelineSpec.Layout = quadVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D Quad Transparent";
 			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
@@ -243,7 +246,7 @@ namespace Shark {
 		{
 			PipelineSpecification pipelineSpec;
 			pipelineSpec.TargetFrameBuffer = m_TransparentGeometryFrameBuffer;
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_CircleTransparent");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_CircleTransparent");
 			pipelineSpec.Layout = circleVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D Circle Transparent";
 			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
@@ -261,7 +264,7 @@ namespace Shark {
 		{
 			PipelineSpecification pipelineSpec;
 			pipelineSpec.TargetFrameBuffer = framebuffer;
-			pipelineSpec.Shader = Renderer::GetShaderLib()->Get("Renderer2D_Text");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Text");
 			pipelineSpec.Layout = {
 				{ VertexDataType::Float3, "Position" },
 				{ VertexDataType::Float4, "Color" },

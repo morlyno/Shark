@@ -54,6 +54,7 @@ namespace Shark {
 		static Ref<T> GetAsset(AssetHandle handle)
 		{
 			SK_PROFILE_FUNCTION();
+			SK_PERF_SCOPED("ResourceManager::GetAsset");
 
 			static_assert(std::is_base_of_v<Asset, T>, "GetAsset only works for types with base class Asset");
 

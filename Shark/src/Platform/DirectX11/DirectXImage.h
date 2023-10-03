@@ -27,7 +27,7 @@ namespace Shark {
 		DirectXImage2D();
 		DirectXImage2D(const ImageSpecification& specs);
 		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
-		DirectXImage2D(Ref<DirectXSwapChain> swapchain, bool createView);
+		DirectXImage2D(const ImageSpecification& spec, ID3D11Texture2D* resource, bool createView);
 		virtual ~DirectXImage2D();
 
 		virtual void Invalidate() override;
@@ -38,10 +38,10 @@ namespace Shark {
 		virtual void Release() override;
 		virtual void RT_Release() override;
 
+		virtual void Resize(uint32_t width, uint32_t height) override;
+
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
-
-		void RT_Invalidate(Ref<DirectXSwapChain> swapchain, bool createView = false);
 
 		virtual void UploadImageData(Buffer buffer) override;
 		virtual void RT_UploadImageData(Buffer buffer) override;
@@ -60,11 +60,12 @@ namespace Shark {
 		ID3D11Texture2D* GetResourceNative() const { return m_Resource; }
 		ID3D11ShaderResourceView* GetViewNative() const { return m_View; }
 
+		void SetResource(ID3D11Texture2D* resource) { m_Resource = resource; }
+
 	private:
 		void UpdateResource(Buffer imageData);
 		void UpdateResource(Ref<DirectXImage2D> imageData);
 
-		bool IsDepthImage() { return m_Specification.Format == ImageFormat::Depth32; }
 		bool IsImageCompadible(const ImageSpecification& specs) const { return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format && m_Specification.MipLevels == specs.MipLevels; }
 		bool IsImageCompadibleIgnoreMipLeves(const ImageSpecification& specs) const { return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format; }
 

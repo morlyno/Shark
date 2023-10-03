@@ -139,9 +139,7 @@ namespace Shark {
 
 		ScriptEngine::InitializeRuntime(this);
 
-		SetupBox2D();
-
-		m_PhysicsScene.SetOnPhyicsStepCallback([this](TimeStep fixedTimeStep) { OnPhyicsStep(fixedTimeStep); });
+		OnPhysics2DPlay(true);
 
 		m_Registry.on_construct<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentCreated>(this);
 		m_Registry.on_construct<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentCreated>(this);
@@ -183,7 +181,7 @@ namespace Shark {
 		bool activeCameraFound = false;
 		if (m_ActiveCameraUUID.IsValid())
 		{
-			Entity activeCamera = GetEntityByUUID(m_ActiveCameraUUID);
+			Entity activeCamera = TryGetEntityByUUID(m_ActiveCameraUUID);
 			if (activeCamera.AllOf<CameraComponent>())
 				activeCameraFound = true;
 		}
@@ -214,8 +212,6 @@ namespace Shark {
 
 		m_IsRunning = false;
 
-		m_PhysicsScene.SetOnPhyicsStepCallback(nullptr);
-
 		// Destroy Scripts
 		{
 			SK_PROFILE_SCOPED("Scene::OnScenePlay::DestroyScripts");
@@ -234,22 +230,33 @@ namespace Shark {
 		m_Registry.on_destroy<BoxCollider2DComponent>().disconnect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
 		m_Registry.on_destroy<CircleCollider2DComponent>().disconnect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
 		m_Registry.on_destroy<ScriptComponent>().disconnect<&Scene::OnScriptComponentDestroyed>(this);
-
-		m_PhysicsScene.DestoryScene();
-		m_ContactListener.SetContext(nullptr);
 	}
 
 	void Scene::OnSimulationPlay()
 	{
 		SK_PROFILE_FUNCTION();
 		
-		SetupBox2D();
+		OnPhysics2DPlay(false);
+	}
+
+	void Scene::OnSimulationStop()
+	{
+		SK_PROFILE_FUNCTION();
+
+		OnPhysics2DStop();
 	}
 
 	void Scene::OnUpdateRuntime(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnUpdateRuntime");
+
+		if (m_Paused)
+		{
+			if (m_StepFrames == 0)
+				return;
+			m_StepFrames--;
+		}
 
 		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 			MethodThunks::OnUpdate(gcHandle, ts);
@@ -295,6 +302,13 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnUpdateSimulate");
 
+		if (m_Paused)
+		{
+			if (m_StepFrames == 0)
+				return;
+			m_StepFrames--;
+		}
+
 		m_PhysicsScene.Step(ts);
 
 		auto view = m_Registry.view<RigidBody2DComponent>();
@@ -322,7 +336,7 @@ namespace Shark {
 
 	void Scene::OnRenderRuntime(Ref<SceneRenderer> renderer)
 	{
-		Entity cameraEntity = GetEntityByUUID(m_ActiveCameraUUID);
+		Entity cameraEntity = TryGetEntityByUUID(m_ActiveCameraUUID);
 		Camera& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
 		auto& tf = cameraEntity.Transform();
 
@@ -502,7 +516,7 @@ namespace Shark {
 		m_EntityUUIDMap.erase(uuid);
 	}
 
-	Entity Scene::GetEntityByUUID(UUID uuid) const
+	Entity Scene::TryGetEntityByUUID(UUID uuid) const
 	{
 		if (m_EntityUUIDMap.find(uuid) != m_EntityUUIDMap.end())
 			return m_EntityUUIDMap.at(uuid);
@@ -550,7 +564,7 @@ namespace Shark {
 
 	Entity Scene::GetActiveCameraEntity() const
 	{
-		return GetEntityByUUID(m_ActiveCameraUUID);
+		return TryGetEntityByUUID(m_ActiveCameraUUID);
 	}
 
 	void Scene::ResizeCameras(float width, float height)
@@ -655,14 +669,18 @@ namespace Shark {
 		return ConvertToWorldSpace(entity, entity.Transform());
 	}
 
-	void Scene::SetupBox2D()
+	void Scene::OnPhysics2DPlay(bool connectWithScriptingAPI)
 	{
 		SK_PROFILE_FUNCTION();
-		
+
 		m_ContactListener.SetContext(this);
 		m_PhysicsScene.CreateScene();
 		b2World* world = m_PhysicsScene.GetWorld();
-		world->SetContactListener(&m_ContactListener);
+
+		if (connectWithScriptingAPI)
+			world->SetContactListener(&m_ContactListener);
+
+		m_PhysicsScene.SetOnPhyicsStepCallback([instance = Ref(this)](TimeStep fixedTimeStep) { instance->OnPhyicsStep(fixedTimeStep); });
 
 		// Add missing RigidBodys
 		{
@@ -769,7 +787,7 @@ namespace Shark {
 					if (!ValidEntityID(distanceJointComp.ConnectedEntity))
 						continue;
 
-					Entity connectedEntity = GetEntityByUUID(distanceJointComp.ConnectedEntity);
+					Entity connectedEntity = TryGetEntityByUUID(distanceJointComp.ConnectedEntity);
 					SK_CORE_ASSERT(connectedEntity);
 
 					auto connectedBody = m_PhysicsScene.GetBody(connectedEntity);
@@ -808,7 +826,7 @@ namespace Shark {
 					if (!ValidEntityID(hingeJointComp.ConnectedEntity))
 						continue;
 
-					Entity connectedEntity = GetEntityByUUID(hingeJointComp.ConnectedEntity);
+					Entity connectedEntity = TryGetEntityByUUID(hingeJointComp.ConnectedEntity);
 					SK_CORE_ASSERT(connectedEntity);
 
 					auto connectedBody = m_PhysicsScene.GetBody(connectedEntity);
@@ -841,7 +859,7 @@ namespace Shark {
 					if (!ValidEntityID(component.ConnectedEntity))
 						continue;
 
-					Entity connectedEntity = GetEntityByUUID(component.ConnectedEntity);
+					Entity connectedEntity = TryGetEntityByUUID(component.ConnectedEntity);
 					SK_CORE_ASSERT(connectedEntity);
 
 					auto connectedBody = m_PhysicsScene.GetBody(connectedEntity);
@@ -875,7 +893,7 @@ namespace Shark {
 					if (!ValidEntityID(component.ConnectedEntity))
 						continue;
 
-					Entity connectedEntity = GetEntityByUUID(component.ConnectedEntity);
+					Entity connectedEntity = TryGetEntityByUUID(component.ConnectedEntity);
 					SK_CORE_ASSERT(connectedEntity);
 
 					auto connectedBody = m_PhysicsScene.GetBody(connectedEntity);
@@ -885,11 +903,11 @@ namespace Shark {
 
 					b2PulleyJointDef def;
 					def.Initialize(body, connectedBody,
-						           Phyiscs2DUtils::ToB2Vec(component.GroundAnchorA),
-						           Phyiscs2DUtils::ToB2Vec(component.GroundAnchorB),
-						           body->GetPosition() + Phyiscs2DUtils::ToB2Vec(component.AnchorA),
-						           connectedBody->GetPosition() + Phyiscs2DUtils::ToB2Vec(component.AnchorB),
-						           component.Ratio);
+								   Phyiscs2DUtils::ToB2Vec(component.GroundAnchorA),
+								   Phyiscs2DUtils::ToB2Vec(component.GroundAnchorB),
+								   body->GetPosition() + Phyiscs2DUtils::ToB2Vec(component.AnchorA),
+								   connectedBody->GetPosition() + Phyiscs2DUtils::ToB2Vec(component.AnchorB),
+								   component.Ratio);
 
 					def.collideConnected = component.CollideConnected;
 
@@ -898,6 +916,13 @@ namespace Shark {
 				}
 			}
 		}
+	}
+
+	void Scene::OnPhysics2DStop()
+	{
+		m_PhysicsScene.SetOnPhyicsStepCallback(nullptr);
+		m_PhysicsScene.DestoryScene();
+		m_ContactListener.SetContext(nullptr);
 	}
 
 	void Scene::OnPhyicsStep(TimeStep fixedTimeStep)
@@ -916,7 +941,7 @@ namespace Shark {
 		RenderEntity(renderer, entity, transform);
 
 		for (auto& childID : entity.Children())
-			RenderEntityHirachy(renderer, GetEntityByUUID(childID), transform);
+			RenderEntityHirachy(renderer, TryGetEntityByUUID(childID), transform);
 	}
 
 	void Scene::RenderEntity(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& transform)
@@ -1099,8 +1124,8 @@ namespace Shark {
 		UUID uuidA = (UUID)bodyA->GetUserData().pointer;
 		UUID uuidB = (UUID)bodyB->GetUserData().pointer;
 
-		Entity entityA = m_Context->GetEntityByUUID(uuidA);
-		Entity entityB = m_Context->GetEntityByUUID(uuidB);
+		Entity entityA = m_Context->TryGetEntityByUUID(uuidA);
+		Entity entityB = m_Context->TryGetEntityByUUID(uuidB);
 
 		b2Shape* shapeA = fixtureA->GetShape();
 		b2Shape* shapeB = fixtureB->GetShape();
@@ -1123,8 +1148,8 @@ namespace Shark {
 		UUID uuidA = (UUID)bodyA->GetUserData().pointer;
 		UUID uuidB = (UUID)bodyB->GetUserData().pointer;
 
-		Entity entityA = m_Context->GetEntityByUUID(uuidA);
-		Entity entityB = m_Context->GetEntityByUUID(uuidB);
+		Entity entityA = m_Context->TryGetEntityByUUID(uuidA);
+		Entity entityB = m_Context->TryGetEntityByUUID(uuidB);
 
 		b2Shape* shapeA = fixtureA->GetShape();
 		b2Shape* shapeB = fixtureB->GetShape();
