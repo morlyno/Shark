@@ -74,9 +74,9 @@ return metadata.IsMemoryAsset;
 		return std::filesystem::exists(GetFileSystemPath(metadata));
 	}
 
-	std::filesystem::path ResourceManager::MakeRelativePath(const std::filesystem::path& filePath)
+	std::filesystem::path ResourceManager::MakeRelativePath(const std::filesystem::path& filesystemOrAssetPath)
 	{
-		auto relativePath = std::filesystem::relative(Project::GetAssetsPath() / filePath, Project::GetAssetsPath());
+		auto relativePath = std::filesystem::relative(Project::GetAssetsPath() / filesystemOrAssetPath, Project::GetAssetsPath());
 		String::FormatDefault(relativePath);
 		return relativePath;
 	}
@@ -92,7 +92,7 @@ return metadata.IsMemoryAsset;
 
 	std::filesystem::path ResourceManager::GetProjectPath(const AssetMetaData& metadata)
 	{
-		return Project::RelativeCopy(GetFileSystemPath(metadata));
+		return Project::GetRelative(GetFileSystemPath(metadata));
 	}
 
 	AssetHandle ResourceManager::GetAssetHandleFromFilePath(const std::filesystem::path& filePath)
@@ -213,8 +213,8 @@ return metadata.IsMemoryAsset;
 		if (type == AssetType::None)
 			return 0;
 
-		auto fsPath = FileSystem::GetAbsolute(filePath);
-		if (!FileSystem::Exists(fsPath))
+		auto fsPath = FileSystem::GetFilesystemPath(filePath);
+		if (!FileSystem::Exists(filePath))
 			return AssetHandle::Invalid;
 
 		AssetHandle handle = GetAssetHandleFromFilePath(fsPath);

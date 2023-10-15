@@ -16,7 +16,7 @@ namespace Shark {
 		Control                    = 0x11,
 		Alt                        = 0x12,
 		Pause                      = 0x13,
-		Capital                    = 0x14,
+		Capital                    = 0x14, // CapsLock
 
 		// Kana                       = 0x15,
 		// Hangeul                    = 0x15,  /* old name - should be here for compatibility */
@@ -137,6 +137,9 @@ namespace Shark {
 		F23                        = 0x86,
 		F24                        = 0x87,
 
+		NumLock                    = 0x90,
+		Scroll                     = 0x91,
+
 		LeftShift                  = 0xA0,
 		RightShift                 = 0xA1,
 		LeftControl                = 0xA2,
@@ -165,7 +168,7 @@ namespace Shark {
 		LaunchApp2                 = 0xB7,
 
 		Oem1                       = 0xBA,   // ';:' for US
-		Oemplus                    = 0xBB,   // '+' any country
+		OemPlus                    = 0xBB,   // '+' any country
 		OemComma                   = 0xBC,   // ',' any country
 		OemMinus                   = 0xBD,   // '-' any country
 		OemPeriod                  = 0xBE,   // '.' any country
@@ -311,6 +314,8 @@ namespace Shark {
 			case KeyCode::F22:               return "F22";
 			case KeyCode::F23:               return "F23";
 			case KeyCode::F24:               return "F24";
+			case KeyCode::NumLock:           return "NumLock";
+			case KeyCode::Scroll:            return "Scroll";
 			case KeyCode::LeftShift:         return "LeftShift";
 			case KeyCode::RightShift:        return "RightShift";
 			case KeyCode::LeftControl:       return "LeftControl";
@@ -336,7 +341,7 @@ namespace Shark {
 			case KeyCode::LaunchApp1:        return "LaunchApp1";
 			case KeyCode::LaunchApp2:        return "LaunchApp2";
 			case KeyCode::Oem1:              return "Oem1";
-			case KeyCode::Oemplus:           return "Oemplus";
+			case KeyCode::OemPlus:           return "OemPlus";
 			case KeyCode::OemComma:          return "OemComma";
 			case KeyCode::OemMinus:          return "OemMinus";
 			case KeyCode::OemPeriod:         return "OemPeriod";

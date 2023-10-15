@@ -26,6 +26,13 @@ namespace Shark {
 			static_assert(std::is_same_v<std::map<TArgs...>::key_type, TKey>);
 			return map.find(key) != map.end();
 		}
+		
+		template<typename TKey, typename... TArgs>
+		bool Contains(const std::unordered_map<TArgs...>& map, const TKey& key)
+		{
+			static_assert(std::is_same_v<std::unordered_map<TArgs...>::key_type, TKey>);
+			return map.find(key) != map.end();
+		}
 
 	}
 

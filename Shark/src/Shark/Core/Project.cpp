@@ -45,24 +45,14 @@ namespace Shark {
 		return s_ActiveProject->AssetsDirectory;
 	}
 
-	std::filesystem::path Project::RelativeCopy(const std::filesystem::path& filePath)
+	std::filesystem::path Project::GetRelative(const std::filesystem::path& filepath)
 	{
-		return s_ActiveProject->GetRelative(filePath);
+		return s_ActiveProject->GetRelative(filepath);
 	}
 
-	std::filesystem::path Project::AbsolueCopy(const std::filesystem::path& filePath)
+	std::filesystem::path Project::GetAbsolute(const std::filesystem::path& filepath)
 	{
-		return s_ActiveProject->GetAbsolue(filePath);
-	}
-
-	void Project::Relative(std::filesystem::path& filePath)
-	{
-		filePath = s_ActiveProject->GetRelative(filePath);
-	}
-
-	void Project::Absolue(std::filesystem::path& filePath)
-	{
-		filePath = s_ActiveProject->GetAbsolue(filePath);
+		return s_ActiveProject->GetAbsolue(filepath);
 	}
 
 	Ref<ProjectInstance> Project::GetActive()

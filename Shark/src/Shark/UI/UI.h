@@ -12,8 +12,6 @@
 #include <glm/glm.hpp>
 #include <stack>
 
-#define UI_DRAGDROP_DIRECTORY_TYPE "DIRECTORY"
-
 #ifdef IMGUI_DEFINE_MATH_OPERATORS
 static inline ImVec4 operator*(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs); }
 static inline ImVec4 operator/(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs); }

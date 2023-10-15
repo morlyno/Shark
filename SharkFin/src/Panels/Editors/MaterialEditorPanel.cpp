@@ -19,10 +19,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (!m_IsInitialized)
-			return;
-
-		if (!m_Active)
+		if (!m_Active || !m_IsInitialized)
 			return;
 
 		if (m_NeedsResize && m_ViewportSize.x != 0 && m_ViewportSize.y != 0)
@@ -43,17 +40,20 @@ namespace Shark {
 		if (!shown)
 			return;
 
+		if (m_IsFirstFrame)
+		{
+			Initialize();
+			m_IsFirstFrame = false;
+		}
+
+		if (!m_IsInitialized)
+			return;
+
 		if (!m_Active)
 		{
 			shown = false;
 			destroy = true;
 			return;
-		}
-
-		if (m_IsFirstFrame)
-		{
-			Initialize();
-			m_IsFirstFrame = false;
 		}
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -170,6 +170,17 @@ namespace Shark {
 
 		SetupWindows();
 
+		Ref<MaterialEditorPanel> instance = this;
+		Application::Get().SubmitToMainThread([instance]()
+		{
+			instance->SetupSceneAndRenderer();
+			instance->m_IsInitialized = true;
+		});
+
+	}
+
+	void MaterialEditorPanel::SetupSceneAndRenderer()
+	{
 		m_Camera.SetProjection(m_ViewportSize.y / m_ViewportSize.x, 45.0f, 1.0f, 100.0f);
 
 		m_Scene = Ref<Scene>::Create();
@@ -188,9 +199,7 @@ namespace Shark {
 		Entity lightEntity = m_Scene->CreateEntity("Light");
 		lightEntity.Transform().Translation = { -4.0f, 3.0f, -2.0f };
 		auto& pl = lightEntity.AddComponent<PointLightComponent>();
-		pl.Intensity = 3.0f;
-
-		m_IsInitialized = true;
+		pl.Intensity = 10.0f;
 	}
 
 	void MaterialEditorPanel::SetupWindows()

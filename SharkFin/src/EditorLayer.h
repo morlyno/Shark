@@ -18,13 +18,15 @@
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/KeyEvent.h"
 
-#include "Shark/File/FileWatcher.h"
+#include "Shark/File/FileSystem.h"
 
 #include "Panels/PanelManager.h"
 
 #include <imgui.h>
 #include <ImGuizmo.h>
 #include <imgui_internal.h>
+
+#include <filewatch/FileWatch.hpp>
 
 namespace Shark {
 
@@ -62,8 +64,7 @@ namespace Shark {
 	private:
 		bool OnKeyPressed(KeyPressedEvent& event);
 		bool OnWindowDropEvent(WindowDropEvent& event);
-		void OnFileEvents(const std::vector<FileChangedData>& fileEvents);
-		void OnFileClickedCallback(const std::filesystem::path& filePath);
+		void OnFileEvents(const std::vector<FileEvent>& fileEvents);
 
 		void UI_MainMenuBar();
 		void UI_Viewport();
@@ -83,7 +84,6 @@ namespace Shark {
 		void UI_Statistics();
 		void UI_OpenProjectModal();
 		void UI_ImportAsset();
-		void UI_Stuff();
 		void UI_Objects();
 		void UI_PendingAssetFileEvents();
 		void UI_CreateMeshAsset();
@@ -126,8 +126,6 @@ namespace Shark {
 		void OpenProject();
 		void OpenProject(const std::filesystem::path& filePath);
 		void CloseProject();
-		void SaveActiveProject();
-		void SaveActiveProject(const std::filesystem::path& filePath);
 		Ref<ProjectInstance> CreateProject(const std::filesystem::path& projectDirectory);
 		void CreateProjectPremakeFile(Ref<ProjectInstance> project);
 
@@ -178,7 +176,6 @@ namespace Shark {
 		bool m_ShowCreateProject = false;
 		bool m_ShowDebugScripts = false;
 		bool m_ShowStatistics = false;
-		bool m_ShowStuffPanel = false;
 		bool m_ReadPixel = false;
 		bool m_ShowObjects = true;
 		glm::vec4 m_HoveredColor;
@@ -209,8 +206,8 @@ namespace Shark {
 			ProjectEditData() = default;
 			ProjectEditData(Ref<ProjectInstance> project)
 			{
-				Assets = Project::RelativeCopy(project->AssetsDirectory).string();
-				StartupScene = Project::RelativeCopy(project->StartupScenePath).string();
+				Assets = Project::GetRelative(project->AssetsDirectory).string();
+				StartupScene = Project::GetRelative(project->StartupScenePath).string();
 				ValidAssetsPath = true;
 				ValidStartupScene = true;
 			}
@@ -309,7 +306,7 @@ namespace Shark {
 
 		struct AssetFileEventData
 		{
-			FileEvent Action = FileEvent::None;
+			filewatch::Event Action;
 			std::filesystem::path AssetPath;
 			AssetType Type;
 

@@ -163,7 +163,7 @@ namespace Shark
 		LaunchApp2 = 0xB7,
 
 		Oem1 = 0xBA,   // ';:' for US
-		Oemplus = 0xBB,   // '+' any country
+		OemPlus = 0xBB,   // '+' any country
 		OemComma = 0xBC,   // ',' any country
 		OemMinus = 0xBD,   // '-' any country
 		OemPeriod = 0xBE,   // '.' any country

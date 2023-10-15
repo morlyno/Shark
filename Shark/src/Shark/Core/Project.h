@@ -36,16 +36,13 @@ namespace Shark {
 		static const std::filesystem::path& GetDirectory();
 		static const std::filesystem::path& GetAssetsPath();
 
-		static std::filesystem::path RelativeCopy(const std::filesystem::path& filePath);
-		static std::filesystem::path AbsolueCopy(const std::filesystem::path& filePath);
-		static void Relative(std::filesystem::path& filePath);
-		static void Absolue(std::filesystem::path& filePath);
+		static std::filesystem::path GetRelative(const std::filesystem::path& filepath);
+		static std::filesystem::path GetAbsolute(const std::filesystem::path& filepath);
 
 		static Ref<ProjectInstance> GetActive();
 		static void SetActive(Ref<ProjectInstance> project);
 
 		static Ref<ProjectInstance> Create(const std::filesystem::path& directory, const std::string& name);
-
 	};
 
 

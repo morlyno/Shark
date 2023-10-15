@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Shark/Core/Base.h"
 #include "Shark/Event/Event.h"
 #include "Shark/Input/KeyCodes.h"
@@ -23,13 +24,6 @@ namespace Shark {
 		DoubleClicked
 	};
 
-	enum class CursorMode
-	{
-		Show,
-		Hide,
-		HideKeepInPlace
-	};
-
 	class Input
 	{
 	public:
@@ -39,12 +33,8 @@ namespace Shark {
 		static void TransitionStates();
 		static void OnEvent(Event& event);
 
-		static void SetDefaultCursorMode();
 		static void SetCursorMode(CursorMode mode);
 		static CursorMode GetCursorMode();
-
-		static bool IsKeyDownAsync(KeyCode key);
-		static bool IsMouseDownAsync(MouseButton button);
 
 		static KeyState GetKeyState(KeyCode key);
 		static bool IsKeyPressed(KeyCode key);
@@ -57,11 +47,13 @@ namespace Shark {
 		static bool IsMouseRelease(MouseButton button);
 		static bool IsMouseDoubleClicked(MouseButton button);
 
-		static float GetMouseScroll();
+		static glm::vec2 GetMouseScroll();
+		static float GetXScroll();
+		static float GetYScroll();
 
-		static glm::ivec2 GetMouseDelta();
-		static glm::ivec2 GetMousePosition();
-		static glm::ivec2 GetScreenMousePosition();
+		static glm::vec2 GetMousePosition();
+		static float GetXPosition();
+		static float GetYPosition();
 	};
 
 	std::string ToString(CursorMode cursorMode);

@@ -47,7 +47,7 @@ namespace Shark {
 		}
 
 		Ref<Font> font = asset.As<Font>();
-		font->Load(FileSystem::GetAbsolute(assetPath));
+		font->Load(FileSystem::GetFilesystemPath(assetPath));
 
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Font took {}ms", timer.ElapsedMilliSeconds());
 		return true;

@@ -114,7 +114,7 @@ namespace Shark {
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 		virtual void OnProjectChanged(Ref<ProjectInstance> project) { m_NextProject = project; }
-		void OnFileEvents(const std::vector<FileChangedData>& fileEvents);
+		void OnFileEvents(const std::vector<FileEvent>& fileEvents);
 
 		void Reload() { m_ReloadScheduled = true; }
 

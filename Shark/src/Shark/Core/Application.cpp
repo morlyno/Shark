@@ -104,7 +104,7 @@ namespace Shark {
 	{
 		OnInit();
 		m_State = ApplicationState::Running;
-		m_LastTickCount = PlatformUtils::GetTicks();
+		m_LastTickCount = Platform::GetTicks();
 
 		while (m_Running)
 		{
@@ -120,8 +120,6 @@ namespace Shark {
 
 				Renderer::BeginFrame();
 				ExecuteMainThreadQueue();
-
-				ScriptEngine::Update();
 
 				for (auto& layer : m_LayerStack)
 					layer->OnUpdate(m_TimeStep);
@@ -141,8 +139,8 @@ namespace Shark {
 				m_GPUTime = Renderer::GetRendererAPI()->GetGPUTime();
 			}
 
-			const uint64_t ticks = PlatformUtils::GetTicks();
-			m_TimeStep = (float)(ticks - m_LastTickCount) / PlatformUtils::GetTicksPerSecond();
+			const uint64_t ticks = Platform::GetTicks();
+			m_TimeStep = (float)(ticks - m_LastTickCount) / Platform::GetTicksPerSecond();
 			SK_LOG_IF(m_TimeStep > 1.0f, Log::Logger::Core, Log::Level::Warn, Tag::Core, "Large Timestep! {}", m_TimeStep);
 			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
 			m_LastTickCount = ticks;
@@ -195,8 +193,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		FileSystem::ProcessEvents();
 		Input::TransitionStates();
+		FileSystem::ProcessEvents();
 
 		m_Window->ProcessEvents();
 
@@ -239,7 +237,7 @@ namespace Shark {
 
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<WindowCloseEvent>(SK_BIND_EVENT_FN(Application::OnWindowClose));
-		dispacher.DispachEvent<WindowResizeEvent>(SK_BIND_EVENT_FN(Application::OnWindowResize));
+		dispacher.DispachEvent<WindowMinimizedEvent>(SK_BIND_EVENT_FN(Application::OnWindowMinimized));
 		dispacher.DispachEvent<WindowLostFocusEvent>(SK_BIND_EVENT_FN(Application::OnWindowLostFocus));
 
 		for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend() && !event.Handled; ++it)
@@ -256,15 +254,13 @@ namespace Shark {
 
 		// Note(moro): hack so thack ImGui dosn't crash because the window dosn't exist anymore
 		m_Minimized = true;
+
 		return false;
 	}
 
-	bool Application::OnWindowResize(WindowResizeEvent& event)
+	bool Application::OnWindowMinimized(WindowMinimizedEvent& event)
 	{
-		m_Minimized = event.IsMinimized();
-		if (m_Minimized)
-			return false;
-
+		m_Minimized = event.GetMinimized();
 		return false;
 	}
 
@@ -389,6 +385,7 @@ namespace Shark {
 		void Initialize()
 		{
 			Log::Initialize();
+			Platform::Initialize();
 			Input::Initialize();
 			FileSystem::Initialize();
 
@@ -402,6 +399,7 @@ namespace Shark {
 			FileSystem::Shutdown();
 			Input::Shutdown();
 			Renderer::ReportLiveObejcts();
+			Platform::Shutdown();
 			Log::Shutdown();
 
 			utils::DumpMemory(std::cout);

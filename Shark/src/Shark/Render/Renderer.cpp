@@ -1,9 +1,14 @@
 #include "skpch.h"
 #include "Renderer.h"
 
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
+
+#include "Platform/DirectX11/DirectXRenderer.h"
+
 #include <future>
+
+#define SK_SIMULTE_MULTITHREADED 0
 
 namespace Shark {
 
@@ -49,27 +54,27 @@ namespace Shark {
 		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
 
 		// 3D
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/DefaultMeshShader.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FlatColor.glsl");
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/DefaultMeshShader.glsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/SharkPBR.glsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/FlatColor.glsl"));
 
 		// 2D
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_QuadTransparent.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_QuadDepthPass.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Circle.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_CircleTransparent.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_CircleDepthPass.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Line.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_LineDepthPass.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Composite.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Text.hlsl");
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_Quad.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_QuadTransparent.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_QuadDepthPass.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_Circle.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_CircleTransparent.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_CircleDepthPass.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_Line.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_LineDepthPass.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_Composite.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/Renderer2D_Text.hlsl"));
 
 		// Misc
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FullScreen.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/CompositWidthDepth.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/NegativeEffect.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/BlurEffect.hlsl");
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/FullScreen.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/CompositWidthDepth.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/NegativeEffect.hlsl"));
+		Renderer::GetShaderLibrary()->Load(FileSystem::GetResourcePath("Resources/Shaders/BlurEffect.hlsl"));
 
 		// Compile Shaders
 		Renderer::WaitAndRender();
@@ -123,10 +128,15 @@ namespace Shark {
 		s_CommandQueueSubmissionIndex = (s_CommandQueueSubmissionIndex + 1) & s_CommandQueueCount;
 
 		s_SingleThreadedIsExecuting = true;
+
+#if SK_SIMULTE_MULTITHREADED
 		std::async(std::launch::async, [executeIndex]()
 		{
 			s_CommandQueue[executeIndex]->Execute();
 		});
+#else
+		s_CommandQueue[executeIndex]->Execute();
+#endif
 		s_SingleThreadedIsExecuting = false;
 	}
 

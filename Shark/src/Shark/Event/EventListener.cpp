@@ -23,9 +23,19 @@ namespace Shark {
 		OnEvent<WindowCloseEvent>();
 	}
 
-	void EventListener::OnWindowResizeEvent(uint32_t width, uint32_t height, WindowResizeEvent::State state)
+	void EventListener::OnWindowResizeEvent(uint32_t width, uint32_t height)
 	{
-		OnEvent<WindowResizeEvent>(width, height, state);
+		OnEvent<WindowResizeEvent>(width, height);
+	}
+
+	void EventListener::OnWindowMaximizedEvent(bool maximized)
+	{
+		OnEvent<WindowMaximizedEvent>(maximized);
+	}
+
+	void EventListener::OnWindowMinimizedEvent(bool minimized)
+	{
+		OnEvent<WindowMinimizedEvent>(minimized);
 	}
 
 	void EventListener::OnWindowMoveEvent(int x, int y)
@@ -53,34 +63,29 @@ namespace Shark {
 		OnEvent<WindowDropEvent>(std::move(paths));
 	}
 
-	void EventListener::OnMouseMovedEvent(const glm::ivec2& mousePos)
+	void EventListener::OnMouseMovedEvent(float x, float y)
 	{
-		OnEvent<MouseMovedEvent>(mousePos);
+		OnEvent<MouseMovedEvent>(x, y);
 	}
 
-	void EventListener::OnMouseMovedRelativeEvent(const glm::ivec2& mouseDelta)
+	void EventListener::OnMouseButtonPressedEvent(MouseButton button)
 	{
-		OnEvent<MouseMovedRelativeEvent>(mouseDelta);
+		OnEvent<MouseButtonPressedEvent>(button);
 	}
 
-	void EventListener::OnMouseButtonPressedEvent(const glm::ivec2& mousePos, MouseButton button)
+	void EventListener::OnMouseButtonReleasedEvent(MouseButton button)
 	{
-		OnEvent<MouseButtonPressedEvent>(mousePos, button);
+		OnEvent<MouseButtonReleasedEvent>(button);
 	}
 
-	void EventListener::OnMouseButtonReleasedEvent(const glm::ivec2& mousePos, MouseButton button)
+	void EventListener::OnMouseButtonDoubleClickedEvent(MouseButton button)
 	{
-		OnEvent<MouseButtonReleasedEvent>(mousePos, button);
+		OnEvent<MouseButtonDoubleClickedEvent>(button);
 	}
 
-	void EventListener::OnMouseButtonDoubleClickedEvent(const glm::ivec2& mousePos, MouseButton button)
+	void EventListener::OnMouseScrolledEvent(float xOffset, float yOffset)
 	{
-		OnEvent<MouseButtonDoubleClickedEvent>(mousePos, button);
-	}
-
-	void EventListener::OnMouseScrolledEvent(const glm::ivec2& mousePos, float delta)
-	{
-		OnEvent<MouseScrolledEvent>(mousePos, delta);
+		OnEvent<MouseScrolledEvent>(xOffset, yOffset);
 	}
 
 	void EventListener::OnKeyPressedEvent(KeyCode key, bool isRepead)

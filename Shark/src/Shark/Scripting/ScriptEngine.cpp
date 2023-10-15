@@ -23,6 +23,8 @@
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/threads.h>
 
+#include <filewatch/fileWatch.hpp>
+
 namespace Shark {
 
 	struct ScriptEngineData
@@ -32,7 +34,6 @@ namespace Shark {
 		AssemblyInfo CoreAssembly;
 		AssemblyInfo AppAssembly;
 		bool AssembliesLoaded = false;
-		bool ReloadScheduled = false;
 		ScriptEngineConfig Config;
 		EntityInstancesMap EntityInstances;
 		Ref<Scene> ActiveScene;
@@ -47,9 +48,7 @@ namespace Shark {
 		std::unordered_map<UUID, FieldStorageMap> FieldStoragesMap;
 	};
 
-	inline namespace ScriptEngine_Dummy {
-		struct ScriptEngineData* s_Data = nullptr;
-	}
+	struct ScriptEngineData* s_Data = nullptr;
 
 	static void MonoTraceLogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
 	{
@@ -123,15 +122,13 @@ namespace Shark {
 			return false;
 		}
 
-		WatchingSettings settings;
-		settings.Callback = [](const auto&) { ScriptEngine::ScheduleReload(); };
-		settings.NofityFilter = NotifyFilter::Creation | NotifyFilter::LastWrite;
-		settings.EnabledEvents = EventFilter::Created | EventFilter::Modified;
-		settings.IsRecursive = false;
+		FileSystem::StartWatch(assemblyPath, [](const std::vector<FileEvent>& fileEvents)
+		{
+			if (fileEvents.back().Type == filewatch::Event::removed)
+				return;
 
-		Ref<FileWatcher> fileWatcher = FileSystem::GetFileWatcher();
-		fileWatcher->StartWatching("AppAssembly", assemblyPath.parent_path(), settings);
-
+			ScriptEngine::ScheduleReload();
+		});
 
 		s_Data->RuntimeDomain = mono_domain_create_appdomain("ScriptDomain", nullptr);
 		SK_CORE_VERIFY(s_Data->RuntimeDomain);
@@ -161,7 +158,10 @@ namespace Shark {
 
 	void ScriptEngine::ScheduleReload()
 	{
-		s_Data->ReloadScheduled = true;
+		Application::Get().SubmitToMainThread([]()
+		{
+			ScriptEngine::ReloadAssemblies();
+		});
 	}
 
 	void ScriptEngine::UnloadAssemblies()
@@ -169,8 +169,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Scripting", "Unloading Assemblies");
 
-		Ref<FileWatcher> fileWatcher = FileSystem::GetFileWatcher();
-		fileWatcher->StopWatching("AppAssembly");
+		FileSystem::StopWatch(s_Data->AppAssembly.FilePath);
 
 		ScriptUtils::Shutdown();
 		ScriptGlue::Shutdown();
@@ -194,16 +193,6 @@ namespace Shark {
 		mono_domain_set(s_Data->RootDomain, 1);
 		mono_domain_unload(s_Data->RuntimeDomain);
 		s_Data->RuntimeDomain = nullptr;
-	}
-
-	void ScriptEngine::Update()
-	{
-		if (!s_Data->IsRunning && s_Data->ReloadScheduled)
-		{
-			ReloadAssemblies();
-
-			s_Data->ReloadScheduled = false;
-		}
 	}
 
 	bool ScriptEngine::AssembliesLoaded()
@@ -576,7 +565,7 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Scripting", "Initializing Mono");
 
 		if (std::filesystem::exists("Logs/Mono.log"))
-			FileSystem::TruncateFile("Logs/Mono.log");
+			FileSystem::TruncateFile(std::filesystem::absolute("Logs/Mono.log"));
 		
 		mono_trace_set_level_string("warning");
 		mono_trace_set_log_handler(&MonoTraceLogCallback, nullptr);
@@ -615,7 +604,7 @@ namespace Shark {
 	MonoAssembly* ScriptEngine::LoadCSAssembly(const std::filesystem::path& filePath)
 	{
 		SK_PROFILE_FUNCTION();
-		if (!std::filesystem::exists(filePath))
+		if (!FileSystem::Exists(filePath))
 		{
 			SK_CORE_ERROR_TAG("Scripting", "Can't load Assembly! Filepath dosn't exist \"{}\"", filePath);
 			return nullptr;
@@ -696,7 +685,12 @@ namespace Shark {
 	bool ScriptEngine::ReloadAssemblies()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(!s_Data->IsRunning, "Reloading at runntime not supported");
+
+		if (s_Data->IsRunning)
+		{
+			SK_CORE_ERROR_TAG("Reloading while the scene is playing is not supported");
+			return false;
+		}
 
 		SK_CORE_INFO_TAG("Scripting", "Reloading Assemblies");
 

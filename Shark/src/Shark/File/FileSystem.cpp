@@ -2,118 +2,163 @@
 #include "FileSystem.h"
 
 #include "Shark/Core/Project.h"
+#include "Shark/Utils/Utils.h"
+#include "Shark/Utils/String.h"
 #include "Shark/Utils/PlatformUtils.h"
 
 #include <fmt/os.h>
-#include "Shark/Utils/String.h"
 
 namespace Shark {
 
-	static Ref<FileWatcher> s_FileWatcher;
-	static FileWatcherCallbackFunc s_Callback = nullptr;
+	struct FileWatchData
+	{
+		Scope<filewatch::FileWatch<std::filesystem::path>> m_FileWatch;
+		FileWatchCallbackFn m_Callback;
+		std::vector<FileEvent> m_Events;
+	};
 
-	#define ASSET_DIRECTORY_KEY "AssetsDirectory"
+	static std::unordered_map<std::filesystem::path, FileWatchData> s_FileWatches;
+	static std::mutex s_FileWatchMutex;
+
+	namespace utils {
+
+		static void FileWatchCallback(const std::filesystem::path& key, const std::filesystem::path& file, const filewatch::Event event_type)
+		{
+			std::unique_lock lock(s_FileWatchMutex);
+			auto& watchData = s_FileWatches.at(key);
+			watchData.m_Events.emplace_back(FileEvent{ event_type, file });
+		}
+
+	}
 
 	void FileSystem::Initialize()
 	{
-		s_FileWatcher = FileWatcher::Create();
 	}
 
 	void FileSystem::Shutdown()
 	{
-		SK_CORE_ASSERT(s_FileWatcher->GetActiveCount() == 0);
-		s_FileWatcher = nullptr;
-		s_Callback = nullptr;
+		s_FileWatches.clear();
 	}
 
 	void FileSystem::ProcessEvents()
 	{
-		s_FileWatcher->Update();
-	}
+		std::unique_lock lock(s_FileWatchMutex);
 
-	void FileSystem::StartWatching(const std::filesystem::path& dirPath)
-	{
-		s_FileWatcher->StartWatching(ASSET_DIRECTORY_KEY, dirPath, s_Callback);
-	}
-
-	void FileSystem::StopWatching()
-	{
-		s_FileWatcher->StopWatching(ASSET_DIRECTORY_KEY);
-	}
-
-	void FileSystem::SetCallback(FileWatcherCallbackFunc callback)
-	{
-		s_Callback = callback;
-		if (s_FileWatcher->IsWatching(ASSET_DIRECTORY_KEY))
-			s_FileWatcher->SetCallback(ASSET_DIRECTORY_KEY, callback);
-
-	}
-
-	Ref<FileWatcher> FileSystem::GetFileWatcher()
-	{
-		return s_FileWatcher;
-	}
-
-	std::filesystem::path FileSystem::GetUnsusedPath(const std::filesystem::path& filePath)
-	{
-		if (!std::filesystem::exists(filePath))
-			return filePath;
-
-		std::filesystem::path path = filePath;
-		const std::filesystem::path directory = filePath.parent_path();
-		const std::wstring name = filePath.stem();
-		const std::wstring extension = filePath.extension();
-
-		uint32_t count = 1;
-		bool foundValidFileName = false;
-		while (!foundValidFileName)
+		for (auto& [path, watchData] : s_FileWatches)
 		{
-			path = fmt::format(L"{}/{} ({}).{}", directory, name, count, extension);
-			foundValidFileName = std::filesystem::exists(path);
+			if (watchData.m_Events.empty())
+				continue;
+
+			SK_CORE_VERIFY(watchData.m_Callback);
+			SK_CORE_TRACE_TAG("FileSystem", "{} File Events detected\n\t{}", watchData.m_Events.size(), fmt::join(watchData.m_Events, "\n\t"));
+			watchData.m_Callback(watchData.m_Events);
+			watchData.m_Events.clear();
+		}
+	}
+
+	void FileSystem::StartWatch(const std::filesystem::path& watchPath, FileWatchCallbackFn callback)
+	{
+		if (Utils::Contains(s_FileWatches, watchPath))
+		{
+			SK_CORE_WARN_TAG("FileSystem", "FileWatch for Path/Directory {} already exists", watchPath);
+			return;
 		}
 
-		return path;
+		auto& watchData = s_FileWatches[watchPath];
+		watchData.m_FileWatch = Scope<filewatch::FileWatch<std::filesystem::path>>::Create(watchPath, std::bind(&utils::FileWatchCallback, watchPath, std::placeholders::_1, std::placeholders::_2));
+		watchData.m_Callback = callback;
+
+		SK_CORE_INFO_TAG("FileSystem", "Started Watching {}", watchPath);
 	}
 
-	std::filesystem::path FileSystem::MakeFreeFilePath(const std::filesystem::path& directory, const std::filesystem::path& fileName)
+	void FileSystem::StartWatch(const std::filesystem::path& watchPath, std::wregex regex, FileWatchCallbackFn callback)
 	{
-		SK_CORE_VERIFY(directory.is_absolute());
-		std::filesystem::path fsPath = directory / fileName;
-
-		if (std::filesystem::exists(fsPath))
+		if (Utils::Contains(s_FileWatches, watchPath))
 		{
-			const std::wstring name = fileName.stem();
-			const std::wstring extension = fileName.extension();
-
-			uint32_t count = 1;
-			bool foundValidFileName = false;
-			while (!foundValidFileName)
-			{
-				fsPath = fmt::format(L"{}/{} ({}).{}", directory, name, count, extension);
-				foundValidFileName = std::filesystem::exists(fsPath);
-			}
+			SK_CORE_WARN_TAG("FileSystem", "FileWatch for Path/Directory {} already exists", watchPath);
+			return;
 		}
 
-		return fsPath;
+		auto& watchData = s_FileWatches[watchPath];
+		watchData.m_FileWatch = Scope<filewatch::FileWatch<std::filesystem::path>>::Create(watchPath, regex, std::bind(&utils::FileWatchCallback, watchPath, std::placeholders::_1, std::placeholders::_2));
+		watchData.m_Callback = callback;
+
+		SK_CORE_INFO_TAG("FileSystem", "Started Watching {}", watchPath);
 	}
 
-	void FileSystem::MakeFreeFilePath(std::filesystem::path& fsPath)
+	void FileSystem::StopWatch(const std::filesystem::path& watchPath)
 	{
-		SK_CORE_VERIFY(fsPath.is_absolute());
-		if (std::filesystem::exists(fsPath))
+		if (!Utils::Contains(s_FileWatches, watchPath))
 		{
-			const std::wstring directory = fsPath.parent_path();
-			const std::wstring name = fsPath.stem();
-			const std::wstring extension = fsPath.extension();
-
-			uint32_t count = 1;
-			bool foundValidFileName = false;
-			while (!foundValidFileName)
-			{
-				fsPath = fmt::format(L"{}/{} ({}).{}", directory, name, count++, extension);
-				foundValidFileName = std::filesystem::exists(fsPath);
-			}
+			SK_CORE_ERROR_TAG("FileSystem", "Failed to stop FileWatch! No FileWatch for Path/Directory {}", watchPath);
+			return;
 		}
+
+		s_FileWatches.erase(watchPath);
+		SK_CORE_INFO_TAG("FileSystem", "Stoped Watching {}", watchPath);
+	}
+
+	Buffer FileSystem::ReadBinary(const std::filesystem::path& filePath)
+	{
+		std::ifstream stream(GetFilesystemPath(filePath), std::ios::ate | std::ios::binary);
+		if (!stream)
+			return Buffer{};
+
+		uint64_t streamSize = (uint64_t)stream.tellg();
+		if (!streamSize)
+			return Buffer{};
+
+		stream.seekg(0, std::ios::beg);
+
+		Buffer filedata;
+		filedata.Allocate(streamSize);
+		stream.read(filedata.As<char>(), streamSize);
+		return filedata;
+	}
+
+	std::string FileSystem::ReadString(const std::filesystem::path& filePath)
+	{
+		std::ifstream stream(GetFilesystemPath(filePath));
+		if (!stream)
+			return std::string{};
+
+		std::stringstream strStream;
+		strStream << stream.rdbuf();
+		return strStream.str();
+	}
+
+	bool FileSystem::WriteBinary(const std::filesystem::path& filePath, Buffer fileData, bool createDirectoriesIfNeeded)
+	{
+		const auto filesystemPath = GetFilesystemPath(filePath);
+
+		const auto directory = filesystemPath.parent_path();
+		if (createDirectoriesIfNeeded && !std::filesystem::exists(directory))
+			std::filesystem::create_directories(directory);
+
+		std::ofstream stream(filesystemPath, std::ios::binary);
+		if (!stream)
+			return false;
+
+		stream.write(fileData.As<const char>(), fileData.Size);
+		stream.close();
+		return true;
+	}
+
+	bool FileSystem::WriteString(const std::filesystem::path& filePath, const std::string& fileData, bool createDirectoriesIfNeeded)
+	{
+		const auto filesystemPath = GetFilesystemPath(filePath);
+
+		const auto directory = filesystemPath.parent_path();
+		if (createDirectoriesIfNeeded && !std::filesystem::exists(directory))
+			std::filesystem::create_directories(directory);
+
+		std::ofstream stream(filesystemPath);
+		if (!stream)
+			return false;
+
+		stream.write(fileData.data(), fileData.size());
+		stream.close();
+		return true;
 	}
 
 	bool FileSystem::IsValidFileName(std::string_view fileName)
@@ -163,119 +208,56 @@ namespace Shark {
 		return true;
 	};
 
-	bool FileSystem::CreateFile(const std::filesystem::path& filePath, bool overrideExisiting)
+	bool FileSystem::IsInDirectory(const std::filesystem::path& directory, const std::filesystem::path& path)
 	{
-		return PlatformUtils::CreateFile(filePath, overrideExisiting);
-	}
-
-	Buffer FileSystem::ReadBinary(const std::filesystem::path& filePath)
-	{
-		std::ifstream stream(filePath, std::ios::ate | std::ios::binary);
-		if (!stream)
-			return Buffer{};
-
-		uint64_t streamSize = (uint64_t)stream.tellg();
-		if (!streamSize)
-			return Buffer{};
-
-		stream.seekg(0, std::ios::beg);
-
-		Buffer filedata;
-		filedata.Allocate(streamSize);
-		stream.read(filedata.As<char>(), streamSize);
-		return filedata;
-	}
-
-	std::string FileSystem::ReadString(const std::filesystem::path& filePath)
-	{
-		std::ifstream stream(filePath);
-		if (!stream)
-			return std::string{};
-
-		std::stringstream strStream;
-		strStream << stream.rdbuf();
-		return strStream.str();
-	}
-
-	bool FileSystem::WriteBinary(const std::filesystem::path& filePath, Buffer fileData, bool createDirectoriesIfNeeded)
-	{
-		const auto directory = filePath.parent_path();
-		if (createDirectoriesIfNeeded && !std::filesystem::exists(directory))
-			std::filesystem::create_directories(directory);
-
-		std::ofstream stream(filePath);
-		if (!stream)
+		const auto filesystemDirectory = GetFilesystemPath(directory);
+		if (!std::filesystem::is_directory(filesystemDirectory))
 			return false;
 
-		stream.write(fileData.As<const char>(), fileData.Size);
-		stream.close();
-		return true;
-	}
-
-	bool FileSystem::WriteString(const std::filesystem::path& filePath, const std::string& fileData, bool createDirectoriesIfNeeded)
-	{
-		const auto directory = filePath.parent_path();
-		if (createDirectoriesIfNeeded && !std::filesystem::exists(directory))
-			std::filesystem::create_directories(directory);
-
-		std::ofstream stream(filePath);
-		if (!stream)
-			return false;
-
-		stream.write(fileData.data(), fileData.size());
-		stream.close();
-		return true;
-	}
-
-	void FileSystem::TruncateFile(const std::filesystem::path& filePath)
-	{
-		std::ofstream fout{ GetFSPath(filePath), std::ios::trunc };
-		fout.flush();
-		fout.close();
+		auto filesystemPath = GetFilesystemPath(path);
+		return filesystemDirectory == filesystemPath.parent_path();
 	}
 
 	bool FileSystem::Exists(const std::filesystem::path& filepath)
 	{
-		if (std::filesystem::exists(filepath))
-			return true;
+		const auto& filesystemPath = GetFilesystemPath(filepath);
 
-		if (filepath.is_relative() && std::filesystem::exists(Project::GetDirectory() / filepath))
-			return true;
-
-		return false;
-	}
-
-	std::string FileSystem::ParseFileName(const std::filesystem::path& filePath)
-	{
-		return filePath.stem().string();
-	}
-
-	bool FileSystem::IsInDirectory(const std::filesystem::path& directory, const std::filesystem::path& path)
-	{
-		auto absolutDir = GetAbsolute(directory);
-		if (!std::filesystem::is_directory(directory))
-			return false;
-
-		auto pathAbsolut = GetAbsolute(path);
-		return absolutDir == pathAbsolut.parent_path();
-	}
-
-	std::filesystem::path FileSystem::GetRelative(const std::filesystem::path& path, RelativeMode mode)
-	{
-		switch (mode)
+		std::error_code error;
+		bool exists = std::filesystem::exists(filesystemPath, error);
+		if (error)
 		{
-			case RelativeMode::WorkingDirectory: return std::filesystem::relative(path);
-			case RelativeMode::Project: return Project::RelativeCopy(path);
-			case RelativeMode::Assets: return std::filesystem::relative(path, Project::GetAssetsPath());
+			SK_CORE_ERROR_TAG("FileSystem", "Failed to check if path Exists! {}", filesystemPath);
+			throw std::filesystem::filesystem_error("exists", filesystemPath, error);
 		}
 
-		SK_CORE_ASSERT(false, "Unkown RelativeMode");
-		return std::filesystem::relative(path);
+		return exists;
 	}
 
-	std::filesystem::path FileSystem::GetAbsolute(const std::filesystem::path& path)
+	bool FileSystem::Exists(const std::filesystem::path& filepath, std::string& errorMsg)
 	{
-		return Project::AbsolueCopy(path);
+		const auto filesystemPath = GetFilesystemPath(filepath);
+
+		std::error_code error;
+		bool exists = std::filesystem::exists(filesystemPath, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("FileSystem", "Failed to check if path Exists! {}", filesystemPath);
+			errorMsg = error.message();
+			return exists;
+		}
+
+		errorMsg.clear();
+		return exists;
+	}
+
+	bool FileSystem::CreateFile(const std::filesystem::path& filePath, bool overrideExisiting)
+	{
+		return Platform::CreateFile(GetFilesystemPath(filePath), overrideExisiting);
+	}
+
+	bool FileSystem::CreateFile(const std::filesystem::path& filepath, bool overrideExisiting, std::string& errorMsg)
+	{
+		return Platform::CreateFile(GetFilesystemPath(filepath), overrideExisiting, errorMsg);
 	}
 
 	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination)
@@ -285,8 +267,8 @@ namespace Shark {
 
 	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options)
 	{
-		auto fsSource = GetFSPath(source);
-		auto fsDestination = GetFSPath(destination);
+		auto fsSource = GetFilesystemPath(source);
+		auto fsDestination = GetFilesystemPath(destination);
 
 		std::error_code error;
 		bool copied = std::filesystem::copy_file(fsSource, fsDestination, options, error);
@@ -306,8 +288,8 @@ namespace Shark {
 
 	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options, std::string& errorMsg)
 	{
-		auto fsSource = GetFSPath(source);
-		auto fsDestination = GetFSPath(destination);
+		auto fsSource = GetFilesystemPath(source);
+		auto fsDestination = GetFilesystemPath(destination);
 
 		SK_CORE_ASSERT(std::filesystem::exists(fsSource));
 		SK_CORE_ASSERT(std::filesystem::exists(fsDestination.parent_path()));
@@ -327,7 +309,7 @@ namespace Shark {
 
 	bool FileSystem::CreateDirectories(const std::filesystem::path& path)
 	{
-		auto fsPath = GetFSPath(path);
+		auto fsPath = GetFilesystemPath(path);
 
 		std::error_code error;
 		bool created = std::filesystem::create_directories(fsPath, error);
@@ -342,7 +324,7 @@ namespace Shark {
 
 	bool FileSystem::CreateDirectories(const std::filesystem::path& path, std::string& errorMsg)
 	{
-		auto fsPath = GetFSPath(path);
+		auto fsPath = GetFilesystemPath(path);
 
 		std::error_code error;
 		bool created = std::filesystem::create_directories(fsPath, error);
@@ -357,35 +339,40 @@ namespace Shark {
 		return created;
 	}
 
-#if 0
-	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination)
+	void FileSystem::TruncateFile(const std::filesystem::path& filePath)
 	{
-		return CopyFile(source, destination, std::filesystem::copy_options::none);
+		std::ofstream fout{ GetFilesystemPath(filePath), std::ios::trunc };
+		fout.flush();
+		fout.close();
 	}
 
-	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options)
+	std::filesystem::path FileSystem::GetFilesystemPath(const std::filesystem::path& projectOrFilesystemPath)
 	{
-		auto fsSource = GetAbsolute(source);
-		auto fsDestination = GetAbsolute(destination);
-		return std::filesystem::copy_file(fsSource, fsDestination, options);
+		if (projectOrFilesystemPath.is_absolute())
+			return projectOrFilesystemPath;
+
+		auto project = Project::GetActive();
+		return project->GetAbsolue(projectOrFilesystemPath);
 	}
 
-	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options, std::error_code& error)
+	std::filesystem::path FileSystem::GetResourcePath(const std::filesystem::path& filepath)
 	{
-		auto fsSource = GetAbsolute(source);
-		auto fsDestination = GetAbsolute(destination);
-		return std::filesystem::copy_file(fsSource, fsDestination, options, error);
+		return std::filesystem::absolute(filepath);
 	}
 
-	bool FileSystem::CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::error_code& error)
+	std::string ToString(filewatch::Event event)
 	{
-		return CopyFile(source, destination, std::filesystem::copy_options::none, error);
+		return filewatch::event_to_string(event);
 	}
-#endif
 
-	std::filesystem::path FileSystem::GetFSPath(const std::filesystem::path& path)
+	std::filesystem::path operator""_abs(const char* str, size_t length)
 	{
-		return path.is_absolute() ? path : std::filesystem::exists(path) ? path : GetAbsolute(path);
+		return std::filesystem::absolute(std::filesystem::path{ std::string{ str, length } });
+	}
+
+	std::filesystem::path operator""_abs(const wchar_t* str, size_t length)
+	{
+		return std::filesystem::absolute(std::filesystem::path{ std::wstring{ str, length } });
 	}
 
 }

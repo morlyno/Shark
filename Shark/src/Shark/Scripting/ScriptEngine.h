@@ -41,7 +41,6 @@ namespace Shark {
 		static bool LoadAssemblies(const std::filesystem::path& assemblyPath);
 		static void ScheduleReload();
 		static void UnloadAssemblies();
-		static void Update();
 
 		static bool AssembliesLoaded();
 		static const AssemblyInfo& GetCoreAssemblyInfo();

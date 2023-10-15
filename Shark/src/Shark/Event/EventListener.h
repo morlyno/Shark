@@ -18,19 +18,20 @@ namespace Shark {
 		~EventListener();
 
 		void OnWindowCloseEvent();
-		void OnWindowResizeEvent(uint32_t width, uint32_t height, WindowResizeEvent::State state);
+		void OnWindowResizeEvent(uint32_t width, uint32_t height);
+		void OnWindowMaximizedEvent(bool maximized);
+		void OnWindowMinimizedEvent(bool minimized);
 		void OnWindowMoveEvent(int x, int y);
 		void OnWindowFocusEvent();
 		void OnWindowLostFocusEvent();
 		void OnWindowDropEvent(const std::vector<std::filesystem::path>& paths);
 		void OnWindowDropEvent(std::vector<std::filesystem::path>&& paths);
 
-		void OnMouseMovedEvent(const glm::ivec2& mousePos);
-		void OnMouseMovedRelativeEvent(const glm::ivec2& mouseDelta);
-		void OnMouseButtonPressedEvent(const glm::ivec2& mousePos, MouseButton button);
-		void OnMouseButtonReleasedEvent(const glm::ivec2& mousePos, MouseButton button);
-		void OnMouseButtonDoubleClickedEvent(const glm::ivec2& mousePos, MouseButton button);
-		void OnMouseScrolledEvent(const glm::ivec2& mousePos, float delta);
+		void OnMouseMovedEvent(float x, float y);
+		void OnMouseButtonPressedEvent(MouseButton button);
+		void OnMouseButtonReleasedEvent(MouseButton button);
+		void OnMouseButtonDoubleClickedEvent(MouseButton button);
+		void OnMouseScrolledEvent(float xOffset, float yOffset);
 
 		void OnKeyPressedEvent(KeyCode key, bool isRepead);
 		void OnKeyReleasedEvent(KeyCode key);

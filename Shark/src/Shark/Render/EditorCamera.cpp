@@ -38,29 +38,30 @@ namespace Shark {
 
 	void EditorCamera::OnUpdate(TimeStep ts, bool update)
 	{
-		m_Update = update;
-		if (!m_Update)
+		glm::vec2 mousePos = Input::GetMousePosition();
+		glm::vec2 mouseDelta = mousePos - m_LastMousePos;
+		m_LastMousePos = mousePos;
+
+		if (!update)
 			return;
 
 		if (Input::IsKeyDown(KeyCode::LeftAlt))
 		{
-			glm::vec2 mousePos = Input::GetMousePosition();
-			glm::vec2 delta = (mousePos - m_LastMousePos) * 0.003f;
-			m_LastMousePos = mousePos;
+			mouseDelta *= 0.003f;
 			if (Input::IsMouseDown(MouseButton::Left))
-				OnMouseRotate(delta);
+				OnMouseRotate(mouseDelta);
 			else if (Input::IsMouseDown(MouseButton::Right))
-				OnMouseZoom(delta);
+				OnMouseZoom(mouseDelta);
 			else if (Input::IsMouseDown(MouseButton::Middle))
-				OnMouseMove(delta);
+				OnMouseMove(mouseDelta);
 		}
 		else
 		{
 			if (Input::IsMousePressed(MouseButton::Right))
-				Input::SetCursorMode(CursorMode::HideKeepInPlace);
+				Input::SetCursorMode(CursorMode::Locked);
 
 			if (Input::IsMouseRelease(MouseButton::Right))
-				Input::SetCursorMode(CursorMode::Show);
+				Input::SetCursorMode(CursorMode::Normal);
 
 			if (Input::IsMouseDown(MouseButton::Right))
 			{
@@ -79,7 +80,6 @@ namespace Shark {
 
 				bool viewChanged = direction != glm::vec3{ 0.0f, 0.0f, 0.0f };
 
-				const glm::vec2 mouseDelta = Input::GetMouseDelta();
 				const glm::vec2 rotation = mouseDelta * (m_RotateSpeed * ts);
 				if (rotation.x != 0.0f || rotation.y != 0.0f)
 				{
@@ -102,7 +102,7 @@ namespace Shark {
 	bool EditorCamera::OnMouseScolledEvent(MouseScrolledEvent& event)
 	{
 		static constexpr float scroll = 7.5f;
-		m_Distance -= event.GetDelta() * 7.5f;
+		m_Distance -= event.GetYOffset() * 7.5f;
 		if (m_Distance < 0.25)
 			m_Distance = 0.25;
 

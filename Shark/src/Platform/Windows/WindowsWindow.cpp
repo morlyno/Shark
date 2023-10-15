@@ -147,7 +147,7 @@ namespace Shark {
 		m_SwapChain->Present(m_VSync);
 	}
 
-	void WindowsWindow::ProcessEvents() const
+	void WindowsWindow::ProcessEvents()
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -156,6 +156,13 @@ namespace Shark {
 		{
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
+		}
+
+		if (m_CursorMode == CursorMode::Locked && (m_LastCursorPosition != glm::vec2(m_Size / 2u)))
+		{
+			glm::vec2 center = { m_Size.x / 2, m_Size.y / 2 };
+			SetCursorPositionInWindow(center);
+			m_LastCursorPosition = center;
 		}
 	}
 
@@ -269,7 +276,7 @@ namespace Shark {
 		);
 	}
 
-	glm::ivec2 WindowsWindow::ScreenToWindow(const glm::ivec2& screenPos) const
+	glm::vec2 WindowsWindow::ScreenToWindow(const glm::vec2& screenPos) const
 	{
 		POINT p{ screenPos.x, screenPos.y };
 		if (::ScreenToClient(m_hWnd, &p))
@@ -277,12 +284,63 @@ namespace Shark {
 		return { 0, 0 };
 	}
 
-	glm::ivec2 WindowsWindow::WindowToScreen(const glm::ivec2& windowPos) const
+	glm::vec2 WindowsWindow::WindowToScreen(const glm::vec2& windowPos) const
 	{
 		POINT p{ windowPos.x, windowPos.y };
 		if (::ClientToScreen(m_hWnd, &p))
 			return { p.x, p.y };
 		return { 0, 0 };
+	}
+
+	void WindowsWindow::SetCursorMode(CursorMode mode)
+	{
+		if (IsFocused())
+		{
+			if (mode == CursorMode::Locked)
+			{
+				m_RestoreCursorPosition = m_LastCursorPosition;
+				m_VirtualCursorPosition = m_LastCursorPosition;
+				SetCursorPositionInWindow({ m_Size.x / 2, m_Size.y / 2 });
+			}
+
+			if (mode == CursorMode::Locked)
+				CaptureCursor();
+			else
+				ClipCursor(nullptr);
+
+			if (mode != CursorMode::Locked)
+				SetCursorPositionInWindow(m_RestoreCursorPosition);
+		}
+
+		if (mode == CursorMode::Normal)
+			SetCursor(LoadCursor(NULL, IDC_ARROW));
+		else
+			SetCursor(nullptr);
+
+		m_CursorMode = mode;
+	}
+
+	void WindowsWindow::CaptureCursor()
+	{
+		RECT rect;
+		rect.left = m_Pos.x;
+		rect.right = m_Pos.x + m_Size.x;
+		rect.top = m_Pos.y;
+		rect.bottom = m_Pos.y + m_Size.y;
+		ClipCursor(&rect);
+	}
+
+	void WindowsWindow::SetCursorPositionInWindow(const glm::vec2& ursorPos)
+	{
+		auto screenCursorPos = WindowToScreen(ursorPos);
+		SetCursorPos(screenCursorPos.x, screenCursorPos.y);
+	}
+
+	glm::vec2 WindowsWindow::GetWindowSize() const
+	{
+		RECT area;
+		GetClientRect(m_hWnd, &area);
+		return { area.right, area.bottom };
 	}
 
 	LRESULT WINAPI WindowsWindow::WindowProcStartUp(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -339,14 +397,13 @@ namespace Shark {
 			{
 				m_Size.x = LOWORD(lParam);
 				m_Size.y = HIWORD(lParam);
-				WindowResizeEvent::State state = WindowResizeEvent::State::Resize;
 
-				if (wParam == SIZE_MAXIMIZED)
-					state = WindowResizeEvent::State::Maximized;
-				else if (wParam == SIZE_MINIMIZED)
-					state = WindowResizeEvent::State::Minimized;
+				bool minimized = wParam == SIZE_MINIMIZED;
+				bool maximized = wParam == SIZE_MAXIMIZED;
 
-				m_EventListener->OnWindowResizeEvent(m_Size.x, m_Size.y, state);
+				m_EventListener->OnWindowResizeEvent(m_Size.x, m_Size.y);
+				m_EventListener->OnWindowMinimizedEvent(minimized);
+				m_EventListener->OnWindowMaximizedEvent(maximized);
 
 				// TODO(moro): figure out why the window style changes
 				ShowWindow(m_hWnd, SW_SHOW);
@@ -361,29 +418,28 @@ namespace Shark {
 				break;
 			}
 
-			case WM_INPUT:
-			{
-				RAWINPUT rawInput;
-				ZeroMemory(&rawInput, sizeof(RAWINPUT));
-				UINT size = sizeof(RAWINPUT);
-				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &rawInput, &size, sizeof(RAWINPUTHEADER));
-				if ((rawInput.data.mouse.usFlags & MOUSE_MOVE_RELATIVE) == MOUSE_MOVE_RELATIVE)
-				{
-					const auto& mouse = rawInput.data.mouse;
-					m_EventListener->OnMouseMovedRelativeEvent({ mouse.lLastX, mouse.lLastY });
-				}
-
-				if ((GET_RAWINPUT_CODE_WPARAM(wParam) & RIM_INPUT) == RIM_INPUT)
-					return DefWindowProc(hWnd, msg, wParam, lParam);
-
-				break;
-			}
-
-			case WM_NCMOUSEMOVE:
+			//case WM_NCMOUSEMOVE:
 			case WM_MOUSEMOVE:
 			{
-				auto mousePos = ScreenToWindow({ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) });
-				m_EventListener->OnMouseMovedEvent(mousePos);
+				const int x = GET_X_LPARAM(lParam);
+				const int y = GET_Y_LPARAM(lParam);
+				glm::vec2 mousePos = { x, y };
+
+				if (m_CursorMode == CursorMode::Locked)
+				{
+					const auto delta = mousePos - m_LastCursorPosition;
+
+					m_VirtualCursorPosition.x += delta.x;
+					m_VirtualCursorPosition.y += delta.y;
+
+					m_EventListener->OnMouseMovedEvent(m_VirtualCursorPosition.x, m_VirtualCursorPosition.y);
+				}
+				else
+				{
+					m_EventListener->OnMouseMovedEvent(mousePos.x, mousePos.y);
+				}
+
+				m_LastCursorPosition = mousePos;
 				break;
 			}
 
@@ -392,7 +448,6 @@ namespace Shark {
 			case WM_MBUTTONUP:
 			case WM_XBUTTONUP:
 			{
-				auto mousePos = ScreenToWindow({ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) });
 				MouseButton mouseButton = MouseButton::None;
 
 				switch (msg)
@@ -415,7 +470,7 @@ namespace Shark {
 				if (m_DownMouseButtons == 0 && ::GetCapture() == hWnd)
 					::ReleaseCapture();
 
-				m_EventListener->OnMouseButtonReleasedEvent(mousePos, mouseButton);
+				m_EventListener->OnMouseButtonReleasedEvent(mouseButton);
 				break;
 			}
 
@@ -428,10 +483,6 @@ namespace Shark {
 			case WM_XBUTTONDOWN:
 			case WM_XBUTTONDBLCLK:
 			{
-				POINT cursorPoint{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-				::ScreenToClient(hWnd, &cursorPoint);
-
-				glm::ivec2 mousePos = { cursorPoint.x, cursorPoint.y };
 				MouseButton mouseButton = MouseButton::None;
 				bool doubleClick = false;
 
@@ -468,17 +519,22 @@ namespace Shark {
 
 				bool handled = false;
 				if (doubleClick)
-					m_EventListener->OnMouseButtonDoubleClickedEvent(mousePos, mouseButton);
+					m_EventListener->OnMouseButtonDoubleClickedEvent(mouseButton);
 				else
-					m_EventListener->OnMouseButtonPressedEvent(mousePos, mouseButton);
+					m_EventListener->OnMouseButtonPressedEvent(mouseButton);
 
 				break;
 			}
 
 			case WM_MOUSEWHEEL:
 			{
-				auto mousePos = ScreenToWindow({ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) });
-				m_EventListener->OnMouseScrolledEvent(mousePos, (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+				m_EventListener->OnMouseScrolledEvent(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+				break;
+			}
+			
+			case WM_MOUSEHWHEEL:
+			{
+				m_EventListener->OnMouseScrolledEvent((float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA, 0.0f);
 				break;
 			}
 
@@ -506,18 +562,18 @@ namespace Shark {
 
 				if (key == KeyCode::Alt)
 				{
-					if (Input::IsKeyDownAsync(KeyCode::LeftAlt) == isKeyDown) addKeyEvent(KeyCode::LeftAlt, repeat, isKeyDown);
-					if (Input::IsKeyDownAsync(KeyCode::RightAlt) == isKeyDown) addKeyEvent(KeyCode::RightAlt, repeat, isKeyDown);
+					if (Platform::IsKeyDown(KeyCode::LeftAlt) == isKeyDown) addKeyEvent(KeyCode::LeftAlt, repeat, isKeyDown);
+					if (Platform::IsKeyDown(KeyCode::RightAlt) == isKeyDown) addKeyEvent(KeyCode::RightAlt, repeat, isKeyDown);
 				}
 				else if (key == KeyCode::Control)
 				{
-					if (Input::IsKeyDownAsync(KeyCode::LeftControl) == isKeyDown) addKeyEvent(KeyCode::LeftControl, repeat, isKeyDown);
-					if (Input::IsKeyDownAsync(KeyCode::RightControl) == isKeyDown) addKeyEvent(KeyCode::RightControl, repeat, isKeyDown);
+					if (Platform::IsKeyDown(KeyCode::LeftControl) == isKeyDown) addKeyEvent(KeyCode::LeftControl, repeat, isKeyDown);
+					if (Platform::IsKeyDown(KeyCode::RightControl) == isKeyDown) addKeyEvent(KeyCode::RightControl, repeat, isKeyDown);
 				}
 				else if (key == KeyCode::Shift)
 				{
-					if (Input::IsKeyDownAsync(KeyCode::LeftShift) == isKeyDown) addKeyEvent(KeyCode::LeftShift, repeat, isKeyDown);
-					if (Input::IsKeyDownAsync(KeyCode::RightShift) == isKeyDown) addKeyEvent(KeyCode::RightShift, repeat, isKeyDown);
+					if (Platform::IsKeyDown(KeyCode::LeftShift) == isKeyDown) addKeyEvent(KeyCode::LeftShift, repeat, isKeyDown);
+					if (Platform::IsKeyDown(KeyCode::RightShift) == isKeyDown) addKeyEvent(KeyCode::RightShift, repeat, isKeyDown);
 				}
 				break;
 			}

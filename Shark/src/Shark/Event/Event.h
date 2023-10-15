@@ -7,10 +7,10 @@ namespace Shark {
 	enum class EventType
 	{
 		None = 0,
-		WindowClose, WindowResize, WindowMove, WindowFocus, WindowLostFocus, WindowDrop,
-		MouseMoved, MouseMovedRelative, MouseButtonPressed, MouseButtonReleasd, MouseButtonDoubleClicked, MouseScrolled,
+		WindowClose, WindowResize, WindowMaximized, WindowMinimized, WindowMove, WindowFocus, WindowLostFocus, WindowDrop,
+		MouseMoved, MouseButtonPressed, MouseButtonReleasd, MouseButtonDoubleClicked, MouseScrolled,
 		KeyPressed, KeyReleased, KeyCharacter,
-		ApplicationClosed, SceneChanged, ScenePlay, ProjectChanged
+		ApplicationClosed
 	};
 
 	inline std::string EventTypesToString(EventType eventType)
@@ -20,12 +20,13 @@ namespace Shark {
 			case EventType::None:                      return "None";
 			case EventType::WindowClose:               return "WindowClose";
 			case EventType::WindowResize:		       return "WindowResize";
+			case EventType::WindowMaximized:		   return "WindowMaximized";
+			case EventType::WindowMinimized:		   return "WindowMinimized";
 			case EventType::WindowMove:		           return "WindowMove";
 			case EventType::WindowFocus:		       return "WindowFocus";
 			case EventType::WindowLostFocus:	       return "WindowLostFocus";
 			case EventType::WindowDrop:	               return "WindowDrop";
 			case EventType::MouseMoved:			       return "MouseMoved";
-			case EventType::MouseMovedRelative:        return "MouseMovedRelative";
 			case EventType::MouseButtonPressed:        return "MouseButtonPressed";
 			case EventType::MouseButtonReleasd:        return "MouseButtonReleasd";
 			case EventType::MouseButtonDoubleClicked:  return "MouseButtonDoubleClicked";
@@ -34,9 +35,6 @@ namespace Shark {
 			case EventType::KeyReleased:		       return "KeyReleased";
 			case EventType::KeyCharacter:		       return "KeyCharacter";
 			case EventType::ApplicationClosed:	       return "ApplicationClosed";
-			case EventType::SceneChanged:	           return "SceneChanged";
-			case EventType::ScenePlay:	               return "ScenePlay";
-			case EventType::ProjectChanged:	           return "ProjectChanged";
 		}
 		SK_CORE_ASSERT(false, "Unkown Event Type");
 		return "Unkown";
@@ -55,8 +53,8 @@ namespace Shark {
 		using Flags = uint16_t;
 	}
 
-	template<typename Base, EventType Type, EventCategory::Flags Category>
-	class EventBase : public Base
+	template<EventType Type, EventCategory::Flags Category>
+	class EventBase : public Event
 	{
 	public:
 		static constexpr EventType GetStaticType() { return Type; }

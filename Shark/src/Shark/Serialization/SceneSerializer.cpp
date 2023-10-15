@@ -120,7 +120,7 @@ namespace Shark {
 		fout << result;
 		fout.close();
 
-		SK_CORE_INFO_TAG("Serialization", "Serializing Scene took {}ms", timer.ElapsedMilliSeconds());
+		SK_CORE_INFO_TAG("Serialization", "Serializing Scene took {}", timer.Elapsed());
 		return true;
 	}
 
@@ -154,7 +154,7 @@ namespace Shark {
 		asset = scene;
 		asset->Handle = metadata.Handle;
 
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene took {}ms", timer.ElapsedMilliSeconds());
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene took {}", timer.Elapsed());
 		return true;
 	}
 
@@ -171,7 +171,7 @@ namespace Shark {
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(FileSystem::GetAbsolute(assetPath));
+		std::string filedata = FileSystem::ReadString(assetPath);
 		if (filedata.empty())
 		{
 			SK_SERIALIZATION_ERROR("File was empty!");
@@ -184,7 +184,7 @@ namespace Shark {
 			return false;
 		}
 
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene took {}ms", timer.ElapsedMilliSeconds());
+		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene took {}", timer.Elapsed());
 		return true;
 	}
 

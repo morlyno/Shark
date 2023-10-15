@@ -31,7 +31,8 @@ project "SharkFin"
         "%{IncludeDir.fmt}",
         "%{IncludeDir.Optick}",
         "%{IncludeDir.glm}",
-        "%{tracy.IncludeDir}"
+        "%{tracy.IncludeDir}",
+        "%{filewatch.IncludeDir}"
     }
 
     links

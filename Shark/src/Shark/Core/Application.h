@@ -11,10 +11,6 @@
 #include "Shark/ImGui/ImGuiLayer.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
-//#include "Shark/Debug/Profiler.h"
-
-int main(int argc, char** argb);
-
 namespace Shark {
 
 	class PerformanceProfiler;
@@ -69,7 +65,11 @@ namespace Shark {
 		std::thread::id GetMainThreadID() const { return m_MainThreadID; }
 
 		Window& GetWindow() { return *m_Window; }
+		const Window& GetWindow() const { return *m_Window; }
+
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
+		const ImGuiLayer& GetImGuiLayer() const { return *m_ImGuiLayer; }
+
 		const ApplicationSpecification& GetSpecification() const { return m_Specification; }
 
 		static Application& Get() { return *s_Instance; }
@@ -92,7 +92,7 @@ namespace Shark {
 		void ExecuteMainThreadQueue();
 		void OnEvent(Event& event);
 		bool OnWindowClose(WindowCloseEvent& event);
-		bool OnWindowResize(WindowResizeEvent& event);
+		bool OnWindowMinimized(WindowMinimizedEvent& event);
 		bool OnWindowLostFocus(WindowLostFocusEvent& event);
 
 	private:

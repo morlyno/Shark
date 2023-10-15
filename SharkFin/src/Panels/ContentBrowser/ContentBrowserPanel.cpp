@@ -140,7 +140,7 @@ namespace Shark {
 					if (ImGui::BeginPopupContextWindow("##DirectoryPopup", ImGuiMouseButton_Right | ImGuiPopupFlags_NoOpenOverItems))
 					{
 						if (ImGui::MenuItem("Open In Explorer"))
-							PlatformUtils::OpenExplorer(m_Project->Directory / m_CurrentDirectory->FilePath);
+							Platform::OpenExplorer(m_Project->Directory / m_CurrentDirectory->FilePath);
 
 						ImGui::Separator();
 
@@ -203,7 +203,7 @@ namespace Shark {
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(ContentBrowserPanel::OnKeyPressedEvent));
 	}
 
-	void ContentBrowserPanel::OnFileEvents(const std::vector<FileChangedData>& fileEvents)
+	void ContentBrowserPanel::OnFileEvents(const std::vector<FileEvent>& fileEvents)
 	{
 		SK_CORE_ASSERT(m_ChangesBlocked == false);
 
@@ -217,23 +217,22 @@ namespace Shark {
 
 		for (uint32_t i = 0; i < fileEvents.size(); i++)
 		{
-			const FileChangedData& event = fileEvents[i];
-			if (event.Type == FileEvent::NewName || event.Type == FileEvent::Modified)
+			const auto& event = fileEvents[i];
+			if (event.Type == filewatch::Event::renamed_new || event.Type == filewatch::Event::modified)
 				continue;
-
-			const bool isDirectory = event.IsDirectory;
 
 			switch (event.Type)
 			{
-				case FileEvent::Created:
+				case filewatch::Event::added:
 				{
-					Ref<DirectoryInfo> parent = GetDirectory(event.FilePath.parent_path());
+					const bool isDirectory = std::filesystem::is_directory(event.File);
+					Ref<DirectoryInfo> parent = GetDirectory(event.File.parent_path());
 					if (!parent)
 						break;
 
 					if (isDirectory)
 					{
-						std::filesystem::path filePath = m_Project->GetRelative(event.FilePath);
+						std::filesystem::path filePath = m_Project->GetRelative(event.File);
 						Ref<DirectoryInfo> directory = Ref<DirectoryInfo>::Create(parent, filePath, AssetHandle::Generate());
 						parent->AddDirectory(directory);
 						m_DirectoryHandleMap[directory->Handle] = directory;
@@ -241,65 +240,66 @@ namespace Shark {
 
 					if (!isDirectory)
 					{
-						const auto& metadata = ResourceManager::GetMetaData(event.FilePath);
+						const auto& metadata = ResourceManager::GetMetaData(event.File);
 						if (metadata.IsValid())
 							parent->AddAsset(metadata.Handle);
 					}
 
-					anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
+					anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.File);
 					break;
 				}
-				case FileEvent::Deleted:
+				case filewatch::Event::removed:
 				{
-					if (isDirectory)
+					if (Ref<DirectoryInfo> directory = GetDirectory(event.File))
 					{
-						Ref<DirectoryInfo> directory = GetDirectory(event.FilePath);
-						if (directory)
-							Internal_OnDirectoryDeleted(directory);
+						Internal_OnDirectoryDeleted(directory);
 						break;
 					}
 
-					const auto& metadata = ResourceManager::GetMetaData(event.FilePath);
+					const auto& metadata = ResourceManager::GetMetaData(event.File);
+					if (!metadata.IsValid())
+						break;
+
 					if (m_CurrentItems.Contains(metadata.Handle))
 					{
 						m_CurrentItems.Erase(metadata.Handle);
 						m_CurrentDirectory->Assets.erase(std::find(m_CurrentDirectory->Assets.begin(), m_CurrentDirectory->Assets.end(), metadata.Handle));
-						anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
+						anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.File);
 						break;
 					}
 
-					Ref<DirectoryInfo> parent = GetDirectory(event.FilePath.parent_path());
+					Ref<DirectoryInfo> parent = GetDirectory(event.File.parent_path());
 					parent->Erase(metadata.Handle);
 
-					anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
+					anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.File);
 					break;
 				}
-				case FileEvent::OldName:
+				case filewatch::Event::renamed_old:
 				{
 					const auto& event2 = fileEvents[++i];
-					SK_CORE_ASSERT(event2.Type == FileEvent::NewName);
-					if (isDirectory)
+					SK_CORE_ASSERT(event2.Type == filewatch::Event::renamed_new);
+
+					if (Ref<DirectoryInfo> directory = GetDirectory(event.File))
 					{
-						Ref<DirectoryInfo> directory = GetDirectory(event.FilePath);
 						if (directory)
 						{
 							if (auto item = m_CurrentItems.Get(directory->Handle))
-								item->m_Name = event2.FilePath.stem().string();
+								item->m_Name = event2.File.stem().string();
 
-							directory->FilePath = std::filesystem::relative(event2.FilePath, m_Project->Directory);
+							directory->FilePath = std::filesystem::relative(event2.File, m_Project->Directory);
 							directory->Name = directory->FilePath.stem().string();
 						}
-						anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
+						anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.File);
 						break;
 					}
 
-					const auto& metadata = ResourceManager::GetMetaData(event2.FilePath);
+					const auto& metadata = ResourceManager::GetMetaData(event2.File);
 					if (metadata.IsValid())
 					{
 						if (auto item = m_CurrentItems.Get(metadata.Handle))
-							item->m_Name = event2.FilePath.stem().string();
+							item->m_Name = event2.File.stem().string();
 					}
-					anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.FilePath);
+					anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.File);
 					break;
 				}
 			}
@@ -363,7 +363,7 @@ namespace Shark {
 			{
 				const auto& metadata = ResourceManager::GetMetaData(assetHandle);
 				if (metadata.IsValid())
-					m_CurrentItems.Items.emplace_back(Ref<ContentBrowserItem>::Create(CBItemType::Asset, metadata.Handle, FileSystem::ParseFileName(metadata.FilePath), GetIcon(metadata)));
+					m_CurrentItems.Items.emplace_back(Ref<ContentBrowserItem>::Create(CBItemType::Asset, metadata.Handle, metadata.FilePath.stem().string(), GetIcon(metadata)));
 			}
 
 			if (addToHistroy && directory != m_CurrentDirectory)
@@ -575,7 +575,7 @@ namespace Shark {
 				if (!directory)
 					directory = m_CurrentDirectory;
 
-				PlatformUtils::OpenExplorer(m_Project->Directory / directory->FilePath);
+				Platform::OpenExplorer(m_Project->Directory / directory->FilePath);
 			}
 
 			if (action & CBItemAction::Selected)

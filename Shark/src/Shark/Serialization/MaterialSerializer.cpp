@@ -83,7 +83,7 @@ namespace Shark {
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(FileSystem::GetAbsolute(assetPath));
+		std::string filedata = FileSystem::ReadString(assetPath);
 		if (filedata.empty())
 		{
 			SK_CORE_ERROR_TAG("Serialization", "File was empty");

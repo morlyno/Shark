@@ -24,7 +24,8 @@ project "Shark"
         "%{IncludeDir.fmt}/**.h",
         "%{IncludeDir.spdlog}/**.h",
         "%{IncludeDir.Mono}/**.h",
-        tracy.Files
+        tracy.Files,
+        filewatch.Files
     }
 
     includedirs
@@ -45,7 +46,8 @@ project "Shark"
         "%{IncludeDir.msdf_atlas_gen}",
         "%{IncludeDir.Vulkan_SDK}",
         "%{Assimp.IncludeDir}",
-        "%{tracy.IncludeDir}"
+        "%{tracy.IncludeDir}",
+        "%{filewatch.IncludeDir}"
     }
 
     defines

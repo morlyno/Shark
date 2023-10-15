@@ -61,3 +61,10 @@ tracy = {
         "%{tracy.IncludeDir}/TracyClient.cpp"
     },
 }
+
+filewatch = {
+    IncludeDir = "%{wks.location}/Shark/dependencies/filewatch/include",
+    Files = {
+        "%{wks.location}/Shark/dependencies/filewatch/include/filewatch/FileWatch.hpp"
+    }
+}

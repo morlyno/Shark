@@ -103,8 +103,6 @@ namespace Shark {
 		else
 			SK_CORE_VERIFY(false, "No Startup Project!");
 
-		FileSystem::SetCallback(std::bind(&EditorLayer::OnFileEvents, this, std::placeholders::_1));
-
 		auto& app = Application::Get();
 		if (app.GetSpecification().EnableImGui)
 		{
@@ -167,7 +165,8 @@ namespace Shark {
 				m_NeedsResize = false;
 			}
 
-			m_EditorCamera.OnUpdate(ts, (m_ViewportHovered/* || m_ViewportFocused*/) && m_SceneState != SceneState::Play);
+			ImGui::GetIO().SetAppAcceptingEvents(Input::GetCursorMode() != CursorMode::Locked);
+			m_EditorCamera.OnUpdate(ts, m_ViewportHovered && m_SceneState != SceneState::Play || Input::GetCursorMode() == CursorMode::Hidden);
 
 			switch (m_SceneState)
 			{
@@ -251,12 +250,6 @@ namespace Shark {
 
 		switch (event.GetKeyCode())
 		{
-
-			case KeyCode::Escape:
-			{
-				Input::SetDefaultCursorMode();
-				break;
-			}
 
 			// New Scene
 			case KeyCode::N:
@@ -370,42 +363,38 @@ namespace Shark {
 		return false;
 	}
 
-	void EditorLayer::OnFileEvents(const std::vector<FileChangedData>& fileEvents)
+	void EditorLayer::OnFileEvents(const std::vector<FileEvent>& fileEvents)
 	{
 		SK_PROFILE_FUNCTION();
+
+		SK_CORE_TRACE_TAG("FileWatch", "{} File Events detected\n\t{}", fileEvents.size(), fmt::join(fileEvents, "\n\t"));
 
 		for (uint32_t index = 0; index < fileEvents.size(); index++)
 		{
 			const auto& event = fileEvents[index];
 
-			if (event.IsDirectory)
+			if (event.Type == filewatch::Event::modified || event.Type == filewatch::Event::renamed_new)
 				continue;
 
-			if (event.Type == FileEvent::None || event.Type == FileEvent::Modified || event.Type == FileEvent::NewName)
-				continue;
-
-			const bool isFileImported = ResourceManager::IsFileImported(event.FilePath);
-			if (event.Type == FileEvent::Created && isFileImported)
+			const bool isFileImported = ResourceManager::IsFileImported(event.File);
+			if (event.Type == filewatch::Event::added && isFileImported || event.Type == filewatch::Event::removed && !isFileImported)
 				continue;
 			
-			if (event.Type == FileEvent::Deleted && !isFileImported)
-				continue;
-
-			AssetType assetType = AssetUtils::GetAssetTypeFromPath(event.FilePath);
+			AssetType assetType = AssetUtils::GetAssetTypeFromPath(event.File);
 			if (assetType != AssetType::None)
 			{
 				auto& assetFileEvent = m_PendingAssetFileEvents.emplace_back();
 				assetFileEvent.Action = event.Type;
-				assetFileEvent.AssetPath = event.FilePath;
+				assetFileEvent.AssetPath = event.File;
 				assetFileEvent.Type = assetType;
 
 				assetFileEvent.ActionString = ToString(event.Type);
 
-				if (event.Type == FileEvent::OldName)
+				if (event.Type == filewatch::Event::renamed_old)
 				{
-					SK_CORE_VERIFY(index < fileEvents.size() && fileEvents[index + 1].Type == FileEvent::NewName);
+					SK_CORE_VERIFY(index < fileEvents.size() && fileEvents[index + 1].Type == filewatch::Event::renamed_new);
 					const auto& newNameEvent = fileEvents[index + 1];
-					assetFileEvent.NewName = newNameEvent.FilePath.stem().string();
+					assetFileEvent.NewName = newNameEvent.File.stem().string();
 					assetFileEvent.ActionString = "Name Changed";
 				}
 			}
@@ -414,45 +403,8 @@ namespace Shark {
 		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileEvents(fileEvents);
 	}
 
-	void EditorLayer::OnFileClickedCallback(const std::filesystem::path& filePath)
-	{
-		SK_PROFILE_FUNCTION();
-
-		//const auto extension = filePath.extension();
-		//if (extension == L".cs")
-		//{
-		//	//IDEUtils::OpenScript(fsPath);
-		//	// open script file
-		//	return;
-		//}
-
-		if (m_SceneState != SceneState::Edit)
-			return;
-
-		const auto fsPath = Project::AbsolueCopy(filePath);
-		const AssetMetaData& metadata = ResourceManager::GetMetaData(fsPath);
-		if (metadata.IsValid())
-		{
-			switch (metadata.Type)
-			{
-				case AssetType::Scene:
-				{
-					LoadScene(metadata.Handle);
-					break;
-				}
-				case AssetType::Texture:
-				{
-					Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(metadata.Handle);
-					if (texture)
-					{
-						Ref<AssetEditorPanel> assetEditor = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID);
-						assetEditor->AddEditor<TextureEditorPanel>(texture->Handle, "Texture Editor", true, texture);
-					}
-					break;
-				}
-			}
-		}
-	}
+	extern float xSpeed;
+	extern float ySpeed;
 
 	void EditorLayer::OnImGuiRender()
 	{
@@ -499,31 +451,9 @@ namespace Shark {
 		UI_Statistics();
 		UI_OpenProjectModal();
 		UI_ImportAsset();
-		UI_Stuff();
 		UI_PendingAssetFileEvents();
 		UI_CreateMeshAsset();
 		UI_Objects();
-
-		{
-			static AssetHandle meshSourceHandle = AssetHandle::Invalid;
-			static AssetHandle meshHandle = AssetHandle::Invalid;
-			bool changed = false;
-			ImGui::Begin("debug");
-			UI::BeginControls();
-			changed |= UI::Control("GenerateMips", g_MeshSourceSerializerSettings.GenerateMips);
-			changed |= UI::Control("Anisotropy", g_MeshSourceSerializerSettings.Anisotropy);
-			changed |= UI::Control("MaxAnisotropy", g_MeshSourceSerializerSettings.MaxAnisotropy);
-			UI::ControlAsset("MeshSource", meshSourceHandle);
-			UI::ControlAsset("Mesh", meshHandle);
-			UI::EndControls();
-			ImGui::End();
-
-			if (changed)
-			{
-				ResourceManager::ReloadAsset(meshSourceHandle);
-				ResourceManager::ReloadAsset(meshHandle);
-			}
-		}
 
 		m_PanelManager->OnImGuiRender();
 		
@@ -613,7 +543,7 @@ namespace Shark {
 
 				if (ImGui::MenuItem("Import Asset In Place"))
 				{
-					auto files = PlatformUtils::OpenFileDialogMuliSelect(L"", 1, Project::GetAssetsPath(), true);
+					auto files = Platform::OpenFileDialogMuliSelect(L"", 1, Project::GetAssetsPath(), true);
 					for (const auto& file : files)
 					{
 						if (ResourceManager::IsFileImported(file))
@@ -628,7 +558,7 @@ namespace Shark {
 
 				if (ImGui::MenuItem("Create Project"))
 				{
-					auto projectDirectory = PlatformUtils::SaveDirectoryDialog();
+					auto projectDirectory = Platform::SaveDirectoryDialog();
 					if (!projectDirectory.empty())
 					{
 						auto project = CreateProject(projectDirectory);
@@ -647,7 +577,11 @@ namespace Shark {
 					ImGui::EndMenu();
 				}
 				if (ImGui::MenuItem("Save Project"))
-					SaveActiveProject();
+				{
+					auto project = Project::GetActive();
+					ProjectSerializer serializer(project);
+					serializer.Serialize(project->GetProjectFilePath());
+				}
 
 				ImGui::Separator();
 				if (ImGui::MenuItem("Exit"))
@@ -714,7 +648,6 @@ namespace Shark {
 				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
 				ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
 				ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
-				ImGui::MenuItem("Stuff Panel", nullptr, &m_ShowStuffPanel);
 				ImGui::EndMenu();
 			}
 
@@ -737,9 +670,13 @@ namespace Shark {
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		const bool anyItemFocused = ImGui::IsAnyItemActive() && GImGui->ActiveId != window->MoveId;
-		Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered || anyItemFocused);
+		const bool anyItemFocused = ImGui::IsAnyItemActive() && GImGui->ActiveId != ImGui::GetCurrentWindow()->MoveId;
+
+		if (Input::GetCursorMode() == CursorMode::Normal)
+			Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered || anyItemFocused);
+		else
+			Application::Get().GetImGuiLayer().BlockEvents(false);
+
 
 		const ImVec2 size = ImGui::GetContentRegionAvail();
 		if (m_ViewportWidth != size.x || m_ViewportHeight != size.y)
@@ -1057,8 +994,12 @@ namespace Shark {
 			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_FILEPATH");
 			if (payload)
 			{
+				SK_DEBUG_BREAK_CONDITIONAL(s_Break);
+
+				// What path type is ASSET_FILEPATH?
+
 				std::filesystem::path filePath = std::wstring((const wchar_t*)payload->Data, payload->DataSize / sizeof(wchar_t));
-				Project::Absolue(filePath);
+				filePath = Project::GetAbsolute(filePath);
 				const auto extention = filePath.extension();
 					
 				if (extention == L".skscene")
@@ -1328,6 +1269,9 @@ namespace Shark {
 		if (!m_ShowProjectSettings)
 			return;
 
+		// TODO(moro): make this its only panel
+		SK_DEBUG_BREAK_CONDITIONAL(s_Break);
+
 		ImGui::Begin("Project", &m_ShowProjectSettings);
 
 		auto& config = *Project::GetActive();
@@ -1352,7 +1296,7 @@ namespace Shark {
 			ImGui::SetNextItemWidth(-1.0f);
 			if (ImGui::InputText("##Assets", &m_ProjectEditData.Assets))
 			{
-				auto assetsDirectory = Project::AbsolueCopy(m_ProjectEditData.Assets);
+				auto assetsDirectory = Project::GetAbsolute(m_ProjectEditData.Assets);
 				m_ProjectEditData.ValidAssetsPath = (std::filesystem::exists(assetsDirectory) && std::filesystem::is_directory(assetsDirectory));
 				if (m_ProjectEditData.ValidAssetsPath)
 					config.AssetsDirectory = assetsDirectory;
@@ -1370,7 +1314,7 @@ namespace Shark {
 			ImGui::SetNextItemWidth(-1.0f);
 			if (ImGui::InputText("##StartupScene", &m_ProjectEditData.StartupScene))
 			{
-				auto startupScene = Project::AbsolueCopy(m_ProjectEditData.StartupScene);
+				auto startupScene = Project::GetAbsolute(m_ProjectEditData.StartupScene);
 				m_ProjectEditData.ValidStartupScene = std::filesystem::exists(startupScene) && std::filesystem::is_regular_file(startupScene) && (startupScene.extension() == L".skscene");
 				if (m_ProjectEditData.ValidStartupScene)
 					config.StartupScenePath = startupScene;
@@ -1387,7 +1331,7 @@ namespace Shark {
 					if (metadata.Type == AssetType::Scene)
 					{
 						config.StartupScenePath = ResourceManager::GetFileSystemPath(metadata);
-						m_ProjectEditData.StartupScene = Project::RelativeCopy(config.StartupScenePath).string();
+						m_ProjectEditData.StartupScene = Project::GetRelative(config.StartupScenePath).string();
 						m_ProjectEditData.ValidStartupScene = true;
 					}
 				}
@@ -1709,7 +1653,7 @@ namespace Shark {
 			ImGui::SameLine();
 			if (ImGui::Button("..."))
 			{
-				auto path = PlatformUtils::SaveFileDialog(L"", 1, Project::GetAssetsPath(), true, false);
+				auto path = Platform::SaveFileDialog(L"", 1, Project::GetAssetsPath(), true, false);
 				path.replace_extension();
 				m_ImportAssetData.DestinationPath = std::filesystem::relative(path, Project::GetAssetsPath()).generic_string();
 			}
@@ -1795,39 +1739,6 @@ namespace Shark {
 		}
 	}
 
-	void EditorLayer::UI_Stuff()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!m_ShowStuffPanel)
-			return;
-
-		ImGui::Begin("Stuff", &m_ShowStuffPanel);
-		ImGui::Text("Shurtcuts only available when this window is showing");
-
-		if (ImGui::Button("Show Cursor"))
-			Input::SetCursorMode(CursorMode::Show);
-		ImGui::Text("Shortcut: ,");
-		if (Input::IsKeyPressed(KeyCode::OemComma))
-			Input::SetCursorMode(CursorMode::Show);
-
-
-		if (ImGui::Button("Hide Cursor"))
-			Input::SetCursorMode(CursorMode::Hide);
-		ImGui::Text("Shortcut: .");
-		if (Input::IsKeyPressed(KeyCode::OemPeriod))
-			Input::SetCursorMode(CursorMode::Hide);
-
-
-		if (ImGui::Button("HideKeepInPlace Cursor"))
-			Input::SetCursorMode(CursorMode::HideKeepInPlace);
-		ImGui::Text("Shortcut: -");
-		if (Input::IsKeyPressed(KeyCode::OemMinus))
-			Input::SetCursorMode(CursorMode::HideKeepInPlace);
-
-		ImGui::End();
-	}
-
 	void EditorLayer::UI_Objects()
 	{
 		if (!m_ShowObjects)
@@ -1877,9 +1788,9 @@ namespace Shark {
 		{
 			switch (event.Action)
 			{
-				case FileEvent::Created: ResourceManager::OnAssetCreated(event.AssetPath); return;
-				case FileEvent::Deleted: ResourceManager::OnAssetDeleted(event.AssetPath); return;
-				case FileEvent::OldName: ResourceManager::OnAssetRenamed(event.AssetPath, event.NewName); return;
+				case filewatch::Event::added: ResourceManager::OnAssetCreated(event.AssetPath); return;
+				case filewatch::Event::removed: ResourceManager::OnAssetDeleted(event.AssetPath); return;
+				case filewatch::Event::renamed_old: ResourceManager::OnAssetRenamed(event.AssetPath, event.NewName); return;
 			}
 		};
 
@@ -1901,7 +1812,7 @@ namespace Shark {
 			UI::TextF("Path: {}", relativePath);
 			UI::TextF("Action: {}", event.ActionString);
 
-			if (event.Action == FileEvent::OldName)
+			if (event.Action == filewatch::Event::renamed_old)
 				UI::TextF("New Filename: {}", event.NewName);
 
 			if (ImGui::Button("Apply"))
@@ -2226,7 +2137,7 @@ namespace Shark {
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 		SK_CORE_ASSERT(m_ActiveScene == m_WorkScene);
 
-		auto filePath = PlatformUtils::SaveFileDialog(L"|*.*|Scene|*.skscene", 2, Project::GetAssetsPath(), true);
+		auto filePath = Platform::SaveFileDialog(L"|*.*|Scene|*.skscene", 2, Project::GetAssetsPath(), true);
 		if (filePath.empty())
 			return false;
 
@@ -2354,7 +2265,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		auto filePath = PlatformUtils::OpenFileDialog(L"|*.*|Project|*.skproj", 2);
+		auto filePath = Platform::OpenFileDialog(L"|*.*|Project|*.skproj", 2);
 		if (!filePath.empty())
 			OpenProject(filePath);
 	}
@@ -2381,7 +2292,7 @@ namespace Shark {
 			if (!LoadScene(project->Directory / project->StartupScenePath))
 				NewScene("Empty Fallback Scene");
 
-			FileSystem::StartWatching(Project::GetAssetsPath());
+			FileSystem::StartWatch(project->AssetsDirectory, std::wregex(L"^(?!Scripts).*$"), [this](const auto& events) { OnFileEvents(events); });
 
 			m_ProjectEditData = project;
 		}
@@ -2391,9 +2302,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(Project::GetActive());
+		auto project = Project::GetActive();
+		SK_CORE_ASSERT(project);
 
-		SaveActiveProject();
+		ProjectSerializer serializer(project);
+		serializer.Serialize(project->GetProjectFilePath());
 
 		SK_CORE_INFO("Closing Project");
 
@@ -2402,42 +2315,19 @@ namespace Shark {
 		m_ActiveScene = nullptr;
 		m_SceneRenderer->SetScene(nullptr);
 		m_CameraPreviewRenderer->SetScene(nullptr);
-
 		SetActiveScene(nullptr);
 
-#if 0
-		// Note(moro): When CloseProject gets called durring application shutdown the application can't Raise Events anymore
-		//             to get around this the event is distributed internal
-		if (!Application::Get().CanRaiseEvents())
-			OnEvent(SceneChangedEvent(nullptr));
-#endif
 		ScriptEngine::UnloadAssemblies();
 
 		SK_CORE_ASSERT(m_WorkScene->GetRefCount() == 1);
 		m_WorkScene = nullptr;
 
-		FileSystem::StopWatching();
+		FileSystem::StopWatch(Project::GetAssetsPath());
 
 		Project::SetActive(nullptr);
-		//Application::Get().QueueEvent<ProjectChangedEvent>(nullptr);
 		m_PanelManager->OnProjectChanged(nullptr);
 	}
-
-	void EditorLayer::SaveActiveProject()
-	{
-		SK_CORE_ASSERT(Project::GetActive());
-		SaveActiveProject(fmt::format("{0}/{1}.skproj", Project::GetDirectory(), Project::GetName()));
-	}
-
-	void EditorLayer::SaveActiveProject(const std::filesystem::path& filePath)
-	{
-		SK_PROFILE_FUNCTION();
-
-		SK_CORE_ASSERT(Project::GetActive());
-		ProjectSerializer serializer(Project::GetActive());
-		serializer.Serialize(filePath);
-	}
-
+	
 	Ref<ProjectInstance> EditorLayer::CreateProject(const std::filesystem::path& projectDirectory)
 	{
 		// Create Directory
@@ -2494,13 +2384,13 @@ namespace Shark {
 		specs.WaitUntilFinished = true;
 		specs.WorkingDirectory = Project::GetDirectory();
 		specs.InterhitConsole = true;
-		PlatformUtils::Execute(specs);
+		Platform::Execute(specs);
 	}
 
 	void EditorLayer::OpenIDE()
 	{
 		auto solutionPath = fmt::format("{}/{}.sln", Project::GetDirectory(), Project::GetName());
-		PlatformUtils::Execute(ExectueVerb::Open, solutionPath);
+		Platform::Execute(ExectueVerb::Open, solutionPath);
 	}
 
 	void EditorLayer::AssembliesReloadedHook()
@@ -2531,7 +2421,7 @@ namespace Shark {
 			sceneName = m_ActiveScene->GetName();
 		}
 
-		std::string title = fmt::format("{} ({}) - SharkFin - {} {} ({}) - {}", sceneFilePath, sceneName, PlatformUtils::GetPlatform(), PlatformUtils::GetArchitecture(), PlatformUtils::GetConfiguration(), ToStringView(RendererAPI::GetCurrentAPI()));
+		std::string title = fmt::format("{} ({}) - SharkFin - {} {} ({}) - {}", sceneFilePath, sceneName, Platform::GetPlatformName(), Platform::GetArchitecture(), Platform::GetConfiguration(), ToStringView(RendererAPI::GetCurrentAPI()));
 		Application::Get().GetWindow().SetTitle(title);
 	}
 

@@ -1,8 +1,9 @@
 #pragma once
+
 #include "Shark/Core/Base.h"
 #include "Shark/Event/Event.h"
 #include "Shark/Event/EventListener.h"
-
+#include "Shark/Input/MouseButtons.h"
 #include "Shark/Render/SwapChain.h"
 
 namespace Shark {
@@ -25,7 +26,7 @@ namespace Shark {
 		virtual ~Window() = default;
 
 		virtual void SwapBuffers() = 0;
-		virtual void ProcessEvents() const = 0;
+		virtual void ProcessEvents() = 0;
 
 		virtual void KillWindow() = 0;
 
@@ -50,8 +51,10 @@ namespace Shark {
 		virtual uint32_t GetHeight() const = 0;
 		virtual const glm::uvec2& GetSize() const = 0;
 		virtual const glm::ivec2& GetPosition() const = 0;
-		virtual glm::ivec2 ScreenToWindow(const glm::ivec2& screenPos) const = 0;
-		virtual glm::ivec2 WindowToScreen(const glm::ivec2& windowPos) const = 0;
+		virtual glm::vec2 ScreenToWindow(const glm::vec2& screenPos) const = 0;
+		virtual glm::vec2 WindowToScreen(const glm::vec2& windowPos) const = 0;
+
+		virtual void SetCursorMode(CursorMode mode) = 0;
 
 		virtual WindowHandle GetHandle() const = 0;
 		virtual Ref<SwapChain> GetSwapChain() const = 0;

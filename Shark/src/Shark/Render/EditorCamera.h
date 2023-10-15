@@ -54,8 +54,8 @@ namespace Shark {
 		float GetFlySpeed() const { return m_MoveSpeed; }
 		void SetFlySpeed(float speed) { m_MoveSpeed = speed; }
 
-		float GetSpeedup() const { return m_Speedup; }
-		void SetSpeedup(float speedup) { m_Speedup = speedup; }
+		float GetSpeedup() const { return m_SpeedupFactor; }
+		void SetSpeedup(float speedup) { m_SpeedupFactor = speedup; }
 
 		float GetRotationSpeed() const { return m_RotateSpeed; }
 		void SetRotationSpeed(float rotationSpeed) { m_RotateSpeed = rotationSpeed; }
@@ -90,11 +90,9 @@ namespace Shark {
 		void Move(const glm::vec3& direction, float delta);
 		void Rotate(const glm::vec2& delta);
 	private:
-		bool m_Update = false;
-
 		float m_MoveSpeed = 20.0f;
-		float m_RotateSpeed = 1.5f;
-		float m_Speedup = 4.0f;
+		float m_RotateSpeed = 0.5f;
+		float m_SpeedupFactor = 4.0f;
 
 		float m_AspectRatio = 16.0f / 9.0f;
 		float m_FOV = glm::radians(45.0f);

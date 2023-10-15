@@ -514,25 +514,23 @@ namespace Shark {
 					return false;
 			}
 
-			return Input::GetMouseScroll();
+			return Input::GetYScroll();
 		}
 
 		void Input_GetMousePos(glm::ivec2* out_MousePos)
 		{
-			auto p = Input::GetScreenMousePosition();
+			auto mousePos = Input::GetMousePosition();
 
-			Application& app = Application::Get();
+			const auto& app = Application::Get();
 			if (app.GetSpecification().EnableImGui)
 			{
-				ImGuiWindow* viewportWindow = ImGui::FindWindowByID(app.GetImGuiLayer().GetMainViewportID());
+				const ImGuiWindow* viewportWindow = ImGui::FindWindowByID(app.GetImGuiLayer().GetMainViewportID());
 				if (viewportWindow)
-				{
-					p.x -= (int)viewportWindow->Pos.x;
-					p.y -= (int)viewportWindow->Pos.y;
-				}
+					mousePos -= app.GetWindow().ScreenToWindow({ viewportWindow->Pos.x, viewportWindow->Pos.y });
 			}
 
-			*out_MousePos = { p.x, p.y };
+			out_MousePos->x = mousePos.x;
+			out_MousePos->y = mousePos.y;
 		}
 
 		#pragma endregion

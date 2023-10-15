@@ -44,6 +44,7 @@
 	#define SK_ENABLE_PROFILER 1
 #endif
 
+#define SK_DEBUG_BREAK_CONDITIONAL(_cond_var_name) static bool _cond_var_name = true; if (_cond_var_name) { SK_DEBUG_BREAK(); }
 
 #pragma region Macro Internal
 

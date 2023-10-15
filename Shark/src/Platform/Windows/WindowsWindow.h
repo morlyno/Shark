@@ -7,6 +7,8 @@
 
 namespace Shark {
 
+	enum class CursorMode;
+
 	class WindowsWindow : public Window
 	{
 	public:
@@ -17,7 +19,7 @@ namespace Shark {
 		virtual ~WindowsWindow();
 		
 		virtual void SwapBuffers() override;
-		virtual void ProcessEvents() const override;
+		virtual void ProcessEvents() override;
 
 		virtual void KillWindow() override;
 
@@ -42,11 +44,18 @@ namespace Shark {
 		virtual uint32_t GetHeight() const override { return m_Size.y; }
 		virtual const glm::uvec2& GetSize() const override { return m_Size; }
 		virtual const glm::ivec2& GetPosition() const override { return m_Pos; }
-		virtual glm::ivec2 ScreenToWindow(const glm::ivec2& screenPos) const override;
-		virtual glm::ivec2 WindowToScreen(const glm::ivec2& windowPos) const override;
+		virtual glm::vec2 ScreenToWindow(const glm::vec2& screenPos) const override;
+		virtual glm::vec2 WindowToScreen(const glm::vec2& windowPos) const override;
+
+		virtual void SetCursorMode(CursorMode mode) override;
 
 		virtual WindowHandle GetHandle() const override { return m_hWnd; }
 		virtual Ref<SwapChain> GetSwapChain() const override { return m_SwapChain; }
+
+	public:
+		void CaptureCursor();
+		void SetCursorPositionInWindow(const glm::vec2& cursorPos);
+		glm::vec2 GetWindowSize() const;
 
 	private:
 		static LRESULT WINAPI WindowProcStartUp(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -71,7 +80,11 @@ namespace Shark {
 		bool m_Fullscreen = false;
 		WINDOWPLACEMENT m_PreFullscreenWindowPlacement{};
 
-		friend class WindowClass;
+		CursorMode m_CursorMode = CursorMode::Normal;
+		glm::vec2 m_RestoreCursorPosition;
+
+		glm::vec2 m_LastCursorPosition;
+		glm::vec2 m_VirtualCursorPosition;
 	};
 
 }

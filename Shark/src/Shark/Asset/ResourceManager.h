@@ -31,8 +31,8 @@ namespace Shark {
 		static bool HasExistingFilePath(const AssetMetaData& metadata);
 		static bool HasExistingFilePath(Ref<Asset> asset) { return HasExistingFilePath(GetMetaData(asset->Handle)); }
 
-		static std::filesystem::path MakeRelativePath(const std::filesystem::path& filePath);
-		static std::string MakeRelativePathString(const std::filesystem::path& filePath) { return MakeRelativePath(filePath).string(); }
+		static std::filesystem::path MakeRelativePath(const std::filesystem::path& filesystemOrAssetPath);
+		static std::string MakeRelativePathString(const std::filesystem::path& filesystemOrAssetPath) { return MakeRelativePath(filesystemOrAssetPath).string(); }
 		static std::filesystem::path GetFileSystemPath(const AssetMetaData& metadata);
 		static std::filesystem::path GetFileSystemPath(AssetHandle handle) { return GetFileSystemPath(GetMetaData(handle)); }
 		static std::filesystem::path GetProjectPath(const AssetMetaData& metadata);

@@ -129,7 +129,7 @@ namespace Shark {
 			{
 				if (ImGui::BeginDragDropSource())
 				{
-					ImGui::SetDragDropPayload("ASSET", &m_Handle, sizeof(AssetHandle));
+					ImGui::SetDragDropPayload(UI::DragDropID::Asset, &m_Handle, sizeof(AssetHandle));
 					UI::Text(m_Name);
 					if (m_Thumbnail)
 					{
@@ -149,7 +149,7 @@ namespace Shark {
 					std::string absolutPath = cbPanel.GetProject()->GetAbsolue(directory->FilePath).string();
 					char path[260];
 					strcpy_s(path, absolutPath.c_str());
-					ImGui::SetDragDropPayload(UI_DRAGDROP_DIRECTORY_TYPE, path, sizeof(path));
+					ImGui::SetDragDropPayload(UI::DragDropID::Directroy, path, sizeof(path));
 					ImGui::Text(path);
 					ImGui::EndDragDropSource();
 				}
@@ -305,13 +305,13 @@ namespace Shark {
 		{
 			auto& cb = ContentBrowserPanel::Get();
 			Ref<DirectoryInfo> directory = cb.GetDirectory(m_Handle);
-			PlatformUtils::MoveFileToRecycleBin(cb.m_Project->Directory / directory->FilePath);
+			Platform::MoveFileToRecycleBin(cb.m_Project->Directory / directory->FilePath);
 			//std::filesystem::remove(cb.m_Project->Directory / directory->FilePath);
 			return;
 		}
 
 		const auto& metadata = ResourceManager::GetMetaData(m_Handle);
-		PlatformUtils::MoveFileToRecycleBin(ResourceManager::GetFileSystemPath(metadata));
+		Platform::MoveFileToRecycleBin(ResourceManager::GetFileSystemPath(metadata));
 		//std::filesystem::remove(ResourceManager::GetFileSystemPath(metadata));
 	}
 

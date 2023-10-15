@@ -13,6 +13,13 @@ namespace Shark {
 		None     = 0x00
 	};
 
+	enum class CursorMode
+	{
+		Normal,
+		Hidden,
+		Locked
+	};
+
 	inline std::string ToString(MouseButton mouseButton)
 	{
 		switch (mouseButton)

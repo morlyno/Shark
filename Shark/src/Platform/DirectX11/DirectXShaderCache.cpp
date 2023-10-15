@@ -35,7 +35,7 @@ namespace Shark {
 
 		static std::filesystem::path GetShaderCacheRegistryFilePath()
 		{
-			return L"Cache/Shaders/ShaderCacheRegistry.yaml";
+			return FileSystem::GetResourcePath(L"Cache/Shaders/ShaderCacheRegistry.yaml");
 		}
 
 	}

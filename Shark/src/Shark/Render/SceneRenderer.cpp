@@ -253,6 +253,9 @@ namespace Shark {
 			if (ImGui::TreeNodeEx("Statistics", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
 				UI::BeginControlsGrid();
+
+				UI::Property("Viewport", glm::vec2{ m_ViewportWidth, m_ViewportHeight });
+
 				UI::Property("DrawCalls", m_Statistics.DrawCalls);
 				UI::Property("Vertices", m_Statistics.VertexCount);
 				UI::Property("Indices", m_Statistics.IndexCount);

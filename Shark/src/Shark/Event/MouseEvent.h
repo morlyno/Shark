@@ -5,128 +5,71 @@
 
 namespace Shark {
 
-	class MouseEvent : public Event
+	class MouseMovedEvent : public EventBase<EventType::MouseMoved, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
-		virtual const glm::ivec2& GetMousePos() const = 0;
-		virtual int GetX() const = 0;
-		virtual int GetY() const = 0;
-		virtual MouseButton GetButton() const = 0;
-	};
+		MouseMovedEvent(float x, float y)
+			: m_MouseX(x), m_MouseY(y) {}
 
-	class MouseMovedEvent : public EventBase<MouseEvent, EventType::MouseMoved, EventCategory::Input | EventCategory::Mouse>
-	{
-	public:
-		MouseMovedEvent(const glm::ivec2& mousepos)
-			: m_MousePos(mousepos)
-		{}
-
-		virtual const glm::ivec2& GetMousePos() const override { return m_MousePos; }
-		virtual int GetX() const override { return m_MousePos.x; }
-		virtual int GetY() const override { return m_MousePos.y; }
-		virtual MouseButton GetButton() const override { return MouseButton::None; }
-
-		std::string ToString() const override { return fmt::format("{}, Pos: {}", GetName(), m_MousePos); }
+		float GetX() const { return m_MouseX; }
+		float GetY() const { return m_MouseY; }
+		std::string ToString() const override { return fmt::format("{}, Pos: {}", GetName(), glm::vec2(m_MouseX, m_MouseY)); }
 
 	private:
-		glm::ivec2 m_MousePos;
+		float m_MouseX, m_MouseY;
 	};
 
-	class MouseMovedRelativeEvent : public EventBase<MouseEvent, EventType::MouseMovedRelative, EventCategory::Input | EventCategory::Mouse>
+	class MouseButtonPressedEvent : public EventBase<EventType::MouseButtonPressed, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
-		MouseMovedRelativeEvent(const glm::ivec2& delta)
-			: m_Delta(delta)
-		{}
+		MouseButtonPressedEvent(MouseButton button)
+			: m_Button(button) {}
 
-		virtual const glm::ivec2& GetMousePos() const override { return { 0.0f, 0.0f }; }
-		virtual int GetX() const override { return 0; }
-		virtual int GetY() const override { return 0; }
-		virtual MouseButton GetButton() const override { return MouseButton::None; }
-
-		const glm::ivec2& GetMouseDelta() const { return m_Delta; }
-
-		std::string ToString() const override { return fmt::format("{}, Delta: {}", GetName(), m_Delta); }
+		MouseButton GetButton() const { return m_Button; }
+		std::string ToString() const override { return fmt::format("{}, Button: {}", GetName(), ::Shark::ToString(m_Button)); }
 
 	private:
-		glm::ivec2 m_Delta;
-	};
-
-	class MouseButtonPressedEvent : public EventBase<MouseEvent, EventType::MouseButtonPressed, EventCategory::Input | EventCategory::Mouse>
-	{
-	public:
-		MouseButtonPressedEvent(const glm::ivec2& mousePos, MouseButton button)
-			: m_MousePos(mousePos), m_Button(button)
-		{}
-
-		virtual const glm::ivec2& GetMousePos() const override { return m_MousePos; }
-		virtual int GetX() const override { return m_MousePos.x; }
-		virtual int GetY() const override { return m_MousePos.y; }
-		virtual MouseButton GetButton() const override { return m_Button; }
-
-		std::string ToString() const override { return fmt::format("{}, Pos: {}, Button: {}", GetName(), m_MousePos, ::Shark::ToString(m_Button)); }
-
-	private:
-		glm::ivec2 m_MousePos;
 		MouseButton m_Button;
 	};
 
-	class MouseButtonReleasedEvent : public EventBase<MouseEvent, EventType::MouseButtonReleasd, EventCategory::Input | EventCategory::Mouse>
+	class MouseButtonReleasedEvent : public EventBase<EventType::MouseButtonReleasd, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
-		MouseButtonReleasedEvent(const glm::ivec2& mousePos, MouseButton button)
-			: m_MousePos(mousePos), m_Button(button)
-		{}
+		MouseButtonReleasedEvent(MouseButton button)
+			: m_Button(button) {}
 
-		virtual const glm::ivec2& GetMousePos() const override { return m_MousePos; }
-		virtual int GetX() const override { return m_MousePos.x; }
-		virtual int GetY() const override { return m_MousePos.y; }
-		virtual MouseButton GetButton() const override { return m_Button; }
-
-		std::string ToString() const override { return fmt::format("{}, Pos: {}, Button: {}", GetName(), m_MousePos, ::Shark::ToString(m_Button)); }
+		MouseButton GetButton() const { return m_Button; }
+		std::string ToString() const override { return fmt::format("{}, Button: {}", GetName(), ::Shark::ToString(m_Button)); }
 
 	private:
-		glm::ivec2 m_MousePos;
 		MouseButton m_Button;
 	};
 
-	class MouseButtonDoubleClickedEvent : public EventBase<MouseEvent, EventType::MouseButtonDoubleClicked, EventCategory::Input | EventCategory::Mouse>
+	class MouseButtonDoubleClickedEvent : public EventBase<EventType::MouseButtonDoubleClicked, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
-		MouseButtonDoubleClickedEvent(const glm::ivec2& mousePos, MouseButton button)
-			: m_MousePos(mousePos), m_Button(button)
-		{}
+		MouseButtonDoubleClickedEvent(MouseButton button)
+			: m_Button(button) {}
 
-		virtual const glm::ivec2& GetMousePos() const override { return m_MousePos; }
-		virtual int GetX() const override { return m_MousePos.x; }
-		virtual int GetY() const override { return m_MousePos.y; }
-		virtual MouseButton GetButton() const override { return m_Button; }
-
-		std::string ToString() const override { return fmt::format("{}, Pos: {}, Button: {}", GetName(), m_MousePos, ::Shark::ToString(m_Button)); }
+		MouseButton GetButton() const { return m_Button; }
+		std::string ToString() const override { return fmt::format("{}, Button: {}", GetName(), ::Shark::ToString(m_Button)); }
 
 	private:
-		glm::ivec2 m_MousePos;
 		MouseButton m_Button;
 	};
 
-	class MouseScrolledEvent : public EventBase<MouseEvent, EventType::MouseScrolled, EventCategory::Input | EventCategory::Mouse>
+	class MouseScrolledEvent : public EventBase<EventType::MouseScrolled, EventCategory::Input | EventCategory::Mouse>
 	{
 	public:
-		MouseScrolledEvent(const glm::ivec2& mousePos, float delta)
-			: m_MousePos(mousePos), m_Delta(delta)
-		{}
+		MouseScrolledEvent(float xOffset, float yOffset)
+			: m_XOffset(xOffset), m_YOffset(yOffset) {}
 
-		virtual const glm::ivec2& GetMousePos() const override { return m_MousePos; }
-		virtual int GetX() const override { return m_MousePos.x; }
-		virtual int GetY() const override { return m_MousePos.y; }
-		virtual MouseButton GetButton() const override { return MouseButton::None; }
-		float GetDelta() const { return m_Delta; }
-
-		std::string ToString() const override { return fmt::format("{}, Pos: {}, Delta: {}", GetName(), m_MousePos, m_Delta); }
+		float GetXOffset() const { return m_XOffset; }
+		float GetYOffset() const { return m_YOffset; }
+		std::string ToString() const override { return fmt::format("{}, Offset: {}", GetName(), glm::vec2(m_XOffset, m_YOffset)); }
 
 	private:
-		glm::ivec2 m_MousePos;
-		float m_Delta;
+		float m_XOffset, m_YOffset;
 	};
 
 }

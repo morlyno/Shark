@@ -28,7 +28,7 @@ namespace Shark {
 			if (workingDirectory.stem() == L"SharkFin")
 				workingDirectory = workingDirectory.parent_path();
 
-			PlatformUtils::SetEnvironmentVariable("SHARK_DIR", workingDirectory.string());
+			Platform::SetEnvironmentVariable("SHARK_DIR", workingDirectory.string());
 
 			PushLayer(sknew EditorLayer(m_StartupProject));
 		}
@@ -55,7 +55,7 @@ namespace Shark {
 		specification.EnableImGui = true;
 		specification.VSync = true;
 
-		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/Shark-ScriptCore.dll";
+		specification.ScriptConfig.CoreAssemblyPath = FileSystem::GetResourcePath("Resources/Binaries/Shark-ScriptCore.dll");
 		specification.ScriptConfig.EnableDebugging = true;
 
 		return sknew SharkFin(specification, startupProject);

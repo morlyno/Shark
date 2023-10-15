@@ -87,9 +87,7 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Deserializing TextureSource from {}", assetPath);
 		Timer timer;
 
-		std::filesystem::path filesystemPath = std::filesystem::exists(assetPath) ? assetPath : FileSystem::GetAbsolute(assetPath);
-
-		if (!FileSystem::Exists(filesystemPath))
+		if (!FileSystem::Exists(assetPath))
 		{
 			SK_SERIALIZATION_ERROR("Path not found! {0}", assetPath);
 			return false;
@@ -99,7 +97,7 @@ namespace Shark {
 		int width, height, components;
 		Buffer imagedata;
 
-		Buffer filedata = FileSystem::ReadBinary(filesystemPath);
+		Buffer filedata = FileSystem::ReadBinary(assetPath);
 		imagedata.Data = stbi_load_from_memory(filedata.As<stbi_uc>(), (int)filedata.Size, &width, &height, &components, STBI_rgb_alpha);
 		filedata.Release();
 
@@ -136,7 +134,7 @@ namespace Shark {
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(FileSystem::GetAbsolute(filepath));
+		std::string filedata = FileSystem::ReadString(filepath);
 		if (filedata.empty())
 		{
 			SK_SERIALIZATION_ERROR("File was empty!");
@@ -232,7 +230,7 @@ namespace Shark {
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(FileSystem::GetAbsolute(assetPath));
+		std::string filedata = FileSystem::ReadString(assetPath);
 		if (filedata.empty())
 		{
 			SK_SERIALIZATION_ERROR("File was empty!");

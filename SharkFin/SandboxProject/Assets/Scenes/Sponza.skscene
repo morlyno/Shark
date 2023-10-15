@@ -2952,7 +2952,7 @@ Scene:
         SubmeshIndex: 302
     - Entity: 9428703014261331129
       TagComponent:
-        Name: Entity
+        Name: Light
       TransformComponent:
         Translation: [0, 21.6513062, 0]
         Rotation: [0, 0, 0]

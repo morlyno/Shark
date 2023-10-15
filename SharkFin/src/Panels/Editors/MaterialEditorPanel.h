@@ -42,14 +42,15 @@ namespace Shark {
 
 	private:
 		void Initialize();
+		void SetupSceneAndRenderer();
 		void SetupWindows();
 
 	private:
 		bool m_Tiny = false;
 
+		bool m_IsFirstFrame = true;
 		bool m_IsInitialized = false;
 		bool m_Active = true;
-		bool m_IsFirstFrame = true;
 
 		Scope<MaterialEditor> m_MaterialEditor;
 		Ref<MaterialAsset> m_Material;

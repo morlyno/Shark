@@ -79,7 +79,7 @@ namespace Shark {
 		}
 
 		Ref<MeshSource> meshSource = Ref<MeshSource>::Create();
-		if (!TryLoad(meshSource, FileSystem::GetAbsolute(assetPath)))
+		if (!TryLoad(meshSource, FileSystem::GetFilesystemPath(assetPath)))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to Load MeshSource!");
 			return false;
