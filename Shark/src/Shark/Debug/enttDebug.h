@@ -122,10 +122,9 @@ namespace Shark::Debug {
 
 		SceneView(const entt::registry& reg)
 		{
-			reg.each([this, &reg](entt::entity e)
-			{
-				m_Entitys.emplace_back(e, reg);
-			});
+			for (auto [ent] : reg.storage<entt::entity>()->each())
+				m_Entitys.emplace_back(ent, reg);
+
 		}
 	private:
 		std::vector<EntityView> m_Entitys;

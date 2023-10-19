@@ -53,18 +53,6 @@ namespace Shark {
 		using Flags = uint16_t;
 	}
 
-	template<EventType Type, EventCategory::Flags Category>
-	class EventBase : public Event
-	{
-	public:
-		static constexpr EventType GetStaticType() { return Type; }
-		virtual EventType GetEventType() const override { return GetStaticType(); }
-		virtual std::string GetName() const override { return EventTypesToString(Type); }
-
-		static constexpr EventCategory::Flags GetStaticEventCategoryFlags() { return Category; }
-		virtual EventCategory::Flags GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
-	};
-
 	class Event
 	{
 	public:
@@ -85,6 +73,18 @@ namespace Shark {
 
 	public:
 		bool Handled = false;
+	};
+
+	template<EventType Type, EventCategory::Flags Category>
+	class EventBase : public Event
+	{
+	public:
+		static constexpr EventType GetStaticType() { return Type; }
+		virtual EventType GetEventType() const override { return GetStaticType(); }
+		virtual std::string GetName() const override { return EventTypesToString(Type); }
+
+		static constexpr EventCategory::Flags GetStaticEventCategoryFlags() { return Category; }
+		virtual EventCategory::Flags GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
 	};
 
 	class EventDispacher

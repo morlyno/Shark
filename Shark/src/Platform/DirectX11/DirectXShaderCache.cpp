@@ -72,7 +72,7 @@ namespace Shark {
 
 	ShaderUtils::ShaderStage::Flags DirectXShaderCache::GetChangedStages(Ref<DirectXShaderCompiler> compiler) const
 	{
-		if (m_CachedShaderSourceHashCodes.find(compiler->GetShaderSourcePath()) == m_CachedShaderSourceHashCodes.end())
+		if (!m_CachedShaderSourceHashCodes.contains(compiler->GetShaderSourcePath()))
 			return ShaderUtils::ShaderStage::All;
 
 		ShaderUtils::ShaderStage::Flags changedStages = ShaderUtils::ShaderStage::None;
@@ -86,7 +86,7 @@ namespace Shark {
 				continue;
 			}
 
-			if (hashCodes.find(stage) == hashCodes.end())
+			if (!hashCodes.contains(stage))
 			{
 				changedStages |= stage;
 				continue;

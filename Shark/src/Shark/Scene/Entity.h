@@ -80,7 +80,7 @@ namespace Shark {
 		Entity Parent() { return m_Scene.GetRef()->TryGetEntityByUUID(ParentUUID()); }
 		std::vector<UUID>& Children() { return GetComponent<RelationshipComponent>().Children; }
 
-		bool HasParent() { return GetComponent<RelationshipComponent>().Parent.IsValid(); }
+		bool HasParent() { return GetComponent<RelationshipComponent>().Parent != UUID::Invalid; }
 		bool HasChild(UUID childID);
 		bool HasChildren() { return GetComponent<RelationshipComponent>().Children.size() > 0; }
 

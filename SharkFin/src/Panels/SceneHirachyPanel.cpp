@@ -165,13 +165,15 @@ namespace Shark {
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_None))
 				SelectEntity(Entity{});
 
-			Ref<SceneHirachyPanel> instance = this;
-			m_Context->m_Registry.each([instance](auto entityID)
+			for (auto [ent] : m_Context->m_Registry.storage<entt::entity>().each())
 			{
-				Entity entity{ entityID, instance->m_Context };
+				Entity entity{ ent, m_Context };
 				if (!entity.HasParent())
-					instance->DrawEntityNode(entity);
-			});
+					DrawEntityNode(entity);
+			}
+
+			const auto& reg = m_Context->m_Registry;
+			auto a = reg.storage<entt::entity>()->each();
 
 			const ImGuiWindow* window = ImGui::GetCurrentWindow();
 			if (ImGui::BeginDragDropTargetCustom(window->WorkRect, window->ID))
@@ -571,7 +573,7 @@ namespace Shark {
 			UUID uuid = entity.GetUUID();
 			
 			Ref<Scene> scene = entity.GetScene().GetRef();
-			bool isMainCamera = scene->m_ActiveCameraUUID.IsValid() ? scene->m_ActiveCameraUUID == uuid : false;
+			bool isMainCamera = scene->m_ActiveCameraUUID != UUID::Invalid ? scene->m_ActiveCameraUUID == uuid : false;
 			if (UI::Control("Is Active", isMainCamera))
 				scene->m_ActiveCameraUUID = uuid;
 
@@ -756,7 +758,7 @@ namespace Shark {
 				for (auto& [name, field] : fields)
 				{
 					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
-					if (fieldStorages.find(name) == fieldStorages.end())
+					if (!fieldStorages.contains(name))
 					{
 						if (!ScriptEngine::IsInstantiated(entity))
 							ScriptEngine::InstantiateEntity(entity, false, false);

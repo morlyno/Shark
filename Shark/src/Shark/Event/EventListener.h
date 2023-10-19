@@ -47,7 +47,8 @@ namespace Shark {
 		template<typename TEvent, typename... TArgs>
 		void OnEvent(TArgs&&... args)
 		{
-			m_Callback(TEvent(std::forward<TArgs>(args)...));
+			TEvent event{ std::forward<TArgs>(args)... };
+			m_Callback(event);
 		}
 
 	private:

@@ -254,7 +254,7 @@ namespace Shark {
 		const std::string& GetName() const { return m_Name; }
 		std::map<std::string, ManagedField>& GetFields() { return m_Fields; }
 
-		bool HasField(const std::string& fieldName) const { return m_Fields.find(fieldName) != m_Fields.end(); }
+		bool HasField(const std::string& fieldName) const { return m_Fields.contains(fieldName); }
 		ManagedField& GetField(const std::string& fieldName) { return m_Fields.at(fieldName); }
 		const ManagedField& GetField(const std::string& fieldName) const { return m_Fields.at(fieldName); }
 

@@ -657,7 +657,7 @@ namespace Shark::UI {
 
 		bool changed = false;
 		char buffer[sizeof("0x0123456789ABCDEF")];
-		if (uuid.IsValid())
+		if (uuid != UUID::Invalid)
 			sprintf_s(buffer, "0x%llx", (uint64_t)uuid);
 		else
 			memset(buffer, 0, sizeof(buffer));
@@ -930,7 +930,7 @@ namespace Shark::UI {
 		Text(label);
 		ImGui::TableSetColumnIndex(1);
 		char buffer[sizeof("0x0123456789ABCDEF")];
-		if (uuid.IsValid())
+		if (uuid != UUID::Invalid)
 			sprintf_s(buffer, "0x%llx", (uint64_t)uuid);
 		else
 			memset(buffer, 0, sizeof(buffer));

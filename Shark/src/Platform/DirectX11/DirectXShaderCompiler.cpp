@@ -4,7 +4,6 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/Math/Math.h"
 #include "Shark/Utils/String.h"
-#include "Shark/Utils/Utils.h"
 
 #include "Platform/DirectX11/ShaderUtils.h"
 #include "Platform/DirectX11/DirectXShader.h"
@@ -270,7 +269,7 @@ namespace Shark {
 
 		static void EraseExtensions(std::string& hlslSource)
 		{
-			size_t pos = hlslSource.find("#extension");
+			size_t pos;
 			while ((pos = hlslSource.find("#extension")) != std::string::npos)
 			{
 				hlslSource.erase(pos, hlslSource.find_first_of("\n\r"));
@@ -871,7 +870,7 @@ namespace Shark {
 			}
 			catch (const spirv_cross::CompilerError& error)
 			{
-				SK_CORE_ERROR_TAG("Renderer", "Failed to reflect shader stage!\n\tStage: {}\n\Error Message: {}", stage, error.what());
+				SK_CORE_ERROR_TAG("Renderer", "Failed to reflect shader stage!\n\tStage: {}\n\tError Message: {}", stage, error.what());
 			}
 		}
 	}
@@ -896,14 +895,14 @@ namespace Shark {
 			if (name.empty())
 				name = constantBuffer.name;
 
-			uint32_t size = compiler.get_declared_struct_size(bufferType);
-			uint32_t memberCount = bufferType.member_types.size();
+			uint32_t size = (uint32_t)compiler.get_declared_struct_size(bufferType);
+			uint32_t memberCount = (uint32_t)bufferType.member_types.size();
 			uint32_t binding = compiler.get_decoration(constantBuffer.id, spv::DecorationBinding);
 
 			auto& data = m_ReflectionData.ConstantBuffers[name];
 			data.Name = name;
 			data.Stage = utils::ToShaderReflectionShaderStage(stage);
-			data.UpdateFrequency = Utils::Contains(overriddenUpdateFruequencies, binding) ? overriddenUpdateFruequencies.at(binding) : utils::GetUpdateFrequencyFromBinding(binding);
+			data.UpdateFrequency = overriddenUpdateFruequencies.contains(binding) ? overriddenUpdateFruequencies.at(binding) : utils::GetUpdateFrequencyFromBinding(binding);
 			data.Binding = binding;
 			data.Size = size;
 			data.MemberCount = memberCount;
@@ -923,7 +922,7 @@ namespace Shark {
 				const auto& memberName = compiler.get_member_name(constantBuffer.base_type_id, index);
 				memberData.Name = fmt::format("{}.{}", name, memberName);
 				memberData.Type = utils::GetVariableType(memberType);
-				memberData.Size = compiler.get_declared_struct_member_size(bufferType, index);
+				memberData.Size = (uint32_t)compiler.get_declared_struct_member_size(bufferType, index);
 				memberData.Offset = offset;
 				index++;
 				offset += memberData.Size;

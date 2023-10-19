@@ -2,7 +2,6 @@
 #include "FileSystem.h"
 
 #include "Shark/Core/Project.h"
-#include "Shark/Utils/Utils.h"
 #include "Shark/Utils/String.h"
 #include "Shark/Utils/PlatformUtils.h"
 
@@ -58,7 +57,7 @@ namespace Shark {
 
 	void FileSystem::StartWatch(const std::filesystem::path& watchPath, FileWatchCallbackFn callback)
 	{
-		if (Utils::Contains(s_FileWatches, watchPath))
+		if (s_FileWatches.contains(watchPath))
 		{
 			SK_CORE_WARN_TAG("FileSystem", "FileWatch for Path/Directory {} already exists", watchPath);
 			return;
@@ -73,7 +72,7 @@ namespace Shark {
 
 	void FileSystem::StartWatch(const std::filesystem::path& watchPath, std::wregex regex, FileWatchCallbackFn callback)
 	{
-		if (Utils::Contains(s_FileWatches, watchPath))
+		if (s_FileWatches.contains(watchPath))
 		{
 			SK_CORE_WARN_TAG("FileSystem", "FileWatch for Path/Directory {} already exists", watchPath);
 			return;
@@ -88,7 +87,7 @@ namespace Shark {
 
 	void FileSystem::StopWatch(const std::filesystem::path& watchPath)
 	{
-		if (!Utils::Contains(s_FileWatches, watchPath))
+		if (!s_FileWatches.contains(watchPath))
 		{
 			SK_CORE_ERROR_TAG("FileSystem", "Failed to stop FileWatch! No FileWatch for Path/Directory {}", watchPath);
 			return;
@@ -363,16 +362,6 @@ namespace Shark {
 	std::string ToString(filewatch::Event event)
 	{
 		return filewatch::event_to_string(event);
-	}
-
-	std::filesystem::path operator""_abs(const char* str, size_t length)
-	{
-		return std::filesystem::absolute(std::filesystem::path{ std::string{ str, length } });
-	}
-
-	std::filesystem::path operator""_abs(const wchar_t* str, size_t length)
-	{
-		return std::filesystem::absolute(std::filesystem::path{ std::wstring{ str, length } });
 	}
 
 }

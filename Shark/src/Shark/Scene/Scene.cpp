@@ -179,7 +179,7 @@ namespace Shark {
 
 		// Setup Cameras
 		bool activeCameraFound = false;
-		if (m_ActiveCameraUUID.IsValid())
+		if (m_ActiveCameraUUID != UUID::Invalid)
 		{
 			Entity activeCamera = TryGetEntityByUUID(m_ActiveCameraUUID);
 			if (activeCamera.AllOf<CameraComponent>())
@@ -426,8 +426,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		SK_CORE_ASSERT(uuid.IsValid());
-		if (!uuid.IsValid())
+		if (uuid == UUID::Invalid)
 			uuid = UUID::Generate();
 
 		Entity entity{ m_Registry.create(), this };
@@ -436,7 +435,7 @@ namespace Shark {
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<RelationshipComponent>();
 
-		SK_CORE_VERIFY(m_EntityUUIDMap.find(uuid) == m_EntityUUIDMap.end());
+		SK_CORE_VERIFY(!m_EntityUUIDMap.contains(uuid));
 		m_EntityUUIDMap[uuid] = entity;
 		return entity;
 	}
@@ -450,8 +449,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(uuid.IsValid());
-		if (!uuid.IsValid())
+		if (uuid == UUID::Invalid)
 			uuid = UUID::Generate();
 
 		Entity entity = CreateEntityWithUUID(uuid, tag);
@@ -475,7 +473,7 @@ namespace Shark {
 		if (!entity)
 			return;
 
-		SK_CORE_VERIFY(m_EntityUUIDMap.find(entity.GetUUID()) != m_EntityUUIDMap.end());
+		SK_CORE_VERIFY(m_EntityUUIDMap.contains(entity.GetUUID()));
 
 		if (!m_IsEditorScene)
 		{
@@ -518,7 +516,7 @@ namespace Shark {
 
 	Entity Scene::TryGetEntityByUUID(UUID uuid) const
 	{
-		if (m_EntityUUIDMap.find(uuid) != m_EntityUUIDMap.end())
+		if (m_EntityUUIDMap.contains(uuid))
 			return m_EntityUUIDMap.at(uuid);
 		return Entity{};
 	}
@@ -559,7 +557,7 @@ namespace Shark {
 
 	bool Scene::ValidEntityID(UUID entityID) const
 	{
-		return entityID.IsValid() && m_EntityUUIDMap.find(entityID) != m_EntityUUIDMap.end();
+		return entityID != UUID::Invalid && m_EntityUUIDMap.contains(entityID);
 	}
 
 	Entity Scene::GetActiveCameraEntity() const

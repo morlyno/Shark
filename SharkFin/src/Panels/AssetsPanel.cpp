@@ -167,7 +167,7 @@ namespace Shark {
 
 	bool AssetsPanel::IsAssetTypeEnabled(AssetType assetType)
 	{
-		if (m_EnabledTypes.find(assetType) == m_EnabledTypes.end())
+		if (!m_EnabledTypes.contains(assetType))
 			m_EnabledTypes[assetType] = true;
 
 		return m_EnabledTypes.at(assetType);

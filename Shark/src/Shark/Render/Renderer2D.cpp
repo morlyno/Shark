@@ -708,12 +708,12 @@ namespace Shark {
 
 		float x = 0.0f;
 		float y = 0.0f;
-		float fsScale = 1.0f / (metrics.ascenderY - metrics.descenderY);
+		float fsScale = 1.0f / (float)(metrics.ascenderY - metrics.descenderY);
 		
 		std::vector<uint32_t> unicodeString;
 		msdf_atlas::utf8Decode(unicodeString, string.c_str());
 
-		AssureTextVertexDataSize(unicodeString.size());
+		AssureTextVertexDataSize((uint32_t)unicodeString.size());
 		m_TextMaterial->SetTexture("g_FontAtlas", fontAtlas);
 
 		for (size_t index = 0; index < unicodeString.size(); index++)
@@ -724,7 +724,7 @@ namespace Shark {
 			if (character == '\n')
 			{
 				x = 0.0f;
-				y -= metrics.lineHeight + lineSpacing;
+				y -= (float)metrics.lineHeight + lineSpacing;
 				continue;
 			}
 
@@ -757,7 +757,7 @@ namespace Shark {
 			double advance = glyph->getAdvance();
 			fontGeometry.getAdvance(advance, character, nextCharacter);
 
-			x += fsScale * advance + kerning;
+			x += fsScale * (float)advance + kerning;
 
 			// Render
 			const std::array<glm::vec2, 4> quadPositions = { glm::vec2(quadMin.x, quadMax.y), quadMax, glm::vec2(quadMax.x,quadMin.y), quadMin };
@@ -1006,7 +1006,7 @@ namespace Shark {
 		}
 	}
 
-	void Renderer2D::ResizeQuadIndexBuffer(uint64_t indexCount)
+	void Renderer2D::ResizeQuadIndexBuffer(uint32_t indexCount)
 	{
 		SK_CORE_VERIFY((indexCount % 6) == 0);
 		Renderer::Submit([indexBuffer = m_QuadIndexBuffer, indexCount]()

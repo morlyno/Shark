@@ -83,12 +83,9 @@ namespace Shark {
 		SK_CORE_VERIFY(HasResourceName(name));
 		auto& resource = m_Resources.at(name);
 
-		static bool s_BreakWhenInputAndResourceTypeDontMatch = true;
-#define SK_CORE_ASSERT_CONDITIONAL(cond, ...) if (cond) SK_CORE_ASSERT(__VA_ARGS__);
-
 		if (texture)
 		{
-			SK_CORE_ASSERT_CONDITIONAL(s_BreakWhenInputAndResourceTypeDontMatch, resource.Type == ShaderReflection::ResourceType::Sampler2D);
+			SK_CORE_VERIFY(resource.Type == ShaderReflection::ResourceType::Sampler2D);
 			resource.Texture = texture.As<DirectXTexture2D>();
 			resource.Image = texture->GetImage().As<DirectXImage2D>();
 			resource.Sampler = texture->GetSampler().As<DirectXSamplerWrapper>();
@@ -97,7 +94,7 @@ namespace Shark {
 
 		if (image)
 		{
-			SK_CORE_ASSERT_CONDITIONAL(s_BreakWhenInputAndResourceTypeDontMatch, resource.Type == ShaderReflection::ResourceType::Texture2D);
+			SK_CORE_VERIFY(resource.Type == ShaderReflection::ResourceType::Texture2D);
 			resource.Texture = nullptr;
 			resource.Image = image.As<DirectXImage2D>();
 			resource.Sampler = nullptr;
@@ -106,7 +103,7 @@ namespace Shark {
 
 		if (sampler)
 		{
-			SK_CORE_ASSERT_CONDITIONAL(s_BreakWhenInputAndResourceTypeDontMatch, resource.Type == ShaderReflection::ResourceType::Sampler);
+			SK_CORE_VERIFY(resource.Type == ShaderReflection::ResourceType::Sampler);
 			resource.Texture = nullptr;
 			resource.Image = nullptr;
 			resource.Sampler = sampler.As<DirectXSamplerWrapper>();
@@ -125,7 +122,7 @@ namespace Shark {
 
 	void DirectXMaterial::SetBytes(const std::string& name, Buffer data)
 	{
-		SK_CORE_VERIFY(m_ConstantBufferMembers.find(name) != m_ConstantBufferMembers.end());
+		SK_CORE_VERIFY(m_ConstantBufferMembers.contains(name));
 
 		auto& member = m_ConstantBufferMembers.at(name);
 		if (member.Parent->UpdateFrequency != ShaderReflection::UpdateFrequencyType::PerMaterial)
@@ -139,7 +136,7 @@ namespace Shark {
 
 	Buffer DirectXMaterial::GetBytes(const std::string& name) const
 	{
-		SK_CORE_VERIFY(m_ConstantBufferMembers.find(name) != m_ConstantBufferMembers.end());
+		SK_CORE_VERIFY(m_ConstantBufferMembers.contains(name));
 		auto& member = m_ConstantBufferMembers.at(name);
 		return member.UploadBufferRef;
 	}
@@ -171,7 +168,7 @@ namespace Shark {
 
 		for (const auto& [name, constantBuffer] : reflectionData.ConstantBuffers)
 		{
-			SK_CORE_VERIFY(m_ConstantBuffers.find(name) == m_ConstantBuffers.end());
+			SK_CORE_VERIFY(!m_ConstantBuffers.contains(name));
 			auto& cb = m_ConstantBuffers[name];
 			cb.Size = constantBuffer.Size;
 			cb.Binding = constantBuffer.Binding;

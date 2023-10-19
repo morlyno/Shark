@@ -46,7 +46,7 @@ namespace Shark {
 		template<typename T, typename... Args>
 		Ref<T> AddEditor(UUID id, const std::string& panelName, bool shown, Args&&... args)
 		{
-			if (m_EditorPanels.find(id) != m_EditorPanels.end())
+			if (m_EditorPanels.contains(id))
 				return GetEditor<T>(id);
 
 			Ref<T> editor = Ref<T>::Create(panelName, m_DockspaceID, std::forward<Args>(args)...);
@@ -67,7 +67,7 @@ namespace Shark {
 
 		bool HasEditor(UUID id)
 		{
-			return m_EditorPanels.find(id) != m_EditorPanels.end();
+			return m_EditorPanels.contains(id);
 		}
 
 	private:

@@ -16,12 +16,12 @@ workspace "Shark"
 		architecture "x86_64"
 	filter ""
 
-
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 include "Dependencies.lua"
 
 DefaultDefines = {
+	"_CRT_SECURE_NO_WARNINGS",
 	"_USE_MATH_DEFINES",
 
 	"IMGUI_DEFINE_MATH_OPERATORS",

@@ -106,9 +106,9 @@ namespace Shark {
 			D3D11_MESSAGE_SEVERITY deniedSeverities[] = { D3D11_MESSAGE_SEVERITY_MESSAGE, D3D11_MESSAGE_SEVERITY_INFO };
 
 			D3D11_INFO_QUEUE_FILTER filter{};
-			filter.DenyList.NumIDs = std::size(deniedMessages);
+			filter.DenyList.NumIDs = (UINT)std::size(deniedMessages);
 			filter.DenyList.pIDList = deniedMessages;
-			filter.DenyList.NumSeverities = std::size(deniedSeverities);
+			filter.DenyList.NumSeverities = (UINT)std::size(deniedSeverities);
 			filter.DenyList.pSeverityList = deniedSeverities;
 			DX11_VERIFY(infoQueue->PushRetrievalFilter(&filter));
 			DX11_VERIFY(infoQueue->PushStorageFilter(&filter));
@@ -612,10 +612,7 @@ namespace Shark {
 		if (!texture)
 			return;
 
-#if SK_DEBUG
-		static constexpr std::string_view TextureName = "GenerateMips Texture";
-		texture->SetPrivateData(WKPDID_D3DDebugObjectName, TextureName.length(), TextureName.data());
-#endif
+		D3D_SET_OBJECT_NAME_A(texture, "GenerateMips Texture");
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
 		viewDesc.Format = textureDesc.Format;
@@ -630,11 +627,7 @@ namespace Shark {
 			return;
 		}
 
-#if SK_DEBUG
-		static constexpr std::string_view ViewName = "GenerateMips View";
-		view->SetPrivateData(WKPDID_D3DDebugObjectName, ViewName.length(), ViewName.data());
-#endif
-
+		D3D_SET_OBJECT_NAME_A(view, "GenerateMips View");
 
 		auto dxImage = image.As<DirectXImage2D>();
 		m_ImmediateContext->CopySubresourceRegion(texture, 0, 0, 0, 0, dxImage->m_Resource, 0, nullptr);

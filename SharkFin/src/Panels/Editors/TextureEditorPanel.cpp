@@ -251,12 +251,12 @@ namespace Shark {
 
 	void TextureEditorPanel::SetupWindows()
 	{
-		ImGuiID tempDockspaceID = m_SourceTexture->Handle;
+		ImGuiID tempDockspaceID = (ImGuiID)m_SourceTexture->Handle;
 		m_DockspaceID = ImGui::DockBuilderAddNode(tempDockspaceID, ImGuiDockNodeFlags_DockSpace);
 
 		ImGuiDockNode* parentDockspaceNode = ImGui::DockBuilderGetNode(m_ParentDockspaceID);
 		ImGui::DockBuilderSetNodeSize(m_DockspaceID, parentDockspaceNode->Size);
-		ImGui::DockBuilderSplitNode(m_DockspaceID, ImGuiDir_Left, 0.65, &m_ViewportDockID, &m_SettingsDockID);
+		ImGui::DockBuilderSplitNode(m_DockspaceID, ImGuiDir_Left, 0.65f, &m_ViewportDockID, &m_SettingsDockID);
 
 		ImGuiDockNode* viewportNode = ImGui::DockBuilderGetNode(m_ViewportDockID);
 		viewportNode->SetLocalFlags(ImGuiDockNodeFlags_AutoHideTabBar);

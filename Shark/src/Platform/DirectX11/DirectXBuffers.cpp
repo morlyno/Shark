@@ -12,7 +12,7 @@ namespace Shark {
 	//////////////////////////////////////////////////////////////////////////
    /// VertexBuffer /////////////////////////////////////////////////////////
 
-	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, uint32_t size, bool dynamic, Buffer vertexData)
+	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, uint64_t size, bool dynamic, Buffer vertexData)
 		: m_Layout(layout)
 	{
 		ReCreateBuffer(size, dynamic, vertexData);
@@ -42,7 +42,7 @@ namespace Shark {
 		m_VertexBuffer = nullptr;
 	}
 
-	void DirectXVertexBuffer::Resize(uint32_t size)
+	void DirectXVertexBuffer::Resize(uint64_t size)
 	{
 		SK_CORE_ASSERT(m_Dynamic);
 		if (m_Dynamic)
@@ -51,7 +51,7 @@ namespace Shark {
 
 	void DirectXVertexBuffer::Resize(Buffer vertexData)
 	{
-		ReCreateBuffer((uint32_t)vertexData.Size, m_Dynamic, vertexData);
+		ReCreateBuffer(vertexData.Size, m_Dynamic, vertexData);
 	}
 
 	void DirectXVertexBuffer::SetData(Buffer vertexData, bool allowResize)
@@ -137,7 +137,7 @@ namespace Shark {
 		m_WritableBuffer = Buffer{};
 	}
 
-	void DirectXVertexBuffer::ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData)
+	void DirectXVertexBuffer::ReCreateBuffer(uint64_t size, bool dynamic, Buffer vertexData)
 	{
 		SK_CORE_VERIFY(dynamic || vertexData);
 
@@ -173,7 +173,7 @@ namespace Shark {
 		}
 	}
 
-	void DirectXVertexBuffer::RT_ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData)
+	void DirectXVertexBuffer::RT_ReCreateBuffer(uint64_t size, bool dynamic, Buffer vertexData)
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_CORE_VERIFY(dynamic || vertexData);
@@ -186,7 +186,7 @@ namespace Shark {
 		m_Dynamic = dynamic;
 
 		D3D11_BUFFER_DESC bd = {};
-		bd.ByteWidth = size;
+		bd.ByteWidth = (UINT)size;
 		bd.StructureByteStride = m_Layout.GetVertexSize();
 		bd.Usage = dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -250,10 +250,12 @@ namespace Shark {
 
 	void DirectXIndexBuffer::Resize(Buffer indexData)
 	{
-		if (m_Size == indexData.Size)
+		SK_CORE_VERIFY(indexData.Size % sizeof(Index) == 0);
+		const uint32_t newIndexCount = (uint32_t)(indexData.Size / sizeof(Index));
+		if (newIndexCount == m_Count)
 			return;
 
-		ReCreateBuffer((uint32_t)indexData.Count<uint32_t>(), m_Dynamic, indexData);
+		ReCreateBuffer(newIndexCount, m_Dynamic, indexData);
 	}
 
 	void DirectXIndexBuffer::SetData(Buffer indexData, bool allowResize)
@@ -296,7 +298,7 @@ namespace Shark {
 
 			Buffer writableBuffer;
 			writableBuffer.Data = (byte*)mappedSubresource.pData;
-			writableBuffer.Size = m_Size;
+			writableBuffer.Size = m_Count * sizeof(Index);
 			m_Mapped = true;
 			return writableBuffer;
 		}
@@ -321,7 +323,6 @@ namespace Shark {
 		Buffer buffer = Buffer::Copy(indexData);
 
 		m_Count = count;
-		m_Size = count * sizeof(uint32_t);
 		m_Dynamic = dynamic;
 
 		Renderer::Submit([instance, count, dynamic, buffer]() mutable
@@ -336,13 +337,17 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
-		if (indexData.Size > m_Size && allowResize)
+		SK_CORE_VERIFY(indexData.Size % sizeof(Index) == 0);
+		const uint32_t newIndexCount = (uint32_t)(indexData.Size / sizeof(Index));
+
+		if (newIndexCount > m_Count && allowResize)
 		{
-			RT_ReCreateBuffer(indexData.Size, m_Dynamic, indexData);
+			RT_ReCreateBuffer(newIndexCount, m_Dynamic, indexData);
 			return;
 		}
 
-		if (m_Dynamic && indexData.Size <= m_Size)
+		SK_CORE_ASSERT(newIndexCount == m_Count, "I think the count should be the same");
+		if (m_Dynamic && newIndexCount <= m_Count)
 		{
 			auto ctx = DirectXRenderer::GetContext();
 
@@ -361,12 +366,11 @@ namespace Shark {
 		RT_Release();
 
 		m_Count = count;
-		m_Size = count * sizeof(uint32_t);
 		m_Dynamic = dynamic;
 
 		D3D11_BUFFER_DESC bufferDesc = {};
-		bufferDesc.ByteWidth = m_Size;
-		bufferDesc.StructureByteStride = sizeof(uint32_t);
+		bufferDesc.ByteWidth = m_Count * sizeof(Index);
+		bufferDesc.StructureByteStride = sizeof(Index);
 		bufferDesc.Usage = dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		bufferDesc.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0u;

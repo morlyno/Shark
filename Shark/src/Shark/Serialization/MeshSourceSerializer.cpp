@@ -150,8 +150,8 @@ namespace Shark {
 						vertex.UV = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
 				}
 
-				submesh.BaseVertex = vertexOffset;
-				submesh.BaseIndex = indexOffset;
+				submesh.BaseVertex = (uint32_t)vertexOffset;
+				submesh.BaseIndex = (uint32_t)indexOffset;
 				submesh.IndexCount = mesh->mNumFaces * 3;
 				submesh.MaterialIndex = mesh->mMaterialIndex;
 

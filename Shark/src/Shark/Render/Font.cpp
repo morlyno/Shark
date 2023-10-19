@@ -31,7 +31,7 @@ namespace Shark {
 		spec.Height = bitmap.height;
 		spec.Format = F;
 		spec.GenerateMips = false;
-		fontAtlas->SetImageData(Buffer::Copy(bitmap.pixels, bitmap.width * bitmap.height * N * sizeof T));
+		fontAtlas->SetImageData(Buffer::Copy(bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T)));
 		fontAtlas->Invalidate();
 	}
 
@@ -97,13 +97,13 @@ namespace Shark {
 		atlasPacker.setPadding(0);
 		//atlasPacker.setScale(40);
 		atlasPacker.setMinimumScale(40.0);
-		int result = atlasPacker.pack(m_MSDFData->Glyphs.data(), m_MSDFData->Glyphs.size());
+		int result = atlasPacker.pack(m_MSDFData->Glyphs.data(), (int)m_MSDFData->Glyphs.size());
 		SK_CORE_ASSERT(result == 0);
 
 		int width, height;
 		atlasPacker.getDimensions(width, height);
-		int scale = atlasPacker.getScale();
-		SK_CORE_TRACE_TAG("Font", "Scale: {}", scale);
+		double glyphScale = atlasPacker.getScale();
+		SK_CORE_TRACE_TAG("Font", "Scale: {}", glyphScale);
 
 		Timer timer;
 

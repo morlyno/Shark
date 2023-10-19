@@ -129,7 +129,7 @@ namespace Shark {
 			inputElements.emplace_back(inputElementDesc);
 		}
 		const auto& shaderBinaryWithInputSignature = m_Specification.Shader.As<DirectXShader>()->GetShaderBinaries().at(ShaderUtils::ShaderStage::Vertex);
-		SK_DX11_CALL(dev->CreateInputLayout(inputElements.data(), inputElements.size(), shaderBinaryWithInputSignature.data(), shaderBinaryWithInputSignature.size(), &m_InputLayout));
+		SK_DX11_CALL(dev->CreateInputLayout(inputElements.data(), (UINT)inputElements.size(), shaderBinaryWithInputSignature.data(), shaderBinaryWithInputSignature.size(), &m_InputLayout));
 
 	}
 

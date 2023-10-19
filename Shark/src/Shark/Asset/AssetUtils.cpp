@@ -29,7 +29,7 @@ namespace Shark {
 	AssetType AssetUtils::GetAssetTypeFromPath(const std::filesystem::path& assetPath)
 	{
 		std::string extension = assetPath.extension().string();
-		if (AssetExtensionMap.find(extension) != AssetExtensionMap.end())
+		if (AssetExtensionMap.contains(extension))
 			return AssetExtensionMap.at(extension);
 		return AssetType::None;
 	}

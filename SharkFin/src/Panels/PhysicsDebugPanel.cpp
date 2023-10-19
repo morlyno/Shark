@@ -21,13 +21,13 @@ struct fmt::formatter<b2Vec2, Char> : fmt::formatter<float, Char>
 	auto format(const b2Vec2& vec, FormatContext& ctx) -> decltype(ctx.out())
 	{
 		auto&& out = ctx.out();
-		format_to(out, "[");
+		detail::write(out, "[");
 
 		fmt::formatter<float, Char>::format(vec.x, ctx);
-		format_to(out, ", ");
+		detail::write(out, ", ");
 		fmt::formatter<float, Char>::format(vec.y, ctx);
 
-		format_to(out, "]");
+		detail::write(out, "]");
 
 		return out;
 	}

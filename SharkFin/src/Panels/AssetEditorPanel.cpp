@@ -9,7 +9,7 @@ namespace Shark {
 	AssetEditorPanel::AssetEditorPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
-		m_DockspaceID = UI::GetIDWithSeed("AssetEditorPanelDockspace", (uint32_t)this);
+		m_DockspaceID = UI::GetIDWithSeed("AssetEditorPanelDockspace", (uint32_t)(uint64_t)this);
 	}
 
 	AssetEditorPanel::~AssetEditorPanel()

@@ -23,6 +23,9 @@
 #ifndef FILEWATCHER_H
 #define FILEWATCHER_H
 
+#pragma warning(push)
+#pragma warning(disable : 4068 4927 4715)
+
 #include <cstdio>
 #include <fstream>
 #ifdef _WIN32
@@ -440,13 +443,15 @@ namespace filewatch {
 
         HANDLE get_directory(const StringType& path)
         {
-            auto file_info = GetFileAttributesX(path.c_str());
+            //auto file_info = GetFileAttributesX(path.c_str());
+            //
+            //if (file_info == INVALID_FILE_ATTRIBUTES)
+            //{
+            //    throw std::system_error(GetLastError(), std::system_category());
+            //}
+            //_watching_single_file = (file_info & FILE_ATTRIBUTE_DIRECTORY) == false;
 
-            if (file_info == INVALID_FILE_ATTRIBUTES)
-            {
-                throw std::system_error(GetLastError(), std::system_category());
-            }
-            _watching_single_file = (file_info & FILE_ATTRIBUTE_DIRECTORY) == false;
+            _watching_single_file = !std::filesystem::is_directory(_path);
 
             const StringType watch_path = [this, &path]() {
                 if (_watching_single_file)
@@ -1249,4 +1254,7 @@ namespace filewatch {
     template<class StringType> constexpr typename FileWatch<StringType>::C FileWatch<StringType>::_regex_all[];
     template<class StringType> constexpr typename FileWatch<StringType>::C FileWatch<StringType>::_this_directory[];
 }
+
+#pragma warning(pop)
+
 #endif

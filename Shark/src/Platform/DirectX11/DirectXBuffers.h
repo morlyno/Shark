@@ -9,13 +9,13 @@ namespace Shark {
 	class DirectXVertexBuffer : public VertexBuffer
 	{
 	public:
-		DirectXVertexBuffer(const VertexLayout& layout, uint32_t size, bool dynamic, Buffer vertexData);
+		DirectXVertexBuffer(const VertexLayout& layout, uint64_t size, bool dynamic, Buffer vertexData);
 		virtual ~DirectXVertexBuffer();
 
 		virtual void Release() override;
 		virtual void RT_Release() override;
 
-		virtual void Resize(uint32_t size) override;
+		virtual void Resize(uint64_t size) override;
 		virtual void Resize(Buffer vertexData) override;
 		virtual void SetData(Buffer vertexData, bool allowResize) override;
 		
@@ -27,22 +27,22 @@ namespace Shark {
 		virtual void RT_CloseBuffer() override;
 		virtual Buffer RT_GetBuffer() override { return m_WritableBuffer; }
 
-		virtual uint32_t GetVertexSize() const override { return m_Layout.GetVertexSize(); }
-		virtual uint32_t GetBufferSize() const override { return m_Size; }
-		virtual uint32_t GetVertexCount() const override { return m_Size / GetVertexSize(); }
+		virtual const VertexLayout& GetVertexLayout() const override { return m_Layout; };
+		virtual uint64_t GetBufferSize() const override { return m_Size; }
+		virtual uint32_t GetVertexCount() const override { return (uint32_t)(m_Size / m_Layout.GetVertexSize()); }
 
 	private:
-		void ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData);
+		void ReCreateBuffer(uint64_t size, bool dynamic, Buffer vertexData);
 
 		void RT_SetData(Buffer vertexData, bool allowResize);
-		void RT_ReCreateBuffer(uint32_t size, bool dynamic, Buffer vertexData);
+		void RT_ReCreateBuffer(uint64_t size, bool dynamic, Buffer vertexData);
 
 
 	private:
 		VertexLayout m_Layout;
 
 		ID3D11Buffer* m_VertexBuffer = nullptr;
-		uint32_t m_Size = 0;
+		uint64_t m_Size = 0;
 		bool m_Dynamic;
 
 		bool m_Mapped = false;
@@ -71,7 +71,6 @@ namespace Shark {
 		virtual void CloseWritableBuffer() override;
 
 		virtual uint32_t GetCount() const override { return m_Count; }
-		virtual uint32_t GetSize() const override { return m_Size; }
 
 	private:
 		void ReCreateBuffer(uint32_t count, bool dynamic, Buffer indexData);
@@ -81,7 +80,6 @@ namespace Shark {
 
 	private:
 		ID3D11Buffer* m_IndexBuffer = nullptr;
-		uint32_t m_Size;
 		uint32_t m_Count;
 		bool m_Dynamic;
 

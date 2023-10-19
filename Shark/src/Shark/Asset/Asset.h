@@ -16,7 +16,7 @@ namespace Shark {
 		bool IsDataLoaded = false;
 		bool IsMemoryAsset = false;
 
-		bool IsValid() const { return Handle.IsValid() && (Type != AssetType::None) /*&& (IsMemoryAsset || !FilePath.empty())*/; }
+		bool IsValid() const { return Handle != AssetHandle::Invalid && (Type != AssetType::None) /*&& (IsMemoryAsset || !FilePath.empty())*/; }
 	};
 
 	namespace AssetFlag {

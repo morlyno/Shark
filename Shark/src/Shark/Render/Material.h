@@ -135,7 +135,7 @@ namespace Shark {
 
 		bool HasMaterial(uint32_t index) const
 		{
-			return m_MaterialAssets.find(index) != m_MaterialAssets.end();
+			return m_MaterialAssets.contains(index);
 		}
 
 		Ref<MaterialAsset> GetMaterial(uint32_t index) const

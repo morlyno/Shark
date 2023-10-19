@@ -91,6 +91,6 @@ struct fmt::formatter<Shark::TimeStep, char>
 	template<typename FormatContext>
 	auto format(const Shark::TimeStep& timestep, FormatContext& ctx) -> decltype(ctx.out())
 	{
-		return format_to(ctx.out(), timestep.ToString());
+		return fmt::format_to(ctx.out(), "{0}", timestep.ToString());
 	}
 };

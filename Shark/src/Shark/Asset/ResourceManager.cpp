@@ -48,14 +48,14 @@ namespace Shark {
 	AssetType ResourceManager::GetAssetTypeFormExtension(const std::string& fileExtension)
 	{
 		std::string extention = String::ToLowerCopy(fileExtension);
-		if (AssetExtensionMap.find(extention) == AssetExtensionMap.end())
+		if (!AssetExtensionMap.contains(extention))
 			return AssetType::None;
 		return AssetExtensionMap.at(extention);
 	}
 
 	bool ResourceManager::IsValidAssetHandle(AssetHandle handle)
 	{
-		return s_Data->ImportedAssets.find(handle) != s_Data->ImportedAssets.end();
+		return s_Data->ImportedAssets.contains(handle);
 	}
 
 	bool ResourceManager::IsMemoryAsset(AssetHandle handle)
@@ -66,7 +66,7 @@ return metadata.IsMemoryAsset;
 
 	bool ResourceManager::IsFileImported(const std::filesystem::path& path)
 	{
-		return GetAssetHandleFromFilePath(path).IsValid();
+		return GetAssetHandleFromFilePath(path) != AssetHandle::Invalid;
 	}
 
 	bool ResourceManager::HasExistingFilePath(const AssetMetaData& metadata)
@@ -149,7 +149,7 @@ return metadata.IsMemoryAsset;
 		SK_CORE_VERIFY(IsValidAssetHandle(handle));
 
 		AssetMetaData& metadata = GetMetaDataInternal(handle);
-		SK_CORE_ASSERT(metadata.IsDataLoaded == (s_Data->LoadedAssets.find(handle) != s_Data->LoadedAssets.end()));
+		SK_CORE_ASSERT(metadata.IsDataLoaded == s_Data->LoadedAssets.contains(handle));
 		if (!metadata.IsDataLoaded)
 			return;
 
@@ -270,7 +270,7 @@ return metadata.IsMemoryAsset;
 	static AssetMetaData s_NullMetaData;
 	AssetMetaData& ResourceManager::GetMetaDataInternal(AssetHandle handle)
 	{
-		if (s_Data->ImportedAssets.find(handle) != s_Data->ImportedAssets.end())
+		if (s_Data->ImportedAssets.contains(handle))
 			return s_Data->ImportedAssets.at(handle);
 		return s_NullMetaData;
 	}

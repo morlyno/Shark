@@ -47,7 +47,7 @@ namespace Shark {
 		template<typename T>
 		T* Offset(uint64_t offset)
 		{
-			SK_CORE_ASSERT((offset * sizeof T) < Size);
+			SK_CORE_ASSERT((offset * sizeof(T)) < Size);
 			return (T*)Data + offset;
 		}
 

@@ -44,6 +44,7 @@ struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
 namespace Shark {
 	class ImGuiLayer;
 	class Texture2D;
+	class ResourceManager;
 }
 
 namespace Shark::UI {
@@ -209,27 +210,7 @@ namespace Shark::UI {
 	bool ControlCombo(std::string_view label, int& index,      const std::string_view items[], uint32_t itemsCount);
 
 	template<typename TFunc>
-	bool ControlCombo(std::string_view label, std::string_view preview, const TFunc& func)
-	{
-		if (!ControlBeginHelper(label))
-			return false;
-
-		ImGui::TableSetColumnIndex(0);
-		Text(label, PrivateTextFlag::LabelDefault);
-
-		ImGui::TableSetColumnIndex(1);
-
-		bool changed = false;
-		ImGui::SetNextItemWidth(-1.0f);
-		if (ImGui::BeginCombo("#combo", preview.data()))
-		{
-			changed = func();
-			ImGui::EndCombo();
-		}
-
-		ControlEndHelper();
-		return changed;
-	}
+	bool ControlCombo(std::string_view label, std::string_view preview, const TFunc& func);
 
 	bool Control(std::string_view label, std::string& val);
 	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType = nullptr);
@@ -292,7 +273,7 @@ namespace Shark::UI {
 	template<typename... TArgs>
 	void TextF(std::string_view fmt, TArgs&&... args)
 	{
-		Text(fmt::format(fmt, std::forward<TArgs>(args)...));
+		Text(fmt::format(fmt::runtime(fmt), std::forward<TArgs>(args)...));
 	}
 
 	void TextSelectable(std::string_view str);
@@ -539,4 +520,27 @@ namespace Shark::UI {
 
 	void NewFrame();
 
+}
+
+template<typename TFunc>
+bool Shark::UI::ControlCombo(std::string_view label, std::string_view preview, const TFunc& func)
+{
+	if (!ControlBeginHelper(label))
+		return false;
+
+	ImGui::TableSetColumnIndex(0);
+	Text(label, PrivateTextFlag::LabelDefault);
+
+	ImGui::TableSetColumnIndex(1);
+
+	bool changed = false;
+	ImGui::SetNextItemWidth(-1.0f);
+	if (ImGui::BeginCombo("#combo", preview.data()))
+	{
+		changed = func();
+		ImGui::EndCombo();
+	}
+
+	ControlEndHelper();
+	return changed;
 }

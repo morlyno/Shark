@@ -17,7 +17,12 @@ namespace Shark {
 	class SceneRenderer : public RefCount
 	{
 	public:
-		struct Statistics;
+		struct Statistics
+		{
+			uint32_t DrawCalls = 0;
+			uint32_t VertexCount = 0;
+			uint32_t IndexCount = 0;
+		};
 
 	public:
 		SceneRenderer(Ref<Scene> scene, const std::string& debugName = "Untitled");
@@ -55,13 +60,6 @@ namespace Shark {
 		const Statistics& GetStatisitcs() const { return m_Statistics; }
 
 	private:
-		struct Statistics
-		{
-			uint32_t DrawCalls = 0;
-			uint32_t VertexCount = 0;
-			uint32_t IndexCount = 0;
-		};
-
 		struct CBCamera
 		{
 			glm::mat4 ViewProj;

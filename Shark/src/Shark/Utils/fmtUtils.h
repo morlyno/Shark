@@ -14,16 +14,16 @@ struct fmt::formatter<glm::vec<L, T, Q>, Char> : fmt::formatter<T, Char>
 	auto format(const glm::vec<L, T, Q>& val, FormatContext& ctx) -> decltype(ctx.out())
 	{
 		auto&& out = ctx.out();
-		format_to(out, "[");
+		fmt::detail::write(out, "[");
 		
 		for (auto i = 0; i < (L - 1); i++)
 		{
 			fmt::formatter<T, Char>::format(val[i], ctx);
-			format_to(out, ", ");
+			fmt::detail::write(out, ", ");
 		}
 		fmt::formatter<T, Char>::format(val[L - 1], ctx);
 
-		format_to(out, "]");
+		fmt::detail::write(out, "]");
 
 		return out;
 	}

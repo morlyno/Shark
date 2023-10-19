@@ -26,6 +26,8 @@ namespace Shark {
 
 		IDComponent() = default;
 		IDComponent(const IDComponent&) = default;
+		IDComponent(UUID id)
+			: ID(id) {}
 	};
 
 	struct TagComponent
@@ -34,6 +36,8 @@ namespace Shark {
 
 		TagComponent() = default;
 		TagComponent(const TagComponent&) = default;
+		TagComponent(const std::string& tag)
+			: Tag(tag) {}
 	};
 
 	struct TransformComponent
@@ -56,6 +60,8 @@ namespace Shark {
 
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
+		TransformComponent(const glm::vec3& translation, const glm::vec3& rotation, const glm::vec3& scale)
+			: Translation(translation), Rotation(rotation), Scale(scale) {}
 	};
 
 	struct RelationshipComponent

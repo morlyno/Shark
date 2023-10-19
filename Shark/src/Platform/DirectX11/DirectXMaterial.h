@@ -78,8 +78,8 @@ namespace Shark {
 		Buffer GetBytes(const std::string& name) const;
 
 	private:
-		bool HasResourceName(const std::string& name) const { return m_Resources.find(name) != m_Resources.end(); }
-		bool HasBuffer(const std::string& name) const { return m_ConstantBuffers.find(name) != m_ConstantBuffers.end(); }
+		bool HasResourceName(const std::string& name) const { return m_Resources.contains(name); }
+		bool HasBuffer(const std::string& name) const { return m_ConstantBuffers.contains(name); }
 
 		void RT_UpdateDirtyBuffers();
 

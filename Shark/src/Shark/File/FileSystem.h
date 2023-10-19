@@ -100,9 +100,6 @@ namespace Shark {
 
 	std::string ToString(filewatch::Event event);
 
-	std::filesystem::path operator""_abs(const char* str, size_t length);
-	std::filesystem::path operator""_abs(const wchar_t* str, size_t length);
-
 }
 
 template<>
@@ -116,7 +113,7 @@ struct fmt::formatter<Shark::FileEvent>
 	template<typename FormatContext>
 	auto format(const Shark::FileEvent& data, FormatContext& ctx) -> decltype(ctx.out())
 	{
-		format_to(ctx.out(), "({0}) {1}", Shark::ToString(data.Type), data.File);
+		fmt::format_to(ctx.out(), "({0}) {1}", Shark::ToString(data.Type), data.File);
 		return ctx.out();
 	}
 

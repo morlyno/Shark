@@ -35,7 +35,7 @@ namespace Shark {
 		const Ref<IndexBuffer> GetIndexBuffer() const { return m_IndexBuffer; }
 		const Ref<MaterialTable> GetMaterialTable() const { return m_MaterialTable; }
 		const std::vector<SubMesh>& GetSubmeshes() const { return m_SubMeshes; }
-		uint32_t GetSubmeshCount() const { return m_SubMeshes.size(); }
+		uint32_t GetSubmeshCount() const { return (uint32_t)m_SubMeshes.size(); }
 		const Node& GetRootNode() const { return m_RootNode; }
 
 		uint32_t GetSubmeshVertexCount(uint32_t submeshIndex) const;

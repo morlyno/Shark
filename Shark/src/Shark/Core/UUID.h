@@ -12,8 +12,6 @@ namespace Shark {
 		UUID(const UUID&) = default;
 		UUID(uint64_t uuid);
 
-		SK_DEPRECATED("use uuid != UUID::Null or uuid != UUID::Invalid instead")
-		bool IsValid() const;
 		operator uint64_t() const { return m_UUID; }
 
 		//bool operator<(const UUID& rhs) const { return m_UUID < rhs.m_UUID; }

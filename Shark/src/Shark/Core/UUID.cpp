@@ -14,15 +14,10 @@ namespace Shark {
 	{
 	}
 
-	bool UUID::IsValid() const
-	{
-		return m_UUID != 0;
-	}
-
 	UUID UUID::Generate()
 	{
 		UUID uuid{ s_Distribution(s_Engine) };
-		while (!uuid.IsValid())
+		while (uuid == UUID::Invalid)
 			uuid = s_Distribution(s_Engine);
 		return uuid;
 	}

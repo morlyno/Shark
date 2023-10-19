@@ -35,7 +35,7 @@ namespace Shark {
 
 	bool AssetSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
-		if (s_Serializers.find(metadata.Type) != s_Serializers.end())
+		if (s_Serializers.contains(metadata.Type))
 		{
 			const auto& serializer = s_Serializers.at(metadata.Type);
 			return serializer->TryLoadAsset(asset, metadata);
@@ -47,7 +47,7 @@ namespace Shark {
 
 	bool AssetSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
-		if (s_Serializers.find(metadata.Type) != s_Serializers.end())
+		if (s_Serializers.contains(metadata.Type))
 		{
 			const auto& serializer = s_Serializers.at(metadata.Type);
 			return serializer->Serialize(asset, metadata);
@@ -59,7 +59,7 @@ namespace Shark {
 
 	Ref<Asset> AssetSerializer::TryLoad(AssetType assetType, const std::filesystem::path& assetPath)
 	{
-		if (s_Serializers.find(assetType) != s_Serializers.end())
+		if (s_Serializers.contains(assetType))
 		{
 			const auto& serializer = s_Serializers.at(assetType);
 			Ref<Asset> asset = AssetUtils::Create(assetType);
@@ -74,7 +74,7 @@ namespace Shark {
 	bool AssetSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
 	{
 		const AssetType assetType = asset->GetAssetType();
-		if (s_Serializers.find(assetType) != s_Serializers.end())
+		if (s_Serializers.contains(assetType))
 		{
 			const auto& serializer = s_Serializers.at(assetType);
 			return serializer->Deserialize(asset, assetPath);

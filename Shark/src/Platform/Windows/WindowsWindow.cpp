@@ -25,7 +25,7 @@ namespace Shark {
 	class WindowsWindow::WindowClass : public RefCount
 	{
 	public:
-		WindowClass::WindowClass()
+		WindowClass()
 			: m_HInstance(GetModuleHandleW(nullptr))
 		{
 			m_HInstance = GetModuleHandleA(nullptr);
@@ -48,7 +48,7 @@ namespace Shark {
 			RegisterClassExW(&wc);
 		}
 
-		WindowClass::~WindowClass()
+		~WindowClass()
 		{
 			UnregisterClassW(m_ClassName.c_str(), m_HInstance);
 		}
@@ -278,7 +278,7 @@ namespace Shark {
 
 	glm::vec2 WindowsWindow::ScreenToWindow(const glm::vec2& screenPos) const
 	{
-		POINT p{ screenPos.x, screenPos.y };
+		POINT p{ (LONG)screenPos.x, (LONG)screenPos.y };
 		if (::ScreenToClient(m_hWnd, &p))
 			return { p.x, p.y };
 		return { 0, 0 };
@@ -286,7 +286,7 @@ namespace Shark {
 
 	glm::vec2 WindowsWindow::WindowToScreen(const glm::vec2& windowPos) const
 	{
-		POINT p{ windowPos.x, windowPos.y };
+		POINT p{ (LONG)windowPos.x, (LONG)windowPos.y };
 		if (::ClientToScreen(m_hWnd, &p))
 			return { p.x, p.y };
 		return { 0, 0 };
@@ -333,7 +333,7 @@ namespace Shark {
 	void WindowsWindow::SetCursorPositionInWindow(const glm::vec2& ursorPos)
 	{
 		auto screenCursorPos = WindowToScreen(ursorPos);
-		SetCursorPos(screenCursorPos.x, screenCursorPos.y);
+		SetCursorPos((int)screenCursorPos.x, (int)screenCursorPos.y);
 	}
 
 	glm::vec2 WindowsWindow::GetWindowSize() const

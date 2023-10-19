@@ -48,11 +48,14 @@ namespace Shark {
 		static std::shared_ptr<spdlog::logger> GetClientLogger() { return s_Data->ClientLogger; }
 		static std::shared_ptr<spdlog::logger> GetConsoleLogger() { return s_Data->ConsoleLogger; }
 
-		static bool HasTag(std::string_view tag) { return s_Data->EnabledTags.find(tag) != s_Data->EnabledTags.end(); }
+		static bool HasTag(std::string_view tag) { return s_Data->EnabledTags.contains(tag); }
 		static std::map<std::string_view, TagSettings>& EnabledTags() { return s_Data->EnabledTags; }
 
 		template<typename... TArgs>
-		static void LogMessage(Log::Logger loggerType, Log::Level level, std::string_view tag, TArgs&&... args);
+		static void LogMessage(Log::Logger loggerType, Log::Level level, std::string_view tag, fmt::format_string<TArgs...> fmt, TArgs&&... args);
+
+		template<typename TFormat, typename... TArgs>
+		static void LogMessage(Logger loggerType, Level leve, std::string_view tag, const TFormat& fmt, TArgs&&... args);
 
 		template<typename... TArgs>
 		static void PrintAssertMessage(Log::Logger loggerType, std::string_view prefix, TArgs&&... args);
@@ -129,33 +132,68 @@ namespace Shark {
 namespace Shark {
 
 	template<typename... TArgs>
-	void Log::LogMessage(Log::Logger loggerType, Log::Level level, std::string_view tag, TArgs&&... args)
+	void Log::LogMessage(Log::Logger loggerType, Log::Level level, std::string_view tag, fmt::format_string<TArgs...> fmt, TArgs&&... args)
 	{
 		auto& setting = s_Data->EnabledTags[tag];
 		if (setting.Enabled && level >= setting.Level)
 		{
 			auto logger = GetLogger(loggerType);
-			std::string format = tag.empty() ? "{0}{1}" : "[{0}] {1}";
+			auto format = fmt::runtime(tag.empty() ? "{0}{1}" : "[{0}] {1}");
+			std::string msg = fmt::format(fmt, std::forward<TArgs>(args)...);
 
 			switch (level)
 			{
 				case Log::Level::Trace:
-					logger->trace(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					logger->trace(format, tag, msg);
 					break;
 				case Log::Level::Debug:
-					logger->debug(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					logger->debug(format, tag, msg);
 					break;
 				case Log::Level::Info:
-					logger->info(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					logger->info(format, tag, msg);
 					break;
 				case Log::Level::Warn:
-					logger->warn(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					logger->warn(format, tag, msg);
 					break;
 				case Log::Level::Error:
-					logger->error(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					logger->error(format, tag, msg);
 					break;
 				case Log::Level::Critical:
-					logger->critical(format, tag, fmt::format(std::forward<TArgs>(args)...));
+					logger->critical(format, tag, msg);
+					break;
+			}
+		}
+	}
+
+	template<typename TFormat, typename... TArgs>
+	void Log::LogMessage(Log::Logger loggerType, Log::Level level, std::string_view tag, const TFormat& fmt, TArgs&&... args)
+	{
+		auto& setting = s_Data->EnabledTags[tag];
+		if (setting.Enabled && level >= setting.Level)
+		{
+			auto logger = GetLogger(loggerType);
+			auto format = fmt::runtime(tag.empty() ? "{0}{1}" : "[{0}] {1}");
+			std::string msg = fmt::format(fmt::runtime(fmt), std::forward<TArgs>(args)...);
+
+			switch (level)
+			{
+				case Log::Level::Trace:
+					logger->trace(format, tag, msg);
+					break;
+				case Log::Level::Debug:
+					logger->debug(format, tag, msg);
+					break;
+				case Log::Level::Info:
+					logger->info(format, tag, msg);
+					break;
+				case Log::Level::Warn:
+					logger->warn(format, tag, msg);
+					break;
+				case Log::Level::Error:
+					logger->error(format, tag, msg);
+					break;
+				case Log::Level::Critical:
+					logger->critical(format, tag, msg);
 					break;
 			}
 		}
@@ -164,8 +202,13 @@ namespace Shark {
 	template<typename... TArgs>
 	inline void Log::PrintAssertMessage(Log::Logger loggerType, std::string_view prefix, TArgs&&... args)
 	{
+		auto formatMessage = [] <typename TFirst, typename... TArgs> (TFirst format, TArgs&&... args)
+		{
+			return fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+		};
+
 		auto logger = GetLogger(loggerType);
-		logger->error("{0}: {1}", prefix, fmt::format(std::forward<TArgs>(args)...));
+		logger->error("{0}: {1}", prefix, formatMessage(std::forward<TArgs>(args)...));
 	}
 	
 	template<>

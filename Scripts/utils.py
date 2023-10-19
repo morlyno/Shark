@@ -25,10 +25,18 @@ def DownloadFile(url : str, filepath : str):
         content = requests.get(url, stream=True).content
         file.write(content)
 
-def UnzipFile(filepath:Path, deleteZip:bool):
+def UnzipFiles(filepath:Path, deleteZip:bool):
     zipFilePath = os.path.abspath(filepath)
     zipFileLocation = os.path.dirname(zipFilePath)
     with zipfile.ZipFile(filepath, 'r') as zip:
         zip.extractall(zipFileLocation)
+    if (deleteZip):
+        os.remove(zipFilePath)
+
+def UnzipFile(filepath:Path, fileToUnzip, deleteZip:bool):
+    zipFilePath = os.path.abspath(filepath)
+    zipFileLocation = os.path.dirname(zipFilePath)
+    with zipfile.ZipFile(filepath, 'r') as zip:
+        zip.extract(fileToUnzip, zipFileLocation)
     if (deleteZip):
         os.remove(zipFilePath)

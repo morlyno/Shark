@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout, uint32_t size, bool dynamic, Buffer vertexData)
+	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout, uint64_t size, bool dynamic, Buffer vertexData)
 	{
 		switch (RendererAPI::GetCurrentAPI())
 		{
@@ -36,7 +36,7 @@ namespace Shark {
 	Ref<IndexBuffer> IndexBuffer::Create(Buffer indexData, bool dynamic)
 	{
 		SK_CORE_VERIFY((indexData.Size % sizeof(uint32_t)) == 0);
-		return Create(indexData.Size / sizeof(uint32_t), dynamic, indexData);
+		return Create((uint32_t)(indexData.Size / sizeof(uint32_t)), dynamic, indexData);
 	}
 
 }

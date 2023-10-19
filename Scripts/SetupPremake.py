@@ -4,8 +4,8 @@ from pathlib import Path
 import utils
 import subprocess
 
-PremakeVersion = "5.0.0-beta1"
-PremakeDirectory = f"./dependencies/premake/bin/{PremakeVersion}"
+PremakeVersion = "5.0.0-beta2"
+PremakeDirectory = f"./dependencies/premake/bin"
 
 PremakeUrl = f"https://github.com/premake/premake-core/releases/download/v{PremakeVersion}/premake-{PremakeVersion}-windows.zip"
 PremakeLicenseUrl = "https://raw.githubusercontent.com/premake/premake-core/master/LICENSE.txt"
@@ -16,7 +16,7 @@ def InstallPremake():
     utils.DownloadFile(PremakeUrl, zipPath)
 
     print("Extracting Premake form zip")
-    utils.UnzipFile(zipPath, True)
+    utils.UnzipFile(zipPath, "premake5.exe", True)
 
     print("Download Premake License")
     licensePath = f"{PremakeDirectory}/LICENSE.txt"

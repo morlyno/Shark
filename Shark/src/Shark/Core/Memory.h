@@ -6,6 +6,8 @@
 
 namespace Shark {
 
+	class Allocator;
+
 	namespace Internal {
 
 		template<class T>

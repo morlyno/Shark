@@ -293,9 +293,9 @@ namespace Shark {
 			tempOut << "======================\n";
 			tempOut << " Current Memory Usage \n";
 			tempOut << "======================\n";
-			tempOut << "Total allocated " << Utils::BytesToString(Allocator::GetMemoryStats().TotalAllocated) << '\n';
-			tempOut << "Total freed " << Utils::BytesToString(Allocator::GetMemoryStats().TotalFreed) << '\n';
-			tempOut << "Current Usage " << Utils::BytesToString(Allocator::GetMemoryStats().CurrentUsage()) << '\n';
+			tempOut << "Total allocated " << String::BytesToString(Allocator::GetMemoryStats().TotalAllocated) << '\n';
+			tempOut << "Total freed " << String::BytesToString(Allocator::GetMemoryStats().TotalFreed) << '\n';
+			tempOut << "Current Usage " << String::BytesToString(Allocator::GetMemoryStats().CurrentUsage()) << '\n';
 
 			tempOut << "----------------------\n";
 
@@ -316,7 +316,7 @@ namespace Shark {
 
 				Entry entry;
 				entry.ByteSize = size;
-				entry.Size = Utils::BytesToString(size);
+				entry.Size = String::BytesToString(size);
 
 				std::string str = desc;
 				if (str.find("class") != std::string::npos)
@@ -373,7 +373,7 @@ namespace Shark {
 					return result;
 				};
 
-				out << fmt::format("  {} {} {}\n", makeDesc(alloc), alloc.Memory, Utils::BytesToString(alloc.Size));
+				out << fmt::format("  {} {} {}\n", makeDesc(alloc), alloc.Memory, String::BytesToString(alloc.Size));
 			}
 			out << "======================\n";
 		}

@@ -1506,14 +1506,14 @@ namespace Shark {
 			{
 				if (ImGui::BeginTabItem("Memory"))
 				{
-					UI::TextF("Total allocated {}", Utils::BytesToString(Allocator::GetMemoryStats().TotalAllocated));
-					UI::TextF("Total freed {}", Utils::BytesToString(Allocator::GetMemoryStats().TotalFreed));
-					UI::TextF("Current Usage {}", Utils::BytesToString(Allocator::GetMemoryStats().CurrentUsage()));
+					UI::TextF("Total allocated {}", String::BytesToString(Allocator::GetMemoryStats().TotalAllocated));
+					UI::TextF("Total freed {}", String::BytesToString(Allocator::GetMemoryStats().TotalFreed));
+					UI::TextF("Current Usage {}", String::BytesToString(Allocator::GetMemoryStats().CurrentUsage()));
 
 					ImGui::Separator();
 
 					static char SearchBuffer[250]{};
-					UI::Search(UI::GenerateID(), SearchBuffer, std::size(SearchBuffer));
+					UI::Search(UI::GenerateID(), SearchBuffer, (int)std::size(SearchBuffer));
 
 					struct Entry
 					{
@@ -1534,7 +1534,7 @@ namespace Shark {
 								continue;
 
 							auto& entry = entries.emplace_back();
-							entry.Size = Utils::BytesToString(size);
+							entry.Size = String::BytesToString(size);
 							entry.ByteSize = size;
 
 							std::string str = desc;
@@ -1857,7 +1857,7 @@ namespace Shark {
 				char inputBuffer[MAX_PATH];
 				strcpy_s(inputBuffer, m_CreateMeshAssetData.DestinationPath.c_str());
 				ImGui::SetNextItemWidth(-1.0f);
-				if (UI::InputPath("##MeshAssetPath", inputBuffer, std::size(inputBuffer)))
+				if (UI::InputPath("##MeshAssetPath", inputBuffer, (int)std::size(inputBuffer)))
 					m_CreateMeshAssetData.DestinationPath = inputBuffer;
 			}
 

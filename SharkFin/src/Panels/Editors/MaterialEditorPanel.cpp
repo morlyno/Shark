@@ -26,8 +26,8 @@ namespace Shark {
 		{
 			SK_CORE_DEBUG("Resize {}", m_ViewportSize);
 			m_Camera.Resize(m_ViewportSize.x, m_ViewportSize.y);
-			m_Scene->SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
-			m_Renderer->Resize(m_ViewportSize.x, m_ViewportSize.y);
+			m_Scene->SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+			m_Renderer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 			m_NeedsResize = false;
 		}
 
@@ -138,8 +138,8 @@ namespace Shark {
 		if ((float)m_ViewportSize.x != size.x || (float)m_ViewportSize.y != size.y)
 		{
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
-			m_ViewportSize.x = (uint32_t)ImGui::GetContentRegionAvail().x;
-			m_ViewportSize.y = (uint32_t)ImGui::GetContentRegionAvail().y;
+			m_ViewportSize.x = ImGui::GetContentRegionAvail().x;
+			m_ViewportSize.y = ImGui::GetContentRegionAvail().y;
 			m_NeedsResize = true;
 		}
 
@@ -184,7 +184,7 @@ namespace Shark {
 		m_Camera.SetProjection(m_ViewportSize.y / m_ViewportSize.x, 45.0f, 1.0f, 100.0f);
 
 		m_Scene = Ref<Scene>::Create();
-		m_Scene->SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
+		m_Scene->SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
 
 		Ref<MeshSource> sphereMeshSource = MeshFactory::GetSphere();
@@ -207,12 +207,12 @@ namespace Shark {
 		m_ViewportName = fmt::format("Viewport##{}", m_Material->Handle);
 		m_SettingsName = fmt::format("Settings##{}", m_Material->Handle);
 
-		ImGuiID tempDockspaceID = m_Material->Handle;
+		ImGuiID tempDockspaceID = (ImGuiID)m_Material->Handle;
 		m_DockspaceID = ImGui::DockBuilderAddNode(tempDockspaceID, ImGuiDockNodeFlags_DockSpace);
 
 		ImGuiDockNode* parentDockspaceNode = ImGui::DockBuilderGetNode(m_ParentDockspaceID);
 		ImGui::DockBuilderSetNodeSize(m_DockspaceID, parentDockspaceNode->Size);
-		ImGui::DockBuilderSplitNode(m_DockspaceID, ImGuiDir_Left, 0.65, &m_ViewportDockID, &m_SettingsDockID);
+		ImGui::DockBuilderSplitNode(m_DockspaceID, ImGuiDir_Left, 0.65f, &m_ViewportDockID, &m_SettingsDockID);
 
 		ImGuiDockNode* viewportNode = ImGui::DockBuilderGetNode(m_ViewportDockID);
 		viewportNode->SetLocalFlags(ImGuiDockNodeFlags_AutoHideTabBar);

@@ -30,7 +30,7 @@ namespace Shark {
 		Ref<Shader> Get(const std::string& name);
 		Ref<Shader> TryGet(const std::string& name);
 
-		bool Exists(const std::string& name) { return m_ShaderMap.find(name) != m_ShaderMap.end(); }
+		bool Exists(const std::string& name) { return m_ShaderMap.contains(name); }
 		void Clear() { m_ShaderMap.clear(); }
 
 		std::unordered_map<std::string, Ref<Shader>>::const_iterator begin() const { return m_ShaderMap.cbegin(); }

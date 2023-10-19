@@ -48,24 +48,4 @@ namespace Shark {
 		template<typename T1, typename T2> friend Scope<T1> DynamicCast(Scope<T2>& scope);
 	};
 
-	template<typename T1, typename T2>
-	Scope<T1> StaticCast(Scope<T2>& scope)
-	{
-		T1* ptr = static_cast<T1*>(scope.m_Instance);
-		scope.m_Instance = nullptr;
-		return std::move(Scope(temp));
-	}
-
-	template<typename T1, typename T2>
-	Scope<T1> DynamicCast(Scope<T2>& scope)
-	{
-		T1* ptr = dynamic_cast<T1*>(scope.m_Instance);
-		if (ptr)
-		{
-			scope.m_Instance = nullptr;
-			return std::move(Scope(ptr));
-		}
-		return nullptr;
-	}
-
 }

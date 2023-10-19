@@ -8,8 +8,6 @@
 #include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptUtils.h"
 
-#include "Shark/utils/Utils.h"
-
 extern "C" {
 	typedef struct _MonoDomain MonoDomain;
 	typedef struct _MonoAssembly MonoAssembly;

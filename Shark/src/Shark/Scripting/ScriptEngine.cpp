@@ -130,7 +130,8 @@ namespace Shark {
 			ScriptEngine::ScheduleReload();
 		});
 
-		s_Data->RuntimeDomain = mono_domain_create_appdomain("ScriptDomain", nullptr);
+		char appdomainName[] = "ScriptDomain";
+		s_Data->RuntimeDomain = mono_domain_create_appdomain(appdomainName, nullptr);
 		SK_CORE_VERIFY(s_Data->RuntimeDomain);
 		mono_domain_set(s_Data->RuntimeDomain, true);
 
@@ -227,7 +228,7 @@ namespace Shark {
 
 	Ref<ScriptClass> ScriptEngine::GetScriptClass(uint64_t id)
 	{
-		if (s_Data->ScriptClasses.find(id) != s_Data->ScriptClasses.end())
+		if (s_Data->ScriptClasses.contains(id))
 			return s_Data->ScriptClasses.at(id);
 		return nullptr;
 	}
@@ -331,7 +332,7 @@ namespace Shark {
 			return 0;
 
 		UUID uuid = entity.GetUUID();
-		if (s_Data->EntityInstances.find(uuid) != s_Data->EntityInstances.end())
+		if (s_Data->EntityInstances.contains(uuid))
 			return 0;
 
 		ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
@@ -365,7 +366,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		UUID uuid = entity.GetUUID();
-		if (s_Data->EntityInstances.find(uuid) == s_Data->EntityInstances.end())
+		if (!s_Data->EntityInstances.contains(uuid))
 			return;
 
 		GCHandle gcHandle = GetInstance(entity);
@@ -385,7 +386,7 @@ namespace Shark {
 
 		UUID uuid = entity.GetUUID();
 
-		if (s_Data->FieldStoragesMap.find(uuid) != s_Data->FieldStoragesMap.end())
+		if (s_Data->FieldStoragesMap.contains(uuid))
 		{
 			auto& scriptComp = entity.GetComponent<ScriptComponent>();
 			GCHandle handle = GetInstance(entity);
@@ -396,7 +397,7 @@ namespace Shark {
 			auto& fields = klass->m_Fields;
 			for (auto& [name, field] : fields)
 			{
-				if (fieldStorages.find(name) == fieldStorages.end())
+				if (!fieldStorages.contains(name))
 					continue;
 
 				Ref<FieldStorage> storage = fieldStorages.at(name);
@@ -458,13 +459,13 @@ namespace Shark {
 
 	bool ScriptEngine::IsInstantiated(Entity entity)
 	{
-		return s_Data->EntityInstances.find(entity.GetUUID()) != s_Data->EntityInstances.end();
+		return s_Data->EntityInstances.contains(entity.GetUUID());
 	}
 
 	GCHandle ScriptEngine::GetInstance(Entity entity)
 	{
 		UUID entityID = entity.GetUUID();
-		if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
+		if (s_Data->EntityInstances.contains(entityID))
 			return s_Data->EntityInstances.at(entityID);
 		return 0;
 	}
@@ -688,7 +689,7 @@ namespace Shark {
 
 		if (s_Data->IsRunning)
 		{
-			SK_CORE_ERROR_TAG("Reloading while the scene is playing is not supported");
+			SK_CORE_ERROR_TAG("Scripting", "Reloading while the scene is playing is not supported");
 			return false;
 		}
 
@@ -697,7 +698,8 @@ namespace Shark {
 		// Try reload assemlies
 		// if failed keep the old ones
 
-		MonoDomain* newDomain = mono_domain_create_appdomain("ScriptDomain", nullptr);
+		char appdomainName[] = "ScriptDomain";
+		MonoDomain* newDomain = mono_domain_create_appdomain(appdomainName, nullptr);
 		SK_CORE_VERIFY(newDomain);
 		mono_domain_set(newDomain, true);
 
@@ -767,12 +769,12 @@ namespace Shark {
 
 	bool ScriptEngine::IsInstantiated(UUID entityID)
 	{
-		return s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end();
+		return s_Data->EntityInstances.contains(entityID);
 	}
 
 	GCHandle ScriptEngine::GetInstance(UUID entityID)
 	{
-		if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
+		if (s_Data->EntityInstances.contains(entityID))
 			return s_Data->EntityInstances.at(entityID);
 		return 0;
 	}

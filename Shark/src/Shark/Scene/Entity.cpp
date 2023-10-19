@@ -40,7 +40,7 @@ namespace Shark {
 	void Entity::RemoveParent()
 	{
 		auto& relShip = GetComponent<RelationshipComponent>();
-		if (!relShip.Parent.IsValid())
+		if (!relShip.Parent != UUID::Invalid)
 			return;
 
 		RemoveTargetFromParent(*this);

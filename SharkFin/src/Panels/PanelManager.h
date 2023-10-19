@@ -19,7 +19,7 @@ namespace Shark {
 		Ref<T> GetPanel(const std::string& id) const { return m_Panels.at(id).Instance.As<T>(); }
 
 		void RemovePanel(const std::string& panelID) { m_Panels.erase(panelID); }
-		bool HasPanel(const std::string& id) const { return m_Panels.find(id) != m_Panels.end(); }
+		bool HasPanel(const std::string& id) const { return m_Panels.contains(id); }
 
 		bool IsShown(const std::string& id) const { return m_Panels.at(id).Shown; }
 		void Show(const std::string& id, bool shown) { m_Panels.at(id).Shown = shown; }

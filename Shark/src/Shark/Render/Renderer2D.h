@@ -125,7 +125,7 @@ namespace Shark {
 		void BeginQaudBatch();
 		uint32_t AddTexture(QuadBatch* batch, Ref<Texture2D> texture);
 		void PrepareMaterial(Ref<Material> material, const QuadBatch& batch);
-		void ResizeQuadIndexBuffer(uint64_t indexCount);
+		void ResizeQuadIndexBuffer(uint32_t indexCount);
 
 	public:
 		static constexpr uint32_t MaxTextureSlots = 16;
@@ -232,8 +232,8 @@ namespace Shark {
 		struct QuadBatch
 		{
 			uint64_t VertexOffset = 0;
-			uint64_t IndexCount = 0;
-			uint64_t VertexCount = 0;
+			uint32_t IndexCount = 0;
+			uint32_t VertexCount = 0;
 			std::vector<Ref<Texture2D>> Textures;
 
 			QuadBatch(uint64_t dataOffset)
@@ -261,7 +261,7 @@ namespace Shark {
 		Ref<IndexBuffer> m_CircleIndexBuffer;
 		Buffer m_CircleVertexData;
 		uint32_t m_CircleIndexCount = 0;
-		uint64_t m_CircleVertexCount = 0;
+		uint32_t m_CircleVertexCount = 0;
 		
 		// Line
 		Ref<Pipeline> m_LinePipeline;
@@ -288,7 +288,7 @@ namespace Shark {
 		Ref<IndexBuffer> m_TransparentCircleIndexBuffer;
 		Buffer m_TransparentCircleVertexData;
 		uint32_t m_TransparentCircleIndexCount = 0;
-		uint64_t m_TransparentCircleVertexCount = 0;
+		uint32_t m_TransparentCircleVertexCount = 0;
 
 		// Text
 		Ref<Pipeline> m_TextPipeline;

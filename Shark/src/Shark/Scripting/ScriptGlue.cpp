@@ -529,8 +529,8 @@ namespace Shark {
 					mousePos -= app.GetWindow().ScreenToWindow({ viewportWindow->Pos.x, viewportWindow->Pos.y });
 			}
 
-			out_MousePos->x = mousePos.x;
-			out_MousePos->y = mousePos.y;
+			out_MousePos->x = (int)mousePos.x;
+			out_MousePos->y = (int)mousePos.y;
 		}
 
 		#pragma endregion
@@ -560,7 +560,7 @@ namespace Shark {
 		{
 			Entity entity = utils::TryGetEntity(entityID);
 			if (!entity)
-				return false;
+				return nullptr;
 
 			if (ScriptEngine::IsInstantiated(entity))
 			{
@@ -632,7 +632,7 @@ namespace Shark {
 
 			MonoType* componentType = mono_reflection_type_get_type(type);
 
-			if (s_EntityBindings.find(componentType) == s_EntityBindings.end())
+			if (!s_EntityBindings.contains(componentType))
 				return false;
 
 			auto& bindings = s_EntityBindings.at(componentType);
@@ -647,7 +647,7 @@ namespace Shark {
 
 			MonoType* componentType = mono_reflection_type_get_type(type);
 
-			if (s_EntityBindings.find(componentType) == s_EntityBindings.end())
+			if (!s_EntityBindings.contains(componentType))
 				return;
 
 			auto& bindings = s_EntityBindings.at(componentType);
@@ -665,7 +665,7 @@ namespace Shark {
 
 			MonoType* componentType = mono_reflection_type_get_type(type);
 
-			if (s_EntityBindings.find(componentType) == s_EntityBindings.end())
+			if (!s_EntityBindings.contains(componentType))
 				return;
 
 			auto& bindings = s_EntityBindings.at(componentType);

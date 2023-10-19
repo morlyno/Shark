@@ -221,7 +221,7 @@ namespace Shark {
 			DirectXAPI::CreateBlendState(device, bd, instance->m_BlendState);
 
 			instance->RT_SetViewport(width, height);
-			instance->m_Count = instance->m_FrameBuffers.size();
+			instance->m_Count = (uint32_t)instance->m_FrameBuffers.size();
 		});
 
 		m_DepthStencilImage = depthImage;
@@ -324,7 +324,7 @@ namespace Shark {
 		DirectXAPI::CreateBlendState(device, bd, m_BlendState);
 
 		RT_SetViewport(m_Specification.Width, m_Specification.Height);
-		m_Count = m_FrameBuffers.size();
+		m_Count = (uint32_t)m_FrameBuffers.size();
 
 		m_DepthStencilImage = depthImage;
 		m_DepthStencilAtachment = depthAtachment;
@@ -440,7 +440,7 @@ namespace Shark {
 
 	void DirectXFrameBuffer::ClearAtachment(Ref<RenderCommandBuffer> commandBuffer, uint32_t index)
 	{
-		const glm::vec4 clearColor = Utils::Contains(m_Specification.IndipendendClearColor, index) ? m_Specification.IndipendendClearColor.at(index) : m_Specification.ClearColor;
+		const glm::vec4 clearColor = m_Specification.IndipendendClearColor.contains(index) ? m_Specification.IndipendendClearColor.at(index) : m_Specification.ClearColor;
 		Ref<DirectXFrameBuffer> instance = this;
 		Renderer::Submit([instance, dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>(), clearColor, index]()
 		{

@@ -867,7 +867,7 @@ namespace Shark {
 	Ref<Texture2D> ContentBrowserPanel::GetIcon(const AssetMetaData& metadata)
 	{
 		std::string extension = metadata.FilePath.extension().string();
-		if (m_IconExtensionMap.find(extension) != m_IconExtensionMap.end())
+		if (m_IconExtensionMap.contains(extension))
 			return m_IconExtensionMap.at(extension);
 		return m_FileIcon;
 	}
@@ -942,7 +942,7 @@ namespace Shark {
 
 	Ref<DirectoryInfo> ContentBrowserPanel::GetDirectory(AssetHandle handle)
 	{
-		if (m_DirectoryHandleMap.find(handle) != m_DirectoryHandleMap.end())
+		if (m_DirectoryHandleMap.contains(handle))
 			return m_DirectoryHandleMap.at(handle);
 		return nullptr;
 	}
