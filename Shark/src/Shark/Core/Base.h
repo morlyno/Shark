@@ -98,29 +98,6 @@ namespace Shark {
 	using RenderID = void*;
 	using WindowHandle = void*;
 
-	static_assert(sizeof(uint8_t) == 1);
-	static_assert(sizeof(uint16_t) == 2);
-	static_assert(sizeof(uint32_t) == 4);
-	static_assert(sizeof(uint64_t) == 8);
-
-	static_assert(sizeof(int8_t) == 1);
-	static_assert(sizeof(int16_t) == 2);
-	static_assert(sizeof(int32_t) == 4);
-	static_assert(sizeof(int64_t) == 8);
-
-	static_assert(sizeof(char) == 1);
-	static_assert(sizeof(wchar_t) == 2);
-	static_assert(sizeof(int) == 4);
-	static_assert(sizeof(byte) == 1);
-
-	static_assert(sizeof(float) == 4);
-	static_assert(sizeof(double) == 8);
-
-	static_assert(sizeof(glm::vec2) == sizeof(float) * 2);
-	static_assert(sizeof(glm::vec3) == sizeof(float) * 3);
-	static_assert(sizeof(glm::vec4) == sizeof(float) * 4);
-	static_assert(sizeof(glm::mat4) == sizeof(float) * 4 * 4);
-
 	using namespace std::literals::string_literals;
 	using namespace std::literals::string_view_literals;
 	using namespace std::literals::chrono_literals;

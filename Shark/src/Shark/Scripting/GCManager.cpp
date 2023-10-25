@@ -1,8 +1,8 @@
 #include "skpch.h"
 #include "GCManager.h"
 
-#include <mono\metadata\object.h>
-#include <mono\metadata\mono-gc.h>
+#include <mono/metadata/object.h>
+#include <mono/metadata/mono-gc.h>
 
 namespace Shark {
 

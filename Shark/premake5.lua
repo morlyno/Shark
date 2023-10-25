@@ -16,14 +16,11 @@ project "Shark"
     {
         "src/**.h",
         "src/**.cpp",
-        "%{IncludeDir.stb_image}/*.h",
-        "%{IncludeDir.stb_image}/*.cpp",
-        "%{IncludeDir.glm}/**.h",
-        "%{IncludeDir.glm}/**.hpp",
-        "%{IncludeDir.glm}/**.inl",
-        "%{IncludeDir.fmt}/**.h",
-        "%{IncludeDir.spdlog}/**.h",
-        "%{IncludeDir.Mono}/**.h",
+
+        stb_image.Files,
+        glm.Files,
+        fmt.Files,
+        spdlog.Files,
         tracy.Files,
         filewatch.Files
     }
@@ -31,23 +28,22 @@ project "Shark"
     includedirs
     {
         "%{wks.location}/Shark/src",
-        "%{IncludeDir.spdlog}",
-        "%{IncludeDir.ImGui}",
-        "%{IncludeDir.stb_image}",
-        "%{IncludeDir.EnTT}",
-        "%{IncludeDir.yaml_cpp}",
-        "%{IncludeDir.box2d}",
-        "%{IncludeDir.ImGuizmo}",
-        "%{IncludeDir.fmt}",
-        "%{IncludeDir.Optick}",
-        "%{IncludeDir.glm}",
-        "%{IncludeDir.Mono}",
-        "%{IncludeDir.msdfgen}",
-        "%{IncludeDir.msdf_atlas_gen}",
-        "%{IncludeDir.Vulkan_SDK}",
+        "%{spdlog.IncludeDir}",
+        "%{ImGui.IncludeDir}",
+        "%{stb_image.IncludeDir}",
+        "%{EnTT.IncludeDir}",
+        "%{yaml_cpp.IncludeDir}",
+        "%{Box2D.IncludeDir}",
+        "%{ImGuizmo.IncludeDir}",
+        "%{fmt.IncludeDir}",
+        "%{glm.IncludeDir}",
+        "%{mono.IncludeDir}",
+        "%{msdf_atlas_gen.IncludeDir}",
+        "%{msdfgen.IncludeDir}",
+        "%{Vulkan.IncludeDir}",
         "%{Assimp.IncludeDir}",
         "%{tracy.IncludeDir}",
-        "%{filewatch.IncludeDir}"
+        "%{filewatch.IncludeDir}",
     }
 
     defines
@@ -61,9 +57,8 @@ project "Shark"
         "yaml-cpp",
         "box2d",
         "ImGuizmo",
-        "OptickCore",
         "msdf-atlas-gen",
-        "%{Library.mono}",
+        "%{mono.Library}",
         "%{Assimp.Library}"
     }
 
@@ -76,13 +71,14 @@ project "Shark"
 
         links
         {
-            "%{Library.D3D11}",
-            "%{Library.DXGI}",
-            "%{Library.dxguid}",
-            "%{Library.Winmm}",
-            "%{Library.Version}",
-            "%{Library.Bcrypt}",
-            "%{Library.WinSock}"
+            "%{DirectX.D3D11.Library}",
+            "%{DirectX.DXGI.Library}",
+            "%{DirectX.dxguid.Library}",
+
+            "%{Windows.Winmm.Library}",
+            "%{Windows.Version.Library}",
+            "%{Windows.Bcrypt.Library}",
+            "%{Windows.WinSock.Library}",
         }
 
     filter "configurations:Debug"
@@ -93,10 +89,10 @@ project "Shark"
 
         links
         {
-            "%{Library.ShaderC_Debug}",
-            "%{Library.SPIRV_Cross_Debug}",
-            "%{Library.SPIRV_Cross_GLSL_Debug}",
-            "%{Library.SPIRV_Cross_HLSL_Debug}",
+            "%{ShaderC.LibraryDebug}",
+            "%{SPIRV_Cross.LibraryDebug}",
+            "%{SPIRV_Cross_GLSL.LibraryDebug}",
+            "%{SPIRV_Cross_HLSL.LibraryDebug}",
         }
 
     filter "configurations:Release"
@@ -107,8 +103,8 @@ project "Shark"
         
         links
         {
-            "%{Library.ShaderC_Release}",
-            "%{Library.SPIRV_Cross_Release}",
-            "%{Library.SPIRV_Cross_GLSL_Release}",
-            "%{Library.SPIRV_Cross_HLSL_Release}",
+            "%{ShaderC.LibraryRelease}",
+            "%{SPIRV_Cross.LibraryRelease}",
+            "%{SPIRV_Cross_GLSL.LibraryRelease}",
+            "%{SPIRV_Cross_HLSL.LibraryRelease}",
         }

@@ -265,14 +265,14 @@ namespace Shark {
 		monitorInfo.cbSize = sizeof(MONITORINFO);
 		GetMonitorInfo(monitor, &monitorInfo);
 
-		SetWindowPos(
+		::SetWindowPos(
 			m_hWnd,
 			NULL,
 			(monitorInfo.rcMonitor.right - m_Size.x) / 2,
 			(monitorInfo.rcMonitor.bottom - m_Size.y) / 2,
 			m_Size.x,
 			m_Size.y,
-			SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING
+			SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_NOSIZE
 		);
 	}
 
@@ -544,13 +544,18 @@ namespace Shark {
 			case WM_SYSKEYDOWN:
 			case WM_SYSKEYUP:
 			{
-				auto addKeyEvent = [listener = m_EventListener](KeyCode key, bool repeat, bool isDown)
+				auto addKeyEvent = [listener = m_EventListener](KeyCode key, bool repeat, bool isDown, const ModifierKeys& modifierKeys)
 				{
 					if (isDown)
-						listener->OnKeyPressedEvent(key, repeat);
+						listener->OnKeyPressedEvent(key, repeat, modifierKeys);
 					else
-						listener->OnKeyReleasedEvent(key);
+						listener->OnKeyReleasedEvent(key, modifierKeys);
 				};
+
+				ModifierKeys modifierKeys;
+				modifierKeys.Shift = Platform::IsKeyDown(KeyCode::Shift);
+				modifierKeys.Alt = Platform::IsKeyDown(KeyCode::Alt);
+				modifierKeys.Control = Platform::IsKeyDown(KeyCode::Control);
 
 				const bool isKeyDown = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
 				SK_CORE_VERIFY(wParam < 0xFF);
@@ -558,22 +563,22 @@ namespace Shark {
 				KeyCode key = (KeyCode)virtualKey;
 				bool repeat = lParam & BIT(30);
 				bool altDown = lParam & BIT(29);
-				addKeyEvent(key, repeat, isKeyDown);
+				addKeyEvent(key, repeat, isKeyDown, modifierKeys);
 
 				if (key == KeyCode::Alt)
 				{
-					if (Platform::IsKeyDown(KeyCode::LeftAlt) == isKeyDown) addKeyEvent(KeyCode::LeftAlt, repeat, isKeyDown);
-					if (Platform::IsKeyDown(KeyCode::RightAlt) == isKeyDown) addKeyEvent(KeyCode::RightAlt, repeat, isKeyDown);
+					if (Platform::IsKeyDown(KeyCode::LeftAlt) == isKeyDown) addKeyEvent(KeyCode::LeftAlt, repeat, isKeyDown, modifierKeys);
+					if (Platform::IsKeyDown(KeyCode::RightAlt) == isKeyDown) addKeyEvent(KeyCode::RightAlt, repeat, isKeyDown, modifierKeys);
 				}
 				else if (key == KeyCode::Control)
 				{
-					if (Platform::IsKeyDown(KeyCode::LeftControl) == isKeyDown) addKeyEvent(KeyCode::LeftControl, repeat, isKeyDown);
-					if (Platform::IsKeyDown(KeyCode::RightControl) == isKeyDown) addKeyEvent(KeyCode::RightControl, repeat, isKeyDown);
+					if (Platform::IsKeyDown(KeyCode::LeftControl) == isKeyDown) addKeyEvent(KeyCode::LeftControl, repeat, isKeyDown, modifierKeys);
+					if (Platform::IsKeyDown(KeyCode::RightControl) == isKeyDown) addKeyEvent(KeyCode::RightControl, repeat, isKeyDown, modifierKeys);
 				}
 				else if (key == KeyCode::Shift)
 				{
-					if (Platform::IsKeyDown(KeyCode::LeftShift) == isKeyDown) addKeyEvent(KeyCode::LeftShift, repeat, isKeyDown);
-					if (Platform::IsKeyDown(KeyCode::RightShift) == isKeyDown) addKeyEvent(KeyCode::RightShift, repeat, isKeyDown);
+					if (Platform::IsKeyDown(KeyCode::LeftShift) == isKeyDown) addKeyEvent(KeyCode::LeftShift, repeat, isKeyDown, modifierKeys);
+					if (Platform::IsKeyDown(KeyCode::RightShift) == isKeyDown) addKeyEvent(KeyCode::RightShift, repeat, isKeyDown, modifierKeys);
 				}
 				break;
 			}

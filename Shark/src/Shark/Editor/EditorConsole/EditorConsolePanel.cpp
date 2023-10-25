@@ -112,6 +112,9 @@ namespace Shark {
 
 	void EditorConsolePanel::PushMessage(Log::Level level, const std::string& time, const std::string& message)
 	{
+		if (!s_Instance)
+			return;
+
 		SK_CORE_ASSERT(s_Instance);
 		switch (level)
 		{

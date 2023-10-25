@@ -8,6 +8,14 @@
 
 namespace Shark {
 
+	namespace Utils {
+		
+		bool IsDepthAtachment(const FrameBufferAtachment& atachment);
+
+	}
+
+	class DirectXFrameBuffer;
+
 	class DirectXFrameBuffer : public FrameBuffer
 	{
 	public:
@@ -19,6 +27,7 @@ namespace Shark {
 
 		virtual void Release() override;
 		virtual void RT_Release() override;
+		void RT_ShallowRelease();
 
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
@@ -36,6 +45,7 @@ namespace Shark {
 		virtual FrameBufferSpecification& GetSpecificationMutable() override { return m_Specification; }
 
 	private:
+		void RT_InvalidateAtachment(uint32_t atachmentIndex);
 		void RT_CreateDepthStencilAtachment(ImageFormat format, Ref<DirectXImage2D> depthImage);
 		void RT_SetViewport(uint32_t width, uint32_t height);
 
@@ -53,7 +63,7 @@ namespace Shark {
 		FrameBufferSpecification m_Specification;
 		FrameBufferAtachment* m_DepthStencilAtachment = nullptr;
 
-
 		friend class DirectXRenderer;
+		friend class DirectXSwapChain;
 	};
 }

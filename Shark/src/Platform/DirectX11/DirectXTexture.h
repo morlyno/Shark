@@ -10,13 +10,20 @@ namespace Shark {
 	class DirectXSamplerWrapper : public SamplerWrapper
 	{
 	public:
+		DirectXSamplerWrapper() = default;
+		DirectXSamplerWrapper(const SamplerSpecification& spec);
+		~DirectXSamplerWrapper();
+
 		virtual RenderID GetSamplerID() const override { return m_Sampler; }
+
+		void RT_SetSampler(ID3D11SamplerState* sampler);
+		ID3D11SamplerState* RT_GetSampler() const { return m_Sampler; }
+
+	private:
+		void CreateSampler(const SamplerSpecification& spec);
 
 	private:
 		ID3D11SamplerState* m_Sampler;
-
-		friend class DirectXTexture2D;
-		friend class DirectXRenderer;
 	};
 
 	class DirectXTexture2D : public Texture2D

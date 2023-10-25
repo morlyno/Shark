@@ -16,74 +16,29 @@
 
 namespace Shark {
 
-	SceneRenderer::SceneRenderer(Ref<Scene> scene, const std::string& debugName)
-		: m_Scene(scene), m_DebugName(debugName)
+	SceneRenderer::SceneRenderer(uint32_t width, uint32_t height, const std::string& debugName)
 	{
-		SK_PROFILE_FUNCTION();
-		
-		if (m_Scene && m_Scene->GetViewportWidth() != 0 && m_Scene->GetViewportHeight() != 0)
-		{
-			m_ViewportWidth = m_Scene->GetViewportWidth();
-			m_ViewportHeight = m_Scene->GetViewportHeight();
-			m_NeedsResize = false;
-		}
-		else
-		{
-			SK_CORE_WARN_TAG("SceneRenderer", "Unkown Viewport Size");
-			m_ViewportWidth = 1280;
-			m_ViewportHeight = 720;
-		}
+		SceneRendererSpecification specification;
+		specification.Width = width;
+		specification.Height = height;
+		specification.DebugName = debugName;
+		Initialize(specification);
+	}
 
-		m_CommandBuffer = RenderCommandBuffer::Create();
-		m_Timer = GPUTimer::Create("SceneRenderer");
+	SceneRenderer::SceneRenderer(Ref<Scene> scene, const SceneRendererSpecification& specification)
+		: m_Scene(scene)
+	{
+		Initialize(specification);
+	}
 
-		m_CBSceneData = ConstantBuffer::Create(sizeof(CBCamera), 0);
-		m_CBLight = ConstantBuffer::Create(sizeof(CBLight), 1);
-
-		// Geometry
-		{
-			FrameBufferSpecification fbspecs;
-			fbspecs.DebugName = "SceneRenderer Geometry";
-			fbspecs.Width = m_ViewportWidth;
-			fbspecs.Height = m_ViewportHeight;
-			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
-			fbspecs.Atachments[1].BlendEnabled = false;
-			fbspecs.ClearColor = m_ClearColor;
-			fbspecs.IndipendendClearColor[1] = { -1.0f, -1.0f, -1.0f, -1.0f };
-			m_GeometryFrameBuffer = FrameBuffer::Create(fbspecs);
-			m_Renderer2D = Ref<Renderer2D>::Create(m_GeometryFrameBuffer);
-		}
-
-
-		// External Composite
-		{
-			FrameBufferSpecification fbspecs;
-			fbspecs.DebugName = "SceneRenderer External Composite";
-			fbspecs.Width = m_ViewportWidth;
-			fbspecs.Height = m_ViewportHeight;
-			fbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
-			fbspecs.Atachments[1].BlendEnabled = false;
-			fbspecs.ExistingImages[0] = m_GeometryFrameBuffer->GetImage(0);
-			fbspecs.ExistingImages[1] = m_GeometryFrameBuffer->GetImage(1);
-			fbspecs.ExistingImages[2] = m_GeometryFrameBuffer->GetDepthImage();
-			m_ExternalCompositeFrameBuffer = FrameBuffer::Create(fbspecs);
-		}
-
-		// Mesh Pipeline
-		{
-			PipelineSpecification specification;
-			specification.TargetFrameBuffer = m_GeometryFrameBuffer;
-			specification.Shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
-			specification.Layout = VertexLayout{
-				{ VertexDataType::Float3, "Position" },
-				{ VertexDataType::Float3, "Normal" },
-				{ VertexDataType::Float2, "UV" }
-			};
-			specification.DebugName = "Default Mesh Pipeline";
-			m_MeshPipeline = Pipeline::Create(specification);
-		}
-
+	SceneRenderer::SceneRenderer(Ref<Scene> scene)
+		: m_Scene(scene)
+	{
+		SceneRendererSpecification specification;
+		specification.Width = scene->GetViewportWidth();
+		specification.Height = scene->GetViewportHeight();
+		specification.DebugName = scene->GetName();
+		Initialize(specification);
 	}
 
 	SceneRenderer::~SceneRenderer()
@@ -95,13 +50,13 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (m_NeedsResize && m_ViewportWidth != 0 && m_ViewportHeight != 0)
+		if (m_NeedsResize && m_Specification.Width != 0 && m_Specification.Height != 0)
 		{
 			SK_PROFILE_SCOPED("SceneRenderer::BeginScene Resize");
 
-			m_GeometryFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
-			m_ExternalCompositeFrameBuffer->Resize(m_ViewportWidth, m_ViewportHeight);
-			m_Renderer2D->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_GeometryFrameBuffer->Resize(m_Specification.Width, m_Specification.Height);
+			m_ExternalCompositeFrameBuffer->Resize(m_Specification.Width, m_Specification.Height);
+			m_Renderer2D->Resize(m_Specification.Width, m_Specification.Height);
 			m_NeedsResize = false;
 		}
 
@@ -214,13 +169,13 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (m_ViewportWidth == width && m_ViewportHeight == height)
+		if (m_Specification.Width == width && m_Specification.Height == height)
 			return;
 
 		//SK_CORE_INFO_TAG("SceneRenderer", "Resizing Scene Renderer {} ({}, {})", m_DebugName, width, height);
 
-		m_ViewportWidth = width;
-		m_ViewportHeight = height;
+		m_Specification.Width = width;
+		m_Specification.Height = height;
 		m_NeedsResize = true;
 	}
 
@@ -236,7 +191,7 @@ namespace Shark {
 		}
 
 		const void* treeNodeID = this;
-		if (ImGui::TreeNodeEx(treeNodeID, ImGuiTreeNodeFlags_CollapsingHeader, "Scene Renderer [%s]", m_DebugName.c_str()))
+		if (ImGui::TreeNodeEx(treeNodeID, ImGuiTreeNodeFlags_CollapsingHeader, "Scene Renderer [%s]", m_Specification.DebugName.c_str()))
 		{
 			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
 			{
@@ -254,7 +209,7 @@ namespace Shark {
 			{
 				UI::BeginControlsGrid();
 
-				UI::Property("Viewport", glm::vec2{ m_ViewportWidth, m_ViewportHeight });
+				UI::Property("Viewport", glm::vec2{ m_Specification.Width, m_Specification.Height });
 
 				UI::Property("DrawCalls", m_Statistics.DrawCalls);
 				UI::Property("Vertices", m_Statistics.VertexCount);
@@ -322,6 +277,78 @@ namespace Shark {
 			}
 
 		}
+	}
+
+	void SceneRenderer::Initialize(const SceneRendererSpecification& specification)
+	{
+		SK_PROFILE_FUNCTION();
+
+		m_Specification = specification;
+
+		m_CommandBuffer = RenderCommandBuffer::Create();
+		m_Timer = GPUTimer::Create("SceneRenderer");
+
+		m_CBSceneData = ConstantBuffer::Create(sizeof(CBCamera), 0);
+		m_CBLight = ConstantBuffer::Create(sizeof(CBLight), 1);
+
+		// Geometry
+		{
+			FrameBufferSpecification fbspecs;
+			fbspecs.DebugName = "SceneRenderer Geometry";
+			fbspecs.Width = specification.Width;
+			fbspecs.Height = specification.Height;
+			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
+			fbspecs.Atachments[1].BlendEnabled = false;
+			fbspecs.ClearColor = m_ClearColor;
+			fbspecs.IndipendendClearColor[1] = { -1.0f, -1.0f, -1.0f, -1.0f };
+
+			if (specification.IsSwapchainTarget)
+			{
+				Ref<FrameBuffer> swapchainFramebuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer();
+				fbspecs.ExistingImages[0] = swapchainFramebuffer->GetImage(0);
+			}
+
+			m_GeometryFrameBuffer = FrameBuffer::Create(fbspecs);
+			m_Renderer2D = Ref<Renderer2D>::Create(m_GeometryFrameBuffer);
+		}
+
+
+		// External Composite
+		{
+			FrameBufferSpecification fbspecs;
+			fbspecs.DebugName = "SceneRenderer External Composite";
+			fbspecs.Width = specification.Width;
+			fbspecs.Height = specification.Height;
+			fbspecs.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+			fbspecs.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
+			fbspecs.Atachments[1].BlendEnabled = false;
+			fbspecs.ExistingImages[0] = m_GeometryFrameBuffer->GetImage(0);
+			fbspecs.ExistingImages[1] = m_GeometryFrameBuffer->GetImage(1);
+			fbspecs.ExistingImages[2] = m_GeometryFrameBuffer->GetDepthImage();
+			m_ExternalCompositeFrameBuffer = FrameBuffer::Create(fbspecs);
+		}
+
+		if (specification.IsSwapchainTarget)
+		{
+			Ref<SwapChain> swapchain = Application::Get().GetWindow().GetSwapChain();
+			swapchain->AcknowledgeDependency(m_GeometryFrameBuffer);
+			swapchain->AcknowledgeDependency(m_ExternalCompositeFrameBuffer);
+		}
+
+		// Mesh Pipeline
+		{
+			PipelineSpecification specification;
+			specification.TargetFrameBuffer = m_GeometryFrameBuffer;
+			specification.Shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
+			specification.Layout = VertexLayout{
+				{ VertexDataType::Float3, "Position" },
+				{ VertexDataType::Float3, "Normal" },
+				{ VertexDataType::Float2, "UV" }
+			};
+			specification.DebugName = "Default Mesh Pipeline";
+			m_MeshPipeline = Pipeline::Create(specification);
+		}
+
 	}
 
 }

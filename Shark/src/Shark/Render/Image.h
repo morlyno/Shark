@@ -55,7 +55,7 @@ namespace Shark {
 		virtual void Invalidate() = 0;
 		virtual void RT_Invalidate() = 0;
 
-		virtual bool Validate() const = 0;
+		virtual bool Validate(bool hasView = true) const = 0;
 
 		virtual void Release() = 0;
 		virtual void RT_Release() = 0;

@@ -57,6 +57,7 @@ namespace Shark {
 
 		specification.ScriptConfig.CoreAssemblyPath = FileSystem::GetResourcePath("Resources/Binaries/Shark-ScriptCore.dll");
 		specification.ScriptConfig.EnableDebugging = true;
+		specification.ScriptConfig.AutoReload = true;
 
 		return sknew SharkFin(specification, startupProject);
 	}

@@ -308,11 +308,16 @@ namespace Shark {
 		SK_CORE_TRACE_TAG(Tag::Serialization, " - Anisotropy Enabled {}", specification.Sampler.Anisotropy);
 		SK_CORE_TRACE_TAG(Tag::Serialization, " - Max Anisotropy {}", specification.Sampler.MaxAnisotropy);
 
+#if 0
 		Application::Get().SubmitToMainThread([texture, textureSource]()
 		{
 			texture->SetTextureSource(textureSource);
 			texture->Invalidate();
 		});
+#else
+		texture->SetTextureSource(textureSource);
+		texture->Invalidate();
+#endif
 		return true;
 	}
 

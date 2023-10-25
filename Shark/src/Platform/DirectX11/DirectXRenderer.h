@@ -57,6 +57,8 @@ namespace Shark {
 		virtual void GenerateMips(Ref<Image2D> image) override;
 		virtual void RT_GenerateMips(Ref<Image2D> image) override;
 
+		virtual Ref<SamplerWrapper> GetClampLinearSampler() const override { return m_ClampLinearSamplerWrapper; }
+
 		virtual TimeStep GetGPUTime() const override { return m_GPUTimer->GetTime(); }
 
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
@@ -106,6 +108,8 @@ namespace Shark {
 		ID3D11DeviceContext* m_ImmediateContext = nullptr;
 		ID3D11Debug* m_Debug = nullptr;
 		IDXGIInfoQueue* m_InfoQueue = nullptr;
+
+		Ref<DirectXSamplerWrapper> m_ClampLinearSamplerWrapper;
 
 		std::unordered_set<DirectXRenderCommandBuffer*> m_CommandBuffers;
 

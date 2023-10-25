@@ -33,7 +33,7 @@ namespace Shark {
 		virtual void Invalidate() override;
 		virtual void RT_Invalidate() override;
 
-		virtual bool Validate() const override;
+		virtual bool Validate(bool hasView = true) const override;
 
 		virtual void Release() override;
 		virtual void RT_Release() override;

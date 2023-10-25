@@ -196,12 +196,12 @@ namespace Shark {
 
 	}
 
-	bool DirectXImage2D::Validate() const
+	bool DirectXImage2D::Validate(bool hasView) const
 	{
-		// for Storage Images m_View is null
-		bool viewValid = m_View || m_Specification.Type == ImageType::Storage;
+		if (!hasView || m_Specification.Type == ImageType::Storage)
+			return m_Resource;
 
-		return m_Resource && viewValid;
+		return m_Resource && m_View;
 	}
 
 	void DirectXImage2D::Release()

@@ -1,47 +1,122 @@
 
 VULKAN_SDK = os.getenv("VULKAN_SDK")
 
-IncludeDir = {}
-IncludeDir["spdlog"] = "%{wks.location}/Shark/dependencies/spdlog/include"
-IncludeDir["ImGui"] = "%{wks.location}/Shark/dependencies/ImGui"
-IncludeDir["stb_image"] = "%{wks.location}/Shark/dependencies/stb_image"
-IncludeDir["EnTT"] = "%{wks.location}/Shark/dependencies/EnTT/include"
-IncludeDir["yaml_cpp"] = "%{wks.location}/Shark/dependencies/yaml-cpp/include"
-IncludeDir["box2d"] = "%{wks.location}/Shark/dependencies/box2d/include"
-IncludeDir["ImGuizmo"] = "%{wks.location}/Shark/dependencies/ImGuizmo"
-IncludeDir["fmt"] = "%{wks.location}/Shark/dependencies/fmt/include"
-IncludeDir["Optick"] = "%{wks.location}/Shark/dependencies/Optick/src"
-IncludeDir["glm"] = "%{wks.location}/Shark/dependencies/glm"
-IncludeDir["Mono"] = "%{wks.location}/Shark/dependencies/mono/include"
-IncludeDir["msdfgen"] = "%{wks.location}/Shark/dependencies/msdf-atlas-gen/msdfgen"
-IncludeDir["msdf_atlas_gen"] = "%{wks.location}/Shark/dependencies/msdf-atlas-gen/msdf-atlas-gen"
-IncludeDir["Vulkan_SDK"] = "%{VULKAN_SDK}/Include"
+spdlog = {
+    BaseDir = "%{wks.location}/Shark/dependencies/spdlog",
+    IncludeDir = "%{spdlog.BaseDir}/include",
+    Files = {
+        "%{spdlog.BaseDir}/include/spdlog/*.h",
+        "%{spdlog.BaseDir}/include/spdlog/cfg/*.h",
+        "%{spdlog.BaseDir}/include/spdlog/cfg/*.h",
+        "%{spdlog.BaseDir}/include/spdlog/details/*.h",
+        "%{spdlog.BaseDir}/include/spdlog/sinks/*.h",
+    }
+}
 
-LibraryDir = {}
-LibraryDir["mono"] = "%{wks.location}/Shark/dependencies/mono/lib/%{cfg.buildcfg}"
-LibraryDir["VulkanSDK"] = "%{VULKAN_SDK}/Lib"
+ImGui = {
+    BaseDir = "%{wks.location}/Shark/dependencies/ImGui",
+    IncludeDir = "%{ImGui.BaseDir}",
+    Defines = { "IMGUI_DEFINE_MATH_OPERATORS" }
+}
 
-Library = {}
-Library["mono"] = "%{LibraryDir.mono}/libmono-static-sgen.lib"
+stb_image = {
+    BaseDir = "%{wks.location}/Shark/dependencies/stb_image",
+    IncludeDir = "%{stb_image.BaseDir}",
+    Files = {
+        "%{stb_image.BaseDir}/stb_image.h",
+        "%{stb_image.BaseDir}/stb_image.cpp",
+    }
+}
 
-Library["D3D11"] = "d3d11.lib"
-Library["DXGI"] = "dxgi.lib"
-Library["dxguid"] = "dxguid.lib"
+EnTT = {
+    BaseDir = "%{wks.location}/Shark/dependencies/EnTT",
+    IncludeDir = "%{EnTT.BaseDir}/include",
+    Files = {
+        "%{EnTT.BaseDir}/include/entt.hpp"
+    }
+}
 
-Library["ShaderC_Release"] = "%{LibraryDir.VulkanSDK}/shaderc_shared.lib"
-Library["SPIRV_Cross_Release"] = "%{LibraryDir.VulkanSDK}/spirv-cross-core.lib"
-Library["SPIRV_Cross_GLSL_Release"] = "%{LibraryDir.VulkanSDK}/spirv-cross-glsl.lib"
-Library["SPIRV_Cross_HLSL_Release"] = "%{LibraryDir.VulkanSDK}/spirv-cross-hlsl.lib"
+yaml_cpp = {
+    BaseDir = "%{wks.location}/Shark/dependencies/yaml-cpp",
+    IncludeDir = "%{yaml_cpp.BaseDir}/include",
+    Defines = { "YAML_CPP_STATIC_DEFINE" }
+}
 
-Library["ShaderC_Debug"] = "%{LibraryDir.VulkanSDK}/shaderc_sharedd.lib"
-Library["SPIRV_Cross_Debug"] = "%{LibraryDir.VulkanSDK}/spirv-cross-cored.lib"
-Library["SPIRV_Cross_GLSL_Debug"] = "%{LibraryDir.VulkanSDK}/spirv-cross-glsld.lib"
-Library["SPIRV_Cross_HLSL_Debug"] = "%{LibraryDir.VulkanSDK}/spirv-cross-hlsld.lib"
+Box2D = {
+    BaseDir = "%{wks.location}/Shark/dependencies/box2d",
+    IncludeDir = "%{Box2D.BaseDir}/include"
+}
 
-Library["Winmm"] = "Winmm.lib"
-Library["Version"] = "Version.lib"
-Library["Bcrypt"] = "Bcrypt.lib"
-Library["WinSock"] = "Ws2_32.lib"
+ImGuizmo = {
+    BaseDir = "%{wks.location}/Shark/dependencies/ImGuizmo",
+    IncludeDir = "%{ImGuizmo.BaseDir}"
+}
+
+fmt = {
+    BaseDir = "%{wks.location}/Shark/dependencies/fmt",
+    IncludeDir = "%{fmt.BaseDir}/include",
+    Files = { "%{fmt.BaseDir}/include/fmt/*.h" },
+    Defines = { "FMT_HEADER_ONLY" }
+}
+
+glm = {
+    BaseDir = "%{wks.location}/Shark/dependencies/glm",
+    IncludeDir = "%{glm.BaseDir}",
+    Files = {
+        "%{glm.BaseDir}/glm/**.h",
+        "%{glm.BaseDir}/glm/**.hpp",
+        "%{glm.BaseDir}/glm/**.inl"
+    },
+    Defines = {
+        "GLM_FORCE_SWIZZLE",
+        "GLM_FORCE_LEFT_HANDED",
+        "GLM_FORCE_DEPTH_ZERO_TO_ONE",
+        "GLM_FORCE_INTRINSICS"
+    }
+}
+
+mono = {
+    BaseDir = "%{wks.location}/Shark/dependencies/mono",
+    IncludeDir = "%{mono.BaseDir}/include",
+    Library = "%{mono.BaseDir}/lib/%{cfg.buildcfg}/libmono-static-sgen.lib",
+    Files = {
+        "%{mono.BaseDir}/include/mono/**.h"
+    }
+}
+
+msdf_atlas_gen = {
+    BaseDir = "%{wks.location}/Shark/dependencies/msdf-atlas-gen",
+    IncludeDir = "%{msdf_atlas_gen.BaseDir}"
+}
+
+msdfgen = {
+    IncludeDir = "%{msdf_atlas_gen.BaseDir}/msdfgen"
+}
+
+Vulkan = {
+    IncludeDir = "%{VULKAN_SDK}/Include",
+}
+
+ShaderC = {
+    LibraryDebug = "%{VULKAN_SDK}/lib/shaderc_sharedd.lib",
+    LibraryRelease = "%{VULKAN_SDK}/lib/shaderc_shared.lib",
+    --Library = iif("%{cfg.Configuration}" == "Debug", LibraryDebug, LibraryRelease)
+}
+
+SPIRV_Cross = {
+    LibraryDebug = "%{VULKAN_SDK}/lib/spirv-cross-cored.lib",
+    LibraryRelease = "%{VULKAN_SDK}/lib/spirv-cross-core.lib"
+}
+
+SPIRV_Cross_GLSL = {
+    LibraryDebug = "%{VULKAN_SDK}/lib/spirv-cross-glsld.lib",
+    LibraryRelease = "%{VULKAN_SDK}/lib/spirv-cross-glsl.lib"
+}
+
+SPIRV_Cross_HLSL = {
+    LibraryDebug = "%{VULKAN_SDK}/lib/spirv-cross-hlsld.lib",
+    LibraryRelease = "%{VULKAN_SDK}/lib/spirv-cross-hlsl.lib"
+}
 
 Assimp = {
     BaseDir = "%{wks.location}/Shark/dependencies/Assimp",
@@ -60,6 +135,10 @@ tracy = {
         "%{tracy.IncludeDir}/client/*.hpp",
         "%{tracy.IncludeDir}/TracyClient.cpp"
     },
+    Defines = {
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND"
+    }
 }
 
 filewatch = {
@@ -67,4 +146,17 @@ filewatch = {
     Files = {
         "%{wks.location}/Shark/dependencies/filewatch/include/filewatch/FileWatch.hpp"
     }
+}
+
+DirectX = {
+    D3D11 = { Library = "d3d11.lib" },
+    DXGI = { Library = "dxgi.lib" },
+    dxguid = { Library = "dxguid.lib" }
+}
+
+Windows = {
+    Winmm = { Library = "Winmm.lib" },
+    Version = { Library = "Version.lib" },
+    Bcrypt = { Library = "Bcrypt.lib" },
+    WinSock = { Library = "Ws2_32.lib" }
 }

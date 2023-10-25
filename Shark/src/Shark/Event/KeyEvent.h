@@ -8,30 +8,54 @@ namespace Shark {
 	class KeyPressedEvent : public EventBase<EventType::KeyPressed, EventCategory::Input | EventCategory::Keyboard>
 	{
 	public:
-		KeyPressedEvent(KeyCode keycode, bool isRepeat)
-			: m_KeyCode(keycode), m_IsRepeat(isRepeat) {}
+		KeyPressedEvent(KeyCode keycode, bool isRepeat, const ModifierKeys& modifierKeys)
+			: m_KeyCode(keycode), m_IsRepeat(isRepeat), m_ModifierKeys(modifierKeys) {}
 
 		KeyCode GetKeyCode() const { return m_KeyCode; }
 		bool IsRepeat() const { return m_IsRepeat; }
+		const ModifierKeys& GetModifierKeys() const { return m_ModifierKeys; }
 
-		std::string ToString() const override { return fmt::format("{}, Key: {} [{}], IsRepeat: {}", GetName(), Shark::ToString(m_KeyCode), (uint16_t)m_KeyCode, m_IsRepeat); }
+		std::string ToString() const override
+		{
+			return fmt::format("{}, Key: {} [{}], IsRepeat: {}, (Alt: {}, Shift: {}, Control: {})",
+							   GetName(),
+							   Shark::ToString(m_KeyCode),
+							   (uint16_t)m_KeyCode,
+							   m_IsRepeat,
+							   m_ModifierKeys.Alt,
+							   m_ModifierKeys.Shift,
+							   m_ModifierKeys.Control);
+		}
 
 	private:
 		KeyCode m_KeyCode;
 		bool m_IsRepeat;
+		ModifierKeys m_ModifierKeys;
 	};
 
 	class KeyReleasedEvent : public EventBase<EventType::KeyReleased, EventCategory::Input | EventCategory::Keyboard>
 	{
 	public:
-		KeyReleasedEvent(KeyCode keycode)
-			: m_KeyCode(keycode) {}
+		KeyReleasedEvent(KeyCode keycode, const ModifierKeys& modifierKeys)
+			: m_KeyCode(keycode), m_ModifierKeys(modifierKeys) {}
 
 		KeyCode GetKeyCode() const { return m_KeyCode; }
-		std::string ToString() const override { return fmt::format("{}, Key: {} [{}]", GetName(), Shark::ToString(m_KeyCode), (uint16_t)m_KeyCode); }
+		const ModifierKeys& GetModifierKeys() const { return m_ModifierKeys; }
+
+		std::string ToString() const override
+		{
+			return fmt::format("{}, Key: {} [{}], (Alt: {}, Shift: {}, Control: {})",
+							   GetName(),
+							   Shark::ToString(m_KeyCode),
+							   (uint16_t)m_KeyCode,
+							   m_ModifierKeys.Alt,
+							   m_ModifierKeys.Shift,
+							   m_ModifierKeys.Control);
+		}
 
 	private:
 		KeyCode m_KeyCode;
+		ModifierKeys m_ModifierKeys;
 	};
 
 #if 0

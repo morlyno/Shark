@@ -124,6 +124,8 @@ namespace Shark {
 	{
 	public:
 		virtual RenderID GetSamplerID() const = 0;
+
+		static Ref<SamplerWrapper> Create(const SamplerSpecification& spec);
 	};
 
 

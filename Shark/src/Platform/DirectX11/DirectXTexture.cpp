@@ -2,16 +2,18 @@
 #include "DirectXTexture.h"
 
 #include "Shark/Core/Project.h"
+#include "Shark/Render/Renderer.h"
+
+#include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 #include <stb_image.h>
-#include "Shark/Render/Renderer.h"
 
 namespace Shark {
 
 	namespace utils {
 
-		D3D11_FILTER_TYPE ConvertToDX11(FilterMode filterMode)
+		static D3D11_FILTER_TYPE ConvertToDX11(FilterMode filterMode)
 		{
 			switch (filterMode)
 			{
@@ -22,7 +24,7 @@ namespace Shark {
 			return (D3D11_FILTER_TYPE)0;
 		}
 
-		D3D11_TEXTURE_ADDRESS_MODE ConvertToDX11(WrapMode addressMode)
+		static D3D11_TEXTURE_ADDRESS_MODE ConvertToDX11(WrapMode addressMode)
 		{
 			switch (addressMode)
 			{
@@ -34,11 +36,26 @@ namespace Shark {
 			return (D3D11_TEXTURE_ADDRESS_MODE)0;
 		}
 
-		std::string GenerateSamplerName(const SamplerSpecification& specification)
+		static std::string GenerateSamplerName(const SamplerSpecification& specification)
 		{
 			if (specification.Anisotropy)
 				return fmt::format("Sampler - Anisotropic {}", specification.MaxAnisotropy);
 			return fmt::format("Sampler - {} {}", ToString(specification.Filter), ToString(specification.Wrap));
+		}
+
+		static D3D11_SAMPLER_DESC GetD3D11SamplerDesc(const SamplerSpecification& specification)
+		{
+			D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT{});
+			D3D11_FILTER_TYPE filter = utils::ConvertToDX11(specification.Filter);
+			samplerDesc.Filter = specification.Anisotropy ?
+				D3D11_FILTER_ANISOTROPIC :
+				D3D11_ENCODE_BASIC_FILTER(filter, filter, D3D11_FILTER_TYPE_LINEAR, D3D11_FILTER_REDUCTION_TYPE_STANDARD);
+			D3D11_TEXTURE_ADDRESS_MODE addressMode = utils::ConvertToDX11(specification.Wrap);
+			samplerDesc.AddressU = addressMode;
+			samplerDesc.AddressV = addressMode;
+			samplerDesc.AddressW = addressMode;
+			samplerDesc.MaxAnisotropy = specification.MaxAnisotropy;
+			return samplerDesc;
 		}
 
 	}
@@ -148,18 +165,7 @@ namespace Shark {
 		Ref<DirectXTexture2D> instance = this;
 		Renderer::Submit([instance]()
 		{
-			const auto& samplerSpec = instance->m_Specification.Sampler;
-			D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT{});
-			D3D11_FILTER_TYPE filter = utils::ConvertToDX11(samplerSpec.Filter);
-			samplerDesc.Filter = samplerSpec.Anisotropy ?
-				D3D11_FILTER_ANISOTROPIC :
-				D3D11_ENCODE_BASIC_FILTER(filter, filter, D3D11_FILTER_TYPE_LINEAR, D3D11_FILTER_REDUCTION_TYPE_STANDARD);
-			D3D11_TEXTURE_ADDRESS_MODE addressMode = utils::ConvertToDX11(samplerSpec.Wrap);
-			samplerDesc.AddressU = addressMode;
-			samplerDesc.AddressV = addressMode;
-			samplerDesc.AddressW = addressMode;
-			samplerDesc.MaxAnisotropy = samplerSpec.MaxAnisotropy;
-
+			D3D11_SAMPLER_DESC samplerDesc = utils::GetD3D11SamplerDesc(instance->m_Specification.Sampler);
 			Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
 			ID3D11Device* device = renderer->GetDevice();
 			DX11_VERIFY(device->CreateSamplerState(&samplerDesc, &instance->m_Sampler));
@@ -167,7 +173,7 @@ namespace Shark {
 			std::string samplerName = utils::GenerateSamplerName(instance->m_Specification.Sampler);
 			D3D_SET_OBJECT_NAME_A(instance->m_Sampler, samplerName.c_str());
 
-			instance->m_SamplerWrapper->m_Sampler = instance->m_Sampler;
+			instance->m_SamplerWrapper->RT_SetSampler(instance->m_Sampler);
 		});
 	}
 
@@ -283,5 +289,53 @@ namespace Shark {
 	}
 
 #pragma endregion
+
+	DirectXSamplerWrapper::DirectXSamplerWrapper(const SamplerSpecification& spec)
+	{
+		CreateSampler(spec);
+	}
+
+	DirectXSamplerWrapper::~DirectXSamplerWrapper()
+	{
+		if (!m_Sampler)
+			return;
+
+		Renderer::SubmitResourceFree([sampler = m_Sampler]()
+		{
+			sampler->Release();
+		});
+
+		m_Sampler = nullptr;
+	}
+
+	void DirectXSamplerWrapper::RT_SetSampler(ID3D11SamplerState* sampler)
+	{
+		if (m_Sampler)
+		{
+			m_Sampler->Release();
+			m_Sampler = nullptr;
+		}
+
+		if (sampler)
+		{
+			m_Sampler = sampler;
+			m_Sampler->AddRef();
+		}
+	}
+
+	void DirectXSamplerWrapper::CreateSampler(const SamplerSpecification& spec)
+	{
+		Ref<DirectXSamplerWrapper> instance = this;
+		Renderer::Submit([instance, spec]()
+		{
+			auto renderer = DirectXRenderer::Get();
+			auto device = renderer->GetDevice();
+
+			auto samplerDesc = utils::GetD3D11SamplerDesc(spec);
+			DirectXAPI::CreateSamplerState(device, samplerDesc, instance->m_Sampler);
+			auto debugName = utils::GenerateSamplerName(spec);
+			DirectXAPI::SetDebugName(instance->m_Sampler, debugName);
+		});
+	}
 
 }

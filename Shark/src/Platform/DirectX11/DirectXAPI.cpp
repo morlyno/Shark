@@ -15,6 +15,16 @@ namespace Shark::DirectXAPI {
 		}
 	}
 
+	void SetDebugName(ID3D11DeviceChild* object, std::string_view debugName)
+	{
+		HRESULT hr = D3D_SET_OBJECT_NAME_N_A(object, debugName.length(), debugName.data());
+		if (FAILED(hr))
+		{
+			auto renderer = DirectXRenderer::Get();
+			renderer->HandleError(hr);
+		}
+	}
+
 	void CreateSwapChain(IDXGIFactory* factory, ID3D11Device* device, DXGI_SWAP_CHAIN_DESC& desc, IDXGISwapChain*& outSwapChain)
 	{
 		HRESULT hr = factory->CreateSwapChain(device, &desc, &outSwapChain);
@@ -68,6 +78,16 @@ namespace Shark::DirectXAPI {
 	void CreateTexture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const D3D11_SUBRESOURCE_DATA* subresourceData, ID3D11Texture2D*& outTexture)
 	{
 		HRESULT hr = device->CreateTexture2D(&desc, subresourceData, &outTexture);
+		if (FAILED(hr))
+		{
+			auto renderer = DirectXRenderer::Get();
+			renderer->HandleError(hr);
+		}
+	}
+
+	void CreateSamplerState(ID3D11Device* device, const D3D11_SAMPLER_DESC& desc, ID3D11SamplerState*& outSampler)
+	{
+		HRESULT hr = device->CreateSamplerState(&desc, &outSampler);
 		if (FAILED(hr))
 		{
 			auto renderer = DirectXRenderer::Get();

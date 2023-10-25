@@ -9,6 +9,7 @@
 #include "Shark/Utils/String.h"
 #include "Shark/Debug/Profiler.h"
 
+#include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
 #include "Platform/DirectX11/DirectXShader.h"
@@ -119,6 +120,17 @@ namespace Shark {
 			queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
 			queryDesc.MiscFlags = 0;
 			SK_DX11_CALL(instance->m_Device->CreateQuery(&queryDesc, &instance->m_FrequencyQuery));
+
+			D3D11_SAMPLER_DESC samplerDesc{};
+			samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+			ID3D11SamplerState* sampler;
+			DirectXAPI::CreateSamplerState(instance->m_Device, samplerDesc, sampler);
+			instance->m_ClampLinearSamplerWrapper->RT_SetSampler(sampler);
+			sampler->Release();
 		});
 
 		VertexLayout layout = {
@@ -139,6 +151,7 @@ namespace Shark {
 
 		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, (uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
 		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
+		m_ClampLinearSamplerWrapper = Ref<DirectXSamplerWrapper>::Create();
 
 		m_GPUTimer = Ref<DirectXGPUTimer>::Create("GPU");
 
@@ -641,6 +654,16 @@ namespace Shark {
 	void DirectXRenderer::BindFrameBuffer(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXFrameBuffer> framebuffer)
 	{
 		auto context = commandBuffer->GetContext();
+
+		if (!framebuffer)
+		{
+			ID3D11RenderTargetView* nullFramebuffers[8];
+			memset(nullFramebuffers, 0, sizeof(nullFramebuffers));
+			ID3D11DepthStencilView* nullDepthStencil = nullptr;
+			context->OMSetRenderTargets(8, nullFramebuffers, nullDepthStencil);
+			return;
+		}
+
 		context->OMSetRenderTargets(framebuffer->m_Count, framebuffer->m_FrameBuffers.data(), framebuffer->m_DepthStencil);
 	}
 
@@ -780,12 +803,12 @@ namespace Shark {
 					break;
 
 				case ShaderReflection::ResourceType::Sampler:
-					bindSampler(resource.Stage, resource.Binding, resource.Sampler ? resource.Sampler->m_Sampler : whiteTextureSampler);
+					bindSampler(resource.Stage, resource.Binding, resource.Sampler ? resource.Sampler->RT_GetSampler() : whiteTextureSampler);
 					break;
 
 				case ShaderReflection::ResourceType::Sampler2D:
 					bindShaderResourceView(resource.Stage, resource.Binding, resource.Image ? resource.Image->m_View : whiteTextureView);
-					bindSampler(resource.Stage, resource.Binding, resource.Sampler ? resource.Sampler->m_Sampler : whiteTextureSampler);
+					bindSampler(resource.Stage, resource.Binding, resource.Sampler ? resource.Sampler->RT_GetSampler() : whiteTextureSampler);
 					break;
 
 				default:

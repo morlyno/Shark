@@ -33,8 +33,8 @@ namespace Shark {
 		void OnMouseButtonDoubleClickedEvent(MouseButton button);
 		void OnMouseScrolledEvent(float xOffset, float yOffset);
 
-		void OnKeyPressedEvent(KeyCode key, bool isRepead);
-		void OnKeyReleasedEvent(KeyCode key);
+		void OnKeyPressedEvent(KeyCode key, bool isRepead, const ModifierKeys& modifierKeys);
+		void OnKeyReleasedEvent(KeyCode key, const ModifierKeys& modifierKeys);
 
 		void OnApplicationClosedEvent();
 #if 0

@@ -6,6 +6,7 @@
 namespace Shark::DirectXAPI {
 
 	void SetDebugName(ID3D11DeviceChild* object, const char* debugName);
+	void SetDebugName(ID3D11DeviceChild* object, std::string_view debugName);
 
 	void CreateSwapChain(IDXGIFactory* factory, ID3D11Device* device, DXGI_SWAP_CHAIN_DESC& desc, IDXGISwapChain*& outSwapChain);
 
@@ -15,5 +16,6 @@ namespace Shark::DirectXAPI {
 
 	void CreateBlendState(ID3D11Device* device, D3D11_BLEND_DESC& desc, ID3D11BlendState*& outState);
 	void CreateTexture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const D3D11_SUBRESOURCE_DATA* subresourceData, ID3D11Texture2D*& outTexture);
+	void CreateSamplerState(ID3D11Device* device, const D3D11_SAMPLER_DESC& desc, ID3D11SamplerState*& outSampler);
 
 }

@@ -94,6 +94,16 @@ namespace Shark {
 
 	}
 
+	namespace Utils {
+
+		bool IsDepthAtachment(const FrameBufferAtachment& atachment)
+		{
+			return utils::IsDepthAtachment(atachment);
+		}
+
+	}
+
+
 	DirectXFrameBuffer::DirectXFrameBuffer(const FrameBufferSpecification& specs)
 		: m_Specification(specs)
 	{
@@ -246,8 +256,14 @@ namespace Shark {
 
 			if (utils::IsDepthAtachment(atachment))
 			{
-				SK_CORE_VERIFY(!depthAtachment, "A Framebuffer can only have one Depth Atachment!")
-					depthAtachment = &atachment;
+				SK_CORE_VERIFY(!depthAtachment, "A Framebuffer can only have one Depth Atachment!");
+				depthAtachment = &atachment;
+
+				if (m_Specification.ExistingImages.contains(i) && m_Specification.ExistingImages.at(i))
+				{
+					depthImage = m_Specification.ExistingImages.at(i).As<DirectXImage2D>();
+					continue;
+				}
 
 				depthImage = Ref<DirectXImage2D>::Create();
 				auto& imageSpec = depthImage->GetSpecificationMutable();
@@ -375,8 +391,33 @@ namespace Shark {
 		m_BlendState = nullptr;
 	}
 
+	void DirectXFrameBuffer::RT_ShallowRelease()
+	{
+		for (auto buffer : m_FrameBuffers)
+			buffer->Release();
+
+		for (auto& image : m_Images)
+			image->RT_Release();
+
+		if (m_DepthStencilImage)
+			m_DepthStencilImage->RT_Release();
+
+		if (m_DepthStencil)
+			m_DepthStencil->Release();
+
+		if (m_BlendState)
+			m_BlendState->Release();
+
+		m_FrameBuffers.clear();
+		m_DepthStencil = nullptr;
+		m_BlendState = nullptr;
+	}
+
 	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)
 	{
+		if (m_Specification.Width == width && m_Specification.Height == height)
+			return;
+
 		m_Specification.Width = width;
 		m_Specification.Height = height;
 
@@ -461,6 +502,30 @@ namespace Shark {
 			auto context = dxCommandBuffer->GetContext();
 			context->ClearDepthStencilView(instance->m_DepthStencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		});
+	}
+
+	void DirectXFrameBuffer::RT_InvalidateAtachment(uint32_t atachmentIndex)
+	{
+		const FrameBufferAtachment& atachment = m_Specification.Atachments[atachmentIndex];
+		Ref<DirectXImage2D> image = m_Images[atachmentIndex];
+
+		auto renderer = DirectXRenderer::Get();
+		ID3D11Device* device = renderer->GetDevice();
+
+		D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+		viewDesc.Format = utils::FBAtachmentToDXGIFormat(atachment.Format);
+		viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		viewDesc.Texture2D.MipSlice = 0;
+
+		ID3D11RenderTargetView* view = nullptr;
+		DirectXAPI::CreateRenderTargetView(device, image->GetResourceNative(), viewDesc, view);
+		D3D_SET_OBJECT_NAME_A(view, m_Specification.DebugName.c_str());
+		
+		if (atachmentIndex >= m_FrameBuffers.size())
+			m_FrameBuffers.resize(atachmentIndex + 1);
+
+		SK_CORE_ASSERT(!m_FrameBuffers[atachmentIndex]);
+		m_FrameBuffers[atachmentIndex] = view;
 	}
 
 	void DirectXFrameBuffer::RT_CreateDepthStencilAtachment(ImageFormat format, Ref<DirectXImage2D> depthImage)

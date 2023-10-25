@@ -88,8 +88,9 @@ namespace Shark {
 		m_PanelManager->AddPanel<AssetsPanel>(ASSETS_PANEL_ID, "Assets", false);
 		m_PanelManager->AddPanel<ScriptEnginePanel>(SCRIPT_ENGINE_ID, "Script Engine", false);
 
-		m_SceneRenderer = Ref<SceneRenderer>::Create(m_ActiveScene, "Viewport");
-		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(m_ActiveScene, "Camera Preview");
+		const auto& window = Application::Get().GetWindow();
+		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
+		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Camera Preview Renderer");
 		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer());
 
 		// Readable Mouse image for Mouse Picking
@@ -218,7 +219,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (event.GetKeyCode() == KeyCode::F4 && Input::IsKeyDown(KeyCode::Alt))
+		if (event.GetKeyCode() == KeyCode::F4 && event.GetModifierKeys().Alt)
 		{
 			auto& app = Application::Get();
 			app.CloseApplication();
@@ -244,9 +245,9 @@ namespace Shark {
 		if (event.IsRepeat())
 			return false;
 
-		const bool control = Input::IsKeyDown(KeyCode::LeftControl);
-		const bool shift = Input::IsKeyDown(KeyCode::LeftShift);
-		const bool altDown = Input::IsKeyDown(KeyCode::Alt);
+		const bool control = event.GetModifierKeys().Control;
+		const bool shift = event.GetModifierKeys().Shift;
+		const bool alt = event.GetModifierKeys().Alt;
 
 		switch (event.GetKeyCode())
 		{

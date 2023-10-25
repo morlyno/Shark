@@ -113,13 +113,12 @@ namespace Shark {
 			Timer cpuTimer;
 
 			ProcessEvents();
+			ExecuteMainThreadQueue();
 
 			if (!m_Minimized)
 			{
 				Renderer::WaitAndRender();
-
 				Renderer::BeginFrame();
-				ExecuteMainThreadQueue();
 
 				for (auto& layer : m_LayerStack)
 					layer->OnUpdate(m_TimeStep);

@@ -14,6 +14,13 @@ namespace Shark {
 
 	class Scene;
 
+	struct SceneRendererSpecification
+	{
+		uint32_t Width = 0, Height = 0;
+		bool IsSwapchainTarget = false;
+		std::string DebugName;
+	};
+
 	class SceneRenderer : public RefCount
 	{
 	public:
@@ -25,7 +32,9 @@ namespace Shark {
 		};
 
 	public:
-		SceneRenderer(Ref<Scene> scene, const std::string& debugName = "Untitled");
+		SceneRenderer(uint32_t width, uint32_t height, const std::string& debugName);
+		SceneRenderer(Ref<Scene> scene, const SceneRendererSpecification& specification);
+		SceneRenderer(Ref<Scene> scene);
 		~SceneRenderer();
 
 		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
@@ -60,6 +69,9 @@ namespace Shark {
 		const Statistics& GetStatisitcs() const { return m_Statistics; }
 
 	private:
+		void Initialize(const SceneRendererSpecification& specification);
+
+	private:
 		struct CBCamera
 		{
 			glm::mat4 ViewProj;
@@ -85,7 +97,7 @@ namespace Shark {
 
 	private:
 		Ref<Scene> m_Scene;
-		std::string m_DebugName;
+		SceneRendererSpecification m_Specification;
 		Statistics m_Statistics;
 
 		Ref<ConstantBuffer> m_CBSceneData;
@@ -108,7 +120,6 @@ namespace Shark {
 		Ref<Pipeline> m_MeshPipeline;
 
 		bool m_NeedsResize = true;
-		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 	};
 

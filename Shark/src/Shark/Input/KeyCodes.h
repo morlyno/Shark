@@ -372,4 +372,11 @@ namespace Shark {
 		return "Unkown";
 	}
 
+	struct ModifierKeys
+	{
+		bool Shift = false;
+		bool Alt = false;
+		bool Control = false;
+	};
+
 }

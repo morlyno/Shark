@@ -1,4 +1,4 @@
-project "SharkFin"
+project "Shark-Runtime"
     kind "ConsoleApp"
     language "c++"
     cppdialect "c++20"
@@ -6,9 +6,6 @@ project "SharkFin"
 
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
-
-    pchheader "skfpch.h"
-    pchsource "src/skfpch.cpp"
 
     vectorextensions "AVX2"
 
@@ -21,17 +18,17 @@ project "SharkFin"
     includedirs
     {
         "%{wks.location}/Shark/src",
-        "%{wks.location}/SharkFin/src",
-        "%{spdlog.IncludeDir}",
-        "%{ImGui.IncludeDir}",
-        "%{EnTT.IncludeDir}",
-        "%{yaml_cpp.IncludeDir}",
-        "%{Box2D.IncludeDir}",
-        "%{ImGuizmo.IncludeDir}",
-        "%{fmt.IncludeDir}",
+        "%{wks.location}/Shark-Runtime/src",
+        
         "%{glm.IncludeDir}",
+        "%{fmt.IncludeDir}",
+        "%{spdlog.IncludeDir}",
+        "%{Box2D.IncludeDir}",
+        "%{EnTT.IncludeDir}",
+        "%{filewatch.IncludeDir}",
+        "%{ImGui.IncludeDir}",
+
         "%{tracy.IncludeDir}",
-        "%{filewatch.IncludeDir}"
     }
 
     links
@@ -41,7 +38,13 @@ project "SharkFin"
 
     defines
     {
-        DefaultDefines
+        "_CRT_SECURE_NO_WARNINGS",
+        "_USE_MATH_DEFINES",
+
+        glm.Defines,
+        fmt.Defines,
+        ImGui.Defines,
+        tracy.Defines
     }
 
     postbuildcommands
@@ -64,4 +67,3 @@ project "SharkFin"
         runtime "Release"
         optimize "On"
         symbols "Default"
-

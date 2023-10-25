@@ -166,4 +166,16 @@ namespace Shark {
 		return Create(specification, source);
 	}
 
+	Ref<SamplerWrapper> SamplerWrapper::Create(const SamplerSpecification& spec)
+	{
+		switch (RendererAPI::GetCurrentAPI())
+		{
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXSamplerWrapper>::Create(spec);
+		}
+
+		SK_CORE_ASSERT(false, "Unkown API");
+		return nullptr;
+	}
+
 }

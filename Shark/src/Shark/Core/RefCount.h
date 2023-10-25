@@ -280,6 +280,13 @@ namespace Shark {
 			return m_Instance;
 		}
 
+		template<typename TTo>
+		Weak<TTo> As()
+		{
+			SK_CORE_VERIFY(m_Instance ? dynamic_cast<TTo*>(m_Instance) : true);
+			return (TTo*)m_Instance;
+		}
+
 	private:
 		void Assign(T* inst)
 		{

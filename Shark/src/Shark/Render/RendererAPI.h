@@ -68,6 +68,8 @@ namespace Shark {
 		virtual void GenerateMips(Ref<Image2D> image) = 0;
 		virtual void RT_GenerateMips(Ref<Image2D> image) = 0;
 
+		virtual Ref<SamplerWrapper> GetClampLinearSampler() const = 0;
+
 		virtual TimeStep GetGPUTime() const = 0;
 
 		virtual bool ResourcesCreated() const = 0;

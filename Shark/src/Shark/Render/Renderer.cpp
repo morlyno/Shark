@@ -185,6 +185,11 @@ namespace Shark {
 		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, submeshIndex, material, sceneData);
 	}
 
+	Ref<SamplerWrapper> Renderer::GetClampLinearSampler()
+	{
+		return s_RendererAPI->GetClampLinearSampler();
+	}
+
 	void Renderer::GenerateMips(Ref<Image2D> image)
 	{
 		s_RendererAPI->GenerateMips(image);

@@ -88,14 +88,14 @@ namespace Shark {
 		OnEvent<MouseScrolledEvent>(xOffset, yOffset);
 	}
 
-	void EventListener::OnKeyPressedEvent(KeyCode key, bool isRepead)
+	void EventListener::OnKeyPressedEvent(KeyCode key, bool isRepead, const ModifierKeys& modifierKeys)
 	{
-		OnEvent<KeyPressedEvent>(key, isRepead);
+		OnEvent<KeyPressedEvent>(key, isRepead, modifierKeys);
 	}
 
-	void EventListener::OnKeyReleasedEvent(KeyCode key)
+	void EventListener::OnKeyReleasedEvent(KeyCode key, const ModifierKeys& modifierKeys)
 	{
-		OnEvent<KeyReleasedEvent>(key);
+		OnEvent<KeyReleasedEvent>(key, modifierKeys);
 	}
 
 	void EventListener::OnApplicationClosedEvent()
