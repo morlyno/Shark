@@ -3,7 +3,7 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/MeshSource.h"
-#include "Shark/Asset/ResourceManager.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
@@ -46,14 +46,14 @@ namespace Shark {
 
 		ScopedTimer timer("Loading MeshSource");
 
-		if (!ResourceManager::HasExistingFilePath(metadata))
+		if (!Project::GetActive()->GetEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);
 			return false;
 		}
 
 		Ref<MeshSource> meshSource = Ref<MeshSource>::Create();
-		if (!TryLoad(meshSource, ResourceManager::GetFileSystemPath(metadata)))
+		if (!TryLoad(meshSource, Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata)))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to Load MeshSource!");
 			return false;
@@ -179,6 +179,8 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		Ref<MaterialTable> materialTable = Ref<MaterialTable>::Create();
 
+		Ref<EditorAssetManager> assetManager = Project::GetActive()->GetEditorAssetManager();
+
 		for (uint32_t materialIndex = 0; materialIndex < scene->mNumMaterials; materialIndex++)
 		{
 			aiMaterial* material = scene->mMaterials[materialIndex];
@@ -191,19 +193,19 @@ namespace Shark {
 				auto texturePath = rootPath / textureFileName.C_Str();
 				if (FileSystem::Exists(texturePath))
 				{
-					AssetHandle sourceHandle = ResourceManager::GetAssetHandleFromFilePath(texturePath);
+					AssetHandle sourceHandle = assetManager->GetMetadata(texturePath).Handle;
 					if (!sourceHandle)
-						sourceHandle = ResourceManager::ImportAsset(texturePath);
+						sourceHandle = assetManager->ImportAsset(texturePath);
 
-					if (ResourceManager::IsValidAssetHandle(sourceHandle))
+					if (AssetManager::IsValidAssetHandle(sourceHandle))
 					{
-						Ref<TextureSource> source = ResourceManager::GetAsset<TextureSource>(sourceHandle);
+						Ref<TextureSource> source = AssetManager::GetAsset<TextureSource>(sourceHandle);
 						TextureSpecification specification;
 						specification.GenerateMips = g_MeshSourceSerializerSettings.GenerateMips;
 						specification.Sampler.Anisotropy = g_MeshSourceSerializerSettings.Anisotropy;
 						specification.Sampler.MaxAnisotropy = g_MeshSourceSerializerSettings.MaxAnisotropy;
-						Ref<Texture2D> texture = ResourceManager::CreateMemoryAsset<Texture2D>(specification, source);
-						materialAsset->SetAlbedoTexture(texture->Handle);
+						AssetHandle textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, source);
+						materialAsset->SetAlbedoTexture(textureHandle);
 						materialAsset->SetUseAlbedo(true);
 					}
 				}

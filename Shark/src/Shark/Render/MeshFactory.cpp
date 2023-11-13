@@ -1,9 +1,10 @@
 #include "skpch.h"
 #include "MeshFactory.h"
 
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/Render/Renderer.h"
-#include "Shark/Asset/ResourceManager.h"
-#include "glm/gtx/compatibility.hpp"
+
+#include <glm/gtx/compatibility.hpp>
 
 namespace Shark {
 
@@ -186,12 +187,12 @@ namespace Shark {
 		if (s_MeshFactoryCache.CubeHandle == AssetHandle::Invalid)
 		{
 			auto meshSource = CreateCube();
-			ResourceManager::AddMemoryAsset(meshSource);
+			AssetManager::AddMemoryAsset(meshSource);
 			s_MeshFactoryCache.CubeHandle = meshSource->Handle;
 			return meshSource;
 		}
 
-		return ResourceManager::GetAsset<MeshSource>(s_MeshFactoryCache.CubeHandle);
+		return AssetManager::GetAsset<MeshSource>(s_MeshFactoryCache.CubeHandle);
 	}
 
 	Ref<MeshSource> MeshFactory::GetSphere()
@@ -199,12 +200,12 @@ namespace Shark {
 		if (s_MeshFactoryCache.SphereHandle == AssetHandle::Invalid)
 		{
 			auto meshSource = CreateSphere();
-			ResourceManager::AddMemoryAsset(meshSource);
+			AssetManager::AddMemoryAsset(meshSource);
 			s_MeshFactoryCache.SphereHandle = meshSource->Handle;
 			return meshSource;
 		}
 
-		return ResourceManager::GetAsset<MeshSource>(s_MeshFactoryCache.SphereHandle);
+		return AssetManager::GetAsset<MeshSource>(s_MeshFactoryCache.SphereHandle);
 	}
 
 }

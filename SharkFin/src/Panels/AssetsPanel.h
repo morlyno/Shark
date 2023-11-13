@@ -15,6 +15,8 @@ namespace Shark {
 	private:
 		bool IsAssetTypeEnabled(AssetType assetType);
 	private:
+		// TODO(moro): Add AssetManager or Project member
+
 		char m_SearchBuffer[260];
 		bool m_SearchHasUppercase = false;
 		bool m_CaseSensitive = false;

@@ -10,9 +10,12 @@
 namespace Shark {
 
 	Physics2DScene::Physics2DScene()
-		: m_Gravity(Project::GetActive()->Gravity), m_VelocityIterations(Project::GetActive()->VelocityIterations),
-		  m_PositionIterations(Project::GetActive()->PositionIterations), m_FixedTimeStep(Project::GetActive()->FixedTimeStep)
 	{
+		const auto& config = Project::GetActive()->GetConfig();
+		m_Gravity = config.Physics.Gravity;
+		m_VelocityIterations = config.Physics.VelocityIterations;
+		m_PositionIterations = config.Physics.PositionIterations;
+		m_FixedTimeStep = config.Physics.FixedTimeStep;
 	}
 
 	Physics2DScene::~Physics2DScene()

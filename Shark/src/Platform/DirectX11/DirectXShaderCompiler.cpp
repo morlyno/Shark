@@ -757,7 +757,7 @@ namespace Shark {
 	void DirectXShaderCompiler::SerializeDirectX(ShaderUtils::ShaderStage::Type stage, const std::vector<byte>& directXData)
 	{
 		const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
-		if (!FileSystem::WriteBinary(FileSystem::GetResourcePath(cacheFile), Buffer::FromArray(directXData)))
+		if (!FileSystem::WriteBinary(cacheFile, Buffer::FromArray(directXData)))
 		{
 			SK_CORE_ERROR_TAG("Renderer", "Failed to Serialize DirectX Data!");
 			return;
@@ -769,7 +769,7 @@ namespace Shark {
 	void DirectXShaderCompiler::TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData)
 	{
 		const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
-		Buffer fileData = FileSystem::ReadBinary(FileSystem::GetResourcePath(cacheFile));
+		Buffer fileData = FileSystem::ReadBinary(cacheFile);
 		if (!fileData)
 			return;
 
@@ -781,7 +781,7 @@ namespace Shark {
 	void DirectXShaderCompiler::SerializeSPIRV(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvData)
 	{
 		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
-		if (!FileSystem::WriteBinary(FileSystem::GetResourcePath(cacheFile), Buffer::FromArray(spirvData)))
+		if (!FileSystem::WriteBinary(cacheFile, Buffer::FromArray(spirvData)))
 		{
 			SK_CORE_ERROR_TAG("Renderer", "Failed to Serialize SPIRV Data");
 			return;
@@ -791,7 +791,7 @@ namespace Shark {
 	void DirectXShaderCompiler::TryLoadSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVData)
 	{
 		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
-		Buffer fileData = FileSystem::ReadBinary(FileSystem::GetResourcePath(cacheFile));
+		Buffer fileData = FileSystem::ReadBinary(cacheFile);
 		if (!fileData)
 			return;
 
@@ -828,13 +828,13 @@ namespace Shark {
 		out << YAML::EndMap;
 
 		const std::string cacheFile = fmt::format("{0}/{1}.yaml", utils::GetReflectionDataCacheDirectory(), m_ShaderSourcePath.stem().string());
-		FileSystem::WriteString(FileSystem::GetResourcePath(cacheFile), out.c_str());
+		FileSystem::WriteString(cacheFile, out.c_str());
 	}
 
 	bool DirectXShaderCompiler::ReadReflectionData()
 	{
 		const std::string cacheFile = fmt::format("{0}/{1}.yaml", utils::GetReflectionDataCacheDirectory(), m_ShaderSourcePath.stem().string());
-		std::string fileContent = FileSystem::ReadString(FileSystem::GetResourcePath(cacheFile));
+		std::string fileContent = FileSystem::ReadString(cacheFile);
 		if (fileContent.empty())
 			return false;
 

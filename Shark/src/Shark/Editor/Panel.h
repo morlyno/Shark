@@ -21,7 +21,7 @@ namespace Shark {
 		virtual void SetContext(Ref<Scene> context) {}
 		virtual void OnScenePlay() {};
 		virtual void OnSceneStop() {};
-		virtual void OnProjectChanged(Ref<ProjectInstance> project) {}
+		virtual void OnProjectChanged(Ref<Project> project) {}
 
 		const std::string& GetName() const { return m_PanelName; }
 

@@ -37,7 +37,7 @@ namespace Shark {
 		void SetContext(Ref<Scene> context);
 		void OnScenePlay();
 		void OnSceneStop();
-		void OnProjectChanged(Ref<ProjectInstance> project);
+		void OnProjectChanged(Ref<Project> project);
 
 	private:
 		struct PanelEntry

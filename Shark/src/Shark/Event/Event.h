@@ -122,6 +122,6 @@ struct fmt::formatter<TEvent, char, std::enable_if_t<std::is_same_v<TEvent, Shar
 	template<typename FormatContext>
 	auto format(const TEvent& event, FormatContext& ctx) -> decltype(ctx.out())
 	{
-		return format_to(ctx.out(), event.ToString());
+		return fmt::format_to(ctx.out(), "{0}", event.ToString());
 	}
 };

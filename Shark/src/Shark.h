@@ -76,6 +76,6 @@
 // --- Asset ----------------------------
 #include "Shark/Asset/Asset.h"
 #include "Shark/Asset/AssetTypes.h"
-#include "Shark/Asset/ResourceManager.h"
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/Asset/AssetSerializer.h"
 // --------------------------------------

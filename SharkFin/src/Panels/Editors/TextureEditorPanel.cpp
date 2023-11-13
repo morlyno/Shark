@@ -1,17 +1,15 @@
 #include "skfpch.h"
 #include "TextureEditorPanel.h"
 
+#include "Shark/Core/Application.h"
 #include "Shark/Scene/Components.h"
+#include "Shark/Render/Renderer.h"
+#include "Shark/Input/Input.h"
 
 #include "Shark/UI/UI.h"
-#include "Shark/Input/Input.h"
 #include "Shark/Math/Math.h"
 
-#include "Shark/Asset/ResourceManager.h"
-
-#include "Shark/Render/Renderer.h"
-
-#include "Shark/Core/Application.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -209,8 +207,8 @@ namespace Shark {
 			m_SourceTexture->Invalidate();
 			m_SourceTexture->GetImage()->UploadImageData(m_EditTexture->GetImage());
 
-			ResourceManager::SaveAsset(m_SourceTexture->Handle);
-			ResourceManager::ReloadAsset(m_SourceTexture->Handle);
+			Project::GetActiveEditorAssetManager()->SaveAsset(m_SourceTexture->Handle);
+			Project::GetActiveEditorAssetManager()->ReloadAsset(m_SourceTexture->Handle);
 		}
 #endif
 
@@ -233,7 +231,8 @@ namespace Shark {
 
 		SetupWindows();
 
-		m_EditTexture = ResourceManager::CreateMemoryAsset<Texture2D>(m_SourceTexture->GetSpecification().Sampler, m_SourceTexture->GetImage(), false);
+		AssetHandle textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(m_SourceTexture->GetSpecification().Sampler, m_SourceTexture->GetImage(), false);
+		m_EditTexture = AssetManager::GetAsset<Texture2D>(textureHandle);
 		m_Specification = m_EditTexture->GetSpecification();
 
 		m_Scene = Ref<Scene>::Create();

@@ -49,7 +49,7 @@ namespace Shark {
 		specification.EnableImGui = false;
 		specification.VSync = true;
 
-		specification.ScriptConfig.CoreAssemblyPath = FileSystem::GetResourcePath("Resources/Binaries/Shark-ScriptCore.dll");
+		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/Shark-ScriptCore.dll";
 		specification.ScriptConfig.EnableDebugging = false;
 		specification.ScriptConfig.AutoReload = false;
 

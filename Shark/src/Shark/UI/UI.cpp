@@ -2,18 +2,11 @@
 #include "UI.h"
 
 #include "Shark/Core/Application.h"
-#include "Shark/Core/Buffer.h"
-#include "Shark/Asset/ResourceManager.h"
-
-#include "Shark/Math/Math.h"
 #include "Shark/File/FileSystem.h"
-#include "Shark/Utils/String.h"
-
 #include "Shark/UI/Theme.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
-
 #include <misc/cpp/imgui_stdlib.h>
 
 namespace ImGui {
@@ -709,7 +702,7 @@ namespace Shark::UI {
 		ControlHelperDrawLabel(label);
 
 		bool changed = false;
-		const auto& metadata = ResourceManager::GetMetaData(assetHandle);
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
 
 		std::string name;
 		if (metadata.IsMemoryAsset)
@@ -798,6 +791,76 @@ namespace Shark::UI {
 				}
 				ImGui::EndDragDropTarget();
 			}
+		}
+
+		ControlEndHelper();
+		return changed;
+	}
+
+	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const char* dragDropType)
+	{
+		if (!ControlBeginHelper(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+
+		bool changed = false;
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
+
+		std::string name;
+		if (metadata.IsMemoryAsset)
+			name = fmt::format("0x{:x}", assetHandle);
+		else
+			name = metadata.FilePath.string();
+
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputText("##IDStr", name.data(), name.length(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+
+		//TextFramed(path);
+		{
+			if (ImGui::BeginPopupContextItem("Settings"))
+			{
+				char buffer[18];
+				sprintf(buffer, "0x%16llx", (uint64_t)assetHandle);
+				ImGui::InputText("##IDStr", buffer, 18, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+				ImGui::EndPopup();
+			}
+		}
+
+		if (dragDropType)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+				if (payload)
+				{
+					const AssetHandle handle = *(AssetHandle*)payload->Data;
+					if (assetType == AssetManager::GetAssetType(handle))
+					{
+						assetHandle = handle;
+						changed = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		{
+			UI::ScopedColorStack colorStack(ImGuiCol_Button, ImVec4(0, 0, 0, 0),
+											ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0),
+											ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+
+			const float buttonSize = ImGui::GetItemRectSize().y;
+			ImGui::SameLine(0, 0);
+			MoveCursorX(-buttonSize);
+
+			ImGui::BeginChild(UI::GetCurrentID(), ImVec2(buttonSize, buttonSize));
+			if (ImGui::Button("x", { buttonSize, buttonSize }))
+			{
+				assetHandle = AssetHandle::Null;
+				changed = true;
+			}
+			ImGui::EndChild();
 		}
 
 		ControlEndHelper();
@@ -1046,12 +1109,6 @@ namespace Shark::UI {
 
 	void TextSelectable(std::string_view str)
 	{
-		//Buffer buffer;
-		//buffer.Allocate(str.size());
-		//buffer.Write(str.data(), str.size());
-		//ImGui::InputText("##InputText", buffer.As<char>(), buffer.Size, ImGuiInputTextFlags_ReadOnly);
-		//buffer.Release();
-
 		const auto& style = ImGui::GetStyle();
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, style.FramePadding.y));

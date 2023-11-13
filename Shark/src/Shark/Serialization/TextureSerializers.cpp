@@ -1,12 +1,13 @@
 #include "skpch.h"
 #include "TextureSerializers.h"
 
-#include "Shark/Asset/ResourceManager.h"
-#include "Shark/Render/Texture.h"
 #include "Shark/Render/Image.h"
+#include "Shark/Render/Texture.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/File/FileSystem.h"
 
 #include "Shark/Utils/YAMLUtils.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <stb_image.h>
 #include <yaml-cpp/yaml.h>
@@ -40,7 +41,8 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Loading TextureSource from {}", metadata.FilePath);
 		Timer timer;
 
-		if (!ResourceManager::HasExistingFilePath(metadata))
+		auto editorAssetManager = Project::GetActive()->GetEditorAssetManager();
+		if (!editorAssetManager->HasExistingFilePath(metadata))
 		{
 			SK_SERIALIZATION_ERROR("Path not found! {0}", metadata.FilePath);
 			return false;
@@ -50,7 +52,7 @@ namespace Shark {
 		int width, height, components;
 		Buffer imagedata;
 
-		Buffer filedata = FileSystem::ReadBinary(ResourceManager::GetFileSystemPath(metadata));
+		Buffer filedata = FileSystem::ReadBinary(editorAssetManager->GetFilesystemPath(metadata));
 		imagedata.Data = stbi_load_from_memory(filedata.As<stbi_uc>(), (int)filedata.Size, &width, &height, &components, STBI_rgb_alpha);
 		filedata.Release();
 
@@ -69,7 +71,7 @@ namespace Shark {
 		textureSource->Format = format;
 		textureSource->Width = width;
 		textureSource->Height = height;
-		textureSource->SourcePath = ResourceManager::GetProjectPath(metadata);
+		textureSource->SourcePath = editorAssetManager->GetProjectPath(metadata);
 
 		asset = textureSource;
 		asset->Handle = metadata.Handle;
@@ -148,7 +150,7 @@ namespace Shark {
 			return false;
 
 		AssetHandle sourceHandle = textureNode["TextureSource"].as<AssetHandle>();
-		textureSource = ResourceManager::GetAsset<TextureSource>(sourceHandle);
+		textureSource = AssetManager::GetAsset<TextureSource>(sourceHandle);
 		return textureSource != nullptr;
 	}
 
@@ -173,7 +175,7 @@ namespace Shark {
 			return false;
 		}
 
-		std::ofstream fout(ResourceManager::GetFileSystemPath(metadata));
+		std::ofstream fout(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
 		SK_CORE_ASSERT(fout);
 
 		fout << result;
@@ -190,13 +192,13 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Loading Texture from {}", metadata.FilePath);
 		Timer timer;
 
-		if (!ResourceManager::HasExistingFilePath(metadata))
+		if (!Project::GetActiveEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_SERIALIZATION_ERROR("Path not found! {0}", metadata.FilePath);
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(ResourceManager::GetFileSystemPath(metadata));
+		std::string filedata = FileSystem::ReadString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
 		if (filedata.empty())
 		{
 			SK_SERIALIZATION_ERROR("File was empty!");
@@ -288,7 +290,7 @@ namespace Shark {
 			return false;
 
 		AssetHandle sourceHandle = textureNode["TextureSource"].as<AssetHandle>();
-		Ref<TextureSource> textureSource = ResourceManager::GetAsset<TextureSource>(sourceHandle);
+		Ref<TextureSource> textureSource = AssetManager::GetAsset<TextureSource>(sourceHandle);
 
 		auto& specification = texture->GetSpecificationMutable();
 		specification.GenerateMips = textureNode["GenerateMips"].as<bool>(true);

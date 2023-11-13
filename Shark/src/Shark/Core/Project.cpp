@@ -1,217 +1,145 @@
 #include "skpch.h"
 #include "Project.h"
 
-#include "Shark/Core/Timer.h"
-#include "Shark/Utils/String.h"
-#include "Shark/Utils/YAMLUtils.h"
-
+#include "Shark/Serialization/ProjectSerializer.h"
 #include "Shark/Debug/Profiler.h"
-
-#include <yaml-cpp/yaml.h>
 
 namespace Shark {
 
-	static Ref<ProjectInstance> s_ActiveProject = nullptr;
+	static Ref<Project> s_ActiveProject = nullptr;
 
-	std::filesystem::path ProjectInstance::GetRelative(const std::filesystem::path& filePath)
+	const std::filesystem::path& Project::GetActiveDirectory()
 	{
-		if (filePath.is_absolute())
-			return String::FormatDefaultCopy(std::filesystem::relative(filePath, Directory));
-		return filePath;
+		SK_CORE_VERIFY(s_ActiveProject);
+		return s_ActiveProject->GetDirectory();
 	}
 
-	std::filesystem::path ProjectInstance::GetAbsolue(const std::filesystem::path& filePath)
+	const std::filesystem::path& Project::GetActiveAssetsDirectory()
 	{
-		return String::FormatDefaultCopy(Directory / filePath);
+		SK_CORE_VERIFY(s_ActiveProject);
+		return s_ActiveProject->GetAssetsDirectory();
 	}
 
-	std::filesystem::path ProjectInstance::GetProjectFilePath() const
+	Ref<AssetManagerBase> Project::GetActiveAssetManager()
 	{
-		return fmt::format("{}/{}.skproj", Directory, Name);
+		SK_CORE_VERIFY(s_ActiveProject);
+		return s_ActiveProject->GetAssetManager();
 	}
 
-	const std::string& Project::GetName()
+	Ref<RuntimeAssetManager> Project::GetActiveRuntimeAssetManager()
 	{
-		return s_ActiveProject->Name;
+		SK_CORE_VERIFY(s_ActiveProject);
+		return s_ActiveProject->GetRuntimeAssetManager();
 	}
 
-	const std::filesystem::path& Project::GetDirectory()
+	Ref<EditorAssetManager> Project::GetActiveEditorAssetManager()
 	{
-		return s_ActiveProject->Directory;
+		SK_CORE_VERIFY(s_ActiveProject);
+		return s_ActiveProject->GetEditorAssetManager();
 	}
 
-	const std::filesystem::path& Project::GetAssetsPath()
-	{
-		return s_ActiveProject->AssetsDirectory;
-	}
-
-	std::filesystem::path Project::GetRelative(const std::filesystem::path& filepath)
-	{
-		return s_ActiveProject->GetRelative(filepath);
-	}
-
-	std::filesystem::path Project::GetAbsolute(const std::filesystem::path& filepath)
-	{
-		return s_ActiveProject->GetAbsolue(filepath);
-	}
-
-	Ref<ProjectInstance> Project::GetActive()
-	{
-		return s_ActiveProject;
-	}
-
-	void Project::SetActive(Ref<ProjectInstance> project)
+	void Project::SetActive(Ref<Project> project)
 	{
 		s_ActiveProject = project;
 	}
 
-	Ref<ProjectInstance> Project::Create(const std::filesystem::path& directory, const std::string& name)
+	Ref<Project> Project::GetActive()
 	{
-		auto project = Ref<ProjectInstance>::Create();
-		project->Name = name;
-		project->Directory = String::FormatDefaultCopy(directory);
-		project->AssetsDirectory = fmt::format("{0}/Assets", project->Directory);
-		project->ScriptModulePath = fmt::format("{0}/Binaries/{1}.dll", project->Directory, project->Name);
-		project->Gravity = { 0.0f, -9.81f };
-		project->VelocityIterations = 8;
-		project->PositionIterations = 3;
-		project->FixedTimeStep = 0.001f;
+		return s_ActiveProject;
+	}
+
+	Ref<Project> Project::Create(const std::filesystem::path& directory, const std::string& name)
+	{
+		return Ref<Project>::Create(directory, name);
+	}
+
+	Ref<Project> Project::LoadEditor(const std::filesystem::path& filepath)
+	{
+		auto project = Ref<Project>::Create();
+		ProjectSerializer serializer(project);
+		if (!serializer.Deserialize(filepath))
+			return nullptr;
+
+		project->m_AssetManager = Ref<EditorAssetManager>::Create(project);
 		return project;
 	}
 
-
-
-	ProjectSerializer::ProjectSerializer(Ref<ProjectInstance> project)
-		: m_Project(project)
+	Ref<Project> Project::LoadRuntime(const std::filesystem::path& filepath)
 	{
+		auto project = Ref<Project>::Create();
+		ProjectSerializer serializer(project);
+		if (!serializer.Deserialize(filepath))
+			return nullptr;
+
+		project->m_AssetManager = Ref<RuntimeAssetManager>::Create();
+		return project;
 	}
 
-	bool ProjectSerializer::Serialize(const std::filesystem::path& filePath)
+	bool Project::SaveActive()
 	{
-		SK_PROFILE_FUNCTION();
-
-		SK_CORE_ASSERT(m_Project);
-		if (!m_Project)
-			return false;
-
-		SK_CORE_ASSERT(filePath.is_absolute());
-
-		Timer timer;
-
-		YAML::Emitter out;
-
-		const auto& config = *m_Project;
-		const auto assetsPath = std::filesystem::relative(config.AssetsDirectory, config.Directory);
-		const auto startupScenePath = std::filesystem::relative(config.StartupScenePath, config.Directory);
-		const auto scriptModulePath = std::filesystem::relative(config.ScriptModulePath, config.Directory).string();
-
-		out << YAML::BeginMap;
-		out << YAML::Key << "Project" << YAML::Value;
-
-		out << YAML::BeginMap;
-		out << YAML::Key << "Name" << YAML::Value << config.Name;
-		out << YAML::Key << "Assets" << YAML::Value << assetsPath;
-		out << YAML::Key << "StartupScene" << YAML::Value << startupScenePath;
-
-		out << YAML::Key << "ScriptModulePath" << YAML::Value << scriptModulePath;
-
-		out << YAML::Key << "Physics" << YAML::Value;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Gravity" << YAML::Value << config.Gravity;
-		out << YAML::Key << "VelocityIterations" << YAML::Value << config.VelocityIterations;
-		out << YAML::Key << "PositionIterations" << YAML::Value << config.PositionIterations;
-		out << YAML::Key << "FixedTimeStep" << YAML::Value << config.FixedTimeStep;
-		out << YAML::EndMap;
-		out << YAML::EndMap;
-
-		out << YAML::EndMap;
-
-		if (!out.good())
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to serialize project! {0}", out.GetLastError());
-			SK_CORE_ASSERT(false);
-			return false;
-		}
-
-		std::ofstream fout(filePath);
-		if (!fout)
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to create file stream! (Filepath: {0})", filePath);
-			return false;
-		}
-
-		//fout << out.c_str();
-		fout.write(out.c_str(), out.size());
-		float time = timer.ElapsedMilliSeconds();
-
-		SK_CORE_INFO("Serializing Project To: {}", filePath);
-		SK_CORE_TRACE("  Name: {}", config.Name);
-		SK_CORE_TRACE("  Assets Path: {}", assetsPath);
-		SK_CORE_TRACE("  Startup Scene Path: {}", startupScenePath);
-		SK_CORE_TRACE("  Script Module Path: {}", scriptModulePath);
-		SK_CORE_TRACE("  Physics:");
-		SK_CORE_TRACE("    Gravity: {}", config.Gravity);
-		SK_CORE_TRACE("    ValocityIterations: {}", config.VelocityIterations);
-		SK_CORE_TRACE("    PositionIterations: {}", config.PositionIterations);
-		SK_CORE_TRACE("    FixedTimeStep: {}", config.FixedTimeStep);
-		SK_CORE_INFO("Project Serialization took: {:.4f}ms", time);
-
-		return true;
+		ProjectSerializer serializer(s_ActiveProject);
+		return serializer.Serialize(s_ActiveProject->GetProjectFilePath());
 	}
 
-	bool ProjectSerializer::Deserialize(const std::filesystem::path& filePath)
+	const std::filesystem::path& Project::GetDirectory() const
 	{
-		SK_PROFILE_FUNCTION();
+		return m_Config.Directory;
+	}
 
-		SK_CORE_ASSERT(m_Project);
-		if (!m_Project)
-			return false;
+	const std::filesystem::path& Project::GetAssetsDirectory() const
+	{
+		return m_Config.AssetsDirectory;
+	}
 
-		SK_CORE_ASSERT(filePath.is_absolute());
+	const std::string Project::GetProjectFilePath() const
+	{
+		return fmt::format("{}/{}.skproj", m_Config.Directory, m_Config.Name);
+	}
 
-		Timer timer;
-		YAML::Node in = YAML::LoadFile(filePath);
+	const ProjectConfig& Project::GetConfig() const
+	{
+		return m_Config;
+	}
 
-		auto project = in["Project"];
-		if (!project)
-			return false;
+	ProjectConfig& Project::GetConfigMutable()
+	{
+		return m_Config;
+	}
 
-		auto& config = *m_Project;
-		config.Name             = project["Name"].as<std::string>();
-		auto assetsDirectory    = project["Assets"].as<std::filesystem::path>();
-		auto startupScenePath   = project["StartupScene"].as<std::filesystem::path>();
-		auto scriptModulePath   = project["ScriptModulePath"].as<std::filesystem::path>();
+	std::filesystem::path Project::GetRelative(const std::filesystem::path& path) const
+	{
+		if (path.is_absolute())
+			return std::filesystem::relative(path, m_Config.Directory).lexically_normal().generic_wstring();
+		return path.lexically_normal().generic_wstring();
+	}
 
-		auto physics = project["Physics"];
-		config.Gravity            = physics["Gravity"].as<glm::vec2>(glm::vec2(0.0f, 9.81f));
-		config.VelocityIterations = physics["VelocityIterations"].as<uint32_t>(8);
-		config.PositionIterations = physics["PositionIterations"].as<uint32_t>(3);
-		config.FixedTimeStep      = physics["FixedTimeStep"].as<float>(0.001f);
+	std::filesystem::path Project::GetAbsolute(const std::filesystem::path& path) const
+	{
+		return (m_Config.Directory / path).lexically_normal().generic_wstring();
+	}
 
-		config.Directory = String::FormatDefaultCopy(filePath.parent_path());
-		config.AssetsDirectory = String::FormatDefaultCopy(config.Directory / assetsDirectory);
-		config.StartupScenePath = String::FormatDefaultCopy(config.Directory / startupScenePath);
-		config.ScriptModulePath = String::FormatDefaultCopy(config.Directory / scriptModulePath).string();
+	void Project::MakeRelative(std::filesystem::path& path) const
+	{
+		path = GetRelative(path);
+	}
 
-		SK_CORE_ASSERT(config.Directory.is_absolute());
-		SK_CORE_ASSERT(config.AssetsDirectory.is_absolute());
-		SK_CORE_ASSERT(config.StartupScenePath.is_absolute());
+	void Project::MakeAbsolute(std::filesystem::path& path) const
+	{
+		path = GetAbsolute(path);
+	}
 
-		float time = timer.ElapsedMilliSeconds();
+	Project::Project(const std::filesystem::path& directory, const std::string& name)
+	{
+		m_Config.Name = name;
+		m_Config.Directory = directory.generic_wstring();
+		m_Config.AssetsDirectory = fmt::format("{0}/Assets", m_Config.Directory);
+		m_Config.ScriptModulePath = fmt::format("{0}/Binaries/{1}.dll", m_Config.Directory, m_Config.Name);
+		m_Config.Physics.Gravity = { 0.0f, -9.81f };
+		m_Config.Physics.VelocityIterations = 8;
+		m_Config.Physics.PositionIterations = 3;
+		m_Config.Physics.FixedTimeStep = 0.001f;
 
-		SK_CORE_INFO("Deserializing Project from: {}", filePath);
-		SK_CORE_TRACE("  Name: {}", config.Name);
-		SK_CORE_TRACE("  Assets Path: {}", assetsDirectory);
-		SK_CORE_TRACE("  Startup Scene Path: {}", startupScenePath);
-		SK_CORE_TRACE("  Script Module Path: {}", scriptModulePath);
-		SK_CORE_TRACE("  Physics:");
-		SK_CORE_TRACE("    Gravity: {}", config.Gravity);
-		SK_CORE_TRACE("    ValocityIterations: {}", config.VelocityIterations);
-		SK_CORE_TRACE("    PositionIterations: {}", config.PositionIterations);
-		SK_CORE_TRACE("    FixedTimeStep: {}", config.FixedTimeStep);
-		SK_CORE_INFO("Project Deserialization took: {:.4f}ms", time);
-
-		return true;
+		m_AssetManager = Ref<EditorAssetManager>::Create(this);
 	}
 
 }

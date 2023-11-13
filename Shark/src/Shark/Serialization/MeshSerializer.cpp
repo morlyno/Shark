@@ -1,10 +1,13 @@
 #include "skpch.h"
 #include "MeshSerializer.h"
 
-#include "Shark/Asset/ResourceManager.h"
-#include "Shark/Render/Material.h"
-#include "Shark/File/FileSystem.h"
+#include "Shark/Core/Project.h"
 
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Render/Material.h"
+
+#include "Shark/File/FileSystem.h"
 #include "Shark/Utils/YAMLUtils.h"
 
 #include <yaml-cpp/yaml.h>
@@ -26,7 +29,7 @@ namespace Shark {
 			return false;
 		}
 
-		std::ofstream fout(ResourceManager::GetFileSystemPath(metadata));
+		std::ofstream fout(Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata));
 		SK_CORE_ASSERT(fout);
 
 		fout << result;
@@ -43,13 +46,13 @@ namespace Shark {
 		Timer timer;
 		m_ErrorMsg.clear();
 
-		if (!ResourceManager::HasExistingFilePath(metadata))
+		if (!Project::GetActive()->GetEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Path not found! {0}", metadata.FilePath);
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(ResourceManager::GetFileSystemPath(metadata));
+		std::string filedata = FileSystem::ReadString(Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata));
 		if (filedata.empty())
 		{
 			SK_CORE_ERROR_TAG("Serialization", "File was empty!");
@@ -148,14 +151,14 @@ namespace Shark {
 		auto subMeshes = meshNode["SubmeshIndices"].as<std::vector<uint32_t>>();
 		auto materials = meshNode["Materials"];
 
-		mesh->m_MeshSource = ResourceManager::GetAsset<MeshSource>(meshSource);
+		mesh->m_MeshSource = AssetManager::GetAsset<MeshSource>(meshSource);
 		mesh->m_MaterialTable = Ref<MaterialTable>::Create();
 		for (const auto& element : materials)
 		{
 			uint32_t index = element.first.as<uint32_t>();
 			AssetHandle handle = element.second.as<AssetHandle>();
 
-			Ref<MaterialAsset> material = ResourceManager::GetAsset<MaterialAsset>(handle);
+			Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(handle);
 			mesh->m_MaterialTable->AddMaterial(index, material);
 		}
 

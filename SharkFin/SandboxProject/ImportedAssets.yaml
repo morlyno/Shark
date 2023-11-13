@@ -1,304 +1,304 @@
-Assets:
-  - Handle: 0x37dc48808083e849
+ImportedAssets:
+  - Handle: 4025171883711522889
     Type: Scene
     FilePath: Scenes/Cube.skscene
-  - Handle: 0xe4f93e473d8986d4
+  - Handle: 16499287185544546004
     Type: Scene
     FilePath: Scenes/DepthTest.skscene
-  - Handle: 0x20734855b5d47bcd
+  - Handle: 2338292164495440845
     Type: Scene
     FilePath: Scenes/Joints.skscene
-  - Handle: 0x5077abb6a41d9199
+  - Handle: 5798291846188601753
     Type: Scene
     FilePath: Scenes/LightTest.skscene
-  - Handle: 0xfae4a308ce9caa38
+  - Handle: 18078754062393453112
     Type: Scene
     FilePath: Scenes/OIT.skscene
-  - Handle: 0xa9ee34220b696ff1
+  - Handle: 12244781757691949041
     Type: Scene
     FilePath: Scenes/Parenting.skscene
-  - Handle: 0x5028d59af2f896de
+  - Handle: 5776101383580718814
     Type: Scene
     FilePath: Scenes/Physics.skscene
-  - Handle: 0xbc9198803f5d806e
+  - Handle: 13587809227339825262
     Type: Scene
     FilePath: Scenes/PhysicsScene.skscene
-  - Handle: 0x5b3ed9bb804eccc0
+  - Handle: 6574931905342262464
     Type: Scene
     FilePath: Scenes/PlayerTest.skscene
-  - Handle: 0xdfbe165cf26451ff
+  - Handle: 16122348304492417535
     Type: Scene
     FilePath: Scenes/Sponza.skscene
-  - Handle: 0x307979ed8e7a31f3
+  - Handle: 3492957047207113203
     Type: Scene
     FilePath: Scenes/TextTest.skscene
-  - Handle: 0xa72e2969608c3fcb
+  - Handle: 12046611585830764491
     Type: Texture
     FilePath: Textures/Checkerboard ( 2).sktex
-  - Handle: 0xa72e2969608c3fca
+  - Handle: 12046611585830764490
     Type: Texture
     FilePath: Textures/Checkerboard.sktex
-  - Handle: 0xb8486817d46a0579
+  - Handle: 13278977952859161977
     Type: Texture
     FilePath: Textures/Gear.sktex
-  - Handle: 0x5bdd8688a564750e
+  - Handle: 6619594948752995598
     Type: Texture
     FilePath: Textures/Nano/arm_dif.sktex
-  - Handle: 0xbf5d2e4071bc5c14
+  - Handle: 13789228488399281172
     Type: Texture
     FilePath: Textures/Nano/body_dif.sktex
-  - Handle: 0x38632951378711a8
+  - Handle: 4063136717619007912
     Type: Texture
     FilePath: Textures/Nano/glass_dif.sktex
-  - Handle: 0x66118592d14a2bee
+  - Handle: 7354806532095749102
     Type: Texture
     FilePath: Textures/Nano/hand_dif.sktex
-  - Handle: 0x9b810bc56a7fdda6
+  - Handle: 11205250290397732262
     Type: Texture
     FilePath: Textures/Nano/helmet_diff.sktex
-  - Handle: 0x69f179ef807f81c5
+  - Handle: 7634016912929685957
     Type: Texture
     FilePath: Textures/Nano/leg_dif.sktex
-  - Handle: 0x53ced70c7d0f062
+  - Handle: 377437537436758114
     Type: Texture
     FilePath: Textures/S.sktex
-  - Handle: 0x4e142bb5b0024afe
+  - Handle: 5626169893834607358
     Type: Texture
     FilePath: Textures/SimulateButton.sktex
-  - Handle: 0x33a728bc19112c2a
+  - Handle: 3721988405384522794
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/background.png
-  - Handle: 0xd4f3cb76769fb735
+  - Handle: 15344832065038169909
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/chain_texture.png
-  - Handle: 0x90fad94fa8831ac8
+  - Handle: 10446901221792094920
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/gi_flag.png
-  - Handle: 0xab36c4501647c375
+  - Handle: 12337264077478282101
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/lion.png
-  - Handle: 0xe670a0d04ed4213f
+  - Handle: 16604948642651185471
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/spnza_bricks_a_diff.png
-  - Handle: 0xc718f310537a4ce9
+  - Handle: 14346483864434265321
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_arch_diff.png
-  - Handle: 0x35111cd3dbccccac
+  - Handle: 3823869254865570988
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_ceiling_a_diff.png
-  - Handle: 0x342ea22a7e3ad4f1
+  - Handle: 3760121042291053809
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_column_a_diff.png
-  - Handle: 0xd5fe5f1e2b282595
+  - Handle: 15419866757340865941
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_column_b_diff.png
-  - Handle: 0xb9111fd9419b62a3
+  - Handle: 13335474989589815971
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_column_c_diff.png
-  - Handle: 0xfc4cef914f3d34d5
+  - Handle: 18180169203166557397
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_curtain_blue_diff.png
-  - Handle: 0x467de3ef2629665
+  - Handle: 317466660688795237
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_curtain_diff.png
-  - Handle: 0x4802b4b51c1f7ecf
+  - Handle: 5188908410638139087
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_curtain_green_diff.png
-  - Handle: 0xa04016ff2ab0d5eb
+  - Handle: 11547254729766655467
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_details_diff.png
-  - Handle: 0xa2b3b48dfb45b6f4
+  - Handle: 11723912776874571508
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_fabric_blue_diff.png
-  - Handle: 0x3112ccf0f1755873
+  - Handle: 3536113992654477427
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_fabric_diff.png
-  - Handle: 0x569908e1cfe9b97f
+  - Handle: 6240028524647397759
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_fabric_green_diff.png
-  - Handle: 0x59fb96f2ebe971af
+  - Handle: 6483942058614157743
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_flagpole_diff.png
-  - Handle: 0xde626421097934c6
+  - Handle: 16024480517193282758
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_floor_a_diff.png
-  - Handle: 0xa000dc7498bd19ef
+  - Handle: 11529457439405316591
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_roof_diff.png
-  - Handle: 0xa228b3a98fffab89
+  - Handle: 11684786774059494281
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/sponza_thorn_diff.png
-  - Handle: 0x904a449ff2ec2c22
+  - Handle: 10397198143504264226
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/vase_dif.png
-  - Handle: 0xf6a8229f0ade6929
+  - Handle: 17773493995895154985
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/vase_hanging.png
-  - Handle: 0xaca5aef502239cc4
+  - Handle: 12440541913006972100
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/vase_plant.png
-  - Handle: 0x6690d9ed39ac5a7f
+  - Handle: 7390646601413057151
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/vase_round.png
-  - Handle: 0x646042561b52fafc
+  - Handle: 7232853939150060284
     Type: TextureSource
     FilePath: MeshSources/muro/Muro_body_dm.png
-  - Handle: 0xeb20efb1f3d6eccd
+  - Handle: 16942805345747004621
     Type: TextureSource
     FilePath: MeshSources/muro/Muro_body_dm_clean.png
-  - Handle: 0xd5f7c422fc2be171
+  - Handle: 15418007503864848753
     Type: TextureSource
     FilePath: MeshSources/muro/Muro_body_nm.png
-  - Handle: 0x920a477feb5ffe2c
+  - Handle: 10523302094039940652
     Type: TextureSource
     FilePath: MeshSources/muro/Muro_body_sm.png
-  - Handle: 0x34bb4d4cde3731d5
+  - Handle: 3799715703158157781
     Type: TextureSource
     FilePath: MeshSources/muro/Muro_body_sm_clean.png
-  - Handle: 0x3bc23f27759537c
+  - Handle: 269129602026787708
     Type: TextureSource
     FilePath: MeshSources/muro/Muro_head_dm.png
-  - Handle: 0x17beaa350c6420b6
+  - Handle: 1710992053265244342
     Type: TextureSource
     FilePath: MeshSources/muro/Muro_head_nm.png
-  - Handle: 0xdd006a9bf4d705ca
+  - Handle: 15924845500442281418
     Type: TextureSource
     FilePath: MeshSources/muro/Muro_head_sm.png
-  - Handle: 0x654be78f65640d59
+  - Handle: 7299182224151416153
     Type: TextureSource
     FilePath: MeshSources/nano_textured/arm_dif.png
-  - Handle: 0xa405da02c69685a3
+  - Handle: 11819092502560277923
     Type: TextureSource
     FilePath: MeshSources/nano_textured/body_dif.png
-  - Handle: 0xbedb90321a3e6f32
+  - Handle: 13752744431969005362
     Type: TextureSource
     FilePath: MeshSources/nano_textured/glass_dif.png
-  - Handle: 0xcf6395444e3ce811
+  - Handle: 14943952109148366865
     Type: TextureSource
     FilePath: MeshSources/nano_textured/hand_dif.png
-  - Handle: 0xff1c94b40b63c186
+  - Handle: 18382731280025633158
     Type: TextureSource
     FilePath: MeshSources/nano_textured/helmet_diff.png
-  - Handle: 0xbe7df15d508b7ba0
+  - Handle: 13726392622380710816
     Type: TextureSource
     FilePath: MeshSources/nano_textured/leg_dif.png
-  - Handle: 0x4e2203357d8c52bf
+  - Handle: 5630066012441039551
     Type: TextureSource
     FilePath: MeshSources/nanoboy.fbm/arm_dif.png
-  - Handle: 0x818d28d77bbb768f
+  - Handle: 9335162508567869071
     Type: TextureSource
     FilePath: MeshSources/nanoboy.fbm/body_dif.png
-  - Handle: 0x7df90caa0ecb183c
+  - Handle: 9077300448474110012
     Type: TextureSource
     FilePath: MeshSources/nanoboy.fbm/glass_dif.png
-  - Handle: 0x9b7a47166790890d
+  - Handle: 11203345184589908237
     Type: TextureSource
     FilePath: MeshSources/nanoboy.fbm/hand_dif.png
-  - Handle: 0x90eab51b0612d1c2
+  - Handle: 10442357813682557378
     Type: TextureSource
     FilePath: MeshSources/nanoboy.fbm/helmet_diff.png
-  - Handle: 0x4ffec557b0f13456
+  - Handle: 5764261553502237782
     Type: TextureSource
     FilePath: MeshSources/nanoboy.fbm/leg_dif.png
-  - Handle: 0xbda6bc35459a3dcb
+  - Handle: 13665817056289373643
     Type: TextureSource
     FilePath: TextureSources/Checkboard.png
-  - Handle: 0xbd8cd25ce305a8fb
+  - Handle: 13658523066295494907
     Type: TextureSource
     FilePath: TextureSources/Gear.png
-  - Handle: 0xc3ae82a4d4287b2
+  - Handle: 881271945486829490
     Type: TextureSource
     FilePath: TextureSources/PlayButton.png
-  - Handle: 0xf0fac11dc216d02c
+  - Handle: 17364403646834855980
     Type: TextureSource
     FilePath: TextureSources/S.png
-  - Handle: 0xef721da14212bfee
+  - Handle: 17253885700845256686
     Type: TextureSource
     FilePath: TextureSources/SimulateButton.png
-  - Handle: 0xb85e9f06e2d44d3f
+  - Handle: 13285230802713726271
     Type: TextureSource
     FilePath: TextureSources/Test.png
-  - Handle: 0xffecbc207de076ba
+  - Handle: 18441321421912176314
     Type: TextureSource
     FilePath: TextureSources/castle_brick_broken_06_diff_4k.png
-  - Handle: 0xd70a4d03a8c805b0
+  - Handle: 15495282146033534384
     Type: TextureSource
     FilePath: TextureSources/clarens_night_01_4k.png
-  - Handle: 0xcd437c60b052fcff
+  - Handle: 14790802355931774207
     Type: ScriptFile
     FilePath: Scripts/Source/BallDestroyer.cs
-  - Handle: 0x5a3b2c3a72211aab
+  - Handle: 6501839116573940395
     Type: ScriptFile
     FilePath: Scripts/Source/Bullet.cs
-  - Handle: 0x468fe37b1048351c
+  - Handle: 5084532622018229532
     Type: ScriptFile
     FilePath: Scripts/Source/DoorSensor.cs
-  - Handle: 0x1cff5a51dc5c2ea5
+  - Handle: 2089488059759079077
     Type: ScriptFile
     FilePath: Scripts/Source/EmptyScript.cs
-  - Handle: 0x46a00932d83b7ce4
+  - Handle: 5089077692909452516
     Type: ScriptFile
     FilePath: Scripts/Source/FloorScript.cs
-  - Handle: 0x56ebdc8a7f1569c4
+  - Handle: 6263342194184513988
     Type: ScriptFile
     FilePath: Scripts/Source/PlatformScript.cs
-  - Handle: 0xd352284d5df640cf
+  - Handle: 15227277602847080655
     Type: ScriptFile
     FilePath: Scripts/Source/PlayerController.cs
-  - Handle: 0xce0b9ef18f1d952b
+  - Handle: 14847135356882359595
     Type: ScriptFile
     FilePath: Scripts/Source/TestScript.cs
-  - Handle: 0x9d17a29059f56ce4
+  - Handle: 11319694929287277796
     Type: Font
     FilePath: Fonts/Comic Sans/comic.ttf
-  - Handle: 0x9be209ae7d7cd660
+  - Handle: 11232551065649731168
     Type: Font
     FilePath: Fonts/Comic Sans/comicbd.ttf
-  - Handle: 0xc9261fb84e0fbf59
+  - Handle: 14494307327182618457
     Type: Font
     FilePath: Fonts/Comic Sans/comici.ttf
-  - Handle: 0x987488d63d817f29
+  - Handle: 10985555844799758121
     Type: Font
     FilePath: Fonts/Comic Sans/comicz.ttf
-  - Handle: 0x6fefc46126790c29
+  - Handle: 8065881379180186665
     Type: MeshSource
     FilePath: MeshSources/Sponza/sponza.obj
-  - Handle: 0xe6bd92c91bd0e84d
+  - Handle: 16626606791774496845
     Type: MeshSource
     FilePath: MeshSources/muro/muro.obj
-  - Handle: 0x13109418a8a6c4a6
+  - Handle: 1373760719977628838
     Type: MeshSource
     FilePath: MeshSources/nano_textured/nanosuit.obj
-  - Handle: 0xbfcf23f822cc119
+  - Handle: 863831583129125145
     Type: MeshSource
     FilePath: MeshSources/nanoboy.fbx
-  - Handle: 0xdd3a5fdb6778b71a
+  - Handle: 15941159226969732890
     Type: MeshSource
     FilePath: MeshSources/suzanne.obj
-  - Handle: 0x1e4cd972aa9eb4cf
+  - Handle: 2183359005879874767
     Type: Mesh
     FilePath: Meshes/muro ( 1).obj
-  - Handle: 0xb1ac319ef39b96fd
+  - Handle: 12802662399469131517
     Type: Mesh
     FilePath: Meshes/muro ( 2).obj
-  - Handle: 0x23e3b6e040f9be29
+  - Handle: 2586111685319835177
     Type: Mesh
     FilePath: Meshes/muro.obj
-  - Handle: 0xb29ba0e0e71be739
+  - Handle: 12870057247951808313
     Type: Mesh
     FilePath: Meshes/nanoboy
-  - Handle: 0xac8ec1cca4b8779c
+  - Handle: 12434088705897559964
     Type: Mesh
     FilePath: Meshes/sponza.skmesh
-  - Handle: 0x20fcc1cbc106895a
+  - Handle: 2376987784205732186
     Type: Mesh
     FilePath: Meshes/suzanne.skmesh
-  - Handle: 0x9e61add02d96c775
+  - Handle: 11412594040363206517
     Type: Material
     FilePath: Materials/NanoBody.skmat
-  - Handle: 0x89c2b272d70ce9bf
+  - Handle: 9926692734981958079
     Type: Material
     FilePath: Materials/TestMaterial.skmat
-  - Handle: 0x3810048859c52f6
+  - Handle: 252483365588718326
     Type: Material
     FilePath: Materials/WiteMaterial.skmat

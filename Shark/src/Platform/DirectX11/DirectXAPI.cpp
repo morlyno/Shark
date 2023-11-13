@@ -17,7 +17,7 @@ namespace Shark::DirectXAPI {
 
 	void SetDebugName(ID3D11DeviceChild* object, std::string_view debugName)
 	{
-		HRESULT hr = D3D_SET_OBJECT_NAME_N_A(object, debugName.length(), debugName.data());
+		HRESULT hr = D3D_SET_OBJECT_NAME_N_A(object, (UINT)debugName.length(), debugName.data());
 		if (FAILED(hr))
 		{
 			auto renderer = DirectXRenderer::Get();

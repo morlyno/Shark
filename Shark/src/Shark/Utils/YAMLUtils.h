@@ -94,25 +94,6 @@ namespace YAML {
 	};
 
 	template<>
-	struct convert<std::string_view>
-	{
-		static Node encode(std::string_view str)
-		{
-			return Node(std::string(str));
-		}
-
-		static bool decode(const Node& node, std::string_view& str)
-		{
-			if (node.IsScalar())
-			{
-				str = node.Scalar();
-				return true;
-			}
-			return false;
-		}
-	};
-
-	template<>
 	struct convert<std::filesystem::path>
 	{
 		static Node encode(const std::filesystem::path& path)
@@ -140,6 +121,29 @@ namespace YAML {
 		static bool decode(const Node& node, Shark::UUID& rhs)
 		{
 			return convert<uint64_t>::decode(node, (uint64_t&)rhs);
+		}
+	};
+
+	template<typename TKey, typename TPred, typename TAlloc>
+	struct convert<std::set<TKey, TPred, TAlloc>>
+	{
+		static Node encode(const std::set<TKey, TPred, TAlloc>& set)
+		{
+			Node node(NodeType::Sequence);
+			for (const auto& element : set)
+				node.push_back(element);
+			return node;
+		}
+
+		static bool decode(const Node& node, std::set<TKey, TPred, TAlloc>& outSet)
+		{
+			if (!node.IsSequence())
+				return false;
+
+			outSet.clear();
+			for (const auto& element : node)
+				outSet.push_back(element.as<TKey>());
+			return true;
 		}
 	};
 

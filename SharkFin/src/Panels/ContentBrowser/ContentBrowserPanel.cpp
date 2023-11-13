@@ -8,6 +8,8 @@
 #include "Shark/Asset/AssetUtils.h"
 #include "Shark/Serialization/TextureSerializers.h"
 
+#include "Shark/Debug/Profiler.h"
+
 namespace Shark {
 
 	ContentBrowserPanel::ContentBrowserPanel(const std::string& panelName, CBOpenAssetCallbackFn callback)
@@ -50,7 +52,6 @@ namespace Shark {
 			func();
 		m_PostRenderQueue.clear();
 
-		CheckForProject();
 		if (!m_Project)
 			return;
 
@@ -140,7 +141,7 @@ namespace Shark {
 					if (ImGui::BeginPopupContextWindow("##DirectoryPopup", ImGuiMouseButton_Right | ImGuiPopupFlags_NoOpenOverItems))
 					{
 						if (ImGui::MenuItem("Open In Explorer"))
-							Platform::OpenExplorer(m_Project->Directory / m_CurrentDirectory->FilePath);
+							Platform::OpenExplorer(m_Project->GetDirectory() / m_CurrentDirectory->FilePath);
 
 						ImGui::Separator();
 
@@ -203,6 +204,22 @@ namespace Shark {
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(ContentBrowserPanel::OnKeyPressedEvent));
 	}
 
+	void ContentBrowserPanel::OnProjectChanged(Ref<Project> project)
+	{
+		SK_CORE_ASSERT(!m_ChangesBlocked);
+
+		m_Project = project;
+		m_ReloadScheduled = false;
+
+		if (project)
+		{
+			m_BaseDirectory = Ref<DirectoryInfo>::Create(nullptr, m_Project->GetAssetsDirectory(), AssetHandle::Generate());
+			Internal_ChangeDirectory(m_BaseDirectory, true);
+			CacheDirectoryHandles();
+		}
+
+	}
+
 	void ContentBrowserPanel::OnFileEvents(const std::vector<FileEvent>& fileEvents)
 	{
 		SK_CORE_ASSERT(m_ChangesBlocked == false);
@@ -240,7 +257,7 @@ namespace Shark {
 
 					if (!isDirectory)
 					{
-						const auto& metadata = ResourceManager::GetMetaData(event.File);
+						const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(event.File);
 						if (metadata.IsValid())
 							parent->AddAsset(metadata.Handle);
 					}
@@ -256,7 +273,7 @@ namespace Shark {
 						break;
 					}
 
-					const auto& metadata = ResourceManager::GetMetaData(event.File);
+					const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(event.File);
 					if (!metadata.IsValid())
 						break;
 
@@ -286,14 +303,14 @@ namespace Shark {
 							if (auto item = m_CurrentItems.Get(directory->Handle))
 								item->m_Name = event2.File.stem().string();
 
-							directory->FilePath = std::filesystem::relative(event2.File, m_Project->Directory);
+							directory->FilePath = std::filesystem::relative(event2.File, m_Project->GetDirectory());
 							directory->Name = directory->FilePath.stem().string();
 						}
 						anyInCurrentDirectory |= FileSystem::IsInDirectory(m_CurrentDirectory->FilePath, event.File);
 						break;
 					}
 
-					const auto& metadata = ResourceManager::GetMetaData(event2.File);
+					const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(event2.File);
 					if (metadata.IsValid())
 					{
 						if (auto item = m_CurrentItems.Get(metadata.Handle))
@@ -361,7 +378,7 @@ namespace Shark {
 
 			for (AssetHandle assetHandle : directory->Assets)
 			{
-				const auto& metadata = ResourceManager::GetMetaData(assetHandle);
+				const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
 				if (metadata.IsValid())
 					m_CurrentItems.Items.emplace_back(Ref<ContentBrowserItem>::Create(CBItemType::Asset, metadata.Handle, metadata.FilePath.stem().string(), GetIcon(metadata)));
 			}
@@ -441,8 +458,8 @@ namespace Shark {
 		if (m_SelectedItem == item)
 			SelectItem(nullptr);
 
-		const auto& metadata = ResourceManager::GetMetaData(item->GetHandle());
-		auto fsPath = ResourceManager::GetFileSystemPath(metadata);
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(item->GetHandle());
+		auto fsPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
 		auto directory = GetDirectory(fsPath.parent_path());
 		if (directory)
 			directory->Erase(item->GetHandle());
@@ -465,8 +482,8 @@ namespace Shark {
 		}
 		else
 		{
-			const auto& metadata = ResourceManager::GetMetaData(item->GetHandle());
-			auto fsPath = ResourceManager::GetFileSystemPath(metadata);
+			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(item->GetHandle());
+			auto fsPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
 			auto directory = GetDirectory(fsPath.parent_path());
 			if (directory)
 				directory->Erase(item->GetHandle());
@@ -575,7 +592,7 @@ namespace Shark {
 				if (!directory)
 					directory = m_CurrentDirectory;
 
-				Platform::OpenExplorer(m_Project->Directory / directory->FilePath);
+				Platform::OpenExplorer(m_Project->GetDirectory() / directory->FilePath);
 			}
 
 			if (action & CBItemAction::Selected)
@@ -588,7 +605,7 @@ namespace Shark {
 			{
 				Application::Get().SubmitToMainThread([item]()
 				{
-					ResourceManager::ReloadAsset(item->GetHandle());
+					Project::GetActiveEditorAssetManager()->ReloadAsset(item->GetHandle());
 				});
 			}
 
@@ -796,29 +813,12 @@ namespace Shark {
 
 		for (auto handle : directory->Assets)
 		{
-			const auto& metadata = ResourceManager::GetMetaData(handle);
+			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
 			std::string str = metadata.FilePath.string();
 			if (filter.Filter(str))
 				foundItmes.emplace_back(Ref<ContentBrowserItem>::Create(CBItemType::Asset, handle, metadata.FilePath.stem().string(), GetThumbnail(metadata)));
 		}
 
-	}
-
-	void ContentBrowserPanel::CheckForProject()
-	{
-		SK_CORE_ASSERT(!m_ChangesBlocked);
-
-		if (m_NextProject)
-		{
-			m_Project = m_NextProject;
-			m_NextProject = nullptr;
-			m_ReloadScheduled = false;
-
-			m_BaseDirectory = Ref<DirectoryInfo>::Create(nullptr, m_Project->AssetsDirectory, AssetHandle::Generate());
-			
-			Internal_ChangeDirectory(m_BaseDirectory, true);
-			CacheDirectoryHandles();
-		}
 	}
 
 	void ContentBrowserPanel::CheckForReload()
@@ -882,7 +882,7 @@ namespace Shark {
 			return GetIcon(metadata);
 
 		Ref<Asset> asset = AssetUtils::Create(metadata.Type);
-		AssetSerializer::Deserialize(asset, ResourceManager::GetFileSystemPath(metadata));
+		AssetSerializer::Deserialize(asset, Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
 
 		switch (metadata.Type)
 		{
@@ -929,7 +929,7 @@ namespace Shark {
 			}
 
 
-			const auto& metadata = ResourceManager::GetMetaData(item->GetHandle());
+			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(item->GetHandle());
 			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource || metadata.Type == AssetType::Font)
 			{
 				SK_CORE_ASSERT(item->m_Thumbnail == nullptr);
@@ -958,10 +958,10 @@ namespace Shark {
 
 	Ref<ContentBrowserItem> ContentBrowserPanel::CreateDirectory(Ref<DirectoryInfo> directory, const std::string& name)
 	{
-		if (!FileSystem::IsValidFileName(name))
+		if (!FileSystem::IsValidFilename(name))
 			return nullptr;
 
-		std::filesystem::path directoryPath = m_Project->Directory / m_CurrentDirectory->FilePath / name;
+		std::filesystem::path directoryPath = m_Project->GetDirectory() / m_CurrentDirectory->FilePath / name;
 
 		m_SkipNextFileEvents = true;
 		std::error_code errorCode;
@@ -969,7 +969,7 @@ namespace Shark {
 		if (errorCode)
 		{
 			m_SkipNextFileEvents = false;
-			SK_CORE_ERROR("Failed to create Directory (Path: {0})", m_Project->Directory / m_CurrentDirectory->FilePath / name);
+			SK_CORE_ERROR("Failed to create Directory (Path: {0})", m_Project->GetDirectory() / m_CurrentDirectory->FilePath / name);
 			SK_CORE_ERROR("Reason: {0}", errorCode.message());
 			return nullptr;
 		}

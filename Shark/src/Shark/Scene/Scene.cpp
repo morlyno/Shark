@@ -2,7 +2,6 @@
 #include "Scene.h"
 
 #include "Shark/Scene/Entity.h"
-#include "Shark/Asset/ResourceManager.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/SceneRenderer.h"
 
@@ -950,7 +949,7 @@ namespace Shark {
 		if (entity.AllOf<SpriteRendererComponent>())
 		{
 			auto& sr = entity.GetComponent<SpriteRendererComponent>();
-			renderer->SubmitQuad(transform, ResourceManager::GetAsset<Texture2D>(sr.TextureHandle), sr.TilingFactor, sr.Color, sr.Transparent, (int)entity.GetHandle());
+			renderer->SubmitQuad(transform, AssetManager::GetAsset<Texture2D>(sr.TextureHandle), sr.TilingFactor, sr.Color, sr.Transparent, (int)entity.GetHandle());
 		}
 
 		if (entity.AllOf<CircleRendererComponent>())
@@ -965,15 +964,15 @@ namespace Shark {
 		if (entity.AllOf<TextRendererComponent>())
 		{
 			const auto& component = entity.GetComponent<TextRendererComponent>();
-			renderer->SubmitText(transform, ResourceManager::GetAsset<Font>(component.FontHandle), component.Text, component.Kerning, component.LineSpacing, component.Color, (int)entity.GetHandle());
+			renderer->SubmitText(transform, AssetManager::GetAsset<Font>(component.FontHandle), component.Text, component.Kerning, component.LineSpacing, component.Color, (int)entity.GetHandle());
 		}
 
 		if (entity.AllOf<MeshRendererComponent>())
 		{
 			const auto& component = entity.GetComponent<MeshRendererComponent>();
-			if (ResourceManager::IsValidAssetHandle(component.MeshHandle))
+			if (AssetManager::IsValidAssetHandle(component.MeshHandle))
 			{
-				Ref<Mesh> mesh = ResourceManager::GetAsset<Mesh>(component.MeshHandle);
+				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(component.MeshHandle);
 
 #if SK_ENABLE_ASSERT
 				const auto& submesh = mesh->GetMeshSource()->GetSubmeshes()[component.SubmeshIndex];

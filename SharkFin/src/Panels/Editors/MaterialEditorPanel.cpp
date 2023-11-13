@@ -3,10 +3,11 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/MeshFactory.h"
-#include "Shark/Asset/ResourceManager.h"
 
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
+
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -116,7 +117,7 @@ namespace Shark {
 
 		if (ImGui::Button("Save"))
 		{
-			ResourceManager::SaveAsset(m_Material->Handle);
+			Project::GetActiveEditorAssetManager()->SaveAsset(m_Material->Handle);
 		}
 
 		ImGui::End();
@@ -188,7 +189,8 @@ namespace Shark {
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
 
 		Ref<MeshSource> sphereMeshSource = MeshFactory::GetSphere();
-		Ref<Mesh> sphere = ResourceManager::CreateMemoryAsset<Mesh>(sphereMeshSource);
+		AssetHandle sphereHandle = AssetManager::CreateMemoryAsset<Mesh>(sphereMeshSource);
+		Ref<Mesh> sphere = AssetManager::GetAsset<Mesh>(sphereHandle);
 		sphere->GetMaterialTable()->SetMaterial(0, m_Material);
 
 		Entity entity = m_Scene->CreateEntity("Sphere");

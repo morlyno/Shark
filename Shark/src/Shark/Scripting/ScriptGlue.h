@@ -283,6 +283,7 @@ namespace Shark {
 
 		#pragma endregion
 
+		// TODO(moro): Remove EditorUI
 		#pragma region EditorUI
 
 		bool EditorUI_BeginWindow(MonoString* windowTitle);

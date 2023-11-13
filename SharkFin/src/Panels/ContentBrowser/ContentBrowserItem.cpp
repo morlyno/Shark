@@ -1,7 +1,6 @@
 #include "skfpch.h"
 #include "ContentBrowserItem.h"
 
-#include "Shark/Asset/ResourceManager.h"
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
 #include "Shark/Editor/Icons.h"
@@ -146,7 +145,7 @@ namespace Shark {
 				{
 					auto& cbPanel = ContentBrowserPanel::Get();
 					Ref<DirectoryInfo> directory = cbPanel.GetDirectory(m_Handle);
-					std::string absolutPath = cbPanel.GetProject()->GetAbsolue(directory->FilePath).string();
+					std::string absolutPath = cbPanel.GetProject()->GetAbsolute(directory->FilePath).string();
 					char path[260];
 					strcpy_s(path, absolutPath.c_str());
 					ImGui::SetDragDropPayload(UI::DragDropID::Directroy, path, sizeof(path));
@@ -260,7 +259,7 @@ namespace Shark {
 		{
 			ContentBrowserPanel& cbPanel = ContentBrowserPanel::Get();
  			Ref<DirectoryInfo> directory = cbPanel.GetDirectory(m_Handle);
-			std::filesystem::path oldPath = cbPanel.GetProject()->Directory / directory->FilePath;
+			std::filesystem::path oldPath = cbPanel.GetProject()->GetDirectory() / directory->FilePath;
 			std::filesystem::path newPath = oldPath;
 			newPath.replace_filename(name);
 			newPath.replace_extension();
@@ -271,15 +270,15 @@ namespace Shark {
 				return;
 
 			m_Name = newPath.stem().string();
-			newPath = std::filesystem::relative(newPath, cbPanel.GetProject()->Directory);
+			newPath = std::filesystem::relative(newPath, cbPanel.GetProject()->GetDirectory());
 			String::FormatDefault(newPath);
 			directory->FilePath = newPath;
 
 			return;
 		}
 
-		const auto& metadata = ResourceManager::GetMetaData(m_Handle);
-		std::filesystem::path oldPath = ResourceManager::GetFileSystemPath(metadata);
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(m_Handle);
+		std::filesystem::path oldPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
 		std::filesystem::path newPath = oldPath;
 		newPath.replace_filename(name);
 		newPath.replace_extension(metadata.FilePath.extension());
@@ -294,7 +293,7 @@ namespace Shark {
 
 	void ContentBrowserItem::RemoveAsset()
 	{
-		ResourceManager::RemoveAsset(m_Handle);
+		Project::GetActiveEditorAssetManager()->RemoveAsset(m_Handle);
 	}
 
 	void ContentBrowserItem::Delete()
@@ -305,13 +304,13 @@ namespace Shark {
 		{
 			auto& cb = ContentBrowserPanel::Get();
 			Ref<DirectoryInfo> directory = cb.GetDirectory(m_Handle);
-			Platform::MoveFileToRecycleBin(cb.m_Project->Directory / directory->FilePath);
+			Platform::MoveFileToRecycleBin(cb.m_Project->GetDirectory() / directory->FilePath);
 			//std::filesystem::remove(cb.m_Project->Directory / directory->FilePath);
 			return;
 		}
 
-		const auto& metadata = ResourceManager::GetMetaData(m_Handle);
-		Platform::MoveFileToRecycleBin(ResourceManager::GetFileSystemPath(metadata));
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(m_Handle);
+		Platform::MoveFileToRecycleBin(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
 		//std::filesystem::remove(ResourceManager::GetFileSystemPath(metadata));
 	}
 
@@ -335,7 +334,7 @@ namespace Shark {
 		if (m_Type == CBItemType::Directory)
 			return "Directory";
 
-		const auto& metadata = ResourceManager::GetMetaData(m_Handle);
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(m_Handle);
 		if (!metadata.IsValid())
 			return "Asset";
 
@@ -360,7 +359,7 @@ namespace Shark {
 
 		auto project = ContentBrowserPanel::Get().GetProject();
 
-		for (const auto& entry : std::filesystem::directory_iterator(project->Directory / FilePath))
+		for (const auto& entry : std::filesystem::directory_iterator(project->GetDirectory() / FilePath))
 		{
 			if (entry.is_directory())
 			{
@@ -371,7 +370,7 @@ namespace Shark {
 				continue;
 			}
 
-			const auto& metadata = ResourceManager::GetMetaData(entry.path());
+			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(entry.path());
 			if (metadata.IsValid())
 				Assets.emplace_back(metadata.Handle);
 		}

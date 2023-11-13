@@ -1,13 +1,17 @@
 #include "skpch.h"
 #include "SceneSerializer.h"
-#include "Shark/Asset/ResourceManager.h"
+
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
+#include "Shark/Scripting/ScriptEngine.h"
+
+#include "Shark/File/FileSystem.h"
 #include "Shark/Utils/YAMLUtils.h"
 
-#include <yaml-cpp/yaml.h>
-#include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Debug/enttDebug.h"
+#include "Shark/Debug/Profiler.h"
+
+#include <yaml-cpp/yaml.h>
 
 #if SK_DEBUG
 #define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK()
@@ -114,7 +118,7 @@ namespace Shark {
 			return false;
 		}
 
-		std::ofstream fout(ResourceManager::GetFileSystemPath(metadata));
+		std::ofstream fout(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
 		SK_CORE_ASSERT(fout);
 
 		fout << result;
@@ -131,13 +135,13 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene from {}", metadata.FilePath);
 		Timer timer;
 
-		if (!ResourceManager::HasExistingFilePath(metadata))
+		if (!Project::GetActiveEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_SERIALIZATION_ERROR("Path not found! {0}", metadata.FilePath);
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(ResourceManager::GetFileSystemPath(metadata));
+		std::string filedata = FileSystem::ReadString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
 		if (filedata.empty())
 		{
 			SK_SERIALIZATION_ERROR("File was empty!");
@@ -275,7 +279,7 @@ namespace Shark {
 			if (auto component = entity.TryGetComponent<MeshRendererComponent>())
 			{
 				AssetHandle meshHandle = AssetHandle::Invalid;
-				if (!ResourceManager::IsMemoryAsset(component->MeshHandle))
+				if (!AssetManager::IsMemoryAsset(component->MeshHandle))
 					meshHandle = component->MeshHandle;
 
 				out << YAML::Key << "MeshRendererComponent";

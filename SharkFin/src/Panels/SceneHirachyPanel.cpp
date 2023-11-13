@@ -4,7 +4,6 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Core/Application.h"
 
-#include "Shark/Asset/ResourceManager.h"
 #include "Shark/Scene/Components.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Scripting/ScriptTypes.h"
@@ -391,8 +390,8 @@ namespace Shark {
 			{
 				ImGui::TableSetColumnIndex(0);
 
-				const AssetMetaData& metadata = ResourceManager::GetMetaData(comp.TextureHandle);
-				Ref<Texture2D> texture = ResourceManager::GetAsset<Texture2D>(comp.TextureHandle);
+				const AssetMetaData& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(comp.TextureHandle);
+				Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(comp.TextureHandle);
 				RenderID textureID = texture ? texture->GetViewID() : nullptr;
 				ImGui::Image(textureID, { 48, 48 });
 				//{
@@ -407,7 +406,7 @@ namespace Shark {
 					if (payload)
 					{
 						AssetHandle handle = *(AssetHandle*)payload->Data;
-						if (ResourceManager::IsValidAssetHandle(handle))
+						if (AssetManager::IsValidAssetHandle(handle))
 							comp.TextureHandle = handle;
 					}
 					ImGui::EndDragDropTarget();
@@ -474,13 +473,13 @@ namespace Shark {
 			if (UI::ControlAsset("Mesh", comp.MeshHandle))
 				UpdateMaterialEditor(entity);
 
-			if (!ResourceManager::IsValidAssetHandle(comp.MeshHandle))
+			if (!AssetManager::IsValidAssetHandle(comp.MeshHandle))
 			{
 				UI::EndControls();
 				return;
 			}
 
-			Ref<Mesh> mesh = ResourceManager::GetAsset<Mesh>(comp.MeshHandle);
+			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(comp.MeshHandle);
 			Ref<MeshSource> meshSource = mesh->GetMeshSource();
 			const auto& submeshes = meshSource->GetSubmeshes();
 			const auto& submesh = submeshes[comp.SubmeshIndex];
@@ -841,9 +840,9 @@ namespace Shark {
 		if (entity.AllOf<MeshRendererComponent>())
 		{
 			const auto& mc = entity.GetComponent<MeshRendererComponent>();
-			if (ResourceManager::IsValidAssetHandle(mc.MeshHandle))
+			if (AssetManager::IsValidAssetHandle(mc.MeshHandle))
 			{
-				Ref<Mesh> mesh = ResourceManager::GetAsset<Mesh>(mc.MeshHandle);
+				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
 				Ref<MeshSource> meshSource = mesh->GetMeshSource();
 				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
 				Ref<MaterialTable> sourceMaterialTable = meshSource->GetMaterialTable();

@@ -1,8 +1,8 @@
 #include "skpch.h"
 #include "RuntimeLayer.h"
 
+#include "Shark/Core/Application.h"
 #include "Shark/Core/Project.h"
-#include "Shark/Asset/ResourceManager.h"
 #include "Shark/Render/Renderer.h"
 
 namespace Shark {
@@ -19,20 +19,18 @@ namespace Shark {
 
 	void RuntimeLayer::OnAttach()
 	{
-		auto project = Ref<ProjectInstance>::Create();
-		ProjectSerializer serializer(project);
-		if (!serializer.Deserialize(m_ProjectFile))
+		// TODO(moro): fix-me
+		auto project = Project::LoadEditor(m_ProjectFile);
+		if (!project)
 		{
 			Application::Get().CloseApplication();
 			return;
 		}
 
 		Project::SetActive(project);
-		ResourceManager::Init();
-		ScriptEngine::LoadAssemblies(project->ScriptModulePath);
+		ScriptEngine::LoadAssemblies(project->GetConfig().ScriptModulePath);
 		
-		AssetHandle startupScene = ResourceManager::GetAssetHandleFromFilePath(project->StartupScenePath);
-		m_Scene = ResourceManager::GetAsset<Scene>(startupScene);
+		m_Scene = AssetManager::GetAsset<Scene>(project->GetConfig().StartupScene);
 
 		auto& window = Application::Get().GetWindow();
 		m_Scene->SetViewportSize(window.GetWidth(), window.GetHeight());
@@ -54,7 +52,6 @@ namespace Shark {
 		m_Renderer = nullptr;
 
 		ScriptEngine::UnloadAssemblies();
-		ResourceManager::Shutdown();
 		Project::SetActive(nullptr);
 	}
 

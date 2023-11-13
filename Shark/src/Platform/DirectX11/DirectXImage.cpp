@@ -1,14 +1,10 @@
 #include "skpch.h"
 #include "DirectXImage.h"
 
-#include "Shark/Asset/ResourceManager.h"
-#include "Shark/Serialization/TextureSerializers.h"
-
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Texture.h"
 #include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
-#include "Platform/DirectX11/DirectXSwapChain.h"
 
 #include <stb_image.h>
 

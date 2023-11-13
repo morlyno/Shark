@@ -113,7 +113,7 @@ namespace Shark {
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
-		virtual void OnProjectChanged(Ref<ProjectInstance> project) { m_NextProject = project; }
+		virtual void OnProjectChanged(Ref<Project> project) override;
 		void OnFileEvents(const std::vector<FileEvent>& fileEvents);
 
 		void Reload() { m_ReloadScheduled = true; }
@@ -144,7 +144,6 @@ namespace Shark {
 		void DrawDirectoryHirachy(Ref<DirectoryInfo> directory);
 		CBItemList Search(const std::string& filter);
 		void Search(const CBFilter& filter, Ref<DirectoryInfo> directory, std::vector<Ref<ContentBrowserItem>>& foundItmes);
-		void CheckForProject();
 		void CheckForReload();
 		void CacheDirectoryHandles();
 		void CacheDirectoryHandles(Ref<DirectoryInfo> directory);
@@ -156,7 +155,7 @@ namespace Shark {
 		//Ref<DirectoryInfo> FindDirectory(const std::filesystem::path& filePath);
 		Ref<DirectoryInfo> GetDirectory(AssetHandle handle);
 		Ref<DirectoryInfo> GetDirectory(const std::filesystem::path& filePath);
-		Ref<ProjectInstance> GetProject() const { return m_Project; }
+		Ref<Project> GetProject() const { return m_Project; }
 
 		void SkipNextFileEvents() { m_SkipNextFileEvents = true; }
 		bool IsSearchActive() { return m_SearchBuffer[0] != '\0'; }
@@ -168,9 +167,9 @@ namespace Shark {
 		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename)
 		{
 			m_SkipNextFileEvents = true;
-			std::filesystem::path directoryPath = std::filesystem::relative(m_Project->Directory / directory->FilePath, m_Project->AssetsDirectory);
-			Ref<TAsset> asset = ResourceManager::CreateAsset<TAsset>(directoryPath.string(), name);
-			const auto& metadata = ResourceManager::GetMetaData(asset);
+			std::filesystem::path directoryPath = std::filesystem::relative(m_Project->GetDirectory() / directory->FilePath, m_Project->GetAssetsDirectory());
+			Ref<TAsset> asset = Project::GetActiveEditorAssetManager()->CreateAsset<TAsset>(directoryPath.string(), name);
+			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(asset);
 			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserItem>::Create(metadata, GetThumbnail(metadata));
 			m_CurrentItems.Add(newItem);
 			directory->Assets.emplace_back(metadata.Handle);
@@ -184,8 +183,7 @@ namespace Shark {
 		static ContentBrowserPanel& Get() { return *s_Instance; }
 
 	private:
-		Ref<ProjectInstance> m_Project;
-		Ref<ProjectInstance> m_NextProject;
+		Ref<Project> m_Project;
 
 		CBOpenAssetCallbackFn m_OpenAssetCallback;
 

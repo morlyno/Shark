@@ -33,8 +33,14 @@ namespace Shark {
 			return m_WeakCheckData;
 		}
 
+		void PreDelete()
+		{
+			SK_CORE_VERIFY(m_RefCount == 0);
+			m_WeakCheckData.reset();
+		}
+
 	private:
-		uint32_t m_RefCount = 0;
+		std::atomic<uint32_t> m_RefCount = 0;
 		std::shared_ptr<uint8_t> m_WeakCheckData = std::make_shared<uint8_t>();
 
 		template<typename T>
@@ -126,6 +132,7 @@ namespace Shark {
 				SK_CORE_VERIFY(m_Instance->GetRefCount() != 0, "Release was called but refcount was 0");
 				if (m_Instance->DecRef() == 0)
 				{
+					m_Instance->PreDelete();
 					skdelete m_Instance;
 				}
 				m_Instance = nullptr;

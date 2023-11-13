@@ -44,7 +44,8 @@ struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
 namespace Shark {
 	class ImGuiLayer;
 	class Texture2D;
-	class ResourceManager;
+	class Project;
+	class AssetManager;
 }
 
 namespace Shark::UI {
@@ -217,6 +218,7 @@ namespace Shark::UI {
 	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);
 	bool ControlAsset(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
 	bool ControlAsset(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType = DragDropID::Asset);
+	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
 
 	template<typename TAsset>
 	bool ControlAsset(std::string_view label, Ref<TAsset>& asset, const char* dragDropType = DragDropID::Asset)
@@ -230,11 +232,11 @@ namespace Shark::UI {
 				return true;
 			}
 
-			const auto& metadata = ResourceManager::GetMetaData(assetHandle);
+			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
 			if (metadata.Type != TAsset::GetStaticType())
 				return false;
 
-			asset = ResourceManager::GetAsset<TAsset>(assetHandle);
+			asset = AssetManager::GetAsset<TAsset>(assetHandle);
 			return true;
 		}
 		return false;

@@ -1,7 +1,6 @@
 #include "skfpch.h"
 #include "AssetsPanel.h"
 
-#include "Shark/Asset/ResourceManager.h"
 #include "Shark/UI/UI.h"
 #include "Shark/Utils/String.h"
 
@@ -69,7 +68,7 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Imported Assets", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			for (const auto& [handle, metadata] : ResourceManager::GetAssetRegistry())
+			for (const auto& [handle, metadata] : Project::GetActiveEditorAssetManager()->GetAssetMetadataMap())
 			{
 				if (!IsAssetTypeEnabled(metadata.Type))
 					continue;
@@ -115,9 +114,9 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Loaded Assets", UI::DefaultThinHeaderFlags))
 		{
-			for (const auto& [handle, asset] : ResourceManager::GetLoadedAssets())
+			for (const auto& [handle, asset] : Project::GetActiveEditorAssetManager()->GetLoadedAssets())
 			{
-				const auto& metadata = ResourceManager::GetMetaData(asset);
+				const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(asset);
 				if (!IsAssetTypeEnabled(metadata.Type))
 					continue;
 

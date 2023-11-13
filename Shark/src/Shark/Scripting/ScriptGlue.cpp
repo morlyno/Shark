@@ -3,11 +3,10 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Log.h"
+
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
-
-#include "Shark/Asset/ResourceManager.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/GCManager.h"
@@ -15,10 +14,10 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/MouseEvent.h"
 
-#include "Shark/UI/UI.h"
-
 #include "Shark/Math/Math.h"
 #include "Shark/Utils/MemoryUtils.h"
+
+#include "Shark/Debug/Profiler.h"
 
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/object.h>
@@ -2414,7 +2413,7 @@ namespace Shark {
 		void ResourceManager_GetAssetHandleFromFilePath(MonoString* filePath, AssetHandle* out_AssetHandle)
 		{
 			std::string path = ScriptUtils::MonoStringToUTF8(filePath);
-			*out_AssetHandle = ResourceManager::GetAssetHandleFromFilePath(path);
+			*out_AssetHandle = Project::GetActive()->GetEditorAssetManager()->GetMetadata(path).Handle;
 		}
 
 		#pragma endregion

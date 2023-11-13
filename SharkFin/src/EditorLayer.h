@@ -126,8 +126,8 @@ namespace Shark {
 		void OpenProject();
 		void OpenProject(const std::filesystem::path& filePath);
 		void CloseProject();
-		Ref<ProjectInstance> CreateProject(const std::filesystem::path& projectDirectory);
-		void CreateProjectPremakeFile(Ref<ProjectInstance> project);
+		Ref<Project> CreateProject(const std::filesystem::path& projectDirectory);
+		void CreateProjectPremakeFile(Ref<Project> project);
 
 		void RunScriptSetup();
 		void OpenIDE();
@@ -197,19 +197,20 @@ namespace Shark {
 
 		struct ProjectEditData
 		{
+			Ref<Project> CurrentProject;
 			std::string Assets;
-			std::string StartupScene;
+			AssetHandle StartupScene;
 
 			bool ValidAssetsPath = true;
-			bool ValidStartupScene = true;
 
 			ProjectEditData() = default;
-			ProjectEditData(Ref<ProjectInstance> project)
+			ProjectEditData(Ref<Project> project)
 			{
-				Assets = Project::GetRelative(project->AssetsDirectory).string();
-				StartupScene = Project::GetRelative(project->StartupScenePath).string();
+				CurrentProject = project;
+				auto& config = project->GetConfig();
+				Assets = project->GetRelative(config.AssetsDirectory).string();
+				StartupScene = config.StartupScene;
 				ValidAssetsPath = true;
-				ValidStartupScene = true;
 			}
 		};
 		ProjectEditData m_ProjectEditData;

@@ -2,7 +2,9 @@
 #include "Serializers.h"
 
 #include "Shark/Render/Font.h"
-#include "Shark/Asset/ResourceManager.h"
+#include "Shark/File/FileSystem.h"
+
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -18,13 +20,14 @@ namespace Shark {
 		SK_CORE_INFO_TAG(Tag::Serialization, "Deserializing Font from {}", metadata.FilePath);
 		Timer timer;
 
-		if (!ResourceManager::HasExistingFilePath(metadata))
+		auto assetManager = Project::GetActive()->GetEditorAssetManager();
+		if (!assetManager->HasExistingFilePath(metadata))
 		{
 			SK_CORE_ERROR_TAG(Tag::Serialization, "Path not found! {0}", metadata.FilePath);
 			return false;
 		}
 
-		std::filesystem::path fontPath = ResourceManager::GetFileSystemPath(metadata);
+		std::filesystem::path fontPath = assetManager->GetFilesystemPath(metadata);
 		Ref<Font> font = Ref<Font>::Create(fontPath);
 		asset = font;
 		asset->Handle = metadata.Handle;

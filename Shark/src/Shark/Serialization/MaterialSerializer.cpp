@@ -1,9 +1,9 @@
 #include "skpch.h"
 #include "MaterialSerializer.h"
 
+#include "Shark/File/FileSystem.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/MeshSource.h"
-#include "Shark/Asset/ResourceManager.h"
 
 #include "Shark/Utils/YAMLUtils.h"
 #include "Shark/Debug/Profiler.h"
@@ -28,7 +28,7 @@ namespace Shark {
 			return false;
 		}
 
-		const auto fsPath = ResourceManager::GetFileSystemPath(metadata);
+		const auto fsPath = Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata);
 		FileSystem::WriteString(fsPath, result);
 
 		SK_CORE_TRACE_TAG("Serialization", "Serializing Material took {}", timer.Elapsed());
@@ -43,13 +43,13 @@ namespace Shark {
 		ScopedTimer timer("Loading Material");
 		m_ErrorMsg.clear();
 
-		if (!ResourceManager::HasExistingFilePath(metadata))
+		if (!Project::GetActive()->GetEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(ResourceManager::GetFileSystemPath(metadata));
+		std::string filedata = FileSystem::ReadString(Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata));
 		if (filedata.empty())
 		{
 			SK_CORE_ERROR_TAG("Serialization", "File was empty");
