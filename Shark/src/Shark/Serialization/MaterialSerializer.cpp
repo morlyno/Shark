@@ -43,20 +43,20 @@ namespace Shark {
 		ScopedTimer timer("Loading Material");
 		m_ErrorMsg.clear();
 
-		if (!Project::GetActive()->GetEditorAssetManager()->HasExistingFilePath(metadata))
+		if (!Project::GetActiveEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata));
+		std::string filedata = FileSystem::ReadString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
 		if (filedata.empty())
 		{
 			SK_CORE_ERROR_TAG("Serialization", "File was empty");
 			return false;
 		}
 
-		Ref<MaterialAsset> material = Ref<MaterialAsset>::Create();
+		Ref<MaterialAsset> material = Ref<MaterialAsset>::Create(Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR")));
 		if (!DeserializeFromYAML(material, filedata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize YAML file!\n\tError Message: {}", m_ErrorMsg);
@@ -68,37 +68,6 @@ namespace Shark {
 		return true;
 	}
 
-	bool MaterialSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(asset);
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Material from {}", assetPath);
-
-		ScopedTimer timer("Deserializing Material");
-		m_ErrorMsg.clear();
-
-		if (!FileSystem::Exists(assetPath))
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", assetPath);
-			return false;
-		}
-
-		std::string filedata = FileSystem::ReadString(assetPath);
-		if (filedata.empty())
-		{
-			SK_CORE_ERROR_TAG("Serialization", "File was empty");
-			return false;
-		}
-
-		if (!DeserializeFromYAML(asset.As<MaterialAsset>(), filedata))
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize YAML file!\n\tError Message: {}", m_ErrorMsg);
-			return false;
-		}
-
-		return true;
-	}
-
 	std::string MaterialSerializer::SerializeToYAML(Ref<MaterialAsset> material)
 	{
 		YAML::Emitter out;
@@ -107,11 +76,11 @@ namespace Shark {
 		out << YAML::BeginMap;
 
 		out << YAML::Key << "AlbedoColor" << YAML::Value << material->GetAlbedoColor();
-		out << YAML::Key << "AlbedoTexture" << YAML::Value << material->GetAlbedoTexture();
-		out << YAML::Key << "UseAlbedo" << YAML::Value << material->UseAlbedo();
+		out << YAML::Key << "AlbedoMap" << YAML::Value << material->GetAlbedoMap()->Handle;
+		out << YAML::Key << "UsingAlbedoMap" << YAML::Value << material->UsingAlbedoMap();
 		out << YAML::Key << "Metallic" << YAML::Value << material->GetMetallic();
 		out << YAML::Key << "Roughness" << YAML::Value << material->GetRoughness();
-		out << YAML::Key << "AO" << YAML::Value << material->GetAO();
+		out << YAML::Key << "AmbientOcclusion" << YAML::Value << material->GetAmbientOcclusion();
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 		m_ErrorMsg = out.GetLastError();
@@ -137,22 +106,20 @@ namespace Shark {
 			}
 
 			glm::vec3 albedoColor = materialNode["AlbedoColor"].as<glm::vec3>();
-			AssetHandle albedoTexture = materialNode["AlbedoTexture"].as<AssetHandle>();
-			bool useAlbedo = materialNode["UseAlbedo"].as<bool>();
+			AssetHandle albedoMap = materialNode["AlbedoMap"].as<AssetHandle>();
+			bool useAlbedo = materialNode["UsingAlbedoMap"].as<bool>();
 
 			float metallic = materialNode["Metallic"].as<float>();
 			float reoughness = materialNode["Roughness"].as<float>();
-			float ao = materialNode["AO"].as<float>();
+			float ao = materialNode["AmbientOcclusion"].as<float>();
 
 			material->SetAlbedoColor(albedoColor);
-			material->SetAlbedoTexture(albedoTexture);
-			material->SetUseAlbedo(useAlbedo);
+			material->SetAlbedoMap(AssetManager::GetAsset<Texture2D>(albedoMap));
+			material->SetUsingAlbedoMap(useAlbedo);
 
 			material->SetMetallic(metallic);
 			material->SetRoughness(reoughness);
-			material->SetAO(ao);
-
-			material->UpdateMaterial();
+			material->SetAmbientOcclusion(ao);
 		}
 		catch (const YAML::Exception& exception)
 		{

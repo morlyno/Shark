@@ -1,9 +1,9 @@
 #include "skpch.h"
 #include "Icons.h"
 
-#include "Shark\Core\Timer.h"
-#include "Shark\File\FileSystem.h"
-#include "Shark\Serialization\TextureSerializers.h"
+#include "Shark/Core/Timer.h"
+#include "Shark/File/FileSystem.h"
+#include "Shark/Serialization/Import/TextureImporter.h"
 
 namespace Shark {
 
@@ -91,9 +91,7 @@ namespace Shark {
 
 	static void ReloadIconFromDisc(Ref<Texture2D> icon, const std::filesystem::path& filepath)
 	{
-		Ref<TextureSource> source = Ref<TextureSource>::Create();
-		TextureSourceSerializer serializer;
-		serializer.Deserialize(source, filepath);
+		auto source = TextureImporter::ToTextureSourceFromFile(filepath);
 		icon->SetTextureSource(source);
 		icon->Invalidate();
 	}

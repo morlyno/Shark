@@ -15,36 +15,36 @@ namespace Shark {
 	class DirectXMaterial : public Material
 	{
 	public:
-		DirectXMaterial(Ref<Shader> shader);
+		DirectXMaterial(Ref<Shader> shader, const std::string& name);
 		virtual ~DirectXMaterial();
 
 		virtual Ref<Shader> GetShader() const override { return m_Shader; }
 		virtual ShaderReflection::UpdateFrequencyType GetUpdateFrequency(const std::string& name) const override;
 		virtual void SetUpdateFrequency(const std::string& name, ShaderReflection::UpdateFrequencyType updateFrequency) override;
 
-		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture) override { SetResource(name, texture, nullptr, nullptr); }
-		virtual void SetTexture(const std::string& name, Ref<Texture2D> texture, uint32_t index) override { SetResource(name, index, texture, nullptr, nullptr); }
+		virtual void Set(const std::string& name, Ref<Texture2D> texture) override { SetResource(name, texture, nullptr, nullptr); }
+		virtual void Set(const std::string& name, Ref<Texture2D> texture, uint32_t index) override { SetResource(name, index, texture, nullptr, nullptr); }
 
-		virtual void SetImage(const std::string& name, Ref<Image2D> image) override { SetResource(name, nullptr, image, nullptr); }
-		virtual void SetImage(const std::string& name, Ref<Image2D> image, uint32_t index) override { SetResource(name, index, nullptr, image, nullptr); }
+		virtual void Set(const std::string& name, Ref<Image2D> image) override { SetResource(name, nullptr, image, nullptr); }
+		virtual void Set(const std::string& name, Ref<Image2D> image, uint32_t index) override { SetResource(name, index, nullptr, image, nullptr); }
 
-		virtual void SetSampler(const std::string& name, Ref<SamplerWrapper> sampler) override { SetResource(name, nullptr, nullptr, sampler); }
-		virtual void SetSampler(const std::string& name, Ref<SamplerWrapper> sampler, uint32_t index) override { SetResource(name, index, nullptr, nullptr, sampler); }
+		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler) override { SetResource(name, nullptr, nullptr, sampler); }
+		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler, uint32_t index) override { SetResource(name, index, nullptr, nullptr, sampler); }
 
-		virtual void SetFloat(const std::string& name, float val) override { SetBytes(name, Buffer::FromValue(val)); }
-		virtual void SetFloat2(const std::string& name, const glm::vec2& val) override { SetBytes(name, Buffer::FromValue(val)); }
-		virtual void SetFloat3(const std::string& name, const glm::vec3& val) override { SetBytes(name, Buffer::FromValue(val)); }
-		virtual void SetFloat4(const std::string& name, const glm::vec4& val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, float val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, const glm::vec2& val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, const glm::vec3& val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, const glm::vec4& val) override { SetBytes(name, Buffer::FromValue(val)); }
 
-		virtual void SetInt(const std::string& name, int val) override { SetBytes(name, Buffer::FromValue(val)); }
-		virtual void SetInt2(const std::string& name, const glm::ivec2& val) override { SetBytes(name, Buffer::FromValue(val)); }
-		virtual void SetInt3(const std::string& name, const glm::ivec3& val) override { SetBytes(name, Buffer::FromValue(val)); }
-		virtual void SetInt4(const std::string& name, const glm::ivec4& val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, int val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, const glm::ivec2& val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, const glm::ivec3& val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, const glm::ivec4& val) override { SetBytes(name, Buffer::FromValue(val)); }
 
-		virtual void SetBool(const std::string& name, bool val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, bool val) override { SetBytes(name, Buffer::FromValue(val)); }
 
-		virtual void SetMat3(const std::string& name, const glm::mat3& val) override { SetBytes(name, Buffer::FromValue(val)); }
-		virtual void SetMat4(const std::string& name, const glm::mat4& val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, const glm::mat3& val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, const glm::mat4& val) override { SetBytes(name, Buffer::FromValue(val)); }
 
 		virtual Ref<Texture2D> GetTexture(const std::string& name) const override;
 		virtual Ref<Texture2D> GetTexture(const std::string& name, uint32_t index) const override;
@@ -55,20 +55,20 @@ namespace Shark {
 		virtual RenderID GetSampler(const std::string& name) const override;
 		virtual RenderID GetSampler(const std::string& name, uint32_t index) const override;
 
-		virtual float GetFloat(const std::string& name) const override { return GetBytes(name).Value<float>(); }
-		virtual const glm::vec2& GetFloat2(const std::string& name) const override { return GetBytes(name).Value<glm::vec2>(); }
-		virtual const glm::vec3& GetFloat3(const std::string& name) const override { return GetBytes(name).Value<glm::vec3>(); }
-		virtual const glm::vec4& GetFloat4(const std::string& name) const override { return GetBytes(name).Value<glm::vec4>(); }
+		virtual float& GetFloat(const std::string& name) override { return GetBytes(name).Value<float>(); }
+		virtual glm::vec2& GetVec2(const std::string& name) override { return GetBytes(name).Value<glm::vec2>(); }
+		virtual glm::vec3& GetVec3(const std::string& name) override { return GetBytes(name).Value<glm::vec3>(); }
+		virtual glm::vec4& GetVec4(const std::string& name) override { return GetBytes(name).Value<glm::vec4>(); }
 
-		virtual int GetInt(const std::string& name, int val) override { return GetBytes(name).Value<int>(); }
-		virtual const glm::ivec2& GetInt2(const std::string& name) const override { return GetBytes(name).Value<glm::ivec2>(); }
-		virtual const glm::ivec3& GetInt3(const std::string& name) const override { return GetBytes(name).Value<glm::ivec3>(); }
-		virtual const glm::ivec4& GetInt4(const std::string& name) const override { return GetBytes(name).Value<glm::ivec4>(); }
+		virtual int& GetInt(const std::string& name) override { return GetBytes(name).Value<int>(); }
+		virtual glm::ivec2& GetInt2(const std::string& name) override { return GetBytes(name).Value<glm::ivec2>(); }
+		virtual glm::ivec3& GetInt3(const std::string& name) override { return GetBytes(name).Value<glm::ivec3>(); }
+		virtual glm::ivec4& GetInt4(const std::string& name) override { return GetBytes(name).Value<glm::ivec4>(); }
 
-		virtual bool GetBool(const std::string& name) const override { return GetBytes(name).Value<bool>(); }
+		virtual bool& GetBool(const std::string& name) override { return GetBytes(name).Value<bool>(); }
 
-		virtual const glm::mat3& GetMat3(const std::string& name) const override { return GetBytes(name).Value<glm::mat3>(); }
-		virtual const glm::mat4& GetMat4(const std::string& name) const override { return GetBytes(name).Value<glm::mat4>(); }
+		virtual glm::mat3& GetMat3(const std::string& name) override { return GetBytes(name).Value<glm::mat3>(); }
+		virtual glm::mat4& GetMat4(const std::string& name) override { return GetBytes(name).Value<glm::mat4>(); }
 
 	private:
 		void SetResource(const std::string& name, Ref<Texture2D> texture, Ref<Image2D> image, Ref<SamplerWrapper> sampler);
@@ -81,12 +81,13 @@ namespace Shark {
 		bool HasResourceName(const std::string& name) const { return m_Resources.contains(name); }
 		bool HasBuffer(const std::string& name) const { return m_ConstantBuffers.contains(name); }
 
-		void RT_UpdateDirtyBuffers();
+		void RT_UpdateBuffers();
 
 	private:
 		void Initialize();
 
 	private:
+		std::string m_Name;
 		Ref<DirectXShader> m_Shader;
 
 		struct ConstantBufferData
@@ -97,7 +98,6 @@ namespace Shark {
 			Ref<DirectXConstantBuffer> Buffer;
 			ScopedBuffer UploadBuffer;
 			ShaderReflection::ShaderStage Stage = ShaderReflection::ShaderStage::None;
-			bool Dirty = false;
 		};
 
 		struct CBMember

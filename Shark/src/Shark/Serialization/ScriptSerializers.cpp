@@ -27,13 +27,4 @@ namespace Shark {
 		return true;
 	}
 
-	bool ScriptFileSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
-	{
-		SK_CORE_INFO_TAG("Serialization", "Deserializing ScriptFile from {}", assetPath);
-		Timer timer;
-
-		SK_CORE_INFO_TAG("Serialization", "Deserializing ScriptFile took {}ms", timer.ElapsedMilliSeconds());
-		return true;
-	}
-
 }

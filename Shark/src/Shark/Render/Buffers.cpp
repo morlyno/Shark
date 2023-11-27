@@ -6,20 +6,20 @@
 
 namespace Shark {
 
-	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout, uint64_t size, bool dynamic, Buffer vertexData)
+	Ref<VertexBuffer> VertexBuffer::Create(uint64_t size, bool dynamic, Buffer vertexData)
 	{
 		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXVertexBuffer>::Create(layout, size, dynamic, vertexData);
+			case RendererAPIType::DirectX11: return Ref<DirectXVertexBuffer>::Create(size, dynamic, vertexData);
 		}
 		SK_CORE_ASSERT(false, "Unknown API");
 		return nullptr;
 	}
 
-	Ref<VertexBuffer> VertexBuffer::Create(const VertexLayout& layout, Buffer vertexData, bool dynamic)
+	Ref<VertexBuffer> VertexBuffer::Create(Buffer vertexData, bool dynamic)
 	{
-		return Create(layout, vertexData.Size, dynamic, vertexData);
+		return Create(vertexData.Size, dynamic, vertexData);
 	}
 
 	Ref<IndexBuffer> IndexBuffer::Create(uint32_t count, bool dynmaic, Buffer indexData)

@@ -11,6 +11,15 @@
 
 namespace Shark {
 
+	namespace utils {
+		
+		static std::filesystem::path GetFilesystemKey(const std::filesystem::path& path)
+		{
+			return std::filesystem::canonical(path).lexically_normal();
+		}
+
+	}
+
 	EditorAssetManager::EditorAssetManager(Ref<Project> project)
 		: m_Project(project)
 	{
@@ -60,9 +69,13 @@ namespace Shark {
 			return AssetHandle::Invalid;
 		}
 
+		AssetHandle newHandle = asset->Handle;
+		if (newHandle == AssetHandle::Invalid)
+			newHandle = AssetHandle::Generate();
+
 		AssetMetaData metadata;
 		metadata.Type = asset->GetAssetType();
-		metadata.Handle = AssetHandle::Generate();
+		metadata.Handle = newHandle;
 		metadata.IsMemoryAsset = true;
 		metadata.IsDataLoaded = true;
 		m_ImportedAssets[metadata.Handle] = metadata;
@@ -116,6 +129,9 @@ namespace Shark {
 	{
 		if (metadata.FilePath.empty())
 			return {};
+
+		if (metadata.IsEditorAsset)
+			return FileSystem::GetFilesystemPath(metadata.FilePath);
 
 		SK_CORE_VERIFY(!m_Project.Expired());
 		return (m_Project.GetRef()->GetAssetsDirectory() / metadata.FilePath).lexically_normal();
@@ -315,6 +331,77 @@ namespace Shark {
 		WriteImportedAssetsToDisc();
 	}
 
+	AssetHandle EditorAssetManager::GetEditorAsset(const std::filesystem::path& filepath)
+	{
+		const auto key = utils::GetFilesystemKey(filepath);
+		if (!m_EditorAssets.contains(key))
+			m_EditorAssets[key] = AssetHandle::Generate();
+
+		AssetHandle handle = m_EditorAssets.at(key);
+		SK_CORE_VERIFY(handle != AssetHandle::Invalid);
+		if (!m_ImportedAssets.contains(handle))
+		{
+			AssetMetaData metadata;
+			metadata.FilePath = filepath;
+			metadata.Handle = handle;
+			metadata.Type = AssetUtils::GetAssetTypeFromPath(filepath);
+			metadata.IsEditorAsset = true;
+			m_ImportedAssets[handle] = metadata;
+		}
+
+		return handle;
+	}
+
+	AssetHandle EditorAssetManager::AddEditorAsset(AssetHandle handle, const std::filesystem::path& filepath)
+	{
+		const auto key = utils::GetFilesystemKey(filepath);
+		if (m_EditorAssets.contains(key))
+			return m_EditorAssets.at(key);
+
+		m_EditorAssets[key] = handle;
+		if (m_ImportedAssets.contains(handle))
+			return handle;
+
+		AssetMetaData metadata;
+		metadata.FilePath = filepath;
+		metadata.Handle = handle;
+		metadata.Type = AssetUtils::GetAssetTypeFromPath(filepath);
+		metadata.IsEditorAsset = true;
+		m_ImportedAssets[handle] = metadata;
+		return handle;
+	}
+
+	AssetHandle EditorAssetManager::AddEditorAsset(Ref<Asset> asset, const std::filesystem::path& filepath)
+	{
+		const auto key = utils::GetFilesystemKey(filepath);
+		if (m_EditorAssets.contains(key))
+			return m_EditorAssets.at(key);
+
+		if (asset->Handle == AssetHandle::Invalid)
+			asset->Handle = AssetHandle::Generate();
+
+		m_EditorAssets[key] = asset->Handle;
+		if (m_ImportedAssets.contains(asset->Handle))
+			return asset->Handle;
+
+		AssetMetaData metadata;
+		metadata.FilePath = filepath;
+		metadata.Handle = asset->Handle;
+		metadata.Type = AssetUtils::GetAssetTypeFromPath(filepath);
+		metadata.IsEditorAsset = true;
+		metadata.IsDataLoaded = true;
+		m_ImportedAssets[asset->Handle] = metadata;
+		m_LoadedAssets[asset->Handle] = asset;
+
+		return asset->Handle;
+	}
+
+	bool EditorAssetManager::HasEditorAsset(const std::filesystem::path& filepath) const
+	{
+		const auto key = utils::GetFilesystemKey(filepath);
+		return m_EditorAssets.contains(key);
+	}
+
 	AssetType EditorAssetManager::GetAssetType(AssetHandle handle) const
 	{
 		const AssetMetaData& metadata = GetMetadataInternal(handle);
@@ -383,7 +470,7 @@ namespace Shark {
 
 		for (const auto& [handle, metadata] : m_ImportedAssets)
 		{
-			if (!metadata.IsValid() || metadata.IsMemoryAsset || !HasExistingFilePath(metadata))
+			if (!metadata.IsValid() || metadata.IsMemoryAsset || metadata.IsEditorAsset || !HasExistingFilePath(metadata))
 				continue;
 
 			sortedAssets.emplace(ImportedAssetsEntry{ metadata.Handle, metadata.Type, metadata.FilePath });

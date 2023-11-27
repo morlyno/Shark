@@ -15,6 +15,7 @@ namespace Shark {
 		std::filesystem::path FilePath; // relative to Assets (not Project!)
 		bool IsDataLoaded = false;
 		bool IsMemoryAsset = false;
+		bool IsEditorAsset = false;
 
 		bool IsValid() const { return Handle != AssetHandle::Invalid && (Type != AssetType::None) /*&& (IsMemoryAsset || !FilePath.empty())*/; }
 	};

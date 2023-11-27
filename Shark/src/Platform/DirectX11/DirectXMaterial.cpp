@@ -11,8 +11,8 @@
 
 namespace Shark {
 
-	DirectXMaterial::DirectXMaterial(Ref<Shader> shader)
-		: m_Shader(shader.As<DirectXShader>())
+	DirectXMaterial::DirectXMaterial(Ref<Shader> shader, const std::string& name)
+		: m_Shader(shader.As<DirectXShader>()), m_Name(name)
 	{
 		Initialize();
 	}
@@ -131,7 +131,6 @@ namespace Shark {
 		}
 
 		member.UploadBufferRef.Write(data);
-		member.Parent->Dirty = true;
 	}
 
 	Buffer DirectXMaterial::GetBytes(const std::string& name) const
@@ -141,13 +140,10 @@ namespace Shark {
 		return member.UploadBufferRef;
 	}
 
-	void DirectXMaterial::RT_UpdateDirtyBuffers()
+	void DirectXMaterial::RT_UpdateBuffers()
 	{
 		for (auto& [name, cbData] : m_ConstantBuffers)
 		{
-			if (!cbData.Dirty)
-				continue;
-
 			if (!cbData.Buffer)
 			{
 				auto& buffer = cbData.Buffer;
@@ -158,7 +154,6 @@ namespace Shark {
 			}
 
 			cbData.Buffer->RT_UploadData(cbData.UploadBuffer.GetBuffer());
-			cbData.Dirty = false;
 		}
 	}
 

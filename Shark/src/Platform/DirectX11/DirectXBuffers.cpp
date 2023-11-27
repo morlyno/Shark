@@ -12,8 +12,7 @@ namespace Shark {
 	//////////////////////////////////////////////////////////////////////////
    /// VertexBuffer /////////////////////////////////////////////////////////
 
-	DirectXVertexBuffer::DirectXVertexBuffer(const VertexLayout& layout, uint64_t size, bool dynamic, Buffer vertexData)
-		: m_Layout(layout)
+	DirectXVertexBuffer::DirectXVertexBuffer(uint64_t size, bool dynamic, Buffer vertexData)
 	{
 		ReCreateBuffer(size, dynamic, vertexData);
 	}
@@ -187,7 +186,7 @@ namespace Shark {
 
 		D3D11_BUFFER_DESC bd = {};
 		bd.ByteWidth = (UINT)size;
-		bd.StructureByteStride = m_Layout.GetVertexSize();
+		bd.StructureByteStride = 0;
 		bd.Usage = dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bd.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0u;

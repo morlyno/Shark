@@ -149,6 +149,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 
 		m_MaterialEditor = Scope<MaterialEditor>::Create("Material", nullptr);
+		m_MeshSourceMaterialAsset = MaterialAsset::Create(nullptr);
 		UpdateMaterialEditor(m_SelectedEntity);
 	}
 
@@ -485,8 +486,8 @@ namespace Shark {
 			const auto& submesh = submeshes[comp.SubmeshIndex];
 
 			{
-				UI::ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly, meshSource->GetSubmeshCount() == 1);
-				UI::Control("Submesh Index", comp.SubmeshIndex, 0.05f, 0, meshSource->GetSubmeshCount() - 1, nullptr, ImGuiSliderFlags_AlwaysClamp);
+				UI::ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly, meshSource->GetSubmeshes().size() == 1);
+				UI::Control("Submesh Index", comp.SubmeshIndex, 0.05f, 0, meshSource->GetSubmeshes().size() - 1, nullptr, ImGuiSliderFlags_AlwaysClamp);
 			}
 
 			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
@@ -496,7 +497,15 @@ namespace Shark {
 
 			if (UI::ControlAsset("Material", material))
 			{
-				materialTable->SetMaterial(submesh.MaterialIndex, material);
+				if (material)
+				{
+					materialTable->SetMaterial(submesh.MaterialIndex, material);
+				}
+				else
+				{
+					materialTable->ClearMaterial(submesh.MaterialIndex);
+				}
+
 				UpdateMaterialEditor(entity);
 			}
 
@@ -845,15 +854,21 @@ namespace Shark {
 				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
 				Ref<MeshSource> meshSource = mesh->GetMeshSource();
 				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-				Ref<MaterialTable> sourceMaterialTable = meshSource->GetMaterialTable();
-
 				const auto& submesh = meshSource->GetSubmeshes()[mc.SubmeshIndex];
 
-				Ref<MaterialAsset> material = materialTable->HasMaterial(submesh.MaterialIndex) ?
-					materialTable->GetMaterial(submesh.MaterialIndex) :
-					sourceMaterialTable->GetMaterial(submesh.MaterialIndex);
-
-				m_MaterialEditor->SetMaterial(material);
+				if (materialTable->HasMaterial(submesh.MaterialIndex))
+				{
+					m_MaterialEditor->SetMaterial(materialTable->GetMaterial(submesh.MaterialIndex));
+					m_MaterialEditor->SetReadonly(false);
+				}
+				else
+				{
+					const auto& materials = meshSource->GetMaterials();
+					Ref<Material> material = materials[submesh.MaterialIndex];
+					m_MeshSourceMaterialAsset->SetMaterial(material);
+					m_MaterialEditor->SetMaterial(m_MeshSourceMaterialAsset);
+					m_MaterialEditor->SetReadonly(false);
+				}
 			}
 		}
 	}

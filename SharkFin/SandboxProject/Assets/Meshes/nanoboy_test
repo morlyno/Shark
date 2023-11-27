@@ -1,5 +1,6 @@
 Mesh:
   MeshSource: 863831583129125145
-  SubmeshIndices:
+  Submeshes:
     []
-  ? Materials
+  Materials:
+    {}

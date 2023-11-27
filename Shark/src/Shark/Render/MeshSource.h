@@ -6,55 +6,87 @@
 
 namespace Shark {
 
+	struct Vertex
+	{
+		glm::vec3 Position;
+		glm::vec3 Normal;
+		glm::vec2 Texcoord;
+	};
+
+	struct Index
+	{
+		uint32_t Vertex1;
+		uint32_t Vertex2;
+		uint32_t Vertex3;
+	};
+
+	struct Submesh
+	{
+		uint32_t BaseVertex = 0;
+		uint32_t BaseIndex = 0;
+		uint32_t VertexCount = 0;
+		uint32_t IndexCount = 0;
+		uint32_t MaterialIndex = 0;
+		std::string MeshName;
+	};
+
+	struct MeshNode
+	{
+		uint32_t Parent = (uint32_t)-1;
+		std::vector<uint32_t> Children;
+		std::vector<uint32_t> Submeshes;
+
+		std::string Name;
+		glm::mat4 Transform;
+		glm::mat4 LocalTransform;
+
+		bool IsRoot() const { return Parent == (uint32_t)-1; }
+	};
+
 	class MeshSource : public Asset
 	{
 	public:
-		struct SubMesh
-		{
-			uint32_t IndexCount = 0;
-			uint32_t BaseIndex = 0;
-			uint32_t BaseVertex = 0;
-			uint32_t MaterialIndex = 0;
-		};
-
-		struct Node
-		{
-			std::string Name;
-			glm::mat4 Transform = glm::identity<glm::mat4>();
-			std::vector<uint32_t> MeshIndices;
-			Node* Parent = nullptr;
-			std::vector<Node> Children;
-		};
-
-	public:
 		MeshSource() = default;
-		MeshSource(Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, Ref<MaterialTable> materialTable);
+		MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices);
+		MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<Submesh>& submeshes);
 		virtual ~MeshSource() = default;
 
-		const Ref<VertexBuffer> GetVertexBuffer() const { return m_VertexBuffer; }
-		const Ref<IndexBuffer> GetIndexBuffer() const { return m_IndexBuffer; }
-		const Ref<MaterialTable> GetMaterialTable() const { return m_MaterialTable; }
-		const std::vector<SubMesh>& GetSubmeshes() const { return m_SubMeshes; }
-		uint32_t GetSubmeshCount() const { return (uint32_t)m_SubMeshes.size(); }
-		const Node& GetRootNode() const { return m_RootNode; }
+		std::vector<Submesh>& GetSubmeshes() { return m_Submeshes; }
+		const std::vector<Submesh>& GetSubmeshes() const { return m_Submeshes; }
 
-		uint32_t GetSubmeshVertexCount(uint32_t submeshIndex) const;
+		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
+		const std::vector<Index>& GetIndices() const { return m_Indices; }
+
+		std::vector<Ref<Material>>& GetMaterials() { return m_Materials; }
+		const std::vector<Ref<Material>>& GetMaterials() const { return m_Materials; }
+
+		Ref<VertexBuffer> GetVertexBuffer() const { return m_VertexBuffer; }
+		Ref<IndexBuffer> GetIndexBuffer() const { return m_IndexBuffer; }
+
+		const MeshNode& GetRootNode() const { return m_Nodes[0]; }
+		const std::vector<MeshNode>& GetNodes() const { return m_Nodes; }
 
 	public:
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 		static AssetType GetStaticType() { return AssetType::MeshSource; }
 
 		static Ref<MeshSource> Create() { return Ref<MeshSource>::Create(); }
-		static Ref<MeshSource> Create(Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, Ref<MaterialTable> materialTable) { return Ref<MeshSource>::Create(vertexBuffer, indexBuffer, materialTable); }
+		static Ref<MeshSource> Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices) { return Ref<MeshSource>::Create(vertices, indices); }
+		static Ref<MeshSource> Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<Submesh>& submeshes) { return Ref<MeshSource>::Create(vertices, indices, submeshes); }
 
 	private:
+		std::vector<Vertex> m_Vertices;
+		std::vector<Index> m_Indices;
+
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
-		Ref<MaterialTable> m_MaterialTable;
-		std::vector<SubMesh> m_SubMeshes;
-		Node m_RootNode;
+		std::vector<Ref<Material>> m_Materials;
+
+		std::vector<Submesh> m_Submeshes;
+		std::vector<MeshNode> m_Nodes;
 
 		friend class MeshSourceSerializer;
+		friend class AssimpMeshImporter;
 	};
 
 }

@@ -161,7 +161,7 @@ namespace Shark {
 								CreateAsset<Scene>(m_CurrentDirectory, "New Scene.skscene", true);
 
 							if (ImGui::MenuItem("Material"))
-								CreateAsset<MaterialAsset>(m_CurrentDirectory, "New Material.skmat", true);
+								CreateAsset<MaterialAsset>(m_CurrentDirectory, "New Material.skmat", true, Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR")));
 
 							ImGui::EndMenu();
 						}
@@ -876,33 +876,25 @@ namespace Shark {
 	Ref<Texture2D> ContentBrowserPanel::GetThumbnail(const AssetMetaData& metadata)
 	{
 		if (!metadata.IsValid())
-			m_FileIcon;
-
-		if (metadata.Type != AssetType::Texture && metadata.Type != AssetType::TextureSource && metadata.Type != AssetType::Font)
-			return GetIcon(metadata);
-
-		Ref<Asset> asset = AssetUtils::Create(metadata.Type);
-		AssetSerializer::Deserialize(asset, Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
+			return m_FileIcon;
 
 		switch (metadata.Type)
 		{
-			//case AssetType::Scene:
+			case AssetType::Font:
+			{
+				auto font = AssetManager::GetAsset<Font>(metadata.Handle);
+				return font->GetFontAtlas();
+			}
 			case AssetType::Texture:
 			{
-				return asset.As<Texture2D>();
+				return AssetManager::GetAsset<Texture2D>(metadata.Handle);
 			}
 			case AssetType::TextureSource:
 			{
-				auto texture = Texture2D::Create();
-				Application::Get().SubmitToMainThread([texture, source = asset.As<TextureSource>()]()
-				{
-					texture->SetTextureSource(source);
-					texture->Invalidate();
-				});
-				return texture;
+				auto source = AssetManager::GetAsset<TextureSource>(metadata.Handle);
+				AssetHandle textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(TextureSpecification{}, source);
+				return AssetManager::GetAsset<Texture2D>(textureHandle);
 			}
-			//case AssetType::ScriptFile: 
-			case AssetType::Font: return asset.As<Font>()->GetFontAtlas();
 		}
 
 		return GetIcon(metadata);

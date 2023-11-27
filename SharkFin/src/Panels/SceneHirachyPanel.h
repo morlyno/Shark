@@ -152,6 +152,7 @@ namespace Shark {
 		Entity m_SelectedEntity;
 
 		Scope<MaterialEditor> m_MaterialEditor = nullptr;
+		Ref<MaterialAsset> m_MeshSourceMaterialAsset;
 
 		bool m_TransformInWorldSpace = false;
 		bool m_HirachyFocused = false;

@@ -307,6 +307,23 @@ namespace Shark {
 		return std::filesystem::absolute(path);
 	}
 
+	void FileSystem::RemoveExtension(std::filesystem::path& path)
+	{
+		path.replace_extension();
+	}
+
+	void FileSystem::ReplaceExtension(std::filesystem::path& path, const std::string& extension)
+	{
+		path.replace_extension(extension);
+	}
+
+	std::filesystem::path FileSystem::ReplaceExtension(const std::filesystem::path& filepath, const std::string& extension)
+	{
+		std::filesystem::path temp = filepath;
+		ReplaceExtension(temp, extension);
+		return temp;
+	}
+
 	std::string ToString(filewatch::Event event)
 	{
 		return filewatch::event_to_string(event);

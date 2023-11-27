@@ -7,8 +7,6 @@
 #include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
-#include <stb_image.h>
-
 namespace Shark {
 
 	namespace utils {

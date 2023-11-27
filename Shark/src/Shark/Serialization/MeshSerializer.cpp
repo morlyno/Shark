@@ -73,36 +73,6 @@ namespace Shark {
 		return true;
 	}
 
-	bool MeshSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
-	{
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Mesh from {}", assetPath);
-
-		Timer timer;
-		m_ErrorMsg.clear();
-
-		if (!FileSystem::Exists(assetPath))
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Path not found! {0}", assetPath);
-			return false;
-		}
-
-		std::string filedata = FileSystem::ReadString(assetPath);
-		if (filedata.empty())
-		{
-			SK_CORE_ERROR_TAG("Serialization", "File was empty!");
-			return false;
-		}
-
-		if (!DeserializeFromYAML(asset.As<Mesh>(), filedata))
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize Mesh from YAML file! {}", m_ErrorMsg);
-			return false;
-		}
-
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Mesh took {}ms", timer.ElapsedMilliSeconds());
-		return true;
-	}
-
 	std::string MeshSerializer::SerializeToYAML(Ref<Mesh> mesh)
 	{
 		Ref<MeshSource> meshSource = mesh->GetMeshSource();
@@ -119,12 +89,8 @@ namespace Shark {
 		out << YAML::Key << "Mesh" << YAML::Value;
 		out << YAML::BeginMap;
 		out << YAML::Key << "MeshSource" << YAML::Value << mesh->GetMeshSource()->Handle;
-		out << YAML::Key << "SubmeshIndices" << YAML::Value << mesh->GetSubmeshIndices();
-		out << YAML::BeginMap;
-		out << YAML::Key << "Materials" << YAML::Value;
-		for (const auto& [index, material] : *mesh->GetMaterialTable())
-			out << YAML::Key << index << YAML::Value << material->Handle;
-		out << YAML::EndMap;
+		out << YAML::Key << "Submeshes" << YAML::Value << mesh->GetSubmeshes();
+		out << YAML::Key << "Materials" << YAML::Value << mesh->GetMaterialTable()->GetMaterials();
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 
@@ -148,23 +114,38 @@ namespace Shark {
 		}
 
 		auto meshSource = meshNode["MeshSource"].as<AssetHandle>();
-		auto subMeshes = meshNode["SubmeshIndices"].as<std::vector<uint32_t>>();
-		auto materials = meshNode["Materials"];
+		auto subMeshes = meshNode["Submeshes"].as<std::vector<uint32_t>>();
+		auto materials = meshNode["Materials"].as<MaterialTable::MaterialMap>();
 
 		mesh->m_MeshSource = AssetManager::GetAsset<MeshSource>(meshSource);
+		mesh->m_Submeshes = std::move(subMeshes);
 		mesh->m_MaterialTable = Ref<MaterialTable>::Create();
-		for (const auto& element : materials)
-		{
-			uint32_t index = element.first.as<uint32_t>();
-			AssetHandle handle = element.second.as<AssetHandle>();
-
-			Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(handle);
-			mesh->m_MaterialTable->AddMaterial(index, material);
-		}
-
-		mesh->m_SubmeshIndices = std::move(subMeshes);
+		mesh->m_MaterialTable->GetMaterials() = std::move(materials);
 
 		return true;
 	}
+
+}
+
+namespace YAML {
+
+	template<>
+	struct convert<Shark::Ref<Shark::MaterialAsset>>
+	{
+		static Node encode(Shark::Ref<Shark::MaterialAsset> material)
+		{
+			return convert<Shark::AssetHandle>::encode(material->Handle);
+		}
+
+		static bool decode(Node node, Shark::Ref<Shark::MaterialAsset>& outMaterial)
+		{
+			Shark::AssetHandle handle;
+			if (!convert<Shark::AssetHandle>::decode(node, handle))
+				return false;
+
+			outMaterial = Shark::AssetManager::GetAsset<Shark::MaterialAsset>(handle);
+			return true;
+		}
+	};
 
 }

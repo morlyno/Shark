@@ -6,7 +6,6 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
-#include "Shark/Render/MeshFactory.h"
 #include "Shark/Math/Math.h"
 #include "Shark/UI/UI.h"
 
@@ -145,7 +144,7 @@ namespace Shark {
 		Renderer::RenderSubmesh(m_CommandBuffer, m_MeshPipeline, mesh, submeshIndex, m_CBSceneData, cbMeshData, m_CBLight);
 
 		m_Statistics.DrawCalls++;
-		m_Statistics.VertexCount += mesh->GetMeshSource()->GetSubmeshVertexCount(submeshIndex);
+		m_Statistics.VertexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].VertexCount;
 		m_Statistics.IndexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].IndexCount;
 	}
 

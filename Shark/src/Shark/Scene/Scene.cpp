@@ -974,7 +974,7 @@ namespace Shark {
 			{
 				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(component.MeshHandle);
 
-#if SK_ENABLE_ASSERT
+#if SK_ENABLE_ASSERT && 0
 				const auto& submesh = mesh->GetMeshSource()->GetSubmeshes()[component.SubmeshIndex];
 				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
 				Ref<MaterialAsset> materialAsset = materialTable->HasMaterial(submesh.MaterialIndex) ?

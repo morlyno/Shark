@@ -724,36 +724,42 @@ namespace Shark::UI {
 			}
 		}
 
-		if (dragDropType)
+		ImGuiItemFlags itemFlags = ImGui::GetItemFlags();
+		const bool noEdit = itemFlags & ImGuiItemFlags_Disabled || itemFlags & ImGuiItemFlags_ReadOnly;
+
+		if (!noEdit)
 		{
-			if (ImGui::BeginDragDropTarget())
+			if (dragDropType)
 			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
-				if (payload)
+				if (ImGui::BeginDragDropTarget())
 				{
-					assetHandle = *(AssetHandle*)payload->Data;
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+					if (payload)
+					{
+						assetHandle = *(AssetHandle*)payload->Data;
+						changed = true;
+					}
+					ImGui::EndDragDropTarget();
+				}
+			}
+
+			{
+				UI::ScopedColorStack colorStack(ImGuiCol_Button, ImVec4(0, 0, 0, 0),
+												ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0),
+												ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+
+				const float buttonSize = ImGui::GetItemRectSize().y;
+				ImGui::SameLine(0, 0);
+				MoveCursorX(-buttonSize);
+
+				ImGui::BeginChild(UI::GetCurrentID(), ImVec2(buttonSize, buttonSize));
+				if (ImGui::Button("x", { buttonSize, buttonSize }))
+				{
+					assetHandle = AssetHandle::Null;
 					changed = true;
 				}
-				ImGui::EndDragDropTarget();
+				ImGui::EndChild();
 			}
-		}
-
-		{
-			UI::ScopedColorStack colorStack(ImGuiCol_Button, ImVec4(0, 0, 0, 0),
-				                            ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0),
-				                            ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-
-			const float buttonSize = ImGui::GetItemRectSize().y;
-			ImGui::SameLine(0, 0);
-			MoveCursorX(-buttonSize);
-
-			ImGui::BeginChild(UI::GetCurrentID(), ImVec2(buttonSize, buttonSize));
-			if (ImGui::Button("x", { buttonSize, buttonSize }))
-			{
-				assetHandle = AssetHandle::Null;
-				changed = true;
-			}
-			ImGui::EndChild();
 		}
 
 		ControlEndHelper();

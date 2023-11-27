@@ -136,7 +136,7 @@ namespace Shark {
 		void UpdateWindowTitle();
 
 		void InstantiateMesh(Ref<Mesh> mesh);
-		void InstantiateMeshNode(Ref<Mesh> mesh, const MeshSource::Node& node, Entity parent);
+		void InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent);
 
 	private:
 		static constexpr std::string_view LogLevelStrings[] = { "Trace"sv, "Debug"sv, "Info"sv, "Warn"sv, "Error"sv, "Critical"sv/*, "Off"sv*/ };
@@ -302,9 +302,6 @@ namespace Shark {
 
 		bool m_ShaderCompilerDisableOptimization = false;
 
-		AssetHandle m_CubeMesh;
-		AssetHandle m_SphereMesh;
-
 		struct AssetFileEventData
 		{
 			filewatch::Event Action;
@@ -326,6 +323,16 @@ namespace Shark {
 			std::string MeshDirectory;
 		};
 		CreateMeshAssetData m_CreateMeshAssetData;
+
+		struct DefaultMeshes
+		{
+			AssetHandle Cube;
+			AssetHandle Sphere;
+			AssetHandle Cone;
+			AssetHandle Cylinder;
+			AssetHandle Torus;
+		};
+		DefaultMeshes m_DefaultMeshes;
 
 	};
 

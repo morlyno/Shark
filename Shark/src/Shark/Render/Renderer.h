@@ -31,7 +31,7 @@ namespace Shark {
 		static void Submit(const TFunc& func)
 		{
 			auto& commandQueue = GetCommandQueue();
-			SK_CORE_VERIFY(!commandQueue.IsExecuting());
+			//SK_CORE_VERIFY(!commandQueue.IsExecuting());
 			
 			auto command = [](void* funcPtr)
 			{

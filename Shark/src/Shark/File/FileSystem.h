@@ -61,7 +61,12 @@ namespace Shark {
 
 		static void TruncateFile(const std::filesystem::path& filepath);
 		static bool IsInDirectory(const std::filesystem::path& directory, const std::filesystem::path& path);
-		static std::filesystem::path GetFilesystemPath(const std::filesystem::path& projectOrFilesystemPath);
+		static std::filesystem::path GetFilesystemPath(const std::filesystem::path& path);
+
+		static void RemoveExtension(std::filesystem::path& path);
+		static void ReplaceExtension(std::filesystem::path& path, const std::string& extension);
+
+		static std::filesystem::path ReplaceExtension(const std::filesystem::path& filepath, const std::string& extension);
 
 	};
 

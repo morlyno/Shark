@@ -57,32 +57,5 @@ namespace Shark {
 		return false;
 	}
 
-	Ref<Asset> AssetSerializer::TryLoad(AssetType assetType, const std::filesystem::path& assetPath)
-	{
-		if (s_Serializers.contains(assetType))
-		{
-			const auto& serializer = s_Serializers.at(assetType);
-			Ref<Asset> asset = AssetUtils::Create(assetType);
-			serializer->Deserialize(asset, assetPath);
-			return asset;
-		}
-
-		SK_CORE_ASSERT(false, "Serializer not found");
-		return nullptr;
-	}
-
-	bool AssetSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
-	{
-		const AssetType assetType = asset->GetAssetType();
-		if (s_Serializers.contains(assetType))
-		{
-			const auto& serializer = s_Serializers.at(assetType);
-			return serializer->Deserialize(asset, assetPath);
-		}
-
-		SK_CORE_ASSERT(false, "Serializer not found");
-		return false;
-	}
-
 }
 

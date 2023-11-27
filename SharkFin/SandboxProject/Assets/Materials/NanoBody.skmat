@@ -1,7 +1,7 @@
 Material:
   AlbedoColor: [1, 1, 1]
-  AlbedoTexture: 13789228488399281172
-  UseAlbedo: true
+  AlbedoMap: 13789228488399281172
+  UsingAlbedoMap: true
   Metallic: 0
   Roughness: 0
-  AO: 0
+  AmbientOcclusion: 0

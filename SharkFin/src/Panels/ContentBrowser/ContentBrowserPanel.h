@@ -163,12 +163,12 @@ namespace Shark {
 	private:
 		Ref<ContentBrowserItem> CreateDirectory(Ref<DirectoryInfo> directory, const std::string& name);
 
-		template<typename TAsset>
-		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename)
+		template<typename TAsset, typename... TArgs>
+		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename, TArgs&&... args)
 		{
 			m_SkipNextFileEvents = true;
 			std::filesystem::path directoryPath = std::filesystem::relative(m_Project->GetDirectory() / directory->FilePath, m_Project->GetAssetsDirectory());
-			Ref<TAsset> asset = Project::GetActiveEditorAssetManager()->CreateAsset<TAsset>(directoryPath.string(), name);
+			Ref<TAsset> asset = Project::GetActiveEditorAssetManager()->CreateAsset<TAsset>(directoryPath.string(), name, std::forward<TArgs>(args)...);
 			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(asset);
 			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserItem>::Create(metadata, GetThumbnail(metadata));
 			m_CurrentItems.Add(newItem);

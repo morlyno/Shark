@@ -2,9 +2,9 @@
 #include "Texture.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Serialization/Import/TextureImporter.h"
+
 #include "Platform/DirectX11/DirectXTexture.h"
-#include "Shark/Serialization/TextureSerializers.h"
-#include "Shark/Asset/AssetUtils.h"
 
 namespace Shark {
 
@@ -145,24 +145,7 @@ namespace Shark {
 
 	Ref<Texture2D> Texture2D::LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& specification)
 	{
-		Ref<TextureSource> source;
-		AssetType assetType = AssetUtils::GetAssetTypeFromPath(filepath);
-		switch (assetType)
-		{
-			case AssetType::Texture:
-			{
-				TextureSourceSerializer serializer;
-				serializer.TryLoadAssetFromTexture(source, filepath);
-				break;
-			}
-			case AssetType::TextureSource:
-			{
-				source = Ref<TextureSource>::Create();
-				TextureSourceSerializer serializer;
-				serializer.Deserialize(source, filepath);
-			}
-		}
-
+		auto source = TextureImporter::ToTextureSourceFromFile(filepath);
 		return Create(specification, source);
 	}
 

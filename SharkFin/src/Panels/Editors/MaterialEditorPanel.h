@@ -32,6 +32,7 @@ namespace Shark {
 	{
 	public:
 		MaterialEditorPanel(const std::string& panelName, ImGuiID parentDockspaceID, Ref<MaterialAsset> material);
+		~MaterialEditorPanel();
 
 		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
@@ -64,6 +65,7 @@ namespace Shark {
 		Ref<Scene> m_Scene;
 		Ref<SceneRenderer> m_Renderer;
 		EditorCamera m_Camera;
+		AssetHandle m_Sphere;
 
 		std::string m_ViewportName;
 		std::string m_SettingsName;

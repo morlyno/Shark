@@ -36,24 +36,4 @@ namespace Shark {
 		return true;
 	}
 
-	bool FontSerializer::Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath)
-	{
-		SK_PROFILE_FUNCTION();
-
-		SK_CORE_INFO_TAG(Tag::Serialization, "Deserializing Font from {}", assetPath);
-		Timer timer;
-
-		if (!FileSystem::Exists(assetPath))
-		{
-			SK_CORE_ERROR_TAG(Tag::Serialization, "Path not found! {0}", assetPath);
-			return false;
-		}
-
-		Ref<Font> font = asset.As<Font>();
-		font->Load(FileSystem::GetFilesystemPath(assetPath));
-
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Font took {}ms", timer.ElapsedMilliSeconds());
-		return true;
-	}
-
 }

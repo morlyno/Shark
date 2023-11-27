@@ -22,6 +22,11 @@ namespace Shark {
 		template<typename TAsset, typename... TArgs>
 		Ref<TAsset> CreateAsset(const std::string& directoryPath, const std::string filename, TArgs&&... args);
 
+		AssetHandle GetEditorAsset(const std::filesystem::path& filepath);
+		AssetHandle AddEditorAsset(AssetHandle handle, const std::filesystem::path& filepath);
+		AssetHandle AddEditorAsset(Ref<Asset> asset, const std::filesystem::path& filepath);
+		bool HasEditorAsset(const std::filesystem::path& filepath) const;
+
 		virtual AssetType GetAssetType(AssetHandle handle) const override;
 		virtual bool IsMemoryAsset(AssetHandle handle) const override;
 		virtual bool IsValidAssetHandle(AssetHandle handle) const override;
@@ -75,6 +80,8 @@ namespace Shark {
 		Weak<Project> m_Project;
 		AssetsMap m_LoadedAssets;
 		AssetMetadataMap m_ImportedAssets;
+
+		std::unordered_map<std::filesystem::path, AssetHandle> m_EditorAssets;
 	};
 
 	template<typename TAsset, typename... TArgs>

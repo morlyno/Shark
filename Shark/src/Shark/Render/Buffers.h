@@ -26,13 +26,11 @@ namespace Shark {
 		virtual void RT_CloseBuffer() = 0;
 		virtual Buffer RT_GetBuffer() = 0;
 
-		virtual const VertexLayout& GetVertexLayout() const = 0;
 		virtual uint64_t GetBufferSize() const = 0;
-		virtual uint32_t GetVertexCount() const = 0;
 
 	public:
-		static Ref<VertexBuffer> Create(const VertexLayout& layout, uint64_t size, bool dynamic, Buffer vertexData);
-		static Ref<VertexBuffer> Create(const VertexLayout& layout, Buffer vertexData, bool dynamic = false);
+		static Ref<VertexBuffer> Create(uint64_t size, bool dynamic, Buffer vertexData);
+		static Ref<VertexBuffer> Create(Buffer vertexData, bool dynamic = false);
 	};
 
 	// 32-Bit IndexBuffer

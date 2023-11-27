@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Shark/Asset/Asset.h"
-#include "Shark/Render/Material.h"
 #include "Shark/Render/MeshSource.h"
+#include "Shark/Render/MaterialAsset.h"
 
 namespace Shark {
 
@@ -10,30 +10,29 @@ namespace Shark {
 	{
 	public:
 		Mesh() = default;
-		Mesh(Ref<MeshSource> meshSource)
-			: m_MeshSource(meshSource), m_MaterialTable(Ref<MaterialTable>::Create()), m_SubmeshIndices({})
-		{}
-		Mesh(Ref<MeshSource> meshSource, Ref<MaterialTable> materialTable, const std::vector<uint32_t> submeshIndices)
-			: m_MeshSource(meshSource), m_MaterialTable(materialTable), m_SubmeshIndices(submeshIndices)
-		{}
+		Mesh(Ref<MeshSource> meshSource);
+		Mesh(Ref<MeshSource> meshSource, Ref<MaterialTable> materials, const std::vector<uint32_t>& submeshes);
 		virtual ~Mesh() = default;
 
 		Ref<MeshSource> GetMeshSource() const { return m_MeshSource; }
+		void SetMeshSource(Ref<MeshSource> meshSource) { m_MeshSource = meshSource; }
+
+		std::vector<uint32_t>& GetSubmeshes() { return m_Submeshes; }
+		const std::vector<uint32_t>& GetSubmeshes() const { return m_Submeshes; }
+		void SetSubmeshes(const std::vector<uint32_t>& submeshes) { m_Submeshes = submeshes; }
+
 		Ref<MaterialTable> GetMaterialTable() const { return m_MaterialTable; }
-		std::vector<uint32_t> GetSubmeshIndices() const { return m_SubmeshIndices; }
 
 	public:
-		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 		static AssetType GetStaticType() { return AssetType::Mesh; }
+		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
-		static Ref<Mesh> Create() { return Ref<Mesh>::Create(); }
-		static Ref<Mesh> Create(Ref<MeshSource> meshSource) { return Ref<Mesh>::Create(meshSource); }
-		static Ref<Mesh> Create(Ref<MeshSource> meshSource, Ref<MaterialTable> materialTable, const std::vector<uint32_t> submeshIndices) { return Ref<Mesh>::Create(meshSource, materialTable, submeshIndices); }
-
+		static Ref<Mesh> Create(Ref<MeshSource> meshSource);
+		static Ref<Mesh> Create(Ref<MeshSource> meshSource, Ref<MaterialTable> materials, const std::vector<uint32_t>& submeshes);
 	public:
 		Ref<MeshSource> m_MeshSource;
+		std::vector<uint32_t> m_Submeshes;
 		Ref<MaterialTable> m_MaterialTable;
-		std::vector<uint32_t> m_SubmeshIndices;
 
 		friend class MeshSerializer;
 	};

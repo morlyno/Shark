@@ -9,9 +9,8 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
 
-#include "Shark/Render/MeshFactory.h"
-
 #include "Shark/Serialization/ProjectSerializer.h"
+#include "Shark/Serialization/Import/AssimpMeshImporter.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
@@ -116,9 +115,9 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		CloseProject();
-
 		m_PanelManager->Clear();
+
+		CloseProject();
 
 		Icons::Shutdown();
 		EditorSettings::Shutdown();
@@ -971,7 +970,7 @@ namespace Shark {
 							m_CreateMeshAssetData = {};
 							m_CreateMeshAssetData.Show = true;
 							m_CreateMeshAssetData.MeshSource = handle;
-							m_CreateMeshAssetData.DestinationPath = metadata.FilePath.filename().string();
+							m_CreateMeshAssetData.DestinationPath = metadata.FilePath.stem().string();
 							m_CreateMeshAssetData.MeshDirectory = m_DefaultAssetDirectories.at(AssetType::Mesh);
 						}
 					}
@@ -1700,33 +1699,45 @@ namespace Shark {
 		if (!m_ShowObjects)
 			return;
 
-		ImGui::Begin("Objects", &m_ShowObjects);
-
-		ImGui::Button("Cube");
-		if (ImGui::BeginDragDropSource())
+		if (!ImGui::Begin("Objects", &m_ShowObjects))
 		{
-			if (m_CubeMesh == AssetHandle::Invalid)
-			{
-				Ref<MeshSource> meshSource = MeshFactory::GetCube();
-				m_CubeMesh = AssetManager::CreateMemoryAsset<Mesh>(meshSource, Ref<MaterialTable>::Create(), std::vector<uint32_t>{});
-			}
-
-			ImGui::SetDragDropPayload(UI::DragDropID::Asset, &m_CubeMesh, sizeof(AssetHandle));
-			ImGui::EndDragDropSource();
+			ImGui::End();
+			return;
 		}
-		
-		ImGui::Button("Sphere");
-		if (ImGui::BeginDragDropSource())
+
+		const auto element = [](const char* name, AssetHandle& handle, const std::filesystem::path& meshSourceFile)
 		{
-			if (m_SphereMesh == AssetHandle::Invalid)
+			ImGui::Button(name);
+			if (ImGui::BeginDragDropSource())
 			{
-				Ref<MeshSource> meshSource = MeshFactory::GetSphere();
-				m_SphereMesh = AssetManager::CreateMemoryAsset<Mesh>(meshSource, Ref<MaterialTable>::Create(), std::vector<uint32_t>{});
-			}
+				if (handle == AssetHandle::Invalid)
+				{
+					SK_CORE_ASSERT(AssetUtils::GetAssetTypeFromPath(meshSourceFile) == AssetType::MeshSource);
+					Ref<EditorAssetManager> assetManager = Project::GetActiveEditorAssetManager();
 
-			ImGui::SetDragDropPayload(UI::DragDropID::Asset, &m_SphereMesh, sizeof(AssetHandle));
-			ImGui::EndDragDropSource();
-		}
+					std::filesystem::path meshPath = FileSystem::ReplaceExtension(meshSourceFile, ".skmesh");
+					if (assetManager->HasEditorAsset(meshPath))
+					{
+						handle = assetManager->GetEditorAsset(meshPath);
+						return;
+					}
+
+					AssetHandle meshSourceHandle = assetManager->GetEditorAsset(meshSourceFile);
+					Ref<MeshSource> meshSource = assetManager->GetAsset(meshSourceHandle).As<MeshSource>();
+					Ref<Mesh> mesh = Mesh::Create(meshSource);
+					handle = assetManager->AddEditorAsset(mesh, meshPath);
+				}
+
+				ImGui::SetDragDropPayload(UI::DragDropID::Asset, &handle, sizeof(AssetHandle));
+				ImGui::EndDragDropSource();
+			}
+		};
+
+		element("Cube", m_DefaultMeshes.Cube, "Resources/Meshes/Cube.gltf");
+		element("Sphere", m_DefaultMeshes.Sphere, "Resources/Meshes/Sphere.gltf");
+		element("Cone", m_DefaultMeshes.Cone, "Resources/Meshes/Cone.gltf");
+		element("Cylinder", m_DefaultMeshes.Cylinder, "Resources/Meshes/Cylinder.gltf");
+		element("Torus", m_DefaultMeshes.Torus, "Resources/Meshes/Torus.gltf");
 
 		ImGui::End();
 	}
@@ -1830,6 +1841,9 @@ namespace Shark {
 			ImGui::SetCursorPos(createButtonPos);
 			if (ImGui::Button("Create"))
 			{
+				std::filesystem::path destinationPath = m_CreateMeshAssetData.DestinationPath;
+				destinationPath.replace_extension(".skmesh");
+
 				Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(m_CreateMeshAssetData.MeshSource);
 				Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(m_CreateMeshAssetData.MeshDirectory, m_CreateMeshAssetData.DestinationPath, meshSource);
 				InstantiateMesh(mesh);
@@ -2374,41 +2388,37 @@ namespace Shark {
 		InstantiateMeshNode(mesh, source->GetRootNode(), Entity{});
 	}
 
-	void EditorLayer::InstantiateMeshNode(Ref<Mesh> mesh, const MeshSource::Node& node, Entity parent)
+	void EditorLayer::InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent)
 	{
 		SK_PROFILE_FUNCTION();
 
 		Ref<MeshSource> source = mesh->GetMeshSource();
 
-		if (node.MeshIndices.size() > 1)
-		{
-			Entity dummyParent = m_ActiveScene->CreateChildEntity(parent, fmt::format("{} (Split Node)", node.Name));
-			dummyParent.Transform().SetTransform(node.Transform);
-
-			for (uint32_t meshIndex = 0; meshIndex < node.MeshIndices.size(); meshIndex++)
-			{
-				Entity entity = m_ActiveScene->CreateChildEntity(dummyParent, fmt::format("{}_{}", node.Name, meshIndex));
-				auto& meshComp = entity.AddComponent<MeshRendererComponent>();
-				meshComp.MeshHandle = mesh->Handle;
-				meshComp.SubmeshIndex = meshIndex;
-			}
-
-			for (const auto& childNode : node.Children)
-				InstantiateMeshNode(mesh, childNode, dummyParent);
-			return;
-		}
-
 		Entity entity = m_ActiveScene->CreateChildEntity(parent, node.Name);
-		entity.Transform().SetTransform(node.Transform);
-		if (node.MeshIndices.size() == 1)
+		entity.Transform().SetTransform(node.LocalTransform);
+		if (node.Submeshes.size() == 1)
 		{
 			auto& meshComp = entity.AddComponent<MeshRendererComponent>();
 			meshComp.MeshHandle = mesh->Handle;
-			meshComp.SubmeshIndex = node.MeshIndices[0];
+			meshComp.SubmeshIndex = node.Submeshes[0];
+		}
+		else if (node.Submeshes.size() > 1)
+		{
+			Entity container = m_ActiveScene->CreateChildEntity(entity, fmt::format("{} (Submesh Container)", node.Name));
+			for (uint32_t submeshIndex = 0; submeshIndex < node.Submeshes.size(); submeshIndex++)
+			{
+				Entity submeshEntity = m_ActiveScene->CreateChildEntity(container, fmt::format("{}_{} (Submesh)", node.Name, submeshIndex));
+				auto& meshComp = submeshEntity.AddComponent<MeshRendererComponent>();
+				meshComp.MeshHandle = mesh->Handle;
+				meshComp.SubmeshIndex = submeshIndex;
+			}
 		}
 
-		for (const auto& childNode : node.Children)
+		for (const auto& childNodeIndex : node.Children)
+		{
+			const MeshNode& childNode = source->GetNodes()[childNodeIndex];
 			InstantiateMeshNode(mesh, childNode, entity);
+		}
 
 	}
 

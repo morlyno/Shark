@@ -168,7 +168,7 @@ namespace Shark {
 			m_QuadPipeline = Pipeline::Create(quadPipelineSpecs);
 			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader);
 
-			m_QuadVertexBuffer = VertexBuffer::Create(quadPipelineSpecs.Layout, DefaultQuadVertices * sizeof(QuadVertex), true, nullptr);
+			m_QuadVertexBuffer = VertexBuffer::Create(DefaultQuadVertices * sizeof(QuadVertex), true, nullptr);
 
 			uint32_t* quadIndices = sknew uint32_t[DefaultQuadIndices];
 			for (uint32_t i = 0, j = 0; i < DefaultQuadIndices; i += 6, j += 4)
@@ -200,7 +200,7 @@ namespace Shark {
 			m_CirclePipeline = Pipeline::Create(circlePipelineSpecs);
 			m_CircleMaterial = Material::Create(circlePipelineSpecs.Shader);
 
-			m_CircleVertexBuffer = VertexBuffer::Create(circlePipelineSpecs.Layout, DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
+			m_CircleVertexBuffer = VertexBuffer::Create(DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
 			m_CircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
 			m_CircleIndexBuffer = m_QuadIndexBuffer;
 		}
@@ -219,7 +219,7 @@ namespace Shark {
 			m_LinePipeline = Pipeline::Create(linePipelineSpecs);
 			m_LineMaterial = Material::Create(linePipelineSpecs.Shader);
 			
-			m_LineVertexBuffer = VertexBuffer::Create(linePipelineSpecs.Layout, DefaultLineVertices * sizeof LineVertex, true, nullptr);
+			m_LineVertexBuffer = VertexBuffer::Create(DefaultLineVertices * sizeof LineVertex, true, nullptr);
 			m_LineVertexData.Allocate(DefaultLineVertices * sizeof LineVertex);
 		}
 
@@ -237,7 +237,7 @@ namespace Shark {
 			m_TransparentQuadPipeline = Pipeline::Create(pipelineSpec);
 			m_TransparentQuadMaterial = Material::Create(pipelineSpec.Shader);
 
-			m_TransparentQuadVertexBuffer = VertexBuffer::Create(pipelineSpec.Layout, DefaultQuadVertices * sizeof QuadVertex, true, nullptr);
+			m_TransparentQuadVertexBuffer = VertexBuffer::Create(DefaultQuadVertices * sizeof QuadVertex, true, nullptr);
 			m_TransparentQuadVertexData.Allocate(DefaultQuadVertices * sizeof QuadVertex);
 			m_TransparentQuadIndexBuffer = m_QuadIndexBuffer;
 		}
@@ -255,7 +255,7 @@ namespace Shark {
 			m_TransparentCirclePipeline = Pipeline::Create(pipelineSpec);
 			m_TransparentCircleMaterial = Material::Create(pipelineSpec.Shader);
 
-			m_TransparentCircleVertexBuffer = VertexBuffer::Create(pipelineSpec.Layout, DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
+			m_TransparentCircleVertexBuffer = VertexBuffer::Create(DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
 			m_TransparentCircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
 			m_TransparentCircleIndexBuffer = m_TransparentQuadIndexBuffer;
 		}
@@ -278,7 +278,7 @@ namespace Shark {
 			m_TextPipeline = Pipeline::Create(pipelineSpec);
 			m_TextMaterial = Material::Create(pipelineSpec.Shader);
 
-			m_TextVertexBuffer = VertexBuffer::Create(pipelineSpec.Layout, DefaultTextVertices * sizeof(TextVertex), true, nullptr);
+			m_TextVertexBuffer = VertexBuffer::Create(DefaultTextVertices * sizeof(TextVertex), true, nullptr);
 			m_TextIndexBuffer = m_QuadIndexBuffer;
 
 			m_TextVertexData.Allocate(DefaultTextVertices * sizeof TextVertex);
@@ -714,7 +714,7 @@ namespace Shark {
 		msdf_atlas::utf8Decode(unicodeString, string.c_str());
 
 		AssureTextVertexDataSize((uint32_t)unicodeString.size());
-		m_TextMaterial->SetTexture("g_FontAtlas", fontAtlas);
+		m_TextMaterial->Set("g_FontAtlas", fontAtlas);
 
 		for (size_t index = 0; index < unicodeString.size(); index++)
 		{
@@ -799,7 +799,7 @@ namespace Shark {
 			if (m_QuadIndexBuffer->GetCount() < m_QuadIndexCount)
 				ResizeQuadIndexBuffer(m_QuadIndexCount);
 
-			m_QuadDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_QuadDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			m_QuadVertexBuffer->SetData(m_QuadVertexData, true);
 			Renderer::RenderGeometry(m_CommandBuffer, m_QuadDepthPassPipeline, m_QuadDepthPassMaterial, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
 			m_Statistics.DrawCalls++;
@@ -810,7 +810,7 @@ namespace Shark {
 			if (m_CircleIndexBuffer->GetCount() < m_CircleIndexCount)
 				ResizeQuadIndexBuffer(m_CircleIndexCount);
 
-			m_CircleDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_CircleDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			m_CircleVertexBuffer->SetData(m_CircleVertexData, true);
 			Renderer::RenderGeometry(m_CommandBuffer, m_CircleDepthPassPipeline, m_CircleDepthPassMaterial, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
 			m_Statistics.DrawCalls++;
@@ -818,7 +818,7 @@ namespace Shark {
 
 		if (m_LineVertexCount)
 		{
-			m_LineDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_LineDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			m_LineVertexBuffer->SetData(m_LineVertexData, true);
 			Renderer::RenderGeometry(m_CommandBuffer, m_LineDepthPassPipeline, m_LineDepthPassMaterial, m_LineVertexBuffer, m_LineVertexCount);
 			m_Statistics.DrawCalls++;
@@ -829,7 +829,7 @@ namespace Shark {
 		{
 			Renderer::BeginBatch(m_CommandBuffer, m_QuadPipeline, m_QuadVertexBuffer, m_QuadIndexBuffer);
 			uint32_t indexOffset = 0;
-			m_QuadMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_QuadMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			for (const auto& batch : m_QuadBatches)
 			{
 				PrepareMaterial(m_QuadMaterial, batch);
@@ -842,14 +842,14 @@ namespace Shark {
 
 		if (m_CircleIndexCount)
 		{
-			m_CircleMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_CircleMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePipeline, m_CircleMaterial, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
 		if (m_LineVertexCount)
 		{
-			m_LineMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_LineMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_LineVertexBuffer, m_LineVertexCount);
 			m_Statistics.DrawCalls++;
 		}
@@ -859,7 +859,7 @@ namespace Shark {
 			if (m_TextIndexBuffer->GetCount() < m_TextIndexCount)
 				ResizeQuadIndexBuffer(m_TextIndexCount);
 
-			m_TextMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_TextMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			m_TextVertexBuffer->SetData(m_TextVertexData, true);
 			Renderer::RenderGeometry(m_CommandBuffer, m_TextPipeline, m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
 			m_Statistics.DrawCalls++;
@@ -877,7 +877,7 @@ namespace Shark {
 			if (m_TransparentQuadIndexBuffer->GetCount() < m_TransparentQuadIndexCount)
 				ResizeQuadIndexBuffer(m_TransparentQuadIndexCount);
 
-			m_TransparentQuadDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_TransparentQuadDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			m_TransparentQuadVertexBuffer->SetData(m_TransparentQuadVertexData, true);
 			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentQuadDepthPassPipeline, m_TransparentQuadDepthPassMaterial, m_TransparentQuadVertexBuffer, m_TransparentQuadIndexBuffer, m_TransparentQuadIndexCount);
 			m_Statistics.DrawCalls++;
@@ -888,7 +888,7 @@ namespace Shark {
 			if (m_TransparentCircleIndexBuffer->GetCount() < m_TransparentCircleIndexCount)
 				ResizeQuadIndexBuffer(m_TransparentCircleIndexCount);
 
-			m_TransparentCircleDepthPassMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_TransparentCircleDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			m_TransparentCircleVertexBuffer->SetData(m_TransparentCircleVertexData, true);
 			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCircleDepthPassPipeline, m_TransparentCircleDepthPassMaterial, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
 			m_Statistics.DrawCalls++;
@@ -898,7 +898,7 @@ namespace Shark {
 		{
 			Renderer::BeginBatch(m_CommandBuffer, m_TransparentQuadPipeline, m_TransparentQuadVertexBuffer, m_TransparentQuadIndexBuffer);
 			uint32_t indexOffset = 0;
-			m_TransparentQuadMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_TransparentQuadMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			for (const auto& batch : m_TransparentQuadBatches)
 			{
 				PrepareMaterial(m_TransparentQuadMaterial, batch);
@@ -911,15 +911,15 @@ namespace Shark {
 
 		if (m_TransparentCircleIndexCount)
 		{
-			m_TransparentCircleMaterial->SetMat4("u_SceneData.ViewProjection", m_ViewProj);
+			m_TransparentCircleMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCirclePipeline, m_TransparentCircleMaterial, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
 			m_Statistics.DrawCalls++;
 		}
 
-		m_CompositeMaterial->SetImage("AccumulationImage", m_TransparentGeometryFrameBuffer->GetImage(0));
-		m_CompositeMaterial->SetImage("RevealImage", m_TransparentGeometryFrameBuffer->GetImage(1));
-		m_CompositeMaterial->SetImage("IDImage", m_TransparentGeometryFrameBuffer->GetImage(2));
-		m_CompositeMaterial->SetImage("DepthImage", m_TransparentDepthBuffer->GetDepthImage());
+		m_CompositeMaterial->Set("AccumulationImage", m_TransparentGeometryFrameBuffer->GetImage(0));
+		m_CompositeMaterial->Set("RevealImage", m_TransparentGeometryFrameBuffer->GetImage(1));
+		m_CompositeMaterial->Set("IDImage", m_TransparentGeometryFrameBuffer->GetImage(2));
+		m_CompositeMaterial->Set("DepthImage", m_TransparentDepthBuffer->GetDepthImage());
 		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositePipeline, m_CompositeMaterial);
 		m_Statistics.DrawCalls++;
 
@@ -993,16 +993,16 @@ namespace Shark {
 		for (const auto& texture : batch.Textures)
 		{
 			//material->SetTexture("g_Textures", texture, index++);
-			material->SetImage("g_Textures", texture->GetImage(), index);
-			material->SetSampler("g_SamplerState", texture->GetSampler(), index);
+			material->Set("g_Textures", texture->GetImage(), index);
+			material->Set("g_SamplerState", texture->GetSampler(), index);
 			index++;
 		}
 
 		for (; index < MaxTextureSlots; index++)
 		{
 			//material->SetTexture("g_Textures", m_WhiteTexture, index);
-			material->SetImage("g_Textures", m_WhiteTexture->GetImage(), index);
-			material->SetSampler("g_SamplerState", m_WhiteTexture->GetSampler(), index);
+			material->Set("g_Textures", m_WhiteTexture->GetImage(), index);
+			material->Set("g_SamplerState", m_WhiteTexture->GetSampler(), index);
 		}
 	}
 

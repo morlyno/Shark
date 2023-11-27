@@ -2,7 +2,6 @@
 #include "MaterialEditorPanel.h"
 
 #include "Shark/Render/Renderer.h"
-#include "Shark/Render/MeshFactory.h"
 
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
@@ -14,6 +13,11 @@ namespace Shark {
 	MaterialEditorPanel::MaterialEditorPanel(const std::string& panelName, ImGuiID parentDockspaceID, Ref<MaterialAsset> material)
 		: EditorPanel(panelName, parentDockspaceID), m_Material(material)
 	{
+	}
+
+	MaterialEditorPanel::~MaterialEditorPanel()
+	{
+		Project::GetActiveEditorAssetManager()->RemoveAsset(m_Sphere);
 	}
 
 	void MaterialEditorPanel::OnUpdate(TimeStep ts)
@@ -159,6 +163,9 @@ namespace Shark {
 
 	void MaterialEditorPanel::Initialize()
 	{
+		if (m_IsInitialized)
+			return;
+
 		m_MaterialEditor = Scope<MaterialEditor>::Create("", m_Material);
 
 		ImGuiWindow* window = ImGui::FindWindowByName(m_PanelName.c_str());
@@ -188,9 +195,10 @@ namespace Shark {
 		m_Scene->SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
 
-		Ref<MeshSource> sphereMeshSource = MeshFactory::GetSphere();
-		AssetHandle sphereHandle = AssetManager::CreateMemoryAsset<Mesh>(sphereMeshSource);
-		Ref<Mesh> sphere = AssetManager::GetAsset<Mesh>(sphereHandle);
+		AssetHandle sphereSourceHandle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Sphere.gltf");
+		Ref<MeshSource> sphereSource = AssetManager::GetAsset<MeshSource>(sphereSourceHandle);
+		m_Sphere = AssetManager::CreateMemoryAsset<Mesh>(sphereSource);
+		Ref<Mesh> sphere = AssetManager::GetAsset<Mesh>(m_Sphere);
 		sphere->GetMaterialTable()->SetMaterial(0, m_Material);
 
 		Entity entity = m_Scene->CreateEntity("Sphere");
@@ -249,47 +257,29 @@ namespace Shark {
 		if (ImGui::TreeNodeEx("Albedo", ImGuiTreeNodeFlags_DefaultOpen | UI::DefaultHeaderFlags))
 		{
 			UI::BeginControlsGrid();
+			UI::ControlColor("Color", m_Material->GetAlbedoColor());
 
-			glm::vec3 color = m_Material->GetAlbedoColor();
-			if (UI::ControlColor("Color", color))
-				m_Material->SetAlbedoColor(color);
+			Ref<Texture2D> albedoMap = m_Material->GetAlbedoMap();
+			if (UI::ControlAsset("Texture", albedoMap))
+				m_Material->SetAlbedoMap(albedoMap);
 
-			AssetHandle textureHandle = m_Material->GetAlbedoTexture();
-			if (UI::ControlAsset("Texture", textureHandle) && !m_Readonly)
-				m_Material->SetAlbedoTexture(textureHandle);
-
-			bool use = m_Material->UseAlbedo();
-			if (UI::Control("Enable", use) && !m_Readonly)
-				m_Material->SetUseAlbedo(use);
+			bool usingAlbedoMap = m_Material->UsingAlbedoMap();
+			if (UI::Control("Enable", usingAlbedoMap))
+				m_Material->SetUsingAlbedoMap(usingAlbedoMap);
 
 			UI::EndControls();
-
 			ImGui::TreePop();
 		}
 
 		if (ImGui::TreeNodeEx("PBR", ImGuiTreeNodeFlags_DefaultOpen | UI::DefaultHeaderFlags))
 		{
 			UI::BeginControlsGrid();
-
-			float metallic = m_Material->GetMetallic();
-			if (UI::Control("Metallic", metallic, 0.05f, 0.0f, 1.0f))
-				m_Material->SetMetallic(metallic);
-
-			float roughness = m_Material->GetRoughness();
-			if (UI::Control("Roughness", roughness, 0.05f, 0.0f, 1.0f))
-				m_Material->SetRoughness(roughness);
-
-			float ao = m_Material->GetAO();
-			if (UI::Control("AO", ao, 0.05f, 0.0f, 1.0f))
-				m_Material->SetAO(ao);
-
+			UI::Control("Metallic", m_Material->GetMetallic(), 0.05f, 0.0f, 1.0f);
+			UI::Control("Roughness", m_Material->GetRoughness(), 0.05f, 0.0f, 1.0f);
+			UI::Control("AO", m_Material->GetAmbientOcclusion(), 0.05f, 0.0f, 1.0f);
 			UI::EndControls();
-
 			ImGui::TreePop();
 		}
-
-		m_Material->UpdateMaterialIfDirty();
-
 
 	}
 

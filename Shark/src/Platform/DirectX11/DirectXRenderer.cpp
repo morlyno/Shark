@@ -149,7 +149,7 @@ namespace Shark {
 			2, 3, 0
 		};
 
-		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create(layout, (uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
+		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create((uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
 		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
 		m_ClampLinearSamplerWrapper = Ref<DirectXSamplerWrapper>::Create();
 
@@ -232,7 +232,7 @@ namespace Shark {
 			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
 
 			const UINT offset = 0;
-			const UINT stride = vertexBuffer->m_Layout.GetVertexSize();
+			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
 			ctx->IASetVertexBuffers(0, 1, &vertexBuffer->m_VertexBuffer, &stride, &offset);
 			ctx->IASetIndexBuffer(indexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
@@ -270,7 +270,7 @@ namespace Shark {
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
 			const UINT offset = 0;
-			const UINT stride = dxVB->m_Layout.GetVertexSize();
+			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
 			ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
 
 			ctx->IASetIndexBuffer(dxIB->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
@@ -333,7 +333,7 @@ namespace Shark {
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
 			const UINT offset = 0;
-			const UINT stride = dxVB->m_Layout.GetVertexSize();
+			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
 			ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
 
 			ctx->IASetIndexBuffer(dxIB->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
@@ -380,7 +380,7 @@ namespace Shark {
 			ID3D11DeviceContext* ctx = commandBuffer->GetContext();
 
 			const UINT offset = 0;
-			const UINT stride = dxVB->m_Layout.GetVertexSize();
+			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
 			ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
 
 
@@ -500,11 +500,11 @@ namespace Shark {
 			const auto& submesh = submeshes[submeshIndex];
 
 			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-			Ref<MaterialTable> sourceMaterialTable = meshSource->GetMaterialTable();
+			const auto& materials = meshSource->GetMaterials();
 
 			Ref<DirectXMaterial> material = materialTable->HasMaterial(submesh.MaterialIndex) ?
 				                            materialTable->GetMaterial(submesh.MaterialIndex)->GetMaterial().As<DirectXMaterial>() :
-				                            sourceMaterialTable->GetMaterial(submesh.MaterialIndex)->GetMaterial().As<DirectXMaterial>();
+				                            materials[submesh.MaterialIndex].As<DirectXMaterial>();
 
 			instance->RT_PrepareAndBindMaterialForRendering(dxCommandBuffer, material);
 
@@ -564,9 +564,6 @@ namespace Shark {
 
 			const auto& submeshes = meshSource->GetSubmeshes();
 			const auto& submesh = submeshes[submeshIndex];
-
-			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-			Ref<MaterialTable> sourceMaterialTable = meshSource->GetMaterialTable();
 
 			instance->RT_PrepareAndBindMaterialForRendering(dxCommandBuffer, dxMaterial);
 
@@ -747,7 +744,7 @@ namespace Shark {
 
 		ID3D11DeviceContext* context = commandBuffer->GetContext();
 
-		material->RT_UpdateDirtyBuffers();
+		material->RT_UpdateBuffers();
 		for (const auto& [name, cbData] : material->m_ConstantBuffers)
 		{
 			Ref<DirectXConstantBuffer> constantBuffer = cbData.Buffer;

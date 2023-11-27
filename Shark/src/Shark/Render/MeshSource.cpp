@@ -3,31 +3,29 @@
 
 namespace Shark {
 
-	MeshSource::MeshSource(Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, Ref<MaterialTable> materialTable)
+	MeshSource::MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices)
+		: m_Vertices(vertices), m_Indices(indices)
 	{
-		m_VertexBuffer = vertexBuffer;
-		m_IndexBuffer = indexBuffer;
-		m_MaterialTable = materialTable;
-		auto& submesh = m_SubMeshes.emplace_back();
+		Handle = AssetHandle::Generate();
+
+		Submesh submesh;
 		submesh.BaseVertex = 0;
 		submesh.BaseIndex = 0;
-		submesh.IndexCount = indexBuffer->GetCount();
-		submesh.MaterialIndex = 0;
-		m_RootNode.Name = "Root";
-		m_RootNode.MeshIndices.emplace_back(0);
+		submesh.IndexCount = indices.size() * 3;
+		submesh.VertexCount = vertices.size();
+		m_Submeshes.push_back(submesh);
+
+		m_VertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices));
+		m_IndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
 	}
 
-	uint32_t MeshSource::GetSubmeshVertexCount(uint32_t submeshIndex) const
+	MeshSource::MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<Submesh>& submeshes)
+		: m_Vertices(vertices), m_Indices(indices), m_Submeshes(submeshes)
 	{
-		if (submeshIndex >= m_SubMeshes.size())
-			return 0;
+		Handle = AssetHandle::Generate();
 
-		const auto& submesh = m_SubMeshes[submeshIndex];
-		if ((submeshIndex + 1) == m_SubMeshes.size())
-			return m_VertexBuffer->GetVertexCount() - submesh.BaseVertex;
-
-		const auto& nextSubmesh = m_SubMeshes[submeshIndex + 1];
-		return nextSubmesh.BaseVertex - submesh.BaseVertex;
+		m_VertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices));
+		m_IndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
 	}
 
 }

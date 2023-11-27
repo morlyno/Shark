@@ -2,8 +2,8 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
-#include "Shark/Render/Image.h"
 #include "Shark/Asset/Asset.h"
+#include "Shark/Render/Image.h"
 
 #include <glm/glm.hpp>
 

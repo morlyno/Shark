@@ -275,18 +275,9 @@ ImportedAssets:
   - Handle: 15941159226969732890
     Type: MeshSource
     FilePath: MeshSources/suzanne.obj
-  - Handle: 2183359005879874767
+  - Handle: 15050549643915412860
     Type: Mesh
-    FilePath: Meshes/muro ( 1).obj
-  - Handle: 12802662399469131517
-    Type: Mesh
-    FilePath: Meshes/muro ( 2).obj
-  - Handle: 2586111685319835177
-    Type: Mesh
-    FilePath: Meshes/muro.obj
-  - Handle: 12870057247951808313
-    Type: Mesh
-    FilePath: Meshes/nanoboy
+    FilePath: Meshes/nanoboy_test
   - Handle: 12434088705897559964
     Type: Mesh
     FilePath: Meshes/sponza.skmesh

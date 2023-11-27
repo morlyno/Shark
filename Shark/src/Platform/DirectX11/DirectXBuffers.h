@@ -9,7 +9,7 @@ namespace Shark {
 	class DirectXVertexBuffer : public VertexBuffer
 	{
 	public:
-		DirectXVertexBuffer(const VertexLayout& layout, uint64_t size, bool dynamic, Buffer vertexData);
+		DirectXVertexBuffer(uint64_t size, bool dynamic, Buffer vertexData);
 		virtual ~DirectXVertexBuffer();
 
 		virtual void Release() override;
@@ -27,9 +27,7 @@ namespace Shark {
 		virtual void RT_CloseBuffer() override;
 		virtual Buffer RT_GetBuffer() override { return m_WritableBuffer; }
 
-		virtual const VertexLayout& GetVertexLayout() const override { return m_Layout; };
 		virtual uint64_t GetBufferSize() const override { return m_Size; }
-		virtual uint32_t GetVertexCount() const override { return (uint32_t)(m_Size / m_Layout.GetVertexSize()); }
 
 	private:
 		void ReCreateBuffer(uint64_t size, bool dynamic, Buffer vertexData);
@@ -39,8 +37,6 @@ namespace Shark {
 
 
 	private:
-		VertexLayout m_Layout;
-
 		ID3D11Buffer* m_VertexBuffer = nullptr;
 		uint64_t m_Size = 0;
 		bool m_Dynamic;

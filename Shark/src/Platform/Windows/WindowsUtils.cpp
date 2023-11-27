@@ -336,17 +336,8 @@ namespace Shark {
 
 	bool Platform::CreateFile(const std::filesystem::path& filePath, bool createAllways)
 	{
-		HANDLE file = CreateFileW(filePath.c_str(), GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, createAllways ? CREATE_ALWAYS : CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (file == INVALID_HANDLE_VALUE)
-		{
-			DWORD lasterror = GetLastError();
-			auto message = std::system_category().message(lasterror);
-			SK_CORE_ERROR_TAG("Windows", "Failed to create file! {0}", message);
-			return false;
-		}
-
-		CloseHandle(file);
-		return true;
+		std::string errorMsg;
+		return Platform::CreateFile(filePath, createAllways, errorMsg);
 	}
 
 	bool Platform::CreateFile(const std::filesystem::path& filePath, bool createAllways, std::string& errorMsg)

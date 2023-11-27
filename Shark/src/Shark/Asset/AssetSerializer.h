@@ -14,15 +14,6 @@ namespace Shark {
 		static bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata);
 		static bool Serialize(Ref<Asset> asset, const AssetMetaData& metadata);
 
-		static Ref<Asset> TryLoad(AssetType assetType, const std::filesystem::path& assetPath);
-		static bool Deserialize(Ref<Asset> asset, const std::filesystem::path& assetPath);
-
-		template<typename TAsset>
-		static Ref<TAsset> TryLoad(const std::filesystem::path& assetPath)
-		{
-			return TryLoad(TAsset::GetStaticType(), assetPath).As<TAsset>();
-		}
-
 	};
 
 }
