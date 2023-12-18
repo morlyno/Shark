@@ -79,17 +79,6 @@ namespace Shark {
 		return WrapMode::None;
 	}
 
-	Ref<Texture2DArray> Texture2DArray::Create(uint32_t count, uint32_t startOffset)
-	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2DArray>::Create(count, startOffset);
-		}
-		SK_CORE_ASSERT(false, "Unknown API");
-		return nullptr;
-	}
-
 	Ref<Texture2D> Texture2D::Create()
 	{
 		switch (RendererAPI::GetCurrentAPI())
@@ -141,6 +130,11 @@ namespace Shark {
 		specification.Width = width;
 		specification.Height = height;
 		return Create(specification, imageData);
+	}
+
+	Ref<Texture2D> Texture2D::Create(Ref<TextureSource> textureSource)
+	{
+		return Create({}, textureSource);
 	}
 
 	Ref<Texture2D> Texture2D::LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& specification)

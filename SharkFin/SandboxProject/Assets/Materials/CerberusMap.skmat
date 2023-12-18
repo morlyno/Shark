@@ -1,0 +1,8 @@
+Material:
+  AlbedoColor: [1, 1, 1]
+  Metallic: 1
+  Roughness: 1
+  AmbientOcclusion: 0
+  AlbedoMap: 1959000708965190035
+  UsingNormalMap: true
+  NormalMap: 14446317636891523796

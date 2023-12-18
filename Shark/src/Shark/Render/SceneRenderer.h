@@ -52,8 +52,9 @@ namespace Shark {
 
 		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
 
-		void SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity);
+		void SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity, const glm::vec3& radiance);
 		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id);
+		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, int id);
 
 		void Resize(uint32_t width, uint32_t height);
 
@@ -84,6 +85,8 @@ namespace Shark {
 			glm::vec4 Color;
 			glm::vec3 Position;
 			float Intensity;
+			glm::vec3 Radiance;
+			float Padding;
 		};
 
 		struct CBMeshData

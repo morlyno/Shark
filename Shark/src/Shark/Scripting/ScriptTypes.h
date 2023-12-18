@@ -57,6 +57,7 @@ namespace Shark {
 		// TODO(moro):
 		//  - Array
 		//  - Component
+		//  - AssetHandle
 	};
 
 	inline const char* ToString(ManagedFieldType type)

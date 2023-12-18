@@ -17,6 +17,8 @@ namespace Shark {
 		virtual void OnImGuiRender(bool& shown, bool& destroy) {};
 		virtual void OnEvent(Event& event) {};
 
+		virtual bool IsViewportHovered() const { return false; }
+
 		void SetPanelName(const std::string& name) { m_PanelName = name; }
 		const std::string& GetPanelName() const { return m_PanelName; }
 
@@ -69,6 +71,8 @@ namespace Shark {
 		{
 			return m_EditorPanels.contains(id);
 		}
+
+		bool AnyViewportHovered() const;
 
 	private:
 		void DrawPanels();

@@ -105,10 +105,9 @@ namespace Shark {
 		}
 
 		RegisterSettingNodes();
-
 		Renderer::WaitAndRender();
-
 		ScriptEngine::RegisterAssembliesReloadedHook(std::bind(&EditorLayer::AssembliesReloadedHook, this));
+		VerifyAllEditorAssets();
 	}
 
 	void EditorLayer::OnDetach()
@@ -661,9 +660,10 @@ namespace Shark {
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
 		const bool anyItemFocused = ImGui::IsAnyItemActive() && GImGui->ActiveId != ImGui::GetCurrentWindow()->MoveId;
+		const bool anyViewportHovered = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID)->AnyViewportHovered();
 
 		if (Input::GetCursorMode() == CursorMode::Normal)
-			Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered || anyItemFocused);
+			Application::Get().GetImGuiLayer().BlockEvents(!(m_ViewportHovered || anyViewportHovered) || anyItemFocused);
 		else
 			Application::Get().GetImGuiLayer().BlockEvents(false);
 
@@ -820,7 +820,12 @@ namespace Shark {
 				{
 					UI::Text(fmt::format("Path: {}", shader->GetFilePath()));
 					if (ImGui::Button("ReCompile"))
-						Application::Get().SubmitToMainThread([s = shader, disableOptimization = m_ShaderCompilerDisableOptimization]() { s->Reload(true, disableOptimization); });
+					{
+						Application::Get().SubmitToMainThread([s = shader, disableOptimization = m_ShaderCompilerDisableOptimization]()
+						{
+							s->Reload(true, disableOptimization);
+						});
+					}
 					if (ImGui::Button("Reflect"))
 						(void)0;//shader->LogReflection();
 					ImGui::TreePop();
@@ -1726,6 +1731,9 @@ namespace Shark {
 					Ref<MeshSource> meshSource = assetManager->GetAsset(meshSourceHandle).As<MeshSource>();
 					Ref<Mesh> mesh = Mesh::Create(meshSource);
 					handle = assetManager->AddEditorAsset(mesh, meshPath);
+
+					assetManager->SaveAsset(handle);
+
 				}
 
 				ImGui::SetDragDropPayload(UI::DragDropID::Asset, &handle, sizeof(AssetHandle));
@@ -1733,11 +1741,12 @@ namespace Shark {
 			}
 		};
 
-		element("Cube", m_DefaultMeshes.Cube, "Resources/Meshes/Cube.gltf");
-		element("Sphere", m_DefaultMeshes.Sphere, "Resources/Meshes/Sphere.gltf");
-		element("Cone", m_DefaultMeshes.Cone, "Resources/Meshes/Cone.gltf");
-		element("Cylinder", m_DefaultMeshes.Cylinder, "Resources/Meshes/Cylinder.gltf");
-		element("Torus", m_DefaultMeshes.Torus, "Resources/Meshes/Torus.gltf");
+		element("Plane",    m_DefaultMeshes.Plane,    "Resources/Meshes/Default/Plane.gltf");
+		element("Cube",     m_DefaultMeshes.Cube,     "Resources/Meshes/Default/Cube.gltf");
+		element("Sphere",   m_DefaultMeshes.Sphere,   "Resources/Meshes/Default/Sphere.gltf");
+		element("Cone",     m_DefaultMeshes.Cone,     "Resources/Meshes/Default/Cone.gltf");
+		element("Cylinder", m_DefaultMeshes.Cylinder, "Resources/Meshes/Default/Cylinder.gltf");
+		element("Torus",    m_DefaultMeshes.Torus,    "Resources/Meshes/Default/Torus.gltf");
 
 		ImGui::End();
 	}
@@ -2420,6 +2429,43 @@ namespace Shark {
 			InstantiateMeshNode(mesh, childNode, entity);
 		}
 
+	}
+
+	void EditorLayer::VerifyEditorTexture(const std::filesystem::path& assetPath)
+	{
+		VerifyEditorTexture(assetPath, FileSystem::ReplaceExtension(assetPath, ".png"));
+	}
+
+	void EditorLayer::VerifyEditorTexture(const std::filesystem::path& assetPath, const std::filesystem::path& sourcePath)
+	{
+		Ref<EditorAssetManager> assetManager = Project::GetActiveEditorAssetManager();
+
+		// NoImagePlaceholder
+		if (assetManager->HasEditorAsset(assetPath))
+			return;
+
+		if (FileSystem::Exists(assetPath))
+		{
+			assetManager->AddEditorAsset(assetPath);
+			return;
+		}
+
+		AssetHandle sourceHandle = assetManager->GetEditorAsset(sourcePath);
+		if (sourceHandle == AssetHandle::Invalid)
+		{
+			SK_CORE_ERROR("Missing Texture! {}", sourcePath);
+			return;
+		}
+
+		Ref<TextureSource> textureSource = AssetManager::GetAsset<TextureSource>(sourceHandle);
+		Ref<Texture2D> texture = Texture2D::Create(textureSource);
+		assetManager->AddEditorAsset(texture, assetPath);
+		assetManager->SaveAsset(texture->Handle);
+	}
+
+	void EditorLayer::VerifyAllEditorAssets()
+	{
+		VerifyEditorTexture("Resources/Textures/NoImagePlaceholder.sktex", "Resources/Textures/NoImagePlaceholder.png");
 	}
 
 }

@@ -149,7 +149,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 
 		m_MaterialEditor = Scope<MaterialEditor>::Create("Material", nullptr);
-		m_MeshSourceMaterialAsset = MaterialAsset::Create(nullptr);
+		m_MeshSourceMaterialAsset = MaterialAsset::Create();
 		UpdateMaterialEditor(m_SelectedEntity);
 	}
 
@@ -490,22 +490,8 @@ namespace Shark {
 				UI::Control("Submesh Index", comp.SubmeshIndex, 0.05f, 0, meshSource->GetSubmeshes().size() - 1, nullptr, ImGuiSliderFlags_AlwaysClamp);
 			}
 
-			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-			Ref<MaterialAsset> material;
-			if (materialTable->HasMaterial(submesh.MaterialIndex))
-				material = materialTable->GetMaterial(submesh.MaterialIndex);
-
-			if (UI::ControlAsset("Material", material))
+			if (UI::ControlAsset("Material", comp.MaterialHandle))
 			{
-				if (material)
-				{
-					materialTable->SetMaterial(submesh.MaterialIndex, material);
-				}
-				else
-				{
-					materialTable->ClearMaterial(submesh.MaterialIndex);
-				}
-
 				UpdateMaterialEditor(entity);
 			}
 
@@ -516,7 +502,10 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 			UI::ControlColor("Color", comp.Color);
-			UI::Control("Falloff Multiplier", comp.Intensity);
+			UI::Control("Intensity", comp.Intensity);
+			float radiance = comp.Radiance.x;
+			UI::Control("Radiance", radiance);
+			comp.Radiance = glm::vec3(radiance);
 			UI::EndControls();
 		});
 
@@ -851,6 +840,13 @@ namespace Shark {
 			const auto& mc = entity.GetComponent<MeshRendererComponent>();
 			if (AssetManager::IsValidAssetHandle(mc.MeshHandle))
 			{
+				if (AssetManager::IsValidAssetHandle(mc.MaterialHandle))
+				{
+					m_MaterialEditor->SetMaterial(AssetManager::GetAsset<MaterialAsset>(mc.MaterialHandle));
+					m_MaterialEditor->SetReadonly(false);
+					return;
+				}
+
 				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
 				Ref<MeshSource> meshSource = mesh->GetMeshSource();
 				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();

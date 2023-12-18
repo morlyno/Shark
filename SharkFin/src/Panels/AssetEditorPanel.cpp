@@ -51,6 +51,14 @@ namespace Shark {
 			entry.Editor->OnEvent(event);
 	}
 
+	bool AssetEditorPanel::AnyViewportHovered() const
+	{
+		for (auto& [id, entry] : m_EditorPanels)
+			if (entry.Editor->IsViewportHovered())
+				return true;
+		return false;
+	}
+
 	void AssetEditorPanel::DrawPanels()
 	{
 		for (auto it = m_EditorPanels.begin(); it != m_EditorPanels.end();)

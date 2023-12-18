@@ -25,6 +25,9 @@ namespace Shark {
 		std::string m_Name;
 		Ref<MaterialAsset> m_Material;
 
+		std::string m_RenameBuffer;
+		bool m_IsRenaming = false;
+
 		bool m_Readonly = false;
 	};
 
@@ -37,6 +40,7 @@ namespace Shark {
 		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
 		virtual void OnEvent(Event& event) override;
+		virtual bool IsViewportHovered() const override { return m_ViewportHovered; }
 
 		void DrawSettings();
 		void DrawViewport();

@@ -39,6 +39,12 @@ namespace Shark {
 		buffer.UpdateFrequency = updateFrequency;
 	}
 
+	void DirectXMaterial::Set(const std::string& name, bool val)
+	{
+		int intVal = val;
+		SetBytes(name, Buffer::FromValue(intVal));
+	}
+
 	Ref<Texture2D> DirectXMaterial::GetTexture(const std::string& name) const
 	{
 		SK_CORE_VERIFY(HasResourceName(name));

@@ -19,6 +19,9 @@ namespace Shark {
 		virtual ~DirectXMaterial();
 
 		virtual Ref<Shader> GetShader() const override { return m_Shader; }
+		virtual const std::string& GetName() const override { return m_Name; }
+		virtual void SetName(const std::string& name) override { m_Name = name; }
+
 		virtual ShaderReflection::UpdateFrequencyType GetUpdateFrequency(const std::string& name) const override;
 		virtual void SetUpdateFrequency(const std::string& name, ShaderReflection::UpdateFrequencyType updateFrequency) override;
 
@@ -41,7 +44,7 @@ namespace Shark {
 		virtual void Set(const std::string& name, const glm::ivec3& val) override { SetBytes(name, Buffer::FromValue(val)); }
 		virtual void Set(const std::string& name, const glm::ivec4& val) override { SetBytes(name, Buffer::FromValue(val)); }
 
-		virtual void Set(const std::string& name, bool val) override { SetBytes(name, Buffer::FromValue(val)); }
+		virtual void Set(const std::string& name, bool val) override;
 
 		virtual void Set(const std::string& name, const glm::mat3& val) override { SetBytes(name, Buffer::FromValue(val)); }
 		virtual void Set(const std::string& name, const glm::mat4& val) override { SetBytes(name, Buffer::FromValue(val)); }

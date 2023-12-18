@@ -117,12 +117,13 @@ namespace Shark {
 		m_Renderer2D->DrawString(text, font, transform, kerning, lineSpacing, color, id);
 	}
 
-	void SceneRenderer::SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity)
+	void SceneRenderer::SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity, const glm::vec3& radiance)
 	{
 		CBLight cbLight;
 		cbLight.Color = color;
 		cbLight.Position = position;
 		cbLight.Intensity = intensity;
+		cbLight.Radiance = radiance;
 		m_CBLight->UploadData(Buffer::FromValue(cbLight));
 	}
 
@@ -142,6 +143,29 @@ namespace Shark {
 		cbMeshData->UploadData(Buffer::FromValue(meshData));
 
 		Renderer::RenderSubmesh(m_CommandBuffer, m_MeshPipeline, mesh, submeshIndex, m_CBSceneData, cbMeshData, m_CBLight);
+
+		m_Statistics.DrawCalls++;
+		m_Statistics.VertexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].VertexCount;
+		m_Statistics.IndexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].IndexCount;
+	}
+
+	void SceneRenderer::SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, int id)
+	{
+		SK_CORE_VERIFY(mesh);
+		SK_CORE_VERIFY(material);
+
+		SK_CORE_VERIFY(m_MeshTransformCBIndex <= m_MeshTransformCBs.size());
+		if (m_MeshTransformCBs.size() == m_MeshTransformCBIndex)
+			m_MeshTransformCBs.emplace_back(ConstantBuffer::Create(sizeof(CBMeshData), 1));
+
+		CBMeshData meshData;
+		meshData.Transform = transform;
+		meshData.ID = id;
+
+		Ref<ConstantBuffer> cbMeshData = m_MeshTransformCBs[m_MeshTransformCBIndex++];
+		cbMeshData->UploadData(Buffer::FromValue(meshData));
+
+		Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_MeshPipeline, mesh, submeshIndex, material, m_CBSceneData, cbMeshData, m_CBLight);
 
 		m_Statistics.DrawCalls++;
 		m_Statistics.VertexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].VertexCount;
@@ -342,9 +366,11 @@ namespace Shark {
 			specification.Layout = VertexLayout{
 				{ VertexDataType::Float3, "Position" },
 				{ VertexDataType::Float3, "Normal" },
-				{ VertexDataType::Float2, "UV" }
+				{ VertexDataType::Float3, "Tangent" },
+				{ VertexDataType::Float3, "Bitangent" },
+				{ VertexDataType::Float2, "Texcoord" }
 			};
-			specification.DebugName = "Default Mesh Pipeline";
+			specification.DebugName = "PBR";
 			m_MeshPipeline = Pipeline::Create(specification);
 		}
 

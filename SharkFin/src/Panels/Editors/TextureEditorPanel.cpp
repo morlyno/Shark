@@ -193,7 +193,7 @@ namespace Shark {
 		{
 			m_EditTexture->GetSpecificationMutable() = m_Specification;
 			m_EditTexture->Invalidate();
-			m_EditTexture->GetImage()->UploadImageData(m_SourceTexture->GetImage());
+			//m_EditTexture->GetImage()->UploadImageData(m_SourceTexture->GetImage());
 			if (m_Specification.GenerateMips)
 				Renderer::GenerateMips(m_EditTexture->GetImage());
 		}
@@ -231,8 +231,13 @@ namespace Shark {
 
 		SetupWindows();
 
-		AssetHandle textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(m_SourceTexture->GetSpecification().Sampler, m_SourceTexture->GetImage(), false);
-		m_EditTexture = AssetManager::GetAsset<Texture2D>(textureHandle);
+		AssetHandle editTextureHandle = AssetHandle::Invalid;
+		if (Ref<TextureSource> textureSource = m_SourceTexture->GetTextureSource())
+			editTextureHandle = AssetManager::CreateMemoryAsset<Texture2D>(m_SourceTexture->GetSpecification(), textureSource);
+		else
+			editTextureHandle = AssetManager::CreateMemoryAsset<Texture2D>(m_SourceTexture->GetSpecification(), m_SourceTexture->GetBuffer());
+
+		m_EditTexture = AssetManager::GetAsset<Texture2D>(editTextureHandle);
 		m_Specification = m_EditTexture->GetSpecification();
 
 		m_Scene = Ref<Scene>::Create();

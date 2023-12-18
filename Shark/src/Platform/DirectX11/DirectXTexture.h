@@ -49,6 +49,8 @@ namespace Shark {
 		virtual Ref<TextureSource> GetTextureSource() const override { return m_TextureSource; }
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) override;
 
+		virtual Buffer GetBuffer() const override { return m_ImageData; }
+
 		virtual RenderID GetViewID() const override { return m_Image->GetViewID(); }
 		virtual Ref<SamplerWrapper> GetSampler() const override { return m_SamplerWrapper; }
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
@@ -71,33 +73,6 @@ namespace Shark {
 		Ref<DirectXImage2D> m_Image;
 		ID3D11SamplerState* m_Sampler = nullptr;
 		Ref<DirectXSamplerWrapper> m_SamplerWrapper = Ref<DirectXSamplerWrapper>::Create();
-
-		friend class DirectXRenderer;
-	};
-
-	class DirectXTexture2DArray : public Texture2DArray
-	{
-	public:
-		DirectXTexture2DArray(uint32_t count, uint32_t startOffset = 0);
-		virtual ~DirectXTexture2DArray() = default;
-
-		virtual void Set(uint32_t index, Ref<Texture2D> texture) override;
-		virtual Ref<Texture2D> Get(uint32_t index) const override;
-
-		virtual uint32_t Count() const override { return m_Count; }
-
-		virtual void RT_Set(uint32_t index, Ref<Texture2D> texture) override;
-
-	private:
-		void SetTexture(uint32_t index, Ref<DirectXTexture2D> texture);
-		void RT_SetTexture(uint32_t index, Ref<DirectXTexture2D> texture);
-
-	private:
-		uint32_t m_Count;
-		uint32_t m_StartOffset;
-		std::vector<Ref<DirectXTexture2D>> m_TextureArray;
-		std::vector<ID3D11ShaderResourceView*> m_Views;
-		std::vector<ID3D11SamplerState*> m_Samplers;
 
 		friend class DirectXRenderer;
 	};

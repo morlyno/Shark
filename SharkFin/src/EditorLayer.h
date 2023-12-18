@@ -138,6 +138,10 @@ namespace Shark {
 		void InstantiateMesh(Ref<Mesh> mesh);
 		void InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent);
 
+		void VerifyEditorTexture(const std::filesystem::path& filepath);
+		void VerifyEditorTexture(const std::filesystem::path& filepath, const std::filesystem::path& sourcePath);
+		void VerifyAllEditorAssets();
+
 	private:
 		static constexpr std::string_view LogLevelStrings[] = { "Trace"sv, "Debug"sv, "Info"sv, "Warn"sv, "Error"sv, "Critical"sv/*, "Off"sv*/ };
 
@@ -326,6 +330,7 @@ namespace Shark {
 
 		struct DefaultMeshes
 		{
+			AssetHandle Plane;
 			AssetHandle Cube;
 			AssetHandle Sphere;
 			AssetHandle Cone;

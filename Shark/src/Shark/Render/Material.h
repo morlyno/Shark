@@ -13,6 +13,9 @@ namespace Shark {
 		virtual ~Material() = default;
 
 		virtual Ref<Shader> GetShader() const = 0;
+		virtual const std::string& GetName() const = 0;
+		virtual void SetName(const std::string& name) = 0;
+
 		virtual ShaderReflection::UpdateFrequencyType GetUpdateFrequency(const std::string& name) const = 0;
 		virtual void SetUpdateFrequency(const std::string& name, ShaderReflection::UpdateFrequencyType updateFrequency) = 0;
 

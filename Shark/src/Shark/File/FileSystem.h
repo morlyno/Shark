@@ -67,7 +67,7 @@ namespace Shark {
 		static void ReplaceExtension(std::filesystem::path& path, const std::string& extension);
 
 		static std::filesystem::path ReplaceExtension(const std::filesystem::path& filepath, const std::string& extension);
-
+		static std::string GetStemString(const std::filesystem::path& path);
 	};
 
 	std::string ToString(filewatch::Event event);

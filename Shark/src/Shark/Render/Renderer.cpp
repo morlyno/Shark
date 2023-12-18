@@ -20,6 +20,7 @@ namespace Shark {
 
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<Texture2D> m_BlackTexture;
+		Ref<Texture2D> m_BlueTexture;
 	};
 
 	static RendererData* s_Data = nullptr;
@@ -91,6 +92,9 @@ namespace Shark {
 
 			spec.DebugName = "Balck Texture";
 			s_Data->m_BlackTexture = Texture2D::Create(spec, Buffer::FromValue(0x00000000));
+
+			spec.DebugName = "Blue Texture";
+			s_Data->m_BlueTexture = Texture2D::Create(spec, Buffer::FromValue(0xFFFF0000));
 		}
 	}
 
@@ -185,6 +189,11 @@ namespace Shark {
 		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, submeshIndex, material, sceneData);
 	}
 
+	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData)
+	{
+		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, submeshIndex, material, sceneData, meshData, lightData);
+	}
+
 	Ref<SamplerWrapper> Renderer::GetClampLinearSampler()
 	{
 		return s_RendererAPI->GetClampLinearSampler();
@@ -229,6 +238,11 @@ namespace Shark {
 	Ref<Texture2D> Renderer::GetBlackTexture()
 	{
 		return s_Data->m_BlackTexture;
+	}
+
+	Ref<Texture2D> Renderer::GetBlueTexture()
+	{
+		return s_Data->m_BlueTexture;
 	}
 
 	const RendererCapabilities& Renderer::GetCapabilities()

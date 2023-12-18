@@ -23,6 +23,7 @@ namespace Shark {
 		Ref<TAsset> CreateAsset(const std::string& directoryPath, const std::string filename, TArgs&&... args);
 
 		AssetHandle GetEditorAsset(const std::filesystem::path& filepath);
+		AssetHandle AddEditorAsset(const std::filesystem::path& filepath) { return AddEditorAsset(AssetHandle::Generate(), filepath); }
 		AssetHandle AddEditorAsset(AssetHandle handle, const std::filesystem::path& filepath);
 		AssetHandle AddEditorAsset(Ref<Asset> asset, const std::filesystem::path& filepath);
 		bool HasEditorAsset(const std::filesystem::path& filepath) const;

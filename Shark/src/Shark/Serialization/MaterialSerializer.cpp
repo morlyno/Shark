@@ -56,7 +56,7 @@ namespace Shark {
 			return false;
 		}
 
-		Ref<MaterialAsset> material = Ref<MaterialAsset>::Create(Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR")));
+		Ref<MaterialAsset> material = Ref<MaterialAsset>::Create(Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR"), FileSystem::GetStemString(metadata.FilePath)));
 		if (!DeserializeFromYAML(material, filedata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize YAML file!\n\tError Message: {}", m_ErrorMsg);
@@ -76,11 +76,13 @@ namespace Shark {
 		out << YAML::BeginMap;
 
 		out << YAML::Key << "AlbedoColor" << YAML::Value << material->GetAlbedoColor();
-		out << YAML::Key << "AlbedoMap" << YAML::Value << material->GetAlbedoMap()->Handle;
-		out << YAML::Key << "UsingAlbedoMap" << YAML::Value << material->UsingAlbedoMap();
-		out << YAML::Key << "Metallic" << YAML::Value << material->GetMetallic();
+		out << YAML::Key << "Metallic" << YAML::Value << material->GetMetalness();
 		out << YAML::Key << "Roughness" << YAML::Value << material->GetRoughness();
 		out << YAML::Key << "AmbientOcclusion" << YAML::Value << material->GetAmbientOcclusion();
+
+		out << YAML::Key << "AlbedoMap" << YAML::Value << material->GetAlbedoMap()->Handle;
+		out << YAML::Key << "UsingNormalMap" << YAML::Value << material->IsUsingNormalMap();
+		out << YAML::Key << "NormalMap" << YAML::Value << material->GetNormalMap()->Handle;
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 		m_ErrorMsg = out.GetLastError();
@@ -106,20 +108,31 @@ namespace Shark {
 			}
 
 			glm::vec3 albedoColor = materialNode["AlbedoColor"].as<glm::vec3>();
-			AssetHandle albedoMap = materialNode["AlbedoMap"].as<AssetHandle>();
-			bool useAlbedo = materialNode["UsingAlbedoMap"].as<bool>();
-
 			float metallic = materialNode["Metallic"].as<float>();
 			float reoughness = materialNode["Roughness"].as<float>();
 			float ao = materialNode["AmbientOcclusion"].as<float>();
 
-			material->SetAlbedoColor(albedoColor);
-			material->SetAlbedoMap(AssetManager::GetAsset<Texture2D>(albedoMap));
-			material->SetUsingAlbedoMap(useAlbedo);
+			AssetHandle albedoMap = materialNode["AlbedoMap"].as<AssetHandle>();
 
-			material->SetMetallic(metallic);
+			bool usingNormalMap = materialNode["UsingNormalMap"].as<bool>(false);
+			AssetHandle normalMap = materialNode["NormalMap"].as<AssetHandle>(AssetHandle::Invalid);
+
+			material->SetAlbedoColor(albedoColor);
+			material->SetMetalness(metallic);
 			material->SetRoughness(reoughness);
 			material->SetAmbientOcclusion(ao);
+
+			if (AssetManager::IsValidAssetHandle(albedoMap))
+			{
+				material->SetAlbedoMap(AssetManager::GetAsset<Texture2D>(albedoMap));
+			}
+
+			if (AssetManager::IsValidAssetHandle(normalMap))
+			{
+				material->SetUsingNormalMap(usingNormalMap);
+				material->SetNormalMap(AssetManager::GetAsset<Texture2D>(normalMap));
+			}
+
 		}
 		catch (const YAML::Exception& exception)
 		{

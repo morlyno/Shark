@@ -256,6 +256,7 @@ namespace Shark {
 				out << YAML::BeginMap;
 				out << YAML::Key << "MeshHandle" << YAML::Value << meshHandle;
 				out << YAML::Key << "SubmeshIndex" << YAML::Value << component->SubmeshIndex;
+				out << YAML::Key << "MaterialHandle" << YAML::Value << component->MaterialHandle;
 				out << YAML::EndMap;
 			}
 
@@ -493,6 +494,7 @@ namespace Shark {
 						auto& component = entity.AddOrReplaceComponent<MeshRendererComponent>();
 						component.MeshHandle = componentNode["MeshHandle"].as<AssetHandle>();
 						component.SubmeshIndex = componentNode["SubmeshIndex"].as<uint32_t>();
+						component.MaterialHandle = componentNode["MaterialHandle"].as<AssetHandle>(AssetHandle::Invalid);
 					}
 
 					if (auto componentNode = entityNode["PointLightComponent"])

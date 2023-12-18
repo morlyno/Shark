@@ -1,7 +1,0 @@
-Material:
-  AlbedoColor: [1, 1, 1]
-  AlbedoMap: 0
-  UsingAlbedoMap: true
-  Metallic: 0
-  Roughness: 0
-  AmbientOcclusion: 0

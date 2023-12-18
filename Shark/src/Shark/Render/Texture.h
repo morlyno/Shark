@@ -100,6 +100,8 @@ namespace Shark {
 		virtual Ref<TextureSource> GetTextureSource() const = 0;
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) = 0;
 
+		virtual Buffer GetBuffer() const = 0;
+
 		virtual RenderID GetViewID() const = 0;
 		virtual Ref<SamplerWrapper> GetSampler() const = 0;
 		virtual Ref<Image2D> GetImage() const = 0;
@@ -116,6 +118,7 @@ namespace Shark {
 		static Ref<Texture2D> Create(const TextureSpecification& specification, Ref<TextureSource> textureSource);
 		static Ref<Texture2D> Create(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage = true);
 		static Ref<Texture2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
+		static Ref<Texture2D> Create(Ref<TextureSource> textureSource);
 
 		static Ref<Texture2D> LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& samplerSpecification = {});
 	};
@@ -126,23 +129,6 @@ namespace Shark {
 		virtual RenderID GetSamplerID() const = 0;
 
 		static Ref<SamplerWrapper> Create(const SamplerSpecification& spec);
-	};
-
-
-	class Texture2DArray : public RefCount
-	{
-	public:
-		virtual ~Texture2DArray() = default;
-
-		virtual void Set(uint32_t index, Ref<Texture2D> texture) = 0;
-		virtual Ref<Texture2D> Get(uint32_t index) const = 0;
-
-		virtual uint32_t Count() const = 0;
-
-		virtual void RT_Set(uint32_t index, Ref<Texture2D> texture) = 0;
-
-	public:
-		static Ref<Texture2DArray> Create(uint32_t count, uint32_t startOffset = 0);
 	};
 
 }

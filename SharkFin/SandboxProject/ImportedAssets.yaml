@@ -32,6 +32,18 @@ ImportedAssets:
   - Handle: 3492957047207113203
     Type: Scene
     FilePath: Scenes/TextTest.skscene
+  - Handle: 1959000708965190035
+    Type: Texture
+    FilePath: Textures/Cerberus/cerberus_A.sktex
+  - Handle: 3192278808471784563
+    Type: Texture
+    FilePath: Textures/Cerberus/cerberus_M.sktex
+  - Handle: 14446317636891523796
+    Type: Texture
+    FilePath: Textures/Cerberus/cerberus_N.sktex
+  - Handle: 476026696684781242
+    Type: Texture
+    FilePath: Textures/Cerberus/cerberus_R.sktex
   - Handle: 12046611585830764491
     Type: Texture
     FilePath: Textures/Checkerboard ( 2).sktex
@@ -65,6 +77,12 @@ ImportedAssets:
   - Handle: 5626169893834607358
     Type: Texture
     FilePath: Textures/SimulateButton.sktex
+  - Handle: 13490309991543351279
+    Type: Texture
+    FilePath: Textures/brickwall.sktex
+  - Handle: 10417349850449502162
+    Type: Texture
+    FilePath: Textures/brickwall_normal.sktex
   - Handle: 3721988405384522794
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/background.png
@@ -200,6 +218,18 @@ ImportedAssets:
   - Handle: 5764261553502237782
     Type: TextureSource
     FilePath: MeshSources/nanoboy.fbm/leg_dif.png
+  - Handle: 16722633957242249849
+    Type: TextureSource
+    FilePath: TextureSources/Cerberus/cerberus_A.png
+  - Handle: 12892261167540428345
+    Type: TextureSource
+    FilePath: TextureSources/Cerberus/cerberus_M.png
+  - Handle: 4323941727693353158
+    Type: TextureSource
+    FilePath: TextureSources/Cerberus/cerberus_N.png
+  - Handle: 6227214778461162531
+    Type: TextureSource
+    FilePath: TextureSources/Cerberus/cerberus_R.png
   - Handle: 13665817056289373643
     Type: TextureSource
     FilePath: TextureSources/Checkboard.png
@@ -218,6 +248,12 @@ ImportedAssets:
   - Handle: 13285230802713726271
     Type: TextureSource
     FilePath: TextureSources/Test.png
+  - Handle: 14184963295414117652
+    Type: TextureSource
+    FilePath: TextureSources/brickwall.jpg
+  - Handle: 5135876526068927706
+    Type: TextureSource
+    FilePath: TextureSources/brickwall_normal.jpg
   - Handle: 18441321421912176314
     Type: TextureSource
     FilePath: TextureSources/castle_brick_broken_06_diff_4k.png
@@ -263,6 +299,9 @@ ImportedAssets:
   - Handle: 8065881379180186665
     Type: MeshSource
     FilePath: MeshSources/Sponza/sponza.obj
+  - Handle: 13539195657805118801
+    Type: MeshSource
+    FilePath: MeshSources/cerberus.fbx
   - Handle: 16626606791774496845
     Type: MeshSource
     FilePath: MeshSources/muro/muro.obj
@@ -275,21 +314,73 @@ ImportedAssets:
   - Handle: 15941159226969732890
     Type: MeshSource
     FilePath: MeshSources/suzanne.obj
+  - Handle: 12376335780905884411
+    Type: Mesh
+    FilePath: Meshes/cerberus
   - Handle: 15050549643915412860
     Type: Mesh
     FilePath: Meshes/nanoboy_test
+  - Handle: 13340687370080108148
+    Type: Mesh
+    FilePath: Meshes/nanosuit_textured
   - Handle: 12434088705897559964
     Type: Mesh
     FilePath: Meshes/sponza.skmesh
   - Handle: 2376987784205732186
     Type: Mesh
     FilePath: Meshes/suzanne.skmesh
+  - Handle: 16837409496041748116
+    Type: Material
+    FilePath: Materials/Brickwall.skmat
+  - Handle: 6752412142428602314
+    Type: Material
+    FilePath: Materials/CerberusMap.skmat
   - Handle: 11412594040363206517
     Type: Material
     FilePath: Materials/NanoBody.skmat
-  - Handle: 9926692734981958079
-    Type: Material
-    FilePath: Materials/TestMaterial.skmat
   - Handle: 252483365588718326
     Type: Material
     FilePath: Materials/WiteMaterial.skmat
+EditorAssets:
+  - Handle: 9158403992234771517
+    Type: Texture
+    FilePath: Resources/Textures/NoImagePlaceholder.sktex
+  - Handle: 11789891412823666763
+    Type: TextureSource
+    FilePath: Resources/Textures/NoImagePlaceholder.png
+  - Handle: 7145403298054936205
+    Type: MeshSource
+    FilePath: Resources/Meshes/Default/Cone.gltf
+  - Handle: 10513649642086405485
+    Type: MeshSource
+    FilePath: Resources/Meshes/Default/Cube.gltf
+  - Handle: 12261805700590292556
+    Type: MeshSource
+    FilePath: Resources/Meshes/Default/Cylinder.gltf
+  - Handle: 3015906137426285951
+    Type: MeshSource
+    FilePath: Resources/Meshes/Default/Plane.gltf
+  - Handle: 17439822819331470831
+    Type: MeshSource
+    FilePath: Resources/Meshes/Default/Sphere.gltf
+  - Handle: 6142942579687919042
+    Type: MeshSource
+    FilePath: Resources/Meshes/Default/Torus.gltf
+  - Handle: 10130756574254683991
+    Type: Mesh
+    FilePath: Resources/Meshes/Default/Cone.skmesh
+  - Handle: 11128925083701734442
+    Type: Mesh
+    FilePath: Resources/Meshes/Default/Cube.skmesh
+  - Handle: 14792001263425447828
+    Type: Mesh
+    FilePath: Resources/Meshes/Default/Cylinder.skmesh
+  - Handle: 12825804072817391569
+    Type: Mesh
+    FilePath: Resources/Meshes/Default/Plane.skmesh
+  - Handle: 1894079185012069341
+    Type: Mesh
+    FilePath: Resources/Meshes/Default/Sphere.skmesh
+  - Handle: 304796535833703992
+    Type: Mesh
+    FilePath: Resources/Meshes/Default/Torus.skmesh

@@ -56,6 +56,7 @@ namespace Shark {
 		{ ".skscene", AssetType::Scene },
 		{ ".sktex", AssetType::Texture },
 		{ ".png", AssetType::TextureSource },
+		{ ".jpg", AssetType::TextureSource },
 		{ ".cs", AssetType::ScriptFile },
 		{ ".ttf", AssetType::Font },
 		{ ".obj", AssetType::MeshSource },

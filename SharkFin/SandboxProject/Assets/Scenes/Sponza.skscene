@@ -16,6 +16,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 19
+        MaterialHandle: 0
     - Entity: 177816966123258393
       TagComponent:
         Name: sponza_61
@@ -30,6 +31,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 60
+        MaterialHandle: 0
     - Entity: 212133130938398989
       TagComponent:
         Name: sponza_271
@@ -44,6 +46,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 272
+        MaterialHandle: 0
     - Entity: 215650234446839237
       TagComponent:
         Name: sponza_236
@@ -58,6 +61,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 237
+        MaterialHandle: 0
     - Entity: 265942284934009152
       TagComponent:
         Name: sponza_279
@@ -72,6 +76,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 280
+        MaterialHandle: 0
     - Entity: 276604765340755391
       TagComponent:
         Name: sponza_73
@@ -86,6 +91,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 74
+        MaterialHandle: 0
     - Entity: 325307641386359093
       TagComponent:
         Name: sponza_369
@@ -100,6 +106,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 373
+        MaterialHandle: 0
     - Entity: 420158029019059937
       TagComponent:
         Name: sponza_282
@@ -114,6 +121,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 283
+        MaterialHandle: 0
     - Entity: 441169179904610335
       TagComponent:
         Name: sponza_377
@@ -128,6 +136,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 385
+        MaterialHandle: 0
     - Entity: 458762499496919964
       TagComponent:
         Name: sponza_141
@@ -142,6 +151,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 142
+        MaterialHandle: 0
     - Entity: 461213828407329306
       TagComponent:
         Name: sponza_179
@@ -156,6 +166,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 180
+        MaterialHandle: 0
     - Entity: 465484166875572316
       TagComponent:
         Name: sponza_214
@@ -170,6 +181,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 215
+        MaterialHandle: 0
     - Entity: 503821021876166338
       TagComponent:
         Name: sponza_09
@@ -184,6 +196,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 8
+        MaterialHandle: 0
     - Entity: 612543330554772900
       TagComponent:
         Name: vasegrp1
@@ -198,6 +211,22 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 368
+        MaterialHandle: 0
+    - Entity: 704356978960006636
+      TagComponent:
+        Name: Plane
+      TransformComponent:
+        Translation: [-0.1118204, 9.63632393, 15.139677]
+        Rotation: [-1.57030809, 0, 0]
+        Scale: [8.14659977, 8.14659882, 8.14659882]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 12825804072817391569
+        SubmeshIndex: 0
+        MaterialHandle: 16837409496041748116
     - Entity: 732881294543497883
       TagComponent:
         Name: sponza_321
@@ -212,6 +241,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 322
+        MaterialHandle: 0
     - Entity: 758580932380403834
       TagComponent:
         Name: sponza_81
@@ -226,6 +256,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 82
+        MaterialHandle: 0
     - Entity: 775391399902829455
       TagComponent:
         Name: sponza_143
@@ -240,6 +271,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 144
+        MaterialHandle: 0
     - Entity: 905735995845384712
       TagComponent:
         Name: sponza_69
@@ -254,6 +286,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 68
+        MaterialHandle: 0
     - Entity: 908044354044274242
       TagComponent:
         Name: sponza_246
@@ -268,6 +301,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 247
+        MaterialHandle: 0
     - Entity: 992631406764193902
       TagComponent:
         Name: sponza_03
@@ -282,6 +316,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 3
+        MaterialHandle: 0
     - Entity: 1065587661632820988
       TagComponent:
         Name: sponza_155
@@ -296,6 +331,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 156
+        MaterialHandle: 0
     - Entity: 1114564815471150803
       TagComponent:
         Name: sponza_167
@@ -310,6 +346,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 168
+        MaterialHandle: 0
     - Entity: 1177999364515343649
       TagComponent:
         Name: sponza_234
@@ -324,6 +361,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 235
+        MaterialHandle: 0
     - Entity: 1248103418772272836
       TagComponent:
         Name: sponza_247
@@ -338,6 +376,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 248
+        MaterialHandle: 0
     - Entity: 1300261611066005713
       TagComponent:
         Name: sponza_79
@@ -352,6 +391,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 80
+        MaterialHandle: 0
     - Entity: 1331112789499695377
       TagComponent:
         Name: sponza_39
@@ -366,6 +406,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 38
+        MaterialHandle: 0
     - Entity: 1343678956605124400
       TagComponent:
         Name: sponza_104
@@ -380,6 +421,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 105
+        MaterialHandle: 0
     - Entity: 1402127553088829727
       TagComponent:
         Name: sponza_361
@@ -394,6 +436,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 362
+        MaterialHandle: 0
     - Entity: 1503943311678997509
       TagComponent:
         Name: sponza_31
@@ -408,6 +451,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 30
+        MaterialHandle: 0
     - Entity: 1522637732615875403
       TagComponent:
         Name: sponza_137
@@ -422,6 +466,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 138
+        MaterialHandle: 0
     - Entity: 1531227199803117907
       TagComponent:
         Name: sponza_49
@@ -436,6 +481,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 48
+        MaterialHandle: 0
     - Entity: 1701079119999171696
       TagComponent:
         Name: sponza_286
@@ -450,6 +496,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 287
+        MaterialHandle: 0
     - Entity: 1743587366512465384
       TagComponent:
         Name: sponza_342
@@ -464,6 +511,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 343
+        MaterialHandle: 0
     - Entity: 1830758862909258095
       TagComponent:
         Name: sponza_186
@@ -478,6 +526,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 187
+        MaterialHandle: 0
     - Entity: 1838582759681315187
       TagComponent:
         Name: sponza_123
@@ -492,6 +541,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 124
+        MaterialHandle: 0
     - Entity: 1885365954929450992
       TagComponent:
         Name: sponza_238
@@ -506,6 +556,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 239
+        MaterialHandle: 0
     - Entity: 1952051051467694480
       TagComponent:
         Name: sponza_51
@@ -520,6 +571,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 50
+        MaterialHandle: 0
     - Entity: 1997622817674150349
       TagComponent:
         Name: sponza_315
@@ -534,6 +586,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 316
+        MaterialHandle: 0
     - Entity: 2013159356424630644
       TagComponent:
         Name: sponza_258
@@ -548,6 +601,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 259
+        MaterialHandle: 0
     - Entity: 2092887388436678739
       TagComponent:
         Name: sponza_360
@@ -562,6 +616,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 361
+        MaterialHandle: 0
     - Entity: 2215375553110269731
       TagComponent:
         Name: sponza_159
@@ -576,6 +631,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 160
+        MaterialHandle: 0
     - Entity: 2238469527275906167
       TagComponent:
         Name: vasegrp4
@@ -590,6 +646,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 376
+        MaterialHandle: 0
     - Entity: 2360515868517779973
       TagComponent:
         Name: sponza_50
@@ -604,6 +661,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 49
+        MaterialHandle: 0
     - Entity: 2361724242203947711
       TagComponent:
         Name: sponza_108
@@ -618,6 +676,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 109
+        MaterialHandle: 0
     - Entity: 2505604498280731982
       TagComponent:
         Name: sponza_181
@@ -632,6 +691,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 182
+        MaterialHandle: 0
     - Entity: 2582048689358539390
       TagComponent:
         Name: sponza_317
@@ -646,6 +706,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 318
+        MaterialHandle: 0
     - Entity: 2584547587204301674
       TagComponent:
         Name: sponza_242
@@ -660,6 +721,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 243
+        MaterialHandle: 0
     - Entity: 2601812768083875302
       TagComponent:
         Name: sponza_125
@@ -674,6 +736,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 126
+        MaterialHandle: 0
     - Entity: 2603138360966209479
       TagComponent:
         Name: sponza_278
@@ -688,6 +751,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 279
+        MaterialHandle: 0
     - Entity: 2647626569978606773
       TagComponent:
         Name: sponza_116
@@ -702,6 +766,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 117
+        MaterialHandle: 0
     - Entity: 2664171146926833025
       TagComponent:
         Name: sponza_29
@@ -716,6 +781,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 28
+        MaterialHandle: 0
     - Entity: 2714136279793863059
       TagComponent:
         Name: sponza_217
@@ -730,6 +796,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 218
+        MaterialHandle: 0
     - Entity: 2779628419266478749
       TagComponent:
         Name: sponza_310
@@ -744,6 +811,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 311
+        MaterialHandle: 0
     - Entity: 2791199467027192753
       TagComponent:
         Name: sponza_42
@@ -758,6 +826,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 41
+        MaterialHandle: 0
     - Entity: 2848177382678761735
       TagComponent:
         Name: sponza_64
@@ -772,6 +841,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 63
+        MaterialHandle: 0
     - Entity: 2890008923760566163
       TagComponent:
         Name: sponza_185
@@ -786,6 +856,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 186
+        MaterialHandle: 0
     - Entity: 2928271882325117054
       TagComponent:
         Name: sponza_68
@@ -800,6 +871,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 67
+        MaterialHandle: 0
     - Entity: 2929880521246343367
       TagComponent:
         Name: sponza_211
@@ -814,6 +886,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 212
+        MaterialHandle: 0
     - Entity: 2935277744271322118
       TagComponent:
         Name: sponza_121
@@ -828,6 +901,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 122
+        MaterialHandle: 0
     - Entity: 2952010808590879533
       TagComponent:
         Name: sponza_62
@@ -842,6 +916,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 61
+        MaterialHandle: 0
     - Entity: 2981898765008171132
       TagComponent:
         Name: sponza_328
@@ -856,6 +931,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 329
+        MaterialHandle: 0
     - Entity: 2983138158034535906
       TagComponent:
         Name: sponza_94
@@ -870,6 +946,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 95
+        MaterialHandle: 0
     - Entity: 3022962600742661169
       TagComponent:
         Name: sponza_239
@@ -884,6 +961,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 240
+        MaterialHandle: 0
     - Entity: 3188003502025394197
       TagComponent:
         Name: sponza_34
@@ -898,6 +976,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 33
+        MaterialHandle: 0
     - Entity: 3207190631210730168
       TagComponent:
         Name: sponza_110
@@ -912,6 +991,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 111
+        MaterialHandle: 0
     - Entity: 3240808679180188118
       TagComponent:
         Name: sponza_244
@@ -926,6 +1006,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 245
+        MaterialHandle: 0
     - Entity: 3242470652928356585
       TagComponent:
         Name: vasegrp3
@@ -940,6 +1021,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 374
+        MaterialHandle: 0
     - Entity: 3264052318907334543
       TagComponent:
         Name: sponza_11
@@ -954,6 +1036,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 10
+        MaterialHandle: 0
     - Entity: 3269834899420063825
       TagComponent:
         Name: sponza_154
@@ -968,6 +1051,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 155
+        MaterialHandle: 0
     - Entity: 3283905894126163118
       TagComponent:
         Name: sponza_204
@@ -982,6 +1066,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 205
+        MaterialHandle: 0
     - Entity: 3322075682175760337
       TagComponent:
         Name: sponza_192
@@ -996,6 +1081,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 193
+        MaterialHandle: 0
     - Entity: 3347315030230213137
       TagComponent:
         Name: sponza_187
@@ -1010,6 +1096,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 188
+        MaterialHandle: 0
     - Entity: 3356732316560184141
       TagComponent:
         Name: sponza_230
@@ -1024,6 +1111,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 231
+        MaterialHandle: 0
     - Entity: 3378190777874597435
       TagComponent:
         Name: sponza_142
@@ -1038,6 +1126,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 143
+        MaterialHandle: 0
     - Entity: 3467015715762459969
       TagComponent:
         Name: sponza_353
@@ -1052,6 +1141,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 354
+        MaterialHandle: 0
     - Entity: 3479058880685972283
       TagComponent:
         Name: sponza_319
@@ -1066,6 +1156,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 320
+        MaterialHandle: 0
     - Entity: 3481673321686434192
       TagComponent:
         Name: sponza_254
@@ -1080,6 +1171,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 255
+        MaterialHandle: 0
     - Entity: 3582395090057189255
       TagComponent:
         Name: sponza_72_0
@@ -1094,6 +1186,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 0
+        MaterialHandle: 0
     - Entity: 3649029406553338648
       TagComponent:
         Name: sponza_379
@@ -1108,6 +1201,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 389
+        MaterialHandle: 0
     - Entity: 3710484632328667557
       TagComponent:
         Name: sponza_47
@@ -1122,6 +1216,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 46
+        MaterialHandle: 0
     - Entity: 3845946434963604512
       TagComponent:
         Name: sponza_120
@@ -1136,6 +1231,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 121
+        MaterialHandle: 0
     - Entity: 3846395221343240156
       TagComponent:
         Name: sponza_90
@@ -1150,6 +1246,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 91
+        MaterialHandle: 0
     - Entity: 3901997826464687736
       TagComponent:
         Name: sponza_89
@@ -1164,6 +1261,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 90
+        MaterialHandle: 0
     - Entity: 3908196607408830654
       TagComponent:
         Name: sponza_332
@@ -1178,6 +1276,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 333
+        MaterialHandle: 0
     - Entity: 4031190294441718561
       TagComponent:
         Name: sponza_307
@@ -1192,6 +1291,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 308
+        MaterialHandle: 0
     - Entity: 4147475364359780542
       TagComponent:
         Name: sponza_281
@@ -1206,6 +1306,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 282
+        MaterialHandle: 0
     - Entity: 4230249310326203559
       TagComponent:
         Name: sponza_341
@@ -1220,6 +1321,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 342
+        MaterialHandle: 0
     - Entity: 4260132190101619396
       TagComponent:
         Name: sponza_233
@@ -1234,6 +1336,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 234
+        MaterialHandle: 0
     - Entity: 4261898871344849737
       TagComponent:
         Name: sponza_86
@@ -1248,6 +1351,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 87
+        MaterialHandle: 0
     - Entity: 4263307650009167764
       TagComponent:
         Name: sponza_257
@@ -1262,6 +1366,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 258
+        MaterialHandle: 0
     - Entity: 4266617163439215925
       TagComponent:
         Name: sponza_95
@@ -1276,6 +1381,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 96
+        MaterialHandle: 0
     - Entity: 4280164709020134084
       TagComponent:
         Name: sponza_38
@@ -1290,6 +1396,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 37
+        MaterialHandle: 0
     - Entity: 4309770764607113428
       TagComponent:
         Name: sponza_375
@@ -1304,6 +1411,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 383
+        MaterialHandle: 0
     - Entity: 4339623558076590769
       TagComponent:
         Name: vasegrp5
@@ -1318,6 +1426,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 378
+        MaterialHandle: 0
     - Entity: 4405820003218703141
       TagComponent:
         Name: sponza_277
@@ -1332,6 +1441,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 278
+        MaterialHandle: 0
     - Entity: 4463380458489322580
       TagComponent:
         Name: sponza_134
@@ -1346,6 +1456,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 135
+        MaterialHandle: 0
     - Entity: 4576430108209970807
       TagComponent:
         Name: sponza_157
@@ -1360,6 +1471,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 158
+        MaterialHandle: 0
     - Entity: 4652183739314914094
       TagComponent:
         Name: sponza_349
@@ -1374,6 +1486,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 350
+        MaterialHandle: 0
     - Entity: 4702398594608788300
       TagComponent:
         Name: sponza_270
@@ -1388,6 +1501,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 271
+        MaterialHandle: 0
     - Entity: 4720960171591979902
       TagComponent:
         Name: sponza_295
@@ -1402,6 +1516,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 296
+        MaterialHandle: 0
     - Entity: 4733525398376354871
       TagComponent:
         Name: sponza_74
@@ -1416,6 +1531,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 75
+        MaterialHandle: 0
     - Entity: 4738184971033107940
       TagComponent:
         Name: sponza_136
@@ -1430,6 +1546,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 137
+        MaterialHandle: 0
     - Entity: 4755026033812303786
       TagComponent:
         Name: sponza_266
@@ -1444,6 +1561,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 267
+        MaterialHandle: 0
     - Entity: 4786393214636504970
       TagComponent:
         Name: sponza_151
@@ -1458,6 +1576,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 152
+        MaterialHandle: 0
     - Entity: 4790695055611309245
       TagComponent:
         Name: sponza_124
@@ -1472,6 +1591,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 125
+        MaterialHandle: 0
     - Entity: 4888273099423296904
       TagComponent:
         Name: sponza_343
@@ -1486,6 +1606,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 344
+        MaterialHandle: 0
     - Entity: 4910235044377963399
       TagComponent:
         Name: sponza_139
@@ -1500,6 +1621,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 140
+        MaterialHandle: 0
     - Entity: 5068610205421979266
       TagComponent:
         Name: sponza_37
@@ -1514,6 +1636,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 36
+        MaterialHandle: 0
     - Entity: 5116936363632813727
       TagComponent:
         Name: sponza_72 (Split Node)
@@ -1540,6 +1663,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 331
+        MaterialHandle: 0
     - Entity: 5147418495852950678
       TagComponent:
         Name: sponza_28
@@ -1554,6 +1678,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 27
+        MaterialHandle: 0
     - Entity: 5309187899155126962
       TagComponent:
         Name: sponza_174
@@ -1568,6 +1693,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 175
+        MaterialHandle: 0
     - Entity: 5361880153686019195
       TagComponent:
         Name: sponza_306
@@ -1582,6 +1708,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 307
+        MaterialHandle: 0
     - Entity: 5383225529825738103
       TagComponent:
         Name: sponza_351
@@ -1596,6 +1723,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 352
+        MaterialHandle: 0
     - Entity: 5386643292406452181
       TagComponent:
         Name: sponza_378_1
@@ -1610,6 +1738,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 1
+        MaterialHandle: 0
     - Entity: 5441096777241993709
       TagComponent:
         Name: sponza_27
@@ -1624,6 +1753,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 26
+        MaterialHandle: 0
     - Entity: 5444088196857590023
       TagComponent:
         Name: sponza_309
@@ -1638,6 +1768,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 310
+        MaterialHandle: 0
     - Entity: 5455569678188096117
       TagComponent:
         Name: sponza_210
@@ -1652,6 +1783,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 211
+        MaterialHandle: 0
     - Entity: 5494049444571897216
       TagComponent:
         Name: sponza_72_1
@@ -1666,6 +1798,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 1
+        MaterialHandle: 0
     - Entity: 5592778385183147025
       TagComponent:
         Name: sponza_313
@@ -1680,6 +1813,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 314
+        MaterialHandle: 0
     - Entity: 5622371481916936642
       TagComponent:
         Name: sponza_329
@@ -1694,6 +1828,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 330
+        MaterialHandle: 0
     - Entity: 5643474749631431840
       TagComponent:
         Name: sponza_284
@@ -1708,6 +1843,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 285
+        MaterialHandle: 0
     - Entity: 5654643061394672988
       TagComponent:
         Name: sponza_55
@@ -1722,6 +1858,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 54
+        MaterialHandle: 0
     - Entity: 5664281327261208584
       TagComponent:
         Name: sponza_57
@@ -1736,6 +1873,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 56
+        MaterialHandle: 0
     - Entity: 5678360473778473647
       TagComponent:
         Name: sponza_275
@@ -1750,6 +1888,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 276
+        MaterialHandle: 0
     - Entity: 5689519468444157901
       TagComponent:
         Name: sponza_33
@@ -1764,6 +1903,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 32
+        MaterialHandle: 0
     - Entity: 5748060446701927435
       TagComponent:
         Name: sponza_180
@@ -1778,6 +1918,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 181
+        MaterialHandle: 0
     - Entity: 5856693307829800198
       TagComponent:
         Name: sponza_183
@@ -1792,6 +1933,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 184
+        MaterialHandle: 0
     - Entity: 5959607266010558099
       TagComponent:
         Name: sponza_40
@@ -1806,6 +1948,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 39
+        MaterialHandle: 0
     - Entity: 6026668452857971967
       TagComponent:
         Name: sponza_63
@@ -1820,6 +1963,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 62
+        MaterialHandle: 0
     - Entity: 6042815515173069523
       TagComponent:
         Name: sponza_370
@@ -1834,6 +1978,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 375
+        MaterialHandle: 0
     - Entity: 6057509304780640239
       TagComponent:
         Name: sponza_272
@@ -1848,6 +1993,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 273
+        MaterialHandle: 0
     - Entity: 6068765382870178441
       TagComponent:
         Name: sponza_267
@@ -1862,6 +2008,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 268
+        MaterialHandle: 0
     - Entity: 6083559154014753111
       TagComponent:
         Name: sponza_71_1
@@ -1876,6 +2023,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 1
+        MaterialHandle: 0
     - Entity: 6282867818153376659
       TagComponent:
         Name: sponza_127
@@ -1890,6 +2038,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 128
+        MaterialHandle: 0
     - Entity: 6287029450140759897
       TagComponent:
         Name: sponza_285
@@ -1904,6 +2053,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 286
+        MaterialHandle: 0
     - Entity: 6304841932588926697
       TagComponent:
         Name: sponza_374
@@ -1918,6 +2068,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 382
+        MaterialHandle: 0
     - Entity: 6340045758120908136
       TagComponent:
         Name: sponza_209
@@ -1932,6 +2083,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 210
+        MaterialHandle: 0
     - Entity: 6343658213523622013
       TagComponent:
         Name: sponza_304
@@ -1946,6 +2098,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 305
+        MaterialHandle: 0
     - Entity: 6431748942849011681
       TagComponent:
         Name: sponza_112
@@ -1960,6 +2113,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 113
+        MaterialHandle: 0
     - Entity: 6528144529932168568
       TagComponent:
         Name: sponza_213
@@ -1974,6 +2128,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 214
+        MaterialHandle: 0
     - Entity: 6547663640089835635
       TagComponent:
         Name: sponza_132
@@ -1988,6 +2143,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 133
+        MaterialHandle: 0
     - Entity: 6590763475263338102
       TagComponent:
         Name: sponza_115
@@ -2002,6 +2158,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 116
+        MaterialHandle: 0
     - Entity: 6629669335222231651
       TagComponent:
         Name: sponza_262
@@ -2016,6 +2173,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 263
+        MaterialHandle: 0
     - Entity: 6731014751033129120
       TagComponent:
         Name: sponza_177
@@ -2030,6 +2188,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 178
+        MaterialHandle: 0
     - Entity: 6773415893518734604
       TagComponent:
         Name: sponza_48
@@ -2044,6 +2203,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 47
+        MaterialHandle: 0
     - Entity: 6773471638340506457
       TagComponent:
         Name: sponza_248
@@ -2058,6 +2218,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 249
+        MaterialHandle: 0
     - Entity: 6813474200777747137
       TagComponent:
         Name: sponza_41
@@ -2072,6 +2233,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 40
+        MaterialHandle: 0
     - Entity: 6920969686431708492
       TagComponent:
         Name: sponza_152
@@ -2086,6 +2248,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 153
+        MaterialHandle: 0
     - Entity: 6982778989579376038
       TagComponent:
         Name: sponza_363
@@ -2100,6 +2263,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 364
+        MaterialHandle: 0
     - Entity: 6993274927285308061
       TagComponent:
         Name: sponza_43
@@ -2114,6 +2278,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 42
+        MaterialHandle: 0
     - Entity: 7058322006570516950
       TagComponent:
         Name: sponza_45
@@ -2128,6 +2293,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 44
+        MaterialHandle: 0
     - Entity: 7145909339869046752
       TagComponent:
         Name: sponza_193
@@ -2142,6 +2308,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 194
+        MaterialHandle: 0
     - Entity: 7149515817134680907
       TagComponent:
         Name: sponza_323
@@ -2156,6 +2323,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 324
+        MaterialHandle: 0
     - Entity: 7237891201707463504
       TagComponent:
         Name: sponza_354
@@ -2170,6 +2338,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 355
+        MaterialHandle: 0
     - Entity: 7248710694234578224
       TagComponent:
         Name: sponza_35
@@ -2184,6 +2353,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 34
+        MaterialHandle: 0
     - Entity: 7268100048511024216
       TagComponent:
         Name: sponza_91
@@ -2198,6 +2368,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 92
+        MaterialHandle: 0
     - Entity: 7291155264227099480
       TagComponent:
         Name: sponza_200
@@ -2212,6 +2383,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 201
+        MaterialHandle: 0
     - Entity: 7401217606830588291
       TagComponent:
         Name: sponza_299
@@ -2226,6 +2398,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 300
+        MaterialHandle: 0
     - Entity: 7445881029899862724
       TagComponent:
         Name: sponza_170
@@ -2240,6 +2413,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 171
+        MaterialHandle: 0
     - Entity: 7473632977608217903
       TagComponent:
         Name: sponza_111
@@ -2254,6 +2428,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 112
+        MaterialHandle: 0
     - Entity: 7487884492015797139
       TagComponent:
         Name: sponza_221
@@ -2268,6 +2443,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 222
+        MaterialHandle: 0
     - Entity: 7499257585250172043
       TagComponent:
         Name: sponza_126
@@ -2282,6 +2458,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 127
+        MaterialHandle: 0
     - Entity: 7502810263405259291
       TagComponent:
         Name: sponza_52
@@ -2296,6 +2473,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 51
+        MaterialHandle: 0
     - Entity: 7590984323646191944
       TagComponent:
         Name: sponza_102
@@ -2310,6 +2488,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 103
+        MaterialHandle: 0
     - Entity: 7691833477472709650
       TagComponent:
         Name: sponza_105
@@ -2324,6 +2503,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 106
+        MaterialHandle: 0
     - Entity: 7722765429855306989
       TagComponent:
         Name: sponza_382
@@ -2338,6 +2518,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 392
+        MaterialHandle: 0
     - Entity: 7811713325821811432
       TagComponent:
         Name: sponza_276
@@ -2352,6 +2533,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 277
+        MaterialHandle: 0
     - Entity: 7832045836347564886
       TagComponent:
         Name: sponza_260
@@ -2366,6 +2548,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 261
+        MaterialHandle: 0
     - Entity: 7850593258335112772
       TagComponent:
         Name: sponza_232
@@ -2380,6 +2563,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 233
+        MaterialHandle: 0
     - Entity: 7968565485661526988
       TagComponent:
         Name: sponza_06
@@ -2394,6 +2578,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 5
+        MaterialHandle: 0
     - Entity: 7995635056332849303
       TagComponent:
         Name: sponza_206
@@ -2408,6 +2593,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 207
+        MaterialHandle: 0
     - Entity: 8002494190734123957
       TagComponent:
         Name: sponza_59
@@ -2422,6 +2608,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 58
+        MaterialHandle: 0
     - Entity: 8037323006974709645
       TagComponent:
         Name: sponza_356
@@ -2436,6 +2623,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 357
+        MaterialHandle: 0
     - Entity: 8085693853884018353
       TagComponent:
         Name: vasegrp8
@@ -2450,6 +2638,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 370
+        MaterialHandle: 0
     - Entity: 8094412728067177626
       TagComponent:
         Name: sponza_256
@@ -2464,6 +2653,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 257
+        MaterialHandle: 0
     - Entity: 8137140418792333108
       TagComponent:
         Name: sponza_378 (Split Node)
@@ -2490,6 +2680,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 141
+        MaterialHandle: 0
     - Entity: 8177826009615193700
       TagComponent:
         Name: sponza_71_0
@@ -2504,6 +2695,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 0
+        MaterialHandle: 0
     - Entity: 8186555502246132249
       TagComponent:
         Name: sponza_326
@@ -2518,6 +2710,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 327
+        MaterialHandle: 0
     - Entity: 8191765315353222339
       TagComponent:
         Name: sponza_378_0
@@ -2532,6 +2725,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 0
+        MaterialHandle: 0
     - Entity: 8244616308769703934
       TagComponent:
         Name: sponza_212
@@ -2546,6 +2740,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 213
+        MaterialHandle: 0
     - Entity: 8278898044810160180
       TagComponent:
         Name: sponza_147
@@ -2560,6 +2755,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 148
+        MaterialHandle: 0
     - Entity: 8309654998170455801
       TagComponent:
         Name: sponza_283
@@ -2574,6 +2770,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 284
+        MaterialHandle: 0
     - Entity: 8343329216563652913
       TagComponent:
         Name: sponza_138
@@ -2588,6 +2785,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 139
+        MaterialHandle: 0
     - Entity: 8348936819673566008
       TagComponent:
         Name: sponza_235
@@ -2602,6 +2800,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 236
+        MaterialHandle: 0
     - Entity: 8362676620438116811
       TagComponent:
         Name: sponza_08
@@ -2616,6 +2815,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 7
+        MaterialHandle: 0
     - Entity: 8374728107097584250
       TagComponent:
         Name: sponza_80
@@ -2630,6 +2830,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 81
+        MaterialHandle: 0
     - Entity: 8384257017958759711
       TagComponent:
         Name: sponza_199
@@ -2644,6 +2845,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 200
+        MaterialHandle: 0
     - Entity: 8436280945179196199
       TagComponent:
         Name: sponza_273
@@ -2658,6 +2860,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 274
+        MaterialHandle: 0
     - Entity: 8458702964277895816
       TagComponent:
         Name: sponza_22
@@ -2672,6 +2875,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 21
+        MaterialHandle: 0
     - Entity: 8634271191360073844
       TagComponent:
         Name: sponza_70
@@ -2686,6 +2890,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 69
+        MaterialHandle: 0
     - Entity: 8645500751553685833
       TagComponent:
         Name: sponza_26
@@ -2700,6 +2905,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 25
+        MaterialHandle: 0
     - Entity: 8722452187635534233
       TagComponent:
         Name: sponza_24
@@ -2714,6 +2920,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 23
+        MaterialHandle: 0
     - Entity: 8722691477905348865
       TagComponent:
         Name: sponza_84
@@ -2728,6 +2935,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 85
+        MaterialHandle: 0
     - Entity: 8788243151226254924
       TagComponent:
         Name: sponza_165
@@ -2742,6 +2950,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 166
+        MaterialHandle: 0
     - Entity: 8824199964483577113
       TagComponent:
         Name: sponza_130
@@ -2756,6 +2965,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 131
+        MaterialHandle: 0
     - Entity: 8825936974173620597
       TagComponent:
         Name: sponza_46
@@ -2770,6 +2980,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 45
+        MaterialHandle: 0
     - Entity: 8857959806933880465
       TagComponent:
         Name: sponza_265
@@ -2784,6 +2995,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 266
+        MaterialHandle: 0
     - Entity: 8915641294653167697
       TagComponent:
         Name: sponza_219
@@ -2798,6 +3010,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 220
+        MaterialHandle: 0
     - Entity: 8943902203829126942
       TagComponent:
         Name: sponza_83
@@ -2812,6 +3025,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 84
+        MaterialHandle: 0
     - Entity: 9013121190873344895
       TagComponent:
         Name: sponza_00
@@ -2826,6 +3040,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 0
+        MaterialHandle: 0
     - Entity: 9019370016670690224
       TagComponent:
         Name: sponza_71 (Split Node)
@@ -2852,6 +3067,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 298
+        MaterialHandle: 0
     - Entity: 9076624224174008197
       TagComponent:
         Name: sponza_274
@@ -2866,6 +3082,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 275
+        MaterialHandle: 0
     - Entity: 9256909543764519129
       TagComponent:
         Name: sponza_229
@@ -2880,6 +3097,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 230
+        MaterialHandle: 0
     - Entity: 9277916554673588977
       TagComponent:
         Name: sponza_268
@@ -2894,6 +3112,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 269
+        MaterialHandle: 0
     - Entity: 9285576992738019114
       TagComponent:
         Name: sponza_92
@@ -2908,6 +3127,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 93
+        MaterialHandle: 0
     - Entity: 9342320303991613947
       TagComponent:
         Name: sponza_352
@@ -2922,6 +3142,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 353
+        MaterialHandle: 0
     - Entity: 9353325147160097521
       TagComponent:
         Name: sponza_203
@@ -2936,6 +3157,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 204
+        MaterialHandle: 0
     - Entity: 9361127519682427330
       TagComponent:
         Name: sponza_301
@@ -2950,11 +3172,12 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 302
+        MaterialHandle: 0
     - Entity: 9428703014261331129
       TagComponent:
         Name: Light
       TransformComponent:
-        Translation: [0, 21.6513062, 0]
+        Translation: [-1.23945379, 10.0883341, 9.16631126]
         Rotation: [0, 0, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -2963,7 +3186,7 @@ Scene:
           []
       PointLightComponent:
         Color: [1, 1, 1, 1]
-        Intensity: 240.800003
+        Intensity: 33.5999985
     - Entity: 9429602692012350168
       TagComponent:
         Name: sponza_339
@@ -2978,6 +3201,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 340
+        MaterialHandle: 0
     - Entity: 9468609963428581413
       TagComponent:
         Name: sponza_316
@@ -2992,6 +3216,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 317
+        MaterialHandle: 0
     - Entity: 9546705847957254034
       TagComponent:
         Name: sponza_189
@@ -3006,6 +3231,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 190
+        MaterialHandle: 0
     - Entity: 9637100267627051000
       TagComponent:
         Name: sponza_288
@@ -3020,6 +3246,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 289
+        MaterialHandle: 0
     - Entity: 9655302121281910333
       TagComponent:
         Name: sponza_255
@@ -3034,6 +3261,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 256
+        MaterialHandle: 0
     - Entity: 9667864562220683187
       TagComponent:
         Name: sponza_178
@@ -3048,6 +3276,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 179
+        MaterialHandle: 0
     - Entity: 9692262209850481866
       TagComponent:
         Name: sponza_66
@@ -3062,6 +3291,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 65
+        MaterialHandle: 0
     - Entity: 9701175872277901072
       TagComponent:
         Name: sponza_198
@@ -3076,6 +3306,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 199
+        MaterialHandle: 0
     - Entity: 9713583157067686671
       TagComponent:
         Name: sponza_118
@@ -3090,6 +3321,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 119
+        MaterialHandle: 0
     - Entity: 9720312025779597219
       TagComponent:
         Name: sponza_335
@@ -3104,6 +3336,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 336
+        MaterialHandle: 0
     - Entity: 9723606092108689729
       TagComponent:
         Name: sponza_30
@@ -3118,6 +3351,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 29
+        MaterialHandle: 0
     - Entity: 9747878922128681489
       TagComponent:
         Name: sponza_347
@@ -3132,6 +3366,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 348
+        MaterialHandle: 0
     - Entity: 9903524031623383872
       TagComponent:
         Name: sponza_10
@@ -3146,6 +3381,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 9
+        MaterialHandle: 0
     - Entity: 9906990793862906312
       TagComponent:
         Name: sponza_269
@@ -3160,6 +3396,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 270
+        MaterialHandle: 0
     - Entity: 9921900549055792874
       TagComponent:
         Name: sponza_162
@@ -3174,6 +3411,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 163
+        MaterialHandle: 0
     - Entity: 9987543101083305583
       TagComponent:
         Name: sponza_191
@@ -3188,6 +3426,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 192
+        MaterialHandle: 0
     - Entity: 10096178881597706762
       TagComponent:
         Name: sponza_97
@@ -3202,6 +3441,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 98
+        MaterialHandle: 0
     - Entity: 10122767378197125099
       TagComponent:
         Name: sponza_333
@@ -3216,6 +3456,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 334
+        MaterialHandle: 0
     - Entity: 10178195998404600553
       TagComponent:
         Name: sponza_362
@@ -3230,6 +3471,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 363
+        MaterialHandle: 0
     - Entity: 10181448721679054589
       TagComponent:
         Name: vasegrp2
@@ -3244,6 +3486,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 372
+        MaterialHandle: 0
     - Entity: 10192159546343263154
       TagComponent:
         Name: sponza_19
@@ -3258,6 +3501,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 18
+        MaterialHandle: 0
     - Entity: 10214232175762678960
       TagComponent:
         Name: sponza_249
@@ -3272,6 +3516,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 250
+        MaterialHandle: 0
     - Entity: 10440963073392890867
       TagComponent:
         Name: sponza_156
@@ -3286,6 +3531,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 157
+        MaterialHandle: 0
     - Entity: 10453309541500625954
       TagComponent:
         Name: sponza_261
@@ -3300,6 +3546,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 262
+        MaterialHandle: 0
     - Entity: 10603240823181921858
       TagComponent:
         Name: sponza_07
@@ -3314,6 +3561,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 6
+        MaterialHandle: 0
     - Entity: 10659731121477744991
       TagComponent:
         Name: sponza_327
@@ -3328,6 +3576,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 328
+        MaterialHandle: 0
     - Entity: 10712433332120268372
       TagComponent:
         Name: sponza_12
@@ -3342,6 +3591,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 11
+        MaterialHandle: 0
     - Entity: 10845234139992506026
       TagComponent:
         Name: sponza_292
@@ -3356,6 +3606,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 293
+        MaterialHandle: 0
     - Entity: 10871647547173292391
       TagComponent:
         Name: sponza_226
@@ -3370,6 +3621,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 227
+        MaterialHandle: 0
     - Entity: 10924190410760251599
       TagComponent:
         Name: sponza_54
@@ -3384,6 +3636,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 53
+        MaterialHandle: 0
     - Entity: 11023286192521516959
       TagComponent:
         Name: sponza_93
@@ -3398,6 +3651,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 94
+        MaterialHandle: 0
     - Entity: 11031078241703392634
       TagComponent:
         Name: sponza_372
@@ -3412,6 +3666,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 379
+        MaterialHandle: 0
     - Entity: 11038729592509805248
       TagComponent:
         Name: sponza_56
@@ -3426,6 +3681,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 55
+        MaterialHandle: 0
     - Entity: 11122840983831423930
       TagComponent:
         Name: sponza_23
@@ -3440,6 +3696,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 22
+        MaterialHandle: 0
     - Entity: 11228146081834340435
       TagComponent:
         Name: sponza_150
@@ -3454,6 +3711,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 151
+        MaterialHandle: 0
     - Entity: 11344521944739537685
       TagComponent:
         Name: sponza_294
@@ -3468,6 +3726,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 295
+        MaterialHandle: 0
     - Entity: 11353094757124403637
       TagComponent:
         Name: sponza_264
@@ -3482,6 +3741,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 265
+        MaterialHandle: 0
     - Entity: 11433487390657195728
       TagComponent:
         Name: sponza_223
@@ -3496,6 +3756,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 224
+        MaterialHandle: 0
     - Entity: 11451149737296607700
       TagComponent:
         Name: sponza_01
@@ -3510,6 +3771,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 1
+        MaterialHandle: 0
     - Entity: 11503112868166568687
       TagComponent:
         Name: sponza_346
@@ -3524,6 +3786,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 347
+        MaterialHandle: 0
     - Entity: 11513314450972287430
       TagComponent:
         Name: sponza_75
@@ -3538,6 +3801,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 76
+        MaterialHandle: 0
     - Entity: 11530126872508301968
       TagComponent:
         Name: sponza_194
@@ -3552,6 +3816,18 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 195
+        MaterialHandle: 0
+    - Entity: 11606446954685382692
+      TagComponent:
+        Name: RootNode
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, -0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 13982276565305713242
     - Entity: 11618385773161447699
       TagComponent:
         Name: sponza_348
@@ -3566,6 +3842,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 349
+        MaterialHandle: 0
     - Entity: 11686026217073541042
       TagComponent:
         Name: sponza_13
@@ -3580,6 +3857,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 12
+        MaterialHandle: 0
     - Entity: 11729198731518964942
       TagComponent:
         Name: sponza_345
@@ -3594,6 +3872,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 346
+        MaterialHandle: 0
     - Entity: 11763877888380726446
       TagComponent:
         Name: sponza_245
@@ -3608,6 +3887,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 246
+        MaterialHandle: 0
     - Entity: 11771956647195908389
       TagComponent:
         Name: sponza_65
@@ -3622,6 +3902,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 64
+        MaterialHandle: 0
     - Entity: 11968926371963165254
       TagComponent:
         Name: sponza_119
@@ -3636,6 +3917,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 120
+        MaterialHandle: 0
     - Entity: 11973669726856169497
       TagComponent:
         Name: sponza_303
@@ -3650,6 +3932,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 304
+        MaterialHandle: 0
     - Entity: 12036065130827734132
       TagComponent:
         Name: sponza_195
@@ -3664,6 +3947,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 196
+        MaterialHandle: 0
     - Entity: 12169861105987584453
       TagComponent:
         Name: sponza_344
@@ -3678,6 +3962,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 345
+        MaterialHandle: 0
     - Entity: 12176301799091874554
       TagComponent:
         Name: sponza_168
@@ -3692,6 +3977,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 169
+        MaterialHandle: 0
     - Entity: 12177687671150132302
       TagComponent:
         Name: sponza_220
@@ -3706,6 +3992,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 221
+        MaterialHandle: 0
     - Entity: 12245340732853827482
       TagComponent:
         Name: sponza_114
@@ -3720,6 +4007,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 115
+        MaterialHandle: 0
     - Entity: 12261535297448926586
       TagComponent:
         Name: sponza_107
@@ -3734,6 +4022,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 108
+        MaterialHandle: 0
     - Entity: 12282773568795449677
       TagComponent:
         Name: sponza_325
@@ -3748,6 +4037,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 326
+        MaterialHandle: 0
     - Entity: 12319948548557103699
       TagComponent:
         Name: sponza_318
@@ -3762,6 +4052,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 319
+        MaterialHandle: 0
     - Entity: 12353511406216128991
       TagComponent:
         Name: sponza_367
@@ -3776,6 +4067,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 369
+        MaterialHandle: 0
     - Entity: 12405398020539534037
       TagComponent:
         Name: sponza_225
@@ -3790,6 +4082,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 226
+        MaterialHandle: 0
     - Entity: 12412127298517324921
       TagComponent:
         Name: sponza_149
@@ -3804,6 +4097,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 150
+        MaterialHandle: 0
     - Entity: 12453839792504181727
       TagComponent:
         Name: sponza_336
@@ -3818,6 +4112,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 337
+        MaterialHandle: 0
     - Entity: 12466219185627600816
       TagComponent:
         Name: sponza_117
@@ -3832,6 +4127,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 118
+        MaterialHandle: 0
     - Entity: 12504579111511864105
       TagComponent:
         Name: sponza_85
@@ -3846,6 +4142,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 86
+        MaterialHandle: 0
     - Entity: 12639149611253567724
       TagComponent:
         Name: sponza_231
@@ -3860,6 +4157,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 232
+        MaterialHandle: 0
     - Entity: 12675534877230607023
       TagComponent:
         Name: sponza_67
@@ -3874,6 +4172,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 66
+        MaterialHandle: 0
     - Entity: 12691945845120028205
       TagComponent:
         Name: sponza_188
@@ -3888,6 +4187,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 189
+        MaterialHandle: 0
     - Entity: 12733574647666389237
       TagComponent:
         Name: sponza_373
@@ -3902,6 +4202,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 381
+        MaterialHandle: 0
     - Entity: 12788022118336488771
       TagComponent:
         Name: sponza_58
@@ -3916,6 +4217,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 57
+        MaterialHandle: 0
     - Entity: 12833738769006522824
       TagComponent:
         Name: sponza_331
@@ -3930,6 +4232,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 332
+        MaterialHandle: 0
     - Entity: 12838278383146536752
       TagComponent:
         Name: sponza_128
@@ -3944,6 +4247,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 129
+        MaterialHandle: 0
     - Entity: 12858988395446691818
       TagComponent:
         Name: newGroup1
@@ -3958,6 +4262,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 386
+        MaterialHandle: 0
     - Entity: 12869652788695097844
       TagComponent:
         Name: sponza_53
@@ -3972,6 +4277,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 52
+        MaterialHandle: 0
     - Entity: 12921286234761910741
       TagComponent:
         Name: sponza_202
@@ -3986,6 +4292,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 203
+        MaterialHandle: 0
     - Entity: 12982477247972080939
       TagComponent:
         Name: sponza_36
@@ -4000,6 +4307,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 35
+        MaterialHandle: 0
     - Entity: 13006420508021424815
       TagComponent:
         Name: sponza_224
@@ -4014,6 +4322,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 225
+        MaterialHandle: 0
     - Entity: 13102070323721172329
       TagComponent:
         Name: sponza_100
@@ -4028,6 +4337,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 101
+        MaterialHandle: 0
     - Entity: 13233672391619710161
       TagComponent:
         Name: sponza_334
@@ -4042,6 +4352,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 335
+        MaterialHandle: 0
     - Entity: 13262908408045351617
       TagComponent:
         Name: sponza_163
@@ -4056,6 +4367,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 164
+        MaterialHandle: 0
     - Entity: 13314189128401279683
       TagComponent:
         Name: sponza_357
@@ -4070,6 +4382,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 358
+        MaterialHandle: 0
     - Entity: 13360233883563393390
       TagComponent:
         Name: sponza_289
@@ -4084,6 +4397,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 290
+        MaterialHandle: 0
     - Entity: 13458565780436396770
       TagComponent:
         Name: sponza_338
@@ -4098,6 +4412,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 339
+        MaterialHandle: 0
     - Entity: 13508004734657784098
       TagComponent:
         Name: sponza_290
@@ -4112,6 +4427,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 291
+        MaterialHandle: 0
     - Entity: 13531862612881914952
       TagComponent:
         Name: sponza_153
@@ -4126,6 +4442,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 154
+        MaterialHandle: 0
     - Entity: 13540255113331313011
       TagComponent:
         Name: sponza_101
@@ -4140,6 +4457,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 102
+        MaterialHandle: 0
     - Entity: 13614344958893789674
       TagComponent:
         Name: sponza_77
@@ -4154,6 +4472,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 78
+        MaterialHandle: 0
     - Entity: 13715328296649922165
       TagComponent:
         Name: sponza_340
@@ -4168,6 +4487,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 341
+        MaterialHandle: 0
     - Entity: 13835654920477885096
       TagComponent:
         Name: sponza_76
@@ -4182,6 +4502,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 77
+        MaterialHandle: 0
     - Entity: 13941089774940021757
       TagComponent:
         Name: sponza_376
@@ -4196,6 +4517,22 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 384
+        MaterialHandle: 0
+    - Entity: 13982276565305713242
+      TagComponent:
+        Name: Cerberus00_Fixed
+      TransformComponent:
+        Translation: [-3.04908037, 9.05377579, 13.7863903]
+        Rotation: [1.57081652, 1.42118096, 1.67948001e-05]
+        Scale: [5.00000191, 4.99965382, 4.99959803]
+      RelationshipComponent:
+        Parent: 11606446954685382692
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 17341593868428138334
+        SubmeshIndex: 0
+        MaterialHandle: 0
     - Entity: 13983908671568881898
       TagComponent:
         Name: sponza_146
@@ -4210,6 +4547,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 147
+        MaterialHandle: 0
     - Entity: 14008492995477605316
       TagComponent:
         Name: sponza_302
@@ -4224,6 +4562,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 303
+        MaterialHandle: 0
     - Entity: 14011431908203811862
       TagComponent:
         Name: sponza_129
@@ -4238,6 +4577,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 130
+        MaterialHandle: 0
     - Entity: 14032873165811173658
       TagComponent:
         Name: sponza_287
@@ -4252,6 +4592,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 288
+        MaterialHandle: 0
     - Entity: 14051618422657152388
       TagComponent:
         Name: sponza_222
@@ -4266,6 +4607,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 223
+        MaterialHandle: 0
     - Entity: 14058020889581607383
       TagComponent:
         Name: sponza_32
@@ -4280,6 +4622,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 31
+        MaterialHandle: 0
     - Entity: 14139911459853946823
       TagComponent:
         Name: sponza_15
@@ -4294,6 +4637,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 14
+        MaterialHandle: 0
     - Entity: 14181493858637060442
       TagComponent:
         Name: sponza_280
@@ -4308,6 +4652,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 281
+        MaterialHandle: 0
     - Entity: 14320006276045306778
       TagComponent:
         Name: sponza_109
@@ -4322,6 +4667,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 110
+        MaterialHandle: 0
     - Entity: 14522679806519480232
       TagComponent:
         Name: sponza_291
@@ -4336,6 +4682,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 292
+        MaterialHandle: 0
     - Entity: 14527566070935667903
       TagComponent:
         Name: sponza_175
@@ -4350,6 +4697,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 176
+        MaterialHandle: 0
     - Entity: 14553667539352135901
       TagComponent:
         Name: sponza_208
@@ -4364,6 +4712,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 209
+        MaterialHandle: 0
     - Entity: 14616509685659701023
       TagComponent:
         Name: sponza_88
@@ -4378,6 +4727,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 89
+        MaterialHandle: 0
     - Entity: 14631308894405921758
       TagComponent:
         Name: sponza_82
@@ -4392,6 +4742,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 83
+        MaterialHandle: 0
     - Entity: 14633562638643169608
       TagComponent:
         Name: vasegrp7
@@ -4406,6 +4757,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 2
+        MaterialHandle: 0
     - Entity: 14682225014769488671
       TagComponent:
         Name: sponza_216
@@ -4420,6 +4772,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 217
+        MaterialHandle: 0
     - Entity: 14755484420125535966
       TagComponent:
         Name: sponza_259
@@ -4434,6 +4787,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 260
+        MaterialHandle: 0
     - Entity: 14774434019481256955
       TagComponent:
         Name: sponza_144
@@ -4448,6 +4802,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 145
+        MaterialHandle: 0
     - Entity: 14784555712821258183
       TagComponent:
         Name: sponza_122
@@ -4462,6 +4817,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 123
+        MaterialHandle: 0
     - Entity: 14788922000563343835
       TagComponent:
         Name: sponza_99
@@ -4476,6 +4832,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 100
+        MaterialHandle: 0
     - Entity: 14943969121671438477
       TagComponent:
         Name: sponza_21
@@ -4490,6 +4847,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 20
+        MaterialHandle: 0
     - Entity: 14952266110359470291
       TagComponent:
         Name: sponza_381
@@ -4504,6 +4862,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 391
+        MaterialHandle: 0
     - Entity: 15045171441417587910
       TagComponent:
         Name: sponza_133
@@ -4518,6 +4877,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 134
+        MaterialHandle: 0
     - Entity: 15111284946054338421
       TagComponent:
         Name: sponza_05
@@ -4532,6 +4892,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 4
+        MaterialHandle: 0
     - Entity: 15178525491207874552
       TagComponent:
         Name: sponza_145
@@ -4546,6 +4907,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 146
+        MaterialHandle: 0
     - Entity: 15236777785376174927
       TagComponent:
         Name: sponza_298
@@ -4560,6 +4922,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 299
+        MaterialHandle: 0
     - Entity: 15262142225377572659
       TagComponent:
         Name: sponza_44
@@ -4574,6 +4937,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 43
+        MaterialHandle: 0
     - Entity: 15266394354223244597
       TagComponent:
         Name: sponza_240
@@ -4588,6 +4952,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 241
+        MaterialHandle: 0
     - Entity: 15302321925929760432
       TagComponent:
         Name: sponza_201
@@ -4602,6 +4967,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 202
+        MaterialHandle: 0
     - Entity: 15317448108272105225
       TagComponent:
         Name: sponza_308
@@ -4616,6 +4982,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 309
+        MaterialHandle: 0
     - Entity: 15374731371271559579
       TagComponent:
         Name: sponza_293
@@ -4630,6 +4997,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 294
+        MaterialHandle: 0
     - Entity: 15400133156441409299
       TagComponent:
         Name: sponza_366
@@ -4644,6 +5012,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 367
+        MaterialHandle: 0
     - Entity: 15442132147476768614
       TagComponent:
         Name: sponza_135
@@ -4658,6 +5027,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 136
+        MaterialHandle: 0
     - Entity: 15442744689711862270
       TagComponent:
         Name: sponza_311
@@ -4672,6 +5042,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 312
+        MaterialHandle: 0
     - Entity: 15450640572454718943
       TagComponent:
         Name: sponza_263
@@ -4686,6 +5057,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 264
+        MaterialHandle: 0
     - Entity: 15504139262011052015
       TagComponent:
         Name: sponza_241
@@ -4700,6 +5072,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 242
+        MaterialHandle: 0
     - Entity: 15508540731312146832
       TagComponent:
         Name: sponza_215
@@ -4714,6 +5087,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 216
+        MaterialHandle: 0
     - Entity: 15518536635087674202
       TagComponent:
         Name: sponza_176
@@ -4728,6 +5102,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 177
+        MaterialHandle: 0
     - Entity: 15534231072976775213
       TagComponent:
         Name: sponza.obj
@@ -5142,6 +5517,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 253
+        MaterialHandle: 0
     - Entity: 15703048985751643567
       TagComponent:
         Name: sponza_172
@@ -5156,6 +5532,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 173
+        MaterialHandle: 0
     - Entity: 15723242636023892370
       TagComponent:
         Name: sponza_371
@@ -5170,6 +5547,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 377
+        MaterialHandle: 0
     - Entity: 15823730289980391285
       TagComponent:
         Name: sponza_148
@@ -5184,6 +5562,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 149
+        MaterialHandle: 0
     - Entity: 15862919451835640334
       TagComponent:
         Name: sponza_337
@@ -5198,6 +5577,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 338
+        MaterialHandle: 0
     - Entity: 15888418903577297344
       TagComponent:
         Name: sponza_365
@@ -5212,6 +5592,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 366
+        MaterialHandle: 0
     - Entity: 16148679300095901164
       TagComponent:
         Name: sponza_98
@@ -5226,6 +5607,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 99
+        MaterialHandle: 0
     - Entity: 16179030272509228191
       TagComponent:
         Name: sponza_131
@@ -5240,6 +5622,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 132
+        MaterialHandle: 0
     - Entity: 16269097799444268038
       TagComponent:
         Name: sponza_190
@@ -5254,6 +5637,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 191
+        MaterialHandle: 0
     - Entity: 16295686085226749599
       TagComponent:
         Name: sponza_350
@@ -5268,6 +5652,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 351
+        MaterialHandle: 0
     - Entity: 16344278230937376763
       TagComponent:
         Name: sponza_197
@@ -5282,6 +5667,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 198
+        MaterialHandle: 0
     - Entity: 16347155792460825340
       TagComponent:
         Name: sponza_16
@@ -5296,6 +5682,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 15
+        MaterialHandle: 0
     - Entity: 16360134511176905807
       TagComponent:
         Name: sponza_182
@@ -5310,6 +5697,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 183
+        MaterialHandle: 0
     - Entity: 16411791923556768909
       TagComponent:
         Name: sponza_60
@@ -5324,6 +5712,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 59
+        MaterialHandle: 0
     - Entity: 16444143609010575447
       TagComponent:
         Name: vasegrp6
@@ -5338,6 +5727,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 380
+        MaterialHandle: 0
     - Entity: 16452906015666455702
       TagComponent:
         Name: sponza_113
@@ -5352,6 +5742,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 114
+        MaterialHandle: 0
     - Entity: 16474047148469310175
       TagComponent:
         Name: sponza_205
@@ -5366,6 +5757,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 206
+        MaterialHandle: 0
     - Entity: 16498137758480424116
       TagComponent:
         Name: sponza_364
@@ -5380,6 +5772,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 365
+        MaterialHandle: 0
     - Entity: 16531310406176252577
       TagComponent:
         Name: sponza_243
@@ -5394,6 +5787,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 244
+        MaterialHandle: 0
     - Entity: 16579527134274102250
       TagComponent:
         Name: sponza_359
@@ -5408,6 +5802,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 360
+        MaterialHandle: 0
     - Entity: 16581787651087336790
       TagComponent:
         Name: sponza_227
@@ -5422,6 +5817,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 228
+        MaterialHandle: 0
     - Entity: 16587318230110710480
       TagComponent:
         Name: sponza_305
@@ -5436,6 +5832,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 306
+        MaterialHandle: 0
     - Entity: 16604512985764226863
       TagComponent:
         Name: sponza_78
@@ -5450,6 +5847,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 79
+        MaterialHandle: 0
     - Entity: 16788914539457512760
       TagComponent:
         Name: sponza_106
@@ -5464,6 +5862,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 107
+        MaterialHandle: 0
     - Entity: 16803108522694254812
       TagComponent:
         Name: sponza_96
@@ -5478,6 +5877,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 97
+        MaterialHandle: 0
     - Entity: 16804710895169660217
       TagComponent:
         Name: sponza_14
@@ -5492,6 +5892,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 13
+        MaterialHandle: 0
     - Entity: 16819699539928673683
       TagComponent:
         Name: sponza_158
@@ -5506,6 +5907,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 159
+        MaterialHandle: 0
     - Entity: 16980240676219945558
       TagComponent:
         Name: sponza_87
@@ -5520,6 +5922,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 88
+        MaterialHandle: 0
     - Entity: 16997419082619514294
       TagComponent:
         Name: sponza_300
@@ -5534,6 +5937,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 301
+        MaterialHandle: 0
     - Entity: 17049523407084444444
       TagComponent:
         Name: sponza_207
@@ -5548,6 +5952,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 208
+        MaterialHandle: 0
     - Entity: 17081702812069610713
       TagComponent:
         Name: sponza_184
@@ -5562,6 +5967,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 185
+        MaterialHandle: 0
     - Entity: 17127388204670905922
       TagComponent:
         Name: sponza_380
@@ -5576,6 +5982,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 390
+        MaterialHandle: 0
     - Entity: 17156915638418285097
       TagComponent:
         Name: sponza_251
@@ -5590,6 +5997,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 252
+        MaterialHandle: 0
     - Entity: 17176755906391652325
       TagComponent:
         Name: sponza_25
@@ -5604,6 +6012,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 24
+        MaterialHandle: 0
     - Entity: 17263717969147441938
       TagComponent:
         Name: sponza_312
@@ -5618,6 +6027,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 313
+        MaterialHandle: 0
     - Entity: 17371269721668749679
       TagComponent:
         Name: sponza_322
@@ -5632,6 +6042,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 323
+        MaterialHandle: 0
     - Entity: 17442387152150294645
       TagComponent:
         Name: sponza_368
@@ -5646,6 +6057,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 371
+        MaterialHandle: 0
     - Entity: 17538995166507643626
       TagComponent:
         Name: sponza_18
@@ -5660,6 +6072,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 17
+        MaterialHandle: 0
     - Entity: 17565219102291192518
       TagComponent:
         Name: sponza_169
@@ -5674,6 +6087,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 170
+        MaterialHandle: 0
     - Entity: 17572914243699405882
       TagComponent:
         Name: sponza_103
@@ -5688,6 +6102,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 104
+        MaterialHandle: 0
     - Entity: 17575644553064108868
       TagComponent:
         Name: sponza_173
@@ -5702,6 +6117,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 174
+        MaterialHandle: 0
     - Entity: 17647548541321983046
       TagComponent:
         Name: sponza_228
@@ -5716,6 +6132,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 229
+        MaterialHandle: 0
     - Entity: 17730709862340064741
       TagComponent:
         Name: sponza_320
@@ -5730,6 +6147,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 321
+        MaterialHandle: 0
     - Entity: 17807476669338324996
       TagComponent:
         Name: sponza_164
@@ -5744,6 +6162,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 165
+        MaterialHandle: 0
     - Entity: 17808284245368618419
       TagComponent:
         Name: sponza_196
@@ -5758,6 +6177,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 197
+        MaterialHandle: 0
     - Entity: 17817093266158664668
       TagComponent:
         Name: sponza_237
@@ -5772,6 +6192,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 238
+        MaterialHandle: 0
     - Entity: 17818281450632769442
       TagComponent:
         Name: sponza_250
@@ -5786,6 +6207,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 251
+        MaterialHandle: 0
     - Entity: 17849725562306605609
       TagComponent:
         Name: sponza_314
@@ -5800,6 +6222,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 315
+        MaterialHandle: 0
     - Entity: 17964973739563915056
       TagComponent:
         Name: sponza_161
@@ -5814,6 +6237,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 162
+        MaterialHandle: 0
     - Entity: 18122099580510215739
       TagComponent:
         Name: sponza_355
@@ -5828,6 +6252,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 356
+        MaterialHandle: 0
     - Entity: 18133507601878421187
       TagComponent:
         Name: sponza_160
@@ -5842,6 +6267,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 161
+        MaterialHandle: 0
     - Entity: 18188738561097445023
       TagComponent:
         Name: sponza_166
@@ -5856,6 +6282,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 167
+        MaterialHandle: 0
     - Entity: 18278039310282792746
       TagComponent:
         Name: sponza_358
@@ -5870,6 +6297,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 359
+        MaterialHandle: 0
     - Entity: 18284833713971532719
       TagComponent:
         Name: sponza_324
@@ -5884,6 +6312,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 325
+        MaterialHandle: 0
     - Entity: 18326974598448014781
       TagComponent:
         Name: sponza_171
@@ -5898,6 +6327,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 172
+        MaterialHandle: 0
     - Entity: 18376650482750308181
       TagComponent:
         Name: sponza_253
@@ -5912,6 +6342,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 254
+        MaterialHandle: 0
     - Entity: 18411922619967121411
       TagComponent:
         Name: sponza_218
@@ -5926,6 +6357,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 219
+        MaterialHandle: 0
     - Entity: 18435705246120423203
       TagComponent:
         Name: sponza_296
@@ -5940,6 +6372,7 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 297
+        MaterialHandle: 0
     - Entity: 18443710207002835066
       TagComponent:
         Name: sponza_17
@@ -5954,3 +6387,4 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 16
+        MaterialHandle: 0

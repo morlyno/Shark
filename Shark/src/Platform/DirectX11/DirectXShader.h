@@ -16,6 +16,7 @@ namespace Shark {
 		DirectXShader();
 		virtual ~DirectXShader();
 		void Release();
+		void RT_Release();
 
 		virtual bool Reload(bool forceCompile = false, bool disableOptimization = false) override;
 

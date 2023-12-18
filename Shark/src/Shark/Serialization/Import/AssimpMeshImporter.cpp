@@ -9,6 +9,8 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <assimp/LogStream.hpp>
+#include <assimp/DefaultLogger.hpp>
 
 namespace Shark {
 
@@ -27,7 +29,7 @@ namespace Shark {
 	}
 
 	static unsigned int s_AIProcessFlags =
-//		aiProcess_CalcTangentSpace |
+		aiProcess_CalcTangentSpace |
 		aiProcess_Triangulate |
 		aiProcess_GenNormals |
 		aiProcess_GenUVCoords |
@@ -39,6 +41,7 @@ namespace Shark {
 	AssimpMeshImporter::AssimpMeshImporter(const std::filesystem::path& filepath)
 		: m_Filepath(filepath)
 	{
+
 	}
 
 	Ref<MeshSource> AssimpMeshImporter::ToMeshSourceFromFile()
@@ -79,6 +82,8 @@ namespace Shark {
 					Vertex vertex;
 					vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
 					vertex.Normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+					vertex.Tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+					vertex.Bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
 
 					if (mesh->HasTextureCoords(0))
 						vertex.Texcoord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
@@ -103,12 +108,15 @@ namespace Shark {
 
 		if (scene->HasMaterials())
 		{
+			Ref<MaterialAsset> materialAsset = Ref<MaterialAsset>::Create();
 			meshSource->m_Materials.reserve(scene->mNumMaterials);
 			for (uint32_t i = 0; i < scene->mNumMaterials; i++)
 			{
 				auto aiMaterial = scene->mMaterials[i];
 				Ref<Material> material = Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR"), aiMaterial->GetName().C_Str());
 				meshSource->m_Materials.push_back(material);
+				materialAsset->SetMaterial(material);
+				materialAsset->SetDefault();
 
 				glm::vec3 albedoColor(0.8f);
 				float emission = 0.0f;
@@ -126,10 +134,10 @@ namespace Shark {
 				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
 					metalness = 0.0f;
 
-				material->Set("u_PBR.Albedo", albedoColor);
-				material->Set("u_PBR.Metallic", metalness);
-				material->Set("u_PBR.Roughness", roughness);
-				material->Set("u_PBR.AO", 0.0f);
+				material->Set("u_MaterialUniforms.Albedo", albedoColor);
+				material->Set("u_MaterialUniforms.Metalness", metalness);
+				material->Set("u_MaterialUniforms.Roughness", roughness);
+				material->Set("u_MaterialUniforms.AmbientOcclusion", 0.0f);
 
 				aiString aiTexPath;
 				bool hasAlbedo = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS;
@@ -137,6 +145,7 @@ namespace Shark {
 				{
 					AssetHandle textureHandle = 0;
 					TextureSpecification specification;
+					specification.GenerateMips = true;
 					specification.DebugName = aiTexPath.C_Str();
 
 					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
@@ -164,14 +173,129 @@ namespace Shark {
 					if (hasAlbedo)
 					{
 						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
-						material->Set("u_Albedo", texture);
+						material->Set("u_AlbedoMap", texture);
 					}
 				}
 
-				if (!hasAlbedo)
+				//if (!hasAlbedo)
+				//{
+				//	material->Set("u_AlbedoMap", Renderer::GetWhiteTexture());
+				//}
+
+				bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == aiReturn_SUCCESS;
+				if (hasNormalMap)
 				{
-					material->Set("u_Albedo", Renderer::GetWhiteTexture());
+					AssetHandle textureHandle = AssetHandle::Invalid;
+					TextureSpecification specification;
+					specification.GenerateMips = true;
+					specification.DebugName = aiTexPath.C_Str();
+
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
+					{
+						specification.Format = ImageFormat::RGBA8;
+						specification.Width = aiTexEmbedded->mWidth;
+						specification.Height = aiTexEmbedded->mHeight;
+						textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) });
+					}
+					else
+					{
+						auto texturePath = m_Filepath.parent_path() / aiTexPath.C_Str();
+						Ref<TextureSource> textureSource = TextureImporter::ToTextureSourceFromFile(texturePath);
+						if (textureSource)
+						{
+							textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, textureSource);
+						}
+						else
+						{
+							SK_CORE_ERROR("Failed to load NormalMap: {}", aiTexPath.C_Str());
+							hasNormalMap = false;
+						}
+					}
+
+					if (hasNormalMap)
+					{
+						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
+						material->Set("u_NormalMap", texture);
+						material->Set("u_MaterialUniforms.UsingNormalMap", true);
+					}
 				}
+
+				bool hasMetalnessMap = aiMaterial->GetTexture(aiTextureType_METALNESS, 0, &aiTexPath) == aiReturn_SUCCESS;
+				if (hasMetalnessMap)
+				{
+					AssetHandle textureHandle = AssetHandle::Invalid;
+					TextureSpecification specification;
+					specification.GenerateMips = true;
+					specification.DebugName = aiTexPath.C_Str();
+
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
+					{
+						specification.Format = ImageFormat::RGBA8;
+						specification.Width = aiTexEmbedded->mWidth;
+						specification.Height = aiTexEmbedded->mHeight;
+						textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) });
+					}
+					else
+					{
+						auto texturePath = m_Filepath.parent_path() / aiTexPath.C_Str();
+						Ref<TextureSource> textureSource = TextureImporter::ToTextureSourceFromFile(texturePath);
+						if (textureSource)
+						{
+							textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, textureSource);
+						}
+						else
+						{
+							SK_CORE_ERROR("Failed to load MetalnessMap: {}", aiTexPath.C_Str());
+							hasMetalnessMap = false;
+						}
+					}
+
+					if (hasMetalnessMap)
+					{
+						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
+						material->Set("u_MetalnessMap", texture);
+					}
+				}
+				
+				bool hasRoughnessMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &aiTexPath) == aiReturn_SUCCESS;
+				if (hasRoughnessMap)
+				{
+					AssetHandle textureHandle = AssetHandle::Invalid;
+					TextureSpecification specification;
+					specification.GenerateMips = true;
+					specification.DebugName = aiTexPath.C_Str();
+
+					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
+					{
+						specification.Format = ImageFormat::RGBA8;
+						specification.Width = aiTexEmbedded->mWidth;
+						specification.Height = aiTexEmbedded->mHeight;
+						textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) });
+					}
+					else
+					{
+						auto texturePath = m_Filepath.parent_path() / aiTexPath.C_Str();
+						Ref<TextureSource> textureSource = TextureImporter::ToTextureSourceFromFile(texturePath);
+						if (textureSource)
+						{
+							textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, textureSource);
+						}
+						else
+						{
+							SK_CORE_ERROR("Failed to load RoughnessMap: {}", aiTexPath.C_Str());
+							hasRoughnessMap = false;
+						}
+					}
+
+					if (hasRoughnessMap)
+					{
+						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
+						material->Set("u_RoughnessMap", texture);
+					}
+				}
+
+
+
 			}
 		}
 

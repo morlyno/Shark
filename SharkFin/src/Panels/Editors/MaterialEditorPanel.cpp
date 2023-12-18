@@ -36,7 +36,7 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
-		m_Camera.OnUpdate(ts, m_ViewportHovered || m_ViewportFocused);
+		m_Camera.OnUpdate(ts, m_ViewportHovered/* || m_ViewportFocused*/);
 		m_Scene->OnRender(m_Renderer, m_Camera.GetViewProjection(), m_Camera.GetPosition());
 	}
 
@@ -195,7 +195,7 @@ namespace Shark {
 		m_Scene->SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
 
-		AssetHandle sphereSourceHandle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Sphere.gltf");
+		AssetHandle sphereSourceHandle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
 		Ref<MeshSource> sphereSource = AssetManager::GetAsset<MeshSource>(sphereSourceHandle);
 		m_Sphere = AssetManager::CreateMemoryAsset<Mesh>(sphereSource);
 		Ref<Mesh> sphere = AssetManager::GetAsset<Mesh>(m_Sphere);
@@ -207,9 +207,9 @@ namespace Shark {
 		mc.SubmeshIndex = 0;
 
 		Entity lightEntity = m_Scene->CreateEntity("Light");
-		lightEntity.Transform().Translation = { -4.0f, 3.0f, -2.0f };
+		lightEntity.Transform().Translation = { -4.0f, 3.0f, -4.0f };
 		auto& pl = lightEntity.AddComponent<PointLightComponent>();
-		pl.Intensity = 10.0f;
+		pl.Intensity = 50.0f;
 	}
 
 	void MaterialEditorPanel::SetupWindows()
@@ -252,33 +252,115 @@ namespace Shark {
 
 		UI::ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly, m_Readonly);
 
+		const ImVec2 textureSize = { 64, 64 };
+
 		UI::TextF("Shader: {}", m_Material->GetMaterial()->GetShader()->GetName());
+		UI::TextF("Name: {}", m_Material->GetMaterial()->GetName());
 
-		if (ImGui::TreeNodeEx("Albedo", ImGuiTreeNodeFlags_DefaultOpen | UI::DefaultHeaderFlags))
+		if (ImGui::CollapsingHeader("Albedo", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			UI::BeginControlsGrid();
-			UI::ControlColor("Color", m_Material->GetAlbedoColor());
+			bool hasTexture = true;
+			Ref<Texture2D> displayTexture = m_Material->GetAlbedoMap();
+			SK_CORE_ASSERT(displayTexture);
+			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
+			{
+				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
+				displayTexture = AssetManager::GetAsset<Texture2D>(handle);
+				hasTexture = false;
+			}
 
-			Ref<Texture2D> albedoMap = m_Material->GetAlbedoMap();
-			if (UI::ControlAsset("Texture", albedoMap))
-				m_Material->SetAlbedoMap(albedoMap);
+			if (UI::TextureEdit(displayTexture, textureSize, hasTexture))
+			{
+				if (displayTexture)
+					m_Material->SetAlbedoMap(displayTexture);
+				else
+					m_Material->ClearAlbedoMap();
+			}
 
-			bool usingAlbedoMap = m_Material->UsingAlbedoMap();
-			if (UI::Control("Enable", usingAlbedoMap))
-				m_Material->SetUsingAlbedoMap(usingAlbedoMap);
-
-			UI::EndControls();
-			ImGui::TreePop();
+			ImGui::SameLine();
+			ImGui::ColorEdit3("Color", glm::value_ptr(m_Material->GetAlbedoColor()), ImGuiColorEditFlags_NoInputs);
 		}
 
-		if (ImGui::TreeNodeEx("PBR", ImGuiTreeNodeFlags_DefaultOpen | UI::DefaultHeaderFlags))
+		if (ImGui::CollapsingHeader("Normal", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			bool hasTexture = true;
+			Ref<Texture2D> displayTexture = m_Material->GetNormalMap();
+			SK_CORE_ASSERT(displayTexture);
+			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
+			{
+				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
+				displayTexture = AssetManager::GetAsset<Texture2D>(handle);
+				hasTexture = false;
+			}
+
+			if (UI::TextureEdit(displayTexture, textureSize, hasTexture))
+			{
+				if (displayTexture)
+					m_Material->SetNormalMap(displayTexture);
+				else
+					m_Material->ClearNormalMap();
+			}
+
+			ImGui::SameLine();
+
+			bool usingNormalMap = m_Material->IsUsingNormalMap();
+			if (ImGui::Checkbox("Enable", &usingNormalMap))
+				m_Material->SetUsingNormalMap(usingNormalMap);
+		}
+
+		if (ImGui::CollapsingHeader("Metalness", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			bool hasTexture = true;
+			Ref<Texture2D> displayTexture = m_Material->GetMetalnessMap();
+			SK_CORE_ASSERT(displayTexture);
+			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
+			{
+				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
+				displayTexture = AssetManager::GetAsset<Texture2D>(handle);
+				hasTexture = false;
+			}
+
+			if (UI::TextureEdit(displayTexture, textureSize, hasTexture))
+			{
+				if (displayTexture)
+					m_Material->SetMetalnessMap(displayTexture);
+				else
+					m_Material->ClearMetalnessMap();
+			}
+
+			ImGui::SameLine();
+			ImGui::SliderFloat("Metalness Value", &m_Material->GetMetalness(), 0.0f, 1.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Roughness", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			bool hasTexture = true;
+			Ref<Texture2D> displayTexture = m_Material->GetRoughnessMap();
+			SK_CORE_ASSERT(displayTexture);
+			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
+			{
+				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
+				displayTexture = AssetManager::GetAsset<Texture2D>(handle);
+				hasTexture = false;
+			}
+
+			if (UI::TextureEdit(displayTexture, textureSize, hasTexture))
+			{
+				if (displayTexture)
+					m_Material->SetRoughnessMap(displayTexture);
+				else
+					m_Material->ClearRoughnessMap();
+			}
+
+			ImGui::SameLine();
+			ImGui::SliderFloat("Roughness Value", &m_Material->GetRoughness(), 0.0f, 1.0f);
+		}
+
+		if (ImGui::CollapsingHeader("PBR", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Metallic", m_Material->GetMetallic(), 0.05f, 0.0f, 1.0f);
-			UI::Control("Roughness", m_Material->GetRoughness(), 0.05f, 0.0f, 1.0f);
-			UI::Control("AO", m_Material->GetAmbientOcclusion(), 0.05f, 0.0f, 1.0f);
+			UI::Control("AmbientOcclusion", m_Material->GetAmbientOcclusion(), 0.005f, 0.0f, 1.0f);
 			UI::EndControls();
-			ImGui::TreePop();
 		}
 
 	}

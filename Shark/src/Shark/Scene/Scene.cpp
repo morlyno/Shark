@@ -370,7 +370,7 @@ namespace Shark {
 				Entity entity{ ent, this };
 				TransformComponent worldTransform = GetWorldSpaceTransform(entity);
 				const auto& pointLight = entity.GetComponent<PointLightComponent>();
-				renderer->SubmitPointLight(worldTransform.Translation, pointLight.Color, pointLight.Intensity);
+				renderer->SubmitPointLight(worldTransform.Translation, pointLight.Color, pointLight.Intensity, pointLight.Radiance);
 			}
 		}
 
@@ -973,17 +973,15 @@ namespace Shark {
 			if (AssetManager::IsValidAssetHandle(component.MeshHandle))
 			{
 				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(component.MeshHandle);
-
-#if SK_ENABLE_ASSERT && 0
-				const auto& submesh = mesh->GetMeshSource()->GetSubmeshes()[component.SubmeshIndex];
-				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-				Ref<MaterialAsset> materialAsset = materialTable->HasMaterial(submesh.MaterialIndex) ?
-					                               materialTable->GetMaterial(submesh.MaterialIndex) :
-					                               mesh->GetMeshSource()->GetMaterialTable()->GetMaterial(submesh.MaterialIndex);
-				SK_CORE_ASSERT(!materialAsset->IsDirty());
-#endif
-
-				renderer->SubmitMesh(transform, mesh, component.SubmeshIndex, (int)entity.GetHandle());
+				if (AssetManager::IsValidAssetHandle(component.MaterialHandle))
+				{
+					Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(component.MaterialHandle);
+					renderer->SubmitMesh(transform, mesh, component.SubmeshIndex, material->GetMaterial(), (int)entity.GetHandle());
+				}
+				else
+				{
+					renderer->SubmitMesh(transform, mesh, component.SubmeshIndex, (int)entity.GetHandle());
+				}
 			}
 		}
 

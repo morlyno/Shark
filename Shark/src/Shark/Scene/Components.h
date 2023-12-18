@@ -109,13 +109,14 @@ namespace Shark {
 	{
 		AssetHandle MeshHandle;
 		uint32_t SubmeshIndex;
-		// TODO(moro): maybe add material
+		AssetHandle MaterialHandle;
 	};
 
 	struct PointLightComponent
 	{
 		glm::vec4 Color = glm::vec4(1.0f);
 		float Intensity = 1.0f;
+		glm::vec3 Radiance = glm::vec3{ 1.0f };
 	};
 
 	struct CameraComponent

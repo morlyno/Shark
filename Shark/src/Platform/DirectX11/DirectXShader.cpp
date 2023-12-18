@@ -40,14 +40,29 @@ namespace Shark {
 		m_VertexShader = nullptr;
 	}
 
+	void DirectXShader::RT_Release()
+	{
+		if (m_PixelShader)
+		{
+			m_PixelShader->Release();
+			m_PixelShader = nullptr;
+		}
+
+		if (m_VertexShader)
+		{
+			m_VertexShader->Release();
+			m_VertexShader = nullptr;
+		}
+	}
+
 	bool DirectXShader::Reload(bool forceCompile, bool disableOptimization)
 	{
 		Ref<DirectXShaderCompiler> compiler = Ref<DirectXShaderCompiler>::Create(m_FilePath, disableOptimization);
 		if (!compiler->Reload(forceCompile))
 			return false;
 
-		Release();
 		LoadShader(compiler->GetShaderBinary());
+		SetReflectionData(compiler->GetRefectionData());
 		return true;
 	}
 
@@ -63,6 +78,8 @@ namespace Shark {
 		{
 			auto renderer = DirectXRenderer::Get();
 			auto device = renderer->GetDevice();
+
+			instance->RT_Release();
 
 			for (const auto& [stage, binary] : instance->m_ShaderBinary)
 			{

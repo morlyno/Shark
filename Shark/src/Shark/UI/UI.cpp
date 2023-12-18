@@ -52,7 +52,7 @@ namespace ImGui {
 
 namespace Shark::UI {
 
-	namespace Utils {
+	namespace utils {
 
 		static void GridSeparator()
 		{
@@ -74,6 +74,22 @@ namespace Shark::UI {
 
 			const ImRect bb(ImVec2(x1, window->DC.CursorPos.y), ImVec2(x2, window->DC.CursorPos.y + thickness_draw));
 			window->DrawList->AddLine(bb.Min, ImVec2(bb.Max.x, bb.Min.y), ImGui::GetColorU32(ImGuiCol_Separator));
+		}
+
+		static bool OverlappButton(const char* label, const ImVec2& buttonSize = { 0, 0 })
+		{
+			ImGui::BeginChild(UI::GenerateID(), buttonSize);
+			const bool pressed = ImGui::ButtonEx("x", buttonSize);
+			ImGui::EndChild();
+			return pressed;
+		}
+
+		static bool OverlappButtonKeepLastItemData(const char* label, const ImVec2& buttonSize = { 0, 0 })
+		{
+			ImGuiLastItemData lastItemData = GImGui->LastItemData;
+			const bool pressed = OverlappButton(label, buttonSize);
+			GImGui->LastItemData = lastItemData;
+			return pressed;
 		}
 
 	}
@@ -242,13 +258,13 @@ namespace Shark::UI {
 		if (grid & GridFlag::Label)
 		{
 			ImGui::TableSetColumnIndex(0);
-			Utils::GridSeparator();
+			utils::GridSeparator();
 		}
 		
 		if (grid & GridFlag::Widget)
 		{
 			ImGui::TableSetColumnIndex(1);
-			Utils::GridSeparator();
+			utils::GridSeparator();
 		}
 
 		ImGui::TableNextRow();
@@ -1180,17 +1196,11 @@ namespace Shark::UI {
 		MoveCursorX(-buttonSize);
 
 		ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-		ScopedColorStack colors(
-			ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
-			ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
-			ImGuiCol_ButtonHovered, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f }
-		);
+		ScopedColorStack colors(ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
+								ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
+								ImGuiCol_ButtonHovered, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f });
 
-		ImGuiLastItemData lastItemData = GImGui->LastItemData;
-		ImGui::BeginChild(id, ImVec2(buttonSize, buttonSize));
-		const bool clear = ImGui::Button("x", { buttonSize, buttonSize });
-		ImGui::EndChild();
-		GImGui->LastItemData = lastItemData;
+		const bool clear = utils::OverlappButtonKeepLastItemData("x", { buttonSize, buttonSize });
 
 		if (clear)
 		{
@@ -1285,6 +1295,43 @@ namespace Shark::UI {
 		GContext->ImGuiLayer->AddTexture(texture);
 		ImGui::Image(texture->GetViewID(), size, uv0, uv1, tint_col, border_col);
 		GContext->ImGuiLayer->BindFontSampler();
+	}
+
+	bool TextureEdit(Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		bool changed = false;
+		Ref<Texture2D> displayTexture = texture;
+
+		if (clearButton)
+		{
+			const ImVec2 cursorPosition = ImGui::GetCursorPos();
+			UI::MoveCursorX(glm::max(size.x - ImGui::GetFontSize(), 0.0f));
+			{
+				UI::ScopedStyle noFramePadding(ImGuiStyleVar_FramePadding, { 0.0f, 0.0f });
+				UI::ScopedStyle noBorder(ImGuiStyleVar_FrameBorderSize, 0);
+				UI::ScopedColorStack colorStack(ImGuiCol_Button, Theme::Colors::ButtonNoBg,
+												ImGuiCol_ButtonActive, Theme::Colors::ButtonActiveNoBg,
+												ImGuiCol_ButtonHovered, Theme::Colors::ButtonHoveredNoBg,
+												ImGuiCol_Text, ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f });
+
+				const float buttonSize = ImGui::GetFontSize();
+				if (utils::OverlappButtonKeepLastItemData("x", { buttonSize, buttonSize }))
+				{
+					texture = nullptr;
+					changed = true;
+				}
+			}
+			ImGui::SetCursorPos(cursorPosition);
+		}
+
+		Texture(displayTexture, size, uv0, uv1, tint_col, border_col);
+		DragDropTargetAsset<Texture2D>(ImGuiDragDropFlags_AcceptNoDrawDefaultRect, [&texture, &changed](Ref<Texture2D> dragDropTexture)
+		{
+			texture = dragDropTexture;
+			changed = true;
+		});
+
+		return changed;
 	}
 
 }

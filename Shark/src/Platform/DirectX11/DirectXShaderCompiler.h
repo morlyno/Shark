@@ -35,6 +35,7 @@ namespace Shark {
 
 		const std::filesystem::path& GetShaderSourcePath() const { return m_ShaderSourcePath; }
 		const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& GetShaderBinary() const { return m_ShaderBinary; }
+		const ShaderReflectionData& GetRefectionData() const { return m_ReflectionData; }
 
 	public:
 		static Ref<Shader> Compile(const std::filesystem::path& shaderSourcePath, bool forceCompile = false, bool disableOptimization = false);

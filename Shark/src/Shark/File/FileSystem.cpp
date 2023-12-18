@@ -324,6 +324,11 @@ namespace Shark {
 		return temp;
 	}
 
+	std::string FileSystem::GetStemString(const std::filesystem::path& path)
+	{
+		return path.stem().string();
+	}
+
 	std::string ToString(filewatch::Event event)
 	{
 		return filewatch::event_to_string(event);

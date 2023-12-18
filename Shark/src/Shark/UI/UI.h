@@ -9,6 +9,7 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <misc/cpp/imgui_stdlib.h>
 #include <glm/glm.hpp>
 #include <stack>
 
@@ -289,6 +290,22 @@ namespace Shark::UI {
 	bool InputPath(const char* label, char* buffer, int bufferSize);
 
 	void Texture(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
+	bool TextureEdit(Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
+
+	template<typename TAsset, typename TFunc>
+	void DragDropTargetAsset(ImGuiDragDropFlags flags, const TFunc& func)
+	{
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DragDropID::Asset, flags);
+			if (payload)
+			{
+				AssetHandle handle = GetPayloadDataAs<AssetHandle>(payload);
+				func(AssetManager::GetAsset<TAsset>(handle));
+			}
+			ImGui::EndDragDropTarget();
+		}
+	}
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Types //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

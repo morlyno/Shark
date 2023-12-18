@@ -15,7 +15,7 @@ namespace Shark {
 		
 		static std::filesystem::path GetFilesystemKey(const std::filesystem::path& path)
 		{
-			return std::filesystem::canonical(path).lexically_normal();
+			return std::filesystem::absolute(path).lexically_normal();
 		}
 
 	}
@@ -333,6 +333,9 @@ namespace Shark {
 
 	AssetHandle EditorAssetManager::GetEditorAsset(const std::filesystem::path& filepath)
 	{
+		// TODO(moro): handle non existing file
+		SK_CORE_VERIFY(FileSystem::Exists(filepath));
+
 		const auto key = utils::GetFilesystemKey(filepath);
 		if (!m_EditorAssets.contains(key))
 			m_EditorAssets[key] = AssetHandle::Generate();
@@ -446,6 +449,10 @@ namespace Shark {
 		AssetType Type;
 		std::filesystem::path FilePath;
 
+		ImportedAssetsEntry() = default;
+		ImportedAssetsEntry(const AssetMetaData& metadata)
+			: Handle(metadata.Handle), Type(metadata.Type), FilePath(metadata.FilePath) {}
+
 		bool operator<(const ImportedAssetsEntry& rhs) const
 		{
 			if (Type == rhs.Type)
@@ -467,19 +474,27 @@ namespace Shark {
 		const auto filepath = project->GetDirectory() / "ImportedAssets.yaml";
 
 		std::set<ImportedAssetsEntry> sortedAssets;
+		std::set<ImportedAssetsEntry> editorAssets;
 
 		for (const auto& [handle, metadata] : m_ImportedAssets)
 		{
-			if (!metadata.IsValid() || metadata.IsMemoryAsset || metadata.IsEditorAsset || !HasExistingFilePath(metadata))
+			if (!metadata.IsValid() || metadata.IsMemoryAsset || !HasExistingFilePath(metadata))
 				continue;
 
-			sortedAssets.emplace(ImportedAssetsEntry{ metadata.Handle, metadata.Type, metadata.FilePath });
+			if (metadata.IsEditorAsset)
+			{
+				editorAssets.emplace(metadata);
+				continue;
+			}
+
+			sortedAssets.emplace(metadata);
 		}
 
 		YAML::Emitter out;
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "ImportedAssets" << YAML::Value << YAML::Node(sortedAssets);
+		out << YAML::Key << "EditorAssets" << YAML::Value << YAML::Node(editorAssets);
 		out << YAML::EndMap;
 
 		if (!FileSystem::WriteString(filepath, out.c_str()))
@@ -505,20 +520,13 @@ namespace Shark {
 		std::string filedata = FileSystem::ReadString(filepath);
 		YAML::Node fileNode = YAML::Load(filedata);
 
-		if (!fileNode["ImportedAssets"] && !fileNode["Assets"])
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Invalid Imported Assets file!\n\tFailed to find root (ImportedAssets).\n\tFile: {}", filepath);
-			return;
-		}
-
 		m_ImportedAssets.clear();
 
 		auto assetsNode = fileNode["ImportedAssets"];
 		if (!assetsNode)
 		{
-			assetsNode = fileNode["Assets"];
-			SK_CORE_WARN_TAG("Serialization", "ImportedAssets.yaml uses the old root name (Assets).\n\t"
-							                  "If this waring shows again please changed the root name manually from \"Assets\" to \"ImportedAssets\".");
+			SK_CORE_ERROR_TAG("Serialization", "Failed to find ImportedAssets root node in ImportedAssets.yaml");
+			return;
 		}
 
 		for (auto entryNode : assetsNode)
@@ -533,7 +541,32 @@ namespace Shark {
 			if (!HasExistingFilePath(metadata))
 				continue;
 
+			SK_CORE_VERIFY(m_ImportedAssets.contains(metadata.Handle) == false);
 			m_ImportedAssets[metadata.Handle] = metadata;
+		}
+
+		auto editorAssetsNode = fileNode["EditorAssets"];
+		if (!editorAssetsNode)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Failed to find EditorAssets root node im ImportedAssets.yaml");
+			return;
+		}
+
+		for (auto entryNode : editorAssetsNode)
+		{
+			auto entry = entryNode.as<ImportedAssetsEntry>();
+			AssetMetaData metadata;
+			metadata.Handle = entry.Handle;
+			metadata.Type = entry.Type;
+			metadata.FilePath = entry.FilePath;
+			metadata.IsEditorAsset = true;
+
+			if (!FileSystem::Exists(metadata.FilePath))
+				continue;
+
+			SK_CORE_VERIFY(m_ImportedAssets.contains(metadata.Handle) == false);
+			m_ImportedAssets[metadata.Handle] = metadata;
+			m_EditorAssets[utils::GetFilesystemKey(metadata.FilePath)] = metadata.Handle;
 		}
 	}
 

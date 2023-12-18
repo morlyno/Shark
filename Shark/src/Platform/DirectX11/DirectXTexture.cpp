@@ -230,64 +230,6 @@ namespace Shark {
 		});
 	}
 
-#pragma region Texture Array
-
-	DirectXTexture2DArray::DirectXTexture2DArray(uint32_t count, uint32_t startOffset)
-		: m_Count(count), m_StartOffset(startOffset)
-	{
-		m_TextureArray.resize(count, nullptr);
-		m_Views.resize(count, nullptr);
-		m_Samplers.resize(count, nullptr);
-	}
-
-	void DirectXTexture2DArray::Set(uint32_t index, Ref<Texture2D> texture)
-	{
-		SetTexture(index, texture.As<DirectXTexture2D>());
-	}
-
-	Ref<Texture2D> DirectXTexture2DArray::Get(uint32_t index) const
-	{
-		SK_CORE_VERIFY(index < m_Count, "Index out of range");
-		return m_TextureArray[index];
-	}
-
-	void DirectXTexture2DArray::RT_Set(uint32_t index, Ref<Texture2D> texture)
-	{
-		RT_SetTexture(index, texture.As<DirectXTexture2D>());
-	}
-
-	void DirectXTexture2DArray::SetTexture(uint32_t index, Ref<DirectXTexture2D> texture)
-	{
-		SK_CORE_VERIFY(index < m_Count, "Index out of range");
-
-		Ref<DirectXTexture2DArray> instance = this;
-		Renderer::Submit([instance, index, texture]()
-		{
-			instance->RT_SetTexture(index, texture);
-		});
-	}
-
-	void DirectXTexture2DArray::RT_SetTexture(uint32_t index, Ref<DirectXTexture2D> texture)
-	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-		SK_CORE_VERIFY(index < m_Count, "Index out of range");
-
-		if (texture)
-		{
-			m_TextureArray[index] = texture;
-			m_Views[index] = texture->GetViewNative();
-			m_Samplers[index] = texture->GetSamplerNative();
-		}
-		else
-		{
-			m_TextureArray[index] = nullptr;
-			m_Views[index] = nullptr;
-			m_Samplers[index] = nullptr;
-		}
-	}
-
-#pragma endregion
-
 	DirectXSamplerWrapper::DirectXSamplerWrapper(const SamplerSpecification& spec)
 	{
 		CreateSampler(spec);

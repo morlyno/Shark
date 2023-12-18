@@ -7,6 +7,7 @@ namespace Shark {
 	class MaterialAsset : public Asset
 	{
 	public:
+		MaterialAsset() = default;
 		MaterialAsset(Ref<Material> material);
 		~MaterialAsset();
 
@@ -16,8 +17,8 @@ namespace Shark {
 		glm::vec3& GetAlbedoColor();
 		void SetAlbedoColor(const glm::vec3& color);
 
-		float& GetMetallic();
-		void SetMetallic(float value);
+		float& GetMetalness();
+		void SetMetalness(float value);
 
 		float& GetRoughness();
 		void SetRoughness(float value);
@@ -27,14 +28,27 @@ namespace Shark {
 
 		Ref<Texture2D> GetAlbedoMap();
 		void SetAlbedoMap(Ref<Texture2D> texture);
-		bool UsingAlbedoMap();
-		void SetUsingAlbedoMap(bool value);
 		void ClearAlbedoMap();
-	private:
+
+		Ref<Texture2D> GetNormalMap();
+		void SetNormalMap(Ref<Texture2D> texture);
+		bool IsUsingNormalMap();
+		void SetUsingNormalMap(bool value);
+		void ClearNormalMap();
+
+		Ref<Texture2D> GetMetalnessMap();
+		void SetMetalnessMap(Ref<Texture2D> texture);
+		void ClearMetalnessMap();
+		
+		Ref<Texture2D> GetRoughnessMap();
+		void SetRoughnessMap(Ref<Texture2D> texture);
+		void ClearRoughnessMap();
+
 		void SetDefault();
 	public:
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 		static AssetType GetStaticType() { return AssetType::Material; }
+		static Ref<MaterialAsset> Create() { return Ref<MaterialAsset>::Create(); }
 		static Ref<MaterialAsset> Create(Ref<Material> material) { return Ref<MaterialAsset>::Create(material); }
 	private:
 		Ref<Material> m_Material;
