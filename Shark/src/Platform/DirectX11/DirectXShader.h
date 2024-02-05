@@ -26,6 +26,12 @@ namespace Shark {
 		const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& GetShaderBinaries() const { return m_ShaderBinary; }
 		const ShaderReflectionData& GetReflectionData() const { return m_RefelctionData; }
 
+		bool HasResourceInfo(const std::string& name) const;
+		const ShaderReflection::Resource& GetResourceInfo(const std::string& name) const;
+
+		bool HasBufferInfo(const std::string& name) const;
+		const ShaderReflection::ConstantBuffer& GetBufferInfo(const std::string& name) const;
+
 	private:
 		void LoadShader(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& shaderBinary);
 		void SetReflectionData(const ShaderReflectionData& reflectionData) { m_RefelctionData = reflectionData; }
@@ -33,7 +39,8 @@ namespace Shark {
 	private:
 		ID3D11PixelShader* m_PixelShader = nullptr;
 		ID3D11VertexShader* m_VertexShader = nullptr;
-		
+		ID3D11ComputeShader* m_ComputeShader = nullptr;
+
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>> m_ShaderBinary;
 		ShaderReflectionData m_RefelctionData;
 		std::filesystem::path m_FilePath;

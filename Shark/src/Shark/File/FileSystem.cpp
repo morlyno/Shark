@@ -104,7 +104,10 @@ namespace Shark {
 
 		uint64_t streamSize = (uint64_t)stream.tellg();
 		if (!streamSize)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to ReadBinary from file: {}\n\t Error: {}", filePath, strerror(errno));
 			return Buffer{};
+		}
 
 		stream.seekg(0, std::ios::beg);
 
@@ -118,7 +121,10 @@ namespace Shark {
 	{
 		std::ifstream stream(GetFilesystemPath(filePath));
 		if (!stream)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to ReadString from file: {}\n\t Error: {}", filePath, strerror(errno));
 			return std::string{};
+		}
 
 		std::stringstream strStream;
 		strStream << stream.rdbuf();
@@ -135,7 +141,10 @@ namespace Shark {
 
 		std::ofstream stream(filesystemPath, std::ios::binary);
 		if (!stream)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to WriteBinary to file: {}\n\t Error: {}", filePath, strerror(errno));
 			return false;
+		}
 
 		stream.write(fileData.As<const char>(), fileData.Size);
 		stream.close();
@@ -152,7 +161,10 @@ namespace Shark {
 
 		std::ofstream stream(filesystemPath);
 		if (!stream)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to WriteString to file: {}\n\t Error: {}", filePath, strerror(errno));
 			return false;
+		}
 
 		stream.write(fileData.data(), fileData.size());
 		stream.close();
@@ -261,7 +273,7 @@ namespace Shark {
 		bool created = std::filesystem::create_directories(fsPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directories! {}\n\t{}", fsPath);
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directories! {}\n\t{}", fsPath, error.message());
 			throw std::filesystem::filesystem_error("create_directories", fsPath, error);
 		}
 
@@ -276,13 +288,38 @@ namespace Shark {
 		bool created = std::filesystem::create_directories(fsPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directories! {}\n\t{}", fsPath);
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directories! {}\n\t{}", fsPath, error.message());
 			errorMsg = error.message();
 			return created;
 		}
 
 		errorMsg.clear();
 		return created;
+	}
+
+	void FileSystem::Rename(const std::filesystem::path& oldName, const std::filesystem::path& newName)
+	{
+		std::error_code error;
+		std::filesystem::rename(oldName, newName, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", oldName, newName, error.message());
+			throw std::filesystem::filesystem_error("rename", oldName, newName, error);
+		}
+	}
+
+	void FileSystem::Rename(const std::filesystem::path& oldName, const std::filesystem::path& newName, std::string& errorMsg)
+	{
+		std::error_code error;
+		std::filesystem::rename(oldName, newName, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", oldName, newName, error.message());
+			errorMsg = error.message();
+			return;
+		}
+
+		errorMsg.clear();
 	}
 
 	void FileSystem::TruncateFile(const std::filesystem::path& filepath)

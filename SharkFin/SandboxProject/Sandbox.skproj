@@ -1,7 +1,7 @@
 Project:
   Name: Sandbox
   Assets: Assets
-  StartupScene: 16122348304492417535
+  StartupScene: 13757110640731467433
   ScriptModulePath: Binaries/Sandbox.dll
   Physics:
     Gravity: [0, -9.81000042]

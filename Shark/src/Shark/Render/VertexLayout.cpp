@@ -15,6 +15,20 @@ namespace Shark {
 		CalcOffsetAndSize();
 	}
 
+	VertexLayout::VertexLayout(const VertexElement& element)
+	{
+		Add(element);
+		CalcOffsetAndSize();
+	}
+
+	VertexLayout& VertexLayout::operator=(const VertexElement& other)
+	{
+		m_Elements.clear();
+		Add(other);
+		CalcOffsetAndSize();
+		return *this;
+	}
+
 	void VertexLayout::Add(const VertexElement& element)
 	{
 		m_Elements.emplace_back(element);

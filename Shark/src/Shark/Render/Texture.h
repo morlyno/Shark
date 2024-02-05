@@ -131,4 +131,18 @@ namespace Shark {
 		static Ref<SamplerWrapper> Create(const SamplerSpecification& spec);
 	};
 
+
+	class TextureCube : public RefCount
+	{
+	public:
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
+
+		virtual Ref<Image2D> GetImage() const = 0;
+		virtual Ref<SamplerWrapper> GetSampler() const = 0;
+
+	public:
+		static Ref<TextureCube> Create(const TextureSpecification& specification, Buffer imageData = {});
+	};
+
 }

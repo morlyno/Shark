@@ -340,27 +340,27 @@ namespace Shark {
 		auto& tf = cameraEntity.Transform();
 
 		TransformComponent transform = GetWorldSpaceTransform(cameraEntity);
-		const auto viewProj = camera.GetProjection() * glm::inverse(transform.CalcTransform());
-		OnRender(renderer, viewProj, transform.Translation);
+		glm::mat4 view = glm::inverse(transform.CalcTransform());
+		OnRender(renderer, { view, camera.GetProjection(), transform.Translation });
 	}
 
 	void Scene::OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
-		OnRender(renderer, editorCamera.GetViewProjection(), editorCamera.GetPosition());
+		OnRender(renderer, { editorCamera.GetView(), editorCamera.GetProjection(), editorCamera.GetPosition() });
 	}
 
 	void Scene::OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
-		OnRender(renderer, editorCamera.GetViewProjection(), editorCamera.GetPosition());
+		OnRender(renderer, { editorCamera.GetView(), editorCamera.GetProjection(), editorCamera.GetPosition() });
 	}
 
-	void Scene::OnRender(Ref<SceneRenderer> renderer, const glm::mat4& viewProj, const glm::vec3& cameraPosition)
+	void Scene::OnRender(Ref<SceneRenderer> renderer, const SceneRendererCamera& camera)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnRender");
 
 		renderer->SetScene(this);
-		renderer->BeginScene(viewProj, cameraPosition);
+		renderer->BeginScene(camera);
 
 		{
 			auto view = m_Registry.view<TransformComponent, PointLightComponent>();
@@ -370,7 +370,7 @@ namespace Shark {
 				Entity entity{ ent, this };
 				TransformComponent worldTransform = GetWorldSpaceTransform(entity);
 				const auto& pointLight = entity.GetComponent<PointLightComponent>();
-				renderer->SubmitPointLight(worldTransform.Translation, pointLight.Color, pointLight.Intensity, pointLight.Radiance);
+				renderer->SubmitPointLight(worldTransform.Translation, pointLight.Color, pointLight.Intensity, entity.Transform().Scale.x);
 			}
 		}
 

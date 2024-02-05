@@ -23,6 +23,9 @@ namespace Shark {
 		virtual uint32_t GetSize() const override { return m_Size; }
 		virtual uint32_t GetBinding() const override { return m_Binding; }
 
+		Buffer& GetUploadBuffer() { return m_UploadBuffer; }
+		Buffer GetUploadBuffer() const { return m_UploadBuffer; }
+
 		virtual void UploadData(Buffer data) override;
 		virtual void RT_UploadData(Buffer data) override;
 

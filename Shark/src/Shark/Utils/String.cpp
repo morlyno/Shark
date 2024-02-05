@@ -108,11 +108,11 @@ namespace Shark::String {
 		return {};
 	}
 
-	void SplitString(const std::string& str, std::string_view splitter, std::vector<std::string>& out_Array)
+	void SplitString(std::string_view str, std::string_view splitter, std::vector<std::string>& out_Array)
 	{
 		size_t start = str.find_first_not_of(' ');
 		size_t end = 0;
-		while (end != std::string::npos)
+		while (end != std::string_view::npos)
 		{
 			end = str.find(splitter, start);
 			out_Array.emplace_back(str.substr(start, end - start));
@@ -121,11 +121,11 @@ namespace Shark::String {
 		}
 	}
 
-	void SplitString(const std::wstring& str, std::wstring_view splitter, std::vector<std::wstring>& out_Array)
+	void SplitString(std::wstring_view str, std::wstring_view splitter, std::vector<std::wstring>& out_Array)
 	{
 		size_t start = str.find_first_not_of(' ');
 		size_t end = 0;
-		while (end != std::wstring::npos)
+		while (end != std::wstring_view::npos)
 		{
 			end = str.find(splitter, start);
 			out_Array.emplace_back(str.substr(start, end - start));
@@ -134,14 +134,14 @@ namespace Shark::String {
 		}
 	}
 
-	std::vector<std::string> SplitString(const std::string& str, std::string_view splitter)
+	std::vector<std::string> SplitString(std::string_view str, std::string_view splitter)
 	{
 		std::vector<std::string> result;
 		SplitString(str, splitter, result);
 		return result;
 	}
 
-	std::vector<std::wstring> SplitString(const std::wstring& str, std::wstring_view splitter)
+	std::vector<std::wstring> SplitString(std::wstring_view str, std::wstring_view splitter)
 	{
 		std::vector<std::wstring> result;
 		SplitString(str, splitter, result);
@@ -211,6 +211,26 @@ namespace Shark::String {
 	void StripFront(std::string& str, char c)
 	{
 		size_t end = str.find_first_not_of(c);
+		if (end != std::string::npos)
+			str.erase(0, end);
+	}
+
+	void Strip(std::string& str, std::string_view chars)
+	{
+		StripFront(str, chars);
+		StripBack(str, chars);
+	}
+
+	void StripBack(std::string& str, std::string_view chars)
+	{
+		size_t offset = str.find_last_not_of(chars);
+		if (offset != std::string::npos)
+			str.erase(offset + 1);
+	}
+
+	void StripFront(std::string& str, std::string_view chars)
+	{
+		size_t end = str.find_first_not_of(chars);
 		if (end != std::string::npos)
 			str.erase(0, end);
 	}

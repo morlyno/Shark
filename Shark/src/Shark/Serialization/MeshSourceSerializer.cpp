@@ -20,7 +20,7 @@ namespace Shark {
 	bool MeshSourceSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Loading MeshSource to {}", metadata.FilePath);
+		SK_CORE_INFO_TAG("Serialization", "Loading MeshSource from {}", metadata.FilePath);
 
 		ScopedTimer timer("Loading MeshSource");
 

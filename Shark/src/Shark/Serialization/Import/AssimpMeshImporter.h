@@ -4,6 +4,7 @@
 
 struct aiScene;
 struct aiNode;
+struct aiString;
 
 namespace Shark {
 
@@ -15,8 +16,11 @@ namespace Shark {
 		Ref<MeshSource> ToMeshSourceFromFile();
 	private:
 		void TraverseNodes(Ref<MeshSource> meshSource, aiNode* assimpNode, uint32_t nodeIndex, const glm::mat4& parentTransform = {}, uint32_t level = 0);
+
+		AssetHandle LoadTexture(const aiScene* scene, const aiString& path);
 	private:
 		std::filesystem::path m_Filepath;
+		std::string m_Extension;
 	};
 
 }

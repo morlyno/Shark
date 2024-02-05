@@ -72,7 +72,8 @@ namespace Shark {
 		void ReflectShaderStage(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary);
 
 		struct Metadata;
-		std::map<uint32_t, ShaderReflection::UpdateFrequencyType> GetUpdateFrequencies(const Metadata& metadata);
+		std::map<std::string, ShaderReflection::UpdateFrequencyType> GetUpdateFrequencies(const Metadata& metadata);
+		std::vector<std::pair<std::string, std::string>> GetCombinedImageSamplerOverrides(const Metadata& metadata);
 
 	private:
 		ShaderUtils::ShaderLanguage m_Language;

@@ -11,6 +11,9 @@ ImportedAssets:
   - Handle: 5798291846188601753
     Type: Scene
     FilePath: Scenes/LightTest.skscene
+  - Handle: 13757110640731467433
+    Type: Scene
+    FilePath: Scenes/MeshTest.skscene
   - Handle: 18078754062393453112
     Type: Scene
     FilePath: Scenes/OIT.skscene
@@ -71,6 +74,9 @@ ImportedAssets:
   - Handle: 7634016912929685957
     Type: Texture
     FilePath: Textures/Nano/leg_dif.sktex
+  - Handle: 4756499278356268137
+    Type: Texture
+    FilePath: Textures/Normal.sktex
   - Handle: 377437537436758114
     Type: Texture
     FilePath: Textures/S.sktex
@@ -236,6 +242,9 @@ ImportedAssets:
   - Handle: 13658523066295494907
     Type: TextureSource
     FilePath: TextureSources/Gear.png
+  - Handle: 10892835148234158036
+    Type: TextureSource
+    FilePath: TextureSources/Normal.png
   - Handle: 881271945486829490
     Type: TextureSource
     FilePath: TextureSources/PlayButton.png
@@ -314,9 +323,51 @@ ImportedAssets:
   - Handle: 15941159226969732890
     Type: MeshSource
     FilePath: MeshSources/suzanne.obj
+  - Handle: 17275272604655122145
+    Type: MeshSource
+    FilePath: Meshes/Source/Defaults/Cone.gltf
+  - Handle: 4742129963409838619
+    Type: MeshSource
+    FilePath: Meshes/Source/Defaults/Cube.gltf
+  - Handle: 149034018928415995
+    Type: MeshSource
+    FilePath: Meshes/Source/Defaults/Cylinder.gltf
+  - Handle: 11276293233727349524
+    Type: MeshSource
+    FilePath: Meshes/Source/Defaults/Plane.gltf
+  - Handle: 15731370843321758084
+    Type: MeshSource
+    FilePath: Meshes/Source/Defaults/Sphere.gltf
+  - Handle: 6936880653624420124
+    Type: MeshSource
+    FilePath: Meshes/Source/Defaults/Torus.gltf
+  - Handle: 13495305376586232289
+    Type: MeshSource
+    FilePath: Meshes/Source/cerberus/cerberus.gltf
+  - Handle: 9815586959680881104
+    Type: Mesh
+    FilePath: Meshes/Defaults/Cone.skmesh
+  - Handle: 16466054961702350518
+    Type: Mesh
+    FilePath: Meshes/Defaults/Cube.skmesh
+  - Handle: 8312549303847388778
+    Type: Mesh
+    FilePath: Meshes/Defaults/Cylinder.skmesh
+  - Handle: 405962683886001289
+    Type: Mesh
+    FilePath: Meshes/Defaults/Plane.skmesh
+  - Handle: 3444792770354131160
+    Type: Mesh
+    FilePath: Meshes/Defaults/Sphere.skmesh
+  - Handle: 2608668310550125016
+    Type: Mesh
+    FilePath: Meshes/Defaults/Torus.skmesh
   - Handle: 12376335780905884411
     Type: Mesh
     FilePath: Meshes/cerberus
+  - Handle: 14878245583165526856
+    Type: Mesh
+    FilePath: Meshes/cerberus ( 1)
   - Handle: 15050549643915412860
     Type: Mesh
     FilePath: Meshes/nanoboy_test
@@ -335,12 +386,30 @@ ImportedAssets:
   - Handle: 6752412142428602314
     Type: Material
     FilePath: Materials/CerberusMap.skmat
+  - Handle: 5711592405232914583
+    Type: Material
+    FilePath: Materials/M_Blue.skmat
+  - Handle: 1471995334651478538
+    Type: Material
+    FilePath: Materials/M_Green.skmat
+  - Handle: 13162362789742264016
+    Type: Material
+    FilePath: Materials/M_Pink.skmat
+  - Handle: 1821254970952682847
+    Type: Material
+    FilePath: Materials/M_Red.skmat
   - Handle: 11412594040363206517
     Type: Material
     FilePath: Materials/NanoBody.skmat
+  - Handle: 10666288328981990637
+    Type: Material
+    FilePath: Materials/New Material.skmat
   - Handle: 252483365588718326
     Type: Material
     FilePath: Materials/WiteMaterial.skmat
+  - Handle: 14962043442512044118
+    Type: Material
+    FilePath: Materials/m_Pink.skmat
 EditorAssets:
   - Handle: 9158403992234771517
     Type: Texture
@@ -366,21 +435,3 @@ EditorAssets:
   - Handle: 6142942579687919042
     Type: MeshSource
     FilePath: Resources/Meshes/Default/Torus.gltf
-  - Handle: 10130756574254683991
-    Type: Mesh
-    FilePath: Resources/Meshes/Default/Cone.skmesh
-  - Handle: 11128925083701734442
-    Type: Mesh
-    FilePath: Resources/Meshes/Default/Cube.skmesh
-  - Handle: 14792001263425447828
-    Type: Mesh
-    FilePath: Resources/Meshes/Default/Cylinder.skmesh
-  - Handle: 12825804072817391569
-    Type: Mesh
-    FilePath: Resources/Meshes/Default/Plane.skmesh
-  - Handle: 1894079185012069341
-    Type: Mesh
-    FilePath: Resources/Meshes/Default/Sphere.skmesh
-  - Handle: 304796535833703992
-    Type: Mesh
-    FilePath: Resources/Meshes/Default/Torus.skmesh

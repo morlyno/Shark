@@ -12,8 +12,9 @@ namespace Shark {
 				None = 0,
 				Vertex = BIT(0),
 				Pixel = BIT(1),
+				Compute = BIT(2),
 
-				All = Vertex | Pixel
+				All = Vertex | Pixel | Compute
 			};
 			using Flags = uint16_t;
 		}

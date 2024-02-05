@@ -264,9 +264,9 @@ namespace Shark {
 			newPath.replace_filename(name);
 			newPath.replace_extension();
 
-			std::error_code error;
-			std::filesystem::rename(oldPath, newPath, error);
-			if (error) // TODO(moro): error prompt
+			std::string errorMsg;
+			FileSystem::Rename(oldPath, newPath, errorMsg);
+			if (!errorMsg.empty()) // TODO(moro): error prompt
 				return;
 
 			m_Name = newPath.stem().string();
@@ -283,9 +283,9 @@ namespace Shark {
 		newPath.replace_filename(name);
 		newPath.replace_extension(metadata.FilePath.extension());
 
-		std::error_code error;
-		std::filesystem::rename(oldPath, newPath, error);
-		if (error) // TODO(moro): error prompt
+		std::string errorMsg;
+		FileSystem::Rename(oldPath, newPath, errorMsg);
+		if (!errorMsg.empty()) // TODO(moro): error prompt
 			return;
 
 		m_Name = newPath.stem().string();

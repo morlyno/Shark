@@ -28,7 +28,11 @@ namespace Shark {
 		}
 
 		if (!buffer.Data)
+		{
+			const char* errorMsg = stbi_failure_reason();
+			SK_CORE_ERROR_TAG("stbi", "Failed to load image!\n\tError: {}\n\tFile: {}", errorMsg, filepath);
 			return {};
+		}
 
 		outWidth = width;
 		outHeight = height;
@@ -54,7 +58,11 @@ namespace Shark {
 		}
 
 		if (!buffer.Data)
+		{
+			const char* errorMsg = stbi_failure_reason();
+			SK_CORE_ERROR_TAG("stbi", "Failed to load image!\n\tError: {}", errorMsg);
 			return {};
+		}
 
 		outWidth = width;
 		outHeight = height;

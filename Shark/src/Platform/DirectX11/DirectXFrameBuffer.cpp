@@ -65,40 +65,12 @@ namespace Shark {
 
 		static bool IsDepthAtachment(const FrameBufferAtachment& atachment)
 		{
-			switch (atachment.Format)
-			{
-				case ImageFormat::Depth32:
-					return true;
-			}
-			return false;
+			return ImageUtils::IsDepthFormat(atachment.Format);
 		}
 
 		static bool FormatSupportsBlending(ImageFormat format)
 		{
-			switch (format)
-			{
-				case ImageFormat::RGBA8:
-				case ImageFormat::RGBA16F:
-				case ImageFormat::R8:
-				case ImageFormat::R16F:
-					return true;
-
-				case ImageFormat::Depth32:
-				case ImageFormat::R32_SINT:
-					return false;
-			}
-
-			SK_CORE_ASSERT(false, "Unkown ImageFormat");
-			return false;
-		}
-
-	}
-
-	namespace Utils {
-
-		bool IsDepthAtachment(const FrameBufferAtachment& atachment)
-		{
-			return utils::IsDepthAtachment(atachment);
+			return !(ImageUtils::IsIntegerBased(format) || ImageUtils::IsDepthFormat(format));
 		}
 
 	}
@@ -143,7 +115,7 @@ namespace Shark {
 
 				ImageSpecification imageSpec;
 				imageSpec.Format = atachment.Format;
-				imageSpec.Type = ImageType::FrameBuffer;
+				imageSpec.Type = ImageType::Atachment;
 				imageSpec.Width = m_Specification.Width;
 				imageSpec.Height = m_Specification.Height;
 				imageSpec.MipLevels = 1;
@@ -162,7 +134,7 @@ namespace Shark {
 
 			ImageSpecification imageSpec;
 			imageSpec.Format = atachment.Format;
-			imageSpec.Type = ImageType::FrameBuffer;
+			imageSpec.Type = ImageType::Atachment;
 			imageSpec.Width = m_Specification.Width;
 			imageSpec.Height = m_Specification.Height;
 			imageSpec.MipLevels = 1;
@@ -189,7 +161,7 @@ namespace Shark {
 				viewDesc.Texture2D.MipSlice = 0;
 
 				ID3D11RenderTargetView* view = nullptr;
-				DirectXAPI::CreateRenderTargetView(device, image->GetResourceNative(), viewDesc, view);
+				DirectXAPI::CreateRenderTargetView(device, image->GetDirectXImageInfo().Resource, viewDesc, view);
 				D3D_SET_OBJECT_NAME_A(view, instance->m_Specification.DebugName.c_str());
 				instance->m_FrameBuffers.push_back(view);
 			});
@@ -268,7 +240,7 @@ namespace Shark {
 				depthImage = Ref<DirectXImage2D>::Create();
 				auto& imageSpec = depthImage->GetSpecificationMutable();
 				imageSpec.Format = atachment.Format;
-				imageSpec.Type = ImageType::FrameBuffer;
+				imageSpec.Type = ImageType::Atachment;
 				imageSpec.Width = m_Specification.Width;
 				imageSpec.Height = m_Specification.Height;
 				imageSpec.MipLevels = 1;
@@ -288,7 +260,7 @@ namespace Shark {
 			auto image = Ref<DirectXImage2D>::Create();
 			auto& imageSpec = image->GetSpecificationMutable();
 			imageSpec.Format = atachment.Format;
-			imageSpec.Type = ImageType::FrameBuffer;
+			imageSpec.Type = ImageType::Atachment;
 			imageSpec.Width = m_Specification.Width;
 			imageSpec.Height = m_Specification.Height;
 			imageSpec.MipLevels = 1;
@@ -309,7 +281,7 @@ namespace Shark {
 			viewDesc.Texture2D.MipSlice = 0;
 
 			ID3D11RenderTargetView* view = nullptr;
-			DirectXAPI::CreateRenderTargetView(device, m_Images[imageIndex++]->GetResourceNative(), viewDesc, view);
+			DirectXAPI::CreateRenderTargetView(device, m_Images[imageIndex++]->GetDirectXImageInfo().Resource, viewDesc, view);
 			m_FrameBuffers.push_back(view);
 		}
 
@@ -443,7 +415,7 @@ namespace Shark {
 				viewDesc.Texture2D.MipSlice = 0;
 
 				ID3D11RenderTargetView* view = nullptr;
-				DirectXAPI::CreateRenderTargetView(device, image->GetResourceNative(), viewDesc, view);
+				DirectXAPI::CreateRenderTargetView(device, image->GetDirectXImageInfo().Resource, viewDesc, view);
 
 				if (auto framebuffer = instance->m_FrameBuffers[index])
 					framebuffer->Release();
@@ -518,7 +490,7 @@ namespace Shark {
 		viewDesc.Texture2D.MipSlice = 0;
 
 		ID3D11RenderTargetView* view = nullptr;
-		DirectXAPI::CreateRenderTargetView(device, image->GetResourceNative(), viewDesc, view);
+		DirectXAPI::CreateRenderTargetView(device, image->GetDirectXImageInfo().Resource, viewDesc, view);
 		D3D_SET_OBJECT_NAME_A(view, m_Specification.DebugName.c_str());
 		
 		if (atachmentIndex >= m_FrameBuffers.size())
@@ -540,7 +512,7 @@ namespace Shark {
 		viewDesc.Flags = 0;
 
 		ID3D11DepthStencilView* view = nullptr;
-		DirectXAPI::CreateDepthStencilView(device, depthImage->GetResourceNative(), viewDesc, view);
+		DirectXAPI::CreateDepthStencilView(device, depthImage->GetDirectXImageInfo().Resource, viewDesc, view);
 		D3D_SET_OBJECT_NAME_A(view, m_Specification.DebugName.c_str());
 		m_DepthStencil = view;
 	}

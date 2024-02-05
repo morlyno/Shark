@@ -198,7 +198,7 @@ namespace Shark {
 		{
 			Ref<Asset> asset = m_LoadedAssets.at(handle);
 			SK_CORE_ASSERT(asset);
-			asset->SetFlag(AssetFlag::Unloaded, true);
+			asset->SetFlag(AssetFlag::Invalid, true);
 			UnloadAsset(handle);
 		}
 
@@ -213,7 +213,7 @@ namespace Shark {
 
 		// TODO(moro): remove AssetFlag
 		if (auto asset = GetAsset(handle))
-			asset->SetFlag(AssetFlag::Unloaded, true);
+			asset->SetFlag(AssetFlag::Invalid, true);
 
 		metadata.IsDataLoaded = false;
 		m_LoadedAssets.erase(handle);

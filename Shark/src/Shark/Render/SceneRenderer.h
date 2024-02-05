@@ -21,6 +21,13 @@ namespace Shark {
 		std::string DebugName;
 	};
 
+	struct SceneRendererCamera
+	{
+		glm::mat4 View;
+		glm::mat4 Projection;
+		glm::vec3 Position;
+	};
+
 	class SceneRenderer : public RefCount
 	{
 	public:
@@ -39,7 +46,7 @@ namespace Shark {
 
 		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
 
-		void BeginScene(const glm::mat4& viewProj, const glm::vec3& cameraPosition);
+		void BeginScene(const SceneRendererCamera& camera);
 		void EndScene();
 
 		void SubmitQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const glm::vec4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
@@ -52,7 +59,7 @@ namespace Shark {
 
 		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
 
-		void SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity, const glm::vec3& radiance);
+		void SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity, float radius);
 		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id);
 		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, int id);
 
@@ -70,6 +77,9 @@ namespace Shark {
 		const Statistics& GetStatisitcs() const { return m_Statistics; }
 
 	private:
+		void SkyboxPass();
+
+	private:
 		void Initialize(const SceneRendererSpecification& specification);
 
 	private:
@@ -85,8 +95,8 @@ namespace Shark {
 			glm::vec4 Color;
 			glm::vec3 Position;
 			float Intensity;
-			glm::vec3 Radiance;
-			float Padding;
+			float Radius;
+			float Padding[3];
 		};
 
 		struct CBMeshData
@@ -114,6 +124,8 @@ namespace Shark {
 		Ref<GPUTimer> m_Timer;
 
 		glm::mat4 m_ViewProjection;
+		glm::mat4 m_View;
+		glm::mat4 m_Projection;
 		glm::vec3 m_CameraPosition;
 
 		// Geometry
@@ -124,6 +136,11 @@ namespace Shark {
 
 		bool m_NeedsResize = true;
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+
+		Ref<TextureCube> m_EnvironmentMap;
+		Ref<TextureCube> m_IrradianceMap;
+		Ref<Pipeline> m_SkyboxPipeline;
+		Ref<Material> m_SkyboxMaterial;
 	};
 
 }

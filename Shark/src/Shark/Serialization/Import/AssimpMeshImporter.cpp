@@ -39,7 +39,7 @@ namespace Shark {
 		aiProcess_ConvertToLeftHanded;
 
 	AssimpMeshImporter::AssimpMeshImporter(const std::filesystem::path& filepath)
-		: m_Filepath(filepath)
+		: m_Filepath(filepath), m_Extension(filepath.extension().string())
 	{
 
 	}
@@ -52,7 +52,8 @@ namespace Shark {
 		const aiScene* scene = importer.ReadFile(m_Filepath.string(), s_AIProcessFlags);
 		if (!scene)
 		{
-			SK_CORE_ERROR("Failed to load mesh file: {}", m_Filepath);
+			std::string errorMsg = importer.GetErrorString();
+			SK_CORE_ERROR("Failed to load mesh file: {}\n\tError: {}", m_Filepath, errorMsg);
 			return nullptr;
 		}
 
@@ -140,79 +141,21 @@ namespace Shark {
 				material->Set("u_MaterialUniforms.AmbientOcclusion", 0.0f);
 
 				aiString aiTexPath;
-				bool hasAlbedo = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS;
-				if (hasAlbedo)
+				if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = 0;
-					TextureSpecification specification;
-					specification.GenerateMips = true;
-					specification.DebugName = aiTexPath.C_Str();
-
-					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
-					{
-						specification.Format = ImageFormat::RGBA8;
-						specification.Width = aiTexEmbedded->mWidth;
-						specification.Height = aiTexEmbedded->mHeight;
-						textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) });
-					}
-					else
-					{
-						auto texturePath = m_Filepath.parent_path() / aiTexPath.C_Str();
-						Ref<TextureSource> textureSource = TextureImporter::ToTextureSourceFromFile(texturePath);
-						if (textureSource)
-						{
-							textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, textureSource);
-						}
-						else
-						{
-							SK_CORE_ERROR("Failed to load texture: {}", aiTexPath.C_Str());
-							hasAlbedo = false;
-						}
-					}
-
-					if (hasAlbedo)
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
+					if (textureHandle != AssetHandle::Invalid)
 					{
 						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
 						material->Set("u_AlbedoMap", texture);
+						material->Set("u_MaterialUniforms.Albedo", glm::vec3(1.0f));
 					}
 				}
 
-				//if (!hasAlbedo)
-				//{
-				//	material->Set("u_AlbedoMap", Renderer::GetWhiteTexture());
-				//}
-
-				bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == aiReturn_SUCCESS;
-				if (hasNormalMap)
+				if (aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = AssetHandle::Invalid;
-					TextureSpecification specification;
-					specification.GenerateMips = true;
-					specification.DebugName = aiTexPath.C_Str();
-
-					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
-					{
-						specification.Format = ImageFormat::RGBA8;
-						specification.Width = aiTexEmbedded->mWidth;
-						specification.Height = aiTexEmbedded->mHeight;
-						textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) });
-					}
-					else
-					{
-						auto texturePath = m_Filepath.parent_path() / aiTexPath.C_Str();
-						Ref<TextureSource> textureSource = TextureImporter::ToTextureSourceFromFile(texturePath);
-						if (textureSource)
-						{
-							textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, textureSource);
-						}
-						else
-						{
-							SK_CORE_ERROR("Failed to load NormalMap: {}", aiTexPath.C_Str());
-							hasNormalMap = false;
-						}
-					}
-
-					if (hasNormalMap)
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
+					if (textureHandle != AssetHandle::Invalid)
 					{
 						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
 						material->Set("u_NormalMap", texture);
@@ -220,82 +163,27 @@ namespace Shark {
 					}
 				}
 
-				bool hasMetalnessMap = aiMaterial->GetTexture(aiTextureType_METALNESS, 0, &aiTexPath) == aiReturn_SUCCESS;
-				if (hasMetalnessMap)
+				if (aiMaterial->GetTexture(aiTextureType_METALNESS, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = AssetHandle::Invalid;
-					TextureSpecification specification;
-					specification.GenerateMips = true;
-					specification.DebugName = aiTexPath.C_Str();
-
-					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
-					{
-						specification.Format = ImageFormat::RGBA8;
-						specification.Width = aiTexEmbedded->mWidth;
-						specification.Height = aiTexEmbedded->mHeight;
-						textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) });
-					}
-					else
-					{
-						auto texturePath = m_Filepath.parent_path() / aiTexPath.C_Str();
-						Ref<TextureSource> textureSource = TextureImporter::ToTextureSourceFromFile(texturePath);
-						if (textureSource)
-						{
-							textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, textureSource);
-						}
-						else
-						{
-							SK_CORE_ERROR("Failed to load MetalnessMap: {}", aiTexPath.C_Str());
-							hasMetalnessMap = false;
-						}
-					}
-
-					if (hasMetalnessMap)
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
+					if (textureHandle != AssetHandle::Invalid)
 					{
 						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
 						material->Set("u_MetalnessMap", texture);
+						material->Set("u_MaterialUniforms.Metalness", 1.0f);
 					}
 				}
 				
-				bool hasRoughnessMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &aiTexPath) == aiReturn_SUCCESS;
-				if (hasRoughnessMap)
+				if (aiMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = AssetHandle::Invalid;
-					TextureSpecification specification;
-					specification.GenerateMips = true;
-					specification.DebugName = aiTexPath.C_Str();
-
-					if (auto aiTexEmbedded = scene->GetEmbeddedTexture(aiTexPath.C_Str()))
-					{
-						specification.Format = ImageFormat::RGBA8;
-						specification.Width = aiTexEmbedded->mWidth;
-						specification.Height = aiTexEmbedded->mHeight;
-						textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) });
-					}
-					else
-					{
-						auto texturePath = m_Filepath.parent_path() / aiTexPath.C_Str();
-						Ref<TextureSource> textureSource = TextureImporter::ToTextureSourceFromFile(texturePath);
-						if (textureSource)
-						{
-							textureHandle = AssetManager::CreateMemoryAsset<Texture2D>(specification, textureSource);
-						}
-						else
-						{
-							SK_CORE_ERROR("Failed to load RoughnessMap: {}", aiTexPath.C_Str());
-							hasRoughnessMap = false;
-						}
-					}
-
-					if (hasRoughnessMap)
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
+					if (textureHandle != AssetHandle::Invalid)
 					{
 						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
 						material->Set("u_RoughnessMap", texture);
+						material->Set("u_MaterialUniforms.Roughness", 1.0f);
 					}
 				}
-
-
-
 			}
 		}
 
@@ -324,6 +212,32 @@ namespace Shark {
 
 			TraverseNodes(meshSource, assimpNode->mChildren[i], meshSource->m_Nodes.size() - 1, meshSource->m_Nodes[nodeIndex].Transform, level + 1);
 		}
+	}
+
+	AssetHandle AssimpMeshImporter::LoadTexture(const aiScene* scene, const aiString& path)
+	{
+		TextureSpecification specification;
+		specification.GenerateMips = true;
+		specification.DebugName = path.C_Str();
+		// TODO(moro): sampler
+
+		if (auto aiTexEmbedded = scene->GetEmbeddedTexture(path.C_Str()))
+		{
+			specification.Format = ImageFormat::RGBA8;
+			specification.Width = aiTexEmbedded->mWidth;
+			specification.Height = aiTexEmbedded->mHeight;
+			return AssetManager::CreateMemoryAsset<Texture2D>(specification, Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) });
+		}
+
+		const auto texturePath = m_Filepath.parent_path() / path.C_Str();
+		Ref<TextureSource> textureSource = TextureImporter::ToTextureSourceFromFile(texturePath);
+		if (textureSource)
+		{
+			return AssetManager::CreateMemoryAsset<Texture2D>(specification, textureSource);
+		}
+
+		SK_CORE_ERROR("Failed to load texture: {}", path.C_Str());
+		return AssetHandle::Invalid;
 	}
 
 }

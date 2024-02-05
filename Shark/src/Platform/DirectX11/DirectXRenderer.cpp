@@ -153,6 +153,30 @@ namespace Shark {
 		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
 		m_ClampLinearSamplerWrapper = Ref<DirectXSamplerWrapper>::Create();
 
+		{
+			glm::vec3 vertices[] = {
+				{ -1, -1, -1 },
+				{ 1, -1, -1 },
+				{ -1, 1, -1 },
+				{ 1, 1, -1 },
+				{ -1, -1, 1 },
+				{ 1, -1, 1 },
+				{ -1, 1, 1 },
+				{ 1, 1, 1 },
+			};
+
+			uint32_t indices[] = {
+				0, 2, 1, 2, 3, 1,
+				1, 3, 5, 3, 7, 5,
+				2, 6, 3, 3, 6, 7,
+				4, 5, 7, 4, 7, 6,
+				0, 4, 2, 2, 4, 6,
+				0, 1, 4, 1, 5, 4
+			};
+
+			m_CubeVertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices)).As<DirectXVertexBuffer>();
+			m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices)).As<DirectXIndexBuffer>();
+		}
 		m_GPUTimer = Ref<DirectXGPUTimer>::Create("GPU");
 
 		Renderer::Submit([instance]() { SK_CORE_INFO_TAG("Renderer", "Resources Created"); instance->m_ResourceCreated = true; });
@@ -409,6 +433,11 @@ namespace Shark {
 		});
 	}
 
+	void DirectXRenderer::RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
+	{
+		RenderGeometry(commandBuffer, pipeline, material, m_CubeVertexBuffer, m_CubeIndexBuffer, m_CubeIndexBuffer->GetCount());
+	}
+
 	void DirectXRenderer::RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline)
 	{
 		SK_PROFILE_FUNCTION();
@@ -644,6 +673,100 @@ namespace Shark {
 		});
 	}
 
+	std::pair<Ref<TextureCube>, Ref<TextureCube>> DirectXRenderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
+	{
+		const uint32_t cubemapSize = Renderer::GetConfig().EnvironmentMapResolution;
+		const uint32_t irradianceMapSize = 32;
+
+		Ref<Texture2D> envEquirect = Texture2D::LoadFromDisc(filepath);
+		SK_CORE_VERIFY(envEquirect->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
+
+		TextureSpecification cubemapSpec;
+		cubemapSpec.Format = ImageFormat::RGBA32F;
+		cubemapSpec.Width = cubemapSize;
+		cubemapSpec.Height = cubemapSize;
+		cubemapSpec.GenerateMips = true;
+
+		cubemapSpec.DebugName = fmt::format("EnvironmentMap {}", filepath);
+		Ref<TextureCube> envCubeMap = TextureCube::Create(cubemapSpec);
+
+		Ref<Shader> equirectangularConversionShader = Renderer::GetShaderLibrary()->Get("EquirectangularToCubeMap");
+
+		Renderer::Submit([equirectangularConversionShader, envEquirect, envCubeMap, cubemapSize]()
+		{
+			ID3D11DeviceContext* context = DirectXRenderer::Get()->GetContext();
+			Ref<DirectXShader> shader = equirectangularConversionShader.As<DirectXShader>();
+
+			Ref<DirectXTexture2D> equirect = envEquirect.As<DirectXTexture2D>();
+			context->CSSetShaderResources(shader->GetResourceInfo("u_EquirectangularTex").Binding, 1,
+										  &equirect->GetDirectXImageInfo().View);
+
+			Ref<DirectXTextureCube> dxEnvCubemap = envCubeMap.As<DirectXTextureCube>();
+			dxEnvCubemap->GetImage().As<DirectXImage2D>()->RT_CreateUnorderAccessView(0);
+			context->CSSetUnorderedAccessViews(shader->GetResourceInfo("o_CubeMap").Binding, 1,
+											   &dxEnvCubemap->GetDirectXImageInfo().AccessView, nullptr);
+
+			const auto& equirectResourceInfo = shader->GetResourceInfo("u_EquirectangularTex");
+			context->CSSetSamplers(equirectResourceInfo.SamplerBinding, 1,
+								   &Renderer::GetClampLinearSampler().As<DirectXSamplerWrapper>()->GetSampler());
+
+			context->CSSetShader(shader->m_ComputeShader, nullptr, 0);
+			context->Dispatch(cubemapSize / 32, cubemapSize / 32, 6);
+			DirectXRenderer::Get()->RT_FlushInfoQueue();
+
+			ID3D11UnorderedAccessView* nullUAV = nullptr;
+			context->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
+
+			Renderer::RT_GenerateMips(dxEnvCubemap->GetImage());
+		});
+
+		Ref<Shader> environmentIrradianceShader = Renderer::GetShaderLibrary()->Get("EnvironmentIrradiance");
+
+		cubemapSpec.Width = irradianceMapSize;
+		cubemapSpec.Height = irradianceMapSize;
+		cubemapSpec.DebugName = fmt::format("IrradianceMap {}", filepath);
+		Ref<TextureCube> irradianceMap = TextureCube::Create(cubemapSpec);
+
+		Renderer::Submit([environmentIrradianceShader, irradianceMap, envCubeMap]()
+		{
+			ID3D11DeviceContext* context = DirectXRenderer::Get()->GetContext();
+			Ref<DirectXShader> shader = environmentIrradianceShader.As<DirectXShader>();
+			
+			Ref<DirectXTextureCube> envCubemap = envCubeMap.As<DirectXTextureCube>();
+			Ref<DirectXTextureCube> irradianceCubemap = irradianceMap.As<DirectXTextureCube>();
+			irradianceCubemap->GetImage().As<DirectXImage2D>()->RT_CreateUnorderAccessView(0);
+
+			context->CSSetShaderResources(shader->GetResourceInfo("u_RadianceMap").Binding, 1,
+										  &envCubemap->GetDirectXImageInfo().View);
+
+			context->CSSetUnorderedAccessViews(shader->GetResourceInfo("o_IrradianceMap").Binding, 1,
+											   &irradianceCubemap->GetDirectXImageInfo().AccessView, nullptr);
+
+			const auto& radianceMapResourceInfo = shader->GetResourceInfo("u_RadianceMap");
+			context->CSSetSamplers(radianceMapResourceInfo.SamplerBinding, 1,
+								   &Renderer::GetClampLinearSampler().As<DirectXSamplerWrapper>()->GetSampler());
+
+			const ShaderReflection::ConstantBuffer& bufferInfo = shader->GetBufferInfo("u_Uniforms");
+			Ref<DirectXConstantBuffer> samplesBuffer = Ref<DirectXConstantBuffer>::Create();
+			samplesBuffer->SetSize(bufferInfo.Size);
+			samplesBuffer->SetBinding(bufferInfo.Binding);
+			samplesBuffer->RT_Invalidate();
+			samplesBuffer->RT_UploadData(Buffer::FromValue(Renderer::GetConfig().IrradianceMapComputeSamples));
+			context->CSSetConstantBuffers(samplesBuffer->GetBinding(), 1, &samplesBuffer->m_ConstantBuffer);
+
+			context->CSSetShader(shader->m_ComputeShader, nullptr, 0);
+			context->Dispatch(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
+			DirectXRenderer::Get()->RT_FlushInfoQueue();
+
+			ID3D11UnorderedAccessView* nullUAV = nullptr;
+			context->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
+
+			Renderer::RT_GenerateMips(irradianceMap->GetImage());
+		});
+
+		return { envCubeMap, irradianceMap };
+	}
+
 	void DirectXRenderer::GenerateMips(Ref<Image2D> image)
 	{
 		SK_PROFILE_FUNCTION();
@@ -658,53 +781,35 @@ namespace Shark {
 	void DirectXRenderer::RT_GenerateMips(Ref<Image2D> image)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
 		const auto& specs = image->GetSpecification();
+		SK_CORE_VERIFY(specs.Type == ImageType::Texture || specs.Type == ImageType::TextureCube);
 
 		if (specs.MipLevels == 1)
 			return;
 
-		D3D11_TEXTURE2D_DESC textureDesc{};
-		textureDesc.Width = specs.Width;
-		textureDesc.Height = specs.Height;
-		textureDesc.MipLevels = specs.MipLevels;
-		textureDesc.ArraySize = 1;
-		textureDesc.Format = utils::ImageFormatToD3D11ForResource(specs.Format);
-		textureDesc.SampleDesc.Count = 1;
-		textureDesc.Usage = D3D11_USAGE_DEFAULT;
-		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
 
-		ID3D11Texture2D* texture = nullptr;
-		SK_DX11_CALL(m_Device->CreateTexture2D(&textureDesc, nullptr, &texture));
-		if (!texture)
-			return;
+		D3D11_TEXTURE2D_DESC genMipsResourceDesc = {};
+		dxImage->m_Info.Resource->GetDesc(&genMipsResourceDesc);
+		genMipsResourceDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		genMipsResourceDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
-		D3D_SET_OBJECT_NAME_A(texture, "GenerateMips Texture");
+		ID3D11Texture2D* genMipsResource = nullptr;
+		DirectXAPI::CreateTexture2D(m_Device, genMipsResourceDesc, nullptr, genMipsResource);
+		
+		D3D11_SHADER_RESOURCE_VIEW_DESC genMipsViewDesc = {};
+		dxImage->m_Info.View->GetDesc(&genMipsViewDesc);
+		
+		ID3D11ShaderResourceView* genMipsView = nullptr;
+		DirectXAPI::CreateShaderResourceView(m_Device, genMipsResource, genMipsViewDesc, genMipsView);
 
-		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
-		viewDesc.Format = textureDesc.Format;
-		viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		viewDesc.Texture2D.MipLevels = -1;
-		viewDesc.Texture2D.MostDetailedMip = 0;
-		ID3D11ShaderResourceView* view = nullptr;
-		SK_DX11_CALL(m_Device->CreateShaderResourceView(texture, &viewDesc, &view));
-		if (!view)
-		{
-			texture->Release();
-			return;
-		}
+		m_ImmediateContext->CopyResource(genMipsResource, dxImage->m_Info.Resource);
+		m_ImmediateContext->GenerateMips(genMipsView);
+		m_ImmediateContext->CopyResource(dxImage->m_Info.Resource, genMipsResource);
 
-		D3D_SET_OBJECT_NAME_A(view, "GenerateMips View");
-
-		auto dxImage = image.As<DirectXImage2D>();
-		m_ImmediateContext->CopySubresourceRegion(texture, 0, 0, 0, 0, dxImage->m_Resource, 0, nullptr);
-		m_ImmediateContext->GenerateMips(view);
-		m_ImmediateContext->CopyResource(dxImage->m_Resource, texture);
-
-		view->Release();
-		texture->Release();
+		genMipsView->Release();
+		genMipsResource->Release();
 	}
 
 	void DirectXRenderer::BindFrameBuffer(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXFrameBuffer> framebuffer)
@@ -831,6 +936,7 @@ namespace Shark {
 			{
 				case ShaderReflection::ShaderStage::Vertex: context->VSSetShaderResources(binding, 1, &view); break;
 				case ShaderReflection::ShaderStage::Pixel: context->PSSetShaderResources(binding, 1, &view); break;
+				default: SK_CORE_VERIFY(false);
 			}
 		};
 
@@ -843,28 +949,38 @@ namespace Shark {
 			{
 				case ShaderReflection::ShaderStage::Vertex: context->VSSetSamplers(binding, 1, &sampler); break;
 				case ShaderReflection::ShaderStage::Pixel: context->PSSetSamplers(binding, 1, &sampler); break;
+				default: SK_CORE_VERIFY(false);
 			}
 		};
 
 		Ref<DirectXTexture2D> whiteTexture = Renderer::GetWhiteTexture().As<DirectXTexture2D>();
-		ID3D11ShaderResourceView* whiteTextureView = whiteTexture->GetViewNative();
-		ID3D11SamplerState* whiteTextureSampler = whiteTexture->GetSamplerNative();
+		const DirectXImageInfo& whiteTextureInfo = whiteTexture->GetDirectXImageInfo();
+		ID3D11SamplerState* whiteTextureSampler = whiteTexture->GetDirectXSampler();
+
+		Ref<DirectXTextureCube> blackCube = Renderer::GetBlackTextureCube().As<DirectXTextureCube>();
+		const DirectXImageInfo& blackCubeInfo = blackCube->GetDirectXImageInfo();
+		ID3D11SamplerState* blackCubeSampler = blackCube->GetDirectXSampler();
 
 		for (const auto& [name, resource] : material->m_Resources)
 		{
 			switch (resource.Type)
 			{
-				case ShaderReflection::ResourceType::Texture2D:
-					bindShaderResourceView(resource.Stage, resource.Binding, resource.Image ? resource.Image->m_View : whiteTextureView);
+				case ShaderReflection::ResourceType::Image2D:
+					bindShaderResourceView(resource.Stage, resource.Binding, resource.Image ? resource.Image->m_Info.View : whiteTextureInfo.View);
 					break;
 
 				case ShaderReflection::ResourceType::Sampler:
-					bindSampler(resource.Stage, resource.Binding, resource.Sampler ? resource.Sampler->RT_GetSampler() : whiteTextureSampler);
+					bindSampler(resource.Stage, resource.Binding, resource.Sampler ? resource.Sampler->GetSampler() : whiteTextureSampler);
 					break;
 
-				case ShaderReflection::ResourceType::Sampler2D:
-					bindShaderResourceView(resource.Stage, resource.Binding, resource.Image ? resource.Image->m_View : whiteTextureView);
-					bindSampler(resource.Stage, resource.Binding, resource.Sampler ? resource.Sampler->RT_GetSampler() : whiteTextureSampler);
+				case ShaderReflection::ResourceType::Texture2D:
+					bindShaderResourceView(resource.Stage, resource.Binding, resource.Image ? resource.Image->m_Info.View : whiteTextureInfo.View);
+					bindSampler(resource.Stage, resource.SamplerBinding, resource.Sampler ? resource.Sampler->GetSampler() : whiteTextureSampler);
+					break;
+
+				case ShaderReflection::ResourceType::TextureCube:
+					bindShaderResourceView(resource.Stage, resource.Binding, resource.Image ? resource.Image->m_Info.View : blackCubeInfo.View);
+					bindSampler(resource.Stage, resource.SamplerBinding, resource.Sampler ? resource.Sampler->GetSampler() : blackCubeSampler);
 					break;
 
 				default:

@@ -231,6 +231,7 @@ namespace Shark {
 	}
 
 	DirectXSamplerWrapper::DirectXSamplerWrapper(const SamplerSpecification& spec)
+		: m_Specification(spec)
 	{
 		CreateSampler(spec);
 	}
@@ -276,6 +277,51 @@ namespace Shark {
 			auto debugName = utils::GenerateSamplerName(spec);
 			DirectXAPI::SetDebugName(instance->m_Sampler, debugName);
 		});
+	}
+
+	DirectXTextureCube::DirectXTextureCube(const TextureSpecification& specification, Buffer imageData)
+		: m_Specification(specification), m_ImageData(Buffer::Copy(imageData))
+	{
+		Invalidate();
+	}
+
+	DirectXTextureCube::~DirectXTextureCube()
+	{
+		Release();
+		m_ImageData.Release();
+	}
+
+	void DirectXTextureCube::Release()
+	{
+		m_Image = nullptr;
+		m_Sampler = nullptr;
+	}
+
+	void DirectXTextureCube::Invalidate()
+	{
+		ImageSpecification specification;
+		specification.Width = m_Specification.Width;
+		specification.Height = m_Specification.Height;
+		specification.Layers = 6;
+		specification.Format = m_Specification.Format;
+		specification.MipLevels = m_Specification.GenerateMips ? 0 : 1;
+		specification.Type = ImageType::TextureCube;
+		specification.DebugName = m_Specification.DebugName;
+		m_Image = Image2D::Create(specification);
+
+		if (m_ImageData)
+		{
+			Renderer::Submit([image = m_Image, buffer = m_ImageData]()
+			{
+				image->RT_UploadImageData(buffer);
+			});
+
+			if (m_Specification.GenerateMips)
+				Renderer::GenerateMips(m_Image);
+		}
+
+		m_Sampler = SamplerWrapper::Create(m_Specification.Sampler);
+		m_Sampler.As<DirectXSamplerWrapper>()->SetDebugName(m_Specification.DebugName);
 	}
 
 }

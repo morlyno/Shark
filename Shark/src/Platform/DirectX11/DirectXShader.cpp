@@ -9,6 +9,7 @@
 #include "Shark/Utils/String.h"
 #include "Shark/Debug/Profiler.h"
 
+#include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 #include "Platform/DirectX11/DirectXShaderCompiler.h"
@@ -28,16 +29,19 @@ namespace Shark {
 
 	void DirectXShader::Release()
 	{
-		Renderer::SubmitResourceFree([pixel = m_PixelShader, vertex = m_VertexShader]()
+		Renderer::SubmitResourceFree([pixel = m_PixelShader, vertex = m_VertexShader, compute = m_ComputeShader]()
 		{
 			if (pixel)
 				pixel->Release();
 			if (vertex)
 				vertex->Release();
+			if (compute)
+				compute->Release();
 		});
 
 		m_PixelShader = nullptr;
 		m_VertexShader = nullptr;
+		m_ComputeShader = nullptr;
 	}
 
 	void DirectXShader::RT_Release()
@@ -53,6 +57,12 @@ namespace Shark {
 			m_VertexShader->Release();
 			m_VertexShader = nullptr;
 		}
+
+		if (m_ComputeShader)
+		{
+			m_ComputeShader->Release();
+			m_ComputeShader = nullptr;
+		}
 	}
 
 	bool DirectXShader::Reload(bool forceCompile, bool disableOptimization)
@@ -64,6 +74,28 @@ namespace Shark {
 		LoadShader(compiler->GetShaderBinary());
 		SetReflectionData(compiler->GetRefectionData());
 		return true;
+	}
+
+	bool DirectXShader::HasResourceInfo(const std::string& name) const
+	{
+		return m_RefelctionData.Resources.contains(name);
+	}
+
+	const Shark::ShaderReflection::Resource& DirectXShader::GetResourceInfo(const std::string& name) const
+	{
+		SK_CORE_VERIFY(HasResourceInfo(name));
+		return m_RefelctionData.Resources.at(name);
+	}
+
+	bool DirectXShader::HasBufferInfo(const std::string& name) const
+	{
+		return m_RefelctionData.ConstantBuffers.contains(name);
+	}
+
+	const Shark::ShaderReflection::ConstantBuffer& DirectXShader::GetBufferInfo(const std::string& name) const
+	{
+		SK_CORE_VERIFY(HasBufferInfo(name));
+		return m_RefelctionData.ConstantBuffers.at(name);
 	}
 
 	void DirectXShader::LoadShader(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& shaderBinary)
@@ -92,6 +124,10 @@ namespace Shark {
 					case ShaderUtils::ShaderStage::Pixel:
 						SK_DX11_CALL(device->CreatePixelShader(binary.data(), binary.size(), nullptr, &instance->m_PixelShader));
 						D3D_SET_OBJECT_NAME_A(instance->m_PixelShader, instance->m_Name.c_str());
+						break;
+					case ShaderUtils::ShaderStage::Compute:
+						DirectXAPI::CreateComputeShader(device, Buffer::FromArray(binary), nullptr, instance->m_ComputeShader);
+						DirectXAPI::SetDebugName(instance->m_ComputeShader, instance->m_Name);
 						break;
 					default:
 						SK_CORE_VERIFY(false, "Unkown Shader Stage");

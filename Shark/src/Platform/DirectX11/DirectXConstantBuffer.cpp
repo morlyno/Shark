@@ -72,7 +72,8 @@ namespace Shark {
 
 	void DirectXConstantBuffer::RT_Invalidate()
 	{
-		m_UploadBuffer.Allocate(m_Size);
+		if (!m_UploadBuffer && m_UploadBuffer.Size != m_Size)
+			m_UploadBuffer.Allocate(m_Size);
 
 		D3D11_BUFFER_DESC bd;
 		bd.ByteWidth = m_Size;

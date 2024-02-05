@@ -28,6 +28,9 @@ namespace Shark {
 
 	void Buffer::Release()
 	{
+		if (!Data)
+			return;
+
 		skdelete[] Data;
 		Data = nullptr;
 		Size = 0;

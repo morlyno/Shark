@@ -1,0 +1,125 @@
+Scene:
+  Name: New Scene
+  ActiveCamera: 0x0
+  Entities:
+    - Entity: 665692342534429939
+      TagComponent:
+        Name: Cone
+      TransformComponent:
+        Translation: [14.9888077, 2, -0.335156471]
+        Rotation: [0, 0.3125121, 0]
+        Scale: [0.999999881, 1, 0.999999642]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 9815586959680881104
+        SubmeshIndex: 0
+        MaterialHandle: 13162362789742264016
+    - Entity: 3378318554821546903
+      TagComponent:
+        Name: Floor
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [20, 1, 20]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 16466054961702350518
+        SubmeshIndex: 0
+        MaterialHandle: 0
+    - Entity: 8169884808829931432
+      TagComponent:
+        Name: Wall
+      TransformComponent:
+        Translation: [0, 6, 19]
+        Rotation: [0, 0, 0]
+        Scale: [20, 5, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 16466054961702350518
+        SubmeshIndex: 0
+        MaterialHandle: 0
+    - Entity: 9788663519947057650
+      TagComponent:
+        Name: Welcome Text
+      TransformComponent:
+        Translation: [-18, 8.63121128, -17.1035042]
+        Rotation: [2.38418579e-07, -1.57079637, 0]
+        Scale: [0.822736621, 0.822799981, 0.822736621]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      TextRendererComponent:
+        FontHandle: 11319694929287277796
+        Text: "Hallo\nWelcome to the Shark Game Engine.\nCreated by ME."
+        Color: [1, 1, 1, 1]
+        Kerning: 0
+    - Entity: 12735687121790381183
+      TagComponent:
+        Name: Wall
+      TransformComponent:
+        Translation: [-19.10252, 6, -0.000486493111]
+        Rotation: [0, -1.57030797, 0]
+        Scale: [19.9999962, 5, 0.999999881]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 16466054961702350518
+        SubmeshIndex: 0
+        MaterialHandle: 0
+    - Entity: 15533339291864148795
+      TagComponent:
+        Name: Cylinder
+      TransformComponent:
+        Translation: [14.5054798, 2.23871803, -3.07181692]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 8312549303847388778
+        SubmeshIndex: 0
+        MaterialHandle: 1471995334651478538
+    - Entity: 15839783496502497576
+      TagComponent:
+        Name: Sphere
+      TransformComponent:
+        Translation: [14.2473507, 2.39382792, 3.77535868]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 3444792770354131160
+        SubmeshIndex: 0
+        MaterialHandle: 1821254970952682847
+    - Entity: 17038408138984345411
+      TagComponent:
+        Name: Torus
+      TransformComponent:
+        Translation: [15.7023392, 1.78779137, -6.1399684]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 2608668310550125016
+        SubmeshIndex: 0
+        MaterialHandle: 5711592405232914583

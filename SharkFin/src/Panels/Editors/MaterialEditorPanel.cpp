@@ -37,7 +37,7 @@ namespace Shark {
 		}
 
 		m_Camera.OnUpdate(ts, m_ViewportHovered/* || m_ViewportFocused*/);
-		m_Scene->OnRender(m_Renderer, m_Camera.GetViewProjection(), m_Camera.GetPosition());
+		m_Scene->OnRenderEditor(m_Renderer, m_Camera);
 	}
 
 	void MaterialEditorPanel::OnImGuiRender(bool& shown, bool& destroy)

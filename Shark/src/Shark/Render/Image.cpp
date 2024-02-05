@@ -32,7 +32,7 @@ namespace Shark {
 		{
 			case ImageType::Texture: return "Texture";
 			case ImageType::Storage: return "Storage";
-			case ImageType::FrameBuffer: return "FrameBuffer";
+			case ImageType::Atachment: return "FrameBuffer";
 		}
 
 		SK_CORE_ASSERT(false, "Unkown ImageType");
@@ -70,6 +70,80 @@ namespace Shark {
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;
+	}
+
+	namespace ImageUtils {
+
+		bool IsDepthFormat(Shark::ImageFormat format)
+		{
+			switch (format)
+			{
+				case ImageFormat::None:
+				case ImageFormat::RGBA8:
+				case ImageFormat::RGBA16F:
+				case ImageFormat::RGB32F:
+				case ImageFormat::RGBA32F:
+				case ImageFormat::R8:
+				case ImageFormat::R16F:
+				case ImageFormat::R32_SINT:
+					return false;
+
+				case ImageFormat::Depth32:
+					return true;
+
+				default:
+					SK_CORE_VERIFY(false, "Unkown ImageFormat");
+					break;
+			}
+
+			SK_CORE_ASSERT(false, "Unkown ImageFormat", (uint16_t)format);
+			return false;
+		}
+
+		bool IsIntegerBased(ImageFormat format)
+		{
+			switch (format)
+			{
+				case ImageFormat::None:
+				case ImageFormat::RGBA8:
+				case ImageFormat::RGBA16F:
+				case ImageFormat::RGB32F:
+				case ImageFormat::RGBA32F:
+				case ImageFormat::R8:
+				case ImageFormat::R16F:
+				case ImageFormat::Depth32:
+					return false;
+
+				case ImageFormat::R32_SINT:
+					return true;
+
+				default:
+					SK_CORE_VERIFY(false, "Unkown ImageFormat");
+					break;
+			}
+
+			SK_CORE_ASSERT(false, "Unkown ImageFormat", (uint16_t)format);
+			return false;
+		}
+
+		uint32_t GetFormatDataSize(ImageFormat format)
+		{
+			switch (format)
+			{
+				case ImageFormat::None: return 0;
+				case ImageFormat::RGBA8: return 4;
+				case ImageFormat::RGBA16F: return 8; // 4 * 2bytes
+				case ImageFormat::RGBA32F: return 4 * 4; // 4 * 4bytes
+				case ImageFormat::RGB32F: return 3 * 4; // 3 * 4bytes
+				case ImageFormat::R8: return 1;
+				case ImageFormat::R16F: return 2;
+				case ImageFormat::R32_SINT: return 4;
+				case ImageFormat::Depth32: return 4;
+			}
+			SK_CORE_ASSERT(false, "Unkown ImageFormat");
+			return 0;
+		}
+
 	}
 
 }

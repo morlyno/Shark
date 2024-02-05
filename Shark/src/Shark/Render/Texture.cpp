@@ -155,4 +155,16 @@ namespace Shark {
 		return nullptr;
 	}
 
+	Ref<TextureCube> TextureCube::Create(const TextureSpecification& specification, Buffer imageData)
+	{
+		switch (RendererAPI::GetCurrentAPI())
+		{
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXTextureCube>::Create(specification, imageData);
+		}
+
+		SK_CORE_ASSERT(false, "Unkown API");
+		return nullptr;
+	}
+
 }

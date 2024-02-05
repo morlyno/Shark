@@ -30,8 +30,9 @@ namespace Shark {
 	enum class ImageType : uint16_t
 	{
 		Texture,
+		TextureCube,
 		Storage,
-		FrameBuffer
+		Atachment
 	};
 
 	std::string ToString(ImageType type);
@@ -40,6 +41,7 @@ namespace Shark {
 	{
 		ImageFormat Format = ImageFormat::RGBA8;
 		uint32_t Width = 0, Height = 0;
+		uint32_t Layers = 1;
 		uint32_t MipLevels = 1; // 0 == MaxLeves
 
 		ImageType Type = ImageType::Texture;
@@ -77,11 +79,20 @@ namespace Shark {
 		virtual RenderID GetViewID() const = 0;
 		virtual const ImageSpecification& GetSpecification() const = 0;
 		virtual ImageSpecification& GetSpecificationMutable() = 0;
+		virtual ImageType GetType() const = 0;
 
 	public:
 		static Ref<Image2D> Create();
 		static Ref<Image2D> Create(const ImageSpecification& specs);
 		static Ref<Image2D> Create(const ImageSpecification& specs, Ref<Image2D> data);
 	};
+
+	namespace ImageUtils {
+
+		bool IsDepthFormat(ImageFormat format);
+		bool IsIntegerBased(ImageFormat format);
+		uint32_t GetFormatDataSize(ImageFormat format);
+
+	}
 
 }

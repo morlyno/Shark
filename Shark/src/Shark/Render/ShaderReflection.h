@@ -10,7 +10,8 @@ namespace Shark {
 		{
 			None = 0,
 			Vertex,
-			Pixel
+			Pixel,
+			Compute
 		};
 
 		enum class VariableType
@@ -54,27 +55,48 @@ namespace Shark {
 		{
 			None = 0,
 
+			// Sampler Only
+			Sampler,
+
 			// Texture Only
+			Image2D,
+			Image3D,
+			ImageCube,
+
+			// Combined Image Sampler
 			Texture2D,
 			Texture3D,
 			TextureCube,
 
-			// Sampler Only
-			Sampler,
-
-			// Combined Image Sampler
-			Sampler2D,
-			Sampler3D,
-			SamplerCube,
+			StorageImage2D,
+			StorageImage3D,
+			StorageImageCube
 		};
+
+		constexpr bool IsImageType(ResourceType type)
+		{
+			switch (type)
+			{
+				case ResourceType::Image2D:
+				case ResourceType::Image3D:
+				case ResourceType::ImageCube:
+					return true;
+			}
+			return false;
+		}
 
 		struct Resource
 		{
 			std::string Name;
 			ShaderStage Stage = ShaderStage::None;
 			ResourceType Type = ResourceType::None;
+			UpdateFrequencyType UpdateFrequency = UpdateFrequencyType::None;
 			uint32_t Binding;
 			uint32_t ArraySize;
+
+			// Only used for ResourceType::Texture*
+			// for ResourceType::Sampler it's the same as Binding
+			uint32_t SamplerBinding;
 		};
 
 	}
@@ -90,13 +112,16 @@ namespace Shark {
 		switch (resourceType)
 		{
 			case ShaderReflection::ResourceType::None: return "None";
-			case ShaderReflection::ResourceType::Texture2D: return "Texture2D";
-			case ShaderReflection::ResourceType::Texture3D: return "Texture3D";
-			case ShaderReflection::ResourceType::TextureCube: return "TextureCube";
+			case ShaderReflection::ResourceType::Image2D: return "Texture2D";
+			case ShaderReflection::ResourceType::Image3D: return "Texture3D";
+			case ShaderReflection::ResourceType::ImageCube: return "TextureCube";
 			case ShaderReflection::ResourceType::Sampler: return "Sampler";
-			case ShaderReflection::ResourceType::Sampler2D: return "Sampler2D";
-			case ShaderReflection::ResourceType::Sampler3D: return "Sampler3D";
-			case ShaderReflection::ResourceType::SamplerCube: return "SamplerCube";
+			case ShaderReflection::ResourceType::Texture2D: return "Sampler2D";
+			case ShaderReflection::ResourceType::Texture3D: return "Sampler3D";
+			case ShaderReflection::ResourceType::TextureCube: return "SamplerCube";
+			case ShaderReflection::ResourceType::StorageImage2D: return "StorageImage2D";
+			case ShaderReflection::ResourceType::StorageImage3D: return "StorageImage3D";
+			case ShaderReflection::ResourceType::StorageImageCube: return "StorageImageCube";
 		}
 
 		SK_CORE_ASSERT(false, "Unkown ShaderRelfection::ResourceType");
@@ -106,13 +131,16 @@ namespace Shark {
 	inline ShaderReflection::ResourceType StringToShaderReflectionResourceType(const std::string& resourceType)
 	{
 		if (resourceType == "None") return ShaderReflection::ResourceType::None;
-		if (resourceType == "Texture2D") return ShaderReflection::ResourceType::Texture2D;
-		if (resourceType == "Texture3D") return ShaderReflection::ResourceType::Texture3D;
-		if (resourceType == "TextureCube") return ShaderReflection::ResourceType::TextureCube;
+		if (resourceType == "Texture2D") return ShaderReflection::ResourceType::Image2D;
+		if (resourceType == "Texture3D") return ShaderReflection::ResourceType::Image3D;
+		if (resourceType == "TextureCube") return ShaderReflection::ResourceType::ImageCube;
 		if (resourceType == "Sampler") return ShaderReflection::ResourceType::Sampler;
-		if (resourceType == "Sampler2D") return ShaderReflection::ResourceType::Sampler2D;
-		if (resourceType == "Sampler3D") return ShaderReflection::ResourceType::Sampler3D;
-		if (resourceType == "SamplerCube") return ShaderReflection::ResourceType::SamplerCube;
+		if (resourceType == "Sampler2D") return ShaderReflection::ResourceType::Texture2D;
+		if (resourceType == "Sampler3D") return ShaderReflection::ResourceType::Texture3D;
+		if (resourceType == "SamplerCube") return ShaderReflection::ResourceType::TextureCube;
+		if (resourceType == "StorageImage2D") return ShaderReflection::ResourceType::StorageImage2D;
+		if (resourceType == "StorageImage3D") return ShaderReflection::ResourceType::StorageImage3D;
+		if (resourceType == "StorageImageCube") return ShaderReflection::ResourceType::StorageImageCube;
 
 		SK_CORE_ASSERT(false, "Unkown ShaderReflection::ResourceType");
 		return ShaderReflection::ResourceType::None;
@@ -125,6 +153,7 @@ namespace Shark {
 			case ShaderReflection::ShaderStage::None: return "None";
 			case ShaderReflection::ShaderStage::Vertex: return "Vertex";
 			case ShaderReflection::ShaderStage::Pixel: return "Pixel";
+			case ShaderReflection::ShaderStage::Compute: return "Compute";
 		}
 
 		SK_CORE_ASSERT(false, "Unkown ShaderReflection::ShaderStage");
@@ -139,6 +168,8 @@ namespace Shark {
 			return ShaderReflection::ShaderStage::Vertex;
 		if (shaderStage == "Pixel")
 			return ShaderReflection::ShaderStage::Pixel;
+		if (shaderStage == "Compute")
+			return ShaderReflection::ShaderStage::Compute;
 
 		SK_CORE_ASSERT(false, "Unkown ShaderRelfection::ShaderStage");
 		return ShaderReflection::ShaderStage::None;

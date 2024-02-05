@@ -262,8 +262,18 @@ namespace Shark {
 
 		// Text
 		{
+			FrameBufferSpecification textFB;
+			textFB.Width = framebuffer->GetSpecification().Width;
+			textFB.Height = framebuffer->GetSpecification().Height;
+			textFB.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
+			textFB.Atachments[0].BlendEnabled = true;
+			textFB.ExistingImages[0] = framebuffer->GetImage(0);
+			textFB.ExistingImages[1] = framebuffer->GetImage(1);
+			textFB.ExistingImages[2] = framebuffer->GetDepthImage();
+			textFB.DebugName = "Renderer2D - Text Framebuffer";
+
 			PipelineSpecification pipelineSpec;
-			pipelineSpec.TargetFrameBuffer = framebuffer;
+			pipelineSpec.TargetFrameBuffer = FrameBuffer::Create(textFB);
 			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Text");
 			pipelineSpec.Layout = {
 				{ VertexDataType::Float3, "Position" },
@@ -283,19 +293,6 @@ namespace Shark {
 
 			m_TextVertexData.Allocate(DefaultTextVertices * sizeof TextVertex);
 		}
-
-		m_QuadMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_TransparentQuadMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_QuadDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_TransparentQuadDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_CircleMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_TransparentCircleMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_CircleDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_TransparentCircleDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_LineMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_LineDepthPassMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-		m_TextMaterial->SetUpdateFrequency("u_SceneData", ShaderReflection::UpdateFrequencyType::PerMaterial);
-
 
 		constexpr double delta = M_PI / 10.0f; // 0.31415
 		glm::vec4 point = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -325,6 +322,7 @@ namespace Shark {
 		m_DepthFrameBuffer->Resize(width, height);
 		m_TransparentDepthBuffer->Resize(width, height);
 		m_TransparentGeometryFrameBuffer->Resize(width, height);
+		m_TextPipeline->GetSpecification().TargetFrameBuffer->Resize(width, height);
 	}
 
 	void Renderer2D::BeginScene(const glm::mat4& viewProj)
@@ -916,12 +914,15 @@ namespace Shark {
 			m_Statistics.DrawCalls++;
 		}
 
-		m_CompositeMaterial->Set("AccumulationImage", m_TransparentGeometryFrameBuffer->GetImage(0));
-		m_CompositeMaterial->Set("RevealImage", m_TransparentGeometryFrameBuffer->GetImage(1));
-		m_CompositeMaterial->Set("IDImage", m_TransparentGeometryFrameBuffer->GetImage(2));
-		m_CompositeMaterial->Set("DepthImage", m_TransparentDepthBuffer->GetDepthImage());
-		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositePipeline, m_CompositeMaterial);
-		m_Statistics.DrawCalls++;
+		if (m_TransparentQuadIndexCount || m_TransparentCircleIndexCount)
+		{
+			m_CompositeMaterial->Set("AccumulationImage", m_TransparentGeometryFrameBuffer->GetImage(0));
+			m_CompositeMaterial->Set("RevealImage", m_TransparentGeometryFrameBuffer->GetImage(1));
+			m_CompositeMaterial->Set("IDImage", m_TransparentGeometryFrameBuffer->GetImage(2));
+			m_CompositeMaterial->Set("DepthImage", m_TransparentDepthBuffer->GetDepthImage());
+			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositePipeline, m_CompositeMaterial);
+			m_Statistics.DrawCalls++;
+		}
 
 		m_CommandBuffer->EndTimeQuery(m_OITGeoemtryPassTimer);
 	}

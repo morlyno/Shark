@@ -22,11 +22,11 @@ namespace Shark::String {
 	std::string ToNarrow(const wchar_t* str);
 	std::wstring ToWide(const std::string& str);
 
-	void SplitString(const std::string& str, std::string_view splitter, std::vector<std::string>& out_Array);
-	void SplitString(const std::wstring& str, std::wstring_view splitter, std::vector<std::wstring>& out_Array);
+	void SplitString(std::string_view str, std::string_view splitter, std::vector<std::string>& out_Array);
+	void SplitString(std::wstring_view str, std::wstring_view splitter, std::vector<std::wstring>& out_Array);
 
-	std::vector<std::string> SplitString(const std::string& str, std::string_view splitter);
-	std::vector<std::wstring> SplitString(const std::wstring& str, std::wstring_view splitter);
+	std::vector<std::string> SplitString(std::string_view str, std::string_view splitter);
+	std::vector<std::wstring> SplitString(std::wstring_view str, std::wstring_view splitter);
 
 	void Replace(std::string& str, std::string_view from, std::string_view to);
 	void Remove(std::string& str, std::string_view pattern);
@@ -38,6 +38,10 @@ namespace Shark::String {
 	void Strip(std::string& str, char c = ' ');
 	void StripBack(std::string& str, char c = ' ');
 	void StripFront(std::string& str, char c = ' ');
+
+	void Strip(std::string& str, std::string_view chars);
+	void StripBack(std::string& str, std::string_view chars);
+	void StripFront(std::string& str, std::string_view chars);
 
 	std::string BytesToString(uint64_t bytes);
 

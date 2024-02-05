@@ -14,6 +14,8 @@ namespace Shark {
 
 	class DirectXMaterial : public Material
 	{
+		struct Resource;
+
 	public:
 		DirectXMaterial(Ref<Shader> shader, const std::string& name);
 		virtual ~DirectXMaterial();
@@ -22,17 +24,17 @@ namespace Shark {
 		virtual const std::string& GetName() const override { return m_Name; }
 		virtual void SetName(const std::string& name) override { m_Name = name; }
 
-		virtual ShaderReflection::UpdateFrequencyType GetUpdateFrequency(const std::string& name) const override;
-		virtual void SetUpdateFrequency(const std::string& name, ShaderReflection::UpdateFrequencyType updateFrequency) override;
+		virtual void Set(const std::string& name, Ref<Texture2D> texture) override { SetResource(name, texture); }
+		virtual void Set(const std::string& name, Ref<Texture2D> texture, uint32_t index) override { SetResource(fmt::format("{}_{}", name, index), texture); }
 
-		virtual void Set(const std::string& name, Ref<Texture2D> texture) override { SetResource(name, texture, nullptr, nullptr); }
-		virtual void Set(const std::string& name, Ref<Texture2D> texture, uint32_t index) override { SetResource(name, index, texture, nullptr, nullptr); }
+		virtual void Set(const std::string& name, Ref<TextureCube> textureCube) override { SetResource(name, textureCube); }
+		virtual void Set(const std::string& name, Ref<TextureCube> textureCube, uint32_t index) override { SetResource(fmt::format("{}_{}", name, index), textureCube); }
 
-		virtual void Set(const std::string& name, Ref<Image2D> image) override { SetResource(name, nullptr, image, nullptr); }
-		virtual void Set(const std::string& name, Ref<Image2D> image, uint32_t index) override { SetResource(name, index, nullptr, image, nullptr); }
+		virtual void Set(const std::string& name, Ref<Image2D> image) override { SetResource(name, image); }
+		virtual void Set(const std::string& name, Ref<Image2D> image, uint32_t index) override { SetResource(fmt::format("{}_{}", name, index), image); }
 
-		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler) override { SetResource(name, nullptr, nullptr, sampler); }
-		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler, uint32_t index) override { SetResource(name, index, nullptr, nullptr, sampler); }
+		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler) override { SetResource(name, sampler); }
+		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler, uint32_t index) override { SetResource(fmt::format("{}_{}", name, index), sampler); }
 
 		virtual void Set(const std::string& name, float val) override { SetBytes(name, Buffer::FromValue(val)); }
 		virtual void Set(const std::string& name, const glm::vec2& val) override { SetBytes(name, Buffer::FromValue(val)); }
@@ -74,8 +76,11 @@ namespace Shark {
 		virtual glm::mat4& GetMat4(const std::string& name) override { return GetBytes(name).Value<glm::mat4>(); }
 
 	private:
-		void SetResource(const std::string& name, Ref<Texture2D> texture, Ref<Image2D> image, Ref<SamplerWrapper> sampler);
-		void SetResource(const std::string& name, uint32_t index, Ref<Texture2D> texture, Ref<Image2D> image, Ref<SamplerWrapper> sampler);
+		void SetResource(const std::string& name, Ref<Texture2D> texture);
+		void SetResource(const std::string& name, Ref<TextureCube> textureCube);
+		void SetResource(const std::string& name, Ref<Image2D> image);
+		void SetResource(const std::string& name, Ref<SamplerWrapper> sampler);
+		void ClearResource(const std::string& name);
 
 		void SetBytes(const std::string& name, Buffer data);
 		Buffer GetBytes(const std::string& name) const;
@@ -97,7 +102,6 @@ namespace Shark {
 		{
 			uint32_t Size = 0;
 			uint32_t Binding = 0;
-			ShaderReflection::UpdateFrequencyType UpdateFrequency = ShaderReflection::UpdateFrequencyType::None;
 			Ref<DirectXConstantBuffer> Buffer;
 			ScopedBuffer UploadBuffer;
 			ShaderReflection::ShaderStage Stage = ShaderReflection::ShaderStage::None;
@@ -120,6 +124,11 @@ namespace Shark {
 			ShaderReflection::ShaderStage Stage = ShaderReflection::ShaderStage::None;
 			uint32_t Binding;
 
+			// Only used for ResourceType::Texture*
+			// for ResourceType::Sampler it's the same as Binding
+			uint32_t SamplerBinding;
+
+			Ref<DirectXTextureCube> TextureCube;
 			Ref<DirectXTexture2D> Texture;
 			Ref<DirectXImage2D> Image;
 			Ref<DirectXSamplerWrapper> Sampler;

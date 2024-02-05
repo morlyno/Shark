@@ -13,6 +13,12 @@
 
 #include "Shark/Debug/Profiler.h"
 
+// TODO(moro): temp
+#include "Platform/DirectX11/DirectXShaderCompiler.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXTexture.h"
+#include "Platform/DirectX11/DirectXAPI.h"
+
 namespace Shark {
 
 	SceneRenderer::SceneRenderer(uint32_t width, uint32_t height, const std::string& debugName)
@@ -45,7 +51,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 	}
 
-	void SceneRenderer::BeginScene(const glm::mat4& viewProj, const glm::vec3& cameraPosition)
+	void SceneRenderer::BeginScene(const SceneRendererCamera& camera)
 	{
 		SK_PROFILE_FUNCTION();
 		
@@ -63,8 +69,10 @@ namespace Shark {
 
 		m_MeshTransformCBIndex = 0;
 
-		m_ViewProjection = viewProj;
-		m_CameraPosition = cameraPosition;
+		m_ViewProjection = camera.Projection * camera.View;
+		m_View = camera.View;
+		m_Projection = camera.Projection;
+		m_CameraPosition = camera.Position;
 
 		CBCamera cbCamera;
 		cbCamera.ViewProj = m_ViewProjection;
@@ -75,12 +83,14 @@ namespace Shark {
 		m_CommandBuffer->BeginTimeQuery(m_Timer);
 		m_GeometryFrameBuffer->Clear(m_CommandBuffer);
 
-		m_Renderer2D->BeginScene(viewProj);
+		m_Renderer2D->BeginScene(m_ViewProjection);
 	}
 
 	void SceneRenderer::EndScene()
 	{
 		SK_PROFILE_FUNCTION();
+
+		SkyboxPass();
 
 		m_CommandBuffer->EndTimeQuery(m_Timer);
 		m_CommandBuffer->End();
@@ -117,13 +127,13 @@ namespace Shark {
 		m_Renderer2D->DrawString(text, font, transform, kerning, lineSpacing, color, id);
 	}
 
-	void SceneRenderer::SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity, const glm::vec3& radiance)
+	void SceneRenderer::SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity, float radius)
 	{
 		CBLight cbLight;
 		cbLight.Color = color;
 		cbLight.Position = position;
 		cbLight.Intensity = intensity;
-		cbLight.Radiance = radiance;
+		cbLight.Radius = radius;
 		m_CBLight->UploadData(Buffer::FromValue(cbLight));
 	}
 
@@ -141,6 +151,21 @@ namespace Shark {
 
 		Ref<ConstantBuffer> cbMeshData = m_MeshTransformCBs[m_MeshTransformCBIndex++];
 		cbMeshData->UploadData(Buffer::FromValue(meshData));
+
+		{
+			Ref<MeshSource> meshSource = mesh->GetMeshSource();
+			const auto& submeshes = meshSource->GetSubmeshes();
+			const auto& submesh = submeshes[submeshIndex];
+
+			Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+			const auto& materials = meshSource->GetMaterials();
+
+			Ref<DirectXMaterial> material = materialTable->HasMaterial(submesh.MaterialIndex) ?
+				materialTable->GetMaterial(submesh.MaterialIndex)->GetMaterial().As<DirectXMaterial>() :
+				materials[submesh.MaterialIndex].As<DirectXMaterial>();
+
+			material->Set("u_IrradianceMap", m_IrradianceMap);
+		}
 
 		Renderer::RenderSubmesh(m_CommandBuffer, m_MeshPipeline, mesh, submeshIndex, m_CBSceneData, cbMeshData, m_CBLight);
 
@@ -164,6 +189,8 @@ namespace Shark {
 
 		Ref<ConstantBuffer> cbMeshData = m_MeshTransformCBs[m_MeshTransformCBIndex++];
 		cbMeshData->UploadData(Buffer::FromValue(meshData));
+
+		material->Set("u_IrradianceMap", m_IrradianceMap);
 
 		Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_MeshPipeline, mesh, submeshIndex, material, m_CBSceneData, cbMeshData, m_CBLight);
 
@@ -302,6 +329,13 @@ namespace Shark {
 		}
 	}
 
+	void SceneRenderer::SkyboxPass()
+	{
+		glm::mat4 rotView = glm::mat3(m_View);
+		m_SkyboxMaterial->Set("u_SceneData.SkyboxProjection", m_Projection * rotView);
+		Renderer::RenderCube(m_CommandBuffer, m_SkyboxPipeline, m_SkyboxMaterial);
+	}
+
 	void SceneRenderer::Initialize(const SceneRendererSpecification& specification)
 	{
 		SK_PROFILE_FUNCTION();
@@ -363,7 +397,7 @@ namespace Shark {
 			PipelineSpecification specification;
 			specification.TargetFrameBuffer = m_GeometryFrameBuffer;
 			specification.Shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
-			specification.Layout = VertexLayout{
+			specification.Layout = {
 				{ VertexDataType::Float3, "Position" },
 				{ VertexDataType::Float3, "Normal" },
 				{ VertexDataType::Float3, "Tangent" },
@@ -372,6 +406,31 @@ namespace Shark {
 			};
 			specification.DebugName = "PBR";
 			m_MeshPipeline = Pipeline::Create(specification);
+		}
+
+		// Skybox
+		{
+			PipelineSpecification specification;
+			specification.TargetFrameBuffer = m_GeometryFrameBuffer;
+			specification.Shader = Renderer::GetShaderLibrary()->Get("Skybox");
+			specification.Layout = { VertexDataType::Float3, "Position" };
+			specification.DebugName = "Skybox";
+			m_SkyboxPipeline = Pipeline::Create(specification);
+			m_SkyboxMaterial = Material::Create(specification.Shader);
+
+			TextureSpecification textureSpecification;
+			textureSpecification.Width = 1024;
+			textureSpecification.Height = 1024;
+			textureSpecification.Format = ImageFormat::RGBA16F;
+			textureSpecification.DebugName = "Environment Cube Map";
+			textureSpecification.Sampler.Filter = FilterMode::Linear;
+			textureSpecification.Sampler.Wrap = WrapMode::Clamp;
+			textureSpecification.GenerateMips = true;
+
+			auto [environmentMap, irradianceMap] = Renderer::CreateEnvironmentMap("Resources/temp/pink_sunrise_4k.hdr");
+			m_EnvironmentMap = environmentMap;
+			m_IrradianceMap = irradianceMap;
+			m_SkyboxMaterial->Set("u_EnvironmentMap", m_EnvironmentMap);
 		}
 
 	}

@@ -21,24 +21,6 @@ namespace Shark {
 	{
 	}
 
-	ShaderReflection::UpdateFrequencyType DirectXMaterial::GetUpdateFrequency(const std::string& name) const
-	{
-		if (!HasBuffer(name))
-			return ShaderReflection::UpdateFrequencyType::None;
-
-		auto& buffer = m_ConstantBuffers.at(name);
-		return buffer.UpdateFrequency;
-	}
-
-	void DirectXMaterial::SetUpdateFrequency(const std::string& name, ShaderReflection::UpdateFrequencyType updateFrequency)
-	{
-		if (!HasBuffer(name))
-			return;
-
-		auto& buffer = m_ConstantBuffers.at(name);
-		buffer.UpdateFrequency = updateFrequency;
-	}
-
 	void DirectXMaterial::Set(const std::string& name, bool val)
 	{
 		int intVal = val;
@@ -84,46 +66,89 @@ namespace Shark {
 		return m_Resources.at(arrayName).Sampler->GetSamplerID();
 	}
 
-	void DirectXMaterial::SetResource(const std::string& name, Ref<Texture2D> texture, Ref<Image2D> image, Ref<SamplerWrapper> sampler)
+	void DirectXMaterial::SetResource(const std::string& name, Ref<Texture2D> texture)
 	{
 		SK_CORE_VERIFY(HasResourceName(name));
+
+		if (!texture)
+		{
+			ClearResource(name);
+			return;
+		}
+
 		auto& resource = m_Resources.at(name);
+		SK_CORE_VERIFY(resource.Type == ShaderReflection::ResourceType::Texture2D);
+		resource.Texture = texture.As<DirectXTexture2D>();
+		resource.TextureCube = nullptr;
+		resource.Image = texture->GetImage().As<DirectXImage2D>();
+		resource.Sampler = texture->GetSampler().As<DirectXSamplerWrapper>();
+	}
 
-		if (texture)
+	void DirectXMaterial::SetResource(const std::string& name, Ref<TextureCube> textureCube)
+	{
+		SK_CORE_VERIFY(HasResourceName(name));
+
+		if (!textureCube)
 		{
-			SK_CORE_VERIFY(resource.Type == ShaderReflection::ResourceType::Sampler2D);
-			resource.Texture = texture.As<DirectXTexture2D>();
-			resource.Image = texture->GetImage().As<DirectXImage2D>();
-			resource.Sampler = texture->GetSampler().As<DirectXSamplerWrapper>();
+			ClearResource(name);
 			return;
 		}
 
-		if (image)
+		auto& resource = m_Resources.at(name);
+		SK_CORE_VERIFY(resource.Type == ShaderReflection::ResourceType::TextureCube);
+		resource.Texture = nullptr;
+		resource.TextureCube = textureCube.As<DirectXTextureCube>();
+		resource.Image = textureCube->GetImage().As<DirectXImage2D>();
+		resource.Sampler = textureCube->GetSampler().As<DirectXSamplerWrapper>();
+	}
+
+	void DirectXMaterial::SetResource(const std::string& name, Ref<Image2D> image)
+	{
+		SK_CORE_VERIFY(HasResourceName(name));
+
+		if (!image)
 		{
-			SK_CORE_VERIFY(resource.Type == ShaderReflection::ResourceType::Texture2D);
-			resource.Texture = nullptr;
-			resource.Image = image.As<DirectXImage2D>();
-			resource.Sampler = nullptr;
+			ClearResource(name);
 			return;
 		}
 
-		if (sampler)
-		{
-			SK_CORE_VERIFY(resource.Type == ShaderReflection::ResourceType::Sampler);
-			resource.Texture = nullptr;
-			resource.Image = nullptr;
-			resource.Sampler = sampler.As<DirectXSamplerWrapper>();
-			return;
-		}
+		auto& resource = m_Resources.at(name);
+		SK_CORE_VERIFY((image->GetType() == ImageType::Texture     && resource.Type == ShaderReflection::ResourceType::Image2D) ||
+					   (image->GetType() == ImageType::Atachment   && resource.Type == ShaderReflection::ResourceType::Image2D) ||
+					   (image->GetType() == ImageType::TextureCube && resource.Type == ShaderReflection::ResourceType::ImageCube));
 
 		resource.Texture = nullptr;
-		resource.Image = nullptr;
+		resource.TextureCube = nullptr;
+		resource.Image = image.As<DirectXImage2D>();
 		resource.Sampler = nullptr;
 	}
 
-	void DirectXMaterial::SetResource(const std::string& name, uint32_t index, Ref<Texture2D> texture, Ref<Image2D> image, Ref<SamplerWrapper> sampler)
+	void DirectXMaterial::SetResource(const std::string& name, Ref<SamplerWrapper> sampler)
 	{
-		SetResource(fmt::format("{}_{}", name, index), texture, image, sampler);
+		SK_CORE_VERIFY(HasResourceName(name));
+
+		if (!sampler)
+		{
+			ClearResource(name);
+			return;
+		}
+
+		auto& resource = m_Resources.at(name);
+		SK_CORE_VERIFY(resource.Type == ShaderReflection::ResourceType::Sampler);
+		resource.Texture = nullptr;
+		resource.TextureCube = nullptr;
+		resource.Image = nullptr;
+		resource.Sampler = sampler.As<DirectXSamplerWrapper>();
+	}
+
+	void DirectXMaterial::ClearResource(const std::string& name)
+	{
+		SK_CORE_VERIFY(HasResourceName(name));
+		auto& resource = m_Resources.at(name);
+		resource.Texture = nullptr;
+		resource.TextureCube = nullptr;
+		resource.Image = nullptr;
+		resource.Sampler = nullptr;
 	}
 
 	void DirectXMaterial::SetBytes(const std::string& name, Buffer data)
@@ -131,11 +156,6 @@ namespace Shark {
 		SK_CORE_VERIFY(m_ConstantBufferMembers.contains(name));
 
 		auto& member = m_ConstantBufferMembers.at(name);
-		if (member.Parent->UpdateFrequency != ShaderReflection::UpdateFrequencyType::PerMaterial)
-		{
-			SK_CORE_WARN_TAG("Renderer", "Buffer ({}) with UpdateFrequency {} set in Material", name, ToString(member.Parent->UpdateFrequency));
-		}
-
 		member.UploadBufferRef.Write(data);
 	}
 
@@ -169,12 +189,13 @@ namespace Shark {
 
 		for (const auto& [name, constantBuffer] : reflectionData.ConstantBuffers)
 		{
+			if (constantBuffer.UpdateFrequency != ShaderReflection::UpdateFrequencyType::PerMaterial)
+				continue;
+
 			SK_CORE_VERIFY(!m_ConstantBuffers.contains(name));
 			auto& cb = m_ConstantBuffers[name];
 			cb.Size = constantBuffer.Size;
 			cb.Binding = constantBuffer.Binding;
-			cb.UpdateFrequency = constantBuffer.UpdateFrequency;
-			//cb.Buffer = Ref<DirectXConstantBuffer>::Create(constantBuffer.Size, constantBuffer.Binding);
 			cb.UploadBuffer.Allocate(constantBuffer.Size);
 			cb.Stage = constantBuffer.Stage;
 
@@ -190,21 +211,26 @@ namespace Shark {
 
 		for (const auto& [name, resource] : reflectionData.Resources)
 		{
+			if (resource.UpdateFrequency != ShaderReflection::UpdateFrequencyType::PerMaterial)
+				continue;
+
 			if (resource.ArraySize == 0)
 			{
-				auto& res = m_Resources[name];
+				Resource& res = m_Resources[name];
 				res.Type = resource.Type;
 				res.Stage = resource.Stage;
 				res.Binding = resource.Binding;
+				res.SamplerBinding = resource.SamplerBinding;
 				continue;
 			}
 
 			for (uint32_t i = 0; i < resource.ArraySize; i++)
 			{
-				auto& res = m_Resources[fmt::format("{}_{}", name, i)];
+				Resource& res = m_Resources[fmt::format("{}_{}", name, i)];
 				res.Type = resource.Type;
 				res.Stage = resource.Stage;
 				res.Binding = resource.Binding + i;
+				res.SamplerBinding = resource.SamplerBinding;
 				continue;
 			}
 		}

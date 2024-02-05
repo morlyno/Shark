@@ -133,13 +133,13 @@ namespace Shark {
 		imageSpec.Width = m_Specification.Width;
 		imageSpec.Height = m_Specification.Height;
 		imageSpec.Format = m_Format;
-		imageSpec.Type = ImageType::FrameBuffer;
+		imageSpec.Type = ImageType::Atachment;
 
 		Renderer::Submit([instance, swapchainImage]()
 		{
 			ID3D11Texture2D* resource = nullptr;
 			instance->m_SwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void**)&resource);
-			swapchainImage->SetResource(resource);
+			swapchainImage->GetDirectXImageInfo().Resource = resource;
 		});
 
 		FrameBufferSpecification spec;
@@ -245,7 +245,7 @@ namespace Shark {
 
 			ID3D11Texture2D* resource = nullptr;
 			m_SwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void**)&resource);
-			image->SetResource(resource);
+			image->GetDirectXImageInfo().Resource = resource;
 		}
 
 		for (auto weakFramebuffer : m_DependentFramebuffers)
@@ -256,7 +256,7 @@ namespace Shark {
 			for (uint32_t internalIndex = 0; const auto& atachment : framebuffer->GetSpecification().Atachments)
 			{
 				const uint32_t imageIndex = internalIndex++;
-				if (Utils::IsDepthAtachment(atachment))
+				if (ImageUtils::IsDepthFormat(atachment.Format))
 				{
 					auto depthImage = framebuffer->GetDepthImage();
 					if (!depthImage->Validate(false))

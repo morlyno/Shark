@@ -50,6 +50,8 @@ namespace Shark {
 		VertexLayout() = default;
 		VertexLayout(const std::initializer_list<VertexElement>& elements);
 		VertexLayout(std::vector<VertexElement>&& elements);
+		VertexLayout(const VertexElement& element);
+		VertexLayout& operator=(const VertexElement& other);
 
 		void Add(const VertexElement& element);
 		void Init();

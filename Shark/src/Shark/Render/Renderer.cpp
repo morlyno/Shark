@@ -20,9 +20,10 @@ namespace Shark {
 
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<Texture2D> m_BlackTexture;
-		Ref<Texture2D> m_BlueTexture;
+		Ref<TextureCube> m_BlackTextureCube;
 	};
 
+	static RendererConfig s_Config = {};
 	static RendererData* s_Data = nullptr;
 	static constexpr uint32_t s_CommandQueueCount = 2;
 	static RenderCommandQueue* s_CommandQueue[s_CommandQueueCount];
@@ -55,27 +56,26 @@ namespace Shark {
 		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
 
 		// 3D
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/DefaultMeshShader.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FlatColor.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Skybox.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvironmentIrradiance.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EquirectangularToCubeMap.glsl");
 
 		// 2D
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_QuadTransparent.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_QuadDepthPass.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Circle.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_CircleTransparent.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_CircleDepthPass.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Line.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_LineDepthPass.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Composite.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Renderer2D_Text.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Quad.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadTransparent.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadDepthPass.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Circle.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_CircleTransparent.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_CircleDepthPass.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Line.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_LineDepthPass.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Composite.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Text.hlsl");
 
 		// Misc
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FullScreen.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/CompositWidthDepth.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/NegativeEffect.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/BlurEffect.hlsl");
 
 		// Compile Shaders
 		Renderer::WaitAndRender();
@@ -93,8 +93,12 @@ namespace Shark {
 			spec.DebugName = "Balck Texture";
 			s_Data->m_BlackTexture = Texture2D::Create(spec, Buffer::FromValue(0x00000000));
 
-			spec.DebugName = "Blue Texture";
-			s_Data->m_BlueTexture = Texture2D::Create(spec, Buffer::FromValue(0xFFFF0000));
+			spec.Format = ImageFormat::RGBA32F;
+			spec.DebugName = "Black Texture Cube";
+
+			glm::vec4 imageData[6];
+			memset(imageData, 0, sizeof(imageData));
+			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
 		}
 	}
 
@@ -174,6 +178,11 @@ namespace Shark {
 		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, vertexBuffer, vertexCount);
 	}
 
+	void Renderer::RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
+	{
+		s_RendererAPI->RenderCube(commandBuffer, pipeline, material);
+	}
+
 	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline)
 	{
 		s_RendererAPI->RenderSubmesh(renderCommandBuffer, mesh, submeshIndex, pipeline);
@@ -197,6 +206,11 @@ namespace Shark {
 	Ref<SamplerWrapper> Renderer::GetClampLinearSampler()
 	{
 		return s_RendererAPI->GetClampLinearSampler();
+	}
+
+	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
+	{
+		return s_RendererAPI->CreateEnvironmentMap(filepath);
 	}
 
 	void Renderer::GenerateMips(Ref<Image2D> image)
@@ -240,9 +254,9 @@ namespace Shark {
 		return s_Data->m_BlackTexture;
 	}
 
-	Ref<Texture2D> Renderer::GetBlueTexture()
+	Ref<TextureCube> Renderer::GetBlackTextureCube()
 	{
-		return s_Data->m_BlueTexture;
+		return s_Data->m_BlackTextureCube;
 	}
 
 	const RendererCapabilities& Renderer::GetCapabilities()
@@ -253,6 +267,16 @@ namespace Shark {
 	bool Renderer::IsOnRenderThread()
 	{
 		return s_SingleThreadedIsExecuting;
+	}
+
+	RendererConfig& Renderer::GetConfig()
+	{
+		return s_Config;
+	}
+
+	void Renderer::SetConfig(const RendererConfig& config)
+	{
+		s_Config = config;
 	}
 
 	RenderCommandQueue& Renderer::GetCommandQueue()

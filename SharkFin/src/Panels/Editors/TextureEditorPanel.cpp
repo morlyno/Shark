@@ -48,7 +48,11 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
-		m_Scene->OnRender(m_Renderer, m_Camera.GetProjection(), glm::vec3(0.0f));
+		SceneRendererCamera camera;
+		camera.View = glm::identity<glm::mat4>();
+		camera.Projection = m_Camera.GetProjection();
+		camera.Position = glm::vec3(0);
+		m_Scene->OnRender(m_Renderer, camera);
 	}
 
 	void TextureEditorPanel::OnImGuiRender(bool& shown, bool& destroy)

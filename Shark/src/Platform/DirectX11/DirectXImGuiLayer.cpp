@@ -164,9 +164,9 @@ namespace Shark {
 		DirectXImGuiLayer* imguiLayer = (DirectXImGuiLayer*)cmd->UserCallbackData;
 		const auto& usedTextures = imguiLayer->m_UsedTextures;
 
-		auto context = imguiLayer->m_CommandBuffer->GetContext();
-		auto texture = imguiLayer->m_UsedTextures[imguiLayer->m_UsedTextureIndex++];
-		auto sampler = texture->GetSamplerNative();
+		ID3D11DeviceContext* context = imguiLayer->m_CommandBuffer->GetContext();
+		Ref<DirectXTexture2D> texture = imguiLayer->m_UsedTextures[imguiLayer->m_UsedTextureIndex++];
+		ID3D11SamplerState* sampler = texture->GetDirectXSampler();
 		SK_CORE_ASSERT(sampler);
 		context->PSSetSamplers(0, 1, &sampler);
 	}

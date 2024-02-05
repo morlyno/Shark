@@ -1,0 +1,8 @@
+Material:
+  AlbedoColor: [0.9237113, 0, 1]
+  Metallic: 0
+  Roughness: 0.5
+  AmbientOcclusion: 0
+  AlbedoMap: 0
+  UsingNormalMap: false
+  NormalMap: 0

@@ -116,7 +116,7 @@ namespace Shark {
 	{
 		glm::vec4 Color = glm::vec4(1.0f);
 		float Intensity = 1.0f;
-		glm::vec3 Radiance = glm::vec3{ 1.0f };
+		// Radius is the Scale of the Point Light
 	};
 
 	struct CameraComponent

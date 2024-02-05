@@ -85,21 +85,25 @@ namespace YAML {
 			node.force_insert("Name", resource.Name);
 			node.force_insert("Stage", Shark::ToString(resource.Stage));
 			node.force_insert("Type", Shark::ToString(resource.Type));
+			node.force_insert("UpdateFrequency", Shark::ToString(resource.UpdateFrequency));
 			node.force_insert("Binding", resource.Binding);
 			node.force_insert("ArraySize", resource.ArraySize);
+			node.force_insert("SamplerBinding", resource.SamplerBinding);
 			return node;
 		}
 
 		static bool decode(const Node& node, Shark::ShaderReflection::Resource& outResource)
 		{
-			if (!node.IsMap() || node.size() != 5)
+			if (!node.IsMap() || node.size() != 7)
 				return false;
 
 			outResource.Name = node["Name"].as<std::string>();
 			outResource.Stage = Shark::StringToShaderReflectionShaderStage(node["Stage"].as<std::string>());
 			outResource.Type = Shark::StringToShaderReflectionResourceType(node["Type"].as<std::string>());
+			outResource.UpdateFrequency = Shark::StringToShaderReflectionUpdateFrequency(node["UpdateFrequency"].as<std::string>());
 			outResource.Binding = node["Binding"].as<uint32_t>();
 			outResource.ArraySize = node["ArraySize"].as<uint32_t>();
+			outResource.SamplerBinding = node["SamplerBinding"].as<uint32_t>();
 			return true;
 		}
 	};
@@ -116,6 +120,7 @@ namespace Shark {
 			{
 				case ShaderUtils::ShaderStage::Vertex: return shaderc_vertex_shader;
 				case ShaderUtils::ShaderStage::Pixel: return shaderc_fragment_shader;
+				case ShaderUtils::ShaderStage::Compute: return shaderc_compute_shader;
 			}
 
 			SK_CORE_ASSERT(false, "Invalid Shader Stage");
@@ -128,6 +133,7 @@ namespace Shark {
 			{
 				case ShaderUtils::ShaderStage::Vertex: return ".vert";
 				case ShaderUtils::ShaderStage::Pixel: return ".pixl";
+				case ShaderUtils::ShaderStage::Compute: return ".comp";
 			}
 
 			SK_CORE_ASSERT(false, "Invalid Shader Stage");
@@ -139,10 +145,11 @@ namespace Shark {
 			if (String::Compare(stage, "vertex", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Vertex;
 			if (String::Compare(stage, "vert", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Vertex;
 
-
 			if (String::Compare(stage, "pixel", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Pixel;
 			if (String::Compare(stage, "frag", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Pixel;
 			if (String::Compare(stage, "fragment", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Pixel;
+
+			if (String::Compare(stage, "compute", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Compute;
 
 			SK_CORE_ASSERT(false, "Unkown Shader Stage");
 			return ShaderUtils::ShaderStage::None;
@@ -180,6 +187,7 @@ namespace Shark {
 			{
 				case ShaderUtils::ShaderStage::Vertex: return "vs_5_0";
 				case ShaderUtils::ShaderStage::Pixel: return "ps_5_0";
+				case ShaderUtils::ShaderStage::Compute: return "cs_5_0";
 			}
 
 			SK_CORE_ASSERT(false, "Unkown Shader Stage");
@@ -214,6 +222,7 @@ namespace Shark {
 			{
 				case ShaderUtils::ShaderStage::Vertex: return ".vert";
 				case ShaderUtils::ShaderStage::Pixel: return ".frag";
+				case ShaderUtils::ShaderStage::Compute: return ".comp";
 			}
 
 			SK_CORE_VERIFY(false);
@@ -232,6 +241,7 @@ namespace Shark {
 				case ShaderUtils::ShaderStage::None: return ShaderReflection::ShaderStage::None;
 				case ShaderUtils::ShaderStage::Vertex: return ShaderReflection::ShaderStage::Vertex;
 				case ShaderUtils::ShaderStage::Pixel: return ShaderReflection::ShaderStage::Pixel;
+				case ShaderUtils::ShaderStage::Compute: return ShaderReflection::ShaderStage::Compute;
 			}
 
 			SK_CORE_ASSERT(FALSE, "Unkown Shader Stage");
@@ -317,6 +327,7 @@ namespace Shark {
 
 	bool DirectXShaderCompiler::Reload(bool forceCompile)
 	{
+		m_Options.DisableOptimization = true;
 		m_ShaderSource.clear();
 		m_SPIRVData.clear();
 		m_ShaderBinary.clear();
@@ -878,7 +889,8 @@ namespace Shark {
 	void DirectXShaderCompiler::ReflectShaderStage(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary)
 	{
 		SK_CORE_TRACE_TAG("Renderer", "===========================");
-		SK_CORE_TRACE_TAG("Renderer", " DirectX Shader Reflection");
+		SK_CORE_TRACE_TAG("Renderer", " DirectX Shader Reflection ");
+		SK_CORE_TRACE_TAG("Renderer", "{0:^27}", ToString(stage));
 		SK_CORE_TRACE_TAG("Renderer", "===========================");
 
 		spirv_cross::Compiler compiler(spirvBinary);
@@ -902,7 +914,7 @@ namespace Shark {
 			auto& data = m_ReflectionData.ConstantBuffers[name];
 			data.Name = name;
 			data.Stage = utils::ToShaderReflectionShaderStage(stage);
-			data.UpdateFrequency = overriddenUpdateFruequencies.contains(binding) ? overriddenUpdateFruequencies.at(binding) : utils::GetUpdateFrequencyFromBinding(binding);
+			data.UpdateFrequency = overriddenUpdateFruequencies.contains(name) ? overriddenUpdateFruequencies.at(name) : utils::GetUpdateFrequencyFromBinding(binding);
 			data.Binding = binding;
 			data.Size = size;
 			data.MemberCount = memberCount;
@@ -936,7 +948,7 @@ namespace Shark {
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 		}
 
-		SK_CORE_TRACE_TAG("Renderer", "Combined Sampled Images:");
+		SK_CORE_TRACE_TAG("Renderer", "Textures:");
 		for (const auto& resource : shaderResources.sampled_images)
 		{
 			const auto& imageType = compiler.get_type(resource.type_id);
@@ -945,14 +957,16 @@ namespace Shark {
 			auto& reflectionData = m_ReflectionData.Resources[name];
 			reflectionData.Name = name;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
+			reflectionData.UpdateFrequency = overriddenUpdateFruequencies.contains(name) ? overriddenUpdateFruequencies.at(name) : ShaderReflection::UpdateFrequencyType::PerMaterial;
 			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			reflectionData.SamplerBinding = reflectionData.Binding;
 			reflectionData.ArraySize = imageType.array[0];
 
 			switch (imageType.image.dim)
 			{
-				case spv::Dim2D: reflectionData.Type = ShaderReflection::ResourceType::Sampler2D; break;
-				case spv::Dim3D: reflectionData.Type = ShaderReflection::ResourceType::Sampler3D; break;
-				case spv::DimCube: reflectionData.Type = ShaderReflection::ResourceType::SamplerCube; break;
+				case spv::Dim2D: reflectionData.Type = ShaderReflection::ResourceType::Texture2D; break;
+				case spv::Dim3D: reflectionData.Type = ShaderReflection::ResourceType::Texture3D; break;
+				case spv::DimCube: reflectionData.Type = ShaderReflection::ResourceType::TextureCube; break;
 				default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
 			}
 
@@ -963,7 +977,7 @@ namespace Shark {
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 		}
 
-		SK_CORE_TRACE_TAG("Renderer", "Textures:");
+		SK_CORE_TRACE_TAG("Renderer", "Images:");
 		for (const auto& resource : shaderResources.separate_images)
 		{
 			const auto& imageType = compiler.get_type(resource.type_id);
@@ -971,14 +985,43 @@ namespace Shark {
 			auto& reflectionData = m_ReflectionData.Resources[resource.name];
 			reflectionData.Name = resource.name;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
+			reflectionData.UpdateFrequency = overriddenUpdateFruequencies.contains(resource.name) ? overriddenUpdateFruequencies.at(resource.name) : ShaderReflection::UpdateFrequencyType::PerMaterial;
 			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			reflectionData.ArraySize = imageType.array[0];
 
 			switch (imageType.image.dim)
 			{
-				case spv::Dim2D: reflectionData.Type = ShaderReflection::ResourceType::Texture2D; break;
-				case spv::Dim3D: reflectionData.Type = ShaderReflection::ResourceType::Texture3D; break;
-				case spv::DimCube: reflectionData.Type = ShaderReflection::ResourceType::TextureCube; break;
+				case spv::Dim2D: reflectionData.Type = ShaderReflection::ResourceType::Image2D; break;
+				case spv::Dim3D: reflectionData.Type = ShaderReflection::ResourceType::Image3D; break;
+				case spv::DimCube: reflectionData.Type = ShaderReflection::ResourceType::ImageCube; break;
+				default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
+			}
+
+			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
+			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
+			SK_CORE_TRACE_TAG("Renderer", "-------------------");
+
+		}
+
+		SK_CORE_TRACE_TAG("Renderer", "Storage Images:");
+		for (const auto& resource : shaderResources.storage_images)
+		{
+			const auto& imageType = compiler.get_type(resource.type_id);
+
+			auto& reflectionData = m_ReflectionData.Resources[resource.name];
+			reflectionData.Name = resource.name;
+			reflectionData.UpdateFrequency = overriddenUpdateFruequencies.contains(resource.name) ? overriddenUpdateFruequencies.at(resource.name) : ShaderReflection::UpdateFrequencyType::PerMaterial;
+			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
+			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			reflectionData.ArraySize = imageType.array[0];
+
+			switch (imageType.image.dim)
+			{
+				case spv::Dim2D: reflectionData.Type = ShaderReflection::ResourceType::StorageImage2D; break;
+				case spv::Dim3D: reflectionData.Type = ShaderReflection::ResourceType::StorageImage3D; break;
+				case spv::DimCube: reflectionData.Type = ShaderReflection::ResourceType::StorageImageCube; break;
 				default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
 			}
 
@@ -998,6 +1041,7 @@ namespace Shark {
 
 			auto& reflectionData = m_ReflectionData.Resources[name];
 			reflectionData.Name = name;
+			reflectionData.UpdateFrequency = overriddenUpdateFruequencies.contains(resource.name) ? overriddenUpdateFruequencies.at(resource.name) : ShaderReflection::UpdateFrequencyType::PerMaterial;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
 			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			reflectionData.ArraySize = imageType.array[0];
@@ -1010,23 +1054,54 @@ namespace Shark {
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 		}
 
+		SK_CORE_TRACE_TAG("Renderer", "Misk:");
+		const auto combinations = GetCombinedImageSamplerOverrides(metadata);
+		for (const auto& [imageName, samplerName] : combinations)
+		{
+			if (!m_ReflectionData.Resources.contains(imageName) || !m_ReflectionData.Resources.contains(samplerName))
+				continue;
+
+			ShaderReflection::Resource& image = m_ReflectionData.Resources.at(imageName);
+			ShaderReflection::Resource& sampler = m_ReflectionData.Resources.at(samplerName);
+			if (ShaderReflection::IsImageType(image.Type) && sampler.Type == ShaderReflection::ResourceType::Sampler)
+			{
+				SK_CORE_VERIFY(image.Stage == sampler.Stage);
+				SK_CORE_VERIFY(image.UpdateFrequency == sampler.UpdateFrequency);
+
+				switch (image.Type)
+				{
+					case ShaderReflection::ResourceType::Image2D: image.Type = ShaderReflection::ResourceType::Texture2D; break;
+					case ShaderReflection::ResourceType::Image3D: image.Type = ShaderReflection::ResourceType::Texture3D; break;
+					case ShaderReflection::ResourceType::ImageCube: image.Type = ShaderReflection::ResourceType::TextureCube; break;
+					default: SK_CORE_VERIFY(false); break;
+				}
+
+				image.SamplerBinding = sampler.Binding;
+				m_ReflectionData.Resources.erase(samplerName);
+
+				SK_CORE_TRACE_TAG("Renderer", "  Combined Image and Sampler");
+				SK_CORE_TRACE_TAG("Renderer", "    Image: {}", imageName);
+				SK_CORE_TRACE_TAG("Renderer", "    Sampler: {}", samplerName);
+				SK_CORE_TRACE_TAG("Renderer", "-------------------");
+			}
+		}
+
 	}
 
-	std::map<uint32_t, Shark::ShaderReflection::UpdateFrequencyType> DirectXShaderCompiler::GetUpdateFrequencies(const Metadata& metadata)
+	std::map<std::string, Shark::ShaderReflection::UpdateFrequencyType> DirectXShaderCompiler::GetUpdateFrequencies(const Metadata& metadata)
 	{
 		if (metadata.SourceMetadata.empty())
 			return {};
 
-		std::map<uint32_t, ShaderReflection::UpdateFrequencyType> overriddenUpdateFruequencies;
+		std::map<std::string, ShaderReflection::UpdateFrequencyType> overriddenUpdateFruequencies;
 		std::string_view overrides = metadata.SourceMetadata;
 
 		size_t bol = 0;
 		size_t eol = 0;
 
-		const std::string_view BindingToken = "binding=";
-		const std::string_view UpdateFrequencyToken = "UpdateFrequency::";
-
 		size_t offset = 0;
+		std::vector<std::string> tokens;
+		tokens.reserve(3);
 
 		while (true)
 		{
@@ -1036,32 +1111,50 @@ namespace Shark {
 
 			eol = overrides.find_first_of("\r\n", bol);
 			offset = eol;
-			std::string_view line = overrides.substr(bol, eol - bol);
-			size_t bindingBegin = line.find(BindingToken);
-			if (bindingBegin == std::string::npos)
-				continue;
-
-			size_t bindingValueBegin = bindingBegin + BindingToken.length();
-			size_t bindingValueEnd = line.find(' ', bindingValueBegin);
-			std::string bindingString = std::string(line.substr(bindingValueBegin, bindingValueEnd - bindingValueBegin));
-
-			size_t updateFrequencyBegin = line.find(UpdateFrequencyToken);
-			if (updateFrequencyBegin == std::string::npos)
-				continue;
-
-			size_t updateFrequencyValueBegin = updateFrequencyBegin + UpdateFrequencyToken.length();
-			size_t updateFrequencyValueEnd = line.find_first_of(" \r\n", updateFrequencyValueBegin);
-			std::string updateFrequencyString = std::string(line.substr(updateFrequencyValueBegin, updateFrequencyValueEnd - updateFrequencyValueBegin));
-
-			String::Strip(bindingString);
-			String::Strip(updateFrequencyString);
-
-			uint32_t binding = std::atoi(bindingString.c_str());
-			ShaderReflection::UpdateFrequencyType updateFrequency = StringToShaderReflectionUpdateFrequency(updateFrequencyString);
-			overriddenUpdateFruequencies[binding] = updateFrequency;
+			std::string line = std::string(overrides.substr(bol, eol - bol));
+			
+			String::Strip(line, " \r\n");
+			tokens.clear();
+			String::SplitString(line, " ", tokens);
+			SK_CORE_VERIFY(tokens.size() == 3);
+			overriddenUpdateFruequencies[tokens[1]] = StringToShaderReflectionUpdateFrequency(tokens[2]);
 		}
 
 		return overriddenUpdateFruequencies;
+	}
+
+	std::vector<std::pair<std::string, std::string>> DirectXShaderCompiler::GetCombinedImageSamplerOverrides(const Metadata& metadata)
+	{
+		if (metadata.SourceMetadata.empty())
+			return {};
+
+		std::vector<std::pair<std::string, std::string>> combinations;
+		std::string_view source = metadata.SourceMetadata;
+
+		size_t bol = 0;
+		size_t eol = 0;
+
+		size_t offset = 0;
+		std::vector<std::string> tokens;
+
+		while (true)
+		{
+			bol = source.find("combine", offset);
+			if (bol == std::string::npos)
+				break;
+
+			eol = source.find_first_of("\r\n", bol);
+			offset = eol;
+			std::string line = std::string(source.substr(bol, eol - bol));
+
+			String::Strip(line, " \r\n");
+			tokens.clear();
+			String::SplitString(line, " ", tokens);
+			SK_CORE_VERIFY(tokens.size() == 3);
+			combinations.emplace_back(tokens[1], tokens[2]);
+		}
+
+		return combinations;
 	}
 
 }

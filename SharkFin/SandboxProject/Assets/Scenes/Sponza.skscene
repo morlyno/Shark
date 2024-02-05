@@ -224,7 +224,7 @@ Scene:
         Children:
           []
       MeshRendererComponent:
-        MeshHandle: 12825804072817391569
+        MeshHandle: 405962683886001289
         SubmeshIndex: 0
         MaterialHandle: 16837409496041748116
     - Entity: 732881294543497883
@@ -2756,6 +2756,21 @@ Scene:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 148
         MaterialHandle: 0
+    - Entity: 8283951009563072824
+      TagComponent:
+        Name: Cube
+      TransformComponent:
+        Translation: [-3.34753132, 3.47870827, 5.56145668]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 16466054961702350518
+        SubmeshIndex: 0
+        MaterialHandle: 0
     - Entity: 8309654998170455801
       TagComponent:
         Name: sponza_283
@@ -3177,16 +3192,16 @@ Scene:
       TagComponent:
         Name: Light
       TransformComponent:
-        Translation: [-1.23945379, 10.0883341, 9.16631126]
+        Translation: [-1.07236433, 6.07998848, 3.39776468]
         Rotation: [0, 0, 0]
-        Scale: [1, 1, 1]
+        Scale: [3.93539166, 5.67548752, 5.67548752]
       RelationshipComponent:
         Parent: 0
         Children:
           []
       PointLightComponent:
         Color: [1, 1, 1, 1]
-        Intensity: 33.5999985
+        Intensity: 18
     - Entity: 9429602692012350168
       TagComponent:
         Name: sponza_339
@@ -4117,7 +4132,7 @@ Scene:
       TagComponent:
         Name: sponza_117
       TransformComponent:
-        Translation: [0, 0, -0]
+        Translation: [0, 0, 0]
         Rotation: [0, 0, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -4382,6 +4397,21 @@ Scene:
       MeshRendererComponent:
         MeshHandle: 12434088705897559964
         SubmeshIndex: 358
+        MaterialHandle: 0
+    - Entity: 13341503759534522446
+      TagComponent:
+        Name: Sphere
+      TransformComponent:
+        Translation: [-3.25204372, 4.49488068, 2.39675021]
+        Rotation: [0, 0, 0]
+        Scale: [1, 0.999999881, 0.999999881]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshRendererComponent:
+        MeshHandle: 3444792770354131160
+        SubmeshIndex: 0
         MaterialHandle: 0
     - Entity: 13360233883563393390
       TagComponent:
@@ -5107,9 +5137,9 @@ Scene:
       TagComponent:
         Name: sponza.obj
       TransformComponent:
-        Translation: [0, 0, -0]
+        Translation: [0, 0, 0]
         Rotation: [0, 0, 0]
-        Scale: [0.100000001, 0.100000001, 0.100000001]
+        Scale: [0.100000001, 0.100000136, 0.0999998152]
       RelationshipComponent:
         Parent: 0
         Children:

@@ -65,6 +65,16 @@ namespace Shark::DirectXAPI {
 		}
 	}
 
+	void CreateUnorderedAccessView(ID3D11Device* device, ID3D11Resource* resource, const D3D11_UNORDERED_ACCESS_VIEW_DESC& desc, ID3D11UnorderedAccessView*& outView)
+	{
+		HRESULT hr = device->CreateUnorderedAccessView(resource, &desc, &outView);
+		if (FAILED(hr))
+		{
+			auto renderer = DirectXRenderer::Get();
+			renderer->HandleError(hr);
+		}
+	}
+
 	void CreateBlendState(ID3D11Device* device, D3D11_BLEND_DESC& desc, ID3D11BlendState*& outState)
 	{
 		HRESULT hr = device->CreateBlendState(&desc, &outState);
@@ -88,6 +98,16 @@ namespace Shark::DirectXAPI {
 	void CreateSamplerState(ID3D11Device* device, const D3D11_SAMPLER_DESC& desc, ID3D11SamplerState*& outSampler)
 	{
 		HRESULT hr = device->CreateSamplerState(&desc, &outSampler);
+		if (FAILED(hr))
+		{
+			auto renderer = DirectXRenderer::Get();
+			renderer->HandleError(hr);
+		}
+	}
+
+	void CreateComputeShader(ID3D11Device* device, Buffer binary, ID3D11ClassLinkage* classLinkage, ID3D11ComputeShader*& outComputeShader)
+	{
+		HRESULT hr = device->CreateComputeShader(binary.Data, binary.Size, classLinkage, &outComputeShader);
 		if (FAILED(hr))
 		{
 			auto renderer = DirectXRenderer::Get();

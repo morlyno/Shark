@@ -8,12 +8,6 @@
 
 namespace Shark {
 
-	namespace Utils {
-		
-		bool IsDepthAtachment(const FrameBufferAtachment& atachment);
-
-	}
-
 	class DirectXFrameBuffer;
 
 	class DirectXFrameBuffer : public FrameBuffer

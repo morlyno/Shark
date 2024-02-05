@@ -128,7 +128,7 @@ namespace Shark {
 
 		m_TimeStep = ts;
 
-		if (m_ActiveScene->Flags & AssetFlag::Unloaded)
+		if (m_ActiveScene->IsFlagSet(AssetFlag::Invalid))
 		{
 			Ref<Scene> scene = AssetManager::GetAsset<Scene>(m_ActiveScene->Handle);
 			if (scene)
@@ -1850,11 +1850,17 @@ namespace Shark {
 			ImGui::SetCursorPos(createButtonPos);
 			if (ImGui::Button("Create"))
 			{
-				std::filesystem::path destinationPath = m_CreateMeshAssetData.DestinationPath;
+				std::filesystem::path destinationPath = fmt::format("{}/{}", m_CreateMeshAssetData.MeshDirectory, m_CreateMeshAssetData.DestinationPath);
+				if (!destinationPath.has_filename())
+					destinationPath.replace_filename("Untitled");
+
 				destinationPath.replace_extension(".skmesh");
 
+				std::string directory = destinationPath.parent_path().string();
+				std::string name = destinationPath.filename().string();
+
 				Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(m_CreateMeshAssetData.MeshSource);
-				Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(m_CreateMeshAssetData.MeshDirectory, m_CreateMeshAssetData.DestinationPath, meshSource);
+				Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(directory, name, meshSource);
 				InstantiateMesh(mesh);
 				m_CreateMeshAssetData = {};
 			}
@@ -2440,7 +2446,6 @@ namespace Shark {
 	{
 		Ref<EditorAssetManager> assetManager = Project::GetActiveEditorAssetManager();
 
-		// NoImagePlaceholder
 		if (assetManager->HasEditorAsset(assetPath))
 			return;
 

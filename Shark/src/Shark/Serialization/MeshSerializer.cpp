@@ -19,7 +19,7 @@ namespace Shark {
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing Mesh to {}", metadata.FilePath);
 
-		Timer timer;
+		ScopedTimer timer("Serializing Mesh");
 		m_ErrorMsg.clear();
 
 		std::string result = SerializeToYAML(asset.As<Mesh>());
@@ -29,21 +29,15 @@ namespace Shark {
 			return false;
 		}
 
-		std::ofstream fout(Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata));
-		SK_CORE_ASSERT(fout);
-
-		fout << result;
-		fout.close();
-
-		SK_CORE_INFO_TAG("Serialization", "Serializing Mesh took {}ms", timer.ElapsedMilliSeconds());
-		return true;
+		const bool success = FileSystem::WriteString(Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata), result);
+		return success;
 	}
 
 	bool MeshSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
 		SK_CORE_INFO_TAG("Serialization", "Loading Mesh from {}", metadata.FilePath);
 
-		Timer timer;
+		ScopedTimer timer("Loading Mesh");
 		m_ErrorMsg.clear();
 
 		if (!Project::GetActive()->GetEditorAssetManager()->HasExistingFilePath(metadata))
@@ -68,8 +62,6 @@ namespace Shark {
 
 		asset = mesh;
 		asset->Handle = metadata.Handle;
-
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Mesh took {}ms", timer.ElapsedMilliSeconds());
 		return true;
 	}
 

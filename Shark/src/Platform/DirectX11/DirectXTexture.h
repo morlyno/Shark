@@ -19,10 +19,18 @@ namespace Shark {
 		void RT_SetSampler(ID3D11SamplerState* sampler);
 		ID3D11SamplerState* RT_GetSampler() const { return m_Sampler; }
 
+		ID3D11SamplerState*& GetSampler() { return m_Sampler; }
+		const ID3D11SamplerState* GetSampler() const { return m_Sampler; }
+
+		void SetDebugName(const std::string& name) { m_DebugName = name; }
+
 	private:
 		void CreateSampler(const SamplerSpecification& spec);
 
 	private:
+		std::string m_DebugName;
+		SamplerSpecification m_Specification;
+
 		ID3D11SamplerState* m_Sampler;
 	};
 
@@ -57,9 +65,9 @@ namespace Shark {
 		virtual const TextureSpecification& GetSpecification() const override { return m_Specification; }
 		virtual TextureSpecification& GetSpecificationMutable() override { return m_Specification; }
 
-	public:
-		ID3D11SamplerState* GetSamplerNative() const { return m_Sampler; }
-		ID3D11ShaderResourceView* GetViewNative() const { return m_Image->GetViewNative(); }
+		DirectXImageInfo& GetDirectXImageInfo() { return m_Image->GetDirectXImageInfo(); }
+		const DirectXImageInfo& GetDirectXImageInfo() const { return m_Image->GetDirectXImageInfo(); }
+		ID3D11SamplerState* GetDirectXSampler() const { return m_Sampler; }
 
 	private:
 		void UploadImageData();
@@ -75,6 +83,32 @@ namespace Shark {
 		Ref<DirectXSamplerWrapper> m_SamplerWrapper = Ref<DirectXSamplerWrapper>::Create();
 
 		friend class DirectXRenderer;
+	};
+
+	class DirectXTextureCube : public TextureCube
+	{
+	public:
+		DirectXTextureCube(const TextureSpecification& specification, Buffer imageData);
+		~DirectXTextureCube();
+
+		void Release();
+		void Invalidate();
+
+		virtual uint32_t GetWidth() const override { return m_Specification.Width; };
+		virtual uint32_t GetHeight() const override { return m_Specification.Height; };
+
+		virtual Ref<Image2D> GetImage() const override { return m_Image; }
+		virtual Ref<SamplerWrapper> GetSampler() const override { return m_Sampler; }
+
+		const DirectXImageInfo& GetDirectXImageInfo() const { return m_Image.As<DirectXImage2D>()->GetDirectXImageInfo(); }
+		ID3D11SamplerState* GetDirectXSampler() const { return m_Sampler.As<DirectXSamplerWrapper>()->GetSampler(); }
+
+	private:
+		TextureSpecification m_Specification;
+		Buffer m_ImageData;
+
+		Ref<Image2D> m_Image;
+		Ref<SamplerWrapper> m_Sampler;
 	};
 
 }
