@@ -9,7 +9,7 @@
 
 namespace Shark {
 
-	namespace utils {
+	namespace DXImageUtils {
 
 		DXGI_FORMAT ImageFormatToD3D11ForResource(ImageFormat format);
 		DXGI_FORMAT ImageFormatToD3D11ForView(ImageFormat format);
@@ -32,35 +32,31 @@ namespace Shark {
 	public:
 		DirectXImage2D();
 		DirectXImage2D(const ImageSpecification& specs);
-		DirectXImage2D(const ImageSpecification& specs, Ref<Image2D> data);
 		virtual ~DirectXImage2D();
 
+		virtual void Release() override;
 		virtual void Invalidate() override;
 		virtual void RT_Invalidate() override;
-
-		virtual bool Validate(bool hasView = true) const override;
-
-		virtual void Release() override;
-		virtual void RT_Release() override;
-
 		virtual void Resize(uint32_t width, uint32_t height) override;
+
+		virtual bool IsValid(bool hasaView = true) const override;
 
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
+		virtual float GetAspectRatio() const override { return (float)GetWidth() / (float)GetHeight(); }
+		virtual float GetVerticalAspectRatio() const override { return (float)GetHeight() / (float)GetWidth(); }
 
 		virtual void UploadImageData(Buffer buffer) override;
 		virtual void RT_UploadImageData(Buffer buffer) override;
-		virtual void UploadImageData(Ref<Image2D> image) override;
-		virtual void RT_UploadImageData(Ref<Image2D> image) override;
 
 		virtual Ref<Image2D> RT_GetStorageImage() override;
 		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) override;
 
-		virtual RenderID GetResourceID() const override { return m_Info.Resource; }
 		virtual RenderID GetViewID() const override { return m_Info.View; }
-		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
-		virtual ImageSpecification& GetSpecificationMutable() override { return m_Specification; }
 		virtual ImageType GetType() const override { return m_Specification.Type; }
+
+		virtual ImageSpecification& GetSpecification() override { return m_Specification; }
+		virtual const ImageSpecification& GetSpecification() const override { return m_Specification; }
 
 		DirectXImageInfo& GetDirectXImageInfo() { return m_Info; }
 		const DirectXImageInfo& GetDirectXImageInfo() const { return m_Info; }
@@ -68,21 +64,28 @@ namespace Shark {
 		void RT_CreateUnorderAccessView(uint32_t mipSlice);
 
 	private:
-		void UpdateResource(Buffer imageData);
-		void UpdateResource(Ref<DirectXImage2D> imageData);
-
-		bool IsImageCompadible(const ImageSpecification& specs) const { return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format && m_Specification.MipLevels == specs.MipLevels; }
-		bool IsImageCompadibleIgnoreMipLeves(const ImageSpecification& specs) const { return m_Specification.Width == specs.Width && m_Specification.Height == specs.Height && m_Specification.Format == specs.Format; }
-
-	private:
-		void RT_UpdateResource(Buffer imageData);
-		void RT_UpdateResource(Ref<DirectXImage2D> imageData);
-
-	private:
 		ImageSpecification m_Specification;
 		DirectXImageInfo m_Info;
 
 		friend class DirectXRenderer;
+	};
+
+	class DirectXImageView : public ImageView
+	{
+	public:
+		DirectXImageView(Ref<Image2D> image, uint32_t mipSlice);
+		~DirectXImageView();
+
+		void Invalidate();
+
+		virtual RenderID GetViewID() const override { return m_View; }
+	private:
+		Ref<Image2D> m_Image;
+		uint32_t m_MipSlice;
+
+		ID3D11ShaderResourceView* m_View = nullptr;
+
+		std::string m_DebugName;
 	};
 
 }

@@ -19,7 +19,7 @@ namespace Shark {
 
 	void RenderCommandQueue::Execute()
 	{
-		//SK_LOG_IF(m_CommandCount > 0, Log::Logger::Core, Log::Level::Trace, Tag::Renderer, "CommandQueue::Excecute | {0} Commands | {1} bytes", m_CommandCount, (uint64_t)(m_BufferPtr - m_Buffer.Data));
+		//SK_LOG_IF(m_CommandCount > 0, Log::Logger::Core, LogLevel::Trace, Tag::Renderer, "CommandQueue::Excecute | {0} Commands | {1} bytes", m_CommandCount, (uint64_t)(m_BufferPtr - m_Buffer.Data));
 
 		m_Executing = true;
 		byte* buffer = m_Buffer;

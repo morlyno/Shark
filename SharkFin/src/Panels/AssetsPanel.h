@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Shark/Asset/AssetTypes.h"
-#include "Shark/Editor/Panel.h"
+#include "Panel.h"
 
 namespace Shark {
 

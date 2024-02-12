@@ -24,6 +24,9 @@ DefaultDefines = {
 	"_CRT_SECURE_NO_WARNINGS",
 	"_USE_MATH_DEFINES",
 
+	"IMGUI_DISABLE_OBSOLETE_FUNCTIONS",
+	"IMGUI_DISABLE_OBSOLETE_KEYIO",
+
 	ImGui.Defines,
 	glm.Defines,
 	fmt.Defines,

@@ -14,24 +14,22 @@ namespace Shark {
 		DirectXSamplerWrapper(const SamplerSpecification& spec);
 		~DirectXSamplerWrapper();
 
+		virtual void Release() override;
+		virtual void Invalidate() override;
+
+		virtual SamplerSpecification& GetSpecification() override { return m_Specification; };
+		virtual const SamplerSpecification& GetSpecification() const override { return m_Specification; };
+
 		virtual RenderID GetSamplerID() const override { return m_Sampler; }
-
-		void RT_SetSampler(ID3D11SamplerState* sampler);
-		ID3D11SamplerState* RT_GetSampler() const { return m_Sampler; }
-
 		ID3D11SamplerState*& GetSampler() { return m_Sampler; }
 		const ID3D11SamplerState* GetSampler() const { return m_Sampler; }
 
-		void SetDebugName(const std::string& name) { m_DebugName = name; }
+	private:
+		void CreateSampler();
 
 	private:
-		void CreateSampler(const SamplerSpecification& spec);
-
-	private:
-		std::string m_DebugName;
 		SamplerSpecification m_Specification;
-
-		ID3D11SamplerState* m_Sampler;
+		ID3D11SamplerState* m_Sampler = nullptr;
 	};
 
 	class DirectXTexture2D : public Texture2D
@@ -40,47 +38,52 @@ namespace Shark {
 		DirectXTexture2D();
 		DirectXTexture2D(const TextureSpecification& specification, Buffer imageData);
 		DirectXTexture2D(const TextureSpecification& specification, Ref<TextureSource> textureSource);
-		DirectXTexture2D(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage = true);
 		DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		virtual ~DirectXTexture2D();
 
 		virtual void Invalidate() override;
-		virtual bool Validate() const override;
-
+		virtual void RT_Invalidate() override;
 		virtual void Release() override;
+
+		virtual bool IsValid() const override { return m_Image->IsValid(); }
 
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
+		virtual float GetAspectRatio() const override { return (float)GetWidth() / (float)GetHeight(); }
+		virtual float GetVerticalAspectRatio() const override { return (float)GetHeight() / (float)GetWidth(); }
 
-		virtual void SetImageData(Buffer imageData) override;
+		virtual void SetImageData(Buffer imageData, bool copy) override;
+
+		virtual Buffer& GetBuffer() override { return m_ImageData; }
+		virtual Buffer GetBuffer() const override { return m_ImageData; }
 
 		virtual Ref<TextureSource> GetTextureSource() const override { return m_TextureSource; }
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) override;
 
-		virtual Buffer GetBuffer() const override { return m_ImageData; }
-
 		virtual RenderID GetViewID() const override { return m_Image->GetViewID(); }
-		virtual Ref<SamplerWrapper> GetSampler() const override { return m_SamplerWrapper; }
+		virtual Ref<SamplerWrapper> GetSampler() const override { return m_Sampler; }
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
+
+		virtual TextureSpecification& GetSpecification() override { return m_Specification; }
 		virtual const TextureSpecification& GetSpecification() const override { return m_Specification; }
-		virtual TextureSpecification& GetSpecificationMutable() override { return m_Specification; }
 
 		DirectXImageInfo& GetDirectXImageInfo() { return m_Image->GetDirectXImageInfo(); }
 		const DirectXImageInfo& GetDirectXImageInfo() const { return m_Image->GetDirectXImageInfo(); }
-		ID3D11SamplerState* GetDirectXSampler() const { return m_Sampler; }
+		ID3D11SamplerState* GetDirectXSampler() const { return m_Sampler->GetSampler(); }
 
 	private:
 		void UploadImageData();
+		void RT_UploadImageData();
+
+		Buffer GetCPUUploadBufer() const;
 
 	private:
 		TextureSpecification m_Specification;
 		Ref<TextureSource> m_TextureSource;
 		Buffer m_ImageData;
-		bool m_ImageDataOwned = false;
 
 		Ref<DirectXImage2D> m_Image;
-		ID3D11SamplerState* m_Sampler = nullptr;
-		Ref<DirectXSamplerWrapper> m_SamplerWrapper = Ref<DirectXSamplerWrapper>::Create();
+		Ref<DirectXSamplerWrapper> m_Sampler;
 
 		friend class DirectXRenderer;
 	};
@@ -91,8 +94,9 @@ namespace Shark {
 		DirectXTextureCube(const TextureSpecification& specification, Buffer imageData);
 		~DirectXTextureCube();
 
-		void Release();
-		void Invalidate();
+		virtual void Release() override;
+		virtual void Invalidate() override;
+		virtual void RT_Invalidate() override;
 
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; };
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; };

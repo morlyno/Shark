@@ -15,6 +15,7 @@ namespace Shark {
 			case FilterMode::None: return "None";
 			case FilterMode::Nearest: return "Nearest";
 			case FilterMode::Linear:  return "Linear";
+			case FilterMode::Anisotropic: return "Anisotropic";
 		}
 		SK_CORE_ASSERT(false, "Unkown FilterMode");
 		return "Unkown";
@@ -39,7 +40,8 @@ namespace Shark {
 		{
 			case FilterMode::None: return "None"sv;
 			case FilterMode::Nearest: return "Nearest"sv;
-			case FilterMode::Linear:  return "Linear"sv;
+			case FilterMode::Linear: return "Linear"sv;
+			case FilterMode::Anisotropic:  return "Anisotropic"sv;
 		}
 		SK_CORE_ASSERT(false, "Unkown FilterMode");
 		return "Unkown"sv;
@@ -63,6 +65,7 @@ namespace Shark {
 		if (filterMode == "None") return FilterMode::None;
 		if (filterMode == "Nearest") return FilterMode::Nearest;
 		if (filterMode == "Linear") return FilterMode::Linear;
+		if (filterMode == "Anisotropic") return FilterMode::Anisotropic;
 
 		SK_CORE_ASSERT(false, "Unkown FilterMode");
 		return FilterMode::None;
@@ -107,17 +110,6 @@ namespace Shark {
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
 			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specification, textureSource);
-		}
-		SK_CORE_ASSERT(false, "Unkown API");
-		return nullptr;
-	}
-
-	Ref<Texture2D> Texture2D::Create(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage)
-	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specification, image, sharedImage);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;

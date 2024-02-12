@@ -1,41 +1,39 @@
 #include "skpch.h"
-#include "EditorConsoleSink.h"
-
-#include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
+#include "ConsoleSink.h"
 
 namespace Shark {
 
 	namespace utils {
 
-		Log::Level spdlogLevelToLogLevel(spdlog::level::level_enum level)
+		LogLevel spdlogLevelToLogLevel(spdlog::level::level_enum level)
 		{
 			switch (level)
 			{
-				case spdlog::level::trace:     return Log::Level::Trace;
-				case spdlog::level::debug:     return Log::Level::Debug;
-				case spdlog::level::info:      return Log::Level::Info;
-				case spdlog::level::warn:      return Log::Level::Warn;
-				case spdlog::level::err:       return Log::Level::Error;
-				case spdlog::level::critical:  return Log::Level::Critical;
+				case spdlog::level::trace:     return LogLevel::Trace;
+				case spdlog::level::debug:     return LogLevel::Debug;
+				case spdlog::level::info:      return LogLevel::Info;
+				case spdlog::level::warn:      return LogLevel::Warn;
+				case spdlog::level::err:       return LogLevel::Error;
+				case spdlog::level::critical:  return LogLevel::Critical;
 			}
 			SK_CORE_ASSERT(false, "Unkown Log Level");
-			return Log::Level::Trace;
+			return LogLevel::Trace;
 		}
 
 	}
 
-	EditorConsoleSink::EditorConsoleSink()
+	ConsoleSink::ConsoleSink()
 		: m_MessageFormatter(std::make_unique<spdlog::pattern_formatter>()), m_TimeFormatter(std::make_unique<spdlog::pattern_formatter>())
 	{
 		m_MessageFormatter = std::make_unique<spdlog::pattern_formatter>("%v", spdlog::pattern_time_type::local, std::string{});
 		m_TimeFormatter = std::make_unique<spdlog::pattern_formatter>("%T", spdlog::pattern_time_type::local, std::string{});
 	}
 
-	EditorConsoleSink::~EditorConsoleSink()
+	ConsoleSink::~ConsoleSink()
 	{
 	}
 
-	void EditorConsoleSink::log(const spdlog::details::log_msg& msg)
+	void ConsoleSink::log(const spdlog::details::log_msg& msg)
 	{
 		std::lock_guard lock(m_Mutex);
 
@@ -50,21 +48,22 @@ namespace Shark {
 
 		spdlog::memory_buf_t buffer;
 		m_MessageFormatter->format(msg, buffer);
-		EditorConsolePanel::PushMessage(utils::spdlogLevelToLogLevel(msg.level), m_CachedTime, fmt::to_string(buffer));
+		
+		if (m_PushMessageCallback)
+			m_PushMessageCallback({ utils::spdlogLevelToLogLevel(msg.level), m_CachedTime, fmt::to_string(buffer) });
 	}
 
-	void EditorConsoleSink::flush()
+	void ConsoleSink::flush()
 	{
-
 	}
 
-	void EditorConsoleSink::set_pattern(const std::string& pattern)
+	void ConsoleSink::set_pattern(const std::string& pattern)
 	{
 		std::lock_guard lock(m_Mutex);
 		m_MessageFormatter = std::unique_ptr<spdlog::formatter>(sknew spdlog::pattern_formatter(pattern));
 	}
 
-	void EditorConsoleSink::set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter)
+	void ConsoleSink::set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter)
 	{
 		std::lock_guard lock(m_Mutex);
 		m_MessageFormatter = std::move(sink_formatter);

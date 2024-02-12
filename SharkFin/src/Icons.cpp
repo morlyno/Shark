@@ -1,4 +1,4 @@
-#include "skpch.h"
+#include "skfpch.h"
 #include "Icons.h"
 
 #include "Shark/Core/Timer.h"
@@ -6,22 +6,6 @@
 #include "Shark/Serialization/Import/TextureImporter.h"
 
 namespace Shark {
-
-	Ref<Texture2D> Icons::SettingsIcon;
-	Ref<Texture2D> Icons::FileIcon;
-	Ref<Texture2D> Icons::FolderIcon;
-	Ref<Texture2D> Icons::PNGIcon;
-	Ref<Texture2D> Icons::SceneIcon;
-	Ref<Texture2D> Icons::ScriptIcon;
-	Ref<Texture2D> Icons::TextureIcon;
-	Ref<Texture2D> Icons::InfoIcon;
-	Ref<Texture2D> Icons::WarnIcon;
-	Ref<Texture2D> Icons::ErrorIcon;
-	Ref<Texture2D> Icons::PlayIcon;
-	Ref<Texture2D> Icons::StopIcon;
-	Ref<Texture2D> Icons::PauseIcon;
-	Ref<Texture2D> Icons::SimulateIcon;
-	Ref<Texture2D> Icons::StepIcon;
 
 	void Icons::Init()
 	{
@@ -33,6 +17,7 @@ namespace Shark {
 		FileIcon      = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_File.png");
 		FolderIcon    = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Folder.png");
 		PNGIcon       = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_PNG.png");
+		JPGIcon       = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_JPG.png");
 		SceneIcon     = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Scene.png");
 		ScriptIcon    = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Script.png");
 		TextureIcon   = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Texture.png");
@@ -54,6 +39,7 @@ namespace Shark {
 		FileIcon      = Texture2D::Create();
 		FolderIcon    = Texture2D::Create();
 		PNGIcon       = Texture2D::Create();
+		JPGIcon       = Texture2D::Create();
 		SceneIcon     = Texture2D::Create();
 		ScriptIcon    = Texture2D::Create();
 		TextureIcon   = Texture2D::Create();
@@ -74,6 +60,7 @@ namespace Shark {
 		FileIcon      = nullptr;
 		FolderIcon    = nullptr;
 		PNGIcon       = nullptr;
+		JPGIcon       = nullptr;
 		SceneIcon     = nullptr;
 		ScriptIcon    = nullptr;
 		TextureIcon   = nullptr;
@@ -102,6 +89,7 @@ namespace Shark {
 		ReloadIconFromDisc(FileIcon,     "Resources/ContentBrowser/Icon_File.png");
 		ReloadIconFromDisc(FolderIcon,   "Resources/ContentBrowser/Icon_Folder.png");
 		ReloadIconFromDisc(PNGIcon,      "Resources/ContentBrowser/Icon_PNG.png");
+		ReloadIconFromDisc(JPGIcon,      "Resources/ContentBrowser/Icon_JPG.png");
 		ReloadIconFromDisc(SceneIcon,    "Resources/ContentBrowser/Icon_Scene.png");
 		ReloadIconFromDisc(ScriptIcon,   "Resources/ContentBrowser/Icon_Script.png");
 		ReloadIconFromDisc(TextureIcon,  "Resources/ContentBrowser/Icon_Texture.png");

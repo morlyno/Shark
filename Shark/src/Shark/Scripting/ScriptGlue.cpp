@@ -446,27 +446,27 @@ namespace Shark {
 
 		#pragma region Log
 
-		void Log_LogMessage(Log::Level level, MonoString* message)
+		void Log_LogMessage(LogLevel level, MonoString* message)
 		{
 			char* msg = mono_string_to_utf8(message);
 			switch (level)
 			{
-				case Log::Level::Trace:
+				case LogLevel::Trace:
 					SK_CONSOLE_TRACE(msg ? msg : "Message was Null");
 					break;
-				case Log::Level::Info:
+				case LogLevel::Info:
 					SK_CONSOLE_INFO(msg ? msg : "Message was Null");
 					break;
-				case Log::Level::Warn:
+				case LogLevel::Warn:
 					SK_CONSOLE_WARN(msg ? msg : "Message was Null");
 					break;
-				case Log::Level::Error:
+				case LogLevel::Error:
 					SK_CONSOLE_ERROR(msg ? msg : "Message was Null");
 					break;
-				case Log::Level::Critical:
+				case LogLevel::Critical:
 					SK_CONSOLE_CRITICAL(msg ? msg : "Message was Null");
 					break;
-				case Log::Level::Debug:
+				case LogLevel::Debug:
 					SK_CONSOLE_DEBUG(msg ? msg : "Message was Null");
 					break;
 			}

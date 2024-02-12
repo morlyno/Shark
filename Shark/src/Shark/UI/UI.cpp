@@ -270,7 +270,7 @@ namespace Shark::UI {
 		ImGui::TableNextRow();
 	}
 
-	bool ControlBeginHelper(ImGuiID id)
+	bool ControlHelperBegin(ImGuiID id)
 	{
 		auto& c = GContext->Control;
 
@@ -286,7 +286,7 @@ namespace Shark::UI {
 		return true;
 	}
 
-	bool ControlBeginHelper(std::string_view label)
+	bool ControlHelperBegin(std::string_view label)
 	{
 		auto& c = GContext->Control;
 
@@ -303,7 +303,7 @@ namespace Shark::UI {
 		return true;
 	}
 
-	void ControlEndHelper()
+	void ControlHelperEnd()
 	{
 		SK_CORE_ASSERT(ImGui::GetCurrentTable());
 		ImGui::PopID();
@@ -349,7 +349,7 @@ namespace Shark::UI {
 	{
 		static_assert(std::is_scalar_v<T>);
 
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -390,14 +390,14 @@ namespace Shark::UI {
 
 		ImGui::PopItemWidth();
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	template<typename T>
 	bool ControlScalar(std::string_view label, ImGuiDataType dataType, T& val, float speed, T min, T max, const char* fmt, ImGuiSliderFlags flags = ImGuiSliderFlags_None)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -407,14 +407,14 @@ namespace Shark::UI {
 		ImGui::SetNextItemWidth(-1.0f);
 		const bool changed = ImGui::DragScalar("##control", dataType, &val, speed, &min, &max, fmt, flags);
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	template<glm::length_t L, typename T, glm::qualifier Q>
 	bool ControlScalarVec(std::string_view label, ImGuiDataType dataType, glm::vec<L, T, Q>& val, float speed, T min, T max, const char* fmt)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -424,7 +424,7 @@ namespace Shark::UI {
 		ImGui::SetNextItemWidth(-1.0f);
 		const bool changed = ImGui::DragScalarN("##control", dataType, &val, (int)L, speed, &min, &max, fmt);
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
@@ -525,7 +525,7 @@ namespace Shark::UI {
 
 	bool Control(std::string_view label, glm::mat4& matrix, float speed, float min, float max, const char* fmt)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -552,13 +552,13 @@ namespace Shark::UI {
 		ImGui::SetNextItemWidth(-1.0f);
 		changed |= ImGui::DragFloat4("##control3", glm::value_ptr(matrix[3]), speed, min, max, fmt);
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	bool ControlColor(std::string_view label, glm::vec3& color)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -568,13 +568,13 @@ namespace Shark::UI {
 		ImGui::SetNextItemWidth(-1.0f);
 		const bool changed = ImGui::ColorEdit3("##ColorEdit3", glm::value_ptr(color));
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	bool ControlColor(std::string_view label, glm::vec4& color)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -584,14 +584,14 @@ namespace Shark::UI {
 		ImGui::SetNextItemWidth(-1.0f);
 		const bool changed = ImGui::ColorEdit4("##ColorEdit4", glm::value_ptr(color));
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	// TODO(moro): Ignores ImGuiItemFlag_Readonly
 	bool Control(std::string_view label, bool& val)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -600,13 +600,13 @@ namespace Shark::UI {
 		ImGui::TableSetColumnIndex(1);
 		const bool changed = ImGui::Checkbox("##Checkbox", &val);
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	bool Control(std::string_view label, std::string& val)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -614,13 +614,13 @@ namespace Shark::UI {
 		ImGui::TableSetColumnIndex(1);
 		ImGui::SetNextItemWidth(-1.0f);
 		const bool changed = ImGui::InputText("##control", &val);
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		const float inputTextWidth = GImGui->NextItemData.Flags & ImGuiNextItemDataFlags_HasWidth ? GImGui->NextItemData.Width : -1.0f;
@@ -653,13 +653,13 @@ namespace Shark::UI {
 			}
 		}
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	bool Control(std::string_view label, UUID& uuid, const char* dragDropType)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ControlHelperDrawLabel(label);
@@ -705,14 +705,14 @@ namespace Shark::UI {
 			ImGui::EndChild();
 		}
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	// TODO(moro): Ignores ImGuiItemFlag_Readonly
 	bool ControlAsset(std::string_view label, AssetHandle& assetHandle, const char* dragDropType)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ControlHelperDrawLabel(label);
@@ -778,13 +778,13 @@ namespace Shark::UI {
 			}
 		}
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	bool ControlAsset(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ControlHelperDrawLabel(label);
@@ -815,13 +815,13 @@ namespace Shark::UI {
 			}
 		}
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const char* dragDropType)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ControlHelperDrawLabel(label);
@@ -885,14 +885,14 @@ namespace Shark::UI {
 			ImGui::EndChild();
 		}
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
 	template<typename T>
 	static bool ControlFlagsT(std::string_view label, T& val, const T& flag)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -901,7 +901,7 @@ namespace Shark::UI {
 		ImGui::TableSetColumnIndex(1);
 		const bool changed = ImGui::CheckboxFlagsT("##label", &val, flag);
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
@@ -913,7 +913,7 @@ namespace Shark::UI {
 	template<typename T>
 	bool ControlComboT(std::string_view label, T& index, const std::string_view items[], uint32_t itemsCount)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -939,7 +939,7 @@ namespace Shark::UI {
 			ImGui::EndCombo();
 		}
 
-		ControlEndHelper();
+		ControlHelperEnd();
 		return changed;
 	}
 
@@ -960,7 +960,7 @@ namespace Shark::UI {
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return false;
 
 		ImGui::TableSetColumnIndex(0);
@@ -972,7 +972,7 @@ namespace Shark::UI {
 
 	void ControlCustomEnd()
 	{
-		ControlEndHelper();
+		ControlHelperEnd();
 	}
 
 	void Property(std::string_view label, const char* text)
@@ -982,7 +982,7 @@ namespace Shark::UI {
 
 	void Property(std::string_view label, std::string_view text)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return;
 
 		ImGui::TableSetColumnIndex(0);
@@ -992,7 +992,7 @@ namespace Shark::UI {
 		ImGui::TableSetColumnIndex(1);
 		TextFramed(text);
 
-		ControlEndHelper();
+		ControlHelperEnd();
 	}
 
 	void Property(std::string_view label, const std::string& text)
@@ -1007,7 +1007,7 @@ namespace Shark::UI {
 
 	void Property(std::string_view label, const UUID& uuid)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return;
 
 		ImGui::TableSetColumnIndex(0);
@@ -1022,12 +1022,12 @@ namespace Shark::UI {
 		ImGui::SetNextItemWidth(-1.0f);
 		ImGui::InputTextWithHint("##control", "Null", buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
 
-		ControlEndHelper();
+		ControlHelperEnd();
 	}
 
 	void Property(std::string_view label, int value)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return;
 
 		const ImGuiStyle& style = ImGui::GetStyle();
@@ -1037,17 +1037,17 @@ namespace Shark::UI {
 		Text(label);
 		ImGui::TableSetColumnIndex(1);
 		TextFramed("%d", value);
-		ControlEndHelper();
+		ControlHelperEnd();
 	}
 
 	void Property(std::string_view label, bool value)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return;
 
 		ControlHelperDrawLabel(label);
 		ImGui::ReadOnlyCheckbox("##property", value);
-		ControlEndHelper();
+		ControlHelperEnd();
 	}
 
 	void Property(std::string_view label, float value)
@@ -1088,7 +1088,7 @@ namespace Shark::UI {
 
 	void PropertyColor(std::string_view label, const glm::vec4& color)
 	{
-		if (!ControlBeginHelper(label))
+		if (!ControlHelperBegin(label))
 			return;
 
 		ControlHelperDrawLabel(label);
@@ -1096,7 +1096,7 @@ namespace Shark::UI {
 		ImGui::SetNextItemWidth(-1.0f);
 		ImGui::ColorEdit4("##property", glm::value_ptr(c));
 		//ImGui::ReadOnlyCheckbox("##property", value);
-		ControlEndHelper();
+		ControlHelperEnd();
 	}
 
 	void Text(std::string_view str, TextFlags flags)
@@ -1287,6 +1287,16 @@ namespace Shark::UI {
 		SK_CORE_ASSERT(GContext->Control.WidgetCount == 0);
 		SK_CORE_ASSERT(GContext->Control.ActiveGridFlags == GridFlag::None);
 		SK_CORE_ASSERT(GContext->FramedTextAlignStack.size() == 0);
+	}
+
+	void Image(Ref<ImageView> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		ImGui::Image(image->GetViewID(), size, uv0, uv1, tint_col, border_col);
+	}
+
+	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		ImGui::Image(image->GetViewID(), size, uv0, uv1, tint_col, border_col);
 	}
 
 	void Texture(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)

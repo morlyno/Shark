@@ -4,21 +4,13 @@
 #include "Shark/Core/RefCount.h"
 #include "Shark/Core/Buffer.h"
 
-#include <filewatch/FileWatch.hpp>
 
 #undef CreateFile
 #undef CopyFile
 
+
 namespace Shark {
 
-	struct FileEvent
-	{
-		filewatch::Event Type;
-		std::filesystem::path File;
-	};
-
-	using FileWatchCallbackFn = std::function<void(const std::vector<FileEvent>&)>;
-	
 	class FileSystem
 	{
 	public:
@@ -28,12 +20,6 @@ namespace Shark {
 	public:
 		static void Initialize();
 		static void Shutdown();
-
-	public:
-		static void ProcessEvents();
-		static void StartWatch(const std::filesystem::path& watchPath, FileWatchCallbackFn callback);
-		static void StartWatch(const std::filesystem::path& watchPath, std::wregex regex, FileWatchCallbackFn callback);
-		static void StopWatch(const std::filesystem::path& watchPath);
 
 	public:
 		static Buffer ReadBinary(const std::filesystem::path& filePath);
@@ -47,6 +33,10 @@ namespace Shark {
 	public:
 		static bool Exists(const std::filesystem::path& filepath);
 		static bool Exists(const std::filesystem::path& filepath, std::string& errorMsg);
+
+		static std::filesystem::path WorkingDirectory();
+		static std::filesystem::path Absolute(const std::filesystem::path& filepath);
+		static std::filesystem::path Relative(const std::filesystem::path& filepath, const std::filesystem::path& base = WorkingDirectory());
 
 		static bool CreateFile(const std::filesystem::path& filepath, bool overrideExisiting = false);
 		static bool CreateFile(const std::filesystem::path& filepath, bool overrideExisiting, std::string& errorMsg);
@@ -62,34 +52,24 @@ namespace Shark {
 		static void Rename(const std::filesystem::path& oldName, const std::filesystem::path& newName);
 		static void Rename(const std::filesystem::path& oldName, const std::filesystem::path& newName, std::string& errorMsg);
 
+		static bool Remove(const std::filesystem::path& path);
+		static bool Remove(const std::filesystem::path& path, std::string& errorMsg);
+		static uint64_t RemoveAll(const std::filesystem::path& path);
+		static uint64_t RemoveAll(const std::filesystem::path& path, std::string& errorMsg);
+
 		static void TruncateFile(const std::filesystem::path& filepath);
 		static bool IsInDirectory(const std::filesystem::path& directory, const std::filesystem::path& path);
 		static std::filesystem::path GetFilesystemPath(const std::filesystem::path& path);
 
 		static void RemoveExtension(std::filesystem::path& path);
 		static void ReplaceExtension(std::filesystem::path& path, const std::string& extension);
+		static void ReplaceStem(std::filesystem::path& path, const std::string& stem);
+		static void ReplaceFilename(std::filesystem::path& path, const std::string& filename);
 
-		static std::filesystem::path ReplaceExtension(const std::filesystem::path& filepath, const std::string& extension);
+		static std::filesystem::path ChangeExtension(const std::filesystem::path& path, const std::string& extesnion);
+
 		static std::string GetStemString(const std::filesystem::path& path);
+		static std::string GetExtensionString(const std::filesystem::path& path);
 	};
 
-	std::string ToString(filewatch::Event event);
-
 }
-
-template<>
-struct fmt::formatter<Shark::FileEvent>
-{
-	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
-	{
-		return ctx.end();
-	}
-
-	template<typename FormatContext>
-	auto format(const Shark::FileEvent& data, FormatContext& ctx) -> decltype(ctx.out())
-	{
-		fmt::format_to(ctx.out(), "({0}) {1}", Shark::ToString(data.Type), data.File);
-		return ctx.out();
-	}
-
-};

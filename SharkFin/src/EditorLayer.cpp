@@ -1,4 +1,4 @@
-#include "skfpch.h"
+﻿#include "skfpch.h"
 #include "EditorLayer.h"
 
 #include "Shark/Core/Project.h"
@@ -16,10 +16,11 @@
 #include "Shark/Utils/PlatformUtils.h"
 #include "Shark/UI/UI.h"
 
-#include "Shark/Editor/Icons.h"
-#include "Shark/Editor/EditorSettings.h"
-#include "Shark/Editor/EditorConsole/EditorConsolePanel.h"
+#include "Icons.h"
+#include "EditorSettings.h"
 
+#include "Panel.h"
+#include "Panels/EditorConsolePanel.h"
 #include "Panels/SceneHirachyPanel.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
 #include "Panels/AssetEditorPanel.h"
@@ -42,7 +43,7 @@
 #define CONTENT_BROWSER_ID "ContentBrowserPanel"
 #define TEXTURE_EDITOR_ID "TextureEditorPanel"
 #define PHYSICS_DEBUG_ID "PhysicsDebugPanel"
-#define ASSET_EDITOR_ID "AssetsEditorPanel"
+#define ASSET_EDITOR_MANAGER_ID "AssetsEditorManagerPanel"
 #define EDITOR_CONSOLE_ID "EditorConsolePanel"
 #define SCRIPT_ENGINE_ID "ScriptEnginePanel"
 #define ASSETS_PANEL_ID "AssetsPanel"
@@ -73,11 +74,25 @@ namespace Shark {
 		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, "Scene Hirachy", true);
 		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
 
+		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, "Content Browser", true);
+		contentBrowser->RegisterOpenAssetCallback(AssetType::Material, [this](const AssetMetaData& metadata)
+		{
+			m_PanelManager->Show(ASSET_EDITOR_MANAGER_ID, true);
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
+			assetEditorManager->AddEditor<MaterialEditorPanel>(metadata);
+		});
+
+		contentBrowser->RegisterOpenAssetCallback(AssetType::Texture, [this](const AssetMetaData& metadata)
+		{
+			m_PanelManager->Show(ASSET_EDITOR_MANAGER_ID, true);
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
+			assetEditorManager->AddEditor<TextureEditorPanel>(metadata);
+		});
+
 		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, "Console", true);
-		m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, "Content Browser", true, std::bind(&EditorLayer::OpenAssetEditor, this, std::placeholders::_1));
 		m_PanelManager->AddPanel<SettingsPanel>(SETTINGS_PANEL_ID, "Settings", true);
 		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, "Pyhsics Debug", false);
-		m_PanelManager->AddPanel<AssetEditorPanel>(ASSET_EDITOR_ID, "Assets Editor", false);
+		m_PanelManager->AddPanel<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID, "Assets Editor Manager", true);
 		m_PanelManager->AddPanel<AssetsPanel>(ASSETS_PANEL_ID, "Assets", false);
 		m_PanelManager->AddPanel<ScriptEnginePanel>(SCRIPT_ENGINE_ID, "Script Engine", false);
 
@@ -151,8 +166,8 @@ namespace Shark {
 				m_CameraPreviewRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 
-				m_MousePickingImage->GetSpecificationMutable().Width = m_ViewportWidth;
-				m_MousePickingImage->GetSpecificationMutable().Height = m_ViewportHeight;
+				m_MousePickingImage->GetSpecification().Width = m_ViewportWidth;
+				m_MousePickingImage->GetSpecification().Height = m_ViewportHeight;
 				m_MousePickingImage->Invalidate();
 
 				m_NeedsResize = false;
@@ -356,49 +371,6 @@ namespace Shark {
 		return false;
 	}
 
-	void EditorLayer::OnFileEvents(const std::vector<FileEvent>& fileEvents)
-	{
-		SK_PROFILE_FUNCTION();
-
-		SK_CORE_TRACE_TAG("FileWatch", "{} File Events detected\n\t{}", fileEvents.size(), fmt::join(fileEvents, "\n\t"));
-
-		for (uint32_t index = 0; index < fileEvents.size(); index++)
-		{
-			const auto& event = fileEvents[index];
-
-			if (event.Type == filewatch::Event::modified || event.Type == filewatch::Event::renamed_new)
-				continue;
-
-			const bool isFileImported = Project::GetActiveEditorAssetManager()->IsFileImported(event.File);
-			if (event.Type == filewatch::Event::added && isFileImported || event.Type == filewatch::Event::removed && !isFileImported)
-				continue;
-			
-			AssetType assetType = AssetUtils::GetAssetTypeFromPath(event.File);
-			if (assetType != AssetType::None)
-			{
-				auto& assetFileEvent = m_PendingAssetFileEvents.emplace_back();
-				assetFileEvent.Action = event.Type;
-				assetFileEvent.AssetPath = event.File;
-				assetFileEvent.Type = assetType;
-
-				assetFileEvent.ActionString = ToString(event.Type);
-
-				if (event.Type == filewatch::Event::renamed_old)
-				{
-					SK_CORE_VERIFY(index < fileEvents.size() && fileEvents[index + 1].Type == filewatch::Event::renamed_new);
-					const auto& newNameEvent = fileEvents[index + 1];
-					assetFileEvent.NewName = newNameEvent.File.stem().string();
-					assetFileEvent.ActionString = "Name Changed";
-				}
-			}
-		}
-
-		m_PanelManager->GetPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID)->OnFileEvents(fileEvents);
-	}
-
-	extern float xSpeed;
-	extern float ySpeed;
-
 	void EditorLayer::OnImGuiRender()
 	{
 		SK_PROFILE_FUNCTION();
@@ -444,9 +416,7 @@ namespace Shark {
 		UI_Statistics();
 		UI_OpenProjectModal();
 		UI_ImportAsset();
-		UI_PendingAssetFileEvents();
 		UI_CreateMeshAsset();
-		UI_Objects();
 
 		m_PanelManager->OnImGuiRender();
 		
@@ -597,7 +567,6 @@ namespace Shark {
 				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
 				ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
 				ImGui::MenuItem("Statistics", nullptr, &m_ShowStatistics);
-				ImGui::MenuItem("Objects", nullptr, &m_ShowObjects);
 				ImGui::Separator();
 
 				auto& app = Application::Get();
@@ -660,10 +629,9 @@ namespace Shark {
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
 		const bool anyItemFocused = ImGui::IsAnyItemActive() && GImGui->ActiveId != ImGui::GetCurrentWindow()->MoveId;
-		const bool anyViewportHovered = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID)->AnyViewportHovered();
 
 		if (Input::GetCursorMode() == CursorMode::Normal)
-			Application::Get().GetImGuiLayer().BlockEvents(!(m_ViewportHovered || anyViewportHovered) || anyItemFocused);
+			Application::Get().GetImGuiLayer().BlockEvents(!m_ViewportHovered || anyItemFocused);
 		else
 			Application::Get().GetImGuiLayer().BlockEvents(false);
 
@@ -1047,7 +1015,8 @@ namespace Shark {
 		const float height = ImGui::GetContentRegionAvail().y;
 		const ImVec2 size = { height, height };
 
-		ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() * 0.5f - (size.x * 3.0f * 0.5f) - (style.ItemSpacing.x * 3.0f));
+		const float windowContentRegionWith = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+		ImGui::SetCursorPosX(windowContentRegionWith * 0.5f - (size.x * 3.0f * 0.5f) - (style.ItemSpacing.x * 3.0f));
 
 		switch (m_SceneState)
 		{
@@ -1093,13 +1062,13 @@ namespace Shark {
 			}
 			case SceneState::Simulate:
 			{
-				if (ImGui::ImageButton(Icons::StopIcon->GetViewID(), size))
+				if (ImGui::ImageButton("StopIcon", Icons::StopIcon->GetViewID(), size))
 					SubmitOnSimulationStop();
 
 				ImGui::SameLine();
 
 				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? Icons::PlayIcon : Icons::PauseIcon;
-				if (ImGui::ImageButton(pausePlayIcon->GetViewID(), size))
+				if (ImGui::ImageButton("PausePlayIcon", pausePlayIcon->GetViewID(), size))
 					SubmitSetScenePaused(!m_ActiveScene->IsPaused());
 
 				ImGui::SameLine();
@@ -1385,7 +1354,7 @@ namespace Shark {
 
 			if (m_ReadHoveredEntity || selectEntity)
 			{
-				m_MousePickingImage->RT_UploadImageData(m_SceneRenderer->GetIDImage());
+				Renderer::RT_CopyImage(Renderer::GetCommandBuffer(), m_MousePickingImage, m_SceneRenderer->GetIDImage());
 				if (!m_MousePickingImage->RT_ReadPixel(x, y, (uint32_t&)m_HoveredEntityID))
 					return false;
 			}
@@ -1438,7 +1407,7 @@ namespace Shark {
 
 		if (ImGui::Begin("Log", &m_ShowLogSettings))
 		{
-			auto& tags = Log::EnabledTags();
+			auto& tags = Log::GetTags();
 			ImGui::Separator();
 			for (auto& [tag, data] : tags)
 			{
@@ -1699,116 +1668,6 @@ namespace Shark {
 		}
 	}
 
-	void EditorLayer::UI_Objects()
-	{
-		if (!m_ShowObjects)
-			return;
-
-		if (!ImGui::Begin("Objects", &m_ShowObjects))
-		{
-			ImGui::End();
-			return;
-		}
-
-		const auto element = [](const char* name, AssetHandle& handle, const std::filesystem::path& meshSourceFile)
-		{
-			ImGui::Button(name);
-			if (ImGui::BeginDragDropSource())
-			{
-				if (handle == AssetHandle::Invalid)
-				{
-					SK_CORE_ASSERT(AssetUtils::GetAssetTypeFromPath(meshSourceFile) == AssetType::MeshSource);
-					Ref<EditorAssetManager> assetManager = Project::GetActiveEditorAssetManager();
-
-					std::filesystem::path meshPath = FileSystem::ReplaceExtension(meshSourceFile, ".skmesh");
-					if (assetManager->HasEditorAsset(meshPath))
-					{
-						handle = assetManager->GetEditorAsset(meshPath);
-						return;
-					}
-
-					AssetHandle meshSourceHandle = assetManager->GetEditorAsset(meshSourceFile);
-					Ref<MeshSource> meshSource = assetManager->GetAsset(meshSourceHandle).As<MeshSource>();
-					Ref<Mesh> mesh = Mesh::Create(meshSource);
-					handle = assetManager->AddEditorAsset(mesh, meshPath);
-
-					assetManager->SaveAsset(handle);
-
-				}
-
-				ImGui::SetDragDropPayload(UI::DragDropID::Asset, &handle, sizeof(AssetHandle));
-				ImGui::EndDragDropSource();
-			}
-		};
-
-		element("Plane",    m_DefaultMeshes.Plane,    "Resources/Meshes/Default/Plane.gltf");
-		element("Cube",     m_DefaultMeshes.Cube,     "Resources/Meshes/Default/Cube.gltf");
-		element("Sphere",   m_DefaultMeshes.Sphere,   "Resources/Meshes/Default/Sphere.gltf");
-		element("Cone",     m_DefaultMeshes.Cone,     "Resources/Meshes/Default/Cone.gltf");
-		element("Cylinder", m_DefaultMeshes.Cylinder, "Resources/Meshes/Default/Cylinder.gltf");
-		element("Torus",    m_DefaultMeshes.Torus,    "Resources/Meshes/Default/Torus.gltf");
-
-		ImGui::End();
-	}
-
-	void EditorLayer::UI_PendingAssetFileEvents()
-	{
-		if (m_PendingAssetFileEvents.empty())
-			return;
-
-		ImGui::Begin("Pending Asset File Events");
-
-		const auto applyFileEvent = [](const AssetFileEventData& event)
-		{
-			switch (event.Action)
-			{
-				case filewatch::Event::added: Project::GetActiveEditorAssetManager()->OnAssetCreated(event.AssetPath); return;
-				case filewatch::Event::removed: Project::GetActiveEditorAssetManager()->OnAssetDeleted(event.AssetPath); return;
-				case filewatch::Event::renamed_old: Project::GetActiveEditorAssetManager()->OnAssetRenamed(event.AssetPath, event.NewName); return;
-			}
-		};
-
-		if (ImGui::Button("Apply All"))
-		{
-			for (const auto& event : m_PendingAssetFileEvents)
-				applyFileEvent(event);
-			m_PendingAssetFileEvents.clear();
-		}
-
-		if (ImGui::Button("Cancle All"))
-			m_PendingAssetFileEvents.clear();
-
-		for (auto iter = m_PendingAssetFileEvents.begin(); iter != m_PendingAssetFileEvents.end();)
-		{
-			UI::ScopedID id(iter._Ptr);
-			const auto& event = *iter;
-			auto relativePath = Project::GetActiveEditorAssetManager()->MakeRelativePath(event.AssetPath);
-			UI::TextF("Path: {}", relativePath);
-			UI::TextF("Action: {}", event.ActionString);
-
-			if (event.Action == filewatch::Event::renamed_old)
-				UI::TextF("New Filename: {}", event.NewName);
-
-			if (ImGui::Button("Apply"))
-			{
-				applyFileEvent(event);
-				iter = m_PendingAssetFileEvents.erase(iter);
-				continue;
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Cancle"))
-			{
-				iter = m_PendingAssetFileEvents.erase(iter);
-				continue;
-			}
-
-			iter++;
-		}
-
-		ImGui::End();
-	}
-
 	void EditorLayer::UI_CreateMeshAsset()
 	{
 		if (!m_CreateMeshAssetData.Show)
@@ -1931,33 +1790,6 @@ namespace Shark {
 				UI::EndControls();
 			}
 		});
-	}
-
-	void EditorLayer::OpenAssetEditor(AssetHandle assetHandle)
-	{
-		const AssetMetaData& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
-		if (!metadata.IsValid())
-			return;
-
-		m_PanelManager->Show(ASSET_EDITOR_ID, true);
-		Ref<AssetEditorPanel> assetEditor = m_PanelManager->GetPanel<AssetEditorPanel>(ASSET_EDITOR_ID);
-
-		switch (metadata.Type)
-		{
-			case AssetType::Texture:
-			{
-				Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(assetHandle);
-				assetEditor->AddEditor<TextureEditorPanel>(assetHandle, fmt::format("Texture Editor ({})", metadata.FilePath.stem()), true, texture);
-				break;
-			}
-			case AssetType::Material:
-			{
-				Ref<MaterialAsset> materialAsset = AssetManager::GetAsset<MaterialAsset>(assetHandle);
-				assetEditor->AddEditor<MaterialEditorPanel>(assetHandle, fmt::format("Material Editor ({})", metadata.FilePath.stem()), true, materialAsset);
-				break;
-			}
-		}
-
 	}
 
 	void EditorLayer::DebugRender()
@@ -2266,8 +2098,6 @@ namespace Shark {
 			if (!LoadScene(project->GetConfig().StartupScene))
 				NewScene("Empty Fallback Scene");
 
-			FileSystem::StartWatch(project->GetAssetsDirectory(), std::wregex(L"^(?!Scripts).*$"), [this](const auto& events) { OnFileEvents(events); });
-
 			m_ProjectEditData = project;
 		}
 	}
@@ -2439,7 +2269,7 @@ namespace Shark {
 
 	void EditorLayer::VerifyEditorTexture(const std::filesystem::path& assetPath)
 	{
-		VerifyEditorTexture(assetPath, FileSystem::ReplaceExtension(assetPath, ".png"));
+		VerifyEditorTexture(assetPath, FileSystem::ChangeExtension(assetPath, ".png"));
 	}
 
 	void EditorLayer::VerifyEditorTexture(const std::filesystem::path& assetPath, const std::filesystem::path& sourcePath)

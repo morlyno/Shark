@@ -104,7 +104,7 @@ namespace Shark {
 			scd.BufferDesc.Width = width;
 			scd.BufferDesc.Height = height;
 
-			scd.BufferDesc.Format = utils::ImageFormatToD3D11ForResource(instance->m_Format);
+			scd.BufferDesc.Format = DXImageUtils::ImageFormatToD3D11ForResource(instance->m_Format);
 			scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 			scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 			scd.BufferDesc.RefreshRate.Denominator = 0u;
@@ -129,7 +129,7 @@ namespace Shark {
 		});
 
 		Ref<DirectXImage2D> swapchainImage = Ref<DirectXImage2D>::Create();
-		auto& imageSpec = swapchainImage->GetSpecificationMutable();
+		auto& imageSpec = swapchainImage->GetSpecification();
 		imageSpec.Width = m_Specification.Width;
 		imageSpec.Height = m_Specification.Height;
 		imageSpec.Format = m_Format;
@@ -175,7 +175,7 @@ namespace Shark {
 			auto renderer = DirectXRenderer::Get();
 			renderer->RT_PrepareForSwapchainResize();
 			instance->RT_ReleaseDependencies();
-			instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, utils::ImageFormatToD3D11ForResource(instance->m_Format), 0);
+			instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(instance->m_Format), 0);
 			instance->RT_InvalidateDependencies();
 		});
 	}
@@ -196,7 +196,7 @@ namespace Shark {
 		auto renderer = DirectXRenderer::Get();
 		renderer->RT_PrepareForSwapchainResize();
 		RT_ReleaseDependencies();
-		m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, utils::ImageFormatToD3D11ForResource(m_Format), 0);
+		m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(m_Format), 0);
 		RT_InvalidateDependencies();
 	}
 
@@ -204,7 +204,7 @@ namespace Shark {
 	{
 		for (auto it = m_DependentImages.begin(); it != m_DependentImages.end();)
 		{
-			auto image = *it;
+			Weak<DirectXImage2D> image = *it;
 
 			if (image.Expired())
 			{
@@ -213,13 +213,17 @@ namespace Shark {
 				continue;
 			}
 
-			image.GetRef()->RT_Release();
+			DirectXImageInfo& info = image.GetRef()->GetDirectXImageInfo();
+			DirectXAPI::ReleaseObject(info.View);
+			DirectXAPI::ReleaseObject(info.Resource);
+			DirectXAPI::ReleaseObject(info.AccessView);
+
 			it++;
 		}
 
 		for (auto it = m_DependentFramebuffers.begin(); it != m_DependentFramebuffers.end();)
 		{
-			auto framebuffer = *it;
+			Weak<DirectXFrameBuffer> framebuffer = *it;
 
 			if (framebuffer.Expired())
 			{
@@ -227,7 +231,12 @@ namespace Shark {
 				continue;
 			}
 
-			framebuffer.GetRef()->RT_ShallowRelease();
+			Ref<DirectXFrameBuffer> dxFramebuffer = framebuffer.GetRef();
+			DirectXAPI::ReleaseObject(dxFramebuffer->m_BlendState);
+			DirectXAPI::ReleaseObject(dxFramebuffer->m_DepthStencil);
+			for (ID3D11RenderTargetView* rtv : dxFramebuffer->m_FrameBuffers)
+				DirectXAPI::ReleaseObject(rtv);
+
 			it++;
 		}
 	}
@@ -239,7 +248,7 @@ namespace Shark {
 			SK_CORE_VERIFY(!weakImage.Expired());
 			auto image = weakImage.GetRef();
 
-			ImageSpecification& specification = image->GetSpecificationMutable();
+			ImageSpecification& specification = image->GetSpecification();
 			specification.Width = m_Specification.Width;
 			specification.Height = m_Specification.Height;
 
@@ -256,38 +265,30 @@ namespace Shark {
 			for (uint32_t internalIndex = 0; const auto& atachment : framebuffer->GetSpecification().Atachments)
 			{
 				const uint32_t imageIndex = internalIndex++;
+
+				Ref<Image2D> image = nullptr;
 				if (ImageUtils::IsDepthFormat(atachment.Format))
-				{
-					auto depthImage = framebuffer->GetDepthImage();
-					if (!depthImage->Validate(false))
-					{
-						ImageSpecification& specification = depthImage->GetSpecificationMutable();
-						specification.Width = m_Specification.Width;
-						specification.Height = m_Specification.Height;
-						depthImage->RT_Invalidate();
-					}
+					image = framebuffer->GetDepthImage();
+				else
+					image = framebuffer->GetImage(imageIndex);
 
-					framebuffer->GetSpecificationMutable().ExistingImages[imageIndex] = depthImage;
-					continue;
-				}
-
-				auto image = framebuffer->GetImage(imageIndex);
-				if (!image->Validate(false))
+				if (!image->IsValid(false))
 				{
-					ImageSpecification& specification = image->GetSpecificationMutable();
+					SK_DEBUG_BREAK_CONDITIONAL(s_BreakOnInvalidImage);
+					ImageSpecification& specification = image->GetSpecification();
 					specification.Width = m_Specification.Width;
 					specification.Height = m_Specification.Height;
 					image->RT_Invalidate();
 				}
 				
-				framebuffer->GetSpecificationMutable().ExistingImages[imageIndex] = image;
+				framebuffer->GetSpecification().ExistingImages[imageIndex] = image;
 			}
 
 			// Clear Images so that Invalidate dosn't call Release on them
 			framebuffer->m_Images.clear();
 			framebuffer->m_DepthStencilImage = nullptr;
 
-			FrameBufferSpecification& specification = framebuffer->GetSpecificationMutable();
+			FrameBufferSpecification& specification = framebuffer->GetSpecification();
 			specification.Width = m_Specification.Width;
 			specification.Height = m_Specification.Height;
 			framebuffer->RT_Invalidate();

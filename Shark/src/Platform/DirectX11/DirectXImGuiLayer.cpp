@@ -6,6 +6,7 @@
 
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
+#include "Shark/ImGui/ImGuiFonts.h"
 
 #include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
@@ -41,10 +42,33 @@ namespace Shark {
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("Resources/Fonts/OpenSans/OpenSans-SemiBold.ttf", 15.0f * 2.0f);
-		io.FontDefault->Scale = 0.55f;
-		io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/arial.ttf", 14.0f);
-		io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/segoeui.ttf", 16.0f);
+		UI::FontConfiguration robotoBold;
+		robotoBold.Name = "Bold";
+		robotoBold.Filepath = "Resources/Fonts/Roboto/Roboto-Bold.ttf";
+		robotoBold.Size = 18.0f;
+		UI::Fonts::Add(robotoBold);
+
+		UI::FontConfiguration robotoLarge;
+		robotoLarge.Name = "Large";
+		robotoLarge.Filepath = "Resources/Fonts/Roboto/Roboto-Regular.ttf";
+		robotoLarge.Size = 24.0f;
+		UI::Fonts::Add(robotoLarge);
+
+		UI::FontConfiguration robotoMedium;
+		robotoMedium.Name = "Medium";
+		robotoMedium.Filepath = "Resources/Fonts/Roboto/Roboto-Medium.ttf";
+		robotoMedium.Size = 15.0f;
+		robotoMedium.Default = true;
+		UI::Fonts::Add(robotoMedium);
+
+		static const ImWchar s_FontAwesomeRanges[] = { 0xe000, 0xf8ff };
+		UI::FontConfiguration fontAwesome;
+		fontAwesome.Name = "FontAwesome";
+		fontAwesome.Filepath = "Resources/Fonts/FontAwesome/fa-solid-900.ttf";
+		fontAwesome.Size = 16.0f;
+		fontAwesome.GlythRanges = s_FontAwesomeRanges;
+		fontAwesome.MergeWithLast = true;
+		UI::Fonts::Add(fontAwesome);
 
 		Theme::LoadDark();
 
@@ -72,7 +96,7 @@ namespace Shark {
 		});
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
-		if (!ctx.SettingsLoaded && !std::filesystem::exists(ctx.IO.IniFilename))
+		if (!ctx.SettingsLoaded && !FileSystem::Exists(ctx.IO.IniFilename))
 		{
 			SK_CORE_INFO("\"{}\" file not found, continue with defualt settings", ctx.IO.IniFilename);
 			ImGui::LoadIniSettingsFromDisk("Resources/DefaultImGui.ini");

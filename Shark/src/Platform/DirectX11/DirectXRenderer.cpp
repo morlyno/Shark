@@ -120,17 +120,6 @@ namespace Shark {
 			queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
 			queryDesc.MiscFlags = 0;
 			SK_DX11_CALL(instance->m_Device->CreateQuery(&queryDesc, &instance->m_FrequencyQuery));
-
-			D3D11_SAMPLER_DESC samplerDesc{};
-			samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-
-			ID3D11SamplerState* sampler;
-			DirectXAPI::CreateSamplerState(instance->m_Device, samplerDesc, sampler);
-			instance->m_ClampLinearSamplerWrapper->RT_SetSampler(sampler);
-			sampler->Release();
 		});
 
 		VertexLayout layout = {
@@ -151,7 +140,6 @@ namespace Shark {
 
 		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create((uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
 		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
-		m_ClampLinearSamplerWrapper = Ref<DirectXSamplerWrapper>::Create();
 
 		{
 			glm::vec3 vertices[] = {
@@ -190,6 +178,10 @@ namespace Shark {
 
 		m_QuadVertexBuffer = nullptr;
 		m_QuadIndexBuffer = nullptr;
+		m_CubeVertexBuffer = nullptr;
+		m_CubeIndexBuffer = nullptr;
+		m_ImmediateCommandBuffer = nullptr;
+		m_GPUTimer = nullptr;
 
 		SK_CORE_ASSERT(m_CommandBuffers.empty(), "All RenderCommandBuffers need to be destroy befor Renderer shuts down");
 
@@ -201,7 +193,9 @@ namespace Shark {
 			RT_LogMessages(infoQueue);
 			infoQueue->Release();
 			context->Release();
-			device->Release();
+
+			ULONG count = device->Release();
+			SK_CORE_VERIFY(count == 0);
 		});
 
 		m_GPUTimer = nullptr;
@@ -673,6 +667,39 @@ namespace Shark {
 		});
 	}
 
+	void DirectXRenderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
+	{
+		SK_CORE_VERIFY(sourceImage);
+		SK_CORE_VERIFY(destinationImage);
+
+		Renderer::Submit([dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>(), dxSourceImage = sourceImage.As<DirectXImage2D>(), dxDestImage = destinationImage.As<DirectXImage2D>()]()
+		{
+			ID3D11DeviceContext* context = dxCommandBuffer->GetContext();
+
+			const DirectXImageInfo& sourceInfo = dxSourceImage->GetDirectXImageInfo();
+			const DirectXImageInfo& destinationInfo = dxDestImage->GetDirectXImageInfo();
+
+			context->CopyResource(destinationInfo.Resource, sourceInfo.Resource);
+		});
+	}
+
+	void DirectXRenderer::RT_CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
+	{
+		SK_CORE_VERIFY(sourceImage);
+		SK_CORE_VERIFY(destinationImage);
+
+		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
+		Ref<DirectXImage2D> dxSourceImage = sourceImage.As<DirectXImage2D>();
+		Ref<DirectXImage2D> dxDestImage = destinationImage.As<DirectXImage2D>();
+
+		ID3D11DeviceContext* context = dxCommandBuffer->GetContext();
+
+		const DirectXImageInfo& sourceInfo = dxSourceImage->GetDirectXImageInfo();
+		const DirectXImageInfo& destinationInfo = dxDestImage->GetDirectXImageInfo();
+
+		context->CopyResource(destinationInfo.Resource, sourceInfo.Resource);
+	}
+
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> DirectXRenderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
 	{
 		const uint32_t cubemapSize = Renderer::GetConfig().EnvironmentMapResolution;
@@ -1057,6 +1084,8 @@ namespace Shark {
 		));
 
 		adapter->Release();
+
+		m_ImmediateCommandBuffer = Ref<DirectXRenderCommandBuffer>::Create(CommandBufferType::Immediate, m_ImmediateContext);
 	}
 
 	void DirectXRenderer::RT_CreateInfoQueue()

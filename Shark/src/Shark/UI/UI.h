@@ -6,6 +6,7 @@
 #include "Shark/Asset/Asset.h"
 
 #include "Shark/ImGui/ImGuiHelpers.h"
+#include "Shark/ImGui/ImGuiFonts.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -162,9 +163,10 @@ namespace Shark::UI {
 
 	void ControlSetupColumns(std::string_view label, ImGuiTableColumnFlags flags = 0, float init_width_or_weight = 0.0f);
 
-	bool ControlBeginHelper(ImGuiID id);
-	bool ControlBeginHelper(std::string_view strID);
-	void ControlEndHelper();
+	bool ControlHelperBegin(ImGuiID id);
+	bool ControlHelperBegin(std::string_view strID);
+	void ControlHelperEnd();
+	void ControlHelperDrawLabel(std::string_view label);
 
 	float ControlContentRegionWidth();
 
@@ -246,6 +248,17 @@ namespace Shark::UI {
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();
 
+	template<typename TFunc>
+	void ControlCustom(std::string_view label, const TFunc& func)
+	{
+		if (!ControlHelperBegin(label))
+			return;
+
+		ControlHelperDrawLabel(label);
+		func();
+		ControlHelperEnd();
+	}
+
 	void Property(std::string_view label, const char* text);
 	void Property(std::string_view label, std::string_view text);
 	void Property(std::string_view label, const std::string& text);
@@ -289,6 +302,8 @@ namespace Shark::UI {
 	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
 	bool InputPath(const char* label, char* buffer, int bufferSize);
 
+	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
+	void Image(Ref<ImageView> image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 	void Texture(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 	bool TextureEdit(Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 
@@ -305,6 +320,12 @@ namespace Shark::UI {
 			}
 			ImGui::EndDragDropTarget();
 		}
+	}
+
+	template<typename T>
+	bool SliderScalar(const char* label, ImGuiDataType data_type, T& data, uint32_t min, uint32_t max, const char* format = NULL, ImGuiSliderFlags flags = 0)
+	{
+		return ImGui::SliderScalar(label, data_type, &data, &min, &max, format, flags);
 	}
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -510,6 +531,30 @@ namespace Shark::UI {
 		}
 	};
 
+	struct ScopedDisabled
+	{
+		ScopedDisabled(bool disable)
+		{
+			ImGui::BeginDisabled(disable);
+		}
+		~ScopedDisabled()
+		{
+			ImGui::EndDisabled();
+		}
+	};
+
+	struct ScopedFont
+	{
+		ScopedFont(const char* name)
+		{
+			Fonts::Push(name);
+		}
+		~ScopedFont()
+		{
+			Fonts::Pop();
+		}
+	};
+
 	struct UIControl
 	{
 		bool Active = false;
@@ -544,7 +589,7 @@ namespace Shark::UI {
 template<typename TFunc>
 bool Shark::UI::ControlCombo(std::string_view label, std::string_view preview, const TFunc& func)
 {
-	if (!ControlBeginHelper(label))
+	if (!ControlHelperBegin(label))
 		return false;
 
 	ImGui::TableSetColumnIndex(0);
@@ -560,6 +605,6 @@ bool Shark::UI::ControlCombo(std::string_view label, std::string_view preview, c
 		ImGui::EndCombo();
 	}
 
-	ControlEndHelper();
+	ControlHelperEnd();
 	return changed;
 }

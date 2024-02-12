@@ -6,23 +6,23 @@
 
 namespace Shark {
 
-	AssetEditorPanel::AssetEditorPanel(const std::string& panelName)
+	AssetEditorManagerPanel::AssetEditorManagerPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
 		m_DockspaceID = UI::GetIDWithSeed("AssetEditorPanelDockspace", (uint32_t)(uint64_t)this);
 	}
 
-	AssetEditorPanel::~AssetEditorPanel()
+	AssetEditorManagerPanel::~AssetEditorManagerPanel()
 	{
 	}
 
-	void AssetEditorPanel::OnUpdate(TimeStep ts)
+	void AssetEditorManagerPanel::OnUpdate(TimeStep ts)
 	{
 		for (auto& [id, entry] : m_EditorPanels)
 			entry.Editor->OnUpdate(ts);
 	}
 
-	void AssetEditorPanel::OnImGuiRender(bool& shown)
+	void AssetEditorManagerPanel::OnImGuiRender(bool& shown)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -45,27 +45,20 @@ namespace Shark {
 		ImGui::End();
 	}
 
-	void AssetEditorPanel::OnEvent(Event& event)
+	void AssetEditorManagerPanel::OnEvent(Event& event)
 	{
 		for (auto& [id, entry] : m_EditorPanels)
 			entry.Editor->OnEvent(event);
 	}
 
-	bool AssetEditorPanel::AnyViewportHovered() const
-	{
-		for (auto& [id, entry] : m_EditorPanels)
-			if (entry.Editor->IsViewportHovered())
-				return true;
-		return false;
-	}
-
-	void AssetEditorPanel::DrawPanels()
+	void AssetEditorManagerPanel::DrawPanels()
 	{
 		for (auto it = m_EditorPanels.begin(); it != m_EditorPanels.end();)
 		{
 			auto& entry = it->second;
-			entry.Editor->OnImGuiRender(entry.Shown, entry.Destroy);
-			if (entry.Destroy)
+			bool destroy = false;
+			entry.Editor->OnImGuiRender(entry.Shown, destroy);
+			if (destroy)
 			{
 				it = m_EditorPanels.erase(it);
 				continue;

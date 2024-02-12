@@ -35,7 +35,8 @@ namespace Shark {
 	{
 		None = 0,
 		Nearest,
-		Linear
+		Linear,
+		Anisotropic
 	};
 
 	enum class WrapMode : uint16_t
@@ -55,27 +56,15 @@ namespace Shark {
 	FilterMode StringToFilterMode(std::string_view filterMode);
 	WrapMode StringToWrapMode(std::string_view wrapMode);
 
-	struct TextureWrapModes
-	{
-		WrapMode U, V, W;
-		TextureWrapModes() = default;
-		TextureWrapModes(WrapMode a) : U(a), V(a), W(a) {}
-	};
-
-	struct SamplerSpecification
-	{
-		FilterMode Filter = FilterMode::Linear;
-		WrapMode Wrap = WrapMode::Repeat;
-		bool Anisotropy = false;
-		uint32_t MaxAnisotropy = 0;
-	};
-
 	struct TextureSpecification
 	{
 		uint32_t Width = 0, Height = 0;
 		ImageFormat Format = ImageFormat::RGBA8;
-		bool GenerateMips = false;
-		SamplerSpecification Sampler;
+		bool GenerateMips = true;
+
+		FilterMode Filter = FilterMode::Linear;
+		WrapMode Wrap = WrapMode::Repeat;
+		uint32_t MaxAnisotropy = 0;
 
 		std::string DebugName;
 	};
@@ -88,25 +77,29 @@ namespace Shark {
 		virtual ~Texture2D() = default;
 
 		virtual void Invalidate() = 0;
-		virtual bool Validate() const = 0;
-
+		virtual void RT_Invalidate() = 0;
 		virtual void Release() = 0;
+
+		virtual bool IsValid() const = 0;
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
+		virtual float GetAspectRatio() const = 0;
+		virtual float GetVerticalAspectRatio() const = 0;
 
-		virtual void SetImageData(Buffer imageData) = 0;
+		virtual void SetImageData(Buffer imageData, bool copy = true) = 0;
+
+		virtual Buffer& GetBuffer() = 0;
+		virtual Buffer GetBuffer() const = 0;
 
 		virtual Ref<TextureSource> GetTextureSource() const = 0;
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) = 0;
-
-		virtual Buffer GetBuffer() const = 0;
 
 		virtual RenderID GetViewID() const = 0;
 		virtual Ref<SamplerWrapper> GetSampler() const = 0;
 		virtual Ref<Image2D> GetImage() const = 0;
 		virtual const TextureSpecification& GetSpecification() const = 0;
-		virtual TextureSpecification& GetSpecificationMutable() = 0;
+		virtual TextureSpecification& GetSpecification() = 0;
 
 	public: // Asset Interface
 		static AssetType GetStaticType() { return AssetType::Texture; }
@@ -114,20 +107,35 @@ namespace Shark {
 
 	public:
 		static Ref<Texture2D> Create();
-		static Ref<Texture2D> Create(const TextureSpecification& specification, Buffer imageData);
+		static Ref<Texture2D> Create(const TextureSpecification& specification, Buffer imageData = nullptr);
 		static Ref<Texture2D> Create(const TextureSpecification& specification, Ref<TextureSource> textureSource);
-		static Ref<Texture2D> Create(const SamplerSpecification& specification, Ref<Image2D> image, bool sharedImage = true);
 		static Ref<Texture2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		static Ref<Texture2D> Create(Ref<TextureSource> textureSource);
 
 		static Ref<Texture2D> LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& samplerSpecification = {});
 	};
 
+	struct SamplerSpecification
+	{
+		FilterMode Filter = FilterMode::Linear;
+		WrapMode Wrap = WrapMode::Repeat;
+		uint32_t MaxAnisotropy = 0;
+
+		std::string DebugName;
+	};
+
 	class SamplerWrapper : public RefCount
 	{
 	public:
+		virtual void Release() = 0;
+		virtual void Invalidate() = 0;
+
+		virtual SamplerSpecification& GetSpecification() = 0;
+		virtual const SamplerSpecification& GetSpecification() const = 0;
+
 		virtual RenderID GetSamplerID() const = 0;
 
+	public:
 		static Ref<SamplerWrapper> Create(const SamplerSpecification& spec);
 	};
 
@@ -135,6 +143,10 @@ namespace Shark {
 	class TextureCube : public RefCount
 	{
 	public:
+		virtual void Release() = 0;
+		virtual void Invalidate() = 0;
+		virtual void RT_Invalidate() = 0;
+
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
 

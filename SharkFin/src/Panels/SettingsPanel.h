@@ -1,5 +1,5 @@
 
-#include "Shark/Editor/Panel.h"
+#include "Panel.h"
 
 namespace Shark {
 

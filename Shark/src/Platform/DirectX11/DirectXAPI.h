@@ -9,6 +9,10 @@ namespace Shark {
 
 namespace Shark::DirectXAPI {
 
+	void ReleaseObject(ID3D11DeviceChild* object);
+
+	void CreateDeferredContext(ID3D11Device* device, UINT flags, ID3D11DeviceContext*& outContext);
+
 	void SetDebugName(ID3D11DeviceChild* object, const char* debugName);
 	void SetDebugName(ID3D11DeviceChild* object, std::string_view debugName);
 

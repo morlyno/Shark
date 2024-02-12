@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Project.h"
 #include "Shark/Asset/Asset.h"
 #include "Shark/Render/Texture.h"
 
@@ -9,115 +10,161 @@
 
 namespace Shark {
 
-	struct CBItemAction
-	{
-		enum Type : uint16_t
-		{
-			None = 0,
-			Open = BIT(0),
-			OpenInExplorer = BIT(1),
-			Selected = BIT(2),
-			Rename = BIT(3),
-			Deleted = BIT(4),
-			ReloadAsset = BIT(5),
-			InvalidFilenameInput = BIT(6),
-			AssetRemoved = BIT(7),
+	class ContentBrowserPanel;
 
-			ReloadRequired = BIT(15)
-		};
-		using Flags = std::underlying_type_t<Type>;
+	class DirectoryInfo : public RefCount
+	{
+	public:
+		DirectoryInfo(Weak<DirectoryInfo> parent, const std::filesystem::path& directoryPath);
+		~DirectoryInfo();
+
+		void Reload(Ref<Project> project);
+
+		void AddDirectory(Ref<DirectoryInfo> directory);
+		void AddFile(const std::string& filename);
+
+		void Rename(const std::string& newName);
+		void RenameFile(const std::string& oldName, const std::string& newName);
+
+		std::filesystem::path Filepath;
+		std::string Name;
+
+		Weak<DirectoryInfo> Parent;
+		std::vector<Ref<DirectoryInfo>> SubDirectories;
+
+		// Only Filenames
+		std::vector<std::string> Filenames;
+	};
+
+	enum class CBItemActionFlag : uint16_t
+	{
+		None = 0,
+
+		Open = BIT(0),
+		OpenExternally = BIT(1),
+		OpenInExplorer = BIT(2),
+		Select = BIT(3),
+		Delete = BIT(4),
+		ReloadAsset = BIT(5),
+		StartRenaming = BIT(6),
+		FinishedRenaming = BIT(7),
+		Remove = BIT(8),
+		ImportFile = BIT(9)
+	};
+
+	class CBItemAction
+	{
+	public:
+		bool FlagSet(CBItemActionFlag flag) const
+		{
+			return Flags & (uint16_t)flag;
+		}
+
+		const std::string& GetErrorMessage() const
+		{
+			return m_ErrorMsg;
+		}
+
+		const std::string& GetNewName() const
+		{
+			return m_NewName;
+		}
+
+	private:
+		void SetFlag(CBItemActionFlag flag, bool set = true)
+		{
+			if (set)
+				Flags |= (uint16_t)flag;
+			else
+				Flags &= ~(uint16_t)flag;
+		}
+
+		void Delete()
+		{
+			Flags = (uint16_t)CBItemActionFlag::Delete;
+		}
+
+		void ErrorPrompt(const std::string& errorMsg)
+		{
+			m_ErrorMsg = errorMsg;
+		}
+
+		void FinishRenaming(const std::string& newName)
+		{
+			m_NewName = newName;
+			SetFlag(CBItemActionFlag::FinishedRenaming);
+		}
+
+	private:
+		uint16_t Flags = 0;
+		std::string m_ErrorMsg;
+		std::string m_NewName;
+
+		friend class ContentBrowserItem;
 	};
 
 	enum class CBItemType : uint16_t
 	{
 		None = 0,
 		Directory,
-		Asset
+		Asset,
+		File
 	};
-
-	class DirectoryInfo;
 
 	class ContentBrowserItem : public RefCount
 	{
 	private:
-		struct State
+		enum class StateFlag
 		{
-			enum Type : uint16_t
-			{
-				None = 0,
-				Renaming = BIT(0),
-				StartRenaming = BIT(1),
-				Selcted = BIT(2),
-				Deleted = BIT(3)
-			};
-			using Flags = std::underlying_type_t<Type>;
+			None = 0,
+			StartRenaming = BIT(0),
+			Renaming = BIT(1),
+			Deleted = BIT(2),
+			Selected = BIT(3)
 		};
+
 	public:
-		ContentBrowserItem() = default;
-		ContentBrowserItem(CBItemType type, AssetHandle handle, const std::string& name, Ref<Texture2D> icon);
-		ContentBrowserItem(Ref<DirectoryInfo> directory);
-		ContentBrowserItem(const AssetMetaData& metadata, Ref<Texture2D> icon);
+		ContentBrowserItem(Ref<ContentBrowserPanel> context, CBItemType type, const std::filesystem::path& filepath);
 		~ContentBrowserItem();
 
 		CBItemType GetType() const { return m_Type; }
-		AssetHandle GetHandle() const { return m_Handle; }
+		void SetType(CBItemType type);
+		const std::filesystem::path& GetPath() const { return m_Path; }
 		const std::string& GetName() const { return m_Name; }
 
-		CBItemAction::Flags Draw();
+		CBItemAction Draw();
 
-		void SetSelected(bool selected) { SetState(State::Selcted, selected); }
-		bool IsSelected() const { return IsStateSet(State::Selcted); }
+	public:
+		void StartRenaming();
+		void Select() { SetFlag(StateFlag::Selected, true); }
+		void Unselect() { SetFlag(StateFlag::Selected, false); }
+		bool IsSelected() const { return FlagSet(StateFlag::Selected); }
 
-		void StartRenameing();
-		void Rename(const std::string& name);
-		void RemoveAsset();
-		void Delete();
-
-		bool IsRenaming() const { return IsStateSet(State::Renaming); }
-
-	private:
-		void DrawPopup(CBItemAction::Flags& action);
-
-		void SetState(State::Flags state, bool enabled);
-		bool IsStateSet(State::Flags state) const;
-		std::string GetTypeString();
+		bool Rename(const std::string& newName);
+		bool Delete();
 
 	private:
-		CBItemType m_Type = CBItemType::None;
-		AssetHandle m_Handle = AssetHandle::Null;
+		void SetFlag(StateFlag flag, bool set);
+		bool FlagSet(StateFlag flag) const;
+
+		std::string GetTypeString() const;
+		void UpdateIcon();
+
+	private:
+		Weak<ContentBrowserPanel> m_Context;
+		CBItemType m_Type;
+		std::filesystem::path m_Path;
 		std::string m_Name;
-		State::Flags m_State = State::None;
 
 		Ref<Texture2D> m_Icon;
 		Ref<Texture2D> m_Thumbnail;
 
 		bool m_IsHovered = false;
+		uint32_t m_StateFlags = 0;
 
-		enum { RenameBufferSize = 260 };
-		inline static char RenameBuffer[RenameBufferSize];
+		char m_RenameBuffer[260];
 
 		friend class ContentBrowserPanel;
-	};
-
-	class DirectoryInfo : public RefCount
-	{
-	public:
-		DirectoryInfo(Weak<DirectoryInfo> parent, const std::filesystem::path& filePath, AssetHandle handle);
-		~DirectoryInfo();
-		void Reload();
-
-		void AddDirectory(Ref<DirectoryInfo> directory);
-		void AddAsset(AssetHandle handle);
-
-		bool Erase(AssetHandle handle);
-
-		std::filesystem::path FilePath;
-		std::string Name;
-		AssetHandle Handle;
-
-		Weak<DirectoryInfo> Parent;
-		std::vector<Ref<DirectoryInfo>> SubDirectories;
-		std::vector<AssetHandle> Assets;
 	};
 
 }

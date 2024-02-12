@@ -28,7 +28,7 @@ namespace Shark {
 
 		static bool Control(const char* label, glm::vec3& val, float reset = 0.0f)
 		{
-			if (!UI::ControlBeginHelper(label))
+			if (!UI::ControlHelperBegin(label))
 				return false;
 
 			ImGui::TableSetColumnIndex(0);
@@ -74,7 +74,7 @@ namespace Shark {
 
 			ImGui::PopItemWidth();
 
-			UI::ControlEndHelper();
+			UI::ControlHelperEnd();
 			return changed;
 		}
 
@@ -148,7 +148,8 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 
-		m_MaterialEditor = Scope<MaterialEditor>::Create("Material", nullptr);
+		m_MaterialEditor = Scope<MaterialEditor>::Create();
+		m_MaterialEditor->SetName("Material");
 		m_MeshSourceMaterialAsset = MaterialAsset::Create();
 		UpdateMaterialEditor(m_SelectedEntity);
 	}
@@ -208,6 +209,12 @@ namespace Shark {
 
 		EventDispacher dispacher(event);
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(SceneHirachyPanel::OnKeyPressedEvent));
+	}
+
+	void SceneHirachyPanel::OnProjectChanged(Ref<Project> project)
+	{
+		project->GetAssetManager()->AddMemoryAsset(m_MeshSourceMaterialAsset);
+		UpdateMaterialEditor(m_SelectedEntity);
 	}
 
 	void SceneHirachyPanel::SetSelectedEntity(Entity entity)
@@ -387,7 +394,7 @@ namespace Shark {
 
 			UI::ControlColor("Color", comp.Color);
 
-			if (UI::ControlBeginHelper("Texture"))
+			if (UI::ControlHelperBegin("Texture"))
 			{
 				ImGui::TableSetColumnIndex(0);
 
@@ -427,7 +434,7 @@ namespace Shark {
 					ImGui::Text("Width: 0, Height: 0");
 				}
 
-				UI::ControlEndHelper();
+				UI::ControlHelperEnd();
 			}
 
 			UI::Control("TilingFactor", comp.TilingFactor, 0.0f, 0.0f, 0.1f);
@@ -830,7 +837,7 @@ namespace Shark {
 	{
 		if (!entity)
 		{
-			m_MaterialEditor->SetMaterial(nullptr);
+			m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
 			return;
 		}
 
@@ -841,7 +848,7 @@ namespace Shark {
 			{
 				if (AssetManager::IsValidAssetHandle(mc.MaterialHandle))
 				{
-					m_MaterialEditor->SetMaterial(AssetManager::GetAsset<MaterialAsset>(mc.MaterialHandle));
+					m_MaterialEditor->SetMaterial(mc.MaterialHandle);
 					m_MaterialEditor->SetReadonly(false);
 					return;
 				}
@@ -853,7 +860,7 @@ namespace Shark {
 
 				if (materialTable->HasMaterial(submesh.MaterialIndex))
 				{
-					m_MaterialEditor->SetMaterial(materialTable->GetMaterial(submesh.MaterialIndex));
+					m_MaterialEditor->SetMaterial(materialTable->GetMaterial(submesh.MaterialIndex)->Handle);
 					m_MaterialEditor->SetReadonly(false);
 				}
 				else
@@ -861,7 +868,7 @@ namespace Shark {
 					const auto& materials = meshSource->GetMaterials();
 					Ref<Material> material = materials[submesh.MaterialIndex];
 					m_MeshSourceMaterialAsset->SetMaterial(material);
-					m_MaterialEditor->SetMaterial(m_MeshSourceMaterialAsset);
+					m_MaterialEditor->SetMaterial(m_MeshSourceMaterialAsset->Handle);
 					m_MaterialEditor->SetReadonly(false);
 				}
 			}

@@ -6,38 +6,49 @@
 
 namespace Shark {
 
+	enum class CommandBufferType
+	{
+		Immediate,
+		Deferred
+	};
+
 	class DirectXRenderCommandBuffer : public RenderCommandBuffer
 	{
 	public:
 		DirectXRenderCommandBuffer();
+		DirectXRenderCommandBuffer(CommandBufferType type, ID3D11DeviceContext* context);
 		virtual ~DirectXRenderCommandBuffer();
 
 		virtual void Release() override;
 
-		ID3D11DeviceContext* GetContext() const { return m_DeferredContext; }
+		ID3D11DeviceContext* GetContext() const { return m_Context; }
 
 		virtual void Begin() override;
 		virtual void End() override;
 		virtual void Execute() override;
 
-		virtual void BeginTimeQuery(Ref<GPUTimer> counter) override;
-		virtual void EndTimeQuery(Ref<GPUTimer> counter) override;
-
-		void RT_ClearState();
-
-	public:
 		void RT_Begin();
 		void RT_End();
 		void RT_Execute();
 
+		virtual void BeginTimeQuery(Ref<GPUTimer> timer) override;
+		virtual void EndTimeQuery(Ref<GPUTimer> timer) override;
+
 		void RT_BeginTimeQuery(Ref<DirectXGPUTimer> timer);
 		void RT_EndTimeQuery(Ref<DirectXGPUTimer> timer);
 
-	private:
-		ID3D11DeviceContext* m_DeferredContext = nullptr;
-		ID3D11CommandList* m_CommandList = nullptr;
+		void RT_ClearState();
 
-		bool m_Active = false;
+	public:
+		void CreateDeferredContext();
+		void RegisterDeferred();
+		void UnregisterDeferred();
+
+	private:
+		CommandBufferType m_Type = CommandBufferType::Deferred;
+
+		ID3D11DeviceContext* m_Context = nullptr;
+		ID3D11CommandList* m_CommandList = nullptr;
 	};
 
 }

@@ -26,7 +26,7 @@ namespace Shark {
 
 		//msdfgen::savePng(bitmap, "FontAtlas.png");
 
-		auto& spec = fontAtlas->GetSpecificationMutable();
+		auto& spec = fontAtlas->GetSpecification();
 		spec.Width = bitmap.width;
 		spec.Height = bitmap.height;
 		spec.Format = F;

@@ -61,18 +61,23 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Image2D> Image2D::Create(const ImageSpecification& specs, Ref<Image2D> data)
+	Ref<ImageView> ImageView::Create(Ref<Image2D> image, uint32_t mipSlice)
 	{
 		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs, data);
+			case RendererAPIType::DirectX11: return Ref<DirectXImageView>::Create(image, mipSlice);
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;
 	}
 
 	namespace ImageUtils {
+
+		uint32_t CalcMipLevels(uint32_t widht, uint32_t height)
+		{
+			return glm::floor(glm::log2((float)glm::max(widht, height))) + 1;
+		}
 
 		bool IsDepthFormat(Shark::ImageFormat format)
 		{

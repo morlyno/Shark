@@ -115,8 +115,17 @@ namespace Shark {
 
 	const AssetMetaData& EditorAssetManager::GetMetadata(const std::filesystem::path& filepath) const
 	{
-		AssetHandle handle = GetAssetHandleFromFilePath(filepath);
+		AssetHandle handle = GetAssetHandleFromFilepath(filepath);
 		return GetMetadataInternal(handle);
+	}
+
+	AssetHandle EditorAssetManager::GetAssetHandleFromFilepath(const std::filesystem::path& filepath) const
+	{
+		auto relativePath = MakeRelativePath(filepath);
+		for (const auto& [handle, metadata] : m_ImportedAssets)
+			if (metadata.FilePath == relativePath)
+				return metadata.Handle;
+		return AssetHandle::Invalid;
 	}
 
 	std::filesystem::path EditorAssetManager::GetFilesystemPath(AssetHandle handle) const
@@ -140,7 +149,7 @@ namespace Shark {
 	std::filesystem::path EditorAssetManager::MakeRelativePath(const std::filesystem::path& filepath) const
 	{
 		SK_CORE_VERIFY(!m_Project.Expired());
-		return std::filesystem::relative(m_Project.GetRef()->GetActiveAssetsDirectory() / filepath, m_Project.GetRef()->GetAssetsDirectory());
+		return std::filesystem::relative(m_Project.GetRef()->GetAbsolute(filepath), m_Project.GetRef()->GetAssetsDirectory());
 	}
 
 	std::string EditorAssetManager::MakeRelativePathString(const std::filesystem::path& filepath) const
@@ -277,7 +286,7 @@ namespace Shark {
 		if (!FileSystem::Exists(fsPath))
 			return AssetHandle::Invalid;
 
-		AssetHandle handle = GetAssetHandleFromFilePath(fsPath);
+		AssetHandle handle = GetAssetHandleFromFilepath(fsPath);
 		if (handle != AssetHandle::Invalid)
 			return handle;
 
@@ -313,14 +322,14 @@ namespace Shark {
 
 	void EditorAssetManager::OnAssetDeleted(const std::filesystem::path& filepath)
 	{
-		AssetHandle handle = GetAssetHandleFromFilePath(filepath);
+		AssetHandle handle = GetAssetHandleFromFilepath(filepath);
 		if (handle != AssetHandle::Invalid)
 			RemoveAsset(handle);
 	}
 
 	void EditorAssetManager::OnAssetRenamed(const std::filesystem::path& oldFilepath, const std::string& newName)
 	{
-		AssetHandle handle = GetAssetHandleFromFilePath(oldFilepath);
+		AssetHandle handle = GetAssetHandleFromFilepath(oldFilepath);
 		AssetMetaData& metadata = GetMetadataInternal(handle);
 		if (metadata.IsValid())
 			return;
@@ -432,15 +441,6 @@ namespace Shark {
 		if (m_ImportedAssets.contains(handle))
 			return m_ImportedAssets.at(handle);
 		return s_NullMetadata;
-	}
-
-	AssetHandle EditorAssetManager::GetAssetHandleFromFilePath(const std::filesystem::path& filepath) const
-	{
-		auto relativePath = MakeRelativePath(filepath);
-		for (const auto& [handle, metadata] : m_ImportedAssets)
-			if (metadata.FilePath == relativePath)
-				return metadata.Handle;
-		return AssetHandle::Invalid;
 	}
 
 	struct ImportedAssetsEntry

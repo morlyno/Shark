@@ -4,30 +4,32 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
 
-#include "Shark/Editor/EditorConsole/EditorConsoleSink.h"
+#include "Shark/Core/ConsoleSink.h"
 
 #include <array>
 
 namespace Shark {
 
 	Log::LogData* Log::s_Data;
+	static std::shared_ptr<ConsoleSink> s_ConsoleSink = nullptr;
 
-	std::shared_ptr<spdlog::logger> Log::GetLogger(Log::Logger loggerType)
+	std::shared_ptr<spdlog::logger> Log::GetLogger(LoggerType loggerType)
 	{
-		if (loggerType == Log::Logger::Core)
+		if (loggerType == LoggerType::Core)
 			return s_Data->CoreLogger;
-		else if (loggerType == Log::Logger::Client)
+		else if (loggerType == LoggerType::Client)
 			return s_Data->ClientLogger;
-		else if (loggerType == Log::Logger::Console)
+		else if (loggerType == LoggerType::Console)
 			return s_Data->ConsoleLogger;
 		SK_CORE_ASSERT(false, "Unkown LoggerType");
 		return nullptr;
 	}
 
-
 	void Log::Initialize()
 	{
 		s_Data = sknew LogData();
+
+		s_ConsoleSink = std::make_shared<ConsoleSink>();
 
 		std::vector<spdlog::sink_ptr> sharkSinks =
 		{
@@ -39,13 +41,13 @@ namespace Shark {
 		{
 			std::make_shared<spdlog::sinks::stdout_color_sink_mt>(),
 			std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/App.log", true),
-			std::make_shared<EditorConsoleSink>()
+			s_ConsoleSink
 		};
 
 		std::vector<spdlog::sink_ptr> consoleSinks =
 		{
 			std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/App.log", true),
-			std::make_shared<EditorConsoleSink>()
+			s_ConsoleSink
 		};
 
 		sharkSinks[0]->set_pattern("%^[%T] %n: %v%$");
@@ -66,8 +68,14 @@ namespace Shark {
 
 	void Log::Shutdown()
 	{
+		s_ConsoleSink = nullptr;
 		skdelete s_Data;
 		s_Data = nullptr;
+	}
+
+	void Log::SetConsoleSinkCallback(ConsoleSinkPushMessageCallback callback)
+	{
+		s_ConsoleSink->SetPushMessageCallback(callback);
 	}
 
 }

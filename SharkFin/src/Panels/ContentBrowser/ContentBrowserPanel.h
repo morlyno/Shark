@@ -3,7 +3,7 @@
 #include "Shark.h"
 #include "Shark/Core/Project.h"
 #include "Shark/Event/Event.h"
-#include "Shark/Editor/Panel.h"
+#include "Panel.h"
 
 #include "Panels/ContentBrowser/ContentBrowserItem.h"
 
@@ -12,14 +12,6 @@
 #undef CreateDirectory
 
 namespace Shark {
-
-	struct CBItemAssetHandleCompare
-	{
-		bool operator()(const Ref<ContentBrowserItem>& lhs, const Ref<ContentBrowserItem>& rhs) const
-		{
-			return lhs->GetHandle() == rhs->GetHandle();
-		}
-	};
 
 	class CBItemList
 	{
@@ -36,46 +28,139 @@ namespace Shark {
 			Items.clear();
 		}
 
-		bool Contains(AssetHandle handle) const
+		void Sort()
 		{
-			return FindByHandle(handle) != Items.end();
+			std::sort(Items.begin(), Items.end(), [](auto lhs, auto rhs) -> bool
+			{
+				if (lhs->GetType() == rhs->GetType())
+					return lhs->GetPath() < rhs->GetPath();
+
+				if (lhs->GetType() == CBItemType::Directory)
+					return true;
+
+				if (rhs->GetType() == CBItemType::Directory)
+					return false;
+
+				return lhs->GetPath() < rhs->GetPath();
+			});
 		}
 
 		void Add(Ref<ContentBrowserItem> item)
 		{
-			const auto i = std::lower_bound(Items.begin(), Items.end(), item, [](const auto& lhs, const auto& rhs)
+			const auto it = std::ranges::lower_bound(Items, item, [](auto lhs, auto rhs)
 			{
 				if (lhs->GetType() == rhs->GetType())
-					return lhs->GetName() < rhs->GetName();
-				return lhs->GetType() == CBItemType::Directory;
+					return lhs->GetPath() < rhs->GetPath();
+
+				if (lhs->GetType() == CBItemType::Directory)
+					return true;
+
+				if (rhs->GetType() == CBItemType::Directory)
+					return false;
+
+				return lhs->GetPath() < rhs->GetPath();
 			});
-			Items.insert(i, item);
+			Items.insert(it, item);
+		}
 
-			SK_CORE_ASSERT(std::is_sorted(Items.begin(), Items.end(), [](const auto& lhs, const auto& rhs)
+		bool Contains(Ref<ContentBrowserItem> item)
+		{
+			return std::ranges::find(Items, item) != Items.end();
+		}
+
+		void Remove(Ref<ContentBrowserItem> item)
+		{
+			const auto it = std::ranges::find(Items, item);
+			if (it != Items.end())
+			{
+				Items.erase(it);
+			}
+		}
+
+		void MergeWith(const CBItemList& other)
+		{
+			std::vector<Ref<ContentBrowserItem>> mergesItems;
+			mergesItems.reserve(Items.size() + other.Items.size());
+			std::ranges::merge(Items, other, std::back_insert_iterator(mergesItems), [](auto lhs, auto rhs)
 			{
 				if (lhs->GetType() == rhs->GetType())
-					return lhs->GetName() < rhs->GetName();
-				return lhs->GetType() == CBItemType::Directory;
-			}));
+					return lhs->GetPath() < rhs->GetPath();
+
+				if (lhs->GetType() == CBItemType::Directory)
+					return true;
+
+				if (rhs->GetType() == CBItemType::Directory)
+					return false;
+
+				return lhs->GetPath() < rhs->GetPath();
+			});
+			std::swap(Items, mergesItems);
 		}
 
-		void Erase(AssetHandle handle)
+	};
+
+	class CBHistory
+	{
+	public:
+		void Reset(Ref<DirectoryInfo> base)
 		{
-			Items.erase(FindByHandle(handle));
+			m_History.clear();
+			m_Index = -1;
+			Add(base);
 		}
 
-		Ref<ContentBrowserItem> Get(AssetHandle handle) const
+		Ref<DirectoryInfo> Current() const
 		{
-			auto it = FindByHandle(handle);
-			if (it == Items.end())
-				return nullptr;
-			return *it;
+			SK_CORE_VERIFY(m_Index < m_History.size());
+			return m_History[m_Index];
 		}
 
-		std::vector<Ref<ContentBrowserItem>>::const_iterator FindByHandle(AssetHandle handle) const
+		bool CanMoveBack() const
 		{
-			return std::find_if(Items.begin(), Items.end(), [handle](const Ref<ContentBrowserItem>& item) { return item->GetHandle() == handle; });
+			return m_Index > 0;
 		}
+
+		bool CanMoveForward() const
+		{
+			return (m_Index + 1) < m_History.size();
+		}
+
+		Ref<DirectoryInfo> MoveBack()
+		{
+			if (m_Index > 0)
+			{
+				m_Index--;
+				return m_History[m_Index];
+			}
+
+			return nullptr;
+		}
+
+		Ref<DirectoryInfo> MoveForward()
+		{
+			if ((m_Index + 1) < m_History.size())
+			{
+				m_Index++;
+				return m_History[m_Index];
+			}
+
+			return nullptr;
+		}
+
+		void Add(Ref<DirectoryInfo> directory)
+		{
+			if (!directory)
+				return;
+
+			m_Index++;
+			const auto location = m_History.begin() + m_Index;
+			auto inserted = m_History.insert(m_History.begin() + m_Index, directory);
+			m_History.erase(inserted + 1, m_History.end());
+		}
+
+	private:
+		std::vector<Ref<DirectoryInfo>> m_History;
+		uint32_t m_Index = -1;
 	};
 
 	class CBFilter
@@ -101,132 +186,126 @@ namespace Shark {
 		bool m_CaseSensitive;
 	};
 
-	using CBOpenAssetCallbackFn = std::function<void(AssetHandle)>;
+	enum class ContentBrowserType : uint32_t
+	{
+		Asset,
+		Filesystem
+	};
+
+	using OpenAssetCallbackFn = std::function<void(const AssetMetaData&)>;
 
 	class ContentBrowserPanel : public Panel
 	{
 	public:
-		ContentBrowserPanel(const std::string& panelName, CBOpenAssetCallbackFn callback = nullptr);
+		ContentBrowserPanel(const std::string& panelName);
 		~ContentBrowserPanel();
-
-		void RegisterOpenAssetCallback(CBOpenAssetCallbackFn callback) { m_OpenAssetCallback = callback; }
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 		virtual void OnProjectChanged(Ref<Project> project) override;
-		void OnFileEvents(const std::vector<FileEvent>& fileEvents);
 
-		void Reload() { m_ReloadScheduled = true; }
+		void ScheduleReload() { m_ReloadScheduled = true; }
+		Ref<Project> GetProject() { return m_Project; }
 
+		void RegisterOpenAssetCallback(AssetType assetType, const OpenAssetCallbackFn& func);
+
+		Ref<Texture2D> GetDirectoryIcon() const { return m_FolderIcon; }
+		Ref<Texture2D> GetFileIcon(const std::filesystem::path& filepath) const;
+	private:
+		void Reload();
+		void CacheDirectories(Ref<DirectoryInfo> directory);
+
+	private:
+		void ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistory = true);
+		void NextDirectory(Ref<DirectoryInfo> directory, bool addToHistory = true, bool clearSearch = true);
+
+	private:
+		CBItemList Search(const std::string& filterPaddern, Ref<DirectoryInfo> directory, bool searchSubdirectories = true);
+		CBItemList GetItemsForAssetBrowser(Ref<DirectoryInfo> directory);
+		CBItemList GetItemsForFileBrowser(Ref<DirectoryInfo> directory);
+
+		Ref<DirectoryInfo> GetDirectory(const std::filesystem::path& filePath);
 	private:
 		bool OnKeyPressedEvent(KeyPressedEvent& event);
 
-		void Internal_ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistroy);
-		void Internal_MoveForward();
-		void Internal_MoveBackward();
-		void Internal_OnAssetRemoved(Ref<ContentBrowserItem> item);
-		void Internal_OnItemDeleted(Ref<ContentBrowserItem> item);
-		void Internal_OnDirectoryDeleted(Ref<DirectoryInfo> directory);
-
-		void OnAssetRemoved(Ref<ContentBrowserItem> item);
-		void OnItemDeleted(Ref<ContentBrowserItem> item);
-
-		void ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistroy = true);
-		void MoveForward();
-		void MoveBackward();
-		void OnItemSelcted(Ref<ContentBrowserItem> item);
-
-		void SelectItem(Ref<ContentBrowserItem> item);
-
 		void DrawItems();
 		void DrawHeader();
-		void DrawBreadcrumbTrail();
 		void DrawDirectoryHirachy(Ref<DirectoryInfo> directory);
-		CBItemList Search(const std::string& filter);
-		void Search(const CBFilter& filter, Ref<DirectoryInfo> directory, std::vector<Ref<ContentBrowserItem>>& foundItmes);
-		void CheckForReload();
-		void CacheDirectoryHandles();
-		void CacheDirectoryHandles(Ref<DirectoryInfo> directory);
-		void ClearHistroy();
 
 		Ref<Texture2D> GetIcon(const AssetMetaData& metadata);
 		Ref<Texture2D> GetThumbnail(const AssetMetaData& metadata);
 		void GenerateThumbnails();
-		//Ref<DirectoryInfo> FindDirectory(const std::filesystem::path& filePath);
-		Ref<DirectoryInfo> GetDirectory(AssetHandle handle);
-		Ref<DirectoryInfo> GetDirectory(const std::filesystem::path& filePath);
-		Ref<Project> GetProject() const { return m_Project; }
 
-		void SkipNextFileEvents() { m_SkipNextFileEvents = true; }
 		bool IsSearchActive() { return m_SearchBuffer[0] != '\0'; }
+		CBItemType GetItemTypeFromPath(const std::filesystem::path& path) const;
 
 	private:
-		Ref<ContentBrowserItem> CreateDirectory(Ref<DirectoryInfo> directory, const std::string& name);
+		Ref<ContentBrowserItem> CreateDirectory(Ref<DirectoryInfo> directory, const std::string& name, bool startRenaming);
 
 		template<typename TAsset, typename... TArgs>
 		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename, TArgs&&... args)
 		{
-			m_SkipNextFileEvents = true;
-			std::filesystem::path directoryPath = std::filesystem::relative(m_Project->GetDirectory() / directory->FilePath, m_Project->GetAssetsDirectory());
-			Ref<TAsset> asset = Project::GetActiveEditorAssetManager()->CreateAsset<TAsset>(directoryPath.string(), name, std::forward<TArgs>(args)...);
-			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(asset);
-			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserItem>::Create(metadata, GetThumbnail(metadata));
+			std::filesystem::path directoryPath = FileSystem::Relative(m_Project->GetAbsolute(directory->Filepath), m_Project->GetAssetsDirectory());
+			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+			Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath.string(), name, std::forward<TArgs>(args)...);
+			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserItem>::Create(this, CBItemType::Asset, assetManager->GetFilesystemPath(asset->Handle));
 			m_CurrentItems.Add(newItem);
-			directory->Assets.emplace_back(metadata.Handle);
+			directory->AddFile(name);
 
 			if (startRename)
-				newItem->StartRenameing();
+				newItem->StartRenaming();
 		}
-
-
-	private:
-		static ContentBrowserPanel& Get() { return *s_Instance; }
 
 	private:
 		Ref<Project> m_Project;
+		ContentBrowserType m_BrowserType = ContentBrowserType::Asset;
 
-		CBOpenAssetCallbackFn m_OpenAssetCallback;
-
+		bool m_ReloadScheduled = true;
 		bool m_PanelFocused = false;
 		bool m_ChangesBlocked = false;
 
 		Ref<DirectoryInfo> m_BaseDirectory;
 		Ref<DirectoryInfo> m_CurrentDirectory;
+		std::unordered_map<std::filesystem::path, Ref<DirectoryInfo>> m_DirectoryMap;
+
+		bool m_ChangeDirectory = false;
+		Ref<DirectoryInfo> m_NextDirectory = nullptr;
+		bool m_AddNextToHistory = false;
+
+		CBHistory m_History;
+		std::vector<Ref<DirectoryInfo>> m_BreadcrumbTrailData;
 
 		CBItemList m_CurrentItems;
 		Ref<ContentBrowserItem> m_SelectedItem = nullptr;
 
-		std::vector<Ref<DirectoryInfo>> m_BreadcrumbTrailData;
+		std::unordered_map<AssetType, OpenAssetCallbackFn> m_OpenAssetCallbacks;
 
-		std::vector<Ref<DirectoryInfo>> m_History;
-		uint32_t m_HistoryIndex = -1;
-
-		std::unordered_map<AssetHandle, Ref<DirectoryInfo>> m_DirectoryHandleMap;
 		std::unordered_map<std::string, Ref<Texture2D>> m_IconExtensionMap;
 		Ref<Texture2D> m_FileIcon;
 		Ref<Texture2D> m_FolderIcon;
 
-		bool m_ReloadScheduled = true;
-
 		enum { SearchBufferSize = 260 };
 		char m_SearchBuffer[SearchBufferSize];
 		bool m_SearchCaseSensitive = false;
-
-		bool m_SkipNextFileEvents = false;
 
 		bool m_ShowInvalidFileNameError = false;
 		float m_InvalidFileNameTimer = 0.0f;
 		float m_InvalidFileNameTime = 4.0f; // 4s
 		ImVec2 m_InvalidFileNameToolTipTopLeft;
 
-		inline static ContentBrowserPanel* s_Instance = nullptr;
-		friend class DirectoryInfo;
-		friend class ContentBrowserItem;
-
-		std::vector<std::function<void()>> m_PostRenderQueue;
-
 		std::future<void> m_GenerateThumbnailsFuture;
 		std::atomic<bool> m_StopGenerateThumbnails = false;
+
+		static constexpr const char* s_BrowserTypeString[] = { "Asset", "Filesystem" };
 	};
+
+	constexpr std::string_view ToStringView(ContentBrowserType type)
+	{
+		switch (type)
+		{
+			case ContentBrowserType::Asset: return "Asset";
+			case ContentBrowserType::Filesystem: return "Filesystem";
+		}
+	}
 
 }

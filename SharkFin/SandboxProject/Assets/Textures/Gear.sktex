@@ -1,15 +1,7 @@
 Texture:
   TextureSource: 13658523066295494907
   Format: RGBA8
-  MipLeves: 1
-  Sampler:
-    MinFilter: Linear
-    MagFilter: Linear
-    MipFilter: Linear
-    AddressModeU: Repeat
-    AddressModeV: Repeat
-    AddressModeW: Repeat
-    BorderColor: [0, 0, 0, 0]
-    Anisotropy: false
-    MaxAnisotropy: 0
-    LODBias: 0
+  GenerateMips: true
+  Filter: Linear
+  Wrap: Repeat
+  MaxAnisotropy: 0

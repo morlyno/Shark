@@ -19,57 +19,41 @@ namespace Shark {
 	class TextureEditorPanel : public EditorPanel
 	{
 	public:
-		TextureEditorPanel(const std::string& panelName, ImGuiID parentDockspaceID, Ref<Texture2D> sourceTexture);
+		TextureEditorPanel(const std::string& panelName, const AssetMetaData& metadata);
 		~TextureEditorPanel();
 
-		void SetTexture(Ref<Texture2D> sourceTexture);
+		void SetAsset(const AssetMetaData& metadata);
+		void DockWindow(ImGuiID dockspace);
 
-		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
+
 	private:
-		void UI_DrawViewport();
 		void UI_DrawSettings();
 
-		void Initialize();
-		void SetupWindows();
-
-		void ReCalcCamera();
+		void CreateImageViews();
 
 	private:
 		bool m_Active = true;
-		bool m_IsFirstFrame = true;
-		bool m_Initialized = false;
+		bool m_SetupWindows = false;
 
-		Ref<Scene> m_Scene;
-		Ref<SceneRenderer> m_Renderer;
-		Camera m_Camera;
-
-		Ref<Texture2D> m_SourceTexture;
-
+		AssetHandle m_TextureHandle;
 		Ref<Texture2D> m_EditTexture;
-		Entity m_Entity;
 
-		TextureSpecification m_Specification;
+		std::string m_ImageFormat;
 
-		glm::uvec2 m_ViewportSize = { 1280, 720 };
-		bool m_NeedsResize = false;
+		bool m_GenerateMips;
+		FilterMode m_FilterMode;
+		WrapMode m_WrapMode;
+		uint32_t m_MaxAnisotropy;
 
-		std::string m_ViewportName;
-		std::string m_SettingsName;
+		std::vector<Ref<ImageView>> m_Views;
+		uint32_t m_MipIndex = 0;
 
-		ImGuiID m_DockspaceID = 0;
-		ImGuiID m_ViewportDockID = 0;
-		ImGuiID m_SettingsDockID = 0;
+		bool m_DockWindow = false;
+		ImGuiID m_DockWindowID = 0;
 
-#if SK_TEXTURE_EDITOR_PANEL_NEW_UI
-		FilterMode m_FilterMode = FilterMode::Linear;
-		WrapMode m_WrapMode = WrapMode::Repeat;
-#endif
-
-		static constexpr std::string_view s_FilterItems[] = { "None", "Neares", "Linear" };
-		static constexpr std::string_view s_WrapItems[] = { "None", "Repeat", "Clamp", "Mirror", "Border" };
-		static constexpr std::string_view s_FormatItems[] = { "None", "RGBA8", "R32_SINT", "Depth32", "Should never appear" };
-
+		static constexpr std::string_view s_FilterItems[] = { "None", "Neares", "Linear", "Anisotropic"};
+		static constexpr std::string_view s_WrapItems[] = { "None", "Repeat", "Clamp", "Mirror" };
 	};
 
 }

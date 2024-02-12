@@ -23,8 +23,6 @@
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/threads.h>
 
-#include <filewatch/fileWatch.hpp>
-
 namespace Shark {
 
 	struct ScriptEngineData
@@ -39,6 +37,7 @@ namespace Shark {
 		Ref<Scene> ActiveScene;
 		bool IsRunning = false;
 		AssembliesReloadedHookFn ReloadHook;
+		std::filesystem::file_time_type AssemblyLastChangedTime;
 
 		MonoClass* EntityClass = nullptr;
 		MonoMethod* EntityCtor = nullptr;
@@ -52,23 +51,23 @@ namespace Shark {
 
 	static void MonoTraceLogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
 	{
-		Log::Level level = Log::Level::Trace;
+		LogLevel level = LogLevel::Trace;
 
 		if (strcmp(log_level, "debug") == 0)
-			level = Log::Level::Debug;
+			level = LogLevel::Debug;
 		else if (strcmp(log_level, "info") == 0)
-			level = Log::Level::Trace;
+			level = LogLevel::Trace;
 		else if (strcmp(log_level, "message") == 0)
-			level = Log::Level::Info;
+			level = LogLevel::Info;
 		else if (strcmp(log_level, "warning") == 0)
-			level = Log::Level::Warn;
+			level = LogLevel::Warn;
 		else if (strcmp(log_level, "error") == 0)
-			level = Log::Level::Error;
+			level = LogLevel::Error;
 		else if (strcmp(log_level, "critical") == 0)
-			level = Log::Level::Critical;
+			level = LogLevel::Critical;
 
 		const char* domain = log_domain ? log_domain : "Mono";
-		Log::LogMessage(Log::Logger::Core, level, "", "[{0}] {1}", domain, message);
+		Log::LogMessage(LoggerType::Core, level, "", "[{0}] {1}", domain, message);
 		SK_CORE_VERIFY(!fatal);
 	}
 
@@ -122,14 +121,6 @@ namespace Shark {
 			return false;
 		}
 
-		FileSystem::StartWatch(assemblyPath, [](const std::vector<FileEvent>& fileEvents)
-		{
-			if (fileEvents.back().Type == filewatch::Event::removed)
-				return;
-
-			ScriptEngine::ScheduleReload();
-		});
-
 		char appdomainName[] = "ScriptDomain";
 		s_Data->RuntimeDomain = mono_domain_create_appdomain(appdomainName, nullptr);
 		SK_CORE_VERIFY(s_Data->RuntimeDomain);
@@ -169,8 +160,6 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Scripting", "Unloading Assemblies");
-
-		FileSystem::StopWatch(s_Data->AppAssembly.FilePath);
 
 		ScriptUtils::Shutdown();
 		ScriptGlue::Shutdown();
@@ -295,6 +284,12 @@ namespace Shark {
 	void ScriptEngine::InitializeRuntime(Ref<Scene> scene)
 	{
 		SK_PROFILE_FUNCTION();
+
+		if (s_Data->AssemblyLastChangedTime != std::filesystem::last_write_time(s_Data->AppAssembly.FilePath))
+		{
+			ReloadAssemblies();
+			s_Data->AssemblyLastChangedTime = std::filesystem::last_write_time(s_Data->AppAssembly.FilePath);
+		}
 
 		s_Data->ActiveScene = scene;
 		s_Data->IsRunning = true;
@@ -678,6 +673,7 @@ namespace Shark {
 		info.Assembly = assembly;
 		info.Image = mono_assembly_get_image(assembly);
 		info.FilePath = filePath;
+		s_Data->AssemblyLastChangedTime = std::filesystem::last_write_time(filePath);
 
 		SK_CORE_INFO_TAG("Scripting", "App Assembly Loaded. ({0})", info.FilePath);
 		return true;

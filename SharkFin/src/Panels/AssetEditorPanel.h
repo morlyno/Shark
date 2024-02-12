@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Editor/Panel.h"
+#include "Panel.h"
 #include "Shark/UI/UI.h"
 
 namespace Shark {
@@ -8,77 +8,62 @@ namespace Shark {
 	class EditorPanel : public RefCount
 	{
 	public:
-		EditorPanel(const std::string& panelName, ImGuiID parentDockspaceID)
-			: m_PanelName(panelName), m_ParentDockspaceID(parentDockspaceID)
-		{}
+		EditorPanel(const std::string& panelName)
+			: m_PanelName(panelName) {}
 		virtual ~EditorPanel() = default;
 
 		virtual void OnUpdate(TimeStep ts) {};
 		virtual void OnImGuiRender(bool& shown, bool& destroy) {};
 		virtual void OnEvent(Event& event) {};
 
-		virtual bool IsViewportHovered() const { return false; }
+		virtual void DockWindow(ImGuiID dockspaceID) = 0;
+		virtual void SetAsset(const AssetMetaData& metadata) = 0;
 
 		void SetPanelName(const std::string& name) { m_PanelName = name; }
 		const std::string& GetPanelName() const { return m_PanelName; }
 
 	protected:
 		std::string m_PanelName;
-		ImGuiID m_ParentDockspaceID;
 	};
 
-	class AssetEditorPanel : public Panel
+	class AssetEditorManagerPanel : public Panel
 	{
 	private:
 		struct EditorPanelEntry
 		{
 			Ref<EditorPanel> Editor;
 			bool Shown;
-			bool Destroy;
 		};
 
 	public:
-		AssetEditorPanel(const std::string& panelName);
-		virtual ~AssetEditorPanel();
+		AssetEditorManagerPanel(const std::string& panelName);
+		virtual ~AssetEditorManagerPanel();
 
 		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 
-		template<typename T, typename... Args>
-		Ref<T> AddEditor(UUID id, const std::string& panelName, bool shown, Args&&... args)
+		ImGuiID GetDockspaceID() const { return m_DockspaceID; }
+
+		template<typename T>
+		Ref<T> AddEditor(const AssetMetaData& metadata)
 		{
-			if (m_EditorPanels.contains(id))
-				return GetEditor<T>(id);
+			if (m_EditorPanels.contains(metadata.Handle))
+				return m_EditorPanels.at(metadata.Handle).Editor.As<T>();
 
-			Ref<T> editor = Ref<T>::Create(panelName, m_DockspaceID, std::forward<Args>(args)...);
-			m_EditorPanels[id] = { editor, shown, false };
-			return editor;
+			Ref<T> assetEditor = Ref<T>::Create(FileSystem::GetStemString(metadata.FilePath), metadata);
+			m_EditorPanels[metadata.Handle] = { assetEditor, true };
+
+			assetEditor->DockWindow(m_DockspaceID);
+
+			return assetEditor;
 		}
-
-		template<typename T = EditorPanel>
-		Ref<T> GetEditor(UUID id)
-		{
-			return m_EditorPanels.at(id).Editor.As<T>();
-		}
-
-		void RemoveEditor(UUID id)
-		{
-			m_EditorPanels.erase(id);
-		}
-
-		bool HasEditor(UUID id)
-		{
-			return m_EditorPanels.contains(id);
-		}
-
-		bool AnyViewportHovered() const;
 
 	private:
 		void DrawPanels();
 
 	private:
-		std::unordered_map<UUID, EditorPanelEntry> m_EditorPanels;
+		std::unordered_map<AssetHandle, EditorPanelEntry> m_EditorPanels;
 		ImGuiID m_DockspaceID;
 	};
 

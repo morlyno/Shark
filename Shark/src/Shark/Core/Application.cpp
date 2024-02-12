@@ -140,7 +140,7 @@ namespace Shark {
 
 			const uint64_t ticks = Platform::GetTicks();
 			m_TimeStep = (float)(ticks - m_LastTickCount) / Platform::GetTicksPerSecond();
-			SK_LOG_IF(m_TimeStep > 1.0f, Log::Logger::Core, Log::Level::Warn, Tag::Core, "Large Timestep! {}", m_TimeStep);
+			SK_LOG_IF(m_TimeStep > 1.0f, LoggerType::Core, LogLevel::Warn, Tag::Core, "Large Timestep! {}", m_TimeStep);
 			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
 			m_LastTickCount = ticks;
 			m_Time += m_TimeStep;
@@ -193,7 +193,6 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		Input::TransitionStates();
-		FileSystem::ProcessEvents();
 
 		m_Window->ProcessEvents();
 

@@ -87,6 +87,28 @@ namespace Shark {
 		Release();
 	}
 
+	void DirectXFrameBuffer::Release()
+	{
+		Renderer::SubmitResourceFree([frameBuffers = m_FrameBuffers, depthStencil = m_DepthStencil, blendState = m_BlendState]()
+		{
+			for (auto buffer : frameBuffers)
+				buffer->Release();
+
+			if (depthStencil)
+				depthStencil->Release();
+
+			if (blendState)
+				blendState->Release();
+		});
+
+		m_Images.clear();
+		m_DepthStencilImage = nullptr;
+
+		m_FrameBuffers.clear();
+		m_DepthStencil = nullptr;
+		m_BlendState = nullptr;
+	}
+
 	void DirectXFrameBuffer::Invalidate()
 	{
 		SK_CORE_VERIFY(m_Specification.ClearOnLoad == false, "ClearOnLoad not implemented");
@@ -217,7 +239,7 @@ namespace Shark {
 		auto renderer = DirectXRenderer::Get();
 		ID3D11Device* device = renderer->GetDevice();
 
-		RT_Release();
+		Release();
 
 		FrameBufferAtachment* depthAtachment = nullptr;
 		Ref<DirectXImage2D> depthImage;
@@ -238,7 +260,7 @@ namespace Shark {
 				}
 
 				depthImage = Ref<DirectXImage2D>::Create();
-				auto& imageSpec = depthImage->GetSpecificationMutable();
+				auto& imageSpec = depthImage->GetSpecification();
 				imageSpec.Format = atachment.Format;
 				imageSpec.Type = ImageType::Atachment;
 				imageSpec.Width = m_Specification.Width;
@@ -258,7 +280,7 @@ namespace Shark {
 			}
 
 			auto image = Ref<DirectXImage2D>::Create();
-			auto& imageSpec = image->GetSpecificationMutable();
+			auto& imageSpec = image->GetSpecification();
 			imageSpec.Format = atachment.Format;
 			imageSpec.Type = ImageType::Atachment;
 			imageSpec.Width = m_Specification.Width;
@@ -316,73 +338,6 @@ namespace Shark {
 
 		m_DepthStencilImage = depthImage;
 		m_DepthStencilAtachment = depthAtachment;
-	}
-
-	void DirectXFrameBuffer::Release()
-	{
-		Renderer::Submit([frameBuffers = m_FrameBuffers, depthStencil = m_DepthStencil, blendState = m_BlendState]()
-		{
-			for (auto buffer : frameBuffers)
-				buffer->Release();
-
-			if (depthStencil)
-				depthStencil->Release();
-
-			if (blendState)
-				blendState->Release();
-		});
-
-		m_FrameBuffers.clear();
-		m_Images.clear();
-		m_DepthStencilImage = nullptr;
-		m_DepthStencil = nullptr;
-		m_BlendState = nullptr;
-	}
-
-	void DirectXFrameBuffer::RT_Release()
-	{
-		for (auto buffer : m_FrameBuffers)
-			buffer->Release();
-
-		for (auto& image : m_Images)
-			image->RT_Release();
-
-		if (m_DepthStencilImage)
-			m_DepthStencilImage->RT_Release();
-
-		if (m_DepthStencil)
-			m_DepthStencil->Release();
-
-		if (m_BlendState)
-			m_BlendState->Release();
-
-		m_FrameBuffers.clear();
-		m_Images.clear();
-		m_DepthStencilImage = nullptr;
-		m_DepthStencil = nullptr;
-		m_BlendState = nullptr;
-	}
-
-	void DirectXFrameBuffer::RT_ShallowRelease()
-	{
-		for (auto buffer : m_FrameBuffers)
-			buffer->Release();
-
-		for (auto& image : m_Images)
-			image->RT_Release();
-
-		if (m_DepthStencilImage)
-			m_DepthStencilImage->RT_Release();
-
-		if (m_DepthStencil)
-			m_DepthStencil->Release();
-
-		if (m_BlendState)
-			m_BlendState->Release();
-
-		m_FrameBuffers.clear();
-		m_DepthStencil = nullptr;
-		m_BlendState = nullptr;
 	}
 
 	void DirectXFrameBuffer::Resize(uint32_t width, uint32_t height)

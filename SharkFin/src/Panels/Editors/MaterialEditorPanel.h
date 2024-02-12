@@ -11,7 +11,8 @@ namespace Shark {
 	class MaterialEditor
 	{
 	public:
-		MaterialEditor(const std::string& name, Ref<MaterialAsset> material);
+		MaterialEditor() = default;
+		MaterialEditor(const std::string& name, AssetHandle assetHandle);
 
 		void Draw();
 		void DrawInline();
@@ -19,11 +20,11 @@ namespace Shark {
 		void SetReadonly(bool readonly) { m_Readonly = readonly; }
 
 		void SetName(const std::string& name) { m_Name = name; }
-		void SetMaterial(Ref<MaterialAsset> material) { m_Material = material; }
+		void SetMaterial(AssetHandle assetHandle) { m_MaterialHandle = assetHandle; }
 
 	private:
 		std::string m_Name;
-		Ref<MaterialAsset> m_Material;
+		AssetHandle m_MaterialHandle = AssetHandle::Invalid;
 
 		std::string m_RenameBuffer;
 		bool m_IsRenaming = false;
@@ -34,33 +35,25 @@ namespace Shark {
 	class MaterialEditorPanel : public EditorPanel
 	{
 	public:
-		MaterialEditorPanel(const std::string& panelName, ImGuiID parentDockspaceID, Ref<MaterialAsset> material);
+		MaterialEditorPanel(const std::string& panelName, const AssetMetaData& metadata);
 		~MaterialEditorPanel();
+
+		virtual void SetAsset(const AssetMetaData& metadata) override;
+		virtual void DockWindow(ImGuiID dockspace) override;
 
 		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
-		virtual void OnEvent(Event& event) override;
-		virtual bool IsViewportHovered() const override { return m_ViewportHovered; }
-
-		void DrawSettings();
-		void DrawViewport();
 
 	private:
-		void Initialize();
-		void SetupSceneAndRenderer();
-		void SetupWindows();
-
-	private:
-		bool m_Tiny = false;
-
-		bool m_IsFirstFrame = true;
-		bool m_IsInitialized = false;
 		bool m_Active = true;
 
-		Scope<MaterialEditor> m_MaterialEditor;
-		Ref<MaterialAsset> m_Material;
+		ImGuiID m_DockWindowID = 0;
+		bool m_DockWindow = false;
 
-		glm::vec2 m_ViewportSize;
+		Scope<MaterialEditor> m_MaterialEditor = nullptr;
+		AssetHandle m_MaterialHandle;
+
+		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
 		bool m_NeedsResize = false;
 
 		bool m_ViewportHovered = false;
@@ -68,15 +61,10 @@ namespace Shark {
 
 		Ref<Scene> m_Scene;
 		Ref<SceneRenderer> m_Renderer;
-		EditorCamera m_Camera;
 		AssetHandle m_Sphere;
 
 		std::string m_ViewportName;
 		std::string m_SettingsName;
-
-		ImGuiID m_DockspaceID = 0;
-		ImGuiID m_ViewportDockID = 0;
-		ImGuiID m_SettingsDockID = 0;
 	};
 
 }

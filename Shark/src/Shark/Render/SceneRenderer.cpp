@@ -418,15 +418,6 @@ namespace Shark {
 			m_SkyboxPipeline = Pipeline::Create(specification);
 			m_SkyboxMaterial = Material::Create(specification.Shader);
 
-			TextureSpecification textureSpecification;
-			textureSpecification.Width = 1024;
-			textureSpecification.Height = 1024;
-			textureSpecification.Format = ImageFormat::RGBA16F;
-			textureSpecification.DebugName = "Environment Cube Map";
-			textureSpecification.Sampler.Filter = FilterMode::Linear;
-			textureSpecification.Sampler.Wrap = WrapMode::Clamp;
-			textureSpecification.GenerateMips = true;
-
 			auto [environmentMap, irradianceMap] = Renderer::CreateEnvironmentMap("Resources/temp/pink_sunrise_4k.hdr");
 			m_EnvironmentMap = environmentMap;
 			m_IrradianceMap = irradianceMap;

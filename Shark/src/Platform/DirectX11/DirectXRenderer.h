@@ -57,14 +57,17 @@ namespace Shark {
 		virtual void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData) override;
 		virtual void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData) override;
 
+		virtual void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
+		virtual void RT_CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
+
 		virtual std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath) override;
 
 		virtual void GenerateMips(Ref<Image2D> image) override;
 		virtual void RT_GenerateMips(Ref<Image2D> image) override;
 
-		virtual Ref<SamplerWrapper> GetClampLinearSampler() const override { return m_ClampLinearSamplerWrapper; }
-
 		virtual TimeStep GetGPUTime() const override { return m_GPUTimer->GetTime(); }
+
+		virtual Ref<RenderCommandBuffer> GetCommandBuffer() const override { return m_ImmediateCommandBuffer; }
 
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
@@ -114,8 +117,7 @@ namespace Shark {
 		ID3D11Debug* m_Debug = nullptr;
 		IDXGIInfoQueue* m_InfoQueue = nullptr;
 
-		Ref<DirectXSamplerWrapper> m_ClampLinearSamplerWrapper;
-
+		Ref<DirectXRenderCommandBuffer> m_ImmediateCommandBuffer;
 		std::unordered_set<DirectXRenderCommandBuffer*> m_CommandBuffers;
 
 		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;

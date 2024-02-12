@@ -37,6 +37,7 @@ namespace Shark {
 		const AssetMetaData& GetMetadata(AssetHandle handle) const;
 		const AssetMetaData& GetMetadata(Ref<Asset> asset) const;
 		const AssetMetaData& GetMetadata(const std::filesystem::path& filepath) const;
+		AssetHandle GetAssetHandleFromFilepath(const std::filesystem::path& filepath) const;
 
 		std::filesystem::path MakeRelativePath(const std::filesystem::path& filepath) const;
 		std::string MakeRelativePathString(const std::filesystem::path& filepath) const;
@@ -69,7 +70,6 @@ namespace Shark {
 	private:
 		AssetMetaData& GetMetadataInternal(AssetHandle handle);
 		const AssetMetaData& GetMetadataInternal(AssetHandle handle) const;
-		AssetHandle GetAssetHandleFromFilePath(const std::filesystem::path& filepath) const;
 
 		void WriteImportedAssetsToDisc();
 		void ReadImportedAssetsFromDisc();

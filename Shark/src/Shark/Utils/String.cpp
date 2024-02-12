@@ -110,27 +110,27 @@ namespace Shark::String {
 
 	void SplitString(std::string_view str, std::string_view splitter, std::vector<std::string>& out_Array)
 	{
-		size_t start = str.find_first_not_of(' ');
+		size_t start = str.find_first_not_of(splitter);
 		size_t end = 0;
 		while (end != std::string_view::npos)
 		{
 			end = str.find(splitter, start);
 			out_Array.emplace_back(str.substr(start, end - start));
 
-			start = str.find_first_not_of(' ', end + 1);
+			start = str.find_first_not_of(splitter, end + 1);
 		}
 	}
 
 	void SplitString(std::wstring_view str, std::wstring_view splitter, std::vector<std::wstring>& out_Array)
 	{
-		size_t start = str.find_first_not_of(' ');
+		size_t start = str.find_first_not_of(splitter);
 		size_t end = 0;
 		while (end != std::wstring_view::npos)
 		{
 			end = str.find(splitter, start);
 			out_Array.emplace_back(str.substr(start, end - start));
 
-			start = str.find_first_not_of(' ', end + 1);
+			start = str.find_first_not_of(splitter, end + 1);
 		}
 	}
 
@@ -145,6 +145,30 @@ namespace Shark::String {
 	{
 		std::vector<std::wstring> result;
 		SplitString(str, splitter, result);
+		return result;
+	}
+
+	void SplitToRanges(std::string_view str, std::string_view splitter, std::vector<std::string_view>& outArray)
+	{
+		size_t offset = str.find_last_not_of(splitter);
+		if (offset != std::string::npos)
+			str = str.substr(0, offset + 1);
+
+		size_t start = str.find_first_not_of(splitter);
+		size_t end = 0;
+		while (end != std::string_view::npos)
+		{
+			end = str.find(splitter, start);
+			outArray.emplace_back(str.substr(start, end - start));
+			
+			start = str.find_first_not_of(splitter, end + 1);
+		}
+	}
+
+	std::vector<std::string_view> SplitToRanges(std::string_view str, std::string_view splitter)
+	{
+		std::vector<std::string_view> result;
+		SplitToRanges(str, splitter, result);
 		return result;
 	}
 

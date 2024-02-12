@@ -28,6 +28,9 @@ namespace Shark::String {
 	std::vector<std::string> SplitString(std::string_view str, std::string_view splitter);
 	std::vector<std::wstring> SplitString(std::wstring_view str, std::wstring_view splitter);
 
+	void SplitToRanges(std::string_view str, std::string_view splitter, std::vector<std::string_view>& outArray);
+	std::vector<std::string_view> SplitToRanges(std::string_view str, std::string_view splitter);
+
 	void Replace(std::string& str, std::string_view from, std::string_view to);
 	void Remove(std::string& str, std::string_view pattern);
 	void RemoveFirst(std::string& str, std::string_view pattern);

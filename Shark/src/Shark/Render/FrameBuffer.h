@@ -65,12 +65,9 @@ namespace Shark {
 	public:
 		virtual ~FrameBuffer() = default;
 
+		virtual void Release() = 0;
 		virtual void Invalidate() = 0;
 		virtual void RT_Invalidate() = 0;
-
-		virtual void Release() = 0;
-		virtual void RT_Release() = 0;
-
 		virtual void Resize(uint32_t widht, uint32_t height) = 0;
 
 		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer) = 0;
@@ -83,8 +80,8 @@ namespace Shark {
 		virtual Ref<Image2D> GetImage(uint32_t index = 0) const = 0;
 		virtual Ref<Image2D> GetDepthImage() const = 0;
 
+		virtual FrameBufferSpecification& GetSpecification() = 0;
 		virtual const FrameBufferSpecification& GetSpecification() const = 0;
-		virtual FrameBufferSpecification& GetSpecificationMutable() = 0;
 
 	public:
 		static Ref<FrameBuffer> Create(const FrameBufferSpecification& spec);

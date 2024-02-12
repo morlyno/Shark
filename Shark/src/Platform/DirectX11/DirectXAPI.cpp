@@ -3,7 +3,32 @@
 
 #include "Platform/DirectX11/DirectXRenderer.h"
 
+#define DX_CHECK_RESULT(_hResult) ::Shark::DirectXAPI::HandleResult(_hResult)
+
 namespace Shark::DirectXAPI {
+
+	static void HandleResult(HRESULT hr)
+	{
+		if (FAILED(hr))
+		{
+			auto renderer = DirectXRenderer::Get();
+			renderer->HandleError(hr);
+		}
+	}
+
+	void ReleaseObject(ID3D11DeviceChild* object)
+	{
+		if (object)
+		{
+			object->Release();
+		}
+	}
+
+	void CreateDeferredContext(ID3D11Device* device, UINT flags, ID3D11DeviceContext*& outContext)
+	{
+		HRESULT hr = device->CreateDeferredContext(flags, &outContext);
+		DX_CHECK_RESULT(hr);
+	}
 
 	void SetDebugName(ID3D11DeviceChild* object, const char* debugName)
 	{

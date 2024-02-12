@@ -40,6 +40,7 @@ namespace Shark {
 		}
 
 		auto source = Ref<TextureSource>::Create();
+		source->SourcePath = metadata.FilePath;
 		source->ImageData = TextureImporter::ToBufferFromFile(filesystemPath, source->Format, source->Width, source->Height);
 		if (!source->ImageData)
 		{
@@ -141,16 +142,11 @@ namespace Shark {
 		out << YAML::Key << "TextureSource" << YAML::Value << sourceHandle;
 		out << YAML::Key << "Format" << YAML::Value << ToString(specification.Format);
 		out << YAML::Key << "GenerateMips" << YAML::Value << specification.GenerateMips;
-		out << YAML::Key << "Sampler";
-
-		out << YAML::BeginMap;
-		out << YAML::Key << "Filter" << YAML::Value << ToString(specification.Sampler.Filter);
-		out << YAML::Key << "Wrap" << YAML::Value << ToString(specification.Sampler.Wrap);
-		out << YAML::Key << "Anisotropy" << YAML::Value << specification.Sampler.Anisotropy;
-		out << YAML::Key << "MaxAnisotropy" << YAML::Value << specification.Sampler.MaxAnisotropy;
+		out << YAML::Key << "Filter" << YAML::Value << ToString(specification.Filter);
+		out << YAML::Key << "Wrap" << YAML::Value << ToString(specification.Wrap);
+		out << YAML::Key << "MaxAnisotropy" << YAML::Value << specification.MaxAnisotropy;
 		out << YAML::EndMap;
 
-		out << YAML::EndMap;
 		out << YAML::EndMap;
 
 		return out.c_str();
@@ -169,34 +165,20 @@ namespace Shark {
 		AssetHandle sourceHandle = textureNode["TextureSource"].as<AssetHandle>();
 		Ref<TextureSource> textureSource = AssetManager::GetAsset<TextureSource>(sourceHandle);
 
-		auto& specification = texture->GetSpecificationMutable();
-		specification.GenerateMips = textureNode["GenerateMips"].as<bool>(true);
+		auto& specification = texture->GetSpecification();
+		specification.GenerateMips = textureNode["GenerateMips"].as<bool>();
 
-		if (auto samplerNode = textureNode["Sampler"])
-		{
-			auto& sampler = specification.Sampler;
-			sampler.Filter = StringToFilterMode(samplerNode["Filter"].as<std::string>("Linear"));
-			sampler.Wrap = StringToWrapMode(samplerNode["Wrap"].as<std::string>("Repeat"));
-			sampler.Anisotropy = samplerNode["Anisotropy"].as<bool>();
-			sampler.MaxAnisotropy = samplerNode["MaxAnisotropy"].as<uint32_t>();
-		}
+		specification.Filter = StringToFilterMode(textureNode["Filter"].as<std::string>());
+		specification.Wrap = StringToWrapMode(textureNode["Wrap"].as<std::string>());
+		specification.MaxAnisotropy = textureNode["MaxAnisotropy"].as<uint32_t>();
 
 		SK_CORE_TRACE_TAG(Tag::Serialization, " - Generate Mips {}", specification.GenerateMips);
-		SK_CORE_TRACE_TAG(Tag::Serialization, " - Filter {}", ToStringView(specification.Sampler.Filter));
-		SK_CORE_TRACE_TAG(Tag::Serialization, " - Wrap {}", ToStringView(specification.Sampler.Wrap));
-		SK_CORE_TRACE_TAG(Tag::Serialization, " - Anisotropy Enabled {}", specification.Sampler.Anisotropy);
-		SK_CORE_TRACE_TAG(Tag::Serialization, " - Max Anisotropy {}", specification.Sampler.MaxAnisotropy);
+		SK_CORE_TRACE_TAG(Tag::Serialization, " - Filter {}", ToStringView(specification.Filter));
+		SK_CORE_TRACE_TAG(Tag::Serialization, " - Wrap {}", ToStringView(specification.Wrap));
+		SK_CORE_TRACE_TAG(Tag::Serialization, " - Max Anisotropy {}", specification.MaxAnisotropy);
 
-#if 0
-		Application::Get().SubmitToMainThread([texture, textureSource]()
-		{
-			texture->SetTextureSource(textureSource);
-			texture->Invalidate();
-		});
-#else
 		texture->SetTextureSource(textureSource);
-		texture->Invalidate();
-#endif
+		texture->RT_Invalidate();
 		return true;
 	}
 

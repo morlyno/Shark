@@ -17,8 +17,8 @@ namespace Shark {
 		virtual void End() = 0;
 		virtual void Execute() = 0;
 
-		virtual void BeginTimeQuery(Ref<GPUTimer> counter) = 0;
-		virtual void EndTimeQuery(Ref<GPUTimer> counter) = 0;
+		virtual void BeginTimeQuery(Ref<GPUTimer> timer) = 0;
+		virtual void EndTimeQuery(Ref<GPUTimer> timer) = 0;
 
 	public:
 		static Ref<RenderCommandBuffer> Create();

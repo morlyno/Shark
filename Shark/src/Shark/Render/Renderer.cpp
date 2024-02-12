@@ -21,6 +21,7 @@ namespace Shark {
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<Texture2D> m_BlackTexture;
 		Ref<TextureCube> m_BlackTextureCube;
+		Ref<SamplerWrapper> m_ClampLinearSampler;
 	};
 
 	static RendererConfig s_Config = {};
@@ -99,6 +100,11 @@ namespace Shark {
 			glm::vec4 imageData[6];
 			memset(imageData, 0, sizeof(imageData));
 			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
+
+			SamplerSpecification samplerSpec;
+			samplerSpec.Filter = FilterMode::Linear;
+			samplerSpec.Wrap = WrapMode::Clamp;
+			s_Data->m_ClampLinearSampler = SamplerWrapper::Create(samplerSpec);
 		}
 	}
 
@@ -203,9 +209,14 @@ namespace Shark {
 		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, submeshIndex, material, sceneData, meshData, lightData);
 	}
 
-	Ref<SamplerWrapper> Renderer::GetClampLinearSampler()
+	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
-		return s_RendererAPI->GetClampLinearSampler();
+		s_RendererAPI->CopyImage(commandBuffer, sourceImage, destinationImage);
+	}
+
+	void Renderer::RT_CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
+	{
+		s_RendererAPI->RT_CopyImage(commandBuffer, sourceImage, destinationImage);
 	}
 
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
@@ -257,6 +268,16 @@ namespace Shark {
 	Ref<TextureCube> Renderer::GetBlackTextureCube()
 	{
 		return s_Data->m_BlackTextureCube;
+	}
+
+	Ref<SamplerWrapper> Renderer::GetClampLinearSampler()
+	{
+		return s_Data->m_ClampLinearSampler;
+	}
+
+	Ref<RenderCommandBuffer> Renderer::GetCommandBuffer()
+	{
+		return s_RendererAPI->GetCommandBuffer();
 	}
 
 	const RendererCapabilities& Renderer::GetCapabilities()

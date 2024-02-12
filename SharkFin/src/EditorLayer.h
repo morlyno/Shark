@@ -26,8 +26,6 @@
 #include <ImGuizmo.h>
 #include <imgui_internal.h>
 
-#include <filewatch/FileWatch.hpp>
-
 namespace Shark {
 
 	class EditorLayer : public Layer
@@ -64,7 +62,6 @@ namespace Shark {
 	private:
 		bool OnKeyPressed(KeyPressedEvent& event);
 		bool OnWindowDropEvent(WindowDropEvent& event);
-		void OnFileEvents(const std::vector<FileEvent>& fileEvents);
 
 		void UI_MainMenuBar();
 		void UI_Viewport();
@@ -84,13 +81,9 @@ namespace Shark {
 		void UI_Statistics();
 		void UI_OpenProjectModal();
 		void UI_ImportAsset();
-		void UI_Objects();
-		void UI_PendingAssetFileEvents();
 		void UI_CreateMeshAsset();
 
 		void RegisterSettingNodes();
-
-		void OpenAssetEditor(AssetHandle assetHandle);
 
 		void DebugRender();
 		void RenderCameraPreview();
@@ -181,7 +174,6 @@ namespace Shark {
 		bool m_ShowDebugScripts = false;
 		bool m_ShowStatistics = false;
 		bool m_ReadPixel = false;
-		bool m_ShowObjects = true;
 		glm::vec4 m_HoveredColor;
 
 		int m_HoveredEntityID = -1;
@@ -306,19 +298,6 @@ namespace Shark {
 
 		bool m_ShaderCompilerDisableOptimization = false;
 
-		struct AssetFileEventData
-		{
-			filewatch::Event Action;
-			std::filesystem::path AssetPath;
-			AssetType Type;
-
-			std::string ActionString;
-			// Only used with FileEvent::NewName
-			std::string NewName;
-		};
-
-		std::vector<AssetFileEventData> m_PendingAssetFileEvents;
-
 		struct CreateMeshAssetData
 		{
 			bool Show = false;
@@ -327,17 +306,6 @@ namespace Shark {
 			std::string MeshDirectory;
 		};
 		CreateMeshAssetData m_CreateMeshAssetData;
-
-		struct DefaultMeshes
-		{
-			AssetHandle Plane;
-			AssetHandle Cube;
-			AssetHandle Sphere;
-			AssetHandle Cone;
-			AssetHandle Cylinder;
-			AssetHandle Torus;
-		};
-		DefaultMeshes m_DefaultMeshes;
 
 	};
 

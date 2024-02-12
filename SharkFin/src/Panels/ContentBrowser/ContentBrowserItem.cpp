@@ -3,9 +3,9 @@
 
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
-#include "Shark/Editor/Icons.h"
-#include "Shark/Editor/EditorSettings.h"
 
+#include "Icons.h"
+#include "EditorSettings.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
 
 #include <imgui.h>
@@ -13,40 +13,120 @@
 
 namespace Shark {
 
-	ContentBrowserItem::ContentBrowserItem(CBItemType type, AssetHandle handle, const std::string& name, Ref<Texture2D> icon)
-		: m_Type(type), m_Handle(handle), m_Name(name), m_Icon(icon)
+	DirectoryInfo::DirectoryInfo(Weak<DirectoryInfo> parent, const std::filesystem::path& directoryPath)
 	{
+		Parent = parent;
+		Filepath = directoryPath;
+		Name = directoryPath.filename().string();
 	}
 
-	ContentBrowserItem::ContentBrowserItem(Ref<DirectoryInfo> directory)
-		: m_Type(CBItemType::Directory), m_Handle(directory->Handle), m_Name(directory->FilePath.stem().string()), m_Icon(Icons::FolderIcon)
+	DirectoryInfo::~DirectoryInfo()
 	{
+
 	}
 
-	ContentBrowserItem::ContentBrowserItem(const AssetMetaData& metadata, Ref<Texture2D> icon)
-		: m_Type(CBItemType::Asset), m_Handle(metadata.Handle), m_Name(metadata.FilePath.stem().string()), m_Icon(icon)
+	void DirectoryInfo::Reload(Ref<Project> project)
 	{
+		SubDirectories.clear();
+		Filenames.clear();
+
+		for (const auto& entry : std::filesystem::directory_iterator(project->GetAbsolute(Filepath)))
+		{
+			if (entry.is_directory())
+			{
+				std::filesystem::path filePath = project->GetRelative(entry.path());
+				Ref<DirectoryInfo> directory = Ref<DirectoryInfo>::Create(this, filePath);
+				SubDirectories.emplace_back(directory);
+				continue;
+			}
+
+			if (entry.is_regular_file())
+			{
+				Filenames.emplace_back(entry.path().filename().string());
+			}
+		}
+
+		std::ranges::sort(Filenames);
+		std::sort(SubDirectories.begin(), SubDirectories.end(), [](const auto& lhs, const auto& rhs)
+		{
+			return lhs->Filepath < rhs->Filepath;
+		});
+
+		for (auto directory : SubDirectories)
+			directory->Reload(project);
+
+	}
+
+	void DirectoryInfo::AddDirectory(Ref<DirectoryInfo> directory)
+	{
+		const auto where = std::lower_bound(SubDirectories.begin(), SubDirectories.end(), directory, [](const auto& lhs, const auto& rhs)
+		{
+			return lhs->Filepath < rhs->Filepath;
+		});
+		SubDirectories.insert(where, directory);
+	}
+
+	void DirectoryInfo::AddFile(const std::string& filename)
+	{
+		const auto where = std::ranges::lower_bound(Filenames, filename);
+		Filenames.insert(where, filename);
+	}
+
+	void DirectoryInfo::Rename(const std::string& newName)
+	{
+		Name = newName;
+		FileSystem::ReplaceFilename(Filepath, newName);
+	}
+
+	void DirectoryInfo::RenameFile(const std::string& oldName, const std::string& newName)
+	{
+		auto it = std::ranges::find(Filenames, oldName);
+		if (it != Filenames.end())
+		{
+			std::filesystem::path name = *it;
+			FileSystem::ReplaceStem(name, newName);
+			*it = name.string();
+			std::ranges::sort(Filenames);
+		}
+	}
+
+	ContentBrowserItem::ContentBrowserItem(Ref<ContentBrowserPanel> context, CBItemType type, const std::filesystem::path& filepath)
+		: m_Context(context), m_Type(type), m_Path(context->GetProject()->GetAbsolute(filepath))
+	{
+		if (type == CBItemType::Directory)
+			m_Name = filepath.filename().string();
+		else
+			m_Name = filepath.stem().string();
+
+		UpdateIcon();
 	}
 
 	ContentBrowserItem::~ContentBrowserItem()
 	{
 	}
 
-	CBItemAction::Flags ContentBrowserItem::Draw()
+	void ContentBrowserItem::SetType(CBItemType type)
 	{
-		SK_CORE_ASSERT(IsStateSet(State::Deleted) == false);
-		if (IsStateSet(State::Deleted))
+		m_Type = type;
+		UpdateIcon();
+	}
+
+	CBItemAction ContentBrowserItem::Draw()
+	{
+		CBItemAction action;
+
+		if (FlagSet(StateFlag::Deleted))
 		{
-			SK_CORE_ERROR_TAG("UI", "Tried to draw deleted ContentBrowserItem! ({0})", m_Name);
-			return CBItemAction::ReloadRequired;
+			SK_CORE_ERROR_TAG("UI", "Draw was called on deleted ContentBrowserItem! {}", m_Path);
+			action.Delete();
+			return action;
 		}
 
 		UI::ScopedID id(this);
-		CBItemAction::Flags result = CBItemAction::None;
 
 		const auto& editorSettings = EditorSettings::Get();
 		const float thumbnailSize = editorSettings.ContentBrowser.ThumbnailSize;
-		ImGuiStyle& style = ImGui::GetStyle();
+		const ImGuiStyle& style = ImGui::GetStyle();
 
 		const float padding = 2.0f;
 		const float framePadding = 2.0f;
@@ -72,12 +152,9 @@ namespace Shark {
 		if (hovered)
 		{
 			if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-				result |= CBItemAction::Open;
+				action.SetFlag(CBItemActionFlag::Open);
 			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-			{
-				result |= CBItemAction::Selected;
-				SetState(State::Selcted, true);
-			}
+				action.SetFlag(CBItemActionFlag::Select);
 		}
 
 		{
@@ -87,39 +164,37 @@ namespace Shark {
 
 			if (ImGui::BeginPopupContextItem())
 			{
-				if (!IsStateSet(State::Selcted))
+				if (!IsSelected())
 				{
-					SetState(State::Selcted, true);
-					result |= CBItemAction::Selected;
+					action.SetFlag(CBItemActionFlag::Select);
 				}
 
 				if (ImGui::MenuItem("Reload", nullptr, false, m_Type == CBItemType::Asset))
-					result |= CBItemAction::ReloadAsset;
+					action.SetFlag(CBItemActionFlag::ReloadAsset);
 
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("Open"))
-					result |= CBItemAction::Open;
+				if (ImGui::MenuItem("Import", nullptr, nullptr, m_Type == CBItemType::File))
+					action.SetFlag(CBItemActionFlag::ImportFile);
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Open Externally"))
+					action.SetFlag(CBItemActionFlag::OpenExternally);
 
 				if (ImGui::MenuItem("Show in Explorer"))
-					result |= CBItemAction::OpenInExplorer;
+					action.SetFlag(CBItemActionFlag::OpenInExplorer);
 
 				ImGui::Separator();
 
 				if (ImGui::MenuItem("Rename", "F2"))
-					StartRenameing();
+					action.SetFlag(CBItemActionFlag::StartRenaming);
 
-				if (ImGui::MenuItem("Remove Asset"))
-				{
-					RemoveAsset();
-					result |= CBItemAction::AssetRemoved;
-				}
+				if (ImGui::MenuItem("Remove Asset", nullptr, nullptr, m_Type == CBItemType::Asset))
+					action.SetFlag(CBItemActionFlag::Remove);
 
 				if (ImGui::MenuItem("Delete", "Del"))
-				{
-					Delete();
-					result |= CBItemAction::Deleted;
-				}
+					action.Delete();
 
 				ImGui::EndPopup();
 			}
@@ -128,7 +203,8 @@ namespace Shark {
 			{
 				if (ImGui::BeginDragDropSource())
 				{
-					ImGui::SetDragDropPayload(UI::DragDropID::Asset, &m_Handle, sizeof(AssetHandle));
+					AssetHandle handle = m_Context.GetRef()->GetProject()->GetEditorAssetManager()->GetAssetHandleFromFilepath(m_Path);
+					ImGui::SetDragDropPayload(UI::DragDropID::Asset, &handle, sizeof(AssetHandle));
 					UI::Text(m_Name);
 					if (m_Thumbnail)
 					{
@@ -143,11 +219,9 @@ namespace Shark {
 			{
 				if (ImGui::BeginDragDropSource())
 				{
-					auto& cbPanel = ContentBrowserPanel::Get();
-					Ref<DirectoryInfo> directory = cbPanel.GetDirectory(m_Handle);
-					std::string absolutPath = cbPanel.GetProject()->GetAbsolute(directory->FilePath).string();
+					std::string pathString = m_Path.string();
 					char path[260];
-					strcpy_s(path, absolutPath.c_str());
+					strcpy_s(path, pathString.c_str());
 					ImGui::SetDragDropPayload(UI::DragDropID::Directroy, path, sizeof(path));
 					ImGui::Text(path);
 					ImGui::EndDragDropSource();
@@ -156,7 +230,7 @@ namespace Shark {
 
 			{
 				const float borderSize = 2.0f;
-				Ref<Texture2D> texture = (m_Thumbnail && m_Thumbnail->Validate()) ? m_Thumbnail : m_Icon;
+				Ref<Texture2D> texture = (m_Thumbnail && m_Thumbnail->IsValid()) ? m_Thumbnail : m_Icon;
 
 				ImGuiLayer& imguiLayer = Application::Get().GetImGuiLayer();
 				imguiLayer.AddTexture(texture);
@@ -177,15 +251,14 @@ namespace Shark {
 			ImGui::PushClipRect(infoTopLeft, infoBottemRight, true);
 			UI::MoveCursorY(padding);
 
-			SK_CORE_ASSERT(!(IsStateSet(State::Renaming) && IsStateSet(State::StartRenaming)));
-			if (IsStateSet(State::StartRenaming))
+			if (FlagSet(StateFlag::StartRenaming))
 			{
 				ImGui::SetKeyboardFocusHere();
-				SetState(State::StartRenaming, false);
-				SetState(State::Renaming, true);
+				SetFlag(StateFlag::StartRenaming, false);
+				SetFlag(StateFlag::Renaming, true);
 			}
 
-			if (IsStateSet(State::Renaming))
+			if (FlagSet(StateFlag::Renaming))
 			{
 				ImGui::SetNextItemWidth(thumbnailSize - padding * 2.0f - style.FramePadding.x * 2.0f);
 				auto filter = [](ImGuiInputTextCallbackData* data) -> int
@@ -199,14 +272,14 @@ namespace Shark {
 				};
 
 				bool invalidInput = false;
-				ImGui::InputText("##rename", RenameBuffer, (int)std::size(RenameBuffer), ImGuiInputTextFlags_CallbackCharFilter, filter, &invalidInput);
+				ImGui::InputText("##rename", m_RenameBuffer, (int)std::size(m_RenameBuffer), ImGuiInputTextFlags_CallbackCharFilter, filter, &invalidInput);
 				if (invalidInput)
-					result |= CBItemAction::InvalidFilenameInput;
+					action.ErrorPrompt("Invalid Filename");
 
 				if (ImGui::IsItemDeactivatedAfterEdit())
-					Rename(RenameBuffer);
+					action.FinishRenaming(m_RenameBuffer);
 				else if (ImGui::IsItemDeactivated())
-					SetState(State::Renaming, false);
+					SetFlag(StateFlag::Renaming, false);
 			}
 			else
 			{
@@ -223,8 +296,8 @@ namespace Shark {
 
 		// Outline
 		const ImVec2 borderPadding = { 1.0f, 1.0f };
-		const bool isSelected = IsStateSet(State::Selcted);
-		const bool coloredBorder = m_IsHovered || IsStateSet(State::Selcted);
+		const bool isSelected = IsSelected();
+		const bool coloredBorder = m_IsHovered || isSelected;
 		const ImU32 borderColor = UI::ToColor32(coloredBorder ? (isSelected ? Theme::Colors::BorderColored : Theme::Colors::BorderColoredWeak) : ImGui::GetStyleColorVec4(ImGuiCol_Border));
 		const ImU32 shadowColor = UI::ToColor32(coloredBorder ? Theme::Colors::ShadowColored : ImGui::GetStyleColorVec4(ImGuiCol_BorderShadow));
 
@@ -235,178 +308,104 @@ namespace Shark {
 		drawList->AddRect(borderMin, borderMax, borderColor, rounding, 0, borderSize);
 
 		UI::MoveCursorY(style.ItemSpacing.y - padding);
+		ImGui::Dummy({ 0, 0 });
 
-		return result;
+		return action;
 	}
 
-	void ContentBrowserItem::StartRenameing()
+	void ContentBrowserItem::StartRenaming()
 	{
-		strcpy_s(RenameBuffer, m_Name.c_str());
-		SetState(State::StartRenaming, true);
-	}
-
-	void ContentBrowserItem::Rename(const std::string& name)
-	{
-		SetState(State::Renaming, false);
-
-		// TODO(moro): error prompt
-		if (name.empty())
+		SK_DEBUG_BREAK();
+		if (FlagSet(StateFlag::Renaming))
 			return;
 
-		ContentBrowserPanel::Get().SkipNextFileEvents();
+		memset(m_RenameBuffer, 0, sizeof(m_RenameBuffer));
+		SetFlag(StateFlag::StartRenaming, true);
+	}
 
-		if (m_Type == CBItemType::Directory)
+	bool ContentBrowserItem::Rename(const std::string& newName)
+	{
+		SK_DEBUG_BREAK();
+		if (!FileSystem::IsValidFilename(newName))
 		{
-			ContentBrowserPanel& cbPanel = ContentBrowserPanel::Get();
- 			Ref<DirectoryInfo> directory = cbPanel.GetDirectory(m_Handle);
-			std::filesystem::path oldPath = cbPanel.GetProject()->GetDirectory() / directory->FilePath;
-			std::filesystem::path newPath = oldPath;
-			newPath.replace_filename(name);
-			newPath.replace_extension();
-
-			std::string errorMsg;
-			FileSystem::Rename(oldPath, newPath, errorMsg);
-			if (!errorMsg.empty()) // TODO(moro): error prompt
-				return;
-
-			m_Name = newPath.stem().string();
-			newPath = std::filesystem::relative(newPath, cbPanel.GetProject()->GetDirectory());
-			String::FormatDefault(newPath);
-			directory->FilePath = newPath;
-
-			return;
+			// TODO(moro): Error prompt
+			return false;
 		}
 
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(m_Handle);
-		std::filesystem::path oldPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
-		std::filesystem::path newPath = oldPath;
-		newPath.replace_filename(name);
-		newPath.replace_extension(metadata.FilePath.extension());
+		std::filesystem::path newPath = m_Path;
+		FileSystem::ReplaceStem(newPath, newName);
 
 		std::string errorMsg;
-		FileSystem::Rename(oldPath, newPath, errorMsg);
-		if (!errorMsg.empty()) // TODO(moro): error prompt
-			return;
-
-		m_Name = newPath.stem().string();
-	}
-
-	void ContentBrowserItem::RemoveAsset()
-	{
-		Project::GetActiveEditorAssetManager()->RemoveAsset(m_Handle);
-	}
-
-	void ContentBrowserItem::Delete()
-	{
-		SetState(State::Deleted, true);
-
-		if (m_Type == CBItemType::Directory)
+		FileSystem::Rename(m_Path, newPath, errorMsg);
+		if (!errorMsg.empty())
 		{
-			auto& cb = ContentBrowserPanel::Get();
-			Ref<DirectoryInfo> directory = cb.GetDirectory(m_Handle);
-			Platform::MoveFileToRecycleBin(cb.m_Project->GetDirectory() / directory->FilePath);
-			//std::filesystem::remove(cb.m_Project->Directory / directory->FilePath);
-			return;
+			// TODO(moro): Error prompt
+			return false;
 		}
 
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(m_Handle);
-		Platform::MoveFileToRecycleBin(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
-		//std::filesystem::remove(ResourceManager::GetFileSystemPath(metadata));
+		m_Path = newPath;
+		return true;
 	}
 
-	void ContentBrowserItem::SetState(State::Flags state, bool enabled)
+	bool ContentBrowserItem::Delete()
 	{
-		if (enabled)
-			m_State |= state;
+		SK_DEBUG_BREAK();
+		if (!FileSystem::Remove(m_Path))
+		{
+			// TODO(moro): Error prompt
+			return false;
+		}
+
+		m_StateFlags = 0;
+		SetFlag(StateFlag::Deleted, true);
+		return true;
+	}
+
+	void ContentBrowserItem::SetFlag(StateFlag flag, bool set)
+	{
+		if (set)
+			m_StateFlags |= (uint32_t)flag;
 		else
-			m_State &= ~state;
+			m_StateFlags &= ~(uint32_t)flag;
 	}
 
-	bool ContentBrowserItem::IsStateSet(State::Flags state) const
+	bool ContentBrowserItem::FlagSet(StateFlag flag) const
 	{
-		return (m_State & state) == state;
+		return m_StateFlags & (uint32_t)flag;
 	}
 
-	std::string ContentBrowserItem::GetTypeString()
+	std::string ContentBrowserItem::GetTypeString() const
 	{
-		SK_CORE_ASSERT(m_Type != CBItemType::None);
-
 		if (m_Type == CBItemType::Directory)
 			return "Directory";
 
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(m_Handle);
-		if (!metadata.IsValid())
-			return "Asset";
-
-		return ToString(metadata.Type);
-	}
-
-	DirectoryInfo::DirectoryInfo(Weak<DirectoryInfo> parent, const std::filesystem::path& filePath, AssetHandle handle)
-		: Parent(parent), FilePath(ContentBrowserPanel::Get().GetProject()->GetRelative(filePath)), Name(filePath.stem().string()), Handle(handle)
-	{
-		Reload();
-	}
-
-	DirectoryInfo::~DirectoryInfo()
-	{
-
-	}
-
-	void DirectoryInfo::Reload()
-	{
-		Assets.clear();
-		SubDirectories.clear();
-
-		auto project = ContentBrowserPanel::Get().GetProject();
-
-		for (const auto& entry : std::filesystem::directory_iterator(project->GetDirectory() / FilePath))
+		if (m_Type == CBItemType::Asset)
 		{
-			if (entry.is_directory())
+			Ref<EditorAssetManager> assetManager = m_Context.GetRef()->GetProject()->GetEditorAssetManager();
+			const AssetHandle handle = assetManager->GetAssetHandleFromFilepath(m_Path);
+			const AssetType assetType = assetManager->GetAssetType(handle);
+			return ToString(assetType);
+		}
+
+		return "File";
+	}
+
+	void ContentBrowserItem::UpdateIcon()
+	{
+		switch (m_Type)
+		{
+			case CBItemType::Directory:
 			{
-				AssetHandle handle = AssetHandle::Generate();
-				std::filesystem::path filePath = project->GetRelative(entry.path());
-				Ref<DirectoryInfo> directory = Ref<DirectoryInfo>::Create(this, filePath, handle);
-				SubDirectories.emplace_back(directory);
-				continue;
+				m_Icon = m_Context.GetRef()->GetDirectoryIcon();
+				break;
 			}
-
-			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(entry.path());
-			if (metadata.IsValid())
-				Assets.emplace_back(metadata.Handle);
+			case CBItemType::Asset:
+			case CBItemType::File:
+			{
+				m_Icon = m_Context.GetRef()->GetFileIcon(m_Path);
+				break;
+			}
 		}
-
-		std::sort(SubDirectories.begin(), SubDirectories.end(), [](const auto& lhs, const auto& rhs)
-		{
-			return lhs->FilePath < rhs->FilePath;
-		});
-
-		//SK_CORE_ASSERT(std::is_sorted(SubDirectories.begin(), SubDirectories.end(), [](const auto& lhs, const auto& rhs) { return lhs->FilePath < rhs->FilePath; }));
-	}
-
-	void DirectoryInfo::AddDirectory(Ref<DirectoryInfo> directory)
-	{
-		const auto where = std::lower_bound(SubDirectories.begin(), SubDirectories.end(), directory, [](const auto& lhs, const auto& rhs)
-		{
-			return lhs->FilePath < rhs->FilePath;
-		});
-		SubDirectories.insert(where, directory);
-		SK_CORE_ASSERT(std::is_sorted(SubDirectories.begin(), SubDirectories.end(), [](const auto& lhs, const auto& rhs) { return lhs->FilePath < rhs->FilePath; }));
-	}
-
-	void DirectoryInfo::AddAsset(AssetHandle handle)
-	{
-		Assets.emplace_back(handle);
-	}
-
-	bool DirectoryInfo::Erase(AssetHandle handle)
-	{
-		const auto iter = std::find(Assets.begin(), Assets.end(), handle);
-		if (iter != Assets.end())
-		{
-			Assets.erase(iter);
-			return true;
-		}
-		return true;
 	}
 
 }

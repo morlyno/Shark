@@ -4,6 +4,7 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Debug/Profiler.h"
 
+#include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXGPUTimer.h"
 
@@ -11,30 +12,37 @@
 
 namespace Shark {
 
-
 	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer()
 	{
-		Ref<DirectXRenderCommandBuffer> instance = this;
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		Renderer::Submit([instance, renderer]()
+		CreateDeferredContext();
+		RegisterDeferred();
+	}
+
+	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer(CommandBufferType type, ID3D11DeviceContext* context)
+	{
+		m_Type = type;
+		m_Context = context;
+		m_Context->AddRef();
+
+		if (m_Type == CommandBufferType::Deferred)
 		{
-			Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-			SK_DX11_CALL(renderer->GetDevice()->CreateDeferredContext(0, &instance->m_DeferredContext));
-		});
-		renderer->AddCommandBuffer(instance);
+			RegisterDeferred();
+		}
 	}
 
 	DirectXRenderCommandBuffer::~DirectXRenderCommandBuffer()
 	{
-		Release();
+		if (m_Type == CommandBufferType::Deferred)
+		{
+			UnregisterDeferred();
+		}
 
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		renderer->RemoveCommandBuffer(this);
+		Release();
 	}
 
 	void DirectXRenderCommandBuffer::Release()
 	{
-		Renderer::SubmitResourceFree([context = m_DeferredContext, commandList = m_CommandList]()
+		Renderer::SubmitResourceFree([context = m_Context, commandList = m_CommandList]()
 		{
 			if (commandList)
 				commandList->Release();
@@ -43,61 +51,68 @@ namespace Shark {
 		});
 
 		m_CommandList = nullptr;
-		m_DeferredContext = nullptr;
+		m_Context = nullptr;
 	}
 
 	void DirectXRenderCommandBuffer::Begin()
 	{
-		Ref<DirectXRenderCommandBuffer> instance = this;
-		Renderer::Submit([instance]()
-		{
-			instance->RT_Begin();
-		});
 	}
 
 	void DirectXRenderCommandBuffer::End()
 	{
+		if (m_Type == CommandBufferType::Immediate)
+			return;
+
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance]()
 		{
-			instance->RT_End();
+			if (instance->m_CommandList)
+				instance->m_CommandList->Release();
+
+			SK_DX11_CALL(instance->m_Context->FinishCommandList(FALSE, &instance->m_CommandList));
 		});
 	}
 
 	void DirectXRenderCommandBuffer::Execute()
 	{
+		if (m_Type == CommandBufferType::Immediate)
+			return;
+
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance]()
 		{
-			instance->RT_Execute();
+			auto context = DirectXRenderer::Get()->GetContext();
+			context->ExecuteCommandList(instance->m_CommandList, FALSE);
 		});
 	}
 
-	void DirectXRenderCommandBuffer::BeginTimeQuery(Ref<GPUTimer> counter)
+	void DirectXRenderCommandBuffer::BeginTimeQuery(Ref<GPUTimer> timer)
 	{
 		Ref<DirectXRenderCommandBuffer> instance = this;
-		Renderer::Submit([instance, counter]()
+		Renderer::Submit([instance, dxTimer = timer.As<DirectXGPUTimer>()]()
 		{
-			instance->RT_BeginTimeQuery(counter.As<DirectXGPUTimer>());
+			dxTimer->RT_StartQuery(instance->m_Context);
 		});
 	}
 
-	void DirectXRenderCommandBuffer::EndTimeQuery(Ref<GPUTimer> counter)
+	void DirectXRenderCommandBuffer::EndTimeQuery(Ref<GPUTimer> timer)
 	{
 		Ref<DirectXRenderCommandBuffer> instance = this;
-		Renderer::Submit([instance, counter]()
+		Renderer::Submit([instance, dxTimer = timer.As<DirectXGPUTimer>()]()
 		{
-			instance->RT_EndTimeQuery(counter.As<DirectXGPUTimer>());
+			dxTimer->RT_EndQuery(instance->m_Context);
 		});
 	}
 
 	void DirectXRenderCommandBuffer::RT_ClearState()
 	{
-		m_DeferredContext->Flush();
-		m_DeferredContext->ClearState();
+		if (m_Type == CommandBufferType::Immediate)
+			return;
+
+		m_Context->Flush();
+		m_Context->ClearState();
 		ID3D11CommandList* dummyList;
-		SK_DX11_CALL(m_DeferredContext->FinishCommandList(false, &dummyList));
-		//SK_CORE_ASSERT(SUCCEEDED(hr), WindowsUtils::TranslateHResult(hr));
+		SK_DX11_CALL(m_Context->FinishCommandList(false, &dummyList));
 		dummyList->Release();
 
 		if (m_CommandList)
@@ -109,28 +124,23 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::RT_Begin()
 	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		m_Active = true;
 	}
 
 	void DirectXRenderCommandBuffer::RT_End()
 	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		if (m_Type == CommandBufferType::Immediate)
+			return;
 
 		if (m_CommandList)
 			m_CommandList->Release();
 
-		SK_DX11_CALL(m_DeferredContext->FinishCommandList(FALSE, &m_CommandList));
-		m_Active = false;
+		SK_DX11_CALL(m_Context->FinishCommandList(FALSE, &m_CommandList));
 	}
 
 	void DirectXRenderCommandBuffer::RT_Execute()
 	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		if (m_Type == CommandBufferType::Immediate)
+			return;
 
 		auto context = DirectXRenderer::GetContext();
 		context->ExecuteCommandList(m_CommandList, FALSE);
@@ -138,12 +148,31 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::RT_BeginTimeQuery(Ref<DirectXGPUTimer> timer)
 	{
-		timer->RT_StartQuery(m_DeferredContext);
+		timer->RT_StartQuery(m_Context);
 	}
 
 	void DirectXRenderCommandBuffer::RT_EndTimeQuery(Ref<DirectXGPUTimer> timer)
 	{
-		timer->RT_EndQuery(m_DeferredContext);
+		timer->RT_EndQuery(m_Context);
+	}
+
+	void DirectXRenderCommandBuffer::CreateDeferredContext()
+	{
+		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
+		ID3D11Device* device = renderer->GetDevice();
+		DirectXAPI::CreateDeferredContext(device, 0, m_Context);
+	}
+
+	void DirectXRenderCommandBuffer::RegisterDeferred()
+	{
+		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
+		renderer->AddCommandBuffer(this);
+	}
+
+	void DirectXRenderCommandBuffer::UnregisterDeferred()
+	{
+		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
+		renderer->RemoveCommandBuffer(this);
 	}
 
 }

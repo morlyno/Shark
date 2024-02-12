@@ -9,7 +9,7 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/ApplicationEvent.h"
 
-#include "Shark/Editor/Panel.h"
+#include "Panel.h"
 #include "Panels/Editors/MaterialEditorPanel.h"
 
 namespace Shark {
@@ -22,8 +22,10 @@ namespace Shark {
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 
+		virtual void OnProjectChanged(Ref<Project> project) override;
+
 		virtual void SetContext(Ref<Scene> scene) override { m_Context = scene; }
-		const Ref<Scene>& GetContext() const { return m_Context; }
+		Ref<Scene> GetContext() const { return m_Context; }
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		void SetSelectedEntity(Entity entity);
@@ -48,7 +50,7 @@ namespace Shark {
 			if (entity.AllOf<Comp>())
 			{
 				ImGui::PushID(typeid(Comp).name());
-				const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowItemOverlap);
+				const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowOverlap);
 
 				UI::ScopedID scopedEntityID(entity.GetUUID());
 				const ImVec2 headerEnd = ImGui::GetItemRectMax() - ImGui::GetWindowPos();

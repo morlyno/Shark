@@ -16,13 +16,9 @@ namespace Shark {
 		DirectXFrameBuffer(const FrameBufferSpecification& spec);
 		virtual ~DirectXFrameBuffer();
 
+		virtual void Release() override;
 		virtual void Invalidate() override;
 		virtual void RT_Invalidate() override;
-
-		virtual void Release() override;
-		virtual void RT_Release() override;
-		void RT_ShallowRelease();
-
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual void Clear(Ref<RenderCommandBuffer> commandBuffer);
@@ -35,8 +31,8 @@ namespace Shark {
 		virtual Ref<Image2D> GetImage(uint32_t index = 0) const override { return m_Images[index]; }
 		virtual Ref<Image2D> GetDepthImage() const override { return m_DepthStencilImage; }
 
+		virtual FrameBufferSpecification& GetSpecification() override { return m_Specification; }
 		virtual const FrameBufferSpecification& GetSpecification() const override { return m_Specification; }
-		virtual FrameBufferSpecification& GetSpecificationMutable() override { return m_Specification; }
 
 	private:
 		void RT_InvalidateAtachment(uint32_t atachmentIndex);

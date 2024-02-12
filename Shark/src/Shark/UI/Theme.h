@@ -11,26 +11,28 @@ namespace Shark::Theme {
 
 	struct Colors
 	{
-		static ImVec4 WindowBgLight;
+		inline static ImVec4 WindowBgLight;
 
-		static ImVec4 ButtonNoBg;
-		static ImVec4 ButtonHoveredNoBg;
-		static ImVec4 ButtonActiveNoBg;
+		inline static ImVec4 ButtonNoBg;
+		inline static ImVec4 ButtonHoveredNoBg;
+		inline static ImVec4 ButtonActiveNoBg;
 
-		static ImVec4 TextInvalidInput;
+		inline static ImVec4 TextInvalidInput;
 
-		static ImVec4 PropertyField;
-		static ImVec4 InfoField;
-		static ImVec4 BorderColored;
-		static ImVec4 BorderColoredWeak;
+		inline static ImVec4 PropertyField;
+		inline static ImVec4 InfoField;
+		inline static ImVec4 BorderColored;
+		inline static ImVec4 BorderColoredWeak;
 
-		static ImVec4 ShadowColored;
+		inline static ImVec4 ShadowColored;
 
 		// Console
-		static ImVec4 LogInfo;
-		static ImVec4 LogWarn;
-		static ImVec4 LogError;
-		static ImVec4 LogTimeColor;
+		inline static ImVec4 LogTrace;
+		inline static ImVec4 LogInfo;
+		inline static ImVec4 LogWarn;
+		inline static ImVec4 LogError;
+		inline static ImVec4 LogCritical;
+		inline static ImVec4 LogTimeColor;
 	};
 
 }
