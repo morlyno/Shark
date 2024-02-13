@@ -142,4 +142,11 @@ namespace Shark {
 		m_AssetManager = Ref<EditorAssetManager>::Create(this);
 	}
 
+	void Project::Rename(const std::string& newName)
+	{
+		std::filesystem::path projectFile = GetProjectFilePath();
+		if (FileSystem::Rename(projectFile, newName))
+			m_Config.Name = newName;
+	}
+
 }

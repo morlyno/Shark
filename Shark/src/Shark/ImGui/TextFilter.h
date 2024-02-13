@@ -17,7 +17,7 @@ namespace Shark::UI {
 	private:
 		std::string m_Buffer;
 		std::vector<std::string_view> m_Filters;
-		String::Case m_Case = String::Case::Sensitive;
+		String::Case m_Case = String::Case::Ingnore;
 	};
 
 }

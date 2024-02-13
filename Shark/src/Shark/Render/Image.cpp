@@ -76,7 +76,7 @@ namespace Shark {
 
 		uint32_t CalcMipLevels(uint32_t widht, uint32_t height)
 		{
-			return glm::floor(glm::log2((float)glm::max(widht, height))) + 1;
+			return (uint32_t)glm::floor(glm::log2((float)glm::max(widht, height))) + 1;
 		}
 
 		bool IsDepthFormat(Shark::ImageFormat format)

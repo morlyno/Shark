@@ -67,16 +67,13 @@ namespace Shark {
 		void UI_Viewport();
 		void UI_Gizmo();
 		void UI_Info();
-		void UI_Shaders();
 		void UI_EditorCamera();
 		void UI_DragDrop();
 		void UI_ToolBar();
 		void UI_CameraPrevie();
 		void UI_ProfilerStats();
-		void UI_ProjectSettings();
 		void UI_ImportTexture();
 		bool UI_MousePicking();
-		void UI_DebugScripts();
 		void UI_LogSettings();
 		void UI_Statistics();
 		void UI_OpenProjectModal();
@@ -164,14 +161,10 @@ namespace Shark {
 
 		bool m_ShowInfo = false;
 		bool m_ShowEditorCameraControlls = false;
-		bool m_ShowStats = false;
 		bool m_ReadHoveredEntity = false;
-		bool m_ShowShaders = false;
-		bool m_ShowProjectSettings = false;
 		bool m_ShowThemeEditor = false;
 		bool m_ShowLogSettings = false;
 		bool m_ShowCreateProject = false;
-		bool m_ShowDebugScripts = false;
 		bool m_ShowStatistics = false;
 		bool m_ReadPixel = false;
 		glm::vec4 m_HoveredColor;
@@ -190,26 +183,6 @@ namespace Shark {
 
 		bool m_ShowColliders = false;
 		bool m_ShowCameraPreview = false;
-
-		struct ProjectEditData
-		{
-			Ref<Project> CurrentProject;
-			std::string Assets;
-			AssetHandle StartupScene;
-
-			bool ValidAssetsPath = true;
-
-			ProjectEditData() = default;
-			ProjectEditData(Ref<Project> project)
-			{
-				CurrentProject = project;
-				auto& config = project->GetConfig();
-				Assets = project->GetRelative(config.AssetsDirectory).string();
-				StartupScene = config.StartupScene;
-				ValidAssetsPath = true;
-			}
-		};
-		ProjectEditData m_ProjectEditData;
 
 		struct TextureSourceImportData
 		{

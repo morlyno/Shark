@@ -216,6 +216,7 @@ namespace Shark::UI {
 	template<typename TFunc>
 	bool ControlCombo(std::string_view label, std::string_view preview, const TFunc& func);
 
+	bool Control(std::string_view label, char* buffer, uint64_t bufferSize);
 	bool Control(std::string_view label, std::string& val);
 	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType = nullptr);
 	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);
@@ -244,6 +245,9 @@ namespace Shark::UI {
 		}
 		return false;
 	}
+
+	bool ControlDragDrop(std::string_view label, std::string& val, const char* dragDropType);
+	bool ControlDragDrop(std::string_view label, std::filesystem::path& val, const char* dragDropType);
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();

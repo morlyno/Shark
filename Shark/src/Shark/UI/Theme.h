@@ -17,13 +17,22 @@ namespace Shark::Theme {
 		inline static ImVec4 ButtonHoveredNoBg;
 		inline static ImVec4 ButtonActiveNoBg;
 
+		inline static ImVec4 ButtonDark;
+		inline static ImVec4 ButtonHoveredDark;
+		inline static ImVec4 ButtonActiveDark;
+
+		inline static ImVec4 TextDark;
+
+		inline static ImVec4 Colored;
+		inline static ImVec4 ColoredLight;
+
 		inline static ImVec4 TextInvalidInput;
 
+		// Content Browser
 		inline static ImVec4 PropertyField;
 		inline static ImVec4 InfoField;
 		inline static ImVec4 BorderColored;
 		inline static ImVec4 BorderColoredWeak;
-
 		inline static ImVec4 ShadowColored;
 
 		// Console

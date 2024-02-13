@@ -218,6 +218,10 @@ namespace Shark {
 			DirectXAPI::ReleaseObject(info.Resource);
 			DirectXAPI::ReleaseObject(info.AccessView);
 
+			info.View = nullptr;
+			info.Resource = nullptr;
+			info.AccessView = nullptr;
+
 			it++;
 		}
 
@@ -236,6 +240,10 @@ namespace Shark {
 			DirectXAPI::ReleaseObject(dxFramebuffer->m_DepthStencil);
 			for (ID3D11RenderTargetView* rtv : dxFramebuffer->m_FrameBuffers)
 				DirectXAPI::ReleaseObject(rtv);
+
+			dxFramebuffer->m_FrameBuffers.clear();
+			dxFramebuffer->m_BlendState = nullptr;
+			dxFramebuffer->m_DepthStencil = nullptr;
 
 			it++;
 		}

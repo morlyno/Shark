@@ -48,6 +48,7 @@ namespace Shark {
 	public:
 		Project() = default;
 		Project(const std::filesystem::path& directory, const std::string& name);
+		void Rename(const std::string& newName);
 
 		const std::filesystem::path& GetDirectory() const;
 		const std::filesystem::path& GetAssetsDirectory() const;

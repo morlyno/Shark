@@ -38,13 +38,17 @@ namespace Shark::String {
 	void RemovePrefix(std::string& str, uint32_t count);
 	void RemoveSuffix(std::string& str, uint32_t count);
 
-	void Strip(std::string& str, char c = ' ');
-	void StripBack(std::string& str, char c = ' ');
-	void StripFront(std::string& str, char c = ' ');
+	void Strip(std::string& str, std::string_view chars = " ");
+	void StripBack(std::string& str, std::string_view chars = " ");
+	void StripFront(std::string& str, std::string_view chars = " ");
 
-	void Strip(std::string& str, std::string_view chars);
-	void StripBack(std::string& str, std::string_view chars);
-	void StripFront(std::string& str, std::string_view chars);
+	void Strip(std::string_view& str, std::string_view chars);
+	void StripBack(std::string_view& str, std::string_view chars);
+	void StripFront(std::string_view& str, std::string_view chars);
+	
+	void Strip(std::wstring_view& str, std::wstring_view chars);
+	void StripBack(std::wstring_view& str, std::wstring_view chars);
+	void StripFront(std::wstring_view& str, std::wstring_view chars);
 
 	std::string BytesToString(uint64_t bytes);
 

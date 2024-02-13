@@ -49,8 +49,11 @@ namespace Shark {
 		static bool CreateDirectories(const std::filesystem::path& path);
 		static bool CreateDirectories(const std::filesystem::path& path, std::string& errorMsg);
 
-		static void Rename(const std::filesystem::path& oldName, const std::filesystem::path& newName);
-		static void Rename(const std::filesystem::path& oldName, const std::filesystem::path& newName, std::string& errorMsg);
+		static bool Rename(const std::filesystem::path& oldName, const std::string& newName);
+		static bool Rename(const std::filesystem::path& oldName, const std::string& newName, std::string& errorMsg);
+
+		static bool Move(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
+		static bool Move(const std::filesystem::path& oldPath, const std::filesystem::path& newPath, std::string& errorMsg);
 
 		static bool Remove(const std::filesystem::path& path);
 		static bool Remove(const std::filesystem::path& path, std::string& errorMsg);

@@ -75,17 +75,12 @@ namespace Shark {
 						UI::MoveCursorY(style.FramePadding.y);
 						UI::ScopedIndent indent(style.WindowPadding.x * 0.5f);
 
-						const bool open = ImGui::TreeNodeEx("Assets", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth);
-
 						if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 							NextDirectory(m_BaseDirectory);
 
-						if (open)
 						{
-							UI::ScopedIndent indent(-style.IndentSpacing * 0.75f);
 							for (auto subdir : m_BaseDirectory->SubDirectories)
 								DrawDirectoryHirachy(subdir);
-							ImGui::TreePop();
 						}
 
 						ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -593,39 +588,45 @@ namespace Shark {
 
 		{
 			UI::ScopedDisabled searchActiveDisabled(IsSearchActive());
-			//UI::ScopedFont fontAwesome("FontAwesome");
+			UI::ScopedColorStack dark(ImGuiCol_Text, Theme::Colors::TextDark,
+									  ImGuiCol_Button, Theme::Colors::ButtonDark,
+									  ImGuiCol_ButtonActive, Theme::Colors::ButtonActiveDark,
+									  ImGuiCol_ButtonHovered, Theme::Colors::ButtonHoveredDark);
+
 			const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
 
+
+			// Move Back
 			ImGui::BeginDisabled(!m_History.CanMoveBack());
-			if (ImGui::ButtonEx("\xef\x84\x84", buttonSize))
+			if (ImGui::Button("\xef\x84\x84", buttonSize))
 			{
 				NextDirectory(m_History.MoveBack(), false);
 			}
 			ImGui::EndDisabled();
 
-			ImGui::SameLine();
 
+			// Move Forward
+			ImGui::SameLine();
 			ImGui::BeginDisabled(!m_History.CanMoveForward());
 			if (ImGui::Button("\xef\x84\x85", buttonSize))
 			{
 				NextDirectory(m_History.MoveForward(), false);
 			}
 			ImGui::EndDisabled();
-		}
 
-		ImGui::SameLine();
-		if (ImGui::Button("Reload"))
-			m_ReloadScheduled = true;
+
+			// Reload
+			ImGui::SameLine();
+			if (ImGui::Button("\xef\x80\xa1"))
+				m_ReloadScheduled = true;
+		}
 
 		// Search
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.2f);
-		char backupBuffer[SearchBufferSize];
-		memcpy(backupBuffer, m_SearchBuffer, sizeof(backupBuffer));
 		if (UI::Search(UI::GenerateID(), m_SearchBuffer, SearchBufferSize))
 		{
 			NextDirectory(m_CurrentDirectory, false, false);
-			SK_CORE_TRACE("{}", fmt::ptr(backupBuffer));
 
 			m_SearchCaseSensitive = false;
 			for (auto& c : m_SearchBuffer)
@@ -696,7 +697,16 @@ namespace Shark {
 		if (directory->SubDirectories.empty())
 			flags |= ImGuiTreeNodeFlags_Leaf;
 
-		const bool open = ImGui::TreeNodeEx(directory->Name.c_str(), flags);
+		bool open = false;
+
+		const bool current = directory == m_CurrentDirectory;
+		if (current)
+			flags |= ImGuiTreeNodeFlags_Selected;
+
+		{
+			UI::ScopedColorConditional active(ImGuiCol_Header, Theme::Colors::Colored, true);
+			open = ImGui::TreeNodeEx(directory->Name.c_str(), flags);
+		}
 
 		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 			NextDirectory(directory);

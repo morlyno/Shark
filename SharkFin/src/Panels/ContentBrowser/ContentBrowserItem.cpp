@@ -332,18 +332,15 @@ namespace Shark {
 			return false;
 		}
 
-		std::filesystem::path newPath = m_Path;
-		FileSystem::ReplaceStem(newPath, newName);
-
 		std::string errorMsg;
-		FileSystem::Rename(m_Path, newPath, errorMsg);
+		FileSystem::Rename(m_Path, newName, errorMsg);
 		if (!errorMsg.empty())
 		{
 			// TODO(moro): Error prompt
 			return false;
 		}
 
-		m_Path = newPath;
+		FileSystem::ReplaceStem(m_Path, newName);
 		return true;
 	}
 

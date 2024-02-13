@@ -76,6 +76,23 @@ namespace Shark::Theme {
 		colors[ImGuiCol_TabUnfocused] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
 		colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.19f, 0.19f, 0.19f, 1.00f);
 #endif
+
+#if 1
+		// New Colors to Test
+		colors[ImGuiCol_Text]               = ImVec4(0.88f, 0.88f, 0.88f, 1.00f);
+		colors[ImGuiCol_WindowBg]           = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+		colors[ImGuiCol_Border]             = ImVec4(0.09f, 0.09f, 0.09f, 0.75f);
+		colors[ImGuiCol_BorderShadow]       = ImVec4(0.05f, 0.05f, 0.05f, 0.50f);
+		colors[ImGuiCol_FrameBg]            = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+		colors[ImGuiCol_TitleBg]            = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
+		colors[ImGuiCol_TitleBgActive]      = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
+		colors[ImGuiCol_ScrollbarBg]        = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+		colors[ImGuiCol_Button]             = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+		colors[ImGuiCol_Header]             = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+		colors[ImGuiCol_TabActive]          = ImVec4(0.20f, 0.10f, 0.27f, 1.00f);
+		colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.15f, 0.08f, 0.21f, 1.00f);
+#endif
+
 	}
 	
 	static void LoadDarkThemeColors()
@@ -86,6 +103,11 @@ namespace Shark::Theme {
 		Colors::ButtonHoveredNoBg  = ImVec4(0.31f, 0.31f, 0.31f, 0.50f);
 		Colors::ButtonActiveNoBg   = ImVec4(0.39f, 0.39f, 0.39f, 0.50f);
 
+		Colors::ButtonDark         = ImGui::ColorConvertU32ToFloat4(0xFF181818 /*0x181818FF*/); // ImVec4(0.300f, 0.300f, 0.300f, 1.000f);
+		Colors::ButtonActiveDark   = ImGui::ColorConvertU32ToFloat4(0xFF212121 /*0x212121FF*/); // ImVec4(0.300f, 0.300f, 0.300f, 1.000f);
+		Colors::ButtonHoveredDark  = ImGui::ColorConvertU32ToFloat4(0xFF1B1B1B /*0x1B1B1BFF*/); // ImVec4(0.300f, 0.300f, 0.300f, 1.000f);
+		Colors::TextDark           = ImGui::ColorConvertU32ToFloat4(0xFF898989 /*0x898989FF*/); // ImVec4(0.700f, 0.700f, 0.700f, 1.000f);
+
 		Colors::TextInvalidInput   = ImVec4(0.80f, 0.30f, 0.10f, 1.00f);
 
 		Colors::PropertyField      = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
@@ -93,6 +115,9 @@ namespace Shark::Theme {
 		Colors::BorderColored      = ImVec4(0.23f, 0.04f, 0.36f, 0.75f);
 		Colors::BorderColoredWeak  = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
 		Colors::ShadowColored      = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
+
+		Colors::Colored            = ImVec4(0.200f, 0.100f, 0.270f, 1.000f);
+		Colors::ColoredLight       = ImVec4(0.264f, 0.185f, 0.345f, 1.000f);
 
 		Colors::LogTrace           = ImGui::ColorConvertU32ToFloat4(0xFFB3833E /*0x3E83B3FF*/); // ImVec4(0.10f, 0.10f, 0.50f, 1.00f);
 		Colors::LogInfo            = ImGui::ColorConvertU32ToFloat4(0xFF1AB333 /*0x33B31AFF*/); // ImVec4(0.20f, 0.70f, 0.10f, 1.00f);
@@ -143,12 +168,20 @@ namespace Shark::Theme {
 				ImGui::ColorEdit4("ButtonNoBg", (float*)&Colors::ButtonNoBg);
 				ImGui::ColorEdit4("ButtonHoveredNoBg", (float*)&Colors::ButtonHoveredNoBg);
 				ImGui::ColorEdit4("ButtonActiveNoBg", (float*)&Colors::ButtonActiveNoBg);
+
+				ImGui::ColorEdit4("ButtonDark", (float*)&Colors::ButtonDark);
+				ImGui::ColorEdit4("ButtonHoveredDark", (float*)&Colors::ButtonHoveredDark);
+				ImGui::ColorEdit4("ButtonActiveDark", (float*)&Colors::ButtonActiveDark);
+				ImGui::ColorEdit4("TextDark", (float*)&Colors::TextDark);
+
 				ImGui::ColorEdit4("TextInvalidInput", (float*)&Colors::TextInvalidInput);
 				ImGui::ColorEdit4("PropertyField", (float*)&Colors::PropertyField);
 				ImGui::ColorEdit4("InfoField", (float*)&Colors::InfoField);
 				ImGui::ColorEdit4("BorderColored", (float*)&Colors::BorderColored);
 				ImGui::ColorEdit4("BorderColoredWeak", (float*)&Colors::BorderColoredWeak);
 				ImGui::ColorEdit4("ShadowColored", (float*)&Colors::ShadowColored);
+				ImGui::ColorEdit4("Colored", (float*)&Colors::Colored);
+				ImGui::ColorEdit4("ColoredLight", (float*)&Colors::ColoredLight);
 				ImGui::ColorEdit4("LogTrace", (float*)&Colors::LogTrace);
 				ImGui::ColorEdit4("LogInfo", (float*)&Colors::LogInfo);
 				ImGui::ColorEdit4("LogWarn", (float*)&Colors::LogWarn);

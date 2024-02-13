@@ -79,7 +79,7 @@ namespace Shark::UI {
 		static bool OverlappButton(const char* label, const ImVec2& buttonSize = { 0, 0 })
 		{
 			ImGui::BeginChild(UI::GenerateID(), buttonSize);
-			const bool pressed = ImGui::ButtonEx("x", buttonSize);
+			const bool pressed = ImGui::ButtonEx(label, buttonSize);
 			ImGui::EndChild();
 			return pressed;
 		}
@@ -604,6 +604,19 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	bool Control(std::string_view label, char* buffer, uint64_t bufferSize)
+	{
+		if (!ControlHelperBegin(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+		ImGui::SetNextItemWidth(-1.0f);
+		const bool changed = ImGui::InputText("##input", buffer, bufferSize);
+
+		ControlHelperEnd();
+		return changed;
+	}
+
 	bool Control(std::string_view label, std::string& val)
 	{
 		if (!ControlHelperBegin(label))
@@ -883,6 +896,61 @@ namespace Shark::UI {
 				changed = true;
 			}
 			ImGui::EndChild();
+		}
+
+		ControlHelperEnd();
+		return changed;
+	}
+
+	bool ControlDragDrop(std::string_view label, std::string& val, const char* dragDropType)
+	{
+		if (!ControlHelperBegin(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputText("##input", val.data(), ImGuiInputTextFlags_ReadOnly);
+
+		bool changed = false;
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+			if (payload)
+			{
+				char payloadData[260];
+				strcpy_s(payloadData, std::min(260, payload->DataSize), (const char*)payload->Data);
+				val = payloadData;
+				changed = true;
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		ControlHelperEnd();
+		return changed;
+	}
+
+	bool ControlDragDrop(std::string_view label, std::filesystem::path& val, const char* dragDropType)
+	{
+		if (!ControlHelperBegin(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+		std::string strVal = val.generic_string();
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputText("##input", strVal.data(), ImGuiInputTextFlags_ReadOnly);
+
+		bool changed = false;
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+			if (payload)
+			{
+				char payloadData[260];
+				strcpy_s(payloadData, std::min(260, payload->DataSize), (const char*)payload->Data);
+				val = payloadData;
+				changed = true;
+			}
+			ImGui::EndDragDropTarget();
 		}
 
 		ControlHelperEnd();
@@ -1200,7 +1268,13 @@ namespace Shark::UI {
 								ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
 								ImGuiCol_ButtonHovered, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f });
 
-		const bool clear = utils::OverlappButtonKeepLastItemData("x", { buttonSize, buttonSize });
+		bool clear = false;
+
+		{
+			UI::ScopedFont fontAwesome("FontAwesomeRegular");
+			UI::ScopedColor tint(ImGuiCol_Text, Theme::Colors::TextDark);
+			clear = utils::OverlappButtonKeepLastItemData("\xef\x81\x97", { buttonSize, buttonSize });
+		}
 
 		if (clear)
 		{

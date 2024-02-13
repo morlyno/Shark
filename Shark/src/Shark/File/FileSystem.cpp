@@ -13,7 +13,7 @@ namespace Shark {
 #if SK_FILESYSTEM_THROW
 #define SK_HANDLE_FS_ERROR(_function, ...) throw std::filesystem::filesystem_error(_function, __VA_ARGS__)
 #else
-#define SK_HANDLE_FS_ERROR(...)
+#define SK_HANDLE_FS_ERROR(...) SK_CORE_VERIFY(false);
 #endif
 
 	void FileSystem::Initialize()
@@ -253,29 +253,75 @@ namespace Shark {
 		return created;
 	}
 
-	void FileSystem::Rename(const std::filesystem::path& oldName, const std::filesystem::path& newName)
+	bool FileSystem::Rename(const std::filesystem::path& oldName, const std::string& newName)
 	{
+		if (!FileSystem::IsValidFilename(newName))
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\tInvalid Filename", oldName, newName);
+			return false;
+		}
+
 		std::error_code error;
 		std::filesystem::rename(oldName, newName, error);
 		if (error)
 		{
 			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", oldName, newName, error.message());
 			SK_HANDLE_FS_ERROR("rename", oldName, newName, error);
+			return false;
 		}
+
+		return true;
 	}
 
-	void FileSystem::Rename(const std::filesystem::path& oldName, const std::filesystem::path& newName, std::string& errorMsg)
+	bool FileSystem::Rename(const std::filesystem::path& oldName, const std::string& newName, std::string& errorMsg)
 	{
+		if (!FileSystem::IsValidFilename(newName))
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\tInvalid Filename", oldName, newName);
+			errorMsg = "Invalid Filename";
+			return false;
+		}
+
 		std::error_code error;
 		std::filesystem::rename(oldName, newName, error);
 		if (error)
 		{
 			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", oldName, newName, error.message());
 			errorMsg = error.message();
-			return;
+			return false;
 		}
 
 		errorMsg.clear();
+		return true;
+	}
+
+	bool FileSystem::Move(const std::filesystem::path& oldPath, const std::filesystem::path& newPath)
+	{
+		std::error_code error;
+		std::filesystem::rename(oldPath, newPath, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Move Failed! {} => {}\n\t{}", oldPath, newPath, error.message());
+			SK_HANDLE_FS_ERROR("rename", oldName, newName, error);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool FileSystem::Move(const std::filesystem::path& oldPath, const std::filesystem::path& newPath, std::string& errorMsg)
+	{
+		std::error_code error;
+		std::filesystem::rename(oldPath, newPath, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", oldPath, newPath, error.message());
+			errorMsg = error.message();
+			return false;
+		}
+
+		errorMsg.clear();
+		return true;
 	}
 
 	bool FileSystem::Remove(const std::filesystem::path& path)

@@ -30,6 +30,8 @@
 #include "Panels/ScriptEnginePanel.h"
 #include "Panels/AssetsPanel.h"
 #include "Panels/SettingsPanel.h"
+#include "Panels/ProjectSettingsPanel.h"
+#include "Panels/ShadersPanel.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/enttDebug.h"
@@ -39,15 +41,16 @@
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-#define SCENE_HIRACHY_ID "SceneHirachyPanel"
-#define CONTENT_BROWSER_ID "ContentBrowserPanel"
-#define TEXTURE_EDITOR_ID "TextureEditorPanel"
-#define PHYSICS_DEBUG_ID "PhysicsDebugPanel"
+#define SCENE_HIRACHY_PANEL_ID "SceneHirachyPanel"
+#define CONTENT_BROWSER_PANEL_ID "ContentBrowserPanel"
+#define PHYSICS_DEBUG_PANEL_ID "PhysicsDebugPanel"
 #define ASSET_EDITOR_MANAGER_ID "AssetsEditorManagerPanel"
-#define EDITOR_CONSOLE_ID "EditorConsolePanel"
-#define SCRIPT_ENGINE_ID "ScriptEnginePanel"
+#define EDITOR_CONSOLE_PANEL_ID "EditorConsolePanel"
+#define SCRIPT_ENGINE_PANEL_ID "ScriptEnginePanel"
 #define ASSETS_PANEL_ID "AssetsPanel"
 #define SETTINGS_PANEL_ID "SettingsPanel"
+#define PROJECT_SETTINGS_PANEL_ID "ProjectSettingsPanel"
+#define SHADERS_PANEL_ID "ShadersPanel"
 
 namespace Shark {
 
@@ -67,41 +70,43 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		Icons::Init();
-
 		EditorSettings::Init();
+
 		m_PanelManager = Scope<PanelManager>::Create();
 
-		auto sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID, "Scene Hirachy", true);
+		Ref<SceneHirachyPanel> sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(PanelCategory::View, SCENE_HIRACHY_PANEL_ID, "Scene Hirachy", true);
 		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
 
-		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(CONTENT_BROWSER_ID, "Content Browser", true);
+		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(PanelCategory::View, CONTENT_BROWSER_PANEL_ID, "Content Browser", true);
 		contentBrowser->RegisterOpenAssetCallback(AssetType::Material, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->Show(ASSET_EDITOR_MANAGER_ID, true);
-			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
+			m_PanelManager->ShowPanel(ASSET_EDITOR_MANAGER_ID, true);
+			auto assetEditorManager = m_PanelManager->Get<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
 			assetEditorManager->AddEditor<MaterialEditorPanel>(metadata);
 		});
 
 		contentBrowser->RegisterOpenAssetCallback(AssetType::Texture, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->Show(ASSET_EDITOR_MANAGER_ID, true);
-			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
+			m_PanelManager->ShowPanel(ASSET_EDITOR_MANAGER_ID, true);
+			auto assetEditorManager = m_PanelManager->Get<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
 			assetEditorManager->AddEditor<TextureEditorPanel>(metadata);
 		});
 
-		m_PanelManager->AddPanel<EditorConsolePanel>(EDITOR_CONSOLE_ID, "Console", true);
-		m_PanelManager->AddPanel<SettingsPanel>(SETTINGS_PANEL_ID, "Settings", true);
-		m_PanelManager->AddPanel<PhysicsDebugPanel>(PHYSICS_DEBUG_ID, "Pyhsics Debug", false);
-		m_PanelManager->AddPanel<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID, "Assets Editor Manager", true);
-		m_PanelManager->AddPanel<AssetsPanel>(ASSETS_PANEL_ID, "Assets", false);
-		m_PanelManager->AddPanel<ScriptEnginePanel>(SCRIPT_ENGINE_ID, "Script Engine", false);
+		m_PanelManager->AddPanel<SettingsPanel>(PanelCategory::Edit, SETTINGS_PANEL_ID, "Settings", true);
+		m_PanelManager->AddPanel<AssetEditorManagerPanel>(PanelCategory::Edit, ASSET_EDITOR_MANAGER_ID, "Assets Editor Manager", true);
+		m_PanelManager->AddPanel<ProjectSettingsPanel>(PanelCategory::Edit, PROJECT_SETTINGS_PANEL_ID, "Project Settings", false, Project::GetActive());
+		m_PanelManager->AddPanel<AssetsPanel>(PanelCategory::View, ASSETS_PANEL_ID, "Assets", false);
+		m_PanelManager->AddPanel<EditorConsolePanel>(PanelCategory::View, EDITOR_CONSOLE_PANEL_ID, "Console", true);
+		m_PanelManager->AddPanel<ShadersPanel>(PanelCategory::View, SHADERS_PANEL_ID, "Shaders", false);
+		m_PanelManager->AddPanel<PhysicsDebugPanel>(PanelCategory::View, PHYSICS_DEBUG_PANEL_ID, "Pyhsics Debug", false);
+		m_PanelManager->AddPanel<ScriptEnginePanel>(PanelCategory::View, SCRIPT_ENGINE_PANEL_ID, "Script Engine", false);
 
 		const auto& window = Application::Get().GetWindow();
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
 		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Camera Preview Renderer");
 		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer());
 
-		// Readable Mouse image for Mouse Picking
+		// Readable image for Mouse Picking
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
 		imageSpecs.Type = ImageType::Storage;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
@@ -406,12 +411,9 @@ namespace Shark {
 		UI_ToolBar();
 
 		UI_Info();
-		UI_Shaders();
 		UI_EditorCamera();
 		UI_CameraPrevie();
-		UI_ProjectSettings();
 		UI_ImportTexture();
-		UI_DebugScripts();
 		UI_LogSettings();
 		UI_Statistics();
 		UI_OpenProjectModal();
@@ -504,21 +506,6 @@ namespace Shark {
 
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("Import Asset In Place"))
-				{
-					auto files = Platform::OpenFileDialogMuliSelect(L"", 1, Project::GetActiveAssetsDirectory(), true);
-					for (const auto& file : files)
-					{
-						if (Project::GetActiveEditorAssetManager()->IsFileImported(file))
-							continue;
-
-						Project::GetActiveEditorAssetManager()->ImportAsset(file);
-					}
-				}
-					
-
-				ImGui::Separator();
-
 				if (ImGui::MenuItem("Create Project"))
 				{
 					auto projectDirectory = Platform::SaveDirectoryDialog();
@@ -532,39 +519,40 @@ namespace Shark {
 
 				if (ImGui::MenuItem("Open Project"))
 					OpenProject();
+
 				if (ImGui::BeginMenu("Recent Projects"))
 				{
 					// TODO(moro): Add Recent Projects
 					ImGui::MenuItem("Sandbox");
-
 					ImGui::EndMenu();
 				}
+
 				if (ImGui::MenuItem("Save Project"))
 					Project::SaveActive();
 
 				ImGui::Separator();
+
 				if (ImGui::MenuItem("Exit"))
 					Application::Get().CloseApplication();
 
 				ImGui::EndMenu();
 			}
 
+			m_PanelManager->DrawPanelsMenu();
+
 			if (ImGui::BeginMenu("Edit"))
 			{
-				if (ImGui::MenuItem("Reload Icons")) m_ReloadEditorIcons = true;
-				ImGui::Separator();
 				ImGui::MenuItem("Theme Editor", nullptr, &m_ShowThemeEditor);
+
+				if (ImGui::MenuItem("Reload Icons"))
+					m_ReloadEditorIcons = true;
 
 				ImGui::EndMenu();
 			}
 
-			m_PanelManager->DrawPanelsMenu("View");
 			if (ImGui::BeginMenu("View"))
 			{
 				ImGui::Separator();
-				ImGui::MenuItem("DebugScripts", nullptr, &m_ShowDebugScripts);
-				ImGui::MenuItem("Project", nullptr, &m_ShowProjectSettings);
-				ImGui::MenuItem("Shaders", nullptr, &m_ShowShaders);
 				ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
 				ImGui::MenuItem("Statistics", nullptr, &m_ShowStatistics);
 				ImGui::Separator();
@@ -582,7 +570,6 @@ namespace Shark {
 				}
 				ImGui::EndMenu();
 			}
-
 
 			if (ImGui::BeginMenu("Script"))
 			{
@@ -604,7 +591,6 @@ namespace Shark {
 			{
 				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
 				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
-				ImGui::MenuItem("Stats", nullptr, &m_ShowStats);
 				ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
 				ImGui::EndMenu();
 			}
@@ -765,42 +751,6 @@ namespace Shark {
 
 			ImGui::End();
 		}
-	}
-
-	void EditorLayer::UI_Shaders()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!m_ShowShaders)
-			return;
-
-		if (ImGui::Begin("Shaders", &m_ShowShaders))
-		{
-			ImGui::Checkbox("Disable Optimization", &m_ShaderCompilerDisableOptimization);
-
-			if (ImGui::Button("Reload All"))
-				for (const auto& [key, shader] : *Renderer::GetShaderLibrary())
-					Application::Get().SubmitToMainThread([s = shader]() { s->Reload(true); });
-
-			for (auto&& [key, shader] : *Renderer::GetShaderLibrary())
-			{
-				if (ImGui::TreeNodeEx(key.c_str()))
-				{
-					UI::Text(fmt::format("Path: {}", shader->GetFilePath()));
-					if (ImGui::Button("ReCompile"))
-					{
-						Application::Get().SubmitToMainThread([s = shader, disableOptimization = m_ShaderCompilerDisableOptimization]()
-						{
-							s->Reload(true, disableOptimization);
-						});
-					}
-					if (ImGui::Button("Reflect"))
-						(void)0;//shader->LogReflection();
-					ImGui::TreePop();
-				}
-			}
-		}
-		ImGui::End();
 	}
 
 	void EditorLayer::UI_EditorCamera()
@@ -1226,63 +1176,6 @@ namespace Shark {
 
 	}
 
-	void EditorLayer::UI_ProjectSettings()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!m_ShowProjectSettings)
-			return;
-
-		// TODO(moro): make this its only panel
-		SK_DEBUG_BREAK_CONDITIONAL(s_Break);
-
-		ImGui::Begin("Project", &m_ShowProjectSettings);
-
-		auto& config = m_ProjectEditData.CurrentProject->GetConfigMutable();
-		const ImGuiStyle& style = ImGui::GetStyle();
-		const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
-
-		UI::BeginControlsGrid();
-
-		if (UI::ControlCustomBegin("Name"))
-		{
-			ImGui::SetNextItemWidth(-1.0f);
-			ImGui::InputText("##Name", &config.Name);
-			UI::ControlCustomEnd();
-		}
-
-		if (UI::ControlCustomBegin("Assets"))
-		{
-			UI::LagacyScopedStyleStack style;
-			if (!m_ProjectEditData.ValidAssetsPath)
-				style.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
-
-			ImGui::SetNextItemWidth(-1.0f);
-			if (ImGui::InputText("##Assets", &m_ProjectEditData.Assets))
-			{
-				auto assetsDirectory = m_ProjectEditData.CurrentProject->GetAbsolute(m_ProjectEditData.Assets);
-				m_ProjectEditData.ValidAssetsPath = (std::filesystem::exists(assetsDirectory) && std::filesystem::is_directory(assetsDirectory));
-				if (m_ProjectEditData.ValidAssetsPath)
-					config.AssetsDirectory = assetsDirectory;
-			}
-
-			UI::ControlCustomEnd();
-		}
-
-		UI::ControlAsset("StartupScene", AssetType::Scene, config.StartupScene);
-
-		UI::Control("Gravity", config.Physics.Gravity);
-		UI::Control("Velocity Iterations", config.Physics.VelocityIterations);
-		UI::Control("Position Iterations", config.Physics.PositionIterations);
-		float fixedTSInMS = config.Physics.FixedTimeStep * 1000.0f;
-		if (UI::Control("Fixed Time Step", fixedTSInMS, 0.1f, 0.1f, FLT_MAX, "%.3fms"))
-			config.Physics.FixedTimeStep = fixedTSInMS * 0.001f;
-
-		UI::EndControls();
-
-		ImGui::End();
-	}
-
 	void EditorLayer::UI_ImportTexture()
 	{
 		SK_PROFILE_FUNCTION();
@@ -1376,27 +1269,6 @@ namespace Shark {
 		}
 		return true;
 	}
-
-	void EditorLayer::UI_DebugScripts()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!m_ShowDebugScripts)
-			return;
-
-		if (ImGui::Begin("Debug Scripts", &m_ShowDebugScripts))
-		{
-			ImGui::Text("Scripts: %llu", ScriptEngine::GetEntityInstances().size());
-
-			for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-			{
-				const char* className = ScriptUtils::GetClassName(gcHandle);
-				ImGui::TreeNodeEx(className, UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-			}
-		}
-		ImGui::End();
-	}
-
 
 	void EditorLayer::UI_LogSettings()
 	{
@@ -1737,7 +1609,7 @@ namespace Shark {
 
 	void EditorLayer::RegisterSettingNodes()
 	{
-		Ref<SettingsPanel> settingsPanel = m_PanelManager->GetPanel<SettingsPanel>(SETTINGS_PANEL_ID);
+		Ref<SettingsPanel> settingsPanel = m_PanelManager->Get<SettingsPanel>(SETTINGS_PANEL_ID);
 		settingsPanel->AddNode(std::bind(&SceneRenderer::DrawSettings, m_SceneRenderer));
 		settingsPanel->AddNode(std::bind(&EditorLayer::UI_ProfilerStats, this));
 		settingsPanel->AddNode([this]()
@@ -1868,7 +1740,7 @@ namespace Shark {
 	void EditorLayer::SelectEntity(Entity entity)
 	{
 		m_SelectetEntity = entity;
-		m_PanelManager->GetPanel<SceneHirachyPanel>(SCENE_HIRACHY_ID)->SetSelectedEntity(entity);
+		m_PanelManager->Get<SceneHirachyPanel>(SCENE_HIRACHY_PANEL_ID)->SetSelectedEntity(entity);
 	}
 
 	glm::mat4 EditorLayer::GetActiveViewProjection() const
@@ -2097,16 +1969,12 @@ namespace Shark {
 
 			if (!LoadScene(project->GetConfig().StartupScene))
 				NewScene("Empty Fallback Scene");
-
-			m_ProjectEditData = project;
 		}
 	}
 
 	void EditorLayer::CloseProject()
 	{
 		SK_PROFILE_FUNCTION();
-
-		m_ProjectEditData = {};
 
 		Project::SaveActive();
 		Project::GetActive()->GetEditorAssetManager()->SerializeImportedAssets();

@@ -23,6 +23,9 @@ namespace Shark {
 	class ShaderLibrary : public RefCount
 	{
 	public:
+		using ShadersMap = std::unordered_map<std::string, Ref<Shader>>;
+
+	public:
 		ShaderLibrary() = default;
 		~ShaderLibrary() { Clear(); }
 
@@ -33,10 +36,13 @@ namespace Shark {
 		bool Exists(const std::string& name) { return m_ShaderMap.contains(name); }
 		void Clear() { m_ShaderMap.clear(); }
 
-		std::unordered_map<std::string, Ref<Shader>>::const_iterator begin() const { return m_ShaderMap.cbegin(); }
-		std::unordered_map<std::string, Ref<Shader>>::const_iterator end() const { return m_ShaderMap.cend(); }
+		ShadersMap& GetShadersMap() { return m_ShaderMap; }
+		const ShadersMap& GetShadersMap() const { return m_ShaderMap; }
+
+		ShadersMap::const_iterator begin() const { return m_ShaderMap.cbegin(); }
+		ShadersMap::const_iterator end() const { return m_ShaderMap.cend(); }
 	private:
-		std::unordered_map<std::string, Ref<Shader>> m_ShaderMap;
+		ShadersMap m_ShaderMap;
 
 	};
 
