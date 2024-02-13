@@ -1247,7 +1247,7 @@ namespace Shark {
 
 			if (m_ReadHoveredEntity || selectEntity)
 			{
-				Renderer::RT_CopyImage(Renderer::GetCommandBuffer(), m_MousePickingImage, m_SceneRenderer->GetIDImage());
+				Renderer::RT_CopyImage(Renderer::GetCommandBuffer(), m_SceneRenderer->GetIDImage(), m_MousePickingImage);
 				if (!m_MousePickingImage->RT_ReadPixel(x, y, (uint32_t&)m_HoveredEntityID))
 					return false;
 			}
