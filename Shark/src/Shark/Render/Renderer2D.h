@@ -43,8 +43,6 @@ namespace Shark {
 			uint32_t TextureCount;
 
 			TimeStep GeometryPassTime;
-			TimeStep OpaqueGeometryTime;
-			TimeStep OITGeometryTime;
 		};
 
 	public:
@@ -71,7 +69,6 @@ namespace Shark {
 
 		void DrawQuad(const glm::mat4& transform, const glm::vec4& color, int id = -1);
 		void DrawQuad(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id = -1);
-		void DrawQuadTransparent(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id = -1);
 
 
 		void DrawFilledCircle(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
@@ -79,7 +76,6 @@ namespace Shark {
 		void DrawFilledCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness = 1.0f, float fade = 0.002f, int id = -1);
 
 		void DrawFilledCircle(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int id = -1);
-		void DrawFilledCircleTransparent(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int id = -1);
 
 		void DrawCircle(const glm::vec2& position, float radius, const glm::vec4& color, int id = -1);
 		void DrawCircle(const glm::vec3& position, const glm::vec3& rotation, float radius, const glm::vec4& color, int id = -1);
@@ -110,16 +106,13 @@ namespace Shark {
 
 	private:
 		void ClearPass();
-		void OpaqueGeometryPass();
-		void OITGeometryPass();
+		void GeometryPass();
 
 	private:
 		struct QuadBatch;
 
 		void AssureQuadVertexDataSize();
-		void AssureTransparentQuadVertexDataSize();
 		void AssureCircleVertexDataSize();
-		void AssureTransparentCircleVertexDataSize();
 		void AssureLineVertexDataSize();
 		void AssureTextVertexDataSize(uint32_t glyphCount);
 
@@ -176,7 +169,6 @@ namespace Shark {
 		{
 			glm::vec3 WorldPosition;
 			glm::vec4 Color;
-			int ID;
 		};
 
 		struct TextVertex
@@ -204,23 +196,13 @@ namespace Shark {
 		glm::mat4 m_ViewProj;
 
 		Ref<GPUTimer> m_GeometryPassTimer;
-		Ref<GPUTimer> m_OpaqueGeometryPassTimer;
-		Ref<GPUTimer> m_OITGeoemtryPassTimer;
 
 		Ref<FrameBuffer> m_GeometryFrameBuffer;
-		Ref<FrameBuffer> m_TransparentGeometryFrameBuffer;
 		Ref<FrameBuffer> m_DepthFrameBuffer;
-		Ref<FrameBuffer> m_TransparentDepthBuffer;
 
 		Ref<Pipeline> m_QuadDepthPassPipeline;
 		Ref<Material> m_QuadDepthPassMaterial;
 		
-		Ref<Pipeline> m_TransparentQuadDepthPassPipeline;
-		Ref<Material> m_TransparentQuadDepthPassMaterial;
-
-		Ref<Pipeline> m_TransparentCircleDepthPassPipeline;
-		Ref<Material> m_TransparentCircleDepthPassMaterial;
-
 		Ref<Pipeline> m_CircleDepthPassPipeline;
 		Ref<Material> m_CircleDepthPassMaterial;
 
@@ -266,31 +248,10 @@ namespace Shark {
 		uint32_t m_CircleVertexCount = 0;
 		
 		// Line
-		Ref<Pipeline> m_LinePipeline;
-		Ref<Material> m_LineMaterial;
+		Ref<RenderPass> m_LinePass;
 		Ref<VertexBuffer> m_LineVertexBuffer;
 		Buffer m_LineVertexData;
 		uint32_t m_LineVertexCount = 0;
-
-
-		// Quad Transparent
-		Ref<Pipeline> m_TransparentQuadPipeline;
-		Ref<Material> m_TransparentQuadMaterial;
-		Ref<VertexBuffer> m_TransparentQuadVertexBuffer;
-		Ref<IndexBuffer> m_TransparentQuadIndexBuffer;
-		Buffer m_TransparentQuadVertexData;
-		std::vector<QuadBatch> m_TransparentQuadBatches;
-		QuadBatch* m_TransparentQuadBatch;
-		uint32_t m_TransparentQuadIndexCount = 0;
-
-		// Transparent Circle
-		Ref<Pipeline> m_TransparentCirclePipeline;
-		Ref<Material> m_TransparentCircleMaterial;
-		Ref<VertexBuffer> m_TransparentCircleVertexBuffer;
-		Ref<IndexBuffer> m_TransparentCircleIndexBuffer;
-		Buffer m_TransparentCircleVertexData;
-		uint32_t m_TransparentCircleIndexCount = 0;
-		uint32_t m_TransparentCircleVertexCount = 0;
 
 		// Text
 		Ref<RenderPass> m_TextPass;

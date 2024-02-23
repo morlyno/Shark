@@ -39,8 +39,6 @@ namespace Shark {
 		m_CommandBuffer = RenderCommandBuffer::Create();
 
 		m_GeometryPassTimer = GPUTimer::Create("Geometry Pass");
-		m_OpaqueGeometryPassTimer = GPUTimer::Create("Opaque Geometry Pass");
-		m_OITGeoemtryPassTimer = GPUTimer::Create("OIT Geometry Pass");
 
 		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
 
@@ -110,11 +108,12 @@ namespace Shark {
 			{ VertexDataType::Int, "ID" }
 		};
 
+#endif
 		VertexLayout lineVertexLayout = {
 				{ VertexDataType::Float3, "Position" },
-				{ VertexDataType::Float4, "Color" },
-				{ VertexDataType::Int, "ID" }
+				{ VertexDataType::Float4, "Color" }
 		};
+#if TODO
 
 		// Depth Only Pass
 		{
@@ -207,6 +206,7 @@ namespace Shark {
 			m_CircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
 			m_CircleIndexBuffer = m_QuadIndexBuffer;
 		}
+#endif
 		
 		// Line
 		{
@@ -217,16 +217,22 @@ namespace Shark {
 			linePipelineSpecs.DebugName = "Renderer2D-Line";
 			linePipelineSpecs.Primitve = PrimitveType::Line;
 			linePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
-			linePipelineSpecs.WriteDepth = false;
-			linePipelineSpecs.DepthOperator = DepthCompareOperator::Equal;
-			m_LinePipeline = Pipeline::Create(linePipelineSpecs);
-			m_LineMaterial = Material::Create(linePipelineSpecs.Shader);
-			
+			linePipelineSpecs.WriteDepth = true;
+			linePipelineSpecs.DepthOperator = DepthCompareOperator::LessEqual;
+
+			RenderPassSpecification specification;
+			specification.Pipeline = Pipeline::Create(linePipelineSpecs);
+			specification.DebugName = linePipelineSpecs.DebugName;
+			m_LinePass = RenderPass::Create(specification);
+			m_LinePass->Set("u_Camera", m_CBCamera);
+			SK_CORE_VERIFY(m_LinePass->Validate());
+			m_LinePass->Bake();
+
 			m_LineVertexBuffer = VertexBuffer::Create(DefaultLineVertices * sizeof LineVertex, true, nullptr);
 			m_LineVertexData.Allocate(DefaultLineVertices * sizeof LineVertex);
 		}
 
-
+#if TODO
 		// Transparent Quad
 		{
 			PipelineSpecification pipelineSpec;
@@ -311,8 +317,8 @@ namespace Shark {
 		for (uint32_t i = 0; i < 20; i++)
 		{
 			const double r0 = (double)i * delta;
-			point.x = (float)glm::sin(r0) * 0.5f;
-			point.y = (float)glm::cos(r0) * 0.5f;
+			point.x = (float)glm::sin(r0);
+			point.y = (float)glm::cos(r0);
 
 			m_CirlceVertexPositions[i] = point;
 		}
@@ -325,8 +331,6 @@ namespace Shark {
 		m_CircleVertexData.Release();
 		m_LineVertexData.Release();
 		m_TextVertexData.Release();
-		m_TransparentQuadVertexData.Release();
-		m_TransparentCircleVertexData.Release();
 	}
 
 	void Renderer2D::Resize(uint32_t width, uint32_t height)
@@ -355,18 +359,9 @@ namespace Shark {
 		m_QuadIndexCount = 0;
 		m_QuadBatch = &m_QuadBatches.emplace_back(0);
 		
-		// Transparent Quad
-		m_TransparentQuadBatches.clear();
-		m_TransparentQuadIndexCount = 0;
-		m_TransparentQuadBatch = &m_TransparentQuadBatches.emplace_back(0);
-		
 		// Circle
 		m_CircleIndexCount = 0;
 		m_CircleVertexCount = 0;
-
-		// Transparent Circle
-		m_TransparentCircleIndexCount = 0;
-		m_TransparentCircleVertexCount = 0;
 
 		// Line
 		m_LineVertexCount = 0;
@@ -385,13 +380,10 @@ namespace Shark {
 		SK_CORE_VERIFY(m_Active);
 
 		m_CommandBuffer->Begin();
-		m_CommandBuffer->BeginTimeQuery(m_GeometryPassTimer);
 
 		ClearPass();
-		OpaqueGeometryPass();
-		OITGeometryPass();
+		GeometryPass();
 
-		m_CommandBuffer->EndTimeQuery(m_GeometryPassTimer);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 
@@ -487,39 +479,6 @@ namespace Shark {
 		m_Statistics.IndexCount += 6;
 	}
 
-	void Renderer2D::DrawQuadTransparent(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id)
-	{
-		SK_CORE_VERIFY(m_Active);
-
-		if (m_TransparentQuadBatch->Textures.size() > MaxTextureSlots)
-			BeginQaudBatch();
-
-		auto& batch = *m_TransparentQuadBatch;
-		uint32_t textureSlot = AddTexture(&batch, texture ? texture : m_WhiteTexture);
-
-		AssureTransparentQuadVertexDataSize();
-
-		QuadVertex* memory = m_TransparentQuadVertexData.Offset<QuadVertex>(batch.VertexOffset + batch.VertexCount);
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			memory->WorldPosition = transform * m_QuadVertexPositions[i];
-			memory->Color = color;
-			memory->Tex = m_TextureCoords[i];
-			memory->TextureSlot = textureSlot;
-			memory->TilingFactor = tilingfactor;
-			memory->ID = id;
-			memory++;
-		}
-
-		batch.VertexCount += 4;
-		batch.IndexCount += 6;
-		m_TransparentQuadIndexCount += 6;
-
-		m_Statistics.QuadCount++;
-		m_Statistics.VertexCount += 4;
-		m_Statistics.IndexCount += 6;
-	}
-
 	void Renderer2D::DrawFilledCircle(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, float thickness, float fade, int id)
 	{
 		DrawFilledCircle({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, color, thickness, fade, id);
@@ -564,32 +523,6 @@ namespace Shark {
 
 		m_CircleVertexCount += 4;
 		m_CircleIndexCount += 6;
-
-		m_Statistics.CircleCount++;
-		m_Statistics.VertexCount += 4;
-		m_Statistics.IndexCount += 6;
-	}
-
-	void Renderer2D::DrawFilledCircleTransparent(const glm::mat4& transform, const glm::vec4& color, float thickness, float fade, int id)
-	{
-		SK_CORE_VERIFY(m_Active);
-
-		AssureTransparentCircleVertexDataSize();
-
-		CircleVertex* memory = m_TransparentCircleVertexData.Offset<CircleVertex>(m_TransparentCircleVertexCount);
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			memory->WorldPosition = transform * m_QuadVertexPositions[i];
-			memory->LocalPosition = m_QuadVertexPositions[i] * 2.0f;
-			memory->Color = color;
-			memory->Thickness = thickness;
-			memory->Fade = fade;
-			memory->ID = id;
-			memory++;
-		}
-
-		m_TransparentCircleVertexCount += 4;
-		m_TransparentCircleIndexCount += 6;
 
 		m_Statistics.CircleCount++;
 		m_Statistics.VertexCount += 4;
@@ -653,12 +586,10 @@ namespace Shark {
 		LineVertex* memory = m_LineVertexData.Offset<LineVertex>(m_LineVertexCount);
 		memory->WorldPosition = pos0;
 		memory->Color = color;
-		memory->ID = id;
 
 		memory++;
 		memory->WorldPosition = pos1;
 		memory->Color = color;
-		memory->ID = id;
 
 		m_LineVertexCount += 2;
 		
@@ -805,9 +736,9 @@ namespace Shark {
 #endif
 	}
 
-	void Renderer2D::OpaqueGeometryPass()
+	void Renderer2D::GeometryPass()
 	{
-		m_CommandBuffer->BeginTimeQuery(m_OpaqueGeometryPassTimer);
+		m_CommandBuffer->BeginTimeQuery(m_GeometryPassTimer);
 
 #if TODO
 		if (m_QuadIndexCount)
@@ -862,14 +793,16 @@ namespace Shark {
 			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePipeline, m_CircleMaterial, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
 			m_Statistics.DrawCalls++;
 		}
+#endif
 
 		if (m_LineVertexCount)
 		{
-			m_LineMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
-			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_LineVertexBuffer, m_LineVertexCount);
+			Renderer::BeginRenderPass(m_CommandBuffer, m_LinePass);
+			m_LineVertexBuffer->SetData(m_LineVertexData, true);
+			Renderer::RenderGeometry(m_CommandBuffer, m_LinePass->GetPipeline(), nullptr, m_LineVertexBuffer, m_LineVertexCount);
+			Renderer::EndRenderPass(m_CommandBuffer, m_LinePass);
 			m_Statistics.DrawCalls++;
 		}
-#endif
 
 		if (m_TextIndexCount)
 		{
@@ -885,70 +818,7 @@ namespace Shark {
 			Renderer::EndRenderPass(m_CommandBuffer, m_TextPass);
 		}
 
-		m_CommandBuffer->EndTimeQuery(m_OpaqueGeometryPassTimer);
-	}
-
-	void Renderer2D::OITGeometryPass()
-	{
-#if TODO
-		m_CommandBuffer->BeginTimeQuery(m_OITGeoemtryPassTimer);
-
-		if (m_TransparentQuadIndexCount)
-		{
-			if (m_TransparentQuadIndexBuffer->GetCount() < m_TransparentQuadIndexCount)
-				ResizeQuadIndexBuffer(m_TransparentQuadIndexCount);
-
-			m_TransparentQuadDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
-			m_TransparentQuadVertexBuffer->SetData(m_TransparentQuadVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentQuadDepthPassPipeline, m_TransparentQuadDepthPassMaterial, m_TransparentQuadVertexBuffer, m_TransparentQuadIndexBuffer, m_TransparentQuadIndexCount);
-			m_Statistics.DrawCalls++;
-		}
-
-		if (m_TransparentCircleIndexCount)
-		{
-			if (m_TransparentCircleIndexBuffer->GetCount() < m_TransparentCircleIndexCount)
-				ResizeQuadIndexBuffer(m_TransparentCircleIndexCount);
-
-			m_TransparentCircleDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
-			m_TransparentCircleVertexBuffer->SetData(m_TransparentCircleVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCircleDepthPassPipeline, m_TransparentCircleDepthPassMaterial, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
-			m_Statistics.DrawCalls++;
-		}
-
-		if (m_TransparentQuadIndexCount)
-		{
-			Renderer::BeginBatch(m_CommandBuffer, m_TransparentQuadPipeline, m_TransparentQuadVertexBuffer, m_TransparentQuadIndexBuffer);
-			uint32_t indexOffset = 0;
-			m_TransparentQuadMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
-			for (const auto& batch : m_TransparentQuadBatches)
-			{
-				PrepareMaterial(m_TransparentQuadMaterial, batch);
-				Renderer::RenderBatch(m_CommandBuffer, m_TransparentQuadMaterial, batch.IndexCount, indexOffset);
-				indexOffset += batch.IndexCount;
-				m_Statistics.DrawCalls++;
-			}
-			Renderer::EndBatch(m_CommandBuffer);
-		}
-
-		if (m_TransparentCircleIndexCount)
-		{
-			m_TransparentCircleMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
-			Renderer::RenderGeometry(m_CommandBuffer, m_TransparentCirclePipeline, m_TransparentCircleMaterial, m_TransparentCircleVertexBuffer, m_TransparentCircleIndexBuffer, m_TransparentCircleIndexCount);
-			m_Statistics.DrawCalls++;
-		}
-
-		if (m_TransparentQuadIndexCount || m_TransparentCircleIndexCount)
-		{
-			m_CompositeMaterial->Set("AccumulationImage", m_TransparentGeometryFrameBuffer->GetImage(0));
-			m_CompositeMaterial->Set("RevealImage", m_TransparentGeometryFrameBuffer->GetImage(1));
-			m_CompositeMaterial->Set("IDImage", m_TransparentGeometryFrameBuffer->GetImage(2));
-			m_CompositeMaterial->Set("DepthImage", m_TransparentDepthBuffer->GetDepthImage());
-			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositePipeline, m_CompositeMaterial);
-			m_Statistics.DrawCalls++;
-		}
-
-		m_CommandBuffer->EndTimeQuery(m_OITGeoemtryPassTimer);
-#endif
+		m_CommandBuffer->EndTimeQuery(m_GeometryPassTimer);
 	}
 
 	void Renderer2D::AssureQuadVertexDataSize()
@@ -957,22 +827,10 @@ namespace Shark {
 			m_QuadVertexData.Resize(m_QuadVertexData.Size * 2);
 	}
 
-	void Renderer2D::AssureTransparentQuadVertexDataSize()
-	{
-		if (m_TransparentQuadBatch->VertexOffset + m_TransparentQuadBatch->VertexCount >= m_TransparentQuadVertexData.Count<QuadVertex>())
-			m_TransparentQuadVertexData.Resize(m_TransparentQuadVertexData.Size * 2);
-	}
-
 	void Renderer2D::AssureCircleVertexDataSize()
 	{
 		if (m_CircleVertexCount >= m_CircleVertexData.Count<CircleVertex>())
 			m_CircleVertexData.Resize(m_CircleVertexData.Size * 2);
-	}
-
-	void Renderer2D::AssureTransparentCircleVertexDataSize()
-	{
-		if (m_TransparentCircleVertexCount >= m_TransparentCircleVertexData.Count<CircleVertex>())
-			m_TransparentCircleVertexData.Resize(m_TransparentCircleVertexData.Size * 2);
 	}
 
 	void Renderer2D::AssureLineVertexDataSize()

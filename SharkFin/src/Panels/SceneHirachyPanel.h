@@ -140,6 +140,22 @@ namespace Shark {
 							}
 						}
 
+						ImGui::Separator();
+						
+						if (ImGui::MenuItem("Copy"))
+						{
+							m_HasTransformCopy = true;
+							m_TransformCopy = entity.Transform();
+						}
+
+						if (ImGui::MenuItem("Paste"))
+						{
+							if (m_HasTransformCopy)
+							{
+								entity.Transform() = m_TransformCopy;
+							}
+						}
+
 						ImGui::MenuItem("Show World Space", nullptr, &m_TransformInWorldSpace);
 					}
 
@@ -179,6 +195,10 @@ namespace Shark {
 		bool m_SearchCaseSensitive = false;
 
 		bool m_ScriptFound = false;
+
+		bool m_HasTransformCopy;
+		TransformComponent m_TransformCopy;
+
 	};
 
 }

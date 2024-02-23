@@ -70,7 +70,6 @@ namespace Shark {
 		void UI_EditorCamera();
 		void UI_DragDrop();
 		void UI_ToolBar();
-		void UI_CameraPrevie();
 		void UI_ProfilerStats();
 		void UI_ImportTexture();
 		bool UI_MousePicking();
@@ -83,7 +82,6 @@ namespace Shark {
 		void RegisterSettingNodes();
 
 		void DebugRender();
-		void RenderCameraPreview();
 
 		Entity CreateEntity(const std::string& name = "Untitled");
 		void DeleteEntity(Entity entity);
@@ -125,8 +123,8 @@ namespace Shark {
 
 		void UpdateWindowTitle();
 
-		void InstantiateMesh(Ref<Mesh> mesh);
-		void InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent);
+		Entity InstantiateMesh(Ref<Mesh> mesh);
+		void InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent, Entity entity = {});
 
 		void VerifyEditorTexture(const std::filesystem::path& filepath);
 		void VerifyEditorTexture(const std::filesystem::path& filepath, const std::filesystem::path& sourcePath);
@@ -142,7 +140,6 @@ namespace Shark {
 		Ref<Image2D> m_MousePickingImage;
 
 		Ref<SceneRenderer> m_SceneRenderer;
-		Ref<SceneRenderer> m_CameraPreviewRenderer;
 		Ref<Renderer2D> m_DebugRenderer;
 
 		Ref<Scene> m_ActiveScene = nullptr;
@@ -182,7 +179,7 @@ namespace Shark {
 		SceneState m_SceneState = SceneState::Edit;
 
 		bool m_ShowColliders = false;
-		bool m_ShowCameraPreview = false;
+		bool m_ShowLightRadius = true;
 
 		struct TextureSourceImportData
 		{

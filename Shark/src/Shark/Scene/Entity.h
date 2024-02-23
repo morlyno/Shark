@@ -65,7 +65,7 @@ namespace Shark {
 
 		UUID GetUUID() { return GetComponent<IDComponent>().ID; }
 		UUID GetUUID() const { return m_Scene.GetRef()->m_Registry.get<IDComponent>(m_EntityHandle).ID; }
-		const std::string& GetName() { return GetComponent<TagComponent>().Tag; }
+		std::string& GetName() { return GetComponent<TagComponent>().Tag; }
 		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
 		glm::mat4 CalcTransform() const { return m_Scene.GetRef()->m_Registry.get<TransformComponent>(m_EntityHandle).CalcTransform(); }
 

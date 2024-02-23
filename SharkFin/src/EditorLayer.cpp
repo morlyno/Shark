@@ -103,8 +103,10 @@ namespace Shark {
 
 		const auto& window = Application::Get().GetWindow();
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
-		m_CameraPreviewRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Camera Preview Renderer");
-		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer());
+
+		Renderer2DSpecifications debugRendererSpec;
+		debugRendererSpec.UseDepthTesting = true;
+		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer(), debugRendererSpec);
 
 		// Readable image for Mouse Picking
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
@@ -168,7 +170,6 @@ namespace Shark {
 				m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 
 				m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
-				m_CameraPreviewRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 
 				m_MousePickingImage->GetSpecification().Width = m_ViewportWidth;
@@ -203,7 +204,6 @@ namespace Shark {
 				}
 			}
 
-			RenderCameraPreview();
 			DebugRender();
 		}
 
@@ -412,7 +412,6 @@ namespace Shark {
 
 		UI_Info();
 		UI_EditorCamera();
-		UI_CameraPrevie();
 		UI_ImportTexture();
 		UI_LogSettings();
 		UI_Statistics();
@@ -874,7 +873,10 @@ namespace Shark {
 						{
 							Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(metadata.Handle);
 							if (mesh)
-								InstantiateMesh(mesh);
+							{
+								Entity meshEntity = InstantiateMesh(mesh);
+								SelectEntity(meshEntity);
+							}
 							break;
 						}
 						case AssetType::MeshSource:
@@ -1035,51 +1037,6 @@ namespace Shark {
 		}
 
 		ImGui::End();
-	}
-
-	static void CameraPreviewResizeCallback(ImGuiSizeCallbackData* data)
-	{
-		SK_PROFILE_FUNCTION();
-
-		ImVec2 viewportSize = *(ImVec2*)data->UserData;
-		float aspectRatio = viewportSize.x / viewportSize.y;
-		ImVec2 delta = data->DesiredSize - data->CurrentSize;
-
-		if (delta.x != 0.0f && delta.y != 0.0f)
-		{
-			if (delta.x > delta.y)
-			{
-				data->DesiredSize.y = data->DesiredSize.x / aspectRatio;
-			}
-			else
-			{
-				data->DesiredSize.x = data->DesiredSize.y * aspectRatio;
-			}
-		}
-		else if (delta.x != 0.0f)
-		{
-			data->DesiredSize.y = data->DesiredSize.x / aspectRatio;
-		}
-		else if (delta.y != 0.0f)
-		{
-			data->DesiredSize.x = data->DesiredSize.y * aspectRatio;
-		}
-	}
-
-	void EditorLayer::UI_CameraPrevie()
-	{
-		SK_PROFILE_FUNCTION();
-		
-		if (m_ShowCameraPreview && m_SceneState != SceneState::Play)
-		{
-			ImVec2 viewportSize = { (float)m_ViewportWidth, (float)m_ViewportHeight };
-			ImGui::SetNextWindowSizeConstraints({ 0, 0 }, { FLT_MAX, FLT_MAX }, CameraPreviewResizeCallback, &viewportSize);
-
-			ImGui::Begin("Camera Preview", nullptr, ImGuiWindowFlags_NoTitleBar);
-			Ref<Image2D> image = m_CameraPreviewRenderer->GetFinalImage();
-			ImGui::Image(image->GetViewID(), ImGui::GetContentRegionAvail());
-			ImGui::End();
-		}
 	}
 
 	void EditorLayer::UI_ProfilerStats()
@@ -1592,7 +1549,8 @@ namespace Shark {
 
 				Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(m_CreateMeshAssetData.MeshSource);
 				Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(directory, name, meshSource);
-				InstantiateMesh(mesh);
+				Entity meshEntity = InstantiateMesh(mesh);
+				SelectEntity(meshEntity);
 				m_CreateMeshAssetData = {};
 			}
 
@@ -1618,8 +1576,8 @@ namespace Shark {
 			{
 				UI::ScopedIndent indent(ImGui::GetStyle().IndentSpacing);
 				UI::BeginControlsGrid();
-				UI::Control("Camera Preview", m_ShowCameraPreview);
 				UI::Control("Colliders", m_ShowColliders);
+				UI::Control("Light Radius", m_ShowLightRadius);
 				UI::EndControlsGrid();
 			}
 		});
@@ -1668,10 +1626,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		//m_DebugRenderer->SetRenderTarget(m_SceneRenderer->GetExternalCompositFrameBuffer());
+		m_DebugRenderer->BeginScene(GetActiveViewProjection());
+
 		if (m_ShowColliders)
 		{
-			//m_DebugRenderer->SetRenderTarget(m_SceneRenderer->GetExternalCompositFrameBuffer());
-			m_DebugRenderer->BeginScene(GetActiveViewProjection());
 			{
 				auto view = m_ActiveScene->GetAllEntitysWith<BoxCollider2DComponent>();
 				for (auto entityID : view)
@@ -1707,20 +1666,25 @@ namespace Shark {
 					m_DebugRenderer->DrawCircle(transform, { 0.1f, 0.3f, 0.9f, 1.0f });
 				}
 			}
-			m_DebugRenderer->EndScene();
 		}
-	}
 
-	void EditorLayer::RenderCameraPreview()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (m_ShowCameraPreview)
+		if (m_ShowLightRadius)
 		{
-			Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
-			if (cameraEntity)
-				m_ActiveScene->OnRenderRuntime(m_CameraPreviewRenderer);
+			if (m_SelectetEntity && m_SelectetEntity.AllOf<PointLightComponent>())
+			{
+				const auto& plc = m_SelectetEntity.GetComponent<PointLightComponent>();
+				
+				glm::vec3 center = m_SelectetEntity.Transform().Translation;
+				glm::vec4 lightRadiusColor = { 0.1f, 0.3f, 0.9f, 1.0f };
+				float rotation = glm::radians(90.0f);
+
+				m_DebugRenderer->DrawCircle(center, { 0.0f, 0.0f, 0.0f }, plc.Radius, lightRadiusColor);
+				m_DebugRenderer->DrawCircle(center, { 0.0f, rotation, 0.0f }, plc.Radius, lightRadiusColor);
+				m_DebugRenderer->DrawCircle(center, { rotation, 0.0f, 0.0f }, plc.Radius, lightRadiusColor);
+			}
 		}
+
+		m_DebugRenderer->EndScene();
 	}
 
 	Entity EditorLayer::CreateEntity(const std::string& name)
@@ -1936,7 +1900,6 @@ namespace Shark {
 
 		m_ActiveScene = scene;
 		m_SceneRenderer->SetScene(scene);
-		m_CameraPreviewRenderer->SetScene(scene);
 		m_PanelManager->SetContext(scene);
 		UpdateWindowTitle();
 	}
@@ -1986,7 +1949,6 @@ namespace Shark {
 
 		m_ActiveScene = nullptr;
 		m_SceneRenderer->SetScene(nullptr);
-		m_CameraPreviewRenderer->SetScene(nullptr);
 		SetActiveScene(nullptr);
 
 		ScriptEngine::UnloadAssemblies();
@@ -2093,21 +2055,26 @@ namespace Shark {
 		Application::Get().GetWindow().SetTitle(title);
 	}
 
-	void EditorLayer::InstantiateMesh(Ref<Mesh> mesh)
+	Entity EditorLayer::InstantiateMesh(Ref<Mesh> mesh)
 	{
 		SK_PROFILE_FUNCTION();
 
 		Ref<MeshSource> source = mesh->GetMeshSource();
-		InstantiateMeshNode(mesh, source->GetRootNode(), Entity{});
+		Entity rootEntity = m_ActiveScene->CreateEntity();
+		InstantiateMeshNode(mesh, source->GetRootNode(), Entity{}, rootEntity);
+		return rootEntity;
 	}
 
-	void EditorLayer::InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent)
+	void EditorLayer::InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent, Entity entity)
 	{
 		SK_PROFILE_FUNCTION();
 
 		Ref<MeshSource> source = mesh->GetMeshSource();
 
-		Entity entity = m_ActiveScene->CreateChildEntity(parent, node.Name);
+		if (!entity)
+			entity = m_ActiveScene->CreateChildEntity(parent);
+		entity.GetName() = node.Name;
+
 		entity.Transform().SetTransform(node.LocalTransform);
 		if (node.Submeshes.size() == 1)
 		{
@@ -2132,7 +2099,6 @@ namespace Shark {
 			const MeshNode& childNode = source->GetNodes()[childNodeIndex];
 			InstantiateMeshNode(mesh, childNode, entity);
 		}
-
 	}
 
 	void EditorLayer::VerifyEditorTexture(const std::filesystem::path& assetPath)

@@ -21,7 +21,7 @@ Scene:
       TagComponent:
         Name: Light
       TransformComponent:
-        Translation: [-10.6923075, 5.56608486, 13.5992222]
+        Translation: [12.5533552, 5.7438879, -0.913570404]
         Rotation: [0, 0, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -31,7 +31,7 @@ Scene:
       PointLightComponent:
         Color: [1, 1, 1, 1]
         Intensity: 1
-        Radius: 52.9000015
+        Radius: 14.3000002
         Falloff: 1
     - Entity: 3378318554821546903
       TagComponent:

@@ -1,52 +1,47 @@
 #pragma stage : Vertex
 
-// begin_metadata
-// set u_SceneData RenderPass
-// end_metadata
-
-cbuffer u_SceneData : register(b0)
+struct Camera
 {
     matrix ViewProjection;
-}
+};
 
-struct Output
+[[vk::binding(0, 1)]] ConstantBuffer<Camera> u_Camera;
+
+struct VertexInput
 {
-    float4 Color : Color;
-    int ID : ID;
+    [[vk::location(0)]] float3 Position : Position;
+    [[vk::location(1)]] float4 Color : Color;
+};
+
+struct VertexOutput
+{
+    [[vk::location(0)]] float4 Color : Color;
     float4 Position : SV_POSITION;
 };
 
-Output main(
-    float3 Position : Position,
-    float4 Color : Color,
-    int ID : ID
-)
+VertexOutput main(VertexInput Input)
 {
-    Output output;
-    output.Position = mul(ViewProjection, float4(Position, 1.0f));
-    output.Color = Color;
-    output.ID = ID;
-    return output;
+    VertexOutput Output;
+    Output.Position = mul(u_Camera.ViewProjection, float4(Input.Position, 1.0f));
+    Output.Color = Input.Color;
+    return Output;
 }
 
 #pragma stage : Pixel
 
-struct Targets
+struct PixelInput
+{
+    [[vk::location(0)]] float4 Color : Color;
+};
+
+struct PixelOutput
 {
     float4 Color : SV_Target0;
-    int ID : SV_Target1;
 };
 
-struct Input
+PixelOutput main(PixelInput Input)
 {
-    float4 Color : Color;
-    int ID : ID;
-};
-
-Targets main(Input input)
-{
-    Targets targets;
-    targets.Color = input.Color;
-    targets.ID = input.ID;
-    return targets;
+    PixelOutput Output;
+    Output.Color = Input.Color;
+    return Output;
 }

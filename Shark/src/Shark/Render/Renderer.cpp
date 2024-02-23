@@ -73,17 +73,15 @@ namespace Shark {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EquirectangularToCubeMap.glsl");
 
 		// 2D
-#if TODO
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Quad.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadTransparent.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadDepthPass.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Circle.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_CircleTransparent.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_CircleDepthPass.hlsl");
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Quad.hlsl");
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadTransparent.hlsl");
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadDepthPass.hlsl");
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Circle.hlsl");
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_CircleTransparent.hlsl");
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_CircleDepthPass.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Line.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_LineDepthPass.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Composite.hlsl");
-#endif
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_LineDepthPass.hlsl");
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Composite.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Text.hlsl");
 
 		// Misc

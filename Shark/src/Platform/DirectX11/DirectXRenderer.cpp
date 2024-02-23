@@ -468,7 +468,6 @@ namespace Shark {
 			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
 			ctx->IASetVertexBuffers(0, 1, &dxVB->m_VertexBuffer, &stride, &offset);
 
-
 			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
 
 			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
@@ -477,6 +476,13 @@ namespace Shark {
 			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
 			instance->RT_PrepareAndBindMaterial(commandBuffer, dxMaterial);
+
+			if (dxPipeline->UsesPushConstant())
+			{
+				Ref<DirectXConstantBuffer> pushConstantBuffer = dxPipeline->GetLastUpdatedPushConstantBuffer().As<DirectXConstantBuffer>();
+				const auto& reflectionData = dxShader->GetReflectionData();
+				utils::BindConstantBuffer(ctx, pushConstantBuffer->m_ConstantBuffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
+			}
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
