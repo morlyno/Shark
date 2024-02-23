@@ -89,6 +89,7 @@ project "Shark"
 
         links
         {
+            "%{DXC.LibraryDebug}",
             "%{ShaderC.LibraryDebug}",
             "%{SPIRV_Cross.LibraryDebug}",
             "%{SPIRV_Cross_GLSL.LibraryDebug}",
@@ -103,6 +104,7 @@ project "Shark"
         
         links
         {
+            "%{DXC.LibraryRelease}",
             "%{ShaderC.LibraryRelease}",
             "%{SPIRV_Cross.LibraryRelease}",
             "%{SPIRV_Cross_GLSL.LibraryRelease}",

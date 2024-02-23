@@ -17,5 +17,6 @@ void main()
 	vec2 uv = vec2(phi / (TwoPI) + 0.5, theta / PI);
 
 	vec4 color = texture(u_EquirectangularTex, uv);
+	color = min(color, vec4(100.0f));
 	imageStore(o_CubeMap, ivec3(gl_GlobalInvocationID), color);
 }

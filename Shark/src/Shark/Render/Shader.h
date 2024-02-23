@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Render/ShaderReflection.h"
 #include "Shark/Render/VertexLayout.h"
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/RenderCommandBuffer.h"
@@ -14,10 +15,26 @@ namespace Shark {
 
 		virtual bool Reload(bool forceCompile = false, bool disableOptimization = false) = 0;
 
+		virtual uint64_t GetHash() const = 0;
 		virtual const std::string& GetName() const = 0;
 		virtual const std::filesystem::path& GetFilePath() const = 0;
+
+		virtual bool HasResource(const std::string& name) const = 0;
+		virtual bool HasMember(const std::string& name) const = 0;
+
+		virtual const ShaderReflection::Resource& GetResourceInfo(const std::string& name) const = 0;
+		virtual const ShaderReflection::Resource& GetMembersResourceInfo(const std::string& name) const = 0;
+		virtual const ShaderReflection::MemberDeclaration& GetMemberInfo(const std::string& name) const = 0;
+
+		virtual std::pair<uint32_t, uint32_t> GetResourceBinding(const std::string& name) const = 0;
+		virtual std::tuple<uint32_t, uint32_t, uint32_t> GetMemberBinding(const std::string& name) const = 0;
+
+	public:
+		virtual const ShaderReflectionData& GetReflectionData() const = 0;
+
 	public:
 		static Ref<Shader> Create();
+
 	};
 
 	class ShaderLibrary : public RefCount

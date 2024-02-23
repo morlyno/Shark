@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
+#include "Shark/Render/RendererResource.h"
 
 #include <glm/glm.hpp>
 
@@ -49,7 +50,7 @@ namespace Shark {
 		std::string DebugName;
 	};
 
-	class Image2D : public RefCount
+	class Image2D : public RendererResource
 	{
 	public:
 		virtual ~Image2D() = default;

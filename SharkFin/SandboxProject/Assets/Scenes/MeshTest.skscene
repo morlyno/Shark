@@ -17,6 +17,22 @@ Scene:
         MeshHandle: 9815586959680881104
         SubmeshIndex: 0
         MaterialHandle: 13162362789742264016
+    - Entity: 1625268215021358436
+      TagComponent:
+        Name: Light
+      TransformComponent:
+        Translation: [-10.6923075, 5.56608486, 13.5992222]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      PointLightComponent:
+        Color: [1, 1, 1, 1]
+        Intensity: 1
+        Radius: 52.9000015
+        Falloff: 1
     - Entity: 3378318554821546903
       TagComponent:
         Name: Floor

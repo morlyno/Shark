@@ -39,3 +39,13 @@ namespace std {
 	};
 
 }
+
+template<typename Char>
+struct fmt::formatter<Shark::UUID, Char> : fmt::formatter<uint64_t, Char>
+{
+	template<typename FormatContext>
+	auto format(const Shark::UUID& uuid, FormatContext& ctx) -> decltype(ctx.out())
+	{
+		return fmt::formatter<uint64_t, Char>::format((uint64_t)uuid, ctx);
+	}
+};

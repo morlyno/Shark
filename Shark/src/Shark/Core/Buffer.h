@@ -23,6 +23,7 @@ namespace Shark {
 		void Write(const void* data, uint64_t size, uint64_t offset = 0);
 		void Write(const byte* data, uint64_t size, uint64_t offset = 0);
 		void Write(const Buffer buffer, uint64_t offset = 0) { Write(buffer.Data, buffer.Size, offset); }
+		void Write(const Buffer buffer, uint64_t size, uint64_t offset) { Write(buffer.Data, std::min(size, buffer.Size), offset); }
 		void SetZero();
 		Buffer SubBuffer(uint32_t offset, uint32_t size);
 

@@ -20,21 +20,27 @@ namespace Shark {
 
 		virtual bool Reload(bool forceCompile = false, bool disableOptimization = false) override;
 
+		void SetHash(uint64_t hash) { m_Hash = hash; }
+		virtual uint64_t GetHash() const override { return m_Hash; }
 		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
 		virtual const std::string& GetName() const override { return m_Name; }
 
 		const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& GetShaderBinaries() const { return m_ShaderBinary; }
-		const ShaderReflectionData& GetReflectionData() const { return m_RefelctionData; }
+		virtual const ShaderReflectionData& GetReflectionData() const override { return m_ReflectionData; }
 
-		bool HasResourceInfo(const std::string& name) const;
-		const ShaderReflection::Resource& GetResourceInfo(const std::string& name) const;
+		virtual bool HasResource(const std::string& name) const override;
+		virtual bool HasMember(const std::string& name) const override;
 
-		bool HasBufferInfo(const std::string& name) const;
-		const ShaderReflection::ConstantBuffer& GetBufferInfo(const std::string& name) const;
+		virtual const ShaderReflection::Resource& GetResourceInfo(const std::string& name) const override;
+		virtual const ShaderReflection::Resource& GetMembersResourceInfo(const std::string& name) const override;
+		virtual const ShaderReflection::MemberDeclaration& GetMemberInfo(const std::string& name) const override;
+
+		virtual std::pair<uint32_t, uint32_t> GetResourceBinding(const std::string& name) const override;
+		virtual std::tuple<uint32_t, uint32_t, uint32_t> GetMemberBinding(const std::string& name) const override;
 
 	private:
 		void LoadShader(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& shaderBinary);
-		void SetReflectionData(const ShaderReflectionData& reflectionData) { m_RefelctionData = reflectionData; }
+		void SetReflectionData(const ShaderReflectionData& reflectionData) { m_ReflectionData = reflectionData; }
 
 	private:
 		ID3D11PixelShader* m_PixelShader = nullptr;
@@ -42,9 +48,10 @@ namespace Shark {
 		ID3D11ComputeShader* m_ComputeShader = nullptr;
 
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>> m_ShaderBinary;
-		ShaderReflectionData m_RefelctionData;
+		ShaderReflectionData m_ReflectionData;
 		std::filesystem::path m_FilePath;
 		std::string m_Name;
+		uint64_t m_Hash;
 
 		friend class DirectXRenderer;
 		friend class DirectXShaderCompiler;

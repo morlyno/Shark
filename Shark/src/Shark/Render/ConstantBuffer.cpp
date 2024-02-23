@@ -6,12 +6,12 @@
 
 namespace Shark {
 
-	Ref<ConstantBuffer> ConstantBuffer::Create(uint32_t size, uint32_t binding)
+	Ref<ConstantBuffer> ConstantBuffer::Create(uint32_t size)
 	{
 		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXConstantBuffer>::Create(size, binding);
+			case RendererAPIType::DirectX11: return Ref<DirectXConstantBuffer>::Create(size);
 		}
 		SK_CORE_ASSERT(false, "Unkown RendererAPI");
 		return nullptr;

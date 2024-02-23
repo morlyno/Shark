@@ -60,11 +60,7 @@ namespace Shark {
 	DirectXPipeline::DirectXPipeline(const PipelineSpecification& specs)
 		: m_Specification(specs)
 	{
-		Ref<DirectXPipeline> instance = this;
-		Renderer::Submit([instance]()
-		{
-			instance->RT_Init();
-		});
+		RT_Init();
 	}
 
 	DirectXPipeline::~DirectXPipeline()
@@ -80,15 +76,54 @@ namespace Shark {
 		});
 	}
 
+	void DirectXPipeline::SetPushConstant(Buffer pushConstantData)
+	{
+		Buffer data = Buffer::Copy(pushConstantData);
+
+		Ref<DirectXPipeline> instance = this;
+		Renderer::Submit([instance, data]() mutable
+		{
+			instance->RT_SetPushConstant(data);
+			data.Release();
+		});
+	}
+
+	void DirectXPipeline::RT_SetPushConstant(Buffer pushConstantData)
+	{
+		SK_CORE_VERIFY(pushConstantData.Size == m_PushConstant.Size);
+
+		if (m_PushConstant.Buffers.size() == m_PushConstant.BufferIndex)
+			m_PushConstant.Buffers.push_back(ConstantBuffer::Create(m_PushConstant.Size));
+
+		Ref<ConstantBuffer> constantBuffer = m_PushConstant.Buffers[m_PushConstant.BufferIndex++];
+		constantBuffer->RT_UploadData(pushConstantData);
+	}
+
 	void DirectXPipeline::SetFrameBuffer(Ref<FrameBuffer> frameBuffer)
 	{
 		m_FrameBuffer = frameBuffer.As<DirectXFrameBuffer>();
 		m_Specification.TargetFrameBuffer = frameBuffer;
 	}
 
+	void DirectXPipeline::BeginRenderPass()
+	{
+		m_PushConstant.BufferIndex = 0;
+	}
+
+	void DirectXPipeline::EndRenderPass()
+	{
+
+	}
+
+	Ref<ConstantBuffer> DirectXPipeline::GetLastUpdatedPushConstantBuffer()
+	{
+		const uint32_t index = m_PushConstant.BufferIndex - 1;
+		SK_CORE_VERIFY(m_PushConstant.BufferIndex != 0 && index < m_PushConstant.Buffers.size());
+		return m_PushConstant.Buffers[index];
+	}
+
 	void DirectXPipeline::RT_Init()
 	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		ID3D11Device* dev = DirectXRenderer::GetDevice();
 
 		m_Shader = m_Specification.Shader.As<DirectXShader>();
@@ -130,6 +165,13 @@ namespace Shark {
 		}
 		const auto& shaderBinaryWithInputSignature = m_Specification.Shader.As<DirectXShader>()->GetShaderBinaries().at(ShaderUtils::ShaderStage::Vertex);
 		SK_DX11_CALL(dev->CreateInputLayout(inputElements.data(), (UINT)inputElements.size(), shaderBinaryWithInputSignature.data(), shaderBinaryWithInputSignature.size(), &m_InputLayout));
+
+		const auto& reflectionData = m_Specification.Shader->GetReflectionData();
+		if (reflectionData.HasPushConstant)
+		{
+			m_PushConstant.Size = reflectionData.PushConstant.StructSize;
+			m_PushConstant.Binding = reflectionData.PushConstant.DXBinding;
+		}
 
 	}
 

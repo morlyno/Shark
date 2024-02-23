@@ -147,6 +147,30 @@ namespace YAML {
 		}
 	};
 
+	template<typename TArg0, typename TArg1, typename TArg2>
+	struct convert<std::tuple<TArg0, TArg1, TArg2>>
+	{
+		static Node encode(const std::tuple<TArg0, TArg1, TArg2>& tuple)
+		{
+			Node node(NodeType::Sequence);
+			node.push_back(std::get<0>(tuple));
+			node.push_back(std::get<1>(tuple));
+			node.push_back(std::get<2>(tuple));
+			return node;
+		}
+
+		static bool decode(const Node& node, std::tuple<TArg0, TArg1, TArg2>& tuple)
+		{
+			if (!node.IsSequence() || node.size() != 3)
+				return false;
+
+			std::get<0>(tuple) = node[0].as<TArg0>();
+			std::get<1>(tuple) = node[1].as<TArg1>();
+			std::get<2>(tuple) = node[2].as<TArg2>();
+			return true;
+		}
+	};
+
 	Emitter& operator<<(Emitter& out, wchar_t);
 	Emitter& operator<<(Emitter& out, const glm::vec2& f2);
 	Emitter& operator<<(Emitter& out, const glm::vec3& f3);

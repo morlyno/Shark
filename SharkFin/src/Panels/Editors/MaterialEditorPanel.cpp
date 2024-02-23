@@ -36,7 +36,8 @@ namespace Shark {
 		const ImVec2 textureSize = { 64, 64 };
 
 		Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(m_MaterialHandle);
-
+		if (!material)
+			return;
 
 		UI::TextF("Shader: {}", material->GetMaterial()->GetShader()->GetName());
 		UI::TextF("Name: {}", material->GetMaterial()->GetName());

@@ -1,14 +1,10 @@
 #version 450 core
 #pragma stage : vertex
 
-// begin_metadata
-// set u_SceneData PerMaterial
-// end_metadata
-
-layout(std140, binding = 0) uniform SceneData
+layout(set = 1, binding = 0, std140) uniform Uniforms
 {
     mat4 SkyboxProjection;
-} u_SceneData;
+} u_Uniforms;
 
 layout(location = 0) in vec3 a_Position;
 layout(location = 0) out vec3 v_LocalPosition;
@@ -16,13 +12,13 @@ layout(location = 0) out vec3 v_LocalPosition;
 void main()
 {
     v_LocalPosition = a_Position;
-    gl_Position = (u_SceneData.SkyboxProjection * vec4(a_Position, 1.0)).xyww;
+    gl_Position = (u_Uniforms.SkyboxProjection * vec4(a_Position, 1.0)).xyww;
 }
 
 #version 450 core
 #pragma stage : pixel
 
-layout(binding = 0) uniform samplerCube u_EnvironmentMap;
+layout(set = 1, binding = 1) uniform samplerCube u_EnvironmentMap;
 
 layout(location = 0) in vec3 v_LocalPosition;
 layout(location = 0) out vec4 o_Color;

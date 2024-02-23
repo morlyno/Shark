@@ -1,12 +1,12 @@
 #include "skfpch.h"
 #include "EditorConsolePanel.h"
 
+#include "Shark/Core/ConsoleSink.h"
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
+#include "Shark/Debug/Profiler.h"
 
 #include "Icons.h"
-
-#include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
 #include <fmt/printf.h>

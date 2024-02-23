@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Shark/Core/ConsoleSink.h"
 #include "Shark/Utils/fmtUtils.h"
 
 #include <spdlog/spdlog.h>
 
 namespace Shark {
+
+	struct ConsoleSinkMessage;
 
 	struct Tag
 	{
@@ -44,7 +45,7 @@ namespace Shark {
 		static void Initialize();
 		static void Shutdown();
 
-		static void SetConsoleSinkCallback(ConsoleSinkPushMessageCallback callback);
+		static void SetConsoleSinkCallback(std::function<void(ConsoleSinkMessage&&)> callback);
 
 		static std::shared_ptr<spdlog::logger> GetLogger(LoggerType loggerType);
 		static std::shared_ptr<spdlog::logger> GetCoreLogger() { return s_Data->CoreLogger; }

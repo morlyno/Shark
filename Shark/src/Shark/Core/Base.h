@@ -71,6 +71,9 @@ _61,_62,_63,N,...) N
 19,18,17,16,15,14,13,12,11,10, \
 9,8,7,6,5,4,3,2,1,0
 
+#define INTERNAL_CONNECT_STRINGIFY2(a) #a
+#define INTERNAL_CONNECT_STRINGIFY(a, b) INTERNAL_CONNECT_STRINGIFY2(a##b)
+
 #pragma endregion
 
 #define BIT(x) (1 << x)
@@ -79,6 +82,7 @@ _61,_62,_63,N,...) N
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
 #define SK_CONNECT(a, b) SK_IMPL_CONNECT(a, b)
+#define SK_CONNECT_STRINGIFY(a, b) INTERNAL_CONNECT_STRINGIFY(a, b)
 
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 

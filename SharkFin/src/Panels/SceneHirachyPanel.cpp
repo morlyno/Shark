@@ -509,9 +509,9 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 			UI::ControlColor("Color", comp.Color);
-			UI::Control("Intensity", comp.Intensity, 1.0, 0.0f, FLT_MAX);
-			if (UI::Control("Radiance", entity.Transform().Scale.x))
-				entity.Transform().Scale = entity.Transform().Scale.xxx;
+			UI::Control("Intensity", comp.Intensity, 0.05f, 0.0f, FLT_MAX);
+			UI::Control("Radius", comp.Radius, 0.05f, 0.0f, FLT_MAX);
+			UI::Control("Falloff", comp.Falloff, 0.05f, 0.0f, FLT_MAX);
 			UI::EndControls();
 		});
 

@@ -59,7 +59,7 @@ namespace Shark {
 
 		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
 
-		void SubmitPointLight(const glm::vec3& position, const glm::vec4& color, float intensity, float radius);
+		void SubmitPointLight(const glm::vec3& position, const glm::vec3& color, float intensity, float radius, float falloff);
 		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id);
 		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, int id);
 
@@ -92,20 +92,27 @@ namespace Shark {
 
 		struct CBLight
 		{
-			glm::vec4 Color;
+			glm::vec3 Color;
+			float Padding0;
 			glm::vec3 Position;
 			float Intensity;
 			float Radius;
-			float Padding[3];
+			float Falloff;
+
+			float Padding[2];
 		};
 
 		struct CBMeshData
 		{
 			glm::mat4 Transform;
 			int ID;
-			int padding1;
-			int padding2;
-			int padding3;
+
+			float Padding[3];
+		};
+
+		struct CBSkybox
+		{
+			glm::mat4 SkyboxProjection;
 		};
 
 	private:
@@ -113,8 +120,9 @@ namespace Shark {
 		SceneRendererSpecification m_Specification;
 		Statistics m_Statistics;
 
-		Ref<ConstantBuffer> m_CBSceneData;
+		Ref<ConstantBuffer> m_CBCamera;
 		Ref<ConstantBuffer> m_CBLight;
+		Ref<ConstantBuffer> m_CBSkybox;
 
 		uint32_t m_MeshTransformCBIndex = 0;
 		std::vector<Ref<ConstantBuffer>> m_MeshTransformCBs;
@@ -132,15 +140,14 @@ namespace Shark {
 		Ref<FrameBuffer> m_GeometryFrameBuffer;
 		Ref<FrameBuffer> m_ExternalCompositeFrameBuffer;
 
-		Ref<Pipeline> m_MeshPipeline;
+		Ref<RenderPass> m_PBRPass;
 
 		bool m_NeedsResize = true;
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 
 		Ref<TextureCube> m_EnvironmentMap;
 		Ref<TextureCube> m_IrradianceMap;
-		Ref<Pipeline> m_SkyboxPipeline;
-		Ref<Material> m_SkyboxMaterial;
+		Ref<RenderPass> m_SkyboxPass;
 	};
 
 }

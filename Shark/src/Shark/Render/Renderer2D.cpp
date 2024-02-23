@@ -7,8 +7,6 @@
 #include "Shark/Math/Math.h"
 #include "Shark/Debug/Profiler.h"
 
-#include "Shark/Debug/Profiler.h"
-
 #include <glm/gtc/matrix_transform.hpp>
 
 #if SK_ENABLE_VALIDATION
@@ -44,6 +42,9 @@ namespace Shark {
 		m_OpaqueGeometryPassTimer = GPUTimer::Create("Opaque Geometry Pass");
 		m_OITGeoemtryPassTimer = GPUTimer::Create("OIT Geometry Pass");
 
+		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
+
+#if TODO
 		// Composite
 		{
 			PipelineSpecification pipelineSpec;
@@ -169,6 +170,7 @@ namespace Shark {
 			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader);
 
 			m_QuadVertexBuffer = VertexBuffer::Create(DefaultQuadVertices * sizeof(QuadVertex), true, nullptr);
+#endif
 
 			uint32_t* quadIndices = sknew uint32_t[DefaultQuadIndices];
 			for (uint32_t i = 0, j = 0; i < DefaultQuadIndices; i += 6, j += 4)
@@ -184,6 +186,7 @@ namespace Shark {
 			m_QuadIndexBuffer = IndexBuffer::Create(DefaultQuadIndices, false, Buffer::FromArray(quadIndices, DefaultQuadIndices));
 			skdelete[] quadIndices;
 
+#if TODO
 			m_QuadVertexData.Allocate(DefaultQuadVertices * sizeof QuadVertex);
 		}
 		
@@ -259,6 +262,7 @@ namespace Shark {
 			m_TransparentCircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
 			m_TransparentCircleIndexBuffer = m_TransparentQuadIndexBuffer;
 		}
+#endif
 
 		// Text
 		{
@@ -285,7 +289,15 @@ namespace Shark {
 			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
 			pipelineSpec.WriteDepth = true;
 			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
-			m_TextPipeline = Pipeline::Create(pipelineSpec);
+
+			RenderPassSpecification renderPassSpecification;
+			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpec);
+			renderPassSpecification.DebugName = pipelineSpec.DebugName;
+			m_TextPass = RenderPass::Create(renderPassSpecification);
+			m_TextPass->Set("u_Camera", m_CBCamera);
+			SK_CORE_VERIFY(m_TextPass->Validate());
+			m_TextPass->Bake();
+
 			m_TextMaterial = Material::Create(pipelineSpec.Shader);
 
 			m_TextVertexBuffer = VertexBuffer::Create(DefaultTextVertices * sizeof(TextVertex), true, nullptr);
@@ -319,10 +331,12 @@ namespace Shark {
 
 	void Renderer2D::Resize(uint32_t width, uint32_t height)
 	{
+#if TODO
 		m_DepthFrameBuffer->Resize(width, height);
 		m_TransparentDepthBuffer->Resize(width, height);
 		m_TransparentGeometryFrameBuffer->Resize(width, height);
-		m_TextPipeline->GetSpecification().TargetFrameBuffer->Resize(width, height);
+#endif
+		m_TextPass->GetPipeline()->GetSpecification().TargetFrameBuffer->Resize(width, height);
 	}
 
 	void Renderer2D::BeginScene(const glm::mat4& viewProj)
@@ -334,6 +348,7 @@ namespace Shark {
 		m_Active = true;
 
 		m_ViewProj = viewProj;
+		m_CBCamera->UploadData(Buffer::FromValue(m_ViewProj));
 
 		// Quad
 		m_QuadBatches.clear();
@@ -783,15 +798,18 @@ namespace Shark {
 
 	void Renderer2D::ClearPass()
 	{
+#if TODO
 		//m_DepthFrameBuffer->Clear(m_CommandBuffer);
 		m_TransparentDepthBuffer->Clear(m_CommandBuffer);
 		m_TransparentGeometryFrameBuffer->ClearColorAtachments(m_CommandBuffer);
+#endif
 	}
 
 	void Renderer2D::OpaqueGeometryPass()
 	{
 		m_CommandBuffer->BeginTimeQuery(m_OpaqueGeometryPassTimer);
 
+#if TODO
 		if (m_QuadIndexCount)
 		{
 			if (m_QuadIndexBuffer->GetCount() < m_QuadIndexCount)
@@ -851,16 +869,20 @@ namespace Shark {
 			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, m_LineMaterial, m_LineVertexBuffer, m_LineVertexCount);
 			m_Statistics.DrawCalls++;
 		}
+#endif
 
 		if (m_TextIndexCount)
 		{
 			if (m_TextIndexBuffer->GetCount() < m_TextIndexCount)
 				ResizeQuadIndexBuffer(m_TextIndexCount);
 
-			m_TextMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
+			Renderer::BeginRenderPass(m_CommandBuffer, m_TextPass);
+
 			m_TextVertexBuffer->SetData(m_TextVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_TextPipeline, m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TextPass->GetPipeline(), m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
 			m_Statistics.DrawCalls++;
+
+			Renderer::EndRenderPass(m_CommandBuffer, m_TextPass);
 		}
 
 		m_CommandBuffer->EndTimeQuery(m_OpaqueGeometryPassTimer);
@@ -868,6 +890,7 @@ namespace Shark {
 
 	void Renderer2D::OITGeometryPass()
 	{
+#if TODO
 		m_CommandBuffer->BeginTimeQuery(m_OITGeoemtryPassTimer);
 
 		if (m_TransparentQuadIndexCount)
@@ -925,6 +948,7 @@ namespace Shark {
 		}
 
 		m_CommandBuffer->EndTimeQuery(m_OITGeoemtryPassTimer);
+#endif
 	}
 
 	void Renderer2D::AssureQuadVertexDataSize()
@@ -990,6 +1014,7 @@ namespace Shark {
 
 	void Renderer2D::PrepareMaterial(Ref<Material> material, const QuadBatch& batch)
 	{
+#if TODO
 		uint32_t index = 0;
 		for (const auto& texture : batch.Textures)
 		{
@@ -1005,6 +1030,7 @@ namespace Shark {
 			material->Set("g_Textures", m_WhiteTexture->GetImage(), index);
 			material->Set("g_SamplerState", m_WhiteTexture->GetSampler(), index);
 		}
+#endif
 	}
 
 	void Renderer2D::ResizeQuadIndexBuffer(uint32_t indexCount)

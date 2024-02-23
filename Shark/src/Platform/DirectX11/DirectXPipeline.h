@@ -15,9 +15,17 @@ namespace Shark {
 		DirectXPipeline(const PipelineSpecification& specs);
 		virtual ~DirectXPipeline();
 
-		virtual void SetFrameBuffer(Ref<FrameBuffer> frameBuffer) override;
+		virtual void SetPushConstant(Buffer pushConstantData) override;
+		void RT_SetPushConstant(Buffer pushConstantData);
 
+		virtual void SetFrameBuffer(Ref<FrameBuffer> frameBuffer) override;
 		virtual const PipelineSpecification& GetSpecification() const override { return m_Specification; }
+
+		void BeginRenderPass();
+		void EndRenderPass();
+
+		bool UsesPushConstant() const { return m_PushConstant.Size != 0; }
+		Ref<ConstantBuffer> GetLastUpdatedPushConstantBuffer();
 
 	private:
 		void RT_Init();
@@ -32,6 +40,16 @@ namespace Shark {
 		ID3D11InputLayout* m_InputLayout = nullptr;
 
 		D3D_PRIMITIVE_TOPOLOGY m_PrimitveTopology;
+
+		struct PushConstant
+		{
+			uint32_t BufferIndex = 0;
+			std::vector<Ref<ConstantBuffer>> Buffers;
+
+			uint32_t Size = 0;
+			uint32_t Binding = 0;
+		};
+		PushConstant m_PushConstant;
 
 		friend class DirectXRenderer;
 	};

@@ -15,8 +15,7 @@ spdlog = {
 
 ImGui = {
     BaseDir = "%{wks.location}/Shark/dependencies/ImGui",
-    IncludeDir = "%{ImGui.BaseDir}",
-    Defines = { "IMGUI_DEFINE_MATH_OPERATORS" }
+    IncludeDir = "%{ImGui.BaseDir}"
 }
 
 stb_image = {
@@ -101,6 +100,11 @@ ShaderC = {
     LibraryDebug = "%{VULKAN_SDK}/lib/shaderc_sharedd.lib",
     LibraryRelease = "%{VULKAN_SDK}/lib/shaderc_shared.lib",
     --Library = iif("%{cfg.Configuration}" == "Debug", LibraryDebug, LibraryRelease)
+}
+
+DXC = {
+    LibraryDebug = "%{VULKAN_SDK}/lib/dxcompilerd.lib",
+    LibraryRelease = "%{VULKAN_SDK}/lib/dxcompiler.lib"
 }
 
 SPIRV_Cross = {

@@ -2,7 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
-#include "Shark/Asset/Asset.h"
+#include "Shark/Render/RendererResource.h"
 #include "Shark/Render/Image.h"
 
 #include <glm/glm.hpp>
@@ -71,7 +71,7 @@ namespace Shark {
 
 	class SamplerWrapper;
 
-	class Texture2D : public Asset
+	class Texture2D : public RendererResource
 	{
 	public:
 		virtual ~Texture2D() = default;
@@ -124,7 +124,7 @@ namespace Shark {
 		std::string DebugName;
 	};
 
-	class SamplerWrapper : public RefCount
+	class SamplerWrapper : public RendererResource
 	{
 	public:
 		virtual void Release() = 0;
@@ -139,8 +139,7 @@ namespace Shark {
 		static Ref<SamplerWrapper> Create(const SamplerSpecification& spec);
 	};
 
-
-	class TextureCube : public RefCount
+	class TextureCube : public RendererResource
 	{
 	public:
 		virtual void Release() = 0;

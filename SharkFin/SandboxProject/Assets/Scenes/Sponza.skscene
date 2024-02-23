@@ -3192,7 +3192,7 @@ Scene:
       TagComponent:
         Name: Light
       TransformComponent:
-        Translation: [-1.07236433, 6.07998848, 3.39776468]
+        Translation: [1.17371309, 8.03565979, 3.39776468]
         Rotation: [0, 0, 0]
         Scale: [3.93539166, 5.67548752, 5.67548752]
       RelationshipComponent:
@@ -3201,7 +3201,9 @@ Scene:
           []
       PointLightComponent:
         Color: [1, 1, 1, 1]
-        Intensity: 18
+        Intensity: 1.54999995
+        Radius: 24.8500004
+        Falloff: 1
     - Entity: 9429602692012350168
       TagComponent:
         Name: sponza_339

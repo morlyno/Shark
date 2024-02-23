@@ -32,24 +32,7 @@ namespace Shark {
 			uint32_t Offset = 0;
 		};
 
-		enum class UpdateFrequencyType
-		{
-			None = 0,
-			PerScene,
-			PerMaterial,
-			PerDrawCall,
-		};
-
-		struct ConstantBuffer
-		{
-			std::string Name;
-			ShaderStage Stage = ShaderStage::None;
-			UpdateFrequencyType UpdateFrequency = UpdateFrequencyType::None;
-			uint32_t Binding;
-			uint32_t Size;
-			uint32_t MemberCount;
-			std::vector<MemberDeclaration> Members;
-		};
+		using MemberList = std::vector<MemberDeclaration>;
 
 		enum class ResourceType
 		{
@@ -70,7 +53,10 @@ namespace Shark {
 
 			StorageImage2D,
 			StorageImage3D,
-			StorageImageCube
+			StorageImageCube,
+
+			ConstantBuffer,
+			PushConstant
 		};
 
 		constexpr bool IsImageType(ResourceType type)
@@ -85,26 +71,49 @@ namespace Shark {
 			return false;
 		}
 
+		constexpr bool IsStorageImage(ResourceType type)
+		{
+			switch (type)
+			{
+				case ResourceType::StorageImage2D:
+				case ResourceType::StorageImage3D:
+				case ResourceType::StorageImageCube:
+					return true;
+			}
+			return false;
+		}
+
 		struct Resource
 		{
 			std::string Name;
 			ShaderStage Stage = ShaderStage::None;
 			ResourceType Type = ResourceType::None;
-			UpdateFrequencyType UpdateFrequency = UpdateFrequencyType::None;
-			uint32_t Binding;
-			uint32_t ArraySize;
+			uint32_t ArraySize = 0;
 
-			// Only used for ResourceType::Texture*
-			// for ResourceType::Sampler it's the same as Binding
-			uint32_t SamplerBinding;
+			// ConstantBuffer size
+			uint32_t StructSize = 0;
+
+			// Used only for DirectX 11
+			uint32_t DXBinding = (uint32_t)-1;
+
+			// For all combined image samples this value is valid and is currently the same as DXBinding
+			uint32_t DXSamplerBinding = (uint32_t)-1;
 		};
 
 	}
 
 	struct ShaderReflectionData
 	{
-		std::unordered_map<std::string, ShaderReflection::ConstantBuffer> ConstantBuffers;
-		std::unordered_map<std::string, ShaderReflection::Resource> Resources;
+		// set => binding => resource
+		std::map<uint32_t, std::map<uint32_t, ShaderReflection::Resource>> Resources;
+		std::map<uint32_t, std::map<uint32_t, ShaderReflection::MemberList>> Members;
+
+		bool HasPushConstant = false;
+		ShaderReflection::Resource PushConstant;
+		ShaderReflection::MemberList PushConstantMembers;
+
+		std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> NameCache;
+		std::unordered_map<std::string, std::tuple<uint32_t, uint32_t, uint32_t>> MemberNameCache;
 	};
 
 	inline std::string ToString(ShaderReflection::ResourceType resourceType)
@@ -122,6 +131,8 @@ namespace Shark {
 			case ShaderReflection::ResourceType::StorageImage2D: return "StorageImage2D";
 			case ShaderReflection::ResourceType::StorageImage3D: return "StorageImage3D";
 			case ShaderReflection::ResourceType::StorageImageCube: return "StorageImageCube";
+			case ShaderReflection::ResourceType::ConstantBuffer: return "ConstantBuffer";
+			case ShaderReflection::ResourceType::PushConstant: return "PushConstant";
 		}
 
 		SK_CORE_ASSERT(false, "Unkown ShaderRelfection::ResourceType");
@@ -141,6 +152,8 @@ namespace Shark {
 		if (resourceType == "StorageImage2D") return ShaderReflection::ResourceType::StorageImage2D;
 		if (resourceType == "StorageImage3D") return ShaderReflection::ResourceType::StorageImage3D;
 		if (resourceType == "StorageImageCube") return ShaderReflection::ResourceType::StorageImageCube;
+		if (resourceType == "ConstantBuffer") return ShaderReflection::ResourceType::ConstantBuffer;
+		if (resourceType == "PushConstant") return ShaderReflection::ResourceType::PushConstant;
 
 		SK_CORE_ASSERT(false, "Unkown ShaderReflection::ResourceType");
 		return ShaderReflection::ResourceType::None;
@@ -222,31 +235,6 @@ namespace Shark {
 
 		SK_CORE_ASSERT(false, "Unkown ShaderReflection::VariabelType");
 		return ShaderReflection::VariableType::None;
-	}
-
-	inline std::string ToString(ShaderReflection::UpdateFrequencyType updateFrequency)
-	{
-		switch (updateFrequency)
-		{
-			case ShaderReflection::UpdateFrequencyType::None: return "None";
-			case ShaderReflection::UpdateFrequencyType::PerScene: return "PerScene";
-			case ShaderReflection::UpdateFrequencyType::PerMaterial: return "PerMaterial";
-			case ShaderReflection::UpdateFrequencyType::PerDrawCall: return "PerDrawCall";
-		}
-
-		SK_CORE_ASSERT(false, "Unkown ShaderReflection::UpdateFrequencyType");
-		return "Unkown";
-	}
-
-	inline ShaderReflection::UpdateFrequencyType StringToShaderReflectionUpdateFrequency(const std::string& updateFrequency)
-	{
-		if (updateFrequency == "None") return ShaderReflection::UpdateFrequencyType::None;
-		if (updateFrequency == "PerScene") return ShaderReflection::UpdateFrequencyType::PerScene;
-		if (updateFrequency == "PerMaterial") return ShaderReflection::UpdateFrequencyType::PerMaterial;
-		if (updateFrequency == "PerDrawCall") return ShaderReflection::UpdateFrequencyType::PerDrawCall;
-
-		SK_CORE_ASSERT(false, "Unkown ShaderReflection::UpdateFrequencyType");
-		return ShaderReflection::UpdateFrequencyType::None;
 	}
 
 }

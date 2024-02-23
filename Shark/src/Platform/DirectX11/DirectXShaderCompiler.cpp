@@ -5,16 +5,21 @@
 #include "Shark/Math/Math.h"
 #include "Shark/Utils/String.h"
 
+#include "Platform/Windows/WindowsUtils.h"
 #include "Platform/DirectX11/ShaderUtils.h"
 #include "Platform/DirectX11/DirectXShader.h"
 #include "Platform/DirectX11/DirectXShaderCache.h"
 
 #include <fmt/chrono.h>
 #include <yaml-cpp/yaml.h>
+#include <Shark/Utils/YAMLUtils.h>
 
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_hlsl.hpp>
+#include <dxc/dxcapi.h>
+#include <dxc/WinAdapter.h>
 #include <d3dcompiler.h>
+#include <atlcomcli.h>
 
 namespace YAML {
 
@@ -45,38 +50,6 @@ namespace YAML {
 	};
 
 	template<>
-	struct convert<Shark::ShaderReflection::ConstantBuffer>
-	{
-		static Node encode(const Shark::ShaderReflection::ConstantBuffer& constantBuffer)
-		{
-			Node node(NodeType::Map);
-			node.force_insert("Name", constantBuffer.Name);
-			node.force_insert("Stage", Shark::ToString(constantBuffer.Stage));
-			node.force_insert("UpdateFrequency", Shark::ToString(constantBuffer.UpdateFrequency));
-			node.force_insert("Binding", constantBuffer.Binding);
-			node.force_insert("Size", constantBuffer.Size);
-			node.force_insert("MemberCount", constantBuffer.MemberCount);
-			node.force_insert("Members", Node(constantBuffer.Members));
-			return node;
-		}
-
-		static bool decode(const Node& node, Shark::ShaderReflection::ConstantBuffer& outConstantBuffer)
-		{
-			if (!node.IsMap() || node.size() != 7)
-				return false;
-
-			outConstantBuffer.Name = node["Name"].as<std::string>();
-			outConstantBuffer.Stage = Shark::StringToShaderReflectionShaderStage(node["Stage"].as<std::string>());
-			outConstantBuffer.UpdateFrequency = Shark::StringToShaderReflectionUpdateFrequency(node["UpdateFrequency"].as<std::string>());
-			outConstantBuffer.Binding = node["Binding"].as<uint32_t>();
-			outConstantBuffer.Size = node["Size"].as<uint32_t>();
-			outConstantBuffer.MemberCount = node["MemberCount"].as<uint32_t>();
-			outConstantBuffer.Members = node["Members"].as<std::vector<Shark::ShaderReflection::MemberDeclaration>>();
-			return true;
-		}
-	};
-
-	template<>
 	struct convert<Shark::ShaderReflection::Resource>
 	{
 		static Node encode(const Shark::ShaderReflection::Resource& resource)
@@ -85,10 +58,11 @@ namespace YAML {
 			node.force_insert("Name", resource.Name);
 			node.force_insert("Stage", Shark::ToString(resource.Stage));
 			node.force_insert("Type", Shark::ToString(resource.Type));
-			node.force_insert("UpdateFrequency", Shark::ToString(resource.UpdateFrequency));
-			node.force_insert("Binding", resource.Binding);
 			node.force_insert("ArraySize", resource.ArraySize);
-			node.force_insert("SamplerBinding", resource.SamplerBinding);
+			node.force_insert("StructSize", resource.StructSize);
+
+			node.force_insert("DXBinding", resource.DXBinding);
+			node.force_insert("DXSamplerBinding", resource.DXSamplerBinding);
 			return node;
 		}
 
@@ -100,10 +74,10 @@ namespace YAML {
 			outResource.Name = node["Name"].as<std::string>();
 			outResource.Stage = Shark::StringToShaderReflectionShaderStage(node["Stage"].as<std::string>());
 			outResource.Type = Shark::StringToShaderReflectionResourceType(node["Type"].as<std::string>());
-			outResource.UpdateFrequency = Shark::StringToShaderReflectionUpdateFrequency(node["UpdateFrequency"].as<std::string>());
-			outResource.Binding = node["Binding"].as<uint32_t>();
 			outResource.ArraySize = node["ArraySize"].as<uint32_t>();
-			outResource.SamplerBinding = node["SamplerBinding"].as<uint32_t>();
+			outResource.StructSize = node["StructSize"].as<uint32_t>();
+			outResource.DXBinding = node["DXBinding"].as<uint32_t>();
+			outResource.DXSamplerBinding = node["DXSamplerBinding"].as<uint32_t>();
 			return true;
 		}
 	};
@@ -181,13 +155,26 @@ namespace Shark {
 			return (shaderc_source_language)0;
 		}
 
-		static const char* GetShaderVersion(ShaderUtils::ShaderStage::Type stage)
+		static const char* GetTargetProfileForD3D11(ShaderUtils::ShaderStage::Type stage)
 		{
 			switch (stage)
 			{
 				case ShaderUtils::ShaderStage::Vertex: return "vs_5_0";
 				case ShaderUtils::ShaderStage::Pixel: return "ps_5_0";
 				case ShaderUtils::ShaderStage::Compute: return "cs_5_0";
+			}
+
+			SK_CORE_ASSERT(false, "Unkown Shader Stage");
+			return nullptr;
+		}
+
+		static const wchar_t* GetTargetProfileForDXC(ShaderUtils::ShaderStage::Type stage)
+		{
+			switch (stage)
+			{
+				case ShaderUtils::ShaderStage::Vertex: return L"vs_6_0";
+				case ShaderUtils::ShaderStage::Pixel: return L"ps_6_0";
+				case ShaderUtils::ShaderStage::Compute: return L"cs_6_0";
 			}
 
 			SK_CORE_ASSERT(false, "Unkown Shader Stage");
@@ -297,18 +284,6 @@ namespace Shark {
 			return std::chrono::system_clock::time_point(std::chrono::system_clock::duration(fileTime));
 		}
 
-		static ShaderReflection::UpdateFrequencyType GetUpdateFrequencyFromBinding(uint32_t binding)
-		{
-			static constexpr uint32_t BindingPerScene = 0;
-			static constexpr uint32_t BindingPerDrawCall = 1;
-
-			if (binding == BindingPerScene)
-				return ShaderReflection::UpdateFrequencyType::PerScene;
-			if (binding == BindingPerDrawCall)
-				return ShaderReflection::UpdateFrequencyType::PerDrawCall;
-
-			return ShaderReflection::UpdateFrequencyType::PerMaterial;
-		}
 	}
 
 
@@ -317,12 +292,14 @@ namespace Shark {
 	{
 		m_Language = utils::GetLanguageFromFileExtension(shaderSourcePath);
 		m_Options.DisableOptimization = disableOptimization;
+		m_Hash = Hash::GenerateFNV(m_ShaderSourcePath.filename().string());
 	}
 
 	DirectXShaderCompiler::DirectXShaderCompiler(const std::filesystem::path& shaderSourcePath, const DirectXShaderCompilerOptions& options)
 		: m_ShaderSourcePath(shaderSourcePath), m_Options(options)
 	{
 		m_Language = utils::GetLanguageFromFileExtension(shaderSourcePath);
+		m_Hash = Hash::GenerateFNV(m_ShaderSourcePath.filename().string());
 	}
 
 	bool DirectXShaderCompiler::Reload(bool forceCompile)
@@ -369,6 +346,7 @@ namespace Shark {
 
 		shader->LoadShader(compiler->m_ShaderBinary);
 		shader->SetReflectionData(compiler->m_ReflectionData);
+		shader->SetHash(compiler->GetHash());
 
 		return shader;
 	}
@@ -394,8 +372,7 @@ namespace Shark {
 			auto& metadata = m_ShaderStageMetadata[stage];
 			metadata.Stage = stage;
 			metadata.HashCode = Hash::GenerateFNV(moduleSource);
-			metadata.SourceMetadata = GetMetadata(moduleSource);
-			metadata.CacheFile = utils::GetDirectXCacheFile(m_ShaderSourcePath.stem().string(), stage);
+			metadata.CacheFile = utils::GetDirectXCacheFile(m_ShaderSourcePath.filename().string(), stage);
 
 			m_Stages |= stage;
 		}
@@ -412,8 +389,7 @@ namespace Shark {
 			auto& metadata = m_ShaderStageMetadata[stage];
 			metadata.Stage = stage;
 			metadata.HashCode = Hash::GenerateFNV(moduleSource);
-			metadata.SourceMetadata = GetMetadata(moduleSource);
-			metadata.CacheFile = utils::GetDirectXCacheFile(m_ShaderSourcePath.stem().string(), stage);
+			metadata.CacheFile = utils::GetDirectXCacheFile(m_ShaderSourcePath.filename().string(), stage);
 
 			m_Stages |= stage;
 		}
@@ -588,7 +564,7 @@ namespace Shark {
 			TryLoadDirectXAndSPIRV(stage, binary, spirvBinary);
 			if (binary.size())
 			{
-				const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
+				const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.filename().string(), utils::GetCacheFileExtension(stage));
 				SK_CORE_WARN_TAG("Renderer", "Older Shader loaded\n\tSource: {}\n\tModified: {}", cacheFile, utils::GetFileTimeAsSystemTime(cacheFile));
 			}
 			else
@@ -659,6 +635,94 @@ namespace Shark {
 
 	std::string DirectXShaderCompiler::Compile(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& outputBinary, std::vector<uint32_t>& outputSPIRVDebug)
 	{
+		std::string error;
+		if (m_Language == ShaderUtils::ShaderLanguage::HLSL)
+			error = CompileHLSLToSPIRV(stage, outputSPIRVDebug);
+		else
+			error = CompileGLSLToSPIRV(stage, outputSPIRVDebug);
+
+		if (!error.empty())
+			return error;
+
+		std::string hlslSource = CrossCompileToHLSL(stage, outputSPIRVDebug);
+
+		error = CompileHLSL(stage, hlslSource.size() ? hlslSource : m_ShaderSource.at(stage), outputBinary);
+		return error;
+	}
+
+	std::string DirectXShaderCompiler::CompileHLSLToSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVDebug)
+	{
+#define CREATE_ERROR_MSG(_base_message, _hResult) fmt::format(_base_message "\n\tHResult: ({}): {}", _hResult, WindowsUtils::TranslateHResult(_hResult))
+#define VERIFY_HRESULT(_hResult, _message) if (FAILED(_hResult)) return CREATE_ERROR_MSG(_message, _hResult);
+		using ATL::CComPtr;
+
+		HRESULT hResult;
+
+		CComPtr<IDxcCompiler3> compiler;
+		hResult = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler));
+		VERIFY_HRESULT(hResult, "Failed to create DXC Compiler");
+
+		CComPtr<IDxcUtils> utils;
+		hResult = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils));
+		VERIFY_HRESULT(hResult, "Failed to create DXC Utils");
+
+		CComPtr<IDxcBlobEncoding> sourceBlob;
+		hResult = utils->CreateBlob(m_ShaderSource.at(stage).data(), m_ShaderSource.at(stage).size(), DXC_CP_ACP, &sourceBlob);
+		VERIFY_HRESULT(hResult, "Failed to create DXC Blob");
+
+#undef VERIFY_HRESULT
+#undef CREATE_ERROR_MSG
+
+		const wchar_t* version = utils::GetTargetProfileForDXC(stage);
+		std::wstring filename = m_ShaderSourcePath.stem().wstring();
+
+		std::vector<LPCWSTR> arguments = {
+			filename.c_str(),
+
+			L"-E", L"main",
+			L"-T", version,
+			L"-spirv",
+
+			L"-fspv-reflect",
+			L"-fspv-target-env=vulkan1.3",
+			//L"-fspv-preserve-bindings",
+			//L"-fspv-preserve-interface"
+		};
+
+		arguments.emplace_back(DXC_ARG_DEBUG);
+
+		if (!m_Options.DisableOptimization)
+			arguments.emplace_back(DXC_ARG_OPTIMIZATION_LEVEL3);
+
+		DxcBuffer buffer = {};
+		buffer.Encoding = DXC_CP_ACP;
+		buffer.Ptr = sourceBlob->GetBufferPointer();
+		buffer.Size = sourceBlob->GetBufferSize();
+
+		CComPtr<IDxcResult> result = nullptr;
+		hResult = compiler->Compile(&buffer, arguments.data(), arguments.size(),
+									nullptr, IID_PPV_ARGS(&result));
+
+		result->GetStatus(&hResult);
+		if (FAILED(hResult))
+		{
+			CComPtr<IDxcBlobEncoding> errorBlob;
+			hResult = result->GetErrorBuffer(&errorBlob);
+			return fmt::format("Failed to compile shader!\n\t{}", (const char*)errorBlob->GetBufferPointer());
+		}
+
+		CComPtr<IDxcBlob> code;
+		result->GetResult(&code);
+
+		outputSPIRVDebug.resize(code->GetBufferSize() / sizeof(uint32_t));
+		Buffer writeBuffer = Buffer::FromArray(outputSPIRVDebug);
+		writeBuffer.Write((const void*)code->GetBufferPointer(), code->GetBufferSize());
+
+		return {};
+	}
+
+	std::string DirectXShaderCompiler::CompileGLSLToSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVDebug)
+	{
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions shadercOptions;
 
@@ -688,16 +752,6 @@ namespace Shark {
 		}
 
 		outputSPIRVDebug = { compiledModule.begin(), compiledModule.end() };
-
-		std::string hlslSource;
-		if (m_Language != ShaderUtils::ShaderLanguage::HLSL)
-			hlslSource = CrossCompileToHLSL(stage, outputSPIRVDebug);
-
-		if (std::string error = CompileHLSL(stage, hlslSource.size() ? hlslSource : preprocessedSource, outputBinary); error.size())
-		{
-			return error;
-		}
-
 		return {};
 	}
 
@@ -729,7 +783,7 @@ namespace Shark {
 		ID3DBlob* shaderBinary = nullptr;
 		ID3DBlob* errorMessage = nullptr;
 		std::string name = fmt::format("{}{}", m_ShaderSourcePath.stem().string(), utils::ShaderStageExtension(stage));
-		if (FAILED(D3DCompile(hlslSourceCode.data(), hlslSourceCode.size(), name.c_str(), nullptr, nullptr, "main", utils::GetShaderVersion(stage), flags, 0, &shaderBinary, &errorMessage)))
+		if (FAILED(D3DCompile(hlslSourceCode.data(), hlslSourceCode.size(), name.c_str(), nullptr, nullptr, "main", utils::GetTargetProfileForD3D11(stage), flags, 0, &shaderBinary, &errorMessage)))
 		{
 			std::string errorStr = fmt::format("Failed to Compile HLSL (Stage: {0})\n{1}", ToString(stage), (char*)errorMessage->GetBufferPointer());
 			errorMessage->Release();
@@ -746,17 +800,17 @@ namespace Shark {
 	{
 		spirv_cross::CompilerHLSL compilerHLSL(spirvBinary);
 		spirv_cross::CompilerHLSL::Options options;
-		options.shader_model = 40;
+		options.shader_model = 50;
 		compilerHLSL.set_hlsl_options(options);
+		compilerHLSL.set_resource_binding_flags(spirv_cross::HLSL_BINDING_AUTO_ALL);
 
 		if (stage == ShaderUtils::ShaderStage::Vertex)
 		{
-			spirv_cross::Compiler compiler(spirvBinary);
-			spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
+			spirv_cross::ShaderResources shaderResources = compilerHLSL.get_shader_resources();
 			for (const auto& resource : shaderResources.stage_inputs)
 			{
-				std::string name = resource.name.substr(2);
-				uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+				std::string name = resource.name.substr(m_Language == ShaderUtils::ShaderLanguage::HLSL ? 7 : 2);
+				uint32_t location = compilerHLSL.get_decoration(resource.id, spv::DecorationLocation);
 				SK_CORE_TRACE("Vertex Attribute Remap from location = {} to {}", location, name);
 				compilerHLSL.add_vertex_attribute_remap({ location, name });
 			}
@@ -767,7 +821,7 @@ namespace Shark {
 
 	void DirectXShaderCompiler::SerializeDirectX(ShaderUtils::ShaderStage::Type stage, const std::vector<byte>& directXData)
 	{
-		const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
+		const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.filename().string(), utils::GetCacheFileExtension(stage));
 		if (!FileSystem::WriteBinary(cacheFile, Buffer::FromArray(directXData)))
 		{
 			SK_CORE_ERROR_TAG("Renderer", "Failed to Serialize DirectX Data!");
@@ -779,7 +833,7 @@ namespace Shark {
 
 	void DirectXShaderCompiler::TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData)
 	{
-		const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
+		const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.filename().string(), utils::GetCacheFileExtension(stage));
 		Buffer fileData = FileSystem::ReadBinary(cacheFile);
 		if (!fileData)
 			return;
@@ -791,7 +845,7 @@ namespace Shark {
 
 	void DirectXShaderCompiler::SerializeSPIRV(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvData)
 	{
-		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
+		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.filename().string(), utils::GetCacheFileExtension(stage));
 		if (!FileSystem::WriteBinary(cacheFile, Buffer::FromArray(spirvData)))
 		{
 			SK_CORE_ERROR_TAG("Renderer", "Failed to Serialize SPIRV Data");
@@ -801,7 +855,7 @@ namespace Shark {
 
 	void DirectXShaderCompiler::TryLoadSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVData)
 	{
-		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.stem().string(), utils::GetCacheFileExtension(stage));
+		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.filename().string(), utils::GetCacheFileExtension(stage));
 		Buffer fileData = FileSystem::ReadBinary(cacheFile);
 		if (!fileData)
 			return;
@@ -822,29 +876,28 @@ namespace Shark {
 		out << YAML::BeginMap;
 		out << YAML::Key << "ShaderReflection" << YAML::Value;
 		out << YAML::BeginMap;
+		out << YAML::Key << "Resources" << YAML::Value << YAML::Node(m_ReflectionData.Resources);
+		out << YAML::Key << "Members" << YAML::Value << YAML::Node(m_ReflectionData.Members);
+		
+		if (m_ReflectionData.HasPushConstant)
+		{
+			out << YAML::Key << "PushConstant" << YAML::Value << YAML::Node(m_ReflectionData.PushConstant);
+			out << YAML::Key << "PushConstantMembers" << YAML::Value << YAML::Node(m_ReflectionData.PushConstantMembers);
+		}
 
-		out << YAML::Key << "ConstantBuffers" << YAML::Value;
-		out << YAML::BeginSeq;
-		for (const auto& [name, cbData] : m_ReflectionData.ConstantBuffers)
-			out << YAML::Node(cbData);
-		out << YAML::EndSeq;
-
-		out << YAML::Key << "Resources" << YAML::Value;
-		out << YAML::BeginSeq;
-		for (const auto& [name, resource] : m_ReflectionData.Resources)
-			out << YAML::Node(resource);
-		out << YAML::EndSeq;
+		out << YAML::Key << "NameCache" << YAML::Value << YAML::Node(m_ReflectionData.NameCache);
+		out << YAML::Key << "MemberNameCache" << YAML::Value << YAML::Node(m_ReflectionData.MemberNameCache);
 
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 
-		const std::string cacheFile = fmt::format("{0}/{1}.yaml", utils::GetReflectionDataCacheDirectory(), m_ShaderSourcePath.stem().string());
+		const std::string cacheFile = fmt::format("{0}/{1}.yaml", utils::GetReflectionDataCacheDirectory(), m_ShaderSourcePath.filename().string());
 		FileSystem::WriteString(cacheFile, out.c_str());
 	}
 
 	bool DirectXShaderCompiler::ReadReflectionData()
 	{
-		const std::string cacheFile = fmt::format("{0}/{1}.yaml", utils::GetReflectionDataCacheDirectory(), m_ShaderSourcePath.stem().string());
+		const std::string cacheFile = fmt::format("{0}/{1}.yaml", utils::GetReflectionDataCacheDirectory(), m_ShaderSourcePath.filename().string());
 		std::string fileContent = FileSystem::ReadString(cacheFile);
 		if (fileContent.empty())
 			return false;
@@ -854,19 +907,18 @@ namespace Shark {
 		if (!shaderReflectionNode)
 			return false;
 
-		auto constantBuffers = shaderReflectionNode["ConstantBuffers"];
-		for (const auto& node : constantBuffers)
+		m_ReflectionData.Resources = shaderReflectionNode["Resources"].as<decltype(m_ReflectionData.Resources)>();
+		m_ReflectionData.Members = shaderReflectionNode["Members"].as<decltype(m_ReflectionData.Members)>();
+
+		if (shaderReflectionNode["PushConstant"])
 		{
-			ShaderReflection::ConstantBuffer constantBuffer = node.as<ShaderReflection::ConstantBuffer>();
-			m_ReflectionData.ConstantBuffers[constantBuffer.Name] = std::move(constantBuffer);
+			m_ReflectionData.HasPushConstant = true;
+			m_ReflectionData.PushConstant = shaderReflectionNode["PushConstant"].as<ShaderReflection::Resource>();
+			m_ReflectionData.PushConstantMembers = shaderReflectionNode["PushConstantMembers"].as<ShaderReflection::MemberList>();
 		}
 
-		auto resources = shaderReflectionNode["Resources"];
-		for (const auto& node : resources)
-		{
-			ShaderReflection::Resource resource = node.as<ShaderReflection::Resource>();
-			m_ReflectionData.Resources[resource.Name] = std::move(resource);
-		}
+		m_ReflectionData.NameCache = shaderReflectionNode["NameCache"].as<decltype(m_ReflectionData.NameCache)>();
+		m_ReflectionData.MemberNameCache = shaderReflectionNode["MemberNameCache"].as<decltype(m_ReflectionData.MemberNameCache)>();
 
 		return true;
 	}
@@ -896,46 +948,130 @@ namespace Shark {
 		spirv_cross::Compiler compiler(spirvBinary);
 		spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
 
-		const auto& metadata = m_ShaderStageMetadata.at(stage);
-		auto overriddenUpdateFruequencies = GetUpdateFrequencies(metadata);
+		const auto& binary = m_ShaderBinary.at(stage);
+		ID3D11ShaderReflection* d3dReflector = nullptr;
+		HRESULT hResult = D3DReflect(binary.data(), binary.size(), IID_ID3D11ShaderReflection, (void**)&d3dReflector);
+		SK_CORE_VERIFY(SUCCEEDED(hResult), "{} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+
+		SK_CORE_TRACE_TAG("Renderer", "Push Constants:");
+		SK_CORE_VERIFY(shaderResources.push_constant_buffers.size() <= 1);
+		for (const auto& pushConstant : shaderResources.push_constant_buffers)
+		{
+			const spirv_cross::SPIRType& bufferType = compiler.get_type(pushConstant.type_id);
+			std::string name = compiler.get_name(pushConstant.id);
+			SK_CORE_DEBUG("Name from ID: {}, Name from Unifrom Buffers: {}", name, pushConstant.name);
+			if (name.empty())
+				name = pushConstant.name;
+
+			m_ReflectionData.HasPushConstant = true;
+			ShaderReflection::Resource& resource = m_ReflectionData.PushConstant;
+			resource.Name = name;
+			resource.Stage = utils::ToShaderReflectionShaderStage(stage);
+			resource.Type = ShaderReflection::ResourceType::PushConstant;
+			resource.StructSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+
+			uint32_t memberCount = (uint32_t)bufferType.member_types.size();
+
+			std::string d3dName;
+			if (m_Language == ShaderUtils::ShaderLanguage::HLSL)
+				d3dName = fmt::format("type_ConstantBuffer_{}", name.substr(2));
+			else
+				d3dName = name.substr(2);
+
+			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
+			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(d3dName.c_str(), &d3dInputDesc);
+			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+			if (SUCCEEDED(hResult))
+			{
+				resource.DXBinding = d3dInputDesc.BindPoint;
+			}
+
+			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", name);
+			SK_CORE_TRACE_TAG("Renderer", "  DXBinding: {}", resource.DXBinding);
+			SK_CORE_TRACE_TAG("Renderer", "  Size: {}", resource.StructSize);
+			SK_CORE_TRACE_TAG("Renderer", "  Members: {}", memberCount);
+
+			uint32_t index = 0;
+			uint32_t offset = 0;
+			auto& memberList = m_ReflectionData.PushConstantMembers;
+			for (const auto& member : bufferType.member_types)
+			{
+				ShaderReflection::MemberDeclaration& memberData = memberList.emplace_back();
+				const spirv_cross::SPIRType& memberType = compiler.get_type(member);
+				const auto& memberName = compiler.get_member_name(pushConstant.base_type_id, index);
+				memberData.Name = fmt::format("{}.{}", name, memberName);
+				memberData.Type = utils::GetVariableType(memberType);
+				memberData.Size = (uint32_t)compiler.get_declared_struct_member_size(bufferType, index);
+				memberData.Offset = offset;
+				index++;
+				offset += memberData.Size;
+
+				SK_CORE_TRACE_TAG("Renderer", "   Member: {}", memberData.Name);
+				SK_CORE_TRACE_TAG("Renderer", "    - Type: {}", ToString(memberData.Type));
+				SK_CORE_TRACE_TAG("Renderer", "    - Size: {}", memberData.Size);
+				SK_CORE_TRACE_TAG("Renderer", "    - Offset: {}", memberData.Offset);
+			}
+
+			SK_CORE_TRACE_TAG("Renderer", "-------------------");
+		}
 
 		SK_CORE_TRACE_TAG("Renderer", "Constant Buffers:");
 		for (const auto& constantBuffer : shaderResources.uniform_buffers)
 		{
 			const spirv_cross::SPIRType& bufferType = compiler.get_type(constantBuffer.type_id);
 			std::string name = compiler.get_name(constantBuffer.id);
+			SK_CORE_DEBUG("Name from ID: {}, Name from Unifrom Buffers: {}", name, constantBuffer.name);
 			if (name.empty())
 				name = constantBuffer.name;
 
 			uint32_t size = (uint32_t)compiler.get_declared_struct_size(bufferType);
 			uint32_t memberCount = (uint32_t)bufferType.member_types.size();
 			uint32_t binding = compiler.get_decoration(constantBuffer.id, spv::DecorationBinding);
+			uint32_t set = compiler.get_decoration(constantBuffer.id, spv::DecorationDescriptorSet);
 
-			auto& data = m_ReflectionData.ConstantBuffers[name];
+			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
+			m_ReflectionData.NameCache[name] = { set, binding };
+			auto& data = m_ReflectionData.Resources[set][binding];
 			data.Name = name;
 			data.Stage = utils::ToShaderReflectionShaderStage(stage);
-			data.UpdateFrequency = overriddenUpdateFruequencies.contains(name) ? overriddenUpdateFruequencies.at(name) : utils::GetUpdateFrequencyFromBinding(binding);
-			data.Binding = binding;
-			data.Size = size;
-			data.MemberCount = memberCount;
+			data.Type = ShaderReflection::ResourceType::ConstantBuffer;
+			data.StructSize = size;
+
+			std::string d3dName;
+			if (m_Language == ShaderUtils::ShaderLanguage::HLSL)
+				d3dName = fmt::format("type_ConstantBuffer_{}", name.substr(2));
+			else
+				d3dName = name.substr(2);
+
+			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
+			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(d3dName.c_str(), &d3dInputDesc);
+			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+			if (SUCCEEDED(hResult))
+			{
+				data.DXBinding = d3dInputDesc.BindPoint;
+			}
 
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", name);
-			SK_CORE_TRACE_TAG("Renderer", "  UpdateFrequency: {}", ToString(data.UpdateFrequency));
-			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
+			SK_CORE_TRACE_TAG("Renderer", "  DXBinding: {}", data.DXBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  Size: {}", size);
 			SK_CORE_TRACE_TAG("Renderer", "  Members: {}", memberCount);
 
 			uint32_t index = 0;
 			uint32_t offset = 0;
+			SK_CORE_VERIFY(!m_ReflectionData.Members[set].contains(binding));
+			auto& memberList = m_ReflectionData.Members[set][binding];
 			for (const auto& member : bufferType.member_types)
 			{
-				auto& memberData = data.Members.emplace_back();
+				SK_CORE_ASSERT(index == memberList.size());
+				ShaderReflection::MemberDeclaration& memberData = memberList.emplace_back();
 				const spirv_cross::SPIRType& memberType = compiler.get_type(member);
 				const auto& memberName = compiler.get_member_name(constantBuffer.base_type_id, index);
 				memberData.Name = fmt::format("{}.{}", name, memberName);
 				memberData.Type = utils::GetVariableType(memberType);
 				memberData.Size = (uint32_t)compiler.get_declared_struct_member_size(bufferType, index);
 				memberData.Offset = offset;
+				m_ReflectionData.MemberNameCache[memberData.Name] = { set, binding, index };
 				index++;
 				offset += memberData.Size;
 
@@ -954,13 +1090,17 @@ namespace Shark {
 			const auto& imageType = compiler.get_type(resource.type_id);
 			const auto& name = resource.name;
 
-			auto& reflectionData = m_ReflectionData.Resources[name];
+			uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+
+			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
+			m_ReflectionData.NameCache[name] = { set, binding };
+			auto& reflectionData = m_ReflectionData.Resources[set][binding];
 			reflectionData.Name = name;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
-			reflectionData.UpdateFrequency = overriddenUpdateFruequencies.contains(name) ? overriddenUpdateFruequencies.at(name) : ShaderReflection::UpdateFrequencyType::PerMaterial;
-			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			reflectionData.SamplerBinding = reflectionData.Binding;
-			reflectionData.ArraySize = imageType.array[0];
+
+			if (!imageType.array.empty())
+				reflectionData.ArraySize = imageType.array[0];
 
 			switch (imageType.image.dim)
 			{
@@ -970,9 +1110,20 @@ namespace Shark {
 				default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
 			}
 
+			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
+			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(name.c_str(), &d3dInputDesc);
+			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+			if (SUCCEEDED(hResult))
+			{
+				reflectionData.DXBinding = d3dInputDesc.BindPoint;
+				reflectionData.DXSamplerBinding = d3dInputDesc.BindPoint;
+			}
+
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
 			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
-			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
+			SK_CORE_TRACE_TAG("Renderer", "  DX Binding: {}", reflectionData.DXBinding);
+			SK_CORE_TRACE_TAG("Renderer", "  DX Sampler Binding: {}", reflectionData.DXSamplerBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 		}
@@ -982,12 +1133,18 @@ namespace Shark {
 		{
 			const auto& imageType = compiler.get_type(resource.type_id);
 
-			auto& reflectionData = m_ReflectionData.Resources[resource.name];
+			uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+
+			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
+			m_ReflectionData.NameCache[resource.name] = { set, binding };
+			auto& reflectionData = m_ReflectionData.Resources[set][binding];
 			reflectionData.Name = resource.name;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
-			reflectionData.UpdateFrequency = overriddenUpdateFruequencies.contains(resource.name) ? overriddenUpdateFruequencies.at(resource.name) : ShaderReflection::UpdateFrequencyType::PerMaterial;
-			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			reflectionData.ArraySize = imageType.array[0];
+
+			if (!imageType.array.empty())
+				reflectionData.ArraySize = imageType.array[0];
+
 
 			switch (imageType.image.dim)
 			{
@@ -997,9 +1154,20 @@ namespace Shark {
 				default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
 			}
 
+			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
+			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(reflectionData.Name.c_str(), &d3dInputDesc);
+			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+			if (SUCCEEDED(hResult))
+			{
+				reflectionData.DXBinding = d3dInputDesc.BindPoint;
+				reflectionData.DXSamplerBinding = d3dInputDesc.BindPoint;
+			}
+
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
 			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
-			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
+			SK_CORE_TRACE_TAG("Renderer", "  DX Binding: {}", reflectionData.DXBinding);
+			SK_CORE_TRACE_TAG("Renderer", "  DX Sampler Binding: {}", reflectionData.DXSamplerBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 
@@ -1010,12 +1178,17 @@ namespace Shark {
 		{
 			const auto& imageType = compiler.get_type(resource.type_id);
 
-			auto& reflectionData = m_ReflectionData.Resources[resource.name];
+			uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+
+			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
+			m_ReflectionData.NameCache[resource.name] = { set, binding };
+			auto& reflectionData = m_ReflectionData.Resources[set][binding];
 			reflectionData.Name = resource.name;
-			reflectionData.UpdateFrequency = overriddenUpdateFruequencies.contains(resource.name) ? overriddenUpdateFruequencies.at(resource.name) : ShaderReflection::UpdateFrequencyType::PerMaterial;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
-			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			reflectionData.ArraySize = imageType.array[0];
+
+			if (!imageType.array.empty())
+				reflectionData.ArraySize = imageType.array[0];
 
 			switch (imageType.image.dim)
 			{
@@ -1025,9 +1198,20 @@ namespace Shark {
 				default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
 			}
 
+			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
+			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(reflectionData.Name.c_str(), &d3dInputDesc);
+			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+			if (SUCCEEDED(hResult))
+			{
+				reflectionData.DXBinding = d3dInputDesc.BindPoint;
+				reflectionData.DXSamplerBinding = d3dInputDesc.BindPoint;
+			}
+
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
 			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
-			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
+			SK_CORE_TRACE_TAG("Renderer", "  DX Binding: {}", reflectionData.DXBinding);
+			SK_CORE_TRACE_TAG("Renderer", "  DX Sampler Binding: {}", reflectionData.DXSamplerBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 
@@ -1037,124 +1221,39 @@ namespace Shark {
 		for (const auto& resource : shaderResources.separate_samplers)
 		{
 			const auto& imageType = compiler.get_type(resource.type_id);
-			const auto& name = resource.name;
 
-			auto& reflectionData = m_ReflectionData.Resources[name];
-			reflectionData.Name = name;
-			reflectionData.UpdateFrequency = overriddenUpdateFruequencies.contains(resource.name) ? overriddenUpdateFruequencies.at(resource.name) : ShaderReflection::UpdateFrequencyType::PerMaterial;
+			uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+
+			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
+			m_ReflectionData.NameCache[resource.name] = { set, binding };
+			auto& reflectionData = m_ReflectionData.Resources[set][binding];
+			reflectionData.Name = resource.name;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
-			reflectionData.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			reflectionData.ArraySize = imageType.array[0];
+
+			if (!imageType.array.empty())
+				reflectionData.ArraySize = imageType.array[0];
+
 			reflectionData.Type = ShaderReflection::ResourceType::Sampler;
 
-			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", name);
+			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
+			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(reflectionData.Name.c_str(), &d3dInputDesc);
+			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+			if (SUCCEEDED(hResult))
+			{
+				reflectionData.DXBinding = d3dInputDesc.BindPoint;
+				reflectionData.DXSamplerBinding = d3dInputDesc.BindPoint;
+			}
+
+			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
 			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
-			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}", reflectionData.Binding);
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
+			SK_CORE_TRACE_TAG("Renderer", "  DX Binding: {}", reflectionData.DXBinding);
+			SK_CORE_TRACE_TAG("Renderer", "  DX Sampler Binding: {}", reflectionData.DXSamplerBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  Array Size: {}", reflectionData.ArraySize);
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 		}
 
-		SK_CORE_TRACE_TAG("Renderer", "Misk:");
-		const auto combinations = GetCombinedImageSamplerOverrides(metadata);
-		for (const auto& [imageName, samplerName] : combinations)
-		{
-			if (!m_ReflectionData.Resources.contains(imageName) || !m_ReflectionData.Resources.contains(samplerName))
-				continue;
-
-			ShaderReflection::Resource& image = m_ReflectionData.Resources.at(imageName);
-			ShaderReflection::Resource& sampler = m_ReflectionData.Resources.at(samplerName);
-			if (ShaderReflection::IsImageType(image.Type) && sampler.Type == ShaderReflection::ResourceType::Sampler)
-			{
-				SK_CORE_VERIFY(image.Stage == sampler.Stage);
-				SK_CORE_VERIFY(image.UpdateFrequency == sampler.UpdateFrequency);
-
-				switch (image.Type)
-				{
-					case ShaderReflection::ResourceType::Image2D: image.Type = ShaderReflection::ResourceType::Texture2D; break;
-					case ShaderReflection::ResourceType::Image3D: image.Type = ShaderReflection::ResourceType::Texture3D; break;
-					case ShaderReflection::ResourceType::ImageCube: image.Type = ShaderReflection::ResourceType::TextureCube; break;
-					default: SK_CORE_VERIFY(false); break;
-				}
-
-				image.SamplerBinding = sampler.Binding;
-				m_ReflectionData.Resources.erase(samplerName);
-
-				SK_CORE_TRACE_TAG("Renderer", "  Combined Image and Sampler");
-				SK_CORE_TRACE_TAG("Renderer", "    Image: {}", imageName);
-				SK_CORE_TRACE_TAG("Renderer", "    Sampler: {}", samplerName);
-				SK_CORE_TRACE_TAG("Renderer", "-------------------");
-			}
-		}
-
-	}
-
-	std::map<std::string, Shark::ShaderReflection::UpdateFrequencyType> DirectXShaderCompiler::GetUpdateFrequencies(const Metadata& metadata)
-	{
-		if (metadata.SourceMetadata.empty())
-			return {};
-
-		std::map<std::string, ShaderReflection::UpdateFrequencyType> overriddenUpdateFruequencies;
-		std::string_view overrides = metadata.SourceMetadata;
-
-		size_t bol = 0;
-		size_t eol = 0;
-
-		size_t offset = 0;
-		std::vector<std::string> tokens;
-		tokens.reserve(3);
-
-		while (true)
-		{
-			bol = overrides.find("set", offset);
-			if (bol == std::string::npos)
-				break;
-
-			eol = overrides.find_first_of("\r\n", bol);
-			offset = eol;
-			std::string line = std::string(overrides.substr(bol, eol - bol));
-			
-			String::Strip(line, " \r\n");
-			tokens.clear();
-			String::SplitString(line, " ", tokens);
-			SK_CORE_VERIFY(tokens.size() == 3);
-			overriddenUpdateFruequencies[tokens[1]] = StringToShaderReflectionUpdateFrequency(tokens[2]);
-		}
-
-		return overriddenUpdateFruequencies;
-	}
-
-	std::vector<std::pair<std::string, std::string>> DirectXShaderCompiler::GetCombinedImageSamplerOverrides(const Metadata& metadata)
-	{
-		if (metadata.SourceMetadata.empty())
-			return {};
-
-		std::vector<std::pair<std::string, std::string>> combinations;
-		std::string_view source = metadata.SourceMetadata;
-
-		size_t bol = 0;
-		size_t eol = 0;
-
-		size_t offset = 0;
-		std::vector<std::string> tokens;
-
-		while (true)
-		{
-			bol = source.find("combine", offset);
-			if (bol == std::string::npos)
-				break;
-
-			eol = source.find_first_of("\r\n", bol);
-			offset = eol;
-			std::string line = std::string(source.substr(bol, eol - bol));
-
-			String::Strip(line, " \r\n");
-			tokens.clear();
-			String::SplitString(line, " ", tokens);
-			SK_CORE_VERIFY(tokens.size() == 3);
-			combinations.emplace_back(tokens[1], tokens[2]);
-		}
-
-		return combinations;
 	}
 
 }

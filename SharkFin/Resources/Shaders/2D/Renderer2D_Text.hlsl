@@ -1,13 +1,11 @@
 #pragma stage : Vertex
 
-// begin_metadata
-// set u_SceneData PerMaterial
-// end_metadata
-
-cbuffer u_SceneData : register(b0)
+struct Camera
 {
     matrix ViewProjection;
-}
+};
+
+[[vk::binding(0, 1)]] ConstantBuffer<Camera> u_Camera;
 
 struct VSIN
 {
@@ -28,7 +26,7 @@ struct VSOUT
 VSOUT main(VSIN vsin)
 {
     VSOUT vsout;
-    vsout.Pos = mul(ViewProjection, float4(vsin.Pos, 1.0f));
+    vsout.Pos = mul(u_Camera.ViewProjection, float4(vsin.Pos, 1.0f));
     vsout.Color = vsin.Color;
     vsout.TexCoord = vsin.TexCoord;
     vsout.ID = vsin.ID;
@@ -37,12 +35,8 @@ VSOUT main(VSIN vsin)
 
 #pragma stage : Pixel
 
-// begin_metadata
-// combine g_FontAtlas g_Sampler
-// end_metadata
-
-Texture2D g_FontAtlas : register(t0);
-SamplerState g_Sampler : register(s0);
+[[vk::binding(1, 0)]][[vk::combinedImageSampler]] Texture2D g_FontAtlas;
+[[vk::binding(1, 0)]][[vk::combinedImageSampler]] SamplerState g_Sampler;
 
 struct PSIN
 {

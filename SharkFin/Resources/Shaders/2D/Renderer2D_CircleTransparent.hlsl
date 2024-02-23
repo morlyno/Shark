@@ -1,7 +1,7 @@
 #pragma stage : Vertex
 
 // begin_metadata
-// set u_SceneData PerScene
+// set u_SceneData RenderPass
 // end_metadata
 
 cbuffer u_SceneData : register(b0)

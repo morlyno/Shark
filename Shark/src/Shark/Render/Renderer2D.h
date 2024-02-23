@@ -12,6 +12,7 @@
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/Material.h"
 #include "Shark/Render/Font.h"
+#include "Shark/Render/RenderPass.h"
 
 #include <glm/glm.hpp>
 
@@ -197,6 +198,7 @@ namespace Shark {
 		bool m_Active = false;
 
 		Ref<RenderCommandBuffer> m_CommandBuffer;
+		Ref<ConstantBuffer> m_CBCamera;
 
 		Ref<Texture2D> m_WhiteTexture;
 		glm::mat4 m_ViewProj;
@@ -291,7 +293,7 @@ namespace Shark {
 		uint32_t m_TransparentCircleVertexCount = 0;
 
 		// Text
-		Ref<Pipeline> m_TextPipeline;
+		Ref<RenderPass> m_TextPass;
 		Ref<Material> m_TextMaterial;
 		Ref<VertexBuffer> m_TextVertexBuffer;
 		Ref<IndexBuffer> m_TextIndexBuffer;

@@ -15,7 +15,11 @@ project "SharkFin"
     files
     {
         "src/**.h",
-        "src/**.cpp"
+        "src/**.cpp",
+
+        "Resources/Shaders/**.hlsl",
+        "Resources/Shaders/**.glsl",
+        "Resources/Shaders/**.glslh"
     }
 
     includedirs
@@ -48,6 +52,9 @@ project "SharkFin"
     {
         '{COPYFILE} "%{Assimp.Binary}" "%{cfg.targetdir}"'
     }
+
+    filter "files:**.hlsl or files:**.glsl or files:**.glslh"
+        flags { "ExcludeFromBuild" }
 
     filter "system:windows"
         systemversion "latest"

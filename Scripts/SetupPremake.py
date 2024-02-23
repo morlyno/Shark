@@ -35,5 +35,4 @@ def Validate():
     return True
 
 def GenerateProject():
-    targetVersion = input("Version: ").lower().strip().removesuffix('\n')
-    subprocess.call([f"{PremakeDirectory}/premake5.exe", targetVersion])
+    subprocess.call([f"{PremakeDirectory}/premake5.exe", "vs2022"])

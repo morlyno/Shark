@@ -5,13 +5,14 @@
 #include "Shark/Render/RendererAPI.h"
 
 #include "Shark/Render/RenderCommandQueue.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/RenderPass.h"
+#include "Shark/Render/Pipeline.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shader.h"
 #include "Shark/Render/Texture.h"
-#include "Shark/Render/RenderCommandBuffer.h"
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/FrameBuffer.h"
-#include "Shark/Render/Pipeline.h"
 #include "Shark/Render/SwapChain.h"
 
 namespace Shark {
@@ -56,6 +57,9 @@ namespace Shark {
 			Submit(func);
 		}
 
+		static void BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass);
+		static void EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass);
+
 		static void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material);
 
 		static void BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer);
@@ -67,10 +71,8 @@ namespace Shark {
 
 		static void RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material);
 
-		static void RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline);
-		static void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData);
-		static void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData);
-		static void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData);
+		static void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex);
+		static void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material);
 
 		static void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
 		static void RT_CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
@@ -79,6 +81,10 @@ namespace Shark {
 
 		static void GenerateMips(Ref<Image2D> image);
 		static void RT_GenerateMips(Ref<Image2D> image);
+
+		static void ShaderReloaded(Ref<Shader> shader);
+		static void AcknowledgeShaderDependency(Ref<Shader> shader, Weak<Material> material);
+		static void AcknowledgeShaderDependency(Ref<Shader> shader, Weak<RenderPass> renderPass);
 
 		static void ReportLiveObejcts();
 

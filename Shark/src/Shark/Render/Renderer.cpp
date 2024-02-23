@@ -14,6 +14,12 @@ namespace Shark {
 
 	Ref<RendererAPI> Renderer::s_RendererAPI = nullptr;
 
+	struct ShaderDependencies
+	{
+		std::vector<Weak<Material>> Materials;
+		std::vector<Weak<RenderPass>> RenderPasses;
+	};
+
 	struct RendererData
 	{
 		Ref<ShaderLibrary> m_ShaderLibrary;
@@ -22,6 +28,8 @@ namespace Shark {
 		Ref<Texture2D> m_BlackTexture;
 		Ref<TextureCube> m_BlackTextureCube;
 		Ref<SamplerWrapper> m_ClampLinearSampler;
+
+		std::unordered_map<uint64_t, ShaderDependencies> m_ShaderDependencies;
 	};
 
 	static RendererConfig s_Config = {};
@@ -56,13 +64,16 @@ namespace Shark {
 		s_Data = sknew RendererData;
 		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
 
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/VkHLSL.hlsl", true, true);
+
 		// 3D
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Skybox.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvironmentIrradiance.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EquirectangularToCubeMap.glsl");
 
 		// 2D
+#if TODO
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Quad.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadTransparent.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadDepthPass.hlsl");
@@ -72,11 +83,14 @@ namespace Shark {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Line.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_LineDepthPass.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Composite.hlsl");
+#endif
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Text.hlsl");
 
 		// Misc
+#if TODO
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FullScreen.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/CompositWidthDepth.hlsl");
+#endif
 
 		// Compile Shaders
 		Renderer::WaitAndRender();
@@ -154,6 +168,16 @@ namespace Shark {
 		s_SingleThreadedIsExecuting = false;
 	}
 
+	void Renderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
+	{
+		s_RendererAPI->BeginRenderPass(commandBuffer, renderPass);
+	}
+
+	void Renderer::EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
+	{
+		s_RendererAPI->EndRenderPass(commandBuffer, renderPass);
+	}
+
 	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
 	{
 		s_RendererAPI->RenderFullScreenQuad(commandBuffer, pipeline, material);
@@ -189,24 +213,14 @@ namespace Shark {
 		s_RendererAPI->RenderCube(commandBuffer, pipeline, material);
 	}
 
-	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Pipeline> pipeline)
+	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex)
 	{
-		s_RendererAPI->RenderSubmesh(renderCommandBuffer, mesh, submeshIndex, pipeline);
+		s_RendererAPI->RenderSubmesh(commandBuffer, pipeline, mesh, submeshIndex);
 	}
 
-	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData)
+	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material)
 	{
-		s_RendererAPI->RenderSubmesh(commandBuffer, pipeline, mesh, submeshIndex, sceneData, meshData, lightData);
-	}
-
-	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData)
-	{
-		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, submeshIndex, material, sceneData);
-	}
-
-	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, Ref<ConstantBuffer> sceneData, Ref<ConstantBuffer> meshData, Ref<ConstantBuffer> lightData)
-	{
-		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, submeshIndex, material, sceneData, meshData, lightData);
+		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, submeshIndex, material);
 	}
 
 	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
@@ -232,6 +246,41 @@ namespace Shark {
 	void Renderer::RT_GenerateMips(Ref<Image2D> image)
 	{
 		s_RendererAPI->RT_GenerateMips(image);
+	}
+
+	void Renderer::ShaderReloaded(Ref<Shader> shader)
+	{
+		auto& dependencies = s_Data->m_ShaderDependencies[shader->GetHash()];
+
+		if (dependencies.Materials.empty() && dependencies.RenderPasses.empty())
+			return;
+
+		std::ranges::remove_if(dependencies.Materials, [](Weak<Material> material) { return material.Expired(); });
+		std::ranges::remove_if(dependencies.RenderPasses, [](Weak<RenderPass> material) { return material.Expired(); });
+
+		for (const auto& m : dependencies.Materials)
+		{
+			Ref<Material> material = m.GetRef();
+			SK_CORE_VERIFY(material->Validate());
+		}
+
+		for (const auto& rp : dependencies.RenderPasses)
+		{
+			Ref<RenderPass> renderPass = rp.GetRef();
+			SK_CORE_VERIFY(renderPass->Validate());
+			renderPass->Bake();
+		}
+
+	}
+
+	void Renderer::AcknowledgeShaderDependency(Ref<Shader> shader, Weak<Material> material)
+	{
+		s_Data->m_ShaderDependencies[shader->GetHash()].Materials.push_back(material);
+	}
+
+	void Renderer::AcknowledgeShaderDependency(Ref<Shader> shader, Weak<RenderPass> renderPass)
+	{
+		s_Data->m_ShaderDependencies[shader->GetHash()].RenderPasses.push_back(renderPass);
 	}
 
 	void Renderer::ReportLiveObejcts()

@@ -73,29 +73,53 @@ namespace Shark {
 
 		LoadShader(compiler->GetShaderBinary());
 		SetReflectionData(compiler->GetRefectionData());
+		SetHash(compiler->GetHash());
+
+		Renderer::ShaderReloaded(this);
 		return true;
 	}
 
-	bool DirectXShader::HasResourceInfo(const std::string& name) const
+	bool DirectXShader::HasResource(const std::string& name) const
 	{
-		return m_RefelctionData.Resources.contains(name);
+		return m_ReflectionData.NameCache.contains(name);
 	}
 
-	const Shark::ShaderReflection::Resource& DirectXShader::GetResourceInfo(const std::string& name) const
+	bool DirectXShader::HasMember(const std::string& name) const
 	{
-		SK_CORE_VERIFY(HasResourceInfo(name));
-		return m_RefelctionData.Resources.at(name);
+		return m_ReflectionData.MemberNameCache.contains(name);
 	}
 
-	bool DirectXShader::HasBufferInfo(const std::string& name) const
+	const ShaderReflection::Resource& DirectXShader::GetResourceInfo(const std::string& name) const
 	{
-		return m_RefelctionData.ConstantBuffers.contains(name);
+		SK_CORE_VERIFY(HasResource(name));
+		const auto [set, binding] = m_ReflectionData.NameCache.at(name);
+		return m_ReflectionData.Resources.at(set).at(binding);
 	}
 
-	const Shark::ShaderReflection::ConstantBuffer& DirectXShader::GetBufferInfo(const std::string& name) const
+	const ShaderReflection::Resource& DirectXShader::GetMembersResourceInfo(const std::string& name) const
 	{
-		SK_CORE_VERIFY(HasBufferInfo(name));
-		return m_RefelctionData.ConstantBuffers.at(name);
+		SK_CORE_VERIFY(HasMember(name));
+		const auto [set, binding, index] = m_ReflectionData.MemberNameCache.at(name);
+		return m_ReflectionData.Resources.at(set).at(binding);
+	}
+
+	const ShaderReflection::MemberDeclaration& DirectXShader::GetMemberInfo(const std::string& name) const
+	{
+		SK_CORE_VERIFY(HasMember(name));
+		const auto [set, binding, index] = m_ReflectionData.MemberNameCache.at(name);
+		return m_ReflectionData.Members.at(set).at(binding).at(index);
+	}
+
+	std::pair<uint32_t, uint32_t> DirectXShader::GetResourceBinding(const std::string& name) const
+	{
+		SK_CORE_VERIFY(HasResource(name));
+		return m_ReflectionData.NameCache.at(name);
+	}
+
+	std::tuple<uint32_t, uint32_t, uint32_t> DirectXShader::GetMemberBinding(const std::string& name) const
+	{
+		SK_CORE_VERIFY(HasMember(name));
+		return m_ReflectionData.MemberNameCache.at(name);
 	}
 
 	void DirectXShader::LoadShader(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& shaderBinary)

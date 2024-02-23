@@ -18,13 +18,6 @@ namespace Shark {
 
 	class DirectXShaderCompiler : public RefCount
 	{
-	private:
-		struct CompileOptions
-		{
-			bool Optimize;
-			bool GenerateDebugInfo;
-			bool AutoCombineImageSamplers;
-		};
 	public:
 		DirectXShaderCompiler(const std::filesystem::path& shaderSourcePath, bool disableOptimization = false);
 		DirectXShaderCompiler(const std::filesystem::path& shaderSourcePath, const DirectXShaderCompilerOptions& options);
@@ -36,6 +29,7 @@ namespace Shark {
 		const std::filesystem::path& GetShaderSourcePath() const { return m_ShaderSourcePath; }
 		const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& GetShaderBinary() const { return m_ShaderBinary; }
 		const ShaderReflectionData& GetRefectionData() const { return m_ReflectionData; }
+		uint64_t GetHash() const { return m_Hash; }
 
 	public:
 		static Ref<Shader> Compile(const std::filesystem::path& shaderSourcePath, bool forceCompile = false, bool disableOptimization = false);
@@ -54,6 +48,8 @@ namespace Shark {
 		bool CompileOrLoadBinary(ShaderUtils::ShaderStage::Type stage, ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile);
 
 		std::string Compile(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& outputBinary, std::vector<uint32_t>& outputSPIRVDebug);
+		std::string CompileHLSLToSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVDebug);
+		std::string CompileGLSLToSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVDebug);
 		std::string CompileFromSPIRV(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary, std::vector<byte>& outputBinary);
 		std::string CompileHLSL(ShaderUtils::ShaderStage::Type stage, const std::string& hlslSourceCode, std::vector<byte>& binary) const;
 		std::string CrossCompileToHLSL(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary);
@@ -71,15 +67,13 @@ namespace Shark {
 		void ReflectAllShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>>& spirvData);
 		void ReflectShaderStage(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary);
 
-		struct Metadata;
-		std::map<std::string, ShaderReflection::UpdateFrequencyType> GetUpdateFrequencies(const Metadata& metadata);
-		std::vector<std::pair<std::string, std::string>> GetCombinedImageSamplerOverrides(const Metadata& metadata);
-
 	private:
 		ShaderUtils::ShaderLanguage m_Language;
 		ShaderUtils::ShaderStage::Flags m_Stages = ShaderUtils::ShaderStage::None;
 		DirectXShaderCompilerOptions m_Options;
 		std::filesystem::path m_ShaderSourcePath;
+		uint64_t m_Hash = 0;
+
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> m_ShaderSource;
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>> m_SPIRVData;
 		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>> m_ShaderBinary;
@@ -89,7 +83,6 @@ namespace Shark {
 		{
 			ShaderUtils::ShaderStage::Type Stage = ShaderUtils::ShaderStage::None;
 			uint64_t HashCode = 0;
-			std::string SourceMetadata;
 			std::filesystem::path CacheFile;
 		};
 		std::unordered_map<ShaderUtils::ShaderStage::Type, Metadata> m_ShaderStageMetadata;

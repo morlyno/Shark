@@ -114,7 +114,8 @@ namespace Shark {
 			for (uint32_t i = 0; i < scene->mNumMaterials; i++)
 			{
 				auto aiMaterial = scene->mMaterials[i];
-				Ref<Material> material = Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR"), aiMaterial->GetName().C_Str());
+				aiString materialName = aiMaterial->GetName();
+				Ref<Material> material = Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR"), materialName.C_Str());
 				meshSource->m_Materials.push_back(material);
 				materialAsset->SetMaterial(material);
 				materialAsset->SetDefault();

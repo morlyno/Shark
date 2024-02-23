@@ -3,10 +3,10 @@
 
 #include <EnvironmentMapping.glslh>
 
-layout(binding = 0, rgba32f) restrict writeonly uniform image2DArray o_IrradianceMap;
-layout(binding = 1) uniform samplerCube u_RadianceMap;
+layout(set = 0, binding = 0, rgba32f) restrict writeonly uniform image2DArray o_IrradianceMap;
+layout(set = 0, binding = 1) uniform samplerCube u_RadianceMap;
 
-layout(binding = 1) uniform Uniforms
+layout(set = 0, binding = 2) uniform Uniforms
 {
 	uint Samples;
 	uint p0, p1, p2;

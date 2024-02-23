@@ -1,19 +1,14 @@
 #version 450 core
 #pragma stage : Vertex
 
-// begin_metadata
-// set u_SceneData PerScene
-// set u_MeshData PerDrawCall
-// end_metadata
-
-layout(std140, binding = 0) uniform SceneData
+layout(set = 2, binding = 0, std140) uniform SceneData
 {
     mat4 ViewProjection;
     vec3 CameraPosition;
     float Padding;
 } u_SceneData;
 
-layout(std140, binding = 1) uniform MeshData
+layout(set = 1, binding = 1, std140) uniform MeshData
 {
     mat4 Transform;
     int ID;
@@ -59,18 +54,13 @@ void main()
 #version 450 core
 #pragma stage : Pixel
 
-// begin_metadata
-// set u_MaterialUniforms PerMaterial
-// set u_Light PerScene
-// end_metadata
+layout(set = 0, binding = 2) uniform sampler2D u_AlbedoMap;
+layout(set = 0, binding = 3) uniform sampler2D u_NormalMap;
+layout(set = 0, binding = 4) uniform sampler2D u_MetalnessMap;
+layout(set = 0, binding = 5) uniform sampler2D u_RoughnessMap;
+layout(set = 0, binding = 6) uniform samplerCube u_IrradianceMap;
 
-layout(binding = 0) uniform sampler2D u_AlbedoMap;
-layout(binding = 1) uniform sampler2D u_NormalMap;
-layout(binding = 2) uniform sampler2D u_MetalnessMap;
-layout(binding = 3) uniform sampler2D u_RoughnessMap;
-layout(binding = 4) uniform samplerCube u_IrradianceMap;
-
-layout(std140, binding = 0) uniform MaterialUniforms
+layout(set = 0, binding = 0, std140) uniform MaterialUniforms
 {
     vec3 Albedo;
     float Metalness;
@@ -80,14 +70,16 @@ layout(std140, binding = 0) uniform MaterialUniforms
     float Padding0;
 } u_MaterialUniforms;
 
-layout(std140, binding = 1) uniform Light
+layout(set = 2, binding = 1, std140) uniform Light
 {
-    vec4 Color;
+    vec3 Color;
+    float P3;
     vec3 Position;
     float Intensity;
     float Radius;
+    float Falloff;
 	
-    float P0, P1, P2;
+    float P0, P1;
 } u_Light;
 
 struct VertexOutput
@@ -166,14 +158,19 @@ vec3 IBL(vec3 F0)
     return kd * diffuseIBL;
 }
 
-float LightFalloff(vec3 lightPosition, vec3 pixelPosition)
+float LightAttenuation(float distance, float intensity, float radius, float falloff)
 {
-    vec3 distVec = lightPosition - pixelPosition;
-    float LightDistance = sqrt(dot(distVec, distVec));
-    float Dl = LightDistance / u_Light.Radius;
-    float oneMinusDL = clamp(1.0 - (Dl * Dl * Dl * Dl), 0.0, 1.0);
-    float numerator = oneMinusDL * oneMinusDL;
-    return numerator / (LightDistance * LightDistance + 1.0);
+    float s = distance / radius;
+    
+    if (s >= 1.0f)
+    {
+        return 0.0f;
+    }
+
+    float s2 = s * s;
+    float oneMinusS2 = 1.0f - s2;
+
+    return intensity * (oneMinusS2 * oneMinusS2) / (1 + falloff * s);
 }
 
 void main()
@@ -224,11 +221,16 @@ void main()
         // Cook-Torrance specular microfacet BRDF
         vec3 specularBRDF = (D * F * G) / max(4 * NdotL * m_Params.NdotV, Epsilon);
         
-        float falloff = LightFalloff(u_Light.Position, Input.WorldPosition);
-        float attenuation = min(u_Light.Intensity * falloff, 1);
+        float lightDist = distance(u_Light.Position, Input.WorldPosition);
+        float attenuation = LightAttenuation(lightDist, u_Light.Intensity, u_Light.Radius, u_Light.Falloff);
+        //attenuation = min(attenuation, 1.0f);
+
+        //float falloff = LightFalloff(u_Light.Position, Input.WorldPosition);
+        //float attenuation = u_Light.Intensity * falloff;
+
         lightContribution += (diffuseBRDF + specularBRDF) * u_Light.Color.rgb * attenuation * NdotL;
     }
-
+    
     vec3 iblContribution = IBL(F0);
     vec3 color = iblContribution + lightContribution;
     

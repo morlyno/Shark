@@ -1,11 +1,7 @@
 #pragma once
 
-#include <Shark/Core/Base.h>
-#include <Shark/Core/UUID.h>
-
 #include <fmt/format.h>
 #include <glm/glm.hpp>
-
 
 template<glm::length_t L, typename T, glm::qualifier Q, typename Char>
 struct fmt::formatter<glm::vec<L, T, Q>, Char> : fmt::formatter<T, Char>
@@ -47,15 +43,5 @@ struct fmt::formatter<std::filesystem::path, char> : fmt::formatter<std::string,
 	auto format(const std::filesystem::path& path, FormatContext& ctx) -> decltype(ctx.out())
 	{
 		return fmt::formatter<std::string, char>::format(path.string(), ctx);
-	}
-};
-
-template<typename Char>
-struct fmt::formatter<Shark::UUID, Char> : fmt::formatter<uint64_t, Char>
-{
-	template<typename FormatContext>
-	auto format(const Shark::UUID& uuid, FormatContext& ctx) -> decltype(ctx.out())
-	{
-		return fmt::formatter<uint64_t, Char>::format((uint64_t)uuid, ctx);
 	}
 };

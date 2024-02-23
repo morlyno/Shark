@@ -1,6 +1,7 @@
 #include "skfpch.h"
 #include "ShadersPanel.h"
 
+#include "Shark/Core/Application.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/UI/UI.h"
 #include "Shark/ImGui/TextFilter.h"
@@ -47,13 +48,20 @@ namespace Shark {
 					if (!filter.PassFilter(key))
 						continue;
 
+					UI::ScopedID id(key);
+
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text(key.c_str());
 
 					ImGui::TableSetColumnIndex(1);
 					if (ImGui::Button("Realod"))
-						shader->Reload(true, m_DisableOptimization);
+					{
+						Application::Get().SubmitToMainThread([shader, disableOptimization = m_DisableOptimization]()
+						{
+							shader->Reload(true, disableOptimization);
+						});
+					}
 				}
 				ImGui::EndTable();
 			}

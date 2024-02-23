@@ -9,10 +9,10 @@
 
 namespace Shark {
 
-	DirectXConstantBuffer::DirectXConstantBuffer(uint32_t size, uint32_t binding)
-		: m_Size(size), m_Binding(binding)
+	DirectXConstantBuffer::DirectXConstantBuffer(uint32_t size)
+		: m_Size(size)
 	{
-		Invalidate();
+		RT_Invalidate();
 	}
 
 	DirectXConstantBuffer::~DirectXConstantBuffer()
@@ -24,34 +24,10 @@ namespace Shark {
 		});
 	}
 
-	void DirectXConstantBuffer::UploadData(Buffer data)
-	{
-		SK_CORE_VERIFY(data.Size <= m_Size);
-		m_UploadBuffer.Write(data);
-		
-		Ref<DirectXConstantBuffer> instance = this;
-		Renderer::Submit([instance]()
-		{
-			instance->RT_UploadData(instance->m_UploadBuffer);
-		});
-	}
-
-	void DirectXConstantBuffer::RT_UploadData(Buffer data)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		auto* ctx = DirectXRenderer::GetContext();
-
-		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_DX11_CALL(ctx->Map(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-		memcpy(ms.pData, data.Data, data.Size);
-		ctx->Unmap(m_ConstantBuffer, 0);
-	}
-
 	void DirectXConstantBuffer::Invalidate()
 	{
-		m_UploadBuffer.Allocate(m_Size);
+		if (!m_UploadBuffer && m_UploadBuffer.Size != m_Size)
+			m_UploadBuffer.Allocate(m_Size);
 
 		Ref<DirectXConstantBuffer> instance = this;
 		Renderer::Submit([instance]()
@@ -85,6 +61,53 @@ namespace Shark {
 
 		auto* dev = DirectXRenderer::GetDevice();
 		SK_DX11_CALL(dev->CreateBuffer(&bd, nullptr, &m_ConstantBuffer));
+	}
+
+	void DirectXConstantBuffer::UploadData(Buffer data)
+	{
+		SK_CORE_VERIFY(data.Size <= m_Size);
+		m_UploadBuffer.Write(data);
+		
+		Ref<DirectXConstantBuffer> instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->RT_UploadData(instance->m_UploadBuffer);
+		});
+	}
+
+	void DirectXConstantBuffer::RT_UploadData(Buffer data)
+	{
+		SK_PROFILE_FUNCTION();
+		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+
+		auto* ctx = DirectXRenderer::GetContext();
+
+		D3D11_MAPPED_SUBRESOURCE ms;
+		SK_DX11_CALL(ctx->Map(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
+		memcpy(ms.pData, data.Data, data.Size);
+		ctx->Unmap(m_ConstantBuffer, 0);
+	}
+
+	void DirectXConstantBuffer::Upload()
+	{
+		Ref<DirectXConstantBuffer> instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->RT_Upload();
+		});
+	}
+
+	void DirectXConstantBuffer::RT_Upload()
+	{
+		if (!m_UploadBuffer)
+			return;
+
+		ID3D11DeviceContext* context = DirectXRenderer::GetContext();
+
+		D3D11_MAPPED_SUBRESOURCE mappesSubresource;
+		context->Map(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappesSubresource);
+		memcpy(mappesSubresource.pData, m_UploadBuffer.Data, m_UploadBuffer.Size);
+		context->Unmap(m_ConstantBuffer, 0);
 	}
 
 }

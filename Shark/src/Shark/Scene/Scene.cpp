@@ -370,7 +370,7 @@ namespace Shark {
 				Entity entity{ ent, this };
 				TransformComponent worldTransform = GetWorldSpaceTransform(entity);
 				const auto& pointLight = entity.GetComponent<PointLightComponent>();
-				renderer->SubmitPointLight(worldTransform.Translation, pointLight.Color, pointLight.Intensity, entity.Transform().Scale.x);
+				renderer->SubmitPointLight(worldTransform.Translation, pointLight.Color, pointLight.Intensity, pointLight.Radius, pointLight.Falloff);
 			}
 		}
 
@@ -946,6 +946,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_FUNCTION();
 
+#if 0
 		if (entity.AllOf<SpriteRendererComponent>())
 		{
 			auto& sr = entity.GetComponent<SpriteRendererComponent>();
@@ -960,6 +961,7 @@ namespace Shark {
 			else
 				renderer->SubmitCircle(transform, cr.Color, (int)entity.GetHandle());
 		}
+#endif
 
 		if (entity.AllOf<TextRendererComponent>())
 		{

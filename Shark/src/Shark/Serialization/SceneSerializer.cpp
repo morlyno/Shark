@@ -266,6 +266,8 @@ namespace Shark {
 				out << YAML::BeginMap;
 				out << YAML::Key << "Color" << YAML::Value << component->Color;
 				out << YAML::Key << "Intensity" << YAML::Value << component->Intensity;
+				out << YAML::Key << "Radius" << YAML::Value << component->Radius;
+				out << YAML::Key << "Falloff" << YAML::Value << component->Falloff;
 				out << YAML::EndMap;
 			}
 
@@ -502,6 +504,8 @@ namespace Shark {
 						auto& component = entity.AddOrReplaceComponent<PointLightComponent>();
 						component.Color = componentNode["Color"].as<glm::vec4>();
 						component.Intensity = componentNode["Intensity"].as<float>();
+						component.Radius = componentNode["Radius"].as<float>(1);
+						component.Falloff = componentNode["Falloff"].as<float>(1);
 					}
 
 					if (auto componentNode = entityNode["CameraComponent"])

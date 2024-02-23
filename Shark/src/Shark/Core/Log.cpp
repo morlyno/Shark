@@ -1,12 +1,10 @@
 #include "skpch.h"
 #include "Log.h"
 
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/sinks/basic_file_sink.h"
-
 #include "Shark/Core/ConsoleSink.h"
 
-#include <array>
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/basic_file_sink.h"
 
 namespace Shark {
 
@@ -73,7 +71,7 @@ namespace Shark {
 		s_Data = nullptr;
 	}
 
-	void Log::SetConsoleSinkCallback(ConsoleSinkPushMessageCallback callback)
+	void Log::SetConsoleSinkCallback(std::function<void(ConsoleSinkMessage&&)> callback)
 	{
 		s_ConsoleSink->SetPushMessageCallback(callback);
 	}
