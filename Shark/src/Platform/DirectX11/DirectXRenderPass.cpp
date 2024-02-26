@@ -31,6 +31,11 @@ namespace Shark {
 		m_ShaderInputManager.SetInput(name, constantBuffer);
 	}
 
+	void DirectXRenderPass::Set(const std::string& name, Ref<StorageBuffer> storageBuffer)
+	{
+		m_ShaderInputManager.SetInput(name, storageBuffer);
+	}
+
 	void DirectXRenderPass::Set(const std::string& name, Ref<Image2D> image)
 	{
 		m_ShaderInputManager.SetInput(name, image);

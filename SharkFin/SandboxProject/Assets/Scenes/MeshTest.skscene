@@ -21,7 +21,7 @@ Scene:
       TagComponent:
         Name: Light
       TransformComponent:
-        Translation: [12.5533552, 5.7438879, -0.913570404]
+        Translation: [7.62747192, 13.4730291, -2.24005461]
         Rotation: [0, 0, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -31,8 +31,24 @@ Scene:
       PointLightComponent:
         Color: [1, 1, 1, 1]
         Intensity: 1
-        Radius: 14.3000002
-        Falloff: 1
+        Radius: 29
+        Falloff: 0
+    - Entity: 2330932128962717387
+      TagComponent:
+        Name: Red Light
+      TransformComponent:
+        Translation: [8.61411381, 5.62367439, -11.059454]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      PointLightComponent:
+        Color: [0, 0.920354128, 1, 1]
+        Intensity: 1.45000005
+        Radius: 14.75
+        Falloff: 2.45000005
     - Entity: 3378318554821546903
       TagComponent:
         Name: Floor
@@ -124,6 +140,22 @@ Scene:
         MeshHandle: 3444792770354131160
         SubmeshIndex: 0
         MaterialHandle: 1821254970952682847
+    - Entity: 16425634771254092196
+      TagComponent:
+        Name: Light2
+      TransformComponent:
+        Translation: [-8.98091507, 11.4173908, 1.77909327]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      PointLightComponent:
+        Color: [1, 0.690265477, 0, 1]
+        Intensity: 0.850000024
+        Radius: 32.4000015
+        Falloff: 0
     - Entity: 17038408138984345411
       TagComponent:
         Name: Torus

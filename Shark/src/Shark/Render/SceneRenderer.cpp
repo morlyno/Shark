@@ -61,12 +61,13 @@ namespace Shark {
 
 		m_Statistics = {};
 
-		m_MeshTransformCBIndex = 0;
-
 		m_ViewProjection = camera.Projection * camera.View;
 		m_View = camera.View;
 		m_Projection = camera.Projection;
 		m_CameraPosition = camera.Position;
+
+		m_Lights.clear();
+		m_Meshes.clear();
 
 		CBCamera cbCamera;
 		cbCamera.ViewProj = m_ViewProjection;
@@ -82,16 +83,34 @@ namespace Shark {
 		m_GeometryFrameBuffer->Clear(m_CommandBuffer);
 
 		m_Renderer2D->BeginScene(m_ViewProjection);
-
-		Renderer::BeginRenderPass(m_CommandBuffer, m_PBRPass);
 	}
 
 	void SceneRenderer::EndScene()
 	{
 		SK_PROFILE_FUNCTION();
 
-		Renderer::EndRenderPass(m_CommandBuffer, m_PBRPass);
+		if (m_UpdateSkyboxSettings)
+		{
+			CBSkyboxSettings settings;
+			settings.Lod = m_SkyboxLOD;
+			m_CBSkyboxSettings->UploadData(Buffer::FromValue(settings));
+		}
 
+		if (m_Lights.size() > m_SBLights->GetCount())
+		{
+			uint32_t newCount = std::max({ m_SBLights->GetCount() * 2, (uint32_t)m_Lights.size(), 16u });
+			m_SBLights->GetCount() = newCount;
+			m_SBLights->Invalidate();
+		}
+
+		m_SBLights->Upload(Buffer::FromArray(m_Lights));
+
+		CBScene sceneData;
+		sceneData.EnvironmentMapIntensity = m_EnvironmentMapIntensity;
+		sceneData.LightCount = (uint32_t)m_Lights.size();
+		m_CBScene->UploadData(Buffer::FromValue(sceneData));
+
+		GeometryPass();
 		SkyboxPass();
 
 		m_CommandBuffer->EndTimeQuery(m_Timer);
@@ -131,29 +150,24 @@ namespace Shark {
 
 	void SceneRenderer::SubmitPointLight(const glm::vec3& position, const glm::vec3& color, float intensity, float radius, float falloff)
 	{
-		CBLight cbLight;
+		Light& cbLight = m_Lights.emplace_back();
 		cbLight.Color = color;
 		cbLight.Position = position;
 		cbLight.Intensity = intensity;
 		cbLight.Radius = radius;
 		cbLight.Falloff = falloff;
-		m_CBLight->UploadData(Buffer::FromValue(cbLight));
 	}
 
 	void SceneRenderer::SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id)
 	{
 		SK_CORE_VERIFY(mesh);
-		
-		CBMeshData meshData;
+
+		auto& meshData = m_Meshes.emplace_back();
+		meshData.Mesh = mesh;
+		meshData.Material = nullptr;
+		meshData.SubmeshIndex = submeshIndex;
 		meshData.Transform = transform;
 		meshData.ID = id;
-
-		m_PBRPass->GetPipeline()->SetPushConstant(meshData);
-		Renderer::RenderSubmesh(m_CommandBuffer, m_PBRPass->GetPipeline(), mesh, submeshIndex);
-
-		m_Statistics.DrawCalls++;
-		m_Statistics.VertexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].VertexCount;
-		m_Statistics.IndexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].IndexCount;
 	}
 
 	void SceneRenderer::SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, int id)
@@ -161,16 +175,12 @@ namespace Shark {
 		SK_CORE_VERIFY(mesh);
 		SK_CORE_VERIFY(material);
 
-		CBMeshData meshData;
+		auto& meshData = m_Meshes.emplace_back();
+		meshData.Mesh = mesh;
+		meshData.Material = material;
+		meshData.SubmeshIndex = submeshIndex;
 		meshData.Transform = transform;
 		meshData.ID = id;
-
-		m_PBRPass->GetPipeline()->SetPushConstant(meshData);
-		Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_PBRPass->GetPipeline(), mesh, submeshIndex, material);
-
-		m_Statistics.DrawCalls++;
-		m_Statistics.VertexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].VertexCount;
-		m_Statistics.IndexCount += mesh->GetMeshSource()->GetSubmeshes()[submeshIndex].IndexCount;
 	}
 
 	void SceneRenderer::SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
@@ -216,6 +226,10 @@ namespace Shark {
 				if (UI::ControlColor("Clear Color", m_ClearColor))
 					m_GeometryFrameBuffer->SetClearColor(m_ClearColor);
 
+				UI::Control("EnvironmentMap Intensity", m_EnvironmentMapIntensity);
+				if (UI::Control("Skybox Lod", m_SkyboxLOD, 0.05f, 0, m_EnvironmentMap->GetImage()->GetSpecification().MipLevels))
+					m_UpdateSkyboxSettings = true;
+
 				UI::EndControls();
 
 				ImGui::TreePop();
@@ -231,8 +245,6 @@ namespace Shark {
 				UI::Property("Vertices", m_Statistics.VertexCount);
 				UI::Property("Indices", m_Statistics.IndexCount);
 
-				UI::Property("Mesh CBs", m_MeshTransformCBs.size());
-				UI::Property("  In Use", m_MeshTransformCBIndex);
 				UI::EndControls();
 
 				if (ImGui::TreeNodeEx("Renderer2D", UI::DefaultThinHeaderFlags))
@@ -268,6 +280,30 @@ namespace Shark {
 		}
 	}
 
+	void SceneRenderer::GeometryPass()
+	{
+		Renderer::BeginRenderPass(m_CommandBuffer, m_PBRPass);
+
+		for (const auto& mesh : m_Meshes)
+		{
+			MeshPushConstant PCMesh;
+			PCMesh.Transform = mesh.Transform;
+			PCMesh.ID = mesh.ID;
+			m_PBRPass->GetPipeline()->SetPushConstant(PCMesh);
+
+			if (mesh.Material)
+				Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_PBRPass->GetPipeline(), mesh.Mesh, mesh.SubmeshIndex, mesh.Material);
+			else
+				Renderer::RenderSubmesh(m_CommandBuffer, m_PBRPass->GetPipeline(), mesh.Mesh, mesh.SubmeshIndex);
+
+			m_Statistics.DrawCalls++;
+			m_Statistics.VertexCount += mesh.Mesh->GetMeshSource()->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
+			m_Statistics.IndexCount += mesh.Mesh->GetMeshSource()->GetSubmeshes()[mesh.SubmeshIndex].IndexCount;
+		}
+
+		Renderer::EndRenderPass(m_CommandBuffer, m_PBRPass);
+	}
+
 	void SceneRenderer::SkyboxPass()
 	{
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SkyboxPass);
@@ -284,9 +320,13 @@ namespace Shark {
 		m_CommandBuffer = RenderCommandBuffer::Create();
 		m_Timer = GPUTimer::Create("SceneRenderer");
 
+		m_CBScene = ConstantBuffer::Create(sizeof(CBScene));
 		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
-		m_CBLight = ConstantBuffer::Create(sizeof(CBLight));
 		m_CBSkybox = ConstantBuffer::Create(sizeof(CBSkybox));
+		m_CBSkyboxSettings = ConstantBuffer::Create(sizeof(CBSkyboxSettings));
+
+		m_SBLights = StorageBuffer::Create(sizeof(Light), 16);
+
 
 		auto [environmentMap, irradianceMap] = Renderer::CreateEnvironmentMap("Resources/temp/pink_sunrise_4k.hdr");
 		m_EnvironmentMap = environmentMap;
@@ -355,7 +395,8 @@ namespace Shark {
 			renderPassSpecification.DebugName = "PBR";
 			m_PBRPass = RenderPass::Create(renderPassSpecification);
 			m_PBRPass->Set("u_Camera", m_CBCamera);
-			m_PBRPass->Set("u_Light", m_CBLight);
+			m_PBRPass->Set("u_Scene", m_CBScene);
+			m_PBRPass->Set("u_Lights", m_SBLights);
 			m_PBRPass->Set("u_IrradianceMap", m_IrradianceMap);
 			SK_CORE_VERIFY(m_PBRPass->Validate());
 			m_PBRPass->Bake();
@@ -375,6 +416,7 @@ namespace Shark {
 			m_SkyboxPass = RenderPass::Create(renderPassSpecification);
 			m_SkyboxPass->Set("u_EnvironmentMap", m_EnvironmentMap);
 			m_SkyboxPass->Set("u_Uniforms", m_CBSkybox);
+			m_SkyboxPass->Set("u_Settings", m_CBSkyboxSettings);
 			SK_CORE_VERIFY(m_SkyboxPass->Validate());
 			m_SkyboxPass->Bake();
 		}

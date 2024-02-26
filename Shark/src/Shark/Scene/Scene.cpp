@@ -364,9 +364,8 @@ namespace Shark {
 
 		{
 			auto view = m_Registry.view<TransformComponent, PointLightComponent>();
-			if (view.size_hint())
+			for (auto ent : view)
 			{
-				entt::entity ent = view.front();
 				Entity entity{ ent, this };
 				TransformComponent worldTransform = GetWorldSpaceTransform(entity);
 				const auto& pointLight = entity.GetComponent<PointLightComponent>();
@@ -374,14 +373,16 @@ namespace Shark {
 			}
 		}
 
-		auto view = m_Registry.view<TransformComponent>();
-		for (auto ent : view)
 		{
-			Entity entity{ ent, this };
-			if (entity.HasParent())
-				continue;
+			auto view = m_Registry.view<TransformComponent>();
+			for (auto ent : view)
+			{
+				Entity entity{ ent, this };
+				if (entity.HasParent())
+					continue;
 
-			RenderEntityHirachy(renderer, entity, glm::mat4(1.0f));
+				RenderEntityHirachy(renderer, entity, glm::mat4(1.0f));
+			}
 		}
 
 		renderer->EndScene();

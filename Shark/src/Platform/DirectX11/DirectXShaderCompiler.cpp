@@ -770,15 +770,11 @@ namespace Shark {
 		flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
 		//flags |= D3DCOMPILE_WARNINGS_ARE_ERRORS;
 
-		if (m_Options.DisableOptimization)
-		{
-			flags |= D3DCOMPILE_DEBUG;
-			flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
-		}
-		else
-		{
+		flags |= D3DCOMPILE_DEBUG;
+		if (!m_Options.DisableOptimization)
 			flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
-		}
+		else
+			flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
 
 		ID3DBlob* shaderBinary = nullptr;
 		ID3DBlob* errorMessage = nullptr;
@@ -1084,6 +1080,44 @@ namespace Shark {
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 		}
 
+		SK_CORE_TRACE_TAG("Renderer", "Storage Buffers:");
+		for (const auto& storageBuffer : shaderResources.storage_buffers)
+		{
+			const spirv_cross::SPIRType& bufferType = compiler.get_type(storageBuffer.type_id);
+			std::string name = compiler.get_name(storageBuffer.id);
+			SK_CORE_DEBUG("Name from ID: {}, Name from Storage Buffer: {}", name, storageBuffer.name);
+			if (name.empty())
+				name = storageBuffer.name;
+
+			uint32_t binding = compiler.get_decoration(storageBuffer.id, spv::DecorationBinding);
+			uint32_t set = compiler.get_decoration(storageBuffer.id, spv::DecorationDescriptorSet);
+
+			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
+			m_ReflectionData.NameCache[name] = { set, binding };
+			auto& data = m_ReflectionData.Resources[set][binding];
+			data.Name = name;
+			data.Stage = utils::ToShaderReflectionShaderStage(stage);
+			data.Type = ShaderReflection::ResourceType::StorageBuffer;
+			
+			auto memberStructID = bufferType.member_types[0];
+			const spirv_cross::SPIRType& memberStructType = compiler.get_type(memberStructID);
+			data.StructSize = (uint32_t)compiler.get_declared_struct_size(memberStructType);
+
+			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
+			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(name.c_str(), &d3dInputDesc);
+			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+			if (SUCCEEDED(hResult))
+			{
+				data.DXBinding = d3dInputDesc.BindPoint;
+			}
+
+			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", data.Name);
+			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
+			SK_CORE_TRACE_TAG("Renderer", "  DXBinding: {}", data.DXBinding);
+			SK_CORE_TRACE_TAG("Renderer", "  Size: {}", data.StructSize);
+			SK_CORE_TRACE_TAG("Renderer", "-------------------");
+		}
+
 		SK_CORE_TRACE_TAG("Renderer", "Textures:");
 		for (const auto& resource : shaderResources.sampled_images)
 		{
@@ -1116,8 +1150,16 @@ namespace Shark {
 			if (SUCCEEDED(hResult))
 			{
 				reflectionData.DXBinding = d3dInputDesc.BindPoint;
+			}
+
+			std::string samplerName = fmt::format("_{}_sampler", name);
+			hResult = d3dReflector->GetResourceBindingDescByName(samplerName.c_str(), &d3dInputDesc);
+			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+			if (SUCCEEDED(hResult))
+			{
 				reflectionData.DXSamplerBinding = d3dInputDesc.BindPoint;
 			}
+
 
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
 			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));

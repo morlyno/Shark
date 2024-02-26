@@ -90,7 +90,7 @@ namespace Shark {
 
 	void DirectXPipeline::RT_SetPushConstant(Buffer pushConstantData)
 	{
-		SK_CORE_VERIFY(pushConstantData.Size == m_PushConstant.Size);
+		SK_CORE_VERIFY(pushConstantData.Size <= m_PushConstant.Size);
 
 		if (m_PushConstant.Buffers.size() == m_PushConstant.BufferIndex)
 			m_PushConstant.Buffers.push_back(ConstantBuffer::Create(m_PushConstant.Size));

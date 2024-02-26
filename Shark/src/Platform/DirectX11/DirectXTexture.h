@@ -30,6 +30,8 @@ namespace Shark {
 	private:
 		SamplerSpecification m_Specification;
 		ID3D11SamplerState* m_Sampler = nullptr;
+
+		friend class DirectXRenderer;
 	};
 
 	class DirectXTexture2D : public Texture2D

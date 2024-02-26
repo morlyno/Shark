@@ -14,6 +14,7 @@
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
 #include "Platform/DirectX11/DirectXShader.h"
 #include "Platform/DirectX11/DirectXConstantBuffer.h"
+#include "Platform/DirectX11/DirectXStorageBuffer.h"
 #include "Platform/DirectX11/DirectXTexture.h"
 #include "Platform/DirectX11/DirectXBuffers.h"
 #include "Platform/DirectX11/DirectXPipeline.h"
@@ -687,16 +688,14 @@ namespace Shark {
 			Ref<DirectXShader> shader = equirectangularConversionShader.As<DirectXShader>();
 
 			Ref<DirectXTexture2D> equirect = envEquirect.As<DirectXTexture2D>();
-			// TODO(moro): temp hardcoded binding. this will be fixed when compute pipeline and render pass is introduces
-			context->CSSetShaderResources(0, 1, &equirect->GetDirectXImageInfo().View);
+			const auto& equirectTexInfo = equirectangularConversionShader->GetResourceInfo("u_EquirectangularTex");
+			context->CSSetShaderResources(equirectTexInfo.DXBinding, 1, &equirect->GetDirectXImageInfo().View);
+			context->CSSetSamplers(equirectTexInfo.DXSamplerBinding, 1, &Renderer::GetClampLinearSampler().As<DirectXSamplerWrapper>()->GetSampler());
 
 			Ref<DirectXTextureCube> dxEnvCubemap = envCubeMap.As<DirectXTextureCube>();
 			dxEnvCubemap->GetImage().As<DirectXImage2D>()->RT_CreateUnorderAccessView(0);
-			// TODO(moro): temp hardcoded binding. this will be fixed when compute pipeline and render pass is introduces
-			context->CSSetUnorderedAccessViews(0, 1, &dxEnvCubemap->GetDirectXImageInfo().AccessView, nullptr);
-
-			// TODO(moro): temp hardcoded binding. this will be fixed when compute pipeline and render pass is introduces
-			context->CSSetSamplers(0, 1, &Renderer::GetClampLinearSampler().As<DirectXSamplerWrapper>()->GetSampler());
+			const auto& cubeMapInfo = equirectangularConversionShader->GetResourceInfo("o_CubeMap");
+			context->CSSetUnorderedAccessViews(cubeMapInfo.DXBinding, 1, &dxEnvCubemap->GetDirectXImageInfo().AccessView, nullptr);
 
 			context->CSSetShader(shader->m_ComputeShader, nullptr, 0);
 			context->Dispatch(cubemapSize / 32, cubemapSize / 32, 6);
@@ -724,27 +723,26 @@ namespace Shark {
 			Ref<DirectXTextureCube> irradianceCubemap = irradianceMap.As<DirectXTextureCube>();
 			irradianceCubemap->GetImage().As<DirectXImage2D>()->RT_CreateUnorderAccessView(0);
 
-			// TODO(moro): temp hardcoded binding. this will be fixed when compute pipeline and render pass is introduces
-			context->CSSetShaderResources(0, 1, &envCubemap->GetDirectXImageInfo().View);
+			const auto& radianceMapInfo = environmentIrradianceShader->GetResourceInfo("u_RadianceMap");
+			context->CSSetShaderResources(radianceMapInfo.DXBinding, 1, &envCubemap->GetDirectXImageInfo().View);
+			context->CSSetSamplers(radianceMapInfo.DXSamplerBinding, 1, &Renderer::GetClampLinearSampler().As<DirectXSamplerWrapper>()->GetSampler());
 
-			// TODO(moro): temp hardcoded binding. this will be fixed when compute pipeline and render pass is introduces
-			context->CSSetUnorderedAccessViews(0, 1, &irradianceCubemap->GetDirectXImageInfo().AccessView, nullptr);
-
-			// TODO(moro): temp hardcoded binding. this will be fixed when compute pipeline and render pass is introduces
-			context->CSSetSamplers(0, 1, &Renderer::GetClampLinearSampler().As<DirectXSamplerWrapper>()->GetSampler());
+			const auto& irradianceMapInfo = environmentIrradianceShader->GetResourceInfo("o_IrradianceMap");
+			context->CSSetUnorderedAccessViews(irradianceMapInfo.DXBinding, 1, &irradianceCubemap->GetDirectXImageInfo().AccessView, nullptr);
 
 			Ref<DirectXConstantBuffer> samplesBuffer = Ref<DirectXConstantBuffer>::Create();
-			samplesBuffer->SetSize(16);
+			const auto& bufferInfo = environmentIrradianceShader->GetResourceInfo("u_Uniforms");
+			samplesBuffer->SetSize(bufferInfo.StructSize);
 			samplesBuffer->RT_Invalidate();
 			samplesBuffer->RT_UploadData(Buffer::FromValue(Renderer::GetConfig().IrradianceMapComputeSamples));
-			context->CSSetConstantBuffers(0, 1, &samplesBuffer->m_ConstantBuffer);
+			context->CSSetConstantBuffers(bufferInfo.DXBinding, 1, &samplesBuffer->m_ConstantBuffer);
 
 			context->CSSetShader(shader->m_ComputeShader, nullptr, 0);
 			context->Dispatch(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
 			DirectXRenderer::Get()->RT_FlushInfoQueue();
 
 			ID3D11UnorderedAccessView* nullUAV = nullptr;
-			context->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
+			context->CSSetUnorderedAccessViews(irradianceMapInfo.DXBinding, 1, &nullUAV, nullptr);
 
 			Renderer::RT_GenerateMips(irradianceMap->GetImage());
 		});
@@ -944,6 +942,14 @@ namespace Shark {
 					const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
 
 					utils::BindConstantBuffer(context, constantBuffer->m_ConstantBuffer, resource.Stage, resource.DXBinding);
+					break;
+				}
+				case InputResourceType::StorageBuffer:
+				{
+					Ref<DirectXStorageBuffer> storageBuffer = input.Input.As<DirectXStorageBuffer>();
+					const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
+
+					utils::BindShaderResourceView(context, storageBuffer->m_View, resource.Stage, resource.DXBinding);
 					break;
 				}
 			}

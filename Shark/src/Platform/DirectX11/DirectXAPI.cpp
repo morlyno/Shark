@@ -60,6 +60,12 @@ namespace Shark::DirectXAPI {
 		}
 	}
 
+	void CreateBuffer(ID3D11Device* device, const D3D11_BUFFER_DESC& desc, const D3D11_SUBRESOURCE_DATA* subresourceData, ID3D11Buffer*& outBuffer)
+	{
+		HRESULT hr = device->CreateBuffer(&desc, subresourceData, &outBuffer);
+		DX_CHECK_RESULT(hr);
+	}
+
 	void CreateShaderResourceView(ID3D11Device* device, ID3D11Resource* resource, const D3D11_SHADER_RESOURCE_VIEW_DESC& desc, ID3D11ShaderResourceView*& outView)
 	{
 		HRESULT hr = device->CreateShaderResourceView(resource, &desc, &outView);

@@ -64,8 +64,6 @@ namespace Shark {
 		s_Data = sknew RendererData;
 		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
 
-		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/VkHLSL.hlsl", true, true);
-
 		// 3D
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Skybox.glsl");

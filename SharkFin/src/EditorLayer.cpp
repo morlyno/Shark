@@ -874,29 +874,17 @@ namespace Shark {
 							Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(metadata.Handle);
 							if (mesh)
 							{
-								Entity meshEntity = InstantiateMesh(mesh);
-								SelectEntity(meshEntity);
+								InstantiateMesh(mesh, true);
 							}
 							break;
 						}
 						case AssetType::MeshSource:
 						{
-#if 0
-							Ref<MeshSource> meshSource = ResourceManager::GetAsset<MeshSource>(metadata.Handle);
-							if (meshSource)
-							{
-								std::string directory = fmt::format("{}/Meshes", Project::GetAssetsPath());
-								Ref<Mesh> mesh = ResourceManager::CreateAsset<Mesh>(directory, metadata.FilePath.stem().string(), meshSource);
-								InstantiateMesh(mesh);
-							}
-							break;
-#endif
-
 							m_CreateMeshAssetData = {};
 							m_CreateMeshAssetData.Show = true;
 							m_CreateMeshAssetData.MeshSource = handle;
-							m_CreateMeshAssetData.DestinationPath = metadata.FilePath.stem().string();
-							m_CreateMeshAssetData.MeshDirectory = m_DefaultAssetDirectories.at(AssetType::Mesh);
+							m_CreateMeshAssetData.DestinationPath = FileSystem::CreatePathString({}, FileSystem::GetStemString(metadata.FilePath), ".skmesh");
+							m_CreateMeshAssetData.ParentDirectory = "Assets/Meshes/";
 						}
 					}
 				}
@@ -1145,6 +1133,8 @@ namespace Shark {
 
 		if (ImGui::BeginPopupModal("Import Texture"))
 		{
+			ImGui::Text("Not implemented. Will be replaced with Texture/TextureSource rework");
+#if 0
 			UI::Text("Input FileName");
 			UI::Text(fmt::format("Parent Path: {}/Texture", Project::GetActiveAssetsDirectory()));
 			ImGui::InputText("##FileName", &m_TextureAssetCreateData.TextureFileName);
@@ -1169,9 +1159,9 @@ namespace Shark {
 						editor->SelectEntity(entity);
 					}
 				});
-
 				ImGui::CloseCurrentPopup();
 			}
+#endif
 
 			ImGui::SameLine();
 
@@ -1504,64 +1494,33 @@ namespace Shark {
 
 		if (ImGui::Begin("Create Mesh Asset"))
 		{
-			const auto& style = ImGui::GetStyle();
+			ImGui::TextWrapped("This file cannot be used directly, a Shark metafile must first be created to interpret the contents of the file.");
+			ImGui::Separator();
 
-			{
-				UI::ScopedColor textDisabled(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
-				const ImVec2 itemSize = UI::CalcItemSizeFromText(m_CreateMeshAssetData.MeshDirectory.c_str());
-				ImGui::SetNextItemWidth(itemSize.x);
-				UI::TextFramed(m_CreateMeshAssetData.MeshDirectory.c_str());
-			}
+			UI::BeginControlsGrid();
+			std::string label = fmt::format("path: {}", m_CreateMeshAssetData.ParentDirectory);
+			UI::Control(label, m_CreateMeshAssetData.DestinationPath);
+			UI::EndControlsGrid();
 
-			ImGui::SameLine();
-
-			{
-				char inputBuffer[MAX_PATH];
-				strcpy_s(inputBuffer, m_CreateMeshAssetData.DestinationPath.c_str());
-				ImGui::SetNextItemWidth(-1.0f);
-				if (UI::InputPath("##MeshAssetPath", inputBuffer, (int)std::size(inputBuffer)))
-					m_CreateMeshAssetData.DestinationPath = inputBuffer;
-			}
-
-			float minYCursorPos = ImGui::GetCursorPosY();
-
-			const ImVec2 createTextSize = ImGui::CalcTextSize("Create");
-			const ImVec2 cancleTextSize = ImGui::CalcTextSize("Cancle");
-			const ImVec2 createButtonSize = { createTextSize.x + style.FramePadding.x * 2.0f, createTextSize.y + style.FramePadding.y * 2.0f };
-			const ImVec2 cancleButtonSize = { cancleTextSize.x + style.FramePadding.x * 2.0f, cancleTextSize.y + style.FramePadding.y * 2.0f };
-			const ImVec2 contentRegion = ImGui::GetContentRegionMax();
-			const ImVec2 createButtonPos = {
-				contentRegion.x - cancleButtonSize.x - style.ItemSpacing.x - createButtonSize.x,
-				std::max(contentRegion.y - createButtonSize.y, minYCursorPos)
-			};
-
-			ImGui::SetCursorPos(createButtonPos);
 			if (ImGui::Button("Create"))
 			{
-				std::filesystem::path destinationPath = fmt::format("{}/{}", m_CreateMeshAssetData.MeshDirectory, m_CreateMeshAssetData.DestinationPath);
-				if (!destinationPath.has_filename())
-					destinationPath.replace_filename("Untitled");
-
-				destinationPath.replace_extension(".skmesh");
-
-				std::string directory = destinationPath.parent_path().string();
-				std::string name = destinationPath.filename().string();
-
+				std::filesystem::path fullPath = m_CreateMeshAssetData.ParentDirectory / m_CreateMeshAssetData.DestinationPath;
+				FileSystem::ReplaceExtension(fullPath, ".skmesh");
+				
 				Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(m_CreateMeshAssetData.MeshSource);
-				Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(directory, name, meshSource);
-				Entity meshEntity = InstantiateMesh(mesh);
-				SelectEntity(meshEntity);
-				m_CreateMeshAssetData = {};
+				Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(fullPath, meshSource);
+				InstantiateMesh(mesh, true);
 			}
 
 			ImGui::SameLine();
+
 			if (ImGui::Button("Cancle"))
 			{
 				m_CreateMeshAssetData = {};
 			}
 
-			ImGui::End();
 		}
+		ImGui::End();
 
 	}
 
@@ -2055,13 +2014,19 @@ namespace Shark {
 		Application::Get().GetWindow().SetTitle(title);
 	}
 
-	Entity EditorLayer::InstantiateMesh(Ref<Mesh> mesh)
+	Entity EditorLayer::InstantiateMesh(Ref<Mesh> mesh, bool select)
 	{
 		SK_PROFILE_FUNCTION();
 
 		Ref<MeshSource> source = mesh->GetMeshSource();
 		Entity rootEntity = m_ActiveScene->CreateEntity();
 		InstantiateMeshNode(mesh, source->GetRootNode(), Entity{}, rootEntity);
+		
+		if (select)
+		{
+			SelectEntity(rootEntity);
+		}
+
 		return rootEntity;
 	}
 

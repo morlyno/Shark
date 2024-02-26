@@ -56,6 +56,7 @@ namespace Shark {
 			StorageImageCube,
 
 			ConstantBuffer,
+			StorageBuffer,
 			PushConstant
 		};
 
@@ -132,11 +133,12 @@ namespace Shark {
 			case ShaderReflection::ResourceType::StorageImage3D: return "StorageImage3D";
 			case ShaderReflection::ResourceType::StorageImageCube: return "StorageImageCube";
 			case ShaderReflection::ResourceType::ConstantBuffer: return "ConstantBuffer";
+			case ShaderReflection::ResourceType::StorageBuffer: return "StorageBuffer";
 			case ShaderReflection::ResourceType::PushConstant: return "PushConstant";
 		}
 
 		SK_CORE_ASSERT(false, "Unkown ShaderRelfection::ResourceType");
-		return "Unkown";
+		return "Unknown";
 	}
 
 	inline ShaderReflection::ResourceType StringToShaderReflectionResourceType(const std::string& resourceType)
@@ -153,6 +155,7 @@ namespace Shark {
 		if (resourceType == "StorageImage3D") return ShaderReflection::ResourceType::StorageImage3D;
 		if (resourceType == "StorageImageCube") return ShaderReflection::ResourceType::StorageImageCube;
 		if (resourceType == "ConstantBuffer") return ShaderReflection::ResourceType::ConstantBuffer;
+		if (resourceType == "StorageBuffer") return ShaderReflection::ResourceType::StorageBuffer;
 		if (resourceType == "PushConstant") return ShaderReflection::ResourceType::PushConstant;
 
 		SK_CORE_ASSERT(false, "Unkown ShaderReflection::ResourceType");

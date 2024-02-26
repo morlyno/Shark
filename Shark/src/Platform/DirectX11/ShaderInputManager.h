@@ -4,6 +4,7 @@
 
 #include "Shark/Render/Shader.h"
 #include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/StorageBuffer.h"
 #include "Shark/Render/Texture.h"
 
 namespace Shark {
@@ -15,7 +16,8 @@ namespace Shark {
 		Texture2D,
 		TextureCube,
 		Sampler,
-		ConstantBuffer
+		ConstantBuffer,
+		StorageBuffer
 	};
 
 
@@ -43,6 +45,7 @@ namespace Shark {
 		bool ValidateRenderPassInputs() const;
 
 		void SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer);
+		void SetInput(const std::string& name, Ref<StorageBuffer> storageBuffer);
 		void SetInput(const std::string& name, Ref<Image2D> image);
 		void SetInput(const std::string& name, Ref<Texture2D> texture);
 		void SetInput(const std::string& name, Ref<TextureCube> textureCube);
@@ -63,6 +66,7 @@ namespace Shark {
 
 	private:
 		void GetResource(const std::string& name, Ref<ConstantBuffer>& outConstantBuffer) const;
+		void GetResource(const std::string& name, Ref<StorageBuffer>& outStorageBuffer) const;
 		void GetResource(const std::string& name, Ref<Image2D>& outImage2D) const;
 		void GetResource(const std::string& name, Ref<Texture2D>& outTexture2D) const;
 		void GetResource(const std::string& name, Ref<TextureCube>& outTextureCube) const;

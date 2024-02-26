@@ -75,20 +75,32 @@ struct MaterialUniforms
 struct Light
 {
     float3 Color;
-    float P3;
+    float P0;
+    
     float3 Position;
+    float P1;
+    
     float Intensity;
     float Radius;
     float Falloff;
-	
+    float P2;
+};
+
+struct Scene
+{
+    uint LightCount;
+    float EnvironmentMapIntensity;
     float P0, P1;
 };
 
-[[vk::binding(0, 0)]] ConstantBuffer<MaterialUniforms> u_MaterialUniforms;
-[[vk::binding(1, 1)]] ConstantBuffer<Light> u_Light;
+[[vk::binding(1, 1)]] ConstantBuffer<Scene> u_Scene;
+[[vk::binding(2, 1)]] StructuredBuffer<Light> u_Lights;
 
-[[vk::binding(2, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_IrradianceMap;
-[[vk::binding(2, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_IrradianceMapSampler;
+[[vk::binding(3, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_IrradianceMap;
+[[vk::binding(3, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_IrradianceMapSampler;
+
+
+[[vk::binding(0, 0)]] ConstantBuffer<MaterialUniforms> u_MaterialUniforms;
 
 [[vk::binding(1, 0)]][[vk::combinedImageSampler]] uniform Texture2D u_AlbedoMap;
 [[vk::binding(1, 0)]][[vk::combinedImageSampler]] uniform SamplerState u_AlbedoMapSampler;
@@ -217,9 +229,14 @@ PixelOutput main(PixelInput Input)
     float3 F0 = lerp(Fdielectric, m_Params.Albedo, m_Params.Metalness);
 
     // Direct Light
-    float3 lightContribution = 0.0;
+    float3 lightContribution = 0.0f;
+    
+    //if (u_Scene.LightCount > 0)
+    for (uint i = 0; i < u_Scene.LightCount; i++)
     {
-        float3 Ld = normalize(u_Light.Position - Input.WorldPosition);
+        Light light = u_Lights[i];
+        
+        float3 Ld = normalize(light.Position - Input.WorldPosition);
         float3 Lh = normalize(Ld + m_Params.View);
 
         //float cosLd = max(dot(m_Params.Normal, Ld));
@@ -244,17 +261,17 @@ PixelOutput main(PixelInput Input)
         // Cook-Torrance specular microfacet BRDF
         float3 specularBRDF = (D * F * G) / max(4 * NdotL * m_Params.NdotV, Epsilon);
         
-        float lightDist = distance(u_Light.Position, Input.WorldPosition);
-        float attenuation = LightAttenuation(lightDist, u_Light.Intensity, u_Light.Radius, u_Light.Falloff);
+        float lightDist = distance(light.Position, Input.WorldPosition);
+        float attenuation = LightAttenuation(lightDist, light.Intensity, light.Radius, light.Falloff);
         //attenuation = min(attenuation, 1.0f);
 
         //float falloff = LightFalloff(u_Light.Position, Input.WorldPosition);
         //float attenuation = u_Light.Intensity * falloff;
 
-        lightContribution += (diffuseBRDF + specularBRDF) * u_Light.Color.rgb * attenuation * NdotL;
+        lightContribution += (diffuseBRDF + specularBRDF) * light.Color.rgb * attenuation * NdotL;;
     }
     
-    float3 iblContribution = IBL(F0);
+    float3 iblContribution = IBL(F0) * u_Scene.EnvironmentMapIntensity;
     float3 color = iblContribution + lightContribution;
     
     PixelOutput Output;

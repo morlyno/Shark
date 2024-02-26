@@ -4,8 +4,8 @@
 #include <EnvironmentMapping.glslh>
 
 //layout(binding = 0, rgba16f) restrict writeonly uniform imageCube o_CubeMap;
-layout(binding = 0, rgba16f) restrict writeonly uniform image2DArray o_CubeMap;
-layout(binding = 1) uniform sampler2D u_EquirectangularTex;
+layout(set = 0, binding = 0, rgba16f) restrict writeonly uniform image2DArray o_CubeMap;
+layout(set = 0, binding = 1) uniform sampler2D u_EquirectangularTex;
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 void main()

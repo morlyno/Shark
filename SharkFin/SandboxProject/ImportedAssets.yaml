@@ -368,6 +368,9 @@ ImportedAssets:
   - Handle: 14878245583165526856
     Type: Mesh
     FilePath: Meshes/cerberus ( 1)
+  - Handle: 17138360873427703421
+    Type: Mesh
+    FilePath: Meshes/muro.skmesh
   - Handle: 15050549643915412860
     Type: Mesh
     FilePath: Meshes/nanoboy_test
@@ -377,7 +380,7 @@ ImportedAssets:
   - Handle: 12434088705897559964
     Type: Mesh
     FilePath: Meshes/sponza.skmesh
-  - Handle: 2376987784205732186
+  - Handle: 17581796770601634440
     Type: Mesh
     FilePath: Meshes/suzanne.skmesh
   - Handle: 16837409496041748116

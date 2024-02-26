@@ -439,4 +439,17 @@ namespace Shark {
 		return path.extension().string();
 	}
 
+	std::filesystem::path FileSystem::CreatePath(const std::filesystem::path& directory, const std::string& name, const std::string& extension)
+	{
+		auto path = directory;
+		path.replace_filename(name);
+		path.replace_extension(extension);
+		return path;
+	}
+
+	std::string FileSystem::CreatePathString(const std::filesystem::path& directory, const std::string& name, const std::string& extension)
+	{
+		return CreatePath(directory, name, extension).string();
+	}
+
 }

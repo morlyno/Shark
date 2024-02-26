@@ -15,6 +15,7 @@ namespace Shark {
 		virtual bool Validate() const override;
 
 		virtual void Set(const std::string& name, Ref<ConstantBuffer> constantBuffer) override;
+		virtual void Set(const std::string& name, Ref<StorageBuffer> storageBuffer) override;
 		virtual void Set(const std::string& name, Ref<Image2D> image) override;
 		virtual void Set(const std::string& name, Ref<Texture2D> texture) override;
 		virtual void Set(const std::string& name, Ref<TextureCube> textureCube) override;

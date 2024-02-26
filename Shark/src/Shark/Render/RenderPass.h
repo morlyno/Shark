@@ -4,6 +4,7 @@
 
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/StorageBuffer.h"
 #include "Shark/Render/Texture.h"
 
 namespace Shark {
@@ -21,6 +22,7 @@ namespace Shark {
 		virtual bool Validate() const = 0;
 
 		virtual void Set(const std::string& name, Ref<ConstantBuffer> constantBuffer) = 0;
+		virtual void Set(const std::string& name, Ref<StorageBuffer> storageBuffer) = 0;
 		virtual void Set(const std::string& name, Ref<Image2D> image) = 0;
 		virtual void Set(const std::string& name, Ref<Texture2D> texture) = 0;
 		virtual void Set(const std::string& name, Ref<TextureCube> textureCube) = 0;

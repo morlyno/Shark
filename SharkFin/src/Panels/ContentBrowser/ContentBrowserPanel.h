@@ -246,8 +246,9 @@ namespace Shark {
 		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename, TArgs&&... args)
 		{
 			std::filesystem::path directoryPath = FileSystem::Relative(m_Project->GetAbsolute(directory->Filepath), m_Project->GetAssetsDirectory());
+			FileSystem::ReplaceFilename(directoryPath, name);
 			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-			Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath.string(), name, std::forward<TArgs>(args)...);
+			Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath, std::forward<TArgs>(args)...);
 			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserItem>::Create(this, CBItemType::Asset, assetManager->GetFilesystemPath(asset->Handle));
 			m_CurrentItems.Add(newItem);
 			directory->AddFile(name);

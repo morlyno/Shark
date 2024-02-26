@@ -73,6 +73,9 @@ namespace Shark {
 
 		static std::string GetStemString(const std::filesystem::path& path);
 		static std::string GetExtensionString(const std::filesystem::path& path);
+
+		static std::filesystem::path CreatePath(const std::filesystem::path& directory, const std::string& name, const std::string& extension);
+		static std::string CreatePathString(const std::filesystem::path& directory, const std::string& name, const std::string& extension);
 	};
 
 }

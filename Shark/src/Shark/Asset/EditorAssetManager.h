@@ -20,7 +20,7 @@ namespace Shark {
 		virtual Ref<Asset> GetAsset(AssetHandle handle) override;
 		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) override;
 		template<typename TAsset, typename... TArgs>
-		Ref<TAsset> CreateAsset(const std::string& directoryPath, const std::string filename, TArgs&&... args);
+		Ref<TAsset> CreateAsset(const std::filesystem::path& filepath, TArgs&&... args);
 
 		AssetHandle GetEditorAsset(const std::filesystem::path& filepath);
 		AssetHandle AddEditorAsset(const std::filesystem::path& filepath) { return AddEditorAsset(AssetHandle::Generate(), filepath); }
@@ -86,48 +86,43 @@ namespace Shark {
 	};
 
 	template<typename TAsset, typename... TArgs>
-	Ref<TAsset> EditorAssetManager::CreateAsset(const std::string& directoryPath, const std::string filename, TArgs&&... args)
+	Ref<TAsset> EditorAssetManager::CreateAsset(const std::filesystem::path& filepath, TArgs&&... args)
 	{
 		static_assert(!std::is_same_v<Asset, TAsset>);
 		static_assert(std::is_base_of_v<Asset, TAsset>, "CreateAsset only works for types with base class Asset!");
 
-		std::string dirPath = MakeRelativePath(directoryPath).string();
+		std::string assetsPath = MakeRelativePathString(filepath);
 
 		AssetMetaData metadata;
 		metadata.Handle = AssetHandle::Generate();
 		metadata.Type = TAsset::GetStaticType();
-		metadata.FilePath = dirPath.size() > 1 ? dirPath + "/" + filename : filename;
+		metadata.FilePath = assetsPath;
 		metadata.IsDataLoaded = true;
 
-		auto filesystemPath = GetFilesystemPath(metadata);
-		if (FileSystem::Exists(filesystemPath))
+		// Make sure metadata.FilePath is unique
+		if (HasExistingFilePath(metadata))
 		{
 			uint32_t count = 1;
-			bool foundValidFilePath = false;
+			bool validFilepath = false;
+			std::filesystem::path fsPath = GetFilesystemPath(metadata);
 
-			std::filesystem::path pathFileName = filename;
-			std::string path = (GetAssetsDirectoryFromProject() / dirPath / pathFileName.stem()).generic_string();
-			std::string extention = pathFileName.extension().string();
-
-			while (!foundValidFilePath)
+			while (!validFilepath)
 			{
-				filesystemPath = fmt::format("{} ({:2}){}", path, count++, extention);
-				foundValidFilePath = !FileSystem::Exists(filesystemPath);
+				FileSystem::ReplaceStem(fsPath, fmt::format("{} ({:2})", FileSystem::GetStemString(fsPath), count));
+				validFilepath = !FileSystem::Exists(fsPath);
 			}
-			metadata.FilePath = MakeRelativePath(filesystemPath);
+			metadata.FilePath = MakeRelativePath(fsPath);
 		}
 
-		m_ImportedAssets[metadata.Handle] = metadata;
-
 		Ref<TAsset> asset = TAsset::Create(std::forward<TArgs>(args)...);
-
 		asset->Handle = metadata.Handle;
-		m_LoadedAssets[metadata.Handle] = asset;
 
-		SK_CORE_INFO_TAG("AssetManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", ToString(metadata.Type), metadata.Handle, metadata.FilePath);
+		m_ImportedAssets[metadata.Handle] = metadata;
+		m_LoadedAssets[metadata.Handle] = asset;
 		AssetSerializer::Serialize(asset, metadata);
 		WriteImportedAssetsToDisc();
 
+		SK_CORE_INFO_TAG("AssetManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", ToString(metadata.Type), metadata.Handle, metadata.FilePath);
 		return asset;
 	}
 

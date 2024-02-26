@@ -123,7 +123,7 @@ namespace Shark {
 
 		void UpdateWindowTitle();
 
-		Entity InstantiateMesh(Ref<Mesh> mesh);
+		Entity InstantiateMesh(Ref<Mesh> mesh, bool select);
 		void InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent, Entity entity = {});
 
 		void VerifyEditorTexture(const std::filesystem::path& filepath);
@@ -273,7 +273,7 @@ namespace Shark {
 			bool Show = false;
 			AssetHandle MeshSource = AssetHandle::Invalid;
 			std::string DestinationPath;
-			std::string MeshDirectory;
+			std::filesystem::path ParentDirectory;
 		};
 		CreateMeshAssetData m_CreateMeshAssetData;
 

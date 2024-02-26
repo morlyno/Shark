@@ -9,6 +9,7 @@
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/FrameBuffer.h"
 #include "Shark/Render/Mesh.h"
+#include "Shark/Render/StorageBuffer.h"
 
 namespace Shark {
 
@@ -60,6 +61,7 @@ namespace Shark {
 		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
 
 		void SubmitPointLight(const glm::vec3& position, const glm::vec3& color, float intensity, float radius, float falloff);
+
 		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id);
 		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, int id);
 
@@ -77,12 +79,20 @@ namespace Shark {
 		const Statistics& GetStatisitcs() const { return m_Statistics; }
 
 	private:
+		void GeometryPass();
 		void SkyboxPass();
 
 	private:
 		void Initialize(const SceneRendererSpecification& specification);
 
 	private:
+		struct CBScene
+		{
+			uint32_t LightCount = 0;
+			float EnvironmentMapIntensity = 1;
+			float Padding[2];
+		};
+
 		struct CBCamera
 		{
 			glm::mat4 ViewProj;
@@ -90,29 +100,42 @@ namespace Shark {
 			float Padding;
 		};
 
-		struct CBLight
-		{
-			glm::vec3 Color;
-			float Padding0;
-			glm::vec3 Position;
-			float Intensity;
-			float Radius;
-			float Falloff;
-
-			float Padding[2];
-		};
-
-		struct CBMeshData
-		{
-			glm::mat4 Transform;
-			int ID;
-
-			float Padding[3];
-		};
-
 		struct CBSkybox
 		{
 			glm::mat4 SkyboxProjection;
+		};
+
+		struct CBSkyboxSettings
+		{
+			float Lod;
+			float Padding[3];
+		};
+
+		struct Light
+		{
+			glm::vec3 Color;
+			float P0;
+			glm::vec3 Position;
+			float P1;
+			float Intensity;
+			float Radius;
+			float Falloff;
+			float P2;
+		};
+
+		struct MeshPushConstant
+		{
+			glm::mat4 Transform;
+			int ID;
+		};
+
+		struct MeshData
+		{
+			Ref<Mesh> Mesh;
+			Ref<Material> Material;
+			uint32_t SubmeshIndex;
+			glm::mat4 Transform;
+			int ID;
 		};
 
 	private:
@@ -120,12 +143,11 @@ namespace Shark {
 		SceneRendererSpecification m_Specification;
 		Statistics m_Statistics;
 
+		Ref<ConstantBuffer> m_CBScene;
 		Ref<ConstantBuffer> m_CBCamera;
-		Ref<ConstantBuffer> m_CBLight;
 		Ref<ConstantBuffer> m_CBSkybox;
-
-		uint32_t m_MeshTransformCBIndex = 0;
-		std::vector<Ref<ConstantBuffer>> m_MeshTransformCBs;
+		Ref<ConstantBuffer> m_CBSkyboxSettings;
+		Ref<StorageBuffer> m_SBLights;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
@@ -136,6 +158,9 @@ namespace Shark {
 		glm::mat4 m_Projection;
 		glm::vec3 m_CameraPosition;
 
+		std::vector<Light> m_Lights;
+		std::vector<MeshData> m_Meshes;
+
 		// Geometry
 		Ref<FrameBuffer> m_GeometryFrameBuffer;
 		Ref<FrameBuffer> m_ExternalCompositeFrameBuffer;
@@ -144,10 +169,15 @@ namespace Shark {
 
 		bool m_NeedsResize = true;
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+		float m_EnvironmentMapIntensity = 1.0f;
+		float m_SkyboxLOD = 0;
+		bool m_UpdateSkyboxSettings = false;
 
 		Ref<TextureCube> m_EnvironmentMap;
 		Ref<TextureCube> m_IrradianceMap;
 		Ref<RenderPass> m_SkyboxPass;
+
+		friend class SceneRendererPanel;
 	};
 
 }

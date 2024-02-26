@@ -15,6 +15,7 @@ namespace Shark {
 				case InputResourceType::TextureCube: return resourceType == ShaderReflection::ResourceType::TextureCube;
 				case InputResourceType::Sampler: return resourceType == ShaderReflection::ResourceType::Sampler;
 				case InputResourceType::ConstantBuffer: return resourceType == ShaderReflection::ResourceType::ConstantBuffer;
+				case InputResourceType::StorageBuffer: return resourceType == ShaderReflection::ResourceType::StorageBuffer;
 			}
 
 			SK_CORE_ASSERT(false, "Unkown InputResourceType");
@@ -150,6 +151,13 @@ namespace Shark {
 		input.Type = InputResourceType::ConstantBuffer;
 	}
 
+	void ShaderInputManager::SetInput(const std::string& name, Ref<StorageBuffer> storageBuffer)
+	{
+		auto& input = m_InputResources[name];
+		input.Input = storageBuffer;
+		input.Type = InputResourceType::StorageBuffer;
+	}
+
 	void ShaderInputManager::SetInput(const std::string& name, Ref<Image2D> image)
 	{
 		auto& input = m_InputResources[name];
@@ -190,6 +198,16 @@ namespace Shark {
 			auto& input = m_InputResources.at(name);
 			SK_CORE_ASSERT(input.Type == InputResourceType::ConstantBuffer);
 			outConstantBuffer = input.Input.As<ConstantBuffer>();
+		}
+	}
+
+	void ShaderInputManager::GetResource(const std::string& name, Ref<StorageBuffer>& outStorageBuffer) const
+	{
+		if (m_InputResources.contains(name))
+		{
+			auto& input = m_InputResources.at(name);
+			SK_CORE_ASSERT(input.Type == InputResourceType::StorageBuffer);
+			outStorageBuffer = input.Input.As<StorageBuffer>();
 		}
 	}
 
@@ -243,6 +261,7 @@ namespace Shark {
 			case InputResourceType::TextureCube: return "TextureCube";
 			case InputResourceType::Sampler: return "Sampler";
 			case InputResourceType::ConstantBuffer: return "ConstantBuffer";
+			case InputResourceType::StorageBuffer: return "StorageBuffer";
 		}
 		SK_CORE_ASSERT(false, "Unkown InputResourceType");
 		return "Unkown";
