@@ -34,9 +34,13 @@ namespace Shark {
 	public:
 		struct Statistics
 		{
-			uint32_t DrawCalls = 0;
-			uint32_t VertexCount = 0;
-			uint32_t IndexCount = 0;
+			TimeStep GPUTime;
+			TimeStep GeometryPass;
+			TimeStep SkyboxPass;
+
+			uint32_t DrawCalls;
+			uint32_t VertexCount;
+			uint32_t IndexCount;
 		};
 
 	public:
@@ -67,8 +71,6 @@ namespace Shark {
 
 		void Resize(uint32_t width, uint32_t height);
 
-		void DrawSettings();
-
 		Ref<Image2D> GetFinalImage() const { return m_ExternalCompositeFrameBuffer->GetImage(0); }
 		Ref<Image2D> GetIDImage() const { return m_GeometryFrameBuffer->GetImage(1); }
 		Ref<FrameBuffer> GetExternalCompositFrameBuffer() const { return m_ExternalCompositeFrameBuffer; }
@@ -79,6 +81,7 @@ namespace Shark {
 		const Statistics& GetStatisitcs() const { return m_Statistics; }
 
 	private:
+		void ClearPass();
 		void GeometryPass();
 		void SkyboxPass();
 
@@ -141,7 +144,9 @@ namespace Shark {
 	private:
 		Ref<Scene> m_Scene;
 		SceneRendererSpecification m_Specification;
+
 		Statistics m_Statistics;
+		PipelineStatistics m_PipelineStatistics;
 
 		Ref<ConstantBuffer> m_CBScene;
 		Ref<ConstantBuffer> m_CBCamera;
@@ -151,7 +156,11 @@ namespace Shark {
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
+
+		Ref<GPUPipelineQuery> m_PipelineQuery;
 		Ref<GPUTimer> m_Timer;
+		Ref<GPUTimer> m_GeometryPassTimer;
+		Ref<GPUTimer> m_SkyboxPassTimer;
 
 		glm::mat4 m_ViewProjection;
 		glm::mat4 m_View;

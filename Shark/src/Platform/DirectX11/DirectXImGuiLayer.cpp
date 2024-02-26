@@ -165,7 +165,7 @@ namespace Shark {
 		io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
 
 		m_CommandBuffer->RT_Begin();
-		m_CommandBuffer->RT_BeginTimeQuery(m_GPUTimer);
+		m_CommandBuffer->RT_BeginQuery(m_GPUTimer);
 
 		Ref<DirectXFrameBuffer> swapchainFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
 		DirectXRenderer::Get()->BindFrameBuffer(m_CommandBuffer, swapchainFrameBuffer);
@@ -185,7 +185,7 @@ namespace Shark {
 		}
 
 		m_GPUTime = m_GPUTimer->GetTime();
-		m_CommandBuffer->RT_EndTimeQuery(m_GPUTimer);
+		m_CommandBuffer->RT_EndQuery(m_GPUTimer);
 		m_CommandBuffer->RT_End();
 		m_CommandBuffer->RT_Execute();
 	}

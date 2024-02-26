@@ -29,9 +29,10 @@
 #include "Panels/PhysicsDebugPanel.h"
 #include "Panels/ScriptEnginePanel.h"
 #include "Panels/AssetsPanel.h"
-#include "Panels/SettingsPanel.h"
 #include "Panels/ProjectSettingsPanel.h"
 #include "Panels/ShadersPanel.h"
+#include "Panels/SceneRendererPanel.h"
+#include "Panels/StatisticsPanel.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/enttDebug.h"
@@ -51,6 +52,8 @@
 #define SETTINGS_PANEL_ID "SettingsPanel"
 #define PROJECT_SETTINGS_PANEL_ID "ProjectSettingsPanel"
 #define SHADERS_PANEL_ID "ShadersPanel"
+#define SCENE_RENDERER_PANEL_ID "SceneRendererPanel"
+#define STATISTICS_PANEL_ID "StatisticsPanel"
 
 namespace Shark {
 
@@ -92,7 +95,6 @@ namespace Shark {
 			assetEditorManager->AddEditor<TextureEditorPanel>(metadata);
 		});
 
-		m_PanelManager->AddPanel<SettingsPanel>(PanelCategory::Edit, SETTINGS_PANEL_ID, "Settings", true);
 		m_PanelManager->AddPanel<AssetEditorManagerPanel>(PanelCategory::Edit, ASSET_EDITOR_MANAGER_ID, "Assets Editor Manager", true);
 		m_PanelManager->AddPanel<ProjectSettingsPanel>(PanelCategory::Edit, PROJECT_SETTINGS_PANEL_ID, "Project Settings", false, Project::GetActive());
 		m_PanelManager->AddPanel<AssetsPanel>(PanelCategory::View, ASSETS_PANEL_ID, "Assets", false);
@@ -100,9 +102,12 @@ namespace Shark {
 		m_PanelManager->AddPanel<ShadersPanel>(PanelCategory::View, SHADERS_PANEL_ID, "Shaders", false);
 		m_PanelManager->AddPanel<PhysicsDebugPanel>(PanelCategory::View, PHYSICS_DEBUG_PANEL_ID, "Pyhsics Debug", false);
 		m_PanelManager->AddPanel<ScriptEnginePanel>(PanelCategory::View, SCRIPT_ENGINE_PANEL_ID, "Script Engine", false);
+		m_PanelManager->AddPanel<SceneRendererPanel>(PanelCategory::View, SCENE_RENDERER_PANEL_ID, "Scene Renderer", true);
+		m_PanelManager->AddPanel<StatisticsPanel>(PanelCategory::View, STATISTICS_PANEL_ID, "Statistics", false);
 
 		const auto& window = Application::Get().GetWindow();
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
+		m_PanelManager->Get<SceneRendererPanel>(SCENE_RENDERER_PANEL_ID)->SetRenderer(m_SceneRenderer);
 
 		Renderer2DSpecifications debugRendererSpec;
 		debugRendererSpec.UseDepthTesting = true;
@@ -126,7 +131,6 @@ namespace Shark {
 			app.GetImGuiLayer().SetMainViewportID(m_MainViewportID);
 		}
 
-		RegisterSettingNodes();
 		Renderer::WaitAndRender();
 		ScriptEngine::RegisterAssembliesReloadedHook(std::bind(&EditorLayer::AssembliesReloadedHook, this));
 		VerifyAllEditorAssets();
@@ -410,11 +414,9 @@ namespace Shark {
 
 		UI_ToolBar();
 
-		UI_Info();
 		UI_EditorCamera();
 		UI_ImportTexture();
 		UI_LogSettings();
-		UI_Statistics();
 		UI_OpenProjectModal();
 		UI_ImportAsset();
 		UI_CreateMeshAsset();
@@ -423,50 +425,8 @@ namespace Shark {
 		
 		Theme::DrawThemeEditor(m_ShowThemeEditor);
 
-#if TODO
-		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
-			MethodThunks::OnUIRender(gcHandle);
-#endif
-
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
-
-#if 0
-		if (ImGui::Begin("Memory"))
-		{
-			{
-				const AllocatorData::AllocationStatsMap& statsMap = Allocator::GetAllocationStatsMap();
-
-				std::map<uint64_t, std::string, std::greater<>> sortedMap;
-				for (const auto& [desc, size] : statsMap)
-				{
-					std::string str = desc;
-					if (str.find("class") != std::string::npos)
-						String::RemovePrefix(str, 6);
-
-					size_t i = str.find_last_of("\\/");
-					if (i != std::string::npos)
-						str = str.substr(i + 1);
-
-					sortedMap[size] = str;
-				}
-
-				UI::Text(fmt::format("Total allocated {}", BytesToString(GMemoryStats.TotalAllocated)));
-				UI::Text(fmt::format("Total freed {}", BytesToString(GMemoryStats.TotalFreed)));
-				UI::Text(fmt::format("Current usage {}", BytesToString(GMemoryStats.CurrentUsage())));
-
-				ImGui::Separator();
-
-				for (const auto& [size, desc] : sortedMap)
-				{
-					auto str = BytesToString(size);
-					ImGui::Text("%s: %s", desc.c_str(), str.c_str());
-				}
-			}
-
-		}
-		ImGui::End();
-#endif
 
 	}
 
@@ -553,7 +513,6 @@ namespace Shark {
 			{
 				ImGui::Separator();
 				ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
-				ImGui::MenuItem("Statistics", nullptr, &m_ShowStatistics);
 				ImGui::Separator();
 
 				auto& app = Application::Get();
@@ -589,7 +548,6 @@ namespace Shark {
 			if (ImGui::BeginMenu("Debug"))
 			{
 				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
-				ImGui::MenuItem("Info", nullptr, &m_ShowInfo);
 				ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
 				ImGui::EndMenu();
 			}
@@ -709,46 +667,6 @@ namespace Shark {
 					tf.Scale = scale;
 				}
 			}
-		}
-	}
-
-	void EditorLayer::UI_Info()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (m_ShowInfo)
-		{
-			ImGui::Begin("Info", &m_ShowInfo);
-
-			if (m_ViewportHovered && m_HoveredEntityID > -1)
-			{
-				Entity e{ (entt::entity)m_HoveredEntityID, m_ActiveScene };
-				if (e.IsValid())
-				{
-					const auto& tag = e.GetComponent<TagComponent>().Tag;
-					ImGui::Text("Hovered Entity: ID: %d, Tag: %s", m_HoveredEntityID, tag.c_str());
-				}
-				else
-				{
-					ImGui::Text("Hovered Entity: ID: %d", m_HoveredEntityID);
-				}
-			}
-			else
-			{
-				ImGui::Text("Hovered Entity: InValid Entity, ID: %d", m_HoveredEntityID);
-			}
-			
-			if (Entity entity{ (entt::entity)m_SelectetEntity, m_ActiveScene })
-			{
-				const auto& tag = entity.GetComponent<TagComponent>().Tag;
-				ImGui::Text("Selected Entity: ID: %d, Tag: %s", (uint32_t)m_SelectetEntity, tag.c_str());
-			}
-			else
-			{
-				ImGui::Text("Selected Entity: InValid");
-			}
-
-			ImGui::End();
 		}
 	}
 
@@ -1027,100 +945,6 @@ namespace Shark {
 		ImGui::End();
 	}
 
-	void EditorLayer::UI_ProfilerStats()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!ImGui::CollapsingHeader("Times"))
-			return;
-
-		auto& app = Application::Get();
-		PerformanceProfiler* profiler = app.GetSecondaryProfiler();
-
-		if (profiler)
-		{
-			UI::Text("Profiler is disabled.");
-			{
-				const auto& frameStorages = profiler->GetFrameStorage();
-
-				m_ProfilerStatsAccumulator["Frame"] += app.GetFrameTime();
-				m_ProfilerStatsAccumulator["CPU"] += app.GetCPUTime();
-				m_ProfilerStatsAccumulator["GPU"] += app.GetGPUTime();
-
-				size_t index = 2;
-				for (const auto& [descriptor, data] : frameStorages)
-					m_ProfilerStatsAccumulator[(std::string)data.Descriptor] += data.Duration;
-
-				if (++m_ProfilerSampleCount >= m_ProfilerSamples)
-				{
-					const auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Duration != rhs.Duration ? lhs.Duration > rhs.Duration : lhs.Descriptor > rhs.Descriptor; };
-
-					const uint32_t reservedSlots = 3;
-					m_ProfilerStats.reserve(m_ProfilerStatsAccumulator.size());
-					m_ProfilerStats.resize(reservedSlots);
-					for (const auto& [descriptor, duration] : m_ProfilerStatsAccumulator)
-					{
-						ProfilerEntry entry = { descriptor, duration / (float)m_ProfilerSamples };
-
-						if (descriptor == "Frame")
-						{
-							m_ProfilerStats[0] = entry;
-							continue;
-						}
-
-						if (descriptor == "CPU")
-						{
-							m_ProfilerStats[1] = entry;
-							continue;
-						}
-
-						if (descriptor == "GPU")
-						{
-							m_ProfilerStats[2] = entry;
-							continue;
-						}
-
-						const auto where = std::lower_bound(m_ProfilerStats.begin() + reservedSlots, m_ProfilerStats.end(), entry, sorter);
-						m_ProfilerStats.insert(where, entry);
-					}
-
-					m_ProfilerStatsAccumulator.clear();
-					m_ProfilerSampleCount = 0;
-				}
-			}
-
-
-			UI::BeginControlsGrid();
-			UI::Control("Samples", m_ProfilerSamples);
-			UI::EndControlsGrid();
-
-			UI::BeginControlsGrid();
-			for (const auto& entry : m_ProfilerStats)
-				UI::Property(entry.Descriptor, entry.Duration.ToString());
-			UI::EndControlsGrid();
-		}
-
-		if (ImGui::TreeNodeEx("Physics", UI::DefaultThinHeaderFlags))
-		{
-			UI::BeginControlsGrid();
-			const auto& profile = m_ActiveScene->GetPhysicsScene().GetProfile();
-			UI::Property("TimeStep", profile.TimeStep);
-			UI::Property("Steps", profile.NumSteps);
-			UI::Property("Step", profile.Step);
-			UI::Property("Collide", profile.Collide);
-			UI::Property("Solve", profile.Solve);
-			UI::Property("SolveInit", profile.SolveInit);
-			UI::Property("SolveVelocity", profile.SolveVelocity);
-			UI::Property("SolvePosition", profile.SolvePosition);
-			UI::Property("Broadphase", profile.Broadphase);
-			UI::Property("SolveTOI", profile.SolveTOI);
-			UI::EndControlsGrid();
-
-			ImGui::TreePop();
-		}
-
-	}
-
 	void EditorLayer::UI_ImportTexture()
 	{
 		SK_PROFILE_FUNCTION();
@@ -1183,7 +1007,6 @@ namespace Shark {
 		auto [wx, wy] = m_ViewportPos;
 		int x = (int)(mx - wx);
 		int y = (int)(my - wy);
-		m_HoveredEntityID = -1;
 
 		const auto& specs = m_MousePickingImage->GetSpecification();
 		int width = (int)specs.Width;
@@ -1191,26 +1014,32 @@ namespace Shark {
 		if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 		{
 			const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::IsKeyDown(KeyCode::LeftAlt) && m_ViewportHovered;
-
-			if (m_ReadHoveredEntity || selectEntity)
-			{
-				Renderer::RT_CopyImage(Renderer::GetCommandBuffer(), m_SceneRenderer->GetIDImage(), m_MousePickingImage);
-				if (!m_MousePickingImage->RT_ReadPixel(x, y, (uint32_t&)m_HoveredEntityID))
-					return false;
-			}
+			uint32_t hoverdEntity = (uint32_t)-1;
 
 			if (selectEntity)
 			{
-				if (m_HoveredEntityID != -1)
+				Renderer::RT_CopyImage(Renderer::GetCommandBuffer(), m_SceneRenderer->GetIDImage(), m_MousePickingImage);
+				if (!m_MousePickingImage->RT_ReadPixel(x, y, hoverdEntity))
+					return false;
+
+				if (hoverdEntity == (uint32_t)-1)
 				{
-					Entity entity{ (entt::entity)(uint32_t)m_HoveredEntityID, m_ActiveScene };
-					SK_CORE_ASSERT(entity.IsValid());
-					if (entity.IsValid())
-						SelectEntity(entity);
+					SelectEntity(Entity{});
+					return true;
 				}
-				else
+
+				Entity entity = { (entt::entity)hoverdEntity, m_ActiveScene };
+				if (entity)
 				{
-					SelectEntity({});
+					if (Input::IsKeyDown(KeyCode::LeftShift))
+					{
+						while (entity.HasParent())
+						{
+							entity = entity.Parent();
+						}
+					}
+
+					SelectEntity(entity);
 				}
 			}
 		}
@@ -1236,85 +1065,6 @@ namespace Shark {
 				UI::Control("Enabled", data.Enabled);
 				UI::EndControls();
 				ImGui::Separator();
-			}
-		}
-		ImGui::End();
-	}
-
-	void EditorLayer::UI_Statistics()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!m_ShowStatistics)
-			return;
-
-		if (ImGui::Begin("Statistics", &m_ShowStatistics))
-		{
-			if (ImGui::BeginTabBar("TabBar"))
-			{
-				if (ImGui::BeginTabItem("Memory"))
-				{
-					UI::TextF("Total allocated {}", String::BytesToString(Allocator::GetMemoryStats().TotalAllocated));
-					UI::TextF("Total freed {}", String::BytesToString(Allocator::GetMemoryStats().TotalFreed));
-					UI::TextF("Current Usage {}", String::BytesToString(Allocator::GetMemoryStats().CurrentUsage()));
-
-					ImGui::Separator();
-
-					static char SearchBuffer[250]{};
-					UI::Search(UI::GenerateID(), SearchBuffer, (int)std::size(SearchBuffer));
-
-					struct Entry
-					{
-						std::string Descriptor;
-						bool IsFile = false;
-						std::string Size;
-						uint64_t ByteSize;
-						bool operator>(const Entry& rhs) const { return ByteSize > rhs.ByteSize; }
-					};
-
-					std::vector<Entry> entries;
-
-					{
-						SK_PROFILE_SCOPED("Add Entries");
-						for (const auto& [desc, size] : Allocator::GetAllocationStatsMap())
-						{
-							if (!String::Contains(desc, SearchBuffer, false))
-								continue;
-
-							auto& entry = entries.emplace_back();
-							entry.Size = String::BytesToString(size);
-							entry.ByteSize = size;
-
-							std::string str = desc;
-							if (str.find("class") != std::string::npos)
-								String::RemovePrefix(str, 6);
-
-							size_t i = str.find_last_of("\\/");
-							if (i != std::string::npos)
-							{
-								str = str.substr(i + 1);
-								entry.IsFile = true;
-							}
-
-							entry.Descriptor = str;
-						}
-					}
-
-					{
-						SK_PROFILE_SCOPED("Sort Entries");
-						std::sort(entries.begin(), entries.end(), std::greater{});
-					}
-
-					for (const auto& entry : entries)
-					{
-						UI::ScopedColorConditional color(ImGuiCol_Text, ImVec4(0.2f, 0.3f, 0.9f, 1.0f), entry.IsFile);
-						ImGui::Text("%s %s", entry.Descriptor.c_str(), entry.Size.c_str());
-					}
-
-					ImGui::EndTabItem();
-				}
-
-				ImGui::EndTabBar();
 			}
 		}
 		ImGui::End();
@@ -1522,63 +1272,6 @@ namespace Shark {
 		}
 		ImGui::End();
 
-	}
-
-	void EditorLayer::RegisterSettingNodes()
-	{
-		Ref<SettingsPanel> settingsPanel = m_PanelManager->Get<SettingsPanel>(SETTINGS_PANEL_ID);
-		settingsPanel->AddNode(std::bind(&SceneRenderer::DrawSettings, m_SceneRenderer));
-		settingsPanel->AddNode(std::bind(&EditorLayer::UI_ProfilerStats, this));
-		settingsPanel->AddNode([this]()
-		{
-			if (ImGui::CollapsingHeader("Visualization"))
-			{
-				UI::ScopedIndent indent(ImGui::GetStyle().IndentSpacing);
-				UI::BeginControlsGrid();
-				UI::Control("Colliders", m_ShowColliders);
-				UI::Control("Light Radius", m_ShowLightRadius);
-				UI::EndControlsGrid();
-			}
-		});
-		settingsPanel->AddNode([this]()
-		{
-			if (ImGui::CollapsingHeader("Stuff"))
-			{
-				UI::BeginControlsGrid();
-				auto& window = Application::Get().GetWindow();
-				bool vSync = window.VSyncEnabled();
-				if (UI::Control("VSync", vSync))
-					window.EnableVSync(vSync);
-
-				UI::Control("Read Hoved Entity", m_ReadHoveredEntity);
-
-				UI::Control("Read Pixel", m_ReadPixel);
-
-				if (m_ReadPixel)
-				{
-					if (Input::IsMouseDown(MouseButton::Right))
-					{
-						auto [mx, my] = ImGui::GetMousePos();
-						auto [wx, wy] = m_ViewportPos;
-						int x = (int)(mx - wx);
-						int y = (int)(my - wy);
-
-						auto finalImage = m_SceneRenderer->GetFinalImage();
-						auto storage = finalImage->RT_GetStorageImage();
-						uint32_t pixel;
-						if (storage->RT_ReadPixel(x, y, pixel))
-						{
-							auto color = ImGui::ColorConvertU32ToFloat4(pixel);
-							m_HoveredColor = { color.x, color.y, color.z, color.w };
-						}
-					}
-
-					UI::PropertyColor("Color", m_HoveredColor);
-				}
-
-				UI::EndControls();
-			}
-		});
 	}
 
 	void EditorLayer::DebugRender()

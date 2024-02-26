@@ -66,20 +66,15 @@ namespace Shark {
 		void UI_MainMenuBar();
 		void UI_Viewport();
 		void UI_Gizmo();
-		void UI_Info();
 		void UI_EditorCamera();
 		void UI_DragDrop();
 		void UI_ToolBar();
-		void UI_ProfilerStats();
 		void UI_ImportTexture();
 		bool UI_MousePicking();
 		void UI_LogSettings();
-		void UI_Statistics();
 		void UI_OpenProjectModal();
 		void UI_ImportAsset();
 		void UI_CreateMeshAsset();
-
-		void RegisterSettingNodes();
 
 		void DebugRender();
 
@@ -156,17 +151,12 @@ namespace Shark {
 
 		Scope<PanelManager> m_PanelManager;
 
-		bool m_ShowInfo = false;
 		bool m_ShowEditorCameraControlls = false;
-		bool m_ReadHoveredEntity = false;
 		bool m_ShowThemeEditor = false;
 		bool m_ShowLogSettings = false;
 		bool m_ShowCreateProject = false;
-		bool m_ShowStatistics = false;
 		bool m_ReadPixel = false;
 		glm::vec4 m_HoveredColor;
-
-		int m_HoveredEntityID = -1;
 
 		float m_TranslationSnap = 0.5f;
 		float m_RotationSnap = 45.0f;
@@ -207,17 +197,6 @@ namespace Shark {
 			std::filesystem::path Directory;
 		};
 		CreateProjectData m_CreateProjectData;
-
-		struct ProfilerEntry
-		{
-			std::string Descriptor;
-			TimeStep Duration;
-		};
-
-		std::vector<ProfilerEntry> m_ProfilerStats;
-		std::map<std::string, TimeStep> m_ProfilerStatsAccumulator;
-		uint32_t m_ProfilerSamples = 10;
-		uint32_t m_ProfilerSampleCount = 0;
 
 		struct OpenProjectModal
 		{

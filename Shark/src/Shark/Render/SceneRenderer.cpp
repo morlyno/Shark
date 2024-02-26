@@ -69,6 +69,21 @@ namespace Shark {
 		m_Lights.clear();
 		m_Meshes.clear();
 
+		m_Renderer2D->BeginScene(m_ViewProjection);
+	}
+
+	void SceneRenderer::EndScene()
+	{
+		SK_PROFILE_FUNCTION();
+
+		m_CommandBuffer->Begin();
+		m_CommandBuffer->BeginQuery(m_Timer);
+
+		CBScene sceneData;
+		sceneData.EnvironmentMapIntensity = m_EnvironmentMapIntensity;
+		sceneData.LightCount = (uint32_t)m_Lights.size();
+		m_CBScene->UploadData(Buffer::FromValue(sceneData));
+
 		CBCamera cbCamera;
 		cbCamera.ViewProj = m_ViewProjection;
 		cbCamera.Position = m_CameraPosition;
@@ -77,17 +92,6 @@ namespace Shark {
 		CBSkybox skybox;
 		skybox.SkyboxProjection = m_Projection * glm::mat4(glm::mat3(m_View));
 		m_CBSkybox->UploadData(Buffer::FromValue(skybox));
-
-		m_CommandBuffer->Begin();
-		m_CommandBuffer->BeginTimeQuery(m_Timer);
-		m_GeometryFrameBuffer->Clear(m_CommandBuffer);
-
-		m_Renderer2D->BeginScene(m_ViewProjection);
-	}
-
-	void SceneRenderer::EndScene()
-	{
-		SK_PROFILE_FUNCTION();
 
 		if (m_UpdateSkyboxSettings)
 		{
@@ -102,22 +106,22 @@ namespace Shark {
 			m_SBLights->GetCount() = newCount;
 			m_SBLights->Invalidate();
 		}
-
 		m_SBLights->Upload(Buffer::FromArray(m_Lights));
 
-		CBScene sceneData;
-		sceneData.EnvironmentMapIntensity = m_EnvironmentMapIntensity;
-		sceneData.LightCount = (uint32_t)m_Lights.size();
-		m_CBScene->UploadData(Buffer::FromValue(sceneData));
-
+		ClearPass();
 		GeometryPass();
 		SkyboxPass();
 
-		m_CommandBuffer->EndTimeQuery(m_Timer);
+		m_CommandBuffer->EndQuery(m_Timer);
 		m_CommandBuffer->End();
-		m_CommandBuffer->Execute();
+		m_CommandBuffer->Execute(m_PipelineQuery);
 
 		m_Renderer2D->EndScene();
+
+		m_Statistics.GPUTime = Application::Get().GetGPUTime();
+		m_Statistics.GeometryPass = m_GeometryPassTimer->GetTime();
+		m_Statistics.SkyboxPass = m_SkyboxPassTimer->GetTime();
+		m_PipelineStatistics = m_PipelineQuery->GetStatistics();
 	}
 
 	void SceneRenderer::SubmitQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
@@ -207,81 +211,14 @@ namespace Shark {
 		m_NeedsResize = true;
 	}
 
-	void SceneRenderer::DrawSettings()
+	void SceneRenderer::ClearPass()
 	{
-		auto profiler = Application::Get().GetProfiler();
-		if (profiler)
-		{
-			profiler->Add("[GPU] SceneRenderer", m_Timer->GetTime());
-			profiler->Add("[GPU] Geometry Pass", m_Renderer2D->GetStatistics().GeometryPassTime);
-		}
-
-		const void* treeNodeID = this;
-		if (ImGui::TreeNodeEx(treeNodeID, ImGuiTreeNodeFlags_CollapsingHeader, "Scene Renderer [%s]", m_Specification.DebugName.c_str()))
-		{
-			if (ImGui::TreeNodeEx("Settings", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
-			{
-				UI::BeginControlsGrid();
-
-				if (UI::ControlColor("Clear Color", m_ClearColor))
-					m_GeometryFrameBuffer->SetClearColor(m_ClearColor);
-
-				UI::Control("EnvironmentMap Intensity", m_EnvironmentMapIntensity);
-				if (UI::Control("Skybox Lod", m_SkyboxLOD, 0.05f, 0, m_EnvironmentMap->GetImage()->GetSpecification().MipLevels))
-					m_UpdateSkyboxSettings = true;
-
-				UI::EndControls();
-
-				ImGui::TreePop();
-			}
-
-			if (ImGui::TreeNodeEx("Statistics", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
-			{
-				UI::BeginControlsGrid();
-
-				UI::Property("Viewport", glm::vec2{ m_Specification.Width, m_Specification.Height });
-
-				UI::Property("DrawCalls", m_Statistics.DrawCalls);
-				UI::Property("Vertices", m_Statistics.VertexCount);
-				UI::Property("Indices", m_Statistics.IndexCount);
-
-				UI::EndControls();
-
-				if (ImGui::TreeNodeEx("Renderer2D", UI::DefaultThinHeaderFlags))
-				{
-					UI::BeginControlsGrid();
-					const auto& stats = m_Renderer2D->GetStatistics();
-					UI::Property("DrawCalls", stats.DrawCalls);
-					UI::Property("Quads", stats.QuadCount);
-					UI::Property("Cirlces", stats.CircleCount);
-					UI::Property("Lines", stats.LineCount);
-					UI::Property("Glyphs", stats.GlyphCount);
-					UI::Property("Vertices", stats.VertexCount);
-					UI::Property("Indices", stats.IndexCount);
-					UI::Property("Textures", stats.TextureCount);
-					UI::EndControls();
-					ImGui::TreePop();
-				}
-
-				ImGui::TreePop();
-			}
-
-			UI::ScopedStyle treeNodeIndent(ImGuiStyleVar_IndentSpacing, 0.0f);
-
-			if (ImGui::TreeNodeEx("Depth Buffer", ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_SpanAvailWidth))
-			{
-				Ref<Image2D> depthImage = m_Renderer2D->GetDepthImage();
-				const float ratio = (float)depthImage->GetHeight() / (float)depthImage->GetWidth();
-				const ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x * ratio };
-				ImGui::Image(depthImage->GetViewID(), size);
-				ImGui::TreePop();
-			}
-
-		}
+		m_GeometryFrameBuffer->Clear(m_CommandBuffer);
 	}
 
 	void SceneRenderer::GeometryPass()
 	{
+		m_CommandBuffer->BeginQuery(m_GeometryPassTimer);
 		Renderer::BeginRenderPass(m_CommandBuffer, m_PBRPass);
 
 		for (const auto& mesh : m_Meshes)
@@ -302,13 +239,16 @@ namespace Shark {
 		}
 
 		Renderer::EndRenderPass(m_CommandBuffer, m_PBRPass);
+		m_CommandBuffer->EndQuery(m_GeometryPassTimer);
 	}
 
 	void SceneRenderer::SkyboxPass()
 	{
+		m_CommandBuffer->BeginQuery(m_SkyboxPassTimer);
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SkyboxPass);
 		Renderer::RenderCube(m_CommandBuffer, m_SkyboxPass->GetPipeline(), nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_SkyboxPass);
+		m_CommandBuffer->EndQuery(m_SkyboxPassTimer);
 	}
 
 	void SceneRenderer::Initialize(const SceneRendererSpecification& specification)
@@ -318,7 +258,11 @@ namespace Shark {
 		m_Specification = specification;
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
+
+		m_PipelineQuery = GPUPipelineQuery::Create("Scene Renderer");
 		m_Timer = GPUTimer::Create("SceneRenderer");
+		m_GeometryPassTimer = GPUTimer::Create("Geometry Pass");
+		m_SkyboxPassTimer = GPUTimer::Create("Skybox Pass");
 
 		m_CBScene = ConstantBuffer::Create(sizeof(CBScene));
 		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));

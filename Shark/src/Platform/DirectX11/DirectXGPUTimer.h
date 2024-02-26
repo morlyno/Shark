@@ -38,4 +38,21 @@ namespace Shark {
 
 	};
 
+	class DirectXGPUPipelineQuery : public GPUPipelineQuery
+	{
+	public:
+		DirectXGPUPipelineQuery(const std::string& name);
+		~DirectXGPUPipelineQuery();
+
+		virtual const PipelineStatistics& GetStatistics() const override { return m_Statisitics; }
+
+		void Begin(ID3D11DeviceContext* context);
+		void End(ID3D11DeviceContext* context);
+	private:
+		uint32_t m_Index = 0;
+		uint32_t m_DataIndex = 1;
+		std::array<ID3D11Query*, 4> m_Queries;
+		PipelineStatistics m_Statisitics;
+	};
+
 }

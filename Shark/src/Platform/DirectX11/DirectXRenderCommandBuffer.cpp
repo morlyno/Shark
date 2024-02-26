@@ -86,40 +86,19 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderCommandBuffer::BeginTimeQuery(Ref<GPUTimer> timer)
-	{
-		Ref<DirectXRenderCommandBuffer> instance = this;
-		Renderer::Submit([instance, dxTimer = timer.As<DirectXGPUTimer>()]()
-		{
-			dxTimer->RT_StartQuery(instance->m_Context);
-		});
-	}
-
-	void DirectXRenderCommandBuffer::EndTimeQuery(Ref<GPUTimer> timer)
-	{
-		Ref<DirectXRenderCommandBuffer> instance = this;
-		Renderer::Submit([instance, dxTimer = timer.As<DirectXGPUTimer>()]()
-		{
-			dxTimer->RT_EndQuery(instance->m_Context);
-		});
-	}
-
-	void DirectXRenderCommandBuffer::RT_ClearState()
+	void DirectXRenderCommandBuffer::Execute(Ref<GPUPipelineQuery> query)
 	{
 		if (m_Type == CommandBufferType::Immediate)
 			return;
 
-		m_Context->Flush();
-		m_Context->ClearState();
-		ID3D11CommandList* dummyList;
-		SK_DX11_CALL(m_Context->FinishCommandList(false, &dummyList));
-		dummyList->Release();
-
-		if (m_CommandList)
+		Ref<DirectXRenderCommandBuffer> instance = this;
+		Renderer::Submit([instance, dxQuery = query.As<DirectXGPUPipelineQuery>()]()
 		{
-			m_CommandList->Release();
-			m_CommandList = nullptr;
-		}
+			auto context = DirectXRenderer::Get()->GetContext();
+			dxQuery->Begin(context);
+			context->ExecuteCommandList(instance->m_CommandList, false);
+			dxQuery->End(context);
+		});
 	}
 
 	void DirectXRenderCommandBuffer::RT_Begin()
@@ -146,14 +125,74 @@ namespace Shark {
 		context->ExecuteCommandList(m_CommandList, FALSE);
 	}
 
-	void DirectXRenderCommandBuffer::RT_BeginTimeQuery(Ref<DirectXGPUTimer> timer)
+	void DirectXRenderCommandBuffer::RT_ClearState()
 	{
-		timer->RT_StartQuery(m_Context);
+		if (m_Type == CommandBufferType::Immediate)
+			return;
+
+		m_Context->Flush();
+		m_Context->ClearState();
+		ID3D11CommandList* dummyList;
+		SK_DX11_CALL(m_Context->FinishCommandList(false, &dummyList));
+		dummyList->Release();
+
+		if (m_CommandList)
+		{
+			m_CommandList->Release();
+			m_CommandList = nullptr;
+		}
 	}
 
-	void DirectXRenderCommandBuffer::RT_EndTimeQuery(Ref<DirectXGPUTimer> timer)
+	void DirectXRenderCommandBuffer::BeginQuery(Ref<GPUTimer> query)
 	{
-		timer->RT_EndQuery(m_Context);
+		Renderer::Submit([query, context = m_Context]()
+		{
+			query.As<DirectXGPUTimer>()->RT_StartQuery(context);
+		});
+	}
+
+	void DirectXRenderCommandBuffer::BeginQuery(Ref<GPUPipelineQuery> query)
+	{
+		Renderer::Submit([query, context = m_Context]()
+		{
+			query.As<DirectXGPUPipelineQuery>()->Begin(context);
+		});
+	}
+
+	void DirectXRenderCommandBuffer::EndQuery(Ref<GPUTimer> query)
+	{
+		Renderer::Submit([query, context = m_Context]()
+		{
+			query.As<DirectXGPUTimer>()->RT_EndQuery(context);
+		});
+	}
+
+	void DirectXRenderCommandBuffer::EndQuery(Ref<GPUPipelineQuery> query)
+	{
+		Renderer::Submit([query, context = m_Context]()
+		{
+			query.As<DirectXGPUPipelineQuery>()->End(context);
+		});
+	}
+
+	void DirectXRenderCommandBuffer::RT_BeginQuery(Ref<DirectXGPUTimer> query)
+	{
+		query->RT_StartQuery(m_Context);
+	}
+
+	void DirectXRenderCommandBuffer::RT_BeginQuery(Ref<DirectXGPUPipelineQuery> query)
+	{
+		query->Begin(m_Context);
+	}
+
+	void DirectXRenderCommandBuffer::RT_EndQuery(Ref<DirectXGPUTimer> query)
+	{
+		query->RT_EndQuery(m_Context);
+	}
+
+	void DirectXRenderCommandBuffer::RT_EndQuery(Ref<DirectXGPUPipelineQuery> query)
+	{
+		query->End(m_Context);
 	}
 
 	void DirectXRenderCommandBuffer::CreateDeferredContext()

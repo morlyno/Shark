@@ -26,18 +26,23 @@ namespace Shark {
 		virtual void Begin() override;
 		virtual void End() override;
 		virtual void Execute() override;
+		virtual void Execute(Ref<GPUPipelineQuery> query) override;
 
 		void RT_Begin();
 		void RT_End();
 		void RT_Execute();
 
-		virtual void BeginTimeQuery(Ref<GPUTimer> timer) override;
-		virtual void EndTimeQuery(Ref<GPUTimer> timer) override;
-
-		void RT_BeginTimeQuery(Ref<DirectXGPUTimer> timer);
-		void RT_EndTimeQuery(Ref<DirectXGPUTimer> timer);
-
 		void RT_ClearState();
+
+		virtual void BeginQuery(Ref<GPUTimer> query) override;
+		virtual void BeginQuery(Ref<GPUPipelineQuery> query) override;
+		virtual void EndQuery(Ref<GPUTimer> query) override;
+		virtual void EndQuery(Ref<GPUPipelineQuery> query) override;
+
+		void RT_BeginQuery(Ref<DirectXGPUTimer> query);
+		void RT_BeginQuery(Ref<DirectXGPUPipelineQuery> query);
+		void RT_EndQuery(Ref<DirectXGPUTimer> query);
+		void RT_EndQuery(Ref<DirectXGPUPipelineQuery> query);
 
 	public:
 		void CreateDeferredContext();

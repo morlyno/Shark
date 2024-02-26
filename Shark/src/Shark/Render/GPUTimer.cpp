@@ -17,5 +17,16 @@ namespace Shark {
 		return nullptr;
 	}
 
+	Ref<GPUPipelineQuery> GPUPipelineQuery::Create(const std::string& name)
+	{
+		switch (RendererAPI::GetCurrentAPI())
+		{
+			case RendererAPIType::None: return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXGPUPipelineQuery>::Create(name);
+		}
+		SK_CORE_ASSERT(false, "Unkonw RendererAPI");
+		return nullptr;
+	}
+
 }
 

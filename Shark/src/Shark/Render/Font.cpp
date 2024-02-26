@@ -31,7 +31,7 @@ namespace Shark {
 		spec.Height = bitmap.height;
 		spec.Format = F;
 		spec.GenerateMips = false;
-		fontAtlas->SetImageData(Buffer::Copy(bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T)));
+		fontAtlas->SetImageData({ bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T) });
 		fontAtlas->Invalidate();
 	}
 

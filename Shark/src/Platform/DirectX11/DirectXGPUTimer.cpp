@@ -1,8 +1,9 @@
 #include "skpch.h"
 #include "DirectXGPUTimer.h"
 
-#include "Platform/DirectX11/DirectXRenderer.h"
 #include "Shark/Render/Renderer.h"
+#include "Platform/DirectX11/DirectXAPI.h"
+#include "Platform/DirectX11/DirectXRenderer.h"
 
 namespace Shark {
 
@@ -101,6 +102,63 @@ namespace Shark {
 		uint64_t durration = endTime - startTime;
 		m_LastTickCount = durration;
 		m_LastFrequency = dxRenderer->GetGPUFrequncy();
+	}
+
+	DirectXGPUPipelineQuery::DirectXGPUPipelineQuery(const std::string& name)
+	{
+		auto renderer = DirectXRenderer::Get();
+		ID3D11Device* device = renderer->GetDevice();
+
+		D3D11_QUERY_DESC desc = {};
+		desc.Query = D3D11_QUERY_PIPELINE_STATISTICS;
+		for (uint32_t i = 0; i < m_Queries.size(); i++)
+		{
+			DX11_VERIFY(device->CreateQuery(&desc, &m_Queries[i]));
+		}
+
+		m_Index = 0;
+		m_DataIndex = (m_Index + 1) % (uint32_t)m_Queries.size();
+	}
+
+	DirectXGPUPipelineQuery::~DirectXGPUPipelineQuery()
+	{
+		if (!m_Queries[0])
+			return;
+
+		Renderer::SubmitResourceFree([queries = m_Queries]()
+		{
+			for (auto& query : queries)
+				DirectXAPI::ReleaseObject(query);
+		});
+
+		m_Queries.fill(nullptr);
+	}
+
+	void DirectXGPUPipelineQuery::Begin(ID3D11DeviceContext* context)
+	{
+		context->Begin(m_Queries[m_Index]);
+	}
+
+	void DirectXGPUPipelineQuery::End(ID3D11DeviceContext* context)
+	{
+		context->End(m_Queries[m_Index]);
+
+		D3D11_QUERY_DATA_PIPELINE_STATISTICS stats;
+		HRESULT hResult = context->GetData(m_Queries[m_DataIndex], &stats, sizeof(D3D11_QUERY_DATA_PIPELINE_STATISTICS), 0);
+
+		if (hResult == S_OK)
+		{
+			m_Statisitics.InputAssemblerVertices = stats.IAVertices;
+			m_Statisitics.InputAssemblerPrimitives = stats.IAPrimitives;
+			m_Statisitics.VertexShaderInvocations = stats.VSInvocations;
+			m_Statisitics.PixelShaderInvocations = stats.PSInvocations;
+			m_Statisitics.ComputeShaderInvocations = stats.CSInvocations;
+			m_Statisitics.RasterizerInvocations = stats.CInvocations;
+			m_Statisitics.RasterizerPrimitives = stats.CPrimitives;
+		}
+
+		++m_Index %= m_Queries.size();
+		++m_DataIndex %= m_Queries.size();
 	}
 
 }

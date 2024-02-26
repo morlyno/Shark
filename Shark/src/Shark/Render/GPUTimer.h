@@ -16,4 +16,24 @@ namespace Shark {
 		static Ref<GPUTimer> Create(const std::string& name = std::string{});
 	};
 
+	struct PipelineStatistics
+	{
+		uint64_t InputAssemblerVertices;
+		uint64_t InputAssemblerPrimitives;
+		uint64_t VertexShaderInvocations;
+		uint64_t PixelShaderInvocations;
+		uint64_t ComputeShaderInvocations;
+		uint64_t RasterizerInvocations;
+		uint64_t RasterizerPrimitives;
+	};
+
+	class GPUPipelineQuery : public RefCount
+	{
+	public:
+		virtual const PipelineStatistics& GetStatistics() const = 0;
+
+	public:
+		static Ref<GPUPipelineQuery> Create(const std::string& name);
+	};
+
 }

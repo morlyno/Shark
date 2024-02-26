@@ -21,7 +21,7 @@ Scene:
       TagComponent:
         Name: Light
       TransformComponent:
-        Translation: [7.62747192, 13.4730291, -2.24005461]
+        Translation: [10.337676, 11.2377882, 4.41532993]
         Rotation: [0, 0, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -30,14 +30,14 @@ Scene:
           []
       PointLightComponent:
         Color: [1, 1, 1, 1]
-        Intensity: 1
-        Radius: 29
+        Intensity: 1.64999998
+        Radius: 22.75
         Falloff: 0
     - Entity: 2330932128962717387
       TagComponent:
         Name: Red Light
       TransformComponent:
-        Translation: [8.61411381, 5.62367439, -11.059454]
+        Translation: [10.4907141, 5.15504789, -13.9297657]
         Rotation: [0, 0, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -46,9 +46,9 @@ Scene:
           []
       PointLightComponent:
         Color: [0, 0.920354128, 1, 1]
-        Intensity: 1.45000005
-        Radius: 14.75
-        Falloff: 2.45000005
+        Intensity: 1.46399999
+        Radius: 18.9500008
+        Falloff: 1.35000002
     - Entity: 3378318554821546903
       TagComponent:
         Name: Floor
@@ -144,7 +144,7 @@ Scene:
       TagComponent:
         Name: Light2
       TransformComponent:
-        Translation: [-8.98091507, 11.4173908, 1.77909327]
+        Translation: [-8.98091507, 10.2905941, -3.41270971]
         Rotation: [0, 0, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -153,8 +153,8 @@ Scene:
           []
       PointLightComponent:
         Color: [1, 0.690265477, 0, 1]
-        Intensity: 0.850000024
-        Radius: 32.4000015
+        Intensity: 1.75
+        Radius: 31.6000004
         Falloff: 0
     - Entity: 17038408138984345411
       TagComponent:

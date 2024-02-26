@@ -738,7 +738,7 @@ namespace Shark {
 
 	void Renderer2D::GeometryPass()
 	{
-		m_CommandBuffer->BeginTimeQuery(m_GeometryPassTimer);
+		m_CommandBuffer->BeginQuery(m_GeometryPassTimer);
 
 #if TODO
 		if (m_QuadIndexCount)
@@ -818,7 +818,7 @@ namespace Shark {
 			Renderer::EndRenderPass(m_CommandBuffer, m_TextPass);
 		}
 
-		m_CommandBuffer->EndTimeQuery(m_GeometryPassTimer);
+		m_CommandBuffer->EndQuery(m_GeometryPassTimer);
 	}
 
 	void Renderer2D::AssureQuadVertexDataSize()
