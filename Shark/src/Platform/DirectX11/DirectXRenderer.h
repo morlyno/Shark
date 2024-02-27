@@ -2,7 +2,6 @@
 
 #include "Shark/Render/RendererAPI.h"
 #include "Platform/DirectX11/DirectXBuffers.h"
-#include "Platform/DirectX11/DirectXGPUTimer.h"
 
 #include "Platform/DirectX11/DirectXMaterial.h"
 #include "Platform/DirectX11/DirectXConstantBuffer.h"
@@ -66,17 +65,16 @@ namespace Shark {
 		virtual void GenerateMips(Ref<Image2D> image) override;
 		virtual void RT_GenerateMips(Ref<Image2D> image) override;
 
-		virtual TimeStep GetGPUTime() const override { return m_GPUTimer->GetTime(); }
+		virtual TimeStep GetGPUTime() const override { return m_GPUTime; }
 
+		virtual uint32_t GetCurrentFrameIndex() const { return m_FrameIndex; }
+		virtual uint32_t RT_GetCurrentFrameIndex() const { return m_RTFrameIndex; }
 		virtual Ref<RenderCommandBuffer> GetCommandBuffer() const override { return m_ImmediateCommandBuffer; }
 
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
 
-		void BindFrameBuffer(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXFrameBuffer> framebuffer);
-
-		void AddCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer);
-		void RemoveCommandBuffer(DirectXRenderCommandBuffer* commandBuffer);
+		void BindFrameBuffer(ID3D11DeviceContext* context, Ref<DirectXFrameBuffer> framebuffer);
 
 		uint64_t GetGPUFrequncy() const { return m_GPUFrequency; }
 		uint64_t HasValidFrequncy() const { return m_IsValidFrequency; }
@@ -112,6 +110,8 @@ namespace Shark {
 		static DirectXRenderer* s_Instance;
 
 		bool m_ResourceCreated = false;
+		uint32_t m_FrameIndex = (uint32_t)-1;
+		uint32_t m_RTFrameIndex = (uint32_t)-1;
 
 		IDXGIFactory* m_Factory = nullptr;
 		ID3D11Device* m_Device = nullptr;
@@ -120,7 +120,6 @@ namespace Shark {
 		IDXGIInfoQueue* m_InfoQueue = nullptr;
 
 		Ref<DirectXRenderCommandBuffer> m_ImmediateCommandBuffer;
-		std::unordered_set<DirectXRenderCommandBuffer*> m_CommandBuffers;
 
 		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;
 		Ref<DirectXIndexBuffer> m_QuadIndexBuffer;
@@ -128,7 +127,8 @@ namespace Shark {
 		Ref<DirectXVertexBuffer> m_CubeVertexBuffer;
 		Ref<DirectXIndexBuffer> m_CubeIndexBuffer;
 
-		Ref<DirectXGPUTimer> m_GPUTimer;
+		uint32_t m_GPUTimerID;
+		TimeStep m_GPUTime;
 
 		ID3D11Query* m_FrequencyQuery = nullptr;
 		uint64_t m_GPUFrequency = 0;

@@ -10,6 +10,7 @@
 #include "Shark/Render/FrameBuffer.h"
 #include "Shark/Render/Mesh.h"
 #include "Shark/Render/StorageBuffer.h"
+#include "Shark/Render/Environment.h"
 
 namespace Shark {
 
@@ -43,11 +44,18 @@ namespace Shark {
 			uint32_t IndexCount;
 		};
 
+		struct Options
+		{
+			bool SkyboxPass = true;
+		};
+
 	public:
 		SceneRenderer(uint32_t width, uint32_t height, const std::string& debugName);
 		SceneRenderer(Ref<Scene> scene, const SceneRendererSpecification& specification);
 		SceneRenderer(Ref<Scene> scene);
 		~SceneRenderer();
+
+		Options& GetOptions() { return m_Options; }
 
 		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
 
@@ -64,6 +72,7 @@ namespace Shark {
 
 		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
 
+		void SubmitEnvironment(AssetHandle environment, float intensity, float lod);
 		void SubmitPointLight(const glm::vec3& position, const glm::vec3& color, float intensity, float radius, float falloff);
 
 		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id);
@@ -141,12 +150,21 @@ namespace Shark {
 			int ID;
 		};
 
+		struct LightEnvironment
+		{
+			std::vector<Light> Lights;
+			AssetHandle EnvironmentHandle;
+			float Intesity;
+			float Lod;
+		};
+
 	private:
 		Ref<Scene> m_Scene;
 		SceneRendererSpecification m_Specification;
 
 		Statistics m_Statistics;
 		PipelineStatistics m_PipelineStatistics;
+		Options m_Options;
 
 		Ref<ConstantBuffer> m_CBScene;
 		Ref<ConstantBuffer> m_CBCamera;
@@ -157,17 +175,16 @@ namespace Shark {
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
 
-		Ref<GPUPipelineQuery> m_PipelineQuery;
-		Ref<GPUTimer> m_Timer;
-		Ref<GPUTimer> m_GeometryPassTimer;
-		Ref<GPUTimer> m_SkyboxPassTimer;
+		uint32_t m_TimerID;
+		uint32_t m_GeometryPassTimerID;
+		uint32_t m_SkyboxPassTimerID;
 
 		glm::mat4 m_ViewProjection;
 		glm::mat4 m_View;
 		glm::mat4 m_Projection;
 		glm::vec3 m_CameraPosition;
 
-		std::vector<Light> m_Lights;
+		LightEnvironment m_LightEnvironment;
 		std::vector<MeshData> m_Meshes;
 
 		// Geometry
@@ -175,16 +192,10 @@ namespace Shark {
 		Ref<FrameBuffer> m_ExternalCompositeFrameBuffer;
 
 		Ref<RenderPass> m_PBRPass;
+		Ref<RenderPass> m_SkyboxPass;
 
 		bool m_NeedsResize = true;
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
-		float m_EnvironmentMapIntensity = 1.0f;
-		float m_SkyboxLOD = 0;
-		bool m_UpdateSkyboxSettings = false;
-
-		Ref<TextureCube> m_EnvironmentMap;
-		Ref<TextureCube> m_IrradianceMap;
-		Ref<RenderPass> m_SkyboxPass;
 
 		friend class SceneRendererPanel;
 	};

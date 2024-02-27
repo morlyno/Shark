@@ -9,6 +9,7 @@
 #include "Shark/ImGui/ImGuiFonts.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
 
@@ -90,16 +91,17 @@ namespace Shark {
 		Window& window = Application::Get().GetWindow();
 		ImGui_ImplWin32_Init(window.GetHandle());
 
-		m_CommandBuffer = Ref<DirectXRenderCommandBuffer>::Create();
-		Renderer::Submit([instance = this, commandBuffer = m_CommandBuffer]()
+		auto device = DirectXRenderer::Get()->GetDevice();
+		DirectXAPI::CreateDeferredContext(device, m_Context);
+
+		Renderer::Submit([instance = this]()
 		{
 			Window& window = Application::Get().GetWindow();
-			auto context = commandBuffer->GetContext();
 
-			ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), context);
+			ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), instance->m_Context);
 			ImGui_ImplDX11_CreateDeviceObjects();
-			ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, context);
-			context->PSGetSamplers(0, 1, &instance->m_ImGuiFontSampler);
+			ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, instance->m_Context);
+			instance->m_Context->PSGetSamplers(0, 1, &instance->m_ImGuiFontSampler);
 		});
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
@@ -109,8 +111,6 @@ namespace Shark {
 			ImGui::LoadIniSettingsFromDisk("Resources/DefaultImGui.ini");
 		}
 
-		m_GPUTimer = Ref<DirectXGPUTimer>::Create("ImGui");
-
 		UI::CreateContext(this);
 	}
 
@@ -118,13 +118,18 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		Renderer::SubmitResourceFree([sampler = m_ImGuiFontSampler]()
+		Renderer::Submit([sampler = m_ImGuiFontSampler]()
 		{
 			UI::DestroyContext();
 			ImGui_ImplDX11_Shutdown();
 			ImGui_ImplWin32_Shutdown();
 			ImGui::DestroyContext();
-			sampler->Release();
+		});
+
+		Renderer::SubmitResourceFree([sampler = m_ImGuiFontSampler, context = m_Context]()
+		{
+			DirectXAPI::ReleaseObject(sampler);
+			DirectXAPI::ReleaseObject(context);
 		});
 	}
 
@@ -164,11 +169,8 @@ namespace Shark {
 		auto& window = Application::Get().GetWindow();
 		io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
 
-		m_CommandBuffer->RT_Begin();
-		m_CommandBuffer->RT_BeginQuery(m_GPUTimer);
-
 		Ref<DirectXFrameBuffer> swapchainFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
-		DirectXRenderer::Get()->BindFrameBuffer(m_CommandBuffer, swapchainFrameBuffer);
+		DirectXRenderer::Get()->BindFrameBuffer(m_Context, swapchainFrameBuffer);
 
 		{
 			SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render");
@@ -184,10 +186,12 @@ namespace Shark {
 			}
 		}
 
-		m_GPUTime = m_GPUTimer->GetTime();
-		m_CommandBuffer->RT_EndQuery(m_GPUTimer);
-		m_CommandBuffer->RT_End();
-		m_CommandBuffer->RT_Execute();
+		ID3D11CommandList* commandList;
+		m_Context->FinishCommandList(false, &commandList);
+
+		ID3D11DeviceContext* immediateContext = DirectXRenderer::Get()->GetContext();
+		immediateContext->ExecuteCommandList(commandList, false);
+		DirectXAPI::ReleaseObject(commandList);
 	}
 
 	void BindSamplerCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
@@ -195,11 +199,10 @@ namespace Shark {
 		DirectXImGuiLayer* imguiLayer = (DirectXImGuiLayer*)cmd->UserCallbackData;
 		const auto& usedTextures = imguiLayer->m_UsedTextures;
 
-		ID3D11DeviceContext* context = imguiLayer->m_CommandBuffer->GetContext();
 		Ref<DirectXTexture2D> texture = imguiLayer->m_UsedTextures[imguiLayer->m_UsedTextureIndex++];
 		ID3D11SamplerState* sampler = texture->GetDirectXSampler();
 		SK_CORE_ASSERT(sampler);
-		context->PSSetSamplers(0, 1, &sampler);
+		imguiLayer->m_Context->PSSetSamplers(0, 1, &sampler);
 	}
 
 	void DirectXImGuiLayer::AddTexture(Ref<Texture2D> texture)
@@ -212,7 +215,7 @@ namespace Shark {
 
 	void DirectXImGuiLayer::BindFontSampler()
 	{
-		m_CommandBuffer->GetContext()->PSSetSamplers(0, 1, &m_ImGuiFontSampler);
+		m_Context->PSSetSamplers(0, 1, &m_ImGuiFontSampler);
 	}
 
 }

@@ -11,6 +11,7 @@
 #include "Shark/Serialization/MeshSourceSerializer.h"
 #include "Shark/Serialization/MeshSerializer.h"
 #include "Shark/Serialization/MaterialSerializer.h"
+#include "Shark/Serialization/EnvironmentSerializer.h"
 
 namespace Shark {
 
@@ -26,6 +27,7 @@ namespace Shark {
 		s_Serializers[AssetType::MeshSource] = Scope<MeshSourceSerializer>::Create();
 		s_Serializers[AssetType::Mesh] = Scope<MeshSerializer>::Create();
 		s_Serializers[AssetType::Material] = Scope<MaterialSerializer>::Create();
+		s_Serializers[AssetType::Environment] = Scope<EnvironmentSerializer>::Create();
 	}
 
 	void AssetSerializer::ReleaseSerializers()

@@ -11,7 +11,7 @@ namespace Shark::DirectXAPI {
 
 	void ReleaseObject(ID3D11DeviceChild* object);
 
-	void CreateDeferredContext(ID3D11Device* device, UINT flags, ID3D11DeviceContext*& outContext);
+	void CreateDeferredContext(ID3D11Device* device, ID3D11DeviceContext*& outContext);
 
 	void SetDebugName(ID3D11DeviceChild* object, const char* debugName);
 	void SetDebugName(ID3D11DeviceChild* object, std::string_view debugName);
@@ -30,5 +30,8 @@ namespace Shark::DirectXAPI {
 	void CreateSamplerState(ID3D11Device* device, const D3D11_SAMPLER_DESC& desc, ID3D11SamplerState*& outSampler);
 
 	void CreateComputeShader(ID3D11Device* device, Buffer binary, ID3D11ClassLinkage* classLinkage, ID3D11ComputeShader*& outComputeShader);
+
+	void CreateQuery(ID3D11Device* device, D3D11_QUERY queryType, ID3D11Query*& outQuery);
+	void CreateQuery(ID3D11Device* device, D3D11_QUERY_DESC desc, ID3D11Query*& outQuery);
 
 }

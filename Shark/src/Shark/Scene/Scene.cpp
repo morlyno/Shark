@@ -363,6 +363,16 @@ namespace Shark {
 		renderer->BeginScene(camera);
 
 		{
+			auto view = m_Registry.view<EnvironmentComponent>();
+			if (view.size())
+			{
+				Entity entity{ view.front(), this };
+				EnvironmentComponent comp = entity.GetComponent<EnvironmentComponent>();
+				renderer->SubmitEnvironment(comp.EnvironmentHandle, comp.Intensity, comp.Lod);
+			}
+		}
+
+		{
 			auto view = m_Registry.view<TransformComponent, PointLightComponent>();
 			for (auto ent : view)
 			{

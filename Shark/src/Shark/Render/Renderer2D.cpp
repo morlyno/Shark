@@ -9,12 +9,6 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#if SK_ENABLE_VALIDATION
-#define SK_FILL_TEXTURE_ARRAY_DEBUG(texArr, whiteTexture) { auto&& textureArray = (texArr); for (uint32_t i = 0; i < textureArray->Count(); i++) if (!textureArray->Get(i)) textureArray->Set(i, whiteTexture); }
-#else
-#define SK_FILL_TEXTURE_ARRAY_DEBUG(...)
-#endif
-
 namespace Shark {
 
 	Renderer2D::Renderer2D(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications)
@@ -37,8 +31,6 @@ namespace Shark {
 		m_WhiteTexture = Renderer::GetWhiteTexture();
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
-
-		m_GeometryPassTimer = GPUTimer::Create("Geometry Pass");
 
 		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
 
@@ -387,7 +379,7 @@ namespace Shark {
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 
-		m_Statistics.GeometryPassTime += m_GeometryPassTimer->GetTime();
+		m_Statistics.GeometryPassTime += m_CommandBuffer->GetTime(m_GeometryPassTimerID);
 
 		m_Active = false;
 	}
@@ -738,7 +730,7 @@ namespace Shark {
 
 	void Renderer2D::GeometryPass()
 	{
-		m_CommandBuffer->BeginQuery(m_GeometryPassTimer);
+		m_GeometryPassTimerID = m_CommandBuffer->BeginTimestampQuery();
 
 #if TODO
 		if (m_QuadIndexCount)
@@ -818,7 +810,7 @@ namespace Shark {
 			Renderer::EndRenderPass(m_CommandBuffer, m_TextPass);
 		}
 
-		m_CommandBuffer->EndQuery(m_GeometryPassTimer);
+		m_CommandBuffer->EndTimestampQuery(m_GeometryPassTimerID);
 	}
 
 	void Renderer2D::AssureQuadVertexDataSize()

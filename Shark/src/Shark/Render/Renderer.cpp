@@ -290,6 +290,16 @@ namespace Shark {
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 	}
 
+	uint32_t Renderer::GetCurrentFrameIndex()
+	{
+		return s_RendererAPI->GetCurrentFrameIndex();
+	}
+
+	uint32_t Renderer::RT_GetCurrentFrameIndex()
+	{
+		return s_RendererAPI->RT_GetCurrentFrameIndex();
+	}
+
 	Ref<RendererAPI> Renderer::GetRendererAPI()
 	{
 		return s_RendererAPI;

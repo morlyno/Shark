@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shark/Render/RenderCommandBuffer.h"
-#include "Platform/DirectX11/DirectXGPUTimer.h"
 #include <d3d11.h>
 
 namespace Shark {
@@ -26,34 +25,37 @@ namespace Shark {
 		virtual void Begin() override;
 		virtual void End() override;
 		virtual void Execute() override;
-		virtual void Execute(Ref<GPUPipelineQuery> query) override;
 
-		void RT_Begin();
-		void RT_End();
-		void RT_Execute();
+		virtual uint32_t BeginTimestampQuery() override;
+		virtual void EndTimestampQuery(uint32_t queryID) override;
 
-		void RT_ClearState();
+		virtual const PipelineStatistics& GetPipelineStatistics() const override { return m_PipelineStatistics; }
+		virtual TimeStep GetTime(uint32_t queryID) const override;
 
-		virtual void BeginQuery(Ref<GPUTimer> query) override;
-		virtual void BeginQuery(Ref<GPUPipelineQuery> query) override;
-		virtual void EndQuery(Ref<GPUTimer> query) override;
-		virtual void EndQuery(Ref<GPUPipelineQuery> query) override;
-
-		void RT_BeginQuery(Ref<DirectXGPUTimer> query);
-		void RT_BeginQuery(Ref<DirectXGPUPipelineQuery> query);
-		void RT_EndQuery(Ref<DirectXGPUTimer> query);
-		void RT_EndQuery(Ref<DirectXGPUPipelineQuery> query);
-
-	public:
+	private:
+		void CreateQueries();
 		void CreateDeferredContext();
-		void RegisterDeferred();
-		void UnregisterDeferred();
+
+	private:
+		using TimeQuery = std::pair<ID3D11Query*, ID3D11Query*>;
+		using QueryPool = std::vector<TimeQuery>;
+
+		TimeQuery GetNextAvailableTimeQuery(uint32_t& outID);
+		TimeQuery GetTimeQuery(uint32_t id);
 
 	private:
 		CommandBufferType m_Type = CommandBufferType::Deferred;
 
 		ID3D11DeviceContext* m_Context = nullptr;
 		ID3D11CommandList* m_CommandList = nullptr;
+
+		std::array<ID3D11Query*, 3> m_PipelineStatsQueries;
+
+		uint32_t m_NextAvailableQueryIndex = 0;
+		std::array<QueryPool, 3> m_TimestampQueryPools;
+		std::array<std::vector<TimeStep>, 3> m_TimestampQueryResults;
+
+		PipelineStatistics m_PipelineStatistics;
 	};
 
 }

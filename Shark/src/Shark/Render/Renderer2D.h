@@ -195,7 +195,7 @@ namespace Shark {
 		Ref<Texture2D> m_WhiteTexture;
 		glm::mat4 m_ViewProj;
 
-		Ref<GPUTimer> m_GeometryPassTimer;
+		uint32_t m_GeometryPassTimerID;
 
 		Ref<FrameBuffer> m_GeometryFrameBuffer;
 		Ref<FrameBuffer> m_DepthFrameBuffer;

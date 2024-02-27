@@ -46,21 +46,11 @@ namespace Shark {
 				ImGui::TreePop();
 			}
 
-			if (ImGui::TreeNodeEx("Settings", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::TreeNodeEx("Statistics", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				UI::BeginControlsGrid();
-				UI::Control("Environment Intensity", m_Renderer->m_EnvironmentMapIntensity, 0.01f, 0.0f, FLT_MAX);
-				UI::ControlCustom("Skybox Lod", [renderer = m_Renderer]()
-				{
-					ImGui::SetNextItemWidth(-1.0f);
-					if (ImGui::SliderFloat("##SkyboxLod", &renderer->m_SkyboxLOD, 0, renderer->m_EnvironmentMap->GetImage()->GetSpecification().MipLevels))
-						renderer->m_UpdateSkyboxSettings = true;
-				});
-				UI::EndControlsGrid();
-
+				ImGui::Checkbox("Skybox Pass", &m_Renderer->GetOptions().SkyboxPass);
 				ImGui::TreePop();
 			}
-
 		}
 		ImGui::End();
 	}

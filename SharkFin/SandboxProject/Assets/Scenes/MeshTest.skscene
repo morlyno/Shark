@@ -2,6 +2,21 @@ Scene:
   Name: New Scene
   ActiveCamera: 0x0
   Entities:
+    - Entity: 270824792768259062
+      TagComponent:
+        Name: Environment
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      EnvironmentComponent:
+        EnvironmentHandle: 6481003888224515998
+        Intensity: 0.699999988
+        Lod: 4.5
     - Entity: 665692342534429939
       TagComponent:
         Name: Cone

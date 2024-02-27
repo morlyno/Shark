@@ -13,6 +13,7 @@ namespace Shark {
 
 		virtual void Bake() override;
 		virtual bool Validate() const override;
+		virtual void Update() override;
 
 		virtual void Set(const std::string& name, Ref<ConstantBuffer> constantBuffer) override;
 		virtual void Set(const std::string& name, Ref<StorageBuffer> storageBuffer) override;
@@ -20,6 +21,13 @@ namespace Shark {
 		virtual void Set(const std::string& name, Ref<Texture2D> texture) override;
 		virtual void Set(const std::string& name, Ref<TextureCube> textureCube) override;
 		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler) override;
+
+		virtual Ref<ConstantBuffer> GetConstantBuffer(const std::string& name) const override;
+		virtual Ref<StorageBuffer> GetStorageBuffer(const std::string& name) const override;
+		virtual Ref<Image2D> GetImage2D(const std::string& name) const override;
+		virtual Ref<Texture2D> GetTexture2D(const std::string& name) const override;
+		virtual Ref<TextureCube> GetTextureCube(const std::string& name) const override;
+		virtual Ref<SamplerWrapper> GetSamplerWrapper(const std::string& name) const override;
 
 		virtual Ref<Image2D> GetOutput(uint32_t index) const override;
 		virtual Ref<Image2D> GetDepthOutput() const override;

@@ -20,6 +20,7 @@
 #include "Platform/DirectX11/DirectXPipeline.h"
 #include "Platform/DirectX11/DirectXSwapChain.h"
 #include "Platform/DirectX11/DirectXRenderPass.h"
+#include "Platform/DirectX11/DirectXImGuiLayer.h"
 #include "Platform/Windows/WindowsUtils.h"
 
 #include <backends/imgui_impl_dx11.h>
@@ -204,7 +205,6 @@ namespace Shark {
 			m_CubeVertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices)).As<DirectXVertexBuffer>();
 			m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices)).As<DirectXIndexBuffer>();
 		}
-		m_GPUTimer = Ref<DirectXGPUTimer>::Create("GPU");
 
 		Renderer::Submit([instance]() { SK_CORE_INFO_TAG("Renderer", "Resources Created"); instance->m_ResourceCreated = true; });
 	}
@@ -220,9 +220,6 @@ namespace Shark {
 		m_CubeVertexBuffer = nullptr;
 		m_CubeIndexBuffer = nullptr;
 		m_ImmediateCommandBuffer = nullptr;
-		m_GPUTimer = nullptr;
-
-		SK_CORE_ASSERT(m_CommandBuffers.empty(), "All RenderCommandBuffers need to be destroy befor Renderer shuts down");
 
 		Renderer::SubmitResourceFree([frequencyQuery = m_FrequencyQuery, factory = m_Factory, context = m_ImmediateContext, device = m_Device, debug = m_Debug, infoQueue = m_InfoQueue]()
 		{
@@ -237,7 +234,6 @@ namespace Shark {
 			SK_CORE_VERIFY(count == 0);
 		});
 
-		m_GPUTimer = nullptr;
 		m_FrequencyQuery = nullptr;
 		m_Factory = nullptr;
 		m_InfoQueue = nullptr;
@@ -251,9 +247,14 @@ namespace Shark {
 	void DirectXRenderer::BeginFrame()
 	{
 		Ref<DirectXRenderer> instance = this;
+		Renderer::Submit([instance]() { instance->m_RTFrameIndex++; });
+		m_FrameIndex++;
+
+		m_ImmediateCommandBuffer->Begin();
+		m_GPUTimerID = m_ImmediateCommandBuffer->BeginTimestampQuery();
+
 		Renderer::Submit([instance]()
 		{
-			instance->m_GPUTimer->RT_StartQuery(instance->m_ImmediateContext);
 			instance->RT_BeginFrequencyQuery();
 		});
 	}
@@ -266,8 +267,12 @@ namespace Shark {
 			RT_EndFrequencyQuery();
 			RT_FlushDXMessages();
 			RT_LogMessages(m_InfoQueue);
-			instance->m_GPUTimer->RT_EndQuery(m_ImmediateContext);
 		});
+
+		m_ImmediateCommandBuffer->EndTimestampQuery(m_GPUTimerID);
+		m_ImmediateCommandBuffer->End();
+		m_ImmediateCommandBuffer->Execute();
+		m_GPUTime = m_ImmediateCommandBuffer->GetTime(m_GPUTimerID);
 	}
 
 	void DirectXRenderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
@@ -795,10 +800,8 @@ namespace Shark {
 		genMipsResource->Release();
 	}
 
-	void DirectXRenderer::BindFrameBuffer(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXFrameBuffer> framebuffer)
+	void DirectXRenderer::BindFrameBuffer(ID3D11DeviceContext* context, Ref<DirectXFrameBuffer> framebuffer)
 	{
-		auto context = commandBuffer->GetContext();
-
 		if (!framebuffer)
 		{
 			ID3D11RenderTargetView* nullFramebuffers[8];
@@ -809,18 +812,6 @@ namespace Shark {
 		}
 
 		context->OMSetRenderTargets(framebuffer->m_Count, framebuffer->m_FrameBuffers.data(), framebuffer->m_DepthStencil);
-	}
-
-	void DirectXRenderer::AddCommandBuffer(Weak<DirectXRenderCommandBuffer> commandBuffer)
-	{
-		m_CommandBuffers.insert(commandBuffer.Raw());
-	}
-
-	void DirectXRenderer::RemoveCommandBuffer(DirectXRenderCommandBuffer* commandBuffer)
-	{
-		auto entry = m_CommandBuffers.find(commandBuffer);
-		if (entry != m_CommandBuffers.end())
-			m_CommandBuffers.erase(entry);
 	}
 
 	void DirectXRenderer::HandleError(HRESULT hr)
@@ -854,11 +845,24 @@ namespace Shark {
 
 	void DirectXRenderer::RT_PrepareForSwapchainResize()
 	{
-		//SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-		for (auto context : m_CommandBuffers)
-			context->RT_ClearState();
-		m_ImmediateContext->ClearState();
+		//for (auto context : m_CommandBuffers)
+		//	context->RT_ClearState();
+
+		Application& app = Application::Get();
+		if (app.GetSpecification().EnableImGui)
+		{
+			DirectXImGuiLayer& imguiLayer = (DirectXImGuiLayer&)app.GetImGuiLayer();
+			ID3D11DeviceContext* context = imguiLayer.m_Context;
+			context->Flush();
+			context->ClearState();
+			
+			ID3D11CommandList* commandList;
+			context->FinishCommandList(false, &commandList);
+			DirectXAPI::ReleaseObject(commandList);
+		}
+
 		m_ImmediateContext->Flush();
+		m_ImmediateContext->ClearState();
 	}
 
 	void DirectXRenderer::ReportLiveObejcts()
@@ -866,7 +870,7 @@ namespace Shark {
 		IDXGIDebug1* debug;
 		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug))))
 		{
-			debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+			debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
 
 			IDXGIInfoQueue* infoQueue;
 			if (SUCCEEDED(debug->QueryInterface(IID_PPV_ARGS(&infoQueue))))

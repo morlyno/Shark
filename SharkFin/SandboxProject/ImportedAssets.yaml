@@ -413,6 +413,24 @@ ImportedAssets:
   - Handle: 14962043442512044118
     Type: Material
     FilePath: Materials/m_Pink.skmat
+  - Handle: 272371398710610093
+    Type: Environment
+    FilePath: Environment/clarens_night_01_4k.hdr
+  - Handle: 16461583963889688798
+    Type: Environment
+    FilePath: Environment/environment.hdr
+  - Handle: 6481003888224515998
+    Type: Environment
+    FilePath: Environment/lenong_2_4k.hdr
+  - Handle: 970122350774844925
+    Type: Environment
+    FilePath: Environment/newport_loft.hdr
+  - Handle: 9087211806961695879
+    Type: Environment
+    FilePath: Environment/pink_sunrise_4k.hdr
+  - Handle: 12909781155645121716
+    Type: Environment
+    FilePath: Environment/spruit_sunrise_4k.hdr
 EditorAssets:
   - Handle: 9158403992234771517
     Type: Texture

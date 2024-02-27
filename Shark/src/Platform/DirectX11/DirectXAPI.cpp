@@ -24,9 +24,9 @@ namespace Shark::DirectXAPI {
 		}
 	}
 
-	void CreateDeferredContext(ID3D11Device* device, UINT flags, ID3D11DeviceContext*& outContext)
+	void CreateDeferredContext(ID3D11Device* device, ID3D11DeviceContext*& outContext)
 	{
-		HRESULT hr = device->CreateDeferredContext(flags, &outContext);
+		HRESULT hr = device->CreateDeferredContext(0, &outContext);
 		DX_CHECK_RESULT(hr);
 	}
 
@@ -144,6 +144,20 @@ namespace Shark::DirectXAPI {
 			auto renderer = DirectXRenderer::Get();
 			renderer->HandleError(hr);
 		}
+	}
+
+	void CreateQuery(ID3D11Device* device, D3D11_QUERY queryType, ID3D11Query*& outQuery)
+	{
+		D3D11_QUERY_DESC desc;
+		desc.Query = queryType;
+		desc.MiscFlags = 0;
+		CreateQuery(device, desc, outQuery);
+	}
+
+	void CreateQuery(ID3D11Device* device, D3D11_QUERY_DESC desc, ID3D11Query*& outQuery)
+	{
+		HRESULT hResult = device->CreateQuery(&desc, &outQuery);
+		DX_CHECK_RESULT(hResult);
 	}
 
 }

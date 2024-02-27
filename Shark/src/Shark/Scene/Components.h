@@ -120,6 +120,13 @@ namespace Shark {
 		float Falloff = 0.0f;
 	};
 
+	struct EnvironmentComponent
+	{
+		AssetHandle EnvironmentHandle;
+		float Intensity = 1.0f;
+		float Lod = 0.0f;
+	};
+
 	struct CameraComponent
 	{
 		SceneCamera Camera;

@@ -14,7 +14,8 @@ namespace Shark {
 		Font,
 		MeshSource,
 		Mesh,
-		Material
+		Material,
+		Environment
 	};
 
 	inline std::string ToString(AssetType assetType)
@@ -30,6 +31,7 @@ namespace Shark {
 			case AssetType::MeshSource: return "MeshSource";
 			case AssetType::Mesh: return "Mesh";
 			case AssetType::Material: return "Material";
+			case AssetType::Environment: return "Environment";
 		}
 
 		SK_CORE_ASSERT(false, "Unkown AssetType");
@@ -47,6 +49,7 @@ namespace Shark {
 		if (assetType == "MeshSource") return AssetType::MeshSource;
 		if (assetType == "Mesh") return AssetType::Mesh;
 		if (assetType == "Material") return AssetType::Material;
+		if (assetType == "Environment") return AssetType::Environment;
 
 		SK_CORE_ASSERT(false, "Unkown AssetType");
 		return AssetType::None;
@@ -63,7 +66,8 @@ namespace Shark {
 		{ ".fbx", AssetType::MeshSource },
 		{ ".gltf", AssetType::MeshSource },
 		{ ".skmesh", AssetType::Mesh },
-		{ ".skmat", AssetType::Material }
+		{ ".skmat", AssetType::Material },
+		{ ".hdr", AssetType::Environment }
 	};
 
 }

@@ -80,6 +80,8 @@ namespace Shark {
 
 		virtual TimeStep GetGPUTime() const = 0;
 
+		virtual uint32_t GetCurrentFrameIndex() const = 0;
+		virtual uint32_t RT_GetCurrentFrameIndex() const = 0;
 		virtual Ref<RenderCommandBuffer> GetCommandBuffer() const = 0;
 
 		virtual bool ResourcesCreated() const = 0;

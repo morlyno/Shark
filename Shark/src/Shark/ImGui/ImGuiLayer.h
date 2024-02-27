@@ -32,8 +32,6 @@ namespace Shark {
 		virtual bool BlocksKeyboardEvents() const = 0;
 		virtual void BlockEvents(bool block) = 0;
 
-		virtual TimeStep GetGPUTime() const = 0;
-
 		virtual void AddTexture(Ref<Texture2D> texture) = 0;
 		virtual void BindFontSampler() = 0;
 

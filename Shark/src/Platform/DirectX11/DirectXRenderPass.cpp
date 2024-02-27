@@ -26,6 +26,11 @@ namespace Shark {
 		return m_ShaderInputManager.ValidateRenderPassInputs();
 	}
 
+	void DirectXRenderPass::Update()
+	{
+		m_ShaderInputManager.Update();
+	}
+
 	void DirectXRenderPass::Set(const std::string& name, Ref<ConstantBuffer> constantBuffer)
 	{
 		m_ShaderInputManager.SetInput(name, constantBuffer);
@@ -54,6 +59,36 @@ namespace Shark {
 	void DirectXRenderPass::Set(const std::string& name, Ref<SamplerWrapper> sampler)
 	{
 		m_ShaderInputManager.SetInput(name, sampler);
+	}
+
+	Ref<ConstantBuffer> DirectXRenderPass::GetConstantBuffer(const std::string& name) const
+	{
+		return m_ShaderInputManager.GetResource<ConstantBuffer>(name);
+	}
+
+	Ref<StorageBuffer> DirectXRenderPass::GetStorageBuffer(const std::string& name) const
+	{
+		return m_ShaderInputManager.GetResource<StorageBuffer>(name);
+	}
+
+	Ref<Image2D> DirectXRenderPass::GetImage2D(const std::string& name) const
+	{
+		return m_ShaderInputManager.GetResource<Image2D>(name);
+	}
+
+	Ref<Texture2D> DirectXRenderPass::GetTexture2D(const std::string& name) const
+	{
+		return m_ShaderInputManager.GetResource<Texture2D>(name);
+	}
+
+	Ref<TextureCube> DirectXRenderPass::GetTextureCube(const std::string& name) const
+	{
+		return m_ShaderInputManager.GetResource<TextureCube>(name);
+	}
+
+	Ref<SamplerWrapper> DirectXRenderPass::GetSamplerWrapper(const std::string& name) const
+	{
+		return m_ShaderInputManager.GetResource<SamplerWrapper>(name);
 	}
 
 	Ref<Image2D> DirectXRenderPass::GetOutput(uint32_t index) const

@@ -6,7 +6,6 @@
 
 #include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
-#include "Platform/DirectX11/DirectXGPUTimer.h"
 
 #include "Platform/Windows/WindowsUtils.h"
 
@@ -15,7 +14,7 @@ namespace Shark {
 	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer()
 	{
 		CreateDeferredContext();
-		RegisterDeferred();
+		CreateQueries();
 	}
 
 	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer(CommandBufferType type, ID3D11DeviceContext* context)
@@ -24,194 +23,199 @@ namespace Shark {
 		m_Context = context;
 		m_Context->AddRef();
 
-		if (m_Type == CommandBufferType::Deferred)
-		{
-			RegisterDeferred();
-		}
+		CreateQueries();
 	}
 
 	DirectXRenderCommandBuffer::~DirectXRenderCommandBuffer()
 	{
-		if (m_Type == CommandBufferType::Deferred)
-		{
-			UnregisterDeferred();
-		}
-
 		Release();
 	}
 
 	void DirectXRenderCommandBuffer::Release()
 	{
-		Renderer::SubmitResourceFree([context = m_Context, commandList = m_CommandList]()
+		Renderer::SubmitResourceFree([context = m_Context, commandList = m_CommandList, pipelineQueries = m_PipelineStatsQueries, timestampQueryPools = m_TimestampQueryPools]()
 		{
 			if (commandList)
 				commandList->Release();
 			if (context)
 				context->Release();
+
+			for (auto query : pipelineQueries)
+				DirectXAPI::ReleaseObject(query);
+
+			for (auto pool : timestampQueryPools)
+			{
+				for (auto query : pool)
+				{
+					DirectXAPI::ReleaseObject(query.first);
+					DirectXAPI::ReleaseObject(query.second);
+				}
+			}
 		});
 
 		m_CommandList = nullptr;
 		m_Context = nullptr;
+		m_PipelineStatsQueries.fill(nullptr);
+		m_TimestampQueryPools.fill({});
 	}
 
 	void DirectXRenderCommandBuffer::Begin()
 	{
+		m_NextAvailableQueryIndex = 0;
+		Ref<DirectXRenderCommandBuffer> instance = this;
+		Renderer::Submit([instance]()
+		{
+			uint32_t index = Renderer::RT_GetCurrentFrameIndex() % instance->m_TimestampQueryPools.size();
+			instance->m_Context->Begin(instance->m_PipelineStatsQueries[index]);
+		});
 	}
 
 	void DirectXRenderCommandBuffer::End()
 	{
-		if (m_Type == CommandBufferType::Immediate)
-			return;
-
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance]()
 		{
-			if (instance->m_CommandList)
-				instance->m_CommandList->Release();
+			uint32_t index = Renderer::RT_GetCurrentFrameIndex() % instance->m_TimestampQueryPools.size();
+			instance->m_Context->End(instance->m_PipelineStatsQueries[index]);
 
-			SK_DX11_CALL(instance->m_Context->FinishCommandList(FALSE, &instance->m_CommandList));
+			if (instance->m_Type == CommandBufferType::Deferred)
+			{
+				DirectXAPI::ReleaseObject(instance->m_CommandList);
+				SK_DX11_CALL(instance->m_Context->FinishCommandList(FALSE, &instance->m_CommandList));
+			}
 		});
 	}
 
 	void DirectXRenderCommandBuffer::Execute()
 	{
-		if (m_Type == CommandBufferType::Immediate)
-			return;
-
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance]()
 		{
-			auto context = DirectXRenderer::Get()->GetContext();
-			context->ExecuteCommandList(instance->m_CommandList, FALSE);
+			auto renderer = DirectXRenderer::Get();
+			ID3D11DeviceContext* immediateContext = renderer->GetContext();
+
+			if (instance->m_Type == CommandBufferType::Deferred)
+			{
+				immediateContext->ExecuteCommandList(instance->m_CommandList, FALSE);
+			}
+
+			const uint32_t getdataIndex = (Renderer::RT_GetCurrentFrameIndex() + 1) % (uint32_t)instance->m_PipelineStatsQueries.size();
+
+			D3D11_QUERY_DATA_PIPELINE_STATISTICS stats;
+			HRESULT hr = immediateContext->GetData(instance->m_PipelineStatsQueries[getdataIndex], &stats, sizeof(D3D11_QUERY_DATA_PIPELINE_STATISTICS), 0);
+			if (hr == S_OK)
+			{
+				instance->m_PipelineStatistics.InputAssemblerVertices = stats.IAVertices;
+				instance->m_PipelineStatistics.InputAssemblerPrimitives = stats.IAPrimitives;
+				instance->m_PipelineStatistics.VertexShaderInvocations = stats.VSInvocations;
+				instance->m_PipelineStatistics.PixelShaderInvocations = stats.PSInvocations;
+				instance->m_PipelineStatistics.ComputeShaderInvocations = stats.CSInvocations;
+				instance->m_PipelineStatistics.RasterizerInvocations = stats.CInvocations;
+				instance->m_PipelineStatistics.RasterizerPrimitives = stats.CPrimitives;
+			}
+
+			uint32_t index = 0;
+			instance->m_TimestampQueryResults[getdataIndex].resize(instance->m_TimestampQueryPools[getdataIndex].size());
+			for (auto& [startQuery, endQuery] : instance->m_TimestampQueryPools[getdataIndex])
+			{
+				HRESULT hrStart, hrEnd;
+				uint64_t startTime, endTime;
+				hrStart = immediateContext->GetData(startQuery, &startTime, sizeof(uint64_t), 0);
+				hrEnd = immediateContext->GetData(endQuery, &endTime, sizeof(uint64_t), 0);
+
+				uint64_t sTime = 0.0f;
+				if (hrStart == S_OK && hrEnd == S_OK)
+				{
+					sTime = endTime - startTime;
+				}
+
+				instance->m_TimestampQueryResults[getdataIndex][index++] = (float)sTime / renderer->GetGPUFrequncy();
+			}
 		});
 	}
 
-	void DirectXRenderCommandBuffer::Execute(Ref<GPUPipelineQuery> query)
+	TimeStep DirectXRenderCommandBuffer::GetTime(uint32_t queryID) const
 	{
-		if (m_Type == CommandBufferType::Immediate)
-			return;
+		const uint32_t getdataIndex = (Renderer::GetCurrentFrameIndex() + 1) % (uint32_t)m_PipelineStatsQueries.size();
+		auto& pool = m_TimestampQueryResults[getdataIndex];
+		if (queryID < pool.size())
+			return pool[queryID];
+		return {};
+	}
+
+	uint32_t DirectXRenderCommandBuffer::BeginTimestampQuery()
+	{
+		const uint32_t poolIndex = Renderer::GetCurrentFrameIndex() % m_TimestampQueryPools.size();
+		const uint32_t queryIndex = m_NextAvailableQueryIndex++;
+		if (m_TimestampQueryPools[poolIndex].size() == queryIndex)
+		{
+			auto device = DirectXRenderer::Get()->GetDevice();
+			ID3D11Query* startQuery = nullptr;
+			ID3D11Query* endQuery = nullptr;
+			DirectXAPI::CreateQuery(device, D3D11_QUERY_TIMESTAMP, startQuery);
+			DirectXAPI::CreateQuery(device, D3D11_QUERY_TIMESTAMP, endQuery);
+			m_TimestampQueryPools[poolIndex].emplace_back(startQuery, endQuery);
+		}
+
+		auto [beginQuery, endQuery] = m_TimestampQueryPools[poolIndex][queryIndex];
+		SK_CORE_VERIFY(beginQuery);
 
 		Ref<DirectXRenderCommandBuffer> instance = this;
-		Renderer::Submit([instance, dxQuery = query.As<DirectXGPUPipelineQuery>()]()
-		{
-			auto context = DirectXRenderer::Get()->GetContext();
-			dxQuery->Begin(context);
-			context->ExecuteCommandList(instance->m_CommandList, false);
-			dxQuery->End(context);
-		});
+		Renderer::Submit([instance, beginQuery]() { instance->m_Context->End(beginQuery); });
+		return queryIndex;
 	}
 
-	void DirectXRenderCommandBuffer::RT_Begin()
+	void DirectXRenderCommandBuffer::EndTimestampQuery(uint32_t queryID)
 	{
+		const uint32_t index = Renderer::GetCurrentFrameIndex() % m_TimestampQueryPools.size();
+		SK_CORE_VERIFY(queryID < m_TimestampQueryPools.size(), "Invalid timestamp query ID {}", queryID);
+		auto [beginQuery, endQuery] = m_TimestampQueryPools[index][queryID];
+
+		Ref<DirectXRenderCommandBuffer> instance = this;
+		Renderer::Submit([instance, endQuery]() { instance->m_Context->End(endQuery); });
 	}
 
-	void DirectXRenderCommandBuffer::RT_End()
+	void DirectXRenderCommandBuffer::CreateQueries()
 	{
-		if (m_Type == CommandBufferType::Immediate)
-			return;
+		ID3D11Device* device = DirectXRenderer::Get()->GetDevice();
 
-		if (m_CommandList)
-			m_CommandList->Release();
-
-		SK_DX11_CALL(m_Context->FinishCommandList(FALSE, &m_CommandList));
-	}
-
-	void DirectXRenderCommandBuffer::RT_Execute()
-	{
-		if (m_Type == CommandBufferType::Immediate)
-			return;
-
-		auto context = DirectXRenderer::GetContext();
-		context->ExecuteCommandList(m_CommandList, FALSE);
-	}
-
-	void DirectXRenderCommandBuffer::RT_ClearState()
-	{
-		if (m_Type == CommandBufferType::Immediate)
-			return;
-
-		m_Context->Flush();
-		m_Context->ClearState();
-		ID3D11CommandList* dummyList;
-		SK_DX11_CALL(m_Context->FinishCommandList(false, &dummyList));
-		dummyList->Release();
-
-		if (m_CommandList)
-		{
-			m_CommandList->Release();
-			m_CommandList = nullptr;
-		}
-	}
-
-	void DirectXRenderCommandBuffer::BeginQuery(Ref<GPUTimer> query)
-	{
-		Renderer::Submit([query, context = m_Context]()
-		{
-			query.As<DirectXGPUTimer>()->RT_StartQuery(context);
-		});
-	}
-
-	void DirectXRenderCommandBuffer::BeginQuery(Ref<GPUPipelineQuery> query)
-	{
-		Renderer::Submit([query, context = m_Context]()
-		{
-			query.As<DirectXGPUPipelineQuery>()->Begin(context);
-		});
-	}
-
-	void DirectXRenderCommandBuffer::EndQuery(Ref<GPUTimer> query)
-	{
-		Renderer::Submit([query, context = m_Context]()
-		{
-			query.As<DirectXGPUTimer>()->RT_EndQuery(context);
-		});
-	}
-
-	void DirectXRenderCommandBuffer::EndQuery(Ref<GPUPipelineQuery> query)
-	{
-		Renderer::Submit([query, context = m_Context]()
-		{
-			query.As<DirectXGPUPipelineQuery>()->End(context);
-		});
-	}
-
-	void DirectXRenderCommandBuffer::RT_BeginQuery(Ref<DirectXGPUTimer> query)
-	{
-		query->RT_StartQuery(m_Context);
-	}
-
-	void DirectXRenderCommandBuffer::RT_BeginQuery(Ref<DirectXGPUPipelineQuery> query)
-	{
-		query->Begin(m_Context);
-	}
-
-	void DirectXRenderCommandBuffer::RT_EndQuery(Ref<DirectXGPUTimer> query)
-	{
-		query->RT_EndQuery(m_Context);
-	}
-
-	void DirectXRenderCommandBuffer::RT_EndQuery(Ref<DirectXGPUPipelineQuery> query)
-	{
-		query->End(m_Context);
+		D3D11_QUERY_DESC desc = {};
+		desc.Query = D3D11_QUERY_PIPELINE_STATISTICS;
+		for (uint32_t i = 0; i < m_PipelineStatsQueries.size(); i++)
+			device->CreateQuery(&desc, &m_PipelineStatsQueries[i]);
 	}
 
 	void DirectXRenderCommandBuffer::CreateDeferredContext()
 	{
 		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
 		ID3D11Device* device = renderer->GetDevice();
-		DirectXAPI::CreateDeferredContext(device, 0, m_Context);
+		DirectXAPI::CreateDeferredContext(device, m_Context);
 	}
 
-	void DirectXRenderCommandBuffer::RegisterDeferred()
+	DirectXRenderCommandBuffer::TimeQuery DirectXRenderCommandBuffer::GetNextAvailableTimeQuery(uint32_t& outID)
 	{
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		renderer->AddCommandBuffer(this);
+		const uint32_t index = Renderer::GetCurrentFrameIndex() % m_TimestampQueryPools.size();
+		if (m_TimestampQueryPools[index].size() == m_NextAvailableQueryIndex)
+		{
+			auto device = DirectXRenderer::Get()->GetDevice();
+			ID3D11Query* startQuery = nullptr;
+			ID3D11Query* endQuery = nullptr;
+			DirectXAPI::CreateQuery(device, D3D11_QUERY_TIMESTAMP, startQuery);
+			DirectXAPI::CreateQuery(device, D3D11_QUERY_TIMESTAMP, endQuery);
+			m_TimestampQueryPools[index].emplace_back(startQuery, endQuery);
+		}
+
+		outID = m_NextAvailableQueryIndex;
+		return m_TimestampQueryPools[index][m_NextAvailableQueryIndex++];
 	}
 
-	void DirectXRenderCommandBuffer::UnregisterDeferred()
+	DirectXRenderCommandBuffer::TimeQuery DirectXRenderCommandBuffer::GetTimeQuery(uint32_t id)
 	{
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		renderer->RemoveCommandBuffer(this);
+		const uint32_t index = Renderer::GetCurrentFrameIndex() % m_TimestampQueryPools.size();
+		if (id >= m_TimestampQueryPools[index].size())
+			return { nullptr, nullptr };
+
+		return m_TimestampQueryPools[index][id];
 	}
 
 }

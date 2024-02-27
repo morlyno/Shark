@@ -138,6 +138,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Text Renderer", TextRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Mesh Renderer", MeshRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Point Light", PointLightComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Environment", EnvironmentComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Camera", CameraComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Rigidbody 2D", RigidBody2DComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Box Collider 2D", BoxCollider2DComponent));
@@ -512,6 +513,15 @@ namespace Shark {
 			UI::Control("Intensity", comp.Intensity, 0.05f, 0.0f, FLT_MAX);
 			UI::Control("Radius", comp.Radius, 0.05f, 0.0f, FLT_MAX);
 			UI::Control("Falloff", comp.Falloff, 0.05f, 0.0f, FLT_MAX);
+			UI::EndControls();
+		});
+		
+		DrawComponet<EnvironmentComponent>(entity, "Environmemt", [](EnvironmentComponent& comp, Entity entity)
+		{
+			UI::BeginControlsGrid();
+			UI::ControlAsset("Environment", AssetType::Environment, comp.EnvironmentHandle);
+			UI::Control("Intensity", comp.Intensity, 0.01f, 0.0f, FLT_MAX);
+			UI::Control("Lod", comp.Lod, 0.05f, 0.0f, FLT_MAX);
 			UI::EndControls();
 		});
 

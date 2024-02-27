@@ -88,6 +88,9 @@ namespace Shark {
 
 		static void ReportLiveObejcts();
 
+		static uint32_t GetCurrentFrameIndex();
+		static uint32_t RT_GetCurrentFrameIndex();
+
 	public:
 		static Ref<RendererAPI> GetRendererAPI();
 

@@ -66,7 +66,7 @@ namespace Shark {
 		m_Projection = camera.Projection;
 		m_CameraPosition = camera.Position;
 
-		m_Lights.clear();
+		m_LightEnvironment.Lights.clear();
 		m_Meshes.clear();
 
 		m_Renderer2D->BeginScene(m_ViewProjection);
@@ -77,11 +77,37 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_CommandBuffer->Begin();
-		m_CommandBuffer->BeginQuery(m_Timer);
+		m_TimerID = m_CommandBuffer->BeginTimestampQuery();
+
+		Ref<TextureCube> irradiance;
+		Ref<TextureCube> radiance;
+		if (AssetManager::IsValidAssetHandle(m_LightEnvironment.EnvironmentHandle))
+		{
+			Ref<Environment> environment = AssetManager::GetAsset<Environment>(m_LightEnvironment.EnvironmentHandle);
+			irradiance = environment->GetIrradianceMap();
+			radiance = environment->GetRadianceMap();
+		}
+		else
+		{
+			irradiance = Renderer::GetBlackTextureCube();
+			radiance = Renderer::GetBlackTextureCube();
+		}
+
+		if (m_PBRPass->GetTextureCube("u_IrradianceMap") != irradiance)
+		{
+			m_PBRPass->Set("u_IrradianceMap", irradiance);
+			m_PBRPass->Update();
+		}
+
+		if (m_SkyboxPass->GetTextureCube("u_EnvironmentMap") != radiance)
+		{
+			m_SkyboxPass->Set("u_EnvironmentMap", radiance);
+			m_SkyboxPass->Update();
+		}
 
 		CBScene sceneData;
-		sceneData.EnvironmentMapIntensity = m_EnvironmentMapIntensity;
-		sceneData.LightCount = (uint32_t)m_Lights.size();
+		sceneData.EnvironmentMapIntensity = m_LightEnvironment.Intesity;
+		sceneData.LightCount = (uint32_t)m_LightEnvironment.Lights.size();
 		m_CBScene->UploadData(Buffer::FromValue(sceneData));
 
 		CBCamera cbCamera;
@@ -89,39 +115,41 @@ namespace Shark {
 		cbCamera.Position = m_CameraPosition;
 		m_CBCamera->UploadData(Buffer::FromValue(cbCamera));
 
-		CBSkybox skybox;
-		skybox.SkyboxProjection = m_Projection * glm::mat4(glm::mat3(m_View));
-		m_CBSkybox->UploadData(Buffer::FromValue(skybox));
-
-		if (m_UpdateSkyboxSettings)
+		if (m_Options.SkyboxPass)
 		{
+			CBSkybox skybox;
+			skybox.SkyboxProjection = m_Projection * glm::mat4(glm::mat3(m_View));
+			m_CBSkybox->UploadData(Buffer::FromValue(skybox));
+
 			CBSkyboxSettings settings;
-			settings.Lod = m_SkyboxLOD;
+			settings.Lod = m_LightEnvironment.Lod;
 			m_CBSkyboxSettings->UploadData(Buffer::FromValue(settings));
 		}
 
-		if (m_Lights.size() > m_SBLights->GetCount())
+		if (m_LightEnvironment.Lights.size() > m_SBLights->GetCount())
 		{
-			uint32_t newCount = std::max({ m_SBLights->GetCount() * 2, (uint32_t)m_Lights.size(), 16u });
+			uint32_t newCount = std::max({ m_SBLights->GetCount() * 2, (uint32_t)m_LightEnvironment.Lights.size(), 16u });
 			m_SBLights->GetCount() = newCount;
 			m_SBLights->Invalidate();
 		}
-		m_SBLights->Upload(Buffer::FromArray(m_Lights));
+		m_SBLights->Upload(Buffer::FromArray(m_LightEnvironment.Lights));
 
 		ClearPass();
 		GeometryPass();
-		SkyboxPass();
 
-		m_CommandBuffer->EndQuery(m_Timer);
+		if (m_Options.SkyboxPass)
+			SkyboxPass();
+
+		m_CommandBuffer->EndTimestampQuery(m_TimerID);
 		m_CommandBuffer->End();
-		m_CommandBuffer->Execute(m_PipelineQuery);
+		m_CommandBuffer->Execute();
 
 		m_Renderer2D->EndScene();
 
-		m_Statistics.GPUTime = Application::Get().GetGPUTime();
-		m_Statistics.GeometryPass = m_GeometryPassTimer->GetTime();
-		m_Statistics.SkyboxPass = m_SkyboxPassTimer->GetTime();
-		m_PipelineStatistics = m_PipelineQuery->GetStatistics();
+		m_Statistics.GPUTime = m_CommandBuffer->GetTime(m_TimerID);
+		m_Statistics.GeometryPass = m_CommandBuffer->GetTime(m_GeometryPassTimerID);
+		m_Statistics.SkyboxPass = m_CommandBuffer->GetTime(m_SkyboxPassTimerID);
+		m_PipelineStatistics = m_CommandBuffer->GetPipelineStatistics();
 	}
 
 	void SceneRenderer::SubmitQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
@@ -152,9 +180,19 @@ namespace Shark {
 		m_Renderer2D->DrawString(text, font, transform, kerning, lineSpacing, color, id);
 	}
 
+	void SceneRenderer::SubmitEnvironment(AssetHandle environment, float intensity, float lod)
+	{
+		if (!environment)
+			return;
+
+		m_LightEnvironment.EnvironmentHandle = environment;
+		m_LightEnvironment.Intesity = intensity;
+		m_LightEnvironment.Lod = lod;
+	}
+
 	void SceneRenderer::SubmitPointLight(const glm::vec3& position, const glm::vec3& color, float intensity, float radius, float falloff)
 	{
-		Light& cbLight = m_Lights.emplace_back();
+		Light& cbLight = m_LightEnvironment.Lights.emplace_back();
 		cbLight.Color = color;
 		cbLight.Position = position;
 		cbLight.Intensity = intensity;
@@ -218,7 +256,7 @@ namespace Shark {
 
 	void SceneRenderer::GeometryPass()
 	{
-		m_CommandBuffer->BeginQuery(m_GeometryPassTimer);
+		m_GeometryPassTimerID = m_CommandBuffer->BeginTimestampQuery();
 		Renderer::BeginRenderPass(m_CommandBuffer, m_PBRPass);
 
 		for (const auto& mesh : m_Meshes)
@@ -239,16 +277,16 @@ namespace Shark {
 		}
 
 		Renderer::EndRenderPass(m_CommandBuffer, m_PBRPass);
-		m_CommandBuffer->EndQuery(m_GeometryPassTimer);
+		m_CommandBuffer->EndTimestampQuery(m_GeometryPassTimerID);
 	}
 
 	void SceneRenderer::SkyboxPass()
 	{
-		m_CommandBuffer->BeginQuery(m_SkyboxPassTimer);
+		m_SkyboxPassTimerID = m_CommandBuffer->BeginTimestampQuery();
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SkyboxPass);
 		Renderer::RenderCube(m_CommandBuffer, m_SkyboxPass->GetPipeline(), nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_SkyboxPass);
-		m_CommandBuffer->EndQuery(m_SkyboxPassTimer);
+		m_CommandBuffer->EndTimestampQuery(m_SkyboxPassTimerID);
 	}
 
 	void SceneRenderer::Initialize(const SceneRendererSpecification& specification)
@@ -259,22 +297,12 @@ namespace Shark {
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
 
-		m_PipelineQuery = GPUPipelineQuery::Create("Scene Renderer");
-		m_Timer = GPUTimer::Create("SceneRenderer");
-		m_GeometryPassTimer = GPUTimer::Create("Geometry Pass");
-		m_SkyboxPassTimer = GPUTimer::Create("Skybox Pass");
-
 		m_CBScene = ConstantBuffer::Create(sizeof(CBScene));
 		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
 		m_CBSkybox = ConstantBuffer::Create(sizeof(CBSkybox));
 		m_CBSkyboxSettings = ConstantBuffer::Create(sizeof(CBSkyboxSettings));
 
 		m_SBLights = StorageBuffer::Create(sizeof(Light), 16);
-
-
-		auto [environmentMap, irradianceMap] = Renderer::CreateEnvironmentMap("Resources/temp/pink_sunrise_4k.hdr");
-		m_EnvironmentMap = environmentMap;
-		m_IrradianceMap = irradianceMap;
 
 		// Geometry
 		{
@@ -341,7 +369,7 @@ namespace Shark {
 			m_PBRPass->Set("u_Camera", m_CBCamera);
 			m_PBRPass->Set("u_Scene", m_CBScene);
 			m_PBRPass->Set("u_Lights", m_SBLights);
-			m_PBRPass->Set("u_IrradianceMap", m_IrradianceMap);
+			m_PBRPass->Set("u_IrradianceMap", Renderer::GetBlackTextureCube());
 			SK_CORE_VERIFY(m_PBRPass->Validate());
 			m_PBRPass->Bake();
 		}
@@ -358,7 +386,7 @@ namespace Shark {
 			renderPassSpecification.Pipeline = Pipeline::Create(specification);
 			renderPassSpecification.DebugName = specification.DebugName;
 			m_SkyboxPass = RenderPass::Create(renderPassSpecification);
-			m_SkyboxPass->Set("u_EnvironmentMap", m_EnvironmentMap);
+			m_SkyboxPass->Set("u_EnvironmentMap", Renderer::GetBlackTextureCube());
 			m_SkyboxPass->Set("u_Uniforms", m_CBSkybox);
 			m_SkyboxPass->Set("u_Settings", m_CBSkyboxSettings);
 			SK_CORE_VERIFY(m_SkyboxPass->Validate());

@@ -140,6 +140,7 @@ namespace Shark {
 			ID3D11Texture2D* resource = nullptr;
 			instance->m_SwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void**)&resource);
 			swapchainImage->GetDirectXImageInfo().Resource = resource;
+			DirectXAPI::SetDebugName(resource, "Swapchain Image");
 		});
 
 		FrameBufferSpecification spec;
@@ -175,7 +176,7 @@ namespace Shark {
 			auto renderer = DirectXRenderer::Get();
 			renderer->RT_PrepareForSwapchainResize();
 			instance->RT_ReleaseDependencies();
-			instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(instance->m_Format), 0);
+			DX11_VERIFY(instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(instance->m_Format), 0));
 			instance->RT_InvalidateDependencies();
 		});
 	}
@@ -196,7 +197,7 @@ namespace Shark {
 		auto renderer = DirectXRenderer::Get();
 		renderer->RT_PrepareForSwapchainResize();
 		RT_ReleaseDependencies();
-		m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(m_Format), 0);
+		DX11_VERIFY(m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(m_Format), 0));
 		RT_InvalidateDependencies();
 	}
 

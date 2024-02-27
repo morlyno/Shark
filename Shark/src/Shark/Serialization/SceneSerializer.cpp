@@ -270,6 +270,16 @@ namespace Shark {
 				out << YAML::Key << "Falloff" << YAML::Value << component->Falloff;
 				out << YAML::EndMap;
 			}
+			
+			if (auto component = entity.TryGetComponent<EnvironmentComponent>())
+			{
+				out << YAML::Key << "EnvironmentComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "EnvironmentHandle" << YAML::Value << component->EnvironmentHandle;
+				out << YAML::Key << "Intensity" << YAML::Value << component->Intensity;
+				out << YAML::Key << "Lod" << YAML::Value << component->Lod;
+				out << YAML::EndMap;
+			}
 
 			if (auto component = entity.TryGetComponent<CameraComponent>())
 			{
@@ -504,8 +514,16 @@ namespace Shark {
 						auto& component = entity.AddOrReplaceComponent<PointLightComponent>();
 						component.Color = componentNode["Color"].as<glm::vec4>();
 						component.Intensity = componentNode["Intensity"].as<float>();
-						component.Radius = componentNode["Radius"].as<float>(1);
-						component.Falloff = componentNode["Falloff"].as<float>(1);
+						component.Radius = componentNode["Radius"].as<float>();
+						component.Falloff = componentNode["Falloff"].as<float>();
+					}
+					
+					if (auto componentNode = entityNode["EnvironmentComponent"])
+					{
+						auto& component = entity.AddOrReplaceComponent<EnvironmentComponent>();
+						component.EnvironmentHandle = componentNode["EnvironmentHandle"].as<AssetHandle>();
+						component.Intensity = componentNode["Intensity"].as<float>();
+						component.Lod = componentNode["Lod"].as<float>();
 					}
 
 					if (auto componentNode = entityNode["CameraComponent"])
