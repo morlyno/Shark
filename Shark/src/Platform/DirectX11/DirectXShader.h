@@ -29,11 +29,15 @@ namespace Shark {
 		virtual const ShaderReflectionData& GetReflectionData() const override { return m_ReflectionData; }
 
 		virtual bool HasResource(const std::string& name) const override;
+		virtual bool HasPushConstant() const override;
 		virtual bool HasMember(const std::string& name) const override;
 
 		virtual const ShaderReflection::Resource& GetResourceInfo(const std::string& name) const override;
+		virtual const ShaderReflection::Resource& GetPushConstantInfo() const override;
 		virtual const ShaderReflection::Resource& GetMembersResourceInfo(const std::string& name) const override;
 		virtual const ShaderReflection::MemberDeclaration& GetMemberInfo(const std::string& name) const override;
+
+		virtual const std::string& GetResourceName(uint32_t set, uint32_t binding) const override;
 
 		virtual std::pair<uint32_t, uint32_t> GetResourceBinding(const std::string& name) const override;
 		virtual std::tuple<uint32_t, uint32_t, uint32_t> GetMemberBinding(const std::string& name) const override;

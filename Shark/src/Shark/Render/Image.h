@@ -23,6 +23,8 @@ namespace Shark {
 		R16F,
 		R32_SINT,
 
+		RG16F,
+
 		Depth32,
 		Depth = Depth32
 	};
@@ -46,6 +48,7 @@ namespace Shark {
 		uint32_t MipLevels = 1; // 0 == MaxLeves
 
 		ImageType Type = ImageType::Texture;
+		bool CreateSampler = true;
 
 		std::string DebugName;
 	};
@@ -87,6 +90,7 @@ namespace Shark {
 	class ImageView : public RefCount
 	{
 	public:
+		virtual Ref<Image2D> GetImage() const = 0;
 		virtual RenderID GetViewID() const = 0;
 
 	public:

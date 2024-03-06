@@ -22,7 +22,10 @@ namespace Shark {
 		virtual void Set(const std::string& name, Ref<Texture2D> texture) = 0;
 		virtual void Set(const std::string& name, Ref<TextureCube> textureCube) = 0;
 		virtual void Set(const std::string& name, Ref<Image2D> image) = 0;
-		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler) = 0;
+
+		virtual Ref<Texture2D> GetTexture(const std::string& name) const = 0;
+		virtual Ref<TextureCube> GetTextureCube(const std::string& name) const = 0;
+		virtual Ref<Image2D> GetImage(const std::string& name) const = 0;
 
 		virtual void Set(const std::string& name, float val) = 0;
 		virtual void Set(const std::string& name, const glm::vec2& vec2) = 0;
@@ -39,11 +42,6 @@ namespace Shark {
 		virtual void Set(const std::string& name, const glm::mat3& mat3) = 0;
 		virtual void Set(const std::string& name, const glm::mat4& mat4) = 0;
 		
-		virtual Ref<Texture2D> GetTexture(const std::string& name) const = 0;
-		virtual Ref<TextureCube> GetTextureCube(const std::string& name) const = 0;
-		virtual Ref<Image2D> GetImage(const std::string& name) const = 0;
-		virtual Ref<SamplerWrapper> GetSampler(const std::string& name) const = 0;
-
 		virtual float& GetFloat(const std::string& name) = 0;
 		virtual glm::vec2& GetVec2(const std::string& name) = 0;
 		virtual glm::vec3& GetVec3(const std::string& name) = 0;

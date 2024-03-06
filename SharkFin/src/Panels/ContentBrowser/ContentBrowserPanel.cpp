@@ -77,7 +77,6 @@ namespace Shark {
 
 						if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 							NextDirectory(m_BaseDirectory);
-
 						{
 							for (auto subdir : m_BaseDirectory->SubDirectories)
 								DrawDirectoryHirachy(subdir);
@@ -400,8 +399,9 @@ namespace Shark {
 
 	Ref<DirectoryInfo> ContentBrowserPanel::GetDirectory(const std::filesystem::path& filePath)
 	{
-		if (m_DirectoryMap.contains(filePath))
-			return m_DirectoryMap.at(filePath);
+		const auto key = m_Project->GetAbsolute(filePath).lexically_normal();
+		if (m_DirectoryMap.contains(key))
+			return m_DirectoryMap.at(key);
 		return nullptr;
 	}
 
@@ -543,7 +543,7 @@ namespace Shark {
 					m_CurrentDirectory->RenameFile(currentItem->GetName(), action.GetNewName());
 				}
 
-				currentItem->Rename(action.GetNewName());
+				currentItem->Rename(action.GetNewName(), false);
 				resortCurrentItems = true;
 			}
 
@@ -751,6 +751,10 @@ namespace Shark {
 				auto source = assetManager->GetAsset(metadata.Handle).As<TextureSource>();
 				return Texture2D::Create({}, source);
 			}
+			case AssetType::Environment:
+			{
+				return Texture2D::LoadFromDisc(assetManager->GetFilesystemPath(metadata));
+			}
 		}
 
 		return GetIcon(metadata);
@@ -777,7 +781,8 @@ namespace Shark {
 			}
 
 			const auto& metadata = m_Project->GetEditorAssetManager()->GetMetadata(item->GetPath());
-			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource || metadata.Type == AssetType::Font)
+			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource ||
+				metadata.Type == AssetType::Font || metadata.Type == AssetType::Environment)
 			{
 				SK_CORE_ASSERT(item->m_Thumbnail == nullptr);
 				item->m_Thumbnail = GetThumbnail(metadata);

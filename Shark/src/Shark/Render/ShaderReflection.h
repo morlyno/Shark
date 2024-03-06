@@ -72,6 +72,18 @@ namespace Shark {
 			return false;
 		}
 
+		constexpr bool IsTextureType(ResourceType type)
+		{
+			switch (type)
+			{
+				case ResourceType::Texture2D:
+				case ResourceType::Texture3D:
+				case ResourceType::TextureCube:
+					return true;
+			}
+			return false;
+		}
+
 		constexpr bool IsStorageImage(ResourceType type)
 		{
 			switch (type)

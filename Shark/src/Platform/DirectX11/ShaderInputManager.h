@@ -15,7 +15,6 @@ namespace Shark {
 		Image2D,
 		Texture2D,
 		TextureCube,
-		Sampler,
 		ConstantBuffer,
 		StorageBuffer
 	};
@@ -41,6 +40,7 @@ namespace Shark {
 		ShaderInputManager(Ref<Shader> shader);
 
 		void Update();
+
 		bool ValidateMaterialInputs() const;
 		bool ValidateRenderPassInputs() const;
 
@@ -49,9 +49,10 @@ namespace Shark {
 		void SetInput(const std::string& name, Ref<Image2D> image);
 		void SetInput(const std::string& name, Ref<Texture2D> texture);
 		void SetInput(const std::string& name, Ref<TextureCube> textureCube);
-		void SetInput(const std::string& name, Ref<SamplerWrapper> sampler);
 
 		bool HasInput(const std::string& name) const;
+
+		Ref<RendererResource> GetResource(const std::string& name) const;
 
 		template<typename TResource>
 		Ref<TResource> GetResource(const std::string& name) const
@@ -70,7 +71,6 @@ namespace Shark {
 		void GetResource(const std::string& name, Ref<Image2D>& outImage2D) const;
 		void GetResource(const std::string& name, Ref<Texture2D>& outTexture2D) const;
 		void GetResource(const std::string& name, Ref<TextureCube>& outTextureCube) const;
-		void GetResource(const std::string& name, Ref<SamplerWrapper>& outSampler) const;
 
 	private:
 		Ref<Shader> m_Shader;

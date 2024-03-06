@@ -27,7 +27,7 @@ namespace Shark {
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<Texture2D> m_BlackTexture;
 		Ref<TextureCube> m_BlackTextureCube;
-		Ref<SamplerWrapper> m_ClampLinearSampler;
+		Ref<Texture2D> m_BRDFLUTTexture;
 
 		std::unordered_map<uint64_t, ShaderDependencies> m_ShaderDependencies;
 	};
@@ -69,6 +69,10 @@ namespace Shark {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Skybox.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvironmentIrradiance.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EquirectangularToCubeMap.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvironmentMipFilter.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/BRDF_LUT.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Tonemap.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Composite.glsl", true);
 
 		// 2D
 		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Quad.hlsl");
@@ -91,6 +95,8 @@ namespace Shark {
 		// Compile Shaders
 		Renderer::WaitAndRender();
 
+		s_Data->m_BRDFLUTTexture = s_RendererAPI->CreateBRDFLUT();
+
 		{
 			TextureSpecification spec;
 			spec.Format = ImageFormat::RGBA8;
@@ -109,12 +115,8 @@ namespace Shark {
 
 			glm::vec4 imageData[6];
 			memset(imageData, 0, sizeof(imageData));
+			spec.Format = ImageFormat::RGBA32F;
 			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
-
-			SamplerSpecification samplerSpec;
-			samplerSpec.Filter = FilterMode::Linear;
-			samplerSpec.Wrap = WrapMode::Clamp;
-			s_Data->m_ClampLinearSampler = SamplerWrapper::Create(samplerSpec);
 		}
 	}
 
@@ -164,9 +166,9 @@ namespace Shark {
 		s_SingleThreadedIsExecuting = false;
 	}
 
-	void Renderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
+	void Renderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear)
 	{
-		s_RendererAPI->BeginRenderPass(commandBuffer, renderPass);
+		s_RendererAPI->BeginRenderPass(commandBuffer, renderPass, expliciteClear);
 	}
 
 	void Renderer::EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
@@ -209,9 +211,9 @@ namespace Shark {
 		s_RendererAPI->RenderCube(commandBuffer, pipeline, material);
 	}
 
-	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex)
+	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable)
 	{
-		s_RendererAPI->RenderSubmesh(commandBuffer, pipeline, mesh, submeshIndex);
+		s_RendererAPI->RenderSubmesh(commandBuffer, pipeline, mesh, submeshIndex, materialTable);
 	}
 
 	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material)
@@ -325,9 +327,9 @@ namespace Shark {
 		return s_Data->m_BlackTextureCube;
 	}
 
-	Ref<SamplerWrapper> Renderer::GetClampLinearSampler()
+	Ref<Texture2D> Renderer::GetBRDFLUTTexture()
 	{
-		return s_Data->m_ClampLinearSampler;
+		return s_Data->m_BRDFLUTTexture;
 	}
 
 	Ref<RenderCommandBuffer> Renderer::GetCommandBuffer()

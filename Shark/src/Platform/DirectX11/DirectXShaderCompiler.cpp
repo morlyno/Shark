@@ -812,7 +812,15 @@ namespace Shark {
 			}
 		}
 
-		return compilerHLSL.compile();
+		try
+		{
+			return compilerHLSL.compile();
+		}
+		catch (spirv_cross::CompilerError e)
+		{
+			SK_CORE_ERROR_TAG("Renderer", "{}", e.what());
+			return {};
+		}
 	}
 
 	void DirectXShaderCompiler::SerializeDirectX(ShaderUtils::ShaderStage::Type stage, const std::vector<byte>& directXData)
@@ -948,6 +956,19 @@ namespace Shark {
 		ID3D11ShaderReflection* d3dReflector = nullptr;
 		HRESULT hResult = D3DReflect(binary.data(), binary.size(), IID_ID3D11ShaderReflection, (void**)&d3dReflector);
 		SK_CORE_VERIFY(SUCCEEDED(hResult), "{} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+
+		if (stage == ShaderUtils::ShaderStage::Vertex)
+		{
+			SK_CORE_TRACE_TAG("Renderer", "Stage Inputs:");
+			for (const auto& stageInput : shaderResources.stage_inputs)
+			{
+				const spirv_cross::SPIRType& inputType = compiler.get_type(stageInput.type_id);
+				ShaderReflection::VariableType type = utils::GetVariableType(inputType);
+				
+				SK_CORE_TRACE_TAG("Renderer", "  Name: {}", stageInput.name);
+				SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(type));
+			}
+		}
 
 		SK_CORE_TRACE_TAG("Renderer", "Push Constants:");
 		SK_CORE_VERIFY(shaderResources.push_constant_buffers.size() <= 1);
@@ -1246,7 +1267,6 @@ namespace Shark {
 			if (SUCCEEDED(hResult))
 			{
 				reflectionData.DXBinding = d3dInputDesc.BindPoint;
-				reflectionData.DXSamplerBinding = d3dInputDesc.BindPoint;
 			}
 
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);

@@ -83,6 +83,8 @@ namespace Shark {
 		out << YAML::Key << "AlbedoMap" << YAML::Value << material->GetAlbedoMap()->Handle;
 		out << YAML::Key << "UsingNormalMap" << YAML::Value << material->IsUsingNormalMap();
 		out << YAML::Key << "NormalMap" << YAML::Value << material->GetNormalMap()->Handle;
+		out << YAML::Key << "MetalnessMap" << YAML::Value << material->GetMetalnessMap()->Handle;
+		out << YAML::Key << "RoughnessMap" << YAML::Value << material->GetRoughnessMap()->Handle;
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 		m_ErrorMsg = out.GetLastError();
@@ -114,8 +116,10 @@ namespace Shark {
 
 			AssetHandle albedoMap = materialNode["AlbedoMap"].as<AssetHandle>();
 
-			bool usingNormalMap = materialNode["UsingNormalMap"].as<bool>(false);
-			AssetHandle normalMap = materialNode["NormalMap"].as<AssetHandle>(AssetHandle::Invalid);
+			bool usingNormalMap = materialNode["UsingNormalMap"].as<bool>();
+			AssetHandle normalMap = materialNode["NormalMap"].as<AssetHandle>();
+			AssetHandle metalnessMap = materialNode["MetalnessMap"].as<AssetHandle>(AssetHandle::Invalid);
+			AssetHandle roughnessMap = materialNode["RoughnessMap"].as<AssetHandle>(AssetHandle::Invalid);
 
 			material->SetAlbedoColor(albedoColor);
 			material->SetMetalness(metallic);
@@ -131,6 +135,16 @@ namespace Shark {
 			{
 				material->SetUsingNormalMap(usingNormalMap);
 				material->SetNormalMap(AssetManager::GetAsset<Texture2D>(normalMap));
+			}
+
+			if (AssetManager::IsValidAssetHandle(metalnessMap))
+			{
+				material->SetMetalnessMap(AssetManager::GetAsset<Texture2D>(metalnessMap));
+			}
+
+			if (AssetManager::IsValidAssetHandle(roughnessMap))
+			{
+				material->SetRoughnessMap(AssetManager::GetAsset<Texture2D>(roughnessMap));
 			}
 
 		}

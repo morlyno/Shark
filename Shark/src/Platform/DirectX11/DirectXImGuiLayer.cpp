@@ -146,7 +146,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
-		m_UsedTextures.clear();
+		m_UsedImages.clear();
 		m_UsedTextureIndex = 0;
 
 		ImGui_ImplDX11_NewFrame();
@@ -197,17 +197,17 @@ namespace Shark {
 	void BindSamplerCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 	{
 		DirectXImGuiLayer* imguiLayer = (DirectXImGuiLayer*)cmd->UserCallbackData;
-		const auto& usedTextures = imguiLayer->m_UsedTextures;
+		const auto& usedTextures = imguiLayer->m_UsedImages;
 
-		Ref<DirectXTexture2D> texture = imguiLayer->m_UsedTextures[imguiLayer->m_UsedTextureIndex++];
-		ID3D11SamplerState* sampler = texture->GetDirectXSampler();
-		SK_CORE_ASSERT(sampler);
-		imguiLayer->m_Context->PSSetSamplers(0, 1, &sampler);
+		Ref<DirectXImage2D> image = imguiLayer->m_UsedImages[imguiLayer->m_UsedTextureIndex++];
+		const DirectXImageInfo& info = image->GetDirectXImageInfo();
+		SK_CORE_ASSERT(info.Sampler);
+		imguiLayer->m_Context->PSSetSamplers(0, 1, &info.Sampler);
 	}
 
-	void DirectXImGuiLayer::AddTexture(Ref<Texture2D> texture)
+	void DirectXImGuiLayer::AddImage(Ref<Image2D> image)
 	{
-		m_UsedTextures.emplace_back(texture.As<DirectXTexture2D>());
+		m_UsedImages.emplace_back(image.As<DirectXImage2D>());
 
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		drawList->AddCallback(&BindSamplerCallback, this);

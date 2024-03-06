@@ -4,12 +4,16 @@
 #include "Shark/Render/Image.h"
 #include "Shark/Render/Texture.h"
 
+#include "Shark/Debug/Profiler.h"
+
 #include <stb_image.h>
 
 namespace Shark {
 
 	Buffer TextureImporter::ToBufferFromFile(const std::filesystem::path& filepath, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight)
 	{
+		SK_PROFILE_FUNCTION();
+
 		Buffer buffer;
 		std::string pathString = filepath.string();
 
@@ -41,6 +45,8 @@ namespace Shark {
 
 	Buffer TextureImporter::ToBufferFromMemory(Buffer memory, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight)
 	{
+		SK_PROFILE_FUNCTION();
+
 		Buffer buffer;
 
 		int width, height, channels;
@@ -71,6 +77,8 @@ namespace Shark {
 
 	Ref<TextureSource> TextureImporter::ToTextureSourceFromFile(const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto source = TextureSource::Create();
 		source->ImageData = ToBufferFromFile(filepath, source->Format, source->Width, source->Height);
 		if (!source->ImageData)

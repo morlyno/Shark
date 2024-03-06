@@ -2,7 +2,7 @@
 
 #include "Shark/ImGui/ImGuiLayer.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
-#include "Platform/DirectX11/DirectXTexture.h"
+#include "Platform/DirectX11/DirectXImage.h"
 
 #include <imgui.h>
 
@@ -34,7 +34,7 @@ namespace Shark {
 		virtual bool BlocksKeyboardEvents() const override { return m_BlockEvents && ImGui::GetIO().WantCaptureKeyboard; }
 		virtual void BlockEvents(bool block) override { m_BlockEvents = block; }
 
-		virtual void AddTexture(Ref<Texture2D> texture) override;
+		virtual void AddImage(Ref<Image2D> image) override;
 		virtual void BindFontSampler() override;
 
 	private:
@@ -45,7 +45,7 @@ namespace Shark {
 		ID3D11DeviceContext* m_Context = nullptr;
 		ID3D11SamplerState* m_ImGuiFontSampler = nullptr;
 
-		std::vector<Ref<DirectXTexture2D>> m_UsedTextures;
+		std::vector<Ref<DirectXImage2D>> m_UsedImages;
 		uint32_t m_UsedTextureIndex = 0;
 
 		friend class DirectXRenderer;

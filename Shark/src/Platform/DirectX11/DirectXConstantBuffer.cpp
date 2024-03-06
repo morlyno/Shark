@@ -79,6 +79,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		SK_PERF_SCOPED("ConstantBuffer map memory");
 
 		auto* ctx = DirectXRenderer::GetContext();
 
@@ -101,6 +102,8 @@ namespace Shark {
 	{
 		if (!m_UploadBuffer)
 			return;
+
+		SK_PERF_SCOPED("ConstantBuffer map memory");
 
 		ID3D11DeviceContext* context = DirectXRenderer::GetContext();
 

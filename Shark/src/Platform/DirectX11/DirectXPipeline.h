@@ -19,6 +19,7 @@ namespace Shark {
 		void RT_SetPushConstant(Buffer pushConstantData);
 
 		virtual void SetFrameBuffer(Ref<FrameBuffer> frameBuffer) override;
+		virtual PipelineSpecification& GetSpecification() override { return m_Specification; }
 		virtual const PipelineSpecification& GetSpecification() const override { return m_Specification; }
 
 		void BeginRenderPass();

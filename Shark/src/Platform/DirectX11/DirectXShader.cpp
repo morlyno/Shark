@@ -84,6 +84,11 @@ namespace Shark {
 		return m_ReflectionData.NameCache.contains(name);
 	}
 
+	bool DirectXShader::HasPushConstant() const
+	{
+		return m_ReflectionData.HasPushConstant;
+	}
+
 	bool DirectXShader::HasMember(const std::string& name) const
 	{
 		return m_ReflectionData.MemberNameCache.contains(name);
@@ -94,6 +99,11 @@ namespace Shark {
 		SK_CORE_VERIFY(HasResource(name));
 		const auto [set, binding] = m_ReflectionData.NameCache.at(name);
 		return m_ReflectionData.Resources.at(set).at(binding);
+	}
+
+	const ShaderReflection::Resource& DirectXShader::GetPushConstantInfo() const
+	{
+		return m_ReflectionData.PushConstant;
 	}
 
 	const ShaderReflection::Resource& DirectXShader::GetMembersResourceInfo(const std::string& name) const
@@ -108,6 +118,12 @@ namespace Shark {
 		SK_CORE_VERIFY(HasMember(name));
 		const auto [set, binding, index] = m_ReflectionData.MemberNameCache.at(name);
 		return m_ReflectionData.Members.at(set).at(binding).at(index);
+	}
+
+	const std::string& DirectXShader::GetResourceName(uint32_t set, uint32_t binding) const
+	{
+		SK_CORE_VERIFY(m_ReflectionData.Resources.contains(set) && m_ReflectionData.Resources.at(set).contains(binding));
+		return m_ReflectionData.Resources.at(set).at(binding).Name;
 	}
 
 	std::pair<uint32_t, uint32_t> DirectXShader::GetResourceBinding(const std::string& name) const

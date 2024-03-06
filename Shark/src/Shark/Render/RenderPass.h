@@ -28,19 +28,26 @@ namespace Shark {
 		virtual void Set(const std::string& name, Ref<Image2D> image) = 0;
 		virtual void Set(const std::string& name, Ref<Texture2D> texture) = 0;
 		virtual void Set(const std::string& name, Ref<TextureCube> textureCube) = 0;
-		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler) = 0;
 
 		virtual Ref<ConstantBuffer> GetConstantBuffer(const std::string& name) const = 0;
 		virtual Ref<StorageBuffer> GetStorageBuffer(const std::string& name) const = 0;
 		virtual Ref<Image2D> GetImage2D(const std::string& name) const = 0;
 		virtual Ref<Texture2D> GetTexture2D(const std::string& name) const = 0;
 		virtual Ref<TextureCube> GetTextureCube(const std::string& name) const = 0;
-		virtual Ref<SamplerWrapper> GetSamplerWrapper(const std::string& name) const = 0;
+
+		virtual Ref<RendererResource> GetInput(const std::string& name) const = 0;
+
+		template<typename T>
+		Ref<T> GetInput(const std::string& name) const
+		{
+			return GetInput(name).As<T>();
+		}
 
 		virtual Ref<Image2D> GetOutput(uint32_t index) const = 0;
 		virtual Ref<Image2D> GetDepthOutput() const = 0;
 
 		virtual Ref<Pipeline> GetPipeline() const = 0;
+		virtual RenderPassSpecification& GetSpecification() = 0;
 		virtual const RenderPassSpecification& GetSpecification() const = 0;
 
 	public:

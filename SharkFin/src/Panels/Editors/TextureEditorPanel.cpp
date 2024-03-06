@@ -141,14 +141,8 @@ namespace Shark {
 			specification.Filter = m_FilterMode;
 			specification.Wrap = m_WrapMode;
 			specification.MaxAnisotropy = m_MaxAnisotropy;
-			// NOTE(moro): no need to call Invalidate on the Texture if we only change the sampler
-
-			Ref<SamplerWrapper> sampler = m_EditTexture->GetSampler();
-			SamplerSpecification& samplerSpecification = sampler->GetSpecification();
-			samplerSpecification.Filter = m_FilterMode;
-			samplerSpecification.Wrap = m_WrapMode;
-			samplerSpecification.MaxAnisotropy = m_MaxAnisotropy;
-			sampler->Invalidate();
+			m_EditTexture->Invalidate();
+			CreateImageViews();
 		}
 
 		if (m_GenerateMips != m_EditTexture->GetSpecification().GenerateMips)
@@ -163,10 +157,7 @@ namespace Shark {
 			Ref<Texture2D> sourceTexture = AssetManager::GetAsset<Texture2D>(m_TextureHandle);
 			const TextureSpecification& sourceSpec = sourceTexture->GetSpecification();
 
-			const bool genMipChanged = m_GenerateMips != sourceSpec.GenerateMips;
-			const bool samplerChanged = m_FilterMode != sourceSpec.Filter || m_WrapMode != sourceSpec.Wrap || m_MaxAnisotropy != sourceSpec.MaxAnisotropy;
-
-			if (genMipChanged)
+			if (m_GenerateMips != sourceSpec.GenerateMips || m_FilterMode != sourceSpec.Filter || m_WrapMode != sourceSpec.Wrap || m_MaxAnisotropy != sourceSpec.MaxAnisotropy)
 			{
 				m_GenerateMips = sourceSpec.GenerateMips;
 				m_FilterMode = sourceSpec.Filter;
@@ -181,26 +172,6 @@ namespace Shark {
 				m_EditTexture->Invalidate();
 				CreateImageViews();
 			}
-			else if (samplerChanged)
-			{
-				m_FilterMode = sourceSpec.Filter;
-				m_WrapMode = sourceSpec.Wrap;
-				m_MaxAnisotropy = sourceSpec.MaxAnisotropy;
-
-				TextureSpecification& textureSpecification = m_EditTexture->GetSpecification();
-				textureSpecification.Filter = m_FilterMode;
-				textureSpecification.Wrap = m_WrapMode;
-				textureSpecification.MaxAnisotropy = m_MaxAnisotropy;
-				// NOTE(moro): no need to call Invalidate on the Texture if we only change the sampler
-
-				Ref<SamplerWrapper> sampler = m_EditTexture->GetSampler();
-				SamplerSpecification& samplerSpecification = sampler->GetSpecification();
-				samplerSpecification.Filter = m_FilterMode;
-				samplerSpecification.Wrap = m_WrapMode;
-				samplerSpecification.MaxAnisotropy = m_MaxAnisotropy;
-				sampler->Invalidate();
-			}
-
 		}
 
 		ImGui::SameLine();
@@ -225,7 +196,7 @@ namespace Shark {
 		m_MipIndex = 0;
 		m_Views.clear();
 		Ref<Image2D> image = m_EditTexture->GetImage();
-		for (uint32_t i = 0; i < image->GetSpecification().MipLevels; i++)
+		for (uint32_t i = 0; i < image->GetSpecification().MipLevels - 1; i++)
 		{
 			Ref<ImageView> view = ImageView::Create(image, i);
 			m_Views.push_back(view);

@@ -82,7 +82,6 @@ namespace Shark {
 		out << YAML::BeginMap;
 		out << YAML::Key << "MeshSource" << YAML::Value << mesh->GetMeshSource()->Handle;
 		out << YAML::Key << "Submeshes" << YAML::Value << mesh->GetSubmeshes();
-		out << YAML::Key << "Materials" << YAML::Value << mesh->GetMaterialTable()->GetMaterials();
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 
@@ -107,12 +106,10 @@ namespace Shark {
 
 		auto meshSource = meshNode["MeshSource"].as<AssetHandle>();
 		auto subMeshes = meshNode["Submeshes"].as<std::vector<uint32_t>>();
-		auto materials = meshNode["Materials"].as<MaterialTable::MaterialMap>();
 
 		mesh->m_MeshSource = AssetManager::GetAsset<MeshSource>(meshSource);
 		mesh->m_Submeshes = std::move(subMeshes);
-		mesh->m_MaterialTable = Ref<MaterialTable>::Create();
-		mesh->m_MaterialTable->GetMaterials() = std::move(materials);
+		mesh->InitMaterials();
 
 		return true;
 	}

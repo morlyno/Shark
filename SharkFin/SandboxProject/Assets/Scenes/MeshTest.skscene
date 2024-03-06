@@ -4,7 +4,7 @@ Scene:
   Entities:
     - Entity: 270824792768259062
       TagComponent:
-        Name: Environment
+        Name: Sky
       TransformComponent:
         Translation: [0, 0, 0]
         Rotation: [0, 0, 0]
@@ -13,10 +13,10 @@ Scene:
         Parent: 0
         Children:
           []
-      EnvironmentComponent:
-        EnvironmentHandle: 6481003888224515998
-        Intensity: 0.699999988
-        Lod: 4.5
+      SkyComponent:
+        SceneEnvironment: 10210776309822430915
+        Intensity: 0.370000005
+        Lod: 0
     - Entity: 665692342534429939
       TagComponent:
         Name: Cone
@@ -28,10 +28,10 @@ Scene:
         Parent: 0
         Children:
           []
-      MeshRendererComponent:
-        MeshHandle: 9815586959680881104
+      MeshComponent:
+        Mesh: 9815586959680881104
         SubmeshIndex: 0
-        MaterialHandle: 13162362789742264016
+        Material: 13162362789742264016
     - Entity: 1625268215021358436
       TagComponent:
         Name: Light
@@ -64,6 +64,17 @@ Scene:
         Intensity: 1.46399999
         Radius: 18.9500008
         Falloff: 1.35000002
+    - Entity: 2590873065312915112
+      TagComponent:
+        Name: RootNode
+      TransformComponent:
+        Translation: [0, 4.8572216, 5.36503315]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 6691103551611821060
     - Entity: 3378318554821546903
       TagComponent:
         Name: Floor
@@ -75,10 +86,45 @@ Scene:
         Parent: 0
         Children:
           []
-      MeshRendererComponent:
-        MeshHandle: 16466054961702350518
+      MeshComponent:
+        Mesh: 16466054961702350518
         SubmeshIndex: 0
-        MaterialHandle: 0
+        Material: 0
+    - Entity: 5500513560476447937
+      TagComponent:
+        Name: Camera
+      TransformComponent:
+        Translation: [44.4082375, 21.9918652, -5.70000029]
+        Rotation: [0.417133749, -1.52716303, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      CameraComponent:
+        Type: Perspective
+        Aspectratio: 2.14552236
+        PerspectiveFOV: 44.9999924
+        PerspectiveNear: 0.00999999978
+        PerspectiveFar: 1000
+        OrthographicZoom: 10
+        OrthographicNear: -1
+        OrthographicFar: 1
+    - Entity: 6691103551611821060
+      TagComponent:
+        Name: Cerberus00_Fixed
+      TransformComponent:
+        Translation: [2.25598455e-08, 0, 0.9372015]
+        Rotation: [1.57079649, 0, 0]
+        Scale: [5.53910017, 5.53909922, 5.53909922]
+      RelationshipComponent:
+        Parent: 2590873065312915112
+        Children:
+          []
+      MeshComponent:
+        Mesh: 12376335780905884411
+        SubmeshIndex: 0
+        Material: 6752412142428602314
     - Entity: 8169884808829931432
       TagComponent:
         Name: Wall
@@ -90,10 +136,25 @@ Scene:
         Parent: 0
         Children:
           []
-      MeshRendererComponent:
-        MeshHandle: 16466054961702350518
+      MeshComponent:
+        Mesh: 16466054961702350518
         SubmeshIndex: 0
-        MaterialHandle: 0
+        Material: 0
+    - Entity: 9114269493543827594
+      TagComponent:
+        Name: Sphere
+      TransformComponent:
+        Translation: [0, 7.73422718, -32.6308823]
+        Rotation: [0, 0, 0]
+        Scale: [5.94509983, 5.94509983, 5.94509983]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      MeshComponent:
+        Mesh: 3444792770354131160
+        SubmeshIndex: 0
+        Material: 4652108910098793267
     - Entity: 9788663519947057650
       TagComponent:
         Name: Welcome Text
@@ -121,10 +182,10 @@ Scene:
         Parent: 0
         Children:
           []
-      MeshRendererComponent:
-        MeshHandle: 16466054961702350518
+      MeshComponent:
+        Mesh: 16466054961702350518
         SubmeshIndex: 0
-        MaterialHandle: 0
+        Material: 0
     - Entity: 15533339291864148795
       TagComponent:
         Name: Cylinder
@@ -136,10 +197,10 @@ Scene:
         Parent: 0
         Children:
           []
-      MeshRendererComponent:
-        MeshHandle: 8312549303847388778
+      MeshComponent:
+        Mesh: 8312549303847388778
         SubmeshIndex: 0
-        MaterialHandle: 1471995334651478538
+        Material: 1471995334651478538
     - Entity: 15839783496502497576
       TagComponent:
         Name: Sphere
@@ -151,10 +212,10 @@ Scene:
         Parent: 0
         Children:
           []
-      MeshRendererComponent:
-        MeshHandle: 3444792770354131160
+      MeshComponent:
+        Mesh: 3444792770354131160
         SubmeshIndex: 0
-        MaterialHandle: 1821254970952682847
+        Material: 1821254970952682847
     - Entity: 16425634771254092196
       TagComponent:
         Name: Light2
@@ -182,7 +243,7 @@ Scene:
         Parent: 0
         Children:
           []
-      MeshRendererComponent:
-        MeshHandle: 2608668310550125016
+      MeshComponent:
+        Mesh: 2608668310550125016
         SubmeshIndex: 0
-        MaterialHandle: 5711592405232914583
+        Material: 5711592405232914583

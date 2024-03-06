@@ -558,7 +558,7 @@ namespace Shark {
 				modifierKeys.Control = Platform::IsKeyDown(KeyCode::Control);
 
 				const bool isKeyDown = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
-				SK_CORE_VERIFY(wParam < 0xFF);
+				SK_CORE_ASSERT(wParam < 0xFF);
 				int virtualKey = (int)wParam;
 				KeyCode key = (KeyCode)virtualKey;
 				bool repeat = lParam & BIT(30);
@@ -592,6 +592,11 @@ namespace Shark {
 			}
 #endif
 
+			case WM_SYSCHAR:
+			{
+				break;
+			}
+
 			case WM_DROPFILES:
 			{
 				std::vector<std::filesystem::path> paths;
@@ -610,6 +615,16 @@ namespace Shark {
 				DragFinish(hDrop);
 
 				m_EventListener->OnWindowDropEvent(std::move(paths));
+				break;
+			}
+
+			case WM_SETCURSOR:
+			{
+				if (m_CursorMode == CursorMode::Normal)
+				{
+					SetCursor(LoadCursor(nullptr, IDC_ARROW));
+					return 1;
+				}
 				break;
 			}
 

@@ -45,6 +45,7 @@ namespace Shark {
 
 	private:
 		CommandBufferType m_Type = CommandBufferType::Deferred;
+		bool m_Active = false;
 
 		ID3D11DeviceContext* m_Context = nullptr;
 		ID3D11CommandList* m_CommandList = nullptr;
@@ -52,6 +53,7 @@ namespace Shark {
 		std::array<ID3D11Query*, 3> m_PipelineStatsQueries;
 
 		uint32_t m_NextAvailableQueryIndex = 0;
+		std::array<uint32_t, 3> m_TimestampQueryCount = { 0, 0, 0 };
 		std::array<QueryPool, 3> m_TimestampQueryPools;
 		std::array<std::vector<TimeStep>, 3> m_TimestampQueryResults;
 

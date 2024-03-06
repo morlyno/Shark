@@ -267,7 +267,7 @@ namespace Shark {
 			FrameBufferSpecification textFB;
 			textFB.Width = framebuffer->GetSpecification().Width;
 			textFB.Height = framebuffer->GetSpecification().Height;
-			textFB.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
+			textFB.Atachments = { ImageFormat::RGBA32F, ImageFormat::R32_SINT, ImageFormat::Depth };
 			textFB.Atachments[0].BlendEnabled = true;
 			textFB.ExistingImages[0] = framebuffer->GetImage(0);
 			textFB.ExistingImages[1] = framebuffer->GetImage(1);
@@ -373,7 +373,7 @@ namespace Shark {
 
 		m_CommandBuffer->Begin();
 
-		ClearPass();
+		//ClearPass();
 		GeometryPass();
 
 		m_CommandBuffer->End();

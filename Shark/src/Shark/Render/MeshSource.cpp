@@ -6,8 +6,6 @@ namespace Shark {
 	MeshSource::MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices)
 		: m_Vertices(vertices), m_Indices(indices)
 	{
-		Handle = AssetHandle::Generate();
-
 		Submesh submesh;
 		submesh.BaseVertex = 0;
 		submesh.BaseIndex = 0;
@@ -22,8 +20,6 @@ namespace Shark {
 	MeshSource::MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<Submesh>& submeshes)
 		: m_Vertices(vertices), m_Indices(indices), m_Submeshes(submeshes)
 	{
-		Handle = AssetHandle::Generate();
-
 		m_VertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices));
 		m_IndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
 	}

@@ -307,6 +307,11 @@ namespace Shark {
 		return m_LoadedAssets;
 	}
 
+	AssetMetadataMap& EditorAssetManager::GetAssetMetadataMap()
+	{
+		return m_ImportedAssets;
+	}
+
 	const AssetMetadataMap& EditorAssetManager::GetAssetMetadataMap() const
 	{
 		return m_ImportedAssets;
@@ -330,10 +335,10 @@ namespace Shark {
 	void EditorAssetManager::OnAssetRenamed(const std::filesystem::path& oldFilepath, const std::string& newName)
 	{
 		AssetHandle handle = GetAssetHandleFromFilepath(oldFilepath);
-		AssetMetaData& metadata = GetMetadataInternal(handle);
-		if (metadata.IsValid())
+		if (!IsValidAssetHandle(handle))
 			return;
 
+		AssetMetaData& metadata = GetMetadataInternal(handle);
 		std::filesystem::path newNamePath = newName;
 		newNamePath.replace_extension(metadata.FilePath.extension());
 		metadata.FilePath.replace_filename(newNamePath);

@@ -20,6 +20,7 @@ namespace Shark {
 			case ImageFormat::RGBA32F: return "RGBA32F";
 			case ImageFormat::R8: return "R8";
 			case ImageFormat::R16F: return "R16F";
+			case ImageFormat::RG16F: return "RG16F";
 		}
 
 		SK_CORE_ASSERT(false, "Unkown ImageFormat");

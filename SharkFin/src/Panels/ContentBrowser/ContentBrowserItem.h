@@ -140,7 +140,7 @@ namespace Shark {
 		void Unselect() { SetFlag(StateFlag::Selected, false); }
 		bool IsSelected() const { return FlagSet(StateFlag::Selected); }
 
-		bool Rename(const std::string& newName);
+		bool Rename(std::string newName, bool addExtension = true);
 		bool Delete();
 
 	private:
@@ -149,6 +149,7 @@ namespace Shark {
 
 		std::string GetTypeString() const;
 		void UpdateIcon();
+		void UpdateName();
 
 	private:
 		Weak<ContentBrowserPanel> m_Context;

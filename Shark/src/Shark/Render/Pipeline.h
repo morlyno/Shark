@@ -52,6 +52,7 @@ namespace Shark {
 		}
 
 		virtual void SetFrameBuffer(Ref<FrameBuffer> frameBuffer) = 0;
+		virtual PipelineSpecification& GetSpecification() = 0;
 		virtual const PipelineSpecification& GetSpecification() const = 0;
 
 	public:

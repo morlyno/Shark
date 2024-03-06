@@ -9,7 +9,6 @@ namespace Shark {
 	SceneRendererPanel::SceneRendererPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
-		m_VSync = Application::Get().GetWindow().VSyncEnabled();
 	}
 
 	void SceneRendererPanel::OnImGuiRender(bool& shown)
@@ -20,8 +19,11 @@ namespace Shark {
 		if (ImGui::Begin(m_PanelName.c_str()))
 		{
 			ImGui::Text("Viewport Size: %u, %u", m_Renderer->m_Specification.Width, m_Renderer->m_Specification.Height);
-			if (ImGui::Checkbox("VSync", &m_VSync))
-				Application::Get().GetWindow().EnableVSync(m_VSync);
+
+			auto& window = Application::Get().GetWindow();
+			bool vSync = window.VSyncEnabled();
+			if (ImGui::Checkbox("VSync", &vSync))
+				Application::Get().GetWindow().EnableVSync(vSync);
 
 			if (ImGui::TreeNodeEx("Statistics", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 			{
@@ -29,6 +31,7 @@ namespace Shark {
 				UI::TextF("GPU Time: {}", stats.GPUTime);
 				UI::TextF("Geometry Pass: {}", stats.GeometryPass);
 				UI::TextF("Skybox Pass: {}", stats.SkyboxPass);
+				UI::TextF("Composite Pass: {}", stats.CompositePass);
 
 				if (ImGui::TreeNodeEx("Pipeline Statistics", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 				{
@@ -46,13 +49,29 @@ namespace Shark {
 				ImGui::TreePop();
 			}
 
-			if (ImGui::TreeNodeEx("Statistics", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::TreeNodeEx("Settings", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				ImGui::Checkbox("Skybox Pass", &m_Renderer->GetOptions().SkyboxPass);
+				ImGui::Checkbox("Tonemap", &m_Renderer->GetOptions().Tonemap);
+				
+				UI::BeginControls();
+				UI::Control("Exposure", m_Renderer->GetOptions().Exposure);
+				UI::Control("Skybox Intensity", m_Renderer->m_SkyboxIntensity, 0.01f, 0.0f, FLT_MAX);
+
+				if (UI::ControlColor("Clear Color", m_ClearColor))
+					m_Renderer->SetClearColor(m_ClearColor);
+				UI::EndControls();
+
 				ImGui::TreePop();
 			}
 		}
 		ImGui::End();
+	}
+
+	void SceneRendererPanel::SetRenderer(Ref<SceneRenderer> renderer)
+	{
+		m_Renderer = renderer;
+		m_ClearColor = renderer->m_ClearColor;
 	}
 
 }

@@ -47,11 +47,6 @@ namespace Shark {
 		m_ShaderInputManager.SetInput(name, image);
 	}
 
-	void DirectXMaterial::Set(const std::string& name, Ref<SamplerWrapper> sampler)
-	{
-		m_ShaderInputManager.SetInput(name, sampler);
-	}
-
 	Ref<Texture2D> DirectXMaterial::GetTexture(const std::string& name) const
 	{
 		return m_ShaderInputManager.GetResource<Texture2D>(name);
@@ -65,11 +60,6 @@ namespace Shark {
 	Ref<Image2D> DirectXMaterial::GetImage(const std::string& name) const
 	{
 		return m_ShaderInputManager.GetResource<Image2D>(name);
-	}
-
-	Ref<SamplerWrapper> DirectXMaterial::GetSampler(const std::string& name) const
-	{
-		return m_ShaderInputManager.GetResource<SamplerWrapper>(name);
 	}
 
 	void DirectXMaterial::Set(const std::string& name, float val)

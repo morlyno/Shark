@@ -20,11 +20,15 @@ namespace Shark {
 		virtual const std::filesystem::path& GetFilePath() const = 0;
 
 		virtual bool HasResource(const std::string& name) const = 0;
+		virtual bool HasPushConstant() const = 0;
 		virtual bool HasMember(const std::string& name) const = 0;
 
 		virtual const ShaderReflection::Resource& GetResourceInfo(const std::string& name) const = 0;
+		virtual const ShaderReflection::Resource& GetPushConstantInfo() const = 0;
 		virtual const ShaderReflection::Resource& GetMembersResourceInfo(const std::string& name) const = 0;
 		virtual const ShaderReflection::MemberDeclaration& GetMemberInfo(const std::string& name) const = 0;
+
+		virtual const std::string& GetResourceName(uint32_t set, uint32_t binding) const = 0;
 
 		virtual std::pair<uint32_t, uint32_t> GetResourceBinding(const std::string& name) const = 0;
 		virtual std::tuple<uint32_t, uint32_t, uint32_t> GetMemberBinding(const std::string& name) const = 0;

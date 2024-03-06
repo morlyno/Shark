@@ -49,17 +49,22 @@ namespace Shark {
 				ImGui::OpenPopup("Settings");
 			if (ImGui::BeginPopup("Settings"))
 			{
+				ImGui::Checkbox("Edit", &m_Edit);
+				ImGui::Separator();
+
 				UI::BeginControls();
+				
 				for (auto& [type, enabled] : m_EnabledTypes)
 					UI::Control(ToString(type), enabled);
 
-				//UI::ControlFlags("All", m_EnabledTypes, AssetTypeFlag::All);
-				//UI::ControlFlags("Scene", m_EnabledTypes, AssetTypeFlag::Scene);
-				//UI::ControlFlags("Texture", m_EnabledTypes, AssetTypeFlag::Texture);
-				//UI::ControlFlags("TextureSource", m_EnabledTypes, AssetTypeFlag::TextureSource);
-				//UI::ControlFlags("ScriptFile", m_EnabledTypes, AssetTypeFlag::ScriptFile);
-				//UI::ControlFlags("Font", m_EnabledTypes, AssetTypeFlag::Font);
 				UI::EndControls();
+
+				if (ImGui::Selectable("Toggle"))
+				{
+					for (auto& [type, enabled] : m_EnabledTypes)
+						enabled = !enabled;
+				}
+
 				ImGui::EndPopup();
 			}
 		}
@@ -68,26 +73,26 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Imported Assets", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			for (const auto& [handle, metadata] : Project::GetActiveEditorAssetManager()->GetAssetMetadataMap())
+			for (auto& [handle, metadata] : Project::GetActiveEditorAssetManager()->GetAssetMetadataMap())
 			{
 				if (!IsAssetTypeEnabled(metadata.Type))
 					continue;
 
 				if (!searchBufferView.empty())
 				{
-					std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
+					std::string handleStr = fmt::to_string(metadata.Handle);
 					std::string typeStr = ToString(metadata.Type);
 					std::string filePathStr = metadata.FilePath.string();
 
 					if (!m_SearchHasUppercase)
 					{
-						String::ToLower(handleStrHex);
+						String::ToLower(handleStr);
 						String::ToLower(typeStr);
 						String::ToLower(filePathStr);
 					}
 					bool matchFound = false;
 
-					matchFound |= handleStrHex.find(searchBufferView) != std::string::npos;
+					matchFound |= handleStr.find(searchBufferView) != std::string::npos;
 					matchFound |= filePathStr.find(searchBufferView) != std::string::npos;
 					matchFound |= typeStr.find(searchBufferView) != std::string::npos;
 
@@ -95,13 +100,18 @@ namespace Shark {
 						continue;
 				}
 
-
 				UI::BeginControlsGrid();
 
-				char buffer[sizeof("0x0123456789ABCDEF")];
-				sprintf_s(buffer, "0x%llx", (uint64_t)metadata.Handle);
-				UI::Property("Handle", buffer);
-				UI::Property("FilePath", metadata.FilePath);
+				if (m_Edit)
+				{
+					UI::Control("Handle", metadata.Handle);
+					UI::Control("FilePath", metadata.FilePath);
+				}
+				else
+				{
+					UI::Property("Handle", metadata.Handle);
+					UI::Property("FilePath", metadata.FilePath);
+				}
 				UI::Property("Type", ToString(metadata.Type));
 
 				UI::EndControls();

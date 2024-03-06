@@ -109,8 +109,9 @@ namespace Shark {
 		CopyComponents<SpriteRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<CircleRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<TextRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<MeshRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<MeshComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<PointLightComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		CopyComponents<SkyComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<CameraComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<RigidBody2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		CopyComponents<BoxCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
@@ -359,43 +360,119 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnRender");
 
-		renderer->SetScene(this);
-		renderer->BeginScene(camera);
+		m_LightEnvironment = LightEnvironment();
 
 		{
-			auto view = m_Registry.view<EnvironmentComponent>();
+			auto view = m_Registry.view<SkyComponent>();
 			if (view.size())
 			{
 				Entity entity{ view.front(), this };
-				EnvironmentComponent comp = entity.GetComponent<EnvironmentComponent>();
-				renderer->SubmitEnvironment(comp.EnvironmentHandle, comp.Intensity, comp.Lod);
+				SkyComponent skyComp = entity.GetComponent<SkyComponent>();
+				if (skyComp.DynamicSky && !AssetManager::IsValidAssetHandle(skyComp.SceneEnvironment))
+				{
+					// TODO(moro): Dynamic sky (Preetham sky model)
+					skyComp.SceneEnvironment = AssetManager::CreateMemoryAsset<Environment>(Renderer::GetBlackTextureCube(), Renderer::GetBlackTextureCube());
+				}
+
+				m_Environment = AssetManager::GetAsset<Environment>(skyComp.SceneEnvironment);
+				m_EnvironmentInesitiy = skyComp.Intensity;
+				m_SkyboxLod = skyComp.Lod;
+			}
+
+			if (!m_Environment)
+			{
+				Ref<TextureCube> tex = Renderer::GetBlackTextureCube();
+				m_Environment = Ref<Environment>::Create(tex, tex);
 			}
 		}
 
+		// Point Lights
 		{
-			auto view = m_Registry.view<TransformComponent, PointLightComponent>();
-			for (auto ent : view)
+			auto pointLights = m_Registry.group<PointLightComponent>();
+			m_LightEnvironment.PointLights.resize(pointLights.size());
+			uint32_t pointLightIndex = 0;
+			for (auto ent : pointLights)
 			{
 				Entity entity{ ent, this };
-				TransformComponent worldTransform = GetWorldSpaceTransform(entity);
-				const auto& pointLight = entity.GetComponent<PointLightComponent>();
-				renderer->SubmitPointLight(worldTransform.Translation, pointLight.Color, pointLight.Intensity, pointLight.Radius, pointLight.Falloff);
+				auto& lightComponent = pointLights.get<PointLightComponent>(ent);
+				auto worldTransform = GetWorldSpaceTransform(entity);
+				m_LightEnvironment.PointLights[pointLightIndex++] = {
+					worldTransform.Translation,
+					lightComponent.Intensity,
+					lightComponent.Color,
+					lightComponent.Radius,
+					lightComponent.Falloff
+				};
 			}
 		}
 
+		renderer->SetScene(this);
+		renderer->BeginScene(camera);
+
+		// Meshes
 		{
-			auto view = m_Registry.view<TransformComponent>();
-			for (auto ent : view)
+			auto group = m_Registry.group<MeshComponent>(entt::get<TransformComponent>);
+			for (auto ent : group)
 			{
-				Entity entity{ ent, this };
-				if (entity.HasParent())
+				auto [transformComponent, meshComponent] = group.get<TransformComponent, MeshComponent>(ent);
+				if (!meshComponent.Visible)
 					continue;
 
-				RenderEntityHirachy(renderer, entity, glm::mat4(1.0f));
+				if (AssetManager::IsValidAssetHandle(meshComponent.Mesh))
+				{
+					Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(meshComponent.Mesh);
+					if (!mesh || mesh->IsFlagSet(AssetFlag::Invalid))
+						continue;
+
+					Entity entity = { ent, this };
+					glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
+
+					Ref<MaterialAsset> material;
+					if (AssetManager::IsValidAssetHandle(meshComponent.Material))
+						material = AssetManager::GetAsset<MaterialAsset>(meshComponent.Material);
+
+					if (!material)
+					{
+						Ref<MeshSource> meshSource = mesh->GetMeshSource();
+						const auto& submesh = meshSource->GetSubmeshes()[meshComponent.SubmeshIndex];
+
+						Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+						AssetHandle handle = materialTable->GetMaterial(submesh.MaterialIndex);
+						material = AssetManager::GetAsset<MaterialAsset>(handle);
+						SK_CORE_VERIFY(material);
+					}
+
+					renderer->SubmitMesh(mesh, meshComponent.SubmeshIndex, material->GetMaterial(), transform, (int)ent);
+				}
 			}
 		}
 
 		renderer->EndScene();
+
+		// Renderer 2D
+		Ref<Renderer2D> renderer2D = renderer->GetRenderer2D();
+		renderer2D->BeginScene(camera.Projection * camera.View);
+
+		// Text
+		{
+			auto group = m_Registry.group<TextRendererComponent>(entt::get<TransformComponent>);
+			for (auto ent : group)
+			{
+				auto [transformComponent, textComponent] = group.get<TransformComponent, TextRendererComponent>(ent);
+				if (!AssetManager::IsValidAssetHandle(textComponent.FontHandle))
+					continue;
+
+				Ref<Font> font = AssetManager::GetAsset<Font>(textComponent.FontHandle);
+				if (font && !font->IsFlagSet(AssetFlag::Invalid))
+				{
+					Entity entity = { ent, this };
+					glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
+					renderer2D->DrawString(textComponent.Text, font, transform, textComponent.Kerning, textComponent.LineSpacing, textComponent.Color, (int)ent);
+				}
+			}
+		}
+
+		renderer2D->EndScene();
 	}
 
 	Entity Scene::CloneEntity(Entity srcEntity)
@@ -410,7 +487,7 @@ namespace Shark {
 		CopyComponentIfExists<SpriteRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CircleRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<TextRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<MeshRendererComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
+		CopyComponentIfExists<MeshComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<PointLightComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<CameraComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		CopyComponentIfExists<RigidBody2DComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
@@ -939,64 +1016,6 @@ namespace Shark {
 
 		for (auto& [uuid, gcHandle] : ScriptEngine::GetEntityInstances())
 			MethodThunks::OnPhysicsUpdate(gcHandle, fixedTimeStep);
-
-	}
-
-	void Scene::RenderEntityHirachy(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& parentTransform)
-	{
-		const glm::mat4 transform = parentTransform * entity.Transform().CalcTransform();
-
-		RenderEntity(renderer, entity, transform);
-
-		for (auto& childID : entity.Children())
-			RenderEntityHirachy(renderer, TryGetEntityByUUID(childID), transform);
-	}
-
-	void Scene::RenderEntity(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& transform)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_PERF_FUNCTION();
-
-#if 0
-		if (entity.AllOf<SpriteRendererComponent>())
-		{
-			auto& sr = entity.GetComponent<SpriteRendererComponent>();
-			renderer->SubmitQuad(transform, AssetManager::GetAsset<Texture2D>(sr.TextureHandle), sr.TilingFactor, sr.Color, sr.Transparent, (int)entity.GetHandle());
-		}
-
-		if (entity.AllOf<CircleRendererComponent>())
-		{
-			auto& cr = entity.GetComponent<CircleRendererComponent>();
-			if (cr.Filled)
-				renderer->SubmitFilledCircle(transform, cr.Thickness, cr.Fade, cr.Color, cr.Transparent, (int)entity.GetHandle());
-			else
-				renderer->SubmitCircle(transform, cr.Color, (int)entity.GetHandle());
-		}
-#endif
-
-		if (entity.AllOf<TextRendererComponent>())
-		{
-			const auto& component = entity.GetComponent<TextRendererComponent>();
-			renderer->SubmitText(transform, AssetManager::GetAsset<Font>(component.FontHandle), component.Text, component.Kerning, component.LineSpacing, component.Color, (int)entity.GetHandle());
-		}
-
-		if (entity.AllOf<MeshRendererComponent>())
-		{
-			const auto& component = entity.GetComponent<MeshRendererComponent>();
-			if (AssetManager::IsValidAssetHandle(component.MeshHandle))
-			{
-				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(component.MeshHandle);
-				if (AssetManager::IsValidAssetHandle(component.MaterialHandle))
-				{
-					Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(component.MaterialHandle);
-					renderer->SubmitMesh(transform, mesh, component.SubmeshIndex, material->GetMaterial(), (int)entity.GetHandle());
-				}
-				else
-				{
-					renderer->SubmitMesh(transform, mesh, component.SubmeshIndex, (int)entity.GetHandle());
-				}
-			}
-		}
 
 	}
 

@@ -74,9 +74,18 @@ ImportedAssets:
   - Handle: 7634016912929685957
     Type: Texture
     FilePath: Textures/Nano/leg_dif.sktex
-  - Handle: 4756499278356268137
+  - Handle: 10585574532338004058
     Type: Texture
-    FilePath: Textures/Normal.sktex
+    FilePath: Textures/Normals/Normal.sktex
+  - Handle: 2154367350179419965
+    Type: Texture
+    FilePath: Textures/Normals/forest_ground_04_nor_dx_4k.sktex
+  - Handle: 7223873321709590779
+    Type: Texture
+    FilePath: Textures/Normals/forest_ground_04_nor_gl_4k.sktex
+  - Handle: 12334790899310592362
+    Type: Texture
+    FilePath: Textures/Normals/stony_dirt_path_nor_dx_4k.sktex
   - Handle: 377437537436758114
     Type: Texture
     FilePath: Textures/S.sktex
@@ -89,6 +98,9 @@ ImportedAssets:
   - Handle: 10417349850449502162
     Type: Texture
     FilePath: Textures/brickwall_normal.sktex
+  - Handle: 13338127238005575021
+    Type: Texture
+    FilePath: Textures/forest_ground_04_roughness_4k.sktex
   - Handle: 3721988405384522794
     Type: TextureSource
     FilePath: MeshSources/Sponza/textures/background.png
@@ -269,6 +281,21 @@ ImportedAssets:
   - Handle: 15495282146033534384
     Type: TextureSource
     FilePath: TextureSources/clarens_night_01_4k.png
+  - Handle: 13819952377825037231
+    Type: TextureSource
+    FilePath: Textures/Source/forest_ground_04_nor_dx_4k.png
+  - Handle: 5825812616544900434
+    Type: TextureSource
+    FilePath: Textures/Source/forest_ground_04_nor_gl_4k.png
+  - Handle: 197223334749427015
+    Type: TextureSource
+    FilePath: Textures/Source/forest_ground_04_roughness_4k.png
+  - Handle: 385160305008601684
+    Type: TextureSource
+    FilePath: Textures/Source/stony_dirt_path_diff_4k.png
+  - Handle: 8975463772372701491
+    Type: TextureSource
+    FilePath: Textures/Source/stony_dirt_path_nor_dx_4k.png
   - Handle: 14790802355931774207
     Type: ScriptFile
     FilePath: Scripts/Source/BallDestroyer.cs
@@ -401,18 +428,21 @@ ImportedAssets:
   - Handle: 1821254970952682847
     Type: Material
     FilePath: Materials/M_Red.skmat
+  - Handle: 4652108910098793267
+    Type: Material
+    FilePath: Materials/M_Reflective.skmat
   - Handle: 11412594040363206517
     Type: Material
     FilePath: Materials/NanoBody.skmat
-  - Handle: 10666288328981990637
-    Type: Material
-    FilePath: Materials/New Material.skmat
   - Handle: 252483365588718326
     Type: Material
     FilePath: Materials/WiteMaterial.skmat
   - Handle: 14962043442512044118
     Type: Material
     FilePath: Materials/m_Pink.skmat
+  - Handle: 10210776309822430915
+    Type: Environment
+    FilePath: Environment/belfast_sunset_puresky_4k.hdr
   - Handle: 272371398710610093
     Type: Environment
     FilePath: Environment/clarens_night_01_4k.hdr
@@ -422,6 +452,9 @@ ImportedAssets:
   - Handle: 6481003888224515998
     Type: Environment
     FilePath: Environment/lenong_2_4k.hdr
+  - Handle: 17464764088011503163
+    Type: Environment
+    FilePath: Environment/meadow_2_4k.hdr
   - Handle: 970122350774844925
     Type: Environment
     FilePath: Environment/newport_loft.hdr
@@ -456,3 +489,6 @@ EditorAssets:
   - Handle: 6142942579687919042
     Type: MeshSource
     FilePath: Resources/Meshes/Default/Torus.gltf
+  - Handle: 8785655521216055818
+    Type: Environment
+    FilePath: Resources/Environment/DefaultMaterialEditorEnvMap.hdr

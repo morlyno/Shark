@@ -29,6 +29,10 @@ namespace Shark {
 
 		static Ref<Mesh> Create(Ref<MeshSource> meshSource);
 		static Ref<Mesh> Create(Ref<MeshSource> meshSource, Ref<MaterialTable> materials, const std::vector<uint32_t>& submeshes);
+
+	private:
+		void InitMaterials();
+
 	public:
 		Ref<MeshSource> m_MeshSource;
 		std::vector<uint32_t> m_Submeshes;

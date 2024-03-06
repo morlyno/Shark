@@ -12,10 +12,11 @@ namespace Shark {
 		SceneRendererPanel(const std::string& panelName);
 		virtual void OnImGuiRender(bool& shown) override;
 
-		void SetRenderer(Ref<SceneRenderer> renderer) { m_Renderer = renderer; }
+		void SetRenderer(Ref<SceneRenderer> renderer);
 	private:
 		Ref<SceneRenderer> m_Renderer;
-		bool m_VSync = true;
+
+		glm::vec4 m_ClearColor;
 	};
 
 }

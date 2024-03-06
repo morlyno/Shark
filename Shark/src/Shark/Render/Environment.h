@@ -18,6 +18,7 @@ namespace Shark {
 		static AssetType GetStaticType() { return AssetType::Environment; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
+		static Ref<Environment> Create(Ref<TextureCube> radianceMap, Ref<TextureCube> irradianceMap);
 	private:
 		Ref<TextureCube> m_RadianceMap;
 		Ref<TextureCube> m_IrradianceMap;

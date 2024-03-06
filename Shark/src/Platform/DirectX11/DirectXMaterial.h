@@ -25,12 +25,10 @@ namespace Shark {
 		virtual void Set(const std::string& name, Ref<Texture2D> texture) override;
 		virtual void Set(const std::string& name, Ref<TextureCube> textureCube) override;
 		virtual void Set(const std::string& name, Ref<Image2D> image) override;
-		virtual void Set(const std::string& name, Ref<SamplerWrapper> sampler) override;
 
 		virtual Ref<Texture2D> GetTexture(const std::string& name) const override;
 		virtual Ref<TextureCube> GetTextureCube(const std::string& name) const override;
 		virtual Ref<Image2D> GetImage(const std::string& name) const override;
-		virtual Ref<SamplerWrapper> GetSampler(const std::string& name) const override;
 
 		virtual void Set(const std::string& name, float val) override;
 		virtual void Set(const std::string& name, const glm::vec2& val) override;

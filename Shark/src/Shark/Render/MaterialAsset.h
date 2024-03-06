@@ -8,7 +8,7 @@ namespace Shark {
 	{
 	public:
 		MaterialAsset() = default;
-		MaterialAsset(Ref<Material> material);
+		MaterialAsset(Ref<Material> material, bool setDefault = true);
 		~MaterialAsset();
 
 		Ref<Material> GetMaterial();
@@ -49,7 +49,7 @@ namespace Shark {
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 		static AssetType GetStaticType() { return AssetType::Material; }
 		static Ref<MaterialAsset> Create() { return Ref<MaterialAsset>::Create(); }
-		static Ref<MaterialAsset> Create(Ref<Material> material) { return Ref<MaterialAsset>::Create(material); }
+		static Ref<MaterialAsset> Create(Ref<Material> material, bool setDefault = true) { return Ref<MaterialAsset>::Create(material, setDefault); }
 	private:
 		Ref<Material> m_Material;
 	};
@@ -57,17 +57,17 @@ namespace Shark {
 	class MaterialTable : public RefCount
 	{
 	public:
-		using MaterialMap = std::map<uint32_t, Ref<MaterialAsset>>;
+		using MaterialMap = std::map<uint32_t, AssetHandle>;
 
 	public:
 		MaterialTable() = default;
 		~MaterialTable() = default;
 
 		bool HasMaterial(uint32_t index) const { return m_Materials.contains(index); }
-		void SetMaterial(uint32_t index, Ref<MaterialAsset> material);
+		void SetMaterial(uint32_t index, AssetHandle material);
 		void ClearMaterial(uint32_t index);
 
-		Ref<MaterialAsset> GetMaterial(uint32_t index) const;
+		AssetHandle GetMaterial(uint32_t index) const;
 
 		MaterialMap& GetMaterials() { return m_Materials; }
 		const MaterialMap& GetMaterials() const { return m_Materials; }

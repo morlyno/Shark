@@ -69,8 +69,6 @@ namespace Shark {
 		std::string DebugName;
 	};
 
-	class SamplerWrapper;
-
 	class Texture2D : public RendererResource
 	{
 	public:
@@ -96,7 +94,6 @@ namespace Shark {
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) = 0;
 
 		virtual RenderID GetViewID() const = 0;
-		virtual Ref<SamplerWrapper> GetSampler() const = 0;
 		virtual Ref<Image2D> GetImage() const = 0;
 		virtual const TextureSpecification& GetSpecification() const = 0;
 		virtual TextureSpecification& GetSpecification() = 0;
@@ -109,34 +106,9 @@ namespace Shark {
 		static Ref<Texture2D> Create();
 		static Ref<Texture2D> Create(const TextureSpecification& specification, Buffer imageData = nullptr);
 		static Ref<Texture2D> Create(const TextureSpecification& specification, Ref<TextureSource> textureSource);
-		static Ref<Texture2D> Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		static Ref<Texture2D> Create(Ref<TextureSource> textureSource);
 
 		static Ref<Texture2D> LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& samplerSpecification = {});
-	};
-
-	struct SamplerSpecification
-	{
-		FilterMode Filter = FilterMode::Linear;
-		WrapMode Wrap = WrapMode::Repeat;
-		uint32_t MaxAnisotropy = 0;
-
-		std::string DebugName;
-	};
-
-	class SamplerWrapper : public RendererResource
-	{
-	public:
-		virtual void Release() = 0;
-		virtual void Invalidate() = 0;
-
-		virtual SamplerSpecification& GetSpecification() = 0;
-		virtual const SamplerSpecification& GetSpecification() const = 0;
-
-		virtual RenderID GetSamplerID() const = 0;
-
-	public:
-		static Ref<SamplerWrapper> Create(const SamplerSpecification& spec);
 	};
 
 	class TextureCube : public RendererResource
@@ -149,8 +121,9 @@ namespace Shark {
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
 
+		virtual uint32_t GetMipLevelCount() const = 0;
+
 		virtual Ref<Image2D> GetImage() const = 0;
-		virtual Ref<SamplerWrapper> GetSampler() const = 0;
 
 	public:
 		static Ref<TextureCube> Create(const TextureSpecification& specification, Buffer imageData = {});

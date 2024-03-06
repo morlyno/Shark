@@ -61,6 +61,7 @@ namespace Shark {
 		virtual void OnImGuiRender() override;
 	private:
 		bool OnKeyPressed(KeyPressedEvent& event);
+		bool OnMouseButtonPressed(MouseButtonPressedEvent& event);
 		bool OnWindowDropEvent(WindowDropEvent& event);
 
 		void UI_MainMenuBar();

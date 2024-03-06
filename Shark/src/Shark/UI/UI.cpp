@@ -76,18 +76,18 @@ namespace Shark::UI {
 			window->DrawList->AddLine(bb.Min, ImVec2(bb.Max.x, bb.Min.y), ImGui::GetColorU32(ImGuiCol_Separator));
 		}
 
-		static bool OverlappButton(const char* label, const ImVec2& buttonSize = { 0, 0 })
+		static bool OverlappButton(ImGuiID id, const char* label, const ImVec2& buttonSize = { 0, 0 })
 		{
-			ImGui::BeginChild(UI::GenerateID(), buttonSize);
+			ImGui::BeginChild(label, buttonSize);
 			const bool pressed = ImGui::ButtonEx(label, buttonSize);
 			ImGui::EndChild();
 			return pressed;
 		}
 
-		static bool OverlappButtonKeepLastItemData(const char* label, const ImVec2& buttonSize = { 0, 0 })
+		static bool OverlappButtonKeepLastItemData(ImGuiID id, const char* label, const ImVec2& buttonSize = { 0, 0 })
 		{
 			ImGuiLastItemData lastItemData = GImGui->LastItemData;
-			const bool pressed = OverlappButton(label, buttonSize);
+			const bool pressed = OverlappButton(id, label, buttonSize);
 			GImGui->LastItemData = lastItemData;
 			return pressed;
 		}
@@ -411,6 +411,23 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	template<typename T>
+	bool ControlSliderScalar(std::string_view label, ImGuiDataType dataType, T& val, T min, T max, const char* fmt, ImGuiSliderFlags flags = ImGuiSliderFlags_None)
+	{
+		if (!ControlHelperBegin(label))
+			return false;
+
+		ImGui::TableSetColumnIndex(0);
+		Text(label, PrivateTextFlag::LabelDefault);
+
+		ImGui::TableSetColumnIndex(1);
+		ImGui::SetNextItemWidth(-1.0f);
+		const bool changed = ImGui::SliderScalar("##control", dataType, &val, &min, &max, fmt, flags);
+
+		ControlHelperEnd();
+		return changed;
+	}
+
 	template<glm::length_t L, typename T, glm::qualifier Q>
 	bool ControlScalarVec(std::string_view label, ImGuiDataType dataType, glm::vec<L, T, Q>& val, float speed, T min, T max, const char* fmt)
 	{
@@ -436,6 +453,16 @@ namespace Shark::UI {
 	bool Control(std::string_view label, double& val, float speed, double min, double max, const char* fmt)
 	{
 		return ControlScalar(label, ImGuiDataType_Double, val, speed, min, max, fmt);
+	}
+
+	bool ControlSlider(std::string_view label, float& val, float min, float max, const char* fmt)
+	{
+		return ControlSliderScalar(label, ImGuiDataType_Float, val, min, max, fmt);
+	}
+
+	bool ControlSlider(std::string_view label, double& val, double min, double max, const char* fmt)
+	{
+		return ControlSliderScalar(label, ImGuiDataType_Double, val, min, max, fmt);
 	}
 
 	bool Control(std::string_view label, int8_t& val, float speed, int8_t min, int8_t max, const char* fmt)
@@ -631,7 +658,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType)
+	bool Control(std::string_view label, std::filesystem::path& path)
 	{
 		if (!ControlHelperBegin(label))
 			return false;
@@ -650,27 +677,11 @@ namespace Shark::UI {
 			changed = true;
 		}
 
-		if (dragDropType)
-		{
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
-				if (payload)
-				{
-					char payloadPath[260];
-					strcpy_s(payloadPath, std::min(260, payload->DataSize), (const char*)payload->Data);
-					path = payloadPath;
-					changed = true;
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
-
 		ControlHelperEnd();
 		return changed;
 	}
 
-	bool Control(std::string_view label, UUID& uuid, const char* dragDropType)
+	bool Control(std::string_view label, UUID& uuid)
 	{
 		if (!ControlHelperBegin(label))
 			return false;
@@ -678,27 +689,14 @@ namespace Shark::UI {
 		ControlHelperDrawLabel(label);
 
 		bool changed = false;
-		char buffer[sizeof("0x0123456789ABCDEF")];
+		char buffer[21];
 		if (uuid != UUID::Invalid)
-			sprintf_s(buffer, "0x%llx", (uint64_t)uuid);
+			sprintf_s(buffer, "%llu", (uint64_t)uuid);
 		else
-			memset(buffer, 0, sizeof(buffer));
+			buffer[0] = '\0';
+
 		ImGui::SetNextItemWidth(-1.0f);
 		ImGui::InputTextWithHint("##control", "Null", buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
-
-		if (dragDropType)
-		{
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
-				if (payload)
-				{
-					uuid = *(UUID*)payload->Data;
-					changed = true;
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
 
 		{
 			UI::ScopedColor button(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -957,6 +955,58 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	bool ControlDragDrop(std::string_view label, UUID& uuid, const char* dragDropType)
+	{
+		if (!ControlHelperBegin(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+
+		bool changed = false;
+		char buffer[sizeof("0x0123456789ABCDEF")];
+		if (uuid != UUID::Invalid)
+			sprintf_s(buffer, "0x%llx", (uint64_t)uuid);
+		else
+			memset(buffer, 0, sizeof(buffer));
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputTextWithHint("##control", "Null", buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+
+		if (dragDropType)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+				if (payload)
+				{
+					uuid = *(UUID*)payload->Data;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		{
+			UI::ScopedColor button(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
+			UI::ScopedColor buttonHovered(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
+			UI::ScopedColor buttonActive(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+			const float buttonSize = ImGui::GetItemRectSize().y;
+			ImGui::SameLine(0, 0);
+			MoveCursorX(-buttonSize);
+
+			ImGui::BeginChild(UI::GetCurrentID(), ImVec2(buttonSize, buttonSize));
+			if (ImGui::Button("x", { buttonSize, buttonSize }))
+			{
+				uuid = UUID::Null;
+				changed = true;
+			}
+			ImGui::EndChild();
+		}
+
+		ControlHelperEnd();
+		return changed;
+	}
+
 	template<typename T>
 	static bool ControlFlagsT(std::string_view label, T& val, const T& flag)
 	{
@@ -1082,11 +1132,13 @@ namespace Shark::UI {
 		ImGui::AlignTextToFramePadding();
 		Text(label);
 		ImGui::TableSetColumnIndex(1);
-		char buffer[sizeof("0x0123456789ABCDEF")];
+
+		char buffer[21];
 		if (uuid != UUID::Invalid)
-			sprintf_s(buffer, "0x%llx", (uint64_t)uuid);
+			sprintf_s(buffer, "%llu", (uint64_t)uuid);
 		else
-			memset(buffer, 0, sizeof(buffer));
+			buffer[0] = '\0';
+
 		ImGui::SetNextItemWidth(-1.0f);
 		ImGui::InputTextWithHint("##control", "Null", buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
 
@@ -1273,7 +1325,7 @@ namespace Shark::UI {
 		{
 			UI::ScopedFont fontAwesome("FontAwesomeRegular");
 			UI::ScopedColor tint(ImGuiCol_Text, Theme::Colors::TextDark);
-			clear = utils::OverlappButtonKeepLastItemData("\xef\x81\x97", { buttonSize, buttonSize });
+			clear = utils::OverlappButtonKeepLastItemData(id, "\xef\x81\x97", { buttonSize, buttonSize });
 		}
 
 		if (clear)
@@ -1365,18 +1417,36 @@ namespace Shark::UI {
 
 	void Image(Ref<ImageView> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		GContext->ImGuiLayer->AddImage(image->GetImage());
 		ImGui::Image(image->GetViewID(), size, uv0, uv1, tint_col, border_col);
+		GContext->ImGuiLayer->BindFontSampler();
 	}
 
 	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		GContext->ImGuiLayer->AddImage(image);
 		ImGui::Image(image->GetViewID(), size, uv0, uv1, tint_col, border_col);
+		GContext->ImGuiLayer->BindFontSampler();
 	}
 
 	void Texture(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		GContext->ImGuiLayer->AddTexture(texture);
+		GContext->ImGuiLayer->AddImage(texture->GetImage());
 		ImGui::Image(texture->GetViewID(), size, uv0, uv1, tint_col, border_col);
 		GContext->ImGuiLayer->BindFontSampler();
 	}
@@ -1399,7 +1469,7 @@ namespace Shark::UI {
 												ImGuiCol_Text, ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f });
 
 				const float buttonSize = ImGui::GetFontSize();
-				if (utils::OverlappButtonKeepLastItemData("x", { buttonSize, buttonSize }))
+				if (utils::OverlappButtonKeepLastItemData(UI::GetID(displayTexture->GetViewID()), "x", { buttonSize, buttonSize }))
 				{
 					texture = nullptr;
 					changed = true;

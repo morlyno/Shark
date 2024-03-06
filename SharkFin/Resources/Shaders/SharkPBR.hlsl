@@ -74,16 +74,12 @@ struct MaterialUniforms
 
 struct Light
 {
-    float3 Color;
-    float P0;
-    
     float3 Position;
-    float P1;
-    
     float Intensity;
+    float3 Radiance;
     float Radius;
     float Falloff;
-    float P2;
+    float P0, P1, P2;
 };
 
 struct Scene
@@ -98,6 +94,12 @@ struct Scene
 
 [[vk::binding(3, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_IrradianceMap;
 [[vk::binding(3, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_IrradianceMapSampler;
+
+[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_RadianceMap;
+[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_RadianceMapSampler;
+
+[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform Texture2D u_BRDFLUTTexture;
+[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_BRDFLUTTextureSampler;
 
 
 [[vk::binding(0, 0)]] ConstantBuffer<MaterialUniforms> u_MaterialUniforms;
@@ -187,9 +189,15 @@ float3 IBL(float3 F0)
     float3 kd = lerp((float3)1.0 - F, (float3)0.0, m_Params.Metalness);
     float3 diffuseIBL = m_Params.Albedo * irradiance;
 
-    // TODO(moro): specular
-
-    return kd * diffuseIBL;
+    uint width, height, radianceTexLevels;
+    u_RadianceMap.GetDimensions(0, width, height, radianceTexLevels);
+    float3 R = 2.0 * m_Params.NdotV * m_Params.Normal - m_Params.View;
+    float3 specularIrradiance = u_RadianceMap.SampleLevel(u_RadianceMapSampler, R, m_Params.Roughness * radianceTexLevels);
+    
+    float2 specularBRDF = u_BRDFLUTTexture.Sample(u_BRDFLUTTextureSampler, float2(m_Params.NdotV, m_Params.Roughness)).rg;
+    float3 specularIBL = specularIrradiance * (F0 * specularBRDF.x + specularBRDF.y);
+    
+    return kd * diffuseIBL + specularIBL;
     //return irradiance;
 }
 
@@ -220,7 +228,7 @@ PixelOutput main(PixelInput Input)
     if (u_MaterialUniforms.UsingNormalMap)
     {
         m_Params.Normal = normalize(u_NormalMap.Sample(u_NormalMapSampler, Input.Texcoord).rgb * 2.0 - 1.0);
-        m_Params.Normal = normalize(mul(Input.WorldNormals, m_Params.Normal));
+        m_Params.Normal = normalize(mul(m_Params.Normal, Input.WorldNormals));
     }
 
     m_Params.View = normalize(Input.ViewPosition - Input.WorldPosition);
@@ -268,7 +276,7 @@ PixelOutput main(PixelInput Input)
         //float falloff = LightFalloff(u_Light.Position, Input.WorldPosition);
         //float attenuation = u_Light.Intensity * falloff;
 
-        lightContribution += (diffuseBRDF + specularBRDF) * light.Color.rgb * attenuation * NdotL;;
+        lightContribution += (diffuseBRDF + specularBRDF) * light.Radiance.rgb * attenuation * NdotL;;
     }
     
     float3 iblContribution = IBL(F0) * u_Scene.EnvironmentMapIntensity;

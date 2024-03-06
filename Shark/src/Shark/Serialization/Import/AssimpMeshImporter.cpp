@@ -46,6 +46,7 @@ namespace Shark {
 
 	Ref<MeshSource> AssimpMeshImporter::ToMeshSourceFromFile()
 	{
+		SK_PROFILE_FUNCTION();
 		Ref<MeshSource> meshSource = MeshSource::Create();
 
 		Assimp::Importer importer;
@@ -59,6 +60,7 @@ namespace Shark {
 
 		if (scene->HasMeshes())
 		{
+			SK_PROFILE_SCOPED("AssimpMeshImporter::ToMeshSourceFromFile [Load Meshes]");
 			uint32_t vertexCount = 0;
 			uint32_t indexCount = 0;
 
@@ -113,7 +115,7 @@ namespace Shark {
 
 		if (scene->HasMaterials())
 		{
-			Ref<MaterialAsset> materialAsset = Ref<MaterialAsset>::Create();
+			SK_PROFILE_SCOPED("AssimpMeshImporter::ToMeshSourceFromFile [Load Materials]");
 			meshSource->m_Materials.reserve(scene->mNumMaterials);
 			for (uint32_t i = 0; i < scene->mNumMaterials; i++)
 			{
@@ -121,8 +123,6 @@ namespace Shark {
 				aiString materialName = aiMaterial->GetName();
 				Ref<Material> material = Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR"), materialName.C_Str());
 				meshSource->m_Materials.push_back(material);
-				materialAsset->SetMaterial(material);
-				materialAsset->SetDefault();
 
 				glm::vec3 albedoColor(0.8f);
 				float emission = 0.0f;
@@ -137,6 +137,7 @@ namespace Shark {
 				if (aiMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) != aiReturn_SUCCESS)
 					roughness = 0.5f;
 
+				// AI_MATKEY_METALLIC_FACTOR
 				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
 					metalness = 0.0f;
 
@@ -145,7 +146,9 @@ namespace Shark {
 				material->Set("u_MaterialUniforms.Roughness", roughness);
 				material->Set("u_MaterialUniforms.AmbientOcclusion", 0.0f);
 
+
 				aiString aiTexPath;
+				bool fallback = true;
 				if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
@@ -154,9 +157,16 @@ namespace Shark {
 						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
 						material->Set("u_AlbedoMap", texture);
 						material->Set("u_MaterialUniforms.Albedo", glm::vec3(1.0f));
+						fallback = false;
 					}
 				}
 
+				if (fallback)
+				{
+					material->Set("u_AlbedoMap", Renderer::GetWhiteTexture());
+				}
+
+				fallback = true;
 				if (aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
@@ -165,9 +175,17 @@ namespace Shark {
 						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
 						material->Set("u_NormalMap", texture);
 						material->Set("u_MaterialUniforms.UsingNormalMap", true);
+						fallback = false;
 					}
 				}
 
+				if (fallback)
+				{
+					material->Set("u_NormalMap", Renderer::GetWhiteTexture());
+					material->Set("u_MaterialUniforms.UsingNormalMap", false);
+				}
+
+				fallback = true;
 				if (aiMaterial->GetTexture(aiTextureType_METALNESS, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
@@ -176,9 +194,16 @@ namespace Shark {
 						Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(textureHandle);
 						material->Set("u_MetalnessMap", texture);
 						material->Set("u_MaterialUniforms.Metalness", 1.0f);
+						fallback = false;
 					}
 				}
 				
+				if (fallback)
+				{
+					material->Set("u_MetalnessMap", Renderer::GetWhiteTexture());
+				}
+
+				fallback = true;
 				if (aiMaterial->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
@@ -188,6 +213,11 @@ namespace Shark {
 						material->Set("u_RoughnessMap", texture);
 						material->Set("u_MaterialUniforms.Roughness", 1.0f);
 					}
+				}
+
+				if (fallback)
+				{
+					material->Set("u_RoughnessMap", Renderer::GetWhiteTexture());
 				}
 			}
 		}
@@ -221,6 +251,7 @@ namespace Shark {
 
 	AssetHandle AssimpMeshImporter::LoadTexture(const aiScene* scene, const aiString& path)
 	{
+		SK_PROFILE_FUNCTION();
 		TextureSpecification specification;
 		specification.GenerateMips = true;
 		specification.DebugName = path.C_Str();

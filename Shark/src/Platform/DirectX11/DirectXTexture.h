@@ -7,40 +7,12 @@
 
 namespace Shark {
 
-	class DirectXSamplerWrapper : public SamplerWrapper
-	{
-	public:
-		DirectXSamplerWrapper() = default;
-		DirectXSamplerWrapper(const SamplerSpecification& spec);
-		~DirectXSamplerWrapper();
-
-		virtual void Release() override;
-		virtual void Invalidate() override;
-
-		virtual SamplerSpecification& GetSpecification() override { return m_Specification; };
-		virtual const SamplerSpecification& GetSpecification() const override { return m_Specification; };
-
-		virtual RenderID GetSamplerID() const override { return m_Sampler; }
-		ID3D11SamplerState*& GetSampler() { return m_Sampler; }
-		const ID3D11SamplerState* GetSampler() const { return m_Sampler; }
-
-	private:
-		void CreateSampler();
-
-	private:
-		SamplerSpecification m_Specification;
-		ID3D11SamplerState* m_Sampler = nullptr;
-
-		friend class DirectXRenderer;
-	};
-
 	class DirectXTexture2D : public Texture2D
 	{
 	public:
 		DirectXTexture2D();
 		DirectXTexture2D(const TextureSpecification& specification, Buffer imageData);
 		DirectXTexture2D(const TextureSpecification& specification, Ref<TextureSource> textureSource);
-		DirectXTexture2D(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData);
 		virtual ~DirectXTexture2D();
 
 		virtual void Invalidate() override;
@@ -63,7 +35,6 @@ namespace Shark {
 		virtual void SetTextureSource(Ref<TextureSource> textureSource) override;
 
 		virtual RenderID GetViewID() const override { return m_Image->GetViewID(); }
-		virtual Ref<SamplerWrapper> GetSampler() const override { return m_Sampler; }
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
 
 		virtual TextureSpecification& GetSpecification() override { return m_Specification; }
@@ -71,7 +42,6 @@ namespace Shark {
 
 		DirectXImageInfo& GetDirectXImageInfo() { return m_Image->GetDirectXImageInfo(); }
 		const DirectXImageInfo& GetDirectXImageInfo() const { return m_Image->GetDirectXImageInfo(); }
-		ID3D11SamplerState* GetDirectXSampler() const { return m_Sampler->GetSampler(); }
 
 	private:
 		void UploadImageData();
@@ -85,7 +55,7 @@ namespace Shark {
 		Buffer m_ImageData;
 
 		Ref<DirectXImage2D> m_Image;
-		Ref<DirectXSamplerWrapper> m_Sampler;
+		ID3D11SamplerState* m_Sampler = nullptr;
 
 		friend class DirectXRenderer;
 	};
@@ -103,18 +73,19 @@ namespace Shark {
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; };
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; };
 
+		virtual uint32_t GetMipLevelCount() const override { return m_Image->GetSpecification().MipLevels; }
+
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
-		virtual Ref<SamplerWrapper> GetSampler() const override { return m_Sampler; }
 
 		const DirectXImageInfo& GetDirectXImageInfo() const { return m_Image.As<DirectXImage2D>()->GetDirectXImageInfo(); }
-		ID3D11SamplerState* GetDirectXSampler() const { return m_Sampler.As<DirectXSamplerWrapper>()->GetSampler(); }
+		ID3D11UnorderedAccessView*& GetUAV(uint32_t mipSlice) { return m_Image.As<DirectXImage2D>()->GetUAV(mipSlice); }
 
 	private:
 		TextureSpecification m_Specification;
 		Buffer m_ImageData;
 
 		Ref<Image2D> m_Image;
-		Ref<SamplerWrapper> m_Sampler;
+		ID3D11SamplerState* m_Sampler = nullptr;
 	};
 
 }

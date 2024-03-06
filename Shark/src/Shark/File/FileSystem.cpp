@@ -253,44 +253,50 @@ namespace Shark {
 		return created;
 	}
 
-	bool FileSystem::Rename(const std::filesystem::path& oldName, const std::string& newName)
+	bool FileSystem::Rename(const std::filesystem::path& filepath, const std::string& newName)
 	{
 		if (!FileSystem::IsValidFilename(newName))
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\tInvalid Filename", oldName, newName);
+			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\tInvalid Filename", filepath, newName);
 			return false;
 		}
+
+		std::filesystem::path newPath = FileSystem::ChangeFilename(filepath, newName);
 
 		std::error_code error;
-		std::filesystem::rename(oldName, newName, error);
+		std::filesystem::rename(filepath, newPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", oldName, newName, error.message());
-			SK_HANDLE_FS_ERROR("rename", oldName, newName, error);
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", filepath, newName, error.message());
+			SK_HANDLE_FS_ERROR("rename", filepath, newName, error);
 			return false;
 		}
 
+		SK_CORE_TRACE_TAG("Filesystem", "Rename {} => {} ({})", filepath, newName, newPath);
 		return true;
 	}
 
-	bool FileSystem::Rename(const std::filesystem::path& oldName, const std::string& newName, std::string& errorMsg)
+	bool FileSystem::Rename(const std::filesystem::path& filepath, const std::string& newName, std::string& errorMsg)
 	{
 		if (!FileSystem::IsValidFilename(newName))
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\tInvalid Filename", oldName, newName);
+			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\tInvalid Filename", filepath, newName);
 			errorMsg = "Invalid Filename";
 			return false;
 		}
 
+		std::filesystem::path newPath = FileSystem::ChangeFilename(filepath, newName);
+
 		std::error_code error;
-		std::filesystem::rename(oldName, newName, error);
+		std::filesystem::rename(filepath, newPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", oldName, newName, error.message());
+			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\t{}", filepath, newName, error.message());
 			errorMsg = error.message();
 			return false;
 		}
 
+		SK_CORE_TRACE_TAG("Filesystem", "Rename {} => {} ({})", filepath, newName, newPath);
 		errorMsg.clear();
 		return true;
 	}
@@ -315,7 +321,7 @@ namespace Shark {
 		std::filesystem::rename(oldPath, newPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", oldPath, newPath, error.message());
+			SK_CORE_ERROR_TAG("Filesystem", "Move Failed! {} => {}\n\t{}", oldPath, newPath, error.message());
 			errorMsg = error.message();
 			return false;
 		}
@@ -426,6 +432,13 @@ namespace Shark {
 	{
 		std::filesystem::path temp = path;
 		ReplaceExtension(temp, extesnion);
+		return temp;
+	}
+
+	std::filesystem::path FileSystem::ChangeFilename(const std::filesystem::path& path, const std::string& filename)
+	{
+		std::filesystem::path temp = path;
+		ReplaceFilename(temp, filename);
 		return temp;
 	}
 

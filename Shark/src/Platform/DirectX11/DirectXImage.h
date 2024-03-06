@@ -24,7 +24,7 @@ namespace Shark {
 	{
 		ID3D11Texture2D* Resource = nullptr;
 		ID3D11ShaderResourceView* View = nullptr;
-		ID3D11UnorderedAccessView* AccessView = nullptr;
+		ID3D11SamplerState* Sampler = nullptr;
 	};
 
 	class DirectXImage2D : public Image2D
@@ -60,12 +60,18 @@ namespace Shark {
 
 		DirectXImageInfo& GetDirectXImageInfo() { return m_Info; }
 		const DirectXImageInfo& GetDirectXImageInfo() const { return m_Info; }
+		std::map<uint32_t, ID3D11UnorderedAccessView*>& GetPerMipUAVs() { return m_PerMipUAVs; }
+		const std::map<uint32_t, ID3D11UnorderedAccessView*>& GetPerMipUAVs() const { return m_PerMipUAVs; }
 
 		void RT_CreateUnorderAccessView(uint32_t mipSlice);
+		void RT_CreatePerMipUAV();
+		ID3D11UnorderedAccessView*& GetUAV(uint32_t mipSlice) { return m_PerMipUAVs.at(mipSlice); }
 
 	private:
 		ImageSpecification m_Specification;
 		DirectXImageInfo m_Info;
+
+		std::map<uint32_t, ID3D11UnorderedAccessView*> m_PerMipUAVs;
 
 		friend class DirectXRenderer;
 	};
@@ -78,6 +84,7 @@ namespace Shark {
 
 		void Invalidate();
 
+		virtual Ref<Image2D> GetImage() const { return m_Image; }
 		virtual RenderID GetViewID() const override { return m_View; }
 	private:
 		Ref<Image2D> m_Image;
@@ -86,6 +93,8 @@ namespace Shark {
 		ID3D11ShaderResourceView* m_View = nullptr;
 
 		std::string m_DebugName;
+
+		friend class DirectXRenderer;
 	};
 
 }

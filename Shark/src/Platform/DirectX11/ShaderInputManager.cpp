@@ -10,10 +10,9 @@ namespace Shark {
 			switch (inputType)
 			{
 				case InputResourceType::None: return resourceType == ShaderReflection::ResourceType::None;
-				case InputResourceType::Image2D: return resourceType == ShaderReflection::ResourceType::Image2D;
+				case InputResourceType::Image2D: return resourceType == ShaderReflection::ResourceType::Image2D || resourceType == ShaderReflection::ResourceType::Texture2D;
 				case InputResourceType::Texture2D: return resourceType == ShaderReflection::ResourceType::Texture2D;
 				case InputResourceType::TextureCube: return resourceType == ShaderReflection::ResourceType::TextureCube;
-				case InputResourceType::Sampler: return resourceType == ShaderReflection::ResourceType::Sampler;
 				case InputResourceType::ConstantBuffer: return resourceType == ShaderReflection::ResourceType::ConstantBuffer;
 				case InputResourceType::StorageBuffer: return resourceType == ShaderReflection::ResourceType::StorageBuffer;
 			}
@@ -179,16 +178,16 @@ namespace Shark {
 		input.Type = InputResourceType::TextureCube;
 	}
 
-	void ShaderInputManager::SetInput(const std::string& name, Ref<SamplerWrapper> sampler)
-	{
-		auto& input = m_InputResources[name];
-		input.Input = sampler;
-		input.Type = InputResourceType::Sampler;
-	}
-
 	bool ShaderInputManager::HasInput(const std::string& name) const
 	{
 		return m_InputResources.contains(name);
+	}
+
+	Ref<RendererResource> ShaderInputManager::GetResource(const std::string& name) const
+	{
+		if (m_InputResources.contains(name))
+			return m_InputResources.at(name).Input;
+		return nullptr;
 	}
 
 	void ShaderInputManager::GetResource(const std::string& name, Ref<ConstantBuffer>& outConstantBuffer) const
@@ -241,16 +240,6 @@ namespace Shark {
 		}
 	}
 
-	void ShaderInputManager::GetResource(const std::string& name, Ref<SamplerWrapper>& outSampler) const
-	{
-		if (m_InputResources.contains(name))
-		{
-			auto& input = m_InputResources.at(name);
-			SK_CORE_ASSERT(input.Type == InputResourceType::Sampler);
-			outSampler = input.Input.As<SamplerWrapper>();
-		}
-	}
-
 	std::string ToString(InputResourceType type)
 	{
 		switch (type)
@@ -259,7 +248,6 @@ namespace Shark {
 			case InputResourceType::Image2D: return "Image2D";
 			case InputResourceType::Texture2D: return "Texture2D";
 			case InputResourceType::TextureCube: return "TextureCube";
-			case InputResourceType::Sampler: return "Sampler";
 			case InputResourceType::ConstantBuffer: return "ConstantBuffer";
 			case InputResourceType::StorageBuffer: return "StorageBuffer";
 		}

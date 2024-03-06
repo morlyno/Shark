@@ -24,6 +24,7 @@ namespace Shark {
 				case ImageFormat::R8: return DXGI_FORMAT_R8_UNORM;
 				case ImageFormat::R16F: return DXGI_FORMAT_R16_FLOAT;
 				case ImageFormat::R32_SINT: return DXGI_FORMAT_R32_SINT;
+				case ImageFormat::RG16F: return DXGI_FORMAT_R16G16_FLOAT;
 				case ImageFormat::Depth32: return DXGI_FORMAT_R32_TYPELESS;
 			}
 			SK_CORE_ASSERT(false, "Unkown Image Format");
@@ -42,6 +43,7 @@ namespace Shark {
 				case ImageFormat::R8: return DXGI_FORMAT_R8_UNORM;
 				case ImageFormat::R16F: return DXGI_FORMAT_R16_FLOAT;
 				case ImageFormat::R32_SINT: return DXGI_FORMAT_R32_SINT;
+				case ImageFormat::RG16F: return DXGI_FORMAT_R16G16_FLOAT;
 				case ImageFormat::Depth32: return DXGI_FORMAT_R32_FLOAT;
 			}
 			SK_CORE_ASSERT(false, "Unkown Image Format");
@@ -98,22 +100,24 @@ namespace Shark {
 
 	void DirectXImage2D::Release()
 	{
-		if (!m_Info.Resource && !m_Info.View && !m_Info.AccessView)
+		SK_CORE_VERIFY(m_Info.Sampler ? m_Info.Resource || m_Info.View : true);
+		if (!m_Info.Resource)
 			return;
 
-		Renderer::SubmitResourceFree([info = m_Info]()
+		Renderer::SubmitResourceFree([info = m_Info, uavs = m_PerMipUAVs]()
 		{
-			if (info.Resource)
-				info.Resource->Release();
-			if (info.View)
-				info.View->Release();
-			if (info.AccessView)
-				info.AccessView->Release();
+			DirectXAPI::ReleaseObject(info.Resource);
+			DirectXAPI::ReleaseObject(info.View);
+			DirectXAPI::ReleaseObject(info.Sampler);
+
+			for (const auto [mip, uav] : uavs)
+				DirectXAPI::ReleaseObject(uav);
 		});
 
 		m_Info.Resource = nullptr;
 		m_Info.View = nullptr;
-		m_Info.AccessView = nullptr;
+		m_Info.Sampler = nullptr;
+		m_PerMipUAVs.clear();
 	}
 
 	void DirectXImage2D::Invalidate()
@@ -199,6 +203,14 @@ namespace Shark {
 			DirectXAPI::CreateShaderResourceView(device, m_Info.Resource, shaderResourceViewDesc, m_Info.View);
 			DirectXAPI::SetDebugName(m_Info.View, m_Specification.DebugName);
 		}
+
+		if (m_Specification.CreateSampler)
+		{
+			SK_CORE_ASSERT(m_Info.Sampler == nullptr);
+			m_Info.Sampler = renderer->GetClampLinearSampler();
+			m_Info.Sampler->AddRef();
+		}
+
 	}
 
 	void DirectXImage2D::Resize(uint32_t width, uint32_t height)
@@ -281,6 +293,9 @@ namespace Shark {
 
 	void DirectXImage2D::RT_CreateUnorderAccessView(uint32_t mipSlice)
 	{
+		if (m_PerMipUAVs.contains(mipSlice) && m_PerMipUAVs.at(mipSlice))
+			return;
+
 		D3D11_UNORDERED_ACCESS_VIEW_DESC unorderedAccessViewDesc{};
 		unorderedAccessViewDesc.Format = DXImageUtils::ImageFormatToD3D11ForView(m_Specification.Format);
 		if (m_Specification.Type == ImageType::TextureCube)
@@ -298,8 +313,21 @@ namespace Shark {
 
 		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
 		ID3D11Device* device = renderer->GetDevice();
-		DirectXAPI::CreateUnorderedAccessView(device, m_Info.Resource, unorderedAccessViewDesc, m_Info.AccessView);
-		DirectXAPI::SetDebugName(m_Info.AccessView, m_Specification.DebugName);
+
+		ID3D11UnorderedAccessView* uav;
+		DirectXAPI::CreateUnorderedAccessView(device, m_Info.Resource, unorderedAccessViewDesc, uav);
+		std::string debugName = fmt::format("{} UAV (Mip={})", m_Specification.DebugName, mipSlice);
+		DirectXAPI::SetDebugName(uav, debugName);
+
+		m_PerMipUAVs[mipSlice] = uav;
+	}
+
+	void DirectXImage2D::RT_CreatePerMipUAV()
+	{
+		for (uint32_t i = 0; i < m_Specification.MipLevels; i++)
+		{
+			RT_CreateUnorderAccessView(i);
+		}
 	}
 
 	DirectXImageView::DirectXImageView(Ref<Image2D> image, uint32_t mipSlice)
@@ -315,9 +343,9 @@ namespace Shark {
 
 		Renderer::SubmitResourceFree([view = m_View]()
 		{
-			if (view)
-				view->Release();
+			DirectXAPI::ReleaseObject(view);
 		});
+
 		m_View = nullptr;
 	}
 
@@ -328,9 +356,27 @@ namespace Shark {
 		SK_CORE_VERIFY(imageSpecification.MipLevels != 0);
 		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
 		shaderResourceViewDesc.Format = DXImageUtils::ImageFormatToD3D11ForView(dxImage->GetSpecification().Format);
-		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		shaderResourceViewDesc.Texture2D.MipLevels = 1;
-		shaderResourceViewDesc.Texture2D.MostDetailedMip = m_MipSlice;
+
+		if (dxImage->GetType() == ImageType::TextureCube)
+		{
+			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+			shaderResourceViewDesc.TextureCube.MipLevels = 1;
+			shaderResourceViewDesc.TextureCube.MostDetailedMip = m_MipSlice;
+		}
+		else if (dxImage->GetSpecification().Layers > 1)
+		{
+			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+			shaderResourceViewDesc.Texture2DArray.ArraySize = dxImage->GetSpecification().Layers;
+			shaderResourceViewDesc.Texture2DArray.FirstArraySlice = 0;
+			shaderResourceViewDesc.Texture2DArray.MipLevels = 1;
+			shaderResourceViewDesc.Texture2DArray.MostDetailedMip = m_MipSlice;
+		}
+		else
+		{
+			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			shaderResourceViewDesc.Texture2D.MipLevels = 1;
+			shaderResourceViewDesc.Texture2D.MostDetailedMip = m_MipSlice;
+		}
 
 		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
 		ID3D11Device* device = renderer->GetDevice();

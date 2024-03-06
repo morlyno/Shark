@@ -59,3 +59,29 @@ vec3 GetCubeMapTexCoord(vec2 imageSize)
     }
     return normalize(result);
 }
+
+// GGX/Trowbride-Reitz normal distribution
+// Uses Disney's reparameterization of alpha = Roughness^2
+float NDFGGX(float cosLh, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alphaSq = alpha * alpha;
+
+    float denom = (cosLh * cosLh) * (alphaSq - 1.0) + 1.0;
+    return alphaSq / (PI * denom * denom);
+}
+
+// Importance sample GGX normal distribution function for a fixed roughness value.
+// This returns normalized half-vector between Li & Lo.
+// For derivation see: http://blog.tobias-franke.eu/2014/03/30/notes_on_importance_sampling.html
+vec3 SampleGGX(float u1, float u2, float roughness)
+{
+	float alpha = roughness * roughness;
+
+	float cosTheta = sqrt((1.0 - u2) / (1.0 + (alpha*alpha - 1.0) * u2));
+	float sinTheta = sqrt(1.0 - cosTheta*cosTheta); // Trig. identity
+	float phi = TwoPI * u1;
+
+	// Convert to Cartesian upon return.
+	return vec3(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
+}

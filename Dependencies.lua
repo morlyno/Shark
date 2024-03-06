@@ -23,7 +23,7 @@ stb_image = {
     IncludeDir = "%{stb_image.BaseDir}",
     Files = {
         "%{stb_image.BaseDir}/stb_image.h",
-        "%{stb_image.BaseDir}/stb_image.cpp",
+        "%{stb_image.BaseDir}/stb_image.cpp"
     }
 }
 

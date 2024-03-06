@@ -134,6 +134,7 @@ namespace Shark {
 		imageSpec.Height = m_Specification.Height;
 		imageSpec.Format = m_Format;
 		imageSpec.Type = ImageType::Atachment;
+		imageSpec.CreateSampler = false;
 
 		Renderer::Submit([instance, swapchainImage]()
 		{
@@ -217,11 +218,18 @@ namespace Shark {
 			DirectXImageInfo& info = image.GetRef()->GetDirectXImageInfo();
 			DirectXAPI::ReleaseObject(info.View);
 			DirectXAPI::ReleaseObject(info.Resource);
-			DirectXAPI::ReleaseObject(info.AccessView);
+			DirectXAPI::ReleaseObject(info.Sampler);
+
+			auto& perMipUAVs = image.GetRef()->GetPerMipUAVs();
+			for (auto& [mip, uav] : perMipUAVs)
+			{
+				DirectXAPI::ReleaseObject(uav);
+				uav = nullptr;
+			}
 
 			info.View = nullptr;
 			info.Resource = nullptr;
-			info.AccessView = nullptr;
+			info.Sampler = nullptr;
 
 			it++;
 		}

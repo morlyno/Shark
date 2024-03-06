@@ -35,18 +35,29 @@ namespace Shark {
 	public:
 		struct Statistics
 		{
-			TimeStep GPUTime;
-			TimeStep GeometryPass;
-			TimeStep SkyboxPass;
+			TimeStep GPUTime = 0;
+			TimeStep GeometryPass = 0;
+			TimeStep SkyboxPass = 0;
+			TimeStep CompositePass = 0;
 
-			uint32_t DrawCalls;
-			uint32_t VertexCount;
-			uint32_t IndexCount;
+			uint32_t DrawCalls = 0;
+			uint32_t VertexCount = 0;
+			uint32_t IndexCount = 0;
 		};
 
 		struct Options
 		{
 			bool SkyboxPass = true;
+			bool Tonemap = false;
+			float Exposure = 1.0f;
+		};
+
+		struct TimestampQueries
+		{
+			uint32_t TotalTimeQuery = (uint32_t)-1;
+			uint32_t GeometryPassQuery = (uint32_t)-1;
+			uint32_t SkyboxPassQuery = (uint32_t)-1;
+			uint32_t CompositePassQuery = (uint32_t)-1;
 		};
 
 	public:
@@ -55,42 +66,27 @@ namespace Shark {
 		SceneRenderer(Ref<Scene> scene);
 		~SceneRenderer();
 
-		Options& GetOptions() { return m_Options; }
+		void Resize(uint32_t width, uint32_t height);
+		void SetClearColor(const glm::vec4& clearColor);
 
 		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
-
 		void BeginScene(const SceneRendererCamera& camera);
 		void EndScene();
 
-		void SubmitQuad(const glm::vec3& position, const glm::vec3& roation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor = 1.0f, const glm::vec4& tintcolor = { 1.0f, 1.0f, 1.0f, 1.0f }, int id = -1);
-		void SubmitFilledCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, float thickness, float fade, int id = -1);
-		void SubmitCircle(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
-
-		void SubmitQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id);
-		void SubmitFilledCircle(const glm::mat4& transform, float thickness, float fade, const glm::vec4& tintcolor, int id);
-		void SubmitCircle(const glm::mat4& transform, const glm::vec4& tintcolor, int id);
-
-		void SubmitText(const glm::mat4& transform, Ref<Font> font, const std::string& text, float kerning, float lineSpacing, const glm::vec4& color, int id);
-
-		void SubmitEnvironment(AssetHandle environment, float intensity, float lod);
-		void SubmitPointLight(const glm::vec3& position, const glm::vec3& color, float intensity, float radius, float falloff);
-
-		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, int id);
-		void SubmitMesh(const glm::mat4& transform, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, int id);
-
-		void Resize(uint32_t width, uint32_t height);
-
-		Ref<Image2D> GetFinalImage() const { return m_ExternalCompositeFrameBuffer->GetImage(0); }
-		Ref<Image2D> GetIDImage() const { return m_GeometryFrameBuffer->GetImage(1); }
-		Ref<FrameBuffer> GetExternalCompositFrameBuffer() const { return m_ExternalCompositeFrameBuffer; }
+		void SubmitMesh(Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, const glm::mat4& transform, int id);
 
 		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
+		Ref<Image2D> GetFinalPassImage() const { return m_CompositePass->GetOutput(0); }
+		Ref<Image2D> GetIDImage() const { return m_CompositePass->GetOutput(1); }
+		Ref<RenderPass> GetExternalCompositePass() const { return m_CompositePass; }
+
+		Options& GetOptions() { return m_Options; }
+		const Statistics& GetStatisitcs() const { return m_Statistics; }
 		const Renderer2D::Statistics& GetRenderer2DStats() const { return m_Renderer2D->GetStatistics(); }
 
-		const Statistics& GetStatisitcs() const { return m_Statistics; }
-
 	private:
-		void ClearPass();
+		void PreRender();
+
 		void GeometryPass();
 		void SkyboxPass();
 
@@ -120,19 +116,8 @@ namespace Shark {
 		struct CBSkyboxSettings
 		{
 			float Lod;
-			float Padding[3];
-		};
-
-		struct Light
-		{
-			glm::vec3 Color;
-			float P0;
-			glm::vec3 Position;
-			float P1;
 			float Intensity;
-			float Radius;
-			float Falloff;
-			float P2;
+			float P0, P1;
 		};
 
 		struct MeshPushConstant
@@ -144,18 +129,17 @@ namespace Shark {
 		struct MeshData
 		{
 			Ref<Mesh> Mesh;
-			Ref<Material> Material;
 			uint32_t SubmeshIndex;
+			Ref<Material> Material;
 			glm::mat4 Transform;
 			int ID;
 		};
 
-		struct LightEnvironment
+		struct CBCompositeSettings
 		{
-			std::vector<Light> Lights;
-			AssetHandle EnvironmentHandle;
-			float Intesity;
-			float Lod;
+			uint32_t Tonemap = 0;
+			float Exposure = 1.0f;
+			float P0, P1;
 		};
 
 	private:
@@ -166,33 +150,31 @@ namespace Shark {
 		PipelineStatistics m_PipelineStatistics;
 		Options m_Options;
 
+		// Set from SceneRendererPanel
+		float m_SkyboxIntensity = 1.0f;
+
 		Ref<ConstantBuffer> m_CBScene;
 		Ref<ConstantBuffer> m_CBCamera;
 		Ref<ConstantBuffer> m_CBSkybox;
 		Ref<ConstantBuffer> m_CBSkyboxSettings;
+		Ref<ConstantBuffer> m_CBCompositeSettings;
 		Ref<StorageBuffer> m_SBLights;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
 
-		uint32_t m_TimerID;
-		uint32_t m_GeometryPassTimerID;
-		uint32_t m_SkyboxPassTimerID;
+		TimestampQueries m_TimestampQueries;
 
 		glm::mat4 m_ViewProjection;
 		glm::mat4 m_View;
 		glm::mat4 m_Projection;
 		glm::vec3 m_CameraPosition;
 
-		LightEnvironment m_LightEnvironment;
-		std::vector<MeshData> m_Meshes;
+		std::vector<MeshData> m_DrawList;
 
-		// Geometry
-		Ref<FrameBuffer> m_GeometryFrameBuffer;
-		Ref<FrameBuffer> m_ExternalCompositeFrameBuffer;
-
-		Ref<RenderPass> m_PBRPass;
+		Ref<RenderPass> m_GeometryPass;
 		Ref<RenderPass> m_SkyboxPass;
+		Ref<RenderPass> m_CompositePass;
 
 		bool m_NeedsResize = true;
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };

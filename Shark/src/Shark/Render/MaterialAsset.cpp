@@ -9,10 +9,11 @@ namespace Shark {
 	 //=//  Material Asset                                        //=//
 	//=//========================================================//=//
 
-	MaterialAsset::MaterialAsset(Ref<Material> material)
+	MaterialAsset::MaterialAsset(Ref<Material> material, bool setDefault)
 		: m_Material(material)
 	{
-		SetDefault();
+		if (setDefault)
+			SetDefault();
 	}
 
 	MaterialAsset::~MaterialAsset()
@@ -159,7 +160,7 @@ namespace Shark {
 	//=//========================================================//=//
 
 
-	void MaterialTable::SetMaterial(uint32_t index, Ref<MaterialAsset> material)
+	void MaterialTable::SetMaterial(uint32_t index, AssetHandle material)
 	{
 		m_Materials[index] = material;
 	}
@@ -171,7 +172,7 @@ namespace Shark {
 		m_Materials.erase(index);
 	}
 
-	Ref<MaterialAsset> MaterialTable::GetMaterial(uint32_t index) const
+	AssetHandle MaterialTable::GetMaterial(uint32_t index) const
 	{
 		SK_CORE_VERIFY(HasMaterial(index));
 		return m_Materials.at(index);

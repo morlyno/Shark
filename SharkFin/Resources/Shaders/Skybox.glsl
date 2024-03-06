@@ -23,7 +23,8 @@ layout(set = 1, binding = 2) uniform samplerCube u_EnvironmentMap;
 layout(set = 1, binding = 1) uniform Settings
 {
     float Lod;
-    float P0, P1, P2;
+    float Intensity;
+    float P0, P1;
 } u_Settings;
 
 layout(location = 0) in vec3 v_LocalPosition;
@@ -32,5 +33,6 @@ layout(location = 0) out vec4 o_Color;
 void main()
 {
     vec3 uv = normalize(v_LocalPosition);
-    o_Color = textureLod(u_EnvironmentMap, uv, u_Settings.Lod);
+    vec3 color = textureLod(u_EnvironmentMap, uv, u_Settings.Lod).rgb * u_Settings.Intensity;
+    o_Color = vec4(color, 1.0f);
 }

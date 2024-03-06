@@ -115,15 +115,6 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(ImageFormat format, uint32_t width, uint32_t height, Buffer imageData)
-	{
-		TextureSpecification specification;
-		specification.Format = format;
-		specification.Width = width;
-		specification.Height = height;
-		return Create(specification, imageData);
-	}
-
 	Ref<Texture2D> Texture2D::Create(Ref<TextureSource> textureSource)
 	{
 		return Create({}, textureSource);
@@ -133,18 +124,6 @@ namespace Shark {
 	{
 		auto source = TextureImporter::ToTextureSourceFromFile(filepath);
 		return Create(specification, source);
-	}
-
-	Ref<SamplerWrapper> SamplerWrapper::Create(const SamplerSpecification& spec)
-	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXSamplerWrapper>::Create(spec);
-		}
-
-		SK_CORE_ASSERT(false, "Unkown API");
-		return nullptr;
 	}
 
 	Ref<TextureCube> TextureCube::Create(const TextureSpecification& specification, Buffer imageData)

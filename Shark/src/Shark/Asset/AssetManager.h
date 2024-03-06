@@ -33,6 +33,7 @@ namespace Shark {
 			Ref<TAsset> asset = TAsset::Create(std::forward<TArgs>(args)...);
 			return AddMemoryAsset(asset);
 		}
+		
 	};
 
 }

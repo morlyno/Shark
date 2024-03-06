@@ -93,11 +93,7 @@ namespace Shark {
 	ContentBrowserItem::ContentBrowserItem(Ref<ContentBrowserPanel> context, CBItemType type, const std::filesystem::path& filepath)
 		: m_Context(context), m_Type(type), m_Path(context->GetProject()->GetAbsolute(filepath))
 	{
-		if (type == CBItemType::Directory)
-			m_Name = filepath.filename().string();
-		else
-			m_Name = filepath.stem().string();
-
+		UpdateName();
 		UpdateIcon();
 	}
 
@@ -233,7 +229,7 @@ namespace Shark {
 				Ref<Texture2D> texture = (m_Thumbnail && m_Thumbnail->IsValid()) ? m_Thumbnail : m_Icon;
 
 				ImGuiLayer& imguiLayer = Application::Get().GetImGuiLayer();
-				imguiLayer.AddTexture(texture);
+				imguiLayer.AddImage(texture->GetImage());
 				drawList->AddImageRounded(
 					m_Thumbnail ? m_Thumbnail->GetViewID() : m_Icon->GetViewID(),
 					thumbnailTopLeft + ImVec2(borderSize, borderSize),
@@ -277,8 +273,8 @@ namespace Shark {
 					action.ErrorPrompt("Invalid Filename");
 
 				if (ImGui::IsItemDeactivatedAfterEdit())
-					action.FinishRenaming(m_RenameBuffer);
-				else if (ImGui::IsItemDeactivated())
+					action.FinishRenaming(fmt::format("{}{}", m_RenameBuffer, FileSystem::GetExtensionString(m_Path)));
+				if (ImGui::IsItemDeactivated())
 					SetFlag(StateFlag::Renaming, false);
 			}
 			else
@@ -315,22 +311,23 @@ namespace Shark {
 
 	void ContentBrowserItem::StartRenaming()
 	{
-		SK_DEBUG_BREAK();
 		if (FlagSet(StateFlag::Renaming))
 			return;
 
-		memset(m_RenameBuffer, 0, sizeof(m_RenameBuffer));
+		strcpy_s(m_RenameBuffer, m_Name.c_str());
 		SetFlag(StateFlag::StartRenaming, true);
 	}
 
-	bool ContentBrowserItem::Rename(const std::string& newName)
+	bool ContentBrowserItem::Rename(std::string newName, bool addExtension)
 	{
-		SK_DEBUG_BREAK();
 		if (!FileSystem::IsValidFilename(newName))
 		{
 			// TODO(moro): Error prompt
 			return false;
 		}
+
+		if (addExtension)
+			newName = fmt::format("{}{}", newName, FileSystem::GetExtensionString(m_Path));
 
 		std::string errorMsg;
 		FileSystem::Rename(m_Path, newName, errorMsg);
@@ -340,13 +337,13 @@ namespace Shark {
 			return false;
 		}
 
-		FileSystem::ReplaceStem(m_Path, newName);
+		FileSystem::ReplaceFilename(m_Path, newName);
+		UpdateName();
 		return true;
 	}
 
 	bool ContentBrowserItem::Delete()
 	{
-		SK_DEBUG_BREAK();
 		if (!FileSystem::Remove(m_Path))
 		{
 			// TODO(moro): Error prompt
@@ -403,6 +400,14 @@ namespace Shark {
 				break;
 			}
 		}
+	}
+
+	void ContentBrowserItem::UpdateName()
+	{
+		if (m_Type == CBItemType::Directory)
+			m_Name = m_Path.filename().string();
+		else
+			m_Name = m_Path.stem().string();
 	}
 
 }

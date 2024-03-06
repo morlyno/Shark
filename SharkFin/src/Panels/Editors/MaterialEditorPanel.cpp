@@ -178,28 +178,36 @@ namespace Shark {
 		m_MaterialHandle = metadata.Handle;
 		m_MaterialEditor->SetMaterial(metadata.Handle);
 
-		//m_Camera.SetProjection(m_ViewportSize.x / m_ViewportSize.y, 45.0f, 1.0f, 100.0f);
-
 		m_Scene = Ref<Scene>::Create();
 		m_Scene->SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 		SceneRendererSpecification specification;
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene);
 
-		AssetHandle sphereSourceHandle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
-		Ref<MeshSource> sphereSource = AssetManager::GetAsset<MeshSource>(sphereSourceHandle);
-		m_Sphere = AssetManager::CreateMemoryAsset<Mesh>(sphereSource);
+		if (!AssetManager::IsValidAssetHandle(m_Sphere))
+		{
+			AssetHandle sphereSourceHandle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
+			Ref<MeshSource> sphereSource = AssetManager::GetAsset<MeshSource>(sphereSourceHandle);
+			m_Sphere = AssetManager::CreateMemoryAsset<Mesh>(sphereSource);
+		}
+
 		Ref<Mesh> sphere = AssetManager::GetAsset<Mesh>(m_Sphere);
 
 		Entity entity = m_Scene->CreateEntity("Sphere");
-		MeshRendererComponent& meshRenderer = entity.AddComponent<MeshRendererComponent>();
-		meshRenderer.MeshHandle = sphere->Handle;
-		meshRenderer.MaterialHandle = m_MaterialHandle;
-		meshRenderer.SubmeshIndex = 0;
+		MeshComponent& meshComp = entity.AddComponent<MeshComponent>();
+		meshComp.Mesh = sphere->Handle;
+		meshComp.Material = m_MaterialHandle;
+		meshComp.SubmeshIndex = 0;
 
 		Entity lightEntity = m_Scene->CreateEntity("Light");
 		lightEntity.Transform().Translation = { -4.0f, 3.0f, -4.0f };
 		lightEntity.Transform().Scale = glm::vec3(10.0f);
 		lightEntity.AddComponent<PointLightComponent>().Intensity = 50.0f;
+
+		Entity skyEntity = m_Scene->CreateEntity("Sky");
+		auto& skyComp = skyEntity.AddComponent<SkyComponent>();
+		skyComp.SceneEnvironment = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Environment/DefaultMaterialEditorEnvMap.hdr");
+		skyComp.Intensity = 0.8f;
+		skyComp.Lod = 4.5f;
 
 		Entity cameraEntity = m_Scene->CreateEntity("Camera");
 		cameraEntity.AddComponent<CameraComponent>().Camera.SetPerspective(m_ViewportSize.x / m_ViewportSize.y, 45.0f, 0.1f, 100.0f);
@@ -268,7 +276,7 @@ namespace Shark {
 					m_NeedsResize = true;
 				}
 
-				Ref<Image2D> finalImage = m_Renderer->GetFinalImage();
+				Ref<Image2D> finalImage = m_Renderer->GetFinalPassImage();
 				UI::Image(finalImage, { (float)finalImage->GetWidth(), (float)finalImage->GetHeight() });
 
 				ImGui::TableSetColumnIndex(1);

@@ -20,6 +20,7 @@ namespace Shark {
 		char m_SearchBuffer[260];
 		bool m_SearchHasUppercase = false;
 		bool m_CaseSensitive = false;
+		bool m_Edit = false;
 
 		//struct AssetTypeFlag
 		//{

@@ -60,6 +60,7 @@ namespace Shark {
 		AssetHandle ImportAssetFrom(const std::filesystem::path& sourceFile, const std::filesystem::path& destinationDirectory, const std::string& overrideFilename = {});
 
 		const AssetsMap& GetLoadedAssets() const;
+		AssetMetadataMap& GetAssetMetadataMap();
 		const AssetMetadataMap& GetAssetMetadataMap() const;
 
 		// File Events

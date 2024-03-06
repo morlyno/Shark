@@ -10,6 +10,7 @@
 #include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scene/Physics2DScene.h"
 #include "Shark/Render/EditorCamera.h"
+#include "Shark/Render/Environment.h"
 
 #include <entt.hpp>
 
@@ -30,6 +31,21 @@ namespace Shark {
 
 	private:
 		Ref<Scene> m_Context;
+	};
+
+	struct PointLight
+	{
+		glm::vec3 Position;
+		float Intensity;
+		glm::vec3 Radiance;
+		float Radius;
+		float Falloff;
+		float P0, P1, P2;
+	};
+
+	struct LightEnvironment
+	{
+		std::vector<PointLight> PointLights;
 	};
 
 	class Scene : public Asset
@@ -69,6 +85,12 @@ namespace Shark {
 		void OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera);
 
 		void OnRender(Ref<SceneRenderer> renderer, const SceneRendererCamera& camera);
+
+		Ref<Environment> GetEnvironment() const { return m_Environment; }
+		float GetEnvironmentIntesity() const { return m_EnvironmentInesitiy; }
+		float GetSkyboxLod() const { return m_SkyboxLod; }
+
+		const std::vector<PointLight>& GetPointLights() const { return m_LightEnvironment.PointLights; }
 
 		Entity CloneEntity(Entity srcEntity);
 		Entity CreateEntity(const std::string& tag = std::string{});
@@ -138,9 +160,6 @@ namespace Shark {
 		void OnPhysics2DStop();
 		void OnPhyicsStep(TimeStep fixedTimeStep);
 
-		void RenderEntityHirachy(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& parentTransform);
-		void RenderEntity(Ref<SceneRenderer> renderer, Entity entity, const glm::mat4& transform);
-
 		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity ent);
 		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity ent);
 		void OnCircleCollider2DComponentCreated(entt::registry& registry, entt::entity ent);
@@ -168,6 +187,11 @@ namespace Shark {
 
 		bool m_Paused = false;
 		uint32_t m_StepFrames = 0;
+
+		LightEnvironment m_LightEnvironment;
+		Ref<Environment> m_Environment;
+		float m_EnvironmentInesitiy = 1.0f;
+		float m_SkyboxLod = 0.0f;
 
 		std::vector<std::function<void()>> m_PostUpdateQueue;
 

@@ -61,11 +61,17 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::Begin()
 	{
+		m_Active = true;
+
+		const uint32_t poolIndex = Renderer::GetCurrentFrameIndex() % m_TimestampQueryPools.size();
+		m_TimestampQueryCount[poolIndex] = 0;
 		m_NextAvailableQueryIndex = 0;
+
+
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance]()
 		{
-			uint32_t index = Renderer::RT_GetCurrentFrameIndex() % instance->m_TimestampQueryPools.size();
+			uint32_t index = Renderer::RT_GetCurrentFrameIndex() % instance->m_PipelineStatsQueries.size();
 			instance->m_Context->Begin(instance->m_PipelineStatsQueries[index]);
 		});
 	}
@@ -75,7 +81,7 @@ namespace Shark {
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance]()
 		{
-			uint32_t index = Renderer::RT_GetCurrentFrameIndex() % instance->m_TimestampQueryPools.size();
+			uint32_t index = Renderer::RT_GetCurrentFrameIndex() % instance->m_PipelineStatsQueries.size();
 			instance->m_Context->End(instance->m_PipelineStatsQueries[index]);
 
 			if (instance->m_Type == CommandBufferType::Deferred)
@@ -84,6 +90,7 @@ namespace Shark {
 				SK_DX11_CALL(instance->m_Context->FinishCommandList(FALSE, &instance->m_CommandList));
 			}
 		});
+		m_Active = false;
 	}
 
 	void DirectXRenderCommandBuffer::Execute()
@@ -115,7 +122,7 @@ namespace Shark {
 			}
 
 			uint32_t index = 0;
-			instance->m_TimestampQueryResults[getdataIndex].resize(instance->m_TimestampQueryPools[getdataIndex].size());
+			instance->m_TimestampQueryResults[getdataIndex].resize(instance->m_TimestampQueryCount[getdataIndex]);
 			for (auto& [startQuery, endQuery] : instance->m_TimestampQueryPools[getdataIndex])
 			{
 				HRESULT hrStart, hrEnd;
@@ -136,6 +143,7 @@ namespace Shark {
 
 	TimeStep DirectXRenderCommandBuffer::GetTime(uint32_t queryID) const
 	{
+		SK_CORE_VERIFY(!m_Active);
 		const uint32_t getdataIndex = (Renderer::GetCurrentFrameIndex() + 1) % (uint32_t)m_PipelineStatsQueries.size();
 		auto& pool = m_TimestampQueryResults[getdataIndex];
 		if (queryID < pool.size())
@@ -145,6 +153,7 @@ namespace Shark {
 
 	uint32_t DirectXRenderCommandBuffer::BeginTimestampQuery()
 	{
+		SK_CORE_VERIFY(m_Active);
 		const uint32_t poolIndex = Renderer::GetCurrentFrameIndex() % m_TimestampQueryPools.size();
 		const uint32_t queryIndex = m_NextAvailableQueryIndex++;
 		if (m_TimestampQueryPools[poolIndex].size() == queryIndex)
@@ -157,6 +166,7 @@ namespace Shark {
 			m_TimestampQueryPools[poolIndex].emplace_back(startQuery, endQuery);
 		}
 
+		m_TimestampQueryCount[poolIndex]++;
 		auto [beginQuery, endQuery] = m_TimestampQueryPools[poolIndex][queryIndex];
 		SK_CORE_VERIFY(beginQuery);
 
@@ -167,8 +177,9 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::EndTimestampQuery(uint32_t queryID)
 	{
+		SK_CORE_VERIFY(m_Active);
 		const uint32_t index = Renderer::GetCurrentFrameIndex() % m_TimestampQueryPools.size();
-		SK_CORE_VERIFY(queryID < m_TimestampQueryPools.size(), "Invalid timestamp query ID {}", queryID);
+		SK_CORE_VERIFY(queryID < m_TimestampQueryPools[index].size(), "Invalid timestamp query ID {}", queryID);
 		auto [beginQuery, endQuery] = m_TimestampQueryPools[index][queryID];
 
 		Ref<DirectXRenderCommandBuffer> instance = this;

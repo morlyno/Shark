@@ -4,6 +4,7 @@
 #include "Shark/Render/Camera.h"
 #include "Shark/Event/Event.h"
 #include "Shark/Event/MouseEvent.h"
+#include "Shark/Event/KeyEvent.h"
 #include "Shark/Core/TimeStep.h"
 
 #include <glm/glm.hpp>
@@ -57,13 +58,20 @@ namespace Shark {
 		float GetSpeedup() const { return m_SpeedupFactor; }
 		void SetSpeedup(float speedup) { m_SpeedupFactor = speedup; }
 
+		float GetSlowdown() const { return m_SlowdownFactor; }
+		void SetSlowdown(float slowdown) { m_SlowdownFactor = slowdown; }
+
 		float GetRotationSpeed() const { return m_RotateSpeed; }
 		void SetRotationSpeed(float rotationSpeed) { m_RotateSpeed = rotationSpeed; }
 
+		bool GetFlyMode() const { return m_FlyMode; }
+
 		void OnUpdate(TimeStep ts, bool update);
 		void OnEvent(Event& event);
+
 	private:
 		bool OnMouseScolledEvent(MouseScrolledEvent& event);
+		bool OnKeyPressedEvent(KeyPressedEvent& event);
 
 	private:
 		glm::vec3 GetForwardDirection() const;
@@ -90,9 +98,13 @@ namespace Shark {
 		void Move(const glm::vec3& direction, float delta);
 		void Rotate(const glm::vec2& delta);
 	private:
-		float m_MoveSpeed = 20.0f;
+		bool m_Update = false;
+		bool m_FlyMode = false;
+
+		float m_MoveSpeed = 10.0f;
 		float m_RotateSpeed = 0.5f;
-		float m_SpeedupFactor = 4.0f;
+		float m_SpeedupFactor = 6.0f;
+		float m_SlowdownFactor = 0.5f;
 
 		float m_AspectRatio = 16.0f / 9.0f;
 		float m_FOV = glm::radians(45.0f);

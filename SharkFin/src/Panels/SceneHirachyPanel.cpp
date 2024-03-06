@@ -136,9 +136,9 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Sprite Renderer", SpriteRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Circle Renderer", CircleRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Text Renderer", TextRendererComponent));
-		m_Components.push_back(COMPONENT_DATA_ARGS("Mesh Renderer", MeshRendererComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Mesh Renderer", MeshComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Point Light", PointLightComponent));
-		m_Components.push_back(COMPONENT_DATA_ARGS("Environment", EnvironmentComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Sky", SkyComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Camera", CameraComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Rigidbody 2D", RigidBody2DComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Box Collider 2D", BoxCollider2DComponent));
@@ -151,7 +151,6 @@ namespace Shark {
 
 		m_MaterialEditor = Scope<MaterialEditor>::Create();
 		m_MaterialEditor->SetName("Material");
-		m_MeshSourceMaterialAsset = MaterialAsset::Create();
 		UpdateMaterialEditor(m_SelectedEntity);
 	}
 
@@ -214,7 +213,6 @@ namespace Shark {
 
 	void SceneHirachyPanel::OnProjectChanged(Ref<Project> project)
 	{
-		project->GetAssetManager()->AddMemoryAsset(m_MeshSourceMaterialAsset);
 		UpdateMaterialEditor(m_SelectedEntity);
 	}
 
@@ -476,19 +474,19 @@ namespace Shark {
 			UI::EndControls();
 		});
 
-		DrawComponet<MeshRendererComponent>(entity, "Mesh Renderer", [this](MeshRendererComponent& comp, Entity entity)
+		DrawComponet<MeshComponent>(entity, "Mesh Renderer", [this](MeshComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			if (UI::ControlAsset("Mesh", comp.MeshHandle))
+			if (UI::ControlAsset("Mesh", comp.Mesh))
 				UpdateMaterialEditor(entity);
 
-			if (!AssetManager::IsValidAssetHandle(comp.MeshHandle))
+			if (!AssetManager::IsValidAssetHandle(comp.Mesh))
 			{
 				UI::EndControls();
 				return;
 			}
 
-			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(comp.MeshHandle);
+			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(comp.Mesh);
 			Ref<MeshSource> meshSource = mesh->GetMeshSource();
 			const auto& submeshes = meshSource->GetSubmeshes();
 			const auto& submesh = submeshes[comp.SubmeshIndex];
@@ -498,12 +496,15 @@ namespace Shark {
 				UI::Control("Submesh Index", comp.SubmeshIndex, 0.05f, 0, meshSource->GetSubmeshes().size() - 1, nullptr, ImGuiSliderFlags_AlwaysClamp);
 			}
 
-			if (UI::ControlAsset("Material", comp.MaterialHandle))
+			if (UI::ControlAsset("Material", comp.Material))
 			{
 				UpdateMaterialEditor(entity);
 			}
 
 			UI::EndControls();
+
+			ImGui::Checkbox("Visible", &comp.Visible);
+
 		});
 
 		DrawComponet<PointLightComponent>(entity, "Point Light", [](PointLightComponent& comp, Entity entity)
@@ -516,12 +517,20 @@ namespace Shark {
 			UI::EndControls();
 		});
 		
-		DrawComponet<EnvironmentComponent>(entity, "Environmemt", [](EnvironmentComponent& comp, Entity entity)
+		DrawComponet<SkyComponent>(entity, "Sky", [](SkyComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::ControlAsset("Environment", AssetType::Environment, comp.EnvironmentHandle);
-			UI::Control("Intensity", comp.Intensity, 0.01f, 0.0f, FLT_MAX);
-			UI::Control("Lod", comp.Lod, 0.05f, 0.0f, FLT_MAX);
+			UI::ControlAsset("Environment", AssetType::Environment, comp.SceneEnvironment);
+
+			float maxLod = FLT_MAX;
+			if (AssetManager::IsValidAssetHandle(comp.SceneEnvironment))
+			{
+				Ref<Environment> env = AssetManager::GetAsset<Environment>(comp.SceneEnvironment);
+				maxLod = env->GetRadianceMap()->GetMipLevelCount() - 1;
+			}
+
+			UI::Control("Intensity", comp.Intensity, 0.005f, 0.0f, FLT_MAX);
+			UI::ControlSlider("Lod", comp.Lod, 0.0f, maxLod);
 			UI::EndControls();
 		});
 
@@ -640,7 +649,7 @@ namespace Shark {
 		DrawComponet<DistanceJointComponent>(entity, "Distance Joint 2D", [](DistanceJointComponent& component, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
 			UI::Control("AnchorA", component.AnchorOffsetA);
 			UI::Control("AnchorB", component.AnchorOffsetB);
 			UI::Control("Min Length", component.MinLength);
@@ -654,7 +663,7 @@ namespace Shark {
 		DrawComponet<HingeJointComponent>(entity, "Hinge Joint 2D", [](HingeJointComponent& component, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
 			UI::Control("Anchor", component.Anchor);
 			UI::Control("Lower Angle", component.LowerAngle);
 			UI::Control("Upper Angle", component.UpperAngle);
@@ -668,7 +677,7 @@ namespace Shark {
 		DrawComponet<PrismaticJointComponent>(entity, "Prismatic Joint 2D", [](PrismaticJointComponent& component, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
 			UI::Control("Anchor", component.Anchor);
 			UI::Control("Axis", component.Axis);
 			UI::Control("Enable Limit", component.EnableLimit);
@@ -684,7 +693,7 @@ namespace Shark {
 		DrawComponet<PulleyJointComponent>(entity, "Pulley Joint 2D", [](PulleyJointComponent& component, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::Control("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
 			UI::Control("AnchorA", component.AnchorA);
 			UI::Control("AnchorB", component.AnchorB);
 			UI::Control("Ground AnchorA", component.GroundAnchorA);
@@ -747,14 +756,14 @@ namespace Shark {
 						case ManagedFieldType::Entity:
 						{
 							UUID uuid = field.GetEntity(handle);
-							if (UI::Control(name, uuid, UI::DragDropID::Entity))
+							if (UI::ControlDragDrop(name, uuid, UI::DragDropID::Entity))
 								field.SetEntity(handle, scene->TryGetEntityByUUID(uuid));
 							break;
 						}
 						case ManagedFieldType::Component:
 						{
 							UUID uuid = field.GetComponent(handle);
-							if (UI::Control(name, uuid, UI::DragDropID::Entity))
+							if (UI::ControlDragDrop(name, uuid, UI::DragDropID::Entity))
 								field.SetComponent(handle, scene->TryGetEntityByUUID(uuid));
 							break;
 						}
@@ -803,14 +812,14 @@ namespace Shark {
 						case ManagedFieldType::Entity:
 						{
 							UUID uuid = storage->GetValue<UUID>();
-							if (UI::Control(name, uuid, UI::DragDropID::Entity))
+							if (UI::ControlDragDrop(name, uuid, UI::DragDropID::Entity))
 								storage->SetValue(uuid);
 							break;
 						}
 						case ManagedFieldType::Component:
 						{
 							UUID uuid = storage->GetValue<UUID>();
-							if (UI::Control(name, uuid, UI::DragDropID::Entity))
+							if (UI::ControlDragDrop(name, uuid, UI::DragDropID::Entity))
 								storage->SetValue(uuid);
 							break;
 						}
@@ -851,36 +860,26 @@ namespace Shark {
 			return;
 		}
 
-		if (entity.AllOf<MeshRendererComponent>())
+		if (entity.AllOf<MeshComponent>())
 		{
-			const auto& mc = entity.GetComponent<MeshRendererComponent>();
-			if (AssetManager::IsValidAssetHandle(mc.MeshHandle))
+			const auto& meshComp = entity.GetComponent<MeshComponent>();
+			if (AssetManager::IsValidAssetHandle(meshComp.Mesh))
 			{
-				if (AssetManager::IsValidAssetHandle(mc.MaterialHandle))
+				if (AssetManager::IsValidAssetHandle(meshComp.Material))
 				{
-					m_MaterialEditor->SetMaterial(mc.MaterialHandle);
+					m_MaterialEditor->SetMaterial(meshComp.Material);
 					m_MaterialEditor->SetReadonly(false);
 					return;
 				}
 
-				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(meshComp.Mesh);
 				Ref<MeshSource> meshSource = mesh->GetMeshSource();
-				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-				const auto& submesh = meshSource->GetSubmeshes()[mc.SubmeshIndex];
 
-				if (materialTable->HasMaterial(submesh.MaterialIndex))
-				{
-					m_MaterialEditor->SetMaterial(materialTable->GetMaterial(submesh.MaterialIndex)->Handle);
-					m_MaterialEditor->SetReadonly(false);
-				}
-				else
-				{
-					const auto& materials = meshSource->GetMaterials();
-					Ref<Material> material = materials[submesh.MaterialIndex];
-					m_MeshSourceMaterialAsset->SetMaterial(material);
-					m_MaterialEditor->SetMaterial(m_MeshSourceMaterialAsset->Handle);
-					m_MaterialEditor->SetReadonly(false);
-				}
+				const auto& submesh = meshSource->GetSubmeshes()[meshComp.SubmeshIndex];
+				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+
+				m_MaterialEditor->SetMaterial(materialTable->GetMaterial(submesh.MaterialIndex));
+				m_MaterialEditor->SetReadonly(false);
 			}
 		}
 	}

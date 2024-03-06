@@ -246,17 +246,17 @@ namespace Shark {
 				out << YAML::EndMap;
 			}
 
-			if (auto component = entity.TryGetComponent<MeshRendererComponent>())
+			if (auto component = entity.TryGetComponent<MeshComponent>())
 			{
 				AssetHandle meshHandle = AssetHandle::Invalid;
-				if (!AssetManager::IsMemoryAsset(component->MeshHandle))
-					meshHandle = component->MeshHandle;
+				if (!AssetManager::IsMemoryAsset(component->Mesh))
+					meshHandle = component->Mesh;
 
-				out << YAML::Key << "MeshRendererComponent";
+				out << YAML::Key << "MeshComponent";
 				out << YAML::BeginMap;
-				out << YAML::Key << "MeshHandle" << YAML::Value << meshHandle;
+				out << YAML::Key << "Mesh" << YAML::Value << meshHandle;
 				out << YAML::Key << "SubmeshIndex" << YAML::Value << component->SubmeshIndex;
-				out << YAML::Key << "MaterialHandle" << YAML::Value << component->MaterialHandle;
+				out << YAML::Key << "Material" << YAML::Value << component->Material;
 				out << YAML::EndMap;
 			}
 
@@ -271,11 +271,11 @@ namespace Shark {
 				out << YAML::EndMap;
 			}
 			
-			if (auto component = entity.TryGetComponent<EnvironmentComponent>())
+			if (auto component = entity.TryGetComponent<SkyComponent>())
 			{
-				out << YAML::Key << "EnvironmentComponent";
+				out << YAML::Key << "SkyComponent";
 				out << YAML::BeginMap;
-				out << YAML::Key << "EnvironmentHandle" << YAML::Value << component->EnvironmentHandle;
+				out << YAML::Key << "SceneEnvironment" << YAML::Value << component->SceneEnvironment;
 				out << YAML::Key << "Intensity" << YAML::Value << component->Intensity;
 				out << YAML::Key << "Lod" << YAML::Value << component->Lod;
 				out << YAML::EndMap;
@@ -501,12 +501,12 @@ namespace Shark {
 						component.Kerning = componentNode["Kerning"].as<float>();
 					}
 
-					if (auto componentNode = entityNode["MeshRendererComponent"])
+					if (auto componentNode = entityNode["MeshComponent"])
 					{
-						auto& component = entity.AddOrReplaceComponent<MeshRendererComponent>();
-						component.MeshHandle = componentNode["MeshHandle"].as<AssetHandle>();
+						auto& component = entity.AddOrReplaceComponent<MeshComponent>();
+						component.Mesh = componentNode["Mesh"].as<AssetHandle>();
 						component.SubmeshIndex = componentNode["SubmeshIndex"].as<uint32_t>();
-						component.MaterialHandle = componentNode["MaterialHandle"].as<AssetHandle>(AssetHandle::Invalid);
+						component.Material = componentNode["Material"].as<AssetHandle>();
 					}
 
 					if (auto componentNode = entityNode["PointLightComponent"])
@@ -518,10 +518,10 @@ namespace Shark {
 						component.Falloff = componentNode["Falloff"].as<float>();
 					}
 					
-					if (auto componentNode = entityNode["EnvironmentComponent"])
+					if (auto componentNode = entityNode["SkyComponent"])
 					{
-						auto& component = entity.AddOrReplaceComponent<EnvironmentComponent>();
-						component.EnvironmentHandle = componentNode["EnvironmentHandle"].as<AssetHandle>();
+						auto& component = entity.AddOrReplaceComponent<SkyComponent>();
+						component.SceneEnvironment = componentNode["SceneEnvironment"].as<AssetHandle>();
 						component.Intensity = componentNode["Intensity"].as<float>();
 						component.Lod = componentNode["Lod"].as<float>();
 					}

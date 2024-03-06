@@ -1,10 +1,11 @@
 #pragma once
 
 #include "Shark/Render/RendererAPI.h"
-#include "Platform/DirectX11/DirectXBuffers.h"
 
-#include "Platform/DirectX11/DirectXMaterial.h"
+#include "Platform/DirectX11/DirectXBuffers.h"
 #include "Platform/DirectX11/DirectXConstantBuffer.h"
+#include "Platform/DirectX11/DirectXMaterial.h"
+#include "Platform/DirectX11/DirectXPipeline.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 #include "Platform/DirectX11/DirectXSwapChain.h"
 
@@ -40,7 +41,7 @@ namespace Shark {
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;
 
-		virtual void BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass) override;
+		virtual void BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear) override;
 		virtual void EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass) override;
 
 		virtual void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) override;
@@ -54,13 +55,14 @@ namespace Shark {
 
 		virtual void RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material) override;
 
-		virtual void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex) override;
+		virtual void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable) override;
 		virtual void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material) override;
 
 		virtual void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
 		virtual void RT_CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
 
 		virtual std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath) override;
+		virtual Ref<Texture2D> CreateBRDFLUT() override;
 
 		virtual void GenerateMips(Ref<Image2D> image) override;
 		virtual void RT_GenerateMips(Ref<Image2D> image) override;
@@ -70,6 +72,7 @@ namespace Shark {
 		virtual uint32_t GetCurrentFrameIndex() const { return m_FrameIndex; }
 		virtual uint32_t RT_GetCurrentFrameIndex() const { return m_RTFrameIndex; }
 		virtual Ref<RenderCommandBuffer> GetCommandBuffer() const override { return m_ImmediateCommandBuffer; }
+		ID3D11SamplerState* GetClampLinearSampler() const { return m_ClampLinearSampler; }
 
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
@@ -89,6 +92,7 @@ namespace Shark {
 	private:
 		void RT_PrepareAndBindMaterial(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXMaterial> material);
 		void RT_BindResources(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<Shader> shader, const std::vector<BoundResource>& boundResources);
+		void RT_BindPushConstants(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXPipeline> pipeline);
 		void QueryCapabilities();
 
 		void RT_BeginFrequencyQuery();
@@ -127,7 +131,9 @@ namespace Shark {
 		Ref<DirectXVertexBuffer> m_CubeVertexBuffer;
 		Ref<DirectXIndexBuffer> m_CubeIndexBuffer;
 
-		uint32_t m_GPUTimerID;
+		ID3D11SamplerState* m_ClampLinearSampler = nullptr;
+
+		uint32_t m_GPUTimeQuery;
 		TimeStep m_GPUTime;
 
 		ID3D11Query* m_FrequencyQuery = nullptr;

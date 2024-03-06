@@ -175,6 +175,8 @@ namespace Shark::UI {
 
 	bool Control(std::string_view label, float& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
 	bool Control(std::string_view label, double& val, float speed = 0.05f, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
+	bool ControlSlider(std::string_view label, float& val, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
+	bool ControlSlider(std::string_view label, double& val, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
 
 	bool Control(std::string_view label, int8_t& val, float speed = 0.05f, int8_t min = 0, int8_t max = 0, const char* fmt = nullptr);
 	bool Control(std::string_view label, int16_t& val, float speed = 0.05f, int16_t min = 0, int16_t max = 0, const char* fmt = nullptr);
@@ -218,8 +220,9 @@ namespace Shark::UI {
 
 	bool Control(std::string_view label, char* buffer, uint64_t bufferSize);
 	bool Control(std::string_view label, std::string& val);
-	bool Control(std::string_view label, std::filesystem::path& path, const char* dragDropType = nullptr);
-	bool Control(std::string_view label, UUID& uuid, const char* dragDropType = nullptr);
+	bool Control(std::string_view label, std::filesystem::path& path);
+	bool Control(std::string_view label, UUID& uuid);
+
 	bool ControlAsset(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
 	bool ControlAsset(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType = DragDropID::Asset);
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
@@ -248,6 +251,7 @@ namespace Shark::UI {
 
 	bool ControlDragDrop(std::string_view label, std::string& val, const char* dragDropType);
 	bool ControlDragDrop(std::string_view label, std::filesystem::path& val, const char* dragDropType);
+	bool ControlDragDrop(std::string_view label, UUID& uuid, const char* dragDropType);
 
 	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
 	void ControlCustomEnd();

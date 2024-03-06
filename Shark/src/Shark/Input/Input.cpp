@@ -152,7 +152,16 @@ namespace Shark {
 		if (s_InputData->m_CursorMode == mode)
 			return;
 
-		auto& window = Application::Get().GetWindow();
+		auto& app = Application::Get();
+		if (app.GetSpecification().EnableImGui)
+		{
+			if (mode == CursorMode::Locked)
+				ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+			else
+				ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+		}
+
+		auto& window = app.GetWindow();
 		window.SetCursorMode(mode);
 
 		s_InputData->m_CursorMode = mode;

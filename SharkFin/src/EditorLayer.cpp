@@ -111,7 +111,7 @@ namespace Shark {
 
 		Renderer2DSpecifications debugRendererSpec;
 		debugRendererSpec.UseDepthTesting = true;
-		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositFrameBuffer(), debugRendererSpec);
+		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositePass()->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer, debugRendererSpec);
 
 		// Readable image for Mouse Picking
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
@@ -184,7 +184,7 @@ namespace Shark {
 			}
 
 			ImGui::GetIO().SetAppAcceptingEvents(Input::GetCursorMode() != CursorMode::Locked);
-			m_EditorCamera.OnUpdate(ts, m_ViewportHovered && m_SceneState != SceneState::Play || Input::GetCursorMode() == CursorMode::Hidden);
+			m_EditorCamera.OnUpdate(ts, m_ViewportHovered && m_SceneState != SceneState::Play || Input::GetCursorMode() == CursorMode::Locked);
 
 			switch (m_SceneState)
 			{
@@ -225,9 +225,7 @@ namespace Shark {
 		if (event.Handled)
 			return;
 
-		if (m_ViewportHovered && m_SceneState != SceneState::Play)
-			m_EditorCamera.OnEvent(event);
-
+		m_EditorCamera.OnEvent(event);
 		m_PanelManager->OnEvent(event);
 	}
 
@@ -267,6 +265,13 @@ namespace Shark {
 
 		switch (event.GetKeyCode())
 		{
+
+			case KeyCode::Escape:
+			{
+				Input::SetCursorMode(CursorMode::Normal);
+				// NOTE(moro): don't think escape should be marked as handled here
+				break;
+			}
 
 			// New Scene
 			case KeyCode::N:
@@ -341,10 +346,10 @@ namespace Shark {
 			}
 
 			// ImGuizmo
-			case KeyCode::Q: { if (!Input::IsMouseDown(MouseButton::Right)) m_CurrentOperation = GizmoOperaton::None; return true; }
-			case KeyCode::W: { if (!Input::IsMouseDown(MouseButton::Right)) m_CurrentOperation = GizmoOperaton::Translate; return true; }
-			case KeyCode::E: { if (!Input::IsMouseDown(MouseButton::Right)) m_CurrentOperation = GizmoOperaton::Rotate; return true; }
-			case KeyCode::R: { if (!Input::IsMouseDown(MouseButton::Right)) m_CurrentOperation = GizmoOperaton::Scale; return true; }
+			case KeyCode::Q: { if (!m_EditorCamera.GetFlyMode()) m_CurrentOperation = GizmoOperaton::None; return true; }
+			case KeyCode::W: { if (!m_EditorCamera.GetFlyMode()) m_CurrentOperation = GizmoOperaton::Translate; return true; }
+			case KeyCode::E: { if (!m_EditorCamera.GetFlyMode()) m_CurrentOperation = GizmoOperaton::Rotate; return true; }
+			case KeyCode::R: { if (!m_EditorCamera.GetFlyMode()) m_CurrentOperation = GizmoOperaton::Scale; return true; }
 		}
 
 		return false;
@@ -588,7 +593,7 @@ namespace Shark {
 			m_NeedsResize = true;
 		}
 
-		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalImage();
+		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalPassImage();
 		ImGui::Image(fbImage->GetViewID(), size);
 
 		UI_Gizmo();
@@ -1736,8 +1741,8 @@ namespace Shark {
 		entity.Transform().SetTransform(node.LocalTransform);
 		if (node.Submeshes.size() == 1)
 		{
-			auto& meshComp = entity.AddComponent<MeshRendererComponent>();
-			meshComp.MeshHandle = mesh->Handle;
+			auto& meshComp = entity.AddComponent<MeshComponent>();
+			meshComp.Mesh = mesh->Handle;
 			meshComp.SubmeshIndex = node.Submeshes[0];
 		}
 		else if (node.Submeshes.size() > 1)
@@ -1746,8 +1751,8 @@ namespace Shark {
 			for (uint32_t submeshIndex = 0; submeshIndex < node.Submeshes.size(); submeshIndex++)
 			{
 				Entity submeshEntity = m_ActiveScene->CreateChildEntity(container, fmt::format("{}_{} (Submesh)", node.Name, submeshIndex));
-				auto& meshComp = submeshEntity.AddComponent<MeshRendererComponent>();
-				meshComp.MeshHandle = mesh->Handle;
+				auto& meshComp = submeshEntity.AddComponent<MeshComponent>();
+				meshComp.Mesh = mesh->Handle;
 				meshComp.SubmeshIndex = submeshIndex;
 			}
 		}

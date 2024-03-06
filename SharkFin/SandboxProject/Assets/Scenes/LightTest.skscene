@@ -13,7 +13,7 @@ Scene:
         Parent: 7949924827424306827
         Children:
           - 6660810434991923791
-      MeshRendererComponent:
+      MeshComponent:
         MeshHandle: 12870057247951808313
         SubmeshIndex: 5
     - Entity: 3425509147272918070
@@ -41,7 +41,7 @@ Scene:
         Parent: 12521187829927315161
         Children:
           []
-      MeshRendererComponent:
+      MeshComponent:
         MeshHandle: 12870057247951808313
         SubmeshIndex: 4
     - Entity: 6660810434991923791
@@ -55,7 +55,7 @@ Scene:
         Parent: 1194870384185560200
         Children:
           []
-      MeshRendererComponent:
+      MeshComponent:
         MeshHandle: 12870057247951808313
         SubmeshIndex: 6
     - Entity: 7949924827424306827
@@ -73,7 +73,7 @@ Scene:
           - 1194870384185560200
           - 11859646068384192473
           - 13104555687333856589
-      MeshRendererComponent:
+      MeshComponent:
         MeshHandle: 12870057247951808313
         SubmeshIndex: 0
     - Entity: 11206354369733617200
@@ -87,7 +87,7 @@ Scene:
         Parent: 7949924827424306827
         Children:
           - 18410432903465999211
-      MeshRendererComponent:
+      MeshComponent:
         MeshHandle: 12870057247951808313
         SubmeshIndex: 1
     - Entity: 11859646068384192473
@@ -101,7 +101,7 @@ Scene:
         Parent: 7949924827424306827
         Children:
           []
-      MeshRendererComponent:
+      MeshComponent:
         MeshHandle: 12870057247951808313
         SubmeshIndex: 7
     - Entity: 12521187829927315161
@@ -115,7 +115,7 @@ Scene:
         Parent: 7949924827424306827
         Children:
           - 6446354670182306028
-      MeshRendererComponent:
+      MeshComponent:
         MeshHandle: 12870057247951808313
         SubmeshIndex: 3
     - Entity: 13104555687333856589
@@ -129,7 +129,7 @@ Scene:
         Parent: 7949924827424306827
         Children:
           []
-      MeshRendererComponent:
+      MeshComponent:
         MeshHandle: 12870057247951808313
         SubmeshIndex: 8
     - Entity: 15543422971191323528
@@ -154,6 +154,6 @@ Scene:
         Parent: 11206354369733617200
         Children:
           []
-      MeshRendererComponent:
+      MeshComponent:
         MeshHandle: 12870057247951808313
         SubmeshIndex: 2

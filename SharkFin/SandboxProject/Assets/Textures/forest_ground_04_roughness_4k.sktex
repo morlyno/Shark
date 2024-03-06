@@ -1,0 +1,7 @@
+Texture:
+  TextureSource: 197223334749427015
+  Format: RGBA8
+  GenerateMips: true
+  Filter: Nearest
+  Wrap: Repeat
+  MaxAnisotropy: 0

@@ -105,11 +105,12 @@ namespace Shark {
 		float LineSpacing = 0.0f;
 	};
 
-	struct MeshRendererComponent
+	struct MeshComponent
 	{
-		AssetHandle MeshHandle;
+		AssetHandle Mesh;
 		uint32_t SubmeshIndex;
-		AssetHandle MaterialHandle;
+		AssetHandle Material;
+		bool Visible = true;
 	};
 
 	struct PointLightComponent
@@ -120,9 +121,10 @@ namespace Shark {
 		float Falloff = 0.0f;
 	};
 
-	struct EnvironmentComponent
+	struct SkyComponent
 	{
-		AssetHandle EnvironmentHandle;
+		AssetHandle SceneEnvironment = AssetHandle::Invalid;
+		bool DynamicSky = false;
 		float Intensity = 1.0f;
 		float Lod = 0.0f;
 	};
