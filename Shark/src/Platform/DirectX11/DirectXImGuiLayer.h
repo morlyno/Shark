@@ -30,6 +30,8 @@ namespace Shark {
 		virtual void SetMainViewportID(ImGuiID mainViewportID) override { m_MainViewportID = mainViewportID; }
 		virtual ImGuiID GetMainViewportID() const override { return m_MainViewportID; }
 
+		virtual TimeStep GetGPUTime() const override { return m_GPUTime; }
+
 		virtual bool BlocksMouseEvents() const override { return m_BlockEvents && ImGui::GetIO().WantCaptureMouse; }
 		virtual bool BlocksKeyboardEvents() const override { return m_BlockEvents && ImGui::GetIO().WantCaptureKeyboard; }
 		virtual void BlockEvents(bool block) override { m_BlockEvents = block; }
@@ -42,11 +44,13 @@ namespace Shark {
 		bool m_InFrame = false;
 		ImGuiID m_MainViewportID = 0;
 
-		ID3D11DeviceContext* m_Context = nullptr;
+		Ref<DirectXRenderCommandBuffer> m_CommandBuffer;
 		ID3D11SamplerState* m_ImGuiFontSampler = nullptr;
 
-		std::vector<Ref<DirectXImage2D>> m_UsedImages;
-		uint32_t m_UsedTextureIndex = 0;
+		std::unordered_map<ImTextureID, Ref<DirectXImage2D>> m_ImageMap;
+
+		uint32_t m_TimestampQuery;
+		TimeStep m_GPUTime;
 
 		friend class DirectXRenderer;
 		friend void BindSamplerCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd);

@@ -82,17 +82,6 @@ namespace Shark {
 		return WrapMode::None;
 	}
 
-	Ref<Texture2D> Texture2D::Create()
-	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create();
-		}
-		SK_CORE_ASSERT(false, "Unkown API");
-		return nullptr;
-	}
-
 	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specification, Buffer imageData)
 	{
 		switch (RendererAPI::GetCurrentAPI())
@@ -104,26 +93,15 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specification, Ref<TextureSource> textureSource)
+	Ref<Texture2D> Texture2D::Create(const TextureSpecification& specification, const std::filesystem::path& filepath)
 	{
 		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specification, textureSource);
+			case RendererAPIType::DirectX11: return Ref<DirectXTexture2D>::Create(specification, filepath);
 		}
 		SK_CORE_ASSERT(false, "Unkown API");
 		return nullptr;
-	}
-
-	Ref<Texture2D> Texture2D::Create(Ref<TextureSource> textureSource)
-	{
-		return Create({}, textureSource);
-	}
-
-	Ref<Texture2D> Texture2D::LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& specification)
-	{
-		auto source = TextureImporter::ToTextureSourceFromFile(filepath);
-		return Create(specification, source);
 	}
 
 	Ref<TextureCube> TextureCube::Create(const TextureSpecification& specification, Buffer imageData)

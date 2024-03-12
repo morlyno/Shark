@@ -54,7 +54,7 @@ namespace Shark {
 				hasTexture = false;
 			}
 
-			if (UI::TextureEdit(displayTexture, textureSize, hasTexture))
+			if (UI::TextureEdit("albedo texture", displayTexture, textureSize, hasTexture))
 			{
 				if (displayTexture)
 					material->SetAlbedoMap(displayTexture);
@@ -78,7 +78,7 @@ namespace Shark {
 				hasTexture = false;
 			}
 
-			if (UI::TextureEdit(displayTexture, textureSize, hasTexture))
+			if (UI::TextureEdit("normal texture", displayTexture, textureSize, hasTexture))
 			{
 				if (displayTexture)
 					material->SetNormalMap(displayTexture);
@@ -105,7 +105,7 @@ namespace Shark {
 				hasTexture = false;
 			}
 
-			if (UI::TextureEdit(displayTexture, textureSize, hasTexture))
+			if (UI::TextureEdit("metalness texture", displayTexture, textureSize, hasTexture))
 			{
 				if (displayTexture)
 					material->SetMetalnessMap(displayTexture);
@@ -129,7 +129,7 @@ namespace Shark {
 				hasTexture = false;
 			}
 
-			if (UI::TextureEdit(displayTexture, textureSize, hasTexture))
+			if (UI::TextureEdit("rougness texture", displayTexture, textureSize, hasTexture))
 			{
 				if (displayTexture)
 					material->SetRoughnessMap(displayTexture);
@@ -259,7 +259,7 @@ namespace Shark {
 
 		if (ImGui::Begin(m_PanelName.c_str(), &m_Active))
 		{
-			if (ImGui::BeginTable("MaterialEditor", 2, ImGuiTableFlags_Resizable));
+			if (ImGui::BeginTable("MaterialEditor", 2, ImGuiTableFlags_Resizable))
 			{
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -288,7 +288,6 @@ namespace Shark {
 				}
 
 				ImGui::EndTable();
-
 			}
 		}
 		ImGui::End();

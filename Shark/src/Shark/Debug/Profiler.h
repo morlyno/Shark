@@ -71,7 +71,8 @@ namespace Shark {
 
 		#define SK_PROFILER_STARTUP(...)
 		#define SK_PROFILER_SHUTDOWN()
-
+		
+		#define SK_PROFILE_MAIN_FRAME() FrameMark
 		#define SK_PROFILE_FRAME(name) FrameMarkNamed(name)
 		#define SK_PROFILE_FRAME_START(name) FrameMarkStart(name)
 		#define SK_PROFILE_FRAME_END(name) FrameMarkEnd(name)

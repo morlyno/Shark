@@ -193,6 +193,8 @@ namespace Shark {
 			SK_CORE_ERROR_TAG("Filesystem", "Failed to copy file! {} => {}\n\t{}", fsSource, fsDestination, error.message());
 			SK_HANDLE_FS_ERROR("copy_file", fsDestination, fsDestination, error);
 		}
+
+		SK_CORE_TRACE_TAG("Filesystem", "CopyFile {} => {}", source, destination);
 		return copied;
 	}
 
@@ -218,6 +220,7 @@ namespace Shark {
 			return copied;
 		}
 
+		SK_CORE_TRACE_TAG("Filesystem", "CopyFile {} => {}", source, destination);
 		errorMsg.clear();
 		return copied;
 	}
@@ -312,6 +315,7 @@ namespace Shark {
 			return false;
 		}
 
+		SK_CORE_TRACE_TAG("Filesystem", "Move {} => {}", oldPath, newPath);
 		return true;
 	}
 
@@ -326,6 +330,7 @@ namespace Shark {
 			return false;
 		}
 
+		SK_CORE_TRACE_TAG("Filesystem", "Move {} => {}", oldPath, newPath);
 		errorMsg.clear();
 		return true;
 	}
@@ -339,6 +344,8 @@ namespace Shark {
 			SK_CORE_ERROR_TAG("Filesystem", "Remove failed! {}\n\t{}", path, error.message());
 			SK_HANDLE_FS_ERROR("remove", path, error);
 		}
+
+		SK_CORE_TRACE_TAG("Filesystem", "Remove {}", path);
 		return deleted;
 	}
 
@@ -353,6 +360,7 @@ namespace Shark {
 			return deleted;
 		}
 
+		SK_CORE_TRACE_TAG("Filesystem", "Remove {}", path);
 		errorMsg.clear();
 		return deleted;
 	}
@@ -366,6 +374,8 @@ namespace Shark {
 			SK_CORE_ERROR_TAG("Filesystem", "Remove all failed! {}\n\t{}", path, error.message());
 			SK_HANDLE_FS_ERROR("remove_all", path, error);
 		}
+
+		SK_CORE_TRACE_TAG("Filesystem", "RemoveAll {}", path);
 		return (uint64_t)deleted;
 	}
 
@@ -380,6 +390,7 @@ namespace Shark {
 			return (uint64_t)deleted;
 		}
 
+		SK_CORE_TRACE_TAG("Filesystem", "RemoveAll {}", path);
 		errorMsg.clear();
 		return (uint64_t)deleted;
 	}

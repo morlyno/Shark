@@ -240,7 +240,8 @@ PixelOutput main(PixelInput Input)
     float3 lightContribution = 0.0f;
     
     //if (u_Scene.LightCount > 0)
-    for (uint i = 0; i < u_Scene.LightCount; i++)
+    const uint MaxLights = 256;
+    for (uint i = 0; i < u_Scene.LightCount && i < MaxLights; i++)
     {
         Light light = u_Lights[i];
         

@@ -11,7 +11,7 @@
 namespace Shark {
 
 	template <typename T, typename S, int N, ImageFormat F, msdf_atlas::GeneratorFunction<S, N> GEN_FN>
-	static void CreateTextureAltas(const std::vector<msdf_atlas::GlyphGeometry>& glyphs, uint32_t width, uint32_t height, Ref<Texture2D> fontAtlas)
+	static Ref<Texture2D> CreateTextureAltas(const std::vector<msdf_atlas::GlyphGeometry>& glyphs, uint32_t width, uint32_t height)
 	{
 		msdf_atlas::GeneratorAttributes attributes;
 		attributes.config.overlapSupport = true;
@@ -26,13 +26,13 @@ namespace Shark {
 
 		//msdfgen::savePng(bitmap, "FontAtlas.png");
 
-		auto& spec = fontAtlas->GetSpecification();
-		spec.Width = bitmap.width;
-		spec.Height = bitmap.height;
-		spec.Format = F;
-		spec.GenerateMips = false;
-		fontAtlas->SetImageData({ bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T) });
-		fontAtlas->Invalidate();
+		TextureSpecification textureSpecification;
+		textureSpecification.Format = F;
+		textureSpecification.Width = bitmap.width;
+		textureSpecification.Height = bitmap.height;
+		textureSpecification.GenerateMips = false;
+
+		return Texture2D::Create(textureSpecification, { bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T) });
 	}
 
 	Font::Font(const std::filesystem::path& fontPath)
@@ -119,7 +119,7 @@ namespace Shark {
 			SK_PROFILE_SCOPED("Create Texture Atlas");
 
 			timer.Reset();
-			CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height, m_FontAtlas);
+			m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
 			SK_CORE_TRACE_TAG("Font", "Generated Atlas in {}", timer.Elapsed());
 		}
 

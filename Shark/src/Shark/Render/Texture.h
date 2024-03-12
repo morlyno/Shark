@@ -9,28 +9,6 @@
 
 namespace Shark {
 
-	class TextureSource : public Asset
-	{
-	public:
-		TextureSource() = default;
-		virtual ~TextureSource()
-		{
-			ImageData.Release();
-		}
-
-		static AssetType GetStaticType() { return AssetType::TextureSource; }
-		virtual AssetType GetAssetType() const override { return GetStaticType(); }
-
-		static Ref<TextureSource> Create() { return Ref<TextureSource>::Create(); }
-
-		Buffer ImageData;
-		ImageFormat Format = ImageFormat::None;
-		uint32_t Width = 0, Height = 0;
-
-		std::filesystem::path SourcePath;
-	};
-
-
 	enum class FilterMode : uint16_t
 	{
 		None = 0,
@@ -90,25 +68,23 @@ namespace Shark {
 		virtual Buffer& GetBuffer() = 0;
 		virtual Buffer GetBuffer() const = 0;
 
-		virtual Ref<TextureSource> GetTextureSource() const = 0;
-		virtual void SetTextureSource(Ref<TextureSource> textureSource) = 0;
-
 		virtual RenderID GetViewID() const = 0;
 		virtual Ref<Image2D> GetImage() const = 0;
-		virtual const TextureSpecification& GetSpecification() const = 0;
+
 		virtual TextureSpecification& GetSpecification() = 0;
+		virtual const TextureSpecification& GetSpecification() const = 0;
+		virtual const std::filesystem::path& GetFilepath() const = 0;
+
+		virtual AssetHandle GetSourceTextureHandle() const = 0;
+		virtual void SetSourceTextureHandle(AssetHandle handle) = 0;
 
 	public: // Asset Interface
 		static AssetType GetStaticType() { return AssetType::Texture; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
 	public:
-		static Ref<Texture2D> Create();
-		static Ref<Texture2D> Create(const TextureSpecification& specification, Buffer imageData = nullptr);
-		static Ref<Texture2D> Create(const TextureSpecification& specification, Ref<TextureSource> textureSource);
-		static Ref<Texture2D> Create(Ref<TextureSource> textureSource);
-
-		static Ref<Texture2D> LoadFromDisc(const std::filesystem::path& filepath, const TextureSpecification& samplerSpecification = {});
+		static Ref<Texture2D> Create(const TextureSpecification& specification, Buffer imageData = Buffer());
+		static Ref<Texture2D> Create(const TextureSpecification& specification, const std::filesystem::path& filepath);
 	};
 
 	class TextureCube : public RendererResource

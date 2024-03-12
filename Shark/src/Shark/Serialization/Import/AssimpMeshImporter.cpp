@@ -266,14 +266,8 @@ namespace Shark {
 		}
 
 		const auto texturePath = m_Filepath.parent_path() / path.C_Str();
-		Ref<TextureSource> textureSource = TextureImporter::ToTextureSourceFromFile(texturePath);
-		if (textureSource)
-		{
-			return AssetManager::CreateMemoryAsset<Texture2D>(specification, textureSource);
-		}
-
-		SK_CORE_ERROR("Failed to load texture: {}", path.C_Str());
-		return AssetHandle::Invalid;
+		return Project::GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(texturePath);
+		//return AssetManager::CreateMemoryAsset<Texture2D>(specification, texturePath);
 	}
 
 }

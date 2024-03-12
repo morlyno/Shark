@@ -688,7 +688,7 @@ namespace Shark {
 		const uint32_t cubemapSize = Renderer::GetConfig().EnvironmentMapResolution;
 		const uint32_t irradianceMapSize = 32;
 
-		Ref<Texture2D> envEquirect = Texture2D::LoadFromDisc(filepath);
+		Ref<Texture2D> envEquirect = Texture2D::Create(TextureSpecification(), filepath);
 		SK_CORE_VERIFY(envEquirect->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
 
 		TextureSpecification cubemapSpec;
@@ -946,7 +946,9 @@ namespace Shark {
 		if (app.GetSpecification().EnableImGui)
 		{
 			DirectXImGuiLayer& imguiLayer = (DirectXImGuiLayer&)app.GetImGuiLayer();
-			ID3D11DeviceContext* context = imguiLayer.m_Context;
+			imguiLayer.m_CommandBuffer->ReleaseCommandList();
+
+			ID3D11DeviceContext* context = imguiLayer.m_CommandBuffer->GetContext();
 			context->Flush();
 			context->ClearState();
 			

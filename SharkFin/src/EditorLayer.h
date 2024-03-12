@@ -61,7 +61,6 @@ namespace Shark {
 		virtual void OnImGuiRender() override;
 	private:
 		bool OnKeyPressed(KeyPressedEvent& event);
-		bool OnMouseButtonPressed(MouseButtonPressedEvent& event);
 		bool OnWindowDropEvent(WindowDropEvent& event);
 
 		void UI_MainMenuBar();
@@ -70,7 +69,6 @@ namespace Shark {
 		void UI_EditorCamera();
 		void UI_DragDrop();
 		void UI_ToolBar();
-		void UI_ImportTexture();
 		bool UI_MousePicking();
 		void UI_LogSettings();
 		void UI_OpenProjectModal();
@@ -122,10 +120,6 @@ namespace Shark {
 		Entity InstantiateMesh(Ref<Mesh> mesh, bool select);
 		void InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent, Entity entity = {});
 
-		void VerifyEditorTexture(const std::filesystem::path& filepath);
-		void VerifyEditorTexture(const std::filesystem::path& filepath, const std::filesystem::path& sourcePath);
-		void VerifyAllEditorAssets();
-
 	private:
 		static constexpr std::string_view LogLevelStrings[] = { "Trace"sv, "Debug"sv, "Info"sv, "Warn"sv, "Error"sv, "Critical"sv/*, "Off"sv*/ };
 
@@ -171,24 +165,6 @@ namespace Shark {
 
 		bool m_ShowColliders = false;
 		bool m_ShowLightRadius = true;
-
-		struct TextureSourceImportData
-		{
-			std::string TextureSourcePath;
-			std::string TextureFileName;
-
-			bool OpenPopup = false;
-			bool CreateEntityAfterCreation = false;
-
-			void Clear()
-			{
-				TextureSourcePath.clear();
-				TextureFileName.clear();
-				OpenPopup = false;
-				CreateEntityAfterCreation = false;
-			}
-		};
-		TextureSourceImportData m_TextureAssetCreateData;
 
 		bool m_ReloadEditorIcons = false;
 
@@ -238,7 +214,6 @@ namespace Shark {
 		std::unordered_map<AssetType, std::string> m_DefaultAssetDirectories = {
 			{ AssetType::Scene, "Scenes" },
 			{ AssetType::Texture, "Textures" },
-			{ AssetType::TextureSource, "TextureSources" },
 			{ AssetType::ScriptFile, "Scripts/Source" },
 			{ AssetType::Font, "Fonts" },
 			{ AssetType::MeshSource, "MeshSources" },

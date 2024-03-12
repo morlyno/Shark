@@ -133,7 +133,6 @@ namespace Shark {
 
 		Renderer::WaitAndRender();
 		ScriptEngine::RegisterAssembliesReloadedHook(std::bind(&EditorLayer::AssembliesReloadedHook, this));
-		VerifyAllEditorAssets();
 	}
 
 	void EditorLayer::OnDetach()
@@ -420,7 +419,6 @@ namespace Shark {
 		UI_ToolBar();
 
 		UI_EditorCamera();
-		UI_ImportTexture();
 		UI_LogSettings();
 		UI_OpenProjectModal();
 		UI_ImportAsset();
@@ -782,16 +780,6 @@ namespace Shark {
 							SelectEntity(entity);
 							break;
 						}
-						case AssetType::TextureSource:
-						{
-							m_TextureAssetCreateData.Clear();
-							auto sourcePath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
-							m_TextureAssetCreateData.TextureSourcePath = sourcePath.string();
-							m_TextureAssetCreateData.TextureFileName = sourcePath.stem().string();
-							m_TextureAssetCreateData.OpenPopup = true;
-							m_TextureAssetCreateData.CreateEntityAfterCreation = true;
-							break;
-						}
 						case AssetType::Mesh:
 						{
 							Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(metadata.Handle);
@@ -812,42 +800,6 @@ namespace Shark {
 					}
 				}
 
-			}
-		}
-
-		// ASSET_FILEPATH
-		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_FILEPATH");
-			if (payload)
-			{
-				SK_DEBUG_BREAK_CONDITIONAL(s_Break);
-
-				// What path type is ASSET_FILEPATH?
-
-				std::filesystem::path filePath = std::wstring((const wchar_t*)payload->Data, payload->DataSize / sizeof(wchar_t));
-				filePath = Project::GetActive()->GetAbsolute(filePath);
-				const auto extention = filePath.extension();
-					
-				if (extention == L".skscene")
-				{
-					AssetHandle handle = Project::GetActiveEditorAssetManager()->ImportAsset(filePath);
-					LoadScene(handle);
-				}
-				else if (extention == "L.sktex")
-				{
-					AssetHandle handle = Project::GetActiveEditorAssetManager()->ImportAsset(filePath);
-					Entity newEntity = CreateEntity();
-					auto& sr = newEntity.AddComponent<SpriteRendererComponent>();
-					sr.TextureHandle = handle;
-					SelectEntity(newEntity);
-				}
-				else if (extention == L".png")
-				{
-					m_TextureAssetCreateData.Clear();
-					m_TextureAssetCreateData.TextureSourcePath = filePath.string();
-					m_TextureAssetCreateData.OpenPopup = true;
-					m_TextureAssetCreateData.CreateEntityAfterCreation = true;
-				}
 			}
 		}
 
@@ -948,57 +900,6 @@ namespace Shark {
 		}
 
 		ImGui::End();
-	}
-
-	void EditorLayer::UI_ImportTexture()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (m_TextureAssetCreateData.OpenPopup)
-		{
-			ImGui::OpenPopup("Import Texture");
-			m_TextureAssetCreateData.OpenPopup = false;
-		}
-
-		if (ImGui::BeginPopupModal("Import Texture"))
-		{
-			ImGui::Text("Not implemented. Will be replaced with Texture/TextureSource rework");
-#if 0
-			UI::Text("Input FileName");
-			UI::Text(fmt::format("Parent Path: {}/Texture", Project::GetActiveAssetsDirectory()));
-			ImGui::InputText("##FileName", &m_TextureAssetCreateData.TextureFileName);
-
-			if (ImGui::Button("Import"))
-			{
-				EditorLayer* editor = this;
-				Application::Get().SubmitToMainThread([editor]()
-				{
-					std::string directory = String::ToNarrow(fmt::format(L"{}/Textures", Project::GetActiveAssetsDirectory().native()));
-					std::string fileName = std::filesystem::path(editor->m_TextureAssetCreateData.TextureFileName).replace_extension(".sktex").string();
-
-					const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(editor->m_TextureAssetCreateData.TextureSourcePath);
-					Ref<TextureSource> textureSource = AssetManager::GetAsset<TextureSource>(metadata.Handle);
-					Ref<Texture2D> texture = Project::GetActiveEditorAssetManager()->CreateAsset<Texture2D>(directory, fileName, TextureSpecification{}, textureSource);
-
-					if (editor->m_TextureAssetCreateData.CreateEntityAfterCreation)
-					{
-						Entity entity = editor->m_ActiveScene->CreateEntity();
-						auto& sr = entity.AddComponent<SpriteRendererComponent>();
-						sr.TextureHandle = texture->Handle;
-						editor->SelectEntity(entity);
-					}
-				});
-				ImGui::CloseCurrentPopup();
-			}
-#endif
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("Cancle"))
-				ImGui::CloseCurrentPopup();
-
-			ImGui::EndPopup();
-		}
 	}
 
 	bool EditorLayer::UI_MousePicking()
@@ -1638,7 +1539,6 @@ namespace Shark {
 		std::filesystem::create_directory(projectDirectory / "Assets/Scripts");
 		std::filesystem::create_directory(projectDirectory / "Assets/Scripts/Source");
 		std::filesystem::create_directory(projectDirectory / "Assets/Textures");
-		std::filesystem::create_directory(projectDirectory / "Assets/TextureSources");
 
 		CreateProjectPremakeFile(project);
 		std::filesystem::copy_file("Resources/Project/Setup.bat", fmt::format("{0}/Setup.bat", project->GetDirectory()));
@@ -1762,42 +1662,6 @@ namespace Shark {
 			const MeshNode& childNode = source->GetNodes()[childNodeIndex];
 			InstantiateMeshNode(mesh, childNode, entity);
 		}
-	}
-
-	void EditorLayer::VerifyEditorTexture(const std::filesystem::path& assetPath)
-	{
-		VerifyEditorTexture(assetPath, FileSystem::ChangeExtension(assetPath, ".png"));
-	}
-
-	void EditorLayer::VerifyEditorTexture(const std::filesystem::path& assetPath, const std::filesystem::path& sourcePath)
-	{
-		Ref<EditorAssetManager> assetManager = Project::GetActiveEditorAssetManager();
-
-		if (assetManager->HasEditorAsset(assetPath))
-			return;
-
-		if (FileSystem::Exists(assetPath))
-		{
-			assetManager->AddEditorAsset(assetPath);
-			return;
-		}
-
-		AssetHandle sourceHandle = assetManager->GetEditorAsset(sourcePath);
-		if (sourceHandle == AssetHandle::Invalid)
-		{
-			SK_CORE_ERROR("Missing Texture! {}", sourcePath);
-			return;
-		}
-
-		Ref<TextureSource> textureSource = AssetManager::GetAsset<TextureSource>(sourceHandle);
-		Ref<Texture2D> texture = Texture2D::Create(textureSource);
-		assetManager->AddEditorAsset(texture, assetPath);
-		assetManager->SaveAsset(texture->Handle);
-	}
-
-	void EditorLayer::VerifyAllEditorAssets()
-	{
-		VerifyEditorTexture("Resources/Textures/NoImagePlaceholder.sktex", "Resources/Textures/NoImagePlaceholder.png");
 	}
 
 }

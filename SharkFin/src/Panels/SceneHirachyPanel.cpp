@@ -467,7 +467,7 @@ namespace Shark {
 				UI::ControlCustomEnd();
 			}
 
-			UI::ControlAsset("Font", comp.FontHandle);
+			UI::ControlAsset("Font", AssetType::Font, comp.FontHandle);
 			UI::ControlColor("Color", comp.Color);
 			UI::Control("Kerning", comp.Kerning, 0.005f);
 			UI::Control("Line Spacing", comp.LineSpacing, 0.01f);
@@ -477,7 +477,7 @@ namespace Shark {
 		DrawComponet<MeshComponent>(entity, "Mesh Renderer", [this](MeshComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			if (UI::ControlAsset("Mesh", comp.Mesh))
+			if (UI::ControlAsset("Mesh", AssetType::Material, comp.Mesh))
 				UpdateMaterialEditor(entity);
 
 			if (!AssetManager::IsValidAssetHandle(comp.Mesh))
@@ -496,7 +496,7 @@ namespace Shark {
 				UI::Control("Submesh Index", comp.SubmeshIndex, 0.05f, 0, meshSource->GetSubmeshes().size() - 1, nullptr, ImGuiSliderFlags_AlwaysClamp);
 			}
 
-			if (UI::ControlAsset("Material", comp.Material))
+			if (UI::ControlAsset("Material", AssetType::Material, comp.Material))
 			{
 				UpdateMaterialEditor(entity);
 			}
@@ -873,6 +873,7 @@ namespace Shark {
 				}
 
 				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(meshComp.Mesh);
+				SK_CORE_VERIFY(mesh);
 				Ref<MeshSource> meshSource = mesh->GetMeshSource();
 
 				const auto& submesh = meshSource->GetSubmeshes()[meshComp.SubmeshIndex];

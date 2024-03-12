@@ -19,6 +19,7 @@ namespace Shark {
 		static Ref<TAsset> GetAsset(AssetHandle handle)
 		{
 			static_assert(std::is_base_of_v<Asset, TAsset>, "GetAsset only works for types with base class Asset");
+			SK_CORE_VERIFY(TAsset::GetStaticType() == GetAssetType(handle));
 
 			Ref<Asset> asset = GetAsset(handle);
 			if (asset && asset->GetAssetType() != TAsset::GetStaticType())

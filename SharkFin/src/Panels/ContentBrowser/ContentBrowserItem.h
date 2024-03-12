@@ -8,6 +8,9 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#undef CreateDirectory
+#undef RemoveDirectory
+
 namespace Shark {
 
 	class ContentBrowserPanel;
@@ -18,10 +21,12 @@ namespace Shark {
 		DirectoryInfo(Weak<DirectoryInfo> parent, const std::filesystem::path& directoryPath);
 		~DirectoryInfo();
 
-		void Reload(Ref<Project> project);
-
 		void AddDirectory(Ref<DirectoryInfo> directory);
 		void AddFile(const std::string& filename);
+
+		void RemoveFile(const std::string& filename);
+		void RemoveDirectory(Ref<DirectoryInfo> directory);
+		void RemoveDirectory(const std::filesystem::path& dirPath);
 
 		void Rename(const std::string& newName);
 		void RenameFile(const std::string& oldName, const std::string& newName);
@@ -48,8 +53,10 @@ namespace Shark {
 		ReloadAsset = BIT(5),
 		StartRenaming = BIT(6),
 		FinishedRenaming = BIT(7),
-		Remove = BIT(8),
-		ImportFile = BIT(9)
+		ImportFile = BIT(9),
+		AssetDropped = BIT(10),
+		DirectoryDropped = BIT(11),
+		RemoveItem = BIT(12)
 	};
 
 	class CBItemAction
@@ -68,6 +75,16 @@ namespace Shark {
 		const std::string& GetNewName() const
 		{
 			return m_NewName;
+		}
+
+		AssetHandle GetDroppedAsset() const
+		{
+			return m_AcceptedAsset;
+		}
+
+		const std::filesystem::path& GetDroppedDirectory() const
+		{
+			return m_DroppedDirectory;
 		}
 
 	private:
@@ -95,10 +112,18 @@ namespace Shark {
 			SetFlag(CBItemActionFlag::FinishedRenaming);
 		}
 
+		void AssetDropped(AssetHandle handle)
+		{
+			m_AcceptedAsset = handle;
+			SetFlag(CBItemActionFlag::AssetDropped);
+		}
+
 	private:
 		uint16_t Flags = 0;
 		std::string m_ErrorMsg;
 		std::string m_NewName;
+		AssetHandle m_AcceptedAsset;
+		std::filesystem::path m_DroppedDirectory;
 
 		friend class ContentBrowserItem;
 	};
@@ -107,8 +132,7 @@ namespace Shark {
 	{
 		None = 0,
 		Directory,
-		Asset,
-		File
+		Asset
 	};
 
 	class ContentBrowserItem : public RefCount
@@ -132,6 +156,9 @@ namespace Shark {
 		const std::filesystem::path& GetPath() const { return m_Path; }
 		const std::string& GetName() const { return m_Name; }
 
+		void SetThumbnail(Ref<Texture2D> thumbnail) { m_Thumbnail = thumbnail; }
+		Ref<Texture2D> GetThumbnail() const { return m_Thumbnail; }
+
 		CBItemAction Draw();
 
 	public:
@@ -142,6 +169,7 @@ namespace Shark {
 
 		bool Rename(std::string newName, bool addExtension = true);
 		bool Delete();
+		bool Move(const std::filesystem::path& newPath);
 
 	private:
 		void SetFlag(StateFlag flag, bool set);
@@ -150,6 +178,7 @@ namespace Shark {
 		std::string GetTypeString() const;
 		void UpdateIcon();
 		void UpdateName();
+		void UpdateTypeName();
 
 	private:
 		Weak<ContentBrowserPanel> m_Context;
@@ -157,6 +186,7 @@ namespace Shark {
 		std::filesystem::path m_Path;
 		std::string m_Name;
 
+		std::string m_TypeName;
 		Ref<Texture2D> m_Icon;
 		Ref<Texture2D> m_Thumbnail;
 
@@ -164,8 +194,6 @@ namespace Shark {
 		uint32_t m_StateFlags = 0;
 
 		char m_RenameBuffer[260];
-
-		friend class ContentBrowserPanel;
 	};
 
 }

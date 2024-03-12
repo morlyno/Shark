@@ -253,13 +253,14 @@ namespace Shark {
 		if (dependencies.Materials.empty() && dependencies.RenderPasses.empty())
 			return;
 
-		std::ranges::remove_if(dependencies.Materials, [](Weak<Material> material) { return material.Expired(); });
-		std::ranges::remove_if(dependencies.RenderPasses, [](Weak<RenderPass> material) { return material.Expired(); });
+		std::erase_if(dependencies.Materials, [](Weak<Material> material) { return material.Expired(); });
+		std::erase_if(dependencies.RenderPasses, [](Weak<RenderPass> renderPass) { return renderPass.Expired(); });
 
 		for (const auto& m : dependencies.Materials)
 		{
 			Ref<Material> material = m.GetRef();
 			SK_CORE_VERIFY(material->Validate());
+			material->Prepare();
 		}
 
 		for (const auto& rp : dependencies.RenderPasses)

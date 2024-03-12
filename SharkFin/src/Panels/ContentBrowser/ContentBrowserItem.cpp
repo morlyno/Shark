@@ -8,6 +8,8 @@
 #include "EditorSettings.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
 
+#include "Shark/Debug/Profiler.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -25,38 +27,6 @@ namespace Shark {
 
 	}
 
-	void DirectoryInfo::Reload(Ref<Project> project)
-	{
-		SubDirectories.clear();
-		Filenames.clear();
-
-		for (const auto& entry : std::filesystem::directory_iterator(project->GetAbsolute(Filepath)))
-		{
-			if (entry.is_directory())
-			{
-				std::filesystem::path filePath = project->GetRelative(entry.path());
-				Ref<DirectoryInfo> directory = Ref<DirectoryInfo>::Create(this, filePath);
-				SubDirectories.emplace_back(directory);
-				continue;
-			}
-
-			if (entry.is_regular_file())
-			{
-				Filenames.emplace_back(entry.path().filename().string());
-			}
-		}
-
-		std::ranges::sort(Filenames);
-		std::sort(SubDirectories.begin(), SubDirectories.end(), [](const auto& lhs, const auto& rhs)
-		{
-			return lhs->Filepath < rhs->Filepath;
-		});
-
-		for (auto directory : SubDirectories)
-			directory->Reload(project);
-
-	}
-
 	void DirectoryInfo::AddDirectory(Ref<DirectoryInfo> directory)
 	{
 		const auto where = std::lower_bound(SubDirectories.begin(), SubDirectories.end(), directory, [](const auto& lhs, const auto& rhs)
@@ -70,6 +40,21 @@ namespace Shark {
 	{
 		const auto where = std::ranges::lower_bound(Filenames, filename);
 		Filenames.insert(where, filename);
+	}
+
+	void DirectoryInfo::RemoveFile(const std::string& filename)
+	{
+		std::erase(Filenames, filename);
+	}
+
+	void DirectoryInfo::RemoveDirectory(Ref<DirectoryInfo> directory)
+	{
+		std::erase(SubDirectories, directory);
+	}
+
+	void DirectoryInfo::RemoveDirectory(const std::filesystem::path& dirPath)
+	{
+		std::erase_if(SubDirectories, [&dirPath](Ref<DirectoryInfo> dir) { return dir->Filepath == dirPath; });
 	}
 
 	void DirectoryInfo::Rename(const std::string& newName)
@@ -95,6 +80,7 @@ namespace Shark {
 	{
 		UpdateName();
 		UpdateIcon();
+		UpdateTypeName();
 	}
 
 	ContentBrowserItem::~ContentBrowserItem()
@@ -105,16 +91,18 @@ namespace Shark {
 	{
 		m_Type = type;
 		UpdateIcon();
+		UpdateTypeName();
 	}
 
 	CBItemAction ContentBrowserItem::Draw()
 	{
+		SK_PROFILE_FUNCTION();
 		CBItemAction action;
 
 		if (FlagSet(StateFlag::Deleted))
 		{
 			SK_CORE_ERROR_TAG("UI", "Draw was called on deleted ContentBrowserItem! {}", m_Path);
-			action.Delete();
+			action.SetFlag(CBItemActionFlag::RemoveItem);
 			return action;
 		}
 
@@ -165,13 +153,12 @@ namespace Shark {
 					action.SetFlag(CBItemActionFlag::Select);
 				}
 
-				if (ImGui::MenuItem("Reload", nullptr, false, m_Type == CBItemType::Asset))
-					action.SetFlag(CBItemActionFlag::ReloadAsset);
-
+				std::string path = m_Context.GetRef()->GetProject()->GetRelative(m_Path).string();
+				ImGui::Text("Filepath: %s", path.c_str());
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("Import", nullptr, nullptr, m_Type == CBItemType::File))
-					action.SetFlag(CBItemActionFlag::ImportFile);
+				if (ImGui::MenuItem("Reload", nullptr, false, m_Type == CBItemType::Asset))
+					action.SetFlag(CBItemActionFlag::ReloadAsset);
 
 				ImGui::Separator();
 
@@ -185,9 +172,6 @@ namespace Shark {
 
 				if (ImGui::MenuItem("Rename", "F2"))
 					action.SetFlag(CBItemActionFlag::StartRenaming);
-
-				if (ImGui::MenuItem("Remove Asset", nullptr, nullptr, m_Type == CBItemType::Asset))
-					action.SetFlag(CBItemActionFlag::Remove);
 
 				if (ImGui::MenuItem("Delete", "Del"))
 					action.Delete();
@@ -216,15 +200,41 @@ namespace Shark {
 				if (ImGui::BeginDragDropSource())
 				{
 					std::string pathString = m_Path.string();
+					SK_CORE_VERIFY(pathString.length() < 260);
 					char path[260];
 					strcpy_s(path, pathString.c_str());
 					ImGui::SetDragDropPayload(UI::DragDropID::Directroy, path, sizeof(path));
 					ImGui::Text(path);
 					ImGui::EndDragDropSource();
 				}
+
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload(UI::DragDropID::Asset);
+					if (assetPayload)
+					{
+						AssetHandle handle = *(AssetHandle*)assetPayload->Data;
+						Ref<EditorAssetManager> assetManager = m_Context.GetRef()->GetProject()->GetEditorAssetManager();
+						if (assetManager->IsValidAssetHandle(handle))
+						{
+							action.AssetDropped(handle);
+						}
+					}
+
+					const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload(UI::DragDropID::Directroy);
+					if (directoryPayload)
+					{
+						std::filesystem::path path = std::filesystem::path((const char*)directoryPayload->Data);
+						SK_CORE_ASSERT(FileSystem::Exists(path));
+						action.SetFlag(CBItemActionFlag::DirectoryDropped);
+						action.m_DroppedDirectory = path;
+					}
+
+				}
 			}
 
 			{
+				SK_PROFILE_SCOPED("ContentBrowserItem::Draw Thumbnail");
 				const float borderSize = 2.0f;
 				Ref<Texture2D> texture = (m_Thumbnail && m_Thumbnail->IsValid()) ? m_Thumbnail : m_Icon;
 
@@ -282,26 +292,31 @@ namespace Shark {
 				ImGui::Text(m_Name.c_str());
 			}
 
-			// Item Type
-			auto typeString = GetTypeString();
-			ImVec2 textSize = ImGui::CalcTextSize(typeString.c_str(), typeString.c_str() + typeString.size());
-			UI::MoveCursorX(thumbnailSize - textSize.x - style.FramePadding.x * 2.0f);
-			ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_Text) * 0.8f, typeString.c_str());
-			ImGui::PopClipRect();
+			{
+				// Item Type
+				SK_PROFILE_SCOPED("ContentBrowserItem::Draw Type");
+				ImVec2 textSize = ImGui::CalcTextSize(m_TypeName.c_str(), m_TypeName.c_str() + m_TypeName.size());
+				UI::MoveCursorX(thumbnailSize - textSize.x - style.FramePadding.x * 2.0f);
+				ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_Text) * 0.8f, m_TypeName.c_str());
+				ImGui::PopClipRect();
+			}
 		}
 
-		// Outline
-		const ImVec2 borderPadding = { 1.0f, 1.0f };
-		const bool isSelected = IsSelected();
-		const bool coloredBorder = m_IsHovered || isSelected;
-		const ImU32 borderColor = UI::ToColor32(coloredBorder ? (isSelected ? Theme::Colors::BorderColored : Theme::Colors::BorderColoredWeak) : ImGui::GetStyleColorVec4(ImGuiCol_Border));
-		const ImU32 shadowColor = UI::ToColor32(coloredBorder ? Theme::Colors::ShadowColored : ImGui::GetStyleColorVec4(ImGuiCol_BorderShadow));
+		{
+			// Outline
+			SK_PROFILE_SCOPED("ContentBrowserItem::Draw Outline");
+			const ImVec2 borderPadding = { 1.0f, 1.0f };
+			const bool isSelected = IsSelected();
+			const bool coloredBorder = m_IsHovered || isSelected;
+			const ImU32 borderColor = UI::ToColor32(coloredBorder ? (isSelected ? Theme::Colors::BorderColored : Theme::Colors::BorderColoredWeak) : ImGui::GetStyleColorVec4(ImGuiCol_Border));
+			const ImU32 shadowColor = UI::ToColor32(coloredBorder ? Theme::Colors::ShadowColored : ImGui::GetStyleColorVec4(ImGuiCol_BorderShadow));
 
-		const ImVec2 borderMin = thumbnailTopLeft - borderPadding;
-		const ImVec2 borderMax = infoBottemRight + borderPadding;
-		float borderSize = style.FrameBorderSize;
-		drawList->AddRect(borderMin + ImVec2(1, 1), borderMax + ImVec2(1, 1), shadowColor, rounding, 0, borderSize);
-		drawList->AddRect(borderMin, borderMax, borderColor, rounding, 0, borderSize);
+			const ImVec2 borderMin = thumbnailTopLeft - borderPadding;
+			const ImVec2 borderMax = infoBottemRight + borderPadding;
+			float borderSize = style.FrameBorderSize;
+			drawList->AddRect(borderMin + ImVec2(1, 1), borderMax + ImVec2(1, 1), shadowColor, rounding, 0, borderSize);
+			drawList->AddRect(borderMin, borderMax, borderColor, rounding, 0, borderSize);
+		}
 
 		UI::MoveCursorY(style.ItemSpacing.y - padding);
 		ImGui::Dummy({ 0, 0 });
@@ -344,7 +359,7 @@ namespace Shark {
 
 	bool ContentBrowserItem::Delete()
 	{
-		if (!FileSystem::Remove(m_Path))
+		if (!FileSystem::RemoveAll(m_Path))
 		{
 			// TODO(moro): Error prompt
 			return false;
@@ -352,6 +367,19 @@ namespace Shark {
 
 		m_StateFlags = 0;
 		SetFlag(StateFlag::Deleted, true);
+		return true;
+	}
+
+	bool ContentBrowserItem::Move(const std::filesystem::path& newPath)
+	{
+		SK_CORE_ASSERT(m_Path.filename() != newPath.filename());
+		if (!FileSystem::Move(m_Path, newPath))
+		{
+			// TODO(moro): Error prompt
+			return false;
+		}
+
+		m_Path = newPath;
 		return true;
 	}
 
@@ -394,7 +422,6 @@ namespace Shark {
 				break;
 			}
 			case CBItemType::Asset:
-			case CBItemType::File:
 			{
 				m_Icon = m_Context.GetRef()->GetFileIcon(m_Path);
 				break;
@@ -408,6 +435,11 @@ namespace Shark {
 			m_Name = m_Path.filename().string();
 		else
 			m_Name = m_Path.stem().string();
+	}
+
+	void ContentBrowserItem::UpdateTypeName()
+	{
+		m_TypeName = GetTypeString();
 	}
 
 }

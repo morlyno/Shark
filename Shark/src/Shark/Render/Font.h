@@ -31,7 +31,7 @@ namespace Shark {
 
 	private:
 		MSDFData* m_MSDFData = nullptr;
-		Ref<Texture2D> m_FontAtlas = Texture2D::Create();
+		Ref<Texture2D> m_FontAtlas;
 	};
 
 }

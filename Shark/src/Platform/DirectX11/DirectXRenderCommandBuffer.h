@@ -19,6 +19,7 @@ namespace Shark {
 		virtual ~DirectXRenderCommandBuffer();
 
 		virtual void Release() override;
+		void ReleaseCommandList();
 
 		ID3D11DeviceContext* GetContext() const { return m_Context; }
 
@@ -31,6 +32,8 @@ namespace Shark {
 
 		virtual const PipelineStatistics& GetPipelineStatistics() const override { return m_PipelineStatistics; }
 		virtual TimeStep GetTime(uint32_t queryID) const override;
+
+		bool IsActive() const { return m_Active; }
 
 	private:
 		void CreateQueries();

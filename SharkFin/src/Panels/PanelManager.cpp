@@ -2,6 +2,7 @@
 #include "PanelManager.h"
 
 #include "Shark/UI/UI.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -40,6 +41,8 @@ namespace Shark {
 
 	void PanelManager::OnImGuiRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		for (auto& [id, data] : m_Panels)
 			data.Instance->OnImGuiRender(data.ShowPanel);
 	}

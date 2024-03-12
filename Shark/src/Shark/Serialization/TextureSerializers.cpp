@@ -18,47 +18,6 @@
 namespace Shark {
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/// Texture Source Serializer ///////////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	bool TextureSourceSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
-	{
-		return true;
-	}
-
-	bool TextureSourceSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Loading TextureSource from {}", metadata.FilePath);
-		ScopedTimer timer("Loading TextureSource");
-
-		const auto filesystemPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
-		if (!FileSystem::Exists(filesystemPath))
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);
-			return false;
-		}
-
-		auto source = Ref<TextureSource>::Create();
-		source->SourcePath = metadata.FilePath;
-		source->ImageData = TextureImporter::ToBufferFromFile(filesystemPath, source->Format, source->Width, source->Height);
-		if (!source->ImageData)
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to Import Texture");
-			return false;
-		}
-
-		asset = source;
-		asset->Handle = metadata.Handle;
-		return true;
-	}
-
-	bool TextureSourceSerializer::TryLoadAssetFromTexture(Ref<TextureSource>& textureSource, const std::filesystem::path& filepath)
-	{
-		return false;
-	}
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/// Texture Serializer //////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -68,63 +27,63 @@ namespace Shark {
 
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing Texture to {}", metadata.FilePath);
-		Timer timer;
+		ScopedTimer timer("Serializing Texture");
 
-		//if (!ResourceManager::HasExistingFilePath(metadata))
-		//{
-		//	SK_SERIALIZATION_ERROR("Path not found! {0}", metadata.FilePath);
-		//	return false;
-		//}
-
-		std::string result = SerializeToYAML(asset.As<Texture2D>());
-		if (result.empty())
+		if (metadata.FilePath.extension() != ".sktex")
 		{
-			SK_SERIALIZATION_ERROR("YAML result was null!");
+			SK_CORE_ERROR_TAG("Serialization", "[Texture] Textures can only be serialized when the extension is .sktex! {}", metadata.FilePath);
 			return false;
 		}
 
-		std::ofstream fout(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
-		SK_CORE_ASSERT(fout);
+		std::string filedata = SerializeToYAML(asset.As<Texture2D>());
 
-		fout << result;
-		fout.close();
+		const auto filesystemPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
+		FileSystem::WriteString(filesystemPath, filedata);
 
-		SK_CORE_INFO_TAG("Serialization", "Serializing Texture took {}", timer.Elapsed());
 		return true;
 	}
 
 	bool TextureSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
-
 		SK_CORE_INFO_TAG("Serialization", "Loading Texture from {}", metadata.FilePath);
-		Timer timer;
+		ScopedTimer timer("Loading Texture");
 
 		if (!Project::GetActiveEditorAssetManager()->HasExistingFilePath(metadata))
 		{
-			SK_SERIALIZATION_ERROR("Path not found! {0}", metadata.FilePath);
+			SK_CORE_WARN_TAG("Serialization", "[Texture] Path not found! {}", metadata.FilePath);
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
-		if (filedata.empty())
+		Ref<Texture2D> texture;
+
+		if (metadata.FilePath.extension() == ".sktex")
 		{
-			SK_SERIALIZATION_ERROR("File was empty!");
-			return false;
+			TextureSpecification specification;
+			AssetHandle sourceHandle;
+
+			const std::string fileData = FileSystem::ReadString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
+			if (DesrializeFromYAML(fileData, specification, sourceHandle))
+			{
+				texture = Texture2D::Create(specification, Project::GetActiveEditorAssetManager()->GetFilesystemPath(sourceHandle));
+				texture->SetSourceTextureHandle(sourceHandle);
+			}
 		}
 
-		Ref<Texture2D> texture = Texture2D::Create();
-		if (!DesrializeFromYAML(texture, filedata))
+		if (!texture)
 		{
-			SK_SERIALIZATION_ERROR("Failed to load data from YAML!");
-			return false;
+			const auto filesystemPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
+			texture = Texture2D::Create(TextureSpecification(), filesystemPath);
 		}
 
-		asset = texture;
-		asset->Handle = metadata.Handle;
+		if (texture)
+		{
+			asset = texture;
+			asset->Handle = metadata.Handle;
+			return true;
+		}
 
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Texture took {}", timer.Elapsed());
-		return true;
+		return false;
 	}
 
 	std::string TextureSerializer::SerializeToYAML(Ref<Texture2D> texture)
@@ -132,53 +91,49 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		const TextureSpecification& specification = texture->GetSpecification();
-		AssetHandle sourceHandle = texture->GetTextureSource()->Handle;
+
+		// Will not work when the source texture has moved
+		AssetHandle sourceHandle = texture->GetSourceTextureHandle();
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
-		out << YAML::Key << "Texture";
-
+		out << YAML::Key << "Texture" << YAML::Value;
 		out << YAML::BeginMap;
-		out << YAML::Key << "TextureSource" << YAML::Value << sourceHandle;
-		out << YAML::Key << "Format" << YAML::Value << ToString(specification.Format);
+		out << YAML::Key << "Source" << YAML::Value << sourceHandle;
 		out << YAML::Key << "GenerateMips" << YAML::Value << specification.GenerateMips;
 		out << YAML::Key << "Filter" << YAML::Value << ToString(specification.Filter);
 		out << YAML::Key << "Wrap" << YAML::Value << ToString(specification.Wrap);
 		out << YAML::Key << "MaxAnisotropy" << YAML::Value << specification.MaxAnisotropy;
 		out << YAML::EndMap;
-
 		out << YAML::EndMap;
 
 		return out.c_str();
 	}
 
-	bool TextureSerializer::DesrializeFromYAML(Ref<Texture2D> texture, const std::string& filedata)
+	bool TextureSerializer::DesrializeFromYAML(const std::string& filedata, TextureSpecification& outSpecification, AssetHandle& outSourceHandle)
 	{
 		SK_PROFILE_FUNCTION();
 
 		YAML::Node node = YAML::Load(filedata);
-
 		YAML::Node textureNode = node["Texture"];
 		if (!textureNode)
 			return false;
 
-		AssetHandle sourceHandle = textureNode["TextureSource"].as<AssetHandle>();
-		Ref<TextureSource> textureSource = AssetManager::GetAsset<TextureSource>(sourceHandle);
+		AssetHandle sourceHandle = textureNode["Source"].as<AssetHandle>();
+		if (AssetManager::IsValidAssetHandle(sourceHandle))
+		{
+			outSourceHandle = sourceHandle;
+		}
 
-		auto& specification = texture->GetSpecification();
-		specification.GenerateMips = textureNode["GenerateMips"].as<bool>();
+		outSpecification.GenerateMips = textureNode["GenerateMips"].as<bool>();
+		outSpecification.Filter = StringToFilterMode(textureNode["Filter"].as<std::string>());
+		outSpecification.Wrap = StringToWrapMode(textureNode["Wrap"].as<std::string>());
+		outSpecification.MaxAnisotropy = textureNode["MaxAnisotropy"].as<uint32_t>();
 
-		specification.Filter = StringToFilterMode(textureNode["Filter"].as<std::string>());
-		specification.Wrap = StringToWrapMode(textureNode["Wrap"].as<std::string>());
-		specification.MaxAnisotropy = textureNode["MaxAnisotropy"].as<uint32_t>();
-
-		SK_CORE_TRACE_TAG(Tag::Serialization, " - Generate Mips {}", specification.GenerateMips);
-		SK_CORE_TRACE_TAG(Tag::Serialization, " - Filter {}", ToStringView(specification.Filter));
-		SK_CORE_TRACE_TAG(Tag::Serialization, " - Wrap {}", ToStringView(specification.Wrap));
-		SK_CORE_TRACE_TAG(Tag::Serialization, " - Max Anisotropy {}", specification.MaxAnisotropy);
-
-		texture->SetTextureSource(textureSource);
-		texture->RT_Invalidate();
+		SK_CORE_TRACE_TAG(Tag::Serialization, "[Texture] - Generate Mips {}", outSpecification.GenerateMips);
+		SK_CORE_TRACE_TAG(Tag::Serialization, "[Texture] - Filter {}", ToStringView(outSpecification.Filter));
+		SK_CORE_TRACE_TAG(Tag::Serialization, "[Texture] - Wrap {}", ToStringView(outSpecification.Wrap));
+		SK_CORE_TRACE_TAG(Tag::Serialization, "[Texture] - Max Anisotropy {}", outSpecification.MaxAnisotropy);
 		return true;
 	}
 

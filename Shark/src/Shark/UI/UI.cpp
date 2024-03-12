@@ -721,115 +721,6 @@ namespace Shark::UI {
 	}
 
 	// TODO(moro): Ignores ImGuiItemFlag_Readonly
-	bool ControlAsset(std::string_view label, AssetHandle& assetHandle, const char* dragDropType)
-	{
-		if (!ControlHelperBegin(label))
-			return false;
-
-		ControlHelperDrawLabel(label);
-
-		bool changed = false;
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
-
-		std::string name;
-		if (metadata.IsMemoryAsset)
-			name = fmt::format("0x{:x}", assetHandle);
-		else
-			name = metadata.FilePath.string();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		ImGui::InputText("##IDStr", name.data(), name.length(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
-
-		//TextFramed(path);
-		{
-			if (ImGui::BeginPopupContextItem("Settings"))
-			{
-				char buffer[18];
-				sprintf(buffer, "0x%16llx", (uint64_t)assetHandle);
-				ImGui::InputText("##IDStr", buffer, 18, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
-				ImGui::EndPopup();
-			}
-		}
-
-		ImGuiItemFlags itemFlags = ImGui::GetItemFlags();
-		const bool noEdit = itemFlags & ImGuiItemFlags_Disabled || itemFlags & ImGuiItemFlags_ReadOnly;
-
-		if (!noEdit)
-		{
-			if (dragDropType)
-			{
-				if (ImGui::BeginDragDropTarget())
-				{
-					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
-					if (payload)
-					{
-						assetHandle = *(AssetHandle*)payload->Data;
-						changed = true;
-					}
-					ImGui::EndDragDropTarget();
-				}
-			}
-
-			{
-				UI::ScopedColorStack colorStack(ImGuiCol_Button, ImVec4(0, 0, 0, 0),
-												ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0),
-												ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-
-				const float buttonSize = ImGui::GetItemRectSize().y;
-				ImGui::SameLine(0, 0);
-				MoveCursorX(-buttonSize);
-
-				ImGui::BeginChild(UI::GetCurrentID(), ImVec2(buttonSize, buttonSize));
-				if (ImGui::Button("x", { buttonSize, buttonSize }))
-				{
-					assetHandle = AssetHandle::Null;
-					changed = true;
-				}
-				ImGui::EndChild();
-			}
-		}
-
-		ControlHelperEnd();
-		return changed;
-	}
-
-	bool ControlAsset(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType)
-	{
-		if (!ControlHelperBegin(label))
-			return false;
-
-		ControlHelperDrawLabel(label);
-
-		std::string strPath = assetPath.generic_string();
-		bool changed = false;
-
-		ImGui::SetNextItemWidth(-1.0f);
-		if (ImGui::InputText("##control", &strPath))
-		{
-			assetPath = strPath;
-			changed = true;
-		}
-
-		if (dragDropType)
-		{
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
-				if (payload)
-				{
-					char payloadPath[260];
-					strcpy_s(payloadPath, std::min(260, payload->DataSize), (const char*)payload->Data);
-					assetPath = payloadPath;
-					changed = true;
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
-
-		ControlHelperEnd();
-		return changed;
-	}
-
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const char* dragDropType)
 	{
 		if (!ControlHelperBegin(label))
@@ -1451,16 +1342,25 @@ namespace Shark::UI {
 		GContext->ImGuiLayer->BindFontSampler();
 	}
 
-	bool TextureEdit(Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	bool TextureEdit(const char* textID, Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
 		bool changed = false;
 		Ref<Texture2D> displayTexture = texture;
 
+		Texture(displayTexture, size, uv0, uv1, tint_col, border_col);
+		DragDropTargetAsset<Texture2D>(ImGuiDragDropFlags_AcceptNoDrawDefaultRect, [&texture, &changed](Ref<Texture2D> dragDropTexture)
+		{
+			texture = dragDropTexture;
+			changed = true;
+		});
+
 		if (clearButton)
 		{
 			const ImVec2 cursorPosition = ImGui::GetCursorPos();
-			UI::MoveCursorX(glm::max(size.x - ImGui::GetFontSize(), 0.0f));
+			ImGui::SameLine(0.0f, 0.0f);
+			UI::MoveCursorX(-ImGui::GetFontSize());
 			{
+				UI::ScopedID buttonID(textID, nullptr);
 				UI::ScopedStyle noFramePadding(ImGuiStyleVar_FramePadding, { 0.0f, 0.0f });
 				UI::ScopedStyle noBorder(ImGuiStyleVar_FrameBorderSize, 0);
 				UI::ScopedColorStack colorStack(ImGuiCol_Button, Theme::Colors::ButtonNoBg,
@@ -1469,7 +1369,8 @@ namespace Shark::UI {
 												ImGuiCol_Text, ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f });
 
 				const float buttonSize = ImGui::GetFontSize();
-				if (utils::OverlappButtonKeepLastItemData(UI::GetID(displayTexture->GetViewID()), "x", { buttonSize, buttonSize }))
+				ImGui::SetNextItemAllowOverlap();
+				if (ImGui::Button("x", { buttonSize, buttonSize }))
 				{
 					texture = nullptr;
 					changed = true;
@@ -1477,13 +1378,6 @@ namespace Shark::UI {
 			}
 			ImGui::SetCursorPos(cursorPosition);
 		}
-
-		Texture(displayTexture, size, uv0, uv1, tint_col, border_col);
-		DragDropTargetAsset<Texture2D>(ImGuiDragDropFlags_AcceptNoDrawDefaultRect, [&texture, &changed](Ref<Texture2D> dragDropTexture)
-		{
-			texture = dragDropTexture;
-			changed = true;
-		});
 
 		return changed;
 	}

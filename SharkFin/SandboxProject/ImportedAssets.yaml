@@ -35,273 +35,483 @@ ImportedAssets:
   - Handle: 3492957047207113203
     Type: Scene
     FilePath: Scenes/TextTest.skscene
-  - Handle: 1959000708965190035
-    Type: Texture
-    FilePath: Textures/Cerberus/cerberus_A.sktex
-  - Handle: 3192278808471784563
-    Type: Texture
-    FilePath: Textures/Cerberus/cerberus_M.sktex
-  - Handle: 14446317636891523796
-    Type: Texture
-    FilePath: Textures/Cerberus/cerberus_N.sktex
-  - Handle: 476026696684781242
-    Type: Texture
-    FilePath: Textures/Cerberus/cerberus_R.sktex
-  - Handle: 12046611585830764491
-    Type: Texture
-    FilePath: Textures/Checkerboard ( 2).sktex
-  - Handle: 12046611585830764490
-    Type: Texture
-    FilePath: Textures/Checkerboard.sktex
-  - Handle: 13278977952859161977
-    Type: Texture
-    FilePath: Textures/Gear.sktex
-  - Handle: 6619594948752995598
-    Type: Texture
-    FilePath: Textures/Nano/arm_dif.sktex
-  - Handle: 13789228488399281172
-    Type: Texture
-    FilePath: Textures/Nano/body_dif.sktex
-  - Handle: 4063136717619007912
-    Type: Texture
-    FilePath: Textures/Nano/glass_dif.sktex
-  - Handle: 7354806532095749102
-    Type: Texture
-    FilePath: Textures/Nano/hand_dif.sktex
-  - Handle: 11205250290397732262
-    Type: Texture
-    FilePath: Textures/Nano/helmet_diff.sktex
-  - Handle: 7634016912929685957
-    Type: Texture
-    FilePath: Textures/Nano/leg_dif.sktex
-  - Handle: 10585574532338004058
-    Type: Texture
-    FilePath: Textures/Normals/Normal.sktex
-  - Handle: 2154367350179419965
-    Type: Texture
-    FilePath: Textures/Normals/forest_ground_04_nor_dx_4k.sktex
-  - Handle: 7223873321709590779
-    Type: Texture
-    FilePath: Textures/Normals/forest_ground_04_nor_gl_4k.sktex
-  - Handle: 12334790899310592362
-    Type: Texture
-    FilePath: Textures/Normals/stony_dirt_path_nor_dx_4k.sktex
-  - Handle: 377437537436758114
-    Type: Texture
-    FilePath: Textures/S.sktex
-  - Handle: 5626169893834607358
-    Type: Texture
-    FilePath: Textures/SimulateButton.sktex
-  - Handle: 13490309991543351279
-    Type: Texture
-    FilePath: Textures/brickwall.sktex
-  - Handle: 10417349850449502162
-    Type: Texture
-    FilePath: Textures/brickwall_normal.sktex
-  - Handle: 13338127238005575021
-    Type: Texture
-    FilePath: Textures/forest_ground_04_roughness_4k.sktex
   - Handle: 3721988405384522794
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/background.png
+  - Handle: 8753439081698730196
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/backgroundBGR.png
+  - Handle: 5531888612420358694
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/background_bump.png
+  - Handle: 10814312845388230984
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/background_ddn.png
   - Handle: 15344832065038169909
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/chain_texture.png
+  - Handle: 14326286060711007561
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/chain_texture_bump.png
+  - Handle: 11890896068119047700
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/chain_texture_ddn.png
+  - Handle: 6125082881080498331
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/chain_texture_spec.png
   - Handle: 10446901221792094920
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/gi_flag.png
   - Handle: 12337264077478282101
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/lion.png
+  - Handle: 13048113929421811098
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/lion2_bump.png
+  - Handle: 17578449383191753466
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/lion2_ddn.png
+  - Handle: 17682051705618731319
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/lion_bump.png
+  - Handle: 11386863634710563100
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/lion_ddn.png
+  - Handle: 15290231071807358070
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/spnza_bricks_a_bump.png
+  - Handle: 3153765170886506292
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/spnza_bricks_a_ddn.png
   - Handle: 16604948642651185471
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/spnza_bricks_a_diff.png
+  - Handle: 4048638270495290360
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/spnza_bricks_a_spec.png
+  - Handle: 6209194515343862272
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_arch_bump.png
+  - Handle: 4562330166400187475
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_arch_ddn.png
   - Handle: 14346483864434265321
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_arch_diff.png
+  - Handle: 14156655449904395396
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_arch_spec.png
   - Handle: 3823869254865570988
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_ceiling_a_diff.png
+  - Handle: 10288698556084421012
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_ceiling_a_spec.png
+  - Handle: 12620314377015647440
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_ceiling_ddn.jpg
+  - Handle: 18067517239802182883
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_column_a_bump.png
+  - Handle: 9871500878496406907
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_column_a_ddn.png
   - Handle: 3760121042291053809
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_column_a_diff.png
+  - Handle: 13027018702986418109
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_column_a_spec.png
+  - Handle: 15636814791894198067
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_column_b_bump.png
+  - Handle: 6060245820491669105
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_column_b_ddn.png
   - Handle: 15419866757340865941
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_column_b_diff.png
+  - Handle: 14948245271284631697
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_column_b_spec.png
+  - Handle: 13983683643580140863
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_column_c_bump.png
+  - Handle: 5601177706236444350
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_column_c_ddn.png
   - Handle: 13335474989589815971
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_column_c_diff.png
+  - Handle: 3584256924953926426
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_column_c_spec.png
   - Handle: 18180169203166557397
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_curtain_blue_diff.png
+  - Handle: 7516008056075802773
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_curtain_blue_diff_spec.png
+  - Handle: 17871780645528999914
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_curtain_ddn.jpg
   - Handle: 317466660688795237
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_curtain_diff.png
   - Handle: 5188908410638139087
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_curtain_green_diff.png
+  - Handle: 18157914545195541521
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_details_ddn.jpg
   - Handle: 11547254729766655467
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_details_diff.png
+  - Handle: 3174643130500412583
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_details_spec.png
   - Handle: 11723912776874571508
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_fabric_blue_diff.png
+  - Handle: 9941584704706942803
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_fabric_ddn.jpg
   - Handle: 3536113992654477427
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_fabric_diff.png
   - Handle: 6240028524647397759
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_fabric_green_diff.png
+  - Handle: 8316722641914160948
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_fabric_spec.png
   - Handle: 6483942058614157743
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_flagpole_diff.png
+  - Handle: 8853230185766420984
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_flagpole_diff_NRM.png
+  - Handle: 972621364812044297
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_flagpole_spec.png
   - Handle: 16024480517193282758
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_floor_a_diff.png
+  - Handle: 9168590185729331365
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_floor_a_diff_spec.png
+  - Handle: 5102280594455684755
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_floor_ddn.jpg
   - Handle: 11529457439405316591
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_roof_diff.png
+  - Handle: 11366215799063183988
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_roof_diff_NRM.png
+  - Handle: 1844267787276564229
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_thorn_bump.png
+  - Handle: 14844846085479312833
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_thorn_ddn.png
   - Handle: 11684786774059494281
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/sponza_thorn_diff.png
+  - Handle: 6359921458039245554
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/sponza_thorn_spec.png
+  - Handle: 16153327538166052573
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/vase_bump.png
+  - Handle: 3973997281126384901
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/vase_ddn.png
   - Handle: 10397198143504264226
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/vase_dif.png
   - Handle: 17773493995895154985
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/vase_hanging.png
+  - Handle: 15681338754988851800
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/vase_hanging_NRM.png
   - Handle: 12440541913006972100
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/vase_plant.png
+  - Handle: 11415604738592909062
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/vase_plant_NRM.png
+  - Handle: 9973748725455243134
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/vase_plant_ddn.jpg
+  - Handle: 2912991820467775153
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/vase_plant_spec.png
   - Handle: 7390646601413057151
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/Sponza/textures/vase_round.png
+  - Handle: 1668236266557769332
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/vase_round_bump.png
+  - Handle: 3992008178923279676
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/vase_round_ddn.png
+  - Handle: 14427279112942103288
+    Type: Texture
+    FilePath: MeshSources/Sponza/textures/vase_round_spec.png
+  - Handle: 17082748906550579815
+    Type: Texture
+    FilePath: MeshSources/cerberus.fbm/cerberus_A.png
+  - Handle: 2603443190355625923
+    Type: Texture
+    FilePath: MeshSources/cerberus.fbm/cerberus_M.png
+  - Handle: 8199248127231512866
+    Type: Texture
+    FilePath: MeshSources/cerberus.fbm/cerberus_N.png
+  - Handle: 7539208516220711472
+    Type: Texture
+    FilePath: MeshSources/cerberus.fbm/cerberus_R.png
   - Handle: 7232853939150060284
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/muro/Muro_body_dm.png
   - Handle: 16942805345747004621
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/muro/Muro_body_dm_clean.png
   - Handle: 15418007503864848753
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/muro/Muro_body_nm.png
   - Handle: 10523302094039940652
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/muro/Muro_body_sm.png
   - Handle: 3799715703158157781
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/muro/Muro_body_sm_clean.png
   - Handle: 269129602026787708
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/muro/Muro_head_dm.png
   - Handle: 1710992053265244342
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/muro/Muro_head_nm.png
   - Handle: 15924845500442281418
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/muro/Muro_head_sm.png
   - Handle: 7299182224151416153
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nano_textured/arm_dif.png
+  - Handle: 12042274515915461147
+    Type: Texture
+    FilePath: MeshSources/nano_textured/arm_showroom_spec.png
   - Handle: 11819092502560277923
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nano_textured/body_dif.png
+  - Handle: 1011860881248403108
+    Type: Texture
+    FilePath: MeshSources/nano_textured/body_showroom_spec.png
   - Handle: 13752744431969005362
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nano_textured/glass_dif.png
   - Handle: 14943952109148366865
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nano_textured/hand_dif.png
+  - Handle: 10782045474336028993
+    Type: Texture
+    FilePath: MeshSources/nano_textured/hand_showroom_spec.png
   - Handle: 18382731280025633158
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nano_textured/helmet_diff.png
+  - Handle: 880388777682311
+    Type: Texture
+    FilePath: MeshSources/nano_textured/helmet_showroom_spec.png
   - Handle: 13726392622380710816
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nano_textured/leg_dif.png
+  - Handle: 11627968603022252277
+    Type: Texture
+    FilePath: MeshSources/nano_textured/leg_showroom_spec.png
   - Handle: 5630066012441039551
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nanoboy.fbm/arm_dif.png
   - Handle: 9335162508567869071
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nanoboy.fbm/body_dif.png
   - Handle: 9077300448474110012
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nanoboy.fbm/glass_dif.png
   - Handle: 11203345184589908237
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nanoboy.fbm/hand_dif.png
   - Handle: 10442357813682557378
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nanoboy.fbm/helmet_diff.png
   - Handle: 5764261553502237782
-    Type: TextureSource
+    Type: Texture
     FilePath: MeshSources/nanoboy.fbm/leg_dif.png
+  - Handle: 9221851770954733340
+    Type: Texture
+    FilePath: Meshes/Source/cerberus/cerberus_A.png
+  - Handle: 9533595871751029098
+    Type: Texture
+    FilePath: Meshes/Source/cerberus/cerberus_M-cerberus_R.png
+  - Handle: 12713136174698525490
+    Type: Texture
+    FilePath: Meshes/Source/cerberus/cerberus_M.png
+  - Handle: 13068455595767515506
+    Type: Texture
+    FilePath: Meshes/Source/cerberus/cerberus_N.png
+  - Handle: 12057935795167092380
+    Type: Texture
+    FilePath: Meshes/Source/cerberus/cerberus_R.png
+  - Handle: 2271337852229320888
+    Type: Texture
+    FilePath: Meshes/Source/cerberus_fbx/cerberus.fbm/cerberus_A.png
+  - Handle: 7593563500195696312
+    Type: Texture
+    FilePath: Meshes/Source/cerberus_fbx/cerberus.fbm/cerberus_M.png
+  - Handle: 3944378846018553526
+    Type: Texture
+    FilePath: Meshes/Source/cerberus_fbx/cerberus.fbm/cerberus_N.png
+  - Handle: 11322478862781101585
+    Type: Texture
+    FilePath: Meshes/Source/cerberus_fbx/cerberus.fbm/cerberus_R.png
+  - Handle: 389760130929310853
+    Type: Texture
+    FilePath: Texture/Cerberus/cerberus_A.sktex
+  - Handle: 9268692970271459902
+    Type: Texture
+    FilePath: Texture/Cerberus/cerberus_M.sktex
+  - Handle: 15504667339953316786
+    Type: Texture
+    FilePath: Texture/Cerberus/cerberus_N.sktex
+  - Handle: 15852520739787442902
+    Type: Texture
+    FilePath: Texture/Cerberus/cerberus_R.sktex
   - Handle: 16722633957242249849
-    Type: TextureSource
-    FilePath: TextureSources/Cerberus/cerberus_A.png
+    Type: Texture
+    FilePath: Texture/Cerberus Source/cerberus_A.png
   - Handle: 12892261167540428345
-    Type: TextureSource
-    FilePath: TextureSources/Cerberus/cerberus_M.png
+    Type: Texture
+    FilePath: Texture/Cerberus Source/cerberus_M.png
   - Handle: 4323941727693353158
-    Type: TextureSource
-    FilePath: TextureSources/Cerberus/cerberus_N.png
+    Type: Texture
+    FilePath: Texture/Cerberus Source/cerberus_N.png
   - Handle: 6227214778461162531
-    Type: TextureSource
-    FilePath: TextureSources/Cerberus/cerberus_R.png
+    Type: Texture
+    FilePath: Texture/Cerberus Source/cerberus_R.png
   - Handle: 13665817056289373643
-    Type: TextureSource
-    FilePath: TextureSources/Checkboard.png
+    Type: Texture
+    FilePath: Texture/Checkboard.png
   - Handle: 13658523066295494907
-    Type: TextureSource
-    FilePath: TextureSources/Gear.png
+    Type: Texture
+    FilePath: Texture/Gear.png
+  - Handle: 6619594948752995598
+    Type: Texture
+    FilePath: Texture/Nano/arm_dif.sktex
+  - Handle: 13789228488399281172
+    Type: Texture
+    FilePath: Texture/Nano/body_dif.sktex
+  - Handle: 4063136717619007912
+    Type: Texture
+    FilePath: Texture/Nano/glass_dif.sktex
+  - Handle: 7354806532095749102
+    Type: Texture
+    FilePath: Texture/Nano/hand_dif.sktex
+  - Handle: 11205250290397732262
+    Type: Texture
+    FilePath: Texture/Nano/helmet_diff.sktex
+  - Handle: 7634016912929685957
+    Type: Texture
+    FilePath: Texture/Nano/leg_dif.sktex
   - Handle: 10892835148234158036
-    Type: TextureSource
-    FilePath: TextureSources/Normal.png
+    Type: Texture
+    FilePath: Texture/Normal.png
+  - Handle: 10585574532338004058
+    Type: Texture
+    FilePath: Texture/Normals/Normal.sktex
+  - Handle: 2154367350179419965
+    Type: Texture
+    FilePath: Texture/Normals/forest_ground_04_nor_dx_4k.sktex
+  - Handle: 7223873321709590779
+    Type: Texture
+    FilePath: Texture/Normals/forest_ground_04_nor_gl_4k.sktex
+  - Handle: 12334790899310592362
+    Type: Texture
+    FilePath: Texture/Normals/stony_dirt_path_nor_dx_4k.sktex
   - Handle: 881271945486829490
-    Type: TextureSource
-    FilePath: TextureSources/PlayButton.png
+    Type: Texture
+    FilePath: Texture/PlayButton.png
   - Handle: 17364403646834855980
-    Type: TextureSource
-    FilePath: TextureSources/S.png
+    Type: Texture
+    FilePath: Texture/S.png
+  - Handle: 12046611585830764491
+    Type: Texture
+    FilePath: Texture/Sampled/Checkerboard ( 2).sktex
+  - Handle: 12046611585830764490
+    Type: Texture
+    FilePath: Texture/Sampled/Checkerboard.sktex
+  - Handle: 13278977952859161977
+    Type: Texture
+    FilePath: Texture/Sampled/Gear.sktex
+  - Handle: 377437537436758114
+    Type: Texture
+    FilePath: Texture/Sampled/S.sktex
+  - Handle: 5626169893834607358
+    Type: Texture
+    FilePath: Texture/Sampled/SimulateButton.sktex
+  - Handle: 13490309991543351279
+    Type: Texture
+    FilePath: Texture/Sampled/brickwall.sktex
+  - Handle: 10417349850449502162
+    Type: Texture
+    FilePath: Texture/Sampled/brickwall_normal.sktex
+  - Handle: 13338127238005575021
+    Type: Texture
+    FilePath: Texture/Sampled/forest_ground_04_roughness_4k.sktex
   - Handle: 17253885700845256686
-    Type: TextureSource
-    FilePath: TextureSources/SimulateButton.png
-  - Handle: 13285230802713726271
-    Type: TextureSource
-    FilePath: TextureSources/Test.png
-  - Handle: 14184963295414117652
-    Type: TextureSource
-    FilePath: TextureSources/brickwall.jpg
-  - Handle: 5135876526068927706
-    Type: TextureSource
-    FilePath: TextureSources/brickwall_normal.jpg
-  - Handle: 18441321421912176314
-    Type: TextureSource
-    FilePath: TextureSources/castle_brick_broken_06_diff_4k.png
-  - Handle: 15495282146033534384
-    Type: TextureSource
-    FilePath: TextureSources/clarens_night_01_4k.png
+    Type: Texture
+    FilePath: Texture/SimulateButton.png
+  - Handle: 2709278361660041329
+    Type: Texture
+    FilePath: Texture/Source/forest_ground_04_arm_4k.png
+  - Handle: 5221737853205112195
+    Type: Texture
+    FilePath: Texture/Source/forest_ground_04_metalness_4k.png
   - Handle: 13819952377825037231
-    Type: TextureSource
-    FilePath: Textures/Source/forest_ground_04_nor_dx_4k.png
+    Type: Texture
+    FilePath: Texture/Source/forest_ground_04_nor_dx_4k.png
   - Handle: 5825812616544900434
-    Type: TextureSource
-    FilePath: Textures/Source/forest_ground_04_nor_gl_4k.png
+    Type: Texture
+    FilePath: Texture/Source/forest_ground_04_nor_gl_4k.png
   - Handle: 197223334749427015
-    Type: TextureSource
-    FilePath: Textures/Source/forest_ground_04_roughness_4k.png
+    Type: Texture
+    FilePath: Texture/Source/forest_ground_04_roughness_4k.png
   - Handle: 385160305008601684
-    Type: TextureSource
-    FilePath: Textures/Source/stony_dirt_path_diff_4k.png
+    Type: Texture
+    FilePath: Texture/Source/stony_dirt_path_diff_4k.png
   - Handle: 8975463772372701491
-    Type: TextureSource
-    FilePath: Textures/Source/stony_dirt_path_nor_dx_4k.png
+    Type: Texture
+    FilePath: Texture/Source/stony_dirt_path_nor_dx_4k.png
+  - Handle: 14184963295414117652
+    Type: Texture
+    FilePath: Texture/brickwall.jpg
+  - Handle: 5135876526068927706
+    Type: Texture
+    FilePath: Texture/brickwall_normal.jpg
+  - Handle: 18441321421912176314
+    Type: Texture
+    FilePath: Texture/castle_brick_broken_06_diff_4k.png
+  - Handle: 15495282146033534384
+    Type: Texture
+    FilePath: Texture/clarens_night_01_4k.png
   - Handle: 14790802355931774207
     Type: ScriptFile
     FilePath: Scripts/Source/BallDestroyer.cs
   - Handle: 6501839116573940395
     Type: ScriptFile
     FilePath: Scripts/Source/Bullet.cs
+  - Handle: 8329247326541832861
+    Type: ScriptFile
+    FilePath: Scripts/Source/CameraController.cs
   - Handle: 5084532622018229532
     Type: ScriptFile
     FilePath: Scripts/Source/DoorSensor.cs
@@ -371,6 +581,9 @@ ImportedAssets:
   - Handle: 13495305376586232289
     Type: MeshSource
     FilePath: Meshes/Source/cerberus/cerberus.gltf
+  - Handle: 15152399178846611395
+    Type: MeshSource
+    FilePath: Meshes/Source/cerberus_fbx/cerberus.fbx
   - Handle: 9815586959680881104
     Type: Mesh
     FilePath: Meshes/Defaults/Cone.skmesh
@@ -465,12 +678,12 @@ ImportedAssets:
     Type: Environment
     FilePath: Environment/spruit_sunrise_4k.hdr
 EditorAssets:
+  - Handle: 11789891412823666763
+    Type: Texture
+    FilePath: Resources/Textures/NoImagePlaceholder.png
   - Handle: 9158403992234771517
     Type: Texture
     FilePath: Resources/Textures/NoImagePlaceholder.sktex
-  - Handle: 11789891412823666763
-    Type: TextureSource
-    FilePath: Resources/Textures/NoImagePlaceholder.png
   - Handle: 7145403298054936205
     Type: MeshSource
     FilePath: Resources/Meshes/Default/Cone.gltf

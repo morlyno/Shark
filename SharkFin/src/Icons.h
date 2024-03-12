@@ -29,7 +29,6 @@ namespace Shark {
 		inline static Ref<Texture2D> StepIcon;
 	public:
 		static void Init();
-		static void InitWithDummyImages();
 		static void Shutdown();
 		static void Reload();
 

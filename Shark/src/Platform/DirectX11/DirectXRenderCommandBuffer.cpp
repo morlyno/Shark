@@ -33,6 +33,9 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::Release()
 	{
+		if (!m_Context)
+			return;
+
 		Renderer::SubmitResourceFree([context = m_Context, commandList = m_CommandList, pipelineQueries = m_PipelineStatsQueries, timestampQueryPools = m_TimestampQueryPools]()
 		{
 			if (commandList)
@@ -57,6 +60,12 @@ namespace Shark {
 		m_Context = nullptr;
 		m_PipelineStatsQueries.fill(nullptr);
 		m_TimestampQueryPools.fill({});
+	}
+
+	void DirectXRenderCommandBuffer::ReleaseCommandList()
+	{
+		DirectXAPI::ReleaseObject(m_CommandList);
+		m_CommandList = nullptr;
 	}
 
 	void DirectXRenderCommandBuffer::Begin()

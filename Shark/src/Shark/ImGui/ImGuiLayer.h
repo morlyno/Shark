@@ -28,6 +28,8 @@ namespace Shark {
 		virtual void SetMainViewportID(ImGuiID mainViewportID) = 0;
 		virtual ImGuiID GetMainViewportID() const = 0;
 
+		virtual TimeStep GetGPUTime() const = 0;
+
 		virtual bool BlocksMouseEvents() const = 0;
 		virtual bool BlocksKeyboardEvents() const = 0;
 		virtual void BlockEvents(bool block) = 0;

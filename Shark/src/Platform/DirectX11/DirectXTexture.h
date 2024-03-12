@@ -10,16 +10,15 @@ namespace Shark {
 	class DirectXTexture2D : public Texture2D
 	{
 	public:
-		DirectXTexture2D();
 		DirectXTexture2D(const TextureSpecification& specification, Buffer imageData);
-		DirectXTexture2D(const TextureSpecification& specification, Ref<TextureSource> textureSource);
+		DirectXTexture2D(const TextureSpecification& specification, const std::filesystem::path& filepath);
 		virtual ~DirectXTexture2D();
 
 		virtual void Invalidate() override;
 		virtual void RT_Invalidate() override;
 		virtual void Release() override;
 
-		virtual bool IsValid() const override { return m_Image->IsValid(); }
+		virtual bool IsValid() const override { return m_Image->GetDirectXImageInfo().View != nullptr; }
 
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
@@ -31,14 +30,15 @@ namespace Shark {
 		virtual Buffer& GetBuffer() override { return m_ImageData; }
 		virtual Buffer GetBuffer() const override { return m_ImageData; }
 
-		virtual Ref<TextureSource> GetTextureSource() const override { return m_TextureSource; }
-		virtual void SetTextureSource(Ref<TextureSource> textureSource) override;
-
 		virtual RenderID GetViewID() const override { return m_Image->GetViewID(); }
 		virtual Ref<Image2D> GetImage() const override { return m_Image; }
 
 		virtual TextureSpecification& GetSpecification() override { return m_Specification; }
 		virtual const TextureSpecification& GetSpecification() const override { return m_Specification; }
+		virtual const std::filesystem::path& GetFilepath() const override { return m_Filepath; }
+
+		virtual AssetHandle GetSourceTextureHandle() const override { return m_SourceTextureHandle; }
+		virtual void SetSourceTextureHandle(AssetHandle handle) override { m_SourceTextureHandle = handle; }
 
 		DirectXImageInfo& GetDirectXImageInfo() { return m_Image->GetDirectXImageInfo(); }
 		const DirectXImageInfo& GetDirectXImageInfo() const { return m_Image->GetDirectXImageInfo(); }
@@ -47,12 +47,13 @@ namespace Shark {
 		void UploadImageData();
 		void RT_UploadImageData();
 
-		Buffer GetCPUUploadBufer() const;
-
 	private:
 		TextureSpecification m_Specification;
-		Ref<TextureSource> m_TextureSource;
+		std::filesystem::path m_Filepath;
 		Buffer m_ImageData;
+
+		// Only used for serialization
+		AssetHandle m_SourceTextureHandle;
 
 		Ref<DirectXImage2D> m_Image;
 		ID3D11SamplerState* m_Sampler = nullptr;

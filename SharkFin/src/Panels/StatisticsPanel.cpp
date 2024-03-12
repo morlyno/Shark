@@ -104,6 +104,7 @@ namespace Shark {
 				m_FrameTimeAccumulator += app.GetFrameTime();
 				m_CPUTimeAccumulator += app.GetCPUTime();
 				m_GPUTimeAccumulator += app.GetGPUTime();
+				m_ImGuiGPUTimeAccumulator += app.GetImGuiLayer().GetGPUTime();
 
 				size_t index = 2;
 				for (const auto& [descriptor, data] : frameStorages)
@@ -125,10 +126,12 @@ namespace Shark {
 					m_FrameTime = m_FrameTimeAccumulator / (float)m_ProfilerSamples;
 					m_CPUTime = m_CPUTimeAccumulator / (float)m_ProfilerSamples;
 					m_GPUTime = m_GPUTimeAccumulator / (float)m_ProfilerSamples;
+					m_ImGuiGPUTime = m_ImGuiGPUTimeAccumulator / (float)m_ProfilerSamples;
 
 					m_FrameTimeAccumulator = 0;
 					m_CPUTimeAccumulator = 0;
 					m_GPUTimeAccumulator = 0;
+					m_ImGuiGPUTimeAccumulator = 0;
 					m_ProfilerStatsAccumulator.clear();
 					m_ProfilerSampleCount = 0;
 				}
@@ -141,6 +144,7 @@ namespace Shark {
 				UI::Property("Frame", m_FrameTime);
 				UI::Property("CPU", m_CPUTime);
 				UI::Property("GPU", m_GPUTime);
+				UI::Property("ImGui GPU", m_ImGuiGPUTime);
 				for (const auto& entry : m_ProfilerStats)
 					UI::Property(entry.Descriptor, entry.Duration.ToString());
 				UI::EndControlsGrid();

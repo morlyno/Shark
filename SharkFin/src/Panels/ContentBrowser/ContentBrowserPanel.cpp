@@ -35,6 +35,8 @@ namespace Shark {
 
 	void ContentBrowserPanel::OnImGuiRender(bool& shown)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!shown)
 			return;
 
@@ -75,12 +77,8 @@ namespace Shark {
 						UI::MoveCursorY(style.FramePadding.y);
 						UI::ScopedIndent indent(style.WindowPadding.x * 0.5f);
 
-						if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
-							NextDirectory(m_BaseDirectory);
-						{
-							for (auto subdir : m_BaseDirectory->SubDirectories)
-								DrawDirectoryHirachy(subdir);
-						}
+						for (auto subdir : m_BaseDirectory->SubDirectories)
+							DrawDirectoryHirachy(subdir);
 
 						ImGuiWindow* window = ImGui::GetCurrentWindow();
 						ImDrawList* drawList = window->DrawList;
@@ -209,7 +207,6 @@ namespace Shark {
 		{
 			m_BaseDirectory = Ref<DirectoryInfo>::Create(nullptr, m_Project->GetAssetsDirectory());
 			m_CurrentDirectory = m_BaseDirectory;
-			m_BaseDirectory->Reload(m_Project);
 			Reload();
 		}
 
@@ -232,7 +229,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
-		m_BaseDirectory->Reload(m_Project);
+		ParseDirectories(m_BaseDirectory);
 		m_History.Reset(m_BaseDirectory);
 		CacheDirectories(m_BaseDirectory);
 
@@ -251,6 +248,39 @@ namespace Shark {
 			CacheDirectories(subdir);
 	}
 
+	void ContentBrowserPanel::ParseDirectories(Ref<DirectoryInfo> directory)
+	{
+		directory->SubDirectories.clear();
+		directory->Filenames.clear();
+
+		for (const auto& entry : std::filesystem::directory_iterator(directory->Filepath))
+		{
+			if (entry.is_directory())
+			{
+				directory->SubDirectories.emplace_back(Ref<DirectoryInfo>::Create(directory, entry.path()));
+				continue;
+			}
+
+			if (entry.is_regular_file())
+			{
+				if (!m_Project->GetEditorAssetManager()->IsFileImported(entry.path()))
+					m_Project->GetEditorAssetManager()->ImportAsset(entry.path());
+
+				directory->Filenames.emplace_back(entry.path().filename().string());
+			}
+		}
+
+		std::ranges::sort(directory->Filenames);
+		std::sort(directory->SubDirectories.begin(), directory->SubDirectories.end(), [](const auto& lhs, const auto& rhs)
+		{
+			return lhs->Filepath < rhs->Filepath;
+		});
+
+		for (auto subdir : directory->SubDirectories)
+			ParseDirectories(subdir);
+
+	}
+
 	void ContentBrowserPanel::ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistory)
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
@@ -265,15 +295,7 @@ namespace Shark {
 			return;
 
 		m_CurrentDirectory = directory;
-
-		if (m_BrowserType == ContentBrowserType::Asset)
-		{
-			m_CurrentItems = GetItemsForAssetBrowser(directory);
-		}
-		else
-		{
-			m_CurrentItems = GetItemsForFileBrowser(directory);
-		}
+		m_CurrentItems = GetItemsInDirectory(directory);
 
 		if (addToHistory)
 		{
@@ -328,28 +350,22 @@ namespace Shark {
 			std::filesystem::path filepath = directory->Filepath / filename;
 
 			AssetHandle handle = assetManager->GetAssetHandleFromFilepath(filepath);
-			if (assetManager->IsValidAssetHandle(handle))
-			{
-				AssetType assetType = assetManager->GetAssetType(handle);
-				std::string assetTypeString = ToString(assetType);
-
-				if (filter.PassFilter(filename.c_str()) || filter.PassFilter(assetTypeString.c_str()))
-				{
-					foundItems.Add(Ref<ContentBrowserItem>::Create(this, CBItemType::Asset, filepath));
-				}
+			if (!assetManager->IsValidAssetHandle(handle))
 				continue;
-			}
 
-			if (m_BrowserType == ContentBrowserType::Filesystem && filter.PassFilter(filename.c_str()))
+			AssetType assetType = assetManager->GetAssetType(handle);
+			std::string assetTypeString = ToString(assetType);
+
+			if (filter.PassFilter(filename.c_str()) || filter.PassFilter(assetTypeString.c_str()))
 			{
-				foundItems.Add(Ref<ContentBrowserItem>::Create(this, CBItemType::File, filepath));
+				foundItems.Add(Ref<ContentBrowserItem>::Create(this, CBItemType::Asset, filepath));
 			}
 		}
 
 		return foundItems;
 	}
 
-	CBItemList ContentBrowserPanel::GetItemsForAssetBrowser(Ref<DirectoryInfo> directory)
+	CBItemList ContentBrowserPanel::GetItemsInDirectory(Ref<DirectoryInfo> directory)
 	{
 		CBItemList items;
 
@@ -374,35 +390,18 @@ namespace Shark {
 		return items;
 	}
 
-	CBItemList ContentBrowserPanel::GetItemsForFileBrowser(Ref<DirectoryInfo> directory)
-	{
-		CBItemList items;
-
-		for (Ref<DirectoryInfo> subdir : directory->SubDirectories)
-		{
-			Ref<ContentBrowserItem> directoryItem = Ref<ContentBrowserItem>::Create(this, CBItemType::Directory, subdir->Filepath);
-			items.Items.push_back(directoryItem);
-		}
-
-		for (const auto& filename : directory->Filenames)
-		{
-			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-			std::filesystem::path filepath = directory->Filepath / filename;
-			const AssetHandle handle = assetManager->GetAssetHandleFromFilepath(filepath);
-			const CBItemType itemType = assetManager->IsValidAssetHandle(handle) ? CBItemType::Asset : CBItemType::File;
-			Ref<ContentBrowserItem> assetItem = Ref<ContentBrowserItem>::Create(this, itemType, filepath);
-			items.Items.push_back(assetItem);
-		}
-
-		return items;
-	}
-
 	Ref<DirectoryInfo> ContentBrowserPanel::GetDirectory(const std::filesystem::path& filePath)
 	{
-		const auto key = m_Project->GetAbsolute(filePath).lexically_normal();
+		const auto key = GetKey(filePath);
+		SK_CORE_ASSERT(m_DirectoryMap.contains(key) == FileSystem::Exists(key));
 		if (m_DirectoryMap.contains(key))
 			return m_DirectoryMap.at(key);
 		return nullptr;
+	}
+
+	std::filesystem::path ContentBrowserPanel::GetKey(const std::filesystem::path& path) const
+	{
+		return m_Project->GetAbsolute(path).lexically_normal();
 	}
 
 	bool ContentBrowserPanel::OnKeyPressedEvent(KeyPressedEvent& event)
@@ -440,6 +439,8 @@ namespace Shark {
 
 	void ContentBrowserPanel::DrawItems()
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::vector<Ref<ContentBrowserItem>> deletedItems;
 		bool resortCurrentItems = false;
 
@@ -469,6 +470,11 @@ namespace Shark {
 						}
 					}
 				}
+			}
+
+			if (action.FlagSet(CBItemActionFlag::RemoveItem))
+			{
+				deletedItems.push_back(currentItem);
 			}
 
 			if (action.FlagSet(CBItemActionFlag::OpenExternally))
@@ -530,7 +536,7 @@ namespace Shark {
 					Ref<DirectoryInfo> directoryInfo = GetDirectory(currentItem->GetPath());
 					if (directoryInfo)
 					{
-						directoryInfo->Rename(action.GetNewName());
+						RenameDirectory(directoryInfo, action.GetNewName());
 					}
 				}
 				if (itemType == CBItemType::Asset)
@@ -538,24 +544,9 @@ namespace Shark {
 					m_CurrentDirectory->RenameFile(currentItem->GetName(), action.GetNewName());
 					m_Project->GetEditorAssetManager()->OnAssetRenamed(currentItem->GetPath(), action.GetNewName());
 				}
-				if (itemType == CBItemType::File)
-				{
-					m_CurrentDirectory->RenameFile(currentItem->GetName(), action.GetNewName());
-				}
 
 				currentItem->Rename(action.GetNewName(), false);
 				resortCurrentItems = true;
-			}
-
-			if (action.FlagSet(CBItemActionFlag::Remove))
-			{
-				if (itemType == CBItemType::Asset)
-				{
-					Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-					AssetHandle handle = assetManager->GetAssetHandleFromFilepath(currentItem->GetPath());
-					assetManager->RemoveAsset(handle);
-					currentItem->SetType(CBItemType::File);
-				}
 			}
 
 			if (action.FlagSet(CBItemActionFlag::ImportFile))
@@ -565,11 +556,36 @@ namespace Shark {
 				currentItem->SetType(CBItemType::Asset);
 			}
 
+			if (action.FlagSet(CBItemActionFlag::AssetDropped))
+			{
+				SK_CORE_ASSERT(itemType == CBItemType::Directory);
+				Ref<DirectoryInfo> destinationDirectory = GetDirectory(currentItem->GetPath());
+				MoveAsset(action.GetDroppedAsset(), destinationDirectory);
+			}
+
+			if (action.FlagSet(CBItemActionFlag::DirectoryDropped))
+			{
+				SK_CORE_ASSERT(itemType == CBItemType::Directory);
+
+				Ref<DirectoryInfo> destinationDirectory = GetDirectory(currentItem->GetPath());
+				Ref<DirectoryInfo> directory = GetDirectory(action.GetDroppedDirectory());
+				MoveDirectory(directory, destinationDirectory);
+			}
+
 			ImGui::NextColumn();
 		}
 
 		for (Ref<ContentBrowserItem> deleted : deletedItems)
+		{
+			Ref<DirectoryInfo> parent = GetDirectory(deleted->GetPath().parent_path());
+
+			if (deleted->GetType() == CBItemType::Directory)
+				parent->RemoveDirectory(deleted->GetPath());
+			else
+				parent->RemoveFile(deleted->GetPath().filename().string());
+
 			m_CurrentItems.Remove(deleted);
+		}
 
 		if (resortCurrentItems)
 			m_CurrentItems.Sort();
@@ -681,9 +697,6 @@ namespace Shark {
 			if (ImGui::BeginPopup("cbSettings"))
 			{
 				auto& settings = EditorSettings::Get().ContentBrowser;
-				if (ImGui::Combo("Type", (int*)&m_BrowserType, s_BrowserTypeString, std::size(s_BrowserTypeString)))
-					NextDirectory(m_CurrentDirectory, false);
-
 				ImGui::DragFloat("Thubnail Size", &settings.ThumbnailSize, 1.0f, 16.0f, FLT_MAX);
 				ImGui::Checkbox("Generate Thumbnails", &settings.GenerateThumbnails);
 				ImGui::EndPopup();
@@ -710,6 +723,30 @@ namespace Shark {
 
 		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 			NextDirectory(directory);
+
+		if (ImGui::BeginDragDropTarget())
+		{
+			const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload(UI::DragDropID::Asset);
+			if (assetPayload)
+			{
+				AssetHandle handle = *(AssetHandle*)assetPayload->Data;
+				Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+				if (assetManager->IsValidAssetHandle(handle))
+				{
+					MoveAsset(handle, directory);
+				}
+			}
+
+			const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload(UI::DragDropID::Directroy);
+			if (directoryPayload)
+			{
+				std::filesystem::path path = std::filesystem::path((const char*)directoryPayload->Data);
+				SK_CORE_ASSERT(FileSystem::Exists(path));
+
+				MoveDirectory(GetDirectory(path), directory);
+			}
+
+		}
 
 		if (open)
 		{
@@ -746,14 +783,9 @@ namespace Shark {
 			{
 				return assetManager->GetAsset(metadata.Handle).As<Texture2D>();
 			}
-			case AssetType::TextureSource:
-			{
-				auto source = assetManager->GetAsset(metadata.Handle).As<TextureSource>();
-				return Texture2D::Create({}, source);
-			}
 			case AssetType::Environment:
 			{
-				return Texture2D::LoadFromDisc(assetManager->GetFilesystemPath(metadata));
+				return Texture2D::Create(TextureSpecification(), assetManager->GetFilesystemPath(metadata));
 			}
 		}
 
@@ -781,11 +813,10 @@ namespace Shark {
 			}
 
 			const auto& metadata = m_Project->GetEditorAssetManager()->GetMetadata(item->GetPath());
-			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::TextureSource ||
-				metadata.Type == AssetType::Font || metadata.Type == AssetType::Environment)
+			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::Font || metadata.Type == AssetType::Environment)
 			{
 				SK_CORE_ASSERT(item->m_Thumbnail == nullptr);
-				item->m_Thumbnail = GetThumbnail(metadata);
+				item->SetThumbnail(GetThumbnail(metadata));
 			}
 		}
 
@@ -801,7 +832,89 @@ namespace Shark {
 		AssetHandle handle = assetManager->GetAssetHandleFromFilepath(path);
 		if (assetManager->IsValidAssetHandle(handle))
 			return CBItemType::Asset;
-		return CBItemType::File;
+		return CBItemType::None;
+	}
+
+	void ContentBrowserPanel::MoveAsset(AssetHandle handle, Ref<DirectoryInfo> destinationDirectory)
+	{
+		Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+
+		auto filesystemPath = assetManager->GetFilesystemPath(handle);
+		std::string filename = filesystemPath.filename().string();
+
+		Ref<DirectoryInfo> originDirectory = GetDirectory(filesystemPath.parent_path());
+		std::filesystem::path newPath = destinationDirectory->Filepath / filename;
+
+		Ref<ContentBrowserItem> targetItem = m_CurrentItems.TryGet(filesystemPath);
+		if ((targetItem && targetItem->Move(newPath)) || FileSystem::Move(targetItem->GetPath(), newPath))
+		{
+			originDirectory->RemoveFile(filename);
+			destinationDirectory->AddFile(filename);
+			assetManager->AssetMoved(handle, newPath);
+			NextDirectory(m_CurrentDirectory, false, false);
+		}
+	}
+
+	void ContentBrowserPanel::MoveDirectory(Ref<DirectoryInfo> directory, Ref<DirectoryInfo> destinationDirectory, bool first)
+	{
+		std::filesystem::path oldDirectoryPath = directory->Filepath;
+		std::filesystem::path newDirectoryPath = destinationDirectory->Filepath / directory->Name;
+
+		if (first)
+		{
+			if (!FileSystem::Move(oldDirectoryPath, newDirectoryPath))
+				return;
+
+			Ref<DirectoryInfo> oldParent = directory->Parent.GetRef();
+			oldParent->RemoveDirectory(directory);
+			destinationDirectory->AddDirectory(directory);
+		}
+
+		directory->Filepath = destinationDirectory->Filepath / directory->Name;
+		directory->Parent = destinationDirectory;
+
+		for (const auto& filename : directory->Filenames)
+		{
+			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+			std::filesystem::path filesystemPath = oldDirectoryPath / filename;
+			AssetHandle handle = assetManager->GetAssetHandleFromFilepath(filesystemPath);
+			assetManager->AssetMoved(handle, newDirectoryPath / filename);
+		}
+
+		m_DirectoryMap.erase(GetKey(oldDirectoryPath));
+		for (auto subdir : directory->SubDirectories)
+		{
+			MoveDirectory(subdir, directory, false);
+		}
+
+		if (first)
+		{
+			CacheDirectories(directory);
+			NextDirectory(m_CurrentDirectory, false, false);
+		}
+	}
+
+	void ContentBrowserPanel::RenameDirectory(Ref<DirectoryInfo> directory, const std::string& newName)
+	{
+		std::filesystem::path oldDirectoryPath = directory->Filepath;
+		std::filesystem::path newDirectoryPath = FileSystem::ChangeFilename(directory->Filepath, newName);
+		directory->Rename(newName);
+
+		for (const auto& filename : directory->Filenames)
+		{
+			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+			AssetHandle handle = assetManager->GetAssetHandleFromFilepath(oldDirectoryPath / filename);
+			assetManager->AssetMoved(handle, newDirectoryPath / filename);
+		}
+
+		m_DirectoryMap.erase(GetKey(oldDirectoryPath));
+		for (auto subdir : directory->SubDirectories)
+		{
+			MoveDirectory(subdir, directory, false);
+		}
+
+		CacheDirectories(directory);
+		NextDirectory(m_CurrentDirectory, false, false);
 	}
 
 	Ref<ContentBrowserItem> ContentBrowserPanel::CreateDirectory(Ref<DirectoryInfo> directory, const std::string& name, bool startRenaming)

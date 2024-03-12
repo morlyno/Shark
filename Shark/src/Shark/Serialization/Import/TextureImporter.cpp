@@ -75,17 +75,4 @@ namespace Shark {
 		return buffer;
 	}
 
-	Ref<TextureSource> TextureImporter::ToTextureSourceFromFile(const std::filesystem::path& filepath)
-	{
-		SK_PROFILE_FUNCTION();
-
-		auto source = TextureSource::Create();
-		source->ImageData = ToBufferFromFile(filepath, source->Format, source->Width, source->Height);
-		if (!source->ImageData)
-			return nullptr;
-
-		source->SourcePath = filepath;
-		return source;
-	}
-
 }

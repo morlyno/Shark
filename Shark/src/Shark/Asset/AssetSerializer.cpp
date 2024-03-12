@@ -21,7 +21,6 @@ namespace Shark {
 	{
 		s_Serializers[AssetType::Scene] = Scope<SceneSerializer>::Create();
 		s_Serializers[AssetType::Texture] = Scope<TextureSerializer>::Create();
-		s_Serializers[AssetType::TextureSource] = Scope<TextureSourceSerializer>::Create();
 		s_Serializers[AssetType::ScriptFile] = Scope<ScriptFileSerializer>::Create();
 		s_Serializers[AssetType::Font] = Scope<FontSerializer>::Create();
 		s_Serializers[AssetType::MeshSource] = Scope<MeshSourceSerializer>::Create();

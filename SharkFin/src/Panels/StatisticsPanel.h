@@ -29,11 +29,13 @@ namespace Shark {
 		TimeStep m_FrameTime;
 		TimeStep m_CPUTime;
 		TimeStep m_GPUTime;
+		TimeStep m_ImGuiGPUTime;
 
 		std::map<std::string, TimeStep> m_ProfilerStatsAccumulator;
 		TimeStep m_FrameTimeAccumulator;
 		TimeStep m_CPUTimeAccumulator;
 		TimeStep m_GPUTimeAccumulator;
+		TimeStep m_ImGuiGPUTimeAccumulator;
 
 		uint32_t m_ProfilerSamples = 10;
 		uint32_t m_ProfilerSampleCount = 0;

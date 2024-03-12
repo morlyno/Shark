@@ -91,17 +91,17 @@ namespace Shark {
 		Window& window = Application::Get().GetWindow();
 		ImGui_ImplWin32_Init(window.GetHandle());
 
-		auto device = DirectXRenderer::Get()->GetDevice();
-		DirectXAPI::CreateDeferredContext(device, m_Context);
+		m_CommandBuffer = Ref<DirectXRenderCommandBuffer>::Create();
 
 		Renderer::Submit([instance = this]()
 		{
 			Window& window = Application::Get().GetWindow();
 
-			ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), instance->m_Context);
+			ID3D11DeviceContext* context = instance->m_CommandBuffer->GetContext();
+			ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), context);
 			ImGui_ImplDX11_CreateDeviceObjects();
-			ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, instance->m_Context);
-			instance->m_Context->PSGetSamplers(0, 1, &instance->m_ImGuiFontSampler);
+			ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, context);
+			context->PSGetSamplers(0, 1, &instance->m_ImGuiFontSampler);
 		});
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
@@ -126,11 +126,12 @@ namespace Shark {
 			ImGui::DestroyContext();
 		});
 
-		Renderer::SubmitResourceFree([sampler = m_ImGuiFontSampler, context = m_Context]()
+		Renderer::SubmitResourceFree([sampler = m_ImGuiFontSampler]()
 		{
 			DirectXAPI::ReleaseObject(sampler);
-			DirectXAPI::ReleaseObject(context);
 		});
+
+		m_CommandBuffer = nullptr;
 	}
 
 	void DirectXImGuiLayer::OnEvent(Event& event)
@@ -144,78 +145,98 @@ namespace Shark {
 	void DirectXImGuiLayer::Begin()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		SK_CORE_VERIFY(!Renderer::IsOnRenderThread());
 
-		m_UsedImages.clear();
-		m_UsedTextureIndex = 0;
+		m_CommandBuffer->Begin();
+		m_TimestampQuery = m_CommandBuffer->BeginTimestampQuery();
 
-		ImGui_ImplDX11_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-		ImGuizmo::BeginFrame();
-		UI::NewFrame();
+		Renderer::Submit([instance = this]()
+		{
+			ImGui_ImplDX11_NewFrame();
+			ImGui_ImplWin32_NewFrame();
+			ImGui::NewFrame();
+			ImGuizmo::BeginFrame();
+			UI::NewFrame();
 
-		m_InFrame = true;
+			instance->m_InFrame = true;
+		});
 	}
 
 	void DirectXImGuiLayer::End()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
+		SK_CORE_VERIFY(!Renderer::IsOnRenderThread());
 
-		m_InFrame = false;
-
-		ImGuiIO& io = ImGui::GetIO();
-		auto& window = Application::Get().GetWindow();
-		io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
-
-		Ref<DirectXFrameBuffer> swapchainFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
-		DirectXRenderer::Get()->BindFrameBuffer(m_Context, swapchainFrameBuffer);
-
+		Renderer::Submit([this]()
 		{
-			SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render");
+			if (Application::Get().GetApplicationState() == ApplicationState::Shutdown)
+				return;
 
-			ImGui::Render();
-			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+			m_InFrame = false;
 
-			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+			ImGuiIO& io = ImGui::GetIO();
+			auto& window = Application::Get().GetWindow();
+			io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
+
+			Ref<DirectXFrameBuffer> swapchainFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
+			DirectXRenderer::Get()->BindFrameBuffer(m_CommandBuffer->GetContext(), swapchainFrameBuffer);
+
 			{
-				SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render Platform");
-				ImGui::UpdatePlatformWindows();
-				ImGui::RenderPlatformWindowsDefault();
+				SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render");
+
+				ImGui::Render();
+				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+				m_ImageMap.clear();
+
+				if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+				{
+					SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render Platform");
+					ImGui::UpdatePlatformWindows();
+					ImGui::RenderPlatformWindowsDefault();
+				}
 			}
-		}
+		});
 
-		ID3D11CommandList* commandList;
-		m_Context->FinishCommandList(false, &commandList);
+		m_CommandBuffer->EndTimestampQuery(m_TimestampQuery);
+		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
 
-		ID3D11DeviceContext* immediateContext = DirectXRenderer::Get()->GetContext();
-		immediateContext->ExecuteCommandList(commandList, false);
-		DirectXAPI::ReleaseObject(commandList);
+		m_GPUTime = m_CommandBuffer->GetTime(m_TimestampQuery);
 	}
 
 	void BindSamplerCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
 	{
 		DirectXImGuiLayer* imguiLayer = (DirectXImGuiLayer*)cmd->UserCallbackData;
-		const auto& usedTextures = imguiLayer->m_UsedImages;
 
-		Ref<DirectXImage2D> image = imguiLayer->m_UsedImages[imguiLayer->m_UsedTextureIndex++];
+		if (!imguiLayer->m_ImageMap.contains(cmd->TextureId))
+			return;
+
+		Ref<DirectXImage2D> image = imguiLayer->m_ImageMap.at(cmd->TextureId);
 		const DirectXImageInfo& info = image->GetDirectXImageInfo();
-		SK_CORE_ASSERT(info.Sampler);
-		imguiLayer->m_Context->PSSetSamplers(0, 1, &info.Sampler);
+		imguiLayer->m_CommandBuffer->GetContext()->PSSetSamplers(0, 1, &info.Sampler);
 	}
 
 	void DirectXImGuiLayer::AddImage(Ref<Image2D> image)
 	{
-		m_UsedImages.emplace_back(image.As<DirectXImage2D>());
+		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
+		m_ImageMap[dxImage->GetDirectXImageInfo().View] = dxImage;
 
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		ImDrawCmd* curr_cmd = &drawList->CmdBuffer[drawList->CmdBuffer.Size - 1];
+		if (curr_cmd->ElemCount != 0)
+		{
+			drawList->AddDrawCmd();
+			curr_cmd = &drawList->CmdBuffer.Data[drawList->CmdBuffer.Size - 1];
+		}
+
+		curr_cmd->TextureId = dxImage->GetDirectXImageInfo().View;
 		drawList->AddCallback(&BindSamplerCallback, this);
 	}
 
 	void DirectXImGuiLayer::BindFontSampler()
 	{
-		m_Context->PSSetSamplers(0, 1, &m_ImGuiFontSampler);
+		m_CommandBuffer->GetContext()->PSSetSamplers(0, 1, &m_ImGuiFontSampler);
 	}
 
 }

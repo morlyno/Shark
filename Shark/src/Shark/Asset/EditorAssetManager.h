@@ -63,6 +63,8 @@ namespace Shark {
 		AssetMetadataMap& GetAssetMetadataMap();
 		const AssetMetadataMap& GetAssetMetadataMap() const;
 
+		bool AssetMoved(AssetHandle asset, const std::filesystem::path& newpath);
+
 		// File Events
 		void OnAssetCreated(const std::filesystem::path& filepath);
 		void OnAssetDeleted(const std::filesystem::path& filepath);

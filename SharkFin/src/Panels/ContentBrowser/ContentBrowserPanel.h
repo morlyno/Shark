@@ -10,6 +10,7 @@
 #include <future>
 
 #undef CreateDirectory
+#undef RemoveDirectory
 
 namespace Shark {
 
@@ -66,6 +67,16 @@ namespace Shark {
 		bool Contains(Ref<ContentBrowserItem> item)
 		{
 			return std::ranges::find(Items, item) != Items.end();
+		}
+
+		Ref<ContentBrowserItem> TryGet(const std::filesystem::path& path)
+		{
+			for (auto item : Items)
+			{
+				if (item->GetPath() == path)
+					return item;
+			}
+			return nullptr;
 		}
 
 		void Remove(Ref<ContentBrowserItem> item)
@@ -163,35 +174,6 @@ namespace Shark {
 		uint32_t m_Index = -1;
 	};
 
-	class CBFilter
-	{
-	public:
-		CBFilter(const std::string& filter, bool caseSensitive)
-			: m_CaseSensitive(caseSensitive)
-		{
-			m_Filter = caseSensitive ? filter : String::ToLowerCopy(filter);
-		}
-
-		bool Filter(const std::string& str) const
-		{
-			if (m_CaseSensitive)
-				return str.find(m_Filter) != std::string::npos;
-
-			std::string lowerStr = String::ToLowerCopy(str);
-			return lowerStr.find(m_Filter) != std::string::npos;
-		}
-
-	private:
-		std::string m_Filter;
-		bool m_CaseSensitive;
-	};
-
-	enum class ContentBrowserType : uint32_t
-	{
-		Asset,
-		Filesystem
-	};
-
 	using OpenAssetCallbackFn = std::function<void(const AssetMetaData&)>;
 
 	class ContentBrowserPanel : public Panel
@@ -214,6 +196,7 @@ namespace Shark {
 	private:
 		void Reload();
 		void CacheDirectories(Ref<DirectoryInfo> directory);
+		void ParseDirectories(Ref<DirectoryInfo> directory);
 
 	private:
 		void ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistory = true);
@@ -221,10 +204,10 @@ namespace Shark {
 
 	private:
 		CBItemList Search(const std::string& filterPaddern, Ref<DirectoryInfo> directory, bool searchSubdirectories = true);
-		CBItemList GetItemsForAssetBrowser(Ref<DirectoryInfo> directory);
-		CBItemList GetItemsForFileBrowser(Ref<DirectoryInfo> directory);
+		CBItemList GetItemsInDirectory(Ref<DirectoryInfo> directory);
 
 		Ref<DirectoryInfo> GetDirectory(const std::filesystem::path& filePath);
+		std::filesystem::path GetKey(const std::filesystem::path& path) const;
 	private:
 		bool OnKeyPressedEvent(KeyPressedEvent& event);
 
@@ -238,6 +221,10 @@ namespace Shark {
 
 		bool IsSearchActive() { return m_SearchBuffer[0] != '\0'; }
 		CBItemType GetItemTypeFromPath(const std::filesystem::path& path) const;
+
+		void MoveAsset(AssetHandle handle, Ref<DirectoryInfo> destinationDirectory);
+		void MoveDirectory(Ref<DirectoryInfo> directory, Ref<DirectoryInfo> destinationDirectory, bool first = true);
+		void RenameDirectory(Ref<DirectoryInfo> directory, const std::string& newName);
 
 	private:
 		Ref<ContentBrowserItem> CreateDirectory(Ref<DirectoryInfo> directory, const std::string& name, bool startRenaming);
@@ -258,7 +245,6 @@ namespace Shark {
 
 	private:
 		Ref<Project> m_Project;
-		ContentBrowserType m_BrowserType = ContentBrowserType::Asset;
 
 		bool m_ReloadScheduled = true;
 		bool m_PanelFocused = false;
@@ -295,17 +281,6 @@ namespace Shark {
 
 		std::future<void> m_GenerateThumbnailsFuture;
 		std::atomic<bool> m_StopGenerateThumbnails = false;
-
-		static constexpr const char* s_BrowserTypeString[] = { "Asset", "Filesystem" };
 	};
-
-	constexpr std::string_view ToStringView(ContentBrowserType type)
-	{
-		switch (type)
-		{
-			case ContentBrowserType::Asset: return "Asset";
-			case ContentBrowserType::Filesystem: return "Filesystem";
-		}
-	}
 
 }

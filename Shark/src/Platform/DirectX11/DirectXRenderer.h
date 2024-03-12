@@ -77,6 +77,7 @@ namespace Shark {
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
 		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
 
+		void BindFrameBuffer(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXFrameBuffer> framebuffer);
 		void BindFrameBuffer(ID3D11DeviceContext* context, Ref<DirectXFrameBuffer> framebuffer);
 
 		uint64_t GetGPUFrequncy() const { return m_GPUFrequency; }

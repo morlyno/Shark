@@ -9,7 +9,6 @@ namespace Shark {
 		None = 0,
 		Scene,
 		Texture,
-		TextureSource,
 		ScriptFile,
 		Font,
 		MeshSource,
@@ -25,7 +24,6 @@ namespace Shark {
 			case AssetType::None: return "None";
 			case AssetType::Scene: return "Scene";
 			case AssetType::Texture: return "Texture";
-			case AssetType::TextureSource: return "TextureSource";
 			case AssetType::ScriptFile: return "ScriptFile";
 			case AssetType::Font: return "Font";
 			case AssetType::MeshSource: return "MeshSource";
@@ -43,7 +41,6 @@ namespace Shark {
 		if (assetType == "None") return AssetType::None;
 		if (assetType == "Scene") return AssetType::Scene;
 		if (assetType == "Texture") return AssetType::Texture;
-		if (assetType == "TextureSource") return AssetType::TextureSource;
 		if (assetType == "ScriptFile") return AssetType::ScriptFile;
 		if (assetType == "Font") return AssetType::Font;
 		if (assetType == "MeshSource") return AssetType::MeshSource;
@@ -58,8 +55,8 @@ namespace Shark {
 	inline const std::unordered_map<std::string, AssetType> AssetExtensionMap = {
 		{ ".skscene", AssetType::Scene },
 		{ ".sktex", AssetType::Texture },
-		{ ".png", AssetType::TextureSource },
-		{ ".jpg", AssetType::TextureSource },
+		{ ".png", AssetType::Texture },
+		{ ".jpg", AssetType::Texture },
 		{ ".cs", AssetType::ScriptFile },
 		{ ".ttf", AssetType::Font },
 		{ ".obj", AssetType::MeshSource },

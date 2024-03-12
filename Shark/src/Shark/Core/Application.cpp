@@ -108,7 +108,7 @@ namespace Shark {
 
 		while (m_Running)
 		{
-			SK_PROFILE_FRAME("MainThread");
+			SK_PROFILE_MAIN_FRAME();
 
 			Timer cpuTimer;
 
@@ -125,8 +125,7 @@ namespace Shark {
 
 				if (m_Specification.EnableImGui)
 				{
-					Application* app = this;
-					Renderer::Submit([app]() { app->RenderImGui(); });
+					RenderImGui();
 				}
 
 				Renderer::EndFrame();
@@ -182,8 +181,12 @@ namespace Shark {
 
 		m_ImGuiLayer->Begin();
 
-		for (auto& layer : m_LayerStack)
-			layer->OnImGuiRender();
+		Application* app = this;
+		Renderer::Submit([app]()
+		{
+			for (auto& layer : app->m_LayerStack)
+				layer->OnImGuiRender();
+		});
 
 		m_ImGuiLayer->End();
 	}

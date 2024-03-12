@@ -4,6 +4,8 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Render/Renderer.h"
 
+#include "Shark/Serialization/Import/TextureImporter.h"
+
 #include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
@@ -58,23 +60,25 @@ namespace Shark {
 
 	}
 
-	DirectXTexture2D::DirectXTexture2D()
-	{
-		m_Image = Ref<DirectXImage2D>::Create();
-	}
-
 	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, Buffer imageData)
-		: m_Specification(specification), m_ImageData(Buffer::Copy(imageData))
+		: m_Specification(specification), m_ImageData(Buffer::Copy(imageData)), m_Image(Ref<DirectXImage2D>::Create())
 	{
-		m_Image = Ref<DirectXImage2D>::Create();
 		RT_Invalidate();
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, Ref<TextureSource> textureSource)
-		: m_Specification(specification)
+	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, const std::filesystem::path& filepath)
+		: m_Specification(specification), m_Filepath(filepath), m_Image(Ref<DirectXImage2D>::Create())
 	{
-		m_Image = Ref<DirectXImage2D>::Create();
-		SetTextureSource(textureSource);
+		m_ImageData = TextureImporter::ToBufferFromFile(filepath, m_Specification.Format, m_Specification.Width, m_Specification.Height);
+		if (!m_ImageData)
+		{
+			m_ImageData = TextureImporter::ToBufferFromFile("Resources/Textures/ErrorTexture.png", m_Specification.Format, m_Specification.Width, m_Specification.Height);
+			SK_CORE_VERIFY(m_ImageData.Data);
+		}
+
+		if (m_Specification.DebugName.empty())
+			m_Specification.DebugName = filepath.string();
+
 		RT_Invalidate();
 	}
 
@@ -91,9 +95,6 @@ namespace Shark {
 
 		Release();
 
-		if (m_Specification.DebugName.empty() && m_TextureSource)
-			m_Specification.DebugName = m_TextureSource->SourcePath.string();
-
 		ImageSpecification& specification = m_Image->GetSpecification();
 		specification.Format = m_Specification.Format;
 		specification.Width = m_Specification.Width;
@@ -104,16 +105,14 @@ namespace Shark {
 
 		m_Image->Invalidate();
 
-		Buffer uploadData = GetCPUUploadBufer();
-		if (uploadData)
+		if (m_ImageData)
 		{
-			m_Image->UploadImageData(uploadData);
+			m_Image->UploadImageData(m_ImageData);
+			m_ImageData.Release();
 
 			if (m_Specification.GenerateMips)
 				Renderer::GenerateMips(m_Image);
 		}
-
-		m_ImageData.Release();
 
 		Ref<DirectXTexture2D> instance = this;
 		Renderer::Submit([instance]()
@@ -140,9 +139,6 @@ namespace Shark {
 
 		Release();
 
-		if (m_Specification.DebugName.empty() && m_TextureSource)
-			m_Specification.DebugName = m_TextureSource->SourcePath.string();
-
 		ImageSpecification& specification = m_Image->GetSpecification();
 		specification.Format = m_Specification.Format;
 		specification.Width = m_Specification.Width;
@@ -154,16 +150,14 @@ namespace Shark {
 
 		m_Image->RT_Invalidate();
 
-		Buffer uploadData = GetCPUUploadBufer();
-		if (uploadData)
+		if (m_ImageData)
 		{
-			m_Image->RT_UploadImageData(uploadData);
+			m_Image->RT_UploadImageData(m_ImageData);
+			m_ImageData.Release();
 
 			if (m_Specification.GenerateMips)
 				Renderer::RT_GenerateMips(m_Image);
 		}
-
-		m_ImageData.Release();
 
 		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
 		ID3D11Device* device = renderer->GetDevice();
@@ -180,8 +174,7 @@ namespace Shark {
 
 	void DirectXTexture2D::Release()
 	{
-		if (m_Image)
-			m_Image->Release();
+		m_Image->Release();
 
 		if (!m_Sampler)
 			return;
@@ -204,14 +197,6 @@ namespace Shark {
 			m_ImageData = imageData;
 	}
 
-	void DirectXTexture2D::SetTextureSource(Ref<TextureSource> textureSource)
-	{
-		m_TextureSource = textureSource;
-		m_Specification.Width = textureSource->Width;
-		m_Specification.Height = textureSource->Height;
-		m_Specification.Format = textureSource->Format;
-	}
-
 	void DirectXTexture2D::UploadImageData()
 	{
 		Renderer::Submit([instance = Ref(this)]()
@@ -222,20 +207,11 @@ namespace Shark {
 
 	void DirectXTexture2D::RT_UploadImageData()
 	{
-		Buffer uploadData = GetCPUUploadBufer();
-		if (uploadData)
+		if (m_ImageData)
 		{
-			m_Image->RT_UploadImageData(uploadData);
+			m_Image->RT_UploadImageData(m_ImageData);
+			m_ImageData.Release();
 		}
-
-		m_ImageData.Release();
-	}
-
-	Buffer DirectXTexture2D::GetCPUUploadBufer() const
-	{
-		if (m_TextureSource)
-			return m_TextureSource->ImageData;
-		return m_ImageData;
 	}
 
 	DirectXTextureCube::DirectXTextureCube(const TextureSpecification& specification, Buffer imageData)

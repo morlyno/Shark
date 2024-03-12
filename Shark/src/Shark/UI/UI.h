@@ -223,15 +223,13 @@ namespace Shark::UI {
 	bool Control(std::string_view label, std::filesystem::path& path);
 	bool Control(std::string_view label, UUID& uuid);
 
-	bool ControlAsset(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
-	bool ControlAsset(std::string_view label, std::filesystem::path& assetPath, const char* dragDropType = DragDropID::Asset);
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
 
 	template<typename TAsset>
 	bool ControlAsset(std::string_view label, Ref<TAsset>& asset, const char* dragDropType = DragDropID::Asset)
 	{
 		AssetHandle assetHandle = asset ? asset->Handle : AssetHandle::Invalid;
-		if (ControlAsset(label, assetHandle, dragDropType))
+		if (ControlAsset(label, TAsset::GetStaticType(), assetHandle, dragDropType))
 		{
 			if (assetHandle == AssetHandle::Invalid)
 			{
@@ -313,7 +311,7 @@ namespace Shark::UI {
 	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 	void Image(Ref<ImageView> image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 	void Texture(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
-	bool TextureEdit(Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
+	bool TextureEdit(const char* textID, Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 
 	template<typename TAsset, typename TFunc>
 	void DragDropTargetAsset(ImGuiDragDropFlags flags, const TFunc& func)

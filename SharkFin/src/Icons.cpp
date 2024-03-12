@@ -12,45 +12,25 @@ namespace Shark {
 		SK_CORE_INFO("Loading Icons...");
 		ScopedTimer timer("Loading Icons");
 
-		SettingsIcon  = Texture2D::LoadFromDisc("Resources/Icon_Settings.png");
+		SettingsIcon  = Texture2D::Create(TextureSpecification(), "Resources/Icon_Settings.png");
 
-		FileIcon      = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_File.png");
-		FolderIcon    = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Folder.png");
-		PNGIcon       = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_PNG.png");
-		JPGIcon       = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_JPG.png");
-		SceneIcon     = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Scene.png");
-		ScriptIcon    = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Script.png");
-		TextureIcon   = Texture2D::LoadFromDisc("Resources/ContentBrowser/Icon_Texture.png");
+		FileIcon      = Texture2D::Create(TextureSpecification(), "Resources/ContentBrowser/Icon_File.png");
+		FolderIcon    = Texture2D::Create(TextureSpecification(), "Resources/ContentBrowser/Icon_Folder.png");
+		PNGIcon       = Texture2D::Create(TextureSpecification(), "Resources/ContentBrowser/Icon_PNG.png");
+		JPGIcon       = Texture2D::Create(TextureSpecification(), "Resources/ContentBrowser/Icon_JPG.png");
+		SceneIcon     = Texture2D::Create(TextureSpecification(), "Resources/ContentBrowser/Icon_Scene.png");
+		ScriptIcon    = Texture2D::Create(TextureSpecification(), "Resources/ContentBrowser/Icon_Script.png");
+		TextureIcon   = Texture2D::Create(TextureSpecification(), "Resources/ContentBrowser/Icon_Texture.png");
 
-		InfoIcon      = Texture2D::LoadFromDisc("Resources/Console/Icon_Info.png");
-		WarnIcon      = Texture2D::LoadFromDisc("Resources/Console/Icon_Warn.png");
-		ErrorIcon     = Texture2D::LoadFromDisc("Resources/Console/Icon_Error.png");
+		InfoIcon      = Texture2D::Create(TextureSpecification(), "Resources/Console/Icon_Info.png");
+		WarnIcon      = Texture2D::Create(TextureSpecification(), "Resources/Console/Icon_Warn.png");
+		ErrorIcon     = Texture2D::Create(TextureSpecification(), "Resources/Console/Icon_Error.png");
 		
-		PlayIcon      = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Play.png");
-		StopIcon      = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Stop.png");
-		PauseIcon     = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Pause.png");
-		SimulateIcon  = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Simulate.png");
-		StepIcon      = Texture2D::LoadFromDisc("Resources/Toolbar/Icon_Step.png");
-	}
-
-	void Icons::InitWithDummyImages()
-	{
-		SettingsIcon  = Texture2D::Create();
-		FileIcon      = Texture2D::Create();
-		FolderIcon    = Texture2D::Create();
-		PNGIcon       = Texture2D::Create();
-		JPGIcon       = Texture2D::Create();
-		SceneIcon     = Texture2D::Create();
-		ScriptIcon    = Texture2D::Create();
-		TextureIcon   = Texture2D::Create();
-		InfoIcon      = Texture2D::Create();
-		WarnIcon      = Texture2D::Create();
-		ErrorIcon     = Texture2D::Create();
-		PlayIcon      = Texture2D::Create();
-		StopIcon      = Texture2D::Create();
-		PauseIcon     = Texture2D::Create();
-		SimulateIcon  = Texture2D::Create();
-		StepIcon      = Texture2D::Create();
+		PlayIcon      = Texture2D::Create(TextureSpecification(), "Resources/Toolbar/Icon_Play.png");
+		StopIcon      = Texture2D::Create(TextureSpecification(), "Resources/Toolbar/Icon_Stop.png");
+		PauseIcon     = Texture2D::Create(TextureSpecification(), "Resources/Toolbar/Icon_Pause.png");
+		SimulateIcon  = Texture2D::Create(TextureSpecification(), "Resources/Toolbar/Icon_Simulate.png");
+		StepIcon      = Texture2D::Create(TextureSpecification(), "Resources/Toolbar/Icon_Step.png");
 	}
 
 	void Icons::Shutdown()
@@ -78,8 +58,12 @@ namespace Shark {
 
 	static void ReloadIconFromDisc(Ref<Texture2D> icon, const std::filesystem::path& filepath)
 	{
-		auto source = TextureImporter::ToTextureSourceFromFile(filepath);
-		icon->SetTextureSource(source);
+		Buffer& imageData = icon->GetBuffer();
+		imageData.Release();
+
+		TextureSpecification& specification = icon->GetSpecification();
+		imageData = TextureImporter::ToBufferFromFile(filepath, specification.Format, specification.Width, specification.Height);
+
 		icon->Invalidate();
 	}
 

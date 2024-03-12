@@ -36,6 +36,7 @@ namespace Shark {
 		bool m_Active = true;
 		bool m_SetupWindows = false;
 
+		bool m_IsSharkTexture = false;
 		AssetHandle m_TextureHandle;
 		Ref<Texture2D> m_EditTexture;
 

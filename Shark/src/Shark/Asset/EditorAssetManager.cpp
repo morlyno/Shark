@@ -5,6 +5,7 @@
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/Asset/AssetUtils.h"
 #include "Shark/File/FileSystem.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <yaml-cpp/yaml.h>
 #include "Shark/Utils/YAMLUtils.h"
@@ -40,6 +41,7 @@ namespace Shark {
 
 	Ref<Asset> EditorAssetManager::GetAsset(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		AssetMetaData& metadata = GetMetadataInternal(handle);
 		if (!metadata.IsValid())
 			return nullptr;
@@ -121,6 +123,8 @@ namespace Shark {
 
 	AssetHandle EditorAssetManager::GetAssetHandleFromFilepath(const std::filesystem::path& filepath) const
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("EditorAssetManager::GetAssetHandleFromFilepath");
 		auto relativePath = MakeRelativePath(filepath);
 		for (const auto& [handle, metadata] : m_ImportedAssets)
 			if (metadata.FilePath == relativePath)
@@ -241,7 +245,7 @@ namespace Shark {
 		if (!metadata.IsMemoryAsset)
 			WriteImportedAssetsToDisc();
 
-		SK_CORE_INFO_TAG("ResourceManager", "Asset Removed => Handle: 0x{:x}, Type: {}, FilePath: {}", handle, ToString(metadata.Type), metadata.FilePath);
+		SK_CORE_INFO_TAG("AssetManager", "Asset Removed => Handle: 0x{:x}, Type: {}, FilePath: {}", handle, ToString(metadata.Type), metadata.FilePath);
 	}
 
 	bool EditorAssetManager::ImportMemoryAsset(AssetHandle handle, const std::string& directory, const std::string& filename)
@@ -280,7 +284,7 @@ namespace Shark {
 	{
 		AssetType type = AssetUtils::GetAssetTypeFromPath(filepath);
 		if (type == AssetType::None)
-			return 0;
+			return AssetHandle::Invalid;
 
 		auto fsPath = FileSystem::GetFilesystemPath(filepath);
 		if (!FileSystem::Exists(fsPath))
@@ -298,7 +302,7 @@ namespace Shark {
 		m_ImportedAssets[metadata.Handle] = metadata;
 		WriteImportedAssetsToDisc();
 
-		SK_CORE_INFO_TAG("ResourceManager", "Imported Asset => Handle: 0x{:x}, Type: {}, FilePath: {}", metadata.Handle, ToString(metadata.Type), metadata.FilePath);
+		SK_CORE_INFO_TAG("AssetManager", "Imported Asset => Handle: 0x{:x}, Type: {}, FilePath: {}", metadata.Handle, ToString(metadata.Type), metadata.FilePath);
 		return metadata.Handle;
 	}
 
@@ -315,6 +319,19 @@ namespace Shark {
 	const AssetMetadataMap& EditorAssetManager::GetAssetMetadataMap() const
 	{
 		return m_ImportedAssets;
+	}
+
+	bool EditorAssetManager::AssetMoved(AssetHandle asset, const std::filesystem::path& newpath)
+	{
+		if (!IsValidAssetHandle(asset))
+			return false;
+
+		auto& metadata = GetMetadataInternal(asset);
+		metadata.FilePath = MakeRelativePath(newpath);
+		WriteImportedAssetsToDisc();
+		SK_CORE_WARN_TAG("AssetManager", "Filepath Changed => Handle: {}, Filepath: {}", asset, newpath);
+
+		return true;
 	}
 
 	void EditorAssetManager::OnAssetCreated(const std::filesystem::path& filepath)
@@ -347,6 +364,7 @@ namespace Shark {
 
 	AssetHandle EditorAssetManager::GetEditorAsset(const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
 		// TODO(moro): handle non existing file
 		SK_CORE_VERIFY(FileSystem::Exists(filepath));
 
@@ -364,6 +382,7 @@ namespace Shark {
 			metadata.Type = AssetUtils::GetAssetTypeFromPath(filepath);
 			metadata.IsEditorAsset = true;
 			m_ImportedAssets[handle] = metadata;
+			WriteImportedAssetsToDisc();
 		}
 
 		return handle;
@@ -385,6 +404,7 @@ namespace Shark {
 		metadata.Type = AssetUtils::GetAssetTypeFromPath(filepath);
 		metadata.IsEditorAsset = true;
 		m_ImportedAssets[handle] = metadata;
+		WriteImportedAssetsToDisc();
 		return handle;
 	}
 
@@ -409,6 +429,7 @@ namespace Shark {
 		metadata.IsDataLoaded = true;
 		m_ImportedAssets[asset->Handle] = metadata;
 		m_LoadedAssets[asset->Handle] = asset;
+		WriteImportedAssetsToDisc();
 
 		return asset->Handle;
 	}

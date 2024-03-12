@@ -28,6 +28,7 @@ namespace Shark {
 		if (metadata.Type != AssetType::Texture)
 			return;
 
+		m_IsSharkTexture = metadata.FilePath.extension() == ".sktex";
 		m_TextureHandle = metadata.Handle;
 		m_SetupWindows = true;
 		m_Views.clear();
@@ -111,6 +112,11 @@ namespace Shark {
 
 		const auto& capabilities = Renderer::GetCapabilities();
 
+		if (!m_IsSharkTexture)
+			ImGui::Text("Editor is disabled because the texture is not a Shark Texture (.sktex)");
+
+		UI::ScopedDisabled disabled(!m_IsSharkTexture);
+
 		bool changed = false;
 
 		UI::BeginControlsGrid();
@@ -141,14 +147,17 @@ namespace Shark {
 			specification.Filter = m_FilterMode;
 			specification.Wrap = m_WrapMode;
 			specification.MaxAnisotropy = m_MaxAnisotropy;
-			m_EditTexture->Invalidate();
+			m_EditTexture->RT_Invalidate();
+
+			Ref<Texture2D> sourceTexture = AssetManager::GetAsset<Texture2D>(m_TextureHandle);
+			Renderer::RT_CopyImage(Renderer::GetCommandBuffer(), sourceTexture->GetImage(), m_EditTexture->GetImage());
 			CreateImageViews();
 		}
 
 		if (m_GenerateMips != m_EditTexture->GetSpecification().GenerateMips)
 		{
 			m_EditTexture->GetSpecification().GenerateMips = m_GenerateMips;
-			m_EditTexture->Invalidate();
+			m_EditTexture->RT_Invalidate();
 			CreateImageViews();
 		}
 
@@ -169,7 +178,7 @@ namespace Shark {
 				textureSpecification.Filter = m_FilterMode;
 				textureSpecification.Wrap = m_WrapMode;
 				textureSpecification.MaxAnisotropy = m_MaxAnisotropy;
-				m_EditTexture->Invalidate();
+				m_EditTexture->RT_Invalidate();
 				CreateImageViews();
 			}
 		}
