@@ -120,12 +120,14 @@ namespace Shark {
 		m_PipelineStatistics = m_CommandBuffer->GetPipelineStatistics();
 	}
 
-	void SceneRenderer::SubmitMesh(Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, const glm::mat4& transform, int id)
+	void SceneRenderer::SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform, int id)
 	{
 		SK_CORE_VERIFY(mesh);
+		SK_CORE_VERIFY(material);
 
 		auto& meshData = m_DrawList.emplace_back();
 		meshData.Mesh = mesh;
+		meshData.MeshSource = meshSource;
 		meshData.SubmeshIndex = submeshIndex;
 		meshData.Material = material;
 		meshData.Transform = transform;
@@ -144,7 +146,8 @@ namespace Shark {
 
 		CBScene sceneData;
 		sceneData.EnvironmentMapIntensity = m_Scene->GetEnvironmentIntesity();
-		sceneData.LightCount = m_Scene->GetPointLights().size();
+		sceneData.PointLightCount = m_Scene->GetPointLights().size();
+		sceneData.DirectionalLightCount = m_Scene->GetLightEnvironment().DirectionalLightCount;
 		m_CBScene->UploadData(Buffer::FromValue(sceneData));
 
 		CBCamera cbCamera;
@@ -160,24 +163,25 @@ namespace Shark {
 
 			CBSkyboxSettings settings;
 			settings.Lod = m_Scene->GetSkyboxLod();
-			settings.Intensity = m_SkyboxIntensity;
+			settings.Intensity = m_Scene->GetEnvironmentIntesity();
 			m_CBSkyboxSettings->UploadData(Buffer::FromValue(settings));
 		}
 
 		const auto& pointLights = m_Scene->GetPointLights();
-		if (pointLights.size() > m_SBLights->GetCount())
+		if (pointLights.size() > m_SBPointLights->GetCount())
 		{
-			uint32_t newCount = std::max({ m_SBLights->GetCount() * 2, (uint32_t)pointLights.size(), 16u });
-			m_SBLights->GetCount() = newCount;
-			m_SBLights->Invalidate();
+			uint32_t newCount = std::max({ m_SBPointLights->GetCount() * 2, (uint32_t)pointLights.size(), 16u });
+			m_SBPointLights->GetCount() = newCount;
+			m_SBPointLights->Invalidate();
 		}
-		m_SBLights->Upload(Buffer::FromArray(pointLights));
+
+		m_SBPointLights->Upload(Buffer::FromArray(pointLights));
+		m_SBDirectionalLights->Upload(Buffer::FromArray(m_Scene->GetLightEnvironment().DirectionalLights));
 
 		CBCompositeSettings compositeSettings;
 		compositeSettings.Tonemap = m_Options.Tonemap;
 		compositeSettings.Exposure = m_Options.Exposure;
 		m_CBCompositeSettings->UploadData(Buffer::FromValue(compositeSettings));
-
 	}
 
 	void SceneRenderer::GeometryPass()
@@ -192,11 +196,11 @@ namespace Shark {
 			pcMesh.ID = mesh.ID;
 			m_GeometryPass->GetPipeline()->SetPushConstant(pcMesh);
 
-			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_GeometryPass->GetPipeline(), mesh.Mesh, mesh.SubmeshIndex, mesh.Material);
+			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_GeometryPass->GetPipeline(), mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial());
 
 			m_Statistics.DrawCalls++;
-			m_Statistics.VertexCount += mesh.Mesh->GetMeshSource()->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
-			m_Statistics.IndexCount += mesh.Mesh->GetMeshSource()->GetSubmeshes()[mesh.SubmeshIndex].IndexCount;
+			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
+			m_Statistics.IndexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].IndexCount;
 		}
 
 		Renderer::EndRenderPass(m_CommandBuffer, m_GeometryPass);
@@ -225,7 +229,8 @@ namespace Shark {
 		m_CBSkybox = ConstantBuffer::Create(sizeof(CBSkybox));
 		m_CBSkyboxSettings = ConstantBuffer::Create(sizeof(CBSkyboxSettings));
 		m_CBCompositeSettings = ConstantBuffer::Create(sizeof(CBCompositeSettings));
-		m_SBLights = StorageBuffer::Create(sizeof(PointLight), 16);
+		m_SBPointLights = StorageBuffer::Create(sizeof(PointLight), 16);
+		m_SBDirectionalLights = StorageBuffer::Create(sizeof(DirectionalLight), LightEnvironment::MaxDirectionLights);
 
 		VertexLayout layout = {
 			{ VertexDataType::Float3, "Position" },
@@ -267,7 +272,8 @@ namespace Shark {
 			m_GeometryPass = RenderPass::Create(renderPassSpecification);
 			m_GeometryPass->Set("u_Camera", m_CBCamera);
 			m_GeometryPass->Set("u_Scene", m_CBScene);
-			m_GeometryPass->Set("u_Lights", m_SBLights);
+			m_GeometryPass->Set("u_PointLights", m_SBPointLights);
+			m_GeometryPass->Set("u_DirectionalLights", m_SBDirectionalLights);
 			m_GeometryPass->Set("u_IrradianceMap", Renderer::GetBlackTextureCube());
 			m_GeometryPass->Set("u_RadianceMap", Renderer::GetBlackTextureCube());
 			m_GeometryPass->Set("u_BRDFLUTTexture", Renderer::GetBRDFLUTTexture());
@@ -307,7 +313,7 @@ namespace Shark {
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = specification.Width;
 			framebufferSpecification.Height = specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32F, ImageFormat::R32_SINT, ImageFormat::Depth };
+			framebufferSpecification.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
 			framebufferSpecification.ExistingImages[1] = m_GeometryPass->GetOutput(1);
 			framebufferSpecification.ExistingImages[2] = m_GeometryPass->GetDepthOutput();
 			framebufferSpecification.DebugName = "Composite";
@@ -336,7 +342,7 @@ namespace Shark {
 			swapchain->AcknowledgeDependency(m_SkyboxPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer);
 		}
 
-		m_Renderer2D = Ref<Renderer2D>::Create(m_CompositePass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer);
+		m_Renderer2D = Ref<Renderer2D>::Create(m_CompositePass);
 	}
 
 }

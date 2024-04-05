@@ -147,19 +147,13 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(!Renderer::IsOnRenderThread());
 
-		m_CommandBuffer->Begin();
-		m_TimestampQuery = m_CommandBuffer->BeginTimestampQuery();
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplWin32_NewFrame();
 
-		Renderer::Submit([instance = this]()
-		{
-			ImGui_ImplDX11_NewFrame();
-			ImGui_ImplWin32_NewFrame();
-			ImGui::NewFrame();
-			ImGuizmo::BeginFrame();
-			UI::NewFrame();
-
-			instance->m_InFrame = true;
-		});
+		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
+		UI::NewFrame();
+		m_InFrame = true;
 	}
 
 	void DirectXImGuiLayer::End()
@@ -167,39 +161,37 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(!Renderer::IsOnRenderThread());
 
+		m_InFrame = false;
+
+		ImGuiIO& io = ImGui::GetIO();
+		auto& window = Application::Get().GetWindow();
+		io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
+
+		ImGui::Render();
+
+		m_CommandBuffer->Begin();
+		m_TimestampQuery = m_CommandBuffer->BeginTimestampQuery();
+
 		Renderer::Submit([this]()
 		{
-			if (Application::Get().GetApplicationState() == ApplicationState::Shutdown)
-				return;
-
-			m_InFrame = false;
-
-			ImGuiIO& io = ImGui::GetIO();
-			auto& window = Application::Get().GetWindow();
-			io.DisplaySize = ImVec2((float)window.GetWidth(), (float)window.GetHeight());
+			SK_PROFILE_SCOPED("DirectXImGuiLayer::End [RenderDrawData]");
 
 			Ref<DirectXFrameBuffer> swapchainFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
 			DirectXRenderer::Get()->BindFrameBuffer(m_CommandBuffer->GetContext(), swapchainFrameBuffer);
 
-			{
-				SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render");
-
-				ImGui::Render();
-				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-				m_ImageMap.clear();
-
-				if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-				{
-					SK_PROFILE_SCOPED("DirectXImGuiLayer::End Render Platform");
-					ImGui::UpdatePlatformWindows();
-					ImGui::RenderPlatformWindowsDefault();
-				}
-			}
+			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+			m_ImageMap.clear();
 		});
 
 		m_CommandBuffer->EndTimestampQuery(m_TimestampQuery);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
+
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+		}
 
 		m_GPUTime = m_CommandBuffer->GetTime(m_TimestampQuery);
 	}

@@ -51,8 +51,9 @@ namespace Shark {
 		Component, // => UUID (same as entity)
 		Vector2,
 		Vector3,
-		Vector4
+		Vector4,
 
+		AssetHandle
 
 		// TODO(moro):
 		//  - Array
@@ -83,6 +84,7 @@ namespace Shark {
 			case ManagedFieldType::Vector2: return "Vector2";
 			case ManagedFieldType::Vector3: return "Vector3";
 			case ManagedFieldType::Vector4: return "Vector4";
+			case ManagedFieldType::AssetHandle: return "AssetHandle";
 		}
 		SK_CORE_ASSERT(false, "Unkown ManagedFieldType");
 		return "Unkown";
@@ -109,6 +111,7 @@ namespace Shark {
 		if (type == "Vector2") return ManagedFieldType::Vector2;
 		if (type == "Vector3") return ManagedFieldType::Vector3;
 		if (type == "Vector4") return ManagedFieldType::Vector4;
+		if (type == "AssetHandle") return ManagedFieldType::AssetHandle;
 
 		SK_CORE_ASSERT(false, "Unkown ManagedFieldType string");
 		return ManagedFieldType::None;

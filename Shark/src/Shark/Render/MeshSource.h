@@ -2,7 +2,8 @@
 
 #include "Shark/Asset/Asset.h"
 #include "Shark/Render/Buffers.h"
-#include "Shark/Render/Material.h"
+#include "Shark/Render/MaterialAsset.h"
+#include "Shark/Math/AABB.h"
 
 namespace Shark {
 
@@ -29,6 +30,7 @@ namespace Shark {
 		uint32_t VertexCount = 0;
 		uint32_t IndexCount = 0;
 		uint32_t MaterialIndex = 0;
+		AABB BoundingBox;
 		std::string MeshName;
 	};
 
@@ -53,20 +55,24 @@ namespace Shark {
 		MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<Submesh>& submeshes);
 		virtual ~MeshSource() = default;
 
+		const std::string& GetName() const { return m_Name; }
+
 		std::vector<Submesh>& GetSubmeshes() { return m_Submeshes; }
 		const std::vector<Submesh>& GetSubmeshes() const { return m_Submeshes; }
 
 		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
 		const std::vector<Index>& GetIndices() const { return m_Indices; }
 
-		std::vector<Ref<Material>>& GetMaterials() { return m_Materials; }
-		const std::vector<Ref<Material>>& GetMaterials() const { return m_Materials; }
+		std::vector<Ref<MaterialAsset>>& GetMaterials() { return m_Materials; }
+		const std::vector<Ref<MaterialAsset>>& GetMaterials() const { return m_Materials; }
 
 		Ref<VertexBuffer> GetVertexBuffer() const { return m_VertexBuffer; }
 		Ref<IndexBuffer> GetIndexBuffer() const { return m_IndexBuffer; }
 
 		const MeshNode& GetRootNode() const { return m_Nodes[0]; }
 		const std::vector<MeshNode>& GetNodes() const { return m_Nodes; }
+
+		const AABB& GetBoundingBox() const { return m_BoundingBox; }
 
 	public:
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
@@ -77,15 +83,18 @@ namespace Shark {
 		static Ref<MeshSource> Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<Submesh>& submeshes) { return Ref<MeshSource>::Create(vertices, indices, submeshes); }
 
 	private:
+		std::string m_Name;
 		std::vector<Vertex> m_Vertices;
 		std::vector<Index> m_Indices;
 
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
-		std::vector<Ref<Material>> m_Materials;
+		std::vector<Ref<MaterialAsset>> m_Materials;
 
 		std::vector<Submesh> m_Submeshes;
 		std::vector<MeshNode> m_Nodes;
+
+		AABB m_BoundingBox;
 
 		friend class MeshSourceSerializer;
 		friend class AssimpMeshImporter;

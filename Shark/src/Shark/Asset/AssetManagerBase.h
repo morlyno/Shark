@@ -19,6 +19,13 @@ namespace Shark {
 		virtual bool IsValidAssetHandle(AssetHandle handle) const = 0;
 		virtual bool IsAssetLoaded(AssetHandle handle) const = 0;
 
+		virtual bool SaveAsset(AssetHandle handle) = 0;
+		virtual bool ReloadAsset(AssetHandle handle) = 0;
+
+		virtual void DeleteAsset(AssetHandle handle) = 0;
+		virtual void DeleteMemoryAsset(AssetHandle handle) = 0;
+
+		virtual bool EnsureCurrent(AssetHandle handle) = 0;
 	};
 
 }

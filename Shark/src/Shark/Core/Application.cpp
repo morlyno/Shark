@@ -181,12 +181,8 @@ namespace Shark {
 
 		m_ImGuiLayer->Begin();
 
-		Application* app = this;
-		Renderer::Submit([app]()
-		{
-			for (auto& layer : app->m_LayerStack)
-				layer->OnImGuiRender();
-		});
+		for (auto& layer : m_LayerStack)
+			layer->OnImGuiRender();
 
 		m_ImGuiLayer->End();
 	}

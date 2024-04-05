@@ -166,7 +166,7 @@ namespace Shark {
 			DirectXAPI::CreateSamplerState(instance->m_Device, samplerDesc, instance->m_ClampLinearSampler);
 		});
 
-		VertexLayout layout = {
+		m_QuadVertexLayout = {
 			{ VertexDataType::Float2, "Position" }
 		};
 
@@ -530,68 +530,10 @@ namespace Shark {
 
 	void DirectXRenderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable)
 	{
-		SK_CORE_VERIFY(mesh);
-		SK_CORE_VERIFY(materialTable);
-
-		Ref instance = this;
-		auto dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
-		auto dxPipeline = pipeline.As<DirectXPipeline>();
-		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, mesh, submeshIndex, materialTable]()
-		{
-			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
-
-			ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
-
-			Ref<MeshSource> meshSource = mesh->GetMeshSource();
-			auto vertexBuffer = meshSource->GetVertexBuffer().As<DirectXVertexBuffer>();
-			auto indexBuffer = meshSource->GetIndexBuffer().As<DirectXIndexBuffer>();
-
-			const UINT offset = 0;
-			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
-			ctx->IASetVertexBuffers(0, 1, &vertexBuffer->m_VertexBuffer, &stride, &offset);
-			ctx->IASetIndexBuffer(indexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
-			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
-			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
-
-			const auto& submeshes = meshSource->GetSubmeshes();
-			const auto& submesh = submeshes[submeshIndex];
-
-			Ref<MaterialTable> meshMaterialTable = mesh->GetMaterialTable();
-			const auto& materials = meshSource->GetMaterials();
-
-			AssetHandle materialHandle = materialTable->HasMaterial(submesh.MaterialIndex) ? materialTable->GetMaterial(submesh.MaterialIndex) : materialTable->GetMaterial(submesh.MaterialIndex);
-			Ref<MaterialAsset> materialAsset = AssetManager::GetAsset<MaterialAsset>(materialHandle);
-			Ref<DirectXMaterial> material = materialAsset->GetMaterial().As<DirectXMaterial>();
-
-			instance->RT_PrepareAndBindMaterial(dxCommandBuffer, material);
-
-			if (dxPipeline->UsesPushConstant())
-			{
-				Ref<DirectXConstantBuffer> pushConstantBuffer = dxPipeline->GetLastUpdatedPushConstantBuffer().As<DirectXConstantBuffer>();
-				const auto& reflectionData = dxShader->GetReflectionData();
-				utils::BindConstantBuffer(ctx, pushConstantBuffer->m_ConstantBuffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
-			}
-
-			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
-
-			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
-			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
-
-			ctx->RSSetState(dxPipeline->m_RasterizerState);
-			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
-			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
-
-			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
-			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
-
-			DX11_VALIDATE_CONTEXT(ctx);
-			ctx->DrawIndexed(submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
-		});
+		SK_CORE_VERIFY(false);
 	}
 
-	void DirectXRenderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material)
+	void DirectXRenderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material)
 	{
 		SK_CORE_VERIFY(mesh);
 		SK_CORE_VERIFY(material);
@@ -600,13 +542,12 @@ namespace Shark {
 		auto dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
 		auto dxPipeline = pipeline.As<DirectXPipeline>();
 		auto dxMaterial = material.As<DirectXMaterial>();
-		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, mesh, submeshIndex, dxMaterial]()
+		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, mesh, meshSource, submeshIndex, dxMaterial]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
 
 			ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
 
-			Ref<MeshSource> meshSource = mesh->GetMeshSource();
 			auto vertexBuffer = meshSource->GetVertexBuffer().As<DirectXVertexBuffer>();
 			auto indexBuffer = meshSource->GetIndexBuffer().As<DirectXIndexBuffer>();
 
@@ -666,21 +607,35 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderer::RT_CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
+	void DirectXRenderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
-		SK_CORE_VERIFY(sourceImage);
-		SK_CORE_VERIFY(destinationImage);
+		FrameBufferSpecification framebufferSpecification;
+		framebufferSpecification.Width = destinationImage->GetWidth();
+		framebufferSpecification.Height = destinationImage->GetHeight();
+		framebufferSpecification.Atachments = { destinationImage->GetSpecification().Format };
+		framebufferSpecification.DebugName = "BlitImage";
 
-		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
-		Ref<DirectXImage2D> dxSourceImage = sourceImage.As<DirectXImage2D>();
-		Ref<DirectXImage2D> dxDestImage = destinationImage.As<DirectXImage2D>();
+		PipelineSpecification pipelineSpecification;
+		pipelineSpecification.BackFaceCulling = true;
+		pipelineSpecification.DepthEnabled = false;
+		pipelineSpecification.TargetFrameBuffer = FrameBuffer::Create(framebufferSpecification);
+		pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("BlitImage");
+		pipelineSpecification.Layout = m_QuadVertexLayout;
+		pipelineSpecification.DebugName = framebufferSpecification.DebugName;
 
-		ID3D11DeviceContext* context = dxCommandBuffer->GetContext();
+		RenderPassSpecification renderPassSpecification;
+		renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
+		renderPassSpecification.DebugName = pipelineSpecification.DebugName;
+		Ref<RenderPass> renderPass = RenderPass::Create(renderPassSpecification);
+		renderPass->Set("u_SourceImage", sourceImage);
+		SK_CORE_VERIFY(renderPass->Validate());
+		renderPass->Bake();
 
-		const DirectXImageInfo& sourceInfo = dxSourceImage->GetDirectXImageInfo();
-		const DirectXImageInfo& destinationInfo = dxDestImage->GetDirectXImageInfo();
+		BeginRenderPass(commandBuffer, renderPass, false);
+		RenderFullScreenQuad(commandBuffer, renderPass->GetPipeline(), nullptr);
+		EndRenderPass(commandBuffer, renderPass);
 
-		context->CopyResource(destinationInfo.Resource, sourceInfo.Resource);
+		CopyImage(commandBuffer, renderPass->GetOutput(0), destinationImage);
 	}
 
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> DirectXRenderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
@@ -1001,49 +956,64 @@ namespace Shark {
 			{
 				case InputResourceType::Image2D:
 				{
-					Ref<DirectXImage2D> image = input.Input.As<DirectXImage2D>();
-					const DirectXImageInfo& info = image->GetDirectXImageInfo();
-					const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
+					for (uint32_t i = 0; i < input.Input.size(); i++)
+					{
+						Ref<DirectXImage2D> image = input.Input[i].As<DirectXImage2D>();
+						const DirectXImageInfo& info = image->GetDirectXImageInfo();
+						const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
 
-					utils::BindShaderResourceView(context, info.View, resource.Stage, resource.DXBinding);
-					if (ShaderReflection::IsTextureType(resource.Type))
-						utils::BindSamplerStage(context, info.Sampler, resource.Stage, resource.DXSamplerBinding);
+						utils::BindShaderResourceView(context, info.View, resource.Stage, resource.DXBinding + i);
+						if (ShaderReflection::IsTextureType(resource.Type))
+							utils::BindSamplerStage(context, info.Sampler, resource.Stage, resource.DXSamplerBinding + i);
+					}
 					break;
 				}
 				case InputResourceType::Texture2D:
 				{
-					Ref<DirectXTexture2D> texture = input.Input.As<DirectXTexture2D>();
-					const DirectXImageInfo& info = texture->GetDirectXImageInfo();
-					const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
+					for (uint32_t i = 0; i < input.Input.size(); i++)
+					{
+						Ref<DirectXTexture2D> texture = input.Input[i].As<DirectXTexture2D>();
+						const DirectXImageInfo& info = texture->GetDirectXImageInfo();
+						const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
 
-					utils::BindShaderResourceView(context, info.View, resource.Stage, resource.DXBinding);
-					utils::BindSamplerStage(context, info.Sampler, resource.Stage, resource.DXSamplerBinding);
+						utils::BindShaderResourceView(context, info.View, resource.Stage, resource.DXBinding + i);
+						utils::BindSamplerStage(context, info.Sampler, resource.Stage, resource.DXSamplerBinding + i);
+					}
 					break;
 				}
 				case InputResourceType::TextureCube:
 				{
-					Ref<DirectXTextureCube> textureCube = input.Input.As<DirectXTextureCube>();
-					const DirectXImageInfo& info = textureCube->GetDirectXImageInfo();
-					const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
+					for (uint32_t i = 0; i < input.Input.size(); i++)
+					{
+						Ref<DirectXTextureCube> textureCube = input.Input[i].As<DirectXTextureCube>();
+						const DirectXImageInfo& info = textureCube->GetDirectXImageInfo();
+						const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
 
-					utils::BindShaderResourceView(context, info.View, resource.Stage, resource.DXBinding);
-					utils::BindSamplerStage(context, info.Sampler, resource.Stage, resource.DXSamplerBinding);
+						utils::BindShaderResourceView(context, info.View, resource.Stage, resource.DXBinding + i);
+						utils::BindSamplerStage(context, info.Sampler, resource.Stage, resource.DXSamplerBinding + i);
+					}
 					break;
 				}
 				case InputResourceType::ConstantBuffer:
 				{
-					Ref<DirectXConstantBuffer> constantBuffer = input.Input.As<DirectXConstantBuffer>();
-					const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
+					for (uint32_t i = 0; i < input.Input.size(); i++)
+					{
+						Ref<DirectXConstantBuffer> constantBuffer = input.Input[i].As<DirectXConstantBuffer>();
+						const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
 
-					utils::BindConstantBuffer(context, constantBuffer->m_ConstantBuffer, resource.Stage, resource.DXBinding);
+						utils::BindConstantBuffer(context, constantBuffer->m_ConstantBuffer, resource.Stage, resource.DXBinding + i);
+					}
 					break;
 				}
 				case InputResourceType::StorageBuffer:
 				{
-					Ref<DirectXStorageBuffer> storageBuffer = input.Input.As<DirectXStorageBuffer>();
-					const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
+					for (uint32_t i = 0; i < input.Input.size(); i++)
+					{
+						Ref<DirectXStorageBuffer> storageBuffer = input.Input[i].As<DirectXStorageBuffer>();
+						const ShaderReflection::Resource& resource = reflectionData.Resources.at(input.Set).at(input.Binding);
 
-					utils::BindShaderResourceView(context, storageBuffer->m_View, resource.Stage, resource.DXBinding);
+						utils::BindShaderResourceView(context, storageBuffer->m_View, resource.Stage, resource.DXBinding + i);
+					}
 					break;
 				}
 			}

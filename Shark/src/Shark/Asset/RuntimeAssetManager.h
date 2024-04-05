@@ -7,20 +7,24 @@ namespace Shark {
 	class RuntimeAssetManager : public AssetManagerBase
 	{
 	public:
-		RuntimeAssetManager();
-		~RuntimeAssetManager();
+		RuntimeAssetManager() = default;
+		~RuntimeAssetManager() = default;
 
-		virtual Ref<Asset> GetAsset(AssetHandle handle) override;
-		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) override;
+		virtual Ref<Asset> GetAsset(AssetHandle handle) override { return nullptr; }
+		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) override { return 0; }
 
-		virtual AssetType GetAssetType(AssetHandle handle) const override;
-		virtual bool IsMemoryAsset(AssetHandle handle) const override;
-		virtual bool IsValidAssetHandle(AssetHandle handle) const override;
-		virtual bool IsAssetLoaded(AssetHandle handle) const override;
+		virtual AssetType GetAssetType(AssetHandle handle) const override { return AssetType::None; }
+		virtual bool IsMemoryAsset(AssetHandle handle) const override { return false; }
+		virtual bool IsValidAssetHandle(AssetHandle handle) const override { return false; }
+		virtual bool IsAssetLoaded(AssetHandle handle) const override { return false; }
 
-	private:
-		AssetsMap m_LoadedAssets;
-		std::set<AssetHandle> m_MemoryAssets;
+		virtual bool SaveAsset(AssetHandle handle) override { return false; }
+		virtual bool ReloadAsset(AssetHandle handle) override { return false; }
+
+		virtual void DeleteAsset(AssetHandle handle) override {}
+		virtual void DeleteMemoryAsset(AssetHandle handle) override {}
+
+		virtual bool EnsureCurrent(AssetHandle handle) override { return false; };
 	};
 
 }

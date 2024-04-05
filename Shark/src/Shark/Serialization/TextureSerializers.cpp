@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "TextureSerializers.h"
 
+#include "Shark/Asset/AssetManager.h"
+
 #include "Shark/Render/Image.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Renderer.h"

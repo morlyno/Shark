@@ -56,7 +56,6 @@ namespace Shark {
 				
 				UI::BeginControls();
 				UI::Control("Exposure", m_Renderer->GetOptions().Exposure);
-				UI::Control("Skybox Intensity", m_Renderer->m_SkyboxIntensity, 0.01f, 0.0f, FLT_MAX);
 
 				if (UI::ControlColor("Clear Color", m_ClearColor))
 					m_Renderer->SetClearColor(m_ClearColor);

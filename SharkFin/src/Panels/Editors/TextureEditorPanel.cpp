@@ -2,6 +2,7 @@
 #include "TextureEditorPanel.h"
 
 #include "Shark/Core/Application.h"
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/Scene/Components.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Input/Input.h"
@@ -34,7 +35,7 @@ namespace Shark {
 		m_Views.clear();
 
 		Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(metadata.Handle);
-		AssetHandle handle = AssetManager::CreateMemoryAsset<Texture2D>(texture->GetSpecification());
+		AssetHandle handle = AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(texture->GetSpecification());
 		m_EditTexture = AssetManager::GetAsset<Texture2D>(handle);
 		Renderer::CopyImage(Renderer::GetCommandBuffer(), texture->GetImage(), m_EditTexture->GetImage());
 
@@ -150,7 +151,7 @@ namespace Shark {
 			m_EditTexture->RT_Invalidate();
 
 			Ref<Texture2D> sourceTexture = AssetManager::GetAsset<Texture2D>(m_TextureHandle);
-			Renderer::RT_CopyImage(Renderer::GetCommandBuffer(), sourceTexture->GetImage(), m_EditTexture->GetImage());
+			Renderer::CopyImage(Renderer::GetCommandBuffer(), sourceTexture->GetImage(), m_EditTexture->GetImage());
 			CreateImageViews();
 		}
 
@@ -196,7 +197,6 @@ namespace Shark {
 			texture->Invalidate();
 			Renderer::CopyImage(Renderer::GetCommandBuffer(), m_EditTexture->GetImage(), texture->GetImage());
 			Project::GetActiveEditorAssetManager()->SaveAsset(m_TextureHandle);
-			Project::GetActiveEditorAssetManager()->ReloadAsset(m_TextureHandle);
 		}
 	}
 

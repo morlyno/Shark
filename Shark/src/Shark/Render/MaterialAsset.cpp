@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "MaterialAsset.h"
 
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/Render/Renderer.h"
 
 namespace Shark {
@@ -8,6 +9,20 @@ namespace Shark {
 	  //=//========================================================//=//
 	 //=//  Material Asset                                        //=//
 	//=//========================================================//=//
+
+	static std::string s_AlbedoMapUniformName = "u_AlbedoMap";
+	static std::string s_NormalMapUniformName = "u_NormalMap";
+	static std::string s_MetalnessMapUniformName = "u_MetalnessMap";
+	static std::string s_RoughnessMapUniformName = "u_RoughnessMap";
+	static std::string s_AlbedoUniformName = "u_MaterialUniforms.Albedo";
+	static std::string s_MetalnessUniformName = "u_MaterialUniforms.Metalness";
+	static std::string s_RoughnessUniformName = "u_MaterialUniforms.Roughness";
+	static std::string s_UsingNormalMapUniformName = "u_MaterialUniforms.UsingNormalMap";
+
+	MaterialAsset::MaterialAsset()
+		: MaterialAsset(Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR")))
+	{
+	}
 
 	MaterialAsset::MaterialAsset(Ref<Material> material, bool setDefault)
 		: m_Material(material)
@@ -18,6 +33,11 @@ namespace Shark {
 
 	MaterialAsset::~MaterialAsset()
 	{
+	}
+
+	void MaterialAsset::Invalidate()
+	{
+
 	}
 
 	Ref<Material> MaterialAsset::GetMaterial()
@@ -32,123 +52,138 @@ namespace Shark {
 
 	glm::vec3& MaterialAsset::GetAlbedoColor()
 	{
-		return m_Material->GetVec3("u_MaterialUniforms.Albedo");
+		return m_Material->GetVec3(s_AlbedoUniformName);
 	}
 
 	void MaterialAsset::SetAlbedoColor(const glm::vec3& color)
 	{
-		m_Material->Set("u_MaterialUniforms.Albedo", color);
+		m_Material->Set(s_AlbedoUniformName, color);
 	}
 
 	float& MaterialAsset::GetMetalness()
 	{
-		return m_Material->GetFloat("u_MaterialUniforms.Metalness");
+		return m_Material->GetFloat(s_MetalnessUniformName);
 	}
 
 	void MaterialAsset::SetMetalness(float value)
 	{
-		m_Material->Set("u_MaterialUniforms.Metalness", value);
+		m_Material->Set(s_MetalnessUniformName, value);
 	}
 
 	float& MaterialAsset::GetRoughness()
 	{
-		return m_Material->GetFloat("u_MaterialUniforms.Roughness");
+		return m_Material->GetFloat(s_RoughnessUniformName);
 	}
 
 	void MaterialAsset::SetRoughness(float value)
 	{
-		m_Material->Set("u_MaterialUniforms.Roughness", value);
+		m_Material->Set(s_RoughnessUniformName, value);
 	}
 
-	float& MaterialAsset::GetAmbientOcclusion()
+	AssetHandle MaterialAsset::GetAlbedoMap()
 	{
-		return m_Material->GetFloat("u_MaterialUniforms.AmbientOcclusion");
+		return m_AlbedoMap;
 	}
 
-	void MaterialAsset::SetAmbientOcclusion(float value)
+	void MaterialAsset::SetAlbedoMap(AssetHandle handle)
 	{
-		m_Material->Set("u_MaterialUniforms.AmbientOcclusion", value);
-	}
+		m_AlbedoMap = handle;
 
-	Ref<Texture2D> MaterialAsset::GetAlbedoMap()
-	{
-		return m_Material->GetTexture("u_AlbedoMap");
-	}
-
-	void MaterialAsset::SetAlbedoMap(Ref<Texture2D> texture)
-	{
-		SK_CORE_VERIFY(texture);
-		m_Material->Set("u_AlbedoMap", texture);
+		Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(handle);
+		if (texture)
+		{
+			m_Material->Set(s_AlbedoMapUniformName, texture);
+		}
 	}
 
 	void MaterialAsset::ClearAlbedoMap()
 	{
-		m_Material->Set("u_AlbedoMap", Renderer::GetWhiteTexture());
+		m_AlbedoMap = AssetHandle::Invalid;
+		m_Material->Set(s_AlbedoMapUniformName, Renderer::GetWhiteTexture());
 	}
 
-	Ref<Texture2D> MaterialAsset::GetNormalMap()
+	AssetHandle MaterialAsset::GetNormalMap()
 	{
-		return m_Material->GetTexture("u_NormalMap");
+		return m_NormalMap;
 	}
 
-	void MaterialAsset::SetNormalMap(Ref<Texture2D> texture)
+	void MaterialAsset::SetNormalMap(AssetHandle handle)
 	{
-		SK_CORE_VERIFY(texture);
-		m_Material->Set("u_NormalMap", texture);
+		m_NormalMap = handle;
+
+		Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(handle);
+		if (texture)
+		{
+			m_Material->Set("u_NormalMap", texture);
+		}
 	}
 
 	bool MaterialAsset::IsUsingNormalMap()
 	{
-		return m_Material->GetBool("u_MaterialUniforms.UsingNormalMap");
+		return m_Material->GetBool(s_UsingNormalMapUniformName);
 	}
 
 	void MaterialAsset::SetUsingNormalMap(bool value)
 	{
-		m_Material->Set("u_MaterialUniforms.UsingNormalMap", value);
+		m_Material->Set(s_UsingNormalMapUniformName, value);
 	}
 
 	void MaterialAsset::ClearNormalMap()
 	{
+		m_NormalMap = AssetHandle::Invalid;
 		m_Material->Set("u_NormalMap", Renderer::GetWhiteTexture());
 	}
 
-	Ref<Texture2D> MaterialAsset::GetMetalnessMap()
+	AssetHandle MaterialAsset::GetMetalnessMap()
 	{
-		return m_Material->GetTexture("u_MetalnessMap");
+		return m_MetalnessMap;
 	}
 
-	void MaterialAsset::SetMetalnessMap(Ref<Texture2D> texture)
+	void MaterialAsset::SetMetalnessMap(AssetHandle handle)
 	{
-		m_Material->Set("u_MetalnessMap", texture);
+		m_MetalnessMap = handle;
+
+		Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(handle);
+		if (texture)
+		{
+			m_Material->Set(s_MetalnessMapUniformName, texture);
+		}
 	}
 
 	void MaterialAsset::ClearMetalnessMap()
 	{
-		m_Material->Set("u_MetalnessMap", Renderer::GetWhiteTexture());
+		m_MetalnessMap = AssetHandle::Invalid;
+		m_Material->Set(s_MetalnessMapUniformName, Renderer::GetWhiteTexture());
 	}
 
-	Ref<Texture2D> MaterialAsset::GetRoughnessMap()
+	AssetHandle MaterialAsset::GetRoughnessMap()
 	{
-		return m_Material->GetTexture("u_RoughnessMap");
+		return m_RoughnessMap;
 	}
 
-	void MaterialAsset::SetRoughnessMap(Ref<Texture2D> texture)
+	void MaterialAsset::SetRoughnessMap(AssetHandle handle)
 	{
-		m_Material->Set("u_RoughnessMap", texture);
+		m_RoughnessMap = handle;
+
+		Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(handle);
+		if (texture)
+		{
+			m_Material->Set(s_RoughnessMapUniformName, texture);
+		}
 	}
 
 	void MaterialAsset::ClearRoughnessMap()
 	{
-		m_Material->Set("u_RoughnessMap", Renderer::GetWhiteTexture());
+		m_RoughnessMap = AssetHandle::Invalid;
+		m_Material->Set(s_RoughnessMapUniformName, Renderer::GetWhiteTexture());
 	}
 
 	void MaterialAsset::SetDefault()
 	{
-		m_Material->Set("u_MaterialUniforms.Albedo", glm::vec3(0.8f));
-		m_Material->Set("u_MaterialUniforms.Metalness", 0.0f);
-		m_Material->Set("u_MaterialUniforms.Roughness", 0.5f);
-		m_Material->Set("u_MaterialUniforms.AmbientOcclusion", 0.0f);
-		m_Material->Set("u_MaterialUniforms.UsingNormalMap", false);
+		m_Material->Set(s_AlbedoUniformName, glm::vec3(0.8f));
+		m_Material->Set(s_MetalnessUniformName, 0.0f);
+		m_Material->Set(s_RoughnessUniformName, 0.5f);
+		m_Material->Set(s_UsingNormalMapUniformName, false);
 		ClearAlbedoMap();
 		ClearNormalMap();
 		ClearMetalnessMap();
@@ -159,6 +194,10 @@ namespace Shark {
 	 //=//  Material Table                                        //=//
 	//=//========================================================//=//
 
+	MaterialTable::MaterialTable(uint32_t count)
+		: m_MaterialCount(count)
+	{
+	}
 
 	void MaterialTable::SetMaterial(uint32_t index, AssetHandle material)
 	{

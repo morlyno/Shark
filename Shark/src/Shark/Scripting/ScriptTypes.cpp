@@ -57,6 +57,7 @@ namespace Shark {
 					if (typeName == "Shark.Vector2"sv) result = ManagedFieldType::Vector2;
 					if (typeName == "Shark.Vector3"sv) result = ManagedFieldType::Vector3;
 					if (typeName == "Shark.Vector4"sv) result = ManagedFieldType::Vector4;
+					if (typeName == "Shark.AssetHandle"sv) result = ManagedFieldType::AssetHandle;
 
 					mono_free(typeName);
 					return result;

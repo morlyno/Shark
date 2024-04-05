@@ -8,9 +8,4 @@ namespace Shark {
 	{
 	}
 
-	Ref<Environment> Environment::Create(Ref<TextureCube> radianceMap, Ref<TextureCube> irradianceMap)
-	{
-		return Ref<Environment>::Create(radianceMap, irradianceMap);
-	}
-
 }

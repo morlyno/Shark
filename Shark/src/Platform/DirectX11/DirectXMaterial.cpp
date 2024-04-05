@@ -47,6 +47,21 @@ namespace Shark {
 		m_ShaderInputManager.SetInput(name, image);
 	}
 
+	void DirectXMaterial::Set(const std::string& name, uint32_t arrayIndex, Ref<Texture2D> texture)
+	{
+		m_ShaderInputManager.SetInput(name, arrayIndex, texture);
+	}
+
+	void DirectXMaterial::Set(const std::string& name, uint32_t arrayIndex, Ref<TextureCube> textureCube)
+	{
+		m_ShaderInputManager.SetInput(name, textureCube, textureCube);
+	}
+
+	void DirectXMaterial::Set(const std::string& name, uint32_t arrayIndex, Ref<Image2D> image)
+	{
+		m_ShaderInputManager.SetInput(name, arrayIndex, image);
+	}
+
 	Ref<Texture2D> DirectXMaterial::GetTexture(const std::string& name) const
 	{
 		return m_ShaderInputManager.GetResource<Texture2D>(name);

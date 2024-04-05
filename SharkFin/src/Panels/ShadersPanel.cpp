@@ -57,10 +57,7 @@ namespace Shark {
 					ImGui::TableSetColumnIndex(1);
 					if (ImGui::Button("Realod"))
 					{
-						Application::Get().SubmitToMainThread([shader, disableOptimization = m_DisableOptimization]()
-						{
-							shader->Reload(true, disableOptimization);
-						});
+						shader->Reload(true, m_DisableOptimization);
 					}
 				}
 				ImGui::EndTable();

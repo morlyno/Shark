@@ -72,19 +72,16 @@ namespace Shark {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvironmentMipFilter.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/BRDF_LUT.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Tonemap.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Composite.glsl", true);
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Composite.glsl");
 
 		// 2D
-		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Quad.hlsl");
-		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadTransparent.hlsl");
-		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_QuadDepthPass.hlsl");
-		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Circle.hlsl");
-		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_CircleTransparent.hlsl");
-		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_CircleDepthPass.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Quad.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Circle.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Line.hlsl");
-		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_LineDepthPass.hlsl");
-		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Composite.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Text.hlsl");
+
+		// Commands
+		Renderer::GetShaderLibrary()->Load("resources/Shaders/Commands/BlitImage.glsl");
 
 		// Misc
 #if TODO
@@ -216,9 +213,9 @@ namespace Shark {
 		s_RendererAPI->RenderSubmesh(commandBuffer, pipeline, mesh, submeshIndex, materialTable);
 	}
 
-	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material)
+	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material)
 	{
-		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, submeshIndex, material);
+		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, meshSource, submeshIndex, material);
 	}
 
 	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
@@ -226,9 +223,9 @@ namespace Shark {
 		s_RendererAPI->CopyImage(commandBuffer, sourceImage, destinationImage);
 	}
 
-	void Renderer::RT_CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
+	void Renderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
-		s_RendererAPI->RT_CopyImage(commandBuffer, sourceImage, destinationImage);
+		s_RendererAPI->BlitImage(commandBuffer, sourceImage, destinationImage);
 	}
 
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::filesystem::path& filepath)

@@ -1,6 +1,6 @@
 Scene:
   Name: New Scene
-  ActiveCamera: 0x0
+  ActiveCamera: 0x56dc718358d0db24
   Entities:
     - Entity: 1224610159231888
       TagComponent:
@@ -2024,6 +2024,26 @@ Scene:
         Mesh: 12434088705897559964
         SubmeshIndex: 1
         Material: 0
+    - Entity: 6259002391082883876
+      TagComponent:
+        Name: Camera
+      TransformComponent:
+        Translation: [-46.5238533, 32.7359123, -9.70962524]
+        Rotation: [0.410838872, 1.25290811, -0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      CameraComponent:
+        Type: Perspective
+        Aspectratio: 1
+        PerspectiveFOV: 44.9999924
+        PerspectiveNear: 0.00999999978
+        PerspectiveFar: 1000
+        OrthographicZoom: 10
+        OrthographicNear: -1
+        OrthographicFar: 1
     - Entity: 6282867818153376659
       TagComponent:
         Name: sponza_127
@@ -3200,7 +3220,7 @@ Scene:
         Children:
           []
       PointLightComponent:
-        Color: [1, 1, 1, 1]
+        Radiance: [1, 1, 1, 1]
         Intensity: 1.54999995
         Radius: 24.8500004
         Falloff: 1
@@ -4172,7 +4192,7 @@ Scene:
         Children:
           []
       PointLightComponent:
-        Color: [1, 0.716814101, 0, 1]
+        Radiance: [1, 1, 1, 1]
         Intensity: 1.25
         Radius: 81.6999969
         Falloff: 0

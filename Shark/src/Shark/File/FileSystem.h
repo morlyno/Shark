@@ -30,6 +30,8 @@ namespace Shark {
 	public:
 		static bool IsValidFilename(std::string_view filename);
 
+		static std::filesystem::path MakePathUnique(const std::filesystem::path& path);
+
 	public:
 		static bool Exists(const std::filesystem::path& filepath);
 		static bool Exists(const std::filesystem::path& filepath, std::string& errorMsg);
@@ -62,6 +64,9 @@ namespace Shark {
 
 		static void TruncateFile(const std::filesystem::path& filepath);
 		static bool IsInDirectory(const std::filesystem::path& directory, const std::filesystem::path& path);
+
+		static uint64_t GetLastWriteTime(const std::filesystem::path& path);
+
 		static std::filesystem::path GetFilesystemPath(const std::filesystem::path& path);
 
 		static void RemoveExtension(std::filesystem::path& path);

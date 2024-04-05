@@ -23,7 +23,7 @@ namespace Shark {
 	struct InputResource
 	{
 		InputResourceType Type;
-		Ref<RendererResource> Input;
+		std::vector<Ref<RendererResource>> Input = std::vector<Ref<RendererResource>>(1);
 	};
 
 	struct BoundResource
@@ -31,7 +31,7 @@ namespace Shark {
 		uint32_t Set, Binding;
 
 		InputResourceType Type;
-		Ref<RendererResource> Input;
+		std::vector<Ref<RendererResource>> Input;
 	};
 
 	class ShaderInputManager
@@ -49,6 +49,12 @@ namespace Shark {
 		void SetInput(const std::string& name, Ref<Image2D> image);
 		void SetInput(const std::string& name, Ref<Texture2D> texture);
 		void SetInput(const std::string& name, Ref<TextureCube> textureCube);
+
+		void SetInput(const std::string& name, uint32_t arrayIndex, Ref<ConstantBuffer> constantBuffer);
+		void SetInput(const std::string& name, uint32_t arrayIndex, Ref<StorageBuffer> storageBuffer);
+		void SetInput(const std::string& name, uint32_t arrayIndex, Ref<Image2D> image);
+		void SetInput(const std::string& name, uint32_t arrayIndex, Ref<Texture2D> texture);
+		void SetInput(const std::string& name, uint32_t arrayIndex, Ref<TextureCube> textureCube);
 
 		bool HasInput(const std::string& name) const;
 

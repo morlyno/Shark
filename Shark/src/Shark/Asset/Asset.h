@@ -17,6 +17,8 @@ namespace Shark {
 		bool IsMemoryAsset = false;
 		bool IsEditorAsset = false;
 
+		uint64_t LastWriteTime = 0; // Last write time by the time the asset got loaded
+
 		SK_DEPRECATED("Replace with AssetManaget::IsAssetHandleValid(metadata.Handle)")
 		bool IsValid() const { return Handle != AssetHandle::Invalid && (Type != AssetType::None) /*&& (IsMemoryAsset || !FilePath.empty())*/; }
 	};
@@ -24,7 +26,8 @@ namespace Shark {
 	enum class AssetFlag : uint16_t
 	{
 		None = 0,
-		Invalid = BIT(0)
+		Invalid = BIT(0),
+		Fallback = BIT(1)
 	};
 
 

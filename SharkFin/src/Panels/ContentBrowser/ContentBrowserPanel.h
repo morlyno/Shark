@@ -6,11 +6,14 @@
 #include "Panel.h"
 
 #include "Panels/ContentBrowser/ContentBrowserItem.h"
+#include "Panels/ContentBrowser/ThumbnailGenerator.h"
+#include "Panels/ContentBrowser/ThumbnailCache.h"
 
 #include <future>
 
 #undef CreateDirectory
 #undef RemoveDirectory
+#undef GetCurrentDirectory
 
 namespace Shark {
 
@@ -188,6 +191,8 @@ namespace Shark {
 
 		void ScheduleReload() { m_ReloadScheduled = true; }
 		Ref<Project> GetProject() { return m_Project; }
+		Ref<ThumbnailCache> GetThumbnailCache() const { return m_ThumbnailCache; }
+		Ref<DirectoryInfo> GetCurrentDirectory() const { return m_CurrentDirectory; }
 
 		void RegisterOpenAssetCallback(AssetType assetType, const OpenAssetCallbackFn& func);
 
@@ -202,6 +207,8 @@ namespace Shark {
 		void ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistory = true);
 		void NextDirectory(Ref<DirectoryInfo> directory, bool addToHistory = true, bool clearSearch = true);
 
+		void GenerateThumbnails();
+
 	private:
 		CBItemList Search(const std::string& filterPaddern, Ref<DirectoryInfo> directory, bool searchSubdirectories = true);
 		CBItemList GetItemsInDirectory(Ref<DirectoryInfo> directory);
@@ -214,10 +221,6 @@ namespace Shark {
 		void DrawItems();
 		void DrawHeader();
 		void DrawDirectoryHirachy(Ref<DirectoryInfo> directory);
-
-		Ref<Texture2D> GetIcon(const AssetMetaData& metadata);
-		Ref<Texture2D> GetThumbnail(const AssetMetaData& metadata);
-		void GenerateThumbnails();
 
 		bool IsSearchActive() { return m_SearchBuffer[0] != '\0'; }
 		CBItemType GetItemTypeFromPath(const std::filesystem::path& path) const;
@@ -245,6 +248,9 @@ namespace Shark {
 
 	private:
 		Ref<Project> m_Project;
+
+		Ref<ThumbnailGenerator> m_ThumbnailGenerator;
+		Ref<ThumbnailCache> m_ThumbnailCache;
 
 		bool m_ReloadScheduled = true;
 		bool m_PanelFocused = false;
@@ -278,9 +284,6 @@ namespace Shark {
 		float m_InvalidFileNameTimer = 0.0f;
 		float m_InvalidFileNameTime = 4.0f; // 4s
 		ImVec2 m_InvalidFileNameToolTipTopLeft;
-
-		std::future<void> m_GenerateThumbnailsFuture;
-		std::atomic<bool> m_StopGenerateThumbnails = false;
 	};
 
 }

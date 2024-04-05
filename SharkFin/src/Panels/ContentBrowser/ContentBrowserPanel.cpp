@@ -15,6 +15,15 @@
 
 namespace Shark {
 
+	static std::unordered_set<AssetType> s_SupportedThumbnailTypes = {
+		AssetType::Texture,
+		AssetType::Material,
+		AssetType::Mesh,
+		AssetType::MeshSource,
+		AssetType::Scene,
+		AssetType::Environment
+	};
+
 	ContentBrowserPanel::ContentBrowserPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
@@ -175,11 +184,6 @@ namespace Shark {
 			m_ChangesBlocked = false;
 		}
 		ImGui::End();
-
-		if (m_GenerateThumbnailsFuture.valid() && m_GenerateThumbnailsFuture.wait_for(0s) == std::future_status::ready)
-		{
-			m_GenerateThumbnailsFuture = std::future<void>{};
-		}
 	}
 
 	void ContentBrowserPanel::OnEvent(Event& event)
@@ -200,11 +204,14 @@ namespace Shark {
 		m_History.Reset(nullptr);
 		m_CurrentItems.Clear();
 		m_SelectedItem = nullptr;
-		m_StopGenerateThumbnails = true;
-		m_GenerateThumbnailsFuture = {};
+		m_ThumbnailGenerator = nullptr;
+		m_ThumbnailCache = nullptr;
 
 		if (project)
 		{
+			m_ThumbnailGenerator = Ref<ThumbnailGenerator>::Create();
+			m_ThumbnailCache = Ref<ThumbnailCache>::Create();
+
 			m_BaseDirectory = Ref<DirectoryInfo>::Create(nullptr, m_Project->GetAssetsDirectory());
 			m_CurrentDirectory = m_BaseDirectory;
 			Reload();
@@ -309,8 +316,6 @@ namespace Shark {
 			m_BreadcrumbTrailData.insert(m_BreadcrumbTrailData.begin(), breadcrumb);
 			breadcrumb = breadcrumb->Parent.TryGetRef();
 		}
-
-		GenerateThumbnails();
 	}
 
 	void ContentBrowserPanel::NextDirectory(Ref<DirectoryInfo> directory, bool addToHistory, bool clearSearch)
@@ -321,6 +326,32 @@ namespace Shark {
 		m_NextDirectory = directory;
 		m_AddNextToHistory = addToHistory;
 		m_ChangeDirectory = true;
+	}
+
+	void ContentBrowserPanel::GenerateThumbnails()
+	{
+		if (!EditorSettings::Get().ContentBrowser.GenerateThumbnails)
+			return;
+
+		for (const auto& currentItem : m_CurrentItems)
+		{
+			if (currentItem->GetType() != CBItemType::Asset)
+				continue;
+
+			AssetHandle assetHandle = currentItem->GetAssetHandle();
+			if (!s_SupportedThumbnailTypes.contains(AssetManager::GetAssetType(assetHandle)))
+				continue;
+
+			if (!m_ThumbnailCache->IsThumbnailCurrent(assetHandle) && AssetManager::IsValidAssetHandle(assetHandle))
+			{
+				Ref<Image2D> thumbnail = m_ThumbnailGenerator->GenerateThumbnail(assetHandle);
+				if (thumbnail)
+					m_ThumbnailCache->SetThumbnail(assetHandle, thumbnail);
+
+				break;
+			}
+		}
+
 	}
 
 	CBItemList ContentBrowserPanel::Search(const std::string& filterPaddern, Ref<DirectoryInfo> directory, bool searchSubdirectories)
@@ -441,6 +472,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		GenerateThumbnails();
+
 		std::vector<Ref<ContentBrowserItem>> deletedItems;
 		bool resortCurrentItems = false;
 
@@ -515,12 +548,7 @@ namespace Shark {
 					Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
 					AssetHandle assetHandle = assetManager->GetAssetHandleFromFilepath(currentItem->GetPath());
 					if (assetManager->IsValidAssetHandle(assetHandle))
-					{
-						Application::Get().SubmitToMainThread([assetManager, assetHandle]()
-						{
-							assetManager->ReloadAsset(assetHandle);
-						});
-					}
+						assetManager->ReloadAsset(assetHandle);
 				}
 			}
 
@@ -610,7 +638,7 @@ namespace Shark {
 									  ImGuiCol_ButtonHovered, Theme::Colors::ButtonHoveredDark);
 
 			const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
-
+			const ImVec2 buttonSizeNoFP = { ImGui::GetFontSize(), ImGui::GetFontSize() };
 
 			// Move Back
 			ImGui::BeginDisabled(!m_History.CanMoveBack());
@@ -635,6 +663,11 @@ namespace Shark {
 			ImGui::SameLine();
 			if (ImGui::Button("\xef\x80\xa1"))
 				m_ReloadScheduled = true;
+
+			ImGui::SameLine();
+			if (UI::ImageButton("Clear Thumbnail Cache", Icons::ClearIcon, { buttonSizeNoFP }, ImGui::GetStyleColorVec4(ImGuiCol_Text)))
+				m_ThumbnailCache->Clear();
+
 		}
 
 		// Search
@@ -755,72 +788,6 @@ namespace Shark {
 
 			ImGui::TreePop();
 		}
-	}
-
-	Ref<Texture2D> ContentBrowserPanel::GetIcon(const AssetMetaData& metadata)
-	{
-		std::string extension = metadata.FilePath.extension().string();
-		if (m_IconExtensionMap.contains(extension))
-			return m_IconExtensionMap.at(extension);
-		return m_FileIcon;
-	}
-
-	Ref<Texture2D> ContentBrowserPanel::GetThumbnail(const AssetMetaData& metadata)
-	{
-		if (!metadata.IsValid())
-			return m_FileIcon;
-
-		Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-
-		switch (metadata.Type)
-		{
-			case AssetType::Font:
-			{
-				auto font = assetManager->GetAsset(metadata.Handle).As<Font>();
-				return font->GetFontAtlas();
-			}
-			case AssetType::Texture:
-			{
-				return assetManager->GetAsset(metadata.Handle).As<Texture2D>();
-			}
-			case AssetType::Environment:
-			{
-				return Texture2D::Create(TextureSpecification(), assetManager->GetFilesystemPath(metadata));
-			}
-		}
-
-		return GetIcon(metadata);
-	}
-
-	void ContentBrowserPanel::GenerateThumbnails()
-	{
-		SK_PROFILE_FUNCTION();
-
-		SK_CORE_WARN_TAG("UI", "Generating Thumbnails");
-		ScopedTimer timer("Generating Thumbnails");
-		if (!EditorSettings::Get().ContentBrowser.GenerateThumbnails)
-			return;
-
-		m_StopGenerateThumbnails = false;
-
-		auto currentItems = m_CurrentItems;
-		for (Ref<ContentBrowserItem> item : currentItems)
-		{
-			if (m_StopGenerateThumbnails)
-			{
-				SK_CORE_WARN_TAG("UI", "Generating Thumbnails Stoped");
-				break;
-			}
-
-			const auto& metadata = m_Project->GetEditorAssetManager()->GetMetadata(item->GetPath());
-			if (metadata.Type == AssetType::Texture || metadata.Type == AssetType::Font || metadata.Type == AssetType::Environment)
-			{
-				SK_CORE_ASSERT(item->m_Thumbnail == nullptr);
-				item->SetThumbnail(GetThumbnail(metadata));
-			}
-		}
-
-		m_StopGenerateThumbnails = false;
 	}
 
 	CBItemType ContentBrowserPanel::GetItemTypeFromPath(const std::filesystem::path& path) const

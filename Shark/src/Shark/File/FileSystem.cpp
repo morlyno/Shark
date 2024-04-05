@@ -104,6 +104,25 @@ namespace Shark {
 		return fileName.find_first_of("\\/:*?\"<>|") == std::string_view::npos;
 	}
 
+	std::filesystem::path FileSystem::MakePathUnique(const std::filesystem::path& path)
+	{
+		// Make sure metadata.FilePath is unique
+		if (!Exists(path))
+			return path;
+
+		uint32_t count = 1;
+		bool validFilepath = false;
+		std::filesystem::path fsPath = path;
+
+		while (!validFilepath)
+		{
+			FileSystem::ReplaceStem(fsPath, fmt::format("{} ({:2})", FileSystem::GetStemString(fsPath), count));
+			validFilepath = !FileSystem::Exists(fsPath);
+		}
+
+		return fsPath;
+	}
+
 	bool FileSystem::Exists(const std::filesystem::path& filepath)
 	{
 		const auto& filesystemPath = GetFilesystemPath(filepath);
@@ -410,6 +429,19 @@ namespace Shark {
 
 		auto filesystemPath = GetFilesystemPath(path);
 		return filesystemDirectory == filesystemPath.parent_path();
+	}
+
+	uint64_t FileSystem::GetLastWriteTime(const std::filesystem::path& path)
+	{
+		std::error_code error;
+		uint64_t lastWriteTime = std::filesystem::last_write_time(path, error).time_since_epoch().count();
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "GetLastWriteTime failed! {}\n\t{}", path, error.message());
+			// TODO(moro): error handling
+			return 0;
+		}
+		return lastWriteTime;
 	}
 
 	std::filesystem::path FileSystem::GetFilesystemPath(const std::filesystem::path& path)

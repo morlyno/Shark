@@ -1,6 +1,6 @@
 Scene:
-  Name: New Scene
-  ActiveCamera: 0x0
+  Name: MeshTest
+  ActiveCamera: 0x4c55bff0b66af4c1
   Entities:
     - Entity: 270824792768259062
       TagComponent:
@@ -10,13 +10,25 @@ Scene:
         Rotation: [0, 0, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
-        Parent: 0
+        Parent: 637921775252915908
         Children:
           []
       SkyComponent:
-        SceneEnvironment: 10210776309822430915
-        Intensity: 0.370000005
+        SceneEnvironment: 9087211806961695879
+        Intensity: 0.49000001
         Lod: 0
+    - Entity: 637921775252915908
+      TagComponent:
+        Name: Environmemt
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 270824792768259062
+          - 9897615607288753874
     - Entity: 665692342534429939
       TagComponent:
         Name: Cone
@@ -32,6 +44,17 @@ Scene:
         Mesh: 9815586959680881104
         SubmeshIndex: 0
         Material: 13162362789742264016
+    - Entity: 1433670031225774554
+      TagComponent:
+        Name: Sketchfab_model
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 14078955941826155656
+        Children:
+          - 9936726430211519703
     - Entity: 1625268215021358436
       TagComponent:
         Name: Light
@@ -44,8 +67,8 @@ Scene:
         Children:
           []
       PointLightComponent:
-        Color: [1, 1, 1, 1]
-        Intensity: 1.64999998
+        Radiance: [1, 1, 1, 1]
+        Intensity: 1.29999995
         Radius: 22.75
         Falloff: 0
     - Entity: 2330932128962717387
@@ -60,8 +83,8 @@ Scene:
         Children:
           []
       PointLightComponent:
-        Color: [0, 0.920354128, 1, 1]
-        Intensity: 1.46399999
+        Radiance: [0, 0.920354128, 1, 1]
+        Intensity: 1.11399996
         Radius: 18.9500008
         Falloff: 1.35000002
     - Entity: 2590873065312915112
@@ -103,20 +126,35 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.14552236
+        Aspectratio: 2.58248472
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
         OrthographicZoom: 10
         OrthographicNear: -1
         OrthographicFar: 1
+    - Entity: 6014118642351756630
+      TagComponent:
+        Name: Object_2
+      TransformComponent:
+        Translation: [40.5686073, 0, 3.48782992]
+        Rotation: [2.77831554, 1.51558328, 1.20701504]
+        Scale: [0.999996901, 0.999996781, 0.999996364]
+      RelationshipComponent:
+        Parent: 9936726430211519703
+        Children:
+          []
+      MeshComponent:
+        Mesh: 3345831159094587027
+        SubmeshIndex: 0
+        Material: 0
     - Entity: 6691103551611821060
       TagComponent:
         Name: Cerberus00_Fixed
       TransformComponent:
-        Translation: [2.25598455e-08, 0, 0.9372015]
+        Translation: [25.1921177, 0, 0.9372015]
         Rotation: [1.57079649, 0, 0]
-        Scale: [5.53910017, 5.53909922, 5.53909922]
+        Scale: [23.5965652, 23.5962276, 23.5962276]
       RelationshipComponent:
         Parent: 2590873065312915112
         Children:
@@ -171,6 +209,31 @@ Scene:
         Text: "Hallo\nWelcome to the Shark Game Engine.\nCreated by ME."
         Color: [1, 1, 1, 1]
         Kerning: 0
+    - Entity: 9897615607288753874
+      TagComponent:
+        Name: Light
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0.357870847, 0.0253384411, -1.32785869]
+        Scale: [1.00000072, 1, 1]
+      RelationshipComponent:
+        Parent: 637921775252915908
+        Children:
+          []
+      DirectionalLightComponent:
+        Radiance: [1, 1, 1, 1]
+        Intensity: 0.215000004
+    - Entity: 9936726430211519703
+      TagComponent:
+        Name: 3dace5162d02441ea3b63cc9dd78a76c.obj.cleaner
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 1433670031225774554
+        Children:
+          - 6014118642351756630
     - Entity: 12735687121790381183
       TagComponent:
         Name: Wall
@@ -186,6 +249,17 @@ Scene:
         Mesh: 16466054961702350518
         SubmeshIndex: 0
         Material: 0
+    - Entity: 14078955941826155656
+      TagComponent:
+        Name: Sketchfab_Scene
+      TransformComponent:
+        Translation: [0, 5.85334778, -5.42318678]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 1433670031225774554
     - Entity: 15533339291864148795
       TagComponent:
         Name: Cylinder
@@ -228,8 +302,8 @@ Scene:
         Children:
           []
       PointLightComponent:
-        Color: [1, 0.690265477, 0, 1]
-        Intensity: 1.75
+        Radiance: [1, 0.690265477, 0, 1]
+        Intensity: 1.35000002
         Radius: 31.6000004
         Falloff: 0
     - Entity: 17038408138984345411

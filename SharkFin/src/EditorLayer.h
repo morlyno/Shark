@@ -96,13 +96,6 @@ namespace Shark {
 		void OnSimulationPlay();
 		void OnSimulationStop();
 
-		void SubmitOnScenePlay();
-		void SubmitOnSceneStop();
-		void SubmitOnSimulationPlay();
-		void SubmitOnSimulationStop();
-		void SubmitSetScenePaused(bool paused);
-		void SubmitStepScene(uint32_t frames);
-
 		void SetActiveScene(Ref<Scene> scene);
 
 		void OpenProject();

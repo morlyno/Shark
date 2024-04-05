@@ -40,7 +40,9 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
+            Value: 12046611585830764490
     - Entity: 1490881388362383425
       TagComponent:
         Name: Player
@@ -261,7 +263,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 3867285441352358213
       TagComponent:
         Name: Marker3
@@ -361,7 +364,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 7038483985364779915
       TagComponent:
         Name: Marker9
@@ -404,7 +408,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 7240910275087375595
       TagComponent:
         Name: Floor
@@ -432,7 +437,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 7494786954438275739
       TagComponent:
         Name: Floor
@@ -460,7 +466,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 7714014074287667788
       TagComponent:
         Name: Elevator Outside
@@ -501,7 +508,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 8060135193891738624
       TagComponent:
         Name: Marker1
@@ -559,7 +567,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 9262661516947183695
       TagComponent:
         Name: Marker10
@@ -617,7 +626,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 10755231564570129317
       TagComponent:
         Name: BallTemplate
@@ -674,7 +684,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.09734511
+        Aspectratio: 2.25280905
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 1
         PerspectiveFar: 1000
@@ -732,7 +742,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 15089679134540552545
       TagComponent:
         Name: Marker8
@@ -775,7 +786,8 @@ Scene:
       ScriptComponent:
         ScriptName: Sandbox.FloorScript
         Fields:
-          []
+          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
+            Type: AssetHandle
     - Entity: 16057847568682307122
       TagComponent:
         Name: MarkerBottem

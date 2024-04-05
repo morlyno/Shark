@@ -72,7 +72,7 @@ struct MaterialUniforms
     float P0;
 };
 
-struct Light
+struct PointLight
 {
     float3 Position;
     float Intensity;
@@ -82,24 +82,33 @@ struct Light
     float P0, P1, P2;
 };
 
+struct DirectionalLight
+{
+    float4 Radiance;
+    float3 Direction;
+    float Intensity;
+};
+
 struct Scene
 {
-    uint LightCount;
+    uint PointLightCount;
+    uint DirectionalLightCount;
     float EnvironmentMapIntensity;
-    float P0, P1;
+    float P0;
 };
 
 [[vk::binding(1, 1)]] ConstantBuffer<Scene> u_Scene;
-[[vk::binding(2, 1)]] StructuredBuffer<Light> u_Lights;
+[[vk::binding(2, 1)]] StructuredBuffer<PointLight> u_PointLights;
+[[vk::binding(3, 1)]] StructuredBuffer<DirectionalLight> u_DirectionalLights;
 
-[[vk::binding(3, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_IrradianceMap;
-[[vk::binding(3, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_IrradianceMapSampler;
+[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_IrradianceMap;
+[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_IrradianceMapSampler;
 
-[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_RadianceMap;
-[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_RadianceMapSampler;
+[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_RadianceMap;
+[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_RadianceMapSampler;
 
-[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform Texture2D u_BRDFLUTTexture;
-[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_BRDFLUTTextureSampler;
+[[vk::binding(6, 1)]][[vk::combinedImageSampler]] uniform Texture2D u_BRDFLUTTexture;
+[[vk::binding(6, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_BRDFLUTTextureSampler;
 
 
 [[vk::binding(0, 0)]] ConstantBuffer<MaterialUniforms> u_MaterialUniforms;
@@ -220,8 +229,8 @@ PixelOutput main(PixelInput Input)
 {
     float4 albedoTexColor = u_AlbedoMap.Sample(u_AlbedoMapSampler, Input.Texcoord);
     m_Params.Albedo = albedoTexColor.rgb * u_MaterialUniforms.Albedo;
-    m_Params.Metalness = u_MetalnessMap.Sample(u_MetalnessMapSampler, Input.Texcoord).r * u_MaterialUniforms.Metalness;
-    m_Params.Roughness = u_RoughnessMap.Sample(u_RoughnessMapSampler, Input.Texcoord).r * u_MaterialUniforms.Roughness;
+    m_Params.Metalness = u_MetalnessMap.Sample(u_MetalnessMapSampler, Input.Texcoord).b * u_MaterialUniforms.Metalness;
+    m_Params.Roughness = u_RoughnessMap.Sample(u_RoughnessMapSampler, Input.Texcoord).g * u_MaterialUniforms.Roughness;
     m_Params.Roughness = max(m_Params.Roughness, 0.05);
 
     m_Params.Normal = Input.Normal;
@@ -240,10 +249,10 @@ PixelOutput main(PixelInput Input)
     float3 lightContribution = 0.0f;
     
     //if (u_Scene.LightCount > 0)
-    const uint MaxLights = 256;
-    for (uint i = 0; i < u_Scene.LightCount && i < MaxLights; i++)
+    const uint MaxPointLights = 256;
+    for (uint pointLightIndex = 0; pointLightIndex < u_Scene.PointLightCount && pointLightIndex < MaxPointLights; pointLightIndex++)
     {
-        Light light = u_Lights[i];
+        PointLight light = u_PointLights[pointLightIndex];
         
         float3 Ld = normalize(light.Position - Input.WorldPosition);
         float3 Lh = normalize(Ld + m_Params.View);
@@ -277,7 +286,46 @@ PixelOutput main(PixelInput Input)
         //float falloff = LightFalloff(u_Light.Position, Input.WorldPosition);
         //float attenuation = u_Light.Intensity * falloff;
 
-        lightContribution += (diffuseBRDF + specularBRDF) * light.Radiance.rgb * attenuation * NdotL;;
+        lightContribution += (diffuseBRDF + specularBRDF) * light.Radiance.rgb * attenuation * NdotL;
+    }
+    
+    // Directional Light
+    uint MaxDirectionalLights = 5;
+    for (uint dirLightIndex = 0; dirLightIndex < u_Scene.DirectionalLightCount && dirLightIndex < MaxDirectionalLights; dirLightIndex++)
+    {
+        DirectionalLight dirLight = u_DirectionalLights[dirLightIndex];
+        float3 Ld = normalize(dirLight.Direction);
+        float3 Lh = normalize(Ld + m_Params.View);
+
+        //float cosLd = max(dot(m_Params.Normal, Ld));
+        //float cosLh = max(dot(m_Params.Normal, Lh));
+        float NdotL = max(dot(m_Params.Normal, Ld), 0.0);
+        float NdotH = max(dot(m_Params.Normal, Lh), 0.0);
+
+        // Calculate Fresnel term for direct lighting
+        float3 F = FresnelSchlick(F0, max(dot(Lh, m_Params.View), 0.0));
+
+        // Calculate normal distribution for specular BRDF
+        float D = NDFGGX(NdotH);
+
+        // Calculate geometric attenuation for specular BRDF
+        float G = SchlickGGX(NdotL, m_Params.NdotV);
+
+        float3 kd = lerp(1.0 - F, 0.0, m_Params.Metalness);
+
+        // Lambert diffuse BRDF
+        float3 diffuseBRDF = kd * m_Params.Albedo;
+
+        // Cook-Torrance specular microfacet BRDF
+        float3 specularBRDF = (D * F * G) / max(4 * NdotL * m_Params.NdotV, Epsilon);
+        
+        float attenuation = dirLight.Intensity;
+        //attenuation = min(attenuation, 1.0f);
+
+        //float falloff = LightFalloff(u_Light.Position, Input.WorldPosition);
+        //float attenuation = u_Light.Intensity * falloff;
+
+        lightContribution += (diffuseBRDF + specularBRDF) * dirLight.Radiance.rgb * attenuation * NdotL;
     }
     
     float3 iblContribution = IBL(F0) * u_Scene.EnvironmentMapIntensity;

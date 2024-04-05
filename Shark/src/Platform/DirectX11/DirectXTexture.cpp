@@ -74,6 +74,8 @@ namespace Shark {
 		{
 			m_ImageData = TextureImporter::ToBufferFromFile("Resources/Textures/ErrorTexture.png", m_Specification.Format, m_Specification.Width, m_Specification.Height);
 			SK_CORE_VERIFY(m_ImageData.Data);
+
+			SetFlag(AssetFlag::Fallback, true);
 		}
 
 		if (m_Specification.DebugName.empty())
@@ -84,6 +86,7 @@ namespace Shark {
 
 	DirectXTexture2D::~DirectXTexture2D()
 	{
+		m_Image = nullptr;
 		Release();
 		m_ImageData.Release();
 	}
@@ -174,7 +177,10 @@ namespace Shark {
 
 	void DirectXTexture2D::Release()
 	{
-		m_Image->Release();
+		if (m_Image)
+		{
+			m_Image->Release();
+		}
 
 		if (!m_Sampler)
 			return;

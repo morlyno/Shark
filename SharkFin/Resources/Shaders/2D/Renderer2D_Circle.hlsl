@@ -1,35 +1,33 @@
 #pragma stage : Vertex
 
-// begin_metadata
-// set u_SceneData RenderPass
-// end_metadata
-
-cbuffer u_SceneData : register(b0)
+struct Camera
 {
     matrix ViewProjection;
-}
+};
 
-struct Output
+[[vk::binding(0, 1)]] ConstantBuffer<Camera> u_Camera;
+
+struct VertexOutput
 {
-    float2 LocalPosition : LocalPosition;
-    float4 Color : Color;
-    float Thickness : Thickness;
-    float Fade : Fade;
-    int ID : ID;
+    [[vk::location(0)]] float2 LocalPosition : LocalPosition;
+    [[vk::location(1)]] float4 Color : Color;
+    [[vk::location(2)]] float Thickness : Thickness;
+    [[vk::location(3)]] float Fade : Fade;
+    [[vk::location(4)]] int ID : ID;
     float4 WorldPosition : SV_POSITION;
 };
 
-Output main(
-    float3 WorldPosition : WorldPosition,
-    float2 LocalPosition : LocalPosition,
-    float4 Color : Color,
-    float Thickness : Thickness,
-    float Fade : Fade,
-    int ID : ID
+VertexOutput main(
+    [[vk::location(0)]] float3 WorldPosition : WorldPosition,
+    [[vk::location(1)]] float2 LocalPosition : LocalPosition,
+    [[vk::location(2)]] float4 Color : Color,
+    [[vk::location(3)]] float Thickness : Thickness,
+    [[vk::location(4)]] float Fade : Fade,
+    [[vk::location(5)]] int ID : ID
 )
 {
-    Output output;
-    output.WorldPosition = mul(ViewProjection, float4(WorldPosition, 1.0f));
+    VertexOutput output;
+    output.WorldPosition = mul(u_Camera.ViewProjection, float4(WorldPosition, 1.0f));
     output.LocalPosition = LocalPosition;
     output.Color = Color;
     output.Thickness = Thickness;
@@ -39,27 +37,26 @@ Output main(
     return output;
 }
 
-
 #pragma stage : Pixel
 
-struct Input
+struct PixelInput
 {
-    float2 LocalPosition : LocalPosition;
-    float4 Color : Color;
-    float Thickness : Thickness;
-    float Fade : Fade;
-    int ID : ID;
+    [[vk::location(0)]] float2 LocalPosition : LocalPosition;
+    [[vk::location(1)]] float4 Color : Color;
+    [[vk::location(2)]] float Thickness : Thickness;
+    [[vk::location(3)]] float Fade : Fade;
+    [[vk::location(4)]] int ID : ID;
 };
 
-struct Targets
+struct PixelOutput
 {
     float4 Color : SV_TARGET0;
     int ID : SV_Target1;
 };
 
-Targets main(Input input)
+PixelOutput main(PixelInput input)
 {
-    Targets targets;
+    PixelOutput output;
     
     float dist = 1.0 - length(input.LocalPosition);
     //if (dist > 1.0f || dist < 1.0f - input.Thickness)
@@ -71,10 +68,10 @@ Targets main(Input input)
     if (alpha == 0.0)
         discard;
     
-    targets.Color = input.Color;
-    targets.Color.a *= alpha;
+    output.Color = input.Color;
+    output.Color.a *= alpha;
     
-    targets.ID = input.ID;
+    output.ID = input.ID;
     
-    return targets;
+    return output;
 }

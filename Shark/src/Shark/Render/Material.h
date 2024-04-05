@@ -23,6 +23,10 @@ namespace Shark {
 		virtual void Set(const std::string& name, Ref<TextureCube> textureCube) = 0;
 		virtual void Set(const std::string& name, Ref<Image2D> image) = 0;
 
+		virtual void Set(const std::string& name, uint32_t arrayIndex, Ref<Texture2D> texture) = 0;
+		virtual void Set(const std::string& name, uint32_t arrayIndex, Ref<TextureCube> textureCube) = 0;
+		virtual void Set(const std::string& name, uint32_t arrayIndex, Ref<Image2D> image) = 0;
+
 		virtual Ref<Texture2D> GetTexture(const std::string& name) const = 0;
 		virtual Ref<TextureCube> GetTextureCube(const std::string& name) const = 0;
 		virtual Ref<Image2D> GetImage(const std::string& name) const = 0;

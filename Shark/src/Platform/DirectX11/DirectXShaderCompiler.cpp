@@ -1148,7 +1148,7 @@ namespace Shark {
 			uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 
-			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
+			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false, "Binding ({}.{}) allready in use! (Current: {})", set, binding, name);
 			m_ReflectionData.NameCache[name] = { set, binding };
 			auto& reflectionData = m_ReflectionData.Resources[set][binding];
 			reflectionData.Name = name;
@@ -1165,16 +1165,27 @@ namespace Shark {
 				default: SK_CORE_ASSERT(false, "Unkown Dimension"); break;
 			}
 
+			std::string d3dTextureName, d3dSamplerName;
+			if (reflectionData.ArraySize)
+			{
+				d3dTextureName = fmt::format("{}[{}]", name, 0);
+				d3dSamplerName = fmt::format("_{}_sampler[{}]", name, 0);
+			}
+			else
+			{
+				d3dTextureName = name;
+				d3dSamplerName = fmt::format("_{}_sampler", name);
+			}
+
 			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
-			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(name.c_str(), &d3dInputDesc);
+			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(d3dTextureName.c_str(), &d3dInputDesc);
 			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
 			if (SUCCEEDED(hResult))
 			{
 				reflectionData.DXBinding = d3dInputDesc.BindPoint;
 			}
 
-			std::string samplerName = fmt::format("_{}_sampler", name);
-			hResult = d3dReflector->GetResourceBindingDescByName(samplerName.c_str(), &d3dInputDesc);
+			hResult = d3dReflector->GetResourceBindingDescByName(d3dSamplerName.c_str(), &d3dInputDesc);
 			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
 			if (SUCCEEDED(hResult))
 			{

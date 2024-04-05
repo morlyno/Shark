@@ -16,11 +16,10 @@ VSOUT main(float2 pos : Position)
 
 #pragma stage : pixel
 
-Texture2D Frame : register(t0);
-SamplerState Sampler : register(s0);
-
+[[vk::binding(0, 1), vk::combinedImageSampler]] Texture2D u_SourceImage;
+[[vk::binding(0, 1), vk::combinedImageSampler]] SamplerState u_SourceImageSampler;
 
 float4 main(float2 texCoords : TexCoords) : SV_Target0
 {
-    return Frame.Sample(Sampler, texCoords);
+    return u_SourceImage.Sample(u_SourceImageSampler, texCoords);
 }

@@ -78,7 +78,8 @@ namespace Shark {
 		m_PanelManager = Scope<PanelManager>::Create();
 
 		Ref<SceneHirachyPanel> sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(PanelCategory::View, SCENE_HIRACHY_PANEL_ID, "Scene Hirachy", true);
-		sceneHirachy->SetSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
+		sceneHirachy->RegisterSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
+		sceneHirachy->RegisterSnapToEditorCameraCallback([this](Entity entity) { entity.Transform().SetTransform(glm::inverse(m_EditorCamera.GetView())); });
 
 		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(PanelCategory::View, CONTENT_BROWSER_PANEL_ID, "Content Browser", true);
 		contentBrowser->RegisterOpenAssetCallback(AssetType::Material, [this](const AssetMetaData& metadata)
@@ -111,7 +112,7 @@ namespace Shark {
 
 		Renderer2DSpecifications debugRendererSpec;
 		debugRendererSpec.UseDepthTesting = true;
-		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositePass()->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer, debugRendererSpec);
+		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositePass(), debugRendererSpec);
 
 		// Readable image for Mouse Picking
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
@@ -171,14 +172,10 @@ namespace Shark {
 				SK_PROFILE_SCOPED("EditorLayer::OnUpdate Resize");
 
 				m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-
 				m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
+				m_DebugRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
+				m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
-
-				m_MousePickingImage->GetSpecification().Width = m_ViewportWidth;
-				m_MousePickingImage->GetSpecification().Height = m_ViewportHeight;
-				m_MousePickingImage->Invalidate();
-
 				m_NeedsResize = false;
 			}
 
@@ -372,10 +369,14 @@ namespace Shark {
 			AssetType assetType = AssetUtils::GetAssetTypeFromPath(path);
 			if (assetType != AssetType::None)
 			{
-				m_ImportAssetData.Show = true;
-				m_ImportAssetData.Type = assetType;
-				m_ImportAssetData.SourcePath = path.generic_string();
-				m_ImportAssetData.DestinationPath = fmt::format("{}/{}", m_DefaultAssetDirectories.at(assetType), path.stem().generic_string());
+				Ref<ContentBrowserPanel> panel = m_PanelManager->Get<ContentBrowserPanel>(CONTENT_BROWSER_PANEL_ID);
+				Ref<DirectoryInfo> currentDirectory = panel->GetCurrentDirectory();
+				if (currentDirectory)
+				{
+					auto destination = FileSystem::MakePathUnique(currentDirectory->Filepath / path.filename());
+					FileSystem::CopyFile(path, destination);
+				}
+
 				break;
 			}
 
@@ -838,12 +839,12 @@ namespace Shark {
 			case SceneState::Edit:
 			{
 				if (ImGui::ImageButton("Play", Icons::PlayIcon->GetViewID(), size))
-					SubmitOnScenePlay();
+					OnScenePlay();
 
 				ImGui::SameLine();
 
 				if (ImGui::ImageButton("Simulate", Icons::SimulateIcon->GetViewID(), size))
-					SubmitOnSimulationPlay();
+					OnSimulationPlay();
 
 				ImGui::SameLine();
 				{
@@ -856,13 +857,13 @@ namespace Shark {
 			case SceneState::Play:
 			{
 				if (ImGui::ImageButton("Stop", Icons::StopIcon->GetViewID(), size))
-					SubmitOnSceneStop();
+					OnSceneStop();
 
 				ImGui::SameLine();
 
 				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? Icons::PlayIcon : Icons::PauseIcon;
 				if (ImGui::ImageButton("PausePlay", pausePlayIcon->GetViewID(), size))
-					SubmitSetScenePaused(!m_ActiveScene->IsPaused());
+					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
 				ImGui::SameLine();
 
@@ -870,7 +871,7 @@ namespace Shark {
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 					if (ImGui::ImageButton("Step", Icons::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
-						SubmitStepScene(1);
+						m_ActiveScene->Step(1);
 				}
 
 				break;
@@ -878,13 +879,13 @@ namespace Shark {
 			case SceneState::Simulate:
 			{
 				if (ImGui::ImageButton("StopIcon", Icons::StopIcon->GetViewID(), size))
-					SubmitOnSimulationStop();
+					OnSimulationStop();
 
 				ImGui::SameLine();
 
 				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? Icons::PlayIcon : Icons::PauseIcon;
 				if (ImGui::ImageButton("PausePlayIcon", pausePlayIcon->GetViewID(), size))
-					SubmitSetScenePaused(!m_ActiveScene->IsPaused());
+					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
 				ImGui::SameLine();
 
@@ -892,7 +893,7 @@ namespace Shark {
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 					if (ImGui::ImageButton("Step", Icons::StepIcon->GetViewID(), size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
-						SubmitStepScene(1);
+						m_ActiveScene->Step(1);
 				}
 
 				break;
@@ -920,33 +921,37 @@ namespace Shark {
 		if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
 		{
 			const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::IsKeyDown(KeyCode::LeftAlt) && m_ViewportHovered;
-			uint32_t hoverdEntity = (uint32_t)-1;
 
 			if (selectEntity)
 			{
-				Renderer::RT_CopyImage(Renderer::GetCommandBuffer(), m_SceneRenderer->GetIDImage(), m_MousePickingImage);
-				if (!m_MousePickingImage->RT_ReadPixel(x, y, hoverdEntity))
-					return false;
+				Renderer::CopyImage(Renderer::GetCommandBuffer(), m_SceneRenderer->GetIDImage(), m_MousePickingImage);
 
-				if (hoverdEntity == (uint32_t)-1)
+				Renderer::Submit([this, x, y]()
 				{
-					SelectEntity(Entity{});
-					return true;
-				}
+					uint32_t hoverdEntity = (uint32_t)-1;
+					if (!m_MousePickingImage->RT_ReadPixel(x, y, hoverdEntity))
+						return false;
 
-				Entity entity = { (entt::entity)hoverdEntity, m_ActiveScene };
-				if (entity)
-				{
-					if (Input::IsKeyDown(KeyCode::LeftShift))
+					if (hoverdEntity == (uint32_t)-1)
 					{
-						while (entity.HasParent())
-						{
-							entity = entity.Parent();
-						}
+						SelectEntity(Entity{});
+						return true;
 					}
 
-					SelectEntity(entity);
-				}
+					Entity entity = { (entt::entity)hoverdEntity, m_ActiveScene };
+					if (entity)
+					{
+						if (Input::IsKeyDown(KeyCode::LeftShift))
+						{
+							while (entity.HasParent())
+							{
+								entity = entity.Parent();
+							}
+						}
+
+						SelectEntity(entity);
+					}
+				});
 			}
 		}
 		return true;
@@ -1163,9 +1168,12 @@ namespace Shark {
 				std::filesystem::path fullPath = m_CreateMeshAssetData.ParentDirectory / m_CreateMeshAssetData.DestinationPath;
 				FileSystem::ReplaceExtension(fullPath, ".skmesh");
 				
-				Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(m_CreateMeshAssetData.MeshSource);
-				Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(fullPath, meshSource);
-				InstantiateMesh(mesh, true);
+				AssetHandle meshSource = m_CreateMeshAssetData.MeshSource;
+				if (AssetManager::IsValidAssetHandle(meshSource) && AssetManager::GetAssetType(meshSource) == AssetType::MeshSource)
+				{
+					Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(fullPath, meshSource);
+					InstantiateMesh(mesh, true);
+				}
 			}
 
 			ImGui::SameLine();
@@ -1286,7 +1294,7 @@ namespace Shark {
 		
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
-		AssetHandle handle = AssetManager::CreateMemoryAsset<Scene>(name);
+		AssetHandle handle = AssetManager::CreateMemoryOnlyAsset<Scene>(name);
 		auto newScene = AssetManager::GetAsset<Scene>(handle);
 		m_WorkScene = newScene;
 		SetActiveScene(newScene);
@@ -1410,42 +1418,12 @@ namespace Shark {
 		SetActiveScene(m_WorkScene);
 	}
 
-	void EditorLayer::SubmitOnScenePlay()
-	{
-		Application::Get().SubmitToMainThread([this]() { OnScenePlay(); });
-	}
-
-	void EditorLayer::SubmitOnSceneStop()
-	{
-		Application::Get().SubmitToMainThread([this]() { OnSceneStop(); });
-	}
-
-	void EditorLayer::SubmitOnSimulationPlay()
-	{
-		Application::Get().SubmitToMainThread([this]() { OnSimulationPlay(); });
-	}
-
-	void EditorLayer::SubmitOnSimulationStop()
-	{
-		Application::Get().SubmitToMainThread([this]() { OnSimulationStop(); });
-	}
-
-	void EditorLayer::SubmitSetScenePaused(bool paused)
-	{
-		Application::Get().SubmitToMainThread([paused, scene = m_ActiveScene]() { scene->SetPaused(paused); });
-	}
-
-	void EditorLayer::SubmitStepScene(uint32_t frames)
-	{
-		Application::Get().SubmitToMainThread([frames, scene = m_ActiveScene]() { scene->Step(frames); });
-	}
-
 	void EditorLayer::SetActiveScene(Ref<Scene> scene)
 	{
 		SK_PROFILE_FUNCTION();
 
 		if (m_ActiveScene && AssetManager::IsMemoryAsset(m_ActiveScene->Handle))
-			Project::GetActiveEditorAssetManager()->UnloadAsset(m_ActiveScene->Handle);
+			Project::GetActiveEditorAssetManager()->DeleteMemoryAsset(m_ActiveScene->Handle);
 
 		if (scene && m_SelectetEntity)
 			SelectEntity(scene->TryGetEntityByUUID(m_SelectetEntity.GetUUID()));
@@ -1616,52 +1594,48 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		Ref<MeshSource> source = mesh->GetMeshSource();
-		Entity rootEntity = m_ActiveScene->CreateEntity();
-		InstantiateMeshNode(mesh, source->GetRootNode(), Entity{}, rootEntity);
-		
+		Entity entity = m_ActiveScene->InstantiateMesh(mesh);
+
 		if (select)
-		{
-			SelectEntity(rootEntity);
-		}
+			SelectEntity(entity);
 
-		return rootEntity;
+		return entity;
 	}
 
-	void EditorLayer::InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent, Entity entity)
-	{
-		SK_PROFILE_FUNCTION();
-
-		Ref<MeshSource> source = mesh->GetMeshSource();
-
-		if (!entity)
-			entity = m_ActiveScene->CreateChildEntity(parent);
-		entity.GetName() = node.Name;
-
-		entity.Transform().SetTransform(node.LocalTransform);
-		if (node.Submeshes.size() == 1)
-		{
-			auto& meshComp = entity.AddComponent<MeshComponent>();
-			meshComp.Mesh = mesh->Handle;
-			meshComp.SubmeshIndex = node.Submeshes[0];
-		}
-		else if (node.Submeshes.size() > 1)
-		{
-			Entity container = m_ActiveScene->CreateChildEntity(entity, fmt::format("{} (Submesh Container)", node.Name));
-			for (uint32_t submeshIndex = 0; submeshIndex < node.Submeshes.size(); submeshIndex++)
-			{
-				Entity submeshEntity = m_ActiveScene->CreateChildEntity(container, fmt::format("{}_{} (Submesh)", node.Name, submeshIndex));
-				auto& meshComp = submeshEntity.AddComponent<MeshComponent>();
-				meshComp.Mesh = mesh->Handle;
-				meshComp.SubmeshIndex = submeshIndex;
-			}
-		}
-
-		for (const auto& childNodeIndex : node.Children)
-		{
-			const MeshNode& childNode = source->GetNodes()[childNodeIndex];
-			InstantiateMeshNode(mesh, childNode, entity);
-		}
-	}
+	//void EditorLayer::InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent, Entity entity)
+	//{
+	//	SK_PROFILE_FUNCTION();
+	//
+	//	Ref<MeshSource> source = mesh->GetMeshSource();
+	//
+	//	if (!entity)
+	//		entity = m_ActiveScene->CreateChildEntity(parent);
+	//	entity.GetName() = node.Name;
+	//
+	//	entity.Transform().SetTransform(node.LocalTransform);
+	//	if (node.Submeshes.size() == 1)
+	//	{
+	//		auto& meshComp = entity.AddComponent<MeshComponent>();
+	//		meshComp.Mesh = mesh->Handle;
+	//		meshComp.SubmeshIndex = node.Submeshes[0];
+	//	}
+	//	else if (node.Submeshes.size() > 1)
+	//	{
+	//		Entity container = m_ActiveScene->CreateChildEntity(entity, fmt::format("{} (Submesh Container)", node.Name));
+	//		for (uint32_t submeshIndex = 0; submeshIndex < node.Submeshes.size(); submeshIndex++)
+	//		{
+	//			Entity submeshEntity = m_ActiveScene->CreateChildEntity(container, fmt::format("{}_{} (Submesh)", node.Name, submeshIndex));
+	//			auto& meshComp = submeshEntity.AddComponent<MeshComponent>();
+	//			meshComp.Mesh = mesh->Handle;
+	//			meshComp.SubmeshIndex = submeshIndex;
+	//		}
+	//	}
+	//
+	//	for (const auto& childNodeIndex : node.Children)
+	//	{
+	//		const MeshNode& childNode = source->GetNodes()[childNodeIndex];
+	//		InstantiateMeshNode(mesh, childNode, entity);
+	//	}
+	//}
 
 }

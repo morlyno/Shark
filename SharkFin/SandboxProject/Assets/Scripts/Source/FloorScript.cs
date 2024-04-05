@@ -10,7 +10,7 @@ namespace Sandbox
 		private Color m_CollishionColor;
 
 		private SpriteRendererComponent m_SpriteRenderer;
-		private AssetHandle m_CollishionTextureHandle = AssetHandle.Invalid;
+		public AssetHandle m_CollishionTextureHandle = AssetHandle.Invalid;
 
 		private uint m_CollishionCount = 0;
 
@@ -27,8 +27,6 @@ namespace Sandbox
 
 			m_InitColor = m_SpriteRenderer.Color;
 			m_CollishionColor = m_Colors[Random.Int(0, m_Colors.Length)];
-
-			m_CollishionTextureHandle = ResourceManager.GetAssetHandleFromFilePath("Textures/Checkerboard.sktex");
 
 			OnCollishionBegin += CollishionBegin;
 			OnCollishionEnd += CollishionEnd;

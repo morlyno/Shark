@@ -1,9 +1,13 @@
 #include "skpch.h"
 #include "MaterialSerializer.h"
 
+#include "Shark/Asset/AssetManager.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/MeshSource.h"
+
+#include "Shark/Serialization/SerializationMacros.h"
 
 #include "Shark/Utils/YAMLUtils.h"
 #include "Shark/Debug/Profiler.h"
@@ -78,13 +82,12 @@ namespace Shark {
 		out << YAML::Key << "AlbedoColor" << YAML::Value << material->GetAlbedoColor();
 		out << YAML::Key << "Metallic" << YAML::Value << material->GetMetalness();
 		out << YAML::Key << "Roughness" << YAML::Value << material->GetRoughness();
-		out << YAML::Key << "AmbientOcclusion" << YAML::Value << material->GetAmbientOcclusion();
 
-		out << YAML::Key << "AlbedoMap" << YAML::Value << material->GetAlbedoMap()->Handle;
+		out << YAML::Key << "AlbedoMap" << YAML::Value << material->GetAlbedoMap();
 		out << YAML::Key << "UsingNormalMap" << YAML::Value << material->IsUsingNormalMap();
-		out << YAML::Key << "NormalMap" << YAML::Value << material->GetNormalMap()->Handle;
-		out << YAML::Key << "MetalnessMap" << YAML::Value << material->GetMetalnessMap()->Handle;
-		out << YAML::Key << "RoughnessMap" << YAML::Value << material->GetRoughnessMap()->Handle;
+		out << YAML::Key << "NormalMap" << YAML::Value << material->GetNormalMap();
+		out << YAML::Key << "MetalnessMap" << YAML::Value << material->GetMetalnessMap();
+		out << YAML::Key << "RoughnessMap" << YAML::Value << material->GetRoughnessMap();
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 		m_ErrorMsg = out.GetLastError();
@@ -93,67 +96,54 @@ namespace Shark {
 
 	bool MaterialSerializer::DeserializeFromYAML(Ref<MaterialAsset> material, const std::string& filedata)
 	{
-		try
+		auto rootNode = YAML::Load(filedata);
+		if (!rootNode)
 		{
-			auto rootNode = YAML::Load(filedata);
-			if (!rootNode)
-			{
-				m_ErrorMsg = "Failed to load YAML";
-				return false;
-			}
-
-			auto materialNode = rootNode["Material"];
-			if (!materialNode)
-			{
-				m_ErrorMsg = "Material Node not found";
-				return false;
-			}
-
-			glm::vec3 albedoColor = materialNode["AlbedoColor"].as<glm::vec3>();
-			float metallic = materialNode["Metallic"].as<float>();
-			float reoughness = materialNode["Roughness"].as<float>();
-			float ao = materialNode["AmbientOcclusion"].as<float>();
-
-			AssetHandle albedoMap = materialNode["AlbedoMap"].as<AssetHandle>();
-
-			bool usingNormalMap = materialNode["UsingNormalMap"].as<bool>();
-			AssetHandle normalMap = materialNode["NormalMap"].as<AssetHandle>();
-			AssetHandle metalnessMap = materialNode["MetalnessMap"].as<AssetHandle>(AssetHandle::Invalid);
-			AssetHandle roughnessMap = materialNode["RoughnessMap"].as<AssetHandle>(AssetHandle::Invalid);
-
-			material->SetAlbedoColor(albedoColor);
-			material->SetMetalness(metallic);
-			material->SetRoughness(reoughness);
-			material->SetAmbientOcclusion(ao);
-
-			if (AssetManager::IsValidAssetHandle(albedoMap))
-			{
-				material->SetAlbedoMap(AssetManager::GetAsset<Texture2D>(albedoMap));
-			}
-
-			if (AssetManager::IsValidAssetHandle(normalMap))
-			{
-				material->SetUsingNormalMap(usingNormalMap);
-				material->SetNormalMap(AssetManager::GetAsset<Texture2D>(normalMap));
-			}
-
-			if (AssetManager::IsValidAssetHandle(metalnessMap))
-			{
-				material->SetMetalnessMap(AssetManager::GetAsset<Texture2D>(metalnessMap));
-			}
-
-			if (AssetManager::IsValidAssetHandle(roughnessMap))
-			{
-				material->SetRoughnessMap(AssetManager::GetAsset<Texture2D>(roughnessMap));
-			}
-
-		}
-		catch (const YAML::Exception& exception)
-		{
-			m_ErrorMsg = exception.what();
-			SK_CORE_ASSERT(false);
+			m_ErrorMsg = "Failed to load YAML";
 			return false;
 		}
+
+		auto materialNode = rootNode["Material"];
+		if (!materialNode)
+		{
+			m_ErrorMsg = "Material Node not found";
+			return false;
+		}
+
+		SK_DESERIALIZE_PROPERTY(materialNode, "AlbedoColor", material->GetAlbedoColor(), glm::vec3(1.0f));
+		SK_DESERIALIZE_PROPERTY(materialNode, "Metallic", material->GetMetalness(), 0.0f);
+		SK_DESERIALIZE_PROPERTY(materialNode, "Roughness", material->GetRoughness(), 0.5f);
+
+		bool usingNormalMap;
+		SK_DESERIALIZE_PROPERTY(materialNode, "UsingNormalMap", usingNormalMap, false);
+
+		AssetHandle albedoMap, normalMap, metalnessMap, roughnessMap;
+		SK_DESERIALIZE_PROPERTY(materialNode, "AlbedoMap", albedoMap, AssetHandle::Invalid);
+		SK_DESERIALIZE_PROPERTY(materialNode, "NormalMap", normalMap, AssetHandle::Invalid);
+		SK_DESERIALIZE_PROPERTY(materialNode, "MetalnessMap", metalnessMap, AssetHandle::Invalid);
+		SK_DESERIALIZE_PROPERTY(materialNode, "RoughnessMap", roughnessMap, AssetHandle::Invalid);
+
+		if (AssetManager::IsValidAssetHandle(albedoMap) && AssetManager::GetAssetType(albedoMap) == AssetType::Texture)
+		{
+			material->SetAlbedoMap(albedoMap);
+		}
+
+		if (AssetManager::IsValidAssetHandle(normalMap) && AssetManager::GetAssetType(normalMap) == AssetType::Texture)
+		{
+			material->SetUsingNormalMap(usingNormalMap);
+			material->SetNormalMap(normalMap);
+		}
+
+		if (AssetManager::IsValidAssetHandle(metalnessMap) && AssetManager::GetAssetType(metalnessMap) == AssetType::Texture)
+		{
+			material->SetMetalnessMap(metalnessMap);
+		}
+
+		if (AssetManager::IsValidAssetHandle(roughnessMap) && AssetManager::GetAssetType(roughnessMap) == AssetType::Texture)
+		{
+			material->SetRoughnessMap(roughnessMap);
+		}
+
 		return true;
 	}
 

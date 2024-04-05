@@ -27,6 +27,10 @@ namespace Shark {
 		inline static Ref<Texture2D> PauseIcon;
 		inline static Ref<Texture2D> SimulateIcon;
 		inline static Ref<Texture2D> StepIcon;
+
+		inline static Ref<Texture2D> ClearIcon;
+		inline static Ref<Texture2D> ReloadIcon;
+
 	public:
 		static void Init();
 		static void Shutdown();

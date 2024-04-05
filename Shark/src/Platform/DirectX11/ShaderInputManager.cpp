@@ -71,11 +71,14 @@ namespace Shark {
 			}
 
 			const auto& input = m_InputResources.at(info.Name);
-			if (input.Input == nullptr)
+			for (uint32_t i = 0; i < info.ArraySize; i++)
 			{
-				SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Input is null for 0.{}", binding);
-				SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required input is {} ({})", info.Name, ToString(info.Type));
-				return false;
+				if (input.Input[i] == nullptr)
+				{
+					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Input is null for 0.{} (Index={})", binding, i);
+					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required input is {} ({})", info.Name, ToString(info.Type));
+					return false;
+				}
 			}
 
 			if (!utils::IsTypeCompadible(input.Type, info.Type))
@@ -116,11 +119,14 @@ namespace Shark {
 				}
 
 				const auto& input = m_InputResources.at(info.Name);
-				if (input.Input == nullptr)
+				for (uint32_t i = 0; i < info.ArraySize; i++)
 				{
-					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Input is null for {}.{}", set, binding);
-					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required input is {} ({})", info.Name, ToString(info.Type));
-					return false;
+					if (input.Input[i] == nullptr)
+					{
+						SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Input is null for {}.{} (Index={})", set, binding, i);
+						SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required input is {} ({})", info.Name, ToString(info.Type));
+						return false;
+					}
 				}
 
 				if (!utils::IsTypeCompadible(input.Type, info.Type))
@@ -146,35 +152,85 @@ namespace Shark {
 	void ShaderInputManager::SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer)
 	{
 		auto& input = m_InputResources[name];
-		input.Input = constantBuffer;
+		input.Input[0] = constantBuffer;
 		input.Type = InputResourceType::ConstantBuffer;
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<StorageBuffer> storageBuffer)
 	{
 		auto& input = m_InputResources[name];
-		input.Input = storageBuffer;
+		input.Input[0] = storageBuffer;
 		input.Type = InputResourceType::StorageBuffer;
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<Image2D> image)
 	{
 		auto& input = m_InputResources[name];
-		input.Input = image;
+		input.Input[0] = image;
 		input.Type = InputResourceType::Image2D;
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<Texture2D> texture)
 	{
 		auto& input = m_InputResources[name];
-		input.Input = texture;
+		input.Input[0] = texture;
 		input.Type = InputResourceType::Texture2D;
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<TextureCube> textureCube)
 	{
 		auto& input = m_InputResources[name];
-		input.Input = textureCube;
+		input.Input[0] = textureCube;
+		input.Type = InputResourceType::TextureCube;
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, uint32_t arrayIndex, Ref<ConstantBuffer> constantBuffer)
+	{
+		auto& input = m_InputResources[name];
+		if (input.Input.size() <= arrayIndex)
+			input.Input.resize(arrayIndex + 1);
+
+		input.Input[arrayIndex] = constantBuffer;
+		input.Type = InputResourceType::ConstantBuffer;
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, uint32_t arrayIndex, Ref<StorageBuffer> storageBuffer)
+	{
+		auto& input = m_InputResources[name];
+		if (input.Input.size() <= arrayIndex)
+			input.Input.resize(arrayIndex + 1);
+
+		input.Input[arrayIndex] = storageBuffer;
+		input.Type = InputResourceType::StorageBuffer;
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, uint32_t arrayIndex, Ref<Image2D> image)
+	{
+		auto& input = m_InputResources[name];
+		if (input.Input.size() <= arrayIndex)
+			input.Input.resize(arrayIndex + 1);
+
+		input.Input[arrayIndex] = image;
+		input.Type = InputResourceType::Image2D;
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, uint32_t arrayIndex, Ref<Texture2D> texture)
+	{
+		auto& input = m_InputResources[name];
+		if (input.Input.size() <= arrayIndex)
+			input.Input.resize(arrayIndex + 1);
+
+		input.Input[arrayIndex] = texture;
+		input.Type = InputResourceType::Texture2D;
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, uint32_t arrayIndex, Ref<TextureCube> textureCube)
+	{
+		auto& input = m_InputResources[name];
+		if (input.Input.size() <= arrayIndex)
+			input.Input.resize(arrayIndex + 1);
+
+		input.Input[arrayIndex] = textureCube;
 		input.Type = InputResourceType::TextureCube;
 	}
 
@@ -186,7 +242,7 @@ namespace Shark {
 	Ref<RendererResource> ShaderInputManager::GetResource(const std::string& name) const
 	{
 		if (m_InputResources.contains(name))
-			return m_InputResources.at(name).Input;
+			return m_InputResources.at(name).Input[0];
 		return nullptr;
 	}
 
@@ -196,7 +252,7 @@ namespace Shark {
 		{
 			auto& input = m_InputResources.at(name);
 			SK_CORE_ASSERT(input.Type == InputResourceType::ConstantBuffer);
-			outConstantBuffer = input.Input.As<ConstantBuffer>();
+			outConstantBuffer = input.Input[0].As<ConstantBuffer>();
 		}
 	}
 
@@ -206,7 +262,7 @@ namespace Shark {
 		{
 			auto& input = m_InputResources.at(name);
 			SK_CORE_ASSERT(input.Type == InputResourceType::StorageBuffer);
-			outStorageBuffer = input.Input.As<StorageBuffer>();
+			outStorageBuffer = input.Input[0].As<StorageBuffer>();
 		}
 	}
 
@@ -216,7 +272,7 @@ namespace Shark {
 		{
 			auto& input = m_InputResources.at(name);
 			SK_CORE_ASSERT(input.Type == InputResourceType::Image2D);
-			outImage2D = input.Input.As<Image2D>();
+			outImage2D = input.Input[0].As<Image2D>();
 		}
 	}
 
@@ -226,7 +282,7 @@ namespace Shark {
 		{
 			auto& input = m_InputResources.at(name);
 			SK_CORE_ASSERT(input.Type == InputResourceType::Texture2D);
-			outTexture2D = input.Input.As<Texture2D>();
+			outTexture2D = input.Input[0].As<Texture2D>();
 		}
 	}
 
@@ -236,7 +292,7 @@ namespace Shark {
 		{
 			auto& input = m_InputResources.at(name);
 			SK_CORE_ASSERT(input.Type == InputResourceType::TextureCube);
-			outTextureCube = input.Input.As<TextureCube>();
+			outTextureCube = input.Input[0].As<TextureCube>();
 		}
 	}
 

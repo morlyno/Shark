@@ -155,6 +155,7 @@ namespace Shark {
 		void SetType(CBItemType type);
 		const std::filesystem::path& GetPath() const { return m_Path; }
 		const std::string& GetName() const { return m_Name; }
+		AssetHandle GetAssetHandle() const { return m_AssetHandle; }
 
 		void SetThumbnail(Ref<Texture2D> thumbnail) { m_Thumbnail = thumbnail; }
 		Ref<Texture2D> GetThumbnail() const { return m_Thumbnail; }
@@ -185,6 +186,7 @@ namespace Shark {
 		CBItemType m_Type;
 		std::filesystem::path m_Path;
 		std::string m_Name;
+		AssetHandle m_AssetHandle;
 
 		std::string m_TypeName;
 		Ref<Texture2D> m_Icon;

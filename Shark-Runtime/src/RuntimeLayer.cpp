@@ -3,6 +3,7 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Project.h"
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/Render/Renderer.h"
 
 namespace Shark {

@@ -91,6 +91,7 @@ namespace Shark {
 #else
 	#define SK_PROFILER_STARTUP(...)
 	#define SK_PROFILER_SHUTDOWN(...)
+	#define SK_PROFILE_MAIN_FRAME(...)
 	#define SK_PROFILE_FRAME(...)
 	#define SK_PROFILE_THREAD(...)
 	#define SK_PROFILE_FUNCTION(...)

@@ -30,8 +30,11 @@ namespace Shark {
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		void SetSelectedEntity(Entity entity);
 
-		template<typename Func>
-		void SetSelectionChangedCallback(const Func& func) { m_SelectionChangedCallback = func; }
+		template<typename Func> // void(Entity)
+		void RegisterSelectionChangedCallback(const Func& func) { m_SelectionChangedCallback = func; }
+
+		template<typename TFunc> // void(Entity)
+		void RegisterSnapToEditorCameraCallback(const TFunc& callback) { m_SnapToEditorCameraCallback = callback; }
 
 	private:
 		bool OnKeyPressedEvent(KeyPressedEvent& event);
@@ -176,6 +179,7 @@ namespace Shark {
 		bool m_PropertiesFocused = false;
 
 		std::function<void(Entity entity)> m_SelectionChangedCallback = [](auto) {};
+		std::function<void(Entity entity)> m_SnapToEditorCameraCallback;
 
 		static constexpr const char* s_ProjectionItems[] = { "None", "Perspective", "Orthographic" };
 		static constexpr const char* s_GeomatryTypes[] = { "Quad", "Circle" };

@@ -19,8 +19,11 @@ namespace Shark {
 
 		virtual Ref<Asset> GetAsset(AssetHandle handle) override;
 		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) override;
+
 		template<typename TAsset, typename... TArgs>
 		Ref<TAsset> CreateAsset(const std::filesystem::path& filepath, TArgs&&... args);
+		template<typename TAsset, typename... TArgs>
+		Ref<TAsset> CreateRendererAsset(const std::filesystem::path& filepath, TArgs&&... args);
 
 		AssetHandle GetEditorAsset(const std::filesystem::path& filepath);
 		AssetHandle AddEditorAsset(const std::filesystem::path& filepath) { return AddEditorAsset(AssetHandle::Generate(), filepath); }
@@ -49,15 +52,16 @@ namespace Shark {
 		bool HasExistingFilePath(const AssetMetaData& metadata);
 		bool HasExistingFilePath(AssetHandle handle);
 
-		bool LoadAsset(AssetHandle handle);
-		bool SaveAsset(AssetHandle handle);
-		bool ReloadAsset(AssetHandle handle);
-		void UnloadAsset(AssetHandle handle);
-		void RemoveAsset(AssetHandle handle);
+		virtual bool SaveAsset(AssetHandle handle) override;
+		virtual bool ReloadAsset(AssetHandle handle) override;
+
+		virtual void DeleteAsset(AssetHandle handle) override;
+		virtual void DeleteMemoryAsset(AssetHandle handle) override;
+
+		virtual bool EnsureCurrent(AssetHandle handle) override;
 
 		bool ImportMemoryAsset(AssetHandle handle, const std::string& directory, const std::string& filename);
 		AssetHandle ImportAsset(const std::filesystem::path& filepath);
-		AssetHandle ImportAssetFrom(const std::filesystem::path& sourceFile, const std::filesystem::path& destinationDirectory, const std::string& overrideFilename = {});
 
 		const AssetsMap& GetLoadedAssets() const;
 		AssetMetadataMap& GetAssetMetadataMap();
@@ -90,6 +94,47 @@ namespace Shark {
 
 	template<typename TAsset, typename... TArgs>
 	Ref<TAsset> EditorAssetManager::CreateAsset(const std::filesystem::path& filepath, TArgs&&... args)
+	{
+		static_assert(!std::is_same_v<Asset, TAsset>);
+		static_assert(std::is_base_of_v<Asset, TAsset>, "CreateAsset only works for types with base class Asset!");
+
+		std::string assetsPath = MakeRelativePathString(filepath);
+
+		AssetMetaData metadata;
+		metadata.Handle = AssetHandle::Generate();
+		metadata.Type = TAsset::GetStaticType();
+		metadata.FilePath = assetsPath;
+		metadata.IsDataLoaded = true;
+
+		// Make sure metadata.FilePath is unique
+		if (HasExistingFilePath(metadata))
+		{
+			uint32_t count = 1;
+			bool validFilepath = false;
+			std::filesystem::path fsPath = GetFilesystemPath(metadata);
+
+			while (!validFilepath)
+			{
+				FileSystem::ReplaceStem(fsPath, fmt::format("{} ({:2})", FileSystem::GetStemString(fsPath), count));
+				validFilepath = !FileSystem::Exists(fsPath);
+			}
+			metadata.FilePath = MakeRelativePath(fsPath);
+		}
+
+		Ref<TAsset> asset = Ref<TAsset>::Create(std::forward<TArgs>(args)...);
+		asset->Handle = metadata.Handle;
+
+		m_ImportedAssets[metadata.Handle] = metadata;
+		m_LoadedAssets[metadata.Handle] = asset;
+		AssetSerializer::Serialize(asset, metadata);
+		WriteImportedAssetsToDisc();
+
+		SK_CORE_INFO_TAG("AssetManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", ToString(metadata.Type), metadata.Handle, metadata.FilePath);
+		return asset;
+	}
+	
+	template<typename TAsset, typename... TArgs>
+	Ref<TAsset> EditorAssetManager::CreateRendererAsset(const std::filesystem::path& filepath, TArgs&&... args)
 	{
 		static_assert(!std::is_same_v<Asset, TAsset>);
 		static_assert(std::is_base_of_v<Asset, TAsset>, "CreateAsset only works for types with base class Asset!");

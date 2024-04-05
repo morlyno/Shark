@@ -11,9 +11,10 @@
 
 namespace Shark {
 
-	Renderer2D::Renderer2D(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications)
+	Renderer2D::Renderer2D(Ref<RenderPass> renderPass, const Renderer2DSpecifications& specifications)
+		: m_Specifications(specifications)
 	{
-		Init(renderTarget, specifications);
+		Init(renderPass);
 	}
 
 	Renderer2D::~Renderer2D()
@@ -21,74 +22,36 @@ namespace Shark {
 		ShutDown();
 	}
 
-	void Renderer2D::Init(Ref<FrameBuffer> framebuffer, const Renderer2DSpecifications& specifications)
+	void Renderer2D::Init(Ref<RenderPass> renderPass)
 	{
 		SK_PROFILE_FUNCTION();
-		
-		m_Specifications = specifications;
-		m_GeometryFrameBuffer = framebuffer;
 
-		m_WhiteTexture = Renderer::GetWhiteTexture();
+		uint32_t width = renderPass->GetPipeline()->GetSpecification().TargetFrameBuffer->GetSpecification().Width;
+		uint32_t height = renderPass->GetPipeline()->GetSpecification().TargetFrameBuffer->GetSpecification().Height;
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
-
 		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
 
-#if TODO
-		// Composite
-		{
-			PipelineSpecification pipelineSpec;
-			pipelineSpec.TargetFrameBuffer = framebuffer;
-			pipelineSpec.DebugName = "Renderer2D - Composite";
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Composite");
-			pipelineSpec.Layout = {
-				{ VertexDataType::Float2, "Position" }
-			};
-			//pipelineSpec.BackFaceCulling = true;
-			pipelineSpec.DepthEnabled = true;
-			pipelineSpec.WriteDepth = true;
-			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
-			m_CompositePipeline = Pipeline::Create(pipelineSpec);
-			m_CompositeMaterial = Material::Create(pipelineSpec.Shader);
-		}
 
-		{
-			FrameBufferSpecification transparentGeometryFramebufferSpec;
-			transparentGeometryFramebufferSpec.Width = framebuffer->GetSpecification().Width;
-			transparentGeometryFramebufferSpec.Height = framebuffer->GetSpecification().Height;
-			transparentGeometryFramebufferSpec.Atachments = { ImageFormat::RGBA16F, ImageFormat::R16F, ImageFormat::R32_SINT, ImageFormat::Depth32 };
-			transparentGeometryFramebufferSpec.ExistingImages[3] = framebuffer->GetDepthImage();
-			transparentGeometryFramebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-			transparentGeometryFramebufferSpec.IndipendendClearColor[1] = { 1.0f, 0.0f, 0.0f, 0.0f };
-			transparentGeometryFramebufferSpec.IndipendendClearColor[2] = { -1.0f, -1.0f, -1.0f, -1.0f };
-			transparentGeometryFramebufferSpec.Atachments[0].Blend.SourceColorFactor = BlendFactor::One;
-			transparentGeometryFramebufferSpec.Atachments[0].Blend.DestinationColorFactor = BlendFactor::One;
-			transparentGeometryFramebufferSpec.Atachments[1].Blend.SourceColorFactor = BlendFactor::Zero;
-			transparentGeometryFramebufferSpec.Atachments[1].Blend.DestinationColorFactor = BlendFactor::InverseSourceColor;
-			transparentGeometryFramebufferSpec.DebugName = "Renderer2D - Transparent Geometry";
-			m_TransparentGeometryFrameBuffer = FrameBuffer::Create(transparentGeometryFramebufferSpec);
+		// Main Framebuffer
+		FrameBufferSpecification framebufferSpecification;
+		framebufferSpecification.Width = width;
+		framebufferSpecification.Height = height;
+		framebufferSpecification.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
+		framebufferSpecification.ExistingImages[0] = renderPass->GetOutput(0);
+		framebufferSpecification.ExistingImages[1] = renderPass->GetOutput(1);
+		framebufferSpecification.ExistingImages[2] = renderPass->GetDepthOutput();
+		framebufferSpecification.DebugName = "Renderer2D - Geometry Framebuffer";
+		Ref<FrameBuffer> geometryFramebuffer = FrameBuffer::Create(framebufferSpecification);
 
-
-			FrameBufferSpecification depthOnlyFramebufferSpec;
-			depthOnlyFramebufferSpec.Width = framebuffer->GetSpecification().Width;
-			depthOnlyFramebufferSpec.Height = framebuffer->GetSpecification().Height;
-			depthOnlyFramebufferSpec.Atachments = { ImageFormat::Depth32 };
-			depthOnlyFramebufferSpec.DebugName = "Renderer2D - Transparent Depth";
-			m_TransparentDepthBuffer = FrameBuffer::Create(depthOnlyFramebufferSpec);
-
-			depthOnlyFramebufferSpec.ExistingImages[0] = framebuffer->GetDepthImage();
-			depthOnlyFramebufferSpec.DebugName = "Renderer2D - Depth";
-			m_DepthFrameBuffer = FrameBuffer::Create(depthOnlyFramebufferSpec);
-
-		}
 
 		VertexLayout quadVertexLayout = {
-				{ VertexDataType::Float3, "Position" },
-				{ VertexDataType::Float4, "Color" },
-				{ VertexDataType::Float2, "TexCoord" },
-				{ VertexDataType::Int, "TextureIndex" },
-				{ VertexDataType::Float, "TilingFactor" },
-				{ VertexDataType::Int, "ID" }
+			{ VertexDataType::Float3, "Position" },
+			{ VertexDataType::Float4, "Color" },
+			{ VertexDataType::Float2, "TexCoord" },
+			{ VertexDataType::Int, "TexIndex" },
+			{ VertexDataType::Float, "TilingFactor" },
+			{ VertexDataType::Int, "ID" }
 		};
 
 		VertexLayout circleVertexLayout = {
@@ -100,68 +63,31 @@ namespace Shark {
 			{ VertexDataType::Int, "ID" }
 		};
 
-#endif
 		VertexLayout lineVertexLayout = {
-				{ VertexDataType::Float3, "Position" },
-				{ VertexDataType::Float4, "Color" }
+			{ VertexDataType::Float3, "Position" },
+			{ VertexDataType::Float4, "Color" }
 		};
-#if TODO
-
-		// Depth Only Pass
-		{
-			PipelineSpecification pipelineSpec;
-			pipelineSpec.TargetFrameBuffer = m_DepthFrameBuffer;
-			pipelineSpec.WriteDepth = true;
-			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
-
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_QuadDepthPass");
-			pipelineSpec.Layout = quadVertexLayout;
-			pipelineSpec.DebugName = "Renderer2D - Quad Depth Only Pass";
-			m_QuadDepthPassPipeline = Pipeline::Create(pipelineSpec);
-			m_QuadDepthPassMaterial = Material::Create(pipelineSpec.Shader);
-
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_CircleDepthPass");
-			pipelineSpec.Layout = circleVertexLayout;
-			pipelineSpec.DebugName = "Renderer2D - Circle Depth Only Pass";
-			m_CircleDepthPassPipeline = Pipeline::Create(pipelineSpec);
-			m_CircleDepthPassMaterial = Material::Create(pipelineSpec.Shader);
-
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_LineDepthPass");
-			pipelineSpec.Layout = lineVertexLayout;
-			pipelineSpec.DebugName = "Renderer2D - Line Depth Only Pass";
-			m_LineDepthPassPipeline = Pipeline::Create(pipelineSpec);
-			m_LineDepthPassMaterial = Material::Create(pipelineSpec.Shader);
-
-			pipelineSpec.TargetFrameBuffer = m_TransparentDepthBuffer;
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_QuadDepthPass");
-			pipelineSpec.Layout = quadVertexLayout;
-			pipelineSpec.DebugName = "Renderer2D - Transparent Quad Depth Only Pass";
-			m_TransparentQuadDepthPassPipeline = Pipeline::Create(pipelineSpec);
-			m_TransparentQuadDepthPassMaterial = Material::Create(pipelineSpec.Shader);
-
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_CircleDepthPass");
-			pipelineSpec.Layout = circleVertexLayout;
-			pipelineSpec.DebugName = "Renderer2D - Transparent Circle Depth Only Pass";
-			m_TransparentCircleDepthPassPipeline = Pipeline::Create(pipelineSpec);
-			m_TransparentCircleDepthPassMaterial = Material::Create(pipelineSpec.Shader);
-		}
-
 
 		// Quad
 		{
 			PipelineSpecification quadPipelineSpecs;
-			quadPipelineSpecs.TargetFrameBuffer = framebuffer;
+			quadPipelineSpecs.TargetFrameBuffer = geometryFramebuffer;
 			quadPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
 			quadPipelineSpecs.Layout = quadVertexLayout;
 			quadPipelineSpecs.DebugName = "Renderer2D-Quad";
-			quadPipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
-			quadPipelineSpecs.WriteDepth = false;
-			quadPipelineSpecs.DepthOperator = DepthCompareOperator::Equal;
-			m_QuadPipeline = Pipeline::Create(quadPipelineSpecs);
-			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader);
+			quadPipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
+
+			RenderPassSpecification renderPassSpecification;
+			renderPassSpecification.Pipeline = Pipeline::Create(quadPipelineSpecs);
+			renderPassSpecification.DebugName = "Renderer2D - Quad";
+			m_QuadRenderPass = RenderPass::Create(renderPassSpecification);
+			m_QuadRenderPass->Set("u_Camera", m_CBCamera);
+			SK_CORE_VERIFY(m_QuadRenderPass->Validate());
+			m_QuadRenderPass->Bake();
+
+			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader, "Renderer2D - Quad");
 
 			m_QuadVertexBuffer = VertexBuffer::Create(DefaultQuadVertices * sizeof(QuadVertex), true, nullptr);
-#endif
 
 			uint32_t* quadIndices = sknew uint32_t[DefaultQuadIndices];
 			for (uint32_t i = 0, j = 0; i < DefaultQuadIndices; i += 6, j += 4)
@@ -177,38 +103,40 @@ namespace Shark {
 			m_QuadIndexBuffer = IndexBuffer::Create(DefaultQuadIndices, false, Buffer::FromArray(quadIndices, DefaultQuadIndices));
 			skdelete[] quadIndices;
 
-#if TODO
 			m_QuadVertexData.Allocate(DefaultQuadVertices * sizeof QuadVertex);
 		}
 		
 		// Circle
 		{
 			PipelineSpecification circlePipelineSpecs;
-			circlePipelineSpecs.TargetFrameBuffer = framebuffer;
+			circlePipelineSpecs.TargetFrameBuffer = geometryFramebuffer;
 			circlePipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Circle");
 			circlePipelineSpecs.Layout = circleVertexLayout;
 			circlePipelineSpecs.DebugName = "Renderer2D-Circle";
-			circlePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
-			circlePipelineSpecs.WriteDepth = false;
-			circlePipelineSpecs.DepthOperator = DepthCompareOperator::Equal;
-			m_CirclePipeline = Pipeline::Create(circlePipelineSpecs);
-			m_CircleMaterial = Material::Create(circlePipelineSpecs.Shader);
+			circlePipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
+
+			RenderPassSpecification renderPassSpecification;
+			renderPassSpecification.Pipeline = Pipeline::Create(circlePipelineSpecs);
+			renderPassSpecification.DebugName = "Renderer2D - Circle";
+			m_CircleRenderPass = RenderPass::Create(renderPassSpecification);
+			m_CircleRenderPass->Set("u_Camera", m_CBCamera);
+			SK_CORE_VERIFY(m_CircleRenderPass->Validate());
+			m_CircleRenderPass->Bake();
 
 			m_CircleVertexBuffer = VertexBuffer::Create(DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
 			m_CircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
 			m_CircleIndexBuffer = m_QuadIndexBuffer;
 		}
-#endif
 		
 		// Line
 		{
 			PipelineSpecification linePipelineSpecs;
-			linePipelineSpecs.TargetFrameBuffer = framebuffer;
+			linePipelineSpecs.TargetFrameBuffer = geometryFramebuffer;
 			linePipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Line");
 			linePipelineSpecs.Layout = lineVertexLayout;
 			linePipelineSpecs.DebugName = "Renderer2D-Line";
 			linePipelineSpecs.Primitve = PrimitveType::Line;
-			linePipelineSpecs.DepthEnabled = specifications.UseDepthTesting;
+			linePipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
 			linePipelineSpecs.WriteDepth = true;
 			linePipelineSpecs.DepthOperator = DepthCompareOperator::LessEqual;
 
@@ -224,54 +152,16 @@ namespace Shark {
 			m_LineVertexData.Allocate(DefaultLineVertices * sizeof LineVertex);
 		}
 
-#if TODO
-		// Transparent Quad
-		{
-			PipelineSpecification pipelineSpec;
-			pipelineSpec.TargetFrameBuffer = m_TransparentGeometryFrameBuffer;
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_QuadTransparent");
-			pipelineSpec.Layout = quadVertexLayout;
-			pipelineSpec.DebugName = "Renderer2D Quad Transparent";
-			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
-			pipelineSpec.WriteDepth = false;
-			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
-			m_TransparentQuadPipeline = Pipeline::Create(pipelineSpec);
-			m_TransparentQuadMaterial = Material::Create(pipelineSpec.Shader);
-
-			m_TransparentQuadVertexBuffer = VertexBuffer::Create(DefaultQuadVertices * sizeof QuadVertex, true, nullptr);
-			m_TransparentQuadVertexData.Allocate(DefaultQuadVertices * sizeof QuadVertex);
-			m_TransparentQuadIndexBuffer = m_QuadIndexBuffer;
-		}
-
-		// Transparent Circle
-		{
-			PipelineSpecification pipelineSpec;
-			pipelineSpec.TargetFrameBuffer = m_TransparentGeometryFrameBuffer;
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_CircleTransparent");
-			pipelineSpec.Layout = circleVertexLayout;
-			pipelineSpec.DebugName = "Renderer2D Circle Transparent";
-			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
-			pipelineSpec.WriteDepth = false;
-			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
-			m_TransparentCirclePipeline = Pipeline::Create(pipelineSpec);
-			m_TransparentCircleMaterial = Material::Create(pipelineSpec.Shader);
-
-			m_TransparentCircleVertexBuffer = VertexBuffer::Create(DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
-			m_TransparentCircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
-			m_TransparentCircleIndexBuffer = m_TransparentQuadIndexBuffer;
-		}
-#endif
-
 		// Text
 		{
 			FrameBufferSpecification textFB;
-			textFB.Width = framebuffer->GetSpecification().Width;
-			textFB.Height = framebuffer->GetSpecification().Height;
-			textFB.Atachments = { ImageFormat::RGBA32F, ImageFormat::R32_SINT, ImageFormat::Depth };
+			textFB.Width = width;
+			textFB.Height = height;
+			textFB.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
 			textFB.Atachments[0].BlendEnabled = true;
-			textFB.ExistingImages[0] = framebuffer->GetImage(0);
-			textFB.ExistingImages[1] = framebuffer->GetImage(1);
-			textFB.ExistingImages[2] = framebuffer->GetDepthImage();
+			textFB.ExistingImages[0] = renderPass->GetOutput(0);
+			textFB.ExistingImages[1] = renderPass->GetOutput(1);
+			textFB.ExistingImages[2] = renderPass->GetDepthOutput();
 			textFB.DebugName = "Renderer2D - Text Framebuffer";
 
 			PipelineSpecification pipelineSpec;
@@ -284,7 +174,7 @@ namespace Shark {
 				{ VertexDataType::Int, "ID" }
 			};
 			pipelineSpec.DebugName = "Renderer2D-Text";
-			pipelineSpec.DepthEnabled = specifications.UseDepthTesting;
+			pipelineSpec.DepthEnabled = m_Specifications.UseDepthTesting;
 			pipelineSpec.WriteDepth = true;
 			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
 
@@ -327,11 +217,7 @@ namespace Shark {
 
 	void Renderer2D::Resize(uint32_t width, uint32_t height)
 	{
-#if TODO
-		m_DepthFrameBuffer->Resize(width, height);
-		m_TransparentDepthBuffer->Resize(width, height);
-		m_TransparentGeometryFrameBuffer->Resize(width, height);
-#endif
+		m_QuadRenderPass->GetPipeline()->GetSpecification().TargetFrameBuffer->Resize(width, height);
 		m_TextPass->GetPipeline()->GetSpecification().TargetFrameBuffer->Resize(width, height);
 	}
 
@@ -362,7 +248,8 @@ namespace Shark {
 		m_TextIndexCount = 0;
 		m_TextVertexCount = 0;
 
-		memset(&m_Statistics, 0, sizeof(m_Statistics));
+		m_Statistics = Statistics();
+		m_TimestampQueries = TimestampQueries();
 	}
 
 	void Renderer2D::EndScene()
@@ -373,13 +260,16 @@ namespace Shark {
 
 		m_CommandBuffer->Begin();
 
-		//ClearPass();
 		GeometryPass();
 
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 
-		m_Statistics.GeometryPassTime += m_CommandBuffer->GetTime(m_GeometryPassTimerID);
+		m_Statistics.GeometryPassTime += m_CommandBuffer->GetTime(m_TimestampQueries.GeometryPassQuery);
+		m_Statistics.QuadPassTime += m_CommandBuffer->GetTime(m_TimestampQueries.QuadPassQuery);
+		m_Statistics.CirclePassTime += m_CommandBuffer->GetTime(m_TimestampQueries.CirclePassQuery);
+		m_Statistics.LinePassTime += m_CommandBuffer->GetTime(m_TimestampQueries.LinePassQuery);
+		m_Statistics.TextPassTime += m_CommandBuffer->GetTime(m_TimestampQueries.TextPassQuery);
 
 		m_Active = false;
 	}
@@ -391,7 +281,7 @@ namespace Shark {
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id)
 	{
-		DrawQuad(position, scaling, m_WhiteTexture, 1.0f, color, id);
+		DrawQuad(position, scaling, Renderer::GetWhiteTexture(), 1.0f, color, id);
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
@@ -415,7 +305,7 @@ namespace Shark {
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id)
 	{
-		DrawRotatedQuad(position, rotation, scaling, m_WhiteTexture, 1.0f, color, id);
+		DrawRotatedQuad(position, rotation, scaling, Renderer::GetWhiteTexture(), 1.0f, color, id);
 	}
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, float rotation, const glm::vec2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
@@ -435,7 +325,7 @@ namespace Shark {
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
-		DrawQuad(transform, m_WhiteTexture, 1.0f, color, id);
+		DrawQuad(transform, Renderer::GetWhiteTexture(), 1.0f, color, id);
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id)
@@ -446,7 +336,7 @@ namespace Shark {
 			BeginQaudBatch();
 
 		auto& batch = *m_QuadBatch;
-		uint32_t textureSlot = AddTexture(&batch, texture ? texture : m_WhiteTexture);
+		uint32_t textureSlot = AddTexture(&batch, texture ? texture : Renderer::GetWhiteTexture());
 
 		AssureQuadVertexDataSize();
 
@@ -719,56 +609,22 @@ namespace Shark {
 
 	}
 
-	void Renderer2D::ClearPass()
-	{
-#if TODO
-		//m_DepthFrameBuffer->Clear(m_CommandBuffer);
-		m_TransparentDepthBuffer->Clear(m_CommandBuffer);
-		m_TransparentGeometryFrameBuffer->ClearColorAtachments(m_CommandBuffer);
-#endif
-	}
-
 	void Renderer2D::GeometryPass()
 	{
-		m_GeometryPassTimerID = m_CommandBuffer->BeginTimestampQuery();
+		m_TimestampQueries.GeometryPassQuery = m_CommandBuffer->BeginTimestampQuery();
 
-#if TODO
 		if (m_QuadIndexCount)
 		{
+			m_TimestampQueries.QuadPassQuery = m_CommandBuffer->BeginTimestampQuery();
+
 			if (m_QuadIndexBuffer->GetCount() < m_QuadIndexCount)
 				ResizeQuadIndexBuffer(m_QuadIndexCount);
 
-			m_QuadDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			m_QuadVertexBuffer->SetData(m_QuadVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_QuadDepthPassPipeline, m_QuadDepthPassMaterial, m_QuadVertexBuffer, m_QuadIndexBuffer, m_QuadIndexCount);
-			m_Statistics.DrawCalls++;
-		}
 
-		if (m_CircleIndexCount)
-		{
-			if (m_CircleIndexBuffer->GetCount() < m_CircleIndexCount)
-				ResizeQuadIndexBuffer(m_CircleIndexCount);
-
-			m_CircleDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
-			m_CircleVertexBuffer->SetData(m_CircleVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_CircleDepthPassPipeline, m_CircleDepthPassMaterial, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
-			m_Statistics.DrawCalls++;
-		}
-
-		if (m_LineVertexCount)
-		{
-			m_LineDepthPassMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
-			m_LineVertexBuffer->SetData(m_LineVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_LineDepthPassPipeline, m_LineDepthPassMaterial, m_LineVertexBuffer, m_LineVertexCount);
-			m_Statistics.DrawCalls++;
-		}
-
-
-		if (m_QuadIndexCount)
-		{
-			Renderer::BeginBatch(m_CommandBuffer, m_QuadPipeline, m_QuadVertexBuffer, m_QuadIndexBuffer);
+			Renderer::BeginRenderPass(m_CommandBuffer, m_QuadRenderPass);
+			Renderer::BeginBatch(m_CommandBuffer, m_QuadRenderPass->GetPipeline(), m_QuadVertexBuffer, m_QuadIndexBuffer);
 			uint32_t indexOffset = 0;
-			m_QuadMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
 			for (const auto& batch : m_QuadBatches)
 			{
 				PrepareMaterial(m_QuadMaterial, batch);
@@ -777,40 +633,49 @@ namespace Shark {
 				m_Statistics.DrawCalls++;
 			}
 			Renderer::EndBatch(m_CommandBuffer);
+			Renderer::EndRenderPass(m_CommandBuffer, m_QuadRenderPass);
+
+			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.QuadPassQuery);
 		}
 
 		if (m_CircleIndexCount)
 		{
-			m_CircleMaterial->Set("u_SceneData.ViewProjection", m_ViewProj);
-			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePipeline, m_CircleMaterial, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
+			m_TimestampQueries.CirclePassQuery = m_CommandBuffer->BeginTimestampQuery();
+			m_CircleVertexBuffer->SetData(m_CircleVertexData, true);
+			Renderer::BeginRenderPass(m_CommandBuffer, m_CircleRenderPass);
+			Renderer::RenderGeometry(m_CommandBuffer, m_CircleRenderPass->GetPipeline(), nullptr, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
+			Renderer::EndRenderPass(m_CommandBuffer, m_CircleRenderPass);
 			m_Statistics.DrawCalls++;
+			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.CirclePassQuery);
 		}
-#endif
 
 		if (m_LineVertexCount)
 		{
-			Renderer::BeginRenderPass(m_CommandBuffer, m_LinePass);
+			m_TimestampQueries.LinePassQuery = m_CommandBuffer->BeginTimestampQuery();
 			m_LineVertexBuffer->SetData(m_LineVertexData, true);
+			Renderer::BeginRenderPass(m_CommandBuffer, m_LinePass);
 			Renderer::RenderGeometry(m_CommandBuffer, m_LinePass->GetPipeline(), nullptr, m_LineVertexBuffer, m_LineVertexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_LinePass);
 			m_Statistics.DrawCalls++;
+			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.LinePassQuery);
 		}
 
 		if (m_TextIndexCount)
 		{
+			m_TimestampQueries.TextPassQuery = m_CommandBuffer->BeginTimestampQuery();
 			if (m_TextIndexBuffer->GetCount() < m_TextIndexCount)
 				ResizeQuadIndexBuffer(m_TextIndexCount);
 
-			Renderer::BeginRenderPass(m_CommandBuffer, m_TextPass);
-
 			m_TextVertexBuffer->SetData(m_TextVertexData, true);
-			Renderer::RenderGeometry(m_CommandBuffer, m_TextPass->GetPipeline(), m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
-			m_Statistics.DrawCalls++;
 
+			Renderer::BeginRenderPass(m_CommandBuffer, m_TextPass);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TextPass->GetPipeline(), m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_TextPass);
+			m_Statistics.DrawCalls++;
+			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.TextPassQuery);
 		}
 
-		m_CommandBuffer->EndTimestampQuery(m_GeometryPassTimerID);
+		m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.GeometryPassQuery);
 	}
 
 	void Renderer2D::AssureQuadVertexDataSize()
@@ -864,23 +729,15 @@ namespace Shark {
 
 	void Renderer2D::PrepareMaterial(Ref<Material> material, const QuadBatch& batch)
 	{
-#if TODO
 		uint32_t index = 0;
-		for (const auto& texture : batch.Textures)
-		{
-			//material->SetTexture("g_Textures", texture, index++);
-			material->Set("g_Textures", texture->GetImage(), index);
-			material->Set("g_SamplerState", texture->GetSampler(), index);
-			index++;
-		}
 
-		for (; index < MaxTextureSlots; index++)
+		for (uint32_t i = 0; i < MaxTextureSlots; i++)
 		{
-			//material->SetTexture("g_Textures", m_WhiteTexture, index);
-			material->Set("g_Textures", m_WhiteTexture->GetImage(), index);
-			material->Set("g_SamplerState", m_WhiteTexture->GetSampler(), index);
+			if (i < batch.Textures.size() && batch.Textures[i])
+				material->Set("u_Textures", i, batch.Textures[i]);
+			else
+				material->Set("u_Textures", i, Renderer::GetWhiteTexture());
 		}
-#endif
 	}
 
 	void Renderer2D::ResizeQuadIndexBuffer(uint32_t indexCount)

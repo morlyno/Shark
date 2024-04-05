@@ -60,6 +60,7 @@ namespace Shark {
 		void SetPerspectiveClip(float clipnear, float clipfar) { m_PerspectiveNear = clipnear; m_PerspectiveFar = clipfar; Recalcualte(); }
 
 		float GetPerspectiveFOV() const { return glm::degrees(m_PerspectiveFOV); }
+		float GetRadPerspectiveFOV() const { return m_PerspectiveFOV; }
 		float GetPerspectiveNear() const { return m_PerspectiveNear; }
 		float GetPerspectiveFar() const { return m_PerspectiveFar; }
 		glm::vec2 GetPerspetiveClip() const { return { m_PerspectiveNear, m_PerspectiveFar }; }

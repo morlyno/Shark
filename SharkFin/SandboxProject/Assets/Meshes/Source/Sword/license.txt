@@ -1,0 +1,11 @@
+Model Information:
+* title:	Sword of Artorias
+* source:	https://sketchfab.com/3d-models/sword-of-artorias-298e29d014374a87b85b3bcdaa07a5ce
+* author:	Samize (https://sketchfab.com/samize)
+
+Model License:
+* license type:	CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
+* requirements:	Author must be credited. No commercial use. Modified versions must have the same license.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Sword of Artorias" (https://sketchfab.com/3d-models/sword-of-artorias-298e29d014374a87b85b3bcdaa07a5ce) by Samize (https://sketchfab.com/samize) licensed under CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)

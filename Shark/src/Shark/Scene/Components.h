@@ -108,17 +108,27 @@ namespace Shark {
 	struct MeshComponent
 	{
 		AssetHandle Mesh;
-		uint32_t SubmeshIndex;
+		uint32_t SubmeshIndex = 0;
 		AssetHandle Material;
 		bool Visible = true;
+
+		MeshComponent() = default;
+		MeshComponent(AssetHandle mesh, AssetHandle material = AssetHandle::Invalid)
+			: Mesh(mesh), Material(material) {}
 	};
 
 	struct PointLightComponent
 	{
-		glm::vec4 Color = glm::vec4(1.0f);
+		glm::vec4 Radiance = glm::vec4(1.0f);
 		float Intensity = 1.0f;
-		float Radius = 1.0f;
-		float Falloff = 0.0f;
+		float Radius = 10.0f;
+		float Falloff = 1.0f;
+	};
+
+	struct DirectionalLightComponent
+	{
+		glm::vec4 Radiance = glm::vec4(1.0f);
+		float Intensity = 1.0f;
 	};
 
 	struct SkyComponent
@@ -127,6 +137,10 @@ namespace Shark {
 		bool DynamicSky = false;
 		float Intensity = 1.0f;
 		float Lod = 0.0f;
+
+		SkyComponent() = default;
+		SkyComponent(AssetHandle environment)
+			: SceneEnvironment(environment) {}
 	};
 
 	struct CameraComponent
@@ -274,6 +288,47 @@ namespace Shark {
 
 		friend class ScriptEngine;
 	};
+
+	template<typename... TComponents>
+	struct ComponentGroup {};
+
+	using AllComponents = ComponentGroup<
+		// NOTE(moro): NO IDComponent
+		TagComponent,
+		TransformComponent,
+		RelationshipComponent,
+		SpriteRendererComponent,
+		CircleRendererComponent,
+		TextRendererComponent,
+		MeshComponent,
+		PointLightComponent,
+		DirectionalLightComponent,
+		SkyComponent,
+		CameraComponent,
+		RigidBody2DComponent,
+		BoxCollider2DComponent,
+		CircleCollider2DComponent,
+		DistanceJointComponent,
+		HingeJointComponent,
+		PrismaticJointComponent,
+		PulleyJointComponent,
+		ScriptComponent
+	>;
+
+	template<typename TFunc, typename... TComponents>
+	inline static void ForEach(TFunc func)
+	{
+		([&]()
+		{
+			func.template operator()<TComponents>();
+		}(), ...);
+	}
+
+	template<typename TFunc, typename... TComponents>
+	inline static void ForEach(ComponentGroup<TComponents...> componentGroup, TFunc func)
+	{
+		ForEach<TFunc, TComponents...>(func);
+	}
 
 	inline std::string_view ToStringView(RigidBody2DComponent::BodyType type)
 	{

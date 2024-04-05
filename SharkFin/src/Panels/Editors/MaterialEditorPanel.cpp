@@ -1,6 +1,7 @@
 #include "skfpch.h"
 #include "MaterialEditorPanel.h"
 
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/UI/UI.h"
@@ -42,10 +43,12 @@ namespace Shark {
 		UI::TextF("Shader: {}", material->GetMaterial()->GetShader()->GetName());
 		UI::TextF("Name: {}", material->GetMaterial()->GetName());
 
+		bool changed = false;
+
 		if (ImGui::CollapsingHeader("Albedo", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			bool hasTexture = true;
-			Ref<Texture2D> displayTexture = material->GetAlbedoMap();
+			Ref<Texture2D> displayTexture = AssetManager::GetAsset<Texture2D>(material->GetAlbedoMap());
 			SK_CORE_ASSERT(displayTexture);
 			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
 			{
@@ -57,19 +60,23 @@ namespace Shark {
 			if (UI::TextureEdit("albedo texture", displayTexture, textureSize, hasTexture))
 			{
 				if (displayTexture)
-					material->SetAlbedoMap(displayTexture);
+					material->SetAlbedoMap(displayTexture->Handle);
 				else
 					material->ClearAlbedoMap();
+
+				changed = true;
 			}
 
 			ImGui::SameLine();
 			ImGui::ColorEdit3("Color", glm::value_ptr(material->GetAlbedoColor()), ImGuiColorEditFlags_NoInputs);
+			if (ImGui::IsItemDeactivatedAfterEdit())
+				changed = true;
 		}
 
 		if (ImGui::CollapsingHeader("Normal", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			bool hasTexture = true;
-			Ref<Texture2D> displayTexture = material->GetNormalMap();
+			Ref<Texture2D> displayTexture = AssetManager::GetAsset<Texture2D>(material->GetNormalMap());
 			SK_CORE_ASSERT(displayTexture);
 			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
 			{
@@ -81,22 +88,27 @@ namespace Shark {
 			if (UI::TextureEdit("normal texture", displayTexture, textureSize, hasTexture))
 			{
 				if (displayTexture)
-					material->SetNormalMap(displayTexture);
+					material->SetNormalMap(displayTexture->Handle);
 				else
 					material->ClearNormalMap();
+
+				changed = true;
 			}
 
 			ImGui::SameLine();
 
 			bool usingNormalMap = material->IsUsingNormalMap();
 			if (ImGui::Checkbox("Enable", &usingNormalMap))
+			{
 				material->SetUsingNormalMap(usingNormalMap);
+				changed = true;
+			}
 		}
 
 		if (ImGui::CollapsingHeader("Metalness", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			bool hasTexture = true;
-			Ref<Texture2D> displayTexture = material->GetMetalnessMap();
+			Ref<Texture2D> displayTexture = AssetManager::GetAsset<Texture2D>(material->GetMetalnessMap());
 			SK_CORE_ASSERT(displayTexture);
 			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
 			{
@@ -108,19 +120,23 @@ namespace Shark {
 			if (UI::TextureEdit("metalness texture", displayTexture, textureSize, hasTexture))
 			{
 				if (displayTexture)
-					material->SetMetalnessMap(displayTexture);
+					material->SetMetalnessMap(displayTexture->Handle);
 				else
 					material->ClearMetalnessMap();
+
+				changed = true;
 			}
 
 			ImGui::SameLine();
 			ImGui::SliderFloat("Metalness Value", &material->GetMetalness(), 0.0f, 1.0f);
+			if (ImGui::IsItemDeactivatedAfterEdit())
+				changed = true;
 		}
 
 		if (ImGui::CollapsingHeader("Roughness", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			bool hasTexture = true;
-			Ref<Texture2D> displayTexture = material->GetRoughnessMap();
+			Ref<Texture2D> displayTexture = AssetManager::GetAsset<Texture2D>(material->GetRoughnessMap());
 			SK_CORE_ASSERT(displayTexture);
 			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
 			{
@@ -132,20 +148,22 @@ namespace Shark {
 			if (UI::TextureEdit("rougness texture", displayTexture, textureSize, hasTexture))
 			{
 				if (displayTexture)
-					material->SetRoughnessMap(displayTexture);
+					material->SetRoughnessMap(displayTexture->Handle);
 				else
 					material->ClearRoughnessMap();
+
+				changed = true;
 			}
 
 			ImGui::SameLine();
 			ImGui::SliderFloat("Roughness Value", &material->GetRoughness(), 0.0f, 1.0f);
+			if (ImGui::IsItemDeactivatedAfterEdit())
+				changed = true;
 		}
 
-		if (ImGui::CollapsingHeader("PBR", ImGuiTreeNodeFlags_DefaultOpen))
+		if (changed)
 		{
-			UI::BeginControlsGrid();
-			UI::Control("AmbientOcclusion", material->GetAmbientOcclusion(), 0.005f, 0.0f, 1.0f);
-			UI::EndControls();
+			AssetManager::SaveAsset(m_MaterialHandle);
 		}
 
 	}
@@ -163,7 +181,8 @@ namespace Shark {
 
 	MaterialEditorPanel::~MaterialEditorPanel()
 	{
-		Project::GetActiveEditorAssetManager()->RemoveAsset(m_Sphere);
+		if (AssetManager::IsValidAssetHandle(m_Sphere))
+			AssetManager::DeleteMemoryAsset(m_Sphere);
 	}
 
 	void MaterialEditorPanel::SetAsset(const AssetMetaData& metadata)
@@ -186,8 +205,7 @@ namespace Shark {
 		if (!AssetManager::IsValidAssetHandle(m_Sphere))
 		{
 			AssetHandle sphereSourceHandle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
-			Ref<MeshSource> sphereSource = AssetManager::GetAsset<MeshSource>(sphereSourceHandle);
-			m_Sphere = AssetManager::CreateMemoryAsset<Mesh>(sphereSource);
+			m_Sphere = AssetManager::CreateMemoryOnlyAsset<Mesh>(sphereSourceHandle);
 		}
 
 		Ref<Mesh> sphere = AssetManager::GetAsset<Mesh>(m_Sphere);
@@ -200,12 +218,11 @@ namespace Shark {
 
 		Entity lightEntity = m_Scene->CreateEntity("Light");
 		lightEntity.Transform().Translation = { -4.0f, 3.0f, -4.0f };
-		lightEntity.Transform().Scale = glm::vec3(10.0f);
-		lightEntity.AddComponent<PointLightComponent>().Intensity = 50.0f;
+		lightEntity.AddComponent<PointLightComponent>();
 
 		Entity skyEntity = m_Scene->CreateEntity("Sky");
 		auto& skyComp = skyEntity.AddComponent<SkyComponent>();
-		skyComp.SceneEnvironment = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Environment/DefaultMaterialEditorEnvMap.hdr");
+		skyComp.SceneEnvironment = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Environment/lenong_2_4k.hdr");
 		skyComp.Intensity = 0.8f;
 		skyComp.Lod = 4.5f;
 

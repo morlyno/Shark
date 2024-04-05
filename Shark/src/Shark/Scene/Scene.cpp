@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "Scene.h"
 
+#include "Shark/Asset/AssetManager.h"
+
 #include "Shark/Scene/Entity.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/SceneRenderer.h"
@@ -69,12 +71,12 @@ namespace Shark {
 	Scene::Scene(const std::string& name)
 		: m_Name(name)
 	{
-		m_Registry.on_destroy<CameraComponent>().connect<&Scene::OnCameraComponentDestroyed>(this);
+		m_Registry.on_construct<CameraComponent>().connect<&Scene::OnCameraComponentCreated>(this);
 	}
 
 	Scene::~Scene()
 	{
-		m_Registry.on_destroy<CameraComponent>().disconnect<&Scene::OnCameraComponentDestroyed>(this);
+		m_Registry.on_construct<CameraComponent>().disconnect<&Scene::OnCameraComponentCreated>(this);
 	}
 
 	Ref<Scene> Scene::Copy(Ref<Scene> srcScene)
@@ -93,8 +95,14 @@ namespace Shark {
 		destScene->m_ViewportHeight = m_ViewportHeight;
 		destScene->m_ActiveCameraUUID = m_ActiveCameraUUID;
 
-		auto& destRegistry = destScene->m_Registry;
+		// destScene->m_Environment = m_Environment;
+		// destScene->m_EnvironmentInesitiy = m_EnvironmentInesitiy;
+		// destScene->m_SkyboxLod = m_SkyboxLod;
 
+		destScene->m_Registry.clear();
+		destScene->m_EntityUUIDMap.clear();
+
+		auto& destRegistry = destScene->m_Registry;
 		auto view = m_Registry.view<IDComponent>();
 		for (auto e : view)
 		{
@@ -104,23 +112,29 @@ namespace Shark {
 			destScene->m_EntityUUIDMap[uuid] = destScene->CreateEntityWithUUID(uuid, srcEntity.GetName());
 		}
 
-		CopyComponents<TransformComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<RelationshipComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<SpriteRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<CircleRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<TextRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<MeshComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<PointLightComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<SkyComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<CameraComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<RigidBody2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<BoxCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<CircleCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<DistanceJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<HingeJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<PrismaticJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<PulleyJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
-		CopyComponents<ScriptComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<TransformComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<RelationshipComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<SpriteRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<CircleRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<TextRendererComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<MeshComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<PointLightComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<DirectionalLightComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<SkyComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<CameraComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<RigidBody2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<BoxCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<CircleCollider2DComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<DistanceJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<HingeJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<PrismaticJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<PulleyJointComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		// CopyComponents<ScriptComponent>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+
+		ForEach(AllComponents{}, [&]<typename TComp>()
+		{
+			CopyComponents<TComp>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
+		});
 
 	}
 
@@ -371,18 +385,36 @@ namespace Shark {
 				if (skyComp.DynamicSky && !AssetManager::IsValidAssetHandle(skyComp.SceneEnvironment))
 				{
 					// TODO(moro): Dynamic sky (Preetham sky model)
-					skyComp.SceneEnvironment = AssetManager::CreateMemoryAsset<Environment>(Renderer::GetBlackTextureCube(), Renderer::GetBlackTextureCube());
+					skyComp.SceneEnvironment = AssetManager::CreateMemoryOnlyAsset<Environment>(Renderer::GetBlackTextureCube(), Renderer::GetBlackTextureCube());
 				}
 
-				m_Environment = AssetManager::GetAsset<Environment>(skyComp.SceneEnvironment);
-				m_EnvironmentInesitiy = skyComp.Intensity;
-				m_SkyboxLod = skyComp.Lod;
+				m_LightEnvironment.SceneEnvironment = AssetManager::GetAsset<Environment>(skyComp.SceneEnvironment);
+				m_LightEnvironment.EnvironmentIntensity = skyComp.Intensity;
+				m_LightEnvironment.SkyboxLod = skyComp.Lod;
 			}
 
-			if (!m_Environment)
+			if (!m_LightEnvironment.SceneEnvironment)
 			{
 				Ref<TextureCube> tex = Renderer::GetBlackTextureCube();
-				m_Environment = Ref<Environment>::Create(tex, tex);
+				m_LightEnvironment.SceneEnvironment = Ref<Environment>::Create(tex, tex);
+			}
+		}
+
+		// Directional Light
+		{
+			auto entities = GetAllEntitysWith<DirectionalLightComponent>();
+			for (auto ent : entities)
+			{
+				if (m_LightEnvironment.DirectionalLightCount >= LightEnvironment::MaxDirectionLights)
+					break;
+
+				Entity entity{ ent, this };
+				const DirectionalLightComponent& dirLight = entity.GetComponent<DirectionalLightComponent>();
+				m_LightEnvironment.DirectionalLights[m_LightEnvironment.DirectionalLightCount++] = {
+					dirLight.Radiance,
+					glm::quat(GetWorldSpaceTransform(entity).Rotation) * glm::vec3(0, 1, 0),
+					dirLight.Intensity
+				};
 			}
 		}
 
@@ -399,7 +431,7 @@ namespace Shark {
 				m_LightEnvironment.PointLights[pointLightIndex++] = {
 					worldTransform.Translation,
 					lightComponent.Intensity,
-					lightComponent.Color,
+					lightComponent.Radiance,
 					lightComponent.Radius,
 					lightComponent.Falloff
 				};
@@ -421,28 +453,26 @@ namespace Shark {
 				if (AssetManager::IsValidAssetHandle(meshComponent.Mesh))
 				{
 					Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(meshComponent.Mesh);
-					if (!mesh || mesh->IsFlagSet(AssetFlag::Invalid))
-						continue;
-
-					Entity entity = { ent, this };
-					glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
-
-					Ref<MaterialAsset> material;
-					if (AssetManager::IsValidAssetHandle(meshComponent.Material))
-						material = AssetManager::GetAsset<MaterialAsset>(meshComponent.Material);
-
-					if (!material)
+					if (mesh)
 					{
-						Ref<MeshSource> meshSource = mesh->GetMeshSource();
-						const auto& submesh = meshSource->GetSubmeshes()[meshComponent.SubmeshIndex];
+						Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource());
 
-						Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-						AssetHandle handle = materialTable->GetMaterial(submesh.MaterialIndex);
-						material = AssetManager::GetAsset<MaterialAsset>(handle);
-						SK_CORE_VERIFY(material);
+						Entity entity = { ent, this };
+						glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
+
+						Ref<MaterialAsset> material;
+						if (AssetManager::IsValidAssetHandle(meshComponent.Material))
+						{
+							material = AssetManager::GetAsset<MaterialAsset>(meshComponent.Material);
+						}
+						else
+						{
+							const auto& submesh = meshSource->GetSubmeshes()[meshComponent.SubmeshIndex];
+							material = meshSource->GetMaterials()[submesh.MaterialIndex];
+						}
+
+						renderer->SubmitMesh(mesh, meshSource, meshComponent.SubmeshIndex, material, transform, (int)ent);
 					}
-
-					renderer->SubmitMesh(mesh, meshComponent.SubmeshIndex, material->GetMaterial(), transform, (int)ent);
 				}
 			}
 		}
@@ -469,6 +499,41 @@ namespace Shark {
 					glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
 					renderer2D->DrawString(textComponent.Text, font, transform, textComponent.Kerning, textComponent.LineSpacing, textComponent.Color, (int)ent);
 				}
+			}
+		}
+
+		// Quads
+		{
+			auto entities = GetAllEntitysWith<SpriteRendererComponent>();
+			for (auto ent : entities)
+			{
+				Entity entity(ent, this);
+				const SpriteRendererComponent& spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
+
+				glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
+
+				Ref<Texture2D> texture = Renderer::GetWhiteTexture();
+				if (AssetManager::IsValidAssetHandle(spriteRendererComponent.TextureHandle))
+					texture = AssetManager::GetAsset<Texture2D>(spriteRendererComponent.TextureHandle);
+
+				renderer2D->DrawQuad(transform, texture, spriteRendererComponent.TilingFactor, spriteRendererComponent.Color, (int)ent);
+			}
+		}
+
+		// Circles
+		{
+			auto entities = GetAllEntitysWith<CircleRendererComponent>();
+			for (auto ent : entities)
+			{
+				Entity entity(ent, this);
+				const CircleRendererComponent& circleRendererComponent = entity.GetComponent<CircleRendererComponent>();
+
+				glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
+
+				if (circleRendererComponent.Filled)
+					renderer2D->DrawFilledCircle(transform, circleRendererComponent.Color, circleRendererComponent.Thickness, circleRendererComponent.Fade, (int)ent);
+				else
+					renderer2D->DrawCircle(transform, circleRendererComponent.Color, (int)ent);
 			}
 		}
 
@@ -552,6 +617,61 @@ namespace Shark {
 		DestroyEntityInternal(entity, destroyChildren, true);
 	}
 
+	Entity Scene::InstantiateMesh(Ref<Mesh> mesh)
+	{
+		Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource());
+		if (!meshSource)
+			return {};
+
+		Entity entity = CreateEntity(meshSource->GetName());
+		InstantiateSubmesh(mesh, meshSource, meshSource->GetRootNode(), entity);
+		return entity;
+	}
+
+	void Scene::InstantiateSubmesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, const MeshNode& node, Entity parent)
+	{
+		Entity entity = CreateChildEntity(parent, node.Name);
+
+		if (!node.Submeshes.empty())
+		{
+			MeshComponent& meshComp = entity.AddComponent<MeshComponent>();
+			meshComp.Mesh = mesh->Handle;
+			meshComp.SubmeshIndex = node.Submeshes[0];
+		}
+
+		for (const auto& childNodeIndex : node.Children)
+		{
+			const MeshNode& childNode = meshSource->GetNodes()[childNodeIndex];
+			InstantiateSubmesh(mesh, meshSource, childNode, entity);
+		}
+	}
+
+#if 0
+	Entity Scene::InstantiateMesh(Ref<Mesh> mesh)
+	{
+		Ref<MeshSource> meshSource = mesh->GetMeshSource();
+		Entity entity = CreateEntity(meshSource->GetName());
+		auto& meshComponent = entity.AddComponent<MeshComponent>();
+		meshComponent.Mesh = mesh->Handle;
+		meshComponent.MaterialTable->GetMaterialCount() = meshSource->GetMaterials().size();
+	}
+
+	void Scene::InstantiateSubMesh(Ref<Mesh> mesh, const MeshNode& node, Entity parent)
+	{
+		Entity entity = CreateChildEntity(parent, node.Name);
+		SubmeshComponent& submeshComponent = entity.AddComponent<SubmeshComponent>();
+		submeshComponent.MeshEntity = entity.GetUUID();
+		submeshComponent.SubmeshIndex = node.Submeshes;
+
+		for (uint32_t childIndex : node.Children)
+		{
+			Ref<MeshSource> meshSource = mesh->GetMeshSource();
+			const auto& childNodes = meshSource->GetNodes();
+			InstantiateSubMesh(mesh, childNodes[childIndex], entity);
+		}
+	}
+#endif
+
 	void Scene::DestroyEntityInternal(Entity entity, bool destroyChildren, bool first)
 	{
 		SK_PROFILE_FUNCTION();
@@ -579,6 +699,9 @@ namespace Shark {
 				ScriptEngine::OnEntityDestroyed(entity);
 
 		}
+
+		if (m_ActiveCameraUUID == entity.GetUUID())
+			m_ActiveCameraUUID = UUID::Invalid;
 
 		if (first)
 		{
@@ -1082,6 +1205,15 @@ namespace Shark {
 		cc2d.RuntimeCollider = rb2d.RuntimeBody->CreateFixture(&fixturedef);
 	}
 
+	void Scene::OnCameraComponentCreated(entt::registry& registry, entt::entity ent)
+	{
+		if (!m_ActiveCameraUUID)
+			m_ActiveCameraUUID = registry.get<IDComponent>(ent).ID;
+
+		auto& cameraComp = registry.get<CameraComponent>(ent);
+		cameraComp.Camera.Resize(m_ViewportWidth, m_ViewportHeight);
+	}
+
 	void Scene::OnRigidBody2DComponentDestroyed(entt::registry& registry, entt::entity ent)
 	{
 		Entity entity{ ent, this };
@@ -1126,18 +1258,6 @@ namespace Shark {
 
 		if (ScriptEngine::IsInstantiated(entity))
 			ScriptEngine::DestroyEntityInstance(entity, true);
-	}
-
-	void Scene::OnCameraComponentDestroyed(entt::registry& registry, entt::entity ent)
-	{
-		Entity entity{ ent, this };
-
-		if (!entity.AllOf<IDComponent>())
-			return;
-
-		UUID uuid = entity.GetUUID();
-		if (uuid == m_ActiveCameraUUID)
-			m_ActiveCameraUUID = UUID::Null;
 	}
 
 	void ContactListener::BeginContact(b2Contact* contact)

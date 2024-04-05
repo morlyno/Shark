@@ -22,6 +22,7 @@ namespace Shark {
 
 	struct Renderer2DSpecifications
 	{
+		// A With or Height of 0 means use the window size
 		bool UseDepthTesting = true;
 	};
 
@@ -30,26 +31,30 @@ namespace Shark {
 	public:
 		struct Statistics
 		{
-			uint32_t DrawCalls;
+			uint32_t DrawCalls = 0;
 
-			uint32_t QuadCount;
-			uint32_t CircleCount;
-			uint32_t LineCount;
-			uint32_t GlyphCount;
+			uint32_t QuadCount = 0;
+			uint32_t CircleCount = 0;
+			uint32_t LineCount = 0;
+			uint32_t GlyphCount = 0;
 
-			uint32_t VertexCount;
-			uint32_t IndexCount;
+			uint32_t VertexCount = 0;
+			uint32_t IndexCount = 0;
 
-			uint32_t TextureCount;
+			uint32_t TextureCount = 0;
 
-			TimeStep GeometryPassTime;
+			TimeStep GeometryPassTime = 0;
+			TimeStep QuadPassTime = 0;
+			TimeStep CirclePassTime = 0;
+			TimeStep LinePassTime = 0;
+			TimeStep TextPassTime = 0;
 		};
 
 	public:
-		Renderer2D(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications = {});
+		Renderer2D(Ref<RenderPass> renderPass, const Renderer2DSpecifications& specifications = {});
 		~Renderer2D();
 
-		void Init(Ref<FrameBuffer> renderTarget, const Renderer2DSpecifications& specifications = {});
+		void Init(Ref<RenderPass> renderPass);
 		void ShutDown();
 
 		void Resize(uint32_t width, uint32_t height);
@@ -97,15 +102,10 @@ namespace Shark {
 
 		void DrawString(const std::string& string, Ref<Font> font, const glm::mat4& transform, float kerning, float lineSpacing, const glm::vec4& color, int id = -1);
 
-		Ref<RenderCommandBuffer> GetCommandBuffer() const { return m_CommandBuffer; }
-
 		const Renderer2DSpecifications& GetSpecifications() const { return m_Specifications; }
 		const Statistics& GetStatistics() const { return m_Statistics; }
 
-		Ref<Image2D> GetDepthImage() const { return m_GeometryFrameBuffer->GetDepthImage(); }
-
 	private:
-		void ClearPass();
 		void GeometryPass();
 
 	private:
@@ -145,6 +145,15 @@ namespace Shark {
 		std::array<glm::vec4, 20> m_CirlceVertexPositions;
 
 	private:
+		struct TimestampQueries
+		{
+			uint32_t GeometryPassQuery = UINT32_MAX;
+			uint32_t QuadPassQuery = UINT32_MAX;
+			uint32_t CirclePassQuery = UINT32_MAX;
+			uint32_t LinePassQuery = UINT32_MAX;
+			uint32_t TextPassQuery = UINT32_MAX;
+		};
+
 		struct QuadVertex
 		{
 			glm::vec3 WorldPosition;
@@ -192,26 +201,8 @@ namespace Shark {
 		Ref<RenderCommandBuffer> m_CommandBuffer;
 		Ref<ConstantBuffer> m_CBCamera;
 
-		Ref<Texture2D> m_WhiteTexture;
 		glm::mat4 m_ViewProj;
-
-		uint32_t m_GeometryPassTimerID;
-
-		Ref<FrameBuffer> m_GeometryFrameBuffer;
-		Ref<FrameBuffer> m_DepthFrameBuffer;
-
-		Ref<Pipeline> m_QuadDepthPassPipeline;
-		Ref<Material> m_QuadDepthPassMaterial;
-		
-		Ref<Pipeline> m_CircleDepthPassPipeline;
-		Ref<Material> m_CircleDepthPassMaterial;
-
-		Ref<Pipeline> m_LineDepthPassPipeline;
-		Ref<Material> m_LineDepthPassMaterial;
-
-		// Composite
-		Ref<Pipeline> m_CompositePipeline;
-		Ref<Material> m_CompositeMaterial;
+		TimestampQueries m_TimestampQueries;
 
 		struct QuadBatch
 		{
@@ -228,9 +219,8 @@ namespace Shark {
 		};
 
 		// Quad
-		Ref<Pipeline> m_QuadPipeline;
+		Ref<RenderPass> m_QuadRenderPass;
 		Ref<Material> m_QuadMaterial;
-		//Ref<Texture2D> m_QuadTextureArray;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
 		Buffer m_QuadVertexData;
@@ -239,8 +229,7 @@ namespace Shark {
 		uint32_t m_QuadIndexCount = 0;
 
 		// Circle
-		Ref<Pipeline> m_CirclePipeline;
-		Ref<Material> m_CircleMaterial;
+		Ref<RenderPass> m_CircleRenderPass;
 		Ref<VertexBuffer> m_CircleVertexBuffer;
 		Ref<IndexBuffer> m_CircleIndexBuffer;
 		Buffer m_CircleVertexData;

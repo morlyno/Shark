@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Asset/AssetManager.h"
 #include "Shark/Asset/RuntimeAssetManager.h"
 #include "Shark/Asset/EditorAssetManager.h"
 

@@ -81,6 +81,11 @@ namespace Shark {
 		UpdateName();
 		UpdateIcon();
 		UpdateTypeName();
+
+		if (type == CBItemType::Asset)
+		{
+			m_AssetHandle = context->GetProject()->GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(m_Path);
+		}
 	}
 
 	ContentBrowserItem::~ContentBrowserItem()
@@ -124,7 +129,13 @@ namespace Shark {
 
 		const ImRect cellRect = { thumbnailTopLeft, infoBottemRight };
 		m_IsHovered = cellRect.Contains(ImGui::GetMousePos()) && ImGui::IsAnyItemHovered() && GImGui->HoveredId != ImGui::GetID("##thumbnailButton");
-		
+
+		if (ImGui::IsClippedEx(cellRect, 0))
+		{
+			ImGui::Dummy(cellRect.GetSize());
+			return action;
+		}
+
 		// Frame
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		drawList->AddRectFilled(thumbnailTopLeft, thumbnailBottemRight, UI::ToColor32(Theme::Colors::PropertyField), rounding, ImDrawFlags_RoundCornersTop);
@@ -233,25 +244,27 @@ namespace Shark {
 				}
 			}
 
-			{
-				SK_PROFILE_SCOPED("ContentBrowserItem::Draw Thumbnail");
-				const float borderSize = 2.0f;
-				Ref<Texture2D> texture = (m_Thumbnail && m_Thumbnail->IsValid()) ? m_Thumbnail : m_Icon;
+			const float borderSize = 2.0f;
 
-				ImGuiLayer& imguiLayer = Application::Get().GetImGuiLayer();
-				imguiLayer.AddImage(texture->GetImage());
-				drawList->AddImageRounded(
-					m_Thumbnail ? m_Thumbnail->GetViewID() : m_Icon->GetViewID(),
-					thumbnailTopLeft + ImVec2(borderSize, borderSize),
-					thumbnailBottemRight - ImVec2(borderSize, borderSize),
-					ImVec2(0, 0),
-					ImVec2(1, 1),
-					IM_COL32_WHITE,
-					rounding - 1,
-					ImDrawFlags_RoundCornersTop
-				);
-				imguiLayer.BindFontSampler();
-			}
+			Ref<ThumbnailCache> thumbnailCache = m_Context->GetThumbnailCache();
+
+			Ref<Image2D> image = m_Icon->GetImage();
+			if (thumbnailCache->HasThumbnail(m_AssetHandle))
+				image = thumbnailCache->GetThumbnail(m_AssetHandle);
+
+			ImGuiLayer& imguiLayer = Application::Get().GetImGuiLayer();
+			imguiLayer.AddImage(image);
+			drawList->AddImageRounded(
+				image->GetViewID(),
+				thumbnailTopLeft + ImVec2(borderSize, borderSize),
+				thumbnailBottemRight - ImVec2(borderSize, borderSize),
+				ImVec2(0, 0),
+				ImVec2(1, 1),
+				IM_COL32_WHITE,
+				rounding - 1,
+				ImDrawFlags_RoundCornersTop
+			);
+			imguiLayer.BindFontSampler();
 
 			UI::ScopedIndent indent(style.FramePadding.x);
 			ImGui::PushClipRect(infoTopLeft, infoBottemRight, true);
@@ -292,31 +305,25 @@ namespace Shark {
 				ImGui::Text(m_Name.c_str());
 			}
 
-			{
-				// Item Type
-				SK_PROFILE_SCOPED("ContentBrowserItem::Draw Type");
-				ImVec2 textSize = ImGui::CalcTextSize(m_TypeName.c_str(), m_TypeName.c_str() + m_TypeName.size());
-				UI::MoveCursorX(thumbnailSize - textSize.x - style.FramePadding.x * 2.0f);
-				ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_Text) * 0.8f, m_TypeName.c_str());
-				ImGui::PopClipRect();
-			}
+			// Item Type
+			ImVec2 textSize = ImGui::CalcTextSize(m_TypeName.c_str(), m_TypeName.c_str() + m_TypeName.size());
+			UI::MoveCursorX(thumbnailSize - textSize.x - style.FramePadding.x * 2.0f);
+			ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_Text) * 0.8f, m_TypeName.c_str());
+			ImGui::PopClipRect();
 		}
 
-		{
-			// Outline
-			SK_PROFILE_SCOPED("ContentBrowserItem::Draw Outline");
-			const ImVec2 borderPadding = { 1.0f, 1.0f };
-			const bool isSelected = IsSelected();
-			const bool coloredBorder = m_IsHovered || isSelected;
-			const ImU32 borderColor = UI::ToColor32(coloredBorder ? (isSelected ? Theme::Colors::BorderColored : Theme::Colors::BorderColoredWeak) : ImGui::GetStyleColorVec4(ImGuiCol_Border));
-			const ImU32 shadowColor = UI::ToColor32(coloredBorder ? Theme::Colors::ShadowColored : ImGui::GetStyleColorVec4(ImGuiCol_BorderShadow));
+		// Outline
+		const ImVec2 borderPadding = { 1.0f, 1.0f };
+		const bool isSelected = IsSelected();
+		const bool coloredBorder = m_IsHovered || isSelected;
+		const ImU32 borderColor = UI::ToColor32(coloredBorder ? (isSelected ? Theme::Colors::BorderColored : Theme::Colors::BorderColoredWeak) : ImGui::GetStyleColorVec4(ImGuiCol_Border));
+		const ImU32 shadowColor = UI::ToColor32(coloredBorder ? Theme::Colors::ShadowColored : ImGui::GetStyleColorVec4(ImGuiCol_BorderShadow));
 
-			const ImVec2 borderMin = thumbnailTopLeft - borderPadding;
-			const ImVec2 borderMax = infoBottemRight + borderPadding;
-			float borderSize = style.FrameBorderSize;
-			drawList->AddRect(borderMin + ImVec2(1, 1), borderMax + ImVec2(1, 1), shadowColor, rounding, 0, borderSize);
-			drawList->AddRect(borderMin, borderMax, borderColor, rounding, 0, borderSize);
-		}
+		const ImVec2 borderMin = thumbnailTopLeft - borderPadding;
+		const ImVec2 borderMax = infoBottemRight + borderPadding;
+		float borderSize = style.FrameBorderSize;
+		drawList->AddRect(borderMin + ImVec2(1, 1), borderMax + ImVec2(1, 1), shadowColor, rounding, 0, borderSize);
+		drawList->AddRect(borderMin, borderMax, borderColor, rounding, 0, borderSize);
 
 		UI::MoveCursorY(style.ItemSpacing.y - padding);
 		ImGui::Dummy({ 0, 0 });

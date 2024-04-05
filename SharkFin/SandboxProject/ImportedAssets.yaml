@@ -347,6 +347,18 @@ ImportedAssets:
   - Handle: 5764261553502237782
     Type: Texture
     FilePath: MeshSources/nanoboy.fbm/leg_dif.png
+  - Handle: 10258478270437012024
+    Type: Texture
+    FilePath: Meshes/Source/Cannon/cannon_01_4k.fbm/cannon_01_diff_4k.jpg
+  - Handle: 13299297466984742385
+    Type: Texture
+    FilePath: Meshes/Source/Sword/textures/material_0_baseColor.jpg
+  - Handle: 1535094426102697204
+    Type: Texture
+    FilePath: Meshes/Source/Sword/textures/material_0_metallicRoughness.png
+  - Handle: 9529242779463881168
+    Type: Texture
+    FilePath: Meshes/Source/Sword/textures/material_0_normal.jpg
   - Handle: 9221851770954733340
     Type: Texture
     FilePath: Meshes/Source/cerberus/cerberus_A.png
@@ -560,6 +572,9 @@ ImportedAssets:
   - Handle: 15941159226969732890
     Type: MeshSource
     FilePath: MeshSources/suzanne.obj
+  - Handle: 9606565860811407761
+    Type: MeshSource
+    FilePath: Meshes/Source/Cannon/cannon_01_4k.fbx
   - Handle: 17275272604655122145
     Type: MeshSource
     FilePath: Meshes/Source/Defaults/Cone.gltf
@@ -578,6 +593,9 @@ ImportedAssets:
   - Handle: 6936880653624420124
     Type: MeshSource
     FilePath: Meshes/Source/Defaults/Torus.gltf
+  - Handle: 17554481866752876121
+    Type: MeshSource
+    FilePath: Meshes/Source/Sword/scene.gltf
   - Handle: 13495305376586232289
     Type: MeshSource
     FilePath: Meshes/Source/cerberus/cerberus.gltf
@@ -602,6 +620,12 @@ ImportedAssets:
   - Handle: 2608668310550125016
     Type: Mesh
     FilePath: Meshes/Defaults/Torus.skmesh
+  - Handle: 3345831159094587027
+    Type: Mesh
+    FilePath: Meshes/Sword.skmesh
+  - Handle: 11656871678996567529
+    Type: Mesh
+    FilePath: Meshes/cannon_01_4k.skmesh
   - Handle: 12376335780905884411
     Type: Mesh
     FilePath: Meshes/cerberus
@@ -662,6 +686,9 @@ ImportedAssets:
   - Handle: 16461583963889688798
     Type: Environment
     FilePath: Environment/environment.hdr
+  - Handle: 1732525536406419356
+    Type: Environment
+    FilePath: Environment/green_point_park_4k.hdr
   - Handle: 6481003888224515998
     Type: Environment
     FilePath: Environment/lenong_2_4k.hdr
@@ -702,6 +729,12 @@ EditorAssets:
   - Handle: 6142942579687919042
     Type: MeshSource
     FilePath: Resources/Meshes/Default/Torus.gltf
-  - Handle: 8785655521216055818
+  - Handle: 9718322749210376005
     Type: Environment
-    FilePath: Resources/Environment/DefaultMaterialEditorEnvMap.hdr
+    FilePath: Resources/Environment/belfast_sunset_puresky_4k.hdr
+  - Handle: 14909081555871898117
+    Type: Environment
+    FilePath: Resources/Environment/green_point_park_4k.hdr
+  - Handle: 15816960349405547630
+    Type: Environment
+    FilePath: Resources/Environment/lenong_2_4k.hdr

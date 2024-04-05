@@ -43,9 +43,24 @@ namespace Shark {
 		float P0, P1, P2;
 	};
 
+	struct DirectionalLight
+	{
+		glm::vec4 Radiance;
+		glm::vec3 Direction;
+		float Intensity;
+	};
+
 	struct LightEnvironment
 	{
+		static constexpr uint32_t MaxDirectionLights = 5;
+
+		uint32_t DirectionalLightCount = 0;
+		DirectionalLight DirectionalLights[MaxDirectionLights]{};
 		std::vector<PointLight> PointLights;
+
+		Ref<Environment> SceneEnvironment;
+		float EnvironmentIntensity = 1.0f;
+		float SkyboxLod = 0.0f;
 	};
 
 	class Scene : public Asset
@@ -86,10 +101,11 @@ namespace Shark {
 
 		void OnRender(Ref<SceneRenderer> renderer, const SceneRendererCamera& camera);
 
-		Ref<Environment> GetEnvironment() const { return m_Environment; }
-		float GetEnvironmentIntesity() const { return m_EnvironmentInesitiy; }
-		float GetSkyboxLod() const { return m_SkyboxLod; }
+		Ref<Environment> GetEnvironment() const { return m_LightEnvironment.SceneEnvironment; }
+		float GetEnvironmentIntesity() const { return m_LightEnvironment.EnvironmentIntensity; }
+		float GetSkyboxLod() const { return m_LightEnvironment.SkyboxLod; }
 
+		const LightEnvironment& GetLightEnvironment() const { return m_LightEnvironment; }
 		const std::vector<PointLight>& GetPointLights() const { return m_LightEnvironment.PointLights; }
 
 		Entity CloneEntity(Entity srcEntity);
@@ -105,6 +121,14 @@ namespace Shark {
 			return m_Registry.view<Component>();
 		}
 
+#if 0
+		Entity InstantiateMesh(Ref<Mesh> mesh);
+		void InstantiateSubMesh(Ref<Mesh> mesh, const MeshNode& node, Entity parent);
+#endif
+
+		Entity InstantiateMesh(Ref<Mesh> mesh);
+		void InstantiateSubmesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, const MeshNode& node, Entity parent);
+
 		Entity TryGetEntityByUUID(UUID uuid) const;
 		Entity FindEntityByTag(const std::string& tag);
 		Entity FindChildEntityByName(Entity entity, const std::string& name, bool recusive);
@@ -115,6 +139,7 @@ namespace Shark {
 		Entity GetActiveCameraEntity() const;
 		UUID GetActiveCameraUUID() const { return m_ActiveCameraUUID; }
 		void SetActiveCamera(UUID camera) { m_ActiveCameraUUID = camera; }
+		void ResizeCameras() { ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
 		void ResizeCameras(float width, float height);
 
 		void SetViewportSize(uint32_t width, uint32_t height);
@@ -151,11 +176,9 @@ namespace Shark {
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
-		static Ref<Scene> Create() { return Ref<Scene>::Create(); }
-		static Ref<Scene> Create(const std::string& name) { return Ref<Scene>::Create(name); }
-
 	private:
 		void DestroyEntityInternal(Entity entity, bool destroyChildren, bool first);
+
 		void OnPhysics2DPlay(bool connectWithScriptingAPI);
 		void OnPhysics2DStop();
 		void OnPhyicsStep(TimeStep fixedTimeStep);
@@ -163,12 +186,12 @@ namespace Shark {
 		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity ent);
 		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity ent);
 		void OnCircleCollider2DComponentCreated(entt::registry& registry, entt::entity ent);
+		void OnCameraComponentCreated(entt::registry& registry, entt::entity ent);
 
 		void OnRigidBody2DComponentDestroyed(entt::registry& registry, entt::entity ent);
 		void OnBoxCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent);
 		void OnCircleCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent);
 		void OnScriptComponentDestroyed(entt::registry& registry, entt::entity ent);
-		void OnCameraComponentDestroyed(entt::registry& registry, entt::entity ent);
 
 	private:
 		std::string m_Name;
@@ -189,9 +212,6 @@ namespace Shark {
 		uint32_t m_StepFrames = 0;
 
 		LightEnvironment m_LightEnvironment;
-		Ref<Environment> m_Environment;
-		float m_EnvironmentInesitiy = 1.0f;
-		float m_SkyboxLod = 0.0f;
 
 		std::vector<std::function<void()>> m_PostUpdateQueue;
 

@@ -2,7 +2,6 @@ Material:
   AlbedoColor: [1, 1, 1]
   Metallic: 1
   Roughness: 1
-  AmbientOcclusion: 0
   AlbedoMap: 389760130929310853
   UsingNormalMap: true
   NormalMap: 15504667339953316786

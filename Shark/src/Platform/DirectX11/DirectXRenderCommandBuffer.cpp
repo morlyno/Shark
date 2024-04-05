@@ -130,10 +130,11 @@ namespace Shark {
 				instance->m_PipelineStatistics.RasterizerPrimitives = stats.CPrimitives;
 			}
 
-			uint32_t index = 0;
-			instance->m_TimestampQueryResults[getdataIndex].resize(instance->m_TimestampQueryCount[getdataIndex]);
-			for (auto& [startQuery, endQuery] : instance->m_TimestampQueryPools[getdataIndex])
+			const uint32_t count = instance->m_TimestampQueryCount[getdataIndex];
+			instance->m_TimestampQueryResults[getdataIndex].resize(count);
+			for (uint32_t index = 0; index < count; index++)
 			{
+				auto& [startQuery, endQuery] = instance->m_TimestampQueryPools[getdataIndex][index];
 				HRESULT hrStart, hrEnd;
 				uint64_t startTime, endTime;
 				hrStart = immediateContext->GetData(startQuery, &startTime, sizeof(uint64_t), 0);
@@ -145,7 +146,7 @@ namespace Shark {
 					sTime = endTime - startTime;
 				}
 
-				instance->m_TimestampQueryResults[getdataIndex][index++] = (float)sTime / renderer->GetGPUFrequncy();
+				instance->m_TimestampQueryResults[getdataIndex][index] = (float)sTime / renderer->GetGPUFrequncy();
 			}
 		});
 	}

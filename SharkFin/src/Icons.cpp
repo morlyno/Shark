@@ -31,6 +31,9 @@ namespace Shark {
 		PauseIcon     = Texture2D::Create(TextureSpecification(), "Resources/Toolbar/Icon_Pause.png");
 		SimulateIcon  = Texture2D::Create(TextureSpecification(), "Resources/Toolbar/Icon_Simulate.png");
 		StepIcon      = Texture2D::Create(TextureSpecification(), "Resources/Toolbar/Icon_Step.png");
+
+		ClearIcon = Texture2D::Create(TextureSpecification(), "Resources/Icons/ClearIcon.png");
+		ReloadIcon = Texture2D::Create(TextureSpecification(), "Resources/Icons/ReloadIcon.png");
 	}
 
 	void Icons::Shutdown()
@@ -54,6 +57,9 @@ namespace Shark {
 		PauseIcon     = nullptr;
 		SimulateIcon  = nullptr;
 		StepIcon      = nullptr;
+
+		ClearIcon = nullptr;
+		ReloadIcon = nullptr;
 	}
 
 	static void ReloadIconFromDisc(Ref<Texture2D> icon, const std::filesystem::path& filepath)
@@ -85,6 +91,9 @@ namespace Shark {
 		ReloadIconFromDisc(PauseIcon,    "Resources/Toolbar/Icon_Pause.png");
 		ReloadIconFromDisc(SimulateIcon, "Resources/Toolbar/Icon_Simulate.png");
 		ReloadIconFromDisc(StepIcon,     "Resources/Toolbar/Icon_Step.png");
+
+		ReloadIconFromDisc(ClearIcon,    "Resources/Toolbar/ClearIcon.png");
+		ReloadIconFromDisc(ReloadIcon,   "Resources/Toolbar/ReloadIcon.png");
 	}
 
 }

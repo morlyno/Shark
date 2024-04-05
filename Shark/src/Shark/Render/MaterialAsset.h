@@ -7,9 +7,11 @@ namespace Shark {
 	class MaterialAsset : public Asset
 	{
 	public:
-		MaterialAsset() = default;
+		MaterialAsset();
 		MaterialAsset(Ref<Material> material, bool setDefault = true);
 		~MaterialAsset();
+
+		void Invalidate();
 
 		Ref<Material> GetMaterial();
 		void SetMaterial(Ref<Material> material);
@@ -23,25 +25,22 @@ namespace Shark {
 		float& GetRoughness();
 		void SetRoughness(float value);
 
-		float& GetAmbientOcclusion();
-		void SetAmbientOcclusion(float value);
-
-		Ref<Texture2D> GetAlbedoMap();
-		void SetAlbedoMap(Ref<Texture2D> texture);
+		AssetHandle GetAlbedoMap();
+		void SetAlbedoMap(AssetHandle handle);
 		void ClearAlbedoMap();
 
-		Ref<Texture2D> GetNormalMap();
-		void SetNormalMap(Ref<Texture2D> texture);
+		AssetHandle GetNormalMap();
+		void SetNormalMap(AssetHandle handle);
 		bool IsUsingNormalMap();
 		void SetUsingNormalMap(bool value);
 		void ClearNormalMap();
 
-		Ref<Texture2D> GetMetalnessMap();
-		void SetMetalnessMap(Ref<Texture2D> texture);
+		AssetHandle GetMetalnessMap();
+		void SetMetalnessMap(AssetHandle handle);
 		void ClearMetalnessMap();
 		
-		Ref<Texture2D> GetRoughnessMap();
-		void SetRoughnessMap(Ref<Texture2D> texture);
+		AssetHandle GetRoughnessMap();
+		void SetRoughnessMap(AssetHandle handle);
 		void ClearRoughnessMap();
 
 		void SetDefault();
@@ -50,8 +49,14 @@ namespace Shark {
 		static AssetType GetStaticType() { return AssetType::Material; }
 		static Ref<MaterialAsset> Create() { return Ref<MaterialAsset>::Create(); }
 		static Ref<MaterialAsset> Create(Ref<Material> material, bool setDefault = true) { return Ref<MaterialAsset>::Create(material, setDefault); }
+
 	private:
 		Ref<Material> m_Material;
+
+		AssetHandle m_AlbedoMap;
+		AssetHandle m_NormalMap;
+		AssetHandle m_MetalnessMap;
+		AssetHandle m_RoughnessMap;
 	};
 
 	class MaterialTable : public RefCount
@@ -60,7 +65,7 @@ namespace Shark {
 		using MaterialMap = std::map<uint32_t, AssetHandle>;
 
 	public:
-		MaterialTable() = default;
+		MaterialTable(uint32_t count = 1);
 		~MaterialTable() = default;
 
 		bool HasMaterial(uint32_t index) const { return m_Materials.contains(index); }
@@ -72,9 +77,13 @@ namespace Shark {
 		MaterialMap& GetMaterials() { return m_Materials; }
 		const MaterialMap& GetMaterials() const { return m_Materials; }
 
+		uint32_t& GetMaterialCount() { return m_MaterialCount; }
+		uint32_t GetMaterialCount() const { return m_MaterialCount; }
+
 		void Clear();
 
 	private:
+		uint32_t m_MaterialCount = 0;
 		MaterialMap m_Materials;
 
 	};

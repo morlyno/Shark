@@ -1,9 +1,12 @@
 #include "skpch.h"
 #include "SceneSerializer.h"
 
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scripting/ScriptEngine.h"
+
+#include "Shark/Serialization/SerializationMacros.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/YAMLUtils.h"
@@ -50,6 +53,7 @@ namespace YAML {
 				case Shark::ManagedFieldType::Vector2: node.force_insert("Value", storage->GetValue<glm::vec2>()); break;
 				case Shark::ManagedFieldType::Vector3: node.force_insert("Value", storage->GetValue<glm::vec3>()); break;
 				case Shark::ManagedFieldType::Vector4: node.force_insert("Value", storage->GetValue<glm::vec4>()); break;
+				case Shark::ManagedFieldType::AssetHandle: node.force_insert("Value", storage->GetValue<Shark::AssetHandle>()); break;
 				default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); break;
 			}
 			return node;
@@ -84,6 +88,7 @@ namespace YAML {
 				case Shark::ManagedFieldType::Vector2: storage->SetValue(node["Value"].as<glm::vec2>()); break;
 				case Shark::ManagedFieldType::Vector3: storage->SetValue(node["Value"].as<glm::vec3>()); break;
 				case Shark::ManagedFieldType::Vector4: storage->SetValue(node["Value"].as<glm::vec4>()); break;
+				case Shark::ManagedFieldType::AssetHandle: storage->SetValue(node["Value"].as<Shark::AssetHandle>()); break;
 				default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); return false;
 			}
 
@@ -264,13 +269,22 @@ namespace Shark {
 			{
 				out << YAML::Key << "PointLightComponent";
 				out << YAML::BeginMap;
-				out << YAML::Key << "Color" << YAML::Value << component->Color;
+				out << YAML::Key << "Radiance" << YAML::Value << component->Radiance;
 				out << YAML::Key << "Intensity" << YAML::Value << component->Intensity;
 				out << YAML::Key << "Radius" << YAML::Value << component->Radius;
 				out << YAML::Key << "Falloff" << YAML::Value << component->Falloff;
 				out << YAML::EndMap;
 			}
 			
+			if (auto component = entity.TryGetComponent<DirectionalLightComponent>())
+			{
+				out << YAML::Key << "DirectionalLightComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "Radiance" << YAML::Value << component->Radiance;
+				out << YAML::Key << "Intensity" << YAML::Value << component->Intensity;
+				out << YAML::EndMap;
+			}
+
 			if (auto component = entity.TryGetComponent<SkyComponent>())
 			{
 				out << YAML::Key << "SkyComponent";
@@ -434,237 +448,245 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		try
+		YAML::Node node = YAML::Load(filedata);
+
+		YAML::Node sceneNode = node["Scene"];
+		if (!sceneNode)
+			return false;
+
+		const std::string sceneName = sceneNode["Name"].as<std::string>();
+		scene->SetName(sceneName);
+		SK_CORE_TRACE_TAG("Serialization", " - Scene Name: {}", sceneName);
+
+		const UUID activeCameraID = sceneNode["ActiveCamera"].as<UUID>(UUID::Null);
+		scene->SetActiveCamera(activeCameraID);
+		SK_CORE_TRACE_TAG("Serialization", " - Active Camera: {}", activeCameraID);
+
+		YAML::Node entitiesNode = sceneNode["Entities"];
+		if (entitiesNode)
 		{
-			YAML::Node node = YAML::Load(filedata);
-
-			YAML::Node sceneNode = node["Scene"];
-			if (!sceneNode)
-				return false;
-
-			const std::string sceneName = sceneNode["Name"].as<std::string>();
-			scene->SetName(sceneName);
-			SK_CORE_TRACE_TAG("Serialization", " - Scene Name: {}", sceneName);
-
-			const UUID activeCameraID = sceneNode["ActiveCamera"].as<UUID>(UUID::Null);
-			scene->SetActiveCamera(activeCameraID);
-			SK_CORE_TRACE_TAG("Serialization", " - Active Camera: {}", activeCameraID);
-
-			YAML::Node entitiesNode = sceneNode["Entities"];
-			if (entitiesNode)
+			for (auto entityNode : entitiesNode)
 			{
-				for (auto entityNode : entitiesNode)
+				const UUID id = entityNode["Entity"].as<UUID>(UUID::Null);
+				const std::string name = entityNode["TagComponent"]["Name"].as<std::string>();
+
+				Entity entity = scene->CreateEntityWithUUID(id, name);
+				SK_CORE_TRACE_TAG("Serialization", " - Entity {} - {}", entity.GetName(), entity.GetUUID());
+
+				if (auto componentNode = entityNode["TransformComponent"])
 				{
-					const UUID id = entityNode["Entity"].as<UUID>(UUID::Null);
-					const std::string name = entityNode["TagComponent"]["Name"].as<std::string>();
-
-					Entity entity = scene->CreateEntityWithUUID(id, name);
-					SK_CORE_TRACE_TAG("Serialization", " - Entity {} - {}", entity.GetName(), entity.GetUUID());
-
-					if (auto componentNode = entityNode["TransformComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<TransformComponent>();
-						component.Translation = componentNode["Translation"].as<glm::vec3>();
-						component.Rotation = componentNode["Rotation"].as<glm::vec3>();
-						component.Scale = componentNode["Scale"].as<glm::vec3>();
-					}
-
-					if (auto componentNode = entityNode["RelationshipComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<RelationshipComponent>();
-						component.Parent = componentNode["Parent"].as<UUID>();
-						component.Children = componentNode["Children"].as<std::vector<UUID>>();
-					}
-
-					if (auto componentNode = entityNode["SpriteRendererComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<SpriteRendererComponent>();
-						component.Color = componentNode["Color"].as<glm::vec4>();
-						component.TextureHandle = componentNode["TextureHandle"].as<AssetHandle>();
-						component.TilingFactor = componentNode["TilingFactor"].as<float>();
-					}
-
-					if (auto componentNode = entityNode["CircleRendererComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<CircleRendererComponent>();
-						component.Color = componentNode["Color"].as<glm::vec4>();
-						component.Thickness = componentNode["Thickness"].as<float>();
-						component.Fade = componentNode["Fade"].as<float>();
-					}
-
-					if (auto componentNode = entityNode["TextRendererComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<TextRendererComponent>();
-						component.FontHandle = componentNode["FontHandle"].as<AssetHandle>();
-						component.Text = componentNode["Text"].as<std::string>();
-						component.Color = componentNode["Color"].as<glm::vec4>();
-						component.Kerning = componentNode["Kerning"].as<float>();
-					}
-
-					if (auto componentNode = entityNode["MeshComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<MeshComponent>();
-						component.Mesh = componentNode["Mesh"].as<AssetHandle>();
-						component.SubmeshIndex = componentNode["SubmeshIndex"].as<uint32_t>();
-						component.Material = componentNode["Material"].as<AssetHandle>();
-					}
-
-					if (auto componentNode = entityNode["PointLightComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<PointLightComponent>();
-						component.Color = componentNode["Color"].as<glm::vec4>();
-						component.Intensity = componentNode["Intensity"].as<float>();
-						component.Radius = componentNode["Radius"].as<float>();
-						component.Falloff = componentNode["Falloff"].as<float>();
-					}
-					
-					if (auto componentNode = entityNode["SkyComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<SkyComponent>();
-						component.SceneEnvironment = componentNode["SceneEnvironment"].as<AssetHandle>();
-						component.Intensity = componentNode["Intensity"].as<float>();
-						component.Lod = componentNode["Lod"].as<float>();
-					}
-
-					if (auto componentNode = entityNode["CameraComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<CameraComponent>();
-
-						auto projection = StringToSceneCameraProjection(componentNode["Type"].as<std::string>());
-						float aspecRatio = componentNode["Aspectratio"].as<float>();
-
-						SceneCamera::PerspectiveSpecs ps;
-						ps.FOV = componentNode["PerspectiveFOV"].as<float>();
-						ps.Near = componentNode["PerspectiveNear"].as<float>();
-						ps.Far = componentNode["PerspectiveFar"].as<float>();
-
-						SceneCamera::OrthographicSpecs os;
-						os.Zoom = componentNode["OrthographicZoom"].as<float>();
-						os.Near = componentNode["OrthographicNear"].as<float>();
-						os.Far = componentNode["OrthographicFar"].as<float>();
-
-						component.Camera = SceneCamera(projection, aspecRatio, ps, os);
-					}
-
-					if (auto componentNode = entityNode["RigidBody2DComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<RigidBody2DComponent>();
-						component.Type = StringToRigidBody2DType(componentNode["Type"].as<std::string>());
-						component.FixedRotation = componentNode["FixedRotation"].as<bool>();
-						component.IsBullet = componentNode["IsBullet"].as<bool>();
-						component.Awake = componentNode["Awake"].as<bool>();
-						component.Enabled = componentNode["Enabled"].as<bool>();
-						component.AllowSleep = componentNode["AllowSleep"].as<bool>();
-						component.GravityScale = componentNode["GravityScale"].as<float>();
-					}
-
-					if (auto componentNode = entityNode["BoxCollider2DComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<BoxCollider2DComponent>();
-						component.Size = componentNode["Size"].as<glm::vec2>();
-						component.Offset = componentNode["Offset"].as<glm::vec2>();
-						component.Rotation = componentNode["Rotation"].as<float>();
-						component.Density = componentNode["Density"].as<float>();
-						component.Friction = componentNode["Friction"].as<float>();
-						component.Restitution = componentNode["Restitution"].as<float>();
-						component.RestitutionThreshold = componentNode["RestitutionThreshold"].as<float>();
-						component.IsSensor = componentNode["IsSensor"].as<bool>();
-					}
-
-					if (auto componentNode = entityNode["CircleCollider2DComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<CircleCollider2DComponent>();
-						component.Radius = componentNode["Radius"].as<float>();
-						component.Offset = componentNode["Offset"].as<glm::vec2>();
-						component.Rotation = componentNode["Rotation"].as<float>();
-						component.Density = componentNode["Density"].as<float>();
-						component.Friction = componentNode["Friction"].as<float>();
-						component.Restitution = componentNode["Restitution"].as<float>();
-						component.RestitutionThreshold = componentNode["RestitutionThreshold"].as<float>();
-						component.IsSensor = componentNode["IsSensor"].as<bool>();
-					}
-
-					if (auto componentNode = entityNode["DistanceJointComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<DistanceJointComponent>();
-						component.ConnectedEntity = componentNode["ConnectedEntity"].as<UUID>();
-						component.CollideConnected = componentNode["CollideConnected"].as<bool>();
-						component.AnchorOffsetA = componentNode["AnchorOffsetA"].as<glm::vec2>();
-						component.AnchorOffsetB = componentNode["AnchorOffsetB"].as<glm::vec2>();
-						component.MinLength = componentNode["MinLength"].as<float>();
-						component.MaxLength = componentNode["MaxLength"].as<float>();
-						component.Stiffness = componentNode["Stiffness"].as<float>();
-						component.Damping = componentNode["Damping"].as<float>();
-					}
-
-					if (auto componentNode = entityNode["HingeJointComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<HingeJointComponent>();
-						component.ConnectedEntity = componentNode["ConnectedEntity"].as<UUID>();
-						component.CollideConnected = componentNode["CollideConnected"].as<bool>();
-						component.Anchor = componentNode["Anchor"].as<glm::vec2>();
-						component.LowerAngle = componentNode["LowerAngle"].as<float>();
-						component.UpperAngle = componentNode["UpperAngle"].as<float>();
-						component.EnableMotor = componentNode["EnableMotor"].as<bool>();
-						component.MotorSpeed = componentNode["MotorSpeed"].as<float>();
-						component.MaxMotorTorque = componentNode["MaxMotorTorque"].as<float>();
-					}
-
-					if (auto componentNode = entityNode["PrismaticJointComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<PrismaticJointComponent>();
-						component.ConnectedEntity = componentNode["ConnectedEntity"].as<UUID>();
-						component.CollideConnected = componentNode["CollideConnected"].as<bool>();
-						component.Anchor = componentNode["Anchor"].as<glm::vec2>();
-						component.Axis = componentNode["Axis"].as<glm::vec2>();
-						component.EnableLimit = componentNode["EnableLimit"].as<bool>();
-						component.LowerTranslation = componentNode["LowerTranslation"].as<float>();
-						component.UpperTranslation = componentNode["UpperTranslation"].as<float>();
-						component.EnableMotor = componentNode["EnableMotor"].as<bool>();
-						component.MotorSpeed = componentNode["MotorSpeed"].as<float>();
-						component.MaxMotorForce = componentNode["MaxMotorForce"].as<float>();
-					}
-
-					if (auto componentNode = entityNode["PulleyJointComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<PulleyJointComponent>();
-						component.ConnectedEntity = componentNode["ConnectedEntity"].as<UUID>();
-						component.CollideConnected = componentNode["CollideConnected"].as<bool>();
-						component.AnchorA = componentNode["AnchorA"].as<glm::vec2>();
-						component.AnchorB = componentNode["AnchorB"].as<glm::vec2>();
-						component.GroundAnchorA = componentNode["GroundAnchorA"].as<glm::vec2>();
-						component.GroundAnchorB = componentNode["GroundAnchorB"].as<glm::vec2>();
-						component.Ratio = componentNode["Ratio"].as<float>();
-					}
-
-					if (auto componentNode = entityNode["ScriptComponent"])
-					{
-						auto& component = entity.AddOrReplaceComponent<ScriptComponent>();
-						component.ScriptName = componentNode["ScriptName"].as<std::string>();
-
-						Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(component.ScriptName);
-						component.ClassID = klass ? klass->GetID() : 0;
-
-						auto fields = componentNode["Fields"];
-						auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
-
-						for (auto field : fields)
-						{
-							Ref<FieldStorage> storage = field.as<Ref<FieldStorage>>();
-							fieldStorages[storage->Name] = storage;
-						}
-					}
-
+					auto& component = entity.AddOrReplaceComponent<TransformComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Translation", component.Translation, glm::vec3(0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Rotation", component.Rotation, glm::vec3(0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Scale", component.Scale, glm::vec3(1.0f));
 				}
+
+				if (auto componentNode = entityNode["RelationshipComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<RelationshipComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Parent", component.Parent, UUID::Invalid);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Children", component.Children, {});
+				}
+
+				if (auto componentNode = entityNode["SpriteRendererComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<SpriteRendererComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Color", component.Color, glm::vec4(1.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "TextureHandle", component.TextureHandle, AssetHandle::Invalid);
+					SK_DESERIALIZE_PROPERTY(componentNode, "TilingFactor", component.TilingFactor, 1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Transparent", component.Transparent, false);
+				}
+
+				if (auto componentNode = entityNode["CircleRendererComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<CircleRendererComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Color", component.Color, glm::vec4(1.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Thickness", component.Thickness, 1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Fade", component.Fade, 0.002f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Filled", component.Filled, true);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Transparent", component.Transparent, false);
+				}
+
+				if (auto componentNode = entityNode["TextRendererComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<TextRendererComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "FontHandle", component.FontHandle, AssetHandle::Invalid);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Text", component.Text, {});
+					SK_DESERIALIZE_PROPERTY(componentNode, "Color", component.Color, glm::vec4(1.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Kerning", component.Kerning, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "LineSpacing", component.LineSpacing, 0.0f);
+				}
+
+				if (auto componentNode = entityNode["MeshComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<MeshComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Mesh", component.Mesh, AssetHandle::Invalid);
+					SK_DESERIALIZE_PROPERTY(componentNode, "SubmeshIndex", component.SubmeshIndex, 0);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Material", component.Material, AssetHandle::Invalid);
+				}
+
+				if (auto componentNode = entityNode["PointLightComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<PointLightComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Radiance", component.Radiance, glm::vec4(1.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Intensity", component.Intensity, 1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Radius", component.Radius, 10.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Falloff", component.Falloff, 1.0f);
+				}
+				
+				if (auto componentNode = entityNode["DirectionalLightComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<DirectionalLightComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Radiance", component.Radiance, glm::vec4(1.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Intensity", component.Intensity, 1.0f);
+				}
+
+				if (auto componentNode = entityNode["SkyComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<SkyComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "SceneEnvironment", component.SceneEnvironment, AssetHandle::Invalid);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Intensity", component.Intensity, 1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Lod", component.Lod, 0.0f);
+				}
+
+				if (auto componentNode = entityNode["CameraComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<CameraComponent>();
+
+					float aspectRatio;
+					std::string typeString;
+
+					SK_DESERIALIZE_PROPERTY(componentNode, "Type", typeString, {});
+					SK_DESERIALIZE_PROPERTY(componentNode, "Aspectratio", aspectRatio, 1.0f);
+
+					SceneCamera::PerspectiveSpecs ps;
+					SK_DESERIALIZE_PROPERTY(componentNode, "PerspectiveFOV", ps.FOV, 0.785398f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "PerspectiveNear", ps.Near, 0.1f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "PerspectiveFar", ps.Far, 1000.0f);
+
+					SceneCamera::OrthographicSpecs os;
+					SK_DESERIALIZE_PROPERTY(componentNode, "OrthographicZoom", os.Zoom, 10.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "OrthographicNear", os.Near, -1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "OrthographicFar", os.Far, 1.0f);
+
+					component.Camera = SceneCamera(StringToSceneCameraProjection(typeString), aspectRatio, ps, os);
+				}
+
+				if (auto componentNode = entityNode["RigidBody2DComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<RigidBody2DComponent>();
+					std::string typeString;
+					SK_DESERIALIZE_PROPERTY(componentNode, "Type", typeString, {});
+					component.Type = StringToRigidBody2DType(typeString);
+
+					SK_DESERIALIZE_PROPERTY(componentNode, "FixedRotation", component.FixedRotation, false);
+					SK_DESERIALIZE_PROPERTY(componentNode, "IsBullet", component.IsBullet, false);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Awake", component.Awake, true);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Enabled", component.Enabled, true);
+					SK_DESERIALIZE_PROPERTY(componentNode, "AllowSleep", component.AllowSleep, true);
+					SK_DESERIALIZE_PROPERTY(componentNode, "GravityScale", component.GravityScale, 1.0f);
+				}
+
+				if (auto componentNode = entityNode["BoxCollider2DComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<BoxCollider2DComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Size", component.Size, glm::vec2(0.5f, 0.5f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Offset", component.Offset, glm::vec2(0.0f, 0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Rotation", component.Rotation, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Density", component.Density, 1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Friction", component.Friction, 0.2f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Restitution", component.Restitution, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "RestitutionThreshold", component.RestitutionThreshold, 1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "IsSensor", component.IsSensor, false);
+				}
+
+				if (auto componentNode = entityNode["CircleCollider2DComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<CircleCollider2DComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Radius", component.Radius, 0.5f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Offset", component.Offset, glm::vec2(0.0f, 0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Rotation", component.Rotation, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Density", component.Density, 1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Friction", component.Friction, 0.2f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Restitution", component.Restitution, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "RestitutionThreshold", component.RestitutionThreshold, 1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "IsSensor", component.IsSensor, false);
+				}
+
+				if (auto componentNode = entityNode["DistanceJointComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<DistanceJointComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "ConnectedEntity", component.ConnectedEntity, UUID::Invalid);
+					SK_DESERIALIZE_PROPERTY(componentNode, "CollideConnected", component.CollideConnected, true);
+					SK_DESERIALIZE_PROPERTY(componentNode, "AnchorOffsetA", component.AnchorOffsetA, glm::vec2(0.0f, 0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "AnchorOffsetB", component.AnchorOffsetB, glm::vec2(0.0f, 0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "MinLength", component.MinLength, -1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "MaxLength", component.MaxLength, -1.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Stiffness", component.Stiffness, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Damping", component.Damping, 0.0f);
+				}
+
+				if (auto componentNode = entityNode["HingeJointComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<HingeJointComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "ConnectedEntity", component.ConnectedEntity, UUID::Invalid);
+					SK_DESERIALIZE_PROPERTY(componentNode, "CollideConnected", component.CollideConnected, true);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Anchor", component.Anchor, glm::vec2(0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "LowerAngle", component.LowerAngle, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "UpperAngle", component.UpperAngle, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "EnableMotor", component.EnableMotor, false);
+					SK_DESERIALIZE_PROPERTY(componentNode, "MotorSpeed", component.MotorSpeed, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "MaxMotorTorque", component.MaxMotorTorque, 0.0f);
+				}
+
+				if (auto componentNode = entityNode["PrismaticJointComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<PrismaticJointComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "ConnectedEntity", component.ConnectedEntity, UUID::Invalid);
+					SK_DESERIALIZE_PROPERTY(componentNode, "CollideConnected", component.CollideConnected, true);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Anchor", component.Anchor, glm::vec2(0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Axis", component.Axis, glm::vec2(1.0f, 0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "EnableLimit", component.EnableLimit, false);
+					SK_DESERIALIZE_PROPERTY(componentNode, "LowerTranslation", component.LowerTranslation, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "UpperTranslation", component.UpperTranslation, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "EnableMotor", component.EnableMotor, false);
+					SK_DESERIALIZE_PROPERTY(componentNode, "MotorSpeed", component.MotorSpeed, 0.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "MaxMotorForce", component.MaxMotorForce, 0.0f);
+				}
+
+				if (auto componentNode = entityNode["PulleyJointComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<PulleyJointComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "ConnectedEntity", component.ConnectedEntity, UUID::Invalid);
+					SK_DESERIALIZE_PROPERTY(componentNode, "CollideConnected", component.CollideConnected, true);
+					SK_DESERIALIZE_PROPERTY(componentNode, "AnchorA", component.AnchorA, glm::vec2(0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "AnchorB", component.AnchorB, glm::vec2(0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "GroundAnchorA", component.GroundAnchorA, glm::vec2(0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "GroundAnchorB", component.GroundAnchorB, glm::vec2(0.0f));
+					SK_DESERIALIZE_PROPERTY(componentNode, "Ratio", component.Ratio, 1.0f);
+				}
+
+				if (auto componentNode = entityNode["ScriptComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<ScriptComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "ScriptName", component.ScriptName, std::string());
+
+					Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(component.ScriptName);
+					component.ClassID = klass ? klass->GetID() : 0;
+
+					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
+
+					auto fieldsNode = componentNode["Fields"];
+					for (auto fieldNode : fieldsNode)
+					{
+						Ref<FieldStorage> storage = fieldNode.as<Ref<FieldStorage>>(nullptr);
+						if (storage)
+							fieldStorages[storage->Name] = storage;
+					}
+				}
+
 			}
 		}
-		catch (const YAML::Exception& e)
-		{
-			m_ErrorMsg = e.what();
-			SK_CORE_ASSERT(false);
-			return false;
-		}
-
 		return true;
 	}
 

@@ -2,6 +2,7 @@
 #include "UI.h"
 
 #include "Shark/Core/Application.h"
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/UI/Theme.h"
 
@@ -720,6 +721,73 @@ namespace Shark::UI {
 		return changed;
 	}
 
+	bool ControlAssetUnsave(std::string_view label, AssetHandle& assetHandle, const char* dragDropType)
+	{
+		if (!ControlHelperBegin(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+
+		bool changed = false;
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
+
+		std::string name;
+		if (metadata.IsMemoryAsset)
+			name = fmt::format("0x{:x}", assetHandle);
+		else
+			name = metadata.FilePath.string();
+
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputText("##IDStr", name.data(), name.length(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+
+		//TextFramed(path);
+		{
+			if (ImGui::BeginPopupContextItem("Settings"))
+			{
+				char buffer[18];
+				sprintf(buffer, "0x%16llx", (uint64_t)assetHandle);
+				ImGui::InputText("##IDStr", buffer, 18, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+				ImGui::EndPopup();
+			}
+		}
+
+		if (dragDropType)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+				if (payload)
+				{
+					const AssetHandle handle = *(AssetHandle*)payload->Data;
+					assetHandle = handle;
+					changed = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		{
+			UI::ScopedColorStack colorStack(ImGuiCol_Button, ImVec4(0, 0, 0, 0),
+											ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0),
+											ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+
+			const float buttonSize = ImGui::GetItemRectSize().y;
+			ImGui::SameLine(0, 0);
+			MoveCursorX(-buttonSize);
+
+			ImGui::BeginChild(UI::GetCurrentID(), ImVec2(buttonSize, buttonSize));
+			if (ImGui::Button("x", { buttonSize, buttonSize }))
+			{
+				assetHandle = AssetHandle::Null;
+				changed = true;
+			}
+			ImGui::EndChild();
+		}
+
+		ControlHelperEnd();
+		return changed;
+	}
+
 	// TODO(moro): Ignores ImGuiItemFlag_Readonly
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const char* dragDropType)
 	{
@@ -1063,17 +1131,26 @@ namespace Shark::UI {
 
 	void Property(std::string_view label, float value)
 	{
-		Property(label, fmt::to_string(value));
+		ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
+		float v = value;
+		Control(label, v);
+		ImGui::PopItemFlag();
 	}
 
 	void Property(std::string_view label, uint32_t value)
 	{
-		Property(label, fmt::to_string(value));
+		ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
+		uint32_t v = value;
+		Control(label, v);
+		ImGui::PopItemFlag();
 	}
 
 	void Property(std::string_view label, uint64_t value)
 	{
-		Property(label, fmt::to_string(value));
+		ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
+		uint64_t v = value;
+		Control(label, v);
+		ImGui::PopItemFlag();
 	}
 
 	void Property(std::string_view label, const glm::vec2& value)
@@ -1312,7 +1389,6 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		GContext->ImGuiLayer->AddImage(image->GetImage());
 		ImGui::Image(image->GetViewID(), size, uv0, uv1, tint_col, border_col);
 		GContext->ImGuiLayer->BindFontSampler();
@@ -1324,7 +1400,6 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		GContext->ImGuiLayer->AddImage(image);
 		ImGui::Image(image->GetViewID(), size, uv0, uv1, tint_col, border_col);
 		GContext->ImGuiLayer->BindFontSampler();
@@ -1336,7 +1411,6 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		GContext->ImGuiLayer->AddImage(texture->GetImage());
 		ImGui::Image(texture->GetViewID(), size, uv0, uv1, tint_col, border_col);
 		GContext->ImGuiLayer->BindFontSampler();
@@ -1380,6 +1454,22 @@ namespace Shark::UI {
 		}
 
 		return changed;
+	}
+
+	bool ImageButton(const char* strID, Ref<Texture2D> texture, const ImVec2& image_size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
+	{
+		GContext->ImGuiLayer->AddImage(texture->GetImage());
+		const bool pressed = ImGui::ImageButton(strID, texture->GetViewID(), image_size, uv0, uv1, bg_col, tint_col);
+		GContext->ImGuiLayer->BindFontSampler();
+		return pressed;
+	}
+
+	bool ImageButton(const char* strID, Ref<Texture2D> texture, const ImVec2& image_size, const ImVec4& tint_col)
+	{
+		GContext->ImGuiLayer->AddImage(texture->GetImage());
+		const bool pressed = ImGui::ImageButton(strID, texture->GetViewID(), image_size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tint_col);
+		GContext->ImGuiLayer->BindFontSampler();
+		return pressed;
 	}
 
 }

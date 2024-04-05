@@ -73,7 +73,7 @@ namespace Shark {
 		void BeginScene(const SceneRendererCamera& camera);
 		void EndScene();
 
-		void SubmitMesh(Ref<Mesh> mesh, uint32_t submeshIndex, Ref<Material> material, const glm::mat4& transform, int id);
+		void SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform, int id);
 
 		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
 		Ref<Image2D> GetFinalPassImage() const { return m_CompositePass->GetOutput(0); }
@@ -83,6 +83,9 @@ namespace Shark {
 		Options& GetOptions() { return m_Options; }
 		const Statistics& GetStatisitcs() const { return m_Statistics; }
 		const Renderer2D::Statistics& GetRenderer2DStats() const { return m_Renderer2D->GetStatistics(); }
+
+		uint32_t GetViewportWidth() const { return m_Specification.Width; }
+		uint32_t GetViewportHeight() const { return m_Specification.Height; }
 
 	private:
 		void PreRender();
@@ -96,9 +99,10 @@ namespace Shark {
 	private:
 		struct CBScene
 		{
-			uint32_t LightCount = 0;
+			uint32_t PointLightCount = 0;
+			uint32_t DirectionalLightCount = 0;
 			float EnvironmentMapIntensity = 1;
-			float Padding[2];
+			float P0;
 		};
 
 		struct CBCamera
@@ -120,6 +124,13 @@ namespace Shark {
 			float P0, P1;
 		};
 
+		struct CBCompositeSettings
+		{
+			uint32_t Tonemap = 0;
+			float Exposure = 1.0f;
+			float P0, P1;
+		};
+
 		struct MeshPushConstant
 		{
 			glm::mat4 Transform;
@@ -129,17 +140,11 @@ namespace Shark {
 		struct MeshData
 		{
 			Ref<Mesh> Mesh;
+			Ref<MeshSource> MeshSource;
 			uint32_t SubmeshIndex;
-			Ref<Material> Material;
+			Ref<MaterialAsset> Material;
 			glm::mat4 Transform;
 			int ID;
-		};
-
-		struct CBCompositeSettings
-		{
-			uint32_t Tonemap = 0;
-			float Exposure = 1.0f;
-			float P0, P1;
 		};
 
 	private:
@@ -150,15 +155,13 @@ namespace Shark {
 		PipelineStatistics m_PipelineStatistics;
 		Options m_Options;
 
-		// Set from SceneRendererPanel
-		float m_SkyboxIntensity = 1.0f;
-
 		Ref<ConstantBuffer> m_CBScene;
 		Ref<ConstantBuffer> m_CBCamera;
 		Ref<ConstantBuffer> m_CBSkybox;
 		Ref<ConstantBuffer> m_CBSkyboxSettings;
 		Ref<ConstantBuffer> m_CBCompositeSettings;
-		Ref<StorageBuffer> m_SBLights;
+		Ref<StorageBuffer> m_SBPointLights;
+		Ref<StorageBuffer> m_SBDirectionalLights;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;

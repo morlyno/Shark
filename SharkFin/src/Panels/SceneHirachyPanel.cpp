@@ -3,6 +3,7 @@
 
 #include "Shark/Core/Project.h"
 #include "Shark/Core/Application.h"
+#include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Render/Renderer.h"
@@ -138,6 +139,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Text Renderer", TextRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Mesh Renderer", MeshComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Point Light", PointLightComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Directional Light", DirectionalLightComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Sky", SkyComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Camera", CameraComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Rigidbody 2D", RigidBody2DComponent));
@@ -148,6 +150,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Prismatic Joint 2D", PrismaticJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
+		#undef COMPONENT_DATA_ARGS
 
 		m_MaterialEditor = Scope<MaterialEditor>::Create();
 		m_MaterialEditor->SetName("Material");
@@ -487,13 +490,10 @@ namespace Shark {
 			}
 
 			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(comp.Mesh);
-			Ref<MeshSource> meshSource = mesh->GetMeshSource();
-			const auto& submeshes = meshSource->GetSubmeshes();
-			const auto& submesh = submeshes[comp.SubmeshIndex];
 
 			{
-				UI::ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly, meshSource->GetSubmeshes().size() == 1);
-				UI::Control("Submesh Index", comp.SubmeshIndex, 0.05f, 0, meshSource->GetSubmeshes().size() - 1, nullptr, ImGuiSliderFlags_AlwaysClamp);
+				UI::ScopedDisabled readOnly(true);
+				UI::Property("Submesh Index", comp.SubmeshIndex);
 			}
 
 			if (UI::ControlAsset("Material", AssetType::Material, comp.Material))
@@ -510,13 +510,21 @@ namespace Shark {
 		DrawComponet<PointLightComponent>(entity, "Point Light", [](PointLightComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::ControlColor("Color", comp.Color);
+			UI::ControlColor("Radiance", comp.Radiance);
 			UI::Control("Intensity", comp.Intensity, 0.05f, 0.0f, FLT_MAX);
 			UI::Control("Radius", comp.Radius, 0.05f, 0.0f, FLT_MAX);
 			UI::Control("Falloff", comp.Falloff, 0.05f, 0.0f, FLT_MAX);
 			UI::EndControls();
 		});
 		
+		DrawComponet<DirectionalLightComponent>(entity, "Directional Light", [](DirectionalLightComponent& comp, Entity entity)
+		{
+			UI::BeginControlsGrid();
+			UI::ControlColor("Radiance", comp.Radiance);
+			UI::Control("Intensity", comp.Intensity, 0.005f, 0.0f, FLT_MAX);
+			UI::EndControls();
+		});
+
 		DrawComponet<SkyComponent>(entity, "Sky", [](SkyComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
@@ -767,7 +775,13 @@ namespace Shark {
 								field.SetComponent(handle, scene->TryGetEntityByUUID(uuid));
 							break;
 						}
-
+						case ManagedFieldType::AssetHandle:
+						{
+							AssetHandle assetHandle = field.GetValue<AssetHandle>(handle);
+							if (UI::ControlAssetUnsave(name, assetHandle))
+								field.SetValue(handle, assetHandle);
+							break;
+						}
 					}
 				}
 				UI::EndControlsGrid();
@@ -823,6 +837,13 @@ namespace Shark {
 								storage->SetValue(uuid);
 							break;
 						}
+						case ManagedFieldType::AssetHandle:
+						{
+							AssetHandle assetHandle = storage->GetValue<AssetHandle>();
+							if (UI::ControlAssetUnsave(name, assetHandle))
+								storage->SetValue(assetHandle);
+							break;
+						}
 					}
 				}
 				UI::EndControlsGrid();
@@ -874,12 +895,12 @@ namespace Shark {
 
 				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(meshComp.Mesh);
 				SK_CORE_VERIFY(mesh);
-				Ref<MeshSource> meshSource = mesh->GetMeshSource();
+				Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource());
 
 				const auto& submesh = meshSource->GetSubmeshes()[meshComp.SubmeshIndex];
-				Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
+				Ref<MaterialAsset> material = meshSource->GetMaterials()[submesh.MaterialIndex];
 
-				m_MaterialEditor->SetMaterial(materialTable->GetMaterial(submesh.MaterialIndex));
+				m_MaterialEditor->SetMaterial(material->Handle);
 				m_MaterialEditor->SetReadonly(false);
 			}
 		}
@@ -901,6 +922,9 @@ namespace Shark {
 					Entity e = m_Context->CreateEntity("Camera");
 					e.AddComponent<CameraComponent>();
 					SelectEntity(e);
+
+					if (m_SnapToEditorCameraCallback)
+						m_SnapToEditorCameraCallback(e);
 				}
 				if (ImGui::BeginMenu("Geometry"))
 				{

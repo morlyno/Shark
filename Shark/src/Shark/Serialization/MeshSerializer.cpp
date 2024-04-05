@@ -2,6 +2,7 @@
 #include "MeshSerializer.h"
 
 #include "Shark/Core/Project.h"
+#include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Render/Mesh.h"
 #include "Shark/Render/MeshSource.h"
@@ -67,12 +68,9 @@ namespace Shark {
 
 	std::string MeshSerializer::SerializeToYAML(Ref<Mesh> mesh)
 	{
-		Ref<MeshSource> meshSource = mesh->GetMeshSource();
-		Ref<MaterialTable> materialTable = mesh->GetMaterialTable();
-
-		if (!meshSource || !materialTable)
+		if (!AssetManager::IsValidAssetHandle(mesh->GetMeshSource()))
 		{
-			m_ErrorMsg = "Invalid Mesh";
+			m_ErrorMsg = "Invalid MeshSource Handle";
 			return {};
 		}
 
@@ -80,7 +78,7 @@ namespace Shark {
 		out << YAML::BeginMap;
 		out << YAML::Key << "Mesh" << YAML::Value;
 		out << YAML::BeginMap;
-		out << YAML::Key << "MeshSource" << YAML::Value << mesh->GetMeshSource()->Handle;
+		out << YAML::Key << "MeshSource" << YAML::Value << mesh->GetMeshSource();
 		out << YAML::Key << "Submeshes" << YAML::Value << mesh->GetSubmeshes();
 		out << YAML::EndMap;
 		out << YAML::EndMap;
@@ -93,7 +91,7 @@ namespace Shark {
 		YAML::Node in = YAML::Load(filedata);
 		if (!in)
 		{
-			m_ErrorMsg = "Failed to load YAML!";
+			m_ErrorMsg = "Invalid YAML file!";
 			return false;
 		}
 
@@ -104,13 +102,8 @@ namespace Shark {
 			return false;
 		}
 
-		auto meshSource = meshNode["MeshSource"].as<AssetHandle>();
-		auto subMeshes = meshNode["Submeshes"].as<std::vector<uint32_t>>();
-
-		mesh->m_MeshSource = AssetManager::GetAsset<MeshSource>(meshSource);
-		mesh->m_Submeshes = std::move(subMeshes);
-		mesh->InitMaterials();
-
+		mesh->m_MeshSource = meshNode["MeshSource"].as<AssetHandle>();
+		mesh->m_Submeshes = meshNode["Submeshes"].as<std::vector<uint32_t>>();
 		return true;
 	}
 

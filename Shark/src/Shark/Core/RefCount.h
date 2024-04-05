@@ -287,6 +287,11 @@ namespace Shark {
 			return m_Instance;
 		}
 
+		T* operator->() const
+		{
+			return GetRef().operator->();
+		}
+
 		template<typename TTo>
 		Weak<TTo> As()
 		{

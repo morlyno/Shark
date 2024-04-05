@@ -1,13 +1,16 @@
 #pragma stage : vertex
 
-// begin_metadata
-// set u_SceneData RenderPass
-// end_metadata
+//   !!!   !!!   !!!   !!!   !!!
+// Out of date
+// Use Renderer2D_Quad.glsl instead
+//   !!!   !!!   !!!   !!!   !!!
 
-cbuffer u_SceneData : register(b0)
+struct Camera
 {
     matrix ViewProjection;
-}
+};
+
+[[vk::binding(0, 1)]] ConstantBuffer<Camera> u_Camera;
 
 struct VSIN
 {
@@ -32,7 +35,7 @@ struct VSOUT
 VSOUT main(VSIN vsin)
 {
     VSOUT vsout;
-    vsout.Pos = mul(ViewProjection, float4(vsin.Pos, 1.0f));
+    vsout.Pos = mul(u_Camera.ViewProjection, float4(vsin.Pos, 1.0f));
     vsout.Color = vsin.Color;
     vsout.TexCoord = vsin.TexCoord;
     vsout.TexIndex = vsin.TexIndex;
@@ -43,8 +46,8 @@ VSOUT main(VSIN vsin)
 
 #pragma stage : Pixel
 
-Texture2D g_Textures[16] : register(t0);
-SamplerState g_SamplerState[16];
+[[vk::binding(0, 0)]][[vk::combinedImageSampler]] Texture2D u_Textures[16];
+[[vk::binding(0, 0)]][[vk::combinedImageSampler]] SamplerState u_Samplers[16];
 
 struct PSIN
 {
@@ -67,22 +70,22 @@ PSOUT main(PSIN psin)
     
     switch (psin.TexIndex)
     {
-        case  0: psout.Color = g_Textures[ 0].Sample(g_SamplerState[ 0], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case  1: psout.Color = g_Textures[ 1].Sample(g_SamplerState[ 1], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case  2: psout.Color = g_Textures[ 2].Sample(g_SamplerState[ 2], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case  3: psout.Color = g_Textures[ 3].Sample(g_SamplerState[ 3], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case  4: psout.Color = g_Textures[ 4].Sample(g_SamplerState[ 4], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case  5: psout.Color = g_Textures[ 5].Sample(g_SamplerState[ 5], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case  6: psout.Color = g_Textures[ 6].Sample(g_SamplerState[ 6], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case  7: psout.Color = g_Textures[ 7].Sample(g_SamplerState[ 7], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case  8: psout.Color = g_Textures[ 8].Sample(g_SamplerState[ 8], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case  9: psout.Color = g_Textures[ 9].Sample(g_SamplerState[ 9], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 10: psout.Color = g_Textures[10].Sample(g_SamplerState[10], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 11: psout.Color = g_Textures[11].Sample(g_SamplerState[11], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 12: psout.Color = g_Textures[12].Sample(g_SamplerState[12], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 13: psout.Color = g_Textures[13].Sample(g_SamplerState[13], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 14: psout.Color = g_Textures[14].Sample(g_SamplerState[14], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
-        case 15: psout.Color = g_Textures[15].Sample(g_SamplerState[15], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  0: psout.Color = u_Textures[ 0].Sample(u_Samplers[ 0], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  1: psout.Color = u_Textures[ 1].Sample(u_Samplers[ 1], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  2: psout.Color = u_Textures[ 2].Sample(u_Samplers[ 2], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  3: psout.Color = u_Textures[ 3].Sample(u_Samplers[ 3], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  4: psout.Color = u_Textures[ 4].Sample(u_Samplers[ 4], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  5: psout.Color = u_Textures[ 5].Sample(u_Samplers[ 5], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  6: psout.Color = u_Textures[ 6].Sample(u_Samplers[ 6], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  7: psout.Color = u_Textures[ 7].Sample(u_Samplers[ 7], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  8: psout.Color = u_Textures[ 8].Sample(u_Samplers[ 8], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case  9: psout.Color = u_Textures[ 9].Sample(u_Samplers[ 9], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 10: psout.Color = u_Textures[10].Sample(u_Samplers[10], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 11: psout.Color = u_Textures[11].Sample(u_Samplers[11], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 12: psout.Color = u_Textures[12].Sample(u_Samplers[12], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 13: psout.Color = u_Textures[13].Sample(u_Samplers[13], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 14: psout.Color = u_Textures[14].Sample(u_Samplers[14], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
+        case 15: psout.Color = u_Textures[15].Sample(u_Samplers[15], psin.TexCoord * psin.TilingFactor) * psin.Color; break;
     }
     psout.ID = psin.ID;
     psout.Color = float4(psout.Color.xyz, 1.0f);
