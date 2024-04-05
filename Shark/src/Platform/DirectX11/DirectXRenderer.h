@@ -72,6 +72,7 @@ namespace Shark {
 		virtual uint32_t GetCurrentFrameIndex() const { return m_FrameIndex; }
 		virtual uint32_t RT_GetCurrentFrameIndex() const { return m_RTFrameIndex; }
 		virtual Ref<RenderCommandBuffer> GetCommandBuffer() const override { return m_ImmediateCommandBuffer; }
+		Ref<DirectXRenderCommandBuffer> GetDirectXCommandBuffer() const { return m_ImmediateCommandBuffer; }
 		ID3D11SamplerState* GetClampLinearSampler() const { return m_ClampLinearSampler; }
 
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }

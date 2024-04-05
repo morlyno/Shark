@@ -24,6 +24,7 @@ namespace Shark {
 		virtual void DeleteAsset(AssetHandle handle) override {}
 		virtual void DeleteMemoryAsset(AssetHandle handle) override {}
 
+		virtual bool EnsureAllCurrent() override { return false; }
 		virtual bool EnsureCurrent(AssetHandle handle) override { return false; };
 	};
 

@@ -58,6 +58,7 @@ namespace Shark {
 		virtual void DeleteAsset(AssetHandle handle) override;
 		virtual void DeleteMemoryAsset(AssetHandle handle) override;
 
+		virtual bool EnsureAllCurrent() override;
 		virtual bool EnsureCurrent(AssetHandle handle) override;
 
 		bool ImportMemoryAsset(AssetHandle handle, const std::string& directory, const std::string& filename);

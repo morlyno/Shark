@@ -23,6 +23,7 @@ namespace Shark {
 		static void DeleteAsset(AssetHandle handle) { return Project::GetActiveAssetManager()->DeleteAsset(handle); }
 		static void DeleteMemoryAsset(AssetHandle handle) { return Project::GetActiveAssetManager()->DeleteMemoryAsset(handle); }
 		
+		static bool EnsureAllCurrent() { return Project::GetActiveAssetManager()->EnsureAllCurrent(); }
 		static bool EnsureCurrent(AssetHandle handle) { return Project::GetActiveAssetManager()->EnsureCurrent(handle); }
 
 		template<typename TAsset>

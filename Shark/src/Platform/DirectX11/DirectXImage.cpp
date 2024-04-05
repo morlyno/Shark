@@ -253,20 +253,6 @@ namespace Shark {
 		context->UpdateSubresource(m_Info.Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * formatDataSize, 0);
 	}
 
-	Ref<Image2D> DirectXImage2D::RT_GetStorageImage()
-	{
-		auto storageImage = Image2D::Create();
-		auto& specification = storageImage->GetSpecification();
-		specification.Width = m_Specification.Width;
-		specification.Height = m_Specification.Height;
-		specification.Format = m_Specification.Format;
-		specification.MipLevels = m_Specification.MipLevels;
-		specification.Type = ImageType::Storage;
-		storageImage->RT_Invalidate();
-		Renderer::CopyImage(Renderer::GetCommandBuffer(), this, storageImage);
-		return storageImage;
-	}
-
 	bool DirectXImage2D::RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel)
 	{
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
@@ -289,6 +275,44 @@ namespace Shark {
 		ctx->Unmap(m_Info.Resource, 0);
 
 		return true;
+	}
+
+	void DirectXImage2D::RT_CopyToHostBuffer(Buffer& buffer)
+	{
+		auto renderer = DirectXRenderer::Get();
+		auto device = renderer->GetDevice();
+
+		D3D11_TEXTURE2D_DESC textureDesc{};
+		textureDesc.Width = m_Specification.Width;
+		textureDesc.Height = m_Specification.Height;
+		textureDesc.Format = DXImageUtils::ImageFormatToD3D11ForResource(m_Specification.Format);
+		textureDesc.MipLevels = m_Specification.MipLevels;
+		textureDesc.ArraySize = m_Specification.Layers;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Usage = D3D11_USAGE_STAGING;
+		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+		ID3D11Texture2D* staging;
+		DirectXAPI::CreateTexture2D(device, textureDesc, nullptr, staging);
+
+		ID3D11DeviceContext* context = renderer->GetDirectXCommandBuffer()->GetContext();
+
+		uint32_t mipCount = 1;
+		for (uint32_t mip = 0; mip < mipCount; mip++)
+		{
+			uint32_t subresource = D3D11CalcSubresource(mip, 0, mipCount); 
+			context->CopySubresourceRegion(staging, subresource, 0, 0, 0, m_Info.Resource, subresource, nullptr);
+		}
+
+		D3D11_MAPPED_SUBRESOURCE mapped;
+		context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped);
+		uint64_t bufferSize = m_Specification.Width * m_Specification.Height * ImageUtils::GetFormatDataSize(m_Specification.Format);
+		buffer.Allocate(bufferSize);
+		memcpy(buffer.Data, mapped.pData, bufferSize);
+		context->Unmap(staging, 0);
+
+		staging->Release();
 	}
 
 	void DirectXImage2D::RT_CreateUnorderAccessView(uint32_t mipSlice)

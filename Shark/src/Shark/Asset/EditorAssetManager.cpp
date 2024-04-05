@@ -199,6 +199,8 @@ namespace Shark {
 			return false;
 
 		AssetMetaData& metadata = GetMetadataInternal(handle);
+		if (metadata.IsMemoryAsset)
+			return false;
 
 		Ref<Asset> asset;
 		if (metadata.IsDataLoaded)
@@ -230,6 +232,8 @@ namespace Shark {
 				}
 			}
 		}
+
+		return metadata.IsDataLoaded;
 	}
 
 	void EditorAssetManager::DeleteAsset(AssetHandle handle)
@@ -250,6 +254,14 @@ namespace Shark {
 			m_LoadedAssets.erase(handle);
 			m_ImportedAssets.erase(handle);
 		}
+	}
+
+	bool EditorAssetManager::EnsureAllCurrent()
+	{
+		bool any = false;
+		for (const auto& [handle, asset] : m_LoadedAssets)
+			any |= EnsureCurrent(handle);
+		return any;
 	}
 
 	bool EditorAssetManager::EnsureCurrent(AssetHandle handle)

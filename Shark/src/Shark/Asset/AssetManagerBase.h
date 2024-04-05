@@ -25,6 +25,7 @@ namespace Shark {
 		virtual void DeleteAsset(AssetHandle handle) = 0;
 		virtual void DeleteMemoryAsset(AssetHandle handle) = 0;
 
+		virtual bool EnsureAllCurrent() = 0;
 		virtual bool EnsureCurrent(AssetHandle handle) = 0;
 	};
 

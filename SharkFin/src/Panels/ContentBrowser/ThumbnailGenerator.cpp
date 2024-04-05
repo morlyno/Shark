@@ -241,8 +241,6 @@ namespace Shark {
 		if (!AssetManager::IsValidAssetHandle(handle))
 			return nullptr;
 
-		AssetManager::EnsureCurrent(handle);
-
 		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
 
 		if (metadata.Type == AssetType::Texture)

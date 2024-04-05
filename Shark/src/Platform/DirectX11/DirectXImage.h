@@ -49,8 +49,8 @@ namespace Shark {
 		virtual void UploadImageData(Buffer buffer) override;
 		virtual void RT_UploadImageData(Buffer buffer) override;
 
-		virtual Ref<Image2D> RT_GetStorageImage() override;
 		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) override;
+		virtual void RT_CopyToHostBuffer(Buffer& buffer) override;
 
 		virtual RenderID GetViewID() const override { return m_Info.View; }
 		virtual ImageType GetType() const override { return m_Specification.Type; }

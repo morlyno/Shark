@@ -152,6 +152,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		AssetManager::EnsureAllCurrent();
+
 		m_TimeStep = ts;
 
 		if (m_ActiveScene->IsFlagSet(AssetFlag::Invalid))
