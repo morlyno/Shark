@@ -689,6 +689,9 @@ ImportedAssets:
   - Handle: 1732525536406419356
     Type: Environment
     FilePath: Environment/green_point_park_4k.hdr
+  - Handle: 12483558215650663622
+    Type: Environment
+    FilePath: Environment/kloofendal_48d_partly_cloudy_puresky_4k.hdr
   - Handle: 6481003888224515998
     Type: Environment
     FilePath: Environment/lenong_2_4k.hdr

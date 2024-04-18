@@ -41,7 +41,14 @@ namespace Shark {
 
 	void ThumbnailCache::Clear()
 	{
+		SK_CORE_WARN_TAG("ThumbnailCache", "In memory cache cleared");
 		m_Thumbnails.clear();
+	}
+
+	void ThumbnailCache::ClearDiscCache()
+	{
+		SK_CORE_WARN_TAG("ThumbnailCache", "Disc cache cleared");
+		FileSystem::RemoveAll(utils::GetCacheDirectory());
 	}
 
 	bool ThumbnailCache::HasThumbnail(AssetHandle assetHandle)
@@ -86,6 +93,7 @@ namespace Shark {
 	{
 		uint64_t lastWriteTime = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle).LastWriteTime;
 		m_Thumbnails[assetHandle] = { thumbnail, lastWriteTime };
+		SK_CORE_TRACE_TAG("ThumbnailCache", "Thumbnail set (Handle={}, Timestamp={})", assetHandle, lastWriteTime);
 
 		Renderer::Submit([=]()
 		{
@@ -95,6 +103,8 @@ namespace Shark {
 
 	void ThumbnailCache::WriteThumbnailToDisc(AssetHandle handle, Ref<Image2D> image, uint64_t lastWriteTime)
 	{
+		SK_CORE_INFO_TAG("ThumbnailCache", "Writing Thumbnail to disc (Handle={}, Timestamp={})", handle, lastWriteTime);
+
 		utils::CreateCacheDirectoryIfNeeded();
 		std::filesystem::path cacheFile = utils::GetThumbnailCacheFilepath(handle);
 
@@ -132,6 +142,9 @@ namespace Shark {
 		Ref<Image2D> image = Image2D::Create(specification);
 		image->UploadImageData(imageData);
 		m_Thumbnails[handle] = { image, header.Timestamp };
+
+		SK_CORE_INFO_TAG("ThumbnailCache", "Loaded Thumbnail from disc (Handle={}, Timestamp={}", handle, header.Timestamp);
+		return true;
 	}
 
 	uint64_t ThumbnailCache::ReadTimestampFromCache(AssetHandle handle)

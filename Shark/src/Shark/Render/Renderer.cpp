@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "Renderer.h"
 
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
@@ -12,6 +13,7 @@
 
 namespace Shark {
 
+	Ref<RendererContext> Renderer::s_RendererContext = nullptr;
 	Ref<RendererAPI> Renderer::s_RendererAPI = nullptr;
 
 	struct ShaderDependencies
@@ -27,6 +29,7 @@ namespace Shark {
 		Ref<Texture2D> m_WhiteTexture;
 		Ref<Texture2D> m_BlackTexture;
 		Ref<TextureCube> m_BlackTextureCube;
+		Ref<Environment> m_EmptyEnvironment;
 		Ref<Texture2D> m_BRDFLUTTexture;
 
 		std::unordered_map<uint64_t, ShaderDependencies> m_ShaderDependencies;
@@ -59,6 +62,7 @@ namespace Shark {
 		s_CommandQueue[0] = sknew RenderCommandQueue();
 		s_CommandQueue[1] = sknew RenderCommandQueue();
 
+		s_RendererContext = RendererContext::Create();
 		s_RendererAPI = RendererAPI::Create();
 
 		s_Data = sknew RendererData;
@@ -114,6 +118,8 @@ namespace Shark {
 			memset(imageData, 0, sizeof(imageData));
 			spec.Format = ImageFormat::RGBA32F;
 			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
+
+			s_Data->m_EmptyEnvironment = Ref<Environment>::Create(s_Data->m_BlackTextureCube, s_Data->m_BlackTextureCube);
 		}
 	}
 
@@ -125,7 +131,11 @@ namespace Shark {
 		s_Data->m_WhiteTexture = nullptr;
 		skdelete s_Data;
 
+		// Flush all normal commands befor shutdown
+		Renderer::WaitAndRender();
+
 		s_RendererAPI = nullptr;
+		s_RendererContext = nullptr;
 		Renderer::WaitAndRender();
 
 		skdelete s_CommandQueue[0];
@@ -218,6 +228,11 @@ namespace Shark {
 		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, meshSource, submeshIndex, material);
 	}
 
+	void Renderer::CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
+	{
+		s_RendererAPI->CopyImage(sourceImage, destinationImage);
+	}
+
 	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
 		s_RendererAPI->CopyImage(commandBuffer, sourceImage, destinationImage);
@@ -281,13 +296,7 @@ namespace Shark {
 
 	void Renderer::ReportLiveObejcts()
 	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: return;
-			case RendererAPIType::DirectX11: DirectXRenderer::ReportLiveObejcts(); return;
-		}
-
-		SK_CORE_ASSERT(false, "Unkown Renderer API");
+		s_RendererContext->ReportLiveObjects();
 	}
 
 	uint32_t Renderer::GetCurrentFrameIndex()
@@ -298,6 +307,11 @@ namespace Shark {
 	uint32_t Renderer::RT_GetCurrentFrameIndex()
 	{
 		return s_RendererAPI->RT_GetCurrentFrameIndex();
+	}
+
+	Ref<RendererContext> Renderer::GetRendererContext()
+	{
+		return s_RendererContext;
 	}
 
 	Ref<RendererAPI> Renderer::GetRendererAPI()
@@ -323,6 +337,11 @@ namespace Shark {
 	Ref<TextureCube> Renderer::GetBlackTextureCube()
 	{
 		return s_Data->m_BlackTextureCube;
+	}
+
+	Ref<Environment> Renderer::GetEmptyEnvironment()
+	{
+		return s_Data->m_EmptyEnvironment;
 	}
 
 	Ref<Texture2D> Renderer::GetBRDFLUTTexture()
@@ -357,6 +376,7 @@ namespace Shark {
 
 	RenderCommandQueue& Renderer::GetCommandQueue()
 	{
+		//SK_CORE_VERIFY(std::this_thread::get_id() == Application::Get().GetMainThreadID());
 		return *s_CommandQueue[s_CommandQueueSubmissionIndex];
 	}
 

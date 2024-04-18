@@ -3,6 +3,7 @@
 
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Core/Timer.h"
+#include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Input/Input.h"
@@ -111,6 +112,8 @@ namespace Shark {
 			SK_PROFILE_MAIN_FRAME();
 
 			Timer cpuTimer;
+
+			AssetManager::SyncWithAssetThread();
 
 			ProcessEvents();
 			ExecuteMainThreadQueue();
@@ -395,7 +398,7 @@ namespace Shark {
 
 			FileSystem::Shutdown();
 			Input::Shutdown();
-			Renderer::ReportLiveObejcts();
+			//Renderer::ReportLiveObejcts();
 			Platform::Shutdown();
 			Log::Shutdown();
 

@@ -36,12 +36,6 @@ namespace Shark {
 	class Log
 	{
 	public:
-		struct TagSettings
-		{
-			LogLevel Level = LogLevel::Trace;
-			bool Enabled = true;
-		};
-	public:
 		static void Initialize();
 		static void Shutdown();
 
@@ -52,8 +46,8 @@ namespace Shark {
 		static std::shared_ptr<spdlog::logger> GetClientLogger() { return s_Data->ClientLogger; }
 		static std::shared_ptr<spdlog::logger> GetConsoleLogger() { return s_Data->ConsoleLogger; }
 
-		static bool HasTag(std::string_view tag) { return s_Data->EnabledTags.contains(tag); }
-		static std::map<std::string_view, TagSettings>& GetTags() { return s_Data->EnabledTags; }
+		static bool HasTag(const std::string& tag) { return s_Data->EnabledTags.contains(tag); }
+		static std::map<std::string, LogLevel>& GetTags() { return s_Data->EnabledTags; }
 
 		template<typename... TArgs>
 		static void LogMessage(LoggerType loggerType, LogLevel level, std::string_view tag, fmt::format_string<TArgs...> fmt, TArgs&&... args);
@@ -71,7 +65,7 @@ namespace Shark {
 			std::shared_ptr<spdlog::logger> ClientLogger;
 			std::shared_ptr<spdlog::logger> ConsoleLogger;
 
-			std::map<std::string_view, TagSettings> EnabledTags;
+			std::map<std::string, LogLevel> EnabledTags;
 		};
 		static LogData* s_Data;
 
@@ -138,8 +132,8 @@ namespace Shark {
 	template<typename... TArgs>
 	void Log::LogMessage(LoggerType loggerType, LogLevel level, std::string_view tag, fmt::format_string<TArgs...> fmt, TArgs&&... args)
 	{
-		auto& setting = s_Data->EnabledTags[tag];
-		if (setting.Enabled && level >= setting.Level)
+		const LogLevel enabledLevel = s_Data->EnabledTags[(std::string)tag];
+		if (level >= enabledLevel)
 		{
 			auto logger = GetLogger(loggerType);
 			auto format = fmt::runtime(tag.empty() ? "{0}{1}" : "[{0}] {1}");
@@ -172,8 +166,8 @@ namespace Shark {
 	template<typename TFormat, typename... TArgs>
 	void Log::LogMessage(LoggerType loggerType, LogLevel level, std::string_view tag, const TFormat& fmt, TArgs&&... args)
 	{
-		auto& setting = s_Data->EnabledTags[tag];
-		if (setting.Enabled && level >= setting.Level)
+		const LogLevel enabledLevel = s_Data->EnabledTags[(std::string)tag];
+		if (level >= enabledLevel)
 		{
 			auto logger = GetLogger(loggerType);
 			auto format = fmt::runtime(tag.empty() ? "{0}{1}" : "[{0}] {1}");

@@ -234,6 +234,7 @@ namespace Shark {
 
 	void ContentBrowserPanel::Reload()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
 		ParseDirectories(m_BaseDirectory);
@@ -257,6 +258,8 @@ namespace Shark {
 
 	void ContentBrowserPanel::ParseDirectories(Ref<DirectoryInfo> directory)
 	{
+		SK_PROFILE_FUNCTION();
+
 		directory->SubDirectories.clear();
 		directory->Filenames.clear();
 
@@ -666,7 +669,11 @@ namespace Shark {
 
 			ImGui::SameLine();
 			if (UI::ImageButton("Clear Thumbnail Cache", Icons::ClearIcon, { buttonSizeNoFP }, ImGui::GetStyleColorVec4(ImGuiCol_Text)))
+			{
+				if (Input::IsKeyDown(KeyCode::LeftShift))
+					m_ThumbnailCache->ClearDiscCache();
 				m_ThumbnailCache->Clear();
+			}
 
 		}
 

@@ -2,7 +2,7 @@
 #include "DirectXPipeline.h"
 
 #include "Shark/Render/Renderer.h"
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXContext.h"
 
 namespace Shark {
 
@@ -124,7 +124,8 @@ namespace Shark {
 
 	void DirectXPipeline::RT_Init()
 	{
-		ID3D11Device* dev = DirectXRenderer::GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		m_Shader = m_Specification.Shader.As<DirectXShader>();
 		m_FrameBuffer = m_Specification.TargetFrameBuffer.As<DirectXFrameBuffer>();
@@ -135,7 +136,7 @@ namespace Shark {
 			desc.FillMode = m_Specification.WireFrame ? D3D11_FILL_WIREFRAME : D3D11_FILL_SOLID;
 			desc.CullMode = m_Specification.BackFaceCulling ? D3D11_CULL_BACK : D3D11_CULL_NONE;
 
-			SK_DX11_CALL(dev->CreateRasterizerState(&desc, &m_RasterizerState));
+			DX11_VERIFY(dxDevice->CreateRasterizerState(&desc, &m_RasterizerState));
 		}
 
 		// DepthStencil
@@ -145,7 +146,7 @@ namespace Shark {
 			desc.DepthWriteMask = m_Specification.WriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 			desc.DepthFunc = utils::ToD3D11Comparison(m_Specification.DepthOperator);
 
-			SK_DX11_CALL(dev->CreateDepthStencilState(&desc, &m_DepthStencilState));
+			DX11_VERIFY(dxDevice->CreateDepthStencilState(&desc, &m_DepthStencilState));
 		}
 
 		m_PrimitveTopology = utils::SharkPrimitveTopologyToD3D11(m_Specification.Primitve);
@@ -164,7 +165,7 @@ namespace Shark {
 			inputElements.emplace_back(inputElementDesc);
 		}
 		const auto& shaderBinaryWithInputSignature = m_Specification.Shader.As<DirectXShader>()->GetShaderBinaries().at(ShaderUtils::ShaderStage::Vertex);
-		SK_DX11_CALL(dev->CreateInputLayout(inputElements.data(), (UINT)inputElements.size(), shaderBinaryWithInputSignature.data(), shaderBinaryWithInputSignature.size(), &m_InputLayout));
+		DX11_VERIFY(dxDevice->CreateInputLayout(inputElements.data(), (UINT)inputElements.size(), shaderBinaryWithInputSignature.data(), shaderBinaryWithInputSignature.size(), &m_InputLayout));
 
 		const auto& reflectionData = m_Specification.Shader->GetReflectionData();
 		if (reflectionData.HasPushConstant)

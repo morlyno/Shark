@@ -259,6 +259,19 @@ namespace Shark {
 		return GetAsyncKeyState((int)button) & 0xff00;
 	}
 
+	void Platform::SetThreadName(std::thread& thread, const std::string& name)
+	{
+		std::wstring nameWide = String::ToWide(name);
+		WindowsUtils::SetThreadName(thread.native_handle(), nameWide);
+	}
+
+	void Platform::SetThreadName(const std::string& name)
+	{
+		HANDLE thread = GetCurrentThread();
+		std::wstring nameWide = String::ToWide(name);
+		WindowsUtils::SetThreadName(thread, nameWide);
+	}
+
 	bool Platform::Execute(ExectueVerb verb, const std::filesystem::path& executablePath, bool waitUntilFinished)
 	{
 		ExecuteSpecs specs;

@@ -73,7 +73,8 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Imported Assets", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			for (auto& [handle, metadata] : Project::GetActiveEditorAssetManager()->GetAssetMetadataMap())
+			auto& registry = Project::GetActiveEditorAssetManager()->GetAssetRegistry();
+			for (auto& [handle, metadata] : registry)
 			{
 				if (!IsAssetTypeEnabled(metadata.Type))
 					continue;

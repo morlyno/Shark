@@ -152,19 +152,16 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		AssetManager::EnsureAllCurrent();
-
 		m_TimeStep = ts;
 
 		if (m_ActiveScene->IsFlagSet(AssetFlag::Invalid))
 		{
-			Ref<Scene> scene = AssetManager::GetAsset<Scene>(m_ActiveScene->Handle);
-			if (scene)
+			AssetManager::GetAssetFuture(m_ActiveScene->Handle).OnReady([this](Ref<Asset> asset)
 			{
 				SK_CORE_INFO("Scene Reload Detected");
-				m_WorkScene = scene;
-				SetActiveScene(scene);
-			}
+				m_WorkScene = asset.As<Scene>();
+				SetActiveScene(m_WorkScene);
+			});
 		}
 
 		if (m_ActiveScene)
@@ -772,7 +769,7 @@ namespace Shark {
 					{
 						case AssetType::Scene:
 						{
-							LoadScene(handle);
+							LoadSceneAsync(handle);
 							break;
 						}
 						case AssetType::Texture:
@@ -785,11 +782,10 @@ namespace Shark {
 						}
 						case AssetType::Mesh:
 						{
-							Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(metadata.Handle);
-							if (mesh)
+							AssetManager::GetAssetFuture(handle).OnReady([this](Ref<Asset> asset)
 							{
-								InstantiateMesh(mesh, true);
-							}
+								InstantiateMesh(asset.As<Mesh>(), true);
+							});
 							break;
 						}
 						case AssetType::MeshSource:
@@ -926,7 +922,7 @@ namespace Shark {
 
 			if (selectEntity)
 			{
-				Renderer::CopyImage(Renderer::GetCommandBuffer(), m_SceneRenderer->GetIDImage(), m_MousePickingImage);
+				Renderer::CopyImage(m_SceneRenderer->GetIDImage(), m_MousePickingImage);
 
 				Renderer::Submit([this, x, y]()
 				{
@@ -970,12 +966,11 @@ namespace Shark {
 		{
 			auto& tags = Log::GetTags();
 			ImGui::Separator();
-			for (auto& [tag, data] : tags)
+			for (auto& [tag, level] : tags)
 			{
 				UI::BeginControlsGrid();
 				UI::Property("Tag", tag);
-				UI::ControlCombo("Level", (uint16_t&)data.Level, LogLevelStrings, (uint16_t)std::size(LogLevelStrings));
-				UI::Control("Enabled", data.Enabled);
+				UI::ControlCombo("Level", (uint16_t&)level, LogLevelStrings, (uint16_t)std::size(LogLevelStrings));
 				UI::EndControls();
 				ImGui::Separator();
 			}
@@ -1303,15 +1298,14 @@ namespace Shark {
 		m_EditorCamera.SetView(glm::vec3(0.0f), 10.0f, 0.0f, 0.0f);
 	}
 
-	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)
+	void EditorLayer::LoadSceneAsync(AssetHandle handle)
 	{
-		SK_PROFILE_FUNCTION();
-
-		auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(filePath);
-		if (!metadata.IsValid())
-			return false;
-
-		return LoadScene(metadata.Handle);
+		AssetManager::GetAssetFuture(handle).OnReady([this](Ref<Asset> asset)
+		{
+			m_WorkScene = asset.As<Scene>();
+			SetActiveScene(m_WorkScene);
+			m_EditorCamera.SetFlyView({ 30.0f, 20.0f, -30.0f }, 10.0f, -45.0f);
+		});
 	}
 
 	bool EditorLayer::LoadScene(AssetHandle handle)
@@ -1323,10 +1317,21 @@ namespace Shark {
 		{
 			m_WorkScene = scene;
 			SetActiveScene(scene);
-			m_EditorCamera.SetView(glm::vec3(0.0f), 10.0f, 0.0f, 0.0f);
+			m_EditorCamera.SetFlyView({ 30.0f, 20.0f, -30.0f }, 10.0f, -45.0f);
 			return true;
 		}
 		return false;
+	}
+
+	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)
+	{
+		SK_PROFILE_FUNCTION();
+
+		auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(filePath);
+		if (!metadata.IsValid())
+			return false;
+
+		return LoadScene(metadata.Handle);
 	}
 
 	bool EditorLayer::SaveScene()
@@ -1439,7 +1444,7 @@ namespace Shark {
 		m_ActiveScene = scene;
 		m_SceneRenderer->SetScene(scene);
 		m_PanelManager->SetContext(scene);
-		UpdateWindowTitle();
+		Application::Get().SubmitToMainThread([this]() { UpdateWindowTitle(); });
 	}
 
 	void EditorLayer::OpenProject()
@@ -1468,8 +1473,10 @@ namespace Shark {
 			ScriptEngine::LoadAssemblies(project->GetConfig().ScriptModulePath);
 			m_PanelManager->OnProjectChanged(project);
 
-			if (!LoadScene(project->GetConfig().StartupScene))
-				NewScene("Empty Fallback Scene");
+			//if (!LoadScene(project->GetConfig().StartupScene))
+			//	NewScene("Empty Fallback Scene");
+			NewScene("Empty Scene");
+			LoadSceneAsync(project->GetConfig().StartupScene);
 		}
 	}
 
@@ -1577,6 +1584,7 @@ namespace Shark {
 
 	void EditorLayer::UpdateWindowTitle()
 	{
+		SK_PROFILE_FUNCTION();
 		// Scene File name (Scene Name) - Editor Name - Platform - Renderer
 
 		std::string sceneFilePath;

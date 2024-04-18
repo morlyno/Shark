@@ -5,7 +5,8 @@
 #include "Shark/Render/Renderer.h"
 
 #include "Platform/DirectX11/DirectXAPI.h"
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXContext.h"
+#include "Platform/DirectX11/DirectXImGuiLayer.h"
 #include "Platform/Windows/WindowsUtils.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -43,8 +44,7 @@ namespace Shark {
 			return;
 		}
 
-		if (FAILED(hr))
-			DirectXRenderer::Get()->HandleError(hr);
+		DX11_VERIFY(hr);
 
 		auto& window = Application::Get().GetWindow();
 		if (window.GetWidth() != m_Specification.Width || window.GetHeight() != m_Specification.Height)
@@ -117,14 +117,14 @@ namespace Shark {
 			scd.Windowed = !fullscreen;
 			//scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 			scd.SwapEffect = instance->m_SwapEffect;
-			scd.Flags = 0;
+			scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
-			auto renderer = DirectXRenderer::Get();
-			auto factory = renderer->GetFactory();
-			auto device = renderer->GetDevice();
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
+			auto dxFactory = device->GetDirectXFactory();
 
 			IDXGISwapChain* swapchain = nullptr;
-			DirectXAPI::CreateSwapChain(factory, device, scd, swapchain);
+			DirectXAPI::CreateSwapChain(dxFactory, dxDevice, scd, swapchain);
 			instance->m_SwapChain = swapchain;
 		});
 
@@ -174,10 +174,9 @@ namespace Shark {
 		Ref<DirectXSwapChain> instance = this;
 		Renderer::Submit([instance, width, height, bufferCount = m_Specification.BufferCount]()
 		{
-			auto renderer = DirectXRenderer::Get();
-			renderer->RT_PrepareForSwapchainResize();
+			instance->RT_ReleaseImGuiDependencies();
 			instance->RT_ReleaseDependencies();
-			DX11_VERIFY(instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(instance->m_Format), 0));
+			DX11_VERIFY(instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(instance->m_Format), DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
 			instance->RT_InvalidateDependencies();
 		});
 	}
@@ -195,10 +194,9 @@ namespace Shark {
 		m_Specification.Width = width;
 		m_Specification.Height = height;
 
-		auto renderer = DirectXRenderer::Get();
-		renderer->RT_PrepareForSwapchainResize();
+		RT_ReleaseImGuiDependencies();
 		RT_ReleaseDependencies();
-		DX11_VERIFY(m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(m_Format), 0));
+		DX11_VERIFY(m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(m_Format), DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
 		RT_InvalidateDependencies();
 	}
 
@@ -309,6 +307,25 @@ namespace Shark {
 			specification.Width = m_Specification.Width;
 			specification.Height = m_Specification.Height;
 			framebuffer->RT_Invalidate();
+		}
+	}
+
+	void DirectXSwapChain::RT_ReleaseImGuiDependencies()
+	{
+		Application& app = Application::Get();
+		if (app.GetSpecification().EnableImGui)
+		{
+			DirectXImGuiLayer& imguiLayer = (DirectXImGuiLayer&)app.GetImGuiLayer();
+			Ref<DirectXRenderCommandBuffer> commandBuffer = imguiLayer.GetDirectXCommandBuffer();
+			commandBuffer->ReleaseCommandList();
+
+			ID3D11DeviceContext* context = commandBuffer->GetContext();
+			context->Flush();
+			context->ClearState();
+
+			ID3D11CommandList* commandList;
+			context->FinishCommandList(false, &commandList);
+			DirectXAPI::ReleaseObject(commandList);
 		}
 	}
 

@@ -22,7 +22,8 @@ project "Shark"
         fmt.Files,
         spdlog.Files,
         tracy.Files,
-        filewatch.Files
+        filewatch.Files,
+        magic_enum.Files
     }
 
     includedirs
@@ -44,6 +45,7 @@ project "Shark"
         "%{Assimp.IncludeDir}",
         "%{tracy.IncludeDir}",
         "%{filewatch.IncludeDir}",
+        "%{magic_enum.IncludeDir}"
     }
 
     defines

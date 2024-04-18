@@ -53,8 +53,8 @@ namespace Shark {
 		static bool IsKeyDown(KeyCode keyCode);
 		static bool IsMouseDown(MouseButton button);
 
-		static void SetThreadName(std::thread& thread, const std::wstring& name);
-		static void SetThreadName(const std::wstring& name);
+		static void SetThreadName(std::thread& thread, const std::string& name);
+		static void SetThreadName(const std::string& name);
 
 		static bool Execute(ExectueVerb verb, const std::filesystem::path& executablePath, bool waitUntilFinished = false);
 		static bool Execute(const ExecuteSpecs& specs);

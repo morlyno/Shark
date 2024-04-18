@@ -12,21 +12,6 @@
 #include <set>
 #include <d3d11.h>
 
-#define SK_DX11_CALL(call) { HRESULT hr = (call); if (FAILED(hr)) { auto renderer = ::Shark::DirectXRenderer::Get(); renderer->HandleError(hr); } }
-#define DX11_VERIFY(call_or_hresult)\
-{\
-	HRESULT _hresult = (call_or_hresult);\
-	if (FAILED(_hresult))\
-	{\
-		auto renderer = ::Shark::DirectXRenderer::Get();\
-		renderer->HandleError(_hresult);\
-	}\
-}
-
-#define SK_ENABLE_INFOQUEUE SK_ENABLE_VALIDATION
-
-struct IDXGIInfoQueue;
-
 namespace Shark {
 
 	class DirectXRenderer : public RendererAPI
@@ -58,6 +43,7 @@ namespace Shark {
 		virtual void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable) override;
 		virtual void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material) override;
 
+		virtual void CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
 		virtual void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
 		virtual void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
 
@@ -69,10 +55,9 @@ namespace Shark {
 
 		virtual TimeStep GetGPUTime() const override { return m_GPUTime; }
 
-		virtual uint32_t GetCurrentFrameIndex() const { return m_FrameIndex; }
-		virtual uint32_t RT_GetCurrentFrameIndex() const { return m_RTFrameIndex; }
-		virtual Ref<RenderCommandBuffer> GetCommandBuffer() const override { return m_ImmediateCommandBuffer; }
-		Ref<DirectXRenderCommandBuffer> GetDirectXCommandBuffer() const { return m_ImmediateCommandBuffer; }
+		virtual uint32_t GetCurrentFrameIndex() const override { return m_FrameIndex; }
+		virtual uint32_t RT_GetCurrentFrameIndex() const override { return m_RTFrameIndex; }
+		virtual Ref<RenderCommandBuffer> GetCommandBuffer() const override { return m_CommandBuffer; }
 		ID3D11SamplerState* GetClampLinearSampler() const { return m_ClampLinearSampler; }
 
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
@@ -84,12 +69,7 @@ namespace Shark {
 		uint64_t GetGPUFrequncy() const { return m_GPUFrequency; }
 		uint64_t HasValidFrequncy() const { return m_IsValidFrequency; }
 
-		void HandleError(HRESULT hr);
-
-		void RT_FlushInfoQueue();
 		void RT_PrepareForSwapchainResize();
-
-		static void ReportLiveObejcts();
 
 	private:
 		void RT_PrepareAndBindMaterial(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXMaterial> material);
@@ -100,32 +80,16 @@ namespace Shark {
 		void RT_BeginFrequencyQuery();
 		void RT_EndFrequencyQuery();
 
-		void RT_CreateDevice();
-		void RT_CreateInfoQueue();
+#if 0
 		void RT_FlushDXMessages();
-		static void RT_LogMessages(IDXGIInfoQueue* infoQueue);
-
-	public:
-		static Ref<DirectXRenderer>     Get()                  { return s_Instance; }
-		static ID3D11Device*            GetDevice()            { return s_Instance->m_Device; }
-		static ID3D11DeviceContext*     GetContext()           { return s_Instance->m_ImmediateContext; }
-		static IDXGIFactory*            GetFactory()           { return s_Instance->m_Factory; }
-		ID3D11Debug* GetDebug() { return m_Debug; }
+#endif
 
 	private:
-		static DirectXRenderer* s_Instance;
-
 		bool m_ResourceCreated = false;
 		uint32_t m_FrameIndex = (uint32_t)-1;
 		uint32_t m_RTFrameIndex = (uint32_t)-1;
 
-		IDXGIFactory* m_Factory = nullptr;
-		ID3D11Device* m_Device = nullptr;
-		ID3D11DeviceContext* m_ImmediateContext = nullptr;
-		ID3D11Debug* m_Debug = nullptr;
-		IDXGIInfoQueue* m_InfoQueue = nullptr;
-
-		Ref<DirectXRenderCommandBuffer> m_ImmediateCommandBuffer;
+		Ref<RenderCommandBuffer> m_CommandBuffer;
 
 		VertexLayout m_QuadVertexLayout;
 		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;

@@ -74,6 +74,8 @@ namespace Shark {
 
 	std::string MaterialSerializer::SerializeToYAML(Ref<MaterialAsset> material)
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Material" << YAML::Value;
@@ -96,6 +98,8 @@ namespace Shark {
 
 	bool MaterialSerializer::DeserializeFromYAML(Ref<MaterialAsset> material, const std::string& filedata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto rootNode = YAML::Load(filedata);
 		if (!rootNode)
 		{

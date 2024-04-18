@@ -8,3 +8,26 @@ Project:
     VelocityIterations: 8
     PositionIterations: 3
     FixedTimeStep: 0.00100000005
+  Log:
+    - Name: ""
+      Level: Trace
+    - Name: AssetManager
+      Level: Warn
+    - Name: AssetThread
+      Level: Warn
+    - Name: Core
+      Level: Trace
+    - Name: Filesystem
+      Level: Trace
+    - Name: Font
+      Level: Info
+    - Name: Renderer
+      Level: Trace
+    - Name: Scripting
+      Level: Error
+    - Name: Serialization
+      Level: Warn
+    - Name: ThumbnailCache
+      Level: Trace
+    - Name: Timer
+      Level: Trace

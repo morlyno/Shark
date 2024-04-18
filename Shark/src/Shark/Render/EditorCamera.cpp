@@ -36,10 +36,21 @@ namespace Shark {
 		UpdateProjection();
 	}
 
+	void EditorCamera::SetFlyView(const glm::vec3& position, float pitch, float yaw)
+	{
+		m_Position = position;
+		m_Pitch = glm::radians(pitch);
+		m_Yaw = glm::radians(yaw);
+		UpdateFocusPoint();
+		UpdateView();
+	}
+
 	void EditorCamera::OnUpdate(TimeStep ts, bool update)
 	{
 		glm::vec2 mousePos = Input::GetMousePosition();
 		glm::vec2 mouseDelta = mousePos - m_LastMousePos;
+		glm::vec2 mouseDeltaClmaped = glm::clamp(mouseDelta, glm::vec2(-50.0f), glm::vec2(50.0f));
+		
 		m_LastMousePos = mousePos;
 
 		m_Update = update;
@@ -73,7 +84,7 @@ namespace Shark {
 
 			bool viewChanged = direction != glm::vec3{ 0.0f, 0.0f, 0.0f };
 
-			const glm::vec2 rotation = mouseDelta * (m_RotateSpeed * ts);
+			const glm::vec2 rotation = mouseDeltaClmaped * (m_RotateSpeed * ts);
 			if (rotation.x != 0.0f || rotation.y != 0.0f)
 			{
 				Rotate(rotation);
@@ -85,13 +96,13 @@ namespace Shark {
 		}
 		else if (altDown)
 		{
-			mouseDelta *= 0.003f;
+			mouseDeltaClmaped *= 0.003f;
 			if (Input::IsMouseDown(MouseButton::Left))
-				OnMouseRotate(mouseDelta);
+				OnMouseRotate(mouseDeltaClmaped);
 			else if (Input::IsMouseDown(MouseButton::Right))
-				OnMouseZoom(mouseDelta);
+				OnMouseZoom(mouseDeltaClmaped);
 			else if (Input::IsMouseDown(MouseButton::Middle))
-				OnMouseMove(mouseDelta);
+				OnMouseMove(mouseDeltaClmaped);
 		}
 	}
 

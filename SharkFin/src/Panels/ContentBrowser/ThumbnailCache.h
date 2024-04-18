@@ -12,6 +12,8 @@ namespace Shark {
 		~ThumbnailCache();
 
 		void Clear();
+		void ClearDiscCache();
+
 		bool HasThumbnail(AssetHandle assetHandle);
 		bool IsThumbnailCurrent(AssetHandle assetHandle);
 		Ref<Image2D> GetThumbnail(AssetHandle assetHandle);

@@ -5,6 +5,7 @@
 #include "Shark/Debug/Profiler.h"
 
 #include "Platform/DirectX11/DirectXAPI.h"
+#include "Platform/DirectX11/DirectXContext.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
 #include "Platform/Windows/WindowsUtils.h"
@@ -14,15 +15,6 @@ namespace Shark {
 	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer()
 	{
 		CreateDeferredContext();
-		CreateQueries();
-	}
-
-	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer(CommandBufferType type, ID3D11DeviceContext* context)
-	{
-		m_Type = type;
-		m_Context = context;
-		m_Context->AddRef();
-
 		CreateQueries();
 	}
 
@@ -93,11 +85,8 @@ namespace Shark {
 			uint32_t index = Renderer::RT_GetCurrentFrameIndex() % instance->m_PipelineStatsQueries.size();
 			instance->m_Context->End(instance->m_PipelineStatsQueries[index]);
 
-			if (instance->m_Type == CommandBufferType::Deferred)
-			{
-				DirectXAPI::ReleaseObject(instance->m_CommandList);
-				SK_DX11_CALL(instance->m_Context->FinishCommandList(FALSE, &instance->m_CommandList));
-			}
+			DirectXAPI::ReleaseObject(instance->m_CommandList);
+			DX11_VERIFY(instance->m_Context->FinishCommandList(FALSE, &instance->m_CommandList));
 		});
 		m_Active = false;
 	}
@@ -107,18 +96,16 @@ namespace Shark {
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance]()
 		{
-			auto renderer = DirectXRenderer::Get();
-			ID3D11DeviceContext* immediateContext = renderer->GetContext();
+			auto device = DirectXContext::GetCurrentDevice();
 
-			if (instance->m_Type == CommandBufferType::Deferred)
-			{
-				immediateContext->ExecuteCommandList(instance->m_CommandList, FALSE);
-			}
+			std::scoped_lock lock(device->GetSubmissionMutex());
+			auto queue = device->GetQueue();
+			queue->ExecuteCommandList(instance->m_CommandList, FALSE);
 
 			const uint32_t getdataIndex = (Renderer::RT_GetCurrentFrameIndex() + 1) % (uint32_t)instance->m_PipelineStatsQueries.size();
 
 			D3D11_QUERY_DATA_PIPELINE_STATISTICS stats;
-			HRESULT hr = immediateContext->GetData(instance->m_PipelineStatsQueries[getdataIndex], &stats, sizeof(D3D11_QUERY_DATA_PIPELINE_STATISTICS), 0);
+			HRESULT hr = queue->GetData(instance->m_PipelineStatsQueries[getdataIndex], &stats, sizeof(D3D11_QUERY_DATA_PIPELINE_STATISTICS), 0);
 			if (hr == S_OK)
 			{
 				instance->m_PipelineStatistics.InputAssemblerVertices = stats.IAVertices;
@@ -130,6 +117,8 @@ namespace Shark {
 				instance->m_PipelineStatistics.RasterizerPrimitives = stats.CPrimitives;
 			}
 
+			const uint64_t gpuFrequency = Renderer::GetRendererAPI().As<DirectXRenderer>()->GetGPUFrequncy();
+
 			const uint32_t count = instance->m_TimestampQueryCount[getdataIndex];
 			instance->m_TimestampQueryResults[getdataIndex].resize(count);
 			for (uint32_t index = 0; index < count; index++)
@@ -137,8 +126,8 @@ namespace Shark {
 				auto& [startQuery, endQuery] = instance->m_TimestampQueryPools[getdataIndex][index];
 				HRESULT hrStart, hrEnd;
 				uint64_t startTime, endTime;
-				hrStart = immediateContext->GetData(startQuery, &startTime, sizeof(uint64_t), 0);
-				hrEnd = immediateContext->GetData(endQuery, &endTime, sizeof(uint64_t), 0);
+				hrStart = queue->GetData(startQuery, &startTime, sizeof(uint64_t), 0);
+				hrEnd = queue->GetData(endQuery, &endTime, sizeof(uint64_t), 0);
 
 				uint64_t sTime = 0.0f;
 				if (hrStart == S_OK && hrEnd == S_OK)
@@ -146,7 +135,7 @@ namespace Shark {
 					sTime = endTime - startTime;
 				}
 
-				instance->m_TimestampQueryResults[getdataIndex][index] = (float)sTime / renderer->GetGPUFrequncy();
+				instance->m_TimestampQueryResults[getdataIndex][index] = (float)sTime / gpuFrequency;
 			}
 		});
 	}
@@ -168,11 +157,13 @@ namespace Shark {
 		const uint32_t queryIndex = m_NextAvailableQueryIndex++;
 		if (m_TimestampQueryPools[poolIndex].size() == queryIndex)
 		{
-			auto device = DirectXRenderer::Get()->GetDevice();
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
+
 			ID3D11Query* startQuery = nullptr;
 			ID3D11Query* endQuery = nullptr;
-			DirectXAPI::CreateQuery(device, D3D11_QUERY_TIMESTAMP, startQuery);
-			DirectXAPI::CreateQuery(device, D3D11_QUERY_TIMESTAMP, endQuery);
+			DirectXAPI::CreateQuery(dxDevice, D3D11_QUERY_TIMESTAMP, startQuery);
+			DirectXAPI::CreateQuery(dxDevice, D3D11_QUERY_TIMESTAMP, endQuery);
 			m_TimestampQueryPools[poolIndex].emplace_back(startQuery, endQuery);
 		}
 
@@ -198,19 +189,21 @@ namespace Shark {
 
 	void DirectXRenderCommandBuffer::CreateQueries()
 	{
-		ID3D11Device* device = DirectXRenderer::Get()->GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		D3D11_QUERY_DESC desc = {};
 		desc.Query = D3D11_QUERY_PIPELINE_STATISTICS;
 		for (uint32_t i = 0; i < m_PipelineStatsQueries.size(); i++)
-			device->CreateQuery(&desc, &m_PipelineStatsQueries[i]);
+			dxDevice->CreateQuery(&desc, &m_PipelineStatsQueries[i]);
 	}
 
 	void DirectXRenderCommandBuffer::CreateDeferredContext()
 	{
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		ID3D11Device* device = renderer->GetDevice();
-		DirectXAPI::CreateDeferredContext(device, m_Context);
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
+
+		DirectXAPI::CreateDeferredContext(dxDevice, m_Context);
 	}
 
 	DirectXRenderCommandBuffer::TimeQuery DirectXRenderCommandBuffer::GetNextAvailableTimeQuery(uint32_t& outID)
@@ -218,11 +211,13 @@ namespace Shark {
 		const uint32_t index = Renderer::GetCurrentFrameIndex() % m_TimestampQueryPools.size();
 		if (m_TimestampQueryPools[index].size() == m_NextAvailableQueryIndex)
 		{
-			auto device = DirectXRenderer::Get()->GetDevice();
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
+
 			ID3D11Query* startQuery = nullptr;
 			ID3D11Query* endQuery = nullptr;
-			DirectXAPI::CreateQuery(device, D3D11_QUERY_TIMESTAMP, startQuery);
-			DirectXAPI::CreateQuery(device, D3D11_QUERY_TIMESTAMP, endQuery);
+			DirectXAPI::CreateQuery(dxDevice, D3D11_QUERY_TIMESTAMP, startQuery);
+			DirectXAPI::CreateQuery(dxDevice, D3D11_QUERY_TIMESTAMP, endQuery);
 			m_TimestampQueryPools[index].emplace_back(startQuery, endQuery);
 		}
 

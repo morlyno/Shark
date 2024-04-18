@@ -2,7 +2,8 @@
 #include "DirectXBuffers.h"
 
 #include "Shark/Render/Renderer.h"
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXAPI.h"
+#include "Platform/DirectX11/DirectXContext.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -109,16 +110,12 @@ namespace Shark {
 		SK_CORE_VERIFY(!m_Mapped);
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
-		auto context = DirectXRenderer::GetContext();
-		D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-		HRESULT result = context->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-		if (FAILED(result))
-		{
-			DirectXRenderer::Get()->HandleError(result);
-			return false;
-		}
+		auto device = DirectXContext::GetCurrentDevice();
+		
+		void* mappedMemory = nullptr;
+		device->MapMemory(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, mappedMemory);
 
-		m_WritableBuffer.Data = (byte*)mappedSubresource.pData;
+		m_WritableBuffer.Data = (byte*)mappedMemory;
 		m_WritableBuffer.Size = m_Size;
 		m_Mapped = true;
 		return true;
@@ -129,8 +126,9 @@ namespace Shark {
 		SK_CORE_VERIFY(m_Mapped);
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 
-		auto context = DirectXRenderer::GetContext();
-		context->Unmap(m_VertexBuffer, 0);
+		auto device = DirectXContext::GetCurrentDevice();
+
+		device->UnmapMemory(m_VertexBuffer, 0);
 		m_Mapped = false;
 
 		m_WritableBuffer = Buffer{};
@@ -163,12 +161,12 @@ namespace Shark {
 
 		if (m_Dynamic && vertexData.Size <= m_Size)
 		{
-			auto ctx = DirectXRenderer::GetContext();
+			auto device = DirectXContext::GetCurrentDevice();
 
-			D3D11_MAPPED_SUBRESOURCE ms;
-			SK_DX11_CALL(ctx->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-			memcpy(ms.pData, vertexData.Data, vertexData.Size);
-			ctx->Unmap(m_VertexBuffer, 0);
+			void* mappedMemory = nullptr;
+			device->MapMemory(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, mappedMemory);
+			memcpy(mappedMemory, vertexData.Data, vertexData.Size);
+			device->UnmapMemory(m_VertexBuffer, 0);
 		}
 	}
 
@@ -179,7 +177,8 @@ namespace Shark {
 
 		RT_Release();
 
-		auto device = DirectXRenderer::GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		m_Size = size;
 		m_Dynamic = dynamic;
@@ -197,11 +196,11 @@ namespace Shark {
 			D3D11_SUBRESOURCE_DATA srd = {};
 			srd.pSysMem = vertexData.Data;
 
-			SK_DX11_CALL(device->CreateBuffer(&bd, &srd, &m_VertexBuffer));
+			DirectXAPI::CreateBuffer(dxDevice, bd, &srd, m_VertexBuffer);
 		}
 		else
 		{
-			SK_DX11_CALL(device->CreateBuffer(&bd, nullptr, &m_VertexBuffer));
+			DirectXAPI::CreateBuffer(dxDevice, bd, nullptr, m_VertexBuffer);
 		}
 	}
 
@@ -286,17 +285,12 @@ namespace Shark {
 
 		if (m_Dynamic)
 		{
-			auto context = DirectXRenderer::GetContext();
-			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-			HRESULT result = context->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-			if (FAILED(result))
-			{
-				DirectXRenderer::Get()->HandleError(result);
-				return {};
-			}
+			auto device = DirectXContext::GetCurrentDevice();
+			void* mappedMemory = nullptr;
+			device->MapMemory(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, mappedMemory);
 
 			Buffer writableBuffer;
-			writableBuffer.Data = (byte*)mappedSubresource.pData;
+			writableBuffer.Data = (byte*)mappedMemory;
 			writableBuffer.Size = m_Count * sizeof(Index);
 			m_Mapped = true;
 			return writableBuffer;
@@ -311,8 +305,8 @@ namespace Shark {
 
 		if (m_Mapped)
 		{
-			auto context = DirectXRenderer::GetContext();
-			context->Unmap(m_IndexBuffer, 0);
+			auto device = DirectXContext::GetCurrentDevice();
+			device->UnmapMemory(m_IndexBuffer, 0);
 		}
 	}
 
@@ -348,12 +342,12 @@ namespace Shark {
 		SK_CORE_ASSERT(newIndexCount == m_Count, "I think the count should be the same");
 		if (m_Dynamic && newIndexCount <= m_Count)
 		{
-			auto ctx = DirectXRenderer::GetContext();
+			auto device = DirectXContext::GetCurrentDevice();
 
-			D3D11_MAPPED_SUBRESOURCE mappedSubresouce;
-			SK_DX11_CALL(ctx->Map(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresouce));
-			memcpy(mappedSubresouce.pData, indexData.Data, indexData.Size);
-			ctx->Unmap(m_IndexBuffer, 0);
+			void* mappedMemory = nullptr;
+			device->MapMemory(m_IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, mappedMemory);
+			memcpy(mappedMemory, indexData.Data, indexData.Size);
+			device->UnmapMemory(m_IndexBuffer, 0);
 		}
 	}
 
@@ -363,6 +357,9 @@ namespace Shark {
 		SK_CORE_VERIFY(dynamic || indexData);
 
 		RT_Release();
+
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		m_Count = count;
 		m_Dynamic = dynamic;
@@ -380,11 +377,11 @@ namespace Shark {
 			D3D11_SUBRESOURCE_DATA subresourceData = {};
 			subresourceData.pSysMem = indexData.Data;
 
-			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bufferDesc, &subresourceData, &m_IndexBuffer));
+			DirectXAPI::CreateBuffer(dxDevice, bufferDesc, &subresourceData, m_IndexBuffer);
 		}
 		else
 		{
-			SK_DX11_CALL(DirectXRenderer::GetDevice()->CreateBuffer(&bufferDesc, nullptr, &m_IndexBuffer));
+			DirectXAPI::CreateBuffer(dxDevice, bufferDesc, nullptr, m_IndexBuffer);
 		}
 	}
 

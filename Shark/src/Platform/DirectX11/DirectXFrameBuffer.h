@@ -55,5 +55,6 @@ namespace Shark {
 
 		friend class DirectXRenderer;
 		friend class DirectXSwapChain;
+		friend class DirectXImGuiLayer;
 	};
 }

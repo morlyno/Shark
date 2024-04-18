@@ -39,6 +39,8 @@ namespace Shark {
 		virtual void AddImage(Ref<Image2D> image) override;
 		virtual void BindFontSampler() override;
 
+		Ref<DirectXRenderCommandBuffer> GetDirectXCommandBuffer() const { return m_CommandBuffer; }
+
 	private:
 		bool m_BlockEvents = false;
 		bool m_InFrame = false;

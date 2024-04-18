@@ -28,7 +28,6 @@ namespace Shark {
 		float GetViewporWidth() const { return m_ViewportSize.x; }
 		float GetViewportHeight() const { return m_ViewportSize.y; }
 
-		
 		void SetAspectRatio(float aspectratio) { m_AspectRatio = aspectratio; UpdateProjection(); }
 		void SetFOV(float fov) { m_FOV = glm::radians(fov); UpdateProjection(); }
 		void SetFarClip(float farClip) { m_FarClip = farClip; UpdateProjection(); }
@@ -40,6 +39,7 @@ namespace Shark {
 		float GetNearClip() const { return m_NearClip; }
 
 
+		void SetFlyView(const glm::vec3& position, float pitch, float yaw);
 		void SetView(const glm::vec3& focuspoint, float distance, float pitch, float yaw) { m_FocusPoint = focuspoint; m_Distance = distance; m_Pitch = pitch; m_Yaw = yaw; UpdatePosition(); UpdateView(); }
 		void SetFocusPoint(const glm::vec3& focuspoint) { m_FocusPoint = focuspoint; UpdatePosition(); UpdateView(); }
 		void SetDistance(float distance) { m_Distance = distance; UpdatePosition(); UpdateView(); }

@@ -36,9 +36,11 @@ namespace Shark {
 
 		const ImVec2 textureSize = { 64, 64 };
 
-		Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(m_MaterialHandle);
-		if (!material)
+		AsyncLoadResult materialResult = AssetManager::GetAssetAsync<MaterialAsset>(m_MaterialHandle);
+		if (!materialResult)
 			return;
+
+		Ref<MaterialAsset> material = materialResult;
 
 		UI::TextF("Shader: {}", material->GetMaterial()->GetShader()->GetName());
 		UI::TextF("Name: {}", material->GetMaterial()->GetName());
@@ -48,12 +50,11 @@ namespace Shark {
 		if (ImGui::CollapsingHeader("Albedo", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			bool hasTexture = true;
-			Ref<Texture2D> displayTexture = AssetManager::GetAsset<Texture2D>(material->GetAlbedoMap());
-			SK_CORE_ASSERT(displayTexture);
-			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
+			Ref<Texture2D> displayTexture = AssetManager::GetAssetAsync<Texture2D>(material->GetAlbedoMap());
+			if (!displayTexture)
 			{
 				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
-				displayTexture = AssetManager::GetAsset<Texture2D>(handle);
+				displayTexture = AssetManager::GetAssetAsync<Texture2D>(handle);
 				hasTexture = false;
 			}
 
@@ -76,12 +77,11 @@ namespace Shark {
 		if (ImGui::CollapsingHeader("Normal", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			bool hasTexture = true;
-			Ref<Texture2D> displayTexture = AssetManager::GetAsset<Texture2D>(material->GetNormalMap());
-			SK_CORE_ASSERT(displayTexture);
-			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
+			Ref<Texture2D> displayTexture = AssetManager::GetAssetAsync<Texture2D>(material->GetNormalMap());
+			if (!displayTexture)
 			{
 				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
-				displayTexture = AssetManager::GetAsset<Texture2D>(handle);
+				displayTexture = AssetManager::GetAssetAsync<Texture2D>(handle);
 				hasTexture = false;
 			}
 
@@ -108,12 +108,11 @@ namespace Shark {
 		if (ImGui::CollapsingHeader("Metalness", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			bool hasTexture = true;
-			Ref<Texture2D> displayTexture = AssetManager::GetAsset<Texture2D>(material->GetMetalnessMap());
-			SK_CORE_ASSERT(displayTexture);
-			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
+			Ref<Texture2D> displayTexture = AssetManager::GetAssetAsync<Texture2D>(material->GetMetalnessMap());
+			if (!displayTexture)
 			{
 				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
-				displayTexture = AssetManager::GetAsset<Texture2D>(handle);
+				displayTexture = AssetManager::GetAssetAsync<Texture2D>(handle);
 				hasTexture = false;
 			}
 
@@ -136,12 +135,11 @@ namespace Shark {
 		if (ImGui::CollapsingHeader("Roughness", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			bool hasTexture = true;
-			Ref<Texture2D> displayTexture = AssetManager::GetAsset<Texture2D>(material->GetRoughnessMap());
-			SK_CORE_ASSERT(displayTexture);
-			if (!displayTexture || displayTexture == Renderer::GetWhiteTexture())
+			Ref<Texture2D> displayTexture = AssetManager::GetAssetAsync<Texture2D>(material->GetRoughnessMap());
+			if (!displayTexture)
 			{
 				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
-				displayTexture = AssetManager::GetAsset<Texture2D>(handle);
+				displayTexture = AssetManager::GetAssetAsync<Texture2D>(handle);
 				hasTexture = false;
 			}
 

@@ -10,7 +10,7 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXAPI.h"
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXContext.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -97,8 +97,11 @@ namespace Shark {
 		{
 			Window& window = Application::Get().GetWindow();
 
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
+
 			ID3D11DeviceContext* context = instance->m_CommandBuffer->GetContext();
-			ImGui_ImplDX11_Init(DirectXRenderer::GetDevice(), context);
+			ImGui_ImplDX11_Init(dxDevice, context);
 			ImGui_ImplDX11_CreateDeviceObjects();
 			ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, context);
 			context->PSGetSamplers(0, 1, &instance->m_ImGuiFontSampler);
@@ -176,8 +179,12 @@ namespace Shark {
 		{
 			SK_PROFILE_SCOPED("DirectXImGuiLayer::End [RenderDrawData]");
 
-			Ref<DirectXFrameBuffer> swapchainFrameBuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
-			DirectXRenderer::Get()->BindFrameBuffer(m_CommandBuffer->GetContext(), swapchainFrameBuffer);
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
+			auto context = m_CommandBuffer->GetContext();
+
+			Ref<DirectXFrameBuffer> framebuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
+			context->OMSetRenderTargets(framebuffer->m_Count, framebuffer->m_FrameBuffers.data(), framebuffer->m_DepthStencil);
 
 			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 			m_ImageMap.clear();

@@ -107,8 +107,9 @@ namespace Shark {
 		Ref<SceneRenderer> m_Renderer;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
 
-		Entity m_SkyLight;
+		bool m_Ready = false;
 
+		Entity m_SkyLight;
 		std::map<AssetType, Scope<AssetThumbnailGenerator>> m_AssetThumbnailGenerators;
 	};
 

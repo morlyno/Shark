@@ -3,8 +3,8 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Debug/Profiler.h"
-#include "Platform/DirectX11/DirectXRenderer.h"
 #include "Platform/DirectX11/DirectXAPI.h"
+#include "Platform/DirectX11/DirectXContext.h"
 
 namespace Shark {
 
@@ -174,8 +174,8 @@ namespace Shark {
 			Ref<DirectXFrameBuffer> instance = this;
 			Renderer::Submit([instance, format = atachment.Format, image]()
 			{
-				auto renderer = DirectXRenderer::Get();
-				ID3D11Device* device = renderer->GetDevice();
+				auto device = DirectXContext::GetCurrentDevice();
+				auto dxDevice = device->GetDirectXDevice();
 
 				D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
 				viewDesc.Format = utils::FBAtachmentToDXGIFormat(format);
@@ -183,7 +183,7 @@ namespace Shark {
 				viewDesc.Texture2D.MipSlice = 0;
 
 				ID3D11RenderTargetView* view = nullptr;
-				DirectXAPI::CreateRenderTargetView(device, image->GetDirectXImageInfo().Resource, viewDesc, view);
+				DirectXAPI::CreateRenderTargetView(dxDevice, image->GetDirectXImageInfo().Resource, viewDesc, view);
 				D3D_SET_OBJECT_NAME_A(view, instance->m_Specification.DebugName.c_str());
 				instance->m_FrameBuffers.push_back(view);
 			});
@@ -220,9 +220,9 @@ namespace Shark {
 				desc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 			}
 
-			auto renderer = DirectXRenderer::Get();
-			ID3D11Device* device = renderer->GetDevice();
-			DirectXAPI::CreateBlendState(device, bd, instance->m_BlendState);
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
+			DirectXAPI::CreateBlendState(dxDevice, bd, instance->m_BlendState);
 
 			instance->RT_SetViewport(width, height);
 			instance->m_Count = (uint32_t)instance->m_FrameBuffers.size();
@@ -236,8 +236,8 @@ namespace Shark {
 	{
 		SK_CORE_VERIFY(m_Specification.ClearOnLoad == false, "ClearOnLoad not implemented");
 
-		auto renderer = DirectXRenderer::Get();
-		ID3D11Device* device = renderer->GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		Release();
 
@@ -303,7 +303,7 @@ namespace Shark {
 			viewDesc.Texture2D.MipSlice = 0;
 
 			ID3D11RenderTargetView* view = nullptr;
-			DirectXAPI::CreateRenderTargetView(device, m_Images[imageIndex++]->GetDirectXImageInfo().Resource, viewDesc, view);
+			DirectXAPI::CreateRenderTargetView(dxDevice, m_Images[imageIndex++]->GetDirectXImageInfo().Resource, viewDesc, view);
 			m_FrameBuffers.push_back(view);
 		}
 
@@ -331,7 +331,7 @@ namespace Shark {
 			desc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		}
 
-		DirectXAPI::CreateBlendState(device, bd, m_BlendState);
+		DirectXAPI::CreateBlendState(dxDevice, bd, m_BlendState);
 
 		RT_SetViewport(m_Specification.Width, m_Specification.Height);
 		m_Count = (uint32_t)m_FrameBuffers.size();
@@ -361,8 +361,8 @@ namespace Shark {
 
 			Renderer::Submit([instance, format = atachment.Format, image, index = i]()
 			{
-				auto renderer = DirectXRenderer::Get();
-				ID3D11Device* device = renderer->GetDevice();
+				auto device = DirectXContext::GetCurrentDevice();
+				auto dxDevice = device->GetDirectXDevice();
 
 				D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
 				viewDesc.Format = utils::FBAtachmentToDXGIFormat(format);
@@ -370,7 +370,7 @@ namespace Shark {
 				viewDesc.Texture2D.MipSlice = 0;
 
 				ID3D11RenderTargetView* view = nullptr;
-				DirectXAPI::CreateRenderTargetView(device, image->GetDirectXImageInfo().Resource, viewDesc, view);
+				DirectXAPI::CreateRenderTargetView(dxDevice, image->GetDirectXImageInfo().Resource, viewDesc, view);
 
 				if (auto framebuffer = instance->m_FrameBuffers[index])
 					framebuffer->Release();
@@ -436,8 +436,8 @@ namespace Shark {
 		const FrameBufferAtachment& atachment = m_Specification.Atachments[atachmentIndex];
 		Ref<DirectXImage2D> image = m_Images[atachmentIndex];
 
-		auto renderer = DirectXRenderer::Get();
-		ID3D11Device* device = renderer->GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
 		viewDesc.Format = utils::FBAtachmentToDXGIFormat(atachment.Format);
@@ -445,7 +445,7 @@ namespace Shark {
 		viewDesc.Texture2D.MipSlice = 0;
 
 		ID3D11RenderTargetView* view = nullptr;
-		DirectXAPI::CreateRenderTargetView(device, image->GetDirectXImageInfo().Resource, viewDesc, view);
+		DirectXAPI::CreateRenderTargetView(dxDevice, image->GetDirectXImageInfo().Resource, viewDesc, view);
 		D3D_SET_OBJECT_NAME_A(view, m_Specification.DebugName.c_str());
 		
 		if (atachmentIndex >= m_FrameBuffers.size())
@@ -457,8 +457,8 @@ namespace Shark {
 
 	void DirectXFrameBuffer::RT_CreateDepthStencilAtachment(ImageFormat format, Ref<DirectXImage2D> depthImage)
 	{
-		auto renderer = DirectXRenderer::Get();
-		ID3D11Device* device = renderer->GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
 		viewDesc.Format = utils::FBAtachmentToDXGIFormat(format);
@@ -467,7 +467,7 @@ namespace Shark {
 		viewDesc.Flags = 0;
 
 		ID3D11DepthStencilView* view = nullptr;
-		DirectXAPI::CreateDepthStencilView(device, depthImage->GetDirectXImageInfo().Resource, viewDesc, view);
+		DirectXAPI::CreateDepthStencilView(dxDevice, depthImage->GetDirectXImageInfo().Resource, viewDesc, view);
 		D3D_SET_OBJECT_NAME_A(view, m_Specification.DebugName.c_str());
 		m_DepthStencil = view;
 	}

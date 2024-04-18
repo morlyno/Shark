@@ -1,10 +1,12 @@
 #include "skpch.h"
 #include "ProjectSerializer.h"
 
+#include "Shark/Serialization/SerializationMacros.h"
 #include "Shark/Debug/Profiler.h"
 
 #include "Shark/Utils/YAMLUtils.h"
 #include <yaml-cpp/yaml.h>
+#include <magic_enum.hpp>
 
 namespace Shark {
 
@@ -38,7 +40,6 @@ namespace Shark {
 		out << YAML::Key << "Name" << YAML::Value << config.Name;
 		out << YAML::Key << "Assets" << YAML::Value << assetsPath;
 		out << YAML::Key << "StartupScene" << YAML::Value << config.StartupScene;
-
 		out << YAML::Key << "ScriptModulePath" << YAML::Value << scriptModulePath;
 
 		out << YAML::Key << "Physics" << YAML::Value;
@@ -48,8 +49,19 @@ namespace Shark {
 		out << YAML::Key << "PositionIterations" << YAML::Value << config.Physics.PositionIterations;
 		out << YAML::Key << "FixedTimeStep" << YAML::Value << config.Physics.FixedTimeStep;
 		out << YAML::EndMap;
-		out << YAML::EndMap;
 
+		out << YAML::Key << "Log" << YAML::Value;
+		out << YAML::BeginSeq;
+		for (const auto& [name, level] : Log::GetTags())
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "Name" << YAML::Value << name;
+			out << YAML::Key << "Level" << YAML::Value << magic_enum::enum_name(level);
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+
+		out << YAML::EndMap;
 		out << YAML::EndMap;
 
 		if (!out.good())
@@ -115,6 +127,22 @@ namespace Shark {
 		config.Physics.VelocityIterations = physicsNode["VelocityIterations"].as<uint32_t>();
 		config.Physics.PositionIterations = physicsNode["PositionIterations"].as<uint32_t>();
 		config.Physics.FixedTimeStep = physicsNode["FixedTimeStep"].as<float>();
+
+		auto logNode = projectNode["Log"];
+		if (logNode)
+		{
+			std::map<std::string, LogLevel> logTags;
+			for (auto entryNode : logNode)
+			{
+				std::string name;
+				std::string level;
+				SK_DESERIALIZE_PROPERTY(entryNode, "Name", name, "");
+				SK_DESERIALIZE_PROPERTY(entryNode, "Level", level, "");
+				logTags[name] = magic_enum::enum_cast<LogLevel>(level).value_or(LogLevel::Trace);
+			}
+
+			Log::GetTags() = logTags;
+		}
 
 		float time = timer.ElapsedMilliSeconds();
 

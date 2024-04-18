@@ -10,7 +10,12 @@ namespace Shark {
 	{
 	public:
 		static Ref<Asset> GetAsset(AssetHandle handle) { return Project::GetActiveEditorAssetManager()->GetAsset(handle); }
+		static AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) { return Project::GetActiveEditorAssetManager()->GetAssetAsync(handle); }
+		static Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) { return Project::GetActiveEditorAssetManager()->GetAssetFuture(handle); }
 		static AssetHandle AddMemoryAsset(Ref<Asset> asset) { return Project::GetActive()->GetAssetManager()->AddMemoryAsset(asset); }
+
+		static bool IsFullyLoaded(AssetHandle handle, bool loadifNotReady = false) { return Project::GetActiveAssetManager()->IsFullyLoaded(handle, loadifNotReady); }
+		static void WaitUntilFullyLoaded(AssetHandle handle) { return Project::GetActiveAssetManager()->WaitUntilFullyLoaded(handle); }
 
 		static AssetType GetAssetType(AssetHandle handle) { return Project::GetActive()->GetAssetManager()->GetAssetType(handle); }
 		static bool IsMemoryAsset(AssetHandle handle) { return Project::GetActive()->GetAssetManager()->IsMemoryAsset(handle); }
@@ -23,8 +28,7 @@ namespace Shark {
 		static void DeleteAsset(AssetHandle handle) { return Project::GetActiveAssetManager()->DeleteAsset(handle); }
 		static void DeleteMemoryAsset(AssetHandle handle) { return Project::GetActiveAssetManager()->DeleteMemoryAsset(handle); }
 		
-		static bool EnsureAllCurrent() { return Project::GetActiveAssetManager()->EnsureAllCurrent(); }
-		static bool EnsureCurrent(AssetHandle handle) { return Project::GetActiveAssetManager()->EnsureCurrent(handle); }
+		static void SyncWithAssetThread() { Project::GetActiveAssetManager()->SyncWithAssetThread(); }
 
 		template<typename TAsset>
 		static Ref<TAsset> GetAsset(AssetHandle handle)
@@ -36,6 +40,15 @@ namespace Shark {
 				return nullptr;
 
 			return asset.As<TAsset>();
+		}
+		
+		template<typename TAsset>
+		static AsyncLoadResult<TAsset> GetAssetAsync(AssetHandle handle)
+		{
+			static_assert(std::is_base_of_v<Asset, TAsset>, "GetAsset only works for types with base class Asset");
+
+			AsyncLoadResult<Asset> result = GetAssetAsync(handle);
+			return AsyncLoadResult<TAsset>(result);
 		}
 
 		template<typename TAsset, typename... TArgs>

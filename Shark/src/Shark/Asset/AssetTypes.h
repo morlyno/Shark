@@ -63,6 +63,7 @@ namespace Shark {
 		{ ".obj", AssetType::MeshSource },
 		{ ".fbx", AssetType::MeshSource },
 		{ ".gltf", AssetType::MeshSource },
+		{ ".glb", AssetType::MeshSource },
 		{ ".skmesh", AssetType::Mesh },
 		{ ".skmat", AssetType::Material },
 		{ ".hdr", AssetType::Environment }

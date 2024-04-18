@@ -254,8 +254,12 @@ namespace Shark {
 			specification.Format = ImageFormat::RGBA8;
 			specification.Width = aiTexEmbedded->mWidth;
 			specification.Height = aiTexEmbedded->mHeight;
-			SK_CORE_VERIFY(specification.Height != 0, "Compressed Embedded Textures not supported!");
-			return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) });
+			Buffer imageData = Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) };
+			if (specification.Height == 0)
+			{
+				imageData = TextureImporter::ToBufferFromMemory(Buffer(aiTexEmbedded->pcData, aiTexEmbedded->mWidth), specification.Format, specification.Width, specification.Height);
+			}
+			return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
 		}
 
 		const auto texturePath = m_Filepath.parent_path() / path.C_Str();

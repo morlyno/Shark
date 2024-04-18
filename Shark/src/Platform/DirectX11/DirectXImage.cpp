@@ -4,8 +4,10 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Texture.h"
 #include "Platform/DirectX11/DirectXAPI.h"
+#include "Platform/DirectX11/DirectXContext.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
+#include "Shark/Debug/Profiler.h"
 #include <stb_image.h>
 
 namespace Shark {
@@ -133,6 +135,7 @@ namespace Shark {
 
 	void DirectXImage2D::RT_Invalidate()
 	{
+		SK_PROFILE_FUNCTION();
 		Release();
 
 		if (m_Specification.MipLevels == 0)
@@ -171,9 +174,10 @@ namespace Shark {
 				break;
 		}
 
-		auto renderer = DirectXRenderer::Get();
-		auto device = renderer->GetDevice();
-		DirectXAPI::CreateTexture2D(device, texture2dDesc, nullptr, m_Info.Resource);
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
+
+		DirectXAPI::CreateTexture2D(dxDevice, texture2dDesc, nullptr, m_Info.Resource);
 		DirectXAPI::SetDebugName(m_Info.Resource, m_Specification.DebugName);
 
 		if (m_Specification.Type != ImageType::Storage)
@@ -200,15 +204,18 @@ namespace Shark {
 				shaderResourceViewDesc.Texture2D.MipLevels = -1;
 				shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
 			}
-			DirectXAPI::CreateShaderResourceView(device, m_Info.Resource, shaderResourceViewDesc, m_Info.View);
+			DirectXAPI::CreateShaderResourceView(dxDevice, m_Info.Resource, shaderResourceViewDesc, m_Info.View);
 			DirectXAPI::SetDebugName(m_Info.View, m_Specification.DebugName);
 		}
 
 		if (m_Specification.CreateSampler)
 		{
-			SK_CORE_ASSERT(m_Info.Sampler == nullptr);
-			m_Info.Sampler = renderer->GetClampLinearSampler();
-			m_Info.Sampler->AddRef();
+			D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(D3D11_DEFAULT);
+			samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+			DirectXAPI::CreateSamplerState(dxDevice, samplerDesc, m_Info.Sampler);
 		}
 
 	}
@@ -245,12 +252,15 @@ namespace Shark {
 
 	void DirectXImage2D::RT_UploadImageData(Buffer imageData)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const uint64_t memoryUsage = (uint64_t)m_Specification.Width * m_Specification.Height * m_Specification.Layers * ImageUtils::GetFormatDataSize(m_Specification.Format);
 		SK_CORE_VERIFY(imageData.Size == memoryUsage, "{} == {}", imageData.Size, memoryUsage);
 
-		auto context = DirectXRenderer::GetContext();
+		auto device = DirectXContext::GetCurrentDevice();
+
 		const uint32_t formatDataSize = ImageUtils::GetFormatDataSize(m_Specification.Format);
-		context->UpdateSubresource(m_Info.Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * formatDataSize, 0);
+		device->UpdateSubresource(m_Info.Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * formatDataSize, 0);
 	}
 
 	bool DirectXImage2D::RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel)
@@ -261,26 +271,24 @@ namespace Shark {
 		if (x >= m_Specification.Width || y >= m_Specification.Height)
 			return false;
 
-		auto ctx = DirectXRenderer::GetContext();
-		D3D11_MAPPED_SUBRESOURCE ms;
-		HRESULT hr = ctx->Map(m_Info.Resource, 0, D3D11_MAP_READ, 0, &ms);
-		DX11_VERIFY(hr);
-		if (FAILED(hr))
-			return false;
+		auto device = DirectXContext::GetCurrentDevice();
 
-		uint32_t* data = (uint32_t*)ms.pData;
-		uint32_t padding = ms.RowPitch / 4;
+		D3D11_MAPPED_SUBRESOURCE mappedMemory;
+		device->MapMemory(m_Info.Resource, 0, D3D11_MAP_READ, mappedMemory);
+
+		uint32_t* data = (uint32_t*)mappedMemory.pData;
+		uint32_t padding = mappedMemory.RowPitch / 4;
 		out_Pixel = data[y * padding + x];
 
-		ctx->Unmap(m_Info.Resource, 0);
+		device->UnmapMemory(m_Info.Resource, 0);
 
 		return true;
 	}
 
 	void DirectXImage2D::RT_CopyToHostBuffer(Buffer& buffer)
 	{
-		auto renderer = DirectXRenderer::Get();
-		auto device = renderer->GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		D3D11_TEXTURE2D_DESC textureDesc{};
 		textureDesc.Width = m_Specification.Width;
@@ -294,23 +302,21 @@ namespace Shark {
 		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 
 		ID3D11Texture2D* staging;
-		DirectXAPI::CreateTexture2D(device, textureDesc, nullptr, staging);
-
-		ID3D11DeviceContext* context = renderer->GetDirectXCommandBuffer()->GetContext();
+		DirectXAPI::CreateTexture2D(dxDevice, textureDesc, nullptr, staging);
 
 		uint32_t mipCount = 1;
 		for (uint32_t mip = 0; mip < mipCount; mip++)
 		{
 			uint32_t subresource = D3D11CalcSubresource(mip, 0, mipCount); 
-			context->CopySubresourceRegion(staging, subresource, 0, 0, 0, m_Info.Resource, subresource, nullptr);
+			device->CopySubresource(staging, subresource, 0, 0, 0, m_Info.Resource, subresource, nullptr);
 		}
 
-		D3D11_MAPPED_SUBRESOURCE mapped;
-		context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped);
+		void* mappedMemory;
+		device->MapMemory(staging, 0, D3D11_MAP_READ, mappedMemory);
 		uint64_t bufferSize = m_Specification.Width * m_Specification.Height * ImageUtils::GetFormatDataSize(m_Specification.Format);
 		buffer.Allocate(bufferSize);
-		memcpy(buffer.Data, mapped.pData, bufferSize);
-		context->Unmap(staging, 0);
+		memcpy(buffer.Data, mappedMemory, bufferSize);
+		device->UnmapMemory(staging, 0);
 
 		staging->Release();
 	}
@@ -335,11 +341,11 @@ namespace Shark {
 			unorderedAccessViewDesc.Texture2D.MipSlice = mipSlice;
 		}
 
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		ID3D11Device* device = renderer->GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		ID3D11UnorderedAccessView* uav;
-		DirectXAPI::CreateUnorderedAccessView(device, m_Info.Resource, unorderedAccessViewDesc, uav);
+		DirectXAPI::CreateUnorderedAccessView(dxDevice, m_Info.Resource, unorderedAccessViewDesc, uav);
 		std::string debugName = fmt::format("{} UAV (Mip={})", m_Specification.DebugName, mipSlice);
 		DirectXAPI::SetDebugName(uav, debugName);
 
@@ -402,9 +408,10 @@ namespace Shark {
 			shaderResourceViewDesc.Texture2D.MostDetailedMip = m_MipSlice;
 		}
 
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		ID3D11Device* device = renderer->GetDevice();
-		DirectXAPI::CreateShaderResourceView(device, dxImage->GetDirectXImageInfo().Resource, shaderResourceViewDesc, m_View);
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
+
+		DirectXAPI::CreateShaderResourceView(dxDevice, dxImage->GetDirectXImageInfo().Resource, shaderResourceViewDesc, m_View);
 		m_DebugName = fmt::format("{} (Mip: {})", dxImage->GetSpecification().DebugName, m_MipSlice);
 		DirectXAPI::SetDebugName(m_View, m_DebugName);
 	}

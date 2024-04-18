@@ -231,7 +231,14 @@ namespace Shark {
 		auto& skyLight = m_SkyLight.AddComponent<SkyComponent>();
 		skyLight.SceneEnvironment = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Environment/green_point_park_4k.hdr");
 		skyLight.Intensity = 0.8f;
-		skyLight.Lod = AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1;
+		//skyLight.Lod = AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1;
+
+		AssetManager::GetAssetFuture(skyLight.SceneEnvironment)
+			.OnReady([this](Ref<Asset> asset)
+			{
+				m_SkyLight.GetComponent<SkyComponent>().Lod = asset.As<Environment>()->GetRadianceMap()->GetMipLevelCount();
+				m_Ready = true;
+			});
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
 	}
@@ -239,6 +246,9 @@ namespace Shark {
 	Ref<Image2D> ThumbnailGenerator::GenerateThumbnail(AssetHandle handle)
 	{
 		if (!AssetManager::IsValidAssetHandle(handle))
+			return nullptr;
+
+		if (!AssetManager::IsFullyLoaded(handle, true))
 			return nullptr;
 
 		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);

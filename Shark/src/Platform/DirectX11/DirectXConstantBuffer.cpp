@@ -3,9 +3,11 @@
 
 #include "Shark/Core/Buffer.h"
 #include "Shark/Render/Renderer.h"
-#include "Shark/Debug/Profiler.h"
 
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXAPI.h"
+#include "Platform/DirectX11/DirectXContext.h"
+
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -40,8 +42,10 @@ namespace Shark {
 			bd.MiscFlags = 0;
 			bd.StructureByteStride = 0;
 
-			auto* dev = DirectXRenderer::GetDevice();
-			SK_DX11_CALL(dev->CreateBuffer(&bd, nullptr, &instance->m_ConstantBuffer));
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
+
+			DirectXAPI::CreateBuffer(dxDevice, bd, nullptr, instance->m_ConstantBuffer);
 		});
 
 	}
@@ -59,8 +63,10 @@ namespace Shark {
 		bd.MiscFlags = 0;
 		bd.StructureByteStride = 0;
 
-		auto* dev = DirectXRenderer::GetDevice();
-		SK_DX11_CALL(dev->CreateBuffer(&bd, nullptr, &m_ConstantBuffer));
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
+
+		DirectXAPI::CreateBuffer(dxDevice, bd, nullptr, m_ConstantBuffer);
 	}
 
 	void DirectXConstantBuffer::UploadData(Buffer data)
@@ -81,12 +87,12 @@ namespace Shark {
 		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_PERF_SCOPED("ConstantBuffer map memory");
 
-		auto* ctx = DirectXRenderer::GetContext();
+		auto device = DirectXContext::GetCurrentDevice();
 
-		D3D11_MAPPED_SUBRESOURCE ms;
-		SK_DX11_CALL(ctx->Map(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-		memcpy(ms.pData, data.Data, data.Size);
-		ctx->Unmap(m_ConstantBuffer, 0);
+		void* mappedMemory = nullptr;
+		device->MapMemory(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, mappedMemory);
+		memcpy(mappedMemory, data.Data, data.Size);
+		device->UnmapMemory(m_ConstantBuffer, 0);
 	}
 
 	void DirectXConstantBuffer::Upload()
@@ -105,12 +111,12 @@ namespace Shark {
 
 		SK_PERF_SCOPED("ConstantBuffer map memory");
 
-		ID3D11DeviceContext* context = DirectXRenderer::GetContext();
+		auto device = DirectXContext::GetCurrentDevice();
 
-		D3D11_MAPPED_SUBRESOURCE mappesSubresource;
-		context->Map(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappesSubresource);
-		memcpy(mappesSubresource.pData, m_UploadBuffer.Data, m_UploadBuffer.Size);
-		context->Unmap(m_ConstantBuffer, 0);
+		void* mappedMemory;
+		device->MapMemory(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, mappedMemory);
+		memcpy(mappedMemory, m_UploadBuffer.Data, m_UploadBuffer.Size);
+		device->UnmapMemory(m_ConstantBuffer, 0);
 	}
 
 }

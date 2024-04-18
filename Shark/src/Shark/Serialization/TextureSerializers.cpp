@@ -94,14 +94,11 @@ namespace Shark {
 
 		const TextureSpecification& specification = texture->GetSpecification();
 
-		// Will not work when the source texture has moved
-		AssetHandle sourceHandle = texture->GetSourceTextureHandle();
-
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Texture" << YAML::Value;
 		out << YAML::BeginMap;
-		out << YAML::Key << "Source" << YAML::Value << sourceHandle;
+		out << YAML::Key << "Source" << YAML::Value << texture->GetSourceTextureHandle();
 		out << YAML::Key << "GenerateMips" << YAML::Value << specification.GenerateMips;
 		out << YAML::Key << "Filter" << YAML::Value << ToString(specification.Filter);
 		out << YAML::Key << "Wrap" << YAML::Value << ToString(specification.Wrap);

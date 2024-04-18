@@ -3,6 +3,7 @@
 #include "Shark/Core/Base.h"
 
 #include "Shark/Render/RendererAPI.h"
+#include "Shark/Render/RendererContext.h"
 
 #include "Shark/Render/RenderCommandQueue.h"
 #include "Shark/Render/RenderCommandBuffer.h"
@@ -14,6 +15,7 @@
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/FrameBuffer.h"
 #include "Shark/Render/SwapChain.h"
+#include "Shark/Render/Environment.h"
 
 namespace Shark {
 
@@ -74,6 +76,7 @@ namespace Shark {
 		static void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable);
 		static void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material);
 
+		static void CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
 		static void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
 		static void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
 
@@ -92,12 +95,14 @@ namespace Shark {
 		static uint32_t RT_GetCurrentFrameIndex();
 
 	public:
+		static Ref<RendererContext> GetRendererContext();
 		static Ref<RendererAPI> GetRendererAPI();
 
 		static Ref<ShaderLibrary> GetShaderLibrary();
 		static Ref<Texture2D> GetWhiteTexture();
 		static Ref<Texture2D> GetBlackTexture();
 		static Ref<TextureCube> GetBlackTextureCube();
+		static Ref<Environment> GetEmptyEnvironment();
 		static Ref<Texture2D> GetBRDFLUTTexture();
 
 		static Ref<RenderCommandBuffer> GetCommandBuffer();
@@ -112,6 +117,7 @@ namespace Shark {
 		static RenderCommandQueue& GetCommandQueue();
 
 	private:
+		static Ref<RendererContext> s_RendererContext;
 		static Ref<RendererAPI> s_RendererAPI;
 		friend class DirectXRenderer;
 	};

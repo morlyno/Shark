@@ -5,17 +5,10 @@
 
 namespace Shark {
 
-	enum class CommandBufferType
-	{
-		Immediate,
-		Deferred
-	};
-
 	class DirectXRenderCommandBuffer : public RenderCommandBuffer
 	{
 	public:
 		DirectXRenderCommandBuffer();
-		DirectXRenderCommandBuffer(CommandBufferType type, ID3D11DeviceContext* context);
 		virtual ~DirectXRenderCommandBuffer();
 
 		virtual void Release() override;
@@ -47,7 +40,6 @@ namespace Shark {
 		TimeQuery GetTimeQuery(uint32_t id);
 
 	private:
-		CommandBufferType m_Type = CommandBufferType::Deferred;
 		bool m_Active = false;
 
 		ID3D11DeviceContext* m_Context = nullptr;

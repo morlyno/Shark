@@ -152,6 +152,13 @@ filewatch = {
     }
 }
 
+magic_enum = {
+    IncludeDir = "%{wks.location}/Shark/dependencies/magic_enum",
+    Files = {
+        "%{wks.location}/Shark/dependencies/magic_enum/magic_enum.hpp"
+    }
+}
+
 DirectX = {
     D3D11 = { Library = "d3d11.lib" },
     DXGI = { Library = "dxgi.lib" },

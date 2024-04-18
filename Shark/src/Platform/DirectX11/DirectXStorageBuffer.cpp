@@ -2,7 +2,7 @@
 #include "DirectXStorageBuffer.h"
 
 #include "Shark/Render/Renderer.h"
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXContext.h"
 
 namespace Shark {
 
@@ -36,8 +36,8 @@ namespace Shark {
 	{
 		Release();
 
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		ID3D11Device* device = renderer->GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		D3D11_BUFFER_DESC bufferDesc = {};
 		bufferDesc.ByteWidth = m_StructSize * m_Count;
@@ -46,7 +46,7 @@ namespace Shark {
 		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 		bufferDesc.StructureByteStride = m_StructSize;
-		DirectXAPI::CreateBuffer(device, bufferDesc, nullptr, m_Buffer);
+		DirectXAPI::CreateBuffer(dxDevice, bufferDesc, nullptr, m_Buffer);
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
 		viewDesc.Format = DXGI_FORMAT_R32_TYPELESS;
@@ -54,7 +54,7 @@ namespace Shark {
 		viewDesc.BufferEx.FirstElement = 0;
 		viewDesc.BufferEx.NumElements = bufferDesc.ByteWidth / 4;
 		viewDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
-		DirectXAPI::CreateShaderResourceView(device, m_Buffer, viewDesc, m_View);
+		DirectXAPI::CreateShaderResourceView(dxDevice, m_Buffer, viewDesc, m_View);
 	}
 
 	void DirectXStorageBuffer::Upload(Buffer buffer)
@@ -69,13 +69,12 @@ namespace Shark {
 
 	void DirectXStorageBuffer::RT_Upload(Buffer buffer)
 	{
-		auto renderer = DirectXRenderer::Get();
-		ID3D11DeviceContext* context = renderer->GetContext();
+		auto device = DirectXContext::GetCurrentDevice();
 
-		D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-		context->Map(m_Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-		memcpy(mappedSubresource.pData, buffer.Data, std::min(buffer.Size, (uint64_t)m_StructSize * m_Count));
-		context->Unmap(m_Buffer, 0);
+		void* mappedMemory = nullptr;
+		device->MapMemory(m_Buffer, 0, D3D11_MAP_WRITE_DISCARD, mappedMemory);
+		memcpy(mappedMemory, buffer.Data, std::min(buffer.Size, (uint64_t)m_StructSize * m_Count));
+		device->UnmapMemory(m_Buffer, 0);
 	}
 
 }

@@ -10,6 +10,7 @@
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/YAMLUtils.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -17,6 +18,7 @@ namespace Shark {
 
 	bool MeshSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing Mesh to {}", metadata.FilePath);
 
@@ -36,6 +38,7 @@ namespace Shark {
 
 	bool MeshSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Serialization", "Loading Mesh from {}", metadata.FilePath);
 
 		ScopedTimer timer("Loading Mesh");
@@ -68,6 +71,8 @@ namespace Shark {
 
 	std::string MeshSerializer::SerializeToYAML(Ref<Mesh> mesh)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!AssetManager::IsValidAssetHandle(mesh->GetMeshSource()))
 		{
 			m_ErrorMsg = "Invalid MeshSource Handle";
@@ -88,6 +93,8 @@ namespace Shark {
 
 	bool MeshSerializer::DeserializeFromYAML(Ref<Mesh> mesh, const std::string& filedata)
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Node in = YAML::Load(filedata);
 		if (!in)
 		{
@@ -106,28 +113,5 @@ namespace Shark {
 		mesh->m_Submeshes = meshNode["Submeshes"].as<std::vector<uint32_t>>();
 		return true;
 	}
-
-}
-
-namespace YAML {
-
-	template<>
-	struct convert<Shark::Ref<Shark::MaterialAsset>>
-	{
-		static Node encode(Shark::Ref<Shark::MaterialAsset> material)
-		{
-			return convert<Shark::AssetHandle>::encode(material->Handle);
-		}
-
-		static bool decode(Node node, Shark::Ref<Shark::MaterialAsset>& outMaterial)
-		{
-			Shark::AssetHandle handle;
-			if (!convert<Shark::AssetHandle>::decode(node, handle))
-				return false;
-
-			outMaterial = Shark::AssetManager::GetAsset<Shark::MaterialAsset>(handle);
-			return true;
-		}
-	};
 
 }

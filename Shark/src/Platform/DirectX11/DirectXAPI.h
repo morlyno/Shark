@@ -29,7 +29,9 @@ namespace Shark::DirectXAPI {
 	void CreateTexture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const D3D11_SUBRESOURCE_DATA* subresourceData, ID3D11Texture2D*& outTexture);
 	void CreateSamplerState(ID3D11Device* device, const D3D11_SAMPLER_DESC& desc, ID3D11SamplerState*& outSampler);
 
-	void CreateComputeShader(ID3D11Device* device, Buffer binary, ID3D11ClassLinkage* classLinkage, ID3D11ComputeShader*& outComputeShader);
+	void CreateVertexShader(ID3D11Device* device, Buffer binary, ID3D11ClassLinkage* classLinkage, ID3D11VertexShader*& outShader);
+	void CreatePixelShader(ID3D11Device* device, Buffer binary, ID3D11ClassLinkage* classLinkage, ID3D11PixelShader*& outShader);
+	void CreateComputeShader(ID3D11Device* device, Buffer binary, ID3D11ClassLinkage* classLinkage, ID3D11ComputeShader*& outShader);
 
 	void CreateQuery(ID3D11Device* device, D3D11_QUERY queryType, ID3D11Query*& outQuery);
 	void CreateQuery(ID3D11Device* device, D3D11_QUERY_DESC desc, ID3D11Query*& outQuery);

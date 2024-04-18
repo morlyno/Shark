@@ -2,26 +2,12 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
+#include "Shark/Core/Thread.h"
 #include "Shark/Asset/AssetTypes.h"
 
 namespace Shark {
 
 	using AssetHandle = UUID;
-
-	struct AssetMetaData
-	{
-		AssetHandle Handle;
-		AssetType Type = AssetType::None;
-		std::filesystem::path FilePath; // relative to Assets (not Project!)
-		bool IsDataLoaded = false;
-		bool IsMemoryAsset = false;
-		bool IsEditorAsset = false;
-
-		uint64_t LastWriteTime = 0; // Last write time by the time the asset got loaded
-
-		SK_DEPRECATED("Replace with AssetManaget::IsAssetHandleValid(metadata.Handle)")
-		bool IsValid() const { return Handle != AssetHandle::Invalid && (Type != AssetType::None) /*&& (IsMemoryAsset || !FilePath.empty())*/; }
-	};
 
 	enum class AssetFlag : uint16_t
 	{

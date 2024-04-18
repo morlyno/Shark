@@ -10,7 +10,7 @@
 #include "Shark/Debug/Profiler.h"
 
 #include "Platform/DirectX11/DirectXAPI.h"
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXContext.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 #include "Platform/DirectX11/DirectXShaderCompiler.h"
 
@@ -140,16 +140,13 @@ namespace Shark {
 
 	void DirectXShader::LoadShader(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& shaderBinary)
 	{
-		auto renderer = DirectXRenderer::Get();
-		auto device = renderer->GetDevice();
-
 		m_ShaderBinary = shaderBinary;
 
 		Ref<DirectXShader> instance = this;
 		Renderer::Submit([instance]()
 		{
-			auto renderer = DirectXRenderer::Get();
-			auto device = renderer->GetDevice();
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
 
 			instance->RT_Release();
 
@@ -158,15 +155,15 @@ namespace Shark {
 				switch (stage)
 				{
 					case ShaderUtils::ShaderStage::Vertex:
-						SK_DX11_CALL(device->CreateVertexShader(binary.data(), binary.size(), nullptr, &instance->m_VertexShader));
-						D3D_SET_OBJECT_NAME_A(instance->m_VertexShader, instance->m_Name.c_str());
+						DirectXAPI::CreateVertexShader(dxDevice, Buffer::FromArray(binary), nullptr, instance->m_VertexShader);
+						DirectXAPI::SetDebugName(instance->m_VertexShader, instance->m_Name);
 						break;
 					case ShaderUtils::ShaderStage::Pixel:
-						SK_DX11_CALL(device->CreatePixelShader(binary.data(), binary.size(), nullptr, &instance->m_PixelShader));
-						D3D_SET_OBJECT_NAME_A(instance->m_PixelShader, instance->m_Name.c_str());
+						DirectXAPI::CreatePixelShader(dxDevice, Buffer::FromArray(binary), nullptr, instance->m_PixelShader);
+						DirectXAPI::SetDebugName(instance->m_PixelShader, instance->m_Name);
 						break;
 					case ShaderUtils::ShaderStage::Compute:
-						DirectXAPI::CreateComputeShader(device, Buffer::FromArray(binary), nullptr, instance->m_ComputeShader);
+						DirectXAPI::CreateComputeShader(dxDevice, Buffer::FromArray(binary), nullptr, instance->m_ComputeShader);
 						DirectXAPI::SetDebugName(instance->m_ComputeShader, instance->m_Name);
 						break;
 					default:

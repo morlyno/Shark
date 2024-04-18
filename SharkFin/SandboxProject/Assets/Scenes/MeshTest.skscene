@@ -126,7 +126,7 @@ Scene:
           []
       CameraComponent:
         Type: Perspective
-        Aspectratio: 2.58248472
+        Aspectratio: 2.30869007
         PerspectiveFOV: 44.9999924
         PerspectiveNear: 0.00999999978
         PerspectiveFar: 1000
@@ -137,9 +137,9 @@ Scene:
       TagComponent:
         Name: Object_2
       TransformComponent:
-        Translation: [40.5686073, 0, 3.48782992]
-        Rotation: [2.77831554, 1.51558328, 1.20701504]
-        Scale: [0.999996901, 0.999996781, 0.999996364]
+        Translation: [2.50066924, -0.577610493, 14.6922989]
+        Rotation: [-1.64489925, 0.803587317, 3.08822155]
+        Scale: [0.999981761, 0.999992847, 0.999979734]
       RelationshipComponent:
         Parent: 9936726430211519703
         Children:
@@ -152,9 +152,9 @@ Scene:
       TagComponent:
         Name: Cerberus00_Fixed
       TransformComponent:
-        Translation: [25.1921177, 0, 0.9372015]
+        Translation: [-13.9890003, -1.90734863e-06, 5.72705746]
         Rotation: [1.57079649, 0, 0]
-        Scale: [23.5965652, 23.5962276, 23.5962276]
+        Scale: [23.5965652, 23.5950642, 23.5950642]
       RelationshipComponent:
         Parent: 2590873065312915112
         Children:

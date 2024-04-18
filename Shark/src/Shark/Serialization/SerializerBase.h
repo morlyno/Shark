@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Asset/Asset.h"
+#include "Shark/Asset/AssetMetadata.h"
 
 namespace Shark {
 

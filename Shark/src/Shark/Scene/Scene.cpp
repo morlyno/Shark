@@ -388,7 +388,7 @@ namespace Shark {
 					skyComp.SceneEnvironment = AssetManager::CreateMemoryOnlyAsset<Environment>(Renderer::GetBlackTextureCube(), Renderer::GetBlackTextureCube());
 				}
 
-				m_LightEnvironment.SceneEnvironment = AssetManager::GetAsset<Environment>(skyComp.SceneEnvironment);
+				m_LightEnvironment.SceneEnvironment = AssetManager::GetAssetAsync<Environment>(skyComp.SceneEnvironment);
 				m_LightEnvironment.EnvironmentIntensity = skyComp.Intensity;
 				m_LightEnvironment.SkyboxLod = skyComp.Lod;
 			}
@@ -452,26 +452,31 @@ namespace Shark {
 
 				if (AssetManager::IsValidAssetHandle(meshComponent.Mesh))
 				{
-					Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(meshComponent.Mesh);
-					if (mesh)
+					AsyncLoadResult<Mesh> meshResult = AssetManager::GetAssetAsync<Mesh>(meshComponent.Mesh);
+					if (meshResult)
 					{
-						Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource());
-
-						Entity entity = { ent, this };
-						glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
-
-						Ref<MaterialAsset> material;
-						if (AssetManager::IsValidAssetHandle(meshComponent.Material))
+						AsyncLoadResult<MeshSource> meshSourceResult = AssetManager::GetAssetAsync<MeshSource>(meshResult.Asset->GetMeshSource());
+						if (meshSourceResult)
 						{
-							material = AssetManager::GetAsset<MaterialAsset>(meshComponent.Material);
-						}
-						else
-						{
-							const auto& submesh = meshSource->GetSubmeshes()[meshComponent.SubmeshIndex];
-							material = meshSource->GetMaterials()[submesh.MaterialIndex];
-						}
+							Entity entity = { ent, this };
+							glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
 
-						renderer->SubmitMesh(mesh, meshSource, meshComponent.SubmeshIndex, material, transform, (int)ent);
+							Ref<MaterialAsset> material;
+							if (AssetManager::IsValidAssetHandle(meshComponent.Material))
+							{
+								AsyncLoadResult<MaterialAsset> result = AssetManager::GetAssetAsync<MaterialAsset>(meshComponent.Material);
+								if (result.Ready)
+									material = result;
+							}
+							
+							if (!material)
+							{
+								const auto& submesh = meshSourceResult.Asset->GetSubmeshes()[meshComponent.SubmeshIndex];
+								material = meshSourceResult.Asset->GetMaterials()[submesh.MaterialIndex];
+							}
+
+							renderer->SubmitMesh(meshResult, meshSourceResult, meshComponent.SubmeshIndex, material, transform, (int)ent);
+						}
 					}
 				}
 			}
@@ -492,8 +497,8 @@ namespace Shark {
 				if (!AssetManager::IsValidAssetHandle(textComponent.FontHandle))
 					continue;
 
-				Ref<Font> font = AssetManager::GetAsset<Font>(textComponent.FontHandle);
-				if (font && !font->IsFlagSet(AssetFlag::Invalid))
+				AsyncLoadResult<Font> font = AssetManager::GetAssetAsync<Font>(textComponent.FontHandle);
+				if (font)
 				{
 					Entity entity = { ent, this };
 					glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
@@ -514,7 +519,11 @@ namespace Shark {
 
 				Ref<Texture2D> texture = Renderer::GetWhiteTexture();
 				if (AssetManager::IsValidAssetHandle(spriteRendererComponent.TextureHandle))
-					texture = AssetManager::GetAsset<Texture2D>(spriteRendererComponent.TextureHandle);
+				{
+					AsyncLoadResult<Texture2D> result = AssetManager::GetAssetAsync<Texture2D>(spriteRendererComponent.TextureHandle);
+					if (result.Ready)
+						texture = result;
+				}
 
 				renderer2D->DrawQuad(transform, texture, spriteRendererComponent.TilingFactor, spriteRendererComponent.Color, (int)ent);
 			}
@@ -712,7 +721,8 @@ namespace Shark {
 
 		if (destroyChildren)
 		{
-			for (auto& childID : entity.Children())
+			std::vector<UUID> children = entity.Children();
+			for (auto& childID : children)
 			{
 				Entity child = m_EntityUUIDMap.at(childID);
 				DestroyEntityInternal(child, destroyChildren, false);

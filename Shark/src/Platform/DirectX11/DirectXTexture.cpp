@@ -7,7 +7,8 @@
 #include "Shark/Serialization/Import/TextureImporter.h"
 
 #include "Platform/DirectX11/DirectXAPI.h"
-#include "Platform/DirectX11/DirectXRenderer.h"
+#include "Platform/DirectX11/DirectXContext.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -120,12 +121,12 @@ namespace Shark {
 		Ref<DirectXTexture2D> instance = this;
 		Renderer::Submit([instance]()
 		{
-			Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-			ID3D11Device* device = renderer->GetDevice();
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
 
 			std::string samplerDebugName = utils::GenerateSamplerName(instance->m_Specification);
 			D3D11_SAMPLER_DESC samplerDesc = utils::GetD3D11SamplerDesc(instance->m_Specification);
-			DirectXAPI::CreateSamplerState(device, samplerDesc, instance->m_Sampler);
+			DirectXAPI::CreateSamplerState(dxDevice, samplerDesc, instance->m_Sampler);
 			DirectXAPI::SetDebugName(instance->m_Sampler, samplerDebugName);
 
 			DirectXImageInfo& imageInfo = instance->m_Image->GetDirectXImageInfo();
@@ -137,6 +138,7 @@ namespace Shark {
 
 	void DirectXTexture2D::RT_Invalidate()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(m_Specification.Width != 0);
 		SK_CORE_VERIFY(m_Specification.Height != 0);
 
@@ -162,12 +164,12 @@ namespace Shark {
 				Renderer::RT_GenerateMips(m_Image);
 		}
 
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		ID3D11Device* device = renderer->GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		std::string samplerDebugName = utils::GenerateSamplerName(m_Specification);
 		D3D11_SAMPLER_DESC samplerDesc = utils::GetD3D11SamplerDesc(m_Specification);
-		DirectXAPI::CreateSamplerState(device, samplerDesc, m_Sampler);
+		DirectXAPI::CreateSamplerState(dxDevice, samplerDesc, m_Sampler);
 		DirectXAPI::SetDebugName(m_Sampler, samplerDebugName);
 
 		DirectXImageInfo& imageInfo = m_Image->GetDirectXImageInfo();
@@ -275,11 +277,11 @@ namespace Shark {
 		Ref<DirectXTextureCube> instance = this;
 		Renderer::Submit([instance]()
 		{
-			Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-			ID3D11Device* device = renderer->GetDevice();
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
 
 			D3D11_SAMPLER_DESC samplerDesc = utils::GetD3D11SamplerDesc(instance->m_Specification);
-			DirectXAPI::CreateSamplerState(device, samplerDesc, instance->m_Sampler);
+			DirectXAPI::CreateSamplerState(dxDevice, samplerDesc, instance->m_Sampler);
 
 			DirectXImageInfo& imageInfo = instance->m_Image.As<DirectXImage2D>()->GetDirectXImageInfo();
 			imageInfo.Sampler = instance->m_Sampler;
@@ -310,11 +312,11 @@ namespace Shark {
 
 		m_ImageData.Release();
 
-		Ref<DirectXRenderer> renderer = DirectXRenderer::Get();
-		ID3D11Device* device = renderer->GetDevice();
+		auto device = DirectXContext::GetCurrentDevice();
+		auto dxDevice = device->GetDirectXDevice();
 
 		D3D11_SAMPLER_DESC samplerDesc = utils::GetD3D11SamplerDesc(m_Specification);
-		DirectXAPI::CreateSamplerState(device, samplerDesc, m_Sampler);
+		DirectXAPI::CreateSamplerState(dxDevice, samplerDesc, m_Sampler);
 
 		DirectXImageInfo& imageInfo = m_Image.As<DirectXImage2D>()->GetDirectXImageInfo();
 		imageInfo.Sampler = m_Sampler;

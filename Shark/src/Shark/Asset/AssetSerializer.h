@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Asset/Asset.h"
+#include "Shark/Asset/AssetMetadata.h"
 
 namespace Shark {
 
