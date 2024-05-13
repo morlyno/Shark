@@ -508,6 +508,7 @@ namespace Shark {
 				if (SUCCEEDED(::SHCreateItemFromParsingName(windowsDefaultPath.c_str(), NULL, IID_PPV_ARGS(&defualtPathItem))))
 				{
 					fileDialog->SetDefaultFolder(defualtPathItem);
+					defualtPathItem->Release();
 				}
 			}
 

@@ -3,7 +3,6 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Asset/AssetManager/RuntimeAssetManager.h"
 #include "Shark/Asset/AssetManager/EditorAssetManager.h"
-#include "Shark/Asset/AssetThread/EditorAssetThread.h"
 
 namespace Shark {
 
@@ -67,11 +66,8 @@ namespace Shark {
 		Ref<RuntimeAssetManager> GetRuntimeAssetManager() const { return m_AssetManager.As<RuntimeAssetManager>(); }
 		Ref<EditorAssetManager> GetEditorAssetManager() const { return m_AssetManager.As<EditorAssetManager>(); }
 
-		Ref<AssetThreadBase> GetAssetThread() const { return m_AssetThread; }
-
 	private:
 		ProjectConfig m_Config;
-		Ref<AssetThreadBase> m_AssetThread;
 		Ref<AssetManagerBase> m_AssetManager;
 	};
 

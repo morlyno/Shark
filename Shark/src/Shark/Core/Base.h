@@ -94,6 +94,7 @@ _61,_62,_63,N,...) N
 #define SK_NUM_ARGS(...) INTERNAL_SK_ARG_N(__VA_ARGS__,INTERNAL_SK_RSEQ_N())
 
 #include <stdint.h>
+#include <magic_enum.hpp>
 
 namespace Shark {
 
@@ -105,6 +106,7 @@ namespace Shark {
 	using namespace std::literals::string_literals;
 	using namespace std::literals::string_view_literals;
 	using namespace std::literals::chrono_literals;
+	using namespace magic_enum::bitwise_operators;
 
 }
 
@@ -114,3 +116,4 @@ namespace Shark {
 
 #include "Shark/Core/RefCount.h"
 #include "Shark/Core/Scope.h"
+

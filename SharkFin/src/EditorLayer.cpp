@@ -423,6 +423,7 @@ namespace Shark {
 		UI_OpenProjectModal();
 		UI_ImportAsset();
 		UI_CreateMeshAsset();
+		UI_CreateProjectModal();
 
 		m_PanelManager->OnImGuiRender();
 		
@@ -470,13 +471,7 @@ namespace Shark {
 
 				if (ImGui::MenuItem("Create Project"))
 				{
-					auto projectDirectory = Platform::SaveDirectoryDialog();
-					if (!projectDirectory.empty())
-					{
-						auto project = CreateProject(projectDirectory);
-						OpenProject(project->GetProjectFilePath());
-						//SetProject(project);
-					}
+					m_CreateProjectModal = { .Open = true };
 				}
 
 				if (ImGui::MenuItem("Open Project"))
@@ -762,9 +757,9 @@ namespace Shark {
 			if (payload)
 			{
 				AssetHandle handle = UI::GetPayloadDataAs<AssetHandle>(payload);
-				const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
-				if (metadata.IsValid())
+				if (AssetManager::IsValidAssetHandle(handle))
 				{
+					const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
 					switch (metadata.Type)
 					{
 						case AssetType::Scene:
@@ -1136,7 +1131,7 @@ namespace Shark {
 			}
 			
 			ImGui::SameLine();
-			if (ImGui::Button("Cancle"))
+			if (ImGui::Button("Cancel"))
 			{
 				m_ImportAssetData = {};
 			}
@@ -1175,7 +1170,7 @@ namespace Shark {
 
 			ImGui::SameLine();
 
-			if (ImGui::Button("Cancle"))
+			if (ImGui::Button("Cancel"))
 			{
 				m_CreateMeshAssetData = {};
 			}
@@ -1183,6 +1178,50 @@ namespace Shark {
 		}
 		ImGui::End();
 
+	}
+
+	void EditorLayer::UI_CreateProjectModal()
+	{
+		if (m_CreateProjectModal.Open)
+		{
+			ImGui::OpenPopup("New Project");
+			m_CreateProjectModal.Open = false;
+			m_CreateProjectModal.Show = true;
+		}
+
+		if (!m_CreateProjectModal.Show)
+			return;
+
+		if (ImGui::BeginPopupModal("New Project", &m_CreateProjectModal.Show))
+		{
+			std::string fullPath = fmt::format("{}/{}.skproj", m_CreateProjectModal.Location, m_CreateProjectModal.Name);
+			ImGui::Text("Full path: %s", fullPath.c_str());
+
+			ImGui::SetNextItemWidth(-1.0f);
+			ImGui::InputTextWithHint("##Name", "Project Name", &m_CreateProjectModal.Name);
+
+			ImVec2 offsetSize = UI::CalcItemSizeFromText("...");
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - offsetSize.x - ImGui::GetStyle().ItemSpacing.x);
+			ImGui::InputTextWithHint("##Location", "Project Location", &m_CreateProjectModal.Location);
+			ImGui::SameLine();
+			if (ImGui::Button("..."))
+			{
+				std::filesystem::path directory = Platform::OpenDirectoryDialog();
+				if (!directory.empty())
+					m_CreateProjectModal.Location = directory.generic_string();
+			}
+
+			if (ImGui::Button("Create"))
+			{
+				SK_CORE_VERIFY(false, "Not Implemented");
+				// TODO(moro): Create Project
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+				m_CreateProjectModal.Show = false;
+		}
+		ImGui::End();
 	}
 
 	void EditorLayer::DebugRender()

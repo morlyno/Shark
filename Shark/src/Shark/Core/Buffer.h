@@ -95,6 +95,12 @@ namespace Shark {
 			return Buffer((byte*)array.data(), array.size() * sizeof(TType));
 		}
 
+		template<typename TType, size_t TSize>
+		static Buffer FromArray(std::array<TType, TSize> array)
+		{
+			return Buffer((byte*)array.data(), array.size() * sizeof(TType));
+		}
+
 		static Buffer Copy(const byte* data, uint64_t Size);
 		static Buffer Copy(Buffer buffer);
 

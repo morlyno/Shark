@@ -13,7 +13,8 @@ namespace Shark {
 	{
 		None = 0,
 		Invalid = BIT(0),
-		Fallback = BIT(1)
+		Missing = BIT(1),
+		Fallback = BIT(2)
 	};
 
 
@@ -29,19 +30,19 @@ namespace Shark {
 		void SetFlag(AssetFlag flag, bool enabled)
 		{
 			if (enabled)
-				Flags |= (uint16_t)flag;
+				Flags |= flag;
 			else
-				Flags &= ~(uint16_t)flag;
+				Flags &= ~flag;
 		}
 
 		bool IsFlagSet(AssetFlag flag) const
 		{
-			return Flags & (uint16_t)flag;
+			return (Flags & flag) == flag;
 		}
 
 	public:
 		AssetHandle Handle = AssetHandle::Null;
-		uint16_t Flags = (uint16_t)AssetFlag::None;
+		AssetFlag Flags = AssetFlag::None;
 	};
 
 }

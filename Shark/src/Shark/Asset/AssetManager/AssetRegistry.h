@@ -9,6 +9,7 @@ namespace Shark {
 	public:
 		bool Has(AssetHandle handle) const;
 		AssetMetaData& Get(AssetHandle handle);
+		const AssetMetaData& Get(AssetHandle handle) const;
 		AssetMetaData& TryGet(AssetHandle handle);
 		const AssetMetaData& TryGet(AssetHandle handle) const;
 		AssetMetaData& operator[](AssetHandle handle);
@@ -21,7 +22,6 @@ namespace Shark {
 		std::unordered_map<AssetHandle, AssetMetaData>::iterator end() { return m_Registry.end(); }
 
 	private:
-		mutable std::mutex m_Mutex;
 		std::unordered_map<AssetHandle, AssetMetaData> m_Registry;
 	};
 

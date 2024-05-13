@@ -2,7 +2,6 @@
 #include "EditorAssetManager.h"
 
 #include "Shark/Core/Project.h"
-#include "Shark/Asset/AssetThread.h"
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/Asset/AssetUtils.h"
 
@@ -36,12 +35,15 @@ namespace Shark {
 	EditorAssetManager::EditorAssetManager(Ref<Project> project)
 		: m_Project(project)
 	{
+		m_AssetThread = Ref<EditorAssetThread>::Create();
 		AssetSerializer::RegisterSerializers();
 		ReadImportedAssetsFromDisc();
 	}
 
 	EditorAssetManager::~EditorAssetManager()
 	{
+		m_AssetThread->Stop();
+
 		WriteImportedAssetsToDisc();
 		AssetSerializer::ReleaseSerializers();
 	}
@@ -51,13 +53,20 @@ namespace Shark {
 		WriteImportedAssetsToDisc();
 	}
 
+	AssetType EditorAssetManager::GetAssetType(AssetHandle handle)
+	{
+		const AssetMetaData& metadata = GetMetadataInternal(handle);
+		return metadata.Type;
+	}
+
 	Ref<Asset> EditorAssetManager::GetAsset(AssetHandle handle)
 	{
 		SK_PROFILE_FUNCTION();
-		AssetMetaData& metadata = GetMetadataInternal(handle);
-		if (!metadata.IsValid())
+
+		if (!IsValidAssetHandle(handle))
 			return nullptr;
 
+		AssetMetaData& metadata = GetMetadataInternal(handle);
 		if (metadata.IsMemoryAsset)
 			return m_LoadedAssets.at(handle);
 
@@ -65,7 +74,7 @@ namespace Shark {
 		{
 			if (metadata.Status == AssetStatus::Loading)
 			{
-				Threading::Future future = AssetThread::GetFuture(handle);
+				Threading::Future future = m_AssetThread->GetFuture(handle);
 				return future.WaitAndGet();
 			}
 
@@ -86,10 +95,11 @@ namespace Shark {
 	AsyncLoadResult<Asset> EditorAssetManager::GetAssetAsync(AssetHandle handle)
 	{
 		SK_PROFILE_FUNCTION();
-		AssetMetaData& metadata = GetMetadataInternal(handle);
-		if (!metadata.IsValid())
+
+		if (!IsValidAssetHandle(handle))
 			return { nullptr, false };
 
+		AssetMetaData& metadata = GetMetadataInternal(handle);
 		if (metadata.IsMemoryAsset)
 			return { m_LoadedAssets.at(handle), true };
 
@@ -99,7 +109,7 @@ namespace Shark {
 			{
 				metadata.Status = AssetStatus::Loading;
 				AssetLoadRequest alr(metadata);
-				AssetThread::QueueAssetLoad(alr);
+				m_AssetThread->QueueAssetLoad(alr);
 			}
 
 			return { GetPlaceholder(metadata.Type), false };
@@ -111,10 +121,11 @@ namespace Shark {
 	Threading::Future<Ref<Asset>> EditorAssetManager::GetAssetFuture(AssetHandle handle)
 	{
 		SK_PROFILE_FUNCTION();
-		AssetMetaData& metadata = GetMetadataInternal(handle);
-		if (!metadata.IsValid())
+
+		if (!IsValidAssetHandle(handle))
 			return {};
 
+		AssetMetaData& metadata = GetMetadataInternal(handle);
 		if (metadata.IsMemoryAsset)
 			return Threading::Future(m_LoadedAssets.at(handle));
 
@@ -124,11 +135,11 @@ namespace Shark {
 			{
 				metadata.Status = AssetStatus::Loading;
 				AssetLoadRequest alr(metadata);
-				AssetThread::QueueAssetLoad(alr);
-				return alr.Promise.GetFuture();
+				m_AssetThread->QueueAssetLoad(alr);
+				return alr.Future;
 			}
 
-			return AssetThread::GetFuture(handle);
+			return m_AssetThread->GetFuture(handle);
 		}
 
 		return Threading::Future(m_LoadedAssets.at(handle));
@@ -158,6 +169,93 @@ namespace Shark {
 
 		SK_CORE_INFO_TAG("AssetManager", "Memory Asset Added (Type: {}, Handle: 0x{:x})", ToString(metadata.Type), metadata.Handle);
 		return metadata.Handle;
+	}
+
+	bool EditorAssetManager::ReloadAsset(AssetHandle handle)
+	{
+		SK_CORE_VERIFY(false);
+		AssetMetaData& metadata = GetMetadataInternal(handle);
+		if (!metadata.IsValid())
+			return false;
+
+		if (metadata.Status == AssetStatus::Loading)
+		{
+			Threading::Future future = m_AssetThread->GetFuture(handle);
+			future.Wait();
+
+			m_LoadedAssets[handle] = future.Get();
+			AssetMetaData metadata = m_AssetThread->GetLoadedAssetMetadata(handle);
+			if (metadata.Handle)
+				m_Registry[handle] = metadata;
+
+			return true;
+		}
+
+		Ref<Asset> asset;
+		bool success = AssetSerializer::TryLoadAsset(asset, metadata);
+		if (success)
+		{
+			m_LoadedAssets[handle] = asset;
+			metadata.LastWriteTime = FileSystem::GetLastWriteTime(GetFilesystemPath(metadata));
+			metadata.Status = AssetStatus::Ready;
+
+			switch (metadata.Type)
+			{
+				case AssetType::Mesh:
+				{
+					Ref<Mesh> mesh = asset.As<Mesh>();
+					ReloadAsset(mesh->GetMeshSource());
+					break;
+				}
+				case AssetType::Material:
+				{
+					Ref<MaterialAsset> material = asset.As<MaterialAsset>();
+					ReloadAsset(material->GetAlbedoMap());
+					ReloadAsset(material->GetNormalMap());
+					ReloadAsset(material->GetMetalnessMap());
+					ReloadAsset(material->GetRoughnessMap());
+					material->Invalidate();
+					break;
+				}
+			}
+		}
+
+		return metadata.Status == AssetStatus::Ready;
+	}
+
+	void EditorAssetManager::ReloadAssetAsync(AssetHandle handle)
+	{
+		AssetMetaData& metadata = GetMetadataInternal(handle);
+		if (!metadata.IsValid())
+			return;
+		
+		AssetLoadRequest alr(metadata, true);
+		m_AssetThread->QueueAssetLoad(alr);
+
+		alr.Future.OnReady([this](Ref<Asset> asset)
+		{
+			AssetMetaData& metadata = GetMetadataInternal(asset->Handle);
+
+			switch (metadata.Type)
+			{
+				case AssetType::Mesh:
+				{
+					Ref<Mesh> mesh = asset.As<Mesh>();
+					ReloadAssetAsync(mesh->GetMeshSource());
+					break;
+				}
+				case AssetType::Material:
+				{
+					Ref<MaterialAsset> material = asset.As<MaterialAsset>();
+					ReloadAssetAsync(material->GetAlbedoMap());
+					ReloadAssetAsync(material->GetNormalMap());
+					ReloadAssetAsync(material->GetMetalnessMap());
+					ReloadAssetAsync(material->GetRoughnessMap());
+					material->Invalidate();
+					break;
+				}
+			}
+		});
 	}
 
 	bool EditorAssetManager::IsFullyLoaded(AssetHandle handle, bool loadIfNotReady)
@@ -272,46 +370,62 @@ namespace Shark {
 		return true;
 	}
 
-	void EditorAssetManager::WaitUntilFullyLoaded(AssetHandle handle)
+	bool EditorAssetManager::IsValidAssetHandle(AssetHandle handle)
 	{
-		if (!IsValidAssetHandle(handle))
-			return;
+		return handle != AssetHandle::Invalid && m_Registry.Has(handle);
+	}
 
-		Ref<Asset> asset = GetAsset(handle);
-		const AssetMetaData& metadata = GetMetadataInternal(handle);
+	bool EditorAssetManager::IsMemoryAsset(AssetHandle handle) 
+	{
+		const auto& metadata = GetMetadataInternal(handle);
+		return metadata.IsMemoryAsset;
+	}
 
-		switch (metadata.Type)
+	bool EditorAssetManager::IsAssetLoaded(AssetHandle handle)
+	{
+		return m_LoadedAssets.contains(handle);
+	}
+
+	void EditorAssetManager::DeleteAsset(AssetHandle handle)
+	{
+		if (m_LoadedAssets.contains(handle))
+			m_LoadedAssets.erase(handle);
+
+		m_Registry.Remove(handle);
+
+		WriteImportedAssetsToDisc();
+	}
+
+	void EditorAssetManager::DeleteMemoryAsset(AssetHandle handle)
+	{
+		if (IsMemoryAsset(handle))
 		{
-			case AssetType::Scene:
-				break;
-			case AssetType::Texture:
-				break;
-			case AssetType::MeshSource:
-			{
-				Ref<MeshSource> meshSource = asset.As<MeshSource>();
-				for (auto& material : meshSource->GetMaterials())
-					WaitUntilFullyLoaded(material->Handle);
-				break;
-			}
-			case AssetType::Mesh:
-			{
-				Ref<Mesh> mesh = asset.As<Mesh>();
-				WaitUntilFullyLoaded(mesh->GetMeshSource());
-				break;
-			}
-			case AssetType::Material:
-			{
-				Ref<MaterialAsset> material = asset.As<MaterialAsset>();
-				WaitUntilFullyLoaded(material->GetAlbedoMap());
-				WaitUntilFullyLoaded(material->GetNormalMap());
-				WaitUntilFullyLoaded(material->GetMetalnessMap());
-				WaitUntilFullyLoaded(material->GetRoughnessMap());
-				break;
-			}
-			case AssetType::Environment:
-				break;
+			m_LoadedAssets.erase(handle);
+			m_Registry.Remove(handle);
+		}
+	}
+
+	bool EditorAssetManager::SaveAsset(AssetHandle handle)
+	{
+		const auto& metadata = GetMetadataInternal(handle);
+		if (metadata.IsMemoryAsset || metadata.Status != AssetStatus::Ready)
+			return false;
+
+		return AssetSerializer::Serialize(m_LoadedAssets.at(handle), metadata);
+	}
+
+	void EditorAssetManager::SyncWithAssetThread()
+	{
+		std::vector<AssetLoadRequest> loadedAssets;
+		m_AssetThread->RetrieveLoadedAssets(loadedAssets);
+
+		for (AssetLoadRequest& alr : loadedAssets)
+		{
+			m_Registry[alr.Metadata.Handle] = alr.Metadata;
+			m_LoadedAssets[alr.Metadata.Handle] = alr.Asset;
 		}
 
+		m_AssetThread->UpdateLoadedAssetsMetadata(m_LoadedAssets, m_Registry);
 	}
 
 	Ref<Asset> EditorAssetManager::GetPlaceholder(AssetType assetType)
@@ -319,22 +433,6 @@ namespace Shark {
 		if (s_Placeholders.contains(assetType))
 			return s_Placeholders.at(assetType)();
 		return nullptr;;
-	}
-
-	bool EditorAssetManager::IsValidAssetHandle(AssetHandle handle) const
-	{
-		return handle != AssetHandle::Invalid && m_Registry.Has(handle);
-	}
-
-	bool EditorAssetManager::IsAssetLoaded(AssetHandle handle) const
-	{
-		return m_LoadedAssets.contains(handle);
-	}
-
-	bool EditorAssetManager::IsFileImported(const std::filesystem::path& filepath) const
-	{
-		AssetHandle handle = GetAssetHandleFromFilepath(filepath);
-		return m_Registry.Has(handle);
 	}
 
 	const AssetMetaData& EditorAssetManager::GetMetadata(AssetHandle handle) const
@@ -360,6 +458,12 @@ namespace Shark {
 		auto relativePath = MakeRelativePath(filepath);
 		const auto& metadata = m_Registry.Find(relativePath);
 		return metadata.Handle;
+	}
+
+	bool EditorAssetManager::IsFileImported(const std::filesystem::path& filepath) const
+	{
+		AssetHandle handle = GetAssetHandleFromFilepath(filepath);
+		return m_Registry.Has(handle);
 	}
 
 	std::filesystem::path EditorAssetManager::GetFilesystemPath(AssetHandle handle) const
@@ -409,96 +513,12 @@ namespace Shark {
 		return FileSystem::Exists(filesystemPath);
 	}
 
-	bool EditorAssetManager::SaveAsset(AssetHandle handle)
-	{
-		const auto& metadata = GetMetadataInternal(handle);
-		if (metadata.IsMemoryAsset || metadata.Status != AssetStatus::Ready)
-			return false;
-
-		return AssetSerializer::Serialize(m_LoadedAssets.at(handle), metadata);
-	}
-
-	bool EditorAssetManager::ReloadAsset(AssetHandle handle)
-	{
-		SK_CORE_VERIFY(false);
-		if (!IsValidAssetHandle(handle))
-			return false;
-
-		AssetMetaData& metadata = GetMetadataInternal(handle);
-		if (metadata.IsMemoryAsset)
-			return false;
-
-		Ref<Asset> asset;
-		bool success = AssetSerializer::TryLoadAsset(asset, metadata);
-		if (success)
-		{
-			metadata.LastWriteTime = FileSystem::GetLastWriteTime(GetFilesystemPath(metadata));
-			metadata.Status = AssetStatus::Ready;
-			m_LoadedAssets[handle] = asset;
-
-			switch (metadata.Type)
-			{
-				case AssetType::Mesh:
-				{
-					Ref<Mesh> mesh = asset.As<Mesh>();
-					ReloadAsset(mesh->GetMeshSource());
-					break;
-				}
-				case AssetType::Material:
-				{
-					Ref<MaterialAsset> material = asset.As<MaterialAsset>();
-					ReloadAsset(material->GetAlbedoMap());
-					ReloadAsset(material->GetNormalMap());
-					ReloadAsset(material->GetMetalnessMap());
-					ReloadAsset(material->GetRoughnessMap());
-					material->Invalidate();
-					break;
-				}
-			}
-		}
-
-		return metadata.Status == AssetStatus::Ready;
-	}
-
-	void EditorAssetManager::DeleteAsset(AssetHandle handle)
-	{
-		if (m_LoadedAssets.contains(handle))
-			m_LoadedAssets.erase(handle);
-
-		m_Registry.Remove(handle);
-
-		WriteImportedAssetsToDisc();
-	}
-
-	void EditorAssetManager::DeleteMemoryAsset(AssetHandle handle)
-	{
-		if (IsMemoryAsset(handle))
-		{
-			m_LoadedAssets.erase(handle);
-			m_Registry.Remove(handle);
-		}
-	}
-
-	void EditorAssetManager::SyncWithAssetThread()
-	{
-		std::vector<AssetLoadRequest> loadedAssets;
-		AssetThread::RetrieveLoadedAssets(loadedAssets);
-
-		for (AssetLoadRequest& alr : loadedAssets)
-		{
-			m_LoadedAssets[alr.Metadata.Handle] = alr.Asset;
-			m_Registry[alr.Metadata.Handle] = alr.Metadata;
-		}
-
-		AssetThread::UpdateLoadedAssetsMetadata(m_LoadedAssets);
-	}
-
 	bool EditorAssetManager::ImportMemoryAsset(AssetHandle handle, const std::string& directory, const std::string& filename)
 	{
-		auto& metadata = GetMetadataInternal(handle);
-		if (!metadata.IsValid())
+		if (!IsMemoryAsset(handle))
 			return false;
 
+		auto& metadata = GetMetadataInternal(handle);
 		metadata.FilePath = MakeRelativePath(directory + "/" + filename);
 		metadata.IsMemoryAsset = false;
 
@@ -551,7 +571,7 @@ namespace Shark {
 		return metadata.Handle;
 	}
 
-	const AssetsMap& EditorAssetManager::GetLoadedAssets() const
+	const LoadedAssetsMap& EditorAssetManager::GetLoadedAssets() const
 	{
 		return m_LoadedAssets;
 	}
@@ -566,45 +586,30 @@ namespace Shark {
 		return m_Registry;
 	}
 
-	bool EditorAssetManager::AssetMoved(AssetHandle asset, const std::filesystem::path& newpath)
+	bool EditorAssetManager::AssetMoved(AssetHandle handle, const std::filesystem::path& newpath)
 	{
-		if (!IsValidAssetHandle(asset))
+		if (!IsValidAssetHandle(handle))
 			return false;
 
-		auto& metadata = GetMetadataInternal(asset);
+		auto& metadata = GetMetadataInternal(handle);
 		metadata.FilePath = MakeRelativePath(newpath);
 		WriteImportedAssetsToDisc();
-		SK_CORE_WARN_TAG("AssetManager", "Filepath Changed => Handle: {}, Filepath: {}", asset, newpath);
+		SK_CORE_WARN_TAG("AssetManager", "Filepath Changed => Handle: {}, Filepath: {}", handle, newpath);
 
 		return true;
 	}
 
-	void EditorAssetManager::OnAssetCreated(const std::filesystem::path& filepath)
+	bool EditorAssetManager::AssetRenamed(AssetHandle handle, const std::string& newName)
 	{
-		if (!AssetExtensionMap.contains(filepath.extension().string()))
-			return;
-
-		ImportAsset(filepath);
-	}
-
-	void EditorAssetManager::OnAssetDeleted(const std::filesystem::path& filepath)
-	{
-		AssetHandle handle = GetAssetHandleFromFilepath(filepath);
-		if (handle != AssetHandle::Invalid)
-			DeleteAsset(handle);
-	}
-
-	void EditorAssetManager::OnAssetRenamed(const std::filesystem::path& oldFilepath, const std::string& newName)
-	{
-		AssetHandle handle = GetAssetHandleFromFilepath(oldFilepath);
 		if (!IsValidAssetHandle(handle))
-			return;
+			return false;
 
 		AssetMetaData& metadata = GetMetadataInternal(handle);
-		std::filesystem::path newNamePath = newName;
-		newNamePath.replace_extension(metadata.FilePath.extension());
-		metadata.FilePath.replace_filename(newNamePath);
+		FileSystem::ReplaceStem(metadata.FilePath, newName);
 		WriteImportedAssetsToDisc();
+		SK_CORE_WARN_TAG("AssetManager", "Filename Changed => Handle: {}, new path: {}", handle, metadata.FilePath);
+
+		return true;
 	}
 
 	AssetHandle EditorAssetManager::GetEditorAsset(const std::filesystem::path& filepath)
@@ -683,20 +688,6 @@ namespace Shark {
 	{
 		const auto key = utils::GetFilesystemKey(filepath);
 		return m_EditorAssets.contains(key);
-	}
-
-	AssetType EditorAssetManager::GetAssetType(AssetHandle handle) const
-	{
-		const AssetMetaData& metadata = GetMetadataInternal(handle);
-		if (metadata.IsValid())
-			return metadata.Type;
-		return AssetType::None;
-	}
-
-	bool EditorAssetManager::IsMemoryAsset(AssetHandle handle) const
-	{
-		const auto& metadata = GetMetadataInternal(handle);
-		return metadata.IsMemoryAsset;
 	}
 
 	struct ImportedAssetsEntry

@@ -143,7 +143,7 @@ namespace Shark {
 				hasTexture = false;
 			}
 
-			if (UI::TextureEdit("rougness texture", displayTexture, textureSize, hasTexture))
+			if (UI::TextureEdit("roughness texture", displayTexture, textureSize, hasTexture))
 			{
 				if (displayTexture)
 					material->SetRoughnessMap(displayTexture->Handle);
@@ -161,7 +161,7 @@ namespace Shark {
 
 		if (changed)
 		{
-			AssetManager::SaveAsset(m_MaterialHandle);
+			Project::GetActiveEditorAssetManager()->SaveAsset(m_MaterialHandle);
 		}
 
 	}

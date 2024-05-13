@@ -61,7 +61,6 @@ namespace Shark {
 			return nullptr;
 
 		project->m_AssetManager = Ref<EditorAssetManager>::Create(project);
-		project->m_AssetThread = Ref<EditorAssetThread>::Create();
 		return project;
 	}
 
@@ -73,7 +72,6 @@ namespace Shark {
 			return nullptr;
 
 		project->m_AssetManager = Ref<RuntimeAssetManager>::Create();
-		project->m_AssetThread = nullptr; // TODO(moro): RuntimeAssetThread
 		return project;
 	}
 

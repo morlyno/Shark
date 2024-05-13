@@ -41,7 +41,7 @@ namespace Shark {
 					ImGui::Text("Vertex Shader Invocations: %llu", pipelineStats.VertexShaderInvocations);
 					ImGui::Text("Pixel Shader Invocations: %llu", pipelineStats.PixelShaderInvocations);
 					ImGui::Text("Compute Shader Invocations: %llu", pipelineStats.ComputeShaderInvocations);
-					ImGui::Text("Rasterizer Incovations: %llu", pipelineStats.RasterizerInvocations);
+					ImGui::Text("Rasterizer Invocations: %llu", pipelineStats.RasterizerInvocations);
 					ImGui::Text("Rasterizer Primitives: %llu", pipelineStats.RasterizerPrimitives);
 					ImGui::TreePop();
 				}

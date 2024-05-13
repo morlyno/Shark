@@ -74,6 +74,7 @@ namespace Shark {
 		void UI_OpenProjectModal();
 		void UI_ImportAsset();
 		void UI_CreateMeshAsset();
+		void UI_CreateProjectModal();
 
 		void DebugRender();
 
@@ -225,6 +226,15 @@ namespace Shark {
 			std::filesystem::path ParentDirectory;
 		};
 		CreateMeshAssetData m_CreateMeshAssetData;
+
+		struct CreateProjectModal
+		{
+			bool Show = false;
+			bool Open = false;
+			std::string Name;
+			std::string Location;
+		};
+		CreateProjectModal m_CreateProjectModal;
 
 	};
 

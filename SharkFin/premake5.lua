@@ -35,7 +35,8 @@ project "SharkFin"
         "%{fmt.IncludeDir}",
         "%{glm.IncludeDir}",
         "%{tracy.IncludeDir}",
-        "%{filewatch.IncludeDir}"
+        "%{filewatch.IncludeDir}",
+        "%{magic_enum.IncludeDir}"
     }
 
     links

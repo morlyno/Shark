@@ -104,8 +104,8 @@ namespace Shark {
 		m_Camera = utils::CreateMeshCamera(scene, meshSource->GetBoundingBox());
 
 		m_DirectionalLight = scene->CreateEntity("Directional Light");
-		m_DirectionalLight.Transform().Rotation = glm::vec3(glm::radians(-68.0f), 0.0f, 0.0f);
-		m_DirectionalLight.AddComponent<DirectionalLightComponent>().Intensity = 0.5f;
+		m_DirectionalLight.Transform().Rotation = glm::vec3(glm::radians(-58.0f), glm::radians(-40.0f), 0.0f);
+		m_DirectionalLight.AddComponent<DirectionalLightComponent>().Intensity = 1.0f;
 	}
 
 	void MeshThumbnailGenerator::OnFinish(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
@@ -135,8 +135,8 @@ namespace Shark {
 		m_Camera = utils::CreateMeshCamera(scene, meshSource->GetBoundingBox());
 
 		m_DirectionalLight = scene->CreateEntity("Directional Light");
-		m_DirectionalLight.Transform().Rotation = glm::vec3(glm::radians(-68.0f), 0.0f, 0.0f);
-		m_DirectionalLight.AddComponent<DirectionalLightComponent>().Intensity = 0.5f;
+		m_DirectionalLight.Transform().Rotation = glm::vec3(glm::radians(-58.0f), glm::radians(-40.0f), 0.0f);
+		m_DirectionalLight.AddComponent<DirectionalLightComponent>().Intensity = 1.0f;
 	}
 
 	void MeshSourceThumbnailGenerator::OnFinish(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
@@ -237,14 +237,19 @@ namespace Shark {
 			.OnReady([this](Ref<Asset> asset)
 			{
 				m_SkyLight.GetComponent<SkyComponent>().Lod = asset.As<Environment>()->GetRadianceMap()->GetMipLevelCount();
-				m_Ready = true;
 			});
+
+		AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
+		AssetManager::GetAssetFuture(handle).OnReady([this](...) { m_Ready = true; });
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
 	}
 
 	Ref<Image2D> ThumbnailGenerator::GenerateThumbnail(AssetHandle handle)
 	{
+		if (!m_Ready)
+			return nullptr;
+
 		if (!AssetManager::IsValidAssetHandle(handle))
 			return nullptr;
 

@@ -551,7 +551,7 @@ namespace Shark {
 					Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
 					AssetHandle assetHandle = assetManager->GetAssetHandleFromFilepath(currentItem->GetPath());
 					if (assetManager->IsValidAssetHandle(assetHandle))
-						assetManager->ReloadAsset(assetHandle);
+						assetManager->ReloadAssetAsync(assetHandle);
 				}
 			}
 
@@ -573,7 +573,7 @@ namespace Shark {
 				if (itemType == CBItemType::Asset)
 				{
 					m_CurrentDirectory->RenameFile(currentItem->GetName(), action.GetNewName());
-					m_Project->GetEditorAssetManager()->OnAssetRenamed(currentItem->GetPath(), action.GetNewName());
+					m_Project->GetEditorAssetManager()->AssetRenamed(currentItem->GetAssetHandle(), action.GetNewName());
 				}
 
 				currentItem->Rename(action.GetNewName(), false);

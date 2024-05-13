@@ -5,6 +5,7 @@
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
+#include <ranges>
 
 namespace Shark {
 
@@ -16,14 +17,19 @@ namespace Shark {
 
 	EditorAssetThread::~EditorAssetThread()
 	{
-		m_WorkAvailable.notify_all();
+		Stop();
+	}
+
+	void EditorAssetThread::Stop()
+	{
 		m_Running = false;
+		m_WorkAvailable.notify_all();
 		m_Thread.Join();
 	}
 
 	void EditorAssetThread::QueueAssetLoad(const AssetLoadRequest& alr)
 	{
-		SK_CORE_INFO_TAG("AssetThread", "QueueAssetLoad - {}", alr.Metadata.FilePath);
+		SK_CORE_TRACE_TAG("AssetThread", "QueueAssetLoad - {}", alr.Metadata.FilePath);
 		std::lock_guard lock(m_LoadingQueueMutex);
 		m_LoadingQueue.push_back(alr);
 		
@@ -37,7 +43,7 @@ namespace Shark {
 			for (auto& alr : m_LoadingQueue)
 			{
 				if (alr.Metadata.Handle == handle)
-					return alr.Promise.GetFuture();
+					return alr.Future;
 			}
 		}
 
@@ -46,10 +52,22 @@ namespace Shark {
 			for (auto& alr : m_LoadedAssets)
 			{
 				if (alr.Metadata.Handle == handle)
-					return alr.Promise.GetFuture();
+					return alr.Future;
 			}
 		}
 
+		return {};
+	}
+
+	AssetMetaData EditorAssetThread::GetLoadedAssetMetadata(AssetHandle handle)
+	{
+		std::scoped_lock lock(m_LoadedAssetsMutex);
+		for (const auto& alr : std::ranges::reverse_view(m_LoadedAssets))
+		{
+			if (alr.Metadata.Handle == handle)
+				return alr.Metadata;
+		}
+		
 		return {};
 	}
 
@@ -59,18 +77,21 @@ namespace Shark {
 		if (m_LoadedAssets.empty())
 			return;
 
+		for (auto& alr : m_LoadedAssets)
+			alr.Future.Signal();
+
 		outLoadedAssets = m_LoadedAssets;
 		m_LoadedAssets.clear();
 	}
 
-	void EditorAssetThread::UpdateLoadedAssetsMetadata(const std::unordered_map<AssetHandle, Ref<Asset>>& loadedAssets)
+	void EditorAssetThread::UpdateLoadedAssetsMetadata(const LoadedAssetsMap& loadedAssets, const AssetRegistry& registry)
 	{
 		std::scoped_lock lock(m_LoadedAssetMetadataMutex);
 
 		m_LoadedAssetMetadata.clear();
 		for (auto& [handle, asset] : loadedAssets)
 		{
-			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
+			const auto& metadata = registry.Get(handle);
 			m_LoadedAssetMetadata.push_back(metadata);
 		}
 	}
@@ -111,10 +132,14 @@ namespace Shark {
 					auto absolutePath = GetFilesystemPath(alr.Metadata);
 					alr.Metadata.LastWriteTime = FileSystem::GetLastWriteTime(absolutePath);
 					alr.Metadata.Status = AssetStatus::Ready;
-					alr.Promise.SetValue(alr.Asset);
 
-					std::scoped_lock lock(m_LoadedAssetsMutex);
-					m_LoadedAssets.emplace_back(alr);
+					{
+						std::scoped_lock lock(m_LoadedAssetsMutex);
+						m_LoadedAssets.emplace_back(alr);
+					}
+
+					alr.Future.Set(alr.Asset);
+					alr.Future.Signal(true, false);
 				}
 
 				SK_CORE_INFO_TAG("AssetThread", "Finished loading Asset {}", alr.Metadata.FilePath);

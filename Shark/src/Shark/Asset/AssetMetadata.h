@@ -6,7 +6,7 @@ namespace Shark {
 
 	enum class AssetStatus
 	{
-		None = 0, Loading = 1, Ready = 2
+		None = 0, Ready = 1, Loading = 2
 	};
 
 	struct AssetMetaData
@@ -20,8 +20,7 @@ namespace Shark {
 		AssetStatus Status = AssetStatus::None;
 		uint64_t LastWriteTime = 0; // Last write time by the time the asset got loaded
 
-		SK_DEPRECATED("Replace with AssetManaget::IsAssetHandleValid(metadata.Handle)")
-			bool IsValid() const { return Handle != AssetHandle::Invalid && (Type != AssetType::None) /*&& (IsMemoryAsset || !FilePath.empty())*/; }
+		bool IsValid() const { return Handle && !IsMemoryAsset; }
 	};
 
 	struct AssetLoadRequest
@@ -30,10 +29,10 @@ namespace Shark {
 		Ref<Asset> Asset;
 		bool Reload = false;
 
-		Threading::Promise<Ref<Shark::Asset>> Promise;
+		Threading::Future<Ref<Shark::Asset>> Future;
 
 		AssetLoadRequest(const AssetMetaData& metadata, bool reload = false)
-			: Metadata(metadata), Reload(reload) {}
+			: Metadata(metadata), Reload(reload), Future(true) {}
 	};
 
 	template<typename TAsset>

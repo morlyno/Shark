@@ -4,6 +4,7 @@
 #include "Shark/Asset/AssetManager/AssetRegistry.h"
 #include "Shark/Asset/AssetManager/AssetManagerBase.h"
 #include "Shark/Asset/AssetSerializer.h"
+#include "Shark/Asset/AssetThread/EditorAssetThread.h"
 #include "Shark/File/FileSystem.h"
 
 namespace Shark {
@@ -18,27 +19,23 @@ namespace Shark {
 
 		void SerializeImportedAssets();
 
-		// GetAsset, GetAssetAsync, GetAssetFuture
-		// 
-		// GetAsset will
-		//  A: return if loaded
-		//  B: block and return until loaded
-		// 
-		// GetAssetAsync will
-		//  A: return if loaded
-		//  B: return placeholder until loaded by the AssetThread 
-		// 
-		// GetAssetFuture will
-		//  A: return a future
-		//
-
+		virtual AssetType GetAssetType(AssetHandle handle) override;
 		virtual Ref<Asset> GetAsset(AssetHandle handle) override;
 		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) override;
 		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) override;
-		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) override;
 
+		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) override;
+		virtual bool ReloadAsset(AssetHandle handle) override;
+		virtual void ReloadAssetAsync(AssetHandle handle) override;
 		virtual bool IsFullyLoaded(AssetHandle handle, bool loadifNotReady) override;
-		virtual void WaitUntilFullyLoaded(AssetHandle handle) override;
+		virtual bool IsValidAssetHandle(AssetHandle handle) override;
+		virtual bool IsMemoryAsset(AssetHandle handle) override;
+		virtual bool IsAssetLoaded(AssetHandle handle) override;
+		virtual void DeleteAsset(AssetHandle handle) override;
+		virtual void DeleteMemoryAsset(AssetHandle handle) override;
+		bool SaveAsset(AssetHandle handle);
+
+		virtual void SyncWithAssetThread() override;
 
 		Ref<Asset> GetPlaceholder(AssetType assetType);
 
@@ -53,16 +50,11 @@ namespace Shark {
 		AssetHandle AddEditorAsset(Ref<Asset> asset, const std::filesystem::path& filepath);
 		bool HasEditorAsset(const std::filesystem::path& filepath) const;
 
-		virtual AssetType GetAssetType(AssetHandle handle) const override;
-		virtual bool IsMemoryAsset(AssetHandle handle) const override;
-		virtual bool IsValidAssetHandle(AssetHandle handle) const override;
-		virtual bool IsAssetLoaded(AssetHandle handle) const override;
-		bool IsFileImported(const std::filesystem::path& filepath) const;
-
 		const AssetMetaData& GetMetadata(AssetHandle handle) const;
 		const AssetMetaData& GetMetadata(Ref<Asset> asset) const;
 		const AssetMetaData& GetMetadata(const std::filesystem::path& filepath) const;
 		AssetHandle GetAssetHandleFromFilepath(const std::filesystem::path& filepath) const;
+		bool IsFileImported(const std::filesystem::path& filepath) const;
 
 		std::filesystem::path MakeRelativePath(const std::filesystem::path& filepath) const;
 		std::string MakeRelativePathString(const std::filesystem::path& filepath) const;
@@ -74,27 +66,15 @@ namespace Shark {
 		bool HasExistingFilePath(const AssetMetaData& metadata);
 		bool HasExistingFilePath(AssetHandle handle);
 
-		virtual bool SaveAsset(AssetHandle handle) override;
-		virtual bool ReloadAsset(AssetHandle handle) override;
-
-		virtual void DeleteAsset(AssetHandle handle) override;
-		virtual void DeleteMemoryAsset(AssetHandle handle) override;
-
-		virtual void SyncWithAssetThread() override;
-
 		bool ImportMemoryAsset(AssetHandle handle, const std::string& directory, const std::string& filename);
 		AssetHandle ImportAsset(const std::filesystem::path& filepath);
 
-		const AssetsMap& GetLoadedAssets() const;
+		const LoadedAssetsMap& GetLoadedAssets() const;
 		AssetRegistry& GetAssetRegistry();
 		const AssetRegistry& GetAssetRegistry() const;
 
 		bool AssetMoved(AssetHandle asset, const std::filesystem::path& newpath);
-
-		// File Events
-		void OnAssetCreated(const std::filesystem::path& filepath);
-		void OnAssetDeleted(const std::filesystem::path& filepath);
-		void OnAssetRenamed(const std::filesystem::path& oldFilepath, const std::string& newName);
+		bool AssetRenamed(AssetHandle asset, const std::string& newName);
 
 	private:
 		AssetMetaData& GetMetadataInternal(AssetHandle handle) { return m_Registry.TryGet(handle); }
@@ -108,8 +88,10 @@ namespace Shark {
 
 	public:
 		Weak<Project> m_Project;
-		AssetsMap m_LoadedAssets;
+		Ref<EditorAssetThread> m_AssetThread;
+
 		AssetRegistry m_Registry;
+		LoadedAssetsMap m_LoadedAssets;
 
 		std::unordered_map<std::filesystem::path, AssetHandle> m_EditorAssets;
 	};

@@ -1,21 +1,27 @@
 #pragma once
 
 #include "Shark/Core/Thread.h"
-#include "Shark/Asset/AssetThread/AssetThreadBase.h"
+#include "Shark/Asset/AssetMetadata.h"
+
+#include "Shark/Asset/AssetManager/AssetManagerBase.h"
+#include "Shark/Asset/AssetManager/AssetRegistry.h"
 
 namespace Shark {
 
-	class EditorAssetThread : public AssetThreadBase
+	class EditorAssetThread : public RefCount
 	{
 	public:
 		EditorAssetThread();
 		~EditorAssetThread();
 
-		virtual void QueueAssetLoad(const AssetLoadRequest& alr) override;
-		virtual Threading::Future<Ref<Asset>> GetFuture(AssetHandle handle) override;
+		void Stop();
 
-		virtual void RetrieveLoadedAssets(std::vector<AssetLoadRequest>& outLoadedAssets) override;
-		virtual void UpdateLoadedAssetsMetadata(const std::unordered_map<AssetHandle, Ref<Asset>>& loadedAssets) override;
+		void QueueAssetLoad(const AssetLoadRequest& alr);
+		Threading::Future<Ref<Asset>> GetFuture(AssetHandle handle);
+		AssetMetaData GetLoadedAssetMetadata(AssetHandle handle);
+
+		void RetrieveLoadedAssets(std::vector<AssetLoadRequest>& outLoadedAssets);
+		void UpdateLoadedAssetsMetadata(const LoadedAssetsMap& loadedAssets, const AssetRegistry& registry);
 
 	private:
 		void AssetThreadFunc();

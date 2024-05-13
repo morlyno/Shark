@@ -10,26 +10,22 @@ namespace Shark {
 		RuntimeAssetManager() = default;
 		~RuntimeAssetManager() = default;
 
-		virtual Ref<Asset> GetAsset(AssetHandle handle) override { return nullptr; }
-		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) override { return { nullptr, false }; }
-		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) override { return {}; }
-		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) override { return 0; }
+		virtual AssetType GetAssetType(AssetHandle handle) { return AssetType::None; }
+		virtual Ref<Asset> GetAsset(AssetHandle handle) { return nullptr; }
+		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) { return {}; }
+		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) { return {}; }
 
-		virtual bool IsFullyLoaded(AssetHandle handle, bool loadifNotReady) override { return false; }
-		virtual void WaitUntilFullyLoaded(AssetHandle handle) override {}
+		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) { return AssetHandle::Invalid; }
+		virtual bool ReloadAsset(AssetHandle handle) { return false; }
+		virtual void ReloadAssetAsync(AssetHandle handle) {}
+		virtual bool IsFullyLoaded(AssetHandle handle, bool loadIfNotReady) { return false; }
+		virtual bool IsValidAssetHandle(AssetHandle handle) { return false; }
+		virtual bool IsMemoryAsset(AssetHandle handle) { return false; }
+		virtual bool IsAssetLoaded(AssetHandle handle) { return false; }
+		virtual void DeleteAsset(AssetHandle handle) {}
+		virtual void DeleteMemoryAsset(AssetHandle handle) {}
 
-		virtual AssetType GetAssetType(AssetHandle handle) const override { return AssetType::None; }
-		virtual bool IsMemoryAsset(AssetHandle handle) const override { return false; }
-		virtual bool IsValidAssetHandle(AssetHandle handle) const override { return false; }
-		virtual bool IsAssetLoaded(AssetHandle handle) const override { return false; }
-
-		virtual bool SaveAsset(AssetHandle handle) override { return false; }
-		virtual bool ReloadAsset(AssetHandle handle) override { return false; }
-
-		virtual void DeleteAsset(AssetHandle handle) override {}
-		virtual void DeleteMemoryAsset(AssetHandle handle) override {}
-
-		virtual void SyncWithAssetThread() override {}
+		virtual void SyncWithAssetThread() {}
 	};
 
 }

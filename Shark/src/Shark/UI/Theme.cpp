@@ -93,6 +93,15 @@ namespace Shark::Theme {
 		colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.15f, 0.08f, 0.21f, 1.00f);
 #endif
 
+		// Even more to test
+		colors[ImGuiCol_WindowBg] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+		colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.14f);
+		colors[ImGuiCol_PopupBg] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+		colors[ImGuiCol_CheckMark] = ImVec4(0.80f, 0.80f, 0.80f, 1.00f);
+
+#if TODO
+		SK_CORE_VERIFY(false, "Test colors");
+#endif
 	}
 	
 	static void LoadDarkThemeColors()
@@ -136,11 +145,11 @@ namespace Shark::Theme {
 		style.WindowMinSize   = ImVec2(16.0f, 16.0f);
 		style.IndentSpacing   = style.IndentSpacing * 0.5f;
 		style.FrameBorderSize = 1.0f;
-		style.FrameRounding   = 3.0f;
-		style.GrabRounding    = 2.0f;
-		style.PopupRounding   = 3.0f;
-		style.WindowRounding  = 6.0f;
-		style.ChildRounding   = 6.0f;
+		style.FrameRounding   = 0.0f;//3.0f;
+		style.GrabRounding    = 0.0f;//2.0f;
+		style.PopupRounding   = 0.0f;//3.0f;
+		style.WindowRounding  = 0.0f;//6.0f;
+		style.ChildRounding   = 0.0f;//6.0f;
 	}
 
 	void LoadLight()
