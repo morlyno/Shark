@@ -15,6 +15,7 @@ namespace Shark {
 		~EditorAssetThread();
 
 		void Stop();
+		void WaitUntilIdle();
 
 		void QueueAssetLoad(const AssetLoadRequest& alr);
 		Threading::Future<Ref<Asset>> GetFuture(AssetHandle handle);
@@ -48,6 +49,8 @@ namespace Shark {
 
 		std::mutex m_LoadedAssetMetadataMutex;
 		std::vector<AssetMetaData> m_LoadedAssetMetadata;
+
+		HANDLE m_IdleSignal;
 	};
 
 }

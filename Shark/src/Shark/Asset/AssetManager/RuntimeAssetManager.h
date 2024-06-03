@@ -25,6 +25,7 @@ namespace Shark {
 		virtual void DeleteAsset(AssetHandle handle) {}
 		virtual void DeleteMemoryAsset(AssetHandle handle) {}
 
+		virtual void WaitUntilIdle() {}
 		virtual void SyncWithAssetThread() {}
 	};
 

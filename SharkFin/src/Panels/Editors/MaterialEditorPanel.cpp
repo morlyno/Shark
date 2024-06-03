@@ -42,8 +42,8 @@ namespace Shark {
 
 		Ref<MaterialAsset> material = materialResult;
 
-		UI::TextF("Shader: {}", material->GetMaterial()->GetShader()->GetName());
-		UI::TextF("Name: {}", material->GetMaterial()->GetName());
+		UI::Text("Shader: {}", material->GetMaterial()->GetShader()->GetName());
+		UI::Text("Name: {}", material->GetMaterial()->GetName());
 
 		bool changed = false;
 

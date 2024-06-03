@@ -12,12 +12,14 @@ namespace Shark {
 	EditorAssetThread::EditorAssetThread()
 		: m_Thread("AssetThread")
 	{
+		m_IdleSignal = CreateEvent(nullptr, true, false, nullptr);
 		m_Thread.Dispacht(&EditorAssetThread::AssetThreadFunc, this);
 	}
 
 	EditorAssetThread::~EditorAssetThread()
 	{
 		Stop();
+		CloseHandle(m_IdleSignal);
 	}
 
 	void EditorAssetThread::Stop()
@@ -25,6 +27,12 @@ namespace Shark {
 		m_Running = false;
 		m_WorkAvailable.notify_all();
 		m_Thread.Join();
+	}
+
+	void EditorAssetThread::WaitUntilIdle()
+	{
+		SK_CORE_WARN_TAG("AssetThread", "Waiting until idle");
+		WaitForSingleObject(m_IdleSignal, INFINITE);
 	}
 
 	void EditorAssetThread::QueueAssetLoad(const AssetLoadRequest& alr)
@@ -103,12 +111,16 @@ namespace Shark {
 		{
 			if (m_LoadingQueue.empty())
 			{
+				SetEvent(m_IdleSignal);
+
 				SK_PROFILE_SCOPED("Idle");
 				std::unique_lock lock(m_WorkAvailableMutex);
 				if (m_MonitorAssets)
 					m_WorkAvailable.wait_for(lock, m_MonitorAssetsIntervall);
 				else
 					m_WorkAvailable.wait(lock);
+
+				ResetEvent(m_IdleSignal);
 			}
 
 			SK_PROFILE_SCOPED("Busy");

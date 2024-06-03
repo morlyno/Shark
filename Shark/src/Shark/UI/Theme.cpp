@@ -1,10 +1,11 @@
 #include "skpch.h"
 #include "Theme.h"
 
-namespace Shark::Theme {
+namespace Shark::UI::Colors {
 
 	static void LoadDarkImGuiColors()
 	{
+#if 0
 		ImVec4* colors                            = ImGui::GetStyle().Colors;
 		colors[ImGuiCol_Text]                     = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 		colors[ImGuiCol_TextDisabled]             = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
@@ -102,57 +103,108 @@ namespace Shark::Theme {
 #if TODO
 		SK_CORE_VERIFY(false, "Test colors");
 #endif
+
+		colors[ImGuiCol_MenuBarBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+#endif
+
 	}
 	
-	static void LoadDarkThemeColors()
+	void LoadDarkTheme()
 	{
-		Colors::WindowBgLight      = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+		Theme::Colored = ImVec4(0.200f, 0.100f, 0.270f, 1.000f);
+		Theme::ColoredLight = ImVec4(0.264f, 0.185f, 0.345f, 1.000f);
 
-		Colors::ButtonNoBg         = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-		Colors::ButtonHoveredNoBg  = ImVec4(0.31f, 0.31f, 0.31f, 0.50f);
-		Colors::ButtonActiveNoBg   = ImVec4(0.39f, 0.39f, 0.39f, 0.50f);
+		Theme::PropertyField = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
+		Theme::InfoField = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+		Theme::BorderColored = ImVec4(0.23f, 0.04f, 0.36f, 0.75f);
+		Theme::BorderColoredWeak = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
+		Theme::ShadowColored = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
 
-		Colors::ButtonDark         = ImGui::ColorConvertU32ToFloat4(0xFF181818 /*0x181818FF*/); // ImVec4(0.300f, 0.300f, 0.300f, 1.000f);
-		Colors::ButtonActiveDark   = ImGui::ColorConvertU32ToFloat4(0xFF212121 /*0x212121FF*/); // ImVec4(0.300f, 0.300f, 0.300f, 1.000f);
-		Colors::ButtonHoveredDark  = ImGui::ColorConvertU32ToFloat4(0xFF1B1B1B /*0x1B1B1BFF*/); // ImVec4(0.300f, 0.300f, 0.300f, 1.000f);
-		Colors::TextDark           = ImGui::ColorConvertU32ToFloat4(0xFF898989 /*0x898989FF*/); // ImVec4(0.700f, 0.700f, 0.700f, 1.000f);
+		
+		auto& style = ImGui::GetStyle();
+		auto& colors = ImGui::GetStyle().Colors;
 
-		Colors::TextInvalidInput   = ImVec4(0.80f, 0.30f, 0.10f, 1.00f);
+		//================================//
+		// Colors
 
-		Colors::PropertyField      = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
-		Colors::InfoField          = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-		Colors::BorderColored      = ImVec4(0.23f, 0.04f, 0.36f, 0.75f);
-		Colors::BorderColoredWeak  = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
-		Colors::ShadowColored      = ImVec4(0.23f, 0.04f, 0.36f, 0.50f);
+		// Header
+		colors[ImGuiCol_Header] = ImGui::ColorConvertU32ToFloat4(Theme::Header);
+		colors[ImGuiCol_HeaderHovered] = ImGui::ColorConvertU32ToFloat4(Theme::Header);
+		colors[ImGuiCol_HeaderActive] = ImGui::ColorConvertU32ToFloat4(Theme::Header);
 
-		Colors::Colored            = ImVec4(0.200f, 0.100f, 0.270f, 1.000f);
-		Colors::ColoredLight       = ImVec4(0.264f, 0.185f, 0.345f, 1.000f);
+		// Button
+		colors[ImGuiCol_Button] = ImColor(56, 56, 56, 200);
+		colors[ImGuiCol_ButtonHovered] = ImColor(70, 70, 70, 255);
+		colors[ImGuiCol_ButtonActive] = ImColor(56, 56, 56, 150);
 
-		Colors::LogTrace           = ImGui::ColorConvertU32ToFloat4(0xFFB3833E /*0x3E83B3FF*/); // ImVec4(0.10f, 0.10f, 0.50f, 1.00f);
-		Colors::LogInfo            = ImGui::ColorConvertU32ToFloat4(0xFF1AB333 /*0x33B31AFF*/); // ImVec4(0.20f, 0.70f, 0.10f, 1.00f);
-		Colors::LogWarn            = ImGui::ColorConvertU32ToFloat4(0xFF00B1D9 /*0xD9B100FF*/); // ImVec4(0.85f, 0.85f, 0.00f, 1.00f);
-		Colors::LogError           = ImGui::ColorConvertU32ToFloat4(0xFF1A33CC /*0xCC331AFF*/); // ImVec4(0.80f, 0.20f, 0.10f, 1.00f);
-		Colors::LogCritical        = ImGui::ColorConvertU32ToFloat4(0xFF1A26F2 /*0xF2261AFF*/); // ImVec4(0.95f, 0.15f, 0.10f, 1.00f);
-		Colors::LogTimeColor       = ImGui::ColorConvertU32ToFloat4(0xFF929292 /*0x929292FF*/); // ImVec4(0.08f, 0.55f, 0.87f, 1.00f);
-	}
+		// Frame Background
+		colors[ImGuiCol_FrameBg] = ImGui::ColorConvertU32ToFloat4(Theme::ControlField);
+		colors[ImGuiCol_FrameBgHovered] = ImGui::ColorConvertU32ToFloat4(Theme::ControlField);
+		colors[ImGuiCol_FrameBgActive] = ImGui::ColorConvertU32ToFloat4(Theme::ControlField);
 
-	void LoadDark()
-	{
-		LoadDarkImGuiColors();
-		LoadDarkThemeColors();
+		// Tabs
+		colors[ImGuiCol_Tab] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
+		//colors[ImGuiCol_TabHovered] = ImColor(255, 255, 135, 30);
+		//colors[ImGuiCol_TabActive] = ImColor(255, 255, 135, 60);
+		colors[ImGuiCol_TabHovered] = ImColor(135, 100, 255, 30);
+		colors[ImGuiCol_TabActive] = ImColor(135, 100, 255, 60);
+		colors[ImGuiCol_TabUnfocused] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
+		colors[ImGuiCol_TabUnfocusedActive] = colors[ImGuiCol_TabHovered];
 
-		ImGuiStyle& style     = ImGui::GetStyle();
+		// Title Background
+		colors[ImGuiCol_TitleBg] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
+		colors[ImGuiCol_TitleBgActive] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
+		colors[ImGuiCol_TitleBgCollapsed] = ImColor(0.15f, 0.1505f, 0.151f, 1.0f);
+
+		// Resize Grip
+		colors[ImGuiCol_ResizeGrip] = ImColor(0.91f, 0.91f, 0.91f, 0.25f);
+		colors[ImGuiCol_ResizeGripHovered] = ImColor(0.91f, 0.91f, 0.91f, 0.67f);
+		colors[ImGuiCol_ResizeGripActive] = ImColor(0.46f, 0.46f, 0.46f, 0.95f);
+
+		// Scrollbar
+		colors[ImGuiCol_ScrollbarBg] = ImColor(0.02f, 0.02f, 0.02f, 0.53f);
+		colors[ImGuiCol_ScrollbarGrab] = ImColor(0.31f, 0.31f, 0.31f, 1.00f);
+		colors[ImGuiCol_ScrollbarGrabHovered] = ImColor(0.41f, 0.41f, 0.41f, 1.00f);
+		colors[ImGuiCol_ScrollbarGrabActive] = ImColor(0.51f, 0.51f, 0.51f, 1.00f);
+
+		// Checkmark
+		colors[ImGuiCol_CheckMark] = ImColor(0.01f, 0.66f, 0.04f, 1.00f);
+
+		// Slider
+		colors[ImGuiCol_SliderGrab] = ImColor(0.51f, 0.51f, 0.51f, 0.7f);
+		colors[ImGuiCol_SliderGrabActive] = ImColor(0.66f, 0.66f, 0.66f, 1.0f);
+
+		// Text
+		colors[ImGuiCol_Text] = ImGui::ColorConvertU32ToFloat4(Theme::Text);
+
+		// Separator
+		colors[ImGuiCol_Separator] = ImGui::ColorConvertU32ToFloat4(Theme::BackgroundDark);
+		colors[ImGuiCol_SeparatorActive] = ImGui::ColorConvertU32ToFloat4(Theme::Highlight);
+		colors[ImGuiCol_SeparatorHovered] = ImColor(39, 185, 242, 150);
+
+		// Window Background
+		colors[ImGuiCol_WindowBg] = ImGui::ColorConvertU32ToFloat4(Theme::Background);
+		colors[ImGuiCol_ChildBg] = ImGui::ColorConvertU32ToFloat4(Theme::Background);
+		colors[ImGuiCol_PopupBg] = ImGui::ColorConvertU32ToFloat4(Theme::BackgroundPopup);
+		colors[ImGuiCol_Border] = ImGui::ColorConvertU32ToFloat4(Theme::BackgroundDark);
+
+		// Tables
+		colors[ImGuiCol_TableHeaderBg] = ImGui::ColorConvertU32ToFloat4(Theme::Header);
+		colors[ImGuiCol_TableBorderLight] = ImGui::ColorConvertU32ToFloat4(Theme::BackgroundDark);
+
+		// Menubar
+		colors[ImGuiCol_MenuBarBg] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
+
+		//================================//
+		// Styles
+
 		style.WindowMinSize   = ImVec2(16.0f, 16.0f);
 		style.IndentSpacing   = style.IndentSpacing * 0.5f;
 		style.FrameBorderSize = 1.0f;
-		style.FrameRounding   = 0.0f;//3.0f;
-		style.GrabRounding    = 0.0f;//2.0f;
-		style.PopupRounding   = 0.0f;//3.0f;
-		style.WindowRounding  = 0.0f;//6.0f;
-		style.ChildRounding   = 0.0f;//6.0f;
+		style.FrameRounding = 2.5f;
 	}
 
-	void LoadLight()
+	void LoadLightTheme()
 	{
 		SK_NOT_IMPLEMENTED();
 	}
@@ -160,59 +212,6 @@ namespace Shark::Theme {
 	void LoadTheme(const std::filesystem::path& file)
 	{
 		SK_NOT_IMPLEMENTED();
-	}
-
-	void DrawThemeEditor(bool& shown)
-	{
-		if (!shown)
-			return;
-
-		ImGui::Begin("Theme Editor", &shown);
-
-		if (ImGui::BeginTabBar("##tabs"))
-		{
-			if (ImGui::BeginTabItem("Colors"))
-			{
-				ImGui::ColorEdit4("WindowBgLight", (float*)&Colors::WindowBgLight);
-				ImGui::ColorEdit4("ButtonNoBg", (float*)&Colors::ButtonNoBg);
-				ImGui::ColorEdit4("ButtonHoveredNoBg", (float*)&Colors::ButtonHoveredNoBg);
-				ImGui::ColorEdit4("ButtonActiveNoBg", (float*)&Colors::ButtonActiveNoBg);
-
-				ImGui::ColorEdit4("ButtonDark", (float*)&Colors::ButtonDark);
-				ImGui::ColorEdit4("ButtonHoveredDark", (float*)&Colors::ButtonHoveredDark);
-				ImGui::ColorEdit4("ButtonActiveDark", (float*)&Colors::ButtonActiveDark);
-				ImGui::ColorEdit4("TextDark", (float*)&Colors::TextDark);
-
-				ImGui::ColorEdit4("TextInvalidInput", (float*)&Colors::TextInvalidInput);
-				ImGui::ColorEdit4("PropertyField", (float*)&Colors::PropertyField);
-				ImGui::ColorEdit4("InfoField", (float*)&Colors::InfoField);
-				ImGui::ColorEdit4("BorderColored", (float*)&Colors::BorderColored);
-				ImGui::ColorEdit4("BorderColoredWeak", (float*)&Colors::BorderColoredWeak);
-				ImGui::ColorEdit4("ShadowColored", (float*)&Colors::ShadowColored);
-				ImGui::ColorEdit4("Colored", (float*)&Colors::Colored);
-				ImGui::ColorEdit4("ColoredLight", (float*)&Colors::ColoredLight);
-				ImGui::ColorEdit4("LogTrace", (float*)&Colors::LogTrace);
-				ImGui::ColorEdit4("LogInfo", (float*)&Colors::LogInfo);
-				ImGui::ColorEdit4("LogWarn", (float*)&Colors::LogWarn);
-				ImGui::ColorEdit4("LogError", (float*)&Colors::LogError);
-				ImGui::ColorEdit4("LogCritical", (float*)&Colors::LogCritical);
-				ImGui::ColorEdit4("ClockColor", (float*)&Colors::LogTimeColor);
-				ImGui::EndTabItem();
-			}
-
-			if (ImGui::BeginTabItem("Style"))
-			{
-				ImGuiStyle& style = ImGui::GetStyle();
-				ImGui::DragFloat("Frame Border", &style.FrameBorderSize, 0.1f, 0.0f, FLT_MAX);
-				ImGui::EndTabItem();
-			}
-
-			ImGui::EndTabBar();
-		}
-
-		if (ImGui::Button("Reset"))
-			LoadDarkThemeColors();
-		ImGui::End();
 	}
 
 }

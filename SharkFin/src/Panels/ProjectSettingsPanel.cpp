@@ -34,7 +34,7 @@ namespace Shark {
 			}
 
 			UI::Property("Directory", config.Directory);
-			UI::ControlDragDrop("Assets", config.AssetsDirectory, UI::DragDropID::Directroy);
+			UI::ControlDragDrop("Assets", config.AssetsDirectory, "Directory");
 
 			UI::ControlAsset("Startup Scene", AssetType::Scene, config.StartupScene);
 			UI::EndControls();

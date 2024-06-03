@@ -22,7 +22,7 @@ namespace Shark {
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing Material to {}", metadata.FilePath);
 
-		Timer timer;
+		ScopedTimer timer("Serializing Material");
 		m_ErrorMsg.clear();
 
 		std::string result = SerializeToYAML(asset.As<MaterialAsset>());
@@ -35,7 +35,6 @@ namespace Shark {
 		const auto fsPath = Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata);
 		FileSystem::WriteString(fsPath, result);
 
-		SK_CORE_TRACE_TAG("Serialization", "Serializing Material took {}", timer.Elapsed());
 		return true;
 	}
 

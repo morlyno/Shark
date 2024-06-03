@@ -20,6 +20,7 @@ namespace Shark {
 		std::string Name = "UnNamed";
 		uint32_t WindowWidth = 1280, WindowHeight = 720;
 		bool Decorated = true;
+		bool CustomTitlebar = false;
 		bool Maximized = false;
 		bool FullScreen = false;
 		bool EnableImGui = false;

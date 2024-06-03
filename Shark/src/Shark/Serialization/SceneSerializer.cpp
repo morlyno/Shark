@@ -160,6 +160,10 @@ namespace Shark {
 			return false;
 		}
 
+		scene->m_Registry.sort<IDComponent>([](const entt::entity lhs, const entt::entity rhs) {
+			return entt::registry::entity_type(lhs) < entt::registry::entity_type(rhs);
+		});
+
 		asset = scene;
 		asset->Handle = metadata.Handle;
 

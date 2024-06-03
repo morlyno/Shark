@@ -11,7 +11,7 @@ namespace Shark::UI {
 	{
 		if (s_Fonts.contains(config.Name))
 		{
-			SK_CORE_ERROR_TAG("UI", "Tried to add Font with name {} but name is allready used");
+			SK_CORE_ERROR_TAG("UI", "Tried to add Font with name {} but name is allready used", config.Name);
 			return;
 		}
 

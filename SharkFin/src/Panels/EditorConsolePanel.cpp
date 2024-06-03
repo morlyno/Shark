@@ -6,7 +6,7 @@
 #include "Shark/UI/Theme.h"
 #include "Shark/Debug/Profiler.h"
 
-#include "Icons.h"
+#include "Shark/UI/Icons.h"
 
 #include <imgui.h>
 #include <fmt/printf.h>
@@ -169,7 +169,7 @@ namespace Shark {
 					// Column 1
 					// Timepoint
 					ImGui::TableSetColumnIndex(1);
-					ImGui::TextColored(Theme::Colors::LogTimeColor, msg.Time.c_str());
+					ImGui::TextColored(ImColor(UI::Colors::Theme::LogTimeColor), msg.Time.c_str());
 
 					ImGui::TableSetColumnIndex(2);
 					UI::Text(msg.FriendlyMessage);
@@ -282,11 +282,11 @@ namespace Shark {
 	{
 		switch (level)
 		{
-			case LogLevel::Trace: return ImGui::GetColorU32(Theme::Colors::LogTrace);
-			case LogLevel::Info: return ImGui::GetColorU32(Theme::Colors::LogInfo);
-			case LogLevel::Warn: return ImGui::GetColorU32(Theme::Colors::LogWarn);
-			case LogLevel::Error: return ImGui::GetColorU32(Theme::Colors::LogError);
-			case LogLevel::Critical: return ImGui::GetColorU32(Theme::Colors::LogCritical);
+			case LogLevel::Trace: return ImGui::GetColorU32(UI::Colors::Theme::LogTrace);
+			case LogLevel::Info: return ImGui::GetColorU32(UI::Colors::Theme::LogInfo);
+			case LogLevel::Warn: return ImGui::GetColorU32(UI::Colors::Theme::LogWarn);
+			case LogLevel::Error: return ImGui::GetColorU32(UI::Colors::Theme::LogError);
+			case LogLevel::Critical: return ImGui::GetColorU32(UI::Colors::Theme::LogCritical);
 		}
 		return 0;
 	}

@@ -3,8 +3,8 @@
 
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
+#include "Shark/UI/Icons.h"
 
-#include "Icons.h"
 #include "EditorSettings.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
 
@@ -113,38 +113,72 @@ namespace Shark {
 
 		UI::ScopedID id(this);
 
-		const auto& editorSettings = EditorSettings::Get();
-		const float thumbnailSize = editorSettings.ContentBrowser.ThumbnailSize;
+		Ref<ThumbnailCache> thumbnailCache = m_Context->GetThumbnailCache();
+		const EditorSettings& editorSettings = EditorSettings::Get();
 		const ImGuiStyle& style = ImGui::GetStyle();
 
-		const float padding = 2.0f;
-		const float framePadding = 2.0f;
-		const float textHeight = ImGui::GetTextLineHeight();
-		const float rounding = 6.0f;
-		UI::MoveCursorX(-padding);
-		const ImVec2 thumbnailTopLeft = ImGui::GetCursorScreenPos();
-		const ImVec2 thumbnailBottemRight = { thumbnailTopLeft.x + thumbnailSize, thumbnailTopLeft.y + thumbnailSize };
-		const ImVec2 infoTopLeft = { thumbnailTopLeft.x, thumbnailBottemRight.y };
-		const ImVec2 infoBottemRight = { thumbnailBottemRight.x, thumbnailBottemRight.y + textHeight * 2.0f + padding * 4.0f + framePadding };
+		//==================================//
+		//= Variables ======================//
+		const float thumbnailSize = editorSettings.ContentBrowser.ThumbnailSize;
+		const float thumbnailBorderSize = 2.0f;
+		const float lineHeight = ImGui::GetTextLineHeight();
+		const float linePadding = 2.0f;
+		const float cornerRounding = 6.0f;
 
-		const ImRect cellRect = { thumbnailTopLeft, infoBottemRight };
-		m_IsHovered = cellRect.Contains(ImGui::GetMousePos()) && ImGui::IsAnyItemHovered() && GImGui->HoveredId != ImGui::GetID("##thumbnailButton");
+		ImRect thumbnailRect;
+		thumbnailRect.Min = ImGui::GetCursorScreenPos();
+		thumbnailRect.Max = thumbnailRect.Min + ImVec2(thumbnailSize, thumbnailSize);
 
-		if (ImGui::IsClippedEx(cellRect, 0))
+		ImRect propertyRect;
+		propertyRect.Min = ImVec2(thumbnailRect.Min.x, thumbnailRect.Max.y);
+		propertyRect.Max = ImVec2(thumbnailRect.Max.x, thumbnailRect.Max.y + lineHeight * 2.0f + linePadding * 4.0f);
+
+		ImRect itemRect = { thumbnailRect.Min, propertyRect.Max };
+		m_IsHovered = ImGui::IsMouseHoveringRect(itemRect.Min, itemRect.Max);
+
+		//==================================//
+		//= Draw Background ================//
+
+		UI::DrawBackground(propertyRect, UI::Colors::Theme::BackgroundPopup, cornerRounding, ImDrawFlags_RoundCornersBottom);
+		UI::DrawBorder(propertyRect, UI::Colors::Theme::BackgroundDark, cornerRounding, ImDrawFlags_RoundCornersBottom);
+
+		//==================================//
+		//= Draw Thumbnail =================//
+
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0.0f, linePadding });
+
+		ImGui::SetNextItemAllowOverlap();
+		ImGui::InvisibleButton("thumbnailButton", itemRect.GetSize());
+
+		ImRect buttonRect = UI::GetItemRect();
+		buttonRect.Max.y = thumbnailRect.Max.y;
+
+		DrawPopupMenu(action);
+		HandleDragDrop(action);
+
+		if (m_Type == CBItemType::Directory)
 		{
-			ImGui::Dummy(cellRect.GetSize());
-			return action;
+			UI::DrawImageButton(m_Icon,
+								IM_COL32(255, 255, 255, 235),
+								IM_COL32(255, 255, 255, 255),
+								IM_COL32(255, 255, 255, 225),
+								UI::RectExpand(buttonRect, -thumbnailBorderSize, -thumbnailBorderSize));
+		}
+		else
+		{
+			Ref<Image2D> thumbnail = m_Icon->GetImage();
+			if (thumbnailCache->HasThumbnail(m_AssetHandle))
+				thumbnail = thumbnailCache->GetThumbnail(m_AssetHandle);
+
+			UI::DrawBackground(buttonRect, IM_COL32(0, 0, 0, 255), 0.0f);
+			UI::DrawImageButton(thumbnail,
+								IM_COL32(255, 255, 255, 235),
+								IM_COL32(255, 255, 255, 255),
+								IM_COL32(255, 255, 255, 225),
+								UI::RectExpand(buttonRect, -thumbnailBorderSize, -thumbnailBorderSize));
 		}
 
-		// Frame
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		drawList->AddRectFilled(thumbnailTopLeft, thumbnailBottemRight, UI::ToColor32(Theme::Colors::PropertyField), rounding, ImDrawFlags_RoundCornersTop);
-		drawList->AddRectFilled(infoTopLeft, infoBottemRight, UI::ToColor32(Theme::Colors::InfoField), rounding, ImDrawFlags_RoundCornersBottom);
-
-		bool hovered, held;
-		bool pressed = ImGui::ButtonBehavior(cellRect, UI::GetID("##thumbnailButton"), &hovered, &held);
-
-		if (hovered)
+		if (ImGui::IsItemHovered())
 		{
 			if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 				action.SetFlag(CBItemActionFlag::Open);
@@ -152,183 +186,172 @@ namespace Shark {
 				action.SetFlag(CBItemActionFlag::Select);
 		}
 
+		UI::MoveCursorY(-propertyRect.GetHeight());
+
+		//==================================//
+		//= Draw Property ==================//
+
+		UI::ScopedIndent indent(style.FramePadding.x);
+		ImGui::PushClipRect(propertyRect.Min, propertyRect.Max, true);
+
+		if (FlagSet(StateFlag::StartRenaming))
 		{
-			UI::ScopedStyle spacing(ImGuiStyleVar_ItemSpacing, { 0.0f, padding });
-
-			ImGui::InvisibleButton("##thumbnailButton", { thumbnailSize, thumbnailSize });
-
-			if (ImGui::BeginPopupContextItem())
-			{
-				if (!IsSelected())
-				{
-					action.SetFlag(CBItemActionFlag::Select);
-				}
-
-				std::string path = m_Context.GetRef()->GetProject()->GetRelative(m_Path).string();
-				ImGui::Text("Filepath: %s", path.c_str());
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Reload", nullptr, false, m_Type == CBItemType::Asset))
-					action.SetFlag(CBItemActionFlag::ReloadAsset);
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Open Externally"))
-					action.SetFlag(CBItemActionFlag::OpenExternally);
-
-				if (ImGui::MenuItem("Show in Explorer"))
-					action.SetFlag(CBItemActionFlag::OpenInExplorer);
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Rename", "F2"))
-					action.SetFlag(CBItemActionFlag::StartRenaming);
-
-				if (ImGui::MenuItem("Delete", "Del"))
-					action.Delete();
-
-				ImGui::EndPopup();
-			}
-
-			if (m_Type == CBItemType::Asset)
-			{
-				if (ImGui::BeginDragDropSource())
-				{
-					AssetHandle handle = m_Context.GetRef()->GetProject()->GetEditorAssetManager()->GetAssetHandleFromFilepath(m_Path);
-					ImGui::SetDragDropPayload(UI::DragDropID::Asset, &handle, sizeof(AssetHandle));
-					UI::Text(m_Name);
-					if (m_Thumbnail)
-					{
-						const float ratio = (float)m_Thumbnail->GetWidth() / (float)m_Thumbnail->GetHeight();
-						UI::Texture(m_Thumbnail, ImVec2(64 * ratio, 64));
-					}
-					ImGui::EndDragDropSource();
-				}
-			}
-
-			if (m_Type == CBItemType::Directory)
-			{
-				if (ImGui::BeginDragDropSource())
-				{
-					std::string pathString = m_Path.string();
-					SK_CORE_VERIFY(pathString.length() < 260);
-					char path[260];
-					strcpy_s(path, pathString.c_str());
-					ImGui::SetDragDropPayload(UI::DragDropID::Directroy, path, sizeof(path));
-					ImGui::Text(path);
-					ImGui::EndDragDropSource();
-				}
-
-				if (ImGui::BeginDragDropTarget())
-				{
-					const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload(UI::DragDropID::Asset);
-					if (assetPayload)
-					{
-						AssetHandle handle = *(AssetHandle*)assetPayload->Data;
-						Ref<EditorAssetManager> assetManager = m_Context.GetRef()->GetProject()->GetEditorAssetManager();
-						if (assetManager->IsValidAssetHandle(handle))
-						{
-							action.AssetDropped(handle);
-						}
-					}
-
-					const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload(UI::DragDropID::Directroy);
-					if (directoryPayload)
-					{
-						std::filesystem::path path = std::filesystem::path((const char*)directoryPayload->Data);
-						SK_CORE_ASSERT(FileSystem::Exists(path));
-						action.SetFlag(CBItemActionFlag::DirectoryDropped);
-						action.m_DroppedDirectory = path;
-					}
-
-				}
-			}
-
-			const float borderSize = 2.0f;
-
-			Ref<ThumbnailCache> thumbnailCache = m_Context->GetThumbnailCache();
-
-			Ref<Image2D> image = m_Icon->GetImage();
-			if (thumbnailCache->HasThumbnail(m_AssetHandle))
-				image = thumbnailCache->GetThumbnail(m_AssetHandle);
-
-			ImGuiLayer& imguiLayer = Application::Get().GetImGuiLayer();
-			imguiLayer.AddImage(image);
-			drawList->AddImageRounded(
-				image->GetViewID(),
-				thumbnailTopLeft + ImVec2(borderSize, borderSize),
-				thumbnailBottemRight - ImVec2(borderSize, borderSize),
-				ImVec2(0, 0),
-				ImVec2(1, 1),
-				IM_COL32_WHITE,
-				rounding - 1,
-				ImDrawFlags_RoundCornersTop
-			);
-			imguiLayer.BindFontSampler();
-
-			UI::ScopedIndent indent(style.FramePadding.x);
-			ImGui::PushClipRect(infoTopLeft, infoBottemRight, true);
-			UI::MoveCursorY(padding);
-
-			if (FlagSet(StateFlag::StartRenaming))
-			{
-				ImGui::SetKeyboardFocusHere();
-				SetFlag(StateFlag::StartRenaming, false);
-				SetFlag(StateFlag::Renaming, true);
-			}
-
-			if (FlagSet(StateFlag::Renaming))
-			{
-				ImGui::SetNextItemWidth(thumbnailSize - padding * 2.0f - style.FramePadding.x * 2.0f);
-				auto filter = [](ImGuiInputTextCallbackData* data) -> int
-				{
-					if (FileSystem::InvalidCharactersW.find(data->EventChar) != std::wstring_view::npos)
-					{
-						*(bool*)data->UserData = true;
-						return 1;
-					}
-					return 0;
-				};
-
-				bool invalidInput = false;
-				ImGui::InputText("##rename", m_RenameBuffer, (int)std::size(m_RenameBuffer), ImGuiInputTextFlags_CallbackCharFilter, filter, &invalidInput);
-				if (invalidInput)
-					action.ErrorPrompt("Invalid Filename");
-
-				if (ImGui::IsItemDeactivatedAfterEdit())
-					action.FinishRenaming(fmt::format("{}{}", m_RenameBuffer, FileSystem::GetExtensionString(m_Path)));
-				if (ImGui::IsItemDeactivated())
-					SetFlag(StateFlag::Renaming, false);
-			}
-			else
-			{
-				ImGui::Text(m_Name.c_str());
-			}
-
-			// Item Type
-			ImVec2 textSize = ImGui::CalcTextSize(m_TypeName.c_str(), m_TypeName.c_str() + m_TypeName.size());
-			UI::MoveCursorX(thumbnailSize - textSize.x - style.FramePadding.x * 2.0f);
-			ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_Text) * 0.8f, m_TypeName.c_str());
-			ImGui::PopClipRect();
+			ImGui::SetKeyboardFocusHere();
+			SetFlag(StateFlag::StartRenaming, false);
+			SetFlag(StateFlag::Renaming, true);
 		}
 
-		// Outline
-		const ImVec2 borderPadding = { 1.0f, 1.0f };
-		const bool isSelected = IsSelected();
-		const bool coloredBorder = m_IsHovered || isSelected;
-		const ImU32 borderColor = UI::ToColor32(coloredBorder ? (isSelected ? Theme::Colors::BorderColored : Theme::Colors::BorderColoredWeak) : ImGui::GetStyleColorVec4(ImGuiCol_Border));
-		const ImU32 shadowColor = UI::ToColor32(coloredBorder ? Theme::Colors::ShadowColored : ImGui::GetStyleColorVec4(ImGuiCol_BorderShadow));
+		if (FlagSet(StateFlag::Renaming))
+		{
+			bool invalidInput = false;
 
-		const ImVec2 borderMin = thumbnailTopLeft - borderPadding;
-		const ImVec2 borderMax = infoBottemRight + borderPadding;
-		float borderSize = style.FrameBorderSize;
-		drawList->AddRect(borderMin + ImVec2(1, 1), borderMax + ImVec2(1, 1), shadowColor, rounding, 0, borderSize);
-		drawList->AddRect(borderMin, borderMax, borderColor, rounding, 0, borderSize);
+			UI::ScopedStyleStack inputStyles(ImGuiStyleVar_FramePadding, { 0.0f, 0.0f },
+											 ImGuiStyleVar_FrameBorderSize, 0.0f);
+			UI::ScopedColorStack inputColors(ImGuiCol_FrameBg, 0,
+											 ImGuiCol_FrameBgActive, 0,
+											 ImGuiCol_FrameBgHovered, 0);
 
-		UI::MoveCursorY(style.ItemSpacing.y - padding);
+			ImGui::SetNextItemWidth(thumbnailSize - thumbnailBorderSize * 2.0f - style.FramePadding.x * 2.0f);
+
+			UI::InputFileName("##rename", m_RenameBuffer, (int)std::size(m_RenameBuffer), invalidInput);
+
+			if (invalidInput)
+				action.ErrorPrompt("Invalid Filename");
+
+			if (ImGui::IsItemDeactivatedAfterEdit())
+				action.FinishRenaming(fmt::format("{}{}", m_RenameBuffer, FileSystem::GetExtensionString(m_Path)));
+			if (ImGui::IsItemDeactivated())
+				SetFlag(StateFlag::Renaming, false);
+		}
+		else
+		{
+			ImGui::Text(m_Name.c_str());
+		}
+
+		// Item Type
+		{
+			ImVec2 textSize = ImGui::CalcTextSize(m_TypeName.c_str(), m_TypeName.c_str() + m_TypeName.size());
+			UI::MoveCursorX(thumbnailSize - textSize.x - style.FramePadding.x * 2.0f);
+
+			UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextDarker);
+			ImGui::Text(m_TypeName.c_str());
+		}
+
+		ImGui::PopClipRect();
+
+		//==================================//
+		//= Draw Outline ===================//
+
+		{
+			const float outlineSize = 1.0f;
+			UI::ScopedStyle borderSize(ImGuiStyleVar_FrameBorderSize, outlineSize);
+			UI::ScopedClipRect clipRect(UI::RectExpand(ImGui::GetCurrentWindowRead()->ClipRect, outlineSize + 1.0f, outlineSize + 1.0f));
+
+			const bool isSelected = IsSelected();
+			const ImU32 borderColor = (m_IsHovered || isSelected) ? (m_IsHovered ? UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 1.2f) : UI::Colors::Theme::Selection) : 0;
+			UI::DrawBorder(UI::RectExpand(itemRect, outlineSize, outlineSize), borderColor, 6.0f, ImDrawFlags_RoundCornersBottom);
+		}
+
+		ImGui::PopStyleVar();
+
+		UI::MoveCursorY(style.ItemSpacing.y);
 		ImGui::Dummy({ 0, 0 });
 
 		return action;
+	}
+
+	void ContentBrowserItem::DrawPopupMenu(CBItemAction& action)
+	{
+		if (ImGui::BeginPopupContextItem())
+		{
+			if (!IsSelected())
+			{
+				action.SetFlag(CBItemActionFlag::Select);
+			}
+
+			std::string path = m_Context.GetRef()->GetProject()->GetRelative(m_Path).string();
+			ImGui::Text("Filepath: %s", path.c_str());
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Reload", nullptr, false, m_Type == CBItemType::Asset))
+				action.SetFlag(CBItemActionFlag::ReloadAsset);
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Open Externally"))
+				action.SetFlag(CBItemActionFlag::OpenExternally);
+
+			if (ImGui::MenuItem("Show in Explorer"))
+				action.SetFlag(CBItemActionFlag::OpenInExplorer);
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Rename", "F2"))
+				action.SetFlag(CBItemActionFlag::StartRenaming);
+
+			if (ImGui::MenuItem("Delete", "Del"))
+				action.Delete();
+
+			ImGui::EndPopup();
+		}
+	}
+
+	void ContentBrowserItem::HandleDragDrop(CBItemAction& action)
+	{
+		if (m_Type == CBItemType::Asset)
+		{
+			if (ImGui::BeginDragDropSource())
+			{
+				AssetHandle handle = m_Context.GetRef()->GetProject()->GetEditorAssetManager()->GetAssetHandleFromFilepath(m_Path);
+				ImGui::SetDragDropPayload("Asset", &handle, sizeof(AssetHandle));
+				UI::Text(m_Name);
+				if (m_Thumbnail)
+				{
+					const float ratio = (float)m_Thumbnail->GetWidth() / (float)m_Thumbnail->GetHeight();
+					UI::Texture(m_Thumbnail, ImVec2(64 * ratio, 64));
+				}
+				ImGui::EndDragDropSource();
+			}
+		}
+
+		if (m_Type == CBItemType::Directory)
+		{
+			if (ImGui::BeginDragDropSource())
+			{
+				std::string pathString = m_Path.string();
+				SK_CORE_VERIFY(pathString.length() < 260);
+				char path[260];
+				strcpy_s(path, pathString.c_str());
+				ImGui::SetDragDropPayload("Directory", path, sizeof(path));
+				ImGui::Text(path);
+				ImGui::EndDragDropSource();
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload("Asset");
+				if (assetPayload)
+				{
+					AssetHandle handle = *(AssetHandle*)assetPayload->Data;
+					Ref<EditorAssetManager> assetManager = m_Context.GetRef()->GetProject()->GetEditorAssetManager();
+					if (assetManager->IsValidAssetHandle(handle))
+					{
+						action.AssetDropped(handle);
+					}
+				}
+
+				const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload("Directory");
+				if (directoryPayload)
+				{
+					std::filesystem::path path = std::filesystem::path((const char*)directoryPayload->Data);
+					SK_CORE_ASSERT(FileSystem::Exists(path));
+					action.SetFlag(CBItemActionFlag::DirectoryDropped);
+					action.m_DroppedDirectory = path;
+				}
+
+			}
+		}
+
 	}
 
 	void ContentBrowserItem::StartRenaming()
@@ -372,8 +395,7 @@ namespace Shark {
 			return false;
 		}
 
-		m_StateFlags = 0;
-		SetFlag(StateFlag::Deleted, true);
+		m_StateFlags = StateFlag::Deleted;
 		return true;
 	}
 
@@ -393,14 +415,14 @@ namespace Shark {
 	void ContentBrowserItem::SetFlag(StateFlag flag, bool set)
 	{
 		if (set)
-			m_StateFlags |= (uint32_t)flag;
+			m_StateFlags |= flag;
 		else
-			m_StateFlags &= ~(uint32_t)flag;
+			m_StateFlags &= ~flag;
 	}
 
 	bool ContentBrowserItem::FlagSet(StateFlag flag) const
 	{
-		return m_StateFlags & (uint32_t)flag;
+		return (m_StateFlags & flag) == flag;
 	}
 
 	std::string ContentBrowserItem::GetTypeString() const

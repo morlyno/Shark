@@ -413,6 +413,9 @@ ImportedAssets:
   - Handle: 13665817056289373643
     Type: Texture
     FilePath: Texture/Checkboard.png
+  - Handle: 16090423089442315309
+    Type: Texture
+    FilePath: Texture/DirtyGold01_4K_Roughness.png
   - Handle: 13658523066295494907
     Type: Texture
     FilePath: Texture/Gear.png
@@ -653,6 +656,9 @@ ImportedAssets:
   - Handle: 6752412142428602314
     Type: Material
     FilePath: Materials/CerberusMap.skmat
+  - Handle: 15318099279608298917
+    Type: Material
+    FilePath: Materials/DirtyFloor.skmat
   - Handle: 5711592405232914583
     Type: Material
     FilePath: Materials/M_Blue.skmat

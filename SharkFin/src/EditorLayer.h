@@ -63,7 +63,9 @@ namespace Shark {
 		bool OnKeyPressed(KeyPressedEvent& event);
 		bool OnWindowDropEvent(WindowDropEvent& event);
 
-		void UI_MainMenuBar();
+		void UI_DrawTitleBar(float& outTitlebarHeight);
+		void UI_DrawMenuBar();
+		void UI_DrawMenuBarItems();
 		void UI_Viewport();
 		void UI_Gizmo();
 		void UI_EditorCamera();
@@ -75,6 +77,7 @@ namespace Shark {
 		void UI_ImportAsset();
 		void UI_CreateMeshAsset();
 		void UI_CreateProjectModal();
+		void UpdateMainWindow();
 
 		void DebugRender();
 
@@ -130,6 +133,7 @@ namespace Shark {
 		Ref<Scene> m_ActiveScene = nullptr;
 		Ref<Scene> m_WorkScene = nullptr;
 
+		bool m_TitlebarHovered = false;
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		ImVec2 m_ViewportPos = ImVec2(0, 0);

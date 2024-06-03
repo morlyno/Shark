@@ -407,11 +407,22 @@ namespace Shark {
 
 	bool EditorAssetManager::SaveAsset(AssetHandle handle)
 	{
-		const auto& metadata = GetMetadataInternal(handle);
+		auto& metadata = GetMetadataInternal(handle);
 		if (metadata.IsMemoryAsset || metadata.Status != AssetStatus::Ready)
 			return false;
 
-		return AssetSerializer::Serialize(m_LoadedAssets.at(handle), metadata);
+		if (AssetSerializer::Serialize(m_LoadedAssets.at(handle), metadata))
+		{
+			metadata.LastWriteTime = FileSystem::GetLastWriteTime(GetFilesystemPath(metadata));
+			return true;
+		}
+
+		return false;
+	}
+
+	void EditorAssetManager::WaitUntilIdle()
+	{
+		m_AssetThread->WaitUntilIdle();
 	}
 
 	void EditorAssetManager::SyncWithAssetThread()
@@ -421,6 +432,9 @@ namespace Shark {
 
 		for (AssetLoadRequest& alr : loadedAssets)
 		{
+			if (m_LoadedAssets.contains(alr.Metadata.Handle))
+				m_LoadedAssets.at(alr.Metadata.Handle)->SetFlag(AssetFlag::Invalid, true);
+
 			m_Registry[alr.Metadata.Handle] = alr.Metadata;
 			m_LoadedAssets[alr.Metadata.Handle] = alr.Asset;
 		}

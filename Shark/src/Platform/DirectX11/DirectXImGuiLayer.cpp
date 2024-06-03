@@ -58,15 +58,21 @@ namespace Shark {
 		UI::FontConfiguration robotoMedium;
 		robotoMedium.Name = "Medium";
 		robotoMedium.Filepath = "Resources/Fonts/Roboto/Roboto-Medium.ttf";
-		robotoMedium.Size = 15.0f;
-		robotoMedium.Default = true;
+		robotoMedium.Size = 20.0f;
 		UI::Fonts::Add(robotoMedium);
+
+		UI::FontConfiguration robotoDefault;
+		robotoDefault.Name = "Default";
+		robotoDefault.Filepath = "Resources/Fonts/Roboto/Roboto-Medium.ttf";
+		robotoDefault.Size = 15.0f;
+		robotoDefault.Default = true;
+		UI::Fonts::Add(robotoDefault);
 
 		static const ImWchar s_FontAwesomeRanges[] = { 0xe000, 0xf8ff, 0 };
 		UI::FontConfiguration fontAwesome;
 		fontAwesome.Name = "FontAwesome";
 		fontAwesome.Filepath = "Resources/Fonts/FontAwesome/fa-solid-900.ttf";
-		fontAwesome.Size = 16.0f;
+		fontAwesome.Size = 15.0f;
 		fontAwesome.GlythRanges = s_FontAwesomeRanges;
 		fontAwesome.MergeWithLast = true;
 		UI::Fonts::Add(fontAwesome);
@@ -78,7 +84,7 @@ namespace Shark {
 		fontAwesomeRegular.GlythRanges = s_FontAwesomeRanges;
 		UI::Fonts::Add(fontAwesomeRegular);
 
-		Theme::LoadDark();
+		UI::Colors::LoadDarkTheme();
 
 		ImGuiStyle& style = ImGui::GetStyle();
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

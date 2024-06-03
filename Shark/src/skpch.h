@@ -19,6 +19,7 @@
 #include <bitset>
 #include <optional>
 #include <queue>
+#include <stack>
 
 #include <iostream>
 #include <fstream>

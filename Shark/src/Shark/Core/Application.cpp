@@ -40,10 +40,10 @@ namespace Shark {
 		windowSpec.Width = specification.WindowWidth;
 		windowSpec.Height = specification.WindowHeight;
 		windowSpec.Decorated = specification.Decorated;
+		windowSpec.CustomTitlebar = specification.CustomTitlebar;
 		windowSpec.Fullscreen = specification.FullScreen;
 		windowSpec.VSync = specification.VSync;
-		windowSpec.EventListener = Ref<EventListener>::Create([app](Event& e) { app->OnEvent(e); });
-		m_Window = Window::Create(windowSpec);
+		m_Window = Window::Create(windowSpec, [app](Event& e) { app->OnEvent(e); });
 		if (specification.Maximized)
 			m_Window->Maximize();
 		else

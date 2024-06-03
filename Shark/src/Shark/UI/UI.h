@@ -3,26 +3,18 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/TimeStep.h"
 
-#include "Shark/Asset/Asset.h"
-
-#include "Shark/ImGui/ImGuiHelpers.h"
 #include "Shark/ImGui/ImGuiFonts.h"
+#include "Shark/UI/Controls.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <misc/cpp/imgui_stdlib.h>
+
 #include <glm/glm.hpp>
-#include <stack>
 
 #ifdef IMGUI_DEFINE_MATH_OPERATORS
 static inline ImVec4 operator*(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs); }
 static inline ImVec4 operator/(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs); }
 #endif
-
-inline std::ostream& operator<<(std::ostream& out, const ImVec2& v)
-{
-	return out << fmt::format("[{}, {}]", v.x, v.y);
-}
 
 template<typename Char>
 struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
@@ -46,6 +38,8 @@ struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
 namespace Shark {
 	class ImGuiLayer;
 	class Texture2D;
+	class Image2D;
+	class ImageView;
 	class Project;
 	class AssetManager;
 }
@@ -55,45 +49,11 @@ namespace Shark::UI {
 	struct UIControl;
 	struct UIContext;
 
-	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/// Flags //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 	enum
 	{
 		DefaultHeaderFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_Framed,
 		DefaultThinHeaderFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Selected
 	};
-
-	namespace TextFlag {
-		enum TextFlag : uint16_t
-		{
-			None = 0,
-			Aligned = BIT(0),
-			Selectable = BIT(1),
-			Disabled = BIT(2)
-		};
-	}
-	using TextFlags = std::underlying_type_t<TextFlag::TextFlag>;
-
-	namespace PrivateTextFlag {
-		enum PrivateTextFlag : uint16_t
-		{
-			LabelDefault = TextFlag::Aligned,
-			StringDefault = TextFlag::Aligned
-		};
-	}
-
-	namespace GridFlag {
-		enum GridFlag : uint16_t
-		{
-			None = 0,
-			Label = BIT(0),
-			Widget = BIT(1),
-
-			Full = Label | Widget
-		};
-	}
-	using GridFlags = std::underlying_type_t<GridFlag::GridFlag>;
 
 	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Helpers ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -128,6 +88,12 @@ namespace Shark::UI {
 	inline void MoveCursorX(float deltaX)                                      { MoveCursor({ deltaX, 0.0f }); }
 	inline void MoveCursorY(float deltaY)                                      { MoveCursor({ 0.0f, deltaY }); }
 
+	ImRect GetItemRect();
+	ImRect RectExpand(const ImRect& rect, float x, float y);
+	ImRect RectExpand(const ImRect& rect, const ImVec2& xy);
+	ImRect RectOffset(const ImRect& rect, float x, float y);
+	ImRect RectOffset(const ImRect& rect, const ImVec2& offset);
+
 	ImU32 ToColor32(const ImVec4& color);
 	ImU32 ToColor32(const ImVec4& color, float alpha);
 
@@ -138,176 +104,34 @@ namespace Shark::UI {
 
 	ImVec2 CalcItemSizeFromText(const char* text, const char* textEnd = nullptr);
 
-	template<typename T> const T& GetPayloadDataAs(const ImGuiPayload* payload)
-	{
-		SK_CORE_VERIFY(payload && payload->DataSize == sizeof(T));
-		return *(T*)payload->Data;
-	}
-
-	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	struct DragDropID
-	{
-		static constexpr const char* Asset = "ASSET";
-		static constexpr const char* Entity = "ENTITY_ID";
-		static constexpr const char* Directroy = "DIRECTORY";
-	};
-
-	bool BeginControls();
-	bool BeginControlsGrid(GridFlags flags = GridFlag::Label);
-	bool BeginControls(ImGuiID syncID);
-	bool BeginControlsGrid(ImGuiID syncID, GridFlags flags = GridFlag::Label);
-	void EndControls();
-	void EndControlsGrid();
-
-	void ControlSetupColumns(std::string_view label, ImGuiTableColumnFlags flags = 0, float init_width_or_weight = 0.0f);
-
-	bool ControlHelperBegin(ImGuiID id);
-	bool ControlHelperBegin(std::string_view strID);
-	void ControlHelperEnd();
-	void ControlHelperDrawLabel(std::string_view label);
-
-	float ControlContentRegionWidth();
-
-	bool Header(std::string_view label, ImGuiTreeNodeFlags flags = DefaultHeaderFlags);
-	void PopHeader();
-
-	bool Control(std::string_view label, float& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
-	bool Control(std::string_view label, double& val, float speed = 0.05f, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
-	bool ControlSlider(std::string_view label, float& val, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
-	bool ControlSlider(std::string_view label, double& val, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
-
-	bool Control(std::string_view label, int8_t& val, float speed = 0.05f, int8_t min = 0, int8_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, int16_t& val, float speed = 0.05f, int16_t min = 0, int16_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, int32_t& val, float speed = 0.05f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, int64_t& val, float speed = 0.05f, int64_t min = 0, int64_t max = 0, const char* fmt = nullptr);
-
-	bool Control(std::string_view label, uint8_t& val, float speed = 0.05f, uint8_t min = 0, uint8_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, uint16_t& val, float speed = 0.05f, uint16_t min = 0, uint16_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, uint32_t& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr, ImGuiSliderFlags flags = ImGuiSliderFlags_None);
-	bool Control(std::string_view label, uint64_t& val, float speed = 0.05f, uint64_t min = 0, uint64_t max = 0, const char* fmt = nullptr);
-
-	bool Control(std::string_view label, glm::vec2& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::vec3& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::vec4& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
-
-	bool Control(std::string_view label, glm::ivec2& val, float speed = 0.05f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::ivec3& val, float speed = 0.05f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::ivec4& val, float speed = 0.05f, int32_t min = 0, int32_t max = 0, const char* fmt = nullptr);
-
-	bool Control(std::string_view label, glm::uvec2& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::uvec3& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
-	bool Control(std::string_view label, glm::uvec4& val, float speed = 0.05f, uint32_t min = 0, uint32_t max = 0, const char* fmt = nullptr);
-
-	bool Control(std::string_view label, glm::mat4& matrix, float speed = 0.05f, float min = 0, float max = 0, const char* fmt = nullptr);
-
-	bool ControlColor(std::string_view label, glm::vec3& color);
-	bool ControlColor(std::string_view label, glm::vec4& color);
-
-	bool Control(std::string_view label, bool& val);
-	bool ControlFlags(std::string_view label,  int16_t& val,  int16_t flag);
-	bool ControlFlags(std::string_view label, uint16_t& val, uint16_t flag);
-	bool ControlFlags(std::string_view label,  int32_t& val,  int32_t flag);
-	bool ControlFlags(std::string_view label, uint32_t& val, uint32_t flag);
-
-	bool ControlCombo(std::string_view label, uint32_t& index, const std::string_view items[], uint32_t itemsCount);
-	bool ControlCombo(std::string_view label, uint16_t& index, const std::string_view items[], uint32_t itemsCount);
-	bool ControlCombo(std::string_view label, int& index,      const std::string_view items[], uint32_t itemsCount);
-
-	template<typename TFunc>
-	bool ControlCombo(std::string_view label, std::string_view preview, const TFunc& func);
-
-	bool Control(std::string_view label, char* buffer, uint64_t bufferSize);
-	bool Control(std::string_view label, std::string& val);
-	bool Control(std::string_view label, std::filesystem::path& path);
-	bool Control(std::string_view label, UUID& uuid);
-
-	bool ControlAssetUnsave(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
-	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const char* dragDropType = DragDropID::Asset);
-
-	template<typename TAsset>
-	bool ControlAsset(std::string_view label, Ref<TAsset>& asset, const char* dragDropType = DragDropID::Asset)
-	{
-		AssetHandle assetHandle = asset ? asset->Handle : AssetHandle::Invalid;
-		if (ControlAsset(label, TAsset::GetStaticType(), assetHandle, dragDropType))
-		{
-			if (assetHandle == AssetHandle::Invalid)
-			{
-				asset = nullptr;
-				return true;
-			}
-
-			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
-			if (metadata.Type != TAsset::GetStaticType())
-				return false;
-
-			asset = AssetManager::GetAsset<TAsset>(assetHandle);
-			return true;
-		}
-		return false;
-	}
-
-	bool ControlDragDrop(std::string_view label, std::string& val, const char* dragDropType);
-	bool ControlDragDrop(std::string_view label, std::filesystem::path& val, const char* dragDropType);
-	bool ControlDragDrop(std::string_view label, UUID& uuid, const char* dragDropType);
-
-	bool ControlCustomBegin(std::string_view label, TextFlags labelFlags = TextFlag::None);
-	void ControlCustomEnd();
-
-	template<typename TFunc>
-	void ControlCustom(std::string_view label, const TFunc& func)
-	{
-		if (!ControlHelperBegin(label))
-			return;
-
-		ControlHelperDrawLabel(label);
-		func();
-		ControlHelperEnd();
-	}
-
-	void Property(std::string_view label, const char* text);
-	void Property(std::string_view label, std::string_view text);
-	void Property(std::string_view label, const std::string& text);
-	void Property(std::string_view label, const std::filesystem::path& path);
-
-	void Property(std::string_view label, const UUID& uuid);
-	void Property(std::string_view label, float value);
-	void Property(std::string_view label, int value);
-	void Property(std::string_view label, uint32_t value);
-	void Property(std::string_view label, uint64_t value);
-	void Property(std::string_view label, bool value);
-
-	void Property(std::string_view label, const glm::vec2& value);
-	void Property(std::string_view label, const glm::mat4& matrix);
-	void Property(std::string_view label, TimeStep timestep);
-
-	void PropertyColor(std::string_view label, const glm::vec4& color);
-
  	 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Widgets ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	void Text(std::string_view str, TextFlags flags = TextFlag::None);
-	void Text(const char* str,      TextFlags flags = TextFlag::None);
+	void DrawBackground(ImRect rect, ImU32 color, float rounding = 0.0f, ImDrawFlags drawFlags = 0);
+	void DrawBorder(ImRect rect, ImU32 color, float rounding, ImDrawFlags drawFlags = 0);
 
-	void Text(const std::string& string, TextFlags flags = TextFlag::None);
-	void Text(const std::filesystem::path& path, TextFlags flags = TextFlag::None);
+	void DrawButtonFrame(ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
+	void DrawButtonFrame(ImVec2 min, ImVec2 max, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
+	void DrawButtonFrame(ImVec2 min, ImVec2 max);
+	void DrawButtonFrame();
 
-	template<typename... TArgs>
-	void TextF(std::string_view fmt, TArgs&&... args)
-	{
-		Text(fmt::format(fmt::runtime(fmt), std::forward<TArgs>(args)...));
-	}
+	void DrawImageButton(Ref<Image2D> imageNormal, Ref<Image2D> imageHovered, Ref<Image2D> imagePressed, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImVec2 rectMin, ImVec2 rectMax);
+	void DrawImageButton(Ref<Image2D> imageNormal, Ref<Image2D> imageHovered, Ref<Image2D> imagePressed, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImRect rectangle);
+	void DrawImageButton(Ref<Texture2D> textureNormal, Ref<Texture2D> textureHovered, Ref<Texture2D> texturePressed, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImVec2 rectMin, ImVec2 rectMax);
+	void DrawImageButton(Ref<Texture2D> textureNormal, Ref<Texture2D> textureHovered, Ref<Texture2D> texturePressed, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImRect rectangle);
 
-	void TextSelectable(std::string_view str);
+	void DrawImageButton(Ref<Image2D> image, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImVec2 rectMin, ImVec2 rectMax);
+	void DrawImageButton(Ref<Image2D> image, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImRect rectangle);
+	void DrawImageButton(Ref<Texture2D> texture, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImVec2 rectMin, ImVec2 rectMax);
+	void DrawImageButton(Ref<Texture2D> texture, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImRect rectangle);
 
-	void TextFramed(std::string_view fmt, ...);
-	void TextCenteredFramed(std::string_view fmt, ...);
-	bool Search(ImGuiID id, char* buffer, int bufferSize);
-	
-	bool InputFileName(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
-	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
-	bool InputPath(const char* label, char* buffer, int bufferSize);
+	void DrawImageButton(Ref<Image2D> imageNormal, Ref<Image2D> imageHovered, Ref<Image2D> imagePressed, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
+	void DrawImageButton(Ref<Image2D> image, ImU32 tintNormal = 0xFFFFFFFF, ImU32 tintHovered = 0xFFFFFFFF, ImU32 tintPressed = 0xFFFFFFFF);
+	void DrawImageButton(Ref<Texture2D> textureNormal, Ref<Texture2D> textureHovered, Ref<Texture2D> texturePressed, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
+	void DrawImageButton(Ref<Texture2D> texture, ImU32 tintNormal = 0xFFFFFFFF, ImU32 tintHovered = 0xFFFFFFFF, ImU32 tintPressed = 0xFFFFFFFF);
+
+	void DrawTextButton(std::string_view text, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImVec2 position);
+	void DrawTextButton(std::string_view text, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
 
 	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 	void Image(Ref<ImageView> image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
@@ -317,20 +141,28 @@ namespace Shark::UI {
 	bool ImageButton(const char* strID, Ref<Texture2D> texture, const ImVec2& image_size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 	bool ImageButton(const char* strID, Ref<Texture2D> texture, const ImVec2& image_size, const ImVec4& tint_col);
 
-	template<typename TAsset, typename TFunc>
-	void DragDropTargetAsset(ImGuiDragDropFlags flags, const TFunc& func)
+
+	bool BeginMenubar(const ImRect& rect);
+	void EndMenubar();
+
+
+	void Text(const char* str);
+	void Text(std::string_view str);
+	void Text(const std::string& string);
+	void Text(const std::filesystem::path& path);
+
+	template<typename... TArgs>
+	void Text(std::string_view fmt, TArgs&&... args)
 	{
-		if (ImGui::BeginDragDropTarget())
-		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DragDropID::Asset, flags);
-			if (payload)
-			{
-				AssetHandle handle = GetPayloadDataAs<AssetHandle>(payload);
-				func(AssetManager::GetAsset<TAsset>(handle));
-			}
-			ImGui::EndDragDropTarget();
-		}
+		Text(fmt::format(fmt::runtime(fmt), std::forward<TArgs>(args)...));
 	}
+
+	void TextFramed(std::string_view fmt, ...);
+	bool Search(ImGuiID id, char* buffer, int bufferSize);
+	
+	bool InputFileName(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
+	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput);
+	bool InputPath(const char* label, char* buffer, int bufferSize);
 
 	template<typename T>
 	bool SliderScalar(const char* label, ImGuiDataType data_type, T& data, uint32_t min, uint32_t max, const char* format = NULL, ImGuiSliderFlags flags = 0)
@@ -363,13 +195,14 @@ namespace Shark::UI {
 	struct ScopedColor
 	{
 		ScopedColor(ImGuiCol color, const ImVec4& val)           { ImGui::PushStyleColor(color, val); }
+		ScopedColor(ImGuiCol color, ImU32 val)                   { ImGui::PushStyleColor(color, val); }
 		~ScopedColor()                                           { ImGui::PopStyleColor(); }
 	};
 
 	class ScopedColorConditional
 	{
 	public:
-		ScopedColorConditional(ImGuiCol color, const ImVec4& val, bool push) { if (push) { m_Pushed = true; ImGui::PushStyleColor(color, val); } }
+		ScopedColorConditional(ImGuiCol color, const ImColor& val, bool push) { if (push) { m_Pushed = true; ImGui::PushStyleColor(color, val.Value); } }
 		~ScopedColorConditional() { if (m_Pushed) ImGui::PopStyleColor(); }
 	private:
 		bool m_Pushed = false;
@@ -434,17 +267,17 @@ namespace Shark::UI {
 	public:
 		ScopedColorStack() = default;
 
-		ScopedColorStack(ImGuiCol color, const ImVec4& val)
+		ScopedColorStack(ImGuiCol color, const ImColor& val)
 		{
-			ImGui::PushStyleColor(color, val);
+			ImGui::PushStyleColor(color, val.Value);
 			m_Count++;
 		}
 
 		template<typename... TArgs>
-		ScopedColorStack(ImGuiCol color, const ImVec4& val, TArgs&&... args)
+		ScopedColorStack(ImGuiCol color, const ImColor& val, TArgs&&... args)
 			: ScopedColorStack(args...)
 		{
-			ImGui::PushStyleColor(color, val);
+			ImGui::PushStyleColor(color, val.Value);
 			m_Count++;
 		}
 
@@ -453,20 +286,22 @@ namespace Shark::UI {
 			PopAll();
 		}
 
-		void Push(ImGuiCol color, const ImVec4& val)
+		void Push(ImGuiCol color, const ImColor& val)
 		{
-			ImGui::PushStyleColor(color, val);
+			ImGui::PushStyleColor(color, val.Value);
 			m_Count++;
 		}
 
 		void Pop()
 		{
 			ImGui::PopStyleColor();
+			m_Count--;
 		}
 
 		void PopAll()
 		{
 			ImGui::PopStyleColor(m_Count);
+			m_Count = 0;
 		}
 
 	private:
@@ -517,18 +352,6 @@ namespace Shark::UI {
 		}
 	};
 
-	struct ScopedFramedTextAlign
-	{
-		ScopedFramedTextAlign(const ImVec2& align)
-		{
-			PushFramedTextAlign(align);
-		}
-		~ScopedFramedTextAlign()
-		{
-			PopFramedTextAlign();
-		}
-	};
-
 	struct ScopedItemFlag
 	{
 		ScopedItemFlag(ImGuiItemFlags flag, bool enabled)
@@ -569,8 +392,7 @@ namespace Shark::UI {
 	{
 		bool Active = false;
 		uint32_t WidgetCount = 0;
-
-		GridFlags ActiveGridFlags = GridFlag::None;
+		bool DrawSeparator = false;
 	};
 
 	struct UIContext
@@ -594,27 +416,4 @@ namespace Shark::UI {
 
 	void NewFrame();
 
-}
-
-template<typename TFunc>
-bool Shark::UI::ControlCombo(std::string_view label, std::string_view preview, const TFunc& func)
-{
-	if (!ControlHelperBegin(label))
-		return false;
-
-	ImGui::TableSetColumnIndex(0);
-	Text(label, PrivateTextFlag::LabelDefault);
-
-	ImGui::TableSetColumnIndex(1);
-
-	bool changed = false;
-	ImGui::SetNextItemWidth(-1.0f);
-	if (ImGui::BeginCombo("#combo", preview.data()))
-	{
-		changed = func();
-		ImGui::EndCombo();
-	}
-
-	ControlHelperEnd();
-	return changed;
 }

@@ -162,6 +162,10 @@ namespace Shark {
 
 		CBItemAction Draw();
 
+	private:
+		void DrawPopupMenu(CBItemAction& action);
+		void HandleDragDrop(CBItemAction& action);
+
 	public:
 		void StartRenaming();
 		void Select() { SetFlag(StateFlag::Selected, true); }
@@ -193,7 +197,7 @@ namespace Shark {
 		Ref<Texture2D> m_Thumbnail;
 
 		bool m_IsHovered = false;
-		uint32_t m_StateFlags = 0;
+		StateFlag m_StateFlags = StateFlag::None;
 
 		char m_RenameBuffer[260];
 	};

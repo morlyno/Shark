@@ -32,9 +32,7 @@ namespace Shark {
 			if (!UI::ControlHelperBegin(label))
 				return false;
 
-			ImGui::TableSetColumnIndex(0);
-			UI::Text(label, UI::PrivateTextFlag::LabelDefault);
-			ImGui::TableSetColumnIndex(1);
+			UI::ControlHelperDrawLabel(label);
 
 			bool changed = false;
 
@@ -97,7 +95,7 @@ namespace Shark {
 				entity.AddComponent<Component>();
 		}
 
-		// check that parent dosn't have child as parent
+		// check that parent doesn't have child as parent
 		static bool WouldCreateLoop(Entity child, Entity parent)
 		{
 			UUID childUUID = child.GetUUID();
@@ -171,13 +169,23 @@ namespace Shark {
 
 			for (auto [ent] : m_Context->m_Registry.storage<entt::entity>().each())
 			{
+				SK_CORE_ASSERT(m_Context->m_Registry.all_of<RelationshipComponent>(ent));
+				if (!m_Context->m_Registry.all_of<RelationshipComponent>(ent))
+				{
+					SK_CORE_ERROR_TAG("UI", "Invalid entity found");
+					continue;
+				}
+
 				Entity entity{ ent, m_Context };
 				if (!entity.HasParent())
 					DrawEntityNode(entity);
 			}
 
-			const auto& reg = m_Context->m_Registry;
-			auto a = reg.storage<entt::entity>()->each();
+			if (m_EntityToDestroy)
+			{
+				DestroyEntity(m_EntityToDestroy);
+				m_EntityToDestroy = Entity();
+			}
 
 			const ImGuiWindow* window = ImGui::GetCurrentWindow();
 			if (ImGui::BeginDragDropTargetCustom(window->WorkRect, window->ID))
@@ -242,7 +250,7 @@ namespace Shark {
 		if (m_SelectedEntity == entity)
 			treenodefalgs |= ImGuiTreeNodeFlags_Selected;
 
-		// if entity dosend have child entitys
+		// if entity doesn't have child entities
 		// Draw TreeNode as Leaf
 		if (!entity.HasChildren())
 			treenodefalgs |= ImGuiTreeNodeFlags_Leaf;
@@ -304,7 +312,8 @@ namespace Shark {
 
 		if (wantsDestroy)
 		{
-			DestroyEntity(entity);
+			SK_CORE_VERIFY(!m_EntityToDestroy);
+			m_EntityToDestroy = entity;
 		}
 	}
 	
@@ -446,7 +455,7 @@ namespace Shark {
 
 		});
 
-		DrawComponet<CircleRendererComponent>(entity, "Cirlce Renderer", [](CircleRendererComponent& comp, Entity entity)
+		DrawComponet<CircleRendererComponent>(entity, "Circle Renderer", [](CircleRendererComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
 			
@@ -463,12 +472,11 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 
-			if (UI::ControlCustomBegin("Text"))
+			UI::ControlCustom("Text", [&comp]()
 			{
 				ImGui::SetNextItemWidth(-1.0f);
 				ImGui::InputTextMultiline("##Text", &comp.Text);
-				UI::ControlCustomEnd();
-			}
+			});
 
 			UI::ControlAsset("Font", AssetType::Font, comp.FontHandle);
 			UI::ControlColor("Color", comp.Color);
@@ -480,7 +488,7 @@ namespace Shark {
 		DrawComponet<MeshComponent>(entity, "Mesh Renderer", [this](MeshComponent& comp, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			if (UI::ControlAsset("Mesh", AssetType::Material, comp.Mesh))
+			if (UI::ControlAsset("Mesh", AssetType::Mesh, comp.Mesh))
 				UpdateMaterialEditor(entity);
 
 			if (!AssetManager::IsValidAssetHandle(comp.Mesh))
@@ -632,7 +640,7 @@ namespace Shark {
 			UI::Control("Size", comp.Size);
 			UI::Control("Offset", comp.Offset);
 			UI::Control("Angle", comp.Rotation);
-			UI::Control("Denstity", comp.Density, 0.1f, 0.0f, FLT_MAX);
+			UI::Control("Density", comp.Density, 0.1f, 0.0f, FLT_MAX);
 			UI::Control("Friction", comp.Friction, 0.1f, 0.0f, 1.0f);
 			UI::Control("Restitution", comp.Restitution, 0.1f, 0.0f, 1.0f);
 			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.1f, 0.0f, FLT_MAX);
@@ -646,7 +654,7 @@ namespace Shark {
 			UI::Control("Radius", comp.Radius);
 			UI::Control("Offset", comp.Offset);
 			UI::Control("Angle", comp.Rotation);
-			UI::Control("Denstity", comp.Density, 0.1f, 0.0f, FLT_MAX);
+			UI::Control("Density", comp.Density, 0.1f, 0.0f, FLT_MAX);
 			UI::Control("Friction", comp.Friction, 0.1f, 0.0f, 1.0f);
 			UI::Control("Restitution", comp.Restitution, 0.1f, 0.0f, 1.0f);
 			UI::Control("RestitutionThreshold", comp.RestitutionThreshold, 0.1f, 0.0f, FLT_MAX);
@@ -657,7 +665,7 @@ namespace Shark {
 		DrawComponet<DistanceJointComponent>(entity, "Distance Joint 2D", [](DistanceJointComponent& component, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, "Entity");
 			UI::Control("AnchorA", component.AnchorOffsetA);
 			UI::Control("AnchorB", component.AnchorOffsetB);
 			UI::Control("Min Length", component.MinLength);
@@ -671,7 +679,7 @@ namespace Shark {
 		DrawComponet<HingeJointComponent>(entity, "Hinge Joint 2D", [](HingeJointComponent& component, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, "Entity");
 			UI::Control("Anchor", component.Anchor);
 			UI::Control("Lower Angle", component.LowerAngle);
 			UI::Control("Upper Angle", component.UpperAngle);
@@ -685,7 +693,7 @@ namespace Shark {
 		DrawComponet<PrismaticJointComponent>(entity, "Prismatic Joint 2D", [](PrismaticJointComponent& component, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, "Entity");
 			UI::Control("Anchor", component.Anchor);
 			UI::Control("Axis", component.Axis);
 			UI::Control("Enable Limit", component.EnableLimit);
@@ -701,7 +709,7 @@ namespace Shark {
 		DrawComponet<PulleyJointComponent>(entity, "Pulley Joint 2D", [](PulleyJointComponent& component, Entity entity)
 		{
 			UI::BeginControlsGrid();
-			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, UI::DragDropID::Entity);
+			UI::ControlDragDrop("Connected Entity", component.ConnectedEntity, "Entity");
 			UI::Control("AnchorA", component.AnchorA);
 			UI::Control("AnchorB", component.AnchorB);
 			UI::Control("Ground AnchorA", component.GroundAnchorA);
@@ -718,7 +726,7 @@ namespace Shark {
 			UI::ScopedColorStack scopedStyle;
 			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ClassID);
 			if (!klass)
-				scopedStyle.Push(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
+				scopedStyle.Push(ImGuiCol_Text, UI::Colors::Theme::TextError);
 
 			if (ImGui::InputText("##InputScript", &comp.ScriptName))
 			{
@@ -764,14 +772,14 @@ namespace Shark {
 						case ManagedFieldType::Entity:
 						{
 							UUID uuid = field.GetEntity(handle);
-							if (UI::ControlDragDrop(name, uuid, UI::DragDropID::Entity))
+							if (UI::ControlDragDrop(name, uuid, "Entity"))
 								field.SetEntity(handle, scene->TryGetEntityByUUID(uuid));
 							break;
 						}
 						case ManagedFieldType::Component:
 						{
 							UUID uuid = field.GetComponent(handle);
-							if (UI::ControlDragDrop(name, uuid, UI::DragDropID::Entity))
+							if (UI::ControlDragDrop(name, uuid, "Entity"))
 								field.SetComponent(handle, scene->TryGetEntityByUUID(uuid));
 							break;
 						}
@@ -826,14 +834,14 @@ namespace Shark {
 						case ManagedFieldType::Entity:
 						{
 							UUID uuid = storage->GetValue<UUID>();
-							if (UI::ControlDragDrop(name, uuid, UI::DragDropID::Entity))
+							if (UI::ControlDragDrop(name, uuid, "Entity"))
 								storage->SetValue(uuid);
 							break;
 						}
 						case ManagedFieldType::Component:
 						{
 							UUID uuid = storage->GetValue<UUID>();
-							if (UI::ControlDragDrop(name, uuid, UI::DragDropID::Entity))
+							if (UI::ControlDragDrop(name, uuid, "Entity"))
 								storage->SetValue(uuid);
 							break;
 						}

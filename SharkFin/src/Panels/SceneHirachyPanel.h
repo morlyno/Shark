@@ -202,6 +202,7 @@ namespace Shark {
 		bool m_HasTransformCopy;
 		TransformComponent m_TransformCopy;
 
+		Entity m_EntityToDestroy;
 	};
 
 }

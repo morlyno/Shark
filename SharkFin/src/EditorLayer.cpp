@@ -16,7 +16,7 @@
 #include "Shark/Utils/PlatformUtils.h"
 #include "Shark/UI/UI.h"
 
-#include "Icons.h"
+#include "Shark/UI/Icons.h"
 #include "EditorSettings.h"
 
 #include "Panel.h"
@@ -33,6 +33,7 @@
 #include "Panels/ShadersPanel.h"
 #include "Panels/SceneRendererPanel.h"
 #include "Panels/StatisticsPanel.h"
+#include "Panels/ECSDebugPanel.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/enttDebug.h"
@@ -54,6 +55,7 @@
 #define SHADERS_PANEL_ID "ShadersPanel"
 #define SCENE_RENDERER_PANEL_ID "SceneRendererPanel"
 #define STATISTICS_PANEL_ID "StatisticsPanel"
+#define ECS_DEBUG_PANEL_ID "ECSDebugPanel"
 
 namespace Shark {
 
@@ -71,6 +73,9 @@ namespace Shark {
 	void EditorLayer::OnAttach()
 	{
 		SK_PROFILE_FUNCTION();
+
+		Window& window = Application::Get().GetWindow();
+		window.SetTitlebarHitTestCallback([this](int x, int y, bool& outHit) { outHit = m_TitlebarHovered; });
 
 		Icons::Init();
 		EditorSettings::Init();
@@ -101,12 +106,12 @@ namespace Shark {
 		m_PanelManager->AddPanel<AssetsPanel>(PanelCategory::View, ASSETS_PANEL_ID, "Assets", false);
 		m_PanelManager->AddPanel<EditorConsolePanel>(PanelCategory::View, EDITOR_CONSOLE_PANEL_ID, "Console", true);
 		m_PanelManager->AddPanel<ShadersPanel>(PanelCategory::View, SHADERS_PANEL_ID, "Shaders", false);
-		m_PanelManager->AddPanel<PhysicsDebugPanel>(PanelCategory::View, PHYSICS_DEBUG_PANEL_ID, "Pyhsics Debug", false);
+		m_PanelManager->AddPanel<PhysicsDebugPanel>(PanelCategory::View, PHYSICS_DEBUG_PANEL_ID, "Physics Debug", false);
 		m_PanelManager->AddPanel<ScriptEnginePanel>(PanelCategory::View, SCRIPT_ENGINE_PANEL_ID, "Script Engine", false);
 		m_PanelManager->AddPanel<SceneRendererPanel>(PanelCategory::View, SCENE_RENDERER_PANEL_ID, "Scene Renderer", true);
 		m_PanelManager->AddPanel<StatisticsPanel>(PanelCategory::View, STATISTICS_PANEL_ID, "Statistics", false);
+		m_PanelManager->AddPanel<ECSDebugPanel>(PanelCategory::View, ECS_DEBUG_PANEL_ID, "ECS Debug", false, nullptr);
 
-		const auto& window = Application::Get().GetWindow();
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
 		m_PanelManager->Get<SceneRendererPanel>(SCENE_RENDERER_PANEL_ID)->SetRenderer(m_SceneRenderer);
 
@@ -260,7 +265,6 @@ namespace Shark {
 
 		switch (event.GetKeyCode())
 		{
-
 			case KeyCode::Escape:
 			{
 				Input::SetCursorMode(CursorMode::Normal);
@@ -394,25 +398,41 @@ namespace Shark {
 			m_ReloadEditorIcons = false;
 		}
 
+		UpdateMainWindow();
+
 		const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-			                                  ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+			                                  ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus /*| ImGuiWindowFlags_MenuBar*/;
 
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->WorkPos);
         ImGui::SetNextWindowSize(viewport->WorkSize);
         ImGui::SetNextWindowViewport(viewport->ID);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
-        ImGui::Begin("Shark Editor DockSpace", nullptr, window_flags);
-        ImGui::PopStyleVar(3);
+		const bool isMaximized = Application::Get().GetWindow().IsMaximized();
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, isMaximized ? ImVec2(0.0f, 6.0f) : ImVec2(1.0f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 3.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, UI::Colors::Theme::Titlebar);
+        ImGui::Begin("DockSpaceWindow", nullptr, window_flags);
+		ImGui::PopStyleColor();
+        ImGui::PopStyleVar(4);
+
+		const bool customTitlebar = Application::Get().GetSpecification().CustomTitlebar;
+		if (customTitlebar)
+		{
+			float titlebarHeight;
+			UI_DrawTitleBar(titlebarHeight);
+			ImGui::SetCursorPosY(titlebarHeight);
+		}
 
 		ImGuiID dockspace_id = ImGui::GetID("DockSpace");
 		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
-		ImGui::End();
 
-		UI_MainMenuBar();
+		if (!customTitlebar)
+			UI_DrawMenuBar();
+
 		UI_Viewport();
 		UI_MousePicking();
 
@@ -427,130 +447,293 @@ namespace Shark {
 
 		m_PanelManager->OnImGuiRender();
 		
-		Theme::DrawThemeEditor(m_ShowThemeEditor);
-
 		if (s_ShowDemoWindow)
 			ImGui::ShowDemoWindow(&s_ShowDemoWindow);
 
+		ImGui::End();
 	}
 
-	void EditorLayer::UI_MainMenuBar()
+	void EditorLayer::UI_DrawTitleBar(float& outTitlebarHeight)
+	{
+		const float titlebarHeight = 58.0f;
+		const bool isMaximed = Application::Get().GetWindow().IsMaximized();
+		const ImVec2 windowPadding = ImGui::GetCurrentWindow()->WindowPadding;
+
+		ImGui::SetCursorPos(windowPadding);
+
+		const ImVec2 titlebarMin = ImGui::GetCursorScreenPos();
+		const ImVec2 titlebarMax = titlebarMin + ImVec2(ImGui::GetWindowWidth() - windowPadding.y * 2.0f, titlebarHeight);
+
+		ImDrawList* bgDrawList = ImGui::GetBackgroundDrawList();
+		ImDrawList* fgDrawList = ImGui::GetForegroundDrawList();
+
+		bgDrawList->AddRectFilled(titlebarMin, titlebarMax, UI::Colors::Theme::Titlebar);
+
+		// TODO(moro): logo
+		{
+			const int logoSize = 48.0f;
+			const ImVec2 logoOffset(16.0f + windowPadding.x, 5.0f + windowPadding.y);
+			const ImVec2 logoRectStart = { ImGui::GetItemRectMin().x + logoOffset.x, ImGui::GetItemRectMin().y + logoOffset.y };
+			const ImVec2 logoRectMax = { logoRectStart.x + logoSize, logoRectStart.y + logoSize };
+			fgDrawList->AddRectFilled(logoRectStart, logoRectMax, IM_COL32(240, 20, 20, 255));
+		}
+
+		ImGui::SetCursorPos(ImVec2(windowPadding.x, windowPadding.y)); // Reset cursor pos
+		ImGui::BeginHorizontal("Titlebar", { ImGui::GetWindowWidth() - windowPadding.x * 2.0f, ImGui::GetFrameHeightWithSpacing() });
+
+		const float w = ImGui::GetContentRegionAvail().x;
+		const float buttonsAreaWidth = 94;
+
+		ImGui::SetNextItemAllowOverlap();
+		ImGui::InvisibleButton("##titlebarDragZone", ImVec2(w - buttonsAreaWidth, titlebarHeight));
+
+		m_TitlebarHovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenOverlapped);
+
+		ImGui::SuspendLayout();
+		{
+			ImGui::SetNextItemAllowOverlap();
+			const float logoHorizontalOffset = 16.0f * 2.0f + 48.0f + windowPadding.x;
+			ImGui::SetCursorPos(ImVec2(logoHorizontalOffset, 6.0f));
+			UI_DrawMenuBar();
+
+			if (ImGui::IsItemHovered())
+				m_TitlebarHovered = false;
+		}
+		ImGui::ResumeLayout();
+		
+
+		ImGui::SuspendLayout();
+		{
+			ImGui::SetCursorPos(ImVec2(windowPadding.x, windowPadding.y));
+			ImGui::BeginHorizontal("##centerWindowTitle", { ImGui::GetWindowWidth() - windowPadding.x * 2.0f, ImGui::GetFrameHeightWithSpacing() });
+
+			ImGui::Spring(0.5f);
+
+			UI::ScopedFont titleFont("Bold");
+			ImGui::AlignTextToFramePadding();
+
+			const std::string& windowTitle = Application::Get().GetWindow().GetTitle();
+			const ImVec2 textSize = ImGui::CalcTextSize(windowTitle.data(), windowTitle.data() + windowTitle.length());
+			const ImVec2 itemMin = ImGui::GetCursorScreenPos() + ImVec2(0.0f, ImGui::GetCurrentWindowRead()->DC.CurrLineTextBaseOffset);
+			const ImVec2 itemMax = itemMin + textSize;
+
+			const auto& style = ImGui::GetStyle();
+			ImRect titleRect = UI::RectExpand({ itemMin, itemMax }, style.FramePadding * 2.0f);
+			titleRect.Min.y = -1.0f;
+
+			ImDrawList* drawList = ImGui::GetCurrentWindow()->DrawList;
+			drawList->AddRectFilled(titleRect.Min, titleRect.Max, IM_COL32(135, 100, 255, 30), 5.0f, ImDrawFlags_RoundCornersBottom);
+
+			ImGui::Text(windowTitle.c_str());
+
+			ImGui::Spring(0.5f);
+
+			ImGui::EndHorizontal();
+		}
+		ImGui::ResumeLayout();
+
+
+		const float buttonWidth = 14.0f;
+		const float buttonHeight = 14.0f;
+		const ImU32 buttonColN = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 0.9f);
+		const ImU32 buttonColH = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f);
+		const ImU32 buttonColP = UI::Colors::Theme::TextDarker;
+
+		ImGui::Spring();
+		UI::MoveCursorY(8.0f);
+		{
+			const int iconWidth = Icons::WindowMinimizeIcon->GetWidth();
+			const int iconHeight = Icons::WindowMinimizeIcon->GetHeight();
+			const float padY = (buttonHeight - (float)iconHeight) / 2.0f;
+
+			if (ImGui::InvisibleButton("Minimize", ImVec2(buttonWidth, buttonHeight)))
+			{
+				Application::Get().SubmitToMainThread([]()
+				{
+					Window& window = Application::Get().GetWindow();
+					window.Minimize();
+				});
+			}
+
+			UI::DrawImageButton(Icons::WindowMinimizeIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), 0.0f, -padY));
+		}
+		
+		ImGui::Spring(-1.0f, 17.0f);
+		UI::MoveCursorY(8.0f);
+		{
+			if (ImGui::InvisibleButton("Maximize", ImVec2(buttonWidth, buttonHeight)))
+			{
+				Application::Get().SubmitToMainThread([isMaximed]()
+				{
+					Window& window = Application::Get().GetWindow();
+					if (isMaximed)
+						window.Restore();
+					else
+						window.Maximize();
+				});
+			}
+
+			UI::DrawImageButton(isMaximed ? Icons::WindowRestoreIcon : Icons::WindowMaximizeIcon, buttonColN, buttonColH, buttonColP);
+		}
+
+		ImGui::Spring(-1.0f, 15.0f);
+		UI::MoveCursorY(8.0f);
+		{
+			if (ImGui::InvisibleButton("Close", ImVec2(buttonWidth, buttonHeight)))
+			{
+				Application::Get().SubmitToMainThread([]()
+				{
+					Window& window = Application::Get().GetWindow();
+					window.KillWindow();
+				});
+			}
+
+			UI::DrawImageButton(Icons::WindowCloseIcon, buttonColN, buttonColH, buttonColP);
+		}
+
+		ImGui::Spring(-1.0f, 18.0f);
+		ImGui::EndHorizontal();
+
+		outTitlebarHeight = titlebarHeight;
+	}
+
+	void EditorLayer::UI_DrawMenuBar()
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (ImGui::BeginMainMenuBar())
+		if (Application::Get().GetSpecification().CustomTitlebar)
 		{
-			if (ImGui::BeginMenu("File"))
+			UI::ScopedColor menubarColor(ImGuiCol_MenuBarBg, 0);
+			const ImRect menubarRect = { ImGui::GetCursorPos(), { ImGui::GetContentRegionAvail().x + ImGui::GetCursorScreenPos().x, ImGui::GetFrameHeightWithSpacing() } };
+
+			ImGui::BeginGroup();
+			if (UI::BeginMenubar(menubarRect))
 			{
-				switch (m_SceneState)
+				UI_DrawMenuBarItems();
+				UI::EndMenubar();
+			}
+			ImGui::EndGroup();
+		}
+		else
+		{
+			if (ImGui::BeginMenuBar())
+			{
+				UI_DrawMenuBarItems();
+				ImGui::EndMenuBar();
+			}
+		}
+	}
+
+	void EditorLayer::UI_DrawMenuBarItems()
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			switch (m_SceneState)
+			{
+				case SceneState::Edit:
 				{
-					case SceneState::Edit:
-					{
-						if (ImGui::MenuItem("Play Scene"))
-							OnScenePlay();
-						break;
-					}
-					case SceneState::Play:
-					{
-						if (ImGui::MenuItem("Stop Scene"))
-							OnSceneStop();
-						break;
-					}
+					if (ImGui::MenuItem("Play Scene"))
+						OnScenePlay();
+					break;
 				}
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("New Scene", "ctrl+N"))
-					NewScene();
-				if (ImGui::MenuItem("Save Scene", "ctrl+S"))
-					SaveScene();
-				if (ImGui::MenuItem("Save Scene As", "ctrl+sift+S"))
-					SaveSceneAs();
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Create Project"))
+				case SceneState::Play:
 				{
-					m_CreateProjectModal = { .Open = true };
+					if (ImGui::MenuItem("Stop Scene"))
+						OnSceneStop();
+					break;
 				}
+			}
 
-				if (ImGui::MenuItem("Open Project"))
-					OpenProject();
+			ImGui::Separator();
 
-				if (ImGui::BeginMenu("Recent Projects"))
+			if (ImGui::MenuItem("New Scene", "ctrl+N"))
+				NewScene();
+			if (ImGui::MenuItem("Save Scene", "ctrl+S"))
+				SaveScene();
+			if (ImGui::MenuItem("Save Scene As", "ctrl+sift+S"))
+				SaveSceneAs();
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Create Project"))
+			{
+				m_CreateProjectModal = { .Open = true };
+			}
+
+			if (ImGui::MenuItem("Open Project"))
+				OpenProject();
+
+			if (ImGui::BeginMenu("Recent Projects"))
+			{
+				// TODO(moro): Add Recent Projects
+				ImGui::MenuItem("Sandbox");
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::MenuItem("Save Project"))
+				Project::SaveActive();
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Exit"))
+				Application::Get().CloseApplication();
+
+			ImGui::EndMenu();
+		}
+
+		m_PanelManager->DrawPanelsMenu();
+
+		if (ImGui::BeginMenu("Edit"))
+		{
+			ImGui::MenuItem("Theme Editor", nullptr, &m_ShowThemeEditor);
+
+			if (ImGui::MenuItem("Reload Icons"))
+				m_ReloadEditorIcons = true;
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("View"))
+		{
+			ImGui::Separator();
+			ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
+			ImGui::Separator();
+
+			auto& app = Application::Get();
+			if (ImGui::MenuItem("Fullscreen", nullptr, app.GetWindow().IsFullscreen()))
+			{
+				Application::Get().SubmitToMainThread([]()
 				{
-					// TODO(moro): Add Recent Projects
-					ImGui::MenuItem("Sandbox");
-					ImGui::EndMenu();
-				}
-
-				if (ImGui::MenuItem("Save Project"))
-					Project::SaveActive();
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Exit"))
-					Application::Get().CloseApplication();
-
-				ImGui::EndMenu();
+					auto& window = Application::Get().GetWindow();
+					const bool nextMode = !window.IsFullscreen();
+					window.SetFullscreen(nextMode);
+					//window.GetSwapChain()->Resize(window.GetWidth(), window.GetHeight());
+				});
 			}
+			ImGui::EndMenu();
+		}
 
-			m_PanelManager->DrawPanelsMenu();
+		if (ImGui::BeginMenu("Script"))
+		{
+			if (ImGui::MenuItem("Reload"))
+				ScriptEngine::ScheduleReload();
 
-			if (ImGui::BeginMenu("Edit"))
-			{
-				ImGui::MenuItem("Theme Editor", nullptr, &m_ShowThemeEditor);
+			ImGui::Separator();
 
-				if (ImGui::MenuItem("Reload Icons"))
-					m_ReloadEditorIcons = true;
+			if (ImGui::MenuItem("Run Setup"))
+				RunScriptSetup();
 
-				ImGui::EndMenu();
-			}
+			if (ImGui::MenuItem("Open IDE"))
+				OpenIDE();
 
-			if (ImGui::BeginMenu("View"))
-			{
-				ImGui::Separator();
-				ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
-				ImGui::Separator();
+			ImGui::EndMenu();
+		}
 
-				auto& app = Application::Get();
-				if (ImGui::MenuItem("Fullscreen", nullptr, app.GetWindow().IsFullscreen()))
-				{
-					Application::Get().SubmitToMainThread([]()
-					{
-						auto& window = Application::Get().GetWindow();
-						const bool nextMode = !window.IsFullscreen();
-						window.SetFullscreen(nextMode);
-						//window.GetSwapChain()->Resize(window.GetWidth(), window.GetHeight());
-					});
-				}
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::BeginMenu("Script"))
-			{
-				if (ImGui::MenuItem("Reload"))
-					ScriptEngine::ScheduleReload();
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Run Setup"))
-					RunScriptSetup();
-
-				if (ImGui::MenuItem("Open IDE"))
-					OpenIDE();
-
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::BeginMenu("Debug"))
-			{
-				ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
-				ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
-				ImGui::EndMenu();
-			}
-
-			ImGui::EndMainMenuBar();
+		if (ImGui::BeginMenu("Debug"))
+		{
+			ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
+			ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
+			ImGui::EndMenu();
 		}
 
 	}
@@ -753,10 +936,10 @@ namespace Shark {
 
 		// Asset
 		{
-			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET");
+			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset");
 			if (payload)
 			{
-				AssetHandle handle = UI::GetPayloadDataAs<AssetHandle>(payload);
+				AssetHandle handle = *(AssetHandle*)payload->Data;
 				if (AssetManager::IsValidAssetHandle(handle))
 				{
 					const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
@@ -1034,7 +1217,7 @@ namespace Shark {
 		{
 			const ImGuiStyle& style = ImGui::GetStyle();
 
-			UI::TextF("Importing Asset from {}", m_ImportAssetData.SourcePath);
+			UI::Text("Importing Asset from {}", m_ImportAssetData.SourcePath);
 
 			char buffer[MAX_PATH];
 			strcpy_s(buffer, m_ImportAssetData.DestinationPath.c_str());
@@ -1047,7 +1230,7 @@ namespace Shark {
 
 			if (invalidInput)
 			{
-				m_ImportAssetData.Error = "Filepaths aren't allowed to containe any of the folloing character!\n:*?\"<>|";
+				m_ImportAssetData.Error = "File paths aren't allowed to containe any of the folloing character!\n:*?\"<>|";
 				m_ImportAssetData.ShowError = true;
 			}
 
@@ -1061,7 +1244,7 @@ namespace Shark {
 
 			if (m_ImportAssetData.ShowError)
 			{
-				UI::ScopedColor errorText(ImGuiCol_Text, Theme::Colors::TextInvalidInput);
+				UI::ScopedColor errorText(ImGuiCol_Text, UI::Colors::Theme::TextError);
 				UI::Text(m_ImportAssetData.Error);
 				m_ImportAssetData.ShowErrorTimer += m_TimeStep;
 				if (m_ImportAssetData.ShowErrorTimer >= m_ImportAssetData.ShowErrorDuration)
@@ -1072,7 +1255,7 @@ namespace Shark {
 			}
 
 			ImVec2 importTextSize = ImGui::CalcTextSize("Import");
-			ImVec2 cancleTextSize = ImGui::CalcTextSize("Cancle");
+			ImVec2 cancleTextSize = ImGui::CalcTextSize("Cancel");
 
 			ImVec2 importButtonSize = { importTextSize.x + style.FramePadding.x * 2.0f, importTextSize.y + style.FramePadding.y * 2.0f };
 			ImVec2 cancleButtonSize = { cancleTextSize.x + style.FramePadding.x * 2.0f, cancleTextSize.y + style.FramePadding.y * 2.0f };
@@ -1224,6 +1407,10 @@ namespace Shark {
 		ImGui::End();
 	}
 
+	void EditorLayer::UpdateMainWindow()
+	{
+	}
+
 	void EditorLayer::DebugRender()
 	{
 		SK_PROFILE_FUNCTION();
@@ -1343,7 +1530,7 @@ namespace Shark {
 		{
 			m_WorkScene = asset.As<Scene>();
 			SetActiveScene(m_WorkScene);
-			m_EditorCamera.SetFlyView({ 30.0f, 20.0f, -30.0f }, 10.0f, -45.0f);
+			m_EditorCamera.SetFlyView({ 40.0f, 25.0f, -40.0f }, 10.0f, -45.0f);
 		});
 	}
 
@@ -1356,7 +1543,7 @@ namespace Shark {
 		{
 			m_WorkScene = scene;
 			SetActiveScene(scene);
-			m_EditorCamera.SetFlyView({ 30.0f, 20.0f, -30.0f }, 10.0f, -45.0f);
+			m_EditorCamera.SetFlyView({ 40.0f, 25.0f, -40.0f }, 10.0f, -45.0f);
 			return true;
 		}
 		return false;
@@ -1539,6 +1726,8 @@ namespace Shark {
 		m_WorkScene = nullptr;
 
 		m_PanelManager->OnProjectChanged(nullptr);
+
+		AssetManager::WaitUntilIdle();
 		Project::SetActive(nullptr);
 
 		SK_CORE_ASSERT(sceneWeak.Expired());

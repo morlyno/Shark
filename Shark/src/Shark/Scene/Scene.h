@@ -218,6 +218,7 @@ namespace Shark {
 		friend class Entity;
 		friend class SceneHirachyPanel;
 		friend class SceneSerializer;
+		friend class ECSDebugPanel;
 	};
 
 }

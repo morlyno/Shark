@@ -18,6 +18,8 @@ namespace Shark::UI {
 		std::string m_Buffer;
 		std::vector<std::string_view> m_Filters;
 		String::Case m_Case = String::Case::Ingnore;
+
+		bool m_HasPositiveFilter = false;
 	};
 
 }

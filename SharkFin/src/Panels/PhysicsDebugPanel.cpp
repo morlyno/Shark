@@ -129,7 +129,7 @@ namespace Shark {
 				Entity entity{ entityID, m_Scene };
 				std::string name = entity.GetName();
 				ImGui::PushID((int)(uint64_t)entity.GetUUID());
-				if (UI::Header(name.c_str(), UI::DefaultHeaderFlags))
+				if (ImGui::TreeNodeEx(name.c_str(), UI::DefaultHeaderFlags))
 				{
 					RigidBody2DComponent& rigidBody = entity.GetComponent<RigidBody2DComponent>();
 					b2Body* body = rigidBody.RuntimeBody;
@@ -149,14 +149,14 @@ namespace Shark {
 						UI::EndControlsGrid();
 
 						b2Fixture* fixture = body->GetFixtureList();
-						if (fixture && UI::Header("Fixture", UI::DefaultThinHeaderFlags))
+						if (fixture && ImGui::TreeNodeEx("Fixture", UI::DefaultThinHeaderFlags))
 						{
 							UI::BeginControlsGrid(syncID);
 							SK_CORE_ASSERT(fixture->GetNext() == nullptr, "Multy Fixture bodies not allowed at the moment");
 							UI::Property("Type", ToStringView(fixture->GetType()));
 							UI::Property("IsSensor", fixture->IsSensor());
-							UI::Property("Desnity", fixture->GetDensity());
-							UI::Property("Desnity", fixture->GetDensity());
+							UI::Property("Density", fixture->GetDensity());
+							UI::Property("Density", fixture->GetDensity());
 							UI::Property("Restitution", fixture->GetRestitution());
 							UI::Property("RestitutionThreshold", fixture->GetRestitutionThreshold());
 							b2MassData massData;
@@ -165,11 +165,11 @@ namespace Shark {
 							UI::Property("Center", glm::vec2(massData.center.x, massData.center.y));
 							UI::Property("Inertia", massData.I);
 							UI::EndControlsGrid();
-							UI::PopHeader();
+							ImGui::TreePop();
 						}
 
 						b2JointEdge* jointEdge = body->GetJointList();
-						if (jointEdge && jointEdge->joint && UI::Header("Joint", UI::DefaultThinHeaderFlags))
+						if (jointEdge && jointEdge->joint && ImGui::TreeNodeEx("Joint", UI::DefaultThinHeaderFlags))
 						{
 							UI::BeginControlsGrid(syncID);
 							b2Joint* joint = jointEdge->joint;
@@ -185,10 +185,10 @@ namespace Shark {
 							UI::Property("Reaction Torque", joint->GetReactionTorque(invdt));
 							UI::Property("Collider Connected", joint->GetCollideConnected());
 							UI::EndControlsGrid();
-							UI::PopHeader();
+							ImGui::TreePop();
 						}
 					}
-					UI::PopHeader();
+					ImGui::TreePop();
 				}
 				ImGui::PopID();
 			}

@@ -34,9 +34,9 @@ namespace Shark {
 	{
 		if (ImGui::BeginTabItem("Memory"))
 		{
-			UI::TextF("Total allocated {}", String::BytesToString(Allocator::GetMemoryStats().TotalAllocated));
-			UI::TextF("Total freed {}", String::BytesToString(Allocator::GetMemoryStats().TotalFreed));
-			UI::TextF("Current Usage {}", String::BytesToString(Allocator::GetMemoryStats().CurrentUsage()));
+			UI::Text("Total allocated {}", String::BytesToString(Allocator::GetMemoryStats().TotalAllocated));
+			UI::Text("Total freed {}", String::BytesToString(Allocator::GetMemoryStats().TotalFreed));
+			UI::Text("Current Usage {}", String::BytesToString(Allocator::GetMemoryStats().CurrentUsage()));
 
 			ImGui::Separator();
 

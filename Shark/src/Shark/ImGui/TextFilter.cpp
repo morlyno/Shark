@@ -19,7 +19,7 @@ namespace Shark::UI {
 		for (std::string_view filter : m_Filters)
 		{
 			if (filter.empty())
-				continue;
+				return true;
 
 			const char first = filter.front();
 
@@ -56,6 +56,15 @@ namespace Shark::UI {
 	{
 		m_Filters.clear();
 		String::SplitToRanges(m_Buffer, " ", m_Filters);
+
+		for (std::string_view filter : m_Filters)
+		{
+			if (filter.front() != '-')
+			{
+				m_HasPositiveFilter = true;
+				break;
+			}
+		}
 	}
 
 }

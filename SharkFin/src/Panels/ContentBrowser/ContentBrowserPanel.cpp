@@ -8,7 +8,7 @@
 
 #include "Shark/ImGui/TextFilter.h"
 
-#include "Icons.h"
+#include "Shark/UI/Icons.h"
 #include "EditorSettings.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -390,7 +390,8 @@ namespace Shark {
 			AssetType assetType = assetManager->GetAssetType(handle);
 			std::string assetTypeString = ToString(assetType);
 
-			if (filter.PassFilter(filename.c_str()) || filter.PassFilter(assetTypeString.c_str()))
+			std::string text = fmt::format("{} {}", filename, assetTypeString);
+			if (filter.PassFilter(text) || filter.PassFilter(text))
 			{
 				foundItems.Add(Ref<ContentBrowserItem>::Create(this, CBItemType::Asset, filepath));
 			}
@@ -526,7 +527,10 @@ namespace Shark {
 				Ref<DirectoryInfo> directory = m_CurrentDirectory;
 				if (itemType == CBItemType::Directory)
 					directory = GetDirectory(currentItem->GetPath());
+				else if (IsSearchActive())
+					directory = GetDirectory(currentItem->GetPath().parent_path());
 
+				SK_CORE_VERIFY(directory);
 				Platform::OpenExplorer(m_Project->GetAbsolute(directory->Filepath));
 			}
 
@@ -625,6 +629,8 @@ namespace Shark {
 
 	void ContentBrowserPanel::DrawHeader()
 	{
+		UI::ScopedFont font("Medium");
+
 		const ImGuiStyle& style = ImGui::GetStyle();
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 
@@ -635,45 +641,58 @@ namespace Shark {
 
 		{
 			UI::ScopedDisabled searchActiveDisabled(IsSearchActive());
-			UI::ScopedColorStack dark(ImGuiCol_Text, Theme::Colors::TextDark,
-									  ImGuiCol_Button, Theme::Colors::ButtonDark,
-									  ImGuiCol_ButtonActive, Theme::Colors::ButtonActiveDark,
-									  ImGuiCol_ButtonHovered, Theme::Colors::ButtonHoveredDark);
+			UI::ScopedColorStack dark(ImGuiCol_Text, UI::Colors::Theme::TextDarker,
+									  ImGuiCol_Button, UI::Colors::Theme::ButtonDark,
+									  ImGuiCol_ButtonActive, UI::Colors::Theme::ButtonActiveDark,
+									  ImGuiCol_ButtonHovered, UI::Colors::Theme::ButtonHoveredDark);
 
 			const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
 			const ImVec2 buttonSizeNoFP = { ImGui::GetFontSize(), ImGui::GetFontSize() };
 
+			const ImU32 buttonColN = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 0.9f);
+			const ImU32 buttonColH = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f);
+			const ImU32 buttonColP = UI::Colors::Theme::TextDarker;
+
 			// Move Back
 			ImGui::BeginDisabled(!m_History.CanMoveBack());
-			if (ImGui::Button("\xef\x84\x84", buttonSize))
-			{
+			if (ImGui::InvisibleButton("Move Back", buttonSize))
 				NextDirectory(m_History.MoveBack(), false);
-			}
+			
+			UI::DrawButtonFrame();
+			UI::DrawImageButton(Icons::AngleLeftIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 			ImGui::EndDisabled();
 
 
 			// Move Forward
 			ImGui::SameLine();
 			ImGui::BeginDisabled(!m_History.CanMoveForward());
-			if (ImGui::Button("\xef\x84\x85", buttonSize))
-			{
+			if (ImGui::InvisibleButton("Move Forward", buttonSize))
 				NextDirectory(m_History.MoveForward(), false);
-			}
+
+			UI::DrawButtonFrame();
+			UI::DrawImageButton(Icons::AngleRightIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 			ImGui::EndDisabled();
 
 
 			// Reload
 			ImGui::SameLine();
-			if (ImGui::Button("\xef\x80\xa1"))
+			if (ImGui::InvisibleButton("Reload", buttonSize))
 				m_ReloadScheduled = true;
 
+			UI::DrawButtonFrame();
+			UI::DrawImageButton(Icons::ReloadIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
+
+
 			ImGui::SameLine();
-			if (UI::ImageButton("Clear Thumbnail Cache", Icons::ClearIcon, { buttonSizeNoFP }, ImGui::GetStyleColorVec4(ImGuiCol_Text)))
+			if (ImGui::InvisibleButton("Clear Thumbnail Cache", buttonSize))
 			{
 				if (Input::IsKeyDown(KeyCode::LeftShift))
 					m_ThumbnailCache->ClearDiscCache();
 				m_ThumbnailCache->Clear();
 			}
+
+			UI::DrawButtonFrame();
+			UI::DrawImageButton(Icons::ClearIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 
 		}
 
@@ -731,13 +750,26 @@ namespace Shark {
 			const float settingsIconOffset = ImGui::GetContentRegionAvail().x - iconSize - style.WindowPadding.x - style.ItemSpacing.x;
 			ImGui::SameLine(settingsIconOffset);
 
-			ImGui::Button("\xef\x80\x93");
-			if (ImGui::IsItemClicked())
+
+			const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
+			if (ImGui::InvisibleButton("settings", buttonSize))
 				ImGui::OpenPopup("cbSettings");
+
+
+
+			UI::DrawImageButton(Icons::SettingsIcon,
+								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 0.9f),
+								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f),
+								UI::Colors::Theme::TextDarker,
+								UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
+
+			//ImGui::Button("\xef\x80\x93");
+			//if (ImGui::IsItemClicked())
+			//	ImGui::OpenPopup("cbSettings");
 			if (ImGui::BeginPopup("cbSettings"))
 			{
 				auto& settings = EditorSettings::Get().ContentBrowser;
-				ImGui::DragFloat("Thubnail Size", &settings.ThumbnailSize, 1.0f, 16.0f, FLT_MAX);
+				ImGui::DragFloat("Thumbnail Size", &settings.ThumbnailSize, 1.0f, 16.0f, FLT_MAX);
 				ImGui::Checkbox("Generate Thumbnails", &settings.GenerateThumbnails);
 				ImGui::EndPopup();
 			}
@@ -757,7 +789,10 @@ namespace Shark {
 			flags |= ImGuiTreeNodeFlags_Selected;
 
 		{
-			UI::ScopedColorConditional active(ImGuiCol_Header, Theme::Colors::Colored, true);
+			UI::ScopedColor selected(ImGuiCol_Header, UI::Colors::Theme::Selection);
+			UI::ScopedColorConditional hovered(ImGuiCol_HeaderHovered, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 1.2f), current);
+			UI::ScopedColorConditional active(ImGuiCol_HeaderActive, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 0.9f), current);
+
 			open = ImGui::TreeNodeEx(directory->Name.c_str(), flags);
 		}
 
@@ -766,7 +801,7 @@ namespace Shark {
 
 		if (ImGui::BeginDragDropTarget())
 		{
-			const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload(UI::DragDropID::Asset);
+			const ImGuiPayload* assetPayload = ImGui::AcceptDragDropPayload("Asset");
 			if (assetPayload)
 			{
 				AssetHandle handle = *(AssetHandle*)assetPayload->Data;
@@ -777,7 +812,7 @@ namespace Shark {
 				}
 			}
 
-			const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload(UI::DragDropID::Directroy);
+			const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload("Directory");
 			if (directoryPayload)
 			{
 				std::filesystem::path path = std::filesystem::path((const char*)directoryPayload->Data);

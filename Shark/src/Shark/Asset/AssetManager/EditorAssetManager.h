@@ -35,6 +35,7 @@ namespace Shark {
 		virtual void DeleteMemoryAsset(AssetHandle handle) override;
 		bool SaveAsset(AssetHandle handle);
 
+		virtual void WaitUntilIdle() override;
 		virtual void SyncWithAssetThread() override;
 
 		Ref<Asset> GetPlaceholder(AssetType assetType);

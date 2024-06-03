@@ -29,6 +29,7 @@ project "Shark-Runtime"
         "%{ImGui.IncludeDir}",
 
         "%{tracy.IncludeDir}",
+        "%{magic_enum.IncludeDir}"
     }
 
     links

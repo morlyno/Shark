@@ -31,3 +31,5 @@ Project:
       Level: Trace
     - Name: Timer
       Level: Trace
+    - Name: UI
+      Level: Trace
