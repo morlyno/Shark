@@ -138,7 +138,9 @@ namespace Shark {
 
 		Entity GetActiveCameraEntity() const;
 		UUID GetActiveCameraUUID() const { return m_ActiveCameraUUID; }
+		bool IsActiveCamera(Entity entity) const;
 		void SetActiveCamera(UUID camera) { m_ActiveCameraUUID = camera; }
+		void SetActiveCamera(Entity entity);
 		void ResizeCameras() { ResizeCameras((float)m_ViewportWidth, (float)m_ViewportHeight); }
 		void ResizeCameras(float width, float height);
 
@@ -216,7 +218,7 @@ namespace Shark {
 		std::vector<std::function<void()>> m_PostUpdateQueue;
 
 		friend class Entity;
-		friend class SceneHirachyPanel;
+		friend class SceneHierarchyPanel;
 		friend class SceneSerializer;
 		friend class ECSDebugPanel;
 	};

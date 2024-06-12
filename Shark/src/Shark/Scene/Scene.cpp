@@ -785,6 +785,22 @@ namespace Shark {
 		return TryGetEntityByUUID(m_ActiveCameraUUID);
 	}
 
+	bool Scene::IsActiveCamera(Entity entity) const
+	{
+		if (!m_ActiveCameraUUID || !entity.AllOf<CameraComponent>())
+			return false;
+
+		return entity.GetUUID() == m_ActiveCameraUUID;
+	}
+
+	void Scene::SetActiveCamera(Entity entity)
+	{
+		if (!entity.AllOf<CameraComponent>())
+			return;
+
+		m_ActiveCameraUUID = entity.GetUUID();
+	}
+
 	void Scene::ResizeCameras(float width, float height)
 	{
 		SK_PROFILE_FUNCTION();

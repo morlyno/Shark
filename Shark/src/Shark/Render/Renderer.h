@@ -56,7 +56,17 @@ namespace Shark {
 		template<typename TFunc>
 		static void SubmitResourceFree(const TFunc& func)
 		{
-			Submit(func);
+			auto& queue = GetResourceFreeQueue();
+
+			auto command = [](void* funcPtr)
+			{
+				auto cmdPtr = (TFunc*)funcPtr;
+				(*cmdPtr)();
+				cmdPtr->~TFunc();
+			};
+
+			void* storage = queue.Allocate(command, sizeof(TFunc));
+			new (storage) TFunc(func);
 		}
 
 		static void BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear = false);
@@ -115,6 +125,7 @@ namespace Shark {
 
 	private:
 		static RenderCommandQueue& GetCommandQueue();
+		static RenderCommandQueue& GetResourceFreeQueue();
 
 	private:
 		static Ref<RendererContext> s_RendererContext;

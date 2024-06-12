@@ -227,17 +227,14 @@ namespace Shark {
 		m_AssetThumbnailGenerators[AssetType::Scene] = Scope<SceneThumbnailGenerator>::Create();
 		m_AssetThumbnailGenerators[AssetType::Environment] = Scope<EnvironmentThumbnailGenerator>::Create();
 
+
 		m_SkyLight = m_Scene->CreateEntity("SkyLight");
 		auto& skyLight = m_SkyLight.AddComponent<SkyComponent>();
-		skyLight.SceneEnvironment = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Environment/green_point_park_4k.hdr");
-		skyLight.Intensity = 0.8f;
-		//skyLight.Lod = AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1;
 
-		AssetManager::GetAssetFuture(skyLight.SceneEnvironment)
-			.OnReady([this](Ref<Asset> asset)
-			{
-				m_SkyLight.GetComponent<SkyComponent>().Lod = asset.As<Environment>()->GetRadianceMap()->GetMipLevelCount();
-			});
+		auto [radianceMap, irradianceMap] = Renderer::CreateEnvironmentMap("Resources/Environment/green_point_park_4k.hdr");
+		skyLight.SceneEnvironment = AssetManager::CreateMemoryOnlyAsset<Environment>(radianceMap, irradianceMap);
+		skyLight.Intensity = 0.8f;
+		skyLight.Lod = AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1;
 
 		AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
 		AssetManager::GetAssetFuture(handle).OnReady([this](...) { m_Ready = true; });

@@ -30,12 +30,15 @@ namespace Shark {
 		inline static Ref<Texture2D> AngleLeftIcon;
 		inline static Ref<Texture2D> AngleRightIcon;
 		inline static Ref<Texture2D> SettingsIcon;
+		inline static Ref<Texture2D> Search;
 
 		// Custom Titlebar
 		inline static Ref<Texture2D> WindowCloseIcon;
 		inline static Ref<Texture2D> WindowMinimizeIcon;
 		inline static Ref<Texture2D> WindowMaximizeIcon;
 		inline static Ref<Texture2D> WindowRestoreIcon;
+
+		inline static Ref<Texture2D> Placeholder;
 
 	public:
 		static void Init();

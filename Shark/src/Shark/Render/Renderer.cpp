@@ -380,4 +380,9 @@ namespace Shark {
 		return *s_CommandQueue[s_CommandQueueSubmissionIndex];
 	}
 
+	RenderCommandQueue& Renderer::GetResourceFreeQueue()
+	{
+		return *s_CommandQueue[s_CommandQueueSubmissionIndex];
+	}
+
 }

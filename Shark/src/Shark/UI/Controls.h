@@ -7,6 +7,7 @@ namespace Shark {
 	class AssetManager;
 	using AssetHandle = Shark::UUID;
 	enum class AssetType;
+	class Entity;
 }
 
 namespace Shark::UI {
@@ -82,10 +83,10 @@ namespace Shark::UI {
 
 	template<typename TAsset>
 	bool ControlAsset(std::string_view label, Ref<TAsset>& asset, const char* dragDropType = "Asset");
+	bool ControlEntity(std::string_view label, UUID& entityID, const char* dragDropType = "Entity");
 
 	bool ControlDragDrop(std::string_view label, std::string& val, const char* dragDropType);
 	bool ControlDragDrop(std::string_view label, std::filesystem::path& val, const char* dragDropType);
-	bool ControlDragDrop(std::string_view label, UUID& uuid, const char* dragDropType);
 
 	template<typename TFunc>
 	void ControlCustom(std::string_view label, const TFunc& func);

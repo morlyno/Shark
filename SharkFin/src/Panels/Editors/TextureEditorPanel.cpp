@@ -130,7 +130,7 @@ namespace Shark {
 			UI::ControlCustom("Mip", [this]()
 			{
 				ImGui::SetNextItemWidth(-1.0);
-				UI::SliderScalar("#mip", ImGuiDataType_U32, m_MipIndex, 0, m_Views.size() - 1);
+				UI::SliderScalar("#mip", ImGuiDataType_U32, m_MipIndex, 0, (uint32_t)m_Views.size() - 1);
 			});
 		}
 

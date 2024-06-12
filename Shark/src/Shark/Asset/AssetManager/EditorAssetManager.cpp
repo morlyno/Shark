@@ -145,6 +145,21 @@ namespace Shark {
 		return Threading::Future(m_LoadedAssets.at(handle));
 	}
 
+	std::vector<AssetHandle> EditorAssetManager::GetAllAssetsOfType(AssetType assetType)
+	{
+		std::vector<AssetHandle> assets;
+
+		for (const auto& [handle, metadata] : m_Registry)
+		{
+			if (metadata.Type == assetType)
+			{
+				assets.push_back(handle);
+			}
+		}
+
+		return assets;
+	}
+
 	AssetHandle EditorAssetManager::AddMemoryAsset(Ref<Asset> asset)
 	{
 		if (IsValidAssetHandle(asset->Handle))

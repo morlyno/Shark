@@ -3,6 +3,7 @@
 
 #include "Shark/Core/Project.h"
 #include "Shark/Core/Memory.h"
+#include "Shark/Core/SelectionContext.h"
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Asset/AssetUtils.h"
@@ -14,14 +15,15 @@
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
-#include "Shark/UI/UI.h"
 
+#include "Shark/UI/UI.h"
 #include "Shark/UI/Icons.h"
+
 #include "EditorSettings.h"
 
 #include "Panel.h"
 #include "Panels/EditorConsolePanel.h"
-#include "Panels/SceneHirachyPanel.h"
+#include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
 #include "Panels/AssetEditorPanel.h"
 #include "Panels/Editors/TextureEditorPanel.h"
@@ -43,7 +45,7 @@
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-#define SCENE_HIRACHY_PANEL_ID "SceneHirachyPanel"
+#define SCENE_HIERARCHY_PANEL_ID "SceneHierarchyPanel"
 #define CONTENT_BROWSER_PANEL_ID "ContentBrowserPanel"
 #define PHYSICS_DEBUG_PANEL_ID "PhysicsDebugPanel"
 #define ASSET_EDITOR_MANAGER_ID "AssetsEditorManagerPanel"
@@ -60,6 +62,27 @@
 namespace Shark {
 
 	static bool s_ShowDemoWindow = false;
+
+	namespace utils {
+
+		static glm::vec3 GetCenterOfEntities(std::span<const Entity> entities)
+		{
+			glm::vec3 center = glm::vec3(0.0f);
+			const auto& selectedEntities = SelectionContext::GetSelected();
+
+			Ref<Scene> scene = selectedEntities[0].GetScene().GetRef();
+
+			for (Entity entity : selectedEntities)
+			{
+				glm::vec3 translation;
+				Math::DecomposeTranslation(scene->GetWorldSpaceTransformMatrix(entity), translation);
+				center += translation;
+			}
+			center /= selectedEntities.size();
+			return center;
+		}
+
+	}
 
 	EditorLayer::EditorLayer(const std::filesystem::path& startupProject)
 		: Layer("EditorLayer"), m_StartupProject(startupProject)
@@ -82,8 +105,7 @@ namespace Shark {
 
 		m_PanelManager = Scope<PanelManager>::Create();
 
-		Ref<SceneHirachyPanel> sceneHirachy = m_PanelManager->AddPanel<SceneHirachyPanel>(PanelCategory::View, SCENE_HIRACHY_PANEL_ID, "Scene Hirachy", true);
-		sceneHirachy->RegisterSelectionChangedCallback([this](Entity entity) { m_SelectetEntity = entity; });
+		Ref<SceneHierarchyPanel> sceneHirachy = m_PanelManager->AddPanel<SceneHierarchyPanel>(PanelCategory::View, SCENE_HIERARCHY_PANEL_ID, "Scene Hierarchy", true);
 		sceneHirachy->RegisterSnapToEditorCameraCallback([this](Entity entity) { entity.Transform().SetTransform(glm::inverse(m_EditorCamera.GetView())); });
 
 		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(PanelCategory::View, CONTENT_BROWSER_PANEL_ID, "Content Browser", true);
@@ -243,12 +265,11 @@ namespace Shark {
 		// Disable hot keys when the scene state is not Edit
 		if (m_SceneState != SceneState::Edit)
 		{
-			if (event.GetKeyCode() == KeyCode::F && m_SelectetEntity)
+			if (event.GetKeyCode() == KeyCode::F && SelectionContext::AnySelected())
 			{
-				glm::vec3 translation;
-				Math::DecomposeTranslation(m_ActiveScene->GetWorldSpaceTransformMatrix(m_SelectetEntity), translation);
-
-				m_EditorCamera.SetFocusPoint(translation);
+				const auto& entities = SelectionContext::GetSelected();
+				glm::vec3 center = utils::GetCenterOfEntities(entities);
+				m_EditorCamera.SetFocusPoint(center);
 				m_EditorCamera.SetDistance(7.5f);
 				return true;
 			}
@@ -302,10 +323,17 @@ namespace Shark {
 			// Copy Entity
 			case KeyCode::D:
 			{
-				if (control && m_SelectetEntity && m_SceneState == SceneState::Edit)
+				if (control && SelectionContext::AnySelected() && m_SceneState == SceneState::Edit)
 				{
-					Entity e = m_WorkScene->CloneEntity(m_SelectetEntity);
-					SelectEntity(e);
+					std::vector<Entity> clonedEntities;
+
+					for (Entity source : SelectionContext::GetSelected())
+					{
+						Entity cloned = m_WorkScene->CloneEntity(source);
+						clonedEntities.push_back(cloned);
+					}
+
+					SelectionContext::ClearAndSelect(clonedEntities);
 					return true;
 				}
 				break;
@@ -314,12 +342,12 @@ namespace Shark {
 			// Focus Selected Entity
 			case KeyCode::F:
 			{
-				if (m_SelectetEntity)
+				if (SelectionContext::AnySelected())
 				{
-					glm::vec3 translation;
-					Math::DecomposeTranslation(m_ActiveScene->GetWorldSpaceTransformMatrix(m_SelectetEntity), translation);
+					const auto& entities = SelectionContext::GetSelected();
+					glm::vec3 center = utils::GetCenterOfEntities(entities);
 
-					m_EditorCamera.SetFocusPoint(translation);
+					m_EditorCamera.SetFocusPoint(center);
 					m_EditorCamera.SetDistance(7.5f);
 					return true;
 				}
@@ -328,9 +356,10 @@ namespace Shark {
 
 			case KeyCode::Delete:
 			{
-				if (m_SelectetEntity && m_ViewportFocused)
+				if (m_ViewportFocused && SelectionContext::AnySelected())
 				{
-					DeleteEntity(m_SelectetEntity);
+					for (Entity entity : SelectionContext::GetSelected())
+						DeleteEntity(entity);
 					return true;
 				}
 				break;
@@ -345,10 +374,42 @@ namespace Shark {
 			}
 
 			// ImGuizmo
-			case KeyCode::Q: { if (!m_EditorCamera.GetFlyMode()) m_CurrentOperation = GizmoOperaton::None; return true; }
-			case KeyCode::W: { if (!m_EditorCamera.GetFlyMode()) m_CurrentOperation = GizmoOperaton::Translate; return true; }
-			case KeyCode::E: { if (!m_EditorCamera.GetFlyMode()) m_CurrentOperation = GizmoOperaton::Rotate; return true; }
-			case KeyCode::R: { if (!m_EditorCamera.GetFlyMode()) m_CurrentOperation = GizmoOperaton::Scale; return true; }
+			case KeyCode::Q:
+			{
+				if (!m_EditorCamera.GetFlyMode())
+				{
+					m_CurrentOperation = GizmoOperaton::None;
+					return true;
+				}
+				break;
+			}
+			case KeyCode::W:
+			{
+				if (!m_EditorCamera.GetFlyMode())
+				{
+					m_CurrentOperation = GizmoOperaton::Translate;
+					return true;
+				}
+				break;
+			}
+			case KeyCode::E:
+			{
+				if (!m_EditorCamera.GetFlyMode())
+				{
+					m_CurrentOperation = GizmoOperaton::Rotate;
+					return true;
+				}
+				break;
+			}
+			case KeyCode::R:
+			{
+				if (!m_EditorCamera.GetFlyMode())
+				{
+					m_CurrentOperation = GizmoOperaton::Scale;
+					return true;
+				}
+				break;
+			}
 		}
 
 		return false;
@@ -471,14 +532,14 @@ namespace Shark {
 
 		// TODO(moro): logo
 		{
-			const int logoSize = 48.0f;
-			const ImVec2 logoOffset(16.0f + windowPadding.x, 5.0f + windowPadding.y);
+			const float logoSize = 48.0f;
+			const ImVec2 logoOffset(16.0f, 5.0f);
 			const ImVec2 logoRectStart = { ImGui::GetItemRectMin().x + logoOffset.x, ImGui::GetItemRectMin().y + logoOffset.y };
 			const ImVec2 logoRectMax = { logoRectStart.x + logoSize, logoRectStart.y + logoSize };
 			fgDrawList->AddRectFilled(logoRectStart, logoRectMax, IM_COL32(240, 20, 20, 255));
 		}
 
-		ImGui::SetCursorPos(ImVec2(windowPadding.x, windowPadding.y)); // Reset cursor pos
+		ImGui::SetCursorPos(ImGui::GetCursorStartPos()); // Reset cursor pos
 		ImGui::BeginHorizontal("Titlebar", { ImGui::GetWindowWidth() - windowPadding.x * 2.0f, ImGui::GetFrameHeightWithSpacing() });
 
 		const float w = ImGui::GetContentRegionAvail().x;
@@ -493,7 +554,7 @@ namespace Shark {
 		{
 			ImGui::SetNextItemAllowOverlap();
 			const float logoHorizontalOffset = 16.0f * 2.0f + 48.0f + windowPadding.x;
-			ImGui::SetCursorPos(ImVec2(logoHorizontalOffset, 6.0f));
+			ImGui::SetCursorPos(ImVec2(logoHorizontalOffset, 0.0f));
 			UI_DrawMenuBar();
 
 			if (ImGui::IsItemHovered())
@@ -504,7 +565,7 @@ namespace Shark {
 
 		ImGui::SuspendLayout();
 		{
-			ImGui::SetCursorPos(ImVec2(windowPadding.x, windowPadding.y));
+			ImGui::SetCursorPos(ImVec2(windowPadding.x, 0));
 			ImGui::BeginHorizontal("##centerWindowTitle", { ImGui::GetWindowWidth() - windowPadding.x * 2.0f, ImGui::GetFrameHeightWithSpacing() });
 
 			ImGui::Spring(0.5f);
@@ -519,10 +580,12 @@ namespace Shark {
 
 			const auto& style = ImGui::GetStyle();
 			ImRect titleRect = UI::RectExpand({ itemMin, itemMax }, style.FramePadding * 2.0f);
-			titleRect.Min.y = -1.0f;
+			titleRect.Min.y = 0.0f;
 
 			ImDrawList* drawList = ImGui::GetCurrentWindow()->DrawList;
+			drawList->PushClipRectFullScreen();
 			drawList->AddRectFilled(titleRect.Min, titleRect.Max, IM_COL32(135, 100, 255, 30), 5.0f, ImDrawFlags_RoundCornersBottom);
+			drawList->PopClipRect();
 
 			ImGui::Text(windowTitle.c_str());
 
@@ -540,7 +603,6 @@ namespace Shark {
 		const ImU32 buttonColP = UI::Colors::Theme::TextDarker;
 
 		ImGui::Spring();
-		UI::MoveCursorY(8.0f);
 		{
 			const int iconWidth = Icons::WindowMinimizeIcon->GetWidth();
 			const int iconHeight = Icons::WindowMinimizeIcon->GetHeight();
@@ -559,7 +621,6 @@ namespace Shark {
 		}
 		
 		ImGui::Spring(-1.0f, 17.0f);
-		UI::MoveCursorY(8.0f);
 		{
 			if (ImGui::InvisibleButton("Maximize", ImVec2(buttonWidth, buttonHeight)))
 			{
@@ -577,7 +638,6 @@ namespace Shark {
 		}
 
 		ImGui::Spring(-1.0f, 15.0f);
-		UI::MoveCursorY(8.0f);
 		{
 			if (ImGui::InvisibleButton("Close", ImVec2(buttonWidth, buttonHeight)))
 			{
@@ -785,10 +845,8 @@ namespace Shark {
 		if (!m_RenderGizmo)
 			return;
 
-		if (m_CurrentOperation != GizmoOperaton::None && m_SelectetEntity)
+		if (m_CurrentOperation != GizmoOperaton::None && SelectionContext::AnySelected())
 		{
-			SK_CORE_ASSERT(m_SelectetEntity.AllOf<TransformComponent>(), "Every entity is requiert to have a Transform Component");
-
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
 
 			ImVec2 windowPos = window->WorkRect.Min;
@@ -816,7 +874,9 @@ namespace Shark {
 				projection = m_EditorCamera.GetProjection();
 			}
 
-			glm::mat4 transform = m_ActiveScene->GetWorldSpaceTransformMatrix(m_SelectetEntity);
+			TransformComponent centerTransform = m_ActiveScene->GetWorldSpaceTransform(SelectionContext::GetFirstSelected());
+			centerTransform.Translation = utils::GetCenterOfEntities(SelectionContext::GetSelected());
+			glm::mat4 transform = centerTransform.CalcTransform();
 
 			float snapVal = 0.0f;
 			if (Input::IsKeyDown(KeyCode::LeftShift))
@@ -835,18 +895,24 @@ namespace Shark {
 
 			if (!Input::IsKeyDown(KeyCode::LeftAlt) && ImGuizmo::IsUsing())
 			{
-				glm::mat4 localTransform = transform;
-				m_ActiveScene->ConvertToLocaSpace(m_SelectetEntity, localTransform);
-				auto& tf = m_SelectetEntity.Transform();
-
-				glm::vec3 translation, rotation, scale;
-				if (Math::DecomposeTransform(localTransform, translation, rotation, scale))
+				const auto& entities = SelectionContext::GetSelected();
+				for (Entity entity : entities)
 				{
-					glm::vec3 deltaRotation = rotation - tf.Rotation;
-					tf.Translation = translation;
-					tf.Rotation += deltaRotation;
-					tf.Scale = scale;
+					glm::mat4 originalTransform = m_ActiveScene->GetWorldSpaceTransformMatrix(entity);
+
+					glm::vec3 translation, rotation, scale;
+					if (Math::DecomposeTransform(delta, translation, rotation, scale))
+					{
+						auto& tf = entity.Transform();
+						switch (m_CurrentOperation)
+						{
+							case GizmoOperaton::Translate: tf.Translation += translation; break;
+							case GizmoOperaton::Rotate: tf.Rotation += rotation; break;
+							case GizmoOperaton::Scale: tf.Scale *= scale; break;
+						}
+					}
 				}
+
 			}
 		}
 	}
@@ -955,7 +1021,7 @@ namespace Shark {
 							Entity entity = m_ActiveScene->CreateEntity();
 							auto& sr = entity.AddComponent<SpriteRendererComponent>();
 							sr.TextureHandle = handle;
-							SelectEntity(entity);
+							SelectionContext::ClearAndSelect(entity);
 							break;
 						}
 						case AssetType::Mesh:
@@ -1106,12 +1172,12 @@ namespace Shark {
 				{
 					uint32_t hoverdEntity = (uint32_t)-1;
 					if (!m_MousePickingImage->RT_ReadPixel(x, y, hoverdEntity))
-						return false;
+						return;
 
 					if (hoverdEntity == (uint32_t)-1)
 					{
-						SelectEntity(Entity{});
-						return true;
+						SelectionContext::Clear();
+						return;
 					}
 
 					Entity entity = { (entt::entity)hoverdEntity, m_ActiveScene };
@@ -1125,7 +1191,17 @@ namespace Shark {
 							}
 						}
 
-						SelectEntity(entity);
+						if (Input::IsKeyDown(KeyCode::LeftControl))
+						{
+							if (SelectionContext::IsSelected(entity))
+								SelectionContext::Unselect(entity);
+							else
+								SelectionContext::Select(entity);
+						}
+						else
+						{
+							SelectionContext::ClearAndSelect(entity);
+						}
 					}
 				});
 			}
@@ -1459,17 +1535,20 @@ namespace Shark {
 
 		if (m_ShowLightRadius)
 		{
-			if (m_SelectetEntity && m_SelectetEntity.AllOf<PointLightComponent>())
+			for (Entity entity : SelectionContext::GetSelected())
 			{
-				const auto& plc = m_SelectetEntity.GetComponent<PointLightComponent>();
-				
-				glm::vec3 center = m_SelectetEntity.Transform().Translation;
-				glm::vec4 lightRadiusColor = { 0.1f, 0.3f, 0.9f, 1.0f };
-				float rotation = glm::radians(90.0f);
+				if (entity.AllOf<PointLightComponent>())
+				{
+					const auto& plc = entity.GetComponent<PointLightComponent>();
 
-				m_DebugRenderer->DrawCircle(center, { 0.0f, 0.0f, 0.0f }, plc.Radius, lightRadiusColor);
-				m_DebugRenderer->DrawCircle(center, { 0.0f, rotation, 0.0f }, plc.Radius, lightRadiusColor);
-				m_DebugRenderer->DrawCircle(center, { rotation, 0.0f, 0.0f }, plc.Radius, lightRadiusColor);
+					glm::vec3 center = entity.Transform().Translation;
+					glm::vec4 lightRadiusColor = { 0.1f, 0.3f, 0.9f, 1.0f };
+					float rotation = glm::radians(90.0f);
+
+					m_DebugRenderer->DrawCircle(center, { 0.0f, 0.0f, 0.0f }, plc.Radius, lightRadiusColor);
+					m_DebugRenderer->DrawCircle(center, { 0.0f, rotation, 0.0f }, plc.Radius, lightRadiusColor);
+					m_DebugRenderer->DrawCircle(center, { rotation, 0.0f, 0.0f }, plc.Radius, lightRadiusColor);
+				}
 			}
 		}
 
@@ -1483,17 +1562,11 @@ namespace Shark {
 
 	void EditorLayer::DeleteEntity(Entity entity)
 	{
+		SelectionContext::Unselect(entity);
 		if (entity.GetUUID() == m_ActiveScene->GetActiveCameraUUID())
 			m_ActiveScene->SetActiveCamera(UUID());
 
 		m_ActiveScene->DestroyEntity(entity);
-		SelectEntity(Entity{});
-	}
-
-	void EditorLayer::SelectEntity(Entity entity)
-	{
-		m_SelectetEntity = entity;
-		m_PanelManager->Get<SceneHirachyPanel>(SCENE_HIRACHY_PANEL_ID)->SetSelectedEntity(entity);
 	}
 
 	glm::mat4 EditorLayer::GetActiveViewProjection() const
@@ -1658,8 +1731,8 @@ namespace Shark {
 		if (m_ActiveScene && AssetManager::IsMemoryAsset(m_ActiveScene->Handle))
 			Project::GetActiveEditorAssetManager()->DeleteMemoryAsset(m_ActiveScene->Handle);
 
-		if (scene && m_SelectetEntity)
-			SelectEntity(scene->TryGetEntityByUUID(m_SelectetEntity.GetUUID()));
+		SelectionContext::Clear();
+		SelectionContext::SetActiveScene(scene);
 
 		if (scene)
 		{
@@ -1835,7 +1908,9 @@ namespace Shark {
 		Entity entity = m_ActiveScene->InstantiateMesh(mesh);
 
 		if (select)
-			SelectEntity(entity);
+		{
+			SelectionContext::ClearAndSelect(entity);
+		}
 
 		return entity;
 	}

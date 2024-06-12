@@ -36,7 +36,7 @@ namespace Shark {
 					shader->Reload(true, m_DisableOptimization);
 			}
 
-			UI::Search(UI::GenerateID(), m_SearchBuffer, std::size(m_SearchBuffer));
+			UI::Search(UI::GenerateID(), m_SearchBuffer, (int)std::size(m_SearchBuffer));
 			UI::TextFilter filter(m_SearchBuffer);
 
 			ImGui::Separator();
@@ -55,7 +55,7 @@ namespace Shark {
 					ImGui::Text(key.c_str());
 
 					ImGui::TableSetColumnIndex(1);
-					if (ImGui::Button("Realod"))
+					if (ImGui::Button("Reload"))
 					{
 						shader->Reload(true, m_DisableOptimization);
 					}

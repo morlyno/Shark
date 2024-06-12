@@ -15,7 +15,7 @@ namespace Shark {
 
 	DirectXVertexBuffer::DirectXVertexBuffer(uint64_t size, bool dynamic, Buffer vertexData)
 	{
-		ReCreateBuffer(size, dynamic, vertexData);
+		RT_ReCreateBuffer(size, dynamic, vertexData);
 	}
 
 	DirectXVertexBuffer::~DirectXVertexBuffer()
@@ -25,22 +25,16 @@ namespace Shark {
 
 	void DirectXVertexBuffer::Release()
 	{
+		if (!m_VertexBuffer)
+			return;
+
 		Renderer::SubmitResourceFree([vertexBuffer = m_VertexBuffer]()
 		{
-			if (vertexBuffer)
-				vertexBuffer->Release();
+			vertexBuffer->Release();
 		});
 
 		m_VertexBuffer = nullptr;
 	}	
-
-	void DirectXVertexBuffer::RT_Release()
-	{
-		if (m_VertexBuffer)
-			m_VertexBuffer->Release();
-
-		m_VertexBuffer = nullptr;
-	}
 
 	void DirectXVertexBuffer::Resize(uint64_t size)
 	{
@@ -172,10 +166,9 @@ namespace Shark {
 
 	void DirectXVertexBuffer::RT_ReCreateBuffer(uint64_t size, bool dynamic, Buffer vertexData)
 	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_CORE_VERIFY(dynamic || vertexData);
 
-		RT_Release();
+		Release();
 
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();
@@ -209,7 +202,7 @@ namespace Shark {
 
 	DirectXIndexBuffer::DirectXIndexBuffer(uint32_t count, bool dynmaic, Buffer indexData)
 	{
-		ReCreateBuffer(count, dynmaic, indexData);
+		RT_ReCreateBuffer(count, dynmaic, indexData);
 	}
 
 	DirectXIndexBuffer::~DirectXIndexBuffer()
@@ -219,19 +212,13 @@ namespace Shark {
 
 	void DirectXIndexBuffer::Release()
 	{
+		if (!m_IndexBuffer)
+			return;
+
 		Renderer::SubmitResourceFree([indexBuffer = m_IndexBuffer]()
 		{	
-			if (indexBuffer)
-				indexBuffer->Release();
+			indexBuffer->Release();
 		});
-
-		m_IndexBuffer = nullptr;
-	}
-
-	void DirectXIndexBuffer::RT_Release()
-	{
-		if (m_IndexBuffer)
-			m_IndexBuffer->Release();
 
 		m_IndexBuffer = nullptr;
 	}
@@ -353,10 +340,9 @@ namespace Shark {
 
 	void DirectXIndexBuffer::RT_ReCreateBuffer(uint32_t count, bool dynamic, Buffer indexData)
 	{
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_CORE_VERIFY(dynamic || indexData);
 
-		RT_Release();
+		Release();
 
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();

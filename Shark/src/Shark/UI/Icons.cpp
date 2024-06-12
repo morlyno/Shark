@@ -70,6 +70,8 @@ namespace Shark {
 	static constexpr std::string_view s_AngleLeftIconPath = "Resources/Icons/AngleLeft.png";
 	static constexpr std::string_view s_AngleRightIconPath = "Resources/Icons/AngleRight.png";
 	static constexpr std::string_view s_SettingsIconPath = "Resources/Icons/Settings.png";
+	static constexpr std::string_view s_SearchIconPath = "Resources/Icons/Search.png";
+	static constexpr std::string_view s_PlaceholderPath = "Resources/Textures/NoImagePlaceholder.png";
 
 
 	void Icons::Init()
@@ -98,6 +100,7 @@ namespace Shark {
 		AngleLeftIcon   = Texture2D::Create(TextureSpecification(), s_AngleLeftIconPath);
 		AngleRightIcon  = Texture2D::Create(TextureSpecification(), s_AngleRightIconPath);
 		SettingsIcon    = Texture2D::Create(TextureSpecification(), s_SettingsIconPath);
+		Search          = Texture2D::Create(TextureSpecification(), s_SearchIconPath);
 
 		{
 			Buffer textureData;
@@ -120,6 +123,8 @@ namespace Shark {
 			WindowRestoreIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
 		}
+
+		Placeholder = Texture2D::Create(TextureSpecification(), s_PlaceholderPath); 
 	}
 
 	void Icons::Shutdown()
@@ -145,11 +150,14 @@ namespace Shark {
 		AngleLeftIcon = nullptr;
 		AngleRightIcon = nullptr;
 		SettingsIcon = nullptr;
+		Search = nullptr;
 
 		WindowCloseIcon = nullptr;
 		WindowMinimizeIcon = nullptr;
 		WindowMaximizeIcon = nullptr;
 		WindowRestoreIcon = nullptr;
+
+		Placeholder = nullptr;
 	}
 
 	static void ReloadIconFromDisc(Ref<Texture2D> icon, const std::filesystem::path& filepath)
@@ -182,6 +190,8 @@ namespace Shark {
 		ReloadIconFromDisc(AngleLeftIcon, s_AngleLeftIconPath);
 		ReloadIconFromDisc(AngleRightIcon, s_AngleRightIconPath);
 		ReloadIconFromDisc(SettingsIcon, s_SettingsIconPath);
+		ReloadIconFromDisc(Search, s_SearchIconPath);
+		ReloadIconFromDisc(Placeholder, s_PlaceholderPath);
 	}
 
 }

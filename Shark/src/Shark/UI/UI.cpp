@@ -205,25 +205,24 @@ namespace Shark::UI {
 		if (!buffer[0])
 		{
 			ImDrawList* drawList = ImGui::GetWindowDrawList();
-			ImFont* iconFont = UI::Fonts::Get("FontAwesome");
 			ImFont* textFont = ImGui::GetFont();
 
 			const float fontSize = ImGui::GetFontSize();
-			const ImVec2 textPos = ImGui::GetItemRectMin() + style.FramePadding;
-			//const float advance = iconFont->GetCharAdvance(61442);
-			const float advance = iconFont->CalcTextSizeA(iconFont->FontSize, FLT_MAX, -1.0f, "\xef\x80\x82").x;
-			const float spacing = textFont->GetCharAdvance(' ');
+			const ImVec2 textPos = ImGui::GetItemRectMin() + style.FramePadding + ImVec2(2, 0);
+			const ImVec2 iconMin = textPos + ImVec2(1, 1);
+			const ImVec2 iconMax = textPos + ImVec2(fontSize - 2, fontSize - 2);
 
 			drawList->PushClipRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
 
-			drawList->AddText(iconFont, fontSize - 2.0f, textPos + ImVec2(1.0f, 2.0f), UI::Colors::Theme::TextDarker, "\xef\x80\x82");
-			drawList->AddText(textPos + ImVec2(advance + spacing * 2.0f, 0.0f), UI::Colors::Theme::TextDarker, "Search ...");
+			drawList->AddImage(Icons::Search->GetViewID(), iconMin, iconMax, ImVec2(1, 0), ImVec2(0, 1), UI::Colors::Theme::TextDarker);
+			drawList->AddText(textPos + ImVec2(fontSize, 0.0f), UI::Colors::Theme::TextDarker, "Search ...");
 
 			drawList->PopClipRect();
 		}
 
 		bool clear = false;
 
+#if 0
 		{
 			const float fontSize = ImGui::GetFontSize();
 			const ImVec2 buttonSize = { fontSize + style.FramePadding.x * 2.0f, fontSize + style.FramePadding.y * 2.0f };
@@ -239,6 +238,7 @@ namespace Shark::UI {
 								UI::Colors::Theme::TextDarker,
 								UI::RectExpand(UI::GetItemRect(), -style.FramePadding));
 		}
+#endif
 
 		if (clear)
 		{
@@ -346,6 +346,30 @@ namespace Shark::UI {
 		}
 	}
 
+	void DrawButton(std::string_view text, ImVec2 textAlign, ImU32 colorNormal, ImU32 colorHoverd, ImU32 colorPressed, ImRect rect)
+	{
+		const auto& style = ImGui::GetStyle();
+		if (ImGui::IsItemActive())
+			DrawBackground(rect, colorPressed, style.FrameRounding);
+		else if (ImGui::IsItemHovered())
+			DrawBackground(rect, colorHoverd, style.FrameRounding);
+		else
+			DrawBackground(rect, colorNormal, style.FrameRounding);
+
+		DrawBorder(rect, UI::Colors::Theme::BackgroundDark, style.FrameRounding);
+		ImGui::RenderTextClipped(rect.Min + style.FramePadding, rect.Max - style.FramePadding, text.data(), text.data() + text.length(), nullptr, textAlign);
+	}
+
+	void DrawButton(std::string_view text, ImVec2 textAlign, ImRect rect)
+	{
+		DrawButton(text, textAlign, ImGui::GetColorU32(ImGuiCol_Button), ImGui::GetColorU32(ImGuiCol_ButtonHovered), ImGui::GetColorU32(ImGuiCol_ButtonActive), rect);
+	}
+
+	void DrawButton(std::string_view text, ImRect rect)
+	{
+		DrawButton(text, ImVec2(0.0f, 0.5f), rect);
+	}
+
 	void DrawButtonFrame(ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed)
 	{
 		DrawButtonFrame(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), tintNormal, tintHovered, tintPressed);
@@ -354,7 +378,7 @@ namespace Shark::UI {
 	void DrawButtonFrame(ImVec2 min, ImVec2 max, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed)
 	{
 		const auto& style = ImGui::GetStyle();
-		if (ImGui::IsItemActivated())
+		if (ImGui::IsItemActive())
 			ImGui::RenderFrame(min, max, tintNormal, true, style.FrameRounding);
 		else if (ImGui::IsItemHovered())
 			ImGui::RenderFrame(min, max, tintHovered, true, style.FrameRounding);
@@ -365,7 +389,7 @@ namespace Shark::UI {
 	void DrawButtonFrame(ImVec2 min, ImVec2 max)
 	{
 		const auto& style = ImGui::GetStyle();
-		if (ImGui::IsItemActivated())
+		if (ImGui::IsItemActive())
 			ImGui::RenderFrame(min, max, ImGui::GetColorU32(ImGuiCol_ButtonActive), true, style.FrameRounding);
 		else if (ImGui::IsItemHovered())
 			ImGui::RenderFrame(min, max, ImGui::GetColorU32(ImGuiCol_ButtonHovered), true, style.FrameRounding);
@@ -453,22 +477,6 @@ namespace Shark::UI {
 	void DrawImageButton(Ref<Texture2D> texture, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed)
 	{
 		DrawImageButton(texture->GetImage(), tintNormal, tintHovered, tintPressed);
-	}
-
-	void DrawTextButton(std::string_view text, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImVec2 position)
-	{
-		auto* drawList = ImGui::GetWindowDrawList();
-		if (ImGui::IsItemActive())
-			drawList->AddText(position, tintNormal, text.data(), text.data() + text.length());
-		else if (ImGui::IsItemHovered())
-			drawList->AddText(position, tintHovered, text.data(), text.data() + text.length());
-		else
-			drawList->AddText(position, tintPressed, text.data(), text.data() + text.length());
-	}
-
-	void DrawTextButton(std::string_view text, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed)
-	{
-		DrawTextButton(text, tintNormal, tintHovered, tintPressed, ImGui::GetItemRectMin());
 	}
 
 	void Image(Ref<ImageView> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)

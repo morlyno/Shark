@@ -10,6 +10,7 @@ namespace Shark::UI {
 		TextFilter(const std::string& filter);
 		bool PassFilter(std::string_view text);
 		void SetMode(String::Case compCase) { m_Case = compCase; }
+		void SetFilter(const std::string& filter);
 
 	private:
 		void Build();

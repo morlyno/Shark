@@ -14,6 +14,8 @@ namespace Shark {
 		static AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) { return Project::GetActiveEditorAssetManager()->GetAssetAsync(handle); }
 		static Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) { return Project::GetActiveEditorAssetManager()->GetAssetFuture(handle); }
 
+		static std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) { return Project::GetActiveAssetManager()->GetAllAssetsOfType(assetType); }
+
 		static AssetHandle AddMemoryAsset(Ref<Asset> asset) { return Project::GetActive()->GetAssetManager()->AddMemoryAsset(asset); }
 		static bool ReloadAsset(AssetHandle handle) { return Project::GetActiveAssetManager()->ReloadAsset(handle); }
 		static void ReloadAssetAsync(AssetHandle handle) { Project::GetActiveAssetManager()->ReloadAssetAsync(handle); }

@@ -37,15 +37,12 @@ namespace Shark {
 			Edit, Play, Simulate
 		};
 
-		struct GizmoOperaton
+		enum class GizmoOperaton : std::underlying_type_t<ImGuizmo::OPERATION>
 		{
-			enum Type : std::underlying_type_t<ImGuizmo::OPERATION>
-			{
-				None = 0,
-				Translate = ImGuizmo::TRANSLATE,
-				Rotate = ImGuizmo::ROTATE,
-				Scale = ImGuizmo::SCALE
-			};
+			None = 0,
+			Translate = ImGuizmo::TRANSLATE,
+			Rotate = ImGuizmo::ROTATE,
+			Scale = ImGuizmo::SCALE
 		};
 
 	public:
@@ -83,7 +80,6 @@ namespace Shark {
 
 		Entity CreateEntity(const std::string& name = "Untitled");
 		void DeleteEntity(Entity entity);
-		void SelectEntity(Entity entity);
 
 		glm::mat4 GetActiveViewProjection() const;
 
@@ -155,10 +151,12 @@ namespace Shark {
 		float m_TranslationSnap = 0.5f;
 		float m_RotationSnap = 45.0f;
 		float m_ScaleSnap = 0.5f;
-		GizmoOperaton::Type m_CurrentOperation = GizmoOperaton::None;
+		GizmoOperaton m_CurrentOperation = GizmoOperaton::None;
 		bool m_RenderGizmo = true;
 
+#if TODO
 		Entity m_SelectetEntity;
+#endif
 
 		SceneState m_SceneState = SceneState::Edit;
 

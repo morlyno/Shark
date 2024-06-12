@@ -57,6 +57,7 @@ namespace Shark::UI {
 		m_Filters.clear();
 		String::SplitToRanges(m_Buffer, " ", m_Filters);
 
+		m_HasPositiveFilter = false;
 		for (std::string_view filter : m_Filters)
 		{
 			if (filter.front() != '-')
@@ -65,6 +66,12 @@ namespace Shark::UI {
 				break;
 			}
 		}
+	}
+
+	void TextFilter::SetFilter(const std::string& filter)
+	{
+		m_Buffer = filter;
+		Build();
 	}
 
 }

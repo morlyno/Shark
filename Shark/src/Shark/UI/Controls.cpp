@@ -2,11 +2,14 @@
 #include "Controls.h"
 
 #include "Shark/Core/Project.h"
+#include "Shark/Core/SelectionContext.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Scene/Entity.h"
 
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Icons.h"
 #include "Shark/UI/Theme.h"
+#include "Shark/ImGui/TextFilter.h"
 
 #include <misc/cpp/imgui_stdlib.h>
 
@@ -65,6 +68,14 @@ namespace Shark::UI {
 			return pressed;
 		}
 
+		static float CalcMaxPopupHeightFromItemCount(int items_count)
+		{
+			ImGuiContext& g = *GImGui;
+			if (items_count <= 0)
+				return FLT_MAX;
+			return (g.FontSize + g.Style.ItemSpacing.y) * items_count - g.Style.ItemSpacing.y + (g.Style.WindowPadding.y * 2);
+		}
+
 	}
 
 	extern UIContext* GContext;
@@ -81,6 +92,10 @@ namespace Shark::UI {
 			//ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
 
 			c.Active = true;
+
+			ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch, 0.25f);
+			ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch, 0.75f);
+
 			return true;
 		}
 		return false;
@@ -91,7 +106,7 @@ namespace Shark::UI {
 		auto& c = GContext->Control;
 		SK_CORE_ASSERT(!c.Active, "Controls Begin/End mismatch");
 
-		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp))
+		if (ImGui::BeginTable("ControlsTable", 2, ImGuiTableFlags_Resizable))
 		{
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { style.ItemSpacing.x * 0.5f, style.ItemSpacing.y });
@@ -99,6 +114,10 @@ namespace Shark::UI {
 
 			c.Active = true;
 			c.DrawSeparator = true;
+
+			ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch, 0.25f);
+			ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch, 0.75f);
+
 			return true;
 		}
 		return false;
@@ -116,6 +135,10 @@ namespace Shark::UI {
 			//ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, style.IndentSpacing * 0.5f);
 
 			c.Active = true;
+
+			ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch, 0.25f);
+			ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch, 0.75f);
+
 			return true;
 		}
 		return false;
@@ -134,6 +157,10 @@ namespace Shark::UI {
 
 			c.Active = true;
 			c.DrawSeparator = true;
+
+			ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch, 0.25f);
+			ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch, 0.75f);
+
 			return true;
 		}
 		return false;
@@ -190,19 +217,7 @@ namespace Shark::UI {
 
 	bool ControlHelperBegin(std::string_view label)
 	{
-		auto& c = GContext->Control;
-
-		if (!c.Active)
-			return false;
-
-		if (!label.empty())
-			ImGui::PushID(label.data(), label.data() + label.size());
-		ImGui::TableNextRow();
-
-		if (c.DrawSeparator && c.WidgetCount++)
-			DrawControlSeperator();
-
-		return true;
+		return ControlHelperBegin(GetID(label));
 	}
 
 	void ControlHelperEnd()
@@ -673,6 +688,7 @@ namespace Shark::UI {
 
 		ControlHelperDrawLabel(label);
 
+		bool clear = false;
 		bool changed = false;
 		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
 
@@ -682,19 +698,98 @@ namespace Shark::UI {
 		else
 			name = metadata.FilePath.string();
 
-		ImGui::SetNextItemWidth(-1.0f);
-		ImGui::SetNextItemAllowOverlap();
-		ImGui::InputText("##IDStr", name.data(), name.length(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeightWithSpacing() });
 
-		//TextFramed(path);
+		auto& g = *GImGui;
+		bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
+		if (mixed_value)
 		{
-			if (ImGui::BeginPopupContextItem("Settings"))
+			UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
+		}
+		else
+		{
+			if (assetHandle && !AssetManager::IsValidAssetHandle(assetHandle))
 			{
-				char buffer[18];
-				sprintf(buffer, "0x%16llx", (uint64_t)assetHandle);
-				ImGui::InputText("##IDStr", buffer, 18, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
-				ImGui::EndPopup();
+				UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextError);
+				UI::DrawButton("Null", UI::GetItemRect());
 			}
+			else
+			{
+				UI::DrawButton(name, ImVec2(0.0f, 0.5f), UI::GetItemRect());
+			}
+		}
+
+		static char s_SearchBuffer[256];
+		static UI::TextFilter s_Filter("");
+
+		ImGuiID popupID = UI::GetID("##selectAssetPopup"sv);
+		if (ImGui::IsItemActivated())
+		{
+			strcpy_s(s_SearchBuffer, "");
+			ImGui::OpenPopup(popupID);
+		}
+
+		ImRect lastItemRect = UI::GetItemRect();
+
+		int popup_max_height_in_items = 12;
+		ImGui::SetNextWindowSize({ 200, utils::CalcMaxPopupHeightFromItemCount(popup_max_height_in_items) });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		const bool popupOpen = ImGui::BeginPopupEx(popupID, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar);
+		ImGui::PopStyleVar();
+
+		if (popupOpen)
+		{
+			const auto& style = ImGui::GetStyle();
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - style.WindowPadding.x * 2.0f);
+			UI::MoveCursor(style.WindowPadding);
+			if (ImGui::IsWindowAppearing())
+				ImGui::SetKeyboardFocusHere();
+			if (UI::Search(UI::GenerateID(), s_SearchBuffer, std::size(s_SearchBuffer)))
+				s_Filter.SetFilter(s_SearchBuffer);
+
+			{
+				UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+				UI::ScopedStyle frameRounding(ImGuiStyleVar_FrameRounding, 0.0f);
+				UI::ScopedColorStack button(ImGuiCol_Button, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Background, 0.9f),
+											ImGuiCol_ButtonHovered, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Background, 1.1f),
+											ImGuiCol_ButtonActive, UI::Colors::Theme::BackgroundDark);
+
+				if (ImGui::Button("Clear", ImVec2(-1.0f, 0.0f)))
+				{
+					clear = true;
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			UI::ScopedColor childBg(ImGuiCol_ChildBg, UI::Colors::Theme::BackgroundPopup);
+			if (ImGui::BeginChild("##selectAssetChild", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding))
+			{
+				std::vector<AssetHandle> assets = AssetManager::GetAllAssetsOfType(assetType);
+
+				for (AssetHandle handle : assets)
+				{
+					const AssetMetaData& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
+					if (metadata.IsMemoryAsset || metadata.IsEditorAsset)
+						continue;
+
+					std::string name = metadata.FilePath.stem().string();
+
+					if (!s_Filter.PassFilter(name))
+						continue;
+
+					if (ImGui::Selectable(name.c_str()))
+					{
+						assetHandle = handle;
+						changed = true;
+					}
+				}
+			}
+			ImGui::EndChild();
+
+			if (changed)
+				ImGui::CloseCurrentPopup();
+
+			ImGui::EndPopup();
 		}
 
 		if (dragDropType)
@@ -715,24 +810,6 @@ namespace Shark::UI {
 			}
 		}
 
-		bool clear = false;
-
-		{
-			const auto& style = ImGui::GetStyle();
-			const float fontSize = ImGui::GetFontSize();
-			const ImVec2 buttonSize = { fontSize + style.FramePadding.x * 2.0f, fontSize + style.FramePadding.y * 2.0f };
-
-			ImGui::SameLine(0, 0);
-			MoveCursorX(-buttonSize.x);
-
-			clear = ImGui::InvisibleButton("clear_button", buttonSize);
-			UI::DrawImageButton(Icons::ClearIcon,
-								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 0.9f),
-								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f),
-								UI::Colors::Theme::TextDarker,
-								UI::RectExpand(UI::GetItemRect(), -style.FramePadding));
-		}
-
 		if (clear)
 		{
 			assetHandle = AssetHandle::Invalid;
@@ -740,6 +817,81 @@ namespace Shark::UI {
 
 		ControlHelperEnd();
 		return changed || clear;
+	}
+
+	bool ControlEntity(std::string_view label, UUID& entityID, const char* dragDropType)
+	{
+		if (!ControlHelperBegin(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+
+		bool changed = false;
+		const float buttonSize = ImGui::GetFrameHeightWithSpacing();
+
+		ImGui::SetNextItemAllowOverlap();
+		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, buttonSize });
+
+		auto& g = *GImGui;
+		bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
+		if (mixed_value)
+		{
+			UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
+		}
+		else
+		{
+			Ref<Scene> scene = SelectionContext::GetActiveScene();
+			if (entityID && !scene->ValidEntityID(entityID))
+			{
+				UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextError);
+				UI::DrawButton("Null", UI::GetItemRect());
+			}
+			else
+			{
+				Entity entity = scene->TryGetEntityByUUID(entityID);
+				const std::string& name = entity ? entity.GetName() : std::string{};
+				UI::DrawButton(name, ImVec2(0.0f, 0.5f), UI::GetItemRect());
+			}
+		}
+
+
+		if (dragDropType)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+				if (payload)
+				{
+					UUID uuid = *(UUID*)payload->Data;
+					Ref<Scene> scene = SelectionContext::GetActiveScene();
+					if (scene->ValidEntityID(uuid))
+					{
+						entityID = uuid;
+						changed = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		{
+			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+			UI::ScopedColorStack button(ImGuiCol_Button, 0x00000000,
+										ImGuiCol_ButtonHovered, 0x00000000,
+										ImGuiCol_ButtonActive, 0x00000000);
+
+			ImGui::SameLine(0, 0);
+			MoveCursorX(-buttonSize);
+
+			if (ImGui::Button("x", { buttonSize, buttonSize }))
+			{
+				entityID = UUID::Null;
+				changed = true;
+			}
+		}
+
+		ControlHelperEnd();
+		return changed;
 	}
 
 	bool ControlDragDrop(std::string_view label, std::string& val, const char* dragDropType)
@@ -787,58 +939,6 @@ namespace Shark::UI {
 				changed = true;
 			}
 			ImGui::EndDragDropTarget();
-		}
-
-		ControlHelperEnd();
-		return changed;
-	}
-
-	bool ControlDragDrop(std::string_view label, UUID& uuid, const char* dragDropType)
-	{
-		if (!ControlHelperBegin(label))
-			return false;
-
-		ControlHelperDrawLabel(label);
-
-		bool changed = false;
-		char buffer[sizeof("0x0123456789ABCDEF")];
-		if (uuid != UUID::Invalid)
-			sprintf_s(buffer, "0x%llx", (uint64_t)uuid);
-		else
-			memset(buffer, 0, sizeof(buffer));
-
-		ImGui::SetNextItemWidth(-1.0f);
-		ImGui::SetNextItemAllowOverlap();
-		ImGui::InputTextWithHint("##control", "Null", buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
-
-		if (dragDropType)
-		{
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
-				if (payload)
-				{
-					uuid = *(UUID*)payload->Data;
-					changed = true;
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
-
-		{
-			UI::ScopedColor button(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-			UI::ScopedColor buttonHovered(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
-			UI::ScopedColor buttonActive(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
-
-			const float buttonSize = ImGui::GetItemRectSize().y;
-			ImGui::SameLine(0, 0);
-			MoveCursorX(-buttonSize);
-
-			if (ImGui::Button("x", { buttonSize, buttonSize }))
-			{
-				uuid = UUID::Null;
-				changed = true;
-			}
 		}
 
 		ControlHelperEnd();

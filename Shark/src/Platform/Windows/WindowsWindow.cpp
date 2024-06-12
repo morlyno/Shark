@@ -377,7 +377,9 @@ namespace Shark {
 		windowRect.top = 100;
 		windowRect.right = m_Specification.Width + windowRect.left;
 		windowRect.bottom = m_Specification.Height + windowRect.top;
-		AdjustWindowRect(&windowRect, windowFlags, false);
+		AdjustWindowRectEx(&windowRect, windowFlags, false, exWindowFlags);
+
+		SK_CORE_WARN("Window Size: {}, {}", windowRect.right - windowRect.left, windowRect.bottom - windowRect.top);
 
 		std::wstring windowName = String::ToWide(m_Specification.Title);
 		m_WindowHandle = CreateWindowExW(exWindowFlags,
@@ -781,7 +783,6 @@ namespace Shark {
 				if (!m_Specification.CustomTitlebar || !hasThickFrame || !wParam)
 					break;
 
-				// For custom frames
 
 				// Shrink client area by border thickness so we can
 				// resize window and see borders
@@ -791,9 +792,23 @@ namespace Shark {
 				NCCALCSIZE_PARAMS* params = (NCCALCSIZE_PARAMS*)lParam;
 				RECT* requestedClientRect = params->rgrc;
 
-				requestedClientRect->left += resizeBorderX;
-				requestedClientRect->right -= resizeBorderX;
-				requestedClientRect->bottom -= resizeBorderY;
+				if (IsMaximized())
+				{
+					HMONITOR monitorHandle = MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
+					MONITORINFO monitorInfo = {};
+					monitorInfo.cbSize = sizeof(MONITORINFO);
+					GetMonitorInfo(monitorHandle, &monitorInfo);
+					requestedClientRect->left = monitorInfo.rcWork.left;
+					requestedClientRect->right = monitorInfo.rcWork.right;
+					requestedClientRect->top = monitorInfo.rcWork.top;
+					requestedClientRect->bottom = monitorInfo.rcWork.bottom;
+				}
+				else
+				{
+					requestedClientRect->left += resizeBorderX;
+					requestedClientRect->right -= resizeBorderX;
+					requestedClientRect->bottom -= resizeBorderY;
+				}
 
 				// NOTE(moro): doesn't work on windows 10
 				//requestedClientRect->top += resizeBorderY;

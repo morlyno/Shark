@@ -20,6 +20,8 @@ namespace Shark {
 	private:
 		Ref<TextureCube> m_RadianceMap;
 		Ref<TextureCube> m_IrradianceMap;
+
+		friend class EnvironmentSerializer;
 	};
 
 }

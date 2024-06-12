@@ -24,6 +24,8 @@ namespace Shark {
 		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) override;
 		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) override;
 
+		virtual std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) override;
+
 		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) override;
 		virtual bool ReloadAsset(AssetHandle handle) override;
 		virtual void ReloadAssetAsync(AssetHandle handle) override;

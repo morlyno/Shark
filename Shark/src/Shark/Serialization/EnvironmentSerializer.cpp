@@ -27,6 +27,7 @@ namespace Shark {
 
 		auto [radianceMap, irradianceMap] = Renderer::CreateEnvironmentMap(filesystemPath);
 		Ref<Environment> environment = Ref<Environment>::Create(radianceMap, irradianceMap);
+
 		asset = environment;
 		asset->Handle = metadata.Handle;
 		return true;

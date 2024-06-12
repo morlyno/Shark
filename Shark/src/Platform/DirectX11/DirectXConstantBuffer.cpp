@@ -19,6 +19,9 @@ namespace Shark {
 
 	DirectXConstantBuffer::~DirectXConstantBuffer()
 	{
+		if (!m_ConstantBuffer)
+			return;
+
 		m_UploadBuffer.Release();
 		Renderer::SubmitResourceFree([cb = m_ConstantBuffer]()
 		{

@@ -23,6 +23,8 @@ Project:
       Level: Info
     - Name: Renderer
       Level: Trace
+    - Name: ScriptEngine
+      Level: Trace
     - Name: Scripting
       Level: Error
     - Name: Serialization

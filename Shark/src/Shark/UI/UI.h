@@ -110,6 +110,10 @@ namespace Shark::UI {
 	void DrawBackground(ImRect rect, ImU32 color, float rounding = 0.0f, ImDrawFlags drawFlags = 0);
 	void DrawBorder(ImRect rect, ImU32 color, float rounding, ImDrawFlags drawFlags = 0);
 
+	void DrawButton(std::string_view text, ImVec2 textAlign, ImU32 colorNormal, ImU32 colorHoverd, ImU32 colorPressed, ImRect rect);
+	void DrawButton(std::string_view text, ImVec2 textAlign, ImRect rect);
+	void DrawButton(std::string_view text, ImRect rect);
+
 	void DrawButtonFrame(ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
 	void DrawButtonFrame(ImVec2 min, ImVec2 max, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
 	void DrawButtonFrame(ImVec2 min, ImVec2 max);
@@ -129,9 +133,6 @@ namespace Shark::UI {
 	void DrawImageButton(Ref<Image2D> image, ImU32 tintNormal = 0xFFFFFFFF, ImU32 tintHovered = 0xFFFFFFFF, ImU32 tintPressed = 0xFFFFFFFF);
 	void DrawImageButton(Ref<Texture2D> textureNormal, Ref<Texture2D> textureHovered, Ref<Texture2D> texturePressed, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
 	void DrawImageButton(Ref<Texture2D> texture, ImU32 tintNormal = 0xFFFFFFFF, ImU32 tintHovered = 0xFFFFFFFF, ImU32 tintPressed = 0xFFFFFFFF);
-
-	void DrawTextButton(std::string_view text, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImVec2 position);
-	void DrawTextButton(std::string_view text, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
 
 	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
 	void Image(Ref<ImageView> image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
