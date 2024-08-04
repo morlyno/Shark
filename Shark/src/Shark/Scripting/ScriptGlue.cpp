@@ -308,26 +308,21 @@ namespace Shark {
 		SK_ADD_INTERNAL_CALL(CircleRendererComponent_GetFade);
 		SK_ADD_INTERNAL_CALL(CircleRendererComponent_SetFade);
 
+		SK_ADD_INTERNAL_CALL(CameraComponent_RecalculateProjectionMatrix);
 		SK_ADD_INTERNAL_CALL(CameraComponent_GetProjection);
 		SK_ADD_INTERNAL_CALL(CameraComponent_SetProjection);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetProjectionType);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetProjectionType);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetPerspective);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetOrthographic);
+		SK_ADD_INTERNAL_CALL(CameraComponent_SetIsPerspective);
+		SK_ADD_INTERNAL_CALL(CameraComponent_GetIsPerspective);
 		SK_ADD_INTERNAL_CALL(CameraComponent_GetAspectratio);
 		SK_ADD_INTERNAL_CALL(CameraComponent_SetAspectratio);
 		SK_ADD_INTERNAL_CALL(CameraComponent_GetPerspectiveFOV);
 		SK_ADD_INTERNAL_CALL(CameraComponent_SetPerspectiveFOV);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetPerspectiveNear);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetPerspectiveNear);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetPerspectiveFar);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetPerspectiveFar);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetOrthographicZoom);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetOrthographicZoom);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetOrthographicNear);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetOrthographicNear);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetOrthographicFar);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetOrthographicFar);
+		SK_ADD_INTERNAL_CALL(CameraComponent_GetOrthographicSize);
+		SK_ADD_INTERNAL_CALL(CameraComponent_SetOrthographicSize);
+		SK_ADD_INTERNAL_CALL(CameraComponent_GetNear);
+		SK_ADD_INTERNAL_CALL(CameraComponent_SetNear);
+		SK_ADD_INTERNAL_CALL(CameraComponent_GetFar);
+		SK_ADD_INTERNAL_CALL(CameraComponent_SetFar);
 
 		SK_ADD_INTERNAL_CALL(Physics2D_GetGravity);
 		SK_ADD_INTERNAL_CALL(Physics2D_SetGravity);
@@ -718,7 +713,7 @@ namespace Shark {
 
 			std::string entityName = ScriptUtils::MonoStringToUTF8(name);
 			Entity entity = scene->CreateEntity(entityName);
-			return entity.GetUUID();
+			return entity.GetUUID().Value();
 		}
 
 		uint64_t Entity_CloneEntity(uint64_t entityID)
@@ -733,7 +728,7 @@ namespace Shark {
 
 			Entity clonedEntity = scene->CloneEntity(entity);
 			ScriptEngine::OnEntityCloned(entity, clonedEntity);
-			return clonedEntity.GetUUID();
+			return clonedEntity.GetUUID().Value();
 		}
 
 		uint64_t Entity_FindEntityByName(MonoString* name)
@@ -745,7 +740,7 @@ namespace Shark {
 			std::string entityTag = ScriptUtils::MonoStringToUTF8(name);
 			Entity entity = scene->FindEntityByTag(entityTag);
 			if (entity)
-				return entity.GetUUID();
+				return entity.GetUUID().Value();
 			return 0;
 		}
 
@@ -762,7 +757,7 @@ namespace Shark {
 			std::string entityName = ScriptUtils::MonoStringToUTF8(name);
 			Entity childEntity = scene->FindChildEntityByName(entity, entityName, recusive);
 			if (childEntity)
-				return childEntity.GetUUID();
+				return childEntity.GetUUID().Value();
 			return 0;
 		}
 
@@ -956,9 +951,9 @@ namespace Shark {
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
-				return AssetHandle::Null;
+				return AssetHandle::Invalid;
 			if (!entity.AllOf<SpriteRendererComponent>())
-				return AssetHandle::Null;
+				return AssetHandle::Invalid;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
 			return spriteRenderer.TextureHandle;
@@ -1080,6 +1075,16 @@ namespace Shark {
 
 		#pragma region CameraComponent
 
+		void CameraComponent_RecalculateProjectionMatrix(uint64_t id)
+		{
+			Entity entity = utils::TryGetEntity(id);
+			if (!entity || !entity.AllOf<CameraComponent>())
+				return;
+
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.Recalculate();
+		}
+
 		void CameraComponent_GetProjection(uint64_t id, glm::mat4* out_Projection)
 		{
 			Entity entity = utils::TryGetEntity(id);
@@ -1088,8 +1093,8 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			*out_Projection = camera.GetProjection();
+			auto& component = entity.GetComponent<CameraComponent>();
+			*out_Projection = component.GetProjection();
 		}
 
 		void CameraComponent_SetProjection(uint64_t id, glm::mat4* projection)
@@ -1100,35 +1105,31 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetProjection(*projection);
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.Camera.SetProjection(*projection);
 		}
 
-		SceneCamera::Projection CameraComponent_GetProjectionType(uint64_t id)
+		bool CameraComponent_GetIsPerspective(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return SceneCamera::Projection::None;
-			if (!entity.AllOf<CameraComponent>())
-				return SceneCamera::Projection::None;
+			if (!entity || !entity.AllOf<CameraComponent>())
+				return false;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetProjectionType();
+			auto& component = entity.GetComponent<CameraComponent>();
+			return component.IsPerspective;
 		}
 
-		void CameraComponent_SetProjectionType(uint64_t id, SceneCamera::Projection projectionType)
+		void CameraComponent_SetIsPerspective(uint64_t id, bool isPerspective)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity || !entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetProjectionType(projectionType);
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.IsPerspective = isPerspective;
 		}
 
-		void CameraComponent_SetPerspective(uint64_t id, float aspectratio, float fov, float clipnear, float clipfar)
+		void CameraComponent_SetPerspective(uint64_t id, float aspectratio, float perspectiveFOV, float clipnear, float clipfar)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
@@ -1136,11 +1137,15 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetPerspective(aspectratio, fov, clipnear, clipfar);
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.IsPerspective = true;
+			component.AspectRatio = aspectratio;
+			component.PerspectiveFOV = perspectiveFOV;
+			component.Near = clipnear;
+			component.Far = clipfar;
 		}
 
-		void CameraComponent_SetOrthographic(uint64_t id, float aspectratio, float zoom, float clipnear, float clipfar)
+		void CameraComponent_SetOrthographic(uint64_t id, float aspectratio, float orthographicSize, float clipnear, float clipfar)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
@@ -1148,8 +1153,12 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetOrthographic(aspectratio, zoom, clipnear, clipfar);
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.IsPerspective = false;
+			component.AspectRatio = aspectratio;
+			component.OrthographicSize = orthographicSize;
+			component.Near = clipnear;
+			component.Far = clipfar;
 		}
 
 		float CameraComponent_GetAspectratio(uint64_t id)
@@ -1160,8 +1169,8 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return 0.0f;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetAspectratio();
+			auto& component = entity.GetComponent<CameraComponent>();
+			return component.AspectRatio;
 		}
 
 		void CameraComponent_SetAspectratio(uint64_t id, float aspectratio)
@@ -1172,8 +1181,8 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetAspectratio(aspectratio);
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.AspectRatio = aspectratio;
 		}
 
 		float CameraComponent_GetPerspectiveFOV(uint64_t id)
@@ -1184,8 +1193,8 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return 0.0f;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetPerspectiveFOV();
+			auto& component = entity.GetComponent<CameraComponent>();
+			return glm::degrees(component.PerspectiveFOV);
 		}
 
 		void CameraComponent_SetPerspectiveFOV(uint64_t id, float fov)
@@ -1196,11 +1205,11 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetPerspectiveFOV(fov);
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.PerspectiveFOV = glm::radians(fov);
 		}
 
-		float CameraComponent_GetPerspectiveNear(uint64_t id)
+		float CameraComponent_GetOrthographicSize(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
@@ -1208,11 +1217,11 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return 0.0f;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetPerspectiveNear();
+			auto& component = entity.GetComponent<CameraComponent>();
+			return component.OrthographicSize;
 		}
 
-		void CameraComponent_SetPerspectiveNear(uint64_t id, float clipnear)
+		void CameraComponent_SetOrthographicSize(uint64_t id, float size)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
@@ -1220,34 +1229,11 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetPerspectiveNear(clipnear);
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.OrthographicSize = size;
 		}
 
-		float CameraComponent_GetPerspectiveFar(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.AllOf<CameraComponent>())
-				return 0.0f;
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetPerspectiveFar();
-		}
-
-		void CameraComponent_SetPerspectiveFar(uint64_t id, float clipfar)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<CameraComponent>())
-				return;
-
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetPerspectiveFar(clipfar);
-		}
-
-		float CameraComponent_GetOrthographicZoom(uint64_t id)
+		float CameraComponent_GetNear(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
@@ -1255,11 +1241,11 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return 0.0f;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetOrthographicZoom();
+			auto& component = entity.GetComponent<CameraComponent>();
+			return component.Near;
 		}
 
-		void CameraComponent_SetOrthographicZoom(uint64_t id, float zoom)
+		void CameraComponent_SetNear(uint64_t id, float clipnear)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
@@ -1267,35 +1253,11 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetOrthographicZoom(zoom);
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.Near = component.Near;
 		}
 
-		float CameraComponent_GetOrthographicNear(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.AllOf<CameraComponent>())
-				return 0.0f;
-
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetOrthographicNear();
-		}
-
-		void CameraComponent_SetOrthographicNear(uint64_t id, float clipnear)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.AllOf<CameraComponent>())
-				return;
-
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetOrthographicNear(clipnear);
-		}
-
-		float CameraComponent_GetOrthographicFar(uint64_t id)
+		float CameraComponent_GetFar(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
@@ -1303,11 +1265,11 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return 0.0f;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			return camera.GetOrthographicFar();
+			auto& component = entity.GetComponent<CameraComponent>();
+			return component.Far;
 		}
 
-		void CameraComponent_SetOrthographicFar(uint64_t id, float clipfar)
+		void CameraComponent_SetFar(uint64_t id, float clipfar)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
@@ -1315,11 +1277,11 @@ namespace Shark {
 			if (!entity.AllOf<CameraComponent>())
 				return;
 
-			auto& camera = entity.GetComponent<CameraComponent>().Camera;
-			camera.SetOrthographicFar(clipfar);
+			auto& component = entity.GetComponent<CameraComponent>();
+			component.Far = clipfar;
 		}
 
-		#pragma endregion
+#pragma endregion
 
 		#pragma region Physics2D
 

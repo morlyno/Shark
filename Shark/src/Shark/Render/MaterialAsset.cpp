@@ -10,10 +10,10 @@ namespace Shark {
 	 //=//  Material Asset                                        //=//
 	//=//========================================================//=//
 
-	static std::string s_AlbedoMapUniformName = "u_AlbedoMap";
-	static std::string s_NormalMapUniformName = "u_NormalMap";
-	static std::string s_MetalnessMapUniformName = "u_MetalnessMap";
-	static std::string s_RoughnessMapUniformName = "u_RoughnessMap";
+	static std::string s_AlbedoMapName = "u_AlbedoMap";
+	static std::string s_NormalMapName = "u_NormalMap";
+	static std::string s_MetalnessMapName = "u_MetalnessMap";
+	static std::string s_RoughnessMapName = "u_RoughnessMap";
 	static std::string s_AlbedoUniformName = "u_MaterialUniforms.Albedo";
 	static std::string s_MetalnessUniformName = "u_MaterialUniforms.Metalness";
 	static std::string s_RoughnessUniformName = "u_MaterialUniforms.Roughness";
@@ -37,7 +37,17 @@ namespace Shark {
 
 	void MaterialAsset::Invalidate()
 	{
+		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_AlbedoMap); result.Ready)
+			m_Material->Set(s_AlbedoMapName, result.Asset);
 
+		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_NormalMap); result.Ready)
+			m_Material->Set(s_NormalMapName, result.Asset);
+
+		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_MetalnessMap); result.Ready)
+			m_Material->Set(s_MetalnessMapName, result.Asset);
+
+		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_RoughnessMap); result.Ready)
+			m_Material->Set(s_RoughnessMapName, result.Asset);
 	}
 
 	Ref<Material> MaterialAsset::GetMaterial()
@@ -89,17 +99,19 @@ namespace Shark {
 	{
 		m_AlbedoMap = handle;
 
+#if 0
 		AssetManager::GetAssetFuture(handle).OnReady([material = m_Material](Ref<Asset> asset)
 		{
 			Ref<Texture2D> texture = asset.As<Texture2D>();
-			material->Set(s_AlbedoMapUniformName, texture);
+			material->Set(s_AlbedoMapName, texture);
 		});
+#endif
 	}
 
 	void MaterialAsset::ClearAlbedoMap()
 	{
 		m_AlbedoMap = AssetHandle::Invalid;
-		m_Material->Set(s_AlbedoMapUniformName, Renderer::GetWhiteTexture());
+		m_Material->Set(s_AlbedoMapName, Renderer::GetWhiteTexture());
 	}
 
 	AssetHandle MaterialAsset::GetNormalMap()
@@ -111,11 +123,13 @@ namespace Shark {
 	{
 		m_NormalMap = handle;
 
+#if 0
 		AssetManager::GetAssetFuture(handle).OnReady([material = m_Material](Ref<Asset> asset)
 		{
 			Ref<Texture2D> texture = asset.As<Texture2D>();
-			material->Set(s_NormalMapUniformName, texture);
+			material->Set(s_NormalMapName, texture);
 		});
+#endif
 	}
 
 	bool MaterialAsset::IsUsingNormalMap()
@@ -143,17 +157,19 @@ namespace Shark {
 	{
 		m_MetalnessMap = handle;
 
+#if 0
 		AssetManager::GetAssetFuture(handle).OnReady([material = m_Material](Ref<Asset> asset)
 		{
 			Ref<Texture2D> texture = asset.As<Texture2D>();
-			material->Set(s_MetalnessMapUniformName, texture);
+			material->Set(s_MetalnessMapName, texture);
 		});
+#endif
 	}
 
 	void MaterialAsset::ClearMetalnessMap()
 	{
 		m_MetalnessMap = AssetHandle::Invalid;
-		m_Material->Set(s_MetalnessMapUniformName, Renderer::GetWhiteTexture());
+		m_Material->Set(s_MetalnessMapName, Renderer::GetWhiteTexture());
 	}
 
 	AssetHandle MaterialAsset::GetRoughnessMap()
@@ -165,17 +181,19 @@ namespace Shark {
 	{
 		m_RoughnessMap = handle;
 
+#if 0
 		AssetManager::GetAssetFuture(handle).OnReady([material = m_Material](Ref<Asset> asset)
 		{
 			Ref<Texture2D> texture = asset.As<Texture2D>();
-			material->Set(s_RoughnessMapUniformName, texture);
+			material->Set(s_RoughnessMapName, texture);
 		});
+#endif
 	}
 
 	void MaterialAsset::ClearRoughnessMap()
 	{
 		m_RoughnessMap = AssetHandle::Invalid;
-		m_Material->Set(s_RoughnessMapUniformName, Renderer::GetWhiteTexture());
+		m_Material->Set(s_RoughnessMapName, Renderer::GetWhiteTexture());
 	}
 
 	void MaterialAsset::SetDefault()

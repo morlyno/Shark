@@ -40,18 +40,18 @@ namespace Shark {
 	void Entity::RemoveParent()
 	{
 		auto& relShip = GetComponent<RelationshipComponent>();
-		if (!relShip.Parent != UUID::Invalid)
+		if (relShip.Parent != UUID::Invalid)
 			return;
 
 		RemoveTargetFromParent(*this);
-		relShip.Parent = UUID::Null;
+		relShip.Parent = UUID::Invalid;
 	}
 
 	void Entity::RemoveChild(UUID childID)
 	{
 		Entity childEntity = m_Scene.GetRef()->TryGetEntityByUUID(childID);
 		RemoveTargetFromParent(childEntity);
-		childEntity.GetComponent<RelationshipComponent>().Parent = UUID::Null;
+		childEntity.GetComponent<RelationshipComponent>().Parent = UUID::Invalid;
 	}
 
 	void Entity::RemoveChildren()
@@ -59,7 +59,7 @@ namespace Shark {
 		for (UUID childID : Children())
 		{
 			Entity child = m_Scene.GetRef()->TryGetEntityByUUID(childID);
-			child.GetComponent<RelationshipComponent>().Parent = UUID::Null;
+			child.GetComponent<RelationshipComponent>().Parent = UUID::Invalid;
 		}
 		Children().clear();
 	}

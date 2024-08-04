@@ -475,7 +475,7 @@ Scene:
           []
       SkyComponent:
         SceneEnvironment: 9087211806961695879
-        Intensity: 0.49000001
+        Intensity: 0.485000014
         Lod: 3.64400005
     - Entity: 313552988006139255
       TagComponent:
@@ -2068,14 +2068,11 @@ Scene:
         Children:
           []
       CameraComponent:
-        Type: Perspective
-        Aspectratio: 2.50197101
+        IsPerspective: true
         PerspectiveFOV: 44.9999924
-        PerspectiveNear: 0.00999999978
-        PerspectiveFar: 1000
-        OrthographicZoom: 10
-        OrthographicNear: -1
-        OrthographicFar: 1
+        OrthographicSize: 10
+        Near: 0.300000012
+        Far: 1000
     - Entity: 5670158549737170846
       TagComponent:
         Name: sponza_155
@@ -2350,8 +2347,8 @@ Scene:
       TagComponent:
         Name: Sponza
       TransformComponent:
-        Translation: [14.0483475, 0.0270000007, -61.6392746]
-        Rotation: [0, 0.410235286, 0]
+        Translation: [-9.26865768, 0.0269998815, -57.6398125]
+        Rotation: [0, 0.51443994, 0]
         Scale: [0.013100001, 0.0130999992, 0.013100001]
       RelationshipComponent:
         Parent: 0
@@ -2571,7 +2568,7 @@ Scene:
       TagComponent:
         Name: Cerberus00_Fixed
       TransformComponent:
-        Translation: [10.0055914, 6.80297661, 50.3445969]
+        Translation: [-0.354269981, 6.80297661, 50.3445969]
         Rotation: [1.57079649, 0, 0]
         Scale: [17.2254925, 17.2217541, 17.2217541]
       RelationshipComponent:
@@ -3141,9 +3138,9 @@ Scene:
       TagComponent:
         Name: Wall
       TransformComponent:
-        Translation: [-17.5037212, 5, 70.4092789]
+        Translation: [-17.5037212, 12.6939144, 70.4092789]
         Rotation: [0, 0, 0]
-        Scale: [45.0594978, 5, 1]
+        Scale: [45.059494, 13.5320311, 1]
       RelationshipComponent:
         Parent: 0
         Children:
@@ -3751,7 +3748,7 @@ Scene:
           []
       DirectionalLightComponent:
         Radiance: [1, 1, 1, 1]
-        Intensity: 0.439999998
+        Intensity: 0.540000021
     - Entity: 9898687578725781873
       TagComponent:
         Name: sponza_270
@@ -6069,6 +6066,22 @@ Scene:
         Mesh: 12434088705897559964
         SubmeshIndex: 162
         Material: 0
+    - Entity: 16437089401134405523
+      TagComponent:
+        Name: Light
+      TransformComponent:
+        Translation: [14.7762079, 8.34676933, 59.0040894]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      PointLightComponent:
+        Radiance: [1, 0, 0.92920351, 1]
+        Intensity: 1.60000002
+        Radius: 21.5499992
+        Falloff: 1
     - Entity: 16572828321715824509
       TagComponent:
         Name: sponza_147

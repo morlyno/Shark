@@ -61,7 +61,7 @@ namespace Shark {
 		if (!scene)
 		{
 			std::string errorMsg = importer.GetErrorString();
-			SK_CORE_ERROR("Failed to load mesh file: {}\n\tError: {}", m_Filepath, errorMsg);
+			SK_CORE_ERROR_TAG("Assimp", "Failed to load mesh file: {}\n\tError: {}", m_Filepath, errorMsg);
 			return nullptr;
 		}
 
@@ -145,10 +145,13 @@ namespace Shark {
 			{
 				auto aiMaterial = scene->mMaterials[i];
 				aiString materialName = aiMaterial->GetName();
+				//SK_CORE_DEBUG("{}", materialName.C_Str());
 
+				// TODO(moro): race-condition! This line can be called from both the main thread and the asset thread!
 				AssetHandle materialAssetHandle = AssetManager::CreateMemoryOnlyAsset<MaterialAsset>();
 				Ref<MaterialAsset> materialAsset = AssetManager::GetAsset<MaterialAsset>(materialAssetHandle);
-				meshSource->m_Materials.push_back(materialAsset);
+				materialAsset->GetMaterial()->SetName(materialName.C_Str());
+				meshSource->m_Materials.push_back(materialAssetHandle);
 
 				glm::vec3 albedoColor(0.8f);
 				float emission = 0.0f;
@@ -164,7 +167,7 @@ namespace Shark {
 					roughness = 0.5f;
 
 				// AI_MATKEY_METALLIC_FACTOR
-				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
+				if (aiMaterial->Get(AI_MATKEY_METALLIC_FACTOR, metalness) != aiReturn_SUCCESS)
 					metalness = 0.0f;
 
 				materialAsset->SetAlbedoColor(albedoColor);
@@ -259,6 +262,7 @@ namespace Shark {
 			{
 				imageData = TextureImporter::ToBufferFromMemory(Buffer(aiTexEmbedded->pcData, aiTexEmbedded->mWidth), specification.Format, specification.Width, specification.Height);
 			}
+			// TODO(moro): race-condition! This line can be called from both the main thread and the asset thread!
 			return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
 		}
 

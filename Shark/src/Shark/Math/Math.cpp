@@ -168,5 +168,10 @@ namespace Shark::Math {
 		return true;
 	}
 
+	bool IsWhole(float val)
+	{
+		return std::fmod(val, 1.0f) == 0.0f;
+	}
+
 }
 

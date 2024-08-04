@@ -112,7 +112,6 @@ namespace Shark {
 		void UpdateWindowTitle();
 
 		Entity InstantiateMesh(Ref<Mesh> mesh, bool select);
-		void InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent, Entity entity = {});
 
 	private:
 		static constexpr std::string_view LogLevelStrings[] = { "Trace"sv, "Debug"sv, "Info"sv, "Warn"sv, "Error"sv, "Critical"sv/*, "Off"sv*/ };

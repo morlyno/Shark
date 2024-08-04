@@ -2,7 +2,7 @@
 
 #include "Shark/Render/Font.h"
 #include "Shark/Render/Mesh.h"
-#include "Shark/Scene/SceneCamera.h"
+#include "Shark/Render/Camera.h"
 #include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Math/Math.h"
 
@@ -22,7 +22,7 @@ namespace Shark {
 
 	struct IDComponent
 	{
-		UUID ID = UUID::Null;
+		UUID ID = UUID::Invalid;
 
 		IDComponent() = default;
 		IDComponent(const IDComponent&) = default;
@@ -66,7 +66,7 @@ namespace Shark {
 
 	struct RelationshipComponent
 	{
-		UUID Parent = UUID::Null;
+		UUID Parent = UUID::Invalid;
 		std::vector<UUID> Children;
 
 		RelationshipComponent() = default;
@@ -145,15 +145,25 @@ namespace Shark {
 
 	struct CameraComponent
 	{
-		SceneCamera Camera;
+		bool IsPerspective = true;
+		float AspectRatio = 16.0f / 9.0f;
+		float OrthographicSize = 10.0f;
+		float PerspectiveFOV = 0.785398f;
+		float Near = 0.3f;
+		float Far = 1000.0f;
 
-		const glm::mat4& GetProjection() const
-		{
-			return Camera.GetProjection();
-		}
+		Camera Camera;
+
+		const glm::mat4& GetProjection() const { return Camera.GetProjection(); }
+		void SetProjection(const glm::mat4& projection) { Camera.SetProjection(projection); }
+
+		void RecalculatePerspective() { SetProjection(glm::perspective(PerspectiveFOV, AspectRatio, Near, Far)); }
+		void RecalculateOrthographic() { SetProjection(glm::ortho(-OrthographicSize * AspectRatio, OrthographicSize * AspectRatio, OrthographicSize, OrthographicSize, Near, Far)); }
+		void Recalculate() { IsPerspective ? RecalculatePerspective() : RecalculateOrthographic(); }
 
 		CameraComponent() = default;
-		CameraComponent(const CameraComponent&) = default;
+		CameraComponent(bool perspective) : IsPerspective(perspective) {}
+		CameraComponent(bool perspective, float aspectRatio) : IsPerspective(perspective), AspectRatio(aspectRatio) {}
 	};
 
 	struct RigidBody2DComponent
@@ -213,7 +223,7 @@ namespace Shark {
 
 	struct DistanceJointComponent
 	{
-		UUID ConnectedEntity = UUID::Null;
+		UUID ConnectedEntity = UUID::Invalid;
 		bool CollideConnected = true;
 
 		glm::vec2 AnchorOffsetA;
@@ -230,7 +240,7 @@ namespace Shark {
 
 	struct HingeJointComponent
 	{
-		UUID ConnectedEntity = UUID::Null;
+		UUID ConnectedEntity = UUID::Invalid;
 		bool CollideConnected = true;
 
 		glm::vec2 Anchor = glm::vec2(0.0f);
@@ -246,7 +256,7 @@ namespace Shark {
 
 	struct PrismaticJointComponent
 	{
-		UUID ConnectedEntity = UUID::Null;
+		UUID ConnectedEntity = UUID::Invalid;
 		bool CollideConnected = true;
 
 		glm::vec2 Anchor = glm::vec2(0.0f);
@@ -265,7 +275,7 @@ namespace Shark {
 
 	struct PulleyJointComponent
 	{
-		UUID ConnectedEntity = UUID::Null;
+		UUID ConnectedEntity = UUID::Invalid;
 		bool CollideConnected = true;
 
 		glm::vec2 AnchorA = glm::vec2(0.0f);
@@ -292,7 +302,7 @@ namespace Shark {
 	template<typename... TComponents>
 	struct ComponentGroup {};
 
-	using AllComponents = ComponentGroup<
+	constexpr auto AllComponents = ComponentGroup<
 		// NOTE(moro): NO IDComponent
 		TagComponent,
 		TransformComponent,
@@ -313,7 +323,7 @@ namespace Shark {
 		PrismaticJointComponent,
 		PulleyJointComponent,
 		ScriptComponent
-	>;
+	>{};
 
 	template<typename TFunc, typename... TComponents>
 	inline static void ForEach(TFunc func)
@@ -328,31 +338,6 @@ namespace Shark {
 	inline static void ForEach(ComponentGroup<TComponents...> componentGroup, TFunc func)
 	{
 		ForEach<TFunc, TComponents...>(func);
-	}
-
-	inline std::string_view ToStringView(RigidBody2DComponent::BodyType type)
-	{
-		switch (type)
-		{
-			case RigidBody2DComponent::BodyType::None: return "None";
-			case RigidBody2DComponent::BodyType::Static: return "Static";
-			case RigidBody2DComponent::BodyType::Dynamic: return "Dynamic";
-			case RigidBody2DComponent::BodyType::Kinematic: return "Kinematic";
-		}
-
-		SK_CORE_ASSERT(false, "Unkown RigidBody2DType");
-		return "Unkown";
-	}
-
-	inline RigidBody2DComponent::BodyType StringToRigidBody2DType(std::string_view type)
-	{
-		if (type == "None") return RigidBody2DComponent::BodyType::None;
-		if (type == "Static") return RigidBody2DComponent::BodyType::Static;
-		if (type == "Dynamic") return RigidBody2DComponent::BodyType::Dynamic;
-		if (type == "Kinematic") return RigidBody2DComponent::BodyType::Kinematic;
-
-		SK_CORE_ASSERT(false, "Unkown RigidBody2DType string");
-		return RigidBody2DComponent::BodyType::None;
 	}
 
 }

@@ -102,19 +102,9 @@ namespace Shark {
 				}
 
 				UI::BeginControlsGrid();
-
-				if (m_Edit)
-				{
-					UI::Control("Handle", metadata.Handle);
-					UI::Control("FilePath", metadata.FilePath);
-				}
-				else
-				{
-					UI::Property("Handle", metadata.Handle);
-					UI::Property("FilePath", metadata.FilePath);
-				}
-				UI::Property("Type", ToString(metadata.Type));
-
+				UI::Property("Handle", metadata.Handle);
+				UI::Property("FilePath", metadata.FilePath);
+				UI::Property("Type", magic_enum::enum_name(metadata.Type));
 				UI::EndControls();
 
 				ImGui::Separator();
@@ -157,12 +147,10 @@ namespace Shark {
 
 				UI::BeginControlsGrid();
 
-				char buffer[sizeof("0x0123456789ABCDEF")];
-				sprintf_s(buffer, "0x%llx", (uint64_t)metadata.Handle);
-				UI::Property("Handle", buffer);
+				UI::Property("Handle", metadata.Handle);
 				UI::Property("FilePath", metadata.FilePath);
 				UI::Property("Type", ToString(metadata.Type));
-				UI::Property("Memory", metadata.IsMemoryAsset);
+				//UI::Property("Memory", metadata.IsMemoryAsset);
 
 				UI::EndControls();
 

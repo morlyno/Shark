@@ -11,15 +11,15 @@ namespace Shark {
 	public:
 		static AssetType GetAssetType(AssetHandle handle) { return Project::GetActive()->GetAssetManager()->GetAssetType(handle); }
 		static Ref<Asset> GetAsset(AssetHandle handle) { return Project::GetActiveEditorAssetManager()->GetAsset(handle); }
-		static AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) { return Project::GetActiveEditorAssetManager()->GetAssetAsync(handle); }
-		static Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) { return Project::GetActiveEditorAssetManager()->GetAssetFuture(handle); }
+		static AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy = LoadDependencyPolicy::Default) { return Project::GetActiveEditorAssetManager()->GetAssetAsync(handle, loadDependencyPolicy); }
+		static Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy = LoadDependencyPolicy::Default) { return Project::GetActiveEditorAssetManager()->GetAssetFuture(handle, loadDependencyPolicy); }
 
 		static std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) { return Project::GetActiveAssetManager()->GetAllAssetsOfType(assetType); }
 
 		static AssetHandle AddMemoryAsset(Ref<Asset> asset) { return Project::GetActive()->GetAssetManager()->AddMemoryAsset(asset); }
 		static bool ReloadAsset(AssetHandle handle) { return Project::GetActiveAssetManager()->ReloadAsset(handle); }
 		static void ReloadAssetAsync(AssetHandle handle) { Project::GetActiveAssetManager()->ReloadAssetAsync(handle); }
-		static bool IsFullyLoaded(AssetHandle handle, bool loadIfNotReady = false) { return Project::GetActiveAssetManager()->IsFullyLoaded(handle, loadIfNotReady); }
+		static bool DependenciesLoaded(AssetHandle handle, bool loadIfNotReady = false) { return Project::GetActiveAssetManager()->DependenciesLoaded(handle, loadIfNotReady); }
 		static bool IsValidAssetHandle(AssetHandle handle) { return Project::GetActive()->GetAssetManager()->IsValidAssetHandle(handle); }
 		static bool IsMemoryAsset(AssetHandle handle) { return Project::GetActive()->GetAssetManager()->IsMemoryAsset(handle); }
 		static bool IsAssetLoaded(AssetHandle handle) { return Project::GetActive()->GetAssetManager()->IsAssetLoaded(handle); }

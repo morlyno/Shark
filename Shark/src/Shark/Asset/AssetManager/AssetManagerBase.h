@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Core/Thread.h"
+#include "Shark/Core/Threading.h"
 #include "Shark/Asset/Asset.h"
 #include "Shark/Asset/AssetMetadata.h"
 
@@ -16,15 +16,15 @@ namespace Shark {
 
 		virtual AssetType GetAssetType(AssetHandle handle) = 0;
 		virtual Ref<Asset> GetAsset(AssetHandle handle) = 0;
-		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) = 0;
-		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) = 0;
+		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy) = 0;
+		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy) = 0;
 
 		virtual std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) = 0;
 
 		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) = 0;
 		virtual bool ReloadAsset(AssetHandle handle) = 0;
 		virtual void ReloadAssetAsync(AssetHandle handle) = 0;
-		virtual bool IsFullyLoaded(AssetHandle handle, bool loadIfNotReady) = 0;
+		virtual bool DependenciesLoaded(AssetHandle handle, bool loadIfNotReady) = 0;
 		virtual bool IsValidAssetHandle(AssetHandle handle) = 0;
 		virtual bool IsMemoryAsset(AssetHandle handle) = 0;
 		virtual bool IsAssetLoaded(AssetHandle handle) = 0;

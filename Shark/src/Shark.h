@@ -69,7 +69,6 @@
 // --- Scene ----------------------------
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
-#include "Shark/Scene/SceneCamera.h"
 #include "Shark/Scene/Components.h"
 // --------------------------------------
 

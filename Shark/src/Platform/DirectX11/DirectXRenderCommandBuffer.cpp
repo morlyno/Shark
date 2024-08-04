@@ -129,7 +129,7 @@ namespace Shark {
 				hrStart = queue->GetData(startQuery, &startTime, sizeof(uint64_t), 0);
 				hrEnd = queue->GetData(endQuery, &endTime, sizeof(uint64_t), 0);
 
-				uint64_t sTime = 0.0f;
+				uint64_t sTime = 0;
 				if (hrStart == S_OK && hrEnd == S_OK)
 				{
 					sTime = endTime - startTime;

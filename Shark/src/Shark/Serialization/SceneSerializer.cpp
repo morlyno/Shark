@@ -15,6 +15,7 @@
 #include "Shark/Debug/Profiler.h"
 
 #include <yaml-cpp/yaml.h>
+#include <magic_enum.hpp>
 
 #if SK_DEBUG
 #define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK()
@@ -92,6 +93,30 @@ namespace YAML {
 				default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); return false;
 			}
 
+			return true;
+		}
+	};
+
+
+	template<typename TEnum>
+		requires std::is_enum_v<TEnum>
+	struct convert<TEnum>
+	{
+		static Node encode(const TEnum& value)
+		{
+			return Node(magic_enum::enum_name(value));
+		}
+
+		static bool decode(const Node& node, TEnum& value)
+		{
+			if (!node.IsScalar())
+				return false;
+
+			std::optional<TEnum> optValue = magic_enum::enum_cast<TEnum>(node.Scalar());
+			if (!optValue.has_value())
+				return false;
+
+			value = optValue.value();
 			return true;
 		}
 	};
@@ -303,16 +328,11 @@ namespace Shark {
 			{
 				out << YAML::Key << "CameraComponent";
 				out << YAML::BeginMap;
-
-				auto& camera = component->Camera;
-				out << YAML::Key << "Type" << YAML::Value << ToStringView(camera.GetProjectionType());
-				out << YAML::Key << "Aspectratio" << YAML::Value << camera.GetAspectratio();
-				out << YAML::Key << "PerspectiveFOV" << YAML::Value << camera.GetPerspectiveFOV();
-				out << YAML::Key << "PerspectiveNear" << YAML::Value << camera.GetPerspectiveNear();
-				out << YAML::Key << "PerspectiveFar" << YAML::Value << camera.GetPerspectiveFar();
-				out << YAML::Key << "OrthographicZoom" << YAML::Value << camera.GetOrthographicZoom();
-				out << YAML::Key << "OrthographicNear" << YAML::Value << camera.GetOrthographicNear();
-				out << YAML::Key << "OrthographicFar" << YAML::Value << camera.GetOrthographicFar();
+				out << YAML::Key << "IsPerspective" << YAML::Value << component->IsPerspective;
+				out << YAML::Key << "PerspectiveFOV" << YAML::Value << component->PerspectiveFOV * Math::Rad2Deg;
+				out << YAML::Key << "OrthographicSize" << YAML::Value << component->OrthographicSize;
+				out << YAML::Key << "Near" << YAML::Value << component->Near;
+				out << YAML::Key << "Far" << YAML::Value << component->Far;
 				out << YAML::EndMap;
 			}
 
@@ -320,7 +340,7 @@ namespace Shark {
 			{
 				out << YAML::Key << "RigidBody2DComponent";
 				out << YAML::BeginMap;
-				out << YAML::Key << "Type" << YAML::Value << ToStringView(component->Type);
+				out << YAML::Key << "Type" << YAML::Value << YAML::Node(component->Type);
 				out << YAML::Key << "FixedRotation" << YAML::Value << component->FixedRotation;
 				out << YAML::Key << "IsBullet" << YAML::Value << component->IsBullet;
 				out << YAML::Key << "Awake" << YAML::Value << component->Awake;
@@ -462,7 +482,7 @@ namespace Shark {
 		scene->SetName(sceneName);
 		SK_CORE_TRACE_TAG("Serialization", " - Scene Name: {}", sceneName);
 
-		const UUID activeCameraID = sceneNode["ActiveCamera"].as<UUID>(UUID::Null);
+		const UUID activeCameraID = sceneNode["ActiveCamera"].as<UUID>(UUID::Invalid);
 		scene->SetActiveCamera(activeCameraID);
 		SK_CORE_TRACE_TAG("Serialization", " - Active Camera: {}", activeCameraID);
 
@@ -471,7 +491,7 @@ namespace Shark {
 		{
 			for (auto entityNode : entitiesNode)
 			{
-				const UUID id = entityNode["Entity"].as<UUID>(UUID::Null);
+				const UUID id = entityNode["Entity"].as<UUID>(UUID::Invalid);
 				const std::string name = entityNode["TagComponent"]["Name"].as<std::string>();
 
 				Entity entity = scene->CreateEntityWithUUID(id, name);
@@ -556,33 +576,20 @@ namespace Shark {
 				if (auto componentNode = entityNode["CameraComponent"])
 				{
 					auto& component = entity.AddOrReplaceComponent<CameraComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "IsPerspective", component.IsPerspective, true);
+					SK_DESERIALIZE_PROPERTY(componentNode, "PerspectiveFOV", component.PerspectiveFOV, 45.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "OrthographicSize", component.OrthographicSize, 10.0f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Near", component.Near, 0.3f);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Far", component.Far, 1000.0f);
 
-					float aspectRatio;
-					std::string typeString;
-
-					SK_DESERIALIZE_PROPERTY(componentNode, "Type", typeString, {});
-					SK_DESERIALIZE_PROPERTY(componentNode, "Aspectratio", aspectRatio, 1.0f);
-
-					SceneCamera::PerspectiveSpecs ps;
-					SK_DESERIALIZE_PROPERTY(componentNode, "PerspectiveFOV", ps.FOV, 0.785398f);
-					SK_DESERIALIZE_PROPERTY(componentNode, "PerspectiveNear", ps.Near, 0.1f);
-					SK_DESERIALIZE_PROPERTY(componentNode, "PerspectiveFar", ps.Far, 1000.0f);
-
-					SceneCamera::OrthographicSpecs os;
-					SK_DESERIALIZE_PROPERTY(componentNode, "OrthographicZoom", os.Zoom, 10.0f);
-					SK_DESERIALIZE_PROPERTY(componentNode, "OrthographicNear", os.Near, -1.0f);
-					SK_DESERIALIZE_PROPERTY(componentNode, "OrthographicFar", os.Far, 1.0f);
-
-					component.Camera = SceneCamera(StringToSceneCameraProjection(typeString), aspectRatio, ps, os);
+					component.PerspectiveFOV *= Math::Deg2Rad;
+					component.Recalculate();
 				}
 
 				if (auto componentNode = entityNode["RigidBody2DComponent"])
 				{
 					auto& component = entity.AddOrReplaceComponent<RigidBody2DComponent>();
-					std::string typeString;
-					SK_DESERIALIZE_PROPERTY(componentNode, "Type", typeString, {});
-					component.Type = StringToRigidBody2DType(typeString);
-
+					SK_DESERIALIZE_PROPERTY(componentNode, "Type", component.Type, RigidBody2DComponent::BodyType::None);
 					SK_DESERIALIZE_PROPERTY(componentNode, "FixedRotation", component.FixedRotation, false);
 					SK_DESERIALIZE_PROPERTY(componentNode, "IsBullet", component.IsBullet, false);
 					SK_DESERIALIZE_PROPERTY(componentNode, "Awake", component.Awake, true);

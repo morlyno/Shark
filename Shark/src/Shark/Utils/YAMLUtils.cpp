@@ -1,8 +1,6 @@
 #include "skpch.h"
 #include "YAMLUtils.h"
 
-#include "Shark/Scene/SceneCamera.h"
-
 namespace YAML {
 
 	YAML::Emitter& operator<<(Emitter& out, wchar_t wc)
@@ -33,12 +31,12 @@ namespace YAML {
 
 	YAML::Emitter& operator<<(Emitter& out, const std::filesystem::path& filePath)
 	{
-		return out << Shark::String::FormatDefaultCopy(filePath).string();
+		return out << Node(filePath);
 	}
 
 	YAML::Emitter& operator<<(Emitter& out, const Shark::UUID& uuid)
 	{
-		return out << (uint64_t)uuid;
+		return out << Node(uuid);
 	}
 
 	Node LoadFile(const std::filesystem::path& filename) {

@@ -13,14 +13,10 @@ namespace Shark {
 		UUID(uint64_t uuid);
 
 		operator uint64_t() const { return m_UUID; }
-
-		//bool operator<(const UUID& rhs) const { return m_UUID < rhs.m_UUID; }
-		//bool operator==(const UUID& rhs) const { return m_UUID == rhs.m_UUID; }
-		//bool operator!=(const UUID& rhs) const { return !(*this == rhs); }
+		uint64_t Value() const { return m_UUID; }
 
 		static UUID Generate();
-		static constexpr uint64_t Null = 0;
-		enum { Invalid = 0 };
+		static constexpr uint64_t Invalid = 0;
 	private:
 		uint64_t m_UUID = 0;
 	};
@@ -34,7 +30,7 @@ namespace std {
 	{
 		size_t operator()(Shark::UUID uuid) const
 		{
-			return (uint64_t)uuid;
+			return uuid.Value();
 		}
 	};
 
@@ -44,8 +40,8 @@ template<typename Char>
 struct fmt::formatter<Shark::UUID, Char> : fmt::formatter<uint64_t, Char>
 {
 	template<typename FormatContext>
-	auto format(const Shark::UUID& uuid, FormatContext& ctx) -> decltype(ctx.out())
+	auto format(const Shark::UUID& uuid, FormatContext& ctx) const -> decltype(ctx.out())
 	{
-		return fmt::formatter<uint64_t, Char>::format((uint64_t)uuid, ctx);
+		return fmt::formatter<uint64_t, Char>::format(uuid.Value(), ctx);
 	}
 };

@@ -194,7 +194,7 @@ namespace Shark {
 
 	DirectXDevice::DirectXDevice()
 	{
-		UINT factoryFlags = SK_ENABLE_VALIDATION ? DXGI_CREATE_FACTORY_DEBUG : 0;
+		UINT factoryFlags = SK_ENABLE_GPU_VALIDATION ? DXGI_CREATE_FACTORY_DEBUG : 0;
 
 		DX11_VERIFY(CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&m_Factory)));
 
@@ -203,7 +203,7 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Renderer", "GPU Selected ({0})", utils::GetGPUDescription(adapter));
 
 		UINT createdeviceFalgs = 0u;
-#if SK_ENABLE_VALIDATION
+#if SK_ENABLE_GPU_VALIDATION
 		createdeviceFalgs |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 

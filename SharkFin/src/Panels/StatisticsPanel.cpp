@@ -99,7 +99,8 @@ namespace Shark {
 		{
 			if (profiler)
 			{
-				const auto& frameStorages = profiler->GetFrameStorage();
+				const auto& frameStorages = profiler->GetFrameData();
+				bool entriesChanged = false;
 
 				m_FrameTimeAccumulator += app.GetFrameTime();
 				m_CPUTimeAccumulator += app.GetCPUTime();
@@ -107,20 +108,33 @@ namespace Shark {
 				m_ImGuiGPUTimeAccumulator += app.GetImGuiLayer().GetGPUTime();
 
 				size_t index = 2;
-				for (const auto& [descriptor, data] : frameStorages)
-					m_ProfilerStatsAccumulator[(std::string)data.Descriptor] += data.Duration;
+				for (const auto& [name, perFrameData] : frameStorages)
+				{
+					auto& entry = m_ProfilerStatsAccumulator[std::string(name)];
+					entry.Time += perFrameData.Time;
+					entry.Min = std::min(entry.Min, perFrameData.Time);
+					entry.Max = std::max(entry.Max, perFrameData.Time);
+					entry.Samples += perFrameData.Samples;
+				}
 
 				if (++m_ProfilerSampleCount >= m_ProfilerSamples)
 				{
-					const auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Duration != rhs.Duration ? lhs.Duration > rhs.Duration : lhs.Descriptor > rhs.Descriptor; };
+					const auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Name > rhs.Name; };
 
 					m_ProfilerStats.clear();
 					m_ProfilerStats.reserve(m_ProfilerStatsAccumulator.size());
-					for (const auto& [descriptor, duration] : m_ProfilerStatsAccumulator)
+					for (const auto& [name, accumulatorEntry] : m_ProfilerStatsAccumulator)
 					{
-						ProfilerEntry entry = { descriptor, duration / (float)m_ProfilerSamples };
-						const auto where = std::lower_bound(m_ProfilerStats.begin(), m_ProfilerStats.end(), entry, sorter);
-						m_ProfilerStats.insert(where, entry);
+						ProfilerEntry entry = {
+							.Name = name,
+							.Time = accumulatorEntry.Time / (float)m_ProfilerSamples,
+							.Min = accumulatorEntry.Min,
+							.Max = accumulatorEntry.Max,
+							.AvgSamples = (float)accumulatorEntry.Samples / (float)m_ProfilerSamples,
+						};
+						m_ProfilerStats.emplace_back(entry);
+						//const auto where = std::lower_bound(m_ProfilerStats.begin(), m_ProfilerStats.end(), entry, sorter);
+						//m_ProfilerStats.insert(where, entry);
 					}
 
 					m_FrameTime = m_FrameTimeAccumulator / (float)m_ProfilerSamples;
@@ -134,6 +148,7 @@ namespace Shark {
 					m_ImGuiGPUTimeAccumulator = 0;
 					m_ProfilerStatsAccumulator.clear();
 					m_ProfilerSampleCount = 0;
+					entriesChanged = true;
 				}
 
 				UI::BeginControls();
@@ -145,9 +160,89 @@ namespace Shark {
 				UI::Property("CPU", m_CPUTime);
 				UI::Property("GPU", m_GPUTime);
 				UI::Property("ImGui GPU", m_ImGuiGPUTime);
-				for (const auto& entry : m_ProfilerStats)
-					UI::Property(entry.Descriptor, entry.Duration.ToString());
 				UI::EndControlsGrid();
+
+				ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
+					                         ImGuiTableFlags_Sortable | ImGuiTableFlags_BordersV;
+
+				enum
+				{
+					NameID = 0,
+					TimeID = 1,
+					AvgID = 2,
+					MinID = 3,
+					MaxID = 4,
+					CallsID = 5,
+
+				};
+
+				const float contentRegionWidth = ImGui::GetContentRegionAvail().x;
+				if (ImGui::BeginTable("##profilerTable", 6, tableFlags))
+				{
+					const ImGuiStyle& style = ImGui::GetStyle();
+					const float with = ImGui::CalcTextSize("00.000ms").x + style.FramePadding.x * 2.0f + style.CellPadding.x * 2.0f;
+					const float firstWidth = contentRegionWidth - with * 5;
+
+					ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_DefaultSort | ImGuiTableColumnFlags_WidthStretch, 0.0f, NameID);
+					ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, with, TimeID);
+					ImGui::TableSetupColumn("Avg", ImGuiTableColumnFlags_WidthFixed, with, AvgID);
+					ImGui::TableSetupColumn("Min", ImGuiTableColumnFlags_WidthFixed, with, MinID);
+					ImGui::TableSetupColumn("Max", ImGuiTableColumnFlags_WidthFixed, with, MaxID);
+					ImGui::TableSetupColumn("Calls", ImGuiTableColumnFlags_WidthFixed, with, CallsID);
+					ImGui::TableHeadersRow();
+
+					if (ImGuiTableSortSpecs* sortSpecs = ImGui::TableGetSortSpecs())
+					{
+						if (sortSpecs->SpecsDirty || entriesChanged)
+						{
+							std::sort(m_ProfilerStats.begin(), m_ProfilerStats.end(), [sortSpecs](const ProfilerEntry& lhs, const ProfilerEntry& rhs)
+							{
+								for (int i = 0; i < sortSpecs->SpecsCount; i++)
+								{
+									const ImGuiTableColumnSortSpecs& colSortSpec = sortSpecs->Specs[i];
+									float delta = 0.0f;
+									switch (colSortSpec.ColumnUserID)
+									{
+										case NameID: delta = (float)lhs.Name.compare(rhs.Name); break;
+										case TimeID: delta = lhs.Time - rhs.Time; break;
+										case AvgID: delta = (lhs.Time / lhs.AvgSamples) - (rhs.Time / rhs.AvgSamples); break;
+										case MinID: delta = lhs.Min - rhs.Min; break;
+										case MaxID: delta = lhs.Max - rhs.Max; break;
+										case CallsID: delta = lhs.AvgSamples - rhs.AvgSamples; break;
+									}
+
+									if (delta > 0.0f)
+										return colSortSpec.SortDirection == ImGuiSortDirection_Descending;
+									if (delta < 0.0f)
+										return colSortSpec.SortDirection == ImGuiSortDirection_Ascending;
+								}
+
+								return lhs.Name < rhs.Name;
+							});
+							sortSpecs->SpecsDirty = false;
+						}
+					}
+
+					for (const ProfilerEntry& entry : m_ProfilerStats)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text(entry.Name.c_str());
+						ImGui::TableNextColumn();
+						UI::Text("{0:.3}", entry.Time);
+						ImGui::TableNextColumn();
+						UI::Text("{0:.3}", entry.Time / entry.AvgSamples);
+						ImGui::TableNextColumn();
+						UI::Text("{0:.3}", entry.Min);
+						ImGui::TableNextColumn();
+						UI::Text("{0:.3}", entry.Max);
+						ImGui::TableNextColumn();
+						UI::Text("{0}", entry.AvgSamples);
+					}
+
+					ImGui::EndTable();
+				}
+
 			}
 
 			if (ImGui::TreeNodeEx("Physics", UI::DefaultThinHeaderFlags))

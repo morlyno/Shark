@@ -75,6 +75,7 @@ namespace Shark {
 		virtual void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) = 0;
 
 		virtual std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath) = 0;
+		virtual std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(const std::filesystem::path& filepath) = 0;
 		virtual Ref<Texture2D> CreateBRDFLUT() = 0;
 
 		virtual void GenerateMips(Ref<Image2D> image) = 0;

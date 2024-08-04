@@ -9,6 +9,8 @@
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/ApplicationEvent.h"
 
+#include "Shark/ImGui/TextFilter.h"
+
 #include "Panel.h"
 #include "Panels/Editors/MaterialEditorPanel.h"
 
@@ -23,8 +25,7 @@ namespace Shark {
 		virtual void OnEvent(Event& event) override;
 
 		virtual void OnProjectChanged(Ref<Project> project) override;
-
-		virtual void SetContext(Ref<Scene> scene) override { m_Context = scene; }
+		virtual void SetContext(Ref<Scene> scene) override;
 		Ref<Scene> GetContext() const { return m_Context; }
 
 		template<typename Func> // void(Entity)
@@ -41,7 +42,7 @@ namespace Shark {
 		void DrawAddEntityPopup();
 
 		void DestroyEntity(Entity entity);
-		void UpdateMaterialEditor(Entity entity);
+		void UpdateMaterialEditor();
 
 		template<typename Comp, typename UIFunction>
 		void DrawComponet(Entity entity, const char* lable, UIFunction func);
@@ -60,7 +61,7 @@ namespace Shark {
 		std::function<void(Entity entity)> m_SelectionChangedCallback = [](auto) {};
 		std::function<void(Entity entity)> m_SnapToEditorCameraCallback;
 
-		static constexpr const char* s_ProjectionItems[] = { "None", "Perspective", "Orthographic" };
+		static constexpr std::string_view s_ProjectionItems[] = { "Perspective", "Orthographic" };
 		static constexpr const char* s_GeomatryTypes[] = { "Quad", "Circle" };
 		static constexpr std::string_view s_BodyTypes[] = { "Static", "Dynamic", "Kinematic" };
 
@@ -73,15 +74,15 @@ namespace Shark {
 		std::vector<ComponentData> m_Components;
 
 		char m_SearchComponentBuffer[260]{};
-		std::string_view m_SearchPattern;
-		bool m_SearchCaseSensitive = false;
+		UI::TextFilter m_ComponentFilter;
 
 		bool m_ScriptFound = false;
 
 		bool m_HasTransformCopy;
 		TransformComponent m_TransformCopy;
 
-		Entity m_EntityToDestroy;
+		bool m_DeleteSelected = false;
+		bool m_DeleteChildren = true;
 	};
 
 	template<typename Comp, typename UIFunction>

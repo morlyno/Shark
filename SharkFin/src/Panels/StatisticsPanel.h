@@ -21,8 +21,11 @@ namespace Shark {
 
 		struct ProfilerEntry
 		{
-			std::string Descriptor;
-			TimeStep Duration;
+			std::string Name;
+			TimeStep Time;
+			TimeStep Min = FLT_MAX;
+			TimeStep Max = FLT_MIN;
+			float AvgSamples = 0.0f;
 		};
 
 		std::vector<ProfilerEntry> m_ProfilerStats;
@@ -31,7 +34,15 @@ namespace Shark {
 		TimeStep m_GPUTime;
 		TimeStep m_ImGuiGPUTime;
 
-		std::map<std::string, TimeStep> m_ProfilerStatsAccumulator;
+		struct AccumulatorEntry
+		{
+			TimeStep Time;
+			TimeStep Min = FLT_MAX;
+			TimeStep Max = FLT_MIN;
+			uint32_t Samples = 0;
+		};
+
+		std::map<std::string, AccumulatorEntry> m_ProfilerStatsAccumulator;
 		TimeStep m_FrameTimeAccumulator;
 		TimeStep m_CPUTimeAccumulator;
 		TimeStep m_GPUTimeAccumulator;

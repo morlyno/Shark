@@ -125,6 +125,9 @@ namespace Shark {
 		SK_CORE_VERIFY(mesh);
 		SK_CORE_VERIFY(material);
 
+		// set concrete textures in the material
+		material->Invalidate();
+
 		auto& meshData = m_DrawList.emplace_back();
 		meshData.Mesh = mesh;
 		meshData.MeshSource = meshSource;
@@ -146,7 +149,7 @@ namespace Shark {
 
 		CBScene sceneData;
 		sceneData.EnvironmentMapIntensity = m_Scene->GetEnvironmentIntesity();
-		sceneData.PointLightCount = m_Scene->GetPointLights().size();
+		sceneData.PointLightCount = (uint32_t)m_Scene->GetPointLights().size();
 		sceneData.DirectionalLightCount = m_Scene->GetLightEnvironment().DirectionalLightCount;
 		m_CBScene->UploadData(Buffer::FromValue(sceneData));
 

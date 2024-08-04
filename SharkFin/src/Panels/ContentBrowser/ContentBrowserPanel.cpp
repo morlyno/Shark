@@ -83,7 +83,7 @@ namespace Shark {
 					ImGui::TableSetColumnIndex(0);
 					if (ImGui::BeginChild("##treeView"))
 					{
-						UI::MoveCursorY(style.FramePadding.y);
+						UI::ShiftCursorY(style.FramePadding.y);
 						UI::ScopedIndent indent(style.WindowPadding.x * 0.5f);
 
 						for (auto subdir : m_BaseDirectory->SubDirectories)
@@ -109,7 +109,7 @@ namespace Shark {
 
 
 				ImGui::TableSetColumnIndex(1);
-				UI::MoveCursor(style.WindowPadding);
+				UI::ShiftCursor(style.WindowPadding);
 				DrawHeader();
 				//UI::MoveCursorY(style.ItemSpacing.y);
 				ImGui::Separator();
@@ -497,9 +497,10 @@ namespace Shark {
 				if (itemType == CBItemType::Asset)
 				{
 					Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-					const AssetMetaData& metadata = assetManager->GetMetadata(currentItem->GetPath());
-					if (assetManager->IsValidAssetHandle(metadata.Handle))
+					AssetHandle assetHandle = currentItem->GetAssetHandle();
+					if (assetManager->IsValidAssetHandle(assetHandle))
 					{
+						const auto& metadata = assetManager->GetMetadata(assetHandle);
 						const auto& callback = m_OpenAssetCallbacks[metadata.Type];
 						if (callback)
 						{
@@ -636,7 +637,7 @@ namespace Shark {
 
 		//UI::ScopedClipRect clipRect(window->Rect());
 		UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, style.ItemSpacing * 0.5f);
-		UI::MoveCursor({ -style.WindowPadding.x * 0.5f, -style.WindowPadding.y * 0.5f });
+		UI::ShiftCursor({ -style.WindowPadding.x * 0.5f, -style.WindowPadding.y * 0.5f });
 
 
 		{

@@ -579,7 +579,7 @@ namespace Shark::UI {
 		bool changed = false;
 		char buffer[21];
 		if (uuid != UUID::Invalid)
-			sprintf_s(buffer, "%llu", (uint64_t)uuid);
+			sprintf_s(buffer, "%llu", uuid.Value());
 		else
 			buffer[0] = '\0';
 
@@ -594,11 +594,11 @@ namespace Shark::UI {
 
 			const float buttonSize = ImGui::GetItemRectSize().y;
 			ImGui::SameLine(0, 0);
-			MoveCursorX(-buttonSize);
+			ShiftCursorX(-buttonSize);
 
 			if (ImGui::Button("x", { buttonSize, buttonSize }))
 			{
-				uuid = UUID::Null;
+				uuid = UUID::Invalid;
 				changed = true;
 			}
 		}
@@ -632,7 +632,7 @@ namespace Shark::UI {
 			if (ImGui::BeginPopupContextItem("Settings"))
 			{
 				char buffer[18];
-				sprintf(buffer, "0x%16llx", (uint64_t)assetHandle);
+				sprintf(buffer, "0x%16llx", assetHandle.Value());
 				ImGui::InputText("##IDStr", buffer, 18, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
 				ImGui::EndPopup();
 			}
@@ -661,7 +661,7 @@ namespace Shark::UI {
 			const ImVec2 buttonSize = { fontSize + style.FramePadding.x * 2.0f, fontSize + style.FramePadding.y * 2.0f };
 
 			ImGui::SameLine(0, 0);
-			MoveCursorX(-buttonSize.x);
+			ShiftCursorX(-buttonSize.x);
 
 			clear = ImGui::InvisibleButton("clear_button", buttonSize);
 			UI::DrawImageButton(Icons::ClearIcon,
@@ -741,7 +741,7 @@ namespace Shark::UI {
 		{
 			const auto& style = ImGui::GetStyle();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - style.WindowPadding.x * 2.0f);
-			UI::MoveCursor(style.WindowPadding);
+			UI::ShiftCursor(style.WindowPadding);
 			if (ImGui::IsWindowAppearing())
 				ImGui::SetKeyboardFocusHere();
 			if (UI::Search(UI::GenerateID(), s_SearchBuffer, std::size(s_SearchBuffer)))
@@ -881,11 +881,11 @@ namespace Shark::UI {
 										ImGuiCol_ButtonActive, 0x00000000);
 
 			ImGui::SameLine(0, 0);
-			MoveCursorX(-buttonSize);
+			ShiftCursorX(-buttonSize);
 
 			if (ImGui::Button("x", { buttonSize, buttonSize }))
 			{
-				entityID = UUID::Null;
+				entityID = UUID::Invalid;
 				changed = true;
 			}
 		}
@@ -1009,6 +1009,43 @@ namespace Shark::UI {
 		return ControlComboT(label, index, items, itemsCount);
 	}
 
+	bool ControlCombo(std::string_view label, bool& value, const std::string_view falseValue, const std::string_view trueValue)
+	{
+		if (!ControlHelperBegin(label))
+			return false;
+
+		ControlHelperDrawLabel(label);
+
+		bool changed = false;
+		std::string_view preview = value ? trueValue : falseValue;
+		ImGui::SetNextItemWidth(-1.0f);
+
+		ImGuiContext& g = *GImGui;
+		const bool isMixedValue = g.CurrentItemFlags & ImGuiItemFlags_MixedValue;
+
+		if (ImGui::BeginCombo("##combo", isMixedValue ? nullptr : preview.data()))
+		{
+			if (ImGui::Selectable(falseValue.data(), value == false))
+			{
+				value = false;
+				changed = true;
+			}
+
+			if (ImGui::Selectable(trueValue.data(), value == true))
+			{
+				value = true;
+				changed = true;
+			}
+			ImGui::EndCombo();
+		}
+
+		if (isMixedValue)
+			UI::DrawTextAligned("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
+
+		ControlHelperEnd();
+		return changed;
+	}
+
 	void Property(std::string_view label, const char* text)
 	{
 		Property(label, std::string_view(text));
@@ -1051,7 +1088,7 @@ namespace Shark::UI {
 
 		char buffer[21];
 		if (uuid != UUID::Invalid)
-			sprintf_s(buffer, "%llu", (uint64_t)uuid);
+			sprintf_s(buffer, "%llu", uuid.Value());
 		else
 			buffer[0] = '\0';
 

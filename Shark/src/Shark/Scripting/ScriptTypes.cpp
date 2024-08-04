@@ -112,7 +112,7 @@ namespace Shark {
 		MonoObject* object = GCManager::GetManagedObject(handle);
 		MonoObject* entityObject = mono_field_get_value_object(ScriptEngine::GetRuntimeDomain(), Field, object);
 		if (!entityObject)
-			return UUID::Null;
+			return UUID::Invalid;
 
 		MonoClass* klass = mono_object_get_class(entityObject);
 		MonoClassField* idField = mono_class_get_field_from_name(klass, "ID");

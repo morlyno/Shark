@@ -18,7 +18,7 @@ template<typename Char>
 struct fmt::formatter<b2Vec2, Char> : fmt::formatter<float, Char>
 {
 	template<typename FormatContext>
-	auto format(const b2Vec2& vec, FormatContext& ctx) -> decltype(ctx.out())
+	auto format(const b2Vec2& vec, FormatContext& ctx) const -> decltype(ctx.out())
 	{
 		auto&& out = ctx.out();
 		detail::write(out, "[");

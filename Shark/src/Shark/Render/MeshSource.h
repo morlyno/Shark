@@ -63,8 +63,8 @@ namespace Shark {
 		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
 		const std::vector<Index>& GetIndices() const { return m_Indices; }
 
-		std::vector<Ref<MaterialAsset>>& GetMaterials() { return m_Materials; }
-		const std::vector<Ref<MaterialAsset>>& GetMaterials() const { return m_Materials; }
+		std::vector<AssetHandle>& GetMaterials() { return m_Materials; }
+		const std::vector<AssetHandle>& GetMaterials() const { return m_Materials; }
 
 		Ref<VertexBuffer> GetVertexBuffer() const { return m_VertexBuffer; }
 		Ref<IndexBuffer> GetIndexBuffer() const { return m_IndexBuffer; }
@@ -89,7 +89,7 @@ namespace Shark {
 
 		Ref<VertexBuffer> m_VertexBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
-		std::vector<Ref<MaterialAsset>> m_Materials;
+		std::vector<AssetHandle> m_Materials;
 
 		std::vector<Submesh> m_Submeshes;
 		std::vector<MeshNode> m_Nodes;

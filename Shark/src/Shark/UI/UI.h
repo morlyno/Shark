@@ -20,7 +20,7 @@ template<typename Char>
 struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
 {
 	template<typename FormatContext>
-	auto format(const ImVec2& vec2, FormatContext& ctx) -> decltype(ctx.out())
+	auto format(const ImVec2& vec2, FormatContext& ctx) const -> decltype(ctx.out())
 	{
 		auto&& out = ctx.out();
 		format_to(out, "[");
@@ -63,7 +63,7 @@ namespace Shark::UI {
 	inline ImGuiID GetID(const char* strID, const char* strEnd = nullptr)      { return GImGui->CurrentWindow->GetID(strID, strEnd); }
 	inline ImGuiID GetID(const std::string& strID)                             { return GImGui->CurrentWindow->GetID(strID.data(), strID.data() + strID.size()); }
 	inline ImGuiID GetID(const std::string_view& strID)                        { return GImGui->CurrentWindow->GetID(strID.data(), strID.data() + strID.size()); }
-	inline ImGuiID GetID(UUID uuid)                                            { static_assert(sizeof(void*) == sizeof(uint64_t)); return GImGui->CurrentWindow->GetID((void*)(uint64_t)uuid);}
+	inline ImGuiID GetID(UUID uuid)                                            { static_assert(sizeof(void*) == sizeof(uint64_t)); return GImGui->CurrentWindow->GetID((void*)uuid.Value());}
 
 	inline ImGuiID GetIDWithSeed(int intID, uint32_t seed)                     { const ImGuiID id = ImHashData(&intID, sizeof(int), seed); ImGui::KeepAliveID(id); return id; }
 	inline ImGuiID GetIDWithSeed(void* ptrID, uint32_t seed)                   { const ImGuiID id = ImHashData(&ptrID, sizeof(void*), seed); ImGui::KeepAliveID(id); return id; }
@@ -84,9 +84,12 @@ namespace Shark::UI {
 
 	ImGuiID GenerateID();
 
-	inline void MoveCursor(const ImVec2& delta)                                { ImGui::SetCursorPos(ImGui::GetCursorPos() + delta); }
-	inline void MoveCursorX(float deltaX)                                      { MoveCursor({ deltaX, 0.0f }); }
-	inline void MoveCursorY(float deltaY)                                      { MoveCursor({ 0.0f, deltaY }); }
+	inline void ShiftCursor(const ImVec2& delta)                                { ImGui::SetCursorPos(ImGui::GetCursorPos() + delta); }
+	inline void ShiftCursorX(float deltaX)                                      { ShiftCursor({ deltaX, 0.0f }); }
+	inline void ShiftCursorY(float deltaY)                                      { ShiftCursor({ 0.0f, deltaY }); }
+
+	inline void SetCursorScreenPosX(float x)                                    { ImGui::SetCursorScreenPos(ImVec2(x, ImGui::GetCursorScreenPos().y)); }
+	inline void SetCursorScreenPosY(float y)                                    { ImGui::SetCursorScreenPos(ImVec2(ImGui::GetCursorScreenPos().x, y)); }
 
 	ImRect GetItemRect();
 	ImRect RectExpand(const ImRect& rect, float x, float y);
@@ -113,6 +116,8 @@ namespace Shark::UI {
 	void DrawButton(std::string_view text, ImVec2 textAlign, ImU32 colorNormal, ImU32 colorHoverd, ImU32 colorPressed, ImRect rect);
 	void DrawButton(std::string_view text, ImVec2 textAlign, ImRect rect);
 	void DrawButton(std::string_view text, ImRect rect);
+
+	void DrawTextAligned(std::string_view text, ImVec2 align, ImRect rect);
 
 	void DrawButtonFrame(ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);
 	void DrawButtonFrame(ImVec2 min, ImVec2 max, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed);

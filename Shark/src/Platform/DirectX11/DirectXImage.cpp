@@ -258,9 +258,11 @@ namespace Shark {
 		SK_CORE_VERIFY(imageData.Size == memoryUsage, "{} == {}", imageData.Size, memoryUsage);
 
 		auto device = DirectXContext::GetCurrentDevice();
-
 		const uint32_t formatDataSize = ImageUtils::GetFormatDataSize(m_Specification.Format);
-		device->UpdateSubresource(m_Info.Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * formatDataSize, 0);
+
+		auto cmd = device->AllocateCommandBuffer();
+		cmd->UpdateSubresource(m_Info.Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * formatDataSize, 0);
+		device->FlushCommandBuffer(cmd);
 	}
 
 	bool DirectXImage2D::RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel)

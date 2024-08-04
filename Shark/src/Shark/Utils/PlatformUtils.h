@@ -15,6 +15,11 @@
 
 namespace Shark {
 
+#if SK_PLATFORM_WINDOWS
+	// Used as a Platform agnostic handle
+	using NativeHandle = HANDLE;
+#endif
+
 	enum class ExectueVerb
 	{
 		Default,

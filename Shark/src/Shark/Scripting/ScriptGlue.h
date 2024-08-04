@@ -6,7 +6,6 @@
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Scene/Physics2DScene.h"
-#include "Shark/Scene/SceneCamera.h"
 #include "Shark/Input/Input.h"
 
 #include "Shark/Event/Event.h"
@@ -143,14 +142,18 @@ namespace Shark {
 
 		#pragma region CameraComponent
 
+		// All calls that modify the component must follow by a call CameraComponent_RecalculateProjectionMatrix
+		// otherwise the projection matrix will never reflect the changes
+		void CameraComponent_RecalculateProjectionMatrix(uint64_t id);
+
 		void CameraComponent_GetProjection(uint64_t id, glm::mat4* out_Projection);
 		void CameraComponent_SetProjection(uint64_t id, glm::mat4* projection);
 
-		SceneCamera::Projection CameraComponent_GetProjectionType(uint64_t id);
-		void CameraComponent_SetProjectionType(uint64_t id, SceneCamera::Projection projectionType);
+		bool CameraComponent_GetIsPerspective(uint64_t id);
+		void CameraComponent_SetIsPerspective(uint64_t id, bool isPerspective);
 
-		void CameraComponent_SetPerspective(uint64_t id, float aspectratio, float fov, float clipnear, float clipfar);
-		void CameraComponent_SetOrthographic(uint64_t id, float aspectratio, float zoom, float clipnear, float clipfar);
+		void CameraComponent_SetPerspective(uint64_t id, float aspectratio, float perspectiveFOV, float clipnear, float clipfar);
+		void CameraComponent_SetOrthographic(uint64_t id, float aspectratio, float orthographicSize, float clipnear, float clipfar);
 
 		float CameraComponent_GetAspectratio(uint64_t id);
 		void CameraComponent_SetAspectratio(uint64_t id, float aspectratio);
@@ -158,20 +161,14 @@ namespace Shark {
 		float CameraComponent_GetPerspectiveFOV(uint64_t id);
 		void CameraComponent_SetPerspectiveFOV(uint64_t id, float fov);
 
-		float CameraComponent_GetPerspectiveNear(uint64_t id);
-		void CameraComponent_SetPerspectiveNear(uint64_t id, float clipnear);
+		float CameraComponent_GetOrthographicSize(uint64_t id);
+		void CameraComponent_SetOrthographicSize(uint64_t id, float size);
 
-		float CameraComponent_GetPerspectiveFar(uint64_t id);
-		void CameraComponent_SetPerspectiveFar(uint64_t id, float clipfar);
+		float CameraComponent_GetNear(uint64_t id);
+		void CameraComponent_SetNear(uint64_t id, float clipnear);
 
-		float CameraComponent_GetOrthographicZoom(uint64_t id);
-		void CameraComponent_SetOrthographicZoom(uint64_t id, float zoom);
-
-		float CameraComponent_GetOrthographicNear(uint64_t id);
-		void CameraComponent_SetOrthographicNear(uint64_t id, float clipnear);
-
-		float CameraComponent_GetOrthographicFar(uint64_t id);
-		void CameraComponent_SetOrthographicFar(uint64_t id, float clipfar);
+		float CameraComponent_GetFar(uint64_t id);
+		void CameraComponent_SetFar(uint64_t id, float clipfar);
 
 		#pragma endregion
 

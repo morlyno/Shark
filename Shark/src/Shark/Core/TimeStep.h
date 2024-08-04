@@ -28,6 +28,7 @@ namespace Shark {
 
 	public:
 		std::string ToString() const;
+		std::string ToString(uint32_t precision) const;
 
 	public:
 		TimeStep operator+(const TimeStep& rhs) const { return m_Time + rhs.m_Time; }
@@ -59,38 +60,32 @@ namespace Shark {
 		float m_Time;
 	};
 
-	inline std::string TimeStep::ToString() const
-	{
-		if (m_Time <= FLT_EPSILON)
-			return fmt::format("{0:3.6f}ms", 0.0f);
-
-		if (m_Time > 60.0f)
-		{
-			float minits = m_Time / 60.0f;
-			return fmt::format("{0:3.6f}m", minits);
-		}
-
-		float t = m_Time;
-		if (t > 1.0f)
-			return fmt::format("{0:3.6f}s", t);
-
-		t *= 1000.0f;
-		return fmt::format("{0:3.6f}ms", t);
-	}
-
 }
 
 template<>
 struct fmt::formatter<Shark::TimeStep, char>
 {
+private:
+	uint32_t m_Precision = 6;
+
+public:
 	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
 	{
-		return ctx.end();
+		auto end = std::find(ctx.begin(), ctx.end(), '}');
+		if (end != ctx.end())
+		{
+			auto dot = std::find(ctx.begin(), end, '.');
+			if (dot == end)
+				std::from_chars(ctx.begin(), end, m_Precision);
+			else
+				std::from_chars(dot + 1, end, m_Precision);
+		}
+		return end;
 	}
 
 	template<typename FormatContext>
-	auto format(const Shark::TimeStep& timestep, FormatContext& ctx) -> decltype(ctx.out())
+	auto format(const Shark::TimeStep& timestep, FormatContext& ctx) const -> decltype(ctx.out())
 	{
-		return fmt::format_to(ctx.out(), "{0}", timestep.ToString());
+		return fmt::format_to(ctx.out(), "{0}", timestep.ToString(m_Precision));
 	}
 };

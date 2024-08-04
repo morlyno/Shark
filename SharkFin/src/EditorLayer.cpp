@@ -265,6 +265,13 @@ namespace Shark {
 		// Disable hot keys when the scene state is not Edit
 		if (m_SceneState != SceneState::Edit)
 		{
+			if (event.GetKeyCode() == KeyCode::Escape)
+			{
+				Input::SetCursorMode(CursorMode::Normal);
+				// NOTE(moro): don't think escape should be marked as handled here
+				return false;
+			}
+
 			if (event.GetKeyCode() == KeyCode::F && SelectionContext::AnySelected())
 			{
 				const auto& entities = SelectionContext::GetSelected();
@@ -860,12 +867,12 @@ namespace Shark {
 			if (m_SceneState == SceneState::Play)
 			{
 				Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
-				SceneCamera& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
+				auto& component = cameraEntity.GetComponent<CameraComponent>();
 				glm::mat4 transform = cameraEntity.Transform().CalcTransform();
 
-				ImGuizmo::SetOrthographic(camera.GetProjectionType() == SceneCamera::Projection::Orthographic);
+				ImGuizmo::SetOrthographic(!component.IsPerspective);
 				view = glm::inverse(transform);
-				projection = camera.GetProjection();
+				projection = component.GetProjection();
 			}
 			else
 			{
@@ -1601,6 +1608,7 @@ namespace Shark {
 	{
 		AssetManager::GetAssetFuture(handle).OnReady([this](Ref<Asset> asset)
 		{
+			SK_CORE_VERIFY(asset);
 			m_WorkScene = asset.As<Scene>();
 			SetActiveScene(m_WorkScene);
 			m_EditorCamera.SetFlyView({ 40.0f, 25.0f, -40.0f }, 10.0f, -45.0f);
@@ -1626,11 +1634,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(filePath);
-		if (!metadata.IsValid())
+		AssetHandle assetHandle = Project::GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(filePath);
+		if (!AssetManager::IsValidAssetHandle(assetHandle))
 			return false;
 
-		return LoadScene(metadata.Handle);
+		return LoadScene(assetHandle);
 	}
 
 	bool EditorLayer::SaveScene()
@@ -1914,41 +1922,5 @@ namespace Shark {
 
 		return entity;
 	}
-
-	//void EditorLayer::InstantiateMeshNode(Ref<Mesh> mesh, const MeshNode& node, Entity parent, Entity entity)
-	//{
-	//	SK_PROFILE_FUNCTION();
-	//
-	//	Ref<MeshSource> source = mesh->GetMeshSource();
-	//
-	//	if (!entity)
-	//		entity = m_ActiveScene->CreateChildEntity(parent);
-	//	entity.GetName() = node.Name;
-	//
-	//	entity.Transform().SetTransform(node.LocalTransform);
-	//	if (node.Submeshes.size() == 1)
-	//	{
-	//		auto& meshComp = entity.AddComponent<MeshComponent>();
-	//		meshComp.Mesh = mesh->Handle;
-	//		meshComp.SubmeshIndex = node.Submeshes[0];
-	//	}
-	//	else if (node.Submeshes.size() > 1)
-	//	{
-	//		Entity container = m_ActiveScene->CreateChildEntity(entity, fmt::format("{} (Submesh Container)", node.Name));
-	//		for (uint32_t submeshIndex = 0; submeshIndex < node.Submeshes.size(); submeshIndex++)
-	//		{
-	//			Entity submeshEntity = m_ActiveScene->CreateChildEntity(container, fmt::format("{}_{} (Submesh)", node.Name, submeshIndex));
-	//			auto& meshComp = submeshEntity.AddComponent<MeshComponent>();
-	//			meshComp.Mesh = mesh->Handle;
-	//			meshComp.SubmeshIndex = submeshIndex;
-	//		}
-	//	}
-	//
-	//	for (const auto& childNodeIndex : node.Children)
-	//	{
-	//		const MeshNode& childNode = source->GetNodes()[childNodeIndex];
-	//		InstantiateMeshNode(mesh, childNode, entity);
-	//	}
-	//}
 
 }

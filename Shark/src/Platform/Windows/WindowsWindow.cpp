@@ -350,6 +350,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		DestroyWindow(m_WindowHandle);
+		m_WindowHandle = NULL;
 	}
 
 	bool WindowsWindow::CreateNativeWindow()
@@ -378,8 +379,6 @@ namespace Shark {
 		windowRect.right = m_Specification.Width + windowRect.left;
 		windowRect.bottom = m_Specification.Height + windowRect.top;
 		AdjustWindowRectEx(&windowRect, windowFlags, false, exWindowFlags);
-
-		SK_CORE_WARN("Window Size: {}, {}", windowRect.right - windowRect.left, windowRect.bottom - windowRect.top);
 
 		std::wstring windowName = String::ToWide(m_Specification.Title);
 		m_WindowHandle = CreateWindowExW(exWindowFlags,

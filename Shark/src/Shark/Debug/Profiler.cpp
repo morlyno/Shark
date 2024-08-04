@@ -8,35 +8,34 @@ namespace Shark {
 		m_FrameStorage.clear();
 	}
 
-	void PerformanceProfiler::Add(std::string_view descriptor, float duration)
+	void PerformanceProfiler::AddTiming(std::string_view name, float time)
 	{
-		FrameData* storage = GetStorage(descriptor);
-		storage->Descriptor = descriptor;
-		storage->Duration += duration;
+		if (!m_FrameStorage.contains(name))
+			m_FrameStorage[name] = { 0.0f, 0 };
+
+		auto& perFrameData = m_FrameStorage.at(name);
+		perFrameData.Time += time;
+		perFrameData.Samples++;
 	}
 
-	FrameData* PerformanceProfiler::GetStorage(std::string_view descriptor)
+	ProfilerEvent::ProfilerEvent(PerformanceProfiler* profiler, std::string_view name)
 	{
-		return &m_FrameStorage[descriptor];
-	}
+		if (!profiler)
+			return;
 
-	ProfilerEvent::ProfilerEvent(PerformanceProfiler* profiler, std::string_view descriptor)
-	{
-		if (profiler)
-		{
-			Storage = profiler->GetStorage(descriptor);
-			Storage->Descriptor = descriptor;
-			m_Start = Platform::GetTicks();
-		}
+		m_Profiler = profiler;
+		m_Name = name;
+		m_StartTime = Platform::GetTicks();
 	}
 
 	ProfilerEvent::~ProfilerEvent()
 	{
-		if (Storage)
-		{
-			m_Stop = Platform::GetTicks();
-			Storage->Duration += (float)(m_Stop - m_Start) / (float)Platform::GetTicksPerSecond();
-		}
+		if (!m_Profiler)
+			return;
+
+		uint64_t stopTime = Platform::GetTicks();
+		float time = (float)(stopTime - m_StartTime) / (float)Platform::GetTicksPerSecond();
+		m_Profiler->AddTiming(m_Name, time);
 	}
 
 }

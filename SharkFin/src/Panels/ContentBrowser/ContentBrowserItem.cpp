@@ -139,8 +139,11 @@ namespace Shark {
 		//==================================//
 		//= Draw Background ================//
 
-		UI::DrawBackground(propertyRect, UI::Colors::Theme::BackgroundPopup, cornerRounding, ImDrawFlags_RoundCornersBottom);
-		UI::DrawBorder(propertyRect, UI::Colors::Theme::BackgroundDark, cornerRounding, ImDrawFlags_RoundCornersBottom);
+		if (m_Type == CBItemType::Asset)
+		{
+			UI::DrawBackground(propertyRect, UI::Colors::Theme::BackgroundPopup, cornerRounding, ImDrawFlags_RoundCornersBottom);
+			UI::DrawBorder(propertyRect, UI::Colors::Theme::BackgroundDark, cornerRounding, ImDrawFlags_RoundCornersBottom);
+		}
 
 		//==================================//
 		//= Draw Thumbnail =================//
@@ -186,7 +189,7 @@ namespace Shark {
 				action.SetFlag(CBItemActionFlag::Select);
 		}
 
-		UI::MoveCursorY(-propertyRect.GetHeight());
+		UI::ShiftCursorY(-propertyRect.GetHeight());
 
 		//==================================//
 		//= Draw Property ==================//
@@ -213,6 +216,11 @@ namespace Shark {
 
 			ImGui::SetNextItemWidth(thumbnailSize - thumbnailBorderSize * 2.0f - style.FramePadding.x * 2.0f);
 
+			if (m_Type == CBItemType::Directory)
+			{
+
+			}
+
 			UI::InputFileName("##rename", m_RenameBuffer, (int)std::size(m_RenameBuffer), invalidInput);
 
 			if (invalidInput)
@@ -225,13 +233,21 @@ namespace Shark {
 		}
 		else
 		{
-			ImGui::Text(m_Name.c_str());
+			if (m_Type == CBItemType::Directory)
+			{
+				UI::DrawTextAligned(m_Name, ImVec2(0.5f, 0.5f), propertyRect);
+			}
+			else
+			{
+				ImGui::Text(m_Name.c_str());
+			}
 		}
 
 		// Item Type
+		if (m_Type == CBItemType::Asset)
 		{
 			ImVec2 textSize = ImGui::CalcTextSize(m_TypeName.c_str(), m_TypeName.c_str() + m_TypeName.size());
-			UI::MoveCursorX(thumbnailSize - textSize.x - style.FramePadding.x * 2.0f);
+			UI::ShiftCursorX(thumbnailSize - textSize.x - style.FramePadding.x * 2.0f);
 
 			UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextDarker);
 			ImGui::Text(m_TypeName.c_str());
@@ -254,7 +270,7 @@ namespace Shark {
 
 		ImGui::PopStyleVar();
 
-		UI::MoveCursorY(style.ItemSpacing.y);
+		UI::SetCursorScreenPosY(itemRect.Max.y);
 		ImGui::Dummy({ 0, 0 });
 
 		return action;

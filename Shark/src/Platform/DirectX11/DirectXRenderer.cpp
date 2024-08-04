@@ -25,7 +25,7 @@
 #include <dxgi1_3.h>
 #include <dxgidebug.h>
 
-#if SK_ENABLE_VALIDATION && false
+#if SK_ENABLE_GPU_VALIDATION && false
 #define DX11_VALIDATE_CONTEXT(ctx) DirectXRenderer::Get()->GetDebug()->ValidateContext(ctx);
 #else
 #define DX11_VALIDATE_CONTEXT(ctx)
@@ -72,16 +72,10 @@ namespace Shark {
 
 	DirectXRenderer::DirectXRenderer()
 	{
-		SK_PROFILE_FUNCTION();
-
-		Init();
 	}
 
 	DirectXRenderer::~DirectXRenderer()
 	{
-		SK_PROFILE_FUNCTION();
-
-		ShutDown();
 	}
 
 	void DirectXRenderer::Init()
@@ -170,6 +164,7 @@ namespace Shark {
 
 		m_FrequencyQuery = nullptr;
 		m_ClampLinearSampler = nullptr;
+		m_ResourceCreated = false;
 		SK_CORE_WARN_TAG("Renderer", "DirectXRenderer destroyed");
 	}
 
@@ -577,14 +572,115 @@ namespace Shark {
 		CopyImage(commandBuffer, renderPass->GetOutput(0), destinationImage);
 	}
 
+	void DirectXRenderer::RT_EquirectangularToCubemap(Ref<DirectXTexture2D> equirect, Ref<DirectXTextureCube> unfiltered, uint32_t cubemapSize)
+	{
+		SK_PROFILE_SCOPED("Equirectangular Conversion");
+		auto device = DirectXContext::GetCurrentDevice();
+		auto* cmd = device->AllocateCommandBuffer();
+
+		Ref<DirectXShader> equirectangularConversionShader = Renderer::GetShaderLibrary()->Get("EquirectangularToCubeMap").As<DirectXShader>();
+
+		const auto& equirectImageInfo = equirect->GetDirectXImageInfo();
+		const auto& equirectTexInfo = equirectangularConversionShader->GetResourceInfo("u_EquirectangularTex");
+		cmd->CSSetShaderResources(equirectTexInfo.DXBinding, 1, &equirectImageInfo.View);
+		cmd->CSSetSamplers(equirectTexInfo.DXSamplerBinding, 1, &equirectImageInfo.Sampler);
+
+		unfiltered->GetImage().As<DirectXImage2D>()->RT_CreateUnorderAccessView(0);
+		const auto& cubeMapInfo = equirectangularConversionShader->GetResourceInfo("o_CubeMap");
+		cmd->CSSetUnorderedAccessViews(cubeMapInfo.DXBinding, 1, &unfiltered->GetUAV(0), nullptr);
+
+		cmd->CSSetShader(equirectangularConversionShader->m_ComputeShader, nullptr, 0);
+		cmd->Dispatch(cubemapSize / 32, cubemapSize / 32, 6);
+
+		ID3D11UnorderedAccessView* nullUAV = nullptr;
+		cmd->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
+		device->FlushCommandBuffer(cmd);
+
+		Renderer::RT_GenerateMips(unfiltered->GetImage());
+	}
+
+	void DirectXRenderer::RT_EnvironmentMipFilter(Ref<DirectXTextureCube> unfiltered, Ref<DirectXTextureCube> filtered, uint32_t cubemapSize)
+	{
+		SK_PROFILE_SCOPED("Environment Mip Filter");
+		auto device = DirectXContext::GetCurrentDevice();
+		auto cmd = device->AllocateCommandBuffer();
+		const uint32_t mipCount = ImageUtils::CalcMipLevels(cubemapSize, cubemapSize);
+
+		Ref<DirectXShader> environmentMipFilterShader = Renderer::GetShaderLibrary()->Get("EnvironmentMipFilter").As<DirectXShader>();
+		filtered->GetImage().As<DirectXImage2D>()->RT_CreatePerMipUAV();
+
+		const auto& bufferInfo = environmentMipFilterShader->GetPushConstantInfo();
+		Ref<DirectXConstantBuffer> constantBuffer = Ref<DirectXConstantBuffer>::Create(bufferInfo.StructSize);
+
+		const float deltaRoughness = 1.0f / glm::max((float)filtered->GetMipLevelCount() - 1.0f, 1.0f);
+		for (uint32_t i = 0, size = cubemapSize; i < mipCount; i++, size /= 2)
+		{
+			Ref<DirectXImageView> envUnfilterImageView = Ref<DirectXImageView>::Create(unfiltered->GetImage(), i);
+
+			uint32_t numGroup = glm::max(1u, size / 32);
+			float roughness = glm::max(i * deltaRoughness, 0.05f);
+
+			const auto& inputTexInfo = environmentMipFilterShader->GetResourceInfo("inputTexture");
+			cmd->CSSetShaderResources(inputTexInfo.DXBinding, 1, &envUnfilterImageView->m_View);
+			cmd->CSSetSamplers(inputTexInfo.DXSamplerBinding, 1, &unfiltered->GetDirectXImageInfo().Sampler);
+
+			const auto& outputTexInfo = environmentMipFilterShader->GetResourceInfo("outputTexture");
+			cmd->CSSetUnorderedAccessViews(outputTexInfo.DXBinding, 1, &filtered->GetUAV(i), nullptr);
+
+			cmd->CSSetShader(environmentMipFilterShader->m_ComputeShader, nullptr, 0);
+			constantBuffer->RT_UploadData(Buffer::FromValue(roughness));
+			cmd->Dispatch(numGroup, numGroup, 6);
+
+			ID3D11UnorderedAccessView* nullUAV = nullptr;
+			cmd->CSSetUnorderedAccessViews(outputTexInfo.DXBinding, 1, &nullUAV, nullptr);
+		}
+
+		device->FlushCommandBuffer(cmd);
+	}
+
+	void DirectXRenderer::RT_EnvironmentIrradiance(Ref<DirectXTextureCube> filtered, Ref<DirectXTextureCube> irradiance, uint32_t cubemapSize)
+	{
+		SK_PROFILE_SCOPED("Environment Irradiance");
+		auto device = DirectXContext::GetCurrentDevice();
+		auto cmd = device->AllocateCommandBuffer();
+
+		Ref<DirectXShader> environmentIrradianceShader = Renderer::GetShaderLibrary()->Get("EnvironmentIrradiance").As<DirectXShader>();
+		irradiance->GetImage().As<DirectXImage2D>()->RT_CreateUnorderAccessView(0);
+
+		const auto& envFilteredImageInfo = filtered->GetDirectXImageInfo();
+		const auto& radianceMapInfo = environmentIrradianceShader->GetResourceInfo("u_RadianceMap");
+		cmd->CSSetShaderResources(radianceMapInfo.DXBinding, 1, &envFilteredImageInfo.View);
+		cmd->CSSetSamplers(radianceMapInfo.DXSamplerBinding, 1, &envFilteredImageInfo.Sampler);
+
+		const auto& irradianceMapInfo = environmentIrradianceShader->GetResourceInfo("o_IrradianceMap");
+		cmd->CSSetUnorderedAccessViews(irradianceMapInfo.DXBinding, 1, &irradiance->GetUAV(0), nullptr);
+
+		Ref<DirectXConstantBuffer> samplesBuffer = Ref<DirectXConstantBuffer>::Create();
+		const auto& bufferInfo = environmentIrradianceShader->GetResourceInfo("u_Uniforms");
+		samplesBuffer->SetSize(bufferInfo.StructSize);
+		samplesBuffer->RT_Invalidate();
+		samplesBuffer->RT_UploadData(Buffer::FromValue(Renderer::GetConfig().IrradianceMapComputeSamples));
+		cmd->CSSetConstantBuffers(bufferInfo.DXBinding, 1, &samplesBuffer->m_ConstantBuffer);
+
+		cmd->CSSetShader(environmentIrradianceShader->m_ComputeShader, nullptr, 0);
+		cmd->Dispatch(irradiance->GetWidth() / 32, irradiance->GetHeight() / 32, 6);
+
+		ID3D11UnorderedAccessView* nullUAV = nullptr;
+		cmd->CSSetUnorderedAccessViews(irradianceMapInfo.DXBinding, 1, &nullUAV, nullptr);
+
+		device->FlushCommandBuffer(cmd);
+
+		Renderer::RT_GenerateMips(irradiance->GetImage());
+	}
+
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> DirectXRenderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_FUNCTION();
 		const uint32_t cubemapSize = Renderer::GetConfig().EnvironmentMapResolution;
 		const uint32_t irradianceMapSize = 32;
 
-		Ref<Texture2D> envEquirect = Texture2D::Create(TextureSpecification(), filepath);
-		SK_CORE_VERIFY(envEquirect->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
+		Ref<Texture2D> equirectangular = Texture2D::Create(TextureSpecification(), filepath);
+		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
 
 		TextureSpecification cubemapSpec;
 		cubemapSpec.Format = ImageFormat::RGBA32F;
@@ -592,132 +688,57 @@ namespace Shark {
 		cubemapSpec.Height = cubemapSize;
 		cubemapSpec.GenerateMips = true;
 
-		cubemapSpec.DebugName = fmt::format("EnvironmentMap {}", filepath);
-		Ref<TextureCube> envUnfiltered = TextureCube::Create(cubemapSpec);
-		Ref<TextureCube> envFiltered = TextureCube::Create(cubemapSpec);
-
-		Ref<Shader> equirectangularConversionShader = Renderer::GetShaderLibrary()->Get("EquirectangularToCubeMap");
-
-		Renderer::Submit([equirectangularConversionShader, envEquirect, envUnfiltered, cubemapSize]()
-		{
-			SK_PROFILE_SCOPED("Equirectangular Conversion");
-			auto device = DirectXContext::GetCurrentDevice();
-			auto* cmd = device->AllocateCommandBuffer();
-
-			Ref<DirectXShader> shader = equirectangularConversionShader.As<DirectXShader>();
-
-			Ref<DirectXTexture2D> equirect = envEquirect.As<DirectXTexture2D>();
-			const auto& equirectImageInfo = equirect->GetDirectXImageInfo();
-			const auto& equirectTexInfo = equirectangularConversionShader->GetResourceInfo("u_EquirectangularTex");
-			cmd->CSSetShaderResources(equirectTexInfo.DXBinding, 1, &equirectImageInfo.View);
-			cmd->CSSetSamplers(equirectTexInfo.DXSamplerBinding, 1, &equirectImageInfo.Sampler);
-
-			Ref<DirectXTextureCube> dxEnvCubemap = envUnfiltered.As<DirectXTextureCube>();
-			dxEnvCubemap->GetImage().As<DirectXImage2D>()->RT_CreateUnorderAccessView(0);
-			const auto& cubeMapInfo = equirectangularConversionShader->GetResourceInfo("o_CubeMap");
-			cmd->CSSetUnorderedAccessViews(cubeMapInfo.DXBinding, 1, &dxEnvCubemap->GetUAV(0), nullptr);
-
-			cmd->CSSetShader(shader->m_ComputeShader, nullptr, 0);
-			cmd->Dispatch(cubemapSize / 32, cubemapSize / 32, 6);
-
-			ID3D11UnorderedAccessView* nullUAV = nullptr;
-			cmd->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
-			device->FlushCommandBuffer(cmd);
-
-			Renderer::RT_GenerateMips(dxEnvCubemap->GetImage());
-		});
-
-		Ref<Shader> environmentMipFilterShader = Renderer::GetShaderLibrary()->Get("EnvironmentMipFilter");
-
-		Renderer::Submit([environmentMipFilterShader, envUnfiltered, envFiltered, cubemapSize]()
-		{
-			SK_PROFILE_SCOPED("Environment Mip Filter");
-			auto device = DirectXContext::GetCurrentDevice();
-			auto cmd = device->AllocateCommandBuffer();
-
-			Ref<DirectXShader> shader = environmentMipFilterShader.As<DirectXShader>();
-
-			Ref<DirectXTextureCube> envUnfilteredCubemap = envUnfiltered.As<DirectXTextureCube>();
-			Ref<DirectXTextureCube> envFilteredCubemap = envFiltered.As<DirectXTextureCube>();
-			envFilteredCubemap->GetImage().As<DirectXImage2D>()->RT_CreatePerMipUAV();
-
-			uint32_t mipCount = ImageUtils::CalcMipLevels(cubemapSize, cubemapSize);
-
-			const auto& bufferInfo = environmentMipFilterShader->GetPushConstantInfo();
-			Ref<DirectXConstantBuffer> constantBuffer = Ref<DirectXConstantBuffer>::Create(bufferInfo.StructSize);
-
-			const float deltaRoughness = 1.0f / glm::max((float)envFiltered->GetMipLevelCount() - 1.0f, 1.0f);
-			for (uint32_t i = 0, size = cubemapSize; i < mipCount; i++, size /= 2)
-			{
-				Ref<DirectXImageView> envUnfilterImageView = Ref<DirectXImageView>::Create(envUnfiltered->GetImage(), i);
-
-				uint32_t numGroup = glm::max(1u, size / 32);
-				float roughness = glm::max(i * deltaRoughness, 0.05f);
-
-				const auto& inputTexInfo = environmentMipFilterShader->GetResourceInfo("inputTexture");
-				cmd->CSSetShaderResources(inputTexInfo.DXBinding, 1, &envUnfilterImageView->m_View);
-				cmd->CSSetSamplers(inputTexInfo.DXSamplerBinding, 1, &envUnfilteredCubemap->GetDirectXImageInfo().Sampler);
-
-				const auto& outputTexInfo = environmentMipFilterShader->GetResourceInfo("outputTexture");
-				cmd->CSSetUnorderedAccessViews(outputTexInfo.DXBinding, 1, &envFilteredCubemap->GetUAV(i), nullptr);
-
-				cmd->CSSetShader(shader->m_ComputeShader, nullptr, 0);
-				constantBuffer->RT_UploadData(Buffer::FromValue(roughness));
-				cmd->Dispatch(numGroup, numGroup, 6);
-
-				ID3D11UnorderedAccessView* nullUAV = nullptr;
-				cmd->CSSetUnorderedAccessViews(outputTexInfo.DXBinding, 1, &nullUAV, nullptr);
-			}
-
-			device->FlushCommandBuffer(cmd);
-		});
-
-		Ref<Shader> environmentIrradianceShader = Renderer::GetShaderLibrary()->Get("EnvironmentIrradiance");
+		cubemapSpec.DebugName = fmt::format("EnvironmentMap Unfiltered {}", filepath);
+		Ref<TextureCube> unfiltered = TextureCube::Create(cubemapSpec);
+		cubemapSpec.DebugName = fmt::format("EnvironmentMap Filtered {}", filepath);
+		Ref<TextureCube> filtered = TextureCube::Create(cubemapSpec);
 
 		cubemapSpec.Width = irradianceMapSize;
 		cubemapSpec.Height = irradianceMapSize;
 		cubemapSpec.DebugName = fmt::format("IrradianceMap {}", filepath);
 		Ref<TextureCube> irradianceMap = TextureCube::Create(cubemapSpec);
 
-		Renderer::Submit([environmentIrradianceShader, irradianceMap, envFiltered]()
+		Ref<DirectXRenderer> instance = this;
+		Renderer::Submit([instance, equirectangular, unfiltered, filtered, irradianceMap, cubemapSize]()
 		{
-			SK_PROFILE_SCOPED("Environment Irradiance");
-			auto device = DirectXContext::GetCurrentDevice();
-			auto cmd = device->AllocateCommandBuffer();
-
-			Ref<DirectXShader> shader = environmentIrradianceShader.As<DirectXShader>();
-			
-			Ref<DirectXTextureCube> envCubemap = envFiltered.As<DirectXTextureCube>();
-			Ref<DirectXTextureCube> irradianceCubemap = irradianceMap.As<DirectXTextureCube>();
-			irradianceCubemap->GetImage().As<DirectXImage2D>()->RT_CreateUnorderAccessView(0);
-
-			const auto& envFilteredImageInfo = envCubemap->GetDirectXImageInfo();
-			const auto& radianceMapInfo = environmentIrradianceShader->GetResourceInfo("u_RadianceMap");
-			cmd->CSSetShaderResources(radianceMapInfo.DXBinding, 1, &envFilteredImageInfo.View);
-			cmd->CSSetSamplers(radianceMapInfo.DXSamplerBinding, 1, &envFilteredImageInfo.Sampler);
-
-			const auto& irradianceMapInfo = environmentIrradianceShader->GetResourceInfo("o_IrradianceMap");
-			cmd->CSSetUnorderedAccessViews(irradianceMapInfo.DXBinding, 1, &irradianceCubemap->GetUAV(0), nullptr);
-
-			Ref<DirectXConstantBuffer> samplesBuffer = Ref<DirectXConstantBuffer>::Create();
-			const auto& bufferInfo = environmentIrradianceShader->GetResourceInfo("u_Uniforms");
-			samplesBuffer->SetSize(bufferInfo.StructSize);
-			samplesBuffer->RT_Invalidate();
-			samplesBuffer->RT_UploadData(Buffer::FromValue(Renderer::GetConfig().IrradianceMapComputeSamples));
-			cmd->CSSetConstantBuffers(bufferInfo.DXBinding, 1, &samplesBuffer->m_ConstantBuffer);
-
-			cmd->CSSetShader(shader->m_ComputeShader, nullptr, 0);
-			cmd->Dispatch(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
-
-			ID3D11UnorderedAccessView* nullUAV = nullptr;
-			cmd->CSSetUnorderedAccessViews(irradianceMapInfo.DXBinding, 1, &nullUAV, nullptr);
-
-			device->FlushCommandBuffer(cmd);
-
-			Renderer::RT_GenerateMips(irradianceMap->GetImage());
+			instance->RT_EquirectangularToCubemap(equirectangular.As<DirectXTexture2D>(), unfiltered.As<DirectXTextureCube>(), cubemapSize);
+			instance->RT_EnvironmentMipFilter(unfiltered.As<DirectXTextureCube>(), filtered.As<DirectXTextureCube>(), cubemapSize);
+			instance->RT_EnvironmentIrradiance(filtered.As<DirectXTextureCube>(), irradianceMap.As<DirectXTextureCube>(), cubemapSize);
 		});
 
-		return { envFiltered, irradianceMap };
+		return { filtered, irradianceMap };
+	}
+
+	std::pair<Ref<TextureCube>, Ref<TextureCube>> DirectXRenderer::RT_CreateEnvironmentMap(const std::filesystem::path& filepath)
+	{
+		SK_PROFILE_FUNCTION();
+		const uint32_t cubemapSize = Renderer::GetConfig().EnvironmentMapResolution;
+		const uint32_t irradianceMapSize = 32;
+
+		Ref<Texture2D> equirectangular = Texture2D::Create(TextureSpecification(), filepath);
+		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
+
+		TextureSpecification cubemapSpec;
+		cubemapSpec.Format = ImageFormat::RGBA32F;
+		cubemapSpec.Width = cubemapSize;
+		cubemapSpec.Height = cubemapSize;
+		cubemapSpec.GenerateMips = true;
+
+		cubemapSpec.DebugName = fmt::format("EnvironmentMap Unfiltered {}", filepath);
+		Ref<TextureCube> unfiltered = TextureCube::Create(cubemapSpec);
+		cubemapSpec.DebugName = fmt::format("EnvironmentMap Filtered {}", filepath);
+		Ref<TextureCube> filtered = TextureCube::Create(cubemapSpec);
+
+		cubemapSpec.Width = irradianceMapSize;
+		cubemapSpec.Height = irradianceMapSize;
+		cubemapSpec.DebugName = fmt::format("IrradianceMap {}", filepath);
+		Ref<TextureCube> irradianceMap = TextureCube::Create(cubemapSpec);
+
+		RT_EquirectangularToCubemap(equirectangular.As<DirectXTexture2D>(), unfiltered.As<DirectXTextureCube>(), cubemapSize);
+		RT_EnvironmentMipFilter(unfiltered.As<DirectXTextureCube>(), filtered.As<DirectXTextureCube>(), cubemapSize);
+		RT_EnvironmentIrradiance(filtered.As<DirectXTextureCube>(), irradianceMap.As<DirectXTextureCube>(), cubemapSize);
+
+		return { filtered, irradianceMap };
 	}
 
 	Ref<Texture2D> DirectXRenderer::CreateBRDFLUT()

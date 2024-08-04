@@ -667,7 +667,7 @@ namespace Shark {
 		VERIFY_HRESULT(hResult, "Failed to create DXC Utils");
 
 		CComPtr<IDxcBlobEncoding> sourceBlob;
-		hResult = utils->CreateBlob(m_ShaderSource.at(stage).data(), m_ShaderSource.at(stage).size(), DXC_CP_ACP, &sourceBlob);
+		hResult = utils->CreateBlob(m_ShaderSource.at(stage).data(), (UINT32)m_ShaderSource.at(stage).size(), DXC_CP_ACP, &sourceBlob);
 		VERIFY_HRESULT(hResult, "Failed to create DXC Blob");
 
 #undef VERIFY_HRESULT
@@ -700,7 +700,7 @@ namespace Shark {
 		buffer.Size = sourceBlob->GetBufferSize();
 
 		CComPtr<IDxcResult> result = nullptr;
-		hResult = compiler->Compile(&buffer, arguments.data(), arguments.size(),
+		hResult = compiler->Compile(&buffer, arguments.data(), (UINT32)arguments.size(),
 									nullptr, IID_PPV_ARGS(&result));
 
 		result->GetStatus(&hResult);

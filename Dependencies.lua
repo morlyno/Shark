@@ -55,7 +55,7 @@ fmt = {
     BaseDir = "%{wks.location}/Shark/dependencies/fmt",
     IncludeDir = "%{fmt.BaseDir}/include",
     Files = { "%{fmt.BaseDir}/include/fmt/*.h" },
-    Defines = { "FMT_HEADER_ONLY" }
+    Defines = { "FMT_HEADER_ONLY", "FMT_UNICODE=0" }
 }
 
 glm = {

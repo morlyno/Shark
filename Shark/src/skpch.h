@@ -29,6 +29,7 @@
 
 #include <fmt/format.h>
 #include <fmt/chrono.h>
+#include <fmt/std.h>
 
 #define GLM_ENABLE_EXPERIMENTAL 1
 #include <glm/glm.hpp>

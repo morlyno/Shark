@@ -87,7 +87,6 @@ namespace Shark {
 	void DirectXConstantBuffer::RT_UploadData(Buffer data)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
 		SK_PERF_SCOPED("ConstantBuffer map memory");
 
 		auto device = DirectXContext::GetCurrentDevice();

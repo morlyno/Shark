@@ -370,6 +370,11 @@ namespace Shark::UI {
 		DrawButton(text, ImVec2(0.0f, 0.5f), rect);
 	}
 
+	void DrawTextAligned(std::string_view text, ImVec2 align, ImRect rect)
+	{
+		ImGui::RenderTextClipped(rect.Min, rect.Max, text.data(), text.data() + text.length(), nullptr, align);
+	}
+
 	void DrawButtonFrame(ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed)
 	{
 		DrawButtonFrame(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), tintNormal, tintHovered, tintPressed);
@@ -530,7 +535,7 @@ namespace Shark::UI {
 			ImGui::SameLine(0.0f, 0.0f);
 
 			const auto& style = ImGui::GetStyle();
-			UI::MoveCursorX(-(ImGui::GetFontSize() + style.FramePadding.x * 0.5f));
+			UI::ShiftCursorX(-(ImGui::GetFontSize() + style.FramePadding.x * 0.5f));
 
 			UI::ScopedID buttonID(textID, nullptr);
 			const float buttonSize = ImGui::GetFontSize();

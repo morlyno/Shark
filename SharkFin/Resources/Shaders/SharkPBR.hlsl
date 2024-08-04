@@ -101,29 +101,31 @@ struct Scene
 [[vk::binding(2, 1)]] StructuredBuffer<PointLight> u_PointLights;
 [[vk::binding(3, 1)]] StructuredBuffer<DirectionalLight> u_DirectionalLights;
 
+#define SAMPLER(_textureName) _ ## _textureName ## _sampler
+
 [[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_IrradianceMap;
-[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_IrradianceMapSampler;
+[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_IrradianceMap);
 
 [[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_RadianceMap;
-[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_RadianceMapSampler;
+[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_RadianceMap);
 
 [[vk::binding(6, 1)]][[vk::combinedImageSampler]] uniform Texture2D u_BRDFLUTTexture;
-[[vk::binding(6, 1)]][[vk::combinedImageSampler]] uniform SamplerState u_BRDFLUTTextureSampler;
+[[vk::binding(6, 1)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_BRDFLUTTexture);
 
 
 [[vk::binding(0, 0)]] ConstantBuffer<MaterialUniforms> u_MaterialUniforms;
 
 [[vk::binding(1, 0)]][[vk::combinedImageSampler]] uniform Texture2D u_AlbedoMap;
-[[vk::binding(1, 0)]][[vk::combinedImageSampler]] uniform SamplerState u_AlbedoMapSampler;
+[[vk::binding(1, 0)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_AlbedoMap);
 
 [[vk::binding(2, 0)]][[vk::combinedImageSampler]] uniform Texture2D u_NormalMap;
-[[vk::binding(2, 0)]][[vk::combinedImageSampler]] uniform SamplerState u_NormalMapSampler;
+[[vk::binding(2, 0)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_NormalMap);
 
 [[vk::binding(3, 0)]][[vk::combinedImageSampler]] uniform Texture2D u_MetalnessMap;
-[[vk::binding(3, 0)]][[vk::combinedImageSampler]] uniform SamplerState u_MetalnessMapSampler;
+[[vk::binding(3, 0)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_MetalnessMap);
 
 [[vk::binding(4, 0)]][[vk::combinedImageSampler]] uniform Texture2D u_RoughnessMap;
-[[vk::binding(4, 0)]][[vk::combinedImageSampler]] uniform SamplerState u_RoughnessMapSampler;
+[[vk::binding(4, 0)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_RoughnessMap);
 
 
 struct PixelInput
@@ -192,7 +194,7 @@ float3 FresnelSchlickRoughness(float3 F0, float cosTheta, float roughness)
 
 float3 IBL(float3 F0)
 {
-    float3 irradiance = u_IrradianceMap.Sample(u_IrradianceMapSampler, m_Params.Normal).rgb;
+    float3 irradiance = u_IrradianceMap.Sample(SAMPLER(u_IrradianceMap), m_Params.Normal).rgb;
     float3 F = FresnelSchlickRoughness(F0, m_Params.NdotV, m_Params.Roughness);
     
     float3 kd = lerp((float3)1.0 - F, (float3)0.0, m_Params.Metalness);
@@ -201,9 +203,9 @@ float3 IBL(float3 F0)
     uint width, height, radianceTexLevels;
     u_RadianceMap.GetDimensions(0, width, height, radianceTexLevels);
     float3 R = 2.0 * m_Params.NdotV * m_Params.Normal - m_Params.View;
-    float3 specularIrradiance = u_RadianceMap.SampleLevel(u_RadianceMapSampler, R, m_Params.Roughness * radianceTexLevels);
+    float3 specularIrradiance = u_RadianceMap.SampleLevel(SAMPLER(u_RadianceMap), R, m_Params.Roughness * radianceTexLevels);
     
-    float2 specularBRDF = u_BRDFLUTTexture.Sample(u_BRDFLUTTextureSampler, float2(m_Params.NdotV, m_Params.Roughness)).rg;
+    float2 specularBRDF = u_BRDFLUTTexture.Sample(SAMPLER(u_BRDFLUTTexture), float2(m_Params.NdotV, m_Params.Roughness)).rg;
     float3 specularIBL = specularIrradiance * (F0 * specularBRDF.x + specularBRDF.y);
     
     return kd * diffuseIBL + specularIBL;
@@ -227,16 +229,16 @@ float LightAttenuation(float distance, float intensity, float radius, float fall
 
 PixelOutput main(PixelInput Input)
 {
-    float4 albedoTexColor = u_AlbedoMap.Sample(u_AlbedoMapSampler, Input.Texcoord);
+    float4 albedoTexColor = u_AlbedoMap.Sample(SAMPLER(u_AlbedoMap), Input.Texcoord);
     m_Params.Albedo = albedoTexColor.rgb * u_MaterialUniforms.Albedo;
-    m_Params.Metalness = u_MetalnessMap.Sample(u_MetalnessMapSampler, Input.Texcoord).b * u_MaterialUniforms.Metalness;
-    m_Params.Roughness = u_RoughnessMap.Sample(u_RoughnessMapSampler, Input.Texcoord).g * u_MaterialUniforms.Roughness;
+    m_Params.Metalness = u_MetalnessMap.Sample(SAMPLER(u_MetalnessMap), Input.Texcoord).b * u_MaterialUniforms.Metalness;
+    m_Params.Roughness = u_RoughnessMap.Sample(SAMPLER(u_RoughnessMap), Input.Texcoord).g * u_MaterialUniforms.Roughness;
     m_Params.Roughness = max(m_Params.Roughness, 0.05);
 
     m_Params.Normal = Input.Normal;
     if (u_MaterialUniforms.UsingNormalMap)
     {
-        m_Params.Normal = normalize(u_NormalMap.Sample(u_NormalMapSampler, Input.Texcoord).rgb * 2.0 - 1.0);
+        m_Params.Normal = normalize(u_NormalMap.Sample(SAMPLER(u_NormalMap), Input.Texcoord).rgb * 2.0 - 1.0);
         m_Params.Normal = normalize(mul(m_Params.Normal, Input.WorldNormals));
     }
 

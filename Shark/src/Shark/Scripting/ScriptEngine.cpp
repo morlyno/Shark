@@ -400,7 +400,7 @@ namespace Shark {
 				if (field.Type == ManagedFieldType::Entity)
 				{
 					UUID entityID = storage->GetValue<UUID>();
-					if (entityID == UUID::Null)
+					if (entityID == UUID::Invalid)
 						continue;
 
 					Entity entity = s_Data->ActiveScene->TryGetEntityByUUID(entityID);
@@ -411,7 +411,7 @@ namespace Shark {
 				if (field.Type == ManagedFieldType::Component)
 				{
 					UUID entityID = storage->GetValue<UUID>();
-					if (entityID == UUID::Null)
+					if (entityID == UUID::Invalid)
 						continue;
 
 					Entity entity = s_Data->ActiveScene->TryGetEntityByUUID(entityID);
@@ -474,7 +474,7 @@ namespace Shark {
 	MonoObject* ScriptEngine::CreateEntity(UUID uuid)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(uuid != UUID::Null);
+		SK_CORE_VERIFY(uuid != UUID::Invalid);
 		MonoObject* object = InstantiateClass(s_Data->EntityClass);
 		mono_runtime_object_init(object);
 

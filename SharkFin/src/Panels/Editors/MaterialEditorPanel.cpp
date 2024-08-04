@@ -37,7 +37,7 @@ namespace Shark {
 		const ImVec2 textureSize = { 64, 64 };
 
 		AsyncLoadResult materialResult = AssetManager::GetAssetAsync<MaterialAsset>(m_MaterialHandle);
-		if (!materialResult)
+		if (!materialResult.Ready)
 			return;
 
 		Ref<MaterialAsset> material = materialResult;
@@ -225,7 +225,7 @@ namespace Shark {
 		skyComp.Lod = 4.5f;
 
 		Entity cameraEntity = m_Scene->CreateEntity("Camera");
-		cameraEntity.AddComponent<CameraComponent>().Camera.SetPerspective(m_ViewportSize.x / m_ViewportSize.y, 45.0f, 0.1f, 100.0f);
+		cameraEntity.AddComponent<CameraComponent>(true);
 		cameraEntity.Transform().Translation.z = -5.0f;
 
 		m_Scene->SetActiveCamera(cameraEntity.GetUUID());

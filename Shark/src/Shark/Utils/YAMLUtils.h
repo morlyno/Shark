@@ -115,7 +115,7 @@ namespace YAML {
 	{
 		static Node encode(const Shark::UUID& uuid)
 		{
-			return Node((uint64_t)uuid);
+			return Node(uuid.Value());
 		}
 
 		static bool decode(const Node& node, Shark::UUID& rhs)

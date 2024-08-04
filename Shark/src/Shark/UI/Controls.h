@@ -69,6 +69,7 @@ namespace Shark::UI {
 	bool ControlCombo(std::string_view label, uint32_t& index, const std::string_view items[], uint32_t itemsCount);
 	bool ControlCombo(std::string_view label, uint16_t& index, const std::string_view items[], uint32_t itemsCount);
 	bool ControlCombo(std::string_view label, int& index, const std::string_view items[], uint32_t itemsCount);
+	bool ControlCombo(std::string_view label, bool& value, const std::string_view falseValue, const std::string_view trueValue);
 
 	template<typename TFunc>
 	bool ControlCombo(std::string_view label, std::string_view preview, const TFunc& func);

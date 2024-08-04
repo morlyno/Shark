@@ -112,6 +112,7 @@ namespace Shark {
 			SK_PROFILE_MAIN_FRAME();
 
 			Timer cpuTimer;
+			TimeStep waitAndRenderTime;
 
 			AssetManager::SyncWithAssetThread();
 
@@ -120,7 +121,11 @@ namespace Shark {
 
 			if (!m_Minimized)
 			{
-				Renderer::WaitAndRender();
+				{
+					Timer waitAndRenderTimer;
+					Renderer::WaitAndRender();
+					waitAndRenderTime = waitAndRenderTimer.Elapsed();
+				}
 				Renderer::BeginFrame();
 
 				for (auto& layer : m_LayerStack)
@@ -136,7 +141,7 @@ namespace Shark {
 				Application* app = this;
 				Renderer::Submit([app]() { app->m_Window->SwapBuffers(); });
 
-				m_CPUTime = cpuTimer.Elapsed();
+				m_CPUTime = cpuTimer.Elapsed() - waitAndRenderTime;
 				m_GPUTime = Renderer::GetRendererAPI()->GetGPUTime();
 			}
 

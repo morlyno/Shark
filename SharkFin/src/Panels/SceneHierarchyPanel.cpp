@@ -153,8 +153,9 @@ namespace Shark {
 		{
 			Entity firstEntity = entities[0];
 			const auto& firstComponent = firstEntity.GetComponent<TComp>();
-			for (Entity entity : entities)
+			for (uint32_t i = 1; i < entities.size(); i++)
 			{
+				Entity entity = entities[i];
 				const auto& comp = entity.GetComponent<TComp>();
 				if (!equalFunc(firstComponent, comp))
 				{
@@ -169,8 +170,9 @@ namespace Shark {
 		{
 			Entity firstEntity = entities[0];
 			const auto& firstComponent = firstEntity.GetComponent<TComp>();
-			for (Entity entity : entities)
+			for (uint32_t i = 1; i < entities.size(); i++)
 			{
+				Entity entity = entities[i];
 				const auto& comp = entity.GetComponent<TComp>();
 				if (firstComponent.*member != comp.*member)
 				{
@@ -211,6 +213,22 @@ namespace Shark {
 				transformFunc(firstComponent.*member, comp.*member);
 			}
 		}
+		
+		template<typename TComp, typename TFunc>
+		static void Unify(const std::vector<Entity>& entities, const TFunc& transformFunc)
+		{
+			if (entities.size() <= 1)
+				return;
+
+			Entity firstEntity = entities[0];
+			const auto& firstComponent = firstEntity.GetComponent<TComp>();
+			for (uint32_t i = 1; i < entities.size(); i++)
+			{
+				Entity entity = entities[i];
+				auto& comp = entity.GetComponent<TComp>();
+				transformFunc(firstComponent, comp);
+			}
+		}
 
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
 		template<typename TComponent, typename TMemberType, typename TFunc>
@@ -235,6 +253,18 @@ namespace Shark {
 			requires HasReturnType<TEqualFunc, bool, const TComponent&, const TComponent&>
 		{
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsMixedValue<TComponent>(entities, equalFunc));
+			Entity firstEntity = entities[0];
+			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
+			uiFunc(firstComponent, entities);
+		}
+
+		// equalFunc: bool(const TComponent& first, const TCompnoent& other)
+		// uiFunc: void(const TComponent& first, const std::vector<Entity>& entities)
+		template<typename TComponent, typename TMemberType, typename TFunc>
+		static void MultiselectNoTransform(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc)
+			requires std::is_member_pointer_v<decltype(member)>
+		{
+			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsMixedValue(entities, member));
 			Entity firstEntity = entities[0];
 			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
 			uiFunc(firstComponent, entities);
@@ -282,8 +312,6 @@ namespace Shark {
 
 		m_MaterialEditor = Scope<MaterialEditor>::Create();
 		m_MaterialEditor->SetName("Material");
-
-		UpdateMaterialEditor(Entity());
 	}
 
 	void SceneHierarchyPanel::OnImGuiRender(bool& shown)
@@ -295,51 +323,36 @@ namespace Shark {
 
 		if (ImGui::Begin(m_PanelName.c_str(), &shown) && m_Context)
 		{
-			m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
-			if (SelectionContext::AnySelected())
-			{
-				if (SelectionContext::IsMultiSelection())
-				{
-					const auto& entities = SelectionContext::GetSelected();
-					if (utils::AllHaveComponent<MeshComponent>(entities))
-					{
-						if (!utils::IsMixedValue(entities, &MeshComponent::Material))
-						{
-							Entity first = SelectionContext::GetFirstSelected();
-							const auto& meshComponent = first.GetComponent<MeshComponent>();
-							m_MaterialEditor->SetMaterial(meshComponent.Material);
-						}
-					}
-				}
-				else
-				{
-					Entity first = SelectionContext::GetFirstSelected();
-					if (first.AllOf<MeshComponent>())
-					{
-						const auto& meshComponent = first.GetComponent<MeshComponent>();
-						m_MaterialEditor->SetMaterial(meshComponent.Material);
-					}
-				}
-			}
+			UpdateMaterialEditor();
 
-			for (auto [ent] : m_Context->m_Registry.storage<entt::entity>().each())
-			{
-				SK_CORE_ASSERT(m_Context->m_Registry.all_of<RelationshipComponent>(ent));
-				if (!m_Context->m_Registry.all_of<RelationshipComponent>(ent))
-				{
-					SK_CORE_ERROR_TAG("UI", "Invalid entity found");
-					continue;
-				}
+			m_HirachyFocused = ImGui::IsWindowFocused();
 
-				Entity entity{ ent, m_Context };
-				if (!entity.HasParent())
+			{
+				SK_PERF_SCOPED("Draw Entitiy Nodes");
+				auto entities = m_Context->GetAllEntitysWith<RelationshipComponent>();
+				for (auto ent : entities)
+				{
+					const RelationshipComponent& relationship = entities.get<RelationshipComponent>(ent);
+					if (relationship.Parent)
+						continue;
+
+					Entity entity{ ent, m_Context };
 					DrawEntityNode(entity);
+				}
 			}
 
-			if (m_EntityToDestroy)
+			if (m_DeleteSelected)
 			{
-				DestroyEntity(m_EntityToDestroy);
-				m_EntityToDestroy = Entity();
+				for (Entity entity : SelectionContext::GetSelected())
+				{
+					if (!entity)
+						continue;
+
+					DestroyEntity(entity);
+				}
+
+				SelectionContext::Clear();
+				m_DeleteSelected = false;
 			}
 
 			const ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -386,28 +399,55 @@ namespace Shark {
 
 	void SceneHierarchyPanel::OnProjectChanged(Ref<Project> project)
 	{
-		UpdateMaterialEditor(Entity());
+		m_Context = nullptr;
+		m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
+	}
+
+	void SceneHierarchyPanel::SetContext(Ref<Scene> scene)
+	{
+		m_Context = scene;
 	}
 
 	bool SceneHierarchyPanel::OnKeyPressedEvent(KeyPressedEvent& event)
 	{
-		if (event.GetKeyCode() == KeyCode::Delete && (m_HirachyFocused))
-		{
-			const auto& entities = SelectionContext::GetSelected();
-			for (Entity entity : entities)
-			{
-				if (!entity)
-					continue;
+		if (!m_HirachyFocused)
+			return false;
 
-				DestroyEntity(entity);
+		switch (event.GetKeyCode())
+		{
+			case KeyCode::Delete:
+			{
+				const auto& entities = SelectionContext::GetSelected();
+				for (Entity entity : entities)
+					DestroyEntity(entity);
+
+				SelectionContext::Clear();
+				return true;
 			}
-			return true;
+
+			case KeyCode::A:
+			{
+				if (!event.GetModifierKeys().Control)
+					break;
+
+				SelectionContext::Clear();
+				auto entities = m_Context->GetAllEntitysWith<IDComponent>();
+				for (auto ent : entities)
+				{
+					Entity entity(ent, m_Context);
+					SelectionContext::Select(entity);
+				}
+				return true;
+			}
 		}
+
 		return false;
 	}
 
 	void SceneHierarchyPanel::DrawEntityNode(Entity entity)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto& tag = entity.GetComponent<TagComponent>();
 		ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding;
 		if (SelectionContext::IsSelected(entity))
@@ -466,18 +506,6 @@ namespace Shark {
 			}
 		}
 
-		bool wantsDestroy = false;
-
-		if (ImGui::BeginPopupContextItem())
-		{
-			if (ImGui::Selectable("Delete Entity"))
-			{
-				wantsDestroy = true;
-				ImGui::CloseCurrentPopup();
-			}
-			ImGui::EndPopup();
-		}
-
 		if (opened)
 		{
 			for (auto& childID : entity.Children())
@@ -489,11 +517,6 @@ namespace Shark {
 			ImGui::TreePop();
 		}
 
-		if (wantsDestroy)
-		{
-			SK_CORE_VERIFY(!m_EntityToDestroy);
-			m_EntityToDestroy = entity;
-		}
 	}
 	
 	void SceneHierarchyPanel::DrawEntityProperties(const std::vector<Entity>& entities)
@@ -522,32 +545,37 @@ namespace Shark {
 		if (SelectionContext::IsMultiSelection())
 			UI::TextFramed("");
 		else
-			UI::TextFramed("0x%16llx", (uint64_t)firstEntity.GetUUID());
+			UI::TextFramed("0x%16llx", firstEntity.GetUUID().Value());
 
 		ImGui::SameLine();
-		if (ImGui::Button("Add"))
-			ImGui::OpenPopup("Add Component List");
-
-		if (ImGui::BeginPopup("Add Component List"))
+		ImGui::Button("Add");
+		if (ImGui::BeginPopupContextItem("Add Component List", ImGuiPopupFlags_MouseButtonLeft))
 		{
+			if (ImGui::IsWindowAppearing())
+			{
+				m_SearchComponentBuffer[0] = '\0';
+				ImGui::SetKeyboardFocusHere();
+			}
+
 			if (UI::Search(UI::GenerateID(), m_SearchComponentBuffer, sizeof(m_SearchComponentBuffer)))
 			{
-				m_SearchPattern = m_SearchComponentBuffer;
-
-				m_SearchCaseSensitive = false;
-				for (const auto& c : m_SearchPattern)
+				std::string_view pattern = m_SearchComponentBuffer;
+				m_ComponentFilter.SetFilter(std::string(pattern));
+				m_ComponentFilter.SetMode(String::Case::Ingnore);
+				for (const auto& c : pattern)
 				{
 					if (std::isupper(c))
 					{
-						m_SearchCaseSensitive = true;
+						String::Case::Sensitive;
 						break;
 					}
 				}
+
 			}
 
 			for (const auto& [name, add, has] : m_Components)
 			{
-				if (m_SearchPattern.size() && !String::Contains(name, m_SearchPattern, m_SearchCaseSensitive))
+				if (!m_ComponentFilter.PassFilter(name))
 					continue;
 
 				if (ImGui::Selectable(name.data()))
@@ -621,7 +649,7 @@ namespace Shark {
 
 			utils::Multiselect(entities, &SpriteRendererComponent::Color, [](auto& firstComponent, const auto& entities)
 			{
-				return UI::Control("Color", firstComponent.Color);
+				return UI::ControlColor("Color", firstComponent.Color);
 			});
 
 			utils::Multiselect(entities, &SpriteRendererComponent::TextureHandle, [](auto& firstComponent, const auto& entities)
@@ -699,15 +727,10 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 
-			const bool meshChanged = utils::Multiselect(entities, &MeshComponent::Mesh, [](auto& firstComponent, const auto& entities)
+			utils::Multiselect(entities, &MeshComponent::Mesh, [](auto& firstComponent, const auto& entities)
 			{
 				return UI::ControlAsset("Mesh", AssetType::Mesh, firstComponent.Mesh);
 			});
-
-			if (meshChanged)
-			{
-				instance->UpdateMaterialEditor(entities[0]);
-			}
 
 			if (!AssetManager::IsValidAssetHandle(firstComponent.Mesh))
 			{
@@ -724,13 +747,12 @@ namespace Shark {
 
 			if (utils::Multiselect(entities, &MeshComponent::Material, [](auto& firstComponent, const auto& entities) { return UI::ControlAsset("Material", AssetType::Material, firstComponent.Material); }))
 			{
-				instance->UpdateMaterialEditor(entities[0]);
+				instance->m_MaterialEditor->SetMaterial(firstComponent.Material);
 			}
 
 			UI::EndControls();
 
-			utils::Multiselect(entities, &MeshComponent::Visible,
-									  [](auto& firstComponent, const auto& entities) { return ImGui::Checkbox("Visible", &firstComponent.Visible); });
+			utils::Multiselect(entities, &MeshComponent::Visible, [](auto& firstComponent, const auto& entities) { return ImGui::Checkbox("Visible", &firstComponent.Visible); });
 
 		});
 
@@ -826,128 +848,45 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 
-			SceneCamera::Projection projectionType = firstComponent.Camera.GetProjectionType();
-			const bool projectionMixed = utils::IsMixedValue<CameraComponent>(entities, [](const CameraComponent& firstComponent, const CameraComponent& component) { return firstComponent.Camera.GetProjectionType() == component.Camera.GetProjectionType(); });
-			{
-				UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, projectionMixed);
-				
-				const bool changed = UI::ControlCombo("Projection", magic_enum::enum_name(projectionType), [&projectionType]()
-				{
-					const auto& entites = magic_enum::enum_entries<SceneCamera::Projection>();
-					bool changed = false;
-					for (auto&& [value, name] : entites)
-					{
-						if (ImGui::Selectable(name.data(), value == projectionType))
-						{
-							changed = true;
-							projectionType = value;
-						}
-					}
-					return changed;
-				});
+			const bool projectionMixed = utils::IsMixedValue<CameraComponent>(entities, &CameraComponent::IsPerspective);
+			bool changed = false;
 
-				if (changed)
-				{
-					firstComponent.Camera.SetProjectionType(projectionType);
-					utils::UnifyMember(entities, &CameraComponent::Camera, [](const auto& first, auto& other)
-					{
-						other.SetProjectionType(first.GetProjectionType());
-					});
-				}
-			}
+			changed |= utils::Multiselect(entities, &CameraComponent::IsPerspective, [](auto& firstComponent, const auto& entities)
+			{
+				return UI::ControlCombo("Projection", firstComponent.IsPerspective, "Orthographic", "Perspective");
+			});
 
 			ImGui::BeginDisabled(projectionMixed);
-			if (projectionType == SceneCamera::Projection::Perspective)
+			if (firstComponent.IsPerspective)
 			{
-				utils::MultiselectNoTransform<CameraComponent>(entities, [](const auto& first, const auto& other) { return first.Camera.GetPerspectiveFOV() == other.Camera.GetPerspectiveFOV(); },
-															   [](auto& firstComponent, const auto& entities)
+				changed |= utils::Multiselect(entities, &CameraComponent::PerspectiveFOV, [](auto& firstComponent, const auto& entities)
 				{
-					float fov = firstComponent.Camera.GetPerspectiveFOV();
-					if (UI::Control("FOV", fov, 0.1f, 1.0f, 179.0f))
+					float fov = firstComponent.PerspectiveFOV * Math::Rad2Deg;
+					if (UI::Control("Field of View", fov, 0.1f, 1.0f, 179.0f))
 					{
-						for (Entity entity : entities)
-						{
-							auto& component = entity.GetComponent<CameraComponent>();
-							component.Camera.SetPerspectiveFOV(fov);
-						}
+						firstComponent.PerspectiveFOV = fov * Math::Deg2Rad;
+						return true;
 					}
+					return false;
 				});
-
-				utils::MultiselectNoTransform<CameraComponent>(entities, [](const auto& first, const auto& other) { return first.Camera.GetPerspectiveNear() == other.Camera.GetPerspectiveNear(); },
-															   [](auto& firstComponent, const auto& entities)
-				{
-					float clipnear = firstComponent.Camera.GetPerspectiveNear();
-					if (UI::Control("NearClip", clipnear, 0.1f, 0.01f, FLT_MAX))
-					{
-						for (Entity entity : entities)
-						{
-							auto& component = entity.GetComponent<CameraComponent>();
-							component.Camera.SetPerspectiveNear(clipnear);
-						}
-					}
-				});
-
-				utils::MultiselectNoTransform<CameraComponent>(entities, [](const auto& first, const auto& other) { return first.Camera.GetPerspectiveFar() == other.Camera.GetPerspectiveFar(); },
-															   [](auto& firstComponent, const auto& entities)
-				{
-					float clipfar = firstComponent.Camera.GetPerspectiveFar();
-					if (UI::Control("FarClip", clipfar, 0.1f, 0.01f, FLT_MAX))
-					{
-						for (Entity entity : entities)
-						{
-							auto& component = entity.GetComponent<CameraComponent>();
-							component.Camera.SetPerspectiveFar(clipfar);
-						}
-					}
-				});
-
 			}
-			else if (projectionType == SceneCamera::Projection::Orthographic)
+			else
 			{
-				utils::MultiselectNoTransform<CameraComponent>(entities, [](const auto& first, const auto& other) { return first.Camera.GetOrthographicZoom() == other.Camera.GetOrthographicZoom(); },
-															   [](auto& firstComponent, const auto& entities)
-				{
-					float zoom = firstComponent.Camera.GetOrthographicZoom();
-					if (UI::Control("Zoom", zoom, 0.1f, 0.25f, FLT_MAX))
-					{
-						for (Entity entity : entities)
-						{
-							auto& component = entity.GetComponent<CameraComponent>();
-							component.Camera.SetOrthographicZoom(zoom);
-						}
-					}
-				});
-
-				utils::MultiselectNoTransform<CameraComponent>(entities, [](const auto& first, const auto& other) { return first.Camera.GetOrthographicNear() == other.Camera.GetOrthographicNear(); },
-															   [](auto& firstComponent, const auto& entities)
-				{
-					float clipnear = firstComponent.Camera.GetOrthographicNear();
-					if (UI::Control("NearClip", clipnear, 0.1f, -FLT_MAX, -0.01f))
-					{
-						for (Entity entity : entities)
-						{
-							auto& component = entity.GetComponent<CameraComponent>();
-							component.Camera.SetOrthographicNear(clipnear);
-						}
-					}
-				});
-
-				utils::MultiselectNoTransform<CameraComponent>(entities, [](const auto& first, const auto& other) { return first.Camera.GetOrthographicFar() == other.Camera.GetOrthographicFar(); },
-															   [](auto& firstComponent, const auto& entities)
-				{
-					float clipfar = firstComponent.Camera.GetOrthographicFar();
-					if (UI::Control("FarClip", clipfar, 0.1f, 0.01f, FLT_MAX))
-					{
-						for (Entity entity : entities)
-						{
-							auto& component = entity.GetComponent<CameraComponent>();
-							component.Camera.SetOrthographicFar(clipfar);
-						}
-					}
-				});
-
+				changed |= utils::MultiselectControl(entities, &CameraComponent::OrthographicSize, "Size", 0.1f, 0.25f, FLT_MAX);
 			}
 			ImGui::EndDisabled();
+
+			changed |= utils::MultiselectControl(entities, &CameraComponent::Near, "Near", 0.1f, 0.01f, FLT_MAX);
+			changed |= utils::MultiselectControl(entities, &CameraComponent::Far, "FarClip", 0.1f, 0.01f, FLT_MAX);
+
+			if (changed)
+			{
+				for (Entity entity : entities)
+				{
+					auto& component = entity.GetComponent<CameraComponent>();
+					component.Recalculate();
+				}
+			}
 
 			{
 				bool anyMainCamera = false;
@@ -1292,37 +1231,35 @@ namespace Shark {
 		m_Context->DestroyEntity(entity);
 	}
 
-	void SceneHierarchyPanel::UpdateMaterialEditor(Entity entity)
+	void SceneHierarchyPanel::UpdateMaterialEditor()
 	{
-		if (!entity)
-		{
-			m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
+		m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
+
+		if (!SelectionContext::AnySelected())
 			return;
-		}
 
-		if (entity.AllOf<MeshComponent>())
+		const auto& entities = SelectionContext::GetSelected();
+		if (utils::AllHaveComponent<MeshComponent>(entities) && !utils::IsMixedValue(entities, &MeshComponent::Material))
 		{
-			const auto& meshComp = entity.GetComponent<MeshComponent>();
-			if (AssetManager::IsValidAssetHandle(meshComp.Mesh))
+			Entity first = SelectionContext::GetFirstSelected();
+			const auto& meshComponent = first.GetComponent<MeshComponent>();
+
+			AssetHandle materialHandle = meshComponent.Material;
+			if (!materialHandle && !utils::IsMixedValue(entities, &MeshComponent::Mesh))
 			{
-				if (AssetManager::IsValidAssetHandle(meshComp.Material))
+				AsyncLoadResult meshResult = AssetManager::GetAssetAsync<Mesh>(meshComponent.Mesh);
+				if (meshResult.Ready)
 				{
-					m_MaterialEditor->SetMaterial(meshComp.Material);
-					m_MaterialEditor->SetReadonly(false);
-					return;
+					AsyncLoadResult meshSourceResult = AssetManager::GetAssetAsync<MeshSource>(meshResult.Asset->GetMeshSource());
+					if (meshSourceResult.Ready)
+					{
+						Ref<MeshSource> meshSource = meshSourceResult.Asset;
+						const auto& submesh = meshSource->GetSubmeshes()[meshComponent.SubmeshIndex];
+						materialHandle = meshSource->GetMaterials()[submesh.MaterialIndex];
+					}
 				}
-
-				// TODO(moro): Make this async
-				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(meshComp.Mesh);
-				SK_CORE_VERIFY(mesh);
-				Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource());
-
-				const auto& submesh = meshSource->GetSubmeshes()[meshComp.SubmeshIndex];
-				Ref<MaterialAsset> material = meshSource->GetMaterials()[submesh.MaterialIndex];
-
-				m_MaterialEditor->SetMaterial(material->Handle);
-				m_MaterialEditor->SetReadonly(false);
 			}
+			m_MaterialEditor->SetMaterial(materialHandle);
 		}
 	}
 

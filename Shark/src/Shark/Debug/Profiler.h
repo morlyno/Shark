@@ -8,10 +8,10 @@
 
 namespace Shark {
 
-	struct FrameData
+	struct PerFrameData
 	{
-		float Duration = 0.0f;
-		std::string_view Descriptor;
+		TimeStep Time = 0.0f;
+		uint32_t Samples = 0;
 	};
 
 	class PerformanceProfiler
@@ -21,24 +21,22 @@ namespace Shark {
 		~PerformanceProfiler() = default;
 
 		void Clear();
-		void Add(std::string_view descriptor, float duration);
+		void AddTiming(std::string_view name, float time);
 
-		FrameData* GetStorage(std::string_view descriptor);
-		const auto& GetFrameStorage() const { return m_FrameStorage; }
-
+		const std::map<std::string_view, PerFrameData>& GetFrameData() const { return m_FrameStorage; }
 	private:
-		std::map<std::string_view, FrameData> m_FrameStorage;
+		std::map<std::string_view, PerFrameData> m_FrameStorage;
 	};
 
 	struct ProfilerEvent
 	{
-		ProfilerEvent(PerformanceProfiler* profiler, std::string_view descriptor);
+		ProfilerEvent(PerformanceProfiler* profiler, std::string_view name);
 		~ProfilerEvent();
 
 	private:
-		int64_t m_Start;
-		int64_t m_Stop;
-		FrameData* Storage = nullptr;
+		PerformanceProfiler* m_Profiler = nullptr;
+		std::string_view m_Name;
+		int64_t m_StartTime;
 	};
 
 }

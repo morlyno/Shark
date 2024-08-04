@@ -11,7 +11,7 @@ namespace Shark {
 
 	std::string ToString(ShaderUtils::ShaderStage::Type stage)
 	{
-		SK_CORE_ASSERT(Math::SingleBitSet((uint16_t)stage));
+		SK_CORE_ASSERT(std::has_single_bit((uint16_t)stage));
 		switch (stage)
 		{
 			case ShaderUtils::ShaderStage::None: return "None";
@@ -21,7 +21,7 @@ namespace Shark {
 		}
 
 		SK_CORE_ASSERT(false, "Unkonw ShaderStage");
-		return "Unkown";
+		return "Unknown";
 	}
 
 	ShaderUtils::ShaderStage::Type StringToShaderStage(const std::string& shaderStage)
@@ -31,7 +31,7 @@ namespace Shark {
 		if (shaderStage == "Pixel") return ShaderUtils::ShaderStage::Pixel;
 		if (shaderStage == "Compute") return ShaderUtils::ShaderStage::Compute;
 
-		SK_CORE_ASSERT(false, "Unkown ShaderStage");
+		SK_CORE_ASSERT(false, "Unknown ShaderStage");
 		return ShaderUtils::ShaderStage::None;
 	}
 

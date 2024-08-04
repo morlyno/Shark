@@ -4,6 +4,9 @@
 
 namespace Shark::Math {
 
+	constexpr float Deg2Rad = 0.01745329251994329576923690768489f;
+	constexpr float Rad2Deg = 57.295779513082320876798154814105f;
+
 	bool DecomposeTransform(const glm::mat4& ModelMatrix, glm::vec3& out_Translation, glm::vec3& out_Euler, glm::vec3& out_Scale);
 	bool DecomposeTranslation(const glm::mat4& ModelMatrix, glm::vec3& out_Translation);
 
@@ -18,5 +21,7 @@ namespace Shark::Math {
 	{
 		return val != 0 && (val & (val - 1)) == 0;
 	}
+
+	bool IsWhole(float val);
 
 }

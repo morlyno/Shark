@@ -4,6 +4,8 @@
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 
+#include "Shark/Debug/Profiler.h"
+
 namespace Shark {
 
 	struct SelectionContextData
@@ -31,6 +33,7 @@ namespace Shark {
 
 	bool SelectionContext::IsSelected(Entity entity)
 	{
+		SK_PERF_SCOPED("SelectionContext::IsSelected");
 		return std::find(s_SelectionData.m_Selected.begin(), s_SelectionData.m_Selected.end(), entity) != s_SelectionData.m_Selected.end();
 	}
 

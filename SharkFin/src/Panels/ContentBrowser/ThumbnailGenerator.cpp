@@ -14,8 +14,8 @@ namespace Shark {
 		static Entity CreateMeshCamera(Ref<Scene> scene, const AABB& aabb, float cameraDistance = 1.5f)
 		{
 			Entity cameraEntity = scene->CreateEntity("Camera");
-			auto& cameraComp = cameraEntity.AddComponent<CameraComponent>();
-			cameraComp.Camera.SetPerspective(cameraComp.Camera.GetAspectratio(), 45.0f, 0.1f, 1000.0f);
+			auto& cameraComp = cameraEntity.AddComponent<CameraComponent>(true);
+
 			auto& transform = cameraEntity.Transform();
 			transform.Translation = { -5.0f, 5.0f, -5.0f };
 			transform.Rotation = { glm::radians(27.0f), glm::radians(40.0f), 0 };
@@ -23,20 +23,18 @@ namespace Shark {
 			glm::vec3 forward = glm::quat(transform.Rotation) * glm::vec3(0, 0, 1);
 			glm::vec3 objectSizes = aabb.Size();
 			float objectSize = glm::max(glm::max(objectSizes.x, objectSizes.y), objectSizes.z);
-			float cameraView = 2.0f * glm::tan(0.5f * cameraComp.Camera.GetRadPerspectiveFOV());
+			float cameraView = 2.0f * glm::tan(0.5f * cameraComp.PerspectiveFOV);
 			float distance = cameraDistance * objectSize / cameraView;
 			distance += objectSize * 0.5f;
 
 			glm::vec3 translation = aabb.Center() - distance * forward;
 			transform.Translation = translation;
 
-
 			float planeDistance = (objectSize / cameraView + objectSize * 0.5f);
-			float nearPlane = glm::distance(transform.Translation, aabb.Center() - planeDistance * forward);
-			float farPlane = glm::distance(transform.Translation, aabb.Center() + planeDistance * forward);
-			cameraComp.Camera.SetPerspectiveClip(nearPlane, farPlane);
-
-
+			cameraComp.Near = glm::distance(transform.Translation, aabb.Center() - planeDistance * forward);
+			cameraComp.Far = glm::distance(transform.Translation, aabb.Center() + planeDistance * forward);
+			
+			cameraComp.Recalculate();
 			return cameraEntity;
 		}
 
@@ -237,7 +235,7 @@ namespace Shark {
 		skyLight.Lod = AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1;
 
 		AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
-		AssetManager::GetAssetFuture(handle).OnReady([this](...) { m_Ready = true; });
+		AssetManager::GetAssetFuture(handle, LoadDependencyPolicy::Immediate).OnReady([this](...) { m_Ready = true; });
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
 	}
@@ -250,14 +248,13 @@ namespace Shark {
 		if (!AssetManager::IsValidAssetHandle(handle))
 			return nullptr;
 
-		if (!AssetManager::IsFullyLoaded(handle, true))
+		if (!AssetManager::DependenciesLoaded(handle, true))
 			return nullptr;
 
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
-
-		if (metadata.Type == AssetType::Texture)
+		AssetType assetType = Project::GetActiveEditorAssetManager()->GetAssetType(handle);
+		if (assetType == AssetType::Texture)
 		{
-			Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(metadata.Handle);
+			Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(handle);
 
 			ImageSpecification specification;
 			specification.Width = 512;
@@ -273,9 +270,9 @@ namespace Shark {
 			return result;
 		}
 
-		m_AssetThumbnailGenerators.at(metadata.Type)->OnPrepare(handle, m_Scene, m_Renderer);
+		m_AssetThumbnailGenerators.at(assetType)->OnPrepare(handle, m_Scene, m_Renderer);
 		m_Scene->OnRenderRuntime(m_Renderer);
-		m_AssetThumbnailGenerators.at(metadata.Type)->OnFinish(handle, m_Scene, m_Renderer);
+		m_AssetThumbnailGenerators.at(assetType)->OnFinish(handle, m_Scene, m_Renderer);
 
 		ImageSpecification specification;
 		specification.Width = 512;

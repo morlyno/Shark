@@ -64,6 +64,7 @@ namespace Shark {
 
 		s_RendererContext = RendererContext::Create();
 		s_RendererAPI = RendererAPI::Create();
+		s_RendererAPI->Init();
 
 		s_Data = sknew RendererData;
 		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
@@ -108,7 +109,7 @@ namespace Shark {
 			spec.DebugName = "White Texture";
 			s_Data->m_WhiteTexture = Texture2D::Create(spec, Buffer::FromValue(0xFFFFFFFF));
 
-			spec.DebugName = "Balck Texture";
+			spec.DebugName = "Black Texture";
 			s_Data->m_BlackTexture = Texture2D::Create(spec, Buffer::FromValue(0x00000000));
 
 			spec.Format = ImageFormat::RGBA32F;
@@ -131,9 +132,10 @@ namespace Shark {
 		s_Data->m_WhiteTexture = nullptr;
 		skdelete s_Data;
 
-		// Flush all normal commands befor shutdown
+		// Flush all normal commands before shutdown
 		Renderer::WaitAndRender();
 
+		s_RendererAPI->ShutDown();
 		s_RendererAPI = nullptr;
 		s_RendererContext = nullptr;
 		Renderer::WaitAndRender();
@@ -246,6 +248,11 @@ namespace Shark {
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
 	{
 		return s_RendererAPI->CreateEnvironmentMap(filepath);
+	}
+
+	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::RT_CreateEnvironmentMap(const std::filesystem::path& filepath)
+	{
+		return s_RendererAPI->RT_CreateEnvironmentMap(filepath);
 	}
 
 	void Renderer::GenerateMips(Ref<Image2D> image)
@@ -376,7 +383,7 @@ namespace Shark {
 
 	RenderCommandQueue& Renderer::GetCommandQueue()
 	{
-		//SK_CORE_VERIFY(std::this_thread::get_id() == Application::Get().GetMainThreadID());
+		SK_CORE_VERIFY(std::this_thread::get_id() == Application::Get().GetMainThreadID());
 		return *s_CommandQueue[s_CommandQueueSubmissionIndex];
 	}
 

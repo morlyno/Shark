@@ -7,10 +7,13 @@ namespace Shark::UI {
 	class TextFilter
 	{
 	public:
+		TextFilter() = default;
 		TextFilter(const std::string& filter);
 		bool PassFilter(std::string_view text);
 		void SetMode(String::Case compCase) { m_Case = compCase; }
+
 		void SetFilter(const std::string& filter);
+		const std::string& GetFilter() const { return m_Buffer; }
 
 	private:
 		void Build();

@@ -2,7 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
-#include "Shark/Core/Thread.h"
+#include "Shark/Core/Threading.h"
 #include "Shark/Asset/AssetTypes.h"
 
 namespace Shark {
@@ -41,7 +41,7 @@ namespace Shark {
 		}
 
 	public:
-		AssetHandle Handle = AssetHandle::Null;
+		AssetHandle Handle = AssetHandle::Invalid;
 		AssetFlag Flags = AssetFlag::None;
 	};
 
