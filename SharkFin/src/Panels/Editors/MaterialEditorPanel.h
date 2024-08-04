@@ -21,6 +21,7 @@ namespace Shark {
 
 		void SetName(const std::string& name) { m_Name = name; }
 		void SetMaterial(AssetHandle assetHandle) { m_MaterialHandle = assetHandle; }
+		AssetHandle GetMaterial() const { return m_MaterialHandle; }
 
 	private:
 		std::string m_Name;

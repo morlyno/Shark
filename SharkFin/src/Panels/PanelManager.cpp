@@ -4,20 +4,29 @@
 #include "Shark/UI/UI.h"
 #include "Shark/Debug/Profiler.h"
 
+#include "Shark/Serialization/SerializationMacros.h"
+
+#include <yaml-cpp/yaml.h>
+
 namespace Shark {
+
+	PanelManager::PanelManager()
+	{
+		LoadSettings();
+	}
 
 	void PanelManager::AddPanel(PanelCategory category, const std::string& id, const std::string& panelMame, bool showPanel, Ref<Panel> panel)
 	{
-		if (m_Panels.contains(id))
+		if (!m_Panels.contains(id))
 		{
-			SK_CORE_ERROR_TAG("UI", "Panel with ID: {} already added!", id);
-			return;
+			auto& entry = m_Panels[id];
+			entry.Show = entry.Show || showPanel;
 		}
 
-		auto& entry = m_Panels[id];
+		auto& entry = m_Panels.at(id);
 		entry.Instance = panel;
 		entry.Category = category;
-		entry.ShowPanel = showPanel;
+
 		m_PanelsPerCategory[category].push_back(id);
 	}
 
@@ -30,7 +39,12 @@ namespace Shark {
 	void PanelManager::ShowPanel(const std::string& id, bool showPanel)
 	{
 		SK_CORE_VERIFY(m_Panels.contains(id), "Panel with ID: {} dosn't exits", id);
-		m_Panels.at(id).ShowPanel = showPanel;
+		auto& entry = m_Panels.at(id);
+		if (entry.Show != showPanel)
+		{
+			m_Panels.at(id).Show = showPanel;
+			SaveSettings();
+		}
 	}
 
 	void PanelManager::OnUpdate(TimeStep ts)
@@ -43,8 +57,20 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		for (auto& [id, data] : m_Panels)
-			data.Instance->OnImGuiRender(data.ShowPanel);
+		bool anyJustHiddedChanged = false;
+		for (auto& [id, panel] : m_Panels)
+		{
+			if (!panel.Show)
+				continue;
+
+			panel.Instance->OnImGuiRender(panel.Show);
+
+			if (!panel.Show)
+				anyJustHiddedChanged = true;
+		}
+
+		if (anyJustHiddedChanged)
+			SaveSettings();
 	}
 
 	void PanelManager::OnEvent(Event& event)
@@ -60,13 +86,15 @@ namespace Shark {
 
 	void PanelManager::DrawPanelsMenu()
 	{
+		bool anyChanged = false;
+
 		if (ImGui::BeginMenu("View"))
 		{
 			const auto& panels = m_PanelsPerCategory[PanelCategory::View];
 			for (const auto& id : panels)
 			{
 				PanelEntry& entry = m_Panels.at(id);
-				ImGui::MenuItem(entry.Instance->GetName().c_str(), nullptr, &entry.ShowPanel);
+				anyChanged |= ImGui::MenuItem(entry.Instance->GetName().c_str(), nullptr, &entry.Show);
 			}
 			ImGui::End();
 		}
@@ -77,10 +105,14 @@ namespace Shark {
 			for (const auto& id : panels)
 			{
 				PanelEntry& entry = m_Panels.at(id);
-				ImGui::MenuItem(entry.Instance->GetName().c_str(), nullptr, &entry.ShowPanel);
+				anyChanged |= ImGui::MenuItem(entry.Instance->GetName().c_str(), nullptr, &entry.Show);
 			}
 			ImGui::End();
 		}
+
+		if (anyChanged)
+			SaveSettings();
+
 	}
 
 	void PanelManager::SetContext(Ref<Scene> context)
@@ -105,6 +137,55 @@ namespace Shark {
 	{
 		for (auto& [id, data] : m_Panels)
 			data.Instance->OnProjectChanged(project);
+	}
+
+	void PanelManager::LoadSettings()
+	{
+		const auto& settingsFile = "Panels.yaml";
+		if (!FileSystem::Exists(settingsFile))
+		{
+			SK_CORE_WARN_TAG("UI", "Panels file not found! Continuing with default settings");
+			return;
+		}
+
+		YAML::Node root = YAML::LoadFile(settingsFile);
+		
+		YAML::Node panelsNode = root["Panels"];
+		if (!panelsNode)
+			return;
+
+		for (auto panelNode : panelsNode)
+		{
+			std::string id;
+			SK_DESERIALIZE_PROPERTY(panelNode, "ID", id, "");
+			if (id.empty())
+				continue;
+
+			auto& entry = m_Panels[id];
+			SK_DESERIALIZE_PROPERTY(panelNode, "Show", entry.Show, false);
+		}
+	}
+
+	void PanelManager::SaveSettings()
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Panels" << YAML::Value;
+		out << YAML::BeginSeq;
+
+		for (const auto& [id, entry] : m_Panels)
+		{
+			out << YAML::BeginMap;
+			SK_SERIALIZE_PROPERTRY(out, "ID", id);
+			SK_SERIALIZE_PROPERTRY(out, "Show", entry.Show);
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndSeq;
+		out << YAML::EndMap;
+
+		const auto& settingsFile = "Panels.yaml";
+		FileSystem::WriteString(settingsFile, { out.c_str(), out.size() });
 	}
 
 }

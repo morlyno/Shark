@@ -6,13 +6,14 @@ namespace Shark {
 
 	enum class PanelCategory
 	{
-		Edit,
-		View
+		None = 0, Edit, View
 	};
 
 	class PanelManager
 	{
 	public:
+		PanelManager();
+
 		void AddPanel(PanelCategory category, const std::string& id, const std::string& panelMame, bool showPanel, Ref<Panel> panel);
 		Ref<Panel> Get(const std::string& id) const;
 
@@ -45,14 +46,18 @@ namespace Shark {
 		void OnSceneStop();
 		void OnProjectChanged(Ref<Project> project);
 
+	public:
+		void LoadSettings();
+		void SaveSettings();
+
 	private:
 		struct PanelEntry
 		{
 			Ref<Panel> Instance;
-			PanelCategory Category;
-			bool ShowPanel;
+			PanelCategory Category = PanelCategory::None;
+			bool Show = false;
 		};
-		std::unordered_map<std::string, PanelEntry> m_Panels;
+		std::map<std::string, PanelEntry> m_Panels;
 		std::map<PanelCategory, std::vector<std::string>> m_PanelsPerCategory;
 	};
 

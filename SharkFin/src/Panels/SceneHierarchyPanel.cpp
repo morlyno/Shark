@@ -386,7 +386,8 @@ namespace Shark {
 			DrawEntityProperties(SelectionContext::GetSelected());
 		ImGui::End();
 
-		m_MaterialEditor->Draw();
+		if (m_MaterialEditor->GetMaterial())
+			m_MaterialEditor->Draw();
 	}
 
 	void SceneHierarchyPanel::OnEvent(Event& event)
