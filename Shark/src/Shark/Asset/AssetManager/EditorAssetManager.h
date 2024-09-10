@@ -24,12 +24,9 @@ namespace Shark {
 		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy) override;
 		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy) override;
 
-		void LoadAsset(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy);
-		void LoadAssetAsync(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy);
-		Threading::Future<Ref<Asset>> LoadAssetFuture(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy);
-
 		virtual std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) override;
 
+		AssetHandle AddAsset(Ref<Asset> asset, const std::filesystem::path& filepath);
 		virtual AssetHandle AddMemoryAsset(Ref<Asset> asset) override;
 		virtual bool ReloadAsset(AssetHandle handle) override;
 		virtual void ReloadAssetAsync(AssetHandle handle) override;
@@ -80,8 +77,9 @@ namespace Shark {
 		AssetRegistry& GetAssetRegistry();
 		const AssetRegistry& GetAssetRegistry() const;
 
-		bool AssetMoved(AssetHandle asset, const std::filesystem::path& newpath);
-		bool AssetRenamed(AssetHandle asset, const std::string& newName);
+		bool AssetMoved(AssetHandle handle, const std::filesystem::path& newpath);
+		bool AssetRenamed(AssetHandle handle, const std::string& newName);
+		bool AssetDeleted(AssetHandle handle);
 
 	private:
 		void WriteImportedAssetsToDisc();
@@ -107,38 +105,8 @@ namespace Shark {
 		static_assert(!std::is_same_v<Asset, TAsset>);
 		static_assert(std::is_base_of_v<Asset, TAsset>, "CreateAsset only works for types with base class Asset!");
 
-		std::string assetsPath = MakeRelativePathString(filepath);
-
-		AssetMetaData metadata;
-		metadata.Handle = AssetHandle::Generate();
-		metadata.Type = TAsset::GetStaticType();
-		metadata.FilePath = assetsPath;
-		metadata.Status = AssetStatus::Ready;
-
-		// Make sure metadata.FilePath is unique
-		if (HasExistingFilePath(metadata))
-		{
-			uint32_t count = 1;
-			bool validFilepath = false;
-			std::filesystem::path fsPath = GetFilesystemPath(metadata);
-
-			while (!validFilepath)
-			{
-				FileSystem::ReplaceStem(fsPath, fmt::format("{} ({:2})", FileSystem::GetStemString(fsPath), count));
-				validFilepath = !FileSystem::Exists(fsPath);
-			}
-			metadata.FilePath = MakeRelativePath(fsPath);
-		}
-
 		Ref<TAsset> asset = Ref<TAsset>::Create(std::forward<TArgs>(args)...);
-		asset->Handle = metadata.Handle;
-
-		m_Registry.Add(metadata);
-		m_LoadedAssets[metadata.Handle] = asset;
-		AssetSerializer::Serialize(asset, metadata);
-		WriteImportedAssetsToDisc();
-
-		SK_CORE_INFO_TAG("AssetManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", ToString(metadata.Type), metadata.Handle, metadata.FilePath);
+		AddAsset(asset, filepath);
 		return asset;
 	}
 	
@@ -148,38 +116,8 @@ namespace Shark {
 		static_assert(!std::is_same_v<Asset, TAsset>);
 		static_assert(std::is_base_of_v<Asset, TAsset>, "CreateAsset only works for types with base class Asset!");
 
-		std::string assetsPath = MakeRelativePathString(filepath);
-
-		AssetMetaData metadata;
-		metadata.Handle = AssetHandle::Generate();
-		metadata.Type = TAsset::GetStaticType();
-		metadata.FilePath = assetsPath;
-		metadata.Status = AssetStatus::Ready;
-
-		// Make sure metadata.FilePath is unique
-		if (HasExistingFilePath(metadata))
-		{
-			uint32_t count = 1;
-			bool validFilepath = false;
-			std::filesystem::path fsPath = GetFilesystemPath(metadata);
-
-			while (!validFilepath)
-			{
-				FileSystem::ReplaceStem(fsPath, fmt::format("{} ({:2})", FileSystem::GetStemString(fsPath), count));
-				validFilepath = !FileSystem::Exists(fsPath);
-			}
-			metadata.FilePath = MakeRelativePath(fsPath);
-		}
-
 		Ref<TAsset> asset = TAsset::Create(std::forward<TArgs>(args)...);
-		asset->Handle = metadata.Handle;
-
-		m_Registry.Add(metadata);
-		m_LoadedAssets[metadata.Handle] = asset;
-		AssetSerializer::Serialize(asset, metadata);
-		WriteImportedAssetsToDisc();
-
-		SK_CORE_INFO_TAG("AssetManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", ToString(metadata.Type), metadata.Handle, metadata.FilePath);
+		AddAsset(asset, filepath);
 		return asset;
 	}
 

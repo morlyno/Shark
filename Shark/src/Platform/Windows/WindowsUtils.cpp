@@ -589,11 +589,11 @@ namespace Shark {
 		return result;
 	}
 
-	void Platform::MoveFileToRecycleBin(const std::filesystem::path& file)
+	bool Platform::MoveFileToRecycleBin(const std::filesystem::path& file)
 	{
 		IShellItem* recycleBin = utils::GetRecycleBin();
 		if (!recycleBin)
-			return;
+			return false;
 
 		HRESULT hr;
 		IShellItem* fileItem = nullptr;
@@ -603,7 +603,7 @@ namespace Shark {
 		{
 			SK_CORE_ERROR_TAG("Windows", "getting the canonical path failed!");
 			SK_CORE_ERROR_TAG("Windows", "Reason: {0}", errorCode.message());
-			return;
+			return false;
 		}
 
 		hr = SHCreateItemFromParsingName(windowsFilePath.c_str(), NULL, IID_PPV_ARGS(&fileItem));
@@ -614,18 +614,20 @@ namespace Shark {
 			SK_CORE_ERROR_TAG("Windows", msg);
 		}
 
+		bool success = false;
 		if (SUCCEEDED(hr))
 		{
 			ITransferSource* transferSource = nullptr;
 			if (SUCCEEDED(recycleBin->BindToHandler(NULL, BHID_Transfer, IID_PPV_ARGS(&transferSource))))
 			{
 				IShellItem* resultItem = nullptr;
-				transferSource->RecycleItem(fileItem, recycleBin, 0, &resultItem);
+				success = SUCCEEDED(transferSource->RecycleItem(fileItem, recycleBin, 0, &resultItem));
 				transferSource->Release();
 			}
 			fileItem->Release();
 		}
 		recycleBin->Release();
+		return success;
 	}
 
 }

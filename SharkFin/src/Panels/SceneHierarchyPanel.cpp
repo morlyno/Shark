@@ -3,7 +3,7 @@
 
 #include "Shark/Core/Project.h"
 #include "Shark/Core/Application.h"
-#include "Shark/Core/SelectionContext.h"
+#include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Scene/Components.h"
@@ -13,8 +13,9 @@
 
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
-#include "Shark/UI/Icons.h"
+#include "Shark/UI/EditorResources.h"
 #include "Shark/ImGui/TextFilter.h"
+#include "Shark/ImGui/ImGuiHelpers.h"
 
 #include "Shark/Input/Input.h"
 #include "Shark/Math/Math.h"
@@ -22,10 +23,10 @@
 #include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
-#include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <entt.hpp>
 #include <glm/gtx/vector_query.hpp>
+#include <ranges>
 
 namespace Shark {
 
@@ -140,7 +141,7 @@ namespace Shark {
 		};
 
 		template<typename TComponent>
-		static bool AllHaveComponent(const std::vector<Entity> entities)
+		static bool AllHaveComponent(std::span<const Entity> entities)
 		{
 			for (Entity entity : entities)
 				if (!entity.AllOf<TComponent>())
@@ -149,7 +150,7 @@ namespace Shark {
 		}
 
 		template<typename TComp, typename TFunc>
-		static bool IsMixedValue(const std::vector<Entity>& entities, const TFunc& equalFunc)
+		static bool IsMixedValue(std::span<const Entity> entities, const TFunc& equalFunc)
 		{
 			Entity firstEntity = entities[0];
 			const auto& firstComponent = firstEntity.GetComponent<TComp>();
@@ -166,7 +167,7 @@ namespace Shark {
 		}
 
 		template<typename TComp, typename TType>
-		static bool IsMixedValue(const std::vector<Entity>& entities, TType TComp::* member)
+		static bool IsMixedValue(std::span<const Entity> entities, TType TComp::* member)
 		{
 			Entity firstEntity = entities[0];
 			const auto& firstComponent = firstEntity.GetComponent<TComp>();
@@ -285,6 +286,13 @@ namespace Shark {
 			return false;
 		}
 
+		static std::vector<Entity> GetSelectedEntities(Ref<Scene> scene)
+		{
+			const auto& selections = SelectionManager::GetSelections(SelectionContext::Entity);
+			auto view = selections | std::views::transform([scene](UUID uuid) { return scene->TryGetEntityByUUID(uuid); });
+			return { view.begin(), view.end() };
+		}
+
 	}
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const std::string& panelName, Ref<Scene> scene)
@@ -309,6 +317,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 		#undef COMPONENT_DATA_ARGS
+		SK_CORE_VERIFY(m_Components.size() + 2 == GroupSize(AllComponents));
 
 		m_MaterialEditor = Scope<MaterialEditor>::Create();
 		m_MaterialEditor->SetName("Material");
@@ -323,40 +332,46 @@ namespace Shark {
 
 		if (ImGui::Begin(m_PanelName.c_str(), &shown) && m_Context)
 		{
-			UpdateMaterialEditor();
+			auto entities = utils::GetSelectedEntities(m_Context);
+			UpdateMaterialEditor(entities);
 
 			m_HirachyFocused = ImGui::IsWindowFocused();
 
 			{
 				SK_PERF_SCOPED("Draw Entitiy Nodes");
-				auto entities = m_Context->GetAllEntitysWith<RelationshipComponent>();
+				auto entities = m_Context->GetRootEntities();
+
+				ImGuiMultiSelectFlags multiSelectFlags = ImGuiMultiSelectFlags_ClearOnEscape | ImGuiMultiSelectFlags_ClearOnClickVoid;
+				ImGuiMultiSelectIO* selectIO = ImGui::BeginMultiSelect(multiSelectFlags, SelectionManager::GetSelections(SelectionContext::Entity).size());
+				HandleSelectionRequests(selectIO);
+
+				uint32_t index = 0;
 				for (auto ent : entities)
 				{
-					const RelationshipComponent& relationship = entities.get<RelationshipComponent>(ent);
-					if (relationship.Parent)
-						continue;
-
 					Entity entity{ ent, m_Context };
-					DrawEntityNode(entity);
-				}
+					DrawEntityNode(entity, index);
+				} 
+
+				selectIO = ImGui::EndMultiSelect();
+				HandleSelectionRequests(selectIO);
 			}
 
 			if (m_DeleteSelected)
 			{
-				for (Entity entity : SelectionContext::GetSelected())
+				for (UUID id : SelectionManager::GetSelections(SelectionContext::Entity))
 				{
+					Entity entity = m_Context->TryGetEntityByUUID(id);
 					if (!entity)
 						continue;
 
 					DestroyEntity(entity);
 				}
 
-				SelectionContext::Clear();
+				SelectionManager::Clear(SelectionContext::Entity);
 				m_DeleteSelected = false;
 			}
 
-			const ImGuiWindow* window = ImGui::GetCurrentWindow();
-			if (ImGui::BeginDragDropTargetCustom(window->WorkRect, window->ID))
+			if (ImGui::BeginDrapDropTargetWindow())
 			{
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
 				if (payload)
@@ -370,20 +385,17 @@ namespace Shark {
 			}
 
 			DrawAddEntityPopup();
-
-
-			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_None) && !ImGui::IsAnyItemHovered())
-			{
-				SelectionContext::Clear();
-			}
-
 		}
 		ImGui::End();
 
 		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 		m_PropertiesFocused = ImGui::IsWindowFocused();
-		if (SelectionContext::AnySelected())
-			DrawEntityProperties(SelectionContext::GetSelected());
+
+		if (SelectionManager::AnySelected(SelectionContext::Entity))
+		{
+			auto entities = utils::GetSelectedEntities(m_Context);
+			DrawEntityProperties(entities);
+		}
 		ImGui::End();
 
 		if (m_MaterialEditor->GetMaterial())
@@ -414,15 +426,19 @@ namespace Shark {
 		if (!m_HirachyFocused)
 			return false;
 
+#if TODO
 		switch (event.GetKeyCode())
 		{
 			case KeyCode::Delete:
 			{
-				const auto& entities = SelectionContext::GetSelected();
-				for (Entity entity : entities)
+				const auto& selections = SelectionManager::GetSelections(SelectionContext::Entity);
+				for (UUID id : selections)
+				{
+					Entity entity = m_Context->TryGetEntityByUUID(id);
 					DestroyEntity(entity);
+				}
 
-				SelectionContext::Clear();
+				SelectionManager::Clear(SelectionContext::Entity);
 				return true;
 			}
 
@@ -431,27 +447,100 @@ namespace Shark {
 				if (!event.GetModifierKeys().Control)
 					break;
 
-				SelectionContext::Clear();
+				SelectionManager::Clear(SelectionContext::Entity);
 				auto entities = m_Context->GetAllEntitysWith<IDComponent>();
 				for (auto ent : entities)
 				{
-					Entity entity(ent, m_Context);
-					SelectionContext::Select(entity);
+					const auto& idComponent = entities.get<IDComponent>(ent);
+					SelectionManager::Select(SelectionContext::Entity, idComponent.ID);
 				}
 				return true;
 			}
 		}
+#endif
 
 		return false;
 	}
 
-	void SceneHierarchyPanel::DrawEntityNode(Entity entity)
+	void SceneHierarchyPanel::HandleSelectionRequests(ImGuiMultiSelectIO* selectionIO)
+	{
+		if (selectionIO->Requests.empty())
+			return;
+
+		for (ImGuiSelectionRequest& request : selectionIO->Requests)
+		{
+			switch (request.Type)
+			{
+				case ImGuiSelectionRequestType_SetAll:
+				{
+					SelectionManager::Clear(SelectionContext::Entity);
+					if (!request.Selected)
+						break;
+
+					auto entities = m_Context->GetAllEntitysWith<IDComponent>();
+					for (auto ent : entities)
+					{
+						const auto& idComponent = entities.get<IDComponent>(ent);
+						SelectionManager::Select(SelectionContext::Entity, idComponent.ID);
+					}
+					break;
+				}
+				case ImGuiSelectionRequestType_SetRange:
+				{
+					const auto TraverseTree = [scene = m_Context, select = request.Selected](Entity entity, uint32_t first, uint32_t last, uint32_t& index, const auto& traverseTreeFn) -> bool
+					{
+						uint32_t currentIndex = index++;
+						UUID entityID = entity.GetUUID();
+
+						if (currentIndex > last)
+							return false;
+
+						if (currentIndex >= first)
+						{
+							SelectionManager::Toggle(SelectionContext::Entity, entityID, select);
+						}
+
+						ImGuiID imguiID = ImGui::GetID((const void*)(uint64_t)entityID);
+						const bool isOpened = ImGui::TreeNodeGetOpen(imguiID);
+						if (isOpened)
+						{
+							UI::ScopedID id(UI::GetID(entityID));
+							Entity entity = scene->TryGetEntityByUUID(entityID);
+							for (UUID childID : entity.Children())
+							{
+								Entity child = scene->TryGetEntityByUUID(childID);
+								if (!traverseTreeFn(child, first, last, index, traverseTreeFn))
+									return false;
+							}
+						}
+
+						return true;
+					};
+
+
+					uint32_t index = 0;
+					auto entities = m_Context->GetRootEntities();
+					for (auto ent : entities)
+					{
+						Entity entity{ ent, m_Context };
+						if (!TraverseTree(entity, request.RangeFirstItem, request.RangeLastItem, index, TraverseTree))
+							break;
+					}
+
+					break;
+				}
+			}
+		}
+	}
+
+	void SceneHierarchyPanel::DrawEntityNode(Entity entity, uint32_t& index)
 	{
 		SK_PROFILE_FUNCTION();
 
+		UUID entityID = entity.GetUUID();
 		const auto& tag = entity.GetComponent<TagComponent>();
 		ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding;
-		if (SelectionContext::IsSelected(entity))
+		if (SelectionManager::IsSelected(SelectionContext::Entity, entityID))
 			treeNodeFlags |= ImGuiTreeNodeFlags_Selected;
 
 		if (!entity.HasChildren())
@@ -461,19 +550,21 @@ namespace Shark {
 
 
 		{
-			const bool isSelected = SelectionContext::IsSelected(entity);
+			const bool isSelected = SelectionManager::IsSelected(SelectionContext::Entity, entityID);
 			UI::ScopedColorConditional hovered(ImGuiCol_HeaderHovered, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 1.2f), isSelected);
 			UI::ScopedColorConditional active(ImGuiCol_HeaderActive, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 0.9f), isSelected);
 			UI::ScopedColor selected(ImGuiCol_Header, UI::Colors::Theme::Selection);
 
 			UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-			opened = ImGui::TreeNodeBehavior(UI::GetID(entity.GetUUID()), treeNodeFlags, tag.Tag.c_str());
+			ImGui::SetNextItemSelectionUserData(index++);
+			opened = ImGui::TreeNodeEx((const void*)(uint64_t)entity.GetUUID(), treeNodeFlags, tag.Tag.c_str());
 		}
 
-		if (ImGui::BeginDragDropSource())
+		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover))
 		{
 			UUID uuid = entity.GetUUID();
 			ImGui::SetDragDropPayload("ENTITY_ID", &uuid, sizeof(UUID));
+			ImGui::SetTooltip(tag.Tag.c_str());
 
 			ImGui::EndDragDropSource();
 		}
@@ -483,28 +574,15 @@ namespace Shark {
 			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
 			if (payload)
 			{
-				UUID uuid = *(UUID*)payload->Data;
-				Entity e = m_Context->TryGetEntityByUUID(uuid);
-
-				if (!utils::WouldCreateLoop(e, entity))
-					e.SetParent(entity);
+				UUID droppedEntityID = *(UUID*)payload->Data;
+				if (droppedEntityID != entityID)
+				{
+					Entity droppedEntity = m_Context->TryGetEntityByUUID(droppedEntityID);
+					if (!utils::WouldCreateLoop(droppedEntity, entity))
+						droppedEntity.SetParent(entity);
+				}
 			}
 			ImGui::EndDragDropTarget();
-		}
-
-		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
-		{
-			if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
-			{
-				if (SelectionContext::IsSelected(entity))
-					SelectionContext::Unselect(entity);
-				else
-					SelectionContext::Select(entity);
-			}
-			else
-			{
-				SelectionContext::ClearAndSelect(entity);
-			}
 		}
 
 		if (opened)
@@ -512,7 +590,7 @@ namespace Shark {
 			for (auto& childID : entity.Children())
 			{
 				Entity child = m_Context->TryGetEntityByUUID(childID);
-				DrawEntityNode(child);
+				DrawEntityNode(child, index);
 			}
 
 			ImGui::TreePop();
@@ -543,7 +621,7 @@ namespace Shark {
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(IDSpacingWidth);
 
-		if (SelectionContext::IsMultiSelection())
+		if (entities.size() > 1)
 			UI::TextFramed("");
 		else
 			UI::TextFramed("0x%16llx", firstEntity.GetUUID().Value());
@@ -660,7 +738,7 @@ namespace Shark {
 
 			utils::Multiselect(entities, &SpriteRendererComponent::TilingFactor, [](auto& firstComponent, const auto& entities)
 			{
-				return UI::Control("Tiling Factor", firstComponent.TilingFactor, 0.05f, 0.0f, 1.0f);
+				return UI::Control("Tiling Factor", firstComponent.TilingFactor, 0.05f, 0.0f, FLT_MAX);
 			});
 
 			utils::Multiselect(entities, &SpriteRendererComponent::Transparent, [](auto& firstComponent, const auto& entities)
@@ -1232,21 +1310,20 @@ namespace Shark {
 		m_Context->DestroyEntity(entity);
 	}
 
-	void SceneHierarchyPanel::UpdateMaterialEditor()
+	void SceneHierarchyPanel::UpdateMaterialEditor(std::span<Entity> selections)
 	{
 		m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
 
-		if (!SelectionContext::AnySelected())
+		if (selections.empty())
 			return;
 
-		const auto& entities = SelectionContext::GetSelected();
-		if (utils::AllHaveComponent<MeshComponent>(entities) && !utils::IsMixedValue(entities, &MeshComponent::Material))
+		if (utils::AllHaveComponent<MeshComponent>(selections) && !utils::IsMixedValue(selections, &MeshComponent::Material))
 		{
-			Entity first = SelectionContext::GetFirstSelected();
+			Entity first = selections[0];
 			const auto& meshComponent = first.GetComponent<MeshComponent>();
 
 			AssetHandle materialHandle = meshComponent.Material;
-			if (!materialHandle && !utils::IsMixedValue(entities, &MeshComponent::Mesh))
+			if (!materialHandle && !utils::IsMixedValue(selections, &MeshComponent::Mesh))
 			{
 				AsyncLoadResult meshResult = AssetManager::GetAssetAsync<Mesh>(meshComponent.Mesh);
 				if (meshResult.Ready)
@@ -1273,13 +1350,16 @@ namespace Shark {
 				if (ImGui::MenuItem("Entity"))
 				{
 					Entity e = m_Context->CreateEntity("Entity");
-					SelectionContext::ClearAndSelect(e);
+					SelectionManager::Clear(SelectionContext::Entity);
+					SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
 				}
 				if (ImGui::MenuItem("Camera"))
 				{
 					Entity e = m_Context->CreateEntity("Camera");
 					e.AddComponent<CameraComponent>();
-					SelectionContext::ClearAndSelect(e);
+
+					SelectionManager::Clear(SelectionContext::Entity);
+					SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
 
 					if (m_SnapToEditorCameraCallback)
 						m_SnapToEditorCameraCallback(e);
@@ -1290,13 +1370,17 @@ namespace Shark {
 					{
 						Entity e = m_Context->CreateEntity("Quad");
 						e.AddComponent<SpriteRendererComponent>();
-						SelectionContext::ClearAndSelect(e);
+
+						SelectionManager::Clear(SelectionContext::Entity);
+						SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
 					}
 					if (ImGui::MenuItem("Circle"))
 					{
 						Entity e = m_Context->CreateEntity("Circle");
 						e.AddComponent<CircleRendererComponent>();
-						SelectionContext::ClearAndSelect(e);
+
+						SelectionManager::Clear(SelectionContext::Entity);
+						SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
 					}
 					ImGui::EndMenu();
 				}
@@ -1309,14 +1393,18 @@ namespace Shark {
 							Entity e = m_Context->CreateEntity("Box Collider");
 							e.AddComponent<SpriteRendererComponent>();
 							e.AddComponent<BoxCollider2DComponent>();
-							SelectionContext::ClearAndSelect(e);
+
+							SelectionManager::Clear(SelectionContext::Entity);
+							SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
 						}
 						if (ImGui::MenuItem("Circle"))
 						{
 							Entity e = m_Context->CreateEntity("Circle Collider");
 							e.AddComponent<CircleRendererComponent>();
 							e.AddComponent<CircleCollider2DComponent>();
-							SelectionContext::ClearAndSelect(e);
+
+							SelectionManager::Clear(SelectionContext::Entity);
+							SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
 						}
 						ImGui::EndMenu();
 					}
@@ -1330,7 +1418,9 @@ namespace Shark {
 							rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
 							auto& boxCollider = e.AddComponent<BoxCollider2DComponent>();
 							boxCollider.Density = 1.0f;
-							SelectionContext::ClearAndSelect(e);
+
+							SelectionManager::Clear(SelectionContext::Entity);
+							SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
 						}
 						if (ImGui::MenuItem("Circle"))
 						{
@@ -1340,7 +1430,9 @@ namespace Shark {
 							rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
 							auto& circleCollider = e.AddComponent<CircleCollider2DComponent>();
 							circleCollider.Density = 1.0f;
-							SelectionContext::ClearAndSelect(e);
+
+							SelectionManager::Clear(SelectionContext::Entity);
+							SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
 						}
 						ImGui::EndMenu();
 					}

@@ -83,7 +83,7 @@ namespace Shark {
 		static std::filesystem::path SaveDirectoryDialog(const std::filesystem::path& defaultPath = std::filesystem::path{});
 		static std::vector<std::filesystem::path> OpenDirectoryDialogMultiSelect(const std::filesystem::path& defaultPath = std::filesystem::path{});
 
-		static void MoveFileToRecycleBin(const std::filesystem::path& file);
+		static bool MoveFileToRecycleBin(const std::filesystem::path& file);
 	};
 
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shark/Render/RendererResource.h"
-
 #include "Shark/Render/Shader.h"
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/StorageBuffer.h"
@@ -84,7 +83,5 @@ namespace Shark {
 		std::unordered_map<std::string, InputResource> m_InputResources;
 		std::vector<BoundResource> m_BoundResources;
 	};
-
-	std::string ToString(InputResourceType type);
 
 }

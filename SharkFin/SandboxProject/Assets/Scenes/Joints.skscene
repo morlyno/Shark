@@ -1,6 +1,6 @@
 Scene:
   Name: Untitled
-  ActiveCamera: 0xbbdb8872e6e21912
+  ActiveCamera: 13536563132073384210
   Entities:
     - Entity: 99374724913528899
       TagComponent:
@@ -16,7 +16,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -161,7 +161,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.818627477, 0.713584483, 0.104334891, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: true
@@ -251,7 +251,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.696293175, 0.107530795, 0.877451003, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -291,7 +291,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -336,7 +336,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.857843161, 0.78994298, 0.0883073658, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.5
+        TilingFactor: [1, 1]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -383,7 +383,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.319786191, 0.0768934861, 0.627450943, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -415,7 +415,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -443,7 +443,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -471,7 +471,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -499,7 +499,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -574,7 +574,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -656,14 +656,11 @@ Scene:
         Children:
           []
       CameraComponent:
-        Type: Perspective
-        Aspectratio: 2.14258552
+        IsPerspective: true
         PerspectiveFOV: 44.9999924
-        PerspectiveNear: 1
-        PerspectiveFar: 1000
-        OrthographicZoom: 10
-        OrthographicNear: -1
-        OrthographicFar: 1
+        OrthographicSize: 10
+        Near: 0.300000012
+        Far: 1000
     - Entity: 13802724810542002879
       TagComponent:
         Name: Floor
@@ -678,7 +675,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -744,7 +741,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.799019575, 0.082252048, 0.398473322, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false

@@ -55,7 +55,7 @@ namespace Shark {
 				UI::BeginControls();
 				
 				for (auto& [type, enabled] : m_EnabledTypes)
-					UI::Control(ToString(type), enabled);
+					UI::Control(magic_enum::enum_name(type), enabled);
 
 				UI::EndControls();
 
@@ -82,7 +82,7 @@ namespace Shark {
 				if (!searchBufferView.empty())
 				{
 					std::string handleStr = fmt::to_string(metadata.Handle);
-					std::string typeStr = ToString(metadata.Type);
+					std::string typeStr = std::string(magic_enum::enum_name(metadata.Type));
 					std::string filePathStr = metadata.FilePath.string();
 
 					if (!m_SearchHasUppercase)
@@ -124,7 +124,7 @@ namespace Shark {
 				if (!searchBufferView.empty())
 				{
 					std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
-					std::string typeStr = ToString(metadata.Type);
+					std::string typeStr = std::string(magic_enum::enum_name(metadata.Type));
 					std::string filePathStr = metadata.FilePath.string();
 
 					if (!m_SearchHasUppercase)
@@ -149,7 +149,7 @@ namespace Shark {
 
 				UI::Property("Handle", metadata.Handle);
 				UI::Property("FilePath", metadata.FilePath);
-				UI::Property("Type", ToString(metadata.Type));
+				UI::Property("Type", magic_enum::enum_name(metadata.Type));
 				//UI::Property("Memory", metadata.IsMemoryAsset);
 
 				UI::EndControls();

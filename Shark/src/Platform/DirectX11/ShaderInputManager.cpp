@@ -66,7 +66,7 @@ namespace Shark {
 			if (!m_InputResources.contains(info.Name))
 			{
 				SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] No input resource for 0.{}", binding);
-				SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required resource is {} ({})", info.Name, ToString(info.Type));
+				SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required resource is {} ({})", info.Name, info.Type);
 				return false;
 			}
 
@@ -76,7 +76,7 @@ namespace Shark {
 				if (input.Input[i] == nullptr)
 				{
 					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Input is null for 0.{} (Index={})", binding, i);
-					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required input is {} ({})", info.Name, ToString(info.Type));
+					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required input is {} ({})", info.Name, info.Type);
 					return false;
 				}
 			}
@@ -84,7 +84,7 @@ namespace Shark {
 			if (!utils::IsTypeCompadible(input.Type, info.Type))
 			{
 				SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Incompadible Type for 0.{}", binding);
-				SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required is {} but Input is {}", ToString(info.Type), ToString(input.Type));
+				SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required is {} but Input is {}", info.Type, input.Type);
 				return false;
 			}
 		}
@@ -114,7 +114,7 @@ namespace Shark {
 				if (!m_InputResources.contains(info.Name))
 				{
 					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] No input resource for {}.{}", set, binding);
-					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required resource is {} ({})", info.Name, ToString(info.Type));
+					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required resource is {} ({})", info.Name, info.Type);
 					return false;
 				}
 
@@ -124,7 +124,7 @@ namespace Shark {
 					if (input.Input[i] == nullptr)
 					{
 						SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Input is null for {}.{} (Index={})", set, binding, i);
-						SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required input is {} ({})", info.Name, ToString(info.Type));
+						SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required input is {} ({})", info.Name, info.Type);
 						return false;
 					}
 				}
@@ -132,7 +132,7 @@ namespace Shark {
 				if (!utils::IsTypeCompadible(input.Type, info.Type))
 				{
 					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Incompadible Type for {}.{}", set, binding);
-					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required is {} but Input is {}", ToString(info.Type), ToString(input.Type));
+					SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager] Required is {} but Input is {}", info.Type, input.Type);
 					return false;
 				}
 
@@ -294,21 +294,6 @@ namespace Shark {
 			SK_CORE_ASSERT(input.Type == InputResourceType::TextureCube);
 			outTextureCube = input.Input[0].As<TextureCube>();
 		}
-	}
-
-	std::string ToString(InputResourceType type)
-	{
-		switch (type)
-		{
-			case InputResourceType::None: return "None";
-			case InputResourceType::Image2D: return "Image2D";
-			case InputResourceType::Texture2D: return "Texture2D";
-			case InputResourceType::TextureCube: return "TextureCube";
-			case InputResourceType::ConstantBuffer: return "ConstantBuffer";
-			case InputResourceType::StorageBuffer: return "StorageBuffer";
-		}
-		SK_CORE_ASSERT(false, "Unkown InputResourceType");
-		return "Unkown";
 	}
 
 }

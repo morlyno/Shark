@@ -155,6 +155,8 @@ namespace Shark {
 
 				glm::vec3 albedoColor(0.8f);
 				float emission = 0.0f;
+				float roughness, metalness;
+
 				aiColor3D aiColor, aiEmission;
 				if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == aiReturn_SUCCESS)
 					albedoColor = { aiColor.r, aiColor.g, aiColor.b };
@@ -162,7 +164,6 @@ namespace Shark {
 				if (aiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, aiEmission) == aiReturn_SUCCESS)
 					emission = aiEmission.r;
 
-				float roughness, metalness;
 				if (aiMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) != aiReturn_SUCCESS)
 					roughness = 0.5f;
 

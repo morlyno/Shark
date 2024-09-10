@@ -260,6 +260,8 @@ namespace Shark {
 		auto device = DirectXContext::GetCurrentDevice();
 		const uint32_t formatDataSize = ImageUtils::GetFormatDataSize(m_Specification.Format);
 
+		//device->UpdateSubresource(m_Info.Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * formatDataSize, 0);
+
 		auto cmd = device->AllocateCommandBuffer();
 		cmd->UpdateSubresource(m_Info.Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * formatDataSize, 0);
 		device->FlushCommandBuffer(cmd);
@@ -370,15 +372,19 @@ namespace Shark {
 
 	DirectXImageView::~DirectXImageView()
 	{
-		if (!m_View)
+		if (!m_Info.View)
 			return;
 
-		Renderer::SubmitResourceFree([view = m_View]()
+		Renderer::SubmitResourceFree([info = m_Info]()
 		{
-			DirectXAPI::ReleaseObject(view);
+			DirectXAPI::ReleaseObject(info.Resource);
+			DirectXAPI::ReleaseObject(info.View);
+			DirectXAPI::ReleaseObject(info.Sampler);
 		});
 
-		m_View = nullptr;
+		m_Info.Resource = nullptr;
+		m_Info.View = nullptr;
+		m_Info.Sampler = nullptr;
 	}
 
 	void DirectXImageView::Invalidate()
@@ -413,9 +419,15 @@ namespace Shark {
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();
 
-		DirectXAPI::CreateShaderResourceView(dxDevice, dxImage->GetDirectXImageInfo().Resource, shaderResourceViewDesc, m_View);
+		const auto& imageInfo = dxImage->GetDirectXImageInfo();
+		m_Info.Resource = imageInfo.Resource;
+		m_Info.Sampler = imageInfo.Sampler;
+		m_Info.Resource->AddRef();
+		m_Info.Sampler->AddRef();
+
+		DirectXAPI::CreateShaderResourceView(dxDevice, dxImage->GetDirectXImageInfo().Resource, shaderResourceViewDesc, m_Info.View);
 		m_DebugName = fmt::format("{} (Mip: {})", dxImage->GetSpecification().DebugName, m_MipSlice);
-		DirectXAPI::SetDebugName(m_View, m_DebugName);
+		DirectXAPI::SetDebugName(m_Info.View, m_DebugName);
 	}
 
 }

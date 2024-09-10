@@ -10,50 +10,10 @@
 
 namespace Shark {
 
-	std::string_view ToString(KeyState state)
-	{
-		switch (state)
-		{
-			case KeyState::None:      return "None";
-			case KeyState::Pressed:   return "Pressed";
-			case KeyState::Down:      return "Down";
-			case KeyState::Released:  return "Released";
-		}
-		SK_CORE_ASSERT("Unkown KeyState");
-		return "Unkown";
-	}
-
-	std::string_view ToString(MouseState state)
-	{
-		switch (state)
-		{
-			case MouseState::None:           return "None";
-			case MouseState::Pressed:        return "Pressed";
-			case MouseState::Down:           return "Down";
-			case MouseState::Released:       return "Released";
-			case MouseState::DoubleClicked:  return "DoubleClicked";
-		}
-		SK_CORE_ASSERT(false, "Unkown MouseState");
-		return "Unkown";
-	}
-
-	std::string ToString(CursorMode cursorMode)
-	{
-		switch (cursorMode)
-		{
-			case CursorMode::Normal: return "Normal";
-			case CursorMode::Hidden: return "Hidden";
-			case CursorMode::Locked: return "Locked";
-		}
-
-		SK_CORE_ASSERT(false, "Unkown CursorMode");
-		return "Unkown";
-	}
-
 	struct InputData
 	{
-		std::unordered_map<KeyCode, KeyState> KeyStates;
-		std::unordered_map<MouseButton, MouseState> MouseButtonStates;
+		std::map<KeyCode, KeyState> KeyStates;
+		std::map<MouseButton, MouseState> MouseButtonStates;
 		glm::vec2 MouseScroll = glm::vec2(0.0f);
 		CursorMode m_CursorMode = CursorMode::Normal;
 		glm::vec2 m_MousePosition;
@@ -75,22 +35,24 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		for (auto& [key, state] : s_InputData->KeyStates)
+		for (auto it = s_InputData->KeyStates.begin(); it != s_InputData->KeyStates.end(); it++)
 		{
+			auto& [key, state] = *it;
 			switch (state)
 			{
 				case KeyState::Pressed:  state = KeyState::Down; break;
-				case KeyState::Released: state = KeyState::None; break;
+				case KeyState::Released: it = s_InputData->KeyStates.erase(it); break;
 			}
 		}
 
-		for (auto& [key, state] : s_InputData->MouseButtonStates)
+		for (auto it = s_InputData->MouseButtonStates.begin(); it != s_InputData->MouseButtonStates.end(); it++)
 		{
+			auto& [key, state] = *it;
 			switch (state)
 			{
 				case MouseState::Pressed:       state = MouseState::Down; break;
-				case MouseState::Released:      state = MouseState::None; break;
-				case MouseState::DoubleClicked: state = MouseState::None; break;
+				case MouseState::Released:      it = s_InputData->MouseButtonStates.erase(it); break;
+				case MouseState::DoubleClicked: it = s_InputData->MouseButtonStates.erase(it); break;
 			}
 		}
 
@@ -174,7 +136,9 @@ namespace Shark {
 
 	KeyState Input::GetKeyState(KeyCode key)
 	{
-		return s_InputData->KeyStates[key];
+		if (s_InputData->KeyStates.contains(key))
+			return KeyState::None;
+		return s_InputData->KeyStates.at(key);
 	}
 
 	bool Input::IsKeyPressed(KeyCode key)
@@ -186,7 +150,10 @@ namespace Shark {
 			case KeyCode::Control: return IsKeyPressed(KeyCode::LeftControl) || IsKeyPressed(KeyCode::RightControl);
 		}
 
-		return s_InputData->KeyStates[key] == KeyState::Pressed;
+		if (!s_InputData->KeyStates.contains(key))
+			return false;
+
+		return s_InputData->KeyStates.at(key) == KeyState::Pressed;
 	}
 
 	bool Input::IsKeyDown(KeyCode key)
@@ -198,7 +165,10 @@ namespace Shark {
 			case KeyCode::Control: return IsKeyDown(KeyCode::LeftControl) || IsKeyDown(KeyCode::RightControl);
 		}
 
-		return s_InputData->KeyStates[key] == KeyState::Down;
+		if (!s_InputData->KeyStates.contains(key))
+			return false;
+
+		return s_InputData->KeyStates.at(key) == KeyState::Down;
 	}
 
 	bool Input::IsKeyRelease(KeyCode key)
@@ -210,32 +180,45 @@ namespace Shark {
 			case KeyCode::Control: return IsKeyRelease(KeyCode::LeftControl) || IsKeyRelease(KeyCode::RightControl);
 		}
 
-		return s_InputData->KeyStates[key] == KeyState::Released;
+		if (!s_InputData->KeyStates.contains(key))
+			return false;
+
+		return s_InputData->KeyStates.at(key) == KeyState::Released;
 	}
 
 	MouseState Input::GetMouseState(MouseButton button)
 	{
-		return s_InputData->MouseButtonStates[button];
+		if (!s_InputData->MouseButtonStates.contains(button))
+			return MouseState::None;
+		return s_InputData->MouseButtonStates.at(button);
 	}
 
 	bool Input::IsMousePressed(MouseButton button)
 	{
-		return s_InputData->MouseButtonStates[button] == MouseState::Pressed;
+		if (!s_InputData->MouseButtonStates.contains(button))
+			return false;
+		return s_InputData->MouseButtonStates.at(button) == MouseState::Pressed;
 	}
 
 	bool Input::IsMouseDown(MouseButton button)
 	{
-		return s_InputData->MouseButtonStates[button] == MouseState::Down;
+		if (!s_InputData->MouseButtonStates.contains(button))
+			return false;
+		return s_InputData->MouseButtonStates.at(button) == MouseState::Down;
 	}
 
 	bool Input::IsMouseRelease(MouseButton button)
 	{
-		return s_InputData->MouseButtonStates[button] == MouseState::Released;
+		if (!s_InputData->MouseButtonStates.contains(button))
+			return false;
+		return s_InputData->MouseButtonStates.at(button) == MouseState::Released;
 	}
 
 	bool Input::IsMouseDoubleClicked(MouseButton button)
 	{
-		return s_InputData->MouseButtonStates[button] == MouseState::DoubleClicked;
+		if (!s_InputData->MouseButtonStates.contains(button))
+			return false;
+		return s_InputData->MouseButtonStates.at(button) == MouseState::DoubleClicked;
 	}
 
 	glm::vec2 Input::GetMouseScroll()
@@ -266,6 +249,16 @@ namespace Shark {
 	float Input::GetYPosition()
 	{
 		return s_InputData->m_MousePosition.y;
+	}
+
+	const std::map<KeyCode, KeyState>& Input::GetKeyStates()
+	{
+		return s_InputData->KeyStates;
+	}
+
+	const std::map<MouseButton, MouseState>& Input::GetMouseButtonStates()
+	{
+		return s_InputData->MouseButtonStates;
 	}
 
 }

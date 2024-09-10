@@ -141,7 +141,8 @@ tracy = {
     },
     Defines = {
         "TRACY_ENABLE",
-        "TRACY_ON_DEMAND"
+        "TRACY_ON_DEMAND",
+        --"TRACY_NO_EXIT"
     }
 }
 

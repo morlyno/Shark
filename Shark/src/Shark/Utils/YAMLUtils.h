@@ -171,12 +171,38 @@ namespace YAML {
 		}
 	};
 
+	template<typename TEnum>
+		requires std::is_enum_v<TEnum>
+	struct convert<TEnum>
+	{
+		static Node encode(const TEnum& value)
+		{
+			return Node(magic_enum::enum_name(value));
+		}
+
+		static bool decode(const Node& node, TEnum& value)
+		{
+			if (!node.IsScalar())
+				return false;
+
+			std::optional<TEnum> optValue = magic_enum::enum_cast<TEnum>(node.Scalar());
+			if (!optValue.has_value())
+				return false;
+
+			value = optValue.value();
+			return true;
+		}
+	};
+
 	Emitter& operator<<(Emitter& out, wchar_t);
 	Emitter& operator<<(Emitter& out, const glm::vec2& f2);
 	Emitter& operator<<(Emitter& out, const glm::vec3& f3);
 	Emitter& operator<<(Emitter& out, const glm::vec4& f4);
 	Emitter& operator<<(Emitter& out, const std::filesystem::path& filePath);
 	Emitter& operator<<(Emitter& out, const Shark::UUID& uuid);
+
+	template<typename TValue>
+	Emitter& operator<<(Emitter& out, const TValue& value) { return out << YAML::Node(value); }
 
 	Node LoadFile(const std::filesystem::path& filename);
 	Node LoadFile(const char* filename);

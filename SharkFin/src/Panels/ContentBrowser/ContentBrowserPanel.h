@@ -37,7 +37,7 @@ namespace Shark {
 			std::sort(Items.begin(), Items.end(), [](auto lhs, auto rhs) -> bool
 			{
 				if (lhs->GetType() == rhs->GetType())
-					return lhs->GetPath() < rhs->GetPath();
+					return lhs->GetName() < rhs->GetName();
 
 				if (lhs->GetType() == CBItemType::Directory)
 					return true;
@@ -45,7 +45,7 @@ namespace Shark {
 				if (rhs->GetType() == CBItemType::Directory)
 					return false;
 
-				return lhs->GetPath() < rhs->GetPath();
+				return lhs->GetName() < rhs->GetName();
 			});
 		}
 
@@ -54,7 +54,7 @@ namespace Shark {
 			const auto it = std::ranges::lower_bound(Items, item, [](auto lhs, auto rhs)
 			{
 				if (lhs->GetType() == rhs->GetType())
-					return lhs->GetPath() < rhs->GetPath();
+					return lhs->GetName() < rhs->GetName();
 
 				if (lhs->GetType() == CBItemType::Directory)
 					return true;
@@ -62,29 +62,34 @@ namespace Shark {
 				if (rhs->GetType() == CBItemType::Directory)
 					return false;
 
-				return lhs->GetPath() < rhs->GetPath();
+				return lhs->GetName() < rhs->GetName();
 			});
 			Items.insert(it, item);
 		}
 
-		bool Contains(Ref<ContentBrowserItem> item)
+		bool Contains(UUID id)
 		{
-			return std::ranges::find(Items, item) != Items.end();
+			return std::ranges::find(Items, id, [](auto item) { return item->GetID(); }) != Items.end();
 		}
 
-		Ref<ContentBrowserItem> TryGet(const std::filesystem::path& path)
+		Ref<ContentBrowserItem> Get(UUID id)
 		{
-			for (auto item : Items)
+			return *std::ranges::find(Items, id, [](auto item) { return item->GetID(); });
+		}
+
+		Ref<ContentBrowserItem> TryGet(UUID id)
+		{
+			const auto it = std::ranges::find(Items, id, [](auto item) { return item->GetID(); });
+			if (it != Items.end())
 			{
-				if (item->GetPath() == path)
-					return item;
+				return *it;
 			}
 			return nullptr;
 		}
 
-		void Remove(Ref<ContentBrowserItem> item)
+		void Remove(UUID id)
 		{
-			const auto it = std::ranges::find(Items, item);
+			const auto it = std::ranges::find(Items, id, [](auto item) { return item->GetID(); });
 			if (it != Items.end())
 			{
 				Items.erase(it);
@@ -98,7 +103,7 @@ namespace Shark {
 			std::ranges::merge(Items, other, std::back_insert_iterator(mergesItems), [](auto lhs, auto rhs)
 			{
 				if (lhs->GetType() == rhs->GetType())
-					return lhs->GetPath() < rhs->GetPath();
+					return lhs->GetName() < rhs->GetName();
 
 				if (lhs->GetType() == CBItemType::Directory)
 					return true;
@@ -106,7 +111,7 @@ namespace Shark {
 				if (rhs->GetType() == CBItemType::Directory)
 					return false;
 
-				return lhs->GetPath() < rhs->GetPath();
+				return lhs->GetName() < rhs->GetName();
 			});
 			std::swap(Items, mergesItems);
 		}
@@ -177,7 +182,10 @@ namespace Shark {
 		uint32_t m_Index = -1;
 	};
 
-	using OpenAssetCallbackFn = std::function<void(const AssetMetaData&)>;
+	using AssetActivatedCallbackFn = std::function<void(const AssetMetaData&)>;
+
+	enum class ErrorType { None = 0, InvalidDirectory, InvalidInput, OperationFailed };
+	enum class ErrorResponse { OK = BIT(0) };
 
 	class ContentBrowserPanel : public Panel
 	{
@@ -194,18 +202,16 @@ namespace Shark {
 		Ref<ThumbnailCache> GetThumbnailCache() const { return m_ThumbnailCache; }
 		Ref<DirectoryInfo> GetCurrentDirectory() const { return m_CurrentDirectory; }
 
-		void RegisterOpenAssetCallback(AssetType assetType, const OpenAssetCallbackFn& func);
+		void RegisterAssetActicatedCallback(AssetType assetType, const AssetActivatedCallbackFn& func);
 
-		Ref<Texture2D> GetDirectoryIcon() const { return m_FolderIcon; }
-		Ref<Texture2D> GetFileIcon(const std::filesystem::path& filepath) const;
 	private:
 		void Reload();
-		void CacheDirectories(Ref<DirectoryInfo> directory);
+		void CacheDirectories();
+		void BuildDirectoryIDMap(Ref<DirectoryInfo> directory);
 		void ParseDirectories(Ref<DirectoryInfo> directory);
 
 	private:
 		void ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistory = true);
-		void NextDirectory(Ref<DirectoryInfo> directory, bool addToHistory = true, bool clearSearch = true);
 
 		void GenerateThumbnails();
 
@@ -213,34 +219,39 @@ namespace Shark {
 		CBItemList Search(const std::string& filterPaddern, Ref<DirectoryInfo> directory, bool searchSubdirectories = true);
 		CBItemList GetItemsInDirectory(Ref<DirectoryInfo> directory);
 
-		Ref<DirectoryInfo> GetDirectory(const std::filesystem::path& filePath);
-		std::filesystem::path GetKey(const std::filesystem::path& path) const;
+	public: // ContentBrowserItem Interface
+		Ref<DirectoryInfo> GetDirectory(UUID id) const;
+		Ref<DirectoryInfo> FindDirectory(const std::filesystem::path& filePath);
+
+		void NextDirectory(Ref<DirectoryInfo> directory, bool addToHistory = true, bool clearSearch = true);
+		void SelectItem(UUID id, bool add = false);
+		void ShowErrorDialogue(ErrorType type, const std::string& message, ErrorResponse response);
 	private:
 		bool OnKeyPressedEvent(KeyPressedEvent& event);
 
 		void DrawItems();
 		void DrawHeader();
-		void DrawDirectoryHirachy(Ref<DirectoryInfo> directory);
+		void DrawDirectoryHierarchy(Ref<DirectoryInfo> directory);
 
 		bool IsSearchActive() { return m_SearchBuffer[0] != '\0'; }
-		CBItemType GetItemTypeFromPath(const std::filesystem::path& path) const;
-
-		void MoveAsset(AssetHandle handle, Ref<DirectoryInfo> destinationDirectory);
-		void MoveDirectory(Ref<DirectoryInfo> directory, Ref<DirectoryInfo> destinationDirectory, bool first = true);
-		void RenameDirectory(Ref<DirectoryInfo> directory, const std::string& newName);
+		Ref<Texture2D> GetAssetIcon(const std::string& extension);
+		void ApplySelectionRequests(ImGuiMultiSelectIO* selectionRequests, bool isBegin);
+		void HandleSelectionRequests();
 
 	private:
-		Ref<ContentBrowserItem> CreateDirectory(Ref<DirectoryInfo> directory, const std::string& name, bool startRenaming);
+		Ref<ContentBrowserItem> CreateDirectory(const std::string& name, bool startRenaming);
 
 		template<typename TAsset, typename... TArgs>
-		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename, TArgs&&... args)
+		void CreateAsset(const std::string& name, bool startRename, TArgs&&... args)
 		{
-			std::filesystem::path directoryPath = m_Project->GetAbsolute(directory->Filepath / name);
+			std::filesystem::path directoryPath = m_Project->GetAbsolute(m_CurrentDirectory->Filepath / name);
 			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
 			Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath, std::forward<TArgs>(args)...);
-			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserItem>::Create(this, CBItemType::Asset, assetManager->GetFilesystemPath(asset->Handle));
+			const auto& metadata = assetManager->GetMetadata(asset);
+			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserAsset>::Create(this, metadata, GetAssetIcon(FileSystem::GetExtensionString(metadata.FilePath)));
 			m_CurrentItems.Add(newItem);
-			directory->AddFile(name);
+			m_CurrentDirectory->AddFile(name);
+			SelectItem(metadata.Handle);
 
 			if (startRename)
 				newItem->StartRenaming();
@@ -248,42 +259,51 @@ namespace Shark {
 
 	private:
 		Ref<Project> m_Project;
-
-		Ref<ThumbnailGenerator> m_ThumbnailGenerator;
 		Ref<ThumbnailCache> m_ThumbnailCache;
+		Ref<ThumbnailGenerator> m_ThumbnailGenerator;
+
+		CBItemList m_CurrentItems;
+
+		Ref<DirectoryInfo> m_BaseDirectory;
+		Ref<DirectoryInfo> m_CurrentDirectory;
+		Ref<DirectoryInfo> m_NextDirectory = nullptr;
+
+		CBHistory m_History;
+		std::vector<Ref<DirectoryInfo>> m_BreadcrumbTrailData;
+
+		ImGuiID m_DeleteDialoguePopupID = UI::GenerateUniqueID();
+		ImGuiID m_ErrorDialogueID = UI::GenerateUniqueID();
 
 		bool m_ReloadScheduled = true;
 		bool m_PanelFocused = false;
 		bool m_ChangesBlocked = false;
 
-		Ref<DirectoryInfo> m_BaseDirectory;
-		Ref<DirectoryInfo> m_CurrentDirectory;
-		std::unordered_map<std::filesystem::path, Ref<DirectoryInfo>> m_DirectoryMap;
-
 		bool m_ChangeDirectory = false;
-		Ref<DirectoryInfo> m_NextDirectory = nullptr;
 		bool m_AddNextToHistory = false;
 
-		CBHistory m_History;
-		std::vector<Ref<DirectoryInfo>> m_BreadcrumbTrailData;
+		bool m_ClearSelection = false;
+		std::vector<UUID> m_ItemsToSelect;
 
-		CBItemList m_CurrentItems;
-		Ref<ContentBrowserItem> m_SelectedItem = nullptr;
-
-		std::unordered_map<AssetType, OpenAssetCallbackFn> m_OpenAssetCallbacks;
-
+		std::unordered_map<UUID, Ref<DirectoryInfo>> m_DirectoryMap;
+		std::unordered_map<AssetType, AssetActivatedCallbackFn> m_AssetActivatedCallbacks;
 		std::unordered_map<std::string, Ref<Texture2D>> m_IconExtensionMap;
-		Ref<Texture2D> m_FileIcon;
-		Ref<Texture2D> m_FolderIcon;
 
-		enum { SearchBufferSize = 260 };
-		char m_SearchBuffer[SearchBufferSize];
+		char m_SearchBuffer[260];
 		bool m_SearchCaseSensitive = false;
 
-		bool m_ShowInvalidFileNameError = false;
-		float m_InvalidFileNameTimer = 0.0f;
-		float m_InvalidFileNameTime = 4.0f; // 4s
-		ImVec2 m_InvalidFileNameToolTipTopLeft;
+		struct DeleteDialogueData
+		{
+			uint32_t SelectedCount = 0;
+			std::vector<std::pair<UUID, bool>> Items;
+		} m_DeleteDialogue;
+
+		struct ErrorDialogue
+		{
+			std::string Title;
+			std::string Message;
+			ErrorType Type = ErrorType::None;
+			ErrorResponse Response = ErrorResponse::OK;
+		} m_ErrorDialogue;
 	};
 
 }

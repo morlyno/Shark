@@ -1,12 +1,16 @@
 #include "skpch.h"
-#include "Icons.h"
+#include "EditorResources.h"
 
 #include "Shark/Core/Timer.h"
-#include "Shark/File/FileSystem.h"
+#include "Shark/Asset/AssetSerializer.h"
+#include "Shark/Serialization/TextureSerializer.h"
 #include "Shark/Serialization/Import/TextureImporter.h"
+#include "Shark/File/FileSystem.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
+	// Custom Titlebar
 	const uint8_t g_WindowCloseIcon[] = {
 		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
 		0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x0e, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x48, 0x2d,
@@ -53,54 +57,61 @@ namespace Shark {
 		0xc7, 0x6d, 0xb0, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
 	};
 
-	static constexpr std::string_view s_FileIconPath = "Resources/Icons/ContentBrowser/Icon_File.png";
-	static constexpr std::string_view s_FolderIconPath = "Resources/Icons/ContentBrowser/Folder.png";
-	static constexpr std::string_view s_PNGIconPath = "Resources/Icons/ContentBrowser/Icon_PNG.png";
-	static constexpr std::string_view s_JPGIconPath = "Resources/Icons/ContentBrowser/Icon_JPG.png";
-	static constexpr std::string_view s_SceneIconPath = "Resources/Icons/ContentBrowser/Icon_Scene.png";
-	static constexpr std::string_view s_ScriptIconPath = "Resources/Icons/ContentBrowser/Icon_Script.png";
-	static constexpr std::string_view s_TextureIconPath = "Resources/Icons/ContentBrowser/Icon_Texture.png";
-	static constexpr std::string_view s_PlayIconPath = "Resources/Icons/Toolbar/Play.png";
-	static constexpr std::string_view s_StopIconPath = "Resources/Icons/Toolbar/Stop.png";
-	static constexpr std::string_view s_PauseIconPath = "Resources/Icons/Toolbar/Pause.png";
-	static constexpr std::string_view s_SimulateIconPath = "Resources/Icons/Toolbar/Simulate.png";
-	static constexpr std::string_view s_StepIconPath = "Resources/Icons/Toolbar/Step.png";
-	static constexpr std::string_view s_ClearIconPath = "Resources/Icons/Clear.png";
-	static constexpr std::string_view s_ReloadIconPath = "Resources/Icons/Reload.png";
-	static constexpr std::string_view s_AngleLeftIconPath = "Resources/Icons/AngleLeft.png";
-	static constexpr std::string_view s_AngleRightIconPath = "Resources/Icons/AngleRight.png";
-	static constexpr std::string_view s_SettingsIconPath = "Resources/Icons/Settings.png";
-	static constexpr std::string_view s_SearchIconPath = "Resources/Icons/Search.png";
-	static constexpr std::string_view s_PlaceholderPath = "Resources/Textures/NoImagePlaceholder.png";
+	// Content Browser
+	std::filesystem::path g_GenericFileIconPath = "Resources/Icons/ContentBrowser/GenericFile.png";
+	std::filesystem::path g_FolderIconPath = "Resources/Icons/ContentBrowser/Folder.png";
+	std::filesystem::path g_PNGIconPath = "Resources/Icons/ContentBrowser/PNG.png";
+	std::filesystem::path g_JPGIconPath = "Resources/Icons/ContentBrowser/JPG.png";
+	std::filesystem::path g_SceneIconPath = "Resources/Icons/ContentBrowser/Scene.png";
+	std::filesystem::path g_ScriptIconPath = "Resources/Icons/ContentBrowser/Script.png";
+	std::filesystem::path g_TextureIconPath = "Resources/Icons/ContentBrowser/Texture.png";
 
+	// Viewport Toolbar
+	std::filesystem::path g_PlayIconPath = "Resources/Icons/Toolbar/Play.png";
+	std::filesystem::path g_StopIconPath = "Resources/Icons/Toolbar/Stop.png";
+	std::filesystem::path g_PauseIconPath = "Resources/Icons/Toolbar/Pause.png";
+	std::filesystem::path g_SimulateIconPath = "Resources/Icons/Toolbar/Simulate.png";
+	std::filesystem::path g_StepIconPath = "Resources/Icons/Toolbar/Step.png";
 
-	void Icons::Init()
+	// Misc
+	std::filesystem::path g_ClearIconPath = "Resources/Icons/Misc/Clear.png";
+	std::filesystem::path g_ReloadIconPath = "Resources/Icons/Misc/Reload.png";
+	std::filesystem::path g_AngleLeftIconPath = "Resources/Icons/Misc/AngleLeft.png";
+	std::filesystem::path g_AngleRightIconPath = "Resources/Icons/Misc/AngleRight.png";
+	std::filesystem::path g_SettingsIconPath = "Resources/Icons/Misc/Settings.png";
+	std::filesystem::path g_SearchIconPath = "Resources/Icons/Misc/Search.png";
+	std::filesystem::path g_AlphaBackgroundPath = "Resources/Textures/AlphaBackground.sktex";
+
+	void EditorResources::Init()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO("Loading Icons...");
 		ScopedTimer timer("Loading Icons");
 
-		//SettingsIcon  = Texture2D::Create(TextureSpecification(), "Resources/Icon_Settings.png");
+		auto* serializer = AssetSerializer::GetSerializer<TextureSerializer>();
 
-		FileIcon        = Texture2D::Create(TextureSpecification(), s_FileIconPath);
-		FolderIcon      = Texture2D::Create(TextureSpecification(), s_FolderIconPath);
-		PNGIcon         = Texture2D::Create(TextureSpecification(), s_PNGIconPath);
-		JPGIcon         = Texture2D::Create(TextureSpecification(), s_JPGIconPath);
-		SceneIcon       = Texture2D::Create(TextureSpecification(), s_SceneIconPath);
-		ScriptIcon      = Texture2D::Create(TextureSpecification(), s_ScriptIconPath);
-		TextureIcon     = Texture2D::Create(TextureSpecification(), s_TextureIconPath);
+		FileIcon        = serializer->TryLoad(g_GenericFileIconPath);
+		FolderIcon      = serializer->TryLoad(g_FolderIconPath);
+		PNGIcon         = serializer->TryLoad(g_PNGIconPath);
+		JPGIcon         = serializer->TryLoad(g_JPGIconPath);
+		SceneIcon       = serializer->TryLoad(g_SceneIconPath);
+		ScriptIcon      = serializer->TryLoad(g_ScriptIconPath);
+		TextureIcon     = serializer->TryLoad(g_TextureIconPath);
 
-		PlayIcon        = Texture2D::Create(TextureSpecification(), s_PlayIconPath);
-		StopIcon        = Texture2D::Create(TextureSpecification(), s_StopIconPath);
-		PauseIcon       = Texture2D::Create(TextureSpecification(), s_PauseIconPath);
-		SimulateIcon    = Texture2D::Create(TextureSpecification(), s_SimulateIconPath);
-		StepIcon        = Texture2D::Create(TextureSpecification(), s_StepIconPath);
+		PlayIcon        = serializer->TryLoad(g_PlayIconPath);
+		StopIcon        = serializer->TryLoad(g_StopIconPath);
+		PauseIcon       = serializer->TryLoad(g_PauseIconPath);
+		SimulateIcon    = serializer->TryLoad(g_SimulateIconPath);
+		StepIcon        = serializer->TryLoad(g_StepIconPath);
 
-		ClearIcon       = Texture2D::Create(TextureSpecification(), s_ClearIconPath);
-		ReloadIcon      = Texture2D::Create(TextureSpecification(), s_ReloadIconPath);
-		AngleLeftIcon   = Texture2D::Create(TextureSpecification(), s_AngleLeftIconPath);
-		AngleRightIcon  = Texture2D::Create(TextureSpecification(), s_AngleRightIconPath);
-		SettingsIcon    = Texture2D::Create(TextureSpecification(), s_SettingsIconPath);
-		Search          = Texture2D::Create(TextureSpecification(), s_SearchIconPath);
+		ClearIcon       = serializer->TryLoad(g_ClearIconPath);
+		ReloadIcon      = serializer->TryLoad(g_ReloadIconPath);
+		AngleLeftIcon   = serializer->TryLoad(g_AngleLeftIconPath);
+		AngleRightIcon  = serializer->TryLoad(g_AngleRightIconPath);
+		SettingsIcon    = serializer->TryLoad(g_SettingsIconPath);
+		SearchIcon      = serializer->TryLoad(g_SearchIconPath);
+
+		AlphaBackground = serializer->TryLoad(g_AlphaBackgroundPath);
 
 		{
 			Buffer textureData;
@@ -123,12 +134,11 @@ namespace Shark {
 			WindowRestoreIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
 		}
-
-		Placeholder = Texture2D::Create(TextureSpecification(), s_PlaceholderPath); 
 	}
 
-	void Icons::Shutdown()
+	void EditorResources::Shutdown()
 	{
+		SK_PROFILE_FUNCTION();
 		//SettingsIcon  = nullptr;
 
 		FileIcon      = nullptr;
@@ -150,14 +160,14 @@ namespace Shark {
 		AngleLeftIcon = nullptr;
 		AngleRightIcon = nullptr;
 		SettingsIcon = nullptr;
-		Search = nullptr;
+		SearchIcon = nullptr;
 
 		WindowCloseIcon = nullptr;
 		WindowMinimizeIcon = nullptr;
 		WindowMaximizeIcon = nullptr;
 		WindowRestoreIcon = nullptr;
 
-		Placeholder = nullptr;
+		AlphaBackground = nullptr;
 	}
 
 	static void ReloadIconFromDisc(Ref<Texture2D> icon, const std::filesystem::path& filepath)
@@ -171,27 +181,27 @@ namespace Shark {
 		icon->Invalidate();
 	}
 
-	void Icons::Reload()
+	void EditorResources::ReloadIcons()
 	{
-		ReloadIconFromDisc(FileIcon, s_FileIconPath);
-		ReloadIconFromDisc(FolderIcon, s_FolderIconPath);
-		ReloadIconFromDisc(PNGIcon, s_PNGIconPath);
-		ReloadIconFromDisc(JPGIcon, s_JPGIconPath);
-		ReloadIconFromDisc(SceneIcon, s_SceneIconPath);
-		ReloadIconFromDisc(ScriptIcon, s_ScriptIconPath);
-		ReloadIconFromDisc(TextureIcon, s_TextureIconPath);
-		ReloadIconFromDisc(PlayIcon, s_PlayIconPath);
-		ReloadIconFromDisc(StopIcon, s_StopIconPath);
-		ReloadIconFromDisc(PauseIcon, s_PauseIconPath);
-		ReloadIconFromDisc(SimulateIcon, s_SimulateIconPath);
-		ReloadIconFromDisc(StepIcon, s_StepIconPath);
-		ReloadIconFromDisc(ClearIcon, s_ClearIconPath);
-		ReloadIconFromDisc(ReloadIcon, s_ReloadIconPath);
-		ReloadIconFromDisc(AngleLeftIcon, s_AngleLeftIconPath);
-		ReloadIconFromDisc(AngleRightIcon, s_AngleRightIconPath);
-		ReloadIconFromDisc(SettingsIcon, s_SettingsIconPath);
-		ReloadIconFromDisc(Search, s_SearchIconPath);
-		ReloadIconFromDisc(Placeholder, s_PlaceholderPath);
+		ReloadIconFromDisc(FileIcon, g_GenericFileIconPath);
+		ReloadIconFromDisc(FolderIcon, g_FolderIconPath);
+		ReloadIconFromDisc(PNGIcon, g_PNGIconPath);
+		ReloadIconFromDisc(JPGIcon, g_JPGIconPath);
+		ReloadIconFromDisc(SceneIcon, g_SceneIconPath);
+		ReloadIconFromDisc(ScriptIcon, g_ScriptIconPath);
+		ReloadIconFromDisc(TextureIcon, g_TextureIconPath);
+		ReloadIconFromDisc(PlayIcon, g_PlayIconPath);
+		ReloadIconFromDisc(StopIcon, g_StopIconPath);
+		ReloadIconFromDisc(PauseIcon, g_PauseIconPath);
+		ReloadIconFromDisc(SimulateIcon, g_SimulateIconPath);
+		ReloadIconFromDisc(StepIcon, g_StepIconPath);
+		ReloadIconFromDisc(ClearIcon, g_ClearIconPath);
+		ReloadIconFromDisc(ReloadIcon, g_ReloadIconPath);
+		ReloadIconFromDisc(AngleLeftIcon, g_AngleLeftIconPath);
+		ReloadIconFromDisc(AngleRightIcon, g_AngleRightIconPath);
+		ReloadIconFromDisc(SettingsIcon, g_SettingsIconPath);
+		ReloadIconFromDisc(SearchIcon, g_SearchIconPath);
+		ReloadIconFromDisc(AlphaBackground, g_AlphaBackgroundPath);
 	}
 
 }

@@ -714,12 +714,9 @@ ImportedAssets:
     Type: Environment
     FilePath: Environment/spruit_sunrise_4k.hdr
 EditorAssets:
-  - Handle: 11789891412823666763
+  - Handle: 13196250996000324786
     Type: Texture
-    FilePath: Resources/Textures/NoImagePlaceholder.png
-  - Handle: 9158403992234771517
-    Type: Texture
-    FilePath: Resources/Textures/NoImagePlaceholder.sktex
+    FilePath: Resources/Textures/AlphaBackground.png
   - Handle: 7145403298054936205
     Type: MeshSource
     FilePath: Resources/Meshes/Default/Cone.gltf

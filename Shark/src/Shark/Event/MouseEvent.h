@@ -26,7 +26,7 @@ namespace Shark {
 			: m_Button(button) {}
 
 		MouseButton GetButton() const { return m_Button; }
-		std::string ToString() const override { return fmt::format("{}, Button: {}", GetName(), ::Shark::ToString(m_Button)); }
+		std::string ToString() const override { return fmt::format("{}, Button: {}", GetName(), m_Button); }
 
 	private:
 		MouseButton m_Button;
@@ -39,7 +39,7 @@ namespace Shark {
 			: m_Button(button) {}
 
 		MouseButton GetButton() const { return m_Button; }
-		std::string ToString() const override { return fmt::format("{}, Button: {}", GetName(), ::Shark::ToString(m_Button)); }
+		std::string ToString() const override { return fmt::format("{}, Button: {}", GetName(), m_Button); }
 
 	private:
 		MouseButton m_Button;
@@ -52,7 +52,7 @@ namespace Shark {
 			: m_Button(button) {}
 
 		MouseButton GetButton() const { return m_Button; }
-		std::string ToString() const override { return fmt::format("{}, Button: {}", GetName(), ::Shark::ToString(m_Button)); }
+		std::string ToString() const override { return fmt::format("{}, Button: {}", GetName(), m_Button); }
 
 	private:
 		MouseButton m_Button;

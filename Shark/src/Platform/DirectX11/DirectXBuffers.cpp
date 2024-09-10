@@ -4,7 +4,6 @@
 #include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXContext.h"
-#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
 #include "Shark/Debug/Profiler.h"
 

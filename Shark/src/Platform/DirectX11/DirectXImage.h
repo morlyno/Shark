@@ -76,6 +76,13 @@ namespace Shark {
 		friend class DirectXRenderer;
 	};
 
+	struct DirectXViewInfo
+	{
+		ID3D11Resource* Resource = nullptr;
+		ID3D11ShaderResourceView* View = nullptr;
+		ID3D11SamplerState* Sampler = nullptr;
+	};
+
 	class DirectXImageView : public ImageView
 	{
 	public:
@@ -85,12 +92,15 @@ namespace Shark {
 		void Invalidate();
 
 		virtual Ref<Image2D> GetImage() const { return m_Image; }
-		virtual RenderID GetViewID() const override { return m_View; }
+		virtual RenderID GetViewID() const override { return m_Info.View; }
+
+		DirectXViewInfo& GetDirectXViewInfo() { return m_Info; }
+		const DirectXViewInfo& GetDirectXViewInfo() const { return m_Info; }
 	private:
 		Ref<Image2D> m_Image;
 		uint32_t m_MipSlice;
 
-		ID3D11ShaderResourceView* m_View = nullptr;
+		DirectXViewInfo m_Info;
 
 		std::string m_DebugName;
 

@@ -28,39 +28,40 @@ namespace Shark {
 		s_Data = sknew LogData();
 
 		s_ConsoleSink = std::make_shared<ConsoleSink>();
+		auto stdoutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+		auto coreFileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/Core.log", true);
+		auto clientFileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/App.log", true);
 
-		std::vector<spdlog::sink_ptr> sharkSinks =
+		stdoutSink->set_pattern("%^[%T] %n: %v%$");
+		coreFileSink->set_pattern("[%c] [%l] %n: %v");
+		clientFileSink->set_pattern("%^[%T] %n: %v%$");
+
+		spdlog::sinks_init_list sharkSinks =
 		{
-			std::make_shared<spdlog::sinks::stdout_color_sink_mt>(),
-			std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/Core.log", true)
+			stdoutSink,
+			coreFileSink
 		};
 
-		std::vector<spdlog::sink_ptr> clientSinks =
+		spdlog::sinks_init_list clientSinks =
 		{
-			std::make_shared<spdlog::sinks::stdout_color_sink_mt>(),
-			std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/App.log", true),
+			stdoutSink,
+			clientFileSink,
 			s_ConsoleSink
 		};
 
-		std::vector<spdlog::sink_ptr> consoleSinks =
+		spdlog::sinks_init_list consoleSinks =
 		{
-			std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/App.log", true),
+			clientFileSink,
 			s_ConsoleSink
 		};
 
-		sharkSinks[0]->set_pattern("%^[%T] %n: %v%$");
-		sharkSinks[1]->set_pattern("[%c] [%l] %n: %v");
-		clientSinks[0]->set_pattern("%^[%T] %n: %v%$");
-		clientSinks[1]->set_pattern("[%c] [%l] %n: %v");
-		consoleSinks[0]->set_pattern("[%c] [%l] %n: %v");
-
-		s_Data->CoreLogger = std::make_shared<spdlog::logger>("SHARK", sharkSinks.begin(), sharkSinks.end());
+		s_Data->CoreLogger = std::make_shared<spdlog::logger>("SHARK", sharkSinks);
 		s_Data->CoreLogger->set_level(spdlog::level::trace);
 
-		s_Data->ClientLogger = std::make_shared<spdlog::logger>("APP", clientSinks.begin(), clientSinks.end());
+		s_Data->ClientLogger = std::make_shared<spdlog::logger>("APP", clientSinks);
 		s_Data->ClientLogger->set_level(spdlog::level::trace);
 
-		s_Data->ConsoleLogger = std::make_shared<spdlog::logger>("APP", consoleSinks.begin(), consoleSinks.end());
+		s_Data->ConsoleLogger = std::make_shared<spdlog::logger>("APP", consoleSinks);
 		s_Data->ConsoleLogger->set_level(spdlog::level::trace);
 	}
 

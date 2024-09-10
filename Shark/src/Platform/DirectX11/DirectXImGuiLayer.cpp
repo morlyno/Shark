@@ -37,11 +37,18 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		IMGUI_CHECKVERSION();
+
+#if SK_TRACK_MEMORY
+		ImGui::SetAllocatorFunctions([](size_t size, void* userData) { return Allocator::ModuleAllocate("ImGui", size); },
+									 [](void* memory, void* userData) { Allocator::ModuleFree("ImGui", memory); });
+#endif
+
 		ImGui::CreateContext();
 
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
 		UI::FontConfiguration robotoBold;
 		robotoBold.Name = "Bold";
@@ -236,6 +243,26 @@ namespace Shark {
 		}
 
 		curr_cmd->TextureId = dxImage->GetDirectXImageInfo().View;
+		drawList->AddCallback(&BindSamplerCallback, this);
+	}
+
+	void DirectXImGuiLayer::AddImage(Ref<ImageView> view)
+	{
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		ImDrawCmd* curr_cmd = &drawList->CmdBuffer[drawList->CmdBuffer.Size - 1];
+		if (curr_cmd->ElemCount != 0)
+		{
+			drawList->AddDrawCmd();
+			curr_cmd = &drawList->CmdBuffer.Data[drawList->CmdBuffer.Size - 1];
+		}
+
+		auto imageView = view.As<DirectXImageView>();
+		const auto& viewInfo = imageView->GetDirectXViewInfo();
+
+		m_ImageMap[viewInfo.View] = imageView->GetImage().As<DirectXImage2D>();
+
+		curr_cmd->TextureId = viewInfo.View;
 		drawList->AddCallback(&BindSamplerCallback, this);
 	}
 

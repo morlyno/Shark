@@ -616,13 +616,14 @@ namespace Shark {
 		for (uint32_t i = 0, size = cubemapSize; i < mipCount; i++, size /= 2)
 		{
 			Ref<DirectXImageView> envUnfilterImageView = Ref<DirectXImageView>::Create(unfiltered->GetImage(), i);
+			const auto& unfilteredInfo = envUnfilterImageView->GetDirectXViewInfo();
 
 			uint32_t numGroup = glm::max(1u, size / 32);
 			float roughness = glm::max(i * deltaRoughness, 0.05f);
 
 			const auto& inputTexInfo = environmentMipFilterShader->GetResourceInfo("inputTexture");
-			cmd->CSSetShaderResources(inputTexInfo.DXBinding, 1, &envUnfilterImageView->m_View);
-			cmd->CSSetSamplers(inputTexInfo.DXSamplerBinding, 1, &unfiltered->GetDirectXImageInfo().Sampler);
+			cmd->CSSetShaderResources(inputTexInfo.DXBinding, 1, &unfilteredInfo.View);
+			cmd->CSSetSamplers(inputTexInfo.DXSamplerBinding, 1, &unfilteredInfo.Sampler);
 
 			const auto& outputTexInfo = environmentMipFilterShader->GetResourceInfo("outputTexture");
 			cmd->CSSetUnorderedAccessViews(outputTexInfo.DXBinding, 1, &filtered->GetUAV(i), nullptr);
@@ -878,7 +879,7 @@ namespace Shark {
 		RT_BindResources(commandBuffer, material->GetShader(), material->GetBoundResources());
 	}
 
-	void DirectXRenderer::RT_BindResources(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<Shader> shader, const std::vector<BoundResource>& boundResources)
+	void DirectXRenderer::RT_BindResources(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<Shader> shader, std::span<const BoundResource> boundResources)
 	{
 		ID3D11DeviceContext* context = commandBuffer->GetContext();
 		const auto& reflectionData = shader->GetReflectionData();

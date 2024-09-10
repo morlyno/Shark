@@ -73,11 +73,18 @@ namespace Shark {
 		RelationshipComponent(const RelationshipComponent&) = default;
 	};
 
+	namespace Internal {
+		struct RootParentComponent
+		{
+			int Dummy = 0;
+		};
+	}
+
 	struct SpriteRendererComponent
 	{
 		glm::vec4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		AssetHandle TextureHandle;
-		float TilingFactor = 1.0f;
+		glm::vec2 TilingFactor = { 1.0f, 1.0f };
 		bool Transparent = false;
 
 		SpriteRendererComponent() = default;
@@ -300,9 +307,13 @@ namespace Shark {
 	};
 
 	template<typename... TComponents>
-	struct ComponentGroup {};
+	struct ComponentGroup
+	{
+		template<typename... TOthers>
+		using Combine = ComponentGroup<TComponents..., TOthers...>;
+	};
 
-	constexpr auto AllComponents = ComponentGroup<
+	using AllComponentsGroup = ComponentGroup<
 		// NOTE(moro): NO IDComponent
 		TagComponent,
 		TransformComponent,
@@ -323,7 +334,11 @@ namespace Shark {
 		PrismaticJointComponent,
 		PulleyJointComponent,
 		ScriptComponent
-	>{};
+	>;
+
+	constexpr ComponentGroup AllComponents = AllComponentsGroup{};
+	constexpr ComponentGroup CopySceneComponents = AllComponentsGroup::Combine<Internal::RootParentComponent>{};
+	constexpr ComponentGroup CopyEntityComponents = AllComponentsGroup::Combine<Internal::RootParentComponent>{};
 
 	template<typename TFunc, typename... TComponents>
 	inline static void ForEach(TFunc func)
@@ -338,6 +353,12 @@ namespace Shark {
 	inline static void ForEach(ComponentGroup<TComponents...> componentGroup, TFunc func)
 	{
 		ForEach<TFunc, TComponents...>(func);
+	}
+
+	template<typename... TComponents>
+	constexpr uint32_t GroupSize(ComponentGroup<TComponents...>  group)
+	{
+		return sizeof...(TComponents);
 	}
 
 }

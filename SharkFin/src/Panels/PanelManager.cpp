@@ -176,8 +176,8 @@ namespace Shark {
 		for (const auto& [id, entry] : m_Panels)
 		{
 			out << YAML::BeginMap;
-			SK_SERIALIZE_PROPERTRY(out, "ID", id);
-			SK_SERIALIZE_PROPERTRY(out, "Show", entry.Show);
+			SK_SERIALIZE_PROPERTY(out, "ID", id);
+			SK_SERIALIZE_PROPERTY(out, "Show", entry.Show);
 			out << YAML::EndMap;
 		}
 

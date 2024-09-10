@@ -56,6 +56,7 @@ namespace Shark {
 		void* Memory;
 		size_t Size;
 		const char* Descriptor;
+		const char* Module;
 		int Line = -1;
 	};
 
@@ -87,17 +88,17 @@ namespace Shark {
 		static void* Reallocate(void* memory, size_t newSize, const char* desc);
 		static void* Reallocate(void* memory, size_t newSize, const char* file, int line);
 
-		static const AllocatorData::AllocationStatsMap& GetAllocationStatsMap() { return s_Data->m_AllocationStatsMap; }
-		static const MemoryStats& GetMemoryStats() { return s_Data->m_MemoryStats; }
+		static void* ModuleAllocate(const char* moduleName, size_t size, const char* descOrFile = s_DefaultDescriptor, int line = -1);
+		static void* ModuleReallocate(const char* moduleName, void* memory, size_t newSize, const char* descOrFile = s_DefaultDescriptor, int line = -1);
+		static void ModuleFree(const char* moduleName, void* memory);
 
+		static const MemoryStats& GetMemoryStats() { return s_Data->m_MemoryStats; }
+		static const AllocatorData::AllocationStatsMap& GetAllocationStatsMap() { return s_Data->m_AllocationStatsMap; }
 		static const AllocatorData::AllocationMap& GetAllocationMap() { return s_Data->m_AllocationMap; }
 
 	private:
-		static void* InternalReallocate(void* memory, size_t newSize, const char* descOrFile = s_NullDesc, int line = -1);
-
-	private:
 		inline static AllocatorData* s_Data = nullptr;
-		inline static const char* s_NullDesc = "(null)";
+		inline static const char* s_DefaultDescriptor = "Default";
 	};
 
 }

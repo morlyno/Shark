@@ -7,6 +7,7 @@
 
 #undef CreateFile
 #undef CopyFile
+#undef CreateDirectory
 
 
 namespace Shark {
@@ -30,8 +31,10 @@ namespace Shark {
 	public:
 		static bool IsValidFilename(std::string_view filename);
 
-		static std::filesystem::path MakePathUnique(const std::filesystem::path& path);
-
+		// returns true if path was already unique, false otherwise
+		static bool AssureUniqueness(std::filesystem::path& path);
+		static bool AssureUniquenessInDirectory(const std::filesystem::path& directory, std::string& name);
+		static std::filesystem::path UniquePath(const std::filesystem::path& path);
 	public:
 		static bool Exists(const std::filesystem::path& filepath);
 		static bool Exists(const std::filesystem::path& filepath, std::string& errorMsg);
@@ -48,11 +51,14 @@ namespace Shark {
 		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::string& errorMsg);
 		static bool CopyFile(const std::filesystem::path& source, const std::filesystem::path& destination, std::filesystem::copy_options options, std::string& errorMsg);
 
+		static bool CreateDirectory(const std::filesystem::path& path);
+		static bool CreateDirectory(const std::filesystem::path& path, std::string& errorMsg);
+
 		static bool CreateDirectories(const std::filesystem::path& path);
 		static bool CreateDirectories(const std::filesystem::path& path, std::string& errorMsg);
 
-		static bool Rename(const std::filesystem::path& oldName, const std::string& newName);
-		static bool Rename(const std::filesystem::path& oldName, const std::string& newName, std::string& errorMsg);
+		static bool Rename(const std::filesystem::path& filepath, const std::string& newName);
+		static bool Rename(const std::filesystem::path& filepath, const std::string& newName, std::string& errorMsg);
 
 		static bool Move(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
 		static bool Move(const std::filesystem::path& oldPath, const std::filesystem::path& newPath, std::string& errorMsg);
@@ -67,8 +73,6 @@ namespace Shark {
 
 		static uint64_t GetLastWriteTime(const std::filesystem::path& path);
 
-		static std::filesystem::path GetFilesystemPath(const std::filesystem::path& path);
-
 		static void RemoveExtension(std::filesystem::path& path);
 		static void ReplaceExtension(std::filesystem::path& path, const std::string& extension);
 		static void ReplaceStem(std::filesystem::path& path, const std::string& stem);
@@ -77,11 +81,19 @@ namespace Shark {
 		static std::filesystem::path ChangeExtension(const std::filesystem::path& path, const std::string& extesnion);
 		static std::filesystem::path ChangeFilename(const std::filesystem::path& path, const std::string& filename);
 
+		static std::filesystem::path GetParent(const std::filesystem::path& path);
+
 		static std::string GetStemString(const std::filesystem::path& path);
 		static std::string GetExtensionString(const std::filesystem::path& path);
+		static std::string GetFilenameString(const std::filesystem::path& path);
+		static std::string GetParentString(const std::filesystem::path& path);
 
 		static std::filesystem::path CreatePath(const std::filesystem::path& directory, const std::string& name, const std::string& extension);
 		static std::string CreatePathString(const std::filesystem::path& directory, const std::string& name, const std::string& extension);
+
+	private:
+		static std::filesystem::path GetFilesystemPath(const std::filesystem::path& path);
+
 	};
 
 }

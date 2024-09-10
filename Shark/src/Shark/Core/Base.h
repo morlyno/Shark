@@ -44,54 +44,30 @@
 	#define SK_ENABLE_PROFILER 1
 #endif
 
-#define SK_DEBUG_BREAK_CONDITIONAL(_cond_var_name) static bool _cond_var_name = true; if (_cond_var_name) { SK_DEBUG_BREAK(); }
-
-#pragma region Macro Internal
-
-#define SK_IMPL_CONNECT(a, b) a##b
-
-#define SK_IMPL_UNIQUE_NAME_BASE_CONNECT(a, b) a ## b
-#define SK_IMPL_UNIQUE_NAME_BASE(x) SK_IMPL_UNIQUE_NAME_BASE_CONNECT(unique_name_, x)
-
-#define INTERNAL_SK_ARG_N(\
-_1, _2, _3, _4, _5, _6, _7, _8, _9,_10, \
-_11,_12,_13,_14,_15,_16,_17,_18,_19,_20, \
-_21,_22,_23,_24,_25,_26,_27,_28,_29,_30, \
-_31,_32,_33,_34,_35,_36,_37,_38,_39,_40, \
-_41,_42,_43,_44,_45,_46,_47,_48,_49,_50, \
-_51,_52,_53,_54,_55,_56,_57,_58,_59,_60, \
-_61,_62,_63,N,...) N
-
-#define INTERNAL_SK_RSEQ_N() \
-63,62,61,60,                   \
-59,58,57,56,55,54,53,52,51,50, \
-49,48,47,46,45,44,43,42,41,40, \
-39,38,37,36,35,34,33,32,31,30, \
-29,28,27,26,25,24,23,22,21,20, \
-19,18,17,16,15,14,13,12,11,10, \
-9,8,7,6,5,4,3,2,1,0
-
-#define INTERNAL_CONNECT_STRINGIFY2(a) #a
-#define INTERNAL_CONNECT_STRINGIFY(a, b) INTERNAL_CONNECT_STRINGIFY2(a##b)
-
-#pragma endregion
-
 #define BIT(x) (1 << x)
-#define SET_BIT(_bit, _value) (0b ## _value << _bit)
 
 #define SK_STRINGIFY(x) #x
 #define SK_EXPAND(x) x
-#define SK_CONNECT(a, b) SK_IMPL_CONNECT(a, b)
-#define SK_CONNECT_STRINGIFY(a, b) INTERNAL_CONNECT_STRINGIFY(a, b)
+#define SK_CONNECT(a, b) INTERNAL_CONNECT(a, b)
+#define INTERNAL_CONNECT(a, b) a ## b
 
+#define SK_DEBUG_BREAK_CONDITIONAL(_cond_var_name) static bool _cond_var_name = true; if (_cond_var_name) { SK_DEBUG_BREAK(); }
 #define SK_BIND_EVENT_FN(func) [this](auto&&... args) -> decltype(auto) { return this->func(std::forward<decltype(args)>(args)...); }
 
 #define SK_NOT_IMPLEMENTED() SK_CORE_ERROR("Not Implemented!"); SK_DEBUG_BREAK()
 #define SK_DEPRECATED(message) [[deprecated(message)]]
 
-#define SK_UNIQUE_NAME SK_IMPL_UNIQUE_NAME_BASE(__COUNTER__)
+#ifdef SK_COMPILER_MSVC
+	#define GET_ARG_COUNT(...)  INTERNAL_EXPAND_ARGS_PRIVATE(INTERNAL_ARGS_AUGMENTER(__VA_ARGS__))
 
-#define SK_NUM_ARGS(...) INTERNAL_SK_ARG_N(__VA_ARGS__,INTERNAL_SK_RSEQ_N())
+	#define INTERNAL_ARGS_AUGMENTER(...) unused, __VA_ARGS__
+	#define INTERNAL_EXPAND(x) x
+	#define INTERNAL_EXPAND_ARGS_PRIVATE(...) INTERNAL_EXPAND(INTERNAL_GET_ARG_COUNT_PRIVATE(__VA_ARGS__, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
+	#define INTERNAL_GET_ARG_COUNT_PRIVATE(_1_, _2_, _3_, _4_, _5_, _6_, _7_, _8_, _9_, _10_, _11_, _12_, _13_, _14_, _15_, _16_, _17_, _18_, _19_, _20_, _21_, _22_, _23_, _24_, _25_, _26_, _27_, _28_, _29_, _30_, _31_, _32_, _33_, _34_, _35_, _36, _37, _38, _39, _40, _41, _42, _43, _44, _45, _46, _47, _48, _49, _50, _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, _64, _65, _66, _67, _68, _69, _70, count, ...) count
+#else
+	#define GET_ARG_COUNT(...) INTERNAL_GET_ARG_COUNT_PRIVATE(0, ## __VA_ARGS__, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+	#define INTERNAL_GET_ARG_COUNT_PRIVATE(_0, _1_, _2_, _3_, _4_, _5_, _6_, _7_, _8_, _9_, _10_, _11_, _12_, _13_, _14_, _15_, _16_, _17_, _18_, _19_, _20_, _21_, _22_, _23_, _24_, _25_, _26_, _27_, _28_, _29_, _30_, _31_, _32_, _33_, _34_, _35_, _36, _37, _38, _39, _40, _41, _42, _43, _44, _45, _46, _47, _48, _49, _50, _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, _64, _65, _66, _67, _68, _69, _70, count, ...) count
+#endif
 
 #include <stdint.h>
 #include <magic_enum.hpp>

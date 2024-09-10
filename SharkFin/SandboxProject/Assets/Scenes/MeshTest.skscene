@@ -1,6 +1,6 @@
 Scene:
   Name: MeshTest
-  ActiveCamera: 0x4c55bff0b66af4c1
+  ActiveCamera: 5500513560476447937
   Entities:
     - Entity: 72621122681512571
       TagComponent:
@@ -3720,6 +3720,7 @@ Scene:
         Text: "Hallo\nWelcome to the Shark Game Engine.\nCreated by ME."
         Color: [1, 1, 1, 1]
         Kerning: 0
+        LineSpacing: 0
     - Entity: 9833636787946473358
       TagComponent:
         Name: sponza_109

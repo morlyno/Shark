@@ -21,6 +21,8 @@ Project:
       Level: Trace
     - Name: Font
       Level: Info
+    - Name: Memory
+      Level: Trace
     - Name: Renderer
       Level: Trace
     - Name: ScriptEngine

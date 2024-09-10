@@ -10,6 +10,7 @@ namespace Shark {
 	class DirectXTexture2D : public Texture2D
 	{
 	public:
+		DirectXTexture2D();
 		DirectXTexture2D(const TextureSpecification& specification, Buffer imageData);
 		DirectXTexture2D(const TextureSpecification& specification, const std::filesystem::path& filepath);
 		virtual ~DirectXTexture2D();
@@ -35,7 +36,9 @@ namespace Shark {
 
 		virtual TextureSpecification& GetSpecification() override { return m_Specification; }
 		virtual const TextureSpecification& GetSpecification() const override { return m_Specification; }
+
 		virtual const std::filesystem::path& GetFilepath() const override { return m_Filepath; }
+		virtual void SetFilepath(const std::filesystem::path& filepath) override { m_Filepath = filepath; }
 
 		virtual AssetHandle GetSourceTextureHandle() const override { return m_SourceTextureHandle; }
 		virtual void SetSourceTextureHandle(AssetHandle handle) override { m_SourceTextureHandle = handle; }

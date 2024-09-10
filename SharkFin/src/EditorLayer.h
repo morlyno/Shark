@@ -24,7 +24,6 @@
 
 #include <imgui.h>
 #include <ImGuizmo.h>
-#include <imgui_internal.h>
 
 namespace Shark {
 
@@ -74,6 +73,7 @@ namespace Shark {
 		void UI_ImportAsset();
 		void UI_CreateMeshAsset();
 		void UI_CreateProjectModal();
+		void UI_ShowKeyStates();
 		void UpdateMainWindow();
 
 		void DebugRender();
@@ -144,6 +144,8 @@ namespace Shark {
 		bool m_ShowThemeEditor = false;
 		bool m_ShowLogSettings = false;
 		bool m_ShowCreateProject = false;
+		bool m_ShowKeyStates = false;
+
 		bool m_ReadPixel = false;
 		glm::vec4 m_HoveredColor;
 
@@ -152,10 +154,6 @@ namespace Shark {
 		float m_ScaleSnap = 0.5f;
 		GizmoOperaton m_CurrentOperation = GizmoOperaton::None;
 		bool m_RenderGizmo = true;
-
-#if TODO
-		Entity m_SelectetEntity;
-#endif
 
 		SceneState m_SceneState = SceneState::Edit;
 

@@ -12,12 +12,10 @@ namespace Shark {
 	EditorAssetThread::EditorAssetThread(const AssetThreadSettings& settings)
 		: m_Thread("AssetThread")
 	{
-		SK_CORE_VERIFY(settings.Registry);
 		SK_CORE_VERIFY(settings.DefaultDependencyPolicy != LoadDependencyPolicy::Default, "LoadDependencyPolicy::Default is not allowed as the default policy.");
 
 		m_MonitorAssets = settings.MonitorAssets;
 		m_DefaultDependencyPolicy = settings.DefaultDependencyPolicy;
-		m_Registry = settings.Registry;
 
 		m_IdleSignal = Threading::Signal(true, false);
 		m_Thread.Dispacht(&EditorAssetThread::AssetThreadFunc, this);
@@ -91,6 +89,22 @@ namespace Shark {
 		return request.DependencyPolicy;
 	}
 
+	void EditorAssetThread::HandleMetadataRequests(const AssetRegistry& registry)
+	{
+		SK_PROFILE_FUNCTION();
+
+		std::scoped_lock lock(m_RequestedMetadataMutex);
+		for (AssetHandle handle : m_MetadataRequests)
+		{
+			if (!registry.Contains(handle))
+				continue;
+
+			m_RequestedMetadata[handle] = registry.Read(handle);
+		}
+		m_MetadataRequests.clear();
+		m_RequestsCompleted.notify_all();
+	}
+
 	void EditorAssetThread::RetrieveLoadedAssets(std::vector<AssetLoadRequest>& outLoadedAssets)
 	{
 		SK_PROFILE_FUNCTION();
@@ -122,6 +136,16 @@ namespace Shark {
 		{
 			std::scoped_lock lock(m_LoadedAssetMetadataMutex);
 			m_LoadedAssetMetadata[metadata.Handle] = metadata;
+		}
+	}
+
+	void EditorAssetThread::UpdateLastWriteTime(AssetHandle handle, uint64_t lastWriteTime)
+	{
+		std::scoped_lock lock(m_LoadedAssetMetadataMutex);
+		if (m_LoadedAssetMetadata.contains(handle))
+		{
+			AssetMetaData& metadata = m_LoadedAssetMetadata.at(handle);
+			metadata.LastWriteTime = lastWriteTime;
 		}
 	}
 
@@ -249,12 +273,15 @@ namespace Shark {
 		if (request.DependencyPolicy == LoadDependencyPolicy::OnDemand || !request.Asset)
 			return;
 
-		const auto Queue = [this, dependencyPolicy = request.DependencyPolicy, reload = request.Reload](AssetHandle handle)
+		SK_PROFILE_FUNCTION();
+
+		std::vector<AssetMetaData> dependencies;
+		std::vector<AssetHandle> deferredDependencies;
+
+		const auto Queue = [this, &dependencies, &deferredDependencies, dependencyPolicy = request.DependencyPolicy, reload = request.Reload](AssetHandle handle)
 		{
 			if (!handle)
 				return;
-
-			std::optional<AssetMetaData> metadata;
 
 			{
 				// early out if already queued
@@ -269,59 +296,23 @@ namespace Shark {
 						return;
 					}
 
+					if (alr.Metadata.Status == AssetStatus::Ready)
+						return;
+
 					SK_DEBUG_BREAK_CONDITIONAL(s_Break_Unreachable);
 				}
 			}
 
-			if (!metadata)
 			{
 				std::scoped_lock lock(m_LoadedAssetMetadataMutex);
-				if (m_LoadedAssetMetadata.contains(handle))
+				if (m_LoadedAssetMetadata.contains(handle) && std::ranges::find(dependencies, handle, &AssetMetaData::Handle) != dependencies.end())
 				{
-					metadata = m_LoadedAssetMetadata.at(handle);
-					SK_CORE_WARN("Loaded Asset Submitted! {} {} {} {}", metadata->Type, metadata->IsMemoryAsset, metadata->Handle, metadata->FilePath);
+					dependencies.push_back(m_LoadedAssetMetadata.at(handle));
+					return;
 				}
 			}
 
-			if (!metadata)
-			{
-				metadata = m_Registry->TryReadCopy(handle);
-			}
-
-			SK_CORE_ASSERT(metadata);
-			if (!metadata)
-				return;
-
-			if (metadata->Status == AssetStatus::Unloaded)
-				metadata->Status = AssetStatus::Loading;
-
-			AssetLoadRequest alr(std::move(*metadata));
-			alr.DependencyPolicy = dependencyPolicy;
-			alr.Reload = reload;
-
-			switch (alr.DependencyPolicy)
-			{
-				case LoadDependencyPolicy::Deferred:
-				{
-					QueueAssetLoad(alr);
-					break;
-				}
-				case LoadDependencyPolicy::Immediate:
-				{
-					m_ALRStorageMutex.lock();
-					SK_CORE_VERIFY(m_ALRStorage.contains(metadata->Handle) == false);
-					m_ALRStorage[metadata->Handle] = alr;
-					m_ALRStorageMutex.unlock();
-
-					LoadAsset(alr);
-					break;
-				}
-				default:
-				{
-					SK_CORE_VERIFY(false, "Invalid LoadDependencyPolicy");
-					break;
-				}
-			}
+			deferredDependencies.push_back(handle);
 		};
 
 		switch (request.Metadata.Type)
@@ -388,6 +379,95 @@ namespace Shark {
 				break;
 			}
 		}
+
+		{
+			std::scoped_lock lock(m_RequestedMetadataMutex);
+			for (AssetHandle handle : deferredDependencies)
+			{
+				m_MetadataRequests.emplace(handle);
+			}
+		}
+
+		const auto Load = [this](AssetMetaData& metadata, const AssetLoadRequest& parentRequest)
+		{
+			metadata.Status = AssetStatus::Loading;
+			AssetLoadRequest alr(metadata);
+			alr.DependencyPolicy = parentRequest.DependencyPolicy;
+			alr.Reload = parentRequest.Reload;
+
+			switch (alr.DependencyPolicy)
+			{
+				case LoadDependencyPolicy::Deferred:
+				{
+					QueueAssetLoad(alr);
+					break;
+				}
+				case LoadDependencyPolicy::Immediate:
+				{
+					m_ALRStorageMutex.lock();
+					SK_CORE_VERIFY(m_ALRStorage.contains(metadata.Handle) == false);
+					m_ALRStorage[metadata.Handle] = std::move(alr);
+
+					AssetLoadRequest& activeALR = m_ALRStorage.at(metadata.Handle);
+					m_ALRStorageMutex.unlock();
+
+					LoadAsset(activeALR);
+					break;
+				}
+				default:
+				{
+					SK_CORE_VERIFY(false, "Invalid LoadDependencyPolicy");
+					break;
+				}
+			}
+		};
+
+		for (auto& metadata : dependencies)
+		{
+			Load(metadata, request);
+		}
+
+		if (!deferredDependencies.empty())
+		{
+			SK_PROFILE_SCOPED("Load Deferred Dependencies");
+
+			for (AssetHandle handle : deferredDependencies)
+			{
+				std::optional<AssetMetaData> metadata;
+				{
+					std::unique_lock lock(m_RequestedMetadataMutex);
+					if (!m_RequestedMetadata.contains(handle))
+					{
+						if (!m_MetadataRequests.contains(handle))
+						{
+							SK_CORE_ERROR_TAG("AssetThread", "Failed to obtain metadata for {}", handle);
+							break;
+						}
+
+						SK_PROFILE_SCOPED("Wait for Reqeusts");
+						m_RequestsCompleted.wait(lock, [this, handle]() mutable
+						{
+							if (m_RequestedMetadata.contains(handle))
+								return true;
+							if (!m_MetadataRequests.contains(handle))
+								return true; // error, continue
+							return false;
+						});
+					}
+
+					if (m_RequestedMetadata.contains(handle))
+					{
+						metadata = m_RequestedMetadata.at(handle);
+						m_RequestedMetadata.erase(handle);
+					}
+				}
+
+				if (metadata)
+				{
+					Load(*metadata, request);
+				}
+			}
+		}
 	}
 
 	bool EditorAssetThread::EnsureCurrent(AssetMetaData& metadata)
@@ -427,7 +507,7 @@ namespace Shark {
 			return {};
 
 		if (metadata.IsEditorAsset)
-			return FileSystem::GetFilesystemPath(metadata.FilePath);
+			return FileSystem::Absolute(metadata.FilePath);
 
 		return (Project::GetActiveAssetsDirectory() / metadata.FilePath).lexically_normal();
 	}

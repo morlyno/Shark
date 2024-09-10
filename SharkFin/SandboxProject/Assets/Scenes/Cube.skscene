@@ -1,6 +1,6 @@
 Scene:
   Name: Untitled
-  ActiveCamera: 0x0
+  ActiveCamera: 0
   Entities:
     - Entity: 8563025423490747583
       TagComponent:
@@ -16,7 +16,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 0.676470578, 0, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 11365957425252116640
       TagComponent:
         Name: Top
@@ -31,7 +31,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.834848464, 0.0191272572, 0.975490212, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 12940236141838157675
       TagComponent:
         Name: Grid
@@ -46,7 +46,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 17103757740830520971
       TagComponent:
         Name: Left
@@ -61,4 +61,4 @@ Scene:
       SpriteRendererComponent:
         Color: [0.0432525799, 0.208630279, 0.980392158, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]

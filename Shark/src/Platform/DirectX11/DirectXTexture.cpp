@@ -61,6 +61,11 @@ namespace Shark {
 
 	}
 
+	DirectXTexture2D::DirectXTexture2D()
+		: m_Image(Ref<DirectXImage2D>::Create())
+	{
+	}
+
 	DirectXTexture2D::DirectXTexture2D(const TextureSpecification& specification, Buffer imageData)
 		: m_Specification(specification), m_ImageData(Buffer::Copy(imageData)), m_Image(Ref<DirectXImage2D>::Create())
 	{

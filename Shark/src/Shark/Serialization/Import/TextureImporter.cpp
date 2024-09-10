@@ -1,9 +1,6 @@
 #include "skpch.h"
 #include "TextureImporter.h"
 
-#include "Shark/Render/Image.h"
-#include "Shark/Render/Texture.h"
-
 #include "Shark/Debug/Profiler.h"
 
 #include <stb_image.h>
@@ -34,7 +31,7 @@ namespace Shark {
 		if (!buffer.Data)
 		{
 			const char* errorMsg = stbi_failure_reason();
-			SK_CORE_ERROR_TAG("stbi", "Failed to load image!\n\tError: {}\n\tFile: {}", errorMsg, filepath);
+			SK_CORE_ERROR_TAG("stbi", "Failed to load image from file!\n\tError: {}\n\tFile: {}", errorMsg, filepath);
 			return {};
 		}
 
@@ -66,7 +63,7 @@ namespace Shark {
 		if (!buffer.Data)
 		{
 			const char* errorMsg = stbi_failure_reason();
-			SK_CORE_ERROR_TAG("stbi", "Failed to load image!\n\tError: {}", errorMsg);
+			SK_CORE_ERROR_TAG("stbi", "Failed to load image from buffer!\n\tError: {}", errorMsg);
 			return {};
 		}
 

@@ -5,6 +5,14 @@
 
 namespace Shark {
 
+#if 1
+#define PROFILE_ALLOCATE(_memory, _size, _module) TracyAllocN(_memory, _size, _module)
+#define PROFILE_FREE(_memory, _module) TracyFreeN(_memory, _module)
+#else
+#define PROFILE_ALLOCATE(_memory, _size, _module) TracyAlloc(_memory, _size)
+#define PROFILE_FREE(_memory, _module) TracyFree(_memory)
+#endif
+
 	void Allocator::Init()
 	{
 		s_Data = (AllocatorData*)AllocateRaw(sizeof(AllocatorData));
@@ -14,139 +22,84 @@ namespace Shark {
 	void* Allocator::AllocateRaw(size_t size)
 	{
 		void* memory = malloc(size);
-		TracyAlloc(memory, size);
+		TracyAllocN(memory, size, "Raw");
 		return memory;
 	}
 
 	void Allocator::FreeRaw(void* memory)
 	{
-		TracyFree(memory);
 		free(memory);
+		TracyFreeN(memory, "Raw");
 	}
 
 	void* Allocator::Allocate(size_t size)
 	{
-		if (!s_Data)
-			Init();
-
-		void* memory = malloc(size);
-		TracyAlloc(memory, size);
-
-		{
-			std::scoped_lock lock(s_Data->m_Mutex);
-			Allocation& allocation = s_Data->m_AllocationMap[memory];
-			allocation.Memory = memory;
-			allocation.Size = size;
-			allocation.Descriptor = s_NullDesc;
-
-			s_Data->m_AllocationStatsMap[s_NullDesc] += size;
-			s_Data->m_MemoryStats.TotalAllocated += size;
-		}
-
-		return memory;
+		return ModuleAllocate("Shark", size);
 	}
 
 	void* Allocator::Allocate(size_t size, const char* desc)
 	{
-		if (!s_Data)
-			Init();
-
-		void* memory = malloc(size);
-		TracyAlloc(memory, size);
-
-		{
-			std::scoped_lock lock(s_Data->m_Mutex);
-			Allocation& allocation = s_Data->m_AllocationMap[memory];
-			allocation.Memory = memory;
-			allocation.Size = size;
-			allocation.Descriptor = desc ? desc : s_NullDesc;
-
-			s_Data->m_AllocationStatsMap[allocation.Descriptor] += size;
-			s_Data->m_MemoryStats.TotalAllocated += size;
-		}
-
-		return memory;
+		return ModuleAllocate("Shark", size, desc);
 	}
 
 	void* Allocator::Allocate(size_t size, const char* file, int line)
 	{
+		return ModuleAllocate("Shark", size, file, line);
+	}
+
+	void Allocator::Free(void* memory)
+	{
+		ModuleFree("Shark", memory);
+	}
+
+	void* Allocator::Reallocate(void* memory, size_t newSize)
+	{
+		return ModuleReallocate("Shark", memory, newSize);
+	}
+
+	void* Allocator::Reallocate(void* memory, size_t newSize, const char* desc)
+	{
+		return ModuleReallocate("Shark", memory, newSize, desc);
+	}
+
+	void* Allocator::Reallocate(void* memory, size_t newSize, const char* file, int line)
+	{
+		return ModuleReallocate("Shark", memory, newSize, file, line);
+	}
+
+	void* Allocator::ModuleAllocate(const char* moduleName, size_t size, const char* descOrFile, int line)
+	{
 		if (!s_Data)
 			Init();
 
 		void* memory = malloc(size);
-		TracyAlloc(memory, size);
+		PROFILE_ALLOCATE(memory, size, moduleName);
 
 		{
 			std::scoped_lock lock(s_Data->m_Mutex);
+			SK_CORE_VERIFY(!s_Data->m_AllocationMap.contains(memory));
 			Allocation& allocation = s_Data->m_AllocationMap[memory];
 			allocation.Memory = memory;
 			allocation.Size = size;
-			allocation.Descriptor = file;
+			allocation.Descriptor = descOrFile;
 			allocation.Line = line;
+			allocation.Module = moduleName;
 
-			s_Data->m_AllocationStatsMap[file] += size;
+			s_Data->m_AllocationStatsMap[descOrFile] += size;
 			s_Data->m_MemoryStats.TotalAllocated += size;
 		}
 
 		return memory;
 	}
 
-	void Allocator::Free(void* memory)
-	{
-		if (!memory)
-			return;
-
-		if (!s_Data)
-			Init();
-
-		bool found = false;
-		{
-			std::scoped_lock lock(s_Data->m_Mutex);
-			auto allocIter = s_Data->m_AllocationMap.find(memory);
-			found = allocIter != s_Data->m_AllocationMap.end();
-			if (found)
-			{
-				Allocation& alloc = allocIter->second;
-				s_Data->m_MemoryStats.TotalFreed += alloc.Size;
-				if (alloc.Descriptor)
-					s_Data->m_AllocationStatsMap.at(alloc.Descriptor) -= alloc.Size;
-
-				s_Data->m_AllocationMap.erase(allocIter);
-			}
-		}
-
-		if (!found)
-		{
-			SK_CORE_WARN_TAG("Memory", "Memory block {} not found in Allocation Map", memory);
-		}
-
-		free(memory);
-		TracyFree(memory);
-
-	}
-
-	void* Allocator::Reallocate(void* memory, size_t newSize)
-	{
-		return InternalReallocate(memory, newSize);
-	}
-
-	void* Allocator::Reallocate(void* memory, size_t newSize, const char* desc)
-	{
-		return InternalReallocate(memory, newSize, desc);
-	}
-
-	void* Allocator::Reallocate(void* memory, size_t newSize, const char* file, int line)
-	{
-		return InternalReallocate(memory, newSize, file, line);
-	}
-
-	void* Allocator::InternalReallocate(void* memory, size_t newSize, const char* descOrFile, int line)
+	void* Allocator::ModuleReallocate(const char* moduleName, void* memory, size_t newSize, const char* descOrFile, int line)
 	{
 		if (!s_Data)
 			Init();
 
 		void* newMemory = realloc(memory, newSize);
 
+		const char* allocModule = nullptr;
 		bool found = memory;
 		{
 			std::scoped_lock lock(s_Data->m_Mutex);
@@ -161,6 +114,7 @@ namespace Shark {
 					if (alloc.Descriptor)
 						s_Data->m_AllocationStatsMap.at(alloc.Descriptor) -= alloc.Size;
 
+					allocModule = alloc.Module;
 					s_Data->m_AllocationMap.erase(allocIter);
 				}
 			}
@@ -170,6 +124,7 @@ namespace Shark {
 			alloc.Size = newSize;
 			alloc.Descriptor = descOrFile;
 			alloc.Line = line;
+			alloc.Module = moduleName;
 
 			s_Data->m_AllocationStatsMap[alloc.Descriptor] += newSize;
 			s_Data->m_MemoryStats.TotalAllocated += newSize;
@@ -178,9 +133,48 @@ namespace Shark {
 		if (!found && memory)
 		{
 			SK_CORE_WARN_TAG("Memory", "Memory block {} not found in Allocation Map", memory);
+			SK_CORE_VERIFY(false);
 		}
 
+		PROFILE_FREE(memory, moduleName);
+		PROFILE_ALLOCATE(newMemory, newSize, moduleName);
 		return newMemory;
+	}
+
+	void Allocator::ModuleFree(const char* moduleName, void* memory)
+	{
+		if (!memory)
+			return;
+
+		if (!s_Data)
+			Init();
+
+		const char* allocModule = nullptr;
+		bool found = false;
+		{
+			std::scoped_lock lock(s_Data->m_Mutex);
+			auto allocIter = s_Data->m_AllocationMap.find(memory);
+			found = allocIter != s_Data->m_AllocationMap.end();
+			if (found)
+			{
+				Allocation& alloc = allocIter->second;
+				s_Data->m_MemoryStats.TotalFreed += alloc.Size;
+				if (alloc.Descriptor)
+					s_Data->m_AllocationStatsMap.at(alloc.Descriptor) -= alloc.Size;
+
+				allocModule = alloc.Module;
+				s_Data->m_AllocationMap.erase(allocIter);
+			}
+		}
+
+		if (!found)
+		{
+			SK_CORE_WARN_TAG("Memory", "Memory block {} not found in Allocation Map", memory);
+			SK_CORE_VERIFY(false);
+		}
+
+		free(memory);
+		PROFILE_FREE(memory, allocModule);
 	}
 
 }
@@ -190,13 +184,13 @@ namespace Shark {
 _NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
 void* __CRTDECL operator new(size_t size)
 {
-	return Shark::Allocator::Allocate(size);
+	return Shark::Allocator::ModuleAllocate("Default", size);
 }
 
 _NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
 void* __CRTDECL operator new[](size_t size)
 {
-	return Shark::Allocator::Allocate(size);
+	return Shark::Allocator::ModuleAllocate("Default", size);
 }
 
 _NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR

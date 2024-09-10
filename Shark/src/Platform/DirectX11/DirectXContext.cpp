@@ -325,6 +325,7 @@ namespace Shark {
 
 	ID3D11DeviceContext* DirectXCommandPool::AllocateCommandBuffer()
 	{
+		SK_PROFILE_FUNCTION();
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();
 
@@ -334,6 +335,7 @@ namespace Shark {
 
 	void DirectXCommandPool::FlushCommandBuffer(ID3D11DeviceContext* commandBuffer)
 	{
+		SK_PROFILE_FUNCTION();
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();
 

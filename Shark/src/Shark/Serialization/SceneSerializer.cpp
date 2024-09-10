@@ -97,30 +97,6 @@ namespace YAML {
 		}
 	};
 
-
-	template<typename TEnum>
-		requires std::is_enum_v<TEnum>
-	struct convert<TEnum>
-	{
-		static Node encode(const TEnum& value)
-		{
-			return Node(magic_enum::enum_name(value));
-		}
-
-		static bool decode(const Node& node, TEnum& value)
-		{
-			if (!node.IsScalar())
-				return false;
-
-			std::optional<TEnum> optValue = magic_enum::enum_cast<TEnum>(node.Scalar());
-			if (!optValue.has_value())
-				return false;
-
-			value = optValue.value();
-			return true;
-		}
-	};
-
 }
 
 namespace Shark {
@@ -131,15 +107,7 @@ namespace Shark {
 
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing Scene to {}", metadata.FilePath);
-		Timer timer;
-
-#if 0
-		if (!ResourceManager::HasExistingFilePath(metadata))
-		{
-			SK_SERIALIZATION_ERROR("Path not found! {0}", metadata.FilePath);
-			return false;
-		}
-#endif
+		ScopedTimer timer("Serializing Scene");
 
 		std::string result = SerializeToYAML(asset.As<Scene>());
 		if (result.empty())
@@ -148,14 +116,7 @@ namespace Shark {
 			return false;
 		}
 
-		std::ofstream fout(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
-		SK_CORE_ASSERT(fout);
-
-		fout << result;
-		fout.close();
-
-		SK_CORE_INFO_TAG("Serialization", "Serializing Scene took {}", timer.Elapsed());
-		return true;
+		return FileSystem::WriteString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata), result);
 	}
 
 	bool SceneSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
@@ -266,6 +227,7 @@ namespace Shark {
 				out << YAML::Key << "Color" << YAML::Value << component->Color;
 				out << YAML::Key << "Thickness" << YAML::Value << component->Thickness;
 				out << YAML::Key << "Fade" << YAML::Value << component->Fade;
+				out << YAML::Key << "Filled" << YAML::Value << component->Filled;
 				out << YAML::EndMap;
 			}
 
@@ -277,6 +239,7 @@ namespace Shark {
 				out << YAML::Key << "Text" << YAML::Value << component->Text;
 				out << YAML::Key << "Color" << YAML::Value << component->Color;
 				out << YAML::Key << "Kerning" << YAML::Value << component->Kerning;
+				out << YAML::Key << "LineSpacing" << YAML::Value << component->LineSpacing;
 				out << YAML::EndMap;
 			}
 
@@ -473,7 +436,6 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		YAML::Node node = YAML::Load(filedata);
-
 		YAML::Node sceneNode = node["Scene"];
 		if (!sceneNode)
 			return false;
@@ -510,6 +472,9 @@ namespace Shark {
 					auto& component = entity.AddOrReplaceComponent<RelationshipComponent>();
 					SK_DESERIALIZE_PROPERTY(componentNode, "Parent", component.Parent, UUID::Invalid);
 					SK_DESERIALIZE_PROPERTY(componentNode, "Children", component.Children, {});
+
+					if (component.Parent)
+						entity.RemoveComponent<Internal::RootParentComponent>();
 				}
 
 				if (auto componentNode = entityNode["SpriteRendererComponent"])
@@ -517,8 +482,7 @@ namespace Shark {
 					auto& component = entity.AddOrReplaceComponent<SpriteRendererComponent>();
 					SK_DESERIALIZE_PROPERTY(componentNode, "Color", component.Color, glm::vec4(1.0f));
 					SK_DESERIALIZE_PROPERTY(componentNode, "TextureHandle", component.TextureHandle, AssetHandle::Invalid);
-					SK_DESERIALIZE_PROPERTY(componentNode, "TilingFactor", component.TilingFactor, 1.0f);
-					SK_DESERIALIZE_PROPERTY(componentNode, "Transparent", component.Transparent, false);
+					SK_DESERIALIZE_PROPERTY(componentNode, "TilingFactor", component.TilingFactor, glm::vec2(1.0f));
 				}
 
 				if (auto componentNode = entityNode["CircleRendererComponent"])
@@ -528,7 +492,6 @@ namespace Shark {
 					SK_DESERIALIZE_PROPERTY(componentNode, "Thickness", component.Thickness, 1.0f);
 					SK_DESERIALIZE_PROPERTY(componentNode, "Fade", component.Fade, 0.002f);
 					SK_DESERIALIZE_PROPERTY(componentNode, "Filled", component.Filled, true);
-					SK_DESERIALIZE_PROPERTY(componentNode, "Transparent", component.Transparent, false);
 				}
 
 				if (auto componentNode = entityNode["TextRendererComponent"])
@@ -698,6 +661,16 @@ namespace Shark {
 
 			}
 		}
+
+#if SK_ENABLE_VERIFY
+		auto entities = scene->GetAllEntitysWith<RelationshipComponent>();
+		for (entt::entity ent : entities)
+		{
+			const RelationshipComponent& relationship = entities.get<RelationshipComponent>(ent);
+			SK_CORE_VERIFY((bool)relationship.Parent != scene->m_Registry.all_of<Internal::RootParentComponent>(ent));
+		}
+#endif
+
 		return true;
 	}
 

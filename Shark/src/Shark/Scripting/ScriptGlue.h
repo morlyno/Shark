@@ -122,8 +122,8 @@ namespace Shark {
 		AssetHandle SpriteRendererComponent_GetTextureHandle(uint64_t id);
 		void SpriteRendererComponent_SetTextureHandle(uint64_t id, AssetHandle textureHandle);
 
-		float SpriteRendererComponent_GetTilingFactor(uint64_t id);
-		void SpriteRendererComponent_SetTilingFactor(uint64_t id, float tilingFactor);
+		void SpriteRendererComponent_GetTilingFactor(uint64_t id, glm::vec2* outTilingFactor);
+		void SpriteRendererComponent_SetTilingFactor(uint64_t id, glm::vec2* tilingFactor);
 
 		#pragma endregion
 

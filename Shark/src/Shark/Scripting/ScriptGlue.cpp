@@ -32,7 +32,6 @@
 #include <box2d/b2_circle_shape.h>
 
 #include <imgui_internal.h>
-
 #include <glm/gtx/common.hpp>
 
 #define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" SK_STRINGIFY(func), SK_CONNECT(&InternalCalls::, func));
@@ -971,19 +970,19 @@ namespace Shark {
 			spriteRenderer.TextureHandle = textureHandle;
 		}
 
-		float SpriteRendererComponent_GetTilingFactor(uint64_t id)
+		void SpriteRendererComponent_GetTilingFactor(uint64_t id, glm::vec2* outTilingFactor)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
-				return 0.0f;
+				return;
 			if (!entity.AllOf<SpriteRendererComponent>())
-				return 0.0f;
+				return;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			return spriteRenderer.TilingFactor;
+			*outTilingFactor = spriteRenderer.TilingFactor;
 		}
 
-		void SpriteRendererComponent_SetTilingFactor(uint64_t id, float tilingFactor)
+		void SpriteRendererComponent_SetTilingFactor(uint64_t id, glm::vec2* tilingFactor)
 		{
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
@@ -992,7 +991,7 @@ namespace Shark {
 				return;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			spriteRenderer.TilingFactor = tilingFactor;
+			spriteRenderer.TilingFactor = *tilingFactor;
 		}
 
 		#pragma endregion

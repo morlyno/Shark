@@ -39,7 +39,7 @@ namespace Shark {
 		{
 			Entity destEntity = entityUUIDMap.at(srcRegistry.get<IDComponent>(srcEntity).ID);
 
-			auto& comp = srcRegistry.get<Component>(srcEntity);
+			Component& comp = srcRegistry.get<Component>(srcEntity);
 			destRegistry.emplace_or_replace<Component>(destEntity, comp);
 		}
 	}
@@ -49,7 +49,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (auto* comp = srcRegistry.try_get<Component>(srcEntity))
+		if (Component* comp = srcRegistry.try_get<Component>(srcEntity))
 			destRegistry.emplace_or_replace<Component>(destEntity, *comp);
 	}
 
@@ -108,7 +108,7 @@ namespace Shark {
 			destScene->m_EntityUUIDMap[uuid] = destScene->CreateEntityWithUUID(uuid, srcEntity.GetName());
 		}
 
-		ForEach(AllComponents, [&]<typename TComp>()
+		ForEach(CopySceneComponents, [&]<typename TComp>()
 		{
 			CopyComponents<TComp>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		});
@@ -534,7 +534,7 @@ namespace Shark {
 		Entity newEntity = CreateEntity();
 
 		Ref<Scene> srcScene = srcEntity.GetScene().GetRef();
-		ForEach(AllComponents, [&]<typename TComponent>
+		ForEach(CopySceneComponents, [&]<typename TComponent>
 		{
 			CopyComponentIfExists<TComponent>(srcEntity, srcScene->m_Registry, newEntity, m_Registry);
 		});
@@ -561,6 +561,7 @@ namespace Shark {
 		entity.AddComponent<TagComponent>(tag.empty() ? "new Entity" : tag);
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<RelationshipComponent>();
+		entity.AddComponent<Internal::RootParentComponent>();
 
 		SK_CORE_VERIFY(!m_EntityUUIDMap.contains(uuid));
 		m_EntityUUIDMap[uuid] = entity;

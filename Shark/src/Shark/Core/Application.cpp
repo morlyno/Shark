@@ -110,6 +110,7 @@ namespace Shark {
 		while (m_Running)
 		{
 			SK_PROFILE_MAIN_FRAME();
+			SK_PROFILE_FUNCTION();
 
 			Timer cpuTimer;
 			TimeStep waitAndRenderTime;
@@ -389,6 +390,7 @@ namespace Shark {
 
 		void Initialize()
 		{
+			SK_PROFILE_FUNCTION();
 			Log::Initialize();
 			Platform::Initialize();
 			Input::Initialize();
@@ -399,6 +401,7 @@ namespace Shark {
 
 		void Shutdown()
 		{
+			SK_PROFILE_FUNCTION();
 			SK_CORE_INFO("Core Shutting down");
 
 			FileSystem::Shutdown();

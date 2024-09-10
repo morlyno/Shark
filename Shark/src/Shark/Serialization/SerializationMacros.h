@@ -1,6 +1,9 @@
 #pragma once
 
-#define SK_DESERIALIZE_PROPERTY(_yamlNode, _name, _value, _fallback)\
+#define INTERNAL_DESERIALIZE_PROPERTY_FALLBACK0(...)
+#define INTERNAL_DESERIALIZE_PROPERTY_FALLBACK1(_value, _fallback) _value = _fallback
+
+#define SK_DESERIALIZE_PROPERTY(_yamlNode, _name, _value, ...)\
 try\
 {\
 	_value = _yamlNode[_name].as<std::decay_t<decltype(_value)>>();\
@@ -8,8 +11,8 @@ try\
 catch (const YAML::BadConversion& e)\
 {\
 	SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize property!\n\tName: {}\n\tError: {}", _name, e.what());\
-	_value = _fallback;\
-}\
+	SK_CONNECT(INTERNAL_DESERIALIZE_PROPERTY_FALLBACK, GET_ARG_COUNT(__VA_ARGS__))(_value, __VA_ARGS__);\
+}
 
 #define SK_DESERIALIZE_VALUE(_yamlNode, _name, _type)\
 [&]()\
@@ -19,5 +22,5 @@ catch (const YAML::BadConversion& e)\
 	return value;\
 }()
 
-#define SK_SERIALIZE_PROPERTRY(_yamlNode, _name, _value)\
+#define SK_SERIALIZE_PROPERTY(_yamlNode, _name, _value)\
 	_yamlNode << YAML::Key << _name << YAML::Value << _value

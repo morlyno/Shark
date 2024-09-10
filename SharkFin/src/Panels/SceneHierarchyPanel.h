@@ -36,13 +36,14 @@ namespace Shark {
 
 	private:
 		bool OnKeyPressedEvent(KeyPressedEvent& event);
+		void HandleSelectionRequests(ImGuiMultiSelectIO* selectionIO);
 
-		void DrawEntityNode(Entity entity);
+		void DrawEntityNode(Entity entity, uint32_t& index);
 		void DrawEntityProperties(const std::vector<Entity>& entities);
 		void DrawAddEntityPopup();
 
 		void DestroyEntity(Entity entity);
-		void UpdateMaterialEditor();
+		void UpdateMaterialEditor(std::span<Entity> selections);
 
 		template<typename Comp, typename UIFunction>
 		void DrawComponet(Entity entity, const char* lable, UIFunction func);

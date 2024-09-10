@@ -6,6 +6,7 @@
 
 #include "Shark/UI/UI.h"
 #include "Shark/UI/Theme.h"
+#include "Shark/UI/EditorResources.h"
 
 #include "Shark/Debug/Profiler.h"
 
@@ -22,7 +23,7 @@ namespace Shark {
 
 	void MaterialEditor::Draw()
 	{
-		ImGui::Begin(m_Name.c_str());
+		ImGui::Begin(m_Name.c_str(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 		DrawInline();
 		ImGui::End();
 	}
@@ -42,8 +43,8 @@ namespace Shark {
 
 		Ref<MaterialAsset> material = materialResult;
 
-		UI::Text("Shader: {}", material->GetMaterial()->GetShader()->GetName());
-		UI::Text("Name: {}", material->GetMaterial()->GetName());
+		ImGui::Text(fmt::format("Shader: {}", material->GetMaterial()->GetShader()->GetName()));
+		ImGui::Text(fmt::format("Name: {}", material->GetMaterial()->GetName()));
 
 		bool changed = false;
 
@@ -53,14 +54,14 @@ namespace Shark {
 			Ref<Texture2D> displayTexture = AssetManager::GetAssetAsync<Texture2D>(material->GetAlbedoMap());
 			if (!displayTexture)
 			{
-				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
-				displayTexture = AssetManager::GetAssetAsync<Texture2D>(handle);
+				displayTexture = EditorResources::AlphaBackground;
 				hasTexture = false;
 			}
 
 			if (UI::TextureEdit("albedo texture", displayTexture, textureSize, hasTexture))
 			{
-				if (displayTexture)
+				// uncomment if the AlphaBackground texture ever shows up
+				if (displayTexture/* && hasTexture*/)
 					material->SetAlbedoMap(displayTexture->Handle);
 				else
 					material->ClearAlbedoMap();
@@ -80,8 +81,7 @@ namespace Shark {
 			Ref<Texture2D> displayTexture = AssetManager::GetAssetAsync<Texture2D>(material->GetNormalMap());
 			if (!displayTexture)
 			{
-				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
-				displayTexture = AssetManager::GetAssetAsync<Texture2D>(handle);
+				displayTexture = EditorResources::AlphaBackground;
 				hasTexture = false;
 			}
 
@@ -111,8 +111,7 @@ namespace Shark {
 			Ref<Texture2D> displayTexture = AssetManager::GetAssetAsync<Texture2D>(material->GetMetalnessMap());
 			if (!displayTexture)
 			{
-				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
-				displayTexture = AssetManager::GetAssetAsync<Texture2D>(handle);
+				displayTexture = EditorResources::AlphaBackground;
 				hasTexture = false;
 			}
 
@@ -138,8 +137,7 @@ namespace Shark {
 			Ref<Texture2D> displayTexture = AssetManager::GetAssetAsync<Texture2D>(material->GetRoughnessMap());
 			if (!displayTexture)
 			{
-				AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Textures/NoImagePlaceholder.sktex");
-				displayTexture = AssetManager::GetAssetAsync<Texture2D>(handle);
+				displayTexture = EditorResources::AlphaBackground;
 				hasTexture = false;
 			}
 

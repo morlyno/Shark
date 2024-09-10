@@ -1,5 +1,7 @@
 #pragma once
 
+#include <magic_enum.hpp>
+
 namespace Shark {
 	
 	enum class KeyCode : uint16_t
@@ -167,18 +169,18 @@ namespace Shark {
 		LaunchApp1                 = 0xB6,
 		LaunchApp2                 = 0xB7,
 
-		Oem1                       = 0xBA,   // ';:' for US
+		Oem1                       = 0xBA,   // ';:' for US  | 'üÜ' for German
 		OemPlus                    = 0xBB,   // '+' any country
 		OemComma                   = 0xBC,   // ',' any country
 		OemMinus                   = 0xBD,   // '-' any country
 		OemPeriod                  = 0xBE,   // '.' any country
-		Oem2                       = 0xBF,   // '/?' for US
-		Oem3                       = 0xC0,   // '`~' for US
+		Oem2                       = 0xBF,   // '/?' for US  | '#'' for German
+		Oem3                       = 0xC0,   // '`~' for US  | 'öÖ' for German
 						           
-		Oem4                       = 0xDB,  //  '[{' for US
-		Oem5                       = 0xDC,  //  '\|' for US
-		Oem6                       = 0xDD,  //  ']}' for US
-		Oem7                       = 0xDE,  //  ''"' for US
+		Oem4                       = 0xDB,  //  '[{' for US  | 'ß?' for German
+		Oem5                       = 0xDC,  //  '\|' for US  | '^°' for German
+		Oem6                       = 0xDD,  //  ']}' for US  | '´`' for German
+		Oem7                       = 0xDE,  //  ''"' for US  | 'äÄ' for German
 		Oem8                       = 0xDF,
 						           
 		OemAX                      = 0xE1,  //  'AX' key on Japanese AX kbd
@@ -199,7 +201,7 @@ namespace Shark {
 		Pa1                        = 0xFD,
 		OemClear                   = 0xFE
 	};
-
+	
 	inline std::string ToString(KeyCode key)
 	{
 		switch (key)
@@ -379,4 +381,12 @@ namespace Shark {
 		bool Control = false;
 	};
 
+}
+
+namespace magic_enum::customize {
+	template<>
+	struct enum_range<Shark::KeyCode> {
+		static constexpr int min = 0;
+		static constexpr int max = 255;
+	};
 }

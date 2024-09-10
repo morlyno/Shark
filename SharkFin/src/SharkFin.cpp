@@ -39,6 +39,7 @@ namespace Shark {
 
 	Application* CreateApplication(int argc, char** argv)
 	{
+		SK_PROFILE_FUNCTION();
 		std::string_view startupProject;
 		if (argc > 1)
 			startupProject = argv[1];

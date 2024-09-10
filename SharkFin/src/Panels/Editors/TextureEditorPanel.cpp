@@ -8,8 +8,9 @@
 #include "Shark/Input/Input.h"
 
 #include "Shark/UI/UI.h"
-#include "Shark/Math/Math.h"
+#include "Shark/ImGui/ImGuiHelpers.h"
 
+#include "Shark/Math/Math.h"
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
@@ -130,7 +131,7 @@ namespace Shark {
 			UI::ControlCustom("Mip", [this]()
 			{
 				ImGui::SetNextItemWidth(-1.0);
-				UI::SliderScalar("#mip", ImGuiDataType_U32, m_MipIndex, 0, (uint32_t)m_Views.size() - 1);
+				ImGui::SliderScalar("#mip", ImGuiDataType_U32, m_MipIndex, 0, (uint32_t)m_Views.size() - 1);
 			});
 		}
 

@@ -12,7 +12,6 @@ namespace Shark {
 	{
 		bool MonitorAssets = true;
 		LoadDependencyPolicy DefaultDependencyPolicy = LoadDependencyPolicy::OnDemand;
-		const AssetRegistry* Registry;
 	};
 
 	class EditorAssetThread : public RefCount
@@ -29,8 +28,10 @@ namespace Shark {
 		LoadDependencyPolicy GetDependencyPolicy(AssetHandle handle);
 		LoadDependencyPolicy GetDefaultDependencyPolicy() const { return m_DefaultDependencyPolicy; }
 
+		void HandleMetadataRequests(const AssetRegistry& registry);
 		void RetrieveLoadedAssets(std::vector<AssetLoadRequest>& outLoadedAssets);
 		void AddLoadedAsset(Ref<Asset> asset, const AssetMetaData& metadata);
+		void UpdateLastWriteTime(AssetHandle handle, uint64_t lastWriteTime);
 
 	private:
 		void AssetThreadFunc();
@@ -64,7 +65,12 @@ namespace Shark {
 		std::mutex m_LoadedAssetsMutex;
 		std::unordered_map<AssetHandle, Ref<Asset>> m_LoadedAssets;
 
-		const AssetRegistry* m_Registry;
+
+		std::mutex m_RequestedMetadataMutex;
+		std::unordered_map<AssetHandle, AssetMetaData> m_RequestedMetadata;
+		std::set<AssetHandle> m_MetadataRequests;
+
+		std::condition_variable m_RequestsCompleted;
 
 	};
 

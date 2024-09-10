@@ -67,8 +67,8 @@ namespace Shark {
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
-		virtual float GetAspectRatio() const = 0;
-		virtual float GetVerticalAspectRatio() const = 0;
+		virtual float GetAspectRatio() const = 0;         // Height to Width
+		virtual float GetVerticalAspectRatio() const = 0; // Width to Height
 
 		virtual void UploadImageData(Buffer buffer) = 0;
 		virtual void RT_UploadImageData(Buffer buffer) = 0;

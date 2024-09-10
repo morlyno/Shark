@@ -2,15 +2,17 @@
 #include "Controls.h"
 
 #include "Shark/Core/Project.h"
-#include "Shark/Core/SelectionContext.h"
+#include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Scene/Entity.h"
 
 #include "Shark/UI/UI.h"
-#include "Shark/UI/Icons.h"
+#include "Shark/UI/EditorResources.h"
 #include "Shark/UI/Theme.h"
 #include "Shark/ImGui/TextFilter.h"
+#include "Shark/ImGui/ImGuiHelpers.h"
 
+#include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
 namespace Shark::UI {
@@ -664,7 +666,7 @@ namespace Shark::UI {
 			ShiftCursorX(-buttonSize.x);
 
 			clear = ImGui::InvisibleButton("clear_button", buttonSize);
-			UI::DrawImageButton(Icons::ClearIcon,
+			UI::DrawImageButton(EditorResources::ClearIcon,
 								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 0.9f),
 								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f),
 								UI::Colors::Theme::TextDarker,
@@ -762,7 +764,7 @@ namespace Shark::UI {
 			}
 
 			UI::ScopedColor childBg(ImGuiCol_ChildBg, UI::Colors::Theme::BackgroundPopup);
-			if (ImGui::BeginChild("##selectAssetChild", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding))
+			if (ImGui::BeginChild("##selectAssetChild", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_NavFlattened))
 			{
 				std::vector<AssetHandle> assets = AssetManager::GetAllAssetsOfType(assetType);
 
@@ -840,7 +842,7 @@ namespace Shark::UI {
 		}
 		else
 		{
-			Ref<Scene> scene = SelectionContext::GetActiveScene();
+			Ref<Scene> scene = SelectionManager::GetActiveScene();
 			if (entityID && !scene->ValidEntityID(entityID))
 			{
 				UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextError);
@@ -863,7 +865,7 @@ namespace Shark::UI {
 				if (payload)
 				{
 					UUID uuid = *(UUID*)payload->Data;
-					Ref<Scene> scene = SelectionContext::GetActiveScene();
+					Ref<Scene> scene = SelectionManager::GetActiveScene();
 					if (scene->ValidEntityID(uuid))
 					{
 						entityID = uuid;
@@ -1058,7 +1060,7 @@ namespace Shark::UI {
 
 		ImGui::TableSetColumnIndex(0);
 		ImGui::AlignTextToFramePadding();
-		Text(label);
+		ImGui::Text(label);
 
 		ImGui::TableSetColumnIndex(1);
 		TextFramed(text);
@@ -1083,7 +1085,7 @@ namespace Shark::UI {
 
 		ImGui::TableSetColumnIndex(0);
 		ImGui::AlignTextToFramePadding();
-		Text(label);
+		ImGui::Text(label);
 		ImGui::TableSetColumnIndex(1);
 
 		char buffer[21];
@@ -1107,7 +1109,7 @@ namespace Shark::UI {
 
 		ImGui::TableSetColumnIndex(0);
 		ImGui::AlignTextToFramePadding();
-		Text(label);
+		ImGui::Text(label);
 		ImGui::TableSetColumnIndex(1);
 		TextFramed("%d", value);
 		ControlHelperEnd();

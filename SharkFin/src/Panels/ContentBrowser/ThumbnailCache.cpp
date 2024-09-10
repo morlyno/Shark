@@ -1,10 +1,12 @@
 #include "skfpch.h"
 #include "ThumbnailCache.h"
 
+#include "Shark/Core/Application.h"
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/File/Serialization/FileStream.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -53,8 +55,12 @@ namespace Shark {
 
 	bool ThumbnailCache::HasThumbnail(AssetHandle assetHandle)
 	{
+		SK_PROFILE_FUNCTION();
 		if (m_Thumbnails.contains(assetHandle))
 			return true;
+
+		if (!LoadFromCacheAllowed())
+			return false;
 
 		std::filesystem::path cacheFile = utils::GetThumbnailCacheFilepath(assetHandle);
 		return FileSystem::Exists(cacheFile);
@@ -62,8 +68,12 @@ namespace Shark {
 
 	bool ThumbnailCache::IsThumbnailCurrent(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		if (!HasThumbnail(handle))
 			return false;
+
+		if (!Project::GetActiveEditorAssetManager()->HasExistingFilePath(handle))
+			return true;
 
 		uint64_t thumbnailTimestamp = 0;
 		if (m_Thumbnails.contains(handle))
@@ -71,20 +81,29 @@ namespace Shark {
 		else
 			thumbnailTimestamp = ReadTimestampFromCache(handle);
 
-		uint64_t lastWriteTime = Project::GetActiveEditorAssetManager()->GetMetadata(handle).LastWriteTime;
-		if (lastWriteTime == 0)
-			lastWriteTime = FileSystem::GetLastWriteTime(Project::GetActiveEditorAssetManager()->GetFilesystemPath(handle));
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
+		uint64_t lastWriteTime = metadata.LastWriteTime;
+		if (lastWriteTime == 0/* && Project::GetActiveEditorAssetManager()->HasExistingFilePath(metadata)*/)
+			lastWriteTime = FileSystem::GetLastWriteTime(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
 
-		return thumbnailTimestamp == lastWriteTime;
+		const bool current = thumbnailTimestamp == lastWriteTime;
+		if (!current)
+		{
+			SK_CORE_TRACE_TAG("ThumbnailCache", "Out of dat thumbnail found [{}] {}", metadata.Handle, metadata.FilePath);
+			return false;
+		}
+		return true;
 	}
 
 	Ref<Image2D> ThumbnailCache::GetThumbnail(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		if (!HasThumbnail(handle))
 			return nullptr;
 
 		if (!m_Thumbnails.contains(handle))
-			LoadThumbnailFromDisc(handle);
+			if (!LoadThumbnailFromDisc(handle))
+				return nullptr;
 
 		return m_Thumbnails.at(handle).Thumbnail;
 	}
@@ -123,6 +142,7 @@ namespace Shark {
 
 	bool ThumbnailCache::LoadThumbnailFromDisc(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		std::filesystem::path cacheFile = utils::GetThumbnailCacheFilepath(handle);
 		if (!FileSystem::Exists(cacheFile))
 			return false;
@@ -142,16 +162,19 @@ namespace Shark {
 		Ref<Image2D> image = Image2D::Create(specification);
 		image->UploadImageData(imageData);
 		m_Thumbnails[handle] = { image, header.Timestamp };
+		imageData.Release();
 
-		SK_CORE_INFO_TAG("ThumbnailCache", "Loaded Thumbnail from disc (Handle={}, Timestamp={}", handle, header.Timestamp);
+		m_LoadCount++;
+		SK_CORE_INFO_TAG("ThumbnailCache", "[FI={}] Loaded Thumbnail from disc (Handle={}, Timestamp={}", Application::Get().GetFrameCount(), handle, header.Timestamp);
 		return true;
 	}
 
 	uint64_t ThumbnailCache::ReadTimestampFromCache(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		std::filesystem::path cacheFile = utils::GetThumbnailCacheFilepath(handle);
 		if (!FileSystem::Exists(cacheFile))
-			return false;
+			return 0;
 
 		FileStreamReader stream(cacheFile);
 
@@ -159,6 +182,18 @@ namespace Shark {
 		stream.ReadRaw(header);
 
 		return header.Timestamp;
+	}
+
+	bool ThumbnailCache::LoadFromCacheAllowed()
+	{
+		const uint64_t appFrameIndex = Application::Get().GetFrameCount();
+		if (appFrameIndex != m_CurrentFrame)
+		{
+			m_LoadCount = 0;
+			m_CurrentFrame = appFrameIndex;
+		}
+
+		return m_LoadCount < m_MaxLoadsPerFrame;
 	}
 
 }

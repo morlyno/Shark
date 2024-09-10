@@ -4,6 +4,7 @@
 #include <utility>
 #include <functional>
 #include <algorithm>
+#include <ranges>
 #include <math.h>
 #include <stdlib.h>
 

@@ -37,6 +37,7 @@ namespace Shark {
 		virtual void BlockEvents(bool block) override { m_BlockEvents = block; }
 
 		virtual void AddImage(Ref<Image2D> image) override;
+		virtual void AddImage(Ref<ImageView> view) override;
 		virtual void BindFontSampler() override;
 
 		Ref<DirectXRenderCommandBuffer> GetDirectXCommandBuffer() const { return m_CommandBuffer; }

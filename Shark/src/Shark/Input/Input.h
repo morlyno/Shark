@@ -54,8 +54,10 @@ namespace Shark {
 		static glm::vec2 GetMousePosition();
 		static float GetXPosition();
 		static float GetYPosition();
-	};
 
-	std::string ToString(CursorMode cursorMode);
+	public:
+		static const std::map<KeyCode, KeyState>& GetKeyStates();
+		static const std::map<MouseButton, MouseState>& GetMouseButtonStates();
+	};
 
 }

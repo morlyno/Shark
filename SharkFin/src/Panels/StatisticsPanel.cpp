@@ -34,9 +34,9 @@ namespace Shark {
 	{
 		if (ImGui::BeginTabItem("Memory"))
 		{
-			UI::Text("Total allocated {}", String::BytesToString(Allocator::GetMemoryStats().TotalAllocated));
-			UI::Text("Total freed {}", String::BytesToString(Allocator::GetMemoryStats().TotalFreed));
-			UI::Text("Current Usage {}", String::BytesToString(Allocator::GetMemoryStats().CurrentUsage()));
+			ImGui::Text(fmt::format("Total allocated {}", String::BytesToString(Allocator::GetMemoryStats().TotalAllocated)));
+			ImGui::Text(fmt::format("Total freed {}", String::BytesToString(Allocator::GetMemoryStats().TotalFreed)));
+			ImGui::Text(fmt::format("Current Usage {}", String::BytesToString(Allocator::GetMemoryStats().CurrentUsage())));
 
 			ImGui::Separator();
 
@@ -229,15 +229,15 @@ namespace Shark {
 						ImGui::TableNextColumn();
 						ImGui::Text(entry.Name.c_str());
 						ImGui::TableNextColumn();
-						UI::Text("{0:.3}", entry.Time);
+						ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Time));
 						ImGui::TableNextColumn();
-						UI::Text("{0:.3}", entry.Time / entry.AvgSamples);
+						ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Time / entry.AvgSamples));
 						ImGui::TableNextColumn();
-						UI::Text("{0:.3}", entry.Min);
+						ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Min));
 						ImGui::TableNextColumn();
-						UI::Text("{0:.3}", entry.Max);
+						ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Max));
 						ImGui::TableNextColumn();
-						UI::Text("{0}", entry.AvgSamples);
+						ImGui::Text(fmt::format("{0}", entry.AvgSamples));
 					}
 
 					ImGui::EndTable();

@@ -6,7 +6,6 @@
 #include "Shark/Render/Texture.h"
 
 #include <imgui.h>
-#include <imgui_internal.h>
 
 #undef CreateDirectory
 #undef RemoveDirectory
@@ -19,6 +18,7 @@ namespace Shark {
 	{
 	public:
 		DirectoryInfo(Weak<DirectoryInfo> parent, const std::filesystem::path& directoryPath);
+		DirectoryInfo(UUID id, Weak<DirectoryInfo> parent, const std::filesystem::path& directoryPath);
 		~DirectoryInfo();
 
 		void AddDirectory(Ref<DirectoryInfo> directory);
@@ -31,6 +31,7 @@ namespace Shark {
 		void Rename(const std::string& newName);
 		void RenameFile(const std::string& oldName, const std::string& newName);
 
+		UUID ID;
 		std::filesystem::path Filepath;
 		std::string Name;
 
@@ -44,162 +45,119 @@ namespace Shark {
 	enum class CBItemActionFlag : uint16_t
 	{
 		None = 0,
-
-		Open = BIT(0),
-		OpenExternally = BIT(1),
-		OpenInExplorer = BIT(2),
-		Select = BIT(3),
-		Delete = BIT(4),
-		ReloadAsset = BIT(5),
-		StartRenaming = BIT(6),
-		FinishedRenaming = BIT(7),
-		ImportFile = BIT(9),
-		AssetDropped = BIT(10),
-		DirectoryDropped = BIT(11),
-		RemoveItem = BIT(12)
+		Refresh = BIT(0),
+		Reload = BIT(1),
+		Renamed = BIT(2),
+		StartRenaming = BIT(3),
+		OpenDeleteDialogue = BIT(4),
+		OpenExternal = BIT(5),
+		ShowInExplorer = BIT(6),
+		Activated = BIT(7),
+		DropAccepted = BIT(8)
 	};
 
-	class CBItemAction
+	struct CBItemAction
 	{
-	public:
-		bool FlagSet(CBItemActionFlag flag) const
+		bool IsSet(CBItemActionFlag flag) const
 		{
-			return Flags & (uint16_t)flag;
+			return (Flags & flag) == flag;
 		}
 
-		const std::string& GetErrorMessage() const
-		{
-			return m_ErrorMsg;
-		}
-
-		const std::string& GetNewName() const
-		{
-			return m_NewName;
-		}
-
-		AssetHandle GetDroppedAsset() const
-		{
-			return m_AcceptedAsset;
-		}
-
-		const std::filesystem::path& GetDroppedDirectory() const
-		{
-			return m_DroppedDirectory;
-		}
-
-	private:
-		void SetFlag(CBItemActionFlag flag, bool set = true)
+		void Set(CBItemActionFlag flag, bool set = true)
 		{
 			if (set)
-				Flags |= (uint16_t)flag;
+				Flags |= flag;
 			else
-				Flags &= ~(uint16_t)flag;
+				Flags &= ~flag;
 		}
 
-		void Delete()
-		{
-			Flags = (uint16_t)CBItemActionFlag::Delete;
-		}
-
-		void ErrorPrompt(const std::string& errorMsg)
-		{
-			m_ErrorMsg = errorMsg;
-		}
-
-		void FinishRenaming(const std::string& newName)
-		{
-			m_NewName = newName;
-			SetFlag(CBItemActionFlag::FinishedRenaming);
-		}
-
-		void AssetDropped(AssetHandle handle)
-		{
-			m_AcceptedAsset = handle;
-			SetFlag(CBItemActionFlag::AssetDropped);
-		}
-
-	private:
-		uint16_t Flags = 0;
-		std::string m_ErrorMsg;
-		std::string m_NewName;
-		AssetHandle m_AcceptedAsset;
-		std::filesystem::path m_DroppedDirectory;
-
-		friend class ContentBrowserItem;
+		CBItemActionFlag Flags = CBItemActionFlag::None;
 	};
 
-	enum class CBItemType : uint16_t
+	enum class CBItemType
 	{
-		None = 0,
-		Directory,
-		Asset
+		Directory, Asset
 	};
 
 	class ContentBrowserItem : public RefCount
 	{
-	private:
-		enum class StateFlag
-		{
-			None = 0,
-			StartRenaming = BIT(0),
-			Renaming = BIT(1),
-			Deleted = BIT(2),
-			Selected = BIT(3)
-		};
-
 	public:
-		ContentBrowserItem(Ref<ContentBrowserPanel> context, CBItemType type, const std::filesystem::path& filepath);
+		ContentBrowserItem(Ref<ContentBrowserPanel> context, CBItemType type, UUID id, const std::string& name, Ref<Texture2D> icon);
 		~ContentBrowserItem();
-
-		CBItemType GetType() const { return m_Type; }
-		void SetType(CBItemType type);
-		const std::filesystem::path& GetPath() const { return m_Path; }
-		const std::string& GetName() const { return m_Name; }
-		AssetHandle GetAssetHandle() const { return m_AssetHandle; }
-
-		void SetThumbnail(Ref<Texture2D> thumbnail) { m_Thumbnail = thumbnail; }
-		Ref<Texture2D> GetThumbnail() const { return m_Thumbnail; }
 
 		CBItemAction Draw();
 
-	private:
-		void DrawPopupMenu(CBItemAction& action);
-		void HandleDragDrop(CBItemAction& action);
+		CBItemType GetType() const { return m_Type; }
+		UUID GetID() const { return m_ID; }
+		const std::string& GetName() const { return m_FileName; }
+		const std::string& GetDisplayName() const { return m_DisplayName; }
+		std::string_view GetSpecificTypeName() const;
+
+		void StartRenaming();
+		void StopRenaming();
+		bool IsRenaming() const { return m_IsRenameing; }
+
+		virtual bool Move(Ref<DirectoryInfo> destinationDirectory) = 0;
+		virtual bool Rename(const std::string& newName) = 0;
+		virtual bool Delete() = 0;
+
+		void SetDisplayNameFromFileName();
 
 	public:
-		void StartRenaming();
-		void Select() { SetFlag(StateFlag::Selected, true); }
-		void Unselect() { SetFlag(StateFlag::Selected, false); }
-		bool IsSelected() const { return FlagSet(StateFlag::Selected); }
-
-		bool Rename(std::string newName, bool addExtension = true);
-		bool Delete();
-		bool Move(const std::filesystem::path& newPath);
+		void OnRenamed(const std::string& newFilename);
+		virtual void DrawCustomContextItems() {}
+		virtual void UpdateDragDrop(CBItemAction& action) {}
 
 	private:
-		void SetFlag(StateFlag flag, bool set);
-		bool FlagSet(StateFlag flag) const;
+		void DrawPopupMenu(CBItemAction& action);
 
-		std::string GetTypeString() const;
-		void UpdateIcon();
-		void UpdateName();
-		void UpdateTypeName();
-
-	private:
+	protected:
 		Weak<ContentBrowserPanel> m_Context;
 		CBItemType m_Type;
-		std::filesystem::path m_Path;
-		std::string m_Name;
-		AssetHandle m_AssetHandle;
-
-		std::string m_TypeName;
+		UUID m_ID;
+		std::string m_FileName;
+		std::string m_DisplayName;
 		Ref<Texture2D> m_Icon;
-		Ref<Texture2D> m_Thumbnail;
 
-		bool m_IsHovered = false;
-		StateFlag m_StateFlags = StateFlag::None;
+		bool m_IsRenameing = false;
+	};
 
-		char m_RenameBuffer[260];
+	class ContentBrowserAsset : public ContentBrowserItem
+	{
+	public:
+		ContentBrowserAsset(Ref<ContentBrowserPanel> context, const AssetMetaData& metadata, Ref<Texture2D> icon);
+		~ContentBrowserAsset();
+
+		virtual bool Move(Ref<DirectoryInfo> destinationDirectory) override;
+		virtual bool Rename(const std::string& newName) override;
+		virtual bool Delete() override;
+
+		virtual void DrawCustomContextItems() override;
+		virtual void UpdateDragDrop(CBItemAction& action) override;
+
+		const AssetMetaData& GetMetadata() const { return m_Metadata; }
+	private:
+		const AssetMetaData& m_Metadata;
+	};
+
+	class ContentBrowserDirectory : public ContentBrowserItem
+	{
+	public:
+		ContentBrowserDirectory(Ref<ContentBrowserPanel> context, Ref<DirectoryInfo> directoryInfo);
+		~ContentBrowserDirectory();
+
+		virtual bool Move(Ref<DirectoryInfo> destinationDirectory) override;
+		virtual bool Rename(const std::string& newName) override;
+		virtual bool Delete() override;
+
+		virtual void UpdateDragDrop(CBItemAction& action) override;
+
+		Ref<DirectoryInfo> GetDirectoryInfo() const { return m_DirectoryInfo; }
+	private:
+		void UpdateSubdirectories(Ref<DirectoryInfo> directory);
+		void DeleteSubdirectories(Ref<DirectoryInfo> directory);
+	private:
+		Ref<DirectoryInfo> m_DirectoryInfo;
 	};
 
 }

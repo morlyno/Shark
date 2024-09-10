@@ -1,6 +1,6 @@
 Scene:
   Name: Untitled
-  ActiveCamera: 0x365898c0feae6f27
+  ActiveCamera: 3916047830672633639
   Entities:
     - Entity: 640198569438367716
       TagComponent:
@@ -16,16 +16,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.212870494, 0.735294104, 0.100922711, 1]
         TextureHandle: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.349999994
-        Restitution: 0.439999998
-        RestitutionThreshold: 1
-        IsSensor: false
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -97,7 +88,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -106,15 +97,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -138,7 +120,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -147,15 +129,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -179,7 +152,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -188,15 +161,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -220,7 +184,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -229,15 +193,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -259,14 +214,11 @@ Scene:
         Children:
           []
       CameraComponent:
-        Type: Perspective
-        Aspectratio: 2.25285172
+        IsPerspective: true
         PerspectiveFOV: 45
-        PerspectiveNear: 0.00999999978
-        PerspectiveFar: 1000
-        OrthographicZoom: 10
-        OrthographicNear: -1
-        OrthographicFar: 1
+        OrthographicSize: 10
+        Near: 0.300000012
+        Far: 1000
     - Entity: 4265859509740508868
       TagComponent:
         Name: Circle
@@ -313,16 +265,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.212870494, 0.735294104, 0.100922711, 1]
         TextureHandle: 0
-        TilingFactor: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.349999994
-        Restitution: 0.439999998
-        RestitutionThreshold: 1
-        IsSensor: false
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -346,7 +289,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -355,15 +298,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -387,7 +321,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -396,15 +330,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -428,7 +353,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -437,15 +362,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -469,7 +385,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -478,15 +394,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -534,7 +441,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -543,15 +450,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -575,7 +473,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -584,15 +482,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -616,7 +505,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -625,15 +514,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -657,7 +537,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -666,15 +546,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -698,7 +569,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -707,15 +578,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -739,7 +601,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -748,15 +610,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -780,7 +633,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -789,15 +642,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -821,7 +665,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -830,15 +674,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -862,7 +697,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -871,15 +706,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -903,7 +729,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -912,15 +738,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -944,7 +761,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -953,15 +770,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -985,7 +793,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -994,15 +802,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -1026,7 +825,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -1035,15 +834,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -1067,7 +857,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -1076,15 +866,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -1108,7 +889,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -1117,15 +898,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -1149,7 +921,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.887254894, 0.724536717, 0.195717961, 1]
         TextureHandle: 12046611585830764490
-        TilingFactor: 0.25
+        TilingFactor: [0.25, 0.25]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -1158,15 +930,6 @@ Scene:
         Enabled: true
         AllowSleep: true
         GravityScale: 1
-      BoxCollider2DComponent:
-        Size: [0.5, 0.5]
-        Offset: [0, 0]
-        Rotation: 0
-        Density: 1
-        Friction: 0.200000003
-        Restitution: 0
-        RestitutionThreshold: 1
-        IsSensor: false
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]

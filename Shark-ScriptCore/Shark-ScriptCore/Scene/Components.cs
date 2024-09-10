@@ -155,10 +155,14 @@ namespace Shark
 			set => InternalCalls.SpriteRendererComponent_SetTextureHandle(Entity.ID, value);
 		}
 
-		public float TilingFactor
+		public Vector2 TilingFactor
 		{
-			get => InternalCalls.SpriteRendererComponent_GetTilingFactor(Entity.ID);
-			set => InternalCalls.SpriteRendererComponent_SetTilingFactor(Entity.ID, value);
+			get
+			{
+				InternalCalls.SpriteRendererComponent_GetTilingFactor(Entity.ID, out Vector2 tilingFactor);
+				return tilingFactor;
+			}
+			set => InternalCalls.SpriteRendererComponent_SetTilingFactor(Entity.ID, ref value);
 		}
 	}
 

@@ -120,6 +120,11 @@ namespace Shark {
 			return m_Registry.view<Component>();
 		}
 
+		decltype(auto) GetRootEntities()
+		{
+			return m_Registry.view<Internal::RootParentComponent>();
+		}
+
 #if 0
 		Entity InstantiateMesh(Ref<Mesh> mesh);
 		void InstantiateSubMesh(Ref<Mesh> mesh, const MeshNode& node, Entity parent);

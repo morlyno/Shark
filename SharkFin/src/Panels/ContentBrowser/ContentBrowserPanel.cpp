@@ -1,14 +1,14 @@
 ﻿#include "skfpch.h"
 #include "ContentBrowserPanel.h"
 
-#include "Shark/Event/ApplicationEvent.h"
+#include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/Assets.h"
 #include "Shark/Asset/AssetUtils.h"
-#include "Shark/Serialization/TextureSerializers.h"
+#include "Shark/Event/ApplicationEvent.h"
 
 #include "Shark/ImGui/TextFilter.h"
 
-#include "Shark/UI/Icons.h"
+#include "Shark/UI/EditorResources.h"
 #include "EditorSettings.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -27,13 +27,11 @@ namespace Shark {
 	ContentBrowserPanel::ContentBrowserPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
-		m_IconExtensionMap[".skscene"] = Icons::SceneIcon;
-		m_IconExtensionMap[".sktex"] = Icons::TextureIcon;
-		m_IconExtensionMap[".png"] = Icons::PNGIcon;
-		m_IconExtensionMap[".jpg"] = Icons::JPGIcon;
-		m_IconExtensionMap[".cs"] = Icons::ScriptIcon;
-		m_FileIcon = Icons::FileIcon;
-		m_FolderIcon = Icons::FolderIcon;
+		m_IconExtensionMap[".skscene"] = EditorResources::SceneIcon;
+		m_IconExtensionMap[".sktex"] = EditorResources::TextureIcon;
+		m_IconExtensionMap[".png"] = EditorResources::PNGIcon;
+		m_IconExtensionMap[".jpg"] = EditorResources::JPGIcon;
+		m_IconExtensionMap[".cs"] = EditorResources::ScriptIcon;
 
 		memset(m_SearchBuffer, 0, sizeof(m_SearchBuffer));
 	}
@@ -45,9 +43,6 @@ namespace Shark {
 	void ContentBrowserPanel::OnImGuiRender(bool& shown)
 	{
 		SK_PROFILE_FUNCTION();
-
-		if (!shown)
-			return;
 
 		if (!m_Project)
 			return;
@@ -62,6 +57,8 @@ namespace Shark {
 			m_ChangeDirectory = false;
 		}
 
+		HandleSelectionRequests();
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
 		const bool open = ImGui::Begin(m_PanelName.c_str(), &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::PopStyleVar();
@@ -74,6 +71,7 @@ namespace Shark {
 			const ImGuiStyle& style = ImGui::GetStyle();
 
 			UI::ScopedStyle cellPadding(ImGuiStyleVar_CellPadding, { 0.0f, style.CellPadding.y });
+
 			if (ImGui::BeginTable("##cbTable", 2, ImGuiTableFlags_Resizable))
 			{
 				{
@@ -81,13 +79,13 @@ namespace Shark {
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					if (ImGui::BeginChild("##treeView"))
+					if (ImGui::BeginChild("##treeView", ImVec2(0, 0), ImGuiChildFlags_NavFlattened))
 					{
 						UI::ShiftCursorY(style.FramePadding.y);
 						UI::ScopedIndent indent(style.WindowPadding.x * 0.5f);
 
 						for (auto subdir : m_BaseDirectory->SubDirectories)
-							DrawDirectoryHirachy(subdir);
+							DrawDirectoryHierarchy(subdir);
 
 						ImGuiWindow* window = ImGui::GetCurrentWindow();
 						ImDrawList* drawList = window->DrawList;
@@ -111,12 +109,10 @@ namespace Shark {
 				ImGui::TableSetColumnIndex(1);
 				UI::ShiftCursor(style.WindowPadding);
 				DrawHeader();
-				//UI::MoveCursorY(style.ItemSpacing.y);
 				ImGui::Separator();
-				//UI::MoveCursorY(-style.ItemSpacing.y);
 
 				UI::ScopedStyle childRounding(ImGuiStyleVar_ChildRounding, ImGui::GetCurrentWindowRead()->WindowRounding);
-				if (ImGui::BeginChild("##contentView", ImVec2(0, 0), false, ImGuiChildFlags_AlwaysUseWindowPadding/* | ImGuiWindowFlags_ScrollbarrNoRoundTop*/))
+				if (ImGui::BeginChild("##contentView", ImVec2(0, 0), false, ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_NavFlattened/* | ImGuiWindowFlags_ScrollbarrNoRoundTop*/))
 				{
 					const float padding = 8.0f;
 					const float panelWidth = ImGui::GetContentRegionAvail().x;
@@ -124,16 +120,22 @@ namespace Shark {
 					int columnsCount = (int)(panelWidth / cellSize);
 					columnsCount = std::max(columnsCount, 1);
 					{
-						UI::ScopedStyle rowSpacing(ImGuiStyleVar_ItemSpacing, { padding, 12.0f });
-						ImGui::Columns(columnsCount, nullptr, false);
-						DrawItems();
-					}
+						//UI::ScopedStyle rowSpacing(ImGuiStyleVar_ItemSpacing, { padding, 24.0f });
+						UI::ScopedStyle rowSpacing(ImGuiStyleVar_CellPadding, { padding, padding });
 
-					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
-					{
-						if (m_SelectedItem)
-							m_SelectedItem->Unselect();
-						m_SelectedItem = nullptr;
+						ImGuiMultiSelectFlags multiSelectFlags = ImGuiMultiSelectFlags_ClearOnEscape | ImGuiMultiSelectFlags_ClearOnClickVoid | ImGuiMultiSelectFlags_BoxSelect2d | ImGuiMultiSelectFlags_NavWrapX;
+						multiSelectFlags |= ImGuiMultiSelectFlags_NoBoxSelectOverItem;
+						ImGuiMultiSelectIO* selectionRequests = ImGui::BeginMultiSelect(multiSelectFlags, (int)SelectionManager::GetSelections(SelectionContext::ContentBrowser).size(), (int)m_CurrentItems.Items.size());
+						ApplySelectionRequests(selectionRequests, true);
+						if (ImGui::BeginTable("##content.table", columnsCount, ImGuiTableFlags_PadOuterX))
+						{
+							ImGui::TableNextRow();
+							DrawItems();
+
+							ImGui::EndTable();
+						}
+						selectionRequests = ImGui::EndMultiSelect();
+						ApplySelectionRequests(selectionRequests, false);
 					}
 
 					if (ImGui::BeginPopupContextWindow("##DirectoryPopup", ImGuiMouseButton_Right | ImGuiPopupFlags_NoOpenOverItems))
@@ -146,34 +148,20 @@ namespace Shark {
 						if (ImGui::BeginMenu("New"))
 						{
 							if (ImGui::MenuItem("Directory"))
-								CreateDirectory(m_CurrentDirectory, "New Directory", true);
+								CreateDirectory("New Directory", true);
 
 							ImGui::Separator();
 
 							if (ImGui::MenuItem("Scene"))
-								CreateAsset<Scene>(m_CurrentDirectory, "New Scene.skscene", true);
+								CreateAsset<Scene>("New Scene.skscene", true);
 
 							if (ImGui::MenuItem("Material"))
-								CreateAsset<MaterialAsset>(m_CurrentDirectory, "New Material.skmat", true, Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR")));
+								CreateAsset<MaterialAsset>("New Material.skmat", true, Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR")));
 
 							ImGui::EndMenu();
 						}
 
 						ImGui::EndPopup();
-					}
-
-					if (m_ShowInvalidFileNameError)
-					{
-						m_InvalidFileNameTimer -= ImGui::GetIO().DeltaTime;
-						if (m_InvalidFileNameTimer <= 0.0f)
-							m_ShowInvalidFileNameError = false;
-
-
-						ImGui::SetNextWindowPos(m_InvalidFileNameToolTipTopLeft);
-						ImGui::Begin("##invalidInput", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
-						ImGui::Text("Filenames aren't allowed to containe any of the folloing character!");
-						ImGui::TextEx(FileSystem::InvalidCharacters.data(), FileSystem::InvalidCharacters.data() + FileSystem::InvalidCharacters.size());
-						ImGui::End();
 					}
 
 				}
@@ -184,6 +172,205 @@ namespace Shark {
 			m_ChangesBlocked = false;
 		}
 		ImGui::End();
+
+		const ImGuiStyle& style = ImGui::GetStyle();
+		ImGui::SetNextWindowSize({ 500, { ImGui::GetFrameHeightWithSpacing() * 8 + UI::Fonts::Get("Large")->FontSize + style.FramePadding.y * 2.0f + style.ItemSpacing.y} }, ImGuiCond_Appearing);
+		if (ImGui::BeginPopupModal(m_DeleteDialoguePopupID, "Delete Items", nullptr, ImGuiWindowFlags_NoSavedSettings))
+		{
+			{
+				UI::ScopedFont title("Large");
+				ImGui::Text("Deleting the following items");
+			}
+
+			if (ImGui::IsWindowAppearing())
+			{
+				m_DeleteDialogue.Items.clear();
+				const auto& selections = SelectionManager::GetSelections(SelectionContext::ContentBrowser);
+				for (UUID id : selections)
+					m_DeleteDialogue.Items.emplace_back(id, true);
+				m_DeleteDialogue.SelectedCount = selections.size();
+			}
+			
+			// { 500, ImGui::GetFrameHeightWithSpacing() * 5 }
+			if (ImGui::BeginTable("##itemsList", 3, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_NoSavedSettings, { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() - style.ItemSpacing.y }))
+			{
+				UI::ScopedColorStack frameColors(ImGuiCol_FrameBg, IM_COL32_BLACK_TRANS,
+												 ImGuiCol_FrameBgActive, IM_COL32_BLACK_TRANS,
+												 ImGuiCol_FrameBgHovered, IM_COL32_BLACK_TRANS);
+				UI::ScopedStyle borderSize(ImGuiStyleVar_FrameBorderSize, 0.0f);
+				UI::ScopedStyle cellPadding(ImGuiStyleVar_CellPadding, { 0, 0 });
+
+				ImGui::TableSetupColumn("##checkAll", ImGuiTableColumnFlags_WidthFixed, UI::Fonts::Get("Bold")->FontSize);
+				ImGui::TableSetupColumn("Name");
+				ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("MeshSource").x);
+				ImGui::TableSetupScrollFreeze(0, 1);
+
+				ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+				{
+					bool temp = m_DeleteDialogue.SelectedCount == m_DeleteDialogue.Items.size();
+
+					ImGui::TableSetColumnIndex(0);
+					ImGui::PushID(0);
+					if (ImGui::Checkbox("##checkAll", &temp))
+					{
+						// clear/set all
+						for (auto& [id, selected] : m_DeleteDialogue.Items)
+							selected = temp;
+						m_DeleteDialogue.SelectedCount = temp ? m_DeleteDialogue.Items.size() : 0;
+					}
+					ImGui::PopID();
+				}
+
+				UI::Fonts::Push("Bold");
+				for (int column = 1; column < 3; column++)
+				{
+					ImGui::TableSetColumnIndex(column);
+					const char* columnName = ImGui::TableGetColumnName(column);
+					ImGui::PushID(column);
+					UI::ShiftCursorY(1);
+					ImGui::TableHeader(columnName);
+					ImGui::PopID();
+				}
+				UI::Fonts::Pop();
+
+				struct Func
+				{
+					static void DisplayChildren(Ref<DirectoryInfo> directory, bool selected, const uint32_t depth, const float indent)
+					{
+						for (const auto& subdir : directory->SubDirectories)
+						{
+							UI::ScopedID scopedID(subdir);
+							ImGui::TableNextRow();
+							ImGui::TableSetColumnIndex(0);
+							ImGui::BeginDisabled();
+							bool dummy = selected;
+							ImGui::Checkbox("##check", &dummy);
+							ImGui::EndDisabled();
+
+							ImGui::TableSetColumnIndex(1);
+							UI::ShiftCursorX(indent * depth);
+							const bool open = ImGui::TreeNodeEx(subdir->Name.c_str(), ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_OpenOnArrow);
+
+							ImGui::TableSetColumnIndex(2);
+							ImGui::Text("Directory");
+
+							if (open)
+							{
+								DisplayChildren(subdir, selected, depth + 1, indent);
+								ImGui::TreePop();
+							}
+
+						}
+
+						for (const auto& filename : directory->Filenames)
+						{
+							UI::ScopedID scopedID(filename);
+							ImGui::TableNextRow();
+							ImGui::TableSetColumnIndex(0);
+							ImGui::BeginDisabled();
+							bool dummy = selected;
+							ImGui::Checkbox("##check", &dummy);
+							ImGui::EndDisabled();
+
+							ImGui::TableSetColumnIndex(1);
+							UI::ShiftCursorX(indent * depth);
+							ImGui::TreeNodeEx(filename.c_str(), ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+
+							ImGui::TableSetColumnIndex(2);
+							ImGui::Text("Asset");
+						}
+					}
+				};
+
+				for (auto& [id, selected] : m_DeleteDialogue.Items)
+				{
+					SK_CORE_VERIFY(m_CurrentItems.Contains(id));
+					auto item = m_CurrentItems.Get(id);
+					UI::ScopedID scopedID(id);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					if (ImGui::Checkbox("##check", &selected))
+						m_DeleteDialogue.SelectedCount += selected ? 1 : -1;
+
+					ImGui::TableSetColumnIndex(2);
+					ImGui::Text(item->GetSpecificTypeName());
+
+					ImGui::TableSetColumnIndex(1);
+					if (item->GetType() == CBItemType::Asset)
+					{
+						if (ImGui::Selectable(item->GetName().c_str(), false, ImGuiSelectableFlags_SpanAllColumns))
+						{
+							selected = !selected;
+							m_DeleteDialogue.SelectedCount += selected ? 1 : -1;
+						}
+					}
+					else
+					{
+						const float indent = style.IndentSpacing;
+						UI::ScopedStyle noIndent(ImGuiStyleVar_IndentSpacing, 0.0f);
+						const bool open = ImGui::TreeNodeEx(item->GetName().c_str(), ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_OpenOnArrow);
+
+						if (ImGui::IsItemActivated() && !ImGui::IsItemToggledOpen())
+							selected = !selected;
+
+						if (open)
+						{
+							Ref<DirectoryInfo> directory = GetDirectory(item->GetID());
+							UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::TextDarker);
+							Func::DisplayChildren(directory, selected, 1, indent);
+							ImGui::TreePop();
+						}
+					}
+				}
+
+				ImGui::EndTable();
+			}
+
+			ImVec2 size = { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeightWithSpacing() };
+			ImGui::BeginHorizontal("##buttonsHorizontal", size);
+			ImGui::Spring();
+
+			ImGui::SetNextItemShortcut(ImGuiKey_Escape);
+			if (ImGui::Button("Cancel"))
+				ImGui::CloseCurrentPopup();
+
+			ImGui::BeginDisabled(m_DeleteDialogue.SelectedCount == 0);
+			if (ImGui::Button("Delete"))
+			{
+				for (const auto& [id, selected] : m_DeleteDialogue.Items)
+				{
+					if (!selected)
+						continue;
+
+					auto item = m_CurrentItems.Get(id);
+					item->Delete();
+					m_CurrentItems.Remove(id);
+					SelectionManager::Unselect(SelectionContext::ContentBrowser, id);
+				}
+
+				CacheDirectories();
+				NextDirectory(m_CurrentDirectory, false, false);
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndDisabled();
+			ImGui::EndHorizontal();
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginPopupModal(m_ErrorDialogueID, m_ErrorDialogue.Title.c_str()))
+		{
+			ImGui::Text(m_ErrorDialogue.Message);
+			
+			ImGui::BeginHorizontal("##responseHorizontal");
+			ImGui::Spring();
+			if ((m_ErrorDialogue.Response & ErrorResponse::OK) == ErrorResponse::OK && ImGui::Button("OK"))
+				ImGui::CloseCurrentPopup();
+			ImGui::EndHorizontal();
+
+			ImGui::EndPopup();
+		}
+
 	}
 
 	void ContentBrowserPanel::OnEvent(Event& event)
@@ -203,7 +390,6 @@ namespace Shark {
 		m_NextDirectory = nullptr;
 		m_History.Reset(nullptr);
 		m_CurrentItems.Clear();
-		m_SelectedItem = nullptr;
 		m_ThumbnailGenerator = nullptr;
 		m_ThumbnailCache = nullptr;
 
@@ -219,17 +405,9 @@ namespace Shark {
 
 	}
 
-	void ContentBrowserPanel::RegisterOpenAssetCallback(AssetType assetType, const OpenAssetCallbackFn& func)
+	void ContentBrowserPanel::RegisterAssetActicatedCallback(AssetType assetType, const AssetActivatedCallbackFn& func)
 	{
-		m_OpenAssetCallbacks[assetType] = func;
-	}
-
-	Ref<Texture2D> ContentBrowserPanel::GetFileIcon(const std::filesystem::path& filepath) const
-	{
-		std::string extension = FileSystem::GetExtensionString(filepath);
-		if (m_IconExtensionMap.contains(extension))
-			return m_IconExtensionMap.at(extension);
-		return m_FileIcon;
+		m_AssetActivatedCallbacks[assetType] = func;
 	}
 
 	void ContentBrowserPanel::Reload()
@@ -238,22 +416,31 @@ namespace Shark {
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
 		ParseDirectories(m_BaseDirectory);
-		m_History.Reset(m_BaseDirectory);
-		CacheDirectories(m_BaseDirectory);
+		CacheDirectories();
 
-		auto currentDirectroy = GetDirectory(m_CurrentDirectory->Filepath);
-		ChangeDirectory(currentDirectroy ? currentDirectroy : m_BaseDirectory, false);
+		Ref<DirectoryInfo> activeDirectory = m_BaseDirectory;
+		if (auto currentDirectroy = FindDirectory(m_CurrentDirectory->Filepath))
+			activeDirectory = currentDirectroy;
+
+		m_History.Reset(activeDirectory);
+		ChangeDirectory(activeDirectory, false);
 
 		m_ReloadScheduled = false;
 	}
 
-	void ContentBrowserPanel::CacheDirectories(Ref<DirectoryInfo> directory)
+	void ContentBrowserPanel::CacheDirectories()
 	{
-		const auto key = m_Project->GetAbsolute(directory->Filepath).lexically_normal();
-		m_DirectoryMap[key] = directory;
+		SK_CORE_VERIFY(m_BaseDirectory);
+		m_DirectoryMap.clear();
+		BuildDirectoryIDMap(m_BaseDirectory);
+	}
+
+	void ContentBrowserPanel::BuildDirectoryIDMap(Ref<DirectoryInfo> directory)
+	{
+		m_DirectoryMap[directory->ID] = directory;
 
 		for (Ref<DirectoryInfo> subdir : directory->SubDirectories)
-			CacheDirectories(subdir);
+			BuildDirectoryIDMap(subdir);
 	}
 
 	void ContentBrowserPanel::ParseDirectories(Ref<DirectoryInfo> directory)
@@ -295,6 +482,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
+		SelectionManager::Clear(SelectionContext::ContentBrowser);
 		if (IsSearchActive())
 		{
 			m_CurrentItems = Search(m_SearchBuffer, m_BaseDirectory);
@@ -303,6 +491,13 @@ namespace Shark {
 
 		if (!directory)
 			return;
+
+		if (!FileSystem::Exists(directory->Filepath))
+		{
+			auto message = fmt::format("The directory no longer exists\n{}", directory->Filepath);
+			ShowErrorDialogue(ErrorType::InvalidDirectory, message, ErrorResponse::OK);
+			return;
+		}
 
 		m_CurrentDirectory = directory;
 		m_CurrentItems = GetItemsInDirectory(directory);
@@ -331,6 +526,34 @@ namespace Shark {
 		m_ChangeDirectory = true;
 	}
 
+	void ContentBrowserPanel::SelectItem(UUID id, bool add)
+	{
+		if (!add)
+		{
+			m_ClearSelection = true;
+			m_ItemsToSelect.clear();
+		}
+
+		m_ItemsToSelect.push_back(id);
+		//ImGui::SetNavID(UI::GetIDWithSeed(id, 0), ImGuiNavLayer_Main, 0, ImRect{});
+	}
+
+	void ContentBrowserPanel::ShowErrorDialogue(ErrorType type, const std::string& message, ErrorResponse response)
+	{
+		ImGui::OpenPopup(m_ErrorDialogueID);
+		m_ErrorDialogue.Type = type;
+		m_ErrorDialogue.Message = message;
+		m_ErrorDialogue.Response = response;
+
+		switch (m_ErrorDialogue.Type)
+		{
+			case ErrorType::None: m_ErrorDialogue.Title = "Error"; break;
+			case ErrorType::InvalidDirectory: m_ErrorDialogue.Title = "Invalid Directory"; break;
+			case ErrorType::InvalidInput: m_ErrorDialogue.Title = "Invalid Input"; break;
+			case ErrorType::OperationFailed: m_ErrorDialogue.Title = "Operation Failed"; break;
+		}
+	}
+
 	void ContentBrowserPanel::GenerateThumbnails()
 	{
 		if (!EditorSettings::Get().ContentBrowser.GenerateThumbnails)
@@ -341,7 +564,7 @@ namespace Shark {
 			if (currentItem->GetType() != CBItemType::Asset)
 				continue;
 
-			AssetHandle assetHandle = currentItem->GetAssetHandle();
+			AssetHandle assetHandle = currentItem->GetID();
 			if (!s_SupportedThumbnailTypes.contains(AssetManager::GetAssetType(assetHandle)))
 				continue;
 
@@ -354,7 +577,6 @@ namespace Shark {
 				break;
 			}
 		}
-
 	}
 
 	CBItemList ContentBrowserPanel::Search(const std::string& filterPaddern, Ref<DirectoryInfo> directory, bool searchSubdirectories)
@@ -368,7 +590,7 @@ namespace Shark {
 			std::string name = subdir->Name;
 			if (filter.PassFilter(subdir->Name.c_str()))
 			{
-				foundItems.Add(Ref<ContentBrowserItem>::Create(this, CBItemType::Directory, subdir->Filepath));
+				foundItems.Add(Ref<ContentBrowserDirectory>::Create(this, subdir));
 			}
 
 			if (searchSubdirectories)
@@ -383,17 +605,18 @@ namespace Shark {
 			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
 			std::filesystem::path filepath = directory->Filepath / filename;
 
-			AssetHandle handle = assetManager->GetAssetHandleFromFilepath(filepath);
-			if (!assetManager->IsValidAssetHandle(handle))
+			const auto& metadata = assetManager->GetMetadata(filepath);
+			if (!assetManager->IsValidAssetHandle(metadata.Handle))
 				continue;
 
-			AssetType assetType = assetManager->GetAssetType(handle);
-			std::string assetTypeString = ToString(assetType);
+			AssetType assetType = assetManager->GetAssetType(metadata.Handle);
+			std::string_view assetTypeString = magic_enum::enum_name(assetType);
 
 			std::string text = fmt::format("{} {}", filename, assetTypeString);
 			if (filter.PassFilter(text) || filter.PassFilter(text))
 			{
-				foundItems.Add(Ref<ContentBrowserItem>::Create(this, CBItemType::Asset, filepath));
+				Ref<Texture2D> icon = GetAssetIcon(FileSystem::GetExtensionString(filepath));
+				foundItems.Add(Ref<ContentBrowserAsset>::Create(this, metadata, icon));
 			}
 		}
 
@@ -406,7 +629,7 @@ namespace Shark {
 
 		for (Ref<DirectoryInfo> subdir : directory->SubDirectories)
 		{
-			Ref<ContentBrowserItem> directoryItem = Ref<ContentBrowserItem>::Create(this, CBItemType::Directory, subdir->Filepath);
+			Ref<ContentBrowserItem> directoryItem = Ref<ContentBrowserDirectory>::Create(this, subdir);
 			items.Items.push_back(directoryItem);
 		}
 
@@ -414,10 +637,11 @@ namespace Shark {
 		{
 			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
 			std::filesystem::path filepath = directory->Filepath / filename;
-			AssetHandle handle = assetManager->GetAssetHandleFromFilepath(filepath);
-			if (assetManager->IsValidAssetHandle(handle))
+			const auto& metadata = assetManager->GetMetadata(filepath);
+			if (assetManager->IsValidAssetHandle(metadata.Handle))
 			{
-				Ref<ContentBrowserItem> assetItem = Ref<ContentBrowserItem>::Create(this, CBItemType::Asset, filepath);
+				Ref<Texture2D> icon = GetAssetIcon(FileSystem::GetExtensionString(filepath));
+				Ref<ContentBrowserItem> assetItem = Ref<ContentBrowserAsset>::Create(this, metadata, icon);
 				items.Items.push_back(assetItem);
 			}
 		}
@@ -425,18 +649,21 @@ namespace Shark {
 		return items;
 	}
 
-	Ref<DirectoryInfo> ContentBrowserPanel::GetDirectory(const std::filesystem::path& filePath)
+	Ref<DirectoryInfo> ContentBrowserPanel::GetDirectory(UUID id) const
 	{
-		const auto key = GetKey(filePath);
-		SK_CORE_ASSERT(m_DirectoryMap.contains(key) == FileSystem::Exists(key));
-		if (m_DirectoryMap.contains(key))
-			return m_DirectoryMap.at(key);
+		if (m_DirectoryMap.contains(id))
+			return m_DirectoryMap.at(id);
 		return nullptr;
 	}
 
-	std::filesystem::path ContentBrowserPanel::GetKey(const std::filesystem::path& path) const
+	Ref<DirectoryInfo> ContentBrowserPanel::FindDirectory(const std::filesystem::path& filePath)
 	{
-		return m_Project->GetAbsolute(path).lexically_normal();
+		for (const auto& [id, info] : m_DirectoryMap)
+		{
+			if (info->Filepath == filePath)
+				return info;
+		}
+		return nullptr;
 	}
 
 	bool ContentBrowserPanel::OnKeyPressedEvent(KeyPressedEvent& event)
@@ -446,7 +673,7 @@ namespace Shark {
 
 		switch (event.GetKeyCode())
 		{
-
+#if TODO
 			case KeyCode::Delete:
 			{
 				if (m_SelectedItem)
@@ -456,17 +683,20 @@ namespace Shark {
 				}
 				break;
 			}
+#endif
 
+#if 0
 			case KeyCode::F2:
 			{
-				if (m_SelectedItem)
-				{
-					m_SelectedItem->StartRenaming();
-					return true;
-				}
+				const auto& selections = SelectionManager::GetSelections(SelectionContext::ContentBrowser);
+				if (selections.empty() || !m_CurrentItems.Contains(selections[0]))
+					break;
+
+				auto item = m_CurrentItems.Get(selections[0]);
+				item->StartRenaming();
 				break;
 			}
-
+#endif
 		}
 
 		return false;
@@ -478,149 +708,138 @@ namespace Shark {
 
 		GenerateThumbnails();
 
-		std::vector<Ref<ContentBrowserItem>> deletedItems;
 		bool resortCurrentItems = false;
 
+		uint32_t index = 0;
 		for (Ref<ContentBrowserItem> currentItem : m_CurrentItems)
 		{
+			ImGui::TableNextColumn();
+
+			ImGui::SetNextItemSelectionUserData(index++);
 			CBItemAction action = currentItem->Draw();
 			const CBItemType itemType = currentItem->GetType();
 
-			if (action.FlagSet(CBItemActionFlag::Open))
+			if (action.IsSet(CBItemActionFlag::Activated))
 			{
 				if (itemType == CBItemType::Directory)
 				{
-					Ref<DirectoryInfo> directoryInfo = GetDirectory(currentItem->GetPath());
+					Ref<DirectoryInfo> directoryInfo = GetDirectory(currentItem->GetID());
 					NextDirectory(directoryInfo);
 				}
 
 				if (itemType == CBItemType::Asset)
 				{
 					Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-					AssetHandle assetHandle = currentItem->GetAssetHandle();
+					AssetHandle assetHandle = currentItem->GetID();
 					if (assetManager->IsValidAssetHandle(assetHandle))
 					{
 						const auto& metadata = assetManager->GetMetadata(assetHandle);
-						const auto& callback = m_OpenAssetCallbacks[metadata.Type];
-						if (callback)
-						{
-							callback(metadata);
-						}
+						if (m_AssetActivatedCallbacks.contains(metadata.Type))
+							m_AssetActivatedCallbacks.at(metadata.Type)(metadata);
 					}
 				}
 			}
 
-			if (action.FlagSet(CBItemActionFlag::RemoveItem))
+			if (action.IsSet(CBItemActionFlag::OpenExternal))
 			{
-				deletedItems.push_back(currentItem);
-			}
-
-			if (action.FlagSet(CBItemActionFlag::OpenExternally))
-			{
-				if (itemType != CBItemType::Directory)
+				if (itemType == CBItemType::Asset)
 				{
-					Platform::OpenFile(currentItem->GetPath());
+					std::filesystem::path filepath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(currentItem->GetID());
+					Platform::OpenFile(filepath);
 				}
 			}
 
-			if (action.FlagSet(CBItemActionFlag::OpenInExplorer))
+			if (action.IsSet(CBItemActionFlag::ShowInExplorer))
 			{
 				Ref<DirectoryInfo> directory = m_CurrentDirectory;
 				if (itemType == CBItemType::Directory)
-					directory = GetDirectory(currentItem->GetPath());
+					directory = GetDirectory(currentItem->GetID());
 				else if (IsSearchActive())
-					directory = GetDirectory(currentItem->GetPath().parent_path());
+				{
+					auto filesystemPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(currentItem->GetID());
+					directory = FindDirectory(FileSystem::GetParent(filesystemPath));
+				}
 
 				SK_CORE_VERIFY(directory);
 				Platform::OpenExplorer(m_Project->GetAbsolute(directory->Filepath));
 			}
 
-			if (action.FlagSet(CBItemActionFlag::Select))
+			if (action.IsSet(CBItemActionFlag::Reload) && itemType == CBItemType::Asset)
 			{
-				if (m_SelectedItem)
-					m_SelectedItem->Unselect();
-				currentItem->Select();
-				m_SelectedItem = currentItem;
+				Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+				AssetHandle assetHandle = currentItem->GetID();
+				if (assetManager->IsValidAssetHandle(assetHandle))
+					assetManager->ReloadAssetAsync(assetHandle);
 			}
 
-			if (action.FlagSet(CBItemActionFlag::Delete))
-			{
-				currentItem->Delete();
-				deletedItems.push_back(currentItem);
-			}
-
-			if (action.FlagSet(CBItemActionFlag::ReloadAsset))
-			{
-				if (itemType == CBItemType::Asset)
-				{
-					Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-					AssetHandle assetHandle = assetManager->GetAssetHandleFromFilepath(currentItem->GetPath());
-					if (assetManager->IsValidAssetHandle(assetHandle))
-						assetManager->ReloadAssetAsync(assetHandle);
-				}
-			}
-
-			if (action.FlagSet(CBItemActionFlag::StartRenaming))
+			if (action.IsSet(CBItemActionFlag::StartRenaming))
 			{
 				currentItem->StartRenaming();
 			}
 
-			if (action.FlagSet(CBItemActionFlag::FinishedRenaming))
+			if (action.IsSet(CBItemActionFlag::Renamed))
 			{
-				if (itemType == CBItemType::Directory)
+				const auto& selections = SelectionManager::GetSelections(SelectionContext::ContentBrowser);
+				if (selections.size() > 1)
 				{
-					Ref<DirectoryInfo> directoryInfo = GetDirectory(currentItem->GetPath());
-					if (directoryInfo)
+					for (UUID id : selections)
 					{
-						RenameDirectory(directoryInfo, action.GetNewName());
+						if (!m_CurrentItems.Contains(id))
+							continue;
+
+						auto item = m_CurrentItems.Get(id);
+						if (item == currentItem)
+							continue;
+
+						item->Rename(currentItem->GetDisplayName());
 					}
 				}
-				if (itemType == CBItemType::Asset)
+
+				if (currentItem->GetType() == CBItemType::Directory && IsSearchActive())
 				{
-					m_CurrentDirectory->RenameFile(currentItem->GetName(), action.GetNewName());
-					m_Project->GetEditorAssetManager()->AssetRenamed(currentItem->GetAssetHandle(), action.GetNewName());
+					SK_CORE_VERIFY(false, "i don't think this is necessary");
+					NextDirectory(m_CurrentDirectory, false, false);
 				}
 
-				currentItem->Rename(action.GetNewName(), false);
 				resortCurrentItems = true;
 			}
 
-			if (action.FlagSet(CBItemActionFlag::ImportFile))
+			if (action.IsSet(CBItemActionFlag::OpenDeleteDialogue))
 			{
-				Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-				assetManager->ImportAsset(currentItem->GetPath());
-				currentItem->SetType(CBItemType::Asset);
+				ImGui::OpenPopup(m_DeleteDialoguePopupID);
 			}
 
-			if (action.FlagSet(CBItemActionFlag::AssetDropped))
+			if (action.IsSet(CBItemActionFlag::DropAccepted))
 			{
-				SK_CORE_ASSERT(itemType == CBItemType::Directory);
-				Ref<DirectoryInfo> destinationDirectory = GetDirectory(currentItem->GetPath());
-				MoveAsset(action.GetDroppedAsset(), destinationDirectory);
+				SK_CORE_VERIFY(currentItem->GetType() == CBItemType::Directory);
+
+				const ImGuiPayload* payload = ImGui::GetDragDropPayload();
+				if (payload->IsDataType("Asset"))
+				{
+					AssetHandle handle = *(AssetHandle*)payload->Data;
+					if (AssetManager::IsValidAssetHandle(handle))
+					{
+						SK_CORE_VERIFY(m_CurrentItems.Contains(handle));
+						auto item = m_CurrentItems.Get(handle);
+						auto tagetDirectory = GetDirectory(currentItem->GetID());
+
+						item->Move(tagetDirectory);
+						NextDirectory(m_CurrentDirectory, false, false);
+					}
+				}
+
+				if (payload->IsDataType("uuid.cb.directory"))
+				{
+					UUID id = *(UUID*)payload->Data;
+					SK_CORE_VERIFY(m_CurrentItems.Contains(id));
+
+					auto item = m_CurrentItems.Get(id);
+					auto tagetDirectory = GetDirectory(currentItem->GetID());
+					item->Move(tagetDirectory);
+					NextDirectory(m_CurrentDirectory, false, false);
+				}
 			}
 
-			if (action.FlagSet(CBItemActionFlag::DirectoryDropped))
-			{
-				SK_CORE_ASSERT(itemType == CBItemType::Directory);
-
-				Ref<DirectoryInfo> destinationDirectory = GetDirectory(currentItem->GetPath());
-				Ref<DirectoryInfo> directory = GetDirectory(action.GetDroppedDirectory());
-				MoveDirectory(directory, destinationDirectory);
-			}
-
-			ImGui::NextColumn();
-		}
-
-		for (Ref<ContentBrowserItem> deleted : deletedItems)
-		{
-			Ref<DirectoryInfo> parent = GetDirectory(deleted->GetPath().parent_path());
-
-			if (deleted->GetType() == CBItemType::Directory)
-				parent->RemoveDirectory(deleted->GetPath());
-			else
-				parent->RemoveFile(deleted->GetPath().filename().string());
-
-			m_CurrentItems.Remove(deleted);
 		}
 
 		if (resortCurrentItems)
@@ -639,9 +858,9 @@ namespace Shark {
 		UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, style.ItemSpacing * 0.5f);
 		UI::ShiftCursor({ -style.WindowPadding.x * 0.5f, -style.WindowPadding.y * 0.5f });
 
-
+		ImGui::BeginHorizontal("##header.horizontal", { ImGui::GetContentRegionAvail().x - style.WindowPadding.x * 2.0f, ImGui::GetFrameHeightWithSpacing() });
 		{
-			UI::ScopedDisabled searchActiveDisabled(IsSearchActive());
+			//UI::ScopedDisabled searchActiveDisabled(IsSearchActive());
 			UI::ScopedColorStack dark(ImGuiCol_Text, UI::Colors::Theme::TextDarker,
 									  ImGuiCol_Button, UI::Colors::Theme::ButtonDark,
 									  ImGuiCol_ButtonActive, UI::Colors::Theme::ButtonActiveDark,
@@ -654,53 +873,52 @@ namespace Shark {
 			const ImU32 buttonColH = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f);
 			const ImU32 buttonColP = UI::Colors::Theme::TextDarker;
 
+			ImGui::BeginDisabled(IsSearchActive());
+
 			// Move Back
 			ImGui::BeginDisabled(!m_History.CanMoveBack());
 			if (ImGui::InvisibleButton("Move Back", buttonSize))
 				NextDirectory(m_History.MoveBack(), false);
 			
 			UI::DrawButtonFrame();
-			UI::DrawImageButton(Icons::AngleLeftIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
+			UI::DrawImageButton(EditorResources::AngleLeftIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 			ImGui::EndDisabled();
 
 
 			// Move Forward
-			ImGui::SameLine();
 			ImGui::BeginDisabled(!m_History.CanMoveForward());
 			if (ImGui::InvisibleButton("Move Forward", buttonSize))
 				NextDirectory(m_History.MoveForward(), false);
 
 			UI::DrawButtonFrame();
-			UI::DrawImageButton(Icons::AngleRightIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
+			UI::DrawImageButton(EditorResources::AngleRightIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 			ImGui::EndDisabled();
 
+			ImGui::EndDisabled();
 
 			// Reload
-			ImGui::SameLine();
 			if (ImGui::InvisibleButton("Reload", buttonSize))
 				m_ReloadScheduled = true;
 
 			UI::DrawButtonFrame();
-			UI::DrawImageButton(Icons::ReloadIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
+			UI::DrawImageButton(EditorResources::ReloadIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 
 
-			ImGui::SameLine();
 			if (ImGui::InvisibleButton("Clear Thumbnail Cache", buttonSize))
 			{
-				if (Input::IsKeyDown(KeyCode::LeftShift))
+				if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
 					m_ThumbnailCache->ClearDiscCache();
 				m_ThumbnailCache->Clear();
 			}
 
 			UI::DrawButtonFrame();
-			UI::DrawImageButton(Icons::ClearIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
-
+			UI::DrawImageButton(EditorResources::ClearIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 		}
 
+
 		// Search
-		ImGui::SameLine();
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.2f);
-		if (UI::Search(UI::GenerateID(), m_SearchBuffer, SearchBufferSize))
+		if (UI::Search(UI::GenerateID(), m_SearchBuffer, (int)std::size(m_SearchBuffer)))
 		{
 			NextDirectory(m_CurrentDirectory, false, false);
 
@@ -715,28 +933,44 @@ namespace Shark {
 			}
 		}
 
-		ImGui::SameLine();
-		for (uint32_t i = 0; i < m_BreadcrumbTrailData.size(); i++)
+		// Breadcrumb Trail
 		{
-			Ref<DirectoryInfo> breadcrumb = m_BreadcrumbTrailData[i];
+			UI::ScopedStyleStack styleStack(ImGuiStyleVar_FramePadding, ImVec2{ 0.0f, style.FramePadding.y },
+											ImGuiStyleVar_ItemSpacing, ImVec2{ 0.0f, style.ItemSpacing.y });
 
-			const auto& name = breadcrumb->Name;
-			const ImVec2 buttonSize = ImGui::CalcTextSize(name.c_str(), name.c_str() + name.size());
-			const ImVec2 pos = ImGui::GetCursorScreenPos();
-			if (ImGui::InvisibleButton(breadcrumb->Name.c_str(), buttonSize))
-				NextDirectory(breadcrumb);
-
-			ImU32 textColor = ImGui::GetColorU32(ImGui::IsItemHovered() ? ImGuiCol_Text : ImGuiCol_TextDisabled);
-			const ImVec2 textPos = { pos.x, pos.y + style.FramePadding.y };
-			window->DrawList->AddText(textPos, textColor, name.c_str(), name.c_str() + name.size());
-
-			if (i != m_BreadcrumbTrailData.size() - 1)
+			for (uint32_t i = 0; i < m_BreadcrumbTrailData.size(); i++)
 			{
-				ImGui::SameLine(0.0f, 0.0f);
-				ImGui::TextDisabled("/");
-				ImGui::SameLine(0.0f, 0.0f);
-			}
+				Ref<DirectoryInfo> breadcrumb = m_BreadcrumbTrailData[i];
 
+				const auto& name = breadcrumb->Name;
+				const ImVec2 pos = ImGui::GetCursorScreenPos();
+				const ImVec2 textSize = ImGui::CalcTextSize(name.c_str(), name.c_str() + name.size());
+				const ImVec2 buttonSize = textSize + style.FramePadding * 2.0f;
+
+				if (ImGui::InvisibleButton(name.c_str(), buttonSize))
+					NextDirectory(breadcrumb);
+
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("Asset");
+					if (payload)
+					{
+						AssetHandle handle = *(AssetHandle*)payload->Data;
+						SK_CORE_VERIFY(m_CurrentItems.Contains(handle));
+						auto item = m_CurrentItems.Get(handle);
+						item->Move(breadcrumb);
+						NextDirectory(m_CurrentDirectory, false, false);
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				ImU32 textColor = ImGui::GetColorU32(ImGui::IsItemHovered() ? ImGuiCol_Text : ImGuiCol_TextDisabled);
+				const ImVec2 text_pos = { pos.x, pos.y + window->DC.CurrLineTextBaseOffset };
+				window->DrawList->AddText(text_pos, textColor, name.c_str(), name.c_str() + name.size());
+
+				if (i < m_BreadcrumbTrailData.size() - 1)
+					ImGui::TextDisabled("/");
+			}
 		}
 
 		{
@@ -747,10 +981,10 @@ namespace Shark {
 				ImGuiCol_ButtonActive, ImVec4{ 0, 0, 0, 0 }
 			);
 
-			const float iconSize = ImGui::GetFontSize();
-			const float settingsIconOffset = ImGui::GetContentRegionAvail().x - iconSize - style.WindowPadding.x - style.ItemSpacing.x;
-			ImGui::SameLine(settingsIconOffset);
-
+			//const float iconSize = ImGui::GetFontSize();
+			//const float settingsIconOffset = ImGui::GetContentRegionAvail().x - iconSize - style.WindowPadding.x - style.ItemSpacing.x;
+			//ImGui::SameLine(settingsIconOffset);
+			ImGui::Spring();
 
 			const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
 			if (ImGui::InvisibleButton("settings", buttonSize))
@@ -758,15 +992,12 @@ namespace Shark {
 
 
 
-			UI::DrawImageButton(Icons::SettingsIcon,
+			UI::DrawImageButton(EditorResources::SettingsIcon,
 								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 0.9f),
 								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f),
 								UI::Colors::Theme::TextDarker,
 								UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 
-			//ImGui::Button("\xef\x80\x93");
-			//if (ImGui::IsItemClicked())
-			//	ImGui::OpenPopup("cbSettings");
 			if (ImGui::BeginPopup("cbSettings"))
 			{
 				auto& settings = EditorSettings::Get().ContentBrowser;
@@ -775,9 +1006,10 @@ namespace Shark {
 				ImGui::EndPopup();
 			}
 		}
+		ImGui::EndHorizontal();
 	}
 
-	void ContentBrowserPanel::DrawDirectoryHirachy(Ref<DirectoryInfo> directory)
+	void ContentBrowserPanel::DrawDirectoryHierarchy(Ref<DirectoryInfo> directory)
 	{
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
 		if (directory->SubDirectories.empty())
@@ -786,13 +1018,55 @@ namespace Shark {
 		bool open = false;
 
 		const bool current = directory == m_CurrentDirectory;
+#if 0
 		if (current)
 			flags |= ImGuiTreeNodeFlags_Selected;
+#endif
 
 		{
 			UI::ScopedColor selected(ImGuiCol_Header, UI::Colors::Theme::Selection);
 			UI::ScopedColorConditional hovered(ImGuiCol_HeaderHovered, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 1.2f), current);
 			UI::ScopedColorConditional active(ImGuiCol_HeaderActive, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 0.9f), current);
+
+			if (current)
+			{
+				ImGuiWindow* window = ImGui::GetCurrentWindow();
+				ImGuiContext& g = *GImGui;
+				const ImGuiStyle& style = g.Style;
+
+				const bool display_frame = (flags & ImGuiTreeNodeFlags_Framed) != 0;
+				const ImVec2 padding = (display_frame || (flags & ImGuiTreeNodeFlags_FramePadding)) ? style.FramePadding : ImVec2(style.FramePadding.x, ImMin(window->DC.CurrLineTextBaseOffset, style.FramePadding.y));
+
+				const char* label = directory->Name.c_str();
+				const char* label_end = label + directory->Name.size();
+				const ImVec2 label_size = ImGui::CalcTextSize(label, label_end, false);
+
+				const float text_offset_x = g.FontSize + (display_frame ? padding.x * 3 : padding.x * 2);   // Collapsing arrow width + Spacing
+				const float text_offset_y = std::max(padding.y, window->DC.CurrLineTextBaseOffset);            // Latch before ItemSize changes it
+				const float text_width = g.FontSize + label_size.x + padding.x * 2;                         // Include collapsing arrow
+
+				// We vertically grow up to current line height up the typical widget height.
+				const float frame_height = std::max(std::min(window->DC.CurrLineSize.y, g.FontSize + style.FramePadding.y * 2), label_size.y + padding.y * 2);
+				ImRect frame_bb;
+				frame_bb.Min.x = window->ParentWorkRect.Min.x;
+				frame_bb.Min.y = window->DC.CursorPos.y;
+				frame_bb.Max.x = window->ParentWorkRect.Max.x;
+				frame_bb.Max.y = window->DC.CursorPos.y + frame_height;
+				if (display_frame)
+				{
+					const float outer_extend = IM_TRUNC(window->WindowPadding.x * 0.5f); // Framed header expand a little outside of current limits
+					frame_bb.Min.x -= outer_extend;
+					frame_bb.Max.x += outer_extend;
+				}
+
+				ImU32 colLeft = UI::Colors::Theme::Selection;
+				ImU32 colRight = UI::Colors::Theme::SelectionCompliment;
+				window->DrawList->AddRectFilledMultiColor(frame_bb.Min, frame_bb.Max, colLeft, colRight, colRight, colLeft);
+
+				//const float height = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
+				//ImRect rect;
+				//rect.Min.x = ImGui::GetWor
+			}
 
 			open = ImGui::TreeNodeEx(directory->Name.c_str(), flags);
 		}
@@ -806,20 +1080,23 @@ namespace Shark {
 			if (assetPayload)
 			{
 				AssetHandle handle = *(AssetHandle*)assetPayload->Data;
-				Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-				if (assetManager->IsValidAssetHandle(handle))
+				if (m_CurrentItems.Contains(handle))
 				{
-					MoveAsset(handle, directory);
+					auto item = m_CurrentItems.Get(handle);
+					item->Move(directory);
+					NextDirectory(m_CurrentDirectory, false, false);
 				}
 			}
 
-			const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload("Directory");
+			const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload("uuid.cb.directory");
 			if (directoryPayload)
 			{
-				std::filesystem::path path = std::filesystem::path((const char*)directoryPayload->Data);
-				SK_CORE_ASSERT(FileSystem::Exists(path));
+				UUID id = *(UUID*)directoryPayload->Data;
+				SK_CORE_VERIFY(m_CurrentItems.Contains(id));
 
-				MoveDirectory(GetDirectory(path), directory);
+				auto item = m_CurrentItems.Get(id);
+				item->Move(directory);
+				NextDirectory(m_CurrentDirectory, false, false);
 			}
 
 		}
@@ -827,124 +1104,80 @@ namespace Shark {
 		if (open)
 		{
 			for (auto subdir : directory->SubDirectories)
-				DrawDirectoryHirachy(subdir);
+				DrawDirectoryHierarchy(subdir);
 
 			ImGui::TreePop();
 		}
 	}
 
-	CBItemType ContentBrowserPanel::GetItemTypeFromPath(const std::filesystem::path& path) const
+	Ref<Texture2D> ContentBrowserPanel::GetAssetIcon(const std::string& extension)
 	{
-		if (std::filesystem::is_directory(path))
-			return CBItemType::Directory;
-
-		Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-		AssetHandle handle = assetManager->GetAssetHandleFromFilepath(path);
-		if (assetManager->IsValidAssetHandle(handle))
-			return CBItemType::Asset;
-		return CBItemType::None;
+		if (!m_IconExtensionMap.contains(extension))
+			return EditorResources::FileIcon;
+		return m_IconExtensionMap.at(extension);
 	}
 
-	void ContentBrowserPanel::MoveAsset(AssetHandle handle, Ref<DirectoryInfo> destinationDirectory)
+	void ContentBrowserPanel::ApplySelectionRequests(ImGuiMultiSelectIO* selectionRequests, bool isBegin)
 	{
-		Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-
-		auto filesystemPath = assetManager->GetFilesystemPath(handle);
-		std::string filename = filesystemPath.filename().string();
-
-		Ref<DirectoryInfo> originDirectory = GetDirectory(filesystemPath.parent_path());
-		std::filesystem::path newPath = destinationDirectory->Filepath / filename;
-
-		Ref<ContentBrowserItem> targetItem = m_CurrentItems.TryGet(filesystemPath);
-		if ((targetItem && targetItem->Move(newPath)) || FileSystem::Move(targetItem->GetPath(), newPath))
+		for (ImGuiSelectionRequest& request : selectionRequests->Requests)
 		{
-			originDirectory->RemoveFile(filename);
-			destinationDirectory->AddFile(filename);
-			assetManager->AssetMoved(handle, newPath);
-			NextDirectory(m_CurrentDirectory, false, false);
-		}
-	}
+			switch (request.Type)
+			{
+				case ImGuiSelectionRequestType_SetAll:
+				{
+					SelectionManager::Clear(SelectionContext::ContentBrowser);
+					if (!request.Selected)
+						break;
 
-	void ContentBrowserPanel::MoveDirectory(Ref<DirectoryInfo> directory, Ref<DirectoryInfo> destinationDirectory, bool first)
-	{
-		std::filesystem::path oldDirectoryPath = directory->Filepath;
-		std::filesystem::path newDirectoryPath = destinationDirectory->Filepath / directory->Name;
-
-		if (first)
-		{
-			if (!FileSystem::Move(oldDirectoryPath, newDirectoryPath))
-				return;
-
-			Ref<DirectoryInfo> oldParent = directory->Parent.GetRef();
-			oldParent->RemoveDirectory(directory);
-			destinationDirectory->AddDirectory(directory);
-		}
-
-		directory->Filepath = destinationDirectory->Filepath / directory->Name;
-		directory->Parent = destinationDirectory;
-
-		for (const auto& filename : directory->Filenames)
-		{
-			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-			std::filesystem::path filesystemPath = oldDirectoryPath / filename;
-			AssetHandle handle = assetManager->GetAssetHandleFromFilepath(filesystemPath);
-			assetManager->AssetMoved(handle, newDirectoryPath / filename);
-		}
-
-		m_DirectoryMap.erase(GetKey(oldDirectoryPath));
-		for (auto subdir : directory->SubDirectories)
-		{
-			MoveDirectory(subdir, directory, false);
-		}
-
-		if (first)
-		{
-			CacheDirectories(directory);
-			NextDirectory(m_CurrentDirectory, false, false);
+					for (const auto& item : m_CurrentItems)
+					{
+						SelectionManager::Select(SelectionContext::ContentBrowser, item->GetID());
+					}
+					break;
+				}
+				case ImGuiSelectionRequestType_SetRange:
+				{
+					for (int64_t i = request.RangeFirstItem; i <= request.RangeLastItem; i++)
+					{
+						Ref<ContentBrowserItem> item = m_CurrentItems.Items[i];
+						SelectionManager::Toggle(SelectionContext::ContentBrowser, item->GetID(), request.Selected);
+					}
+				}
+			}
 		}
 	}
 
-	void ContentBrowserPanel::RenameDirectory(Ref<DirectoryInfo> directory, const std::string& newName)
+	void ContentBrowserPanel::HandleSelectionRequests()
 	{
-		std::filesystem::path oldDirectoryPath = directory->Filepath;
-		std::filesystem::path newDirectoryPath = FileSystem::ChangeFilename(directory->Filepath, newName);
-		directory->Rename(newName);
-
-		for (const auto& filename : directory->Filenames)
+		if (m_ClearSelection)
 		{
-			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
-			AssetHandle handle = assetManager->GetAssetHandleFromFilepath(oldDirectoryPath / filename);
-			assetManager->AssetMoved(handle, newDirectoryPath / filename);
+			SelectionManager::Clear(SelectionContext::ContentBrowser);
+			m_ClearSelection = false;
 		}
 
-		m_DirectoryMap.erase(GetKey(oldDirectoryPath));
-		for (auto subdir : directory->SubDirectories)
-		{
-			MoveDirectory(subdir, directory, false);
-		}
-
-		CacheDirectories(directory);
-		NextDirectory(m_CurrentDirectory, false, false);
+		for (UUID id : m_ItemsToSelect)
+			SelectionManager::Select(SelectionContext::ContentBrowser, id);
+		m_ItemsToSelect.clear();
 	}
 
-	Ref<ContentBrowserItem> ContentBrowserPanel::CreateDirectory(Ref<DirectoryInfo> directory, const std::string& name, bool startRenaming)
+	Ref<ContentBrowserItem> ContentBrowserPanel::CreateDirectory(const std::string& name, bool startRenaming)
 	{
 		if (!FileSystem::IsValidFilename(name))
 			return nullptr;
 
-		std::filesystem::path directoryPath = m_Project->GetDirectory() / m_CurrentDirectory->Filepath / name;
+		std::filesystem::path directoryPath = m_CurrentDirectory->Filepath / name;
+		FileSystem::AssureUniqueness(directoryPath);
 
-		if (!FileSystem::CreateDirectories(directoryPath))
+		if (!FileSystem::CreateDirectory(directoryPath))
 			return nullptr;
 
-		Ref<DirectoryInfo> newDirectory = Ref<DirectoryInfo>::Create(directory, directory->Filepath / name);
-
-		const auto key = m_Project->GetAbsolute(newDirectory->Filepath).lexically_normal();
-		m_DirectoryMap[key] = newDirectory;
+		Ref<DirectoryInfo> newDirectory = Ref<DirectoryInfo>::Create(m_CurrentDirectory, directoryPath);
+		m_DirectoryMap[newDirectory->ID] = newDirectory;
 		m_CurrentDirectory->AddDirectory(newDirectory);
 
-		Ref<ContentBrowserItem> item = Ref<ContentBrowserItem>::Create(this, CBItemType::Directory, newDirectory->Filepath);
+		Ref<ContentBrowserItem> item = Ref<ContentBrowserDirectory>::Create(this, newDirectory);
 		m_CurrentItems.Add(item);
+		SelectItem(newDirectory->ID);
 
 		if (startRenaming)
 			item->StartRenaming();

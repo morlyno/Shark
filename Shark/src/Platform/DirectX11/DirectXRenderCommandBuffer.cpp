@@ -96,6 +96,7 @@ namespace Shark {
 		Ref<DirectXRenderCommandBuffer> instance = this;
 		Renderer::Submit([instance]()
 		{
+			SK_PROFILE_SCOPED("DirectXRenderCommandBuffer::Execute");
 			auto device = DirectXContext::GetCurrentDevice();
 
 			std::scoped_lock lock(device->GetSubmissionMutex());

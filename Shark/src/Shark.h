@@ -78,3 +78,5 @@
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Asset/AssetSerializer.h"
 // --------------------------------------
+
+#include "Shark/Debug/Profiler.h"

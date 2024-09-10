@@ -5,7 +5,7 @@
 
 #include "Shark/Serialization/SerializerBase.h"
 #include "Shark/Serialization/SceneSerializer.h"
-#include "Shark/Serialization/TextureSerializers.h"
+#include "Shark/Serialization/TextureSerializer.h"
 #include "Shark/Serialization/ScriptSerializers.h"
 #include "Shark/Serialization/Serializers.h"
 #include "Shark/Serialization/MeshSourceSerializer.h"
@@ -56,6 +56,18 @@ namespace Shark {
 
 		SK_CORE_ASSERT(false, "Serializer not found");
 		return false;
+	}
+
+	SerializerBase* AssetSerializer::GetSerializer(AssetType type)
+	{
+		if (s_Serializers.contains(type))
+		{
+			auto& serializer = s_Serializers.at(type);
+			return serializer.Raw();
+		}
+
+		SK_CORE_ASSERT(false, "Serializer not found");
+		return nullptr;
 	}
 
 }

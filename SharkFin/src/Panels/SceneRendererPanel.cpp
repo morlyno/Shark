@@ -28,10 +28,10 @@ namespace Shark {
 			if (ImGui::TreeNodeEx("Statistics", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				const auto& stats = m_Renderer->GetStatisitcs();
-				UI::Text("GPU Time: {}", stats.GPUTime);
-				UI::Text("Geometry Pass: {}", stats.GeometryPass);
-				UI::Text("Skybox Pass: {}", stats.SkyboxPass);
-				UI::Text("Composite Pass: {}", stats.CompositePass);
+				ImGui::Text(fmt::format(fmt::runtime("GPU Time: {}"), stats.GPUTime));
+				ImGui::Text(fmt::format(fmt::runtime("Geometry Pass: {}"), stats.GeometryPass));
+				ImGui::Text(fmt::format(fmt::runtime("Skybox Pass: {}"), stats.SkyboxPass));
+				ImGui::Text(fmt::format(fmt::runtime("Composite Pass: {}"), stats.CompositePass));
 
 				if (ImGui::TreeNodeEx("Pipeline Statistics", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 				{

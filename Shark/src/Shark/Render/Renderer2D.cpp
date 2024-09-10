@@ -50,7 +50,7 @@ namespace Shark {
 			{ VertexDataType::Float4, "Color" },
 			{ VertexDataType::Float2, "TexCoord" },
 			{ VertexDataType::Int, "TexIndex" },
-			{ VertexDataType::Float, "TilingFactor" },
+			{ VertexDataType::Float2, "TilingFactor" },
 			{ VertexDataType::Int, "ID" }
 		};
 
@@ -194,15 +194,14 @@ namespace Shark {
 			m_TextVertexData.Allocate(DefaultTextVertices * sizeof TextVertex);
 		}
 
-		constexpr double delta = M_PI / 10.0f; // 0.31415
-		glm::vec4 point = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-		for (uint32_t i = 0; i < 20; i++)
+		constexpr float delta = (2 * M_PI) / (float)MaxCircleVertexPositions;
+		for (uint32_t i = 0; i < MaxCircleVertexPositions; i++)
 		{
-			const double r0 = (double)i * delta;
-			point.x = (float)glm::sin(r0);
-			point.y = (float)glm::cos(r0);
+			const float r0 = (float)i * delta;
+			float x = glm::sin(r0) * 0.5f;
+			float y = glm::cos(r0) * 0.5f;
 
-			m_CirlceVertexPositions[i] = point;
+			m_CircleVertexPositions[i] = { x, y, 0.0f, 1.0f };
 		}
 
 	}
@@ -281,15 +280,15 @@ namespace Shark {
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id)
 	{
-		DrawQuad(position, scaling, Renderer::GetWhiteTexture(), 1.0f, color, id);
+		DrawQuad(position, scaling, Renderer::GetWhiteTexture(), glm::vec2(1.0f), color, id);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& scaling, const Ref<Texture2D>& texture, const glm::vec2& tilingfactor, const glm::vec4& tintcolor, int id)
 	{
 		DrawQuad({ position.x, position.y, 0.0f }, { scaling.x, scaling.y, 1.0f }, texture, tilingfactor, tintcolor, id);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec3& scaling, const Ref<Texture2D>& texture, const glm::vec2& tilingfactor, const glm::vec4& tintcolor, int id)
 	{
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), position) *
@@ -305,15 +304,15 @@ namespace Shark {
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const glm::vec4& color, int id)
 	{
-		DrawRotatedQuad(position, rotation, scaling, Renderer::GetWhiteTexture(), 1.0f, color, id);
+		DrawRotatedQuad(position, rotation, scaling, Renderer::GetWhiteTexture(), glm::vec2(1.0f), color, id);
 	}
 
-	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, float rotation, const glm::vec2& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, float rotation, const glm::vec2& scaling, const Ref<Texture2D>& texture, const glm::vec2& tilingfactor, const glm::vec4& tintcolor, int id)
 	{
 		DrawRotatedQuad({ position.x, position.y, 0.0f }, { 0.0f, 0.0f, rotation }, { scaling.x, scaling.y, 1.0f }, texture, tilingfactor, tintcolor, id);
 	}
 
-	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const Ref<Texture2D>& texture, float tilingfactor, const glm::vec4& tintcolor, int id)
+	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scaling, const Ref<Texture2D>& texture, const glm::vec2& tilingfactor, const glm::vec4& tintcolor, int id)
 	{
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), position) *
@@ -325,10 +324,10 @@ namespace Shark {
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
-		DrawQuad(transform, Renderer::GetWhiteTexture(), 1.0f, color, id);
+		DrawQuad(transform, Renderer::GetWhiteTexture(), glm::vec2(1.0f), color, id);
 	}
 
-	void Renderer2D::DrawQuad(const glm::mat4& transform, Ref<Texture2D> texture, float tilingfactor, const glm::vec4& color, int id)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, Ref<Texture2D> texture, const glm::vec2& tilingfactor, const glm::vec4& color, int id)
 	{
 		SK_CORE_VERIFY(m_Active);
 
@@ -415,7 +414,7 @@ namespace Shark {
 	{
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), glm::vec3(position, 0.0f)) *
-			glm::scale(glm::mat4(1), glm::vec3(radius));
+			glm::scale(glm::mat4(1), glm::vec3(radius * 2.0f));
 
 		DrawCircle(transform, color, id);
 	}
@@ -425,7 +424,7 @@ namespace Shark {
 		const glm::mat4 transform =
 			glm::translate(glm::mat4(1), position) *
 			glm::toMat4(glm::quat(rotation)) /*glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z)*/ *
-			glm::scale(glm::mat4(1), glm::vec3(radius));
+			glm::scale(glm::mat4(1), glm::vec3(radius * 2.0f));
 
 		DrawCircle(transform, color, id);
 	}
@@ -443,14 +442,14 @@ namespace Shark {
 	void Renderer2D::DrawCircle(const glm::mat4& transform, const glm::vec4& color, int id)
 	{
 		SK_CORE_VERIFY(m_Active);
-		for (uint32_t i = 0; i < m_CirlceVertexPositions.size() - 1; i++)
+		for (uint32_t i = 0; i < m_CircleVertexPositions.size() - 1; i++)
 		{
-			glm::vec3 p0 = (transform * m_CirlceVertexPositions[i + 0]).xyz;
-			glm::vec3 p1 = (transform * m_CirlceVertexPositions[i + 1]).xyz;
+			glm::vec3 p0 = (transform * m_CircleVertexPositions[i + 0]).xyz;
+			glm::vec3 p1 = (transform * m_CircleVertexPositions[i + 1]).xyz;
 			DrawLine(p0, p1, color, id);
 		}
-		glm::vec3 p0 = (transform * m_CirlceVertexPositions.back()).xyz;
-		glm::vec3 p1 = (transform * m_CirlceVertexPositions.front()).xyz;
+		glm::vec3 p0 = (transform * m_CircleVertexPositions.back()).xyz;
+		glm::vec3 p1 = (transform * m_CircleVertexPositions.front()).xyz;
 		DrawLine(p0, p1, color, id);
 	}
 

@@ -5,7 +5,7 @@
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/UI/Theme.h"
-#include "Shark/UI/Icons.h"
+#include "Shark/UI/EditorResources.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -46,10 +46,61 @@ namespace Shark::UI {
 
 	UIContext* GContext = nullptr;
 
+	ImGuiID GetIDWithSeed(UUID id, uint32_t seed)
+	{
+		return ImHashData(&id, sizeof(id), seed);
+	}
+
+	ImGuiID GetIDWithSeed(int intID, uint32_t seed)
+	{
+		return ImHashData(&intID, sizeof(int), seed);
+	}
+
+	ImGuiID GetIDWithSeed(void* ptrID, uint32_t seed)
+	{
+		return ImHashData(&ptrID, sizeof(void*), seed);
+	}
+
+	ImGuiID GetIDWithSeed(const char* strID, uint32_t seed)
+	{
+		return ImHashStr(strID, 0, seed);
+	}
+
+	ImGuiID GetIDWithSeed(const std::string& strID, uint32_t seed)
+	{
+		return ImHashStr(strID.c_str(), strID.size(), seed);
+	}
+
+	ImGuiID GetIDWithSeed(std::string_view strID, uint32_t seed)
+	{
+		return ImHashStr(strID.data(), strID.size(), seed);
+	}
+
+	void PushID(ImGuiID id)
+	{
+		GImGui->CurrentWindow->IDStack.push_back(id);
+	}
+
+	void PopID()
+	{
+		GImGui->CurrentWindow->IDStack.pop_back();
+	}
+
+	ImGuiID GetCurrentID()
+	{
+		return GImGui->CurrentWindow->IDStack.back();
+	}
+
 	ImGuiID GenerateID()
 	{
 		ImGuiWindow* window = GImGui->CurrentWindow;
 		return window->GetID(window->IDStack.front());
+	}
+
+	static uint64_t s_GenerateIDIndex = 0;
+	ImGuiID GenerateUniqueID()
+	{
+		return Hash::GenerateFNV(s_GenerateIDIndex++);
 	}
 
 	ImRect GetItemRect()
@@ -87,78 +138,33 @@ namespace Shark::UI {
 		return RectOffset(rect, offset.x, offset.y);
 	}
 
-	ImU32 ToColor32(const ImVec4& color)
+	bool HighlightNav(ImGuiID id, ImGuiNavHighlightFlags flags)
 	{
-		ImU32 out;
-		out = ((ImU32)IM_F32_TO_INT8_SAT(color.x)) << IM_COL32_R_SHIFT;
-		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.y)) << IM_COL32_G_SHIFT;
-		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.z)) << IM_COL32_B_SHIFT;
-		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.w)) << IM_COL32_A_SHIFT;
-		return out;
+		ImGuiContext& g = *GImGui;
+		if (id != g.NavId)
+			return false;
+		if (g.NavDisableHighlight && !(flags & ImGuiNavHighlightFlags_AlwaysDraw))
+			return false;
+		ImGuiWindow* window = g.CurrentWindow;
+		if (window->DC.NavHideHighlightOneFrame)
+			return false;
+		return true;
 	}
 
-	ImU32 ToColor32(const ImVec4& color, float alpha)
+	ImVec2 CalcImageSizeByWidth(Ref<Image2D> image, float width)
 	{
-		ImU32 out;
-		out = ((ImU32)IM_F32_TO_INT8_SAT(color.x)) << IM_COL32_R_SHIFT;
-		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.y)) << IM_COL32_G_SHIFT;
-		out |= ((ImU32)IM_F32_TO_INT8_SAT(color.z)) << IM_COL32_B_SHIFT;
-		out |= ((ImU32)IM_F32_TO_INT8_SAT(alpha)) << IM_COL32_A_SHIFT;
-		return out;
+		const float ratio = image->GetVerticalAspectRatio();
+		return { width, width * ratio };
 	}
 
-	ImVec4 GetColor(ImGuiCol color, float override_alpha)
+	ImVec2 CalcImageSizeByHeight(Ref<Image2D> image, float height)
 	{
-		const ImVec4& col = ImGui::GetStyleColorVec4(color);
-		return {
-			col.x,
-			col.y,
-			col.z,
-			override_alpha
-		};
-	}
-
-	void PushFramedTextAlign(const ImVec2& align)
-	{
-		GContext->FramedTextAlignStack.push(GContext->FramedTextAlign);
-		GContext->FramedTextAlign = align;
-	}
-
-	void PopFramedTextAlign()
-	{
-		GContext->FramedTextAlign = GContext->FramedTextAlignStack.top();
-		GContext->FramedTextAlignStack.pop();
-	}
-
-	ImVec2 CalcItemSizeFromText(const char* text, const char* textEnd)
-	{
-		const ImGuiStyle& style = ImGui::GetStyle();
-		const ImVec2 textSize = ImGui::CalcTextSize(text, textEnd);
-		return { textSize.x + style.FramePadding.x * 2.0f, textSize.y + style.FramePadding.y * 2.0f };
+		const float ratio = image->GetAspectRatio();
+		return { height * ratio, height };
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    /// Controls ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	void Text(std::string_view str)
-	{
-		ImGui::TextEx(str.data(), str.data() + str.size());
-	}
-
-	void Text(const char* str)
-	{
-		return Text(std::string_view(str));
-	}
-
-	void Text(const std::string& string)
-	{
-		return Text(std::string_view(string));
-	}
-
-	void Text(const std::filesystem::path& path)
-	{
-		return Text(path.string());
-	}
 
 	void TextFramed(std::string_view fmt, ...)
 	{
@@ -189,7 +195,7 @@ namespace Shark::UI {
 
 		const ImU32 frameColor = ImGui::GetColorU32(ImGuiCol_FrameBg);
 		ImGui::RenderFrame(frameRect.Min, frameRect.Max, frameColor, true, style.FrameRounding);
-		ImGui::RenderTextClipped(textRect.Min, textRect.Max, text, text_end, nullptr, GContext->FramedTextAlign, &textRect);
+		ImGui::RenderTextClipped(textRect.Min, textRect.Max, text, text_end, nullptr, ImVec2(0.0f, 0.0f), &textRect);
 	}
 
 	bool Search(ImGuiID id, char* buffer, int bufferSize)
@@ -214,7 +220,7 @@ namespace Shark::UI {
 
 			drawList->PushClipRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
 
-			drawList->AddImage(Icons::Search->GetViewID(), iconMin, iconMax, ImVec2(1, 0), ImVec2(0, 1), UI::Colors::Theme::TextDarker);
+			drawList->AddImage(EditorResources::SearchIcon->GetViewID(), iconMin, iconMax, ImVec2(1, 0), ImVec2(0, 1), UI::Colors::Theme::TextDarker);
 			drawList->AddText(textPos + ImVec2(fontSize, 0.0f), UI::Colors::Theme::TextDarker, "Search ...");
 
 			drawList->PopClipRect();
@@ -262,6 +268,12 @@ namespace Shark::UI {
 		};
 
 		return ImGui::InputText(label, buffer, bufferSize, ImGuiInputTextFlags_CallbackCharFilter, filter, &out_InvalidInput);
+	}
+
+	bool InputFileName(const char* label, char* buffer, int bufferSize)
+	{
+		bool dummy;
+		return InputFileName(label, buffer, bufferSize, dummy);
 	}
 
 	bool InputPath(const char* label, char* buffer, int bufferSize, bool& out_InvalidInput)
@@ -324,7 +336,42 @@ namespace Shark::UI {
 		SK_CORE_ASSERT(GContext->Control.Active == false, "Controls Begin/End mismatch");
 		SK_CORE_ASSERT(GContext->Control.WidgetCount == 0);
 		SK_CORE_ASSERT(GContext->Control.DrawSeparator == false);
-		SK_CORE_ASSERT(GContext->FramedTextAlignStack.size() == 0);
+	}
+
+	bool MultiSelectInvisibleButton(const char* str_id, bool selected, ImVec2 size_arg, ImGuiButtonFlags flags)
+	{
+		return MultiSelectInvisibleButton(ImGui::GetID(str_id), selected, size_arg, flags);
+	}
+
+	bool MultiSelectInvisibleButton(ImGuiID id, bool selected, ImVec2 size_arg, ImGuiButtonFlags flags)
+	{
+		ImGuiContext& g = *GImGui;
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		// Cannot use zero-size for InvisibleButton(). Unlike Button() there is not way to fallback using the label size.
+		IM_ASSERT(size_arg.x != 0.0f && size_arg.y != 0.0f);
+
+		ImVec2 size = ImGui::CalcItemSize(size_arg, 0.0f, 0.0f);
+		const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size);
+		ImGui::ItemSize(size);
+		if (!ImGui::ItemAdd(bb, id))
+			return false;
+
+		const bool is_multi_select = (g.LastItemData.InFlags & ImGuiItemFlags_IsMultiSelect) != 0;
+
+		if (is_multi_select)
+			ImGui::MultiSelectItemHeader(id, &selected, &flags);
+
+		bool hovered, held;
+		bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
+
+		if (is_multi_select)
+			ImGui::MultiSelectItemFooter(id, &selected, &pressed);
+
+		IMGUI_TEST_ENGINE_ITEM_INFO(id, "", g.LastItemData.StatusFlags);
+		return pressed;
 	}
 
 	void DrawBackground(ImRect rect, ImU32 color, float rounding, ImDrawFlags drawFlags)
@@ -373,6 +420,14 @@ namespace Shark::UI {
 	void DrawTextAligned(std::string_view text, ImVec2 align, ImRect rect)
 	{
 		ImGui::RenderTextClipped(rect.Min, rect.Max, text.data(), text.data() + text.length(), nullptr, align);
+	}
+
+	void DrawTextAligned(std::string_view text, ImVec2 align, ImVec2 size)
+	{
+		ImRect rect;
+		rect.Min = ImGui::GetCursorScreenPos();
+		rect.Max = rect.Min + size;
+		DrawTextAligned(text, align, rect);
 	}
 
 	void DrawButtonFrame(ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed)
@@ -484,6 +539,43 @@ namespace Shark::UI {
 		DrawImageButton(texture->GetImage(), tintNormal, tintHovered, tintPressed);
 	}
 
+	void DrawImage(Ref<Image2D> image, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		const float border_size = (border_col.w > 0.0f) ? 1.0f : 0.0f;
+		const ImVec2 padding(border_size, border_size);
+
+		GContext->ImGuiLayer->AddImage(image);
+		if (border_size > 0.0f)
+			window->DrawList->AddRect(rect.Min, rect.Max, ImGui::GetColorU32(border_col), 0.0f, ImDrawFlags_None, border_size);
+		window->DrawList->AddImage(image->GetViewID(), rect.Min + padding, rect.Max - padding, uv0, uv1, ImGui::GetColorU32(tint_col));
+		GContext->ImGuiLayer->BindFontSampler();
+	}
+
+	void DrawImage(Ref<ImageView> image, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		const float border_size = (border_col.w > 0.0f) ? 1.0f : 0.0f;
+		const ImVec2 padding(border_size, border_size);
+
+		GContext->ImGuiLayer->AddImage(image);
+		if (border_size > 0.0f)
+			window->DrawList->AddRect(rect.Min, rect.Max, ImGui::GetColorU32(border_col), 0.0f, ImDrawFlags_None, border_size);
+		window->DrawList->AddImage(image->GetViewID(), rect.Min + padding, rect.Max - padding, uv0, uv1, ImGui::GetColorU32(tint_col));
+		GContext->ImGuiLayer->BindFontSampler();
+	}
+
+	void DrawImage(Ref<Texture2D> texture, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		DrawImage(texture->GetImage(), rect, uv0, uv1, tint_col, border_col);
+	}
+
 	void Image(Ref<ImageView> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -565,6 +657,12 @@ namespace Shark::UI {
 		const bool pressed = ImGui::ImageButton(strID, texture->GetViewID(), image_size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tint_col);
 		GContext->ImGuiLayer->BindFontSampler();
 		return pressed;
+	}
+
+	void Text(const char* fontName, const char* text)
+	{
+		UI::ScopedFont font(fontName);
+		ImGui::Text(text);
 	}
 
 	bool BeginMenubar(const ImRect& barRectangle)

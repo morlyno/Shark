@@ -197,10 +197,10 @@ namespace Shark
 		internal static extern void SpriteRendererComponent_SetTextureHandle(ulong id, AssetHandle textureHandle);
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern float SpriteRendererComponent_GetTilingFactor(ulong id);
+		internal static extern void SpriteRendererComponent_GetTilingFactor(ulong id, out Vector2 outTilingFactor);
 		
 		[MethodImpl(MethodImplOptions.InternalCall)]
-		internal static extern void SpriteRendererComponent_SetTilingFactor(ulong id, float tilingFactor);
+		internal static extern void SpriteRendererComponent_SetTilingFactor(ulong id, ref Vector2 tilingFactor);
 
 		#endregion
 

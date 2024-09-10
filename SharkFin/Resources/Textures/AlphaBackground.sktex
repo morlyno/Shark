@@ -1,0 +1,6 @@
+Texture:
+  SourcePath: Resources/Textures/AlphaBackground.png
+  GenerateMips: false
+  Filter: Nearest
+  Wrap: Repeat
+  MaxAnsisotropy: 0

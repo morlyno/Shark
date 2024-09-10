@@ -274,11 +274,14 @@ namespace Shark {
 		m_Scene->OnRenderRuntime(m_Renderer);
 		m_AssetThumbnailGenerators.at(assetType)->OnFinish(handle, m_Scene, m_Renderer);
 
-		ImageSpecification specification;
+		TextureSpecification specification;
 		specification.Width = 512;
 		specification.Height = 512;
 		specification.Format = ImageFormat::RGBA8;
-		Ref<Image2D> result = Image2D::Create(specification);
+		specification.Filter = FilterMode::Linear;
+		specification.GenerateMips = false;
+		Ref<Texture2D> resultTexture = Texture2D::Create(specification);
+		Ref<Image2D> result = resultTexture->GetImage();
 
 		m_CommandBuffer->Begin();
 		Renderer::CopyImage(m_CommandBuffer, m_Renderer->GetFinalPassImage(), result);

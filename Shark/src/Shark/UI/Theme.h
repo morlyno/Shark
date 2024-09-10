@@ -46,6 +46,8 @@ namespace Shark::UI::Colors {
 		constexpr ImU32 Header = IM_COL32(47, 47, 47, 255);
 		constexpr ImU32 ControlField = IM_COL32(15, 15, 15, 255);
 		constexpr ImU32 Selection = IM_COL32(58, 48, 91, 255);
+		constexpr ImU32 SelectionCompliment = IM_COL32(91, 48, 58, 255);
+		constexpr ImU32 NavigationHighlight = IM_COL32(75, 62, 118, 255);
 		//constexpr ImU32 Selection = IM_COL32(48, 40, 76, 255);
 	};
 

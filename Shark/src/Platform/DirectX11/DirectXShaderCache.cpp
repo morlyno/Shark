@@ -7,28 +7,6 @@
 #include <yaml-cpp/yaml.h>
 #include "Shark/Utils/YAMLUtils.h"
 
-namespace YAML {
-
-	template<>
-	struct convert<Shark::ShaderUtils::ShaderStage::Type>
-	{
-		static bool decode(const Node& node, Shark::ShaderUtils::ShaderStage::Type& shaderStage)
-		{
-			if (!node.IsScalar())
-				return false;
-
-			shaderStage = Shark::StringToShaderStage(node.Scalar());
-			return true;
-		}
-	};
-
-	Emitter& operator<<(Emitter& out, const Shark::ShaderUtils::ShaderStage::Type& shaderStage)
-	{
-		return out << Shark::ToString(shaderStage);
-	}
-
-}
-
 namespace Shark {
 
 	namespace utils {

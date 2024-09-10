@@ -147,9 +147,11 @@ namespace Shark::UI::Colors {
 		//colors[ImGuiCol_TabHovered] = ImColor(255, 255, 135, 30);
 		//colors[ImGuiCol_TabActive] = ImColor(255, 255, 135, 60);
 		colors[ImGuiCol_TabHovered] = ImColor(135, 100, 255, 30);
-		colors[ImGuiCol_TabActive] = ImColor(135, 100, 255, 60);
-		colors[ImGuiCol_TabUnfocused] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
-		colors[ImGuiCol_TabUnfocusedActive] = colors[ImGuiCol_TabHovered];
+		colors[ImGuiCol_TabSelected] = ImColor(135, 100, 255, 60);
+		colors[ImGuiCol_TabSelectedOverline] = ImColor(135, 100, 255, 120);
+		colors[ImGuiCol_TabDimmed] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
+		colors[ImGuiCol_TabDimmedSelected] = colors[ImGuiCol_TabHovered];
+		colors[ImGuiCol_TabDimmedSelectedOverline] = colors[ImGuiCol_TabSelected];
 
 		// Title Background
 		colors[ImGuiCol_TitleBg] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
@@ -194,6 +196,9 @@ namespace Shark::UI::Colors {
 
 		// Menubar
 		colors[ImGuiCol_MenuBarBg] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
+
+		// Nav
+		colors[ImGuiCol_NavHighlight] = ImGui::ColorConvertU32ToFloat4(Theme::NavigationHighlight);
 
 		//================================//
 		// Styles

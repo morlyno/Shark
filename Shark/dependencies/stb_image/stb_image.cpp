@@ -1,10 +1,9 @@
 #include "skpch.h"
 
 #include "Shark/Core/Memory.h"
-static const char* s_stb_image_desc = "stb_image";
-#define STBI_MALLOC(sz)           ::Shark::Allocator::Allocate(sz, s_stb_image_desc, __LINE__)
-#define STBI_REALLOC(p,newsz)     ::Shark::Allocator::Reallocate(p, newsz, s_stb_image_desc, __LINE__)
-#define STBI_FREE(p)              ::Shark::Allocator::Free(p)
+#define STBI_MALLOC(_size)              ::Shark::Allocator::ModuleAllocate("stb_image", _size, __FILE__, __LINE__)
+#define STBI_REALLOC(_memory, _newSize) ::Shark::Allocator::ModuleReallocate("stb_image", _memory, _newSize, __FILE__, __LINE__)
+#define STBI_FREE(_memory)              ::Shark::Allocator::ModuleFree("stb_image", _memory)
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"

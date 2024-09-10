@@ -2,7 +2,6 @@
 #include "Image.h"
 
 #include "Shark/Render/Renderer.h"
-#include "Shark/Serialization/TextureSerializers.h"
 #include "Platform/DirectX11/DirectXImage.h"
 
 namespace Shark {

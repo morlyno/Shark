@@ -104,23 +104,42 @@ namespace Shark {
 		return fileName.find_first_of("\\/:*?\"<>|") == std::string_view::npos;
 	}
 
-	std::filesystem::path FileSystem::MakePathUnique(const std::filesystem::path& path)
+	bool FileSystem::AssureUniqueness(std::filesystem::path& path)
 	{
-		// Make sure metadata.FilePath is unique
 		if (!Exists(path))
-			return path;
+			return true;
 
 		uint32_t count = 1;
 		bool validFilepath = false;
-		std::filesystem::path fsPath = path;
+		std::string stem = GetStemString(path);
+		std::filesystem::path temp = path;
 
 		while (!validFilepath)
 		{
-			FileSystem::ReplaceStem(fsPath, fmt::format("{} ({:2})", FileSystem::GetStemString(fsPath), count));
-			validFilepath = !FileSystem::Exists(fsPath);
+			ReplaceStem(temp, fmt::format("{} ({})", stem, count++));
+			validFilepath = !Exists(temp);
 		}
 
-		return fsPath;
+		path = temp;
+		return false;
+	}
+
+	bool FileSystem::AssureUniquenessInDirectory(const std::filesystem::path& directory, std::string& name)
+	{
+		std::filesystem::path temp = directory / name;
+		if (!AssureUniqueness(temp))
+		{
+			name = GetFilenameString(temp);
+			return false;
+		}
+		return true;
+	}
+
+	std::filesystem::path FileSystem::UniquePath(const std::filesystem::path& path)
+	{
+		std::filesystem::path temp = path;
+		AssureUniqueness(temp);
+		return temp;
 	}
 
 	bool FileSystem::Exists(const std::filesystem::path& filepath)
@@ -242,6 +261,37 @@ namespace Shark {
 		SK_CORE_TRACE_TAG("Filesystem", "CopyFile {} => {}", source, destination);
 		errorMsg.clear();
 		return copied;
+	}
+
+	bool FileSystem::CreateDirectory(const std::filesystem::path& path)
+	{
+		auto fsPath = GetFilesystemPath(path);
+
+		std::error_code error;
+		bool created = std::filesystem::create_directory(fsPath, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directory! {}\n\t{}", fsPath, error.message());
+			SK_HANDLE_FS_ERROR("create_directory", fsPath, error);
+		}
+		return created;
+	}
+
+	bool FileSystem::CreateDirectory(const std::filesystem::path& path, std::string& errorMsg)
+	{
+		auto fsPath = GetFilesystemPath(path);
+
+		std::error_code error;
+		bool created = std::filesystem::create_directory(fsPath, error);
+		if (error)
+		{
+			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directory! {}\n\t{}", fsPath, error.message());
+			errorMsg = error.message();
+			return created;
+		}
+
+		errorMsg.clear();
+		return created;
 	}
 
 	bool FileSystem::CreateDirectories(const std::filesystem::path& path)
@@ -438,15 +488,9 @@ namespace Shark {
 		if (error)
 		{
 			SK_CORE_ERROR_TAG("Filesystem", "GetLastWriteTime failed! {}\n\t{}", path, error.message());
-			// TODO(moro): error handling
-			return 0;
+			SK_HANDLE_FS_ERROR("last_write_time", path, error);
 		}
 		return lastWriteTime;
-	}
-
-	std::filesystem::path FileSystem::GetFilesystemPath(const std::filesystem::path& path)
-	{
-		return std::filesystem::absolute(path);
 	}
 
 	void FileSystem::RemoveExtension(std::filesystem::path& path)
@@ -485,6 +529,11 @@ namespace Shark {
 		return temp;
 	}
 
+	std::filesystem::path FileSystem::GetParent(const std::filesystem::path& path)
+	{
+		return path.parent_path();
+	}
+
 	std::string FileSystem::GetStemString(const std::filesystem::path& path)
 	{
 		return path.stem().string();
@@ -493,6 +542,16 @@ namespace Shark {
 	std::string FileSystem::GetExtensionString(const std::filesystem::path& path)
 	{
 		return path.extension().string();
+	}
+
+	std::string FileSystem::GetFilenameString(const std::filesystem::path& path)
+	{
+		return path.filename().string();
+	}
+
+	std::string FileSystem::GetParentString(const std::filesystem::path& path)
+	{
+		return path.parent_path().string();
 	}
 
 	std::filesystem::path FileSystem::CreatePath(const std::filesystem::path& directory, const std::string& name, const std::string& extension)
@@ -506,6 +565,11 @@ namespace Shark {
 	std::string FileSystem::CreatePathString(const std::filesystem::path& directory, const std::string& name, const std::string& extension)
 	{
 		return CreatePath(directory, name, extension).string();
+	}
+
+	std::filesystem::path FileSystem::GetFilesystemPath(const std::filesystem::path& path)
+	{
+		return std::filesystem::absolute(path);
 	}
 
 }

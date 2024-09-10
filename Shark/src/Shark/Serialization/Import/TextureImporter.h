@@ -2,10 +2,9 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
+#include "Shark/Render/Texture.h"
 
 namespace Shark {
-
-	enum class ImageFormat : uint16_t;
 
 	class TextureImporter
 	{

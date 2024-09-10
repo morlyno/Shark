@@ -3,7 +3,7 @@
 
 #include "Shark/Core/Project.h"
 #include "Shark/Core/Memory.h"
-#include "Shark/Core/SelectionContext.h"
+#include "Shark/Core/SelectionManager.h"
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Asset/AssetUtils.h"
@@ -17,7 +17,8 @@
 #include "Shark/Utils/PlatformUtils.h"
 
 #include "Shark/UI/UI.h"
-#include "Shark/UI/Icons.h"
+#include "Shark/UI/EditorResources.h"
+#include "Shark/ImGui/ImGuiHelpers.h"
 
 #include "EditorSettings.h"
 
@@ -36,14 +37,15 @@
 #include "Panels/SceneRendererPanel.h"
 #include "Panels/StatisticsPanel.h"
 #include "Panels/ECSDebugPanel.h"
+#include "Panels/IconSelector.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/enttDebug.h"
 
 #include <fmt/printf.h>
 
-#include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
+#include "Shark/Serialization/Import/TextureImporter.h"
 
 #define SCENE_HIERARCHY_PANEL_ID "SceneHierarchyPanel"
 #define CONTENT_BROWSER_PANEL_ID "ContentBrowserPanel"
@@ -58,6 +60,7 @@
 #define SCENE_RENDERER_PANEL_ID "SceneRendererPanel"
 #define STATISTICS_PANEL_ID "StatisticsPanel"
 #define ECS_DEBUG_PANEL_ID "ECSDebugPanel"
+#define ICONS_SELECTOR_PANEL_ID "IconsSelectorPanel"
 
 namespace Shark {
 
@@ -65,13 +68,24 @@ namespace Shark {
 
 	namespace utils {
 
-		static glm::vec3 GetCenterOfEntities(std::span<const Entity> entities)
+		static glm::vec3 GetCenterOfSelections(Ref<Scene> scene, std::span<const UUID> selections)
 		{
 			glm::vec3 center = glm::vec3(0.0f);
-			const auto& selectedEntities = SelectionContext::GetSelected();
+			for (UUID id : selections)
+			{
+				Entity entity = scene->TryGetEntityByUUID(id);
+				glm::vec3 translation;
+				Math::DecomposeTranslation(scene->GetWorldSpaceTransformMatrix(entity), translation);
+				center += translation;
+			}
+			center /= selections.size();
+			return center;
+		}
 
-			Ref<Scene> scene = selectedEntities[0].GetScene().GetRef();
-
+		template<typename TContainerOrView>
+		static glm::vec3 GetCenterOfEntities(Ref<Scene> scene, const TContainerOrView& selectedEntities)
+		{
+			glm::vec3 center = glm::vec3(0.0f);
 			for (Entity entity : selectedEntities)
 			{
 				glm::vec3 translation;
@@ -100,7 +114,7 @@ namespace Shark {
 		Window& window = Application::Get().GetWindow();
 		window.SetTitlebarHitTestCallback([this](int x, int y, bool& outHit) { outHit = m_TitlebarHovered; });
 
-		Icons::Init();
+		EditorResources::Init();
 		EditorSettings::Init();
 
 		m_PanelManager = Scope<PanelManager>::Create();
@@ -109,14 +123,14 @@ namespace Shark {
 		sceneHirachy->RegisterSnapToEditorCameraCallback([this](Entity entity) { entity.Transform().SetTransform(glm::inverse(m_EditorCamera.GetView())); });
 
 		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(PanelCategory::View, CONTENT_BROWSER_PANEL_ID, "Content Browser", true);
-		contentBrowser->RegisterOpenAssetCallback(AssetType::Material, [this](const AssetMetaData& metadata)
+		contentBrowser->RegisterAssetActicatedCallback(AssetType::Material, [this](const AssetMetaData& metadata)
 		{
 			m_PanelManager->ShowPanel(ASSET_EDITOR_MANAGER_ID, true);
 			auto assetEditorManager = m_PanelManager->Get<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
 			assetEditorManager->AddEditor<MaterialEditorPanel>(metadata);
 		});
 
-		contentBrowser->RegisterOpenAssetCallback(AssetType::Texture, [this](const AssetMetaData& metadata)
+		contentBrowser->RegisterAssetActicatedCallback(AssetType::Texture, [this](const AssetMetaData& metadata)
 		{
 			m_PanelManager->ShowPanel(ASSET_EDITOR_MANAGER_ID, true);
 			auto assetEditorManager = m_PanelManager->Get<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
@@ -133,6 +147,7 @@ namespace Shark {
 		m_PanelManager->AddPanel<SceneRendererPanel>(PanelCategory::View, SCENE_RENDERER_PANEL_ID, "Scene Renderer", true);
 		m_PanelManager->AddPanel<StatisticsPanel>(PanelCategory::View, STATISTICS_PANEL_ID, "Statistics", false);
 		m_PanelManager->AddPanel<ECSDebugPanel>(PanelCategory::View, ECS_DEBUG_PANEL_ID, "ECS Debug", false, nullptr);
+		m_PanelManager->AddPanel<IconSelector>(PanelCategory::Edit, ICONS_SELECTOR_PANEL_ID, "Icons Selector", false);
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
 		m_PanelManager->Get<SceneRendererPanel>(SCENE_RENDERER_PANEL_ID)->SetRenderer(m_SceneRenderer);
@@ -161,6 +176,7 @@ namespace Shark {
 
 		Renderer::WaitAndRender();
 		ScriptEngine::RegisterAssembliesReloadedHook(std::bind(&EditorLayer::AssembliesReloadedHook, this));
+
 	}
 
 	void EditorLayer::OnDetach()
@@ -171,7 +187,7 @@ namespace Shark {
 
 		CloseProject();
 
-		Icons::Shutdown();
+		EditorResources::Shutdown();
 		EditorSettings::Shutdown();
 	}
 
@@ -272,10 +288,9 @@ namespace Shark {
 				return false;
 			}
 
-			if (event.GetKeyCode() == KeyCode::F && SelectionContext::AnySelected())
+			if (event.GetKeyCode() == KeyCode::F && SelectionManager::AnySelected(SelectionContext::Entity))
 			{
-				const auto& entities = SelectionContext::GetSelected();
-				glm::vec3 center = utils::GetCenterOfEntities(entities);
+				glm::vec3 center = utils::GetCenterOfSelections(m_ActiveScene, SelectionManager::GetSelections(SelectionContext::Entity));
 				m_EditorCamera.SetFocusPoint(center);
 				m_EditorCamera.SetDistance(7.5f);
 				return true;
@@ -330,17 +345,17 @@ namespace Shark {
 			// Copy Entity
 			case KeyCode::D:
 			{
-				if (control && SelectionContext::AnySelected() && m_SceneState == SceneState::Edit)
+				if (control && SelectionManager::AnySelected(SelectionContext::Entity) && m_SceneState == SceneState::Edit)
 				{
-					std::vector<Entity> clonedEntities;
-
-					for (Entity source : SelectionContext::GetSelected())
+					SelectionManager::Clear(SelectionContext::Entity);
+					for (Entity source : SelectionManager::GetSelections(SelectionContext::Entity) |
+						                 std::views::transform(/*[scene = m_WorkScene](UUID uuid) { return scene->TryGetEntityByUUID(uuid); }*/
+										                       std::bind(&Scene::TryGetEntityByUUID, m_WorkScene, std::placeholders::_1)))
 					{
 						Entity cloned = m_WorkScene->CloneEntity(source);
-						clonedEntities.push_back(cloned);
+						SelectionManager::Select(SelectionContext::Entity, cloned.GetUUID());
 					}
 
-					SelectionContext::ClearAndSelect(clonedEntities);
 					return true;
 				}
 				break;
@@ -349,10 +364,9 @@ namespace Shark {
 			// Focus Selected Entity
 			case KeyCode::F:
 			{
-				if (SelectionContext::AnySelected())
+				if (SelectionManager::AnySelected(SelectionContext::Entity))
 				{
-					const auto& entities = SelectionContext::GetSelected();
-					glm::vec3 center = utils::GetCenterOfEntities(entities);
+					glm::vec3 center = utils::GetCenterOfSelections(m_ActiveScene, SelectionManager::GetSelections(SelectionContext::Entity));
 
 					m_EditorCamera.SetFocusPoint(center);
 					m_EditorCamera.SetDistance(7.5f);
@@ -363,10 +377,13 @@ namespace Shark {
 
 			case KeyCode::Delete:
 			{
-				if (m_ViewportFocused && SelectionContext::AnySelected())
+				if (m_ViewportFocused && SelectionManager::AnySelected(SelectionContext::Entity))
 				{
-					for (Entity entity : SelectionContext::GetSelected())
+					for (UUID entityID : SelectionManager::GetSelections(SelectionContext::Entity))
+					{
+						Entity entity = m_WorkScene->TryGetEntityByUUID(entityID);
 						DeleteEntity(entity);
+					}
 					return true;
 				}
 				break;
@@ -444,7 +461,7 @@ namespace Shark {
 				Ref<DirectoryInfo> currentDirectory = panel->GetCurrentDirectory();
 				if (currentDirectory)
 				{
-					auto destination = FileSystem::MakePathUnique(currentDirectory->Filepath / path.filename());
+					auto destination = FileSystem::UniquePath(currentDirectory->Filepath / path.filename());
 					FileSystem::CopyFile(path, destination);
 				}
 
@@ -462,7 +479,7 @@ namespace Shark {
 
 		if (m_ReloadEditorIcons)
 		{
-			Icons::Reload();
+			EditorResources::ReloadIcons();
 			m_ReloadEditorIcons = false;
 		}
 
@@ -512,6 +529,7 @@ namespace Shark {
 		UI_ImportAsset();
 		UI_CreateMeshAsset();
 		UI_CreateProjectModal();
+		UI_ShowKeyStates();
 
 		m_PanelManager->OnImGuiRender();
 		
@@ -611,8 +629,8 @@ namespace Shark {
 
 		ImGui::Spring();
 		{
-			const int iconWidth = Icons::WindowMinimizeIcon->GetWidth();
-			const int iconHeight = Icons::WindowMinimizeIcon->GetHeight();
+			const int iconWidth = EditorResources::WindowMinimizeIcon->GetWidth();
+			const int iconHeight = EditorResources::WindowMinimizeIcon->GetHeight();
 			const float padY = (buttonHeight - (float)iconHeight) / 2.0f;
 
 			if (ImGui::InvisibleButton("Minimize", ImVec2(buttonWidth, buttonHeight)))
@@ -624,7 +642,7 @@ namespace Shark {
 				});
 			}
 
-			UI::DrawImageButton(Icons::WindowMinimizeIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), 0.0f, -padY));
+			UI::DrawImageButton(EditorResources::WindowMinimizeIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), 0.0f, -padY));
 		}
 		
 		ImGui::Spring(-1.0f, 17.0f);
@@ -641,7 +659,7 @@ namespace Shark {
 				});
 			}
 
-			UI::DrawImageButton(isMaximed ? Icons::WindowRestoreIcon : Icons::WindowMaximizeIcon, buttonColN, buttonColH, buttonColP);
+			UI::DrawImageButton(isMaximed ? EditorResources::WindowRestoreIcon : EditorResources::WindowMaximizeIcon, buttonColN, buttonColH, buttonColP);
 		}
 
 		ImGui::Spring(-1.0f, 15.0f);
@@ -655,7 +673,7 @@ namespace Shark {
 				});
 			}
 
-			UI::DrawImageButton(Icons::WindowCloseIcon, buttonColN, buttonColH, buttonColP);
+			UI::DrawImageButton(EditorResources::WindowCloseIcon, buttonColN, buttonColH, buttonColP);
 		}
 
 		ImGui::Spring(-1.0f, 18.0f);
@@ -777,6 +795,8 @@ namespace Shark {
 					//window.GetSwapChain()->Resize(window.GetWidth(), window.GetHeight());
 				});
 			}
+
+			ImGui::MenuItem("Key States", nullptr, &m_ShowKeyStates);
 			ImGui::EndMenu();
 		}
 
@@ -852,7 +872,7 @@ namespace Shark {
 		if (!m_RenderGizmo)
 			return;
 
-		if (m_CurrentOperation != GizmoOperaton::None && SelectionContext::AnySelected())
+		if (m_CurrentOperation != GizmoOperaton::None && SelectionManager::AnySelected(SelectionContext::Entity))
 		{
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
 
@@ -881,8 +901,11 @@ namespace Shark {
 				projection = m_EditorCamera.GetProjection();
 			}
 
-			TransformComponent centerTransform = m_ActiveScene->GetWorldSpaceTransform(SelectionContext::GetFirstSelected());
-			centerTransform.Translation = utils::GetCenterOfEntities(SelectionContext::GetSelected());
+			auto entities = SelectionManager::GetSelections(SelectionContext::Entity) |
+				            std::views::transform([s = m_WorkScene](UUID id) { return s->TryGetEntityByUUID(id); });
+
+			TransformComponent centerTransform = m_ActiveScene->GetWorldSpaceTransform(entities[0]);
+			centerTransform.Translation = utils::GetCenterOfEntities(m_ActiveScene, entities);
 			glm::mat4 transform = centerTransform.CalcTransform();
 
 			float snapVal = 0.0f;
@@ -902,7 +925,6 @@ namespace Shark {
 
 			if (!Input::IsKeyDown(KeyCode::LeftAlt) && ImGuizmo::IsUsing())
 			{
-				const auto& entities = SelectionContext::GetSelected();
 				for (Entity entity : entities)
 				{
 					glm::mat4 originalTransform = m_ActiveScene->GetWorldSpaceTransformMatrix(entity);
@@ -1028,7 +1050,8 @@ namespace Shark {
 							Entity entity = m_ActiveScene->CreateEntity();
 							auto& sr = entity.AddComponent<SpriteRendererComponent>();
 							sr.TextureHandle = handle;
-							SelectionContext::ClearAndSelect(entity);
+							SelectionManager::Clear(SelectionContext::Entity);
+							SelectionManager::Select(SelectionContext::Entity, entity.GetUUID());
 							break;
 						}
 						case AssetType::Mesh:
@@ -1080,37 +1103,37 @@ namespace Shark {
 		const float height = ImGui::GetContentRegionAvail().y;
 		const ImVec2 size = { height, height };
 
-		const float windowContentRegionWith = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+		const float windowContentRegionWith = ImGui::GetContentRegionAvail().x;
 		ImGui::SetCursorPosX(windowContentRegionWith * 0.5f - (size.x * 3.0f * 0.5f) - (style.ItemSpacing.x * 3.0f));
 
 		switch (m_SceneState)
 		{
 			case SceneState::Edit:
 			{
-				if (ImGui::ImageButton("Play", Icons::PlayIcon->GetViewID(), size))
+				if (ImGui::ImageButton("Play", EditorResources::PlayIcon->GetViewID(), size))
 					OnScenePlay();
 
 				ImGui::SameLine();
 
-				if (ImGui::ImageButton("Simulate", Icons::SimulateIcon->GetViewID(), size))
+				if (ImGui::ImageButton("Simulate", EditorResources::SimulateIcon->GetViewID(), size))
 					OnSimulationPlay();
 
 				ImGui::SameLine();
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, true);
-					ImGui::ImageButton("Step Disabled", Icons::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 1.0f });
+					ImGui::ImageButton("Step Disabled", EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 1.0f });
 				}
 
 				break;
 			}
 			case SceneState::Play:
 			{
-				if (ImGui::ImageButton("Stop", Icons::StopIcon->GetViewID(), size))
+				if (ImGui::ImageButton("Stop", EditorResources::StopIcon->GetViewID(), size))
 					OnSceneStop();
 
 				ImGui::SameLine();
 
-				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? Icons::PlayIcon : Icons::PauseIcon;
+				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? EditorResources::PlayIcon : EditorResources::PauseIcon;
 				if (ImGui::ImageButton("PausePlay", pausePlayIcon->GetViewID(), size))
 					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
@@ -1119,7 +1142,7 @@ namespace Shark {
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-					if (ImGui::ImageButton("Step", Icons::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
+					if (ImGui::ImageButton("Step", EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
 						m_ActiveScene->Step(1);
 				}
 
@@ -1127,12 +1150,12 @@ namespace Shark {
 			}
 			case SceneState::Simulate:
 			{
-				if (ImGui::ImageButton("StopIcon", Icons::StopIcon->GetViewID(), size))
+				if (ImGui::ImageButton("StopIcon", EditorResources::StopIcon->GetViewID(), size))
 					OnSimulationStop();
 
 				ImGui::SameLine();
 
-				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? Icons::PlayIcon : Icons::PauseIcon;
+				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? EditorResources::PlayIcon : EditorResources::PauseIcon;
 				if (ImGui::ImageButton("PausePlayIcon", pausePlayIcon->GetViewID(), size))
 					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
@@ -1141,7 +1164,7 @@ namespace Shark {
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-					if (ImGui::ImageButton("Step", Icons::StepIcon->GetViewID(), size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
+					if (ImGui::ImageButton("Step", EditorResources::StepIcon->GetViewID(), size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
 						m_ActiveScene->Step(1);
 				}
 
@@ -1183,7 +1206,7 @@ namespace Shark {
 
 					if (hoverdEntity == (uint32_t)-1)
 					{
-						SelectionContext::Clear();
+						SelectionManager::Clear(SelectionContext::Entity);
 						return;
 					}
 
@@ -1200,14 +1223,16 @@ namespace Shark {
 
 						if (Input::IsKeyDown(KeyCode::LeftControl))
 						{
-							if (SelectionContext::IsSelected(entity))
-								SelectionContext::Unselect(entity);
+							UUID entityID = entity.GetUUID();
+							if (SelectionManager::IsSelected(SelectionContext::Entity, entityID))
+								SelectionManager::Unselect(SelectionContext::Entity, entityID);
 							else
-								SelectionContext::Select(entity);
+								SelectionManager::Select(SelectionContext::Entity, entityID);
 						}
 						else
 						{
-							SelectionContext::ClearAndSelect(entity);
+							SelectionManager::Clear(SelectionContext::Entity);
+							SelectionManager::Select(SelectionContext::Entity, entity.GetUUID());
 						}
 					}
 				});
@@ -1255,7 +1280,7 @@ namespace Shark {
 		if (ImGui::BeginPopupModal("Open Project"))
 		{
 			ImGui::Text("Do you want to Open this Project?");
-			UI::Text(m_OpenProjectModal.ProjectFile);
+			ImGui::Text(m_OpenProjectModal.ProjectFile);
 
 			const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -1265,7 +1290,7 @@ namespace Shark {
 			ImVec2 openButtonSize = { openTextSize.x + style.FramePadding.x * 2.0f, openTextSize.y + style.FramePadding.y * 2.0f };
 			ImVec2 closeButtonSize = { closeTextSize.x + style.FramePadding.x * 2.0f, closeTextSize.y + style.FramePadding.y * 2.0f };
 
-			ImVec2 contentRegion = ImGui::GetContentRegionMax();
+			ImVec2 contentRegion = ImGui::GetContentRegionAvail() + ImGui::GetCursorScreenPos() - ImGui::GetWindowPos();
 
 			ImVec2 openButtonPos = {
 				contentRegion.x - closeButtonSize.x - style.ItemSpacing.x - openButtonSize.x,
@@ -1300,12 +1325,12 @@ namespace Shark {
 		{
 			const ImGuiStyle& style = ImGui::GetStyle();
 
-			UI::Text("Importing Asset from {}", m_ImportAssetData.SourcePath);
+			ImGui::Text(fmt::format("Importing Asset from {}", m_ImportAssetData.SourcePath));
 
 			char buffer[MAX_PATH];
 			strcpy_s(buffer, m_ImportAssetData.DestinationPath.c_str());
 
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - UI::CalcItemSizeFromText("...").x - style.ItemSpacing.x);
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("...").x + style.FramePadding.x * 2.0f - style.ItemSpacing.x);
 
 			bool invalidInput;
 			if (UI::InputPath("##destPath", buffer, MAX_PATH, invalidInput))
@@ -1328,7 +1353,7 @@ namespace Shark {
 			if (m_ImportAssetData.ShowError)
 			{
 				UI::ScopedColor errorText(ImGuiCol_Text, UI::Colors::Theme::TextError);
-				UI::Text(m_ImportAssetData.Error);
+				ImGui::Text(m_ImportAssetData.Error);
 				m_ImportAssetData.ShowErrorTimer += m_TimeStep;
 				if (m_ImportAssetData.ShowErrorTimer >= m_ImportAssetData.ShowErrorDuration)
 				{
@@ -1343,7 +1368,7 @@ namespace Shark {
 			ImVec2 importButtonSize = { importTextSize.x + style.FramePadding.x * 2.0f, importTextSize.y + style.FramePadding.y * 2.0f };
 			ImVec2 cancleButtonSize = { cancleTextSize.x + style.FramePadding.x * 2.0f, cancleTextSize.y + style.FramePadding.y * 2.0f };
 
-			ImVec2 contentRegion = ImGui::GetContentRegionMax();
+			ImVec2 contentRegion = ImGui::GetContentRegionAvail() + ImGui::GetCursorScreenPos() - ImGui::GetWindowPos();
 
 			ImVec2 importButtonPos = {
 				contentRegion.x - cancleButtonSize.x - style.ItemSpacing.x - importButtonSize.x,
@@ -1466,7 +1491,8 @@ namespace Shark {
 			ImGui::SetNextItemWidth(-1.0f);
 			ImGui::InputTextWithHint("##Name", "Project Name", &m_CreateProjectModal.Name);
 
-			ImVec2 offsetSize = UI::CalcItemSizeFromText("...");
+			const ImGuiStyle& style = ImGui::GetStyle();
+			ImVec2 offsetSize = ImGui::CalcTextSize("...") + style.FramePadding * 2.0f;
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - offsetSize.x - ImGui::GetStyle().ItemSpacing.x);
 			ImGui::InputTextWithHint("##Location", "Project Location", &m_CreateProjectModal.Location);
 			ImGui::SameLine();
@@ -1486,6 +1512,26 @@ namespace Shark {
 			ImGui::SameLine();
 			if (ImGui::Button("Cancel"))
 				m_CreateProjectModal.Show = false;
+		}
+		ImGui::End();
+	}
+
+	void EditorLayer::UI_ShowKeyStates()
+	{
+		if (!m_ShowKeyStates)
+			return;
+
+		if (ImGui::Begin("Key States", &m_ShowKeyStates))
+		{
+			constexpr auto name = magic_enum::enum_name(KeyCode::OemComma);
+			constexpr auto name2 = magic_enum::enum_name(KeyCode::A);
+
+			const auto& keyStates = Input::GetKeyStates();
+			for (const auto& [key, state] : keyStates)
+			{
+				UI::ScopedColorConditional textColor(ImGuiCol_Text, IM_COL32(20, 225, 30, 255), state == KeyState::Down);
+				ImGui::Text(fmt::format("{}: {}", key, state));
+			}
 		}
 		ImGui::End();
 	}
@@ -1542,8 +1588,9 @@ namespace Shark {
 
 		if (m_ShowLightRadius)
 		{
-			for (Entity entity : SelectionContext::GetSelected())
+			for (UUID entityID : SelectionManager::GetSelections(SelectionContext::Entity))
 			{
+				Entity entity = m_ActiveScene->TryGetEntityByUUID(entityID);
 				if (entity.AllOf<PointLightComponent>())
 				{
 					const auto& plc = entity.GetComponent<PointLightComponent>();
@@ -1569,7 +1616,7 @@ namespace Shark {
 
 	void EditorLayer::DeleteEntity(Entity entity)
 	{
-		SelectionContext::Unselect(entity);
+		SelectionManager::Unselect(SelectionContext::Entity, entity.GetUUID());
 		if (entity.GetUUID() == m_ActiveScene->GetActiveCameraUUID())
 			m_ActiveScene->SetActiveCamera(UUID());
 
@@ -1739,8 +1786,8 @@ namespace Shark {
 		if (m_ActiveScene && AssetManager::IsMemoryAsset(m_ActiveScene->Handle))
 			Project::GetActiveEditorAssetManager()->DeleteMemoryAsset(m_ActiveScene->Handle);
 
-		SelectionContext::Clear();
-		SelectionContext::SetActiveScene(scene);
+		SelectionManager::Clear(SelectionContext::Entity);
+		SelectionManager::SetActiveScene(scene);
 
 		if (scene)
 		{
@@ -1798,6 +1845,8 @@ namespace Shark {
 		Weak projectWeak = Project::GetActive();
 
 		SK_CORE_INFO("Closing Project");
+
+		SelectionManager::ClearAll();
 
 		m_ActiveScene = nullptr;
 		m_SceneRenderer->SetScene(nullptr);
@@ -1861,7 +1910,7 @@ namespace Shark {
 	{
 		ExecuteSpecs specs;
 		specs.Target = fmt::format(L"{}/Premake/premake5.exe", Project::GetActiveDirectory());
-		// vs2022 dosn't work for some reason but vs2019 still generates vs2022 solution
+		// vs2022 doesn't work for some reason but vs2019 still generates vs2022 solution
 		auto sharkDir = std::filesystem::current_path().parent_path();
 		specs.Params = L"vs2019";
 		specs.WaitUntilFinished = true;
@@ -1917,7 +1966,8 @@ namespace Shark {
 
 		if (select)
 		{
-			SelectionContext::ClearAndSelect(entity);
+			SelectionManager::Clear(SelectionContext::Entity);
+			SelectionManager::Select(SelectionContext::Entity, entity.GetUUID());
 		}
 
 		return entity;

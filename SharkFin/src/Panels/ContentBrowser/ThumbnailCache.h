@@ -23,6 +23,7 @@ namespace Shark {
 		void WriteThumbnailToDisc(AssetHandle handle, Ref<Image2D> image, uint64_t lastWriteTime);
 		bool LoadThumbnailFromDisc(AssetHandle handle);
 		uint64_t ReadTimestampFromCache(AssetHandle handle);
+		bool LoadFromCacheAllowed();
 
 	private:
 		struct ThumbnailImage
@@ -43,6 +44,10 @@ namespace Shark {
 			uint32_t Width = 0;
 			uint32_t Height = 0;
 		};
+
+		uint32_t m_LoadCount = 0;
+		uint32_t m_MaxLoadsPerFrame = 1;
+		uint64_t m_CurrentFrame = 0;
 	};
 
 }

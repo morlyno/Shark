@@ -5,7 +5,7 @@
 
 namespace Shark {
 
-	class Icons
+	class EditorResources
 	{
 	public:
 
@@ -18,19 +18,12 @@ namespace Shark {
 		inline static Ref<Texture2D> ScriptIcon;
 		inline static Ref<Texture2D> TextureIcon;
 
-		// Scene Play
+		// Viewport Toolbar
 		inline static Ref<Texture2D> PlayIcon;
 		inline static Ref<Texture2D> StopIcon;
 		inline static Ref<Texture2D> PauseIcon;
 		inline static Ref<Texture2D> SimulateIcon;
 		inline static Ref<Texture2D> StepIcon;
-
-		inline static Ref<Texture2D> ClearIcon;
-		inline static Ref<Texture2D> ReloadIcon;
-		inline static Ref<Texture2D> AngleLeftIcon;
-		inline static Ref<Texture2D> AngleRightIcon;
-		inline static Ref<Texture2D> SettingsIcon;
-		inline static Ref<Texture2D> Search;
 
 		// Custom Titlebar
 		inline static Ref<Texture2D> WindowCloseIcon;
@@ -38,12 +31,20 @@ namespace Shark {
 		inline static Ref<Texture2D> WindowMaximizeIcon;
 		inline static Ref<Texture2D> WindowRestoreIcon;
 
-		inline static Ref<Texture2D> Placeholder;
+		// Misc
+		inline static Ref<Texture2D> ClearIcon;
+		inline static Ref<Texture2D> ReloadIcon;
+		inline static Ref<Texture2D> AngleLeftIcon;
+		inline static Ref<Texture2D> AngleRightIcon;
+		inline static Ref<Texture2D> SettingsIcon;
+		inline static Ref<Texture2D> SearchIcon;
+
+		inline static Ref<Texture2D> AlphaBackground;
 
 	public:
 		static void Init();
 		static void Shutdown();
-		static void Reload();
+		static void ReloadIcons();
 
 	};
 

@@ -8,6 +8,7 @@
 namespace Shark {
 
 	class Image2D;
+	class ImageView;
 
 	class ImGuiLayer : public Layer
 	{
@@ -35,6 +36,7 @@ namespace Shark {
 		virtual void BlockEvents(bool block) = 0;
 
 		virtual void AddImage(Ref<Image2D> image) = 0;
+		virtual void AddImage(Ref<ImageView> view) = 0;
 		virtual void BindFontSampler() = 0;
 
 		static ImGuiLayer* Create();

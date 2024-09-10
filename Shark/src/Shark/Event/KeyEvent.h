@@ -19,7 +19,7 @@ namespace Shark {
 		{
 			return fmt::format("{}, Key: {} [{}], IsRepeat: {}, (Alt: {}, Shift: {}, Control: {})",
 							   GetName(),
-							   Shark::ToString(m_KeyCode),
+							   m_KeyCode,
 							   (uint16_t)m_KeyCode,
 							   m_IsRepeat,
 							   m_ModifierKeys.Alt,
@@ -46,7 +46,7 @@ namespace Shark {
 		{
 			return fmt::format("{}, Key: {} [{}], (Alt: {}, Shift: {}, Control: {})",
 							   GetName(),
-							   Shark::ToString(m_KeyCode),
+							   m_KeyCode,
 							   (uint16_t)m_KeyCode,
 							   m_ModifierKeys.Alt,
 							   m_ModifierKeys.Shift,

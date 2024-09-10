@@ -6,9 +6,10 @@
 #include "Shark/UI/Theme.h"
 #include "Shark/Debug/Profiler.h"
 
-#include "Shark/UI/Icons.h"
+#include "Shark/UI/EditorResources.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <fmt/printf.h>
 
 namespace Shark {
@@ -154,7 +155,7 @@ namespace Shark {
 
 					std::string_view levelString = ToStringView(msg.Level);
 					ImGui::AlignTextToFramePadding();
-					UI::Text(levelString);
+					ImGui::Text(levelString);
 					// critical
 
 					ImVec2 levelTextSize = ImGui::CalcTextSize(levelString.data(), levelString.data() + levelString.size());
@@ -172,7 +173,7 @@ namespace Shark {
 					ImGui::TextColored(ImColor(UI::Colors::Theme::LogTimeColor), msg.Time.c_str());
 
 					ImGui::TableSetColumnIndex(2);
-					UI::Text(msg.FriendlyMessage);
+					ImGui::Text(msg.FriendlyMessage);
 
 					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
 					{
@@ -183,9 +184,7 @@ namespace Shark {
 						{
 							m_ShowMessageInspector = true;
 							m_InspectorMessage = msg;
-							ImGuiWindow* inspectorWindow = ImGui::FindWindowByName("Message Inspector");
-							if (inspectorWindow)
-								ImGui::FocusWindow(inspectorWindow);
+							ImGui::SetWindowFocus("Message Inspector");
 						}
 					}
 				}
@@ -205,13 +204,6 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		const ImGuiStyle& style = ImGui::GetStyle();
-
-		//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { style.WindowPadding.x * 0.5f, style.WindowPadding.y });
-		//UI::MoveCursorX(-style.WindowPadding.x * 0.5f);
-		ImGuiWindow* consoleWindow = ImGui::GetCurrentWindow();
-		//consoleWindow->DC.CursorPos += style.WindowPadding;
-
 		if (ImGui::Button("Clear"))
 			Clear();
 
@@ -219,45 +211,6 @@ namespace Shark {
 		ImGui::Text("Clear On Play");
 		ImGui::SameLine();
 		ImGui::Checkbox("##ClearOnPlay", &m_ClearOnPlay);
-
-		const ImVec2 selectableSize = ImVec2(ImGui::GetFontSize() - style.FramePadding.x, ImGui::GetFontSize());
-
-		const float imageSize = ImGui::GetFrameHeight() + style.WindowPadding.x * 1.5f/* + style.FramePadding.y * 2.0f*/;
-		const float offsetFromEnd = imageSize * 3.0f + style.ItemSpacing.x * 2.0f;
-		const float contentRegionX = ImGui::GetContentRegionAvail().x + style.FramePadding.x * 0.5f;
-		const float offsetFromStart = contentRegionX - offsetFromEnd;
-
-		const auto ImageButton = [](const char* strID, ImTextureID textureID, const ImVec2& size, bool selected) -> bool
-		{
-			ImGuiWindow* window = ImGui::GetCurrentWindow();
-			const ImGuiStyle& style = ImGui::GetStyle();
-			ImRect r = { window->DC.CursorPos, window->DC.CursorPos + size };
-			const ImGuiID id = ImGui::GetID(strID);
-
-			ImGui::ItemSize(r);
-			if (!ImGui::ItemAdd(r, id))
-				return false;
-
-			bool hovered, held;
-			bool pressed = ImGui::ButtonBehavior(r, id, &hovered, &held);
-
-			ImU32 bgColor = 0x00000000;
-			if (held)
-				bgColor = ImGui::GetColorU32(ImGuiCol_ButtonActive);
-			else if (hovered)
-				bgColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
-			else if (selected)
-				bgColor = 0xff303030;
-
-			ImGui::RenderFrame(r.Min - ImVec2{ 2.0f, 2.0f }, r.Max + ImVec2{ 2.0f, 2.0f }, bgColor, true, 5.0f);
-
-			ImDrawList* drawList = window->DrawList;
-			drawList->AddImage(textureID, r.Min, r.Max);
-			//drawList->AddImage(textureID, r.Min, r.Max);
-
-			return pressed;
-		};
-
 	}
 
 	void EditorConsolePanel::DrawMessageInspector()

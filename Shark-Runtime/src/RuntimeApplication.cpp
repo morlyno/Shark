@@ -4,6 +4,7 @@
 #include "Shark/Render/RendererAPI.h"
 #include "Shark/File/FileSystem.h"
 
+#include "Shark/Debug/Profiler.h"
 #include "Shark/Core/EntryPoint.h"
 
 #include "RuntimeLayer.h"

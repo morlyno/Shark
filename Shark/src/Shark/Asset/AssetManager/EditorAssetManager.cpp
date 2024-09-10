@@ -45,8 +45,7 @@ namespace Shark {
 
 		AssetThreadSettings settings;
 		settings.MonitorAssets = true;
-		settings.DefaultDependencyPolicy = LoadDependencyPolicy::OnDemand;
-		settings.Registry = &m_Registry;
+		settings.DefaultDependencyPolicy = LoadDependencyPolicy::Deferred;
 		m_AssetThread = Ref<EditorAssetThread>::Create(settings);
 	}
 
@@ -68,7 +67,8 @@ namespace Shark {
 		if (!m_Registry.Contains(handle))
 			return AssetType::None;
 
-		return m_Registry.ReadType(handle);
+		const auto& metadata = m_Registry.Read(handle);
+		return metadata.Type;
 	}
 
 	Ref<Asset> EditorAssetManager::GetAsset(AssetHandle handle)
@@ -176,12 +176,42 @@ namespace Shark {
 		return assets;
 	}
 
+	AssetHandle EditorAssetManager::AddAsset(Ref<Asset> asset, const std::filesystem::path& filepath)
+	{
+		if (IsValidAssetHandle(asset->Handle))
+		{
+			SK_CORE_ERROR_TAG("AssetManager", "Tried adding an Asset with a valid AssetHandle!");
+			return asset->Handle;
+		}
+
+		if (asset->Handle == AssetHandle::Invalid)
+			asset->Handle = AssetHandle::Generate();
+
+		AssetMetaData metadata;
+		metadata.Handle = asset->Handle;
+		metadata.Type = asset->GetAssetType();
+		metadata.FilePath = MakeRelativePath(FileSystem::UniquePath(filepath));
+		metadata.Status = AssetStatus::Ready;
+
+		AssetSerializer::Serialize(asset, metadata);
+		metadata.LastWriteTime = FileSystem::GetLastWriteTime(GetFilesystemPath(metadata));
+
+		m_Registry.Add(metadata);
+		m_LoadedAssets[metadata.Handle] = asset;
+		WriteImportedAssetsToDisc();
+
+		m_AssetThread->AddLoadedAsset(asset, metadata);
+
+		SK_CORE_WARN_TAG("AssetManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", metadata.Type, metadata.Handle, metadata.FilePath);
+		return metadata.Handle;
+	}
+
 	AssetHandle EditorAssetManager::AddMemoryAsset(Ref<Asset> asset)
 	{
 		if (IsValidAssetHandle(asset->Handle))
 		{
-			SK_CORE_ERROR_TAG("AssetManager", "Tried to add a Memory Asset but Asset has a valid AssetHandle");
-			return AssetHandle::Invalid;
+			SK_CORE_ERROR_TAG("AssetManager", "Tried adding a Memory Asset with a valid AssetHandle!");
+			return asset->Handle;
 		}
 
 		AssetHandle newHandle = asset->Handle;
@@ -200,7 +230,7 @@ namespace Shark {
 
 		m_AssetThread->AddLoadedAsset(asset, metadata);
 
-		SK_CORE_INFO_TAG("AssetManager", "Memory Asset Added (Type: {}, Handle: 0x{:x})", ToString(metadata.Type), metadata.Handle);
+		SK_CORE_INFO_TAG("AssetManager", "Memory Asset Added (Type: {}, Handle: 0x{:x})", metadata.Type, metadata.Handle);
 		return metadata.Handle;
 	}
 
@@ -431,6 +461,7 @@ namespace Shark {
 		if (AssetSerializer::Serialize(m_LoadedAssets.at(handle), metadata))
 		{
 			metadata.LastWriteTime = FileSystem::GetLastWriteTime(GetFilesystemPath(metadata));
+			m_AssetThread->UpdateLastWriteTime(handle, metadata.LastWriteTime);
 			return true;
 		}
 
@@ -449,6 +480,9 @@ namespace Shark {
 
 		for (AssetLoadRequest& alr : loadedAssets)
 		{
+			if (!m_Registry.Contains(alr.Metadata.Handle))
+				continue; // file was deleted. nothing to do
+
 			if (m_LoadedAssets.contains(alr.Metadata.Handle))
 				m_LoadedAssets.at(alr.Metadata.Handle)->SetFlag(AssetFlag::Invalid, true);
 
@@ -456,7 +490,7 @@ namespace Shark {
 			m_LoadedAssets[alr.Metadata.Handle] = alr.Asset;
 		}
 
-		//m_AssetThread->SynchronizeState(m_LoadedAssets, m_MemoryOnlyAssets, m_Registry);
+		m_AssetThread->HandleMetadataRequests(m_Registry);
 	}
 
 	Ref<Asset> EditorAssetManager::GetPlaceholder(AssetType assetType)
@@ -469,7 +503,7 @@ namespace Shark {
 	const AssetMetaData& EditorAssetManager::GetMetadata(AssetHandle handle) const
 	{
 		if (m_Registry.Contains(handle))
-			m_Registry.Read(handle);
+			return m_Registry.Read(handle);
 		return s_NullMetadata;
 	}
 
@@ -513,7 +547,7 @@ namespace Shark {
 			return {};
 
 		if (metadata.IsEditorAsset)
-			return FileSystem::GetFilesystemPath(metadata.FilePath);
+			return FileSystem::Absolute(metadata.FilePath);
 
 		SK_CORE_VERIFY(!m_Project.Expired());
 		return (m_Project.GetRef()->GetAssetsDirectory() / metadata.FilePath).lexically_normal();
@@ -591,7 +625,7 @@ namespace Shark {
 		if (type == AssetType::None)
 			return AssetHandle::Invalid;
 
-		auto fsPath = FileSystem::GetFilesystemPath(filepath);
+		auto fsPath = FileSystem::Absolute(filepath);
 		if (!FileSystem::Exists(fsPath))
 			return AssetHandle::Invalid;
 
@@ -607,7 +641,7 @@ namespace Shark {
 		m_Registry.Add(metadata);
 		WriteImportedAssetsToDisc();
 
-		SK_CORE_INFO_TAG("AssetManager", "Imported Asset => Handle: 0x{:x}, Type: {}, FilePath: {}", metadata.Handle, ToString(metadata.Type), metadata.FilePath);
+		SK_CORE_INFO_TAG("AssetManager", "Imported Asset => Handle: 0x{:x}, Type: {}, FilePath: {}", metadata.Handle, metadata.Type, metadata.FilePath);
 		return metadata.Handle;
 	}
 
@@ -650,6 +684,16 @@ namespace Shark {
 		SK_CORE_WARN_TAG("AssetManager", "Filename Changed => Handle: {}, new path: {}", handle, metadata.FilePath);
 
 		return true;
+	}
+
+	bool EditorAssetManager::AssetDeleted(AssetHandle handle)
+	{
+		if (!IsValidAssetHandle(handle))
+			return false;
+
+		SK_CORE_WARN_TAG("AssetManager", "Asset Deleted => Handle: {}", handle, GetMetadata(handle).FilePath);
+		m_Registry.Remove(handle);
+		WriteImportedAssetsToDisc();
 	}
 
 	AssetHandle EditorAssetManager::GetEditorAsset(const std::filesystem::path& filepath)
@@ -874,7 +918,7 @@ namespace YAML {
 		{
 			Node node(NodeType::Map);
 			node.force_insert("Handle", entry.Handle);
-			node.force_insert("Type", Shark::ToString(entry.Type));
+			node.force_insert("Type", entry.Type);
 			node.force_insert("FilePath", entry.FilePath);
 			return node;
 		}
@@ -885,7 +929,7 @@ namespace YAML {
 				return false;
 
 			outEntry.Handle = node["Handle"].as<Shark::AssetHandle>();
-			outEntry.Type = Shark::StringToAssetType(node["Type"].as<std::string>());
+			outEntry.Type = node["Type"].as<Shark::AssetType>();
 			outEntry.FilePath = node["FilePath"].as<std::filesystem::path>();
 			return true;
 		}
