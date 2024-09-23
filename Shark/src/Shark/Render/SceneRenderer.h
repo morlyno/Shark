@@ -74,6 +74,7 @@ namespace Shark {
 		void EndScene();
 
 		void SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform, int id);
+		void SubmitSelectedMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform);
 
 		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
 		Ref<Image2D> GetFinalPassImage() const { return m_CompositePass->GetOutput(0); }
@@ -92,6 +93,7 @@ namespace Shark {
 
 		void GeometryPass();
 		void SkyboxPass();
+		void JumpFloodPass();
 
 	private:
 		void Initialize(const SceneRendererSpecification& specification);
@@ -147,6 +149,16 @@ namespace Shark {
 			int ID;
 		};
 
+		struct JumpFloodUniforms
+		{
+			glm::vec4 TexelSize;
+			glm::vec4 OutlineColor;
+			glm::vec2 FrameBufferSize;
+			float OutlineWidth;
+
+			float P0;
+		};
+
 	private:
 		Ref<Scene> m_Scene;
 		SceneRendererSpecification m_Specification;
@@ -162,6 +174,7 @@ namespace Shark {
 		Ref<ConstantBuffer> m_CBCompositeSettings;
 		Ref<StorageBuffer> m_SBPointLights;
 		Ref<StorageBuffer> m_SBDirectionalLights;
+		Ref<ConstantBuffer> m_JumpFloodUniforms;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
@@ -174,13 +187,29 @@ namespace Shark {
 		glm::vec3 m_CameraPosition;
 
 		std::vector<MeshData> m_DrawList;
+		std::vector<MeshData> m_SelectedDrawList;
 
 		Ref<RenderPass> m_GeometryPass;
 		Ref<RenderPass> m_SkyboxPass;
 		Ref<RenderPass> m_CompositePass;
 
+		Ref<RenderPass> m_JumpFloodStencilPass;
+		Ref<RenderPass> m_JumpFloodInitPass;
+		Ref<RenderPass> m_JumpFloodPass;
+		Ref<RenderPass> m_JumpFloodOutlinePass;
+
+		Ref<FrameBuffer> m_NearestPointBuffer;
+		Ref<FrameBuffer> m_NearestPointPingPongBuffer;
+		Ref<Material> m_NearestPointMaterial;
+		Ref<Material> m_NearestPointPingPongMaterial;
+
+		Ref<Material> m_JumpFloodInitMaterial;
+
 		bool m_NeedsResize = true;
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+
+		float m_OutlinePixelWidth = 4;
+		glm::vec4 m_OutlineColor = { 0.3f, 0.1f, 0.7f, 1.0f };
 
 		friend class SceneRendererPanel;
 	};

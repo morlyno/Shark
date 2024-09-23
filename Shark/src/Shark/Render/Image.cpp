@@ -6,39 +6,6 @@
 
 namespace Shark {
 
-	std::string ToString(ImageFormat format)
-	{
-		switch (format)
-		{
-			case ImageFormat::None: return "None";
-			case ImageFormat::RGBA8: return "RGBA8";
-			case ImageFormat::RGBA16F: return "RGBA16F";
-			case ImageFormat::R32_SINT: return "R32_SINT";
-			case ImageFormat::Depth32: return "Depth32";
-			case ImageFormat::RGB32F: return "RGB32F";
-			case ImageFormat::RGBA32F: return "RGBA32F";
-			case ImageFormat::R8: return "R8";
-			case ImageFormat::R16F: return "R16F";
-			case ImageFormat::RG16F: return "RG16F";
-		}
-
-		SK_CORE_ASSERT(false, "Unkown ImageFormat");
-		return "Unkown";
-	}
-
-	std::string ToString(ImageType type)
-	{
-		switch (type)
-		{
-			case ImageType::Texture: return "Texture";
-			case ImageType::Storage: return "Storage";
-			case ImageType::Atachment: return "FrameBuffer";
-		}
-
-		SK_CORE_ASSERT(false, "Unkown ImageType");
-		return "Unkown";
-	}
-
 	Ref<Image2D> Image2D::Create()
 	{
 		switch (RendererAPI::GetCurrentAPI())
@@ -84,16 +51,16 @@ namespace Shark {
 			switch (format)
 			{
 				case ImageFormat::None:
-				case ImageFormat::RGBA8:
-				case ImageFormat::RGBA16F:
-				case ImageFormat::RGB32F:
-				case ImageFormat::RGBA32F:
-				case ImageFormat::R8:
-				case ImageFormat::R16F:
-				case ImageFormat::R32_SINT:
+				case ImageFormat::RGBA8UNorm:
+				case ImageFormat::RGBA16Float:
+				case ImageFormat::RGBA32Float:
+				case ImageFormat::R8UNorm:
+				case ImageFormat::R32SINT:
+				case ImageFormat::RG16SNorm:
 					return false;
 
 				case ImageFormat::Depth32:
+				case ImageFormat::Depth24UNormStencil8UINT:
 					return true;
 
 				default:
@@ -110,16 +77,16 @@ namespace Shark {
 			switch (format)
 			{
 				case ImageFormat::None:
-				case ImageFormat::RGBA8:
-				case ImageFormat::RGBA16F:
-				case ImageFormat::RGB32F:
-				case ImageFormat::RGBA32F:
-				case ImageFormat::R8:
-				case ImageFormat::R16F:
+				case ImageFormat::RGBA8UNorm:
+				case ImageFormat::RGBA16Float:
+				case ImageFormat::RGBA32Float:
+				case ImageFormat::R8UNorm:
+				case ImageFormat::RG16SNorm:
 				case ImageFormat::Depth32:
+				case ImageFormat::Depth24UNormStencil8UINT:
 					return false;
 
-				case ImageFormat::R32_SINT:
+				case ImageFormat::R32SINT:
 					return true;
 
 				default:
@@ -131,18 +98,16 @@ namespace Shark {
 			return false;
 		}
 
-		uint32_t GetFormatDataSize(ImageFormat format)
+		uint32_t GetFormatBPP(ImageFormat format)
 		{
 			switch (format)
 			{
 				case ImageFormat::None: return 0;
-				case ImageFormat::RGBA8: return 4;
-				case ImageFormat::RGBA16F: return 8; // 4 * 2bytes
-				case ImageFormat::RGBA32F: return 4 * 4; // 4 * 4bytes
-				case ImageFormat::RGB32F: return 3 * 4; // 3 * 4bytes
-				case ImageFormat::R8: return 1;
-				case ImageFormat::R16F: return 2;
-				case ImageFormat::R32_SINT: return 4;
+				case ImageFormat::RGBA8UNorm: return 4;
+				case ImageFormat::RGBA16Float: return 8; // 4 * 2bytes
+				case ImageFormat::RGBA32Float: return 4 * 4; // 4 * 4bytes
+				case ImageFormat::R8UNorm: return 1;
+				case ImageFormat::R32SINT: return 4;
 				case ImageFormat::Depth32: return 4;
 			}
 			SK_CORE_ASSERT(false, "Unkown ImageFormat");

@@ -14,42 +14,46 @@ namespace Shark {
 
 	namespace DXImageUtils {
 
-		DXGI_FORMAT ImageFormatToD3D11ForResource(ImageFormat format)
+		DXGI_FORMAT ImageFormatToDXGI(ImageFormat format)
 		{
 			switch (format)
 			{
 				case ImageFormat::None: return DXGI_FORMAT_UNKNOWN;
-				case ImageFormat::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
-				case ImageFormat::RGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-				case ImageFormat::RGB32F: return DXGI_FORMAT_R32G32B32_FLOAT;
-				case ImageFormat::RGBA32F: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-				case ImageFormat::R8: return DXGI_FORMAT_R8_UNORM;
-				case ImageFormat::R16F: return DXGI_FORMAT_R16_FLOAT;
-				case ImageFormat::R32_SINT: return DXGI_FORMAT_R32_SINT;
-				case ImageFormat::RG16F: return DXGI_FORMAT_R16G16_FLOAT;
-				case ImageFormat::Depth32: return DXGI_FORMAT_R32_TYPELESS;
+				case ImageFormat::RGBA8UNorm: return DXGI_FORMAT_R8G8B8A8_UNORM;
+				case ImageFormat::RGBA16Float: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+				case ImageFormat::RGBA32Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+				case ImageFormat::R8UNorm: return DXGI_FORMAT_R8_UNORM;
+				case ImageFormat::R32SINT: return DXGI_FORMAT_R32_SINT;
+				case ImageFormat::RG16Float: return DXGI_FORMAT_R16G16_FLOAT;
+				case ImageFormat::RG16SNorm: return DXGI_FORMAT_R16G16_SNORM;
+				case ImageFormat::Depth32: return DXGI_FORMAT_D32_FLOAT;
+				case ImageFormat::Depth24UNormStencil8UINT: return DXGI_FORMAT_D24_UNORM_S8_UINT;
 			}
+
 			SK_CORE_ASSERT(false, "Unkown Image Format");
 			return DXGI_FORMAT_UNKNOWN;
 		}
 
-		DXGI_FORMAT ImageFormatToD3D11ForView(ImageFormat format)
+		DXGI_FORMAT FixImageFormatForResource(DXGI_FORMAT format)
 		{
 			switch (format)
 			{
-				case ImageFormat::None: return DXGI_FORMAT_UNKNOWN;
-				case ImageFormat::RGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
-				case ImageFormat::RGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-				case ImageFormat::RGB32F: return DXGI_FORMAT_R32G32B32_FLOAT;
-				case ImageFormat::RGBA32F: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-				case ImageFormat::R8: return DXGI_FORMAT_R8_UNORM;
-				case ImageFormat::R16F: return DXGI_FORMAT_R16_FLOAT;
-				case ImageFormat::R32_SINT: return DXGI_FORMAT_R32_SINT;
-				case ImageFormat::RG16F: return DXGI_FORMAT_R16G16_FLOAT;
-				case ImageFormat::Depth32: return DXGI_FORMAT_R32_FLOAT;
+				case DXGI_FORMAT_D32_FLOAT: return DXGI_FORMAT_R32_TYPELESS;
+				case DXGI_FORMAT_D24_UNORM_S8_UINT: return DXGI_FORMAT_R24G8_TYPELESS;
 			}
-			SK_CORE_ASSERT(false, "Unkown Image Format");
-			return DXGI_FORMAT_UNKNOWN;
+
+			return format;
+		}
+
+		DXGI_FORMAT FixImageFormatForView(DXGI_FORMAT format)
+		{
+			switch (format)
+			{
+				case DXGI_FORMAT_D32_FLOAT: return DXGI_FORMAT_R32_FLOAT;
+				case DXGI_FORMAT_D24_UNORM_S8_UINT: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+			}
+
+			return format;
 		}
 
 		D3D11_USAGE UsageFromImageType(ImageType imageType)
@@ -80,7 +84,7 @@ namespace Shark {
 
 		static std::string GenerateDebugName(const ImageSpecification& specification)
 		{
-			return fmt::format("{} - {} ({}, {}) Mips: {}", ToString(specification.Type), ToString(specification.Format), specification.Width, specification.Height, specification.MipLevels ? fmt::to_string(specification.MipLevels) : "Max");
+			return fmt::format("{} - {} ({}, {}) Mips: {}", specification.Type, specification.Format, specification.Width, specification.Height, specification.MipLevels);
 		}
 
 	}
@@ -125,9 +129,7 @@ namespace Shark {
 	void DirectXImage2D::Invalidate()
 	{
 		if (m_Specification.MipLevels == 0)
-		{
 			m_Specification.MipLevels = ImageUtils::CalcMipLevels(m_Specification.Width, m_Specification.Height);
-		}
 
 		Ref<DirectXImage2D> instance = this;
 		Renderer::Submit([instance]() { instance->RT_Invalidate(); });
@@ -144,10 +146,12 @@ namespace Shark {
 		if (m_Specification.DebugName.empty())
 			m_Specification.DebugName = utils::GenerateDebugName(m_Specification);
 
+		DXGI_FORMAT dxgiFormat = DXImageUtils::ImageFormatToDXGI(m_Specification.Format);
+
 		D3D11_TEXTURE2D_DESC texture2dDesc{};
 		texture2dDesc.Width = m_Specification.Width;
 		texture2dDesc.Height = m_Specification.Height;
-		texture2dDesc.Format = DXImageUtils::ImageFormatToD3D11ForResource(m_Specification.Format);
+		texture2dDesc.Format = DXImageUtils::FixImageFormatForResource(dxgiFormat);
 		texture2dDesc.MipLevels = m_Specification.MipLevels;
 		texture2dDesc.ArraySize = m_Specification.Layers;
 		texture2dDesc.SampleDesc.Count = 1;
@@ -183,7 +187,7 @@ namespace Shark {
 		if (m_Specification.Type != ImageType::Storage)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc{};
-			shaderResourceViewDesc.Format = DXImageUtils::ImageFormatToD3D11ForView(m_Specification.Format);
+			shaderResourceViewDesc.Format = DXImageUtils::FixImageFormatForView(dxgiFormat);
 			if (m_Specification.Type == ImageType::TextureCube)
 			{
 				shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
@@ -254,11 +258,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		const uint64_t memoryUsage = (uint64_t)m_Specification.Width * m_Specification.Height * m_Specification.Layers * ImageUtils::GetFormatDataSize(m_Specification.Format);
+		const uint64_t memoryUsage = (uint64_t)m_Specification.Width * m_Specification.Height * m_Specification.Layers * ImageUtils::GetFormatBPP(m_Specification.Format);
 		SK_CORE_VERIFY(imageData.Size == memoryUsage, "{} == {}", imageData.Size, memoryUsage);
 
 		auto device = DirectXContext::GetCurrentDevice();
-		const uint32_t formatDataSize = ImageUtils::GetFormatDataSize(m_Specification.Format);
+		const uint32_t formatDataSize = ImageUtils::GetFormatBPP(m_Specification.Format);
 
 		//device->UpdateSubresource(m_Info.Resource, 0, nullptr, imageData.As<const void*>(), m_Specification.Width * formatDataSize, 0);
 
@@ -294,10 +298,12 @@ namespace Shark {
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();
 
+		DXGI_FORMAT dxgiImageFormat = DXImageUtils::ImageFormatToDXGI(m_Specification.Format);
+
 		D3D11_TEXTURE2D_DESC textureDesc{};
 		textureDesc.Width = m_Specification.Width;
 		textureDesc.Height = m_Specification.Height;
-		textureDesc.Format = DXImageUtils::ImageFormatToD3D11ForResource(m_Specification.Format);
+		textureDesc.Format = DXImageUtils::FixImageFormatForResource(dxgiImageFormat);
 		textureDesc.MipLevels = m_Specification.MipLevels;
 		textureDesc.ArraySize = m_Specification.Layers;
 		textureDesc.SampleDesc.Count = 1;
@@ -317,7 +323,7 @@ namespace Shark {
 
 		void* mappedMemory;
 		device->MapMemory(staging, 0, D3D11_MAP_READ, mappedMemory);
-		uint64_t bufferSize = m_Specification.Width * m_Specification.Height * ImageUtils::GetFormatDataSize(m_Specification.Format);
+		uint64_t bufferSize = m_Specification.Width * m_Specification.Height * ImageUtils::GetFormatBPP(m_Specification.Format);
 		buffer.Allocate(bufferSize);
 		memcpy(buffer.Data, mappedMemory, bufferSize);
 		device->UnmapMemory(staging, 0);
@@ -330,8 +336,10 @@ namespace Shark {
 		if (m_PerMipUAVs.contains(mipSlice) && m_PerMipUAVs.at(mipSlice))
 			return;
 
+		DXGI_FORMAT dxgiImageFormat = DXImageUtils::ImageFormatToDXGI(m_Specification.Format);
+
 		D3D11_UNORDERED_ACCESS_VIEW_DESC unorderedAccessViewDesc{};
-		unorderedAccessViewDesc.Format = DXImageUtils::ImageFormatToD3D11ForView(m_Specification.Format);
+		unorderedAccessViewDesc.Format = DXImageUtils::FixImageFormatForView(dxgiImageFormat);;
 		if (m_Specification.Type == ImageType::TextureCube)
 		{
 			unorderedAccessViewDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
@@ -392,8 +400,11 @@ namespace Shark {
 		Ref<DirectXImage2D> dxImage = m_Image.As<DirectXImage2D>();
 		const auto& imageSpecification = dxImage->GetSpecification();
 		SK_CORE_VERIFY(imageSpecification.MipLevels != 0);
+
+		DXGI_FORMAT dxgiImageFormat = DXImageUtils::ImageFormatToDXGI(dxImage->GetSpecification().Format);
+
 		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
-		shaderResourceViewDesc.Format = DXImageUtils::ImageFormatToD3D11ForView(dxImage->GetSpecification().Format);
+		shaderResourceViewDesc.Format = DXImageUtils::FixImageFormatForView(dxgiImageFormat);
 
 		if (dxImage->GetType() == ImageType::TextureCube)
 		{

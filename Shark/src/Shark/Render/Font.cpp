@@ -119,7 +119,7 @@ namespace Shark {
 			SK_PROFILE_SCOPED("Create Texture Atlas");
 
 			timer.Reset();
-			m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
+			m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8UNorm, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
 			SK_CORE_TRACE_TAG("Font", "Generated Atlas in {}", timer.Elapsed());
 		}
 

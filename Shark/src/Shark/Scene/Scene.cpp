@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "Scene.h"
 
+#include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Scene/Entity.h"
@@ -450,10 +451,14 @@ namespace Shark {
 								// NOTE(moro): this material should always be a memory asset so an async call is not necessary.
 								//             just in case down the line something changes and it is not loaded a blocking call
 								//             prevents the call to SubmitMesh from crashing
+								SK_CORE_ASSERT(AssetManager::IsMemoryAsset(materialHandle));
 								material = AssetManager::GetAsset<MaterialAsset>(materialHandle);
 							}
 
 							renderer->SubmitMesh(meshResult.Asset, meshSourceResult.Asset, meshComponent.SubmeshIndex, material, transform, (int)ent);
+
+							if (SelectionManager::IsSelected(SelectionContext::Entity, entity.GetUUID()))
+								renderer->SubmitSelectedMesh(meshResult.Asset, meshSourceResult.Asset, meshComponent.SubmeshIndex, material, transform);
 						}
 					}
 				}

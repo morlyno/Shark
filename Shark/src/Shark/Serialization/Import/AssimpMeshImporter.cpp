@@ -255,7 +255,7 @@ namespace Shark {
 
 		if (auto aiTexEmbedded = scene->GetEmbeddedTexture(path.C_Str()))
 		{
-			specification.Format = ImageFormat::RGBA8;
+			specification.Format = ImageFormat::RGBA8UNorm;
 			specification.Width = aiTexEmbedded->mWidth;
 			specification.Height = aiTexEmbedded->mHeight;
 			Buffer imageData = Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) };

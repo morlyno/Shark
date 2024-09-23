@@ -63,6 +63,14 @@ namespace Shark {
 
 				ImGui::TreePop();
 			}
+
+			if (ImGui::TreeNodeEx("Jump Flood", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::ColorEdit4("Outline Color", glm::value_ptr(m_Renderer->m_OutlineColor));
+				ImGui::SliderFloat("Outline Width", &m_Renderer->m_OutlinePixelWidth, 0.0f, 50.0f);
+				ImGui::TreePop();
+			}
+
 		}
 		ImGui::End();
 	}

@@ -50,6 +50,8 @@ namespace Shark {
 		uint32_t Width = 0, Height = 0;
 		std::vector<FrameBufferAtachment> Atachments;
 		glm::vec4 ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+		float ClearDepth = 1.0f;
+		uint8_t ClearStencil = 0;
 		bool ClearOnLoad = false;
 
 		std::map<uint32_t, Ref<Image2D>> ExistingImages;

@@ -10,7 +10,7 @@
 #include "Platform/DirectX11/DirectXSwapChain.h"
 
 #include <set>
-#include <d3d11.h>
+#include <d3d11_1.h>
 
 namespace Shark {
 
@@ -22,6 +22,9 @@ namespace Shark {
 
 		virtual void Init() override;
 		virtual void ShutDown() override;
+
+		virtual void BeginEventMarker(Ref<RenderCommandBuffer> commandBuffer, const std::string& name) override;
+		virtual void EndEventMarker(Ref<RenderCommandBuffer> commandBuffer) override;
 
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;

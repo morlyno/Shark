@@ -347,11 +347,11 @@ namespace Shark {
 			{
 				if (control && SelectionManager::AnySelected(SelectionContext::Entity) && m_SceneState == SceneState::Edit)
 				{
+					auto selections = SelectionManager::GetSelections(SelectionContext::Entity);
 					SelectionManager::Clear(SelectionContext::Entity);
-					for (Entity source : SelectionManager::GetSelections(SelectionContext::Entity) |
-						                 std::views::transform(/*[scene = m_WorkScene](UUID uuid) { return scene->TryGetEntityByUUID(uuid); }*/
-										                       std::bind(&Scene::TryGetEntityByUUID, m_WorkScene, std::placeholders::_1)))
+					for (UUID sourceID : selections)
 					{
+						Entity source = m_WorkScene->TryGetEntityByUUID(sourceID);
 						Entity cloned = m_WorkScene->CloneEntity(source);
 						SelectionManager::Select(SelectionContext::Entity, cloned.GetUUID());
 					}

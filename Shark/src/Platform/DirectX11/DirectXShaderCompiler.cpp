@@ -650,6 +650,26 @@ namespace Shark {
 		return error;
 	}
 
+	class HLSLIncludeHandler : public IDxcIncludeHandler
+	{
+	public:
+		HLSLIncludeHandler(CComPtr<IDxcIncludeHandler> defaultIncludeHandler)
+			: m_DefaultIncludeHandler(defaultIncludeHandler)
+		{}
+
+		virtual HRESULT STDMETHODCALLTYPE LoadSource(_In_z_ LPCWSTR pFilename, _COM_Outptr_result_maybenull_ IDxcBlob** ppIncludeSource)
+		{
+			auto filepath = std::filesystem::canonical(std::filesystem::path(L"Resources/Shaders") / pFilename);
+			return m_DefaultIncludeHandler->LoadSource(filepath.c_str(), ppIncludeSource);
+		}
+
+		virtual HRESULT QueryInterface(REFIID riid, void** ppvObject) override { return S_FALSE; }
+		virtual ULONG AddRef() override { return 0; }
+		virtual ULONG Release() override { return 0; }
+	private:
+		CComPtr<IDxcIncludeHandler> m_DefaultIncludeHandler;
+	};
+
 	std::string DirectXShaderCompiler::CompileHLSLToSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVDebug)
 	{
 #define CREATE_ERROR_MSG(_base_message, _hResult) fmt::format(_base_message "\n\tHResult: ({}): {}", _hResult, WindowsUtils::TranslateHResult(_hResult))
@@ -669,6 +689,11 @@ namespace Shark {
 		CComPtr<IDxcBlobEncoding> sourceBlob;
 		hResult = utils->CreateBlob(m_ShaderSource.at(stage).data(), (UINT32)m_ShaderSource.at(stage).size(), DXC_CP_ACP, &sourceBlob);
 		VERIFY_HRESULT(hResult, "Failed to create DXC Blob");
+
+		CComPtr<IDxcIncludeHandler> defaultIncludeHandler;
+		utils->CreateDefaultIncludeHandler(&defaultIncludeHandler);
+
+
 
 #undef VERIFY_HRESULT
 #undef CREATE_ERROR_MSG
@@ -699,9 +724,11 @@ namespace Shark {
 		buffer.Ptr = sourceBlob->GetBufferPointer();
 		buffer.Size = sourceBlob->GetBufferSize();
 
+		HLSLIncludeHandler includeHandler(defaultIncludeHandler);
+
 		CComPtr<IDxcResult> result = nullptr;
 		hResult = compiler->Compile(&buffer, arguments.data(), (UINT32)arguments.size(),
-									nullptr, IID_PPV_ARGS(&result));
+									&includeHandler, IID_PPV_ARGS(&result));
 
 		result->GetStatus(&hResult);
 		if (FAILED(hResult))
@@ -771,10 +798,13 @@ namespace Shark {
 		//flags |= D3DCOMPILE_WARNINGS_ARE_ERRORS;
 
 		flags |= D3DCOMPILE_DEBUG;
-		if (!m_Options.DisableOptimization)
-			flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
-		else
+		if (m_Options.DisableOptimization)
+		{
 			flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
+			flags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+		}
+		else
+			flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
 
 		ID3DBlob* shaderBinary = nullptr;
 		ID3DBlob* errorMessage = nullptr;

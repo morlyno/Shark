@@ -156,7 +156,7 @@ namespace Shark {
 		stream.ReadBuffer(imageData);
 
 		ImageSpecification specification;
-		specification.Format = ImageFormat::RGBA8;
+		specification.Format = ImageFormat::RGBA8UNorm;
 		specification.Width = header.Width;
 		specification.Height = header.Height;
 		Ref<Image2D> image = Image2D::Create(specification);

@@ -259,7 +259,7 @@ namespace Shark {
 			ImageSpecification specification;
 			specification.Width = 512;
 			specification.Height = 512;
-			specification.Format = ImageFormat::RGBA8;
+			specification.Format = ImageFormat::RGBA8UNorm;
 			Ref<Image2D> result = Image2D::Create(specification);
 
 			m_CommandBuffer->Begin();
@@ -277,7 +277,7 @@ namespace Shark {
 		TextureSpecification specification;
 		specification.Width = 512;
 		specification.Height = 512;
-		specification.Format = ImageFormat::RGBA8;
+		specification.Format = ImageFormat::RGBA8UNorm;
 		specification.Filter = FilterMode::Linear;
 		specification.GenerateMips = false;
 		Ref<Texture2D> resultTexture = Texture2D::Create(specification);

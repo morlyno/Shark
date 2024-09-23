@@ -50,6 +50,9 @@ namespace Shark {
 		virtual void Init() = 0;
 		virtual void ShutDown() = 0;
 		
+		virtual void BeginEventMarker(Ref<RenderCommandBuffer> commandBuffer, const std::string& name) = 0;
+		virtual void EndEventMarker(Ref<RenderCommandBuffer> commandBuffer) = 0;
+
 		virtual void BeginFrame() = 0;
 		virtual void EndFrame() = 0;
 

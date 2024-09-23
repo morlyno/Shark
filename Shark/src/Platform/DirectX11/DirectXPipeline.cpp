@@ -40,19 +40,40 @@ namespace Shark {
 			return (D3D11_PRIMITIVE_TOPOLOGY)0;
 		}
 
-		static D3D11_COMPARISON_FUNC ToD3D11Comparison(DepthCompareOperator compareOperator)
+		static D3D11_COMPARISON_FUNC ToD3D11Comparison(CompareOperator compareOperator)
 		{
 			switch (compareOperator)
 			{
-				case DepthCompareOperator::Equal: return D3D11_COMPARISON_EQUAL;
-				case DepthCompareOperator::Less: return D3D11_COMPARISON_LESS;
-				case DepthCompareOperator::Greater: return D3D11_COMPARISON_GREATER;
-				case DepthCompareOperator::LessEqual: return D3D11_COMPARISON_LESS_EQUAL;
-				case DepthCompareOperator::GreaterEqual: return D3D11_COMPARISON_GREATER_EQUAL;
+				case CompareOperator::Equal: return D3D11_COMPARISON_EQUAL;
+				case CompareOperator::NotEqual: return D3D11_COMPARISON_NOT_EQUAL;
+				case CompareOperator::Less: return D3D11_COMPARISON_LESS;
+				case CompareOperator::Greater: return D3D11_COMPARISON_GREATER;
+				case CompareOperator::LessEqual: return D3D11_COMPARISON_LESS_EQUAL;
+				case CompareOperator::GreaterEqual: return D3D11_COMPARISON_GREATER_EQUAL;
+				case CompareOperator::Never: return D3D11_COMPARISON_NEVER;
+				case CompareOperator::Always: return D3D11_COMPARISON_ALWAYS;
 			}
 
 			SK_CORE_ASSERT(false, "Unkown DepthCompareOperator");
 			return (D3D11_COMPARISON_FUNC)0;
+		}
+
+		static D3D11_STENCIL_OP ToD3D11StencilOp(StencilOperation operation)
+		{
+			switch (operation)
+			{
+				case StencilOperation::Keep: return D3D11_STENCIL_OP_KEEP;
+				case StencilOperation::Zero: return D3D11_STENCIL_OP_ZERO;
+				case StencilOperation::Replace: return D3D11_STENCIL_OP_REPLACE;
+				case StencilOperation::IncrementClamp: return D3D11_STENCIL_OP_INCR_SAT;
+				case StencilOperation::DecrementClamp: return D3D11_STENCIL_OP_DECR_SAT;
+				case StencilOperation::Invert: return D3D11_STENCIL_OP_INVERT;
+				case StencilOperation::IncrementWrap: return D3D11_STENCIL_OP_INCR;
+				case StencilOperation::DecrementWrap: return D3D11_STENCIL_OP_DECR;
+			}
+
+			SK_CORE_ASSERT(false, "Unkown StencilOperation");
+			return (D3D11_STENCIL_OP)0;
 		}
 
 	}
@@ -145,6 +166,16 @@ namespace Shark {
 			desc.DepthEnable = m_Specification.DepthEnabled;
 			desc.DepthWriteMask = m_Specification.WriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 			desc.DepthFunc = utils::ToD3D11Comparison(m_Specification.DepthOperator);
+
+			desc.StencilEnable = m_Specification.EnableStencil;
+			desc.StencilReadMask = m_Specification.StencilReadMask;
+			desc.StencilWriteMask = m_Specification.StencilWriteMask;
+			
+			desc.FrontFace.StencilFailOp = utils::ToD3D11StencilOp(m_Specification.StencilFailOperation);
+			desc.FrontFace.StencilDepthFailOp = utils::ToD3D11StencilOp(m_Specification.StencilDepthFailOperation);
+			desc.FrontFace.StencilPassOp = utils::ToD3D11StencilOp(m_Specification.StencilPassOperation);
+			desc.FrontFace.StencilFunc = utils::ToD3D11Comparison(m_Specification.StencilComparisonOperator);
+			desc.BackFace = desc.FrontFace;
 
 			DX11_VERIFY(dxDevice->CreateDepthStencilState(&desc, &m_DepthStencilState));
 		}

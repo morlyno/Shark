@@ -43,7 +43,7 @@ namespace Shark {
 		CreateImageViews();
 
 		const TextureSpecification& specification = texture->GetSpecification();
-		m_ImageFormat = ToString(specification.Format);
+		m_ImageFormat = fmt::to_string(specification.Format);
 		m_GenerateMips = specification.GenerateMips;
 		m_FilterMode = specification.Filter;
 		m_WrapMode = specification.Wrap;

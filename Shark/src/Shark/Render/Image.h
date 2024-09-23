@@ -13,22 +13,19 @@ namespace Shark {
 	enum class ImageFormat : uint16_t
 	{
 		None = 0,
-		RGBA8,
-		RGBA16F,
+		RGBA8UNorm,
+		RGBA16Float,
+		RGBA32Float,
 
-		RGB32F,
-		RGBA32F,
+		R8UNorm,
+		R32SINT,
 
-		R8,
-		R16F,
-		R32_SINT,
-
-		RG16F,
+		RG16SNorm,
+		RG16Float,
 
 		Depth32,
-		Depth = Depth32
+		Depth24UNormStencil8UINT
 	};
-	std::string ToString(ImageFormat format);
 
 	enum class ImageType : uint16_t
 	{
@@ -38,11 +35,9 @@ namespace Shark {
 		Atachment
 	};
 
-	std::string ToString(ImageType type);
-
 	struct ImageSpecification
 	{
-		ImageFormat Format = ImageFormat::RGBA8;
+		ImageFormat Format = ImageFormat::RGBA8UNorm;
 		uint32_t Width = 0, Height = 0;
 		uint32_t Layers = 1;
 		uint32_t MipLevels = 1; // 0 == MaxLeves
@@ -102,7 +97,7 @@ namespace Shark {
 		uint32_t CalcMipLevels(uint32_t widht, uint32_t height);
 		bool IsDepthFormat(ImageFormat format);
 		bool IsIntegerBased(ImageFormat format);
-		uint32_t GetFormatDataSize(ImageFormat format);
+		uint32_t GetFormatBPP(ImageFormat format);
 
 	}
 

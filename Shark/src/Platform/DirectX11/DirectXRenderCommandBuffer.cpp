@@ -205,6 +205,8 @@ namespace Shark {
 		auto dxDevice = device->GetDirectXDevice();
 
 		DirectXAPI::CreateDeferredContext(dxDevice, m_Context);
+
+		m_Context->QueryInterface(IID_PPV_ARGS(&m_Annotation));
 	}
 
 	DirectXRenderCommandBuffer::TimeQuery DirectXRenderCommandBuffer::GetNextAvailableTimeQuery(uint32_t& outID)

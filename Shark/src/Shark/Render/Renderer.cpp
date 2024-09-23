@@ -85,6 +85,13 @@ namespace Shark {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Line.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Text.hlsl");
 
+		// Jump Flood
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodFillBuffers.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodInit.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFlood.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodOutline.hlsl");
+
+
 		// Commands
 		Renderer::GetShaderLibrary()->Load("resources/Shaders/Commands/BlitImage.glsl");
 
@@ -101,7 +108,7 @@ namespace Shark {
 
 		{
 			TextureSpecification spec;
-			spec.Format = ImageFormat::RGBA8;
+			spec.Format = ImageFormat::RGBA8UNorm;
 			spec.Width = 1;
 			spec.Height = 1;
 			spec.GenerateMips = false;
@@ -112,12 +119,12 @@ namespace Shark {
 			spec.DebugName = "Black Texture";
 			s_Data->m_BlackTexture = Texture2D::Create(spec, Buffer::FromValue(0x00000000));
 
-			spec.Format = ImageFormat::RGBA32F;
+			spec.Format = ImageFormat::RGBA32Float;
 			spec.DebugName = "Black Texture Cube";
 
 			glm::vec4 imageData[6];
 			memset(imageData, 0, sizeof(imageData));
-			spec.Format = ImageFormat::RGBA32F;
+			spec.Format = ImageFormat::RGBA32Float;
 			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
 
 			s_Data->m_EmptyEnvironment = Ref<Environment>::Create(s_Data->m_BlackTextureCube, s_Data->m_BlackTextureCube);
@@ -142,6 +149,16 @@ namespace Shark {
 
 		skdelete s_CommandQueue[0];
 		skdelete s_CommandQueue[1];
+	}
+
+	void Renderer::BeginEventMarker(Ref<RenderCommandBuffer> commandBuffer, const std::string& name)
+	{
+		s_RendererAPI->BeginEventMarker(commandBuffer, name);
+	}
+
+	void Renderer::EndEventMarker(Ref<RenderCommandBuffer> commandBuffer)
+	{
+		s_RendererAPI->EndEventMarker(commandBuffer);
 	}
 
 	void Renderer::BeginFrame()

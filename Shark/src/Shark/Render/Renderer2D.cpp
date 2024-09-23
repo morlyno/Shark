@@ -37,7 +37,7 @@ namespace Shark {
 		FrameBufferSpecification framebufferSpecification;
 		framebufferSpecification.Width = width;
 		framebufferSpecification.Height = height;
-		framebufferSpecification.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
+		framebufferSpecification.Atachments = { ImageFormat::RGBA8UNorm, ImageFormat::R32SINT, ImageFormat::Depth32 };
 		framebufferSpecification.ExistingImages[0] = renderPass->GetOutput(0);
 		framebufferSpecification.ExistingImages[1] = renderPass->GetOutput(1);
 		framebufferSpecification.ExistingImages[2] = renderPass->GetDepthOutput();
@@ -138,7 +138,7 @@ namespace Shark {
 			linePipelineSpecs.Primitve = PrimitveType::Line;
 			linePipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
 			linePipelineSpecs.WriteDepth = true;
-			linePipelineSpecs.DepthOperator = DepthCompareOperator::LessEqual;
+			linePipelineSpecs.DepthOperator = CompareOperator::LessEqual;
 
 			RenderPassSpecification specification;
 			specification.Pipeline = Pipeline::Create(linePipelineSpecs);
@@ -157,7 +157,7 @@ namespace Shark {
 			FrameBufferSpecification textFB;
 			textFB.Width = width;
 			textFB.Height = height;
-			textFB.Atachments = { ImageFormat::RGBA8, ImageFormat::R32_SINT, ImageFormat::Depth };
+			textFB.Atachments = { ImageFormat::RGBA8UNorm, ImageFormat::R32SINT, ImageFormat::Depth32 };
 			textFB.Atachments[0].BlendEnabled = true;
 			textFB.ExistingImages[0] = renderPass->GetOutput(0);
 			textFB.ExistingImages[1] = renderPass->GetOutput(1);
@@ -176,7 +176,7 @@ namespace Shark {
 			pipelineSpec.DebugName = "Renderer2D-Text";
 			pipelineSpec.DepthEnabled = m_Specifications.UseDepthTesting;
 			pipelineSpec.WriteDepth = true;
-			pipelineSpec.DepthOperator = DepthCompareOperator::Less;
+			pipelineSpec.DepthOperator = CompareOperator::Less;
 
 			RenderPassSpecification renderPassSpecification;
 			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpec);

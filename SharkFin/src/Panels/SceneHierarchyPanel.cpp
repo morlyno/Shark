@@ -134,12 +134,6 @@ namespace Shark {
 				field->SetValue(value);
 		}
 
-		template<typename Func, typename Return, typename... Args>
-		concept HasReturnType = requires(Func func, Args&&... args)
-		{
-			{ func(std::forward<Args>(args)...) } -> std::same_as<Return>;
-		};
-
 		template<typename TComponent>
 		static bool AllHaveComponent(std::span<const Entity> entities)
 		{
@@ -215,26 +209,9 @@ namespace Shark {
 			}
 		}
 		
-		template<typename TComp, typename TFunc>
-		static void Unify(const std::vector<Entity>& entities, const TFunc& transformFunc)
-		{
-			if (entities.size() <= 1)
-				return;
-
-			Entity firstEntity = entities[0];
-			const auto& firstComponent = firstEntity.GetComponent<TComp>();
-			for (uint32_t i = 1; i < entities.size(); i++)
-			{
-				Entity entity = entities[i];
-				auto& comp = entity.GetComponent<TComp>();
-				transformFunc(firstComponent, comp);
-			}
-		}
-
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
 		template<typename TComponent, typename TMemberType, typename TFunc>
 		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc)
-			requires HasReturnType<TFunc, bool, TComponent&, decltype(entities)>
 		{
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsMixedValue(entities, member));
 			Entity firstEntity = entities[0];
@@ -245,30 +222,6 @@ namespace Shark {
 				return true;
 			}
 			return false;
-		}
-
-		// equalFunc: bool(const TComponent& first, const TCompnoent& other)
-		// uiFunc: void(const TComponent& first, const std::vector<Entity>& entities)
-		template<typename TComponent, typename TEqualFunc, typename TFunc>
-		static void MultiselectNoTransform(const std::vector<Entity>& entities, const TEqualFunc equalFunc, const TFunc& uiFunc)
-			requires HasReturnType<TEqualFunc, bool, const TComponent&, const TComponent&>
-		{
-			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsMixedValue<TComponent>(entities, equalFunc));
-			Entity firstEntity = entities[0];
-			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
-			uiFunc(firstComponent, entities);
-		}
-
-		// equalFunc: bool(const TComponent& first, const TCompnoent& other)
-		// uiFunc: void(const TComponent& first, const std::vector<Entity>& entities)
-		template<typename TComponent, typename TMemberType, typename TFunc>
-		static void MultiselectNoTransform(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc)
-			requires std::is_member_pointer_v<decltype(member)>
-		{
-			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsMixedValue(entities, member));
-			Entity firstEntity = entities[0];
-			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
-			uiFunc(firstComponent, entities);
 		}
 
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
@@ -710,7 +663,7 @@ namespace Shark {
 				};
 
 				changed = utils::Control("Translation", firstComponent.Translation, isMixed(&TransformComponent::Translation));
-				utils::UnifyMember(entities, &TransformComponent::Translation, transformFunc);
+				utils::UnifyMember(entities, &TransformComponent::Translation, transformFunc); // TODO(moro): this should only happen when changed is true
 
 				changed = utils::ControlAngle("Rotation", firstComponent.Rotation, isMixed(&TransformComponent::Rotation));
 				utils::UnifyMember(entities, &TransformComponent::Rotation, transformFunc);
@@ -755,19 +708,19 @@ namespace Shark {
 			UI::BeginControlsGrid();
 			
 			utils::Multiselect(entities, &CircleRendererComponent::Color,
-									  [](auto& firstComponent, const auto& entities) { return UI::ControlColor("Color", firstComponent.Color); });
+							   [](auto& firstComponent, const auto& entities) { return UI::ControlColor("Color", firstComponent.Color); });
 
 			utils::Multiselect(entities, &CircleRendererComponent::Thickness,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Thickness", firstComponent.Thickness, 0.1f, 0.0f, 1.0f); });
+							   [](auto& firstComponent, const auto& entities) { return UI::Control("Thickness", firstComponent.Thickness, 0.1f, 0.0f, 1.0f); });
 
 			utils::Multiselect(entities, &CircleRendererComponent::Fade,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Fade", firstComponent.Fade, 0.1f, 0.0f, 10.0f); });
+							   [](auto& firstComponent, const auto& entities) { return UI::Control("Fade", firstComponent.Fade, 0.1f, 0.0f, 10.0f); });
 
 			utils::Multiselect(entities, &CircleRendererComponent::Filled,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Filled", firstComponent.Filled); });
+							   [](auto& firstComponent, const auto& entities) { return UI::Control("Filled", firstComponent.Filled); });
 
 			utils::Multiselect(entities, &CircleRendererComponent::Transparent,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Transparent", firstComponent.Transparent); });
+							   [](auto& firstComponent, const auto& entities) { return UI::Control("Transparent", firstComponent.Transparent); });
 
 			UI::EndControls();
 		});
@@ -788,16 +741,16 @@ namespace Shark {
 			});
 
 			utils::Multiselect(entities, &TextRendererComponent::FontHandle,
-									  [](auto& firstComponent, const auto& entities) { return UI::ControlAsset("Font", AssetType::Font, firstComponent.FontHandle); });
+							   [](auto& firstComponent, const auto& entities) { return UI::ControlAsset("Font", AssetType::Font, firstComponent.FontHandle); });
 			
 			utils::Multiselect(entities, &TextRendererComponent::Color,
-									  [](auto& firstComponent, const auto& entities) { return UI::ControlColor("Color", firstComponent.Color); });
+							   [](auto& firstComponent, const auto& entities) { return UI::ControlColor("Color", firstComponent.Color); });
 
 			utils::Multiselect(entities, &TextRendererComponent::Kerning,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Kerning", firstComponent.Kerning, 0.005f); });
+							   [](auto& firstComponent, const auto& entities) { return UI::Control("Kerning", firstComponent.Kerning, 0.005f); });
 
 			utils::Multiselect(entities, &TextRendererComponent::LineSpacing,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Line Spacing", firstComponent.LineSpacing, 0.01f); });
+							   [](auto& firstComponent, const auto& entities) { return UI::Control("Line Spacing", firstComponent.LineSpacing, 0.01f); });
 
 			UI::EndControls();
 		});

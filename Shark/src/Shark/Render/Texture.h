@@ -37,7 +37,7 @@ namespace Shark {
 	struct TextureSpecification
 	{
 		uint32_t Width = 0, Height = 0;
-		ImageFormat Format = ImageFormat::RGBA8;
+		ImageFormat Format = ImageFormat::RGBA8UNorm;
 		bool GenerateMips = true;
 
 		FilterMode Filter = FilterMode::Linear;

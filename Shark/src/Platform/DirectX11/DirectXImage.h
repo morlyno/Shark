@@ -11,8 +11,10 @@ namespace Shark {
 
 	namespace DXImageUtils {
 
-		DXGI_FORMAT ImageFormatToD3D11ForResource(ImageFormat format);
-		DXGI_FORMAT ImageFormatToD3D11ForView(ImageFormat format);
+		DXGI_FORMAT ImageFormatToDXGI(ImageFormat format);
+		DXGI_FORMAT FixImageFormatForResource(DXGI_FORMAT format);
+		DXGI_FORMAT FixImageFormatForView(DXGI_FORMAT format);
+
 		D3D11_USAGE UsageFromImageType(ImageType imageType);
 		UINT CPUAccessFromType(ImageType imageType);
 

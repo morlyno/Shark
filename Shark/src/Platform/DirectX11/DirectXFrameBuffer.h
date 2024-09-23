@@ -44,8 +44,8 @@ namespace Shark {
 		Ref<DirectXImage2D> m_DepthStencilImage;
 
 		std::vector<ID3D11RenderTargetView*> m_FrameBuffers;
-
 		ID3D11DepthStencilView* m_DepthStencil = nullptr;
+
 		ID3D11BlendState* m_BlendState = nullptr;
 		D3D11_VIEWPORT m_Viewport;
 

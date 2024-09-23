@@ -10,24 +10,6 @@ namespace Shark {
 
 	namespace utils {
 
-		static DXGI_FORMAT FBAtachmentToDXGIFormat(ImageFormat format)
-		{
-			switch (format)
-			{
-				case ImageFormat::None:                      SK_CORE_ASSERT(false, "No Foramt Specified");  return DXGI_FORMAT_UNKNOWN;
-					//case ImageFormat::Depth32:                   SK_CORE_ASSERT(false, "Invalid Format");       return DXGI_FORMAT_UNKNOWN;
-				case ImageFormat::Depth32:                   return DXGI_FORMAT_D32_FLOAT;
-				case ImageFormat::RGBA8:                     return DXGI_FORMAT_R8G8B8A8_UNORM;
-				case ImageFormat::RGBA16F:                   return DXGI_FORMAT_R16G16B16A16_FLOAT;
-				case ImageFormat::RGBA32F:                   return DXGI_FORMAT_R32G32B32A32_FLOAT;
-				case ImageFormat::R8:                        return DXGI_FORMAT_R8_UNORM;
-				case ImageFormat::R16F:                      return DXGI_FORMAT_R16_FLOAT;
-				case ImageFormat::R32_SINT:                  return DXGI_FORMAT_R32_SINT;
-			}
-			SK_CORE_ASSERT(false, "Unkown Format Type");
-			return DXGI_FORMAT_UNKNOWN;
-		}
-
 		static D3D11_BLEND ToD3D11Blend(BlendFactor factor)
 		{
 			switch (factor)
@@ -178,7 +160,7 @@ namespace Shark {
 				auto dxDevice = device->GetDirectXDevice();
 
 				D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
-				viewDesc.Format = utils::FBAtachmentToDXGIFormat(format);
+				viewDesc.Format = DXImageUtils::ImageFormatToDXGI(format);
 				viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 				viewDesc.Texture2D.MipSlice = 0;
 
@@ -298,7 +280,7 @@ namespace Shark {
 				continue;
 
 			D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
-			viewDesc.Format = utils::FBAtachmentToDXGIFormat(atachment.Format);
+			viewDesc.Format = DXImageUtils::ImageFormatToDXGI(atachment.Format);
 			viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 			viewDesc.Texture2D.MipSlice = 0;
 
@@ -351,7 +333,8 @@ namespace Shark {
 		for (Ref<DirectXImage2D> image : m_Images)
 			image->Resize(width, height);
 
-		m_DepthStencilImage->Resize(width, height);
+		if (m_DepthStencilImage)
+			m_DepthStencilImage->Resize(width, height);
 
 		Ref<DirectXFrameBuffer> instance = this;
 		for (uint32_t i = 0; i < m_Count; i++)
@@ -365,7 +348,7 @@ namespace Shark {
 				auto dxDevice = device->GetDirectXDevice();
 
 				D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
-				viewDesc.Format = utils::FBAtachmentToDXGIFormat(format);
+				viewDesc.Format = DXImageUtils::ImageFormatToDXGI(format);
 				viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 				viewDesc.Texture2D.MipSlice = 0;
 
@@ -427,7 +410,7 @@ namespace Shark {
 				return;
 
 			auto context = dxCommandBuffer->GetContext();
-			context->ClearDepthStencilView(instance->m_DepthStencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
+			context->ClearDepthStencilView(instance->m_DepthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, instance->m_Specification.ClearDepth, instance->m_Specification.ClearStencil);
 		});
 	}
 
@@ -440,7 +423,7 @@ namespace Shark {
 		auto dxDevice = device->GetDirectXDevice();
 
 		D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
-		viewDesc.Format = utils::FBAtachmentToDXGIFormat(atachment.Format);
+		viewDesc.Format = DXImageUtils::ImageFormatToDXGI(atachment.Format);
 		viewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		viewDesc.Texture2D.MipSlice = 0;
 
@@ -461,7 +444,7 @@ namespace Shark {
 		auto dxDevice = device->GetDirectXDevice();
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
-		viewDesc.Format = utils::FBAtachmentToDXGIFormat(format);
+		viewDesc.Format = DXImageUtils::ImageFormatToDXGI(format);
 		viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		viewDesc.Texture2D.MipSlice = 0;
 		viewDesc.Flags = 0;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Shark/Render/RenderCommandBuffer.h"
-#include <d3d11.h>
+#include <d3d11_1.h>
 
 namespace Shark {
 
@@ -15,6 +15,7 @@ namespace Shark {
 		void ReleaseCommandList();
 
 		ID3D11DeviceContext* GetContext() const { return m_Context; }
+		ID3DUserDefinedAnnotation* GetAnnotation() const { return m_Annotation; }
 
 		virtual void Begin() override;
 		virtual void End() override;
@@ -43,6 +44,7 @@ namespace Shark {
 		bool m_Active = false;
 
 		ID3D11DeviceContext* m_Context = nullptr;
+		ID3DUserDefinedAnnotation* m_Annotation = nullptr;
 		ID3D11CommandList* m_CommandList = nullptr;
 
 		std::array<ID3D11Query*, 3> m_PipelineStatsQueries;

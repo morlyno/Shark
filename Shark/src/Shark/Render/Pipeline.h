@@ -13,10 +13,23 @@ namespace Shark {
 		Triangle, Line, Dot
 	};
 
-	enum class DepthCompareOperator
+	enum class CompareOperator
 	{
-		Equal, Less, Greater,
-		LessEqual, GreaterEqual
+		Equal, NotEqual, Less, Greater,
+		LessEqual, GreaterEqual,
+		Never, Always
+	};
+
+	enum class StencilOperation
+	{
+		Keep,
+		Zero,
+		Replace,
+		IncrementClamp,
+		DecrementClamp,
+		Invert,
+		IncrementWrap,
+		DecrementWrap
 	};
 
 	struct PipelineSpecification
@@ -30,8 +43,18 @@ namespace Shark {
 		Ref<FrameBuffer> TargetFrameBuffer;
 		Ref<Shader> Shader;
 
-		DepthCompareOperator DepthOperator = DepthCompareOperator::LessEqual;
+		CompareOperator DepthOperator = CompareOperator::LessEqual;
 		PrimitveType Primitve = PrimitveType::Triangle;
+
+		bool EnableStencil = false;
+		uint8_t StencilRef = 0xff;
+		uint8_t StencilReadMask = 0xff;
+		uint8_t StencilWriteMask = 0xff;
+
+		StencilOperation StencilFailOperation = StencilOperation::Keep;
+		StencilOperation StencilDepthFailOperation = StencilOperation::Keep;
+		StencilOperation StencilPassOperation = StencilOperation::Keep;
+		CompareOperator StencilComparisonOperator = CompareOperator::Always;
 
 		VertexLayout Layout;
 

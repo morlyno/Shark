@@ -168,6 +168,25 @@ namespace Shark {
 		SK_CORE_WARN_TAG("Renderer", "DirectXRenderer destroyed");
 	}
 
+	void DirectXRenderer::BeginEventMarker(Ref<RenderCommandBuffer> commandBuffer, const std::string& name)
+	{
+		Renderer::Submit([commandBuffer, name]()
+		{
+			ID3DUserDefinedAnnotation* annotation = commandBuffer.As<DirectXRenderCommandBuffer>()->GetAnnotation();
+			std::wstring namew = String::ToWide(name);
+			annotation->BeginEvent(namew.c_str());
+		});
+	}
+
+	void DirectXRenderer::EndEventMarker(Ref<RenderCommandBuffer> commandBuffer)
+	{
+		Renderer::Submit([commandBuffer]()
+		{
+			ID3DUserDefinedAnnotation* annotation = commandBuffer.As<DirectXRenderCommandBuffer>()->GetAnnotation();
+			annotation->EndEvent();
+		});
+	}
+
 	void DirectXRenderer::BeginFrame()
 	{
 		Ref<DirectXRenderer> instance = this;
@@ -238,11 +257,15 @@ namespace Shark {
 		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
 		Ref<DirectXMaterial> dxMaterial = material.As<DirectXMaterial>();
 		Ref<DirectXRenderer> instance = this;
-		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, dxMaterial, vertexBuffer = m_QuadVertexBuffer, indexBuffer = m_QuadIndexBuffer]()
+		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, frambuffer = dxPipeline->m_FrameBuffer, dxMaterial, vertexBuffer = m_QuadVertexBuffer, indexBuffer = m_QuadIndexBuffer]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderer::RenderFullScreenQuad");
 
 			ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
+
+			std::array<ID3D11RenderTargetView*, 8> nullRTVs;
+			nullRTVs.fill(nullptr);
+			ctx->OMSetRenderTargets(8, nullRTVs.data(), nullptr);
 
 			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
 			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
@@ -255,15 +278,16 @@ namespace Shark {
 			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
-			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, dxPipeline->m_Specification.StencilRef);
 
-			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
+			instance->RT_PrepareAndBindMaterial(dxCommandBuffer, dxMaterial);
+			instance->RT_BindPushConstants(dxCommandBuffer, dxPipeline);
+
+			Ref<DirectXFrameBuffer> dxFrameBuffer = frambuffer;
 			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
 			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
-			instance->RT_PrepareAndBindMaterial(dxCommandBuffer, dxMaterial);
-			instance->RT_BindPushConstants(dxCommandBuffer, dxPipeline);
 			
 			ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			DX11_VALIDATE_CONTEXT(ctx);
@@ -307,7 +331,7 @@ namespace Shark {
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
-			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, dxPipeline->m_Specification.StencilRef);
 			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 
 			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
@@ -379,7 +403,7 @@ namespace Shark {
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
-			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, dxPipeline->m_Specification.StencilRef);
 			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 
 			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
@@ -430,7 +454,7 @@ namespace Shark {
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
-			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, dxPipeline->m_Specification.StencilRef);
 			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 
 			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
@@ -453,7 +477,7 @@ namespace Shark {
 	void DirectXRenderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material)
 	{
 		SK_CORE_VERIFY(mesh);
-		SK_CORE_VERIFY(material);
+		//SK_CORE_VERIFY(material);
 
 		Ref instance = this;
 		auto dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
@@ -498,7 +522,7 @@ namespace Shark {
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
-			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, 0);
+			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, dxPipeline->m_Specification.StencilRef);
 			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 
 			ctx->IASetPrimitiveTopology(dxPipeline->m_PrimitveTopology);
@@ -681,10 +705,10 @@ namespace Shark {
 		const uint32_t irradianceMapSize = 32;
 
 		Ref<Texture2D> equirectangular = Texture2D::Create(TextureSpecification(), filepath);
-		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
+		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32Float, "Environment Texture is not HDR!");
 
 		TextureSpecification cubemapSpec;
-		cubemapSpec.Format = ImageFormat::RGBA32F;
+		cubemapSpec.Format = ImageFormat::RGBA32Float;
 		cubemapSpec.Width = cubemapSize;
 		cubemapSpec.Height = cubemapSize;
 		cubemapSpec.GenerateMips = true;
@@ -717,10 +741,10 @@ namespace Shark {
 		const uint32_t irradianceMapSize = 32;
 
 		Ref<Texture2D> equirectangular = Texture2D::Create(TextureSpecification(), filepath);
-		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
+		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32Float, "Environment Texture is not HDR!");
 
 		TextureSpecification cubemapSpec;
-		cubemapSpec.Format = ImageFormat::RGBA32F;
+		cubemapSpec.Format = ImageFormat::RGBA32Float;
 		cubemapSpec.Width = cubemapSize;
 		cubemapSpec.Height = cubemapSize;
 		cubemapSpec.GenerateMips = true;
@@ -749,7 +773,7 @@ namespace Shark {
 		uint32_t imageSize = 256;
 
 		TextureSpecification texSpec;
-		texSpec.Format = ImageFormat::RG16F;
+		texSpec.Format = ImageFormat::RG16Float;
 		texSpec.Width = imageSize;
 		texSpec.Height = imageSize;
 		texSpec.GenerateMips = false;

@@ -38,7 +38,7 @@ namespace Shark {
 
 	private:
 		const DXGI_SWAP_EFFECT m_SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-		ImageFormat m_Format = ImageFormat::RGBA8;
+		ImageFormat m_Format = ImageFormat::RGBA8UNorm;
 		SwapChainSpecifications m_Specification;
 		Ref<DirectXFrameBuffer> m_FrameBuffer;
 

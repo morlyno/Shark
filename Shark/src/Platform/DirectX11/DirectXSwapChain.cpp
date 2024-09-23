@@ -104,7 +104,7 @@ namespace Shark {
 			scd.BufferDesc.Width = width;
 			scd.BufferDesc.Height = height;
 
-			scd.BufferDesc.Format = DXImageUtils::ImageFormatToD3D11ForResource(instance->m_Format);
+			scd.BufferDesc.Format = DXImageUtils::ImageFormatToDXGI(instance->m_Format);
 			scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 			scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 			scd.BufferDesc.RefreshRate.Denominator = 0u;
@@ -176,7 +176,7 @@ namespace Shark {
 		{
 			instance->RT_ReleaseImGuiDependencies();
 			instance->RT_ReleaseDependencies();
-			DX11_VERIFY(instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(instance->m_Format), DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
+			DX11_VERIFY(instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, DXImageUtils::ImageFormatToDXGI(instance->m_Format), DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
 			instance->RT_InvalidateDependencies();
 		});
 	}
@@ -196,7 +196,7 @@ namespace Shark {
 
 		RT_ReleaseImGuiDependencies();
 		RT_ReleaseDependencies();
-		DX11_VERIFY(m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, DXImageUtils::ImageFormatToD3D11ForResource(m_Format), DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
+		DX11_VERIFY(m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, DXImageUtils::ImageFormatToDXGI(m_Format), DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
 		RT_InvalidateDependencies();
 	}
 
