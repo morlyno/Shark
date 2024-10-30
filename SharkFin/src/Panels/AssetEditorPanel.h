@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Panel.h"
-#include "Shark/UI/UI.h"
+#include "Shark/File/FileSystem.h"
+
+#include <imgui.h>
 
 namespace Shark {
 
@@ -18,6 +20,7 @@ namespace Shark {
 
 		virtual void DockWindow(ImGuiID dockspaceID) = 0;
 		virtual void SetAsset(const AssetMetaData& metadata) = 0;
+		virtual AssetHandle GetAsset() const = 0;
 
 		void SetPanelName(const std::string& name) { m_PanelName = name; }
 		const std::string& GetPanelName() const { return m_PanelName; }
@@ -45,17 +48,13 @@ namespace Shark {
 
 		ImGuiID GetDockspaceID() const { return m_DockspaceID; }
 
+		void AddEditor(const AssetMetaData& metadata, Ref<EditorPanel> editorPanel);
+
 		template<typename T>
 		Ref<T> AddEditor(const AssetMetaData& metadata)
 		{
-			if (m_EditorPanels.contains(metadata.Handle))
-				return m_EditorPanels.at(metadata.Handle).Editor.As<T>();
-
 			Ref<T> assetEditor = Ref<T>::Create(FileSystem::GetStemString(metadata.FilePath), metadata);
-			m_EditorPanels[metadata.Handle] = { assetEditor, true };
-
-			assetEditor->DockWindow(m_DockspaceID);
-
+			AddEditor(metadata, assetEditor);
 			return assetEditor;
 		}
 

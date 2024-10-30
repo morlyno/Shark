@@ -14,7 +14,7 @@ namespace Shark {
 
 	private:
 		std::string SerializeToYAML(Ref<Mesh> mesh);
-		bool DeserializeFromYAML(Ref<Mesh> mesh, const std::string& filedata);
+		bool DeserializeFromYAML(Ref<Mesh>& mesh, const std::string& filedata);
 
 	private:
 		std::string m_ErrorMsg;

@@ -16,8 +16,8 @@ namespace Shark {
 
 		virtual AssetType GetAssetType(AssetHandle handle) = 0;
 		virtual Ref<Asset> GetAsset(AssetHandle handle) = 0;
-		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy) = 0;
-		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy) = 0;
+		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) = 0;
+		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) = 0;
 
 		virtual std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) = 0;
 

@@ -3,6 +3,8 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Environment.h"
+
+#include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {

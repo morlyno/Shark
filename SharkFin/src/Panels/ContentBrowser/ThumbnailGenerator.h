@@ -14,7 +14,10 @@ namespace Shark {
 	public:
 		virtual ~AssetThumbnailGenerator() = default;
 		virtual void OnPrepare(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) = 0;
+		virtual void OnRender(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer);
 		virtual void OnFinish(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) = 0;
+
+		virtual Ref<Image2D> GetImage(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer);
 	};
 
 	class MaterialThumbnailGenerator : public AssetThumbnailGenerator
@@ -72,10 +75,11 @@ namespace Shark {
 		~SceneThumbnailGenerator();
 
 		virtual void OnPrepare(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override;
+		virtual void OnRender(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override;
 		virtual void OnFinish(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override;
 
 	private:
-		Ref<Scene> m_BackupScene;
+		Entity m_CameraEntity;
 	};
 
 	class EnvironmentThumbnailGenerator : public AssetThumbnailGenerator
@@ -93,6 +97,18 @@ namespace Shark {
 		Entity m_SkyEntity;
 		Entity m_SphereEntity;
 		Entity m_CameraEntity;
+	};
+
+	class TextureThumbnailGenerator : public AssetThumbnailGenerator
+	{
+	public:
+		TextureThumbnailGenerator();
+		~TextureThumbnailGenerator();
+
+		virtual void OnPrepare(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override {}
+		virtual void OnFinish(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override {}
+
+		virtual Ref<Image2D> GetImage(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override;
 	};
 
 	class ThumbnailGenerator : public RefCount

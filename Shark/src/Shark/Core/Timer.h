@@ -4,8 +4,6 @@
 
 #include <chrono>
 
-#define SK_SCOPED_TIMER(_name) ::Shark::ScopedTimer SK_UNIQUE_NAME (_name)
-
 namespace Shark {
 
 	class Timer
@@ -23,12 +21,12 @@ namespace Shark {
 			m_Start = Clock::now();
 		}
 
-		TimeStep Elapsed()
+		TimeStep Elapsed() const
 		{
-			return std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - m_Start).count() * 0.001f * 0.001f * 0.001f;
+			return TimeStep::FromDuration(Clock::now() - m_Start);
 		}
 
-		float ElapsedMilliSeconds()
+		float ElapsedMilliSeconds() const
 		{
 			return Elapsed().MilliSeconds();
 		}
@@ -40,7 +38,7 @@ namespace Shark {
 	class ScopedTimer
 	{
 	public:
-		ScopedTimer(std::string_view name)
+		ScopedTimer(const std::string& name)
 			: m_Name(name)
 		{
 		}
@@ -52,7 +50,7 @@ namespace Shark {
 
 	private:
 		Timer m_Timer;
-		std::string_view m_Name;
+		std::string m_Name;
 	};
 
 }

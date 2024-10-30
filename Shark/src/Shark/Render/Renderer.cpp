@@ -36,7 +36,9 @@ namespace Shark {
 	};
 
 	static RendererConfig s_Config = {};
+	static RendererCapabilities s_Capabilities;
 	static RendererData* s_Data = nullptr;
+
 	static constexpr uint32_t s_CommandQueueCount = 2;
 	static RenderCommandQueue* s_CommandQueue[s_CommandQueueCount];
 	static uint32_t s_CommandQueueSubmissionIndex = 0;
@@ -86,10 +88,10 @@ namespace Shark {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Text.hlsl");
 
 		// Jump Flood
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodFillBuffers.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/SelectedGeometry.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodInit.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFlood.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodOutline.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodPass.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodComposite.hlsl");
 
 
 		// Commands
@@ -257,9 +259,19 @@ namespace Shark {
 		s_RendererAPI->CopyImage(commandBuffer, sourceImage, destinationImage);
 	}
 
+	void Renderer::CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip)
+	{
+		s_RendererAPI->CopyMip(commandBuffer, sourceImage, sourceMip, destinationImage, destinationMip);
+	}
+
 	void Renderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
 		s_RendererAPI->BlitImage(commandBuffer, sourceImage, destinationImage);
+	}
+
+	void Renderer::GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image)
+	{
+		s_RendererAPI->GenerateMips(commandBuffer, image);
 	}
 
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
@@ -373,14 +385,9 @@ namespace Shark {
 		return s_Data->m_BRDFLUTTexture;
 	}
 
-	Ref<RenderCommandBuffer> Renderer::GetCommandBuffer()
+	RendererCapabilities& Renderer::GetCapabilities()
 	{
-		return s_RendererAPI->GetCommandBuffer();
-	}
-
-	const RendererCapabilities& Renderer::GetCapabilities()
-	{
-		return s_RendererAPI->GetCapabilities();
+		return s_Capabilities;
 	}
 
 	bool Renderer::IsOnRenderThread()

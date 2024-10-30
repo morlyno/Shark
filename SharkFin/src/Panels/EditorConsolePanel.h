@@ -37,7 +37,7 @@ namespace Shark {
 			LogLevel Level;
 			std::string Time;
 			std::string Message;
-			std::string FriendlyMessage;
+			std::string_view FriendlyMessage;
 		};
 
 		std::vector<Message> m_Messages;

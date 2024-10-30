@@ -101,6 +101,11 @@ namespace Shark {
 		return m_ReflectionData.Resources.at(set).at(binding);
 	}
 
+	const ShaderReflection::Resource& DirectXShader::GetResourceInfo(uint32_t set, uint32_t binding) const
+	{
+		return m_ReflectionData.Resources.at(set).at(binding);
+	}
+
 	const ShaderReflection::Resource& DirectXShader::GetPushConstantInfo() const
 	{
 		return m_ReflectionData.PushConstant;
@@ -138,7 +143,7 @@ namespace Shark {
 		return m_ReflectionData.MemberNameCache.at(name);
 	}
 
-	void DirectXShader::LoadShader(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& shaderBinary)
+	void DirectXShader::LoadShader(const std::unordered_map<ShaderUtils::ShaderStage, std::vector<byte>>& shaderBinary)
 	{
 		m_ShaderBinary = shaderBinary;
 

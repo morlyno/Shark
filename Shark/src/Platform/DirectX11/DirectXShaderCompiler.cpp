@@ -5,6 +5,8 @@
 #include "Shark/Math/Math.h"
 #include "Shark/Utils/String.h"
 
+#include "Shark/Serialization/SerializationMacros.h"
+
 #include "Platform/Windows/WindowsUtils.h"
 #include "Platform/DirectX11/ShaderUtils.h"
 #include "Platform/DirectX11/DirectXShader.h"
@@ -30,7 +32,7 @@ namespace YAML {
 		{
 			Node node(NodeType::Map);
 			node.force_insert("Name", memberDeclaration.Name);
-			node.force_insert("Type", Shark::ToString(memberDeclaration.Type));
+			node.force_insert("Type", memberDeclaration.Type);
 			node.force_insert("Size", memberDeclaration.Size);
 			node.force_insert("Offset", memberDeclaration.Offset);
 			return node;
@@ -41,10 +43,10 @@ namespace YAML {
 			if (!node.IsMap() || node.size() != 4)
 				return false;
 
-			outMemberDeclaration.Name = node["Name"].as<std::string>();
-			outMemberDeclaration.Type = Shark::StringToShaderReflectionVariabelType(node["Type"].as<std::string>());
-			outMemberDeclaration.Size = node["Size"].as<uint32_t>();
-			outMemberDeclaration.Offset = node["Offset"].as<uint32_t>();
+			SK_DESERIALIZE_PROPERTY(node, "Name", outMemberDeclaration.Name, "");
+			SK_DESERIALIZE_PROPERTY(node, "Type", outMemberDeclaration.Type, Shark::ShaderReflection::VariableType::None);
+			SK_DESERIALIZE_PROPERTY(node, "Size", outMemberDeclaration.Size, 0);
+			SK_DESERIALIZE_PROPERTY(node, "Offset", outMemberDeclaration.Offset, 0);
 			return true;
 		}
 	};
@@ -56,8 +58,10 @@ namespace YAML {
 		{
 			Node node(NodeType::Map);
 			node.force_insert("Name", resource.Name);
-			node.force_insert("Stage", Shark::ToString(resource.Stage));
-			node.force_insert("Type", Shark::ToString(resource.Type));
+			node.force_insert("Set", resource.Set);
+			node.force_insert("Binding", resource.Binding);
+			node.force_insert("Stage", resource.Stage);
+			node.force_insert("Type", resource.Type);
 			node.force_insert("ArraySize", resource.ArraySize);
 			node.force_insert("StructSize", resource.StructSize);
 
@@ -68,16 +72,18 @@ namespace YAML {
 
 		static bool decode(const Node& node, Shark::ShaderReflection::Resource& outResource)
 		{
-			if (!node.IsMap() || node.size() != 7)
+			if (!node.IsMap() || node.size() != 9)
 				return false;
 
-			outResource.Name = node["Name"].as<std::string>();
-			outResource.Stage = Shark::StringToShaderReflectionShaderStage(node["Stage"].as<std::string>());
-			outResource.Type = Shark::StringToShaderReflectionResourceType(node["Type"].as<std::string>());
-			outResource.ArraySize = node["ArraySize"].as<uint32_t>();
-			outResource.StructSize = node["StructSize"].as<uint32_t>();
-			outResource.DXBinding = node["DXBinding"].as<uint32_t>();
-			outResource.DXSamplerBinding = node["DXSamplerBinding"].as<uint32_t>();
+			SK_DESERIALIZE_PROPERTY(node, "Name", outResource.Name);
+			SK_DESERIALIZE_PROPERTY(node, "Set", outResource.Set);
+			SK_DESERIALIZE_PROPERTY(node, "Binding", outResource.Binding);
+			SK_DESERIALIZE_PROPERTY(node, "Stage", outResource.Stage);
+			SK_DESERIALIZE_PROPERTY(node, "Type", outResource.Type);
+			SK_DESERIALIZE_PROPERTY(node, "ArraySize", outResource.ArraySize);
+			SK_DESERIALIZE_PROPERTY(node, "StructSize", outResource.StructSize);
+			SK_DESERIALIZE_PROPERTY(node, "DXBinding", outResource.DXBinding);
+			SK_DESERIALIZE_PROPERTY(node, "DXSamplerBinding", outResource.DXSamplerBinding);
 			return true;
 		}
 	};
@@ -88,7 +94,7 @@ namespace Shark {
 
 	namespace utils {
 
-		static shaderc_shader_kind ToShaderCShaderKind(ShaderUtils::ShaderStage::Type shaderStage)
+		static shaderc_shader_kind ToShaderCShaderKind(ShaderUtils::ShaderStage shaderStage)
 		{
 			switch (shaderStage)
 			{
@@ -101,7 +107,7 @@ namespace Shark {
 			return (shaderc_shader_kind)0;
 		}
 
-		static std::string_view ShaderStageExtension(ShaderUtils::ShaderStage::Type stage)
+		static std::string_view ShaderStageExtension(ShaderUtils::ShaderStage stage)
 		{
 			switch (stage)
 			{
@@ -114,16 +120,16 @@ namespace Shark {
 			return "";
 		}
 
-		static ShaderUtils::ShaderStage::Type GetShaderStage(const std::string& stage)
+		static ShaderUtils::ShaderStage GetShaderStage(const std::string& stage)
 		{
-			if (String::Compare(stage, "vertex", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Vertex;
-			if (String::Compare(stage, "vert", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Vertex;
+			if (String::Compare(stage, "vertex", String::Case::Ignore)) return ShaderUtils::ShaderStage::Vertex;
+			if (String::Compare(stage, "vert", String::Case::Ignore)) return ShaderUtils::ShaderStage::Vertex;
 
-			if (String::Compare(stage, "pixel", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Pixel;
-			if (String::Compare(stage, "frag", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Pixel;
-			if (String::Compare(stage, "fragment", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Pixel;
+			if (String::Compare(stage, "pixel", String::Case::Ignore)) return ShaderUtils::ShaderStage::Pixel;
+			if (String::Compare(stage, "frag", String::Case::Ignore)) return ShaderUtils::ShaderStage::Pixel;
+			if (String::Compare(stage, "fragment", String::Case::Ignore)) return ShaderUtils::ShaderStage::Pixel;
 
-			if (String::Compare(stage, "compute", String::Case::Ingnore)) return ShaderUtils::ShaderStage::Compute;
+			if (String::Compare(stage, "compute", String::Case::Ignore)) return ShaderUtils::ShaderStage::Compute;
 
 			SK_CORE_ASSERT(false, "Unkown Shader Stage");
 			return ShaderUtils::ShaderStage::None;
@@ -133,10 +139,10 @@ namespace Shark {
 		{
 			auto extension = shaderSourcePath.extension().string();
 
-			if (String::Compare(extension, ".hlsl", String::Case::Ingnore))
+			if (String::Compare(extension, ".hlsl", String::Case::Ignore))
 				return ShaderUtils::ShaderLanguage::HLSL;
 
-			if (String::Compare(extension, ".glsl", String::Case::Ingnore))
+			if (String::Compare(extension, ".glsl", String::Case::Ignore))
 				return ShaderUtils::ShaderLanguage::GLSL;
 
 			SK_CORE_ASSERT(false, "Unkown Shader Extension");
@@ -155,7 +161,7 @@ namespace Shark {
 			return (shaderc_source_language)0;
 		}
 
-		static const char* GetTargetProfileForD3D11(ShaderUtils::ShaderStage::Type stage)
+		static const char* GetTargetProfileForD3D11(ShaderUtils::ShaderStage stage)
 		{
 			switch (stage)
 			{
@@ -168,7 +174,7 @@ namespace Shark {
 			return nullptr;
 		}
 
-		static const wchar_t* GetTargetProfileForDXC(ShaderUtils::ShaderStage::Type stage)
+		static const wchar_t* GetTargetProfileForDXC(ShaderUtils::ShaderStage stage)
 		{
 			switch (stage)
 			{
@@ -203,7 +209,7 @@ namespace Shark {
 				std::filesystem::create_directories(directXCacheDirectory);
 		}
 
-		static std::string_view GetCacheFileExtension(ShaderUtils::ShaderStage::Type stage)
+		static std::string_view GetCacheFileExtension(ShaderUtils::ShaderStage stage)
 		{
 			switch (stage)
 			{
@@ -216,12 +222,12 @@ namespace Shark {
 			return "";
 		}
 
-		static std::string GetDirectXCacheFile(const std::string& fileName, ShaderUtils::ShaderStage::Type stage)
+		static std::string GetDirectXCacheFile(const std::string& fileName, ShaderUtils::ShaderStage stage)
 		{
 			return fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), fileName, utils::GetCacheFileExtension(stage));
 		}
 
-		static ShaderReflection::ShaderStage ToShaderReflectionShaderStage(ShaderUtils::ShaderStage::Type stage)
+		static ShaderReflection::ShaderStage ToShaderReflectionShaderStage(ShaderUtils::ShaderStage stage)
 		{
 			switch (stage)
 			{
@@ -315,9 +321,9 @@ namespace Shark {
 		std::string source = FileSystem::ReadString(m_ShaderSourcePath);
 		m_ShaderSource = PreProcess(source);
 
-		SK_CORE_INFO_TAG(Tag::Renderer, "Compiling Shader: {}", m_ShaderSourcePath);
+		SK_CORE_INFO_TAG("Renderer", "Compiling Shader: {}", m_ShaderSourcePath);
 
-		const ShaderUtils::ShaderStage::Flags changedStages = DirectXShaderCache::HasChanged(this);
+		const ShaderUtils::ShaderStage changedStages = DirectXShaderCache::HasChanged(this);
 		bool compileSucceeded = CompileOrLoadBinaries(changedStages, forceCompile);
 		if (!compileSucceeded)
 		{
@@ -325,7 +331,7 @@ namespace Shark {
 			return false;
 		}
 
-		if (forceCompile || changedStages)
+		if (forceCompile || changedStages != ShaderUtils::ShaderStage::None)
 		{
 			ReflectAllShaderStages(m_SPIRVData);
 			SerializeReflectionData();
@@ -351,7 +357,7 @@ namespace Shark {
 		return shader;
 	}
 
-	std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> DirectXShaderCompiler::PreProcess(const std::string& source)
+	std::unordered_map<ShaderUtils::ShaderStage, std::string> DirectXShaderCompiler::PreProcess(const std::string& source)
 	{
 		switch (m_Language)
 		{
@@ -363,7 +369,7 @@ namespace Shark {
 		return {};
 	}
 
-	std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> DirectXShaderCompiler::PreProcessHLSL(const std::string& source)
+	std::unordered_map<ShaderUtils::ShaderStage, std::string> DirectXShaderCompiler::PreProcessHLSL(const std::string& source)
 	{
 		auto shaderSource = PreProcessHLSLSource(source);
 
@@ -380,7 +386,7 @@ namespace Shark {
 		return shaderSource;
 	}
 
-	std::unordered_map<Shark::ShaderUtils::ShaderStage::Type, std::string> DirectXShaderCompiler::PreProcessGLSL(const std::string& source)
+	std::unordered_map<Shark::ShaderUtils::ShaderStage, std::string> DirectXShaderCompiler::PreProcessGLSL(const std::string& source)
 	{
 		auto shaderSource = PreProcessGLSLSource(source);
 
@@ -397,9 +403,9 @@ namespace Shark {
 		return shaderSource;
 	}
 
-	std::unordered_map<Shark::ShaderUtils::ShaderStage::Type, std::string> DirectXShaderCompiler::PreProcessHLSLSource(const std::string& source)
+	std::unordered_map<Shark::ShaderUtils::ShaderStage, std::string> DirectXShaderCompiler::PreProcessHLSLSource(const std::string& source)
 	{
-		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> shaderSource;
+		std::unordered_map<ShaderUtils::ShaderStage, std::string> shaderSource;
 
 		const std::string_view ShaderStageToken = "#pragma stage";
 
@@ -410,7 +416,7 @@ namespace Shark {
 			const size_t moduleBegin = source.find(ShaderStageToken, offset);
 			if (moduleBegin == std::string::npos)
 			{
-				SK_CORE_ERROR_TAG(Tag::Renderer, "Failed to find Shader Stage!");
+				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Stage!");
 				return {};
 			}
 
@@ -420,7 +426,7 @@ namespace Shark {
 			const size_t stageBegin = moduleSource.find(ShaderStageToken);
 			if (stageBegin == std::string::npos)
 			{
-				SK_CORE_ERROR_TAG(Tag::Renderer, "Failed to find Shader Stage!");
+				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Stage!");
 				return {};
 			}
 
@@ -428,14 +434,14 @@ namespace Shark {
 			const size_t stageArgEnd = moduleSource.find_first_of(" \n\r", stageArgBegin);
 
 			std::string stageString = moduleSource.substr(stageArgBegin, stageArgEnd - stageArgBegin);
-			ShaderUtils::ShaderStage::Type stage = utils::GetShaderStage(stageString);
+			ShaderUtils::ShaderStage stage = utils::GetShaderStage(stageString);
 			offset = moduleEnd;
 
 			for (size_t versionBegin = moduleSource.find("#version"); versionBegin != std::string::npos; versionBegin = moduleSource.find("#version"))
 			{
 				const size_t versionEnd = moduleSource.find_first_of("\n\r", versionBegin);
 				moduleSource.erase(versionBegin, versionEnd - versionBegin);
-				SK_CORE_WARN_TAG(Tag::Renderer, "The #version Preprocessor directive is depricated for shader written in HLSL");
+				SK_CORE_WARN_TAG("Renderer", "The #version Preprocessor directive is depricated for shader written in HLSL");
 			}
 
 			SK_CORE_ASSERT(stage != ShaderUtils::ShaderStage::None);
@@ -446,9 +452,9 @@ namespace Shark {
 		return shaderSource;
 	}
 
-	std::unordered_map<Shark::ShaderUtils::ShaderStage::Type, std::string> DirectXShaderCompiler::PreProcessGLSLSource(const std::string& source)
+	std::unordered_map<Shark::ShaderUtils::ShaderStage, std::string> DirectXShaderCompiler::PreProcessGLSLSource(const std::string& source)
 	{
-		std::unordered_map<ShaderUtils::ShaderStage::Type, std::string> shaderSource;
+		std::unordered_map<ShaderUtils::ShaderStage, std::string> shaderSource;
 
 		const std::string_view VersionToken = "#version";
 		const std::string_view ShaderStageToken = "#pragma stage";
@@ -460,7 +466,7 @@ namespace Shark {
 			const size_t moduleBegin = source.find(VersionToken, offset);
 			if (moduleBegin == std::string::npos)
 			{
-				SK_CORE_ERROR_TAG(Tag::Renderer, "Failed to find Shader Version!");
+				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Version!");
 				return {};
 			}
 
@@ -470,14 +476,14 @@ namespace Shark {
 			const size_t stageBegin = moduleSource.find(ShaderStageToken);
 			if (stageBegin == std::string::npos)
 			{
-				SK_CORE_ERROR_TAG(Tag::Renderer, "Failed to find Shader Stage!");
+				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Stage!");
 				return {};
 			}
 
 			const size_t stageArgBegin = moduleSource.find_first_not_of(": ", stageBegin + ShaderStageToken.length());
 			const size_t stageArgEnd = moduleSource.find_first_of(" \n\r", stageArgBegin);
 			std::string stageString = moduleSource.substr(stageArgBegin, stageArgEnd - stageArgBegin);
-			ShaderUtils::ShaderStage::Type stage = utils::GetShaderStage(stageString);
+			ShaderUtils::ShaderStage stage = utils::GetShaderStage(stageString);
 			offset = moduleEnd;
 
 			SK_CORE_ASSERT(stage != ShaderUtils::ShaderStage::None);
@@ -509,9 +515,9 @@ namespace Shark {
 		return metadata;
 	}
 
-	bool DirectXShaderCompiler::CompileOrLoadBinaries(ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile)
+	bool DirectXShaderCompiler::CompileOrLoadBinaries(ShaderUtils::ShaderStage changedStages, bool forceCompile)
 	{
-		SK_SCOPED_TIMER("DirectXShaderCompiler::CompileOrGetBinaries");
+		ScopedTimer timer("DirectXShaderCompiler::CompileOrGetBinaries");
 
 		for (auto& [stage, source] : m_ShaderSource)
 		{
@@ -519,7 +525,7 @@ namespace Shark {
 				return false;
 		}
 
-		if (forceCompile || changedStages)
+		if (forceCompile || changedStages != ShaderUtils::ShaderStage::None)
 		{
 			DirectXShaderCache::OnShaderCompiled(this);
 		}
@@ -531,12 +537,12 @@ namespace Shark {
 		return true;
 	}
 
-	bool DirectXShaderCompiler::CompileOrLoadBinary(ShaderUtils::ShaderStage::Type stage, ShaderUtils::ShaderStage::Flags changedStages, bool forceCompile)
+	bool DirectXShaderCompiler::CompileOrLoadBinary(ShaderUtils::ShaderStage stage, ShaderUtils::ShaderStage changedStages, bool forceCompile)
 	{
 		std::vector<byte>& binary = m_ShaderBinary[stage];
 		std::vector<uint32_t>& spirvBinary = m_SPIRVData[stage];
 
-		if (!forceCompile && !(changedStages & stage))
+		if (!forceCompile && (changedStages & stage) != stage)
 			TryLoadDirectXAndSPIRV(stage, binary, spirvBinary);
 
 		if (binary.empty() && !spirvBinary.empty())
@@ -633,7 +639,7 @@ namespace Shark {
 		std::unordered_map<std::string, IncludeResult> m_IncludeResults;
 	};
 
-	std::string DirectXShaderCompiler::Compile(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& outputBinary, std::vector<uint32_t>& outputSPIRVDebug)
+	std::string DirectXShaderCompiler::Compile(ShaderUtils::ShaderStage stage, std::vector<byte>& outputBinary, std::vector<uint32_t>& outputSPIRVDebug)
 	{
 		std::string error;
 		if (m_Language == ShaderUtils::ShaderLanguage::HLSL)
@@ -670,7 +676,7 @@ namespace Shark {
 		CComPtr<IDxcIncludeHandler> m_DefaultIncludeHandler;
 	};
 
-	std::string DirectXShaderCompiler::CompileHLSLToSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVDebug)
+	std::string DirectXShaderCompiler::CompileHLSLToSPIRV(ShaderUtils::ShaderStage stage, std::vector<uint32_t>& outputSPIRVDebug)
 	{
 #define CREATE_ERROR_MSG(_base_message, _hResult) fmt::format(_base_message "\n\tHResult: ({}): {}", _hResult, WindowsUtils::TranslateHResult(_hResult))
 #define VERIFY_HRESULT(_hResult, _message) if (FAILED(_hResult)) return CREATE_ERROR_MSG(_message, _hResult);
@@ -693,8 +699,6 @@ namespace Shark {
 		CComPtr<IDxcIncludeHandler> defaultIncludeHandler;
 		utils->CreateDefaultIncludeHandler(&defaultIncludeHandler);
 
-
-
 #undef VERIFY_HRESULT
 #undef CREATE_ERROR_MSG
 
@@ -709,11 +713,12 @@ namespace Shark {
 			L"-spirv",
 
 			L"-fspv-reflect",
-			L"-fspv-target-env=vulkan1.3",
+			L"-fspv-target-env=vulkan1.2",
 			//L"-fspv-preserve-bindings",
 			//L"-fspv-preserve-interface"
 		};
 
+		arguments.emplace_back(L"-Qembed_debug");
 		arguments.emplace_back(DXC_ARG_DEBUG);
 
 		if (!m_Options.DisableOptimization)
@@ -748,7 +753,7 @@ namespace Shark {
 		return {};
 	}
 
-	std::string DirectXShaderCompiler::CompileGLSLToSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVDebug)
+	std::string DirectXShaderCompiler::CompileGLSLToSPIRV(ShaderUtils::ShaderStage stage, std::vector<uint32_t>& outputSPIRVDebug)
 	{
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions shadercOptions;
@@ -782,7 +787,7 @@ namespace Shark {
 		return {};
 	}
 
-	std::string DirectXShaderCompiler::CompileFromSPIRV(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary, std::vector<byte>& outputBinary)
+	std::string DirectXShaderCompiler::CompileFromSPIRV(ShaderUtils::ShaderStage stage, const std::vector<uint32_t>& spirvBinary, std::vector<byte>& outputBinary)
 	{
 		std::string hlslSourceCode = CrossCompileToHLSL(stage, spirvBinary);
 		if (hlslSourceCode.empty())
@@ -791,7 +796,7 @@ namespace Shark {
 		return CompileHLSL(stage, hlslSourceCode, outputBinary);
 	}
 
-	std::string DirectXShaderCompiler::CompileHLSL(ShaderUtils::ShaderStage::Type stage, const std::string& hlslSourceCode, std::vector<byte>& outputBinary) const
+	std::string DirectXShaderCompiler::CompileHLSL(ShaderUtils::ShaderStage stage, const std::string& hlslSourceCode, std::vector<byte>& outputBinary) const
 	{
 		UINT flags = 0;
 		flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
@@ -811,7 +816,7 @@ namespace Shark {
 		std::string name = fmt::format("{}{}", m_ShaderSourcePath.stem().string(), utils::ShaderStageExtension(stage));
 		if (FAILED(D3DCompile(hlslSourceCode.data(), hlslSourceCode.size(), name.c_str(), nullptr, nullptr, "main", utils::GetTargetProfileForD3D11(stage), flags, 0, &shaderBinary, &errorMessage)))
 		{
-			std::string errorStr = fmt::format("Failed to Compile HLSL (Stage: {0})\n{1}", ToString(stage), (char*)errorMessage->GetBufferPointer());
+			std::string errorStr = fmt::format("Failed to Compile HLSL (Stage: {0})\n{1}", stage, (char*)errorMessage->GetBufferPointer());
 			errorMessage->Release();
 			return errorStr;
 		}
@@ -822,11 +827,15 @@ namespace Shark {
 		return {};
 	}
 
-	std::string DirectXShaderCompiler::CrossCompileToHLSL(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary)
+	std::string DirectXShaderCompiler::CrossCompileToHLSL(ShaderUtils::ShaderStage stage, const std::vector<uint32_t>& spirvBinary)
 	{
 		spirv_cross::CompilerHLSL compilerHLSL(spirvBinary);
 		spirv_cross::CompilerHLSL::Options options;
 		options.shader_model = 50;
+
+		// TODO(moro): try out this options
+		//options.preserve_structured_buffers = true;
+
 		compilerHLSL.set_hlsl_options(options);
 		compilerHLSL.set_resource_binding_flags(spirv_cross::HLSL_BINDING_AUTO_ALL);
 
@@ -853,7 +862,7 @@ namespace Shark {
 		}
 	}
 
-	void DirectXShaderCompiler::SerializeDirectX(ShaderUtils::ShaderStage::Type stage, const std::vector<byte>& directXData)
+	void DirectXShaderCompiler::SerializeDirectX(ShaderUtils::ShaderStage stage, const std::vector<byte>& directXData)
 	{
 		const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.filename().string(), utils::GetCacheFileExtension(stage));
 		if (!FileSystem::WriteBinary(cacheFile, Buffer::FromArray(directXData)))
@@ -865,7 +874,7 @@ namespace Shark {
 		m_StagesWrittenToCache |= stage;
 	}
 
-	void DirectXShaderCompiler::TryLoadDirectX(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& directXData)
+	void DirectXShaderCompiler::TryLoadDirectX(ShaderUtils::ShaderStage stage, std::vector<byte>& directXData)
 	{
 		const std::string cacheFile = fmt::format("{0}/{1}{2}", utils::GetDirectXCacheDirectory(), m_ShaderSourcePath.filename().string(), utils::GetCacheFileExtension(stage));
 		Buffer fileData = FileSystem::ReadBinary(cacheFile);
@@ -877,7 +886,7 @@ namespace Shark {
 		return;
 	}
 
-	void DirectXShaderCompiler::SerializeSPIRV(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvData)
+	void DirectXShaderCompiler::SerializeSPIRV(ShaderUtils::ShaderStage stage, const std::vector<uint32_t>& spirvData)
 	{
 		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.filename().string(), utils::GetCacheFileExtension(stage));
 		if (!FileSystem::WriteBinary(cacheFile, Buffer::FromArray(spirvData)))
@@ -887,7 +896,7 @@ namespace Shark {
 		}
 	}
 
-	void DirectXShaderCompiler::TryLoadSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<uint32_t>& outputSPIRVData)
+	void DirectXShaderCompiler::TryLoadSPIRV(ShaderUtils::ShaderStage stage, std::vector<uint32_t>& outputSPIRVData)
 	{
 		const std::string cacheFile = fmt::format("{}/{}{}", utils::GetSPIRVCacheDirectory(), m_ShaderSourcePath.filename().string(), utils::GetCacheFileExtension(stage));
 		Buffer fileData = FileSystem::ReadBinary(cacheFile);
@@ -898,7 +907,7 @@ namespace Shark {
 		fileData.Release();
 	}
 
-	void DirectXShaderCompiler::TryLoadDirectXAndSPIRV(ShaderUtils::ShaderStage::Type stage, std::vector<byte>& outputDirectXData, std::vector<uint32_t>& outputSPIRVData)
+	void DirectXShaderCompiler::TryLoadDirectXAndSPIRV(ShaderUtils::ShaderStage stage, std::vector<byte>& outputDirectXData, std::vector<uint32_t>& outputSPIRVData)
 	{
 		TryLoadDirectX(stage, outputDirectXData);
 		TryLoadSPIRV(stage, outputSPIRVData);
@@ -957,7 +966,7 @@ namespace Shark {
 		return true;
 	}
 
-	void DirectXShaderCompiler::ReflectAllShaderStages(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<uint32_t>>& spirvData)
+	void DirectXShaderCompiler::ReflectAllShaderStages(const std::unordered_map<ShaderUtils::ShaderStage, std::vector<uint32_t>>& spirvData)
 	{
 		for (const auto& [stage, spirvBinary] : spirvData)
 		{
@@ -972,11 +981,11 @@ namespace Shark {
 		}
 	}
 
-	void DirectXShaderCompiler::ReflectShaderStage(ShaderUtils::ShaderStage::Type stage, const std::vector<uint32_t>& spirvBinary)
+	void DirectXShaderCompiler::ReflectShaderStage(ShaderUtils::ShaderStage stage, const std::vector<uint32_t>& spirvBinary)
 	{
 		SK_CORE_TRACE_TAG("Renderer", "===========================");
 		SK_CORE_TRACE_TAG("Renderer", " DirectX Shader Reflection ");
-		SK_CORE_TRACE_TAG("Renderer", "{0:^27}", ToString(stage));
+		SK_CORE_TRACE_TAG("Renderer", "{0:^27}", stage);
 		SK_CORE_TRACE_TAG("Renderer", "===========================");
 
 		spirv_cross::Compiler compiler(spirvBinary);
@@ -996,7 +1005,7 @@ namespace Shark {
 				ShaderReflection::VariableType type = utils::GetVariableType(inputType);
 				
 				SK_CORE_TRACE_TAG("Renderer", "  Name: {}", stageInput.name);
-				SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(type));
+				SK_CORE_TRACE_TAG("Renderer", "  Type: {}", type);
 			}
 		}
 
@@ -1021,13 +1030,16 @@ namespace Shark {
 
 			std::string d3dName;
 			if (m_Language == ShaderUtils::ShaderLanguage::HLSL)
-				d3dName = fmt::format("type_ConstantBuffer_{}", name.substr(2));
+			{
+				d3dName = compiler.get_name(bufferType.self);
+				String::Replace(d3dName, ".", "_");
+			}
 			else
 				d3dName = name.substr(2);
 
 			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
 			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(d3dName.c_str(), &d3dInputDesc);
-			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
+			SK_CORE_VERIFY(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
 			if (SUCCEEDED(hResult))
 			{
 				resource.DXBinding = d3dInputDesc.BindPoint;
@@ -1054,7 +1066,7 @@ namespace Shark {
 				offset += memberData.Size;
 
 				SK_CORE_TRACE_TAG("Renderer", "   Member: {}", memberData.Name);
-				SK_CORE_TRACE_TAG("Renderer", "    - Type: {}", ToString(memberData.Type));
+				SK_CORE_TRACE_TAG("Renderer", "    - Type: {}", memberData.Type);
 				SK_CORE_TRACE_TAG("Renderer", "    - Size: {}", memberData.Size);
 				SK_CORE_TRACE_TAG("Renderer", "    - Offset: {}", memberData.Offset);
 			}
@@ -1078,15 +1090,20 @@ namespace Shark {
 
 			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
 			m_ReflectionData.NameCache[name] = { set, binding };
-			auto& data = m_ReflectionData.Resources[set][binding];
-			data.Name = name;
-			data.Stage = utils::ToShaderReflectionShaderStage(stage);
-			data.Type = ShaderReflection::ResourceType::ConstantBuffer;
-			data.StructSize = size;
+			ShaderReflection::Resource& resource = m_ReflectionData.Resources[set][binding];
+			resource.Name = name;
+			resource.Set = set;
+			resource.Binding = binding;
+			resource.Stage = utils::ToShaderReflectionShaderStage(stage);
+			resource.Type = ShaderReflection::ResourceType::ConstantBuffer;
+			resource.StructSize = size;
 
 			std::string d3dName;
 			if (m_Language == ShaderUtils::ShaderLanguage::HLSL)
-				d3dName = fmt::format("type_ConstantBuffer_{}", name.substr(2));
+			{
+				d3dName = constantBuffer.name;
+				String::Replace(d3dName, ".", "_");
+			}
 			else
 				d3dName = name.substr(2);
 
@@ -1095,12 +1112,12 @@ namespace Shark {
 			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
 			if (SUCCEEDED(hResult))
 			{
-				data.DXBinding = d3dInputDesc.BindPoint;
+				resource.DXBinding = d3dInputDesc.BindPoint;
 			}
 
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", name);
 			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
-			SK_CORE_TRACE_TAG("Renderer", "  DXBinding: {}", data.DXBinding);
+			SK_CORE_TRACE_TAG("Renderer", "  DXBinding: {}", resource.DXBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  Size: {}", size);
 			SK_CORE_TRACE_TAG("Renderer", "  Members: {}", memberCount);
 
@@ -1123,7 +1140,7 @@ namespace Shark {
 				offset += memberData.Size;
 
 				SK_CORE_TRACE_TAG("Renderer", "   Member: {}", memberData.Name);
-				SK_CORE_TRACE_TAG("Renderer", "    - Type: {}", ToString(memberData.Type));
+				SK_CORE_TRACE_TAG("Renderer", "    - Type: {}", memberData.Type);
 				SK_CORE_TRACE_TAG("Renderer", "    - Size: {}", memberData.Size);
 				SK_CORE_TRACE_TAG("Renderer", "    - Offset: {}", memberData.Offset);
 			}
@@ -1145,27 +1162,29 @@ namespace Shark {
 
 			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
 			m_ReflectionData.NameCache[name] = { set, binding };
-			auto& data = m_ReflectionData.Resources[set][binding];
-			data.Name = name;
-			data.Stage = utils::ToShaderReflectionShaderStage(stage);
-			data.Type = ShaderReflection::ResourceType::StorageBuffer;
+			auto& resource = m_ReflectionData.Resources[set][binding];
+			resource.Name = name;
+			resource.Set = set;
+			resource.Binding = binding;
+			resource.Stage = utils::ToShaderReflectionShaderStage(stage);
+			resource.Type = ShaderReflection::ResourceType::StorageBuffer;
 			
 			auto memberStructID = bufferType.member_types[0];
 			const spirv_cross::SPIRType& memberStructType = compiler.get_type(memberStructID);
-			data.StructSize = (uint32_t)compiler.get_declared_struct_size(memberStructType);
+			resource.StructSize = (uint32_t)compiler.get_declared_struct_size(memberStructType);
 
 			D3D11_SHADER_INPUT_BIND_DESC d3dInputDesc;
 			HRESULT hResult = d3dReflector->GetResourceBindingDescByName(name.c_str(), &d3dInputDesc);
 			SK_CORE_ASSERT(SUCCEEDED(hResult), "{:x} {}", hResult, WindowsUtils::TranslateHResult(hResult));
 			if (SUCCEEDED(hResult))
 			{
-				data.DXBinding = d3dInputDesc.BindPoint;
+				resource.DXBinding = d3dInputDesc.BindPoint;
 			}
 
-			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", data.Name);
+			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", resource.Name);
 			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
-			SK_CORE_TRACE_TAG("Renderer", "  DXBinding: {}", data.DXBinding);
-			SK_CORE_TRACE_TAG("Renderer", "  Size: {}", data.StructSize);
+			SK_CORE_TRACE_TAG("Renderer", "  DXBinding: {}", resource.DXBinding);
+			SK_CORE_TRACE_TAG("Renderer", "  Size: {}", resource.StructSize);
 			SK_CORE_TRACE_TAG("Renderer", "-------------------");
 		}
 
@@ -1182,6 +1201,8 @@ namespace Shark {
 			m_ReflectionData.NameCache[name] = { set, binding };
 			auto& reflectionData = m_ReflectionData.Resources[set][binding];
 			reflectionData.Name = name;
+			reflectionData.Set = set;
+			reflectionData.Binding = binding;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
 
 			if (!imageType.array.empty())
@@ -1224,7 +1245,7 @@ namespace Shark {
 
 
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
-			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
+			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", reflectionData.Type);
 			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
 			SK_CORE_TRACE_TAG("Renderer", "  DX Binding: {}", reflectionData.DXBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  DX Sampler Binding: {}", reflectionData.DXSamplerBinding);
@@ -1244,6 +1265,8 @@ namespace Shark {
 			m_ReflectionData.NameCache[resource.name] = { set, binding };
 			auto& reflectionData = m_ReflectionData.Resources[set][binding];
 			reflectionData.Name = resource.name;
+			reflectionData.Set = set;
+			reflectionData.Binding = binding;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
 
 			if (!imageType.array.empty())
@@ -1268,7 +1291,7 @@ namespace Shark {
 			}
 
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
-			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
+			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", reflectionData.Type);
 			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
 			SK_CORE_TRACE_TAG("Renderer", "  DX Binding: {}", reflectionData.DXBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  DX Sampler Binding: {}", reflectionData.DXSamplerBinding);
@@ -1289,6 +1312,8 @@ namespace Shark {
 			m_ReflectionData.NameCache[resource.name] = { set, binding };
 			auto& reflectionData = m_ReflectionData.Resources[set][binding];
 			reflectionData.Name = resource.name;
+			reflectionData.Set = set;
+			reflectionData.Binding = binding;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
 
 			if (!imageType.array.empty())
@@ -1311,7 +1336,7 @@ namespace Shark {
 			}
 
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
-			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
+			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", reflectionData.Type);
 			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
 			SK_CORE_TRACE_TAG("Renderer", "  DX Binding: {}", reflectionData.DXBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  DX Sampler Binding: {}", reflectionData.DXSamplerBinding);
@@ -1328,10 +1353,12 @@ namespace Shark {
 			uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 
-			SK_CORE_VERIFY(m_ReflectionData.Resources[set].contains(binding) == false);
+			SK_CORE_VERIFY((m_ReflectionData.Resources.contains(set) && m_ReflectionData.Resources.at(set).contains(binding)) == false);
 			m_ReflectionData.NameCache[resource.name] = { set, binding };
 			auto& reflectionData = m_ReflectionData.Resources[set][binding];
 			reflectionData.Name = resource.name;
+			reflectionData.Set = set;
+			reflectionData.Binding = binding;
 			reflectionData.Stage = utils::ToShaderReflectionShaderStage(stage);
 
 			if (!imageType.array.empty())
@@ -1349,7 +1376,7 @@ namespace Shark {
 			}
 
 			SK_CORE_TRACE_TAG("Renderer", "  Name: {}", reflectionData.Name);
-			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", ToString(reflectionData.Type));
+			SK_CORE_TRACE_TAG("Renderer", "  Type: {}", reflectionData.Type);
 			SK_CORE_TRACE_TAG("Renderer", "  Binding: {}.{}", set, binding);
 			SK_CORE_TRACE_TAG("Renderer", "  DX Binding: {}", reflectionData.DXBinding);
 			SK_CORE_TRACE_TAG("Renderer", "  DX Sampler Binding: {}", reflectionData.DXSamplerBinding);

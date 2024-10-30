@@ -7,17 +7,21 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Input/Input.h"
 
-#include "Shark/UI/UI.h"
-#include "Shark/ImGui/ImGuiHelpers.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Controls.h"
 
 #include "Shark/Math/Math.h"
 #include "Shark/Debug/Profiler.h"
+
+#include "Platform/DirectX11/DirectXTexture.h"
 
 namespace Shark {
 
 	TextureEditorPanel::TextureEditorPanel(const std::string& panelName, const AssetMetaData& metadata)
 		: EditorPanel(panelName)
 	{
+		m_CommandBuffer = RenderCommandBuffer::Create();
+
 		SetAsset(metadata);
 	}
 
@@ -33,21 +37,20 @@ namespace Shark {
 		m_IsSharkTexture = metadata.FilePath.extension() == ".sktex";
 		m_TextureHandle = metadata.Handle;
 		m_SetupWindows = true;
-		m_Views.clear();
+		m_PerMipView.clear();
 
-		Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(metadata.Handle);
-		AssetHandle handle = AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(texture->GetSpecification());
-		m_EditTexture = AssetManager::GetAsset<Texture2D>(handle);
-		Renderer::CopyImage(Renderer::GetCommandBuffer(), texture->GetImage(), m_EditTexture->GetImage());
+		m_Texture = AssetManager::GetAsset<Texture2D>(metadata.Handle);
 
+		TextureSpecification backupSpec = m_Texture->GetSpecification();
+		backupSpec.DebugName = "TextureEditor-Backup";
+		m_BackupTexture = Texture2D::Create(backupSpec);
+
+		m_CommandBuffer->Begin();
+		Renderer::CopyImage(m_CommandBuffer, m_Texture->GetImage(), m_BackupTexture->GetImage());
+		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
+		
 		CreateImageViews();
-
-		const TextureSpecification& specification = texture->GetSpecification();
-		m_ImageFormat = fmt::to_string(specification.Format);
-		m_GenerateMips = specification.GenerateMips;
-		m_FilterMode = specification.Filter;
-		m_WrapMode = specification.Wrap;
-		m_MaxAnisotropy = specification.MaxAnisotropy;
 	}
 
 	void TextureEditorPanel::DockWindow(ImGuiID dockspace)
@@ -78,6 +81,8 @@ namespace Shark {
 
 		if (ImGui::Begin(m_PanelName.c_str(), &m_Active))
 		{
+			m_Focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
 			if (ImGui::BeginTable("TextureEditor", 2, ImGuiTableFlags_Resizable))
 			{
 				ImGui::TableNextRow();
@@ -88,15 +93,15 @@ namespace Shark {
 				if (maxSize.x < maxSize.y)
 				{
 					imageSize.x = maxSize.x;
-					imageSize.y = maxSize.x * m_EditTexture->GetAspectRatio();
+					imageSize.y = maxSize.x * m_Texture->GetAspectRatio();
 				}
 				else
 				{
-					imageSize.x = maxSize.y * m_EditTexture->GetVerticalAspectRatio();
+					imageSize.x = maxSize.y * m_Texture->GetVerticalAspectRatio();
 					imageSize.y = maxSize.y;
 				}
 
-				UI::Image(m_Views[m_MipIndex], imageSize);
+				UI::Image(m_PerMipView[m_MipIndex], imageSize);
 
 				ImGui::TableSetColumnIndex(1);
 				UI_DrawSettings();
@@ -108,6 +113,22 @@ namespace Shark {
 
 	}
 
+	void TextureEditorPanel::OnEvent(Event& event)
+	{
+		EventDispacher dispacher(event);
+		dispacher.DispachEvent<AssetReloadedEvent>([this](AssetReloadedEvent& e)
+		{
+			if (e.Asset == m_TextureHandle)
+			{
+				if (m_Focused)
+					ImGui::ClearActiveID();
+
+				SetAsset(Project::GetActiveEditorAssetManager()->GetMetadata(m_TextureHandle));
+			}
+			return false;
+		});
+	}
+
 	void TextureEditorPanel::UI_DrawSettings()
 	{
 		SK_PROFILE_FUNCTION();
@@ -115,102 +136,124 @@ namespace Shark {
 		const auto& capabilities = Renderer::GetCapabilities();
 
 		if (!m_IsSharkTexture)
-			ImGui::Text("Editor is disabled because the texture is not a Shark Texture (.sktex)");
+		{
+			ImGui::Text("Texture is not a Shark Texture (.sktex)\nChanges aren't saved");
+		}
 
-		UI::ScopedDisabled disabled(!m_IsSharkTexture);
+		const auto nativeTextureTooltip = [this]()
+		{
+			if (!m_IsSharkTexture && ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
+				ImGui::SetTooltip("Changes can't be saved.\nTry converting this to a Shark Texture (*.sktex)");
+		};
 
 		bool changed = false;
 
 		UI::BeginControlsGrid();
 
-		UI::Property("Format", m_ImageFormat);
-		UI::Control("Generate Mipmap", m_GenerateMips);
+		TextureSpecification& spec = m_Texture->GetSpecification();
+		changed |= UI::ControlCombo("Format", spec.Format);
+
+		nativeTextureTooltip();
+		bool genMipsChanged = UI::Control("Generate Mipmap", spec.GenerateMips);
+		nativeTextureTooltip();
 
 		{
-			UI::ScopedDisabled disabled(!m_GenerateMips);
-			UI::ControlCustom("Mip", [this]()
-			{
-				ImGui::SetNextItemWidth(-1.0);
-				ImGui::SliderScalar("#mip", ImGuiDataType_U32, m_MipIndex, 0, (uint32_t)m_Views.size() - 1);
-			});
+			UI::ScopedDisabled disabled(!spec.GenerateMips);
+			UI::ControlSlider("Mip", m_MipIndex, 0, (uint32_t)m_PerMipView.size() - 1);
+			nativeTextureTooltip();
 		}
 
-		changed |= UI::ControlCombo("Filter", (uint16_t&)m_FilterMode, s_FilterItems, std::size(s_FilterItems));
-		changed |= UI::ControlCombo("Wrap", (uint16_t&)m_WrapMode, s_WrapItems, std::size(s_WrapItems));
-		changed |= UI::Control("Max Anisotropy", m_MaxAnisotropy, 0.05f, 0, capabilities.MaxAnisotropy);
+		changed |= UI::ControlCombo("Filter", spec.Filter);
+		nativeTextureTooltip();
+		changed |= UI::ControlCombo("Wrap", spec.Wrap);
+		nativeTextureTooltip();
+		changed |= UI::Control("Max Anisotropy", spec.MaxAnisotropy, 0.05f, 0, capabilities.MaxAnisotropy);
+		nativeTextureTooltip();
 
-		UI::EndControls();
+		UI::EndControlsGrid();
+
+		ImGui::Separator();
 
 		ImGui::Separator();
 
 		if (changed)
 		{
-			TextureSpecification& specification = m_EditTexture->GetSpecification();
-			specification.Filter = m_FilterMode;
-			specification.Wrap = m_WrapMode;
-			specification.MaxAnisotropy = m_MaxAnisotropy;
-			m_EditTexture->RT_Invalidate();
+			m_Texture->RT_Invalidate();
+			
+			m_CommandBuffer->Begin();
+			Renderer::CopyMip(m_CommandBuffer, m_BackupTexture->GetImage(), 0, m_Texture->GetImage(), 0);
+			Renderer::GenerateMips(m_CommandBuffer, m_Texture->GetImage());
+			m_CommandBuffer->End();
+			m_CommandBuffer->Execute();
 
-			Ref<Texture2D> sourceTexture = AssetManager::GetAsset<Texture2D>(m_TextureHandle);
-			Renderer::CopyImage(Renderer::GetCommandBuffer(), sourceTexture->GetImage(), m_EditTexture->GetImage());
 			CreateImageViews();
 		}
 
-		if (m_GenerateMips != m_EditTexture->GetSpecification().GenerateMips)
-		{
-			m_EditTexture->GetSpecification().GenerateMips = m_GenerateMips;
-			m_EditTexture->RT_Invalidate();
-			CreateImageViews();
-		}
+		ImGui::BeginVertical("##buttonAlignVertical", ImGui::GetContentRegionAvail());
+		ImGui::Spring();
+		UI::Fonts::Push("Medium");
+		ImGui::BeginHorizontal("##buttonAlignHorizontal", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+		ImGui::Spring();
 
 		if (ImGui::Button("Reset"))
 		{
-			Ref<Texture2D> sourceTexture = AssetManager::GetAsset<Texture2D>(m_TextureHandle);
-			const TextureSpecification& sourceSpec = sourceTexture->GetSpecification();
-
-			if (m_GenerateMips != sourceSpec.GenerateMips || m_FilterMode != sourceSpec.Filter || m_WrapMode != sourceSpec.Wrap || m_MaxAnisotropy != sourceSpec.MaxAnisotropy)
+			auto& specification = m_Texture->GetSpecification();
+			const auto& backupSpec = m_BackupTexture->GetSpecification();
+			
+			if (backupSpec.Format != specification.Format || backupSpec.GenerateMips != specification.GenerateMips ||
+				backupSpec.Filter != specification.Filter || backupSpec.Wrap != specification.Wrap || backupSpec.MaxAnisotropy != specification.MaxAnisotropy)
 			{
-				m_GenerateMips = sourceSpec.GenerateMips;
-				m_FilterMode = sourceSpec.Filter;
-				m_WrapMode = sourceSpec.Wrap;
-				m_MaxAnisotropy = sourceSpec.MaxAnisotropy;
+				specification = backupSpec;
+				m_Texture->RT_Invalidate();
+				
+				m_CommandBuffer->Begin();
+				Renderer::CopyImage(m_CommandBuffer, m_BackupTexture->GetImage(), m_Texture->GetImage());
+				m_CommandBuffer->End();
+				m_CommandBuffer->Execute();
 
-				TextureSpecification& textureSpecification = m_EditTexture->GetSpecification();
-				textureSpecification.GenerateMips = m_GenerateMips;
-				textureSpecification.Filter = m_FilterMode;
-				textureSpecification.Wrap = m_WrapMode;
-				textureSpecification.MaxAnisotropy = m_MaxAnisotropy;
-				m_EditTexture->RT_Invalidate();
 				CreateImageViews();
 			}
 		}
+		UI::Fonts::PushDefault();
+		nativeTextureTooltip();
+		UI::Fonts::Pop();
 
-		ImGui::SameLine();
-
-		if (ImGui::Button("Save"))
+		if (ImGui::Button("Save") && m_IsSharkTexture)
 		{
-			Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(m_TextureHandle);
-			TextureSpecification& specification = texture->GetSpecification();
-			specification.GenerateMips = m_GenerateMips;
-			specification.Filter = m_FilterMode;
-			specification.Wrap = m_WrapMode;
-			specification.MaxAnisotropy = m_MaxAnisotropy;
-			texture->Invalidate();
-			Renderer::CopyImage(Renderer::GetCommandBuffer(), m_EditTexture->GetImage(), texture->GetImage());
 			Project::GetActiveEditorAssetManager()->SaveAsset(m_TextureHandle);
 		}
+		UI::Fonts::PushDefault();
+		nativeTextureTooltip();
+		UI::Fonts::Pop();
+
+		UI::Fonts::Pop();
+
+		ImGui::EndHorizontal();
+		ImGui::EndVertical();
 	}
 
 	void TextureEditorPanel::CreateImageViews()
 	{
-		m_MipIndex = 0;
-		m_Views.clear();
-		Ref<Image2D> image = m_EditTexture->GetImage();
-		for (uint32_t i = 0; i < image->GetSpecification().MipLevels - 1; i++)
+		const uint32_t mipLevels = m_Texture->GetMipLevels();
+		m_PerMipView.resize(mipLevels);
+
+		Ref<Image2D> image = m_Texture->GetImage();
+		for (uint32_t i = 0; i < mipLevels; i++)
 		{
-			Ref<ImageView> view = ImageView::Create(image, i);
-			m_Views.push_back(view);
+			if (!m_PerMipView[i])
+			{
+				ImageViewSpecification specification;
+				specification.Image = image;
+				specification.MipSlice = i;
+				m_PerMipView[i] = ImageView::Create(specification);
+			}
+			else
+			{
+				m_PerMipView[i]->RT_Invalidate();
+			}
 		}
+
+		m_MipIndex = glm::clamp(m_MipIndex, 0u, mipLevels - 1);
 	}
 
 }

@@ -166,7 +166,7 @@ namespace Shark {
 		MonoType* componentType = mono_reflection_type_from_name(managedComponentName.data(), ScriptEngine::GetCoreAssemblyInfo().Image);
 
 		auto& bindings = s_EntityBindings[componentType];
-		bindings.HasComponent = [](Entity entity) { return entity.AllOf<Component>(); };
+		bindings.HasComponent = [](Entity entity) { return entity.HasComponent<Component>(); };
 		bindings.AddComponent = [](Entity entity) { entity.AddComponent<Component>(); };
 		bindings.RemoveComponent = [](Entity entity) { entity.RemoveComponent<Component>(); };
 	}
@@ -805,7 +805,7 @@ namespace Shark {
 			auto& transform = entity.Transform();
 			transform.Translation = *translation;
 
-			if (entity.AllOf<RigidBody2DComponent>())
+			if (entity.HasComponent<RigidBody2DComponent>())
 			{
 				auto& rigidBody = entity.GetComponent<RigidBody2DComponent>();
 				if (rigidBody.RuntimeBody)
@@ -832,7 +832,7 @@ namespace Shark {
 			auto& transform = entity.Transform();
 			transform.Rotation = *rotation;
 
-			if (entity.AllOf<RigidBody2DComponent>())
+			if (entity.HasComponent<RigidBody2DComponent>())
 			{
 				auto& rigidBody = entity.GetComponent<RigidBody2DComponent>();
 				if (rigidBody.RuntimeBody)
@@ -910,7 +910,7 @@ namespace Shark {
 			Ref<Scene> scene = utils::GetScene();
 
 			glm::mat4 transform = worldTransform->CalcTransform();
-			glm::mat4 parentTransform = entity.Parent().CalcTransform();
+			glm::mat4 parentTransform = entity.Parent().Transform().CalcTransform();
 
 			glm::mat4 localTransform = glm::inverse(parentTransform) * transform;
 
@@ -927,7 +927,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<SpriteRendererComponent>())
+			if (!entity.HasComponent<SpriteRendererComponent>())
 				return;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
@@ -939,7 +939,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<SpriteRendererComponent>())
+			if (!entity.HasComponent<SpriteRendererComponent>())
 				return;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
@@ -951,7 +951,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return AssetHandle::Invalid;
-			if (!entity.AllOf<SpriteRendererComponent>())
+			if (!entity.HasComponent<SpriteRendererComponent>())
 				return AssetHandle::Invalid;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
@@ -963,7 +963,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<SpriteRendererComponent>())
+			if (!entity.HasComponent<SpriteRendererComponent>())
 				return;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
@@ -975,7 +975,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<SpriteRendererComponent>())
+			if (!entity.HasComponent<SpriteRendererComponent>())
 				return;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
@@ -987,7 +987,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<SpriteRendererComponent>())
+			if (!entity.HasComponent<SpriteRendererComponent>())
 				return;
 
 			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
@@ -1003,7 +1003,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleRendererComponent>())
+			if (!entity.HasComponent<CircleRendererComponent>())
 				return;
 
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
@@ -1015,7 +1015,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleRendererComponent>())
+			if (!entity.HasComponent<CircleRendererComponent>())
 				return;
 
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
@@ -1027,7 +1027,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CircleRendererComponent>())
+			if (!entity.HasComponent<CircleRendererComponent>())
 				return 0.0f;
 
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
@@ -1039,7 +1039,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleRendererComponent>())
+			if (!entity.HasComponent<CircleRendererComponent>())
 				return;
 
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
@@ -1051,7 +1051,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CircleRendererComponent>())
+			if (!entity.HasComponent<CircleRendererComponent>())
 				return 0.0f;
 
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
@@ -1063,7 +1063,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleRendererComponent>())
+			if (!entity.HasComponent<CircleRendererComponent>())
 				return;
 
 			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
@@ -1077,7 +1077,7 @@ namespace Shark {
 		void CameraComponent_RecalculateProjectionMatrix(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity || !entity.AllOf<CameraComponent>())
+			if (!entity || !entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1089,7 +1089,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1101,7 +1101,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1111,7 +1111,7 @@ namespace Shark {
 		bool CameraComponent_GetIsPerspective(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity || !entity.AllOf<CameraComponent>())
+			if (!entity || !entity.HasComponent<CameraComponent>())
 				return false;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1121,7 +1121,7 @@ namespace Shark {
 		void CameraComponent_SetIsPerspective(uint64_t id, bool isPerspective)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity || !entity.AllOf<CameraComponent>())
+			if (!entity || !entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1133,7 +1133,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1149,7 +1149,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1165,7 +1165,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return 0.0f;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1177,7 +1177,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1189,7 +1189,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return 0.0f;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1201,7 +1201,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1213,7 +1213,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return 0.0f;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1225,7 +1225,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1237,7 +1237,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return 0.0f;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1249,7 +1249,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1261,7 +1261,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return 0.0f;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1273,7 +1273,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CameraComponent>())
+			if (!entity.HasComponent<CameraComponent>())
 				return;
 
 			auto& component = entity.GetComponent<CameraComponent>();
@@ -1336,14 +1336,12 @@ namespace Shark {
 		RigidBody2DComponent::BodyType RigidBody2DComponent_GetBodyType(uint64_t id)
 		{
 			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return RigidBody2DComponent::BodyType::None;
-			if (!entity.AllOf<RigidBody2DComponent>())
-				return RigidBody2DComponent::BodyType::None;
+			if (!entity || !entity.HasComponent<RigidBody2DComponent>())
+				return RigidBody2DComponent::BodyType::Static;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
 			if (!body)
-				return RigidBody2DComponent::BodyType::None;
+				return RigidBody2DComponent::BodyType::Static;
 
 			return utils::b2BodyTypeToSharkBodyType(body->GetType());
 		}
@@ -1353,7 +1351,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1368,7 +1366,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1388,7 +1386,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1404,7 +1402,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1419,7 +1417,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1434,7 +1432,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1450,7 +1448,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1466,7 +1464,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1482,7 +1480,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1497,7 +1495,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return 0.0f;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1512,7 +1510,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1527,7 +1525,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1545,7 +1543,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1563,7 +1561,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1581,7 +1579,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return 0.0f;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1596,7 +1594,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
@@ -1614,7 +1612,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return 0.0f;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1629,7 +1627,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1644,7 +1642,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return 0.0f;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1659,7 +1657,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1674,7 +1672,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return false;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1689,7 +1687,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
@@ -1707,7 +1705,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return false;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1722,7 +1720,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
@@ -1740,7 +1738,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return false;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1755,7 +1753,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
@@ -1773,7 +1771,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return false;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1788,7 +1786,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
@@ -1806,7 +1804,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return false;
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
@@ -1821,7 +1819,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<RigidBody2DComponent>())
+			if (!entity.HasComponent<RigidBody2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
@@ -1843,7 +1841,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -1861,7 +1859,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return false;
 
 			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
@@ -1876,7 +1874,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -1894,7 +1892,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return 0.0f;
 
 			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
@@ -1909,7 +1907,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -1927,7 +1925,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return 0.0f;
 
 			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
@@ -1942,7 +1940,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -1960,7 +1958,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return 0.0f;
 
 			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
@@ -1975,7 +1973,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -1993,7 +1991,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return 0.0f;
 
 			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
@@ -2008,7 +2006,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -2020,7 +2018,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -2040,7 +2038,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -2052,7 +2050,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -2072,7 +2070,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return 0.0f;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -2084,7 +2082,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<BoxCollider2DComponent>())
+			if (!entity.HasComponent<BoxCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
@@ -2108,7 +2106,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2126,7 +2124,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return false;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return false;
 
 			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
@@ -2141,7 +2139,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2159,7 +2157,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return 0.0f;
 
 			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
@@ -2174,7 +2172,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2192,7 +2190,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return 0.0f;
 
 			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
@@ -2207,7 +2205,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2225,7 +2223,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return 0.0f;
 
 			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
@@ -2240,7 +2238,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2258,7 +2256,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return 0.0f;
 
 			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
@@ -2273,7 +2271,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return 0.0f;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2285,7 +2283,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2306,7 +2304,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2318,7 +2316,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2339,7 +2337,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return 0.0f;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return 0.0f;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
@@ -2351,7 +2349,7 @@ namespace Shark {
 			Entity entity = utils::TryGetEntity(id);
 			if (!entity)
 				return;
-			if (!entity.AllOf<CircleCollider2DComponent>())
+			if (!entity.HasComponent<CircleCollider2DComponent>())
 				return;
 
 			auto& comp = entity.GetComponent<CircleCollider2DComponent>();

@@ -23,6 +23,7 @@ namespace Shark {
 
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
+		virtual uint32_t GetMipLevels() const override { return m_Image->GetSpecification().MipLevels; }
 		virtual float GetAspectRatio() const override { return (float)GetWidth() / (float)GetHeight(); }
 		virtual float GetVerticalAspectRatio() const override { return (float)GetHeight() / (float)GetWidth(); }
 

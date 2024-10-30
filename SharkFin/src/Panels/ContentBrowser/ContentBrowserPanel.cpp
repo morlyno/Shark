@@ -6,9 +6,9 @@
 #include "Shark/Asset/AssetUtils.h"
 #include "Shark/Event/ApplicationEvent.h"
 
-#include "Shark/ImGui/TextFilter.h"
-
+#include "Shark/UI/Widgets.h"
 #include "Shark/UI/EditorResources.h"
+
 #include "EditorSettings.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -123,7 +123,7 @@ namespace Shark {
 						//UI::ScopedStyle rowSpacing(ImGuiStyleVar_ItemSpacing, { padding, 24.0f });
 						UI::ScopedStyle rowSpacing(ImGuiStyleVar_CellPadding, { padding, padding });
 
-						ImGuiMultiSelectFlags multiSelectFlags = ImGuiMultiSelectFlags_ClearOnEscape | ImGuiMultiSelectFlags_ClearOnClickVoid | ImGuiMultiSelectFlags_BoxSelect2d | ImGuiMultiSelectFlags_NavWrapX;
+						ImGuiMultiSelectFlags multiSelectFlags = /*ImGuiMultiSelectFlags_ClearOnEscape | */ImGuiMultiSelectFlags_ClearOnClickVoid | ImGuiMultiSelectFlags_BoxSelect2d | ImGuiMultiSelectFlags_NavWrapX;
 						multiSelectFlags |= ImGuiMultiSelectFlags_NoBoxSelectOverItem;
 						ImGuiMultiSelectIO* selectionRequests = ImGui::BeginMultiSelect(multiSelectFlags, (int)SelectionManager::GetSelections(SelectionContext::ContentBrowser).size(), (int)m_CurrentItems.Items.size());
 						ApplySelectionRequests(selectionRequests, true);
@@ -570,6 +570,10 @@ namespace Shark {
 
 			if (!m_ThumbnailCache->IsThumbnailCurrent(assetHandle) && AssetManager::IsValidAssetHandle(assetHandle))
 			{
+
+				if (!AssetManager::DependenciesLoaded(assetHandle, true))
+					continue;
+
 				Ref<Image2D> thumbnail = m_ThumbnailGenerator->GenerateThumbnail(assetHandle);
 				if (thumbnail)
 					m_ThumbnailCache->SetThumbnail(assetHandle, thumbnail);
@@ -583,12 +587,12 @@ namespace Shark {
 	{
 		CBItemList foundItems;
 		UI::TextFilter filter(filterPaddern.c_str());
-		filter.SetMode(String::Case::Ingnore);
+		filter.SetMode(String::Case::Ignore);
 
 		for (auto subdir : directory->SubDirectories)
 		{
 			std::string name = subdir->Name;
-			if (filter.PassFilter(subdir->Name.c_str()))
+			if (filter.PassesFilter(subdir->Name.c_str()))
 			{
 				foundItems.Add(Ref<ContentBrowserDirectory>::Create(this, subdir));
 			}
@@ -613,7 +617,7 @@ namespace Shark {
 			std::string_view assetTypeString = magic_enum::enum_name(assetType);
 
 			std::string text = fmt::format("{} {}", filename, assetTypeString);
-			if (filter.PassFilter(text) || filter.PassFilter(text))
+			if (filter.PassesFilter(text) || filter.PassesFilter(text))
 			{
 				Ref<Texture2D> icon = GetAssetIcon(FileSystem::GetExtensionString(filepath));
 				foundItems.Add(Ref<ContentBrowserAsset>::Create(this, metadata, icon));
@@ -673,6 +677,12 @@ namespace Shark {
 
 		switch (event.GetKeyCode())
 		{
+			case KeyCode::Escape:
+			{
+				SelectionManager::Clear(SelectionContext::ContentBrowser);
+				return true;
+			}
+
 #if TODO
 			case KeyCode::Delete:
 			{
@@ -869,8 +879,8 @@ namespace Shark {
 			const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
 			const ImVec2 buttonSizeNoFP = { ImGui::GetFontSize(), ImGui::GetFontSize() };
 
-			const ImU32 buttonColN = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 0.9f);
-			const ImU32 buttonColH = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f);
+			const ImU32 buttonColN = UI::Colors::WithMultipliedValue(UI::Colors::Theme::Text, 0.9f);
+			const ImU32 buttonColH = UI::Colors::WithMultipliedValue(UI::Colors::Theme::Text, 1.2f);
 			const ImU32 buttonColP = UI::Colors::Theme::TextDarker;
 
 			ImGui::BeginDisabled(IsSearchActive());
@@ -918,7 +928,7 @@ namespace Shark {
 
 		// Search
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.2f);
-		if (UI::Search(UI::GenerateID(), m_SearchBuffer, (int)std::size(m_SearchBuffer)))
+		if (UI::Widgets::Search(m_SearchBuffer))
 		{
 			NextDirectory(m_CurrentDirectory, false, false);
 
@@ -993,8 +1003,8 @@ namespace Shark {
 
 
 			UI::DrawImageButton(EditorResources::SettingsIcon,
-								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 0.9f),
-								UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f),
+								UI::Colors::WithMultipliedValue(UI::Colors::Theme::Text, 0.9f),
+								UI::Colors::WithMultipliedValue(UI::Colors::Theme::Text, 1.2f),
 								UI::Colors::Theme::TextDarker,
 								UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 
@@ -1011,22 +1021,18 @@ namespace Shark {
 
 	void ContentBrowserPanel::DrawDirectoryHierarchy(Ref<DirectoryInfo> directory)
 	{
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
 		if (directory->SubDirectories.empty())
 			flags |= ImGuiTreeNodeFlags_Leaf;
 
 		bool open = false;
 
 		const bool current = directory == m_CurrentDirectory;
-#if 0
-		if (current)
-			flags |= ImGuiTreeNodeFlags_Selected;
-#endif
 
 		{
 			UI::ScopedColor selected(ImGuiCol_Header, UI::Colors::Theme::Selection);
-			UI::ScopedColorConditional hovered(ImGuiCol_HeaderHovered, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 1.2f), current);
-			UI::ScopedColorConditional active(ImGuiCol_HeaderActive, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 0.9f), current);
+			UI::ScopedColorConditional hovered(ImGuiCol_HeaderHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Selection, 1.2f), current);
+			UI::ScopedColorConditional active(ImGuiCol_HeaderActive, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Selection, 0.9f), current);
 
 			if (current)
 			{
@@ -1040,10 +1046,6 @@ namespace Shark {
 				const char* label = directory->Name.c_str();
 				const char* label_end = label + directory->Name.size();
 				const ImVec2 label_size = ImGui::CalcTextSize(label, label_end, false);
-
-				const float text_offset_x = g.FontSize + (display_frame ? padding.x * 3 : padding.x * 2);   // Collapsing arrow width + Spacing
-				const float text_offset_y = std::max(padding.y, window->DC.CurrLineTextBaseOffset);            // Latch before ItemSize changes it
-				const float text_width = g.FontSize + label_size.x + padding.x * 2;                         // Include collapsing arrow
 
 				// We vertically grow up to current line height up the typical widget height.
 				const float frame_height = std::max(std::min(window->DC.CurrLineSize.y, g.FontSize + style.FramePadding.y * 2), label_size.y + padding.y * 2);
@@ -1062,10 +1064,6 @@ namespace Shark {
 				ImU32 colLeft = UI::Colors::Theme::Selection;
 				ImU32 colRight = UI::Colors::Theme::SelectionCompliment;
 				window->DrawList->AddRectFilledMultiColor(frame_bb.Min, frame_bb.Max, colLeft, colRight, colRight, colLeft);
-
-				//const float height = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
-				//ImRect rect;
-				//rect.Min.x = ImGui::GetWor
 			}
 
 			open = ImGui::TreeNodeEx(directory->Name.c_str(), flags);

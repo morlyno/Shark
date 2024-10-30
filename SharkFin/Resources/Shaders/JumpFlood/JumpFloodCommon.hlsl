@@ -1,30 +1,13 @@
 
-struct Camera
+void BoundsCheck(inout float2 xy, float2 uv)
 {
-    matrix ViewProjection;
-    float3 Position;
-    float Padding;
-};
+    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f)
+      xy = float2(1000.0f, 1000.0f);
+}
 
-struct Uniforms
+float ScreenDistance(float2 v, float2 texelSize)
 {
-    float4 TexelSize;
-    float4 OutlineColor;
-    float2 FrameBufferSize;
-    float OutlineWidth;
-    
-    float P0;
-};
-
-[[vk::binding(0, 1)]] ConstantBuffer<Camera> u_Camera;
-[[vk::binding(1, 1)]] ConstantBuffer<Uniforms> u_Uniforms;
-
-[[vk::binding(0, 0)]] uniform Texture2D u_MainTexture;
-
-// just inside the precision of a R16G16_SNorm to keep encoded range 1.0 >= and > -1.0
-#define SNORM16_MAX_FLOAT_MINUS_EPSILON ((float)(32768-2) / (float)(32768-1))
-#define FLOOD_ENCODE_OFFSET float2(1.0, SNORM16_MAX_FLOAT_MINUS_EPSILON)
-#define FLOOD_ENCODE_SCALE float2(2.0, 1.0 + SNORM16_MAX_FLOAT_MINUS_EPSILON)
-
-#define FLOOD_NULL_POS -1.0
-#define FLOOD_NULL_POS_FLOAT2 float2(FLOOD_NULL_POS, FLOOD_NULL_POS)
+    float ratio = texelSize.x / texelSize.y;
+    v.x /= ratio;
+    return dot(v, v);
+}

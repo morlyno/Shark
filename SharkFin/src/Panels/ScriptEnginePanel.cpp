@@ -2,7 +2,9 @@
 #include "ScriptEnginePanel.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Controls.h"
+#include "Shark/Utils/String.h"
 
 namespace Shark {
 
@@ -25,29 +27,50 @@ namespace Shark {
 				ImGui::Text("%llu Script Classes", scriptClasses.size());
 				for (const auto& [id, klass] : scriptClasses)
 				{
-					ImGuiID syncID = ImGui::GetID("PropertyGrid");
 					if (ImGui::TreeNodeEx(klass->GetName().c_str(), UI::DefaultThinHeaderFlags))
 					{
 						const auto& fields = klass->GetFields();
 
 						ImGui::Text("%llu public fields", fields.size());
-						for (const auto& [fieldName, managedField] : fields)
+						if (ImGui::BeginTable(UI::GenerateID(), 2))
 						{
-							if (ImGui::TreeNodeEx(fieldName.c_str(), UI::DefaultThinHeaderFlags))
+							for (const auto& [fieldName, managedField] : fields)
 							{
-								ImVec2 c = ImGui::GetCursorScreenPos();
-								UI::BeginControlsGrid(syncID);
-								UI::Property("Type", ToString(managedField.Type));
-								UI::Property("Accessibility", ToString(managedField.Access));
-								ManagedType fieldType = managedField.GetManagedType();
-								UI::Property("Size", fieldType.GetSize());
-								UI::Property("Alignment", fieldType.GetAlignment());
-								UI::EndControlsGrid();
+								ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowOverlap;
+								//if (openByDefault)
+								//	treeFlags |= ImGuiTreeNodeFlags_DefaultOpen;
+								//if (spanColumns)
+								//	treeFlags |= ImGuiTreeNodeFlags_SpanAllColumns;
 
-								ImGui::TreePop();
+								ImGui::TableNextRow();
+								if (ImGui::TreeNodeEx(fieldName.c_str(), UI::DefaultThinHeaderFlags))
+								{
+									ImGui::TableNextRow();
+									ImGui::Text("Type");
+									ImGui::TableNextColumn();
+									ImGui::Text(magic_enum::enum_name(managedField.Type));
+
+									ImGui::TableNextRow();
+									ImGui::Text("Accessibility");
+									ImGui::TableNextColumn();
+									ImGui::Text(magic_enum::enum_name((Accessibility::Type)managedField.Access));
+
+									ManagedType fieldType = managedField.GetManagedType();
+									ImGui::TableNextRow();
+									ImGui::Text("Size");
+									ImGui::TableNextColumn();
+									ImGui::Text(String::BytesToString(fieldType.GetSize()));
+
+									ImGui::TableNextRow();
+									ImGui::Text("Alignment");
+									ImGui::TableNextColumn();
+									ImGui::Text(String::BytesToString(fieldType.GetAlignment()));
+
+									ImGui::TreePop();
+								}
 							}
+							ImGui::EndTable();
 						}
-
 						ImGui::TreePop();
 					}
 				}

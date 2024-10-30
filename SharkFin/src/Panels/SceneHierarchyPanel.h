@@ -3,16 +3,14 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
-#include "Shark/Render/Texture.h"
 
 #include "Shark/Event/Event.h"
 #include "Shark/Event/KeyEvent.h"
-#include "Shark/Event/ApplicationEvent.h"
 
-#include "Shark/ImGui/TextFilter.h"
+#include "Shark/UI/UIUtilities.h"
+#include "Shark/UI/TextFilter.h"
 
 #include "Panel.h"
-#include "Panels/Editors/MaterialEditorPanel.h"
 
 namespace Shark {
 
@@ -36,27 +34,25 @@ namespace Shark {
 
 	private:
 		bool OnKeyPressedEvent(KeyPressedEvent& event);
-		void HandleSelectionRequests(ImGuiMultiSelectIO* selectionIO);
+		void HandleSelectionRequests(ImGuiMultiSelectIO* selectionIO, bool isBegin);
 
-		void DrawEntityNode(Entity entity, uint32_t& index);
+		void DrawEntityNode(Entity entity, uint32_t& index, const UI::TextFilter& searchFilter);
 		void DrawEntityProperties(const std::vector<Entity>& entities);
-		void DrawAddEntityPopup();
+		void DrawCreateEntityMenu(Entity parent);
 
-		void DestroyEntity(Entity entity);
-		void UpdateMaterialEditor(std::span<Entity> selections);
+		bool SearchTagRecursive(Entity entity, const UI::TextFilter& filter, uint32_t maxSearchDepth, uint32_t currentDepth = 0);
 
 		template<typename Comp, typename UIFunction>
 		void DrawComponet(Entity entity, const char* lable, UIFunction func);
 
 		template<typename Comp, typename UIFunction>
 		void DrawComponetMultiSelect(const std::vector<Entity>& entities, const char* lable, UIFunction func);
+
 	private:
 		Ref<Scene> m_Context;
 
-		Scope<MaterialEditor> m_MaterialEditor = nullptr;
-
 		bool m_TransformInWorldSpace = false;
-		bool m_HirachyFocused = false;
+		bool m_HierarchyFocused = false;
 		bool m_PropertiesFocused = false;
 
 		std::function<void(Entity entity)> m_SelectionChangedCallback = [](auto) {};
@@ -66,13 +62,13 @@ namespace Shark {
 		static constexpr const char* s_GeomatryTypes[] = { "Quad", "Circle" };
 		static constexpr std::string_view s_BodyTypes[] = { "Static", "Dynamic", "Kinematic" };
 
-		struct ComponentData
+		struct ComponentBinding
 		{
 			std::string_view Name;
-			void(*Add)(Entity);
-			bool(*Has)(Entity);
+			void(*AddComponent)(Entity);
+			bool(*HasComponent)(Entity);
 		};
-		std::vector<ComponentData> m_Components;
+		std::vector<ComponentBinding> m_Components;
 
 		char m_SearchComponentBuffer[260]{};
 		UI::TextFilter m_ComponentFilter;
@@ -84,15 +80,26 @@ namespace Shark {
 
 		bool m_DeleteSelected = false;
 		bool m_DeleteChildren = true;
+
+		bool m_ActivateSerach = false;
+		UI::TextFilter m_SearchFilter;
+
+		struct RangeSelectRequest
+		{
+			uint32_t First;
+			uint32_t Last;
+			bool Select;
+			bool ApplyRequest = false;
+		} m_RangeSelectRequest;
 	};
 
 	template<typename Comp, typename UIFunction>
 	void Shark::SceneHierarchyPanel::DrawComponet(Entity entity, const char* lable, UIFunction func)
 	{
-		if (entity.AllOf<Comp>())
+		if (entity.HasComponent<Comp>())
 		{
 			ImGui::PushID(typeid(Comp).name());
-			const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowOverlap);
+			const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_DefaultOpen);
 
 			UI::ScopedID scopedEntityID(entity.GetUUID());
 			const ImVec2 headerEnd = ImGui::GetItemRectMax() - ImGui::GetWindowPos();
@@ -201,6 +208,15 @@ namespace Shark {
 					ImGui::MenuItem("Show World Space", nullptr, &m_TransformInWorldSpace);
 				}
 
+				if constexpr (std::is_same_v<Comp, MeshComponent>)
+				{
+					ImGui::Separator();
+					if (ImGui::MenuItem("Rebuild Mesh Hierarchy"))
+					{
+						m_Context->RebuildMeshEntityHierarchy(entity);
+					}
+				}
+
 				ImGui::EndPopup();
 			}
 
@@ -213,14 +229,14 @@ namespace Shark {
 	{
 		for (Entity entity : entities)
 		{
-			if (!entity.AllOf<Comp>())
+			if (!entity.HasComponent<Comp>())
 				return;
 		}
 
 		Entity firstEntity = entities.front();
 
 		ImGui::PushID(typeid(Comp).name());
-		const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowOverlap);
+		const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_DefaultOpen);
 
 		UI::ScopedID scopedEntityID(firstEntity.GetUUID());
 		const ImVec2 headerEnd = ImGui::GetItemRectMax() - ImGui::GetWindowPos();
@@ -346,6 +362,18 @@ namespace Shark {
 				}
 
 				ImGui::MenuItem("Show World Space", nullptr, &m_TransformInWorldSpace);
+			}
+
+			if constexpr (std::is_same_v<Comp, MeshComponent>)
+			{
+				ImGui::Separator();
+				if (ImGui::MenuItem("Rebuild Mesh Hierarchy"))
+				{
+					for (auto entity : entities)
+					{
+						m_Context->RebuildMeshEntityHierarchy(entity);
+					}
+				}
 			}
 
 			ImGui::EndPopup();

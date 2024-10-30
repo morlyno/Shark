@@ -3,8 +3,7 @@
 
 #include "Shark/Core/SelectionManager.h"
 
-#include "Shark/UI/UI.h"
-#include "Shark/UI/Theme.h"
+#include "Shark/UI/UICore.h"
 #include "Shark/UI/EditorResources.h"
 
 #include "EditorSettings.h"
@@ -13,6 +12,7 @@
 #include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
+
 
 namespace Shark {
 
@@ -99,7 +99,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		CBItemAction action;
 
-		UI::ScopedID id(UI::GetIDWithSeed(this, 0));
+		UI::ScopedID id(ImGui::GetIDWithSeed(this, 0));
 
 		Ref<ContentBrowserPanel> context = m_Context.GetRef();
 		Ref<ThumbnailCache> thumbnailCache = context->GetThumbnailCache();
@@ -133,7 +133,7 @@ namespace Shark {
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0.0f, linePadding });
 
 		ImGui::SetNextItemAllowOverlap();
-		UI::MultiSelectInvisibleButton(UI::GetIDWithSeed(m_ID, 0), isSelected, itemRect.GetSize());
+		UI::MultiSelectInvisibleButton(ImGui::GetIDWithSeed(m_ID, 0), isSelected, itemRect.GetSize());
 
 		const ImGuiID buttonID = ImGui::GetItemID();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip | ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
@@ -216,9 +216,8 @@ namespace Shark {
 											 ImGuiCol_FrameBgActive, 0,
 											 ImGuiCol_FrameBgHovered, 0);
 
-			//ImGui::SetNextItemWidth(thumbnailSize - thumbnailBorderSize * 2.0f - style.FramePadding.x * 2.0f);
 			ImGui::SetNextItemWidth(-1.0f);
-			UI::InputFileName("##rename", s_RenameBuffer, MAX_INPUT_BUFFER_LENGTH);
+			UI::InputText("##rename", s_RenameBuffer, std::size(s_RenameBuffer), ImGuiInputTextFlags_CallbackCharFilter, UI_INPUT_TEXT_FILTER("\\/:*?\"<>|"));
 
 			if (ImGui::IsItemDeactivatedAfterEdit())
 			{
@@ -268,7 +267,7 @@ namespace Shark {
 			UI::ScopedStyle borderSize(ImGuiStyleVar_FrameBorderSize, outlineSize);
 			UI::ScopedClipRect clipRect(UI::RectExpand(ImGui::GetCurrentWindowRead()->ClipRect, outlineSize + 1.0f, outlineSize + 1.0f));
 
-			const ImU32 borderColor = (isHovered || isSelected) ? (isHovered ? UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 1.2f) : UI::Colors::Theme::Selection) : 0;
+			const ImU32 borderColor = (isHovered || isSelected) ? (isHovered ? UI::Colors::WithMultipliedValue(UI::Colors::Theme::Selection, 1.2f) : UI::Colors::Theme::Selection) : 0;
 			//UI::DrawBorder(UI::RectExpand(itemRect, outlineSize, outlineSize), borderColor, cornerRounding, ImDrawFlags_RoundCornersBottom);
 			UI::DrawBorder(UI::RectExpand(itemRect, -1.0f, -1.0f), borderColor, cornerRounding, cornerFlags);
 		}
@@ -342,9 +341,9 @@ namespace Shark {
 		m_IsRenameing = true;
 		strcpy_s(s_RenameBuffer, m_DisplayName.c_str());
 
-		UI::PushID(UI::GetIDWithSeed(this, 0));
+		ImGui::PushID(ImGui::GetIDWithSeed(this, 0));
 		ImGui::ActivateItemByID(ImGui::GetID("##rename"));
-		UI::PopID();
+		ImGui::PopID();
 	}
 
 	void ContentBrowserItem::StopRenaming()
@@ -451,18 +450,25 @@ namespace Shark {
 				if (!AssetManager::IsValidAssetHandle(sourceHandle))
 					sourceHandle = AssetHandle::Invalid;
 			}
-			
-			if (ImGui::MenuItem("Select MeshSource", nullptr, nullptr, sourceHandle))
+
+			if (m_Metadata.Status != AssetStatus::Ready)
+			{
+				ImGui::SetItemTooltip("Mesh not loaded");
+			}
+
+			const bool isValid = AssetManager::IsValidAssetHandle(sourceHandle);
+			if (ImGui::MenuItem("Select MeshSource", nullptr, nullptr, isValid))
 			{
 				auto assetManager = Project::GetActiveEditorAssetManager();
 				const auto& metadata = assetManager->GetMetadata(sourceHandle);
-				Ref<DirectoryInfo> directory = m_Context->FindDirectory(assetManager->GetFilesystemPath(metadata));
+				Ref<DirectoryInfo> directory = m_Context->FindDirectory(FileSystem::GetParent(assetManager->GetFilesystemPath(metadata)));
 				if (directory)
 				{
 					m_Context->NextDirectory(directory);
 					m_Context->SelectItem(metadata.Handle);
 				}
 			}
+
 		}
 
 	}
@@ -550,7 +556,7 @@ namespace Shark {
 		{
 			ImGui::SetDragDropPayload("uuid.cb.directory", &m_ID, sizeof(m_ID));
 			ImGui::Text(m_DisplayName);
-			UI::Texture(m_Icon, { 128, 128 * m_Icon->GetVerticalAspectRatio() });
+			UI::Image(m_Icon, { 128, 128 * m_Icon->GetVerticalAspectRatio() });
 			ImGui::EndDragDropSource();
 		}
 
@@ -563,6 +569,7 @@ namespace Shark {
 			const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload("uuid.cb.directory", ImGuiDragDropFlags_AcceptBeforeDelivery);
 			if (directoryPayload && directoryPayload->IsDelivery())
 				action.Set(CBItemActionFlag::DropAccepted);
+			ImGui::EndDragDropTarget();
 		}
 	}
 

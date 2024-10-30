@@ -28,15 +28,31 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Ref<ImageView> ImageView::Create(Ref<Image2D> image, uint32_t mipSlice)
+	Ref<ImageView> ImageView::Create()
 	{
 		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImageView>::Create(image, mipSlice);
+			case RendererAPIType::DirectX11: return Ref<DirectXImageView>::Create();
 		}
 		SK_CORE_ASSERT(false, "Unkown Renderer API");
 		return nullptr;
+	}
+
+	Ref<ImageView> ImageView::Create(const ImageViewSpecification& specification)
+	{
+		switch (RendererAPI::GetCurrentAPI())
+		{
+			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
+			case RendererAPIType::DirectX11: return Ref<DirectXImageView>::Create(specification);
+		}
+		SK_CORE_ASSERT(false, "Unkown Renderer API");
+		return nullptr;
+	}
+
+	Ref<ImageView> ImageView::Create(Ref<Image2D> image, uint32_t mipSlice)
+	{
+		return Create(ImageViewSpecification{ .Image = image, .MipSlice = mipSlice });
 	}
 
 	namespace ImageUtils {
@@ -57,6 +73,7 @@ namespace Shark {
 				case ImageFormat::R8UNorm:
 				case ImageFormat::R32SINT:
 				case ImageFormat::RG16SNorm:
+				case ImageFormat::sRGBA:
 					return false;
 
 				case ImageFormat::Depth32:
@@ -84,6 +101,7 @@ namespace Shark {
 				case ImageFormat::RG16SNorm:
 				case ImageFormat::Depth32:
 				case ImageFormat::Depth24UNormStencil8UINT:
+				case ImageFormat::sRGBA:
 					return false;
 
 				case ImageFormat::R32SINT:
@@ -109,6 +127,7 @@ namespace Shark {
 				case ImageFormat::R8UNorm: return 1;
 				case ImageFormat::R32SINT: return 4;
 				case ImageFormat::Depth32: return 4;
+				case ImageFormat::sRGBA: return 4;
 			}
 			SK_CORE_ASSERT(false, "Unkown ImageFormat");
 			return 0;

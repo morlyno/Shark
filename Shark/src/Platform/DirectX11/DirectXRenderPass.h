@@ -32,6 +32,9 @@ namespace Shark {
 		virtual Ref<Image2D> GetOutput(uint32_t index) const override;
 		virtual Ref<Image2D> GetDepthOutput() const override;
 
+		virtual Ref<FrameBuffer> GetTargetFramebuffer() const override { return m_Specification.Pipeline->GetSpecification().TargetFrameBuffer; }
+		virtual void SetTargetFramebuffer(Ref<FrameBuffer> targetFramebuffer) override { m_Specification.Pipeline->SetFrameBuffer(targetFramebuffer); }
+
 		virtual Ref<Pipeline> GetPipeline() const override { return m_Specification.Pipeline; }
 		virtual RenderPassSpecification& GetSpecification() { return m_Specification; }
 		virtual const RenderPassSpecification& GetSpecification() const override { return m_Specification; }

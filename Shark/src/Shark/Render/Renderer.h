@@ -25,6 +25,12 @@ namespace Shark {
 		uint32_t IrradianceMapComputeSamples = 512;
 	};
 
+	struct RendererCapabilities
+	{
+		uint32_t MaxMipLeves;
+		uint32_t MaxAnisotropy;
+	};
+
 	class Renderer
 	{
 	public:
@@ -91,7 +97,9 @@ namespace Shark {
 
 		static void CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
 		static void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
+		static void CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip);
 		static void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
+		static void GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image);
 
 		static std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath);
 		static std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(const std::filesystem::path& filepath);
@@ -119,9 +127,7 @@ namespace Shark {
 		static Ref<Environment> GetEmptyEnvironment();
 		static Ref<Texture2D> GetBRDFLUTTexture();
 
-		static Ref<RenderCommandBuffer> GetCommandBuffer();
-
-		static const RendererCapabilities& GetCapabilities();
+		static RendererCapabilities& GetCapabilities();
 		static bool IsOnRenderThread();
 
 		static RendererConfig& GetConfig();

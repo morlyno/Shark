@@ -2,6 +2,7 @@
 #include "EditorAssetManager.h"
 
 #include "Shark/Core/Project.h"
+#include "Shark/Event/ApplicationEvent.h"
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/Asset/AssetUtils.h"
 #include "Shark/Asset/AssetThread/EditorAssetThread.h"
@@ -11,13 +12,10 @@
 #include "Shark/Render/MeshSource.h"
 
 #include "Shark/File/FileSystem.h"
+#include "Shark/Utils/YAMLUtils.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <yaml-cpp/yaml.h>
-#include "Shark/Utils/YAMLUtils.h"
-#include <magic_enum.hpp>
-
-#include <ranges>
 
 namespace Shark {
 
@@ -45,7 +43,6 @@ namespace Shark {
 
 		AssetThreadSettings settings;
 		settings.MonitorAssets = true;
-		settings.DefaultDependencyPolicy = LoadDependencyPolicy::Deferred;
 		m_AssetThread = Ref<EditorAssetThread>::Create(settings);
 	}
 
@@ -97,7 +94,7 @@ namespace Shark {
 				m_LoadedAssets[handle] = asset;
 				metadata.LastWriteTime = FileSystem::GetLastWriteTime(GetFilesystemPath(metadata));
 				metadata.Status = AssetStatus::Ready;
-				m_AssetThread->AddLoadedAsset(asset, metadata);
+				m_AssetThread->OnAssetLoaded(metadata);
 			}
 			return asset;
 		}
@@ -105,7 +102,7 @@ namespace Shark {
 		return m_LoadedAssets.at(handle);
 	}
 
-	AsyncLoadResult<Asset> EditorAssetManager::GetAssetAsync(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy)
+	AsyncLoadResult<Asset> EditorAssetManager::GetAssetAsync(AssetHandle handle)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -122,7 +119,6 @@ namespace Shark {
 			{
 				metadata.Status = AssetStatus::Loading;
 				AssetLoadRequest alr(metadata);
-				alr.DependencyPolicy = loadDependencyPolicy;
 				m_AssetThread->QueueAssetLoad(alr);
 			}
 
@@ -132,7 +128,7 @@ namespace Shark {
 		return { m_LoadedAssets.at(handle), true };
 	}
 
-	Threading::Future<Ref<Asset>> EditorAssetManager::GetAssetFuture(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy)
+	Threading::Future<Ref<Asset>> EditorAssetManager::GetAssetFuture(AssetHandle handle)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -149,7 +145,6 @@ namespace Shark {
 			{
 				metadata.Status = AssetStatus::Loading;
 				AssetLoadRequest alr(metadata);
-				alr.DependencyPolicy = loadDependencyPolicy;
 				m_AssetThread->QueueAssetLoad(alr);
 				return alr.Future;
 			}
@@ -200,7 +195,7 @@ namespace Shark {
 		m_LoadedAssets[metadata.Handle] = asset;
 		WriteImportedAssetsToDisc();
 
-		m_AssetThread->AddLoadedAsset(asset, metadata);
+		m_AssetThread->OnAssetLoaded(metadata);
 
 		SK_CORE_WARN_TAG("AssetManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", metadata.Type, metadata.Handle, metadata.FilePath);
 		return metadata.Handle;
@@ -228,7 +223,7 @@ namespace Shark {
 		asset->Handle = metadata.Handle;
 		m_MemoryOnlyAssets[metadata.Handle] = asset;
 
-		m_AssetThread->AddLoadedAsset(asset, metadata);
+		m_AssetThread->OnAssetLoaded(metadata);
 
 		SK_CORE_INFO_TAG("AssetManager", "Memory Asset Added (Type: {}, Handle: 0x{:x})", metadata.Type, metadata.Handle);
 		return metadata.Handle;
@@ -299,7 +294,6 @@ namespace Shark {
 		const AssetMetaData& metadata = m_Registry.Read(handle);
 
 		AssetLoadRequest alr(metadata, true);
-		alr.DependencyPolicy = LoadDependencyPolicy::Deferred;
 		m_AssetThread->QueueAssetLoad(alr);
 	}
 
@@ -316,7 +310,7 @@ namespace Shark {
 		if (metadata.Status != AssetStatus::Ready)
 		{
 			if (loadIfNotReady)
-				GetAssetAsync(handle, LoadDependencyPolicy::Immediate);
+				GetAssetAsync(handle);
 
 			return false;
 		}
@@ -335,11 +329,36 @@ namespace Shark {
 						auto& meshComp = entity.GetComponent<MeshComponent>();
 						if (!DependenciesLoaded(meshComp.Mesh, loadIfNotReady))
 							return false;
+					}
+				}
+				
+				{
+					auto entities = scene->GetAllEntitysWith<SubmeshComponent>();
+					for (auto ent : entities)
+					{
+						Entity entity(ent, scene);
+						auto& meshComp = entity.GetComponent<SubmeshComponent>();
+						if (!DependenciesLoaded(meshComp.Mesh, loadIfNotReady))
+							return false;
 						if (!DependenciesLoaded(meshComp.Material, loadIfNotReady))
 							return false;
 					}
 				}
-				
+
+				{
+					auto entities = scene->GetAllEntitysWith<StaticMeshComponent>();
+					for (auto ent : entities)
+					{
+						Entity entity(ent, scene);
+						auto& meshComp = entity.GetComponent<StaticMeshComponent>();
+						if (!DependenciesLoaded(meshComp.StaticMesh, loadIfNotReady))
+							return false;
+						for (auto [index, material] : meshComp.MaterialTable->GetMaterials())
+							if (!DependenciesLoaded(material, loadIfNotReady))
+								return false;
+					}
+				}
+
 				{
 					auto entities = scene->GetAllEntitysWith<SkyComponent>();
 					for (auto ent : entities)
@@ -488,9 +507,12 @@ namespace Shark {
 
 			m_Registry.Update(alr.Metadata);
 			m_LoadedAssets[alr.Metadata.Handle] = alr.Asset;
-		}
 
-		m_AssetThread->HandleMetadataRequests(m_Registry);
+			if (alr.Reload)
+			{
+				Application::Get().DispatchEvent<AssetReloadedEvent>(alr.Metadata.Handle);
+			}
+		}
 	}
 
 	Ref<Asset> EditorAssetManager::GetPlaceholder(AssetType assetType)
@@ -694,6 +716,7 @@ namespace Shark {
 		SK_CORE_WARN_TAG("AssetManager", "Asset Deleted => Handle: {}", handle, GetMetadata(handle).FilePath);
 		m_Registry.Remove(handle);
 		WriteImportedAssetsToDisc();
+		return true;
 	}
 
 	AssetHandle EditorAssetManager::GetEditorAsset(const std::filesystem::path& filepath)
@@ -899,6 +922,7 @@ namespace Shark {
 			m_Registry.Add(metadata);
 			m_EditorAssets[utils::GetFilesystemKey(metadata.FilePath)] = metadata.Handle;
 		}
+
 	}
 
 	const std::filesystem::path& EditorAssetManager::GetAssetsDirectoryFromProject() const

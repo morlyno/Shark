@@ -88,20 +88,22 @@ namespace Shark {
 	class DirectXImageView : public ImageView
 	{
 	public:
-		DirectXImageView(Ref<Image2D> image, uint32_t mipSlice);
+		DirectXImageView() = default;
+		DirectXImageView(const ImageViewSpecification& specification);
 		~DirectXImageView();
 
-		void Invalidate();
+		virtual void Invalidate() override;
+		virtual void RT_Invalidate() override;
 
-		virtual Ref<Image2D> GetImage() const { return m_Image; }
+		virtual ImageViewSpecification& GetSpecification() override { return m_Specification; }
+
+		virtual Ref<Image2D> GetImage() const { return m_Specification.Image; }
 		virtual RenderID GetViewID() const override { return m_Info.View; }
 
 		DirectXViewInfo& GetDirectXViewInfo() { return m_Info; }
 		const DirectXViewInfo& GetDirectXViewInfo() const { return m_Info; }
 	private:
-		Ref<Image2D> m_Image;
-		uint32_t m_MipSlice;
-
+		ImageViewSpecification m_Specification;
 		DirectXViewInfo m_Info;
 
 		std::string m_DebugName;

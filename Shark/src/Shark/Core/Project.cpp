@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "Project.h"
 
+#include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/ProjectSerializer.h"
 #include "Shark/Debug/Profiler.h"
 
@@ -91,7 +92,7 @@ namespace Shark {
 		return m_Config.AssetsDirectory;
 	}
 
-	const std::string Project::GetProjectFilePath() const
+	std::string Project::GetProjectFilePath() const
 	{
 		return fmt::format("{}/{}.skproj", m_Config.Directory, m_Config.Name);
 	}
@@ -144,8 +145,12 @@ namespace Shark {
 
 	void Project::Rename(const std::string& newName)
 	{
+		std::filesystem::path fixedName = newName;
+		if (FileSystem::GetExtension(newName) != L".skproj")
+			FileSystem::ReplaceExtension(fixedName, ".skproj");
+
 		std::filesystem::path projectFile = GetProjectFilePath();
-		if (FileSystem::Rename(projectFile, newName))
+		if (FileSystem::Rename(projectFile, fixedName.string()))
 			m_Config.Name = newName;
 	}
 

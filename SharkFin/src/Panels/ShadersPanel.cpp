@@ -3,8 +3,8 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Render/Renderer.h"
-#include "Shark/UI/UI.h"
-#include "Shark/ImGui/TextFilter.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Widgets.h"
 
 namespace Shark {
 
@@ -36,7 +36,7 @@ namespace Shark {
 					shader->Reload(true, m_DisableOptimization);
 			}
 
-			UI::Search(UI::GenerateID(), m_SearchBuffer, (int)std::size(m_SearchBuffer));
+			UI::Widgets::Search(m_SearchBuffer);
 			UI::TextFilter filter(m_SearchBuffer);
 
 			ImGui::Separator();
@@ -45,7 +45,7 @@ namespace Shark {
 			{
 				for (const auto& [key, shader] : library->GetShadersMap())
 				{
-					if (!filter.PassFilter(key))
+					if (!filter.PassesFilter(key))
 						continue;
 
 					UI::ScopedID id(key);

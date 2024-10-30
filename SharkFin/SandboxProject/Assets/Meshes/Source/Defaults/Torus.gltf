@@ -18,22 +18,6 @@
 			"name":"Torus"
 		}
 	],
-	"materials":[
-		{
-			"doubleSided":true,
-			"name":"Material",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.800000011920929,
-					0.800000011920929,
-					0.800000011920929,
-					1
-				],
-				"metallicFactor":0,
-				"roughnessFactor":0.5
-			}
-		}
-	],
 	"meshes":[
 		{
 			"name":"Torus",
@@ -44,8 +28,7 @@
 						"NORMAL":1,
 						"TEXCOORD_0":2
 					},
-					"indices":3,
-					"material":0
+					"indices":3
 				}
 			]
 		}
@@ -54,67 +37,67 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":637,
+			"count":1885,
 			"max":[
-				1.25,
-				0.25,
-				1.25
+				0.5,
+				0.10000011324882507,
+				0.5
 			],
 			"min":[
-				-1.25,
-				-0.25,
-				-1.25
+				-0.5,
+				-0.10000011324882507,
+				-0.5
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":637,
+			"count":1885,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":637,
+			"count":1885,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5123,
-			"count":3456,
+			"count":10752,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":7644,
+			"byteLength":22620,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":7644,
-			"byteOffset":7644,
+			"byteLength":22620,
+			"byteOffset":22620,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":5096,
-			"byteOffset":15288,
+			"byteLength":15080,
+			"byteOffset":45240,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6912,
-			"byteOffset":20384,
+			"byteLength":21504,
+			"byteOffset":60320,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":27296,
+			"byteLength":81824,
 			"uri":"Torus.bin"
 		}
 	]

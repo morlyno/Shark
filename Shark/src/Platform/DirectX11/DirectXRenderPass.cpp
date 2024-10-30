@@ -4,6 +4,8 @@
 #include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXShader.h"
 
+#include "Shark/Debug/Profiler.h"
+
 namespace Shark {
 
 	DirectXRenderPass::DirectXRenderPass(const RenderPassSpecification& specification)
@@ -18,16 +20,22 @@ namespace Shark {
 
 	void DirectXRenderPass::Bake()
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXRenderPass::Bake");
 		m_ShaderInputManager.Update();
 	}
 
 	bool DirectXRenderPass::Validate() const
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXRenderPass::Validate");
 		return m_ShaderInputManager.ValidateRenderPassInputs();
 	}
 
 	void DirectXRenderPass::Update()
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXRenderPass::Update");
 		m_ShaderInputManager.Update();
 	}
 

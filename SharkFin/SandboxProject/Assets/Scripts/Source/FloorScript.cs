@@ -23,7 +23,7 @@ namespace Sandbox
 		protected override void OnCreate()
 		{
 			m_SpriteRenderer = GetComponent<SpriteRendererComponent>();
-			m_SpriteRenderer.TilingFactor = 0.25f;
+			m_SpriteRenderer.TilingFactor = new Vector2(0.25f);
 
 			m_InitColor = m_SpriteRenderer.Color;
 			m_CollishionColor = m_Colors[Random.Int(0, m_Colors.Length)];

@@ -10,30 +10,53 @@ Project:
     FixedTimeStep: 0.00100000005
   Log:
     - Name: ""
+      Enabled: true
       Level: Trace
     - Name: AssetManager
+      Enabled: true
       Level: Warn
     - Name: AssetThread
+      Enabled: true
+      Level: Warn
+    - Name: Assimp
+      Enabled: true
       Level: Warn
     - Name: Core
+      Enabled: true
       Level: Trace
     - Name: Filesystem
+      Enabled: true
       Level: Trace
     - Name: Font
+      Enabled: true
       Level: Info
     - Name: Memory
+      Enabled: true
+      Level: Trace
+    - Name: Mesh
+      Enabled: true
       Level: Trace
     - Name: Renderer
-      Level: Trace
+      Enabled: true
+      Level: Warn
     - Name: ScriptEngine
+      Enabled: true
       Level: Trace
     - Name: Scripting
-      Level: Error
+      Enabled: true
+      Level: Info
     - Name: Serialization
+      Enabled: true
       Level: Warn
     - Name: ThumbnailCache
+      Enabled: true
       Level: Trace
     - Name: Timer
+      Enabled: false
       Level: Trace
     - Name: UI
+      Enabled: true
+      Level: Trace
+    - Name: stbi
+      Enabled: true
       Level: Trace

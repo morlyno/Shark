@@ -3,13 +3,20 @@
 // https://bgolus.medium.com/the-quest-for-very-wide-outlines-ba82ed442cd9
 
 #pragma stage : vertex
-#include "JumpFlood/JumpFloodCommon.hlsl"
+
+struct Camera
+{
+    matrix ViewProjection;
+    float3 Position;
+    float Padding;
+};
 
 struct Mesh
 {
     matrix Transform;
 };
 
+[[vk::binding(0, 1)]] ConstantBuffer<Camera> u_Camera;
 [[vk::push_constant]] ConstantBuffer<Mesh> u_Mesh;
 
 struct VertexInput
@@ -28,7 +35,7 @@ float4 main(VertexInput Input) : SV_Position
 
 #pragma stage : pixel
 
-float main() : SV_Target
+float4 main() : SV_Target
 {
-    return 1.0f;
+    return (float4)1.0f;
 }

@@ -4,6 +4,7 @@
 
 #include "Platform/DirectX11/DirectXShader.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
+#include "Platform/DirectX11/DirectXConstantBuffer.h"
 
 #include <d3d11.h>
 
@@ -15,18 +16,14 @@ namespace Shark {
 		DirectXPipeline(const PipelineSpecification& specs);
 		virtual ~DirectXPipeline();
 
-		virtual void SetPushConstant(Buffer pushConstantData) override;
-		void RT_SetPushConstant(Buffer pushConstantData);
+		virtual void SetPushConstant(Ref<RenderCommandBuffer> commandBuffer, Buffer pushConstantData) override;
+		virtual void RT_SetPushConstant(Ref<RenderCommandBuffer> commandBuffer, Buffer pushConstantData) override;
 
 		virtual void SetFrameBuffer(Ref<FrameBuffer> frameBuffer) override;
 		virtual PipelineSpecification& GetSpecification() override { return m_Specification; }
 		virtual const PipelineSpecification& GetSpecification() const override { return m_Specification; }
 
-		void BeginRenderPass();
-		void EndRenderPass();
-
-		bool UsesPushConstant() const { return m_PushConstant.Size != 0; }
-		Ref<ConstantBuffer> GetLastUpdatedPushConstantBuffer();
+		bool UsesPushConstant() const { return m_PushConstant.Size; }
 
 	private:
 		void RT_Init();
@@ -44,10 +41,9 @@ namespace Shark {
 
 		struct PushConstant
 		{
-			uint32_t BufferIndex = 0;
-			std::vector<Ref<ConstantBuffer>> Buffers;
-
-			uint32_t Size = 0;
+			ID3D11Buffer* Buffer;
+			uint32_t RequestedSize = 0;
+			uint32_t Size = 0; // Aligned to a multiple of 16
 			uint32_t Binding = 0;
 		};
 		PushConstant m_PushConstant;

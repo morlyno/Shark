@@ -69,6 +69,25 @@ namespace Shark {
 		return s_SelectionData.m_Selections[context];
 	}
 
+	UUID SelectionManager::GetFirstSelected(SelectionContext context)
+	{
+		return s_SelectionData.m_Selections[context].front();
+	}
+
+	UUID SelectionManager::GetLastSelected(SelectionContext context)
+	{
+		return s_SelectionData.m_Selections[context].back();
+	}
+
+	bool SelectionManager::IsEntityOrAncestorSelected(Entity entity)
+	{
+		if (IsSelected(SelectionContext::Entity, entity.GetUUID()))
+			return true;
+		if (entity.HasParent())
+			return IsEntityOrAncestorSelected(entity.Parent());
+		return false;
+	}
+
 	void SelectionManager::SetActiveScene(Ref<Scene> scene)
 	{
 		s_SelectionData.m_Scene = scene;

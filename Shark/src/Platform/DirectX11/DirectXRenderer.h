@@ -48,7 +48,9 @@ namespace Shark {
 
 		virtual void CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
 		virtual void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
+		virtual void CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip) override;
 		virtual void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) override;
+		virtual void GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image) override;
 
 		void RT_EquirectangularToCubemap(Ref<DirectXTexture2D> equirect, Ref<DirectXTextureCube> unfiltered, uint32_t cubemapSize);
 		void RT_EnvironmentMipFilter(Ref<DirectXTextureCube> unfiltered, Ref<DirectXTextureCube> filtered, uint32_t cubemapSize);
@@ -61,43 +63,21 @@ namespace Shark {
 		virtual void GenerateMips(Ref<Image2D> image) override;
 		virtual void RT_GenerateMips(Ref<Image2D> image) override;
 
-		virtual TimeStep GetGPUTime() const override { return m_GPUTime; }
-
 		virtual uint32_t GetCurrentFrameIndex() const override { return m_FrameIndex; }
 		virtual uint32_t RT_GetCurrentFrameIndex() const override { return m_RTFrameIndex; }
-		virtual Ref<RenderCommandBuffer> GetCommandBuffer() const override { return m_CommandBuffer; }
-		ID3D11SamplerState* GetClampLinearSampler() const { return m_ClampLinearSampler; }
 
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
-		virtual const RendererCapabilities& GetCapabilities() const override { return m_Capabilities; }
-
-		void BindFrameBuffer(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXFrameBuffer> framebuffer);
-		void BindFrameBuffer(ID3D11DeviceContext* context, Ref<DirectXFrameBuffer> framebuffer);
-
-		uint64_t GetGPUFrequncy() const { return m_GPUFrequency; }
-		uint64_t HasValidFrequncy() const { return m_IsValidFrequency; }
 
 		void RT_PrepareForSwapchainResize();
 
 	private:
 		void RT_PrepareAndBindMaterial(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXMaterial> material);
 		void RT_BindResources(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<Shader> shader, std::span<const BoundResource> boundResources);
-		void RT_BindPushConstants(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXPipeline> pipeline);
-		void QueryCapabilities();
-
-		void RT_BeginFrequencyQuery();
-		void RT_EndFrequencyQuery();
-
-#if 0
-		void RT_FlushDXMessages();
-#endif
 
 	private:
 		bool m_ResourceCreated = false;
 		uint32_t m_FrameIndex = (uint32_t)-1;
 		uint32_t m_RTFrameIndex = (uint32_t)-1;
-
-		Ref<RenderCommandBuffer> m_CommandBuffer;
 
 		VertexLayout m_QuadVertexLayout;
 		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;
@@ -105,19 +85,6 @@ namespace Shark {
 
 		Ref<DirectXVertexBuffer> m_CubeVertexBuffer;
 		Ref<DirectXIndexBuffer> m_CubeIndexBuffer;
-
-		ID3D11SamplerState* m_ClampLinearSampler = nullptr;
-
-		uint32_t m_GPUTimeQuery;
-		TimeStep m_GPUTime;
-
-		ID3D11Query* m_FrequencyQuery = nullptr;
-		uint64_t m_GPUFrequency = 0;
-		bool m_IsValidFrequency = false;
-		bool m_FrequencyQueryActive = false;
-		bool m_DoFrequencyQuery = true;
-
-		RendererCapabilities m_Capabilities;
 	};
 
 

@@ -4,9 +4,11 @@
 #include "Shark/Core/Window.h"
 #include "Shark/Core/Application.h"
 
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
 #include "Shark/UI/Theme.h"
-#include "Shark/ImGui/ImGuiFonts.h"
+#include "Shark/UI/ImGui/ImGuiFonts.h"
+
+#include "Shark/File/FileSystem.h"
 
 #include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXAPI.h"
@@ -126,8 +128,6 @@ namespace Shark {
 			SK_CORE_INFO("\"{}\" file not found, continue with defualt settings", ctx.IO.IniFilename);
 			ImGui::LoadIniSettingsFromDisk("Resources/DefaultImGui.ini");
 		}
-
-		UI::CreateContext(this);
 	}
 
 	void DirectXImGuiLayer::OnDetach()
@@ -136,7 +136,6 @@ namespace Shark {
 
 		Renderer::Submit([sampler = m_ImGuiFontSampler]()
 		{
-			UI::DestroyContext();
 			ImGui_ImplDX11_Shutdown();
 			ImGui_ImplWin32_Shutdown();
 			ImGui::DestroyContext();
@@ -168,14 +167,17 @@ namespace Shark {
 
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
-		UI::NewFrame();
 		m_InFrame = true;
+
+		UI::PushID();
 	}
 
 	void DirectXImGuiLayer::End()
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(!Renderer::IsOnRenderThread());
+
+		UI::PopID();
 
 		m_InFrame = false;
 
@@ -197,7 +199,7 @@ namespace Shark {
 			auto context = m_CommandBuffer->GetContext();
 
 			Ref<DirectXFrameBuffer> framebuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer().As<DirectXFrameBuffer>();
-			context->OMSetRenderTargets(framebuffer->m_Count, framebuffer->m_FrameBuffers.data(), framebuffer->m_DepthStencil);
+			context->OMSetRenderTargets((uint32_t)framebuffer->m_FrameBuffers.size(), framebuffer->m_FrameBuffers.data(), framebuffer->m_DepthStencilView);
 
 			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 			m_ImageMap.clear();

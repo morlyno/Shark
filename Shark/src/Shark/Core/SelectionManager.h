@@ -3,6 +3,7 @@
 namespace Shark {
 
 	class Scene;
+	class Entity;
 
 	enum class SelectionContext
 	{
@@ -23,6 +24,10 @@ namespace Shark {
 		static bool AnySelected(SelectionContext context);
 		static bool IsSelected(SelectionContext context, UUID id);
 		static const std::vector<UUID>& GetSelections(SelectionContext context);
+		static UUID GetFirstSelected(SelectionContext context);
+		static UUID GetLastSelected(SelectionContext context);
+
+		static bool IsEntityOrAncestorSelected(Entity entity);
 
 		static void SetActiveScene(Ref<Scene> scene);
 		static Ref<Scene> GetActiveScene();

@@ -35,25 +35,19 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		for (auto it = s_InputData->KeyStates.begin(); it != s_InputData->KeyStates.end(); it++)
+		std::erase_if(s_InputData->KeyStates, [](const auto& entry) { return entry.second == KeyState::Released; });
+		std::erase_if(s_InputData->MouseButtonStates, [](const auto& entry) { return entry.second == MouseState::Released || entry.second == MouseState::DoubleClicked; });
+
+		for (auto& [key, state] : s_InputData->KeyStates)
 		{
-			auto& [key, state] = *it;
-			switch (state)
-			{
-				case KeyState::Pressed:  state = KeyState::Down; break;
-				case KeyState::Released: it = s_InputData->KeyStates.erase(it); break;
-			}
+			if (state == KeyState::Pressed)
+				state = KeyState::Down;
 		}
 
-		for (auto it = s_InputData->MouseButtonStates.begin(); it != s_InputData->MouseButtonStates.end(); it++)
+		for (auto& [button, state] : s_InputData->MouseButtonStates)
 		{
-			auto& [key, state] = *it;
-			switch (state)
-			{
-				case MouseState::Pressed:       state = MouseState::Down; break;
-				case MouseState::Released:      it = s_InputData->MouseButtonStates.erase(it); break;
-				case MouseState::DoubleClicked: it = s_InputData->MouseButtonStates.erase(it); break;
-			}
+			if (state == MouseState::Pressed)
+				state = MouseState::Down;
 		}
 
 		s_InputData->MouseScroll = glm::vec2(0.0f);
@@ -136,7 +130,7 @@ namespace Shark {
 
 	KeyState Input::GetKeyState(KeyCode key)
 	{
-		if (s_InputData->KeyStates.contains(key))
+		if (!s_InputData->KeyStates.contains(key))
 			return KeyState::None;
 		return s_InputData->KeyStates.at(key);
 	}

@@ -4,10 +4,10 @@
 #include "Shark/Render/Renderer.h"
 #include "Platform/DirectX11/DirectXRenderer.h"
 
+#include "Shark/Debug/Profiler.h"
+
 #include <d3d11shader.h>
 #include <d3dcompiler.h>
-
-#include <unordered_map>
 
 namespace Shark {
 
@@ -20,15 +20,21 @@ namespace Shark {
 
 	DirectXMaterial::~DirectXMaterial()
 	{
+		for (auto& [binding, buffer] : m_UploadBuffers)
+			buffer.Release();
 	}
 
 	void DirectXMaterial::Prepare()
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXMaterial::Prepare");
 		m_ShaderInputManager.Update();
 	}
 
 	bool DirectXMaterial::Validate() const
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXMaterial::Validate");
 		return m_ShaderInputManager.ValidateMaterialInputs();
 	}
 
@@ -190,9 +196,11 @@ namespace Shark {
 
 	void DirectXMaterial::RT_UploadBuffers()
 	{
-		for (const auto& constantBuffer : m_ConstantBuffers)
+		SK_PROFILE_FUNCTION();
+		for (const auto& [binding, uploadBuffer] : m_UploadBuffers)
 		{
-			constantBuffer->RT_Upload();
+			auto buffer = m_ConstantBuffers.at(binding);
+			buffer->RT_Upload(uploadBuffer);
 		}
 	}
 
@@ -204,14 +212,12 @@ namespace Shark {
 
 		const auto& memberInfo = m_Shader->GetMemberInfo(name);
 		const auto& resourceInfo = m_Shader->GetMembersResourceInfo(name);
-		Ref<ConstantBuffer> input = m_ShaderInputManager.GetResource<ConstantBuffer>(resourceInfo.Name);
-		SK_CORE_VERIFY(input);
 
 		SK_CORE_ASSERT(data.Size == memberInfo.Size);
 		if (data.Size != memberInfo.Size)
 			return;
 
-		Buffer uploadBuffer = input->GetUploadBuffer();
+		Buffer uploadBuffer = m_UploadBuffers.at(resourceInfo.Binding);
 		uploadBuffer.Write(data, memberInfo.Size, memberInfo.Offset);
 	}
 
@@ -222,9 +228,9 @@ namespace Shark {
 
 		const auto& memberInfo = m_Shader->GetMemberInfo(name);
 		const auto& resourceInfo = m_Shader->GetMembersResourceInfo(name);
-		Ref<ConstantBuffer> resource = m_ShaderInputManager.GetResource<ConstantBuffer>(resourceInfo.Name);
-		SK_CORE_VERIFY(resource);
-		return resource->GetUploadBuffer().SubBuffer(memberInfo.Offset, memberInfo.Size);
+
+		Buffer uploadBuffer = m_UploadBuffers.at(resourceInfo.Binding);
+		return uploadBuffer.SubBuffer(memberInfo.Offset, memberInfo.Size);
 	}
 
 	void DirectXMaterial::SetInputConstantBuffers()
@@ -239,9 +245,10 @@ namespace Shark {
 			if (resource.Type != ShaderReflection::ResourceType::ConstantBuffer)
 				continue;
 
-			Ref<ConstantBuffer> constantBuffer = ConstantBuffer::Create(resource.StructSize);
+			Ref<ConstantBuffer> constantBuffer = ConstantBuffer::Create(BufferUsage::Dynamic, resource.StructSize);
 			m_ShaderInputManager.SetInput(resource.Name, constantBuffer);
-			m_ConstantBuffers.push_back(constantBuffer);
+			m_ConstantBuffers[binding] = constantBuffer;
+			m_UploadBuffers[binding].Allocate(resource.StructSize);
 		}
 	}
 

@@ -52,11 +52,12 @@ namespace Shark {
 
 		out << YAML::Key << "Log" << YAML::Value;
 		out << YAML::BeginSeq;
-		for (const auto& [name, level] : Log::GetTags())
+		for (const auto& [name, setting] : Log::EnabledTags())
 		{
 			out << YAML::BeginMap;
 			out << YAML::Key << "Name" << YAML::Value << name;
-			out << YAML::Key << "Level" << YAML::Value << magic_enum::enum_name(level);
+			out << YAML::Key << "Enabled" << YAML::Value << setting.Enabled;
+			out << YAML::Key << "Level" << YAML::Value << setting.Level;
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
@@ -105,7 +106,7 @@ namespace Shark {
 
 		SK_CORE_ASSERT(filePath.is_absolute());
 
-		Timer timer;
+		ScopedTimer timer("Deserializing Project");
 		YAML::Node fileNode = YAML::LoadFile(filePath);
 
 		auto projectNode = fileNode["Project"];
@@ -131,33 +132,30 @@ namespace Shark {
 		auto logNode = projectNode["Log"];
 		if (logNode)
 		{
-			std::map<std::string, LogLevel> logTags;
+			std::map<std::string, TagSettings> logTags;
 			for (auto entryNode : logNode)
 			{
 				std::string name;
-				std::string level;
+				TagSettings setting;
 				SK_DESERIALIZE_PROPERTY(entryNode, "Name", name, "");
-				SK_DESERIALIZE_PROPERTY(entryNode, "Level", level, "");
-				logTags[name] = magic_enum::enum_cast<LogLevel>(level).value_or(LogLevel::Trace);
+				SK_DESERIALIZE_PROPERTY(entryNode, "Enabled", setting.Enabled, true);
+				SK_DESERIALIZE_PROPERTY(entryNode, "Level", setting.Level, LogLevel::Trace);
+				logTags[name] = setting;
 			}
 
-			Log::GetTags() = logTags;
+			Log::EnabledTags() = logTags;
 		}
 
-		float time = timer.ElapsedMilliSeconds();
-
-		SK_CORE_INFO("Deserializing Project from: {}", filePath);
-		SK_CORE_TRACE("  Name: {}", config.Name);
-		SK_CORE_TRACE("  Assets Path: {}", assetsDirectory);
-		SK_CORE_TRACE("  Startup Scene: {}", config.StartupScene);
-		SK_CORE_TRACE("  Script Module Path: {}", scriptModule);
-		SK_CORE_TRACE("  Physics:");
-		SK_CORE_TRACE("    Gravity: {}", config.Physics.Gravity);
-		SK_CORE_TRACE("    ValocityIterations: {}", config.Physics.VelocityIterations);
-		SK_CORE_TRACE("    PositionIterations: {}", config.Physics.PositionIterations);
-		SK_CORE_TRACE("    FixedTimeStep: {}", config.Physics.FixedTimeStep);
-		SK_CORE_INFO("Project Deserialization took: {:.4f}ms", time);
-
+		SK_CORE_INFO_TAG("Core", "Deserializing Project from: {}", filePath);
+		SK_CORE_TRACE_TAG("Core", "  Name: {}", config.Name);
+		SK_CORE_TRACE_TAG("Core", "  Assets Path: {}", assetsDirectory);
+		SK_CORE_TRACE_TAG("Core", "  Startup Scene: {}", config.StartupScene);
+		SK_CORE_TRACE_TAG("Core", "  Script Module Path: {}", scriptModule);
+		SK_CORE_TRACE_TAG("Core", "  Physics:");
+		SK_CORE_TRACE_TAG("Core", "    Gravity: {}", config.Physics.Gravity);
+		SK_CORE_TRACE_TAG("Core", "    ValocityIterations: {}", config.Physics.VelocityIterations);
+		SK_CORE_TRACE_TAG("Core", "    PositionIterations: {}", config.Physics.PositionIterations);
+		SK_CORE_TRACE_TAG("Core", "    FixedTimeStep: {}", config.Physics.FixedTimeStep);
 		return true;
 	}
 

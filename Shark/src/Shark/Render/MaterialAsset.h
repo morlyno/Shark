@@ -13,6 +13,7 @@ namespace Shark {
 
 		void Invalidate();
 
+		const std::string& GetName() const;
 		Ref<Material> GetMaterial();
 		void SetMaterial(Ref<Material> material);
 
@@ -65,7 +66,7 @@ namespace Shark {
 		using MaterialMap = std::map<uint32_t, AssetHandle>;
 
 	public:
-		MaterialTable(uint32_t count = 1);
+		MaterialTable(uint32_t slots = 1);
 		~MaterialTable() = default;
 
 		bool HasMaterial(uint32_t index) const { return m_Materials.contains(index); }
@@ -77,13 +78,13 @@ namespace Shark {
 		MaterialMap& GetMaterials() { return m_Materials; }
 		const MaterialMap& GetMaterials() const { return m_Materials; }
 
-		uint32_t& GetMaterialCount() { return m_MaterialCount; }
-		uint32_t GetMaterialCount() const { return m_MaterialCount; }
+		uint32_t GetSlotCount() const { return m_MaterialSlots; }
+		void SetSlotCount(uint32_t count) { m_MaterialSlots = count; }
 
 		void Clear();
 
 	private:
-		uint32_t m_MaterialCount = 0;
+		uint32_t m_MaterialSlots = 0;
 		MaterialMap m_Materials;
 
 	};

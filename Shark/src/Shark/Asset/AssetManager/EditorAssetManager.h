@@ -3,8 +3,6 @@
 #include "Shark/Asset/AssetMetadata.h"
 #include "Shark/Asset/AssetManager/AssetRegistry.h"
 #include "Shark/Asset/AssetManager/AssetManagerBase.h"
-#include "Shark/Asset/AssetSerializer.h"
-#include "Shark/File/FileSystem.h"
 
 namespace Shark {
 
@@ -21,8 +19,8 @@ namespace Shark {
 
 		virtual AssetType GetAssetType(AssetHandle handle) override;
 		virtual Ref<Asset> GetAsset(AssetHandle handle) override;
-		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy) override;
-		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle, LoadDependencyPolicy loadDependencyPolicy) override;
+		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) override;
+		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) override;
 
 		virtual std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) override;
 

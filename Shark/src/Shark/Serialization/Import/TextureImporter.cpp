@@ -14,6 +14,8 @@ namespace Shark {
 		Buffer buffer;
 		std::string pathString = filepath.string();
 
+		bool isSRGB = outFormat == ImageFormat::sRGBA;
+
 		int width, height, channels;
 		if (stbi_is_hdr(pathString.c_str()))
 		{
@@ -25,7 +27,7 @@ namespace Shark {
 		{
 			buffer.Data = (byte*)stbi_load(pathString.c_str(), &width, &height, &channels, 4);
 			buffer.Size = width * height * 4;
-			outFormat = ImageFormat::RGBA8UNorm;
+			outFormat = isSRGB ? ImageFormat::sRGBA : ImageFormat::RGBA8UNorm;
 		}
 
 		if (!buffer.Data)
@@ -47,15 +49,15 @@ namespace Shark {
 		Buffer buffer;
 
 		int width, height, channels;
-		if (stbi_is_hdr_from_memory(memory.As<stbi_uc>(), memory.Size))
+		if (stbi_is_hdr_from_memory(memory.As<stbi_uc>(), (int)memory.Size))
 		{
-			buffer.Data = (byte*)stbi_loadf_from_memory(memory.As<stbi_uc>(), memory.Size, &width, &height, &channels, 4);
+			buffer.Data = (byte*)stbi_loadf_from_memory(memory.As<stbi_uc>(), (int)memory.Size, &width, &height, &channels, 4);
 			buffer.Size = width * height * sizeof(float) * 4;
 			outFormat = ImageFormat::RGBA32Float;
 		}
 		else
 		{
-			buffer.Data = (byte*)stbi_load_from_memory(memory.As<stbi_uc>(), memory.Size, &width, &height, &channels, 4);
+			buffer.Data = (byte*)stbi_load_from_memory(memory.As<stbi_uc>(), (int)memory.Size, &width, &height, &channels, 4);
 			buffer.Size = width * height * 4;
 			outFormat = ImageFormat::RGBA8UNorm;
 		}

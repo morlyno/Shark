@@ -18,6 +18,7 @@ namespace Shark::UI {
 	{
 	public:
 		static void Add(const FontConfiguration& config);
+		static void PushDefault();
 		static void Push(const std::string& name);
 		static void Pop();
 		static ImFont* Get(const std::string& name);

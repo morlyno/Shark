@@ -25,7 +25,7 @@ namespace Shark {
 		virtual const std::filesystem::path& GetFilePath() const override { return m_FilePath; }
 		virtual const std::string& GetName() const override { return m_Name; }
 
-		const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& GetShaderBinaries() const { return m_ShaderBinary; }
+		const std::unordered_map<ShaderUtils::ShaderStage, std::vector<byte>>& GetShaderBinaries() const { return m_ShaderBinary; }
 		virtual const ShaderReflectionData& GetReflectionData() const override { return m_ReflectionData; }
 
 		virtual bool HasResource(const std::string& name) const override;
@@ -38,12 +38,13 @@ namespace Shark {
 		virtual const ShaderReflection::MemberDeclaration& GetMemberInfo(const std::string& name) const override;
 
 		virtual const std::string& GetResourceName(uint32_t set, uint32_t binding) const override;
+		virtual const ShaderReflection::Resource& GetResourceInfo(uint32_t set, uint32_t binding) const override;
 
 		virtual std::pair<uint32_t, uint32_t> GetResourceBinding(const std::string& name) const override;
 		virtual std::tuple<uint32_t, uint32_t, uint32_t> GetMemberBinding(const std::string& name) const override;
 
 	private:
-		void LoadShader(const std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>>& shaderBinary);
+		void LoadShader(const std::unordered_map<ShaderUtils::ShaderStage, std::vector<byte>>& shaderBinary);
 		void SetReflectionData(const ShaderReflectionData& reflectionData) { m_ReflectionData = reflectionData; }
 
 	private:
@@ -51,7 +52,7 @@ namespace Shark {
 		ID3D11VertexShader* m_VertexShader = nullptr;
 		ID3D11ComputeShader* m_ComputeShader = nullptr;
 
-		std::unordered_map<ShaderUtils::ShaderStage::Type, std::vector<byte>> m_ShaderBinary;
+		std::unordered_map<ShaderUtils::ShaderStage, std::vector<byte>> m_ShaderBinary;
 		ShaderReflectionData m_ReflectionData;
 		std::filesystem::path m_FilePath;
 		std::string m_Name;

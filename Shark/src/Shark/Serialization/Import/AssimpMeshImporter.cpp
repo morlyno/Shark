@@ -16,6 +16,33 @@
 
 namespace Shark {
 
+#if 0
+#define SK_MESH_LOG(...) SK_CORE_TRACE_TAG("Mesh", __VA_ARGS__)
+#else
+#define SK_MESH_LOG(...) (void)0
+#endif
+
+	class AssimpLogStream : public Assimp::LogStream
+	{
+	public:
+		virtual void write(const char* message) override
+		{
+			std::string_view msg = message;
+			if (msg.ends_with('\n'))
+				msg.remove_suffix(1);
+
+			if (msg.starts_with("Debug"))
+				SK_CORE_TRACE_TAG("Assimp", msg);
+			else if (msg.starts_with("Info"))
+				SK_CORE_INFO_TAG("Assimp", msg);
+			else if (msg.starts_with("Warn"))
+				SK_CORE_WARN_TAG("Assimp", msg);
+			else
+				SK_CORE_ERROR_TAG("Assimp", msg);
+		}
+
+	};
+
 	namespace utils {
 
 		static glm::mat4 AssimpMatrixToGLM(aiMatrix4x4 matrix)
@@ -48,7 +75,11 @@ namespace Shark {
 	AssimpMeshImporter::AssimpMeshImporter(const std::filesystem::path& filepath)
 		: m_Filepath(filepath), m_Extension(filepath.extension().string())
 	{
-
+		if (Assimp::DefaultLogger::isNullLogger())
+		{
+			auto logger = Assimp::DefaultLogger::create("AssimpImporter", Assimp::Logger::VERBOSE, 0);
+			logger->attachStream(new Shark::AssimpLogStream(), Assimp::Logger::Debugging | Assimp::Logger::Info | Assimp::Logger::Warn | Assimp::Logger::Err);
+		}
 	}
 
 	Ref<MeshSource> AssimpMeshImporter::ToMeshSourceFromFile()
@@ -57,6 +88,7 @@ namespace Shark {
 		Ref<MeshSource> meshSource = MeshSource::Create();
 
 		Assimp::Importer importer;
+
 		const aiScene* scene = importer.ReadFile(m_Filepath.string(), s_AIProcessFlags);
 		if (!scene)
 		{
@@ -139,19 +171,66 @@ namespace Shark {
 
 		if (scene->HasMaterials())
 		{
+			SK_MESH_LOG("----- Materials {} -----", m_Filepath);
+
 			SK_PROFILE_SCOPED("AssimpMeshImporter::ToMeshSourceFromFile [Load Materials]");
-			meshSource->m_Materials.reserve(scene->mNumMaterials);
+			meshSource->m_Materials.resize(scene->mNumMaterials);
 			for (uint32_t i = 0; i < scene->mNumMaterials; i++)
 			{
 				auto aiMaterial = scene->mMaterials[i];
-				aiString materialName = aiMaterial->GetName();
-				//SK_CORE_DEBUG("{}", materialName.C_Str());
+				auto materialName = aiMaterial->GetName();
+				auto material = Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR"), materialName.data);
+				auto materialAsset = Ref<MaterialAsset>::Create(material);
+				meshSource->m_Materials[i] = AssetManager::AddMemoryAsset(materialAsset);
 
-				// TODO(moro): race-condition! This line can be called from both the main thread and the asset thread!
-				AssetHandle materialAssetHandle = AssetManager::CreateMemoryOnlyAsset<MaterialAsset>();
-				Ref<MaterialAsset> materialAsset = AssetManager::GetAsset<MaterialAsset>(materialAssetHandle);
-				materialAsset->GetMaterial()->SetName(materialName.C_Str());
-				meshSource->m_Materials.push_back(materialAssetHandle);
+				SK_MESH_LOG("  {} (Index = {})", materialName.data, i);
+
+#if 0
+				for (uint32_t p = 0; p < aiMaterial->mNumProperties; p++)
+				{
+					auto prop = aiMaterial->mProperties[p];
+
+					SK_MESH_LOG("Material Property:");
+					SK_MESH_LOG("  Name = {0}", prop->mKey.data);
+					SK_MESH_LOG("  Type = {0}", prop->mType);
+					SK_MESH_LOG("  Size = {0}", prop->mDataLength);
+					switch (prop->mType)
+					{
+						case aiPTI_Float:
+							SK_MESH_LOG("  Value = {0}", *(float*)prop->mData);
+							break;
+						case aiPTI_Double:
+							SK_MESH_LOG("  Value = {0}", *(double*)prop->mData);
+							break;
+						case aiPTI_String:
+							SK_MESH_LOG("  Value = {0}", std::string_view(prop->mData, prop->mDataLength));
+							break;
+						case aiPTI_Integer:
+							if (prop->mDataLength == 1)
+								SK_MESH_LOG("  Value = {0}", *(uint8_t*)prop->mData);
+							else if (prop->mDataLength == 2)
+								SK_MESH_LOG("  Value = {0}", *(uint16_t*)prop->mData);
+							else if (prop->mDataLength == 4)
+								SK_MESH_LOG("  Value = {0}", *(uint32_t*)prop->mData);
+							else if (prop->mDataLength == 8)
+								SK_MESH_LOG("  Value = {0}", *(uint64_t*)prop->mData);
+							else
+								SK_CORE_VERIFY(false);
+							break;
+						case aiPTI_Buffer:
+						{
+							std::vector<byte> buffer;
+							buffer.resize(prop->mDataLength);
+							memcpy(buffer.data(), prop->mData, prop->mDataLength);
+							SK_MESH_LOG("  Value = {0}", buffer);
+							break;
+						}
+					}
+					float data = *(float*)prop->mData;
+					SK_MESH_LOG("  Semantic = {}", (aiTextureType)prop->mSemantic);
+				}
+#endif
+
 
 				glm::vec3 albedoColor(0.8f);
 				float emission = 0.0f;
@@ -168,7 +247,7 @@ namespace Shark {
 					roughness = 0.5f;
 
 				// AI_MATKEY_METALLIC_FACTOR
-				if (aiMaterial->Get(AI_MATKEY_METALLIC_FACTOR, metalness) != aiReturn_SUCCESS)
+				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
 					metalness = 0.0f;
 
 				materialAsset->SetAlbedoColor(albedoColor);
@@ -176,9 +255,10 @@ namespace Shark {
 				materialAsset->SetRoughness(roughness);
 
 				aiString aiTexPath;
-				if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS)
+				if (aiMaterial->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &aiTexPath) == aiReturn_SUCCESS ||
+					aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, true);
 					if (textureHandle != AssetHandle::Invalid)
 					{
 						materialAsset->SetAlbedoMap(textureHandle);
@@ -188,7 +268,7 @@ namespace Shark {
 
 				if (aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
 					if (textureHandle != AssetHandle::Invalid)
 					{
 						materialAsset->SetNormalMap(textureHandle);
@@ -198,7 +278,7 @@ namespace Shark {
 
 				if (aiMaterial->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
 					if (textureHandle != AssetHandle::Invalid)
 					{
 						materialAsset->SetMetalnessMap(textureHandle);
@@ -208,7 +288,7 @@ namespace Shark {
 				
 				if (aiMaterial->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = LoadTexture(scene, aiTexPath);
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
 					if (textureHandle != AssetHandle::Invalid)
 					{
 						materialAsset->SetRoughnessMap(textureHandle);
@@ -245,17 +325,16 @@ namespace Shark {
 		}
 	}
 
-	AssetHandle AssimpMeshImporter::LoadTexture(const aiScene* scene, const aiString& path)
+	AssetHandle AssimpMeshImporter::LoadTexture(const aiScene* scene, const aiString& path, bool sRGB)
 	{
 		SK_PROFILE_FUNCTION();
 		TextureSpecification specification;
-		specification.GenerateMips = true;
 		specification.DebugName = path.C_Str();
+		specification.Format = sRGB ? ImageFormat::sRGBA : ImageFormat::RGBA8UNorm;
 		// TODO(moro): sampler
 
 		if (auto aiTexEmbedded = scene->GetEmbeddedTexture(path.C_Str()))
 		{
-			specification.Format = ImageFormat::RGBA8UNorm;
 			specification.Width = aiTexEmbedded->mWidth;
 			specification.Height = aiTexEmbedded->mHeight;
 			Buffer imageData = Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) };
@@ -264,12 +343,24 @@ namespace Shark {
 				imageData = TextureImporter::ToBufferFromMemory(Buffer(aiTexEmbedded->pcData, aiTexEmbedded->mWidth), specification.Format, specification.Width, specification.Height);
 			}
 			// TODO(moro): race-condition! This line can be called from both the main thread and the asset thread!
+			AssetHandle handle = AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
+
+			if (specification.Height == 0)
+				imageData.Release();
+
+			return handle;
+		}
+
+		if (sRGB)
+		{
+			// TODO(moro): find a way to do this through the asset system
+			const auto texturePath = m_Filepath.parent_path() / path.C_Str();
+			ScopedBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
 			return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
 		}
 
 		const auto texturePath = m_Filepath.parent_path() / path.C_Str();
 		return Project::GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(texturePath);
-		//return AssetManager::CreateMemoryAsset<Texture2D>(specification, texturePath);
 	}
 
 }

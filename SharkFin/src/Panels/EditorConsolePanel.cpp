@@ -2,11 +2,9 @@
 #include "EditorConsolePanel.h"
 
 #include "Shark/Core/ConsoleSink.h"
-#include "Shark/UI/UI.h"
-#include "Shark/UI/Theme.h"
-#include "Shark/Debug/Profiler.h"
-
+#include "Shark/UI/UICore.h"
 #include "Shark/UI/EditorResources.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -73,6 +71,8 @@ namespace Shark {
 
 		if (ImGui::Begin(m_PanelName.c_str(), &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
 		{
+			Log::GetConsoleSink()->flush();
+
 			DrawMenuBar();
 			DrawMessages();
 		}
@@ -83,8 +83,6 @@ namespace Shark {
 
 	void EditorConsolePanel::Clear()
 	{
-		SK_PROFILE_FUNCTION();
-
 		m_Messages.clear();
 		m_ShowMessageInspector = false;
 	}
@@ -106,14 +104,13 @@ namespace Shark {
 			m_Messages.erase(m_Messages.begin(), m_Messages.begin() + eraseCount);
 		}
 
-		Message msg;
+		Message& msg = m_Messages.emplace_back();
 		msg.Level = message.MessageLevel;
-		msg.Time = std::move(message.Timepoint);
+		msg.Time = fmt::format("{:%H:%M:%S}", std::chrono::floor<std::chrono::seconds>(message.Time));
 		msg.Message = std::move(message.Message);
 
 		const size_t messageLength = std::min({ msg.Message.length(), Message::MaxFiendlyMessageLength, msg.Message.find_first_of("\r\n") });
-		msg.FriendlyMessage = msg.Message.substr(0, messageLength);
-		m_Messages.push_back(msg);
+		msg.FriendlyMessage = std::string_view(msg.Message).substr(0, messageLength);
 	}
 
 	void EditorConsolePanel::DrawMessages()
@@ -149,26 +146,26 @@ namespace Shark {
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 
-					// Column 0
-					// Message Level
 					const ImVec2 cursorPosition = ImGui::GetCurrentWindowRead()->DC.CursorPos;
 
-					std::string_view levelString = ToStringView(msg.Level);
+					std::string_view levelString = magic_enum::enum_name(msg.Level);
 					ImGui::AlignTextToFramePadding();
 					ImGui::Text(levelString);
-					// critical
 
-					ImVec2 levelTextSize = ImGui::CalcTextSize(levelString.data(), levelString.data() + levelString.size());
-					levelTextSize.y = 2.0f;
+					//ImVec2 levelTextSize = ImGui::CalcTextSize(levelString.data(), levelString.data() + levelString.size());
+					//levelTextSize.y = 2.0f;
+					//ImVec2 min = { cursorPosition.x, cursorPosition.y + ImGui::GetFontSize() + 2 };
+					//ImVec2 max = min + levelTextSize;
 
-					ImVec2 min = { cursorPosition.x, cursorPosition.y + ImGui::GetFontSize() + 2 };
-					ImVec2 max = min + levelTextSize;
+					{
+						ImDrawList* drawList = ImGui::GetWindowDrawList();
+						ImRect underlineRect = UI::GetItemRect();
+						underlineRect.Min.y = underlineRect.Max.y + 2;
+						underlineRect.Max.y = underlineRect.Min.y + 2;
 
-					ImDrawList* drawList = ImGui::GetWindowDrawList();
-					drawList->AddRectFilled(min, max, GetMessageLevelColor(msg.Level));
+						drawList->AddRectFilled(underlineRect.Min, underlineRect.Max, GetMessageLevelColor(msg.Level));
+					}
 
-					// Column 1
-					// Timepoint
 					ImGui::TableSetColumnIndex(1);
 					ImGui::TextColored(ImColor(UI::Colors::Theme::LogTimeColor), msg.Time.c_str());
 

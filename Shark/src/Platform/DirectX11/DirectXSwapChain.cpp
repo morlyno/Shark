@@ -244,13 +244,13 @@ namespace Shark {
 
 			Ref<DirectXFrameBuffer> dxFramebuffer = framebuffer.GetRef();
 			DirectXAPI::ReleaseObject(dxFramebuffer->m_BlendState);
-			DirectXAPI::ReleaseObject(dxFramebuffer->m_DepthStencil);
+			DirectXAPI::ReleaseObject(dxFramebuffer->m_DepthStencilView);
 			for (ID3D11RenderTargetView* rtv : dxFramebuffer->m_FrameBuffers)
 				DirectXAPI::ReleaseObject(rtv);
 
 			dxFramebuffer->m_FrameBuffers.clear();
 			dxFramebuffer->m_BlendState = nullptr;
-			dxFramebuffer->m_DepthStencil = nullptr;
+			dxFramebuffer->m_DepthStencilView = nullptr;
 
 			it++;
 		}
@@ -296,17 +296,14 @@ namespace Shark {
 					image->RT_Invalidate();
 				}
 				
-				framebuffer->GetSpecification().ExistingImages[imageIndex] = image;
+				framebuffer->m_Specification.ExistingImages[imageIndex] = image;
 			}
 
-			// Clear Images so that Invalidate dosn't call Release on them
-			framebuffer->m_Images.clear();
-			framebuffer->m_DepthStencilImage = nullptr;
+			// Clear Images so that Invalidate doesn't call Release on them
+			//framebuffer->m_AtachmentImages.clear();
+			//framebuffer->m_DepthAtachmentImage = nullptr;
 
-			FrameBufferSpecification& specification = framebuffer->GetSpecification();
-			specification.Width = m_Specification.Width;
-			specification.Height = m_Specification.Height;
-			framebuffer->RT_Invalidate();
+			framebuffer->Resize(m_Specification.Width, m_Specification.Height, true);
 		}
 	}
 

@@ -17,6 +17,8 @@ namespace Shark {
 		RGBA16Float,
 		RGBA32Float,
 
+		sRGBA,
+
 		R8UNorm,
 		R32SINT,
 
@@ -82,13 +84,26 @@ namespace Shark {
 		static Ref<Image2D> Create(const ImageSpecification& specs);
 	};
 	
+	struct ImageViewSpecification
+	{
+		Ref<Image2D> Image;
+		uint32_t MipSlice = 0;
+	};
+
 	class ImageView : public RefCount
 	{
 	public:
+		virtual void Invalidate() = 0;
+		virtual void RT_Invalidate() = 0;
+
+		virtual ImageViewSpecification& GetSpecification() = 0;
+
 		virtual Ref<Image2D> GetImage() const = 0;
 		virtual RenderID GetViewID() const = 0;
 
 	public:
+		static Ref<ImageView> Create();
+		static Ref<ImageView> Create(const ImageViewSpecification& specification);
 		static Ref<ImageView> Create(Ref<Image2D> image, uint32_t mipSlice);
 	};
 

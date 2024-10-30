@@ -11,29 +11,24 @@ namespace Shark {
 	{
 	public:
 		DirectXConstantBuffer() = default;
-		DirectXConstantBuffer(uint32_t size);
+		DirectXConstantBuffer(BufferUsage usage, uint32_t byteSize, Buffer initData);
+		DirectXConstantBuffer(const ConstantBufferSpecification& specification, Buffer initData);
 		virtual ~DirectXConstantBuffer();
 
-		void Invalidate();
-		void RT_Invalidate();
+		virtual bool IsDynamic() const override { return m_Specification.Usage == BufferUsage::Dynamic; }
+		virtual uint32_t GetByteSize() const override { return m_Specification.ByteSize; }
 
-		void SetSize(uint32_t size) { m_Size = size; }
+		virtual void Upload(Buffer data) override;
+		virtual void RT_Upload(Buffer data) override;
 
-		virtual uint32_t GetSize() const override { return m_Size; }
-
-		virtual Buffer& GetUploadBuffer() override { return m_UploadBuffer; }
-		virtual Buffer GetUploadBuffer() const override { return m_UploadBuffer; }
-
-		virtual void UploadData(Buffer data) override;
-		virtual void RT_UploadData(Buffer data) override;
-
-		virtual void Upload() override;
-		virtual void RT_Upload() override;
+		void RT_Upload(ID3D11DeviceContext* commandBuffer, Buffer data);
 
 	private:
-		Buffer m_UploadBuffer;
+		void Initialize(Buffer initData);
+
+	private:
+		ConstantBufferSpecification m_Specification;
 		ID3D11Buffer* m_ConstantBuffer = nullptr;
-		uint32_t m_Size = 0;
 
 		friend class DirectXRenderer;
 	};

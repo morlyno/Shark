@@ -3,10 +3,9 @@
 
 #include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Serialization/SerializationMacros.h"
 
 #include "Shark/Render/Mesh.h"
-#include "Shark/Render/MeshSource.h"
-#include "Shark/Render/Material.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/YAMLUtils.h"
@@ -41,7 +40,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Serialization", "Loading Mesh from {}", metadata.FilePath);
 
-		ScopedTimer timer("Loading Mesh");
+		ScopedTimer timer(fmt::format("Loading Mesh [{}]", metadata.FilePath));
 		m_ErrorMsg.clear();
 
 		if (!Project::GetActive()->GetEditorAssetManager()->HasExistingFilePath(metadata))
@@ -57,7 +56,7 @@ namespace Shark {
 			return false;
 		}
 
-		Ref<Mesh> mesh = Ref<Mesh>::Create();
+		Ref<Mesh> mesh = nullptr;
 		if (!DeserializeFromYAML(mesh, filedata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize Mesh from YAML file! {}", m_ErrorMsg);
@@ -91,7 +90,7 @@ namespace Shark {
 		return out.c_str();
 	}
 
-	bool MeshSerializer::DeserializeFromYAML(Ref<Mesh> mesh, const std::string& filedata)
+	bool MeshSerializer::DeserializeFromYAML(Ref<Mesh>& mesh, const std::string& filedata)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -109,8 +108,13 @@ namespace Shark {
 			return false;
 		}
 
-		mesh->m_MeshSource = meshNode["MeshSource"].as<AssetHandle>();
-		mesh->m_Submeshes = meshNode["Submeshes"].as<std::vector<uint32_t>>();
+		AssetHandle meshSource;
+		std::vector<uint32_t> submeshes;
+
+		SK_DESERIALIZE_PROPERTY(meshNode, "MeshSource", meshSource);
+		SK_DESERIALIZE_PROPERTY(meshNode, "Submeshes", submeshes);
+
+		mesh = Ref<Mesh>::Create(meshSource, submeshes);
 		return true;
 	}
 

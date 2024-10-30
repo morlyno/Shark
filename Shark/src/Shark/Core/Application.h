@@ -8,7 +8,7 @@
 #include "Shark/Event/ApplicationEvent.h"
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Layer/LayerStack.h"
-#include "Shark/ImGui/ImGuiLayer.h"
+#include "Shark/UI/ImGui/ImGuiLayer.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
 namespace Shark {
@@ -57,7 +57,6 @@ namespace Shark {
 
 		float GetTime() const { return m_Time; }
 		TimeStep GetCPUTime() const { return m_CPUTime; }
-		TimeStep GetGPUTime() const { return m_GPUTime; }
 		TimeStep GetFrameTime() const { return m_TimeStep; }
 		uint64_t GetFrameCount() const { return m_FrameCount; }
 		PerformanceProfiler* GetProfiler() const { return m_Profiler; }
@@ -77,12 +76,10 @@ namespace Shark {
 
 	public:
 		template<typename TEvent, typename... TArgs>
-		void QueueEvent(TArgs&&... args)
+		void DispatchEvent(TArgs&&... args)
 		{
-			Application* app = this;
-			m_EventQueue.push([app, args...]() { app->OnEvent(TEvent(args...)); });
+			m_EventQueue.push([event = TEvent(std::forward<TArgs>(args)...)]() mutable { Application::Get().OnEvent(event); });
 		}
-		void QueueEvent(const std::function<void()>& func);
 		void AddEventCallback(const std::function<bool(Event&)>& func);
 		void SubmitToMainThread(const std::function<void()>& func);
 
@@ -108,7 +105,6 @@ namespace Shark {
 		uint64_t m_LastTickCount = 0;
 		TimeStep m_TimeStep = 0.0f;
 		TimeStep m_CPUTime;
-		TimeStep m_GPUTime;
 		float m_Time = 0.0f;
 		uint64_t m_FrameCount = 0;
 

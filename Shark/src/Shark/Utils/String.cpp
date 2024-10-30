@@ -24,7 +24,7 @@ namespace Shark::String {
 
 		if (comapreCase == Case::Sensitive)
 			comparer = [](const auto& lhs, const auto& rhs) { return lhs == rhs; };
-		else if (comapreCase == Case::Ingnore)
+		else if (comapreCase == Case::Ignore)
 			comparer = [](const auto& lhs, const auto& rhs) { return std::tolower(lhs) == std::tolower(rhs); };
 
 		return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), comparer);

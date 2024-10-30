@@ -11,10 +11,17 @@
 
 namespace Shark {
 
-	DirectXConstantBuffer::DirectXConstantBuffer(uint32_t size)
-		: m_Size(size)
+	DirectXConstantBuffer::DirectXConstantBuffer(BufferUsage usage, uint32_t byteSize, Buffer initData)
 	{
-		RT_Invalidate();
+		m_Specification.Usage = usage;
+		m_Specification.ByteSize = byteSize;
+		Initialize(initData);
+	}
+
+	DirectXConstantBuffer::DirectXConstantBuffer(const ConstantBufferSpecification& specification, Buffer initData)
+		: m_Specification(specification)
+	{
+		Initialize(initData);
 	}
 
 	DirectXConstantBuffer::~DirectXConstantBuffer()
@@ -22,103 +29,108 @@ namespace Shark {
 		if (!m_ConstantBuffer)
 			return;
 
-		m_UploadBuffer.Release();
-		Renderer::SubmitResourceFree([cb = m_ConstantBuffer]()
+		Renderer::SubmitResourceFree([buffer = m_ConstantBuffer]()
 		{
-			cb->Release();
+			DirectXAPI::ReleaseObject(buffer);
 		});
 	}
 
-	void DirectXConstantBuffer::Invalidate()
+	void DirectXConstantBuffer::Upload(Buffer data)
 	{
-		if (!m_UploadBuffer && m_UploadBuffer.Size != m_Size)
-			m_UploadBuffer.Allocate(m_Size);
-
-		Ref<DirectXConstantBuffer> instance = this;
-		Renderer::Submit([instance]()
+		Buffer tempBuffer = Buffer::Copy(data);
+		Ref instance = this;
+		Renderer::Submit([instance, tempBuffer]() mutable
 		{
-			D3D11_BUFFER_DESC bd;
-			bd.ByteWidth = instance->m_Size;
-			bd.Usage = D3D11_USAGE_DYNAMIC;
-			bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-			bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-			bd.MiscFlags = 0;
-			bd.StructureByteStride = 0;
+			instance->RT_Upload(tempBuffer);
+			tempBuffer.Release();
+		});
+	}
 
+	void DirectXConstantBuffer::RT_Upload(Buffer data)
+	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXConstantBuffer::RT_Upload");
+
+		auto device = DirectXContext::GetCurrentDevice();
+
+		if (m_Specification.Usage != BufferUsage::Dynamic)
+		{
+			device->UpdateSubresource(m_ConstantBuffer, 0, nullptr, data.As<const void*>(), m_Specification.ByteSize, 0);
+		}
+		else
+		{
+			D3D11_MAPPED_SUBRESOURCE mapped;
+			device->MapMemory(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, mapped);
+			memcpy(mapped.pData, data.As<const void*>(), std::min(m_Specification.ByteSize, (uint32_t)data.Size));
+			device->UnmapMemory(m_ConstantBuffer, 0);
 			auto device = DirectXContext::GetCurrentDevice();
-			auto dxDevice = device->GetDirectXDevice();
-
-			DirectXAPI::CreateBuffer(dxDevice, bd, nullptr, instance->m_ConstantBuffer);
-		});
-
+		}
 	}
 
-	void DirectXConstantBuffer::RT_Invalidate()
+	void DirectXConstantBuffer::RT_Upload(ID3D11DeviceContext* commandBuffer, Buffer data)
 	{
-		if (!m_UploadBuffer && m_UploadBuffer.Size != m_Size)
-			m_UploadBuffer.Allocate(m_Size);
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXConstantBuffer::RT_Upload");
 
-		D3D11_BUFFER_DESC bd;
-		bd.ByteWidth = m_Size;
-		bd.Usage = D3D11_USAGE_DYNAMIC;
-		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bd.MiscFlags = 0;
-		bd.StructureByteStride = 0;
+		if (m_Specification.Usage != BufferUsage::Dynamic)
+		{
+			commandBuffer->UpdateSubresource(m_ConstantBuffer, 0, nullptr, data.As<const void*>(), m_Specification.ByteSize, 0);
+		}
+		else
+		{
+			D3D11_MAPPED_SUBRESOURCE mapped;
+			commandBuffer->Map(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+			memcpy(mapped.pData, data.As<const void*>(), std::min(m_Specification.ByteSize, (uint32_t)data.Size));
+			commandBuffer->Unmap(m_ConstantBuffer, 0);
+			auto device = DirectXContext::GetCurrentDevice();
+		}
+	}
+
+	void DirectXConstantBuffer::Initialize(Buffer initData)
+	{
+		D3D11_BUFFER_DESC bufferDesc = {};
+		bufferDesc.ByteWidth = m_Specification.ByteSize;
+		bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		switch (m_Specification.Usage)
+		{
+			case BufferUsage::Default:
+				bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+				break;
+			case BufferUsage::Dynamic:
+				bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+				bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+				break;
+			case BufferUsage::Immutable:
+				bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+				break;
+			case BufferUsage::Staging:
+				bufferDesc.Usage = D3D11_USAGE_STAGING;
+				bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
+				break;
+
+			default:
+				SK_CORE_VERIFY(false, "Unkown BufferUsage");
+				break;
+
+		}
 
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();
 
-		DirectXAPI::CreateBuffer(dxDevice, bd, nullptr, m_ConstantBuffer);
-	}
-
-	void DirectXConstantBuffer::UploadData(Buffer data)
-	{
-		SK_CORE_VERIFY(data.Size <= m_Size);
-		m_UploadBuffer.Write(data);
-		
-		Ref<DirectXConstantBuffer> instance = this;
-		Renderer::Submit([instance]()
+		if (initData)
 		{
-			instance->RT_UploadData(instance->m_UploadBuffer);
-		});
-	}
-
-	void DirectXConstantBuffer::RT_UploadData(Buffer data)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("ConstantBuffer map memory");
-
-		auto device = DirectXContext::GetCurrentDevice();
-
-		void* mappedMemory = nullptr;
-		device->MapMemory(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, mappedMemory);
-		memcpy(mappedMemory, data.Data, data.Size);
-		device->UnmapMemory(m_ConstantBuffer, 0);
-	}
-
-	void DirectXConstantBuffer::Upload()
-	{
-		Ref<DirectXConstantBuffer> instance = this;
-		Renderer::Submit([instance]()
+			D3D11_SUBRESOURCE_DATA subresource{};
+			subresource.pSysMem = initData.Data;
+			DirectXAPI::CreateBuffer(dxDevice, bufferDesc, &subresource, m_ConstantBuffer);
+		}
+		else
 		{
-			instance->RT_Upload();
-		});
-	}
+			DirectXAPI::CreateBuffer(dxDevice, bufferDesc, nullptr, m_ConstantBuffer);
+		}
 
-	void DirectXConstantBuffer::RT_Upload()
-	{
-		if (!m_UploadBuffer)
-			return;
-
-		SK_PERF_SCOPED("ConstantBuffer map memory");
-
-		auto device = DirectXContext::GetCurrentDevice();
-
-		void* mappedMemory;
-		device->MapMemory(m_ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, mappedMemory);
-		memcpy(mappedMemory, m_UploadBuffer.Data, m_UploadBuffer.Size);
-		device->UnmapMemory(m_ConstantBuffer, 0);
+		if (!m_Specification.DebugName.empty())
+			DirectXAPI::SetDebugName(m_ConstantBuffer, m_Specification.DebugName);
 	}
 
 }

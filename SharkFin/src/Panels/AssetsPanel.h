@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Asset/AssetTypes.h"
+#include "Shark/UI/TextFilter.h"
 #include "Panel.h"
 
 namespace Shark {
@@ -17,7 +18,7 @@ namespace Shark {
 	private:
 		// TODO(moro): Add AssetManager or Project member
 
-		char m_SearchBuffer[260];
+		UI::TextFilter m_Pattern;
 		bool m_SearchHasUppercase = false;
 		bool m_CaseSensitive = false;
 		bool m_Edit = false;

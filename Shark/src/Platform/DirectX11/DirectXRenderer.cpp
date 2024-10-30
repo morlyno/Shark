@@ -83,32 +83,20 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Renderer", "Initializing DirectX Renderer");
 
-		QueryCapabilities();
-
-		auto device = DirectXContext::GetCurrentDevice();
-		auto dxDevice = device->GetDirectXDevice();
-
-		D3D11_QUERY_DESC queryDesc;
-		queryDesc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
-		queryDesc.MiscFlags = 0;
-		dxDevice->CreateQuery(&queryDesc, &m_FrequencyQuery);
-
-		D3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(D3D11_DEFAULT);
-		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		DirectXAPI::CreateSamplerState(dxDevice, samplerDesc, m_ClampLinearSampler);
+		auto& capabilities = Renderer::GetCapabilities();
+		capabilities.MaxMipLeves = D3D11_REQ_MIP_LEVELS;
+		capabilities.MaxAnisotropy = D3D11_REQ_MAXANISOTROPY;
 
 		m_QuadVertexLayout = {
-			{ VertexDataType::Float2, "Position" }
+			{ VertexDataType::Float3, "Position" },
+			{ VertexDataType::Float2, "TexCoord" },
 		};
 
-		float vertices[4 * 2] = {
-			-1.0f,  1.0f,
-			 1.0f,  1.0f,
-			 1.0f, -1.0f,
-			-1.0f, -1.0f
+		float vertices[4 * 5] = {
+			-1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 0.0f, 1.0f, 0.0f,
+			 1.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f, 1.0f
 		};
 
 		uint32_t indices[3 * 2] = {
@@ -144,8 +132,6 @@ namespace Shark {
 			m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices)).As<DirectXIndexBuffer>();
 		}
 
-		m_CommandBuffer = RenderCommandBuffer::Create();
-
 		Renderer::Submit([instance = Ref(this)]() { SK_CORE_INFO_TAG("Renderer", "GPU Resources Created"); instance->m_ResourceCreated = true; });
 	}
 
@@ -157,13 +143,7 @@ namespace Shark {
 		m_QuadIndexBuffer = nullptr;
 		m_CubeVertexBuffer = nullptr;
 		m_CubeIndexBuffer = nullptr;
-		m_CommandBuffer = nullptr;
 
-		m_FrequencyQuery->Release();
-		m_ClampLinearSampler->Release();
-
-		m_FrequencyQuery = nullptr;
-		m_ClampLinearSampler = nullptr;
 		m_ResourceCreated = false;
 		SK_CORE_WARN_TAG("Renderer", "DirectXRenderer destroyed");
 	}
@@ -192,46 +172,41 @@ namespace Shark {
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([instance]() { instance->m_RTFrameIndex++; });
 		m_FrameIndex++;
-
-		m_CommandBuffer->Begin();
-		m_GPUTimeQuery = m_CommandBuffer->BeginTimestampQuery();
-
-		Renderer::Submit([instance]()
-		{
-			instance->RT_BeginFrequencyQuery();
-		});
 	}
 
 	void DirectXRenderer::EndFrame()
 	{
-		Ref<DirectXRenderer> instance = this;
-		Renderer::Submit([instance]()
-		{
-			instance->RT_EndFrequencyQuery();
-		});
-
-		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQuery);
-		m_CommandBuffer->End();
-		m_CommandBuffer->Execute();
-		m_GPUTime = m_CommandBuffer->GetTime(m_GPUTimeQuery);
-
 		Renderer::Submit([]() { DirectXContext::Get()->FlushMessages(); });
 	}
 
 	void DirectXRenderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear)
 	{
-		if (expliciteClear)
-		{
-			renderPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer->Clear(commandBuffer);
-		}
-
 		Ref<DirectXRenderer> instance = this;
 		Renderer::Submit([instance, dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>(), dxRenderPass = renderPass.As<DirectXRenderPass>(), expliciteClear]()
 		{
 			Ref<DirectXShader> shader = dxRenderPass->m_Specification.Pipeline->GetSpecification().Shader.As<DirectXShader>();
-			Ref<DirectXPipeline> pipeline = dxRenderPass->m_Specification.Pipeline.As<DirectXPipeline>();
-			pipeline->BeginRenderPass();
 
+			Ref<Pipeline> pipeline = dxRenderPass->GetPipeline();
+			Ref<DirectXFrameBuffer> framebuffer = pipeline->GetSpecification().TargetFrameBuffer.As<DirectXFrameBuffer>();
+
+			auto cmd = dxCommandBuffer->GetContext();
+			const auto& fbSpec = framebuffer->GetSpecification();
+
+			if (expliciteClear || fbSpec.ClearColorOnLoad)
+			{
+				for (uint32_t index = 0; auto renderTarget : framebuffer->m_FrameBuffers)
+				{
+					const auto& value = framebuffer->m_ColorClearValues[index];
+					cmd->ClearRenderTargetView(renderTarget, glm::value_ptr(value));
+				}
+			}
+
+			if (framebuffer->HasDepthAtachment() && (expliciteClear || fbSpec.ClearDepthOnLoad))
+			{
+				cmd->ClearDepthStencilView(framebuffer->m_DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, fbSpec.ClearDepthValue, fbSpec.ClearStencilValue);
+			}
+
+			// TODO(moro): remove this
 			ID3D11DeviceContext* context = dxCommandBuffer->GetContext();
 			ID3D11RenderTargetView* nullViews[8]{};
 			context->OMSetRenderTargets(8, nullViews, nullptr);
@@ -244,8 +219,6 @@ namespace Shark {
 	{
 		Renderer::Submit([dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>(), dxRenderPass = renderPass.As<DirectXRenderPass>()]()
 		{
-			Ref<DirectXPipeline> pipeline = dxRenderPass->m_Specification.Pipeline.As<DirectXPipeline>();
-			pipeline->EndRenderPass();
 		});
 	}
 
@@ -281,10 +254,14 @@ namespace Shark {
 			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, dxPipeline->m_Specification.StencilRef);
 
 			instance->RT_PrepareAndBindMaterial(dxCommandBuffer, dxMaterial);
-			instance->RT_BindPushConstants(dxCommandBuffer, dxPipeline);
+			if (dxPipeline->UsesPushConstant())
+			{
+				const auto& reflectionData = dxPipeline->GetSpecification().Shader->GetReflectionData();
+				utils::BindConstantBuffer(ctx, dxPipeline->m_PushConstant.Buffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
+			}
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = frambuffer;
-			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+			ctx->OMSetRenderTargets((uint32_t)dxFrameBuffer->m_FrameBuffers.size(), dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencilView);
 			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
@@ -327,7 +304,7 @@ namespace Shark {
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
-			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+			ctx->OMSetRenderTargets(dxFrameBuffer->m_FrameBuffers.size(), dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencilView);
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
@@ -392,14 +369,13 @@ namespace Shark {
 
 			if (dxPipeline->UsesPushConstant())
 			{
-				Ref<DirectXConstantBuffer> pushConstantBuffer = dxPipeline->GetLastUpdatedPushConstantBuffer().As<DirectXConstantBuffer>();
 				const auto& reflectionData = dxShader->GetReflectionData();
-				utils::BindConstantBuffer(ctx, pushConstantBuffer->m_ConstantBuffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
+				utils::BindConstantBuffer(ctx, dxPipeline->m_PushConstant.Buffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
 			}
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
-			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+			ctx->OMSetRenderTargets((uint32_t)dxFrameBuffer->m_FrameBuffers.size(), dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencilView);
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
@@ -443,14 +419,13 @@ namespace Shark {
 
 			if (dxPipeline->UsesPushConstant())
 			{
-				Ref<DirectXConstantBuffer> pushConstantBuffer = dxPipeline->GetLastUpdatedPushConstantBuffer().As<DirectXConstantBuffer>();
 				const auto& reflectionData = dxShader->GetReflectionData();
-				utils::BindConstantBuffer(ctx, pushConstantBuffer->m_ConstantBuffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
+				utils::BindConstantBuffer(ctx, dxPipeline->m_PushConstant.Buffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
 			}
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
-			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+			ctx->OMSetRenderTargets((uint32_t)dxFrameBuffer->m_FrameBuffers.size(), dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencilView);
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
@@ -485,7 +460,8 @@ namespace Shark {
 		auto dxMaterial = material.As<DirectXMaterial>();
 		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, mesh, meshSource, submeshIndex, dxMaterial]()
 		{
-			SK_PROFILE_SCOPED("DirectXRenderer::RenderMesh");
+			SK_PROFILE_SCOPED("DirectXRenderer::RenderSubmeshWithMaterial");
+			SK_PERF_SCOPED("DirectXRenderer::RenderSubmeshWithMaterial");
 
 			ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
 
@@ -511,14 +487,13 @@ namespace Shark {
 
 			if (dxPipeline->UsesPushConstant())
 			{
-				Ref<DirectXConstantBuffer> pushConstantBuffer = dxPipeline->GetLastUpdatedPushConstantBuffer().As<DirectXConstantBuffer>();
 				const auto& reflectionData = dxShader->GetReflectionData();
-				utils::BindConstantBuffer(ctx, pushConstantBuffer->m_ConstantBuffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
+				utils::BindConstantBuffer(ctx, dxPipeline->m_PushConstant.Buffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
 			}
 
 			Ref<DirectXFrameBuffer> dxFrameBuffer = dxPipeline->m_FrameBuffer;
 
-			ctx->OMSetRenderTargets(dxFrameBuffer->m_Count, dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencil);
+			ctx->OMSetRenderTargets(dxFrameBuffer->m_FrameBuffers.size(), dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencilView);
 			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
 
 			ctx->RSSetState(dxPipeline->m_RasterizerState);
@@ -565,6 +540,21 @@ namespace Shark {
 		});
 	}
 
+	void DirectXRenderer::CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip)
+	{
+		SK_CORE_VERIFY(sourceImage);
+		SK_CORE_VERIFY(destinationImage);
+
+		Renderer::Submit([dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>(), dxSourceImage = sourceImage.As<DirectXImage2D>(), dxDestImage = destinationImage.As<DirectXImage2D>(), sourceMip, destinationMip]()
+		{
+			const auto& sourceInfo = dxSourceImage->GetDirectXImageInfo();
+			const auto& destinationInfo = dxDestImage->GetDirectXImageInfo();
+
+			auto cmd = dxCommandBuffer->GetContext();
+			cmd->CopySubresourceRegion(destinationInfo.Resource, destinationMip, 0, 0, 0, sourceInfo.Resource, sourceMip, nullptr);
+		});
+	}
+
 	void DirectXRenderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
 		FrameBufferSpecification framebufferSpecification;
@@ -593,7 +583,48 @@ namespace Shark {
 		RenderFullScreenQuad(commandBuffer, renderPass->GetPipeline(), nullptr);
 		EndRenderPass(commandBuffer, renderPass);
 
-		CopyImage(commandBuffer, renderPass->GetOutput(0), destinationImage);
+		CopyMip(commandBuffer, renderPass->GetOutput(0), 0, destinationImage, 0);
+	}
+
+	void DirectXRenderer::GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image)
+	{
+		Renderer::Submit([commandBuffer, image]()
+		{
+			SK_PROFILE_FUNCTION();
+
+			const auto& specs = image->GetSpecification();
+			SK_CORE_VERIFY(specs.Type == ImageType::Texture || specs.Type == ImageType::TextureCube);
+
+			if (specs.MipLevels == 1)
+				return;
+
+			auto device = DirectXContext::GetCurrentDevice();
+			auto dxDevice = device->GetDirectXDevice();
+			auto cmd = commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext();
+
+			Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
+
+			D3D11_TEXTURE2D_DESC genMipsResourceDesc = {};
+			dxImage->m_Info.Resource->GetDesc(&genMipsResourceDesc);
+			genMipsResourceDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+			genMipsResourceDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+
+			ID3D11Texture2D* genMipsResource = nullptr;
+			DirectXAPI::CreateTexture2D(dxDevice, genMipsResourceDesc, nullptr, genMipsResource);
+
+			D3D11_SHADER_RESOURCE_VIEW_DESC genMipsViewDesc = {};
+			dxImage->m_Info.View->GetDesc(&genMipsViewDesc);
+
+			ID3D11ShaderResourceView* genMipsView = nullptr;
+			DirectXAPI::CreateShaderResourceView(dxDevice, genMipsResource, genMipsViewDesc, genMipsView);
+
+			cmd->CopySubresourceRegion(genMipsResource, 0, 0, 0, 0, dxImage->m_Info.Resource, 0, nullptr);
+			cmd->GenerateMips(genMipsView);
+			cmd->CopyResource(dxImage->m_Info.Resource, genMipsResource);
+
+			genMipsView->Release();
+			genMipsResource->Release();
+		});
 	}
 
 	void DirectXRenderer::RT_EquirectangularToCubemap(Ref<DirectXTexture2D> equirect, Ref<DirectXTextureCube> unfiltered, uint32_t cubemapSize)
@@ -634,13 +665,13 @@ namespace Shark {
 		filtered->GetImage().As<DirectXImage2D>()->RT_CreatePerMipUAV();
 
 		const auto& bufferInfo = environmentMipFilterShader->GetPushConstantInfo();
-		Ref<DirectXConstantBuffer> constantBuffer = Ref<DirectXConstantBuffer>::Create(bufferInfo.StructSize);
+		Ref<DirectXConstantBuffer> constantBuffer = Ref<DirectXConstantBuffer>::Create(BufferUsage::Dynamic, bufferInfo.StructSize, Buffer{});
 
 		const float deltaRoughness = 1.0f / glm::max((float)filtered->GetMipLevelCount() - 1.0f, 1.0f);
 		for (uint32_t i = 0, size = cubemapSize; i < mipCount; i++, size /= 2)
 		{
-			Ref<DirectXImageView> envUnfilterImageView = Ref<DirectXImageView>::Create(unfiltered->GetImage(), i);
-			const auto& unfilteredInfo = envUnfilterImageView->GetDirectXViewInfo();
+			Ref<ImageView> envUnfilterImageView = ImageView::Create(unfiltered->GetImage(), i);
+			const auto& unfilteredInfo = envUnfilterImageView.As<DirectXImageView>()->GetDirectXViewInfo();
 
 			uint32_t numGroup = glm::max(1u, size / 32);
 			float roughness = glm::max(i * deltaRoughness, 0.05f);
@@ -653,7 +684,7 @@ namespace Shark {
 			cmd->CSSetUnorderedAccessViews(outputTexInfo.DXBinding, 1, &filtered->GetUAV(i), nullptr);
 
 			cmd->CSSetShader(environmentMipFilterShader->m_ComputeShader, nullptr, 0);
-			constantBuffer->RT_UploadData(Buffer::FromValue(roughness));
+			constantBuffer->RT_Upload(cmd, Buffer::FromValue(roughness));
 			cmd->Dispatch(numGroup, numGroup, 6);
 
 			ID3D11UnorderedAccessView* nullUAV = nullptr;
@@ -680,11 +711,8 @@ namespace Shark {
 		const auto& irradianceMapInfo = environmentIrradianceShader->GetResourceInfo("o_IrradianceMap");
 		cmd->CSSetUnorderedAccessViews(irradianceMapInfo.DXBinding, 1, &irradiance->GetUAV(0), nullptr);
 
-		Ref<DirectXConstantBuffer> samplesBuffer = Ref<DirectXConstantBuffer>::Create();
 		const auto& bufferInfo = environmentIrradianceShader->GetResourceInfo("u_Uniforms");
-		samplesBuffer->SetSize(bufferInfo.StructSize);
-		samplesBuffer->RT_Invalidate();
-		samplesBuffer->RT_UploadData(Buffer::FromValue(Renderer::GetConfig().IrradianceMapComputeSamples));
+		auto samplesBuffer = Ref<DirectXConstantBuffer>::Create(BufferUsage::Immutable, bufferInfo.StructSize, Buffer::FromValue(Renderer::GetConfig().IrradianceMapComputeSamples));
 		cmd->CSSetConstantBuffers(bufferInfo.DXBinding, 1, &samplesBuffer->m_ConstantBuffer);
 
 		cmd->CSSetShader(environmentIrradianceShader->m_ComputeShader, nullptr, 0);
@@ -856,20 +884,6 @@ namespace Shark {
 		device->FlushCommandBuffer(cmd);
 	}
 
-	void DirectXRenderer::BindFrameBuffer(ID3D11DeviceContext* context, Ref<DirectXFrameBuffer> framebuffer)
-	{
-		if (!framebuffer)
-		{
-			ID3D11RenderTargetView* nullFramebuffers[8];
-			memset(nullFramebuffers, 0, sizeof(nullFramebuffers));
-			ID3D11DepthStencilView* nullDepthStencil = nullptr;
-			context->OMSetRenderTargets(8, nullFramebuffers, nullDepthStencil);
-			return;
-		}
-
-		context->OMSetRenderTargets(framebuffer->m_Count, framebuffer->m_FrameBuffers.data(), framebuffer->m_DepthStencil);
-	}
-
 	void DirectXRenderer::RT_PrepareForSwapchainResize()
 	{
 		//for (auto context : m_CommandBuffers)
@@ -896,6 +910,9 @@ namespace Shark {
 		if (!material)
 			return;
 
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXRenderer::RT_PrepareAndBindMaterial");
+
 		SK_CORE_VERIFY(material->Validate());
 		material->Prepare();
 
@@ -905,6 +922,9 @@ namespace Shark {
 
 	void DirectXRenderer::RT_BindResources(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<Shader> shader, std::span<const BoundResource> boundResources)
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("DirectXRenderer::RT_BindResources");
+
 		ID3D11DeviceContext* context = commandBuffer->GetContext();
 		const auto& reflectionData = shader->GetReflectionData();
 
@@ -977,105 +997,5 @@ namespace Shark {
 			}
 		}
 	}
-
-	void DirectXRenderer::RT_BindPushConstants(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXPipeline> pipeline)
-	{
-		if (pipeline->UsesPushConstant())
-		{
-			ID3D11DeviceContext* context = commandBuffer->GetContext();
-			Ref<DirectXConstantBuffer> pushConstantBuffer = pipeline->GetLastUpdatedPushConstantBuffer().As<DirectXConstantBuffer>();
-			const auto& reflectionData = pipeline->GetSpecification().Shader->GetReflectionData();
-			utils::BindConstantBuffer(context, pushConstantBuffer->m_ConstantBuffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
-		}
-	}
-
-	void DirectXRenderer::QueryCapabilities()
-	{
-		m_Capabilities.MaxMipLeves     = D3D11_REQ_MIP_LEVELS;
-		m_Capabilities.MaxAnisotropy   = D3D11_REQ_MAXANISOTROPY;
-		m_Capabilities.MinLODBias      = D3D11_MIP_LOD_BIAS_MIN;
-		m_Capabilities.MaxLODBias      = D3D11_MIP_LOD_BIAS_MAX;
-	}
-
-	void DirectXRenderer::RT_BeginFrequencyQuery()
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		if (m_DoFrequencyQuery)
-		{
-			auto device = DirectXContext::GetCurrentDevice();
-			auto queue = device->GetQueue();
-
-			std::scoped_lock lock(device->GetSubmissionMutex());
-			queue->Begin(m_FrequencyQuery);
-		}
-	}
-
-	void DirectXRenderer::RT_EndFrequencyQuery()
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(Renderer::IsOnRenderThread());
-
-		auto device = DirectXContext::GetCurrentDevice();
-		auto queue = device->GetQueue();
-
-		std::scoped_lock lock(device->GetSubmissionMutex());
-
-		if (m_DoFrequencyQuery)
-			queue->End(m_FrequencyQuery);
-
-		m_DoFrequencyQuery = false;
-
-		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjointData;
-		HRESULT hr = queue->GetData(m_FrequencyQuery, &disjointData, sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT), D3D11_ASYNC_GETDATA_DONOTFLUSH);
-		if (hr == S_OK)
-		{
-			m_GPUFrequency = disjointData.Frequency;
-			m_IsValidFrequency = !disjointData.Disjoint;
-			m_DoFrequencyQuery = true;
-		}
-
-	}
-
-#if 0
-	void DirectXRenderer::RT_FlushDXMessages()
-	{
-		ID3D11InfoQueue* infoQueue;
-		HRESULT hr = m_Device->QueryInterface(&infoQueue);
-		DX11_VERIFY(hr);
-		if (SUCCEEDED(hr))
-		{
-			Buffer messageBuffer;
-			uint64_t count = infoQueue->GetNumStoredMessages();
-			for (uint64_t i = 0; i < count; i++)
-			{
-				uint64_t messageLength;
-				if (HRESULT hr = infoQueue->GetMessage(i, nullptr, &messageLength); FAILED(hr))
-				{
-					SK_CORE_ERROR_TAG("Renderer", "Failed to receive message from InfoQueue");
-					continue;
-				}
-
-				messageBuffer.Resize(messageLength, false);
-				auto message = messageBuffer.As<D3D11_MESSAGE>();
-
-				SK_DX11_CALL(infoQueue->GetMessage(i, message, &messageLength));
-
-				m_InfoQueue->AddMessage(DXGI_DEBUG_D3D11,
-					(DXGI_INFO_QUEUE_MESSAGE_CATEGORY)message->Category,
-					(DXGI_INFO_QUEUE_MESSAGE_SEVERITY)message->Severity,
-					(DXGI_INFO_QUEUE_MESSAGE_ID)message->ID,
-					message->pDescription
-				);
-
-			}
-
-			infoQueue->ClearStoredMessages();
-			infoQueue->Release();
-			messageBuffer.Release();
-		}
-	}
-#endif
 
 }

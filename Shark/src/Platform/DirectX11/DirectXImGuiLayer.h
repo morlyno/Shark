@@ -1,12 +1,11 @@
 #pragma once
 
-#include "Shark/ImGui/ImGuiLayer.h"
-#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
+#include "Shark/UI/ImGui/ImGuiLayer.h"
 #include "Platform/DirectX11/DirectXImage.h"
+#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
 
 #include <imgui.h>
 
-#include <queue>
 #include <d3d11.h>
 
 namespace Shark {

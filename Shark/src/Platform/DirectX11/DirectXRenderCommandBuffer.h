@@ -14,7 +14,7 @@ namespace Shark {
 		virtual void Release() override;
 		void ReleaseCommandList();
 
-		ID3D11DeviceContext* GetContext() const { return m_Context; }
+		ID3D11DeviceContext1* GetContext() const { return m_Context; }
 		ID3DUserDefinedAnnotation* GetAnnotation() const { return m_Annotation; }
 
 		virtual void Begin() override;
@@ -43,7 +43,7 @@ namespace Shark {
 	private:
 		bool m_Active = false;
 
-		ID3D11DeviceContext* m_Context = nullptr;
+		ID3D11DeviceContext1* m_Context = nullptr;
 		ID3DUserDefinedAnnotation* m_Annotation = nullptr;
 		ID3D11CommandList* m_CommandList = nullptr;
 

@@ -16,31 +16,11 @@
 
 namespace Shark {
 
-	struct RendererCapabilities
-	{
-		uint32_t MaxMipLeves;
-		uint32_t MaxAnisotropy;
-
-		float MinLODBias;
-		float MaxLODBias;
-	};
-
 	enum class RendererAPIType
 	{
 		None = 0,
 		DirectX11
 	};
-
-	inline std::string_view ToStringView(RendererAPIType api)
-	{
-		switch (api)
-		{
-			case RendererAPIType::None: return "None"sv;
-			case RendererAPIType::DirectX11: return "DirectX11"sv;
-		}
-		SK_CORE_ASSERT(false, "Unkown RendererAPIType");
-		return "Unkown";
-	}
 
 	class RendererAPI : public RefCount
 	{
@@ -75,7 +55,9 @@ namespace Shark {
 
 		virtual void CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) = 0;
 		virtual void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) = 0;
+		virtual void CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip) = 0;
 		virtual void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage) = 0;
+		virtual void GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image) = 0;
 
 		virtual std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath) = 0;
 		virtual std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(const std::filesystem::path& filepath) = 0;
@@ -84,14 +66,10 @@ namespace Shark {
 		virtual void GenerateMips(Ref<Image2D> image) = 0;
 		virtual void RT_GenerateMips(Ref<Image2D> image) = 0;
 
-		virtual TimeStep GetGPUTime() const = 0;
-
 		virtual uint32_t GetCurrentFrameIndex() const = 0;
 		virtual uint32_t RT_GetCurrentFrameIndex() const = 0;
-		virtual Ref<RenderCommandBuffer> GetCommandBuffer() const = 0;
 
 		virtual bool ResourcesCreated() const = 0;
-		virtual const RendererCapabilities& GetCapabilities() const = 0;
 
 	public:
 		static void SetAPI(RendererAPIType api) { s_CurrentAPI = api; }

@@ -14,6 +14,7 @@ namespace Shark {
 			case RendererAPIType::DirectX11: return Ref<DirectXContext>::Create();
 		}
 		SK_CORE_VERIFY(false, "Unkown RendererAPI");
+		return nullptr;
 	}
 
 }

@@ -66,13 +66,8 @@ namespace Shark {
 	public:
 		virtual ~Pipeline() = default;
 
-		virtual void SetPushConstant(Buffer pushConstantData) = 0;
-
-		template<typename T>
-		void SetPushConstant(const T& value)
-		{
-			SetPushConstant(Buffer::FromValue(value));
-		}
+		virtual void SetPushConstant(Ref<RenderCommandBuffer> commandBuffer, Buffer pushConstantData) = 0;
+		virtual void RT_SetPushConstant(Ref<RenderCommandBuffer> commandBuffer, Buffer pushConstantData) = 0;
 
 		virtual void SetFrameBuffer(Ref<FrameBuffer> frameBuffer) = 0;
 		virtual PipelineSpecification& GetSpecification() = 0;

@@ -6,7 +6,8 @@
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
 
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Controls.h"
 
 #include "Shark/Debug/Profiler.h"
 
@@ -118,8 +119,6 @@ namespace Shark {
 		}
 
 		{
-			ImGuiID syncID = UI::GetIDWithSeed("Controls", UI::GetCurrentID());
-
 			auto view = m_Scene->GetAllEntitysWith<RigidBody2DComponent>();
 
 			ImGui::Text("RigidBodies: %llu", view.size());
@@ -127,7 +126,7 @@ namespace Shark {
 			for (auto entityID : view)
 			{
 				Entity entity{ entityID, m_Scene };
-				std::string name = entity.GetName();
+				const std::string& name = entity.Name();
 				ImGui::PushID((int)(uint64_t)entity.GetUUID());
 				if (ImGui::TreeNodeEx(name.c_str(), UI::DefaultHeaderFlags))
 				{
@@ -135,58 +134,54 @@ namespace Shark {
 					b2Body* body = rigidBody.RuntimeBody;
 					if (body)
 					{
-						UI::BeginControlsGrid(syncID);
-						UI::Property("Type", utils::Box2DBodyTypeToString(body->GetType()));
-						UI::Property("Position", fmt::to_string(body->GetPosition()));
-						UI::Property("Angle", fmt::to_string(body->GetAngle()));
-						UI::Property("Linear Velocity", fmt::format("{0:2.7f}", body->GetLinearVelocity()));
-						UI::Property("Linear Damping", fmt::format("{0:2.7f}", body->GetLinearDamping()));
-						UI::Property("Angular Velocity", fmt::to_string(body->GetAngularVelocity()));
-						UI::Property("Mass", fmt::to_string(body->GetMass()));
-						UI::Property("IsBuller", fmt::to_string(body->IsBullet()));
-						UI::Property("IsAwake", fmt::to_string(body->IsAwake()));
-						UI::Property("IsEnabled", fmt::to_string(body->IsEnabled()));
-						UI::EndControlsGrid();
+						UI::BeginControlsGrid();
+						UI::Control("Type", utils::Box2DBodyTypeToString(body->GetType()));
+						UI::Control("Position", fmt::to_string(body->GetPosition()));
+						UI::Control("Angle", fmt::to_string(body->GetAngle()));
+						UI::Control("Linear Velocity", fmt::format("{0:2.7f}", body->GetLinearVelocity()));
+						UI::Control("Linear Damping", fmt::format("{0:2.7f}", body->GetLinearDamping()));
+						UI::Control("Angular Velocity", fmt::to_string(body->GetAngularVelocity()));
+						UI::Control("Mass", fmt::to_string(body->GetMass()));
+						UI::Control("IsBuller", fmt::to_string(body->IsBullet()));
+						UI::Control("IsAwake", fmt::to_string(body->IsAwake()));
+						UI::Control("IsEnabled", fmt::to_string(body->IsEnabled()));
 
 						b2Fixture* fixture = body->GetFixtureList();
-						if (fixture && ImGui::TreeNodeEx("Fixture", UI::DefaultThinHeaderFlags))
+						if (fixture && UI::ControlHeader("Fixture"))
 						{
-							UI::BeginControlsGrid(syncID);
 							SK_CORE_ASSERT(fixture->GetNext() == nullptr, "Multy Fixture bodies not allowed at the moment");
-							UI::Property("Type", ToStringView(fixture->GetType()));
-							UI::Property("IsSensor", fixture->IsSensor());
-							UI::Property("Density", fixture->GetDensity());
-							UI::Property("Density", fixture->GetDensity());
-							UI::Property("Restitution", fixture->GetRestitution());
-							UI::Property("RestitutionThreshold", fixture->GetRestitutionThreshold());
+							UI::Control("Type", fmt::to_string(fixture->GetType()));
+							UI::Control("IsSensor", fmt::to_string(fixture->IsSensor()));
+							UI::Control("Density", fmt::to_string(fixture->GetDensity()));
+							UI::Control("Density", fmt::to_string(fixture->GetDensity()));
+							UI::Control("Restitution", fmt::to_string(fixture->GetRestitution()));
+							UI::Control("RestitutionThreshold", fmt::to_string(fixture->GetRestitutionThreshold()));
 							b2MassData massData;
 							fixture->GetMassData(&massData);
-							UI::Property("Mass", massData.mass);
-							UI::Property("Center", glm::vec2(massData.center.x, massData.center.y));
-							UI::Property("Inertia", massData.I);
-							UI::EndControlsGrid();
+							UI::Control("Mass", fmt::to_string(massData.mass));
+							UI::Control("Center", fmt::to_string(glm::vec2(massData.center.x, massData.center.y)));
+							UI::Control("Inertia", fmt::to_string(massData.I));
 							ImGui::TreePop();
 						}
 
 						b2JointEdge* jointEdge = body->GetJointList();
-						if (jointEdge && jointEdge->joint && ImGui::TreeNodeEx("Joint", UI::DefaultThinHeaderFlags))
+						if (jointEdge && jointEdge->joint && UI::ControlHeader("Joint"))
 						{
-							UI::BeginControlsGrid(syncID);
 							b2Joint* joint = jointEdge->joint;
-							UI::Property("Type", ToStringView(joint->GetType()));
+							UI::Control("Type", fmt::to_string(joint->GetType()));
 							Entity bodyAEntity = m_Scene->TryGetEntityByUUID((UUID)joint->GetBodyA()->GetUserData().pointer);
 							Entity bodyBEntity = m_Scene->TryGetEntityByUUID((UUID)joint->GetBodyB()->GetUserData().pointer);
-							UI::Property("Body A", bodyAEntity.GetName());
-							UI::Property("Body B", bodyBEntity.GetName());
-							UI::Property("Anchor A", Phyiscs2DUtils::ToGLMVec(joint->GetAnchorA()));
-							UI::Property("Anchor B", Phyiscs2DUtils::ToGLMVec(joint->GetAnchorB()));
+							UI::Control("Body A", (const std::string&)bodyAEntity.GetName());
+							UI::Control("Body B", (const std::string&)bodyBEntity.GetName());
+							UI::Control("Anchor A", fmt::to_string(Phyiscs2DUtils::ToGLMVec(joint->GetAnchorA())));
+							UI::Control("Anchor B", fmt::to_string(Phyiscs2DUtils::ToGLMVec(joint->GetAnchorB())));
 							const float invdt = 1.0f / m_Scene->GetPhysicsScene().GetTimeStep();
-							UI::Property("Reaction Force", Phyiscs2DUtils::ToGLMVec(joint->GetReactionForce(invdt)));
-							UI::Property("Reaction Torque", joint->GetReactionTorque(invdt));
-							UI::Property("Collider Connected", joint->GetCollideConnected());
-							UI::EndControlsGrid();
+							UI::Control("Reaction Force", fmt::to_string(Phyiscs2DUtils::ToGLMVec(joint->GetReactionForce(invdt))));
+							UI::Control("Reaction Torque", fmt::to_string(joint->GetReactionTorque(invdt)));
+							UI::Control("Collider Connected", fmt::to_string(joint->GetCollideConnected()));
 							ImGui::TreePop();
 						}
+						UI::EndControlsGrid();
 					}
 					ImGui::TreePop();
 				}

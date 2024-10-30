@@ -9,14 +9,14 @@ namespace Shark {
 	class DirectXShaderCache
 	{
 	public:
-		static ShaderUtils::ShaderStage::Flags HasChanged(Ref<DirectXShaderCompiler> compiler);
+		static ShaderUtils::ShaderStage HasChanged(Ref<DirectXShaderCompiler> compiler);
 		static void OnShaderCompiled(Ref<DirectXShaderCompiler> compiler);
 
 	private:
 		DirectXShaderCache();
 		~DirectXShaderCache();
 
-		ShaderUtils::ShaderStage::Flags GetChangedStages(Ref<DirectXShaderCompiler> compiler) const;
+		ShaderUtils::ShaderStage GetChangedStages(Ref<DirectXShaderCompiler> compiler) const;
 		void OnShaderCompiledInternal(Ref<DirectXShaderCompiler> compiler);
 	private:
 		void WriteShaderSourceHashCodesToDisc();
@@ -25,7 +25,7 @@ namespace Shark {
 	private:
 		inline static DirectXShaderCache* s_Instance = nullptr;
 
-		std::map<std::filesystem::path, std::map<ShaderUtils::ShaderStage::Type, uint64_t>> m_CachedShaderSourceHashCodes;
+		std::map<std::filesystem::path, std::map<ShaderUtils::ShaderStage, uint64_t>> m_CachedShaderSourceHashCodes;
 	};
 
 

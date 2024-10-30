@@ -28,6 +28,17 @@ struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
 
 namespace ImGui {
 
+	ImGuiID GetID(const std::string& strID);
+	ImGuiID GetID(std::string_view strID);
+	ImGuiID GetID(Shark::UUID uuid);
+
+	ImGuiID GetIDWithSeed(const void* ptr, ImGuiID seed);
+	ImGuiID GetIDWithSeed(Shark::UUID uuid, ImGuiID seed);
+
+	void PushID(const std::string& strID);
+	void PushID(std::string_view strID);
+	void PushID(Shark::UUID uuid);
+
 	void Text(std::string_view str);
 	void Text(const std::string& string);
 	void Text(const std::filesystem::path& path);
@@ -35,11 +46,5 @@ namespace ImGui {
 	bool BeginDrapDropTargetWindow(const char* payload_type = NULL);
 
 	bool BeginPopupModal(ImGuiID id, const char* name, bool* p_open = NULL, ImGuiWindowFlags flags = 0);
-
-	template<typename T>
-	bool SliderScalar(const char* label, ImGuiDataType data_type, T& data, uint32_t min, uint32_t max, const char* format = NULL, ImGuiSliderFlags flags = 0)
-	{
-		return ImGui::SliderScalar(label, data_type, &data, &min, &max, format, flags);
-	}
 
 }

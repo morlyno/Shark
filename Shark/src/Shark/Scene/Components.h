@@ -115,13 +115,34 @@ namespace Shark {
 	struct MeshComponent
 	{
 		AssetHandle Mesh;
+	};
+
+	struct MeshFilterComponent
+	{
+		UUID RootEntityID;
+	};
+
+	struct SubmeshComponent
+	{
+		AssetHandle Mesh;
 		uint32_t SubmeshIndex = 0;
 		AssetHandle Material;
 		bool Visible = true;
 
-		MeshComponent() = default;
-		MeshComponent(AssetHandle mesh, AssetHandle material = AssetHandle::Invalid)
-			: Mesh(mesh), Material(material) {}
+		SubmeshComponent() = default;
+		SubmeshComponent(AssetHandle mesh, uint32_t submeshIndex)
+			: Mesh(mesh), SubmeshIndex(submeshIndex) {}
+	};
+
+	struct StaticMeshComponent
+	{
+		AssetHandle StaticMesh;
+		Ref<MaterialTable> MaterialTable = Ref<Shark::MaterialTable>::Create();
+		bool Visible = true;
+
+		StaticMeshComponent() = default;
+		StaticMeshComponent(AssetHandle staticMesh)
+			: StaticMesh(staticMesh) {}
 	};
 
 	struct PointLightComponent
@@ -175,7 +196,7 @@ namespace Shark {
 
 	struct RigidBody2DComponent
 	{
-		enum class BodyType { None = 0, Static, Dynamic, Kinematic };
+		enum class BodyType { Static, Dynamic, Kinematic };
 		BodyType Type = BodyType::Dynamic;
 		bool FixedRotation = false;
 		bool IsBullet = false;
@@ -203,7 +224,7 @@ namespace Shark {
 
 		bool IsSensor = false;
 
-		b2Fixture* RuntimeCollider;
+		b2Fixture* RuntimeCollider = nullptr;
 
 		BoxCollider2DComponent() = default;
 		BoxCollider2DComponent(const BoxCollider2DComponent&) = default;
@@ -222,7 +243,7 @@ namespace Shark {
 
 		bool IsSensor = false;
 
-		b2Fixture* RuntimeCollider;
+		b2Fixture* RuntimeCollider = nullptr;
 
 		CircleCollider2DComponent() = default;
 		CircleCollider2DComponent(const CircleCollider2DComponent&) = default;
@@ -242,7 +263,7 @@ namespace Shark {
 		float Stiffness = 0.0f;
 		float Damping = 0.0f;
 
-		b2DistanceJoint* RuntimeJoint;
+		b2DistanceJoint* RuntimeJoint = nullptr;
 	};
 
 	struct HingeJointComponent
@@ -258,7 +279,7 @@ namespace Shark {
 		float MotorSpeed = 0.0f;
 		float MaxMotorTorque = 0.0f;
 
-		b2RevoluteJoint* RuntimeJoint;
+		b2RevoluteJoint* RuntimeJoint = nullptr;
 	};
 
 	struct PrismaticJointComponent
@@ -277,7 +298,7 @@ namespace Shark {
 		float MaxMotorForce = 0.0f;
 		float MotorSpeed = 0.0f;
 
-		b2PrismaticJoint* RuntimeJoint;
+		b2PrismaticJoint* RuntimeJoint = nullptr;
 	};
 
 	struct PulleyJointComponent
@@ -291,7 +312,7 @@ namespace Shark {
 		glm::vec2 GroundAnchorB = glm::vec2(0.0f);
 		float Ratio = 1.0f;
 
-		b2PulleyJoint* RuntimeJoint;
+		b2PulleyJoint* RuntimeJoint = nullptr;
 	};
 
 	struct ScriptComponent
@@ -313,8 +334,8 @@ namespace Shark {
 		using Combine = ComponentGroup<TComponents..., TOthers...>;
 	};
 
-	using AllComponentsGroup = ComponentGroup<
-		// NOTE(moro): NO IDComponent
+	using UserInteractableComponentsGroup = ComponentGroup<
+		// No IDComponent, MeshFilterComponent
 		TagComponent,
 		TransformComponent,
 		RelationshipComponent,
@@ -322,6 +343,8 @@ namespace Shark {
 		CircleRendererComponent,
 		TextRendererComponent,
 		MeshComponent,
+		SubmeshComponent,
+		StaticMeshComponent,
 		PointLightComponent,
 		DirectionalLightComponent,
 		SkyComponent,
@@ -336,9 +359,11 @@ namespace Shark {
 		ScriptComponent
 	>;
 
-	constexpr ComponentGroup AllComponents = AllComponentsGroup{};
-	constexpr ComponentGroup CopySceneComponents = AllComponentsGroup::Combine<Internal::RootParentComponent>{};
-	constexpr ComponentGroup CopyEntityComponents = AllComponentsGroup::Combine<Internal::RootParentComponent>{};
+	using AllComponentsGroup = UserInteractableComponentsGroup::Combine<MeshFilterComponent>;
+
+	constexpr ComponentGroup UserInteractableComponents = UserInteractableComponentsGroup{};
+	constexpr ComponentGroup CopySceneComponents = AllComponentsGroup::Combine<MeshFilterComponent, Internal::RootParentComponent>{};
+	constexpr ComponentGroup CopyEntityComponents = AllComponentsGroup::Combine<MeshFilterComponent, Internal::RootParentComponent>{};
 
 	template<typename TFunc, typename... TComponents>
 	inline static void ForEach(TFunc func)

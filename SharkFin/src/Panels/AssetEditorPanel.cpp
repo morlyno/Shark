@@ -1,7 +1,7 @@
 #include "skfpch.h"
 #include "AssetEditorPanel.h"
 
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
@@ -9,7 +9,7 @@ namespace Shark {
 	AssetEditorManagerPanel::AssetEditorManagerPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
-		m_DockspaceID = UI::GetIDWithSeed("AssetEditorPanelDockspace", (uint32_t)(uint64_t)this);
+		m_DockspaceID = ImGui::GetIDWithSeed("AssetEditorPanelDockspace", nullptr, (uint32_t)(uint64_t)this);
 	}
 
 	AssetEditorManagerPanel::~AssetEditorManagerPanel()
@@ -49,6 +49,12 @@ namespace Shark {
 	{
 		for (auto& [id, entry] : m_EditorPanels)
 			entry.Editor->OnEvent(event);
+	}
+
+	void AssetEditorManagerPanel::AddEditor(const AssetMetaData& metadata, Ref<EditorPanel> editorPanel)
+	{
+		m_EditorPanels[metadata.Handle] = { editorPanel, true };
+		editorPanel->DockWindow(m_DockspaceID);
 	}
 
 	void AssetEditorManagerPanel::DrawPanels()

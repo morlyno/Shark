@@ -5,7 +5,7 @@ namespace Shark::String {
 	enum class Case
 	{
 		Sensitive,
-		Ingnore
+		Ignore
 	};
 
 	bool Contains(std::string_view text, std::string_view pattern, bool caseSensitive = true);

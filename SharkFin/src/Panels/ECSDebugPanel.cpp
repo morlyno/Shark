@@ -2,7 +2,7 @@
 #include "ECSDebugPanel.h"
 
 #include "Shark/Scene/Scene.h"
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
 
 namespace Shark {
 
@@ -36,6 +36,7 @@ namespace Shark {
 					if (registry.all_of<RelationshipComponent>(ent))
 					{
 						const auto& relationship = registry.get<RelationshipComponent>(ent);
+						ImGui::Text(fmt::format("RootParentComponent: {}", registry.all_of<Internal::RootParentComponent>(ent) ? "True" : "False"));
 						ImGui::Text("Parent: %llu", (uint64_t)relationship.Parent);
 						ImGui::Text("Children (%llu):", relationship.Children.size());
 						for (UUID childID : relationship.Children)

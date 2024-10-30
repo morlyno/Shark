@@ -97,6 +97,32 @@ namespace YAML {
 		}
 	};
 
+	template<>
+	struct convert<Shark::Ref<Shark::MaterialTable>>
+	{
+		static Node encode(Shark::Ref<Shark::MaterialTable> materialTable)
+		{
+			return Node(materialTable->GetMaterials());
+		}
+
+		static bool decode(const Node& node, Shark::Ref<Shark::MaterialTable>& materialTable)
+		{
+			if (!node.IsMap())
+				return false;
+
+			materialTable = Shark::Ref<Shark::MaterialTable>::Create();
+			auto materials = node.as<Shark::MaterialTable::MaterialMap>();
+			for (const auto& [index, material] : materials)
+			{
+				if (material)
+					materialTable->SetMaterial(index, material);
+				else
+					materialTable->ClearMaterial(index);
+			}
+			return true;
+		}
+	};
+
 }
 
 namespace Shark {
@@ -252,8 +278,42 @@ namespace Shark {
 				out << YAML::Key << "MeshComponent";
 				out << YAML::BeginMap;
 				out << YAML::Key << "Mesh" << YAML::Value << meshHandle;
+				out << YAML::EndMap;
+			}
+
+			if (auto component = entity.TryGetComponent<SubmeshComponent>())
+			{
+				AssetHandle meshHandle = AssetHandle::Invalid;
+				if (!AssetManager::IsMemoryAsset(component->Mesh))
+					meshHandle = component->Mesh;
+
+				out << YAML::Key << "SubmeshComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "Mesh" << YAML::Value << meshHandle;
 				out << YAML::Key << "SubmeshIndex" << YAML::Value << component->SubmeshIndex;
 				out << YAML::Key << "Material" << YAML::Value << component->Material;
+				out << YAML::EndMap;
+			}
+
+			if (auto component = entity.TryGetComponent<MeshFilterComponent>())
+			{
+				out << YAML::Key << "MeshFilterComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "RootEntityID" << YAML::Value << component->RootEntityID;
+				out << YAML::EndMap;
+			}
+
+			if (auto component = entity.TryGetComponent<StaticMeshComponent>())
+			{
+				AssetHandle meshHandle = AssetHandle::Invalid;
+				if (!AssetManager::IsMemoryAsset(component->StaticMesh))
+					meshHandle = component->StaticMesh;
+
+				out << YAML::Key << "StaticMeshComponent";
+				out << YAML::BeginMap;
+				out << YAML::Key << "StaticMesh" << YAML::Value << meshHandle;
+				out << YAML::Key << "MaterialTable" << YAML::Value << component->MaterialTable;
+				out << YAML::Key << "Visible" << YAML::Value << component->Visible;
 				out << YAML::EndMap;
 			}
 
@@ -456,7 +516,7 @@ namespace Shark {
 				const UUID id = entityNode["Entity"].as<UUID>(UUID::Invalid);
 				const std::string name = entityNode["TagComponent"]["Name"].as<std::string>();
 
-				Entity entity = scene->CreateEntityWithUUID(id, name);
+				Entity entity = scene->CreateEntityWithUUID(id, name, false);
 				SK_CORE_TRACE_TAG("Serialization", " - Entity {} - {}", entity.GetName(), entity.GetUUID());
 
 				if (auto componentNode = entityNode["TransformComponent"])
@@ -508,8 +568,28 @@ namespace Shark {
 				{
 					auto& component = entity.AddOrReplaceComponent<MeshComponent>();
 					SK_DESERIALIZE_PROPERTY(componentNode, "Mesh", component.Mesh, AssetHandle::Invalid);
+				}
+
+				if (auto componentNode = entityNode["SubmeshComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<SubmeshComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "Mesh", component.Mesh, AssetHandle::Invalid);
 					SK_DESERIALIZE_PROPERTY(componentNode, "SubmeshIndex", component.SubmeshIndex, 0);
 					SK_DESERIALIZE_PROPERTY(componentNode, "Material", component.Material, AssetHandle::Invalid);
+				}
+
+				if (auto componentNode = entityNode["MeshFilterComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<MeshFilterComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "RootEntityID", component.RootEntityID, UUID::Invalid);
+				}
+
+				if (auto componentNode = entityNode["StaticMeshComponent"])
+				{
+					auto& component = entity.AddOrReplaceComponent<StaticMeshComponent>();
+					SK_DESERIALIZE_PROPERTY(componentNode, "StaticMesh", component.StaticMesh);
+					SK_DESERIALIZE_PROPERTY(componentNode, "MaterialTable", component.MaterialTable);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Visible", component.Visible);
 				}
 
 				if (auto componentNode = entityNode["PointLightComponent"])
@@ -552,7 +632,7 @@ namespace Shark {
 				if (auto componentNode = entityNode["RigidBody2DComponent"])
 				{
 					auto& component = entity.AddOrReplaceComponent<RigidBody2DComponent>();
-					SK_DESERIALIZE_PROPERTY(componentNode, "Type", component.Type, RigidBody2DComponent::BodyType::None);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Type", component.Type, RigidBody2DComponent::BodyType::Static);
 					SK_DESERIALIZE_PROPERTY(componentNode, "FixedRotation", component.FixedRotation, false);
 					SK_DESERIALIZE_PROPERTY(componentNode, "IsBullet", component.IsBullet, false);
 					SK_DESERIALIZE_PROPERTY(componentNode, "Awake", component.Awake, true);
@@ -670,6 +750,8 @@ namespace Shark {
 			SK_CORE_VERIFY((bool)relationship.Parent != scene->m_Registry.all_of<Internal::RootParentComponent>(ent));
 		}
 #endif
+
+		scene->SortEntitites();
 
 		return true;
 	}

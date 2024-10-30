@@ -75,7 +75,7 @@ namespace Shark {
 
 	b2Body* Physics2DScene::GetBody(Entity entity) const
 	{
-		if (entity && entity.AllOf<RigidBody2DComponent>())
+		if (entity && entity.HasComponent<RigidBody2DComponent>())
 		{
 			auto& comp = entity.GetComponent<RigidBody2DComponent>();
 			return comp.RuntimeBody;

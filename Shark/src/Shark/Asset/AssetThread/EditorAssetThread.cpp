@@ -10,14 +10,10 @@
 namespace Shark {
 
 	EditorAssetThread::EditorAssetThread(const AssetThreadSettings& settings)
-		: m_Thread("AssetThread")
+		: m_Thread("AssetThread"), m_IdleSignal(true, false)
 	{
-		SK_CORE_VERIFY(settings.DefaultDependencyPolicy != LoadDependencyPolicy::Default, "LoadDependencyPolicy::Default is not allowed as the default policy.");
-
 		m_MonitorAssets = settings.MonitorAssets;
-		m_DefaultDependencyPolicy = settings.DefaultDependencyPolicy;
 
-		m_IdleSignal = Threading::Signal(true, false);
 		m_Thread.Dispacht(&EditorAssetThread::AssetThreadFunc, this);
 	}
 
@@ -76,44 +72,15 @@ namespace Shark {
 		return request.Future;
 	}
 
-	LoadDependencyPolicy EditorAssetThread::GetDependencyPolicy(AssetHandle handle)
-	{
-		std::scoped_lock lock(m_ALRStorageMutex);
-		if (!m_ALRStorage.contains(handle))
-			return m_DefaultDependencyPolicy;
-
-		AssetLoadRequest& request = m_ALRStorage.at(handle);
-		if (request.DependencyPolicy == LoadDependencyPolicy::Default)
-			return m_DefaultDependencyPolicy;
-
-		return request.DependencyPolicy;
-	}
-
-	void EditorAssetThread::HandleMetadataRequests(const AssetRegistry& registry)
-	{
-		SK_PROFILE_FUNCTION();
-
-		std::scoped_lock lock(m_RequestedMetadataMutex);
-		for (AssetHandle handle : m_MetadataRequests)
-		{
-			if (!registry.Contains(handle))
-				continue;
-
-			m_RequestedMetadata[handle] = registry.Read(handle);
-		}
-		m_MetadataRequests.clear();
-		m_RequestsCompleted.notify_all();
-	}
-
 	void EditorAssetThread::RetrieveLoadedAssets(std::vector<AssetLoadRequest>& outLoadedAssets)
 	{
 		SK_PROFILE_FUNCTION();
 
 		std::scoped_lock lock(m_ALRStorageMutex);
-		if (m_LoadedRequests.empty())
+		if (m_HandledRequests.empty())
 			return;
 
-		for (AssetHandle handle : m_LoadedRequests)
+		for (AssetHandle handle : m_HandledRequests)
 		{
 			AssetLoadRequest& request = m_ALRStorage.at(handle);
 			request.Future.Signal();
@@ -122,21 +89,7 @@ namespace Shark {
 			m_ALRStorage.erase(handle);
 		}
 
-		m_LoadedRequests.clear();
-	}
-
-	void EditorAssetThread::AddLoadedAsset(Ref<Asset> asset, const AssetMetaData& metadata)
-	{
-		std::scoped_lock lock(m_LoadedAssetsMutex);
-		m_LoadedAssets[metadata.Handle] = asset;
-
-		// NOTE(moro): memory assets don't need to be stored because they are not monitored
-		//             and they are always in up to date state in the registry
-		//if (!metadata.IsMemoryAsset)
-		{
-			std::scoped_lock lock(m_LoadedAssetMetadataMutex);
-			m_LoadedAssetMetadata[metadata.Handle] = metadata;
-		}
+		m_HandledRequests.clear();
 	}
 
 	void EditorAssetThread::UpdateLastWriteTime(AssetHandle handle, uint64_t lastWriteTime)
@@ -147,6 +100,28 @@ namespace Shark {
 			AssetMetaData& metadata = m_LoadedAssetMetadata.at(handle);
 			metadata.LastWriteTime = lastWriteTime;
 		}
+	}
+
+	void EditorAssetThread::OnMetadataChanged(const AssetMetaData& metadata)
+	{
+		if (metadata.IsMemoryAsset)
+			return;
+
+		std::scoped_lock lock(m_LoadedAssetMetadataMutex);
+		if (m_LoadedAssetMetadata.contains(metadata.Handle))
+		{
+			AssetMetaData& md = m_LoadedAssetMetadata.at(metadata.Handle);
+			md = metadata;
+		}
+	}
+
+	void EditorAssetThread::OnAssetLoaded(const AssetMetaData& metadata)
+	{
+		if (metadata.IsMemoryAsset)
+			return;
+
+		std::scoped_lock lock(m_LoadedAssetMetadataMutex);
+		m_LoadedAssetMetadata[metadata.Handle] = metadata;
 	}
 
 	void EditorAssetThread::AssetThreadFunc()
@@ -184,9 +159,6 @@ namespace Shark {
 				AssetLoadRequest& alr = m_ALRStorage.at(next);
 				lock.unlock();
 
-				if (alr.DependencyPolicy == LoadDependencyPolicy::Default)
-					alr.DependencyPolicy = m_DefaultDependencyPolicy;
-
 				LoadAsset(alr);
 			}
 
@@ -208,17 +180,8 @@ namespace Shark {
 
 	void EditorAssetThread::LoadAsset(AssetLoadRequest& request)
 	{
-		if (request.Metadata.IsMemoryAsset || (request.Metadata.Status == AssetStatus::Ready && !request.Reload))
-		{
-			if (!request.Asset)
-			{
-				std::scoped_lock lock(m_LoadedAssetsMutex);
-				request.Asset = m_LoadedAssets.at(request.Metadata.Handle);
-			}
-
-			LoadDependencies(request);
-			return;
-		}
+		SK_CORE_VERIFY(request.Metadata.IsMemoryAsset == false);
+		SK_CORE_VERIFY((request.Metadata.Status == AssetStatus::Ready && !request.Reload) == false);
 
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("AssetThread", "Loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
@@ -240,17 +203,12 @@ namespace Shark {
 		{
 			auto absolutePath = GetFilesystemPath(request.Metadata);
 			request.Metadata.LastWriteTime = FileSystem::GetLastWriteTime(absolutePath);
+			request.Metadata.Status = AssetStatus::Ready;
 
 			{
-				std::scoped_lock lock(m_LoadedAssetsMutex, m_LoadedAssetMetadataMutex);
-				m_LoadedAssets[request.Metadata.Handle] = request.Asset;
+				std::scoped_lock lock(m_LoadedAssetMetadataMutex);
 				m_LoadedAssetMetadata[request.Metadata.Handle] = request.Metadata;
-
-				m_LoadedAssetMetadata.at(request.Metadata.Handle).Status = AssetStatus::Ready;
 			}
-
-			LoadDependencies(request);
-			request.Metadata.Status = AssetStatus::Ready;
 
 			request.Future.Set(request.Asset);
 			request.Future.Signal(true, false);
@@ -262,211 +220,7 @@ namespace Shark {
 		//             As soon as the handle is added to m_LoadedRequests the alr can be deleted from m_ALRStorage by the main thread
 		{
 			std::scoped_lock lock(m_ALRStorageMutex);
-			m_LoadedRequests.emplace_back(request.Metadata.Handle);
-		}
-	}
-
-	void EditorAssetThread::LoadDependencies(const AssetLoadRequest& request)
-	{
-		SK_CORE_VERIFY(request.Asset);
-		SK_CORE_VERIFY(request.DependencyPolicy != LoadDependencyPolicy::Default);
-		if (request.DependencyPolicy == LoadDependencyPolicy::OnDemand || !request.Asset)
-			return;
-
-		SK_PROFILE_FUNCTION();
-
-		std::vector<AssetMetaData> dependencies;
-		std::vector<AssetHandle> deferredDependencies;
-
-		const auto Queue = [this, &dependencies, &deferredDependencies, dependencyPolicy = request.DependencyPolicy, reload = request.Reload](AssetHandle handle)
-		{
-			if (!handle)
-				return;
-
-			{
-				// early out if already queued
-				std::scoped_lock lock(m_ALRStorageMutex);
-				if (m_ALRStorage.contains(handle))
-				{
-					AssetLoadRequest& alr = m_ALRStorage.at(handle);
-					if (alr.Metadata.Status == AssetStatus::Loading)
-					{
-						if (alr.DependencyPolicy < dependencyPolicy)
-							alr.DependencyPolicy = dependencyPolicy;
-						return;
-					}
-
-					if (alr.Metadata.Status == AssetStatus::Ready)
-						return;
-
-					SK_DEBUG_BREAK_CONDITIONAL(s_Break_Unreachable);
-				}
-			}
-
-			{
-				std::scoped_lock lock(m_LoadedAssetMetadataMutex);
-				if (m_LoadedAssetMetadata.contains(handle) && std::ranges::find(dependencies, handle, &AssetMetaData::Handle) != dependencies.end())
-				{
-					dependencies.push_back(m_LoadedAssetMetadata.at(handle));
-					return;
-				}
-			}
-
-			deferredDependencies.push_back(handle);
-		};
-
-		switch (request.Metadata.Type)
-		{
-			case AssetType::Scene:
-			{
-				Ref<Scene> scene = request.Asset.As<Scene>();
-
-				for (auto entities = scene->GetAllEntitysWith<MeshComponent>();
-					 auto ent : entities)
-				{
-					Entity entity(ent, scene);
-					auto& component = entity.GetComponent<MeshComponent>();
-					Queue(component.Mesh);
-					Queue(component.Material);
-				}
-
-				for (auto entities = scene->GetAllEntitysWith<SkyComponent>();
-					 auto ent : entities)
-				{
-					Entity entity(ent, scene);
-					auto& component = entity.GetComponent<SkyComponent>();
-					Queue(component.SceneEnvironment);
-				}
-
-				for (auto entities = scene->GetAllEntitysWith<SpriteRendererComponent>();
-					 auto ent : entities)
-				{
-					Entity entity(ent, scene);
-					auto& component = entity.GetComponent<SpriteRendererComponent>();
-					Queue(component.TextureHandle);
-				}
-
-				for (auto entities = scene->GetAllEntitysWith<TextRendererComponent>();
-					 auto ent : entities)
-				{
-					Entity entity(ent, scene);
-					auto& component = entity.GetComponent<TextRendererComponent>();
-					Queue(component.FontHandle);
-				}
-
-				break;
-			}
-			case AssetType::MeshSource:
-			{
-				Ref<MeshSource> meshSource = request.Asset.As<MeshSource>();
-				for (AssetHandle material : meshSource->GetMaterials())
-					Queue(material);
-				break;
-			}
-			case AssetType::Mesh:
-			{
-				Ref<Mesh> mesh = request.Asset.As<Mesh>();
-				Queue(mesh->GetMeshSource());
-				break;
-			}
-			case AssetType::Material:
-			{
-				Ref<MaterialAsset> material = request.Asset.As<MaterialAsset>();
-				Queue(material->GetAlbedoMap());
-				Queue(material->GetNormalMap());
-				Queue(material->GetMetalnessMap());
-				Queue(material->GetRoughnessMap());
-				break;
-			}
-		}
-
-		{
-			std::scoped_lock lock(m_RequestedMetadataMutex);
-			for (AssetHandle handle : deferredDependencies)
-			{
-				m_MetadataRequests.emplace(handle);
-			}
-		}
-
-		const auto Load = [this](AssetMetaData& metadata, const AssetLoadRequest& parentRequest)
-		{
-			metadata.Status = AssetStatus::Loading;
-			AssetLoadRequest alr(metadata);
-			alr.DependencyPolicy = parentRequest.DependencyPolicy;
-			alr.Reload = parentRequest.Reload;
-
-			switch (alr.DependencyPolicy)
-			{
-				case LoadDependencyPolicy::Deferred:
-				{
-					QueueAssetLoad(alr);
-					break;
-				}
-				case LoadDependencyPolicy::Immediate:
-				{
-					m_ALRStorageMutex.lock();
-					SK_CORE_VERIFY(m_ALRStorage.contains(metadata.Handle) == false);
-					m_ALRStorage[metadata.Handle] = std::move(alr);
-
-					AssetLoadRequest& activeALR = m_ALRStorage.at(metadata.Handle);
-					m_ALRStorageMutex.unlock();
-
-					LoadAsset(activeALR);
-					break;
-				}
-				default:
-				{
-					SK_CORE_VERIFY(false, "Invalid LoadDependencyPolicy");
-					break;
-				}
-			}
-		};
-
-		for (auto& metadata : dependencies)
-		{
-			Load(metadata, request);
-		}
-
-		if (!deferredDependencies.empty())
-		{
-			SK_PROFILE_SCOPED("Load Deferred Dependencies");
-
-			for (AssetHandle handle : deferredDependencies)
-			{
-				std::optional<AssetMetaData> metadata;
-				{
-					std::unique_lock lock(m_RequestedMetadataMutex);
-					if (!m_RequestedMetadata.contains(handle))
-					{
-						if (!m_MetadataRequests.contains(handle))
-						{
-							SK_CORE_ERROR_TAG("AssetThread", "Failed to obtain metadata for {}", handle);
-							break;
-						}
-
-						SK_PROFILE_SCOPED("Wait for Reqeusts");
-						m_RequestsCompleted.wait(lock, [this, handle]() mutable
-						{
-							if (m_RequestedMetadata.contains(handle))
-								return true;
-							if (!m_MetadataRequests.contains(handle))
-								return true; // error, continue
-							return false;
-						});
-					}
-
-					if (m_RequestedMetadata.contains(handle))
-					{
-						metadata = m_RequestedMetadata.at(handle);
-						m_RequestedMetadata.erase(handle);
-					}
-				}
-
-				if (metadata)
-				{
-					Load(*metadata, request);
-				}
-			}
+			m_HandledRequests.emplace_back(request.Metadata.Handle);
 		}
 	}
 

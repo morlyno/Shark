@@ -1,10 +1,12 @@
 #include "skfpch.h"
 #include "MaterialEditorPanel.h"
 
+#include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Render/Renderer.h"
 
-#include "Shark/UI/UI.h"
+#include "Shark/File/FileSystem.h"
+
+#include "Shark/UI/UICore.h"
 #include "Shark/UI/Theme.h"
 #include "Shark/UI/EditorResources.h"
 
@@ -207,10 +209,9 @@ namespace Shark {
 		Ref<Mesh> sphere = AssetManager::GetAsset<Mesh>(m_Sphere);
 
 		Entity entity = m_Scene->CreateEntity("Sphere");
-		MeshComponent& meshComp = entity.AddComponent<MeshComponent>();
-		meshComp.Mesh = sphere->Handle;
-		meshComp.Material = m_MaterialHandle;
-		meshComp.SubmeshIndex = 0;
+		auto& meshComp = entity.AddComponent<StaticMeshComponent>();
+		meshComp.StaticMesh = sphere->Handle;
+		meshComp.MaterialTable->SetMaterial(0, m_MaterialHandle);
 
 		Entity lightEntity = m_Scene->CreateEntity("Light");
 		lightEntity.Transform().Translation = { -4.0f, 3.0f, -4.0f };
@@ -305,6 +306,148 @@ namespace Shark {
 		}
 		ImGui::End();
 
+	}
+
+	MaterialPanel::MaterialPanel(const std::string& panelName)
+		: Panel(panelName)
+	{
+		m_MaterialEditor = Scope<MaterialEditor>::Create();
+	}
+
+	MaterialPanel::~MaterialPanel()
+	{
+	}
+
+	void MaterialPanel::OnImGuiRender(bool& isShown)
+	{
+		ImGui::Begin(m_PanelName.c_str(), &isShown);
+
+		Entity nextEntity;
+		if (SelectionManager::AnySelected(SelectionContext::Entity))
+		{
+			UUID lastSelectedID = SelectionManager::GetLastSelected(SelectionContext::Entity);
+			Entity lastSelected = m_Context->TryGetEntityByUUID(lastSelectedID);
+			// TODO(moro): Add MeshFilterComponent when the RootEntityID got fixed
+			if (lastSelected && lastSelected.HasAny<MeshComponent, SubmeshComponent, StaticMeshComponent>())
+			{
+				nextEntity = lastSelected;
+			}
+		}
+
+		if (nextEntity != m_SelectedEntity)
+		{
+			m_SelectedEntity = nextEntity;
+			m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
+		}
+
+		bool selectedMaterialValid = false;
+		if (m_SelectedEntity && ImGui::BeginListBox("##materialList", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() * 5.0f }))
+		{
+			const auto listMaterials = [this, &selectedMaterialValid](Ref<MaterialTable> meshMaterialTable, Ref<MaterialTable> overrideTable, AssetHandle overrideHandle, uint32_t overrideSlot)
+			{
+				for (uint32_t slot = 0; slot < meshMaterialTable->GetSlotCount(); slot++)
+				{
+					AssetHandle material;
+					bool readonly = true;
+
+					if (overrideTable && overrideTable->HasMaterial(slot))
+					{
+						material = overrideTable->GetMaterial(slot);
+						readonly = false;
+					}
+					else if (!overrideTable && overrideSlot == slot)
+					{
+						material = overrideHandle;
+						readonly = false;
+					}
+
+					if (!material)
+					{
+						material = meshMaterialTable->GetMaterial(slot);
+						readonly = true;
+					}
+
+					// Select first valid material
+					if (material && !m_MaterialEditor->GetMaterial())
+					{
+						m_MaterialEditor->SetMaterial(material);
+						m_MaterialEditor->SetReadonly(readonly);
+					}
+
+					const auto& name = GetMaterialName(material);
+					UI::ScopedDisabled disabled(!material);
+					UI::ScopedColorConditional textBrighter(ImGuiCol_Text, UI::Colors::Theme::TextBrighter, !readonly);
+					if (ImGui::Selectable(name.c_str(), material == m_MaterialEditor->GetMaterial()))
+					{
+						m_MaterialEditor->SetMaterial(material);
+						m_MaterialEditor->SetReadonly(readonly);
+					}
+
+					if (material == m_MaterialEditor->GetMaterial())
+						selectedMaterialValid = true;
+				}
+			};
+
+			if (m_SelectedEntity.HasComponent<StaticMeshComponent>())
+			{
+				const auto& component = m_SelectedEntity.GetComponent<StaticMeshComponent>();
+				if (auto mesh = AssetManager::GetAssetAsync<Mesh>(component.StaticMesh))
+					listMaterials(mesh->GetMaterials(), component.MaterialTable, AssetHandle::Invalid, -1);
+			}
+			else if (m_SelectedEntity.HasComponent<MeshComponent>())
+			{
+				const auto& component = m_SelectedEntity.GetComponent<MeshComponent>();
+				if (auto mesh = AssetManager::GetAssetAsync<Mesh>(component.Mesh))
+					listMaterials(mesh->GetMaterials(), nullptr, AssetHandle::Invalid, -1);
+			}
+			else if (m_SelectedEntity.HasComponent<SubmeshComponent>())
+			{
+				const auto& component = m_SelectedEntity.GetComponent<SubmeshComponent>();
+				if (auto mesh = AssetManager::GetAssetAsync<Mesh>(component.Mesh))
+				{
+					auto meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource());
+					if (meshSource->HasSubmesh(component.SubmeshIndex))
+					{
+						const auto& submesh = meshSource->GetSubmesh(component.SubmeshIndex);
+						listMaterials(mesh->GetMaterials(), nullptr, component.Material, submesh.MaterialIndex);
+					}
+				}
+			}
+			ImGui::EndListBox();
+		}
+
+		if (!selectedMaterialValid)
+			m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
+
+		m_MaterialEditor->DrawInline();
+
+		if (ImGui::BeginPopupContextWindow())
+		{
+			bool readonly = m_MaterialEditor->IsReadonly();
+			if (ImGui::Checkbox("Readonly", &readonly))
+				m_MaterialEditor->SetReadonly(readonly);
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::End();
+	}
+
+	std::string MaterialPanel::GetMaterialName(AssetHandle handle) const
+	{
+		if (!handle)
+			return "";
+
+		Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(handle);
+		auto& name = material->GetName();
+		if (!name.empty())
+			return name;
+
+		if (AssetManager::IsMemoryAsset(handle))
+			return fmt::to_string(handle);
+
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
+		return FileSystem::GetStemString(metadata.FilePath);
 	}
 
 }

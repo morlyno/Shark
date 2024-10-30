@@ -60,6 +60,9 @@ namespace Shark {
 		std::vector<Submesh>& GetSubmeshes() { return m_Submeshes; }
 		const std::vector<Submesh>& GetSubmeshes() const { return m_Submeshes; }
 
+		bool HasSubmesh(uint32_t index) const { return index < m_Submeshes.size(); }
+		const Submesh& GetSubmesh(uint32_t index) const { SK_CORE_VERIFY(index < m_Submeshes.size()); return m_Submeshes[index]; }
+
 		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
 		const std::vector<Index>& GetIndices() const { return m_Indices; }
 

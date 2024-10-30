@@ -227,10 +227,19 @@ float LightAttenuation(float distance, float intensity, float radius, float fall
     return intensity * (oneMinusS2 * oneMinusS2) / (1 + falloff * s);
 }
 
+float4 ToLinear(float4 sRGB)
+{
+    bool4 cutoff = sRGB < (float4)0.04045;
+    float4 higher = pow((sRGB + 0.055) / 1.055, 2.4);
+    float4 lower = sRGB / 12.92;
+    return lerp(higher, lower, cutoff);
+}
+
 PixelOutput main(PixelInput Input)
 {
     float4 albedoTexColor = u_AlbedoMap.Sample(SAMPLER(u_AlbedoMap), Input.Texcoord);
-    m_Params.Albedo = albedoTexColor.rgb * u_MaterialUniforms.Albedo;
+    m_Params.Albedo = albedoTexColor.rgb * ToLinear(float4(u_MaterialUniforms.Albedo, 1.0f)).rgb;
+    //m_Params.Albedo = albedoTexColor.rgb * u_MaterialUniforms.Albedo;
     m_Params.Metalness = u_MetalnessMap.Sample(SAMPLER(u_MetalnessMap), Input.Texcoord).b * u_MaterialUniforms.Metalness;
     m_Params.Roughness = u_RoughnessMap.Sample(SAMPLER(u_RoughnessMap), Input.Texcoord).g * u_MaterialUniforms.Roughness;
     m_Params.Roughness = max(m_Params.Roughness, 0.05);

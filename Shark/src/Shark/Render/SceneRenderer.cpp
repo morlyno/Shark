@@ -7,7 +7,7 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Math/Math.h"
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
 
 #include "Shark/Input/Input.h"
 
@@ -68,7 +68,7 @@ namespace Shark {
 	void SceneRenderer::SetClearColor(const glm::vec4& clearColor)
 	{
 		m_ClearColor = clearColor;
-		m_GeometryPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer->SetClearColor(clearColor);
+		m_GeometryPass->GetTargetFramebuffer()->SetClearColor(clearColor);
 	}
 
 	void SceneRenderer::BeginScene(const SceneRendererCamera& camera)
@@ -77,16 +77,17 @@ namespace Shark {
 		
 		if (m_NeedsResize && m_Specification.Width != 0 && m_Specification.Height != 0)
 		{
-			m_GeometryPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer->Resize(m_Specification.Width, m_Specification.Height);
-			m_SkyboxPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer->Resize(m_Specification.Width, m_Specification.Height);
-			m_CompositePass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer->Resize(m_Specification.Width, m_Specification.Height);
+			m_GeometryPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
+			m_SkyboxPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
+			m_CompositePass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 
-			m_NearestPointBuffer->Resize(m_Specification.Width, m_Specification.Height);
-			m_NearestPointPingPongBuffer->Resize(m_Specification.Width, m_Specification.Height);
-			m_JumpFloodStencilPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer->Resize(m_Specification.Width, m_Specification.Height);
-			m_JumpFloodInitPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer->Resize(m_Specification.Width, m_Specification.Height);
-			m_JumpFloodPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer->Resize(m_Specification.Width, m_Specification.Height);
-			m_JumpFloodOutlinePass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer->Resize(m_Specification.Width, m_Specification.Height);
+			m_SelectedGeometryPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
+			m_TempFramebuffers[0]->Resize(m_Specification.Width, m_Specification.Height);
+			m_TempFramebuffers[1]->Resize(m_Specification.Width, m_Specification.Height);
+			m_JumpFloodInitPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
+			m_JumpFloodPass[0]->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
+			m_JumpFloodPass[1]->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
+			m_JumpFloodCompositePass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 
 			m_Renderer2D->Resize(m_Specification.Width, m_Specification.Height);
 			m_NeedsResize = false;
@@ -113,26 +114,44 @@ namespace Shark {
 		m_CommandBuffer->Begin();
 		m_TimestampQueries.TotalTimeQuery = m_CommandBuffer->BeginTimestampQuery();
 
+		SkyboxPass();
 		GeometryPass();
-		if (m_Options.SkyboxPass)
-			SkyboxPass();
 
-		JumpFloodPass();
+		if (m_Options.JumpFlood)
+			JumpFloodPass();
+
 
 		m_TimestampQueries.CompositePassQuery = m_CommandBuffer->BeginTimestampQuery();
+		Renderer::BeginEventMarker(m_CommandBuffer, "Composite");
+		
 		Renderer::BeginRenderPass(m_CommandBuffer, m_CompositePass);
 		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositePass->GetPipeline(), nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_CompositePass);
+
+		Renderer::EndEventMarker(m_CommandBuffer);
 		m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.CompositePassQuery);
+
+		if (m_Options.JumpFlood)
+		{
+			Renderer::BeginEventMarker(m_CommandBuffer, "JumpFlood-Composite");
+
+			Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodCompositePass);
+			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodCompositePass->GetPipeline(), m_JumpFloodCompositeMaterial);
+			Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodCompositePass);
+
+			Renderer::EndEventMarker(m_CommandBuffer);
+		}
 
 		m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.TotalTimeQuery);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 
+
 		m_Statistics.GPUTime = m_CommandBuffer->GetTime(m_TimestampQueries.TotalTimeQuery);
 		m_Statistics.GeometryPass = m_CommandBuffer->GetTime(m_TimestampQueries.GeometryPassQuery);
 		m_Statistics.SkyboxPass = m_CommandBuffer->GetTime(m_TimestampQueries.SkyboxPassQuery);
 		m_Statistics.CompositePass = m_CommandBuffer->GetTime(m_TimestampQueries.CompositePassQuery);
+		m_Statistics.JumpFloodPass = m_CommandBuffer->GetTime(m_TimestampQueries.JumpFloodPassQuery);
 		m_PipelineStatistics = m_CommandBuffer->GetPipelineStatistics();
 	}
 
@@ -158,16 +177,15 @@ namespace Shark {
 		SK_CORE_VERIFY(mesh);
 		SK_CORE_VERIFY(material);
 
-		// set concrete textures in the material
-		material->Invalidate();
-
-		auto& meshData = m_SelectedDrawList.emplace_back();
-		meshData.Mesh = mesh;
-		meshData.MeshSource = meshSource;
-		meshData.SubmeshIndex = submeshIndex;
-		meshData.Material = material;
-		meshData.Transform = transform;
-		meshData.ID = -1;
+		{
+			auto& drawCommand = m_SelectedDrawList.emplace_back();
+			drawCommand.Mesh = mesh;
+			drawCommand.MeshSource = meshSource;
+			drawCommand.SubmeshIndex = submeshIndex;
+			drawCommand.Material = material;
+			drawCommand.Transform = transform;
+			drawCommand.ID = -1;
+		}
 	}
 
 	void SceneRenderer::PreRender()
@@ -184,24 +202,31 @@ namespace Shark {
 		sceneData.EnvironmentMapIntensity = m_Scene->GetEnvironmentIntesity();
 		sceneData.PointLightCount = (uint32_t)m_Scene->GetPointLights().size();
 		sceneData.DirectionalLightCount = m_Scene->GetLightEnvironment().DirectionalLightCount;
-		m_CBScene->UploadData(Buffer::FromValue(sceneData));
-
-		CBCamera cbCamera;
-		cbCamera.ViewProj = m_ViewProjection;
-		cbCamera.Position = m_CameraPosition;
-		m_CBCamera->UploadData(Buffer::FromValue(cbCamera));
-
-		if (m_Options.SkyboxPass)
+		Renderer::Submit([buffer = m_CBScene, sceneData]()
 		{
-			CBSkybox skybox;
-			skybox.SkyboxProjection = m_Projection * glm::mat4(glm::mat3(m_View));
-			m_CBSkybox->UploadData(Buffer::FromValue(skybox));
+			buffer->RT_Upload(Buffer::FromValue(sceneData));
+		});
 
-			CBSkyboxSettings settings;
-			settings.Lod = m_Scene->GetSkyboxLod();
-			settings.Intensity = m_Scene->GetEnvironmentIntesity();
-			m_CBSkyboxSettings->UploadData(Buffer::FromValue(settings));
-		}
+		CBCamera cameraData;
+		cameraData.ViewProj = m_ViewProjection;
+		cameraData.Position = m_CameraPosition;
+		Renderer::Submit([buffer = m_CBCamera, cameraData]()
+		{
+			buffer->RT_Upload(Buffer::FromValue(cameraData));
+		});
+
+		CBSkybox skybox;
+		skybox.SkyboxProjection = m_Projection * glm::mat4(glm::mat3(m_View));
+
+		CBSkyboxSettings settings;
+		settings.Lod = m_Scene->GetSkyboxLod();
+		settings.Intensity = m_Scene->GetEnvironmentIntesity();
+
+		Renderer::Submit([instance = Ref(this), skybox, settings]()
+		{
+			instance->m_CBSkybox->RT_Upload(Buffer::FromValue(skybox));
+			instance->m_CBSkyboxSettings->RT_Upload(Buffer::FromValue(settings));
+		});
 
 		const auto& pointLights = m_Scene->GetPointLights();
 		if (pointLights.size() > m_SBPointLights->GetCount())
@@ -216,38 +241,60 @@ namespace Shark {
 
 		CBCompositeSettings compositeSettings;
 		compositeSettings.Tonemap = m_Options.Tonemap;
+		compositeSettings.GammaCorrect = m_Options.GammaCorrect;
 		compositeSettings.Exposure = m_Options.Exposure;
-		m_CBCompositeSettings->UploadData(Buffer::FromValue(compositeSettings));
+		Renderer::Submit([buffer = m_CBCompositeSettings, compositeSettings]()
+		{
+			buffer->RT_Upload(Buffer::FromValue(compositeSettings));
+		});
 
-		JumpFloodUniforms jumpFlood;
-		jumpFlood.TexelSize = { 1.0f / m_Specification.Width, 1.0f / m_Specification.Height, m_Specification.Width, m_Specification.Height };
-		jumpFlood.OutlineColor = m_OutlineColor;
-		jumpFlood.FrameBufferSize = { m_Specification.Width, m_Specification.Height };
-		jumpFlood.OutlineWidth = m_OutlinePixelWidth;
-		m_JumpFloodUniforms->UploadData(Buffer::FromValue(jumpFlood));
+		CBOutlineSettings outlineSettings;
+		outlineSettings.Color = m_OutlineColor;
+		outlineSettings.Color.a = m_OutlinePixelWidth;
+		Renderer::Submit([buffer = m_CBOutlineSettings, outlineSettings]()
+		{
+			buffer->RT_Upload(Buffer::FromValue(outlineSettings));
+		});
 	}
 
 	void SceneRenderer::GeometryPass()
 	{
 		m_TimestampQueries.GeometryPassQuery = m_CommandBuffer->BeginTimestampQuery();
 		Renderer::BeginEventMarker(m_CommandBuffer, "Geometry Pass");
-		Renderer::BeginRenderPass(m_CommandBuffer, m_GeometryPass, true);
 
+
+		Renderer::BeginRenderPass(m_CommandBuffer, m_GeometryPass);
 		for (const auto& mesh : m_DrawList)
 		{
 			MeshPushConstant pcMesh;
 			pcMesh.Transform = mesh.Transform;
 			pcMesh.ID = mesh.ID;
-			m_GeometryPass->GetPipeline()->SetPushConstant(pcMesh);
-
+			Renderer::Submit([commandBuffer = m_CommandBuffer, pipeline = m_GeometryPass->GetPipeline(), pcMesh]() { pipeline->RT_SetPushConstant(commandBuffer, Buffer::FromValue(pcMesh)); });
 			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_GeometryPass->GetPipeline(), mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial());
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
 			m_Statistics.IndexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].IndexCount;
 		}
-
 		Renderer::EndRenderPass(m_CommandBuffer, m_GeometryPass);
+
+
+		Renderer::BeginRenderPass(m_CommandBuffer, m_SelectedGeometryPass);
+		for (const auto& mesh : m_SelectedDrawList)
+		{
+			MeshPushConstant pcMesh;
+			pcMesh.Transform = mesh.Transform;
+			pcMesh.ID = mesh.ID;
+			Renderer::Submit([commandBuffer = m_CommandBuffer, pipeline = m_SelectedGeometryPass->GetPipeline(), pcMesh]() { pipeline->RT_SetPushConstant(commandBuffer, Buffer::FromValue(pcMesh)); });
+			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_SelectedGeometryPass->GetPipeline(), mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, m_SelectedGeometryMaterial);
+
+			m_Statistics.DrawCalls++;
+			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
+			m_Statistics.IndexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].IndexCount;
+		}
+		Renderer::EndRenderPass(m_CommandBuffer, m_SelectedGeometryPass);
+
+
 		Renderer::EndEventMarker(m_CommandBuffer);
 		m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.GeometryPassQuery);
 	}
@@ -265,59 +312,38 @@ namespace Shark {
 
 	void SceneRenderer::JumpFloodPass()
 	{
-		Renderer::BeginEventMarker(m_CommandBuffer, "Jump Flood");
+		m_TimestampQueries.JumpFloodPassQuery = m_CommandBuffer->BeginTimestampQuery();
+		Renderer::BeginEventMarker(m_CommandBuffer, "JumpFlood");
 
-		Renderer::BeginEventMarker(m_CommandBuffer, "Fill Buffers Pass");
-		Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodStencilPass, true);
-		for (const auto& mesh : m_SelectedDrawList)
-		{
-			m_JumpFloodStencilPass->GetPipeline()->SetPushConstant(Buffer::FromValue(mesh.Transform));
-			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_JumpFloodStencilPass->GetPipeline(), mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr);
-		}
-		Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodStencilPass);
-		Renderer::EndEventMarker(m_CommandBuffer);
-
-		m_NearestPointBuffer->Clear(m_CommandBuffer);
-		m_NearestPointPingPongBuffer->Clear(m_CommandBuffer);
-
-		Renderer::BeginEventMarker(m_CommandBuffer, "Init Pass");
 		Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodInitPass);
-		m_JumpFloodInitMaterial->Set("u_MainTexture", m_JumpFloodStencilPass->GetOutput(0));
 		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodInitPass->GetPipeline(), m_JumpFloodInitMaterial);
 		Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodInitPass);
-		Renderer::EndEventMarker(m_CommandBuffer);
 
-
-		Renderer::BeginEventMarker(m_CommandBuffer, "Jump Flood Pass");
-		Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodPass);
-		int numMips = (int)glm::ceil(glm::log2(m_OutlinePixelWidth + 1.0f));
-		int jfaIter = numMips - 1;
-
-		m_NearestPointMaterial->Set("u_MainTexture", m_NearestPointBuffer->GetImage());
-		m_NearestPointPingPongMaterial->Set("u_MainTexture", m_NearestPointPingPongBuffer->GetImage());
-
-		for (int i = jfaIter; i >= 0; i--)
+		int steps = m_JumpFloodSteps;
+		int step = glm::pow<int>(steps - 1, 2);
+		int index = 0;
+		Buffer vertexOverrides;
+		Ref<FrameBuffer> passFB = m_JumpFloodPass[0]->GetTargetFramebuffer();
+		glm::vec2 texelSize = { 1.0f / (float)passFB->GetSpecification().Width, 1.0f / (float)passFB->GetSpecification().Height };
+		vertexOverrides.Allocate(sizeof(glm::vec2) + sizeof(int));
+		vertexOverrides.Write(glm::value_ptr(texelSize), sizeof(glm::vec2));
+		while (step != 0)
 		{
-			float stepWidth = glm::pow(2.0f, (float)i) + 0.5f;
+			vertexOverrides.Write(&step, sizeof(int), sizeof(glm::vec2));
 
-			m_JumpFloodPass->GetPipeline()->SetFrameBuffer(m_NearestPointPingPongBuffer);
-			m_JumpFloodPass->GetPipeline()->SetPushConstant(glm::ivec2(stepWidth, 0.0f));
-			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodPass->GetPipeline(), m_NearestPointMaterial);
+			Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodPass[index]);
+			m_JumpFloodPass[index]->GetPipeline()->SetPushConstant(m_CommandBuffer, vertexOverrides);
+			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodPass[index]->GetSpecification().Pipeline, m_JumpFloodPassMaterial[index]);
+			Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodPass[index]);
 
-			m_JumpFloodPass->GetPipeline()->SetFrameBuffer(m_NearestPointBuffer);
-			m_JumpFloodPass->GetPipeline()->SetPushConstant(glm::ivec2(0.0f, stepWidth));
-			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodPass->GetPipeline(), m_NearestPointPingPongMaterial);
+			index = (index + 1) % 2;
+			step /= 2;
 		}
-		Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodPass);
-		Renderer::EndEventMarker(m_CommandBuffer);
 
-		Renderer::BeginEventMarker(m_CommandBuffer, "Outline Pass");
-		Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodOutlinePass);
-		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodOutlinePass->GetPipeline(), nullptr);
-		Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodOutlinePass);
-		Renderer::EndEventMarker(m_CommandBuffer);
+		vertexOverrides.Release();
 
 		Renderer::EndEventMarker(m_CommandBuffer);
+		m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.JumpFloodPassQuery);
 	}
 
 	void SceneRenderer::Initialize(const SceneRendererSpecification& specification)
@@ -325,17 +351,17 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_Specification = specification;
-
 		m_CommandBuffer = RenderCommandBuffer::Create();
 
-		m_CBScene = ConstantBuffer::Create(sizeof(CBScene));
-		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
-		m_CBSkybox = ConstantBuffer::Create(sizeof(CBSkybox));
-		m_CBSkyboxSettings = ConstantBuffer::Create(sizeof(CBSkyboxSettings));
-		m_CBCompositeSettings = ConstantBuffer::Create(sizeof(CBCompositeSettings));
-		m_SBPointLights = StorageBuffer::Create(sizeof(PointLight), 16);
+		m_CBScene             = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBScene), "Scene");
+		m_CBCamera            = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBCamera), "Camera");
+		m_CBSkybox            = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBSkybox), "Skybox");
+		m_CBSkyboxSettings    = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBSkyboxSettings), "SkyboxSettings");
+		m_CBCompositeSettings = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBCompositeSettings), "CompositeSettings");
+		m_CBOutlineSettings   = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBOutlineSettings), "OutlineSettings");
+
+		m_SBPointLights       = StorageBuffer::Create(sizeof(PointLight), 16);
 		m_SBDirectionalLights = StorageBuffer::Create(sizeof(DirectionalLight), LightEnvironment::MaxDirectionLights);
-		m_JumpFloodUniforms = ConstantBuffer::Create(sizeof(JumpFloodUniforms));
 
 
 		VertexLayout layout = {
@@ -350,24 +376,32 @@ namespace Shark {
 			{ VertexDataType::Float3, "Position" }
 		};
 
+		FrameBufferSpecification mainFBSpecification;
+		mainFBSpecification.DebugName = "Geometry";
+		mainFBSpecification.Width = specification.Width;
+		mainFBSpecification.Height = specification.Height;
+		mainFBSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::R32SINT, ImageFormat::Depth32 };
+		mainFBSpecification.ClearColor = m_ClearColor;
+		mainFBSpecification.IndipendendClearColor[1] = { -1.0f, -1.0f, -1.0f, -1.0f };
+
+		if (specification.IsSwapchainTarget)
+		{
+			Ref<FrameBuffer> swapchainFramebuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer();
+			mainFBSpecification.ExistingImages[0] = swapchainFramebuffer->GetImage(0);
+		}
+
+		Ref<FrameBuffer> clearFramebuffer = FrameBuffer::Create(mainFBSpecification);
+		mainFBSpecification.ClearColorOnLoad = false;
+		mainFBSpecification.ClearDepthOnLoad = false;
+		mainFBSpecification.ExistingImages[0] = clearFramebuffer->GetImage(0);
+		mainFBSpecification.ExistingImages[1] = clearFramebuffer->GetImage(1);
+		mainFBSpecification.ExistingImages[2] = clearFramebuffer->GetDepthImage();
+		Ref<FrameBuffer> loadFramebuffer = FrameBuffer::Create(mainFBSpecification);
+
 		// Mesh
 		{
-			FrameBufferSpecification framebufferSpecification;
-			framebufferSpecification.DebugName = "SceneRenderer Geometry";
-			framebufferSpecification.Width = specification.Width;
-			framebufferSpecification.Height = specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::R32SINT, ImageFormat::Depth32 };
-			framebufferSpecification.ClearColor = m_ClearColor;
-			framebufferSpecification.IndipendendClearColor[1] = { -1.0f, -1.0f, -1.0f, -1.0f };
-
-			if (specification.IsSwapchainTarget)
-			{
-				Ref<FrameBuffer> swapchainFramebuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer();
-				framebufferSpecification.ExistingImages[0] = swapchainFramebuffer->GetImage(0);
-			}
-
 			PipelineSpecification specification;
-			specification.TargetFrameBuffer = FrameBuffer::Create(framebufferSpecification);
+			specification.TargetFrameBuffer = loadFramebuffer;
 			specification.Shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
 			specification.Layout = layout;
 			specification.DebugName = "PBR";
@@ -389,16 +423,8 @@ namespace Shark {
 
 		// Skybox
 		{
-			FrameBufferSpecification framebufferSpecification;
-			framebufferSpecification.Width = specification.Width;
-			framebufferSpecification.Height = specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::Depth32 };
-			framebufferSpecification.ExistingImages[0] = m_GeometryPass->GetOutput(0);
-			framebufferSpecification.ExistingImages[1] = m_GeometryPass->GetDepthOutput();
-			framebufferSpecification.DebugName = "Skybox";
-
 			PipelineSpecification pipelineSpecification;
-			pipelineSpecification.TargetFrameBuffer = FrameBuffer::Create(framebufferSpecification);
+			pipelineSpecification.TargetFrameBuffer = clearFramebuffer;
 			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("Skybox");
 			pipelineSpecification.Layout = skyboxLayout;
 			pipelineSpecification.DebugName = "Skybox";
@@ -414,25 +440,22 @@ namespace Shark {
 			m_SkyboxPass->Bake();
 		}
 
-		// Jump Flood Fill Buffers
+		// Selected Geometry
 		{
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = specification.Width;
 			framebufferSpecification.Height = specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::R8UNorm, ImageFormat::Depth24UNormStencil8UINT };
-			framebufferSpecification.DebugName = "Jump Flood Buffers";
+			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::Depth32 };
+			framebufferSpecification.DebugName = "Selected Geometry";
 			framebufferSpecification.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-			framebufferSpecification.ClearStencil = 0;
-			Ref<FrameBuffer> framebuffer = FrameBuffer::Create(framebufferSpecification);
+			framebufferSpecification.ClearDepthValue = 1.0f;
+			framebufferSpecification.ClearStencilValue = 0;
 
 			PipelineSpecification pipelineSpecification;
-			pipelineSpecification.TargetFrameBuffer = framebuffer;
-			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFloodFillBuffers");
+			pipelineSpecification.TargetFrameBuffer = FrameBuffer::Create(framebufferSpecification);
+			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("SelectedGeometry");
 			pipelineSpecification.Layout = layout;
-			pipelineSpecification.DebugName = "Jump Flood Fill Buffers";
-
-			pipelineSpecification.BackFaceCulling = false;
-			pipelineSpecification.WriteDepth = false;
+			pipelineSpecification.DebugName = framebufferSpecification.DebugName;
 
 			pipelineSpecification.EnableStencil = true;
 			pipelineSpecification.StencilRef = 1;
@@ -444,107 +467,13 @@ namespace Shark {
 			RenderPassSpecification renderPassSpecification;
 			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
 			renderPassSpecification.DebugName = pipelineSpecification.DebugName;
-			m_JumpFloodStencilPass = RenderPass::Create(renderPassSpecification);
-			m_JumpFloodStencilPass->Set("u_Camera", m_CBCamera);
-			SK_CORE_VERIFY(m_JumpFloodStencilPass->Validate());
-			m_JumpFloodStencilPass->Bake();
-		}
 
-		// Jump Flood Init
-		{
-			FrameBufferSpecification nearesPointFramebufferSpecification;
-			nearesPointFramebufferSpecification.Width = specification.Width;
-			nearesPointFramebufferSpecification.Height = specification.Height;
-			nearesPointFramebufferSpecification.Atachments = { ImageFormat::RG16SNorm };
-			nearesPointFramebufferSpecification.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+			m_SelectedGeometryPass = RenderPass::Create(renderPassSpecification);
+			m_SelectedGeometryPass->Set("u_Camera", m_CBCamera);
+			SK_CORE_VERIFY(m_SelectedGeometryPass->Validate());
+			m_SelectedGeometryPass->Bake();
 
-			nearesPointFramebufferSpecification.DebugName = "Nearest Point";
-			m_NearestPointBuffer = FrameBuffer::Create(nearesPointFramebufferSpecification);
-			nearesPointFramebufferSpecification.DebugName = "Nearest Point Ping Pong";
-			m_NearestPointPingPongBuffer = FrameBuffer::Create(nearesPointFramebufferSpecification);
-
-
-			PipelineSpecification initPipelineSpecification;
-			initPipelineSpecification.TargetFrameBuffer = m_NearestPointBuffer;
-			initPipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFloodInit");
-			initPipelineSpecification.Layout = { VertexDataType::Float2, "Position" };
-			initPipelineSpecification.DebugName = "Jump Flood Init";
-			initPipelineSpecification.BackFaceCulling = false;
-			initPipelineSpecification.WriteDepth = false;
-
-			RenderPassSpecification initRenderPassSpecification;
-			initRenderPassSpecification.Pipeline = Pipeline::Create(initPipelineSpecification);
-			initRenderPassSpecification.DebugName = "Jump Flood Init";
-			m_JumpFloodInitPass = RenderPass::Create(initRenderPassSpecification);
-			m_JumpFloodInitPass->Set("u_Camera", m_CBCamera);
-			m_JumpFloodInitPass->Set("u_Uniforms", m_JumpFloodUniforms);
-			SK_CORE_VERIFY(m_JumpFloodInitPass->Validate());
-			m_JumpFloodInitPass->Bake();
-
-			m_JumpFloodInitMaterial = Material::Create(initPipelineSpecification.Shader);
-		}
-
-		// Jump Flood Pass
-		{
-			PipelineSpecification pipelineSpecification;
-			pipelineSpecification.TargetFrameBuffer = m_NearestPointPingPongBuffer;
-			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFlood");
-			pipelineSpecification.Layout = { VertexDataType::Float2, "Position" };
-			pipelineSpecification.DebugName = "Jump Flood";
-
-			pipelineSpecification.BackFaceCulling = false;
-			pipelineSpecification.WriteDepth = false;
-
-			RenderPassSpecification renderPassSpecification;
-			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
-			renderPassSpecification.DebugName = "Jump Flood";
-			m_JumpFloodPass = RenderPass::Create(renderPassSpecification);
-			m_JumpFloodPass->Set("u_Camera", m_CBCamera);
-			m_JumpFloodPass->Set("u_Uniforms", m_JumpFloodUniforms);
-			SK_CORE_VERIFY(m_JumpFloodPass->Validate());
-			m_JumpFloodPass->Bake();
-
-			m_NearestPointMaterial = Material::Create(pipelineSpecification.Shader);
-			m_NearestPointPingPongMaterial = Material::Create(pipelineSpecification.Shader);
-
-		}
-
-		// Jump Flood Composite
-		{
-			FrameBufferSpecification compositeFramebufferSpecification;
-			compositeFramebufferSpecification.Width = specification.Width;
-			compositeFramebufferSpecification.Height = specification.Height;
-			compositeFramebufferSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::Depth24UNormStencil8UINT };
-			compositeFramebufferSpecification.Atachments[0].BlendEnabled = true;
-			compositeFramebufferSpecification.ExistingImages[0] = m_GeometryPass->GetOutput(0);
-			compositeFramebufferSpecification.ExistingImages[1] = m_JumpFloodStencilPass->GetDepthOutput();
-			compositeFramebufferSpecification.DebugName = "Jump Flood Composite";
-
-			PipelineSpecification compositePipelineSpecification;
-			compositePipelineSpecification.TargetFrameBuffer = FrameBuffer::Create(compositeFramebufferSpecification);
-			compositePipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFloodOutline");
-			compositePipelineSpecification.Layout = { VertexDataType::Float2, "Position" };
-			compositePipelineSpecification.DebugName = "Jump Flood Composite";
-
-			compositePipelineSpecification.BackFaceCulling = false;
-			compositePipelineSpecification.WriteDepth = false;
-
-			compositePipelineSpecification.EnableStencil = true;
-			compositePipelineSpecification.StencilRef = 1;
-			compositePipelineSpecification.StencilReadMask = 1;
-			compositePipelineSpecification.StencilWriteMask = 1;
-			compositePipelineSpecification.StencilComparisonOperator = CompareOperator::NotEqual;
-			compositePipelineSpecification.StencilPassOperation = StencilOperation::Zero;
-			compositePipelineSpecification.StencilFailOperation = StencilOperation::Zero;
-
-			RenderPassSpecification compositeRenderPassSpecification;
-			compositeRenderPassSpecification.Pipeline = Pipeline::Create(compositePipelineSpecification);
-			compositeRenderPassSpecification.DebugName = compositePipelineSpecification.DebugName;
-			m_JumpFloodOutlinePass = RenderPass::Create(compositeRenderPassSpecification);
-			m_JumpFloodOutlinePass->Set("u_Camera", m_CBCamera);
-			m_JumpFloodOutlinePass->Set("u_Uniforms", m_JumpFloodUniforms);
-			SK_CORE_VERIFY(m_JumpFloodOutlinePass->Validate());
-			m_JumpFloodOutlinePass->Bake();
+			m_SelectedGeometryMaterial = Material::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
 		}
 
 		// Composite
@@ -552,15 +481,20 @@ namespace Shark {
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = specification.Width;
 			framebufferSpecification.Height = specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA8UNorm, ImageFormat::R32SINT, ImageFormat::Depth32 };
+			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::R32SINT, ImageFormat::Depth32 };
 			framebufferSpecification.ExistingImages[1] = m_GeometryPass->GetOutput(1);
 			framebufferSpecification.ExistingImages[2] = m_GeometryPass->GetDepthOutput();
+			framebufferSpecification.ClearColorOnLoad = false;
+			framebufferSpecification.ClearDepthOnLoad = false;
 			framebufferSpecification.DebugName = "Composite";
 
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.TargetFrameBuffer = FrameBuffer::Create(framebufferSpecification);
 			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("Composite");
-			pipelineSpecification.Layout = { VertexDataType::Float2, "Position" };
+			pipelineSpecification.Layout = {
+				{ VertexDataType::Float3, "Position" },
+				{ VertexDataType::Float2, "TexCoord" },
+			};
 			pipelineSpecification.DebugName = framebufferSpecification.DebugName;
 			pipelineSpecification.WriteDepth = false;
 
@@ -574,6 +508,82 @@ namespace Shark {
 			m_CompositePass->Bake();
 		}
 
+		// Temporary framebuffers
+		{
+			FrameBufferSpecification framebufferSpecification;
+			framebufferSpecification.Width = m_Specification.Width;
+			framebufferSpecification.Height = m_Specification.Height;
+			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float };
+			framebufferSpecification.ClearColor = { 0.5f, 0.1f, 0.1f, 1.0f };
+			framebufferSpecification.BlendMode = FrameBufferBlendMode::OneZero;
+			framebufferSpecification.DebugName = "Temporary";
+
+			for (uint32_t i = 0; i < 2; i++)
+				m_TempFramebuffers.push_back(FrameBuffer::Create(framebufferSpecification));
+		}
+
+		// Jump Flood Init
+		{
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.DebugName = "JumpFlood-Init";
+			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFloodInit");
+			pipelineSpecification.TargetFrameBuffer = m_TempFramebuffers[0];
+			pipelineSpecification.Layout = {
+				{ VertexDataType::Float3, "Position" },
+				{ VertexDataType::Float2, "TexCoord" }
+			};
+
+			RenderPassSpecification renderPassSpecification;
+			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
+			renderPassSpecification.DebugName = "JumpFlood-Init";
+			m_JumpFloodInitPass = RenderPass::Create(renderPassSpecification);
+			m_JumpFloodInitPass->Set("u_Texture", m_SelectedGeometryPass->GetOutput(0));
+			SK_CORE_VERIFY(m_JumpFloodInitPass->Validate());
+			m_JumpFloodInitPass->Bake();
+
+			m_JumpFloodInitMaterial = Material::Create(pipelineSpecification.Shader);
+
+			const char* passNames[2] = { "EvenPass", "OddPass" };
+			for (uint32_t i = 0; i < 2; i++)
+			{
+				pipelineSpecification.DebugName = fmt::format("JumpFlood-{}", passNames[i]);
+				pipelineSpecification.TargetFrameBuffer = m_TempFramebuffers[(i + 1) % 2];
+				pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFloodPass");
+
+				renderPassSpecification.DebugName = pipelineSpecification.DebugName;
+				renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
+				m_JumpFloodPass[i] = RenderPass::Create(renderPassSpecification);
+				m_JumpFloodPass[i]->Set("u_Texture", m_TempFramebuffers[i]->GetImage());
+				SK_CORE_VERIFY(m_JumpFloodPass[i]->Validate());
+				m_JumpFloodPass[i]->Bake();
+
+				m_JumpFloodPassMaterial[i] = Material::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
+			}
+
+			FrameBufferSpecification fbSpec;
+			fbSpec.Width = m_Specification.Width;
+			fbSpec.Height = m_Specification.Height;
+			fbSpec.Atachments = { ImageFormat::RGBA32Float };
+			fbSpec.ExistingImages[0] = m_CompositePass->GetOutput(0);
+			fbSpec.ClearColorOnLoad = false;
+			fbSpec.DebugName = "JumpFlood-Composite";
+
+			pipelineSpecification.TargetFrameBuffer = FrameBuffer::Create(fbSpec);
+			pipelineSpecification.DebugName = fbSpec.DebugName;
+			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFloodComposite");
+			pipelineSpecification.DepthEnabled = false;
+			
+			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
+			renderPassSpecification.DebugName = pipelineSpecification.DebugName;
+			m_JumpFloodCompositePass = RenderPass::Create(renderPassSpecification);
+			m_JumpFloodCompositePass->Set("u_Texture", m_TempFramebuffers[1]->GetImage());
+			m_JumpFloodCompositePass->Set("u_Settings", m_CBOutlineSettings);
+			SK_CORE_VERIFY(m_JumpFloodCompositePass->Validate());
+			m_JumpFloodCompositePass->Bake();
+
+			m_JumpFloodCompositeMaterial = Material::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
+		}
+
 		if (specification.IsSwapchainTarget)
 		{
 			Ref<SwapChain> swapchain = Application::Get().GetWindow().GetSwapChain();
@@ -581,7 +591,7 @@ namespace Shark {
 			swapchain->AcknowledgeDependency(m_SkyboxPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer);
 		}
 
-		m_Renderer2D = Ref<Renderer2D>::Create(m_CompositePass);
+		m_Renderer2D = Ref<Renderer2D>::Create(m_CompositePass->GetTargetFramebuffer());
 	}
 
 }

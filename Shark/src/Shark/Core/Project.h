@@ -51,7 +51,7 @@ namespace Shark {
 
 		const std::filesystem::path& GetDirectory() const;
 		const std::filesystem::path& GetAssetsDirectory() const;
-		const std::string GetProjectFilePath() const;
+		std::string GetProjectFilePath() const;
 
 		const ProjectConfig& GetConfig() const;
 		ProjectConfig& GetConfigMutable();

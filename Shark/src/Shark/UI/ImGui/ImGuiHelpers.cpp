@@ -3,6 +3,59 @@
 
 #include <imgui_internal.h>
 
+ImGuiID ImGui::GetID(const std::string& strID)
+{
+	return ImGui::GetID(strID.c_str(), strID.c_str() + strID.length());
+}
+
+ImGuiID ImGui::GetID(std::string_view strID)
+{
+	return ImGui::GetID(strID.data(), strID.data() + strID.length());
+}
+
+ImGuiID ImGui::GetID(Shark::UUID uuid)
+{
+	static_assert(sizeof(const void*) == sizeof(Shark::UUID));
+	return ImGui::GetID((const void*)uuid.Value());
+}
+
+ImGuiID ImGui::GetIDWithSeed(const void* ptr, ImGuiID seed)
+{
+	ImGuiID id = ImHashData(&ptr, sizeof(void*), seed);
+#ifndef IMGUI_DISABLE_DEBUG_TOOLS
+	ImGuiContext& g = *GImGui;
+	if (g.DebugHookIdInfo == id)
+		ImGui::DebugHookIdInfo(id, ImGuiDataType_Pointer, ptr, NULL);
+#endif
+	return id;
+}
+
+ImGuiID ImGui::GetIDWithSeed(Shark::UUID uuid, ImGuiID seed)
+{
+	ImGuiID id = ImHashData(&uuid, sizeof(Shark::UUID), seed);
+#ifndef IMGUI_DISABLE_DEBUG_TOOLS
+	ImGuiContext& g = *GImGui;
+	if (g.DebugHookIdInfo == id)
+		ImGui::DebugHookIdInfo(id, ImGuiDataType_U64, (void*)(intptr_t)uuid.Value(), NULL);
+#endif
+	return id;
+}
+
+void ImGui::PushID(const std::string& strID)
+{
+	ImGui::PushOverrideID(ImGui::GetID(strID));
+}
+
+void ImGui::PushID(std::string_view strID)
+{
+	ImGui::PushOverrideID(ImGui::GetID(strID));
+}
+
+void ImGui::PushID(Shark::UUID uuid)
+{
+	ImGui::PushOverrideID(ImGui::GetID(uuid));
+}
+
 void ImGui::Text(std::string_view str)
 {
 	ImGui::TextEx(str.data(), str.data() + str.size());

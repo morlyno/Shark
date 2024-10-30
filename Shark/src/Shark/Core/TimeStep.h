@@ -60,32 +60,6 @@ namespace Shark {
 		float m_Time;
 	};
 
+	inline auto format_as(TimeStep ts) { return ts.ToString(); }
+
 }
-
-template<>
-struct fmt::formatter<Shark::TimeStep, char>
-{
-private:
-	uint32_t m_Precision = 6;
-
-public:
-	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
-	{
-		auto end = std::find(ctx.begin(), ctx.end(), '}');
-		if (end != ctx.end())
-		{
-			auto dot = std::find(ctx.begin(), end, '.');
-			if (dot == end)
-				std::from_chars(ctx.begin(), end, m_Precision);
-			else
-				std::from_chars(dot + 1, end, m_Precision);
-		}
-		return end;
-	}
-
-	template<typename FormatContext>
-	auto format(const Shark::TimeStep& timestep, FormatContext& ctx) const -> decltype(ctx.out())
-	{
-		return fmt::format_to(ctx.out(), "{0}", timestep.ToString(m_Precision));
-	}
-};

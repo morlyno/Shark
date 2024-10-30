@@ -39,6 +39,7 @@ namespace Shark {
 			TimeStep GeometryPass = 0;
 			TimeStep SkyboxPass = 0;
 			TimeStep CompositePass = 0;
+			TimeStep JumpFloodPass = 0;
 
 			uint32_t DrawCalls = 0;
 			uint32_t VertexCount = 0;
@@ -47,8 +48,9 @@ namespace Shark {
 
 		struct Options
 		{
-			bool SkyboxPass = true;
-			bool Tonemap = false;
+			bool JumpFlood = true;
+			bool Tonemap = true;
+			bool GammaCorrect = true;
 			float Exposure = 1.0f;
 		};
 
@@ -58,6 +60,7 @@ namespace Shark {
 			uint32_t GeometryPassQuery = (uint32_t)-1;
 			uint32_t SkyboxPassQuery = (uint32_t)-1;
 			uint32_t CompositePassQuery = (uint32_t)-1;
+			uint32_t JumpFloodPassQuery = (uint32_t)-1;
 		};
 
 	public:
@@ -79,7 +82,7 @@ namespace Shark {
 		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
 		Ref<Image2D> GetFinalPassImage() const { return m_CompositePass->GetOutput(0); }
 		Ref<Image2D> GetIDImage() const { return m_CompositePass->GetOutput(1); }
-		Ref<RenderPass> GetExternalCompositePass() const { return m_CompositePass; }
+		Ref<FrameBuffer> GetTargetFramebuffer() const { return m_CompositePass->GetTargetFramebuffer(); }
 
 		Options& GetOptions() { return m_Options; }
 		const Statistics& GetStatisitcs() const { return m_Statistics; }
@@ -103,7 +106,7 @@ namespace Shark {
 		{
 			uint32_t PointLightCount = 0;
 			uint32_t DirectionalLightCount = 0;
-			float EnvironmentMapIntensity = 1;
+			float EnvironmentMapIntensity = 1.0f;
 			float P0;
 		};
 
@@ -129,8 +132,9 @@ namespace Shark {
 		struct CBCompositeSettings
 		{
 			uint32_t Tonemap = 0;
+			uint32_t GammaCorrect = 0;
 			float Exposure = 1.0f;
-			float P0, P1;
+			float P0;
 		};
 
 		struct MeshPushConstant
@@ -139,7 +143,12 @@ namespace Shark {
 			int ID;
 		};
 
-		struct MeshData
+		struct CBOutlineSettings
+		{
+			glm::vec4 Color;
+		};
+
+		struct DrawCommand
 		{
 			Ref<Mesh> Mesh;
 			Ref<MeshSource> MeshSource;
@@ -147,16 +156,6 @@ namespace Shark {
 			Ref<MaterialAsset> Material;
 			glm::mat4 Transform;
 			int ID;
-		};
-
-		struct JumpFloodUniforms
-		{
-			glm::vec4 TexelSize;
-			glm::vec4 OutlineColor;
-			glm::vec2 FrameBufferSize;
-			float OutlineWidth;
-
-			float P0;
 		};
 
 	private:
@@ -174,7 +173,7 @@ namespace Shark {
 		Ref<ConstantBuffer> m_CBCompositeSettings;
 		Ref<StorageBuffer> m_SBPointLights;
 		Ref<StorageBuffer> m_SBDirectionalLights;
-		Ref<ConstantBuffer> m_JumpFloodUniforms;
+		Ref<ConstantBuffer> m_CBOutlineSettings;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
@@ -186,29 +185,32 @@ namespace Shark {
 		glm::mat4 m_Projection;
 		glm::vec3 m_CameraPosition;
 
-		std::vector<MeshData> m_DrawList;
-		std::vector<MeshData> m_SelectedDrawList;
+		std::vector<DrawCommand> m_DrawList;
+		std::vector<DrawCommand> m_SelectedDrawList;
 
 		Ref<RenderPass> m_GeometryPass;
+		Ref<RenderPass> m_SelectedGeometryPass;
 		Ref<RenderPass> m_SkyboxPass;
 		Ref<RenderPass> m_CompositePass;
 
-		Ref<RenderPass> m_JumpFloodStencilPass;
+		Ref<Material> m_SelectedGeometryMaterial;
+
 		Ref<RenderPass> m_JumpFloodInitPass;
-		Ref<RenderPass> m_JumpFloodPass;
-		Ref<RenderPass> m_JumpFloodOutlinePass;
-
-		Ref<FrameBuffer> m_NearestPointBuffer;
-		Ref<FrameBuffer> m_NearestPointPingPongBuffer;
-		Ref<Material> m_NearestPointMaterial;
-		Ref<Material> m_NearestPointPingPongMaterial;
-
+		Ref<RenderPass> m_JumpFloodPass[2];
+		Ref<RenderPass> m_JumpFloodCompositePass;
 		Ref<Material> m_JumpFloodInitMaterial;
+		Ref<Material> m_JumpFloodPassMaterial[2];
+		Ref<Material> m_JumpFloodCompositeMaterial;
+
+		std::vector<Ref<FrameBuffer>> m_TempFramebuffers;
+
+
 
 		bool m_NeedsResize = true;
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 
-		float m_OutlinePixelWidth = 4;
+		float m_OutlinePixelWidth = 4.5;
+		int m_JumpFloodSteps = 3;
 		glm::vec4 m_OutlineColor = { 0.3f, 0.1f, 0.7f, 1.0f };
 
 		friend class SceneRendererPanel;

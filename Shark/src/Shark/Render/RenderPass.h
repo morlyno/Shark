@@ -46,6 +46,9 @@ namespace Shark {
 		virtual Ref<Image2D> GetOutput(uint32_t index) const = 0;
 		virtual Ref<Image2D> GetDepthOutput() const = 0;
 
+		virtual Ref<FrameBuffer> GetTargetFramebuffer() const = 0;
+		virtual void SetTargetFramebuffer(Ref<FrameBuffer> targetFramebuffer) = 0;
+
 		virtual Ref<Pipeline> GetPipeline() const = 0;
 		virtual RenderPassSpecification& GetSpecification() = 0;
 		virtual const RenderPassSpecification& GetSpecification() const = 0;

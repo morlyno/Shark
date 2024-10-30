@@ -156,7 +156,11 @@ filewatch = {
 magic_enum = {
     IncludeDir = "%{wks.location}/Shark/dependencies/magic_enum",
     Files = {
-        "%{wks.location}/Shark/dependencies/magic_enum/magic_enum.hpp"
+        "%{wks.location}/Shark/dependencies/magic_enum/magic_enum.hpp",
+        "%{wks.location}/Shark/dependencies/magic_enum/magic_enum_containers.hpp",
+        "%{wks.location}/Shark/dependencies/magic_enum/magic_enum_flags.hpp",
+        "%{wks.location}/Shark/dependencies/magic_enum/magic_enum_format.hpp",
+        "%{wks.location}/Shark/dependencies/magic_enum/magic_enum_utility.hpp"
     }
 }
 

@@ -195,10 +195,10 @@ namespace Shark {
 		SK_DESERIALIZE_PROPERTY(textureNode, "Wrap", outSpecification.Wrap, WrapMode::Repeat);
 		SK_DESERIALIZE_PROPERTY(textureNode, "MaxAnisotropy", outSpecification.MaxAnisotropy, 0);
 
-		SK_CORE_TRACE_TAG(Tag::Serialization, "[Texture] - Generate Mips {}", outSpecification.GenerateMips);
-		SK_CORE_TRACE_TAG(Tag::Serialization, "[Texture] - Filter {}", outSpecification.Filter);
-		SK_CORE_TRACE_TAG(Tag::Serialization, "[Texture] - Wrap {}", outSpecification.Wrap);
-		SK_CORE_TRACE_TAG(Tag::Serialization, "[Texture] - Max Anisotropy {}", outSpecification.MaxAnisotropy);
+		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Generate Mips {}", outSpecification.GenerateMips);
+		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Filter {}", outSpecification.Filter);
+		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Wrap {}", outSpecification.Wrap);
+		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Max Anisotropy {}", outSpecification.MaxAnisotropy);
 		return true;
 	}
 

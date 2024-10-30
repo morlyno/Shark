@@ -24,10 +24,14 @@ namespace Shark {
 		void Write(const byte* data, uint64_t size, uint64_t offset = 0);
 		void Write(const Buffer buffer, uint64_t offset = 0) { Write(buffer.Data, buffer.Size, offset); }
 		void Write(const Buffer buffer, uint64_t size, uint64_t offset) { Write(buffer.Data, std::min(size, buffer.Size), offset); }
+
+		void Read(void* resultBuffer, uint64_t size, uint64_t offset = 0);
+
 		void SetZero();
 		Buffer SubBuffer(uint32_t offset, uint32_t size);
 
 		template<typename T>
+			requires (!std::is_pointer_v<T>)
 		void Write(const T& data, uint64_t offset = 0)
 		{
 			Write(&data, sizeof(T), offset);
@@ -125,6 +129,9 @@ namespace Shark {
 		ScopedBuffer(ScopedBuffer&&) = default;
 		ScopedBuffer& operator=(ScopedBuffer&&) = default;
 
+		ScopedBuffer(Buffer buffer)
+			: m_Buffer(buffer) {}
+
 		ScopedBuffer(byte* data, uint64_t size) : m_Buffer(data, size) {}
 		template<typename T>
 		ScopedBuffer(T* data, uint64_t size) : m_Buffer(data, size) {}
@@ -156,6 +163,7 @@ namespace Shark {
 		}
 
 		operator bool() const { return m_Buffer; }
+		operator Buffer() const { return m_Buffer; }
 
 		byte* Data() const { return m_Buffer.Data; }
 		uint64_t Size() const { return m_Buffer.Size; }

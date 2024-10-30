@@ -3,7 +3,9 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Debug/Profiler.h"
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Widgets.h"
+#include "Shark/UI/Controls.h"
 #include "Shark/Utils/String.h"
 
 namespace Shark {
@@ -37,11 +39,12 @@ namespace Shark {
 			ImGui::Text(fmt::format("Total allocated {}", String::BytesToString(Allocator::GetMemoryStats().TotalAllocated)));
 			ImGui::Text(fmt::format("Total freed {}", String::BytesToString(Allocator::GetMemoryStats().TotalFreed)));
 			ImGui::Text(fmt::format("Current Usage {}", String::BytesToString(Allocator::GetMemoryStats().CurrentUsage())));
+			ImGui::Text(fmt::format("Alive Allocations {}", Allocator::GetAllocationMap().size()));
 
 			ImGui::Separator();
 
 			static char SearchBuffer[250]{};
-			UI::Search(UI::GenerateID(), SearchBuffer, (int)std::size(SearchBuffer));
+			UI::Widgets::Search(SearchBuffer);
 
 			struct Entry
 			{
@@ -102,64 +105,81 @@ namespace Shark {
 				const auto& frameStorages = profiler->GetFrameData();
 				bool entriesChanged = false;
 
-				m_FrameTimeAccumulator += app.GetFrameTime();
-				m_CPUTimeAccumulator += app.GetCPUTime();
-				m_GPUTimeAccumulator += app.GetGPUTime();
-				m_ImGuiGPUTimeAccumulator += app.GetImGuiLayer().GetGPUTime();
+				const auto AddTime = [](auto& accumulator, TimeStep time, uint32_t samples)
+				{
+					accumulator.Time += time;
+					accumulator.Min = std::min(time, accumulator.Min);
+					accumulator.Max = std::max(time, accumulator.Max);
+					accumulator.Samples += samples;
+				};
 
-				size_t index = 2;
+				AddTime(m_ApplicationAccumulators[0], app.GetFrameTime(), 1);
+				AddTime(m_ApplicationAccumulators[1], app.GetCPUTime(), 1);
+				AddTime(m_ApplicationAccumulators[2], app.GetImGuiLayer().GetGPUTime(), 1);
+
 				for (const auto& [name, perFrameData] : frameStorages)
 				{
-					auto& entry = m_ProfilerStatsAccumulator[std::string(name)];
-					entry.Time += perFrameData.Time;
-					entry.Min = std::min(entry.Min, perFrameData.Time);
-					entry.Max = std::max(entry.Max, perFrameData.Time);
-					entry.Samples += perFrameData.Samples;
+					auto& accumulator = m_ProfilerStatsAccumulator[std::string(name)];
+					AddTime(accumulator, perFrameData.Time, perFrameData.Samples);
 				}
+
+				const auto& profile = m_Scene->GetPhysicsScene().GetProfile();
+				AddTime(m_PhysicsAccumulators[0], profile.TimeStep, 1);
+				AddTime(m_PhysicsAccumulators[1], profile.NumSteps, 1);
+				AddTime(m_PhysicsAccumulators[2], profile.Step, 1);
+				AddTime(m_PhysicsAccumulators[3], profile.Collide, 1);
+				AddTime(m_PhysicsAccumulators[4], profile.Solve, 1);
+				AddTime(m_PhysicsAccumulators[5], profile.SolveInit, 1);
+				AddTime(m_PhysicsAccumulators[6], profile.SolveVelocity, 1);
+				AddTime(m_PhysicsAccumulators[7], profile.SolvePosition, 1);
+				AddTime(m_PhysicsAccumulators[8], profile.Broadphase, 1);
+				AddTime(m_PhysicsAccumulators[9], profile.SolveTOI, 1);
 
 				if (++m_ProfilerSampleCount >= m_ProfilerSamples)
 				{
+					const auto& SetStat = [this](std::string_view name, ProfilerEntry& stats, const AccumulatorEntry& accumulator)
+					{
+						stats.Name = name;
+						stats.Time = accumulator.Time / (float)m_ProfilerSamples;
+						stats.Min = accumulator.Min;
+						stats.Max = accumulator.Max;
+						stats.AvgSamples = (float)accumulator.Samples / (float)m_ProfilerSamples;
+					};
+
 					const auto sorter = [](const ProfilerEntry& lhs, const ProfilerEntry& rhs) -> bool { return lhs.Name > rhs.Name; };
 
 					m_ProfilerStats.clear();
 					m_ProfilerStats.reserve(m_ProfilerStatsAccumulator.size());
 					for (const auto& [name, accumulatorEntry] : m_ProfilerStatsAccumulator)
 					{
-						ProfilerEntry entry = {
-							.Name = name,
-							.Time = accumulatorEntry.Time / (float)m_ProfilerSamples,
-							.Min = accumulatorEntry.Min,
-							.Max = accumulatorEntry.Max,
-							.AvgSamples = (float)accumulatorEntry.Samples / (float)m_ProfilerSamples,
-						};
-						m_ProfilerStats.emplace_back(entry);
-						//const auto where = std::lower_bound(m_ProfilerStats.begin(), m_ProfilerStats.end(), entry, sorter);
-						//m_ProfilerStats.insert(where, entry);
+						SetStat(name, m_ProfilerStats.emplace_back(), accumulatorEntry);
 					}
 
-					m_FrameTime = m_FrameTimeAccumulator / (float)m_ProfilerSamples;
-					m_CPUTime = m_CPUTimeAccumulator / (float)m_ProfilerSamples;
-					m_GPUTime = m_GPUTimeAccumulator / (float)m_ProfilerSamples;
-					m_ImGuiGPUTime = m_ImGuiGPUTimeAccumulator / (float)m_ProfilerSamples;
+					constexpr std::array names = { "Frame", "CPU", "ImGui GPU", };
+					for (uint32_t index = 0; const char* name : names)
+					{
+						auto& stats = m_ApplicationStats[index];
+						auto& accumulator = m_ApplicationAccumulators[index++];
+						SetStat(name, stats, accumulator);
+					}
 
-					m_FrameTimeAccumulator = 0;
-					m_CPUTimeAccumulator = 0;
-					m_GPUTimeAccumulator = 0;
-					m_ImGuiGPUTimeAccumulator = 0;
+					constexpr std::array physicsNames = { "TimeStep", "Steps", "Step", "Collide", "Solve", "SolveInit", "SolveVelocity", "SolvePosition", "Broadphase", "SolveTOI" };
+					for (uint32_t index = 0; const char* name : physicsNames)
+					{
+						auto& stats = m_PhysicsStats[index];
+						auto& accumulator = m_PhysicsAccumulators[index++];
+						SetStat(name, stats, accumulator);
+					}
+
+					m_ApplicationAccumulators.fill({});
 					m_ProfilerStatsAccumulator.clear();
+					m_PhysicsAccumulators.fill({});
 					m_ProfilerSampleCount = 0;
 					entriesChanged = true;
 				}
 
-				UI::BeginControls();
-				UI::Control("Samples", m_ProfilerSamples);
-				UI::EndControls();
-
 				UI::BeginControlsGrid();
-				UI::Property("Frame", m_FrameTime);
-				UI::Property("CPU", m_CPUTime);
-				UI::Property("GPU", m_GPUTime);
-				UI::Property("ImGui GPU", m_ImGuiGPUTime);
+				UI::Control("Samples", m_ProfilerSamples);
 				UI::EndControlsGrid();
 
 				ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
@@ -172,8 +192,7 @@ namespace Shark {
 					AvgID = 2,
 					MinID = 3,
 					MaxID = 4,
-					CallsID = 5,
-
+					CallsID = 5
 				};
 
 				const float contentRegionWidth = ImGui::GetContentRegionAvail().x;
@@ -223,45 +242,62 @@ namespace Shark {
 						}
 					}
 
-					for (const ProfilerEntry& entry : m_ProfilerStats)
+					const ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DefaultOpen;
+
+					const auto drawStats = [](std::span<const ProfilerEntry> stats)
 					{
-						ImGui::TableNextRow();
-						ImGui::TableNextColumn();
-						ImGui::Text(entry.Name.c_str());
-						ImGui::TableNextColumn();
-						ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Time));
-						ImGui::TableNextColumn();
-						ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Time / entry.AvgSamples));
-						ImGui::TableNextColumn();
-						ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Min));
-						ImGui::TableNextColumn();
-						ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Max));
-						ImGui::TableNextColumn();
-						ImGui::Text(fmt::format("{0}", entry.AvgSamples));
+						for (const ProfilerEntry& entry : stats)
+						{
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGui::Text(entry.Name.c_str());
+							ImGui::TableNextColumn();
+							ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Time));
+							ImGui::TableNextColumn();
+							ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Time / entry.AvgSamples));
+							ImGui::TableNextColumn();
+							ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Min));
+							ImGui::TableNextColumn();
+							ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Max));
+							ImGui::TableNextColumn();
+							ImGui::Text(fmt::format("{0}", entry.AvgSamples));
+						}
+					};
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					if (ImGui::TreeNodeEx("Application", treeFlags))
+					{
+						drawStats(m_ApplicationStats);
+						ImGui::TreePop();
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Separator();
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					if (ImGui::TreeNodeEx("Profiler", treeFlags))
+					{
+						drawStats(m_ProfilerStats);
+						ImGui::TreePop();
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Separator();
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					if (ImGui::TreeNodeEx("Physics", treeFlags))
+					{
+						drawStats(m_PhysicsStats);
+						ImGui::TreePop();
 					}
 
 					ImGui::EndTable();
 				}
-
-			}
-
-			if (ImGui::TreeNodeEx("Physics", UI::DefaultThinHeaderFlags))
-			{
-				UI::BeginControlsGrid();
-				const auto& profile = m_Scene->GetPhysicsScene().GetProfile();
-				UI::Property("TimeStep", profile.TimeStep);
-				UI::Property("Steps", profile.NumSteps);
-				UI::Property("Step", profile.Step);
-				UI::Property("Collide", profile.Collide);
-				UI::Property("Solve", profile.Solve);
-				UI::Property("SolveInit", profile.SolveInit);
-				UI::Property("SolveVelocity", profile.SolveVelocity);
-				UI::Property("SolvePosition", profile.SolvePosition);
-				UI::Property("Broadphase", profile.Broadphase);
-				UI::Property("SolveTOI", profile.SolveTOI);
-				UI::EndControlsGrid();
-
-				ImGui::TreePop();
 			}
 
 			ImGui::EndTabItem();

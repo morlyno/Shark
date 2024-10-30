@@ -27,7 +27,7 @@
 // --------------------------------------
 
 // --- UI -------------------------------
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
 #include "Shark/UI/Theme.h"
 // --------------------------------------
 
@@ -46,7 +46,7 @@
 // --- Layer ----------------------------
 #include "Shark/Layer/Layer.h"
 #include "Shark/Layer/LayerStack.h"
-#include "Shark/ImGui/ImGuiLayer.h"
+#include "Shark/UI/ImGui/ImGuiLayer.h"
 // --------------------------------------
 
 // --- Render ---------------------------

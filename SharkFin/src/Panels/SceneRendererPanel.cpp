@@ -2,7 +2,8 @@
 #include "SceneRendererPanel.h"
 
 #include "Shark/Core/Application.h"
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Controls.h"
 
 namespace Shark {
 
@@ -32,6 +33,7 @@ namespace Shark {
 				ImGui::Text(fmt::format(fmt::runtime("Geometry Pass: {}"), stats.GeometryPass));
 				ImGui::Text(fmt::format(fmt::runtime("Skybox Pass: {}"), stats.SkyboxPass));
 				ImGui::Text(fmt::format(fmt::runtime("Composite Pass: {}"), stats.CompositePass));
+				ImGui::Text(fmt::format(fmt::runtime("Jump Flood Pass: {}"), stats.JumpFloodPass));
 
 				if (ImGui::TreeNodeEx("Pipeline Statistics", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 				{
@@ -51,23 +53,26 @@ namespace Shark {
 
 			if (ImGui::TreeNodeEx("Settings", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Checkbox("Skybox Pass", &m_Renderer->GetOptions().SkyboxPass);
-				ImGui::Checkbox("Tonemap", &m_Renderer->GetOptions().Tonemap);
-				
-				UI::BeginControls();
+				UI::BeginControlsGrid();
+				UI::Control("JumpFlood", m_Renderer->GetOptions().JumpFlood);
+				UI::Control("Tonemap", m_Renderer->GetOptions().Tonemap);
+				UI::Control("Gamma (2.2)", m_Renderer->GetOptions().GammaCorrect);
 				UI::Control("Exposure", m_Renderer->GetOptions().Exposure);
 
 				if (UI::ControlColor("Clear Color", m_ClearColor))
 					m_Renderer->SetClearColor(m_ClearColor);
-				UI::EndControls();
+				UI::EndControlsGrid();
 
 				ImGui::TreePop();
 			}
 
 			if (ImGui::TreeNodeEx("Jump Flood", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::ColorEdit4("Outline Color", glm::value_ptr(m_Renderer->m_OutlineColor));
-				ImGui::SliderFloat("Outline Width", &m_Renderer->m_OutlinePixelWidth, 0.0f, 50.0f);
+				UI::BeginControlsGrid();
+				UI::ControlColor("Outline Color", m_Renderer->m_OutlineColor);
+				UI::ControlSlider("Outline Width", m_Renderer->m_OutlinePixelWidth, 0.0f, 50.0f);
+				UI::ControlSlider("Steps", m_Renderer->m_JumpFloodSteps, 1, 10);
+				UI::EndControlsGrid();
 				ImGui::TreePop();
 			}
 

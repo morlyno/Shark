@@ -50,6 +50,11 @@ namespace Shark {
 			m_Material->Set(s_RoughnessMapName, result.Asset);
 	}
 
+	const std::string& MaterialAsset::GetName() const
+	{
+		return m_Material->GetName();
+	}
+
 	Ref<Material> MaterialAsset::GetMaterial()
 	{
 		return m_Material;
@@ -212,14 +217,16 @@ namespace Shark {
 	 //=//  Material Table                                        //=//
 	//=//========================================================//=//
 
-	MaterialTable::MaterialTable(uint32_t count)
-		: m_MaterialCount(count)
+	MaterialTable::MaterialTable(uint32_t slots)
+		: m_MaterialSlots(slots)
 	{
 	}
 
 	void MaterialTable::SetMaterial(uint32_t index, AssetHandle material)
 	{
 		m_Materials[index] = material;
+		if (index >= m_MaterialSlots)
+			m_MaterialSlots = index + 1;
 	}
 
 	void MaterialTable::ClearMaterial(uint32_t index)
@@ -227,6 +234,8 @@ namespace Shark {
 		if (!HasMaterial(index))
 			return;
 		m_Materials.erase(index);
+		if (index >= m_MaterialSlots)
+			m_MaterialSlots = index + 1;
 	}
 
 	AssetHandle MaterialTable::GetMaterial(uint32_t index) const

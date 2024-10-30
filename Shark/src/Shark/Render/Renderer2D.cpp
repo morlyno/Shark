@@ -11,10 +11,10 @@
 
 namespace Shark {
 
-	Renderer2D::Renderer2D(Ref<RenderPass> renderPass, const Renderer2DSpecifications& specifications)
+	Renderer2D::Renderer2D(Ref<FrameBuffer> targetFramebuffer, const Renderer2DSpecifications& specifications)
 		: m_Specifications(specifications)
 	{
-		Init(renderPass);
+		Init(targetFramebuffer);
 	}
 
 	Renderer2D::~Renderer2D()
@@ -22,28 +22,44 @@ namespace Shark {
 		ShutDown();
 	}
 
-	void Renderer2D::Init(Ref<RenderPass> renderPass)
+	Ref<FrameBuffer> Renderer2D::GetTargetFramebuffer() const
+	{
+		return m_QuadPass->GetTargetFramebuffer();
+	}
+
+	void Renderer2D::SetTargetFramebuffer(Ref<FrameBuffer> framebuffer)
+	{
+		if (framebuffer == m_QuadPass->GetTargetFramebuffer())
+			return;
+
+		m_QuadPass->SetTargetFramebuffer(framebuffer);
+		m_CirclePass->SetTargetFramebuffer(framebuffer);
+		m_LinePass->SetTargetFramebuffer(framebuffer);
+		m_TextPass->SetTargetFramebuffer(framebuffer);
+
+	}
+
+	void Renderer2D::Init(Ref<FrameBuffer> targetFramebuffer)
 	{
 		SK_PROFILE_FUNCTION();
 
-		uint32_t width = renderPass->GetPipeline()->GetSpecification().TargetFrameBuffer->GetSpecification().Width;
-		uint32_t height = renderPass->GetPipeline()->GetSpecification().TargetFrameBuffer->GetSpecification().Height;
+		uint32_t width = m_Specifications.Width;
+		uint32_t height = m_Specifications.Height;
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
-		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera));
+		m_CBCamera = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBCamera));
 
-
-		// Main Framebuffer
-		FrameBufferSpecification framebufferSpecification;
-		framebufferSpecification.Width = width;
-		framebufferSpecification.Height = height;
-		framebufferSpecification.Atachments = { ImageFormat::RGBA8UNorm, ImageFormat::R32SINT, ImageFormat::Depth32 };
-		framebufferSpecification.ExistingImages[0] = renderPass->GetOutput(0);
-		framebufferSpecification.ExistingImages[1] = renderPass->GetOutput(1);
-		framebufferSpecification.ExistingImages[2] = renderPass->GetDepthOutput();
-		framebufferSpecification.DebugName = "Renderer2D - Geometry Framebuffer";
-		Ref<FrameBuffer> geometryFramebuffer = FrameBuffer::Create(framebufferSpecification);
-
+		if (!targetFramebuffer)
+		{
+			FrameBufferSpecification framebufferSpecification;
+			framebufferSpecification.Width = m_Specifications.Width;
+			framebufferSpecification.Height = m_Specifications.Height;
+			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::R32SINT, ImageFormat::Depth32 };
+			framebufferSpecification.ClearColorOnLoad = false;
+			framebufferSpecification.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+			framebufferSpecification.DebugName = "Renderer2D-Main";
+			targetFramebuffer = FrameBuffer::Create(framebufferSpecification);
+		}
 
 		VertexLayout quadVertexLayout = {
 			{ VertexDataType::Float3, "Position" },
@@ -71,7 +87,7 @@ namespace Shark {
 		// Quad
 		{
 			PipelineSpecification quadPipelineSpecs;
-			quadPipelineSpecs.TargetFrameBuffer = geometryFramebuffer;
+			quadPipelineSpecs.TargetFrameBuffer = targetFramebuffer;
 			quadPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
 			quadPipelineSpecs.Layout = quadVertexLayout;
 			quadPipelineSpecs.DebugName = "Renderer2D-Quad";
@@ -79,11 +95,12 @@ namespace Shark {
 
 			RenderPassSpecification renderPassSpecification;
 			renderPassSpecification.Pipeline = Pipeline::Create(quadPipelineSpecs);
-			renderPassSpecification.DebugName = "Renderer2D - Quad";
-			m_QuadRenderPass = RenderPass::Create(renderPassSpecification);
-			m_QuadRenderPass->Set("u_Camera", m_CBCamera);
-			SK_CORE_VERIFY(m_QuadRenderPass->Validate());
-			m_QuadRenderPass->Bake();
+			renderPassSpecification.DebugName = quadPipelineSpecs.DebugName;
+
+			m_QuadPass = RenderPass::Create(renderPassSpecification);
+			m_QuadPass->Set("u_Camera", m_CBCamera);
+			SK_CORE_VERIFY(m_QuadPass->Validate());
+			m_QuadPass->Bake();
 
 			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader, "Renderer2D - Quad");
 
@@ -108,20 +125,21 @@ namespace Shark {
 		
 		// Circle
 		{
-			PipelineSpecification circlePipelineSpecs;
-			circlePipelineSpecs.TargetFrameBuffer = geometryFramebuffer;
-			circlePipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Circle");
-			circlePipelineSpecs.Layout = circleVertexLayout;
-			circlePipelineSpecs.DebugName = "Renderer2D-Circle";
-			circlePipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
+			PipelineSpecification pipelineSpec;
+			pipelineSpec.TargetFrameBuffer = targetFramebuffer;
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Circle");
+			pipelineSpec.Layout = circleVertexLayout;
+			pipelineSpec.DebugName = "Renderer2D-Circle";
+			pipelineSpec.DepthEnabled = m_Specifications.UseDepthTesting;
 
 			RenderPassSpecification renderPassSpecification;
-			renderPassSpecification.Pipeline = Pipeline::Create(circlePipelineSpecs);
-			renderPassSpecification.DebugName = "Renderer2D - Circle";
-			m_CircleRenderPass = RenderPass::Create(renderPassSpecification);
-			m_CircleRenderPass->Set("u_Camera", m_CBCamera);
-			SK_CORE_VERIFY(m_CircleRenderPass->Validate());
-			m_CircleRenderPass->Bake();
+			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpec);
+			renderPassSpecification.DebugName = pipelineSpec.DebugName;
+
+			m_CirclePass = RenderPass::Create(renderPassSpecification);
+			m_CirclePass->Set("u_Camera", m_CBCamera);
+			SK_CORE_VERIFY(m_CirclePass->Validate());
+			m_CirclePass->Bake();
 
 			m_CircleVertexBuffer = VertexBuffer::Create(DefaultCircleVertices * sizeof CircleVertex, true, nullptr);
 			m_CircleVertexData.Allocate(DefaultCircleVertices * sizeof CircleVertex);
@@ -130,19 +148,20 @@ namespace Shark {
 		
 		// Line
 		{
-			PipelineSpecification linePipelineSpecs;
-			linePipelineSpecs.TargetFrameBuffer = geometryFramebuffer;
-			linePipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Line");
-			linePipelineSpecs.Layout = lineVertexLayout;
-			linePipelineSpecs.DebugName = "Renderer2D-Line";
-			linePipelineSpecs.Primitve = PrimitveType::Line;
-			linePipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
-			linePipelineSpecs.WriteDepth = true;
-			linePipelineSpecs.DepthOperator = CompareOperator::LessEqual;
+			PipelineSpecification pipelineSpecs;
+			pipelineSpecs.TargetFrameBuffer = targetFramebuffer;
+			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Line");
+			pipelineSpecs.Layout = lineVertexLayout;
+			pipelineSpecs.DebugName = "Renderer2D-Line";
+			pipelineSpecs.Primitve = PrimitveType::Line;
+			pipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
+			pipelineSpecs.WriteDepth = true;
+			pipelineSpecs.DepthOperator = CompareOperator::LessEqual;
 
 			RenderPassSpecification specification;
-			specification.Pipeline = Pipeline::Create(linePipelineSpecs);
-			specification.DebugName = linePipelineSpecs.DebugName;
+			specification.Pipeline = Pipeline::Create(pipelineSpecs);
+			specification.DebugName = pipelineSpecs.DebugName;
+
 			m_LinePass = RenderPass::Create(specification);
 			m_LinePass->Set("u_Camera", m_CBCamera);
 			SK_CORE_VERIFY(m_LinePass->Validate());
@@ -154,18 +173,8 @@ namespace Shark {
 
 		// Text
 		{
-			FrameBufferSpecification textFB;
-			textFB.Width = width;
-			textFB.Height = height;
-			textFB.Atachments = { ImageFormat::RGBA8UNorm, ImageFormat::R32SINT, ImageFormat::Depth32 };
-			textFB.Atachments[0].BlendEnabled = true;
-			textFB.ExistingImages[0] = renderPass->GetOutput(0);
-			textFB.ExistingImages[1] = renderPass->GetOutput(1);
-			textFB.ExistingImages[2] = renderPass->GetDepthOutput();
-			textFB.DebugName = "Renderer2D - Text Framebuffer";
-
 			PipelineSpecification pipelineSpec;
-			pipelineSpec.TargetFrameBuffer = FrameBuffer::Create(textFB);
+			pipelineSpec.TargetFrameBuffer = targetFramebuffer;
 			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Text");
 			pipelineSpec.Layout = {
 				{ VertexDataType::Float3, "Position" },
@@ -194,7 +203,7 @@ namespace Shark {
 			m_TextVertexData.Allocate(DefaultTextVertices * sizeof TextVertex);
 		}
 
-		constexpr float delta = (2 * M_PI) / (float)MaxCircleVertexPositions;
+		constexpr float delta = (2.0f * M_PI) / (float)MaxCircleVertexPositions;
 		for (uint32_t i = 0; i < MaxCircleVertexPositions; i++)
 		{
 			const float r0 = (float)i * delta;
@@ -216,8 +225,13 @@ namespace Shark {
 
 	void Renderer2D::Resize(uint32_t width, uint32_t height)
 	{
-		m_QuadRenderPass->GetPipeline()->GetSpecification().TargetFrameBuffer->Resize(width, height);
-		m_TextPass->GetPipeline()->GetSpecification().TargetFrameBuffer->Resize(width, height);
+		m_Specifications.Width = width;
+		m_Specifications.Height = height;
+
+		m_QuadPass->GetTargetFramebuffer()->Resize(width, height);
+		m_CirclePass->GetTargetFramebuffer()->Resize(width, height);
+		m_LinePass->GetTargetFramebuffer()->Resize(width, height);
+		m_TextPass->GetTargetFramebuffer()->Resize(width, height);
 	}
 
 	void Renderer2D::BeginScene(const glm::mat4& viewProj)
@@ -229,7 +243,7 @@ namespace Shark {
 		m_Active = true;
 
 		m_ViewProj = viewProj;
-		m_CBCamera->UploadData(Buffer::FromValue(m_ViewProj));
+		m_CBCamera->Upload(Buffer::FromValue(m_ViewProj));
 
 		// Quad
 		m_QuadBatches.clear();
@@ -621,8 +635,8 @@ namespace Shark {
 
 			m_QuadVertexBuffer->SetData(m_QuadVertexData, true);
 
-			Renderer::BeginRenderPass(m_CommandBuffer, m_QuadRenderPass);
-			Renderer::BeginBatch(m_CommandBuffer, m_QuadRenderPass->GetPipeline(), m_QuadVertexBuffer, m_QuadIndexBuffer);
+			Renderer::BeginRenderPass(m_CommandBuffer, m_QuadPass);
+			Renderer::BeginBatch(m_CommandBuffer, m_QuadPass->GetPipeline(), m_QuadVertexBuffer, m_QuadIndexBuffer);
 			uint32_t indexOffset = 0;
 			for (const auto& batch : m_QuadBatches)
 			{
@@ -632,7 +646,7 @@ namespace Shark {
 				m_Statistics.DrawCalls++;
 			}
 			Renderer::EndBatch(m_CommandBuffer);
-			Renderer::EndRenderPass(m_CommandBuffer, m_QuadRenderPass);
+			Renderer::EndRenderPass(m_CommandBuffer, m_QuadPass);
 
 			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.QuadPassQuery);
 		}
@@ -641,9 +655,9 @@ namespace Shark {
 		{
 			m_TimestampQueries.CirclePassQuery = m_CommandBuffer->BeginTimestampQuery();
 			m_CircleVertexBuffer->SetData(m_CircleVertexData, true);
-			Renderer::BeginRenderPass(m_CommandBuffer, m_CircleRenderPass);
-			Renderer::RenderGeometry(m_CommandBuffer, m_CircleRenderPass->GetPipeline(), nullptr, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
-			Renderer::EndRenderPass(m_CommandBuffer, m_CircleRenderPass);
+			Renderer::BeginRenderPass(m_CommandBuffer, m_CirclePass);
+			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePass->GetPipeline(), nullptr, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
+			Renderer::EndRenderPass(m_CommandBuffer, m_CirclePass);
 			m_Statistics.DrawCalls++;
 			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.CirclePassQuery);
 		}

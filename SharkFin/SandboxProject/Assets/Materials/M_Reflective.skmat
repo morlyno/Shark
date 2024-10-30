@@ -3,7 +3,7 @@ Material:
   Metallic: 1
   Roughness: 0
   AlbedoMap: 0
-  UsingNormalMap: true
+  UsingNormalMap: false
   NormalMap: 10892835148234158036
   MetalnessMap: 0
   RoughnessMap: 0

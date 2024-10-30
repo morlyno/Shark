@@ -84,7 +84,8 @@ namespace Shark {
 		Ref<Shader> m_Shader;
 		ShaderInputManager m_ShaderInputManager;
 
-		std::vector<Ref<ConstantBuffer>> m_ConstantBuffers;
+		std::map<uint32_t, Ref<ConstantBuffer>> m_ConstantBuffers;
+		std::map<uint32_t, Buffer> m_UploadBuffers;
 
 		friend class DirectXRenderer;
 	};

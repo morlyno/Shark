@@ -28,6 +28,7 @@ namespace Shark {
 				case ImageFormat::RG16SNorm: return DXGI_FORMAT_R16G16_SNORM;
 				case ImageFormat::Depth32: return DXGI_FORMAT_D32_FLOAT;
 				case ImageFormat::Depth24UNormStencil8UINT: return DXGI_FORMAT_D24_UNORM_S8_UINT;
+				case ImageFormat::sRGBA: return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 			}
 
 			SK_CORE_ASSERT(false, "Unkown Image Format");
@@ -184,7 +185,7 @@ namespace Shark {
 		DirectXAPI::CreateTexture2D(dxDevice, texture2dDesc, nullptr, m_Info.Resource);
 		DirectXAPI::SetDebugName(m_Info.Resource, m_Specification.DebugName);
 
-		if (m_Specification.Type != ImageType::Storage)
+		if (m_Info.Resource && m_Specification.Type != ImageType::Storage)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc{};
 			shaderResourceViewDesc.Format = DXImageUtils::FixImageFormatForView(dxgiFormat);
@@ -372,10 +373,10 @@ namespace Shark {
 		}
 	}
 
-	DirectXImageView::DirectXImageView(Ref<Image2D> image, uint32_t mipSlice)
-		: m_Image(image), m_MipSlice(mipSlice)
+	DirectXImageView::DirectXImageView(const ImageViewSpecification& specification)
+		: m_Specification(specification)
 	{
-		Invalidate();
+		RT_Invalidate();
 	}
 
 	DirectXImageView::~DirectXImageView()
@@ -397,7 +398,12 @@ namespace Shark {
 
 	void DirectXImageView::Invalidate()
 	{
-		Ref<DirectXImage2D> dxImage = m_Image.As<DirectXImage2D>();
+		Renderer::Submit([instance = Ref(this)]() { instance->RT_Invalidate(); });
+	}
+
+	void DirectXImageView::RT_Invalidate()
+	{
+		Ref<DirectXImage2D> dxImage = m_Specification.Image.As<DirectXImage2D>();
 		const auto& imageSpecification = dxImage->GetSpecification();
 		SK_CORE_VERIFY(imageSpecification.MipLevels != 0);
 
@@ -410,7 +416,7 @@ namespace Shark {
 		{
 			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
 			shaderResourceViewDesc.TextureCube.MipLevels = 1;
-			shaderResourceViewDesc.TextureCube.MostDetailedMip = m_MipSlice;
+			shaderResourceViewDesc.TextureCube.MostDetailedMip = m_Specification.MipSlice;
 		}
 		else if (dxImage->GetSpecification().Layers > 1)
 		{
@@ -418,13 +424,13 @@ namespace Shark {
 			shaderResourceViewDesc.Texture2DArray.ArraySize = dxImage->GetSpecification().Layers;
 			shaderResourceViewDesc.Texture2DArray.FirstArraySlice = 0;
 			shaderResourceViewDesc.Texture2DArray.MipLevels = 1;
-			shaderResourceViewDesc.Texture2DArray.MostDetailedMip = m_MipSlice;
+			shaderResourceViewDesc.Texture2DArray.MostDetailedMip = m_Specification.MipSlice;
 		}
 		else
 		{
 			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 			shaderResourceViewDesc.Texture2D.MipLevels = 1;
-			shaderResourceViewDesc.Texture2D.MostDetailedMip = m_MipSlice;
+			shaderResourceViewDesc.Texture2D.MostDetailedMip = m_Specification.MipSlice;
 		}
 
 		auto device = DirectXContext::GetCurrentDevice();
@@ -437,7 +443,7 @@ namespace Shark {
 		m_Info.Sampler->AddRef();
 
 		DirectXAPI::CreateShaderResourceView(dxDevice, dxImage->GetDirectXImageInfo().Resource, shaderResourceViewDesc, m_Info.View);
-		m_DebugName = fmt::format("{} (Mip: {})", dxImage->GetSpecification().DebugName, m_MipSlice);
+		m_DebugName = fmt::format("{} (Mip: {})", dxImage->GetSpecification().DebugName, m_Specification.MipSlice);
 		DirectXAPI::SetDebugName(m_Info.View, m_DebugName);
 	}
 

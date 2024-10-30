@@ -7,18 +7,13 @@
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 
-#include "Shark/Scripting/ScriptEngine.h"
-
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/SceneRenderer.h"
-#include "Shark/Render/Texture.h"
 #include "Shark/Render/EditorCamera.h"
 
 #include "Shark/Event/Event.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Event/KeyEvent.h"
-
-#include "Shark/File/FileSystem.h"
 
 #include "Panels/PanelManager.h"
 
@@ -68,7 +63,6 @@ namespace Shark {
 		void UI_DragDrop();
 		void UI_ToolBar();
 		bool UI_MousePicking();
-		void UI_LogSettings();
 		void UI_OpenProjectModal();
 		void UI_ImportAsset();
 		void UI_CreateMeshAsset();
@@ -114,9 +108,6 @@ namespace Shark {
 		Entity InstantiateMesh(Ref<Mesh> mesh, bool select);
 
 	private:
-		static constexpr std::string_view LogLevelStrings[] = { "Trace"sv, "Debug"sv, "Info"sv, "Warn"sv, "Error"sv, "Critical"sv/*, "Off"sv*/ };
-
-	private:
 		std::filesystem::path m_StartupProject;
 
 		EditorCamera m_EditorCamera;
@@ -142,7 +133,6 @@ namespace Shark {
 
 		bool m_ShowEditorCameraControlls = false;
 		bool m_ShowThemeEditor = false;
-		bool m_ShowLogSettings = false;
 		bool m_ShowCreateProject = false;
 		bool m_ShowKeyStates = false;
 
@@ -234,7 +224,6 @@ namespace Shark {
 			std::string Location;
 		};
 		CreateProjectModal m_CreateProjectModal;
-
 	};
 
 }

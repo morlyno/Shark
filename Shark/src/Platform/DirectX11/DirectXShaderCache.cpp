@@ -18,7 +18,7 @@ namespace Shark {
 
 	}
 
-	Shark::ShaderUtils::ShaderStage::Flags DirectXShaderCache::HasChanged(Ref<DirectXShaderCompiler> compiler)
+	Shark::ShaderUtils::ShaderStage DirectXShaderCache::HasChanged(Ref<DirectXShaderCompiler> compiler)
 	{
 		if (!s_Instance)
 		{
@@ -48,12 +48,12 @@ namespace Shark {
 	{
 	}
 
-	ShaderUtils::ShaderStage::Flags DirectXShaderCache::GetChangedStages(Ref<DirectXShaderCompiler> compiler) const
+	ShaderUtils::ShaderStage DirectXShaderCache::GetChangedStages(Ref<DirectXShaderCompiler> compiler) const
 	{
 		if (!m_CachedShaderSourceHashCodes.contains(compiler->GetShaderSourcePath()))
 			return ShaderUtils::ShaderStage::All;
 
-		ShaderUtils::ShaderStage::Flags changedStages = ShaderUtils::ShaderStage::None;
+		ShaderUtils::ShaderStage changedStages = ShaderUtils::ShaderStage::None;
 
 		auto& hashCodes = m_CachedShaderSourceHashCodes.at(compiler->GetShaderSourcePath());
 		for (const auto& [stage, metadata] : compiler->m_ShaderStageMetadata)
@@ -86,7 +86,7 @@ namespace Shark {
 		for (const auto& [stage, metadata] : compiler->m_ShaderStageMetadata)
 		{
 			// Only update HashCodes when the Cache changed
-			if (!(compiler->m_StagesWrittenToCache & stage))
+			if ((compiler->m_StagesWrittenToCache & stage) != stage)
 				continue;
 
 			hashCodes[stage] = metadata.HashCode;
@@ -140,7 +140,7 @@ namespace Shark {
 		for (auto node : shaderCacheNode)
 		{
 			auto sourceFile = node["SourceFile"].as<std::filesystem::path>();
-			auto hashCodes = node["HashCodes"].as<std::map<ShaderUtils::ShaderStage::Type, uint64_t>>();
+			auto hashCodes = node["HashCodes"].as<std::map<ShaderUtils::ShaderStage, uint64_t>>();
 
 			if (!std::filesystem::exists(sourceFile))
 				continue;

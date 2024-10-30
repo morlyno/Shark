@@ -143,12 +143,11 @@ namespace Shark {
 				Renderer::Submit([app]() { app->m_Window->SwapBuffers(); });
 
 				m_CPUTime = cpuTimer.Elapsed() - waitAndRenderTime;
-				m_GPUTime = Renderer::GetRendererAPI()->GetGPUTime();
 			}
 
 			const uint64_t ticks = Platform::GetTicks();
 			m_TimeStep = (float)(ticks - m_LastTickCount) / Platform::GetTicksPerSecond();
-			SK_LOG_IF(m_TimeStep > 1.0f, LoggerType::Core, LogLevel::Warn, Tag::Core, "Large Timestep! {}", m_TimeStep);
+			SK_LOG_IF(m_TimeStep > 1.0f, LoggerType::Core, LogLevel::Warn, "Core", "Large Timestep! {}", m_TimeStep);
 			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
 			m_LastTickCount = ticks;
 			m_Time += m_TimeStep;
@@ -161,11 +160,6 @@ namespace Shark {
 		}
 		
 		m_State = ApplicationState::Shutdown;
-	}
-
-	void Application::QueueEvent(const std::function<void()>& func)
-	{
-		m_EventQueue.push(func);
 	}
 
 	void Application::AddEventCallback(const std::function<bool(Event&)>& func)
@@ -230,11 +224,13 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+#if 0
 		if (m_Specification.EnableImGui)
 		{
 			event.Handled |= event.IsInCategory(EventCategory::Mouse) && m_ImGuiLayer->BlocksMouseEvents();
 			event.Handled |= event.IsInCategory(EventCategory::Keyboard) && m_ImGuiLayer->BlocksKeyboardEvents();
 		}
+#endif
 
 		Input::OnEvent(event);
 
@@ -258,7 +254,7 @@ namespace Shark {
 		SK_CORE_WARN("Window Closed");
 		CloseApplication();
 
-		// Note(moro): hack so thack ImGui dosn't crash because the window dosn't exist anymore
+		// Note(moro): hack so that ImGui doesn't crash because the window is gone
 		m_Minimized = true;
 
 		return false;

@@ -1,7 +1,9 @@
 #include "skfpch.h"
 #include "AssetsPanel.h"
 
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Controls.h"
+#include "Shark/UI/Widgets.h"
 #include "Shark/Utils/String.h"
 
 namespace Shark {
@@ -9,7 +11,7 @@ namespace Shark {
 	AssetsPanel::AssetsPanel(const std::string& panelName)
 		: Panel(panelName)
 	{
-		memset(m_SearchBuffer, 0, sizeof(m_SearchBuffer));
+		m_Pattern.EnabelAutoCaseSensitive();
 	}
 
 	AssetsPanel::~AssetsPanel()
@@ -31,18 +33,7 @@ namespace Shark {
 			const float settingsButtonSize = ImGui::GetFrameHeight();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - (settingsButtonSize + style.ItemSpacing.x));
 
-			if (UI::Search(UI::GenerateID(), m_SearchBuffer, 260))
-			{
-				m_SearchHasUppercase = false;
-				for (auto& c : m_SearchBuffer)
-				{
-					if (isupper(c))
-					{
-						m_SearchHasUppercase = true;
-						break;
-					}
-				}
-			}
+			UI::Widgets::Search(m_Pattern);
 
 			ImGui::SameLine();
 			if (ImGui::Button("+", ImVec2(settingsButtonSize, settingsButtonSize)))
@@ -52,12 +43,12 @@ namespace Shark {
 				ImGui::Checkbox("Edit", &m_Edit);
 				ImGui::Separator();
 
-				UI::BeginControls();
+				UI::BeginControlsGrid();
 				
 				for (auto& [type, enabled] : m_EnabledTypes)
 					UI::Control(magic_enum::enum_name(type), enabled);
 
-				UI::EndControls();
+				UI::EndControlsGrid();
 
 				if (ImGui::Selectable("Toggle"))
 				{
@@ -69,45 +60,34 @@ namespace Shark {
 			}
 		}
 
-		std::string_view searchBufferView = m_SearchBuffer;
+		const auto drawEntry = [this](const AssetMetaData& metadata)
+		{
+			if (!IsAssetTypeEnabled(metadata.Type))
+				return;
+
+			if (m_Pattern)
+			{
+				if (!m_Pattern.PassesFilter(fmt::to_string(metadata.Handle)) &&
+					!m_Pattern.PassesFilter(magic_enum::enum_name(metadata.Type)) &&
+					!m_Pattern.PassesFilter(metadata.FilePath.string()))
+					return;
+			}
+
+			UI::BeginControlsGrid();
+			UI::Control("Handle", fmt::to_string(metadata.Handle));
+			UI::Control("FilePath", metadata.FilePath.string());
+			UI::Control("Type", std::string(magic_enum::enum_name(metadata.Type)));
+			UI::EndControlsGrid();
+
+			ImGui::Separator();
+		};
 
 		if (ImGui::TreeNodeEx("Imported Assets", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			auto& registry = Project::GetActiveEditorAssetManager()->GetAssetRegistry();
+			const auto& registry = Project::GetActiveEditorAssetManager()->GetAssetRegistry();
 			for (auto& [handle, metadata] : registry)
 			{
-				if (!IsAssetTypeEnabled(metadata.Type))
-					continue;
-
-				if (!searchBufferView.empty())
-				{
-					std::string handleStr = fmt::to_string(metadata.Handle);
-					std::string typeStr = std::string(magic_enum::enum_name(metadata.Type));
-					std::string filePathStr = metadata.FilePath.string();
-
-					if (!m_SearchHasUppercase)
-					{
-						String::ToLower(handleStr);
-						String::ToLower(typeStr);
-						String::ToLower(filePathStr);
-					}
-					bool matchFound = false;
-
-					matchFound |= handleStr.find(searchBufferView) != std::string::npos;
-					matchFound |= filePathStr.find(searchBufferView) != std::string::npos;
-					matchFound |= typeStr.find(searchBufferView) != std::string::npos;
-
-					if (!matchFound)
-						continue;
-				}
-
-				UI::BeginControlsGrid();
-				UI::Property("Handle", metadata.Handle);
-				UI::Property("FilePath", metadata.FilePath);
-				UI::Property("Type", magic_enum::enum_name(metadata.Type));
-				UI::EndControls();
-
-				ImGui::Separator();
+				drawEntry(metadata);
 			}
 
 			ImGui::TreePop();
@@ -115,46 +95,11 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Loaded Assets", UI::DefaultThinHeaderFlags))
 		{
-			for (const auto& [handle, asset] : Project::GetActiveEditorAssetManager()->GetLoadedAssets())
+			const auto& loadedAssets = Project::GetActiveEditorAssetManager()->GetLoadedAssets();
+			for (const auto& [handle, asset] : loadedAssets)
 			{
 				const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(asset);
-				if (!IsAssetTypeEnabled(metadata.Type))
-					continue;
-
-				if (!searchBufferView.empty())
-				{
-					std::string handleStrHex = fmt::format("{:x}", metadata.Handle);
-					std::string typeStr = std::string(magic_enum::enum_name(metadata.Type));
-					std::string filePathStr = metadata.FilePath.string();
-
-					if (!m_SearchHasUppercase)
-					{
-						String::ToLower(handleStrHex);
-						String::ToLower(typeStr);
-						String::ToLower(filePathStr);
-					}
-
-					bool matchFound = false;
-
-					matchFound |= handleStrHex.find(searchBufferView) != std::string::npos;
-					matchFound |= filePathStr.find(searchBufferView) != std::string::npos;
-					matchFound |= typeStr.find(searchBufferView) != std::string::npos;
-
-					if (!matchFound)
-						continue;
-				}
-
-
-				UI::BeginControlsGrid();
-
-				UI::Property("Handle", metadata.Handle);
-				UI::Property("FilePath", metadata.FilePath);
-				UI::Property("Type", magic_enum::enum_name(metadata.Type));
-				//UI::Property("Memory", metadata.IsMemoryAsset);
-
-				UI::EndControls();
-
-				ImGui::Separator();
+				drawEntry(metadata);
 			}
 
 			ImGui::TreePop();

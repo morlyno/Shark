@@ -28,10 +28,11 @@ namespace Shark {
 			float AvgSamples = 0.0f;
 		};
 
+		std::array<ProfilerEntry, 3> m_ApplicationStats;
 		std::vector<ProfilerEntry> m_ProfilerStats;
+		std::array<ProfilerEntry, 10> m_PhysicsStats;
 		TimeStep m_FrameTime;
 		TimeStep m_CPUTime;
-		TimeStep m_GPUTime;
 		TimeStep m_ImGuiGPUTime;
 
 		struct AccumulatorEntry
@@ -42,11 +43,9 @@ namespace Shark {
 			uint32_t Samples = 0;
 		};
 
+		std::array<AccumulatorEntry, 3> m_ApplicationAccumulators;
 		std::map<std::string, AccumulatorEntry> m_ProfilerStatsAccumulator;
-		TimeStep m_FrameTimeAccumulator;
-		TimeStep m_CPUTimeAccumulator;
-		TimeStep m_GPUTimeAccumulator;
-		TimeStep m_ImGuiGPUTimeAccumulator;
+		std::array<AccumulatorEntry, 10> m_PhysicsAccumulators;
 
 		uint32_t m_ProfilerSamples = 10;
 		uint32_t m_ProfilerSampleCount = 0;

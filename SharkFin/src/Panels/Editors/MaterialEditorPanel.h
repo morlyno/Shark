@@ -3,6 +3,7 @@
 #include "Shark/Render/Material.h"
 #include "Shark/Render/SceneRenderer.h"
 #include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
 
 #include "Panels/AssetEditorPanel.h"
 
@@ -18,6 +19,7 @@ namespace Shark {
 		void DrawInline();
 
 		void SetReadonly(bool readonly) { m_Readonly = readonly; }
+		bool IsReadonly() const { return m_Readonly; }
 
 		void SetName(const std::string& name) { m_Name = name; }
 		void SetMaterial(AssetHandle assetHandle) { m_MaterialHandle = assetHandle; }
@@ -33,6 +35,25 @@ namespace Shark {
 		bool m_Readonly = false;
 	};
 
+	class MaterialPanel : public Panel
+	{
+	public:
+		MaterialPanel(const std::string& panelName);
+		~MaterialPanel();
+
+		virtual void OnImGuiRender(bool& shown) override;
+		virtual void SetContext(Ref<Scene> context) override { m_Context = context; }
+
+	private:
+		std::string GetMaterialName(AssetHandle handle) const;
+
+	private:
+		Scope<MaterialEditor> m_MaterialEditor = nullptr;
+
+		Ref<Scene> m_Context;
+		Entity m_SelectedEntity;
+	};
+
 	class MaterialEditorPanel : public EditorPanel
 	{
 	public:
@@ -40,6 +61,8 @@ namespace Shark {
 		~MaterialEditorPanel();
 
 		virtual void SetAsset(const AssetMetaData& metadata) override;
+		virtual AssetHandle GetAsset() const override { return m_MaterialHandle; }
+
 		virtual void DockWindow(ImGuiID dockspace) override;
 
 		virtual void OnUpdate(TimeStep ts) override;

@@ -534,6 +534,11 @@ namespace Shark {
 		return path.parent_path();
 	}
 
+	std::filesystem::path FileSystem::GetExtension(const std::filesystem::path& path)
+	{
+		return path.extension();
+	}
+
 	std::string FileSystem::GetStemString(const std::filesystem::path& path)
 	{
 		return path.stem().string();

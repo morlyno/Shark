@@ -31,7 +31,7 @@ namespace Shark {
 
 	Ref<Shader> ShaderLibrary::Get(const std::string& name)
 	{
-		SK_CORE_VERIFY(Exists(name));
+		SK_CORE_VERIFY(Exists(name), "The shader {} is not loaded!", name);
 		return m_ShaderMap.at(name);
 	}
 

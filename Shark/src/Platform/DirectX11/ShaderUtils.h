@@ -6,18 +6,15 @@ namespace Shark {
 
 	namespace ShaderUtils {
 
-		namespace ShaderStage {
-			enum Type
-			{
-				None = 0,
-				Vertex = BIT(0),
-				Pixel = BIT(1),
-				Compute = BIT(2),
+		enum class ShaderStage
+		{
+			None = 0,
+			Vertex = BIT(0),
+			Pixel = BIT(1),
+			Compute = BIT(2),
 
-				All = Vertex | Pixel | Compute
-			};
-			using Flags = uint16_t;
-		}
+			All = Vertex | Pixel | Compute
+		};
 
 		enum class ShaderLanguage
 		{
@@ -27,7 +24,9 @@ namespace Shark {
 
 	}
 
-	std::string ToString(ShaderUtils::ShaderStage::Type stage);
-	ShaderUtils::ShaderStage::Type StringToShaderStage(const std::string& shaderStage);
-
 }
+
+template <>
+struct magic_enum::customize::enum_range<Shark::ShaderUtils::ShaderStage> {
+	static constexpr bool is_flags = true;
+};

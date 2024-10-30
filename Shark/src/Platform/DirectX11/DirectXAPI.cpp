@@ -38,6 +38,9 @@ namespace Shark::DirectXAPI {
 
 	void SetDebugName(ID3D11DeviceChild* object, std::string_view debugName)
 	{
+		if (!object)
+			return;
+
 		HRESULT hr = D3D_SET_OBJECT_NAME_N_A(object, (UINT)debugName.length(), debugName.data());
 		DX_CHECK_RESULT(hr);
 	}
@@ -78,7 +81,7 @@ namespace Shark::DirectXAPI {
 		DX_CHECK_RESULT(hr);
 	}
 
-	void CreateBlendState(ID3D11Device* device, D3D11_BLEND_DESC& desc, ID3D11BlendState*& outState)
+	void CreateBlendState(ID3D11Device* device, const D3D11_BLEND_DESC& desc, ID3D11BlendState*& outState)
 	{
 		HRESULT hr = device->CreateBlendState(&desc, &outState);
 		DX_CHECK_RESULT(hr);
@@ -122,10 +125,31 @@ namespace Shark::DirectXAPI {
 		CreateQuery(device, desc, outQuery);
 	}
 
-	void CreateQuery(ID3D11Device* device, D3D11_QUERY_DESC desc, ID3D11Query*& outQuery)
+	void CreateQuery(ID3D11Device* device, const D3D11_QUERY_DESC& desc, ID3D11Query*& outQuery)
 	{
 		HRESULT hResult = device->CreateQuery(&desc, &outQuery);
 		DX_CHECK_RESULT(hResult);
+	}
+
+
+	  //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	 //// API for 11.1
+	////
+
+	void CreateDeferredContext(Ref<DirectXDevice> device, ID3D11DeviceContext1*& outContext)
+	{
+		auto dxDevice = device->GetDirectXDevice();
+		
+		HRESULT result = dxDevice->CreateDeferredContext1(0, &outContext);
+		DX_CHECK_RESULT(result);
+	}
+
+	void CreateBlendState(Ref<DirectXDevice> device, const D3D11_BLEND_DESC& desc, ID3D11BlendState*& outState)
+	{
+		auto dxDevice = device->GetDirectXDevice();
+
+		HRESULT result = dxDevice->CreateBlendState(&desc, &outState);
+		DX_CHECK_RESULT(result);
 	}
 
 }

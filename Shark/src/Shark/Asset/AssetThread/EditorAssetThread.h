@@ -11,7 +11,6 @@ namespace Shark {
 	struct AssetThreadSettings
 	{
 		bool MonitorAssets = true;
-		LoadDependencyPolicy DefaultDependencyPolicy = LoadDependencyPolicy::OnDemand;
 	};
 
 	class EditorAssetThread : public RefCount
@@ -25,28 +24,24 @@ namespace Shark {
 
 		void QueueAssetLoad(AssetLoadRequest& alr);
 		Threading::Future<Ref<Asset>> GetFuture(AssetHandle handle);
-		LoadDependencyPolicy GetDependencyPolicy(AssetHandle handle);
-		LoadDependencyPolicy GetDefaultDependencyPolicy() const { return m_DefaultDependencyPolicy; }
 
-		void HandleMetadataRequests(const AssetRegistry& registry);
 		void RetrieveLoadedAssets(std::vector<AssetLoadRequest>& outLoadedAssets);
-		void AddLoadedAsset(Ref<Asset> asset, const AssetMetaData& metadata);
 		void UpdateLastWriteTime(AssetHandle handle, uint64_t lastWriteTime);
+		void OnMetadataChanged(const AssetMetaData& metadata);
+		void OnAssetLoaded(const AssetMetaData& metadata);
 
 	private:
 		void AssetThreadFunc();
 		void LoadAsset(AssetLoadRequest& request);
-		void LoadDependencies(const AssetLoadRequest& request);
 		bool EnsureCurrent(AssetMetaData& metadata);
 
 		std::filesystem::path GetFilesystemPath(const AssetMetaData& metadata);
 
 	private:
 		Thread m_Thread;
-		Threading::Signal m_IdleSignal = { UninitializedTag };
+		Threading::Signal m_IdleSignal;
 		bool m_Running = true;
 
-		LoadDependencyPolicy m_DefaultDependencyPolicy;
 		bool m_MonitorAssets = false;
 		std::chrono::seconds m_MonitorAssetsIntervall = 1s;
 
@@ -57,20 +52,10 @@ namespace Shark {
 		std::map<AssetHandle, AssetLoadRequest> m_ALRStorage;
 
 		std::queue<AssetHandle> m_LoadingQueue;
-		std::vector<AssetHandle> m_LoadedRequests;
+		std::vector<AssetHandle> m_HandledRequests;
 
 		std::mutex m_LoadedAssetMetadataMutex;
 		std::unordered_map<AssetHandle, AssetMetaData> m_LoadedAssetMetadata;
-
-		std::mutex m_LoadedAssetsMutex;
-		std::unordered_map<AssetHandle, Ref<Asset>> m_LoadedAssets;
-
-
-		std::mutex m_RequestedMetadataMutex;
-		std::unordered_map<AssetHandle, AssetMetaData> m_RequestedMetadata;
-		std::set<AssetHandle> m_MetadataRequests;
-
-		std::condition_variable m_RequestsCompleted;
 
 	};
 

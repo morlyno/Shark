@@ -11,7 +11,7 @@ namespace Shark::UI {
 		Build();
 	}
 
-	bool TextFilter::PassFilter(std::string_view text)
+	bool TextFilter::PassesFilter(std::string_view text) const
 	{
 		if (m_Filters.empty())
 			return true;
@@ -57,20 +57,40 @@ namespace Shark::UI {
 		m_Filters.clear();
 		String::SplitToRanges(m_Buffer, " ", m_Filters);
 
+		if (m_AutoCaseSensitive)
+			m_Case = String::Case::Ignore;
+
 		m_HasPositiveFilter = false;
 		for (std::string_view filter : m_Filters)
 		{
-			if (filter.front() != '-')
+			if (m_AutoCaseSensitive)
 			{
-				m_HasPositiveFilter = true;
-				break;
+				for (auto c : filter)
+				{
+					if (!std::isupper(c))
+						continue;
+
+					m_Case = String::Case::Sensitive;
+					break;
+				}
 			}
+
+			if (filter.front() != '-')
+				m_HasPositiveFilter = true;
+
+			if (m_HasPositiveFilter && m_Case == String::Case::Sensitive)
+				break;
 		}
 	}
 
 	void TextFilter::SetFilter(const std::string& filter)
 	{
 		m_Buffer = filter;
+		Build();
+	}
+
+	void TextFilter::Rebuild()
+	{
 		Build();
 	}
 

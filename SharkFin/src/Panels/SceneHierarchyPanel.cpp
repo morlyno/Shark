@@ -2,31 +2,24 @@
 #include "SceneHierarchyPanel.h"
 
 #include "Shark/Core/Project.h"
-#include "Shark/Core/Application.h"
 #include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Scene/Components.h"
-#include "Shark/Render/Renderer.h"
 #include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Controls.h"
+#include "Shark/UI/Widgets.h"
 #include "Shark/UI/Theme.h"
-#include "Shark/UI/EditorResources.h"
-#include "Shark/ImGui/TextFilter.h"
-#include "Shark/ImGui/ImGuiHelpers.h"
 
-#include "Shark/Input/Input.h"
 #include "Shark/Math/Math.h"
+#include "Shark/File/FileSystem.h"
 #include "Shark/Utils/String.h"
 #include "Shark/Debug/Profiler.h"
+#include "Shark/Debug/enttDebug.h"
 
-#include <imgui.h>
-#include <misc/cpp/imgui_stdlib.h>
-#include <entt.hpp>
-#include <glm/gtx/vector_query.hpp>
-#include <ranges>
 
 namespace Shark {
 
@@ -34,54 +27,58 @@ namespace Shark {
 
 		static glm::bvec3 Control(const char* label, glm::vec3& val, const glm::bvec3& isMixed, float reset = 0.0f)
 		{
-			if (!UI::ControlHelperBegin(label))
+			if (!UI::ControlHelperBegin(ImGui::GetID(label)))
 				return glm::bvec3(false);
 
-			UI::ControlHelperDrawLabel(label);
+			ImGui::Text(label);
+			ImGui::TableNextColumn();
 
 			glm::bvec3 changed = glm::bvec3(false);
+			const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
 
 			ImGuiStyle& style = ImGui::GetStyle();
-			const float buttonSize = ImGui::GetFrameHeight();
 			const float widthAvail = ImGui::GetContentRegionAvail().x;
-			const float width = (widthAvail - style.ItemSpacing.x * (3 - 1.0f)) / 3 - buttonSize;
+			const float width = (widthAvail - style.ItemSpacing.x * 2 - buttonSize.x * 3) / 3;
 
 			ImGui::PushItemWidth(width);
+			ImGui::BeginHorizontal(UI::GenerateID());
 
-			if (ImGui::Button("X", { buttonSize, buttonSize }))
+			if (ImGui::Button("X", buttonSize))
 			{
 				val[0] = reset;
 				changed.x = true;
 			}
-			ImGui::SameLine(0.0f, 0.0f);
+
+			ImGui::Spring(0.0f, 0.0f);
 			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.x);
-			changed.x |= ImGui::DragFloat("##X", &val[0], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
+			changed.x |= UI::DragFloat("##X", &val[0], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
 			ImGui::PopItemFlag();
 
 
-			ImGui::SameLine();
-			if (ImGui::Button("Y", { buttonSize, buttonSize }))
+			if (ImGui::Button("Y", buttonSize))
 			{
 				val[1] = reset;
 				changed.y = true;
 			};
-			ImGui::SameLine(0.0f, 0.0f);
+
+			ImGui::Spring(0.0f, 0.0f);
 			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.y);
-			changed.y |= ImGui::DragFloat("##Y", &val[1], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
+			changed.y |= UI::DragFloat("##Y", &val[1], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
 			ImGui::PopItemFlag();
 
 
-			ImGui::SameLine();
-			if (ImGui::Button("Z", { buttonSize, buttonSize }))
+			if (ImGui::Button("Z", buttonSize))
 			{
 				val[2] = reset;
 				changed.z = true;
 			}
-			ImGui::SameLine(0.0f, 0.0f);
+
+			ImGui::Spring(0.0f, 0.0f);
 			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.z);
-			changed.z |= ImGui::DragFloat("##Z", &val[2], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
+			changed.z |= UI::DragFloat("##Z", &val[2], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
 			ImGui::PopItemFlag();
 
+			ImGui::EndHorizontal();
 			ImGui::PopItemWidth();
 
 			UI::ControlHelperEnd();
@@ -95,27 +92,6 @@ namespace Shark {
 			if (glm::any(changed))
 				radians = glm::radians(degrees);
 			return changed;
-		}
-
-		template<typename Component>
-		static void DrawAddComponentButton(const char* name, Entity entity)
-		{
-			if (ImGui::Selectable(name, false, entity.AllOf<Component>() ? ImGuiSelectableFlags_Disabled : 0))
-				entity.AddComponent<Component>();
-		}
-
-		// check that parent doesn't have child as parent
-		static bool WouldCreateLoop(Entity child, Entity parent)
-		{
-			UUID childUUID = child.GetUUID();
-
-			while (parent.HasParent())
-			{
-				if (parent.ParentUUID() == childUUID)
-					return true;
-				parent = parent.Parent();
-			}
-			return false;
 		}
 
 		template<typename T>
@@ -138,38 +114,27 @@ namespace Shark {
 		static bool AllHaveComponent(std::span<const Entity> entities)
 		{
 			for (Entity entity : entities)
-				if (!entity.AllOf<TComponent>())
+				if (!entity.HasComponent<TComponent>())
 					return false;
 			return true;
 		}
 
-		template<typename TComp, typename TFunc>
-		static bool IsMixedValue(std::span<const Entity> entities, const TFunc& equalFunc)
+		// projection:
+		//  - function args:
+		//     - const TComponent&
+		//     - Entity, const TComponent&
+		//  - pointer to member of TComponent
+		template<typename TComponent, typename TProjection = std::identity, typename TComparator = std::ranges::equal_to>
+		static bool IsInconsistentProperty(std::span<const Entity> entities, TProjection projection = {}, TComparator comparator = {})
 		{
 			Entity firstEntity = entities[0];
-			const auto& firstComponent = firstEntity.GetComponent<TComp>();
+			const auto& firstComponent = firstEntity.GetComponent<TComponent>();
+			auto&& firstValue = std::invoke(projection, firstComponent);
 			for (uint32_t i = 1; i < entities.size(); i++)
 			{
 				Entity entity = entities[i];
-				const auto& comp = entity.GetComponent<TComp>();
-				if (!equalFunc(firstComponent, comp))
-				{
-					return true;
-				}
-			}
-			return false;
-		}
-
-		template<typename TComp, typename TType>
-		static bool IsMixedValue(std::span<const Entity> entities, TType TComp::* member)
-		{
-			Entity firstEntity = entities[0];
-			const auto& firstComponent = firstEntity.GetComponent<TComp>();
-			for (uint32_t i = 1; i < entities.size(); i++)
-			{
-				Entity entity = entities[i];
-				const auto& comp = entity.GetComponent<TComp>();
-				if (firstComponent.*member != comp.*member)
+				const auto& comp = entity.GetComponent<TComponent>();
+				if (!std::invoke(comparator, firstValue, std::invoke(projection, comp)))
 				{
 					return true;
 				}
@@ -208,17 +173,47 @@ namespace Shark {
 				transformFunc(firstComponent.*member, comp.*member);
 			}
 		}
-		
-		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
-		template<typename TComponent, typename TMemberType, typename TFunc>
-		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc)
+
+		struct DefaultTransformer
 		{
-			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsMixedValue(entities, member));
+			template<typename TComp, typename TMemberType>
+			inline void operator()(const std::vector<Entity>& entities, TMemberType TComp::* member)
+			{
+				UnifyMember(entities, member);
+			}
+		};
+
+		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
+		template<typename TComponent, typename TMemberType, typename TFunc, typename TTransformer = DefaultTransformer>
+			requires std::invocable<TFunc, TComponent&, const std::vector<Entity>&>
+		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
+		{
+			const bool isMixed = IsInconsistentProperty<TComponent>(entities, member);
+			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixed);
 			Entity firstEntity = entities[0];
 			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
 			if (uiFunc(firstComponent, entities))
 			{
-				UnifyMember(entities, member);
+				std::invoke(transformer, entities, member);
+				//UnifyMember(entities, member);
+				return true;
+			}
+			return false;
+		}
+		
+		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
+		template<typename TComponent, typename TMemberType, typename TFunc, typename TTransformer = DefaultTransformer>
+			requires std::invocable<TFunc, TComponent&, const std::vector<Entity>&, bool>
+		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
+		{
+			const bool isMixed = IsInconsistentProperty<TComponent>(entities, member);
+			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixed);
+			Entity firstEntity = entities[0];
+			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
+			if (uiFunc(firstComponent, entities, isMixed))
+			{
+				std::invoke(transformer, entities, member);
+				//UnifyMember(entities, member);
 				return true;
 			}
 			return false;
@@ -228,7 +223,7 @@ namespace Shark {
 		template<typename TComponent, typename TMemberType, typename... TArgs>
 		static bool MultiselectControl(const std::vector<Entity>& entities, TMemberType TComponent::* member, std::string_view label, TArgs&&... args)
 		{
-			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsMixedValue(entities, member));
+			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsInconsistentProperty<TComponent>(entities, member));
 			Entity firstEntity = entities[0];
 			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
 			if (UI::Control(label, firstComponent.*member, std::forward<TArgs>(args)...))
@@ -248,15 +243,118 @@ namespace Shark {
 
 	}
 
+	void DrawMaterialTable(const std::vector<Entity>& entities, Ref<MaterialTable> materialTable, Ref<MaterialTable> meshMaterialTable)
+	{
+		if (ImGui::TreeNodeEx("Materials", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			UI::BeginControlsGrid();
+
+			if (materialTable->GetSlotCount() != meshMaterialTable->GetSlotCount())
+				materialTable->SetSlotCount(meshMaterialTable->GetSlotCount());
+
+			for (uint32_t i = 0; i < meshMaterialTable->GetSlotCount(); i++)
+			{
+				const bool hasMaterial = materialTable->HasMaterial(i);
+				const bool hasMeshMaterial = meshMaterialTable->HasMaterial(i);
+
+				if (hasMeshMaterial && !hasMaterial)
+				{
+					AssetHandle materialHandle = meshMaterialTable->HasMaterial(i) ? meshMaterialTable->GetMaterial(i) : AssetHandle{};
+
+					std::string label = fmt::format("Material [{}]", i);
+
+					const bool isInconsistantProperty = utils::IsInconsistentProperty<StaticMeshComponent>(entities, [i](const auto& first)
+					{
+						Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(first.StaticMesh);
+						auto materialTable = mesh->GetMaterials();
+						if (!materialTable || i >= materialTable->GetSlotCount())
+							return AssetHandle(AssetHandle::Invalid);
+						return materialTable->GetMaterial(i);
+					});
+
+					UI::ScopedItemFlag mixedValue(ImGuiItemFlags_MixedValue, isInconsistantProperty);
+
+					std::string materialName;
+					Ref<MaterialAsset> materialAsset = AssetManager::GetAssetAsync<MaterialAsset>(materialHandle);
+					if (materialAsset)
+					{
+						auto& name = materialAsset->GetName();
+						if (!name.empty())
+						{
+							materialName = name;
+						}
+						else
+						{
+							const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(materialHandle);
+							if (!metadata.FilePath.empty())
+								materialName = FileSystem::GetStemString(metadata.FilePath);
+							else
+								materialName = fmt::to_string(materialHandle);
+						}
+					}
+
+					UI::AssetControlSettings settings;
+					settings.DisplayName = materialName;
+					settings.TextColor = UI::Colors::Theme::TextDarker;
+					if (UI::ControlAsset(label, AssetType::Material, materialHandle, settings))
+					{
+						for (auto entity : entities)
+						{
+							auto& comp = entity.GetComponent<StaticMeshComponent>();
+							comp.MaterialTable->SetMaterial(i, materialHandle);
+						}
+					}
+				}
+				else
+				{
+					AssetHandle materialHandle = AssetHandle::Invalid;
+					if (hasMaterial)
+					{
+						materialHandle = materialTable->GetMaterial(i);
+					}
+
+					std::string label = fmt::format("Material [{}]", i);
+
+					const bool isInconsistantProperty = utils::IsInconsistentProperty<StaticMeshComponent>(entities, [i](const auto& first) -> AssetHandle
+					{
+						auto materialTable = first.MaterialTable;
+						if (!materialTable || i >= materialTable->GetSlotCount())
+							return AssetHandle::Invalid;
+						if (!materialTable->HasMaterial(i))
+							return AssetHandle::Invalid;
+						return materialTable->GetMaterial(i);
+					});
+
+					UI::ScopedItemFlag mixedValue(ImGuiItemFlags_MixedValue, isInconsistantProperty);
+					if (UI::ControlAsset(label, AssetType::Material, materialHandle))
+					{
+						for (auto entity : entities)
+						{
+							auto& comp = entity.GetComponent<StaticMeshComponent>();
+							if (materialHandle)
+								comp.MaterialTable->SetMaterial(i, materialHandle);
+							else
+								comp.MaterialTable->ClearMaterial(i);
+						}
+					}
+				}
+			}
+
+			UI::EndControlsGrid();
+			ImGui::TreePop();
+		}
+	}
+
 	SceneHierarchyPanel::SceneHierarchyPanel(const std::string& panelName, Ref<Scene> scene)
 		: Panel(panelName), m_Context(scene)
 	{
-		#define COMPONENT_DATA_ARGS(name, compT) { name, [](Entity entity) { entity.AddComponent<compT>(); }, [](Entity entity) { return entity.AllOf<compT>(); } }
+		#define COMPONENT_DATA_ARGS(name, compT) { name, [](Entity entity) { entity.AddComponent<compT>(); }, [](Entity entity) { return entity.HasComponent<compT>(); } }
 		m_Components.push_back(COMPONENT_DATA_ARGS("Transform", TransformComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Sprite Renderer", SpriteRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Circle Renderer", CircleRendererComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Text Renderer", TextRendererComponent));
-		m_Components.push_back(COMPONENT_DATA_ARGS("Mesh Renderer", MeshComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Mesh", MeshComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Static Mesh", StaticMeshComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Point Light", PointLightComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Directional Light", DirectionalLightComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Sky", SkyComponent));
@@ -270,75 +368,114 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 		#undef COMPONENT_DATA_ARGS
-		SK_CORE_VERIFY(m_Components.size() + 2 == GroupSize(AllComponents));
-
-		m_MaterialEditor = Scope<MaterialEditor>::Create();
-		m_MaterialEditor->SetName("Material");
+		SK_CORE_VERIFY(m_Components.size() + 3 == GroupSize(UserInteractableComponents));
 	}
 
 	void SceneHierarchyPanel::OnImGuiRender(bool& shown)
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (!shown)
-			return;
-
-		if (ImGui::Begin(m_PanelName.c_str(), &shown) && m_Context)
 		{
-			auto entities = utils::GetSelectedEntities(m_Context);
-			UpdateMaterialEditor(entities);
+			UI::ScopedStyle padding(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+			ImGui::Begin(m_PanelName.c_str(), &shown);
+		}
 
-			m_HirachyFocused = ImGui::IsWindowFocused();
+		auto entities = utils::GetSelectedEntities(m_Context);
 
+		m_HierarchyFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+		const float windowPadding = 8.0f;
+		UI::ShiftCursorX(windowPadding);
+		UI::ShiftCursorY(windowPadding);
+
+		{
+			UI::ScopedFont font("Medium");
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - windowPadding);
+			UI::Widgets::Search(m_SearchFilter, "Search...", &m_ActivateSerach);
+		}
+
+		UI::ShiftCursorY(windowPadding);
+
+		{
+			SK_PERF_SCOPED("Draw Entitiy Nodes");
+
+			UI::ScopedStyle tableCellPadding(ImGuiStyleVar_CellPadding, ImVec2(ImGui::GetStyle().CellPadding.x, 0));
+			UI::ScopedColor tableBg(ImGuiCol_ChildBg, UI::Colors::Theme::BackgroundDark);
+
+			ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoPadInnerX;
+			if (ImGui::BeginTable("##entityHierarchy", 3, tableFlags, ImGui::GetContentRegionAvail()))
 			{
-				SK_PERF_SCOPED("Draw Entitiy Nodes");
-				auto entities = m_Context->GetRootEntities();
+				ImGui::TableSetupColumn("Label");
+				ImGui::TableSetupColumn("Type");
+				ImGui::TableSetupColumn("Index");
 
-				ImGuiMultiSelectFlags multiSelectFlags = ImGuiMultiSelectFlags_ClearOnEscape | ImGuiMultiSelectFlags_ClearOnClickVoid;
-				ImGuiMultiSelectIO* selectIO = ImGui::BeginMultiSelect(multiSelectFlags, SelectionManager::GetSelections(SelectionContext::Entity).size());
-				HandleSelectionRequests(selectIO);
-
-				uint32_t index = 0;
-				for (auto ent : entities)
+				// Header
 				{
-					Entity entity{ ent, m_Context };
-					DrawEntityNode(entity, index);
-				} 
+					UI::ScopedItemFlag noNav(ImGuiItemFlags_NoNav);
+					ImGui::TableSetupScrollFreeze(ImGui::TableGetColumnCount(), 1);
+					ImGui::TableNextRow(ImGuiTableRowFlags_Headers, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
+					for (int column = 0; column < ImGui::TableGetColumnCount(); column++)
+					{
+						ImGui::TableSetColumnIndex(column);
+						const char* columnName = ImGui::TableGetColumnName(column);
+						UI::ScopedID id(column);
+						UI::ShiftCursor(windowPadding * 3.0f, windowPadding);
+						ImGui::TableHeader(columnName);
+						UI::ShiftCursor(-windowPadding * 3.0f, -windowPadding);
+					}
+				}
+
+				ImGuiMultiSelectFlags multiSelectFlags = /*ImGuiMultiSelectFlags_ClearOnEscape | */ImGuiMultiSelectFlags_ClearOnClickVoid | ImGuiMultiSelectFlags_NoSelectAll;
+				multiSelectFlags |= ImGuiMultiSelectFlags_BoxSelect2d;
+				ImGuiMultiSelectIO* selectIO = ImGui::BeginMultiSelect(multiSelectFlags, SelectionManager::GetSelections(SelectionContext::Entity).size());
+				HandleSelectionRequests(selectIO, true);
+
+				// List
+				{
+					UI::ScopedColor navDisabled(ImGuiCol_NavHighlight, IM_COL32_DISABLE);
+					UI::ScopedColorStack headerDiabled(ImGuiCol_Header, IM_COL32_DISABLE,
+													   ImGuiCol_HeaderActive, IM_COL32_DISABLE,
+													   ImGuiCol_HeaderHovered, IM_COL32_DISABLE);
+
+					uint32_t index = 0;
+					auto rootEntities = m_Context->GetRootEntities();
+					for (auto ent : rootEntities)
+					{
+						Entity entity{ ent, m_Context };
+						DrawEntityNode(entity, index, m_SearchFilter);
+					}
+				}
 
 				selectIO = ImGui::EndMultiSelect();
-				HandleSelectionRequests(selectIO);
-			}
+				HandleSelectionRequests(selectIO, false);
 
-			if (m_DeleteSelected)
-			{
-				for (UUID id : SelectionManager::GetSelections(SelectionContext::Entity))
+				if (ImGui::BeginPopupContextWindow("##sceneHierarchyPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 				{
-					Entity entity = m_Context->TryGetEntityByUUID(id);
-					if (!entity)
-						continue;
-
-					DestroyEntity(entity);
+					DrawCreateEntityMenu({});
+					ImGui::EndPopup();
 				}
 
-				SelectionManager::Clear(SelectionContext::Entity);
-				m_DeleteSelected = false;
+				ImGui::EndTable();
 			}
 
-			if (ImGui::BeginDrapDropTargetWindow())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
-				if (payload)
-				{
-					UUID uuid = *(UUID*)payload->Data;
-					Entity entity = m_Context->TryGetEntityByUUID(uuid);
-					entity.RemoveParent();
-				}
-
-				ImGui::EndDragDropTarget();
-			}
-
-			DrawAddEntityPopup();
 		}
+
+		if (m_DeleteSelected)
+		{
+			auto selections = SelectionManager::GetSelections(SelectionContext::Entity);
+			for (UUID id : selections)
+			{
+				Entity entity = m_Context->TryGetEntityByUUID(id);
+				if (!entity)
+					continue;
+
+				m_Context->DestroyEntity(entity);
+			}
+
+			SelectionManager::Clear(SelectionContext::Entity);
+			m_DeleteSelected = false;
+		}
+
 		ImGui::End();
 
 		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
@@ -350,9 +487,6 @@ namespace Shark {
 			DrawEntityProperties(entities);
 		}
 		ImGui::End();
-
-		if (m_MaterialEditor->GetMaterial())
-			m_MaterialEditor->Draw();
 	}
 
 	void SceneHierarchyPanel::OnEvent(Event& event)
@@ -366,7 +500,6 @@ namespace Shark {
 	void SceneHierarchyPanel::OnProjectChanged(Ref<Project> project)
 	{
 		m_Context = nullptr;
-		m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
 	}
 
 	void SceneHierarchyPanel::SetContext(Ref<Scene> scene)
@@ -376,25 +509,40 @@ namespace Shark {
 
 	bool SceneHierarchyPanel::OnKeyPressedEvent(KeyPressedEvent& event)
 	{
-		if (!m_HirachyFocused)
+		if (!m_HierarchyFocused)
 			return false;
 
-#if TODO
 		switch (event.GetKeyCode())
 		{
+			case KeyCode::F:
+			{
+				m_ActivateSerach = true;
+				return true;
+			}
+
 			case KeyCode::Delete:
 			{
-				const auto& selections = SelectionManager::GetSelections(SelectionContext::Entity);
+				auto selections = SelectionManager::GetSelections(SelectionContext::Entity);
 				for (UUID id : selections)
 				{
 					Entity entity = m_Context->TryGetEntityByUUID(id);
-					DestroyEntity(entity);
+					if (!entity)
+						continue;
+
+					m_Context->DestroyEntity(entity);
 				}
 
 				SelectionManager::Clear(SelectionContext::Entity);
 				return true;
 			}
 
+			case KeyCode::Escape:
+			{
+				SelectionManager::Clear(SelectionContext::Entity);
+				return true;
+			}
+
+#if 0
 			case KeyCode::A:
 			{
 				if (!event.GetModifierKeys().Control)
@@ -409,14 +557,17 @@ namespace Shark {
 				}
 				return true;
 			}
-		}
 #endif
+		}
 
 		return false;
 	}
 
-	void SceneHierarchyPanel::HandleSelectionRequests(ImGuiMultiSelectIO* selectionIO)
+	void SceneHierarchyPanel::HandleSelectionRequests(ImGuiMultiSelectIO* selectionIO, bool isBegin)
 	{
+		if (!isBegin)
+			m_RangeSelectRequest.ApplyRequest = false;
+
 		if (selectionIO->Requests.empty())
 			return;
 
@@ -427,98 +578,191 @@ namespace Shark {
 				case ImGuiSelectionRequestType_SetAll:
 				{
 					SelectionManager::Clear(SelectionContext::Entity);
-					if (!request.Selected)
-						break;
-
-					auto entities = m_Context->GetAllEntitysWith<IDComponent>();
-					for (auto ent : entities)
-					{
-						const auto& idComponent = entities.get<IDComponent>(ent);
-						SelectionManager::Select(SelectionContext::Entity, idComponent.ID);
-					}
+					SK_CORE_VERIFY(request.Selected == false);
 					break;
 				}
 				case ImGuiSelectionRequestType_SetRange:
 				{
-					const auto TraverseTree = [scene = m_Context, select = request.Selected](Entity entity, uint32_t first, uint32_t last, uint32_t& index, const auto& traverseTreeFn) -> bool
-					{
-						uint32_t currentIndex = index++;
-						UUID entityID = entity.GetUUID();
-
-						if (currentIndex > last)
-							return false;
-
-						if (currentIndex >= first)
-						{
-							SelectionManager::Toggle(SelectionContext::Entity, entityID, select);
-						}
-
-						ImGuiID imguiID = ImGui::GetID((const void*)(uint64_t)entityID);
-						const bool isOpened = ImGui::TreeNodeGetOpen(imguiID);
-						if (isOpened)
-						{
-							UI::ScopedID id(UI::GetID(entityID));
-							Entity entity = scene->TryGetEntityByUUID(entityID);
-							for (UUID childID : entity.Children())
-							{
-								Entity child = scene->TryGetEntityByUUID(childID);
-								if (!traverseTreeFn(child, first, last, index, traverseTreeFn))
-									return false;
-							}
-						}
-
-						return true;
-					};
-
-
-					uint32_t index = 0;
-					auto entities = m_Context->GetRootEntities();
-					for (auto ent : entities)
-					{
-						Entity entity{ ent, m_Context };
-						if (!TraverseTree(entity, request.RangeFirstItem, request.RangeLastItem, index, TraverseTree))
-							break;
-					}
-
+					m_RangeSelectRequest.First = request.RangeFirstItem;
+					m_RangeSelectRequest.Last = request.RangeLastItem;
+					m_RangeSelectRequest.Select = request.Selected;
+					m_RangeSelectRequest.ApplyRequest = true;
 					break;
 				}
 			}
 		}
 	}
 
-	void SceneHierarchyPanel::DrawEntityNode(Entity entity, uint32_t& index)
+	void SceneHierarchyPanel::DrawEntityNode(Entity entity, uint32_t& index, const UI::TextFilter& searchFilter)
 	{
 		SK_PROFILE_FUNCTION();
 
+		UI::ScopedID scopedID(entity.GetUUID());
+
+		const uint32_t maxSearchDepth = 10;
+		bool hasChildMatchingSearch = SearchTagRecursive(entity, searchFilter, maxSearchDepth);
+
+		if (!searchFilter.PassesFilter(entity.GetName()) && !hasChildMatchingSearch)
+			return;
+
+		const float rowHeight = ImGui::GetFrameHeight();
+
+		ImGui::TableNextRow(0, rowHeight);
+		ImGui::TableSetColumnIndex(0);
+
 		UUID entityID = entity.GetUUID();
-		const auto& tag = entity.GetComponent<TagComponent>();
-		ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding;
-		if (SelectionManager::IsSelected(SelectionContext::Entity, entityID))
+		const auto& entityName = entity.GetComponent<TagComponent>().Tag;
+
+		// handle range selection request
+		if (m_RangeSelectRequest.ApplyRequest)
+		{
+			if (index >= m_RangeSelectRequest.First && index <= m_RangeSelectRequest.Last)
+			{
+				SelectionManager::Toggle(SelectionContext::Entity, entityID, m_RangeSelectRequest.Select);
+			}
+		}
+
+		const bool isSelected = SelectionManager::IsSelected(SelectionContext::Entity, entityID);
+
+		ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_SpanAllColumns;
+		if (isSelected)
 			treeNodeFlags |= ImGuiTreeNodeFlags_Selected;
 
 		if (!entity.HasChildren())
 			treeNodeFlags |= ImGuiTreeNodeFlags_Leaf;
 
-		bool opened = false;
+		if (hasChildMatchingSearch)
+			treeNodeFlags |= ImGuiTreeNodeFlags_DefaultOpen;
 
+		// row interactions
+		ImRect rowRect;
+		rowRect.Min = ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), 0).Min;
+		rowRect.Max.x = ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), ImGui::TableGetColumnCount() - 1).Max.x;
+		rowRect.Max.y = rowRect.Min.y + rowHeight;
 
+		//bool rowHovered, rowHeld;
+		//bool rowPressed = ImGui::ButtonBehavior(rowRect, ImGui::GetID(entityName.c_str()), &rowHovered, &rowHeld);
+
+		bool rowHovered = ImGui::IsMouseHoveringRect(rowRect.Min, rowRect.Max);
+
+		// color row
+		const auto ColorRowSelected = [&](ImU32 colorLeft = UI::Colors::Theme::Selection, ImU32 colorRight = UI::Colors::Theme::SelectionCompliment)
 		{
-			const bool isSelected = SelectionManager::IsSelected(SelectionContext::Entity, entityID);
-			UI::ScopedColorConditional hovered(ImGuiCol_HeaderHovered, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 1.2f), isSelected);
-			UI::ScopedColorConditional active(ImGuiCol_HeaderActive, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Selection, 0.9f), isSelected);
-			UI::ScopedColor selected(ImGuiCol_Header, UI::Colors::Theme::Selection);
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			ImGuiContext& g = *GImGui;
+			const ImGuiStyle& style = g.Style;
 
-			UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-			ImGui::SetNextItemSelectionUserData(index++);
-			opened = ImGui::TreeNodeEx((const void*)(uint64_t)entity.GetUUID(), treeNodeFlags, tag.Tag.c_str());
+			const bool display_frame = (treeNodeFlags & ImGuiTreeNodeFlags_Framed) != 0;
+			const ImVec2 padding = (display_frame || (treeNodeFlags & ImGuiTreeNodeFlags_FramePadding)) ? style.FramePadding : ImVec2(style.FramePadding.x, ImMin(window->DC.CurrLineTextBaseOffset, style.FramePadding.y));
+
+			const char* label = entityName.c_str();
+			const char* label_end = label + entityName.size();
+			const ImVec2 label_size = ImGui::CalcTextSize(label, label_end, false);
+
+			// We vertically grow up to current line height up the typical widget height.
+			const float frame_height = std::max(std::min(window->DC.CurrLineSize.y, g.FontSize + style.FramePadding.y * 2), label_size.y + padding.y * 2);
+			ImRect frame_bb;
+			frame_bb.Min.x = window->ParentWorkRect.Min.x;
+			frame_bb.Min.y = window->DC.CursorPos.y;
+			frame_bb.Max.x = window->ParentWorkRect.Max.x;
+			frame_bb.Max.y = window->DC.CursorPos.y + frame_height;
+			if (display_frame)
+			{
+				const float outer_extend = IM_TRUNC(window->WindowPadding.x * 0.5f); // Framed header expand a little outside of current limits
+				frame_bb.Min.x -= outer_extend;
+				frame_bb.Max.x += outer_extend;
+			}
+
+			ImU32 colLeft = UI::Colors::Theme::Selection;
+			ImU32 colRight = UI::Colors::Theme::SelectionCompliment;
+			ImGui::TablePushBackgroundChannel();
+			window->DrawList->AddRectFilledMultiColor(frame_bb.Min, frame_bb.Max, colorLeft, colorRight, colorRight, colorLeft);
+			ImGui::TablePopBackgroundChannel();
+		};
+
+		const auto ColorRow = [](ImU32 color)
+		{
+			for (int i = 0; i < ImGui::TableGetColumnCount(); i++)
+				ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, color, i);
+		};
+
+		const auto AnyDescendantSelected = [this](Entity entity, auto anyDescendantSelected)
+		{
+			if (SelectionManager::IsSelected(SelectionContext::Entity, entity.GetUUID()))
+				return true;
+
+			for (auto childID : entity.Children())
+			{
+				Entity child = m_Context->GetEntityByID(childID);
+				if (anyDescendantSelected(child, anyDescendantSelected))
+					return true;
+			}
+			return false;
+		};
+
+		if (isSelected)
+		{
+			if (m_HierarchyFocused)
+			{
+				ColorRowSelected();
+			}
+			else
+			{
+				ImU32 colLeft = UI::Colors::WithMultipliedSaturation(UI::Colors::Theme::Selection, 0.85f);
+				ImU32 colRight = UI::Colors::WithMultipliedSaturation(UI::Colors::Theme::SelectionCompliment, 0.85f);
+				ColorRowSelected(colLeft, colRight);
+			}
+		}
+		else if (rowHovered || GImGui->NavId == ImGui::GetID(entityName.c_str()))
+		{
+			ColorRow(UI::Colors::Theme::Header);
+		}
+		else if (AnyDescendantSelected(entity, AnyDescendantSelected))
+		{
+			ColorRow(UI::Colors::Theme::SelectionMuted);
 		}
 
-		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover))
+		bool opened = false;
 		{
-			UUID uuid = entity.GetUUID();
-			ImGui::SetDragDropPayload("ENTITY_ID", &uuid, sizeof(UUID));
-			ImGui::SetTooltip(tag.Tag.c_str());
+			UI::ScopedColorConditional textColor(ImGuiCol_Text, UI::Colors::Theme::NiceBlue, entity.HasComponent<MeshFilterComponent>());
+			UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+			ImGui::SetNextItemSelectionUserData(index++);
 
+			opened = ImGui::TreeNodeEx(entityName.c_str(), treeNodeFlags, entityName.c_str());
+		}
+
+		bool deleteEntity = false;
+
+		const bool isSubmesh = entity.HasComponent<MeshFilterComponent>();
+
+		const std::string popupName = fmt::format("{}-Popup", entityName);
+		if (ImGui::BeginPopupContextItem(popupName.c_str()))
+		{
+			if (ImGui::MenuItem("Unparent"))
+			{
+				m_Context->UnparentEntity(entity);
+			}
+
+			ImGui::Separator();
+
+			DrawCreateEntityMenu(entity);
+
+			ImGui::Separator();
+
+			{
+				UI::ScopedDisabled disabled(isSubmesh);
+				if (ImGui::MenuItem("Delete"))
+					deleteEntity = true;
+			}
+
+			ImGui::EndPopup();
+		}
+
+		if (!isSubmesh && ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover))
+		{
+			const auto& selections = SelectionManager::GetSelections(SelectionContext::Entity);
+			ImGui::SetDragDropPayload("ENTITY_ID", selections.data(), selections.size() * sizeof(UUID));
+			ImGui::SetTooltip("%s, ...", entityName.c_str());
 			ImGui::EndDragDropSource();
 		}
 
@@ -527,15 +771,29 @@ namespace Shark {
 			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
 			if (payload)
 			{
-				UUID droppedEntityID = *(UUID*)payload->Data;
-				if (droppedEntityID != entityID)
+				Buffer payloadData = { payload->Data, (uint64_t)payload->DataSize };
+
+				uint32_t count = payloadData.Count<UUID>();
+				for (uint32_t index = 0; index < count; index++)
 				{
-					Entity droppedEntity = m_Context->TryGetEntityByUUID(droppedEntityID);
-					if (!utils::WouldCreateLoop(droppedEntity, entity))
-						droppedEntity.SetParent(entity);
+					UUID droppedID;
+					payloadData.Read(&droppedID, sizeof(UUID), index * sizeof(UUID));
+
+					Entity droppedEntity = m_Context->TryGetEntityByUUID(droppedID);
+					if (droppedEntity && droppedEntity != entity)
+						m_Context->ParentEntity(droppedEntity, entity);
 				}
 			}
 			ImGui::EndDragDropTarget();
+		}
+
+		if (entity.HasComponent<MeshFilterComponent>())
+		{
+			ImGui::TableSetColumnIndex(1);
+			UI::ShiftCursorX(8.0f * 3.0f);
+			UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::NiceBlue);
+			ImGui::Text("Submesh");
+			ImGui::TableSetColumnIndex(0);
 		}
 
 		if (opened)
@@ -543,10 +801,17 @@ namespace Shark {
 			for (auto& childID : entity.Children())
 			{
 				Entity child = m_Context->TryGetEntityByUUID(childID);
-				DrawEntityNode(child, index);
+				DrawEntityNode(child, index, {});
 			}
 
 			ImGui::TreePop();
+		}
+
+		if (deleteEntity)
+		{
+			auto selections = SelectionManager::GetSelections(SelectionContext::Entity);
+			for (auto entityID : selections)
+				m_Context->DestroyEntity(m_Context->GetEntityByID(entityID));
 		}
 
 	}
@@ -562,38 +827,34 @@ namespace Shark {
 
 		Entity firstEntity = entities[0];
 		auto& firstTag = firstEntity.GetComponent<TagComponent>();
-		UI::PushID(firstEntity.GetUUID());
+		ImGui::PushID(firstEntity.GetUUID());
 
-		const bool isTagMixed = utils::IsMixedValue<TagComponent>(entities, [](const auto& lhs, const auto& rhs) { return lhs.Tag == rhs.Tag; });
+		const bool isTagMixed = utils::IsInconsistentProperty<TagComponent>(entities, &TagComponent::Tag);
 
 		ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isTagMixed);
 		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - IDSpacingWidth - style.ItemSpacing.x * 2.0f);
-		ImGui::InputText("##Tag", &firstTag.Tag);
+		UI::InputText("##Tag", &firstTag.Tag);
 		ImGui::PopItemFlag();
 
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(IDSpacingWidth);
 
+		UI::DrawItemFrame(UI::RectFromSize(ImGui::GetCursorScreenPos(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() }));
 		if (entities.size() > 1)
-			UI::TextFramed("");
+			ImGui::Text("");
 		else
-			UI::TextFramed("0x%16llx", firstEntity.GetUUID().Value());
+			ImGui::Text("0x%16llx", firstEntity.GetUUID().Value());
 
 		ImGui::SameLine();
 		ImGui::Button("Add");
 		if (ImGui::BeginPopupContextItem("Add Component List", ImGuiPopupFlags_MouseButtonLeft))
 		{
-			if (ImGui::IsWindowAppearing())
-			{
-				m_SearchComponentBuffer[0] = '\0';
-				ImGui::SetKeyboardFocusHere();
-			}
-
-			if (UI::Search(UI::GenerateID(), m_SearchComponentBuffer, sizeof(m_SearchComponentBuffer)))
+			bool activate = ImGui::IsWindowAppearing();
+			if (UI::Widgets::Search(m_SearchComponentBuffer, "Search...", &activate, true))
 			{
 				std::string_view pattern = m_SearchComponentBuffer;
 				m_ComponentFilter.SetFilter(std::string(pattern));
-				m_ComponentFilter.SetMode(String::Case::Ingnore);
+				m_ComponentFilter.SetMode(String::Case::Ignore);
 				for (const auto& c : pattern)
 				{
 					if (std::isupper(c))
@@ -605,74 +866,112 @@ namespace Shark {
 
 			}
 
-			for (const auto& [name, add, has] : m_Components)
+			for (const auto& binding : m_Components)
 			{
-				if (!m_ComponentFilter.PassFilter(name))
+				if (!m_ComponentFilter.PassesFilter(binding.Name))
 					continue;
 
-				if (ImGui::Selectable(name.data()))
+				if (ImGui::Selectable(binding.Name.data()))
 				{
 					for (Entity entity : entities)
 					{
-						if (!has(entity))
-							add(entity);
+						if (!binding.HasComponent(entity))
+							binding.AddComponent(entity);
 					}
 				}
 			}
 			ImGui::EndPopup();
 		}
 
-		UI::PopID();
+		ImGui::PopID();
 
 		Ref<SceneHierarchyPanel> instance = this;
-		DrawComponetMultiSelect<TransformComponent>(entities, "Transform", [instance](TransformComponent& firstComponent, const std::vector<Entity>& entities)
+		DrawComponetMultiSelect<TransformComponent>(entities, "Transform", [this](TransformComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
 
-			if (instance->m_TransformInWorldSpace /*&& entity.HasParent()*/)
+			if (m_TransformInWorldSpace)
 			{
-				SK_DEBUG_BREAK_CONDITIONAL(s_Break);
-#if TODO
-				TransformComponent transform = instance->m_Context->GetWorldSpaceTransform(entity);
-				bool changed = false;
-				changed |= utils::Control("Translation", transform.Translation);
-				changed |= utils::ControlAngle("Rotation", transform.Rotation);
-				changed |= utils::Control("Scale", transform.Scale, 1.0f);
+				auto firstTransform = m_Context->GetWorldSpaceTransform(entities[0]);
+				glm::bvec3 isTranslationInconsistent(false);
+				glm::bvec3 isRotationInconsistent(false);
+				glm::bvec3 isScaleInconsistent(false);
+				for (Entity entity : entities)
+				{
+					auto transform = m_Context->GetWorldSpaceTransform(entities[0]);
+					if (firstTransform.Translation.x != transform.Translation.x) isTranslationInconsistent.x = true;
+					if (firstTransform.Translation.y != transform.Translation.y) isTranslationInconsistent.y = true;
+					if (firstTransform.Translation.z != transform.Translation.z) isTranslationInconsistent.z = true;
 
-				if (changed && instance->m_Context->ConvertToLocaSpace(entity, transform))
-					entity.Transform() = transform;
-#endif
+					if (firstTransform.Rotation.x != transform.Rotation.x) isRotationInconsistent.x = true;
+					if (firstTransform.Rotation.y != transform.Rotation.y) isRotationInconsistent.y = true;
+					if (firstTransform.Rotation.z != transform.Rotation.z) isRotationInconsistent.z = true;
+
+					if (firstTransform.Scale.x != transform.Scale.x) isScaleInconsistent.x = true;
+					if (firstTransform.Scale.y != transform.Scale.y) isScaleInconsistent.y = true;
+					if (firstTransform.Scale.z != transform.Scale.z) isScaleInconsistent.z = true;
+
+					if (glm::all(isTranslationInconsistent) && glm::all(isRotationInconsistent) && glm::all(isScaleInconsistent))
+						break;
+				}
+
+				auto translationChanged = utils::Control("Translation", firstTransform.Translation, isTranslationInconsistent);
+				auto rotationChanged = utils::ControlAngle("Rotation", firstTransform.Rotation, isRotationInconsistent);
+				auto scaleChanged = utils::Control("Scale", firstTransform.Scale, isScaleInconsistent);
+				
+				if (glm::any(translationChanged) || glm::any(rotationChanged) || glm::any(scaleChanged))
+				{
+					for (Entity entity : entities)
+					{
+						TransformComponent localTransform = firstTransform;
+						m_Context->ConvertToLocaSpace(entity, localTransform);
+
+						auto& transform = entity.Transform();
+						if (isTranslationInconsistent.x) transform.Translation.x = localTransform.Translation.x;
+						if (isTranslationInconsistent.y) transform.Translation.y = localTransform.Translation.y;
+						if (isTranslationInconsistent.z) transform.Translation.z = localTransform.Translation.z;
+						if (isRotationInconsistent.x) transform.Rotation.x = localTransform.Rotation.x;
+						if (isRotationInconsistent.y) transform.Rotation.y = localTransform.Rotation.y;
+						if (isRotationInconsistent.z) transform.Rotation.z = localTransform.Rotation.z;
+						if (isScaleInconsistent.x) transform.Scale.x = localTransform.Scale.x;
+						if (isScaleInconsistent.y) transform.Scale.y = localTransform.Scale.y;
+						if (isScaleInconsistent.z) transform.Scale.z = localTransform.Scale.z;
+					}
+				}
 			}
 			else
 			{
 				glm::bvec3 changed = glm::bvec3(false);
 				const auto transformFunc = [&changed](const glm::vec3& first, glm::vec3& target)
 				{
-					target.x = changed.x ? first.x : target.x;
-					target.y = changed.y ? first.y : target.y;
-					target.z = changed.z ? first.z : target.z;
+					if (changed.x) target.x = first.x;
+					if (changed.y) target.y = first.y;
+					if (changed.z) target.z = first.z;
 				};
 
 				const auto isMixed = [&entities](glm::vec3 TransformComponent::* member)
 				{
 					glm::bvec3 mixed(false);
-					mixed.x = utils::IsMixedValue<TransformComponent>(entities, [member](const TransformComponent& lhs, const TransformComponent& rhs) { return (lhs.*member).x == (rhs.*member).x; });
-					mixed.y = utils::IsMixedValue<TransformComponent>(entities, [member](const TransformComponent& lhs, const TransformComponent& rhs) { return (lhs.*member).y == (rhs.*member).y; });
-					mixed.z = utils::IsMixedValue<TransformComponent>(entities, [member](const TransformComponent& lhs, const TransformComponent& rhs) { return (lhs.*member).z == (rhs.*member).z; });
+					mixed.x = utils::IsInconsistentProperty<TransformComponent>(entities,  [member](const TransformComponent& component) { return (component.*member).x; });
+					mixed.y = utils::IsInconsistentProperty<TransformComponent>(entities,  [member](const TransformComponent& component) { return (component.*member).y; });
+					mixed.z = utils::IsInconsistentProperty<TransformComponent>(entities,  [member](const TransformComponent& component) { return (component.*member).z; });
 					return mixed;
 				};
 
 				changed = utils::Control("Translation", firstComponent.Translation, isMixed(&TransformComponent::Translation));
-				utils::UnifyMember(entities, &TransformComponent::Translation, transformFunc); // TODO(moro): this should only happen when changed is true
+				if (glm::any(changed))
+					utils::UnifyMember(entities, &TransformComponent::Translation, transformFunc); // TODO(moro): this should only happen when changed is true
 
 				changed = utils::ControlAngle("Rotation", firstComponent.Rotation, isMixed(&TransformComponent::Rotation));
-				utils::UnifyMember(entities, &TransformComponent::Rotation, transformFunc);
+				if (glm::any(changed))
+					utils::UnifyMember(entities, &TransformComponent::Rotation, transformFunc);
 
 				changed = utils::Control("Scale", firstComponent.Scale, isMixed(&TransformComponent::Scale), 1.0f);
-				utils::UnifyMember(entities, &TransformComponent::Scale, transformFunc);
+				if (glm::any(changed))
+					utils::UnifyMember(entities, &TransformComponent::Scale, transformFunc);
 			}
 
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 
 		DrawComponetMultiSelect<SpriteRendererComponent>(entities, "SpriteRenderer", [](SpriteRendererComponent& firstComponent, const std::vector<Entity>& entities)
@@ -699,7 +998,7 @@ namespace Shark {
 				return UI::Control("Transparent", firstComponent.Transparent);
 			});
 
-			UI::EndControls();
+			UI::EndControlsGrid();
 
 		});
 
@@ -722,7 +1021,7 @@ namespace Shark {
 			utils::Multiselect(entities, &CircleRendererComponent::Transparent,
 							   [](auto& firstComponent, const auto& entities) { return UI::Control("Transparent", firstComponent.Transparent); });
 
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 
 		DrawComponetMultiSelect<TextRendererComponent>(entities, "Text Renderer", [](TextRendererComponent& firstComponent, const std::vector<Entity>& entities)
@@ -735,7 +1034,7 @@ namespace Shark {
 				UI::ControlCustom("Text", [&firstComponent, &changed]()
 				{
 					ImGui::SetNextItemWidth(-1.0f);
-					changed = ImGui::InputTextMultiline("##Text", &firstComponent.Text);
+					changed = UI::InputTextMultiline("##Text", &firstComponent.Text);
 				});
 				return changed;
 			});
@@ -752,40 +1051,87 @@ namespace Shark {
 			utils::Multiselect(entities, &TextRendererComponent::LineSpacing,
 							   [](auto& firstComponent, const auto& entities) { return UI::Control("Line Spacing", firstComponent.LineSpacing, 0.01f); });
 
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 
-		DrawComponetMultiSelect<MeshComponent>(entities, "Mesh Renderer", [instance](MeshComponent& firstComponent, const std::vector<Entity>& entities)
+		DrawComponetMultiSelect<MeshComponent>(entities, "Mesh", [&](MeshComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
 
-			utils::Multiselect(entities, &MeshComponent::Mesh, [](auto& firstComponent, const auto& entities)
+			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, utils::IsInconsistentProperty<MeshComponent>(entities, &MeshComponent::Mesh));
+			if (UI::ControlAsset("Mesh", AssetType::Mesh, firstComponent.Mesh))
 			{
-				return UI::ControlAsset("Mesh", AssetType::Mesh, firstComponent.Mesh);
+				auto mesh = AssetManager::GetAsset<Mesh>(firstComponent.Mesh);
+				for (auto entity : entities)
+				{
+					auto& comp = entity.GetComponent<MeshComponent>();
+					comp.Mesh = firstComponent.Mesh;
+					m_Context->RebuildMeshEntityHierarchy(entity);
+				}
+			}
+
+			UI::EndControlsGrid();
+		});
+
+		DrawComponetMultiSelect<SubmeshComponent>(entities, "Sub Mesh", [&](SubmeshComponent& firstComponent, const std::vector<Entity>& entities)
+		{
+			UI::BeginControlsGrid();
+
+			utils::MultiselectControl(entities, &SubmeshComponent::Visible, "Visible");
+
+			{
+				UI::ScopedDisabled disable;
+				utils::MultiselectControl(entities, &SubmeshComponent::SubmeshIndex, "Submesh Index");
+			}
+
+			utils::Multiselect(entities, &SubmeshComponent::Material, [](auto& firstComponent, const auto& entities, bool isMixed)
+			{
+				std::string materialName;
+				if (!isMixed)
+				{
+					Ref<MaterialAsset> materialAsset = AssetManager::GetAssetAsync<MaterialAsset>(firstComponent.Material);
+					if (materialAsset)
+					{
+						auto& name = materialAsset->GetName();
+						if (!name.empty())
+						{
+							materialName = name;
+						}
+						else
+						{
+							const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(firstComponent.Material);
+							if (!metadata.FilePath.empty())
+								materialName = FileSystem::GetStemString(metadata.FilePath);
+							else
+								materialName = fmt::to_string(firstComponent.Material);
+						}
+					}
+				}
+				return UI::ControlAsset("Material", materialName, AssetType::Material, firstComponent.Material);
 			});
 
-			if (!AssetManager::IsValidAssetHandle(firstComponent.Mesh))
+			UI::EndControlsGrid();
+		});
+
+		DrawComponetMultiSelect<StaticMeshComponent>(entities, "Static Mesh", [&](StaticMeshComponent& firstComponent, const std::vector<Entity>& entities)
+		{
+			UI::BeginControlsGrid();
+
+			const bool isInconsistantMesh = utils::IsInconsistentProperty<StaticMeshComponent>(entities, &StaticMeshComponent::StaticMesh);
+			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isInconsistantMesh);
+			if (UI::ControlAsset("Mesh", AssetType::Mesh, firstComponent.StaticMesh))
 			{
-				UI::EndControls();
-				return;
+				utils::UnifyMember(entities, &StaticMeshComponent::StaticMesh);
 			}
 
+			utils::MultiselectControl(entities, &StaticMeshComponent::Visible, "Visible");
+			UI::EndControlsGrid();
+
+			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(firstComponent.StaticMesh);
+			if (mesh)
 			{
-				UI::ScopedDisabled readOnly(true);
-				UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, utils::IsMixedValue(entities, &MeshComponent::SubmeshIndex));
-				UI::Property("Submesh Index", firstComponent.SubmeshIndex);
+				DrawMaterialTable(entities, firstComponent.MaterialTable, mesh->GetMaterials());
 			}
-
-
-			if (utils::Multiselect(entities, &MeshComponent::Material, [](auto& firstComponent, const auto& entities) { return UI::ControlAsset("Material", AssetType::Material, firstComponent.Material); }))
-			{
-				instance->m_MaterialEditor->SetMaterial(firstComponent.Material);
-			}
-
-			UI::EndControls();
-
-			utils::Multiselect(entities, &MeshComponent::Visible, [](auto& firstComponent, const auto& entities) { return ImGui::Checkbox("Visible", &firstComponent.Visible); });
-
 		});
 
 		DrawComponetMultiSelect<PointLightComponent>(entities, "Point Light", [](PointLightComponent& firstComponent, const std::vector<Entity>& entities)
@@ -802,7 +1148,7 @@ namespace Shark {
 			
 			utils::Multiselect(entities, &PointLightComponent::Falloff,
 									  [](auto& firstComponent, const auto& entities) { return UI::Control("Falloff", firstComponent.Falloff, 0.05f, 0.0f, FLT_MAX); });
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 		
 		DrawComponetMultiSelect<DirectionalLightComponent>(entities, "Directional Light", [](DirectionalLightComponent& firstComponent, const std::vector<Entity>& entities)
@@ -813,7 +1159,7 @@ namespace Shark {
 
 			utils::Multiselect(entities, &DirectionalLightComponent::Intensity,
 									  [](auto& firstComponent, const auto& entities) { return UI::Control("Intensity", firstComponent.Intensity, 0.005f, 0.0f, FLT_MAX); });
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 
 #if 0
@@ -872,7 +1218,7 @@ namespace Shark {
 
 			UI::Control("Intensity", comp.Intensity, 0.005f, 0.0f, FLT_MAX);
 			UI::ControlSlider("Lod", comp.Lod, 0.0f, maxLod);
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 #endif
 
@@ -880,7 +1226,7 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 
-			const bool projectionMixed = utils::IsMixedValue<CameraComponent>(entities, &CameraComponent::IsPerspective);
+			const bool projectionMixed = utils::IsInconsistentProperty<CameraComponent>(entities, &CameraComponent::IsPerspective);
 			bool changed = false;
 
 			changed |= utils::Multiselect(entities, &CameraComponent::IsPerspective, [](auto& firstComponent, const auto& entities)
@@ -940,7 +1286,7 @@ namespace Shark {
 					context->SetActiveCamera(entities.front());
 			}
 
-			UI::EndControls();
+			UI::EndControlsGrid();
 
 		});
 
@@ -948,13 +1294,10 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 
+			utils::Multiselect(entities, &RigidBody2DComponent::Type, [](auto& firstComponent, const auto& entities)
 			{
-				UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, utils::IsMixedValue(entities, &RigidBody2DComponent::Type));
-				int index = (int)firstComponent.Type - 1;
-				if (UI::ControlCombo("Body Type", index, s_BodyTypes, sizeof(s_BodyTypes) / sizeof(s_BodyTypes[0])))
-					firstComponent.Type = (decltype(firstComponent.Type))(index + 1);
-				utils::UnifyMember(entities, &RigidBody2DComponent::Type);
-			}
+				return UI::ControlCombo("Body Type", firstComponent.Type);
+			});
 
 			utils::MultiselectControl(entities, &RigidBody2DComponent::FixedRotation, "Fixed Rotation");
 			utils::MultiselectControl(entities, &RigidBody2DComponent::IsBullet, "Bullet");
@@ -976,7 +1319,7 @@ namespace Shark {
 			utils::MultiselectControl(entities, &BoxCollider2DComponent::Restitution, "Restitution", 0.1f, 0.0f, 1.0f);
 			utils::MultiselectControl(entities, &BoxCollider2DComponent::RestitutionThreshold, "RestitutionThreshold", 0.1f, 0.0f, FLT_MAX);
 			utils::MultiselectControl(entities, &BoxCollider2DComponent::IsSensor, "IsSensor");
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 
 		DrawComponetMultiSelect<CircleCollider2DComponent>(entities, "CircleCollider 2D", [](CircleCollider2DComponent& firstComponent, const std::vector<Entity>& entities)
@@ -990,7 +1333,7 @@ namespace Shark {
 			utils::MultiselectControl(entities, &CircleCollider2DComponent::Restitution, "Restitution", 0.1f, 0.0f, 1.0f);
 			utils::MultiselectControl(entities, &CircleCollider2DComponent::RestitutionThreshold, "RestitutionThreshold", 0.1f, 0.0f, FLT_MAX);
 			utils::MultiselectControl(entities, &CircleCollider2DComponent::IsSensor, "IsSensor");
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 
 		DrawComponetMultiSelect<DistanceJointComponent>(entities, "Distance Joint 2D", [](DistanceJointComponent& firstComponent, const std::vector<Entity>& entities)
@@ -1008,7 +1351,7 @@ namespace Shark {
 			utils::MultiselectControl(entities, &DistanceJointComponent::Stiffness, "Stiffness");
 			utils::MultiselectControl(entities, &DistanceJointComponent::Damping, "Damping");
 			utils::MultiselectControl(entities, &DistanceJointComponent::CollideConnected, "Collide Connected");
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 		
 		DrawComponetMultiSelect<HingeJointComponent>(entities, "Hinge Joint 2D", [](HingeJointComponent& firstComponent, const std::vector<Entity>& entities)
@@ -1026,7 +1369,7 @@ namespace Shark {
 			utils::MultiselectControl(entities, &HingeJointComponent::MotorSpeed, "Motor Speed");
 			utils::MultiselectControl(entities, &HingeJointComponent::MaxMotorTorque, "Max Motor Torque");
 			utils::MultiselectControl(entities, &HingeJointComponent::CollideConnected, "Collide Connected");
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 		
 		DrawComponetMultiSelect<PrismaticJointComponent>(entities, "Prismatic Joint 2D", [](PrismaticJointComponent& firstComponent, const std::vector<Entity>& entities)
@@ -1046,7 +1389,7 @@ namespace Shark {
 			utils::MultiselectControl(entities, &PrismaticJointComponent::MotorSpeed, "Motor Speed");
 			utils::MultiselectControl(entities, &PrismaticJointComponent::MaxMotorForce, "Max Motor Force");
 			utils::MultiselectControl(entities, &PrismaticJointComponent::CollideConnected, "Collide Connected");
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 		
 		DrawComponetMultiSelect<PulleyJointComponent>(entities, "Pulley Joint 2D", [](PulleyJointComponent& firstComponent, const std::vector<Entity>& entities)
@@ -1063,26 +1406,59 @@ namespace Shark {
 			utils::MultiselectControl(entities, &PulleyJointComponent::GroundAnchorB, "Ground AnchorB");
 			utils::MultiselectControl(entities, &PulleyJointComponent::Ratio, "Ratio", FLT_EPSILON, FLT_MAX);
 			utils::MultiselectControl(entities, &PulleyJointComponent::CollideConnected, "Collide Connected");
-			UI::EndControls();
+			UI::EndControlsGrid();
 		});
 
 		DrawComponetMultiSelect<ScriptComponent>(entities, "Script", [scene = m_Context](ScriptComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			ImGui::SetNextItemWidth(-1.0f);
 
-			const bool isMixedScript = utils::IsMixedValue(entities, &ScriptComponent::ClassID);
+			const bool isMixedScript = utils::IsInconsistentProperty<ScriptComponent>(entities, &ScriptComponent::ClassID);
 
 			{
-				UI::BeginControls();
-				UI::ControlCustom("Script", []()
+				UI::BeginControlsGrid();
+				UI::ControlCustom("Script", [&]()
 				{
-					ImGui::InvisibleButton("scriptClass", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeightWithSpacing() });
+					Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(firstComponent.ClassID);
+					ImGui::Button(klass ? klass->GetName().c_str() : "", {ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()});
 				});
 
 				if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonLeft))
 				{
-					UI::ScopedColor headerHovered(ImGuiCol_HeaderHovered, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Header, 2.0f));
-					UI::ScopedColor headerActive(ImGuiCol_HeaderActive, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Header, 1.5f));
+					bool changed = false;
+
+					{
+						UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+						UI::ScopedStyle frameRounding(ImGuiStyleVar_FrameRounding, 0.0f);
+						UI::ScopedColorStack button(ImGuiCol_Button, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Background, 0.9f),
+													ImGuiCol_ButtonHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Background, 1.1f),
+													ImGuiCol_ButtonActive, UI::Colors::Theme::BackgroundDark);
+
+						if (ImGui::Button("Clear", ImVec2(-1.0f, 0.0f)))
+						{
+							firstComponent.ClassID = 0;
+							changed = true;
+							ImGui::CloseCurrentPopup();
+						}
+					}
+
+					const auto& scriptClasses = ScriptEngine::GetScriptClasses();
+					for (const auto& [id, klass] : scriptClasses)
+					{
+						if (ImGui::Selectable(klass->GetName().c_str()))
+						{
+							firstComponent.ClassID = id;
+							changed = true;
+						}
+					}
+
+					if (changed)
+					{
+						utils::UnifyMember(entities, &ScriptComponent::ClassID);
+					}
+#if 0
+					UI::ScopedColor headerHovered(ImGuiCol_HeaderHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Header, 2.0f));
+					UI::ScopedColor headerActive(ImGuiCol_HeaderActive, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Header, 1.5f));
 					const auto& scriptClasses = ScriptEngine::GetScriptClasses();
 					for (const auto& [id, klass] : scriptClasses)
 					{
@@ -1092,6 +1468,7 @@ namespace Shark {
 							utils::UnifyMember(entities, &ScriptComponent::ClassID);
 						}
 					}
+#endif
 
 					ImGui::EndPopup();
 				}
@@ -1113,7 +1490,7 @@ namespace Shark {
 					UI::DrawButton(klass->GetName(), UI::GetItemRect());
 				}
 
-				UI::EndControls();
+				UI::EndControlsGrid();
 			}
 
 
@@ -1124,7 +1501,7 @@ namespace Shark {
 			ImGui::Separator();
 			if (entities.size() > 1)
 			{
-				ImGui::Text("Multiselect and modifying script fields is not implemented");
+				ImGui::Text("Modifying field values is not supported when selecting more then 1 entity");
 				return;
 			}
 
@@ -1253,16 +1630,7 @@ namespace Shark {
 
 	}
 
-	void SceneHierarchyPanel::DestroyEntity(Entity entity)
-	{
-		SK_PROFILE_FUNCTION();
-		
-		if (entity.GetUUID() == m_Context->GetActiveCameraUUID())
-			m_Context->SetActiveCamera(UUID());
-
-		m_Context->DestroyEntity(entity);
-	}
-
+#if TODO
 	void SceneHierarchyPanel::UpdateMaterialEditor(std::span<Entity> selections)
 	{
 		m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
@@ -1270,131 +1638,203 @@ namespace Shark {
 		if (selections.empty())
 			return;
 
-		if (utils::AllHaveComponent<MeshComponent>(selections) && !utils::IsMixedValue(selections, &MeshComponent::Material))
-		{
-			Entity first = selections[0];
-			const auto& meshComponent = first.GetComponent<MeshComponent>();
-
-			AssetHandle materialHandle = meshComponent.Material;
-			if (!materialHandle && !utils::IsMixedValue(selections, &MeshComponent::Mesh))
+			if (utils::AllHaveComponent<MeshComponent>(selections) && !utils::IsMixedValue(selections, &MeshComponent::Material))
 			{
-				AsyncLoadResult meshResult = AssetManager::GetAssetAsync<Mesh>(meshComponent.Mesh);
-				if (meshResult.Ready)
+				Entity first = selections[0];
+				const auto& meshComponent = first.GetComponent<MeshComponent>();
+
+				AssetHandle materialHandle = meshComponent.Material;
+				if (!materialHandle && !utils::IsMixedValue(selections, &MeshComponent::Mesh))
 				{
-					AsyncLoadResult meshSourceResult = AssetManager::GetAssetAsync<MeshSource>(meshResult.Asset->GetMeshSource());
-					if (meshSourceResult.Ready)
+					AsyncLoadResult meshResult = AssetManager::GetAssetAsync<Mesh>(meshComponent.Mesh);
+					if (meshResult.Ready)
 					{
-						Ref<MeshSource> meshSource = meshSourceResult.Asset;
-						const auto& submesh = meshSource->GetSubmeshes()[meshComponent.SubmeshIndex];
-						materialHandle = meshSource->GetMaterials()[submesh.MaterialIndex];
+						AsyncLoadResult meshSourceResult = AssetManager::GetAssetAsync<MeshSource>(meshResult.Asset->GetMeshSource());
+						if (meshSourceResult.Ready)
+						{
+							Ref<MeshSource> meshSource = meshSourceResult.Asset;
+							const auto& submesh = meshSource->GetSubmeshes()[meshComponent.SubmeshIndex];
+							materialHandle = meshSource->GetMaterials()[submesh.MaterialIndex];
+						}
 					}
 				}
+				m_MaterialEditor->SetMaterial(materialHandle);
 			}
-			m_MaterialEditor->SetMaterial(materialHandle);
-		}
 	}
 
-	void SceneHierarchyPanel::DrawAddEntityPopup()
+#endif
+
+	bool SceneHierarchyPanel::SearchTagRecursive(Entity entity, const UI::TextFilter& filter, uint32_t maxSearchDepth, uint32_t currentDepth)
 	{
-		if (ImGui::BeginPopupContextWindow("Add Entity Popup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("SceneHierarchyPanel::SearchTagRecursive");
+
+		if (!filter)
+			return false;
+
+		if (currentDepth >= maxSearchDepth)
+			return false;
+
+		for (auto childID : entity.Children())
 		{
-			if (ImGui::BeginMenu("Create"))
-			{
-				if (ImGui::MenuItem("Entity"))
-				{
-					Entity e = m_Context->CreateEntity("Entity");
-					SelectionManager::Clear(SelectionContext::Entity);
-					SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
-				}
-				if (ImGui::MenuItem("Camera"))
-				{
-					Entity e = m_Context->CreateEntity("Camera");
-					e.AddComponent<CameraComponent>();
+			Entity child = m_Context->TryGetEntityByUUID(childID);
+			if (filter.PassesFilter(child.GetName()))
+				return true;
 
-					SelectionManager::Clear(SelectionContext::Entity);
-					SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
-
-					if (m_SnapToEditorCameraCallback)
-						m_SnapToEditorCameraCallback(e);
-				}
-				if (ImGui::BeginMenu("Geometry"))
-				{
-					if (ImGui::MenuItem("Quad"))
-					{
-						Entity e = m_Context->CreateEntity("Quad");
-						e.AddComponent<SpriteRendererComponent>();
-
-						SelectionManager::Clear(SelectionContext::Entity);
-						SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
-					}
-					if (ImGui::MenuItem("Circle"))
-					{
-						Entity e = m_Context->CreateEntity("Circle");
-						e.AddComponent<CircleRendererComponent>();
-
-						SelectionManager::Clear(SelectionContext::Entity);
-						SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
-					}
-					ImGui::EndMenu();
-				}
-				if (ImGui::BeginMenu("Physics2D"))
-				{
-					if (ImGui::BeginMenu("Collider"))
-					{
-						if (ImGui::MenuItem("Box"))
-						{
-							Entity e = m_Context->CreateEntity("Box Collider");
-							e.AddComponent<SpriteRendererComponent>();
-							e.AddComponent<BoxCollider2DComponent>();
-
-							SelectionManager::Clear(SelectionContext::Entity);
-							SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
-						}
-						if (ImGui::MenuItem("Circle"))
-						{
-							Entity e = m_Context->CreateEntity("Circle Collider");
-							e.AddComponent<CircleRendererComponent>();
-							e.AddComponent<CircleCollider2DComponent>();
-
-							SelectionManager::Clear(SelectionContext::Entity);
-							SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
-						}
-						ImGui::EndMenu();
-					}
-					if (ImGui::BeginMenu("RigidBody"))
-					{
-						if (ImGui::MenuItem("Box"))
-						{
-							Entity e = m_Context->CreateEntity("Box RigidBody");
-							e.AddComponent<SpriteRendererComponent>();
-							auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
-							rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
-							auto& boxCollider = e.AddComponent<BoxCollider2DComponent>();
-							boxCollider.Density = 1.0f;
-
-							SelectionManager::Clear(SelectionContext::Entity);
-							SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
-						}
-						if (ImGui::MenuItem("Circle"))
-						{
-							Entity e = m_Context->CreateEntity("Circle RigidBody");
-							e.AddComponent<CircleRendererComponent>();
-							auto& rigidBody = e.AddComponent<RigidBody2DComponent>();
-							rigidBody.Type = RigidBody2DComponent::BodyType::Dynamic;
-							auto& circleCollider = e.AddComponent<CircleCollider2DComponent>();
-							circleCollider.Density = 1.0f;
-
-							SelectionManager::Clear(SelectionContext::Entity);
-							SelectionManager::Select(SelectionContext::Entity, e.GetUUID());
-						}
-						ImGui::EndMenu();
-					}
-					ImGui::EndMenu();
-				}
-				ImGui::EndMenu();
-			}
-			ImGui::EndPopup();
+			if (SearchTagRecursive(child, filter, maxSearchDepth, currentDepth + 1))
+				return true;
 		}
+		return false;
 	}
+
+	void SceneHierarchyPanel::DrawCreateEntityMenu(Entity parent)
+	{
+		if (!ImGui::BeginMenu("Create"))
+			return;
+
+		Entity newEntity;
+
+		if (ImGui::MenuItem("Empty Entity"))
+		{
+			newEntity = m_Context->CreateEntity("Entity");
+		}
+
+		if (ImGui::BeginMenu("Camera"))
+		{
+			if (ImGui::MenuItem("From View"))
+			{
+				newEntity = m_Context->CreateEntity("Camera");
+				newEntity.AddComponent<CameraComponent>();
+
+				if (m_SnapToEditorCameraCallback)
+					m_SnapToEditorCameraCallback(newEntity);
+			}
+
+			if (ImGui::MenuItem("At world Origin"))
+			{
+				newEntity = m_Context->CreateEntity("Camera");
+				newEntity.AddComponent<CameraComponent>();
+			}
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::MenuItem("Text"))
+		{
+			newEntity = m_Context->CreateEntity("Text");
+			auto& textComp = newEntity.AddComponent<TextRendererComponent>();
+			// TODO(moro): default font
+		}
+
+		if (ImGui::MenuItem("Sprite"))
+		{
+			newEntity = m_Context->CreateEntity("Sprite");
+			newEntity.AddComponent<SpriteRendererComponent>();
+		}
+
+		if (ImGui::MenuItem("Circle"))
+		{
+			newEntity = m_Context->CreateEntity("Circle");
+			newEntity.AddComponent<CircleRendererComponent>();
+		}
+
+		if (ImGui::BeginMenu("3D"))
+		{
+			const auto createStaticMeshEntity = [this](const char* entityName, const char* sourceMeshName, const char* staticMeshName)
+			{
+				Entity entity = m_Context->CreateEntity(entityName);
+				const std::filesystem::path defaultSourcePath = "Meshes/Default/Source";
+				const std::filesystem::path defaultPath = "Meshes/Default";
+				AssetHandle meshHandle = Project::GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(defaultPath / staticMeshName);
+				if (meshHandle)
+				{
+					entity.AddComponent<StaticMeshComponent>(meshHandle);
+				}
+				else
+				{
+					if (FileSystem::Exists(Project::GetActiveAssetsDirectory() / defaultSourcePath / sourceMeshName))
+					{
+						AssetHandle sourceHandle = Project::GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(defaultSourcePath / sourceMeshName);
+						if (sourceHandle)
+						{
+							Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(defaultPath / staticMeshName, sourceHandle);
+							entity.AddComponent<StaticMeshComponent>(meshHandle);
+						}
+					}
+					else
+					{
+						SK_CONSOLE_WARN("Default mesh source {} not found!\nPlease import the default mesh source files to the following directory: {}", sourceMeshName, Project::GetActiveAssetsDirectory() / defaultSourcePath);
+					}
+				}
+				return entity;
+			};
+
+			if (ImGui::MenuItem("Cube"))
+			{
+				newEntity = createStaticMeshEntity("Cube", "Cube.skmesh", "Cube.gltf");
+			}
+			
+			if (ImGui::MenuItem("Sphere"))
+			{
+				newEntity = createStaticMeshEntity("Sphere", "Sphere.skmesh", "Sphere.gltf");
+			}
+			
+			if (ImGui::MenuItem("Capsule"))
+			{
+				newEntity = createStaticMeshEntity("Capsule", "Capsule.skmesh", "Capsule.gltf");
+			}
+			
+			if (ImGui::MenuItem("Cylinder"))
+			{
+				newEntity = createStaticMeshEntity("Cylinder", "Cylinder.skmesh", "Cylinder.gltf");
+			}
+			
+			if (ImGui::MenuItem("Torus"))
+			{
+				newEntity = createStaticMeshEntity("Torus", "Torus.skmesh", "Torus.gltf");
+			}
+			
+			if (ImGui::MenuItem("Plane"))
+			{
+				newEntity = createStaticMeshEntity("Plane", "Plane.skmesh", "Plane.gltf");
+			}
+			
+			if (ImGui::MenuItem("Cone"))
+			{
+				newEntity = createStaticMeshEntity("Cone", "Cone.skmesh", "Cone.gltf");
+			}
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::MenuItem("Directional Light"))
+		{
+			newEntity = m_Context->CreateEntity("Directional Light");
+			newEntity.AddComponent<DirectionalLightComponent>();
+		}
+
+		if (ImGui::MenuItem("Point Light"))
+		{
+			newEntity = m_Context->CreateEntity("Point Light");
+			newEntity.AddComponent<PointLightComponent>();
+		}
+
+		if (ImGui::MenuItem("Sky Light"))
+		{
+			newEntity = m_Context->CreateEntity("Sky Light");
+			newEntity.AddComponent<SkyComponent>();
+		}
+
+		if (newEntity)
+		{
+			if (parent)
+				newEntity.SetParent(parent);
+
+			SelectionManager::ClearAll();
+			SelectionManager::Select(SelectionContext::Entity, newEntity.GetUUID());
+		}
+
+		ImGui::EndMenu();
+	};
 
 }

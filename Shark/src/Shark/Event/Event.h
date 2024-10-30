@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include <magic_enum.hpp>
 
 namespace Shark {
 
@@ -10,48 +11,18 @@ namespace Shark {
 		WindowClose, WindowResize, WindowMaximized, WindowMinimized, WindowMove, WindowFocus, WindowLostFocus, WindowDrop,
 		MouseMoved, MouseButtonPressed, MouseButtonReleasd, MouseButtonDoubleClicked, MouseScrolled,
 		KeyPressed, KeyReleased, KeyCharacter,
-		ApplicationClosed
+		ApplicationClosed, AssetReloaded
 	};
 
-	inline std::string EventTypesToString(EventType eventType)
+	enum class EventCategory : uint16_t
 	{
-		switch (eventType)
-		{
-			case EventType::None:                      return "None";
-			case EventType::WindowClose:               return "WindowClose";
-			case EventType::WindowResize:		       return "WindowResize";
-			case EventType::WindowMaximized:		   return "WindowMaximized";
-			case EventType::WindowMinimized:		   return "WindowMinimized";
-			case EventType::WindowMove:		           return "WindowMove";
-			case EventType::WindowFocus:		       return "WindowFocus";
-			case EventType::WindowLostFocus:	       return "WindowLostFocus";
-			case EventType::WindowDrop:	               return "WindowDrop";
-			case EventType::MouseMoved:			       return "MouseMoved";
-			case EventType::MouseButtonPressed:        return "MouseButtonPressed";
-			case EventType::MouseButtonReleasd:        return "MouseButtonReleasd";
-			case EventType::MouseButtonDoubleClicked:  return "MouseButtonDoubleClicked";
-			case EventType::MouseScrolled:		       return "MouseScrolled";
-			case EventType::KeyPressed:		           return "KeyPressed";
-			case EventType::KeyReleased:		       return "KeyReleased";
-			case EventType::KeyCharacter:		       return "KeyCharacter";
-			case EventType::ApplicationClosed:	       return "ApplicationClosed";
-		}
-		SK_CORE_ASSERT(false, "Unkown Event Type");
-		return "Unkown";
-	}
-
-	namespace EventCategory {
-		enum Type : uint16_t
-		{
-			None         = 0,
-			Window       = BIT(0),
-			Input        = BIT(1),
-			Mouse        = BIT(2),
-			Keyboard     = BIT(3),
-			Application  = BIT(4)
-		};
-		using Flags = uint16_t;
-	}
+		None         = 0,
+		Window       = BIT(0),
+		Input        = BIT(1),
+		Mouse        = BIT(2),
+		Keyboard     = BIT(3),
+		Application  = BIT(4)
+	};
 
 	class Event
 	{
@@ -61,8 +32,8 @@ namespace Shark {
 		virtual EventType GetEventType() const = 0;
 		virtual std::string GetName() const = 0;
 		virtual std::string ToString() const { return GetName(); }
-		virtual EventCategory::Flags GetEventCategoryFlags() const = 0;
-		bool IsInCategory(EventCategory::Flags category) const { return (GetEventCategoryFlags() & category) == category; }
+		virtual EventCategory GetEventCategoryFlags() const = 0;
+		bool IsInCategory(EventCategory category) const { return (GetEventCategoryFlags() & category) == category; }
 
 		template<typename TEvent>
 		TEvent& As()
@@ -75,16 +46,16 @@ namespace Shark {
 		bool Handled = false;
 	};
 
-	template<EventType Type, EventCategory::Flags Category>
+	template<EventType Type, EventCategory Category>
 	class EventBase : public Event
 	{
 	public:
 		static constexpr EventType GetStaticType() { return Type; }
 		virtual EventType GetEventType() const override { return GetStaticType(); }
-		virtual std::string GetName() const override { return EventTypesToString(Type); }
+		virtual std::string GetName() const override { return fmt::to_string(Type); }
 
-		static constexpr EventCategory::Flags GetStaticEventCategoryFlags() { return Category; }
-		virtual EventCategory::Flags GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
+		static constexpr EventCategory GetStaticEventCategoryFlags() { return Category; }
+		virtual EventCategory GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
 	};
 
 	class EventDispacher
@@ -124,4 +95,9 @@ struct fmt::formatter<TEvent, char, std::enable_if_t<std::is_same_v<TEvent, Shar
 	{
 		return fmt::format_to(ctx.out(), "{0}", event.ToString());
 	}
+};
+
+template <>
+struct ::magic_enum::customize::enum_range<Shark::EventCategory> {
+	static constexpr bool is_flags = true;
 };

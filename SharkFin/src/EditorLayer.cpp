@@ -2,27 +2,23 @@
 #include "EditorLayer.h"
 
 #include "Shark/Core/Project.h"
-#include "Shark/Core/Memory.h"
 #include "Shark/Core/SelectionManager.h"
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Asset/AssetUtils.h"
 #include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Scripting/ScriptGlue.h"
 
 #include "Shark/Serialization/ProjectSerializer.h"
-#include "Shark/Serialization/Import/AssimpMeshImporter.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/PlatformUtils.h"
 
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Controls.h"
 #include "Shark/UI/EditorResources.h"
-#include "Shark/ImGui/ImGuiHelpers.h"
 
 #include "EditorSettings.h"
 
-#include "Panel.h"
 #include "Panels/EditorConsolePanel.h"
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
@@ -40,12 +36,6 @@
 #include "Panels/IconSelector.h"
 
 #include "Shark/Debug/Profiler.h"
-#include "Shark/Debug/enttDebug.h"
-
-#include <fmt/printf.h>
-
-#include <misc/cpp/imgui_stdlib.h>
-#include "Shark/Serialization/Import/TextureImporter.h"
 
 #define SCENE_HIERARCHY_PANEL_ID "SceneHierarchyPanel"
 #define CONTENT_BROWSER_PANEL_ID "ContentBrowserPanel"
@@ -61,6 +51,7 @@
 #define STATISTICS_PANEL_ID "StatisticsPanel"
 #define ECS_DEBUG_PANEL_ID "ECSDebugPanel"
 #define ICONS_SELECTOR_PANEL_ID "IconsSelectorPanel"
+#define MATERIAL_PANEL_ID "MaterialPanel"
 
 namespace Shark {
 
@@ -148,13 +139,14 @@ namespace Shark {
 		m_PanelManager->AddPanel<StatisticsPanel>(PanelCategory::View, STATISTICS_PANEL_ID, "Statistics", false);
 		m_PanelManager->AddPanel<ECSDebugPanel>(PanelCategory::View, ECS_DEBUG_PANEL_ID, "ECS Debug", false, nullptr);
 		m_PanelManager->AddPanel<IconSelector>(PanelCategory::Edit, ICONS_SELECTOR_PANEL_ID, "Icons Selector", false);
+		m_PanelManager->AddPanel<MaterialPanel>(PanelCategory::Edit, MATERIAL_PANEL_ID, "Materials", true);
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
 		m_PanelManager->Get<SceneRendererPanel>(SCENE_RENDERER_PANEL_ID)->SetRenderer(m_SceneRenderer);
 
 		Renderer2DSpecifications debugRendererSpec;
 		debugRendererSpec.UseDepthTesting = true;
-		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetExternalCompositePass(), debugRendererSpec);
+		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetTargetFramebuffer(), debugRendererSpec);
 
 		// Readable image for Mouse Picking
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
@@ -280,37 +272,24 @@ namespace Shark {
 
 		// Disable hot keys when the scene state is not Edit
 		if (m_SceneState != SceneState::Edit)
-		{
-			if (event.GetKeyCode() == KeyCode::Escape)
-			{
-				Input::SetCursorMode(CursorMode::Normal);
-				// NOTE(moro): don't think escape should be marked as handled here
-				return false;
-			}
-
-			if (event.GetKeyCode() == KeyCode::F && SelectionManager::AnySelected(SelectionContext::Entity))
-			{
-				glm::vec3 center = utils::GetCenterOfSelections(m_ActiveScene, SelectionManager::GetSelections(SelectionContext::Entity));
-				m_EditorCamera.SetFocusPoint(center);
-				m_EditorCamera.SetDistance(7.5f);
-				return true;
-			}
-
 			return false;
-		}
 
 		if (event.IsRepeat())
 			return false;
 
-		const bool control = event.GetModifierKeys().Control;
-		const bool shift = event.GetModifierKeys().Shift;
-		const bool alt = event.GetModifierKeys().Alt;
+		const auto& modifiers = event.GetModifierKeys();
 
 		switch (event.GetKeyCode())
 		{
 			case KeyCode::Escape:
 			{
 				Input::SetCursorMode(CursorMode::Normal);
+
+#if TODO
+				if (m_ViewportFocused)
+					SelectionManager::Clear(SelectionContext::Entity);
+#endif
+
 				// NOTE(moro): don't think escape should be marked as handled here
 				break;
 			}
@@ -318,7 +297,7 @@ namespace Shark {
 			// New Scene
 			case KeyCode::N:
 			{
-				if (control)
+				if (modifiers.Control)
 				{
 					NewScene();
 					return true;
@@ -329,9 +308,9 @@ namespace Shark {
 			// Save Scene
 			case KeyCode::S:
 			{
-				if (control)
+				if (modifiers.Control)
 				{
-					if (shift)
+					if (modifiers.Shift)
 					{
 						SaveSceneAs();
 						return true;
@@ -345,7 +324,10 @@ namespace Shark {
 			// Copy Entity
 			case KeyCode::D:
 			{
-				if (control && SelectionManager::AnySelected(SelectionContext::Entity) && m_SceneState == SceneState::Edit)
+				if (!m_ViewportFocused)
+					break;
+
+				if (modifiers.Control && SelectionManager::AnySelected(SelectionContext::Entity) && m_SceneState == SceneState::Edit)
 				{
 					auto selections = SelectionManager::GetSelections(SelectionContext::Entity);
 					SelectionManager::Clear(SelectionContext::Entity);
@@ -364,6 +346,9 @@ namespace Shark {
 			// Focus Selected Entity
 			case KeyCode::F:
 			{
+				if (!m_ViewportFocused)
+					break;
+
 				if (SelectionManager::AnySelected(SelectionContext::Entity))
 				{
 					glm::vec3 center = utils::GetCenterOfSelections(m_ActiveScene, SelectionManager::GetSelections(SelectionContext::Entity));
@@ -377,7 +362,10 @@ namespace Shark {
 
 			case KeyCode::Delete:
 			{
-				if (m_ViewportFocused && SelectionManager::AnySelected(SelectionContext::Entity))
+				if (!m_ViewportFocused)
+					break;
+
+				if (SelectionManager::AnySelected(SelectionContext::Entity))
 				{
 					for (UUID entityID : SelectionManager::GetSelections(SelectionContext::Entity))
 					{
@@ -524,7 +512,6 @@ namespace Shark {
 		UI_ToolBar();
 
 		UI_EditorCamera();
-		UI_LogSettings();
 		UI_OpenProjectModal();
 		UI_ImportAsset();
 		UI_CreateMeshAsset();
@@ -623,8 +610,8 @@ namespace Shark {
 
 		const float buttonWidth = 14.0f;
 		const float buttonHeight = 14.0f;
-		const ImU32 buttonColN = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 0.9f);
-		const ImU32 buttonColH = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::Text, 1.2f);
+		const ImU32 buttonColN = UI::Colors::WithMultipliedValue(UI::Colors::Theme::Text, 0.9f);
+		const ImU32 buttonColH = UI::Colors::WithMultipliedValue(UI::Colors::Theme::Text, 1.2f);
 		const ImU32 buttonColP = UI::Colors::Theme::TextDarker;
 
 		ImGui::Spring();
@@ -780,10 +767,6 @@ namespace Shark {
 
 		if (ImGui::BeginMenu("View"))
 		{
-			ImGui::Separator();
-			ImGui::MenuItem("Log Settings", nullptr, &m_ShowLogSettings);
-			ImGui::Separator();
-
 			auto& app = Application::Get();
 			if (ImGui::MenuItem("Fullscreen", nullptr, app.GetWindow().IsFullscreen()))
 			{
@@ -820,6 +803,110 @@ namespace Shark {
 		{
 			ImGui::MenuItem("Editor Camera", nullptr, &m_ShowEditorCameraControlls);
 			ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ShowDemoWindow);
+
+			if (ImGui::MenuItem("Rebuild all mesh entity hierarchies"))
+			{
+				auto entities = m_WorkScene->GetAllEntitysWith<MeshComponent>();
+				for (auto ent : entities)
+				{
+					Entity entity{ ent, m_WorkScene };
+					m_WorkScene->RebuildMeshEntityHierarchy(entity);
+				}
+			}
+
+			if (ImGui::MenuItem("Load all assets"))
+			{
+				AssetRegistry& reg = Project::GetActiveEditorAssetManager()->GetAssetRegistry();
+
+				AssetHandle lastHandle;
+				for (const auto& [handle, metadata] : reg)
+				{
+					if (metadata.Status != AssetStatus::Unloaded)
+						continue;
+
+					AssetManager::GetAssetAsync(handle);
+					lastHandle = handle;
+				}
+
+				auto future = AssetManager::GetAssetFuture(lastHandle);
+				future.OnReady([](...)
+				{
+					SK_CONSOLE_INFO("Finished loading all Assets");
+				});
+			}
+
+			if (ImGui::BeginMenu("Invalid Asset Handles"))
+			{
+				static const char* s_InvalidSceneMetadataFilepath = "{5CD97036-DB54-4709-9649-5263680CB27D}InvalidScene.skscene";
+
+				ImGui::Text("Scene");
+				if (ImGui::Button("Add Metadata"))
+				{
+					auto assetManager = Project::GetActiveEditorAssetManager();
+					AssetRegistry& registry = assetManager->GetAssetRegistry();
+
+					AssetHandle handle = registry.TryFind(s_InvalidSceneMetadataFilepath);
+					if (!handle)
+					{
+						handle = 1;
+						while (registry.Contains(handle))
+							handle = handle + 1;
+
+						SK_CORE_VERIFY(registry.Contains(handle) ? (registry.Read(handle).FilePath == s_InvalidSceneMetadataFilepath) : true);
+
+						AssetMetaData invalidMetadata;
+						invalidMetadata.Handle = handle;
+						invalidMetadata.Type = AssetType::Scene;
+						invalidMetadata.FilePath = s_InvalidSceneMetadataFilepath;
+						registry.Add(invalidMetadata);
+						SK_CONSOLE_DEBUG("Created invalid metadata.\nType: Scene\nHandle: {}\nFilepath: {}", handle, s_InvalidSceneMetadataFilepath);
+					}
+				}
+
+				if (ImGui::Button("Remove Metadata"))
+				{
+					auto assetManager = Project::GetActiveEditorAssetManager();
+					AssetRegistry& registry = assetManager->GetAssetRegistry();
+
+					AssetHandle handle = registry.TryFind(s_InvalidSceneMetadataFilepath);
+					if (handle)
+					{
+						registry.Remove(handle);
+						SK_CONSOLE_DEBUG("Removed invalid metadata.\nType: Scene\nHandle: {}\nFilepath: {}", handle, s_InvalidSceneMetadataFilepath);
+					}
+				}
+
+				ImGui::Button("Asset");
+				if (ImGui::BeginDragDropSource())
+				{
+					auto assetManager = Project::GetActiveEditorAssetManager();
+					AssetRegistry& registry = assetManager->GetAssetRegistry();
+
+					AssetHandle handle = registry.TryFind(s_InvalidSceneMetadataFilepath);
+					if (!handle)
+						handle = 1;
+
+					ImGui::SetDragDropPayload("Asset", &handle, sizeof(AssetHandle));
+					ImGui::EndDragDropSource();
+
+				}
+
+				ImGui::Separator();
+
+				ImGui::Button("Scene Memory");
+				if (ImGui::BeginDragDropSource())
+				{
+					static AssetHandle memoryAssetHandle;
+					if (!memoryAssetHandle)
+						memoryAssetHandle = AssetManager::CreateMemoryOnlyAsset<Scene>();
+
+					ImGui::SetDragDropPayload("Asset", &memoryAssetHandle, sizeof(AssetHandle));
+					ImGui::EndDragDropSource();
+				}
+
+				ImGui::EndMenu();
+			}
+
 			ImGui::EndMenu();
 		}
 
@@ -954,8 +1041,7 @@ namespace Shark {
 		{
 			if (ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls))
 			{
-				ImGuiID controlsID = UI::GenerateID();
-				UI::BeginControls(controlsID);
+				UI::BeginControlsGrid();
 
 				//UI::DragFloat("Position", m_EditorCamera.GetPosition());
 
@@ -983,9 +1069,13 @@ namespace Shark {
 				if (UI::Control("Far", farClip))
 					m_EditorCamera.SetFarClip(farClip);
 
-				UI::EndControls();
-				ImGui::Separator();
-				UI::BeginControls(controlsID);
+				ImGui::TableNextRow();
+				for (int i = 0; i < ImGui::TableGetColumnCount(); i++)
+				{
+					ImGui::TableSetColumnIndex(i);
+					ImGui::Separator();
+				}
+				ImGui::TableNextRow();
 
 				float flySpeed = m_EditorCamera.GetFlySpeed();
 				if (UI::Control("Movement Speed", flySpeed))
@@ -1003,7 +1093,7 @@ namespace Shark {
 				if (UI::Control("FOV", fov))
 					m_EditorCamera.SetFOV(fov);
 
-				UI::EndControls();
+				UI::EndControlsGrid();
 
 				if (ImGui::Button("Reset"))
 				{
@@ -1013,7 +1103,6 @@ namespace Shark {
 					m_EditorCamera.SetDistance(10.0f);
 				}
 
-				UI::EndControls();
 			}
 			ImGui::End();
 		}
@@ -1241,29 +1330,6 @@ namespace Shark {
 		return true;
 	}
 
-	void EditorLayer::UI_LogSettings()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!m_ShowLogSettings)
-			return;
-
-		if (ImGui::Begin("Log", &m_ShowLogSettings))
-		{
-			auto& tags = Log::GetTags();
-			ImGui::Separator();
-			for (auto& [tag, level] : tags)
-			{
-				UI::BeginControlsGrid();
-				UI::Property("Tag", tag);
-				UI::ControlCombo("Level", (uint16_t&)level, LogLevelStrings, (uint16_t)std::size(LogLevelStrings));
-				UI::EndControls();
-				ImGui::Separator();
-			}
-		}
-		ImGui::End();
-	}
-
 	void EditorLayer::UI_OpenProjectModal()
 	{
 		SK_PROFILE_FUNCTION();
@@ -1333,14 +1399,16 @@ namespace Shark {
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("...").x + style.FramePadding.x * 2.0f - style.ItemSpacing.x);
 
 			bool invalidInput;
-			if (UI::InputPath("##destPath", buffer, MAX_PATH, invalidInput))
+			if (UI::InputText("##destPath", buffer, MAX_PATH, ImGuiInputTextFlags_CallbackCharFilter, UI_INPUT_TEXT_FILTER(":*?\"<>|")))
 				m_ImportAssetData.DestinationPath = buffer;
 
+#if TODO
 			if (invalidInput)
 			{
 				m_ImportAssetData.Error = "File paths aren't allowed to containe any of the folloing character!\n:*?\"<>|";
 				m_ImportAssetData.ShowError = true;
 			}
+#endif
 
 			ImGui::SameLine();
 			if (ImGui::Button("..."))
@@ -1489,12 +1557,12 @@ namespace Shark {
 			ImGui::Text("Full path: %s", fullPath.c_str());
 
 			ImGui::SetNextItemWidth(-1.0f);
-			ImGui::InputTextWithHint("##Name", "Project Name", &m_CreateProjectModal.Name);
+			UI::InputTextWithHint("##Name", "Project Name", &m_CreateProjectModal.Name);
 
 			const ImGuiStyle& style = ImGui::GetStyle();
 			ImVec2 offsetSize = ImGui::CalcTextSize("...") + style.FramePadding * 2.0f;
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - offsetSize.x - ImGui::GetStyle().ItemSpacing.x);
-			ImGui::InputTextWithHint("##Location", "Project Location", &m_CreateProjectModal.Location);
+			UI::InputTextWithHint("##Location", "Project Location", &m_CreateProjectModal.Location);
 			ImGui::SameLine();
 			if (ImGui::Button("..."))
 			{
@@ -1591,7 +1659,7 @@ namespace Shark {
 			for (UUID entityID : SelectionManager::GetSelections(SelectionContext::Entity))
 			{
 				Entity entity = m_ActiveScene->TryGetEntityByUUID(entityID);
-				if (entity.AllOf<PointLightComponent>())
+				if (entity.HasComponent<PointLightComponent>())
 				{
 					const auto& plc = entity.GetComponent<PointLightComponent>();
 
@@ -1954,7 +2022,7 @@ namespace Shark {
 			sceneName = m_ActiveScene->GetName();
 		}
 
-		std::string title = fmt::format("{} ({}) - SharkFin - {} {} ({}) - {}", sceneFilePath, sceneName, Platform::GetPlatformName(), Platform::GetArchitecture(), Platform::GetConfiguration(), ToStringView(RendererAPI::GetCurrentAPI()));
+		std::string title = fmt::format("{} ({}) - SharkFin - {} {} ({}) - {}", sceneFilePath, sceneName, Platform::GetPlatformName(), Platform::GetArchitecture(), Platform::GetConfiguration(), RendererAPI::GetCurrentAPI());
 		Application::Get().GetWindow().SetTitle(title);
 	}
 

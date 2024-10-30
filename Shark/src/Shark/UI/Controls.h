@@ -1,5 +1,9 @@
 #pragma once
 
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Theme.h"
+#include "Shark/UI/UIUtilities.h"
+#include "Shark/UI/ImGui/ImGuiHelpers.h"
 #include <imgui.h>
 
 namespace Shark {
@@ -12,26 +16,19 @@ namespace Shark {
 
 namespace Shark::UI {
 
-	bool BeginControls();
-	bool BeginControlsGrid();
-	bool BeginControls(ImGuiID syncID);
-	bool BeginControlsGrid(ImGuiID syncID);
-	void EndControls();
-	void EndControlsGrid();
-
-	void ControlSetupColumns(std::string_view label, ImGuiTableColumnFlags flags = 0, float init_width_or_weight = 0.0f);
-
 	bool ControlHelperBegin(ImGuiID id);
-	bool ControlHelperBegin(std::string_view strID);
 	void ControlHelperEnd();
-	void ControlHelperDrawLabel(std::string_view label);
 
-	float ControlContentRegionWidth();
+	bool ControlHeader(std::string_view label, bool openByDefault = true, bool spanColumns = false);
+
+	bool Control(std::string_view label, bool& val);
 
 	bool Control(std::string_view label, float& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
 	bool Control(std::string_view label, double& val, float speed = 0.05f, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
+
 	bool ControlSlider(std::string_view label, float& val, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
-	bool ControlSlider(std::string_view label, double& val, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
+	bool ControlSlider(std::string_view label, int32_t& val, int32_t min = 0.0f, int32_t max = 0.0f, const char* fmt = nullptr);
+	bool ControlSlider(std::string_view label, uint32_t& val, uint32_t min = 0.0f, uint32_t max = 0.0f, const char* fmt = nullptr);
 
 	bool Control(std::string_view label, int8_t& val, float speed = 0.05f, int8_t min = 0, int8_t max = 0, const char* fmt = nullptr);
 	bool Control(std::string_view label, int16_t& val, float speed = 0.05f, int16_t min = 0, int16_t max = 0, const char* fmt = nullptr);
@@ -57,75 +54,90 @@ namespace Shark::UI {
 
 	bool Control(std::string_view label, glm::mat4& matrix, float speed = 0.05f, float min = 0, float max = 0, const char* fmt = nullptr);
 
+	bool Control(std::string_view label, char* buffer, uint64_t bufferSize);
+	bool Control(std::string_view label, const char* buffer, uint64_t bufferSize);
+	bool Control(std::string_view label, std::string& val);
+	bool Control(std::string_view label, const std::string& val);
+
 	bool ControlColor(std::string_view label, glm::vec3& color);
 	bool ControlColor(std::string_view label, glm::vec4& color);
 
-	bool Control(std::string_view label, bool& val);
-	bool ControlFlags(std::string_view label, int16_t& val, int16_t flag);
-	bool ControlFlags(std::string_view label, uint16_t& val, uint16_t flag);
-	bool ControlFlags(std::string_view label, int32_t& val, int32_t flag);
-	bool ControlFlags(std::string_view label, uint32_t& val, uint32_t flag);
-
-	bool ControlCombo(std::string_view label, uint32_t& index, const std::string_view items[], uint32_t itemsCount);
-	bool ControlCombo(std::string_view label, uint16_t& index, const std::string_view items[], uint32_t itemsCount);
-	bool ControlCombo(std::string_view label, int& index, const std::string_view items[], uint32_t itemsCount);
 	bool ControlCombo(std::string_view label, bool& value, const std::string_view falseValue, const std::string_view trueValue);
+
+	template<typename TEnum>
+		requires std::is_enum_v<TEnum>
+	bool ControlCombo(std::string_view label, TEnum& selected)
+	{
+		if (!ControlHelperBegin(ImGui::GetID(label)))
+			return false;
+
+		ImGui::Text(label);
+		ImGui::TableNextColumn();
+
+		auto preview = magic_enum::enum_name(selected);
+		bool modified = false;
+
+		ImGui::SetNextItemWidth(-1.0f);
+		if (UI::BeginCombo(UI::GenerateID(), preview.data()))
+		{
+			constexpr auto options = magic_enum::enum_entries<TEnum>();
+			for (auto option : options)
+			{
+				const bool isSelected = option.first == selected;
+				if (ImGui::Selectable(option.second.data(), isSelected))
+				{
+					selected = option.first;
+					modified = true;
+				}
+
+				if (isSelected)
+					ImGui::SetItemDefaultFocus();
+			}
+			UI::EndCombo();
+		}
+
+		ControlHelperEnd();
+		return modified;
+	}
 
 	template<typename TFunc>
 	bool ControlCombo(std::string_view label, std::string_view preview, const TFunc& func);
 
-	bool Control(std::string_view label, char* buffer, uint64_t bufferSize);
-	bool Control(std::string_view label, std::string& val);
-	bool Control(std::string_view label, std::filesystem::path& path);
-	bool Control(std::string_view label, UUID& uuid);
-
 	bool ControlAssetUnsave(std::string_view label, AssetHandle& assetHandle, const char* dragDropType = "Asset");
-	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const char* dragDropType = "Asset");
+	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle);
+	bool ControlAsset(std::string_view label, std::string_view name, AssetType assetType, AssetHandle& assetHandle);
 
-	template<typename TAsset>
-	bool ControlAsset(std::string_view label, Ref<TAsset>& asset, const char* dragDropType = "Asset");
+	struct AssetControlSettings
+	{
+		std::string_view DisplayName;
+		ImU32 TextColor = Colors::Theme::Text;
+		const char* DropType = "Asset";
+		// TODO(moro): add preview image when hovering
+	};
+	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlSettings& settings);
+
 	bool ControlEntity(std::string_view label, UUID& entityID, const char* dragDropType = "Entity");
 
-	bool ControlDragDrop(std::string_view label, std::string& val, const char* dragDropType);
-	bool ControlDragDrop(std::string_view label, std::filesystem::path& val, const char* dragDropType);
-
 	template<typename TFunc>
-	void ControlCustom(std::string_view label, const TFunc& func);
-
-	void Property(std::string_view label, const char* text);
-	void Property(std::string_view label, std::string_view text);
-	void Property(std::string_view label, const std::string& text);
-	void Property(std::string_view label, const std::filesystem::path& path);
-
-	void Property(std::string_view label, const UUID& uuid);
-	void Property(std::string_view label, float value);
-	void Property(std::string_view label, int value);
-	void Property(std::string_view label, uint32_t value);
-	void Property(std::string_view label, uint64_t value);
-	void Property(std::string_view label, bool value);
-
-	void Property(std::string_view label, const glm::vec2& value);
-	void Property(std::string_view label, const glm::mat4& matrix);
-	void Property(std::string_view label, TimeStep timestep);
-
-	void PropertyColor(std::string_view label, const glm::vec4& color);
+	auto ControlCustom(std::string_view label, const TFunc& func) -> std::invoke_result_t<TFunc>;
 
 }
 
 template<typename TFunc>
 bool Shark::UI::ControlCombo(std::string_view label, std::string_view preview, const TFunc& func)
 {
-	if (!ControlHelperBegin(label))
+	if (!ControlHelperBegin(ImGui::GetID(label)))
 		return false;
 
-	ControlHelperDrawLabel(label);
+	ImGui::Text(label);
+	ImGui::TableNextColumn();
 
 	bool changed = false;
 	ImGui::SetNextItemWidth(-1.0f);
-	if (ImGui::BeginCombo("#combo", preview.data()))
+	if (UI::BeginCombo("#combo", preview.data()))
 	{
 		changed = func();
-		ImGui::EndCombo();
+		UI::EndCombo();
 	}
 
 	ControlHelperEnd();
@@ -133,16 +145,27 @@ bool Shark::UI::ControlCombo(std::string_view label, std::string_view preview, c
 }
 
 template<typename TFunc>
-void Shark::UI::ControlCustom(std::string_view label, const TFunc& func)
+auto Shark::UI::ControlCustom(std::string_view label, const TFunc& func) -> std::invoke_result_t<TFunc>
 {
-	if (!ControlHelperBegin(label))
-		return;
+	static_assert(std::is_same_v<void, std::invoke_result_t<TFunc>> || std::is_same_v<bool, std::invoke_result_t<TFunc>>);
+	if (!ControlHelperBegin(ImGui::GetID(label)))
+		return (std::invoke_result_t<TFunc>)false;
 
-	ControlHelperDrawLabel(label);
-	func();
+	ImGui::Text(label);
+	ImGui::TableNextColumn();
+
+	bool changed = false;
+	if constexpr (std::is_same_v<bool, std::invoke_result_t<TFunc>>)
+		changed = func();
+	else
+		func();
+
 	ControlHelperEnd();
+	if constexpr (std::is_same_v<bool, std::invoke_result_t<TFunc>>)
+		return changed;
 }
 
+#if 0
 template<typename TAsset>
 bool Shark::UI::ControlAsset(std::string_view label, Ref<TAsset>& asset, const char* dragDropType)
 {
@@ -164,3 +187,4 @@ bool Shark::UI::ControlAsset(std::string_view label, Ref<TAsset>& asset, const c
 	}
 	return false;
 }
+#endif

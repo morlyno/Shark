@@ -50,6 +50,12 @@ namespace Shark {
 		Write((const void*)data, size, offset);
 	}
 
+	void Buffer::Read(void* resultBuffer, uint64_t size, uint64_t offset)
+	{
+		SK_CORE_VERIFY(offset + size <= Size, "Out of range! ({0} + {1}) <= {2}", size, offset, Size);
+		memcpy(resultBuffer, Data + offset, size);
+	}
+
 	Buffer Buffer::SubBuffer(uint32_t offset, uint32_t size)
 	{
 		SK_CORE_ASSERT((offset + size) <= Size);

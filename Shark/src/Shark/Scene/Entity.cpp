@@ -5,93 +5,103 @@
 
 namespace Shark {
 
-	Entity::Entity(uint32_t entityhandle, Weak<Scene> scene)
-		: m_EntityHandle((entt::entity)entityhandle), m_Scene(scene)
-	{
-	}
-
 	Entity::Entity(entt::entity entityhandle, Weak<Scene> scene)
 		: m_EntityHandle(entityhandle), m_Scene(scene)
 	{
 	}
 
+	bool Entity::IsValid() const
+	{
+		return (m_EntityHandle != entt::null) && !m_Scene.Expired() && m_Scene.GetRef()->m_Registry.valid(m_EntityHandle);
+	}
+
+	Entity Entity::Parent() const
+	{
+		return m_Scene.GetRef()->TryGetEntityByUUID(ParentID());
+	}
+
+	UUID Entity::ParentID() const
+	{
+		return GetComponent<RelationshipComponent>().Parent;
+	}
+
+	std::vector<Shark::UUID>& Entity::Children()
+	{
+		return GetComponent<RelationshipComponent>().Children;
+	}
+
+	const std::vector<Shark::UUID>& Entity::Children() const
+	{
+		return GetComponent<RelationshipComponent>().Children;
+	}
+
+	bool Entity::HasParent() const
+	{
+		return ParentID() != UUID::Invalid;
+	}
+
+	bool Entity::HasChild(UUID childID) const
+	{
+		const auto& children = Children();
+		return std::ranges::find(children, childID) != children.end();
+	}
+
+	bool Entity::HasChildren() const
+	{
+		return !Children().empty();
+	}
+
 	void Entity::SetParent(Entity parent)
 	{
-		if (!parent || HasParent())
-			RemoveParent();
+		if (HasParent())
+		{
+			Parent().RemoveChild(*this);
+		}
+
+		if (!parent)
+			return;
 
 		GetComponent<RelationshipComponent>().Parent = parent.GetUUID();
-		RemoveComponent<Internal::RootParentComponent>();
-		parent.GetComponent<RelationshipComponent>().Children.emplace_back(GetUUID());
+		parent.Children().push_back(GetUUID());
+		//RemoveComponentIsExists<Internal::RootParentComponent>();
 	}
 
 	void Entity::AddChild(Entity child)
 	{
-		SK_CORE_ASSERT(!HasChild(child.GetUUID()));
-		if (HasChild(child.GetUUID()))
+		if (!child)
 			return;
 
-		GetComponent<RelationshipComponent>().Children.emplace_back(child.GetUUID());
-		child.GetComponent<RelationshipComponent>().Parent = GetUUID();
-		child.RemoveComponent<Internal::RootParentComponent>();
+		child.SetParent(*this);
+		Children().push_back(child.GetUUID());
 	}
 
-	void Entity::RemoveParent()
+	void Entity::RemoveChild(Entity child)
 	{
-		auto& relShip = GetComponent<RelationshipComponent>();
-		if (!relShip.Parent)
+		if (!child)
 			return;
 
-		RemoveTargetFromParent(*this);
-		relShip.Parent = UUID::Invalid;
-		AddComponent<Internal::RootParentComponent>();
+		std::erase(Children(), child.GetUUID());
+		child.GetComponent<RelationshipComponent>().Parent = UUID::Invalid;
+		//child.AddComponent<Internal::RootParentComponent>();
 	}
 
-	void Entity::RemoveChild(UUID childID)
+	bool Entity::IsAncestorOf(Entity entity) const
 	{
-		Entity childEntity = m_Scene.GetRef()->TryGetEntityByUUID(childID);
-		RemoveTargetFromParent(childEntity);
-		childEntity.GetComponent<RelationshipComponent>().Parent = UUID::Invalid;
-		childEntity.AddComponent<Internal::RootParentComponent>();
+		return entity.IsDescendantOf(*this);
 	}
 
-	void Entity::RemoveChildren()
+	bool Entity::IsDescendantOf(Entity entity) const
 	{
-		for (UUID childID : Children())
-		{
-			Entity child = m_Scene.GetRef()->TryGetEntityByUUID(childID);
-			child.GetComponent<RelationshipComponent>().Parent = UUID::Invalid;
-			child.AddComponent<Internal::RootParentComponent>();
-		}
-		Children().clear();
-	}
+		// this child of entity
 
-	bool Entity::HasChild(UUID childID)
-	{
-		auto& children = Children();
-		for (const auto& id : children)
-			if (id == childID)
-				return true;
-		return false;
-	}
+		Entity parent = Parent();
+		if (!parent)
+			return false;
 
-	void Entity::RemoveTargetFromParent(Entity target)
-	{
-		UUID targetID = target.GetUUID();
-		Entity parentEntity = target.m_Scene.GetRef()->TryGetEntityByUUID(target.ParentUUID());
+		if (parent == entity)
+			return true;
 
-		auto& children = parentEntity.Children();
-		for (size_t i = 0; i < children.size(); i++)
-		{
-			if (children[i] == targetID)
-			{
-				children.erase(children.begin() + i);
-				return;
-			}
-		}
-
-		SK_CORE_ERROR("Invalid Parent-Child Relationship");
-		SK_CORE_ASSERT(false, "Invalid Parent-Child Relationship");
+		return parent.IsDescendantOf(entity);
 	}
 
 }

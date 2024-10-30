@@ -22,51 +22,50 @@ namespace Shark {
 
 	}
 
-	ConsoleSink::ConsoleSink()
-		: m_MessageFormatter(std::make_unique<spdlog::pattern_formatter>()), m_TimeFormatter(std::make_unique<spdlog::pattern_formatter>())
+	ConsoleSink::ConsoleSink(uint32_t capacity)
+		: m_MessageBufferCapacity(capacity)
 	{
-		m_MessageFormatter = std::make_unique<spdlog::pattern_formatter>("%v", spdlog::pattern_time_type::local, std::string{});
-		m_TimeFormatter = std::make_unique<spdlog::pattern_formatter>("%T", spdlog::pattern_time_type::local, std::string{});
+		set_pattern("%v");
 	}
 
 	ConsoleSink::~ConsoleSink()
 	{
 	}
 
-	void ConsoleSink::log(const spdlog::details::log_msg& msg)
+	void ConsoleSink::sink_it_(const spdlog::details::log_msg& msg)
 	{
-		std::lock_guard lock(m_Mutex);
+		spdlog::memory_buf_t formatted;
+		formatter_->format(msg, formatted);
 
-		const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(msg.time.time_since_epoch());
-		if (seconds != m_LastFormatTime)
+		m_MessageBuffer.emplace_back(GetMessageLevel(msg.level), fmt::to_string(formatted), msg.time);
+
+		if (m_MessageBuffer.size() >= m_MessageBufferCapacity)
+			flush_();
+	}
+
+	void ConsoleSink::flush_()
+	{
+		for (auto& message : m_MessageBuffer)
+			m_PushMessageCallback(std::move(message));
+
+		m_MessageBuffer.clear();
+	}
+
+	Shark::LogLevel ConsoleSink::GetMessageLevel(spdlog::level::level_enum level) const
+	{
+		switch (level)
 		{
-			spdlog::memory_buf_t buffer;
-			m_TimeFormatter->format(msg, buffer);
-			m_CachedTime = fmt::to_string(buffer);
-			m_LastFormatTime = seconds;
+			case spdlog::level::trace: return LogLevel::Trace;
+			case spdlog::level::debug: return LogLevel::Debug;
+			case spdlog::level::info: return LogLevel::Info;
+			case spdlog::level::warn: return LogLevel::Warn;
+			case spdlog::level::err: return LogLevel::Error;
+			case spdlog::level::critical: return LogLevel::Critical;
+			case spdlog::level::off: return LogLevel::Off;
 		}
 
-		spdlog::memory_buf_t buffer;
-		m_MessageFormatter->format(msg, buffer);
-		
-		if (m_PushMessageCallback)
-			m_PushMessageCallback({ utils::spdlogLevelToLogLevel(msg.level), m_CachedTime, fmt::to_string(buffer) });
-	}
-
-	void ConsoleSink::flush()
-	{
-	}
-
-	void ConsoleSink::set_pattern(const std::string& pattern)
-	{
-		std::lock_guard lock(m_Mutex);
-		m_MessageFormatter = std::unique_ptr<spdlog::formatter>(sknew spdlog::pattern_formatter(pattern));
-	}
-
-	void ConsoleSink::set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter)
-	{
-		std::lock_guard lock(m_Mutex);
-		m_MessageFormatter = std::move(sink_formatter);
+		SK_CORE_VERIFY(false, "Unkown spdlog level");
+		return LogLevel::Off;
 	}
 
 }

@@ -38,7 +38,7 @@ namespace Shark {
 			return cameraEntity;
 		}
 
-		static Entity CreateDefaultCamera(Ref<Scene> scene, float cameraDistance = 2.75f)
+		static Entity CreateDefaultCamera(Ref<Scene> scene, float cameraDistance = 1.75f)
 		{
 			Entity entity = scene->CreateEntity("Camera");
 			entity.AddComponent<CameraComponent>();
@@ -47,6 +47,19 @@ namespace Shark {
 		}
 
 	}
+
+	void AssetThumbnailGenerator::OnRender(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
+	{
+		scene->OnRenderRuntime(renderer);
+	}
+
+	Ref<Image2D> AssetThumbnailGenerator::GetImage(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
+	{
+		return renderer->GetFinalPassImage();
+	}
+
+	//////////////////////////////////////////////////////////////////
+	///// Material
 
 	MaterialThumbnailGenerator::MaterialThumbnailGenerator()
 	{
@@ -62,11 +75,9 @@ namespace Shark {
 	void MaterialThumbnailGenerator::OnPrepare(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
 	{
 		m_Camera = utils::CreateDefaultCamera(scene);
-
 		m_Sphere = scene->CreateEntity("Sphere");
-		auto& meshComp = m_Sphere.AddComponent<MeshComponent>();
-		meshComp.Mesh = m_SphereMesh;
-		meshComp.Material = assetHandle;
+		const auto& meshComponent = m_Sphere.AddComponent<StaticMeshComponent>(m_SphereMesh);
+		meshComponent.MaterialTable->SetMaterial(0, assetHandle);
 
 		//m_Light = scene->CreateEntity("Light");
 		//m_Light.AddComponent<PointLightComponent>();
@@ -84,6 +95,9 @@ namespace Shark {
 		//scene->DestroyEntity(m_Light);
 		scene->DestroyEntity(m_DirectionalLight);
 	}
+
+	//////////////////////////////////////////////////////////////////
+	///// Mesh
 
 	MeshThumbnailGenerator::MeshThumbnailGenerator()
 	{
@@ -112,6 +126,9 @@ namespace Shark {
 		scene->DestroyEntity(m_Camera);
 		scene->DestroyEntity(m_DirectionalLight);
 	}
+
+	//////////////////////////////////////////////////////////////////
+	///// MaterialSource
 
 	MeshSourceThumbnailGenerator::MeshSourceThumbnailGenerator()
 	{
@@ -145,6 +162,9 @@ namespace Shark {
 		AssetManager::DeleteMemoryAsset(m_MeshHandle);
 	}
 
+	//////////////////////////////////////////////////////////////////
+	///// Scene
+
 	SceneThumbnailGenerator::SceneThumbnailGenerator()
 	{
 	}
@@ -156,22 +176,28 @@ namespace Shark {
 
 	void SceneThumbnailGenerator::OnPrepare(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
 	{
-		m_BackupScene = Ref<Scene>::Create();
-		scene->CopyTo(m_BackupScene);
+		Ref<Scene> assetScene = AssetManager::GetAsset<Scene>(assetHandle);
+		if (!assetScene->HasActiveCamera())
+			m_CameraEntity = utils::CreateDefaultCamera(assetScene);
+	}
 
-		Ref<Scene> thumbnailScene = AssetManager::GetAsset<Scene>(assetHandle);
-		thumbnailScene->SetViewportSize(scene->GetViewportWidth(), scene->GetViewportHeight());
-		thumbnailScene->CopyTo(scene);
-
-		Entity camera = scene->CreateEntity("Backup Camera");
-		camera.AddComponent<CameraComponent>();
+	void SceneThumbnailGenerator::OnRender(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
+	{
+		Ref<Scene> assetScene = AssetManager::GetAsset<Scene>(assetHandle);
+		assetScene->OnRenderRuntime(renderer);
 	}
 
 	void SceneThumbnailGenerator::OnFinish(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
 	{
-		m_BackupScene->CopyTo(scene);
-		m_BackupScene = nullptr;
+		if (m_CameraEntity)
+		{
+			Ref<Scene> assetScene = AssetManager::GetAsset<Scene>(assetHandle);
+			assetScene->DestroyEntity(m_CameraEntity);
+		}
 	}
+
+	//////////////////////////////////////////////////////////////////
+	///// Environment
 
 	EnvironmentThumbnailGenerator::EnvironmentThumbnailGenerator()
 	{
@@ -196,7 +222,8 @@ namespace Shark {
 		m_SkyEntity.AddComponent<SkyComponent>(assetHandle);
 
 		m_SphereEntity = scene->CreateEntity("Sphere");
-		m_SphereEntity.AddComponent<MeshComponent>(m_SphereHandle, m_MaterialHandle);
+		auto& smc = m_SphereEntity.AddComponent<StaticMeshComponent>(m_SphereHandle);
+		smc.MaterialTable->SetMaterial(0, m_MaterialHandle);
 
 		m_CameraEntity = utils::CreateDefaultCamera(scene);
 	}
@@ -206,6 +233,24 @@ namespace Shark {
 		scene->DestroyEntity(m_SkyEntity);
 		scene->DestroyEntity(m_SphereEntity);
 		scene->DestroyEntity(m_CameraEntity);
+	}
+
+	//////////////////////////////////////////////////////////////////
+	///// Texture
+
+	TextureThumbnailGenerator::TextureThumbnailGenerator()
+	{
+	}
+
+	TextureThumbnailGenerator::~TextureThumbnailGenerator()
+	{
+
+	}
+
+	Ref<Image2D> TextureThumbnailGenerator::GetImage(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
+	{
+		auto texture = AssetManager::GetAsset<Texture2D>(assetHandle);
+		return texture->GetImage();
 	}
 
 	ThumbnailGenerator::ThumbnailGenerator()
@@ -224,7 +269,7 @@ namespace Shark {
 		m_AssetThumbnailGenerators[AssetType::MeshSource] = Scope<MeshSourceThumbnailGenerator>::Create();
 		m_AssetThumbnailGenerators[AssetType::Scene] = Scope<SceneThumbnailGenerator>::Create();
 		m_AssetThumbnailGenerators[AssetType::Environment] = Scope<EnvironmentThumbnailGenerator>::Create();
-
+		m_AssetThumbnailGenerators[AssetType::Texture] = Scope<TextureThumbnailGenerator>::Create();
 
 		m_SkyLight = m_Scene->CreateEntity("SkyLight");
 		auto& skyLight = m_SkyLight.AddComponent<SkyComponent>();
@@ -234,57 +279,31 @@ namespace Shark {
 		skyLight.Intensity = 0.8f;
 		skyLight.Lod = AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1;
 
-		AssetHandle handle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
-		AssetManager::GetAssetFuture(handle, LoadDependencyPolicy::Immediate).OnReady([this](...) { m_Ready = true; });
-
 		m_CommandBuffer = RenderCommandBuffer::Create();
 	}
 
 	Ref<Image2D> ThumbnailGenerator::GenerateThumbnail(AssetHandle handle)
 	{
-		if (!m_Ready)
-			return nullptr;
-
 		if (!AssetManager::IsValidAssetHandle(handle))
 			return nullptr;
 
-		if (!AssetManager::DependenciesLoaded(handle, true))
-			return nullptr;
+		AssetType assetType = AssetManager::GetAssetType(handle);
 
-		AssetType assetType = Project::GetActiveEditorAssetManager()->GetAssetType(handle);
-		if (assetType == AssetType::Texture)
-		{
-			Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(handle);
+		auto& generator = m_AssetThumbnailGenerators.at(assetType);
+		generator->OnPrepare(handle, m_Scene, m_Renderer);
+		generator->OnRender(handle, m_Scene, m_Renderer);
+		generator->OnFinish(handle, m_Scene, m_Renderer);
 
-			ImageSpecification specification;
-			specification.Width = 512;
-			specification.Height = 512;
-			specification.Format = ImageFormat::RGBA8UNorm;
-			Ref<Image2D> result = Image2D::Create(specification);
+		auto generated = generator->GetImage(handle, m_Scene, m_Renderer);
 
-			m_CommandBuffer->Begin();
-			Renderer::BlitImage(m_CommandBuffer, texture->GetImage(), result);
-			m_CommandBuffer->End();
-			m_CommandBuffer->Execute();
-
-			return result;
-		}
-
-		m_AssetThumbnailGenerators.at(assetType)->OnPrepare(handle, m_Scene, m_Renderer);
-		m_Scene->OnRenderRuntime(m_Renderer);
-		m_AssetThumbnailGenerators.at(assetType)->OnFinish(handle, m_Scene, m_Renderer);
-
-		TextureSpecification specification;
+		ImageSpecification specification;
 		specification.Width = 512;
 		specification.Height = 512;
 		specification.Format = ImageFormat::RGBA8UNorm;
-		specification.Filter = FilterMode::Linear;
-		specification.GenerateMips = false;
-		Ref<Texture2D> resultTexture = Texture2D::Create(specification);
-		Ref<Image2D> result = resultTexture->GetImage();
+		auto result = Image2D::Create(specification);
 
 		m_CommandBuffer->Begin();
-		Renderer::CopyImage(m_CommandBuffer, m_Renderer->GetFinalPassImage(), result);
+		Renderer::BlitImage(m_CommandBuffer, generated, result);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 

@@ -97,9 +97,10 @@ namespace Shark {
 		Renderer::Submit([instance]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderCommandBuffer::Execute");
+			SK_PERF_SCOPED("Execute RenderCommandBuffer");
 			auto device = DirectXContext::GetCurrentDevice();
 
-			std::scoped_lock lock(device->GetSubmissionMutex());
+			device->Lock();
 			auto queue = device->GetQueue();
 			queue->ExecuteCommandList(instance->m_CommandList, FALSE);
 
@@ -118,7 +119,7 @@ namespace Shark {
 				instance->m_PipelineStatistics.RasterizerPrimitives = stats.CPrimitives;
 			}
 
-			const uint64_t gpuFrequency = Renderer::GetRendererAPI().As<DirectXRenderer>()->GetGPUFrequncy();
+			const uint64_t gpuFrequency = DirectXContext::GetCurrentDevice()->GetLimits().TimestampPeriod;
 
 			const uint32_t count = instance->m_TimestampQueryCount[getdataIndex];
 			instance->m_TimestampQueryResults[getdataIndex].resize(count);
@@ -138,6 +139,8 @@ namespace Shark {
 
 				instance->m_TimestampQueryResults[getdataIndex][index] = (float)sTime / gpuFrequency;
 			}
+
+			device->Unlock();
 		});
 	}
 
@@ -204,7 +207,7 @@ namespace Shark {
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();
 
-		DirectXAPI::CreateDeferredContext(dxDevice, m_Context);
+		DirectXAPI::CreateDeferredContext(device, m_Context);
 
 		m_Context->QueryInterface(IID_PPV_ARGS(&m_Annotation));
 	}

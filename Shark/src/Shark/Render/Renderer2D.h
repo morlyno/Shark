@@ -22,7 +22,8 @@ namespace Shark {
 
 	struct Renderer2DSpecifications
 	{
-		// A With or Height of 0 means use the window size
+		uint32_t Width = 0, Height = 0;
+
 		bool UseDepthTesting = true;
 	};
 
@@ -51,10 +52,13 @@ namespace Shark {
 		};
 
 	public:
-		Renderer2D(Ref<RenderPass> renderPass, const Renderer2DSpecifications& specifications = {});
+		Renderer2D(Ref<FrameBuffer> targetFramebuffer, const Renderer2DSpecifications& specifications = {});
 		~Renderer2D();
 
-		void Init(Ref<RenderPass> renderPass);
+		Ref<FrameBuffer> GetTargetFramebuffer() const;
+		void SetTargetFramebuffer(Ref<FrameBuffer> framebuffer);
+
+		void Init(Ref<FrameBuffer> targetFramebuffer);
 		void ShutDown();
 
 		void Resize(uint32_t width, uint32_t height);
@@ -221,7 +225,7 @@ namespace Shark {
 		};
 
 		// Quad
-		Ref<RenderPass> m_QuadRenderPass;
+		Ref<RenderPass> m_QuadPass;
 		Ref<Material> m_QuadMaterial;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
@@ -231,7 +235,7 @@ namespace Shark {
 		uint32_t m_QuadIndexCount = 0;
 
 		// Circle
-		Ref<RenderPass> m_CircleRenderPass;
+		Ref<RenderPass> m_CirclePass;
 		Ref<VertexBuffer> m_CircleVertexBuffer;
 		Ref<IndexBuffer> m_CircleIndexBuffer;
 		Buffer m_CircleVertexData;

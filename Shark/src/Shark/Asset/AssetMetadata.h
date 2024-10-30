@@ -9,14 +9,6 @@ namespace Shark {
 		Unloaded = 0, Ready = 1, Loading = 2
 	};
 
-	enum class LoadDependencyPolicy
-	{
-		Default = 1,
-		OnDemand = 2,
-		Deferred = 3,
-		Immediate = 4
-	};
-
 	struct AssetMetaData
 	{
 		AssetHandle Handle;
@@ -36,7 +28,6 @@ namespace Shark {
 		AssetMetaData Metadata;
 		Ref<Asset> Asset;
 		bool Reload = false;
-		LoadDependencyPolicy DependencyPolicy = LoadDependencyPolicy::Default;
 
 		Threading::Future<Ref<Shark::Asset>> Future;
 
@@ -54,6 +45,10 @@ namespace Shark {
 		bool Ready = false;
 
 		operator Ref<TAsset>() const { return Asset; }
+		operator bool() const { return Ready; }
+
+		auto operator->() { return Asset.operator ->(); }
+		auto operator->() const { return Asset.operator ->(); }
 
 		AsyncLoadResult() = default;
 		AsyncLoadResult(Ref<TAsset> asset, bool ready)

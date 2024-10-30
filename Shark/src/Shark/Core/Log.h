@@ -8,14 +8,6 @@ namespace Shark {
 
 	struct ConsoleSinkMessage;
 
-	struct Tag
-	{
-		static constexpr std::string_view None = "";
-		static constexpr std::string_view Core = "Core";
-		static constexpr std::string_view Serialization = "Serialization";
-		static constexpr std::string_view Renderer = "Renderer";
-	};
-
 	enum class LogLevel : uint16_t
 	{
 		Trace = 0,
@@ -33,6 +25,12 @@ namespace Shark {
 		Core = 1, Client = 2, Console = 3
 	};
 
+	struct TagSettings
+	{
+		bool Enabled = true;
+		LogLevel Level = LogLevel::Trace;
+	};
+
 	class Log
 	{
 	public:
@@ -40,176 +38,126 @@ namespace Shark {
 		static void Shutdown();
 
 		static void SetConsoleSinkCallback(std::function<void(ConsoleSinkMessage&&)> callback);
+		static spdlog::sink_ptr GetConsoleSink();
 
 		static std::shared_ptr<spdlog::logger> GetLogger(LoggerType loggerType);
-		static std::shared_ptr<spdlog::logger> GetCoreLogger() { return s_Data->CoreLogger; }
-		static std::shared_ptr<spdlog::logger> GetClientLogger() { return s_Data->ClientLogger; }
-		static std::shared_ptr<spdlog::logger> GetConsoleLogger() { return s_Data->ConsoleLogger; }
+		static std::shared_ptr<spdlog::logger> GetCoreLogger() { return s_CoreLogger; }
+		static std::shared_ptr<spdlog::logger> GetClientLogger() { return s_ClientLogger; }
+		static std::shared_ptr<spdlog::logger> GetConsoleLogger() { return s_ConsoleLogger; }
 
-		static bool HasTag(const std::string& tag) { return s_Data->EnabledTags.contains(tag); }
-		static std::map<std::string, LogLevel>& GetTags() { return s_Data->EnabledTags; }
-
-		template<typename... TArgs>
-		static void LogMessage(LoggerType loggerType, LogLevel level, std::string_view tag, fmt::format_string<TArgs...> fmt, TArgs&&... args);
-
-		template<typename TFormat, typename... TArgs>
-		static void LogMessage(LoggerType loggerType, LogLevel leve, std::string_view tag, const TFormat& fmt, TArgs&&... args);
+		static bool HasTag(const std::string& tag) { return s_EnabledTags.contains(tag); }
+		static std::map<std::string, TagSettings>& EnabledTags() { return s_EnabledTags; }
 
 		template<typename... TArgs>
-		static void PrintAssertMessage(LoggerType loggerType, std::string_view prefix, TArgs&&... args);
+		static void PrintMessage(LoggerType loggerType, LogLevel level, fmt::format_string<TArgs...> format, TArgs&&... args);
+		static void PrintMessage(LoggerType loggerType, LogLevel level, std::string_view message);
+
+		template<typename... TArgs>
+		static void PrintMessageTag(LoggerType loggerType, LogLevel level, std::string_view tag, fmt::format_string<TArgs...> format, TArgs&&... args);
+		static void PrintMessageTag(LoggerType loggerType, LogLevel level, std::string_view tag, std::string_view message);
+
+		template<typename... TArgs>
+		static void PrintAssertMessage(LoggerType loggerType, std::string_view prefix, fmt::format_string<TArgs...> format, TArgs&&... args);
+		static void PrintAssertMessage(LoggerType loggerType, std::string_view prefix);
 
 	private:
-		struct LogData
-		{
-			std::shared_ptr<spdlog::logger> CoreLogger;
-			std::shared_ptr<spdlog::logger> ClientLogger;
-			std::shared_ptr<spdlog::logger> ConsoleLogger;
+		static inline std::shared_ptr<spdlog::logger> s_CoreLogger;
+		static inline std::shared_ptr<spdlog::logger> s_ClientLogger;
+		static inline std::shared_ptr<spdlog::logger> s_ConsoleLogger;
 
-			std::map<std::string, LogLevel> EnabledTags;
-		};
-		static LogData* s_Data;
-
+		static inline std::map<std::string, TagSettings> s_EnabledTags;
 	};
-
-	constexpr std::string_view ToStringView(LogLevel level)
-	{
-		switch (level)
-		{
-			case LogLevel::Trace: return "Trace";
-			case LogLevel::Debug: return "Debug";
-			case LogLevel::Info: return "Info";
-			case LogLevel::Warn: return "Warn";
-			case LogLevel::Error: return "Error";
-			case LogLevel::Critical: return "Critical";
-			case LogLevel::Off: return "Off";
-		}
-		//SK_CORE_ASSERT(false, "Unkown LogLevelType");
-		return "Unkown";
-	}
 
 }
 
+#define SK_LOG_IF(arg, logger, level, tag, ...) if ((arg)) { ::Shark::Log::PrintMessageTag(logger, level, tag, __VA_ARGS__); }
+
 // Core Logger
-#define SK_LOG_IF(arg, logger, level, tag, ...) if ((arg)) { ::Shark::Log::LogMessage(logger, level, tag, __VA_ARGS__); }
+#define SK_CORE_TRACE_TAG(tag, ...)         ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Core, ::Shark::LogLevel::Trace, tag, __VA_ARGS__)
+#define SK_CORE_DEBUG_TAG(tag, ...)         ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Core, ::Shark::LogLevel::Debug, tag, __VA_ARGS__)
+#define SK_CORE_INFO_TAG(tag, ...)          ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Core, ::Shark::LogLevel::Info, tag, __VA_ARGS__)
+#define SK_CORE_WARN_TAG(tag, ...)          ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Core, ::Shark::LogLevel::Warn, tag, __VA_ARGS__)
+#define SK_CORE_ERROR_TAG(tag, ...)         ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Core, ::Shark::LogLevel::Error, tag, __VA_ARGS__)
+#define SK_CORE_CRITICAL_TAG(tag, ...)      ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Core, ::Shark::LogLevel::Critical, tag, __VA_ARGS__)
 
-#define SK_CORE_TRACE_TAG(tag, ...)         ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Trace, tag, __VA_ARGS__)
-#define SK_CORE_DEBUG_TAG(tag, ...)         ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Debug, tag, __VA_ARGS__)
-#define SK_CORE_INFO_TAG(tag, ...)          ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Info, tag, __VA_ARGS__)
-#define SK_CORE_WARN_TAG(tag, ...)          ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Warn, tag, __VA_ARGS__)
-#define SK_CORE_ERROR_TAG(tag, ...)         ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Error, tag, __VA_ARGS__)
-#define SK_CORE_CRITICAL_TAG(tag, ...)      ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Critical, tag, __VA_ARGS__)
+#define SK_CORE_TRACE(...)                  ::Shark::Log::PrintMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Trace, __VA_ARGS__)
+#define SK_CORE_DEBUG(...)                  ::Shark::Log::PrintMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Debug, __VA_ARGS__)
+#define SK_CORE_INFO(...)                   ::Shark::Log::PrintMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Info, __VA_ARGS__)
+#define SK_CORE_WARN(...)                   ::Shark::Log::PrintMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Warn, __VA_ARGS__)
+#define SK_CORE_ERROR(...)                  ::Shark::Log::PrintMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Error, __VA_ARGS__)
+#define SK_CORE_CRITICAL(...)               ::Shark::Log::PrintMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Critical, __VA_ARGS__)
 
-#define SK_CORE_TRACE(...)                  ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Trace, "", __VA_ARGS__)
-#define SK_CORE_DEBUG(...)                  ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Debug, "", __VA_ARGS__)
-#define SK_CORE_INFO(...)                   ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Info, "", __VA_ARGS__)
-#define SK_CORE_WARN(...)                   ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Warn, "", __VA_ARGS__)
-#define SK_CORE_ERROR(...)                  ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Error, "", __VA_ARGS__)
-#define SK_CORE_CRITICAL(...)               ::Shark::Log::LogMessage(::Shark::LoggerType::Core, ::Shark::LogLevel::Critical, "", __VA_ARGS__)
+// Client Logger
+#define SK_TRACE_TAG(tag, ...)              ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Client, ::Shark::LogLevel::Trace, tag, __VA_ARGS__)
+#define SK_INFO_TAG(tag, ...)               ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Client, ::Shark::LogLevel::Info, tag, __VA_ARGS__)
+#define SK_WARN_TAG(tag, ...)               ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Client, ::Shark::LogLevel::Warn, tag, __VA_ARGS__)
+#define SK_ERROR_TAG(tag, ...)              ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Client, ::Shark::LogLevel::Error, tag, __VA_ARGS__)
+#define SK_CRITICAL_TAG(tag, ...)           ::Shark::Log::PrintMessageTag(::Shark::LoggerType::Client, ::Shark::LogLevel::Critical, tag, __VA_ARGS__)
 
-// Client Log::Lo
-#define SK_TRACE_TAG(tag, ...)              ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Trace, tag, __VA_ARGS__)
-#define SK_INFO_TAG(tag, ...)               ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Info, tag, __VA_ARGS__)
-#define SK_WARN_TAG(tag, ...)               ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Warn, tag, __VA_ARGS__)
-#define SK_ERROR_TAG(tag, ...)              ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Error, tag, __VA_ARGS__)
-#define SK_CRITICAL_TAG(tag, ...)           ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Critical, tag, __VA_ARGS__)
-
-#define SK_TRACE(...)                       ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Trace, "", __VA_ARGS__)
-#define SK_INFO(...)                        ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Info, "", __VA_ARGS__)
-#define SK_WARN(...)                        ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Warn, "", __VA_ARGS__)
-#define SK_ERROR(...)                       ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Error, "", __VA_ARGS__)
-#define SK_CRITICAL(...)                    ::Shark::Log::LogMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Critical, "", __VA_ARGS__)
+#define SK_TRACE(...)                       ::Shark::Log::PrintMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Trace, __VA_ARGS__)
+#define SK_INFO(...)                        ::Shark::Log::PrintMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Info, __VA_ARGS__)
+#define SK_WARN(...)                        ::Shark::Log::PrintMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Warn, __VA_ARGS__)
+#define SK_ERROR(...)                       ::Shark::Log::PrintMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Error, __VA_ARGS__)
+#define SK_CRITICAL(...)                    ::Shark::Log::PrintMessage(::Shark::LoggerType::Client, ::Shark::LogLevel::Critical, __VA_ARGS__)
 
 // Console Logger
-#define SK_CONSOLE_TRACE(...)               ::Shark::Log::LogMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Trace, "", __VA_ARGS__)
-#define SK_CONSOLE_DEBUG(...)               ::Shark::Log::LogMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Debug, "", __VA_ARGS__)
-#define SK_CONSOLE_INFO(...)                ::Shark::Log::LogMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Info, "", __VA_ARGS__)
-#define SK_CONSOLE_WARN(...)                ::Shark::Log::LogMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Warn, "", __VA_ARGS__)
-#define SK_CONSOLE_ERROR(...)               ::Shark::Log::LogMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Error, "", __VA_ARGS__)
-#define SK_CONSOLE_CRITICAL(...)            ::Shark::Log::LogMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Critical, "", __VA_ARGS__)
+#define SK_CONSOLE_TRACE(...)               ::Shark::Log::PrintMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Trace, __VA_ARGS__)
+#define SK_CONSOLE_DEBUG(...)               ::Shark::Log::PrintMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Debug, __VA_ARGS__)
+#define SK_CONSOLE_INFO(...)                ::Shark::Log::PrintMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Info, __VA_ARGS__)
+#define SK_CONSOLE_WARN(...)                ::Shark::Log::PrintMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Warn, __VA_ARGS__)
+#define SK_CONSOLE_ERROR(...)               ::Shark::Log::PrintMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Error, __VA_ARGS__)
+#define SK_CONSOLE_CRITICAL(...)            ::Shark::Log::PrintMessage(::Shark::LoggerType::Console, ::Shark::LogLevel::Critical, __VA_ARGS__)
 
 namespace Shark {
 
 	template<typename... TArgs>
-	void Log::LogMessage(LoggerType loggerType, LogLevel level, std::string_view tag, fmt::format_string<TArgs...> fmt, TArgs&&... args)
+	void Log::PrintMessage(LoggerType loggerType, LogLevel level, fmt::format_string<TArgs...> format, TArgs&&... args)
 	{
-		const LogLevel enabledLevel = s_Data->EnabledTags[(std::string)tag];
-		if (level >= enabledLevel)
+		auto& settings = s_EnabledTags[""];
+		if (settings.Enabled && level >= settings.Level)
 		{
 			auto logger = GetLogger(loggerType);
-			auto format = fmt::runtime(tag.empty() ? "{0}{1}" : "[{0}] {1}");
-			std::string msg = fmt::format(fmt, std::forward<TArgs>(args)...);
 
 			switch (level)
 			{
-				case LogLevel::Trace:
-					logger->trace(format, tag, msg);
-					break;
-				case LogLevel::Debug:
-					logger->debug(format, tag, msg);
-					break;
-				case LogLevel::Info:
-					logger->info(format, tag, msg);
-					break;
-				case LogLevel::Warn:
-					logger->warn(format, tag, msg);
-					break;
-				case LogLevel::Error:
-					logger->error(format, tag, msg);
-					break;
-				case LogLevel::Critical:
-					logger->critical(format, tag, msg);
-					break;
-			}
-		}
-	}
-
-	template<typename TFormat, typename... TArgs>
-	void Log::LogMessage(LoggerType loggerType, LogLevel level, std::string_view tag, const TFormat& fmt, TArgs&&... args)
-	{
-		const LogLevel enabledLevel = s_Data->EnabledTags[(std::string)tag];
-		if (level >= enabledLevel)
-		{
-			auto logger = GetLogger(loggerType);
-			auto format = fmt::runtime(tag.empty() ? "{0}{1}" : "[{0}] {1}");
-			std::string msg = fmt::format(fmt::runtime(fmt), std::forward<TArgs>(args)...);
-
-			switch (level)
-			{
-				case LogLevel::Trace:
-					logger->trace(format, tag, msg);
-					break;
-				case LogLevel::Debug:
-					logger->debug(format, tag, msg);
-					break;
-				case LogLevel::Info:
-					logger->info(format, tag, msg);
-					break;
-				case LogLevel::Warn:
-					logger->warn(format, tag, msg);
-					break;
-				case LogLevel::Error:
-					logger->error(format, tag, msg);
-					break;
-				case LogLevel::Critical:
-					logger->critical(format, tag, msg);
-					break;
+				case LogLevel::Trace: logger->trace(format, std::forward<TArgs>(args)...); break;
+				case LogLevel::Debug: logger->debug(format, std::forward<TArgs>(args)...); break;
+				case LogLevel::Info: logger->info(format, std::forward<TArgs>(args)...); break;
+				case LogLevel::Warn: logger->warn(format, std::forward<TArgs>(args)...); break;
+				case LogLevel::Error: logger->error(format, std::forward<TArgs>(args)...); break;
+				case LogLevel::Critical: logger->critical(format, std::forward<TArgs>(args)...); break;
 			}
 		}
 	}
 
 	template<typename... TArgs>
-	inline void Log::PrintAssertMessage(LoggerType loggerType, std::string_view prefix, TArgs&&... args)
+	void Log::PrintMessageTag(LoggerType loggerType, LogLevel level, std::string_view tag, fmt::format_string<TArgs...> format, TArgs&&... args)
 	{
-		auto formatMessage = [] <typename TFirst, typename... TArgs> (TFirst format, TArgs&&... args)
+		auto& settings = s_EnabledTags[std::string(tag)];
+		if (settings.Enabled && level >= settings.Level)
 		{
-			return fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
-		};
+			auto logger = GetLogger(loggerType);
+			std::string formatted = fmt::format(format, std::forward<TArgs>(args)...);
 
+			switch (level)
+			{
+				case LogLevel::Trace: logger->trace("[{}] {}", tag, formatted); break;
+				case LogLevel::Debug: logger->debug("[{}] {}", tag, formatted); break;
+				case LogLevel::Info: logger->info("[{}] {}", tag, formatted); break;
+				case LogLevel::Warn: logger->warn("[{}] {}", tag, formatted); break;
+				case LogLevel::Error: logger->error("[{}] {}", tag, formatted); break;
+				case LogLevel::Critical: logger->critical("[{}] {}", tag, formatted); break;
+			}
+		}
+	}
+
+	template<typename... TArgs>
+	inline void Log::PrintAssertMessage(LoggerType loggerType, std::string_view prefix, fmt::format_string<TArgs...> format, TArgs&&... args)
+	{
 		auto logger = GetLogger(loggerType);
-		logger->error("{0}: {1}", prefix, formatMessage(std::forward<TArgs>(args)...));
+		logger->error("{0}: {1}", prefix, fmt::format(format, std::forward<TArgs>(args)...));
 	}
 	
-	template<>
 	inline void Log::PrintAssertMessage(LoggerType loggerType, std::string_view prefix)
 	{
 		auto logger = GetLogger(loggerType);

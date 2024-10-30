@@ -10,7 +10,7 @@
 #include "Shark/Scene/Entity.h"
 #include "Shark/Render/SceneRenderer.h"
 #include "Shark/Render/EditorCamera.h"
-#include "Shark/UI/UI.h"
+#include "Shark/UI/UICore.h"
 
 #include "Panels/AssetEditorPanel.h"
 
@@ -22,10 +22,12 @@ namespace Shark {
 		TextureEditorPanel(const std::string& panelName, const AssetMetaData& metadata);
 		~TextureEditorPanel();
 
-		void SetAsset(const AssetMetaData& metadata);
-		void DockWindow(ImGuiID dockspace);
+		virtual void DockWindow(ImGuiID dockspace) override;
+		virtual void SetAsset(const AssetMetaData& metadata) override;
+		virtual AssetHandle GetAsset() const override { return m_TextureHandle; }
 
 		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
+		virtual void OnEvent(Event& event) override;
 
 	private:
 		void UI_DrawSettings();
@@ -36,25 +38,20 @@ namespace Shark {
 		bool m_Active = true;
 		bool m_SetupWindows = false;
 
-		bool m_IsSharkTexture = false;
-		AssetHandle m_TextureHandle;
-		Ref<Texture2D> m_EditTexture;
-
-		std::string m_ImageFormat;
-
-		bool m_GenerateMips;
-		FilterMode m_FilterMode;
-		WrapMode m_WrapMode;
-		uint32_t m_MaxAnisotropy;
-
-		std::vector<Ref<ImageView>> m_Views;
-		uint32_t m_MipIndex = 0;
+		bool m_Focused = false;
 
 		bool m_DockWindow = false;
 		ImGuiID m_DockWindowID = 0;
 
-		static constexpr std::string_view s_FilterItems[] = { "None", "Neares", "Linear", "Anisotropic"};
-		static constexpr std::string_view s_WrapItems[] = { "None", "Repeat", "Clamp", "Mirror" };
+		bool m_IsSharkTexture = false;
+		AssetHandle m_TextureHandle;
+
+		Ref<RenderCommandBuffer> m_CommandBuffer;
+		Ref<Texture2D> m_Texture;
+		Ref<Texture2D> m_BackupTexture;
+
+		std::vector<Ref<ImageView>> m_PerMipView;
+		uint32_t m_MipIndex = 0;
 	};
 
 }

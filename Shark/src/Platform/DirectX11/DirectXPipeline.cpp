@@ -2,6 +2,7 @@
 #include "DirectXPipeline.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Platform/DirectX11/DirectXAPI.h"
 #include "Platform/DirectX11/DirectXContext.h"
 
 namespace Shark {
@@ -97,50 +98,26 @@ namespace Shark {
 		});
 	}
 
-	void DirectXPipeline::SetPushConstant(Buffer pushConstantData)
+	void DirectXPipeline::SetPushConstant(Ref<RenderCommandBuffer> commandBuffer, Buffer pushConstantData)
 	{
-		Buffer data = Buffer::Copy(pushConstantData);
-
-		Ref<DirectXPipeline> instance = this;
-		Renderer::Submit([instance, data]() mutable
+		Ref instance = this;
+		Renderer::Submit([instance, commandBuffer, tempBuffer = Buffer::Copy(pushConstantData)]() mutable
 		{
-			instance->RT_SetPushConstant(data);
-			data.Release();
+			instance->RT_SetPushConstant(commandBuffer, tempBuffer);
+			tempBuffer.Release();
 		});
 	}
 
-	void DirectXPipeline::RT_SetPushConstant(Buffer pushConstantData)
+	void DirectXPipeline::RT_SetPushConstant(Ref<RenderCommandBuffer> commandBuffer, Buffer pushConstantData)
 	{
-		SK_CORE_VERIFY(pushConstantData.Size <= m_PushConstant.Size);
-
-		if (m_PushConstant.Buffers.size() == m_PushConstant.BufferIndex)
-			m_PushConstant.Buffers.push_back(ConstantBuffer::Create(m_PushConstant.Size));
-
-		Ref<ConstantBuffer> constantBuffer = m_PushConstant.Buffers[m_PushConstant.BufferIndex++];
-		constantBuffer->RT_UploadData(pushConstantData);
+		auto cmd = commandBuffer.As<DirectXRenderCommandBuffer>()->GetContext();
+		cmd->UpdateSubresource(m_PushConstant.Buffer, 0, nullptr, pushConstantData.Data, m_PushConstant.Size, 0);
 	}
 
 	void DirectXPipeline::SetFrameBuffer(Ref<FrameBuffer> frameBuffer)
 	{
 		m_FrameBuffer = frameBuffer.As<DirectXFrameBuffer>();
 		m_Specification.TargetFrameBuffer = frameBuffer;
-	}
-
-	void DirectXPipeline::BeginRenderPass()
-	{
-		m_PushConstant.BufferIndex = 0;
-	}
-
-	void DirectXPipeline::EndRenderPass()
-	{
-
-	}
-
-	Ref<ConstantBuffer> DirectXPipeline::GetLastUpdatedPushConstantBuffer()
-	{
-		const uint32_t index = m_PushConstant.BufferIndex - 1;
-		SK_CORE_VERIFY(m_PushConstant.BufferIndex != 0 && index < m_PushConstant.Buffers.size());
-		return m_PushConstant.Buffers[index];
 	}
 
 	void DirectXPipeline::RT_Init()
@@ -201,8 +178,20 @@ namespace Shark {
 		const auto& reflectionData = m_Specification.Shader->GetReflectionData();
 		if (reflectionData.HasPushConstant)
 		{
-			m_PushConstant.Size = reflectionData.PushConstant.StructSize;
+			uint32_t size = reflectionData.PushConstant.StructSize;
+			m_PushConstant.RequestedSize = size;
+			m_PushConstant.Size = size + (16 - size % 16) % 16;
 			m_PushConstant.Binding = reflectionData.PushConstant.DXBinding;
+
+			D3D11_BUFFER_DESC bufferDesc = {};
+			bufferDesc.ByteWidth = m_PushConstant.Size;
+			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+			bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			bufferDesc.CPUAccessFlags = 0;
+			bufferDesc.MiscFlags = 0;
+			bufferDesc.StructureByteStride = 0;
+			DirectXAPI::CreateBuffer(dxDevice, bufferDesc, nullptr, m_PushConstant.Buffer);
+			DirectXAPI::SetDebugName(m_PushConstant.Buffer, fmt::format("{}-PushConstant", m_Specification.DebugName));
 		}
 
 	}

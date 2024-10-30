@@ -88,12 +88,17 @@ namespace Shark {
 
 			switch (message->Severity)
 			{
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_MESSAGE: SK_CORE_TRACE_TAG(Tag::None, "{}", message->pDescription); break;
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_INFO: SK_CORE_INFO_TAG(Tag::None, "{}", message->pDescription); break;
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING: SK_CORE_WARN_TAG(Tag::None, "{}", message->pDescription); break;
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR: SK_CORE_ERROR_TAG(Tag::None, "{}", message->pDescription); break;
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION: SK_CORE_CRITICAL_TAG(Tag::None, "{}", message->pDescription); break;
-				default: SK_CORE_WARN_TAG(Tag::None, "Unkown Severity! {}", message->pDescription); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_MESSAGE: SK_CORE_TRACE_TAG("Renderer", "{}", message->pDescription); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_INFO: SK_CORE_INFO_TAG("Renderer", "{}", message->pDescription); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING: SK_CORE_WARN_TAG("Renderer", "{}", message->pDescription); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR: SK_CORE_ERROR_TAG("Renderer", "{}", message->pDescription); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION: SK_CORE_CRITICAL_TAG("Renderer", "{}", message->pDescription); break;
+				default:
+				{
+					SK_DEBUG_BREAK_CONDITIONAL(s_BreakShouldNotHappen);
+					SK_CORE_WARN_TAG("Renderer", "Unkown Severity! {}", message->pDescription);
+					break;
+				}
 			}
 		}
 
@@ -207,6 +212,7 @@ namespace Shark {
 		createdeviceFalgs |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
+		ID3D11Device* device;
 		DX11_VERIFY(D3D11CreateDevice(
 			adapter,
 			D3D_DRIVER_TYPE_UNKNOWN,
@@ -215,12 +221,24 @@ namespace Shark {
 			nullptr,
 			0,
 			D3D11_SDK_VERSION,
-			&m_Device,
+			&device,
 			nullptr,
 			&m_Queue
 		));
 
 		adapter->Release();
+
+		DX11_VERIFY(device->QueryInterface(IID_PPV_ARGS(&m_Device)));
+		device->Release();
+
+		ID3D11Query* query = nullptr;
+		DirectXAPI::CreateQuery(m_Device, D3D11_QUERY_TIMESTAMP_DISJOINT, query);
+		m_Queue->Begin(query);
+		m_Queue->End(query);
+		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT data;
+		HRESULT result = m_Queue->GetData(query, &data, sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT), 0);
+		DX11_VERIFY(result);
+		m_Limits.TimestampPeriod = data.Frequency;
 	}
 
 	DirectXDevice::~DirectXDevice()
@@ -241,11 +259,11 @@ namespace Shark {
 		outMemory = mapped.pData;
 	}
 
-	void DirectXDevice::MapMemory(ID3D11Resource* resource, uint32_t subresource, D3D11_MAP mapFlags, D3D11_MAPPED_SUBRESOURCE& outMapped)
+	void DirectXDevice::MapMemory(ID3D11Resource* resource, uint32_t subresource, D3D11_MAP mapType, D3D11_MAPPED_SUBRESOURCE& outMapped)
 	{
 		SK_PROFILE_FUNCTION();
 		std::scoped_lock lock(m_SubmissionMutex);
-		m_Queue->Map(resource, subresource, mapFlags, 0, &outMapped);
+		m_Queue->Map(resource, subresource, mapType, 0, &outMapped);
 	}
 
 	void DirectXDevice::UnmapMemory(ID3D11Resource* resource, uint32_t subresource)
@@ -342,12 +360,10 @@ namespace Shark {
 		ID3D11CommandList* commandList;
 		commandBuffer->FinishCommandList(false, &commandList);
 
-		{
-			std::scoped_lock lock(device->GetSubmissionMutex());
-
-			ID3D11DeviceContext* queue = device->GetQueue();
-			queue->ExecuteCommandList(commandList, false);
-		}
+		device->Lock();
+		auto queue = device->GetQueue();
+		queue->ExecuteCommandList(commandList, false);
+		device->Unlock();
 
 		commandList->Release();
 		commandBuffer->ClearState();

@@ -107,12 +107,14 @@ namespace Shark {
 		const LightEnvironment& GetLightEnvironment() const { return m_LightEnvironment; }
 		const std::vector<PointLight>& GetPointLights() const { return m_LightEnvironment.PointLights; }
 
-		Entity CloneEntity(Entity srcEntity);
+		Entity CloneEntity(Entity srcEntity, bool cloneChildren = true);
 		Entity CreateEntity(const std::string& tag = std::string{});
-		Entity CreateEntityWithUUID(UUID uuid, const std::string& tag = std::string{});
+		Entity CreateEntityWithUUID(UUID uuid, const std::string& tag = std::string{}, bool shouldSort = true);
 		Entity CreateChildEntity(Entity parent, const std::string& tag = std::string{});
 		Entity CreateChildEntityWithUUID(Entity parent, UUID uuid, const std::string& tag = std::string{});
 		void DestroyEntity(Entity entity, bool destroyChildren = true);
+
+		void SortEntitites();
 
 		template<typename Component>
 		decltype(auto) GetAllEntitysWith()
@@ -122,26 +124,26 @@ namespace Shark {
 
 		decltype(auto) GetRootEntities()
 		{
-			return m_Registry.view<Internal::RootParentComponent>();
+			auto view = m_Registry.group<RelationshipComponent>();
+			return view | std::views::filter([this](entt::entity ent) { return m_Registry.get<RelationshipComponent>(ent).Parent == UUID::Invalid; });
 		}
 
-#if 0
 		Entity InstantiateMesh(Ref<Mesh> mesh);
-		void InstantiateSubMesh(Ref<Mesh> mesh, const MeshNode& node, Entity parent);
-#endif
+		Entity InstantiateStaticMesh(Ref<Mesh> mesh);
+		void RebuildMeshEntityHierarchy(Entity entity);
 
-		Entity InstantiateMesh(Ref<Mesh> mesh);
-		void InstantiateSubmesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, const MeshNode& node, Entity parent);
-
+		Entity GetEntityByID(UUID id) const;
 		Entity TryGetEntityByUUID(UUID uuid) const;
 		Entity FindEntityByTag(const std::string& tag);
 		Entity FindChildEntityByName(Entity entity, const std::string& name, bool recusive);
 
 		bool IsValidEntity(Entity entity) const;
-		bool ValidEntityID(UUID entityID) const;
+		bool IsValidEntityID(UUID entityID) const;
 
 		Entity GetActiveCameraEntity() const;
 		UUID GetActiveCameraUUID() const { return m_ActiveCameraUUID; }
+		bool HasActiveCamera() const;
+		bool HasActiveCamera(bool setIfAnyAvailable);
 		bool IsActiveCamera(Entity entity) const;
 		void SetActiveCamera(UUID camera) { m_ActiveCameraUUID = camera; }
 		void SetActiveCamera(Entity entity);
@@ -161,6 +163,9 @@ namespace Shark {
 		bool ConvertToWorldSpace(Entity entity, TransformComponent& transform);
 		bool ConvertToLocaSpace(Entity entity);
 		bool ConvertToWorldSpace(Entity entity);
+
+		void ParentEntity(Entity entity, Entity parent);
+		void UnparentEntity(Entity entity);
 
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 
@@ -184,6 +189,7 @@ namespace Shark {
 
 	private:
 		void DestroyEntityInternal(Entity entity, bool destroyChildren, bool first);
+		void BuildMeshEntityHierarchy(Entity entity, Ref<Mesh> mesh, const MeshNode& node);
 
 		void OnPhysics2DPlay(bool connectWithScriptingAPI);
 		void OnPhysics2DStop();
@@ -198,6 +204,14 @@ namespace Shark {
 		void OnBoxCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent);
 		void OnCircleCollider2DComponentDestroyed(entt::registry& registry, entt::entity ent);
 		void OnScriptComponentDestroyed(entt::registry& registry, entt::entity ent);
+
+		void CreateRuntimeRigidBody2D(Entity entity, const TransformComponent& worldTransform);
+		void CreateRuntimeBoxCollider2D(Entity entity, const TransformComponent& worldTransform);
+		void CreateRuntimeCircleCollider2D(Entity entit, const TransformComponent& worldTransform);
+		void CreateRuntimeDistanceJoint2D(Entity entit);
+		void CreateRuntimeHingeJoint2D(Entity entit);
+		void CreateRuntimePrismaticJoint2D(Entity entit);
+		void CreateRuntimePulleyJoint2D(Entity entit);
 
 	private:
 		std::string m_Name;

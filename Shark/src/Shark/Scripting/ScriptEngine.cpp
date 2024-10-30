@@ -67,7 +67,7 @@ namespace Shark {
 			level = LogLevel::Critical;
 
 		const char* domain = log_domain ? log_domain : "Mono";
-		Log::LogMessage(LoggerType::Core, level, "", "[{0}] {1}", domain, message);
+		Log::PrintMessageTag(LoggerType::Core, level, "Mono", "[{0}] {1}", domain, message);
 		SK_CORE_VERIFY(!fatal);
 	}
 
@@ -323,7 +323,7 @@ namespace Shark {
 	GCHandle ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields)
 	{
 		SK_PROFILE_FUNCTION();
-		if (!s_Data->AssembliesLoaded || !(entity && entity.AllOf<ScriptComponent>()))
+		if (!s_Data->AssembliesLoaded || !(entity && entity.HasComponent<ScriptComponent>()))
 			return 0;
 
 		UUID uuid = entity.GetUUID();
@@ -380,11 +380,12 @@ namespace Shark {
 			return;
 
 		UUID uuid = entity.GetUUID();
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
 
-		if (s_Data->FieldStoragesMap.contains(uuid))
+		if (scriptComp.ClassID && s_Data->FieldStoragesMap.contains(uuid))
 		{
-			auto& scriptComp = entity.GetComponent<ScriptComponent>();
 			GCHandle handle = GetInstance(entity);
+			SK_CORE_VERIFY(handle);
 			MonoObject* object = GCManager::GetManagedObject(handle);
 
 			const FieldStorageMap& fieldStorages = s_Data->FieldStoragesMap[uuid];
@@ -497,7 +498,7 @@ namespace Shark {
 			return GCManager::GetManagedObject(handle);
 		}
 
-		SK_CORE_ASSERT(!entity.AllOf<ScriptComponent>());
+		SK_CORE_ASSERT(!entity.HasComponent<ScriptComponent>());
 
 		MonoObject* entityInstance = ScriptEngine::InstantiateClass(s_Data->EntityClass);
 		mono_runtime_object_init(entityInstance);
@@ -713,6 +714,7 @@ namespace Shark {
 		s_Data->CoreAssembly.Image = mono_assembly_get_image(coreAssembly);
 		s_Data->AppAssembly.Assembly = appAssembly;
 		s_Data->AppAssembly.Image = mono_assembly_get_image(appAssembly);
+		s_Data->AssemblyLastChangedTime = std::filesystem::last_write_time(s_Data->AppAssembly.FilePath);
 		s_Data->AssembliesLoaded = true;
 
 		ScriptUtils::Shutdown();

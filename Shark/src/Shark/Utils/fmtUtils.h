@@ -48,18 +48,4 @@ struct fmt::formatter<std::filesystem::path, char> : fmt::formatter<std::string,
 };
 #endif
 
-template<typename TEnum>
-	requires std::is_enum_v<TEnum>
-struct fmt::formatter<TEnum, char>
-{
-	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
-	{
-		return ctx.end();
-	}
-
-	template<typename FormatContext>
-	auto format(TEnum value, FormatContext& ctx) const -> decltype(ctx.out())
-	{
-		return fmt::format_to(ctx.out(), "{}", magic_enum::enum_name(value));
-	}
-};
+#include <magic_enum_format.hpp>

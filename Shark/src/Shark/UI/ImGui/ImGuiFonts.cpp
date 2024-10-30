@@ -26,6 +26,12 @@ namespace Shark::UI {
 			io.FontDefault = font;
 	}
 
+	void Fonts::PushDefault()
+	{
+		auto& io = ImGui::GetIO();
+		ImGui::PushFont(io.FontDefault);
+	}
+
 	void Fonts::Push(const std::string& name)
 	{
 		if (!s_Fonts.contains(name))

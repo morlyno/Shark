@@ -11,90 +11,73 @@ namespace Shark {
 	{
 	public:
 		Entity() = default;
-		Entity(uint32_t entityhandle, Weak<Scene> scene);
 		Entity(entt::entity entityhandle, Weak<Scene> scene);
-		Entity(const Entity&) = default;
 
-		Weak<Scene> GetScene() const { return m_Scene; }
-		entt::entity GetHandle() const { return m_EntityHandle; }
+		bool IsValid() const;
 
-		template<typename Component, typename... Args>
-		Component& AddComponent(Args&&... args)
-		{
-			SK_CORE_VERIFY(!AllOf<Component>());
-			return m_Scene.GetRef()->m_Registry.emplace<Component>(m_EntityHandle, std::forward<Args>(args)...);
-		}
+		template<typename TComponent, typename... TArgs>
+		TComponent& AddComponent(TArgs&&... args);
 
-		template<typename Component, typename... Args>
-		Component& AddOrReplaceComponent(Args&&... args)
-		{
-			return m_Scene.GetRef()->m_Registry.emplace_or_replace<Component>(m_EntityHandle, std::forward<Args>(args)...);
-		}
+		template<typename TComponent, typename... TArgs>
+		TComponent& AddOrReplaceComponent(TArgs&&... args);
 
-		template<typename Component>
-		void RemoveComponent()
-		{
-			SK_CORE_VERIFY(AllOf<Component>());
-			m_Scene.GetRef()->m_Registry.remove<Component>(m_EntityHandle);
-		}
+		template<typename TComponent>
+		TComponent& GetComponent();
 
-		template<typename Component>
-		Component& GetComponent()
-		{
-			SK_CORE_VERIFY(AllOf<Component>());
-			return m_Scene.GetRef()->m_Registry.get<Component>(m_EntityHandle);
-		}
+		template<typename TComponent>
+		const TComponent& GetComponent() const;
 
-		template<typename Component>
-		Component* TryGetComponent()
-		{
-			return m_Scene.GetRef()->m_Registry.try_get<Component>(m_EntityHandle);
-		}
+		template<typename TComponent>
+		TComponent* TryGetComponent();
+		
+		template<typename TComponent>
+		const TComponent* TryGetComponent() const;
 
-		template<typename... Component>
-		bool AllOf() const
-		{
-			return m_Scene.GetRef()->m_Registry.all_of<Component...>(m_EntityHandle);
-		}
+		template<typename TComponent>
+		void RemoveComponent();
 
-		template<typename... Component>
-		bool AnyOf() const
-		{
-			return m_Scene.GetRef()->m_Registry.any_of<Component...>(m_EntityHandle);
-		}
+		template<typename TComponent>
+		void RemoveComponentIsExists();
 
-		UUID GetUUID() { return GetComponent<IDComponent>().ID; }
-		UUID GetUUID() const { return m_Scene.GetRef()->m_Registry.get<IDComponent>(m_EntityHandle).ID; }
-		std::string& GetName() { return GetComponent<TagComponent>().Tag; }
-		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
-		glm::mat4 CalcTransform() const { return m_Scene.GetRef()->m_Registry.get<TransformComponent>(m_EntityHandle).CalcTransform(); }
+		template<typename TComponent>
+		bool HasComponent() const;
+
+		template<typename... TComponents>
+		bool HasAny() const;
+
+		template<typename... TComponents>
+		bool HasAll() const;
+
+		Entity Parent() const;
+		UUID ParentID() const;
+		std::vector<UUID>& Children();
+		const std::vector<UUID>& Children() const;
+
+		bool HasParent() const;
+		bool HasChild(UUID childID) const;
+		bool HasChildren() const;
 
 		void SetParent(Entity parent);
 		void AddChild(Entity child);
+		void RemoveChild(Entity child);
 
-		void RemoveParent();
-		void RemoveChild(UUID childID);
-		void RemoveChildren();
+		bool IsAncestorOf(Entity entity) const;
+		bool IsDescendantOf(Entity entity) const;
 
-		UUID ParentUUID() { return GetComponent<RelationshipComponent>().Parent; }
-		Entity Parent() { return m_Scene.GetRef()->TryGetEntityByUUID(ParentUUID()); }
-		std::vector<UUID>& Children() { return GetComponent<RelationshipComponent>().Children; }
+		UUID GetUUID() const { return GetComponent<IDComponent>().ID; }
+		std::string& Name() { return GetComponent<TagComponent>().Tag; }
+		const std::string& Name() const { return GetComponent<TagComponent>().Tag; }
+		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
+		const TransformComponent& Transform() const { return GetComponent<TransformComponent>(); }
 
-		bool HasParent() { return GetComponent<RelationshipComponent>().Parent != UUID::Invalid; }
-		bool HasChild(UUID childID);
-		bool HasChildren() { return GetComponent<RelationshipComponent>().Children.size() > 0; }
+		SK_DEPRECATED("Use Entity::Name() instead")
+			std::string& GetName() { return GetComponent<TagComponent>().Tag; }
 
-		bool IsValid() const { return m_Scene.GetRef()->m_Registry.valid(m_EntityHandle); }
-		bool IsNull() const { return m_EntityHandle == entt::null; }
-
+		operator bool() { return IsValid(); }
 		operator entt::entity() { return m_EntityHandle; }
-		operator bool() { return !IsNull() && IsValid(); }
 		operator uint32_t() { return (uint32_t)m_EntityHandle; }
 		bool operator==(const Entity& rhs) { return m_EntityHandle == rhs.m_EntityHandle && m_Scene == rhs.m_Scene; }
 		bool operator!=(const Entity& rhs) { return !(*this == rhs); }
-
-	private:
-		static void RemoveTargetFromParent(Entity me);
 
 	private:
 		entt::entity m_EntityHandle{ entt::null };
@@ -102,5 +85,76 @@ namespace Shark {
 
 		friend Scene;
 	};
+
+	template<typename TComponent, typename... TArgs>
+	TComponent& Entity::AddComponent(TArgs&&... args)
+	{
+		SK_CORE_VERIFY(!HasComponent<TComponent>());
+		return m_Scene.GetRef()->m_Registry.emplace<TComponent>(m_EntityHandle, std::forward<TArgs>(args)...);
+	}
+
+	template<typename TComponent, typename... TArgs>
+	TComponent& Entity::AddOrReplaceComponent(TArgs&&... args)
+	{
+		return m_Scene.GetRef()->m_Registry.emplace_or_replace<TComponent>(m_EntityHandle, std::forward<TArgs>(args)...);
+	}
+
+	template<typename TComponent>
+	void Entity::RemoveComponent()
+	{
+		SK_CORE_VERIFY(HasComponent<TComponent>());
+		m_Scene.GetRef()->m_Registry.remove<TComponent>(m_EntityHandle);
+	}
+
+	template<typename TComponent>
+	void Entity::RemoveComponentIsExists()
+	{
+		if (HasComponent<TComponent>())
+			m_Scene.GetRef()->m_Registry.remove<TComponent>(m_EntityHandle);
+	}
+
+	template<typename TComponent>
+	TComponent& Entity::GetComponent()
+	{
+		SK_CORE_VERIFY(HasComponent<TComponent>());
+		return m_Scene.GetRef()->m_Registry.get<TComponent>(m_EntityHandle);
+	}
+
+	template<typename TComponent>
+	const TComponent& Entity::GetComponent() const
+	{
+		SK_CORE_VERIFY(HasComponent<TComponent>());
+		return m_Scene.GetRef()->m_Registry.get<TComponent>(m_EntityHandle);
+	}
+
+	template<typename TComponent>
+	TComponent* Entity::TryGetComponent()
+	{
+		return m_Scene.GetRef()->m_Registry.try_get<TComponent>(m_EntityHandle);
+	}
+
+	template<typename TComponent>
+	const TComponent* Entity::TryGetComponent() const
+	{
+		return m_Scene.GetRef()->m_Registry.try_get<TComponent>(m_EntityHandle);
+	}
+
+	template<typename TComponent>
+	bool Entity::HasComponent() const
+	{
+		return m_Scene.GetRef()->m_Registry.all_of<TComponent>(m_EntityHandle);
+	}
+
+	template<typename... TComponents>
+	bool Entity::HasAny() const
+	{
+		return m_Scene.GetRef()->m_Registry.any_of<TComponents...>(m_EntityHandle);
+	}
+
+	template<typename... TComponents>
+	bool Entity::HasAll() const
+	{
+		return m_Scene.GetRef()->m_Registry.all_of<TComponents...>(m_EntityHandle);
+	}
 
 }

@@ -7,24 +7,36 @@
 
 namespace Shark {
 
+	enum class BufferUsage
+	{
+		Default,
+		Dynamic,
+		Immutable,
+		Staging
+	};
+
+	struct ConstantBufferSpecification
+	{
+		uint32_t ByteSize = 0;
+		BufferUsage Usage = BufferUsage::Dynamic;
+
+		std::string DebugName;
+	};
+
 	class ConstantBuffer : public RendererResource
 	{
 	public:
 		virtual ~ConstantBuffer() = default;
 
-		virtual uint32_t GetSize() const = 0;
+		virtual bool IsDynamic() const = 0;
+		virtual uint32_t GetByteSize() const = 0;
 
-		virtual Buffer& GetUploadBuffer() = 0;
-		virtual Buffer GetUploadBuffer() const = 0;
-
-		virtual void UploadData(Buffer data) = 0;
-		virtual void RT_UploadData(Buffer data) = 0;
-
-		virtual void Upload() = 0;
-		virtual void RT_Upload() = 0;
+		virtual void Upload(Buffer data) = 0;
+		virtual void RT_Upload(Buffer data) = 0;
 
 	public:
-		static Ref<ConstantBuffer> Create(uint32_t size);
+		static Ref<ConstantBuffer> Create(const ConstantBufferSpecification& specification, Buffer initData = {});
+		static Ref<ConstantBuffer> Create(BufferUsage usage, uint32_t byteSize, const std::string& debugName = {});
 	};
 
 }

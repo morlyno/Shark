@@ -2,7 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/RendererContext.h"
-#include <d3d11.h>
+#include <d3d11_1.h>
 #include <dxgidebug.h>
 
 namespace Shark {
@@ -19,6 +19,11 @@ namespace Shark {
 
 	class DirectXDevice;
 	class DirectXCommandPool;
+
+	struct DeviceLimits
+	{
+		uint64_t TimestampPeriod = 0;
+	};
 
 	class DirectXContext : public RendererContext
 	{
@@ -48,8 +53,8 @@ namespace Shark {
 		DirectXDevice();
 		~DirectXDevice();
 
-		void MapMemory(ID3D11Resource* resource, uint32_t subresource, D3D11_MAP mapFlags, void*& outMemory);
-		void MapMemory(ID3D11Resource* resource, uint32_t subresource, D3D11_MAP mapFlags, D3D11_MAPPED_SUBRESOURCE& outMapped);
+		void MapMemory(ID3D11Resource* resource, uint32_t subresource, D3D11_MAP mapType, void*& outMemory);
+		void MapMemory(ID3D11Resource* resource, uint32_t subresource, D3D11_MAP mapType, D3D11_MAPPED_SUBRESOURCE& outMapped);
 		void UnmapMemory(ID3D11Resource* resource, uint32_t subresource);
 
 		void UpdateSubresource(ID3D11Resource* destination, uint32_t destSubresource, const D3D11_BOX* destBox, const void* sourceData, uint32_t sourceRowPitch, uint32_t sourceDepthPitch);
@@ -58,21 +63,27 @@ namespace Shark {
 		ID3D11DeviceContext* AllocateCommandBuffer();
 		void FlushCommandBuffer(ID3D11DeviceContext* commandBuffer);
 
-		ID3D11Device* GetDirectXDevice() { return m_Device; }
+		const DeviceLimits& GetLimits() const { return m_Limits; }
+
+		ID3D11Device1* GetDirectXDevice() { return m_Device; }
 		IDXGIFactory* GetDirectXFactory() { return m_Factory; }
 		ID3D11DeviceContext* GetQueue() { return m_Queue; }
-		std::mutex& GetSubmissionMutex() { return m_SubmissionMutex; }
+
+		void Lock() { m_SubmissionMutex.lock(); }
+		void Unlock() { m_SubmissionMutex.unlock(); }
 
 	private:
 		Ref<DirectXCommandPool> GetThreadLocalCommandPool();
 		Ref<DirectXCommandPool> GetOrCreateThreadLocalCommandPool();
 
 	private:
-		ID3D11Device* m_Device = nullptr;
+		ID3D11Device1* m_Device = nullptr;
 		IDXGIFactory* m_Factory = nullptr;
 
 		std::mutex m_SubmissionMutex;
 		ID3D11DeviceContext* m_Queue = nullptr;
+
+		DeviceLimits m_Limits;
 
 		std::map<std::thread::id, Ref<DirectXCommandPool>> m_CommandPools;
 	};
