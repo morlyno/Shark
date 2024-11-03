@@ -3,23 +3,10 @@ project "Shark-ScriptCore"
     language "c#"
     dotnetframework "4.7.2"
 
-    targetdir ("%{wks.location}/SharkFin/Resources/Binaries")
-    objdir ("%{wks.location}/SharkFin/Resources/Binaries/Intermediates")
+    targetdir ("%{wks.location}/Shark-Editor/Resources/Binaries")
+    objdir ("%{wks.location}/Shark-Editor/Resources/Binaries/Intermediates")
 
     files
     {
         "Shark-ScriptCore/**.cs"
     }
-
-    filter "system:windows"
-        systemversion "latest"
-
-    filter "configurations:Debug"
-        runtime "Debug"
-        optimize "Off"
-        symbols "Default"
-
-    filter "configurations:Release"
-        runtime "Release"
-        optimize "On"
-        symbols "Default"

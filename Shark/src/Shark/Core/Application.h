@@ -3,13 +3,12 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Window.h"
 #include "Shark/Event/Event.h"
-#include "Shark/Event/EventListener.h"
 #include "Shark/Event/WindowEvent.h"
-#include "Shark/Event/ApplicationEvent.h"
-#include "Shark/Event/KeyEvent.h"
 #include "Shark/Layer/LayerStack.h"
 #include "Shark/UI/ImGui/ImGuiLayer.h"
 #include "Shark/Scripting/ScriptEngine.h"
+
+#include <queue>
 
 namespace Shark {
 

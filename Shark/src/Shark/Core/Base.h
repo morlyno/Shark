@@ -79,9 +79,7 @@ namespace Shark {
 	using RenderID = void*;
 	using WindowHandle = void*;
 
-	using namespace std::literals::string_literals;
-	using namespace std::literals::string_view_literals;
-	using namespace std::literals::chrono_literals;
+	using namespace std::literals;
 	using namespace magic_enum::bitwise_operators;
 
 }

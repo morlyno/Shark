@@ -4,9 +4,9 @@ bin/
 bin-int/
 Scripts/__pycache__
 
-SharkFin/Cache
-SharkFin/imgui.ini
-SharkFin/Logs/*.log
+Shark-Editor/Cache
+Shark-Editor/imgui.ini
+Shark-Editor/Logs/*.log
 Shark-Runtime/Logs/*.log
 
 # Visual Studios files
@@ -16,6 +16,6 @@ Shark-Runtime/Logs/*.log
 **.vcxproj.filters
 **.vcxproj.user
 *.csproj*
-SharkFin/Resources/Binaries
-SharkFin/SandboxProject/Binaries
-SharkFin/SandboxProject/Intermediates
+Shark-Editor/Resources/Binaries
+Shark-Editor/SandboxProject/Binaries
+Shark-Editor/SandboxProject/Intermediates

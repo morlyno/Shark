@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shark/Core/UUID.h"
 #include <imgui.h>
 
 #ifdef IMGUI_DEFINE_MATH_OPERATORS

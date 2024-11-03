@@ -4,6 +4,8 @@
 
 namespace Shark::Math {
 
+	constexpr float PI = 3.14159265358979323846264338327950288f;
+
 	constexpr float Deg2Rad = 0.01745329251994329576923690768489f;
 	constexpr float Rad2Deg = 57.295779513082320876798154814105f;
 

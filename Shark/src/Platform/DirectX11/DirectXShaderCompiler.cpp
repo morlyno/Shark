@@ -337,6 +337,11 @@ namespace Shark {
 			SerializeReflectionData();
 		}
 
+		if (m_CompiledStages != ShaderUtils::ShaderStage::None)
+		{
+			SK_CONSOLE_INFO("Shader Compiled\n\nFile: {}\nStages: {}", m_ShaderSourcePath, m_CompiledStages);
+		}
+
 		return true;
 	}
 
@@ -653,6 +658,7 @@ namespace Shark {
 		std::string hlslSource = CrossCompileToHLSL(stage, outputSPIRVDebug);
 
 		error = CompileHLSL(stage, hlslSource.size() ? hlslSource : m_ShaderSource.at(stage), outputBinary);
+		m_CompiledStages |= stage;
 		return error;
 	}
 
@@ -665,7 +671,11 @@ namespace Shark {
 
 		virtual HRESULT STDMETHODCALLTYPE LoadSource(_In_z_ LPCWSTR pFilename, _COM_Outptr_result_maybenull_ IDxcBlob** ppIncludeSource)
 		{
-			auto filepath = std::filesystem::canonical(std::filesystem::path(L"Resources/Shaders") / pFilename);
+			std::error_code error;
+			auto filepath = std::filesystem::canonical(std::filesystem::path(L"Resources/Shaders") / pFilename, error);
+			if (error)
+				return E_INVALIDARG;
+
 			return m_DefaultIncludeHandler->LoadSource(filepath.c_str(), ppIncludeSource);
 		}
 
@@ -846,7 +856,6 @@ namespace Shark {
 			{
 				std::string name = resource.name.substr(m_Language == ShaderUtils::ShaderLanguage::HLSL ? 7 : 2);
 				uint32_t location = compilerHLSL.get_decoration(resource.id, spv::DecorationLocation);
-				SK_CORE_TRACE("Vertex Attribute Remap from location = {} to {}", location, name);
 				compilerHLSL.add_vertex_attribute_remap({ location, name });
 			}
 		}
@@ -1015,7 +1024,6 @@ namespace Shark {
 		{
 			const spirv_cross::SPIRType& bufferType = compiler.get_type(pushConstant.type_id);
 			std::string name = compiler.get_name(pushConstant.id);
-			SK_CORE_DEBUG("Name from ID: {}, Name from Unifrom Buffers: {}", name, pushConstant.name);
 			if (name.empty())
 				name = pushConstant.name;
 
@@ -1079,7 +1087,6 @@ namespace Shark {
 		{
 			const spirv_cross::SPIRType& bufferType = compiler.get_type(constantBuffer.type_id);
 			std::string name = compiler.get_name(constantBuffer.id);
-			SK_CORE_DEBUG("Name from ID: {}, Name from Unifrom Buffers: {}", name, constantBuffer.name);
 			if (name.empty())
 				name = constantBuffer.name;
 
@@ -1153,7 +1160,6 @@ namespace Shark {
 		{
 			const spirv_cross::SPIRType& bufferType = compiler.get_type(storageBuffer.type_id);
 			std::string name = compiler.get_name(storageBuffer.id);
-			SK_CORE_DEBUG("Name from ID: {}, Name from Storage Buffer: {}", name, storageBuffer.name);
 			if (name.empty())
 				name = storageBuffer.name;
 

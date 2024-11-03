@@ -1,5 +1,7 @@
 #pragma once
 
+#include <span>
+
 namespace Shark {
 
 	class Scene;

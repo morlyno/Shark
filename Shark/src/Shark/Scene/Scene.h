@@ -12,6 +12,7 @@
 #include "Shark/Render/Environment.h"
 
 #include <entt.hpp>
+#include <ranges>
 
 namespace Shark {
 

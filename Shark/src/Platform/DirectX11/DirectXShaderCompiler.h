@@ -79,6 +79,8 @@ namespace Shark {
 		std::unordered_map<ShaderUtils::ShaderStage, std::vector<byte>> m_ShaderBinary;
 		ShaderReflectionData m_ReflectionData;
 
+		ShaderUtils::ShaderStage m_CompiledStages = ShaderUtils::ShaderStage::None;
+
 		struct Metadata
 		{
 			ShaderUtils::ShaderStage Stage = ShaderUtils::ShaderStage::None;

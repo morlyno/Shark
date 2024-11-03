@@ -4,6 +4,8 @@
 #include "Shark/Render/MeshSource.h"
 #include "Shark/Render/MaterialAsset.h"
 
+#include <span>
+
 namespace Shark {
 
 	class Mesh : public Asset

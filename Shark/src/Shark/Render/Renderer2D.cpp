@@ -203,7 +203,7 @@ namespace Shark {
 			m_TextVertexData.Allocate(DefaultTextVertices * sizeof TextVertex);
 		}
 
-		constexpr float delta = (2.0f * M_PI) / (float)MaxCircleVertexPositions;
+		constexpr float delta = (2.0f * Math::PI) / (float)MaxCircleVertexPositions;
 		for (uint32_t i = 0; i < MaxCircleVertexPositions; i++)
 		{
 			const float r0 = (float)i * delta;

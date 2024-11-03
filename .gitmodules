@@ -7,9 +7,6 @@
 [submodule "Shark/dependencies/ImGui"]
 	path = Shark/dependencies/ImGui
 	url = https://github.com/morlyno/imgui.git
-[submodule "Shark/dependencies/ImGuizmo"]
-	path = Shark/dependencies/ImGuizmo
-	url = https://github.com/morlyno/ImGuizmo.git
 [submodule "Shark/dependencies/fmt"]
 	path = Shark/dependencies/fmt
 	url = https://github.com/morlyno/fmt.git

@@ -11,7 +11,7 @@ try\
 catch (const YAML::BadConversion& e)\
 {\
 	SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize property!\n\tName: {}\n\tError: {}", _name, e.what());\
-	SK_CONNECT(INTERNAL_DESERIALIZE_PROPERTY_FALLBACK, GET_ARG_COUNT(__VA_ARGS__))(_value, __VA_ARGS__);\
+	__VA_OPT__(_value = __VA_ARGS__);\
 }
 
 #define SK_DESERIALIZE_VALUE(_yamlNode, _name, _type)\

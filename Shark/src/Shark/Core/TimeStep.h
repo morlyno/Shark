@@ -1,5 +1,7 @@
 #pragma once
 
+#include <StrToNum.h>
+
 namespace Shark {
 
 	class TimeStep
@@ -60,6 +62,34 @@ namespace Shark {
 		float m_Time;
 	};
 
-	inline auto format_as(TimeStep ts) { return ts.ToString(); }
-
 }
+
+template<>
+struct fmt::formatter<Shark::TimeStep, char>
+{
+private:
+	uint32_t m_Precision = 6;
+
+public:
+	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+	{
+		auto end = std::find(ctx.begin(), ctx.end(), '}');
+		if (end != ctx.end())
+		{
+			std::string_view range = { ctx.begin(), end };
+			auto dot = range.find('.');
+			if (dot == std::string_view::npos)
+				return ctx.end();
+
+			auto result = stn::StrToInt32(range.substr(dot + 1));
+			m_Precision = result.value_or(6);
+		}
+		return ctx.end();
+	}
+
+	template<typename FormatContext>
+	auto format(const Shark::TimeStep& timestep, FormatContext& ctx) const -> decltype(ctx.out())
+	{
+		return fmt::format_to(ctx.out(), "{0}", timestep.ToString(m_Precision));
+	}
+};

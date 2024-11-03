@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <fmt/std.h>
 #include <glm/glm.hpp>
 
 template<glm::length_t L, typename T, glm::qualifier Q, typename Char>

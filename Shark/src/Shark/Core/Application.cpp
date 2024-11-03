@@ -5,14 +5,12 @@
 #include "Shark/Core/Timer.h"
 #include "Shark/Asset/AssetManager.h"
 
-#include "Shark/Event/KeyEvent.h"
 #include "Shark/Input/Input.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/String.h"
-#include "Shark/Utils/TimeUtils.h"
 #include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Debug/Profiler.h"
 

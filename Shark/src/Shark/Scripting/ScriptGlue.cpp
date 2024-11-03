@@ -34,7 +34,7 @@
 #include <imgui_internal.h>
 #include <glm/gtx/common.hpp>
 
-#define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" SK_STRINGIFY(func), SK_CONNECT(&InternalCalls::, func));
+#define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" #func, &InternalCalls:: func)
 
 namespace Shark {
 
