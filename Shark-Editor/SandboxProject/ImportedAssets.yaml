@@ -260,18 +260,15 @@ ImportedAssets:
   - Handle: 14427279112942103288
     Type: Texture
     FilePath: MeshSources/Sponza/textures/vase_round_spec.png
-  - Handle: 17082748906550579815
+  - Handle: 7543627127902545467
     Type: Texture
-    FilePath: MeshSources/cerberus.fbm/cerberus_A.png
-  - Handle: 2603443190355625923
+    FilePath: MeshSources/cerberus/cerberus_A.png
+  - Handle: 5725126265285918472
     Type: Texture
-    FilePath: MeshSources/cerberus.fbm/cerberus_M.png
-  - Handle: 8199248127231512866
+    FilePath: MeshSources/cerberus/cerberus_M-cerberus_R.png
+  - Handle: 4536202357368039088
     Type: Texture
-    FilePath: MeshSources/cerberus.fbm/cerberus_N.png
-  - Handle: 7539208516220711472
-    Type: Texture
-    FilePath: MeshSources/cerberus.fbm/cerberus_R.png
+    FilePath: MeshSources/cerberus/cerberus_N.png
   - Handle: 7232853939150060284
     Type: Texture
     FilePath: MeshSources/muro/Muro_body_dm.png
@@ -560,12 +557,15 @@ ImportedAssets:
   - Handle: 10985555844799758121
     Type: Font
     FilePath: Fonts/Comic Sans/comicz.ttf
+  - Handle: 1727210626878803181
+    Type: MeshSource
+    FilePath: MeshSources/CerberusPacked.glb
   - Handle: 8065881379180186665
     Type: MeshSource
     FilePath: MeshSources/Sponza/sponza.obj
-  - Handle: 13539195657805118801
+  - Handle: 9500225422371717065
     Type: MeshSource
-    FilePath: MeshSources/cerberus.fbx
+    FilePath: MeshSources/cerberus/cerberus.gltf
   - Handle: 16626606791774496845
     Type: MeshSource
     FilePath: MeshSources/muro/muro.obj
@@ -575,9 +575,6 @@ ImportedAssets:
   - Handle: 863831583129125145
     Type: MeshSource
     FilePath: MeshSources/nanoboy.fbx
-  - Handle: 15941159226969732890
-    Type: MeshSource
-    FilePath: MeshSources/suzanne.obj
   - Handle: 9606565860811407761
     Type: MeshSource
     FilePath: Meshes/Source/Cannon/cannon_01_4k.fbx
@@ -611,6 +608,9 @@ ImportedAssets:
   - Handle: 15152399178846611395
     Type: MeshSource
     FilePath: Meshes/Source/cerberus_fbx/cerberus.fbx
+  - Handle: 4372713327045032286
+    Type: Mesh
+    FilePath: Meshes/CerberusPacked.skmesh
   - Handle: 9815586959680881104
     Type: Mesh
     FilePath: Meshes/Defaults/Cone.skmesh

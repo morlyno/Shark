@@ -65,13 +65,13 @@ namespace Shark {
 }
 
 template<>
-struct fmt::formatter<Shark::TimeStep, char>
+struct fmt::formatter<Shark::TimeStep>
 {
 private:
 	uint32_t m_Precision = 6;
 
 public:
-	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+	constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
 	{
 		auto end = std::find(ctx.begin(), ctx.end(), '}');
 		if (end != ctx.end())
@@ -88,7 +88,7 @@ public:
 	}
 
 	template<typename FormatContext>
-	auto format(const Shark::TimeStep& timestep, FormatContext& ctx) const -> decltype(ctx.out())
+	auto format(const Shark::TimeStep& timestep, FormatContext& ctx) const -> FormatContext::iterator
 	{
 		return fmt::format_to(ctx.out(), "{0}", timestep.ToString(m_Precision));
 	}

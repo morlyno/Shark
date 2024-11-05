@@ -49,6 +49,17 @@ namespace Shark {
 			AsyncLoadResult<Asset> result = GetAssetAsync(handle);
 			return AsyncLoadResult<TAsset>(result);
 		}
+		
+		template<typename TAsset>
+		static Ref<TAsset> GetReadyAssetAsync(AssetHandle handle)
+		{
+			static_assert(std::is_base_of_v<Asset, TAsset>, "GetAsset only works for types with base class Asset");
+
+			AsyncLoadResult<Asset> result = GetAssetAsync(handle);
+			if (result.Ready)
+				return result.Asset.As<TAsset>();
+			return nullptr;
+		}
 
 		template<typename TAsset, typename... TArgs>
 		static AssetHandle CreateMemoryOnlyAsset(TArgs&&... args)

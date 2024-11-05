@@ -106,6 +106,7 @@ namespace Shark {
 		~TextureThumbnailGenerator();
 
 		virtual void OnPrepare(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override {}
+		virtual void OnRender(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override {}
 		virtual void OnFinish(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override {}
 
 		virtual Ref<Image2D> GetImage(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer) override;

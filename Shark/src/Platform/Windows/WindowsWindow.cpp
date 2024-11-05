@@ -1,16 +1,10 @@
 #include "skpch.h"
 #include "WindowsWindow.h"
-#include "Shark/Event/MouseEvent.h"
-#include "Shark/Event/WindowEvent.h"
-#include "Shark/Event/KeyEvent.h"
-#include "Shark/Input/Input.h"
+
 #include "Shark/Input/KeyCodes.h"
 #include "Shark/Input/MouseButtons.h"
 
 #include "Shark/Utils/String.h"
-#include "Shark/Render/Renderer.h"
-
-#include "Platform/Windows/WindowsUtils.h"
 
 #include "Shark/Debug/Profiler.h"
 

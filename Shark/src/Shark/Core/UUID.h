@@ -23,24 +23,20 @@ namespace Shark {
 
 }
 
-namespace std {
-
-	template<>
-	struct hash<Shark::UUID>
+template<>
+struct std::hash<Shark::UUID>
+{
+	size_t operator()(Shark::UUID uuid) const
 	{
-		size_t operator()(Shark::UUID uuid) const
-		{
-			return uuid.Value();
-		}
-	};
-
-}
+		return uuid.Value();
+	}
+};
 
 template<typename Char>
 struct fmt::formatter<Shark::UUID, Char> : fmt::formatter<uint64_t, Char>
 {
 	template<typename FormatContext>
-	auto format(const Shark::UUID& uuid, FormatContext& ctx) const -> decltype(ctx.out())
+	auto format(const Shark::UUID& uuid, FormatContext& ctx) const -> FormatContext::iterator
 	{
 		return fmt::formatter<uint64_t, Char>::format(uuid.Value(), ctx);
 	}

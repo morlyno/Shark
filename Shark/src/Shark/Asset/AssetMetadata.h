@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Asset.h"
+#include "Shark/Asset/Asset.h"
+#include "Shark/Core/Threading.h"
 
 namespace Shark {
 

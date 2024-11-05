@@ -362,7 +362,7 @@ namespace Shark {
 						readonly = false;
 					}
 
-					if (!material)
+					if (!material && meshMaterialTable->HasMaterial(slot))
 					{
 						material = meshMaterialTable->GetMaterial(slot);
 						readonly = true;

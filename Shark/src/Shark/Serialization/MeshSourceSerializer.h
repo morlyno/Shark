@@ -2,8 +2,6 @@
 
 #include "Shark/Serialization/SerializerBase.h"
 
-#include "Shark/Render/MeshSource.h"
-
 namespace Shark {
 
 	class MeshSourceSerializer : public SerializerBase

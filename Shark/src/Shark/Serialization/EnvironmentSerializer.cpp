@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "EnvironmentSerializer.h"
 
+#include "Shark/Core/Project.h"
+
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Environment.h"
 

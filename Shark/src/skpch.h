@@ -31,6 +31,7 @@
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 #include <fmt/std.h>
+#include <fmt/ranges.h>
 
 #define GLM_ENABLE_EXPERIMENTAL 1
 #include <glm/glm.hpp>

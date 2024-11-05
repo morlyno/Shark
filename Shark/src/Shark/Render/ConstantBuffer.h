@@ -3,7 +3,6 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
 #include "Shark/Render/RendererResource.h"
-#include "Shark/Render/RenderCommandBuffer.h"
 
 namespace Shark {
 

@@ -3,6 +3,7 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Log.h"
+#include "Shark/Core/Project.h"
 
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
@@ -15,7 +16,6 @@
 #include "Shark/Event/MouseEvent.h"
 
 #include "Shark/Math/Math.h"
-#include "Shark/Utils/MemoryUtils.h"
 
 #include "Shark/Debug/Profiler.h"
 
@@ -32,7 +32,6 @@
 #include <box2d/b2_circle_shape.h>
 
 #include <imgui_internal.h>
-#include <glm/gtx/common.hpp>
 
 #define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" #func, &InternalCalls:: func)
 

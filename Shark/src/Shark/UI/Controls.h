@@ -22,6 +22,7 @@ namespace Shark::UI {
 	bool ControlHeader(std::string_view label, bool openByDefault = true, bool spanColumns = false);
 
 	bool Control(std::string_view label, bool& val);
+	void Control(std::string_view label, const bool& val);
 
 	bool Control(std::string_view label, float& val, float speed = 0.05f, float min = 0.0f, float max = 0.0f, const char* fmt = nullptr);
 	bool Control(std::string_view label, double& val, float speed = 0.05f, double min = 0.0, double max = 0.0, const char* fmt = nullptr);
@@ -58,6 +59,7 @@ namespace Shark::UI {
 	bool Control(std::string_view label, const char* buffer, uint64_t bufferSize);
 	bool Control(std::string_view label, std::string& val);
 	bool Control(std::string_view label, const std::string& val);
+	bool Control(std::string_view label, std::string_view val);
 
 	bool ControlColor(std::string_view label, glm::vec3& color);
 	bool ControlColor(std::string_view label, glm::vec4& color);

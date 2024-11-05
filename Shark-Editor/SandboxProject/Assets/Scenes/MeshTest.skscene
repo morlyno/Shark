@@ -86,7 +86,7 @@ Scene:
         Children:
           []
       StaticMeshComponent:
-        StaticMesh: 12376335780905884411
+        StaticMesh: 4372713327045032286
         MaterialTable:
           {}
         Visible: true

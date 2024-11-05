@@ -1,13 +1,10 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Buffer.h"
-#include "Shark/Core/Project.h"
 #include "Shark/Event/Event.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Input/KeyCodes.h"
 #include "Shark/Input/MouseButtons.h"
-#include "Shark/Scene/Scene.h"
 
 namespace Shark {
 

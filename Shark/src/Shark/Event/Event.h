@@ -30,8 +30,8 @@ namespace Shark {
 		virtual ~Event() = default;
 
 		virtual EventType GetEventType() const = 0;
-		virtual std::string GetName() const = 0;
-		virtual std::string ToString() const { return GetName(); }
+		virtual std::string_view GetName() const = 0;
+		virtual std::string ToString() const { return std::string(GetName()); }
 		virtual EventCategory GetEventCategoryFlags() const = 0;
 		bool IsInCategory(EventCategory category) const { return (GetEventCategoryFlags() & category) == category; }
 
@@ -52,7 +52,7 @@ namespace Shark {
 	public:
 		static constexpr EventType GetStaticType() { return Type; }
 		virtual EventType GetEventType() const override { return GetStaticType(); }
-		virtual std::string GetName() const override { return fmt::to_string(Type); }
+		virtual std::string_view GetName() const override { return magic_enum::enum_name(Type); }
 
 		static constexpr EventCategory GetStaticEventCategoryFlags() { return Category; }
 		virtual EventCategory GetEventCategoryFlags() const override { return GetStaticEventCategoryFlags(); }
@@ -83,15 +83,16 @@ namespace Shark {
 }
 
 template<typename TEvent>
-struct fmt::formatter<TEvent, char, std::enable_if_t<std::is_same_v<TEvent, Shark::Event> || std::is_base_of_v<Shark::Event, TEvent>>>
+	requires std::is_same_v<TEvent, Shark::Event> || std::is_base_of_v<Shark::Event, char>
+struct fmt::formatter<TEvent>
 {	
-	constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+	constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
 	{
 		return ctx.end();
 	}
 
 	template<typename FormatContext>
-	auto format(const TEvent& event, FormatContext& ctx) const -> decltype(ctx.out())
+	auto format(const TEvent& event, FormatContext& ctx) const -> FormatContext::iterator
 	{
 		return fmt::format_to(ctx.out(), "{0}", event.ToString());
 	}

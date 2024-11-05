@@ -402,11 +402,10 @@ namespace Shark {
 			UI::ScopedColor tableBg(ImGuiCol_ChildBg, UI::Colors::Theme::BackgroundDark);
 
 			ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoPadInnerX;
-			if (ImGui::BeginTable("##entityHierarchy", 3, tableFlags, ImGui::GetContentRegionAvail()))
+			if (ImGui::BeginTable("##entityHierarchy", 2, tableFlags, ImGui::GetContentRegionAvail()))
 			{
 				ImGui::TableSetupColumn("Label");
 				ImGui::TableSetupColumn("Type");
-				ImGui::TableSetupColumn("Index");
 
 				// Header
 				{
@@ -995,7 +994,7 @@ namespace Shark {
 				return UI::Control("Tiling Factor", firstComponent.TilingFactor, 0.05f, 0.0f, FLT_MAX);
 			});
 
-			utils::Multiselect(entities, &SpriteRendererComponent::Transparent, [](auto& firstComponent, const auto& entities)
+			utils::Multiselect(entities, &SpriteRendererComponent::Transparent, [](auto& firstComponent, const auto& entities) -> bool
 			{
 				return UI::Control("Transparent", firstComponent.Transparent);
 			});
@@ -1121,6 +1120,7 @@ namespace Shark {
 
 			const bool isInconsistantMesh = utils::IsInconsistentProperty<StaticMeshComponent>(entities, &StaticMeshComponent::StaticMesh);
 			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isInconsistantMesh);
+
 			if (UI::ControlAsset("Mesh", AssetType::Mesh, firstComponent.StaticMesh))
 			{
 				utils::UnifyMember(entities, &StaticMeshComponent::StaticMesh);
@@ -1129,9 +1129,10 @@ namespace Shark {
 			utils::MultiselectControl(entities, &StaticMeshComponent::Visible, "Visible");
 			UI::EndControlsGrid();
 
-			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(firstComponent.StaticMesh);
+			Ref<Mesh> mesh = AssetManager::GetReadyAssetAsync<Mesh>(firstComponent.StaticMesh);
 			if (mesh)
 			{
+				UI::ScopedDisabled disabled(isInconsistantMesh);
 				DrawMaterialTable(entities, firstComponent.MaterialTable, mesh->GetMaterials());
 			}
 		});

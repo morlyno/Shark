@@ -3,9 +3,7 @@
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/UIUtilities.h"
-#include "Shark/UI/EditorResources.h"
-
-#include "Shark/File/FileSystem.h"
+#include "Shark/Utils/PlatformUtils.h"
 
 namespace Shark {
 

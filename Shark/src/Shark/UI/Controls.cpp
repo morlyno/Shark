@@ -132,6 +132,22 @@ namespace Shark::UI {
 		return modified;
 	}
 
+	void Control(std::string_view label, const bool& val)
+	{
+		if (!ControlHelperBegin(ImGui::GetID(label)))
+			return;
+
+		ImGui::Text(label);
+		ImGui::TableNextColumn();
+
+		ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
+		bool temp = val;
+		UI::Checkbox(GenerateID(), &temp);
+		ImGui::PopItemFlag();
+
+		ControlHelperEnd();
+	}
+
 	bool Control(std::string_view label, float& val, float speed, float min, float max, const char* fmt)
 	{
 		if (!ControlHelperBegin(ImGui::GetID(label)))
@@ -535,6 +551,21 @@ namespace Shark::UI {
 	}
 
 	bool Control(std::string_view label, const std::string& val)
+	{
+		if (!ControlHelperBegin(ImGui::GetID(label)))
+			return false;
+
+		ImGui::Text(label);
+		ImGui::TableNextColumn();
+
+		ImGui::SetNextItemWidth(-1.0f);
+		const bool modified = UI::InputText(GenerateID(), (char*)val.data(), val.size(), ImGuiInputTextFlags_ReadOnly);
+
+		ControlHelperEnd();
+		return modified;
+	}
+
+	bool Control(std::string_view label, std::string_view val)
 	{
 		if (!ControlHelperBegin(ImGui::GetID(label)))
 			return false;
