@@ -13,6 +13,7 @@ namespace Shark::UI {
 		void SetMode(String::Case compCase) { m_Case = compCase; }
 		void EnabelAutoCaseSensitive(bool enabled = true) { m_AutoCaseSensitive = enabled; }
 
+		void Clear();
 		void Rebuild();
 		void SetFilter(const std::string& filter);
 

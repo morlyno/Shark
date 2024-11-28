@@ -1,16 +1,18 @@
 #include "skpch.h"
 #include "Memory.h"
 
-#include <tracy/Tracy.hpp>
+#if SK_ENABLE_PROFILER
+	#include <tracy/Tracy.hpp>
+#endif
 
 namespace Shark {
 
-#if 1
+#if SK_ENABLE_PROFILER
 #define PROFILE_ALLOCATE(_memory, _size, _module) TracyAllocN(_memory, _size, _module)
 #define PROFILE_FREE(_memory, _module) TracyFreeN(_memory, _module)
 #else
-#define PROFILE_ALLOCATE(_memory, _size, _module) TracyAlloc(_memory, _size)
-#define PROFILE_FREE(_memory, _module) TracyFree(_memory)
+#define PROFILE_ALLOCATE(_memory, _size, _module) (void)0
+#define PROFILE_FREE(_memory, _module) (void)0
 #endif
 
 	void Allocator::Init()
@@ -22,14 +24,14 @@ namespace Shark {
 	void* Allocator::AllocateRaw(size_t size)
 	{
 		void* memory = malloc(size);
-		TracyAllocN(memory, size, "Raw");
+		PROFILE_ALLOCATE(memory, size, "Raw");
 		return memory;
 	}
 
 	void Allocator::FreeRaw(void* memory)
 	{
 		free(memory);
-		TracyFreeN(memory, "Raw");
+		PROFILE_FREE(memory, "Raw");
 	}
 
 	void* Allocator::Allocate(size_t size)

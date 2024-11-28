@@ -58,6 +58,7 @@ namespace Shark {
 			framebufferSpecification.ClearColorOnLoad = false;
 			framebufferSpecification.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 			framebufferSpecification.DebugName = "Renderer2D-Main";
+			framebufferSpecification.IndipendendClearColor[1] = { -1.0f, -1.0f, -1.0f, -1.0f };
 			targetFramebuffer = FrameBuffer::Create(framebufferSpecification);
 		}
 
@@ -117,7 +118,7 @@ namespace Shark {
 				quadIndices[i + 4] = j + 3;
 				quadIndices[i + 5] = j + 0;
 			}
-			m_QuadIndexBuffer = IndexBuffer::Create(DefaultQuadIndices, false, Buffer::FromArray(quadIndices, DefaultQuadIndices));
+			m_QuadIndexBuffer = IndexBuffer::Create(DefaultQuadIndices, false, Buffer(quadIndices, DefaultQuadIndices));
 			skdelete[] quadIndices;
 
 			m_QuadVertexData.Allocate(DefaultQuadVertices * sizeof QuadVertex);

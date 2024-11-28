@@ -1,123 +1,70 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-
+#include "Shark/Core/Project.h"
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
-
+#include "Shark/Scripting/ScriptStorage.h"
 #include "Shark/Scripting/ScriptTypes.h"
-#include "Shark/Scripting/ScriptUtils.h"
 
-extern "C" {
-	typedef struct _MonoDomain MonoDomain;
-	typedef struct _MonoAssembly MonoAssembly;
-	typedef struct _MonoObject MonoObject;
-	typedef struct _MonoMethod MonoMethod;
-}
+#include <Coral/HostInstance.hpp>
 
 namespace Shark {
 
-	using EntityInstancesMap = std::unordered_map<UUID, GCHandle>;
-	using ScriptClassMap = std::unordered_map<uint64_t, Ref<ScriptClass>>;
-	using FieldStorageMap = std::map<std::string, Ref<FieldStorage>>;
-	using AssembliesReloadedHookFn = std::function<void()>;
-
-	struct ScriptEngineConfig
-	{
-		std::filesystem::path CoreAssemblyPath;
-		bool EnableDebugging = false;
-		bool AutoReload = false;
-	};
+	class Scene;
 
 	class ScriptEngine
 	{
 	public:
-		static void Init(const ScriptEngineConfig& config);
-		static void Shutdown();
+		ScriptEngine() = default;
+		~ScriptEngine() = default;
 
-		static void RegisterAssembliesReloadedHook(const AssembliesReloadedHookFn& hook);
+		// Shortcut for Application::Get().GetScriptEngine()
+		static ScriptEngine& Get();
 
-		static bool LoadAssemblies(const std::filesystem::path& assemblyPath);
-		static void ScheduleReload();
-		static void UnloadAssemblies();
+		void InitializeHost();
+		void ShutdownHost();
 
-		static bool AssembliesLoaded();
-		static const AssemblyInfo& GetCoreAssemblyInfo();
-		static const AssemblyInfo& GetAppAssemblyInfo();
-		static MonoDomain* GetRuntimeDomain();
+		void InitializeCore(Ref<Project> project);
+		void ShutdownCore();
+		void LoadAppAssembly();
+		void ReloadAssemblies();
 
-		static bool IsRunning();
-		static MonoClass* GetEntityClass();
+		bool HostInitialized() const { return m_Host != nullptr; }
+		bool CoreInitialized() const { return m_CoreAssembly != nullptr; }
+		bool AppAssemblyLoaded() const { return m_AppAssembly != nullptr; }
 
-		static Ref<ScriptClass> GetScriptClass(uint64_t id);
-		static Ref<ScriptClass> GetScriptClassFromName(std::string_view fullName);
+		bool IsValidScriptID(uint64_t scriptID);
 
-		static void InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle);
-		static ManagedField& GetFieldFromStorage(Ref<FieldStorage> storage);
-
-		static const ScriptClassMap& GetScriptClasses();
-		static FieldStorageMap& GetFieldStorageMap(Entity entity);
-
-	public: // Scripting API
-		static void InitializeRuntime(Ref<Scene> scene);
-		static void ShutdownRuntime();
-
-		static GCHandle InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields);
-		static void DestroyEntityInstance(Entity entity, bool invokeOnDestroy);
-		static void InitializeFields(Entity entity);
-
-		static void OnEntityDestroyed(Entity entity);
-		static void OnEntityCloned(Entity srcEntity, Entity entity);
-
-		static bool IsInstantiated(Entity entity);
-		static GCHandle GetInstance(Entity entity);
-		static MonoObject* GetInstanceObject(Entity entity);
-
-		static MonoObject* CreateEntity(UUID uuid);
-		static MonoObject* InstantiateBaseEntity(Entity entity);
-		static MonoObject* InstantiateClass(MonoClass* klass);
-
-		static Ref<Scene> GetActiveScene();
-		static const EntityInstancesMap& GetEntityInstances();
-
+		Coral::ManagedObject* Instantiate(UUID entityID, ScriptStorage& storage);
+		void Destoy(UUID entityID, ScriptStorage& storage);
 
 	public:
-		template<typename... TArgs>
-		static bool InvokeMethod(MonoObject* object, MonoMethod* method, TArgs&&... args)
-		{
-			static_assert(!(std::is_same_v<MonoObject*, std::decay_t<TArgs>> || ...));
-			void* params[] = { (void*)&args... };
-			return InvokeMethod(object, method, params);
-		}
+		void SetCurrentScene(Ref<Scene> scene) { m_CurrentScene = scene; }
+		Ref<Scene> GetCurrentSceen() const { return m_CurrentScene; }
 
-		template<typename... TArgs>
-		static bool InvokeVirtualMethod(MonoObject* object, MonoMethod* method, TArgs&&... args)
-		{
-			static_assert(!(std::is_same_v<MonoObject*, std::decay_t<TArgs>> || ...));
-			void* params[] = { (void*)&args... };
-			return InvokeVirtualMethod(object, method, params);
-		}
-
-		static bool InvokeMethod(MonoObject* object, MonoMethod* method, void** params = nullptr, MonoObject** out_RetVal = nullptr);
-		static MonoObject* InvokeMethodR(MonoObject* object, MonoMethod* method, void** params = nullptr);
-		static bool InvokeVirtualMethod(MonoObject* object, MonoMethod* method, void** params = nullptr, MonoObject** out_RetVal = nullptr);
-		static MonoObject* InvokeVirtualMethodR(MonoObject* object, MonoMethod* method, void** params = nullptr);
+		const ScriptMetadata& GetScriptMetadata(uint64_t scriptID) const { return m_ScriptMetadata.at(scriptID); }
+		uint64_t FindScriptMetadata(std::string_view fullName) const;
+		const std::unordered_map<uint64_t, ScriptMetadata>& GetScripts() const { return m_ScriptMetadata; }
 
 	private:
-		static void InitMono();
-		static void ShutdownMono();
+		void BuildScriptCache();
 
-		static MonoAssembly* LoadCSAssembly(const std::filesystem::path& filePath);
-		static bool LoadCoreAssembly(const std::filesystem::path& filePath);
-		static bool LoadAppAssembly(const std::filesystem::path& filePath);
-		static bool ReloadAssemblies();
+	private:
+		Scope<Coral::HostInstance> m_Host;
+		Scope<Coral::AssemblyLoadContext> m_LoadContext;
 
-		static void CacheScriptClasses();
+		Ref<Project> m_Project;
+		Coral::ManagedAssembly* m_CoreAssembly = nullptr;
+		Coral::ManagedAssembly* m_AppAssembly = nullptr;
 
-		static bool IsInstantiated(UUID entityID);
-		static GCHandle GetInstance(UUID entityID);
+		Ref<Scene> m_CurrentScene;
 
-		static void UnhandledExeptionHook(MonoObject* exc, void* user_data);
+		// script id to metadata
+		std::unordered_map<uint64_t, ScriptMetadata> m_ScriptMetadata;
+
+		friend class ScriptGlue;
+		friend class ScriptEnginePanel;
 	};
 
 }

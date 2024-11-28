@@ -5,7 +5,7 @@ namespace Sandbox
 {
 	public class DebugPrint : Entity
 	{
-		public string Message;
+		public string Message = "Test Message";
 
 		protected override void OnCreate()
 		{

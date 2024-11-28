@@ -25,7 +25,7 @@ namespace Shark {
 		bool EnableImGui = false;
 		bool VSync = true;
 
-		ScriptEngineConfig ScriptConfig;
+		//ScriptEngineConfig ScriptConfig;
 	};
 
 	enum class ApplicationState
@@ -65,7 +65,8 @@ namespace Shark {
 
 		Window& GetWindow() { return *m_Window; }
 		const Window& GetWindow() const { return *m_Window; }
-
+		ScriptEngine& GetScriptEngine() { return m_ScriptEngine; }
+		const ScriptEngine& GetScriptEngine() const { return m_ScriptEngine; }
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
 		const ImGuiLayer& GetImGuiLayer() const { return *m_ImGuiLayer; }
 
@@ -114,6 +115,8 @@ namespace Shark {
 		// Owned by LayerStack
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
+
+		ScriptEngine m_ScriptEngine;
 
 		std::mutex m_MainThreadMutex;
 		std::vector<std::function<void()>> m_MainThreadQueue;

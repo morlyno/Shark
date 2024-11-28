@@ -1,49 +1,45 @@
-workspace "Sandbox"
-    startproject "Sandbox"
-
-    configurations
-    {
-        "Debug",
-        "Release"
-    }
 
 SharkDir = os.getenv("SHARK_DIR")
+include (path.join(SharkDir, "Shark", "dependencies", "Coral", "Premake", "CSExtensions.lua"))
+
+workspace "Sandbox"
+    configurations { "Debug", "Debug-AS", "Release" }
+    startproject "Sandbox"
+
+
+group "Shark"
+    include (path.join(SharkDir, "Shark", "dependencies", "Coral", "Coral.Managed"))
+    include (path.join(SharkDir, "Shark-ScriptCore"))
+group ""
+
 
 project "Sandbox"
-    kind "SharedLib"
-    language "c#"
-    framework "4.7.2"
     location "Assets/Scripts"
+    kind "SharedLib"
+    language "C#"
+    framework "net8.0"
 
-    targetdir "%{wks.location}/Binaries"
-    objdir "%{wks.location}/Intermediates"
+    targetname "Sandbox"
+    targetdir "%{prj.location}/Binaries"
+    objdir "%{prj.location}/Intermediates"
 
-    files
-    {
+    propertytags {
+        { "AppendTargetFrameworkToOutputPath", "false" },
+        { "Nullable", "enable" }
+    }
+
+    files {
         "%{prj.location}/Source/**.cs"
     }
     
-    links
-    {
+    links {
         "Shark-ScriptCore"
     }
     
-    filter "system:windows"
-        systemversion "latest"
-
     filter "configurations:Debug"
-        runtime "Debug"
         optimize "Off"
         symbols "Default"
 
     filter "configurations:Release"
-        runtime "Release"
         optimize "On"
         symbols "Default"
-
-group "Shark"
-    externalproject "Shark-ScriptCore"
-        kind "SharedLib"
-        language "c#"
-        location (SharkDir .. "/Shark-ScriptCore")
-group ""

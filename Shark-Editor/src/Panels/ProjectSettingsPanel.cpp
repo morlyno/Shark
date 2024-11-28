@@ -36,7 +36,7 @@ namespace Shark {
 			m_Focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
 			const ImVec2 tableSize = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() };
-			if (ImGui::BeginTable("##projectSettingsTable", 2, ImGuiTableFlags_Resizable /*| ImGuiTableFlags_Borders*/ | ImGuiTableFlags_PadOuterX, tableSize))
+			if (ImGui::BeginTable("##projectSettingsTable", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp/*| ImGuiTableFlags_Borders*/ | ImGuiTableFlags_PadOuterX, tableSize))
 			{
 				ImGui::TableSetupColumn("Menu", 0, 0.25f);
 				ImGui::TableSetupColumn("Settings", 0, 0.75f);
@@ -65,6 +65,7 @@ namespace Shark {
 					UI::ScopedIndent indent(1.0f);
 
 					MenuSelectable("General", ActiveContext::General);
+					MenuSelectable("Scripting", ActiveContext::Scripting);
 					MenuSelectable("Physics", ActiveContext::Physics);
 					MenuSelectable("Log", ActiveContext::Log);
 				}
@@ -78,7 +79,8 @@ namespace Shark {
 					UI::ScopedIndent indent(ImGui::GetStyle().FramePadding.x);
 					switch (m_ActiveContext)
 					{
-						case ActiveContext::General: DrawGeneral(); break;
+						case ActiveContext::General: DrawGeneralSettings(); break;
+						case ActiveContext::Scripting: DrawScriptingSettings(); break;
 						case ActiveContext::Physics: DrawPhysicsSettings(); break;
 						case ActiveContext::Log: DrawLogSettings(); break;
 					}
@@ -112,7 +114,7 @@ namespace Shark {
 		m_DirtyMenu.fill(false);
 	}
 
-	void ProjectSettingsPanel::DrawGeneral()
+	void ProjectSettingsPanel::DrawGeneralSettings()
 	{
 		UI::BeginControlsGrid();
 
@@ -151,6 +153,13 @@ namespace Shark {
 			m_ConfigDirty = true;
 			m_DirtyMenu[ActiveContext::General] = true;
 		}
+	}
+
+	void ProjectSettingsPanel::DrawScriptingSettings()
+	{
+		std::filesystem::path scriptModule = m_Project->GetConfig().ScriptModulePath;
+		if (UI::Widgets::InputFile(UI::DialogType::Open, scriptModule, "All|*.*|dll|*.dll", m_Project->GetDirectory()))
+			m_Project->GetConfigMutable().ScriptModulePath = m_Project->GetRelative(scriptModule).generic_string();
 	}
 
 	void ProjectSettingsPanel::DrawPhysicsSettings()
@@ -249,7 +258,7 @@ namespace Shark {
 		m_Project->Rename(m_TempConfig.Name);
 
 		ProjectSerializer serializer(m_Project);
-		serializer.Serialize(m_Project->GetProjectFilePath());
+		serializer.Serialize(m_Project->GetProjectFile());
 
 		m_DirtyMenu.fill(false);
 	}

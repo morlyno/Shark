@@ -168,7 +168,6 @@ namespace Shark {
 		}
 
 		Renderer::WaitAndRender();
-		ScriptEngine::RegisterAssembliesReloadedHook(std::bind(&EditorLayer::AssembliesReloadedHook, this));
 	}
 
 	void EditorLayer::OnDetach()
@@ -743,7 +742,10 @@ namespace Shark {
 			}
 
 			if (ImGui::MenuItem("Save Project"))
-				Project::SaveActive();
+			{
+				ProjectSerializer serializer(Project::GetActive());
+				serializer.Serialize(Project::GetProjectFilePath());
+			}
 
 			ImGui::Separator();
 
@@ -786,7 +788,11 @@ namespace Shark {
 		if (ImGui::BeginMenu("Script"))
 		{
 			if (ImGui::MenuItem("Reload"))
-				ScriptEngine::ScheduleReload();
+			{
+				//ScriptEngine::ScheduleReload();
+				// #TODO(moro): should this happen here
+				ScriptEngine::Get().ReloadAssemblies();
+			}
 
 			ImGui::Separator();
 
@@ -1721,6 +1727,7 @@ namespace Shark {
 
 	void EditorLayer::LoadSceneAsync(AssetHandle handle)
 	{
+		// #TODO(moro): add scene loading status/indicator
 		AssetManager::GetAssetFuture(handle).OnReady([this](Ref<Asset> asset)
 		{
 			SK_CORE_VERIFY(asset);
@@ -1734,6 +1741,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		SK_DEBUG_BREAK_CONDITIONAL(s_LOAD_SCENE_BLOCKING);
 		Ref<Scene> scene = AssetManager::GetAsset<Scene>(handle);
 		if (scene)
 		{
@@ -1803,6 +1811,17 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 
+		auto scriptModulePath = Project::GetActive()->GetScriptModulePath();
+		if (FileSystem::Exists(scriptModulePath))
+		{
+			uint64_t scriptEngineLastModified = FileSystem::GetLastWriteTime(scriptModulePath);
+			if (scriptEngineLastModified != m_ScriptEngineLastModifiedTime)
+			{
+				ScriptEngine::Get().ReloadAssemblies();
+				m_ScriptEngineLastModifiedTime = scriptEngineLastModified;
+			}
+		}
+
 		m_SceneState = SceneState::Play;
 		m_RenderGizmo = false;
 
@@ -1820,6 +1839,7 @@ namespace Shark {
 
 		m_ActiveScene->OnSceneStop();
 		m_PanelManager->OnSceneStop();
+		ScriptEngine::Get().ReloadAssemblies();
 		SetActiveScene(m_WorkScene);
 	}
 
@@ -1863,6 +1883,8 @@ namespace Shark {
 			scene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
+		ScriptEngine::Get().SetCurrentScene(scene);
+
 		m_ActiveScene = scene;
 		m_SceneRenderer->SetScene(scene);
 		m_PanelManager->SetContext(scene);
@@ -1884,30 +1906,44 @@ namespace Shark {
 
 		SK_CORE_INFO("Opening Project [{}]", filePath);
 
-		auto project = Project::LoadEditor(filePath);
-		if (project)
+		Ref<Project> project = Ref<Project>::Create();
+		ProjectSerializer serializer(project);
+		if (!serializer.Deserialize(filePath))
 		{
-			if (Project::GetActive())
-				CloseProject();
-
-			Project::SetActive(project);
-
-			ScriptEngine::LoadAssemblies(project->GetConfig().ScriptModulePath);
-			m_PanelManager->OnProjectChanged(project);
-
-			//if (!LoadScene(project->GetConfig().StartupScene))
-			//	NewScene("Empty Fallback Scene");
-			NewScene("Empty Scene");
-			LoadSceneAsync(project->GetConfig().StartupScene);
+			SK_CORE_ERROR_TAG("Core", "Failed to open project [{}]", filePath);
+			SK_CONSOLE_ERROR("Failed to open project!\nFailed to load project file.\n{}", filePath);
+			return;
 		}
+
+		if (Project::GetActive())
+			CloseProject();
+
+		Project::SetActive(project);
+
+		if (FileSystem::Exists(Project::GetActive()->GetScriptModulePath()))
+		{
+			ScriptEngine::Get().LoadAppAssembly();
+			m_ScriptEngineLastModifiedTime = FileSystem::GetLastWriteTime(Project::GetActive()->GetScriptModulePath());
+		}
+
+		m_PanelManager->OnProjectChanged(project);
+
+		//if (!LoadScene(project->GetConfig().StartupScene))
+		//	NewScene("Empty Fallback Scene");
+		NewScene("Empty Scene");
+		LoadSceneAsync(project->GetConfig().StartupScene);
 	}
 
 	void EditorLayer::CloseProject()
 	{
 		SK_PROFILE_FUNCTION();
 
-		Project::SaveActive();
-		Project::GetActive()->GetEditorAssetManager()->SerializeImportedAssets();
+		{
+			ProjectSerializer serializer(Project::GetActive());
+			serializer.Serialize(Project::GetProjectFilePath());
+		}
+
+		Project::GetActiveEditorAssetManager()->SerializeImportedAssets();
 
 		Weak sceneWeak = m_WorkScene;
 		Weak projectWeak = Project::GetActive();
@@ -1920,7 +1956,7 @@ namespace Shark {
 		m_SceneRenderer->SetScene(nullptr);
 		SetActiveScene(nullptr);
 
-		ScriptEngine::UnloadAssemblies();
+		//ScriptEngine::UnloadAssemblies();
 		m_WorkScene = nullptr;
 
 		m_PanelManager->OnProjectChanged(nullptr);
@@ -1935,7 +1971,9 @@ namespace Shark {
 	Ref<Project> EditorLayer::CreateProject(const std::filesystem::path& projectDirectory)
 	{
 		// Create Directory
-
+		SK_NOT_IMPLEMENTED();
+		return nullptr;
+#if TODO
 		std::string name = projectDirectory.filename().string();
 		if (std::filesystem::exists(projectDirectory))
 		{
@@ -1961,6 +1999,7 @@ namespace Shark {
 		serializer.Serialize(fmt::format("{0}/{1}.skproj", project->GetDirectory(), project->GetConfig().Name));
 
 		return project;
+#endif
 	}
 
 	void EditorLayer::CreateProjectPremakeFile(Ref<Project> project)
@@ -1990,22 +2029,7 @@ namespace Shark {
 	void EditorLayer::OpenIDE()
 	{
 		auto solutionPath = fmt::format("{}/{}.sln", Project::GetActiveDirectory(), Project::GetActive()->GetConfig().Name);
-		Platform::Execute(ExectueVerb::Open, solutionPath);
-	}
-
-	void EditorLayer::AssembliesReloadedHook()
-	{
-		if (!m_ActiveScene)
-			return;
-
-		auto view = m_ActiveScene->GetAllEntitysWith<ScriptComponent>();
-		for (auto ent : view)
-		{
-			Entity entity{ ent, m_ActiveScene };
-			auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-			Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(scriptComponent.ScriptName);
-			scriptComponent.ClassID = klass ? klass->GetID() : 0;
-		}
+		Platform::Execute(ExectueVerb::Run, solutionPath);
 	}
 
 	void EditorLayer::UpdateWindowTitle()

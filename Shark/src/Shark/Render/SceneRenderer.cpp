@@ -13,12 +13,6 @@
 
 #include "Shark/Debug/Profiler.h"
 
-#include "Platform/DirectX11/DirectXContext.h"
-#include "Platform/DirectX11/DirectXImage.h"
-#include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
-#include "Platform/DirectX11/DirectXShader.h"
-#include "Platform/DirectX11/DirectXConstantBuffer.h"
-
 namespace Shark {
 
 	SceneRenderer::SceneRenderer(uint32_t width, uint32_t height, const std::string& debugName)

@@ -79,12 +79,12 @@ public:
 			std::string_view range = { ctx.begin(), end };
 			auto dot = range.find('.');
 			if (dot == std::string_view::npos)
-				return ctx.end();
+				return end;
 
 			auto result = stn::StrToInt32(range.substr(dot + 1));
 			m_Precision = result.value_or(6);
 		}
-		return ctx.end();
+		return end;
 	}
 
 	template<typename FormatContext>

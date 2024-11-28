@@ -17,8 +17,8 @@ namespace Sandbox
 		{
 			m_DoorPos = Door.WorldTransform.Translation;
 
-			OnCollishionBegin += CollishionBegin;
-			OnCollishionEnd += CollishionEnd;
+			TriggerBeginEvent += CollishionBegin;
+			TriggerEndEvent += CollishionEnd;
 		}
 
 		protected override void OnUpdate(float ts)
@@ -38,24 +38,16 @@ namespace Sandbox
 			}
 		}
 
-		protected void CollishionBegin(Collider2D collider)
+		protected void CollishionBegin(Entity entity)
 		{
-			Entity entity = collider.Entity;
-			//if (!(entity is PlayerController))
-			//	return;
-
 			if (m_CollishionCount == 0)
 				m_OpenDoor = true;
 
 			m_CollishionCount++;
 		}
 
-		protected void CollishionEnd(Collider2D collider)
+		protected void CollishionEnd(Entity entity)
 		{
-			Entity entity = collider.Entity;
-			//if (!(entity is PlayerController))
-			//	return;
-
 			if (m_CollishionCount == 1)
 				m_CloseDoor = true;
 

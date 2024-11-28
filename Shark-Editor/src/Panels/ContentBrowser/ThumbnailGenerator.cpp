@@ -279,7 +279,7 @@ namespace Shark {
 		auto [radianceMap, irradianceMap] = Renderer::CreateEnvironmentMap("Resources/Environment/green_point_park_4k.hdr");
 		skyLight.SceneEnvironment = AssetManager::CreateMemoryOnlyAsset<Environment>(radianceMap, irradianceMap);
 		skyLight.Intensity = 0.8f;
-		skyLight.Lod = AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1;
+		skyLight.Lod = (float)(AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1);
 
 		m_CommandBuffer = RenderCommandBuffer::Create();
 	}

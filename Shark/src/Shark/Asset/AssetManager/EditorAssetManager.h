@@ -84,7 +84,7 @@ namespace Shark {
 		void ReadImportedAssetsFromDisc();
 
 	private:
-		const std::filesystem::path& GetAssetsDirectoryFromProject() const;
+		std::filesystem::path GetAssetsDirectoryFromProject() const;
 
 	public:
 		Weak<Project> m_Project;

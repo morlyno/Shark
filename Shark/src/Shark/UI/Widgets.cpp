@@ -1,6 +1,11 @@
 #include "skpch.h"
 #include "Widgets.h"
 
+#include "Shark/Core/SelectionManager.h"
+#include "Shark/Asset/AssetManager.h"
+#include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/UIUtilities.h"
 #include "Shark/Utils/PlatformUtils.h"
@@ -119,6 +124,89 @@ namespace Shark {
 			return true;
 		}
 		return false;
+	}
+
+	bool UI::Widgets::SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle)
+	{
+		static UI::TextFilter s_Filter("");
+		return ItemSearchPopup(s_Filter, [assetType, &assetHandle](UI::TextFilter& filter, bool clear, bool& changed)
+		{
+			if (clear)
+				assetHandle = AssetHandle::Invalid;
+
+			std::vector<AssetHandle> assets = AssetManager::GetAllAssetsOfType(assetType);
+
+			for (AssetHandle handle : assets)
+			{
+				const AssetMetaData& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
+				if (metadata.IsMemoryAsset || metadata.IsEditorAsset)
+					continue;
+
+				std::string name = metadata.FilePath.stem().string();
+
+				if (!filter.PassesFilter(name))
+					continue;
+
+				if (ImGui::Selectable(name.c_str()))
+				{
+					assetHandle = handle;
+					changed = true;
+				}
+			}
+		});
+	}
+
+	bool UI::Widgets::SearchEntityPopup(UUID& entityID)
+	{
+		static UI::TextFilter s_Filter("");
+		return ItemSearchPopup(s_Filter, [&entityID](UI::TextFilter& filter, bool clear, bool& changed)
+		{
+			if (clear)
+				entityID = UUID::Invalid;
+
+			Ref<Scene> scene = SelectionManager::GetActiveScene();
+
+			auto entities = scene->GetAllEntitysWith<IDComponent>();
+			for (auto ent : entities)
+			{
+				Entity entity = { ent, scene };
+
+				const auto& tag = entity.Tag();
+				if (!filter.PassesFilter(tag))
+					continue;
+
+				if (ImGui::Selectable(tag.c_str()))
+				{
+					entityID = entity.GetUUID();
+					changed = true;
+				}
+			}
+		});
+	}
+
+	bool UI::Widgets::SearchScriptPopup(uint64_t& scriptID)
+	{
+		static UI::TextFilter s_Filter("");
+		return ItemSearchPopup(s_Filter, [&scriptID](UI::TextFilter& filter, bool clear, bool& changed)
+		{
+			auto& scriptEngine = ScriptEngine::Get();
+			const auto& scripts = scriptEngine.GetScripts();
+
+			if (clear)
+				scriptID = 0;
+
+			for (const auto& [id, metadata] : scripts)
+			{
+				if (!s_Filter.PassesFilter(metadata.FullName))
+					continue;
+
+				if (ImGui::Selectable(metadata.FullName.c_str()))
+				{
+					scriptID = id;
+					changed = true;
+				}
+			}
+		});
 	}
 
 }

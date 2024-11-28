@@ -93,22 +93,6 @@ namespace Shark {
 			return changed;
 		}
 
-		template<typename T>
-		static void FieldControl(const std::string& fieldName, ManagedField& field, GCHandle handle)
-		{
-			auto value = field.GetValue<T>(handle);
-			if (UI::Control(fieldName, value))
-				field.SetValue(handle, value);
-		}
-
-		template<typename T>
-		static void FieldControl(const std::string& fieldName, Ref<FieldStorage> field)
-		{
-			auto value = field->GetValue<T>();
-			if (UI::Control(fieldName, value))
-				field->SetValue(value);
-		}
-
 		template<typename TComponent>
 		static bool AllHaveComponent(std::span<const Entity> entities)
 		{
@@ -1119,12 +1103,13 @@ namespace Shark {
 			UI::BeginControlsGrid();
 
 			const bool isInconsistantMesh = utils::IsInconsistentProperty<StaticMeshComponent>(entities, &StaticMeshComponent::StaticMesh);
-			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isInconsistantMesh);
 
+			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isInconsistantMesh);
 			if (UI::ControlAsset("Mesh", AssetType::Mesh, firstComponent.StaticMesh))
 			{
 				utils::UnifyMember(entities, &StaticMeshComponent::StaticMesh);
 			}
+			ImGui::PopItemFlag();
 
 			utils::MultiselectControl(entities, &StaticMeshComponent::Visible, "Visible");
 			UI::EndControlsGrid();
@@ -1412,222 +1397,118 @@ namespace Shark {
 			UI::EndControlsGrid();
 		});
 
-		DrawComponetMultiSelect<ScriptComponent>(entities, "Script", [scene = m_Context](ScriptComponent& firstComponent, const std::vector<Entity>& entities)
+		DrawComponetMultiSelect<ScriptComponent>(entities, "Script", [this](ScriptComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			ImGui::SetNextItemWidth(-1.0f);
 
-			const bool isMixedScript = utils::IsInconsistentProperty<ScriptComponent>(entities, &ScriptComponent::ClassID);
+			const bool isMixedScript = utils::IsInconsistentProperty<ScriptComponent>(entities, &ScriptComponent::ScriptID);
 
+			auto& scriptEngine = ScriptEngine::Get();
+			bool isValidScript = scriptEngine.IsValidScriptID(firstComponent.ScriptID);
+
+			UI::BeginControlsGrid();
 			{
-				UI::BeginControlsGrid();
-				UI::ControlCustom("Script", [&]()
-				{
-					Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(firstComponent.ClassID);
-					ImGui::Button(klass ? klass->GetName().c_str() : "", {ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()});
-				});
+				UI::ScopedDisabled disabled(m_Context->IsRunning());
 
-				if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonLeft))
+				uint64_t scriptID = firstComponent.ScriptID;
+				if (UI::ControlScript("Script", scriptID, {}))
 				{
-					bool changed = false;
+					SK_CORE_VERIFY(!m_Context->IsRunning());
+					isValidScript = scriptEngine.IsValidScriptID(scriptID);
 
+					auto& scriptStorage = m_Context->GetScriptStorage();
+					for (Entity entity : entities)
 					{
-						UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-						UI::ScopedStyle frameRounding(ImGuiStyleVar_FrameRounding, 0.0f);
-						UI::ScopedColorStack button(ImGuiCol_Button, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Background, 0.9f),
-													ImGuiCol_ButtonHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Background, 1.1f),
-													ImGuiCol_ButtonActive, UI::Colors::Theme::BackgroundDark);
-
-						if (ImGui::Button("Clear", ImVec2(-1.0f, 0.0f)))
+						auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+						if (!isValidScript)
 						{
-							firstComponent.ClassID = 0;
-							changed = true;
-							ImGui::CloseCurrentPopup();
+							scriptStorage.RemoveEntityStorage(scriptComponent.ScriptID, entity.GetUUID());
+						}
+
+						scriptComponent.ScriptID = scriptID;
+						if (isValidScript)
+						{
+							scriptStorage.SetupEntityStorage(scriptComponent.ScriptID, entity.GetUUID());
 						}
 					}
-
-					const auto& scriptClasses = ScriptEngine::GetScriptClasses();
-					for (const auto& [id, klass] : scriptClasses)
-					{
-						if (ImGui::Selectable(klass->GetName().c_str()))
-						{
-							firstComponent.ClassID = id;
-							changed = true;
-						}
-					}
-
-					if (changed)
-					{
-						utils::UnifyMember(entities, &ScriptComponent::ClassID);
-					}
-#if 0
-					UI::ScopedColor headerHovered(ImGuiCol_HeaderHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Header, 2.0f));
-					UI::ScopedColor headerActive(ImGuiCol_HeaderActive, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Header, 1.5f));
-					const auto& scriptClasses = ScriptEngine::GetScriptClasses();
-					for (const auto& [id, klass] : scriptClasses)
-					{
-						if (ImGui::Selectable(klass->GetName().c_str()))
-						{
-							firstComponent.ClassID = id;
-							utils::UnifyMember(entities, &ScriptComponent::ClassID);
-						}
-					}
-#endif
-
-					ImGui::EndPopup();
 				}
-
-				Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(firstComponent.ClassID);
-				const bool invalidClassID = firstComponent.ClassID && !klass;
-
-				if (isMixedScript)
-				{
-					UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
-				}
-				else if (invalidClassID)
-				{
-					UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextError);
-					UI::DrawButton("Null", UI::GetItemRect());
-				}
-				else if (klass)
-				{
-					UI::DrawButton(klass->GetName(), UI::GetItemRect());
-				}
-
-				UI::EndControlsGrid();
 			}
+			UI::EndControlsGrid();
 
 
-			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(firstComponent.ClassID);
-			if (!klass)
+			if (!isValidScript || isMixedScript)
 				return;
 
 			ImGui::Separator();
-			if (entities.size() > 1)
+
+			Entity firstEntity = entities.front();
+			auto& scriptStorage = m_Context->GetScriptStorage();
+			if (!scriptStorage.EntityInstances.contains(firstEntity.GetUUID()))
 			{
-				ImGui::Text("Modifying field values is not supported when selecting more then 1 entity");
+				UI::ScopedFont font("Bold");
+				UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::TextError);
+				ImGui::Text("Inconsistent state!\nScript ID is valid but the this entity's script storage wasn't setup.\nTo fix this error try\n 1. Reload the current scene.\n 2. If step 1 didn't work reload the script engine first and then the current scene");
 				return;
 			}
 
-			// TODO(moro): multi select
-			Entity entity = entities.front();
-			auto& comp = entity.GetComponent<ScriptComponent>();
+			auto& entityStorage = scriptStorage.EntityInstances.at(firstEntity.GetUUID());
 
-			if (scene->IsRunning())
+			const auto DrawFieldValue = [this](FieldStorage& storage)
 			{
-				GCHandle handle = ScriptEngine::GetInstance(entity);
-				UI::BeginControlsGrid();
-				Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ClassID);
-				auto& fields = klass->GetFields();
-				for (auto& [name, field] : fields)
-				{
-					if (!(field.Access & Accessibility::Public))
-						continue;
+				bool changed = false;
 
-					switch (field.Type)
+				const auto FieldControl = [this]<typename T>(FieldStorage& storage) -> bool
+				{
+					T val = storage.GetValue<T>();
+					if (UI::Control(storage.GetName(), val))
 					{
-						case ManagedFieldType::Bool:    utils::FieldControl<bool>(name, field, handle); break;
-						//case ManagedFieldType::Char:   utils::FieldControl<char16_t>(name, field, handle); break;
-						case ManagedFieldType::Byte:    utils::FieldControl<uint8_t>(name, field, handle); break;
-						case ManagedFieldType::SByte:   utils::FieldControl<int8_t>(name, field, handle); break;
-						case ManagedFieldType::Short:   utils::FieldControl<int16_t>(name, field, handle); break;
-						case ManagedFieldType::UShort:  utils::FieldControl<uint16_t>(name, field, handle); break;
-						case ManagedFieldType::Int:     utils::FieldControl<int32_t>(name, field, handle); break;
-						case ManagedFieldType::UInt:    utils::FieldControl<uint32_t>(name, field, handle); break;
-						case ManagedFieldType::Long:    utils::FieldControl<int64_t>(name, field, handle); break;
-						case ManagedFieldType::ULong:   utils::FieldControl<uint64_t>(name, field, handle); break;
-						case ManagedFieldType::Float:   utils::FieldControl<float>(name, field, handle); break;
-						case ManagedFieldType::Double:  utils::FieldControl<double>(name, field, handle); break;
-						case ManagedFieldType::Vector2: utils::FieldControl<glm::vec2>(name, field, handle); break;
-						case ManagedFieldType::Vector3:	utils::FieldControl<glm::vec3>(name, field, handle); break;
-						case ManagedFieldType::Vector4:	utils::FieldControl<glm::vec4>(name, field, handle); break;
-						case ManagedFieldType::String:  utils::FieldControl<std::string>(name, field, handle); break;
-						case ManagedFieldType::Entity:
-						{
-							UUID uuid = field.GetEntity(handle);
-							if (UI::ControlEntity(name, uuid, "Entity"))
-								field.SetEntity(handle, scene->TryGetEntityByUUID(uuid));
-							break;
-						}
-						case ManagedFieldType::Component:
-						{
-							UUID uuid = field.GetComponent(handle);
-							if (UI::ControlEntity(name, uuid, "Entity"))
-								field.SetComponent(handle, scene->TryGetEntityByUUID(uuid));
-							break;
-						}
-						case ManagedFieldType::AssetHandle:
-						{
-							AssetHandle assetHandle = field.GetValue<AssetHandle>(handle);
-							if (UI::ControlAssetUnsave(name, assetHandle))
-								field.SetValue(handle, assetHandle);
-							break;
-						}
+						storage.SetValue(val);
+						return true;
 					}
+					return false;
+				};
+
+				switch (storage.GetDataType())
+				{
+					case ManagedFieldType::Bool: changed = FieldControl.operator()<bool>(storage); break;
+					//case ManagedFieldType::Char: changed = FieldControl.operator()<char>(storage); break;
+					case ManagedFieldType::Byte: changed = FieldControl.operator()<uint8_t>(storage); break;
+					case ManagedFieldType::SByte: changed = FieldControl.operator()<int8_t>(storage); break;
+					case ManagedFieldType::Short: changed = FieldControl.operator()<int16_t>(storage); break;
+					case ManagedFieldType::UShort: changed = FieldControl.operator()<uint16_t>(storage); break;
+					case ManagedFieldType::Int: changed = FieldControl.operator()<int>(storage); break;
+					case ManagedFieldType::UInt: changed = FieldControl.operator()<uint32_t>(storage); break;
+					case ManagedFieldType::Long: changed = FieldControl.operator()<int64_t>(storage); break;
+					case ManagedFieldType::ULong: changed = FieldControl.operator()<uint64_t>(storage); break;
+					case ManagedFieldType::Float: changed = FieldControl.operator()<float>(storage); break;
+					case ManagedFieldType::Double: changed = FieldControl.operator()<double>(storage); break;
+					case ManagedFieldType::String: changed = FieldControl.operator()<std::string>(storage); break;
+					case ManagedFieldType::Entity:
+					{
+						if (!m_Context->IsRunning())
+						{
+							UUID val = storage.GetValue<UUID>();
+							if (UI::ControlEntity(storage.GetName(), val))
+							{
+								storage.SetValue(val);
+								changed = true;
+							}
+						}
+						break;
+					}
+					//case ManagedFieldType::Component: changed = FieldControl.operator()<uint64_t>(storage); break;
+					case ManagedFieldType::Vector2: changed = FieldControl.operator()<glm::vec2>(storage); break;
+					case ManagedFieldType::Vector3: changed = FieldControl.operator()<glm::vec3>(storage); break;
+					case ManagedFieldType::Vector4: changed = FieldControl.operator()<glm::vec4>(storage); break;
 				}
-				UI::EndControlsGrid();
-			}
-			else
+			};
+
+			UI::BeginControlsGrid();
+			for (auto& [fieldID, field] : entityStorage.Fields)
 			{
-				UI::BeginControlsGrid();
-				Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(comp.ClassID);
-				auto& fields = klass->GetFields();
-				for (auto& [name, field] : fields)
-				{
-					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
-					if (!fieldStorages.contains(name))
-					{
-						if (!ScriptEngine::IsInstantiated(entity))
-							ScriptEngine::InstantiateEntity(entity, false, false);
-						GCHandle handle = ScriptEngine::GetInstance(entity);
-						Ref<FieldStorage> storage = FieldStorage::FromManagedField(field);
-						ScriptEngine::InitializeFieldStorage(storage, handle);
-						fieldStorages[name] = storage;
-					}
-
-					Ref<FieldStorage> storage = fieldStorages.at(name);
-					switch (field.Type)
-					{
-						case ManagedFieldType::Bool:    utils::FieldControl<bool>(name, storage); break;
-						//case ManagedFieldType::Char:   utils::FieldControl<char16_t>(name, storage); break;
-						case ManagedFieldType::Byte:    utils::FieldControl<uint8_t>(name, storage); break;
-						case ManagedFieldType::SByte:   utils::FieldControl<int8_t>(name, storage); break;
-						case ManagedFieldType::Short:   utils::FieldControl<int16_t>(name, storage); break;
-						case ManagedFieldType::UShort:  utils::FieldControl<uint16_t>(name, storage); break;
-						case ManagedFieldType::Int:     utils::FieldControl<int32_t>(name, storage); break;
-						case ManagedFieldType::UInt:    utils::FieldControl<uint32_t>(name, storage); break;
-						case ManagedFieldType::Long:    utils::FieldControl<int64_t>(name, storage); break;
-						case ManagedFieldType::ULong:   utils::FieldControl<uint64_t>(name, storage); break;
-						case ManagedFieldType::Float:   utils::FieldControl<float>(name, storage); break;
-						case ManagedFieldType::Double:  utils::FieldControl<double>(name, storage); break;
-						case ManagedFieldType::Vector2: utils::FieldControl<glm::vec2>(name, storage); break;
-						case ManagedFieldType::Vector3:	utils::FieldControl<glm::vec3>(name, storage); break;
-						case ManagedFieldType::Vector4:	utils::FieldControl<glm::vec4>(name, storage); break;
-						case ManagedFieldType::String:  utils::FieldControl<std::string>(name, storage); break;
-						case ManagedFieldType::Entity:
-						{
-							UUID uuid = storage->GetValue<UUID>();
-							if (UI::ControlEntity(name, uuid, "Entity"))
-								storage->SetValue(uuid);
-							break;
-						}
-						case ManagedFieldType::Component:
-						{
-							UUID uuid = storage->GetValue<UUID>();
-							if (UI::ControlEntity(name, uuid, "Entity"))
-								storage->SetValue(uuid);
-							break;
-						}
-						case ManagedFieldType::AssetHandle:
-						{
-							AssetHandle assetHandle = storage->GetValue<AssetHandle>();
-							if (UI::ControlAssetUnsave(name, assetHandle))
-								storage->SetValue(assetHandle);
-							break;
-						}
-					}
-				}
-				UI::EndControlsGrid();
+				DrawFieldValue(field);
 			}
+			UI::EndControlsGrid();
 
 		});
 

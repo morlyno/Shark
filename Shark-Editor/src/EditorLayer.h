@@ -101,7 +101,6 @@ namespace Shark {
 
 		void RunScriptSetup();
 		void OpenIDE();
-		void AssembliesReloadedHook();
 
 		void UpdateWindowTitle();
 
@@ -109,6 +108,8 @@ namespace Shark {
 
 	private:
 		std::filesystem::path m_StartupProject;
+
+		uint64_t m_ScriptEngineLastModifiedTime = 0;
 
 		EditorCamera m_EditorCamera;
 		Ref<Image2D> m_MousePickingImage;

@@ -1,6 +1,6 @@
 Scene:
   Name: Untitled
-  ActiveCamera: 0xbbdb8872e6e21912
+  ActiveCamera: 13536563132073384210
   Entities:
     - Entity: 555297427839915421
       TagComponent:
@@ -27,7 +27,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -38,11 +38,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
-            Value: 12046611585830764490
+          []
     - Entity: 1490881388362383425
       TagComponent:
         Name: Player
@@ -57,7 +55,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.818627477, 0.713584483, 0.104334891, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: true
@@ -76,44 +74,52 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.PlayerController
+        ScriptID: 8577839471573687291
         Fields:
-          - Name: Acceleration
+          - ID: 14756017700395187197
+            Name: Acceleration
             Type: Float
             Value: 32
-          - Name: AirJumps
+          - ID: 6111862596534002478
+            Name: Camera
+            Type: Entity
+            Value: 0
+          - ID: 4616393242342651632
+            Name: AirJumps
             Type: UInt
             Value: 1
-          - Name: BallTemplate
-            Type: Entity
-            Value: 10755231564570129317
-          - Name: CameraEntity
-            Type: Entity
-            Value: 13536563132073384210
-          - Name: CameraTransform
-            Type: Component
-            Value: 13536563132073384210
-          - Name: DestroyBallOnHit
+          - ID: 3148849849548715714
+            Name: DestroyBallOnHit
             Type: Bool
             Value: true
-          - Name: JumpForce
-            Type: Float
-            Value: 18
-          - Name: MaxMovementSpeed
+          - ID: 16087021669408708807
+            Name: MaxMovementSpeed
             Type: Float
             Value: 16
-          - Name: OnGroundDamping
+          - ID: 15469546599544951951
+            Name: OnGroundDamping
             Type: Float
             Value: 10
-          - Name: ShootCooldown
+          - ID: 9366357310098167756
+            Name: JumpForce
+            Type: Float
+            Value: 18
+          - ID: 331512621812625934
+            Name: BallTemplate
+            Type: Entity
+            Value: 10755231564570129317
+          - ID: 4470222592397450888
+            Name: ShootOnPress
+            Type: Bool
+            Value: false
+          - ID: 14656080921461005729
+            Name: ShootCooldown
             Type: Float
             Value: 0.200000003
-          - Name: ShootOnPress
-            Type: Bool
-            Value: false
-          - Name: m_Sprint
-            Type: Bool
-            Value: false
+          - ID: 9488445670267472787
+            Name: OnCreateMessage
+            Type: String
+            Value: Test OnCreate string message :)
     - Entity: 2076647844189626938
       TagComponent:
         Name: World
@@ -161,9 +167,10 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: true
       ScriptComponent:
-        ScriptName: Sandbox.DoorSensor
+        ScriptID: 1526462671224007764
         Fields:
-          - Name: Door
+          - ID: 251347754139051721
+            Name: Door
             Type: Entity
             Value: 7825548097267742839
     - Entity: 2687501054913334724
@@ -191,7 +198,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.118440032, 0.410045177, 0.779411793, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       RigidBody2DComponent:
         Type: Static
         FixedRotation: false
@@ -210,17 +217,20 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.PlatformScript
+        ScriptID: 4206349712181519746
         Fields:
-          - Name: LerpSpeed
-            Type: Float
-            Value: 1
-          - Name: MarkerEnd
-            Type: Entity
-            Value: 12971073592996218578
-          - Name: MarkerStart
+          - ID: 2851821697830742173
+            Name: MarkerStart
             Type: Entity
             Value: 16057847568682307122
+          - ID: 13995304124473728356
+            Name: MarkerEnd
+            Type: Entity
+            Value: 12971073592996218578
+          - ID: 10608736857833371523
+            Name: LerpSpeed
+            Type: Float
+            Value: 1
     - Entity: 3120693106863515731
       TagComponent:
         Name: Marker5
@@ -235,7 +245,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 3274717359310319915
       TagComponent:
         Name: Floor
@@ -250,7 +260,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -261,10 +271,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 3867285441352358213
       TagComponent:
         Name: Marker3
@@ -279,7 +288,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 5262169621773692733
       TagComponent:
         Name: Marker6
@@ -294,7 +303,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 5791512804202585175
       TagComponent:
         Name: DoorToOutside
@@ -321,7 +330,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 6701290140995170214
       TagComponent:
         Name: Marker7
@@ -336,7 +345,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 6788079642221728043
       TagComponent:
         Name: Floor
@@ -351,7 +360,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -362,10 +371,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 7038483985364779915
       TagComponent:
         Name: Marker9
@@ -380,7 +388,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 7189693342649515940
       TagComponent:
         Name: Floor
@@ -395,7 +403,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -406,10 +414,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 7240910275087375595
       TagComponent:
         Name: Floor
@@ -424,7 +431,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -435,10 +442,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 7494786954438275739
       TagComponent:
         Name: Floor
@@ -453,7 +459,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -464,10 +470,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 7714014074287667788
       TagComponent:
         Name: Elevator Outside
@@ -495,7 +500,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -506,10 +511,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 8060135193891738624
       TagComponent:
         Name: Marker1
@@ -524,7 +528,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 9003214183888896326
       TagComponent:
         Name: Marker0
@@ -539,7 +543,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 9125773400085520680
       TagComponent:
         Name: Floor
@@ -554,7 +558,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -565,10 +569,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 9262661516947183695
       TagComponent:
         Name: Marker10
@@ -583,7 +586,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 9400433465860162438
       TagComponent:
         Name: Marker4
@@ -598,7 +601,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 10122549813570786875
       TagComponent:
         Name: Floor
@@ -613,7 +616,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -624,10 +627,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 10755231564570129317
       TagComponent:
         Name: BallTemplate
@@ -643,6 +645,7 @@ Scene:
         Color: [0.748182833, 0.0552912168, 0.867647052, 1]
         Thickness: 1
         Fade: 0.00200000009
+        Filled: true
       RigidBody2DComponent:
         Type: Dynamic
         FixedRotation: false
@@ -683,14 +686,11 @@ Scene:
         Children:
           []
       CameraComponent:
-        Type: Perspective
-        Aspectratio: 2.25280905
+        IsPerspective: true
         PerspectiveFOV: 44.9999924
-        PerspectiveNear: 1
-        PerspectiveFar: 1000
-        OrthographicZoom: 10
-        OrthographicNear: -1
-        OrthographicFar: 1
+        OrthographicSize: 10
+        Near: 0.300000012
+        Far: 1000
     - Entity: 13941857377193540724
       TagComponent:
         Name: BallDestroyer
@@ -712,7 +712,7 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: true
       ScriptComponent:
-        ScriptName: Sandbox.BallDestroyer
+        ScriptID: 11362500512934619700
         Fields:
           []
     - Entity: 14211416963313599302
@@ -729,7 +729,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -740,10 +740,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 15089679134540552545
       TagComponent:
         Name: Marker8
@@ -758,7 +757,7 @@ Scene:
       SpriteRendererComponent:
         Color: [1, 1, 1, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 15801704539028152585
       TagComponent:
         Name: Floor
@@ -773,7 +772,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -784,10 +783,9 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
-          - Name: Sandbox.FloorScript:m_CollishionTextureHandle
-            Type: AssetHandle
+          []
     - Entity: 16057847568682307122
       TagComponent:
         Name: MarkerBottem
@@ -813,7 +811,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.622549057, 0.0671376586, 0.0671376586, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -837,7 +835,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.0840061083, 0.228351206, 0.90196079, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
     - Entity: 18252987067341761038
       TagComponent:
         Name: Floor
@@ -852,7 +850,7 @@ Scene:
       SpriteRendererComponent:
         Color: [0.132342368, 0.544117689, 0.0613466054, 1]
         TextureHandle: 0
-        TilingFactor: 1
+        TilingFactor: [1, 1]
       BoxCollider2DComponent:
         Size: [0.5, 0.5]
         Offset: [0, 0]
@@ -863,6 +861,6 @@ Scene:
         RestitutionThreshold: 1
         IsSensor: false
       ScriptComponent:
-        ScriptName: Sandbox.FloorScript
+        ScriptID: 2002125834039681555
         Fields:
           []

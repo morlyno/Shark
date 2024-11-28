@@ -1,5 +1,6 @@
 project "Shark-Editor"
     kind "ConsoleApp"
+    debuggertype "NativeWithManagedCore"
 
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")

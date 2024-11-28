@@ -13,7 +13,7 @@ namespace Shark {
 	private:
 		enum class ActiveContext
 		{
-			General, Physics, Log
+			General, Scripting, Physics, Log
 		};
 
 	public:
@@ -24,7 +24,8 @@ namespace Shark {
 		virtual void OnProjectChanged(Ref<Project> project) override;
 
 	private:
-		void DrawGeneral();
+		void DrawGeneralSettings();
+		void DrawScriptingSettings();
 		void DrawPhysicsSettings();
 		void DrawLogSettings();
 

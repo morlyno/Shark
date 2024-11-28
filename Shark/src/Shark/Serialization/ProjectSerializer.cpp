@@ -118,10 +118,8 @@ namespace Shark {
 		config.Directory = filePath.parent_path().generic_wstring();
 		config.StartupScene = projectNode["StartupScene"].as<AssetHandle>();
 
-		auto assetsDirectory = projectNode["Assets"].as<std::filesystem::path>();
-		auto scriptModule = projectNode["ScriptModulePath"].as<std::string>();
-		config.AssetsDirectory = fmt::format("{}/{}", config.Directory, assetsDirectory);
-		config.ScriptModulePath = fmt::format("{}/{}", config.Directory, scriptModule);
+		config.AssetsDirectory = projectNode["Assets"].as<std::filesystem::path>();
+		config.ScriptModulePath = projectNode["ScriptModulePath"].as<std::string>();
 
 		auto physicsNode = projectNode["Physics"];
 		config.Physics.Gravity = physicsNode["Gravity"].as<glm::vec2>();
@@ -148,9 +146,9 @@ namespace Shark {
 
 		SK_CORE_INFO_TAG("Core", "Deserializing Project from: {}", filePath);
 		SK_CORE_TRACE_TAG("Core", "  Name: {}", config.Name);
-		SK_CORE_TRACE_TAG("Core", "  Assets Path: {}", assetsDirectory);
+		SK_CORE_TRACE_TAG("Core", "  Assets Path: {}", config.AssetsDirectory);
 		SK_CORE_TRACE_TAG("Core", "  Startup Scene: {}", config.StartupScene);
-		SK_CORE_TRACE_TAG("Core", "  Script Module Path: {}", scriptModule);
+		SK_CORE_TRACE_TAG("Core", "  Script Module Path: {}", config.ScriptModulePath);
 		SK_CORE_TRACE_TAG("Core", "  Physics:");
 		SK_CORE_TRACE_TAG("Core", "    Gravity: {}", config.Physics.Gravity);
 		SK_CORE_TRACE_TAG("Core", "    ValocityIterations: {}", config.Physics.VelocityIterations);

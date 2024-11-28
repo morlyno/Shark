@@ -58,7 +58,7 @@ namespace Shark {
 			for (auto entityID : view)
 			{
 				Entity entity{ entityID, m_Scene };
-				const std::string& name = entity.Name();
+				const std::string& name = entity.Tag();
 				ImGui::PushID((int)(uint64_t)entity.GetUUID());
 				if (ImGui::TreeNodeEx(name.c_str(), UI::DefaultHeaderFlags))
 				{

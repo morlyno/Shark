@@ -5,9 +5,10 @@
 #include "Shark/Core/TimeStep.h"
 
 #include "Shark/Asset/Asset.h"
-
 #include "Shark/Scene/Components.h"
-#include "Shark/Scene/Physics2DScene.h"
+#include "Shark/Scripting/ScriptStorage.h"
+#include "Shark/Physics2D/Physics2DScene.h"
+
 #include "Shark/Render/EditorCamera.h"
 #include "Shark/Render/Environment.h"
 
@@ -19,19 +20,6 @@ namespace Shark {
 	class SceneRenderer;
 	struct SceneRendererCamera;
 	class Entity;
-	class Scene;
-
-	class ContactListener : public b2ContactListener
-	{
-	public:
-		void BeginContact(b2Contact* contact) override;
-		void EndContact(b2Contact* contact) override;
-
-		void SetContext(const Ref<Scene>& context);
-
-	private:
-		Ref<Scene> m_Context;
-	};
 
 	struct PointLight
 	{
@@ -83,8 +71,9 @@ namespace Shark {
 		void DestroyEntities();
 
 		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
-		bool IsEditorScene() { return m_IsEditorScene; }
+		bool IsEditorScene() const { return m_IsEditorScene; }
 		bool IsRunning() const { return m_IsRunning; }
+		bool RunsPhysicsSimulation() const { return m_PhysicsScene != nullptr; }
 
 		void OnScenePlay();
 		void OnSceneStop();
@@ -172,7 +161,9 @@ namespace Shark {
 
 		// returns all entities sorted by UUID
 		std::vector<Entity> GetEntitiesSorted();
-		const Physics2DScene& GetPhysicsScene() const { return m_PhysicsScene; }
+		const Physics2DScene& GetPhysicsScene() const { return *m_PhysicsScene; }
+
+		ScriptStorage& GetScriptStorage() { return m_ScriptStorage; }
 
 		template<typename TFunc>
 		void Submit(const TFunc& func)
@@ -194,7 +185,7 @@ namespace Shark {
 
 		void OnPhysics2DPlay(bool connectWithScriptingAPI);
 		void OnPhysics2DStop();
-		void OnPhyicsStep(TimeStep fixedTimeStep);
+		void OnPhysicsStep(TimeStep fixedTimeStep);
 
 		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity ent);
 		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity ent);
@@ -223,8 +214,7 @@ namespace Shark {
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
 
-		Physics2DScene m_PhysicsScene;
-		ContactListener m_ContactListener;
+		Physics2DScene* m_PhysicsScene = nullptr;
 
 		bool m_IsEditorScene = false;
 		bool m_IsRunning = false;
@@ -235,6 +225,8 @@ namespace Shark {
 		LightEnvironment m_LightEnvironment;
 
 		std::vector<std::function<void()>> m_PostUpdateQueue;
+
+		ScriptStorage m_ScriptStorage;
 
 		friend class Entity;
 		friend class SceneHierarchyPanel;

@@ -925,7 +925,7 @@ namespace Shark {
 
 	}
 
-	const std::filesystem::path& EditorAssetManager::GetAssetsDirectoryFromProject() const
+	std::filesystem::path EditorAssetManager::GetAssetsDirectoryFromProject() const
 	{
 		SK_CORE_VERIFY(!m_Project.Expired());
 		return m_Project.GetRef()->GetAssetsDirectory();

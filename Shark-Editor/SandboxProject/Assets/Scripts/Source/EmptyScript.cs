@@ -11,7 +11,6 @@ namespace Sandbox
 		protected virtual void OnUIRender() { Log.Info("EmptyScript.OnUIRender"); }
 		protected virtual void OnCollishionBegin(Entity entity) { Log.Info("EmptyScript.OnCollishionBegin"); }
 		protected virtual void OnCollishionEnd(Entity entity) { Log.Info("EmptyScript.OnCollishionEnd"); }
-
 	}
 
 }

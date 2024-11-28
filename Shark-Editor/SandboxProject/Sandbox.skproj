@@ -2,7 +2,7 @@ Project:
   Name: Sandbox
   Assets: Assets
   StartupScene: 13757110640731467433
-  ScriptModulePath: Binaries/Sandbox.dll
+  ScriptModulePath: Assets/Scripts/Binaries/Sandbox.dll
   Physics:
     Gravity: [0, -9.81000042]
     VelocityIterations: 8
@@ -42,7 +42,7 @@ Project:
     - Name: Renderer
       Enabled: true
       Level: Warn
-    - Name: ScriptEngine
+    - Name: Scene
       Enabled: true
       Level: Trace
     - Name: Scripting
@@ -53,7 +53,7 @@ Project:
       Level: Warn
     - Name: ThumbnailCache
       Enabled: true
-      Level: Trace
+      Level: Warn
     - Name: Timer
       Enabled: false
       Level: Trace

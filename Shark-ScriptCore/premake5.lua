@@ -1,12 +1,28 @@
+SharkDir = os.getenv("SHARK_DIR")
+include (path.join(SharkDir, "Shark", "dependencies", "Coral", "Premake", "CSExtensions.lua"))
+include (path.join(SharkDir, "Shark", "dependencies", "Coral", "Coral.Managed"))
+
 project "Shark-ScriptCore"
     kind "SharedLib"
-    language "c#"
-    dotnetframework "4.7.2"
+    language "C#"
+    dotnetframework "net8.0"
+    clr "Unsafe"
 
-    targetdir ("%{wks.location}/Shark-Editor/Resources/Binaries")
-    objdir ("%{wks.location}/Shark-Editor/Resources/Binaries/Intermediates")
+    targetdir ("%{SharkDir}/Shark-Editor/Resources/Binaries")
+    objdir ("%{SharkDir}/Shark-Editor/Resources/Binaries/Intermediates")
 
-    files
-    {
-        "Shark-ScriptCore/**.cs"
+    links { "Coral.Managed" }
+
+    propertytags {
+        { "AppendTargetFrameworkToOutputPath", "false" },
+        { "Nullable", "enable" }
     }
+
+    files {
+        "Source/**.cs"
+    }
+    
+    filter { "system:windows" }
+        postbuildcommands {
+            '"%{wks.location}Scripts/CopyDotNet.bat" "%{cfg.buildcfg}"'
+        }

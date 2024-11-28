@@ -24,6 +24,12 @@ namespace Shark::UI::Widgets {
 	bool InputDirectory(DialogType dialogType, std::string& path, const std::filesystem::path& defaultPath = {});
 	bool InputDirectory(DialogType dialogType, std::filesystem::path& path, const std::filesystem::path& defaultPath = {});
 	
+	template<typename TFunction>
+	bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction);
+
+	bool SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle);
+	bool SearchEntityPopup(UUID& entityID);
+	bool SearchScriptPopup(uint64_t& scriptID);
 
 }
 
@@ -141,6 +147,76 @@ bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* g
 	ImGui::EndHorizontal();
 	UI::PopID();
 	return changed;
+}
+
+template<typename TFunction>
+bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction)
+{
+	const auto CalcMaxPopupHeightFromItemCount = [](int items_count)
+	{
+		ImGuiContext& g = *GImGui;
+		if (items_count <= 0)
+			return FLT_MAX;
+		return (g.FontSize + g.Style.ItemSpacing.y) * items_count - g.Style.ItemSpacing.y + (g.Style.WindowPadding.y * 2);
+	};
+
+	ImGuiID popupID = ImGui::GetID("##selectAssetPopup"sv);
+	if (ImGui::IsItemActivated())
+	{
+		search.Clear();
+		ImGui::OpenPopup(popupID);
+	}
+
+	ImRect lastItemRect = UI::GetItemRect();
+
+	int popup_max_height_in_items = 12;
+
+	ImGui::SetNextWindowSize({ 200, CalcMaxPopupHeightFromItemCount(popup_max_height_in_items) });
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+	const bool popupOpen = ImGui::BeginPopupEx(popupID, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar);
+	ImGui::PopStyleVar();
+
+	bool clear = false;
+	bool changed = false;
+
+
+	if (popupOpen)
+	{
+		const auto& style = ImGui::GetStyle();
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - style.WindowPadding.x * 2.0f);
+		UI::ShiftCursor(style.WindowPadding);
+		if (ImGui::IsWindowAppearing())
+			ImGui::SetKeyboardFocusHere();
+		UI::Widgets::Search(search);
+
+		{
+			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
+			UI::ScopedStyle frameRounding(ImGuiStyleVar_FrameRounding, 0.0f);
+			UI::ScopedColorStack button(ImGuiCol_Button, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Background, 0.9f),
+										ImGuiCol_ButtonHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Background, 1.1f),
+										ImGuiCol_ButtonActive, UI::Colors::Theme::BackgroundDark);
+
+			if (ImGui::Button("Clear", ImVec2(-1.0f, 0.0f)))
+			{
+				clear = true;
+				ImGui::CloseCurrentPopup();
+			}
+		}
+
+		UI::ScopedColor childBg(ImGuiCol_ChildBg, UI::Colors::Theme::BackgroundPopup);
+		if (ImGui::BeginChild("##selectAssetChild", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_NavFlattened))
+		{
+			itemFunction(search, clear, changed);
+		}
+		ImGui::EndChild();
+
+		if (changed)
+			ImGui::CloseCurrentPopup();
+
+		ImGui::EndPopup();
+	}
+
+	return changed || clear;
 }
 
 #pragma endregion

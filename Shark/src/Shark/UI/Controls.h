@@ -119,6 +119,7 @@ namespace Shark::UI {
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlSettings& settings);
 
 	bool ControlEntity(std::string_view label, UUID& entityID, const char* dragDropType = "Entity");
+	bool ControlScript(std::string_view label, uint64_t& scriptID, const AssetControlSettings& settings);
 
 	template<typename TFunc>
 	auto ControlCustom(std::string_view label, const TFunc& func) -> std::invoke_result_t<TFunc>;
@@ -166,27 +167,3 @@ auto Shark::UI::ControlCustom(std::string_view label, const TFunc& func) -> std:
 	if constexpr (std::is_same_v<bool, std::invoke_result_t<TFunc>>)
 		return changed;
 }
-
-#if 0
-template<typename TAsset>
-bool Shark::UI::ControlAsset(std::string_view label, Ref<TAsset>& asset, const char* dragDropType)
-{
-	AssetHandle assetHandle = asset ? asset->Handle : AssetHandle::Invalid;
-	if (ControlAsset(label, TAsset::GetStaticType(), assetHandle, dragDropType))
-	{
-		if (assetHandle == AssetHandle::Invalid)
-		{
-			asset = nullptr;
-			return true;
-		}
-
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
-		if (metadata.Type != TAsset::GetStaticType())
-			return false;
-
-		asset = AssetManager::GetAsset<TAsset>(assetHandle);
-		return true;
-	}
-	return false;
-}
-#endif

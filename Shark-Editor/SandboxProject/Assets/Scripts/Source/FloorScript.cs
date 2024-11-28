@@ -28,11 +28,11 @@ namespace Sandbox
 			m_InitColor = m_SpriteRenderer.Color;
 			m_CollishionColor = m_Colors[Random.Int(0, m_Colors.Length)];
 
-			OnCollishionBegin += CollishionBegin;
-			OnCollishionEnd += CollishionEnd;
+			CollishionBeginEvent += CollishionBegin;
+			CollishionEndEvent += CollishionEnd;
 		}
 
-		protected void CollishionBegin(Collider2D collider)
+		protected void CollishionBegin(Entity entity)
 		{
 			if (m_CollishionCount++ == 0)
 			{
@@ -41,7 +41,7 @@ namespace Sandbox
 			}
 		}
 
-		protected void CollishionEnd(Collider2D collider)
+		protected void CollishionEnd(Entity entity)
 		{
 			if (--m_CollishionCount == 0)
 			{

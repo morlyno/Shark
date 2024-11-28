@@ -25,7 +25,8 @@ namespace Shark {
 		Default,
 		Edit,
 		Explore,
-		Open,
+		Run,
+		RunWith,
 		Properties,
 		RunAsAdmin
 	};

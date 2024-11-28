@@ -4,27 +4,16 @@
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Log.h"
 #include "Shark/Core/Project.h"
+#include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Scripting/GCManager.h"
-
-#include "Shark/Event/KeyEvent.h"
-#include "Shark/Event/MouseEvent.h"
-
 #include "Shark/Math/Math.h"
 
 #include "Shark/Debug/Profiler.h"
-
-#include <mono/metadata/appdomain.h>
-#include <mono/metadata/object.h>
-#include "mono/metadata/class.h"
-#include <mono/metadata/reflection.h>
-#include <mono/metadata/exception.h>
-#include <mono/metadata/debug-helpers.h>
 
 #include <box2d/b2_body.h>
 #include <box2d/b2_contact.h>
@@ -33,444 +22,267 @@
 
 #include <imgui_internal.h>
 
-#define SK_ADD_INTERNAL_CALL(func) mono_add_internal_call("Shark.InternalCalls::" #func, &InternalCalls:: func)
-
 namespace Shark {
 
-	struct EntityBindings
+	static std::map<Coral::TypeId, bool(*)(Entity)> s_HasComponentFunctions;
+	static std::map<Coral::TypeId, void(*)(Entity)> s_AddComponentFunctions;
+	static std::map<Coral::TypeId, void(*)(Entity)> s_RemoveComponentFunctions;
+
+#define SK_ICALL_VERIFY_PARAMETER(_param) if (!(_param)) { SK_CONSOLE_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
+
+	static Entity GetEntity(uint64_t entityID)
 	{
-		bool (*HasComponent)(Entity);
-		void (*AddComponent)(Entity);
-		void (*RemoveComponent)(Entity);
-	};
-
-	static std::unordered_map<MonoType*, EntityBindings> s_EntityBindings;
-
-	struct MonoGlueData
-	{
-		UnmanagedThunk<MonoObject*, MonoObject*> EntityOnCollishionBegin;
-		UnmanagedThunk<MonoObject*, MonoObject*> EntityOnCollishionEnd;
-		UnmanagedThunk<MonoObject*, MonoObject*> EntityOnTriggerBegin;
-		UnmanagedThunk<MonoObject*, MonoObject*> EntityOnTriggerEnd;
-	};
-	static MonoGlueData* s_ScriptGlue = nullptr;
-
-	namespace utils {
-
-		static Entity TryGetEntity(uint64_t id)
-		{
-			Ref<Scene> scene = ScriptEngine::GetActiveScene();
-			return scene ? scene->TryGetEntityByUUID(id) : Entity{};
-		}
-
-		static Ref<Scene> GetScene()
-		{
-			return ScriptEngine::GetActiveScene();
-		}
-
-		static RigidBody2DComponent::BodyType b2BodyTypeToSharkBodyType(b2BodyType bodyType)
-		{
-			switch (bodyType)
-			{
-				case b2_staticBody:
-					return RigidBody2DComponent::BodyType::Static;
-				case b2_kinematicBody:
-					return RigidBody2DComponent::BodyType::Kinematic;
-				case b2_dynamicBody:
-					return RigidBody2DComponent::BodyType::Dynamic;
-			}
-			SK_CORE_ASSERT(false, "Invalid Body Type");
-			return RigidBody2DComponent::BodyType::Static;
-		}
-
-		static b2BodyType SharkBodyTypeTob2BodyType(RigidBody2DComponent::BodyType bodyType)
-		{
-			switch (bodyType)
-			{
-				case RigidBody2DComponent::BodyType::Static:
-					return b2_staticBody;
-				case RigidBody2DComponent::BodyType::Kinematic:
-					return b2_kinematicBody;
-				case RigidBody2DComponent::BodyType::Dynamic:
-					return b2_dynamicBody;
-			}
-			SK_CORE_ASSERT(false, "Invalid Body Type");
-			return b2_staticBody;
-		}
-
-		static MonoMethod* GetCoreMethod(const std::string& fullName)
-		{
-			MonoMethodDesc* methodDesc = mono_method_desc_new(fullName.c_str(), true);
-			MonoMethod* method = mono_method_desc_search_in_image(methodDesc, ScriptEngine::GetCoreAssemblyInfo().Image);
-			mono_method_desc_free(methodDesc);
-			return method;
-		}
-
-		static const char* GetCollider2DTypeName(Collider2DType colliderType)
-		{
-			switch (colliderType)
-			{
-				case Collider2DType::BoxCollider:
-					return "BoxCollider2DComponent";
-				case Collider2DType::CircleCollider:
-					return "CircleCollider2DComponent";
-			}
-
-			SK_CORE_ASSERT(false, "Unkown Collider2D type");
-			return nullptr;
-		}
-
-		static MonoObject* CreateColliderObject(MonoObject* entity, Collider2DType colliderType)
-		{
-			const char* colliderName = colliderType == Collider2DType::BoxCollider ? "BoxCollider2DComponent" : "CircleCollider2DComponent";
-
-			MonoClass* clazz = mono_class_from_name_case(ScriptEngine::GetCoreAssemblyInfo().Image, "Shark", colliderName);
-			MonoObject* object = ScriptEngine::InstantiateClass(clazz);
-			mono_runtime_object_init(object);
-
-			MonoMethodDesc* ctorDesc = mono_method_desc_new(":.ctor()", false);
-			MonoMethod* method = mono_method_desc_search_in_class(ctorDesc, clazz);
-			mono_method_desc_free(ctorDesc);
-			ScriptEngine::InvokeMethod(object, method);
-
-			MonoProperty* property = mono_class_get_property_from_name(clazz, "Entity");
-			void* params[] = { entity };
-			MonoObject* exception = nullptr;
-			mono_property_set_value(property, object, params, &exception);
-			ScriptUtils::HandleException(exception);
-
-			return object;
-		}
-
-		static MonoObject* GetOrCreateInstance(Entity entity)
-		{
-			if (ScriptEngine::IsInstantiated(entity))
-			{
-				GCHandle handle = ScriptEngine::GetInstance(entity);
-				return GCManager::GetManagedObject(handle);
-			}
-			return ScriptEngine::InstantiateBaseEntity(entity);
-		}
-
+		auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+		SK_CORE_VERIFY(currentScene, "No active Scene");
+		return currentScene->TryGetEntityByUUID(entityID);
 	}
 
-	template <typename Component>
-	static void RegisterComponent()
+	void ScriptGlue::Initialize(Coral::ManagedAssembly& assembly)
 	{
-		std::string_view fullName = typeid(Component).name();
-		size_t separator = fullName.rfind(':');
-		std::string_view name = fullName.substr(separator + 1);
-		std::string managedComponentName = fmt::format("Shark.{}", name);
-
-		MonoType* componentType = mono_reflection_type_from_name(managedComponentName.data(), ScriptEngine::GetCoreAssemblyInfo().Image);
-
-		auto& bindings = s_EntityBindings[componentType];
-		bindings.HasComponent = [](Entity entity) { return entity.HasComponent<Component>(); };
-		bindings.AddComponent = [](Entity entity) { entity.AddComponent<Component>(); };
-		bindings.RemoveComponent = [](Entity entity) { entity.RemoveComponent<Component>(); };
-	}
-
-	void ScriptGlue::Init()
-	{
-		SK_PROFILE_FUNCTION();
-
-		s_ScriptGlue = sknew MonoGlueData();
-
-		s_ScriptGlue->EntityOnCollishionBegin = utils::GetCoreMethod("Shark.Entity:InvokeOnCollishionBegin");
-		s_ScriptGlue->EntityOnCollishionEnd = utils::GetCoreMethod("Shark.Entity:InvokeOnCollishionEnd");
-		s_ScriptGlue->EntityOnTriggerBegin = utils::GetCoreMethod("Shark.Entity:InvokeOnTriggerBegin");
-		s_ScriptGlue->EntityOnTriggerEnd = utils::GetCoreMethod("Shark.Entity:InvokeOnTriggerEnd");
-
-		SK_CORE_ASSERT(s_ScriptGlue->EntityOnCollishionBegin.Method);
-		SK_CORE_ASSERT(s_ScriptGlue->EntityOnCollishionEnd.Method);
-		SK_CORE_ASSERT(s_ScriptGlue->EntityOnTriggerBegin.Method);
-		SK_CORE_ASSERT(s_ScriptGlue->EntityOnTriggerEnd.Method);
-
-		RegisterComponents();
-		RegisterInternalCalls();
+		RegisterComponents(assembly);
+		RegisterInternalCalls(assembly);
 	}
 
 	void ScriptGlue::Shutdown()
 	{
-		skdelete s_ScriptGlue;
-		s_ScriptGlue = nullptr;
-		s_EntityBindings.clear();
+		s_HasComponentFunctions.clear();
+		s_AddComponentFunctions.clear();
+		s_RemoveComponentFunctions.clear();
 	}
 
-	static void CallPhyiscsFunc(UnmanagedThunk<MonoObject*, MonoObject*> method, Entity entityA, Entity entityB, Collider2DType colliderType)
+
+	void ScriptGlue::RegisterComponents(Coral::ManagedAssembly& assembly)
 	{
-		if (!ScriptEngine::IsInstantiated(entityA))
-			return;
+#define SK_REGISTER_COMPONENT(_component)\
+		s_HasComponentFunctions[assembly.GetType("Shark." #_component).GetTypeId()] = [](Entity entity) -> bool { return entity.HasComponent<_component>(); };\
+		s_AddComponentFunctions[assembly.GetType("Shark." #_component).GetTypeId()] = [](Entity entity) -> void { entity.AddComponent<_component>(); };\
+		s_RemoveComponentFunctions[assembly.GetType("Shark." #_component).GetTypeId()] = [](Entity entity) -> void { entity.RemoveComponent<_component>(); }
 
-		GCHandle objectHandle = ScriptEngine::GetInstance(entityA);
-		MonoObject* object = GCManager::GetManagedObject(objectHandle);
-
-		MonoObject* entity = utils::GetOrCreateInstance(entityB);
-		MonoObject* collider = utils::CreateColliderObject(entity, colliderType);
-
-		MonoException* exception = nullptr;
-		method.Invoke(object, collider, &exception);
-		ScriptUtils::HandleException((MonoObject*)exception);
+		SK_REGISTER_COMPONENT(TagComponent);
+		SK_REGISTER_COMPONENT(TransformComponent);
+		SK_REGISTER_COMPONENT(CameraComponent);
+		SK_REGISTER_COMPONENT(SpriteRendererComponent);
+		SK_REGISTER_COMPONENT(CircleRendererComponent);
+		SK_REGISTER_COMPONENT(RigidBody2DComponent);
+		SK_REGISTER_COMPONENT(BoxCollider2DComponent);
+		SK_REGISTER_COMPONENT(CircleCollider2DComponent);
+#undef SK_REGISTER_COMPONENT
 	}
 
-	void ScriptGlue::CallCollishionBegin(Entity entityA, Entity entityB, Collider2DType colliderType, bool isSensor)
+	void ScriptGlue::RegisterInternalCalls(Coral::ManagedAssembly& assembly)
 	{
-		if (!s_ScriptGlue)
-			return;
+		#define ADD_ICALL(_func) assembly.AddInternalCall("Shark.InternalCalls", #_func, &InternalCalls::_func)
+		ADD_ICALL(AssetHandle_IsValid);
 
-		auto func = isSensor ? s_ScriptGlue->EntityOnTriggerBegin : s_ScriptGlue->EntityOnCollishionBegin;
-		CallPhyiscsFunc(func, entityA, entityB, colliderType);
-	}
+		ADD_ICALL(Application_GetWidth);
+		ADD_ICALL(Application_GetHeight);
 
-	void ScriptGlue::CallCollishionEnd(Entity entityA, Entity entityB, Collider2DType colliderType, bool isSensor)
-	{
-		if (!s_ScriptGlue)
-			return;
+		ADD_ICALL(Log_LogMessage);
 
-		auto func = isSensor ? s_ScriptGlue->EntityOnTriggerEnd : s_ScriptGlue->EntityOnCollishionEnd;
-		CallPhyiscsFunc(func, entityA, entityB, colliderType);
-	}
+		ADD_ICALL(Input_IsKeyStateSet);
+		ADD_ICALL(Input_IsMouseStateSet);
+		ADD_ICALL(Input_GetMouseScroll);
+		ADD_ICALL(Input_GetMousePos);
 
-	void ScriptGlue::RegisterComponents()
-	{
-		SK_PROFILE_FUNCTION();
+		ADD_ICALL(Matrix4_Inverse);
+		ADD_ICALL(Matrix4_Matrix4MulMatrix4);
+		ADD_ICALL(Matrix4_Matrix4MulVector4);
 
-		RegisterComponent<IDComponent>();
-		RegisterComponent<TagComponent>();
-		RegisterComponent<TransformComponent>();
-		RegisterComponent<SpriteRendererComponent>();
-		RegisterComponent<CircleRendererComponent>();
-		RegisterComponent<CameraComponent>();
-		RegisterComponent<RigidBody2DComponent>();
-		RegisterComponent<BoxCollider2DComponent>();
-		RegisterComponent<CircleCollider2DComponent>();
-	}
+		ADD_ICALL(Scene_IsEntityValid);
+		ADD_ICALL(Scene_CreateEntity);
+		ADD_ICALL(Scene_DestroyEntity);
+		ADD_ICALL(Scene_FindEntityByTag);
 
-	void ScriptGlue::RegisterInternalCalls()
-	{
-		SK_PROFILE_FUNCTION();
+		ADD_ICALL(Entity_GetParent);
+		ADD_ICALL(Entity_SetParent);
+		ADD_ICALL(Entity_GetChildren);
+		ADD_ICALL(Entity_HasComponent);
+		ADD_ICALL(Entity_AddComponent);
+		ADD_ICALL(Entity_RemoveComponent);
 
-		SK_ADD_INTERNAL_CALL(Application_GetWidth);
-		SK_ADD_INTERNAL_CALL(Application_GetHeight);
+		ADD_ICALL(TagComponent_GetTag);
+		ADD_ICALL(TagComponent_SetTag);
 
-		SK_ADD_INTERNAL_CALL(Log_LogMessage);
+		ADD_ICALL(TransformComponent_GetTranslation);
+		ADD_ICALL(TransformComponent_SetTranslation);
+		ADD_ICALL(TransformComponent_GetRotation);
+		ADD_ICALL(TransformComponent_SetRotation);
+		ADD_ICALL(TransformComponent_GetScale);
+		ADD_ICALL(TransformComponent_SetScale);
+		ADD_ICALL(TransformComponent_GetLocalTransform);
+		ADD_ICALL(TransformComponent_SetLocalTransform);
+		ADD_ICALL(TransformComponent_GetWorldTransform);
+		ADD_ICALL(TransformComponent_SetWorldTransform);
 
-		SK_ADD_INTERNAL_CALL(Input_IsKeyStateSet);
-		SK_ADD_INTERNAL_CALL(Input_IsMouseStateSet);
-		SK_ADD_INTERNAL_CALL(Input_GetMouseScroll);
-		SK_ADD_INTERNAL_CALL(Input_GetMousePos);
+		ADD_ICALL(SpriteRendererComponent_GetColor);
+		ADD_ICALL(SpriteRendererComponent_SetColor);
+		ADD_ICALL(SpriteRendererComponent_SetTextureHandle);
+		ADD_ICALL(SpriteRendererComponent_GetTextureHandle);
+		ADD_ICALL(SpriteRendererComponent_GetTilingFactor);
+		ADD_ICALL(SpriteRendererComponent_SetTilingFactor);
 
-		SK_ADD_INTERNAL_CALL(Matrix4_Inverse);
-		SK_ADD_INTERNAL_CALL(Matrix4_Matrix4MulMatrix4);
-		SK_ADD_INTERNAL_CALL(Matrix4_Matrix4MulVector4);
+		ADD_ICALL(CircleRendererComponent_GetColor);
+		ADD_ICALL(CircleRendererComponent_SetColor);
+		ADD_ICALL(CircleRendererComponent_GetThickness);
+		ADD_ICALL(CircleRendererComponent_SetThickness);
+		ADD_ICALL(CircleRendererComponent_GetFade);
+		ADD_ICALL(CircleRendererComponent_SetFade);
 
-		SK_ADD_INTERNAL_CALL(Entity_GetInstance);
-		SK_ADD_INTERNAL_CALL(Entity_HasParent);
-		SK_ADD_INTERNAL_CALL(Entity_GetParent);
-		SK_ADD_INTERNAL_CALL(Entity_SetParent);
-		SK_ADD_INTERNAL_CALL(Entity_GetChildren);
-		SK_ADD_INTERNAL_CALL(Entity_HasComponent);
-		SK_ADD_INTERNAL_CALL(Entity_AddComponent);
-		SK_ADD_INTERNAL_CALL(Entity_Instantiate);
-		SK_ADD_INTERNAL_CALL(Entity_DestroyEntity);
-		SK_ADD_INTERNAL_CALL(Entity_CreateEntity);
-		SK_ADD_INTERNAL_CALL(Entity_CloneEntity);
-		SK_ADD_INTERNAL_CALL(Entity_FindEntityByName);
-		SK_ADD_INTERNAL_CALL(Entity_FindChildEntityByName);
+		ADD_ICALL(CameraComponent_GetProjection);
+		ADD_ICALL(CameraComponent_SetProjection);
+		ADD_ICALL(CameraComponent_SetIsPerspective);
+		ADD_ICALL(CameraComponent_GetIsPerspective);
+		ADD_ICALL(CameraComponent_GetAspectratio);
+		ADD_ICALL(CameraComponent_SetAspectratio);
+		ADD_ICALL(CameraComponent_GetPerspectiveFOV);
+		ADD_ICALL(CameraComponent_SetPerspectiveFOV);
+		ADD_ICALL(CameraComponent_GetOrthographicZoom);
+		ADD_ICALL(CameraComponent_SetOrthographicZoom);
+		ADD_ICALL(CameraComponent_GetPerspectiveNear);
+		ADD_ICALL(CameraComponent_SetPerspectiveNear);
+		ADD_ICALL(CameraComponent_GetPerspectiveFar);
+		ADD_ICALL(CameraComponent_SetPerspectiveFar);
+		ADD_ICALL(CameraComponent_GetOrthographicNear);
+		ADD_ICALL(CameraComponent_SetOrthographicNear);
+		ADD_ICALL(CameraComponent_GetOrthographicFar);
+		ADD_ICALL(CameraComponent_SetOrthographicFar);
 
-		SK_ADD_INTERNAL_CALL(TagComponent_GetTag);
-		SK_ADD_INTERNAL_CALL(TagComponent_SetTag);
+		ADD_ICALL(Physics2D_GetGravity);
+		ADD_ICALL(Physics2D_SetGravity);
+		ADD_ICALL(Physics2D_GetAllowSleep);
+		ADD_ICALL(Physics2D_SetAllowSleep);
 
-		SK_ADD_INTERNAL_CALL(TransformComponent_GetTranslation);
-		SK_ADD_INTERNAL_CALL(TransformComponent_SetTranslation);
-		SK_ADD_INTERNAL_CALL(TransformComponent_GetRotation);
-		SK_ADD_INTERNAL_CALL(TransformComponent_SetRotation);
-		SK_ADD_INTERNAL_CALL(TransformComponent_GetScale);
-		SK_ADD_INTERNAL_CALL(TransformComponent_SetScale);
-		SK_ADD_INTERNAL_CALL(TransformComponent_GetLocalTransform);
-		SK_ADD_INTERNAL_CALL(TransformComponent_SetLocalTransform);
-		SK_ADD_INTERNAL_CALL(TransformComponent_GetWorldTransform);
-		SK_ADD_INTERNAL_CALL(TransformComponent_SetWorldTransform);
+		ADD_ICALL(RigidBody2DComponent_GetBodyType);
+		ADD_ICALL(RigidBody2DComponent_SetBodyType);
+		ADD_ICALL(RigidBody2DComponent_GetPosition);
+		ADD_ICALL(RigidBody2DComponent_SetPosition);
+		ADD_ICALL(RigidBody2DComponent_GetRotation);
+		ADD_ICALL(RigidBody2DComponent_SetRotation);
+		ADD_ICALL(RigidBody2DComponent_GetLocalCenter);
+		ADD_ICALL(RigidBody2DComponent_GetWorldCenter);
+		ADD_ICALL(RigidBody2DComponent_GetLinearVelocity);
+		ADD_ICALL(RigidBody2DComponent_SetLinearVelocity);
+		ADD_ICALL(RigidBody2DComponent_GetAngularVelocity);
+		ADD_ICALL(RigidBody2DComponent_SetAngularVelocity);
+		ADD_ICALL(RigidBody2DComponent_ApplyForce);
+		ADD_ICALL(RigidBody2DComponent_ApplyForceToCenter);
+		ADD_ICALL(RigidBody2DComponent_ApplyTorque);
+		ADD_ICALL(RigidBody2DComponent_GetGravityScale);
+		ADD_ICALL(RigidBody2DComponent_SetGravityScale);
+		ADD_ICALL(RigidBody2DComponent_GetLinearDamping);
+		ADD_ICALL(RigidBody2DComponent_SetLinearDamping);
+		ADD_ICALL(RigidBody2DComponent_GetAngularDamping);
+		ADD_ICALL(RigidBody2DComponent_SetAngularDamping);
+		ADD_ICALL(RigidBody2DComponent_IsBullet);
+		ADD_ICALL(RigidBody2DComponent_SetBullet);
+		ADD_ICALL(RigidBody2DComponent_IsSleepingAllowed);
+		ADD_ICALL(RigidBody2DComponent_SetSleepingAllowed);
+		ADD_ICALL(RigidBody2DComponent_IsAwake);
+		ADD_ICALL(RigidBody2DComponent_SetAwake);
+		ADD_ICALL(RigidBody2DComponent_IsEnabled);
+		ADD_ICALL(RigidBody2DComponent_SetEnabled);
+		ADD_ICALL(RigidBody2DComponent_IsFixedRotation);
+		ADD_ICALL(RigidBody2DComponent_SetFixedRotation);
 
-		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_GetColor);
-		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_SetColor);
-		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_SetTextureHandle);
-		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_GetTextureHandle);
-		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_GetTilingFactor);
-		SK_ADD_INTERNAL_CALL(SpriteRendererComponent_SetTilingFactor);
+		ADD_ICALL(BoxCollider2DComponent_SetSensor);
+		ADD_ICALL(BoxCollider2DComponent_IsSensor);
+		ADD_ICALL(BoxCollider2DComponent_SetDensity);
+		ADD_ICALL(BoxCollider2DComponent_GetDensity);
+		ADD_ICALL(BoxCollider2DComponent_SetFriction);
+		ADD_ICALL(BoxCollider2DComponent_GetFriction);
+		ADD_ICALL(BoxCollider2DComponent_SetRestitution);
+		ADD_ICALL(BoxCollider2DComponent_GetRestitution);
+		ADD_ICALL(BoxCollider2DComponent_SetRestitutionThreshold);
+		ADD_ICALL(BoxCollider2DComponent_GetRestitutionThreshold);
+		ADD_ICALL(BoxCollider2DComponent_GetSize);
+		ADD_ICALL(BoxCollider2DComponent_SetSize);
+		ADD_ICALL(BoxCollider2DComponent_GetOffset);
+		ADD_ICALL(BoxCollider2DComponent_SetOffset);
+		ADD_ICALL(BoxCollider2DComponent_GetRotation);
+		ADD_ICALL(BoxCollider2DComponent_SetRotation);
 
-		SK_ADD_INTERNAL_CALL(CircleRendererComponent_GetColor);
-		SK_ADD_INTERNAL_CALL(CircleRendererComponent_SetColor);
-		SK_ADD_INTERNAL_CALL(CircleRendererComponent_GetThickness);
-		SK_ADD_INTERNAL_CALL(CircleRendererComponent_SetThickness);
-		SK_ADD_INTERNAL_CALL(CircleRendererComponent_GetFade);
-		SK_ADD_INTERNAL_CALL(CircleRendererComponent_SetFade);
+		ADD_ICALL(CircleCollider2DComponent_SetSensor);
+		ADD_ICALL(CircleCollider2DComponent_IsSensor);
+		ADD_ICALL(CircleCollider2DComponent_SetDensity);
+		ADD_ICALL(CircleCollider2DComponent_GetDensity);
+		ADD_ICALL(CircleCollider2DComponent_SetFriction);
+		ADD_ICALL(CircleCollider2DComponent_GetFriction);
+		ADD_ICALL(CircleCollider2DComponent_SetRestitution);
+		ADD_ICALL(CircleCollider2DComponent_GetRestitution);
+		ADD_ICALL(CircleCollider2DComponent_SetRestitutionThreshold);
+		ADD_ICALL(CircleCollider2DComponent_GetRestitutionThreshold);
+		ADD_ICALL(CircleCollider2DComponent_GetRadius);
+		ADD_ICALL(CircleCollider2DComponent_SetRadius);
+		ADD_ICALL(CircleCollider2DComponent_GetOffset);
+		ADD_ICALL(CircleCollider2DComponent_SetOffset);
+		ADD_ICALL(CircleCollider2DComponent_GetRotation);
+		ADD_ICALL(CircleCollider2DComponent_SetRotation);
+		#undef ADD_ICALL
 
-		SK_ADD_INTERNAL_CALL(CameraComponent_RecalculateProjectionMatrix);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetProjection);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetProjection);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetIsPerspective);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetIsPerspective);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetAspectratio);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetAspectratio);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetPerspectiveFOV);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetPerspectiveFOV);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetOrthographicSize);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetOrthographicSize);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetNear);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetNear);
-		SK_ADD_INTERNAL_CALL(CameraComponent_GetFar);
-		SK_ADD_INTERNAL_CALL(CameraComponent_SetFar);
-
-		SK_ADD_INTERNAL_CALL(Physics2D_GetGravity);
-		SK_ADD_INTERNAL_CALL(Physics2D_SetGravity);
-		SK_ADD_INTERNAL_CALL(Physics2D_GetAllowSleep);
-		SK_ADD_INTERNAL_CALL(Physics2D_SetAllowSleep);
-
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetBodyType);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetBodyType);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetTransform);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetTransform);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetPosition);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetRotation);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetLocalCenter);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetWorldCenter);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetLinearVelocity);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetLinearVelocity);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetAngularVelocity);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetAngularVelocity);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_ApplyForce);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_ApplyForceToCenter);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_ApplyTorque);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetGravityScale);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetGravityScale);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetLinearDamping);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetLinearDamping);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_GetAngularDamping);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetAngularDamping);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsBullet);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetBullet);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsSleepingAllowed);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetSleepingAllowed);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsAwake);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetAwake);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsEnabled);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetEnabled);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_IsFixedRotation);
-		SK_ADD_INTERNAL_CALL(RigidBody2DComponent_SetFixedRotation);
-
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetSensor);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_IsSensor);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetDensity);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetDensity);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetFriction);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetFriction);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetRestitution);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetRestitution);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetRestitutionThreshold);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetRestitutionThreshold);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetSize);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetSize);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetOffset);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetOffset);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_GetRotation);
-		SK_ADD_INTERNAL_CALL(BoxCollider2DComponent_SetRotation);
-
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetSensor);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_IsSensor);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetDensity);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetDensity);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetFriction);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetFriction);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRestitution);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRestitution);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRestitutionThreshold);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRestitutionThreshold);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRadius);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRadius);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetOffset);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetOffset);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_GetRotation);
-		SK_ADD_INTERNAL_CALL(CircleCollider2DComponent_SetRotation);
-
-		SK_ADD_INTERNAL_CALL(ResourceManager_GetAssetHandleFromFilePath);
-
-		SK_ADD_INTERNAL_CALL(EditorUI_BeginWindow);
-		SK_ADD_INTERNAL_CALL(EditorUI_EndWindow);
-		SK_ADD_INTERNAL_CALL(EditorUI_Text);
-		SK_ADD_INTERNAL_CALL(EditorUI_NewLine);
-		SK_ADD_INTERNAL_CALL(EditorUI_Separator);
+		assembly.UploadInternalCalls();
 	}
 
 	namespace InternalCalls
 	{
 
+		#pragma region AssetHandle
+
+		Coral::Bool32 AssetHandle_IsValid(AssetHandle assetHandle)
+		{
+			return AssetManager::IsValidAssetHandle(assetHandle);
+		}
+
+		#pragma endregion
+
 		#pragma region Application
 
 		uint32_t Application_GetWidth()
 		{
-			Ref<Scene> scene = utils::GetScene();
-			SK_CORE_ASSERT(scene);
-			if (!scene)
-			{
-				MonoException* exception = mono_get_exception_null_reference();
-				mono_raise_exception(exception);
-				SK_CORE_VERIFY(false, "should not be called");
-				return 0;
-			}
-			return scene->GetViewportWidth();
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			return currentScene->GetViewportWidth();
 		}
 
 		uint32_t Application_GetHeight()
 		{
-			Ref<Scene> scene = utils::GetScene();
-			SK_CORE_ASSERT(scene);
-			if (!scene)
-			{
-				MonoException* exception = mono_get_exception_null_reference();
-				mono_raise_exception(exception);
-				SK_CORE_VERIFY(false, "should not be called");
-				return 0;
-			}
-			return scene->GetViewportHeight();
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			return currentScene->GetViewportHeight();
 		}
 
 		#pragma endregion
 
 		#pragma region Log
 
-		void Log_LogMessage(LogLevel level, MonoString* message)
+		void Log_LogMessage(LogLevel level, Coral::String message)
 		{
-			char* msg = mono_string_to_utf8(message);
+			std::string msg = message;
 			switch (level)
 			{
 				case LogLevel::Trace:
-					SK_CONSOLE_TRACE(msg ? msg : "Message was Null");
+					SK_CONSOLE_TRACE(msg);
 					break;
 				case LogLevel::Info:
-					SK_CONSOLE_INFO(msg ? msg : "Message was Null");
+					SK_CONSOLE_INFO(msg);
 					break;
 				case LogLevel::Warn:
-					SK_CONSOLE_WARN(msg ? msg : "Message was Null");
+					SK_CONSOLE_WARN(msg);
 					break;
 				case LogLevel::Error:
-					SK_CONSOLE_ERROR(msg ? msg : "Message was Null");
+					SK_CONSOLE_ERROR(msg);
 					break;
 				case LogLevel::Critical:
-					SK_CONSOLE_CRITICAL(msg ? msg : "Message was Null");
+					SK_CONSOLE_CRITICAL(msg);
 					break;
 				case LogLevel::Debug:
-					SK_CONSOLE_DEBUG(msg ? msg : "Message was Null");
+					SK_CONSOLE_DEBUG(msg);
 					break;
 			}
-			mono_free(msg);
 		}
 
 		#pragma endregion
 
 		#pragma region Input
 
-		bool Input_IsKeyStateSet(KeyCode key, KeyState keyState)
+		Coral::Bool32 Input_IsKeyStateSet(KeyCode key, KeyState keyState)
 		{
 			auto& app = Application::Get();
 			if (app.GetSpecification().EnableImGui)
@@ -483,7 +295,7 @@ namespace Shark {
 			return Input::GetKeyState(key) == keyState;
 		}
 
-		bool Input_IsMouseStateSet(MouseButton button, MouseState mouseState)
+		Coral::Bool32 Input_IsMouseStateSet(MouseButton button, MouseState mouseState)
 		{
 			auto& app = Application::Get();
 			if (app.GetSpecification().EnableImGui)
@@ -546,261 +358,172 @@ namespace Shark {
 
 		#pragma endregion
 
+		#pragma region Scene
+
+		Coral::Bool32 Scene_IsEntityValid(uint64_t entityID)
+		{
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			return currentScene->IsValidEntityID(entityID);
+		}
+
+		uint64_t Scene_CreateEntity(Coral::String name)
+		{
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			Entity newEntity = currentScene->CreateEntity(name);
+			return newEntity.GetUUID();
+		}
+
+		void Scene_DestroyEntity(uint64_t entityID)
+		{
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			Entity entity = currentScene->TryGetEntityByUUID(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+
+			currentScene->DestroyEntity(entity);
+		}
+
+		uint64_t Scene_FindEntityByTag(Coral::String Tag)
+		{
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			Entity entity = currentScene->FindEntityByTag(Tag);
+			return entity ? (uint64_t)entity.GetUUID() : UUID::Invalid;
+		}
+
+		#pragma endregion
+
 		#pragma region Entity
 
-		MonoObject* Entity_GetInstance(uint64_t entityID)
+		uint64_t Entity_GetParent(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(entityID);
-			if (!entity)
-				return nullptr;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 
-			if (ScriptEngine::IsInstantiated(entity))
-			{
-				GCHandle handle = ScriptEngine::GetInstance(entity);
-				return GCManager::GetManagedObject(handle);
-			}
-			return nullptr;
-		}
-
-		bool Entity_HasParent(uint64_t entityID)
-		{
-			Entity entity = utils::TryGetEntity(entityID);
-			if (!entity)
-				return false;
-
-			return entity.HasParent();
-		}
-
-		MonoObject* Entity_GetParent(uint64_t entityID)
-		{
-			Entity entity = utils::TryGetEntity(entityID);
-			if (!entity)
-				return nullptr;
-
-			Entity parent = entity.Parent();
-			if (!parent)
-				return nullptr;
-
-			return utils::GetOrCreateInstance(parent);
+			if (entity && entity.HasParent())
+				return entity.ParentID();
+			return UUID::Invalid;
 		}
 
 		void Entity_SetParent(uint64_t entityID, uint64_t parentID)
 		{
-			Entity entity = utils::TryGetEntity(entityID);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
+			{
+				// #TODO(moro): error
 				return;
+			}
 
-			Entity parent = utils::TryGetEntity(parentID);
-			if (!parent)
+			Entity entity = currentScene->GetEntityByID(entityID);
+			if (!parentID)
+			{
+				currentScene->UnparentEntity(entity);
 				return;
+			}
 
-			entity.SetParent(parent);
+			Entity parent = currentScene->GetEntityByID(parentID);
+			currentScene->ParentEntity(entity, parent);
 		}
 
-		MonoArray* Entity_GetChildren(uint64_t entityID)
+		Coral::Array<uint64_t> Entity_GetChildren(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(entityID);
-			if (!entity)
-				return nullptr;
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
+				return {};
 
-			Ref<Scene> scene = utils::GetScene();
-			std::vector<UUID> children = entity.Children();
-			MonoArray* arr = mono_array_new(ScriptEngine::GetRuntimeDomain(), ScriptEngine::GetEntityClass(), children.size());
+			Entity entity = currentScene->GetEntityByID(entityID);
+			const auto& children = entity.Children();
+			auto childrenIDs = Coral::Array<uint64_t>::New(children.size());
+
 			for (uint32_t i = 0; i < children.size(); i++)
-			{
-				Entity child = scene->TryGetEntityByUUID(children[i]);
-				MonoObject* obj = utils::GetOrCreateInstance(child);
-				mono_array_setref(arr, i, obj);
-			}
+				childrenIDs[i] = children[i];
 
-			return arr;
+			return childrenIDs;
 		}
 
-		bool Entity_HasComponent(uint64_t id, MonoReflectionType* type)
+		Coral::Bool32 Entity_HasComponent(uint64_t entityID, Coral::ReflectionType reflectionType)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return false;
 
-			MonoType* componentType = mono_reflection_type_get_type(type);
-
-			if (!s_EntityBindings.contains(componentType))
-				return false;
-
-			auto& bindings = s_EntityBindings.at(componentType);
-			return bindings.HasComponent(entity);
+			Coral::Type& type = reflectionType;
+			Entity entity = currentScene->GetEntityByID(entityID);
+			
+			auto hasCompFunc = s_HasComponentFunctions.at(type.GetTypeId());
+			return hasCompFunc(entity);
 		}
 
-		void Entity_AddComponent(uint64_t id, MonoReflectionType* type)
+		void Entity_AddComponent(uint64_t entityID, Coral::ReflectionType reflectionType)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
-			MonoType* componentType = mono_reflection_type_get_type(type);
+			Coral::Type& type = reflectionType;
+			Entity entity = currentScene->GetEntityByID(entityID);
 
-			if (!s_EntityBindings.contains(componentType))
+			auto addCompFunc = s_AddComponentFunctions.at(type.GetTypeId());
+			addCompFunc(entity);
+		}
+
+		void Entity_RemoveComponent(uint64_t entityID, Coral::ReflectionType reflectionType)
+		{
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
-			auto& bindings = s_EntityBindings.at(componentType);
-			if (bindings.HasComponent(entity))
-				return;
+			Coral::Type& type = reflectionType;
+			Entity entity = currentScene->GetEntityByID(entityID);
 
-			bindings.AddComponent(entity);
+			auto removeCompFunc = s_RemoveComponentFunctions.at(type.GetTypeId());
+			removeCompFunc(entity);
 		}
 
-		void Entity_RemoveComponent(uint64_t id, MonoReflectionType* type)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-
-			MonoType* componentType = mono_reflection_type_get_type(type);
-
-			if (!s_EntityBindings.contains(componentType))
-				return;
-
-			auto& bindings = s_EntityBindings.at(componentType);
-			if (!bindings.HasComponent(entity))
-				return;
-
-			bindings.RemoveComponent(entity);
-		}
-
-		MonoObject* Entity_Instantiate(MonoReflectionType* type, MonoString* name)
-		{
-			MonoType* monoType = mono_reflection_type_get_type(type);
-			char* scriptTypeName = mono_type_get_name(monoType);
-
-			Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(scriptTypeName);
-			if (!klass)
-			{
-				SK_CONSOLE_ERROR("Can't Instantiate Entity\nScript type not found");
-				return nullptr;
-			}
-
-			Ref<Scene> scene = utils::GetScene();
-			Entity newEntity = scene->CreateEntity(ScriptUtils::MonoStringToUTF8(name));
-			auto& comp = newEntity.AddComponent<ScriptComponent>();
-			comp.ScriptName = scriptTypeName;
-			comp.ClassID = klass->GetID();
-			mono_free(scriptTypeName);
-
-			GCHandle handle = ScriptEngine::InstantiateEntity(newEntity, true, false);
-			return handle ? GCManager::GetManagedObject(handle) : nullptr;
-		}
-
-		void Entity_DestroyEntity(uint64_t entityID, bool destroyChildren)
-		{
-			Ref<Scene> scene = utils::GetScene();
-			scene->Submit([scene, entityID, destroyChildren]()
-			{
-				Entity entity = scene->TryGetEntityByUUID(entityID);
-				if (!entity)
-					return;
-
-				scene->DestroyEntity(entity, destroyChildren);
-			});
-		}
-
-		uint64_t Entity_CreateEntity(MonoString* name)
-		{
-			Ref<Scene> scene = utils::GetScene();
-			if (!scene)
-				return 0;
-
-			std::string entityName = ScriptUtils::MonoStringToUTF8(name);
-			Entity entity = scene->CreateEntity(entityName);
-			return entity.GetUUID().Value();
-		}
-
-		uint64_t Entity_CloneEntity(uint64_t entityID)
-		{
-			Ref<Scene> scene = utils::GetScene();
-			if (!scene)
-				return 0;
-
-			Entity entity = scene->TryGetEntityByUUID(entityID);
-			if (!entity)
-				return 0;
-
-			Entity clonedEntity = scene->CloneEntity(entity);
-			ScriptEngine::OnEntityCloned(entity, clonedEntity);
-			return clonedEntity.GetUUID().Value();
-		}
-
-		uint64_t Entity_FindEntityByName(MonoString* name)
-		{
-			Ref<Scene> scene = utils::GetScene();
-			if (!scene)
-				return 0;
-
-			std::string entityTag = ScriptUtils::MonoStringToUTF8(name);
-			Entity entity = scene->FindEntityByTag(entityTag);
-			if (entity)
-				return entity.GetUUID().Value();
-			return 0;
-		}
-
-		uint64_t Entity_FindChildEntityByName(uint64_t entityID, MonoString* name, bool recusive)
-		{
-			Ref<Scene> scene = utils::GetScene();
-			if (!scene)
-				return 0;
-
-			Entity entity = scene->TryGetEntityByUUID(entityID);
-			if (!entity)
-				return 0;
-
-			std::string entityName = ScriptUtils::MonoStringToUTF8(name);
-			Entity childEntity = scene->FindChildEntityByName(entity, entityName, recusive);
-			if (childEntity)
-				return childEntity.GetUUID().Value();
-			return 0;
-		}
-
-#pragma endregion
+		#pragma endregion
 
 		#pragma region TagComponent
 
-		MonoString* TagComponent_GetTag(uint64_t id)
+		Coral::String TagComponent_GetTag(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return ScriptUtils::MonoStringEmpty();
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
+				return {};
 
-			return ScriptUtils::UTF8ToMonoString(entity.GetName());
+			Entity entity = currentScene->GetEntityByID(entityID);
+			return Coral::String::New(entity.Tag());
 		}
 
-		void TagComponent_SetTag(uint64_t id, MonoString* tag)
+		void TagComponent_SetTag(uint64_t entityID, Coral::String tag)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
-			entity.GetComponent<TagComponent>().Tag = ScriptUtils::MonoStringToUTF8(tag);
+			Entity entity = currentScene->GetEntityByID(entityID);
+			entity.Tag() = tag;
 		}
 
 		#pragma endregion
 
 		#pragma region TransformComponent
 
-		void TransformComponent_GetTranslation(uint64_t id, glm::vec3* out_Translation)
+		void TransformComponent_GetTranslation(uint64_t entityID, glm::vec3* out_Translation)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			auto& transform = entity.Transform();
 			*out_Translation = transform.Translation;
 		}
 
-		void TransformComponent_SetTranslation(uint64_t id, glm::vec3* translation)
+		void TransformComponent_SetTranslation(uint64_t entityID, glm::vec3* translation)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			auto& transform = entity.Transform();
 			transform.Translation = *translation;
 
@@ -812,22 +535,24 @@ namespace Shark {
 			}
 		}
 
-		void TransformComponent_GetRotation(uint64_t id, glm::vec3* out_Rotation)
+		void TransformComponent_GetRotation(uint64_t entityID, glm::vec3* out_Rotation)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			auto& transform = entity.Transform();
 			*out_Rotation = transform.Rotation;
 		}
 
-		void TransformComponent_SetRotation(uint64_t id, glm::vec3* rotation)
+		void TransformComponent_SetRotation(uint64_t entityID, glm::vec3* rotation)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			auto& transform = entity.Transform();
 			transform.Rotation = *rotation;
 
@@ -839,301 +564,255 @@ namespace Shark {
 			}
 		}
 
-		void TransformComponent_GetScale(uint64_t id, glm::vec3* out_Scaling)
+		void TransformComponent_GetScale(uint64_t entityID, glm::vec3* out_Scaling)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			auto& transform = entity.Transform();
 			*out_Scaling = transform.Scale;
 		}
 
-		void TransformComponent_SetScale(uint64_t id, glm::vec3* scaling)
+		void TransformComponent_SetScale(uint64_t entityID, glm::vec3* scaling)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			auto& transform = entity.Transform();
 			transform.Scale = *scaling;
 		}
 
-		void TransformComponent_GetLocalTransform(uint64_t id, TransformComponent* out_LocalTransform)
+		void TransformComponent_GetLocalTransform(uint64_t entityID, TransformComponent* out_LocalTransform)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			*out_LocalTransform = entity.Transform();
 		}
 
-		void TransformComponent_SetLocalTransform(uint64_t id, TransformComponent* localTransform)
+		void TransformComponent_SetLocalTransform(uint64_t entityID, TransformComponent* localTransform)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			entity.Transform() = *localTransform;
+
+			if (entity.HasComponent<RigidBody2DComponent>())
+			{
+				auto& rigidBody = entity.GetComponent<RigidBody2DComponent>();
+				if (rigidBody.RuntimeBody)
+				{
+					const auto& transform = entity.Transform();
+					rigidBody.RuntimeBody->SetTransform({ transform.Translation.x, transform.Translation.y }, transform.Rotation.z);
+				}
+			}
 		}
 
-		void TransformComponent_GetWorldTransform(uint64_t id, TransformComponent* out_WorldTransform)
+		void TransformComponent_GetWorldTransform(uint64_t entityID, TransformComponent* out_WorldTransform)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			if (!entity.HasParent())
 			{
 				*out_WorldTransform = entity.Transform();
 				return;
 			}
 
-			Ref<Scene> scene = utils::GetScene();
-			glm::mat4 worldTransform = scene->GetWorldSpaceTransformMatrix(entity);
+			glm::mat4 worldTransform = currentScene->GetWorldSpaceTransformMatrix(entity);
 			Math::DecomposeTransform(worldTransform, out_WorldTransform->Translation, out_WorldTransform->Rotation, out_WorldTransform->Scale);
 		}
 
-		void TransformComponent_SetWorldTransform(uint64_t id, TransformComponent* worldTransform)
+		void TransformComponent_SetWorldTransform(uint64_t entityID, TransformComponent* worldTransform)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			if (!currentScene->IsValidEntityID(entityID))
 				return;
 
+			Entity entity = currentScene->GetEntityByID(entityID);
 			if (!entity.HasParent())
 			{
 				entity.Transform() = *worldTransform;
 				return;
 			}
 
-			Ref<Scene> scene = utils::GetScene();
+			entity.Transform() = *worldTransform;
+			currentScene->ConvertToLocaSpace(entity);
 
-			glm::mat4 transform = worldTransform->CalcTransform();
-			glm::mat4 parentTransform = entity.Parent().Transform().CalcTransform();
-
-			glm::mat4 localTransform = glm::inverse(parentTransform) * transform;
-
-			TransformComponent& tf = entity.Transform();
-			Math::DecomposeTransform(localTransform, tf.Translation, tf.Rotation, tf.Scale);
+			if (entity.HasComponent<RigidBody2DComponent>())
+			{
+				auto& rigidBody = entity.GetComponent<RigidBody2DComponent>();
+				if (rigidBody.RuntimeBody)
+				{
+					const auto& transform = entity.Transform();
+					rigidBody.RuntimeBody->SetTransform({ transform.Translation.x, transform.Translation.y }, transform.Rotation.z);
+				}
+			}
 		}
 
 		#pragma endregion
 
 		#pragma region SpriteRendererComponent
 
-		void SpriteRendererComponent_GetColor(uint64_t id, glm::vec4* out_Color)
+		void SpriteRendererComponent_GetColor(uint64_t entityID, glm::vec4* out_Color)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<SpriteRendererComponent>())
-				return;
-
-			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			*out_Color = spriteRenderer.Color;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<SpriteRendererComponent>());
+			*out_Color = entity.GetComponent<SpriteRendererComponent>().Color;
 		}
 
-		void SpriteRendererComponent_SetColor(uint64_t id, glm::vec4* color)
+		void SpriteRendererComponent_SetColor(uint64_t entityID, glm::vec4* color)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<SpriteRendererComponent>())
-				return;
-
-			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			spriteRenderer.Color = *color;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<SpriteRendererComponent>());
+			entity.GetComponent<SpriteRendererComponent>().Color = *color;
 		}
 
-		AssetHandle SpriteRendererComponent_GetTextureHandle(uint64_t id)
+		AssetHandle SpriteRendererComponent_GetTextureHandle(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return AssetHandle::Invalid;
-			if (!entity.HasComponent<SpriteRendererComponent>())
-				return AssetHandle::Invalid;
-
-			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			return spriteRenderer.TextureHandle;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<SpriteRendererComponent>());
+			return entity.GetComponent<SpriteRendererComponent>().TextureHandle;
 		}
 
-		void SpriteRendererComponent_SetTextureHandle(uint64_t id, AssetHandle textureHandle)
+		void SpriteRendererComponent_SetTextureHandle(uint64_t entityID, AssetHandle textureHandle)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<SpriteRendererComponent>())
-				return;
-
-			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			spriteRenderer.TextureHandle = textureHandle;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<SpriteRendererComponent>());
+			entity.GetComponent<SpriteRendererComponent>().TextureHandle = textureHandle;
 		}
 
-		void SpriteRendererComponent_GetTilingFactor(uint64_t id, glm::vec2* outTilingFactor)
+		void SpriteRendererComponent_GetTilingFactor(uint64_t entityID, glm::vec2* outTilingFactor)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<SpriteRendererComponent>())
-				return;
-
-			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			*outTilingFactor = spriteRenderer.TilingFactor;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<SpriteRendererComponent>());
+			*outTilingFactor = entity.GetComponent<SpriteRendererComponent>().TilingFactor;
 		}
 
-		void SpriteRendererComponent_SetTilingFactor(uint64_t id, glm::vec2* tilingFactor)
+		void SpriteRendererComponent_SetTilingFactor(uint64_t entityID, glm::vec2* tilingFactor)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<SpriteRendererComponent>())
-				return;
-
-			auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-			spriteRenderer.TilingFactor = *tilingFactor;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<SpriteRendererComponent>());
+			entity.GetComponent<SpriteRendererComponent>().TilingFactor = *tilingFactor;
 		}
 
 		#pragma endregion
 
 		#pragma region CricleRendererComponent
 
-		void CircleRendererComponent_GetColor(uint64_t id, glm::vec4* out_Color)
+		void CircleRendererComponent_GetColor(uint64_t entityID, glm::vec4* out_Color)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleRendererComponent>())
-				return;
-
-			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			*out_Color = circleRenderer.Color;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleRendererComponent>());
+			*out_Color = entity.GetComponent<CircleRendererComponent>().Color;
 		}
 
-		void CircleRendererComponent_SetColor(uint64_t id, glm::vec4* color)
+		void CircleRendererComponent_SetColor(uint64_t entityID, glm::vec4* color)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleRendererComponent>())
-				return;
-
-			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			circleRenderer.Color = *color;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleRendererComponent>());
+			entity.GetComponent<CircleRendererComponent>().Color = *color;
 		}
 
-		float CircleRendererComponent_GetThickness(uint64_t id)
+		float CircleRendererComponent_GetThickness(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CircleRendererComponent>())
-				return 0.0f;
-
-			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			return circleRenderer.Thickness;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleRendererComponent>());
+			return entity.GetComponent<CircleRendererComponent>().Thickness;
 		}
 
-		void CircleRendererComponent_SetThickness(uint64_t id, float thickness)
+		void CircleRendererComponent_SetThickness(uint64_t entityID, float thickness)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleRendererComponent>())
-				return;
-
-			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			circleRenderer.Thickness = thickness;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleRendererComponent>());
+			entity.GetComponent<CircleRendererComponent>().Thickness = thickness;
 		}
 
-		float CircleRendererComponent_GetFade(uint64_t id)
+		float CircleRendererComponent_GetFade(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CircleRendererComponent>())
-				return 0.0f;
-
-			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			return circleRenderer.Fade;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleRendererComponent>());
+			return entity.GetComponent<CircleRendererComponent>().Fade;
 		}
 
-		void CircleRendererComponent_SetFade(uint64_t id, float fade)
+		void CircleRendererComponent_SetFade(uint64_t entityID, float fade)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleRendererComponent>())
-				return;
-
-			auto& circleRenderer = entity.GetComponent<CircleRendererComponent>();
-			circleRenderer.Fade = fade;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleRendererComponent>());
+			entity.GetComponent<CircleRendererComponent>().Fade = fade;
 		}
 
 		#pragma endregion
 
 		#pragma region CameraComponent
 
-		void CameraComponent_RecalculateProjectionMatrix(uint64_t id)
+		void CameraComponent_RecalculateProjectionMatrix(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity || !entity.HasComponent<CameraComponent>())
-				return;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			component.Recalculate();
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().Recalculate();
 		}
 
-		void CameraComponent_GetProjection(uint64_t id, glm::mat4* out_Projection)
+		void CameraComponent_GetProjection(uint64_t entityID, glm::mat4* out_Projection)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CameraComponent>())
-				return;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			*out_Projection = component.GetProjection();
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			*out_Projection = entity.GetComponent<CameraComponent>().GetProjection();
 		}
 
-		void CameraComponent_SetProjection(uint64_t id, glm::mat4* projection)
+		void CameraComponent_SetProjection(uint64_t entityID, glm::mat4* projection)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CameraComponent>())
-				return;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			component.Camera.SetProjection(*projection);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().Camera.SetProjection(*projection);
 		}
 
-		bool CameraComponent_GetIsPerspective(uint64_t id)
+		Coral::Bool32 CameraComponent_GetIsPerspective(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity || !entity.HasComponent<CameraComponent>())
-				return false;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			return component.IsPerspective;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			return entity.GetComponent<CameraComponent>().IsPerspective;
 		}
 
-		void CameraComponent_SetIsPerspective(uint64_t id, bool isPerspective)
+		void CameraComponent_SetIsPerspective(uint64_t entityID, bool isPerspective)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity || !entity.HasComponent<CameraComponent>())
-				return;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			component.IsPerspective = isPerspective;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().IsPerspective = isPerspective;
 		}
 
-		void CameraComponent_SetPerspective(uint64_t id, float aspectratio, float perspectiveFOV, float clipnear, float clipfar)
+		void CameraComponent_SetPerspective(uint64_t entityID, float aspectratio, float perspectiveFOV, float clipnear, float clipfar)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CameraComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
 
 			auto& component = entity.GetComponent<CameraComponent>();
 			component.IsPerspective = true;
@@ -1143,13 +822,11 @@ namespace Shark {
 			component.Far = clipfar;
 		}
 
-		void CameraComponent_SetOrthographic(uint64_t id, float aspectratio, float orthographicSize, float clipnear, float clipfar)
+		void CameraComponent_SetOrthographic(uint64_t entityID, float aspectratio, float orthographicSize, float clipnear, float clipfar)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CameraComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
 
 			auto& component = entity.GetComponent<CameraComponent>();
 			component.IsPerspective = false;
@@ -1159,377 +836,519 @@ namespace Shark {
 			component.Far = clipfar;
 		}
 
-		float CameraComponent_GetAspectratio(uint64_t id)
+		float CameraComponent_GetAspectratio(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CameraComponent>())
-				return 0.0f;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			return component.AspectRatio;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			return entity.GetComponent<CameraComponent>().AspectRatio;
 		}
 
-		void CameraComponent_SetAspectratio(uint64_t id, float aspectratio)
+		void CameraComponent_SetAspectratio(uint64_t entityID, float aspectratio)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CameraComponent>())
-				return;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			component.AspectRatio = aspectratio;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().AspectRatio = aspectratio;
 		}
 
-		float CameraComponent_GetPerspectiveFOV(uint64_t id)
+		float CameraComponent_GetPerspectiveFOV(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CameraComponent>())
-				return 0.0f;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			return glm::degrees(component.PerspectiveFOV);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			return glm::degrees(entity.GetComponent<CameraComponent>().PerspectiveFOV);
 		}
 
-		void CameraComponent_SetPerspectiveFOV(uint64_t id, float fov)
+		void CameraComponent_SetPerspectiveFOV(uint64_t entityID, float fov)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CameraComponent>())
-				return;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			component.PerspectiveFOV = glm::radians(fov);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().PerspectiveFOV = glm::radians(fov);
 		}
 
-		float CameraComponent_GetOrthographicSize(uint64_t id)
+		float CameraComponent_GetOrthographicZoom(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CameraComponent>())
-				return 0.0f;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			return component.OrthographicSize;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			return entity.GetComponent<CameraComponent>().OrthographicSize;
 		}
 
-		void CameraComponent_SetOrthographicSize(uint64_t id, float size)
+		void CameraComponent_SetOrthographicZoom(uint64_t entityID, float size)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CameraComponent>())
-				return;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			component.OrthographicSize = size;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().OrthographicSize = size;
 		}
 
-		float CameraComponent_GetNear(uint64_t id)
+		float CameraComponent_GetPerspectiveNear(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CameraComponent>())
-				return 0.0f;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			return component.Near;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			return entity.GetComponent<CameraComponent>().Near;
 		}
 
-		void CameraComponent_SetNear(uint64_t id, float clipnear)
+		void CameraComponent_SetPerspectiveNear(uint64_t entityID, float clipnear)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CameraComponent>())
-				return;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			component.Near = component.Near;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().Near = clipnear;
 		}
 
-		float CameraComponent_GetFar(uint64_t id)
+		float CameraComponent_GetPerspectiveFar(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CameraComponent>())
-				return 0.0f;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			return component.Far;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			return entity.GetComponent<CameraComponent>().Far;
 		}
 
-		void CameraComponent_SetFar(uint64_t id, float clipfar)
+		void CameraComponent_SetPerspectiveFar(uint64_t entityID, float clipfar)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CameraComponent>())
-				return;
-
-			auto& component = entity.GetComponent<CameraComponent>();
-			component.Far = clipfar;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().Far = clipfar;
 		}
 
-#pragma endregion
+		float CameraComponent_GetOrthographicNear(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			return entity.GetComponent<CameraComponent>().Near;
+		}
+
+		void CameraComponent_SetOrthographicNear(uint64_t entityID, float clipnear)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().Near = clipnear;
+		}
+
+		float CameraComponent_GetOrthographicFar(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			return entity.GetComponent<CameraComponent>().Far;
+		}
+
+		void CameraComponent_SetOrthographicFar(uint64_t entityID, float clipfar)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
+			entity.GetComponent<CameraComponent>().Far = clipfar;
+		}
+
+		#pragma endregion
 
 		#pragma region Physics2D
 
 		void Physics2D_GetGravity(glm::vec2* out_Gravity)
 		{
-			Ref<Scene> scene = utils::GetScene();
-			auto& phyiscsScene = scene->GetPhysicsScene();
-			if (!phyiscsScene.GetWorld())
-			{
-				*out_Gravity = glm::vec2(0.0f);
-				return;
-			}
+			Ref<Scene> currentScene = ScriptEngine::Get().GetCurrentSceen();
+			auto& physicsScene = currentScene->GetPhysicsScene();
+			SK_ICALL_VERIFY_PARAMETER(physicsScene.Active());
 
-			auto gravity = phyiscsScene.GetWorld()->GetGravity();
+
+			auto gravity = physicsScene.GetWorld()->GetGravity();
 			out_Gravity->x = gravity.x;
 			out_Gravity->y = gravity.y;
 		}
 
 		void Physics2D_SetGravity(glm::vec2* gravity)
 		{
-			Ref<Scene> scene = utils::GetScene();
-			auto& phyiscsScene = scene->GetPhysicsScene();
-			if (!phyiscsScene.GetWorld())
-				return;
+			Ref<Scene> currentScene = ScriptEngine::Get().GetCurrentSceen();
+			auto& physicsScene = currentScene->GetPhysicsScene();
+			SK_ICALL_VERIFY_PARAMETER(physicsScene.Active());
 
-			phyiscsScene.GetWorld()->SetGravity({ gravity->x, gravity->y });
+			physicsScene.GetWorld()->SetGravity({ gravity->x, gravity->y });
 		}
 
-		bool Physics2D_GetAllowSleep()
+		Coral::Bool32 Physics2D_GetAllowSleep()
 		{
-			Ref<Scene> scene = utils::GetScene();
-			auto& phyiscsScene = scene->GetPhysicsScene();
-			if (!phyiscsScene.GetWorld())
-				return false;
+			Ref<Scene> currentScene = ScriptEngine::Get().GetCurrentSceen();
+			auto& physicsScene = currentScene->GetPhysicsScene();
+			SK_ICALL_VERIFY_PARAMETER(physicsScene.Active());
 
-			return phyiscsScene.GetWorld()->GetAllowSleeping();
+			return physicsScene.GetWorld()->GetAllowSleeping();
 		}
 
 		void Physics2D_SetAllowSleep(bool allowSleep)
 		{
-			Ref<Scene> scene = utils::GetScene();
-			auto& phyiscsScene = scene->GetPhysicsScene();
-			if (!phyiscsScene.GetWorld())
-				return;
+			Ref<Scene> currentScene = ScriptEngine::Get().GetCurrentSceen();
+			auto& physicsScene = currentScene->GetPhysicsScene();
+			SK_ICALL_VERIFY_PARAMETER(physicsScene.Active());
 
-			phyiscsScene.GetWorld()->SetAllowSleeping(allowSleep);
+			physicsScene.GetWorld()->SetAllowSleeping(allowSleep);
 		}
 
 		#pragma endregion
 
 		#pragma region RigidBody2DComponent
 
-		RigidBody2DComponent::BodyType RigidBody2DComponent_GetBodyType(uint64_t id)
+		RigidbodyType RigidBody2DComponent_GetBodyType(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity || !entity.HasComponent<RigidBody2DComponent>())
-				return RigidBody2DComponent::BodyType::Static;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return RigidBody2DComponent::BodyType::Static;
-
-			return utils::b2BodyTypeToSharkBodyType(body->GetType());
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+			return entity.GetComponent<RigidBody2DComponent>().Type;
 		}
 
-		void RigidBody2DComponent_SetBodyType(uint64_t id, RigidBody2DComponent::BodyType bodyType)
+		void RigidBody2DComponent_SetBodyType(uint64_t entityID, RigidbodyType bodyType)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			auto& component = entity.GetComponent<RigidBody2DComponent>();
+			if (component.Type == bodyType)
 				return;
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			component.Type = bodyType;
 
-			body->SetType(utils::SharkBodyTypeTob2BodyType(bodyType));
+			SK_CORE_VERIFY(component.RuntimeBody);
+			component.RuntimeBody->SetType(Physics2DUtils::ConvertBodyType(component.Type));
 		}
 
-		void RigidBody2DComponent_GetTransform(uint64_t id, RigidBody2DTransform* out_Transform)
+		void RigidBody2DComponent_GetPosition(uint64_t entityID, glm::vec2* outPosition)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			const auto& component = entity.GetComponent<RigidBody2DComponent>();
 
-			const auto& tf = body->GetTransform();
-
-			RigidBody2DTransform transform;
-			transform.Position = { tf.p.x, tf.p.y };
-			transform.Angle = tf.q.GetAngle();
-			*out_Transform = transform;
+			SK_CORE_VERIFY(component.RuntimeBody);
+			const auto& bodyPosition = component.RuntimeBody->GetPosition();
+			*outPosition = { bodyPosition.x, bodyPosition.y };
 		}
 
-		void RigidBody2DComponent_SetTransform(uint64_t id, RigidBody2DTransform* transform)
+		void RigidBody2DComponent_SetPosition(uint64_t entityID, glm::vec2* position)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			const b2Vec2 pos = { transform->Position.x, transform->Position.y };
-			body->SetTransform(pos, transform->Angle);
-		}
-
-		void RigidBody2DComponent_SetPosition(uint64_t id, glm::vec2* position)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
 
 			body->SetTransform({ position->x, position->y }, body->GetAngle());
 		}
 
-		void RigidBody2DComponent_SetRotation(uint64_t id, float rotation)
+		float RigidBody2DComponent_GetRotation(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			const auto& component = entity.GetComponent<RigidBody2DComponent>();
+
+			SK_CORE_VERIFY(component.RuntimeBody);
+			return component.RuntimeBody->GetAngle();
+		}
+
+		void RigidBody2DComponent_SetRotation(uint64_t entityID, float rotation)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
 
 			body->SetTransform(body->GetPosition(), rotation);
 		}
 
-		void RigidBody2DComponent_GetLocalCenter(uint64_t id, glm::vec2* out_LocalCenter)
+		void RigidBody2DComponent_GetLocalCenter(uint64_t entityID, glm::vec2* out_LocalCenter)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
 
 			const b2Vec2 lc = body->GetLocalCenter();
 			*out_LocalCenter = { lc.x, lc.y };
 		}
 
-		void RigidBody2DComponent_GetWorldCenter(uint64_t id, glm::vec2* out_WorldCenter)
+		void RigidBody2DComponent_GetWorldCenter(uint64_t entityID, glm::vec2* out_WorldCenter)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
 
 			const b2Vec2 wc = body->GetWorldCenter();
 			*out_WorldCenter = { wc.x, wc.y };
 		}
 
-		void RigidBody2DComponent_GetLinearVelocity(uint64_t id, glm::vec2* out_LinearVelocity)
+		void RigidBody2DComponent_GetLinearVelocity(uint64_t entityID, glm::vec2* out_LinearVelocity)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
 
 			const b2Vec2& lv = body->GetLinearVelocity();
 			*out_LinearVelocity = { lv.x, lv.y };
 		}
 
-		void RigidBody2DComponent_SetLinearVelocity(uint64_t id, glm::vec2* linearVelocity)
+		void RigidBody2DComponent_SetLinearVelocity(uint64_t entityID, glm::vec2* linearVelocity)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
 
 			body->SetLinearVelocity({ linearVelocity->x, linearVelocity->y });
 		}
 
-		float RigidBody2DComponent_GetAngularVelocity(uint64_t id)
+		float RigidBody2DComponent_GetAngularVelocity(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return 0.0f;
+			SK_CORE_VERIFY(body);
 
 			return body->GetAngularVelocity();
 		}
 
-		void RigidBody2DComponent_SetAngularVelocity(uint64_t id, float angularVelocity)
+		void RigidBody2DComponent_SetAngularVelocity(uint64_t entityID, float angularVelocity)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
 
 			body->SetAngularVelocity(angularVelocity);
 		}
 
-		void RigidBody2DComponent_ApplyForce(uint64_t id, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType)
+		float RigidBody2DComponent_GetGravityScale(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
+
+			return body->GetGravityScale();
+		}
+
+		void RigidBody2DComponent_SetGravityScale(uint64_t entityID, float gravityScale)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			auto& component = entity.GetComponent<RigidBody2DComponent>();
+			component.GravityScale = gravityScale;
+
+			SK_CORE_VERIFY(component.RuntimeBody);
+			component.RuntimeBody->SetGravityScale(component.GravityScale);
+		}
+
+		float RigidBody2DComponent_GetLinearDamping(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
+
+			return body->GetLinearDamping();
+		}
+
+		void RigidBody2DComponent_SetLinearDamping(uint64_t entityID, float linearDamping)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
+
+			body->SetLinearDamping(linearDamping);
+		}
+
+		float RigidBody2DComponent_GetAngularDamping(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
+
+			return body->GetAngularDamping();
+		}
+
+		void RigidBody2DComponent_SetAngularDamping(uint64_t entityID, float angularDamping)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
+
+			body->SetAngularDamping(angularDamping);
+		}
+
+		Coral::Bool32 RigidBody2DComponent_IsBullet(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
+
+			return body->IsBullet();
+		}
+
+		void RigidBody2DComponent_SetBullet(uint64_t entityID, bool bullet)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			auto& component = entity.GetComponent<RigidBody2DComponent>();
+			component.IsBullet = bullet;
+
+			SK_CORE_VERIFY(component.RuntimeBody);
+			component.RuntimeBody->SetBullet(component.IsBullet);
+		}
+
+		Coral::Bool32 RigidBody2DComponent_IsSleepingAllowed(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
+
+			return body->IsSleepingAllowed();
+		}
+
+		void RigidBody2DComponent_SetSleepingAllowed(uint64_t entityID, bool sleepingAllowed)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			auto& component = entity.GetComponent<RigidBody2DComponent>();
+			component.AllowSleep = sleepingAllowed;
+
+			SK_CORE_VERIFY(component.RuntimeBody);
+			component.RuntimeBody->SetSleepingAllowed(component.AllowSleep);
+		}
+
+		Coral::Bool32 RigidBody2DComponent_IsAwake(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
+
+			return body->IsAwake();
+		}
+
+		void RigidBody2DComponent_SetAwake(uint64_t entityID, bool awake)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			auto& component = entity.GetComponent<RigidBody2DComponent>();
+			component.Awake = awake;
+
+			SK_CORE_VERIFY(component.RuntimeBody);
+			component.RuntimeBody->SetAwake(component.Awake);
+		}
+
+		Coral::Bool32 RigidBody2DComponent_IsEnabled(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
+
+			return body->IsEnabled();
+		}
+
+		void RigidBody2DComponent_SetEnabled(uint64_t entityID, bool enabled)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			auto& component = entity.GetComponent<RigidBody2DComponent>();
+			component.Enabled = enabled;
+
+			SK_CORE_VERIFY(component.RuntimeBody);
+			component.RuntimeBody->SetEnabled(component.Enabled);
+		}
+
+		Coral::Bool32 RigidBody2DComponent_IsFixedRotation(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
+
+			return body->IsFixedRotation();
+		}
+
+		void RigidBody2DComponent_SetFixedRotation(uint64_t entityID, bool fixedRotation)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			auto& component = entity.GetComponent<RigidBody2DComponent>();
+			component.FixedRotation = fixedRotation;
+
+			SK_CORE_VERIFY(component.RuntimeBody);
+			component.RuntimeBody->SetFixedRotation(component.FixedRotation);
+		}
+		
+		void RigidBody2DComponent_ApplyForce(uint64_t entityID, glm::vec2* force, glm::vec2* point, PhysicsForce2DType forceType)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
+
+			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
+			SK_CORE_VERIFY(body);
 
 			if (forceType == PhysicsForce2DType::Force)
 				body->ApplyForce({ force->x, force->y }, { point->x, point->y }, true);
@@ -1537,17 +1356,14 @@ namespace Shark {
 				body->ApplyLinearImpulse({ force->x, force->y }, { point->x, point->y }, true);
 		}
 
-		void RigidBody2DComponent_ApplyForceToCenter(uint64_t id, glm::vec2* force, PhysicsForce2DType forceType)
+		void RigidBody2DComponent_ApplyForceToCenter(uint64_t entityID, glm::vec2* force, PhysicsForce2DType forceType)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
 
 			if (forceType == PhysicsForce2DType::Force)
 				body->ApplyForceToCenter({ force->x, force->y }, true);
@@ -1555,17 +1371,14 @@ namespace Shark {
 				body->ApplyLinearImpulseToCenter({ force->x, force->y }, true);
 		}
 
-		void RigidBody2DComponent_ApplyTorque(uint64_t id, float torque, PhysicsForce2DType forceType)
+		void RigidBody2DComponent_ApplyTorque(uint64_t entityID, float torque, PhysicsForce2DType forceType)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<RigidBody2DComponent>());
 
 			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
+			SK_CORE_VERIFY(body);
 
 			if (forceType == PhysicsForce2DType::Force)
 				body->ApplyTorque(torque, true);
@@ -1573,862 +1386,446 @@ namespace Shark {
 				body->ApplyAngularImpulse(torque, true);
 		}
 
-		float RigidBody2DComponent_GetGravityScale(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return 0.0f;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return 0.0f;
-
-			return body->GetGravityScale();
-		}
-
-		void RigidBody2DComponent_SetGravityScale(uint64_t id, float gravityScale)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
-
-			auto& comp = entity.GetComponent<RigidBody2DComponent>();
-			comp.GravityScale = gravityScale;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			body->SetGravityScale(gravityScale);
-		}
-
-		float RigidBody2DComponent_GetLinearDamping(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return 0.0f;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return 0.0f;
-
-			return body->GetLinearDamping();
-		}
-
-		void RigidBody2DComponent_SetLinearDamping(uint64_t id, float linearDamping)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			body->SetLinearDamping(linearDamping);
-		}
-
-		float RigidBody2DComponent_GetAngularDamping(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return 0.0f;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return 0.0f;
-
-			return body->GetAngularDamping();
-		}
-
-		void RigidBody2DComponent_SetAngularDamping(uint64_t id, float angularDamping)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			body->SetAngularDamping(angularDamping);
-		}
-
-		bool RigidBody2DComponent_IsBullet(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return false;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
-
-			return body->IsBullet();
-		}
-
-		void RigidBody2DComponent_SetBullet(uint64_t id, bool bullet)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
-
-			auto& comp = entity.GetComponent<RigidBody2DComponent>();
-			comp.IsBullet = bullet;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			body->SetBullet(bullet);
-		}
-
-		bool RigidBody2DComponent_IsSleepingAllowed(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return false;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
-
-			return body->IsSleepingAllowed();
-		}
-
-		void RigidBody2DComponent_SetSleepingAllowed(uint64_t id, bool sleepingAllowed)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
-
-			auto& comp = entity.GetComponent<RigidBody2DComponent>();
-			comp.AllowSleep = sleepingAllowed;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			body->SetSleepingAllowed(sleepingAllowed);
-		}
-
-		bool RigidBody2DComponent_IsAwake(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return false;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
-
-			return body->IsAwake();
-		}
-
-		void RigidBody2DComponent_SetAwake(uint64_t id, bool awake)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
-
-			auto& comp = entity.GetComponent<RigidBody2DComponent>();
-			comp.Awake = awake;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			body->SetAwake(awake);
-		}
-
-		bool RigidBody2DComponent_IsEnabled(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return false;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
-
-			return body->IsEnabled();
-		}
-
-		void RigidBody2DComponent_SetEnabled(uint64_t id, bool enabled)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
-
-			auto& comp = entity.GetComponent<RigidBody2DComponent>();
-			comp.Enabled = enabled;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			body->SetEnabled(enabled);
-		}
-
-		bool RigidBody2DComponent_IsFixedRotation(uint64_t id)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return false;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return false;
-
-			return body->IsFixedRotation();
-		}
-
-		void RigidBody2DComponent_SetFixedRotation(uint64_t id, bool fixedRotation)
-		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<RigidBody2DComponent>())
-				return;
-
-			auto& comp = entity.GetComponent<RigidBody2DComponent>();
-			comp.FixedRotation = fixedRotation;
-
-			b2Body* body = entity.GetComponent<RigidBody2DComponent>().RuntimeBody;
-			if (!body)
-				return;
-
-			body->SetFixedRotation(fixedRotation);
-		}
-
 		#pragma endregion
 
 		#pragma region BoxCollider2DComponent
 
-		void BoxCollider2DComponent_SetSensor(uint64_t id, bool sensor)
+		Coral::Bool32 BoxCollider2DComponent_IsSensor(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			comp.IsSensor = sensor;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetSensor(sensor);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->IsSensor();
 		}
 
-		bool BoxCollider2DComponent_IsSensor(uint64_t id)
+		void BoxCollider2DComponent_SetSensor(uint64_t entityID, bool sensor)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return false;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return false;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
+			component.IsSensor = sensor;
 
-			return fixture->IsSensor();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetSensor(sensor);
 		}
 
-		void BoxCollider2DComponent_SetDensity(uint64_t id, float density)
+		float BoxCollider2DComponent_GetDensity(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			comp.Density = density;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetDensity(density);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->GetDensity();
 		}
 
-		float BoxCollider2DComponent_GetDensity(uint64_t id)
+		void BoxCollider2DComponent_SetDensity(uint64_t entityID, float density)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return 0.0f;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
+			component.Density = density;
 
-			return fixture->GetDensity();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetDensity(density);
 		}
 
-		void BoxCollider2DComponent_SetFriction(uint64_t id, float friction)
+		float BoxCollider2DComponent_GetFriction(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			comp.Friction = friction;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetFriction(friction);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->GetFriction();
 		}
 
-		float BoxCollider2DComponent_GetFriction(uint64_t id)
+		void BoxCollider2DComponent_SetFriction(uint64_t entityID, float friction)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return 0.0f;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
+			component.Friction = friction;
 
-			return fixture->GetFriction();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetFriction(friction);
 		}
 
-		void BoxCollider2DComponent_SetRestitution(uint64_t id, float restitution)
+		float BoxCollider2DComponent_GetRestitution(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			comp.Restitution = restitution;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetRestitution(restitution);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->GetRestitution();
 		}
 
-		float BoxCollider2DComponent_GetRestitution(uint64_t id)
+		void BoxCollider2DComponent_SetRestitution(uint64_t entityID, float restitution)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return 0.0f;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
+			component.Restitution = restitution;
 
-			return fixture->GetRestitution();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetRestitution(restitution);
 		}
 
-		void BoxCollider2DComponent_SetRestitutionThreshold(uint64_t id, float restitutionThreshold)
+		float BoxCollider2DComponent_GetRestitutionThreshold(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			comp.RestitutionThreshold = restitutionThreshold;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetRestitutionThreshold(restitutionThreshold);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->GetRestitutionThreshold();
 		}
 
-		float BoxCollider2DComponent_GetRestitutionThreshold(uint64_t id)
+		void BoxCollider2DComponent_SetRestitutionThreshold(uint64_t entityID, float restitutionThreshold)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<BoxCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return 0.0f;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
+			component.RestitutionThreshold = restitutionThreshold;
 
-			return fixture->GetRestitutionThreshold();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetRestitutionThreshold(restitutionThreshold);
 		}
 
-		void BoxCollider2DComponent_GetSize(uint64_t id, glm::vec2* out_Size)
+		void BoxCollider2DComponent_GetSize(uint64_t entityID, glm::vec2* out_Size)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			*out_Size = comp.Size;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
+			*out_Size = component.Size;
 		}
 
-		void BoxCollider2DComponent_SetSize(uint64_t id, glm::vec2* size)
+		void BoxCollider2DComponent_SetSize(uint64_t entityID, glm::vec2* size)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
 			const auto& transform = entity.Transform();
-			comp.Size = *size;
+			component.Size = *size;
 
-			if (!comp.RuntimeCollider)
-				return;
-
-			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
-			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
-			shape->SetAsBox(comp.Size.x * transform.Scale.x, comp.Size.y * transform.Scale.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			SK_CORE_VERIFY(component.RuntimeCollider->GetType() == b2Shape::e_polygon);
+			b2PolygonShape* shape = (b2PolygonShape*)component.RuntimeCollider->GetShape();
+			shape->SetAsBox(component.Size.x * transform.Scale.x, component.Size.y * transform.Scale.y, { component.Offset.x, component.Offset.y }, component.Rotation);
 		}
 
-		void BoxCollider2DComponent_GetOffset(uint64_t id, glm::vec2* out_Offset)
+		void BoxCollider2DComponent_GetOffset(uint64_t entityID, glm::vec2* out_Offset)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			*out_Offset = comp.Offset;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
+			*out_Offset = component.Offset;
 		}
 
-		void BoxCollider2DComponent_SetOffset(uint64_t id, glm::vec2* offset)
+		void BoxCollider2DComponent_SetOffset(uint64_t entityID, glm::vec2* offset)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
 			const auto& transform = entity.Transform();
-			comp.Offset = *offset;
+			component.Offset = *offset;
 
-			if (!comp.RuntimeCollider)
-				return;
-
-			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
-			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
-			shape->SetAsBox(comp.Size.x * transform.Scale.x, comp.Size.y * transform.Scale.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			SK_CORE_VERIFY(component.RuntimeCollider->GetType() == b2Shape::e_polygon);
+			b2PolygonShape* shape = (b2PolygonShape*)component.RuntimeCollider->GetShape();
+			shape->SetAsBox(component.Size.x * transform.Scale.x, component.Size.y * transform.Scale.y, { component.Offset.x, component.Offset.y }, component.Rotation);
 		}
 
-		float BoxCollider2DComponent_GetRotation(uint64_t id)
+		float BoxCollider2DComponent_GetRotation(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
-			return comp.Rotation;
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
+			return component.Rotation;
 		}
 
-		void BoxCollider2DComponent_SetRotation(uint64_t id, float rotation)
+		void BoxCollider2DComponent_SetRotation(uint64_t entityID, float rotation)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<BoxCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<BoxCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<BoxCollider2DComponent>();
+			auto& component = entity.GetComponent<BoxCollider2DComponent>();
 			const auto& transform = entity.Transform();
-			comp.Rotation = rotation;
+			component.Rotation = rotation;
 
-			if (!comp.RuntimeCollider)
-				return;
-
-			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_polygon);
-			b2PolygonShape* shape = (b2PolygonShape*)comp.RuntimeCollider->GetShape();
-			shape->SetAsBox(comp.Size.x * transform.Scale.x, comp.Size.y * transform.Scale.y, { comp.Offset.x, comp.Offset.y }, comp.Rotation);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			SK_CORE_VERIFY(component.RuntimeCollider->GetType() == b2Shape::e_polygon);
+			b2PolygonShape* shape = (b2PolygonShape*)component.RuntimeCollider->GetShape();
+			shape->SetAsBox(component.Size.x * transform.Scale.x, component.Size.y * transform.Scale.y, { component.Offset.x, component.Offset.y }, component.Rotation);
 		}
 
 		#pragma endregion
 
 		#pragma region CircleCollider2DComponent
 
-		void CircleCollider2DComponent_SetSensor(uint64_t id, bool sensor)
+		Coral::Bool32 CircleCollider2DComponent_IsSensor(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			comp.IsSensor = sensor;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetSensor(sensor);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->IsSensor();
 		}
 
-		bool CircleCollider2DComponent_IsSensor(uint64_t id)
+		void CircleCollider2DComponent_SetSensor(uint64_t entityID, bool sensor)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return false;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return false;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return false;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
+			component.IsSensor = sensor;
 
-			return fixture->IsSensor();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetSensor(sensor);
 		}
 
-		void CircleCollider2DComponent_SetDensity(uint64_t id, float density)
+		float CircleCollider2DComponent_GetDensity(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			comp.Density = density;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetDensity(density);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->GetDensity();
 		}
 
-		float CircleCollider2DComponent_GetDensity(uint64_t id)
+		void CircleCollider2DComponent_SetDensity(uint64_t entityID, float density)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return 0.0f;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
+			component.Density = density;
 
-			return fixture->GetDensity();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetDensity(density);
 		}
 
-		void CircleCollider2DComponent_SetFriction(uint64_t id, float friction)
+		float CircleCollider2DComponent_GetFriction(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			comp.Friction = friction;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetFriction(friction);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->GetFriction();
 		}
 
-		float CircleCollider2DComponent_GetFriction(uint64_t id)
+		void CircleCollider2DComponent_SetFriction(uint64_t entityID, float friction)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return 0.0f;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
+			component.Friction = friction;
 
-			return fixture->GetFriction();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetFriction(friction);
 		}
 
-		void CircleCollider2DComponent_SetRestitution(uint64_t id, float restitution)
+		float CircleCollider2DComponent_GetRestitution(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			comp.Restitution = restitution;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetRestitution(restitution);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->GetRestitution();
 		}
 
-		float CircleCollider2DComponent_GetRestitution(uint64_t id)
+		void CircleCollider2DComponent_SetRestitution(uint64_t entityID, float restitution)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return 0.0f;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
+			component.Restitution = restitution;
 
-			return fixture->GetRestitution();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetRestitution(restitution);
 		}
 
-		void CircleCollider2DComponent_SetRestitutionThreshold(uint64_t id, float restitutionThreshold)
+		float CircleCollider2DComponent_GetRestitutionThreshold(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			comp.RestitutionThreshold = restitutionThreshold;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return;
-
-			fixture->SetRestitutionThreshold(restitutionThreshold);
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			return component.RuntimeCollider->GetRestitutionThreshold();
 		}
 
-		float CircleCollider2DComponent_GetRestitutionThreshold(uint64_t id)
+		void CircleCollider2DComponent_SetRestitutionThreshold(uint64_t entityID, float restitutionThreshold)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			b2Fixture* fixture = entity.GetComponent<CircleCollider2DComponent>().RuntimeCollider;
-			if (!fixture)
-				return 0.0f;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
+			component.RestitutionThreshold = restitutionThreshold;
 
-			return fixture->GetRestitutionThreshold();
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			component.RuntimeCollider->SetRestitutionThreshold(restitutionThreshold);
 		}
 
-		float CircleCollider2DComponent_GetRadius(uint64_t id)
+		float CircleCollider2DComponent_GetRadius(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			return comp.Radius;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
+			return component.Radius;
 		}
 
-		void CircleCollider2DComponent_SetRadius(uint64_t id, float Radius)
+		void CircleCollider2DComponent_SetRadius(uint64_t entityID, float Radius)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
 			const auto& transform = entity.Transform();
-			comp.Radius = Radius;
+			component.Radius = Radius;
 
-			if (!comp.RuntimeCollider)
-				return;
-
-			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
-			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
-			shape->m_radius = comp.Radius * transform.Scale.x;
-			shape->m_p = { comp.Offset.x, comp.Offset.y };
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			SK_CORE_VERIFY(component.RuntimeCollider->GetType() == b2Shape::e_circle);
+			b2CircleShape* shape = (b2CircleShape*)component.RuntimeCollider->GetShape();
+			shape->m_radius = component.Radius * transform.Scale.x;
+			shape->m_p = { component.Offset.x, component.Offset.y };
 		}
 
-		void CircleCollider2DComponent_GetOffset(uint64_t id, glm::vec2* out_Offsets)
+		void CircleCollider2DComponent_GetOffset(uint64_t entityID, glm::vec2* out_Offsets)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			*out_Offsets = comp.Offset;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
+			*out_Offsets = component.Offset;
 		}
 
-		void CircleCollider2DComponent_SetOffset(uint64_t id, glm::vec2* offset)
+		void CircleCollider2DComponent_SetOffset(uint64_t entityID, glm::vec2* offset)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
 			const auto& transform = entity.Transform();
-			comp.Offset = *offset;
+			component.Offset = *offset;
 
-			if (!comp.RuntimeCollider)
-				return;
-
-			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
-			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
-			shape->m_radius = comp.Radius * transform.Scale.x;
-			shape->m_p = { comp.Offset.x, comp.Offset.y };
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			SK_CORE_VERIFY(component.RuntimeCollider->GetType() == b2Shape::e_circle);
+			b2CircleShape* shape = (b2CircleShape*)component.RuntimeCollider->GetShape();
+			shape->m_radius = component.Radius * transform.Scale.x;
+			shape->m_p = { component.Offset.x, component.Offset.y };
 		}
 
-		float CircleCollider2DComponent_GetRotation(uint64_t id)
+		float CircleCollider2DComponent_GetRotation(uint64_t entityID)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return 0.0f;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return 0.0f;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
-			return comp.Rotation;
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
+			return component.Rotation;
 		}
 
-		void CircleCollider2DComponent_SetRotation(uint64_t id, float rotation)
+		void CircleCollider2DComponent_SetRotation(uint64_t entityID, float rotation)
 		{
-			Entity entity = utils::TryGetEntity(id);
-			if (!entity)
-				return;
-			if (!entity.HasComponent<CircleCollider2DComponent>())
-				return;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CircleCollider2DComponent>());
 
-			auto& comp = entity.GetComponent<CircleCollider2DComponent>();
+			auto& component = entity.GetComponent<CircleCollider2DComponent>();
 			const auto& transform = entity.Transform();
-			comp.Rotation = rotation;
+			component.Rotation = rotation;
 
-			if (!comp.RuntimeCollider)
-				return;
-
-			SK_CORE_ASSERT(comp.RuntimeCollider->GetType() == b2Shape::e_circle);
-			b2CircleShape* shape = (b2CircleShape*)comp.RuntimeCollider->GetShape();
-			shape->m_radius = comp.Radius * transform.Scale.x;
-			shape->m_p = { comp.Offset.x, comp.Offset.y };
+			SK_CORE_VERIFY(component.RuntimeCollider);
+			SK_CORE_VERIFY(component.RuntimeCollider->GetType() == b2Shape::e_circle);
+			b2CircleShape* shape = (b2CircleShape*)component.RuntimeCollider->GetShape();
+			shape->m_radius = component.Radius * transform.Scale.x;
+			shape->m_p = { component.Offset.x, component.Offset.y };
 		}
 
 		#pragma endregion
 
-		#pragma region ResoureManager
+		#pragma region ScriptComponent
 
-		void ResourceManager_GetAssetHandleFromFilePath(MonoString* filePath, AssetHandle* out_AssetHandle)
+		Coral::ManagedObject ScriptComponent_GetInstance(uint64_t entityID)
 		{
-			std::string path = ScriptUtils::MonoStringToUTF8(filePath);
-			*out_AssetHandle = Project::GetActive()->GetEditorAssetManager()->GetMetadata(path).Handle;
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<ScriptComponent>());
+
+			auto& component = entity.GetComponent<ScriptComponent>();
+			SK_CORE_VERIFY(component.Instance);
+			if (!component.OnCreateCalled)
+			{
+				component.Instance->InvokeMethod("OnCreate");
+				component.OnCreateCalled = true;
+			}
+
+			return *component.Instance;
 		}
 
 		#pragma endregion
 
-		#pragma region EditorUI
-
-		bool EditorUI_BeginWindow(MonoString* windowTitle)
-		{
-			auto& app = Application::Get();
-			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
-				return false;
-
-			char* cWindowTitle = mono_string_to_utf8(windowTitle);
-			bool open = ImGui::Begin(cWindowTitle, nullptr, ImGuiWindowFlags_NoSavedSettings);
-			mono_free(cWindowTitle);
-			return open;
-		}
-
-		void EditorUI_EndWindow()
-		{
-			auto& app = Application::Get();
-			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
-				return;
-
-			ImGui::End();
-		}
-
-		void EditorUI_Text(MonoString* text)
-		{
-			auto& app = Application::Get();
-			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
-				return;
-
-			char* cText = mono_string_to_utf8(text);
-			ImGui::Text(cText);
-			mono_free(cText);
-		}
-
-		void EditorUI_NewLine()
-		{
-			auto& app = Application::Get();
-			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
-				return;
-
-			ImGui::NewLine();
-		}
-
-		void EditorUI_Separator()
-		{
-			auto& app = Application::Get();
-			if (!(app.GetSpecification().EnableImGui && app.GetImGuiLayer().InFrame()))
-				return;
-
-			ImGui::Separator();
-		}
-
-		#pragma endregion
 
 	}
 

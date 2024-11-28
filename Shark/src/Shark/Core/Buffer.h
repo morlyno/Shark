@@ -1,38 +1,39 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include <span>
 
 namespace Shark {
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Buffer //////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	class Buffer
 	{
 	public:
 		Buffer() = default;
 		Buffer(std::nullptr_t) {}
-		Buffer(byte* data, uint64_t size) : Data(data), Size(size) {}
-		template<typename T>
-		Buffer(T* data, uint64_t size) : Data((byte*)data), Size(size) {}
+		Buffer(void* data, uint64_t size) : Data(data), Size(size) {}
 		~Buffer() = default;
 
 		void Allocate(uint64_t size);
 		void Resize(uint64_t newSize, bool canShrink = true);
 		void Grow(uint64_t amount) { Resize(Size + amount); }
-		template<typename TType>
-		void Grow(uint64_t count) { Resize(Size + count * sizeof(TType)); }
 		void Release();
-		void Write(const void* data, uint64_t size, uint64_t offset = 0);
-		void Write(const byte* data, uint64_t size, uint64_t offset = 0);
-		void Write(const Buffer buffer, uint64_t offset = 0) { Write(buffer.Data, buffer.Size, offset); }
-		void Write(const Buffer buffer, uint64_t size, uint64_t offset) { Write(buffer.Data, std::min(size, buffer.Size), offset); }
 
-		void Read(void* resultBuffer, uint64_t size, uint64_t offset = 0);
+		void Write(const void* data, uint64_t size, uint64_t offset = 0) const;
+		void Write(const Buffer buffer, uint64_t offset = 0) const { Write(buffer.Data, buffer.Size, offset); }
+		void Write(const Buffer buffer, uint64_t size, uint64_t offset) const { Write(buffer.Data, std::min(size, buffer.Size), offset); }
 
-		void SetZero();
-		Buffer SubBuffer(uint32_t offset, uint32_t size);
+		void Read(void* resultBuffer, uint64_t size, uint64_t offset = 0) const;
+
+		void SetZero() const;
+		Buffer SubBuffer(uint32_t offset, uint32_t size) const;
 
 		template<typename T>
 			requires (!std::is_pointer_v<T>)
-		void Write(const T& data, uint64_t offset = 0)
+		void Write(const T& data, uint64_t offset = 0) const
 		{
 			Write(&data, sizeof(T), offset);
 		}
@@ -50,7 +51,7 @@ namespace Shark {
 		}
 
 		template<typename T>
-		T* Offset(uint64_t offset)
+		T* Offset(uint64_t offset) const
 		{
 			SK_CORE_ASSERT((offset * sizeof(T)) < Size);
 			return (T*)Data + offset;
@@ -78,45 +79,54 @@ namespace Shark {
 		template<typename TValue>
 		static Buffer FromValue(const TValue& value)
 		{
-			return Buffer((byte*)&value, sizeof(TValue));
+			return Buffer((void*)&value, sizeof(TValue));
 		}
 
-		template<typename TType, uint64_t TSize>
-		static Buffer FromArray(const TType(&array)[TSize])
+		template<typename TRange>
+		static Buffer FromArray(const TRange& range)
+			requires (std::ranges::contiguous_range<TRange>)
 		{
-			return Buffer((byte*)array, TSize * sizeof(TType));
+			std::span data = range;
+			return Buffer((void*)data.data(), data.size_bytes());
 		}
 
-		template<typename TType>
-		static Buffer FromArray(TType* array, uint64_t size)
-		{
-			return Buffer((byte*)array, size * sizeof(TType));
-		}
-
-		template<typename TType>
-		static Buffer FromArray(const std::vector<TType>& array)
-		{
-			return Buffer((byte*)array.data(), array.size() * sizeof(TType));
-		}
-
-		template<typename TType, size_t TSize>
-		static Buffer FromArray(std::array<TType, TSize> array)
-		{
-			return Buffer((byte*)array.data(), array.size() * sizeof(TType));
-		}
-
-		static Buffer Copy(const byte* data, uint64_t Size);
+		static Buffer Copy(const void* data, uint64_t Size);
 		static Buffer Copy(Buffer buffer);
 
 		static Buffer New(uint64_t size, bool setZero = false);
 
 	public:
-		byte* Data = nullptr;
+		void* Data = nullptr;
 		uint64_t Size = 0;
 
-		byte* End() { return Data + Size; }
-		const byte* End() const { return Data + Size; }
+		byte* End() { return (byte*)Data + Size; }
+		const byte* End() const { return (byte*)Data + Size; }
 	};
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Stack Buffer ////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+
+	template<uint64_t TSize>
+	struct StackBuffer
+	{
+		StackBuffer()
+			: Interface(Data, TSize) {}
+
+		static constexpr uint64_t Size = TSize;
+		byte Data[TSize];
+
+		const Buffer Interface;
+
+		operator Buffer() const { return Interface; }
+		void Write(Buffer buffer, uint64_t offset = 0) const { Interface.Write(buffer, offset); }
+		void Write(const void* data, uint64_t size, uint64_t offset = 0) const { Interface.Write(data, size, offset); }
+
+	};
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Scoped Buffer ///////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	class ScopedBuffer
 	{
@@ -165,7 +175,7 @@ namespace Shark {
 		operator bool() const { return m_Buffer; }
 		operator Buffer() const { return m_Buffer; }
 
-		byte* Data() const { return m_Buffer.Data; }
+		void* Data() const { return m_Buffer.Data; }
 		uint64_t Size() const { return m_Buffer.Size; }
 
 		byte* End() { return m_Buffer.End(); }

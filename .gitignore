@@ -1,13 +1,14 @@
 
+# Binaries
 bin/
+!dependencies/premake/bin
 !Shark/dependencies/Assimp/bin
 bin-int/
-Scripts/__pycache__
+Binaries/
+Intermediates/
+obj/
 
-Shark-Editor/Cache
-Shark-Editor/imgui.ini
-Shark-Editor/Logs/*.log
-Shark-Runtime/Logs/*.log
+__pycache__
 
 # Visual Studios files
 .vs/
@@ -16,6 +17,14 @@ Shark-Runtime/Logs/*.log
 **.vcxproj.filters
 **.vcxproj.user
 *.csproj*
-Shark-Editor/Resources/Binaries
-Shark-Editor/SandboxProject/Binaries
-Shark-Editor/SandboxProject/Intermediates
+.va
+
+# Files
+Shark-Editor/Cache
+Shark-Editor/DotNet
+Shark-Editor/imgui.ini
+Shark-Editor/Panels.yaml
+Shark-Editor/Logs/*.log
+Shark-Runtime/Logs/*.log
+
+Shark-ScriptCore/Properties/

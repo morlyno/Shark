@@ -53,13 +53,15 @@ workspace "Shark"
         systemversion "latest"
         defines { "SK_PLATFORM_WINDOWS" }
 
-outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+outputdir = "%{cfg.buildcfg}-%{cfg.system}"
 
 group "Dependencies"
 	include "Shark/dependencies/Box2D"
 	include "Shark/dependencies/ImGui"
 	include "Shark/dependencies/msdf-atlas-gen"
 	include "Shark/dependencies/yaml-cpp"
+	include "Shark/dependencies/Coral/Coral.Native"
+	include "Shark/dependencies/Coral/Coral.Managed"
 group ""
 
 group "Core"

@@ -122,17 +122,20 @@ namespace Shark {
 					AddTime(accumulator, perFrameData.Time, perFrameData.Samples);
 				}
 
-				const auto& profile = m_Scene->GetPhysicsScene().GetProfile();
-				AddTime(m_PhysicsAccumulators[0], profile.TimeStep, 1);
-				AddTime(m_PhysicsAccumulators[1], profile.NumSteps, 1);
-				AddTime(m_PhysicsAccumulators[2], profile.Step, 1);
-				AddTime(m_PhysicsAccumulators[3], profile.Collide, 1);
-				AddTime(m_PhysicsAccumulators[4], profile.Solve, 1);
-				AddTime(m_PhysicsAccumulators[5], profile.SolveInit, 1);
-				AddTime(m_PhysicsAccumulators[6], profile.SolveVelocity, 1);
-				AddTime(m_PhysicsAccumulators[7], profile.SolvePosition, 1);
-				AddTime(m_PhysicsAccumulators[8], profile.Broadphase, 1);
-				AddTime(m_PhysicsAccumulators[9], profile.SolveTOI, 1);
+				if (m_Scene->RunsPhysicsSimulation())
+				{
+					const auto& profile = m_Scene->GetPhysicsScene().GetProfile();
+					AddTime(m_PhysicsAccumulators[0], profile.TimeStep, 1);
+					AddTime(m_PhysicsAccumulators[1], profile.NumSteps, 1);
+					AddTime(m_PhysicsAccumulators[2], profile.Step, 1);
+					AddTime(m_PhysicsAccumulators[3], profile.Collide, 1);
+					AddTime(m_PhysicsAccumulators[4], profile.Solve, 1);
+					AddTime(m_PhysicsAccumulators[5], profile.SolveInit, 1);
+					AddTime(m_PhysicsAccumulators[6], profile.SolveVelocity, 1);
+					AddTime(m_PhysicsAccumulators[7], profile.SolvePosition, 1);
+					AddTime(m_PhysicsAccumulators[8], profile.Broadphase, 1);
+					AddTime(m_PhysicsAccumulators[9], profile.SolveTOI, 1);
+				}
 
 				if (++m_ProfilerSampleCount >= m_ProfilerSamples)
 				{
@@ -251,13 +254,13 @@ namespace Shark {
 							ImGui::TableNextColumn();
 							ImGui::Text(entry.Name.c_str());
 							ImGui::TableNextColumn();
-							ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Time));
+							ImGui::Text(fmt::format("{0:.3f}", entry.Time));
 							ImGui::TableNextColumn();
-							ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Time / entry.AvgSamples));
+							ImGui::Text(fmt::format("{0:.3f}", entry.Time / entry.AvgSamples));
 							ImGui::TableNextColumn();
-							ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Min));
+							ImGui::Text(fmt::format("{0:.3f}", entry.Min));
 							ImGui::TableNextColumn();
-							ImGui::Text(fmt::format(fmt::runtime("{0:.3}"), entry.Max));
+							ImGui::Text(fmt::format("{0:.3f}", entry.Max));
 							ImGui::TableNextColumn();
 							ImGui::Text(fmt::format("{0}", entry.AvgSamples));
 						}

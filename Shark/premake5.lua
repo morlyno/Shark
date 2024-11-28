@@ -1,5 +1,8 @@
 project "Shark"
     kind "StaticLib"
+    
+    debuggertype "NativeWithManagedCore"
+    dependson "Shark-ScriptCore"
 
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
@@ -7,7 +10,6 @@ project "Shark"
     pchheader "skpch.h"
     pchsource "src/skpch.cpp"
 
-    dependson { "Shark-ScriptCore" }
 
     files {
         "src/**.h",
@@ -52,6 +54,9 @@ project "Shark"
 
     filter "configurations:Debug or configurations:Debug-AS"
         LinkDependencies("Debug")
-        
+        removefiles {
+            "dependencies/tracy/**",
+        }
+
     filter "configurations:Release"
         LinkDependencies("Release")

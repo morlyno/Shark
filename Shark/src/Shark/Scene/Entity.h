@@ -65,8 +65,8 @@ namespace Shark {
 		bool IsDescendantOf(Entity entity) const;
 
 		UUID GetUUID() const { return GetComponent<IDComponent>().ID; }
-		std::string& Name() { return GetComponent<TagComponent>().Tag; }
-		const std::string& Name() const { return GetComponent<TagComponent>().Tag; }
+		std::string& Tag() { return GetComponent<TagComponent>().Tag; }
+		const std::string& Tag() const { return GetComponent<TagComponent>().Tag; }
 		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
 		const TransformComponent& Transform() const { return GetComponent<TransformComponent>(); }
 

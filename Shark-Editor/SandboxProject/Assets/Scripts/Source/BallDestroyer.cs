@@ -1,7 +1,5 @@
 using Shark;
 
-using System.Collections.Generic;
-
 namespace Sandbox
 {
 	
@@ -9,11 +7,10 @@ namespace Sandbox
 	{
 		protected override void OnCreate()
 		{
-			OnCollishionBegin += (collider) =>
+			CollishionBeginEvent += (entity) =>
 			{
-				Entity entity = collider.Entity;
 				if (entity.Name == "Ball")
-					DestroyEntity(entity);
+					Destroy(entity);
 			};
 		}
 	}

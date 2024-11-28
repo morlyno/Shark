@@ -1,786 +1,324 @@
 #include "skpch.h"
 #include "ScriptEngine.h"
 
-#include "Shark/Scene/Components.h"
-
+#include "Shark/Core/Application.h"
+#include "Shark/Core/Project.h"
 #include "Shark/Scripting/ScriptGlue.h"
-#include "Shark/Scripting/GCManager.h"
-
 #include "Shark/File/FileSystem.h"
-#include "Shark/Utils/PlatformUtils.h"
-#include "Shark/Debug/enttDebug.h"
-#include "Shark/Debug/Profiler.h"
 
-#include <mono/jit/jit.h>
-#include <mono/metadata/appdomain.h>
-#include <mono/metadata/assembly.h>
-#include <mono/metadata/object.h>
-#include <mono/metadata/class.h>
-#include <mono/utils/mono-logger.h>
-#include <mono/metadata/exception.h>
-#include <mono/metadata/debug-helpers.h>
-#include <mono/metadata/attrdefs.h>
-#include <mono/metadata/mono-debug.h>
-#include <mono/metadata/threads.h>
+#include <Coral/FieldInfo.hpp>
+#include <Coral/TypeCache.hpp>
 
 namespace Shark {
 
-	struct ScriptEngineData
+	static void OnCoralMessage(std::string_view message, Coral::MessageLevel level)
 	{
-		MonoDomain* RootDomain = nullptr;
-		MonoDomain* RuntimeDomain = nullptr;
-		AssemblyInfo CoreAssembly;
-		AssemblyInfo AppAssembly;
-		bool AssembliesLoaded = false;
-		ScriptEngineConfig Config;
-		EntityInstancesMap EntityInstances;
-		Ref<Scene> ActiveScene;
-		bool IsRunning = false;
-		AssembliesReloadedHookFn ReloadHook;
-		std::filesystem::file_time_type AssemblyLastChangedTime;
+		switch (level)
+		{
+			case Coral::MessageLevel::Trace: SK_CORE_TRACE_TAG("Scripting", "{}", message); break;
+			case Coral::MessageLevel::Info: SK_CORE_INFO_TAG("Scripting", "{}", message); break;
+			case Coral::MessageLevel::Warning: SK_CORE_WARN_TAG("Scripting", "{}", message); break;
+			case Coral::MessageLevel::Error: SK_CORE_ERROR_TAG("Scripting", "{}", message); break;
+		}
+	}
 
-		MonoClass* EntityClass = nullptr;
-		MonoMethod* EntityCtor = nullptr;
-		ScriptClassMap ScriptClasses;
+	static void OnCSException(std::string_view message)
+	{
+		SK_CONSOLE_ERROR("C# Exception: {}", message);
+	}
 
-		// Entity => FieldName => Type
-		std::unordered_map<UUID, FieldStorageMap> FieldStoragesMap;
+	void ScriptEngine::InitializeHost()
+	{
+		Coral::HostSettings settings;
+		// #TODO(moro): maybe copy file to Shark-Editor/...
+		settings.CoralDirectory = FileSystem::Absolute("DotNet").string();
+		settings.MessageCallback = OnCoralMessage;
+		settings.ExceptionCallback = OnCSException;
+
+		m_Host = Scope<Coral::HostInstance>::Create();
+		Coral::CoralInitStatus status = m_Host->Initialize(settings);
+
+		if (status == Coral::CoralInitStatus::Success)
+		{
+			SK_CORE_INFO_TAG("Scripting", "Coral host initialized");
+			return;
+		}
+
+		// TODO(moro): better error handling
+		SK_CORE_ERROR_TAG("Scripting", "{}", status);
+	}
+
+	void ScriptEngine::ShutdownHost()
+	{
+		m_Host->Shutdown();
+		m_Host = nullptr;
+	}
+
+	void ScriptEngine::InitializeCore(Ref<Project> project)
+	{
+		m_Project = project;
+		m_LoadContext = Scope<Coral::AssemblyLoadContext>::Create(m_Host->CreateAssemblyLoadContext("Shark-Load-Context"));
+
+		m_CoreAssembly = &m_LoadContext->LoadAssembly("Resources/Binaries/Shark-ScriptCore.dll");
+		SK_CORE_DEBUG_TAG("Scripting", "Core assembly loaded with status {}", m_CoreAssembly->GetLoadStatus());
+		
+		ScriptGlue::Initialize(*m_CoreAssembly);
+	}
+
+	void ScriptEngine::ShutdownCore()
+	{
+		ScriptGlue::Shutdown();
+
+		m_CoreAssembly = nullptr;
+		m_AppAssembly = nullptr;
+		m_Host->UnloadAssemblyLoadContext(*m_LoadContext);
+		m_LoadContext = nullptr;
+
+		for (auto& [scriptID, scriptMetadata] : m_ScriptMetadata)
+			for (auto& [fieldID, fieldMetadata] : scriptMetadata.Fields)
+				fieldMetadata.DefaultValue.Release();
+
+		m_ScriptMetadata.clear();
+
+		Coral::TypeCache::Get().Clear();
+		m_Project = nullptr;
+	}
+
+	void ScriptEngine::LoadAppAssembly()
+	{
+		auto assemblyPath = m_Project->GetScriptModulePath();
+		
+		m_AppAssembly = &m_LoadContext->LoadAssembly(assemblyPath);
+		SK_CORE_DEBUG_TAG("Scripting", "App assembly loaded with status {}", m_AppAssembly->GetLoadStatus());
+
+		BuildScriptCache();
+		SK_CONSOLE_INFO("App assembly loaded\nStatus: {}", m_AppAssembly->GetLoadStatus());
+	}
+
+	void ScriptEngine::ReloadAssemblies()
+	{
+		Ref<Project> project = m_Project;
+		ShutdownCore();
+		InitializeCore(project);
+		LoadAppAssembly();
+	}
+
+	bool ScriptEngine::IsValidScriptID(uint64_t scriptID)
+	{
+		if (!m_ScriptMetadata.contains(scriptID))
+			return false;
+
+		Coral::Type* type = m_ScriptMetadata.at(scriptID).Type;
+		return type && *type;
+	}
+
+	static const std::unordered_map<std::string_view, ManagedFieldType> s_DataTypeLookupTable = {
+		{ "System.Boolean", ManagedFieldType::Bool },
+		{ "System.Byte", ManagedFieldType::Byte },
+		{ "System.SByte", ManagedFieldType::SByte },
+		{ "System.Int16", ManagedFieldType::Short },
+		{ "System.UInt16", ManagedFieldType::UShort },
+		{ "System.Int32", ManagedFieldType::Int },
+		{ "System.UInt32", ManagedFieldType::UInt },
+		{ "System.Int64", ManagedFieldType::Long },
+		{ "System.UInt64", ManagedFieldType::ULong },
+		{ "System.Single", ManagedFieldType::Float },
+		{ "System.Double", ManagedFieldType::Double },
+		{ "System.String", ManagedFieldType::String },
+
+		{ "Shark.Entity", ManagedFieldType::Entity },
+		{ "Shark.Vector2", ManagedFieldType::Vector2 },
+		{ "Shark.Vector3", ManagedFieldType::Vector3 },
+		{ "Shark.Vector4", ManagedFieldType::Vector4 }
 	};
 
-	struct ScriptEngineData* s_Data = nullptr;
-
-	static void MonoTraceLogCallback(const char* log_domain, const char* log_level, const char* message, mono_bool fatal, void* user_data)
+	void ScriptEngine::BuildScriptCache()
 	{
-		LogLevel level = LogLevel::Trace;
+		SK_CORE_ASSERT(m_ScriptMetadata.empty());
 
-		if (strcmp(log_level, "debug") == 0)
-			level = LogLevel::Debug;
-		else if (strcmp(log_level, "info") == 0)
-			level = LogLevel::Trace;
-		else if (strcmp(log_level, "message") == 0)
-			level = LogLevel::Info;
-		else if (strcmp(log_level, "warning") == 0)
-			level = LogLevel::Warn;
-		else if (strcmp(log_level, "error") == 0)
-			level = LogLevel::Error;
-		else if (strcmp(log_level, "critical") == 0)
-			level = LogLevel::Critical;
+		Coral::Type& entityType = m_AppAssembly->GetType("Shark.Entity");
+		Coral::Type& componentType = m_AppAssembly->GetType("Shark.Component");
 
-		const char* domain = log_domain ? log_domain : "Mono";
-		Log::PrintMessageTag(LoggerType::Core, level, "Mono", "[{0}] {1}", domain, message);
-		SK_CORE_VERIFY(!fatal);
-	}
+		Coral::Type& showInEditorAttribute = m_CoreAssembly->GetType("Shark.ShowInEditorAttribute");
+		Coral::Type& hideFromEditorAttribute = m_CoreAssembly->GetType("Shark.HideFromEditorAttribute");
 
-	static void MonoPrintCallback(const char* string, mono_bool is_stdout)
-	{
-		if (is_stdout)
+		SK_CORE_VERIFY((bool)showInEditorAttribute);
+		SK_CORE_VERIFY((bool)hideFromEditorAttribute);
+
+		auto& types = m_AppAssembly->GetTypes();
+		for (Coral::Type* type : types)
 		{
-			SK_CORE_TRACE_TAG("Mono", string);
-			return;
-		}
-
-		std::ofstream fout{ "Logs/Mono.log" };
-		fout << string;
-		fout.flush();
-		fout.close();
-	}
-
-	void ScriptEngine::Init(const ScriptEngineConfig& config)
-	{
-		SK_CORE_INFO_TAG("Scripting", "Script Engine is Initializing");
-
-		s_Data = sknew ScriptEngineData;
-		s_Data->Config = config;
-		InitMono();
-	}
-
-	void ScriptEngine::Shutdown()
-	{
-		SK_CORE_INFO_TAG("Scripting", "Script Engine is Shutting down");
-
-		if (s_Data->AssembliesLoaded)
-			UnloadAssemblies();
-
-		ShutdownMono();
-		skdelete s_Data;
-	}
-
-	void ScriptEngine::RegisterAssembliesReloadedHook(const AssembliesReloadedHookFn& hook)
-	{
-		s_Data->ReloadHook = hook;
-	}
-
-	bool ScriptEngine::LoadAssemblies(const std::filesystem::path& assemblyPath)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Scripting", "Loading Assemblies");
-
-		if (!s_Data)
-		{
-			SK_CORE_WARN("Core", "ScriptEngine.LoadAssemblies called but ScriptEngine is not Initialized!");
-			return false;
-		}
-
-		char appdomainName[] = "ScriptDomain";
-		s_Data->RuntimeDomain = mono_domain_create_appdomain(appdomainName, nullptr);
-		SK_CORE_VERIFY(s_Data->RuntimeDomain);
-		mono_domain_set(s_Data->RuntimeDomain, true);
-
-		s_Data->CoreAssembly.FilePath = s_Data->Config.CoreAssemblyPath;
-		s_Data->AppAssembly.FilePath = assemblyPath;
-
-		if (!LoadCoreAssembly(s_Data->Config.CoreAssemblyPath))
-			return false;
-
-		if (!LoadAppAssembly(assemblyPath))
-			return false;
-
-		s_Data->AssembliesLoaded = true;
-
-		GCManager::Init();
-		ScriptGlue::Init();
-		ScriptUtils::Init();
-
-		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
-
-		CacheScriptClasses();
-
-		return true;
-	}
-
-	void ScriptEngine::ScheduleReload()
-	{
-		Application::Get().SubmitToMainThread([]()
-		{
-			ScriptEngine::ReloadAssemblies();
-		});
-	}
-
-	void ScriptEngine::UnloadAssemblies()
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Scripting", "Unloading Assemblies");
-
-		ScriptUtils::Shutdown();
-		ScriptGlue::Shutdown();
-		GCManager::Shutdown();
-
-		s_Data->ScriptClasses.clear();
-		s_Data->FieldStoragesMap.clear();
-
-		s_Data->AssembliesLoaded = false;
-
-		AssemblyInfo& appInfo = s_Data->AppAssembly;
-		appInfo.Assembly = nullptr;
-		appInfo.Image = nullptr;
-		appInfo.FilePath = std::filesystem::path{};
-
-		AssemblyInfo& coreInfo = s_Data->CoreAssembly;
-		coreInfo.Assembly = nullptr;
-		coreInfo.Image = nullptr;
-		coreInfo.FilePath = std::filesystem::path{};
-
-		mono_domain_set(s_Data->RootDomain, 1);
-		mono_domain_unload(s_Data->RuntimeDomain);
-		s_Data->RuntimeDomain = nullptr;
-	}
-
-	bool ScriptEngine::AssembliesLoaded()
-	{
-		return s_Data->AssembliesLoaded;
-	}
-
-	const AssemblyInfo& ScriptEngine::GetCoreAssemblyInfo()
-	{
-		return s_Data->CoreAssembly;
-	}
-
-	const AssemblyInfo& ScriptEngine::GetAppAssemblyInfo()
-	{
-		return s_Data->AppAssembly;
-	}
-
-	MonoDomain* ScriptEngine::GetRuntimeDomain()
-	{
-		return s_Data->RuntimeDomain;
-	}
-
-	bool ScriptEngine::IsRunning()
-	{
-		return s_Data->IsRunning;
-	}
-
-	MonoClass* ScriptEngine::GetEntityClass()
-	{
-		return s_Data->EntityClass;
-	}
-
-	Ref<ScriptClass> ScriptEngine::GetScriptClass(uint64_t id)
-	{
-		if (s_Data->ScriptClasses.contains(id))
-			return s_Data->ScriptClasses.at(id);
-		return nullptr;
-	}
-
-	Ref<ScriptClass> ScriptEngine::GetScriptClassFromName(std::string_view fullName)
-	{
-		const auto i = std::find_if(s_Data->ScriptClasses.begin(), s_Data->ScriptClasses.end(), [&fullName](auto& pair) { return pair.second->GetName() == fullName; });
-		if (i != s_Data->ScriptClasses.end())
-			return i->second;
-		return nullptr;
-	}
-
-	void ScriptEngine::InitializeFieldStorage(Ref<FieldStorage> storage, GCHandle handle)
-	{
-		SK_PROFILE_FUNCTION();
-		ManagedField& field = ScriptEngine::GetFieldFromStorage(storage);
-		SK_CORE_VERIFY(storage->Type == field.Type);
-		if (storage->Type == ManagedFieldType::String)
-		{
-			storage->SetValue(field.GetValue<std::string>(handle));
-			return;
-		}
-
-		if (storage->Type == ManagedFieldType::Entity)
-		{
-			storage->SetValue(field.GetEntity(handle));
-			return;
-		}
-
-#if SK_DEBUG
-		{
-			MonoType* monoType = mono_field_get_type(field);
-			int alignment;
-			int size = mono_type_size(monoType, &alignment);
-			SK_CORE_ASSERT(size <= sizeof(storage->m_Buffer));
-		}
-#endif
-
-		MonoObject* obj = GCManager::GetManagedObject(handle);
-		mono_field_get_value(obj, field, storage->m_Buffer);
-	}
-
-	ManagedField& ScriptEngine::GetFieldFromStorage(Ref<FieldStorage> storage)
-	{
-		std::string_view name = storage->Name;
-		size_t i =  name.find(':');
-		SK_CORE_ASSERT(i != std::string::npos, "Invalid Field name");
-		std::string_view className = name.substr(0, i);
-		std::string fieldName = std::string(name.substr(i + 1));
-		Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(className);
-		return klass->GetField(fieldName);
-	}
-
-	const ScriptClassMap& ScriptEngine::GetScriptClasses()
-	{
-		return s_Data->ScriptClasses;
-	}
-
-	FieldStorageMap& ScriptEngine::GetFieldStorageMap(Entity entity)
-	{
-		return s_Data->FieldStoragesMap[entity.GetUUID()];
-	}
-
-	void ScriptEngine::InitializeRuntime(Ref<Scene> scene)
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (s_Data->AssemblyLastChangedTime != std::filesystem::last_write_time(s_Data->AppAssembly.FilePath))
-		{
-			ReloadAssemblies();
-			s_Data->AssemblyLastChangedTime = std::filesystem::last_write_time(s_Data->AppAssembly.FilePath);
-		}
-
-		s_Data->ActiveScene = scene;
-		s_Data->IsRunning = true;
-
-		// Destroy all entities created to recive default values
-		for (auto& [uuid, handle] : s_Data->EntityInstances)
-			GCManager::ReleaseHandle(handle);
-		s_Data->EntityInstances.clear();
-		GCManager::Collect();
-
-		//std::unordered_map<UUID, std::unordered_map<std::string, Ref<FieldStorage>>> fieldStoragesMap;
-	}
-
-	void ScriptEngine::ShutdownRuntime()
-	{
-		SK_PROFILE_FUNCTION();
-
-		s_Data->ActiveScene = nullptr;
-		s_Data->IsRunning = false;
-
-		for (auto& [uuid, gcHandle] : s_Data->EntityInstances)
-		{
-			GCManager::ReleaseHandle(gcHandle);
-		}
-
-		s_Data->EntityInstances.clear();
-
-		GCManager::Collect();
-	}
-
-	GCHandle ScriptEngine::InstantiateEntity(Entity entity, bool invokeOnCreate, bool initializeFields)
-	{
-		SK_PROFILE_FUNCTION();
-		if (!s_Data->AssembliesLoaded || !(entity && entity.HasComponent<ScriptComponent>()))
-			return 0;
-
-		UUID uuid = entity.GetUUID();
-		if (s_Data->EntityInstances.contains(uuid))
-			return 0;
-
-		ScriptComponent& scriptComp = entity.GetComponent<ScriptComponent>();
-		Ref<ScriptClass> scriptClass = ScriptEngine::GetScriptClass(scriptComp.ClassID);
-		if (!scriptClass)
-		{
-			SK_CORE_ERROR_TAG("ScriptEngine", "Failed to find Script Class! (ClassID: {}, Script Name: {})", scriptComp.ClassID, scriptComp.ScriptName);
-			return nullptr;
-		}
-
-
-		MonoObject* object = InstantiateClass(scriptClass->m_Class);
-		mono_runtime_object_init(object);
-		InvokeMethod(object, s_Data->EntityCtor, uuid);
-
-		GCHandle gcHandle = GCManager::CreateHandle(object);
-		s_Data->EntityInstances[uuid] = gcHandle;
-
-		// NOTE(moro): this is probably no longer necassary becaus entity fields get a new allocated object
-		//             the actual instance is provided when calling Entity.As
-		if (initializeFields)
-			InitializeFields(entity);
-
-		if (invokeOnCreate)
-			MethodThunks::OnCreate(gcHandle);
-
-		return gcHandle;
-	}
-
-	void ScriptEngine::DestroyEntityInstance(Entity entity, bool invokeOnDestroy)
-	{
-		SK_PROFILE_FUNCTION();
-		UUID uuid = entity.GetUUID();
-		if (!s_Data->EntityInstances.contains(uuid))
-			return;
-
-		GCHandle gcHandle = GetInstance(entity);
-
-		if (invokeOnDestroy)
-			MethodThunks::OnDestroy(gcHandle);
-
-		GCManager::ReleaseHandle(gcHandle);
-		s_Data->EntityInstances.erase(uuid);
-	}
-
-	void ScriptEngine::InitializeFields(Entity entity)
-	{
-		SK_PROFILE_FUNCTION();
-		if (!s_Data->AssembliesLoaded)
-			return;
-
-		UUID uuid = entity.GetUUID();
-		auto& scriptComp = entity.GetComponent<ScriptComponent>();
-
-		if (scriptComp.ClassID && s_Data->FieldStoragesMap.contains(uuid))
-		{
-			GCHandle handle = GetInstance(entity);
-			SK_CORE_VERIFY(handle);
-			MonoObject* object = GCManager::GetManagedObject(handle);
-
-			const FieldStorageMap& fieldStorages = s_Data->FieldStoragesMap[uuid];
-			Ref<ScriptClass> klass = ScriptEngine::GetScriptClass(scriptComp.ClassID);
-			auto& fields = klass->m_Fields;
-			for (auto& [name, field] : fields)
-			{
-				if (!fieldStorages.contains(name))
-					continue;
-
-				Ref<FieldStorage> storage = fieldStorages.at(name);
-
-				if (field.Type == ManagedFieldType::Entity)
-				{
-					UUID entityID = storage->GetValue<UUID>();
-					if (entityID == UUID::Invalid)
-						continue;
-
-					Entity entity = s_Data->ActiveScene->TryGetEntityByUUID(entityID);
-					field.SetEntity(handle, entity);
-					continue;
-				}
-
-				if (field.Type == ManagedFieldType::Component)
-				{
-					UUID entityID = storage->GetValue<UUID>();
-					if (entityID == UUID::Invalid)
-						continue;
-
-					Entity entity = s_Data->ActiveScene->TryGetEntityByUUID(entityID);
-					field.SetComponent(handle, entity);
-					continue;
-				}
-
-				if (field.Type == ManagedFieldType::String)
-				{
-					field.SetValue(handle, storage->GetValue<std::string>());
-					continue;
-				}
-
-				mono_field_set_value(object, field, storage->m_Buffer);
-			}
-		}
-	}
-
-	void ScriptEngine::OnEntityDestroyed(Entity entity)
-	{
-		UUID uuid = entity.GetUUID();
-		if (IsInstantiated(entity))
-			DestroyEntityInstance(entity, true);
-
-		s_Data->FieldStoragesMap.erase(uuid);
-	}
-
-	void ScriptEngine::OnEntityCloned(Entity srcEntity, Entity entity)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_ASSERT(!IsInstantiated(entity));
-		if (!IsInstantiated(srcEntity) || IsInstantiated(entity))
-			return;
-
-		MonoObject* object = GetInstanceObject(srcEntity);
-		MonoObject* cloned = mono_object_clone(object);
-		GCHandle handle = GCManager::CreateHandle(cloned);
-		s_Data->EntityInstances[entity.GetUUID()] = handle;
-	}
-
-	bool ScriptEngine::IsInstantiated(Entity entity)
-	{
-		return s_Data->EntityInstances.contains(entity.GetUUID());
-	}
-
-	GCHandle ScriptEngine::GetInstance(Entity entity)
-	{
-		UUID entityID = entity.GetUUID();
-		if (s_Data->EntityInstances.contains(entityID))
-			return s_Data->EntityInstances.at(entityID);
-		return 0;
-	}
-
-	MonoObject* ScriptEngine::GetInstanceObject(Entity entity)
-	{
-		GCHandle handle = GetInstance(entity);
-		return GCManager::GetManagedObject(handle);
-	}
-
-	MonoObject* ScriptEngine::CreateEntity(UUID uuid)
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(uuid != UUID::Invalid);
-		MonoObject* object = InstantiateClass(s_Data->EntityClass);
-		mono_runtime_object_init(object);
-
-		MonoMethodDesc* ctorDesc = mono_method_desc_new(":.ctor(ulong)", false);
-		MonoMethod* ctorMethod = mono_method_desc_search_in_class(ctorDesc, s_Data->EntityClass);
-		mono_method_desc_free(ctorDesc);
-		InvokeMethod(object, ctorMethod, uuid);
-
-		return object;
-	}
-
-	MonoObject* ScriptEngine::InstantiateBaseEntity(Entity entity)
-	{
-		SK_PROFILE_FUNCTION();
-		UUID entityID = entity.GetUUID();
-		SK_CORE_ASSERT(!IsInstantiated(entityID));
-		if (IsInstantiated(entityID))
-		{
-			GCHandle handle = GetInstance(entityID);
-			return GCManager::GetManagedObject(handle);
-		}
-
-		SK_CORE_ASSERT(!entity.HasComponent<ScriptComponent>());
-
-		MonoObject* entityInstance = ScriptEngine::InstantiateClass(s_Data->EntityClass);
-		mono_runtime_object_init(entityInstance);
-		MonoMethod* ctor = mono_class_get_method_from_name(s_Data->EntityClass, ".ctor", 1);
-		ScriptEngine::InvokeMethod(entityInstance, ctor, entityID);
-
-		return entityInstance;
-	}
-
-	MonoObject* ScriptEngine::InstantiateClass(MonoClass* klass)
-	{
-		return mono_object_new(s_Data->RuntimeDomain, klass);
-	}
-
-	Ref<Scene> ScriptEngine::GetActiveScene()
-	{
-		return s_Data->ActiveScene;
-	}
-
-	const EntityInstancesMap& ScriptEngine::GetEntityInstances()
-	{
-		return s_Data->EntityInstances;
-	}
-
-	bool ScriptEngine::InvokeMethod(MonoObject* object, MonoMethod* method, void** params, MonoObject** out_RetVal)
-	{
-		SK_PROFILE_FUNCTION();
-		MonoObject* exception = nullptr;
-		MonoObject* retVal = mono_runtime_invoke(method, object, params, &exception);
-		if (exception)
-		{
-			ScriptUtils::HandleException(exception);
-			return false;
-		}
-
-		if (out_RetVal)
-			*out_RetVal = retVal;
-
-		return true;
-	}
-
-	MonoObject* ScriptEngine::InvokeMethodR(MonoObject* object, MonoMethod* method, void** params)
-	{
-		SK_PROFILE_FUNCTION();
-		MonoObject* ret = nullptr;
-		if (InvokeMethod(object, method, params, &ret))
-			return ret;
-		return nullptr;
-	}
-
-	bool ScriptEngine::InvokeVirtualMethod(MonoObject* object, MonoMethod* method, void** params, MonoObject** out_RetVal)
-	{
-		SK_PROFILE_FUNCTION();
-		MonoMethod* virtualMethod = mono_object_get_virtual_method(object, method);
-		return InvokeMethod(object, virtualMethod, params, out_RetVal);
-	}
-
-	void ScriptEngine::InitMono()
-	{
-		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Scripting", "Initializing Mono");
-
-		if (std::filesystem::exists("Logs/Mono.log"))
-			FileSystem::TruncateFile(std::filesystem::absolute("Logs/Mono.log"));
-		
-		mono_trace_set_level_string("warning");
-		mono_trace_set_log_handler(&MonoTraceLogCallback, nullptr);
-		mono_trace_set_print_handler(&MonoPrintCallback);
-		mono_trace_set_printerr_handler(&MonoPrintCallback);
-		mono_set_assemblies_path("mono/lib");
-		mono_install_unhandled_exception_hook(&ScriptEngine::UnhandledExeptionHook, nullptr);
-
-		if (s_Data->Config.EnableDebugging)
-		{
-			const char* argv[2] = {
-				"--debugger-agent=transport=dt_socket,address=127.0.0.1:2550,server=y,suspend=n,loglevel=3,logfile=Logs/MonoDebugger.log",
-				"--soft-breakpoints"
-			};
-
-			mono_jit_parse_options(2, (char**)argv);
-			mono_debug_init(MONO_DEBUG_FORMAT_MONO);
-		}
-
-		s_Data->RootDomain = mono_jit_init("RootDomain");
-		SK_CORE_VERIFY(s_Data->RootDomain);
-
-		if (s_Data->Config.EnableDebugging)
-			mono_debug_domain_create(s_Data->RootDomain);
-
-		mono_thread_set_main(mono_thread_current());
-	}
-
-	void ScriptEngine::ShutdownMono()
-	{
-		SK_PROFILE_FUNCTION();
-		mono_jit_cleanup(s_Data->RootDomain);
-		s_Data->RootDomain = nullptr;
-	}
-
-	MonoAssembly* ScriptEngine::LoadCSAssembly(const std::filesystem::path& filePath)
-	{
-		SK_PROFILE_FUNCTION();
-		if (!FileSystem::Exists(filePath))
-		{
-			SK_CORE_ERROR_TAG("Scripting", "Can't load Assembly! Filepath dosn't exist \"{}\"", filePath);
-			return nullptr;
-		}
-
-		Buffer fileData = FileSystem::ReadBinary(filePath);
-
-		MonoImageOpenStatus status;
-		MonoImage* image = mono_image_open_from_data_full(fileData.As<char>(), (uint32_t)fileData.Size, true, &status, false);
-		if (status != MONO_IMAGE_OK)
-		{
-			const char* errorMsg = mono_image_strerror(status);
-			SK_CORE_ERROR_TAG("Scripting", "Failed to open Image from {0}\n\t Message: {1}", filePath, errorMsg);
-			return nullptr;
-		}
-
-		if (s_Data->Config.EnableDebugging)
-		{
-			std::filesystem::path pdbPath = filePath;
-			pdbPath.replace_extension(".pdb");
-
-			if (FileSystem::Exists(pdbPath))
-			{
-				Buffer pdbData = FileSystem::ReadBinary(pdbPath);
-				mono_debug_open_image_from_memory(image, pdbData.As<mono_byte>(), (int)pdbData.Size);
-				SK_CORE_INFO_TAG("Scripting", "Loaded PDB {}", pdbPath);
-				pdbData.Release();
-			}
-		}
-
-		std::string assemblyName = filePath.stem().string();
-		MonoAssembly* assembly = mono_assembly_load_from_full(image, assemblyName.c_str(), &status, false);
-		mono_image_close(image);
-		fileData.Release();
-
-		SK_CORE_INFO_TAG("Scripting", "Loaded Assembly: {}", filePath);
-		return assembly;
-	}
-
-	bool ScriptEngine::LoadCoreAssembly(const std::filesystem::path& filePath)
-	{
-		SK_PROFILE_FUNCTION();
-		MonoAssembly* assembly = LoadCSAssembly(filePath);
-		if (!assembly)
-		{
-			SK_CORE_ERROR_TAG("Scripting", "Failed to load Core Assembly");
-			return false;
-		}
-
-		AssemblyInfo& info = s_Data->CoreAssembly;
-		info.Assembly = assembly;
-		info.Image = mono_assembly_get_image(assembly);
-		info.FilePath = filePath;
-
-		SK_CORE_INFO_TAG("Scripting", "Core Assembly Loaded. ({0})", info.FilePath);
-		return true;
-	}
-
-	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& filePath)
-	{
-		SK_PROFILE_FUNCTION();
-		MonoAssembly* assembly = LoadCSAssembly(filePath);
-		if (!assembly)
-		{
-			SK_CORE_ERROR_TAG("Scripting", "Failed to load App Assembly");
-			return false;
-		}
-
-		AssemblyInfo& info = s_Data->AppAssembly;
-		info.Assembly = assembly;
-		info.Image = mono_assembly_get_image(assembly);
-		info.FilePath = filePath;
-		s_Data->AssemblyLastChangedTime = std::filesystem::last_write_time(filePath);
-
-		SK_CORE_INFO_TAG("Scripting", "App Assembly Loaded. ({0})", info.FilePath);
-		return true;
-	}
-
-	bool ScriptEngine::ReloadAssemblies()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (s_Data->IsRunning)
-		{
-			SK_CORE_ERROR_TAG("Scripting", "Reloading while the scene is playing is not supported");
-			return false;
-		}
-
-		SK_CORE_INFO_TAG("Scripting", "Reloading Assemblies");
-
-		// Try reload assemlies
-		// if failed keep the old ones
-
-		char appdomainName[] = "ScriptDomain";
-		MonoDomain* newDomain = mono_domain_create_appdomain(appdomainName, nullptr);
-		SK_CORE_VERIFY(newDomain);
-		mono_domain_set(newDomain, true);
-
-		MonoAssembly* coreAssembly = LoadCSAssembly(s_Data->CoreAssembly.FilePath);
-		MonoAssembly* appAssembly = LoadCSAssembly(s_Data->AppAssembly.FilePath);
-
-		if (!coreAssembly || !appAssembly)
-			return false;
-
-		for (auto& [uuid, handle] : s_Data->EntityInstances)
-			GCManager::ReleaseHandle(handle);
-		s_Data->EntityInstances.clear();
-
-		s_Data->CoreAssembly.Assembly = coreAssembly;
-		s_Data->CoreAssembly.Image = mono_assembly_get_image(coreAssembly);
-		s_Data->AppAssembly.Assembly = appAssembly;
-		s_Data->AppAssembly.Image = mono_assembly_get_image(appAssembly);
-		s_Data->AssemblyLastChangedTime = std::filesystem::last_write_time(s_Data->AppAssembly.FilePath);
-		s_Data->AssembliesLoaded = true;
-
-		ScriptUtils::Shutdown();
-		ScriptGlue::Shutdown();
-		GCManager::Shutdown();
-
-		mono_domain_unload(s_Data->RuntimeDomain);
-		s_Data->RuntimeDomain = newDomain;
-
-		GCManager::Init();
-		ScriptGlue::Init();
-		ScriptUtils::Init();
-
-		CacheScriptClasses();
-
-		SK_CONSOLE_INFO("Assemblies Reloaded");
-		SK_CORE_INFO_TAG("Scripting", "Assemblies Reloaded");
-
-		if (s_Data->ReloadHook)
-			s_Data->ReloadHook();
-
-		return true;
-	}
-
-	void ScriptEngine::CacheScriptClasses()
-	{
-		SK_PROFILE_FUNCTION();
-		s_Data->EntityClass = mono_class_from_name_case(s_Data->CoreAssembly.Image, "Shark", "Entity");
-		s_Data->EntityCtor = mono_class_get_method_from_name(s_Data->EntityClass, ".ctor", 1);
-
-		MonoImage* appImage = s_Data->AppAssembly.Image;
-		const MonoTableInfo* typeDefTable = mono_image_get_table_info(appImage, MONO_TABLE_TYPEDEF);
-		int numTypes = mono_table_info_get_rows(typeDefTable);
-
-		for (int i = 0; i < numTypes; i++)
-		{
-			uint32_t cols[MONO_TYPEDEF_SIZE];
-			mono_metadata_decode_row(typeDefTable, i, cols, MONO_TYPEDEF_SIZE);
-
-			const char* name = mono_metadata_string_heap(appImage, cols[MONO_TYPEDEF_NAME]);
-			const char* nameSpace = mono_metadata_string_heap(appImage, cols[MONO_TYPEDEF_NAMESPACE]);
-			MonoClass* klass = mono_class_from_name(appImage, nameSpace, name);
-			if (!klass || !mono_class_is_subclass_of(klass, s_Data->EntityClass, false))
+			if (!type->IsSubclassOf(entityType))
 				continue;
 
-			Ref<ScriptClass> scriptClass = Ref<ScriptClass>::Create(nameSpace, name);
-			s_Data->ScriptClasses[scriptClass->GetID()] = scriptClass;
+			Coral::String fullNameMS = type->GetFullName();
+			std::string fullName = fullNameMS;
+			uint64_t hash = Hash::GenerateFNV(fullName);
+			m_ScriptMetadata[hash] = { fullName, type };
+
+
+			Coral::ManagedObject tempInstance = type->CreateInstance();
+			ScriptMetadata& scriptMetadata = m_ScriptMetadata.at(hash);
+
+			auto fields = type->GetFields();
+			for (auto& fieldInfo : fields)
+			{
+				Coral::ScopedString nameMS = fieldInfo.GetName();
+				uint64_t fieldHash = Hash::GenerateFNV(fieldHash);
+				Coral::Type& fieldType = fieldInfo.GetType();
+				Coral::ScopedString typeNameMS = fieldType.GetFullName();
+
+				std::string name = nameMS;
+				std::string typeName = typeNameMS;
+
+				bool isDerivedComponent = false;
+				if (!s_DataTypeLookupTable.contains(typeName))
+					continue;
+
+				if (fieldInfo.HasAttribute(hideFromEditorAttribute))
+					continue;
+
+				Coral::TypeAccessibility accessibility = fieldInfo.GetAccessibility();
+				if (!fieldInfo.HasAttribute(showInEditorAttribute) && accessibility != Coral::TypeAccessibility::Public)
+					continue;
+
+				Buffer defaultValue;
+				ManagedFieldType dataType = s_DataTypeLookupTable.at(typeName);
+
+				// #TODO(moro): Arrays
+				switch (dataType)
+				{
+					case ManagedFieldType::Bool:
+					case ManagedFieldType::Byte:
+					case ManagedFieldType::SByte:
+					case ManagedFieldType::Short:
+					case ManagedFieldType::UShort:
+					case ManagedFieldType::Int:
+					case ManagedFieldType::UInt:
+					case ManagedFieldType::Long:
+					case ManagedFieldType::ULong:
+					case ManagedFieldType::Float:
+					case ManagedFieldType::Double:
+					case ManagedFieldType::Vector2:
+					case ManagedFieldType::Vector3:
+					case ManagedFieldType::Vector4:
+					{
+						defaultValue.Allocate(fieldType.GetSize());
+						tempInstance.GetFieldValueRaw(name, defaultValue.Data);
+						break;
+					}
+
+					case ManagedFieldType::String:
+					{
+						Coral::String managedString = tempInstance.GetFieldValue<Coral::String>(name);
+						if (managedString.Data())
+						{
+							std::string str = managedString;
+							defaultValue.Allocate(str.size());
+							defaultValue.Write(str.data(), str.size());
+						}
+						Coral::String::Free(managedString);
+						break;
+					}
+
+					// nothing to do for those types (no default value possible)
+					case ManagedFieldType::Entity:
+					{
+						defaultValue.Allocate(sizeof(UUID));
+						defaultValue.SetZero();
+						break;
+					}
+
+				}
+
+				scriptMetadata.Fields[Hash::GenerateFNV(name)] = { name, type, dataType, defaultValue };
+			}
+
+			tempInstance.Destroy();
 		}
 	}
 
-	bool ScriptEngine::IsInstantiated(UUID entityID)
+	ScriptEngine& ScriptEngine::Get()
 	{
-		return s_Data->EntityInstances.contains(entityID);
+		return Application::Get().GetScriptEngine();
 	}
 
-	GCHandle ScriptEngine::GetInstance(UUID entityID)
+	Coral::ManagedObject* ScriptEngine::Instantiate(UUID entityID, ScriptStorage& storage)
 	{
-		if (s_Data->EntityInstances.contains(entityID))
-			return s_Data->EntityInstances.at(entityID);
+		if (!m_CurrentScene->IsValidEntityID(entityID))
+			return nullptr;
+
+		auto& entityStorage = storage.EntityInstances.at(entityID);
+
+		Entity entity = m_CurrentScene->GetEntityByID(entityID);
+		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+
+		// Invalid Script
+		if (!IsValidScriptID(scriptComponent.ScriptID))
+			return nullptr;
+
+		const auto& metadata = m_ScriptMetadata.at(scriptComponent.ScriptID);
+		entityStorage.Instance = metadata.Type->CreateInstance((uint64_t)entityID);
+		scriptComponent.Instance = &entityStorage.Instance;
+
+		Coral::ManagedObject& instance = entityStorage.Instance;
+		for (auto& [fieldID, fieldStorage] : entityStorage.Fields)
+		{
+			if (!metadata.Fields.contains(fieldID))
+			{
+				SK_CORE_ERROR_TAG("Scripting", "entity storage for entity {} contains invalid field {}", entityID, fieldStorage.GetName());
+				continue;
+			}
+
+			const auto& fieldMetadata = metadata.Fields.at(fieldID);
+
+			if (fieldMetadata.DataType == ManagedFieldType::Entity)
+			{
+				Coral::ManagedObject value = fieldMetadata.Type->CreateInstance(fieldStorage.GetValue<uint64_t>());
+				instance.SetFieldValue(fieldMetadata.Name, value);
+				value.Destroy();
+			}
+			else if (fieldMetadata.DataType == ManagedFieldType::String)
+			{
+				instance.SetFieldValue<std::string>(fieldMetadata.Name, fieldStorage.GetValue<std::string>());
+			}
+			else
+			{
+				instance.SetFieldValueRaw(fieldMetadata.Name, fieldStorage.m_ValueBuffer.Data);
+			}
+
+			fieldStorage.m_Instance = &instance;
+		}
+		return &entityStorage.Instance;
+	}
+
+	void ScriptEngine::Destoy(UUID entityID, ScriptStorage& storage)
+	{
+		if (!m_CurrentScene->IsValidEntityID(entityID))
+			return;
+
+		auto& entityStorage = storage.EntityInstances.at(entityID);
+
+		Entity entity = m_CurrentScene->GetEntityByID(entityID);
+		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+
+		entityStorage.Instance.InvokeMethod("InvokeOnDestroyed");
+		scriptComponent.OnCreateCalled = false;
+		scriptComponent.Instance = nullptr;
+		entityStorage.Instance.Destroy();
+	}
+
+	uint64_t ScriptEngine::FindScriptMetadata(std::string_view fullName) const
+	{
+		uint64_t id = Hash::GenerateFNV(fullName);
+		if (m_ScriptMetadata.contains(id))
+			return id;
+
+		const auto i = std::ranges::find(m_ScriptMetadata, fullName, [](auto& entry) { return entry.second.FullName; });
+		if (i != m_ScriptMetadata.end())
+			return i->first;
+
 		return 0;
-	}
-
-	void ScriptEngine::UnhandledExeptionHook(MonoObject* exc, void* user_data)
-	{
-		MonoString* excecptionMessage = mono_object_to_string(exc, nullptr);
-		SK_CONSOLE_ERROR(ScriptUtils::MonoStringToUTF8(excecptionMessage));
 	}
 
 }

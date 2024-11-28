@@ -14,20 +14,20 @@ namespace Sandbox
 		{
 			Transform.Scale = new Vector3(0.2f);
 
-			var renderer = AddComponent<CircleRendererComponent>();
+			var renderer = CreateComponent<CircleRendererComponent>();
 			renderer.Color = Color.Cyan;
 
-			var rigidBody = AddComponent<RigidBody2DComponent>();
+			var rigidBody = CreateComponent<RigidBody2DComponent>();
 			rigidBody.Bullet = true;
-			var collider = AddComponent<CircleCollider2DComponent>();
+			var collider = CreateComponent<CircleCollider2DComponent>();
 			collider.Density = 0.2f;
 			collider.Friction = 0.0f;
 			collider.Restitution = 1.0f;
 
-			OnCollishionBegin += (c) =>
+			CollishionBeginEvent += (c) =>
 			{
 				if (DestroyOnHit)
-					DestroyEntity(this);
+					Destroy();
 			};
 		}
 
@@ -35,7 +35,7 @@ namespace Sandbox
 		{
 			m_LifeTime += ts;
 			if (m_LifeTime >= m_MaxLifeTime)
-				DestroyEntity(this);
+				Destroy();
 		}
 
 	}

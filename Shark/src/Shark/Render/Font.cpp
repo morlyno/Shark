@@ -32,7 +32,7 @@ namespace Shark {
 		textureSpecification.Height = bitmap.height;
 		textureSpecification.GenerateMips = false;
 
-		return Texture2D::Create(textureSpecification, { bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T) });
+		return Texture2D::Create(textureSpecification, Buffer{ (void*)bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T) });
 	}
 
 	Font::Font(const std::filesystem::path& fontPath)

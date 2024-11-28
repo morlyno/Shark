@@ -9,7 +9,7 @@ namespace Shark {
 	{
 	public:
 		// FNV1a Hash Function
-		static uint64_t GenerateFNV(const std::string& str);
+		static uint64_t GenerateFNV(const std::string_view str);
 		static uint64_t GenerateFNV(Buffer buffer);
 
 		template<typename TValue>

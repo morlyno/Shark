@@ -94,4 +94,10 @@ namespace Shark::UI {
 		Build();
 	}
 
+	void TextFilter::Clear()
+	{
+		m_Filters.clear();
+		m_Buffer.clear();
+	}
+
 }

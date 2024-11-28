@@ -27,18 +27,23 @@ namespace Sandbox
 		private float m_ShootCooldownTimer = 0.0f;
 		private bool m_Colliding => m_CollishionCount > 0;
 
-		public TransformComponent CameraTransform;
+		public Entity Camera;
+		private TransformComponent m_CameraTransform;
 		private Entity m_BallContainer;
+
+		public string OnCreateMessage = "HiHiHiHi";
 
 		protected override void OnCreate()
 		{
-			OnCollishionBegin += CollishionBegin;
-			OnCollishionEnd += CollishionEnd;
+			m_CameraTransform = Camera.Transform;
 
-			m_BallContainer = Instantiate("BallContainer");
+			CollishionBeginEvent += CollishionBegin;
+			CollishionEndEvent += CollishionEnd;
+
+			m_BallContainer = Scene.CreateEntity("BallContainer");
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
 
-			Log.Info("HiHiHiHi");
+			Log.Info(OnCreateMessage);
 		}
 
 		protected override void OnDestroy()
@@ -53,9 +58,9 @@ namespace Sandbox
 
 			if (Input.MouseScroll != 0)
 			{
-				Vector3 translation = CameraTransform.Translation;
+				Vector3 translation = m_CameraTransform.Translation;
 				translation.Z += Input.MouseScroll;
-				CameraTransform.Translation = translation;
+				m_CameraTransform.Translation = translation;
 			}
 
 			if (Input.IsKeyPressed(KeyCode.P))
@@ -73,7 +78,7 @@ namespace Sandbox
 			Movement(fixedTimeStep);
 		}
 
-		protected void CollishionBegin(Collider2D collider)
+		protected void CollishionBegin(Entity entity)
 		{
 			m_RigidBody.LinearDamping = OnGroundDamping;
 			m_AirJumpCount = 0;
@@ -81,7 +86,7 @@ namespace Sandbox
 			m_CollishionCount++;
 		}
 
-		protected void CollishionEnd(Collider2D collider)
+		protected void CollishionEnd(Entity entity)
 		{
 			m_CollishionCount--;
 
@@ -105,9 +110,7 @@ namespace Sandbox
 				velocity += Acceleration * direction * ts;
 				if (!m_Sprint)
 				{
-					//velocity.X = Mathf.Clamp(velocity.X, -MaxMovementSpeed, MaxMovementSpeed);
-					if (velocity.Length > MaxMovementSpeed)
-						velocity.Length = MaxMovementSpeed;
+					velocity.X = Mathf.Clamp(velocity.X, -MaxMovementSpeed, MaxMovementSpeed);
 				}
 				m_RigidBody.LinearVelocity = velocity;
 				m_RigidBody.LinearDamping = 0;
@@ -143,22 +146,28 @@ namespace Sandbox
 				var direction = Vector2.Normalize((Vector2)Input.MousePos - (Vector2)Application.Size * 0.5f);
 				direction.Y = -direction.Y;
 
+
+
+#if false
 				Bullet bullet = Instantiate<Bullet>("Bullet");
 				bullet.DestroyOnHit = DestroyBallOnHit;
 				var rigidBody = bullet.GetComponent<RigidBody2DComponent>();
 				rigidBody.Position = m_RigidBody.Position + direction;
 				rigidBody.ApplyForce(direction * 10000.0f, PhysicsForce2DType.Force);
+#endif
 			}
 		}
 
 		private void CreateBall()
 		{
+#if false
 			var ball = CloneEntity(BallTemplate);
 			//ball.Parent = m_BallContainer;
 			ball.Name = "Ball";
 			var rigidBody = ball.GetComponent<RigidBody2DComponent>();
 			rigidBody.Position = new Vector2(0.0f, 10.0f);
 			rigidBody.Enabled = true;
+#endif
 		}
 
 	}

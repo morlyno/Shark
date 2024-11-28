@@ -4,6 +4,7 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scene/Entity.h"
 
 #include "Shark/UI/Widgets.h"
@@ -734,10 +735,9 @@ namespace Shark::UI {
 		ImGui::Text(label);
 		ImGui::TableNextColumn();
 
-		bool clear = false;
 		bool changed = false;
 
-		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeightWithSpacing() });
+		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
 
 		auto& g = *GImGui;
 		bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
@@ -774,79 +774,7 @@ namespace Shark::UI {
 
 		}
 
-		static char s_SearchBuffer[260];
-		static UI::TextFilter s_Filter("");
-
-		ImGuiID popupID = ImGui::GetID("##selectAssetPopup"sv);
-		if (ImGui::IsItemActivated())
-		{
-			memset(s_SearchBuffer, 0, std::size(s_SearchBuffer));
-			s_Filter.SetFilter("");
-			ImGui::OpenPopup(popupID);
-		}
-
-		ImRect lastItemRect = UI::GetItemRect();
-
-		int popup_max_height_in_items = 12;
-		ImGui::SetNextWindowSize({ 200, utils::CalcMaxPopupHeightFromItemCount(popup_max_height_in_items) });
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		const bool popupOpen = ImGui::BeginPopupEx(popupID, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar);
-		ImGui::PopStyleVar();
-
-		if (popupOpen)
-		{
-			const auto& style = ImGui::GetStyle();
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - style.WindowPadding.x * 2.0f);
-			UI::ShiftCursor(style.WindowPadding);
-			if (ImGui::IsWindowAppearing())
-				ImGui::SetKeyboardFocusHere();
-			if (UI::Widgets::Search(s_SearchBuffer))
-				s_Filter.SetFilter(s_SearchBuffer);
-
-			{
-				UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-				UI::ScopedStyle frameRounding(ImGuiStyleVar_FrameRounding, 0.0f);
-				UI::ScopedColorStack button(ImGuiCol_Button, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Background, 0.9f),
-											ImGuiCol_ButtonHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Background, 1.1f),
-											ImGuiCol_ButtonActive, UI::Colors::Theme::BackgroundDark);
-
-				if (ImGui::Button("Clear", ImVec2(-1.0f, 0.0f)))
-				{
-					clear = true;
-					ImGui::CloseCurrentPopup();
-				}
-			}
-
-			UI::ScopedColor childBg(ImGuiCol_ChildBg, UI::Colors::Theme::BackgroundPopup);
-			if (ImGui::BeginChild("##selectAssetChild", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_NavFlattened))
-			{
-				std::vector<AssetHandle> assets = AssetManager::GetAllAssetsOfType(assetType);
-
-				for (AssetHandle handle : assets)
-				{
-					const AssetMetaData& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
-					if (metadata.IsMemoryAsset || metadata.IsEditorAsset)
-						continue;
-
-					std::string name = metadata.FilePath.stem().string();
-
-					if (!s_Filter.PassesFilter(name))
-						continue;
-
-					if (ImGui::Selectable(name.c_str()))
-					{
-						assetHandle = handle;
-						changed = true;
-					}
-				}
-			}
-			ImGui::EndChild();
-
-			if (changed)
-				ImGui::CloseCurrentPopup();
-
-			ImGui::EndPopup();
-		}
+		changed = Widgets::SearchAssetPopup(assetType, assetHandle);
 
 		if (settings.DropType)
 		{
@@ -866,13 +794,8 @@ namespace Shark::UI {
 			}
 		}
 
-		if (clear)
-		{
-			assetHandle = AssetHandle::Invalid;
-		}
-
 		ControlHelperEnd();
-		return changed || clear;
+		return changed;
 	}
 
 	bool ControlEntity(std::string_view label, UUID& entityID, const char* dragDropType)
@@ -884,10 +807,9 @@ namespace Shark::UI {
 		ImGui::TableNextColumn();
 
 		bool changed = false;
-		const float buttonSize = ImGui::GetFrameHeightWithSpacing();
 
 		ImGui::SetNextItemAllowOverlap();
-		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, buttonSize });
+		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
 
 		auto& g = *GImGui;
 		bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
@@ -911,6 +833,7 @@ namespace Shark::UI {
 			}
 		}
 
+		changed = Widgets::SearchEntityPopup(entityID);
 
 		if (dragDropType)
 		{
@@ -931,21 +854,50 @@ namespace Shark::UI {
 			}
 		}
 
+		ControlHelperEnd();
+		return changed;
+	}
+
+	bool ControlScript(std::string_view label, uint64_t& scriptID, const AssetControlSettings& settings)
+	{
+		if (!ControlHelperBegin(ImGui::GetID(label)))
+			return false;
+
+		ImGui::Text(label);
+		ImGui::TableNextColumn();
+
+		ImGui::SetNextItemAllowOverlap();
+		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeightWithSpacing() });
+
+		auto& scriptEngine = ScriptEngine::Get();
+
+		auto& g = *GImGui;
+		bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
+		if (mixed_value)
 		{
-			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-			UI::ScopedColorStack button(ImGuiCol_Button, 0x00000000,
-										ImGuiCol_ButtonHovered, 0x00000000,
-										ImGuiCol_ButtonActive, 0x00000000);
-
-			ImGui::SameLine(0, 0);
-			ShiftCursorX(-buttonSize);
-
-			if (ImGui::Button("x", { buttonSize, buttonSize }))
+			UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
+		}
+		else
+		{
+			const bool validScript = scriptEngine.IsValidScriptID(scriptID);
+			if (scriptID && !validScript)
 			{
-				entityID = UUID::Invalid;
-				changed = true;
+				UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextError);
+				UI::DrawButton("Null", UI::GetItemRect());
+
+			}
+			else if (validScript)
+			{
+				const auto& metadata = scriptEngine.GetScriptMetadata(scriptID);
+				UI::DrawButton(metadata.FullName, UI::GetItemRect());
+			}
+			else
+			{
+				UI::DrawButton("", ImVec2(0.0f, 0.5f), UI::GetItemRect());
 			}
 		}
+
+		bool changed = Widgets::SearchScriptPopup(scriptID);
 
 		ControlHelperEnd();
 		return changed;

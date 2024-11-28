@@ -26,78 +26,6 @@
 namespace YAML {
 
 	template<>
-	struct convert<Shark::Ref<Shark::FieldStorage>>
-	{
-		static Node encode(const Shark::Ref<Shark::FieldStorage>& storage)
-		{
-			Node node(NodeType::Map);
-			node.force_insert("Name", storage->Name);
-			node.force_insert("Type", Shark::ToString(storage->Type));
-			switch (storage->Type)
-			{
-				case Shark::ManagedFieldType::None: break;
-				case Shark::ManagedFieldType::Bool: node.force_insert("Value", storage->GetValue<bool>()); break;
-				case Shark::ManagedFieldType::Char: node.force_insert("Value", storage->GetValue<char>()); break;
-				case Shark::ManagedFieldType::Byte: node.force_insert("Value", storage->GetValue<uint8_t>()); break;
-				case Shark::ManagedFieldType::SByte: node.force_insert("Value", storage->GetValue<int8_t>()); break;
-				case Shark::ManagedFieldType::Short: node.force_insert("Value", storage->GetValue<int16_t>()); break;
-				case Shark::ManagedFieldType::UShort: node.force_insert("Value", storage->GetValue<uint16_t>()); break;
-				case Shark::ManagedFieldType::Int: node.force_insert("Value", storage->GetValue<int32_t>()); break;
-				case Shark::ManagedFieldType::UInt: node.force_insert("Value", storage->GetValue<uint32_t>()); break;
-				case Shark::ManagedFieldType::Long: node.force_insert("Value", storage->GetValue<int64_t>()); break;
-				case Shark::ManagedFieldType::ULong: node.force_insert("Value", storage->GetValue<uint64_t>()); break;
-				case Shark::ManagedFieldType::Float: node.force_insert("Value", storage->GetValue<float>()); break;
-				case Shark::ManagedFieldType::Double: node.force_insert("Value", storage->GetValue<double>()); break;
-				case Shark::ManagedFieldType::String: node.force_insert("Value", storage->GetValue<std::string>()); break;
-				case Shark::ManagedFieldType::Entity: node.force_insert("Value", storage->GetValue<Shark::UUID>()); break;
-				case Shark::ManagedFieldType::Component: node.force_insert("Value", storage->GetValue<Shark::UUID>()); break;
-				case Shark::ManagedFieldType::Vector2: node.force_insert("Value", storage->GetValue<glm::vec2>()); break;
-				case Shark::ManagedFieldType::Vector3: node.force_insert("Value", storage->GetValue<glm::vec3>()); break;
-				case Shark::ManagedFieldType::Vector4: node.force_insert("Value", storage->GetValue<glm::vec4>()); break;
-				case Shark::ManagedFieldType::AssetHandle: node.force_insert("Value", storage->GetValue<Shark::AssetHandle>()); break;
-				default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); break;
-			}
-			return node;
-		}
-
-		static bool decode(const Node& node, Shark::Ref<Shark::FieldStorage>& storage)
-		{
-			if (!node.IsMap() || node.size() != 3)
-				return false;
-
-			storage = Shark::Ref<Shark::FieldStorage>::Create();
-			storage->Name = node["Name"].as<std::string>();
-			storage->Type = Shark::StringToManagedFieldType(node["Type"].as<std::string>());
-			switch (storage->Type)
-			{
-				case Shark::ManagedFieldType::None: break;
-				case Shark::ManagedFieldType::Bool: storage->SetValue(node["Value"].as<bool>()); break;
-				case Shark::ManagedFieldType::Char: storage->SetValue(node["Value"].as<char>()); break;
-				case Shark::ManagedFieldType::Byte: storage->SetValue(node["Value"].as<uint8_t>()); break;
-				case Shark::ManagedFieldType::SByte: storage->SetValue(node["Value"].as<int8_t>()); break;
-				case Shark::ManagedFieldType::Short: storage->SetValue(node["Value"].as<int16_t>()); break;
-				case Shark::ManagedFieldType::UShort: storage->SetValue(node["Value"].as<uint16_t>()); break;
-				case Shark::ManagedFieldType::Int: storage->SetValue(node["Value"].as<int32_t>()); break;
-				case Shark::ManagedFieldType::UInt: storage->SetValue(node["Value"].as<uint32_t>()); break;
-				case Shark::ManagedFieldType::Long: storage->SetValue(node["Value"].as<int64_t>()); break;
-				case Shark::ManagedFieldType::ULong: storage->SetValue(node["Value"].as<uint64_t>()); break;
-				case Shark::ManagedFieldType::Float: storage->SetValue(node["Value"].as<float>()); break;
-				case Shark::ManagedFieldType::Double: storage->SetValue(node["Value"].as<double>()); break;
-				case Shark::ManagedFieldType::String: storage->SetValue(node["Value"].as<std::string>()); break;
-				case Shark::ManagedFieldType::Entity: storage->SetValue(node["Value"].as<Shark::UUID>()); break;
-				case Shark::ManagedFieldType::Component: storage->SetValue(node["Value"].as<Shark::UUID>()); break;
-				case Shark::ManagedFieldType::Vector2: storage->SetValue(node["Value"].as<glm::vec2>()); break;
-				case Shark::ManagedFieldType::Vector3: storage->SetValue(node["Value"].as<glm::vec3>()); break;
-				case Shark::ManagedFieldType::Vector4: storage->SetValue(node["Value"].as<glm::vec4>()); break;
-				case Shark::ManagedFieldType::AssetHandle: storage->SetValue(node["Value"].as<Shark::AssetHandle>()); break;
-				default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); return false;
-			}
-
-			return true;
-		}
-	};
-
-	template<>
 	struct convert<Shark::Ref<Shark::MaterialTable>>
 	{
 		static Node encode(Shark::Ref<Shark::MaterialTable> materialTable)
@@ -468,14 +396,44 @@ namespace Shark {
 			{
 				out << YAML::Key << "ScriptComponent";
 				out << YAML::BeginMap;
-				out << YAML::Key << "ScriptName" << YAML::Value << component->ScriptName;
+				out << YAML::Key << "ScriptID" << YAML::Value << component->ScriptID;
 
 				out << YAML::Key << "Fields";
 				out << YAML::BeginSeq;
 
-				const auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
-				for (const auto& [name, storage] : fieldStorages)
-					out << YAML::Node(storage);
+				const auto& scriptStorage = scene->GetScriptStorage();
+				if (scriptStorage.EntityInstances.contains(entity.GetUUID()))
+				{
+					const auto& entityStorage = scriptStorage.EntityInstances.at(entity.GetUUID());
+					for (const auto& [fieldID, storage] : entityStorage.Fields)
+					{
+						out << YAML::BeginMap;
+						out << YAML::Key << "ID" << YAML::Value << fieldID;
+						out << YAML::Key << "Name" << YAML::Value << storage.GetName();
+						out << YAML::Key << "Type" << YAML::Value << storage.GetDataType();
+
+						switch (storage.m_DataType)
+						{
+							case ManagedFieldType::Bool: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<bool>(); break;
+							case ManagedFieldType::Byte: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<uint8_t>(); break;
+							case ManagedFieldType::SByte: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<int8_t>(); break;
+							case ManagedFieldType::Short: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<int16_t>(); break;
+							case ManagedFieldType::UShort: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<uint16_t>(); break;
+							case ManagedFieldType::Int: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<int32_t>(); break;
+							case ManagedFieldType::UInt: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<uint32_t>(); break;
+							case ManagedFieldType::Long: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<int64_t>(); break;
+							case ManagedFieldType::ULong: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<uint64_t>(); break;
+							case ManagedFieldType::Float: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<float>(); break;
+							case ManagedFieldType::Double: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<double>(); break;
+							case ManagedFieldType::Vector2: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<glm::vec2>(); break;
+							case ManagedFieldType::Vector3: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<glm::vec3>(); break;
+							case ManagedFieldType::Vector4: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<glm::vec4>(); break;
+							case ManagedFieldType::String: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<std::string>(); break;
+							case ManagedFieldType::Entity: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<UUID>(); break;
+						}
+						out << YAML::EndMap;
+					}
+				}
 
 				out << YAML::EndSeq;
 				out << YAML::EndMap;
@@ -632,7 +590,7 @@ namespace Shark {
 				if (auto componentNode = entityNode["RigidBody2DComponent"])
 				{
 					auto& component = entity.AddOrReplaceComponent<RigidBody2DComponent>();
-					SK_DESERIALIZE_PROPERTY(componentNode, "Type", component.Type, RigidBody2DComponent::BodyType::Static);
+					SK_DESERIALIZE_PROPERTY(componentNode, "Type", component.Type, RigidbodyType::Static);
 					SK_DESERIALIZE_PROPERTY(componentNode, "FixedRotation", component.FixedRotation, false);
 					SK_DESERIALIZE_PROPERTY(componentNode, "IsBullet", component.IsBullet, false);
 					SK_DESERIALIZE_PROPERTY(componentNode, "Awake", component.Awake, true);
@@ -722,20 +680,104 @@ namespace Shark {
 
 				if (auto componentNode = entityNode["ScriptComponent"])
 				{
+					auto& scriptEngine = ScriptEngine::Get();
 					auto& component = entity.AddOrReplaceComponent<ScriptComponent>();
-					SK_DESERIALIZE_PROPERTY(componentNode, "ScriptName", component.ScriptName, std::string());
+					
+					const bool oldLayout = !componentNode["ScriptID"] && componentNode["ScriptName"];
 
-					Ref<ScriptClass> klass = ScriptEngine::GetScriptClassFromName(component.ScriptName);
-					component.ClassID = klass ? klass->GetID() : 0;
-
-					auto& fieldStorages = ScriptEngine::GetFieldStorageMap(entity);
-
-					auto fieldsNode = componentNode["Fields"];
-					for (auto fieldNode : fieldsNode)
+					uint64_t scriptID = !oldLayout ? componentNode["ScriptID"].as<uint64_t>() : 0;
+					if (oldLayout)
 					{
-						Ref<FieldStorage> storage = fieldNode.as<Ref<FieldStorage>>(nullptr);
-						if (storage)
-							fieldStorages[storage->Name] = storage;
+						std::string scriptName = componentNode["ScriptName"].as<std::string>();
+						scriptID = scriptEngine.FindScriptMetadata(scriptName);
+					}
+
+					component.ScriptID = scriptID;
+
+					auto& scriptStorage = scene->GetScriptStorage();
+					if (scriptEngine.IsValidScriptID(scriptID))
+					{
+						scriptStorage.SetupEntityStorage(scriptID, entity.GetUUID());
+						auto& entityStorage = scriptStorage.EntityInstances.at(entity.GetUUID());
+
+						if (!oldLayout)
+						{
+							for (auto fieldNode : componentNode["Fields"])
+							{
+								uint64_t fieldID = fieldNode["ID"].as<uint64_t>();
+								std::string fieldName = fieldNode["Name"].as<std::string>();
+
+								if (!entityStorage.Fields.contains(fieldID))
+								{
+									SK_CORE_ERROR_TAG("Scripting", "Cannot deserialize field storage for field {}! The script no longer contains this field.", fieldName);
+									continue;
+								}
+
+								auto& storage = entityStorage.Fields.at(fieldID);
+								storage.m_Name = fieldName;
+								storage.m_DataType = fieldNode["Type"].as<ManagedFieldType>();
+
+								switch (storage.m_DataType)
+								{
+									case ManagedFieldType::Bool: storage.SetValue(fieldNode["Value"].as<bool>()); break;
+									case ManagedFieldType::Byte: storage.SetValue(fieldNode["Value"].as<uint8_t>()); break;
+									case ManagedFieldType::SByte: storage.SetValue(fieldNode["Value"].as<int8_t>()); break;
+									case ManagedFieldType::Short: storage.SetValue(fieldNode["Value"].as<int16_t>()); break;
+									case ManagedFieldType::UShort: storage.SetValue(fieldNode["Value"].as<uint16_t>()); break;
+									case ManagedFieldType::Int: storage.SetValue(fieldNode["Value"].as<int32_t>()); break;
+									case ManagedFieldType::UInt: storage.SetValue(fieldNode["Value"].as<uint32_t>()); break;
+									case ManagedFieldType::Long: storage.SetValue(fieldNode["Value"].as<int64_t>()); break;
+									case ManagedFieldType::ULong: storage.SetValue(fieldNode["Value"].as<uint64_t>()); break;
+									case ManagedFieldType::Float: storage.SetValue(fieldNode["Value"].as<float>()); break;
+									case ManagedFieldType::Double: storage.SetValue(fieldNode["Value"].as<double>()); break;
+									case ManagedFieldType::Vector2: storage.SetValue(fieldNode["Value"].as<glm::vec2>()); break;
+									case ManagedFieldType::Vector3: storage.SetValue(fieldNode["Value"].as<glm::vec3>()); break;
+									case ManagedFieldType::Vector4: storage.SetValue(fieldNode["Value"].as<glm::vec4>()); break;
+									case ManagedFieldType::String: storage.SetValue(fieldNode["Value"].as<std::string>()); break;
+									case ManagedFieldType::Entity: storage.SetValue(fieldNode["Value"].as<UUID>()); break;
+								}
+							}
+						}
+						else
+						{
+							for (auto fieldNode : componentNode["Fields"])
+							{
+								std::string fieldName = fieldNode["Name"].as<std::string>();
+								uint64_t fieldID = Hash::GenerateFNV(fieldName);
+
+								if (!entityStorage.Fields.contains(fieldID))
+								{
+									SK_CORE_ERROR_TAG("Scripting", "Cannot deserialize field storage for field {}! The script no longer contains this field.", fieldName);
+									continue;
+								}
+
+								auto& storage = entityStorage.Fields.at(fieldID);
+								storage.m_Name = fieldName;
+								storage.m_DataType = fieldNode["Type"].as<ManagedFieldType>(ManagedFieldType::None);
+
+								switch (storage.m_DataType)
+								{
+									case Shark::ManagedFieldType::None: break;
+									case Shark::ManagedFieldType::Bool: storage.SetValue(fieldNode["Value"].as<bool>()); break;
+									case Shark::ManagedFieldType::Byte: storage.SetValue(fieldNode["Value"].as<uint8_t>()); break;
+									case Shark::ManagedFieldType::SByte: storage.SetValue(fieldNode["Value"].as<int8_t>()); break;
+									case Shark::ManagedFieldType::Short: storage.SetValue(fieldNode["Value"].as<int16_t>()); break;
+									case Shark::ManagedFieldType::UShort: storage.SetValue(fieldNode["Value"].as<uint16_t>()); break;
+									case Shark::ManagedFieldType::Int: storage.SetValue(fieldNode["Value"].as<int32_t>()); break;
+									case Shark::ManagedFieldType::UInt: storage.SetValue(fieldNode["Value"].as<uint32_t>()); break;
+									case Shark::ManagedFieldType::Long: storage.SetValue(fieldNode["Value"].as<int64_t>()); break;
+									case Shark::ManagedFieldType::ULong: storage.SetValue(fieldNode["Value"].as<uint64_t>()); break;
+									case Shark::ManagedFieldType::Float: storage.SetValue(fieldNode["Value"].as<float>()); break;
+									case Shark::ManagedFieldType::Double: storage.SetValue(fieldNode["Value"].as<double>()); break;
+									case Shark::ManagedFieldType::String: storage.SetValue(fieldNode["Value"].as<std::string>()); break;
+									case Shark::ManagedFieldType::Entity: storage.SetValue(fieldNode["Value"].as<Shark::UUID>()); break;
+									case Shark::ManagedFieldType::Vector2: storage.SetValue(fieldNode["Value"].as<glm::vec2>()); break;
+									case Shark::ManagedFieldType::Vector3: storage.SetValue(fieldNode["Value"].as<glm::vec3>()); break;
+									case Shark::ManagedFieldType::Vector4: storage.SetValue(fieldNode["Value"].as<glm::vec4>()); break;
+									default: SK_CORE_ASSERT(false, "Unkown ManagedFieldType"); return false;
+								}
+							}
+						}
 					}
 				}
 

@@ -30,12 +30,11 @@ Dependencies = {
         IncludeDir = "%{wks.location}/Shark/dependencies/fmt/include"
     },
     glm = {
-        IncludeDir = "%{wks.location}/Shark/dependencies/glm",
+        IncludeDir = "%{wks.location}/Shark/dependencies/glm"
     },
-    mono = {
-        LibName = "libmono-static-sgen",
-        IncludeDir = "%{wks.location}/Shark/dependencies/mono/include",
-        LibraryDir = "%{wks.location}/Shark/dependencies/mono/lib/%{cfg.buildcfg}"
+    Coral = {
+        LibName = "Coral.Native",
+        IncludeDir = "%{wks.location}/Shark/dependencies/Coral/Coral.Native/Include"
     },
     msdf_atlas_gen = {
         LibName = "msdf-atlas-gen",
@@ -80,6 +79,7 @@ Dependencies = {
     },
     tracy = {
         IncludeDir = "%{wks.location}/Shark/dependencies/tracy",
+        Config = "Release"
     },
     filewatch = {
         IncludeDir = "%{wks.location}/Shark/dependencies/filewatch/include",
@@ -162,20 +162,26 @@ function LinkDependencies(targetConfig)
     local target = FistToUpper(os.target())
 
     for key, libraryData in pairs(Dependencies) do
-
-        local isDebug = targetConfig == "Debug"
-        local linkFinished = false
-
-        -- link platform specific
-        if libraryData[target] ~= nil then
-            linkFinished = LinkLibrary(libraryData[target], isDebug)
-            AddInclude(libraryData[target])
+        local matchesConfig = true
+        
+        if targetConfig ~= nil and libraryData.Config ~= nil then
+            matchesConfig = string.find(libraryData.Config, targetConfig)
         end
+        
+        if matchesConfig then
+            local linkFinished = false
+            local isDebug = targetConfig == "Debug"
+            -- link platform specific
+            if libraryData[target] ~= nil then
+                linkFinished = LinkLibrary(libraryData[target], isDebug)
+                AddInclude(libraryData[target])
+            end
 
-        if not linkFinished then
-            LinkLibrary(libraryData, isDebug)
+            if not linkFinished then
+                LinkLibrary(libraryData, isDebug)
+            end
+
+            AddInclude(libraryData)
         end
-
-        AddInclude(libraryData)
     end
 end

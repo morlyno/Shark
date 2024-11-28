@@ -22,7 +22,8 @@ namespace Shark {
 				case ExectueVerb::Default: return nullptr;
 				case ExectueVerb::Edit: return L"edit";
 				case ExectueVerb::Explore: return L"explore";
-				case ExectueVerb::Open: return L"open";
+				case ExectueVerb::Run: return L"open";
+				case ExectueVerb::RunWith: return L"openas";
 				case ExectueVerb::Properties: return L"properties";
 				case ExectueVerb::RunAsAdmin: return L"runas";
 			}
@@ -330,7 +331,7 @@ namespace Shark {
 
 		ExecuteSpecs specs;
 		specs.Target = file;
-		specs.Verb = ExectueVerb::Open;
+		specs.Verb = ExectueVerb::Run;
 		return Execute(specs);
 	}
 

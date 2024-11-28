@@ -2,46 +2,42 @@
 #include "Project.h"
 
 #include "Shark/File/FileSystem.h"
-#include "Shark/Serialization/ProjectSerializer.h"
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
-	static Ref<Project> s_ActiveProject = nullptr;
-
-	const std::filesystem::path& Project::GetActiveDirectory()
-	{
-		SK_CORE_VERIFY(s_ActiveProject);
-		return s_ActiveProject->GetDirectory();
-	}
-
-	const std::filesystem::path& Project::GetActiveAssetsDirectory()
-	{
-		SK_CORE_VERIFY(s_ActiveProject);
-		return s_ActiveProject->GetAssetsDirectory();
-	}
-
-	Ref<AssetManagerBase> Project::GetActiveAssetManager()
-	{
-		SK_CORE_VERIFY(s_ActiveProject);
-		return s_ActiveProject->GetAssetManager();
-	}
-
-	Ref<RuntimeAssetManager> Project::GetActiveRuntimeAssetManager()
-	{
-		SK_CORE_VERIFY(s_ActiveProject);
-		return s_ActiveProject->GetRuntimeAssetManager();
-	}
-
-	Ref<EditorAssetManager> Project::GetActiveEditorAssetManager()
-	{
-		SK_CORE_VERIFY(s_ActiveProject);
-		return s_ActiveProject->GetEditorAssetManager();
-	}
-
 	void Project::SetActive(Ref<Project> project)
 	{
+		if (s_ActiveProject)
+		{
+			s_AssetManager = nullptr;
+			ScriptEngine::Get().ShutdownCore();
+		}
+
 		s_ActiveProject = project;
+
+		if (project)
+		{
+			s_AssetManager = Ref<EditorAssetManager>::Create(project);
+			ScriptEngine::Get().InitializeCore(project);
+		}
+	}
+
+	void Project::SetActiveRuntime(Ref<Project> project)
+	{
+		if (s_ActiveProject)
+		{
+			s_AssetManager = nullptr;
+			ScriptEngine::Get().ShutdownCore();
+		}
+
+		s_ActiveProject = project;
+
+		if (project)
+		{
+			s_AssetManager = Ref<RuntimeAssetManager>::Create();
+			ScriptEngine::Get().InitializeCore(project);
+		}
 	}
 
 	Ref<Project> Project::GetActive()
@@ -49,62 +45,19 @@ namespace Shark {
 		return s_ActiveProject;
 	}
 
-	Ref<Project> Project::Create(const std::filesystem::path& directory, const std::string& name)
-	{
-		return Ref<Project>::Create(directory, name);
-	}
-
-	Ref<Project> Project::LoadEditor(const std::filesystem::path& filepath)
-	{
-		auto project = Ref<Project>::Create();
-		ProjectSerializer serializer(project);
-		if (!serializer.Deserialize(filepath))
-			return nullptr;
-
-		project->m_AssetManager = Ref<EditorAssetManager>::Create(project);
-		return project;
-	}
-
-	Ref<Project> Project::LoadRuntime(const std::filesystem::path& filepath)
-	{
-		auto project = Ref<Project>::Create();
-		ProjectSerializer serializer(project);
-		if (!serializer.Deserialize(filepath))
-			return nullptr;
-
-		project->m_AssetManager = Ref<RuntimeAssetManager>::Create();
-		return project;
-	}
-
-	bool Project::SaveActive()
-	{
-		ProjectSerializer serializer(s_ActiveProject);
-		return serializer.Serialize(s_ActiveProject->GetProjectFilePath());
-	}
-
-	const std::filesystem::path& Project::GetDirectory() const
+	std::filesystem::path Project::GetDirectory() const
 	{
 		return m_Config.Directory;
 	}
 
-	const std::filesystem::path& Project::GetAssetsDirectory() const
+	std::filesystem::path Project::GetAssetsDirectory() const
 	{
-		return m_Config.AssetsDirectory;
+		return m_Config.Directory / m_Config.AssetsDirectory;
 	}
 
-	std::string Project::GetProjectFilePath() const
+	std::string Project::GetScriptModulePath() const
 	{
-		return fmt::format("{}/{}.skproj", m_Config.Directory, m_Config.Name);
-	}
-
-	const ProjectConfig& Project::GetConfig() const
-	{
-		return m_Config;
-	}
-
-	ProjectConfig& Project::GetConfigMutable()
-	{
-		return m_Config;
+		return fmt::format("{}/{}", s_ActiveProject->m_Config.Directory.generic_string(), s_ActiveProject->m_Config.ScriptModulePath);
 	}
 
 	std::filesystem::path Project::GetRelative(const std::filesystem::path& path) const
@@ -119,28 +72,14 @@ namespace Shark {
 		return (m_Config.Directory / path).lexically_normal().generic_wstring();
 	}
 
-	void Project::MakeRelative(std::filesystem::path& path) const
+	Project::Project()
 	{
-		path = GetRelative(path);
+
 	}
 
-	void Project::MakeAbsolute(std::filesystem::path& path) const
+	Project::~Project()
 	{
-		path = GetAbsolute(path);
-	}
 
-	Project::Project(const std::filesystem::path& directory, const std::string& name)
-	{
-		m_Config.Name = name;
-		m_Config.Directory = directory.generic_wstring();
-		m_Config.AssetsDirectory = fmt::format("{0}/Assets", m_Config.Directory);
-		m_Config.ScriptModulePath = fmt::format("{0}/Binaries/{1}.dll", m_Config.Directory, m_Config.Name);
-		m_Config.Physics.Gravity = { 0.0f, -9.81f };
-		m_Config.Physics.VelocityIterations = 8;
-		m_Config.Physics.PositionIterations = 3;
-		m_Config.Physics.FixedTimeStep = 0.001f;
-
-		m_AssetManager = Ref<EditorAssetManager>::Create(this);
 	}
 
 	void Project::Rename(const std::string& newName)
@@ -149,7 +88,7 @@ namespace Shark {
 		if (FileSystem::GetExtension(newName) != L".skproj")
 			FileSystem::ReplaceExtension(fixedName, ".skproj");
 
-		std::filesystem::path projectFile = GetProjectFilePath();
+		std::filesystem::path projectFile = GetProjectFile();
 		if (FileSystem::Rename(projectFile, fixedName.string()))
 			m_Config.Name = newName;
 	}

@@ -1,15 +1,17 @@
 #pragma once
 
+#include "Shark/Physics2D/Physics2DScene.h"
+
 #include "Shark/Render/Font.h"
 #include "Shark/Render/Mesh.h"
 #include "Shark/Render/Camera.h"
-#include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Math/Math.h"
 
 #include <glm/glm.hpp>
-#include "glm/gtx/transform.hpp"
-#include "glm/gtc/quaternion.hpp"
-#include "glm/gtx/quaternion.hpp"
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+#include <Coral/ManagedObject.hpp>
 
 class b2Body;
 class b2Fixture;
@@ -196,8 +198,7 @@ namespace Shark {
 
 	struct RigidBody2DComponent
 	{
-		enum class BodyType { Static, Dynamic, Kinematic };
-		BodyType Type = BodyType::Dynamic;
+		RigidbodyType Type = RigidbodyType::Dynamic;
 		bool FixedRotation = false;
 		bool IsBullet = false;
 		bool Awake = true;
@@ -317,9 +318,9 @@ namespace Shark {
 
 	struct ScriptComponent
 	{
-		std::string ScriptName;
-		uint64_t ClassID = 0;
-		//Ref<ScriptClass> Class;
+		uint64_t ScriptID = 0;
+		Coral::ManagedObject* Instance = nullptr;
+		bool OnCreateCalled = false;
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;
