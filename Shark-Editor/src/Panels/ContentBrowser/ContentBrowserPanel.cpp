@@ -140,7 +140,7 @@ namespace Shark {
 					if (ImGui::BeginPopupContextWindow("##DirectoryPopup", ImGuiMouseButton_Right | ImGuiPopupFlags_NoOpenOverItems))
 					{
 						if (ImGui::MenuItem("Open In Explorer"))
-							Platform::OpenExplorer(m_Project->GetDirectory() / m_CurrentDirectory->Filepath);
+							Platform::Execute(ExecuteVerb::Explore, m_Project->GetDirectory() / m_CurrentDirectory->Filepath);
 
 						ImGui::Separator();
 
@@ -754,7 +754,7 @@ namespace Shark {
 				if (itemType == CBItemType::Asset)
 				{
 					std::filesystem::path filepath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(currentItem->GetID());
-					Platform::OpenFile(filepath);
+					Platform::Execute(ExecuteVerb::Run, filepath);
 				}
 			}
 
@@ -770,7 +770,7 @@ namespace Shark {
 				}
 
 				SK_CORE_VERIFY(directory);
-				Platform::OpenExplorer(m_Project->GetAbsolute(directory->Filepath));
+				Platform::Execute(ExecuteVerb::Explore, m_Project->GetAbsolute(directory->Filepath));
 			}
 
 			if (action.IsSet(CBItemActionFlag::Reload) && itemType == CBItemType::Asset)

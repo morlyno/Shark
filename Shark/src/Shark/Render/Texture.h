@@ -5,8 +5,6 @@
 #include "Shark/Render/RendererResource.h"
 #include "Shark/Render/Image.h"
 
-#include <glm/glm.hpp>
-
 namespace Shark {
 
 	enum class FilterMode : uint16_t

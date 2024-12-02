@@ -667,6 +667,9 @@ namespace Shark {
 		const auto& bufferInfo = environmentMipFilterShader->GetPushConstantInfo();
 		Ref<DirectXConstantBuffer> constantBuffer = Ref<DirectXConstantBuffer>::Create(BufferUsage::Dynamic, bufferInfo.StructSize, Buffer{});
 
+	 	const auto& pcInfo = environmentMipFilterShader->GetPushConstantInfo();
+		cmd->CSSetConstantBuffers(pcInfo.DXBinding, 1, &constantBuffer->m_ConstantBuffer);
+
 		const float deltaRoughness = 1.0f / glm::max((float)filtered->GetMipLevelCount() - 1.0f, 1.0f);
 		for (uint32_t i = 0, size = cubemapSize; i < mipCount; i++, size /= 2)
 		{
@@ -776,6 +779,7 @@ namespace Shark {
 		cubemapSpec.Width = cubemapSize;
 		cubemapSpec.Height = cubemapSize;
 		cubemapSpec.GenerateMips = true;
+		cubemapSpec.Filter = FilterMode::Linear;
 
 		cubemapSpec.DebugName = fmt::format("EnvironmentMap Unfiltered {}", filepath);
 		Ref<TextureCube> unfiltered = TextureCube::Create(cubemapSpec);

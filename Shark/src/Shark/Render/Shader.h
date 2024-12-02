@@ -2,9 +2,6 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/ShaderReflection.h"
-#include "Shark/Render/VertexLayout.h"
-#include "Shark/Render/ConstantBuffer.h"
-#include "Shark/Render/RenderCommandBuffer.h"
 
 namespace Shark {
 

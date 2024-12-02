@@ -21,6 +21,7 @@ namespace Shark {
 
 		void Stop();
 		void WaitUntilIdle();
+		void ForceSleep(bool sleep = true) { m_SleepRequested = true; }
 
 		void QueueAssetLoad(AssetLoadRequest& alr);
 		Threading::Future<Ref<Asset>> GetFuture(AssetHandle handle);
@@ -40,6 +41,7 @@ namespace Shark {
 	private:
 		Thread m_Thread;
 		Threading::Signal m_IdleSignal;
+		std::atomic<bool> m_SleepRequested = false;
 		bool m_Running = true;
 
 		bool m_MonitorAssets = false;

@@ -3,15 +3,11 @@
 #include "Shark/Core/Base.h"
 
 #include "Shark/Render/RenderCommandBuffer.h"
-#include "Shark/Render/FrameBuffer.h"
-#include "Shark/Render/Shader.h"
-#include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Mesh.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/Material.h"
-#include "Shark/Render/SwapChain.h"
 #include "Shark/Render/RenderPass.h"
 
 namespace Shark {

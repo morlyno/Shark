@@ -487,6 +487,12 @@ namespace Shark {
 		return false;
 	}
 
+	void EditorAssetManager::PrepareForQuickStop()
+	{
+		m_AssetThread->ForceSleep();
+		m_AssetThread->WaitUntilIdle();
+	}
+
 	void EditorAssetManager::WaitUntilIdle()
 	{
 		m_AssetThread->WaitUntilIdle();

@@ -20,7 +20,7 @@ namespace Shark {
 	using NativeHandle = HANDLE;
 #endif
 
-	enum class ExectueVerb
+	enum class ExecuteVerb
 	{
 		Default,
 		Edit,
@@ -36,7 +36,7 @@ namespace Shark {
 		std::filesystem::path Target;
 		std::filesystem::path WorkingDirectory;
 		std::wstring Params;
-		ExectueVerb Verb = ExectueVerb::Default;
+		ExecuteVerb Verb = ExecuteVerb::Default;
 		bool WaitUntilFinished = false;
 		bool InterhitConsole = true;
 	};
@@ -62,12 +62,8 @@ namespace Shark {
 		static void SetThreadName(std::thread& thread, const std::string& name);
 		static void SetThreadName(const std::string& name);
 
-		static bool Execute(ExectueVerb verb, const std::filesystem::path& executablePath, bool waitUntilFinished = false);
+		static bool Execute(ExecuteVerb verb, const std::filesystem::path& executablePath, bool waitUntilFinished = false);
 		static bool Execute(const ExecuteSpecs& specs);
-
-		static bool OpenExplorer(const std::filesystem::path& directory);
-		static bool OpenFile(const std::filesystem::path& file);
-		static bool OpenFileWith(const std::filesystem::path& file);
 
 		static bool CreateFile(const std::filesystem::path& filePath, bool createAllways);
 		static bool CreateFile(const std::filesystem::path& filePath, bool createAllways, std::string& errorMsg);

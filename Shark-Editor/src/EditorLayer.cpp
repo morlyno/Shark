@@ -1923,7 +1923,7 @@ namespace Shark {
 
 		m_PanelManager->OnProjectChanged(nullptr);
 
-		AssetManager::WaitUntilIdle();
+		Project::GetActiveEditorAssetManager()->PrepareForQuickStop();
 		Project::SetActive(nullptr);
 
 		Application::Get().SubmitToMainThread([this]() { UpdateWindowTitle(); });
@@ -1990,7 +1990,7 @@ namespace Shark {
 	void EditorLayer::OpenIDE()
 	{
 		auto solutionPath = fmt::format("{}/{}.sln", Project::GetActiveDirectory(), Project::GetActive()->GetConfig().Name);
-		Platform::Execute(ExectueVerb::Run, solutionPath);
+		Platform::Execute(ExecuteVerb::Run, solutionPath);
 	}
 
 	void EditorLayer::UpdateWindowTitle()

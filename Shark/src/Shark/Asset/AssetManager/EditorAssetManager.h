@@ -36,6 +36,7 @@ namespace Shark {
 		virtual void DeleteMemoryAsset(AssetHandle handle) override;
 		bool SaveAsset(AssetHandle handle);
 
+		void PrepareForQuickStop();
 		virtual void WaitUntilIdle() override;
 		virtual void SyncWithAssetThread() override;
 
@@ -86,7 +87,7 @@ namespace Shark {
 	private:
 		std::filesystem::path GetAssetsDirectoryFromProject() const;
 
-	public:
+	private:
 		Weak<Project> m_Project;
 		Ref<EditorAssetThread> m_AssetThread;
 

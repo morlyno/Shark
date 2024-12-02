@@ -15,17 +15,17 @@ namespace Shark {
 
 	namespace utils {
 
-		LPCWSTR ExectueVerbToLPCWSTR(ExectueVerb verb)
+		LPCWSTR ExectueVerbToLPCWSTR(ExecuteVerb verb)
 		{
 			switch (verb)
 			{
-				case ExectueVerb::Default: return nullptr;
-				case ExectueVerb::Edit: return L"edit";
-				case ExectueVerb::Explore: return L"explore";
-				case ExectueVerb::Run: return L"open";
-				case ExectueVerb::RunWith: return L"openas";
-				case ExectueVerb::Properties: return L"properties";
-				case ExectueVerb::RunAsAdmin: return L"runas";
+				case ExecuteVerb::Default: return nullptr;
+				case ExecuteVerb::Edit: return L"edit";
+				case ExecuteVerb::Explore: return L"explore";
+				case ExecuteVerb::Run: return L"open";
+				case ExecuteVerb::RunWith: return L"openas";
+				case ExecuteVerb::Properties: return L"properties";
+				case ExecuteVerb::RunAsAdmin: return L"runas";
 			}
 
 			SK_CORE_ASSERT(false, "Unkown ExecuteVerb");
@@ -273,7 +273,7 @@ namespace Shark {
 		WindowsUtils::SetThreadName(thread, nameWide);
 	}
 
-	bool Platform::Execute(ExectueVerb verb, const std::filesystem::path& executablePath, bool waitUntilFinished)
+	bool Platform::Execute(ExecuteVerb verb, const std::filesystem::path& executablePath, bool waitUntilFinished)
 	{
 		ExecuteSpecs specs;
 		specs.Target = executablePath;
@@ -313,39 +313,6 @@ namespace Shark {
 		WaitForSingleObject(executeInfo.hProcess, INFINITE);
 		CloseHandle(executeInfo.hProcess);
 		return true;
-	}
-
-	bool Platform::OpenExplorer(const std::filesystem::path& directory)
-	{
-		SK_CORE_ASSERT(std::filesystem::is_directory(directory));
-
-		ExecuteSpecs specs;
-		specs.Target = directory;
-		specs.Verb = ExectueVerb::Explore;
-		return Execute(specs);
-	}
-
-	bool Platform::OpenFile(const std::filesystem::path& file)
-	{
-		SK_CORE_ASSERT(std::filesystem::is_regular_file(file));
-
-		ExecuteSpecs specs;
-		specs.Target = file;
-		specs.Verb = ExectueVerb::Run;
-		return Execute(specs);
-	}
-
-	bool Platform::OpenFileWith(const std::filesystem::path& file)
-	{
-		std::filesystem::path exeFile = Platform::OpenFileDialog(L"exe|*.exe");
-		if (!exeFile.empty())
-		{
-			ExecuteSpecs specs;
-			specs.Target = exeFile;
-			specs.Params = fmt::format(L"\"{}\"", file.native());
-			return Execute(specs);
-		}
-		return false;
 	}
 
 	bool Platform::CreateFile(const std::filesystem::path& filePath, bool createAllways)

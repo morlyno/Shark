@@ -4,8 +4,6 @@
 #include "Shark/Core/Buffer.h"
 #include "Shark/Render/RendererResource.h"
 
-#include <glm/glm.hpp>
-
 namespace Shark {
 
 	class TextureSource;

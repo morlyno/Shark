@@ -12,9 +12,6 @@
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/Shader.h"
 #include "Shark/Render/Texture.h"
-#include "Shark/Render/ConstantBuffer.h"
-#include "Shark/Render/FrameBuffer.h"
-#include "Shark/Render/SwapChain.h"
 #include "Shark/Render/Environment.h"
 
 namespace Shark {

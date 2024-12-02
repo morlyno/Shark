@@ -130,7 +130,7 @@ namespace Shark {
 
 		while (m_Running)
 		{
-			if (m_LoadingQueue.empty())
+			if (m_SleepRequested || m_LoadingQueue.empty())
 			{
 				m_IdleSignal.Set();
 
@@ -147,7 +147,7 @@ namespace Shark {
 			SK_PROFILE_SCOPED("Busy");
 			//SK_LOG_IF(loadQueue.size() > 0, LoggerType::Core, LogLevel::Trace, "AssetThread", "Loading {} Assets", loadQueue.size());
 
-			while (true)
+			while (!m_SleepRequested)
 			{
 				std::unique_lock lock(m_ALRStorageMutex);
 				if (m_LoadingQueue.empty())
@@ -162,7 +162,7 @@ namespace Shark {
 				LoadAsset(alr);
 			}
 
-			if (m_MonitorAssets)
+			if (!m_SleepRequested && m_MonitorAssets)
 			{
 				SK_PROFILE_SCOPED("Monitor Assets");
 
@@ -172,6 +172,11 @@ namespace Shark {
 					EnsureCurrent(metadata);
 				}
 			}
+		}
+
+		if (!m_LoadingQueue.empty())
+		{
+			SK_CORE_WARN_TAG("AssetThread", "Skipping {} load requests after stop was requested", m_LoadingQueue.size());
 		}
 
 		// Just in case
