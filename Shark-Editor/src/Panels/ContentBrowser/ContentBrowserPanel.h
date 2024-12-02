@@ -201,6 +201,7 @@ namespace Shark {
 		Ref<Project> GetProject() { return m_Project; }
 		Ref<ThumbnailCache> GetThumbnailCache() const { return m_ThumbnailCache; }
 		Ref<DirectoryInfo> GetCurrentDirectory() const { return m_CurrentDirectory; }
+		UUID GetSelectionID() const { return m_SelectionID; }
 
 		void RegisterAssetActicatedCallback(AssetType assetType, const AssetActivatedCallbackFn& func);
 
@@ -261,6 +262,7 @@ namespace Shark {
 		Ref<Project> m_Project;
 		Ref<ThumbnailCache> m_ThumbnailCache;
 		Ref<ThumbnailGenerator> m_ThumbnailGenerator;
+		UUID m_SelectionID = UUID::Generate();
 
 		CBItemList m_CurrentItems;
 

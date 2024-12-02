@@ -124,7 +124,7 @@ namespace Shark {
 
 						ImGuiMultiSelectFlags multiSelectFlags = /*ImGuiMultiSelectFlags_ClearOnEscape | */ImGuiMultiSelectFlags_ClearOnClickVoid | ImGuiMultiSelectFlags_BoxSelect2d | ImGuiMultiSelectFlags_NavWrapX;
 						multiSelectFlags |= ImGuiMultiSelectFlags_NoBoxSelectOverItem;
-						ImGuiMultiSelectIO* selectionRequests = ImGui::BeginMultiSelect(multiSelectFlags, (int)SelectionManager::GetSelections(SelectionContext::ContentBrowser).size(), (int)m_CurrentItems.Items.size());
+						ImGuiMultiSelectIO* selectionRequests = ImGui::BeginMultiSelect(multiSelectFlags, (int)SelectionManager::GetSelections(m_SelectionID).size(), (int)m_CurrentItems.Items.size());
 						ApplySelectionRequests(selectionRequests, true);
 						if (ImGui::BeginTable("##content.table", columnsCount, ImGuiTableFlags_PadOuterX))
 						{
@@ -184,7 +184,7 @@ namespace Shark {
 			if (ImGui::IsWindowAppearing())
 			{
 				m_DeleteDialogue.Items.clear();
-				const auto& selections = SelectionManager::GetSelections(SelectionContext::ContentBrowser);
+				const auto& selections = SelectionManager::GetSelections(m_SelectionID);
 				for (UUID id : selections)
 					m_DeleteDialogue.Items.emplace_back(id, true);
 				m_DeleteDialogue.SelectedCount = selections.size();
@@ -345,7 +345,7 @@ namespace Shark {
 					auto item = m_CurrentItems.Get(id);
 					item->Delete();
 					m_CurrentItems.Remove(id);
-					SelectionManager::Unselect(SelectionContext::ContentBrowser, id);
+					SelectionManager::Unselect(m_SelectionID, id);
 				}
 
 				CacheDirectories();
@@ -481,7 +481,7 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
-		SelectionManager::Clear(SelectionContext::ContentBrowser);
+		SelectionManager::DeselectAll(m_SelectionID);
 		if (IsSearchActive())
 		{
 			m_CurrentItems = Search(m_SearchBuffer, m_BaseDirectory);
@@ -678,7 +678,7 @@ namespace Shark {
 		{
 			case KeyCode::Escape:
 			{
-				SelectionManager::Clear(SelectionContext::ContentBrowser);
+				SelectionManager::DeselectAll(m_SelectionID);
 				return true;
 			}
 
@@ -788,7 +788,7 @@ namespace Shark {
 
 			if (action.IsSet(CBItemActionFlag::Renamed))
 			{
-				const auto& selections = SelectionManager::GetSelections(SelectionContext::ContentBrowser);
+				const auto& selections = SelectionManager::GetSelections(m_SelectionID);
 				if (selections.size() > 1)
 				{
 					for (UUID id : selections)
@@ -1122,13 +1122,13 @@ namespace Shark {
 			{
 				case ImGuiSelectionRequestType_SetAll:
 				{
-					SelectionManager::Clear(SelectionContext::ContentBrowser);
+					SelectionManager::DeselectAll(m_SelectionID);
 					if (!request.Selected)
 						break;
 
 					for (const auto& item : m_CurrentItems)
 					{
-						SelectionManager::Select(SelectionContext::ContentBrowser, item->GetID());
+						SelectionManager::Select(m_SelectionID, item->GetID());
 					}
 					break;
 				}
@@ -1137,7 +1137,7 @@ namespace Shark {
 					for (int64_t i = request.RangeFirstItem; i <= request.RangeLastItem; i++)
 					{
 						Ref<ContentBrowserItem> item = m_CurrentItems.Items[i];
-						SelectionManager::Toggle(SelectionContext::ContentBrowser, item->GetID(), request.Selected);
+						SelectionManager::Toggle(m_SelectionID, item->GetID(), request.Selected);
 					}
 				}
 			}
@@ -1148,12 +1148,12 @@ namespace Shark {
 	{
 		if (m_ClearSelection)
 		{
-			SelectionManager::Clear(SelectionContext::ContentBrowser);
+			SelectionManager::DeselectAll(m_SelectionID);
 			m_ClearSelection = false;
 		}
 
 		for (UUID id : m_ItemsToSelect)
-			SelectionManager::Select(SelectionContext::ContentBrowser, id);
+			SelectionManager::Select(m_SelectionID, id);
 		m_ItemsToSelect.clear();
 	}
 

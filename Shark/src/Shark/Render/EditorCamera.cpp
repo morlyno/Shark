@@ -131,10 +131,11 @@ namespace Shark {
 
 	bool EditorCamera::OnKeyPressedEvent(KeyPressedEvent& event)
 	{
-		if (event.GetKeyCode() == KeyCode::Escape)
+		if (m_FlyMode && event.GetKeyCode() == KeyCode::Escape)
 		{
 			m_FlyMode = false;
-			// NOTE(moro): don't think escape should be marked as handled here
+			Input::SetCursorMode(CursorMode::Normal);
+			return true;
 		}
 		return false;
 	}

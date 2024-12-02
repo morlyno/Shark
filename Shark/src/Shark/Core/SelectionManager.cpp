@@ -10,81 +10,81 @@ namespace Shark {
 	struct SelectionContextData
 	{
 		Ref<Scene> m_Scene;
-		std::map<SelectionContext, std::vector<UUID>> m_Selections;
+		std::map<UUID, std::vector<UUID>> m_Selections;
 	};
 
 	static SelectionContextData s_SelectionData;
 
-	void SelectionManager::Clear(SelectionContext context)
+	void SelectionManager::DeselectAll()
 	{
-		auto& selections = s_SelectionData.m_Selections[context];
+		for (auto& [contextID, selections] : s_SelectionData.m_Selections)
+			selections.clear();
+	}
+
+	void SelectionManager::DeselectAll(UUID contextID)
+	{
+		auto& selections = s_SelectionData.m_Selections[contextID];
 		selections.clear();
 	}
 
-	void SelectionManager::ClearAll()
+	void SelectionManager::Select(UUID contextID, UUID id)
 	{
-		for (auto& selections : s_SelectionData.m_Selections)
-			selections.second.clear();
-	}
-
-	void SelectionManager::Select(SelectionContext context, UUID id)
-	{
-		auto& selections = s_SelectionData.m_Selections[context];
+		auto& selections = s_SelectionData.m_Selections[contextID];
 		selections.push_back(id);
 	}
 
-	void SelectionManager::Select(SelectionContext context, std::span<UUID> entities)
+	void SelectionManager::Select(UUID contextID, std::span<UUID> entities)
 	{
-		auto& selections = s_SelectionData.m_Selections[context];
-		std::ranges::merge(selections, entities, selections.end());
+		auto& selections = s_SelectionData.m_Selections[contextID];
+		selections.insert(selections.end(), entities.begin(), entities.end());
 	}
 
-	void SelectionManager::Unselect(SelectionContext context, UUID id)
+	void SelectionManager::Unselect(UUID contextID, UUID id)
 	{
-		auto& selections = s_SelectionData.m_Selections[context];
+		auto& selections = s_SelectionData.m_Selections[contextID];
 		std::erase(selections, id);
 	}
 
-	void SelectionManager::Toggle(SelectionContext context, UUID id, bool select)
+	void SelectionManager::Toggle(UUID contextID, UUID id, bool select)
 	{
 		if (select)
-			Select(context, id);
+			Select(contextID, id);
 		else
-			Unselect(context, id);
+			Unselect(contextID, id);
 	}
 
-	bool SelectionManager::AnySelected(SelectionContext context)
+	bool SelectionManager::AnySelected(UUID contextID)
 	{
-		return !s_SelectionData.m_Selections[context].empty();
+		return !s_SelectionData.m_Selections[contextID].empty();
 	}
 
-	bool SelectionManager::IsSelected(SelectionContext context, UUID id)
+	bool SelectionManager::IsSelected(UUID contextID, UUID id)
 	{
-		const auto& selections = s_SelectionData.m_Selections[context];
+		const auto& selections = s_SelectionData.m_Selections[contextID];
 		return std::find(selections.begin(), selections.end(), id) != selections.end();
 	}
 
-	const std::vector<UUID>& SelectionManager::GetSelections(SelectionContext context)
+	const std::vector<UUID>& SelectionManager::GetSelections(UUID contextID)
 	{
-		return s_SelectionData.m_Selections[context];
+		return s_SelectionData.m_Selections[contextID];
 	}
 
-	UUID SelectionManager::GetFirstSelected(SelectionContext context)
+	UUID SelectionManager::GetFirstSelected(UUID contextID)
 	{
-		return s_SelectionData.m_Selections[context].front();
+		return s_SelectionData.m_Selections[contextID].front();
 	}
 
-	UUID SelectionManager::GetLastSelected(SelectionContext context)
+	UUID SelectionManager::GetLastSelected(UUID contextID)
 	{
-		return s_SelectionData.m_Selections[context].back();
+		return s_SelectionData.m_Selections[contextID].back();
 	}
 
-	bool SelectionManager::IsEntityOrAncestorSelected(Entity entity)
+	bool SelectionManager::IsEntityOrAncestorSelected(UUID contextID, Entity entity)
 	{
-		if (IsSelected(SelectionContext::Entity, entity.GetUUID()))
+		if (IsSelected(contextID, entity.GetUUID()))
 			return true;
 		if (entity.HasParent())
-			return IsEntityOrAncestorSelected(entity.Parent());
+			return IsEntityOrAncestorSelected(contextID, entity.Parent());
 		return false;
 	}
 

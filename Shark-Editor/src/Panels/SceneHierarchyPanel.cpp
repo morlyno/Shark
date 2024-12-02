@@ -219,7 +219,7 @@ namespace Shark {
 
 		static std::vector<Entity> GetSelectedEntities(Ref<Scene> scene)
 		{
-			const auto& selections = SelectionManager::GetSelections(SelectionContext::Entity);
+			const auto& selections = SelectionManager::GetSelections(scene->GetID());
 			auto view = selections | std::views::transform([scene](UUID uuid) { return scene->TryGetEntityByUUID(uuid); });
 			return { view.begin(), view.end() };
 		}
@@ -409,7 +409,7 @@ namespace Shark {
 
 				ImGuiMultiSelectFlags multiSelectFlags = /*ImGuiMultiSelectFlags_ClearOnEscape | */ImGuiMultiSelectFlags_ClearOnClickVoid | ImGuiMultiSelectFlags_NoSelectAll;
 				multiSelectFlags |= ImGuiMultiSelectFlags_BoxSelect2d;
-				ImGuiMultiSelectIO* selectIO = ImGui::BeginMultiSelect(multiSelectFlags, SelectionManager::GetSelections(SelectionContext::Entity).size());
+				ImGuiMultiSelectIO* selectIO = ImGui::BeginMultiSelect(multiSelectFlags, SelectionManager::GetSelections(m_Context->GetID()).size());
 				HandleSelectionRequests(selectIO, true);
 
 				// List
@@ -447,7 +447,7 @@ namespace Shark {
 
 		if (m_DeleteSelected)
 		{
-			auto selections = SelectionManager::GetSelections(SelectionContext::Entity);
+			auto selections = SelectionManager::GetSelections(m_Context->GetID());
 			for (UUID id : selections)
 			{
 				Entity entity = m_Context->TryGetEntityByUUID(id);
@@ -457,7 +457,7 @@ namespace Shark {
 				m_Context->DestroyEntity(entity);
 			}
 
-			SelectionManager::Clear(SelectionContext::Entity);
+			SelectionManager::DeselectAll(m_Context->GetID());
 			m_DeleteSelected = false;
 		}
 
@@ -466,7 +466,7 @@ namespace Shark {
 		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 		m_PropertiesFocused = ImGui::IsWindowFocused();
 
-		if (SelectionManager::AnySelected(SelectionContext::Entity))
+		if (SelectionManager::AnySelected(m_Context->GetID()))
 		{
 			auto entities = utils::GetSelectedEntities(m_Context);
 			DrawEntityProperties(entities);
@@ -507,7 +507,7 @@ namespace Shark {
 
 			case KeyCode::Delete:
 			{
-				auto selections = SelectionManager::GetSelections(SelectionContext::Entity);
+				auto selections = SelectionManager::GetSelections(m_Context->GetID());
 				for (UUID id : selections)
 				{
 					Entity entity = m_Context->TryGetEntityByUUID(id);
@@ -517,32 +517,16 @@ namespace Shark {
 					m_Context->DestroyEntity(entity);
 				}
 
-				SelectionManager::Clear(SelectionContext::Entity);
+				SelectionManager::DeselectAll(m_Context->GetID());
 				return true;
 			}
 
 			case KeyCode::Escape:
 			{
-				SelectionManager::Clear(SelectionContext::Entity);
+				SelectionManager::DeselectAll(m_Context->GetID());
 				return true;
 			}
 
-#if 0
-			case KeyCode::A:
-			{
-				if (!event.GetModifierKeys().Control)
-					break;
-
-				SelectionManager::Clear(SelectionContext::Entity);
-				auto entities = m_Context->GetAllEntitysWith<IDComponent>();
-				for (auto ent : entities)
-				{
-					const auto& idComponent = entities.get<IDComponent>(ent);
-					SelectionManager::Select(SelectionContext::Entity, idComponent.ID);
-				}
-				return true;
-			}
-#endif
 		}
 
 		return false;
@@ -562,7 +546,7 @@ namespace Shark {
 			{
 				case ImGuiSelectionRequestType_SetAll:
 				{
-					SelectionManager::Clear(SelectionContext::Entity);
+					SelectionManager::DeselectAll(m_Context->GetID());
 					SK_CORE_VERIFY(request.Selected == false);
 					break;
 				}
@@ -603,11 +587,11 @@ namespace Shark {
 		{
 			if (index >= m_RangeSelectRequest.First && index <= m_RangeSelectRequest.Last)
 			{
-				SelectionManager::Toggle(SelectionContext::Entity, entityID, m_RangeSelectRequest.Select);
+				SelectionManager::Toggle(m_Context->GetID(), entityID, m_RangeSelectRequest.Select);
 			}
 		}
 
-		const bool isSelected = SelectionManager::IsSelected(SelectionContext::Entity, entityID);
+		const bool isSelected = SelectionManager::IsSelected(m_Context->GetID(), entityID);
 
 		ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_SpanAllColumns;
 		if (isSelected)
@@ -673,7 +657,7 @@ namespace Shark {
 
 		const auto AnyDescendantSelected = [this](Entity entity, auto anyDescendantSelected)
 		{
-			if (SelectionManager::IsSelected(SelectionContext::Entity, entity.GetUUID()))
+			if (SelectionManager::IsSelected(m_Context->GetID(), entity.GetUUID()))
 				return true;
 
 			for (auto childID : entity.Children())
@@ -745,7 +729,7 @@ namespace Shark {
 
 		if (!isSubmesh && ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover))
 		{
-			const auto& selections = SelectionManager::GetSelections(SelectionContext::Entity);
+			const auto& selections = SelectionManager::GetSelections(m_Context->GetID());
 			ImGui::SetDragDropPayload("ENTITY_ID", selections.data(), selections.size() * sizeof(UUID));
 			ImGui::SetTooltip("%s, ...", entityName.c_str());
 			ImGui::EndDragDropSource();
@@ -794,7 +778,7 @@ namespace Shark {
 
 		if (deleteEntity)
 		{
-			auto selections = SelectionManager::GetSelections(SelectionContext::Entity);
+			auto selections = SelectionManager::GetSelections(m_Context->GetID());
 			for (auto entityID : selections)
 				m_Context->DestroyEntity(m_Context->GetEntityByID(entityID));
 		}
@@ -1514,40 +1498,6 @@ namespace Shark {
 
 	}
 
-#if TODO
-	void SceneHierarchyPanel::UpdateMaterialEditor(std::span<Entity> selections)
-	{
-		m_MaterialEditor->SetMaterial(AssetHandle::Invalid);
-
-		if (selections.empty())
-			return;
-
-			if (utils::AllHaveComponent<MeshComponent>(selections) && !utils::IsMixedValue(selections, &MeshComponent::Material))
-			{
-				Entity first = selections[0];
-				const auto& meshComponent = first.GetComponent<MeshComponent>();
-
-				AssetHandle materialHandle = meshComponent.Material;
-				if (!materialHandle && !utils::IsMixedValue(selections, &MeshComponent::Mesh))
-				{
-					AsyncLoadResult meshResult = AssetManager::GetAssetAsync<Mesh>(meshComponent.Mesh);
-					if (meshResult.Ready)
-					{
-						AsyncLoadResult meshSourceResult = AssetManager::GetAssetAsync<MeshSource>(meshResult.Asset->GetMeshSource());
-						if (meshSourceResult.Ready)
-						{
-							Ref<MeshSource> meshSource = meshSourceResult.Asset;
-							const auto& submesh = meshSource->GetSubmeshes()[meshComponent.SubmeshIndex];
-							materialHandle = meshSource->GetMaterials()[submesh.MaterialIndex];
-						}
-					}
-				}
-				m_MaterialEditor->SetMaterial(materialHandle);
-			}
-	}
-
-#endif
-
 	bool SceneHierarchyPanel::SearchTagRecursive(Entity entity, const UI::TextFilter& filter, uint32_t maxSearchDepth, uint32_t currentDepth)
 	{
 		SK_PROFILE_FUNCTION();
@@ -1714,8 +1664,8 @@ namespace Shark {
 			if (parent)
 				newEntity.SetParent(parent);
 
-			SelectionManager::ClearAll();
-			SelectionManager::Select(SelectionContext::Entity, newEntity.GetUUID());
+			SelectionManager::DeselectAll();
+			SelectionManager::Select(m_Context->GetID(), newEntity.GetUUID());
 		}
 
 		ImGui::EndMenu();

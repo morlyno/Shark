@@ -68,6 +68,8 @@ namespace Shark {
 		const std::string& GetName() const { return m_Name; }
 		void SetName(const std::string& name) { m_Name = name; }
 
+		UUID GetID() const { return m_SceneID; }
+
 		void DestroyEntities();
 
 		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
@@ -206,6 +208,7 @@ namespace Shark {
 		void CreateRuntimePulleyJoint2D(Entity entit);
 
 	private:
+		UUID m_SceneID = UUID::Generate();
 		std::string m_Name;
 
 		entt::registry m_Registry;

@@ -58,10 +58,6 @@ namespace Shark {
 		std::function<void(Entity entity)> m_SelectionChangedCallback = [](auto) {};
 		std::function<void(Entity entity)> m_SnapToEditorCameraCallback;
 
-		static constexpr std::string_view s_ProjectionItems[] = { "Perspective", "Orthographic" };
-		static constexpr const char* s_GeomatryTypes[] = { "Quad", "Circle" };
-		static constexpr std::string_view s_BodyTypes[] = { "Static", "Dynamic", "Kinematic" };
-
 		struct ComponentBinding
 		{
 			std::string_view Name;

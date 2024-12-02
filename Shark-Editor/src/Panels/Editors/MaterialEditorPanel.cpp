@@ -324,9 +324,9 @@ namespace Shark {
 		ImGui::Begin(m_PanelName.c_str(), &isShown);
 
 		Entity nextEntity;
-		if (SelectionManager::AnySelected(SelectionContext::Entity))
+		if (SelectionManager::AnySelected(m_Context->GetID()))
 		{
-			UUID lastSelectedID = SelectionManager::GetLastSelected(SelectionContext::Entity);
+			UUID lastSelectedID = SelectionManager::GetLastSelected(m_Context->GetID());
 			Entity lastSelected = m_Context->TryGetEntityByUUID(lastSelectedID);
 			// TODO(moro): Add MeshFilterComponent when the RootEntityID got fixed
 			if (lastSelected && lastSelected.HasAny<MeshComponent, SubmeshComponent, StaticMeshComponent>())

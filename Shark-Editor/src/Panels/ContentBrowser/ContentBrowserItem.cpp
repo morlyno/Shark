@@ -123,7 +123,7 @@ namespace Shark {
 		propertyRect.Max = ImVec2(thumbnailRect.Max.x, thumbnailRect.Max.y + lineHeight * 3.0f + linePadding * 4.0f);
 
 		ImRect itemRect = { thumbnailRect.Min, propertyRect.Max };
-		bool isSelected = SelectionManager::IsSelected(SelectionContext::ContentBrowser, m_ID);
+		bool isSelected = SelectionManager::IsSelected(m_Context->GetSelectionID(), m_ID);
 
 
 		//==================================//
@@ -286,7 +286,7 @@ namespace Shark {
 
 	void ContentBrowserItem::DrawPopupMenu(CBItemAction& action)
 	{
-		if (SelectionManager::IsSelected(SelectionContext::ContentBrowser, m_ID))
+		if (SelectionManager::IsSelected(m_Context->GetSelectionID(), m_ID))
 		{
 			if (ImGui::Shortcut(ImGuiKey_F2))
 				action.Set(CBItemActionFlag::StartRenaming);

@@ -31,14 +31,6 @@ namespace Shark {
 			Edit, Play, Simulate
 		};
 
-		enum class GizmoOperaton : std::underlying_type_t<ImGuizmo::OPERATION>
-		{
-			None = 0,
-			Translate = ImGuizmo::TRANSLATE,
-			Rotate = ImGuizmo::ROTATE,
-			Scale = ImGuizmo::SCALE
-		};
-
 	public:
 		EditorLayer(const std::filesystem::path& startupProject);
 		~EditorLayer();
@@ -72,14 +64,10 @@ namespace Shark {
 
 		void DebugRender();
 
-		Entity CreateEntity(const std::string& name = "Untitled");
-		void DeleteEntity(Entity entity);
-
 		glm::mat4 GetActiveViewProjection() const;
 
 		void NewScene(const std::string& name = "New Scene");
 
-		void LoadSceneAsync(AssetHandle handle);
 		bool LoadScene(AssetHandle handle);
 		bool LoadScene(const std::filesystem::path& filePath);
 		bool SaveScene();
@@ -87,11 +75,9 @@ namespace Shark {
 
 		void OnScenePlay();
 		void OnSceneStop();
-
 		void OnSimulationPlay();
 		void OnSimulationStop();
-
-		void SetActiveScene(Ref<Scene> scene);
+		void OnSceneStateChanged(Ref<Scene> stateScene);
 
 		void OpenProject();
 		void OpenProject(const std::filesystem::path& filePath);
@@ -103,8 +89,7 @@ namespace Shark {
 		void OpenIDE();
 
 		void UpdateWindowTitle();
-
-		Entity InstantiateMesh(Ref<Mesh> mesh, bool select);
+		void ReloadScriptEngineIfNeeded();
 
 	private:
 		std::filesystem::path m_StartupProject;
@@ -118,7 +103,7 @@ namespace Shark {
 		Ref<Renderer2D> m_DebugRenderer;
 
 		Ref<Scene> m_ActiveScene = nullptr;
-		Ref<Scene> m_WorkScene = nullptr;
+		Ref<Scene> m_EditorScene, m_RuntimeScene, m_SimulateScene;
 
 		bool m_TitlebarHovered = false;
 		bool m_ViewportHovered = false, m_ViewportFocused = false;
@@ -143,7 +128,7 @@ namespace Shark {
 		float m_TranslationSnap = 0.5f;
 		float m_RotationSnap = 45.0f;
 		float m_ScaleSnap = 0.5f;
-		GizmoOperaton m_CurrentOperation = GizmoOperaton::None;
+		ImGuizmo::OPERATION m_CurrentOperation = (ImGuizmo::OPERATION)0;
 		bool m_RenderGizmo = true;
 
 		SceneState m_SceneState = SceneState::Edit;

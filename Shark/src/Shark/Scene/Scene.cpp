@@ -111,6 +111,7 @@ namespace Shark {
 		});
 
 		destScene->SortEntitites();
+		destScene->ResizeCameras();
 	}
 
 	void Scene::DestroyEntities()
@@ -463,7 +464,7 @@ namespace Shark {
 							continue;
 
 						renderer->SubmitMesh(meshResult.Asset, meshSourceResult.Asset, submeshComponent.SubmeshIndex, material, transform, (int)ent);
-						if (SelectionManager::IsEntityOrAncestorSelected(entity))
+						if (SelectionManager::IsEntityOrAncestorSelected(GetID(), entity))
 							renderer->SubmitSelectedMesh(meshResult.Asset, meshSourceResult.Asset, submeshComponent.SubmeshIndex, material, transform);
 					}
 				}
@@ -480,7 +481,7 @@ namespace Shark {
 					continue;
 
 				Entity entity{ ent, this };
-				const bool isSelected = SelectionManager::IsEntityOrAncestorSelected(entity);
+				const bool isSelected = SelectionManager::IsEntityOrAncestorSelected(GetID(), entity);
 
 				SK_PERF_SCOPED("Scene Submit Static Mesh");
 				if (auto mesh = AssetManager::GetAssetAsync<Mesh>(meshComponent.StaticMesh))
@@ -813,8 +814,8 @@ namespace Shark {
 		if (m_ActiveCameraUUID == id)
 			m_ActiveCameraUUID = UUID::Invalid;
 
-		if (SelectionManager::IsSelected(SelectionContext::Entity, id))
-			SelectionManager::Unselect(SelectionContext::Entity, id);
+		if (SelectionManager::IsSelected(GetID(), id))
+			SelectionManager::Unselect(GetID(), id);
 
 		if (first)
 		{
