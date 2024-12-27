@@ -4,13 +4,16 @@
 #include "Shark/UI/EditorResources.h"
 #include "Shark/UI/TextFilter.h"
 
-namespace Shark::UI {
+namespace Shark {
 
-	enum class DialogType
-	{
-		Open, Save
-	};
+	class Scene;
 
+	namespace UI {
+		enum class DialogType
+		{
+			Open, Save
+		};
+	}
 }
 
 namespace Shark::UI::Widgets {
@@ -28,7 +31,7 @@ namespace Shark::UI::Widgets {
 	bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction);
 
 	bool SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle);
-	bool SearchEntityPopup(UUID& entityID);
+	bool SearchEntityPopup(Ref<Scene> scene, UUID& entityID);
 	bool SearchScriptPopup(uint64_t& scriptID);
 
 }
@@ -38,8 +41,6 @@ namespace Shark::UI::Widgets {
 template<typename TString>
 bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* grabFocus, bool clearOnGrab)
 {
-	UI::PushID();
-
 	ImGui::SuspendLayout();
 
 	bool changed = false;
@@ -145,7 +146,6 @@ bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* g
 	}
 
 	ImGui::EndHorizontal();
-	UI::PopID();
 	return changed;
 }
 
@@ -203,12 +203,14 @@ bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction
 			}
 		}
 
-		UI::ScopedColor childBg(ImGuiCol_ChildBg, UI::Colors::Theme::BackgroundPopup);
-		if (ImGui::BeginChild("##selectAssetChild", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_NavFlattened))
 		{
-			itemFunction(search, clear, changed);
+			UI::ScopedColor childBg(ImGuiCol_ChildBg, UI::Colors::Theme::BackgroundPopup);
+			if (ImGui::BeginChild("##selectAssetChild", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_NavFlattened))
+			{
+				itemFunction(search, clear, changed);
+			}
+			ImGui::EndChild();
 		}
-		ImGui::EndChild();
 
 		if (changed)
 			ImGui::CloseCurrentPopup();

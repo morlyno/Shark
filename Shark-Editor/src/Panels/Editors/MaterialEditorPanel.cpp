@@ -285,9 +285,8 @@ namespace Shark {
 
 				if ((float)m_ViewportSize.x != size.x || (float)m_ViewportSize.y != size.y)
 				{
-					ImGuiWindow* window = ImGui::GetCurrentWindow();
-					m_ViewportSize.x = ImGui::GetContentRegionAvail().x;
-					m_ViewportSize.y = ImGui::GetContentRegionAvail().y;
+					m_ViewportSize.x = size.x;
+					m_ViewportSize.y = size.y;
 					m_NeedsResize = true;
 				}
 

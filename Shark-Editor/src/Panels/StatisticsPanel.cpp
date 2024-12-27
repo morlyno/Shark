@@ -126,15 +126,14 @@ namespace Shark {
 				{
 					const auto& profile = m_Scene->GetPhysicsScene().GetProfile();
 					AddTime(m_PhysicsAccumulators[0], profile.TimeStep, 1);
-					AddTime(m_PhysicsAccumulators[1], profile.NumSteps, 1);
-					AddTime(m_PhysicsAccumulators[2], profile.Step, 1);
-					AddTime(m_PhysicsAccumulators[3], profile.Collide, 1);
-					AddTime(m_PhysicsAccumulators[4], profile.Solve, 1);
-					AddTime(m_PhysicsAccumulators[5], profile.SolveInit, 1);
-					AddTime(m_PhysicsAccumulators[6], profile.SolveVelocity, 1);
-					AddTime(m_PhysicsAccumulators[7], profile.SolvePosition, 1);
-					AddTime(m_PhysicsAccumulators[8], profile.Broadphase, 1);
-					AddTime(m_PhysicsAccumulators[9], profile.SolveTOI, 1);
+					AddTime(m_PhysicsAccumulators[1], profile.Step, profile.NumSteps);
+					AddTime(m_PhysicsAccumulators[2], profile.Collide, profile.NumSteps);
+					AddTime(m_PhysicsAccumulators[3], profile.Solve, profile.NumSteps);
+					AddTime(m_PhysicsAccumulators[4], profile.SolveInit, profile.NumSteps);
+					AddTime(m_PhysicsAccumulators[5], profile.SolveVelocity, profile.NumSteps);
+					AddTime(m_PhysicsAccumulators[6], profile.SolvePosition, profile.NumSteps);
+					AddTime(m_PhysicsAccumulators[7], profile.Broadphase, profile.NumSteps);
+					AddTime(m_PhysicsAccumulators[8], profile.SolveTOI, profile.NumSteps);
 				}
 
 				if (++m_ProfilerSampleCount >= m_ProfilerSamples)
@@ -165,7 +164,7 @@ namespace Shark {
 						SetStat(name, stats, accumulator);
 					}
 
-					constexpr std::array physicsNames = { "TimeStep", "Steps", "Step", "Collide", "Solve", "SolveInit", "SolveVelocity", "SolvePosition", "Broadphase", "SolveTOI" };
+					constexpr std::array physicsNames = { "TimeStep", "Step", "Collide", "Solve", "SolveInit", "SolveVelocity", "SolvePosition", "Broadphase", "SolveTOI" };
 					for (uint32_t index = 0; const char* name : physicsNames)
 					{
 						auto& stats = m_PhysicsStats[index];
@@ -262,7 +261,7 @@ namespace Shark {
 							ImGui::TableNextColumn();
 							ImGui::Text(fmt::format("{0:.3f}", entry.Max));
 							ImGui::TableNextColumn();
-							ImGui::Text(fmt::format("{0}", entry.AvgSamples));
+							ImGui::Text(fmt::format("{0}", (uint32_t)glm::round(entry.AvgSamples)));
 						}
 					};
 

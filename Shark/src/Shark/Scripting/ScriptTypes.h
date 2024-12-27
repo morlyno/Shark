@@ -27,6 +27,7 @@ namespace Shark {
 
 		String, // Coral::String, Coral::ScopedString / NativeString
 		Entity, // UUID, uint64_t
+		Prefab, // AssetHandle
 	};
 
 	inline uint64_t GetDataTypeSize(ManagedFieldType type)

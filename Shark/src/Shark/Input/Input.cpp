@@ -10,13 +10,20 @@
 
 namespace Shark {
 
+	struct KeyStatus
+	{
+		uint32_t RepeateCount = 0;
+		KeyState State = KeyState::None;
+		bool Repeate = false;
+	};
+
 	struct InputData
 	{
-		std::map<KeyCode, KeyState> KeyStates;
+		std::map<KeyCode, KeyStatus> KeyStates;
 		std::map<MouseButton, MouseState> MouseButtonStates;
 		glm::vec2 MouseScroll = glm::vec2(0.0f);
-		CursorMode m_CursorMode = CursorMode::Normal;
 		glm::vec2 m_MousePosition;
+		CursorMode m_CursorMode = CursorMode::Normal;
 	};
 	static InputData* s_InputData = nullptr;
 
@@ -35,13 +42,14 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		std::erase_if(s_InputData->KeyStates, [](const auto& entry) { return entry.second == KeyState::Released; });
+		std::erase_if(s_InputData->KeyStates, [](const auto& entry) { return entry.second.State == KeyState::Released; });
 		std::erase_if(s_InputData->MouseButtonStates, [](const auto& entry) { return entry.second == MouseState::Released || entry.second == MouseState::DoubleClicked; });
 
-		for (auto& [key, state] : s_InputData->KeyStates)
+		for (auto& [key, status] : s_InputData->KeyStates)
 		{
-			if (state == KeyState::Pressed)
-				state = KeyState::Down;
+			status.Repeate = false;
+			if (status.State == KeyState::Pressed)
+				status.State = KeyState::Down;
 		}
 
 		for (auto& [button, state] : s_InputData->MouseButtonStates)
@@ -59,14 +67,20 @@ namespace Shark {
 
 		dispacher.DispachEvent<KeyPressedEvent>([](auto& e)
 		{
+			auto& status = s_InputData->KeyStates[e.GetKeyCode()];
 			if (!e.IsRepeat())
-				s_InputData->KeyStates[e.GetKeyCode()] = KeyState::Pressed;
+				status.State = KeyState::Pressed;
+			else
+			{
+				status.RepeateCount++;
+				status.Repeate = true;
+			}
 			return false;
 		});
 
 		dispacher.DispachEvent<KeyReleasedEvent>([](auto& e)
 		{
-			s_InputData->KeyStates[e.GetKeyCode()] = KeyState::Released;
+			s_InputData->KeyStates[e.GetKeyCode()].State = KeyState::Released;
 			return false;
 		});
 
@@ -132,7 +146,12 @@ namespace Shark {
 	{
 		if (!s_InputData->KeyStates.contains(key))
 			return KeyState::None;
-		return s_InputData->KeyStates.at(key);
+		return s_InputData->KeyStates.at(key).State;
+	}
+
+	bool Input::IsRepeated(KeyCode key)
+	{
+		return s_InputData->KeyStates.at(key).Repeate;
 	}
 
 	bool Input::IsKeyPressed(KeyCode key)
@@ -147,7 +166,34 @@ namespace Shark {
 		if (!s_InputData->KeyStates.contains(key))
 			return false;
 
-		return s_InputData->KeyStates.at(key) == KeyState::Pressed;
+		return s_InputData->KeyStates.at(key).State == KeyState::Pressed;
+	}
+
+	bool Input::IsKeyPressed(KeyCode key, bool allowRepeate)
+	{
+		if (IsKeyPressed(key))
+			return true;
+
+		if (!allowRepeate)
+			return false;
+
+		const auto KeyDownAndRepeated = [](KeyCode key)
+		{
+			if (!s_InputData->KeyStates.contains(key))
+				return false;
+
+			auto& status = s_InputData->KeyStates.at(key);
+			return status.State == KeyState::Down && status.Repeate;
+		};
+
+		switch (key)
+		{
+			case KeyCode::Alt:     return KeyDownAndRepeated(KeyCode::LeftAlt) || KeyDownAndRepeated(KeyCode::RightAlt);
+			case KeyCode::Shift:   return KeyDownAndRepeated(KeyCode::LeftShift) || KeyDownAndRepeated(KeyCode::RightShift);
+			case KeyCode::Control: return KeyDownAndRepeated(KeyCode::LeftControl) || KeyDownAndRepeated(KeyCode::RightControl);
+		}
+
+		return KeyDownAndRepeated(key);
 	}
 
 	bool Input::IsKeyDown(KeyCode key)
@@ -162,7 +208,7 @@ namespace Shark {
 		if (!s_InputData->KeyStates.contains(key))
 			return false;
 
-		return s_InputData->KeyStates.at(key) == KeyState::Down;
+		return s_InputData->KeyStates.at(key).State == KeyState::Down;
 	}
 
 	bool Input::IsKeyRelease(KeyCode key)
@@ -177,7 +223,7 @@ namespace Shark {
 		if (!s_InputData->KeyStates.contains(key))
 			return false;
 
-		return s_InputData->KeyStates.at(key) == KeyState::Released;
+		return s_InputData->KeyStates.at(key).State == KeyState::Released;
 	}
 
 	MouseState Input::GetMouseState(MouseButton button)
@@ -245,10 +291,12 @@ namespace Shark {
 		return s_InputData->m_MousePosition.y;
 	}
 
+#if 0
 	const std::map<KeyCode, KeyState>& Input::GetKeyStates()
 	{
 		return s_InputData->KeyStates;
 	}
+#endif
 
 	const std::map<MouseButton, MouseState>& Input::GetMouseButtonStates()
 	{

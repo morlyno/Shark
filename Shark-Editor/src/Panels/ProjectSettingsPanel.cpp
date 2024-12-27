@@ -176,6 +176,13 @@ namespace Shark {
 			m_TempConfig.Physics.FixedTimeStep = fixedTSInMS * 0.001f;
 			dirty = true;
 		}
+
+		float maxTSinMS = m_TempConfig.Physics.MaxTimestep * 1000.0f;
+		if (UI::Control("Max Timestep", maxTSinMS, 0.1f, 0.1f, FLT_MAX, "%.3fms"))
+		{
+			m_TempConfig.Physics.MaxTimestep = maxTSinMS * 0.001f;
+			dirty = true;
+		}
 		UI::EndControlsGrid();
 
 		if (dirty)
@@ -249,6 +256,9 @@ namespace Shark {
 
 		if (m_TempConfig.Physics.FixedTimeStep != config.Physics.FixedTimeStep)
 			fmt::format_to(std::back_inserter(message), "Fixed Timestep: {} -> {}\n", config.Physics.FixedTimeStep, m_TempConfig.Physics.FixedTimeStep);
+
+		if (m_TempConfig.Physics.MaxTimestep != config.Physics.MaxTimestep)
+			fmt::format_to(std::back_inserter(message), "Max Timestep: {} -> {}\n", config.Physics.MaxTimestep, m_TempConfig.Physics.MaxTimestep);
 
 		SK_CONSOLE_INFO(fmt::to_string(message));
 	}

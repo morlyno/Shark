@@ -30,7 +30,7 @@ namespace Shark {
 
 		std::array<ProfilerEntry, 3> m_ApplicationStats;
 		std::vector<ProfilerEntry> m_ProfilerStats;
-		std::array<ProfilerEntry, 10> m_PhysicsStats;
+		std::array<ProfilerEntry, 9> m_PhysicsStats;
 		TimeStep m_FrameTime;
 		TimeStep m_CPUTime;
 		TimeStep m_ImGuiGPUTime;
@@ -45,7 +45,7 @@ namespace Shark {
 
 		std::array<AccumulatorEntry, 3> m_ApplicationAccumulators;
 		std::map<std::string, AccumulatorEntry> m_ProfilerStatsAccumulator;
-		std::array<AccumulatorEntry, 10> m_PhysicsAccumulators;
+		std::array<AccumulatorEntry, 9> m_PhysicsAccumulators;
 
 		uint32_t m_ProfilerSamples = 10;
 		uint32_t m_ProfilerSampleCount = 0;

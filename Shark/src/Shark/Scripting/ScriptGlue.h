@@ -46,7 +46,7 @@ namespace Shark {
 
 		#pragma region Input
 
-		Coral::Bool32 Input_IsKeyStateSet(KeyCode key, KeyState keyState);
+		Coral::Bool32 Input_IsKeyStateSet(KeyCode key, KeyState keyState, Coral::Bool32 allowRepeate);
 		Coral::Bool32 Input_IsMouseStateSet(MouseButton button, MouseState mouseState);
 		float Input_GetMouseScroll();
 		void Input_GetMousePos(glm::ivec2* out_MousePos);
@@ -65,6 +65,8 @@ namespace Shark {
 
 		Coral::Bool32 Scene_IsEntityValid(uint64_t entityID);
 		uint64_t Scene_CreateEntity(Coral::String name);
+		uint64_t Scene_InstantiatePrefab(AssetHandle handle, glm::vec3* translation, glm::vec3* rotation, glm::vec3* scale);
+		uint64_t Scene_InstantiateChildPrefab(AssetHandle handle, uint64_t parentID, glm::vec3* translation, glm::vec3* rotation, glm::vec3* scale);
 		void Scene_DestroyEntity(uint64_t entityID);
 		uint64_t Scene_FindEntityByTag(Coral::String Tag);
 

@@ -5,6 +5,7 @@
 #include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Scene/Components.h"
+#include "Shark/Scene/Prefab.h"
 #include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
@@ -328,8 +329,8 @@ namespace Shark {
 		}
 	}
 
-	SceneHierarchyPanel::SceneHierarchyPanel(const std::string& panelName, Ref<Scene> scene)
-		: Panel(panelName), m_Context(scene)
+	SceneHierarchyPanel::SceneHierarchyPanel(const std::string& panelName, Ref<Scene> scene, bool isWindow)
+		: Panel(panelName), m_Context(scene), m_IsWindow(isWindow)
 	{
 		#define COMPONENT_DATA_ARGS(name, compT) { name, [](Entity entity) { entity.AddComponent<compT>(); }, [](Entity entity) { return entity.HasComponent<compT>(); } }
 		m_Components.push_back(COMPONENT_DATA_ARGS("Transform", TransformComponent));
@@ -351,13 +352,15 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 		#undef COMPONENT_DATA_ARGS
-		SK_CORE_VERIFY(m_Components.size() + 3 == GroupSize(UserInteractableComponents));
+
+		SK_CORE_VERIFY(m_Components.size() == (vtll::size<AllComponents::Except<UserHiddenComponents, AutomationComponents, TagComponent>>::value));
 	}
 
 	void SceneHierarchyPanel::OnImGuiRender(bool& shown)
 	{
 		SK_PROFILE_FUNCTION();
 		
+		if (m_IsWindow)
 		{
 			UI::ScopedStyle padding(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 			ImGui::Begin(m_PanelName.c_str(), &shown);
@@ -454,6 +457,8 @@ namespace Shark {
 				if (!entity)
 					continue;
 
+				if (m_EntityDestoyedCallback)
+					m_EntityDestoyedCallback(entity);
 				m_Context->DestroyEntity(entity);
 			}
 
@@ -461,17 +466,18 @@ namespace Shark {
 			m_DeleteSelected = false;
 		}
 
-		ImGui::End();
-
-		ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
-		m_PropertiesFocused = ImGui::IsWindowFocused();
-
-		if (SelectionManager::AnySelected(m_Context->GetID()))
+		
+		if (m_IsWindow)
 		{
-			auto entities = utils::GetSelectedEntities(m_Context);
-			DrawEntityProperties(entities);
+			ImGui::Begin("Properties", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+			m_PropertiesFocused = ImGui::IsWindowFocused();
+			if (SelectionManager::AnySelected(m_Context->GetID()))
+				DrawEntityProperties(utils::GetSelectedEntities(m_Context));
+			ImGui::End();
 		}
-		ImGui::End();
+
+		if (m_IsWindow)
+			ImGui::End();
 	}
 
 	void SceneHierarchyPanel::OnEvent(Event& event)
@@ -514,6 +520,8 @@ namespace Shark {
 					if (!entity)
 						continue;
 
+					if (m_EntityDestoyedCallback)
+						m_EntityDestoyedCallback(entity);
 					m_Context->DestroyEntity(entity);
 				}
 
@@ -693,7 +701,8 @@ namespace Shark {
 
 		bool opened = false;
 		{
-			UI::ScopedColorConditional textColor(ImGuiCol_Text, UI::Colors::Theme::NiceBlue, entity.HasComponent<MeshFilterComponent>());
+			UI::ScopedColorConditional meshTextColor(ImGuiCol_Text, UI::Colors::Theme::NiceBlue, entity.HasComponent<MeshFilterComponent>() || entity.HasComponent<PrefabComponent>());
+			//UI::ScopedColorConditional prefabTextColor(ImGuiCol_Text, UI::Colors::Theme::Green, entity.HasComponent<PrefabComponent>());
 			UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 			ImGui::SetNextItemSelectionUserData(index++);
 
@@ -703,6 +712,8 @@ namespace Shark {
 		bool deleteEntity = false;
 
 		const bool isSubmesh = entity.HasComponent<MeshFilterComponent>();
+		const bool isPrefab = entity.HasComponent<PrefabComponent>();
+		const bool isPrefabRoot = isPrefab && entity.GetComponent<PrefabComponent>().IsRoot;
 
 		const std::string popupName = fmt::format("{}-Popup", entityName);
 		if (ImGui::BeginPopupContextItem(popupName.c_str()))
@@ -710,6 +721,38 @@ namespace Shark {
 			if (ImGui::MenuItem("Unparent"))
 			{
 				m_Context->UnparentEntity(entity);
+			}
+
+			if (isPrefabRoot)
+			{
+				if (ImGui::MenuItem("Rebuild Prefab"))
+				{
+					Application::Get().SubmitToMainThread([context = m_Context, entityID = entity.GetUUID()]()
+					{
+						Entity entity = context->TryGetEntityByUUID(entityID);
+						if (!entity)
+							return;
+
+						const auto& prefabComponent = entity.GetComponent<PrefabComponent>();
+						Ref<Prefab> prefab = AssetManager::GetAsset<Prefab>(prefabComponent.Prefab);
+						context->RebuildPrefabEntityHierarchy(prefab, entity);
+					});
+				}
+			}
+
+			if (entity.HasComponent<MeshComponent>())
+			{
+				if (ImGui::MenuItem("Reset Mesh Hierarchy"))
+				{
+					Application::Get().SubmitToMainThread([context = m_Context, entityID]()
+					{
+						Entity entity = context->TryGetEntityByUUID(entityID);
+						if (!entity)
+							return;
+
+						context->RebuildMeshEntityHierarchy(entity);
+					});
+				}
 			}
 
 			ImGui::Separator();
@@ -756,12 +799,29 @@ namespace Shark {
 			ImGui::EndDragDropTarget();
 		}
 
-		if (entity.HasComponent<MeshFilterComponent>())
+		if (isPrefab || isSubmesh)
 		{
 			ImGui::TableSetColumnIndex(1);
+			ImGui::BeginHorizontal("##SceneHierarchy-EntityTypeHorizontal");
+		}
+
+		if (isPrefab)
+		{
+			UI::ShiftCursorX(8.0f * 3.0f);
+			UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::NiceBlue);
+			ImGui::Text("Prefab");
+		}
+
+		if (isSubmesh)
+		{
 			UI::ShiftCursorX(8.0f * 3.0f);
 			UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::NiceBlue);
 			ImGui::Text("Submesh");
+		}
+
+		if (isPrefab || isSubmesh)
+		{
+			ImGui::EndHorizontal();
 			ImGui::TableSetColumnIndex(0);
 		}
 
@@ -780,7 +840,12 @@ namespace Shark {
 		{
 			auto selections = SelectionManager::GetSelections(m_Context->GetID());
 			for (auto entityID : selections)
-				m_Context->DestroyEntity(m_Context->GetEntityByID(entityID));
+			{
+				Entity entity = m_Context->GetEntityByID(entityID);
+				if (m_EntityDestoyedCallback)
+					m_EntityDestoyedCallback(entity);
+				m_Context->DestroyEntity(entity);
+			}
 		}
 
 	}
@@ -790,9 +855,9 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		
 		ImGuiStyle& style = ImGui::GetStyle();
-		const float AddButtonWidth = ImGui::CalcTextSize("Add").x + style.FramePadding.x * 2.0f;
-		const float IDSpacingWidth = ImGui::CalcTextSize("0x0123456789ABCDEF").x + style.FramePadding.x * 2.0f;
-		const float WindowWidth = ImGui::GetContentRegionAvail().x;
+		const float addButtonWidth = ImGui::CalcTextSize("Add").x + style.FramePadding.x * 2.0f;
+		const float idSpacingWidth = ImGui::CalcTextSize("0123456789ABCDEF").x + style.FramePadding.x * 2.0f;
+		const float windowWidth = ImGui::GetContentRegionAvail().x - style.ScrollbarSize;
 
 		Entity firstEntity = entities[0];
 		auto& firstTag = firstEntity.GetComponent<TagComponent>();
@@ -800,22 +865,17 @@ namespace Shark {
 
 		const bool isTagMixed = utils::IsInconsistentProperty<TagComponent>(entities, &TagComponent::Tag);
 
-		ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isTagMixed);
-		ImGui::SetNextItemWidth(WindowWidth - AddButtonWidth - IDSpacingWidth - style.ItemSpacing.x * 2.0f);
+		ImGui::BeginHorizontal("##EntityProperties-Header-H", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+		ImGui::SetNextItemWidth(windowWidth - idSpacingWidth - addButtonWidth - style.ItemSpacing.x * 2.0f);
 		UI::InputText("##Tag", &firstTag.Tag);
-		ImGui::PopItemFlag();
 
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(IDSpacingWidth);
+		ImGui::Spring();
+		ImGui::Text("%llu", (uint64_t)firstEntity.GetUUID());
 
-		UI::DrawItemFrame(UI::RectFromSize(ImGui::GetCursorScreenPos(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() }));
-		if (entities.size() > 1)
-			ImGui::Text("");
-		else
-			ImGui::Text("0x%16llx", firstEntity.GetUUID().Value());
-
-		ImGui::SameLine();
+		ImGui::Spring(0.0f);
 		ImGui::Button("Add");
+
+		ImGui::SuspendLayout();
 		if (ImGui::BeginPopupContextItem("Add Component List", ImGuiPopupFlags_MouseButtonLeft))
 		{
 			bool activate = ImGui::IsWindowAppearing();
@@ -851,7 +911,9 @@ namespace Shark {
 			}
 			ImGui::EndPopup();
 		}
+		ImGui::ResumeLayout();
 
+		ImGui::EndHorizontal();
 		ImGui::PopID();
 
 		Ref<SceneHierarchyPanel> instance = this;
@@ -1308,12 +1370,12 @@ namespace Shark {
 			UI::EndControlsGrid();
 		});
 
-		DrawComponetMultiSelect<DistanceJointComponent>(entities, "Distance Joint 2D", [](DistanceJointComponent& firstComponent, const std::vector<Entity>& entities)
+		DrawComponetMultiSelect<DistanceJointComponent>(entities, "Distance Joint 2D", [this](DistanceJointComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-			utils::Multiselect(entities, &DistanceJointComponent::ConnectedEntity, [](auto& firstComponent, const auto& entities)
+			utils::Multiselect(entities, &DistanceJointComponent::ConnectedEntity, [this](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlEntity("Connected Entity", firstComponent.ConnectedEntity, "Entity");
+				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity, "Entity");
 			});
 
 			utils::MultiselectControl(entities, &DistanceJointComponent::AnchorOffsetA, "AnchorA");
@@ -1326,12 +1388,12 @@ namespace Shark {
 			UI::EndControlsGrid();
 		});
 		
-		DrawComponetMultiSelect<HingeJointComponent>(entities, "Hinge Joint 2D", [](HingeJointComponent& firstComponent, const std::vector<Entity>& entities)
+		DrawComponetMultiSelect<HingeJointComponent>(entities, "Hinge Joint 2D", [this](HingeJointComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-			utils::Multiselect(entities, &HingeJointComponent::ConnectedEntity, [](auto& firstComponent, const auto& entities)
+			utils::Multiselect(entities, &HingeJointComponent::ConnectedEntity, [this](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlEntity("Connected Entity", firstComponent.ConnectedEntity, "Entity");
+				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity, "Entity");
 			});
 
 			utils::MultiselectControl(entities, &HingeJointComponent::Anchor, "Anchor");
@@ -1344,12 +1406,12 @@ namespace Shark {
 			UI::EndControlsGrid();
 		});
 		
-		DrawComponetMultiSelect<PrismaticJointComponent>(entities, "Prismatic Joint 2D", [](PrismaticJointComponent& firstComponent, const std::vector<Entity>& entities)
+		DrawComponetMultiSelect<PrismaticJointComponent>(entities, "Prismatic Joint 2D", [this](PrismaticJointComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-			utils::Multiselect(entities, &PrismaticJointComponent::ConnectedEntity, [](auto& firstComponent, const auto& entities)
+			utils::Multiselect(entities, &PrismaticJointComponent::ConnectedEntity, [this](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlEntity("Connected Entity", firstComponent.ConnectedEntity, "Entity");
+				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity, "Entity");
 			});
 
 			utils::MultiselectControl(entities, &PrismaticJointComponent::Anchor, "Anchor");
@@ -1364,12 +1426,12 @@ namespace Shark {
 			UI::EndControlsGrid();
 		});
 		
-		DrawComponetMultiSelect<PulleyJointComponent>(entities, "Pulley Joint 2D", [](PulleyJointComponent& firstComponent, const std::vector<Entity>& entities)
+		DrawComponetMultiSelect<PulleyJointComponent>(entities, "Pulley Joint 2D", [this](PulleyJointComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-			utils::Multiselect(entities, &PulleyJointComponent::ConnectedEntity, [](auto& firstComponent, const auto& entities)
+			utils::Multiselect(entities, &PulleyJointComponent::ConnectedEntity, [this](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlEntity("Connected Entity", firstComponent.ConnectedEntity, "Entity");
+				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity, "Entity");
 			});
 
 			utils::MultiselectControl(entities, &PulleyJointComponent::AnchorA, "AnchorA");
@@ -1397,7 +1459,6 @@ namespace Shark {
 				uint64_t scriptID = firstComponent.ScriptID;
 				if (UI::ControlScript("Script", scriptID, {}))
 				{
-					SK_CORE_VERIFY(!m_Context->IsRunning());
 					isValidScript = scriptEngine.IsValidScriptID(scriptID);
 
 					auto& scriptStorage = m_Context->GetScriptStorage();
@@ -1472,7 +1533,20 @@ namespace Shark {
 						if (!m_Context->IsRunning())
 						{
 							UUID val = storage.GetValue<UUID>();
-							if (UI::ControlEntity(storage.GetName(), val))
+							if (UI::ControlEntity(storage.GetName(), m_Context, val))
+							{
+								storage.SetValue(val);
+								changed = true;
+							}
+						}
+						break;
+					}
+					case ManagedFieldType::Prefab:
+					{
+						if (!m_Context->IsRunning())
+						{
+							AssetHandle val = storage.GetValue<AssetHandle>();
+							if (UI::ControlAsset(storage.GetName(), AssetType::Prefab, val))
 							{
 								storage.SetValue(val);
 								changed = true;
@@ -1496,6 +1570,7 @@ namespace Shark {
 
 		});
 
+		ImGui::Dummy({ 0, ImGui::GetFrameHeight() });
 	}
 
 	bool SceneHierarchyPanel::SearchTagRecursive(Entity entity, const UI::TextFilter& filter, uint32_t maxSearchDepth, uint32_t currentDepth)
@@ -1666,6 +1741,9 @@ namespace Shark {
 
 			SelectionManager::DeselectAll();
 			SelectionManager::Select(m_Context->GetID(), newEntity.GetUUID());
+
+			if (m_EntityCreatedCallback)
+				m_EntityCreatedCallback(newEntity);
 		}
 
 		ImGui::EndMenu();

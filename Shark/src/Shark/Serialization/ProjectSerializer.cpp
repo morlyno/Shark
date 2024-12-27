@@ -48,6 +48,7 @@ namespace Shark {
 		out << YAML::Key << "VelocityIterations" << YAML::Value << config.Physics.VelocityIterations;
 		out << YAML::Key << "PositionIterations" << YAML::Value << config.Physics.PositionIterations;
 		out << YAML::Key << "FixedTimeStep" << YAML::Value << config.Physics.FixedTimeStep;
+		out << YAML::Key << "MaxTimestep" << YAML::Value << config.Physics.MaxTimestep;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Log" << YAML::Value;
@@ -92,6 +93,7 @@ namespace Shark {
 		SK_CORE_TRACE("    ValocityIterations: {}", config.Physics.VelocityIterations);
 		SK_CORE_TRACE("    PositionIterations: {}", config.Physics.PositionIterations);
 		SK_CORE_TRACE("    FixedTimeStep: {}", config.Physics.FixedTimeStep);
+		SK_CORE_TRACE("    MaxTimestep: {}", config.Physics.MaxTimestep);
 
 		return true;
 	}
@@ -126,6 +128,7 @@ namespace Shark {
 		config.Physics.VelocityIterations = physicsNode["VelocityIterations"].as<uint32_t>();
 		config.Physics.PositionIterations = physicsNode["PositionIterations"].as<uint32_t>();
 		config.Physics.FixedTimeStep = physicsNode["FixedTimeStep"].as<float>();
+		config.Physics.MaxTimestep = physicsNode["MaxTimestep"].as<float>(0.016f);
 
 		auto logNode = projectNode["Log"];
 		if (logNode)
@@ -154,6 +157,7 @@ namespace Shark {
 		SK_CORE_TRACE_TAG("Core", "    ValocityIterations: {}", config.Physics.VelocityIterations);
 		SK_CORE_TRACE_TAG("Core", "    PositionIterations: {}", config.Physics.PositionIterations);
 		SK_CORE_TRACE_TAG("Core", "    FixedTimeStep: {}", config.Physics.FixedTimeStep);
+		SK_CORE_TRACE_TAG("Core", "    MaxTimestep: {}", config.Physics.MaxTimestep);
 		return true;
 	}
 

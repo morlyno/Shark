@@ -41,6 +41,7 @@ workspace "Shark"
 		sanitize { "Address" }
 		flags { "NoRuntimeChecks", "NoIncrementalLink" }
 		editandcontinue "off"
+		defines { "SK_DEBUG_ADDRESS" }
 	
 	filter "configurations:Release"
 		optimize "On"
@@ -76,3 +77,9 @@ group ""
 group "Tools"
 	include "Shark-Editor"
 group ""
+
+
+-- enable Coral.Natvie symbols in Release
+project "Coral.Native"
+	filter { "configurations:Release" }
+		symbols "On"

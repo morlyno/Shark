@@ -1,7 +1,6 @@
 #include "skpch.h"
 #include "Widgets.h"
 
-#include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scene/Scene.h"
@@ -156,15 +155,13 @@ namespace Shark {
 		});
 	}
 
-	bool UI::Widgets::SearchEntityPopup(UUID& entityID)
+	bool UI::Widgets::SearchEntityPopup(Ref<Scene> scene, UUID& entityID)
 	{
 		static UI::TextFilter s_Filter("");
-		return ItemSearchPopup(s_Filter, [&entityID](UI::TextFilter& filter, bool clear, bool& changed)
+		return ItemSearchPopup(s_Filter, [scene, &entityID](UI::TextFilter& filter, bool clear, bool& changed)
 		{
 			if (clear)
 				entityID = UUID::Invalid;
-
-			Ref<Scene> scene = SelectionManager::GetActiveScene();
 
 			auto entities = scene->GetAllEntitysWith<IDComponent>();
 			for (auto ent : entities)
@@ -175,7 +172,7 @@ namespace Shark {
 				if (!filter.PassesFilter(tag))
 					continue;
 
-				if (ImGui::Selectable(tag.c_str()))
+				if (ImGui::Selectable(tag.c_str(), entityID == entity.GetUUID()))
 				{
 					entityID = entity.GetUUID();
 					changed = true;

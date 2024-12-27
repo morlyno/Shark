@@ -18,6 +18,55 @@ namespace Shark
             }
         }
 
+        public static Entity InstantiatePrefab(Prefab prefab)
+        {
+            unsafe
+            {
+                return new Entity(InternalCalls.Scene_InstantiatePrefab(prefab.Handle, null, null, null));
+            }
+        }
+        
+        public static Entity InstantiatePrefab(Prefab prefab, Vector3 translation)
+        {
+            unsafe
+            {
+                return new Entity(InternalCalls.Scene_InstantiatePrefab(prefab.Handle, &translation, null, null));
+            }
+        }
+        
+        public static Entity InstantiatePrefab(Prefab prefab, Transform transform)
+        {
+            unsafe
+            {
+                return new Entity(InternalCalls.Scene_InstantiateChildPrefab(prefab.Handle, 0, &transform.Translation, &transform.Rotation, &transform.Scale));
+            }
+        }
+        
+        public static Entity InstantiatePrefab(Prefab prefab, Entity parent)
+        {
+            unsafe
+            {
+                return new Entity(InternalCalls.Scene_InstantiateChildPrefab(prefab.Handle, parent.ID, null, null, null));
+            }
+        }
+        
+        public static Entity InstantiatePrefab(Prefab prefab, Entity parent, Vector3 translation)
+        {
+            unsafe
+            {
+                return new Entity(InternalCalls.Scene_InstantiateChildPrefab(prefab.Handle, parent.ID, &translation, null, null));
+            }
+        }
+        
+        public static Entity InstantiatePrefab(Prefab prefab, Entity parent, Transform transform)
+        {
+            unsafe
+            {
+                return new Entity(InternalCalls.Scene_InstantiateChildPrefab(prefab.Handle, parent.ID, &transform.Translation, &transform.Rotation, &transform.Scale));
+            }
+        }
+
+
         public static void DestroyEntity(Entity entity)
         {
             if (entity == null)

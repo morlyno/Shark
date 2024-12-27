@@ -719,6 +719,9 @@ ImportedAssets:
   - Handle: 12909781155645121716
     Type: Environment
     FilePath: Environment/spruit_sunrise_4k.hdr
+  - Handle: 15170366313244680277
+    Type: Prefab
+    FilePath: Prefab/BallTemplate.sfab
 EditorAssets:
   - Handle: 13196250996000324786
     Type: Texture

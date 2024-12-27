@@ -19,6 +19,7 @@ namespace Shark::Debug {
 			m_TagComponent               = entity.TryGetComponent<TagComponent>();
 			m_TransformComponent         = entity.TryGetComponent<TransformComponent>();
 			m_RelationshipComponent      = entity.TryGetComponent<RelationshipComponent>();
+			m_PrefabComponent            = entity.TryGetComponent<PrefabComponent>();
 			m_SpriteRendererComponent    = entity.TryGetComponent<SpriteRendererComponent>();
 			m_CameraComponent            = entity.TryGetComponent<CameraComponent>();
 			m_RigidBody2DComponent       = entity.TryGetComponent<RigidBody2DComponent>();
@@ -35,6 +36,7 @@ namespace Shark::Debug {
 			m_TagComponent               = registry.try_get<TagComponent>(entity);
 			m_TransformComponent         = registry.try_get<TransformComponent>(entity);
 			m_RelationshipComponent      = registry.try_get<RelationshipComponent>(entity);
+			m_PrefabComponent            = registry.try_get<PrefabComponent>(entity);
 			m_SpriteRendererComponent    = registry.try_get<SpriteRendererComponent>(entity);
 			m_CameraComponent            = registry.try_get<CameraComponent>(entity);
 			m_RigidBody2DComponent       = registry.try_get<RigidBody2DComponent>(entity);
@@ -49,6 +51,7 @@ namespace Shark::Debug {
 		const TagComponent*                    m_TagComponent              = nullptr;
 		const TransformComponent*              m_TransformComponent        = nullptr;
 		const RelationshipComponent*           m_RelationshipComponent     = nullptr;
+		const PrefabComponent*                 m_PrefabComponent           = nullptr;
 		const SpriteRendererComponent*         m_SpriteRendererComponent   = nullptr;
 		const CameraComponent*                 m_CameraComponent           = nullptr;
 		const RigidBody2DComponent*            m_RigidBody2DComponent      = nullptr;
@@ -68,6 +71,7 @@ namespace Shark::Debug {
 			if (auto* tagComponent             = entity.TryGetComponent<TagComponent>())              m_TagComponent = *tagComponent;
 			if (auto* transformComponent       = entity.TryGetComponent<TransformComponent>())        m_TransformComponent = *transformComponent;
 			if (auto* relationshipComponent    = entity.TryGetComponent<RelationshipComponent>())     m_RelationshipComponent = *relationshipComponent;
+			if (auto* prefabComponent          = entity.TryGetComponent<PrefabComponent>())           m_PrefabComponent = *prefabComponent;
 			if (auto* spriteRendererComponent  = entity.TryGetComponent<SpriteRendererComponent>())   m_SpriteRendererComponent = *spriteRendererComponent;
 			if (auto* cameraComponent          = entity.TryGetComponent<CameraComponent>())           m_CameraComponent = *cameraComponent;
 			if (auto* rigidBody2DComponent     = entity.TryGetComponent<RigidBody2DComponent>())      m_RigidBody2DComponent = *rigidBody2DComponent;
@@ -84,6 +88,7 @@ namespace Shark::Debug {
 			if (auto* tagComponent             = registry.try_get<TagComponent>(entity))              m_TagComponent = *tagComponent;
 			if (auto* transformComponent       = registry.try_get<TransformComponent>(entity))        m_TransformComponent = *transformComponent;
 			if (auto* relationshipComponent    = registry.try_get<RelationshipComponent>(entity))     m_RelationshipComponent = *relationshipComponent;
+			if (auto* prefabComponent          = registry.try_get<PrefabComponent>(entity))           m_PrefabComponent = *prefabComponent;
 			if (auto* spriteRendererComponent  = registry.try_get<SpriteRendererComponent>(entity))   m_SpriteRendererComponent = *spriteRendererComponent;
 			if (auto* cameraComponent          = registry.try_get<CameraComponent>(entity))           m_CameraComponent = *cameraComponent;
 			if (auto* rigidBody2DComponent     = registry.try_get<RigidBody2DComponent>(entity))      m_RigidBody2DComponent = *rigidBody2DComponent;
@@ -98,6 +103,7 @@ namespace Shark::Debug {
 		std::optional<TagComponent> m_TagComponent;
 		std::optional<TransformComponent> m_TransformComponent;
 		std::optional<RelationshipComponent> m_RelationshipComponent;
+		std::optional<PrefabComponent> m_PrefabComponent;
 		std::optional<SpriteRendererComponent> m_SpriteRendererComponent;
 		std::optional<CameraComponent> m_CameraComponent;
 		std::optional<RigidBody2DComponent> m_RigidBody2DComponent;

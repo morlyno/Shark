@@ -21,9 +21,6 @@
 #include "Panels/EditorConsolePanel.h"
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
-#include "Panels/AssetEditorPanel.h"
-#include "Panels/Editors/TextureEditorPanel.h"
-#include "Panels/Editors/MaterialEditorPanel.h"
 #include "Panels/PhysicsDebugPanel.h"
 #include "Panels/ScriptEnginePanel.h"
 #include "Panels/AssetsPanel.h"
@@ -33,10 +30,15 @@
 #include "Panels/StatisticsPanel.h"
 #include "Panels/ECSDebugPanel.h"
 #include "Panels/IconSelector.h"
+#include "Panels/AssetEditorPanel.h"
+#include "Panels/Editors/TextureEditorPanel.h"
+#include "Panels/Editors/MaterialEditorPanel.h"
+#include "Panels/Editors/PrefabEditorPanel.h"
 
 #include "Shark/Debug/Profiler.h"
 
 #include <glm/gtc/type_ptr.hpp>
+#include "Shark/Debug/enttDebug.h"
 
 #define SCENE_HIERARCHY_PANEL_ID "SceneHierarchyPanel"
 #define CONTENT_BROWSER_PANEL_ID "ContentBrowserPanel"
@@ -129,6 +131,13 @@ namespace Shark {
 			assetEditorManager->AddEditor<TextureEditorPanel>(metadata);
 		});
 
+		contentBrowser->RegisterAssetActicatedCallback(AssetType::Prefab, [this](const AssetMetaData& metadata)
+		{
+			m_PanelManager->ShowPanel(ASSET_EDITOR_MANAGER_ID, true);
+			auto assetEditorManager = m_PanelManager->Get<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
+			assetEditorManager->AddEditor<PrefabEditorPanel>(metadata);
+		});
+
 		m_PanelManager->AddPanel<AssetEditorManagerPanel>(PanelCategory::Edit, ASSET_EDITOR_MANAGER_ID, "Assets Editor Manager", true);
 		m_PanelManager->AddPanel<ProjectSettingsPanel>(PanelCategory::Edit, PROJECT_SETTINGS_PANEL_ID, "Project Settings", false, Project::GetActive());
 		m_PanelManager->AddPanel<AssetsPanel>(PanelCategory::View, ASSETS_PANEL_ID, "Assets", false);
@@ -196,6 +205,8 @@ namespace Shark {
 			{
 				SK_PROFILE_SCOPED("EditorLayer::OnUpdate Resize");
 
+				if (m_ActiveScene != m_EditorScene)
+					m_EditorScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 				m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 				m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_DebugRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -205,12 +216,12 @@ namespace Shark {
 			}
 
 			ImGui::GetIO().SetAppAcceptingEvents(Input::GetCursorMode() != CursorMode::Locked);
-			m_EditorCamera.OnUpdate(ts, m_ViewportHovered && m_SceneState != SceneState::Play || Input::GetCursorMode() == CursorMode::Locked);
 
 			switch (m_SceneState)
 			{
 				case SceneState::Edit:
 				{
+					m_EditorCamera.OnUpdate(ts, m_ViewportHovered || m_ViewportFocused && Input::GetCursorMode() == CursorMode::Locked);
 					m_ActiveScene->OnUpdateEditor(ts);
 					m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
 					break;
@@ -223,6 +234,7 @@ namespace Shark {
 				}
 				case SceneState::Simulate:
 				{
+					m_EditorCamera.OnUpdate(ts, m_ViewportHovered || m_ViewportFocused && Input::GetCursorMode() == CursorMode::Locked);
 					m_ActiveScene->OnUpdateSimulate(ts);
 					m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
 					break;
@@ -325,7 +337,7 @@ namespace Shark {
 					for (UUID sourceID : selections)
 					{
 						Entity source = m_EditorScene->TryGetEntityByUUID(sourceID);
-						Entity cloned = m_EditorScene->CloneEntity(source);
+						Entity cloned = m_EditorScene->DuplicateEntity(source);
 						SelectionManager::Select(m_EditorScene->GetID(), cloned.GetUUID());
 					}
 
@@ -924,6 +936,9 @@ namespace Shark {
 		ImGui::BeginEx("MainViewport", m_MainViewportID, nullptr, ImGuiWindowFlags_None);
 		ImGui::PopStyleVar(4);
 
+		if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right))
+			ImGui::SetWindowFocus();
+
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		m_ViewportFocused = ImGui::IsWindowFocused();
 
@@ -1163,9 +1178,17 @@ namespace Shark {
 							m_CreateMeshAssetData.ParentDirectory = "Assets/Meshes/";
 							break;
 						}
+						case AssetType::Prefab:
+						{
+							AssetManager::GetAssetFuture(handle).OnReady([this](Ref<Asset> asset)
+							{
+								Entity entity = m_EditorScene->Instansitate(asset.As<Prefab>());
+								SelectionManager::DeselectAll(m_EditorScene->GetID());
+								SelectionManager::Select(m_EditorScene->GetID(), entity.GetUUID());
+							});
+						}
 					}
 				}
-
 			}
 		}
 
@@ -1598,12 +1621,14 @@ namespace Shark {
 			constexpr auto name = magic_enum::enum_name(KeyCode::OemComma);
 			constexpr auto name2 = magic_enum::enum_name(KeyCode::A);
 
+#if TODO
 			const auto& keyStates = Input::GetKeyStates();
 			for (const auto& [key, state] : keyStates)
 			{
 				UI::ScopedColorConditional textColor(ImGuiCol_Text, IM_COL32(20, 225, 30, 255), state == KeyState::Down);
 				ImGui::Text(fmt::format("{}: {}", key, state));
 			}
+#endif
 		}
 		ImGui::End();
 	}
@@ -1724,6 +1749,7 @@ namespace Shark {
 		SelectionManager::DeselectAll();
 
 		m_EditorScene = scene;
+		m_EditorScene->IsEditorScene(true);
 		m_EditorScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		m_SceneRenderer->SetScene(m_EditorScene);
 		m_PanelManager->SetContext(m_EditorScene);

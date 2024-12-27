@@ -32,6 +32,7 @@ namespace Shark::UI {
 
 	ImGuiID GetCurrentID();
 	const char* GenerateID();
+	const char* GenerateID(const char* label);
 	ImGuiID GenerateUniqueID();
 
 	void PushID();

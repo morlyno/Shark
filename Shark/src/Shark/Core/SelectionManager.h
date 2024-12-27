@@ -25,10 +25,6 @@ namespace Shark {
 		static UUID GetLastSelected(UUID contextID);
 
 		static bool IsEntityOrAncestorSelected(UUID contextID, Entity entity);
-
-		static void SetActiveScene(Ref<Scene> scene);
-		static Ref<Scene> GetActiveScene();
-
 	};
 
 }

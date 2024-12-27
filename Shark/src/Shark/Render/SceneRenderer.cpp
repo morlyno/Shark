@@ -2,14 +2,10 @@
 #include "SceneRenderer.h"
 
 #include "Shark/Scene/Scene.h"
-#include "Shark/Scene/Components.h"
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Math/Math.h"
-#include "Shark/UI/UICore.h"
-
-#include "Shark/Input/Input.h"
 
 #include "Shark/Debug/Profiler.h"
 

@@ -14,7 +14,8 @@ namespace Shark {
 		MeshSource,
 		Mesh,
 		Material,
-		Environment
+		Environment,
+		Prefab
 	};
 
 	inline const std::unordered_map<std::string, AssetType> AssetExtensionMap = {
@@ -31,7 +32,8 @@ namespace Shark {
 		{ ".glb", AssetType::MeshSource },
 		{ ".skmesh", AssetType::Mesh },
 		{ ".skmat", AssetType::Material },
-		{ ".hdr", AssetType::Environment }
+		{ ".hdr", AssetType::Environment },
+		{ ".sfab", AssetType::Prefab }
 	};
 
 }

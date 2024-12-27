@@ -5,6 +5,7 @@
 #include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 
 #include "Shark/UI/Widgets.h"
@@ -727,6 +728,39 @@ namespace Shark::UI {
 		return ControlAsset(label, assetType, assetHandle, settings);
 	}
 
+	static std::pair<std::string, bool> GetDisplayName(AssetHandle handle, AssetType assetType, const AssetControlSettings& settings)
+	{
+		if (!handle)
+			return { "", true };
+
+		bool isValid = AssetManager::IsValidAssetHandle(handle);
+		std::string displayName;
+
+		if (isValid)
+		{
+			auto assetManager = Project::GetActiveEditorAssetManager();
+			const bool isMemoryAsset = assetManager->IsMemoryAsset(handle);
+
+			if (isMemoryAsset)
+			{
+				displayName = fmt::format("{}", handle);
+			}
+			if (settings.DisplayName.empty())
+			{
+				const auto& metadata = assetManager->GetMetadata(handle);
+				displayName = metadata.FilePath.string();
+			}
+			else
+			{
+				displayName = settings.DisplayName;
+			}
+
+			isValid = assetManager->IsMemoryAsset(handle) || assetManager->HasExistingFilePath(handle);
+		}
+
+		return { displayName, isValid };
+	}
+
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlSettings& settings)
 	{
 		if (!ControlHelperBegin(ImGui::GetID(label)))
@@ -754,22 +788,10 @@ namespace Shark::UI {
 			}
 			else
 			{
-				UI::ScopedColor textColor(ImGuiCol_Text, settings.TextColor);
-				if (!assetHandle)
-					UI::DrawButton("", ImVec2(0.0f, 0.5f), UI::GetItemRect());
-				else if (!settings.DisplayName.empty())
-					UI::DrawButton(settings.DisplayName, ImVec2(0.0f, 0.5f), UI::GetItemRect());
-				else
-				{
-					UI::ScopedColor textColor(ImGuiCol_Text, settings.TextColor);
-					const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
-					std::string name;
-					if (metadata.IsMemoryAsset)
-						name = fmt::format("0x{:x}", assetHandle);
-					else
-						name = metadata.FilePath.string();
-					UI::DrawButton(name, ImVec2(0.0f, 0.5f), UI::GetItemRect());
-				}
+				auto [displayName, isValid] = GetDisplayName(assetHandle, assetType, settings);
+				UI::ScopedColor textColor(ImGuiCol_Text, isValid ? settings.TextColor : UI::Colors::Theme::TextError);
+
+				UI::DrawButton(displayName, ImVec2(0.0f, 0.5f), UI::GetItemRect());
 			}
 
 		}
@@ -798,7 +820,7 @@ namespace Shark::UI {
 		return changed;
 	}
 
-	bool ControlEntity(std::string_view label, UUID& entityID, const char* dragDropType)
+	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const char* dragDropType)
 	{
 		if (!ControlHelperBegin(ImGui::GetID(label)))
 			return false;
@@ -810,6 +832,7 @@ namespace Shark::UI {
 
 		ImGui::SetNextItemAllowOverlap();
 		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+		ImGui::SetItemTooltip("%llu", entityID);
 
 		auto& g = *GImGui;
 		bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
@@ -819,7 +842,6 @@ namespace Shark::UI {
 		}
 		else
 		{
-			Ref<Scene> scene = SelectionManager::GetActiveScene();
 			if (entityID && !scene->IsValidEntityID(entityID))
 			{
 				UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextError);
@@ -833,7 +855,7 @@ namespace Shark::UI {
 			}
 		}
 
-		changed = Widgets::SearchEntityPopup(entityID);
+		changed = Widgets::SearchEntityPopup(scene, entityID);
 
 		if (dragDropType)
 		{
@@ -843,7 +865,6 @@ namespace Shark::UI {
 				if (payload)
 				{
 					UUID uuid = *(UUID*)payload->Data;
-					Ref<Scene> scene = SelectionManager::GetActiveScene();
 					if (scene->IsValidEntityID(uuid))
 					{
 						entityID = uuid;

@@ -72,7 +72,6 @@ namespace Shark {
 			return;
 
 		child.SetParent(*this);
-		Children().push_back(child.GetUUID());
 	}
 
 	void Entity::RemoveChild(Entity child)

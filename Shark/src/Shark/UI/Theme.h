@@ -52,6 +52,7 @@ namespace Shark::UI::Colors {
 		constexpr ImU32 NavigationHighlight = IM_COL32(75, 62, 118, 255);
 		constexpr ImU32 Blue = IM_COL32(73, 177, 255, 255);
 		constexpr ImU32 NiceBlue = IM_COL32(51, 161, 230, 255);
+		constexpr ImU32 Green = IM_COL32(131, 230, 41, 255);
 		//constexpr ImU32 Selection = IM_COL32(48, 40, 76, 255);
 	};
 

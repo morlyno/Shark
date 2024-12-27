@@ -12,6 +12,7 @@ namespace Shark {
 		uint32_t VelocityIterations;
 		uint32_t PositionIterations;
 		float FixedTimeStep;
+		float MaxTimestep;
 	};
 
 	struct ProjectConfig

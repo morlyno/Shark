@@ -21,19 +21,19 @@ namespace Shark
 
 	public static class Input
 	{
-		public static bool IsKeyPressed(KeyCode key)
+		public static bool IsKeyPressed(KeyCode key, bool allowRepeate = false)
 		{
-			unsafe { return InternalCalls.Input_IsKeyStateSet(key, KeyState.Pressed); }
+			unsafe { return InternalCalls.Input_IsKeyStateSet(key, KeyState.Pressed, allowRepeate); }
 		}
 
 		public static bool IsKeyDown(KeyCode key)
 		{
-			unsafe { return InternalCalls.Input_IsKeyStateSet(key, KeyState.Down); }
+			unsafe { return InternalCalls.Input_IsKeyStateSet(key, KeyState.Down, false); }
 		}
 
 		public static bool IsKeyReleased(KeyCode key)
 		{
-			unsafe { return InternalCalls.Input_IsKeyStateSet(key, KeyState.Released); }
+			unsafe { return InternalCalls.Input_IsKeyStateSet(key, KeyState.Released, false); }
 		}
 
 		public static bool IsMousePressed(MouseButton button)

@@ -568,6 +568,11 @@ namespace Shark {
 			const ImGuiPayload* directoryPayload = ImGui::AcceptDragDropPayload("uuid.cb.directory", ImGuiDragDropFlags_AcceptBeforeDelivery);
 			if (directoryPayload && directoryPayload->IsDelivery())
 				action.Set(CBItemActionFlag::DropAccepted);
+
+			const ImGuiPayload* entityPayload = ImGui::AcceptDragDropPayload("ENTITY_ID", ImGuiDragDropFlags_AcceptBeforeDelivery);
+			if (entityPayload && entityPayload->IsDelivery())
+				action.Set(CBItemActionFlag::DropAccepted);
+
 			ImGui::EndDragDropTarget();
 		}
 	}

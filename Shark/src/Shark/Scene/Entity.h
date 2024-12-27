@@ -83,7 +83,8 @@ namespace Shark {
 		entt::entity m_EntityHandle{ entt::null };
 		Weak<Scene> m_Scene;
 
-		friend Scene;
+		friend class Scene;
+		friend class Prefab;
 	};
 
 	template<typename TComponent, typename... TArgs>

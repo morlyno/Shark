@@ -135,9 +135,7 @@ namespace Shark {
 										(DXGI_INFO_QUEUE_MESSAGE_CATEGORY)message->Category,
 										(DXGI_INFO_QUEUE_MESSAGE_SEVERITY)message->Severity,
 										(DXGI_INFO_QUEUE_MESSAGE_ID)message->ID,
-										message->pDescription
-				);
-
+										message->pDescription);
 			}
 
 			infoQueue->ClearStoredMessages();

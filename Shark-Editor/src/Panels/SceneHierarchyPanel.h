@@ -17,7 +17,7 @@ namespace Shark {
 	class SceneHierarchyPanel : public Panel
 	{
 	public:
-		SceneHierarchyPanel(const std::string& panelName, Ref<Scene> scene = nullptr);
+		SceneHierarchyPanel(const std::string& panelName, Ref<Scene> scene = nullptr, bool isWindow = true);
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
@@ -29,6 +29,11 @@ namespace Shark {
 		template<typename Func> // void(Entity)
 		void RegisterSelectionChangedCallback(const Func& func) { m_SelectionChangedCallback = func; }
 
+		template<typename TFunc>
+		void RegisterEntityCreatedCallback(const TFunc& callback) { m_EntityCreatedCallback = callback; }
+		template<typename TFunc>
+		void RegisterEntityDestroyedCallback(const TFunc& callback) { m_EntityDestoyedCallback = callback; }
+
 		template<typename TFunc> // void(Entity)
 		void RegisterSnapToEditorCameraCallback(const TFunc& callback) { m_SnapToEditorCameraCallback = callback; }
 
@@ -37,7 +42,9 @@ namespace Shark {
 		void HandleSelectionRequests(ImGuiMultiSelectIO* selectionIO, bool isBegin);
 
 		void DrawEntityNode(Entity entity, uint32_t& index, const UI::TextFilter& searchFilter);
+	public:
 		void DrawEntityProperties(const std::vector<Entity>& entities);
+	private:
 		void DrawCreateEntityMenu(Entity parent);
 
 		bool SearchTagRecursive(Entity entity, const UI::TextFilter& filter, uint32_t maxSearchDepth, uint32_t currentDepth = 0);
@@ -49,6 +56,7 @@ namespace Shark {
 		void DrawComponetMultiSelect(const std::vector<Entity>& entities, const char* lable, UIFunction func);
 
 	private:
+		bool m_IsWindow = true;
 		Ref<Scene> m_Context;
 
 		bool m_TransformInWorldSpace = false;
@@ -57,6 +65,8 @@ namespace Shark {
 
 		std::function<void(Entity entity)> m_SelectionChangedCallback = [](auto) {};
 		std::function<void(Entity entity)> m_SnapToEditorCameraCallback;
+		std::function<void(Entity)> m_EntityCreatedCallback;
+		std::function<void(Entity)> m_EntityDestoyedCallback;
 
 		struct ComponentBinding
 		{

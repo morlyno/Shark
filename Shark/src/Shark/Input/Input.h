@@ -37,7 +37,9 @@ namespace Shark {
 		static CursorMode GetCursorMode();
 
 		static KeyState GetKeyState(KeyCode key);
+		static bool IsRepeated(KeyCode key);
 		static bool IsKeyPressed(KeyCode key);
+		static bool IsKeyPressed(KeyCode key, bool allowRepeate);
 		static bool IsKeyDown(KeyCode key);
 		static bool IsKeyRelease(KeyCode key);
 
@@ -56,7 +58,9 @@ namespace Shark {
 		static float GetYPosition();
 
 	public:
+#if 0
 		static const std::map<KeyCode, KeyState>& GetKeyStates();
+#endif
 		static const std::map<MouseButton, MouseState>& GetMouseButtonStates();
 	};
 

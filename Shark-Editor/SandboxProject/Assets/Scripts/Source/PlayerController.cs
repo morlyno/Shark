@@ -1,4 +1,4 @@
-﻿
+﻿	
 using Shark;
 
 namespace Sandbox
@@ -18,7 +18,6 @@ namespace Sandbox
 		private uint m_AirJumpCount = 0;
 		private uint m_CollishionCount = 0;
 
-		public Entity BallTemplate;
 		public bool DestroyBallOnHit = false;
 
 		public bool ShootOnPress = false;
@@ -31,7 +30,7 @@ namespace Sandbox
 		private TransformComponent m_CameraTransform;
 		private Entity m_BallContainer;
 
-		public string OnCreateMessage = "HiHiHiHi";
+		public Prefab BallPrefab;
 
 		protected override void OnCreate()
 		{
@@ -42,8 +41,6 @@ namespace Sandbox
 
 			m_BallContainer = Scene.CreateEntity("BallContainer");
 			m_RigidBody = GetComponent<RigidBody2DComponent>();
-
-			Log.Info(OnCreateMessage);
 		}
 
 		protected override void OnDestroy()
@@ -63,14 +60,19 @@ namespace Sandbox
 				m_CameraTransform.Translation = translation;
 			}
 
-			if (Input.IsKeyPressed(KeyCode.P))
-				CreateBall();
+			if (Input.IsKeyPressed(KeyCode.P, true))
+				for (int y = -3; y <= 3; y++)
+					for (int x = -3; x <= 3; x++)
+						Scene.InstantiatePrefab(BallPrefab, m_BallContainer, new Vector3(0.0f + x, 10.0f + y, 0.0f));
 
 			if (m_ShootCooldownTimer > 0)
 				m_ShootCooldownTimer -= ts;
 
 			if (m_WantShoot)
 				Shoot();
+
+			if (Input.IsKeyPressed(KeyCode.T))
+				Translation = new Vector3(0.0f, -1.9f, 0.0f);
 		}
 
 		protected override void OnPhysicsUpdate(float fixedTimeStep)
@@ -156,18 +158,6 @@ namespace Sandbox
 				rigidBody.ApplyForce(direction * 10000.0f, PhysicsForce2DType.Force);
 #endif
 			}
-		}
-
-		private void CreateBall()
-		{
-#if false
-			var ball = CloneEntity(BallTemplate);
-			//ball.Parent = m_BallContainer;
-			ball.Name = "Ball";
-			var rigidBody = ball.GetComponent<RigidBody2DComponent>();
-			rigidBody.Position = new Vector2(0.0f, 10.0f);
-			rigidBody.Enabled = true;
-#endif
 		}
 
 	}

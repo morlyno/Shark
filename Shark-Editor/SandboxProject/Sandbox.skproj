@@ -1,13 +1,14 @@
 Project:
   Name: Sandbox
   Assets: Assets
-  StartupScene: 13757110640731467433
+  StartupScene: 12244781757691949041
   ScriptModulePath: Assets/Scripts/Binaries/Sandbox.dll
   Physics:
     Gravity: [0, -9.81000042]
     VelocityIterations: 8
     PositionIterations: 3
-    FixedTimeStep: 0.00100000005
+    FixedTimeStep: 0.00400000019
+    MaxTimestep: 0.00800000038
   Log:
     - Name: ""
       Enabled: true

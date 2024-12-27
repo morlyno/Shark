@@ -71,6 +71,8 @@ namespace Shark::UI {
 	static uint32_t s_IDCounter = 0;
 	static char s_IDBuffer[2 + 16 + 1];
 
+	static char s_LabelIDBuffer[255];
+
 	ImGuiID GetCurrentID()
 	{
 		return GImGui->CurrentWindow->IDStack.back();
@@ -80,6 +82,12 @@ namespace Shark::UI {
 	{
 		fmt::format_to_n(s_IDBuffer, std::size(s_IDBuffer), "##{}\0", s_IDCounter++);
 		return s_IDBuffer;
+	}
+
+	const char* GenerateID(const char* label)
+	{
+		fmt::format_to_n(s_LabelIDBuffer, std::size(s_LabelIDBuffer), "{}##{}\0", label, s_IDCounter++);
+		return s_LabelIDBuffer;
 	}
 
 	ImGuiID GenerateUniqueID()

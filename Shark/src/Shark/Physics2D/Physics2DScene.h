@@ -79,6 +79,7 @@ namespace Shark {
 
 		float m_Accumulator = 0.0f;
 		float m_FixedTimeStep = 0.001f;
+		float m_MaxTimestep = 0.016f;
 
 		std::function<void(TimeStep)> m_OnPhysicsStep;
 

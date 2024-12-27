@@ -20,6 +20,7 @@ namespace Shark {
 	class SceneRenderer;
 	struct SceneRendererCamera;
 	class Entity;
+	class Prefab;
 
 	struct PointLight
 	{
@@ -72,6 +73,9 @@ namespace Shark {
 
 		void DestroyEntities();
 
+		void Dump(std::ostream& stream);
+		void Dump(std::ostream& stream, Entity entity, uint64_t depth = 0);
+
 		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
 		bool IsEditorScene() const { return m_IsEditorScene; }
 		bool IsRunning() const { return m_IsRunning; }
@@ -99,7 +103,7 @@ namespace Shark {
 		const LightEnvironment& GetLightEnvironment() const { return m_LightEnvironment; }
 		const std::vector<PointLight>& GetPointLights() const { return m_LightEnvironment.PointLights; }
 
-		Entity CloneEntity(Entity srcEntity, bool cloneChildren = true);
+		Entity DuplicateEntity(Entity srcEntity, bool cloneChildren = true);
 		Entity CreateEntity(const std::string& tag = std::string{});
 		Entity CreateEntityWithUUID(UUID uuid, const std::string& tag = std::string{}, bool shouldSort = true);
 		Entity CreateChildEntity(Entity parent, const std::string& tag = std::string{});
@@ -119,6 +123,11 @@ namespace Shark {
 			auto view = m_Registry.group<RelationshipComponent>();
 			return view | std::views::filter([this](entt::entity ent) { return m_Registry.get<RelationshipComponent>(ent).Parent == UUID::Invalid; });
 		}
+
+		Entity Instansitate(Ref<Prefab> prefab, const glm::vec3* translation = nullptr, const glm::vec3* rotation = nullptr, const glm::vec3* scale = nullptr);
+		Entity InstansitateChild(Ref<Prefab> prefab, Entity parent, const glm::vec3* translation = nullptr, const glm::vec3* rotation = nullptr, const glm::vec3* scale = nullptr);
+
+		void RebuildPrefabEntityHierarchy(Ref<Prefab> prefab, Entity entity);
 
 		Entity InstantiateMesh(Ref<Mesh> mesh);
 		Entity InstantiateStaticMesh(Ref<Mesh> mesh);
@@ -167,6 +176,8 @@ namespace Shark {
 
 		ScriptStorage& GetScriptStorage() { return m_ScriptStorage; }
 
+		void SetFallbackEnvironment(AssetHandle environmentHandle) { m_FallbackEnvironment = environmentHandle; }
+
 		template<typename TFunc>
 		void Submit(const TFunc& func)
 		{
@@ -183,7 +194,8 @@ namespace Shark {
 
 	private:
 		void DestroyEntityInternal(Entity entity, bool destroyChildren, bool first);
-		void BuildMeshEntityHierarchy(Entity entity, Ref<Mesh> mesh, const MeshNode& node);
+		void BuildPrefabEntityHierarchy(Entity parentOrRoot, Ref<Prefab> prefab, UUID prefabEntityID, bool first, const glm::vec3* translation = nullptr, const glm::vec3* rotation = nullptr, const glm::vec3* scale = nullptr);
+		void BuildMeshEntityHierarchy(Entity parent, Ref<Mesh> mesh, const MeshNode& node);
 
 		void OnPhysics2DPlay(bool connectWithScriptingAPI);
 		void OnPhysics2DStop();
@@ -225,6 +237,7 @@ namespace Shark {
 		bool m_Paused = false;
 		uint32_t m_StepFrames = 0;
 
+		AssetHandle m_FallbackEnvironment;
 		LightEnvironment m_LightEnvironment;
 
 		std::vector<std::function<void()>> m_PostUpdateQueue;
@@ -235,6 +248,7 @@ namespace Shark {
 		friend class SceneHierarchyPanel;
 		friend class SceneSerializer;
 		friend class ECSDebugPanel;
+		friend class PrefabEditorPanel;
 	};
 
 }

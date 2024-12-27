@@ -112,7 +112,10 @@ namespace Shark {
 		m_Mesh = scene->InstantiateMesh(mesh);
 
 		Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource());
-		m_Camera = utils::CreateMeshCamera(scene, meshSource->GetBoundingBox());
+		if (!meshSource)
+			m_Camera = utils::CreateDefaultCamera(scene);
+		else
+			m_Camera = utils::CreateMeshCamera(scene, meshSource->GetBoundingBox());
 
 		m_DirectionalLight = scene->CreateEntity("Directional Light");
 		m_DirectionalLight.Transform().Rotation = glm::vec3(glm::radians(-58.0f), glm::radians(-40.0f), 0.0f);

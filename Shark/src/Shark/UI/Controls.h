@@ -12,6 +12,7 @@ namespace Shark {
 	using AssetHandle = Shark::UUID;
 	enum class AssetType;
 	class Entity;
+	class Scene;
 }
 
 namespace Shark::UI {
@@ -118,7 +119,7 @@ namespace Shark::UI {
 	};
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlSettings& settings);
 
-	bool ControlEntity(std::string_view label, UUID& entityID, const char* dragDropType = "Entity");
+	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const char* dragDropType = "Entity");
 	bool ControlScript(std::string_view label, uint64_t& scriptID, const AssetControlSettings& settings);
 
 	template<typename TFunc>

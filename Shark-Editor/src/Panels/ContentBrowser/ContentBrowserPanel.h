@@ -196,6 +196,7 @@ namespace Shark {
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 		virtual void OnProjectChanged(Ref<Project> project) override;
+		virtual void SetContext(Ref<Scene> context) override { m_SceneContext = context; }
 
 		void ScheduleReload() { m_ReloadScheduled = true; }
 		Ref<Project> GetProject() { return m_Project; }
@@ -211,12 +212,9 @@ namespace Shark {
 		void BuildDirectoryIDMap(Ref<DirectoryInfo> directory);
 		void ParseDirectories(Ref<DirectoryInfo> directory);
 
-	private:
 		void ChangeDirectory(Ref<DirectoryInfo> directory, bool addToHistory = true);
-
 		void GenerateThumbnails();
 
-	private:
 		CBItemList Search(const std::string& filterPaddern, Ref<DirectoryInfo> directory, bool searchSubdirectories = true);
 		CBItemList GetItemsInDirectory(Ref<DirectoryInfo> directory);
 
@@ -239,6 +237,8 @@ namespace Shark {
 		void ApplySelectionRequests(ImGuiMultiSelectIO* selectionRequests, bool isBegin);
 		void HandleSelectionRequests();
 
+		void HandleEntityPayload(const ImGuiPayload* payload, Ref<DirectoryInfo> directory);
+
 	private:
 		Ref<ContentBrowserItem> CreateDirectory(const std::string& name, bool startRenaming);
 
@@ -257,12 +257,34 @@ namespace Shark {
 			if (startRename)
 				newItem->StartRenaming();
 		}
+		
+		template<typename TAsset, typename... TArgs>
+		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename, TArgs&&... args)
+		{
+			std::filesystem::path directoryPath = m_Project->GetAbsolute(directory->Filepath / name);
+			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+			Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath, std::forward<TArgs>(args)...);
+			const auto& metadata = assetManager->GetMetadata(asset);
+			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserAsset>::Create(this, metadata, GetAssetIcon(FileSystem::GetExtensionString(metadata.FilePath)));
+
+			directory->AddFile(name);
+			if (m_CurrentDirectory == directory)
+			{
+				m_CurrentItems.Add(newItem);
+				m_CurrentDirectory->AddFile(name);
+				SelectItem(metadata.Handle);
+
+				if (startRename)
+					newItem->StartRenaming();
+			}
+		}
 
 	private:
 		Ref<Project> m_Project;
 		Ref<ThumbnailCache> m_ThumbnailCache;
 		Ref<ThumbnailGenerator> m_ThumbnailGenerator;
 		UUID m_SelectionID = UUID::Generate();
+		Ref<Scene> m_SceneContext;
 
 		CBItemList m_CurrentItems;
 

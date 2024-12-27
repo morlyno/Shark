@@ -5,6 +5,7 @@
 #include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Prefab.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/SceneRenderer.h"
 
@@ -34,8 +35,6 @@ namespace Shark {
 	template<typename Component>
 	void CopyComponents(entt::registry& srcRegistry, entt::registry& destRegistry, const std::unordered_map<UUID, Entity>& entityUUIDMap)
 	{
-		SK_PROFILE_FUNCTION();
-
 		auto view = srcRegistry.view<Component>();
 		for (auto srcEntity : view)
 		{
@@ -47,12 +46,10 @@ namespace Shark {
 	}
 
 	template<typename Component>
-	void CopyComponentIfExists(entt::entity srcEntity, entt::registry& srcRegistry, entt::entity destEntity, entt::registry& destRegistry)
+	void CopyComponentIfExists(entt::entity srcEntity, entt::entity destEntity, entt::registry& registry)
 	{
-		SK_PROFILE_FUNCTION();
-
-		if (Component* comp = srcRegistry.try_get<Component>(srcEntity))
-			destRegistry.emplace_or_replace<Component>(destEntity, *comp);
+		if (Component* comp = registry.try_get<Component>(srcEntity))
+			registry.emplace_or_replace<Component>(destEntity, *comp);
 	}
 
 
@@ -60,6 +57,7 @@ namespace Shark {
 		: m_Name(name)
 	{
 		m_Registry.on_construct<CameraComponent>().connect<&Scene::OnCameraComponentCreated>(this);
+		m_Registry.on_destroy<ScriptComponent>().connect<&Scene::OnScriptComponentDestroyed>(this);
 	}
 
 	Scene::~Scene()
@@ -70,6 +68,7 @@ namespace Shark {
 		if (m_PhysicsScene)
 			OnPhysics2DStop();
 
+		m_Registry.on_destroy<ScriptComponent>().disconnect<&Scene::OnScriptComponentDestroyed>(this);
 		m_Registry.on_construct<CameraComponent>().disconnect<&Scene::OnCameraComponentCreated>(this);
 	}
 
@@ -100,12 +99,11 @@ namespace Shark {
 
 			UUID uuid = srcEntity.GetUUID();
 			destScene->m_EntityUUIDMap[uuid] = destScene->CreateEntityWithUUID(uuid, srcEntity.GetName(), false);
-			srcEntity.RemoveComponentIsExists<Internal::RootParentComponent>();
 		}
 
 		m_ScriptStorage.CopyTo(destScene->m_ScriptStorage);
 
-		ForEach(CopySceneComponents, [&]<typename TComp>()
+		ForEach(AllComponents::Except<IDComponent>{}, [&]<typename TComp>()
 		{
 			CopyComponents<TComp>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		});
@@ -116,16 +114,48 @@ namespace Shark {
 
 	void Scene::DestroyEntities()
 	{
-		m_Registry.clear();
+		auto view = m_Registry.view<IDComponent>();
+		for (auto ent : view)
+		{
+			Entity entity = { ent, this };
+			DestroyEntity(entity, false);
+		}
+
 		m_ActiveCameraUUID = UUID::Invalid;
-		m_EntityUUIDMap.clear();
+
+		SK_CORE_ASSERT(m_EntityUUIDMap.size() == 0);
+		SK_CORE_ASSERT(m_Registry.size() == 0);
+	}
+
+	void Scene::Dump(std::ostream& stream)
+	{
+		stream << fmt::format("Scene '{}|{}'", Handle, m_SceneID);
+		auto rootEntities = GetRootEntities();
+		for (auto ent : rootEntities)
+		{
+			Dump(stream, { ent, this });
+		}
+	}
+
+	void Scene::Dump(std::ostream& stream, Entity entity, uint64_t depth)
+	{
+		stream << std::string(depth, ' ') << fmt::format(" - {} '{}'\n", entity.Tag(), entity.GetUUID());
+
+		for (UUID childID : entity.Children())
+		{
+			Entity child = TryGetEntityByUUID(childID);
+			if (child)
+				Dump(stream, child, depth + 3);
+			else
+				stream << std::string(depth + 3, ' ') << fmt::format(" - Invalid '{}'\n", childID);
+		}
 	}
 
 	void Scene::OnScenePlay()
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO_TAG("Scene", "Scene Play '{}'", Handle);
+		SK_CORE_INFO_TAG("Scene", "Scene Play '{}' (ID={})", Handle, m_SceneID);
 
 		m_IsRunning = true;
 
@@ -138,7 +168,6 @@ namespace Shark {
 		m_Registry.on_destroy<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentDestroyed>(this);
 		m_Registry.on_destroy<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
 		m_Registry.on_destroy<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
-		m_Registry.on_destroy<ScriptComponent>().connect<&Scene::OnScriptComponentDestroyed>(this);
 
 		// Create Scripts
 		{
@@ -208,7 +237,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO_TAG("Scene", "Scene Stop '{}'", Handle);
+		SK_CORE_INFO_TAG("Scene", "Scene Stop '{}' (ID={})", Handle, m_SceneID);
 
 		m_IsRunning = false;
 
@@ -227,7 +256,6 @@ namespace Shark {
 		m_Registry.on_destroy<RigidBody2DComponent>().disconnect<&Scene::OnRigidBody2DComponentDestroyed>(this);
 		m_Registry.on_destroy<BoxCollider2DComponent>().disconnect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
 		m_Registry.on_destroy<CircleCollider2DComponent>().disconnect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
-		m_Registry.on_destroy<ScriptComponent>().disconnect<&Scene::OnScriptComponentDestroyed>(this);
 	}
 
 	void Scene::OnSimulationPlay()
@@ -389,6 +417,9 @@ namespace Shark {
 				m_LightEnvironment.EnvironmentIntensity = skyComp.Intensity;
 				m_LightEnvironment.SkyboxLod = skyComp.Lod;
 			}
+
+			if (!m_LightEnvironment.SceneEnvironment)
+				m_LightEnvironment.SceneEnvironment = AssetManager::GetReadyAssetAsync<Environment>(m_FallbackEnvironment);
 
 			if (!m_LightEnvironment.SceneEnvironment)
 			{
@@ -577,60 +608,35 @@ namespace Shark {
 		renderer2D->EndScene();
 	}
 
-	Entity Scene::CloneEntity(Entity entity, bool cloneChildren)
+	Entity Scene::DuplicateEntity(Entity entity, bool cloneChildren)
 	{
 		SK_PROFILE_FUNCTION();
 
-		Entity newEntity = CreateEntity();
+		const UUID parentID = entity.ParentID();
+		Entity newEntity = CreateChildEntity(parentID ? TryGetEntityByUUID(parentID) : Entity{});
 
-		Ref<Scene> srcScene = entity.m_Scene.GetRef();
-		CopyComponentIfExists<TagComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<TransformComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		//CopyComponentIfExists<RelationshipComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<SpriteRendererComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<CircleRendererComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<TextRendererComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<MeshComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<MeshFilterComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<SubmeshComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<StaticMeshComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<PointLightComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<DirectionalLightComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<SkyComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<CameraComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<RigidBody2DComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<BoxCollider2DComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<CircleCollider2DComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<DistanceJointComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<HingeJointComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<PrismaticJointComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<PulleyJointComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		CopyComponentIfExists<ScriptComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-		//CopyComponentIfExists<Internal::RootParentComponent>(entity, srcScene->m_Registry, newEntity, m_Registry);
-
-		if (newEntity.HasComponent<ScriptComponent>())
+		ForEach(AllComponents::Except<IDComponent, RelationshipComponent>{}, [entity, newEntity, &registry = m_Registry]<typename T>() mutable
 		{
-			// #TODO(moro): setup entity storage
-			const auto& scriptComponent = newEntity.GetComponent<ScriptComponent>();
-			m_ScriptStorage.SetupEntityStorage(scriptComponent.ScriptID, newEntity.GetUUID());
-			m_ScriptStorage.CopyEntityStorage(entity.GetUUID(), newEntity.GetUUID(), m_ScriptStorage);
-		}
+			CopyComponentIfExists<T>(entity, newEntity, registry);
+		});
 
-		for (auto childID : entity.Children())
+		for (UUID childID : entity.Children())
 		{
-			Entity childDuplicate = CloneEntity(GetEntityByID(childID));
+			Entity childDuplicate = DuplicateEntity(GetEntityByID(childID));
 			childDuplicate.SetParent(newEntity);
 		}
 
-		newEntity.SetParent(entity.Parent());
-
-		if (m_IsRunning)
+		if (newEntity.HasComponent<ScriptComponent>())
 		{
-			if (newEntity.HasComponent<ScriptComponent>())
+			auto& scriptComponent = newEntity.GetComponent<ScriptComponent>();
+			m_ScriptStorage.SetupEntityStorage(scriptComponent.ScriptID, newEntity.GetUUID());
+			m_ScriptStorage.CopyEntityStorage(entity.GetUUID(), newEntity.GetUUID(), m_ScriptStorage);
+
+			auto& scriptEngine = ScriptEngine::Get();
+			if (m_IsRunning && scriptEngine.IsValidScriptID(scriptComponent.ScriptID))
 			{
-				const auto& scriptComponent = newEntity.GetComponent<ScriptComponent>();
-				auto& scriptEngine = ScriptEngine::Get();
-				scriptEngine.Instantiate(newEntity.GetUUID(), m_ScriptStorage);
+				scriptComponent.Instance = scriptEngine.Instantiate(newEntity.GetUUID(), m_ScriptStorage);
+				scriptComponent.Instance->InvokeMethod("OnCreate");
 			}
 		}
 
@@ -656,7 +662,6 @@ namespace Shark {
 		entity.AddComponent<TagComponent>(tag.empty() ? "new Entity" : tag);
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<RelationshipComponent>();
-		entity.AddComponent<Internal::RootParentComponent>();
 
 		if (shouldSort)
 			SortEntitites();
@@ -697,6 +702,110 @@ namespace Shark {
 		{
 			return lhs < rhs;
 		});
+	}
+
+	Entity Scene::Instansitate(Ref<Prefab> prefab, const glm::vec3* translation, const glm::vec3* rotation, const glm::vec3* scale)
+	{
+		return InstansitateChild(prefab, {}, translation, rotation, scale);
+	}
+
+	Entity Scene::InstansitateChild(Ref<Prefab> prefab, Entity parent, const glm::vec3* translation, const glm::vec3* rotation, const glm::vec3* scale)
+	{
+		if (!prefab->HasValidRoot())
+			return {};
+
+		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(prefab);
+		Entity rootEntity = CreateChildEntity(parent, FileSystem::GetStemString(metadata.FilePath));
+		BuildPrefabEntityHierarchy(rootEntity, prefab, prefab->GetRootEntityID(), true, translation, rotation, scale);
+		rootEntity.SetParent(parent);
+		return rootEntity;
+	}
+
+	static void DestroyPrefabChildEntities(Scene* _This, Entity rootEntity, Entity entity)
+	{
+		auto childIDs = entity.Children();
+		for (auto childID : childIDs)
+		{
+			Entity child = _This->GetEntityByID(childID);
+			if (!child.HasComponent<PrefabComponent>())
+			{
+				child.SetParent(rootEntity);
+			}
+			else
+			{
+				DestroyPrefabChildEntities(_This, rootEntity, child);
+				_This->DestroyEntity(child);
+			}
+		}
+	}
+
+	void Scene::RebuildPrefabEntityHierarchy(Ref<Prefab> prefab, Entity entity)
+	{
+		if (!prefab->HasValidRoot())
+			return;
+
+		Entity rootEntity = prefab->GetRootEntity();
+		DestroyPrefabChildEntities(this, rootEntity, rootEntity);
+
+		ForEach(AllComponents::Except<CoreComponents, PrefabComponent>{}, [entity]<typename T>() mutable
+		{
+			entity.RemoveComponentIsExists<T>();
+		});
+
+		TransformComponent transform = entity.Transform();
+		BuildPrefabEntityHierarchy(entity, prefab, prefab->GetRootEntityID(), true, &transform.Translation, &transform.Rotation, &transform.Scale);
+	}
+
+	void Scene::BuildPrefabEntityHierarchy(Entity parentOrRoot, Ref<Prefab> prefab, UUID prefabEntityID, bool first, const glm::vec3* translation, const glm::vec3* rotation, const glm::vec3* scale)
+	{
+		Entity templateEntity = prefab->m_Scene->GetEntityByID(prefabEntityID);
+		Entity entity = first ? parentOrRoot : CreateChildEntity(parentOrRoot, templateEntity.Tag());
+
+		entity.AddOrReplaceComponent<TransformComponent>(templateEntity.GetComponent<TransformComponent>());
+		if (translation)
+			entity.Transform().Translation = *translation;
+		if (rotation)
+			entity.Transform().Rotation = *rotation;
+		if (scale)
+			entity.Transform().Scale = *scale;
+
+		ForEach(AllComponents::ExceptCore{}, [entity, templateEntity]<typename TComponent>() mutable
+		{
+			if (auto* component = templateEntity.TryGetComponent<TComponent>())
+				entity.AddOrReplaceComponent<TComponent>(*component);
+		});
+
+		for (auto childID : templateEntity.Children())
+		{
+			BuildPrefabEntityHierarchy(entity, prefab, childID, false);
+		}
+
+		if (prefab->ShouldSetActiveCamera() && entity.HasComponent<CameraComponent>())
+		{
+			SetActiveCamera(entity.GetUUID());
+		}
+
+		if (entity.HasComponent<ScriptComponent>())
+		{
+			auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+			m_ScriptStorage.SetupEntityStorage(scriptComponent.ScriptID, entity.GetUUID());
+			prefab->m_Scene->m_ScriptStorage.CopyEntityStorage(templateEntity.GetUUID(), entity.GetUUID(), m_ScriptStorage);
+
+			auto& scriptEngine = ScriptEngine::Get();
+			if (m_IsRunning && scriptEngine.IsValidScriptID(scriptComponent.ScriptID))
+			{
+				scriptComponent.Instance = scriptEngine.Instantiate(entity.GetUUID(), m_ScriptStorage);
+				scriptComponent.Instance->InvokeMethod("OnCreate");
+			}
+		}
+
+		if (!m_IsEditorScene)
+		{
+			if (entity.HasAny<BoxCollider2DComponent, CircleCollider2DComponent>() && !entity.HasComponent<RigidBody2DComponent>())
+			{
+				entity.AddComponent<RigidBody2DComponent>();
+			}
+		}
 	}
 
 	Entity Scene::InstantiateMesh(Ref<Mesh> mesh)
@@ -1258,10 +1367,16 @@ namespace Shark {
 
 	void Scene::OnScriptComponentDestroyed(entt::registry& registry, entt::entity ent)
 	{
-		auto& idComponent = registry.get<IDComponent>(ent);
+		const auto& idComponent = registry.get<IDComponent>(ent);
+		const auto& scriptComponent = registry.get<ScriptComponent>(ent);
 
-		auto& scriptEngine = ScriptEngine::Get();
-		scriptEngine.Destoy(idComponent.ID, m_ScriptStorage);
+		if (m_IsRunning)
+		{
+			auto& scriptEngine = ScriptEngine::Get();
+			scriptEngine.Destoy(idComponent.ID, m_ScriptStorage);
+		}
+
+		m_ScriptStorage.RemoveEntityStorage(scriptComponent.ScriptID, idComponent.ID);
 	}
 
 	void Scene::CreateRuntimeRigidBody2D(Entity entity, const TransformComponent& worldTransform)

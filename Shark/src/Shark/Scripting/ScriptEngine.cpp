@@ -127,6 +127,7 @@ namespace Shark {
 		{ "System.String", ManagedFieldType::String },
 
 		{ "Shark.Entity", ManagedFieldType::Entity },
+		{ "Shark.Prefab", ManagedFieldType::Prefab },
 		{ "Shark.Vector2", ManagedFieldType::Vector2 },
 		{ "Shark.Vector3", ManagedFieldType::Vector3 },
 		{ "Shark.Vector4", ManagedFieldType::Vector4 }
@@ -229,9 +230,16 @@ namespace Shark {
 						break;
 					}
 
+					case ManagedFieldType::Prefab:
+					{
+						defaultValue.Allocate(sizeof(UUID));
+						defaultValue.SetZero();
+						break;
+					}
+
 				}
 
-				scriptMetadata.Fields[Hash::GenerateFNV(name)] = { name, type, dataType, defaultValue };
+				scriptMetadata.Fields[Hash::GenerateFNV(name)] = { name, &fieldType, dataType, defaultValue };
 			}
 
 			tempInstance.Destroy();
@@ -275,6 +283,12 @@ namespace Shark {
 			if (fieldMetadata.DataType == ManagedFieldType::Entity)
 			{
 				Coral::ManagedObject value = fieldMetadata.Type->CreateInstance(fieldStorage.GetValue<uint64_t>());
+				instance.SetFieldValue(fieldMetadata.Name, value);
+				value.Destroy();
+			}
+			else if (fieldMetadata.DataType == ManagedFieldType::Prefab)
+			{
+				Coral::ManagedObject value = fieldMetadata.Type->CreateInstance(fieldStorage.GetValue<AssetHandle>());
 				instance.SetFieldValue(fieldMetadata.Name, value);
 				value.Destroy();
 			}

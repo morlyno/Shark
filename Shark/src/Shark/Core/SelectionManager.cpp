@@ -2,8 +2,7 @@
 #include "SelectionManager.h"
 
 #include "Shark/Scene/Scene.h"
-
-#include "Shark/Debug/Profiler.h"
+#include "Shark/Scene/Entity.h"
 
 namespace Shark {
 
@@ -86,16 +85,6 @@ namespace Shark {
 		if (entity.HasParent())
 			return IsEntityOrAncestorSelected(contextID, entity.Parent());
 		return false;
-	}
-
-	void SelectionManager::SetActiveScene(Ref<Scene> scene)
-	{
-		s_SelectionData.m_Scene = scene;
-	}
-
-	Ref<Scene> SelectionManager::GetActiveScene()
-	{
-		return s_SelectionData.m_Scene;
 	}
 
 }

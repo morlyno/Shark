@@ -9,6 +9,7 @@
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
+#include "Shark/Scene/Prefab.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Math/Math.h"
@@ -29,6 +30,7 @@ namespace Shark {
 	static std::map<Coral::TypeId, void(*)(Entity)> s_RemoveComponentFunctions;
 
 #define SK_ICALL_VERIFY_PARAMETER(_param) if (!(_param)) { SK_CONSOLE_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
+#define SK_ICALL_VERIFY_PARAMETER_V(_param, _value) if (!(_value)) { SK_CONSOLE_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
 
 	static Entity GetEntity(uint64_t entityID)
 	{
@@ -90,6 +92,8 @@ namespace Shark {
 
 		ADD_ICALL(Scene_IsEntityValid);
 		ADD_ICALL(Scene_CreateEntity);
+		ADD_ICALL(Scene_InstantiatePrefab);
+		ADD_ICALL(Scene_InstantiateChildPrefab);
 		ADD_ICALL(Scene_DestroyEntity);
 		ADD_ICALL(Scene_FindEntityByTag);
 
@@ -282,7 +286,7 @@ namespace Shark {
 
 		#pragma region Input
 
-		Coral::Bool32 Input_IsKeyStateSet(KeyCode key, KeyState keyState)
+		Coral::Bool32 Input_IsKeyStateSet(KeyCode key, KeyState keyState, Coral::Bool32 allowRepeate)
 		{
 			auto& app = Application::Get();
 			if (app.GetSpecification().EnableImGui)
@@ -291,6 +295,9 @@ namespace Shark {
 				if (imguiLayer.BlocksKeyboardEvents())
 					return false;
 			}
+
+			if (allowRepeate && keyState == KeyState::Pressed)
+				return Input::IsKeyPressed(key, allowRepeate);
 
 			return Input::GetKeyState(key) == keyState;
 		}
@@ -371,6 +378,32 @@ namespace Shark {
 			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
 			Entity newEntity = currentScene->CreateEntity(name);
 			return newEntity.GetUUID();
+		}
+
+		uint64_t Scene_InstantiatePrefab(AssetHandle handle, glm::vec3* translation, glm::vec3* rotation, glm::vec3* scale)
+		{
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			SK_ICALL_VERIFY_PARAMETER(AssetManager::IsValidAssetHandle(handle));
+
+			Ref<Prefab> prefab = AssetManager::GetAsset<Prefab>(handle);
+			Entity entity = currentScene->Instansitate(prefab, translation, rotation, scale);
+			return entity.GetUUID();
+		}
+
+		uint64_t Scene_InstantiateChildPrefab(AssetHandle handle, uint64_t parentID, glm::vec3* translation, glm::vec3* rotation, glm::vec3* scale)
+		{
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+			Entity parent = currentScene->TryGetEntityByUUID(parentID);
+			SK_ICALL_VERIFY_PARAMETER(parent);
+			SK_ICALL_VERIFY_PARAMETER_V(handle, AssetManager::IsValidAssetHandle(handle));
+
+			Ref<Prefab> prefab = AssetManager::GetAsset<Prefab>(handle);
+			if (prefab)
+			{
+				Entity entity = currentScene->InstansitateChild(prefab, parent, translation, rotation, scale);
+				return entity.GetUUID();
+			}
+			return UUID::Invalid;
 		}
 
 		void Scene_DestroyEntity(uint64_t entityID)

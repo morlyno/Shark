@@ -7,11 +7,13 @@
 #include "Shark/Render/Camera.h"
 #include "Shark/Math/Math.h"
 
+#include <Coral/ManagedObject.hpp>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <Coral/ManagedObject.hpp>
+#include <ViennaTypeListLibrary/VTLL.h>
 
 class b2Body;
 class b2Fixture;
@@ -74,13 +76,6 @@ namespace Shark {
 		RelationshipComponent() = default;
 		RelationshipComponent(const RelationshipComponent&) = default;
 	};
-
-	namespace Internal {
-		struct RootParentComponent
-		{
-			int Dummy = 0;
-		};
-	}
 
 	struct SpriteRendererComponent
 	{
@@ -145,6 +140,17 @@ namespace Shark {
 		StaticMeshComponent() = default;
 		StaticMeshComponent(AssetHandle staticMesh)
 			: StaticMesh(staticMesh) {}
+	};
+
+	struct PrefabComponent
+	{
+		AssetHandle Prefab;
+		UUID EntityID;
+		bool IsRoot = false;
+
+		PrefabComponent() = default;
+		PrefabComponent(AssetHandle prefab, UUID entityID)
+			: Prefab(Prefab), EntityID(entityID) {}
 	};
 
 	struct PointLightComponent
@@ -328,44 +334,79 @@ namespace Shark {
 		friend class ScriptEngine;
 	};
 
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Groups ///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	template<typename... TComponents>
+	struct ComponentGroup;
+
+	using AllComponents = ComponentGroup</* Core       */ IDComponent, TagComponent, TransformComponent, RelationshipComponent,
+			                             /* 2D         */ SpriteRendererComponent, CircleRendererComponent, TextRendererComponent,
+			                             /* 3D         */ MeshComponent, MeshFilterComponent, SubmeshComponent, StaticMeshComponent,
+			                             /* Prefab     */ PrefabComponent,
+			                             /* Light      */ PointLightComponent, DirectionalLightComponent, SkyComponent,
+			                             /* Camera     */ CameraComponent,
+			                             /* Physics 2D */ RigidBody2DComponent, BoxCollider2DComponent, CircleCollider2DComponent, DistanceJointComponent, HingeJointComponent, PrismaticJointComponent, PulleyJointComponent,
+			                             /* Script     */ ScriptComponent>;
+
+	// Every entity is required to have all of those components
+	using CoreComponents = ComponentGroup<IDComponent, TagComponent, TransformComponent, RelationshipComponent>;
+
+	// These Components are either hidden or immutable
+	using UserHiddenComponents = ComponentGroup<IDComponent, MeshFilterComponent, PrefabComponent>;
+	using AutomationComponents = ComponentGroup<SubmeshComponent, PrefabComponent, MeshFilterComponent, RelationshipComponent>;
+
+	namespace detail {
+
+		template<typename... Seqs>
+		struct ExceptImpl;
+
+		template<template <typename...> typename Seq1, template <typename...> typename Seq2, typename... Args>
+		struct ExceptImpl<Seq1<Args...>, Seq2<>>
+		{
+			using type = Seq1<Args...>;
+		};
+
+		template<template <typename...> typename Seq1, typename... Args1, template <typename...> typename Seq2, typename... Args2>
+		struct ExceptImpl<Seq1<Args1...>, Seq2<Args2...>>
+		{
+			using type = vtll::remove_types<Seq1<Args1...>, Seq2<Args2...>>;
+		};
+
+		template<template <typename...> typename Seq1, typename... Args1, typename Arg2>
+		struct ExceptImpl<Seq1<Args1...>, Arg2>
+		{
+			using type = vtll::remove_types<Seq1<Args1...>, vtll::type_list<Arg2>>;
+		};
+
+		template<typename Seq1, typename Seq2, typename... Seq>
+		struct ExceptImpl<Seq1, Seq2, Seq...>
+		{
+			using type0 = typename ExceptImpl<Seq1, Seq2>::type;
+			using type = typename ExceptImpl<type0, Seq...>::type;
+		};
+
+	}
+
 	template<typename... TComponents>
 	struct ComponentGroup
 	{
+		using type_list = vtll::type_list<TComponents...>;
+
+
 		template<typename... TOthers>
-		using Combine = ComponentGroup<TComponents..., TOthers...>;
+		using Combine = vtll::remove_duplicates<vtll::app<type_list, TOthers...>>;
+
+		template<typename... Seqs>
+		using Except = typename detail::ExceptImpl<type_list, Seqs...>::type;
+
+		using ExceptCore = Except<CoreComponents>;
+
+		template<typename... Seq>
+		using ExceptCoreAnd = Except<CoreComponents, Seq...>;
 	};
-
-	using UserInteractableComponentsGroup = ComponentGroup<
-		// No IDComponent, MeshFilterComponent
-		TagComponent,
-		TransformComponent,
-		RelationshipComponent,
-		SpriteRendererComponent,
-		CircleRendererComponent,
-		TextRendererComponent,
-		MeshComponent,
-		SubmeshComponent,
-		StaticMeshComponent,
-		PointLightComponent,
-		DirectionalLightComponent,
-		SkyComponent,
-		CameraComponent,
-		RigidBody2DComponent,
-		BoxCollider2DComponent,
-		CircleCollider2DComponent,
-		DistanceJointComponent,
-		HingeJointComponent,
-		PrismaticJointComponent,
-		PulleyJointComponent,
-		ScriptComponent
-	>;
-
-	using AllComponentsGroup = UserInteractableComponentsGroup::Combine<MeshFilterComponent>;
-
-	constexpr ComponentGroup UserInteractableComponents = UserInteractableComponentsGroup{};
-	constexpr ComponentGroup CopySceneComponents = AllComponentsGroup::Combine<MeshFilterComponent, Internal::RootParentComponent>{};
-	constexpr ComponentGroup CopyEntityComponents = AllComponentsGroup::Combine<MeshFilterComponent, Internal::RootParentComponent>{};
-
+	
 	template<typename TFunc, typename... TComponents>
 	inline static void ForEach(TFunc func)
 	{
@@ -381,10 +422,10 @@ namespace Shark {
 		ForEach<TFunc, TComponents...>(func);
 	}
 
-	template<typename... TComponents>
-	constexpr uint32_t GroupSize(ComponentGroup<TComponents...>  group)
+	template<typename TFunc, typename... TComponents>
+	inline static void ForEach(vtll::type_list<TComponents...> componentGroup, TFunc func)
 	{
-		return sizeof...(TComponents);
+		ForEach<TFunc, TComponents...>(func);
 	}
 
 }

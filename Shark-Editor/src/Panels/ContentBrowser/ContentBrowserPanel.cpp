@@ -1,6 +1,7 @@
 ﻿#include "ContentBrowserPanel.h"
 
 #include "Shark/Core/SelectionManager.h"
+#include "Shark/Scene/Prefab.h"
 #include "Shark/Asset/Assets.h"
 #include "Shark/Asset/AssetUtils.h"
 #include "Shark/Event/ApplicationEvent.h"
@@ -157,6 +158,9 @@ namespace Shark {
 							if (ImGui::MenuItem("Material"))
 								CreateAsset<MaterialAsset>("New Material.skmat", true, Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR")));
 
+							if (ImGui::MenuItem("Prefab"))
+								CreateAsset<Prefab>("New Prefab.sfab", true);
+
 							ImGui::EndMenu();
 						}
 
@@ -165,6 +169,14 @@ namespace Shark {
 
 				}
 				ImGui::EndChild();
+
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_ID");
+					if (payload)
+						HandleEntityPayload(payload, m_CurrentDirectory);
+					ImGui::EndDragDropTarget();
+				}
 
 				ImGui::EndTable();
 			}
@@ -193,136 +205,137 @@ namespace Shark {
 			// { 500, ImGui::GetFrameHeightWithSpacing() * 5 }
 			if (ImGui::BeginTable("##itemsList", 3, ImGuiTableFlags_ScrollY | ImGuiTableFlags_Borders | ImGuiTableFlags_NoSavedSettings, { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() - style.ItemSpacing.y }))
 			{
-				UI::ScopedColorStack frameColors(ImGuiCol_FrameBg, IM_COL32_BLACK_TRANS,
-												 ImGuiCol_FrameBgActive, IM_COL32_BLACK_TRANS,
-												 ImGuiCol_FrameBgHovered, IM_COL32_BLACK_TRANS);
-				UI::ScopedStyle borderSize(ImGuiStyleVar_FrameBorderSize, 0.0f);
-				UI::ScopedStyle cellPadding(ImGuiStyleVar_CellPadding, { 0, 0 });
-
-				ImGui::TableSetupColumn("##checkAll", ImGuiTableColumnFlags_WidthFixed, UI::Fonts::Get("Bold")->FontSize);
-				ImGui::TableSetupColumn("Name");
-				ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("MeshSource").x);
-				ImGui::TableSetupScrollFreeze(0, 1);
-
-				ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 				{
-					bool temp = m_DeleteDialogue.SelectedCount == m_DeleteDialogue.Items.size();
+					UI::ScopedColorStack frameColors(ImGuiCol_FrameBg, IM_COL32_BLACK_TRANS,
+													 ImGuiCol_FrameBgActive, IM_COL32_BLACK_TRANS,
+													 ImGuiCol_FrameBgHovered, IM_COL32_BLACK_TRANS);
+					UI::ScopedStyle borderSize(ImGuiStyleVar_FrameBorderSize, 0.0f);
+					UI::ScopedStyle cellPadding(ImGuiStyleVar_CellPadding, { 0, 0 });
 
-					ImGui::TableSetColumnIndex(0);
-					ImGui::PushID(0);
-					if (ImGui::Checkbox("##checkAll", &temp))
+					ImGui::TableSetupColumn("##checkAll", ImGuiTableColumnFlags_WidthFixed, UI::Fonts::Get("Bold")->FontSize);
+					ImGui::TableSetupColumn("Name");
+					ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("MeshSource").x);
+					ImGui::TableSetupScrollFreeze(0, 1);
+
+					ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 					{
-						// clear/set all
-						for (auto& [id, selected] : m_DeleteDialogue.Items)
-							selected = temp;
-						m_DeleteDialogue.SelectedCount = temp ? m_DeleteDialogue.Items.size() : 0;
-					}
-					ImGui::PopID();
-				}
+						bool temp = m_DeleteDialogue.SelectedCount == m_DeleteDialogue.Items.size();
 
-				UI::Fonts::Push("Bold");
-				for (int column = 1; column < 3; column++)
-				{
-					ImGui::TableSetColumnIndex(column);
-					const char* columnName = ImGui::TableGetColumnName(column);
-					ImGui::PushID(column);
-					UI::ShiftCursorY(1);
-					ImGui::TableHeader(columnName);
-					ImGui::PopID();
-				}
-				UI::Fonts::Pop();
-
-				struct Func
-				{
-					static void DisplayChildren(Ref<DirectoryInfo> directory, bool selected, const uint32_t depth, const float indent)
-					{
-						for (const auto& subdir : directory->SubDirectories)
+						ImGui::TableSetColumnIndex(0);
+						ImGui::PushID(0);
+						if (ImGui::Checkbox("##checkAll", &temp))
 						{
-							UI::ScopedID scopedID(subdir);
-							ImGui::TableNextRow();
-							ImGui::TableSetColumnIndex(0);
-							ImGui::BeginDisabled();
-							bool dummy = selected;
-							ImGui::Checkbox("##check", &dummy);
-							ImGui::EndDisabled();
+							// clear/set all
+							for (auto& [id, selected] : m_DeleteDialogue.Items)
+								selected = temp;
+							m_DeleteDialogue.SelectedCount = temp ? m_DeleteDialogue.Items.size() : 0;
+						}
+						ImGui::PopID();
+					}
 
-							ImGui::TableSetColumnIndex(1);
-							UI::ShiftCursorX(indent * depth);
-							const bool open = ImGui::TreeNodeEx(subdir->Name.c_str(), ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_OpenOnArrow);
+					UI::Fonts::Push("Bold");
+					for (int column = 1; column < 3; column++)
+					{
+						ImGui::TableSetColumnIndex(column);
+						const char* columnName = ImGui::TableGetColumnName(column);
+						ImGui::PushID(column);
+						UI::ShiftCursorY(1);
+						ImGui::TableHeader(columnName);
+						ImGui::PopID();
+					}
+					UI::Fonts::Pop();
 
-							ImGui::TableSetColumnIndex(2);
-							ImGui::Text("Directory");
+					struct Func
+					{
+						static void DisplayChildren(Ref<DirectoryInfo> directory, bool selected, const uint32_t depth, const float indent)
+						{
+							for (const auto& subdir : directory->SubDirectories)
+							{
+								UI::ScopedID scopedID(subdir);
+								ImGui::TableNextRow();
+								ImGui::TableSetColumnIndex(0);
+								ImGui::BeginDisabled();
+								bool dummy = selected;
+								ImGui::Checkbox("##check", &dummy);
+								ImGui::EndDisabled();
+
+								ImGui::TableSetColumnIndex(1);
+								UI::ShiftCursorX(indent * depth);
+								const bool open = ImGui::TreeNodeEx(subdir->Name.c_str(), ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_OpenOnArrow);
+
+								ImGui::TableSetColumnIndex(2);
+								ImGui::Text("Directory");
+
+								if (open)
+								{
+									DisplayChildren(subdir, selected, depth + 1, indent);
+									ImGui::TreePop();
+								}
+
+							}
+
+							for (const auto& filename : directory->Filenames)
+							{
+								UI::ScopedID scopedID(filename);
+								ImGui::TableNextRow();
+								ImGui::TableSetColumnIndex(0);
+								ImGui::BeginDisabled();
+								bool dummy = selected;
+								ImGui::Checkbox("##check", &dummy);
+								ImGui::EndDisabled();
+
+								ImGui::TableSetColumnIndex(1);
+								UI::ShiftCursorX(indent * depth);
+								ImGui::TreeNodeEx(filename.c_str(), ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+
+								ImGui::TableSetColumnIndex(2);
+								ImGui::Text("Asset");
+							}
+						}
+					};
+
+					for (auto& [id, selected] : m_DeleteDialogue.Items)
+					{
+						SK_CORE_VERIFY(m_CurrentItems.Contains(id));
+						auto item = m_CurrentItems.Get(id);
+						UI::ScopedID scopedID(id);
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						if (ImGui::Checkbox("##check", &selected))
+							m_DeleteDialogue.SelectedCount += selected ? 1 : -1;
+
+						ImGui::TableSetColumnIndex(2);
+						ImGui::Text(item->GetSpecificTypeName());
+
+						ImGui::TableSetColumnIndex(1);
+						if (item->GetType() == CBItemType::Asset)
+						{
+							if (ImGui::Selectable(item->GetName().c_str(), false, ImGuiSelectableFlags_SpanAllColumns))
+							{
+								selected = !selected;
+								m_DeleteDialogue.SelectedCount += selected ? 1 : -1;
+							}
+						}
+						else
+						{
+							const float indent = style.IndentSpacing;
+							UI::ScopedStyle noIndent(ImGuiStyleVar_IndentSpacing, 0.0f);
+							const bool open = ImGui::TreeNodeEx(item->GetName().c_str(), ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_OpenOnArrow);
+
+							if (ImGui::IsItemActivated() && !ImGui::IsItemToggledOpen())
+								selected = !selected;
 
 							if (open)
 							{
-								DisplayChildren(subdir, selected, depth + 1, indent);
+								Ref<DirectoryInfo> directory = GetDirectory(item->GetID());
+								UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::TextDarker);
+								Func::DisplayChildren(directory, selected, 1, indent);
 								ImGui::TreePop();
 							}
-
-						}
-
-						for (const auto& filename : directory->Filenames)
-						{
-							UI::ScopedID scopedID(filename);
-							ImGui::TableNextRow();
-							ImGui::TableSetColumnIndex(0);
-							ImGui::BeginDisabled();
-							bool dummy = selected;
-							ImGui::Checkbox("##check", &dummy);
-							ImGui::EndDisabled();
-
-							ImGui::TableSetColumnIndex(1);
-							UI::ShiftCursorX(indent * depth);
-							ImGui::TreeNodeEx(filename.c_str(), ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-
-							ImGui::TableSetColumnIndex(2);
-							ImGui::Text("Asset");
-						}
-					}
-				};
-
-				for (auto& [id, selected] : m_DeleteDialogue.Items)
-				{
-					SK_CORE_VERIFY(m_CurrentItems.Contains(id));
-					auto item = m_CurrentItems.Get(id);
-					UI::ScopedID scopedID(id);
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					if (ImGui::Checkbox("##check", &selected))
-						m_DeleteDialogue.SelectedCount += selected ? 1 : -1;
-
-					ImGui::TableSetColumnIndex(2);
-					ImGui::Text(item->GetSpecificTypeName());
-
-					ImGui::TableSetColumnIndex(1);
-					if (item->GetType() == CBItemType::Asset)
-					{
-						if (ImGui::Selectable(item->GetName().c_str(), false, ImGuiSelectableFlags_SpanAllColumns))
-						{
-							selected = !selected;
-							m_DeleteDialogue.SelectedCount += selected ? 1 : -1;
-						}
-					}
-					else
-					{
-						const float indent = style.IndentSpacing;
-						UI::ScopedStyle noIndent(ImGuiStyleVar_IndentSpacing, 0.0f);
-						const bool open = ImGui::TreeNodeEx(item->GetName().c_str(), ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_OpenOnArrow);
-
-						if (ImGui::IsItemActivated() && !ImGui::IsItemToggledOpen())
-							selected = !selected;
-
-						if (open)
-						{
-							Ref<DirectoryInfo> directory = GetDirectory(item->GetID());
-							UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::TextDarker);
-							Func::DisplayChildren(directory, selected, 1, indent);
-							ImGui::TreePop();
 						}
 					}
 				}
-
 				ImGui::EndTable();
 			}
 
@@ -847,6 +860,12 @@ namespace Shark {
 					item->Move(tagetDirectory);
 					NextDirectory(m_CurrentDirectory, false, false);
 				}
+
+				if (payload->IsDataType("ENTITY_ID"))
+				{
+					auto targetDirectory = GetDirectory(currentItem->GetID());
+					HandleEntityPayload(payload, targetDirectory);
+				}
 			}
 
 		}
@@ -1155,6 +1174,22 @@ namespace Shark {
 		for (UUID id : m_ItemsToSelect)
 			SelectionManager::Select(m_SelectionID, id);
 		m_ItemsToSelect.clear();
+	}
+
+	void ContentBrowserPanel::HandleEntityPayload(const ImGuiPayload* payload, Ref<DirectoryInfo> directory)
+	{
+		Buffer idsBuffer = { payload->Data, (uint64_t)payload->DataSize };
+		if (idsBuffer.Count<UUID>() == 1)
+		{
+			UUID entityID;
+			idsBuffer.Read(&entityID, sizeof(UUID));
+
+			Entity entity = m_SceneContext->TryGetEntityByUUID(entityID);
+			if (entity)
+			{
+				CreateAsset<Prefab>(directory, fmt::format("{}.sfab", entity.Tag()), false, entity);
+			}
+		}
 	}
 
 	Ref<ContentBrowserItem> ContentBrowserPanel::CreateDirectory(const std::string& name, bool startRenaming)

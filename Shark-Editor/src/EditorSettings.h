@@ -20,6 +20,8 @@ namespace Shark {
 			bool GenerateThumbnails = true;
 		};
 		ContentBrowserSettings ContentBrowser;
+
+		bool Prefab_AutoGroupRootEntities = true;
 	};
 
 }

@@ -20,6 +20,7 @@ namespace Shark {
 		m_VelocityIterations = config.Physics.VelocityIterations;
 		m_PositionIterations = config.Physics.PositionIterations;
 		m_FixedTimeStep = config.Physics.FixedTimeStep;
+		m_MaxTimestep = config.Physics.MaxTimestep;
 
 		m_World = sknew b2World({ m_Gravity.x, m_Gravity.y });
 
@@ -47,7 +48,7 @@ namespace Shark {
 
 		m_Profile.Reset();
 
-		const float timeStep = std::min(ts.Seconds(), 0.016f);
+		const float timeStep = std::min(ts.Seconds(), m_MaxTimestep);
 		m_Profile.TimeStep = timeStep;
 
 		m_Accumulator += timeStep;
@@ -146,14 +147,14 @@ namespace Shark {
 	void PhysicsProfile::AddStep(const b2Profile& p)
 	{
 		NumSteps++;
-		Step += p.step;
-		Collide += p.collide;
-		Solve += p.solve;
-		SolveInit += p.solveInit;
-		SolveVelocity += p.solveVelocity;
-		SolvePosition += p.solvePosition;
-		Broadphase += p.broadphase;
-		SolveTOI += p.solveTOI;
+		Step += p.step * 0.001f;
+		Collide += p.collide * 0.001f;
+		Solve += p.solve * 0.001f;
+		SolveInit += p.solveInit * 0.001f;
+		SolveVelocity += p.solveVelocity * 0.001f;
+		SolvePosition += p.solvePosition * 0.001f;
+		Broadphase += p.broadphase * 0.001f;
+		SolveTOI += p.solveTOI * 0.001f;
 	}
 
 	b2Vec2 Physics2DUtils::ToB2Vec(const glm::vec2& vec)

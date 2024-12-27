@@ -29,7 +29,7 @@ namespace Shark
 
 		#region Input
 
-		internal static unsafe delegate* unmanaged<KeyCode, KeyState, bool> Input_IsKeyStateSet;
+		internal static unsafe delegate* unmanaged<KeyCode, KeyState, bool, bool> Input_IsKeyStateSet;
 		internal static unsafe delegate* unmanaged<MouseButton, MouseState, bool> Input_IsMouseStateSet;
 		internal static unsafe delegate* unmanaged<float> Input_GetMouseScroll;
 		internal static unsafe delegate* unmanaged<Vector2i*, void> Input_GetMousePos;
@@ -48,6 +48,8 @@ namespace Shark
 
 		internal static unsafe delegate* unmanaged<ulong, bool> Scene_IsEntityValid;
 		internal static unsafe delegate* unmanaged<NativeString, ulong> Scene_CreateEntity;
+		internal static unsafe delegate* unmanaged<AssetHandle, Vector3*, Vector3*, Vector3*, ulong> Scene_InstantiatePrefab;
+		internal static unsafe delegate* unmanaged<AssetHandle, ulong, Vector3*, Vector3*, Vector3*, ulong> Scene_InstantiateChildPrefab;
 		internal static unsafe delegate* unmanaged<ulong, void> Scene_DestroyEntity;
 		internal static unsafe delegate* unmanaged<NativeString, ulong> Scene_FindEntityByTag;
 
