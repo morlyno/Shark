@@ -1,12 +1,9 @@
 #include "skpch.h"
 #include "ProjectSerializer.h"
 
+#include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
 #include "Shark/Debug/Profiler.h"
-
-#include "Shark/Utils/YAMLUtils.h"
-#include <yaml-cpp/yaml.h>
-#include <magic_enum.hpp>
 
 namespace Shark {
 

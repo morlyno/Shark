@@ -22,8 +22,8 @@ __pycache__
 # Files
 Shark-Editor/Cache
 Shark-Editor/DotNet
+Shark-Editor/Config
 Shark-Editor/imgui.ini
-Shark-Editor/Panels.yaml
 Shark-Editor/Logs/*.log
 Shark-Runtime/Logs/*.log
 

@@ -2,9 +2,9 @@
 #include "DirectXShaderCompiler.h"
 
 #include "Shark/File/FileSystem.h"
-#include "Shark/Math/Math.h"
 #include "Shark/Utils/String.h"
 
+#include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
 
 #include "Platform/Windows/WindowsUtils.h"
@@ -14,7 +14,6 @@
 
 #include <fmt/chrono.h>
 #include <yaml-cpp/yaml.h>
-#include <Shark/Utils/YAMLUtils.h>
 
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_hlsl.hpp>

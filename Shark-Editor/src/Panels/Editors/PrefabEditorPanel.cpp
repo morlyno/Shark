@@ -209,7 +209,7 @@ namespace Shark {
 			std::views::filter([](Entity entity) { return !entity.HasParent(); }) |
 			std::ranges::to<std::vector>();
 
-		if (EditorSettings::Get().Prefab_AutoGroupRootEntities && rootEntities.size() > 1)
+		if (EditorSettings::Get().Prefab.AutoGroupRootEntities && rootEntities.size() > 1)
 		{
 			Entity root = prefabScene->CreateEntity("Root");
 			root.AddComponent<PrefabComponent>(m_Handle, root.GetUUID());

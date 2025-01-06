@@ -6,15 +6,14 @@
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
+#include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
 
 #include "Shark/File/FileSystem.h"
-#include "Shark/Utils/YAMLUtils.h"
 
 #include "Shark/Debug/enttDebug.h"
 #include "Shark/Debug/Profiler.h"
 
-#include <yaml-cpp/yaml.h>
 #include <magic_enum.hpp>
 
 #if SK_DEBUG

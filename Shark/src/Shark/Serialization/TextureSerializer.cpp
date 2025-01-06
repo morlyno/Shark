@@ -2,15 +2,13 @@
 #include "TextureSerializer.h"
 
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Render/Image.h"
 #include "Shark/Render/Texture.h"
-#include "Shark/Render/Renderer.h"
 
 #include "Shark/File/FileSystem.h"
+#include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
 #include "Shark/Serialization/Import/TextureImporter.h"
 
-#include "Shark/Utils/YAMLUtils.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <stb_image.h>

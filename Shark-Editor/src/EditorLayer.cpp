@@ -109,7 +109,7 @@ namespace Shark {
 		window.SetTitlebarHitTestCallback([this](int x, int y, bool& outHit) { outHit = m_TitlebarHovered; });
 
 		EditorResources::Init();
-		EditorSettings::Init();
+		EditorSettings::Initialize();
 
 		m_PanelManager = Scope<PanelManager>::Create();
 
@@ -743,8 +743,16 @@ namespace Shark {
 
 			if (ImGui::BeginMenu("Recent Projects"))
 			{
-				// TODO(moro): Add Recent Projects
-				ImGui::MenuItem("Sandbox");
+				auto& settings = EditorSettings::Get();
+				for (const auto& [lastOpened, recentProject] : std::views::reverse(settings.RecentProjects))
+				{
+					if (ImGui::MenuItem(recentProject.Name.c_str()))
+					{
+						OpenProject(recentProject.Filepath);
+						break;
+					}
+				}
+
 				ImGui::EndMenu();
 			}
 
@@ -1914,11 +1922,20 @@ namespace Shark {
 			m_ScriptEngineLastModifiedTime = FileSystem::GetLastWriteTime(Project::GetActive()->GetScriptModulePath());
 		}
 
+		auto& settings = EditorSettings::Get();
+		std::erase_if(settings.RecentProjects, [filePath](const auto& node) { return node.second.Filepath == filePath; });
+
+		RecentProject recentProject;
+		recentProject.Name = project->GetConfig().Name;
+		recentProject.Filepath = project->GetProjectFile();
+		recentProject.LastOpened = std::chrono::system_clock::now();
+		settings.RecentProjects[recentProject.LastOpened] = std::move(recentProject);
+
 		m_PanelManager->OnProjectChanged(project);
 
-		//if (!LoadScene(project->GetConfig().StartupScene))
-		//	NewScene("Empty Fallback Scene");
-		LoadScene(project->GetConfig().StartupScene);
+		if (!LoadScene(project->GetConfig().StartupScene))
+			NewScene("Empty Fallback Scene");
+		//LoadScene(project->GetConfig().StartupScene);
 	}
 
 	void EditorLayer::CloseProject()

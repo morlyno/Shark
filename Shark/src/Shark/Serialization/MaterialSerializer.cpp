@@ -7,12 +7,10 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/MeshSource.h"
 
+#include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
 
-#include "Shark/Utils/YAMLUtils.h"
 #include "Shark/Debug/Profiler.h"
-
-#include <yaml-cpp/yaml.h>
 
 namespace Shark {
 

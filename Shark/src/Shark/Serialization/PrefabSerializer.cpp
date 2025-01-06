@@ -2,15 +2,12 @@
 #include "PrefabSerializer.h"
 
 #include "Shark/Scene/Prefab.h"
+#include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SceneSerializer.h"
 #include "Shark/Serialization/SerializationMacros.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
-
-#include "Shark/Utils/YAMLUtils.h"
-
-#include <yaml-cpp/yaml.h>
 
 namespace Shark {
 

@@ -11,11 +11,9 @@
 #include "Shark/Render/Mesh.h"
 #include "Shark/Render/MeshSource.h"
 
+#include "Shark/Serialization/YAML.h"
 #include "Shark/File/FileSystem.h"
-#include "Shark/Utils/YAMLUtils.h"
 #include "Shark/Debug/Profiler.h"
-
-#include <yaml-cpp/yaml.h>
 
 namespace Shark {
 

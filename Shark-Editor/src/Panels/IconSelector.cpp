@@ -36,7 +36,7 @@ namespace Shark {
 		{
 			UI::ControlCustom(label, [&]()
 			{
-				if (UI::Widgets::InputFile(UI::DialogType::Open, path, "*.*|*.*|png|*.png", path.parent_path()))
+				if (UI::Widgets::InputFile(UI::DialogType::Open, path, "All|*.*|png|*.png", path.parent_path()))
 				{
 					path = FileSystem::Relative(path).generic_wstring();
 					if (texture)

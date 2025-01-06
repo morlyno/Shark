@@ -18,9 +18,12 @@ catch (const YAML::BadConversion& e)\
 [&]()\
 {\
 	_type value;\
-	SK_DESERIALIZE_PROPERTY(_yamlNode, _name, value, _type{});\
+	SK_DESERIALIZE_PROPERTY(_yamlNode, _name, value);\
 	return value;\
 }()
 
 #define SK_SERIALIZE_PROPERTY(_yamlNode, _name, _value)\
 	_yamlNode << YAML::Key << _name << YAML::Value << _value
+
+#define SK_BEGIN_GROUP(_out, _name) _out << YAML::Key << _name << YAML::Value << YAML::BeginMap
+#define SK_END_GROUP(_out) _out << YAML::EndMap

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Shark/Core/UUID.h"
-#include "Shark/Utils/String.h"
 
-#include <yaml-cpp/yaml.h>
+
 #include <glm/glm.hpp>
+#include <yaml-cpp/yaml.h>
 
 namespace YAML {
 
@@ -105,7 +105,7 @@ namespace YAML {
 		{
 			if (!node.IsScalar())
 				return false;
-			rhs = Shark::String::FormatDefaultCopy(node.Scalar());
+			rhs = node.Scalar();
 			return true;
 		}
 	};
@@ -194,6 +194,21 @@ namespace YAML {
 		}
 	};
 
+	template<>
+	struct convert<std::chrono::system_clock::time_point>
+	{
+		static Node encode(const std::chrono::system_clock::time_point& timepoint)
+		{
+			return Node(std::chrono::system_clock::to_time_t(timepoint));
+		}
+
+		static bool decode(const Node& node, std::chrono::system_clock::time_point& timepoint)
+		{
+			timepoint = std::chrono::system_clock::from_time_t(node.as<time_t>());
+			return true;
+		}
+	};
+
 	Emitter& operator<<(Emitter& out, wchar_t);
 	Emitter& operator<<(Emitter& out, const glm::vec2& f2);
 	Emitter& operator<<(Emitter& out, const glm::vec3& f3);
@@ -208,3 +223,5 @@ namespace YAML {
 	Node LoadFile(const char* filename);
 
 }
+
+#include "Shark/Serialization/SerializationMacros.h"

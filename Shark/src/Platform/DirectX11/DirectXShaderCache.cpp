@@ -1,11 +1,10 @@
 #include "skpch.h"
 #include "DirectXShaderCache.h"
 
+#include "Shark/Serialization/YAML.h"
 #include "Shark/File/FileSystem.h"
-#include "Platform/DirectX11/DirectXShaderCompiler.h"
 
-#include <yaml-cpp/yaml.h>
-#include "Shark/Utils/YAMLUtils.h"
+#include "Platform/DirectX11/DirectXShaderCompiler.h"
 
 namespace Shark {
 

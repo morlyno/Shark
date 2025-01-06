@@ -140,7 +140,7 @@ namespace Shark {
 
 	void PanelManager::LoadSettings()
 	{
-		const auto& settingsFile = "Panels.yaml";
+		const auto& settingsFile = "Config/Panels.yaml";
 		if (!FileSystem::Exists(settingsFile))
 		{
 			SK_CORE_WARN_TAG("UI", "Panels file not found! Continuing with default settings");
@@ -183,7 +183,7 @@ namespace Shark {
 		out << YAML::EndSeq;
 		out << YAML::EndMap;
 
-		const auto& settingsFile = "Panels.yaml";
+		const auto& settingsFile = "Config/Panels.yaml";
 		FileSystem::WriteString(settingsFile, { out.c_str(), out.size() });
 	}
 
