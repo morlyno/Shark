@@ -36,7 +36,7 @@ namespace Shark {
 		if (argc > 1)
 			startupProject = argv[1];
 
-		std::filesystem::current_path("../SharkFin");
+		std::filesystem::current_path("../Shark-Editor");
 
 		RendererAPI::SetAPI(RendererAPIType::DirectX11);
 
@@ -50,9 +50,11 @@ namespace Shark {
 		specification.EnableImGui = false;
 		specification.VSync = true;
 
+#if 0
 		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/Shark-ScriptCore.dll";
 		specification.ScriptConfig.EnableDebugging = false;
 		specification.ScriptConfig.AutoReload = false;
+#endif
 
 		return new RuntimeApplication(specification, startupProject);
 	}

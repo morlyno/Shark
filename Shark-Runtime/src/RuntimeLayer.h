@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shark/Core/Project.h"
 #include "Shark/Layer/Layer.h"
 #include "Shark/Scene/Scene.h"
 #include "Shark/Render/SceneRenderer.h"
@@ -24,12 +25,14 @@ namespace Shark {
 		bool OnWindowResizedEvent(WindowResizeEvent& event);
 		bool OnKeyPressedEvent(KeyPressedEvent& event);
 
+		Ref<ProjectConfig> LoadProject(const std::filesystem::path& projectFile);
 	private:
 		std::filesystem::path m_ProjectFile;
 
 		Ref<Scene> m_Scene;
 		Ref<SceneRenderer> m_Renderer;
-
+		Ref<RenderCommandBuffer> m_CommandBuffer;
+		Ref<RenderPass> m_PresentPass;
 	};
 
 }

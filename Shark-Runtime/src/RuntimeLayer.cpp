@@ -1,8 +1,8 @@
-#include "skpch.h"
+#include "skpch.h" 
 #include "RuntimeLayer.h"
 
 #include "Shark/Core/Application.h"
-#include "Shark/Core/Project.h"
+#include "Shark/Serialization/ProjectSerializer.h"
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Render/Renderer.h"
 
@@ -21,7 +21,7 @@ namespace Shark {
 	void RuntimeLayer::OnAttach()
 	{
 		// TODO(moro): fix-me
-		auto project = Project::LoadEditor(m_ProjectFile);
+		auto project = LoadProject(m_ProjectFile);
 		if (!project)
 		{
 			Application::Get().CloseApplication();
@@ -29,9 +29,10 @@ namespace Shark {
 		}
 
 		Project::SetActive(project);
-		ScriptEngine::LoadAssemblies(project->GetConfig().ScriptModulePath);
+		ScriptEngine::Get().LoadAppAssembly();
 		
-		m_Scene = AssetManager::GetAsset<Scene>(project->GetConfig().StartupScene);
+		m_Scene = AssetManager::GetAsset<Scene>(project->StartupScene);
+		ScriptEngine::Get().SetCurrentScene(m_Scene);
 
 		auto& window = Application::Get().GetWindow();
 		m_Scene->SetViewportSize(window.GetWidth(), window.GetHeight());
@@ -39,10 +40,33 @@ namespace Shark {
 		SceneRendererSpecification specification;
 		specification.Width = window.GetWidth();
 		specification.Height = window.GetHeight();
-		specification.IsSwapchainTarget = true;
+		specification.IsSwapchainTarget = false;
 		specification.DebugName = "Viewport Renderer";
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene, specification);
 		m_Scene->OnScenePlay();
+
+		m_CommandBuffer = RenderCommandBuffer::Create();
+
+		{
+			auto swapchain = window.GetSwapChain();
+			auto swapchainFB = swapchain->GetFrameBuffer();
+
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.BackFaceCulling = true;
+			pipelineSpecification.DepthEnabled = false;
+			pipelineSpecification.TargetFrameBuffer = swapchainFB;
+			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("BlitImage");
+			pipelineSpecification.Layout = { { VertexDataType::Float3, "Position" }, { VertexDataType::Float2, "TexCoord" }, };
+			pipelineSpecification.DebugName = "Present";
+
+			RenderPassSpecification renderPassSpecification;
+			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
+			renderPassSpecification.DebugName = pipelineSpecification.DebugName;
+			m_PresentPass = RenderPass::Create(renderPassSpecification);
+			m_PresentPass->Set("u_SourceImage", m_Renderer->GetFinalPassImage());
+			SK_CORE_VERIFY(m_PresentPass->Validate());
+			m_PresentPass->Bake();
+		}
 	}
 
 	void RuntimeLayer::OnDetach()
@@ -52,7 +76,9 @@ namespace Shark {
 		m_Scene = nullptr;
 		m_Renderer = nullptr;
 
-		ScriptEngine::UnloadAssemblies();
+		m_CommandBuffer = nullptr;
+		m_PresentPass = nullptr;
+
 		Project::SetActive(nullptr);
 	}
 
@@ -60,6 +86,13 @@ namespace Shark {
 	{
 		m_Scene->OnUpdateRuntime(ts);
 		m_Scene->OnRenderRuntime(m_Renderer);
+
+		m_CommandBuffer->Begin();
+		Renderer::BeginRenderPass(m_CommandBuffer, m_PresentPass);
+		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_PresentPass->GetPipeline(), nullptr);
+		Renderer::EndRenderPass(m_CommandBuffer, m_PresentPass);
+		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
 	}
 
 	void RuntimeLayer::OnEvent(Event& event)
@@ -85,6 +118,15 @@ namespace Shark {
 			return true;
 		}
 		return false;
+	}
+
+	Ref<ProjectConfig> RuntimeLayer::LoadProject(const std::filesystem::path& projectFile)
+	{
+		auto project = Ref<ProjectConfig>::Create();
+		ProjectSerializer serializer(project);
+		serializer.Deserialize(projectFile);
+
+		return project;
 	}
 
 }
