@@ -14,7 +14,11 @@ namespace Shark {
 
 	RenderCommandQueue::~RenderCommandQueue()
 	{
+		SK_CORE_VERIFY(m_CommandCount == 0);
 		skdelete m_Buffer;
+		m_Buffer = nullptr;
+		m_BufferPtr = nullptr;
+		//m_BufferSize = 0;
 	}
 
 	void RenderCommandQueue::Execute()

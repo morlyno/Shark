@@ -8,7 +8,7 @@ namespace Shark {
 	class DirectXRenderCommandBuffer : public RenderCommandBuffer
 	{
 	public:
-		DirectXRenderCommandBuffer();
+		DirectXRenderCommandBuffer(const std::string& name);
 		virtual ~DirectXRenderCommandBuffer();
 
 		virtual void Release() override;
@@ -19,7 +19,7 @@ namespace Shark {
 
 		virtual void Begin() override;
 		virtual void End() override;
-		virtual void Execute() override;
+		virtual void Execute(bool releaseCommandList) override;
 
 		virtual uint32_t BeginTimestampQuery() override;
 		virtual void EndTimestampQuery(uint32_t queryID) override;
@@ -42,6 +42,7 @@ namespace Shark {
 
 	private:
 		bool m_Active = false;
+		std::string m_DebugName;
 
 		ID3D11DeviceContext1* m_Context = nullptr;
 		ID3DUserDefinedAnnotation* m_Annotation = nullptr;

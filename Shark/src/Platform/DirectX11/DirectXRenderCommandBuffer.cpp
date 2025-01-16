@@ -12,7 +12,8 @@
 
 namespace Shark {
 
-	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer()
+	DirectXRenderCommandBuffer::DirectXRenderCommandBuffer(const std::string& name)
+		: m_DebugName(name)
 	{
 		CreateDeferredContext();
 		CreateQueries();
@@ -28,19 +29,21 @@ namespace Shark {
 		if (!m_Context)
 			return;
 
-		Renderer::SubmitResourceFree([context = m_Context, commandList = m_CommandList, pipelineQueries = m_PipelineStatsQueries, timestampQueryPools = m_TimestampQueryPools]()
+		Renderer::SubmitResourceFree([context = m_Context, annotation = m_Annotation, commandList = m_CommandList, pipelineQueries = m_PipelineStatsQueries, timestampQueryPools = m_TimestampQueryPools]()
 		{
 			if (commandList)
 				commandList->Release();
+			if (annotation)
+				annotation->Release();
 			if (context)
 				context->Release();
 
 			for (auto query : pipelineQueries)
 				DirectXAPI::ReleaseObject(query);
 
-			for (auto pool : timestampQueryPools)
+			for (auto& pool : timestampQueryPools)
 			{
-				for (auto query : pool)
+				for (auto& query : pool)
 				{
 					DirectXAPI::ReleaseObject(query.first);
 					DirectXAPI::ReleaseObject(query.second);
@@ -91,10 +94,10 @@ namespace Shark {
 		m_Active = false;
 	}
 
-	void DirectXRenderCommandBuffer::Execute()
+	void DirectXRenderCommandBuffer::Execute(bool releaseCommandList)
 	{
 		Ref<DirectXRenderCommandBuffer> instance = this;
-		Renderer::Submit([instance]()
+		Renderer::Submit([instance, releaseCommandList]()
 		{
 			SK_PROFILE_SCOPED("DirectXRenderCommandBuffer::Execute");
 			SK_PERF_SCOPED("Execute RenderCommandBuffer");
@@ -103,6 +106,12 @@ namespace Shark {
 			device->Lock();
 			auto queue = device->GetQueue();
 			queue->ExecuteCommandList(instance->m_CommandList, FALSE);
+
+			if (releaseCommandList)
+			{
+				DirectXAPI::ReleaseObject(instance->m_CommandList);
+				instance->m_CommandList = nullptr;
+			}
 
 			const uint32_t getdataIndex = (Renderer::RT_GetCurrentFrameIndex() + 1) % (uint32_t)instance->m_PipelineStatsQueries.size();
 
@@ -208,6 +217,7 @@ namespace Shark {
 		auto dxDevice = device->GetDirectXDevice();
 
 		DirectXAPI::CreateDeferredContext(device, m_Context);
+		DirectXAPI::SetDebugName(m_Context, m_DebugName);
 
 		m_Context->QueryInterface(IID_PPV_ARGS(&m_Annotation));
 	}

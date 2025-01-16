@@ -106,7 +106,7 @@ namespace Shark {
 		Window& window = Application::Get().GetWindow();
 		ImGui_ImplWin32_Init(window.GetHandle());
 
-		m_CommandBuffer = Ref<DirectXRenderCommandBuffer>::Create();
+		m_CommandBuffer = Ref<DirectXRenderCommandBuffer>::Create("ImGui");
 
 		Renderer::Submit([instance = this]()
 		{
@@ -207,7 +207,7 @@ namespace Shark {
 
 		m_CommandBuffer->EndTimestampQuery(m_TimestampQuery);
 		m_CommandBuffer->End();
-		m_CommandBuffer->Execute();
+		m_CommandBuffer->Execute(true);
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{

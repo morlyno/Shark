@@ -49,6 +49,7 @@ namespace Shark {
 		specification.FullScreen = false;
 		specification.EnableImGui = false;
 		specification.VSync = true;
+		specification.IsRuntime = true;
 
 #if 0
 		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/Shark-ScriptCore.dll";

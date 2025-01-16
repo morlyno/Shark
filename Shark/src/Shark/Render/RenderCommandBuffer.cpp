@@ -7,12 +7,12 @@
 
 namespace Shark {
 
-	Ref<RenderCommandBuffer> RenderCommandBuffer::Create()
+	Ref<RenderCommandBuffer> RenderCommandBuffer::Create(const std::string& name)
 	{
 		switch (RendererAPI::GetCurrentAPI())
 		{
 			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXRenderCommandBuffer>::Create();
+			case RendererAPIType::DirectX11: return Ref<DirectXRenderCommandBuffer>::Create(name);
 		}
 
 		SK_CORE_ASSERT(false, "Unkonw RendererAPI");

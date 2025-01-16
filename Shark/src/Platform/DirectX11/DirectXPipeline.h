@@ -41,7 +41,7 @@ namespace Shark {
 
 		struct PushConstant
 		{
-			ID3D11Buffer* Buffer;
+			ID3D11Buffer* Buffer = nullptr;
 			uint32_t RequestedSize = 0;
 			uint32_t Size = 0; // Aligned to a multiple of 16
 			uint32_t Binding = 0;

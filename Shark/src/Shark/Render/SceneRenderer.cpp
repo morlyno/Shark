@@ -341,7 +341,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_Specification = specification;
-		m_CommandBuffer = RenderCommandBuffer::Create();
+		m_CommandBuffer = RenderCommandBuffer::Create(fmt::format("SceneRenderer - {}", specification.DebugName));
 
 		m_CBScene             = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBScene), "Scene");
 		m_CBCamera            = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBCamera), "Camera");

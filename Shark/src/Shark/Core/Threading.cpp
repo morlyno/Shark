@@ -16,6 +16,11 @@ namespace Shark {
 		Join();
 	}
 
+	bool Thread::Running() const
+	{
+		return m_Thread.joinable();
+	}
+
 	void Thread::Join()
 	{
 		if (m_Thread.joinable())

@@ -174,7 +174,6 @@ namespace Shark {
 		Ref<DirectXSwapChain> instance = this;
 		Renderer::Submit([instance, width, height, bufferCount = m_Specification.BufferCount]()
 		{
-			instance->RT_ReleaseImGuiDependencies();
 			instance->RT_ReleaseDependencies();
 			DX11_VERIFY(instance->m_SwapChain->ResizeBuffers(bufferCount, width, height, DXImageUtils::ImageFormatToDXGI(instance->m_Format), DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
 			instance->RT_InvalidateDependencies();
@@ -194,7 +193,6 @@ namespace Shark {
 		m_Specification.Width = width;
 		m_Specification.Height = height;
 
-		RT_ReleaseImGuiDependencies();
 		RT_ReleaseDependencies();
 		DX11_VERIFY(m_SwapChain->ResizeBuffers(m_Specification.BufferCount, width, height, DXImageUtils::ImageFormatToDXGI(m_Format), DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
 		RT_InvalidateDependencies();
@@ -304,25 +302,6 @@ namespace Shark {
 			//framebuffer->m_DepthAtachmentImage = nullptr;
 
 			framebuffer->Resize(m_Specification.Width, m_Specification.Height, true);
-		}
-	}
-
-	void DirectXSwapChain::RT_ReleaseImGuiDependencies()
-	{
-		Application& app = Application::Get();
-		if (app.GetSpecification().EnableImGui)
-		{
-			DirectXImGuiLayer& imguiLayer = (DirectXImGuiLayer&)app.GetImGuiLayer();
-			Ref<DirectXRenderCommandBuffer> commandBuffer = imguiLayer.GetDirectXCommandBuffer();
-			commandBuffer->ReleaseCommandList();
-
-			ID3D11DeviceContext* context = commandBuffer->GetContext();
-			context->Flush();
-			context->ClearState();
-
-			ID3D11CommandList* commandList;
-			context->FinishCommandList(false, &commandList);
-			DirectXAPI::ReleaseObject(commandList);
 		}
 	}
 

@@ -32,6 +32,11 @@ namespace Shark {
 		Ref<Environment> m_EmptyEnvironment;
 		Ref<Texture2D> m_BRDFLUTTexture;
 
+		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;
+		Ref<DirectXIndexBuffer> m_QuadIndexBuffer;
+		Ref<DirectXVertexBuffer> m_CubeVertexBuffer;
+		Ref<DirectXIndexBuffer> m_CubeIndexBuffer;
+
 		std::unordered_map<uint64_t, ShaderDependencies> m_ShaderDependencies;
 	};
 
@@ -106,6 +111,48 @@ namespace Shark {
 		// Compile Shaders
 		Renderer::WaitAndRender();
 
+		{
+			float vertices[4 * 5] = {
+				-1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
+				 1.0f,  1.0f, 0.0f, 1.0f, 0.0f,
+				 1.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+				-1.0f, -1.0f, 0.0f, 0.0f, 1.0f
+			};
+
+			uint32_t indices[3 * 2] = {
+				0, 1, 2,
+				2, 3, 0
+			};
+
+			s_Data->m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create((uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
+			s_Data->m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
+		}
+
+		{
+			glm::vec3 vertices[] = {
+				{ -1, -1, -1 },
+				{ 1, -1, -1 },
+				{ -1, 1, -1 },
+				{ 1, 1, -1 },
+				{ -1, -1, 1 },
+				{ 1, -1, 1 },
+				{ -1, 1, 1 },
+				{ 1, 1, 1 },
+			};
+
+			uint32_t indices[] = {
+				0, 2, 1, 2, 3, 1,
+				1, 3, 5, 3, 7, 5,
+				2, 6, 3, 3, 6, 7,
+				4, 5, 7, 4, 7, 6,
+				0, 4, 2, 2, 4, 6,
+				0, 1, 4, 1, 5, 4
+			};
+
+			s_Data->m_CubeVertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices)).As<DirectXVertexBuffer>();
+			s_Data->m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices)).As<DirectXIndexBuffer>();
+		}
+
 		s_Data->m_BRDFLUTTexture = s_RendererAPI->CreateBRDFLUT();
 
 		{
@@ -137,17 +184,24 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		s_Data->m_QuadVertexBuffer = nullptr;
+		s_Data->m_QuadIndexBuffer = nullptr;
+		s_Data->m_CubeVertexBuffer = nullptr;
+		s_Data->m_CubeIndexBuffer = nullptr;
+
 		s_Data->m_ShaderLibrary = nullptr;
 		s_Data->m_WhiteTexture = nullptr;
 		skdelete s_Data;
 
-		// Flush all normal commands before shutdown
+		// Execute all (resource free) commands submitted  before the shutdown happens
+		// The RendererAPI and RendererContext will not submit any commands to the command queue after this point
 		Renderer::WaitAndRender();
 
 		s_RendererAPI->ShutDown();
 		s_RendererAPI = nullptr;
+		s_RendererContext->DestroyDevice();
+		s_RendererContext->ReportLiveObjects();
 		s_RendererContext = nullptr;
-		Renderer::WaitAndRender();
 
 		skdelete s_CommandQueue[0];
 		skdelete s_CommandQueue[1];
@@ -206,7 +260,7 @@ namespace Shark {
 
 	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
 	{
-		s_RendererAPI->RenderFullScreenQuad(commandBuffer, pipeline, material);
+		Renderer::RenderGeometry(commandBuffer, pipeline, material, s_Data->m_QuadVertexBuffer, s_Data->m_QuadIndexBuffer, s_Data->m_QuadIndexBuffer->GetCount());
 	}
 
 	void Renderer::BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer)
@@ -236,7 +290,7 @@ namespace Shark {
 
 	void Renderer::RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
 	{
-		s_RendererAPI->RenderCube(commandBuffer, pipeline, material);
+		RenderGeometry(commandBuffer, pipeline, material, s_Data->m_CubeVertexBuffer, s_Data->m_CubeIndexBuffer, s_Data->m_CubeIndexBuffer->GetCount());
 	}
 
 	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable)

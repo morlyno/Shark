@@ -45,7 +45,7 @@ namespace Shark {
 		m_Renderer = Ref<SceneRenderer>::Create(m_Scene, specification);
 		m_Scene->OnScenePlay();
 
-		m_CommandBuffer = RenderCommandBuffer::Create();
+		m_CommandBuffer = RenderCommandBuffer::Create("Runtime");
 
 		{
 			auto swapchain = window.GetSwapChain();

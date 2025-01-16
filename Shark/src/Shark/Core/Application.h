@@ -24,6 +24,7 @@ namespace Shark {
 		bool FullScreen = false;
 		bool EnableImGui = false;
 		bool VSync = true;
+		bool IsRuntime = false;
 
 		//ScriptEngineConfig ScriptConfig;
 	};

@@ -21,6 +21,7 @@ namespace Shark {
 		virtual void AcknowledgeDependency(Weak<FrameBuffer> framebuffer) override;
 		virtual void AcknowledgeDependency(Weak<Image2D> image) override;
 
+		virtual Ref<Image2D> GetTargetImage() const override { return m_FrameBuffer->GetImage(0); }
 		virtual Ref<FrameBuffer> GetFrameBuffer() const override { return m_FrameBuffer; }
 		virtual const SwapChainSpecifications& GetSpecification() const override { return m_Specification; }
 
@@ -33,8 +34,6 @@ namespace Shark {
 
 		void RT_ReleaseDependencies();
 		void RT_InvalidateDependencies();
-
-		void RT_ReleaseImGuiDependencies();
 
 	private:
 		const DXGI_SWAP_EFFECT m_SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;

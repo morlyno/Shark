@@ -18,6 +18,7 @@ namespace Shark {
 			SetName(m_Name);
 		}
 
+		bool Running() const;
 		void Join();
 		void SetName(const std::string& name);
 

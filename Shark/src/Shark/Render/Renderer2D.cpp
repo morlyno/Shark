@@ -46,7 +46,7 @@ namespace Shark {
 		uint32_t width = m_Specifications.Width;
 		uint32_t height = m_Specifications.Height;
 
-		m_CommandBuffer = RenderCommandBuffer::Create();
+		m_CommandBuffer = RenderCommandBuffer::Create("Renderer2D");
 		m_CBCamera = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBCamera));
 
 		if (!targetFramebuffer)

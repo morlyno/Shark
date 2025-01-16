@@ -7,10 +7,17 @@
 
 #include "Platform/Windows/WindowsUtils.h"
 #include "Platform/DirectX11/DirectXAPI.h"
-#include "Platform/DirectX11/DirectXRenderer.h"
 #include <dxgi1_3.h>
 
 namespace Shark {
+
+#define INTERNAL_GET_FIRST(_macro, ...) _macro
+
+#define DX_DESTROYED_VERIFY(_release_call, _ref_count) SK_CORE_VERIFY(false, "Object was not destroyed! Refcount is {} " #_release_call " {}", _ref_count, std::source_location::current())
+#define DX_DESTROYED_LOG_ERROR(_release_call, _ref_count) SK_CORE_ERROR("Object was not destroyed! Refcount is {} " #_release_call " {}", _ref_count, std::source_location::current())
+
+#define DX_DESTROYED_DEFAULT(_release_call, _ref_count) DX_DESTROYED_LOG_ERROR(_release_call, _ref_count); SK_DEBUG_BREAK()
+#define DX_DESTROYED(_release_call, ...) { const ULONG count = (_release_call); while (count != 0) { __VA_OPT__(INTERNAL_GET_FIRST(__VA_ARGS__)(_release_call, count); break;); DX_DESTROYED_DEFAULT(_release_call, count); break; } }
 
 	namespace utils {
 
@@ -31,7 +38,15 @@ namespace Shark {
 
 	DirectXContext::~DirectXContext()
 	{
+		DestroyDevice();
 		m_InfoQueue->Release();
+	}
+
+	void DirectXContext::DestroyDevice()
+	{
+		if (!m_Device)
+			return;
+
 		m_Device = nullptr;
 		SK_CORE_WARN_TAG("Renderer", "DirectXContext destroyed");
 	}
@@ -62,7 +77,7 @@ namespace Shark {
 		IDXGIDebug1* debug;
 		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug))))
 		{
-			debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+			debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
 			FlushMessages();
 			debug->Release();
 		}
@@ -108,6 +123,9 @@ namespace Shark {
 
 	void DirectXContext::FlushDXMessages()
 	{
+		if (!m_Device)
+			return;
+
 		auto dxDevice = m_Device->GetDirectXDevice();
 
 		ID3D11InfoQueue* infoQueue;
@@ -229,21 +247,33 @@ namespace Shark {
 		DX11_VERIFY(device->QueryInterface(IID_PPV_ARGS(&m_Device)));
 		device->Release();
 
-		ID3D11Query* query = nullptr;
-		DirectXAPI::CreateQuery(m_Device, D3D11_QUERY_TIMESTAMP_DISJOINT, query);
-		m_Queue->Begin(query);
-		m_Queue->End(query);
-		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT data;
-		HRESULT result = m_Queue->GetData(query, &data, sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT), 0);
-		DX11_VERIFY(result);
-		m_Limits.TimestampPeriod = data.Frequency;
+		{
+			ID3D11Query* query = nullptr;
+			DirectXAPI::CreateQuery(m_Device, D3D11_QUERY_TIMESTAMP_DISJOINT, query);
+
+			m_Queue->Begin(query);
+			m_Queue->End(query);
+
+			D3D11_QUERY_DATA_TIMESTAMP_DISJOINT data;
+			m_Queue->GetData(query, &data, sizeof(D3D11_QUERY_DATA_TIMESTAMP_DISJOINT), 0);
+			m_Limits.TimestampPeriod = data.Frequency;
+
+			query->Release();
+		}
 	}
 
 	DirectXDevice::~DirectXDevice()
 	{
+		m_CommandPools.clear();
+#if 0
 		m_Queue->Release();
 		m_Device->Release();
 		m_Factory->Release();
+#else
+		DX_DESTROYED(m_Queue->Release(), DX_DESTROYED_LOG_ERROR);
+		DX_DESTROYED(m_Factory->Release(), DX_DESTROYED_LOG_ERROR);
+		DX_DESTROYED(m_Device->Release(), DX_DESTROYED_LOG_ERROR);
+#endif
 		SK_CORE_WARN_TAG("Renderer", "DirectXDevice destroyed");
 	}
 
@@ -318,40 +348,22 @@ namespace Shark {
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();
 
-		for (uint32_t i = 0; i < 3; i++)
-		{
-			ID3D11DeviceContext* context;
-			DirectXAPI::CreateDeferredContext(dxDevice, context);
-
-			CommandBuffer cmdBuffer;
-			cmdBuffer.Context = context;
-			cmdBuffer.InUse = false;
-			m_Pool.push_front(cmdBuffer);
-		}
+		DirectXAPI::CreateDeferredContext(dxDevice, m_Context);
 	}
 
 	DirectXCommandPool::~DirectXCommandPool()
 	{
-		for (const auto& cmdBuffer : m_Pool)
-		{
-			SK_CORE_ASSERT(cmdBuffer.InUse == false);
-			cmdBuffer.Context->Release();
-		}
+		DX_DESTROYED(m_Context->Release(), DX_DESTROYED_LOG_ERROR);
+		m_Context = nullptr;
 	}
 
 	ID3D11DeviceContext* DirectXCommandPool::AllocateCommandBuffer()
 	{
-		SK_PROFILE_FUNCTION();
-		auto device = DirectXContext::GetCurrentDevice();
-		auto dxDevice = device->GetDirectXDevice();
-
-		CommandBuffer* cmdBuffer = GetNextAvailableCommandBuffer();
-		return cmdBuffer->Context;
+		return m_Context;
 	}
 
 	void DirectXCommandPool::FlushCommandBuffer(ID3D11DeviceContext* commandBuffer)
 	{
-		SK_PROFILE_FUNCTION();
 		auto device = DirectXContext::GetCurrentDevice();
 		auto dxDevice = device->GetDirectXDevice();
 
@@ -365,56 +377,6 @@ namespace Shark {
 
 		commandList->Release();
 		commandBuffer->ClearState();
-		ReleaseCommandBuffer(commandBuffer);
-	}
-
-	DirectXCommandPool::CommandBuffer* DirectXCommandPool::GetNextAvailableCommandBuffer()
-	{
-		if (m_CommandBuffersInUse < m_Pool.size())
-		{
-			auto i = m_Pool.rend();
-			for (i = m_Pool.rbegin(); i != m_Pool.rend(); i++)
-			{
-				if (!i->InUse)
-				{
-					m_CommandBuffersInUse++;
-					return &*i;
-				}
-			}
-
-			SK_CORE_VERIFY(false);
-		}
-
-		SK_CORE_WARN_TAG("Renderer", "Creating CommandBuffer (Pool size: {})", m_Pool.size());
-		auto device = DirectXContext::GetCurrentDevice();
-		auto dxDevice = device->GetDirectXDevice();
-
-		ID3D11DeviceContext* context;
-		DirectXAPI::CreateDeferredContext(dxDevice, context);
-
-		CommandBuffer cmdBuffer;
-		cmdBuffer.Context = context;
-		cmdBuffer.InUse = true;
-		m_Pool.push_front(cmdBuffer);
-		m_CommandBuffersInUse++;
-
-		return &m_Pool.front();
-	}
-
-	void DirectXCommandPool::ReleaseCommandBuffer(ID3D11DeviceContext* commandBuffer)
-	{
-		auto i = m_Pool.begin();
-		for (; i != m_Pool.end(); i++)
-		{
-			if (i->Context == commandBuffer)
-			{
-				i->InUse = false;
-				m_CommandBuffersInUse--;
-				return;
-			}
-		}
-
-		SK_CORE_VERIFY(false);
 	}
 
 }

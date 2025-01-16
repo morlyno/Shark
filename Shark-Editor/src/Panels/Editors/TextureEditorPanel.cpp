@@ -15,7 +15,7 @@ namespace Shark {
 	TextureEditorPanel::TextureEditorPanel(const std::string& panelName, const AssetMetaData& metadata)
 		: EditorPanel(panelName)
 	{
-		m_CommandBuffer = RenderCommandBuffer::Create();
+		m_CommandBuffer = RenderCommandBuffer::Create(fmt::format("TextureEditorPanel - {}", metadata.FilePath));
 
 		SetAsset(metadata);
 	}

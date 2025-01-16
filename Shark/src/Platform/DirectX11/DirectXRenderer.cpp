@@ -86,65 +86,12 @@ namespace Shark {
 		auto& capabilities = Renderer::GetCapabilities();
 		capabilities.MaxMipLeves = D3D11_REQ_MIP_LEVELS;
 		capabilities.MaxAnisotropy = D3D11_REQ_MAXANISOTROPY;
-
-		m_QuadVertexLayout = {
-			{ VertexDataType::Float3, "Position" },
-			{ VertexDataType::Float2, "TexCoord" },
-		};
-
-		float vertices[4 * 5] = {
-			-1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
-			 1.0f,  1.0f, 0.0f, 1.0f, 0.0f,
-			 1.0f, -1.0f, 0.0f, 1.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f, 1.0f
-		};
-
-		uint32_t indices[3 * 2] = {
-			0, 1, 2,
-			2, 3, 0
-		};
-
-		m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create((uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
-		m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
-
-		{
-			glm::vec3 vertices[] = {
-				{ -1, -1, -1 },
-				{ 1, -1, -1 },
-				{ -1, 1, -1 },
-				{ 1, 1, -1 },
-				{ -1, -1, 1 },
-				{ 1, -1, 1 },
-				{ -1, 1, 1 },
-				{ 1, 1, 1 },
-			};
-
-			uint32_t indices[] = {
-				0, 2, 1, 2, 3, 1,
-				1, 3, 5, 3, 7, 5,
-				2, 6, 3, 3, 6, 7,
-				4, 5, 7, 4, 7, 6,
-				0, 4, 2, 2, 4, 6,
-				0, 1, 4, 1, 5, 4
-			};
-
-			m_CubeVertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices)).As<DirectXVertexBuffer>();
-			m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices)).As<DirectXIndexBuffer>();
-		}
-
-		Renderer::Submit([instance = Ref(this)]() { SK_CORE_INFO_TAG("Renderer", "GPU Resources Created"); instance->m_ResourceCreated = true; });
 	}
 
 	void DirectXRenderer::ShutDown()
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_QuadVertexBuffer = nullptr;
-		m_QuadIndexBuffer = nullptr;
-		m_CubeVertexBuffer = nullptr;
-		m_CubeIndexBuffer = nullptr;
-
-		m_ResourceCreated = false;
 		SK_CORE_WARN_TAG("Renderer", "DirectXRenderer destroyed");
 	}
 
@@ -217,59 +164,6 @@ namespace Shark {
 
 	void DirectXRenderer::EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
 	{
-		Renderer::Submit([dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>(), dxRenderPass = renderPass.As<DirectXRenderPass>()]()
-		{
-		});
-	}
-
-	void DirectXRenderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
-	{
-		SK_PROFILE_FUNCTION();
-
-		Ref<DirectXRenderCommandBuffer> dxCommandBuffer = commandBuffer.As<DirectXRenderCommandBuffer>();
-		Ref<DirectXPipeline> dxPipeline = pipeline.As<DirectXPipeline>();
-		Ref<DirectXMaterial> dxMaterial = material.As<DirectXMaterial>();
-		Ref<DirectXRenderer> instance = this;
-		Renderer::Submit([instance, dxCommandBuffer, dxPipeline, frambuffer = dxPipeline->m_FrameBuffer, dxMaterial, vertexBuffer = m_QuadVertexBuffer, indexBuffer = m_QuadIndexBuffer]()
-		{
-			SK_PROFILE_SCOPED("DirectXRenderer::RenderFullScreenQuad");
-
-			ID3D11DeviceContext* ctx = dxCommandBuffer->GetContext();
-
-			std::array<ID3D11RenderTargetView*, 8> nullRTVs;
-			nullRTVs.fill(nullptr);
-			ctx->OMSetRenderTargets(8, nullRTVs.data(), nullptr);
-
-			Ref<DirectXShader> dxShader = dxPipeline->m_Shader;
-			ctx->VSSetShader(dxShader->m_VertexShader, nullptr, 0);
-			ctx->PSSetShader(dxShader->m_PixelShader, nullptr, 0);
-
-			const UINT offset = 0;
-			const UINT stride = dxPipeline->GetSpecification().Layout.GetVertexSize();
-			ctx->IASetVertexBuffers(0, 1, &vertexBuffer->m_VertexBuffer, &stride, &offset);
-			ctx->IASetIndexBuffer(indexBuffer->m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-			ctx->IASetInputLayout(dxPipeline->m_InputLayout);
-
-			ctx->RSSetState(dxPipeline->m_RasterizerState);
-			ctx->OMSetDepthStencilState(dxPipeline->m_DepthStencilState, dxPipeline->m_Specification.StencilRef);
-
-			instance->RT_PrepareAndBindMaterial(dxCommandBuffer, dxMaterial);
-			if (dxPipeline->UsesPushConstant())
-			{
-				const auto& reflectionData = dxPipeline->GetSpecification().Shader->GetReflectionData();
-				utils::BindConstantBuffer(ctx, dxPipeline->m_PushConstant.Buffer, reflectionData.PushConstant.Stage, reflectionData.PushConstant.DXBinding);
-			}
-
-			Ref<DirectXFrameBuffer> dxFrameBuffer = frambuffer;
-			ctx->OMSetRenderTargets((uint32_t)dxFrameBuffer->m_FrameBuffers.size(), dxFrameBuffer->m_FrameBuffers.data(), dxFrameBuffer->m_DepthStencilView);
-			ctx->OMSetBlendState(dxFrameBuffer->m_BlendState, nullptr, 0xFFFFFFFF);
-			ctx->RSSetViewports(1, &dxFrameBuffer->m_Viewport);
-
-			
-			ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			DX11_VALIDATE_CONTEXT(ctx);
-			ctx->DrawIndexed(6, 0, 0);
-		});
 	}
 
 	void DirectXRenderer::BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer)
@@ -439,11 +333,6 @@ namespace Shark {
 		});
 	}
 
-	void DirectXRenderer::RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
-	{
-		RenderGeometry(commandBuffer, pipeline, material, m_CubeVertexBuffer, m_CubeIndexBuffer, m_CubeIndexBuffer->GetCount());
-	}
-
 	void DirectXRenderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable)
 	{
 		SK_CORE_VERIFY(false);
@@ -557,18 +446,26 @@ namespace Shark {
 
 	void DirectXRenderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
+		const bool canRenderToDestination = destinationImage->GetType() == ImageType::Atachment;
+
 		FrameBufferSpecification framebufferSpecification;
 		framebufferSpecification.Width = destinationImage->GetWidth();
 		framebufferSpecification.Height = destinationImage->GetHeight();
 		framebufferSpecification.Atachments = { destinationImage->GetSpecification().Format };
 		framebufferSpecification.DebugName = "BlitImage";
 
+		if (canRenderToDestination)
+			framebufferSpecification.ExistingImages[0] = destinationImage;
+
 		PipelineSpecification pipelineSpecification;
 		pipelineSpecification.BackFaceCulling = true;
 		pipelineSpecification.DepthEnabled = false;
 		pipelineSpecification.TargetFrameBuffer = FrameBuffer::Create(framebufferSpecification);
 		pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("BlitImage");
-		pipelineSpecification.Layout = m_QuadVertexLayout;
+		pipelineSpecification.Layout = {
+				{ VertexDataType::Float3, "Position" },
+				{ VertexDataType::Float2, "TexCoord" },
+		};
 		pipelineSpecification.DebugName = framebufferSpecification.DebugName;
 
 		RenderPassSpecification renderPassSpecification;
@@ -580,10 +477,11 @@ namespace Shark {
 		renderPass->Bake();
 
 		BeginRenderPass(commandBuffer, renderPass, false);
-		RenderFullScreenQuad(commandBuffer, renderPass->GetPipeline(), nullptr);
+		Renderer::RenderFullScreenQuad(commandBuffer, renderPass->GetPipeline(), nullptr);
 		EndRenderPass(commandBuffer, renderPass);
 
-		CopyMip(commandBuffer, renderPass->GetOutput(0), 0, destinationImage, 0);
+		if (!canRenderToDestination)
+			CopyMip(commandBuffer, renderPass->GetOutput(0), 0, destinationImage, 0);
 	}
 
 	void DirectXRenderer::GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image)

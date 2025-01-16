@@ -9,6 +9,7 @@ namespace Shark {
 	public:
 		static Ref<RendererContext> Create();
 
+		virtual void DestroyDevice() = 0;
 		virtual void ReportLiveObjects() = 0;
 	};
 

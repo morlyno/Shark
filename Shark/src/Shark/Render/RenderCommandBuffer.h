@@ -25,7 +25,7 @@ namespace Shark {
 
 		virtual void Begin() = 0;
 		virtual void End() = 0;
-		virtual void Execute() = 0;
+		virtual void Execute(bool releaseCommandList = false) = 0;
 
 		virtual uint32_t BeginTimestampQuery() = 0;
 		virtual void EndTimestampQuery(uint32_t queryID) = 0;
@@ -34,7 +34,7 @@ namespace Shark {
 		virtual TimeStep GetTime(uint32_t queryID) const = 0;
 
 	public:
-		static Ref<RenderCommandBuffer> Create();
+		static Ref<RenderCommandBuffer> Create(const std::string& name);
 
 	};
 

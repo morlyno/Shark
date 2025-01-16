@@ -24,9 +24,13 @@ namespace Shark {
 
 	void EditorAssetThread::Stop()
 	{
+		if (!m_Thread.Running())
+			return;
+
 		m_Running = false;
 		m_WorkAvailable.notify_all();
 		m_Thread.Join();
+		SK_CORE_WARN_TAG("AssetThread", "Thread Stopped");
 	}
 
 	void EditorAssetThread::WaitUntilIdle()

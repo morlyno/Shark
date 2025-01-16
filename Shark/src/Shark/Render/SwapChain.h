@@ -26,6 +26,7 @@ namespace Shark {
 		virtual void AcknowledgeDependency(Weak<FrameBuffer> framebuffer) = 0;
 		virtual void AcknowledgeDependency(Weak<Image2D> image) = 0;
 
+		virtual Ref<Image2D> GetTargetImage() const = 0;
 		virtual Ref<FrameBuffer> GetFrameBuffer() const = 0;
 		virtual const SwapChainSpecifications& GetSpecification() const = 0;
 

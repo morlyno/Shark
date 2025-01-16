@@ -31,6 +31,8 @@ namespace Shark {
 		DirectXContext();
 		~DirectXContext();
 
+		virtual void DestroyDevice() override;
+
 		void HandleError(HRESULT hr);
 		void FlushMessages();
 		virtual void ReportLiveObjects() override;
@@ -90,13 +92,6 @@ namespace Shark {
 
 	class DirectXCommandPool : public RefCount
 	{
-	private:
-		struct CommandBuffer
-		{
-			ID3D11DeviceContext* Context = nullptr;
-			bool InUse = false;
-		};
-
 	public:
 		DirectXCommandPool();
 		~DirectXCommandPool();
@@ -105,13 +100,7 @@ namespace Shark {
 		void FlushCommandBuffer(ID3D11DeviceContext* commandBuffer);
 
 	private:
-		CommandBuffer* GetNextAvailableCommandBuffer();
-		void ReleaseCommandBuffer(ID3D11DeviceContext* commandBuffer);
-
-	private:
-		uint32_t m_CommandBuffersInUse = 0;
-
-		std::list<CommandBuffer> m_Pool;
+		ID3D11DeviceContext* m_Context = nullptr;
 	};
 
 }

@@ -87,7 +87,7 @@ namespace Shark {
 
 	DirectXPipeline::~DirectXPipeline()
 	{
-		Renderer::SubmitResourceFree([rasterizer = m_RasterizerState, depthStencil = m_DepthStencilState, inputLayout = m_InputLayout]()
+		Renderer::SubmitResourceFree([rasterizer = m_RasterizerState, depthStencil = m_DepthStencilState, inputLayout = m_InputLayout, pcBuffer = m_PushConstant.Buffer]()
 		{
 			if (rasterizer)
 				rasterizer->Release();
@@ -95,6 +95,8 @@ namespace Shark {
 				depthStencil->Release();
 			if (inputLayout)
 				inputLayout->Release();
+			if (pcBuffer)
+				pcBuffer->Release();
 		});
 	}
 
