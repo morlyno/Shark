@@ -269,7 +269,7 @@ namespace Shark {
 						}
 						else
 						{
-							const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(materialHandle);
+							const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(materialHandle);
 							if (!metadata.FilePath.empty())
 								materialName = FileSystem::GetStemString(metadata.FilePath);
 							else
@@ -488,7 +488,7 @@ namespace Shark {
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(SceneHierarchyPanel::OnKeyPressedEvent));
 	}
 
-	void SceneHierarchyPanel::OnProjectChanged(Ref<Project> project)
+	void SceneHierarchyPanel::OnProjectChanged(Ref<ProjectConfig> projectConfig)
 	{
 		m_Context = nullptr;
 	}
@@ -1130,7 +1130,7 @@ namespace Shark {
 						}
 						else
 						{
-							const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(firstComponent.Material);
+							const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(firstComponent.Material);
 							if (!metadata.FilePath.empty())
 								materialName = FileSystem::GetStemString(metadata.FilePath);
 							else
@@ -1654,7 +1654,7 @@ namespace Shark {
 				Entity entity = m_Context->CreateEntity(entityName);
 				const std::filesystem::path defaultSourcePath = "Meshes/Default/Source";
 				const std::filesystem::path defaultPath = "Meshes/Default";
-				AssetHandle meshHandle = Project::GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(defaultPath / staticMeshName);
+				AssetHandle meshHandle = Project::GetEditorAssetManager()->GetAssetHandleFromFilepath(defaultPath / staticMeshName);
 				if (meshHandle)
 				{
 					entity.AddComponent<StaticMeshComponent>(meshHandle);
@@ -1663,10 +1663,10 @@ namespace Shark {
 				{
 					if (FileSystem::Exists(Project::GetActiveAssetsDirectory() / defaultSourcePath / sourceMeshName))
 					{
-						AssetHandle sourceHandle = Project::GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(defaultSourcePath / sourceMeshName);
+						AssetHandle sourceHandle = Project::GetEditorAssetManager()->GetAssetHandleFromFilepath(defaultSourcePath / sourceMeshName);
 						if (sourceHandle)
 						{
-							Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(defaultPath / staticMeshName, sourceHandle);
+							Ref<Mesh> mesh = Project::GetEditorAssetManager()->CreateAsset<Mesh>(defaultPath / staticMeshName, sourceHandle);
 							entity.AddComponent<StaticMeshComponent>(meshHandle);
 						}
 					}

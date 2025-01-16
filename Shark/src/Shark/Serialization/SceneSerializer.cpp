@@ -789,7 +789,7 @@ namespace Shark {
 		ScopedTimer timer("Serializing Scene");
 
 		SceneSerializer serializer(asset.As<Scene>());
-		serializer.Serialize(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
+		serializer.Serialize(Project::GetEditorAssetManager()->GetFilesystemPath(metadata));
 		return true;
 	}
 
@@ -801,7 +801,7 @@ namespace Shark {
 
 		Ref<Scene> scene = Ref<Scene>::Create();
 		SceneSerializer serializer(scene);
-		if (!serializer.Deserialize(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata)))
+		if (!serializer.Deserialize(Project::GetEditorAssetManager()->GetFilesystemPath(metadata)))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to load scene!\n\t - {}\n\t - {}", serializer.GetErrorMessage(), metadata.FilePath);
 			return false;

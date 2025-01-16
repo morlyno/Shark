@@ -25,13 +25,13 @@ namespace Shark {
 
 		ScopedTimer timer("Loading MeshSource");
 
-		if (!Project::GetActive()->GetEditorAssetManager()->HasExistingFilePath(metadata))
+		if (!Project::GetEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);
 			return false;
 		}
 
-		auto filesystemPath = Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata);
+		auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
 		AssimpMeshImporter importer(filesystemPath);
 		Ref<MeshSource> meshSource = importer.ToMeshSourceFromFile();
 		if (!meshSource)

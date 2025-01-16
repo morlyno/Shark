@@ -15,12 +15,12 @@ namespace Shark {
 	{
 		m_SceneContext = sceneContext;
 
-		const auto& config = Project::GetActive()->GetConfig();
-		m_Gravity = config.Physics.Gravity;
-		m_VelocityIterations = config.Physics.VelocityIterations;
-		m_PositionIterations = config.Physics.PositionIterations;
-		m_FixedTimeStep = config.Physics.FixedTimeStep;
-		m_MaxTimestep = config.Physics.MaxTimestep;
+		const auto& config = Project::GetActive()->Physics;
+		m_Gravity = config.Gravity;
+		m_VelocityIterations = config.VelocityIterations;
+		m_PositionIterations = config.PositionIterations;
+		m_FixedTimeStep = config.FixedTimeStep;
+		m_MaxTimestep = config.MaxTimestep;
 
 		m_World = sknew b2World({ m_Gravity.x, m_Gravity.y });
 

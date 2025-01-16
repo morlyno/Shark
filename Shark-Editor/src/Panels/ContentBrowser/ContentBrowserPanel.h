@@ -195,11 +195,11 @@ namespace Shark {
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
-		virtual void OnProjectChanged(Ref<Project> project) override;
+		virtual void OnProjectChanged(Ref<ProjectConfig> project) override;
 		virtual void SetContext(Ref<Scene> context) override { m_SceneContext = context; }
 
 		void ScheduleReload() { m_ReloadScheduled = true; }
-		Ref<Project> GetProject() { return m_Project; }
+		Ref<ProjectConfig> GetProject() const { return m_ProjectConfig; }
 		Ref<ThumbnailCache> GetThumbnailCache() const { return m_ThumbnailCache; }
 		Ref<DirectoryInfo> GetCurrentDirectory() const { return m_CurrentDirectory; }
 		UUID GetSelectionID() const { return m_SelectionID; }
@@ -245,8 +245,8 @@ namespace Shark {
 		template<typename TAsset, typename... TArgs>
 		void CreateAsset(const std::string& name, bool startRename, TArgs&&... args)
 		{
-			std::filesystem::path directoryPath = m_Project->GetAbsolute(m_CurrentDirectory->Filepath / name);
-			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+			std::filesystem::path directoryPath = m_ProjectConfig->GetAbsolute(m_CurrentDirectory->Filepath / name);
+			Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
 			Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath, std::forward<TArgs>(args)...);
 			const auto& metadata = assetManager->GetMetadata(asset);
 			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserAsset>::Create(this, metadata, GetAssetIcon(FileSystem::GetExtensionString(metadata.FilePath)));
@@ -261,8 +261,8 @@ namespace Shark {
 		template<typename TAsset, typename... TArgs>
 		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename, TArgs&&... args)
 		{
-			std::filesystem::path directoryPath = m_Project->GetAbsolute(directory->Filepath / name);
-			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+			std::filesystem::path directoryPath = m_ProjectConfig->GetAbsolute(directory->Filepath / name);
+			Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
 			Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath, std::forward<TArgs>(args)...);
 			const auto& metadata = assetManager->GetMetadata(asset);
 			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserAsset>::Create(this, metadata, GetAssetIcon(FileSystem::GetExtensionString(metadata.FilePath)));
@@ -280,7 +280,7 @@ namespace Shark {
 		}
 
 	private:
-		Ref<Project> m_Project;
+		Ref<ProjectConfig> m_ProjectConfig;
 		Ref<ThumbnailCache> m_ThumbnailCache;
 		Ref<ThumbnailGenerator> m_ThumbnailGenerator;
 		UUID m_SelectionID = UUID::Generate();

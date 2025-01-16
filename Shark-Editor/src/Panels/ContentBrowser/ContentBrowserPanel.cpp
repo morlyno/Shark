@@ -44,7 +44,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (!m_Project)
+		if (!m_ProjectConfig)
 			return;
 
 		if (m_ReloadScheduled)
@@ -141,7 +141,7 @@ namespace Shark {
 					if (ImGui::BeginPopupContextWindow("##DirectoryPopup", ImGuiMouseButton_Right | ImGuiPopupFlags_NoOpenOverItems))
 					{
 						if (ImGui::MenuItem("Open In Explorer"))
-							Platform::Execute(ExecuteVerb::Explore, m_Project->GetDirectory() / m_CurrentDirectory->Filepath);
+							Platform::Execute(ExecuteVerb::Explore, m_ProjectConfig->GetDirectory() / m_CurrentDirectory->Filepath);
 
 						ImGui::Separator();
 
@@ -391,11 +391,11 @@ namespace Shark {
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(ContentBrowserPanel::OnKeyPressedEvent));
 	}
 
-	void ContentBrowserPanel::OnProjectChanged(Ref<Project> project)
+	void ContentBrowserPanel::OnProjectChanged(Ref<ProjectConfig> project)
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
-		m_Project = project;
+		m_ProjectConfig = project;
 		m_ReloadScheduled = false;
 		m_BaseDirectory = nullptr;
 		m_CurrentDirectory = nullptr;
@@ -410,7 +410,7 @@ namespace Shark {
 			m_ThumbnailGenerator = Ref<ThumbnailGenerator>::Create();
 			m_ThumbnailCache = Ref<ThumbnailCache>::Create();
 
-			m_BaseDirectory = Ref<DirectoryInfo>::Create(nullptr, m_Project->GetAssetsDirectory());
+			m_BaseDirectory = Ref<DirectoryInfo>::Create(nullptr, m_ProjectConfig->GetAssetsDirectory());
 			m_CurrentDirectory = m_BaseDirectory;
 			Reload();
 		}
@@ -472,8 +472,8 @@ namespace Shark {
 
 			if (entry.is_regular_file())
 			{
-				if (!m_Project->GetEditorAssetManager()->IsFileImported(entry.path()))
-					m_Project->GetEditorAssetManager()->ImportAsset(entry.path());
+				if (!Project::GetEditorAssetManager()->IsFileImported(entry.path()))
+					Project::GetEditorAssetManager()->ImportAsset(entry.path());
 
 				directory->Filenames.emplace_back(entry.path().filename().string());
 			}
@@ -618,7 +618,7 @@ namespace Shark {
 
 		for (const auto& filename : directory->Filenames)
 		{
-			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+			Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
 			std::filesystem::path filepath = directory->Filepath / filename;
 
 			const auto& metadata = assetManager->GetMetadata(filepath);
@@ -651,7 +651,7 @@ namespace Shark {
 
 		for (const auto& filename : directory->Filenames)
 		{
-			Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+			Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
 			std::filesystem::path filepath = directory->Filepath / filename;
 			const auto& metadata = assetManager->GetMetadata(filepath);
 			if (assetManager->IsValidAssetHandle(metadata.Handle))
@@ -751,7 +751,7 @@ namespace Shark {
 
 				if (itemType == CBItemType::Asset)
 				{
-					Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+					Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
 					AssetHandle assetHandle = currentItem->GetID();
 					if (assetManager->IsValidAssetHandle(assetHandle))
 					{
@@ -766,7 +766,7 @@ namespace Shark {
 			{
 				if (itemType == CBItemType::Asset)
 				{
-					std::filesystem::path filepath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(currentItem->GetID());
+					std::filesystem::path filepath = Project::GetEditorAssetManager()->GetFilesystemPath(currentItem->GetID());
 					Platform::Execute(ExecuteVerb::Run, filepath);
 				}
 			}
@@ -778,17 +778,17 @@ namespace Shark {
 					directory = GetDirectory(currentItem->GetID());
 				else if (IsSearchActive())
 				{
-					auto filesystemPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(currentItem->GetID());
+					auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(currentItem->GetID());
 					directory = FindDirectory(FileSystem::GetParent(filesystemPath));
 				}
 
 				SK_CORE_VERIFY(directory);
-				Platform::Execute(ExecuteVerb::Explore, m_Project->GetAbsolute(directory->Filepath));
+				Platform::Execute(ExecuteVerb::Explore, m_ProjectConfig->GetAbsolute(directory->Filepath));
 			}
 
 			if (action.IsSet(CBItemActionFlag::Reload) && itemType == CBItemType::Asset)
 			{
-				Ref<EditorAssetManager> assetManager = m_Project->GetEditorAssetManager();
+				Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
 				AssetHandle assetHandle = currentItem->GetID();
 				if (assetManager->IsValidAssetHandle(assetHandle))
 					assetManager->ReloadAssetAsync(assetHandle);

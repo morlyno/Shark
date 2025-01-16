@@ -9,10 +9,10 @@
 
 namespace Shark {
 
-	ProjectSettingsPanel::ProjectSettingsPanel(const std::string& panelName, Ref<Project> project)
+	ProjectSettingsPanel::ProjectSettingsPanel(const std::string& panelName, Ref<ProjectConfig> projectConfig)
 		: Panel(panelName)
 	{
-		OnProjectChanged(project);
+		OnProjectChanged(projectConfig);
 	}
 
 	ProjectSettingsPanel::~ProjectSettingsPanel()
@@ -21,7 +21,7 @@ namespace Shark {
 
 	void ProjectSettingsPanel::OnImGuiRender(bool& showPanel)
 	{
-		if (!m_Project)
+		if (!m_ProjectConfig)
 		{
 			showPanel = false;
 			return;
@@ -94,24 +94,27 @@ namespace Shark {
 		if (!showPanel && m_ConfigDirty)
 		{
 			LogChanges();
-			m_Project->GetConfigMutable() = m_TempConfig;
+			m_TempConfig->CopyTo(m_ProjectConfig);
 			RenameAndSaveProject();
 		}
 
 		ImGui::End();
 	}
 
-	void ProjectSettingsPanel::OnProjectChanged(Ref<Project> project)
+	void ProjectSettingsPanel::OnProjectChanged(Ref<ProjectConfig> projectConfig)
 	{
 		if (m_Focused)
 			ImGui::ClearActiveID();
 
-		m_Project = project;
-		if (project)
-			m_TempConfig = project->GetConfig();
-		else
-			m_TempConfig = {};
 		m_DirtyMenu.fill(false);
+		m_TempConfig = nullptr;
+		m_ProjectConfig = projectConfig;
+
+		if (m_ProjectConfig)
+		{
+			m_TempConfig = Ref<ProjectConfig>::Create();
+			m_ProjectConfig->CopyTo(m_TempConfig);
+		}
 	}
 
 	void ProjectSettingsPanel::DrawGeneralSettings()
@@ -120,18 +123,18 @@ namespace Shark {
 
 		bool dirty = false;
 
-		dirty |= UI::Control("Name", m_TempConfig.Name);
+		dirty |= UI::Control("Name", m_TempConfig->Name);
 		{
 			UI::ScopedDisabled disabled;
-			UI::Control("Directory", m_TempConfig.Directory.string());
+			UI::Control("Directory", m_TempConfig->Directory.string());
 		}
 
-		dirty |= UI::ControlCustom("Assets", [&]() { ImGui::SetNextItemWidth(-1.0f); return UI::Widgets::InputDirectory(UI::DialogType::Open, m_TempConfig.AssetsDirectory); });
+		dirty |= UI::ControlCustom("Assets", [&]() { ImGui::SetNextItemWidth(-1.0f); return UI::Widgets::InputDirectory(UI::DialogType::Open, m_TempConfig->AssetsDirectory); });
 
 		{
-			const bool isMemory = AssetManager::IsMemoryAsset(m_TempConfig.StartupScene);
-			const bool isInvalid = !AssetManager::IsValidAssetHandle(m_TempConfig.StartupScene) ||
-				                   !Project::GetActiveEditorAssetManager()->HasExistingFilePath(m_TempConfig.StartupScene);
+			const bool isMemory = AssetManager::IsMemoryAsset(m_TempConfig->StartupScene);
+			const bool isInvalid = !AssetManager::IsValidAssetHandle(m_TempConfig->StartupScene) ||
+				                   !Project::GetEditorAssetManager()->HasExistingFilePath(m_TempConfig->StartupScene);
 
 			UI::AssetControlSettings settings;
 			if (isInvalid)
@@ -139,7 +142,7 @@ namespace Shark {
 			if (isMemory)
 				settings.TextColor = UI::Colors::WithMultipliedSaturation(UI::Colors::Theme::TextError, 0.7f);
 
-			dirty |= UI::ControlAsset("Startup Scene", AssetType::Scene, m_TempConfig.StartupScene, settings);
+			dirty |= UI::ControlAsset("Startup Scene", AssetType::Scene, m_TempConfig->StartupScene, settings);
 
 			if (isInvalid)
 				ImGui::SetItemTooltip("Invalid Scene");
@@ -157,9 +160,9 @@ namespace Shark {
 
 	void ProjectSettingsPanel::DrawScriptingSettings()
 	{
-		std::filesystem::path scriptModule = m_Project->GetConfig().ScriptModulePath;
-		if (UI::Widgets::InputFile(UI::DialogType::Open, scriptModule, "All|*.*|dll|*.dll", m_Project->GetDirectory()))
-			m_Project->GetConfigMutable().ScriptModulePath = m_Project->GetRelative(scriptModule).generic_string();
+		std::filesystem::path scriptModule = m_ProjectConfig->ScriptModulePath;
+		if (UI::Widgets::InputFile(UI::DialogType::Open, scriptModule, "All|*.*|dll|*.dll", m_ProjectConfig->GetDirectory()))
+			m_ProjectConfig->ScriptModulePath = m_ProjectConfig->GetRelative(scriptModule).generic_string();
 	}
 
 	void ProjectSettingsPanel::DrawPhysicsSettings()
@@ -167,20 +170,20 @@ namespace Shark {
 		bool dirty = false;
 
 		UI::BeginControlsGrid();
-		dirty |= UI::Control("Gravity", m_TempConfig.Physics.Gravity);
-		dirty |= UI::Control("Velocity Iterations", m_TempConfig.Physics.VelocityIterations);
-		dirty |= UI::Control("Position Iterations", m_TempConfig.Physics.PositionIterations);
-		float fixedTSInMS = m_TempConfig.Physics.FixedTimeStep * 1000.0f;
+		dirty |= UI::Control("Gravity", m_TempConfig->Physics.Gravity);
+		dirty |= UI::Control("Velocity Iterations", m_TempConfig->Physics.VelocityIterations);
+		dirty |= UI::Control("Position Iterations", m_TempConfig->Physics.PositionIterations);
+		float fixedTSInMS = m_TempConfig->Physics.FixedTimeStep * 1000.0f;
 		if (UI::Control("Fixed Time Step", fixedTSInMS, 0.1f, 0.1f, FLT_MAX, "%.3fms"))
 		{
-			m_TempConfig.Physics.FixedTimeStep = fixedTSInMS * 0.001f;
+			m_TempConfig->Physics.FixedTimeStep = fixedTSInMS * 0.001f;
 			dirty = true;
 		}
 
-		float maxTSinMS = m_TempConfig.Physics.MaxTimestep * 1000.0f;
+		float maxTSinMS = m_TempConfig->Physics.MaxTimestep * 1000.0f;
 		if (UI::Control("Max Timestep", maxTSinMS, 0.1f, 0.1f, FLT_MAX, "%.3fms"))
 		{
-			m_TempConfig.Physics.MaxTimestep = maxTSinMS * 0.001f;
+			m_TempConfig->Physics.MaxTimestep = maxTSinMS * 0.001f;
 			dirty = true;
 		}
 		UI::EndControlsGrid();
@@ -235,40 +238,39 @@ namespace Shark {
 
 		fmt::format_to(std::back_inserter(message), "Project settings changed\n");
 
-		const auto& config = m_Project->GetConfig();
-		if (m_TempConfig.Name != config.Name)
-			fmt::format_to(std::back_inserter(message), "Name: {} -> {}\n", config.Name, m_TempConfig.Name);
+		if (m_TempConfig->Name != m_ProjectConfig->Name)
+			fmt::format_to(std::back_inserter(message), "Name: {} -> {}\n", m_ProjectConfig->Name, m_TempConfig->Name);
 
-		if (m_TempConfig.AssetsDirectory != config.AssetsDirectory)
-			fmt::format_to(std::back_inserter(message), "Assets Directory: {} -> {}\n", config.AssetsDirectory, m_TempConfig.AssetsDirectory);
+		if (m_TempConfig->AssetsDirectory != m_ProjectConfig->AssetsDirectory)
+			fmt::format_to(std::back_inserter(message), "Assets Directory: {} -> {}\n", m_ProjectConfig->AssetsDirectory, m_TempConfig->AssetsDirectory);
 		
-		if (m_TempConfig.StartupScene!= config.StartupScene)
-			fmt::format_to(std::back_inserter(message), "Start Scene: {} -> {}\n", config.StartupScene, m_TempConfig.StartupScene);
+		if (m_TempConfig->StartupScene!= m_ProjectConfig->StartupScene)
+			fmt::format_to(std::back_inserter(message), "Start Scene: {} -> {}\n", m_ProjectConfig->StartupScene, m_TempConfig->StartupScene);
 		
-		if (m_TempConfig.Physics.Gravity != config.Physics.Gravity)
-			fmt::format_to(std::back_inserter(message), "Gravity: {} -> {}\n", config.Physics.Gravity, m_TempConfig.Physics.Gravity);
+		if (m_TempConfig->Physics.Gravity != m_ProjectConfig->Physics.Gravity)
+			fmt::format_to(std::back_inserter(message), "Gravity: {} -> {}\n", m_ProjectConfig->Physics.Gravity, m_TempConfig->Physics.Gravity);
 		
-		if (m_TempConfig.Physics.VelocityIterations != config.Physics.VelocityIterations)
-			fmt::format_to(std::back_inserter(message), "Velocity Iterations: {} -> {}\n", config.Physics.VelocityIterations, m_TempConfig.Physics.VelocityIterations);
+		if (m_TempConfig->Physics.VelocityIterations != m_ProjectConfig->Physics.VelocityIterations)
+			fmt::format_to(std::back_inserter(message), "Velocity Iterations: {} -> {}\n", m_ProjectConfig->Physics.VelocityIterations, m_TempConfig->Physics.VelocityIterations);
 
-		if (m_TempConfig.Physics.PositionIterations != config.Physics.PositionIterations)
-			fmt::format_to(std::back_inserter(message), "Position Iterations: {} -> {}\n", config.Physics.PositionIterations, m_TempConfig.Physics.PositionIterations);
+		if (m_TempConfig->Physics.PositionIterations != m_ProjectConfig->Physics.PositionIterations)
+			fmt::format_to(std::back_inserter(message), "Position Iterations: {} -> {}\n", m_ProjectConfig->Physics.PositionIterations, m_TempConfig->Physics.PositionIterations);
 
-		if (m_TempConfig.Physics.FixedTimeStep != config.Physics.FixedTimeStep)
-			fmt::format_to(std::back_inserter(message), "Fixed Timestep: {} -> {}\n", config.Physics.FixedTimeStep, m_TempConfig.Physics.FixedTimeStep);
+		if (m_TempConfig->Physics.FixedTimeStep != m_ProjectConfig->Physics.FixedTimeStep)
+			fmt::format_to(std::back_inserter(message), "Fixed Timestep: {} -> {}\n", m_ProjectConfig->Physics.FixedTimeStep, m_TempConfig->Physics.FixedTimeStep);
 
-		if (m_TempConfig.Physics.MaxTimestep != config.Physics.MaxTimestep)
-			fmt::format_to(std::back_inserter(message), "Max Timestep: {} -> {}\n", config.Physics.MaxTimestep, m_TempConfig.Physics.MaxTimestep);
+		if (m_TempConfig->Physics.MaxTimestep != m_ProjectConfig->Physics.MaxTimestep)
+			fmt::format_to(std::back_inserter(message), "Max Timestep: {} -> {}\n", m_ProjectConfig->Physics.MaxTimestep, m_TempConfig->Physics.MaxTimestep);
 
 		SK_CONSOLE_INFO(fmt::to_string(message));
 	}
 
 	void ProjectSettingsPanel::RenameAndSaveProject()
 	{
-		m_Project->Rename(m_TempConfig.Name);
+		m_ProjectConfig->Rename(m_TempConfig->Name);
 
-		ProjectSerializer serializer(m_Project);
-		serializer.Serialize(m_Project->GetProjectFile());
+		ProjectSerializer serializer(m_ProjectConfig);
+		serializer.Serialize(m_ProjectConfig->GetProjectFilepath());
 
 		m_DirtyMenu.fill(false);
 	}

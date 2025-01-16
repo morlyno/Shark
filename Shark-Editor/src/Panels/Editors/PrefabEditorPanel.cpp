@@ -14,7 +14,7 @@ namespace Shark {
 	PrefabEditorPanel::PrefabEditorPanel(const std::string& panelName, const AssetMetaData& metadata)
 		: EditorPanel(panelName)
 	{
-		m_DefaultEnvironment = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Environment/lenong_2_4k.hdr");
+		m_DefaultEnvironment = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Environment/lenong_2_4k.hdr");
 		SetAsset(metadata);
 	}
 
@@ -56,7 +56,7 @@ namespace Shark {
 					if (ImGui::MenuItem("Save"))
 					{
 						PrepareForSerialization();
-						Project::GetActiveEditorAssetManager()->SaveAsset(m_Handle);
+						Project::GetEditorAssetManager()->SaveAsset(m_Handle);
 					}
 					
 					if (ImGui::MenuItem("Default Sky", nullptr, &m_UseDefaultSky))
@@ -200,7 +200,7 @@ namespace Shark {
 		auto entities = prefabScene->GetAllEntitysWith<PrefabComponent>();
 		if (entities.empty())
 		{
-			SK_CONSOLE_WARN("Serializing empty Prefab\n{}", Project::GetActiveEditorAssetManager()->GetMetadata(m_Handle).FilePath);
+			SK_CONSOLE_WARN("Serializing empty Prefab\n{}", Project::GetEditorAssetManager()->GetMetadata(m_Handle).FilePath);
 			return;
 		}
 

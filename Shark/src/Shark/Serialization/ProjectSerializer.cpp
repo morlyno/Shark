@@ -7,8 +7,8 @@
 
 namespace Shark {
 
-	ProjectSerializer::ProjectSerializer(Ref<Project> project)
-		: m_Project(project)
+	ProjectSerializer::ProjectSerializer(Ref<ProjectConfig> projectConfig)
+		: m_ProjectConfig(projectConfig)
 	{
 	}
 
@@ -16,8 +16,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(m_Project);
-		if (!m_Project)
+		SK_CORE_ASSERT(m_ProjectConfig);
+		if (!m_ProjectConfig)
 			return false;
 
 		SK_CORE_ASSERT(filePath.is_absolute());
@@ -26,9 +26,9 @@ namespace Shark {
 
 		YAML::Emitter out;
 
-		const auto& config = m_Project->GetConfig();
-		const auto assetsPath = m_Project->GetRelative(config.AssetsDirectory);
-		const auto scriptModulePath = m_Project->GetRelative(config.ScriptModulePath).string();
+		const auto& config = *m_ProjectConfig;
+		const auto assetsPath = m_ProjectConfig->GetRelative(config.AssetsDirectory);
+		const auto scriptModulePath = m_ProjectConfig->GetRelative(config.ScriptModulePath).string();
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Project" << YAML::Value;
@@ -99,8 +99,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_ASSERT(m_Project);
-		if (!m_Project)
+		SK_CORE_ASSERT(m_ProjectConfig);
+		if (!m_ProjectConfig)
 			return false;
 
 		SK_CORE_ASSERT(filePath.is_absolute());
@@ -112,7 +112,7 @@ namespace Shark {
 		if (!projectNode)
 			return false;
 
-		auto& config = m_Project->GetConfigMutable();
+		auto& config = *m_ProjectConfig;
 		config.Name = projectNode["Name"].as<std::string>();
 		config.Directory = filePath.parent_path().generic_wstring();
 		config.StartupScene = projectNode["StartupScene"].as<AssetHandle>();

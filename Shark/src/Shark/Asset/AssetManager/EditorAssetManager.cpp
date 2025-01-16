@@ -33,8 +33,8 @@ namespace Shark {
 		{ AssetType::Texture, []() -> Ref<Asset> { return Renderer::GetWhiteTexture(); } }
 	};
 
-	EditorAssetManager::EditorAssetManager(Ref<Project> project)
-		: m_Project(project)
+	EditorAssetManager::EditorAssetManager(Ref<ProjectConfig> projectConfig)
+		: m_Project(projectConfig)
 	{
 		AssetSerializer::RegisterSerializers();
 		ReadImportedAssetsFromDisc();
@@ -50,6 +50,7 @@ namespace Shark {
 
 		WriteImportedAssetsToDisc();
 		AssetSerializer::ReleaseSerializers();
+		SK_CORE_WARN_TAG("AssetManager", "Editor AssetManager destroyed");
 	}
 
 	void EditorAssetManager::SerializeImportedAssets()

@@ -26,7 +26,7 @@ namespace Shark {
 			return false;
 		}
 
-		return FileSystem::WriteString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata), result);
+		return FileSystem::WriteString(Project::GetEditorAssetManager()->GetFilesystemPath(metadata), result);
 	}
 
 	bool PrefabSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
@@ -35,13 +35,13 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Prefab from {}", metadata.FilePath);
 		ScopedTimer timer("Loading Prefab");
 
-		if (!Project::GetActiveEditorAssetManager()->HasExistingFilePath(metadata))
+		if (!Project::GetEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Path not found! {0}", metadata.FilePath);
 			return false;
 		}
 
-		const std::string filedata = FileSystem::ReadString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
+		const std::string filedata = FileSystem::ReadString(Project::GetEditorAssetManager()->GetFilesystemPath(metadata));
 
 		Ref<Prefab> prefab = Ref<Prefab>::Create();
 		if (!DeserializeFromYAML(prefab, filedata))

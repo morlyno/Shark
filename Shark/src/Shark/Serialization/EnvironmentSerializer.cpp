@@ -22,7 +22,7 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Loading EnvironmentMap from {}", metadata.FilePath);
 		ScopedTimer timer("Loading EnvironmentMap");
 
-		const auto filesystemPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
+		const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
 		if (!FileSystem::Exists(filesystemPath))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);

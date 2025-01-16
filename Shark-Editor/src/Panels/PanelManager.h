@@ -44,7 +44,7 @@ namespace Shark {
 		void SetContext(Ref<Scene> context);
 		void OnScenePlay();
 		void OnSceneStop();
-		void OnProjectChanged(Ref<Project> project);
+		void OnProjectChanged(Ref<ProjectConfig> projectConfig);
 
 	public:
 		void LoadSettings();

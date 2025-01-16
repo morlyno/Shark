@@ -6,13 +6,13 @@
 
 namespace Shark {
 
-	class Project;
+	class ProjectConfig;
 	class EditorAssetThread;
 
 	class EditorAssetManager : public AssetManagerBase
 	{
 	public:
-		EditorAssetManager(Ref<Project> project);
+		EditorAssetManager(Ref<ProjectConfig> projectConfig);
 		~EditorAssetManager();
 
 		void SerializeImportedAssets();
@@ -88,7 +88,7 @@ namespace Shark {
 		std::filesystem::path GetAssetsDirectoryFromProject() const;
 
 	private:
-		Weak<Project> m_Project;
+		Weak<ProjectConfig> m_Project;
 		Ref<EditorAssetThread> m_AssetThread;
 
 		AssetRegistry m_Registry;

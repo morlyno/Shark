@@ -25,7 +25,7 @@ namespace Shark {
 		void InitializeHost();
 		void ShutdownHost();
 
-		void InitializeCore(Ref<Project> project);
+		void InitializeCore(Ref<ProjectConfig> projectConfig);
 		void ShutdownCore();
 		void LoadAppAssembly();
 		void ReloadAssemblies();
@@ -54,7 +54,7 @@ namespace Shark {
 		Scope<Coral::HostInstance> m_Host;
 		Scope<Coral::AssemblyLoadContext> m_LoadContext;
 
-		Ref<Project> m_Project;
+		Ref<ProjectConfig> m_ProjectConfig;
 		Coral::ManagedAssembly* m_CoreAssembly = nullptr;
 		Coral::ManagedAssembly* m_AppAssembly = nullptr;
 

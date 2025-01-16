@@ -246,7 +246,7 @@ namespace Shark {
 		// Item Type
 		if (m_Type == CBItemType::Asset)
 		{
-			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(m_ID);
+			const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(m_ID);
 			auto assetTypeName = magic_enum::enum_name(metadata.Type);
 			ImVec2 textSize = ImGui::CalcTextSize(assetTypeName.data(), assetTypeName.data() + assetTypeName.size());
 			UI::ShiftCursorX(thumbnailSize - textSize.x - style.FramePadding.x * 2.0f);
@@ -331,7 +331,7 @@ namespace Shark {
 		if (m_Type == CBItemType::Directory)
 			return "Directory";
 
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(m_ID);
+		const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(m_ID);
 		return magic_enum::enum_name(metadata.Type);
 	}
 
@@ -389,7 +389,7 @@ namespace Shark {
 		Ref<DirectoryInfo> originalParent = m_Context->FindDirectory(filesystemPath.parent_path());
 		originalParent->RemoveFile(m_FileName);
 		destinationDirectory->AddFile(m_FileName);
-		Project::GetActiveEditorAssetManager()->AssetMoved(m_ID, destinationPath);
+		Project::GetEditorAssetManager()->AssetMoved(m_ID, destinationPath);
 		return true;
 	}
 
@@ -411,7 +411,7 @@ namespace Shark {
 		parent->RenameFile(FileSystem::GetFilenameString(m_Metadata.FilePath), uniqueName);
 
 		// Updates metadata so m_Metadata.FilePath is current afterwards
-		Project::GetActiveEditorAssetManager()->AssetRenamed(m_Metadata.Handle, uniqueName);
+		Project::GetEditorAssetManager()->AssetRenamed(m_Metadata.Handle, uniqueName);
 
 		OnRenamed(uniqueName);
 		return true;
@@ -433,7 +433,7 @@ namespace Shark {
 		Ref<DirectoryInfo> parent = m_Context->FindDirectory(filesystemPath.parent_path());
 		parent->RemoveFile(FileSystem::GetFilenameString(m_Metadata.FilePath));
 
-		Project::GetActiveEditorAssetManager()->AssetDeleted(m_Metadata.Handle);
+		Project::GetEditorAssetManager()->AssetDeleted(m_Metadata.Handle);
 		return true;
 	}
 
@@ -458,7 +458,7 @@ namespace Shark {
 			const bool isValid = AssetManager::IsValidAssetHandle(sourceHandle);
 			if (ImGui::MenuItem("Select MeshSource", nullptr, nullptr, isValid))
 			{
-				auto assetManager = Project::GetActiveEditorAssetManager();
+				auto assetManager = Project::GetEditorAssetManager();
 				const auto& metadata = assetManager->GetMetadata(sourceHandle);
 				Ref<DirectoryInfo> directory = m_Context->FindDirectory(FileSystem::GetParent(assetManager->GetFilesystemPath(metadata)));
 				if (directory)
@@ -583,7 +583,7 @@ namespace Shark {
 		std::filesystem::path oldDirectoryPath = directory->Filepath;
 		directory->Filepath = directory->Parent->Filepath / directory->Name;
 
-		Ref<EditorAssetManager> assetManager = Project::GetActiveEditorAssetManager();
+		Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
 		for (const std::string& filename : directory->Filenames)
 		{
 			AssetHandle handle = assetManager->GetAssetHandleFromFilepath(oldDirectoryPath / filename);
@@ -600,7 +600,7 @@ namespace Shark {
 		for (Ref<DirectoryInfo> subdir : directory->SubDirectories)
 			DeleteSubdirectories(subdir);
 
-		Ref<EditorAssetManager> assetManager = Project::GetActiveEditorAssetManager();
+		Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
 		for (const std::string& filename : directory->Filenames)
 		{
 			AssetHandle handle = assetManager->GetAssetHandleFromFilepath(directory->Filepath / filename);

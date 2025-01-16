@@ -62,7 +62,7 @@ namespace Shark {
 
 	MaterialThumbnailGenerator::MaterialThumbnailGenerator()
 	{
-		AssetHandle meshSource = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
+		AssetHandle meshSource = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
 		m_SphereMesh = AssetManager::CreateMemoryOnlyAsset<Mesh>(meshSource);
 	}
 
@@ -206,7 +206,7 @@ namespace Shark {
 
 	EnvironmentThumbnailGenerator::EnvironmentThumbnailGenerator()
 	{
-		AssetHandle meshSource = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
+		AssetHandle meshSource = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
 		m_SphereHandle = AssetManager::CreateMemoryOnlyAsset<Mesh>(meshSource);
 
 		m_MaterialHandle = AssetManager::CreateMemoryOnlyAsset<MaterialAsset>();
@@ -284,7 +284,7 @@ namespace Shark {
 		skyLight.Intensity = 0.8f;
 		skyLight.Lod = (float)(AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1);
 
-		m_CommandBuffer = RenderCommandBuffer::Create();
+		m_CommandBuffer = RenderCommandBuffer::Create("ThumbnailGenerator");
 	}
 
 	Ref<Image2D> ThumbnailGenerator::GenerateThumbnail(AssetHandle handle)

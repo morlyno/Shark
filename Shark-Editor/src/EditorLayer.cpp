@@ -837,7 +837,7 @@ namespace Shark {
 
 			if (ImGui::MenuItem("Load all assets"))
 			{
-				AssetRegistry& reg = Project::GetActiveEditorAssetManager()->GetAssetRegistry();
+				AssetRegistry& reg = Project::GetEditorAssetManager()->GetAssetRegistry();
 
 				AssetHandle lastHandle;
 				for (const auto& [handle, metadata] : reg)
@@ -863,7 +863,7 @@ namespace Shark {
 				ImGui::Text("Scene");
 				if (ImGui::Button("Add Metadata"))
 				{
-					auto assetManager = Project::GetActiveEditorAssetManager();
+					auto assetManager = Project::GetEditorAssetManager();
 					AssetRegistry& registry = assetManager->GetAssetRegistry();
 
 					AssetHandle handle = registry.TryFind(s_InvalidSceneMetadataFilepath);
@@ -886,7 +886,7 @@ namespace Shark {
 
 				if (ImGui::Button("Remove Metadata"))
 				{
-					auto assetManager = Project::GetActiveEditorAssetManager();
+					auto assetManager = Project::GetEditorAssetManager();
 					AssetRegistry& registry = assetManager->GetAssetRegistry();
 
 					AssetHandle handle = registry.TryFind(s_InvalidSceneMetadataFilepath);
@@ -900,7 +900,7 @@ namespace Shark {
 				ImGui::Button("Asset");
 				if (ImGui::BeginDragDropSource())
 				{
-					auto assetManager = Project::GetActiveEditorAssetManager();
+					auto assetManager = Project::GetEditorAssetManager();
 					AssetRegistry& registry = assetManager->GetAssetRegistry();
 
 					AssetHandle handle = registry.TryFind(s_InvalidSceneMetadataFilepath);
@@ -1150,7 +1150,7 @@ namespace Shark {
 				AssetHandle handle = *(AssetHandle*)payload->Data;
 				if (AssetManager::IsValidAssetHandle(handle))
 				{
-					const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
+					const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(handle);
 					switch (metadata.Type)
 					{
 						case AssetType::Scene:
@@ -1516,7 +1516,7 @@ namespace Shark {
 					}
 					else
 					{
-						Project::GetActiveEditorAssetManager()->ImportAsset(destination);
+						Project::GetEditorAssetManager()->ImportAsset(destination);
 						m_ImportAssetData = {};
 					}
 				}
@@ -1555,7 +1555,7 @@ namespace Shark {
 				AssetHandle meshSource = m_CreateMeshAssetData.MeshSource;
 				if (AssetManager::IsValidAssetHandle(meshSource) && AssetManager::GetAssetType(meshSource) == AssetType::MeshSource)
 				{
-					Ref<Mesh> mesh = Project::GetActiveEditorAssetManager()->CreateAsset<Mesh>(fullPath, meshSource);
+					Ref<Mesh> mesh = Project::GetEditorAssetManager()->CreateAsset<Mesh>(fullPath, meshSource);
 					Entity entity = m_EditorScene->InstantiateMesh(mesh);
 					SelectionManager::DeselectAll(m_EditorScene->GetID());
 					SelectionManager::Select(m_EditorScene->GetID(), entity.GetUUID());
@@ -1772,7 +1772,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		AssetHandle assetHandle = Project::GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(filePath);
+		AssetHandle assetHandle = Project::GetEditorAssetManager()->GetAssetHandleFromFilepath(filePath);
 		if (!AssetManager::IsValidAssetHandle(assetHandle))
 			return false;
 
@@ -1789,7 +1789,7 @@ namespace Shark {
 		if (AssetManager::IsMemoryAsset(m_EditorScene->Handle))
 			return SaveSceneAs();
 
-		return Project::GetActiveEditorAssetManager()->SaveAsset(m_EditorScene->Handle);
+		return Project::GetEditorAssetManager()->SaveAsset(m_EditorScene->Handle);
 	}
 
 	bool EditorLayer::SaveSceneAs()
@@ -1809,16 +1809,16 @@ namespace Shark {
 
 		if (AssetManager::IsMemoryAsset(m_EditorScene->Handle))
 		{
-			std::string directoryPath = Project::GetActiveEditorAssetManager()->MakeRelativePathString(filePath.parent_path());
+			std::string directoryPath = Project::GetEditorAssetManager()->MakeRelativePathString(filePath.parent_path());
 			std::string fileName = filePath.filename().string();
-			return Project::GetActiveEditorAssetManager()->ImportMemoryAsset(m_EditorScene->Handle, directoryPath, fileName);
+			return Project::GetEditorAssetManager()->ImportMemoryAsset(m_EditorScene->Handle, directoryPath, fileName);
 		}
 
-		std::string directoryPath = Project::GetActiveEditorAssetManager()->MakeRelativePathString(filePath.parent_path());
+		std::string directoryPath = Project::GetEditorAssetManager()->MakeRelativePathString(filePath.parent_path());
 		std::string fileName = filePath.filename().string();
-		Ref<Scene> newScene = Project::GetActiveEditorAssetManager()->CreateAsset<Scene>(directoryPath, fileName);
+		Ref<Scene> newScene = Project::GetEditorAssetManager()->CreateAsset<Scene>(directoryPath, fileName);
 		m_EditorScene->CopyTo(newScene);
-		return Project::GetActiveEditorAssetManager()->SaveAsset(newScene->Handle);
+		return Project::GetEditorAssetManager()->SaveAsset(newScene->Handle);
 	}
 
 	void EditorLayer::OnScenePlay()
@@ -1902,8 +1902,8 @@ namespace Shark {
 
 		SK_CORE_INFO("Opening Project [{}]", filePath);
 
-		Ref<Project> project = Ref<Project>::Create();
-		ProjectSerializer serializer(project);
+		Ref<ProjectConfig> config = Ref<ProjectConfig>::Create();
+		ProjectSerializer serializer(config);
 		if (!serializer.Deserialize(filePath))
 		{
 			SK_CORE_ERROR_TAG("Core", "Failed to open project [{}]", filePath);
@@ -1914,7 +1914,7 @@ namespace Shark {
 		if (Project::GetActive())
 			CloseProject();
 
-		Project::SetActive(project);
+		Project::SetActive(config);
 
 		if (FileSystem::Exists(Project::GetActive()->GetScriptModulePath()))
 		{
@@ -1926,14 +1926,14 @@ namespace Shark {
 		std::erase_if(settings.RecentProjects, [filePath](const auto& node) { return node.second.Filepath == filePath; });
 
 		RecentProject recentProject;
-		recentProject.Name = project->GetConfig().Name;
-		recentProject.Filepath = project->GetProjectFile();
+		recentProject.Name = config->Name;
+		recentProject.Filepath = config->GetProjectFilepath();
 		recentProject.LastOpened = std::chrono::system_clock::now();
 		settings.RecentProjects[recentProject.LastOpened] = std::move(recentProject);
 
-		m_PanelManager->OnProjectChanged(project);
+		m_PanelManager->OnProjectChanged(config);
 
-		if (!LoadScene(project->GetConfig().StartupScene))
+		if (!LoadScene(config->StartupScene))
 			NewScene("Empty Fallback Scene");
 		//LoadScene(project->GetConfig().StartupScene);
 	}
@@ -1952,7 +1952,7 @@ namespace Shark {
 			serializer.Serialize(Project::GetProjectFilePath());
 		}
 
-		Project::GetActiveEditorAssetManager()->SerializeImportedAssets();
+		Project::GetEditorAssetManager()->SerializeImportedAssets();
 
 		SK_CORE_INFO_TAG("Core", "Closing Project");
 
@@ -1966,13 +1966,13 @@ namespace Shark {
 
 		m_PanelManager->OnProjectChanged(nullptr);
 
-		Project::GetActiveEditorAssetManager()->PrepareForQuickStop();
+		Project::GetEditorAssetManager()->PrepareForQuickStop();
 		Project::SetActive(nullptr);
 
 		Application::Get().SubmitToMainThread([this]() { UpdateWindowTitle(); });
 	}
 	
-	Ref<Project> EditorLayer::CreateProject(const std::filesystem::path& projectDirectory)
+	Ref<ProjectConfig> EditorLayer::CreateProject(const std::filesystem::path& projectDirectory)
 	{
 		// Create Directory
 		SK_NOT_IMPLEMENTED();
@@ -2006,12 +2006,12 @@ namespace Shark {
 #endif
 	}
 
-	void EditorLayer::CreateProjectPremakeFile(Ref<Project> project)
+	void EditorLayer::CreateProjectPremakeFile(Ref<ProjectConfig> project)
 	{
 		const std::string projectNameToken = "%PROJECT_NAME%";
 
 		std::string premakeTemplate = FileSystem::ReadString("Resources/Project/PremakeFileTemplate.lua");
-		String::Replace(premakeTemplate, projectNameToken,  project->GetConfig().Name);
+		String::Replace(premakeTemplate, projectNameToken,  project->Name);
 
 		auto premakeFilePath = fmt::format("{0}/premake5.lua", project->GetDirectory());
 		FileSystem::WriteString(premakeFilePath, premakeTemplate);
@@ -2032,7 +2032,7 @@ namespace Shark {
 
 	void EditorLayer::OpenIDE()
 	{
-		auto solutionPath = fmt::format("{}/{}.sln", Project::GetActiveDirectory(), Project::GetActive()->GetConfig().Name);
+		auto solutionPath = fmt::format("{}/{}.sln", Project::GetActiveDirectory(), Project::GetName());
 		Platform::Execute(ExecuteVerb::Run, solutionPath);
 	}
 
@@ -2045,7 +2045,7 @@ namespace Shark {
 		std::string sceneName;
 		if (m_ActiveScene)
 		{
-			auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(m_ActiveScene);
+			auto& metadata = Project::GetEditorAssetManager()->GetMetadata(m_ActiveScene);
 			sceneFilePath = metadata.FilePath.filename().string();
 			sceneName = m_ActiveScene->GetName();
 		}

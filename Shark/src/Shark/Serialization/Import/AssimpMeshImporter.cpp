@@ -360,7 +360,7 @@ namespace Shark {
 		}
 
 		const auto texturePath = m_Filepath.parent_path() / path.C_Str();
-		return Project::GetActiveEditorAssetManager()->GetAssetHandleFromFilepath(texturePath);
+		return Project::GetEditorAssetManager()->GetAssetHandleFromFilepath(texturePath);
 	}
 
 }

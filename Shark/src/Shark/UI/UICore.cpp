@@ -536,7 +536,7 @@ namespace Shark::UI {
 			}
 
 			UI::Image(displayTexture, { width, height });
-			const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(displayTexture);
+			const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(displayTexture);
 			ImGui::Text(fmt::format("File: {}", metadata.FilePath.generic_string()));
 			ImGui::Text(fmt::format("Format: {}", spec.Format));
 			ImGui::Text(fmt::format("Size: [w={}, h={}] Mips: {}", spec.Width, spec.Height, displayTexture->GetImage()->GetSpecification().MipLevels));

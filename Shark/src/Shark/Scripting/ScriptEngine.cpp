@@ -54,9 +54,9 @@ namespace Shark {
 		m_Host = nullptr;
 	}
 
-	void ScriptEngine::InitializeCore(Ref<Project> project)
+	void ScriptEngine::InitializeCore(Ref<ProjectConfig> projectConfig)
 	{
-		m_Project = project;
+		m_ProjectConfig = projectConfig;
 		m_LoadContext = Scope<Coral::AssemblyLoadContext>::Create(m_Host->CreateAssemblyLoadContext("Shark-Load-Context"));
 
 		m_CoreAssembly = &m_LoadContext->LoadAssembly("Resources/Binaries/Shark-ScriptCore.dll");
@@ -81,12 +81,12 @@ namespace Shark {
 		m_ScriptMetadata.clear();
 
 		Coral::TypeCache::Get().Clear();
-		m_Project = nullptr;
+		m_ProjectConfig = nullptr;
 	}
 
 	void ScriptEngine::LoadAppAssembly()
 	{
-		auto assemblyPath = m_Project->GetScriptModulePath();
+		auto assemblyPath = m_ProjectConfig->GetScriptModulePath();
 		
 		m_AppAssembly = &m_LoadContext->LoadAssembly(assemblyPath);
 		SK_CORE_DEBUG_TAG("Scripting", "App assembly loaded with status {}", m_AppAssembly->GetLoadStatus());
@@ -97,9 +97,9 @@ namespace Shark {
 
 	void ScriptEngine::ReloadAssemblies()
 	{
-		Ref<Project> project = m_Project;
+		Ref<ProjectConfig> projectConfig = m_ProjectConfig;
 		ShutdownCore();
-		InitializeCore(project);
+		InitializeCore(projectConfig);
 		LoadAppAssembly();
 	}
 

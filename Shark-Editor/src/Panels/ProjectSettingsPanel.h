@@ -17,11 +17,11 @@ namespace Shark {
 		};
 
 	public:
-		ProjectSettingsPanel(const std::string& panelName, Ref<Project> project);
+		ProjectSettingsPanel(const std::string& panelName, Ref<ProjectConfig> projectConfig);
 		~ProjectSettingsPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
-		virtual void OnProjectChanged(Ref<Project> project) override;
+		virtual void OnProjectChanged(Ref<ProjectConfig> projectConfig) override;
 
 	private:
 		void DrawGeneralSettings();
@@ -33,9 +33,10 @@ namespace Shark {
 		void RenameAndSaveProject();
 
 	private:
-		Ref<Project> m_Project;
+		Ref<ProjectConfig> m_ProjectConfig;
 		ActiveContext m_ActiveContext = ActiveContext::General;
-		ProjectConfig m_TempConfig;
+		Ref<ProjectConfig> m_TempConfig;
+
 		bool m_ConfigDirty = false;
 		magic_enum::containers::array<ActiveContext, bool> m_DirtyMenu;
 

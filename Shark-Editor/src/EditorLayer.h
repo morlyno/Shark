@@ -82,8 +82,8 @@ namespace Shark {
 		void OpenProject();
 		void OpenProject(const std::filesystem::path& filePath);
 		void CloseProject();
-		Ref<Project> CreateProject(const std::filesystem::path& projectDirectory);
-		void CreateProjectPremakeFile(Ref<Project> project);
+		Ref<ProjectConfig> CreateProject(const std::filesystem::path& projectDirectory);
+		void CreateProjectPremakeFile(Ref<ProjectConfig> project);
 
 		void RunScriptSetup();
 		void OpenIDE();

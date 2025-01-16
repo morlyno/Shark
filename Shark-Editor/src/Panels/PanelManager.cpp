@@ -132,10 +132,10 @@ namespace Shark {
 			data.Instance->OnSceneStop();
 	}
 
-	void PanelManager::OnProjectChanged(Ref<Project> project)
+	void PanelManager::OnProjectChanged(Ref<ProjectConfig> projectConfig)
 	{
 		for (auto& [id, data] : m_Panels)
-			data.Instance->OnProjectChanged(project);
+			data.Instance->OnProjectChanged(projectConfig);
 	}
 
 	void PanelManager::LoadSettings()

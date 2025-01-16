@@ -30,7 +30,7 @@ namespace Shark {
 			return false;
 		}
 
-		const auto fsPath = Project::GetActive()->GetEditorAssetManager()->GetFilesystemPath(metadata);
+		const auto fsPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
 		FileSystem::WriteString(fsPath, result);
 
 		return true;
@@ -44,13 +44,13 @@ namespace Shark {
 		ScopedTimer timer("Loading Material");
 		m_ErrorMsg.clear();
 
-		if (!Project::GetActiveEditorAssetManager()->HasExistingFilePath(metadata))
+		if (!Project::GetEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
+		std::string filedata = FileSystem::ReadString(Project::GetEditorAssetManager()->GetFilesystemPath(metadata));
 		if (filedata.empty())
 		{
 			SK_CORE_ERROR_TAG("Serialization", "File was empty");

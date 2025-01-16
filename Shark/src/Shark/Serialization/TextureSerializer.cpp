@@ -43,7 +43,7 @@ namespace Shark {
 
 		std::string filedata = SerializeToYAML(asset.As<Texture2D>());
 
-		const auto filesystemPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
+		const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
 		FileSystem::WriteString(filesystemPath, filedata);
 
 		return true;
@@ -55,7 +55,7 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Loading Texture from {}", metadata.FilePath);
 		ScopedTimer timer("Loading Texture");
 
-		if (!Project::GetActiveEditorAssetManager()->HasExistingFilePath(metadata))
+		if (!Project::GetEditorAssetManager()->HasExistingFilePath(metadata))
 		{
 			SK_CORE_WARN_TAG("Serialization", "[Texture] Path not found! {}", metadata.FilePath);
 			return false;
@@ -69,7 +69,7 @@ namespace Shark {
 			AssetHandle sourceHandle;
 			Buffer imageData;
 
-			const std::string fileData = FileSystem::ReadString(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
+			const std::string fileData = FileSystem::ReadString(Project::GetEditorAssetManager()->GetFilesystemPath(metadata));
 			if (DesrializeFromYAML(fileData, specification, sourceHandle, imageData))
 			{
 				texture = Texture2D::Create(specification, imageData);
@@ -82,7 +82,7 @@ namespace Shark {
 		{
 			Buffer imageData;
 			TextureSpecification specification;
-			const auto filesystemPath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata);
+			const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
 
 			LoadImageData(filesystemPath, specification, imageData);
 			texture = Texture2D::Create(specification, imageData);
@@ -173,7 +173,7 @@ namespace Shark {
 			{
 				outSourceHandle = sourceHandle;
 
-				auto sourcePath = Project::GetActiveEditorAssetManager()->GetFilesystemPath(sourceHandle);
+				auto sourcePath = Project::GetEditorAssetManager()->GetFilesystemPath(sourceHandle);
 				LoadImageData(sourcePath, outSpecification, outImageData);
 			}
 		}

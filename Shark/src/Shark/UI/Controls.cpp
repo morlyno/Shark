@@ -660,7 +660,7 @@ namespace Shark::UI {
 		ImGui::TableNextColumn();
 
 		bool changed = false;
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle);
+		const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(assetHandle);
 
 		std::string name;
 		if (metadata.IsMemoryAsset)
@@ -738,7 +738,7 @@ namespace Shark::UI {
 
 		if (isValid)
 		{
-			auto assetManager = Project::GetActiveEditorAssetManager();
+			auto assetManager = Project::GetEditorAssetManager();
 			const bool isMemoryAsset = assetManager->IsMemoryAsset(handle);
 
 			if (isMemoryAsset)

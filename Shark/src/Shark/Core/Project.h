@@ -15,8 +15,21 @@ namespace Shark {
 		float MaxTimestep;
 	};
 
-	struct ProjectConfig
+	class ProjectConfig : public RefCount
 	{
+	public:
+		void Rename(const std::string& newName);
+
+		std::string GetProjectFilepath() const { return fmt::format("{}/{}.skproj", Directory.generic_string(), Name); }
+		std::string GetScriptModulePath() const { return fmt::format("{}/{}", Directory.generic_string(), ScriptModulePath); }
+		std::filesystem::path GetDirectory() const { return Directory; }
+		std::filesystem::path GetAssetsDirectory() const { return Directory / AssetsDirectory; }
+
+		std::filesystem::path GetRelative(const std::filesystem::path& path) const;
+		std::filesystem::path GetAbsolute(const std::filesystem::path& path) const;
+
+		void CopyTo(Ref<ProjectConfig> config);
+	public:
 		std::string Name;
 		std::filesystem::path Directory;
 		std::filesystem::path AssetsDirectory;
@@ -27,44 +40,28 @@ namespace Shark {
 		PhysicsConfig Physics;
 	};
 
-	class Project : public RefCount
+	class Project
 	{
 	public:
 		Project();
 		~Project();
 
-		ProjectConfig& GetConfigMutable() { return m_Config; }
-		const ProjectConfig& GetConfig() const { return m_Config; }
+		static void SetActive(Ref<ProjectConfig> config);
+		static void SetActiveRuntime(Ref<ProjectConfig> config);
+		static Ref<ProjectConfig> GetActive();
 
-		static void SetActive(Ref<Project> project);
-		static void SetActiveRuntime(Ref<Project> project);
-		static Ref<Project> GetActive();
+		static Ref<AssetManagerBase> GetAssetManager() { return s_AssetManager; }
+		static Ref<EditorAssetManager> GetEditorAssetManager() { return s_AssetManager.As<EditorAssetManager>(); }
+		static Ref<RuntimeAssetManager> GetRuntimeAssetManager() { return s_AssetManager.As<RuntimeAssetManager>(); }
 
-		static Ref<AssetManagerBase> GetActiveAssetManager() { return s_AssetManager; }
-		static Ref<EditorAssetManager> GetActiveEditorAssetManager() { return s_AssetManager.As<EditorAssetManager>(); }
-		static Ref<RuntimeAssetManager> GetActiveRuntimeAssetManager() { return s_AssetManager.As<RuntimeAssetManager>(); }
+		static const std::string& GetName() { return s_ActiveConfig->Name; }
+		static std::filesystem::path GetProjectFilePath() { return s_ActiveConfig->GetProjectFilepath(); }
+		static std::filesystem::path GetActiveDirectory() { return s_ActiveConfig->GetDirectory(); }
+		static std::filesystem::path GetActiveAssetsDirectory() { return s_ActiveConfig->GetAssetsDirectory(); }
 
-		Ref<AssetManagerBase> GetAssetManager() { return GetActiveAssetManager(); }
-		Ref<EditorAssetManager> GetEditorAssetManager() { return GetActiveEditorAssetManager(); }
-		Ref<RuntimeAssetManager> GetRuntimeAssetManager() { return GetActiveRuntimeAssetManager(); }
-
-		void Rename(const std::string& newName);
-		std::string GetProjectFile() const { return fmt::format("{}/{}.skproj", m_Config.Directory, m_Config.Name); }
-		static std::filesystem::path GetProjectFilePath() { return s_ActiveProject->GetProjectFile(); }
-
-		std::filesystem::path GetDirectory() const;
-		std::filesystem::path GetAssetsDirectory() const;
-		static std::filesystem::path GetActiveDirectory() { return s_ActiveProject->GetDirectory(); }
-		static std::filesystem::path GetActiveAssetsDirectory() { return s_ActiveProject->GetAssetsDirectory(); }
-		std::string GetScriptModulePath() const;
-
-		std::filesystem::path GetRelative(const std::filesystem::path& path) const;
-		std::filesystem::path GetAbsolute(const std::filesystem::path& path) const;
 	private:
-		ProjectConfig m_Config;
-
 		static inline Ref<AssetManagerBase> s_AssetManager;
-		static inline Ref<Project> s_ActiveProject;
+		static inline Ref<ProjectConfig> s_ActiveConfig;
 	};
 
 

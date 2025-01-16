@@ -22,7 +22,7 @@ namespace Shark {
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 
-		virtual void OnProjectChanged(Ref<Project> project) override;
+		virtual void OnProjectChanged(Ref<ProjectConfig> projectConfig) override;
 		virtual void SetContext(Ref<Scene> scene) override;
 		Ref<Scene> GetContext() const { return m_Context; }
 

@@ -162,7 +162,7 @@ namespace Shark {
 
 		if (changed)
 		{
-			Project::GetActiveEditorAssetManager()->SaveAsset(m_MaterialHandle);
+			Project::GetEditorAssetManager()->SaveAsset(m_MaterialHandle);
 		}
 
 	}
@@ -203,7 +203,7 @@ namespace Shark {
 
 		if (!AssetManager::IsValidAssetHandle(m_Sphere))
 		{
-			AssetHandle sphereSourceHandle = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
+			AssetHandle sphereSourceHandle = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
 			m_Sphere = AssetManager::CreateMemoryOnlyAsset<Mesh>(sphereSourceHandle);
 		}
 
@@ -220,7 +220,7 @@ namespace Shark {
 
 		Entity skyEntity = m_Scene->CreateEntity("Sky");
 		auto& skyComp = skyEntity.AddComponent<SkyComponent>();
-		skyComp.SceneEnvironment = Project::GetActiveEditorAssetManager()->GetEditorAsset("Resources/Environment/lenong_2_4k.hdr");
+		skyComp.SceneEnvironment = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Environment/lenong_2_4k.hdr");
 		skyComp.Intensity = 0.8f;
 		skyComp.Lod = 4.5f;
 
@@ -298,7 +298,7 @@ namespace Shark {
 
 				if (ImGui::Button("Save"))
 				{
-					Project::GetActiveEditorAssetManager()->SaveAsset(m_MaterialHandle);
+					Project::GetEditorAssetManager()->SaveAsset(m_MaterialHandle);
 				}
 
 				ImGui::EndTable();
@@ -446,7 +446,7 @@ namespace Shark {
 		if (AssetManager::IsMemoryAsset(handle))
 			return fmt::to_string(handle);
 
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
+		const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(handle);
 		return FileSystem::GetStemString(metadata.FilePath);
 	}
 

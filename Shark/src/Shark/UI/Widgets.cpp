@@ -137,7 +137,7 @@ namespace Shark {
 
 			for (AssetHandle handle : assets)
 			{
-				const AssetMetaData& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
+				const AssetMetaData& metadata = Project::GetEditorAssetManager()->GetMetadata(handle);
 				if (metadata.IsMemoryAsset || metadata.IsEditorAsset)
 					continue;
 

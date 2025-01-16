@@ -71,7 +71,7 @@ namespace Shark {
 		if (!HasThumbnail(handle))
 			return false;
 
-		if (!Project::GetActiveEditorAssetManager()->HasExistingFilePath(handle))
+		if (!Project::GetEditorAssetManager()->HasExistingFilePath(handle))
 			return true;
 
 		uint64_t thumbnailTimestamp = 0;
@@ -80,10 +80,10 @@ namespace Shark {
 		else
 			thumbnailTimestamp = ReadTimestampFromCache(handle);
 
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(handle);
+		const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(handle);
 		uint64_t lastWriteTime = metadata.LastWriteTime;
 		if (lastWriteTime == 0/* && Project::GetActiveEditorAssetManager()->HasExistingFilePath(metadata)*/)
-			lastWriteTime = FileSystem::GetLastWriteTime(Project::GetActiveEditorAssetManager()->GetFilesystemPath(metadata));
+			lastWriteTime = FileSystem::GetLastWriteTime(Project::GetEditorAssetManager()->GetFilesystemPath(metadata));
 
 		const bool current = thumbnailTimestamp == lastWriteTime;
 		if (!current)
@@ -109,7 +109,7 @@ namespace Shark {
 
 	void ThumbnailCache::SetThumbnail(AssetHandle assetHandle, Ref<Image2D> thumbnail)
 	{
-		uint64_t lastWriteTime = Project::GetActiveEditorAssetManager()->GetMetadata(assetHandle).LastWriteTime;
+		uint64_t lastWriteTime = Project::GetEditorAssetManager()->GetMetadata(assetHandle).LastWriteTime;
 		m_Thumbnails[assetHandle] = { thumbnail, lastWriteTime };
 		SK_CORE_TRACE_TAG("ThumbnailCache", "Thumbnail set (Handle={}, Timestamp={})", assetHandle, lastWriteTime);
 

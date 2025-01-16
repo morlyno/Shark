@@ -118,7 +118,7 @@ namespace Shark {
 				if (m_Focused)
 					ImGui::ClearActiveID();
 
-				SetAsset(Project::GetActiveEditorAssetManager()->GetMetadata(m_TextureHandle));
+				SetAsset(Project::GetEditorAssetManager()->GetMetadata(m_TextureHandle));
 			}
 			return false;
 		});
@@ -215,7 +215,7 @@ namespace Shark {
 
 		if (ImGui::Button("Save") && m_IsSharkTexture)
 		{
-			Project::GetActiveEditorAssetManager()->SaveAsset(m_TextureHandle);
+			Project::GetEditorAssetManager()->SaveAsset(m_TextureHandle);
 		}
 		UI::Fonts::PushDefault();
 		nativeTextureTooltip();

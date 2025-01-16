@@ -714,7 +714,7 @@ namespace Shark {
 		if (!prefab->HasValidRoot())
 			return {};
 
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(prefab);
+		const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(prefab);
 		Entity rootEntity = CreateChildEntity(parent, FileSystem::GetStemString(metadata.FilePath));
 		BuildPrefabEntityHierarchy(rootEntity, prefab, prefab->GetRootEntityID(), true, translation, rotation, scale);
 		rootEntity.SetParent(parent);
@@ -810,7 +810,7 @@ namespace Shark {
 
 	Entity Scene::InstantiateMesh(Ref<Mesh> mesh)
 	{
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(mesh);
+		const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(mesh);
 		Entity rootEntity = CreateEntity(FileSystem::GetStemString(metadata.FilePath));
 		rootEntity.AddComponent<MeshComponent>(mesh->Handle);
 		if (auto meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource()))
@@ -822,7 +822,7 @@ namespace Shark {
 
 	Entity Scene::InstantiateStaticMesh(Ref<Mesh> mesh)
 	{
-		const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(mesh);
+		const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(mesh);
 		Entity rootEntity = CreateEntity(FileSystem::GetStemString(metadata.FilePath));
 		rootEntity.AddComponent<StaticMeshComponent>(mesh->Handle);
 		return rootEntity;

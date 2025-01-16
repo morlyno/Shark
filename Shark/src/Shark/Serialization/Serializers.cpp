@@ -20,7 +20,7 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Font from {}", metadata.FilePath);
 		Timer timer;
 
-		auto assetManager = Project::GetActive()->GetEditorAssetManager();
+		auto assetManager = Project::GetEditorAssetManager();
 		if (!assetManager->HasExistingFilePath(metadata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Path not found! {0}", metadata.FilePath);

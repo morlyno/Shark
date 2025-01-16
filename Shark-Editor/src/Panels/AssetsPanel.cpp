@@ -83,7 +83,7 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Imported Assets", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			const auto& registry = Project::GetActiveEditorAssetManager()->GetAssetRegistry();
+			const auto& registry = Project::GetEditorAssetManager()->GetAssetRegistry();
 			for (auto& [handle, metadata] : registry)
 			{
 				drawEntry(metadata);
@@ -94,10 +94,10 @@ namespace Shark {
 
 		if (ImGui::TreeNodeEx("Loaded Assets", UI::DefaultThinHeaderFlags))
 		{
-			const auto& loadedAssets = Project::GetActiveEditorAssetManager()->GetLoadedAssets();
+			const auto& loadedAssets = Project::GetEditorAssetManager()->GetLoadedAssets();
 			for (const auto& [handle, asset] : loadedAssets)
 			{
-				const auto& metadata = Project::GetActiveEditorAssetManager()->GetMetadata(asset);
+				const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(asset);
 				drawEntry(metadata);
 			}
 

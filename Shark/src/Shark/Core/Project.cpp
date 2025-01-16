@@ -6,71 +6,46 @@
 
 namespace Shark {
 
-	void Project::SetActive(Ref<Project> project)
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Project Config ///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	void ProjectConfig::Rename(const std::string& newName)
 	{
-		if (s_ActiveProject)
-		{
-			s_AssetManager = nullptr;
-			ScriptEngine::Get().ShutdownCore();
-		}
+		std::filesystem::path fixedName = newName;
+		if (FileSystem::GetExtension(newName) != L".skproj")
+			FileSystem::ReplaceExtension(fixedName, ".skproj");
 
-		s_ActiveProject = project;
-
-		if (project)
-		{
-			s_AssetManager = Ref<EditorAssetManager>::Create(project);
-			ScriptEngine::Get().InitializeCore(project);
-		}
+		std::filesystem::path projectFile = GetProjectFilepath();
+		if (FileSystem::Rename(projectFile, fixedName.string()))
+			Name = newName;
 	}
 
-	void Project::SetActiveRuntime(Ref<Project> project)
-	{
-		if (s_ActiveProject)
-		{
-			s_AssetManager = nullptr;
-			ScriptEngine::Get().ShutdownCore();
-		}
-
-		s_ActiveProject = project;
-
-		if (project)
-		{
-			s_AssetManager = Ref<RuntimeAssetManager>::Create();
-			ScriptEngine::Get().InitializeCore(project);
-		}
-	}
-
-	Ref<Project> Project::GetActive()
-	{
-		return s_ActiveProject;
-	}
-
-	std::filesystem::path Project::GetDirectory() const
-	{
-		return m_Config.Directory;
-	}
-
-	std::filesystem::path Project::GetAssetsDirectory() const
-	{
-		return m_Config.Directory / m_Config.AssetsDirectory;
-	}
-
-	std::string Project::GetScriptModulePath() const
-	{
-		return fmt::format("{}/{}", s_ActiveProject->m_Config.Directory.generic_string(), s_ActiveProject->m_Config.ScriptModulePath);
-	}
-
-	std::filesystem::path Project::GetRelative(const std::filesystem::path& path) const
+	std::filesystem::path ProjectConfig::GetRelative(const std::filesystem::path& path) const
 	{
 		if (path.is_absolute())
-			return std::filesystem::relative(path, m_Config.Directory).lexically_normal().generic_wstring();
+			return std::filesystem::relative(path, Directory).lexically_normal().generic_wstring();
 		return path.lexically_normal().generic_wstring();
 	}
 
-	std::filesystem::path Project::GetAbsolute(const std::filesystem::path& path) const
+	std::filesystem::path ProjectConfig::GetAbsolute(const std::filesystem::path& path) const
 	{
-		return (m_Config.Directory / path).lexically_normal().generic_wstring();
+		return (Directory / path).lexically_normal().generic_wstring();
 	}
+
+	void ProjectConfig::CopyTo(Ref<ProjectConfig> config)
+	{
+		config->Name = Name;
+		config->Directory = Directory;
+		config->AssetsDirectory = AssetsDirectory;
+		config->StartupScene = StartupScene;
+		config->ScriptModulePath = ScriptModulePath;
+		config->Physics = Physics;
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Project //////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
 
 	Project::Project()
 	{
@@ -82,15 +57,43 @@ namespace Shark {
 
 	}
 
-	void Project::Rename(const std::string& newName)
+	void Project::SetActive(Ref<ProjectConfig> config)
 	{
-		std::filesystem::path fixedName = newName;
-		if (FileSystem::GetExtension(newName) != L".skproj")
-			FileSystem::ReplaceExtension(fixedName, ".skproj");
+		if (s_ActiveConfig)
+		{
+			s_AssetManager = nullptr;
+			ScriptEngine::Get().ShutdownCore();
+		}
 
-		std::filesystem::path projectFile = GetProjectFile();
-		if (FileSystem::Rename(projectFile, fixedName.string()))
-			m_Config.Name = newName;
+		s_ActiveConfig = config;
+
+		if (config)
+		{
+			s_AssetManager = Ref<EditorAssetManager>::Create(config);
+			ScriptEngine::Get().InitializeCore(config);
+		}
+	}
+
+	void Project::SetActiveRuntime(Ref<ProjectConfig> config)
+	{
+		if (s_ActiveConfig)
+		{
+			s_AssetManager = nullptr;
+			ScriptEngine::Get().ShutdownCore();
+		}
+
+		s_ActiveConfig = config;
+
+		if (config)
+		{
+			s_AssetManager = Ref<RuntimeAssetManager>::Create();
+			ScriptEngine::Get().InitializeCore(config);
+		}
+	}
+
+	Ref<ProjectConfig> Project::GetActive()
+	{
+		return s_ActiveConfig;
 	}
 
 }
