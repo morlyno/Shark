@@ -108,6 +108,20 @@ namespace Shark::String {
 		return {};
 	}
 
+	std::wstring ToWide(std::string_view narrow)
+	{
+		std::wstring wide;
+		wide.resize(narrow.size() + 1);
+		size_t actual;
+		mbstowcs_s(&actual, wide.data(), wide.size(), narrow.data(), narrow.size());
+		if (actual > 0)
+		{
+			wide.resize(actual - 1);
+			return wide;
+		}
+		return {};
+	}
+
 	void SplitString(std::string_view str, std::string_view splitter, std::vector<std::string>& out_Array)
 	{
 		Strip(str, splitter);

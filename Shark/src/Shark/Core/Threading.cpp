@@ -6,99 +6,144 @@
 
 namespace Shark {
 
-	Thread::Thread(const std::string& name)
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Thread ///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	Threading::Thread::Thread(std::string_view name)
 		: m_Name(name)
 	{
 	}
 
-	Thread::~Thread()
+	Threading::Thread::~Thread()
 	{
-		Join();
+		StopAndJoin();
 	}
 
-	bool Thread::Running() const
-	{
-		return m_Thread.joinable();
-	}
-
-	void Thread::Join()
-	{
-		if (m_Thread.joinable())
-			m_Thread.join();
-	}
-
-	void Thread::SetName(const std::string& name)
+	void Threading::Thread::SetName(std::string_view name)
 	{
 		if (name.empty())
 			return;
 
 		m_Name = name;
-		Platform::SetThreadName(m_Thread, name);
-	}
 
-	Threading::Signal::Signal(Uninitialized)
-	{
-	}
-
-	Threading::Signal::Signal(bool manualReset, bool initialState)
-	{
-		m_Handle = CreateEventA(nullptr, manualReset, initialState, nullptr);
-	}
-
-	Threading::Signal::~Signal()
-	{
-		CloseHandle(m_Handle);
-		m_Handle = NULL;
-	}
-
-	Threading::Signal::Signal(Signal&& other)
-	{
-		m_Handle = other.m_Handle;
-		other.m_Handle = NULL;
-	}
-
-	Threading::Signal& Threading::Signal::operator=(Signal&& other)
-	{
-		m_Handle = other.m_Handle;
-		other.m_Handle = NULL;
-		return *this;
-	}
-
-	void Threading::Signal::Set()
-	{
-		BOOL success = SetEvent(m_Handle);
-
-		if (!success)
+		if (Running())
 		{
-			std::error_code error(GetLastError(), std::system_category());
-			SK_CORE_ERROR("Threading::Signal::Set Failed! ({}) {}", error, error.message());
+			Platform::SetThreadName(m_Thread, name);
 		}
 	}
 
-	void Threading::Signal::Reset()
+	bool Threading::Thread::Running() const
 	{
-		BOOL success = ResetEvent(m_Handle);
+		return m_Thread.joinable();
+	}
 
-		if (!success)
+	void Threading::Thread::RequestStop()
+	{
+		m_Thread.request_stop();
+	}
+
+	void Threading::Thread::Join()
+	{
+		if (m_Thread.joinable())
+			m_Thread.join();
+	}
+
+	void Threading::Thread::StopAndJoin()
+	{
+		if (m_Thread.joinable())
 		{
-			std::error_code error(GetLastError(), std::system_category());
-			SK_CORE_ERROR("Threading::Signal::Reset Failed! ({}) {}", error, error.message());
+			m_Thread.request_stop();
+			m_Thread.join();
 		}
 	}
 
-	void Threading::Signal::Wait()
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Thread Signal ////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	Threading::TrackedMutex::TrackedMutex(const tracy::SourceLocationData* srcloc)
+		: m_Context(srcloc)
 	{
-		WaitForSingleObject(m_Handle, INFINITE);
 	}
 
-	void Threading::Signal::Wait(std::chrono::milliseconds time)
+	Threading::TrackedMutex::~TrackedMutex()
 	{
-		WaitForSingleObject(m_Handle, time.count());
+
 	}
 
-	Threading::Signal::operator bool() const
+	void Threading::TrackedMutex::Lock()
 	{
-		return m_Handle != nullptr;
+		const auto runAfter = m_Context.BeforeLock();
+		m_Mutex.Lock();
+		if (runAfter)
+			m_Context.AfterLock();
+	}
+
+	bool Threading::TrackedMutex::TryLock()
+	{
+		const auto acquired = m_Mutex.TryLock();
+		m_Context.AfterTryLock(acquired);
+		return acquired;
+	}
+
+	void Threading::TrackedMutex::Unlock()
+	{
+		m_Mutex.Unlock();
+		m_Context.AfterUnlock();
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Thread Signal ////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	Threading::ThreadSignal::ThreadSignal(bool manualReset, bool initialState)
+		: m_ManualReset(manualReset), m_Signaled(initialState)
+	{
+	}
+
+	Threading::ThreadSignal::~ThreadSignal()
+	{
+	}
+
+	void Threading::ThreadSignal::Notify()
+	{
+		std::unique_lock lock(m_Mutex);
+		m_Signaled = true;
+		m_ConditionVariable.NotifyAll();
+	}
+
+	void Threading::ThreadSignal::Reset()
+	{
+		std::unique_lock lock(m_Mutex);
+		m_Signaled = false;
+	}
+
+	void Threading::ThreadSignal::Wait()
+	{
+		std::unique_lock lock(m_Mutex);
+		while (!m_Signaled)
+		{
+			m_ConditionVariable.Wait(lock);
+		}
+
+		if (!m_ManualReset)
+			m_Signaled = false;
+
+	}
+
+	void Threading::ThreadSignal::Wait(std::chrono::milliseconds time)
+	{
+		std::unique_lock lock(m_Mutex);
+
+		if (!m_Signaled)
+		{
+			m_ConditionVariable.Wait(lock, time);
+		}
+
+		if (!m_ManualReset)
+			m_Signaled = false;
+
 	}
 
 }

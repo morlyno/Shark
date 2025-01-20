@@ -136,7 +136,7 @@ namespace Shark {
 		{
 			if (m_SleepRequested || m_LoadingQueue.empty())
 			{
-				m_IdleSignal.Set();
+				m_IdleSignal.Notify();
 
 				SK_PROFILE_SCOPED("Idle");
 				std::unique_lock lock(m_WorkAvailableMutex);
@@ -184,7 +184,7 @@ namespace Shark {
 		}
 
 		// Just in case
-		m_IdleSignal.Set();
+		m_IdleSignal.Notify();
 	}
 
 	void EditorAssetThread::LoadAsset(AssetLoadRequest& request)

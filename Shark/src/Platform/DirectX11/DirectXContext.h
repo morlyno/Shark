@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Threading.h"
 #include "Shark/Render/RendererContext.h"
+
 #include <d3d11_1.h>
 #include <dxgidebug.h>
 
@@ -34,19 +36,21 @@ namespace Shark {
 		virtual void DestroyDevice() override;
 
 		void HandleError(HRESULT hr);
-		void FlushMessages();
 		virtual void ReportLiveObjects() override;
 
 		Ref<DirectXDevice> GetDevice() const { return m_Device; }
 		static Ref<DirectXDevice> GetCurrentDevice();
 		static Ref<DirectXContext> Get();
+
 	private:
-		void CreateInfoQueue();
-		void FlushDXMessages();
+		void MessageThreadFunc(std::stop_token stopToken);
 
 	private:
 		Ref<DirectXDevice> m_Device;
 		IDXGIInfoQueue* m_InfoQueue = nullptr;
+
+		Threading::Thread m_MessageThread;
+		Threading::ThreadSignal m_MessageSignal;
 	};
 
 	class DirectXDevice : public RefCount

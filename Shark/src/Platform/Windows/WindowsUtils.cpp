@@ -266,6 +266,12 @@ namespace Shark {
 		WindowsUtils::SetThreadName(thread.native_handle(), nameWide);
 	}
 
+	void Platform::SetThreadName(std::jthread& thread, std::string_view name)
+	{
+		std::wstring nameWide = String::ToWide(name);
+		WindowsUtils::SetThreadName(thread.native_handle(), nameWide);
+	}
+
 	void Platform::SetThreadName(const std::string& name)
 	{
 		HANDLE thread = GetCurrentThread();

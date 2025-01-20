@@ -123,7 +123,6 @@ namespace Shark {
 
 	void DirectXRenderer::EndFrame()
 	{
-		Renderer::Submit([]() { DirectXContext::Get()->FlushMessages(); });
 	}
 
 	void DirectXRenderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear)

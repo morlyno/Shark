@@ -23,6 +23,7 @@ namespace Shark::String {
 	std::string ToNarrow(std::wstring_view str);
 	std::string ToNarrow(const wchar_t* str);
 	std::wstring ToWide(const std::string& str);
+	std::wstring ToWide(std::string_view str);
 
 	void SplitString(std::string_view str, std::string_view splitter, std::vector<std::string>& out_Array);
 	void SplitString(std::wstring_view str, std::wstring_view splitter, std::vector<std::wstring>& out_Array);

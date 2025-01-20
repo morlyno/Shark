@@ -30,16 +30,26 @@ namespace Shark {
 
 	}
 
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Context //////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
 	DirectXContext::DirectXContext()
 	{
+		m_MessageThread = Threading::Thread("DX Message Thread", [this](std::stop_token stopToken) { MessageThreadFunc(std::move(stopToken)); });
 		m_Device = Ref<DirectXDevice>::Create();
-		CreateInfoQueue();
 	}
 
 	DirectXContext::~DirectXContext()
 	{
 		DestroyDevice();
-		m_InfoQueue->Release();
+
+		if (m_MessageThread.Running())
+		{
+			m_MessageThread.RequestStop();
+			m_MessageSignal.Notify();
+			m_MessageThread.Join();
+		}
 	}
 
 	void DirectXContext::DestroyDevice()
@@ -61,7 +71,7 @@ namespace Shark {
 			return;
 		}
 
-		FlushMessages();
+		m_MessageSignal.Notify();
 
 		static bool BreakOnError = true;
 		if (BreakOnError)
@@ -69,7 +79,6 @@ namespace Shark {
 			SK_DEBUG_BREAK();
 		}
 
-		//SK_CORE_ERROR_TAG("Renderer", WindowsUtils::TranslateHResult(hr));
 	}
 
 	void DirectXContext::ReportLiveObjects()
@@ -78,88 +87,97 @@ namespace Shark {
 		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug))))
 		{
 			debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
-			FlushMessages();
+			m_MessageSignal.Notify();
 			debug->Release();
 		}
 	}
 
-	void DirectXContext::FlushMessages()
-	{
-		FlushDXMessages();
+	namespace utils {
 
-		const auto& producer = DXGI_DEBUG_ALL;
-
-		Buffer messageBuffer;
-		uint64_t count = m_InfoQueue->GetNumStoredMessages(producer);
-		for (uint64_t i = 0; i < count; i++)
+		static std::string_view GetCategoryName(DXGI_INFO_QUEUE_MESSAGE_CATEGORY category)
 		{
-			uint64_t messageLength;
-			DX11_VERIFY(m_InfoQueue->GetMessage(producer, i, nullptr, &messageLength));
-
-			messageBuffer.Resize(messageLength, false);
-			auto message = messageBuffer.As<DXGI_INFO_QUEUE_MESSAGE>();
-
-			DX11_VERIFY(m_InfoQueue->GetMessage(producer, i, message, &messageLength));
-
-			switch (message->Severity)
+			switch (category)
 			{
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_MESSAGE: SK_CORE_TRACE_TAG("Renderer", "{}", message->pDescription); break;
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_INFO: SK_CORE_INFO_TAG("Renderer", "{}", message->pDescription); break;
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING: SK_CORE_WARN_TAG("Renderer", "{}", message->pDescription); break;
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR: SK_CORE_ERROR_TAG("Renderer", "{}", message->pDescription); break;
-				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION: SK_CORE_CRITICAL_TAG("Renderer", "{}", message->pDescription); break;
-				default:
-				{
-					SK_DEBUG_BREAK_CONDITIONAL(s_BreakShouldNotHappen);
-					SK_CORE_WARN_TAG("Renderer", "Unkown Severity! {}", message->pDescription);
-					break;
-				}
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_UNKNOWN: return "Unknown";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_MISCELLANEOUS: return "Miscellaneous";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_INITIALIZATION: return "Initialization";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_CLEANUP: return "Cleanup";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_COMPILATION: return "Compilation";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_STATE_CREATION: return "State Creation";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_STATE_SETTING: return "State Setting";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_STATE_GETTING: return "State Getting";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_RESOURCE_MANIPULATION: return "ResourceManipulation";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_EXECUTION: return "Execution";
+				case DXGI_INFO_QUEUE_MESSAGE_CATEGORY_SHADER: return "Shader";
 			}
+			return "Unknown";
 		}
 
-		m_InfoQueue->ClearStoredMessages(producer);
-		messageBuffer.Release();
 	}
 
-	void DirectXContext::FlushDXMessages()
+	void DirectXContext::MessageThreadFunc(std::stop_token stopToken)
 	{
-		if (!m_Device)
-			return;
-
-		auto dxDevice = m_Device->GetDirectXDevice();
-
-		ID3D11InfoQueue* infoQueue;
-		HRESULT hr = dxDevice->QueryInterface(&infoQueue);
-		DX11_VERIFY(hr);
-		if (SUCCEEDED(hr))
+		const auto MessageCallback = [](DXGI_DEBUG_ID producer, DXGI_INFO_QUEUE_MESSAGE_CATEGORY category, DXGI_INFO_QUEUE_MESSAGE_SEVERITY level, std::string_view message)
 		{
-			Buffer messageBuffer;
-			uint64_t count = infoQueue->GetNumStoredMessages();
+			std::string_view producerName;
+			if (producer == DXGI_DEBUG_ALL)
+				producerName = "All";
+			else if (producer == DXGI_DEBUG_DX)
+				producerName = "DX";
+			else if (producer == DXGI_DEBUG_DXGI)
+				producerName = "DXGI";
+			else if (producer == DXGI_DEBUG_APP)
+				producerName = "APP";
+
+			const std::string_view categoryName = utils::GetCategoryName(category);
+			switch (level)
+			{
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION: SK_CORE_CRITICAL_TAG("Renderer", "{} {}\n{}", producerName, categoryName, message); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR: SK_CORE_ERROR_TAG("Renderer", "{} {}\n{}", producerName, categoryName, message); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING: SK_CORE_WARN_TAG("Renderer", "{} {}\n{}", producerName, categoryName, message); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_INFO: SK_CORE_INFO_TAG("Renderer", "{} {}\n{}", producerName, categoryName, message); break;
+				case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_MESSAGE: SK_CORE_TRACE_TAG("Renderer", "{} {}\n{}", producerName, categoryName, message); break;
+			}
+		};
+
+		IDXGIInfoQueue* infoQueue = nullptr;
+		if (FAILED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&infoQueue))))
+		{
+			SK_CORE_ERROR_TAG("Renderer", "Failed to get the DXGI info queue! Stopping message thread.");
+			return;
+		}
+
+		const DXGI_DEBUG_ID producer = DXGI_DEBUG_ALL;
+
+		infoQueue->PushEmptyRetrievalFilter(producer);
+		infoQueue->PushEmptyStorageFilter(producer);
+
+		Buffer messageBuffer;
+		uint64_t byteLength = 0;
+		using MESSAGE_TYPE = DXGI_INFO_QUEUE_MESSAGE;
+
+		while (!stopToken.stop_requested())
+		{
+			const UINT64 count = infoQueue->GetNumStoredMessages(producer);
 			for (uint64_t i = 0; i < count; i++)
 			{
-				uint64_t messageLength;
-				if (HRESULT hr = infoQueue->GetMessage(i, nullptr, &messageLength); FAILED(hr))
-				{
-					SK_CORE_ERROR_TAG("Renderer", "Failed to receive message from InfoQueue");
-					continue;
-				}
+				infoQueue->GetMessage(producer, i, nullptr, &byteLength);
 
-				messageBuffer.Resize(messageLength, false);
-				auto message = messageBuffer.As<D3D11_MESSAGE>();
+				messageBuffer.Resize(byteLength, false);
+				auto message = messageBuffer.As<MESSAGE_TYPE>();
 
-				DX11_VERIFY(infoQueue->GetMessage(i, message, &messageLength));
+				infoQueue->GetMessage(producer, i, message, &byteLength);
 
-				m_InfoQueue->AddMessage(DXGI_DEBUG_D3D11,
-										(DXGI_INFO_QUEUE_MESSAGE_CATEGORY)message->Category,
-										(DXGI_INFO_QUEUE_MESSAGE_SEVERITY)message->Severity,
-										(DXGI_INFO_QUEUE_MESSAGE_ID)message->ID,
-										message->pDescription);
+				MessageCallback(message->Producer, message->Category, message->Severity, { message->pDescription, message->DescriptionByteLength });
 			}
+			infoQueue->ClearStoredMessages(producer);
 
-			infoQueue->ClearStoredMessages();
-			infoQueue->Release();
-			messageBuffer.Release();
+			m_MessageSignal.Wait(100ms);
 		}
+
+		messageBuffer.Release();
+		infoQueue->Release();
+		SK_CORE_WARN_TAG("Renderer", "Message Thread Terminated");
 	}
 
 	Ref<DirectXDevice> DirectXContext::GetCurrentDevice()
@@ -172,46 +190,9 @@ namespace Shark {
 		return Renderer::GetRendererContext().As<DirectXContext>();
 	}
 
-	void DirectXContext::CreateInfoQueue()
-	{
-		DX11_VERIFY(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_InfoQueue)));
-		m_InfoQueue->PushEmptyRetrievalFilter(DXGI_DEBUG_ALL);
-		m_InfoQueue->PushEmptyStorageFilter(DXGI_DEBUG_ALL);
-
-		bool enableBreakOnSeverity = false;
-		if (enableBreakOnSeverity)
-		{
-			m_InfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
-			m_InfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
-		}
-
-#if 1
-		auto dxDevice = m_Device->GetDirectXDevice();
-		ID3D11InfoQueue* infoQueue = nullptr;
-		dxDevice->QueryInterface(&infoQueue);
-
-		if (enableBreakOnSeverity)
-		{
-			DX11_VERIFY(infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true));
-			DX11_VERIFY(infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true));
-		}
-
-		D3D11_MESSAGE_ID deniedMessages[] = { D3D11_MESSAGE_ID_UNKNOWN };
-		D3D11_MESSAGE_SEVERITY deniedSeverities[] = { D3D11_MESSAGE_SEVERITY_MESSAGE, D3D11_MESSAGE_SEVERITY_INFO };
-
-		D3D11_INFO_QUEUE_FILTER filter{};
-		filter.DenyList.NumIDs = (UINT)std::size(deniedMessages);
-		filter.DenyList.pIDList = deniedMessages;
-		filter.DenyList.NumSeverities = (UINT)std::size(deniedSeverities);
-		filter.DenyList.pSeverityList = deniedSeverities;
-		DX11_VERIFY(infoQueue->PushRetrievalFilter(&filter));
-		DX11_VERIFY(infoQueue->PushStorageFilter(&filter));
-
-		infoQueue->Release();
-#endif
-	}
-
-
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Device ///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
 
 	DirectXDevice::DirectXDevice()
 	{
@@ -265,15 +246,11 @@ namespace Shark {
 	DirectXDevice::~DirectXDevice()
 	{
 		m_CommandPools.clear();
-#if 0
-		m_Queue->Release();
-		m_Device->Release();
+
 		m_Factory->Release();
-#else
 		DX_DESTROYED(m_Queue->Release(), DX_DESTROYED_LOG_ERROR);
-		DX_DESTROYED(m_Factory->Release(), DX_DESTROYED_LOG_ERROR);
 		DX_DESTROYED(m_Device->Release(), DX_DESTROYED_LOG_ERROR);
-#endif
+
 		SK_CORE_WARN_TAG("Renderer", "DirectXDevice destroyed");
 	}
 
@@ -341,7 +318,9 @@ namespace Shark {
 		return commandPool;
 	}
 
-
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Command Pool /////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
 
 	DirectXCommandPool::DirectXCommandPool()
 	{

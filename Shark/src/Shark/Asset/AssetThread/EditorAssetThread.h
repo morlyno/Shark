@@ -39,8 +39,8 @@ namespace Shark {
 		std::filesystem::path GetFilesystemPath(const AssetMetaData& metadata);
 
 	private:
-		Thread m_Thread;
-		Threading::Signal m_IdleSignal;
+		Threading::Thread m_Thread;
+		Threading::ThreadSignal m_IdleSignal;
 		std::atomic<bool> m_SleepRequested = false;
 		bool m_Running = true;
 
@@ -56,7 +56,8 @@ namespace Shark {
 		std::queue<AssetHandle> m_LoadingQueue;
 		std::vector<AssetHandle> m_HandledRequests;
 
-		std::mutex m_LoadedAssetMetadataMutex;
+		Threading::TrackedMutex m_LoadedAssetMetadataMutex = SKLockableInit("LoadedAssetMetadata");
+		//std::mutex m_LoadedAssetMetadataMutex;
 		std::unordered_map<AssetHandle, AssetMetaData> m_LoadedAssetMetadata;
 
 	};
