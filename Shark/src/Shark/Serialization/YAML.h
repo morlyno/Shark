@@ -1,22 +1,12 @@
 #pragma once
 
 #include "Shark/Core/UUID.h"
-
+#include "Shark/Core/TimeStep.h"
 
 #include <glm/glm.hpp>
 #include <yaml-cpp/yaml.h>
 
 namespace YAML {
-
-	template<>
-	struct convert<char16_t>
-	{
-		static bool decode(const Node& node, char16_t& wc)
-		{
-			wc = node.as<int16_t>();
-			return true;
-		}
-	};
 
 	template<>
 	struct convert<glm::vec2>
@@ -110,20 +100,6 @@ namespace YAML {
 		}
 	};
 
-	template<>
-	struct convert<Shark::UUID>
-	{
-		static Node encode(const Shark::UUID& uuid)
-		{
-			return Node(uuid.Value());
-		}
-
-		static bool decode(const Node& node, Shark::UUID& rhs)
-		{
-			return convert<uint64_t>::decode(node, (uint64_t&)rhs);
-		}
-	};
-
 	template<typename TKey, typename TPred, typename TAlloc>
 	struct convert<std::set<TKey, TPred, TAlloc>>
 	{
@@ -209,12 +185,28 @@ namespace YAML {
 		}
 	};
 
-	Emitter& operator<<(Emitter& out, wchar_t);
-	Emitter& operator<<(Emitter& out, const glm::vec2& f2);
-	Emitter& operator<<(Emitter& out, const glm::vec3& f3);
-	Emitter& operator<<(Emitter& out, const glm::vec4& f4);
-	Emitter& operator<<(Emitter& out, const std::filesystem::path& filePath);
-	Emitter& operator<<(Emitter& out, const Shark::UUID& uuid);
+#define DECALRE_YAML_CONVERT_AS(_Type, _BaseType)\
+template<>                                                           \
+struct convert<_Type>                                                \
+{                                                                    \
+	using Type = _Type;                                              \
+	using BaseType = _BaseType;                                      \
+	static Node encode(const Type& value)                            \
+	{                                                                \
+		return convert<BaseType>::encode(value);                     \
+	}																 \
+	static bool decode(const Node& node, Type& outValue)			 \
+	{																 \
+		BaseType temp;												 \
+		bool result = convert<BaseType>::decode(node, temp);		 \
+		outValue = temp;											 \
+		return result;												 \
+	}                                                                \
+}
+
+	DECALRE_YAML_CONVERT_AS(Shark::UUID, uint64_t);
+	DECALRE_YAML_CONVERT_AS(Shark::TimeStep, float);
+#undef DECALRE_YAML_CONVERT_AS()
 
 	template<typename TValue>
 	Emitter& operator<<(Emitter& out, const TValue& value) { return out << YAML::Node(value); }

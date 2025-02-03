@@ -14,6 +14,9 @@ namespace Shark {
 		void Clear();
 		void ClearDiscCache();
 
+		void ClearFor(std::span<const AssetHandle> handles);
+		void ClearDiscFor(std::span<const AssetHandle> handles);
+
 		bool HasThumbnail(AssetHandle assetHandle);
 		bool IsThumbnailCurrent(AssetHandle assetHandle);
 		Ref<Image2D> GetThumbnail(AssetHandle assetHandle);

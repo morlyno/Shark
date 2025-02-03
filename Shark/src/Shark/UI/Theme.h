@@ -9,11 +9,14 @@ namespace Shark::UI::Colors {
 	void LoadLightTheme();
 	void LoadTheme(const std::filesystem::path& file);
 
+	struct DefaultColor {};
+
+	const ImVec4* GetDefaultColors();
+	const ImVec4& GetDefaultColor(ImGuiCol color);
+
 	namespace Theme {
 
-		constexpr ImU32 ButtonDark = IM_COL32(0x18, 0x18, 0x18, 0xFF);
-		constexpr ImU32 ButtonHoveredDark = IM_COL32(0x21, 0x21, 0x21, 0xFF);
-		constexpr ImU32 ButtonActiveDark = IM_COL32(0x1B, 0x1B, 0x1B, 0xFF);
+		constexpr DefaultColor Default;
 
 		inline ImVec4 Colored;
 		inline ImVec4 ColoredLight;
@@ -54,6 +57,16 @@ namespace Shark::UI::Colors {
 		constexpr ImU32 NiceBlue = IM_COL32(51, 161, 230, 255);
 		constexpr ImU32 Green = IM_COL32(131, 230, 41, 255);
 		//constexpr ImU32 Selection = IM_COL32(48, 40, 76, 255);
+
+
+		constexpr ImU32 Button = IM_COL32(56, 56, 56, 200);
+		constexpr ImU32 ButtonHovered = IM_COL32(70, 70, 70, 255);
+		constexpr ImU32 ButtonActive = IM_COL32(56, 56, 56, 150);
+
+		constexpr ImU32 ButtonDark = IM_COL32(0x18, 0x18, 0x18, 0xFF);
+		constexpr ImU32 ButtonHoveredDark = IM_COL32(0x21, 0x21, 0x21, 0xFF);
+		constexpr ImU32 ButtonActiveDark = IM_COL32(0x1B, 0x1B, 0x1B, 0xFF);
+
 	};
 
 	inline ImU32 WithHue(const ImColor& color, float hue)

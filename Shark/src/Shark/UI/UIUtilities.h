@@ -47,6 +47,11 @@ namespace Shark::UI {
 				ImGui::PushStyleColor(color, val.Value);
 		}
 
+		ScopedColor(ImGuiCol color, Colors::DefaultColor)
+		{
+			ImGui::PushStyleColor(color, Colors::GetDefaultColor(color));
+		}
+
 		~ScopedColor()
 		{
 			if constexpr (!TConditional)
@@ -138,6 +143,20 @@ namespace Shark::UI {
 			: ScopedColorStack(args...)
 		{
 			ImGui::PushStyleColor(color, val.Value);
+			m_Count++;
+		}
+
+		ScopedColorStack(ImGuiCol color, Colors::DefaultColor)
+		{
+			ImGui::PushStyleColor(color, Colors::GetDefaultColor(color));
+			m_Count++;
+		}
+
+		template<typename... TArgs>
+		ScopedColorStack(ImGuiCol color, Colors::DefaultColor, TArgs&&... args)
+			: ScopedColorStack(args...)
+		{
+			ImGui::PushStyleColor(color, Colors::GetDefaultColor(color));
 			m_Count++;
 		}
 

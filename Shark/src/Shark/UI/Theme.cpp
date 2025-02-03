@@ -3,6 +3,8 @@
 
 namespace Shark::UI::Colors {
 
+	static ImVec4 g_DefaultColors[ImGuiCol_COUNT];
+
 	static void LoadDarkImGuiColors()
 	{
 #if 0
@@ -133,9 +135,9 @@ namespace Shark::UI::Colors {
 		colors[ImGuiCol_HeaderActive] = ImGui::ColorConvertU32ToFloat4(Theme::Header);
 
 		// Button
-		colors[ImGuiCol_Button] = ImColor(56, 56, 56, 200);
-		colors[ImGuiCol_ButtonHovered] = ImColor(70, 70, 70, 255);
-		colors[ImGuiCol_ButtonActive] = ImColor(56, 56, 56, 150);
+		colors[ImGuiCol_Button] = ImGui::ColorConvertU32ToFloat4(Theme::Button);
+		colors[ImGuiCol_ButtonHovered] = ImGui::ColorConvertU32ToFloat4(Theme::ButtonHovered);
+		colors[ImGuiCol_ButtonActive] = ImGui::ColorConvertU32ToFloat4(Theme::ButtonActive);
 
 		// Frame Background
 		colors[ImGuiCol_FrameBg] = ImGui::ColorConvertU32ToFloat4(Theme::ControlField);
@@ -207,6 +209,8 @@ namespace Shark::UI::Colors {
 		style.IndentSpacing   = style.IndentSpacing * 0.5f;
 		style.FrameBorderSize = 1.0f;
 		style.FrameRounding = 2.5f;
+
+		memcpy(g_DefaultColors, colors, ImGuiCol_COUNT * sizeof(ImVec4));
 	}
 
 	void LoadLightTheme()
@@ -217,6 +221,16 @@ namespace Shark::UI::Colors {
 	void LoadTheme(const std::filesystem::path& file)
 	{
 		SK_NOT_IMPLEMENTED();
+	}
+
+	const ImVec4* GetDefaultColors()
+	{
+		return g_DefaultColors;
+	}
+
+	const ImVec4& GetDefaultColor(ImGuiCol color)
+	{
+		return g_DefaultColors[color];
 	}
 
 }

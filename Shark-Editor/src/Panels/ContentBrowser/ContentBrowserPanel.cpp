@@ -941,6 +941,55 @@ namespace Shark {
 
 			UI::DrawButtonFrame();
 			UI::DrawImageButton(EditorResources::ClearIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
+
+			UI::ScopedColor popupBg(ImGuiCol_PopupBg, UI::Colors::Theme::Background);
+			if (ImGui::BeginPopupContextItem("CTC_Popup"))
+			{
+				UI::ScopedColorStack dark(ImGuiCol_Text, UI::Colors::Theme::Default,
+										  ImGuiCol_Button, UI::Colors::Theme::Default,
+										  ImGuiCol_ButtonActive, UI::Colors::Theme::Default,
+										  ImGuiCol_ButtonHovered, UI::Colors::Theme::Default);
+
+				const auto GetAssetHandlesFromItems = [](CBItemList itemList)
+				{
+					std::vector<AssetHandle> handles;
+					for (Ref<ContentBrowserItem> item : itemList)
+					{
+						if (item->GetType() != CBItemType::Asset)
+							continue;
+
+						auto assetItem = item.As<ContentBrowserAsset>();
+						const auto& metadata = assetItem->GetMetadata();
+						handles.push_back(metadata.Handle);
+					}
+					return handles;
+				};
+
+				{
+					UI::ScopedFont font("Medium");
+					ImGui::Text("Thumbnail Cache");
+				}
+				ImGui::Separator();
+				ImGui::BeginHorizontal("H0", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+				ImGui::Text("Clear Memory");
+				ImGui::Spring();
+				if (ImGui::Button("Current"))
+					m_ThumbnailCache->ClearFor(GetAssetHandlesFromItems(m_CurrentItems));
+				if (ImGui::Button("All"))
+					m_ThumbnailCache->Clear();
+				ImGui::EndHorizontal();
+
+				ImGui::BeginHorizontal("H1", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+				ImGui::Text("Clear Disc");
+				ImGui::Spring();
+				if (ImGui::Button("Current"))
+					m_ThumbnailCache->ClearFor(GetAssetHandlesFromItems(m_CurrentItems));
+				if (ImGui::Button("All"))
+					m_ThumbnailCache->ClearDiscCache();
+				ImGui::EndHorizontal();
+				ImGui::EndPopup();
+			}
+
 		}
 
 

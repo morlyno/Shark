@@ -12,8 +12,8 @@ namespace Shark {
 		glm::vec2 Gravity;
 		uint32_t VelocityIterations;
 		uint32_t PositionIterations;
-		float FixedTimeStep;
-		float MaxTimestep;
+		TimeStep FixedTimeStep;
+		TimeStep MaxTimestep;
 	};
 
 	class ProjectConfig : public RefCount

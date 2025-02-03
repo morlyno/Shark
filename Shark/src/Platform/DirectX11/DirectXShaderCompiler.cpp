@@ -338,7 +338,7 @@ namespace Shark {
 
 		if (m_CompiledStages != ShaderUtils::ShaderStage::None)
 		{
-			SK_CONSOLE_INFO("Shader Compiled\n\nFile: {}\nStages: {}", m_ShaderSourcePath, m_CompiledStages);
+			SK_CONSOLE_INFO("Shader {} Compiled\n\nFile: {}\nStages: {}", m_ShaderSourcePath.filename(), m_ShaderSourcePath, m_CompiledStages);
 		}
 
 		return true;

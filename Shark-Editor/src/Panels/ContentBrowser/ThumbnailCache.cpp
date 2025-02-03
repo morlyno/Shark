@@ -52,6 +52,35 @@ namespace Shark {
 		FileSystem::RemoveAll(utils::GetCacheDirectory());
 	}
 
+	void ThumbnailCache::ClearFor(std::span<const AssetHandle> handles)
+	{
+		uint32_t clearedAssets = 0;
+
+		for (AssetHandle handle : handles)
+		{
+			clearedAssets += m_Thumbnails.erase(handle);
+		}
+
+		SK_CORE_WARN_TAG("ThumbnailCache", "In memory cache cleared ({} of {} requested)", clearedAssets, handles.size());
+	}
+
+	void ThumbnailCache::ClearDiscFor(std::span<const AssetHandle> handles)
+	{
+		uint32_t clearedAssets = 0;
+
+		for (AssetHandle handle : handles)
+		{
+			std::filesystem::path cacheFile = utils::GetThumbnailCacheFilepath(handle);
+			if (FileSystem::Exists(cacheFile))
+			{
+				FileSystem::Remove(cacheFile);
+				clearedAssets++;
+			}
+		}
+
+		SK_CORE_WARN_TAG("ThumbnailCache", "Disc cache cleared ({} of {} requested)", clearedAssets, handles.size());
+	}
+
 	bool ThumbnailCache::HasThumbnail(AssetHandle assetHandle)
 	{
 		SK_PROFILE_FUNCTION();

@@ -3,6 +3,7 @@
 
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
+#include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
@@ -104,6 +105,7 @@ namespace Shark {
 			return false;
 
 		SK_CORE_ASSERT(filePath.is_absolute());
+		auto absolutePath = FileSystem::Absolute(filePath);
 
 		ScopedTimer timer("Deserializing Project");
 		YAML::Node fileNode = YAML::LoadFile(filePath);
@@ -113,12 +115,12 @@ namespace Shark {
 			return false;
 
 		auto& config = *m_ProjectConfig;
-		config.Name = projectNode["Name"].as<std::string>();
-		config.Directory = filePath.parent_path().generic_wstring();
-		config.StartupScene = projectNode["StartupScene"].as<AssetHandle>();
+		config.Directory = absolutePath.parent_path().generic_wstring();
+		SK_DESERIALIZE_PROPERTY(projectNode, "Name", config.Name, "Untitled");
+		SK_DESERIALIZE_PROPERTY(projectNode, "StartupScene", config.StartupScene, AssetHandle::Invalid);
 
-		config.AssetsDirectory = projectNode["Assets"].as<std::filesystem::path>();
-		config.ScriptModulePath = projectNode["ScriptModulePath"].as<std::string>();
+		SK_DESERIALIZE_PROPERTY(projectNode, "Assets", config.AssetsDirectory, "Assets");
+		SK_DESERIALIZE_PROPERTY(projectNode, "ScriptModulePath", config.ScriptModulePath, {});
 
 		auto physicsNode = projectNode["Physics"];
 		config.Physics.Gravity = physicsNode["Gravity"].as<glm::vec2>();
@@ -126,6 +128,12 @@ namespace Shark {
 		config.Physics.PositionIterations = physicsNode["PositionIterations"].as<uint32_t>();
 		config.Physics.FixedTimeStep = physicsNode["FixedTimeStep"].as<float>();
 		config.Physics.MaxTimestep = physicsNode["MaxTimestep"].as<float>(0.016f);
+
+		SK_DESERIALIZE_PROPERTY(physicsNode, "Gravity", config.Physics.Gravity, { 0.0f, -9.81f });
+		SK_DESERIALIZE_PROPERTY(physicsNode, "VelocityIterations", config.Physics.VelocityIterations, 8);
+		SK_DESERIALIZE_PROPERTY(physicsNode, "PositionIterations", config.Physics.PositionIterations, 3);
+		SK_DESERIALIZE_PROPERTY(physicsNode, "FixedTimeStep", config.Physics.FixedTimeStep, 1ms);
+		SK_DESERIALIZE_PROPERTY(physicsNode, "MaxTimestep", config.Physics.MaxTimestep, 16ms);
 
 		auto logNode = projectNode["Log"];
 		if (logNode)
