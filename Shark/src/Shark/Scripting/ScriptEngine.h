@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Project.h"
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
+#include "Shark/Scripting/ScriptHost.h"
 #include "Shark/Scripting/ScriptStorage.h"
 #include "Shark/Scripting/ScriptTypes.h"
 
@@ -12,25 +12,19 @@
 namespace Shark {
 
 	class Scene;
+	class ProjectConfig;
 
-	class ScriptEngine
+	class ScriptEngine : public RefCount
 	{
 	public:
-		ScriptEngine() = default;
-		~ScriptEngine() = default;
+		ScriptEngine(ScriptHost& host, Ref<ProjectConfig> projectConfig);
+		~ScriptEngine();
 
-		// Shortcut for Application::Get().GetScriptEngine()
+		// Shortcut for Project::GetScriptEngine()
 		static ScriptEngine& Get();
 
-		void InitializeHost();
-		void ShutdownHost();
-
-		void InitializeCore(Ref<ProjectConfig> projectConfig);
-		void ShutdownCore();
 		void LoadAppAssembly();
-		void ReloadAssemblies();
 
-		bool HostInitialized() const { return m_Host != nullptr; }
 		bool CoreInitialized() const { return m_CoreAssembly != nullptr; }
 		bool AppAssemblyLoaded() const { return m_AppAssembly != nullptr; }
 
@@ -51,8 +45,8 @@ namespace Shark {
 		void BuildScriptCache();
 
 	private:
-		Scope<Coral::HostInstance> m_Host;
-		Scope<Coral::AssemblyLoadContext> m_LoadContext;
+		ScriptHost& m_Host;
+		Coral::AssemblyLoadContext m_LoadContext;
 
 		Ref<ProjectConfig> m_ProjectConfig;
 		Coral::ManagedAssembly* m_CoreAssembly = nullptr;

@@ -53,7 +53,7 @@ namespace Shark {
 			PushOverlay(m_ImGuiLayer);
 		}
 
-		m_ScriptEngine.InitializeHost();
+		m_ScriptHost.Initialize();
 	}
 
 	Application::~Application()
@@ -64,7 +64,7 @@ namespace Shark {
 
 		m_LayerStack.Clear();
 		m_ImGuiLayer = nullptr;
-		m_ScriptEngine.ShutdownHost();
+		m_ScriptHost.Shutdown();
 
 		m_Window = nullptr;
 		Renderer::ShutDown();

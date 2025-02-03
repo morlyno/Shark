@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "PrefabSerializer.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Scene/Prefab.h"
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SceneSerializer.h"

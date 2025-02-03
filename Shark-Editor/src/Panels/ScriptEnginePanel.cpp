@@ -125,19 +125,17 @@ namespace Shark {
 
 	void ScriptEnginePanel::DrawSettings()
 	{
-		auto& scriptEngine = ScriptEngine::Get();
-
 		if (ImGui::Button("Reload"))
 		{
-			scriptEngine.ReloadAssemblies();
+			Project::RestartScriptEngine();
 		}
 
 		if (ImGui::Button("Shutdown and load core"))
 		{
-			scriptEngine.ShutdownCore();
-			scriptEngine.InitializeCore(Project::GetActive());
+			Project::RestartScriptEngine(false);
 		}
 
+		auto& scriptEngine = ScriptEngine::Get();
 		if (UI::ScopedDisabled disabled(scriptEngine.AppAssemblyLoaded());
 			ImGui::Button("Load App"))
 		{

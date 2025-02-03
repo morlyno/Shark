@@ -802,11 +802,11 @@ namespace Shark {
 
 		if (ImGui::BeginMenu("Script"))
 		{
-			if (ImGui::MenuItem("Reload"))
+			if (ImGui::MenuItem("Reload", nullptr, false, m_SceneState == SceneState::Edit))
 			{
 				//ScriptEngine::ScheduleReload();
 				// #TODO(moro): should this happen here
-				ScriptEngine::Get().ReloadAssemblies();
+				Project::RestartScriptEngine();
 			}
 
 			ImGui::Separator();
@@ -1849,7 +1849,7 @@ namespace Shark {
 		OnSceneStateChanged(m_EditorScene);
 		m_RuntimeScene = nullptr;
 
-		ScriptEngine::Get().ReloadAssemblies();
+		Project::RestartScriptEngine();
 	}
 
 	void EditorLayer::OnSimulationPlay()
@@ -2062,7 +2062,7 @@ namespace Shark {
 			uint64_t scriptEngineLastModified = FileSystem::GetLastWriteTime(scriptModulePath);
 			if (scriptEngineLastModified != m_ScriptEngineLastModifiedTime)
 			{
-				ScriptEngine::Get().ReloadAssemblies();
+				Project::RestartScriptEngine();
 				m_ScriptEngineLastModifiedTime = scriptEngineLastModified;
 			}
 		}

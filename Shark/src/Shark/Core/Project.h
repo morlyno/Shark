@@ -3,6 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Asset/AssetManager/EditorAssetManager.h"
 #include "Shark/Asset/AssetManager/RuntimeAssetManager.h"
+#include "Shark/Scripting/ScriptEngine.h"
 
 namespace Shark {
 
@@ -54,6 +55,9 @@ namespace Shark {
 		static Ref<EditorAssetManager> GetEditorAssetManager() { return s_AssetManager.As<EditorAssetManager>(); }
 		static Ref<RuntimeAssetManager> GetRuntimeAssetManager() { return s_AssetManager.As<RuntimeAssetManager>(); }
 
+		static Ref<ScriptEngine> GetScriptEngine() { return s_ScriptEngine; }
+		static void RestartScriptEngine(bool loadAppAssembly = true);
+
 		static const std::string& GetName() { return s_ActiveConfig->Name; }
 		static std::filesystem::path GetProjectFilePath() { return s_ActiveConfig->GetProjectFilepath(); }
 		static std::filesystem::path GetActiveDirectory() { return s_ActiveConfig->GetDirectory(); }
@@ -61,6 +65,7 @@ namespace Shark {
 
 	private:
 		static inline Ref<AssetManagerBase> s_AssetManager;
+		static inline Ref<ScriptEngine> s_ScriptEngine;
 		static inline Ref<ProjectConfig> s_ActiveConfig;
 	};
 

@@ -11,68 +11,25 @@
 
 namespace Shark {
 
-	static void OnCoralMessage(std::string_view message, Coral::MessageLevel level)
-	{
-		switch (level)
-		{
-			case Coral::MessageLevel::Trace: SK_CORE_TRACE_TAG("Scripting", "{}", message); break;
-			case Coral::MessageLevel::Info: SK_CORE_INFO_TAG("Scripting", "{}", message); break;
-			case Coral::MessageLevel::Warning: SK_CORE_WARN_TAG("Scripting", "{}", message); break;
-			case Coral::MessageLevel::Error: SK_CORE_ERROR_TAG("Scripting", "{}", message); break;
-		}
-	}
-
-	static void OnCSException(std::string_view message)
-	{
-		SK_CONSOLE_ERROR("C# Exception: {}", message);
-	}
-
-	void ScriptEngine::InitializeHost()
-	{
-		Coral::HostSettings settings;
-		// #TODO(moro): maybe copy file to Shark-Editor/...
-		settings.CoralDirectory = FileSystem::Absolute("DotNet").string();
-		settings.MessageCallback = OnCoralMessage;
-		settings.ExceptionCallback = OnCSException;
-
-		m_Host = Scope<Coral::HostInstance>::Create();
-		Coral::CoralInitStatus status = m_Host->Initialize(settings);
-
-		if (status == Coral::CoralInitStatus::Success)
-		{
-			SK_CORE_INFO_TAG("Scripting", "Coral host initialized");
-			return;
-		}
-
-		// TODO(moro): better error handling
-		SK_CORE_ERROR_TAG("Scripting", "{}", status);
-	}
-
-	void ScriptEngine::ShutdownHost()
-	{
-		m_Host->Shutdown();
-		m_Host = nullptr;
-	}
-
-	void ScriptEngine::InitializeCore(Ref<ProjectConfig> projectConfig)
+	ScriptEngine::ScriptEngine(ScriptHost& host, Ref<ProjectConfig> projectConfig)
+		: m_Host(host)
 	{
 		m_ProjectConfig = projectConfig;
-		m_LoadContext = Scope<Coral::AssemblyLoadContext>::Create(m_Host->CreateAssemblyLoadContext("Shark-Load-Context"));
+		m_LoadContext = m_Host.CreateAssemblyLoadContext("Shark-Load-Context");
 
-		m_CoreAssembly = &m_LoadContext->LoadAssembly("Resources/Binaries/Shark-ScriptCore.dll");
+		m_CoreAssembly = &m_LoadContext.LoadAssembly("Resources/Binaries/Shark-ScriptCore.dll");
 		SK_CORE_DEBUG_TAG("Scripting", "Core assembly loaded with status {}", m_CoreAssembly->GetLoadStatus());
-		
+
 		ScriptGlue::Initialize(*m_CoreAssembly);
 	}
 
-	void ScriptEngine::ShutdownCore()
+	ScriptEngine::~ScriptEngine()
 	{
 		ScriptGlue::Shutdown();
 
 		m_CoreAssembly = nullptr;
 		m_AppAssembly = nullptr;
-		m_Host->UnloadAssemblyLoadContext(*m_LoadContext);
-		m_LoadContext = nullptr;
+		m_Host.DestroyAssemblyLoadContext(m_LoadContext);
 
 		for (auto& [scriptID, scriptMetadata] : m_ScriptMetadata)
 			for (auto& [fieldID, fieldMetadata] : scriptMetadata.Fields)
@@ -84,23 +41,20 @@ namespace Shark {
 		m_ProjectConfig = nullptr;
 	}
 
+	ScriptEngine& ScriptEngine::Get()
+	{
+		return *Project::GetScriptEngine();
+	}
+
 	void ScriptEngine::LoadAppAssembly()
 	{
 		auto assemblyPath = m_ProjectConfig->GetScriptModulePath();
 		
-		m_AppAssembly = &m_LoadContext->LoadAssembly(assemblyPath);
+		m_AppAssembly = &m_LoadContext.LoadAssembly(assemblyPath);
 		SK_CORE_DEBUG_TAG("Scripting", "App assembly loaded with status {}", m_AppAssembly->GetLoadStatus());
 
 		BuildScriptCache();
 		SK_CONSOLE_INFO("App assembly loaded\nStatus: {}", m_AppAssembly->GetLoadStatus());
-	}
-
-	void ScriptEngine::ReloadAssemblies()
-	{
-		Ref<ProjectConfig> projectConfig = m_ProjectConfig;
-		ShutdownCore();
-		InitializeCore(projectConfig);
-		LoadAppAssembly();
 	}
 
 	bool ScriptEngine::IsValidScriptID(uint64_t scriptID)
@@ -244,11 +198,6 @@ namespace Shark {
 
 			tempInstance.Destroy();
 		}
-	}
-
-	ScriptEngine& ScriptEngine::Get()
-	{
-		return Application::Get().GetScriptEngine();
 	}
 
 	Coral::ManagedObject* ScriptEngine::Instantiate(UUID entityID, ScriptStorage& storage)

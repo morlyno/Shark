@@ -62,15 +62,16 @@ namespace Shark {
 		if (s_ActiveConfig)
 		{
 			s_AssetManager = nullptr;
-			ScriptEngine::Get().ShutdownCore();
+			s_ScriptEngine = nullptr;
 		}
 
 		s_ActiveConfig = config;
 
 		if (config)
 		{
+			auto& app = Application::Get();
 			s_AssetManager = Ref<EditorAssetManager>::Create(config);
-			ScriptEngine::Get().InitializeCore(config);
+			s_ScriptEngine = Ref<ScriptEngine>::Create(app.GetScriptHost(), config);
 		}
 	}
 
@@ -79,21 +80,32 @@ namespace Shark {
 		if (s_ActiveConfig)
 		{
 			s_AssetManager = nullptr;
-			ScriptEngine::Get().ShutdownCore();
+			s_ScriptEngine = nullptr;
 		}
 
 		s_ActiveConfig = config;
 
 		if (config)
 		{
+			auto& app = Application::Get();
 			s_AssetManager = Ref<RuntimeAssetManager>::Create();
-			ScriptEngine::Get().InitializeCore(config);
+			s_ScriptEngine = Ref<ScriptEngine>::Create(app.GetScriptHost(), config);
 		}
 	}
 
 	Ref<ProjectConfig> Project::GetActive()
 	{
 		return s_ActiveConfig;
+	}
+
+	void Project::RestartScriptEngine(bool loadAppAssembly)
+	{
+		auto& app = Application::Get();
+
+		s_ScriptEngine = nullptr;
+		s_ScriptEngine = Ref<ScriptEngine>::Create(app.GetScriptHost(), s_ActiveConfig);
+		if (loadAppAssembly)
+			s_ScriptEngine->LoadAppAssembly();
 	}
 
 }
