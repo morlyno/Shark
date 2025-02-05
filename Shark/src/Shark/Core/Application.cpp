@@ -47,12 +47,6 @@ namespace Shark {
 		else
 			m_Window->CenterWindow();
 
-		if (specification.EnableImGui)
-		{
-			m_ImGuiLayer = ImGuiLayer::Create();
-			PushOverlay(m_ImGuiLayer);
-		}
-
 		m_ScriptHost.Initialize();
 	}
 
@@ -63,7 +57,6 @@ namespace Shark {
 		Renderer::WaitAndRender();
 
 		m_LayerStack.Clear();
-		m_ImGuiLayer = nullptr;
 		m_ScriptHost.Shutdown();
 
 		m_Window = nullptr;
@@ -83,8 +76,8 @@ namespace Shark {
 
 	void Application::PopLayer(Layer* layer)
 	{
-		m_LayerStack.PopLayer(layer);
 		layer->OnDetach();
+		m_LayerStack.PopLayer(layer);
 	}
 
 	void Application::PushOverlay(Layer* layer)
@@ -95,13 +88,13 @@ namespace Shark {
 
 	void Application::PopOverlay(Layer* layer)
 	{
-		m_LayerStack.PopOverlay(layer);
 		layer->OnDetach();
+		m_LayerStack.PopOverlay(layer);
 	}
 
 	void Application::Run()
 	{
-		OnInit();
+		OnInitialize();
 		m_State = ApplicationState::Running;
 		m_LastTickCount = Platform::GetTicks();
 
@@ -127,13 +120,14 @@ namespace Shark {
 				}
 				Renderer::BeginFrame();
 
-				for (auto& layer : m_LayerStack)
-					layer->OnUpdate(m_TimeStep);
+				m_LayerStack.Invoke(&Layer::OnBeginFrame);
+				m_LayerStack.Invoke(&Layer::OnUpdate, m_TimeStep);
 
-				if (m_Specification.EnableImGui)
-				{
-					RenderImGui();
-				}
+				m_LayerStack.Invoke(&Layer::OnBeginUI);
+				m_LayerStack.Invoke(&Layer::OnImGuiRender);
+				m_LayerStack.Invoke(&Layer::OnEndUI);
+
+				m_LayerStack.Invoke(&Layer::OnEndFrame);
 
 				Renderer::EndFrame();
 
@@ -146,6 +140,7 @@ namespace Shark {
 			const uint64_t ticks = Platform::GetTicks();
 			m_TimeStep = (float)(ticks - m_LastTickCount) / Platform::GetTicksPerSecond();
 			SK_LOG_IF(m_TimeStep > 1.0f, LoggerType::Core, LogLevel::Warn, "Core", "Large Timestep! {}", m_TimeStep);
+
 			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
 			m_LastTickCount = ticks;
 			m_Time += m_TimeStep;
@@ -158,11 +153,7 @@ namespace Shark {
 		}
 		
 		m_State = ApplicationState::Shutdown;
-	}
-
-	void Application::AddEventCallback(const std::function<bool(Event&)>& func)
-	{
-		m_EventCallbacks.push_back(func);
+		OnShutdown();
 	}
 
 	void Application::SubmitToMainThread(const std::function<void()>& func)
@@ -170,22 +161,6 @@ namespace Shark {
 		std::scoped_lock lock(m_MainThreadMutex);
 
 		m_MainThreadQueue.push_back(func);
-	}
-
-	void Application::RenderImGui()
-	{
-		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("Application::RenderImGui");
-
-		if (m_State == ApplicationState::Shutdown)
-			return;
-
-		m_ImGuiLayer->Begin();
-
-		for (auto& layer : m_LayerStack)
-			layer->OnImGuiRender();
-
-		m_ImGuiLayer->End();
 	}
 
 	void Application::ProcessEvents()
@@ -243,8 +218,6 @@ namespace Shark {
 		for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend() && !event.Handled; ++it)
 			(*it)->OnEvent(event);
 
-		for (const auto& callback : m_EventCallbacks)
-			callback(event);
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& event)

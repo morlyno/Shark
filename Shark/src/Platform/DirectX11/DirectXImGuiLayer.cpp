@@ -149,15 +149,7 @@ namespace Shark {
 		m_CommandBuffer = nullptr;
 	}
 
-	void DirectXImGuiLayer::OnEvent(Event& event)
-	{
-	}
-
-	void DirectXImGuiLayer::OnImGuiRender()
-	{
-	}
-
-	void DirectXImGuiLayer::Begin()
+	void DirectXImGuiLayer::OnBeginUI()
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(!Renderer::IsOnRenderThread());
@@ -172,7 +164,7 @@ namespace Shark {
 		UI::PushID();
 	}
 
-	void DirectXImGuiLayer::End()
+	void DirectXImGuiLayer::OnEndUI()
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(!Renderer::IsOnRenderThread());

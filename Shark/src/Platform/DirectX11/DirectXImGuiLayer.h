@@ -19,11 +19,8 @@ namespace Shark {
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
 
-		virtual void OnEvent(Event& event) override;
-		virtual void OnImGuiRender() override;
-
-		virtual void Begin() override;
-		virtual void End() override;
+		virtual void OnBeginUI() override;
+		virtual void OnEndUI() override;
 
 		virtual bool InFrame() const override { return m_InFrame; }
 		virtual void SetMainViewportID(ImGuiID mainViewportID) override { m_MainViewportID = mainViewportID; }

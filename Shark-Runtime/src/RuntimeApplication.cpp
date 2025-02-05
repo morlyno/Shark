@@ -21,7 +21,7 @@ namespace Shark {
 				m_StartupProject = std::filesystem::absolute(L"SandboxProject\\Sandbox.skproj");
 		}
 
-		virtual void OnInit() override
+		virtual void OnInitialize() override
 		{
 			PushLayer(new RuntimeLayer(m_StartupProject));
 		}

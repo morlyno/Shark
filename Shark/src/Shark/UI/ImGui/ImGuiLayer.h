@@ -14,16 +14,7 @@ namespace Shark {
 	{
 	public:
 		ImGuiLayer();
-
 		virtual ~ImGuiLayer() = default;
-
-		virtual void OnAttach() = 0;
-		virtual void OnDetach() = 0;
-
-		virtual void OnEvent(Event& event) = 0;
-
-		virtual void Begin() = 0;
-		virtual void End() = 0;
 
 		virtual bool InFrame() const = 0;
 		virtual void SetMainViewportID(ImGuiID mainViewportID) = 0;

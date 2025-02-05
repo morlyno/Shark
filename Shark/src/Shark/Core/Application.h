@@ -43,7 +43,8 @@ namespace Shark {
 		Application(const ApplicationSpecification& specification);
 		virtual ~Application();
 
-		virtual void OnInit() = 0;
+		virtual void OnInitialize() = 0;
+		virtual void OnShutdown() = 0;
 
 		void PushLayer(Layer* layer);
 		void PopLayer(Layer* layer);
@@ -66,12 +67,13 @@ namespace Shark {
 
 		Window& GetWindow() { return *m_Window; }
 		const Window& GetWindow() const { return *m_Window; }
-		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
-		const ImGuiLayer& GetImGuiLayer() const { return *m_ImGuiLayer; }
 		ScriptHost& GetScriptHost() { return m_ScriptHost; }
 
-		const ApplicationSpecification& GetSpecification() const { return m_Specification; }
+		// #Remove
+		virtual ImGuiLayer& GetImGuiLayer() = 0;
+		virtual const ImGuiLayer& GetImGuiLayer() const = 0;
 
+		const ApplicationSpecification& GetSpecification() const { return m_Specification; }
 		static Application& Get() { return *s_Instance; }
 
 	public:
@@ -80,12 +82,9 @@ namespace Shark {
 		{
 			m_EventQueue.push([event = TEvent(std::forward<TArgs>(args)...)]() mutable { Application::Get().OnEvent(event); });
 		}
-		void AddEventCallback(const std::function<bool(Event&)>& func);
 		void SubmitToMainThread(const std::function<void()>& func);
 
 	private:
-		void RenderImGui();
-
 		void ProcessEvents();
 		void ExecuteMainThreadQueue();
 		void OnEvent(Event& event);
@@ -96,33 +95,29 @@ namespace Shark {
 	private:
 		static Application* s_Instance;
 		ApplicationSpecification m_Specification;
+		ApplicationState m_State = ApplicationState::Startup;
+
+		LayerStack m_LayerStack;
+		ScriptHost m_ScriptHost;
+		Scope<Window> m_Window;
+
+		PerformanceProfiler* m_Profiler = nullptr;
+		PerformanceProfiler* m_SecondaryProfiler = nullptr;
 
 		std::thread::id m_MainThreadID;
 
-		ApplicationState m_State = ApplicationState::Startup;
-		bool m_Minimized = false;
 		bool m_Running = true;
+		bool m_Minimized = false;
 		uint64_t m_LastTickCount = 0;
 		TimeStep m_TimeStep = 0.0f;
 		TimeStep m_CPUTime;
 		float m_Time = 0.0f;
 		uint64_t m_FrameCount = 0;
 
-		PerformanceProfiler* m_Profiler = nullptr;
-		PerformanceProfiler* m_SecondaryProfiler = nullptr;
-
-		Scope<Window> m_Window;
-		// Owned by LayerStack
-		ImGuiLayer* m_ImGuiLayer;
-		LayerStack m_LayerStack;
-
-		ScriptHost m_ScriptHost;
-
+		// Event and MeinThread queues
 		std::mutex m_MainThreadMutex;
 		std::vector<std::function<void()>> m_MainThreadQueue;
-
 		std::queue<std::function<void()>> m_EventQueue;
-		std::vector<std::function<bool(Event&)>> m_EventCallbacks;
 	};
 
 	Application* CreateApplication(int argc, char** argv);

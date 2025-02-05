@@ -25,6 +25,22 @@ namespace Shark {
 		m_LayerStackIndex = 0;
 	}
 
+	void LayerStack::Invoke(LayerMethod<void> function)
+	{
+		for (auto* layer : m_Layers)
+		{
+			std::invoke(function, layer);
+		}
+	}
+
+	void LayerStack::Invoke(LayerMethod<void, TimeStep> function, TimeStep timeStep)
+	{
+		for (auto* layer : m_Layers)
+		{
+			std::invoke(function, layer, timeStep);
+		}
+	}
+
 	void LayerStack::PushLayer(Layer* layer)
 	{
 		m_Layers.emplace(m_Layers.begin() + m_LayerStackIndex, layer);
