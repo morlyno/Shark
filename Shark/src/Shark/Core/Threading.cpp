@@ -59,20 +59,23 @@ namespace Shark {
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	//// Thread Signal ////////////////////////////////////////////////////////////////////////////
+	//// Tracked Mutex ////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
-	Threading::TrackedMutex::TrackedMutex(const tracy::SourceLocationData* srcloc)
+	Threading::Internal::TrackedMutex::TrackedMutex(const tracy::SourceLocationData* srcloc)
+#if SK_ENABLE_PROFILER
 		: m_Context(srcloc)
+#endif
 	{
 	}
 
-	Threading::TrackedMutex::~TrackedMutex()
+	Threading::Internal::TrackedMutex::~TrackedMutex()
 	{
 
 	}
 
-	void Threading::TrackedMutex::Lock()
+#if SK_ENABLE_PROFILER
+	void Threading::Internal::TrackedMutex::Lock()
 	{
 		const auto runAfter = m_Context.BeforeLock();
 		m_Mutex.Lock();
@@ -80,18 +83,34 @@ namespace Shark {
 			m_Context.AfterLock();
 	}
 
-	bool Threading::TrackedMutex::TryLock()
+	bool Threading::Internal::TrackedMutex::TryLock()
 	{
 		const auto acquired = m_Mutex.TryLock();
 		m_Context.AfterTryLock(acquired);
 		return acquired;
 	}
 
-	void Threading::TrackedMutex::Unlock()
+	void Threading::Internal::TrackedMutex::Unlock()
 	{
 		m_Mutex.Unlock();
 		m_Context.AfterUnlock();
 	}
+#else
+	void Threading::Internal::TrackedMutex::Lock()
+	{
+		m_Mutex.Lock();
+	}
+
+	bool Threading::Internal::TrackedMutex::TryLock()
+	{
+		return m_Mutex.TryLock();
+	}
+
+	void Threading::Internal::TrackedMutex::Unlock()
+	{
+		m_Mutex.Unlock();
+	}
+#endif
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	//// Thread Signal ////////////////////////////////////////////////////////////////////////////

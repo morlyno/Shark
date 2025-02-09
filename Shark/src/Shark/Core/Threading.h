@@ -70,11 +70,13 @@ namespace Shark {
 		private:
 			Internal::NativeMutex m_NativeMutex;
 
-		private: // interface for std::unique_lock
+		private: // interface for std
 			void lock() { Lock(); }
 			void unlock() { Unlock(); }
 			template<typename TMutex>
 			friend class std::unique_lock;
+			template<typename... TMutexes>
+			friend class std::scoped_lock;
 		};
 
 		namespace Internal {
@@ -97,12 +99,14 @@ namespace Shark {
 				void unlock() { Unlock(); }
 				bool try_lock() { TryLock(); }
 			private:
+#if SK_ENABLE_PROFILER
 				tracy::LockableCtx m_Context;
+#endif
 				Mutex m_Mutex;
 			};
 		}
 
-#if defined(TRACY_ENABLE)
+#if SK_ENABLE_PROFILER
 		using TrackedMutex = Internal::TrackedMutex;
 		#define SKLockableInit( varname ) ::Shark::Threading::TrackedMutex { [] () -> const tracy::SourceLocationData* { static constexpr tracy::SourceLocationData srcloc { nullptr, "Threading::TrackedMutex " #varname, TracyFile, TracyLine, 0 }; return &srcloc; }() }
 #else
