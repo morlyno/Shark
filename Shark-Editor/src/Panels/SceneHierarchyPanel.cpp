@@ -350,6 +350,9 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Hinge Joint 2D", HingeJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Prismatic Joint 2D", PrismaticJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Rigidbody", RigidBodyComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Sphere Collider", SphereColliderComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Box Collider", BoxColliderComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 		#undef COMPONENT_DATA_ARGS
 
@@ -1440,6 +1443,32 @@ namespace Shark {
 			utils::MultiselectControl(entities, &PulleyJointComponent::GroundAnchorB, "Ground AnchorB");
 			utils::MultiselectControl(entities, &PulleyJointComponent::Ratio, "Ratio", FLT_EPSILON, FLT_MAX);
 			utils::MultiselectControl(entities, &PulleyJointComponent::CollideConnected, "Collide Connected");
+			UI::EndControlsGrid();
+		});
+
+		DrawComponetMultiSelect<RigidBodyComponent>(entities, "Rigidbody", [this](RigidBodyComponent& firstComponent, const std::vector<Entity>& entities)
+		{
+			UI::BeginControlsGrid();
+			utils::Multiselect(entities, &RigidBodyComponent::Type, [](RigidBodyComponent& firstComponent, const std::vector<Entity>& entities)
+			{
+				return UI::ControlCombo("Body Type", firstComponent.Type);
+			});
+			UI::EndControlsGrid();
+		});
+		
+		DrawComponetMultiSelect<SphereColliderComponent>(entities, "Sphere Collider", [this](SphereColliderComponent& firstComponent, const std::vector<Entity>& entities)
+		{
+			UI::BeginControlsGrid();
+			utils::MultiselectControl(entities, &SphereColliderComponent::Radius, "Radius");
+			utils::MultiselectControl(entities, &SphereColliderComponent::Offset, "Offset");
+			UI::EndControlsGrid();
+		});
+		
+		DrawComponetMultiSelect<BoxColliderComponent>(entities, "Box Collider", [this](BoxColliderComponent& firstComponent, const std::vector<Entity>& entities)
+		{
+			UI::BeginControlsGrid();
+			utils::MultiselectControl(entities, &BoxColliderComponent::HalfSize, "Half Size");
+			utils::MultiselectControl(entities, &BoxColliderComponent::Offset, "Offset");
 			UI::EndControlsGrid();
 		});
 

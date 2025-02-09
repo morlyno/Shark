@@ -54,9 +54,8 @@ project "Shark"
 
     filter "configurations:Debug or configurations:Debug-AS"
         LinkDependencies("Debug")
-        removefiles {
-            "dependencies/tracy/**",
-        }
+        AddDefines("Debug")
 
     filter "configurations:Release"
         LinkDependencies("Release")
+        AddDefines("Release")

@@ -1028,7 +1028,7 @@ namespace Shark {
 
 		#pragma region RigidBody2DComponent
 
-		RigidbodyType RigidBody2DComponent_GetBodyType(uint64_t entityID)
+		BodyType RigidBody2DComponent_GetBodyType(uint64_t entityID)
 		{
 			Entity entity = GetEntity(entityID);
 			SK_ICALL_VERIFY_PARAMETER(entity);
@@ -1036,7 +1036,7 @@ namespace Shark {
 			return entity.GetComponent<RigidBody2DComponent>().Type;
 		}
 
-		void RigidBody2DComponent_SetBodyType(uint64_t entityID, RigidbodyType bodyType)
+		void RigidBody2DComponent_SetBodyType(uint64_t entityID, BodyType bodyType)
 		{
 			Entity entity = GetEntity(entityID);
 			SK_ICALL_VERIFY_PARAMETER(entity);

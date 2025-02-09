@@ -7,7 +7,7 @@
 #include "Shark/Asset/Asset.h"
 #include "Shark/Scene/Components.h"
 #include "Shark/Scripting/ScriptStorage.h"
-#include "Shark/Physics2D/Physics2DScene.h"
+#include "Shark/Physics/2D/Physics2DScene.h"
 
 #include "Shark/Render/EditorCamera.h"
 #include "Shark/Render/Environment.h"
@@ -21,6 +21,7 @@ namespace Shark {
 	struct SceneRendererCamera;
 	class Entity;
 	class Prefab;
+	class PhysicsScene;
 
 	struct PointLight
 	{
@@ -79,7 +80,7 @@ namespace Shark {
 		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
 		bool IsEditorScene() const { return m_IsEditorScene; }
 		bool IsRunning() const { return m_IsRunning; }
-		bool RunsPhysicsSimulation() const { return m_PhysicsScene != nullptr; }
+		bool RunsPhysicsSimulation() const { return m_Physics2DScene != nullptr; }
 
 		void OnScenePlay();
 		void OnSceneStop();
@@ -172,7 +173,7 @@ namespace Shark {
 
 		// returns all entities sorted by UUID
 		std::vector<Entity> GetEntitiesSorted();
-		const Physics2DScene& GetPhysicsScene() const { return *m_PhysicsScene; }
+		const Physics2DScene& GetPhysicsScene() const { return *m_Physics2DScene; }
 
 		ScriptStorage& GetScriptStorage() { return m_ScriptStorage; }
 
@@ -229,7 +230,8 @@ namespace Shark {
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
 
-		Physics2DScene* m_PhysicsScene = nullptr;
+		Physics2DScene* m_Physics2DScene = nullptr;
+		Ref<PhysicsScene> m_PhysicsScene = nullptr;
 
 		bool m_IsEditorScene = false;
 		bool m_IsRunning = false;

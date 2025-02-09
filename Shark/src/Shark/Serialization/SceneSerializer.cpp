@@ -587,7 +587,7 @@ namespace Shark {
 		if (auto componentNode = entityNode["RigidBody2DComponent"])
 		{
 			auto& component = entity.AddOrReplaceComponent<RigidBody2DComponent>();
-			SK_DESERIALIZE_PROPERTY(componentNode, "Type", component.Type, RigidbodyType::Static);
+			SK_DESERIALIZE_PROPERTY(componentNode, "Type", component.Type, BodyType::Static);
 			SK_DESERIALIZE_PROPERTY(componentNode, "FixedRotation", component.FixedRotation, false);
 			SK_DESERIALIZE_PROPERTY(componentNode, "IsBullet", component.IsBullet, false);
 			SK_DESERIALIZE_PROPERTY(componentNode, "Awake", component.Awake, true);

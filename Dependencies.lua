@@ -43,6 +43,37 @@ Dependencies = {
     msdfgen = {
         IncludeDir = "%{wks.location}/Shark/dependencies/msdf-atlas-gen/msdfgen"
     },
+    Assimp = {
+        LibName = "assimp-vc143-mt",
+        IncludeDir = "%{wks.location}/Shark/dependencies/Assimp/include",
+        LibraryDir = "%{wks.location}/Shark/dependencies/Assimp/lib",
+        DLL = "%{wks.location}/Shark/dependencies/Assimp/bin/assimp-vc143-mt.dll"
+    },
+    tracy = {
+        IncludeDir = "%{wks.location}/Shark/dependencies/tracy",
+        Config = "Release"
+    },
+    magic_enum = {
+        IncludeDir = "%{wks.location}/Shark/dependencies/magic_enum",
+    },
+    StrToNum = {
+        IncludeDir = "%{wks.location}/Shark/dependencies/StrToNum"
+    },
+    Jolt = {
+        LibName = "JoltPhysics",
+        IncludeDir = "%{wks.location}/Shark/dependencies/JoltPhysics/JoltPhysics",
+        Defines = {
+            "JPH_DEBUG_RENDERER", -- Adds support to draw lines and triangles, used to be able to debug draw the state of the world.
+            "JPH_FLOATING_POINT_EXCEPTIONS_ENABLED", -- Turns on division by zero and invalid floating point exception support in order to detect bugs (Windows only).
+            --"JPH_EXTERNAL_PROFILE" -- Turns on the internal profiler but forwards the information to a user defined external system (see Profiler.h).
+        },
+        DebugDefines = {
+            "_DEBUG", 
+            "JPH_ENABLE_ASSERTS", -- Compiles the library so that it rises an assert in case of failures. The library ignores these failures otherwise.
+        },
+    },
+
+
     Vulkan = {
         IncludeDir = "%{VULKAN_SDK}/Include",
     },
@@ -71,26 +102,8 @@ Dependencies = {
         DebugLibName = "spirv-cross-hlsld",
         LibraryDir = "%{VULKAN_SDK}/lib"
     },
-    Assimp = {
-        LibName = "assimp-vc143-mt",
-        IncludeDir = "%{wks.location}/Shark/dependencies/Assimp/include",
-        LibraryDir = "%{wks.location}/Shark/dependencies/Assimp/lib",
-        DLL = "%{wks.location}/Shark/dependencies/Assimp/bin/assimp-vc143-mt.dll"
-    },
-    tracy = {
-        IncludeDir = "%{wks.location}/Shark/dependencies/tracy",
-        Config = "Release"
-    },
-    filewatch = {
-        IncludeDir = "%{wks.location}/Shark/dependencies/filewatch/include",
-    },
-    magic_enum = {
-        IncludeDir = "%{wks.location}/Shark/dependencies/magic_enum",
-    },
-    StrToNum = {
-        IncludeDir = "%{wks.location}/Shark/dependencies/StrToNum"
-    },
-
+    
+    
     D3D11 = {
         Windows = { LibName = "d3d11" }
     },
@@ -111,7 +124,12 @@ Dependencies = {
     },
     WinSock = {
         Windows = { LibName = "Ws2_32" }
-    }
+    },
+
+    -- TODO(moro): remove filewatch
+    filewatch = {
+        IncludeDir = "%{wks.location}/Shark/dependencies/filewatch/include",
+    },
 }
 
 function AddInclude(libData)
@@ -182,6 +200,29 @@ function LinkDependencies(targetConfig)
             end
 
             AddInclude(libraryData)
+        end
+    end
+end
+
+function AddDefines(targetConfig)
+    
+    for key, libraryData in pairs(Dependencies) do
+        local matchesConfig = true
+
+        if targetConfig ~= nil and libraryData.Config ~= nil then
+            matchesConfig = string.find(libraryData.Config, targetConfig)
+        end
+
+        if matchesConfig then
+            local isDebug = targetConfig == "Debug"
+
+            if libraryData.Defines ~= nil then
+                defines { libraryData.Defines }
+            end
+
+            if isDebug and libraryData.DebugDefines ~= nil then
+                defines { libraryData.DebugDefines }
+            end
         end
     end
 end

@@ -192,8 +192,8 @@ namespace Shark {
 			Impulse = 1
 		};
 
-		RigidbodyType RigidBody2DComponent_GetBodyType(uint64_t entityID);
-		void RigidBody2DComponent_SetBodyType(uint64_t entityID, RigidbodyType bodyType);
+		BodyType RigidBody2DComponent_GetBodyType(uint64_t entityID);
+		void RigidBody2DComponent_SetBodyType(uint64_t entityID, BodyType bodyType);
 		void RigidBody2DComponent_GetPosition(uint64_t entityID, glm::vec2* outPosition);
 		void RigidBody2DComponent_SetPosition(uint64_t entityID, glm::vec2* position);
 		float RigidBody2DComponent_GetRotation(uint64_t entityID);

@@ -174,28 +174,28 @@ namespace Shark {
 			glm::toMat4(glm::quat(glm::vec3(0.0f, 0.0f, body->GetAngle())));
 	}
 
-	b2BodyType Physics2DUtils::ConvertBodyType(RigidbodyType type)
+	b2BodyType Physics2DUtils::ConvertBodyType(BodyType type)
 	{
 		switch (type)
 		{
-			case RigidbodyType::Static: return b2_staticBody;
-			case RigidbodyType::Dynamic: return b2_dynamicBody;
-			case RigidbodyType::Kinematic: return b2_kinematicBody;
+			case BodyType::Static: return b2_staticBody;
+			case BodyType::Dynamic: return b2_dynamicBody;
+			case BodyType::Kinematic: return b2_kinematicBody;
 		}
 		SK_CORE_VERIFY(false, "Unkown RigidbodyType");
 		return b2_staticBody;
 	}
 
-	RigidbodyType Physics2DUtils::ConvertBodyType(b2BodyType type)
+	BodyType Physics2DUtils::ConvertBodyType(b2BodyType type)
 	{
 		switch (type)
 		{
-			case b2_staticBody: return RigidbodyType::Static;
-			case b2_kinematicBody: return RigidbodyType::Kinematic;
-			case b2_dynamicBody: return RigidbodyType::Dynamic;
+			case b2_staticBody: return BodyType::Static;
+			case b2_kinematicBody: return BodyType::Kinematic;
+			case b2_dynamicBody: return BodyType::Dynamic;
 		}
 		SK_CORE_VERIFY(false, "Unkown b2BodyType");
-		return RigidbodyType::Static;
+		return BodyType::Static;
 	}
 
 }

@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "Project.h"
 
+#include "Shark/Physics/3D/PhysicsSystem.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
@@ -63,6 +65,7 @@ namespace Shark {
 		{
 			s_AssetManager = nullptr;
 			ScriptEngine::Get().ShutdownCore();
+			PhysicsSystem::Shutdown();
 		}
 
 		s_ActiveConfig = config;
@@ -71,6 +74,7 @@ namespace Shark {
 		{
 			s_AssetManager = Ref<EditorAssetManager>::Create(config);
 			ScriptEngine::Get().InitializeCore(config);
+			PhysicsSystem::Initialize();
 		}
 	}
 
@@ -80,6 +84,7 @@ namespace Shark {
 		{
 			s_AssetManager = nullptr;
 			ScriptEngine::Get().ShutdownCore();
+			PhysicsSystem::Shutdown();
 		}
 
 		s_ActiveConfig = config;
@@ -88,6 +93,7 @@ namespace Shark {
 		{
 			s_AssetManager = Ref<RuntimeAssetManager>::Create();
 			ScriptEngine::Get().InitializeCore(config);
+			PhysicsSystem::Initialize();
 		}
 	}
 

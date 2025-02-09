@@ -1,11 +1,16 @@
 #pragma once
 
-#include "Shark/Physics2D/Physics2DScene.h"
+#include "Shark/Physics/PhysicsTypes.h"
 
 #include "Shark/Render/Font.h"
 #include "Shark/Render/Mesh.h"
 #include "Shark/Render/Camera.h"
 #include "Shark/Math/Math.h"
+
+#include <entt.hpp>
+
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/Body.h>
 
 #include <Coral/ManagedObject.hpp>
 
@@ -60,6 +65,11 @@ namespace Shark {
 		void SetTransform(const glm::mat4& transform)
 		{
 			Math::DecomposeTransform(transform, Translation, Rotation, Scale);
+		}
+
+		glm::quat GetRotationQuat() const
+		{
+			return glm::quat(Rotation);
 		}
 
 		TransformComponent() = default;
@@ -214,7 +224,7 @@ namespace Shark {
 
 	struct RigidBody2DComponent
 	{
-		RigidbodyType Type = RigidbodyType::Dynamic;
+		BodyType Type = BodyType::Dynamic;
 		bool FixedRotation = false;
 		bool IsBullet = false;
 		bool Awake = true;
@@ -332,6 +342,26 @@ namespace Shark {
 		b2PulleyJoint* RuntimeJoint = nullptr;
 	};
 
+	struct RigidBodyComponent
+	{
+		BodyType Type = BodyType::Dynamic;
+		PhysicsLayer Layer = Physics3D::DefaultLayers::Moving;
+
+		JPH::BodyID BodyID;
+	};
+
+	struct SphereColliderComponent
+	{
+		float Radius = 0.5f;
+		glm::vec3 Offset = { 0.0f, 0.0f, 0.0f };
+	};
+
+	struct BoxColliderComponent
+	{
+		glm::vec3 HalfSize = { 0.5f, 0.5f, 0.5f };
+		glm::vec3 Offset = { 0.0f, 0.0f, 0.0f };
+	};
+
 	struct ScriptComponent
 	{
 		uint64_t ScriptID = 0;
@@ -358,6 +388,7 @@ namespace Shark {
 			                             /* Light      */ PointLightComponent, DirectionalLightComponent, SkyComponent,
 			                             /* Camera     */ CameraComponent,
 			                             /* Physics 2D */ RigidBody2DComponent, BoxCollider2DComponent, CircleCollider2DComponent, DistanceJointComponent, HingeJointComponent, PrismaticJointComponent, PulleyJointComponent,
+			                             /* Physics 3D */ RigidBodyComponent, BoxColliderComponent, SphereColliderComponent,
 			                             /* Script     */ ScriptComponent>;
 
 	// Every entity is required to have all of those components

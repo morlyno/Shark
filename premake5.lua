@@ -63,6 +63,7 @@ group "Dependencies"
 	include "Shark/dependencies/yaml-cpp"
 	include "Shark/dependencies/Coral/Coral.Native"
 	include "Shark/dependencies/Coral/Coral.Managed"
+	include "Shark/dependencies/JoltPhysics"
 group ""
 
 group "Core"

@@ -12,6 +12,10 @@
 #include "Shark/Scripting/ScriptEngine.h"
 #include "Shark/Scripting/ScriptGlue.h"
 
+#include "Shark/Physics/3D/PhysicsSystem.h"
+#include "Shark/Physics/3D/PhysicsScene.h"
+#include "Shark/Physics/3D/Utilities.h"
+
 #include "Shark/Math/Math.h"
 #include "Shark/File/FileSystem.h"
 
@@ -65,7 +69,7 @@ namespace Shark {
 		if (m_IsRunning)
 			OnSceneStop();
 
-		if (m_PhysicsScene)
+		if (m_Physics2DScene)
 			OnPhysics2DStop();
 
 		m_Registry.on_destroy<ScriptComponent>().disconnect<&Scene::OnScriptComponentDestroyed>(this);
@@ -161,6 +165,18 @@ namespace Shark {
 
 		OnPhysics2DPlay(true);
 
+		m_PhysicsScene = PhysicsSystem::CreateScene(this);
+
+		{
+			auto entities = GetAllEntitysWith<RigidBodyComponent>();
+			for (auto ent : entities)
+			{
+				Entity entity{ ent, this };
+				m_PhysicsScene->CreateBody(entity);
+			}
+		}
+
+
 		m_Registry.on_construct<RigidBody2DComponent>().connect<&Scene::OnRigidBody2DComponentCreated>(this);
 		m_Registry.on_construct<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentCreated>(this);
 		m_Registry.on_construct<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentCreated>(this);
@@ -247,6 +263,7 @@ namespace Shark {
 			scriptEngine.Destoy(entityID, m_ScriptStorage);
 		}
 
+		m_PhysicsScene = nullptr;
 		OnPhysics2DStop();
 
 		m_Registry.on_construct<RigidBody2DComponent>().disconnect<&Scene::OnRigidBody2DComponentCreated>(this);
@@ -297,7 +314,7 @@ namespace Shark {
 		}
 
 		{
-			m_PhysicsScene->Step(ts);
+			m_Physics2DScene->Step(ts);
 
 			auto view = m_Registry.view<RigidBody2DComponent>();
 			for (auto e : view)
@@ -322,6 +339,8 @@ namespace Shark {
 			}
 		}
 
+		m_PhysicsScene->Update(ts);
+
 		for (const auto& fn : m_PostUpdateQueue)
 			fn();
 		m_PostUpdateQueue.clear();
@@ -344,7 +363,7 @@ namespace Shark {
 			m_StepFrames--;
 		}
 
-		m_PhysicsScene->Step(ts);
+		m_Physics2DScene->Step(ts);
 
 		auto view = m_Registry.view<RigidBody2DComponent>();
 		for (auto e : view)
@@ -528,7 +547,9 @@ namespace Shark {
 							for (const auto& submeshIndex : node.Submeshes)
 							{
 								const auto& submesh = submeshes[submeshIndex];
-								auto materialHandle = meshComponent.MaterialTable->HasMaterial(submesh.MaterialIndex) ? meshComponent.MaterialTable->GetMaterial(submesh.MaterialIndex) : mesh->GetMaterials()->GetMaterial(submesh.MaterialIndex);
+								auto materialHandle = meshComponent.MaterialTable->HasMaterial(submesh.MaterialIndex) ?
+									                  meshComponent.MaterialTable->GetMaterial(submesh.MaterialIndex) :
+									                  mesh->GetMaterials()->GetMaterial(submesh.MaterialIndex);
 								auto material = AssetManager::GetAsset<MaterialAsset>(materialHandle);
 
 								renderer->SubmitMesh(mesh, meshSource, submeshIndex, material, rootTransform * node.Transform, (int)ent);
@@ -1173,11 +1194,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_VERIFY(m_PhysicsScene == nullptr);
-		m_PhysicsScene = sknew Physics2DScene(this, connectWithScriptingAPI);
-		b2World* world = m_PhysicsScene->GetWorld();
+		SK_CORE_VERIFY(m_Physics2DScene == nullptr);
+		m_Physics2DScene = sknew Physics2DScene(this, connectWithScriptingAPI);
+		b2World* world = m_Physics2DScene->GetWorld();
 
-		m_PhysicsScene->SetOnPhyicsStepCallback([instance = Ref(this)](TimeStep fixedTimeStep) { instance->OnPhysicsStep(fixedTimeStep); });
+		m_Physics2DScene->SetOnPhyicsStepCallback([instance = Ref(this)](TimeStep fixedTimeStep) { instance->OnPhysicsStep(fixedTimeStep); });
 
 		// Add missing RigidBodys
 		{
@@ -1187,7 +1208,7 @@ namespace Shark {
 				if (!m_Registry.all_of<RigidBody2DComponent>(entity))
 				{
 					auto& rb = m_Registry.emplace<RigidBody2DComponent>(entity);
-					rb.Type = RigidbodyType::Static;
+					rb.Type = BodyType::Static;
 				}
 			}
 		}
@@ -1200,7 +1221,7 @@ namespace Shark {
 				if (!m_Registry.all_of<RigidBody2DComponent>(entity))
 				{
 					auto& rb = m_Registry.emplace<RigidBody2DComponent>(entity);
-					rb.Type = RigidbodyType::Static;
+					rb.Type = BodyType::Static;
 				}
 			}
 		}
@@ -1261,8 +1282,8 @@ namespace Shark {
 
 	void Scene::OnPhysics2DStop()
 	{
-		skdelete m_PhysicsScene;
-		m_PhysicsScene = nullptr;
+		skdelete m_Physics2DScene;
+		m_Physics2DScene = nullptr;
 	}
 
 	void Scene::OnPhysicsStep(TimeStep fixedTimeStep)
@@ -1334,7 +1355,7 @@ namespace Shark {
 
 		if (rb2d.RuntimeBody)
 		{
-			m_PhysicsScene->GetWorld()->DestroyBody(rb2d.RuntimeBody);
+			m_Physics2DScene->GetWorld()->DestroyBody(rb2d.RuntimeBody);
 			rb2d.RuntimeBody = nullptr;
 		}
 	}
@@ -1395,7 +1416,7 @@ namespace Shark {
 		bodydef.allowSleep = rigidBody.AllowSleep;
 		bodydef.userData.pointer = (uintptr_t)entity.GetUUID().Value();
 
-		rigidBody.RuntimeBody = m_PhysicsScene->GetWorld()->CreateBody(&bodydef);
+		rigidBody.RuntimeBody = m_Physics2DScene->GetWorld()->CreateBody(&bodydef);
 	}
 
 	void Scene::CreateRuntimeBoxCollider2D(Entity entity, const TransformComponent& worldTransform)
@@ -1448,8 +1469,8 @@ namespace Shark {
 
 		Entity connectedEntity = GetEntityByID(distanceJointComp.ConnectedEntity);
 
-		auto connectedBody = m_PhysicsScene->GetBody(connectedEntity);
-		auto body = m_PhysicsScene->GetBody(entity);
+		auto connectedBody = m_Physics2DScene->GetBody(connectedEntity);
+		auto body = m_Physics2DScene->GetBody(entity);
 		if (!body || !connectedBody)
 			return;
 
@@ -1469,7 +1490,7 @@ namespace Shark {
 		def.stiffness = distanceJointComp.Stiffness;
 		def.damping = distanceJointComp.Damping;
 
-		auto world = m_PhysicsScene->GetWorld();
+		auto world = m_Physics2DScene->GetWorld();
 		b2Joint* joint = world->CreateJoint(&def);
 		distanceJointComp.RuntimeJoint = (b2DistanceJoint*)joint;
 	}
@@ -1483,8 +1504,8 @@ namespace Shark {
 
 		Entity connectedEntity = GetEntityByID(hingeJointComp.ConnectedEntity);
 
-		auto connectedBody = m_PhysicsScene->GetBody(connectedEntity);
-		auto body = m_PhysicsScene->GetBody(entity);
+		auto connectedBody = m_Physics2DScene->GetBody(connectedEntity);
+		auto body = m_Physics2DScene->GetBody(entity);
 		if (!body || !connectedBody)
 			return;
 
@@ -1498,7 +1519,7 @@ namespace Shark {
 		def.motorSpeed = hingeJointComp.MotorSpeed;
 		def.maxMotorTorque = hingeJointComp.MaxMotorTorque;
 
-		auto world = m_PhysicsScene->GetWorld();
+		auto world = m_Physics2DScene->GetWorld();
 		b2Joint* joint = world->CreateJoint(&def);
 		hingeJointComp.RuntimeJoint = (b2RevoluteJoint*)joint;
 	}
@@ -1512,8 +1533,8 @@ namespace Shark {
 
 		Entity connectedEntity = GetEntityByID(component.ConnectedEntity);
 
-		auto connectedBody = m_PhysicsScene->GetBody(connectedEntity);
-		auto body = m_PhysicsScene->GetBody(entity);
+		auto connectedBody = m_Physics2DScene->GetBody(connectedEntity);
+		auto body = m_Physics2DScene->GetBody(entity);
 		if (!body || !connectedBody)
 			return;
 
@@ -1528,7 +1549,7 @@ namespace Shark {
 		def.motorSpeed = component.MotorSpeed;
 		def.maxMotorForce = component.MaxMotorForce;
 
-		auto world = m_PhysicsScene->GetWorld();
+		auto world = m_Physics2DScene->GetWorld();
 		b2Joint* joint = world->CreateJoint(&def);
 		component.RuntimeJoint = (b2PrismaticJoint*)joint;
 	}
@@ -1542,8 +1563,8 @@ namespace Shark {
 
 		Entity connectedEntity = GetEntityByID(component.ConnectedEntity);
 
-		b2Body* connectedBody = m_PhysicsScene->GetBody(connectedEntity);
-		auto body = m_PhysicsScene->GetBody(entity);
+		b2Body* connectedBody = m_Physics2DScene->GetBody(connectedEntity);
+		auto body = m_Physics2DScene->GetBody(entity);
 		if (!body || !connectedBody)
 			return;
 
@@ -1557,7 +1578,7 @@ namespace Shark {
 
 		def.collideConnected = component.CollideConnected;
 
-		auto world = m_PhysicsScene->GetWorld();
+		auto world = m_Physics2DScene->GetWorld();
 		b2Joint* joint = world->CreateJoint(&def);
 		component.RuntimeJoint = (b2PulleyJoint*)joint;
 	}

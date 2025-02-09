@@ -25,3 +25,6 @@
 [submodule "Shark/dependencies/Coral"]
 	path = Shark/dependencies/Coral
 	url = https://github.com/morlyno/Coral.git
+[submodule "Shark/dependencies/JoltPhysics/JoltPhysics"]
+	path = Shark/dependencies/JoltPhysics/JoltPhysics
+	url = https://github.com/jrouwe/JoltPhysics.git

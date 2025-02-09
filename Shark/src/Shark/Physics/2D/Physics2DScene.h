@@ -4,7 +4,8 @@
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/TimeStep.h"
 
-#include "Shark/Physics2D/ContactListener.h"
+#include "Shark/Physics/PhysicsTypes.h"
+#include "Shark/Physics/2D/ContactListener.h"
 
 #include <box2d/b2_world.h>
 #include <box2d/b2_body.h>
@@ -18,13 +19,6 @@ namespace Shark {
 	{
 		BoxCollider,
 		CircleCollider
-	};
-
-	enum class RigidbodyType
-	{
-		Static,
-		Dynamic,
-		Kinematic
 	};
 
 	struct PhysicsProfile
@@ -93,8 +87,8 @@ namespace Shark {
 		glm::vec2 FromBody(b2Body* body);
 		glm::mat4 GetMatrix(b2Body* body);
 
-		b2BodyType ConvertBodyType(RigidbodyType type);
-		RigidbodyType ConvertBodyType(b2BodyType type);
+		b2BodyType ConvertBodyType(BodyType type);
+		BodyType ConvertBodyType(b2BodyType type);
 
 	}
 
