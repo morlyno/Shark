@@ -222,6 +222,14 @@ namespace Shark {
 	{
 	}
 
+	Ref<MaterialTable> MaterialTable::Clone() const
+	{
+		auto materialTable = Ref<MaterialTable>::Create();
+		materialTable->m_Materials = m_Materials;
+		materialTable->m_MaterialSlots = m_MaterialSlots;
+		return materialTable;
+	}
+
 	void MaterialTable::SetMaterial(uint32_t index, AssetHandle material)
 	{
 		m_Materials[index] = material;

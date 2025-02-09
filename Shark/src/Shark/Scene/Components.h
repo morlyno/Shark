@@ -140,6 +140,16 @@ namespace Shark {
 		StaticMeshComponent() = default;
 		StaticMeshComponent(AssetHandle staticMesh)
 			: StaticMesh(staticMesh) {}
+
+		StaticMeshComponent(const StaticMeshComponent& other)
+			: StaticMesh(other.StaticMesh), MaterialTable(other.MaterialTable.Clone()), Visible(other.Visible) {}
+		StaticMeshComponent& operator=(const StaticMeshComponent& other)
+		{
+			StaticMesh = other.StaticMesh;
+			MaterialTable = other.MaterialTable.Clone();
+			Visible = other.Visible;
+			return *this;
+		}
 	};
 
 	struct PrefabComponent

@@ -69,6 +69,8 @@ namespace Shark {
 		MaterialTable(uint32_t slots = 1);
 		~MaterialTable() = default;
 
+		Ref<MaterialTable> Clone() const;
+
 		bool HasMaterial(uint32_t index) const { return m_Materials.contains(index); }
 		void SetMaterial(uint32_t index, AssetHandle material);
 		void ClearMaterial(uint32_t index);

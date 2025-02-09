@@ -188,7 +188,12 @@ namespace Shark {
 
 		Ref Clone() const
 		{
-			return Create(*m_Instance);
+			if constexpr (requires { m_Instance->Clone(); })
+				return m_Instance->Clone();
+			else if constexpr (std::is_copy_constructible_v<T>)
+				return Create(*m_Instance);
+			else
+				static_assert(false, "T must either implement the Clone function or be copy constructible");
 		}
 
 		template<typename T2>
