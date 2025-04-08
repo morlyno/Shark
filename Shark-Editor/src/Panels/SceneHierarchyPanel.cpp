@@ -25,75 +25,6 @@ namespace Shark {
 
 	namespace utils {
 
-		static glm::bvec3 Control(const char* label, glm::vec3& val, const glm::bvec3& isMixed, float reset = 0.0f)
-		{
-			if (!UI::ControlHelperBegin(ImGui::GetID(label)))
-				return glm::bvec3(false);
-
-			ImGui::Text(label);
-			ImGui::TableNextColumn();
-
-			glm::bvec3 changed = glm::bvec3(false);
-			const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
-
-			ImGuiStyle& style = ImGui::GetStyle();
-			const float widthAvail = ImGui::GetContentRegionAvail().x;
-			const float width = (widthAvail - style.ItemSpacing.x * 2 - buttonSize.x * 3) / 3;
-
-			ImGui::PushItemWidth(width);
-			ImGui::BeginHorizontal(UI::GenerateID());
-
-			if (ImGui::Button("X", buttonSize))
-			{
-				val[0] = reset;
-				changed.x = true;
-			}
-
-			ImGui::Spring(0.0f, 0.0f);
-			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.x);
-			changed.x |= UI::DragFloat("##X", &val[0], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
-			ImGui::PopItemFlag();
-
-
-			if (ImGui::Button("Y", buttonSize))
-			{
-				val[1] = reset;
-				changed.y = true;
-			};
-
-			ImGui::Spring(0.0f, 0.0f);
-			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.y);
-			changed.y |= UI::DragFloat("##Y", &val[1], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
-			ImGui::PopItemFlag();
-
-
-			if (ImGui::Button("Z", buttonSize))
-			{
-				val[2] = reset;
-				changed.z = true;
-			}
-
-			ImGui::Spring(0.0f, 0.0f);
-			ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.z);
-			changed.z |= UI::DragFloat("##Z", &val[2], 0.1f, 0.0f, 0.0f, "%.3f", ImGuiSliderFlags_NoRoundToFormat);
-			ImGui::PopItemFlag();
-
-			ImGui::EndHorizontal();
-			ImGui::PopItemWidth();
-
-			UI::ControlHelperEnd();
-			return changed;
-		}
-
-		static glm::bvec3 ControlAngle(const char* label, glm::vec3& radians, const glm::bvec3& isMixed, float reset = 0.0f)
-		{
-			glm::vec3 degrees = glm::degrees(radians);
-			glm::bvec3 changed = Control(label, degrees, isMixed, reset);
-			if (glm::any(changed))
-				radians = glm::radians(degrees);
-			return changed;
-		}
-
 		template<typename TComponent>
 		static bool AllHaveComponent(std::span<const Entity> entities)
 		{
@@ -103,13 +34,8 @@ namespace Shark {
 			return true;
 		}
 
-		// projection:
-		//  - function args:
-		//     - const TComponent&
-		//     - Entity, const TComponent&
-		//  - pointer to member of TComponent
-		template<typename TComponent, typename TProjection = std::identity, typename TComparator = std::ranges::equal_to>
-		static bool IsInconsistentProperty(std::span<const Entity> entities, TProjection projection = {}, TComparator comparator = {})
+		template<typename TComponent, typename TProjection = std::identity>
+		static bool IsInconsistentProperty(std::span<const Entity> entities, TProjection projection = {})
 		{
 			Entity firstEntity = entities[0];
 			const auto& firstComponent = firstEntity.GetComponent<TComponent>();
@@ -118,14 +44,14 @@ namespace Shark {
 			{
 				Entity entity = entities[i];
 				const auto& comp = entity.GetComponent<TComponent>();
-				if (!std::invoke(comparator, firstValue, std::invoke(projection, comp)))
+				if (firstValue != std::invoke(projection, comp))
 				{
 					return true;
 				}
 			}
 			return false;
 		}
-
+		
 		template<typename TComp, typename TMemberType>
 		static void UnifyMember(const std::vector<Entity>& entities, TMemberType TComp::* member)
 		{
@@ -139,6 +65,40 @@ namespace Shark {
 				Entity entity = entities[i];
 				auto& comp = entity.GetComponent<TComp>();
 				comp.*member = firstComponent.*member;
+			}
+		}
+
+		template<typename TComp>
+		static void UnifyMember(const std::vector<Entity>& entities, glm::vec2 TComp::* member, glm::bvec2 changed)
+		{
+			if (entities.size() <= 1)
+				return;
+
+			const auto& firstComponent = entities[0].GetComponent<TComp>();
+			for (uint32_t i = 1; i < entities.size(); i++)
+			{
+				Entity entity = entities[i];
+				auto& component = entity.GetComponent<TComp>();
+				if (changed.x) (component.*member).x = (firstComponent.*member).x;
+				if (changed.y) (component.*member).y = (firstComponent.*member).y;
+			}
+		}
+
+		template<typename TComp>
+		static void UnifyMember(const std::vector<Entity>& entities, glm::vec3 TComp::* member, glm::bvec3 changed)
+		{
+			if (entities.size() <= 1)
+				return;
+
+			const auto& firstComponent = entities[0].GetComponent<TComp>();
+			for (uint32_t i = 1; i < entities.size(); i++)
+			{
+				Entity entity = entities[i];
+				auto& component = entity.GetComponent<TComp>();
+
+				if (changed.x) (component.*member).x = (firstComponent.*member).x;
+				if (changed.y) (component.*member).y = (firstComponent.*member).y;
+				if (changed.z) (component.*member).z = (firstComponent.*member).z;
 			}
 		}
 
@@ -158,64 +118,97 @@ namespace Shark {
 			}
 		}
 
-		struct DefaultTransformer
-		{
-			template<typename TComp, typename TMemberType>
-			inline void operator()(const std::vector<Entity>& entities, TMemberType TComp::* member)
-			{
-				UnifyMember(entities, member);
-			}
-		};
+		namespace Internal {
 
-		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
-		template<typename TComponent, typename TMemberType, typename TFunc, typename TTransformer = DefaultTransformer>
-			requires std::invocable<TFunc, TComponent&, const std::vector<Entity>&>
-		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
+			template<typename TFunc, typename TComponent>
+			static bool InvokeUIFunction(const TFunc& uiFunction, TComponent& firstComponent, const std::vector<Entity>& entities, bool isMixed)
+			{
+				if constexpr (std::invocable<TFunc, TComponent&, const std::vector<Entity>&, bool>)
+					return std::invoke(uiFunction, firstComponent, entities, isMixed);
+				else if constexpr (std::invocable<TFunc, TComponent&, const std::vector<Entity>&>)
+					return std::invoke(uiFunction, firstComponent, entities);
+				else if constexpr (std::invocable<TFunc, TComponent&, bool>)
+					return std::invoke(uiFunction, firstComponent, isMixed);
+				else if constexpr (std::invocable<TFunc, TComponent&>)
+					return std::invoke(uiFunction, firstComponent);
+				else
+					static_assert(false, "Invalid ui Function syntax");
+			}
+
+			template<typename TFunc, typename TComponent>
+			static glm::bvec3 InvokeUIFunction(const TFunc& uiFunction, TComponent& firstComponent, const std::vector<Entity>& entities, glm::bvec3 isMixed)
+			{
+				if constexpr (std::invocable<TFunc, TComponent&, const std::vector<Entity>&, glm::bvec3>)
+					return std::invoke(uiFunction, firstComponent, entities, isMixed);
+				else if constexpr (std::invocable<TFunc, TComponent&, const std::vector<Entity>&>)
+					return std::invoke(uiFunction, firstComponent, entities);
+				else if constexpr (std::invocable<TFunc, TComponent&, glm::bvec3>)
+					return std::invoke(uiFunction, firstComponent, isMixed);
+				else if constexpr (std::invocable<TFunc, TComponent&>)
+					return std::invoke(uiFunction, firstComponent);
+				else
+					static_assert(false, "Invalid ui Function syntax");
+			}
+
+		}
+
+		// @Params:
+		//  uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
+		//  transformer: void(const std::vector<Entity>& entities, TMemberType TComponent::* member)
+		// 
+		// Notes:
+		//	will invoke transformer when the ui function returns true
+		//  this will by default call the DefaultTransformer (=> UnifyMember)
+		//  
+		template<typename TComponent, typename TMemberType, typename TFunc>
+		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc)
 		{
 			const bool isMixed = IsInconsistentProperty<TComponent>(entities, member);
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixed);
 			Entity firstEntity = entities[0];
 			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
-			if (uiFunc(firstComponent, entities))
+			if (Internal::InvokeUIFunction(uiFunc, firstComponent, entities, isMixed))
 			{
-				std::invoke(transformer, entities, member);
-				//UnifyMember(entities, member);
+				UnifyMember(entities, member);
 				return true;
 			}
 			return false;
 		}
 		
-		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
-		template<typename TComponent, typename TMemberType, typename TFunc, typename TTransformer = DefaultTransformer>
-			requires std::invocable<TFunc, TComponent&, const std::vector<Entity>&, bool>
-		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
+		template<typename TComponent, typename TFunc>
+		static bool Multiselect(const std::vector<Entity>& entities, glm::vec3 TComponent::* member, const TFunc& uiFunc)
 		{
-			const bool isMixed = IsInconsistentProperty<TComponent>(entities, member);
-			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixed);
+			const glm::bvec3 isMixed = glm::bvec3(IsInconsistentProperty<TComponent>(entities, [member](auto& component) { return (component.*member).x; }),
+												  IsInconsistentProperty<TComponent>(entities, [member](auto& component) { return (component.*member).y; }),
+												  IsInconsistentProperty<TComponent>(entities, [member](auto& component) { return (component.*member).z; }));
+
 			Entity firstEntity = entities[0];
 			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
-			if (uiFunc(firstComponent, entities, isMixed))
+			const glm::bvec3 changed = Internal::InvokeUIFunction(uiFunc, firstComponent, entities, isMixed);
+			if (glm::any(changed))
 			{
-				std::invoke(transformer, entities, member);
-				//UnifyMember(entities, member);
+				UnifyMember(entities, member, changed);
 				return true;
 			}
 			return false;
 		}
-
-		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
+		
 		template<typename TComponent, typename TMemberType, typename... TArgs>
 		static bool MultiselectControl(const std::vector<Entity>& entities, TMemberType TComponent::* member, std::string_view label, TArgs&&... args)
 		{
-			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsInconsistentProperty<TComponent>(entities, member));
-			Entity firstEntity = entities[0];
-			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
-			if (UI::Control(label, firstComponent.*member, std::forward<TArgs>(args)...))
+			return Multiselect(entities, member, [&label, member, &args...](TComponent& firstComponent)
 			{
-				UnifyMember(entities, member);
-				return true;
-			}
-			return false;
+				return UI::Control(label, firstComponent.*member, std::forward<TArgs>(args)...);
+			});
+		}
+
+		template<typename TComponent, typename... TArgs>
+		static bool MultiselectControl(const std::vector<Entity>& entities, glm::vec3 TComponent::* member, std::string_view label, TArgs&&... args)
+		{
+			return Multiselect(entities, member, [&label, member, &args...](TComponent& firstComponent, glm::bvec3 isMixed)
+			{
+				return UI::Control(label, firstComponent.*member, isMixed, std::forward<TArgs>(args)...);
+			});
 		}
 
 		static std::vector<Entity> GetSelectedEntities(Ref<Scene> scene)
@@ -949,9 +942,9 @@ namespace Shark {
 						break;
 				}
 
-				auto translationChanged = utils::Control("Translation", firstTransform.Translation, isTranslationInconsistent);
-				auto rotationChanged = utils::ControlAngle("Rotation", firstTransform.Rotation, isRotationInconsistent);
-				auto scaleChanged = utils::Control("Scale", firstTransform.Scale, isScaleInconsistent);
+				auto translationChanged = UI::Control("Translation", firstTransform.Translation, isTranslationInconsistent, { .ResetButton = true });
+				auto rotationChanged = UI::ControlAngle("Rotation", firstTransform.Rotation, isRotationInconsistent, { .ResetButton = true });
+				auto scaleChanged = UI::Control("Scale", firstTransform.Scale, isScaleInconsistent, { .ResetButton = true, .Reset = 1.0f });
 				
 				if (glm::any(translationChanged) || glm::any(rotationChanged) || glm::any(scaleChanged))
 				{
@@ -976,12 +969,6 @@ namespace Shark {
 			else
 			{
 				glm::bvec3 changed = glm::bvec3(false);
-				const auto transformFunc = [&changed](const glm::vec3& first, glm::vec3& target)
-				{
-					if (changed.x) target.x = first.x;
-					if (changed.y) target.y = first.y;
-					if (changed.z) target.z = first.z;
-				};
 
 				const auto isMixed = [&entities](glm::vec3 TransformComponent::* member)
 				{
@@ -992,17 +979,17 @@ namespace Shark {
 					return mixed;
 				};
 
-				changed = utils::Control("Translation", firstComponent.Translation, isMixed(&TransformComponent::Translation));
+				changed = UI::Control("Translation", firstComponent.Translation, isMixed(&TransformComponent::Translation), { .ResetButton = true });
 				if (glm::any(changed))
-					utils::UnifyMember(entities, &TransformComponent::Translation, transformFunc); // TODO(moro): this should only happen when changed is true
+					utils::UnifyMember(entities, &TransformComponent::Translation, changed);
 
-				changed = utils::ControlAngle("Rotation", firstComponent.Rotation, isMixed(&TransformComponent::Rotation));
+				changed = UI::ControlAngle("Rotation", firstComponent.Rotation, isMixed(&TransformComponent::Rotation), { .ResetButton = true });
 				if (glm::any(changed))
-					utils::UnifyMember(entities, &TransformComponent::Rotation, transformFunc);
+					utils::UnifyMember(entities, &TransformComponent::Rotation, changed);
 
-				changed = utils::Control("Scale", firstComponent.Scale, isMixed(&TransformComponent::Scale), 1.0f);
+				changed = UI::Control("Scale", firstComponent.Scale, isMixed(&TransformComponent::Scale), { .ResetButton = true, .Reset = 1.0f });
 				if (glm::any(changed))
-					utils::UnifyMember(entities, &TransformComponent::Scale, transformFunc);
+					utils::UnifyMember(entities, &TransformComponent::Scale, changed);
 			}
 
 			UI::EndControlsGrid();
@@ -1012,22 +999,22 @@ namespace Shark {
 		{
 			UI::BeginControlsGrid();
 
-			utils::Multiselect(entities, &SpriteRendererComponent::Color, [](auto& firstComponent, const auto& entities)
+			utils::Multiselect(entities, &SpriteRendererComponent::Color, [](SpriteRendererComponent& firstComponent, const std::vector<Entity>& entities)
 			{
 				return UI::ControlColor("Color", firstComponent.Color);
 			});
 
-			utils::Multiselect(entities, &SpriteRendererComponent::TextureHandle, [](auto& firstComponent, const auto& entities)
+			utils::Multiselect(entities, &SpriteRendererComponent::TextureHandle, [](SpriteRendererComponent& firstComponent, const std::vector<Entity>& entities)
 			{
 				return UI::ControlAsset("Texture", AssetType::Texture, firstComponent.TextureHandle);
 			});
 
-			utils::Multiselect(entities, &SpriteRendererComponent::TilingFactor, [](auto& firstComponent, const auto& entities)
+			utils::Multiselect(entities, &SpriteRendererComponent::TilingFactor, [](SpriteRendererComponent& firstComponent, const std::vector<Entity>& entities)
 			{
 				return UI::Control("Tiling Factor", firstComponent.TilingFactor, 0.05f, 0.0f, FLT_MAX);
 			});
 
-			utils::Multiselect(entities, &SpriteRendererComponent::Transparent, [](auto& firstComponent, const auto& entities) -> bool
+			utils::Multiselect(entities, &SpriteRendererComponent::Transparent, [](SpriteRendererComponent& firstComponent, const std::vector<Entity>& entities) -> bool
 			{
 				return UI::Control("Transparent", firstComponent.Transparent);
 			});
@@ -1330,12 +1317,7 @@ namespace Shark {
 		DrawComponetMultiSelect<RigidBody2DComponent>(entities, "RigidBody 2D", [](RigidBody2DComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-
-			utils::Multiselect(entities, &RigidBody2DComponent::Type, [](auto& firstComponent, const auto& entities)
-			{
-				return UI::ControlCombo("Body Type", firstComponent.Type);
-			});
-
+			utils::MultiselectControl(entities, &RigidBody2DComponent::Type, "Body Type");
 			utils::MultiselectControl(entities, &RigidBody2DComponent::FixedRotation, "Fixed Rotation");
 			utils::MultiselectControl(entities, &RigidBody2DComponent::IsBullet, "Bullet");
 			utils::MultiselectControl(entities, &RigidBody2DComponent::Awake, "Awake");
@@ -1441,7 +1423,7 @@ namespace Shark {
 			utils::MultiselectControl(entities, &PulleyJointComponent::AnchorA, "AnchorB");
 			utils::MultiselectControl(entities, &PulleyJointComponent::GroundAnchorA, "Ground AnchorA");
 			utils::MultiselectControl(entities, &PulleyJointComponent::GroundAnchorB, "Ground AnchorB");
-			utils::MultiselectControl(entities, &PulleyJointComponent::Ratio, "Ratio", FLT_EPSILON, FLT_MAX);
+			utils::MultiselectControl(entities, &PulleyJointComponent::Ratio, "Ratio", 0.05f, FLT_EPSILON, FLT_MAX);
 			utils::MultiselectControl(entities, &PulleyJointComponent::CollideConnected, "Collide Connected");
 			UI::EndControlsGrid();
 		});
@@ -1449,10 +1431,81 @@ namespace Shark {
 		DrawComponetMultiSelect<RigidBodyComponent>(entities, "Rigidbody", [this](RigidBodyComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-			utils::Multiselect(entities, &RigidBodyComponent::Type, [](RigidBodyComponent& firstComponent, const std::vector<Entity>& entities)
+			utils::MultiselectControl(entities, &RigidBodyComponent::Type, "Body Type");
+			utils::MultiselectControl(entities, &RigidBodyComponent::Mass, "Mass", 0.05f, 0, FLT_MAX);
+			utils::MultiselectControl(entities, &RigidBodyComponent::LinearDrag, "Linear Drag", 0.05f, 0, 1);
+			utils::MultiselectControl(entities, &RigidBodyComponent::AngularDrag, "Angular Drag", 0.05f, 0, 1);
+			utils::MultiselectControl(entities, &RigidBodyComponent::DisableGravity, "Disable Gravity");
+			utils::MultiselectControl(entities, &RigidBodyComponent::IsSensor, "Is Sensor");
+			utils::MultiselectControl(entities, &RigidBodyComponent::InitialLinearVelocity, "Linear Velocity");
+			utils::Multiselect(entities, &RigidBodyComponent::InitialAngularVelocity, [](RigidBodyComponent& firstComponent, const std::vector<Entity>& entities, glm::bvec3 isMixed)
 			{
-				return UI::ControlCombo("Body Type", firstComponent.Type);
+				return UI::ControlAngle("Angular Velocity", firstComponent.InitialAngularVelocity, isMixed);
 			});
+			utils::MultiselectControl(entities, &RigidBodyComponent::CollisionDetection, "Collision Detection");
+
+			if (UI::ControlHeader("Constraints", true, true))
+			{
+				const auto axisControl = [&firstComponent, &entities](std::span<const Axis, 3> axes)
+				{
+					ImGui::BeginHorizontal(UI::GenerateID());
+
+					const Axis XAxis = axes[0];
+					const Axis YAxis = axes[1];
+					const Axis ZAxis = axes[2];
+					const Axis axesMask = XAxis | YAxis | ZAxis;
+
+					Axis lockedAxes = firstComponent.LockedAxes & axesMask;
+					bool x = HasFlag(firstComponent.LockedAxes, XAxis);
+					bool y = HasFlag(firstComponent.LockedAxes, YAxis);
+					bool z = HasFlag(firstComponent.LockedAxes, ZAxis);
+
+					ImGui::Text("X");
+					ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, utils::IsInconsistentProperty<RigidBodyComponent>(entities, [XAxis](auto& component) { return component.LockedAxes & XAxis; }));
+					if (UI::Checkbox("##X", &x))
+						lockedAxes = SetFlag(lockedAxes, XAxis, x);
+					ImGui::PopItemFlag();
+
+					ImGui::Text("Y");
+					ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, utils::IsInconsistentProperty<RigidBodyComponent>(entities, [YAxis](auto& component) { return component.LockedAxes & YAxis; }));
+					if (UI::Checkbox("##Y", &y))
+						lockedAxes = SetFlag(lockedAxes, YAxis, y);
+					ImGui::PopItemFlag();
+
+					ImGui::Text("Z");
+					ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, utils::IsInconsistentProperty<RigidBodyComponent>(entities, [ZAxis](auto& component) { return component.LockedAxes & ZAxis; }));
+					if (UI::Checkbox("##Z", &z))
+						lockedAxes = SetFlag(lockedAxes, ZAxis, x);
+					ImGui::PopItemFlag();
+
+					if (lockedAxes != (firstComponent.LockedAxes & axesMask))
+					{
+						auto changedMask = (lockedAxes ^ firstComponent.LockedAxes) & axesMask;
+
+						for (auto entity : entities)
+						{
+							auto& component = entity.GetComponent<RigidBodyComponent>();
+							component.LockedAxes &= ~changedMask;
+							component.LockedAxes |= lockedAxes;
+						}
+					}
+
+					ImGui::EndHorizontal();
+				};
+
+				UI::ControlCustom("Lock Translation", [&firstComponent, &entities, &axisControl]()
+				{
+					axisControl({ { Axis::TranslationX, Axis::TranslationY, Axis::TranslationZ } });
+				});
+				
+				UI::ControlCustom("Lock Rotation", [&firstComponent, &entities, &axisControl]()
+				{
+					axisControl({ { Axis::RotationX, Axis::RotationY, Axis::RotationZ } });
+				});
+
+				ImGui::TreePop();
+			}
+
 			UI::EndControlsGrid();
 		});
 		

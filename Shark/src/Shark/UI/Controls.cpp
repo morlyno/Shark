@@ -612,6 +612,137 @@ namespace Shark::UI {
 		return modified;
 	}
 
+	glm::bvec2 Control(std::string_view label, glm::vec2& val, const glm::bvec2& isMixed, const ControlSettings& settings)
+	{
+		if (!ControlHelperBegin(ImGui::GetID(label)))
+			return glm::bvec2(false);
+
+		ImGui::Text(label);
+		ImGui::TableNextColumn();
+
+		ImRect itemRect;
+		glm::bvec2 changed = glm::bvec2(false);
+		const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
+
+		ImGuiStyle& style = ImGui::GetStyle();
+		const float widthAvail = ImGui::GetContentRegionAvail().x;
+		const float width = settings.ResetButton ? (widthAvail - style.ItemSpacing.x - buttonSize.x * 2) / 2 : (widthAvail - style.ItemSpacing.x) / 2;
+
+		ImGui::PushItemWidth(width);
+		ImGui::BeginHorizontal(UI::GenerateID());
+
+		itemRect.Min = ImGui::GetCursorScreenPos();
+
+		if (settings.ResetButton && ImGui::Button("X", buttonSize))
+		{
+			val[0] = settings.Reset;
+			changed.x = true;
+		}
+
+		ImGui::Spring(0.0f, 0.0f);
+		ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.x);
+		changed.x |= ImGui::DragFloat("##X", &val.x, settings.Speed, settings.Min, settings.Max, settings.Format, ImGuiSliderFlags_NoRoundToFormat);
+		ImGui::PopItemFlag();
+
+
+		if (settings.ResetButton && ImGui::Button("Y", buttonSize))
+		{
+			val[1] = settings.Reset;
+			changed.y = true;
+		};
+
+		ImGui::Spring(0.0f, 0.0f);
+		ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.y);
+		changed.y |= ImGui::DragFloat("##Y", &val.y, settings.Speed, settings.Min, settings.Max, settings.Format, ImGuiSliderFlags_NoRoundToFormat);
+		ImGui::PopItemFlag();
+
+		itemRect.Max = ImGui::GetItemRectMax();
+
+		ImGui::EndHorizontal();
+		ImGui::PopItemWidth();
+
+		UI::Draw::ActivityOutline(itemRect);
+
+		UI::ControlHelperEnd();
+		return changed;
+	}
+
+	glm::bvec3 Control(std::string_view label, glm::vec3& val, const glm::bvec3& isMixed, const ControlSettings& settings)
+	{
+		if (!ControlHelperBegin(ImGui::GetID(label)))
+			return glm::bvec3(false);
+
+		ImGui::Text(label);
+		ImGui::TableNextColumn();
+
+		ImRect itemRect;
+		glm::bvec3 changed = glm::bvec3(false);
+		const ImVec2 buttonSize = { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() };
+
+		ImGuiStyle& style = ImGui::GetStyle();
+		const float widthAvail = ImGui::GetContentRegionAvail().x;
+		const float width = settings.ResetButton ? (widthAvail - style.ItemSpacing.x * 2 - buttonSize.x * 3) / 3 : (widthAvail - style.ItemSpacing.x * 2) / 3;
+
+		ImGui::PushItemWidth(width);
+		ImGui::BeginHorizontal(UI::GenerateID());
+
+		itemRect.Min = ImGui::GetCursorScreenPos();
+
+		if (settings.ResetButton && ImGui::Button("X", buttonSize))
+		{
+			val[0] = settings.Reset;
+			changed.x = true;
+		}
+
+		ImGui::Spring(0.0f, 0.0f);
+		ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.x);
+		changed.x |= ImGui::DragFloat("##X", &val.x, settings.Speed, settings.Min, settings.Max, settings.Format, ImGuiSliderFlags_NoRoundToFormat);
+		ImGui::PopItemFlag();
+
+
+		if (settings.ResetButton && ImGui::Button("Y", buttonSize))
+		{
+			val[1] = settings.Reset;
+			changed.y = true;
+		};
+
+		ImGui::Spring(0.0f, 0.0f);
+		ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.y);
+		changed.y |= ImGui::DragFloat("##Y", &val.y, settings.Speed, settings.Min, settings.Max, settings.Format, ImGuiSliderFlags_NoRoundToFormat);
+		ImGui::PopItemFlag();
+		
+
+		if (settings.ResetButton && ImGui::Button("Z", buttonSize))
+		{
+			val[1] = settings.Reset;
+			changed.z = true;
+		};
+
+		ImGui::Spring(0.0f, 0.0f);
+		ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMixed.z);
+		changed.z |= ImGui::DragFloat("##Z", &val.z, settings.Speed, settings.Min, settings.Max, settings.Format, ImGuiSliderFlags_NoRoundToFormat);
+		ImGui::PopItemFlag();
+
+		itemRect.Max = ImGui::GetItemRectMax();
+
+		ImGui::EndHorizontal();
+		ImGui::PopItemWidth();
+
+		UI::Draw::ActivityOutline(itemRect);
+
+		UI::ControlHelperEnd();
+		return changed;
+	}
+
+	glm::bvec3 ControlAngle(std::string_view label, glm::vec3& value, const glm::bvec3& isMixed, const ControlSettings& settings)
+	{
+		glm::vec3 degrees = glm::degrees(value);
+		auto changed = Control(label, degrees, isMixed, settings);
+		if (glm::any(changed))
+			value = glm::radians(degrees);
+		return changed;
+	}
+
 	bool ControlCombo(std::string_view label, bool& value, const std::string_view falseValue, const std::string_view trueValue)
 	{
 		if (!ControlHelperBegin(ImGui::GetID(label)))

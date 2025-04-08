@@ -1,8 +1,5 @@
 #pragma once
 
-#define INTERNAL_DESERIALIZE_PROPERTY_FALLBACK0(...)
-#define INTERNAL_DESERIALIZE_PROPERTY_FALLBACK1(_value, _fallback) _value = _fallback
-
 #define SK_DESERIALIZE_PROPERTY(_yamlNode, _name, _value, ...)\
 try\
 {\

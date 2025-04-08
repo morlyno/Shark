@@ -168,16 +168,12 @@ namespace Shark {
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 		m_InFrame = true;
-
-		UI::PushID();
 	}
 
 	void DirectXImGuiLayer::End()
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(!Renderer::IsOnRenderThread());
-
-		UI::PopID();
 
 		m_InFrame = false;
 

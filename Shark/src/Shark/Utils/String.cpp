@@ -313,21 +313,21 @@ namespace Shark::String {
 			str = {};
 	}
 
-	std::string BytesToString(uint64_t bytes)
+	std::string FormatBytes(uint64_t bytes)
 	{
 		static constexpr uint64_t TB = 1024ull * 1024 * 1024 * 1024;
 		static constexpr uint64_t GB = 1024 * 1024 * 1024;
 		static constexpr uint64_t MB = 1024 * 1024;
 		static constexpr uint64_t KB = 1024;
 
-		const auto sizes = {
+		static constexpr auto Sizes = {
 			std::pair{ TB, "TB"sv },
 			std::pair{ GB, "GB"sv },
 			std::pair{ MB, "MB"sv },
 			std::pair{ KB, "KB"sv }
 		};
 
-		for (const auto& [size, suffix] : sizes)
+		for (const auto& [size, suffix] : Sizes)
 		{
 			if (bytes >= size)
 			{
@@ -335,19 +335,37 @@ namespace Shark::String {
 			}
 		}
 		return fmt::format("{0} bytes", bytes);
+	}
 
-#if 0
-		if (bytes > (1024 * 1024 * 1024))
-			return fmt::format("{0:.2f} GB", (float)bytes / (1024 * 1024 * 1024));
+	char* FormatBytesToBuffer(uint64_t bytes, char* outBuffer, uint32_t bufferSize)
+	{
+		SK_CORE_VERIFY(outBuffer);
+		SK_CORE_VERIFY(bufferSize > 0);
 
-		if (bytes > (1024 * 1024))
-			return fmt::format("{0:.2f} MB", (float)bytes / (1024 * 1024));
+		static constexpr uint64_t TB = 1024ull * 1024 * 1024 * 1024;
+		static constexpr uint64_t GB = 1024 * 1024 * 1024;
+		static constexpr uint64_t MB = 1024 * 1024;
+		static constexpr uint64_t KB = 1024;
 
-		if (bytes > (1024))
-			return fmt::format("{0:.2f} KB", (float)bytes / (1024));
+		static constexpr auto Sizes = {
+			std::pair{ TB, "TB"sv },
+			std::pair{ GB, "GB"sv },
+			std::pair{ MB, "MB"sv },
+			std::pair{ KB, "KB"sv }
+		};
 
-		return fmt::format("{0} bytes", bytes);
-#endif
+		for (const auto& [size, suffix] : Sizes)
+		{
+			if (bytes >= size)
+			{
+				auto result = fmt::format_to_n(outBuffer, bufferSize - 1, "{0:.2f} {1}", (float)bytes / size, suffix);
+				*result.out = '\0';
+				return outBuffer;
+			}
+		}
+		auto result = fmt::format_to_n(outBuffer, bufferSize - 1, "{0} bytes", bytes);
+		*result.out = '\0';
+		return outBuffer;
 	}
 
 	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path)

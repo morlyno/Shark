@@ -82,6 +82,22 @@ namespace Shark {
 	using namespace std::literals;
 	using namespace magic_enum::bitwise_operators;
 
+	template<typename E>
+		requires std::is_enum_v<E>
+	constexpr bool HasFlag(E flags, E bits)
+	{
+		return (flags & bits) == bits;
+	}
+
+	template<typename E>
+		requires std::is_enum_v<E>
+	constexpr E SetFlag(E& flags, E flag, bool set = true)
+	{
+		if (set)
+			return flags | flag;
+		return flags & ~flag;
+	}
+
 }
 
 #include "Shark/Core/Memory.h"

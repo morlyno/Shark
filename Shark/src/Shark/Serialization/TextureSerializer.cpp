@@ -84,7 +84,7 @@ namespace Shark {
 			TextureSpecification specification;
 			const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
 
-			LoadImageData(filesystemPath, specification, imageData);
+			LoadImageDataFromSource(filesystemPath, specification, imageData);
 			texture = Texture2D::Create(specification, imageData);
 			texture->SetFilepath(filesystemPath);
 			imageData.Release();
@@ -117,12 +117,32 @@ namespace Shark {
 		}
 		else
 		{
-			LoadImageData(filepath, specification, imageData);
+			LoadImageDataFromSource(filepath, specification, imageData);
 			texture->SetFilepath(filepath);
 		}
 
 		texture->RT_Invalidate();
 		return texture;
+	}
+
+	bool TextureSerializer::LoadImageData(const std::filesystem::path& filepath, TextureSpecification& outSpecification, Buffer& outBuffer)
+	{
+		bool success = false;
+
+		if (utils::ShouldBeSharkTexture(filepath))
+		{
+			AssetHandle sourceHandle;
+			const std::string yamlSource = FileSystem::ReadString(filepath);
+			success = DesrializeFromYAML(yamlSource, outSpecification, sourceHandle, outBuffer);
+			//texture->SetSourceTextureHandle(sourceHandle);
+		}
+		else
+		{
+			success = LoadImageDataFromSource(filepath, outSpecification, outBuffer);
+			//texture->SetFilepath(filepath);
+		}
+
+		return success;
 	}
 
 	std::string TextureSerializer::SerializeToYAML(Ref<Texture2D> texture)
@@ -174,7 +194,7 @@ namespace Shark {
 				outSourceHandle = sourceHandle;
 
 				auto sourcePath = Project::GetEditorAssetManager()->GetFilesystemPath(sourceHandle);
-				LoadImageData(sourcePath, outSpecification, outImageData);
+				LoadImageDataFromSource(sourcePath, outSpecification, outImageData);
 			}
 		}
 		else if (textureNode["SourcePath"])
@@ -183,7 +203,7 @@ namespace Shark {
 			SK_DESERIALIZE_PROPERTY(textureNode, "SourcePath", sourcePath, "");
 			if (!sourcePath.empty())
 			{
-				LoadImageData(sourcePath, outSpecification, outImageData);
+				LoadImageDataFromSource(sourcePath, outSpecification, outImageData);
 				outSourceHandle = AssetHandle::Invalid;
 			}
 		}
@@ -200,7 +220,7 @@ namespace Shark {
 		return true;
 	}
 
-	bool TextureSerializer::LoadImageData(const std::filesystem::path& filepath, TextureSpecification& outSpecification, Buffer& outBuffer)
+	bool TextureSerializer::LoadImageDataFromSource(const std::filesystem::path& filepath, TextureSpecification& outSpecification, Buffer& outBuffer)
 	{
 		outBuffer = TextureImporter::ToBufferFromFile(filepath, outSpecification.Format, outSpecification.Width, outSpecification.Height);
 		if (!outBuffer)

@@ -53,7 +53,8 @@ namespace Shark::String {
 	void StripBack(std::wstring_view& str, std::wstring_view chars);
 	void StripFront(std::wstring_view& str, std::wstring_view chars);
 
-	std::string BytesToString(uint64_t bytes);
+	std::string FormatBytes(uint64_t bytes);
+	char* FormatBytesToBuffer(uint64_t bytes, char* outBuffer, uint32_t bufferSize);
 
 	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path);
 	void FormatWindows(std::filesystem::path& path);

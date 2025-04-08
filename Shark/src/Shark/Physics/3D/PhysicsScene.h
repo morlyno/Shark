@@ -59,14 +59,14 @@ namespace Shark {
 
 		void Update(TimeStep timeStep);
 
-		JPH::Body* CreateBody(Entity entity);
-		
-	private:
-		JPH::Ref<JPH::Shape> CreateShape(Entity entity, const TransformComponent& worldTransform);
+		void CreateBody(Entity entity);
+		void DestroyBody(Entity entity);
 
 	private:
 		Ref<Scene> m_Scene;
 		JPH::PhysicsSystem m_System;
+
+		std::unordered_map<UUID, JPH::BodyID> m_RigidBodyIDs;
 
 		BroadPhaseLayerInterface m_BroadPhaseLayerInterface;
 		ObjectVsBroadPhaseLayerFilter m_ObjectVsBroadPhaseLayerFilter;

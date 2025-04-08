@@ -9,9 +9,6 @@
 
 #include <entt.hpp>
 
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Body/Body.h>
-
 #include <Coral/ManagedObject.hpp>
 
 #include <glm/glm.hpp>
@@ -345,15 +342,32 @@ namespace Shark {
 	struct RigidBodyComponent
 	{
 		BodyType Type = BodyType::Dynamic;
-		PhysicsLayer Layer = Physics3D::DefaultLayers::Moving;
+		bool AllowDynamicTypeSwitch = false;
 
-		JPH::BodyID BodyID;
+		float Mass = 1.0f;
+		float LinearDrag = 0.05f; // [0, 1], usually close to 0
+		float AngularDrag = 0.05f; // [0, 1], usually close to 0
+		bool DisableGravity = false;
+		bool IsSensor = false;
+
+		glm::vec3 InitialLinearVelocity = glm::vec3(0.0f);
+		glm::vec3 InitialAngularVelocity = glm::vec3(0.0f);
+
+		float MaxLinearVelocity = 500.0f; // m/s
+		float MaxAngularVelocity = 50.0f; // rad/s
+
+		CollisionDetectionType CollisionDetection = CollisionDetectionType::Discrete;
+		Axis LockedAxes = Axis::None;
+
+		PhysicsLayer Layer = Physics3D::DefaultLayers::Moving;
 	};
 
 	struct SphereColliderComponent
 	{
 		float Radius = 0.5f;
 		glm::vec3 Offset = { 0.0f, 0.0f, 0.0f };
+
+		// TODO(moro): Physics Material
 	};
 
 	struct BoxColliderComponent

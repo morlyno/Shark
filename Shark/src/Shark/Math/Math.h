@@ -26,4 +26,6 @@ namespace Shark::Math {
 
 	bool IsWhole(float val);
 
+	constexpr float Pow3(float val) { return val * val * val; }
+
 }

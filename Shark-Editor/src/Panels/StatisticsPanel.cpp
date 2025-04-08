@@ -35,9 +35,9 @@ namespace Shark {
 	{
 		if (ImGui::BeginTabItem("Memory"))
 		{
-			ImGui::Text(fmt::format("Total allocated {}", String::BytesToString(Allocator::GetMemoryStats().TotalAllocated)));
-			ImGui::Text(fmt::format("Total freed {}", String::BytesToString(Allocator::GetMemoryStats().TotalFreed)));
-			ImGui::Text(fmt::format("Current Usage {}", String::BytesToString(Allocator::GetMemoryStats().CurrentUsage())));
+			ImGui::Text(fmt::format("Total allocated {}", String::FormatBytes(Allocator::GetMemoryStats().TotalAllocated)));
+			ImGui::Text(fmt::format("Total freed {}", String::FormatBytes(Allocator::GetMemoryStats().TotalFreed)));
+			ImGui::Text(fmt::format("Current Usage {}", String::FormatBytes(Allocator::GetMemoryStats().CurrentUsage())));
 			ImGui::Text(fmt::format("Alive Allocations {}", Allocator::GetAllocationMap().size()));
 
 			ImGui::Separator();
@@ -62,7 +62,7 @@ namespace Shark {
 					continue;
 
 				auto& entry = entries.emplace_back();
-				entry.Size = String::BytesToString(size);
+				entry.Size = String::FormatBytes(size);
 				entry.ByteSize = size;
 
 				std::string str = desc;

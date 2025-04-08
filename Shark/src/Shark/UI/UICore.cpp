@@ -65,13 +65,10 @@ namespace Shark::UI {
 
 	}
 
-	static int s_PushIDContext = 0;
 	static uint64_t s_GenerateIDIndex = 0;
 
-	static uint32_t s_IDCounter = 0;
-	static char s_IDBuffer[2 + 16 + 1];
-
-	static char s_LabelIDBuffer[255];
+	static char s_IDBuffer[2 + 16 + 1]{ 0 };
+	static char s_LabelIDBuffer[256]{ 0 };
 
 	ImGuiID GetCurrentID()
 	{
@@ -80,31 +77,47 @@ namespace Shark::UI {
 
 	const char* GenerateID()
 	{
-		fmt::format_to_n(s_IDBuffer, std::size(s_IDBuffer), "##{}\0", s_IDCounter++);
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		auto& storage = window->StateStorage;
+
+		int lastFrameActive = storage.GetInt(0);
+		if (lastFrameActive != ImGui::GetFrameCount())
+		{
+			window->StateStorage.SetInt(0, ImGui::GetFrameCount());
+			window->StateStorage.SetInt(1, 0);
+		}
+
+		int count = storage.GetInt(1);
+		auto result = fmt::format_to_n(s_IDBuffer, std::size(s_IDBuffer), "##{}", count);
+		*result.out = '\0';
+
+		storage.SetInt(1, count + 1);
 		return s_IDBuffer;
 	}
 
-	const char* GenerateID(const char* label)
+	const char* GenerateID(std::string_view label)
 	{
-		fmt::format_to_n(s_LabelIDBuffer, std::size(s_LabelIDBuffer), "{}##{}\0", label, s_IDCounter++);
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		auto& storage = window->StateStorage;
+
+		int lastFrameActive = storage.GetInt(0);
+		if (lastFrameActive != ImGui::GetFrameCount())
+		{
+			window->StateStorage.SetInt(0, ImGui::GetFrameCount());
+			window->StateStorage.SetInt(1, 0);
+		}
+
+		int count = storage.GetInt(1);
+		auto result = fmt::format_to_n(s_LabelIDBuffer, std::size(s_LabelIDBuffer) - 1, "{}##{}", label.substr(0, std::size(s_LabelIDBuffer) - 17), count);
+		*result.out = '\0';
+
+		storage.SetInt(1, count + 1);
 		return s_LabelIDBuffer;
 	}
 
 	ImGuiID GenerateUniqueID()
 	{
 		return Hash::GenerateFNV(s_GenerateIDIndex++);
-	}
-
-	void PushID()
-	{
-		ImGui::PushID(s_PushIDContext++);
-		s_IDCounter = 0;
-	}
-
-	void PopID()
-	{
-		ImGui::PopID();
-		s_PushIDContext--;
 	}
 
 	void SetInputEnabled(bool enabled)
@@ -213,7 +226,7 @@ namespace Shark::UI {
 
 			ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch, 0.25f);
 			ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch, 0.75f);
-			PushID();
+			ImGui::PushID(GenerateID());
 			return true;
 		}
 		return false;
@@ -223,7 +236,7 @@ namespace Shark::UI {
 	{
 		if (ImGui::GetCurrentTable())
 		{
-			PopID();
+			ImGui::PopID();
 			ImGui::PopStyleVar(1);
 			ImGui::EndTable();
 		}

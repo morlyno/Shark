@@ -146,7 +146,7 @@ namespace Shark {
 		UI::BeginControlsGrid();
 
 		TextureSpecification& spec = m_Texture->GetSpecification();
-		changed |= UI::ControlCombo("Format", spec.Format);
+		changed |= UI::Control("Format", spec.Format);
 
 		nativeTextureTooltip();
 		bool genMipsChanged = UI::Control("Generate Mipmap", spec.GenerateMips);
@@ -158,9 +158,9 @@ namespace Shark {
 			nativeTextureTooltip();
 		}
 
-		changed |= UI::ControlCombo("Filter", spec.Filter);
+		changed |= UI::Control("Filter", spec.Filter);
 		nativeTextureTooltip();
-		changed |= UI::ControlCombo("Wrap", spec.Wrap);
+		changed |= UI::Control("Wrap", spec.Wrap);
 		nativeTextureTooltip();
 		changed |= UI::Control("Max Anisotropy", spec.MaxAnisotropy, 0.05f, 0, capabilities.MaxAnisotropy);
 		nativeTextureTooltip();

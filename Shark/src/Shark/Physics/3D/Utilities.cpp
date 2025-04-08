@@ -25,4 +25,27 @@ namespace Shark::JoltUtils {
 		return result;
 	}
 
+	JPH::EMotionQuality GetMotionQuality(CollisionDetectionType collisionDetection)
+	{
+		switch (collisionDetection)
+		{
+			case CollisionDetectionType::Discrete: return JPH::EMotionQuality::Discrete;
+			case CollisionDetectionType::Continuous: return JPH::EMotionQuality::LinearCast;
+		}
+		SK_CORE_VERIFY(false, "Unkown CollisionDetectionType");
+		return JPH::EMotionQuality::Discrete;
+	}
+
+	JPH::EAllowedDOFs ConvertLockedAxesToAllowedDOFs(Axis lockedAxes)
+	{
+		JPH::EAllowedDOFs dofs = JPH::EAllowedDOFs::All;
+		if ((lockedAxes & Axis::TranslationX) == Axis::TranslationX) dofs &= ~JPH::EAllowedDOFs::TranslationX;
+		if ((lockedAxes & Axis::TranslationY) == Axis::TranslationY) dofs &= ~JPH::EAllowedDOFs::TranslationY;
+		if ((lockedAxes & Axis::TranslationZ) == Axis::TranslationZ) dofs &= ~JPH::EAllowedDOFs::TranslationZ;
+		if ((lockedAxes & Axis::RotationX) == Axis::RotationX) dofs &= ~JPH::EAllowedDOFs::RotationX;
+		if ((lockedAxes & Axis::RotationY) == Axis::RotationY) dofs &= ~JPH::EAllowedDOFs::RotationY;
+		if ((lockedAxes & Axis::RotationZ) == Axis::RotationZ) dofs &= ~JPH::EAllowedDOFs::RotationZ;
+		return dofs;
+	}
+
 }

@@ -1,6 +1,6 @@
 Scene:
   Name: MeshTest
-  ActiveCamera: 5500513560476447937
+  ActiveCamera: 9526599818921722233
   Entities:
     - Entity: 270824792768259062
       TagComponent:
@@ -106,6 +106,38 @@ Scene:
         MaterialTable:
           0: 15318099279608298917
         Visible: true
+    - Entity: 3869254921732704256
+      TagComponent:
+        Name: Sphere
+      TransformComponent:
+        Translation: [53.5707245, 20.7855148, -52.9787025]
+        Rotation: [0, 0, 0]
+        Scale: [2.98000002, 2.98000002, 2.98000002]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      StaticMeshComponent:
+        StaticMesh: 3444792770354131160
+        MaterialTable:
+          0: 15318099279608298917
+        Visible: true
+      RigidBodyComponent:
+        Type: Dynamic
+        Mass: 1
+        LinearDrag: 0.0500000007
+        AngularDrag: 0.0500000007
+        DisableGravity: false
+        IsSensor: false
+        InitialLinearVelocity: [0, 0, 0]
+        InitialAngularVelocity: [0, 0, 0]
+        MaxLinearVelocity: 500
+        MaxAngularVelocity: 50
+        CollisionDetection: Discrete
+        LockedAxes: TranslationX|TranslationZ
+      SphereColliderComponent:
+        Radius: 0.5
+        Offset: [0, 0, 0]
     - Entity: 4183281679393780058
       TagComponent:
         Name: Floor
@@ -232,6 +264,38 @@ Scene:
         MaterialTable:
           {}
         Visible: true
+    - Entity: 8212112938974420410
+      TagComponent:
+        Name: Sphere
+      TransformComponent:
+        Translation: [52.3332024, -16.3317223, -54.1842575]
+        Rotation: [0, 0, 0]
+        Scale: [39.5714226, 39.5714226, 39.5714226]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      StaticMeshComponent:
+        StaticMesh: 3444792770354131160
+        MaterialTable:
+          {}
+        Visible: true
+      RigidBodyComponent:
+        Type: Static
+        Mass: 1
+        LinearDrag: 0.0500000007
+        AngularDrag: 0.0500000007
+        DisableGravity: false
+        IsSensor: false
+        InitialLinearVelocity: [0, 0, 0]
+        InitialAngularVelocity: [0, 0, 0]
+        MaxLinearVelocity: 500
+        MaxAngularVelocity: 50
+        CollisionDetection: Discrete
+        LockedAxes: 0
+      SphereColliderComponent:
+        Radius: 0.5
+        Offset: [0, 0, 0]
     - Entity: 9114269493543827594
       TagComponent:
         Name: Sphere
@@ -254,7 +318,7 @@ Scene:
       TransformComponent:
         Translation: [50, 0, -50]
         Rotation: [0, -0, 0]
-        Scale: [50, 50, 50]
+        Scale: [50, 1, 50]
       RelationshipComponent:
         Parent: 9759562540233492610
         Children:
@@ -264,6 +328,23 @@ Scene:
         MaterialTable:
           0: 15318099279608298917
         Visible: true
+    - Entity: 9526599818921722233
+      TagComponent:
+        Name: PhysicsTestCamera1
+      TransformComponent:
+        Translation: [59.0478439, 22.7726974, -1.62035763]
+        Rotation: [-2.77490687, -0.123295933, -3.14159274]
+        Scale: [0.999999821, 0.999999821, 0.999999881]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      CameraComponent:
+        IsPerspective: true
+        PerspectiveFOV: 44.9999924
+        OrthographicSize: 10
+        Near: 0.300000012
+        Far: 1000
     - Entity: 9758330948252553706
       TagComponent:
         Name: Floor
@@ -349,6 +430,23 @@ Scene:
         Parent: 1433670031225774554
         Children:
           - 6014118642351756630
+    - Entity: 10497725842779362001
+      TagComponent:
+        Name: PhysicsTestCamera0
+      TransformComponent:
+        Translation: [78.1443481, 0.470512271, -29.5763092]
+        Rotation: [2.92853713, -0.888617098, -3.14159274]
+        Scale: [0.999999821, 0.999999821, 0.999999881]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      CameraComponent:
+        IsPerspective: true
+        PerspectiveFOV: 44.9999924
+        OrthographicSize: 10
+        Near: 0.300000012
+        Far: 1000
     - Entity: 10788334564415020820
       TagComponent:
         Name: Floor

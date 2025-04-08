@@ -1,7 +1,7 @@
 Project:
   Name: Sandbox
   Assets: Assets
-  StartupScene: 12244781757691949041
+  StartupScene: 13757110640731467433
   ScriptModulePath: Assets/Scripts/Binaries/Sandbox.dll
   Physics:
     Gravity: [0, -9.81000042]
@@ -23,6 +23,9 @@ Project:
       Enabled: true
       Level: Warn
     - Name: Core
+      Enabled: true
+      Level: Trace
+    - Name: Editor
       Enabled: true
       Level: Trace
     - Name: Filesystem

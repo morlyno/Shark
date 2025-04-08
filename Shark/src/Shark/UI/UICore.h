@@ -32,11 +32,8 @@ namespace Shark::UI {
 
 	ImGuiID GetCurrentID();
 	const char* GenerateID();
-	const char* GenerateID(const char* label);
+	const char* GenerateID(std::string_view label);
 	ImGuiID GenerateUniqueID();
-
-	void PushID();
-	void PopID();
 
 	inline void ShiftCursor(const ImVec2& delta) { ImGui::SetCursorPos(ImGui::GetCursorPos() + delta); }
 	inline void ShiftCursor(float deltaX, float deltaY) { ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(deltaX, deltaY)); }

@@ -63,8 +63,7 @@ namespace Shark {
 
 	Ref<PhysicsScene> PhysicsSystem::CreateScene(Ref<Scene> scene)
 	{
-		auto system = Ref<PhysicsScene>::Create(scene);
-		return system;
+		return Ref<PhysicsScene>::Create(scene);
 	}
 
 	JPH::TempAllocator* PhysicsSystem::GetAllocator()

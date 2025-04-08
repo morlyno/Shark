@@ -4,6 +4,8 @@
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Body/MotionQuality.h>
+#include <Jolt/Physics/Body/AllowedDOFs.h>
 
 #include <glm/glm.hpp>
 
@@ -17,5 +19,8 @@ namespace Shark::JoltUtils {
 	inline JPH::Quat ToJPH(glm::quat quat) { return JPH::Quat(quat.x, quat.y, quat.z, quat.w); }
 
 	JPH::EMotionType GetMotionType(BodyType bodyType);
+	JPH::EMotionQuality GetMotionQuality(CollisionDetectionType collisionDetection);
+	JPH::EAllowedDOFs ConvertLockedAxesToAllowedDOFs(Axis lockedAxes);
+
 
 }

@@ -80,6 +80,7 @@ namespace Shark {
 	std::filesystem::path g_AngleRightIconPath = "Resources/Icons/Misc/AngleRight.png";
 	std::filesystem::path g_SettingsIconPath = "Resources/Icons/Misc/Settings.png";
 	std::filesystem::path g_SearchIconPath = "Resources/Icons/Misc/Search.png";
+	std::filesystem::path g_ResetIconPath = "Resources/Icons/Misc/Reset.png";
 	std::filesystem::path g_AlphaBackgroundPath = "Resources/Textures/AlphaBackground.sktex";
 
 	void EditorResources::Init()
@@ -110,6 +111,7 @@ namespace Shark {
 		AngleRightIcon  = serializer->TryLoad(g_AngleRightIconPath);
 		SettingsIcon    = serializer->TryLoad(g_SettingsIconPath);
 		SearchIcon      = serializer->TryLoad(g_SearchIconPath);
+		ResetIcon       = serializer->TryLoad(g_ResetIconPath);
 
 		AlphaBackground = serializer->TryLoad(g_AlphaBackgroundPath);
 
@@ -161,6 +163,7 @@ namespace Shark {
 		AngleRightIcon = nullptr;
 		SettingsIcon = nullptr;
 		SearchIcon = nullptr;
+		ResetIcon = nullptr;
 
 		WindowCloseIcon = nullptr;
 		WindowMinimizeIcon = nullptr;
@@ -172,13 +175,16 @@ namespace Shark {
 
 	static void ReloadIconFromDisc(Ref<Texture2D> icon, const std::filesystem::path& filepath)
 	{
-		Buffer& imageData = icon->GetBuffer();
-		imageData.Release();
+		Buffer imageData;
+		TextureSpecification specification;
 
-		TextureSpecification& specification = icon->GetSpecification();
-		imageData = TextureImporter::ToBufferFromFile(filepath, specification.Format, specification.Width, specification.Height);
-
-		icon->Invalidate();
+		auto* serializer = AssetSerializer::GetSerializer<TextureSerializer>();
+		if (serializer->LoadImageData(filepath, specification, imageData))
+		{
+			icon->GetSpecification() = specification;
+			icon->GetBuffer() = imageData;
+			icon->Invalidate();
+		}
 	}
 
 	void EditorResources::ReloadIcons()
@@ -201,6 +207,7 @@ namespace Shark {
 		ReloadIconFromDisc(AngleRightIcon, g_AngleRightIconPath);
 		ReloadIconFromDisc(SettingsIcon, g_SettingsIconPath);
 		ReloadIconFromDisc(SearchIcon, g_SearchIconPath);
+		ReloadIconFromDisc(ResetIcon, g_ResetIconPath);
 		ReloadIconFromDisc(AlphaBackground, g_AlphaBackgroundPath);
 	}
 

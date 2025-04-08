@@ -38,6 +38,7 @@ namespace Shark {
 		inline static Ref<Texture2D> AngleRightIcon;
 		inline static Ref<Texture2D> SettingsIcon;
 		inline static Ref<Texture2D> SearchIcon;
+		inline static Ref<Texture2D> ResetIcon;
 
 		inline static Ref<Texture2D> AlphaBackground;
 

@@ -17,6 +17,17 @@ namespace Shark {
 
 namespace Shark::UI {
 
+	struct ControlSettings
+	{
+		bool ResetButton = false;
+		float Reset = 0.0f;
+
+		float Speed = 0.05f;
+		float Min = 0.0f;
+		float Max = 0.0f;
+		const char* Format = nullptr;
+	};
+
 	bool ControlHelperBegin(ImGuiID id);
 	void ControlHelperEnd();
 
@@ -65,43 +76,14 @@ namespace Shark::UI {
 	bool ControlColor(std::string_view label, glm::vec3& color);
 	bool ControlColor(std::string_view label, glm::vec4& color);
 
+	glm::bvec2 Control(std::string_view label, glm::vec2& val, const glm::bvec2& isMixed, const ControlSettings& settings = {});
+	glm::bvec3 Control(std::string_view label, glm::vec3& val, const glm::bvec3& isMixed, const ControlSettings& settings = {});
+	glm::bvec3 ControlAngle(std::string_view label, glm::vec3& radians, const glm::bvec3& isMixed, const ControlSettings& settings = {});
+
 	bool ControlCombo(std::string_view label, bool& value, const std::string_view falseValue, const std::string_view trueValue);
 
 	template<typename TEnum>
-		requires std::is_enum_v<TEnum>
-	bool ControlCombo(std::string_view label, TEnum& selected)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		auto preview = magic_enum::enum_name(selected);
-		bool modified = false;
-
-		ImGui::SetNextItemWidth(-1.0f);
-		if (UI::BeginCombo(UI::GenerateID(), preview.data()))
-		{
-			constexpr auto options = magic_enum::enum_entries<TEnum>();
-			for (auto option : options)
-			{
-				const bool isSelected = option.first == selected;
-				if (ImGui::Selectable(option.second.data(), isSelected))
-				{
-					selected = option.first;
-					modified = true;
-				}
-
-				if (isSelected)
-					ImGui::SetItemDefaultFocus();
-			}
-			UI::EndCombo();
-		}
-
-		ControlHelperEnd();
-		return modified;
-	}
+	bool Control(std::string_view label, TEnum& selected) requires std::is_enum_v<TEnum>;
 
 	template<typename TFunc>
 	bool ControlCombo(std::string_view label, std::string_view preview, const TFunc& func);
@@ -125,6 +107,41 @@ namespace Shark::UI {
 	template<typename TFunc>
 	auto ControlCustom(std::string_view label, const TFunc& func) -> std::invoke_result_t<TFunc>;
 
+}
+
+template<typename TEnum>
+bool Shark::UI::Control(std::string_view label, TEnum& selected) requires std::is_enum_v<TEnum>
+{
+	if (!ControlHelperBegin(ImGui::GetID(label)))
+		return false;
+
+	ImGui::Text(label);
+	ImGui::TableNextColumn();
+
+	auto preview = magic_enum::enum_name(selected);
+	bool modified = false;
+
+	ImGui::SetNextItemWidth(-1.0f);
+	if (UI::BeginCombo(UI::GenerateID(), preview.data()))
+	{
+		constexpr auto options = magic_enum::enum_entries<TEnum>();
+		for (auto option : options)
+		{
+			const bool isSelected = option.first == selected;
+			if (ImGui::Selectable(option.second.data(), isSelected))
+			{
+				selected = option.first;
+				modified = true;
+			}
+
+			if (isSelected)
+				ImGui::SetItemDefaultFocus();
+		}
+		UI::EndCombo();
+	}
+
+	ControlHelperEnd();
+	return modified;
 }
 
 template<typename TFunc>
