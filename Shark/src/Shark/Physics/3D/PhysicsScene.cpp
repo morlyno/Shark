@@ -20,62 +20,16 @@ namespace Shark {
 	///// Broad Phase Layer Interface ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	BroadPhaseLayerInterface::BroadPhaseLayerInterface()
-	{
-		m_ObjectToBroadPhase[Layers::NonMoving] = BroadPhaseLayers::NonMoving;
-		m_ObjectToBroadPhase[Layers::Moving] = BroadPhaseLayers::Moving;
-	}
-
-	JPH::uint BroadPhaseLayerInterface::GetNumBroadPhaseLayers() const
-	{
-		return Layers::Count;
-	}
-
-	JPH::BroadPhaseLayer BroadPhaseLayerInterface::GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const
-	{
-		JPH_ASSERT(inLayer < Layers::Count);
-		return m_ObjectToBroadPhase[inLayer];
-	}
-
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
 	const char* BroadPhaseLayerInterface::GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const
 	{
-		switch ((JPH::BroadPhaseLayer::Type)inLayer)
-		{
-			case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NonMoving: return "NonMoving";
-			case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::Moving: return "Moving";
-			default: JPH_ASSERT(false); return "Invalid";
-		}
+		if (inLayer == 0)
+			return "Default";
+
+		JPH_ASSERT(false);
+		return "Invalid";
 	}
 #endif
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	///// Object Vs Broad Phase Layer Filter ////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	bool ObjectVsBroadPhaseLayerFilter::ShouldCollide([[maybe_unused]] JPH::ObjectLayer inLayer1, [[maybe_unused]] JPH::BroadPhaseLayer inLayer2) const
-	{
-		switch (inLayer1)
-		{
-			case Layers::NonMoving: return inLayer2 == BroadPhaseLayers::Moving;
-			case Layers::Moving: return true;
-			default: JPH_ASSERT(false); return false;
-		}
-	}
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	///// Object Layer Pair Filter //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	bool ObjectLayerPairFilter::ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const
-	{
-		switch (inLayer1)
-		{
-			case Layers::NonMoving: return inLayer2 == Layers::Moving;
-			case Layers::Moving: return true;
-			default: JPH_ASSERT(false); return false;
-		}
-	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///// Physics System ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +103,7 @@ namespace Shark {
 													  JoltUtils::ToJPH(transform.Translation),
 													  JoltUtils::ToJPH(transform.GetRotationQuat()),
 													  JoltUtils::GetMotionType(rigidbody.Type),
-													  rigidbody.Layer);
+													  JPH::ObjectLayer{ 0 });
 
 			settings.mLinearDamping = rigidbody.LinearDrag;
 			settings.mAngularDamping = rigidbody.AngularDrag;

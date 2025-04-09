@@ -9,42 +9,27 @@
 
 namespace Shark {
 
-	namespace Layers {
-		static constexpr JPH::ObjectLayer NonMoving = 0;
-		static constexpr JPH::ObjectLayer Moving = 1;
-		static constexpr JPH::ObjectLayer Count = 2;
-	}
-
-	namespace BroadPhaseLayers {
-		static constexpr JPH::BroadPhaseLayer NonMoving{ 0 };
-		static constexpr JPH::BroadPhaseLayer Moving{ 1 };
-	}
-
 	class BroadPhaseLayerInterface final : public JPH::BroadPhaseLayerInterface
 	{
 	public:
-		BroadPhaseLayerInterface();
-		virtual JPH::uint GetNumBroadPhaseLayers() const override;
-		virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override;
+		virtual JPH::uint GetNumBroadPhaseLayers() const override { return 1; }
+		virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override { return JPH::BroadPhaseLayer{ 0 }; }
 
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
 		virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override;
 #endif
-
-	private:
-		JPH::BroadPhaseLayer m_ObjectToBroadPhase[Layers::Count];
 	};
 
 	class ObjectVsBroadPhaseLayerFilter final : public JPH::ObjectVsBroadPhaseLayerFilter
 	{
 	public:
-		virtual bool ShouldCollide([[maybe_unused]] JPH::ObjectLayer inLayer1, [[maybe_unused]] JPH::BroadPhaseLayer inLayer2) const;
+		virtual bool ShouldCollide([[maybe_unused]] JPH::ObjectLayer inLayer1, [[maybe_unused]] JPH::BroadPhaseLayer inLayer2) const { return true; }
 	};
 
 	class ObjectLayerPairFilter final : public JPH::ObjectLayerPairFilter
 	{
 	public:
-		virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const override;
+		virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const override { return true; }
 	};
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

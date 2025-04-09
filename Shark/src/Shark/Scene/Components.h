@@ -358,8 +358,6 @@ namespace Shark {
 
 		CollisionDetectionType CollisionDetection = CollisionDetectionType::Discrete;
 		Axis LockedAxes = Axis::None;
-
-		PhysicsLayer Layer = Physics3D::DefaultLayers::Moving;
 	};
 
 	struct SphereColliderComponent
